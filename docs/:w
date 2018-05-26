@@ -7,7 +7,7 @@
 > 2. doxygen (default installed)
 
 ```bash
-[user@hostname]$ jumbo install python-flask
+[user@cp01-sys-hic-k4012.cp01.baidu.com]$ jumbo install python-flask
 ```
 
 ## Start
@@ -21,4 +21,4 @@
 
 ```
 
-then open browser and open the url `host_ip:8888`
+then open browser and open the url `cp01-sys-hic-k4012.cp01.baidu.com:8888`
