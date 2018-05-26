@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+import "node.proto";
+import "tensor.proto";
+
+// Anakin Graph version
+// use to judge the version of given binary model.
+message Version{
+    int32 major = 1;
+    int32 minor = 2;
+    int32 patch = 3;
+    int64 version = 4;
+};
+
+// info summary of optimized anakin graph
+message Info {
+	// temp memory used by anakin edge [MB] [ optional ]
+	int32 temp_mem_used = 1;
+	// temp memory used by old version [MB] [ optional ]
+	int32 original_temp_mem_used = 2;
+	// system mem used by nvidia / amd GPU system resource [MB] [ optional ]
+	int32 system_mem_used = 3;
+	// mem used by model [ optional ]
+	int32 model_mem_used = 4;
+
+	// wether optimized flag [ require ]
+	bool is_optimized = 10;	
+};
+
+// string list 
+message List {
+	repeated string val = 1;	
+};
+
+// Anakin Graph define
+message GraphProto {
+// graph name
+string name = 1;
+
+// nodes in graph
+repeated NodeProto nodes = 2;
+
+// edge in graph
+// map: node name --->  node name
+// edges saves storage of anakin model.
+map<string, List> edges_in = 3;
+map<string, List> edges_out =4;
+
+// edges info [optional]
+// map: node_name_0 + "_" + node_name_1 ---> edge tensor (tensor not hold data)
+// ( only used when anakin generates optimized model )
+map<string, TensorProto> edges_info = 5;
+
+// graph input node name.
+repeated string ins = 6;
+
+// graph output node name.
+repeated string outs = 7;
+
+// graph version which is equal to anakin version.
+Version version = 10;
+
+// info about optimization graph [ require ]
+Info summary = 11;
+};
+
