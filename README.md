@@ -36,8 +36,9 @@ Please refer to our [release announcement]() to track the latest feature of Anak
       reducing the overall memory overhead.
 
       - Assembly level optimization. Saber is Anakin's underlying DNN library, which
-      is deeply optimized at assembly level. Under the CNN network, Anakin's performance 
-      is better than TensorRT, NCNN and Tensorflow-lite;
+      is deeply optimized at assembly level. Performance comparison between Anakin, 
+      TensorRT, NCNN, Tensorflow-lite, please refer to the [Benchmark Readme]()
+
 
 
 ## Installation
