@@ -68,4 +68,4 @@ We provide [English](docs/Manual/Tutorial_en.md) and
 You are welcome to submit questions and bug reports as [Github Issues](https://github.com/PaddlePaddle/Anakin/issues).
 
 ## Copyright and License
-jjAnakin is provided under the [Apache-2.0 license](LICENSE).
+Anakin is provided under the [Apache-2.0 license](LICENSE).
