@@ -1,11 +1,6 @@
 # Anakin
 
 
-[![Build Status]()]()
-[![Documentation Status](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)]()
-[![Documentation Status](https://img.shields.io/badge/中文文档-最新-brightgreen.svg)]()
-[![Coverage Status]()]()
-[![Release](https://img.shields.io/github/release/PaddlePaddle/Paddle.svg)]()
 [![License](https://img.shields.io/badge/license-Apache%202-blue.svg)](LICENSE)
 
 
@@ -36,25 +31,24 @@ Please refer to our [release announcement]() to track the latest feature of Anak
       reducing the overall memory overhead.
 
       - Assembly level optimization. Saber is Anakin's underlying DNN library, which
-      is deeply optimized at assembly level. Performance comparison between Anakin, 
-      TensorRT, NCNN, Tensorflow-lite, please refer to the [Benchmark Readme]()
-
+      is deeply optimized at assembly level. Performance comparison between Anakin, TensorRT
+      and Tensorflow-lite, please refer to the benchmark tests.
 
 
 ## Installation
 
 It is recommended to check out the
-[Docker installation guide]()
+[Docker installation guide](docker/README.md).
 before looking into the
-[build from source guide]().
+[build from source guide](docs/Manual/INSTALL_en.md).
 
 ## Benchmark
-It is recommended to check out the [Benchmark Readme]()
+It is recommended to check out the [Benchmark Readme](benchmark/README.md)
 
 ## Documentation
 
-We provide [English]() and
-[Chinese]() documentation.
+We provide [English](docs/Manual/Tutorial_en.md) and
+[Chinese](docs/Manual/Tutorial_ch.md) documentation.
 
 - [Anakin developer guide]()
 
@@ -71,8 +65,7 @@ We provide [English]() and
 
 ## Ask Questions
 
-You are welcome to submit questions and bug reports as [Github Issues]().
+You are welcome to submit questions and bug reports as [Github Issues](https://github.com/PaddlePaddle/Anakin/issues).
 
 ## Copyright and License
 Anakin is provided under the [Apache-2.0 license](LICENSE).
-
