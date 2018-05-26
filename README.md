@@ -1,10 +1,10 @@
 # Anakin
 
 
-[![Build Status]()]()
+[![Build Status](https://travis-ci.org/PaddlePaddle/Paddle.svg?branch=develop)]()
 [![Documentation Status](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)]()
 [![Documentation Status](https://img.shields.io/badge/中文文档-最新-brightgreen.svg)]()
-[![Coverage Status]()]()
+[![Coverage Status](https://coveralls.io/repos/github/PaddlePaddle/Paddle/badge)]()
 [![Release](https://img.shields.io/github/release/PaddlePaddle/Paddle.svg)]()
 [![License](https://img.shields.io/badge/license-Apache%202-blue.svg)](LICENSE)
 
