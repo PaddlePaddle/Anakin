@@ -5,7 +5,6 @@ namespace anakin{
 
 namespace saber{
 using namespace anakin::saber;
-#ifdef USE_X86_PLACE
 //! target wrapper
 template struct TargetWrapper<X86, __host_target>;
 
@@ -27,8 +26,6 @@ template class Tensor<X86, AK_HALF, NHWC>;
 template class Tensor<X86, AK_HALF, HW>;
 
 template struct Env<X86>;
-
-#endif
 
 } //namespace saber
 
