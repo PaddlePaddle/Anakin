@@ -32,9 +32,7 @@
 *.app
 
 # dir
-build
-android_build
-ios_build
-gpu_build
-output
-unit_test
+mkldnn_source
+mkldnn
+xbyak_source
+xbyak
