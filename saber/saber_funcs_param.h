@@ -71,7 +71,7 @@ struct ParamsRegion {
         _size=right._size;
         return *this;
     }
-    bool operator==(const ParamsRegion &right) {
+    bool operator==(const ParamsRegion &right) const {
         bool comp_eq = true;
         comp_eq = comp_eq && (_offset == right._offset);
         comp_eq = comp_eq && (_size == right._size);

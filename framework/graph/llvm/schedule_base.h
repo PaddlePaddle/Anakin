@@ -108,8 +108,8 @@ public:
             if(has(res)) _status[res].on();
         }
     }
-    inline void lock(ResType arg_0) { if(has(arg_0)) _status[arg_0].off();}
-    inline void free(ResType arg_0) { if(has(arg_0)) _status[arg_0].on();}
+    inline void lock(ResType& arg_0) { if(has(arg_0)) _status[arg_0].off();}
+    inline void free(ResType& arg_0) { if(has(arg_0)) _status[arg_0].on();}
     
     /**
     *  \brief whether the resource is accessible
