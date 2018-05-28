@@ -30,3 +30,11 @@
 *.exe
 *.out
 *.app
+
+# dir
+build
+android_build
+ios_build
+gpu_build
+output
+unit_test
