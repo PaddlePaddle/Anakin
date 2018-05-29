@@ -15,10 +15,7 @@
 #ifndef ANAKIN_SABER_FUNCS_IMPL_X86_SABER_POOLING_H
 #define ANAKIN_SABER_FUNCS_IMPL_X86_SABER_POOLING_H
 
-#include "saber/funcs/impl/impl_define.h"
-#include "saber/saber_types.h"
-#include "saber/funcs/impl/impl_base.h"
-#include "saber/saber_funcs_param.h"
+#include "saber/funcs/impl/impl_pooling.h"
 #include "saber/funcs/impl/x86/kernel/jit_uni_pool_kernel_f32.h"
 #include "saber/funcs/impl/x86/kernel/jit_generator.h"
 

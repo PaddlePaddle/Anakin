@@ -15,10 +15,7 @@
 #ifndef ANAKIN_SABER_FUNCS_IMPL_X86_SABER_ACTIVATION_H
 #define ANAKIN_SABER_FUNCS_IMPL_X86_SABER_ACTIVATION_H
 
-#include "saber/funcs/impl/impl_define.h"
-#include "saber/saber_types.h"
-#include "saber/funcs/impl/impl_base.h"
-#include "saber/saber_funcs_param.h"
+#include "saber/funcs/impl/impl_activation.h"
 
 namespace anakin {
 namespace saber {

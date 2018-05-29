@@ -15,10 +15,7 @@
 #ifndef ANAKIN_SABER_FUNCS_IMPL_X86_SABER_CONV_ACT_H
 #define ANAKIN_SABER_FUNCS_IMPL_X86_SABER_CONV_ACT_H
 
-#include "saber/funcs/impl/impl_define.h"
-#include "saber/saber_types.h"
-#include "saber/funcs/impl/impl_base.h"
-#include "saber/saber_funcs_param.h"
+#include "saber/funcs/impl/impl_conv_act.h"
 #include "saber/funcs/impl/x86/jit_call_conf.h"
 #include "saber/funcs/impl/x86/jit_uni_dw_convolution.h"
 #include "saber/funcs/impl/x86/jit_avx512_conv1x1_act.h"

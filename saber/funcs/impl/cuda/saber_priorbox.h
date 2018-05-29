@@ -16,7 +16,7 @@
 #ifndef ANAKIN_SABER_FUNCS_CUDA_SABER_PRIORBOX_H
 #define ANAKIN_SABER_FUNCS_CUDA_SABER_PRIORBOX_H
 
-#include "saber/funcs/impl/impl_define.h"
+#include "saber/funcs/impl/impl_priorbox.h"
 
 namespace anakin{
 

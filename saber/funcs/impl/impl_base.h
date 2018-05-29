@@ -39,23 +39,19 @@ public:
     virtual SaberStatus init(const std::vector<inTensor*>& inputs,
               std::vector<outTensor*>& outputs,
               Param &param, Context<targetType_t > &ctx) {
-
-        std::cout << "Shouldn't in here.InImplBase" << std::endl;
-        return SaberUnImplError;
+      return SaberUnImplError;
     }
 
     virtual SaberStatus create(const std::vector<inTensor*>& inputs,
                 std::vector<outTensor*>& outputs,
                 Param &param, Context<targetType_t> &ctx) {
-        std::cout << "Shouldn't in here.create" << std:: endl;
-        return SaberUnImplError;
+      return SaberUnImplError;
     }
 
     virtual SaberStatus dispatch(const std::vector<inTensor*>& inputs,
                   std::vector<outTensor*>& outputs,
                   Param &param) {
-        std::cout << "Shouldn't in here.dispatch" << std::endl;
-        return SaberUnImplError;
+      return SaberUnImplError;
     }
 
 protected:

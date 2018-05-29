@@ -16,7 +16,7 @@
 #ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_CUDNN_CONV2D_H
 #define ANAKIN_SABER_FUNCS_IMPL_CUDA_CUDNN_CONV2D_H
 
-#include "saber/funcs/impl/impl_define.h"
+#include "saber/funcs/impl/impl_conv.h"
 #include "saber/funcs/impl/cuda/cudnn_helper.h"   
 #include <cudnn.h>
 
