@@ -63,6 +63,19 @@ static void readTensorData(Tensor<X86, AK_FLOAT, NCHW> tensor, const char* locat
         fclose(fp);
     }
 }
+static void readTensorData(Tensor<X86, AK_FLOAT, NCHW_C16> tensor, const char* locate) {
+    typedef typename Tensor<X86, AK_FLOAT, NCHW>::Dtype Dtype;
+    FILE* fp = fopen(locate, "rb");
+
+    if (fp == 0) {
+                LOG(ERROR) << "file open failed " << locate;
+
+    } else {
+                LOG(INFO) << "file open success [" << locate << " ],read " << tensor.valid_shape().count();
+        fread(tensor.mutable_data(), sizeof(Dtype), tensor.valid_size(), fp);
+        fclose(fp);
+    }
+}
 }
 }
 

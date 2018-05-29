@@ -198,7 +198,7 @@ Dtype Sigmoid(const Dtype a) {
 //}
 
 template<>
-SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispatch(\
+SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW_C16, NCHW_C16, NCHW_C16>::dispatch(\
         const std::vector<DataTensor_in*>& inputs,
         std::vector<DataTensor_out*>& outputs,
         GruParam<OpTensor>& param) {
@@ -206,8 +206,8 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispa
     const OpDataType* weight_h = _weights_h2h.data();
     const OpDataType* weight_w = _weights_i2h.data();
     const OpDataType* bias = _weights_bias.data();
-
-    std::vector<int> offset_vec = inputs[0]->get_seq_offset();
+    std::vector<std::vector<int> >lod=inputs[0]->get_seq_offset();
+    std::vector<int> offset_vec = lod[lod.size()-1];
     bool is_hw2seq = offset_vec.size() > 2;
     int word_sum = is_hw2seq ? offset_vec[offset_vec.size() - 1] : inputs[0]->channel();
     const OutDataType* h_init = nullptr;
@@ -321,6 +321,6 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispa
     }
 
 };
-        template class SaberGru<X86,AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
+        template class SaberGru<X86,AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW_C16, NCHW_C16, NCHW_C16>;
 }
 }

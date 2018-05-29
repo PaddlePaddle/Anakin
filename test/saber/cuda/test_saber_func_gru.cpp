@@ -69,18 +69,20 @@ void anakin_NV_gemm_2(cublasHandle_t handle, const int M, const int N, const int
 //#define FAKEINPUT
 #define GRUOFFSET
 //#define CUDNNGRU
-//#define TEST_X86
+#define TEST_X86
 void test_saber_gru(int sequence_size = 2, int batch_size = 1, int word_size = 22,
                     int hidden_size = 33) {
 
 #ifdef TEST_X86
     Context<X86> ctx_dev(0, 1, 1);
-    typedef Tensor<X86, AK_FLOAT, NCHW> TensorDf4;
+    typedef Tensor<X86, AK_FLOAT, NCHW_C16> TensorDf4;
+    typedef Tensor<X86, AK_FLOAT, NCHW_C16> TensorHf4;
 #else
     Context<NV> ctx_dev(0, 1, 1);
     typedef Tensor<NV, AK_FLOAT, NCHW> TensorDf4;
-#endif
     typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
+#endif
+
 
 #ifdef GRUOFFSET
     std::vector<int> offsets = {0, 30};
@@ -249,7 +251,7 @@ void test_saber_gru(int sequence_size = 2, int batch_size = 1, int word_size = 2
 #endif
 #endif
 #ifdef TEST_X86
-    Gru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW> dev_gru;
+    Gru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW_C16, NCHW_C16, NCHW_C16> dev_gru;
     SaberTimer<X86> t1;
 #else
     Gru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW> dev_gru;
