@@ -21,7 +21,7 @@
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/core/tensor.h"
 #include "saber/core/context.h"
-
+#include "saber/funcs/impl/impl_pooling.h"
 namespace anakin{
 
 namespace saber{

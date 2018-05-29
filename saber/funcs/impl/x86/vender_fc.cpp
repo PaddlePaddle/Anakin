@@ -1,5 +1,3 @@
-
-#include "saber/funcs/impl/impl_define.h"
 #include "saber/funcs/impl/x86/vender_fc.h"
 #include "mkl_cblas.h"
 

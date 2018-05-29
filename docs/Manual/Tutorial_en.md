@@ -92,7 +92,7 @@ AK_TENSOR | / | Anakin Tensor
 3. <span id = 'layout'>LayOutType </span>
 
 Anakin LayOutType ( Tensor LayOut ) | Tensor Dimention | Tensor Support | Op Support
-:---: | :---: | :---: | :---: | :---: |
+:---: | :---: | :---: | :---: |
 W | 1-D | YES | NO
 HW | 2-D | YES | NO
 WH | 2-D | YES | NO
