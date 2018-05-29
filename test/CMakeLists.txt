@@ -45,9 +45,9 @@ foreach(SRC_NAME ${ANAKIN_TEST_CASE_SRC})
 	list(GET SEXY_LIST 0 TEST_CASE_NAME)
 	add_executable(${TEST_CASE_NAME}  ${SRC_NAME})
 	if(BUILD_SHARED)
-        	target_link_libraries(${TEST_CASE_NAME} ${anakin_lib_so} ${ANAKIN_LINKER_LIBS})
+        	target_link_libraries(${TEST_CASE_NAME} ${anakin_lib_so})
     	else()
-        	target_link_libraries(${TEST_CASE_NAME} ${anakin_lib_static} ${ANAKIN_LINKER_LIBS})
+        	target_link_libraries(${TEST_CASE_NAME} ${anakin_lib_static})
     	endif()	
 	set_target_properties(${TEST_CASE_NAME} PROPERTIES
 						RUNTIME_OUTPUT_DIRECTORY 
