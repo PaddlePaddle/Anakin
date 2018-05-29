@@ -155,16 +155,27 @@ inline void setRNNDesc(cudnnRNNDescriptor_t* rnnDesc,
                        cudnnRNNMode_t mode
 )
 {
-    CUDNN_CHECK(cudnnSetRNNDescriptor(cudnnHandle,
-                                      *rnnDesc,
+#if CUDNN_MAJOR >= 6
+    CUDNN_CHECK(cudnnSetRNNDescriptor_v6(cudnnHandle,
+                                         *rnnDesc,
+                                         hiddenSize,
+                                         numLayers,
+                                         dropoutDesc,
+                                         CUDNN_LINEAR_INPUT,
+                                         numDirection ==2? CUDNN_BIDIRECTIONAL : CUDNN_UNIDIRECTIONAL,
+                                         mode,
+                                         CUDNN_RNN_ALGO_STANDARD,
+                                         cudnnTypeWrapper<Dtype>::type ));
+#else
+    CUDNN_CHECK(cudnnSetRNNDescriptor(*rnnDesc,
                                       hiddenSize,
                                       numLayers,
                                       dropoutDesc,
                                       CUDNN_LINEAR_INPUT,
                                       numDirection ==2? CUDNN_BIDIRECTIONAL : CUDNN_UNIDIRECTIONAL,
                                       mode,
-                                      CUDNN_RNN_ALGO_STANDARD,
                                       cudnnTypeWrapper<Dtype>::type ));
+#endif
 }
 template <typename Dtype>
 inline void setTensor4dDesc(cudnnTensorDescriptor_t* desc,
