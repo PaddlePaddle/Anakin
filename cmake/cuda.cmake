@@ -72,8 +72,10 @@ endmacro()
 # ----------------------------------------------------------------------------
 macro(anakin_find_cudnn)
 	set(CUDNN_ROOT "" CACHE PATH "CUDNN root dir.")
-  	find_path(CUDNN_INCLUDE_DIR cudnn.h PATHS ${CUDNN_ROOT} $ENV{CUDNN_ROOT} 
-											  ${ANAKIN_ROOT}/third-party/cudnn/include NO_DEFAULT_PATH)
+  	find_path(CUDNN_INCLUDE_DIR cudnn.h PATHS ${CUDNN_ROOT} 
+						  $ENV{CUDNN_ROOT} 
+						  $ENV{CUDNN_ROOT}/include
+						  ${ANAKIN_ROOT}/third-party/cudnn/include NO_DEFAULT_PATH)
     if(BUILD_SHARED)
         find_library(CUDNN_LIBRARY NAMES libcudnn.so 
                                PATHS ${CUDNN_INCLUDE_DIR}/../lib64/ ${CUDNN_INCLUDE_DIR}/
@@ -89,15 +91,15 @@ macro(anakin_find_cudnn)
 		file(READ ${CUDNN_INCLUDE_DIR}/cudnn.h CUDNN_FILE_VERSION)
 		string(REGEX MATCH "define CUDNN_MAJOR * +([0-9]+)"
        			CUDNN_VERSION_MAJOR "${CUDNN_FILE_VERSION}")
-    	string(REGEX REPLACE "define CUDNN_MAJOR * +([0-9]+)" "\\1"
+    		string(REGEX REPLACE "define CUDNN_MAJOR * +([0-9]+)" "\\1"
        			CUDNN_VERSION_MAJOR "${CUDNN_VERSION_MAJOR}")
-    	string(REGEX MATCH "define CUDNN_MINOR * +([0-9]+)"
+    		string(REGEX MATCH "define CUDNN_MINOR * +([0-9]+)"
        			CUDNN_VERSION_MINOR "${CUDNN_FILE_VERSION}")
-    	string(REGEX REPLACE "define CUDNN_MINOR * +([0-9]+)" "\\1"
+    		string(REGEX REPLACE "define CUDNN_MINOR * +([0-9]+)" "\\1"
        			CUDNN_VERSION_MINOR "${CUDNN_VERSION_MINOR}")
-    	string(REGEX MATCH "define CUDNN_PATCHLEVEL * +([0-9]+)"
+    		string(REGEX MATCH "define CUDNN_PATCHLEVEL * +([0-9]+)"
        			CUDNN_VERSION_PATCH "${CUDNN_FILE_VERSION}")
-    	string(REGEX REPLACE "define CUDNN_PATCHLEVEL * +([0-9]+)" "\\1"
+    		string(REGEX REPLACE "define CUDNN_PATCHLEVEL * +([0-9]+)" "\\1"
        			CUDNN_VERSION_PATCH "${CUDNN_VERSION_PATCH}")
 		#message(STATUS "Found cudnn version ${CUDNN_VERSION_MAJOR}.${CUDNN_VERSION_MINOR}.${CUDNN_VERSION_PATCH}")
 		set(Cudnn_VERSION ${CUDNN_VERSION_MAJOR}.${CUDNN_VERSION_MINOR}.${CUDNN_VERSION_PATCH})
@@ -135,7 +137,7 @@ macro(anakin_find_cuda)
 	    	if(USE_CURAND)
 	    		list(APPEND ANAKIN_LINKER_LIBS ${CUDA_curand_LIBRARY})
 	    	endif()
-	    	list(APPEND ANAKIN_LINKER_LIBS ${CUDA_LIBRARIES})
+	    	list(APPEND ANAKIN_LINKER_LIBS ${CUDA_CUDART_LIBRARY})
 	    else()
 	    	message(FATAL_ERROR "Cuda SHARED lib Could not found !")	
 	    endif()
@@ -166,7 +168,6 @@ macro(anakin_find_cuda)
 	# build cuda part for local machine.
     if(BUILD_CROSS_PLANTFORM)
         anakin_detect_arch()
-	else()
         if(BUILD_FAT_BIN)
 		    message(STATUS "Building fat-bin for cuda code !")
 		    anakin_set_nvcc_archs_info(ANAKIN_ARCH_LIST)
