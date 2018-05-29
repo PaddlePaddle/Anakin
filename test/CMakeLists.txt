@@ -17,9 +17,14 @@ anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/core "cpp" ANAKIN_T
 anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/graph "cpp" ANAKIN_TEST_CASE_SRC)
 anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/operators "cpp" ANAKIN_TEST_CASE_SRC)
 anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/net "cpp" ANAKIN_TEST_CASE_SRC)
-#anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/saber "cpp" ANAKIN_TEST_CASE_SRC)
+
+if(NVIDIA_GPU)
 anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/saber/cuda "cpp" ANAKIN_TEST_CASE_SRC)
+endif()
+
+if(USE_X86_PLACE)
 anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/saber/x86 "cpp" ANAKIN_TEST_CASE_SRC)
+endif()
 
 if(USE_ARM_PLACE) #build unit test for arm devices
 	anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/saber/arm "cpp" ANAKIN_TEST_CASE_SRC)
