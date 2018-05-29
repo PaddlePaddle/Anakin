@@ -95,7 +95,7 @@ TEST(NetTest, net_execute_base_test) {
         auto exec_funcs = net_executer.get_exec_funcs();
         auto op_param = net_executer.get_op_param();
         for (int i = 0; i <  op_time.size(); i++) {
-            LOG(INFO) << "name: " << exec_funcs[i].name << " op_type: " << exec_funcs[i].op_name << " op_param: " << op_param[i] << " time " << op_time[i]/epoch;
+            LOG(INFO) << "name: " << exec_funcs[i].name << " op_type: " << exec_funcs[i].op_name << " op_param: " << op_param[i] << " time " << op_time[i]/FLAGS_epoch;
         }
         std::map<std::string, float> op_map;
         for (int i = 0; i < op_time.size(); i++) {
@@ -106,10 +106,14 @@ TEST(NetTest, net_execute_base_test) {
                 op_map.insert(std::pair<std::string, float>(op_param[i], op_time[i]));
         }
         for (auto it = op_map.begin(); it != op_map.end(); ++it) {
-            LOG(INFO)<< it->first << "  " << (it->second) / epoch<< " ms";
+            LOG(INFO)<< it->first << "  " << (it->second) / FLAGS_epoch<< " ms";
         }
 #endif
-        LOG(INFO) << *iter << " batch_size " << FLAGS_num << " average time "<< my_time.get_average_ms() / FLAGS_epoch << " ms";
+        size_t end = (*iter).find(".anakin.bin");
+        size_t start = FLAGS_model_dir.length();
+        std::string model_name = (*iter).substr(start, end-start);
+        
+        LOG(INFO) << model_name << " batch_size " << FLAGS_num << " average time "<< my_time.get_average_ms() / FLAGS_epoch << " ms";
     }
 }
 int main(int argc, const char** argv){
