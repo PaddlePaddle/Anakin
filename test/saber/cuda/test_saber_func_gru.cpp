@@ -70,8 +70,8 @@ void anakin_NV_gemm_2(cublasHandle_t handle, const int M, const int N, const int
 #define GRUOFFSET
 //#define CUDNNGRU
 //#define TEST_X86
-void test_saber_gru(int sequence_size = 2, int batch_size = 1, int word_size = 2,
-                    int hidden_size = 3) {
+void test_saber_gru(int sequence_size = 2, int batch_size = 1, int word_size = 22,
+                    int hidden_size = 33) {
 
 #ifdef TEST_X86
     Context<X86> ctx_dev(0, 1, 1);
@@ -82,9 +82,8 @@ void test_saber_gru(int sequence_size = 2, int batch_size = 1, int word_size = 2
 #endif
     typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
 
-
 #ifdef GRUOFFSET
-    std::vector<int> offsets = {0, 3};
+    std::vector<int> offsets = {0, 30};
     bool is_reverse = true;
     batch_size = offsets.size() - 1;
     Shape shape_ux(1, 1, offsets[offsets.size() - 1], hidden_size * 3);
@@ -238,7 +237,7 @@ void test_saber_gru(int sequence_size = 2, int batch_size = 1, int word_size = 2
 #ifdef GRUOFFSET
 
     dev_x.set_seq_offset(offsets);
-    GruParam<TensorDf4> param(&dev_wu, &dev_b, GRU_ORIGIN,Active_sigmoid,Active_tanh,is_reverse);
+    GruParam<TensorDf4> param(&dev_wu, &dev_b, GRU_ORIGIN,Active_sigmoid_fluid,Active_relu,is_reverse);
 #else
 #ifdef CUDNNGRU
     GruParam<TensorDf4> param(&dev_w, &dev_u, &dev_b, false, GRU_CUDNN);

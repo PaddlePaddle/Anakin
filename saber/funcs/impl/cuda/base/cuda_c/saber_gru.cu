@@ -383,6 +383,7 @@ __global__ void cal_one_kernel_sigmoid_tanh_paddle_formula(Dtype* w_x_r, Dtype* 
                          + b_o[index];
     Dtype acted = tanhf(before_act_h);
     output[h_base_index] = (static_cast<Dtype>(1.0) - act_z) * hidden_pre_value + act_z * acted;
+//    printf("output %d = %f\n",index,output[h_base_index]);
 }
 
 
@@ -556,8 +557,8 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::gru_cu
     //TODO:check shape first
     const OpTensor* b = param.bias();
 
-    int batch_size = x->height(); //x->get_seq_offset().size()-1;
-    int sequence = x->channel();
+    int batch_size = inputs[0]->get_seq_offset().size() - 1;; //x->get_seq_offset().size()-1;
+    int sequence = x->num();
     int hidden_size = b->valid_size() / 3;
     bool isHW2Seq=inputs[0]->get_seq_offset().size()>2;
     int o_offset = 0;
@@ -685,8 +686,8 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispat
     //TODO:check shape first
     const OpTensor* b = param.bias();
 
-    int batch_size = x->height(); //x->get_seq_offset().size()-1;
-    int sequence = x->channel();
+    int batch_size = x->get_seq_offset().size() - 1; //x->get_seq_offset().size()-1;
+    int sequence = x->num();
     int hidden_size = b->valid_size() / 3;
     bool isHW2Seq=inputs[0]->get_seq_offset().size()>2;
     int o_offset = 0;
@@ -701,7 +702,7 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispat
 
     if (isHW2Seq) {
         x_data = hw2seq(inputs, param, _word_size, hidden_size, sequence);
-        batch_size = inputs[0]->get_seq_offset().size() - 1;
+//        batch_size = inputs[0]->get_seq_offset().size() - 1;
 
         if (x_data != x->data()) {
             dout_data = _temp_tensor_out.mutable_data();
