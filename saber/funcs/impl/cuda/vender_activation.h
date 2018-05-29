@@ -15,8 +15,7 @@
 
 #ifndef ANAKIN_SABER_FUNCS_CUDNN_CONV2D_H
 #define ANAKIN_SABER_FUNCS_CUDNN_CONV2D_H
-
-#include "saber/funcs/impl/impl_define.h"
+#include "saber/funcs/impl/impl_activation.h"
 #include "saber/funcs/impl/cuda/cudnn_helper.h"
 namespace anakin {
 

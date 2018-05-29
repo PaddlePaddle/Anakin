@@ -17,7 +17,7 @@
 #define ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_CONV2D_H
 
 #include <vector>
-#include "saber/funcs/impl/impl_define.h"
+#include "saber/funcs/impl/impl_conv.h"
 #include "saber/funcs/impl/cuda/base/sass_funcs.h"
 #include "saber/funcs/funcs_utils.h"
 

@@ -16,12 +16,8 @@
 #ifndef ANAKIN_SABER_FUNCS_RESHAPE_H
 #define ANAKIN_SABER_FUNCS_RESHAPE_H
 
-#include "saber/core/tensor.h"
 #include "saber/funcs/base.h"
-#include "saber/funcs/timer.h"   
-#include "saber/saber_funcs_param.h"
 #include "saber/funcs/impl/impl_base.h"
-#include "saber/funcs/impl/impl_define.h"
 
 namespace anakin {
 
