@@ -22,6 +22,48 @@ namespace anakin{
 namespace saber{
 
 template <typename Dtype>
+
+void transpose_inplace(float* output, const float* input, const int num,
+                       const int channel,
+                       const int height, const int width) {
+    for (int n = 0; n < num; ++n) {
+        for (int c = 0; c < channel; ++c) {
+            int offset = n * channel * height * width + c * height * width;
+
+            for (int y = 0; y < height; ++y) {
+                for (int x = 0; x < width; ++x) {
+                    output[(x * height) + y + offset] = input[(y * width) + x + offset];
+                }
+            }
+        }
+    }
+}
+
+template <typename Dtype>
+void extract_matrix_from_matrix_in_leddim(const Dtype* input,
+                Dtype* output,int start_index,int end_index,int stride,int dimsize){
+    for(int i=start_index;i<end_index;i+=stride){
+        int output_height=(i-start_index)/stride;
+        for(int j=0;j<dimsize;j++){
+            output[output_height*dimsize+j]=input[i+j];
+        }
+    }
+}
+
+
+
+template <typename Dtype>
+void merge_matrix_to_matrix_in_leddim(const Dtype* input,
+                                          Dtype* output,int start_index,int end_index,int stride,int dimsize){
+    for(int i=start_index;i<end_index;i+=stride){
+        int input_height=(i-start_index)/stride;
+        for(int j=0;j<dimsize;j++){
+            output[i+j]=input[input_height*dimsize+j];
+        }
+    }
+}
+
+template <typename Dtype>
 void transform_3x3_weight_2_4x4(const Dtype* input, 
     Dtype* output,
     int K,

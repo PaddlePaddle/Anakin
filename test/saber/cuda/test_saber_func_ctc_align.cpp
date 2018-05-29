@@ -76,7 +76,9 @@ TEST(TestSaberFuncNV, test_func_constructor) {
     std::vector<TensorDf4*> outputs;
     inputs.push_back(&in_dev_x);
     outputs.push_back(&out_dev);
-    inputs[0]->set_seq_offset(seq_offset);
+    std::vector<std::vector<int>> lod;
+    lod.push_back(seq_offset);
+    inputs[0]->set_seq_offset(lod);
 
     // start Reshape & doInfer
     Context<NV> ctx(0, 1, 1);

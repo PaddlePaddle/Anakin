@@ -23,5 +23,5 @@
 #include "saber/funcs/impl/x86/saber_pooling.h"
 #include "saber/funcs/impl/x86/saber_softmax.h"
 #include "saber/funcs/impl/x86/vender_fc.h"
-
+#include "saber/funcs/impl/x86/saber_gru.h"
 #endif //ANAKIN_SABER_FUNCS_NV_IMPL_H
