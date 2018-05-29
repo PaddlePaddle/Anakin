@@ -543,8 +543,8 @@ public:
         //}
         return SaberSuccess;
     }
-    std::vector<int> get_seq_offset() const {return _seq_offset;}
-    SaberStatus set_seq_offset(std::vector<int> seq_offset) {_seq_offset = seq_offset; return SaberSuccess;}
+    std::vector<std::vector<int>> get_seq_offset() const {return _seq_offset;}
+    SaberStatus set_seq_offset(std::vector<std::vector<int>> seq_offset) {_seq_offset = seq_offset; return SaberSuccess;}
 
     SaberStatus share_sub_buffer(const Tensor<TargetType, datatype, LayOutType>& tensor, \
         Shape valid_shape, Shape offset) {
@@ -927,7 +927,7 @@ private:
         return idx;
     }
 
-    std::vector<int> _seq_offset;
+    std::vector<std::vector<int>> _seq_offset;
 };
 
 } //namespace saber

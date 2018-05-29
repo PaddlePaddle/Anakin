@@ -84,6 +84,8 @@ void test_saber_gru(int sequence_size = 2, int batch_size = 1, int word_size = 2
 
 #ifdef GRUOFFSET
     std::vector<int> offsets = {0, 30};
+    std::vector<std::vector<int>> lod;
+    lod.push_back(offsets);
     bool is_reverse = true;
     batch_size = offsets.size() - 1;
     Shape shape_ux(1, 1, offsets[offsets.size() - 1], hidden_size * 3);
@@ -236,7 +238,7 @@ void test_saber_gru(int sequence_size = 2, int batch_size = 1, int word_size = 2
 
 #ifdef GRUOFFSET
 
-    dev_x.set_seq_offset(offsets);
+    dev_x.set_seq_offset(lod);
     GruParam<TensorDf4> param(&dev_wu, &dev_b, GRU_ORIGIN,Active_sigmoid_fluid,Active_relu,is_reverse);
 #else
 #ifdef CUDNNGRU
