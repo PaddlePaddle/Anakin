@@ -17,8 +17,8 @@
 #define ANAKIN_SABER_FUNCS_FLATTEN_H
 
 #include "saber/funcs/base.h"
-#include "saber/funcs/impl/impl_define.h"
 #include "saber/funcs/impl/impl_base.h"
+   
 namespace anakin{
 
 namespace saber{

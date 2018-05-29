@@ -8,8 +8,14 @@
 #anakin cmake module
 set(CMAKE_MODULE_PATH "${ANAKIN_ROOT}/cmake")
 
-set(ANAKIN_LINKER_LIBS "")
+set(ANAKIN_LINKER_LIBS "dl")
 
+if(UNIX)
+  find_library(RTLIB rt)
+  if(RTLIB)
+    list(APPEND ANAKIN_LINKER_LIBS ${RTLIB})
+  endif()
+endif()
 
 #find opencv version >= 2.4.3
 macro(anakin_find_opencv)

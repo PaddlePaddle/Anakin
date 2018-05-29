@@ -16,7 +16,7 @@
 #ifndef ANAKIN_SABER_FUNCS_CUDA_SABER_BOX_CODER_H
 #define ANAKIN_SABER_FUNCS_CUDA_SABER_BOX_CODER_H
    
-#include "saber/funcs/impl/impl_define.h"
+#include "saber/funcs/impl/impl_box_coder.h"
 
 
 namespace anakin{

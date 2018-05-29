@@ -35,13 +35,13 @@ add_library(ANAKIN_OBJS OBJECT ${ANAKIN_SRC})
 # add library to shared or static
 if(UNIX OR APPLE)
 	if(BUILD_SHARED)
-        add_library(${anakin_lib_so} SHARED $<TARGET_OBJECTS:ANAKIN_OBJS>)
+        	add_library(${anakin_lib_so} SHARED $<TARGET_OBJECTS:ANAKIN_OBJS>)
 		add_dependencies(${anakin_lib_so} ${ANAKIN_SABER_LIB_TARGET})
 		add_dependencies(${anakin_lib_so} ${ANAKIN_THIRD_PARTY_DEPENDENCIES})
 		# set shared lib version
 		set_target_properties(${anakin_lib_so} PROPERTIES VERSION ${VERSION})
         
-		target_link_libraries(${anakin_lib_so} ${ANAKIN_LINKER_LIBS} ${ANAKIN_SABER_LIB})
+		target_link_libraries(${anakin_lib_so} ${ANAKIN_SABER_LIB_TARGET} ${ANAKIN_LINKER_LIBS})
 		set_target_properties(${anakin_lib_so} PROPERTIES LINK_FLAGS "")
 		set_target_properties(${anakin_lib_so} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/output/)
         	install(DIRECTORY ${ANAKIN_FRAMEWORK} ${ANAKIN_SABER} ${ANAKIN_UTILS}
@@ -53,7 +53,7 @@ if(UNIX OR APPLE)
 		add_dependencies(${anakin_lib_static} ${ANAKIN_SABER_LIB_TARGET})
 		add_dependencies(${anakin_lib_static} ${ANAKIN_THIRD_PARTY_DEPENDENCIES})
 		set_target_properties(${anakin_lib_static} PROPERTIES VERSION ${VERSION})
-		target_link_libraries(${anakin_lib_static} ${ANAKIN_LINKER_LIBS} ${ANAKIN_SABER_LIB})
+		target_link_libraries(${anakin_lib_static} ${ANAKIN_SABER_LIB_TARGET} ${ANAKIN_LINKER_LIBS})
         	set_target_properties(${anakin_lib_static} PROPERTIES LINK_FLAGS "")
 		set_target_properties(${anakin_lib_static} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/output/)
         	install(DIRECTORY ${ANAKIN_FRAMEWORK} ${ANAKIN_SABER} ${ANAKIN_UTILS}

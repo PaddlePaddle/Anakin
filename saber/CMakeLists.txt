@@ -5,7 +5,7 @@
 # @date     2017-10-24
 # ----------------------------------------------------------------------------
 
-set(ANAKIN_SABER_LIB "" )
+set(ANAKIN_SABER_STATIC_RELAY "" )
 
 set(ANAKIN_SABER_BASE_SRC "")
 anakin_fetch_include_recursively(${ANAKIN_SABER})
@@ -28,8 +28,9 @@ if(USE_GPU_PLACE)
     endif()
 endif()
 
-if(USE_X86_PLACE)
+
     anakin_fetch_files_with_suffix(${ANAKIN_SABER}/core/impl/x86 "cpp" ANAKIN_SABER_BASE_SRC)
+if(USE_X86_PLACE)
     anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/x86 "cpp" ANAKIN_SABER_BASE_SRC)
     anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/x86/kernel "cpp" ANAKIN_SABER_BASE_SRC)
 endif()
@@ -37,13 +38,24 @@ endif()
 # compile cpp objs
 add_library(ANAKIN_SABER_BASE_OBJS OBJECT ${ANAKIN_SABER_BASE_SRC})
 
+# whole archive for static lib
+if(NOT MSVC AND NOT APPLE)
+    set(WHOLE_ARCHIVE_START -Wl,--whole-archive)
+    set(WHOLE_ARCHIVE_END -Wl,--no-whole-archive)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    # using regular Clang or AppleClang
+    set(WHOLE_ARCHIVE_START -Wl,-force_load)
+    set(WHOLE_ARCHIVE_END)
+endif()
+
+
 if(USE_CUDA)
 	# set root
     set(CUDA_BASE_CODE_ROOT ${ANAKIN_SABER}/funcs/impl/cuda/base)
 	# set select arch for cuda
 	add_subdirectory(${ANAKIN_SABER}/funcs/impl/cuda/base)
 
-	set(ANAKIN_SABER_TEMP_COMMMON_LIB "anakin_saber_common_static")
+	set(ANAKIN_SABER_TEMP_COMMMON_LIB "anakin_saber_common")
 	set(FLAGS_BACKUP ${CMAKE_CXX_FLAGS}) 
 	set(CMAKE_CXX_FLAGS "")
 	if(BUILD_SHARED)
@@ -52,23 +64,25 @@ if(USE_CUDA)
 	if(BUILD_STATIC)
 		CUDA_COMPILE(ANAKIN_SABER_CUDA_C_SRC_OBJS STATIC ${ANAKIN_SABER_CUDA_C_SRC} OPTIONS ${ANAKIN_NVCC_FLAG})
 	endif()
-    set(CMAKE_CXX_FLAGS ${FLAGS_BACKUP})
-	# add saber library to static
-	if(UNIX OR APPLE)
-		ADD_LIBRARY(${ANAKIN_SABER_TEMP_COMMMON_LIB} STATIC ${ANAKIN_SABER_CUDA_C_SRC_OBJS} 
-									 $<TARGET_OBJECTS:ANAKIN_SABER_BASE_OBJS>) 
-		set_target_properties(${ANAKIN_SABER_TEMP_COMMMON_LIB} PROPERTIES VERSION ${VERSION})
-		target_link_libraries(${ANAKIN_SABER_TEMP_COMMMON_LIB} ${ANAKIN_LINKER_LIBS})
-		set_target_properties(${ANAKIN_SABER_TEMP_COMMMON_LIB} PROPERTIES LINK_FLAGS "")
-		set_target_properties(${ANAKIN_SABER_TEMP_COMMMON_LIB} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY 
-						  		       ${PROJECT_BINARY_DIR}/)
-	endif()
+    	set(CMAKE_CXX_FLAGS ${FLAGS_BACKUP})
+
+	set(ANAKIN_SABER_STATIC_RELAY ${ANAKIN_SABER_STATIC_RELAY} 
+				      ${BEGIN_WHOLE_ARCHIVE} 
+				      ${ANAKIN_SABER_SASS_STATIC_LIB} 
+				      ${WHOLE_ARCHIVE_END})	
 endif()
 
-set(ANAKIN_SABER_LIB_TARGET ${ANAKIN_SABER_TEMP_COMMMON_LIB} PARENT_SCOPE)
-set(ANAKIN_SABER_LIB "-Wl,-whole-archive ${PROJECT_BINARY_DIR}/lib${ANAKIN_SABER_TEMP_COMMMON_LIB}.a -Wl,--no-whole-archive") 
-if(USE_CUDA)
-    set(ANAKIN_SABER_LIB "${ANAKIN_SABER_LIB} -Wl,-whole-archive ${ANAKIN_SABER_SASS_STATIC_LIB} -Wl,--no-whole-archive" PARENT_SCOPE)
-else()
-    set(ANAKIN_SABER_LIB ${ANAKIN_SABER_LIB} PARENT_SCOPE)
+# add saber library to static
+if(UNIX OR APPLE) 
+    ADD_LIBRARY(${ANAKIN_SABER_TEMP_COMMMON_LIB} SHARED ${ANAKIN_SABER_CUDA_C_SRC_OBJS} 
+						$<TARGET_OBJECTS:ANAKIN_SABER_BASE_OBJS>) 
+    set_target_properties(${ANAKIN_SABER_TEMP_COMMMON_LIB} PROPERTIES VERSION ${VERSION}) 
+    target_link_libraries(${ANAKIN_SABER_TEMP_COMMMON_LIB} ${ANAKIN_LINKER_LIBS}) 
+    target_link_libraries(${ANAKIN_SABER_TEMP_COMMMON_LIB} ${ANAKIN_SABER_STATIC_RELAY})
+    set_target_properties(${ANAKIN_SABER_TEMP_COMMMON_LIB} PROPERTIES LINK_FLAGS "") 
+    set_target_properties(${ANAKIN_SABER_TEMP_COMMMON_LIB} PROPERTIES LIBRARY_OUTPUT_DIRECTORY
+							   ${ANAKIN_ROOT}/output/) 
 endif()
+
+
+set(ANAKIN_SABER_LIB_TARGET ${ANAKIN_SABER_TEMP_COMMMON_LIB} PARENT_SCOPE)

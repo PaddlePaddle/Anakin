@@ -15,7 +15,7 @@
 #ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_CAST_H
 #define ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_CAST_H
 
-#include "saber/funcs/impl/impl_define.h"
+#include "saber/funcs/impl/impl_cast.h"
 
 namespace anakin{
 

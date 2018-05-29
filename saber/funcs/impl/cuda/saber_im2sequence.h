@@ -16,7 +16,7 @@
 #ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_IM2SEQUENCE_H
 #define ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_IM2SEQUENCE_H
 
-#include "saber/funcs/impl/impl_define.h"
+#include "saber/funcs/impl/impl_im2sequence.h"
 
 namespace anakin{
 

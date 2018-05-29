@@ -17,8 +17,16 @@
 #define ANAKIN_SABER_FUNCS_FC_H
 
 #include "saber/funcs/base.h"
-#include "saber/funcs/impl/impl_define.h"
 #include "saber/funcs/impl/impl_base.h"
+#ifdef NVIDIA_GPU
+//#include "saber/funcs/impl/cuda/saber_fc.h"
+#include "saber/funcs/impl/cuda/vender_fc.h"
+#endif
+
+#ifdef USE_X86_PLACE
+#include "saber/funcs/impl/x86/vender_fc.h"
+#endif
+   
 namespace anakin{
 
 namespace saber{

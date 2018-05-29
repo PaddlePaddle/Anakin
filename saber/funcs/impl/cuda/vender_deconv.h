@@ -16,7 +16,7 @@
 #ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_CUDNN_DECONV_H
 #define ANAKIN_SABER_FUNCS_IMPL_CUDA_CUDNN_DECONV_H
 
-#include "saber/funcs/impl/impl_define.h"
+#include "saber/funcs/impl/impl_deconv.h"
 #include "saber/saber_funcs_param.h"
 #include "saber/funcs/impl/cuda/cudnn_helper.h"
 #include "saber/saber_types.h"

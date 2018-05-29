@@ -15,7 +15,7 @@
 
 #ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_GRU_H
 #define ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_GRU_H
-#include "saber/funcs/impl/impl_define.h"
+#include "saber/funcs/impl/impl_gru.h"
 
 namespace anakin {
 
