@@ -16,7 +16,7 @@
 #ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_CUDNN_PERMUTE_POWER_H
 #define ANAKIN_SABER_FUNCS_IMPL_CUDA_CUDNN_PERMUTE_POWER_H
 
-#include "saber/funcs/impl/impl_define.h"
+#include "saber/funcs/impl/impl_permute_power.h"
 #include "saber/funcs/impl/cuda/cudnn_helper.h"
 
 namespace anakin{

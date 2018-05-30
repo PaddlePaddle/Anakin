@@ -17,8 +17,15 @@
 #define ANAKIN_SABER_FUNCS_ELTWISE_ACT_H
 
 #include "saber/funcs/base.h"
-#include "saber/funcs/impl/impl_define.h"
 #include "saber/funcs/impl/impl_base.h"
+#ifdef NVIDIA_GPU
+#include "saber/funcs/impl/cuda/saber_eltwise_act.h"
+#endif
+
+#ifdef USE_X86_PLACE
+#include "saber/funcs/impl/x86/saber_eltwise_act.h"
+#endif
+   
 namespace anakin {
 namespace saber {
 

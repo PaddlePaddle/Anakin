@@ -1,4 +1,3 @@
-#include "saber/funcs/impl/impl_define.h"
 #include "saber/funcs/impl/cuda/saber_multiclass_nms.h"
 #include "saber/funcs/impl/detection_helper.h"
 namespace anakin {

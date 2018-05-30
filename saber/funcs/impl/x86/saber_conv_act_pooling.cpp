@@ -1,6 +1,7 @@
 
-#include "saber/funcs/impl/impl_define.h"
 #include "saber/funcs/impl/x86/saber_conv_act_pooling.h"
+#include "saber/funcs/impl/x86/saber_conv_act.h"
+#include "saber/funcs/impl/x86/saber_pooling.h"
 #include "saber/funcs/impl/x86/jit_call_conf.h"
 
 namespace anakin{

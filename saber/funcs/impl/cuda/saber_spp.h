@@ -17,7 +17,7 @@
 #define ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_SPP_H
 #include "saber/funcs/pooling.h"
 #include "saber/funcs/impl/impl_base.h"
-#include "saber/funcs/impl/impl_define.h"
+#include "saber/funcs/impl/impl_spp.h"
 
 namespace anakin{
 

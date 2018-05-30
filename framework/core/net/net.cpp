@@ -139,7 +139,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
         }
         op_func.current_lane = (*_graph_p)[node_name]->lane();
         op_func.need_sync = (*_graph_p)[node_name]->need_wait();
-        op_func.op = (*_graph_p)[node_name]->Op();
+        op_func.op = static_cast<Operator<Ttype, Dtype, Ptype>* >((*_graph_p)[node_name]->Op());
         op_func.op_name = (*_graph_p)[node_name]->get_op_name();
         op_func.ctx_p = std::make_shared<Context<Ttype>>(TargetWrapper<Ttype>::get_device_id(), 
                                                          op_func.current_lane, 
