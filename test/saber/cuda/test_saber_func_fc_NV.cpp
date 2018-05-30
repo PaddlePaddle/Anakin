@@ -139,80 +139,84 @@ TEST(TestSaberFuncFcNV, test_func_fc_NV) {
 
 }
 
+void test_specify_fc(std::vector<TensorDf4*>& input_dev_4d,
+                     std::vector<TensorDf4*>& output_dev_4d,
+                    FcParam<TensorDf4> &param, anakin::saber::ImplEnum impl) {
+
+    // start Reshape & doInfer
+    Context<NV> ctx_dev(0, 1, 1);
+    Fc<NV, AK_FLOAT> fc;
+
+    SABER_CHECK(fc.compute_output_shape(input_dev_4d, output_dev_4d, param));
+    output_dev_4d[0]->re_alloc(output_dev_4d[0]->valid_shape());
+    Shape va_sh = output_dev_4d[0]->valid_shape();
+    SABER_CHECK(fc.init(input_dev_4d, output_dev_4d, param, SPECIFY, impl, ctx_dev));
+    int ts = 100;
+    SaberTimer<NV> t1;
+
+    for (int i = 0; i < ts; ++i) {
+        t1.start(ctx_dev);
+        SABER_CHECK(fc(input_dev_4d, output_dev_4d, param, ctx_dev));
+        output_dev_4d[0]->record_event(ctx_dev.get_compute_stream());
+        t1.end(ctx_dev);
+    }
+    LOG(INFO) << " time elapse: " << t1.get_average_ms() << "ms";
+}
+
 TEST(TestSaberFuncFcNV, test_func_fc_openai) {
-    int test_iter = 100;
-    int w_in = 7;
-    int h_in = 7;
-    int ch_in = 256;
-    int num_in = 1;
+    int w_in = 49;
+    int h_in = 49;
+    int ch_in = 32;
+    int num_in = 4;
 
     int num_out = 1024;
     int axis = 1;
 
     Shape shape_in(num_in, ch_in, h_in, w_in);
     Shape shape_out = {num_in, num_out, 1, 1};
-
     Shape sh_w{1, 1, w_in* h_in * ch_in, num_out};
-    TensorDf4 weight(sh_w);
     Shape sh_b{1, 1, 1, num_out};
+
+    TensorDf4 weight(sh_w);
     TensorDf4 bias(sh_b);
-    fill_tensor_device_const(weight, 1.f);
-    fill_tensor_device_const(bias, 1.f);
+    TensorDf4 tdin;
+    TensorDf4 tdout;
+    TensorDf4 tdout_gemm;
+
+    tdin.re_alloc(shape_in);
+
+    fill_tensor_device_rand(weight, -1.f, 1.f);
+    fill_tensor_device_rand(bias, -1.f, 1.f);
+    fill_tensor_device_rand(tdin, -1.f, 1.f);
 
     std::vector<TensorDf4*> input_dev_4d;
     std::vector<TensorDf4*> output_dev_4d;
+    std::vector<TensorDf4*> output_dev_4d_gemm;
 
-    TensorDf4 tdin;
-    TensorDf4 tdout;
-    tdin.re_alloc(shape_in);
-    fill_tensor_device_const(tdin, 1.f);
     input_dev_4d.push_back(&tdin);
     output_dev_4d.push_back(&tdout);
-
-    // start Reshape & doInfer
-    Context<NV> ctx_dev(0, 1, 1);
+    output_dev_4d_gemm.push_back(&tdout_gemm);
 
     FcParam<TensorDf4> param(&weight, &bias, num_out, axis);
+    LOG(INFO) << "calling cublas fc";
+    test_specify_fc(input_dev_4d, output_dev_4d, param, VENDER_IMPL);
+    cudaDeviceSynchronize();
+    LOG(INFO) << "calling openai fc";
+    test_specify_fc(input_dev_4d, output_dev_4d_gemm, param, SABER_IMPL);
+    cudaDeviceSynchronize();
 
-    Fc<NV, AK_FLOAT> fc;
+    TensorHf4 out_host;
+    TensorHf4 out_gemm_host;
+    out_host.re_alloc(output_dev_4d[0]->valid_shape());
+    out_gemm_host.re_alloc(output_dev_4d_gemm[0]->valid_shape());
+    out_host.copy_from(*output_dev_4d[0]);
+    out_gemm_host.copy_from(*output_dev_4d_gemm[0]);
 
-    SABER_CHECK(fc.compute_output_shape(input_dev_4d, output_dev_4d, param));
-
-    output_dev_4d[0]->re_alloc(output_dev_4d[0]->valid_shape());
-    Shape va_sh = tdout.valid_shape();
-    SABER_CHECK(fc.init(input_dev_4d, output_dev_4d, param, SPECIFY, SABER_IMPL, ctx_dev));
-    SaberTimer<NV> t1;
-    t1.clear();
-    t1.start(ctx_dev);
-
-    for (int i = 0; i < test_iter; ++i) {
-        SABER_CHECK(fc(input_dev_4d, output_dev_4d, param, ctx_dev));
-        output_dev_4d[0]->record_event(ctx_dev.get_compute_stream());
-        output_dev_4d[0]->sync();
-        //cudaDeviceSynchronize();
-    }
-
-    CUDA_POST_KERNEL_CHECK;
-    t1.end(ctx_dev);
-    float ts = t1.get_average_ms();
-            LOG(INFO) << "total time: " << ts << "avg time: " << ts / test_iter;
-    //! check result
-    TensorHf4 thin(shape_in);
-    TensorHf4 thout(shape_out);
-    TensorHf4 thw(sh_w);
-    TensorHf4 thb(sh_b);
-    thin.copy_from(tdin);
-    thw.copy_from(weight);
-    thb.copy_from(bias);
-    fc_compute(thin, thw, thb, thout);
-
-    TensorHf4 thout_d(shape_out);
-    thout_d.copy_from(tdout);
     double max_ratio = 0;
     double max_diff = 0;
-    tensor_cmp_host(thout.data(), thout_d.data(), thout.valid_size(), max_ratio, max_diff);
-            LOG(INFO) << "compare result, max diff: " << max_diff << ", max ratio: " << max_ratio;
-            CHECK_LE(fabs(max_ratio), 1.0e-6) << "error result";
+    tensor_cmp_host(out_host.data(), out_gemm_host.data(), out_host.valid_size(), max_ratio, max_diff);
+    LOG(INFO) << "compare result, max diff: " << max_diff << ", max ratio: " << max_ratio;
+
 }
 
 int main(int argc, const char** argv) {
