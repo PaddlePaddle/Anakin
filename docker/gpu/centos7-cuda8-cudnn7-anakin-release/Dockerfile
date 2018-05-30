@@ -28,5 +28,6 @@ RUN wget --no-check-certificate https://mirror.sobukus.de/files/src/protobuf/pro
 ENV CUDNN_ROOT /usr/local/cuda/include
 
 # build and install anakin
-RUN git clone --branch master --recursive http://gitlab.baidu.com/cuichaowen/anakin2.git \
-    && cd anakin2/tools && ./gpu_build.sh
+RUN git clone --branch master --recursive https://github.com/PaddlePaddle/Anakin.git \
+    && cd Anakin/tools && ./gpu_build.sh && make install \
+	&& cd .. && rm -rf gpu_build
