@@ -11,17 +11,23 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License. */
+#ifndef ANAKIN_TEST_SABER_TEST_SABER_GRU_X86_H
+#define ANAKIN_TEST_SABER_TEST_SABER_GRU_X86_H
+#include "utils/unit_test/aktest.h"
+#include "utils/logger/logger.h"
+#include "core/tensor.h"
 
-#ifndef ANAKIN_SABER_FUNCS_X86_IMPL_H
-#define ANAKIN_SABER_FUNCS_X86_IMPL_H
 
-#include "saber/funcs/impl/x86/saber_activation.h"
-#include "saber/funcs/impl/x86/saber_conv_act.h"
-#include "saber/funcs/impl/x86/saber_conv_act_pooling.h"
-#include "saber/funcs/impl/x86/saber_eltwise.h"
-#include "saber/funcs/impl/x86/saber_eltwise_act.h"
-#include "saber/funcs/impl/x86/saber_pooling.h"
-#include "saber/funcs/impl/x86/saber_softmax.h"
-#include "saber/funcs/impl/x86/vender_fc.h"
-#include "saber/funcs/impl/x86/saber_gru.h"
-#endif //ANAKIN_SABER_FUNCS_NV_IMPL_H
+using namespace anakin::test;
+
+class TestSaberGruX86 : public Test {
+public:
+    TestSaberGruX86() {}
+    ~TestSaberGruX86() {}
+
+protected:
+    virtual void setup() {}
+    virtual void teardown() {}
+};
+
+#endif // ANAKIN_TEST_SABER_TEST_SABER_GRU_X86_H

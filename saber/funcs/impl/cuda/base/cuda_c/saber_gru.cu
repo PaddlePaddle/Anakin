@@ -35,7 +35,7 @@ void SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::seq2hw(\
     DataTensor_in* din = inputs[0];
     DataTensor_out* dout = outputs[0];
     int wordsize = din->channel();
-    std::vector<int> offset_vec = din->get_seq_offset();
+    std::vector<int> offset_vec = din->get_seq_offset()[din->get_seq_offset().size()-1];
     CHECK_GE(offset_vec.size(), 2) << "offset must >=2" ;
     int batch_size = offset_vec.size() - 1;
 
@@ -76,7 +76,7 @@ const float* SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::hw2se
         int word_size, int hidden_size, int& sequence_len) {
     DataTensor_in* din = inputs[0];
 
-    std::vector<int> offset_vec = din->get_seq_offset();
+    std::vector<int> offset_vec = din->get_seq_offset()[din->get_seq_offset().size()-1];
     CHECK_GE(offset_vec.size(), 2) << "offset must >=2" ;
     int batch_size = offset_vec.size() - 1;
     int seq_sum = offset_vec[offset_vec.size() - 1];
@@ -364,7 +364,9 @@ __global__ void cal_one_kernel_sigmoid_tanh_paddle_formula(Dtype* w_x_r, Dtype* 
     extern __shared__ Dtype shared_hidden_pre[];
     Dtype hidden_pre_value = hidden_pre[h_base_index];
     Dtype before_act_r = w_x_r[w_base_index] + w_h_r[u_base_index] + b_r[index];
+
     Dtype act_r = static_cast<Dtype>(1.0) / (static_cast<Dtype>(1.0) + expf(-before_act_r));
+//    printf("%d %f=[%f , %f ,%f]\n",index,act_r,w_x_r[w_base_index],w_h_r[u_base_index],b_r[index]);
     shared_hidden_pre[index] = hidden_pre_value * act_r;
     Dtype before_act_z = w_x_z[w_base_index] + w_h_z[u_base_index] + b_z[index];
     Dtype act_z = static_cast<Dtype>(1.0) / (static_cast<Dtype>(1.0) + expf(-before_act_z));
@@ -381,6 +383,7 @@ __global__ void cal_one_kernel_sigmoid_tanh_paddle_formula(Dtype* w_x_r, Dtype* 
                          + b_o[index];
     Dtype acted = tanhf(before_act_h);
     output[h_base_index] = (static_cast<Dtype>(1.0) - act_z) * hidden_pre_value + act_z * acted;
+//    printf("output %d = %f\n",index,output[h_base_index]);
 }
 
 
@@ -547,33 +550,31 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::gru_cu
 
     DataTensor_in* x = inputs[0];
     const InDataType* x_data = x->data();
+    std::vector<int> offset=x->get_seq_offset()[x->get_seq_offset().size()-1];
     const InDataType* h;
     DataTensor_out* dout = outputs[0];
     OutDataType* dout_data = dout->mutable_data();
 
     //TODO:check shape first
-    const OpTensor* w_h2h = param.weight_h2h();
-    const OpTensor* w_i2h = param.weight_i2h();
     const OpTensor* b = param.bias();
 
-    int batch_size = x->height(); //x->get_seq_offset().size()-1;
-    int sequence = x->channel();
-    int word_size = w_i2h->height();
+    int batch_size = offset.size() - 1;; //x->get_seq_offset().size()-1;
+    int sequence = x->num();
     int hidden_size = b->valid_size() / 3;
-
+    bool isHW2Seq=offset.size()>2;
     int o_offset = 0;
     int r_offset = 1;
     int z_offset = 2;
 
-    CHECK_EQ(w_h2h->height(), hidden_size) << "w_h2h->height()==batch_size";
-    CHECK_EQ(w_h2h->width(), hidden_size * 3) << "w_h2h->width()==hidden_size*3";
+//    CHECK_EQ(w_h2h->height(), hidden_size) << "w_h2h->height()==batch_size";
+//    CHECK_EQ(w_h2h->width(), hidden_size * 3) << "w_h2h->width()==hidden_size*3";
+//
+//    CHECK_EQ(w_i2h->height(), word_size) << "w_i2h->height()==word_size";
+//    CHECK_EQ(w_i2h->width(), hidden_size * 3) << "w_i2h->width()==hidden_size*3";
 
-    CHECK_EQ(w_i2h->height(), word_size) << "w_i2h->height()==word_size";
-    CHECK_EQ(w_i2h->width(), hidden_size * 3) << "w_i2h->width()==hidden_size*3";
-
-    if (param.isHW2Seq) {
-        x_data = hw2seq(inputs, param, word_size, hidden_size, sequence);
-        batch_size = inputs[0]->get_seq_offset().size() - 1;
+    if (isHW2Seq) {
+        x_data = hw2seq(inputs, param, _word_size, hidden_size, sequence);
+        batch_size = offset.size() - 1;
 
         if (x_data != x->data()) {
             dout_data = _temp_tensor_out.mutable_data();
@@ -587,7 +588,7 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::gru_cu
     _temp_WH.try_expand_size(shape_wh);
 
     anakin_NV_gemm(_cublas_handle, false, false, sequence * batch_size, 3 * hidden_size,
-                   word_size, 1.0, x_data, w_i2h->data(), 0.0, _temp_WX.mutable_data());
+                   _word_size, 1.0, x_data, _weights_i2h.data(), 0.0, _temp_WX.mutable_data());
 
 
     const OpDataType* b_r = b->data() + r_offset * hidden_size;
@@ -616,7 +617,7 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::gru_cu
 
         anakin_NV_gemm(_cublas_handle, false, false, batch_size,
                        3 * hidden_size, hidden_size, 1.0, hidden_in,
-                       w_h2h->data(), 0.0, _temp_WH.mutable_data());
+                       _weights_h2h.data(), 0.0, _temp_WH.mutable_data());
 
         OpDataType* w_x_r = _temp_WX.mutable_data() + r_offset * hidden_size
                             + seq * batch_size * hidden_size * 3;
@@ -631,20 +632,20 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::gru_cu
 
         int frame_per_block = hidden_size <= 1024 ? hidden_size : 1024;
 
-        if (param._gate_activity == GRU_SIGMOID_NORMAL
-                && param._h_activity == GRU_TANH_NORMAL) {
+        if (param._gate_activity == Active_sigmoid
+                && param._h_activity == Active_tanh) {
             cal_one_kernel_sigmoid_tanh_modi_cudnn_formula
                     << < batch_size, frame_per_block, 0, _ctx.get_compute_stream() >> >
                     (w_x_r, w_x_z, w_x_o, w_h_r, w_h_z, w_h_o
                      , b_r, b_z, b_o, hidden_size, hidden_out, hidden_in);
-        } else if (param._gate_activity == GRU_SIGMOID_PADDLE
-                   && param._h_activity == GRU_TANH_PADDLE) {
+        } else if (param._gate_activity == Active_sigmoid_fluid
+                   && param._h_activity == Active_tanh) {
             cal_one_kernel_paddlesigmoid_tanh_cudnn_formula
                     << < batch_size, frame_per_block, 0, _ctx.get_compute_stream() >> >
                     (w_x_r, w_x_z, w_x_o, w_h_r, w_h_z, w_h_o
                      , b_r, b_z, b_o, hidden_size, hidden_out, hidden_in);
-        } else if (param._gate_activity == GRU_SIGMOID_PADDLE
-                   && param._h_activity == GRU_RELU) {
+        } else if (param._gate_activity == Active_sigmoid_fluid
+                   && param._h_activity == Active_relu) {
             cal_one_kernel_paddlesigmoid_relu_cudnn_formula
                     << < batch_size, frame_per_block, 0, _ctx.get_compute_stream() >> >
                     (w_x_r, w_x_z, w_x_o, w_h_r, w_h_z, w_h_o
@@ -655,11 +656,11 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::gru_cu
 
     }
 
-    if (param.isHW2Seq) {
+    if (isHW2Seq) {
         seq2hw(outputs, inputs, param, hidden_size, dout_data);
         outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
     }
-
+    return SaberSuccess;
 
 }
 template<>
@@ -668,44 +669,42 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispat
         std::vector<DataTensor_out*>& outputs,
         GruParam <OpTensor>& param) {
     if (param._formula == GRU_CUDNN) {
+        LOG(ERROR) << "saber cudnn formula not support reverse yet";
         if (param._is_reverse) {
             LOG(ERROR) << "saber cudnn formula not support reverse yet";
 
         }
-
         return gru_cudnn(inputs, outputs, param);
     }
 
     //    LOG(INFO)<<"gru_paddle";
     DataTensor_in* x = inputs[0];
+    std::vector<int> offset=x->get_seq_offset()[x->get_seq_offset().size()-1];
     const InDataType* x_data = x->data();
     const InDataType* h;
     DataTensor_out* dout = outputs[0];
     OutDataType* dout_data = dout->mutable_data();
 
     //TODO:check shape first
-    const OpTensor* w_h2h = param.weight_h2h();
-    const OpTensor* w_i2h = param.weight_i2h();
     const OpTensor* b = param.bias();
 
-    int batch_size = x->height(); //x->get_seq_offset().size()-1;
-    int sequence = x->channel();
-    int word_size = w_i2h->height();
+    int batch_size = offset.size() - 1; //x->get_seq_offset().size()-1;
+    int sequence = x->num();
     int hidden_size = b->valid_size() / 3;
-
+    bool isHW2Seq=offset.size()>2;
     int o_offset = 0;
     int r_offset = 1;
     int z_offset = 2;
 
-    CHECK_EQ(w_h2h->height(), hidden_size) << "w_h2h->height()==batch_size";
-    CHECK_EQ(w_h2h->width(), hidden_size * 3) << "w_h2h->width()==hidden_size*3";
+//    CHECK_EQ(w_h2h->height(), hidden_size) << "w_h2h->height()==batch_size";
+//    CHECK_EQ(w_h2h->width(), hidden_size * 3) << "w_h2h->width()==hidden_size*3";
+//
+//    CHECK_EQ(w_i2h->height(), word_size) << "w_i2h->height()==word_size";
+//    CHECK_EQ(w_i2h->width(), hidden_size * 3) << "w_i2h->width()==hidden_size*3";
 
-    CHECK_EQ(w_i2h->height(), word_size) << "w_i2h->height()==word_size";
-    CHECK_EQ(w_i2h->width(), hidden_size * 3) << "w_i2h->width()==hidden_size*3";
-
-    if (param.isHW2Seq) {
-        x_data = hw2seq(inputs, param, word_size, hidden_size, sequence);
-        batch_size = inputs[0]->get_seq_offset().size() - 1;
+    if (isHW2Seq) {
+        x_data = hw2seq(inputs, param, _word_size, hidden_size, sequence);
+//        batch_size = inputs[0]->get_seq_offset().size() - 1;
 
         if (x_data != x->data()) {
             dout_data = _temp_tensor_out.mutable_data();
@@ -719,7 +718,7 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispat
     _temp_WH.try_expand_size(shape_WH);
 
     anakin_NV_gemm(_cublas_handle, false, false, sequence * batch_size, 3 * hidden_size,
-                   word_size, 1.0, x_data, w_i2h->data(), 0.0, _temp_WX.mutable_data());
+                   _word_size, 1.0, x_data, _weights_i2h.data(), 0.0, _temp_WX.mutable_data());
 
     const OpDataType* b_r = b->data() + r_offset * hidden_size;
     const OpDataType* b_z = b->data() + z_offset * hidden_size;
@@ -738,7 +737,7 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispat
         int last_seq = realseq - 1;
 
         if (param._is_reverse) {
-
+//            DLOG(INFO)<<"reverse gru";
             realseq = sequence - 1 - seq;
             last_seq = realseq + 1;
         }
@@ -754,8 +753,7 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispat
 
         anakin_NV_gemm(_cublas_handle, false, false, batch_size,
                        2 * hidden_size, hidden_size, 1.0, hidden_in,
-                       w_h2h->data() + hidden_size * hidden_size, 0.0, _temp_WH.mutable_data());
-
+                       _weights_h2h.data() + hidden_size * hidden_size, 0.0, _temp_WH.mutable_data());
 
 
         OutDataType* w_x_r = _temp_WX.mutable_data() + r_offset * hidden_size
@@ -767,7 +765,7 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispat
 
         OutDataType* w_h_r = _temp_WH.mutable_data() + 0 * hidden_size;
         OutDataType* w_h_z = _temp_WH.mutable_data() + 1 * hidden_size;
-        const OutDataType* w_o = w_h2h->data();
+        const OpDataType * w_o = _weights_h2h.data();
 
         CHECK_LE(hidden_size, 1024) << "now not support hidden size > 1024 for paddle formula";
 
@@ -775,16 +773,16 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispat
 
         //        DLOG(INFO) << "act = " << param._gate_activity << "," << param._h_activity;
 
-        if (param._gate_activity == GRU_SIGMOID_NORMAL
-                && param._h_activity == GRU_TANH_NORMAL) {
+        if (param._gate_activity == Active_sigmoid
+                && param._h_activity == Active_tanh) {
             cal_one_kernel_sigmoid_tanh_paddle_formula
             <<< batch_size, frame_per_block, sizeof(OutDataType)*hidden_size
             , _ctx.get_compute_stream()>>>(
                 w_x_r, w_x_z, w_x_o, w_h_r, w_h_z, w_o
                 , b_r, b_z, b_o, hidden_size, hidden_out, hidden_in);
 
-        }  else if (param._gate_activity == GRU_SIGMOID_PADDLE
-                    && param._h_activity == GRU_RELU) {
+        }  else if (param._gate_activity == Active_sigmoid_fluid
+                    && param._h_activity == Active_relu) {
             cal_one_kernel_paddlesigmoid_relu_paddle_formula
                     << < batch_size, frame_per_block, sizeof(OutDataType)*hidden_size
                     , _ctx.get_compute_stream() >> >
@@ -794,16 +792,14 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispat
         } else {
             LOG(ERROR) << "not support active  function";
         }
-
     }
 
-    if (param.isHW2Seq) {
+    if (isHW2Seq) {
         seq2hw(outputs, inputs, param, hidden_size, dout_data);
-        outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
     }
-
+    outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
+    return SaberSuccess;
 }
-
 
 }
 }

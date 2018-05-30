@@ -17,11 +17,35 @@
 
 #include "saber/funcs/impl/impl_gru.h"
 #include "saber/funcs/impl/cuda/cudnn_helper.h"
+#include "saber/funcs/funcs_utils.h"
+#include "saber/funcs/debug.h"
 #include "cuda_fp16.h"
 
 namespace anakin {
 
 namespace saber {
+    struct ParamsRegion {
+
+        ParamsRegion():_offset(NULL), _size(0){};
+        ParamsRegion(void *offset, size_t size):_offset(offset), _size(size){}
+        ~ParamsRegion(){}
+        ParamsRegion(const ParamsRegion &right): _offset(right._offset),_size(right._size){};
+
+        ParamsRegion &operator=(const ParamsRegion &right) {
+            _offset = right._offset;
+            _size=right._size;
+            return *this;
+        }
+        bool operator==(const ParamsRegion &right) {
+            bool comp_eq = true;
+            comp_eq = comp_eq && (_offset == right._offset);
+            comp_eq = comp_eq && (_size == right._size);
+            return  comp_eq;
+        }
+
+        void * _offset;
+        size_t _size;
+    };
 
 template <DataType OpDtype,
         DataType inDtype,
@@ -41,7 +65,7 @@ public:
     typedef Tensor<NV, outDtype, LayOutType_out> OutDataTensor;
     typedef Tensor<NV, OpDtype, LayOutType_op> OpTensor;
     typedef typename DataTensor::Dtype DataDtype;
-    typedef typename OpTensor::Dtype op_dtype;
+    typedef typename OpTensor::Dtype Op_dtype;
 
     VenderGru()
         : _handle(NULL), _rnnDesc(NULL), _hxDesc(NULL), _cxDesc(NULL), _hyDesc(NULL), \
@@ -99,7 +123,37 @@ public:
         cudnn::createTensorDesc<DataDtype>(&_hyDesc);
         cudnn::createTensorDesc<DataDtype>(&_cyDesc);
 
-        cudnn::createFilterDesc<op_dtype>(&_wDesc);
+        cudnn::createFilterDesc<Op_dtype>(&_wDesc);
+
+        if(_is_init_weights==false){
+            _hidden_size = gru_param.bias()->valid_size() / 3;
+
+            int weights_bias_size = _hidden_size * 3;
+            int weights_h2h_size = _hidden_size * _hidden_size * 3;
+            int weights_i2h_size = gru_param.weight()->valid_size() - weights_h2h_size;
+            _word_size = weights_i2h_size / _hidden_size / 3;
+
+            Tensor<X86, OpDtype, LayOutType_op> inner_weights_before_host;
+            Shape weights_shape(1,1,1,gru_param.weight()->valid_size());
+            inner_weights_before_host.re_alloc(weights_shape);
+            inner_weights_before_host.copy_from(*gru_param.weight());
+
+            const Op_dtype* weights_i2h=inner_weights_before_host.data();
+            const Op_dtype* weights_h2h=weights_i2h+weights_i2h_size;
+
+
+
+
+            int temp_size=_hidden_size>_word_size?_hidden_size*_hidden_size:_word_size*_hidden_size;
+            Shape temp_tensor_shape(1,1,1,temp_size);
+            Tensor<X86, OpDtype, LayOutType_op> temp_tensor;
+            temp_tensor.re_alloc(temp_tensor_shape);
+            extract_matrix_from_matrix_in_leddim(weights_i2h,temp_tensor.mutable_data(),0,weights_i2h_size,_hidden_size*3,_hidden_size);
+            write_tensorfile(temp_tensor,"temp_tensor");
+        }
+
+
+
         return create(inputs, outputs, gru_param, ctx);
     }
 
@@ -133,6 +187,15 @@ private:
 //! input and output descs
     std::unique_ptr<cudnn::TensorDescriptors<DataDtype>> _xDesc;
     std::unique_ptr<cudnn::TensorDescriptors<DataDtype>> _yDesc;
+
+    int _word_size;
+    int _hidden_size;
+    bool _is_init_weights=false;
+
+    OpTensor _inner_weight;
+    std::vector<ParamsRegion> _inner_weight_region;
+    std::vector<ParamsRegion> _inner_bias_region;
+
 
 //! workspace for cudnn
     const size_t _workspace_limit_bytes = 64 * 1024 * 1024;

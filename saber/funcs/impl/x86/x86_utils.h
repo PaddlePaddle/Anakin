@@ -43,6 +43,16 @@ namespace utils {
  * (since there is no any c++-rt dependent stuff, ideally...). */
 
 /* SFINAE helper -- analogue to std::enable_if */
+
+
+inline int round_up(int k,int c){
+    return (k-1)/c+c;
+}
+
+inline int div_up(int k,int c){
+    return (k+c-1)/c;
+}
+
 template<bool expr, class T = void> struct enable_if {};
 template<class T> struct enable_if<true, T> { typedef T type; };
 
@@ -184,6 +194,7 @@ inline U this_block_size(const T offset, const U max, const V block_size) {
         return block_size;
     }
 }
+
 
 
 template <typename T, typename U>

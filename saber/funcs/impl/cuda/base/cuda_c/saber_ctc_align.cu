@@ -57,10 +57,14 @@ SaberStatus SaberCtcAlign<NV, OpDtype, inDtype, outDtype,\
                     out_data, out_offset, in_data, \
                     in_offset, seq_num, param.blank, param.merge_repeated,
                     1);
+
+
         std::vector<int> seq_offset;
-        seq_offset.resize((inputs[0]->get_seq_offset()).size());
+        seq_offset.resize((inputs[0]->get_seq_offset()[0]).size());
         cudaMemcpyAsync(&seq_offset[0], out_offset, sizeof(int) * (seq_num + 1), cudaMemcpyDeviceToHost, cuda_stream);
-        outputs[0]->set_seq_offset(seq_offset);
+        std::vector<std::vector<int>> lod_offset;
+        lod_offset.push_back(seq_offset);
+        outputs[0]->set_seq_offset(lod_offset);
     }
 
     return SaberSuccess;
