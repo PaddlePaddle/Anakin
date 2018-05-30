@@ -2264,7 +2264,51 @@ struct CastParam {
     int in_type;
     int out_type;
 };
+template <typename opTensor>
+struct EmbeddingParam {
+    EmbeddingParam() = default;
+    EmbeddingParam(int word_num_in, int emb_dim_in, int padding_idx_in,
+             opTensor* weight_tensor_in)
+            : word_num(word_num_in)
+            , emb_dim(emb_dim_in)
+            , padding_idx(padding_idx_in)
+            , weight_tensor(weight_tensor_in)
+    {}
+    EmbeddingParam(const EmbeddingParam &right)
+            : word_num(right.word_num)
+            , emb_dim(right.emb_dim)
+            , padding_idx(right.padding_idx)
+            , weight_tensor(right.weight_tensor)
+    {}
+    EmbeddingParam &operator=(const EmbeddingParam &right) {
+        word_num = right.word_num;
+        emb_dim = right.emb_dim;
+        padding_idx = right.padding_idx;
+        weight_tensor = right.weight_tensor;
+        return *this;
+    }
+    bool operator==(const EmbeddingParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (word_num == right.word_num);
+        comp_eq = comp_eq && (emb_dim == right.emb_dim);
+        comp_eq = comp_eq && (padding_idx == right.padding_idx);
+        comp_eq = comp_eq && (weight_tensor == right.weight_tensor);
+        return comp_eq;
+    }
+    inline const opTensor* weight() {
+        return weight_tensor;
+    }
+
+    inline opTensor* mutable_weight() {
+        return weight_tensor;
+    }
+    int emb_dim;
+    int word_num;
+    int padding_idx;
+private:
+    opTensor* weight_tensor;
+};
 
 }
-} // namespace anakin
+}
 #endif //SABER_FUNCS_PARAM_H
