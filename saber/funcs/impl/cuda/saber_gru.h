@@ -15,7 +15,7 @@
 
 #ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_GRU_H
 #define ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_GRU_H
-#include "saber/funcs/impl/impl_define.h"
+#include "saber/funcs/impl/impl_gru.h"
 
 namespace anakin {
 
@@ -44,7 +44,11 @@ public:
     typedef typename OpTensor::Dtype OpDataType;
 
     SaberGru() {}
-    ~SaberGru() {}
+    ~SaberGru() {
+        if (_cublas_handle != nullptr) {
+            CUBLAS_CHECK(cublasDestroy(_cublas_handle));
+        }
+    }
     
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs, \
         std::vector<DataTensor_out*>& outputs, \
@@ -53,7 +57,7 @@ public:
         this->_ctx = ctx;
         CUBLAS_CHECK(cublasCreate(&_cublas_handle));
         CUBLAS_CHECK(cublasSetStream(_cublas_handle, this->_ctx.get_compute_stream()));
-        if(_init_weights==false&&gru_param._formula==GRU_ORIGIN) {
+        if(gru_param._formula==GRU_ORIGIN) {
             _hidden_size = gru_param.bias()->valid_size() / 3;
 
             int weights_bias_size = _hidden_size * 3;
@@ -123,7 +127,7 @@ private:
 
     int _word_size;
     int _hidden_size;
-    bool _init_weights=false;
+
     OpTensor _weights_i2h;
     OpTensor _weights_h2h;
     OpTensor _weights_bias;

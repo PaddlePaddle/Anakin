@@ -2,7 +2,6 @@
 
 #include "saber/funcs/impl/x86/saber_gru.h"
 #include "saber/core/tensor_op.h"
-#include "cuda_fp16.h"
 #include "thrust/host_vector.h"
 #include "thrust/device_vector.h"
 #include "mkl_cblas.h"
@@ -11,63 +10,6 @@ namespace anakin {
 
 namespace saber {
 
-static void write_tensorfile(std::vector<float>& f, const char* locate) {
-    FILE* fp = fopen(locate, "w+");
-
-    if (fp == 0) {
-        std::cout << "file open field :" << locate << std::endl;
-    } else {
-        for (int i = 0; i < f.size(); ++i) {
-            fprintf(fp, "[%d] %f \n", i, (f[i]));
-        }
-
-        fclose(fp);
-    }
-
-    std::cout << "!!! write success: " << locate << " , size = " << f.size() << std::endl;
-}
-
-static void write_tensorfile(const float* f, const char* locate, int size) {
-    FILE* fp = fopen(locate, "w+");
-
-    if (fp == 0) {
-        std::cout << "file open field :" << locate << std::endl;
-    } else {
-        for (int i = 0; i < size; ++i) {
-            fprintf(fp, "[%d] %f \n", i, (f[i]));
-        }
-
-        fclose(fp);
-    }
-
-    std::cout << "!!! write success: " << locate << " , size = " << size << std::endl;
-}
-
-template <typename Dtype>
-void tensor_cmp_host(const Dtype* src1, const Dtype* src2, int size) {
-
-
-    double max_ratio;
-    double max_diff;
-    const double eps = 1e-6f;
-    max_diff = fabs(src1[0] - src2[0]);
-    max_ratio = 2.0 * max_diff / (src1[0] + src2[0] + eps);
-
-    for (int i = 1; i < size; ++i) {
-        double diff = fabs(src1[i] - src2[i]);
-
-        if (max_diff < diff) {
-            max_diff = diff;
-            max_ratio = 2.0 * max_diff / (src1[i] + src2[i] + eps);
-        }
-    }
-
-    if (abs(max_ratio) > 0.001) {
-        std::cout << "test failed " << abs(max_ratio) << "  <=  " << max_diff << std::endl;
-    } else {
-        std::cout << "passed! " << abs(max_ratio) << "  <=  " << max_diff << std::endl;
-    }
-}
 
 static void* aligned_malloc(size_t align, size_t size) {
     size *= 4;
@@ -206,6 +148,7 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW_C16, NCHW_C16, NCHW
     const OpDataType* weight_h = _weights_h2h.data();
     const OpDataType* weight_w = _weights_i2h.data();
     const OpDataType* bias = _weights_bias.data();
+
     std::vector<std::vector<int> >lod=inputs[0]->get_seq_offset();
     std::vector<int> offset_vec = lod[lod.size()-1];
     bool is_hw2seq = offset_vec.size() > 2;
@@ -220,6 +163,7 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW_C16, NCHW_C16, NCHW
 
     const InDataType* x = inputs[0]->data();
     OutDataType* out = outputs[0]->mutable_data();
+
 
     //    lod_no_batch_gru(weight_w,weight_h,bias,h_init,out,x
     //            ,_temp_wx.mutable_data(),_temp_wh.mutable_data(),_temp_whr.mutable_data(),
@@ -241,7 +185,8 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW_C16, NCHW_C16, NCHW
             length_vec[i] = len;
             seqsum += len;
         }
-
+        Shape wx_shaep(1,seqsum,3,_aligned_hidden_size_iter_num,_aligned_size);
+        _temp_wx.try_expand_size(wx_shaep);
         std::vector<int> seqid2batchid(seqsum);
 
         for (int batchid = 0; batchid < batch_size; ++batchid) {
@@ -321,6 +266,6 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW_C16, NCHW_C16, NCHW
     }
 
 };
-        template class SaberGru<X86,AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW_C16, NCHW_C16, NCHW_C16>;
+//        template class SaberGru<X86,AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
 }
 }

@@ -660,7 +660,7 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::gru_cu
         seq2hw(outputs, inputs, param, hidden_size, dout_data);
         outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
     }
-
+    return SaberSuccess;
 
 }
 template<>
@@ -798,7 +798,7 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispat
         seq2hw(outputs, inputs, param, hidden_size, dout_data);
     }
     outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
-
+    return SaberSuccess;
 }
 
 }
