@@ -164,9 +164,7 @@ SaberStatus SaberIm2Sequence<NV, OpDtype, inDtype, outDtype,\
         seq_offset.push_back(i * per_seq_len);
     }
     seq_offset.push_back(n * per_seq_len);
-    std::vector<std::vector<int>> lod_offset;
-    lod_offset.push_back(seq_offset);
-    outputs[0]->set_seq_offset(lod_offset);
+    outputs[0]->set_seq_offset(seq_offset);
     //LOG(INFO)<<"im2sequence out shape"<< outputs[0]->num()<<"c"<<outputs[0]->channel()<<"h"<<outputs[0]->height()<<"w"<<outputs[0]->width();
 
     if (inputs[0]->is_continue_mem() && outputs[0]->is_continue_mem()) {

@@ -37,8 +37,9 @@ public:
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs, \
                              std::vector<DataTensor_out*>& outputs, \
                              GruParam<OpTensor>& gru_param, Context<X86>& ctx) {
+        this->_ctx=ctx;
         CHECK_EQ(gru_param._formula ,GRU_ORIGIN)<<"only support gru_origin now";
-        if (gru_param._formula == GRU_ORIGIN) {
+        if (gru_param._formula == GRU_ORIGIN&&gru_param.weight()->valid_shape().size()>=5) {
             int shape_size=gru_param.weight()->valid_shape().size();
             CHECK_EQ(shape_size,5)<<"only support NCHW_C format";
             int c_size=gru_param.weight()->valid_shape()[4];
@@ -71,13 +72,31 @@ public:
             memcpy(_weights_bias.mutable_data(), gru_param.bias()->data(),
                    sizeof(InDataType) * weights_bias_size);
 
-            Shape wh_shape(1,1,2,_aligned_hidden_size/c_size,c_size);
-            Shape whr_shape(1,1,1,_aligned_hidden_size/c_size,c_size);
-            _temp_wh.try_expand_size(wh_shape);
-            _temp_whr.try_expand_size(whr_shape);
-        }
+//            Shape wh_shape(1,1,2,_aligned_hidden_size/c_size,c_size);
+//            Shape whr_shape(1,1,1,_aligned_hidden_size/c_size,c_size);
+//            _temp_wh.try_expand_size(wh_shape);
+//            _temp_whr.try_expand_size(whr_shape);
+        }else if(gru_param._formula == GRU_ORIGIN){
+            _hidden_size = gru_param.bias()->valid_size() / 3;
+            int weights_bias_size = _hidden_size * 3;
+            int weights_h2h_size = _hidden_size * _hidden_size * 3;
+            int weights_i2h_size = gru_param.weight()->valid_size() - weights_h2h_size;
+            _word_size = weights_i2h_size / _hidden_size / 3;
 
-        return SaberSuccess;
+            _weights_i2h.try_expand_size(weights_i2h_size);
+            _weights_h2h.try_expand_size(weights_h2h_size);
+            _weights_bias.try_expand_size(weights_bias_size);
+
+            memcpy(_weights_i2h.mutable_data(), gru_param.weight()->data(),
+                   sizeof(InDataType) * weights_i2h_size);
+            memcpy(_weights_h2h.mutable_data(), gru_param.weight()->data() + weights_i2h_size,
+                   sizeof(InDataType) * weights_h2h_size);
+            memcpy(_weights_bias.mutable_data(), gru_param.bias()->data(),
+                   sizeof(InDataType) * weights_bias_size);
+
+        }
+        LOG(INFO)<<"success init";
+        return create(inputs,outputs,gru_param,ctx);
     }
 
     virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs, \
@@ -111,10 +130,22 @@ private:
     DataTensor_out _temp_wx;
     DataTensor_out _temp_wh;
     DataTensor_out _temp_whr;
+
+    DataTensor_in _temp_x;
+    DataTensor_out _temp_out;
+    DataTensor_out _temp_h_init;
 //    lod_no_batch_gru(const OpDataType* weight_w, const OpDataType* weight_h,const OpDataType* b, const OutDataType* h_init, OutDataType* h_out,
 //                     const InDataType* x,OutDataType *temp_wx,OutDataType *temp_wh,OutDataType *temp_whr,
 //                     int hidden_size, int word_size, std::vector<int>& offset_vec, bool is_reverse);
+    SaberStatus navi_gru(
+        const std::vector<DataTensor_in*>& inputs,
+        std::vector<DataTensor_out*>& outputs,
+        GruParam<OpTensor>& param);
 
+    SaberStatus batch_gru(\
+        const std::vector<DataTensor_in*>& inputs,
+        std::vector<DataTensor_out*>& outputs,
+        GruParam<OpTensor>& param);
 };
 
 }

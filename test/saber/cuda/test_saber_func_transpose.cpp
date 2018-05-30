@@ -6,6 +6,7 @@
 #include "funcs/transpose.h"
 #include "saber_types.h"
 #include "saber/funcs/timer.h"
+#include "saber/funcs/debug.h"
 #include "stdio.h"
 
 using namespace anakin::saber;

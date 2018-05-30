@@ -23,7 +23,7 @@
 #endif
 
 #ifdef USE_X86_PLACE
-//#include "saber/funcs/impl/x86/saber_activation.h"
+#include "saber/funcs/impl/x86/saber_gru.h"
 #endif
 
 namespace anakin {
@@ -72,12 +72,14 @@ public:
 
         CHECK_GE(input.size(),1)<<"input must >= 1";
 
-        if(param.weight()->valid_shape().size()==5){
-            int hiddenSize = param.bias()->valid_size() / 3;
-            int seq_sum = input[0]->num();
-            Shape output_shape = Shape(seq_sum, hiddenSize * param._num_direction/16, 1, 1,16);
-            return output[0]->set_shape(output_shape);
-        }
+//        if(param.weight()->valid_shape().size()==5){
+//
+//            int hiddenSize = param.bias()->valid_size() / 3;
+//            int seq_sum = input[0]->num();
+//            Shape output_shape = Shape(seq_sum, hiddenSize * param._num_direction/16, 1, 1,16);
+//            return output[0]->set_shape(output_shape);
+//        }
+
 
 //        if (input[0]->get_seq_offset().size()>0) {
             int hiddenSize = param.bias()->valid_size() / 3;

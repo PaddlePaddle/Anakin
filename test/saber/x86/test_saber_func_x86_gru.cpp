@@ -27,30 +27,29 @@ LOG(INFO)<<"("<<tensor[0]<<","<<tensor[1]<<","<<tensor[2]<<","<<tensor[3]<<")";\
 #define GRUOFFSET
 //#define CUDNNGRU
 #define TEST_X86
-void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size = 16,
-                    int hidden_size = 16) {
+void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size = 255,
+                    int hidden_size = 255) {
 
     Context<X86> ctx_dev(0, 1, 1);
-    typedef Tensor<X86, AK_FLOAT, NCHW_C16> TensorDf4;
-    typedef Tensor<X86, AK_FLOAT, NCHW_C16> TensorHf4;
+    typedef Tensor<X86, AK_FLOAT, NCHW> TensorDf4;
+    typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
 
-    std::vector<int> offsets = {0, 1};
-    std::vector<std::vector<int>> lod;
-    lod.push_back(offsets);
+    std::vector<int> offsets = {0,2,3,6,17,22,31};
+
     bool is_reverse = false;
     batch_size = offsets.size() - 1;
-    Shape shape_ux(1, 1, offsets[offsets.size() - 1]/16, hidden_size * 3,16);
-    Shape shape_x(offsets[offsets.size() - 1], word_size/16, 1, 1,16);
-    Shape shape_out(1, 1, offsets[offsets.size() - 1], hidden_size/16,16);
+    Shape shape_ux(1, 1, offsets[offsets.size() - 1], hidden_size * 3);
+    Shape shape_x(offsets[offsets.size() - 1], word_size, 1, 1);
+    Shape shape_out(1, 1, offsets[offsets.size() - 1], hidden_size);
 
 
-    Shape shape_ux_k(1, 1, 1, hidden_size/16,16);
-    Shape shape_u(1, 1, word_size, 3 * hidden_size/16,16);
+    Shape shape_ux_k(1, 1, 1, hidden_size);
+    Shape shape_u(1, 1, word_size, 3 * hidden_size);
 
-    Shape shape_b(1, 1, 3, hidden_size/16,16);
-    Shape shape_w(1, 1, hidden_size, 3 * hidden_size/16,16);
-    Shape shape_wu(1, 1,1, (hidden_size* 3 * hidden_size+word_size* 3 * hidden_size)/16,16);
-    Shape shape_h(1, 1, batch_size, hidden_size/16,16);
+    Shape shape_b(1, 1, 3, hidden_size);
+    Shape shape_w(1, 1, hidden_size, 3 * hidden_size);
+    Shape shape_wu(1, 1,1, (hidden_size* 3 * hidden_size+word_size* 3 * hidden_size));
+    Shape shape_h(1, 1, batch_size, hidden_size);
 
 
     TensorHf4 host_ux;//z,r,o
@@ -77,7 +76,6 @@ void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size
     host_out.re_alloc(shape_out);
     host_out_bak.re_alloc(shape_out);
 
-
     //    dev_ux.re_alloc(shape_ux);
     dev_x.re_alloc(shape_x);
     dev_b.re_alloc(shape_b);
@@ -85,7 +83,6 @@ void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size
     dev_h.re_alloc(shape_h);
     dev_out.re_alloc(shape_out);
     dev_out_bak.re_alloc(shape_out);
-
 
     readTensorData(host_wu, "host_wu");
     readTensorData(host_x, "host_x");
@@ -105,11 +102,11 @@ void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size
     output_dev_4d.push_back(&dev_out);
 
 
-    dev_x.set_seq_offset(lod);
-    GruParam<TensorDf4> param(&dev_wu, &dev_b, GRU_ORIGIN,Active_sigmoid_fluid,Active_relu,is_reverse);
+    dev_x.set_seq_offset(offsets);
+    GruParam<TensorDf4> param(&dev_wu, &dev_b, GRU_ORIGIN,Active_sigmoid_fluid,Active_tanh,is_reverse);
 
 
-    Gru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW_C16, NCHW_C16, NCHW_C16> dev_gru;
+    Gru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW> dev_gru;
     SaberTimer<X86> t1;
 
     dev_gru.compute_output_shape(input_dev_4d, output_dev_4d, param);
@@ -125,7 +122,7 @@ void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size
 
     dev_gru(input_dev_4d, output_dev_4d, param, ctx_dev);
 
-    int test_iter = 1;
+    int test_iter = 200;
 
     t1.start(ctx_dev);
 
@@ -141,6 +138,7 @@ void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size
               t1.get_average_ms() / test_iter << " args [" \
                 << sequence_size << "," << batch_size << ","
                       << word_size << "," << hidden_size << "]";
+
 
     Tensor<X86, AK_FLOAT, NCHW> host_g;
     Tensor<X86, AK_FLOAT, NCHW> compare_g;
@@ -159,10 +157,6 @@ void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size
     } else {
                 LOG(INFO) << "failed : ratio " << maxratio;
     }
-
-
-
-
     return;
 
     //    return;

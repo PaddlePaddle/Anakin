@@ -13,7 +13,7 @@ void VenderGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::\
             DataTensor& sequence, Context<NV>& ctx) {
     DataTensor* din = inputs[0];
     DataTensor* dout = outputs[0];
-    std::vector<int> offset_vec = din->get_seq_offset()[din->get_seq_offset().size()-1];
+    std::vector<int> offset_vec = din->get_seq_offset();
     CHECK_GE(offset_vec.size(), 2) << "offset must >=2" ;
     int batch_size = offset_vec.size() - 1;
     int max_len = 0;
@@ -50,7 +50,7 @@ hw2seq(std::vector<DataTensor*> inputs, GruParam<OpTensor>& param,
         int word_size, DataTensor& sequence, 
         DataTensor& out_sequence, Context<NV>& ctx) {
     DataTensor* din = inputs[0];
-    std::vector<int> offset_vec = din->get_seq_offset()[din->get_seq_offset().size()-1];
+    std::vector<int> offset_vec = din->get_seq_offset();
     CHECK_GE(offset_vec.size(), 2) << "offset must >=2" ;
     int batch_size = offset_vec.size() - 1;
     int max_len = 0;

@@ -35,7 +35,7 @@ void SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::seq2hw(\
     DataTensor_in* din = inputs[0];
     DataTensor_out* dout = outputs[0];
     int wordsize = din->channel();
-    std::vector<int> offset_vec = din->get_seq_offset()[din->get_seq_offset().size()-1];
+    std::vector<int> offset_vec = din->get_seq_offset();
     CHECK_GE(offset_vec.size(), 2) << "offset must >=2" ;
     int batch_size = offset_vec.size() - 1;
 
@@ -76,7 +76,7 @@ const float* SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::hw2se
         int word_size, int hidden_size, int& sequence_len) {
     DataTensor_in* din = inputs[0];
 
-    std::vector<int> offset_vec = din->get_seq_offset()[din->get_seq_offset().size()-1];
+    std::vector<int> offset_vec = din->get_seq_offset();
     CHECK_GE(offset_vec.size(), 2) << "offset must >=2" ;
     int batch_size = offset_vec.size() - 1;
     int seq_sum = offset_vec[offset_vec.size() - 1];
@@ -550,7 +550,7 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::gru_cu
 
     DataTensor_in* x = inputs[0];
     const InDataType* x_data = x->data();
-    std::vector<int> offset=x->get_seq_offset()[x->get_seq_offset().size()-1];
+    std::vector<int> offset=x->get_seq_offset();
     const InDataType* h;
     DataTensor_out* dout = outputs[0];
     OutDataType* dout_data = dout->mutable_data();
@@ -679,7 +679,7 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispat
 
     //    LOG(INFO)<<"gru_paddle";
     DataTensor_in* x = inputs[0];
-    std::vector<int> offset=x->get_seq_offset()[x->get_seq_offset().size()-1];
+    std::vector<int> offset=x->get_seq_offset();
     const InDataType* x_data = x->data();
     const InDataType* h;
     DataTensor_out* dout = outputs[0];
