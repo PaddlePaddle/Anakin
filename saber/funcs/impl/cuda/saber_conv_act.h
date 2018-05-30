@@ -20,7 +20,6 @@
 #include "saber/funcs/impl/impl_conv_act.h"
 #include "saber/funcs/impl/cuda/base/sass_funcs.h"
 #include "saber/funcs/funcs_utils.h"
-#include "saber/funcs/impl/cuda/base/cuda_c/ker_gemm.h"
 
 namespace anakin{
 

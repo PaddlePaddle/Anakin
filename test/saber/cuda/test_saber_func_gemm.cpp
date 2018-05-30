@@ -5,7 +5,7 @@
 #include "test_saber_func_NV.h"
 #include "tensor_op.h"
 #include "saber_types.h"
-#include "saber/funcs/impl/cuda/base/cuda_c/ker_gemm.h"
+#include "saber/funcs/impl/cuda/base/sass_funcs.h"
 #include <vector>
 
 //#include "cublas.h"
