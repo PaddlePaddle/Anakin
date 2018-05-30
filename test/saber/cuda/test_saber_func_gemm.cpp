@@ -43,8 +43,8 @@ TEST(TestSaberFuncNV, test_gemm) {
 //    int img_h = 26;
 //    int img_w = 56;
     int out_channels = 4;
-    int in_channels = 49*1024;
-    int img_h = 1;
+    int in_channels = 49;
+    int img_h = 26;
     int img_w = 4096;
 //    int out_channels = 512;
 //    int in_channels = 128;
@@ -460,7 +460,7 @@ void choose_gemm_algo(int m, int n, int k) {
     CUBLAS_CHECK(cublasCreate(&handle));
     CUBLAS_CHECK(cublasSetStream(handle, ctx1.get_compute_stream()));
 
-    auto ker = saber_find_fast_sass_gemm<trans_a, trans_b>(m, n, k);
+    auto ker = saber_find_fast_sass_gemm(trans_a, trans_b, m, n, k);
 
     ker(m, n, k, alpha, matrix_a.data(),
         beta, matrix_b.data(),
@@ -529,8 +529,8 @@ TEST(TestSaberFuncNV, test_gemm_32) {
 }
 TEST(TestSaberFuncNV, test_choose_algo) {
     int m = 32;
-    int n = 32;
-    int k = 32;
+    int n = 4096;
+    int k = 1024*49;
 
     choose_gemm_algo<false, false>(m, n, k);
 }

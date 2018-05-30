@@ -542,20 +542,11 @@ void ker_sgemm_sass(const int M, const int N, const int K,
                     const float beta, const float* B,
                     float* C, cudaStream_t cuda_stream);
 
-template <bool TransA, bool TransB>
 std::function<void(const int, const int, const int,
                    const float, const float*, const float,
                    const float*, float*, cudaStream_t)>
-saber_find_fast_sass_gemm (const int M, const int N, const int K) {
-
-    bool choose_128_gemm = true;
-    choose_128_gemm &= M > 128;
-    if (choose_128_gemm) {
-        return ker_sgemm_sass<TransA, TransB, 128>;
-    } else {
-        return ker_sgemm_sass<TransA, TransB, 32>;
-    }
-}
+saber_find_fast_sass_gemm(const bool TransA, const bool TransB,
+                          const int M, const int N, const int K);
 
 } // namespace saber
 } // namespace anakin
