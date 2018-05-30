@@ -10,7 +10,6 @@ project(ANAKIN C CXX)
 include(cmake/msg_color.cmake)
 include(cmake/utils.cmake)
 include(cmake/statistic.cmake)
-include(cmake/cuda.cmake)
 
 # ----------------------------------------------------------------------------
 # section: global anakin version and lib name
@@ -29,7 +28,9 @@ set(ANAKIN_ROOT ${PROJECT_SOURCE_DIR})
 include_directories(${ANAKIN_ROOT})
 
 set(ANAKIN_FRAMEWORK ${ANAKIN_ROOT}/framework)
+set(ANAKIN_THIRD_PARTY_PATH ${CMAKE_BINARY_DIR}/third-party)
 set(ANAKIN_UTILS ${ANAKIN_ROOT}/utils)
+set(ANAKIN_THIRD_PARTY_PATH ${ANAKIN_ROOT}/third-party)
 set(ANAKIN_MODEL_PARSER ${ANAKIN_FRAMEWORK}/model_parser)
 set(ANAKIN_SABER ${ANAKIN_ROOT}/saber)
 set(ANAKIN_UNIT_TEST ${ANAKIN_ROOT}/test)
@@ -44,7 +45,7 @@ anakin_option(ANAKIN_TYPE_FP16 "define the FP16 for data precision." NO)
 anakin_option(ANAKIN_TYPE_INT8 "define the INT8 for data precision." NO)
 
 #select the plantform to build
-anakin_option(USE_GPU_PLACE "Select the build mode for GPU place." YES)
+anakin_option(USE_GPU_PLACE "Select the build mode for GPU place." NO)
 anakin_option(USE_X86_PLACE "Select the build mode for X86 place." YES)
 anakin_option(USE_ARM_PLACE "Select the build mode for ARM place." NO)
 
@@ -87,14 +88,17 @@ anakin_option(USE_GLOG "Build Glog components." NO)
 anakin_option(USE_PROTOBUF "Build Google protobuf components." YES)
 #anakin_option(USE_OPENCV "Use static opencv libs." NO)
 anakin_option(USE_BOOST "Use static BOOST libs." NO)
-anakin_option(USE_MKL "Use static BOOST libs." NO)
+anakin_option(USE_MKL "Use static BOOST libs." NO if USE_X86_PLACE)
 anakin_option(USE_OPENMP "Use Openmp when in andriod environment." YES if TARGET_ANDROID)
 anakin_option(USE_GTEST "Use googletest libs." NO if BUILD_WITH_UNIT_TEST)
 anakin_option(USE_PYTHON "Generate py wrappers." NO)
 anakin_option(USE_OPENCL "Use OpenCL ." NO)
 anakin_option(USE_GFLAGS "Build Google gflags components." NO)
+anakin_option(USE_MKL "Use mkl libs." YES if USE_X86_PLACE)
 anakin_option(USE_MKLML "Use MKLML libs." YES if USE_X86_PLACE)
 anakin_option(USE_XBYAK "Use XBYAK libs." YES if USE_X86_PLACE)
+anakin_option(USE_OPENMP "Use Openmp when in andriod environment." YES if TARGET_ANDROID)
+
 # build components
 anakin_option(BUILD_WITH_UNIT_TEST "Build anakin unit test components." YES)
 
@@ -127,10 +131,27 @@ include_directories(${PROJECT_BINARY_DIR})
 # ----------------------------------------------------------------------------
 # section: find modules and configure
 # ----------------------------------------------------------------------------
-include(cmake/find_modules.cmake)
+set(ANAKIN_SABER_DEPENDENCIES) # set saber dependent third-party lib targets
 
 # check and set base compile options
 include(cmake/compiler_options.cmake)
+
+include(cmake/find_modules.cmake)
+if(USE_CUDA)
+    include(cmake/cuda.cmake)
+endif()
+
+if(USE_X86_PLACE)
+    set(ANAKIN_TEMP_THIRD_PARTY_PATH ${CMAKE_BINARY_DIR}/third-party)
+    if(USE_MKLML)
+        include(cmake/external/mklml.cmake)
+    endif()
+    if(USE_XBYAK)
+        include(cmake/external/xbyak.cmake)
+    endif()
+    #include(cmake/external/mkldnn.cmake)
+endif()
+
 # gather all the config options to anakin
 include(cmake/gather.cmake)
 
