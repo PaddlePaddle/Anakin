@@ -38,6 +38,6 @@ ExternalProject_Add(
     CMAKE_ARGS          -DCMAKE_INSTALL_PREFIX=${XBYAK_INSTALL_ROOT}
 )
 
-add_library(xbyak INTERFACE)
+add_library(xbyak SHARED IMPORTED GLOBAL)
 add_dependencies(xbyak ${XBYAK_PROJECT})
 list(APPEND ANAKIN_SABER_DEPENDENCIES xbyak)
