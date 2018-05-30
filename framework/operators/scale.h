@@ -20,7 +20,7 @@
 #include "framework/core/data_types.h"
 #include "framework/core/operator/operator.h"
 #include "utils/logger/logger.h"
-//#include "saber/funcs/permute.h"
+#include "saber/funcs/scale.h"
 
 namespace anakin {
 
@@ -31,8 +31,8 @@ class ScaleHelper;
 
 /// pooling op
 /**
- * \brief Scale implementation class
- * public inherit Operator
+ * \brief operation of ops class
+ * public inheritance Operator
  */
 template<typename Ttype, DataType Dtype, Precision Ptype>
 class Scale : public Operator<Ttype, Dtype, Ptype> {
@@ -51,9 +51,9 @@ public:
 };
 
 /**
- * \brief Scale helper class to implement Scale
- * public inherit OperatorHelper
- * including init resource and shape size in Scale context
+ * \breif provide defined help for some operation
+ *  public inheritance OperatorHelper
+ *  including init operation context and the size of shape
  */
 template<typename Ttype, DataType Dtype, Precision Ptype>
 class ScaleHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
@@ -66,7 +66,7 @@ public:
 
     /**
     * \brief initial all the resource needed by pooling
-    * \param ctx stand for reshape operation context
+    * \param ctx stand for operation context
     * \param ins stand for input tensor vector
     * \param outs stand for output tensor vector
     * \return status
@@ -85,12 +85,10 @@ public:
                       std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
 
 public:
-    //PermuteParam<void> _param_permute;
-    //saber::Permute<Ttype, Dtype> _funcs_permute;
-
-private:
-    ///< _dims stand for scale size
-    PTuple<int> _dims; 
+    ///< _param_scale stand for scale parameter
+    saber::ScaleParam<Tensor4d<Ttype, Dtype>> _param_scale;
+    ///< _funcs_scale stand for scale function
+    saber::Scale<Ttype, Dtype> _funcs_scale;
 };
 
 
