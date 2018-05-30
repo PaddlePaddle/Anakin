@@ -47,8 +47,8 @@ TEST(TestSaberFuncFcNV, test_func_fc_NV) {
     int test_iter = 100;
     int w_in = 7;
     int h_in = 7;
-    int ch_in = 512;
-    int num_in = 1;
+    int ch_in = 1024;
+    int num_in = 4;
 
     int num_out = 4096;
     int axis = 1;
@@ -139,7 +139,7 @@ TEST(TestSaberFuncFcNV, test_func_fc_NV) {
 
 }
 
-void test_specify_fc(std::vector<TensorDf4*>& input_dev_4d,
+double test_specify_fc(std::vector<TensorDf4*>& input_dev_4d,
                      std::vector<TensorDf4*>& output_dev_4d,
                     FcParam<TensorDf4> &param, anakin::saber::ImplEnum impl) {
 
@@ -151,9 +151,10 @@ void test_specify_fc(std::vector<TensorDf4*>& input_dev_4d,
     output_dev_4d[0]->re_alloc(output_dev_4d[0]->valid_shape());
     Shape va_sh = output_dev_4d[0]->valid_shape();
     SABER_CHECK(fc.init(input_dev_4d, output_dev_4d, param, SPECIFY, impl, ctx_dev));
-    int ts = 100;
+    SABER_CHECK(fc(input_dev_4d, output_dev_4d, param, ctx_dev));
+    cudaDeviceSynchronize();
+    int ts = 10;
     SaberTimer<NV> t1;
-
     for (int i = 0; i < ts; ++i) {
         t1.start(ctx_dev);
         SABER_CHECK(fc(input_dev_4d, output_dev_4d, param, ctx_dev));
@@ -161,15 +162,16 @@ void test_specify_fc(std::vector<TensorDf4*>& input_dev_4d,
         t1.end(ctx_dev);
     }
     LOG(INFO) << " time elapse: " << t1.get_average_ms() << "ms";
+    return t1.get_average_ms();
 }
 
 TEST(TestSaberFuncFcNV, test_func_fc_openai) {
-    int w_in = 49;
-    int h_in = 49;
-    int ch_in = 32;
+    int w_in = 7;
+    int h_in = 7;
+    int ch_in = 1024;
     int num_in = 4;
 
-    int num_out = 1024;
+    int num_out = 4096;
     int axis = 1;
 
     Shape shape_in(num_in, ch_in, h_in, w_in);
@@ -216,7 +218,6 @@ TEST(TestSaberFuncFcNV, test_func_fc_openai) {
     double max_diff = 0;
     tensor_cmp_host(out_host.data(), out_gemm_host.data(), out_host.valid_size(), max_ratio, max_diff);
     LOG(INFO) << "compare result, max diff: " << max_diff << ", max ratio: " << max_ratio;
-
 }
 
 int main(int argc, const char** argv) {

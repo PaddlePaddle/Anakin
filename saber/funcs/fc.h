@@ -114,8 +114,14 @@ public:
 private:
 
     virtual void pick_best_static() override {
-        if (true) // some condition?
+        bool use_saber_fc = true;
+        use_saber_fc &= this->_last_input_shape[0] > 1;
+        use_saber_fc &= this->_last_input_shape[0] <= 32;
+        if (use_saber_fc) {
+            this->_best_impl = this->_impl[1];
+        } else {
             this->_best_impl = this->_impl[0];
+        }
     }
 
     virtual void pick_best_specify(ImplEnum implenum) override {
