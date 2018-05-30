@@ -4,6 +4,8 @@
 namespace anakin {
 namespace saber {
 
+
+
 template <>
 void VenderGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::\
     seq2hw(std::vector<DataTensor*> outputs, std::vector<DataTensor*> inputs,
@@ -11,7 +13,7 @@ void VenderGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::\
             DataTensor& sequence, Context<NV>& ctx) {
     DataTensor* din = inputs[0];
     DataTensor* dout = outputs[0];
-    std::vector<int> offset_vec = din->get_seq_offset();
+    std::vector<int> offset_vec = din->get_seq_offset()[din->get_seq_offset().size()-1];
     CHECK_GE(offset_vec.size(), 2) << "offset must >=2" ;
     int batch_size = offset_vec.size() - 1;
     int max_len = 0;
@@ -48,7 +50,7 @@ hw2seq(std::vector<DataTensor*> inputs, GruParam<OpTensor>& param,
         int word_size, DataTensor& sequence, 
         DataTensor& out_sequence, Context<NV>& ctx) {
     DataTensor* din = inputs[0];
-    std::vector<int> offset_vec = din->get_seq_offset();
+    std::vector<int> offset_vec = din->get_seq_offset()[din->get_seq_offset().size()-1];
     CHECK_GE(offset_vec.size(), 2) << "offset must >=2" ;
     int batch_size = offset_vec.size() - 1;
     int max_len = 0;
@@ -105,8 +107,8 @@ hw2seq(std::vector<DataTensor*> inputs, GruParam<OpTensor>& param,
 
     _yDesc.reset(new cudnn::TensorDescriptors<DataDtype>(
                      max_len,
-    {batch_size, hidden_size * param.numDirection, 1},
-    {hidden_size  * param.numDirection, 1, 1}));
+    {batch_size, hidden_size * param._num_direction, 1},
+    {hidden_size  * param._num_direction, 1, 1}));
 
     size_t new_workspace_size_in_bytes = 0;
     CUDNN_CHECK(cudnnGetRNNWorkspaceSize(
@@ -121,7 +123,7 @@ hw2seq(std::vector<DataTensor*> inputs, GruParam<OpTensor>& param,
         _workspace_tensor.re_alloc(Shape(1, 1, 1, _workspace_size_in_bytes));
     }
 
-    int dim[] = {param.numLayers * param.numDirection, batch_size, hidden_size};
+    int dim[] = {param._num_layers * param._num_direction, batch_size, hidden_size};
     int stride[] = {batch_size * hidden_size, hidden_size, 1};
 
     cudnn::setTensorNdDesc<DataDtype >(&_hxDesc,
@@ -140,19 +142,18 @@ template <>
 void VenderGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::\
 set_grnn_params_region(GruParam<OpTensor>& param, int wordSize) {
     int hidden_size = param.bias()->valid_size() / 3;
-    std::vector<ParamsRegion> weights = param.inner_weight();
-    const op_dtype* w_ptr = param.weight()->data();                /*inpute weights*/
-    const op_dtype* i2h = w_ptr;                                   /* new memory gate */
-    const op_dtype* i2h_r = w_ptr + 1 * wordSize * hidden_size;     /* reset gate */
-    const op_dtype* i2h_z = w_ptr + 2 * wordSize * hidden_size;     /* update gate */
-    const op_dtype* w_ptr_inner  = w_ptr + 3 * wordSize * hidden_size;
-    const op_dtype* h2h = w_ptr_inner;                             /* new memory gate */
-    const op_dtype* h2h_r = w_ptr_inner + 1 * hidden_size * hidden_size; /* reset gate */
-    const op_dtype* h2h_z = w_ptr_inner + 2 * hidden_size * hidden_size; /* update gate */
+    const Op_dtype* w_ptr = param.weight()->data();                /*inpute weights*/
+    const Op_dtype* i2h = w_ptr;                                   /* new memory gate */
+    const Op_dtype* i2h_r = w_ptr + 1 * wordSize * hidden_size;     /* reset gate */
+    const Op_dtype* i2h_z = w_ptr + 2 * wordSize * hidden_size;     /* update gate */
+    const Op_dtype* w_ptr_inner  = w_ptr + 3 * wordSize * hidden_size;
+    const Op_dtype* h2h = w_ptr_inner;                             /* new memory gate */
+    const Op_dtype* h2h_r = w_ptr_inner + 1 * hidden_size * hidden_size; /* reset gate */
+    const Op_dtype* h2h_z = w_ptr_inner + 2 * hidden_size * hidden_size; /* update gate */
 
-    const op_dtype* h = nullptr;
-    const op_dtype* h_r = nullptr;
-    const op_dtype* h_z = nullptr;
+    const Op_dtype* h = nullptr;
+    const Op_dtype* h_r = nullptr;
+    const Op_dtype* h_z = nullptr;
 
     if (param.bias() != nullptr) {
         h = param.bias()->data();
@@ -160,18 +161,18 @@ set_grnn_params_region(GruParam<OpTensor>& param, int wordSize) {
         h_z = h + 2 * hidden_size;
     }
 
-    const op_dtype* cudnnW[] = {i2h_r, i2h_z, i2h, h2h_r, h2h_z, h2h};
-    const op_dtype* cudnnB[] = {h_r, h_z, h, nullptr, nullptr, nullptr};
+    const Op_dtype* cudnnW[] = {i2h_r, i2h_z, i2h, h2h_r, h2h_z, h2h};
+    const Op_dtype* cudnnB[] = {h_r, h_z, h, nullptr, nullptr, nullptr};
 
     for (int i = 0; i < _cudnn_gru_weights_layernum; i++) {
-        ParamsRegion& region = weights[i];
+        ParamsRegion& region = _inner_weight_region[i];
         CUDA_CHECK(cudaMemcpy((void*)(region._offset), (void*)cudnnW[i],
                               region._size,
                               cudaMemcpyDeviceToDevice));
     }
 
     for (int i = 0; i < _cudnn_gru_weights_layernum; i++) {
-        ParamsRegion& region_b = param.mutable_inner_bias()[i];
+        ParamsRegion& region_b = _inner_bias_region[i];
 
         if (cudnnB[i] != nullptr) {
             CUDA_CHECK(cudaMemcpy((void*)(region_b._offset), (void*)cudnnB[i],
@@ -186,7 +187,6 @@ set_grnn_params_region(GruParam<OpTensor>& param, int wordSize) {
 template <>
 int VenderGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::\
 get_grnn_params_region(GruParam<OpTensor>& param) {
-    void* weights = (void*)param.in_weights.mutable_data();
     int sum_size_of_weights_and_bias = 0;
     cudnnFilterDescriptor_t region_desc_handle = nullptr;
     CUDNN_CHECK(cudnnCreateFilterDescriptor(&region_desc_handle));
@@ -196,7 +196,7 @@ get_grnn_params_region(GruParam<OpTensor>& param) {
     int region_count_of_layer = _cudnn_gru_weights_layernum;
     //    LOG(INFO) << "numLayers= " << param.numLayers << ",region_count_of_layer=" << region_count_of_layer;
 
-    for (int layer = 0; layer < param.numLayers; layer++) {
+    for (int layer = 0; layer < param._num_layers; layer++) {
         for (int region = 0; region < region_count_of_layer; region++) {
             for (int trigger = 0; trigger < 2; trigger++) {
                 void* offset = nullptr;
@@ -207,7 +207,7 @@ get_grnn_params_region(GruParam<OpTensor>& param) {
                                 layer,
                                 _xDesc->descs()[0],
                                 _wDesc,
-                                weights,            /* nullptr */
+                                _inner_weight.mutable_data(),            /* nullptr */
                                 region,             /* linLayerID */
                                 region_desc_handle, /* linLayerMatDesc */
                                 &offset));
@@ -217,7 +217,7 @@ get_grnn_params_region(GruParam<OpTensor>& param) {
                                 layer,
                                 _xDesc->descs()[0],
                                 _wDesc,
-                                weights,
+                                _inner_weight.mutable_data(),
                                 region,
                                 region_desc_handle,   /* linLayerBiasDesc */
                                 &offset));
@@ -233,15 +233,15 @@ get_grnn_params_region(GruParam<OpTensor>& param) {
                                                        &tensor_format,
                                                        &nbDims,
                                                        dims));                         /* filterDimA[] */
-                size_t size = dims[0] * dims[1] * dims[2] * sizeof(op_dtype);
+                size_t size = dims[0] * dims[1] * dims[2] * sizeof(Op_dtype);
                 //                        LOG(INFO) << "size add  "<<size<<",layer"<<layer<<",region"<<region<<"trigger"<<trigger;
                 sum_size_of_weights_and_bias += size;
                 auto regionp = ParamsRegion{offset, size};
 
                 if (trigger == 0) { /* weights */
-                    param.mutable_inner_weight().push_back(regionp);
+                    _inner_weight_region.push_back(regionp);
                 } else { /* bias */
-                    param.mutable_inner_bias().push_back(regionp);
+                    _inner_bias_region.push_back(regionp);
                 }
             }
         }
@@ -280,22 +280,20 @@ create(const std::vector<DataTensor*>& inputs,
 
     int seqLength = input_channel;//C;
     int batchSize = input_height;//H
-    int wordSize = input_width;//W
-    int hiddenSize = gru_param.bias()->valid_size() / 3;
     size_t stateSize;
 
-    cudnn::setRNNDesc<DataDtype>(&_rnnDesc, _handle, hiddenSize,
-                                 gru_param.numLayers, _dropoutDesc, gru_param.numDirection, CUDNN_GRU);
+    cudnn::setRNNDesc<DataDtype>(&_rnnDesc, _handle, _hidden_size,
+                                 gru_param._num_layers, _dropoutDesc, gru_param._num_direction, CUDNN_GRU);
 
     _xDesc.reset(new cudnn::TensorDescriptors<DataDtype>(
                      seqLength,
-    {batchSize, wordSize, 1},
-    {wordSize, 1, 1}));
+    {batchSize, _word_size, 1},
+    {_word_size, 1, 1}));
 
     _yDesc.reset(new cudnn::TensorDescriptors<DataDtype>(
                      seqLength,
-    {batchSize, hiddenSize * gru_param.numDirection, 1},
-    {hiddenSize  * gru_param.numDirection, 1, 1}));
+    {batchSize, _hidden_size * gru_param._num_direction, 1},
+    {_hidden_size  * gru_param._num_direction, 1, 1}));
 
     Shape in_dim = inputs[0]->shape();
     Shape in_stride = inputs[0]->get_stride();
@@ -303,8 +301,8 @@ create(const std::vector<DataTensor*>& inputs,
     Shape out_dim = outputs[0]->shape();
     Shape out_stride = outputs[0]->get_stride();
 
-    int dim[] = {gru_param.numLayers * gru_param.numDirection, batchSize, hiddenSize};
-    int stride[] = {batchSize * hiddenSize, hiddenSize, 1};
+    int dim[] = {gru_param._num_layers * gru_param._num_direction, batchSize, _hidden_size};
+    int stride[] = {batchSize * _hidden_size, _hidden_size, 1};
 
     cudnn::setTensorNdDesc<DataDtype >(&_hxDesc,
                                        3, dim, stride);
@@ -324,21 +322,21 @@ create(const std::vector<DataTensor*>& inputs,
                     cudnn::cudnnTypeWrapper<DataDtype>::type));
 
     const int dims[] = {
-        static_cast<int>(weightsSize / sizeof(op_dtype)),
+        static_cast<int>(weightsSize / sizeof(Op_dtype)),
         1,
         1
     };
     CUDNN_CHECK(cudnnSetFilterNdDescriptor(
-                    _wDesc, cudnn::cudnnTypeWrapper<op_dtype >::type, CUDNN_TENSOR_NCHW, 3, dims));
+                    _wDesc, cudnn::cudnnTypeWrapper<Op_dtype >::type, CUDNN_TENSOR_NCHW, 3, dims));
     /**
      * in_weights is tensor of char not the opdata
      */
-    Shape weight_tensor_shape(1, 1, 1, weightsSize);
-    gru_param.in_weights.re_alloc(weight_tensor_shape);
+    Shape weight_tensor_shape(1, 1, 1, weightsSize / sizeof(Op_dtype));
+    _inner_weight.re_alloc(weight_tensor_shape);
 
     int sum_size_of_w = get_grnn_params_region(gru_param);
     CHECK_EQ(sum_size_of_w, weightsSize) << "Compute param sum length must equal to that api get." ;
-    set_grnn_params_region(gru_param, wordSize);
+    set_grnn_params_region(gru_param, _word_size);
 
     CUDNN_CHECK(cudnnGetRNNWorkspaceSize(
                     _handle,
@@ -357,8 +355,6 @@ dispatch(const std::vector<DataTensor*>& inputs,
         GruParam<OpTensor>& param) {
     CHECK_GE(inputs.size(), 1) << "gru input vec size must >=1";
     int input_channel = inputs[0]->channel();
-    int word_size = inputs[0]->width();
-    int hidden_size = param.bias()->valid_size() / 3;
     const DataDtype* in_data = inputs[0]->data();
     DataDtype* out_data = outputs[0]->mutable_data();
     const DataDtype* in_hidden_data = nullptr;
@@ -366,13 +362,12 @@ dispatch(const std::vector<DataTensor*>& inputs,
     if (inputs.size() == 2) {
         in_hidden_data = inputs[1]->data();
     }
+    bool isHW2Seq=inputs[0]->get_seq_offset().size()>2;
 
-    void* weight = (void*)param.in_weights.mutable_data();
-
-    if (param.isHW2Seq) {
+    if (isHW2Seq) {
         DataTensor temp_tensor_in;
         DataTensor temp_tensor_out;
-        hw2seq(inputs, param, word_size, temp_tensor_in, temp_tensor_out, _ctx);
+        hw2seq(inputs, param, _word_size, temp_tensor_in, temp_tensor_out, _ctx);
         CUDNN_CHECK(cudnnRNNForwardInference(_handle,
                                              _rnnDesc,
                                              _xDesc->sizes(),//sequence
@@ -383,7 +378,7 @@ dispatch(const std::vector<DataTensor*>& inputs,
                                              _cxDesc,
                                              nullptr, //the initial cell state of the network will be initialized to zero
                                              _wDesc,
-                                             weight,
+                                             _inner_weight.data(),
                                              _yDesc->descs(),
                                              temp_tensor_out.mutable_data(),  // Output GPU-raw-ptr
                                              _hyDesc,
@@ -393,7 +388,7 @@ dispatch(const std::vector<DataTensor*>& inputs,
                                              _workspace_tensor.mutable_data(),
                                              _workspace_size_in_bytes));
 
-        seq2hw(outputs, inputs, param, hidden_size, temp_tensor_out, _ctx);
+        seq2hw(outputs, inputs, param, _hidden_size, temp_tensor_out, _ctx);
         outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
 
     } else {
@@ -407,7 +402,7 @@ dispatch(const std::vector<DataTensor*>& inputs,
                                              _cxDesc,
                                              nullptr, //the initial cell state of the network will be initialized to zero
                                              _wDesc,
-                                             weight,
+                                             _inner_weight.data(),
                                              _yDesc->descs(),
                                              out_data,  // Output GPU-raw-ptr
                                              _hyDesc,
