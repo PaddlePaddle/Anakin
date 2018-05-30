@@ -145,6 +145,7 @@ struct {
 #define MKL_CBWR_AVX512_MIC    11
 #define MKL_CBWR_AVX512        12
 #define MKL_CBWR_AVX512_MIC_E1 13
+#define MKL_CBWR_AVX512_E1     14
 
 /* error codes */
 #define MKL_CBWR_SUCCESS                   0

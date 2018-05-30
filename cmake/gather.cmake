@@ -52,10 +52,10 @@ if (USE_GFLAGS)
 endif()
 
 if (USE_XBYAK)
-    anakin_find_xbyak()
+    #anakin_find_xbyak()
 endif()
 if (USE_MKLML)
-    anakin_find_mklml()
+    #anakin_find_mklml()
 endif()
 
 

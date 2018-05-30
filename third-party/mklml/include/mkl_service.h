@@ -128,6 +128,7 @@ int     MKL_Enable_Instructions(int);
 #define  MKL_ENABLE_AVX512_MIC      3
 #define  MKL_ENABLE_AVX512          4
 #define  MKL_ENABLE_AVX512_MIC_E1   5
+#define  MKL_ENABLE_AVX512_E1       6
 #define  MKL_SINGLE_PATH_ENABLE     0x0600
 
 /* Single Dynamic library interface */
@@ -169,6 +170,9 @@ int MKL_Set_Env_Mode(int);
 
 int MKL_Verbose(int);
 #define mkl_verbose                 MKL_Verbose
+
+int MKL_Verbose_Output_File(const char *fname);
+#define mkl_verbose_output_file     MKL_Verbose_Output_File
 
 #define MKL_EXIT_UNSUPPORTED_CPU    1
 #define MKL_EXIT_CORRUPTED_INSTALL  2
