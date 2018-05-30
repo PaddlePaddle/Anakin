@@ -5,10 +5,9 @@
 #include "test_saber_func_NV.h"
 #include "tensor_op.h"
 #include "saber_types.h"
+#include "saber/saber_funcs_param.h"
 #include "saber/funcs/impl/cuda/base/sass_funcs.h"
 #include <vector>
-
-//#include "cublas.h"
 
 using namespace anakin::saber;
 
@@ -17,8 +16,8 @@ typedef Tensor<NV, AK_FLOAT, NCHW> TensorDf4;
 
 cublasHandle_t  cublas_handle;
 void caffe_gemm(const int M, const int N, const int K,\
-					 const float alpha, const float* A,\
-					 const float* B, const float beta, float* C) {
+				const float alpha, const float* A,\
+				const float* B, const float beta, float* C) {
     int lda = K;
     int ldb = N;
     cublasOperation_t cu_trans_a = CUBLAS_OP_N;
@@ -43,10 +42,10 @@ TEST(TestSaberFuncNV, test_gemm) {
 //    int in_channels = 256;
 //    int img_h = 26;
 //    int img_w = 56;
-    int out_channels = 128;
-    int in_channels = 512;
-    int img_h = 13;
-    int img_w = 28;
+    int out_channels = 4;
+    int in_channels = 49*1024;
+    int img_h = 1;
+    int img_w = 4096;
 //    int out_channels = 512;
 //    int in_channels = 128;
 //    int img_h = 13;
@@ -73,14 +72,14 @@ TEST(TestSaberFuncNV, test_gemm) {
     fill_tensor_device_rand(weights, 1.f, 2.f);
     fill_tensor_device_rand(img, 1.f, 2.f);
 
-    LOG(INFO) << "img_num: " << img_num;
-    LOG(INFO) << "kernel: " << kernel;
-    LOG(INFO) << "out_channels: " << out_channels;
-    LOG(INFO) << "in_channels: " << in_channels;
-    LOG(INFO) << "img_h: " << img_h;
-    LOG(INFO) << "img_w: " << img_w;
-    LOG(INFO) << "pad: " << pad;
-    LOG(INFO) << "stride: " << stride;
+            LOG(INFO) << "img_num: " << img_num;
+            LOG(INFO) << "kernel: " << kernel;
+            LOG(INFO) << "out_channels: " << out_channels;
+            LOG(INFO) << "in_channels: " << in_channels;
+            LOG(INFO) << "img_h: " << img_h;
+            LOG(INFO) << "img_w: " << img_w;
+            LOG(INFO) << "pad: " << pad;
+            LOG(INFO) << "stride: " << stride;
 
     TensorDf4 bias;
 
@@ -92,9 +91,9 @@ TEST(TestSaberFuncNV, test_gemm) {
     float beta = 0.f;
     cudaStream_t  cuda_stream  =ctx1.get_compute_stream();
     ker_gemm_32x32x32_NN_bias_relu(out_channels, img_h * img_w, in_channels,
-                                        alpha,  weights.data(),
-                                        beta,  img.data(),
-                                        out_gemm.mutable_data(), bias.data(),
+                                   alpha,  weights.data(),
+                                   beta,  img.data(),
+                                   out_gemm.mutable_data(), bias.data(),
                                    cuda_stream);
     caffe_gemm(out_channels, img_h * img_w, in_channels,\
 					 1.f, weights.data(),\
@@ -118,7 +117,7 @@ TEST(TestSaberFuncNV, test_gemm) {
         out_gemm.sync();
         t1.end(ctx1);
     }
-    LOG(INFO) << "elapse time: " << t1.get_average_ms() << " ms";
+            LOG(INFO) << "elapse time: " << t1.get_average_ms() << " ms";
 
     cudaDeviceSynchronize();
 
@@ -126,9 +125,10 @@ TEST(TestSaberFuncNV, test_gemm) {
     TensorHf4 out_gemm_host;
     out_host.re_alloc(out.shape());
     out_host.copy_from(out);
-
+    cudaDeviceSynchronize();
     out_gemm_host.re_alloc(out_gemm.shape());
     out_gemm_host.copy_from(out_gemm);
+    cudaDeviceSynchronize();
     double max_r, max_d;
     tensor_cmp_host(out_host.data(), out_gemm_host.data(), out_host.size(), max_r, max_d);
             LOG(INFO) << "cmp result: max_r = " << max_r << " max_d = " << max_d;
@@ -146,7 +146,7 @@ void test_conv_fp32_speed(std::vector<TensorDf4*> &inputs, std::vector<TensorDf4
     ActivationParam<TensorDf4> act_param(Active_relu);
     ConvActiveParam<TensorDf4> param(conv_param, act_param);
     ConvAct<NV, AK_FLOAT> conv;
-    conv.compute_output_shape(inputs, outputs, param);
+    conv.compute_output_shape(outputs, inputs, param);
     outputs[0]->re_alloc(outputs[0]->shape());
     Context<NV> ctx1(0, 1, 1);
 
@@ -217,14 +217,14 @@ TEST(TestSaberFuncNV, test_gemm_res) {
     fill_tensor_device_rand(weights, 1.f, 2.f);
     fill_tensor_device_rand(img, 1.f, 2.f);
 
-    LOG(INFO) << "img_num: " << img_num;
-    LOG(INFO) << "kernel: " << kernel;
-    LOG(INFO) << "out_channels: " << out_channels;
-    LOG(INFO) << "in_channels: " << in_channels;
-    LOG(INFO) << "img_h: " << img_h;
-    LOG(INFO) << "img_w: " << img_w;
-    LOG(INFO) << "pad: " << pad;
-    LOG(INFO) << "stride: " << stride;
+            LOG(INFO) << "img_num: " << img_num;
+            LOG(INFO) << "kernel: " << kernel;
+            LOG(INFO) << "out_channels: " << out_channels;
+            LOG(INFO) << "in_channels: " << in_channels;
+            LOG(INFO) << "img_h: " << img_h;
+            LOG(INFO) << "img_w: " << img_w;
+            LOG(INFO) << "pad: " << pad;
+            LOG(INFO) << "stride: " << stride;
 
     TensorDf4 bias;
 
@@ -303,21 +303,236 @@ TEST(TestSaberFuncNV, test_gemm_res) {
 
     tensor_cmp_host(out_host.data(),
                     out_cudnn_host.data(), out_host.size(), max_r0, max_d0);
-    LOG(INFO) << "cmp cublas cudnn result: max_r0 = "
-              << max_r0 << " max_d0 = " << max_d0;
+            LOG(INFO) << "cmp cublas cudnn result: max_r0 = "
+                      << max_r0 << " max_d0 = " << max_d0;
 
     tensor_cmp_host(out_host.data(),
                     out_gemm_host.data(), out_host.size(), max_r1, max_d1);
-    LOG(INFO) << "cmp cublas gemm result: max_r1 = "
-              << max_r1 << " max_d1 = " << max_d1;
+            LOG(INFO) << "cmp cublas gemm result: max_r1 = "
+                      << max_r1 << " max_d1 = " << max_d1;
 
     tensor_cmp_host(out_cudnn_host.data(),
                     out_gemm_host.data(), out_gemm_host.size(), max_r2, max_d2);
-    LOG(INFO) << "cmp cudnn gemm result: max_r2 = "
-              << max_r2 << " max_d2 = " << max_d2;
+            LOG(INFO) << "cmp cudnn gemm result: max_r2 = "
+                      << max_r2 << " max_d2 = " << max_d2;
 //    print_tensor_host(out_host);
 //    print_tensor_host(out_cudnn_host);
 //    print_tensor_host(out_gemm_host);
+}
+
+void nv_gemm(cublasHandle_t handle, const bool TransA, const bool TransB,
+             const int m, const int n, const int k,
+             const float alpha, const float* A,
+             const float* B, const float beta, float* C) {
+
+    // Note that cublas follows fortran order.
+    int lda = (!TransA/* == CblasNoTrans*/) ? k : m;
+    int ldb = (!TransB/* == CblasNoTrans*/) ? n : k;
+    cublasOperation_t cu_trans_a =
+            (!TransA/* == CblasNoTrans*/) ? CUBLAS_OP_N : CUBLAS_OP_T;
+    cublasOperation_t cu_trans_b =
+            (!TransB/* == CblasNoTrans*/) ? CUBLAS_OP_N : CUBLAS_OP_T;
+    CUBLAS_CHECK(cublasSgemm(handle, cu_trans_b, cu_trans_a,
+                             n, m, k, &alpha, B, ldb, A, lda, &beta, C, n));
+}
+
+template<bool trans_a, bool trans_b, int tile>
+void test_gemm_speed_res(int m, int n, int k) {
+            LOG(INFO) << " m = " << m
+                      << " n = " << n
+                      << " k = " << k;
+    TensorHf4 a_host;
+    TensorHf4 b_host;
+    TensorHf4 c_gemm_host;
+    TensorHf4 c_blas_host;
+    TensorDf4 matrix_a;
+    TensorDf4 matrix_b;
+    TensorDf4 c_gemm;
+    TensorDf4 c_blas;
+
+    matrix_a.re_alloc({1, 1, m, k});
+    matrix_b.re_alloc({1, 1, k, n});
+    c_gemm.re_alloc({1, 1, m, n});
+    c_blas.re_alloc({1, 1, m, n});
+
+    a_host.re_alloc({1, 1, m, k});
+    b_host.re_alloc({1, 1, k, n});
+    c_gemm_host.re_alloc({1, 1, m, n});
+    c_blas_host.re_alloc({1, 1, m, n});
+
+    fill_tensor_host_rand(a_host, 0.f, 1.f);
+    fill_tensor_host_rand(b_host, 0.f, 1.f);
+
+    matrix_a.copy_from(a_host);
+    matrix_b.copy_from(b_host);
+
+    float alpha = 1.f;
+    float beta = 0.f;
+    Context<NV> ctx1(0, 1, 1);
+    cublasHandle_t handle;
+    CUBLAS_CHECK(cublasCreate(&handle));
+    CUBLAS_CHECK(cublasSetStream(handle, ctx1.get_compute_stream()));
+
+    ker_sgemm_sass<trans_a, trans_b, tile>(m, n, k, alpha, matrix_a.data(),
+                                           beta, matrix_b.data(),
+                                           c_gemm.mutable_data(), ctx1.get_compute_stream());
+
+    nv_gemm(handle, trans_a, trans_b, m, n, k,
+            alpha, matrix_a.data(), matrix_b.data(), beta,
+            c_blas.mutable_data());
+
+    SaberTimer<NV> timer1;
+    SaberTimer<NV> timer2;
+    int ts = 10;
+    for (int i = 0; i < ts; ++i) {
+        timer1.start(ctx1);
+        ker_sgemm_sass<trans_a, trans_b, tile>(
+                m, n, k, alpha, matrix_a.data(),
+                beta, matrix_b.data(),
+                c_gemm.mutable_data(), ctx1.get_compute_stream());
+        c_gemm.record_event(ctx1.get_compute_stream());
+        c_gemm.sync();
+        timer1.end(ctx1);
+    }
+    cudaDeviceSynchronize();
+    for (int i = 0; i < ts; ++i) {
+        timer2.start(ctx1);
+        nv_gemm(handle, trans_a, trans_b, m, n, k,
+                alpha, matrix_a.data(), matrix_b.data(), beta,
+                c_blas.mutable_data());
+        c_blas.record_event(ctx1.get_compute_stream());
+        c_blas.sync();
+        timer2.end(ctx1);
+    }
+    cudaDeviceSynchronize();
+
+    c_blas_host.copy_from(c_blas);
+    c_gemm_host.copy_from(c_gemm);
+    cudaDeviceSynchronize();
+
+    double max_r0 = 0.0;
+    double max_d0 = 0.0;
+    tensor_cmp_host(c_blas_host.data(),
+                    c_gemm_host.data(), c_blas_host.size(), max_r0, max_d0);
+            LOG(INFO) << "cmp cublas cudnn result: max_r0 = "
+                      << max_r0 << " max_d0 = " << max_d0;
+            LOG(INFO) << "openai gemm time: " << timer1.get_average_ms()
+                      << " ms cublas time: " << timer2.get_average_ms();
+
+//    LOG(INFO) << ((max_r0 <= 1e-) ? "TEST passed!!" : "TEST fail!!!");
+    CUBLAS_CHECK(cublasDestroy(handle));
+}
+
+template<bool trans_a, bool trans_b>
+void choose_gemm_algo(int m, int n, int k) {
+            LOG(INFO) << " m = " << m
+                      << " n = " << n
+                      << " k = " << k;
+    TensorHf4 a_host;
+    TensorHf4 b_host;
+    TensorHf4 c_gemm_host;
+    TensorHf4 c_blas_host;
+    TensorDf4 matrix_a;
+    TensorDf4 matrix_b;
+    TensorDf4 c_gemm;
+    TensorDf4 c_blas;
+
+    matrix_a.re_alloc({1, 1, m, k});
+    matrix_b.re_alloc({1, 1, k, n});
+    c_gemm.re_alloc({1, 1, m, n});
+    c_blas.re_alloc({1, 1, m, n});
+
+    a_host.re_alloc({1, 1, m, k});
+    b_host.re_alloc({1, 1, k, n});
+    c_gemm_host.re_alloc({1, 1, m, n});
+    c_blas_host.re_alloc({1, 1, m, n});
+
+    fill_tensor_host_rand(a_host, 0.f, 1.f);
+    fill_tensor_host_rand(b_host, 0.f, 1.f);
+
+    matrix_a.copy_from(a_host);
+    matrix_b.copy_from(b_host);
+
+    float alpha = 1.f;
+    float beta = 0.f;
+    Context<NV> ctx1(0, 1, 1);
+    cublasHandle_t handle;
+    CUBLAS_CHECK(cublasCreate(&handle));
+    CUBLAS_CHECK(cublasSetStream(handle, ctx1.get_compute_stream()));
+
+    auto ker = saber_find_fast_sass_gemm<trans_a, trans_b>(m, n, k);
+
+    ker(m, n, k, alpha, matrix_a.data(),
+        beta, matrix_b.data(),
+        c_gemm.mutable_data(), ctx1.get_compute_stream());
+
+    nv_gemm(handle, trans_a, trans_b, m, n, k,
+            alpha, matrix_a.data(), matrix_b.data(), beta,
+            c_blas.mutable_data());
+
+    SaberTimer<NV> timer1;
+    SaberTimer<NV> timer2;
+    int ts = 10;
+    for (int i = 0; i < ts; ++i) {
+        timer1.start(ctx1);
+        ker(m, n, k, alpha, matrix_a.data(),
+            beta, matrix_b.data(),
+            c_gemm.mutable_data(), ctx1.get_compute_stream());
+        c_gemm.record_event(ctx1.get_compute_stream());
+        c_gemm.sync();
+        timer1.end(ctx1);
+    }
+    cudaDeviceSynchronize();
+    for (int i = 0; i < ts; ++i) {
+        timer2.start(ctx1);
+        nv_gemm(handle, trans_a, trans_b, m, n, k,
+                alpha, matrix_a.data(), matrix_b.data(), beta,
+                c_blas.mutable_data());
+        c_blas.record_event(ctx1.get_compute_stream());
+        c_blas.sync();
+        timer2.end(ctx1);
+    }
+    cudaDeviceSynchronize();
+
+    c_blas_host.copy_from(c_blas);
+    c_gemm_host.copy_from(c_gemm);
+    cudaDeviceSynchronize();
+
+    double max_r0 = 0.0;
+    double max_d0 = 0.0;
+    tensor_cmp_host(c_blas_host.data(),
+                    c_gemm_host.data(), c_blas_host.size(), max_r0, max_d0);
+            LOG(INFO) << "cmp cublas cudnn result: max_r0 = "
+                      << max_r0 << " max_d0 = " << max_d0;
+            LOG(INFO) << "openai gemm time: " << timer1.get_average_ms()
+                      << " ms cublas time: " << timer2.get_average_ms();
+
+//    LOG(INFO) << ((max_r0 <= 1e-) ? "TEST passed!!" : "TEST fail!!!");
+    CUBLAS_CHECK(cublasDestroy(handle));
+}
+
+TEST(TestSaberFuncNV, test_gemm_32) {
+
+    int m = 32;
+    int n = 4096;
+    int k = 1024*49;
+
+    test_gemm_speed_res<false, false, 32>(m, n, k);
+    test_gemm_speed_res<false, true, 32>(m, n, k);
+    test_gemm_speed_res<true, false, 32>(m, n, k);
+    test_gemm_speed_res<true, true, 32>(m, n, k);
+
+    test_gemm_speed_res<false, false, 128>(m, n, k);
+    test_gemm_speed_res<false, true, 128>(m, n, k);
+    test_gemm_speed_res<true, false, 128>(m, n, k);
+    test_gemm_speed_res<true, true, 128>(m, n, k);
+}
+TEST(TestSaberFuncNV, test_choose_algo) {
+    int m = 32;
+    int n = 32;
+    int k = 32;
+
+    choose_gemm_algo<false, false>(m, n, k);
 }
 
 int main(int argc, const char** argv){
