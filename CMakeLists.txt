@@ -28,6 +28,7 @@ set(ANAKIN_ROOT ${PROJECT_SOURCE_DIR})
 include_directories(${ANAKIN_ROOT})
 
 set(ANAKIN_FRAMEWORK ${ANAKIN_ROOT}/framework)
+set(ANAKIN_THIRD_PARTY_PATH ${CMAKE_BINARY_DIR}/third-party)
 set(ANAKIN_UTILS ${ANAKIN_ROOT}/utils)
 set(ANAKIN_THIRD_PARTY_PATH ${ANAKIN_ROOT}/third-party)
 set(ANAKIN_MODEL_PARSER ${ANAKIN_FRAMEWORK}/model_parser)
@@ -93,8 +94,11 @@ anakin_option(USE_GTEST "Use googletest libs." NO if BUILD_WITH_UNIT_TEST)
 anakin_option(USE_PYTHON "Generate py wrappers." NO)
 anakin_option(USE_OPENCL "Use OpenCL ." NO)
 anakin_option(USE_GFLAGS "Build Google gflags components." NO)
+anakin_option(USE_MKL "Use mkl libs." YES if USE_X86_PLACE)
 anakin_option(USE_MKLML "Use MKLML libs." YES if USE_X86_PLACE)
 anakin_option(USE_XBYAK "Use XBYAK libs." YES if USE_X86_PLACE)
+anakin_option(USE_OPENMP "Use Openmp when in andriod environment." YES if TARGET_ANDROID)
+
 # build components
 anakin_option(BUILD_WITH_UNIT_TEST "Build anakin unit test components." YES)
 

@@ -33,4 +33,7 @@
 
 # dir
 mklml
+mkldnn_source
+mkldnn
+xbyak_source
 xbyak
