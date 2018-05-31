@@ -62,7 +62,7 @@ anakin_option(USE_CURAND "Use Curand libs." YES if USE_CUDA)
 anakin_option(USE_CUFFT "Use CuFFT libs." YES if USE_CUDA)
 anakin_option(USE_CUDNN "Use Cudnn libs." YES if USE_CUDA)
 anakin_option(BUILD_CROSS_PLANTFORM "Build anakin lib for any nvidia device plantform." YES if USE_CUDA)
-anakin_option(BUILD_FAT_BIN "Build anakin cuda fat-bin lib for all device plantform" YES if BUILD_CROSS_PLANTFORM)
+anakin_option(BUILD_FAT_BIN "Build anakin cuda fat-bin lib for all device plantform" NO if BUILD_CROSS_PLANTFORM)
 if(USE_CUDA)
     # Select gpu target arch for local high performance implement sass code . Now we have checked on sm_61 sm_50 and it works well.
     set(SELECTED_SASS_TARGET_ARCH "61")
