@@ -33,10 +33,10 @@ void test(Tensor4f &src_in, Tensor4f &weights, int test) {
 }
 
 TEST(TestSaberFuncX86, test_crf_decoding) {
-    int n = 2;
-    int d = 2;
+    int n = 4;
+    int d = 4;
 
-    std::vector<int> lod = {0, 2};
+    std::vector<int> lod = {0, 2, 4};
     int num_in = n;
     int ch_in = d;
     int h_in = 1;

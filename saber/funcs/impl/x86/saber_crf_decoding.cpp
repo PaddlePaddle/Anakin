@@ -2,6 +2,7 @@
 #include "saber/funcs/impl/x86/saber_crf_decoding.h"
 #include "saber/saber_funcs_param.h"
 #include <cstring>
+#include <cfloat>
 #include <cmath>
 
 namespace anakin{
@@ -45,8 +46,48 @@ SaberStatus SaberCrfDecoding<X86, OpDtype, inDtype, outDtype,
     typedef typename OpTensor::Dtype DataType_op;
 
     this->_ctx = ctx;
-
+    _alpha.re_alloc(inputs[0]->valid_shape());
+    _track.re_alloc(inputs[0]->valid_shape());
     return SaberSuccess;
+}
+
+void decoding(float* path, const float* emission, const float* transition,
+              float* alpha_value, int* track_value, int seq_len, int tag_num) {
+    const float* x = emission;
+    const float* w = transition;
+    const int state_trans_base_idx = 2;
+
+    for (int i = 0; i < tag_num; ++i) alpha_value[i] = w[i] + x[i];
+
+    for (int k = 1; k < seq_len; ++k) {
+        for (int i = 0; i < tag_num; ++i) {
+            float max_score = -FLT_MAX;
+            int max_j = 0;
+            for (size_t j = 0; j < tag_num; ++j) {
+                float score = alpha_value[(k - 1) * tag_num + j] +
+                          w[(j + state_trans_base_idx) * tag_num + i];
+                if (score > max_score) {
+                    max_score = score;
+                    max_j = j;
+                }
+            }
+            alpha_value[k * tag_num + i] = max_score + x[k * tag_num + i];
+            track_value[k * tag_num + i] = max_j;
+        }
+    }
+    float max_score = -FLT_MAX;
+    int max_i = 0;
+    for (size_t i = 0; i < tag_num; ++i) {
+        float score = alpha_value[(seq_len - 1) * tag_num + i] + w[tag_num + i];
+        if (score > max_score) {
+            max_score = score;
+            max_i = i;
+        }
+    }
+    path[seq_len - 1] = max_i;
+    for (int k = seq_len - 1; k >= 1; --k) {
+        path[k - 1] = max_i = track_value[k * tag_num + max_i];
+    }
 }
 
 template <DataType OpDtype ,
@@ -65,6 +106,26 @@ SaberStatus SaberCrfDecoding<X86, OpDtype, inDtype, outDtype,
     typedef typename DataTensor_out::Dtype DataType_out;
     typedef typename OpTensor::Dtype DataType_op;
 
+    std::vector<int> seq_offset = inputs[0]->get_seq_offset();
+
+    const float *emission_ptr = inputs[0]->data();
+    const float *transition_ptr = param.transition_weight()->data();
+    float *decoded_path = outputs[0]->mutable_data();
+
+    int seq_num = seq_offset.size() - 1;
+    int slice_size = outputs[0]->channel()
+                     * outputs[0]->height()
+                     * outputs[0]->width();
+
+    for (int i = 0; i < seq_num; ++i) {
+        int seq_len = seq_offset[i+1] - seq_offset[i];
+        decoding(decoded_path, emission_ptr, transition_ptr,
+                 _alpha.mutable_data(), _track.mutable_data(),
+                 seq_len, param.tag_num);
+
+        decoded_path += seq_len;
+        emission_ptr += slice_size * seq_len;
+    }
     return SaberSuccess;
 
 }

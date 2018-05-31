@@ -164,7 +164,7 @@ SaberStatus SaberSequencePool<X86, OpDtype, inDtype, outDtype,
                 dst_ptr, src_ptr, slice_num, slice_size);
 
         dst_ptr += slice_size;
-        src_ptr += slice_size;
+        src_ptr += slice_size * slice_num;
     }
     return SaberSuccess;
 

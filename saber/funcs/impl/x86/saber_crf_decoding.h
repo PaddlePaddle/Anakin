@@ -60,7 +60,8 @@ public:
                                  std::vector<DataTensor_out*>& outputs,
                                  CrfDecodingParam<OpTensor> &param) override;
 private:
-
+    DataTensor_in _alpha;
+    Tensor<X86, AK_INT32, NCHW> _track;
 };
 }
 }

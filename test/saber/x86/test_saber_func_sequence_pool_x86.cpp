@@ -33,11 +33,11 @@ void test(Tensor4f &src_in, SequencePoolType pool_type) {
 }
 
 TEST(TestSaberFuncX86, test_sequence_pool) {
-    int batch_num = 2;
-    int m = 2;
-    int n = 2;
+    int batch_num = 7;
+    int m = 4;
+    int n = 3;
 
-    std::vector<int> lod = {0, 2};
+    std::vector<int> lod = {0, 2, 5, 7};
     int num_in = batch_num;
     int ch_in = 1;
     int h_in = m;
