@@ -50,6 +50,16 @@ enum GruFormula{
     GRU_CUDNN
 };
 
+enum SequencePoolType{
+    Sequence_pool_unknow = 0,
+    Sequence_pool_average,
+    Sequence_pool_sum,
+    Sequence_pool_sqrt,
+    Sequence_pool_last,
+    Sequence_pool_first,
+    Sequence_pool_max
+};
+
 template <typename opTensor>
 struct TransposeParam {
     TransposeParam() = default;
@@ -853,6 +863,29 @@ struct PoolingParam {
     PoolingType pooling_type;
     bool global_pooling;
     bool cmp_out_shape_floor_as_conv;
+};
+
+template <typename opTensor>
+struct SequencePoolParam {
+    SequencePoolParam()
+            : sequence_pool_type(Sequence_pool_unknow)
+    {}
+    SequencePoolParam(SequencePoolType sequence_pool_type_in)
+            : sequence_pool_type(sequence_pool_type_in)
+    {}
+    SequencePoolParam(const SequencePoolParam &right)
+            : sequence_pool_type(right.sequence_pool_type)
+    {}
+    SequencePoolParam &operator=(const SequencePoolParam &right) {
+        sequence_pool_type = right.sequence_pool_type;
+        return *this;
+    }
+    bool operator==(const SequencePoolParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (sequence_pool_type == right.sequence_pool_type);
+        return comp_eq;
+    }
+    SequencePoolType sequence_pool_type;
 };
 
 template <typename opTensor>
