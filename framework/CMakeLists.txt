@@ -29,15 +29,11 @@ anakin_fetch_files_with_suffix(${ANAKIN_FRAMEWORK}/utils/unit_test "cpp" ANAKIN_
 list(APPEND ANAKIN_SRC ${ANAKIN_BASE_SRC})
 unset(ANAKIN_BASE_SRC)
 
-# compile cpp objs
-add_library(ANAKIN_OBJS OBJECT ${ANAKIN_SRC})
-
 # add library to shared or static
 if(UNIX OR APPLE)
 	if(BUILD_SHARED)
-        	add_library(${anakin_lib_so} SHARED $<TARGET_OBJECTS:ANAKIN_OBJS>)
+		add_library(${anakin_lib_so} SHARED ${ANAKIN_SRC})
 		add_dependencies(${anakin_lib_so} ${ANAKIN_SABER_LIB_TARGET})
-#		add_dependencies(${anakin_lib_so} ${ANAKIN_THIRD_PARTY_DEPENDENCIES})
 		# set shared lib version
 		set_target_properties(${anakin_lib_so} PROPERTIES VERSION ${VERSION})
         
@@ -49,9 +45,8 @@ if(UNIX OR APPLE)
                 	FILES_MATCHING PATTERN "*.h")
 	endif()
 	if(BUILD_STATIC)
-        	add_library(${anakin_lib_static} STATIC $<TARGET_OBJECTS:ANAKIN_OBJS>)
+		add_library(${anakin_lib_static} STATIC ${ANAKIN_SRC})
 		add_dependencies(${anakin_lib_static} ${ANAKIN_SABER_LIB_TARGET})
-#		add_dependencies(${anakin_lib_static} ${ANAKIN_THIRD_PARTY_DEPENDENCIES})
 		set_target_properties(${anakin_lib_static} PROPERTIES VERSION ${VERSION})
 		target_link_libraries(${anakin_lib_static} ${ANAKIN_SABER_LIB_TARGET} ${ANAKIN_LINKER_LIBS})
         	set_target_properties(${anakin_lib_static} PROPERTIES LINK_FLAGS "")
