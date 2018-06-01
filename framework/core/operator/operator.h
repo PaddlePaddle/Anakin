@@ -44,7 +44,12 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 class Operator : public OperatorBase {
 public:
     Operator() {}
-    virtual ~Operator() {}
+    virtual ~Operator() {
+		if(_helper) {
+			delete _helper;
+			_helper = nullptr;
+		}
+	}
 
     virtual void operator() (OpContext<Ttype> &ctx, 
                              const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
@@ -100,7 +105,10 @@ public:
     /** 
      *  \brief Bind parameter pack from graph.
      */
-    void BindParam(graph::NodePtr<Ttype, Dtype, Ptype>& node_p) { _node_p = node_p; }
+    void BindParam(graph::NodePtr<Ttype, Dtype, Ptype>& node_p) { 
+		_node_p = std::make_shared<graph::Node<Ttype, Dtype, Ptype>>(); 
+		*_node_p = *node_p;
+	}
 
     /** 
      *  \brief Get target attr by name.

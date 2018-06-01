@@ -3,10 +3,10 @@
 #include "saber/funcs/timer.h"
 #include <chrono>
 
-#define USE_DIEPSE
+//#define USE_DIEPSE
 
 
-std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/diepsie_light_head.anakin.bin";
+//std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/diepsie_light_head.anakin.bin";
 
 //std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/diepsie_light_head_base.anakin.bin";
 
@@ -27,6 +27,8 @@ std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/ana
 // residual 7 patch of face
 //std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/residual_net_7patch_3hc.anakin.bin";
 
+// resnet 50
+std::string model_path = "/home/cuichaowen/anakin2/anakin2/benchmark/CNN/models/Resnet50.anakin.bin";
 
 #if 1
 TEST(NetTest, net_execute_base_test) {
@@ -48,6 +50,7 @@ TEST(NetTest, net_execute_base_test) {
     graph->Optimize();
 
     // constructs the executer net
+	{ // inner scope
 #ifdef USE_DIEPSE
     Net<NV, AK_FLOAT, Precision::FP32, OpRunType::SYNC> net_executer(*graph, true);
 #else
@@ -107,15 +110,15 @@ TEST(NetTest, net_execute_base_test) {
     d_tensor_in_2_p->copy_from(h_tensor_in_2);
 #endif
 
-    int epoch = 1000;
+    int epoch = 1;
     // do inference
     Context<NV> ctx(0, 0, 0);
     saber::SaberTimer<NV> my_time;
     LOG(WARNING) << "EXECUTER !!!!!!!! ";
 	// warm up
-	for(int i=0; i<10; i++) {
+	/*for(int i=0; i<10; i++) {
 		net_executer.prediction();
-	}
+	}*/
 
     my_time.start(ctx);
 
@@ -132,6 +135,10 @@ TEST(NetTest, net_execute_base_test) {
 
     my_time.end(ctx);
     LOG(INFO)<<"aveage time "<<my_time.get_average_ms()/epoch << " ms";
+
+	} // inner scope over
+
+	LOG(ERROR) << "inner net exe over !";
 
     //auto& tensor_out_inner_p = net_executer.get_tensor_from_edge("data_perm", "conv1");
 
