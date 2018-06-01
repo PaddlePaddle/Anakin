@@ -103,7 +103,7 @@ void tensor_cmp_host(const Dtype* src1, const Dtype* src2, \
     template void fill_tensor_host_seq<Tensor<target, type, layout>>\
         (Tensor<target, type, layout>& tensor);
 
-#ifdef USE_X86_PLACE
+
 FILL_TENSOR_HOST(X86, AK_FLOAT, NCHW);
 FILL_TENSOR_HOST(X86, AK_FLOAT, NCHW_C16);
 FILL_TENSOR_HOST(X86, AK_FLOAT, NCHW_C8);
@@ -148,7 +148,7 @@ void print_tensor_host<Tensor<X86, AK_INT8, NCHW_C4>>(Tensor<X86, AK_INT8, NCHW_
 
     printf("\n");
 }
-
+#ifdef USE_X86_PLACE
 template <>
 void reorder<Tensor<X86, AK_FLOAT, NCHW>, Tensor<X86, AK_FLOAT, NCHW_C16>>(Tensor<X86, AK_FLOAT, NCHW>& src, Tensor<X86, AK_FLOAT, NCHW_C16>& dst) {
     typedef typename Tensor<X86, AK_FLOAT, NCHW_C16>::Dtype Dtype;

@@ -17,7 +17,7 @@
 #define ANAKIN_SABER_FUNCS_CUDA_SABER_DETECTION_OUTPUT_H
 
 
-#include "saber/funcs/impl/impl_define.h"
+#include "saber/funcs/impl/impl_detection_output.h"
 
 namespace anakin{
 

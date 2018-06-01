@@ -159,7 +159,7 @@ std::vector<std::string> OpFusionPatternObjectRegister::get_list_op_name_in_fusi
     struct PatternLevel {
         std::string op_name;
         int level{0};
-        inline bool operator>(const PatternLevel& rhs) { return level > rhs.level ? true:false; }
+        inline bool operator>(const PatternLevel& rhs) const { return level > rhs.level ? true:false; }
     };
     std::vector<PatternLevel> ready_to_sort;
     // order the  pattern_op_name_list by level
