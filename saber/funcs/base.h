@@ -43,8 +43,10 @@ public:
     ~BaseFunc() {
         std::for_each(this->_impl.begin(), this->_impl.end(),
             [&](Impl_t* impl){
-            delete impl;
-            impl = nullptr;
+			if(impl) {
+            	delete impl;
+            	impl = nullptr;
+			}
         });
     }
 
@@ -77,7 +79,14 @@ public:
 
         this->_param = param;
         this->_last_input_shape = input[0]->valid_shape();
-        this->_strategy = strategy;
+        this->_strategy = strategy; 
+		std::for_each(this->_impl.begin(), this->_impl.end(), 
+				[&](Impl_t* impl){ 
+					delete impl; 
+					impl = nullptr; 
+				}
+		);
+
         this->_impl.clear();
 
         SaberStatus status = SaberSuccess;
