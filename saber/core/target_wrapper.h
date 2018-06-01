@@ -21,7 +21,7 @@ namespace anakin{
 
 namespace saber{
 
-const int MALLOC_ALIGN = 16;
+const int MALLOC_ALIGN = 64;
 
 
 static inline void* fast_malloc(size_t size)
@@ -33,6 +33,7 @@ static inline void* fast_malloc(size_t size)
     }
     void* r = reinterpret_cast<void*>(reinterpret_cast<size_t>(p + offset) & (~(MALLOC_ALIGN - 1)));
     static_cast<void**>(r)[-1] = p;
+    memset(r,0,size);
     return r;
 }
 
@@ -79,6 +80,7 @@ struct TargetWrapper<TargetType, __host_target>{
 */
     static void mem_alloc(void** ptr, size_t n){
         *ptr = (void*)fast_malloc(n);
+
     }
 
 /**

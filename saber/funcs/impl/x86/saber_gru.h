@@ -39,10 +39,11 @@ public:
                              GruParam<OpTensor>& gru_param, Context<X86>& ctx) {
         this->_ctx=ctx;
         CHECK_EQ(gru_param._formula ,GRU_ORIGIN)<<"only support gru_origin now";
-        if (gru_param._formula == GRU_ORIGIN&&gru_param.weight()->valid_shape().size()>=5) {
-            int shape_size=gru_param.weight()->valid_shape().size();
-            CHECK_EQ(shape_size,5)<<"only support NCHW_C format";
-            int c_size=gru_param.weight()->valid_shape()[4];
+        _hidden_size = gru_param.bias()->valid_size() / 3;
+        if (gru_param._formula == GRU_ORIGIN&&_aligned_way) {
+            //FIXME:aligned should be determine by framework
+            int aligned_byte=64;
+            int c_size=aligned_byte/sizeof(OpDataType);
 
             _hidden_size = gru_param.bias()->valid_size() / 3;
             int weights_bias_size = _hidden_size * 3;
@@ -56,14 +57,26 @@ public:
             _aligned_word_size_iter_num=_aligned_word_size/c_size;
             _aligned_hidden_size_iter_num=_aligned_hidden_size/c_size;
 
-            Shape weights_i2h_shape(1,_aligned_word_size,3,_aligned_hidden_size_iter_num,c_size);
-            Shape weights_h2h_shape(1,_aligned_hidden_size,3,_aligned_hidden_size_iter_num,c_size);
-            Shape weights_bias_shape(1,1,3,_aligned_hidden_size_iter_num,c_size);
-            _weights_i2h.re_alloc(weights_i2h_shape);
-            _weights_h2h.re_alloc(weights_h2h_shape);
-            _weights_bias.re_alloc(weights_bias_shape);
+            Shape weights_i2h_shape(1,_word_size,3,_aligned_hidden_size);
+            Shape weights_h2h_shape(1,_aligned_hidden_size,3,_aligned_hidden_size);
+            Shape weights_bias_shape(1,1,3,_aligned_hidden_size);
+            _aligned_weights_i2h.try_expand_size(weights_i2h_shape);
+            _aligned_weights_h2h.try_expand_size(weights_h2h_shape);
+            _aligned_weights_bias.try_expand_size(weights_bias_shape);
 
+            utils::AlignedUtils aligned_tool;
+            aligned_tool.aligned_last_dim(gru_param.weight()->data(),_aligned_weights_i2h.mutable_data(),
+                                          weights_i2h_size,_hidden_size,_aligned_hidden_size);
 
+            aligned_tool.aligned_last_dim(gru_param.weight()->data() + weights_i2h_size,_aligned_weights_h2h.mutable_data(),
+                                          weights_h2h_size,_hidden_size,_aligned_hidden_size);
+
+            aligned_tool.aligned_last_dim(gru_param.bias()->data(),_aligned_weights_bias.mutable_data(),
+                                          weights_bias_size,_hidden_size,_aligned_hidden_size);
+
+            _weights_i2h.try_expand_size(weights_i2h_size);
+            _weights_h2h.try_expand_size(weights_h2h_size);
+            _weights_bias.try_expand_size(weights_bias_size);
             //FIXME:format pitch
             memcpy(_weights_i2h.mutable_data(), gru_param.weight()->data(),
                    sizeof(InDataType) * weights_i2h_size);
@@ -116,6 +129,7 @@ private:
     int _word_size;
     int _hidden_size;
 
+    bool _aligned_way=true;
     int _aligned_word_size;
     int _aligned_hidden_size;
     int _aligned_size;
@@ -126,6 +140,11 @@ private:
     OpTensor _weights_h2h;
     OpTensor _weights_bias;
     DataTensor_out _init_hidden;
+
+    OpTensor _aligned_weights_i2h;
+    OpTensor _aligned_weights_h2h;
+    OpTensor _aligned_weights_bias;
+    DataTensor_out _aligned_init_hidden;
 
     DataTensor_out _temp_wx;
     DataTensor_out _temp_wh;
@@ -146,6 +165,21 @@ private:
         const std::vector<DataTensor_in*>& inputs,
         std::vector<DataTensor_out*>& outputs,
         GruParam<OpTensor>& param);
+
+    SaberStatus navi_256(\
+        const std::vector<DataTensor_in*>& inputs,
+        std::vector<DataTensor_out*>& outputs,
+        GruParam<OpTensor>& param);
+
+    SaberStatus navi_256_s_aligned(\
+    const std::vector<DataTensor_in*>& inputs,
+               std::vector<DataTensor_out*>& outputs,
+               GruParam<OpTensor>& param);
+
+    SaberStatus batch_256_s_aligned(\
+    const std::vector<DataTensor_in*>& inputs,
+                       std::vector<DataTensor_out*>& outputs,
+                       GruParam<OpTensor>& param);
 };
 
 }

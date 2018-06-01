@@ -43,9 +43,45 @@ namespace utils {
  * (since there is no any c++-rt dependent stuff, ideally...). */
 
 /* SFINAE helper -- analogue to std::enable_if */
+class VectorPrint{
+public:
+    template <typename Dtype>
+    static void print_float(Dtype *target){
+        float* f=(float*)target;
+        printf("size = %d\n", sizeof(Dtype));
+        for(int i=0;i<sizeof(Dtype)/ sizeof(float);i++){
+            printf(" %f ,",f[i]);
+        }
+        printf("\n");
+    }
+};
+
+class AlignedUtils{
+public:
+    template <typename Dtype>
+    void aligned_last_dim(const Dtype* input,Dtype* output,int input_size, int ori_last_dim,int aligned_dim){
+        for(int i=0;i<input_size;i++){
+            int row=i/ori_last_dim;
+            int col=i%ori_last_dim;
+            output[row*aligned_dim+col]=input[i];
+        }
+    }
+    template <typename Dtype>
+    void unaligned_last_dim(const Dtype* input,Dtype* output,int output_size, int ori_last_dim,int aligned_dim){
+        for(int i=0;i<output_size;i++){
+            int row=i/ori_last_dim;
+            int col=i%ori_last_dim;
+            output[i]=input[row*aligned_dim+col];
+        }
+    }
+
+};
 
 class SeqSortedseqTranseUtil {
 public:
+    SeqSortedseqTranseUtil(bool is_reverse=false,bool is_bi=false)
+            :_is_reverse(is_reverse),
+            _is_bi(is_bi){};
     void print_vec(int* in, int size, const char* perfix) {
         for (int i = 0; i < size; i++) {
             printf("[%s] %d = %d\n", perfix, i, in[i]);
@@ -92,7 +128,7 @@ public:
         }
     }
     template <typename Dtype>
-    void sorted_seq_2_seq(Dtype* input, Dtype* output, int hidden_size) {
+    void sorted_seq_2_seq(const Dtype* input, Dtype* output, int hidden_size) {
         int word_sum = _map_vec.size();
 
         for (int ori_word_id = 0; ori_word_id < word_sum; ori_word_id++) {
@@ -107,7 +143,29 @@ public:
             }
         }
     }
+    template <typename Dtype>
+    void sorted_seq_2_seq(const Dtype* input, Dtype* output, int hidden_size,int alligned_hidden_size) {
+        int word_sum = _map_vec.size();
 
+        for (int ori_word_id = 0; ori_word_id < word_sum; ori_word_id++) {
+            //can param
+            int word_start = ori_word_id * hidden_size;
+            int maped_id = _map_vec[ori_word_id];
+            int maped_start = maped_id * alligned_hidden_size;
+
+            for (int word_vec_offset = 0; word_vec_offset < hidden_size; word_vec_offset++) {
+                //            std::cout<<ori_word_id+word_vec_offset<<" -> "<<maped_start+word_vec_offset<<std::endl;
+                output[word_start + word_vec_offset] = input[maped_start + word_vec_offset];
+            }
+        }
+    }
+/**
+ * return whether need to transform
+ * @param offset_vec
+ * @param emit_offset_vec
+ * @param emit_length
+ * @return
+ */
     bool get_sorted_map(std::vector<int>& offset_vec,
                         std::vector<int>& emit_offset_vec, int& emit_length) {
         int batch_size = offset_vec.size() - 1;
@@ -117,6 +175,9 @@ public:
 
         if (batch_size == 1) {
             emit_length = offset_vec[1] - offset_vec[0];
+            emit_offset_vec.resize(emit_length+1);
+            for(int i=0;i<=emit_length;i++)
+                emit_offset_vec[i]=i;
             return false;
         }
 
@@ -132,6 +193,8 @@ public:
         emit_length = max_len;
 
         if (max_len == 1) {
+            emit_offset_vec.push_back(0);
+            emit_offset_vec.push_back(emit_length*batch_size);
             return false;
         }
 
@@ -143,17 +206,22 @@ public:
         _map_vec.resize(word_sum);
 
         int target_word_id = 0;
-
+        std::vector<int> length_vec_cnt=length_vec;
         for (int word_id_in_seq = 0; word_id_in_seq < max_len; word_id_in_seq++) {
             emit_offset_vec[word_id_in_seq] = target_word_id;
 
             for (int batch_id = 0; batch_id < batch_size; batch_id++) {
                 int old_batch_id = _length_index[batch_id];
 
-                if (length_vec[old_batch_id] > 0) {
-                    int old_word_id = offset_vec[old_batch_id] + word_id_in_seq;
+                if (length_vec_cnt[old_batch_id] > 0) {
+                    int inner_word_id_in_seq=word_id_in_seq;
+                    if(_is_reverse){
+                        inner_word_id_in_seq=length_vec[old_batch_id]-1-word_id_in_seq;
+                    }
+                    int old_word_id = offset_vec[old_batch_id] + inner_word_id_in_seq;
                     _map_vec[old_word_id] = target_word_id;
-                    length_vec[old_batch_id]--;
+//                    printf("map %d -> %d\n",old_word_id,target_word_id);
+                    length_vec_cnt[old_batch_id]--;
                     target_word_id++;
                 } else {
 
@@ -172,12 +240,13 @@ private:
     //    std::vector<int> _length_vec;
     std::vector<int> _length_index;
     std::vector<int> _map_vec;
+    bool _is_reverse;
+    bool _is_bi;
 
 };
 
-
 inline int round_up(int k, int c) {
-    return (k - 1) / c + c;
+    return  k+(c-k%c);
 }
 
 inline int div_up(int k, int c) {
