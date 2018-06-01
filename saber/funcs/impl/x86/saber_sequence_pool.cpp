@@ -11,11 +11,11 @@ namespace saber {
 template <typename dtype>
 void seq_pool_average(dtype* dst, const dtype* src_in,
                   const int slice_num, const int slice_size) {
-    float sum = 0.f;
+    dtype sum = 0.f;
     for (int i = 0; i < slice_size; ++i) {
         sum = src_in[i];
         for (int s = 1; s < slice_num; ++s) {
-            float src_in_read = src_in[s * slice_size +i];
+            dtype src_in_read = src_in[s * slice_size +i];
             sum += src_in_read;
         }
         dst[i] = sum / slice_num;
@@ -25,11 +25,11 @@ void seq_pool_average(dtype* dst, const dtype* src_in,
 template <typename dtype>
 void seq_pool_sum(dtype* dst, const dtype* src_in,
                   const int slice_num, const int slice_size) {
-    float sum = 0.f;
+    dtype sum = 0.f;
     for (int i = 0; i < slice_size; ++i) {
         sum = src_in[i];
         for (int s = 1; s < slice_num; ++s) {
-            float src_in_read = src_in[s * slice_size +i];
+            dtype src_in_read = src_in[s * slice_size +i];
             sum += src_in_read;
         }
         dst[i] = sum;
@@ -39,12 +39,12 @@ void seq_pool_sum(dtype* dst, const dtype* src_in,
 template <typename dtype>
 void seq_pool_sqrt(dtype* dst, const dtype* src_in,
                   const int slice_num, const int slice_size) {
-    float sqrt_len = sqrtf(slice_num);
-    float sum = 0.f;
+    dtype sqrt_len = sqrtf(slice_num);
+    dtype sum = 0.f;
     for (int i = 0; i < slice_size; ++i) {
         sum = src_in[i];
         for (int s = 1; s < slice_num; ++s) {
-            float src_in_read = src_in[s * slice_size +i];
+            dtype src_in_read = src_in[s * slice_size +i];
             sum += src_in_read;
         }
         dst[i] = sum / sqrt_len;
@@ -54,11 +54,11 @@ void seq_pool_sqrt(dtype* dst, const dtype* src_in,
 template <typename dtype>
 void seq_pool_max(dtype* dst, const dtype* src_in,
                   const int slice_num, const int slice_size) {
-    float max = 0.f;
+    dtype max = 0.f;
     for (int i = 0; i < slice_size; ++i) {
         max = src_in[i];
         for (int s = 1; s < slice_num; ++s) {
-            float src_in_read = src_in[s * slice_size +i];
+            dtype src_in_read = src_in[s * slice_size +i];
             if (max < src_in_read) {
                 max = src_in_read;
             }
@@ -155,8 +155,8 @@ SaberStatus SaberSequencePool<X86, OpDtype, inDtype, outDtype,
                      * outputs[0]->height()
                      * outputs[0]->width();
 
-    float *dst_ptr = outputs[0]->mutable_data();
-    float *src_ptr = inputs[0]->data();
+    DataType_in *dst_ptr = outputs[0]->mutable_data();
+    DataType_out *src_ptr = inputs[0]->data();
     for (int i = 0; i < seq_offset.size()-1; ++i) {
         int slice_num = seq_offset[i+1] - seq_offset[i];
 

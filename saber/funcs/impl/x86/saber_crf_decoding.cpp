@@ -2,7 +2,7 @@
 #include "saber/funcs/impl/x86/saber_crf_decoding.h"
 #include "saber/saber_funcs_param.h"
 #include <cstring>
-#include <cfloat>
+#include <limits>
 #include <cmath>
 
 namespace anakin{
@@ -48,21 +48,21 @@ SaberStatus SaberCrfDecoding<X86, OpDtype, inDtype, outDtype,
     _track.re_alloc(inputs[0]->valid_shape());
     return SaberSuccess;
 }
-
-void decoding(float* path, const float* emission, const float* transition,
-              float* alpha_value, int* track_value, int seq_len, int tag_num) {
-    const float* x = emission;
-    const float* w = transition;
+template <typename dtype>
+void decoding(dtype* path, const dtype* emission, const dtype* transition,
+              dtype* alpha_value, int* track_value, int seq_len, int tag_num) {
+    const dtype* x = emission;
+    const dtype* w = transition;
     const int state_trans_base_idx = 2;
 
     for (int i = 0; i < tag_num; ++i) alpha_value[i] = w[i] + x[i];
 
     for (int k = 1; k < seq_len; ++k) {
         for (int i = 0; i < tag_num; ++i) {
-            float max_score = -FLT_MAX;
+            dtype max_score = -std::numeric_limits<dtype>::max();
             int max_j = 0;
             for (size_t j = 0; j < tag_num; ++j) {
-                float score = alpha_value[(k - 1) * tag_num + j] +
+                dtype score = alpha_value[(k - 1) * tag_num + j] +
                           w[(j + state_trans_base_idx) * tag_num + i];
                 if (score > max_score) {
                     max_score = score;
@@ -73,10 +73,10 @@ void decoding(float* path, const float* emission, const float* transition,
             track_value[k * tag_num + i] = max_j;
         }
     }
-    float max_score = -FLT_MAX;
+    dtype max_score = -std::numeric_limits<dtype>::max();
     int max_i = 0;
     for (size_t i = 0; i < tag_num; ++i) {
-        float score = alpha_value[(seq_len - 1) * tag_num + i] + w[tag_num + i];
+        dtype score = alpha_value[(seq_len - 1) * tag_num + i] + w[tag_num + i];
         if (score > max_score) {
             max_score = score;
             max_i = i;
@@ -106,9 +106,9 @@ SaberStatus SaberCrfDecoding<X86, OpDtype, inDtype, outDtype,
 
     std::vector<int> seq_offset = inputs[0]->get_seq_offset();
 
-    const float *emission_ptr = inputs[0]->data();
-    const float *transition_ptr = param.transition_weight()->data();
-    float *decoded_path = outputs[0]->mutable_data();
+    const DataType_in *emission_ptr = inputs[0]->data();
+    const DataType_op *transition_ptr = param.transition_weight()->data();
+    DataType_out *decoded_path = outputs[0]->mutable_data();
 
     int seq_num = seq_offset.size() - 1;
     int slice_size = outputs[0]->channel()
