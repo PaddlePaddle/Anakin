@@ -36,7 +36,7 @@ public:
      */
     explicit Net(graph::Graph<Ttype, Dtype, Ptype>&, bool need_summary = false); 
 
-    ~Net() {}
+    ~Net();
 
 public:
     
