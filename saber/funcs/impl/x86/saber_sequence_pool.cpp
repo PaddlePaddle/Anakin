@@ -1,6 +1,7 @@
 
 #include "saber/funcs/impl/x86/saber_sequence_pool.h"
 #include "saber/saber_funcs_param.h"
+#include "saber/funcs/impl/x86/kernel/jit_generator.h"
 #include <cstring>
 #include <cmath>
 
@@ -76,8 +77,7 @@ SaberStatus SaberSequencePool<X86, OpDtype, inDtype, outDtype,
         LayOutType_op, LayOutType_in, LayOutType_out>::init(
         const std::vector<DataTensor_in*>& inputs,
         std::vector<DataTensor_out*>& outputs,
-        SequencePoolParam<OpTensor> &param, Context<X86> &ctx)
-{
+        SequencePoolParam<OpTensor> &param, Context<X86> &ctx) {
 
     typedef typename DataTensor_in::Dtype DataType_in;
     typedef typename DataTensor_out::Dtype DataType_out;

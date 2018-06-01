@@ -5,6 +5,7 @@
 #include "test_saber_func_x86.h"
 #include "saber/core/tensor_op.h"
 #include "saber/saber_types.h"
+#include "saber/funcs/timer.h"
 #include "x86_test_common.h"
 
 using namespace anakin::saber;
@@ -27,16 +28,19 @@ void test(Tensor4f &src_in, Tensor4f &weights, int test) {
     dst_saber.re_alloc(output_v[0]->valid_shape());
     fill_tensor_host_const(dst_saber, 0.f);
     op_crf_decoding.init(input_v, output_v, param_host, SPECIFY, SABER_IMPL, ctx_host);
+    SaberTimer<X86> timer;
+    timer.start(ctx_host);
     op_crf_decoding(input_v, output_v, param_host, ctx_host);
-
-    print_tensor_host(dst_saber);
+    timer.end(ctx_host);
+    LOG(INFO) << "elapse time: " << timer.get_average_ms() << " ms";
+//    print_tensor_host(dst_saber);
 }
 
 TEST(TestSaberFuncX86, test_crf_decoding) {
-    int n = 4;
-    int d = 4;
+    int n = 400;
+    int d = 400;
 
-    std::vector<int> lod = {0, 2, 4};
+    std::vector<int> lod = {0, 2, 400};
     int num_in = n;
     int ch_in = d;
     int h_in = 1;
@@ -51,7 +55,7 @@ TEST(TestSaberFuncX86, test_crf_decoding) {
     src_in.set_seq_offset(lod);
 
     fill_tensor_host_rand(weight_host, 1.f, 2.f);
-    print_tensor_host(src_in);
+//    print_tensor_host(src_in);
     LOG(INFO) << "crf decoding:";
     test(src_in,  weight_host, 0);
 

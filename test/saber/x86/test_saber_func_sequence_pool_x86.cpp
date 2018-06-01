@@ -5,6 +5,7 @@
 #include "test_saber_func_x86.h"
 #include "saber/core/tensor_op.h"
 #include "saber/saber_types.h"
+#include "saber/funcs/timer.h"
 #include "x86_test_common.h"
 
 using namespace anakin::saber;
@@ -27,8 +28,11 @@ void test(Tensor4f &src_in, SequencePoolType pool_type) {
     dst_saber.re_alloc(output_v[0]->valid_shape());
     fill_tensor_host_const(dst_saber, 0.f);
     op_sequence_pool.init(input_v, output_v, param_host, SPECIFY, SABER_IMPL, ctx_host);
+    SaberTimer<X86> timer;
+    timer.start(ctx_host);
     op_sequence_pool(input_v, output_v, param_host, ctx_host);
-
+    timer.end(ctx_host);
+    LOG(INFO) << "elapse time: " << timer.get_average_ms() << " ms";
     print_tensor_host(dst_saber);
 }
 
@@ -62,7 +66,6 @@ TEST(TestSaberFuncX86, test_sequence_pool) {
     LOG(INFO) << "First:";
     test(src_in, Sequence_pool_first);
 
-
 }
 
 int main(int argc, const char** argv) {
@@ -72,4 +75,3 @@ int main(int argc, const char** argv) {
     RUN_ALL_TESTS(argv[0]);
     return 0;
 }
-

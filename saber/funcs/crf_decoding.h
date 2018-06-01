@@ -36,15 +36,13 @@ template<typename TargetType,
         DataType outDtype = AK_FLOAT,
         typename LayOutType_op = NCHW,
         typename LayOutType_in = NCHW,
-        typename LayOutType_out = NCHW
->
+        typename LayOutType_out = NCHW>
 class CrfDecoding : public BaseFunc<
         Tensor<TargetType, inDtype, LayOutType_in>,
                      Tensor<TargetType, outDtype, LayOutType_out>,
                      Tensor<TargetType, OpDtype, LayOutType_op>,
                      ImplBase,
-                     CrfDecodingParam
-> {
+                     CrfDecodingParam> {
 public:
     using BaseFunc<
             Tensor<TargetType, inDtype, LayOutType_in>,

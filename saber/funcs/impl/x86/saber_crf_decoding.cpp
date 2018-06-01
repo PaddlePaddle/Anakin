@@ -18,8 +18,7 @@ SaberStatus SaberCrfDecoding<X86, OpDtype, inDtype, outDtype,
         LayOutType_op, LayOutType_in, LayOutType_out>::init(
         const std::vector<DataTensor_in*>& inputs,
         std::vector<DataTensor_out*>& outputs,
-        CrfDecodingParam<OpTensor> &param, Context<X86> &ctx)
-{
+        CrfDecodingParam<OpTensor> &param, Context<X86> &ctx) {
 
     typedef typename DataTensor_in::Dtype DataType_in;
     typedef typename DataTensor_out::Dtype DataType_out;
@@ -39,8 +38,7 @@ SaberStatus SaberCrfDecoding<X86, OpDtype, inDtype, outDtype,
         const std::vector<DataTensor_in*>& inputs,
         std::vector<DataTensor_out*>& outputs,
         CrfDecodingParam<OpTensor> &param,
-        Context<X86> &ctx)
-{
+        Context<X86> &ctx) {
     typedef typename DataTensor_in::Dtype DataType_in;
     typedef typename DataTensor_out::Dtype DataType_out;
     typedef typename OpTensor::Dtype DataType_op;
@@ -100,8 +98,8 @@ SaberStatus SaberCrfDecoding<X86, OpDtype, inDtype, outDtype,
         LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(
         const std::vector<DataTensor_in*>& inputs,
         std::vector<DataTensor_out*>& outputs,
-        CrfDecodingParam<OpTensor> &param)
-{
+        CrfDecodingParam<OpTensor> &param) {
+
     typedef typename DataTensor_in::Dtype DataType_in;
     typedef typename DataTensor_out::Dtype DataType_out;
     typedef typename OpTensor::Dtype DataType_op;
