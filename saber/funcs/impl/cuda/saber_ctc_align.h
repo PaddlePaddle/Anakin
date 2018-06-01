@@ -15,7 +15,7 @@
 #ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_CTC_ALIGN_H
 #define ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_CTC_ALIGN_H
    
-#include "saber/funcs/impl/impl_define.h"
+#include "saber/funcs/impl/impl_ctc_align.h"
 
 namespace anakin{
 

@@ -17,9 +17,14 @@ anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/core "cpp" ANAKIN_T
 anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/graph "cpp" ANAKIN_TEST_CASE_SRC)
 anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/operators "cpp" ANAKIN_TEST_CASE_SRC)
 anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/net "cpp" ANAKIN_TEST_CASE_SRC)
-#anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/saber "cpp" ANAKIN_TEST_CASE_SRC)
+
+if(NVIDIA_GPU)
 anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/saber/cuda "cpp" ANAKIN_TEST_CASE_SRC)
+endif()
+
+if(USE_X86_PLACE)
 anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/saber/x86 "cpp" ANAKIN_TEST_CASE_SRC)
+endif()
 
 if(USE_ARM_PLACE) #build unit test for arm devices
 	anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/saber/arm "cpp" ANAKIN_TEST_CASE_SRC)
@@ -40,9 +45,9 @@ foreach(SRC_NAME ${ANAKIN_TEST_CASE_SRC})
 	list(GET SEXY_LIST 0 TEST_CASE_NAME)
 	add_executable(${TEST_CASE_NAME}  ${SRC_NAME})
 	if(BUILD_SHARED)
-        	target_link_libraries(${TEST_CASE_NAME} ${anakin_lib_so} ${ANAKIN_LINKER_LIBS})
+        	target_link_libraries(${TEST_CASE_NAME} ${anakin_lib_so})
     	else()
-        	target_link_libraries(${TEST_CASE_NAME} ${anakin_lib_static} ${ANAKIN_LINKER_LIBS})
+        	target_link_libraries(${TEST_CASE_NAME} ${anakin_lib_static})
     	endif()	
 	set_target_properties(${TEST_CASE_NAME} PROPERTIES
 						RUNTIME_OUTPUT_DIRECTORY 

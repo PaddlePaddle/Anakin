@@ -1,5 +1,3 @@
-
-#include "saber/funcs/impl/impl_define.h"
 #include "saber/funcs/impl/x86/saber_eltwise_act.h"
 #include "saber/funcs/impl/x86/x86_utils.h"
 

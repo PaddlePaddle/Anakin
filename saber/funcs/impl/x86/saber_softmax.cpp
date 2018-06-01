@@ -1,5 +1,3 @@
-
-#include "saber/funcs/impl/impl_define.h"
 #include "saber/funcs/impl/x86/saber_softmax.h"
 #include "mkl_cblas.h"
 #include "mkl_vml_functions.h"

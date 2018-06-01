@@ -17,7 +17,7 @@
 #define ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_CONV_ELTWISE_H
 
 #include <vector>
-#include "saber/funcs/impl/impl_define.h"
+#include "saber/funcs/impl/impl_conv_eltwise.h"
 #include "saber/funcs/impl/cuda/base/sass_funcs.h"
 #include "saber/funcs/funcs_utils.h"
 

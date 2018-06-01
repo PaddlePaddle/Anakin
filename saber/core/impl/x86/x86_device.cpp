@@ -1,7 +1,4 @@
 #include "core/device.h"
-
-#ifdef USE_X86_PLACE
-
 namespace anakin{
 
 namespace saber{
@@ -36,5 +33,3 @@ template void Device<X86>::create_stream();
 } //namespace saber
 
 } //namespace anakin
-
-#endif //USE_X86_PLACE

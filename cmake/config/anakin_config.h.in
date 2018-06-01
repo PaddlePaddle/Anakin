@@ -62,6 +62,9 @@
 
 #cmakedefine ENABLE_OP_TIMER
 
+#cmakedefine NVIDIA_GPU
+
+
 #if defined(ANDROID) || defined(__ANDROID__)
     #define PLATFORM_ANDROID
     #define IS_MOBILE_PLATFORM

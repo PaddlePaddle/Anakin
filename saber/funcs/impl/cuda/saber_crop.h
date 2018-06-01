@@ -16,7 +16,7 @@
 #ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_CROP_H
 #define ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_CROP_H
 
-#include "saber/funcs/impl/impl_define.h"
+#include "saber/funcs/impl/impl_crop.h"
 
 namespace anakin{
 
