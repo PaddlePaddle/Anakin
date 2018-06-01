@@ -1,4 +1,3 @@
-#include "saber/funcs/impl/impl_define.h"
 #include "saber/funcs/impl/cuda/vender_conv_act.h"
 #include "cuda_fp16.h"
 

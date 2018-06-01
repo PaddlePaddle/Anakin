@@ -1,5 +1,4 @@
 #include "saber/funcs/impl/cuda/saber_argmax.h"
-#include "saber/funcs/impl/impl_define.h"
 #include "cuda_fp16.h"
 #include <cfloat>
 

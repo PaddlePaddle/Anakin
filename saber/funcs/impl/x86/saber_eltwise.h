@@ -15,12 +15,8 @@
 #ifndef ANAKIN_SABER_FUNCS_IMPL_X86_SABER_ELTWISE_H
 #define ANAKIN_SABER_FUNCS_IMPL_X86_SABER_ELTWISE_H
 
-#include "saber/funcs/impl/impl_define.h"
-#include "saber/saber_types.h"
-#include "saber/funcs/impl/impl_base.h"
+#include "saber/funcs/impl/impl_eltwise.h"
 #include "saber/funcs/impl/x86/x86_utils.h"
-#include "saber/saber_funcs_param.h"
-
 namespace anakin{
 namespace saber {
 

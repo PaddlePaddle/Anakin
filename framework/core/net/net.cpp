@@ -2,6 +2,14 @@
 #include "saber/funcs/timer.h"
 namespace anakin {
 
+template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
+Net<Ttype, Dtype, Ptype, RunType>::~Net() {
+	if(_graph_p) {
+		delete _graph_p;
+		_graph_p = nullptr;
+	}
+}
+
 template<typename Ttype, DataType Dtype>
 double tensor_average(Tensor4dPtr<Ttype, Dtype>& out_tensor_p) {
     double sum = 0.0f;
@@ -38,7 +46,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
     auto node_names_in_exec_order = graph.get_nodes_in_order();
     // infer basic shape and parsing parameter from graph
     for (auto& node_name : node_names_in_exec_order) {
-        auto& node_ptr = (*_graph_p)[node_name];
+        auto node_ptr = (*_graph_p)[node_name];
         if (node_ptr->get_op_name() == "Output") {
             continue;
         }
@@ -77,7 +85,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
         }
 #endif
         // create operations
-#if 1
+#if 0
         if (node_ptr->get_op_name() == "ConvReluPool"|| node_ptr->get_op_name() == "ConvBatchnormScaleRelu" || node_ptr->get_op_name() == "ConvBatchnormScaleReluPool" || node_ptr->get_op_name() == "ConvRelu" || node_ptr->get_op_name() == "Convolution") {
         std::string key = "kernel_size";
         std::string strides = "strides";
@@ -103,6 +111,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
 #else
         auto* op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
         node_ptr->set_op(op_pointer);
+		op_pointer = nullptr;
 #endif
         // bind parameter structure
         static_cast<Operator<Ttype, Dtype, Ptype>*>(node_ptr->Op())->_helper->BindParam(node_ptr);
@@ -138,7 +147,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
         }
         op_func.current_lane = (*_graph_p)[node_name]->lane();
         op_func.need_sync = (*_graph_p)[node_name]->need_wait();
-        op_func.op = (*_graph_p)[node_name]->Op();
+        op_func.op = static_cast<Operator<Ttype, Dtype, Ptype>* >((*_graph_p)[node_name]->Op());
         op_func.op_name = (*_graph_p)[node_name]->get_op_name();
         op_func.ctx_p = std::make_shared<Context<Ttype>>(TargetWrapper<Ttype>::get_device_id(), 
                                                          op_func.current_lane, 

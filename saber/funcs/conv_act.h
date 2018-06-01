@@ -15,12 +15,19 @@
 #ifndef ANAKIN_SABER_FUNCS_CONV_ACT_H
 #define ANAKIN_SABER_FUNCS_CONV_ACT_H
 
-#include "saber/core/tensor.h"
-#include "saber/funcs/base.h"
-#include "saber/saber_funcs_param.h"
-#include "saber/funcs/impl/impl_base.h"
-#include "saber/funcs/impl/impl_define.h"
 #include "saber/funcs/funcs_utils.h"
+#include "saber/funcs/base.h"
+#include "saber/funcs/impl/impl_base.h"
+
+#ifdef NVIDIA_GPU
+#include "saber/funcs/impl/cuda/saber_conv_act.h"
+#include "saber/funcs/impl/cuda/vender_conv_act.h"
+#endif
+
+#ifdef USE_X86_PLACE
+#include "saber/funcs/impl/x86/saber_conv_act.h"
+#endif   
+
 namespace anakin {
 namespace saber {
 

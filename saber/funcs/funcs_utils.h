@@ -18,6 +18,7 @@
 
 #include <iostream>
 #include <map>
+#include "saber/core/tensor.h"
 namespace anakin{
 namespace saber{
 

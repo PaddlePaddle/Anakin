@@ -17,10 +17,9 @@
 #define ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_CONV2DACT_H
 
 #include <vector>
-#include "saber/funcs/impl/impl_define.h"
+#include "saber/funcs/impl/impl_conv_act.h"
 #include "saber/funcs/impl/cuda/base/sass_funcs.h"
 #include "saber/funcs/funcs_utils.h"
-#include "saber/funcs/impl/cuda/base/cuda_c/ker_gemm.h"
 
 namespace anakin{
 

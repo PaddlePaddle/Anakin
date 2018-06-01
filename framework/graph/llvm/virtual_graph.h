@@ -55,8 +55,8 @@ struct io {
     /// receive from Graph.
     PTuple<int> shape;
 
-    inline bool operator==(const io& rhs) { return (name == rhs.name); }
-    inline bool operator!=(const io& rhs) { return (name != rhs.name); }
+    inline bool operator==(const io& rhs) const { return (name == rhs.name); }
+    inline bool operator!=(const io& rhs) const { return (name != rhs.name); }
 };
 
 /**

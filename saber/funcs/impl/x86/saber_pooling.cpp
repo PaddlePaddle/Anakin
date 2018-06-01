@@ -1,5 +1,3 @@
-
-#include "saber/funcs/impl/impl_define.h"
 #include "saber/funcs/impl/x86/saber_pooling.h"
 #include "saber/funcs/impl/x86/kernel/jit_uni_pool_kernel_f32.h"
 
