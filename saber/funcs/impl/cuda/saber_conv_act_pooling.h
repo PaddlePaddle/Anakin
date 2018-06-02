@@ -63,33 +63,10 @@ public:
         }
     }
 
-    /**
-     * [Create description] Init all cudnn resource here
-     * @AuthorHTL
-     * @DateTime  2018-02-01T16:13:06+0800
-     * @param     inputs                    [description]
-     * @param     outputs                   [description]
-     * @param     conv_param                [conv parameters]
-     */
-    virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
+    virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             ConvActivePoolingParam<OpTensor>& param, Context<NV>& ctx) {
 
-        this->_ctx = ctx;
-
-        return create(inputs, outputs, param, ctx);
-    }
-
-    virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
-                            std::vector<DataTensor_out *>& outputs,
-                            ConvActivePoolingParam<OpTensor>& param, Context<NV> &ctx) {
-
-        if (!(ctx == this->_ctx)) {
-            this->_ctx = ctx;
-        }
-
-        //This is an ugly impl for now
-        //compute _conv_out_height & width first
         int input_dim = inputs[0]->height(); // P
         int kernel_exten = param.conv_param.dilation_h * (param.conv_param.weight()->height() - 1) + 1;
         _conv_out_height = (input_dim + 2 * param.conv_param.pad_h - kernel_exten)
@@ -99,6 +76,22 @@ public:
         kernel_exten = param.conv_param.dilation_w * (param.conv_param.weight()->width() - 1) + 1;
         _conv_out_width = (input_dim + 2 * param.conv_param.pad_w - kernel_exten)
                      / param.conv_param.stride_w + 1;
+                     
+        return SaberSuccess;
+    }
+
+    virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
+                            std::vector<DataTensor_out *>& outputs,
+                            ConvActivePoolingParam<OpTensor>& param, Context<NV> &ctx) {
+        this->_ctx = ctx;
+        if (_host_work_space)
+        {
+            free(_host_work_space);
+        }
+        if (_gpu_work_space)
+        {
+            cudaFree(_gpu_work_space);
+        }
 
         if (param.conv_param.stride_h == 1 && 
             param.conv_param.stride_w == 1 && 
@@ -165,22 +158,24 @@ public:
                     dispatch_func = direct_conv_bias_relu_maxpool2k2s0p_Kindiv4<InDataType, OpDataType>;
                 else
                     return SaberUnImplError;
-            }
-            
+            }      
         }
         else
         {
           return SaberUnImplError;
         }
-        return SaberSuccess;
+
+        return create(inputs, outputs, param, ctx);
+
     }
 
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                           std::vector<DataTensor_out*>& outputs,
                           ConvActivePoolingParam<OpTensor>& param)
     {
-            Shape shape_in = inputs[0]->shape();
-            Shape shape_out = outputs[0]->shape();
+      //cudaDeviceSynchronize();
+            Shape shape_in = inputs[0]->valid_shape();
+            Shape shape_out = outputs[0]->valid_shape();
             const InDataType* bias_data = nullptr;
             if (param.conv_param.bias()->size() > 0) {
                 bias_data = param.conv_param.bias()->data();
@@ -216,6 +211,8 @@ public:
                     this->_ctx.get_compute_stream()); 
                     
         CUDA_CHECK(cudaGetLastError());
+
+
         return SaberSuccess;
     }
 private:
