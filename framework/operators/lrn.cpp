@@ -25,7 +25,7 @@ LrnHelper<Ttype, Dtype, Ptype>::~LrnHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status LrnHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Lrn op parameter.";
+    DLOG(WARNING) << "Parsing Lrn op parameter.";
 
     auto local_size_in = GET_PARAMETER(int, local_size);
     auto alpha_in = GET_PARAMETER(float, alpha);

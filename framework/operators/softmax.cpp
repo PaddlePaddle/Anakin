@@ -27,7 +27,7 @@ SoftmaxHelper<Ttype, Dtype, Ptype>::~SoftmaxHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status SoftmaxHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Softmax op parameter.";
+    DLOG(WARNING) << "Parsing Softmax op parameter.";
     auto axis = GET_PARAMETER(int, axis);
 
     SoftmaxParam<Tensor4d<Ttype, Dtype>> param_softmax(axis);
