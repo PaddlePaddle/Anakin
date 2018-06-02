@@ -26,7 +26,7 @@ NormalizeHelper<Ttype, Dtype, Ptype>::~NormalizeHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status NormalizeHelper<Ttype, Dtype, Ptype>::InitParam() {
-    //LOG(WARNING) << "Parsing Normalize op parameter.";
+    //DLOG(WARNING) << "Parsing Normalize op parameter.";
     auto is_across_spatial = GET_PARAMETER(bool, is_across_spatial);
     auto is_shared_channel = GET_PARAMETER(bool, is_shared_channel);
     auto eps = GET_PARAMETER(float, eps);
