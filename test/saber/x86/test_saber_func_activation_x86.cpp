@@ -72,13 +72,21 @@ void test_stanh(int n, int c, int h, int w){
     Shape shape_in(n_in, c_in, h_in, w_in);
     Shape shape_out(n_in, c_in, h_in, w_in);
 
-    Tensor4f src, dst;
+    Tensor4f src, dst, dst_host;
     src.re_alloc(shape_in);
 
-    float *ptr = src.mutable_data();
+    float *src_ptr = src.mutable_data();
     for(int i = 0; i<src.size(); i++){
-        ptr[i] = 3.27f + (float)i; 
+        src_ptr[i] = 0.12345f + (float)i*1e-4; 
     }
+
+    dst_host.re_alloc(shape_in);
+    float *dst_host_ptr = dst_host.mutable_data();
+    for(int i = 0; i< dst_host.size(); i++){
+        dst_host_ptr[i] = 0.12345f + (float)i*1e-4;
+        dst_host_ptr[i] = scale_b * tanh(scale_a * dst_host_ptr[i]);
+    }
+
 
     Context<X86> ctx_host;
 
@@ -105,6 +113,13 @@ void test_stanh(int n, int c, int h, int w){
             std::cout << std::endl;
     }
 
+    bool pass = compare_tensor<Tensor4f>(dst_host, dst, 1e-6);
+    if (pass) {
+        LOG(INFO) << "Test Passed";
+    }
+    else {
+        LOG(ERROR) << "Test Failed";
+    }
 }
 
 TEST(TestSaberActivationX86, test_tensor_activation) {
