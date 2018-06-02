@@ -71,29 +71,18 @@ public:
         }
     }
 
-/**
- * [Create description] Init all cudnn resource here
- * @AuthorHTL
- * @DateTime  2018-02-01T16:13:06+0800
- * @param     inputs                    [description]
- * @param     outputs                   [description]
- * @param     param                [conv parameters]
- */
-    virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
+    virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             ConvActiveParam<OpTensor>& param, Context<NV>& ctx) {
 
-        //std::cout<<"SaberConv2DAct init!!"<<std::endl;
-        return create(inputs, outputs, param, ctx);
+
+        return SaberSuccess;
     }
 
-    virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
+    virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             ConvActiveParam<OpTensor>& param, Context<NV> &ctx) {
-        
-        if (!(ctx == this->_ctx)) {
-            this->_ctx = ctx;
-        }
+        this->_ctx = ctx;
 
         _use_k1s1p0 = true;
         _use_k1s1p0 = _use_k1s1p0 && (param.conv_param.weight()->height() == 1);
@@ -178,8 +167,10 @@ public:
         else{
           return SaberUnImplError;
         }
+        cudaDeviceSynchronize();
 
-        return SaberSuccess;
+        return create(inputs, outputs, param, ctx);
+        //return SaberSuccess;
 
     }
 
@@ -187,6 +178,7 @@ public:
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                           std::vector<DataTensor_out*>& outputs,
                           ConvActiveParam<OpTensor>& param) {
+
         //err code?
         Shape shape_in = inputs[0]->valid_shape();
         Shape shape_out = outputs[0]->valid_shape();
@@ -201,7 +193,6 @@ public:
         int chin = inputs[0]->channel();
         int win = inputs[0]->width();
         int hin = inputs[0]->height();
-
         int chout = outputs[0]->channel();
         int wout = outputs[0]->width();
         int hout = outputs[0]->height();
@@ -306,7 +297,7 @@ public:
                     param.conv_param.beta, 
                     this->_ctx.get_compute_stream());                 
             }
-        CUDA_CHECK(cudaGetLastError());
+
         return SaberSuccess;
     }
 
