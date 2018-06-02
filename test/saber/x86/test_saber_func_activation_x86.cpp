@@ -122,13 +122,13 @@ TEST(TestSaberActivationX86, test_tensor_activation) {
     LOG(INFO) << "test for stanh:" 
 
     LOG(INFO) << "case 1:"; 
-    test(1, 1, 1, 4);
+    test_stanh(1, 1, 1, 4);
     LOG(INFO) << "case 2:"; 
-    test(1, 1, 20, 2);
+    test_stanh(1, 1, 20, 2);
     LOG(INFO) << "case 3:"; 
-    test(2, 2, 32, 1);
+    test_stanh(2, 2, 32, 1);
     LOG(INFO) << "case 4:"; 
-    test(2, 32, 2, 2);
+    test_stanh(2, 32, 2, 2);
 
 }
 
