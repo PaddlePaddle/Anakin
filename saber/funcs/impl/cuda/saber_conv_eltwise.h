@@ -61,31 +61,10 @@ public:
         }
     }
 
-/**
- * [Create description] Init all cudnn resource here
- * @AuthorHTL
- * @DateTime  2018-02-01T16:13:06+0800
- * @param     inputs                    [description]
- * @param     outputs                   [description]
- * @param     param                     [conv parameters]
- */
     virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
-                            ConvActiveParam<OpTensor>& param, Context<NV>& ctx) {
-
-        //std::cout<<"SaberConv2DEltWise init!!"<<std::endl;
-        return create(inputs, outputs, param, ctx);
-    }
-
-    virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
-                            std::vector<DataTensor_out *>& outputs,
                             ConvActiveParam<OpTensor>& param, Context<NV> &ctx)  {
-        
-        if (!(ctx == this->_ctx)) {
-            this->_ctx = ctx;
-        }
-
-
+        this->_ctx = ctx;
         //This is an ugly impl for now
         if (param.conv_param.stride_h == 1 && 
             param.conv_param.stride_w == 1 && 
@@ -116,18 +95,22 @@ public:
         }else{
           return SaberUnImplError;
         }
-
-        return SaberSuccess;
-
+        cudaDeviceSynchronize();
+        return create(inputs, outputs, param, ctx);
     }
 
+    virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
+                            std::vector<DataTensor_out *>& outputs,
+                            ConvActiveParam<OpTensor>& param, Context<NV>& ctx) {
+        return SaberSuccess;
+    }
 
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                           std::vector<DataTensor_out*>& outputs,
                           ConvActiveParam<OpTensor>& param){
         //err code?
-            Shape shape_in = inputs[0]->shape();
-            Shape shape_out = outputs[0]->shape();
+            Shape shape_in = inputs[0]->valid_shape();
+            Shape shape_out = outputs[0]->valid_shape();
             const InDataType* bias_data = NULL;
             if (param.conv_param.bias()->size() > 0) {
                 bias_data = param.conv_param.bias()->data();
