@@ -107,10 +107,13 @@ void test_stanh(int n, int c, int h, int w){
     op_stanh(input_stanh, output_stanh, param_host, ctx_host);
 
     const float *dst_ptr = dst.data();
+	std::cout<< std::endl;
+	std::cout<< "This tensor size is:" << dst.size()<< std::endl;
     for(int i = 0; i < dst.size(); i++){
-        std::cout << dst_ptr[i] <<"  ";
-        if(i%5==0 && i)
+		if(i%5==0 && i)
             std::cout << std::endl;
+		std::cout << dst_ptr[i] <<"  ";
+
     }
 
     bool pass = compare_tensor<Tensor4f>(dst_host, dst, 1e-6);
@@ -136,13 +139,13 @@ TEST(TestSaberActivationX86, test_tensor_activation) {
 
     LOG(INFO) << "test for stanh:";
 
-    LOG(INFO) << "case 1:"; 
+    std::cout << "case 1:" << std::endl; 
     test_stanh(1, 1, 1, 4);
-    LOG(INFO) << "case 2:"; 
-    test_stanh(1, 1, 20, 2);
-    LOG(INFO) << "case 3:"; 
-    test_stanh(2, 2, 32, 1);
-    LOG(INFO) << "case 4:"; 
+    std::cout << "case 2:" << std::endl;
+	test_stanh(1, 1, 20, 2);
+    std::cout << "case 3:" << std::endl;
+	test_stanh(2, 2, 32, 1);
+    std::cout << "case 4:" << std::endl;
     test_stanh(2, 32, 2, 2);
 
 }
