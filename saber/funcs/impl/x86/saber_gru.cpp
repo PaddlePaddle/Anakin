@@ -15,16 +15,22 @@ namespace saber {
 #define SIGMOID_THRESHOLD_MIN -40.0
 #define SIGMOID_THRESHOLD_MAX 13.0
 #define EXP_MAX_INPUT 40.0
+
+inline __m256 InValidAct(__m256 a) {
+            CHECK_EQ(0,1)<<"InValidAct";
+}
+
 inline __m256 Exp(__m256 a) {
     return exp256_ps(a);
     //    return exp(a);
 }
+
 inline __m256 Relu(const __m256 a) {
     __m256 tmp = _mm256_set1_ps(0.0f);
     return _mm256_max_ps(a, tmp);
 }
 
-inline __m256 Sigmoid(const __m256 a) {
+inline __m256 Sigmoid_fluid(const __m256 a) {
     __m256 max = _mm256_set1_ps(SIGMOID_THRESHOLD_MAX);
     __m256 min = _mm256_set1_ps(SIGMOID_THRESHOLD_MIN);
     __m256 tmp = _mm256_max_ps(a, min);
@@ -36,10 +42,27 @@ inline __m256 Sigmoid(const __m256 a) {
     return tmp;
 }
 
-inline __m256 tanh(const __m256 a) {
+inline __m256 Sigmoid(const __m256 a) {
+    __m256  tmp = a;
+    tmp = _mm256_sub_ps(_mm256_set1_ps(0.0f), tmp);
+    tmp = Exp(tmp);
+    tmp = _mm256_add_ps(_mm256_set1_ps(1.0f), tmp);
+    tmp = _mm256_div_ps(_mm256_set1_ps(1.0f), tmp);
+    return tmp;
+}
+
+inline __m256 Tanh_fluid(const __m256 a) {
     __m256 max = _mm256_set1_ps(EXP_MAX_INPUT);
     __m256 tmp = _mm256_mul_ps(_mm256_set1_ps(-2.0f), a);
     tmp = _mm256_min_ps(tmp, max);
+    tmp = Exp(tmp);
+    return _mm256_sub_ps(_mm256_div_ps(_mm256_set1_ps(2.0f),
+                                       _mm256_add_ps(_mm256_set1_ps(1.0f), tmp)),
+                         _mm256_set1_ps(1.0f));
+}
+
+inline __m256 Tanh(const __m256 a) {
+    __m256 tmp = _mm256_mul_ps(_mm256_set1_ps(-2.0f), a);
     tmp = Exp(tmp);
     return _mm256_sub_ps(_mm256_div_ps(_mm256_set1_ps(2.0f),
                                        _mm256_add_ps(_mm256_set1_ps(1.0f), tmp)),
@@ -50,6 +73,8 @@ __m256 Identity(const __m256 a) {
     return a;
 }
 
+static  __m256 ( *act_funcs[10])(const __m256)={&InValidAct,&Sigmoid,&Relu,&Tanh,&InValidAct,\
+                       &InValidAct,&Identity,&Sigmoid_fluid,&Tanh_fluid};
 
 //inline
 static void gemm(const bool TransA, const bool TransB, int m, int n, int k, const float alpha,
@@ -70,20 +95,20 @@ inline Dtype Sigmoid(const Dtype a) {
 }
 
 template <typename Dtype>
-inline Dtype tanh_fluid(const Dtype a) {
+inline Dtype Tanh_fluid(const Dtype a) {
     Dtype tmp = -2.0 * a;
     tmp = (tmp > EXP_MAX_INPUT) ? EXP_MAX_INPUT : tmp;
     return (2.0 / (1.0 + exp(tmp))) - 1.0;
 }
 
 template <typename Dtype>
-inline Dtype tanh(const Dtype a) {
+inline Dtype Tanh(const Dtype a) {
     Dtype tmp = -2.0 * a;
     return (2.0 / (1.0 + exp(tmp))) - 1.0;
 }
 
 template<>
-SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::navi_gru(\
+SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::naiv_gru(\
         const std::vector<DataTensor_in*>& inputs,
         std::vector<DataTensor_out*>& outputs,
         GruParam<OpTensor>& param) {
@@ -132,8 +157,8 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::navi_
     OutDataType* temp_whr = _temp_whr.mutable_data();
 
 
-    LOG(INFO) << "gemm b" << inputs[0]->valid_shape().count() << "," <<
-              _weights_i2h.valid_shape().count() << "," << _temp_wx.valid_shape().count();
+//    LOG(INFO) << "gemm b" << inputs[0]->valid_shape().count() << "," <<
+//              _weights_i2h.valid_shape().count() << "," << _temp_wx.valid_shape().count();
     //wx
     gemm(false, false, seqsum, 3 * _hidden_size, _word_size, 1.f, x, weight_w, 0.f, temp_wx);
 
@@ -354,7 +379,7 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::batch
 
                 z = Sigmoid(w_x_z[frame_id] + w_h_z[frame_id] + b_z[frame_id]);
                 _h = w_x_o[frame_id] + w_h_o[frame_id] + b_o[frame_id];
-                _h = tanh(_h);
+                _h = Tanh(_h);
                 emit_hout[frame_id] = (1 - z) * emit_hin[frame_id] + z * _h;
             }
         }
@@ -368,7 +393,7 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::batch
 
 template<>
 SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
-navi_256(const std::vector<DataTensor_in*>& inputs,
+naiv_256(const std::vector<DataTensor_in*>& inputs,
          std::vector<DataTensor_out*>& outputs,
          GruParam<OpTensor>& param) {
     CHECK_NE(param._formula, GRU_CUDNN) << "X86 gru not support cudnn formula now";
@@ -489,7 +514,7 @@ navi_256(const std::vector<DataTensor_in*>& inputs,
                 z = Sigmoid(w_x_z[frame_id] + w_h_z[frame_id] + b_z[frame_id]);
                 _h = w_x_o[frame_id] + temp_wrh_256[frame_id] + b_o[frame_id];
 
-                _h = tanh(_h);
+                _h = Tanh(_h);
 
                 hout_256[frame_id] = (1 - z) * hin_256[frame_id] + z * _h;
             }
@@ -500,7 +525,7 @@ navi_256(const std::vector<DataTensor_in*>& inputs,
 
 template<>
 SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
-navi_256_s_aligned(const std::vector<DataTensor_in*>& inputs,
+naiv_256_s_aligned(const std::vector<DataTensor_in*>& inputs,
                    std::vector<DataTensor_out*>& outputs,
                    GruParam<OpTensor>& param) {
     CHECK_NE(param._formula, GRU_CUDNN) << "X86 gru not support cudnn formula now";
@@ -515,6 +540,8 @@ navi_256_s_aligned(const std::vector<DataTensor_in*>& inputs,
     int max_seq_len = 0;
     bool is_hw2seq = offset_vec.size() > 2;
     int word_sum = is_hw2seq ? offset_vec[offset_vec.size() - 1] : inputs[0]->channel();
+    __m256 (*gate_act)(const __m256)=act_funcs[param._gate_activity];
+    __m256 (*hid_act)(const __m256)=act_funcs[param._h_activity];
     utils::AlignedUtils aligned_utils;
     utils::VectorPrint vector_print;
     const OutDataType* h_init = nullptr;
@@ -613,7 +640,7 @@ navi_256_s_aligned(const std::vector<DataTensor_in*>& inputs,
 
             for (int frame_id = 0; frame_id < _aligned_hidden_size / 8; ++frame_id) {
                 r = w_x_r[frame_id] + w_h_r[frame_id] + b_r[frame_id]; //h_out=gate_r
-                r = Sigmoid(r);
+                r = gate_act(r);
                 //                vector_print.print_float(&r);
 
                 //            printit("wxr ",&r);
@@ -626,10 +653,10 @@ navi_256_s_aligned(const std::vector<DataTensor_in*>& inputs,
             __m256* temp_wrh_256 = (__m256*) temp_whr;
 
             for (int frame_id = 0; frame_id < _aligned_hidden_size / 8; ++frame_id) {
-                z = Sigmoid(w_x_z[frame_id] + w_h_z[frame_id] + b_z[frame_id]);
+                z = gate_act(w_x_z[frame_id] + w_h_z[frame_id] + b_z[frame_id]);
                 _h = w_x_o[frame_id] + temp_wrh_256[frame_id] + b_o[frame_id];
 
-                _h = tanh(_h);
+                _h = hid_act(_h);
 
                 hout_256[frame_id] = (1 - z) * hin_256[frame_id] + z * _h;
             }
@@ -650,7 +677,8 @@ batch_256_s_aligned(const std::vector<DataTensor_in*>& inputs,
     const OpDataType* weight_h = _aligned_weights_h2h.data();
     const OpDataType* weight_w = _aligned_weights_i2h.data();
     const OpDataType* bias = _aligned_weights_bias.data();
-
+    __m256 (*gate_act)(const __m256)=act_funcs[param._gate_activity];
+    __m256 (*hid_act)(const __m256)=act_funcs[param._h_activity];
     std::vector<int> offset_vec = inputs[0]->get_seq_offset();
     std::vector<int> length_vec(offset_vec.size() - 1);
     int batch_size = offset_vec.size() - 1;
@@ -774,7 +802,7 @@ batch_256_s_aligned(const std::vector<DataTensor_in*>& inputs,
              weight_h + _hidden_size * _aligned_hidden_size,
              0.f, temp_wh);
 
-        __m256 r;
+        volatile __m256 r;
         volatile __m256 z;
         volatile __m256 _h;
         __m256* hout_256 = (__m256*) hout;
@@ -791,7 +819,7 @@ batch_256_s_aligned(const std::vector<DataTensor_in*>& inputs,
 
             for (int frame_id = 0; frame_id < _aligned_hidden_size / 8; ++frame_id) {
                 r = w_x_r[frame_id] + w_h_r[frame_id] + b_r[frame_id]; //h_out=gate_r
-                r = Sigmoid(r);
+                r = gate_act(r);
 
                 emit_hout[frame_id] = r * emit_hin[frame_id];
             }
@@ -819,12 +847,11 @@ batch_256_s_aligned(const std::vector<DataTensor_in*>& inputs,
 
             for (int frame_id = 0; frame_id < _aligned_hidden_size / 8; ++frame_id) {
 
-                z = Sigmoid(w_x_z[frame_id] + w_h_z[frame_id] + b_z[frame_id]);
+                z = gate_act(w_x_z[frame_id] + w_h_z[frame_id] + b_z[frame_id]);
                 _h = w_x_o[frame_id] + w_h_o[frame_id] + b_o[frame_id];
-                _h = tanh(_h);
+                _h = hid_act(_h);
                 //                vector_print.print_float(&z);
                 emit_hout[frame_id] = (1 - z) * emit_hin[frame_id] + z * _h;
-                _h = tanh(_h);
             }
         }
 
@@ -843,10 +870,14 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispa
         const std::vector<DataTensor_in*>& inputs,
         std::vector<DataTensor_out*>& outputs,
         GruParam<OpTensor>& param) {
-    //    return batch_gru(inputs, outputs, param);
-    return batch_256_s_aligned(inputs, outputs, param);
-    //    return navi_256_s_aligned(inputs, outputs, param);
-    //        return navi_gru(inputs, outputs, param);
+//        return batch_gru(inputs, outputs, param);
+    if(inputs[0]->get_seq_offset().size()>2) {
+        return batch_256_s_aligned(inputs, outputs, param);
+    }else {
+        return naiv_256_s_aligned(inputs, outputs, param);
+    }
+//        return naiv_256_s_aligned(inputs, outputs, param);
+//            return naiv_gru(inputs, outputs, param);
 };
 
 template class SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;

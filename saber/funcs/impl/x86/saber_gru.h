@@ -156,7 +156,7 @@ private:
 //    lod_no_batch_gru(const OpDataType* weight_w, const OpDataType* weight_h,const OpDataType* b, const OutDataType* h_init, OutDataType* h_out,
 //                     const InDataType* x,OutDataType *temp_wx,OutDataType *temp_wh,OutDataType *temp_whr,
 //                     int hidden_size, int word_size, std::vector<int>& offset_vec, bool is_reverse);
-    SaberStatus navi_gru(
+    SaberStatus naiv_gru(
         const std::vector<DataTensor_in*>& inputs,
         std::vector<DataTensor_out*>& outputs,
         GruParam<OpTensor>& param);
@@ -166,12 +166,12 @@ private:
         std::vector<DataTensor_out*>& outputs,
         GruParam<OpTensor>& param);
 
-    SaberStatus navi_256(\
+    SaberStatus naiv_256(\
         const std::vector<DataTensor_in*>& inputs,
         std::vector<DataTensor_out*>& outputs,
         GruParam<OpTensor>& param);
 
-    SaberStatus navi_256_s_aligned(\
+    SaberStatus naiv_256_s_aligned(\
     const std::vector<DataTensor_in*>& inputs,
                std::vector<DataTensor_out*>& outputs,
                GruParam<OpTensor>& param);

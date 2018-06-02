@@ -247,6 +247,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
 	cudaDeviceSynchronize();
     CUDA_CHECK(cudaPeekAtLastError());
 	for (auto out : executer.outs) {
+        LOG(INFO) <<executer.name <<" d_tensor_out_p :" <<out->data();
         record_dev_tensorfile(out->data(), out->valid_size(),
                               ("net_record_" + executer.name + ".txt").data());
 	    LOG(ERROR) << "    |---out avg " << tensor_average(out);

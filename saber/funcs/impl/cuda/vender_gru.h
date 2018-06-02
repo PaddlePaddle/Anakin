@@ -75,6 +75,9 @@ public:
         if (_handle != NULL) {
             CUDNN_CHECK(cudnnDestroy(_handle));
         }
+        if(_dropoutDesc){
+            CUDNN_CHECK(cudnnDestroyDropoutDescriptor(_dropoutDesc));
+        }
         if (_rnnDesc) {
             CUDNN_CHECK(cudnnDestroyRNNDescriptor(_rnnDesc));
         }

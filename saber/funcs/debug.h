@@ -34,6 +34,7 @@ static void record_dev_tensorfile(const float* dev_tensor, int size, const char*
     host_temp.re_alloc(Shape(1, 1, 1, size));
     CUDA_CHECK(cudaMemcpy(host_temp.mutable_data(), dev_tensor, sizeof(float) * size,
                           cudaMemcpyDeviceToHost));
+    cudaDeviceSynchronize();
     FILE* fp = fopen(locate, "w+");
 
     if (fp == 0) {
@@ -59,7 +60,8 @@ static void readTensorData(Tensor<X86, AK_FLOAT, NCHW> tensor, const char* locat
 
     } else {
         LOG(INFO) << "file open success [" << locate << " ],read " << tensor.valid_shape().count();
-        fread(tensor.mutable_data(), sizeof(Dtype), tensor.valid_size(), fp);
+        size_t size=fread(tensor.mutable_data(), sizeof(Dtype), tensor.valid_size(), fp);
+        CHECK_EQ(size,tensor.valid_shape().count())<<"read data file ["<<locate<<"], size not match";
         fclose(fp);
     }
 }
@@ -72,7 +74,8 @@ static void readTensorData(Tensor<X86, AK_FLOAT, NCHW_C16> tensor, const char* l
 
     } else {
                 LOG(INFO) << "file open success [" << locate << " ],read " << tensor.valid_shape().count();
-        fread(tensor.mutable_data(), sizeof(Dtype), tensor.valid_size(), fp);
+        size_t size=fread(tensor.mutable_data(), sizeof(Dtype), tensor.valid_size(), fp);
+        CHECK_EQ(size,tensor.valid_shape().count())<<"read data file ["<<locate<<"], size not match";
         fclose(fp);
     }
 }

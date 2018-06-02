@@ -27,16 +27,16 @@ LOG(INFO)<<"("<<tensor[0]<<","<<tensor[1]<<","<<tensor[2]<<","<<tensor[3]<<")";\
 #define GRUOFFSET
 //#define CUDNNGRU
 #define TEST_X86
-void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size = 112,
-                    int hidden_size = 259) {
+void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size = 24,
+                    int hidden_size = 44) {
 
     Context<X86> ctx_dev(0, 1, 1);
     typedef Tensor<X86, AK_FLOAT, NCHW> TensorDf4;
     typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
 
-    std::vector<int> offsets = {0, 1,2,3,5,10,11};
+    std::vector<int> offsets = {0,30};
 
-    bool is_reverse = true;
+    bool is_reverse = false;
     batch_size = offsets.size() - 1;
     Shape shape_ux(1, 1, offsets[offsets.size() - 1], hidden_size * 3);
     Shape shape_x(offsets[offsets.size() - 1], word_size, 1, 1);
@@ -98,12 +98,12 @@ void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size
     std::vector<TensorDf4*> input_dev_4d;
     std::vector<TensorDf4*> output_dev_4d;
     input_dev_4d.push_back(&dev_x);
-//    input_dev_4d.push_back(&dev_h);
+    input_dev_4d.push_back(&dev_h);
     output_dev_4d.push_back(&dev_out);
 
 
     dev_x.set_seq_offset(offsets);
-    GruParam<TensorDf4> param(&dev_wu, &dev_b, GRU_ORIGIN,Active_sigmoid_fluid,Active_tanh,is_reverse);
+    GruParam<TensorDf4> param(&dev_wu, &dev_b, GRU_ORIGIN,Active_sigmoid_fluid,Active_relu,is_reverse);
 
 
     Gru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW> dev_gru;
@@ -122,7 +122,7 @@ void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size
 
     dev_gru(input_dev_4d, output_dev_4d, param, ctx_dev);
 
-    int test_iter = 1;
+    int test_iter = 111;
 
     t1.start(ctx_dev);
 
