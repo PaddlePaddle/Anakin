@@ -6,13 +6,10 @@
 #include "funcs/gru.h"
 #include "saber_types.h"
 #include "saber/funcs/timer.h"
-#include "saber/funcs/impl/cuda/saber_eltwise.h"
-#include "saber/funcs/impl/cuda/saber_activation.h"
-#include "saber/funcs/impl/cuda/saber_gru.h"
 #include "stdio.h"
 #include "x86_test_common.h"
 #include "test_saber_func_x86_gru.h"
-
+#include "saber/funcs/impl/x86/saber_gru.h"
 
 //#include "cublas.h"
 
@@ -27,16 +24,58 @@ LOG(INFO)<<"("<<tensor[0]<<","<<tensor[1]<<","<<tensor[2]<<","<<tensor[3]<<")";\
 #define GRUOFFSET
 //#define CUDNNGRU
 #define TEST_X86
-void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size = 24,
-                    int hidden_size = 44) {
+#define INNER_TEST
+
+typedef Tensor<X86, AK_FLOAT, NCHW> TensorDf4;
+typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
+
+void compute_compare_correct(TensorDf4 dev_x,TensorDf4 last_dev_out,GruParam<TensorDf4> param){
+    Context<X86> ctx_dev(0, 1, 1);
+    std::vector<TensorDf4*> input_dev_4d;
+    std::vector<TensorDf4*> output_dev_4d;
+
+    TensorDf4 new_dev_out;
+    new_dev_out.re_alloc(last_dev_out.valid_shape());
+
+    input_dev_4d.push_back(&dev_x);
+    output_dev_4d.push_back(&new_dev_out);
+
+    SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW> gru;
+    SABER_CHECK(gru.init(input_dev_4d, output_dev_4d, param, ctx_dev));
+
+    int test_iter = 1;
+    SaberTimer<X86> t1;
+    t1.start(ctx_dev);
+
+    for (int i = 0; i < test_iter; ++i) {
+        gru.naiv_gru(input_dev_4d, output_dev_4d, param);
+        output_dev_4d[0]->record_event(ctx_dev.get_compute_stream());
+        output_dev_4d[0]->sync();
+    }
+
+    t1.end(ctx_dev);
+    LOG(INFO) << "!!saber care: naive" << test_iter << "test, total time: " << t1.get_average_ms();
+
+    double maxdiff = 0;
+    double maxratio = 0;
+    tensor_cmp_host(last_dev_out.data(), new_dev_out.data(), last_dev_out.valid_size(), maxratio, maxdiff);
+
+    if (abs(maxratio) <= 0.001) {
+                LOG(INFO) << "passed  " << maxratio<<" : "<<maxdiff;
+    } else {
+                LOG(INFO) << "failed : ratio " << maxratio<<" : "<<maxdiff;
+                exit(-1);
+    }
+
+}
+void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size = 110,
+                    int hidden_size = 143) {
+
 
     Context<X86> ctx_dev(0, 1, 1);
-    typedef Tensor<X86, AK_FLOAT, NCHW> TensorDf4;
-    typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
+    std::vector<int> offsets = {0,20,40};
 
-    std::vector<int> offsets = {0,30};
-
-    bool is_reverse = false;
+    bool is_reverse = true;
     batch_size = offsets.size() - 1;
     Shape shape_ux(1, 1, offsets[offsets.size() - 1], hidden_size * 3);
     Shape shape_x(offsets[offsets.size() - 1], word_size, 1, 1);
@@ -83,11 +122,19 @@ void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size
     dev_h.re_alloc(shape_h);
     dev_out.re_alloc(shape_out);
     dev_out_bak.re_alloc(shape_out);
-
+#ifdef INNER_TEST
+    fill_tensor_host_rand(host_wu,-1,1);
+    fill_tensor_host_rand(host_x,-1,1);
+    fill_tensor_host_rand(host_b,-1,1);
+    fill_tensor_host_rand(host_h,-1,1);
+#else
     readTensorData(host_wu, "host_wu");
     readTensorData(host_x, "host_x");
     readTensorData(host_b, "host_b");
     readTensorData(host_h, "host_h");
+#endif
+
+
 
     //    dev_ux.copy_from(host_ux);
     dev_x.copy_from(host_x);
@@ -98,12 +145,12 @@ void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size
     std::vector<TensorDf4*> input_dev_4d;
     std::vector<TensorDf4*> output_dev_4d;
     input_dev_4d.push_back(&dev_x);
-    input_dev_4d.push_back(&dev_h);
+//    input_dev_4d.push_back(&dev_h);
     output_dev_4d.push_back(&dev_out);
 
 
     dev_x.set_seq_offset(offsets);
-    GruParam<TensorDf4> param(&dev_wu, &dev_b, GRU_ORIGIN,Active_sigmoid_fluid,Active_relu,is_reverse);
+    GruParam<TensorDf4> param(&dev_wu, &dev_b, GRU_ORIGIN,Active_sigmoid_fluid,Active_tanh_fluid,is_reverse);
 
 
     Gru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW> dev_gru;
@@ -138,8 +185,10 @@ void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size
               t1.get_average_ms() / test_iter << " args [" \
                 << sequence_size << "," << batch_size << ","
                       << word_size << "," << hidden_size << "]";
-
-
+#ifdef INNER_TEST
+    compute_compare_correct(dev_x,dev_out,param);
+    return;
+#else
     Tensor<X86, AK_FLOAT, NCHW> host_g;
     Tensor<X86, AK_FLOAT, NCHW> compare_g;
     host_g.re_alloc(shape_out);
@@ -158,7 +207,7 @@ void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size
                 LOG(INFO) << "failed : ratio " << maxratio;
     }
     return;
-
+#endif
     //    return;
 }
 

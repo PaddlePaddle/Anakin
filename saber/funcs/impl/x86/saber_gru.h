@@ -124,7 +124,10 @@ public:
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                                  std::vector<DataTensor_out*>& outputs,
                                  GruParam<OpTensor>& param);
-
+    SaberStatus naiv_gru(
+            const std::vector<DataTensor_in*>& inputs,
+            std::vector<DataTensor_out*>& outputs,
+            GruParam<OpTensor>& param);
 private:
     int _word_size;
     int _hidden_size;
@@ -156,10 +159,7 @@ private:
 //    lod_no_batch_gru(const OpDataType* weight_w, const OpDataType* weight_h,const OpDataType* b, const OutDataType* h_init, OutDataType* h_out,
 //                     const InDataType* x,OutDataType *temp_wx,OutDataType *temp_wh,OutDataType *temp_whr,
 //                     int hidden_size, int word_size, std::vector<int>& offset_vec, bool is_reverse);
-    SaberStatus naiv_gru(
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        GruParam<OpTensor>& param);
+
 
     SaberStatus batch_gru(\
         const std::vector<DataTensor_in*>& inputs,
