@@ -1,5 +1,6 @@
 #include "framework/core/net/net.h"
 #include "saber/funcs/timer.h"
+#include "saber/funcs/debug.h"
 namespace anakin {
 
 template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
@@ -255,6 +256,8 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
 	cudaDeviceSynchronize();
     CUDA_CHECK(cudaPeekAtLastError());
 	for (auto out : executer.outs) {
+        record_dev_tensorfile(out->data(), out->valid_size(),
+                              ("net_record_" + executer.name + ".txt").data());
 	    LOG(ERROR) << "    |---out avg " << tensor_average(out);
 	}
 	cudaDeviceSynchronize();
