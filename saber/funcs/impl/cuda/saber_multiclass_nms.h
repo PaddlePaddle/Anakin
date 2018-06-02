@@ -97,7 +97,6 @@ public:
                           std::vector<DataTensor_out*>& outputs,
                           MultiClassNMSParam<OpTensor>& param);
 
-
 private:
     int _num_priors;
     InDataType* _bbox_cpu_data{nullptr};

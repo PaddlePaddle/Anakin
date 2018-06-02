@@ -59,7 +59,6 @@ public:
     virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             ActivationParam<OpTensor>& param, Context<NV> &ctx) {
-        this->_ctx = ctx;
         return SaberSuccess;
     }
     
