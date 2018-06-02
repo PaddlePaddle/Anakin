@@ -16,7 +16,7 @@
 #ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_ACTIVATION_H
 #define ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_ACTIVATION_H
 
-#include "saber/funcs/impl/impl_define.h"
+#include "saber/funcs/impl/impl_activation.h"
 
 namespace anakin{
 
@@ -59,7 +59,6 @@ public:
     virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             ActivationParam<OpTensor>& param, Context<NV> &ctx) {
-        this->_ctx = ctx;
         return SaberSuccess;
     }
     

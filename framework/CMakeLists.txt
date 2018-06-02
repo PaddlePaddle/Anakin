@@ -29,33 +29,30 @@ anakin_fetch_files_with_suffix(${ANAKIN_FRAMEWORK}/utils/unit_test "cpp" ANAKIN_
 list(APPEND ANAKIN_SRC ${ANAKIN_BASE_SRC})
 unset(ANAKIN_BASE_SRC)
 
-# compile cpp objs
-add_library(ANAKIN_OBJS OBJECT ${ANAKIN_SRC})
-
 # add library to shared or static
 if(UNIX OR APPLE)
 	if(BUILD_SHARED)
-        add_library(${anakin_lib_so} SHARED $<TARGET_OBJECTS:ANAKIN_OBJS>)
+		add_library(${anakin_lib_so} SHARED ${ANAKIN_SRC})
 		add_dependencies(${anakin_lib_so} ${ANAKIN_SABER_LIB_TARGET})
 		# set shared lib version
 		set_target_properties(${anakin_lib_so} PROPERTIES VERSION ${VERSION})
         
-		target_link_libraries(${anakin_lib_so} ${ANAKIN_LINKER_LIBS} ${ANAKIN_SABER_LIB})
+		target_link_libraries(${anakin_lib_so} ${ANAKIN_SABER_LIB_TARGET} ${ANAKIN_LINKER_LIBS})
 		set_target_properties(${anakin_lib_so} PROPERTIES LINK_FLAGS "")
 		set_target_properties(${anakin_lib_so} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/output/)
-        install(DIRECTORY ${ANAKIN_FRAMEWORK} ${ANAKIN_SABER} ${ANAKIN_UTILS}
-                DESTINATION ${PROJECT_SOURCE_DIR}/output/
-                FILES_MATCHING PATTERN "*.h")
+        	install(DIRECTORY ${ANAKIN_FRAMEWORK} ${ANAKIN_SABER} ${ANAKIN_UTILS}
+                	DESTINATION ${PROJECT_SOURCE_DIR}/output/
+                	FILES_MATCHING PATTERN "*.h")
 	endif()
 	if(BUILD_STATIC)
-        add_library(${anakin_lib_so} STATIC $<TARGET_OBJECTS:ANAKIN_OBJS>)
-		add_dependencies(${anakin_lib_so} ${ANAKIN_SABER_LIB_TARGET})
+		add_library(${anakin_lib_static} STATIC ${ANAKIN_SRC})
+		add_dependencies(${anakin_lib_static} ${ANAKIN_SABER_LIB_TARGET})
 		set_target_properties(${anakin_lib_static} PROPERTIES VERSION ${VERSION})
-		target_link_libraries(${anakin_lib_static} ${ANAKIN_LINKER_LIBS} ${ANAKIN_SABER_LIB})
+		target_link_libraries(${anakin_lib_static} ${ANAKIN_SABER_LIB_TARGET} ${ANAKIN_LINKER_LIBS})
         	set_target_properties(${anakin_lib_static} PROPERTIES LINK_FLAGS "")
 		set_target_properties(${anakin_lib_static} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/output/)
-        install(DIRECTORY ${ANAKIN_FRAMEWORK} ${ANAKIN_SABER} ${ANAKIN_UTILS}
-                DESTINATION ${PROJECT_SOURCE_DIR}/output/
-                FILES_MATCHING PATTERN "*.h")
+        	install(DIRECTORY ${ANAKIN_FRAMEWORK} ${ANAKIN_SABER} ${ANAKIN_UTILS}
+                	DESTINATION ${PROJECT_SOURCE_DIR}/output/
+                	FILES_MATCHING PATTERN "*.h")
 	endif()
 endif()

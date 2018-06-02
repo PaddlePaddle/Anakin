@@ -16,7 +16,7 @@
 #ifndef ANAKIN_SABER_FUNCS_CUDA_SABER_MULTICLASS_NMS_H
 #define ANAKIN_SABER_FUNCS_CUDA_SABER_MULTICLASS_NMS_H
 
-#include "saber/funcs/impl/impl_define.h"
+#include "saber/funcs/impl/impl_multiclass_nms.h"
 #include "saber/core/tensor.h"
 
 namespace anakin{
@@ -87,7 +87,6 @@ public:
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                           std::vector<DataTensor_out*>& outputs,
                           MultiClassNMSParam<OpTensor>& param);
-
 
 private:
     int _num_priors;

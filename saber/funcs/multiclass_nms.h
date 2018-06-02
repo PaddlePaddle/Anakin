@@ -16,11 +16,15 @@
 #ifndef ANAKIN_SABER_FUNCS_MULTICLASS_NMS_H
 #define ANAKIN_SABER_FUNCS_MULTICLASS_NMS_H
 
-#include "saber/core/tensor.h"
 #include "saber/funcs/base.h"
-#include "saber/saber_funcs_param.h"
-#include "saber/funcs/impl/impl_define.h"
 #include "saber/funcs/impl/impl_base.h"
+#ifdef NVIDIA_GPU
+#include "saber/funcs/impl/cuda/saber_multiclass_nms.h"
+#endif
+
+#ifdef USE_X86_PLACE
+//#include "saber/funcs/impl/x86/saber_activation.h"
+#endif
 
 namespace anakin{
 

@@ -16,6 +16,7 @@ GraphBase<VertexNameType, VertexType, WeightType, ArcType>::GraphBase(size_t siz
 
 template<typename VertexNameType, typename VertexType, typename WeightType, typename ArcType>
 GraphBase<VertexNameType, VertexType, WeightType, ArcType>::~GraphBase() {
+	all_clear();
     delete Scanner;
     Scanner = nullptr;
 }

@@ -50,6 +50,16 @@ enum GruFormula{
     GRU_CUDNN
 };
 
+enum SequencePoolType{
+    Sequence_pool_unknow = 0,
+    Sequence_pool_average,
+    Sequence_pool_sum,
+    Sequence_pool_sqrt,
+    Sequence_pool_last,
+    Sequence_pool_first,
+    Sequence_pool_max
+};
+
 template <typename opTensor>
 struct TransposeParam {
     TransposeParam() = default;
@@ -71,7 +81,7 @@ struct ParamsRegion {
         _size=right._size;
         return *this;
     }
-    bool operator==(const ParamsRegion &right) {
+    bool operator==(const ParamsRegion &right) const {
         bool comp_eq = true;
         comp_eq = comp_eq && (_offset == right._offset);
         comp_eq = comp_eq && (_size == right._size);
@@ -853,6 +863,68 @@ struct PoolingParam {
     PoolingType pooling_type;
     bool global_pooling;
     bool cmp_out_shape_floor_as_conv;
+};
+
+template <typename opTensor>
+struct SequencePoolParam {
+    SequencePoolParam()
+            : sequence_pool_type(Sequence_pool_unknow)
+    {}
+    SequencePoolParam(SequencePoolType sequence_pool_type_in)
+            : sequence_pool_type(sequence_pool_type_in)
+    {}
+    SequencePoolParam(const SequencePoolParam &right)
+            : sequence_pool_type(right.sequence_pool_type)
+    {}
+    SequencePoolParam &operator=(const SequencePoolParam &right) {
+        sequence_pool_type = right.sequence_pool_type;
+        return *this;
+    }
+    bool operator==(const SequencePoolParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (sequence_pool_type == right.sequence_pool_type);
+        return comp_eq;
+    }
+    SequencePoolType sequence_pool_type;
+};
+template <typename opTensor>
+struct CrfDecodingParam {
+    CrfDecodingParam()
+            : weight_tensor(NULL)
+            , tag_num(0)
+    {}
+    CrfDecodingParam(opTensor* weight_tensor_in, int tag_num_in = 0)
+            : weight_tensor(weight_tensor_in) {
+        if (tag_num_in == 0) {
+            tag_num = weight_tensor->channel();
+        } else {
+            tag_num = tag_num_in;
+        }
+    }
+    CrfDecodingParam(const CrfDecodingParam &right)
+            : weight_tensor(right.weight_tensor)
+            , tag_num(right.tag_num)
+    {}
+    CrfDecodingParam &operator=(const CrfDecodingParam &right) {
+        weight_tensor = right.weight_tensor;
+        tag_num = right.tag_num;
+        return *this;
+    }
+    bool operator==(const CrfDecodingParam &right) {
+        bool comp_eq = true;
+        comp_eq &= (weight_tensor == right.weight_tensor);
+        comp_eq &= (tag_num == right.tag_num);
+        return comp_eq;
+    }
+    inline const opTensor* transition_weight() {
+        return weight_tensor;
+    }
+    inline opTensor* mutable_transition_weight() {
+        return weight_tensor;
+    }
+    int tag_num;
+private:
+    opTensor *weight_tensor;
 };
 
 template <typename opTensor>
@@ -2278,7 +2350,51 @@ struct CastParam {
     int in_type;
     int out_type;
 };
+template <typename opTensor>
+struct EmbeddingParam {
+    EmbeddingParam() = default;
+    EmbeddingParam(int word_num_in, int emb_dim_in, int padding_idx_in,
+             opTensor* weight_tensor_in)
+            : word_num(word_num_in)
+            , emb_dim(emb_dim_in)
+            , padding_idx(padding_idx_in)
+            , weight_tensor(weight_tensor_in)
+    {}
+    EmbeddingParam(const EmbeddingParam &right)
+            : word_num(right.word_num)
+            , emb_dim(right.emb_dim)
+            , padding_idx(right.padding_idx)
+            , weight_tensor(right.weight_tensor)
+    {}
+    EmbeddingParam &operator=(const EmbeddingParam &right) {
+        word_num = right.word_num;
+        emb_dim = right.emb_dim;
+        padding_idx = right.padding_idx;
+        weight_tensor = right.weight_tensor;
+        return *this;
+    }
+    bool operator==(const EmbeddingParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (word_num == right.word_num);
+        comp_eq = comp_eq && (emb_dim == right.emb_dim);
+        comp_eq = comp_eq && (padding_idx == right.padding_idx);
+        comp_eq = comp_eq && (weight_tensor == right.weight_tensor);
+        return comp_eq;
+    }
+    inline const opTensor* weight() {
+        return weight_tensor;
+    }
+
+    inline opTensor* mutable_weight() {
+        return weight_tensor;
+    }
+    int emb_dim;
+    int word_num;
+    int padding_idx;
+private:
+    opTensor* weight_tensor;
+};
 
 }
-} // namespace anakin
+}
 #endif //SABER_FUNCS_PARAM_H

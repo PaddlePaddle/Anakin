@@ -16,7 +16,7 @@
 #ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_POOLING_H
 #define ANAKIN_SABER_FUNCS_IMPL_CUDA_POOLING_H
 
-#include "saber/funcs/impl/impl_define.h"
+#include "saber/funcs/impl/impl_pooling.h"
 #include "saber/funcs/impl/cuda/cudnn_helper.h"
 
 namespace anakin{
@@ -46,7 +46,20 @@ public:
 
     VenderPooling() : _handle(NULL) {}
 
-    ~VenderPooling() {}
+    ~VenderPooling() { 
+		if (_handle != NULL) { 
+			CUDNN_CHECK(cudnnDestroy(_handle)); 
+		}
+		if (_input_descs) {
+            CUDNN_CHECK(cudnnDestroyTensorDescriptor(_input_descs));
+        }
+        if (_output_descs) {
+            CUDNN_CHECK(cudnnDestroyTensorDescriptor(_output_descs));
+        }
+		if(_pooling_descs) {
+			cudnnDestroyPoolingDescriptor(_pooling_descs);
+		}
+	}
 
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
                   std::vector<DataTensor_out*>& outputs,
