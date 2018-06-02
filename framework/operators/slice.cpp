@@ -28,7 +28,7 @@ SliceHelper<Ttype, Dtype, Ptype>::~SliceHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status SliceHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Slice op parameter.";
+    DLOG(WARNING) << "Parsing Slice op parameter.";
     auto slice_dim = GET_PARAMETER(int, slice_dim);
     _slice_point = GET_PARAMETER(PTuple<int>, slice_point);
     _axis = GET_PARAMETER(int, axis);
