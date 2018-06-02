@@ -66,6 +66,8 @@ void test_stanh(int n, int c, int h, int w){
     int c_in = c;
     int h_in = h;
     int w_in = w;
+    float scale_a = 2.0f / 3.0f;
+    float scale_b = 1.7159f;
 
     Shape shape_in(n_in, c_in, h_in, w_in);
     Shape shape_out(n_in, c_in, h_in, w_in);
@@ -75,7 +77,7 @@ void test_stanh(int n, int c, int h, int w){
 
     float *ptr = src.mutable_data();
     for(int i = 0; i<src.size(); i++){
-        ptr[i] = 3.27 + i; 
+        ptr[i] = 3.27f + (float)i; 
     }
 
     Context<X86> ctx_host;
