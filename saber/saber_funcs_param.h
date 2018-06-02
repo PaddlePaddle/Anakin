@@ -34,6 +34,16 @@ enum ImplEnum{
 
 
 
+enum SequencePoolType{
+    Sequence_pool_unknow = 0,
+    Sequence_pool_average,
+    Sequence_pool_sum,
+    Sequence_pool_sqrt,
+    Sequence_pool_last,
+    Sequence_pool_first,
+    Sequence_pool_max
+};
+
 template <typename opTensor>
 struct TransposeParam {
     TransposeParam() = default;
@@ -839,6 +849,68 @@ struct PoolingParam {
     PoolingType pooling_type;
     bool global_pooling;
     bool cmp_out_shape_floor_as_conv;
+};
+
+template <typename opTensor>
+struct SequencePoolParam {
+    SequencePoolParam()
+            : sequence_pool_type(Sequence_pool_unknow)
+    {}
+    SequencePoolParam(SequencePoolType sequence_pool_type_in)
+            : sequence_pool_type(sequence_pool_type_in)
+    {}
+    SequencePoolParam(const SequencePoolParam &right)
+            : sequence_pool_type(right.sequence_pool_type)
+    {}
+    SequencePoolParam &operator=(const SequencePoolParam &right) {
+        sequence_pool_type = right.sequence_pool_type;
+        return *this;
+    }
+    bool operator==(const SequencePoolParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (sequence_pool_type == right.sequence_pool_type);
+        return comp_eq;
+    }
+    SequencePoolType sequence_pool_type;
+};
+template <typename opTensor>
+struct CrfDecodingParam {
+    CrfDecodingParam()
+            : weight_tensor(NULL)
+            , tag_num(0)
+    {}
+    CrfDecodingParam(opTensor* weight_tensor_in, int tag_num_in = 0)
+            : weight_tensor(weight_tensor_in) {
+        if (tag_num_in == 0) {
+            tag_num = weight_tensor->channel();
+        } else {
+            tag_num = tag_num_in;
+        }
+    }
+    CrfDecodingParam(const CrfDecodingParam &right)
+            : weight_tensor(right.weight_tensor)
+            , tag_num(right.tag_num)
+    {}
+    CrfDecodingParam &operator=(const CrfDecodingParam &right) {
+        weight_tensor = right.weight_tensor;
+        tag_num = right.tag_num;
+        return *this;
+    }
+    bool operator==(const CrfDecodingParam &right) {
+        bool comp_eq = true;
+        comp_eq &= (weight_tensor == right.weight_tensor);
+        comp_eq &= (tag_num == right.tag_num);
+        return comp_eq;
+    }
+    inline const opTensor* transition_weight() {
+        return weight_tensor;
+    }
+    inline opTensor* mutable_transition_weight() {
+        return weight_tensor;
+    }
+    int tag_num;
+private:
+    opTensor *weight_tensor;
 };
 
 template <typename opTensor>
