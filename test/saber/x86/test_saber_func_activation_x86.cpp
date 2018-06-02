@@ -61,6 +61,49 @@ void test(int n, int c, int h, int w) {
     }
 }
 
+void test_stanh(int n, int c, int h, int w){
+    int n_in = n;
+    int c_in = c;
+    int h_in = h;
+    int w_in = w;
+
+    Shape shape_in(n_in, c_in, h_in, w_in);
+    Shape shape_out(n_in, c_in, h_in, w_in);
+
+    Tensor4f src, dst;
+    src.re_alloc(shape_in);
+
+    float *ptr = src.mutable_data();
+    for(int i = 0; i<src.size(); i++){
+        ptr[i] = 3.27 + i; 
+    }
+
+    Context<X86> ctx_host;
+
+    std::vector<Tensor4f*> input_stanh;
+    std::vector<Tensor4f*> output_stanh;
+
+    input_relu.push_back(&src);
+
+    dst.re_alloc(shape_out);
+    output_stanh.push_back(&dst);
+
+    ActivationParam<Tensor4f> param_host(Active_stanh);
+
+    Activation<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW> op_stanh;
+
+    op_stanh.init(input_stanh, output_stanh, param_host, SPECIFY, SABER_IMPL, ctx_host);
+
+    op_stanh(input_stanh, output_stanh, param_host, ctx_host);
+
+    const float *dst_ptr = dst.data();
+    for(int i = 0; i < dst.size(); i++){
+        std::cout << dst_ptr[i] <<"  ";
+        if(i%5==0 && i)
+            std::cout << endl;
+    }
+
+}
 
 TEST(TestSaberActivationX86, test_tensor_activation) {
     Env<X86>::env_init();
@@ -73,6 +116,18 @@ TEST(TestSaberActivationX86, test_tensor_activation) {
     test(2, 2, 32, 32);
     LOG(INFO) << "case 4:"; 
     test(2, 32, 512, 512);
+
+    LOG(INFO) << "test for stanh:" 
+
+    LOG(INFO) << "case 1:"; 
+    test(1, 1, 1, 4);
+    LOG(INFO) << "case 2:"; 
+    test(1, 1, 20, 2);
+    LOG(INFO) << "case 3:"; 
+    test(2, 2, 32, 1);
+    LOG(INFO) << "case 4:"; 
+    test(2, 32, 2, 2);
+
 }
 
 int main(int argc, const char** argv) {

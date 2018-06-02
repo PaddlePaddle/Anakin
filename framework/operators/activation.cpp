@@ -37,7 +37,10 @@ Status ActivationHelper<Ttype, Dtype, Ptype>::InitParam() {
     } else if (type == "Sigmoid") {
         ActivationParam<Tensor4d<Ttype, Dtype>> param_activation(Active_sigmoid);
         _param_activation = param_activation;
-    } else {
+    } else if (type == "Stanh") {
+        ActivationParam<Tensor4d<Ttype, Dtype>> param_activation(Active_stanh);
+        _param_activation = param_activation;
+    }else {
         LOG(FATAL) << "Other Activation type" << type << " should be replace by other ops.";
     }
 
