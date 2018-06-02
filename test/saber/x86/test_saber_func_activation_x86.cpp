@@ -85,12 +85,12 @@ void test_stanh(int n, int c, int h, int w){
     std::vector<Tensor4f*> input_stanh;
     std::vector<Tensor4f*> output_stanh;
 
-    input_relu.push_back(&src);
+    input_stanh.push_back(&src);
 
     dst.re_alloc(shape_out);
     output_stanh.push_back(&dst);
 
-    ActivationParam<Tensor4f> param_host(Active_stanh);
+    ActivationParam<Tensor4f> param_host(Active_stanh, scale_a, scale_b);
 
     Activation<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW> op_stanh;
 
@@ -102,7 +102,7 @@ void test_stanh(int n, int c, int h, int w){
     for(int i = 0; i < dst.size(); i++){
         std::cout << dst_ptr[i] <<"  ";
         if(i%5==0 && i)
-            std::cout << endl;
+            std::cout << std::endl;
     }
 
 }
