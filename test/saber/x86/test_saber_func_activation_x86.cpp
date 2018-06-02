@@ -119,7 +119,7 @@ TEST(TestSaberActivationX86, test_tensor_activation) {
     LOG(INFO) << "case 4:"; 
     test(2, 32, 512, 512);
 
-    //LOG(INFO) << "test for stanh:" 
+    LOG(INFO) << "test for stanh:" 
 
     LOG(INFO) << "case 1:"; 
     test_stanh(1, 1, 1, 4);
