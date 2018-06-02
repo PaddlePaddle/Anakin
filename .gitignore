@@ -31,20 +31,9 @@
 *.out
 *.app
 
-# Backup
-*.bak
-
 # dir
 build
 android_build
 ios_build
 gpu_build
 output
-third-party
-tools/*
-cmake-build-debug
-log
-
-.gitignore
-CMakeLists.txt
-test/framework/net/net_exec_test_ocr.cpp
