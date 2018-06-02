@@ -61,18 +61,12 @@ public:
         }
     }
 
-    virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
-                            std::vector<DataTensor_out *>& outputs,
-                            ConvParam<OpTensor>& param, Context<NV>& ctx) {
 
-        this->_ctx = ctx;
-        return create(inputs, outputs, param, ctx);
-    }
 
     virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             ConvParam<OpTensor>& param, Context<NV> &ctx) {
-
+        this->_ctx = ctx;
         //This is an ugly impl for now
         if (param.stride_h == 1 &&
                 param.stride_w == 1 &&
@@ -143,8 +137,15 @@ public:
           return SaberUnImplError;
         }
         cudaDeviceSynchronize();
-        return SaberSuccess;
+        return create(inputs, outputs, param, ctx);
 
+
+    }
+    
+    virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
+                            std::vector<DataTensor_out *>& outputs,
+                            ConvParam<OpTensor>& param, Context<NV>& ctx) {
+        return SaberSuccess;
     }
 
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,

@@ -63,23 +63,6 @@ public:
         }
     }
 
-    virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
-                            std::vector<DataTensor_out *>& outputs,
-                            ConvActivePoolingParam<OpTensor>& param, Context<NV>& ctx) {
-
-        int input_dim = inputs[0]->height(); // P
-        int kernel_exten = param.conv_param.dilation_h * (param.conv_param.weight()->height() - 1) + 1;
-        _conv_out_height = (input_dim + 2 * param.conv_param.pad_h - kernel_exten)
-                         / param.conv_param.stride_h + 1;
-
-        input_dim = inputs[0]->width(); // Q
-        kernel_exten = param.conv_param.dilation_w * (param.conv_param.weight()->width() - 1) + 1;
-        _conv_out_width = (input_dim + 2 * param.conv_param.pad_w - kernel_exten)
-                     / param.conv_param.stride_w + 1;
-                     
-        return SaberSuccess;
-    }
-
     virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             ConvActivePoolingParam<OpTensor>& param, Context<NV> &ctx) {
@@ -164,11 +147,29 @@ public:
         {
           return SaberUnImplError;
         }
-
+        cudaDeviceSynchronize();
         return create(inputs, outputs, param, ctx);
 
     }
 
+
+    virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
+                            std::vector<DataTensor_out *>& outputs,
+                            ConvActivePoolingParam<OpTensor>& param, Context<NV>& ctx) {
+
+        int input_dim = inputs[0]->height(); // P
+        int kernel_exten = param.conv_param.dilation_h * (param.conv_param.weight()->height() - 1) + 1;
+        _conv_out_height = (input_dim + 2 * param.conv_param.pad_h - kernel_exten)
+                         / param.conv_param.stride_h + 1;
+
+        input_dim = inputs[0]->width(); // Q
+        kernel_exten = param.conv_param.dilation_w * (param.conv_param.weight()->width() - 1) + 1;
+        _conv_out_width = (input_dim + 2 * param.conv_param.pad_w - kernel_exten)
+                     / param.conv_param.stride_w + 1;
+                     
+        return SaberSuccess;
+    }
+    
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                           std::vector<DataTensor_out*>& outputs,
                           ConvActivePoolingParam<OpTensor>& param)
