@@ -39,9 +39,6 @@ SaberStatus SaberEmbedding<X86, OpDtype, inDtype, outDtype,
         EmbeddingParam<OpTensor>& param,
         Context<X86> &ctx)
 {
-    this->_param = &param;
-    this->_ctx = ctx;
-
     return SaberSuccess;
 }
 
@@ -63,8 +60,7 @@ SaberStatus SaberEmbedding<X86, OpDtype, inDtype, outDtype,
     typedef typename OpTensor::Dtype DataType_op;
     CHECK_EQ(inputs.size(), (size_t)1);
     CHECK_EQ(outputs.size(), (size_t)1);
-    Shape out_shape = {inputs[0]->valid_size(), param.emb_dim, 1, 1};
-    outputs[0]->set_shape(out_shape);
+    outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
 
     const int num_word = inputs[0]->valid_size();
     auto in_data =  inputs[0]->data();

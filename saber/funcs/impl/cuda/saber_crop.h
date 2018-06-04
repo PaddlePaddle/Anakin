@@ -56,6 +56,13 @@ public:
                         CropParam<OpTensor>& param, 
                         Context<NV> &ctx) {
         this->_ctx = ctx;
+        return create(inputs, outputs, param, ctx);
+    }
+
+    virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
+                        std::vector<DataTensor_out *>& outputs,
+                        CropParam<OpTensor>& param, 
+                        Context<NV>& ctx) {
         Shape in_stride = inputs[0]->get_stride();
         int in_n_index = inputs[0]->num_index();
         int in_c_index = inputs[0]->channel_index();
@@ -91,13 +98,6 @@ public:
         _out_h_stride = out_stride[out_h_index];
         _out_w_stride = out_stride[out_w_index];
         
-        return SaberSuccess;
-    }
-
-    virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
-                        std::vector<DataTensor_out *>& outputs,
-                        CropParam<OpTensor>& param, 
-                        Context<NV>& ctx) {
         return SaberSuccess;
     }
 
