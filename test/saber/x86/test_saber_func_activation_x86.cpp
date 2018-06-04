@@ -76,13 +76,13 @@ void test_stanh(int n, int c, int h, int w){
     src.re_alloc(shape_in);
 
     float *src_ptr = src.mutable_data();
-    for(int i = 0; i<src.size(); i++){
+    for (int i = 0; i<src.size(); i++) {
         src_ptr[i] = 0.12345f + (float)i*1e-4; 
     }
 
     dst_host.re_alloc(shape_in);
     float *dst_host_ptr = dst_host.mutable_data();
-    for(int i = 0; i< dst_host.size(); i++){
+    for (int i = 0; i< dst_host.size(); i++) {
         dst_host_ptr[i] = 0.12345f + (float)i*1e-4;
         dst_host_ptr[i] = scale_b * tanh(scale_a * dst_host_ptr[i]);
     }
@@ -142,9 +142,9 @@ TEST(TestSaberActivationX86, test_tensor_activation) {
     std::cout << "case 1:" << std::endl; 
     test_stanh(1, 1, 1, 4);
     std::cout << "case 2:" << std::endl;
-	test_stanh(1, 1, 20, 2);
+    test_stanh(1, 1, 20, 2);
     std::cout << "case 3:" << std::endl;
-	test_stanh(2, 2, 32, 1);
+    test_stanh(2, 2, 32, 1);
     std::cout << "case 4:" << std::endl;
     test_stanh(2, 32, 2, 2);
 
