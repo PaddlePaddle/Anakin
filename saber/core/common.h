@@ -136,7 +136,21 @@ const char* cudnn_get_errorstring(cudnnStatus_t status);
 #endif //USE_CUDNN
 
 #ifdef USE_AMD
-#include <hip/hip_runtime_api.h>
+
+#define AMD_CHECK_MSG(condition, msg) \
+  /* Code block avoids redefinition of cudaError_t error */ \
+  do { \
+    cl_int error = condition; \
+    CHECK_EQ(error, CL_SUCCESS) << " " << msg << " (err=" << opencl_get_error_string(error) << ")"; \
+  } while (0)
+
+
+#define AMD_CHECK(condition) \
+  /* Code block avoids redefinition of cudaError_t error */ \
+  do { \
+    cl_int error = condition; \
+    CHECK_EQ(error, CL_SUCCESS) << " " <<  opencl_get_error_string(error); \
+  } while (0)
 #endif
 
 

@@ -29,6 +29,11 @@
 #include "saber/funcs/impl/x86/saber_activation.h"
 #endif
 
+
+#ifdef USE_AMD
+#include "saber/funcs/impl/amd/saber_activation.h"
+#endif
+
 namespace anakin {
 namespace saber {
 

@@ -55,6 +55,32 @@ struct Device {
     std::vector<typename API::stream_t> _compute_stream;
 };
 
+#ifdef USE_AMD
+template <>
+struct Device<AMD> {
+
+    typedef TargetWrapper<AMD> API;
+
+    Device(int max_stream = 1);
+
+    void get_info();
+    void create_stream();
+    DeviceInfo<AMD> _info;
+    int _max_stream;
+
+    std::vector<typename API::stream_t> _data_stream;
+    std::vector<typename API::stream_t> _compute_stream;
+
+    cl_device_id get_device() {return id;};
+    cl_context get_context() {return context;};
+
+    typename API::stream_t get_available_stream(typename API::stream_t default_stream=nullptr);
+
+private:
+    cl_device_id id;
+    cl_context context;    
+};
+#endif
 } //namespace saber
 
 } //namespace anakin

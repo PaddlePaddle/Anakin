@@ -135,7 +135,7 @@ template <>
 void print_tensor_host<Tensor<X86, AK_INT8, NCHW_C4>>(Tensor<X86, AK_INT8, NCHW_C4>& tensor) {
     typedef typename Tensor<X86, AK_INT8, NCHW_C4>::Dtype Dtype;
     LOG(INFO) << "host tensor data:" << tensor.size();
-    const Dtype* data_ptr = tensor.get_buf()->get_data();
+    const Dtype* data_ptr = static_cast<const Dtype*>(tensor.get_buf()->get_data());
     int size = tensor.size();
 
     for (int i = 0; i < size; ++i) {

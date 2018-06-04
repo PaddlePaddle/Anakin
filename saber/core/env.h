@@ -53,6 +53,26 @@ private:
     Env(){}
 };
 
+#ifdef USE_AMD
+template <>
+class Env<AMD> {
+public:
+    typedef TargetWrapper<AMD> API;
+    typedef std::vector<Device<AMD>> Devs;
+    static Devs& cur_env() {
+        static Devs* _g_env = new Devs();
+        return *_g_env;
+    }
+
+    static void env_init(int max_stream = 4);
+    static bool is_init(); 
+    static cl_platform_id get_platform_id();
+private:
+    Env(){}
+
+    static cl_platform_id platform_id;
+};
+#endif
 
 } //namespace saber
 

@@ -85,9 +85,12 @@ TEST(NetTest, net_execute_base_test) {
         Context<Target> ctx(0, 0, 0);
         saber::SaberTimer<Target> my_time;
         LOG(WARNING) << "EXECUTER !!!!!!!! ";
+        my_time.start(ctx);
         for (int i = 0; i < FLAGS_warmup_iter; i++) {
             net_executer.prediction();
         }
+        my_time.end(ctx);
+        my_time.clear();
 #ifdef ENABLE_OP_TIMER
         net_executer.reset_op_time();
 #endif
@@ -120,7 +123,7 @@ TEST(NetTest, net_execute_base_test) {
         size_t end = (*iter).find(".anakin.bin");
         size_t start = FLAGS_model_dir.length();
         std::string model_name = (*iter).substr(start, end-start);
-        
+
         LOG(INFO) << model_name << " batch_size " << FLAGS_num << " average time "<< my_time.get_average_ms() / FLAGS_epoch << " ms";
     }
 }

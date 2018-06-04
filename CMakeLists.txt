@@ -27,11 +27,18 @@ set(anakin_lib_static "anakin_static")
 set(ANAKIN_ROOT ${PROJECT_SOURCE_DIR})
 include_directories(${ANAKIN_ROOT})
 
-set(ANAKIN_FRAMEWORK ${ANAKIN_ROOT}/framework)
+anakin_option(USE_ANAKIN_FRAMEWORK "Build with Anakin Framework" ON)
+
+if(USE_ANAKIN_FRAMEWORK)
+    set(ANAKIN_FRAMEWORK ${ANAKIN_ROOT}/framework)
+endif()
+
 set(ANAKIN_THIRD_PARTY_PATH ${CMAKE_BINARY_DIR}/third-party)
 set(ANAKIN_UTILS ${ANAKIN_ROOT}/utils)
 set(ANAKIN_THIRD_PARTY_PATH ${ANAKIN_ROOT}/third-party)
-set(ANAKIN_MODEL_PARSER ${ANAKIN_FRAMEWORK}/model_parser)
+if(USE_ANAKIN_FRAMEWORK)
+    set(ANAKIN_MODEL_PARSER ${ANAKIN_FRAMEWORK}/model_parser)
+endif()
 set(ANAKIN_SABER ${ANAKIN_ROOT}/saber)
 set(ANAKIN_UNIT_TEST ${ANAKIN_ROOT}/test)
 
@@ -51,7 +58,7 @@ anakin_option(USE_ARM_PLACE "Select the build mode for ARM place." NO)
 
 # plantfrom details
 anakin_option(NVIDIA_GPU "Use NVIDIA GPU place." YES if USE_GPU_PLACE)
-anakin_option(AMD_GPU "Use AMD GPU place." NO if USE_GPU_PLACE AND NOT NVIDIA_GPU)
+anakin_option(AMD_GPU "Use AMD GPU place." YES if USE_GPU_PLACE AND NOT NVIDIA_GPU)
 anakin_option(TARGET_ANDROID "" NO if USE_ARM_PLACE)
 anakin_option(TARGET_IOS "" NO if USE_ARM_PLACE)
 
@@ -76,6 +83,8 @@ endif()
 anakin_option(BUILD_CUBIN "BUILD with the -cubin option in Device mode" NO if USE_CUDA)
 anakin_option(COMPILE_PTX "Returns a list of PTX files generated from src." NO if USE_CUDA)
 
+# build options for amd.
+anakin_option(USE_AMD "Use AMD ROCm OpenCL" YES if AMD_GPU)
 
 # common build options
 anakin_option(ENABLE_DEBUG "Enable DEBUG(default) mode." NO)
@@ -91,7 +100,7 @@ anakin_option(USE_BOOST "Use static BOOST libs." NO)
 anakin_option(USE_OPENMP "Use Openmp when in andriod environment." YES if TARGET_ANDROID)
 anakin_option(USE_GTEST "Use googletest libs." NO if BUILD_WITH_UNIT_TEST)
 anakin_option(USE_PYTHON "Generate py wrappers." NO)
-anakin_option(USE_OPENCL "Use OpenCL ." NO)
+anakin_option(USE_OPENCL "Use OpenCL ." YES if USE_AMD)
 anakin_option(USE_GFLAGS "Build Google gflags components." NO)
 anakin_option(USE_MKL "Use mkl libs." NO if USE_X86_PLACE)
 anakin_option(USE_MKLML "Use MKLML libs." YES if USE_X86_PLACE)
@@ -151,6 +160,10 @@ if(USE_X86_PLACE)
     #include(cmake/external/mkldnn.cmake)
 endif()
 
+if(USE_AMD)
+    include(cmake/amd.cmake)
+endif()
+
 # gather all the config options to anakin
 include(cmake/gather.cmake)
 
@@ -160,9 +173,13 @@ include(cmake/gather.cmake)
 # ----------------------------------------------------------------------------
 # add source sub_directory whick holds the cmake build module
 # fetch files of model_parser
-add_subdirectory(${ANAKIN_MODEL_PARSER})
+if(USE_ANAKIN_FRAMEWORK)
+    add_subdirectory(${ANAKIN_MODEL_PARSER})
+endif()
 add_subdirectory(${ANAKIN_SABER})
-add_subdirectory(${ANAKIN_FRAMEWORK})
+if(USE_ANAKIN_FRAMEWORK)
+    add_subdirectory(${ANAKIN_FRAMEWORK})
+endif()
 
 if(BUILD_WITH_UNIT_TEST)
     add_subdirectory(${ANAKIN_UNIT_TEST})

@@ -27,6 +27,9 @@
 #include "saber/funcs/impl/x86/saber_conv_act_pooling.h"
 #endif
 
+#ifdef USE_AMD
+#include "saber/funcs/impl/amd/saber_conv_act_pooling.h"
+#endif
 namespace anakin {
 namespace saber {
 

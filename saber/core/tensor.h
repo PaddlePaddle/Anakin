@@ -496,6 +496,10 @@ public:
         if (_buf->get_capacity() == 0){
             return nullptr;
         }
+#ifdef USE_AMD
+        if (std::is_same<TargetType, AMD>::value)
+           return static_cast<Dtype*>(_buf->get_data_mutable());
+#endif
         return static_cast<Dtype*>(_buf->get_data_mutable()) + start_index() + index;
     }
 
@@ -510,6 +514,10 @@ public:
         if (_buf->get_capacity() == 0){
             return nullptr;
         }
+#ifdef USE_AMD
+        if (std::is_same<TargetType, AMD>::value)
+           return static_cast<const Dtype*>(_buf->get_data());
+#endif
         return static_cast<const Dtype*>(_buf->get_data()) + start_index() + index;
     }
 
@@ -714,10 +722,25 @@ public:
                 res_src = res_src % count_src[j];
             }
             //printf("i: %d, idx_src: %d, idx_dst: %d\n", i, idx_src, idx_dst);
-            Dtype* ptr_dst = dst + idx_dst;//_buf->get_data_mutable() + idx_dst;
-            const Dtype* ptr_src = src + idx_src;//tensor.get_buf()->get_data() + idx_src;
-            process_API::sync_memcpy(ptr_dst, device_id(), ptr_src, tensor.device_id(), \
-                _type_len * cpy_len, flag_type());
+#ifdef USE_AMD          
+            bool dst_is_amd = std::is_same<TargetType, AMD>::value;
+            bool src_is_amd = std::is_same<TargetType_t , AMD>::value;
+
+            if(dst_is_amd || src_is_amd) { 
+                LOG(INFO) << "copy " << (src_is_amd? "AMD":"Others") << " to "  << (dst_is_amd?"AMD":"Others");
+                size_t dst_offset, src_offset;
+                dst_offset = idx_dst * _type_len;
+                src_offset = idx_src * _type_len;
+                typedef TargetWrapper<AMD> AMD_API;
+                AMD_API::sync_memcpy_with_offset((void*)dst, device_id(), dst_offset, (void*)src, tensor.device_id(), src_offset, _type_len * cpy_len, flag_type());
+            } else 
+#endif
+            {
+                Dtype *ptr_dst = dst + idx_dst;//_buf->get_data_mutable() + idx_dst;
+                const Dtype* ptr_src = src + idx_src;//tensor.get_buf()->get_data() + idx_src;
+                process_API::sync_memcpy(ptr_dst, device_id(), ptr_src, tensor.device_id(), \
+                    _type_len * cpy_len, flag_type());
+            }
         }
         return SaberSuccess;
     }
@@ -865,11 +888,26 @@ public:
                 idx_src += (div /*+ off_src[j]*/) * stride_src[j];
                 res_src = res_src % count_src[j];
             }
-            //printf("i: %d, idx_src: %d, idx_dst: %d\n", i, idx_src, idx_dst);
-            Dtype* ptr_dst = dst + idx_dst;//_buf->get_data_mutable() + idx_dst;
-            const Dtype* ptr_src = src + idx_src;//tensor.get_buf()->get_data() + idx_src;
-            process_API::async_memcpy(ptr_dst, device_id(), ptr_src, tensor.device_id(), \
-                _type_len * cpy_len, stream, flag_type());
+#ifdef USE_AMD
+            bool dst_is_amd = std::is_same<TargetType, AMD>::value;
+            bool src_is_amd = std::is_same<TargetType_t , AMD>::value;
+            if(dst_is_amd || src_is_amd) { 
+                LOG(INFO) << "copy " << (src_is_amd? "AMD":"Others") << " to "  << (dst_is_amd?"AMD":"Others");
+                size_t dst_offset, src_offset;
+                dst_offset = idx_dst * _type_len;
+                src_offset = idx_src * _type_len;
+                typedef TargetWrapper<AMD> AMD_API;
+                AMD_API::async_memcpy_with_offset((void*)dst, device_id(), dst_offset, (void*)src, tensor.device_id(), src_offset, _type_len * cpy_len, stream, flag_type());
+            } 
+            else
+#endif
+            {
+                //printf("i: %d, idx_src: %d, idx_dst: %d\n", i, idx_src, idx_dst);
+                Dtype* ptr_dst = dst + idx_dst;//_buf->get_data_mutable() + idx_dst;
+                const Dtype* ptr_src = src + idx_src;//tensor.get_buf()->get_data() + idx_src;
+                process_API::async_memcpy(ptr_dst, device_id(), ptr_src, tensor.device_id(), \
+                    _type_len * cpy_len, stream, flag_type());
+            }
         }
         return SaberSuccess;
     }

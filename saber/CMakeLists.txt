@@ -24,7 +24,8 @@ if(USE_GPU_PLACE)
         anakin_fetch_files_with_suffix(${ANAKIN_SABER}/core/impl/cuda "cpp" ANAKIN_SABER_BASE_SRC)
         anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/cuda "cpp" ANAKIN_SABER_BASE_SRC)
     else()
-        message(ERROR "Use GPU place but not use cuda, not support amd yet.")
+        anakin_fetch_files_with_suffix(${ANAKIN_SABER}/core/impl/amd "cpp" ANAKIN_SABER_BASE_SRC)
+        anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/amd "cpp" ANAKIN_SABER_BASE_SRC)
     endif()
 endif()
 
@@ -74,14 +75,26 @@ endif()
 
 # add saber library to static
 if(UNIX OR APPLE) 
-    ADD_LIBRARY(${ANAKIN_SABER_TEMP_COMMMON_LIB} SHARED ${ANAKIN_SABER_CUDA_C_SRC_OBJS} ${ANAKIN_SABER_BASE_SRC})
-							#$<TARGET_OBJECTS:ANAKIN_SABER_BASE_OBJS>) 
-    if(USE_X86_PLACE)
+    if(USE_CUDA)
+        ADD_LIBRARY(${ANAKIN_SABER_TEMP_COMMMON_LIB} SHARED ${ANAKIN_SABER_CUDA_C_SRC_OBJS} ${ANAKIN_SABER_BASE_SRC})
+  							#$<TARGET_OBJECTS:ANAKIN_SABER_BASE_OBJS>) 
+    else()
+        ADD_LIBRARY(${ANAKIN_SABER_TEMP_COMMMON_LIB} SHARED ${ANAKIN_SABER_BASE_SRC})
+    endif()
+
+    if(USE_X86_PLACE) 
 		message(STATUS ${ANAKIN_SABER_DEPENDENCIES})
         add_dependencies(${ANAKIN_SABER_TEMP_COMMMON_LIB} ${ANAKIN_SABER_DEPENDENCIES})
     endif()
+
+
     set_target_properties(${ANAKIN_SABER_TEMP_COMMMON_LIB} PROPERTIES VERSION ${VERSION}) 
-    target_link_libraries(${ANAKIN_SABER_TEMP_COMMMON_LIB} ${ANAKIN_LINKER_LIBS}) 
+    if(USE_CUDA)
+        target_link_libraries(${ANAKIN_SABER_TEMP_COMMMON_LIB} ${ANAKIN_LINKER_LIBS}) 
+    else()
+        LINK_LIBRARIES(${ANAKIN_SABER_TEMP_COMMMON_LIB} ${ANAKIN_LINKER_LIBS})
+    endif()
+
     target_link_libraries(${ANAKIN_SABER_TEMP_COMMMON_LIB} ${ANAKIN_SABER_STATIC_RELAY})
     set_target_properties(${ANAKIN_SABER_TEMP_COMMMON_LIB} PROPERTIES LINK_FLAGS "") 
     set_target_properties(${ANAKIN_SABER_TEMP_COMMMON_LIB} PROPERTIES LIBRARY_OUTPUT_DIRECTORY
