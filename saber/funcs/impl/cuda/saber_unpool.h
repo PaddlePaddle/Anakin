@@ -57,6 +57,13 @@ public:
                              PoolingParam<OpTensor> &param,
                              Context<NV> &ctx)  {
         this->_ctx = ctx;
+        return create(inputs, outputs, param, ctx);
+    }
+
+    virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
+                               std::vector<DataTensor_out*>& outputs,
+                               PoolingParam<OpTensor> &param,
+                               Context<NV> &ctx)  {
         Shape out_stride = outputs[0]->get_stride();
         Shape in_stride = inputs[0]->get_stride();
         int in_n_index = inputs[0]->num_index();
@@ -67,14 +74,6 @@ public:
         _in_c_stride = in_stride[in_c_index];
         _out_n_stride = out_stride[out_n_index];
         _out_c_stride = out_stride[out_c_index];
-        
-        return SaberSuccess;
-    }
-
-    virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
-                               std::vector<DataTensor_out*>& outputs,
-                               PoolingParam<OpTensor> &param,
-                               Context<NV> &ctx)  {
         return SaberSuccess;
     }
 
