@@ -17,29 +17,29 @@
 #include "core/target_traits.h"
 #include <memory>
 
-namespace anakin{
+namespace anakin {
 
-namespace saber{
+namespace saber {
 
 const int MALLOC_ALIGN = 64;
 
 
-static inline void* fast_malloc(size_t size)
-{
+static inline void* fast_malloc(size_t size) {
     size_t offset = sizeof(void*) + MALLOC_ALIGN - 1;
     char* p = static_cast<char*>(malloc(offset + size));
+
     if (!p) {
         return nullptr;
     }
+
     void* r = reinterpret_cast<void*>(reinterpret_cast<size_t>(p + offset) & (~(MALLOC_ALIGN - 1)));
     static_cast<void**>(r)[-1] = p;
-    memset(r,0,size);
+    memset(r, 0, size);
     return r;
 }
 
-static inline void fast_free(void* ptr)
-{
-    if (ptr){
+static inline void fast_free(void* ptr) {
+    if (ptr) {
         free(static_cast<void**>(ptr)[-1]);
     }
 }
@@ -56,7 +56,7 @@ struct TargetWrapper {};
  *
 */
 template <typename TargetType>
-struct TargetWrapper<TargetType, __host_target>{
+struct TargetWrapper<TargetType, __host_target> {
     typedef void* event_t;
     typedef void* stream_t;
 
@@ -64,110 +64,110 @@ struct TargetWrapper<TargetType, __host_target>{
      * \brief get total device number of target type
      * @param count
      */
-    static void get_device_count(int& count){
+    static void get_device_count(int& count) {
         // todo
         LOG(WARNING) << "host target \" get_device_count\" is not implemented";
         count = 1;
     }
 
-    static void set_device(int id){
+    static void set_device(int id) {
         // todo
     }
 
-/**
- * \brief wrapper of memory allocate function, with alignment of 16 bytes
- *
-*/
-    static void mem_alloc(void** ptr, size_t n){
+    /**
+     * \brief wrapper of memory allocate function, with alignment of 16 bytes
+     *
+    */
+    static void mem_alloc(void** ptr, size_t n) {
         *ptr = (void*)fast_malloc(n);
 
     }
 
-/**
- * \brief wrapper of memory free function
- *
-*/
-    static void mem_free(void* ptr){
-        if(ptr != nullptr){
+    /**
+     * \brief wrapper of memory free function
+     *
+    */
+    static void mem_free(void* ptr) {
+        if (ptr != nullptr) {
             fast_free(ptr);
         }
     }
 
-/**
- * \brief wrapper of memory set function, input value only supports 0 or -1
- *
-*/
-    static void mem_set(void* ptr, int value, size_t n){
+    /**
+     * \brief wrapper of memory set function, input value only supports 0 or -1
+     *
+    */
+    static void mem_set(void* ptr, int value, size_t n) {
         memset(ptr, value, n);
     }
 
-/**
- * \brief create event, empty function for host target
- *
-*/
+    /**
+     * \brief create event, empty function for host target
+     *
+    */
     static void create_event(event_t& event, bool flag = false) {}
 
-/**
- * \brief destroy event, empty function for host target
- *
-*/
+    /**
+     * \brief destroy event, empty function for host target
+     *
+    */
     static void destroy_event(event_t& event) {}
 
-/**
- * \brief create stream, empty function for host target
- *
-*/
+    /**
+     * \brief create stream, empty function for host target
+     *
+    */
     static void create_stream(stream_t& stream) {}
 
-/**
- * \brief create stream with flag, empty function for host target
- *
-*/
+    /**
+     * \brief create stream with flag, empty function for host target
+     *
+    */
     static void create_stream_with_flag(stream_t& stream, unsigned int flag) {}
 
 
-/**
- * \brief create stream with priority, empty function for host target
- *
-*/
+    /**
+     * \brief create stream with priority, empty function for host target
+     *
+    */
     static void create_stream_with_priority(stream_t& stream, unsigned int flag, int priority) {}
 
-/**
- * \brief destroy event, empty function for host target
- *
-*/
+    /**
+     * \brief destroy event, empty function for host target
+     *
+    */
     static void destroy_stream(stream_t& stream) {}
 
-/**
- * \brief record event, empty function for host target
- *
-*/
+    /**
+     * \brief record event, empty function for host target
+     *
+    */
     static void record_event(event_t& event, stream_t stream) {}
 
-/**
- * \brief query event, empty function for host target
- *
-*/
+    /**
+     * \brief query event, empty function for host target
+     *
+    */
     static void query_event(event_t& event) {}
 
-/**
- * \brief synchronize event, empty function for host target
- *
-*/
+    /**
+     * \brief synchronize event, empty function for host target
+     *
+    */
     static void sync_event(event_t& event) {}
 
-/**
- * \brief crreate event, empty function for host target
- *
-*/
+    /**
+     * \brief crreate event, empty function for host target
+     *
+    */
     static void sync_stream(event_t& event, stream_t& stream) {}
 
-/**
- * \brief memory copy function, use memcopy from host to host
- *
-*/
+    /**
+     * \brief memory copy function, use memcopy from host to host
+     *
+    */
     static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-        size_t count, __HtoH) {
+                            size_t count, __HtoH) {
         memcpy(dst, src, count);
         //LOG(INFO) << "host, sync, H2H, size: " << count;
     }
@@ -182,7 +182,7 @@ struct TargetWrapper<TargetType, __host_target>{
      * @param count
      */
     static void async_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-        size_t count, stream_t& stream, __HtoH) {
+                             size_t count, stream_t& stream, __HtoH) {
         memcpy(dst, src, count);
         //LOG(INFO) << "host, sync, H2H, size: " << count;
     }
@@ -197,7 +197,7 @@ struct TargetWrapper<TargetType, __host_target>{
      * @param count
      */
     static void sync_memcpy_p2p(void* dst, int dst_dev, const void* src, \
-        int src_dev, size_t count) {}
+                                int src_dev, size_t count) {}
 
     /**
      * \brief asynchronize memcpy peer to peer, for device memory copy between different devices
@@ -209,13 +209,13 @@ struct TargetWrapper<TargetType, __host_target>{
      * @param count
      */
     static void async_memcpy_p2p(void* dst, int dst_dev, const void* src, \
-        int src_dev, size_t count, stream_t& stream) {}
+                                 int src_dev, size_t count, stream_t& stream) {}
 
     /**
      * \brief host target return 0
      * @return      always return 0
      */
-    static int get_device_id(){
+    static int get_device_id() {
         return 0;
     }
 };
@@ -264,16 +264,16 @@ struct TargetWrapper<NVHX86, __host_target> {
     static void sync_stream(event_t& event, stream_t& stream);
 
     static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-        size_t count, __HtoH);
+                            size_t count, __HtoH);
 
     static void async_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-        size_t count, stream_t& stream, __HtoH);
-    
+                             size_t count, stream_t& stream, __HtoH);
+
     static void sync_memcpy_p2p(void* dst, int dst_dev, const void* src, \
-        int src_dev, size_t count);
+                                int src_dev, size_t count);
 
     static void async_memcpy_p2p(void* dst, int dst_dev, const void* src, \
-        int src_dev, size_t count, stream_t& stream);
+                                 int src_dev, size_t count, stream_t& stream);
 
     static int get_device_id();
 };
@@ -297,7 +297,7 @@ struct TargetWrapper<NV, __device_target> {
     static void mem_alloc(void** ptr, size_t n);
 
     //template <typename void>
-    static void mem_free(void * ptr);
+    static void mem_free(void* ptr);
 
     //template <typename void>
     static void mem_set(void* ptr, int value, size_t n);
@@ -326,30 +326,30 @@ struct TargetWrapper<NV, __device_target> {
     static void sync_event(event_t& event);
 
     static void sync_stream(event_t& event, stream_t& stream);
-    
-    static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-        size_t count, __DtoD);
-
-    static void async_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-        size_t count, stream_t& stream, __DtoD);
 
     static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-        size_t count, __HtoD);
+                            size_t count, __DtoD);
 
     static void async_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-        size_t count, stream_t& stream, __HtoD);
+                             size_t count, stream_t& stream, __DtoD);
 
     static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-        size_t count, __DtoH);
+                            size_t count, __HtoD);
 
     static void async_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-        size_t count, stream_t& stream, __DtoH);
+                             size_t count, stream_t& stream, __HtoD);
+
+    static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
+                            size_t count, __DtoH);
+
+    static void async_memcpy(void* dst, int dst_id, const void* src, int src_id, \
+                             size_t count, stream_t& stream, __DtoH);
 
     static void sync_memcpy_p2p(void* dst, int dst_dev, const void* src, \
-        int src_dev, size_t count);
+                                int src_dev, size_t count);
 
     static void async_memcpy_p2p(void* dst, int dst_dev, const void* src, \
-        int src_dev, size_t count, stream_t& stream);
+                                 int src_dev, size_t count, stream_t& stream);
 
     /**
      * \brief device target return currently used device id

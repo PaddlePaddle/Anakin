@@ -24,7 +24,7 @@ LOG(INFO)<<"("<<tensor[0]<<","<<tensor[1]<<","<<tensor[2]<<","<<tensor[3]<<")";\
 #define GRUOFFSET
 //#define CUDNNGRU
 #define TEST_X86
-#define INNER_TEST
+//#define INNER_TEST
 
 typedef Tensor<X86, AK_FLOAT, NCHW> TensorDf4;
 typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
@@ -68,12 +68,12 @@ void compute_compare_correct(TensorDf4 dev_x,TensorDf4 last_dev_out,GruParam<Ten
     }
 
 }
-void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size = 110,
-                    int hidden_size = 143) {
+void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size = 222,
+                    int hidden_size = 333) {
 
 
     Context<X86> ctx_dev(0, 1, 1);
-    std::vector<int> offsets = {0,20,40};
+    std::vector<int> offsets = {0,20,40,50};
 
     bool is_reverse = true;
     batch_size = offsets.size() - 1;

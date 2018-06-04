@@ -135,13 +135,13 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::naiv_
         const std::vector<DataTensor_in*>& inputs,
         std::vector<DataTensor_out*>& outputs,
         GruParam<OpTensor>& param) {
-    CHECK_NE(param._formula, GRU_CUDNN) << "X86 gru not support cudnn formula now";
+    CHECK_NE(param.formula, GRU_CUDNN) << "X86 gru not support cudnn formula now";
     const OpDataType* weight_h = _weights_h2h.data();
     const OpDataType* weight_w = _weights_i2h.data();
     const OpDataType* bias = _weights_bias.data();
 
-    float(* gat_act)(const float)=act_funcs_f[param._gate_activity];
-    float(* h_act)(const float)=act_funcs_f[param._h_activity];
+    float(* gat_act)(const float)=act_funcs_f[param.gate_activity];
+    float(* h_act)(const float)=act_funcs_f[param.h_activity];
 
     std::vector<int> offset_vec = inputs[0]->get_seq_offset();
     bool is_hw2seq = offset_vec.size() > 2;
@@ -172,7 +172,7 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::naiv_
     const InDataType* x = inputs[0]->data();
     OutDataType* out = outputs[0]->mutable_data();
 
-    bool is_reverse = param._is_reverse;
+    bool is_reverse = param.is_reverse;
 
     //        Shape wx_shaep(1,seqsum,3,_aligned_hidden_size_iter_num,_aligned_size);
     _temp_wx.try_expand_size(seqsum * 3 * _hidden_size);
@@ -265,7 +265,7 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::batch
         const std::vector<DataTensor_in*>& inputs,
         std::vector<DataTensor_out*>& outputs,
         GruParam<OpTensor>& param) {
-    CHECK_NE(param._formula, GRU_CUDNN) << "X86 gru not support cudnn formula now";
+    CHECK_NE(param.formula, GRU_CUDNN) << "X86 gru not support cudnn formula now";
     const OpDataType* weight_h = _weights_h2h.data();
     const OpDataType* weight_w = _weights_i2h.data();
     const OpDataType* bias = _weights_bias.data();
@@ -276,7 +276,7 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::batch
 
     const InDataType* x = inputs[0]->data();
     OutDataType* out = outputs[0]->mutable_data();
-    bool is_reverse = param._is_reverse;
+    bool is_reverse = param.is_reverse;
 
 
     std::vector<int> length_vec(offset_vec.size() - 1);
@@ -323,7 +323,7 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::batch
 
     //    print_vec(x,word_sum*word_size,"before  x");
     if (transform) {
-        _temp_out.try_expand_size(seqsum * _hidden_size * param._num_direction);
+        _temp_out.try_expand_size(seqsum * _hidden_size * param.num_direction);
         _temp_x.try_expand_size(seqsum * _word_size);
         inner_h_out = _temp_out.mutable_data();
         inner_x = _temp_x.mutable_data();
@@ -425,7 +425,7 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
 naiv_256(const std::vector<DataTensor_in*>& inputs,
          std::vector<DataTensor_out*>& outputs,
          GruParam<OpTensor>& param) {
-    CHECK_NE(param._formula, GRU_CUDNN) << "X86 gru not support cudnn formula now";
+    CHECK_NE(param.formula, GRU_CUDNN) << "X86 gru not support cudnn formula now";
     const OpDataType* weight_h = _weights_h2h.data();
     const OpDataType* weight_w = _weights_i2h.data();
     const OpDataType* bias = _weights_bias.data();
@@ -444,7 +444,7 @@ naiv_256(const std::vector<DataTensor_in*>& inputs,
 
     const InDataType* x = inputs[0]->data();
     OutDataType* out = outputs[0]->mutable_data();
-    bool is_reverse = param._is_reverse;
+    bool is_reverse = param.is_reverse;
 
     std::vector<int> length_vec(offset_vec.size() - 1);
     int batch_size = offset_vec.size() - 1;
@@ -557,7 +557,7 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
 naiv_256_s_aligned(const std::vector<DataTensor_in*>& inputs,
                    std::vector<DataTensor_out*>& outputs,
                    GruParam<OpTensor>& param) {
-    CHECK_NE(param._formula, GRU_CUDNN) << "X86 gru not support cudnn formula now";
+    CHECK_NE(param.formula, GRU_CUDNN) << "X86 gru not support cudnn formula now";
     const OpDataType* weight_h = _aligned_weights_h2h.data();
     const OpDataType* weight_w = _aligned_weights_i2h.data();
     const OpDataType* bias = _aligned_weights_bias.data();
@@ -569,8 +569,8 @@ naiv_256_s_aligned(const std::vector<DataTensor_in*>& inputs,
     int max_seq_len = 0;
     bool is_hw2seq = offset_vec.size() > 2;
     int word_sum = is_hw2seq ? offset_vec[offset_vec.size() - 1] : inputs[0]->channel();
-    __m256 (*gate_act)(const __m256)=act_funcs[param._gate_activity];
-    __m256 (*hid_act)(const __m256)=act_funcs[param._h_activity];
+    __m256 (*gate_act)(const __m256)=act_funcs[param.gate_activity];
+    __m256 (*hid_act)(const __m256)=act_funcs[param.h_activity];
     utils::AlignedUtils aligned_utils;
     utils::VectorPrint vector_print;
     const OutDataType* h_init = nullptr;
@@ -591,7 +591,7 @@ naiv_256_s_aligned(const std::vector<DataTensor_in*>& inputs,
 
     const InDataType* x = inputs[0]->data();
     OutDataType* out = outputs[0]->mutable_data();
-    bool is_reverse = param._is_reverse;
+    bool is_reverse = param.is_reverse;
 
     for (int i = 0; i < offset_vec.size() - 1; ++i) {
         int len = offset_vec[i + 1] - offset_vec[i];
@@ -702,12 +702,12 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
 batch_256_s_aligned(const std::vector<DataTensor_in*>& inputs,
                     std::vector<DataTensor_out*>& outputs,
                     GruParam<OpTensor>& param) {
-    CHECK_NE(param._formula, GRU_CUDNN) << "X86 gru not support cudnn formula now";
+    CHECK_NE(param.formula, GRU_CUDNN) << "X86 gru not support cudnn formula now";
     const OpDataType* weight_h = _aligned_weights_h2h.data();
     const OpDataType* weight_w = _aligned_weights_i2h.data();
     const OpDataType* bias = _aligned_weights_bias.data();
-    __m256 (*gate_act)(const __m256)=act_funcs[param._gate_activity];
-    __m256 (*hid_act)(const __m256)=act_funcs[param._h_activity];
+    __m256 (*gate_act)(const __m256)=act_funcs[param.gate_activity];
+    __m256 (*hid_act)(const __m256)=act_funcs[param.h_activity];
     std::vector<int> offset_vec = inputs[0]->get_seq_offset();
     std::vector<int> length_vec(offset_vec.size() - 1);
     int batch_size = offset_vec.size() - 1;
@@ -721,7 +721,7 @@ batch_256_s_aligned(const std::vector<DataTensor_in*>& inputs,
 
     const InDataType* x = inputs[0]->data();
     OutDataType* out = outputs[0]->mutable_data();
-    bool is_reverse = param._is_reverse;
+    bool is_reverse = param.is_reverse;
 
     if (inputs.size() > 1) {
         h_init = inputs[1]->data();
@@ -756,7 +756,7 @@ batch_256_s_aligned(const std::vector<DataTensor_in*>& inputs,
     _temp_wx.try_expand_size(seqsum * 3 * _aligned_hidden_size);
     _temp_wh.try_expand_size(batch_size * 2 * _aligned_hidden_size);
     _temp_whr.try_expand_size(batch_size * _aligned_hidden_size);
-    _temp_out.try_expand_size(seqsum * _aligned_hidden_size * param._num_direction);
+    _temp_out.try_expand_size(seqsum * _aligned_hidden_size * param.num_direction);
 
     if (transform) {
         _temp_x.try_expand_size(seqsum * _word_size);
@@ -798,7 +798,7 @@ batch_256_s_aligned(const std::vector<DataTensor_in*>& inputs,
         int real_word_id = word_id;
         int last_word_id = word_id - 1;
 
-        if (param._is_reverse&&batch_size==1) {
+        if (param.is_reverse&&batch_size==1) {
             real_word_id = emit_length - word_id - 1;
             last_word_id = real_word_id + 1;
         }

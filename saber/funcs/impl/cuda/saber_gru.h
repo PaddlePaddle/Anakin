@@ -57,7 +57,7 @@ public:
         this->_ctx = ctx;
         CUBLAS_CHECK(cublasCreate(&_cublas_handle));
         CUBLAS_CHECK(cublasSetStream(_cublas_handle, this->_ctx.get_compute_stream()));
-        if(gru_param._formula==GRU_ORIGIN) {
+        if(gru_param.formula==GRU_ORIGIN) {
             _hidden_size = gru_param.bias()->valid_size() / 3;
 
             int weights_bias_size = _hidden_size * 3;

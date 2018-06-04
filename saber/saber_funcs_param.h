@@ -69,12 +69,16 @@ struct GruParam {
 
 
     GruParam() :
-            _weight_tensor(nullptr), _bias_tensor(nullptr),_init_hidden_tensor(nullptr)
-            ,_dropout_param(1.0f)
-            ,_num_direction(1),_num_layers(1)
-            ,_is_reverse(false)
-            ,_gate_activity(Active_sigmoid),_h_activity(Active_tanh)
-            ,_formula(GRU_ORIGIN)
+             weight_tensor(nullptr)
+            ,bias_tensor(nullptr)
+            ,init_hidden_tensor(nullptr)
+            ,dropout_param(1.0f)
+            ,num_direction(1)
+            ,num_layers(1)
+            ,is_reverse(false)
+            ,gate_activity(Active_sigmoid)
+            ,h_activity(Active_tanh)
+            ,formula(GRU_ORIGIN)
 
     {}
     /**
@@ -86,77 +90,77 @@ struct GruParam {
      * @param numLayers_in
      * @param mode_in
      */
-    GruParam(opTensor* weight, opTensor* bias,GruFormula formula,
-            ActiveType gate_activity=Active_sigmoid, ActiveType h_activity=Active_tanh,
-            bool is_reverse=false,opTensor* hidden_init=nullptr,
+    GruParam(opTensor* weight_in, opTensor* bias_in,GruFormula formula_in,
+            ActiveType gate_activity_in=Active_sigmoid, ActiveType h_activity_in=Active_tanh,
+            bool is_reverse_in=false,opTensor* hidden_init_in=nullptr,
             float dropout_param_in=1.f
             ,int num_direction_in=1,int numLayers_in=1)
             :
-            _weight_tensor(weight)
-            , _bias_tensor(bias)
-            ,_dropout_param(dropout_param_in)
-            ,_num_direction(num_direction_in)
-            ,_num_layers(numLayers_in)
-            ,_is_reverse(is_reverse)
-            ,_gate_activity(gate_activity)
-            ,_h_activity(h_activity)
-            ,_formula(formula)
-            ,_init_hidden_tensor(hidden_init)
+             weight_tensor(weight_in)
+            ,bias_tensor(bias_in)
+            ,dropout_param(dropout_param_in)
+            ,num_direction(num_direction_in)
+            ,num_layers(numLayers_in)
+            ,is_reverse(is_reverse_in)
+            ,gate_activity(gate_activity_in)
+            ,h_activity(h_activity_in)
+            ,formula(formula_in)
+            ,init_hidden_tensor(hidden_init_in)
     {}
 
 
     GruParam &operator=(const GruParam &right) {
-        _weight_tensor = right._weight_tensor;
-        _dropout_param=right._dropout_param;
-        _num_direction=right._num_direction;
-        _num_layers=right._num_layers;
-        _bias_tensor = right._bias_tensor;
-        _gate_activity=right._gate_activity;
-        _h_activity=right._h_activity;
-        _is_reverse=right._is_reverse;
-        _formula=right._formula;
-        _init_hidden_tensor=right._init_hidden_tensor;
+        weight_tensor = right.weight_tensor;
+        dropout_param=right.dropout_param;
+        num_direction=right.num_direction;
+        num_layers=right.num_layers;
+        bias_tensor = right.bias_tensor;
+        gate_activity=right.gate_activity;
+        h_activity=right.h_activity;
+        is_reverse=right.is_reverse;
+        formula=right.formula;
+        init_hidden_tensor=right.init_hidden_tensor;
         return *this;
     }
 
     bool operator==(const GruParam &right) {
         bool comp_eq = true;
-        comp_eq = comp_eq && (_weight_tensor == right._weight_tensor);
-        comp_eq = comp_eq && (_dropout_param == right._dropout_param);
-        comp_eq = comp_eq && (_num_direction == right._num_direction);
-        comp_eq = comp_eq && (_num_layers == right._num_layers);
-        comp_eq = comp_eq && (_bias_tensor == right._bias_tensor);
-        comp_eq = comp_eq && (_gate_activity=right._gate_activity);
-        comp_eq = comp_eq && (_h_activity=right._h_activity);
-        comp_eq = comp_eq && (_is_reverse=right._is_reverse);
-        comp_eq = comp_eq && (_formula=right._formula);
-        comp_eq = comp_eq && (_init_hidden_tensor==right._init_hidden_tensor);
+        comp_eq = comp_eq && (weight_tensor == right.weight_tensor);
+        comp_eq = comp_eq && (dropout_param == right.dropout_param);
+        comp_eq = comp_eq && (num_direction == right.num_direction);
+        comp_eq = comp_eq && (num_layers == right.num_layers);
+        comp_eq = comp_eq && (bias_tensor == right.bias_tensor);
+        comp_eq = comp_eq && (gate_activity=right.gate_activity);
+        comp_eq = comp_eq && (h_activity=right.h_activity);
+        comp_eq = comp_eq && (is_reverse=right.is_reverse);
+        comp_eq = comp_eq && (formula=right.formula);
+        comp_eq = comp_eq && (init_hidden_tensor==right.init_hidden_tensor);
         return comp_eq;
     }
 
     inline const opTensor* weight() {
-        return _weight_tensor;
+        return weight_tensor;
     }
 
     inline const opTensor* bias() {
-        return _bias_tensor;
+        return bias_tensor;
     }
 
     inline const opTensor* init_hidden() {
-        return _init_hidden_tensor;
+        return init_hidden_tensor;
     }
 
-    int _num_direction;
-    float _dropout_param;
-    int _num_layers;
-    ActiveType _gate_activity;
-    ActiveType _h_activity;
-    GruFormula _formula;
-    bool _is_reverse;
+    int num_direction;
+    float dropout_param;
+    int num_layers;
+    ActiveType gate_activity;
+    ActiveType h_activity;
+    GruFormula formula;
+    bool is_reverse;
 private:
-    opTensor* _weight_tensor;
-    opTensor* _bias_tensor;
-    opTensor* _init_hidden_tensor;
+    opTensor* weight_tensor;
+    opTensor* bias_tensor;
+    opTensor* init_hidden_tensor;
 };
 
 template <typename opTensor>
@@ -165,91 +169,96 @@ struct LSTMParam{
 
 
     LSTMParam() :
-            _weight_tensor(nullptr), _bias_tensor(nullptr),_init_hidden_tensor(nullptr)
-            ,_dropout_param(1.0f)
-            ,_num_direction(1),_num_layers(1)
-            ,_is_reverse(false)
-            ,_gate_activity(Active_sigmoid),_cell_activity(Active_tanh),_candidate_activity(Active_tanh)
-            ,_with_peephole(true)
+             weight_tensor(nullptr)
+            ,bias_tensor(nullptr)
+            ,init_hidden_tensor(nullptr)
+            ,dropout_param(1.0f)
+            ,num_direction(1)
+            ,num_layers(1)
+            ,is_reverse(false)
+            ,gate_activity(Active_sigmoid)
+            ,cell_activity(Active_tanh)
+            ,candidate_activity(Active_tanh)
+            ,with_peephole(true)
 
     {}
 
-    LSTMParam(opTensor* weight, opTensor* bias,
-             ActiveType gate_activity=Active_sigmoid, ActiveType cell_activity=Active_tanh,
-                     ActiveType candidate_activity=Active_tanh,bool with_peephole=true,
-             bool is_reverse=false,opTensor* hidden_init=nullptr,
+    LSTMParam(opTensor* weight_in, opTensor* bias_in,
+             ActiveType gate_activity_in=Active_sigmoid, ActiveType cell_activity_in=Active_tanh,
+                     ActiveType candidate_activity_in=Active_tanh,bool with_peephole_in=true,
+             bool is_reverse_in=false,opTensor* hidden_init_in=nullptr,
              float dropout_param_in=1.f
             ,int num_direction_in=1,int numLayers_in=1)
             :
-            _weight_tensor(weight)
-            , _bias_tensor(bias)
-            ,_dropout_param(dropout_param_in)
-            ,_num_direction(num_direction_in)
-            ,_num_layers(numLayers_in)
-            ,_is_reverse(is_reverse)
-            ,_gate_activity(gate_activity)
-            ,_candidate_activity(candidate_activity)
-            ,_cell_activity(cell_activity)
-            ,_init_hidden_tensor(hidden_init)
-            ,_with_peephole(with_peephole)
+             weight_tensor(weight_in)
+            ,bias_tensor(bias_in)
+            ,dropout_param(dropout_param_in)
+            ,num_direction(num_direction_in)
+            ,num_layers(numLayers_in)
+            ,is_reverse(is_reverse_in)
+            ,gate_activity(gate_activity_in)
+            ,candidate_activity(candidate_activity_in)
+            ,cell_activity(cell_activity_in)
+            ,init_hidden_tensor(hidden_init_in)
+            ,with_peephole(with_peephole_in)
     {}
 
 
     LSTMParam &operator=(const LSTMParam &right) {
-        _weight_tensor = right._weight_tensor;
-        _dropout_param=right._dropout_param;
-        _num_direction=right._num_direction;
-        _num_layers=right._num_layers;
-        _bias_tensor = right._bias_tensor;
-        _gate_activity=right._gate_activity;
-        _cell_activity=right._cell_activity;
-        _candidate_activity=right._candidate_activity;
-        _with_peephole=right._with_peephole;
-        _is_reverse=right._is_reverse;
-        _init_hidden_tensor=right._init_hidden_tensor;
+        weight_tensor = right.weight_tensor;
+        dropout_param=right.dropout_param;
+        num_direction=right.num_direction;
+        num_layers=right.num_layers;
+        bias_tensor = right.bias_tensor;
+        gate_activity=right.gate_activity;
+        cell_activity=right.cell_activity;
+        candidate_activity=right.candidate_activity;
+        with_peephole=right.with_peephole;
+        is_reverse=right.is_reverse;
+        init_hidden_tensor=right.init_hidden_tensor;
         return *this;
     }
 
     bool operator==(const LSTMParam &right) {
         bool comp_eq = true;
-        comp_eq = comp_eq && (_weight_tensor == right._weight_tensor);
-        comp_eq = comp_eq && (_dropout_param == right._dropout_param);
-        comp_eq = comp_eq && (_num_direction == right._num_direction);
-        comp_eq = comp_eq && (_num_layers == right._num_layers);
-        comp_eq = comp_eq && (_bias_tensor == right._bias_tensor);
-        comp_eq = comp_eq && (_gate_activity==right._gate_activity);
-        comp_eq = comp_eq && (_cell_activity==right._cell_activity);
-        comp_eq = comp_eq && (_with_peephole==right._with_peephole);
-        comp_eq = comp_eq && (_candidate_activity==right._candidate_activity);
-        comp_eq = comp_eq && (_is_reverse=right._is_reverse);
-        comp_eq = comp_eq && (_init_hidden_tensor==right._init_hidden_tensor);
+        comp_eq = comp_eq && (weight_tensor == right.weight_tensor);
+        comp_eq = comp_eq && (dropout_param == right.dropout_param);
+        comp_eq = comp_eq && (num_direction == right.num_direction);
+        comp_eq = comp_eq && (num_layers == right.num_layers);
+        comp_eq = comp_eq && (bias_tensor == right.bias_tensor);
+        comp_eq = comp_eq && (gate_activity==right.gate_activity);
+        comp_eq = comp_eq && (cell_activity==right.cell_activity);
+        comp_eq = comp_eq && (with_peephole==right.with_peephole);
+        comp_eq = comp_eq && (candidate_activity==right.candidate_activity);
+        comp_eq = comp_eq && (is_reverse=right.is_reverse);
+        comp_eq = comp_eq && (init_hidden_tensor==right.init_hidden_tensor);
         return comp_eq;
     }
 
     inline const opTensor* weight() {
-        return _weight_tensor;
+        return weight_tensor;
     }
 
     inline const opTensor* bias() {
-        return _bias_tensor;
+        return bias_tensor;
     }
 
     inline const opTensor* init_hidden() {
-        return _init_hidden_tensor;
+        return init_hidden_tensor;
     }
 
-    int _num_direction;
-    float _dropout_param;
-    int _num_layers;
-    ActiveType _gate_activity;
-    ActiveType _cell_activity;
-    ActiveType _candidate_activity;
-    bool _is_reverse;
-    bool _with_peephole;
+    int num_direction;
+    float dropout_param;
+    int num_layers;
+    ActiveType gate_activity;
+    ActiveType cell_activity;
+    ActiveType candidate_activity;
+    bool is_reverse;
+    bool with_peephole;
 private:
-    opTensor* _weight_tensor;
-    opTensor* _bias_tensor;
-    opTensor* _init_hidden_tensor;
+    opTensor* weight_tensor;
+    opTensor* bias_tensor;
+    opTensor* init_hidden_tensor;
 };
 
 

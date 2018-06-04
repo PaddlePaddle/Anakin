@@ -38,9 +38,9 @@ public:
                              std::vector<DataTensor_out*>& outputs, \
                              GruParam<OpTensor>& gru_param, Context<X86>& ctx) {
         this->_ctx=ctx;
-        CHECK_EQ(gru_param._formula ,GRU_ORIGIN)<<"only support gru_origin now";
+        CHECK_EQ(gru_param.formula ,GRU_ORIGIN)<<"only support gru_origin now";
         _hidden_size = gru_param.bias()->valid_size() / 3;
-        if (gru_param._formula == GRU_ORIGIN&&_aligned_way) {
+        if (gru_param.formula == GRU_ORIGIN&&_aligned_way) {
             //FIXME:aligned should be determine by framework
             int aligned_byte=64;
             int c_size=aligned_byte/sizeof(OpDataType);
@@ -89,7 +89,7 @@ public:
 //            Shape whr_shape(1,1,1,_aligned_hidden_size/c_size,c_size);
 //            _temp_wh.try_expand_size(wh_shape);
 //            _temp_whr.try_expand_size(whr_shape);
-        }else if(gru_param._formula == GRU_ORIGIN){
+        }else if(gru_param.formula == GRU_ORIGIN){
             _hidden_size = gru_param.bias()->valid_size() / 3;
             int weights_bias_size = _hidden_size * 3;
             int weights_h2h_size = _hidden_size * _hidden_size * 3;

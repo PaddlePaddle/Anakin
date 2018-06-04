@@ -107,8 +107,8 @@ hw2seq(std::vector<DataTensor*> inputs, GruParam<OpTensor>& param,
 
     _yDesc.reset(new cudnn::TensorDescriptors<DataDtype>(
                      max_len,
-    {batch_size, hidden_size * param._num_direction, 1},
-    {hidden_size  * param._num_direction, 1, 1}));
+    {batch_size, hidden_size * param.num_direction, 1},
+    {hidden_size  * param.num_direction, 1, 1}));
 
     size_t new_workspace_size_in_bytes = 0;
     CUDNN_CHECK(cudnnGetRNNWorkspaceSize(
@@ -123,7 +123,7 @@ hw2seq(std::vector<DataTensor*> inputs, GruParam<OpTensor>& param,
         _workspace_tensor.re_alloc(Shape(1, 1, 1, _workspace_size_in_bytes));
     }
 
-    int dim[] = {param._num_layers * param._num_direction, batch_size, hidden_size};
+    int dim[] = {param.num_layers * param.num_direction, batch_size, hidden_size};
     int stride[] = {batch_size * hidden_size, hidden_size, 1};
 
     cudnn::setTensorNdDesc<DataDtype >(&_hxDesc,
@@ -196,7 +196,7 @@ get_grnn_params_region(GruParam<OpTensor>& param) {
     int region_count_of_layer = _cudnn_gru_weights_layernum;
     //    LOG(INFO) << "numLayers= " << param.numLayers << ",region_count_of_layer=" << region_count_of_layer;
 
-    for (int layer = 0; layer < param._num_layers; layer++) {
+    for (int layer = 0; layer < param.num_layers; layer++) {
         for (int region = 0; region < region_count_of_layer; region++) {
             for (int trigger = 0; trigger < 2; trigger++) {
                 void* offset = nullptr;
@@ -283,7 +283,7 @@ create(const std::vector<DataTensor*>& inputs,
     size_t stateSize;
 
     cudnn::setRNNDesc<DataDtype>(&_rnnDesc, _handle, _hidden_size,
-                                 gru_param._num_layers, _dropoutDesc, gru_param._num_direction, CUDNN_GRU);
+                                 gru_param.num_layers, _dropoutDesc, gru_param.num_direction, CUDNN_GRU);
 
     _xDesc.reset(new cudnn::TensorDescriptors<DataDtype>(
                      seqLength,
@@ -292,8 +292,8 @@ create(const std::vector<DataTensor*>& inputs,
 
     _yDesc.reset(new cudnn::TensorDescriptors<DataDtype>(
                      seqLength,
-    {batchSize, _hidden_size * gru_param._num_direction, 1},
-    {_hidden_size  * gru_param._num_direction, 1, 1}));
+    {batchSize, _hidden_size * gru_param.num_direction, 1},
+    {_hidden_size  * gru_param.num_direction, 1, 1}));
 
     Shape in_dim = inputs[0]->shape();
     Shape in_stride = inputs[0]->get_stride();
@@ -301,7 +301,7 @@ create(const std::vector<DataTensor*>& inputs,
     Shape out_dim = outputs[0]->shape();
     Shape out_stride = outputs[0]->get_stride();
 
-    int dim[] = {gru_param._num_layers * gru_param._num_direction, batchSize, _hidden_size};
+    int dim[] = {gru_param.num_layers * gru_param.num_direction, batchSize, _hidden_size};
     int stride[] = {batchSize * _hidden_size, _hidden_size, 1};
 
     cudnn::setTensorNdDesc<DataDtype >(&_hxDesc,

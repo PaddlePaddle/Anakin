@@ -109,7 +109,7 @@ const float* SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::hw2se
     _temp_map_dev.try_expand_size(seq_sum);
     int* map = _temp_map_host.mutable_data();
 
-    if (param._is_reverse) {
+    if (param.is_reverse) {
         for (int batchid = 0; batchid < batch_size; ++batchid) {
             int batch_offset = max_len - length_vec[batchid];
 
@@ -632,20 +632,20 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::gru_cu
 
         int frame_per_block = hidden_size <= 1024 ? hidden_size : 1024;
 
-        if (param._gate_activity == Active_sigmoid
-                && param._h_activity == Active_tanh) {
+        if (param.gate_activity == Active_sigmoid
+                && param.h_activity == Active_tanh) {
             cal_one_kernel_sigmoid_tanh_modi_cudnn_formula
                     << < batch_size, frame_per_block, 0, _ctx.get_compute_stream() >> >
                     (w_x_r, w_x_z, w_x_o, w_h_r, w_h_z, w_h_o
                      , b_r, b_z, b_o, hidden_size, hidden_out, hidden_in);
-        } else if (param._gate_activity == Active_sigmoid_fluid
-                   && param._h_activity == Active_tanh) {
+        } else if (param.gate_activity == Active_sigmoid_fluid
+                   && param.h_activity == Active_tanh) {
             cal_one_kernel_paddlesigmoid_tanh_cudnn_formula
                     << < batch_size, frame_per_block, 0, _ctx.get_compute_stream() >> >
                     (w_x_r, w_x_z, w_x_o, w_h_r, w_h_z, w_h_o
                      , b_r, b_z, b_o, hidden_size, hidden_out, hidden_in);
-        } else if (param._gate_activity == Active_sigmoid_fluid
-                   && param._h_activity == Active_relu) {
+        } else if (param.gate_activity == Active_sigmoid_fluid
+                   && param.h_activity == Active_relu) {
             cal_one_kernel_paddlesigmoid_relu_cudnn_formula
                     << < batch_size, frame_per_block, 0, _ctx.get_compute_stream() >> >
                     (w_x_r, w_x_z, w_x_o, w_h_r, w_h_z, w_h_o
@@ -668,9 +668,9 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispat
         const std::vector<DataTensor_in*>& inputs,
         std::vector<DataTensor_out*>& outputs,
         GruParam <OpTensor>& param) {
-    if (param._formula == GRU_CUDNN) {
+    if (param.formula == GRU_CUDNN) {
         LOG(ERROR) << "saber cudnn formula not support reverse yet";
-        if (param._is_reverse) {
+        if (param.is_reverse) {
             LOG(ERROR) << "saber cudnn formula not support reverse yet";
 
         }
@@ -736,7 +736,7 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispat
         int realseq = seq;
         int last_seq = realseq - 1;
 
-        if (param._is_reverse) {
+        if (param.is_reverse) {
 //            DLOG(INFO)<<"reverse gru";
             realseq = sequence - 1 - seq;
             last_seq = realseq + 1;
@@ -773,16 +773,16 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispat
 
         //        DLOG(INFO) << "act = " << param._gate_activity << "," << param._h_activity;
 
-        if (param._gate_activity == Active_sigmoid
-                && param._h_activity == Active_tanh) {
+        if (param.gate_activity == Active_sigmoid
+                && param.h_activity == Active_tanh) {
             cal_one_kernel_sigmoid_tanh_paddle_formula
             <<< batch_size, frame_per_block, sizeof(OutDataType)*hidden_size
             , _ctx.get_compute_stream()>>>(
                 w_x_r, w_x_z, w_x_o, w_h_r, w_h_z, w_o
                 , b_r, b_z, b_o, hidden_size, hidden_out, hidden_in);
 
-        }  else if (param._gate_activity == Active_sigmoid_fluid
-                    && param._h_activity == Active_relu) {
+        }  else if (param.gate_activity == Active_sigmoid_fluid
+                    && param.h_activity == Active_relu) {
             cal_one_kernel_paddlesigmoid_relu_paddle_formula
                     << < batch_size, frame_per_block, sizeof(OutDataType)*hidden_size
                     , _ctx.get_compute_stream() >> >

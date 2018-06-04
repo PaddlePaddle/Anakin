@@ -90,7 +90,7 @@ public:
 //            } else {
             int seq_sum = input[0]->num();
 //            CHECK_LE(seq_sum, max_seq_sum) << "seq_sum should le than the init shape";
-            Shape output_shape = Shape(seq_sum, hiddenSize * param._num_direction, 1, 1);
+            Shape output_shape = Shape(seq_sum, hiddenSize * param.num_direction, 1, 1);
             return output[0]->set_shape(output_shape);
 //            }
 //        }

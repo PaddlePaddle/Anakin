@@ -68,8 +68,6 @@ void Graph<Ttype, Dtype, Ptype>::ResetBatchSize(std::string in_name,
     auto input_node_p = (*this)[in_name];
     std::string in_shape = "input_shape";
     auto input_dim = input_node_p->template get_attr<PTuple<int>>(in_shape);
-    for(int i=0;i<4;i++)
-        printf("%d ,",input_dim[i]);
     input_dim[0] = batch_size;
     input_node_p->remove_attr(in_shape);
     input_node_p->set_attr(in_shape, input_dim);
