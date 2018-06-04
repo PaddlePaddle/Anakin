@@ -1,4 +1,5 @@
 #!/bin/bash
+
 #################################################
 #
 # Usage: anakin_docker_build_and_run.sh -p -o -m 
@@ -10,7 +11,9 @@ ANAKIN_DOCKER_ROOT="$( cd "$(dirname "$0")" ; pwd -P)"
 # help_anakin_docker_run() to print help msg.
 help_anakin_docker_run() {
 	echo "Usage: $0 -p -o -m"
+    echo ""
 	echo "Options:"
+    echo ""
 	echo " -p Hardware Place where docker will running [ NVIDIA-GPU / AMD_GPU / X86-ONLY / ARM ] "
 	echo " -o Operating system docker will reside on [ Centos / Ubuntu ] "
 	echo " -m Script exe mode [ Build / Run / All] default mode is build and run"
@@ -25,22 +28,15 @@ building_and_run_nvidia_gpu_docker() {
 	DockerfilePath=$1
 	MODE=$2
 	tag="$(echo $DockerfilePath | awk -F/ '{print tolower($(NF-3) "_" $(NF-1))}')"
-	if [ ! -f ./nvidia-docker/nvidia-docker ]; then
-		echo "Pull remote nvidia-docker"
-		git clone https://github.com/NVIDIA/nvidia-docker.git
-	fi
-	NVIDIA_DOCKER_EXE="$( cd ./nvidia-docker; pwd -P)"/nvidia-docker
+    echo "Setting env nvidia-docker2 in background ..."
 	echo "Building nvidia docker ... [ docker_image_name: Anakin image_tag: $tag ]" 
-	export CUDA_SO="$(\ls /usr/lib64/libcuda* | xargs -I{} echo '-v {}:{}') $(\ls /usr/lib64/libnvidia* | xargs -I{} echo '-v {}:{}')" 
-	export DEVICES=$(\ls /dev/nvidia* | xargs -I{} echo '--device {}:{}') 
-	export BINS=$(\ls /usr/bin/nvidia* | xargs -I{} echo '-v {}:{}')
 	if [ ! $MODE = "Run" ]; then
-		#$NVIDIA_DOCKER_EXE build ${CUDA_SO} ${DEVICES} ${BINS} --network=host -t Anakin:$tag . -f $DockerfilePath
-		docker build --network=host -t anakin:$tag . -f $DockerfilePath
+		sudo docker build --network=host -t anakin:$tag"-base" . -f $DockerfilePath
+        sudo docker run --network=host --runtime=nvidia --rm -it anakin:$tag"-base"  Anakin/tools/gpu_build.sh
+        container_id=$(sudo docker ps -l | sed -n 2p | awk '{print $1}')
+        sudo docker commit $container_id anakin:$tag
 	else
-		systemctl start nvidia-docker
-		$NVIDIA_DOCKER_EXE run --network=host -it anakin:$tag  /bin/bash
-		#docker run ${CUDA_SO} ${DEVICES} ${BINS} --network=host -it anakin:$tag  /bin/bash
+		sudo docker run --network=host --runtime=nvidia --rm -it anakin:$tag  /bin/bash
 	fi
 }
 
