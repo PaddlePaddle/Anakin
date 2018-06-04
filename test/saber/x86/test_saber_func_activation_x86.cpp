@@ -107,8 +107,8 @@ void test_stanh(int n, int c, int h, int w){
     op_stanh(input_stanh, output_stanh, param_host, ctx_host);
 
     const float *dst_ptr = dst.data();
-	std::cout<< std::endl;
-	std::cout<< "This tensor size is:" << dst.size()<< std::endl;
+    std::cout<< std::endl;
+    std::cout<< "This tensor size is:" << dst.size()<< std::endl;
     for (int i = 0; i < dst.size(); i++) {
         if(i%5==0 && i)
             std::cout << std::endl;
