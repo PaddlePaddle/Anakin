@@ -140,8 +140,9 @@ void test_sigmoid(int n, int c, int h, int w){
 
     dst_host.re_alloc(shape_in);
     float *dst_host_ptr = dst_host.mutable_data();
+    float *src_ptr = src.mutable_data();
     for (int i = 0; i< dst_host.valid_size(); i++) {
-        dst_host_ptr[i] = 1.0f / (exp(-src[i]) + 1.0f);
+        dst_host_ptr[i] = 1.0f / (exp(-src_ptr[i]) + 1.0f);
     }
 
 
@@ -187,8 +188,9 @@ void test_tanh(int n, int c, int h, int w){
 
     dst_host.re_alloc(shape_in);
     float *dst_host_ptr = dst_host.mutable_data();
+    float *src_ptr = src.mutable_data();
     for (int i = 0; i< dst_host.valid_size(); i++) {
-        dst_host_ptr[i] = tanh(src[i]);
+        dst_host_ptr[i] = tanh(src_ptr[i]);
     }
 
 
@@ -236,9 +238,10 @@ void test_clipped_relu(int n, int c, int h, int w){
 
     dst_host.re_alloc(shape_in);
     float *dst_host_ptr = dst_host.mutable_data();
+    float *src_ptr = src.mutable_data();
     for (int i = 0; i< dst_host.valid_size(); i++) {
-        src[i] = src[i] > 0 ? src[i] : 0;
-        dst_host_ptr[i] = src[i] < threshold ? sic[i] : threshold;
+        src_ptr[i] = src_ptr[i] > 0 ? src_ptr[i] : 0;
+        dst_host_ptr[i] = src_ptr[i] < threshold ? src_ptr[i] : threshold;
     }
 
 
@@ -287,8 +290,9 @@ void test_elu(int n, int c, int h, int w){
 
     dst_host.re_alloc(shape_in);
     float *dst_host_ptr = dst_host.mutable_data();
+    float *src_ptr = src.mutable_data();
     for (int i = 0; i< dst_host.valid_size(); i++) {
-        dst_host_ptr[i] = src[i] > 0 ? sic[i] : coef * (exp(src[i]) - 1);
+        dst_host_ptr[i] = src_ptr[i] > 0 ? src_ptr[i] : coef * (exp(src_ptr[i]) - 1);
     }
 
 
