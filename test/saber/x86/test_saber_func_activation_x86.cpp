@@ -262,7 +262,7 @@ void test_clipped_relu(int n, int c, int h, int w){
 
     op_clipped_relu.init(input, output, param_host, SPECIFY, SABER_IMPL, ctx_host);
 
-    op_taclipped_relu(input, output, param_host, ctx_host);
+    op_clipped_relu(input, output, param_host, ctx_host);
 
     bool pass = compare_tensor<Tensor4f>(dst_host, dst, 1e-6);
     if (pass) {
