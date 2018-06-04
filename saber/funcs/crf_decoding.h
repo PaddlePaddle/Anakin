@@ -27,6 +27,11 @@
 #include "saber/funcs/impl/x86/saber_crf_decoding.h"
 #endif
 
+#ifdef USE_ARM_PLACE
+//todo
+#include "saber/funcs/impl/impl_crf_decoding.h"
+#endif
+
 namespace anakin {
 namespace saber {
 
