@@ -54,6 +54,10 @@ public:
             , _input_descs(NULL)
             , _output_descs(NULL)
             , _filter_desc(NULL)
+            , _inner_descs(NULL)
+            , _bias_desc(NULL)
+            , _pooling_descs(NULL)
+            , _active_descs(NULL)
             , _workspace_fwd_sizes(0)
             , _workspaceSizeInBytes(0)
             , _fwd_algo((cudnnConvolutionFwdAlgo_t)0)
@@ -72,11 +76,23 @@ public:
         if (_filter_desc) {
             CUDNN_CHECK(cudnnDestroyFilterDescriptor(_filter_desc));
         }
-        if (_handle != NULL) {
+        if (_handle) {
             CUDNN_CHECK(cudnnDestroy(_handle));
         }
-        if (_workspaceData != NULL) {
-            cudaFree(_workspaceData);
+        if (_workspaceData) {
+            CUDA_CHECK(cudaFree(_workspaceData));
+        }
+        if (_active_descs) {
+            CUDNN_CHECK(cudnnDestroyActivationDescriptor(_active_descs));
+        }
+        if (_inner_descs) {
+            CUDNN_CHECK(cudnnDestroyTensorDescriptor(_inner_descs));
+        }
+        if (_bias_desc) {
+            CUDNN_CHECK(cudnnDestroyTensorDescriptor(_bias_desc));
+        }
+        if (_pooling_descs) {
+            CUDNN_CHECK(cudnnDestroyPoolingDescriptor(_pooling_descs));
         }
     }
 
