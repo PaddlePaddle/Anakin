@@ -86,8 +86,6 @@ public:
 
         _gemmer.init(l1_cache, l2_cache, _m, _n, _k, false, !param.is_transpose_weights, threads);
         return SaberSuccess;
-
-#endif
     }
 
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs, \
