@@ -171,9 +171,14 @@ struct DataTypeRecover; /// declare for PBlock
 template<typename T>
 class PBlock {
 public:
+#ifdef USE_CUDA
     typedef Tensor4d<NV, DataTypeRecover<T>::type> d_type;
     typedef Tensor4d<NVHX86, DataTypeRecover<T>::type> h_type;
-
+#endif
+#ifdef USE_ARM_PLACE
+    typedef Tensor4d<ARM, DataTypeRecover<T>::type> d_type;
+    typedef Tensor4d<ARM, DataTypeRecover<T>::type> h_type;
+#endif
 
     PBlock() {
         _d_inner_tensor = std::make_shared<d_type>();

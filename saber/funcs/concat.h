@@ -26,6 +26,10 @@
 //#include "saber/funcs/impl/x86/saber_activation.h"
 #endif
 
+#ifdef USE_ARM_PLACE
+#include "saber/funcs/impl/arm/saber_concat.h"
+#endif
+
 namespace anakin {
 namespace saber {
 

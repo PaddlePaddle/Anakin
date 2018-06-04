@@ -17,6 +17,8 @@ anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs "cpp" ANAKIN_SABER_BASE_SRC
 
 if(USE_ARM_PLACE)
     anakin_fetch_files_with_suffix(${ANAKIN_SABER}/core/impl/arm "cpp" ANAKIN_SABER_BASE_SRC)
+    anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/arm "cpp" ANAKIN_SABER_BASE_SRC)
+    anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/arm/impl "cpp" ANAKIN_SABER_BASE_SRC)
 endif()
 
 if(USE_GPU_PLACE)
@@ -28,12 +30,12 @@ if(USE_GPU_PLACE)
     endif()
 endif()
 
-
-anakin_fetch_files_with_suffix(${ANAKIN_SABER}/core/impl/x86 "cpp" ANAKIN_SABER_BASE_SRC)
 if(USE_X86_PLACE)
+    anakin_fetch_files_with_suffix(${ANAKIN_SABER}/core/impl/x86 "cpp" ANAKIN_SABER_BASE_SRC)
     anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/x86 "cpp" ANAKIN_SABER_BASE_SRC)
     anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/x86/kernel "cpp" ANAKIN_SABER_BASE_SRC)
 endif()
+
 
 # compile cpp objs
 # add_library(ANAKIN_SABER_BASE_OBJS OBJECT ${ANAKIN_SABER_BASE_SRC})
@@ -72,9 +74,11 @@ if(USE_CUDA)
 				      ${WHOLE_ARCHIVE_END})	
 endif()
 
+FILE(GLOB SRC_HEADERS "./*.h" "core/*.h" "funcs/*.h" "funcs/impl/*.h" "funcs/impl/arm/*.h" "funcs/impl/arm/impl/*.h")
+
 # add saber library to static
 if(UNIX OR APPLE) 
-    ADD_LIBRARY(${ANAKIN_SABER_TEMP_COMMMON_LIB} SHARED ${ANAKIN_SABER_CUDA_C_SRC_OBJS} ${ANAKIN_SABER_BASE_SRC})
+    ADD_LIBRARY(${ANAKIN_SABER_TEMP_COMMMON_LIB} SHARED ${ANAKIN_SABER_CUDA_C_SRC_OBJS} ${ANAKIN_SABER_BASE_SRC} ${SRC_HEADERS})
 							#$<TARGET_OBJECTS:ANAKIN_SABER_BASE_OBJS>) 
     if(USE_X86_PLACE) 
 		message(STATUS ${ANAKIN_SABER_DEPENDENCIES})
