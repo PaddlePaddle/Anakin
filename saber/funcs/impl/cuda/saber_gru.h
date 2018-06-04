@@ -44,7 +44,11 @@ public:
     typedef typename OpTensor::Dtype OpDataType;
 
     SaberGru() {}
-    ~SaberGru() {}
+    ~SaberGru() {
+        if (_cublas_handle != NULL) {
+            CUBLAS_CHECK(cublasDestroy(_cublas_handle));
+        }
+    }
     
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs, \
         std::vector<DataTensor_out*>& outputs, \

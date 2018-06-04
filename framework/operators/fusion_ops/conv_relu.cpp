@@ -25,7 +25,7 @@ ConvReluHelper<Ttype, Dtype, Ptype>::~ConvReluHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ConvReluHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing ConvRelu op parameter.";
+    DLOG(WARNING) << "Parsing ConvRelu op parameter.";
     saber::ConvParam<Tensor4d<Ttype, Dtype>> _conv_param;
 
     // get conv param
