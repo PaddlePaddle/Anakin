@@ -30,4 +30,4 @@ ENV CUDNN_ROOT /usr/local/cuda/include
 # build and install anakin
 RUN git clone --branch master --recursive https://github.com/PaddlePaddle/Anakin.git \
     && cd Anakin/tools && ./gpu_build.sh && make install \
-	&& cd .. && rm -rf gpu_build
+#	&& cd .. && rm -rf gpu_build
