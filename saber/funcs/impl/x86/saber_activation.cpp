@@ -149,7 +149,7 @@ SaberStatus SaberActivation<X86, OpDtype, inDtype, outDtype,
             DataType_out *output_data = outputs[i]->mutable_data();
 
             for(size_t j = 0; j < len; j++){
-                output_data[j] = input_data[j] > 0 ? input_data[j] : param.coef * (exp(x) - 1);
+                output_data[j] = input_data[j] > 0 ? input_data[j] : param.coef * (exp(input_data[j]) - 1);
             }
         }
     }
