@@ -27,7 +27,7 @@ DeformConvolutionHelper<Ttype, Dtype, Ptype>::~DeformConvolutionHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status DeformConvolutionHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing DeformConvolution op parameter.";
+    DLOG(WARNING) << "Parsing DeformConvolution op parameter.";
     auto group = GET_PARAMETER(int, group);
     auto bias_term = GET_PARAMETER(bool, bias_term);
     auto padding = GET_PARAMETER(PTuple<int>, padding);

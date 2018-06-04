@@ -23,7 +23,7 @@ SplitHelper<Ttype, Dtype, Ptype>::~SplitHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status SplitHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Split op parameter.";
+    DLOG(WARNING) << "Parsing Split op parameter.";
     split_num = GET_PARAMETER(int, split_num);
     return Status::OK();
 }
