@@ -61,7 +61,7 @@ public:
                                EltwiseParam<OpTensor> &param, \
                                Context<ARM> &ctx) override;
 
-    virtual SaberStatus dispatch(std::vector<DataTensor_in*>& inputs, \
+    virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs, \
                                  std::vector<DataTensor_out*>& outputs, \
                                  EltwiseParam<OpTensor> &param) override;
 

@@ -110,7 +110,7 @@ template <DataType OpDtype,
         typename LayOutType_op,
         typename LayOutType_in,
         typename LayOutType_out>
-SaberPermute<ARM, OpDtype, inDtype, outDtype, \
+SaberStatus SaberPermute<ARM, OpDtype, inDtype, outDtype, \
 LayOutType_op, LayOutType_in, LayOutType_out>::create(\
     const std::vector<DataTensor_in*>& inputs, \
         std::vector<DataTensor_out*>& outputs, \
@@ -171,10 +171,11 @@ template <DataType OpDtype,
         typename LayOutType_op,
         typename LayOutType_in,
         typename LayOutType_out>
-SaberPermute<ARM, OpDtype, inDtype, outDtype, \
+SaberStatus SaberPermute<ARM, OpDtype, inDtype, outDtype, \
 LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(\
     const std::vector<DataTensor_in*>& inputs, \
-    std::vector<DataTensor_out*> outputs, PermuteParam<OpTensor> &param) {
+    std::vector<DataTensor_out*>& outputs, \
+    PermuteParam<OpTensor> &param) {
 
     //! only copy the data
     if (!_need_permute) {

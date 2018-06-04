@@ -31,7 +31,7 @@ void eltwise_prod(const float* din_a, const float* din_b, float* dout, const int
     int loop_cnt = cnt;
     if (loop_cnt > 0) {
         asm volatile(
-        "top_loop:                                         @ main loop start point\n"
+        "prod_loop:                                         @ main loop start point\n"
                 "vld1.f32  {d0-d1}, [%[a_ptr]]!         @ load din r0\n"
                 "vld1.f32  {d2-d3}, [%[b_ptr]]!         @ load din r1n\n"
                 "vld1.f32  {d4-d5}, [%[a_ptr]]!         @ load din r0\n"
@@ -41,10 +41,9 @@ void eltwise_prod(const float* din_a, const float* din_b, float* dout, const int
                 "subs      %[loop_cnt], #1              @ loop --\n"
                 "vst1.f32 {d16-d17}, [%[out_ptr]]!      @ store data\n"
                 "vst1.f32 {d18-d19}, [%[out_ptr]]!      @ store data\n"
-                "bne       top_loop                     @ top_loop \n"
+                "bne       prod_loop                    @ top_loop \n"
         :[loop_cnt] "+r" (loop_cnt), [a_ptr] "+r" (a_ptr), \
-            [b_ptr] "+r" (b_ptr), [out_ptr] "+r" (out_ptr), \
-            [loop_cnt] "+r" [loop_cnt]
+            [b_ptr] "+r" (b_ptr), [out_ptr] "+r" (out_ptr)
         :
         :"q0", "q1", "q2", "q3", "q8", "q9"
         );
@@ -82,7 +81,7 @@ void eltwise_sum(const float* din_a, const float* din_b, float* dout, const int 
     int loop_cnt = cnt;
     if (loop_cnt > 0) {
         asm volatile(
-        "top_loop:                                         @ main loop start point\n"
+        "sum_loop:                                         @ main loop start point\n"
                 "vld1.f32  {d0-d1}, [%[a_ptr]]!         @ load din r0\n"
                 "vld1.f32  {d2-d3}, [%[b_ptr]]!         @ load din r1n\n"
                 "vld1.f32  {d4-d5}, [%[a_ptr]]!         @ load din r0\n"
@@ -92,10 +91,9 @@ void eltwise_sum(const float* din_a, const float* din_b, float* dout, const int 
                 "subs      %[loop_cnt], #1              @ loop --\n"
                 "vst1.f32 {d16-d17}, [%[out_ptr]]!      @ store data\n"
                 "vst1.f32 {d18-d19}, [%[out_ptr]]!      @ store data\n"
-                "bne       top_loop                     @ top_loop \n"
+                "bne       sum_loop                     @ top_loop \n"
         :[loop_cnt] "+r" (loop_cnt), [a_ptr] "+r" (a_ptr), \
-            [b_ptr] "+r" (b_ptr), [out_ptr] "+r" (out_ptr), \
-            [loop_cnt] "+r" [loop_cnt]
+            [b_ptr] "+r" (b_ptr), [out_ptr] "+r" (out_ptr)
         :
         :"q0", "q1", "q2", "q3", "q8", "q9"
         );
@@ -133,7 +131,7 @@ void eltwise_max(const float* din_a, const float* din_b, float* dout, const int 
     int loop_cnt = cnt;
     if (loop_cnt > 0) {
         asm volatile(
-        "top_loop:                                         @ main loop start point\n"
+        "max_loop:                                         @ main loop start point\n"
                 "vld1.f32  {d0-d1}, [%[a_ptr]]!         @ load din r0\n"
                 "vld1.f32  {d2-d3}, [%[b_ptr]]!         @ load din r1n\n"
                 "vld1.f32  {d4-d5}, [%[a_ptr]]!         @ load din r0\n"
@@ -143,10 +141,9 @@ void eltwise_max(const float* din_a, const float* din_b, float* dout, const int 
                 "subs      %[loop_cnt], #1              @ loop --\n"
                 "vst1.f32 {d16-d17}, [%[out_ptr]]!      @ store data\n"
                 "vst1.f32 {d18-d19}, [%[out_ptr]]!      @ store data\n"
-                "bne       top_loop                     @ top_loop \n"
+                "bne       max_loop                     @ top_loop \n"
         :[loop_cnt] "+r" (loop_cnt), [a_ptr] "+r" (a_ptr), \
-            [b_ptr] "+r" (b_ptr), [out_ptr] "+r" (out_ptr), \
-            [loop_cnt] "+r" [loop_cnt]
+            [b_ptr] "+r" (b_ptr), [out_ptr] "+r" (out_ptr)
         :
         :"q0", "q1", "q2", "q3", "q8", "q9"
         );
@@ -205,7 +202,7 @@ template <DataType OpDtype,
         typename LayOutType_out>
 SaberStatus SaberEltwise<ARM, OpDtype, inDtype, outDtype, \
 LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(\
-    std::vector<DataTensor_in*>& inputs, \
+    const std::vector<DataTensor_in*>& inputs, \
     std::vector<DataTensor_out*>& outputs, \
     EltwiseParam<OpTensor> &param) {
 
