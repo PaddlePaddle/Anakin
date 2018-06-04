@@ -67,7 +67,7 @@ SaberStatus SaberActivation<X86, OpDtype, inDtype, outDtype,
     // TODO !! need add other types of activation
     if (param.active == Active_relu) {
         for (size_t vc = 0; vc < inputs.size(); vc++) {
-            size_t len = inputs[vc]->size();
+            size_t len = inputs[vc]->valid_size();
             float *input_data = inputs[vc]->mutable_data();
             float *output_data = outputs[vc]->mutable_data();
 
@@ -87,7 +87,7 @@ SaberStatus SaberActivation<X86, OpDtype, inDtype, outDtype,
  // stanh : b * \frac{e^{a * x} - e^{-a * x}}{e^{a * x} + e^{-a * x}}
     if (param.active == Active_stanh) {
         for (size_t i = 0; i < inputs.size(); i++){
-            size_t len = inputs[i]->size();
+            size_t len = inputs[i]->valid_size();
             DataType_in *input_data = inputs[i]->mutable_data();
             DataType_out *output_data = outputs[i]->mutable_data();
             //negative_slope = scale_a
