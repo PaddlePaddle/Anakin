@@ -110,7 +110,8 @@ typedef enum{
     Active_relu = 2,
     Active_tanh = 3,
     Active_clipped_relu = 4,
-    Active_elu
+    Active_elu,
+    Active_stanh
 } ActiveType;
 
 typedef enum{

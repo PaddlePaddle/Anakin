@@ -61,6 +61,69 @@ void test(int n, int c, int h, int w) {
     }
 }
 
+void test_stanh(int n, int c, int h, int w){
+    int n_in = n;
+    int c_in = c;
+    int h_in = h;
+    int w_in = w;
+    float scale_a = 2.0f / 3.0f;
+    float scale_b = 1.7159f;
+
+    Shape shape_in(n_in, c_in, h_in, w_in);
+    Shape shape_out(n_in, c_in, h_in, w_in);
+
+    Tensor4f src, dst, dst_host;
+    src.re_alloc(shape_in);
+
+    float *src_ptr = src.mutable_data();
+    for(int i = 0; i<src.size(); i++){
+        src_ptr[i] = 0.12345f + (float)i*1e-4; 
+    }
+
+    dst_host.re_alloc(shape_in);
+    float *dst_host_ptr = dst_host.mutable_data();
+    for(int i = 0; i< dst_host.size(); i++){
+        dst_host_ptr[i] = 0.12345f + (float)i*1e-4;
+        dst_host_ptr[i] = scale_b * tanh(scale_a * dst_host_ptr[i]);
+    }
+
+
+    Context<X86> ctx_host;
+
+    std::vector<Tensor4f*> input_stanh;
+    std::vector<Tensor4f*> output_stanh;
+
+    input_stanh.push_back(&src);
+
+    dst.re_alloc(shape_out);
+    output_stanh.push_back(&dst);
+
+    ActivationParam<Tensor4f> param_host(Active_stanh, scale_a, scale_b);
+
+    Activation<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW> op_stanh;
+
+    op_stanh.init(input_stanh, output_stanh, param_host, SPECIFY, SABER_IMPL, ctx_host);
+
+    op_stanh(input_stanh, output_stanh, param_host, ctx_host);
+
+    const float *dst_ptr = dst.data();
+	std::cout<< std::endl;
+	std::cout<< "This tensor size is:" << dst.size()<< std::endl;
+    for(int i = 0; i < dst.size(); i++){
+		if(i%5==0 && i)
+            std::cout << std::endl;
+		std::cout << dst_ptr[i] <<"  ";
+
+    }
+
+    bool pass = compare_tensor<Tensor4f>(dst_host, dst, 1e-6);
+    if (pass) {
+        LOG(INFO) << "Test Passed";
+    }
+    else {
+        LOG(ERROR) << "Test Failed";
+    }
+}
 
 TEST(TestSaberActivationX86, test_tensor_activation) {
     Env<X86>::env_init();
@@ -73,6 +136,18 @@ TEST(TestSaberActivationX86, test_tensor_activation) {
     test(2, 2, 32, 32);
     LOG(INFO) << "case 4:"; 
     test(2, 32, 512, 512);
+
+    LOG(INFO) << "test for stanh:";
+
+    std::cout << "case 1:" << std::endl; 
+    test_stanh(1, 1, 1, 4);
+    std::cout << "case 2:" << std::endl;
+	test_stanh(1, 1, 20, 2);
+    std::cout << "case 3:" << std::endl;
+	test_stanh(2, 2, 32, 1);
+    std::cout << "case 4:" << std::endl;
+    test_stanh(2, 32, 2, 2);
+
 }
 
 int main(int argc, const char** argv) {
