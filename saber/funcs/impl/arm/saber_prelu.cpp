@@ -48,8 +48,8 @@ void prelu_kernel<float>(const float* din, const float* slopes, \
                         "vst1.f32   {d0-d1}, [%[dout]]!                 @store data\n"
                         "bne        prelu_loop                          @bne nn\n"
                 :[ptr_in] "+r" (data_in_channel), [cnt] "+r" (cnt), \
-                     [dout] "+r" (data_out_channel),
-                :[vzero], "w" (vzero), [vslope] "w" (vslope)
+                     [dout] "+r" (data_out_channel)
+                :[vzero] "w" (vzero), [vslope] "w" (vslope)
                 :"q0", "q1", "q2"
                 );
             }
