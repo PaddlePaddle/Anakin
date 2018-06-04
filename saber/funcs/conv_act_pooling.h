@@ -27,6 +27,11 @@
 #include "saber/funcs/impl/x86/saber_conv_act_pooling.h"
 #endif
 
+#ifdef USE_ARM_PLACE
+//todo
+#include "saber/funcs/impl/impl_conv_act_pooling.h"
+#endif
+
 namespace anakin {
 namespace saber {
 
