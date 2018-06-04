@@ -250,7 +250,9 @@ struct GruParam {
     int numDirection;
     float dropout_param;
     int numLayers;
+#ifdef USE_CUDA
     Tensor<NV,AK_INT8,NCHW> in_weights;
+#endif //CUDA
     bool isHW2Seq;
     GruActivaty _gate_activity;
     GruActivaty _h_activity;
