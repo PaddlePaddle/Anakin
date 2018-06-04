@@ -25,6 +25,32 @@
 namespace anakin{
 
 namespace saber {
+
+template <typename Type>
+struct MatMulParam {
+    MatMulParam():_is_transpose_X(false),_is_transpose_Y(false){}
+    MatMulParam(bool x, bool y):_is_transpose_X(x),_is_transpose_Y(y){}
+    MatMulParam &operator=(const MatMulParam &right)
+    {
+        _is_transpose_X = right._is_transpose_X;
+        _is_transpose_Y = right._is_transpose_Y;
+    }
+    bool operator==(const MatMulParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (_is_transpose_X == right._is_transpose_X);        
+        comp_eq = comp_eq && (_is_transpose_Y == right._is_transpose_Y);        
+    }
+
+    bool _is_transpose_X{false};
+    bool _is_transpose_Y{false};
+    int _M = 0;
+    int _N = 0;
+    int _K = 0;
+    int _B = 0;//batch_size
+
+};
+
+    
 //should design this one for pick_best_specify()
 enum ImplEnum{
     VENDER_IMPL = 0,
