@@ -28,7 +28,7 @@ ActivationHelper<Ttype, Dtype, Ptype>::~ActivationHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ActivationHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Activation op parameter.";
+    DLOG(WARNING) << "Parsing Activation op parameter.";
     auto type = GET_PARAMETER(std::string, type);
 
     if (type == "TanH") {

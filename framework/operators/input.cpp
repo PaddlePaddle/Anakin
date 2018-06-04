@@ -21,7 +21,7 @@ InputHelper<Ttype, Dtype, Ptype>::~InputHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status InputHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Input op parameter.";
+    DLOG(WARNING) << "Parsing Input op parameter.";
     input_shape = GET_PARAMETER(PTuple<int>, input_shape);
 
     for (int i = 0; i < input_shape.size(); i++) {

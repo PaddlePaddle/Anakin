@@ -67,6 +67,7 @@ public:
 
         if (_output_host != nullptr) {
             fast_free(_output_host);
+            _output_host = nullptr;
         }
         _output_host = (float*)fast_malloc(sizeof(float) * outputs[0]->valid_size());
 

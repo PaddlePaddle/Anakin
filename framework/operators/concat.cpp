@@ -27,7 +27,7 @@ ConcatHelper<Ttype, Dtype, Ptype>::~ConcatHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ConcatHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Concat op parameter.";
+    DLOG(WARNING) << "Parsing Concat op parameter.";
     auto axis = GET_PARAMETER(int, axis);
     ConcatParam<Tensor4d<Ttype, Dtype>> param_concat(axis);
     _param_concat = param_concat;

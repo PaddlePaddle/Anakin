@@ -105,7 +105,7 @@ public:
         //CHECK_EQ(outputs[0]->shape() == outputs[0]->valid_shape(), true) << \
                 "cudnn softmax does not support tensor with roi";
 
-        Shape shape_in = inputs[0]->shape();
+        Shape shape_in = inputs[0]->valid_shape();
         if (!(ctx == this->_ctx)) {
             if (_handle != NULL) {
                 CUDNN_CHECK(cudnnDestroy(_handle));
@@ -121,7 +121,7 @@ public:
         int inner_num = inputs[0]->count(param.axis + 1, inputs[0]->dims());
 
         int N = outer_num;
-        int K = inputs[0]->shape()[param.axis];
+        int K = inputs[0]->valid_shape()[param.axis];
         int H = inner_num;
         int W = 1;
 
