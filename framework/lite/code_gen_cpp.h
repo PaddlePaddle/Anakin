@@ -26,43 +26,35 @@ namespace lite {
  */
 class GenCPP : public CodeGenBase {
 public:
-	explicit GenCPP(std::string& file_name):CodeGenBase(file_name) {}
+	GenCPP() {}
+	explicit GenCPP(std::string& file_name):_file_name(file_name) {
+		_code.open(file_name);
+	}
 	~GenCPP() {}
 
 	/// generate all cpp files
-	virtual void gen_files() {
+	inline virtual void gen_files() {
 		this->gen_header();
 		this->gen_source();
 	}
 
-private:
-	/// 
-	void gen_header() {
-		auto code_name = this->get_code_name();
-		this->Clean();
-		this->feed("#ifndef ANAKIN_%s_H \n", code_name.c_str());
-		this->feed("#define ANAKIN_%s_H \n\n", code_name.c_str());
-		(*this)<<"namepsace anakin \{ \n\n";
-		// add running api for anakin-lite model
-		
-		(*this)<<"\} /* namespace anakin */\n";
-		(*this)<<"#endif\n";
+	inline void write_to(std::string& file_path) {
+	    _code.open(file_path, "w");
+		_code.save();
 	}
 
-	void gen_source() {
-		auto code_name = this->get_code_name();
-		this->Clean();
-		this->feed("#include \"%s.h\" \n\n", code_name.c_str());
-		(*this)<<"namepsace anakin \{ \n\n";
-		// add running impl for model api
-		
-		(*this)<<"\} /* namespace anakin */\n";
-	}
-
-	std::string gen_include_guard() {
-	}
 
 private:
+	void gen_header_start();
+	void gen_header_end();
+	void gen_source_start();
+	void gen_source_end();
+
+	std::string gen_include_guard();
+
+private:
+	std::string _file_name;
+	CodeWritter _code;
 };
 
 } /* namespace lite */

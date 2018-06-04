@@ -24,24 +24,15 @@ namespace lite {
  *  \brief class for target language code generator.
  *
  */
-class CodeGenBase : public CodeWritter {
+class CodeGenBase {
 public:
-	explicit CodeGenBase(std::string& file_path) {
-		_file_path = file_path;
-		this->open(file_path, "w");
-	}
+	CodeGenBase() {}
 	virtual ~CodeGenBase(){}
 
 	virtual void gen_files() {}
 
-	void write_to(std::string& file_path) {
-	    this->open(file_path, "w");
-		this->save();
-	}
-
 
 private:
-	std::string _file_path;
 };
 
 } /* namespace lite */
