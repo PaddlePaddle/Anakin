@@ -25,7 +25,7 @@ ArgmaxHelper<Ttype, Dtype, Ptype>::~ArgmaxHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ArgmaxHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Argmax op parameter.";
+    DLOG(WARNING) << "Parsing Argmax op parameter.";
     auto out_max_val = GET_PARAMETER(bool, out_max_val);
     auto top_k = GET_PARAMETER(int, top_k);
     auto axis = GET_PARAMETER(int, axis);

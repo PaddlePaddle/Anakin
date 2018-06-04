@@ -45,7 +45,7 @@ public:
 
     SaberGru() {}
     ~SaberGru() {
-        if (_cublas_handle != nullptr) {
+        if (_cublas_handle != NULL) {
             CUBLAS_CHECK(cublasDestroy(_cublas_handle));
         }
     }

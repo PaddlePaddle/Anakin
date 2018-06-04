@@ -26,7 +26,7 @@ DenseHelper<Ttype, Dtype, Ptype>::~DenseHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status DenseHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Dense op parameter.";
+    DLOG(WARNING) << "Parsing Dense op parameter.";
     auto axis = GET_PARAMETER(int, axis);
     auto out_dim = GET_PARAMETER(int, out_dim);
     auto bias_term = GET_PARAMETER(bool, bias_term);

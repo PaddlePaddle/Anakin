@@ -25,7 +25,7 @@ ReLUHelper<Ttype, Dtype, Ptype>::~ReLUHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ReLUHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing ReLU op parameter.";
+    DLOG(WARNING) << "Parsing ReLU op parameter.";
 
     // get relu param
     auto alpha = GET_PARAMETER(float, alpha);

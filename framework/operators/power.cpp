@@ -25,7 +25,7 @@ PowerHelper<Ttype, Dtype, Ptype>::~PowerHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status PowerHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Power op parameter.";
+    DLOG(WARNING) << "Parsing Power op parameter.";
     auto scale = GET_PARAMETER(float, scale);
     auto shift = GET_PARAMETER(float, shift);
     auto power = GET_PARAMETER(float, power);

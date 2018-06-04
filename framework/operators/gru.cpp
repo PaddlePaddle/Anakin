@@ -25,7 +25,7 @@ GruHelper<Ttype, Dtype, Ptype>::~GruHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status GruHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Gru op parameter.";
+    DLOG(WARNING) << "Parsing Gru op parameter.";
     auto is_reverse = GET_PARAMETER(bool, is_reverse);
     auto gate_act = GET_PARAMETER(std::string, gate_activation);
     auto hidden_act = GET_PARAMETER(std::string, activation);

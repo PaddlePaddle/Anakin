@@ -33,7 +33,7 @@ SassConvReluPoolHelper<Ttype, Dtype, Ptype>::~SassConvReluPoolHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status SassConvReluPoolHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing SassConvReluPool op parameter.";
+    DLOG(WARNING) << "Parsing SassConvReluPool op parameter.";
     saber::ConvParam<Tensor4d<Ttype, Dtype>> _conv_param;
     PoolingParam<Tensor4d<Ttype, Dtype>> _pooling_param;
     // get conv param

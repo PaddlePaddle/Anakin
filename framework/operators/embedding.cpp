@@ -28,7 +28,7 @@ EmbeddingHelper<Ttype, Dtype, Ptype>::~EmbeddingHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status EmbeddingHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Embedding op parameter.";
+    DLOG(WARNING) << "Parsing Embedding op parameter.";
     auto word_num = GET_PARAMETER(int, word_num);
     auto emb_dim = GET_PARAMETER(int, emb_dim);
     auto padding_idx = GET_PARAMETER(int, padding_idx);
