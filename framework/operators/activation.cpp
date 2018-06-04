@@ -40,6 +40,15 @@ Status ActivationHelper<Ttype, Dtype, Ptype>::InitParam() {
     } else if (type == "Stanh") {
         ActivationParam<Tensor4d<Ttype, Dtype>> param_activation(Active_stanh);
         _param_activation = param_activation;
+    }else if (type == "Relu") {
+        ActivationParam<Tensor4d<Ttype, Dtype>> param_activation(Active_relu);
+        _param_activation = param_activation;
+    }else if (type == "ClippedRelu") {
+        ActivationParam<Tensor4d<Ttype, Dtype>> param_activation(Active_clipped_relu);
+        _param_activation = param_activation;
+    }else if (type == "Elu") {
+        ActivationParam<Tensor4d<Ttype, Dtype>> param_activation(Active_elu);
+        _param_activation = param_activation;
     }else {
         LOG(FATAL) << "Other Activation type" << type << " should be replace by other ops.";
     }
