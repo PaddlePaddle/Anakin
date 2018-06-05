@@ -2,8 +2,6 @@
 
 #include "saber/funcs/impl/x86/saber_gru.h"
 #include "saber/core/tensor_op.h"
-#include "thrust/host_vector.h"
-#include "thrust/device_vector.h"
 #include "mkl_cblas.h"
 #include <immintrin.h>
 #include "avx_mathfun.h"

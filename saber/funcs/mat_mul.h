@@ -13,22 +13,22 @@
    limitations under the License. 
 */
 
-#ifndef ANAKIN_SABER_FUNCS_PERMUTE_POWER_H
-#define ANAKIN_SABER_FUNCS_PERMUTE_POWER_H
+#ifndef ANAKIN_SABER_FUNCS_MAT_MUL_H
+#define ANAKIN_SABER_FUNCS_MAT_MUL_H
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
 #ifdef NVIDIA_GPU
-#include "saber/funcs/impl/cuda/saber_permute_power.h"
-#include "saber/funcs/impl/cuda/vender_permute_power.h"
+#include "saber/funcs/impl/cuda/saber_mat_mul.h"
 #endif
 
 #ifdef USE_X86_PLACE
-#include "saber/funcs/impl/impl_permute_power.h"
+#include "saber/funcs/impl/impl_mat_mul.h"
 #endif
 
-namespace anakin {
-namespace saber {
+namespace anakin{
+
+namespace saber{
 
 template<typename TargetType,
         DataType OpDtype,
@@ -38,12 +38,12 @@ template<typename TargetType,
         typename LayOutType_in = NCHW,
         typename LayOutType_out = NCHW
 >
-class PermutePower : public BaseFunc<
+class MatMul : public BaseFunc<
         Tensor<TargetType, inDtype, LayOutType_in>,
         Tensor<TargetType, outDtype, LayOutType_out>,
         Tensor<TargetType, OpDtype, LayOutType_op>,
         ImplBase,
-        PermutePowerParam
+        MatMulParam
 > {
 public:
     using BaseFunc<
@@ -51,73 +51,91 @@ public:
             Tensor<TargetType, outDtype, LayOutType_out>,
             Tensor<TargetType, OpDtype, LayOutType_op>,
             ImplBase,
-            PermutePowerParam>::BaseFunc;
-
-    PermutePower() = default;
+            MatMulParam>::BaseFunc;
 
     typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
     typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
     typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-    typedef PermutePowerParam<OpTensor> Param_t;
+    typedef MatMulParam<OpTensor> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
 
+    MatMul() = default;
+
     virtual SaberStatus compute_output_shape(const Input_v& input, Output_v& output, \
-        Param_t& param) override {
-
-        SaberStatus status;
-        std::vector<int> order = param.permute_param.order;
-        for (int j = 0; j < input.size(); ++j) {
-             Shape output_shape = input[j]->valid_shape();
-
-            if (input[j]->valid_shape().size() != order.size()) {
-                LOG(FATAL) << "permute order param is not valid";
-            }
-
-            //for example: (n, h, w, c)->(n, c, h, w)  by order(0, 3, 1, 2)
-            for (int i = 0; i < order.size(); ++i) {
-                output_shape[i] = input[j]->valid_shape()[order[i]];
-            }
-            output[j]->set_shape(output_shape);
+        Param_t& param) override 
+    {
+        CHECK_EQ(input.size(), 2);
+        CHECK_EQ(input[0]->num(), input[0]->num());
+        CHECK_EQ(input[1]->channel(), input[1]->channel());
+        Shape shape_output = input[0]->shape();
+        int M,N,K0,K1,B;
+        if (param._is_transpose_X)
+        {
+            K0 = input[0]->height();
+            M = input[0]->width();
+        }else{
+            M = input[0]->height();
+            K0 = input[0]->width();
         }
-        return SaberSuccess;
+
+        if (param._is_transpose_Y)
+        {
+            N = input[1]->height();
+            K1 = input[1]->width();
+        }else{
+            K1 = input[1]->height();
+            N = input[1]->width();
+        }
+        CHECK_EQ(K0, K1);
+
+        param._B = input[0]->num() * input[0]->channel();
+        param._M = M;
+        param._N = N;
+        param._K = K0;
+        return output[0]->set_shape({input[0]->num(), input[0]->channel(), M, N});
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
             case VENDER_IMPL:
-                this->_impl.push_back(new VenderPermutePower <TargetType, OpDtype, inDtype, outDtype,
+                this->_impl.push_back(new VenderMatMul <TargetType, OpDtype, inDtype, outDtype,
                 LayOutType_op, LayOutType_in, LayOutType_out>);
                 return SaberSuccess;
 
             case SABER_IMPL:
-                this->_impl.push_back(new SaberPermutePower <TargetType, OpDtype, inDtype, outDtype,
+                this->_impl.push_back(new SaberMatMul <TargetType, OpDtype, inDtype, outDtype,
                 LayOutType_op, LayOutType_in, LayOutType_out>);
                 return SaberSuccess;
 
             default:
-                return SaberUnImplError;
+                return SaberUnImplError;            
         }
     }
 
 private:
 
     virtual void pick_best_static() override {
-        if (true) // some condition?
-            this->_best_impl = this->_impl[0];
+        //! Fc only has saber implementation
+        this->_best_impl = this->_impl[0];
     }
 
-    //virtual void pick_best_runtime(Input_v input, Output_v output, Param_t& param) override {}
+    virtual void pick_best_runtime(Input_v input, Output_v output, \
+        Param_t& param, Context<TargetType> &ctx) override {
+        //! Fc only has saber implementation
+        this->_best_impl = this->_impl[0];
+    }
 
     virtual void pick_best_specify(ImplEnum implenum) override {
+        //! Fc only has saber implementation
         this->_best_impl = this->_impl[0];
     }
 
 };
 
+} //namespace saber
 
-}
-}
+} //namespace anakin
 
-#endif //ANAKIN_SABER_FUNCS_PERMUTE_POWER_H
+#endif //ANAKIN_SABER_FUNCS_MAT_MUL_H

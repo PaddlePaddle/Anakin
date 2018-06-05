@@ -3,6 +3,17 @@
 #include "saber/funcs/timer.h"
 #include <chrono>
 
+#ifdef USE_CUDA
+using Target = NV;
+#endif
+#ifdef USE_X86_PLACE
+using Target = X86;
+#endif
+#ifdef USE_ARM_PLACE
+using Target = ARM;
+#endif
+
+
 //std::string model_path = "/home/shixiaowei/temp/vgg19_trans.bin";
 //std::string model_path = "/home/shixiaowei/temp/mobilenet_ssd/mobilenet_ssd.bin";
 //std::string model_path = "/home/public/model_from_fluid/SE-ResNeXt-50/se-resnext50_fluid_anakin2.bin";
@@ -14,7 +25,7 @@ std::string model_path = "/home/liujunjie/macbuild/models/ocr_anakin_check/ocr20
 
 #if 1
 TEST(NetTest, net_execute_base_test) {
-    graph = new Graph<NV, AK_FLOAT, Precision::FP32>();
+    graph = new Graph<Target, AK_FLOAT, Precision::FP32>();
     LOG(WARNING) << "load anakin model file from " << model_path << " ...";
     // load anakin model files.
     auto status = graph->load(model_path);
@@ -33,7 +44,7 @@ TEST(NetTest, net_execute_base_test) {
     graph->Optimize();
 
     // constructs the executer net
-    Net<NV, AK_FLOAT, Precision::FP32> net_executer(*graph, true);
+    Net<Target, AK_FLOAT, Precision::FP32> net_executer(*graph, true);
 
     // get in
     auto d_tensor_in_p = net_executer.get_in("input_0");
@@ -56,8 +67,8 @@ TEST(NetTest, net_execute_base_test) {
 
     int epoch = 1;
     // do inference
-    Context<NV> ctx(0, 0, 0);
-    saber::SaberTimer<NV> my_time;
+    Context<Target> ctx(0, 0, 0);
+    saber::SaberTimer<Target> my_time;
     LOG(WARNING) << "EXECUTER !!!!!!!! ";
 	// warm up
 	for(int i=0; i<epoch; i++) {
