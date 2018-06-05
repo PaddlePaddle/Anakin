@@ -1,8 +1,6 @@
 #include "saber/funcs/impl/cuda/saber_gru.h"
 #include "saber/core/tensor_op.h"
 #include "cuda_fp16.h"
-#include "thrust/host_vector.h"
-#include "thrust/device_vector.h"
 namespace anakin {
 
 namespace saber {
