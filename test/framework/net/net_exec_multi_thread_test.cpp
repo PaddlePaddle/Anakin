@@ -3,6 +3,17 @@
 #include "saber/funcs/timer.h"
 #include <chrono>
 
+#ifdef USE_CUDA
+using Target = NV;
+#endif
+#ifdef USE_X86_PLACE
+using Target = X86;
+#endif
+#ifdef USE_ARM_PLACE
+using Target = ARM;
+#endif
+
+
 std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/yolo_lane_v2.anakin.bin";
 
 #if 1
@@ -10,7 +21,7 @@ TEST(NetTest, net_execute_muti_thread_sync_test) {
 #if 1 // use host input
     //Env<NV>::env_init(1);
     LOG(WARNING) << "Sync Runing multi_threads for model: " << model_path;
-    Worker<NV, AK_FLOAT, Precision::FP32>  workers(model_path, 10); 
+    Worker<Target, AK_FLOAT, Precision::FP32>  workers(model_path, 10); 
     workers.register_inputs({"input_0"});
     workers.register_outputs({"softmax_out"});    
     workers.Reshape("input_0", {1, 384, 960, 3});
@@ -51,9 +62,9 @@ TEST(NetTest, net_execute_muti_thread_sync_test) {
 #endif
 
 #if 0 // use device input
-    Env<NV>::env_init(1);
+    Env<Target>::env_init(1);
     LOG(WARNING) << "Sync Runing multi_threads for model: " << model_path;
-    Worker<NV, AK_FLOAT, Precision::FP32>  workers(model_path, 1); 
+    Worker<Target, AK_FLOAT, Precision::FP32>  workers(model_path, 1); 
     workers.register_inputs({"input_0"});
     workers.register_outputs({"softmax_out"});    
     workers.Reshape("input_0", {1, 384, 960, 3});
@@ -70,9 +81,9 @@ TEST(NetTest, net_execute_muti_thread_sync_test) {
     }
     host_tensor_p_in_list.push_back(h_tensor_in);
 
-    std::vector<Tensor4dPtr<NV, AK_FLOAT> > device_tensor_p_in_list;
+    std::vector<Tensor4dPtr<Target, AK_FLOAT> > device_tensor_p_in_list;
     for (int i=0; i<host_tensor_p_in_list.size(); i++) {
-        Tensor4dPtr<NV, AK_FLOAT> d_tensor_in = new Tensor4d<NV, AK_FLOAT>(host_tensor_p_in_list[i]->valid_shape());
+        Tensor4dPtr<Target, AK_FLOAT> d_tensor_in = new Tensor4d<Target, AK_FLOAT>(host_tensor_p_in_list[i]->valid_shape());
         d_tensor_in->copy_from(*(host_tensor_p_in_list[i]));
         device_tensor_p_in_list.push_back(d_tensor_in);
     }
@@ -81,8 +92,8 @@ TEST(NetTest, net_execute_muti_thread_sync_test) {
 
     // Running 
     for (int i=0; i<epoch; i++) {
-        Context<NV> ctx(0, 0, 0);
-        saber::SaberTimer<NV> my_time;
+        Context<Target> ctx(0, 0, 0);
+        saber::SaberTimer<Target> my_time;
 
         my_time.start(ctx);
         auto  d_tensor_p_out_list = workers.sync_prediction_device(device_tensor_p_in_list);
@@ -100,7 +111,7 @@ TEST(NetTest, net_execute_muti_thread_sync_test) {
 #if 0
 TEST(NetTest, net_execute_muti_thread_async_test) {
     LOG(WARNING) << "Async Runing multi_threads for model: " << model_path;
-    Worker<NV, AK_FLOAT, Precision::FP32>  workers(model_path, 10); 
+    Worker<Target, AK_FLOAT, Precision::FP32>  workers(model_path, 10); 
     workers.register_inputs({"input_0"});
     workers.register_outputs({"softmax_out"});    
     workers.Reshape("input_0", {1, 384, 960, 3});
