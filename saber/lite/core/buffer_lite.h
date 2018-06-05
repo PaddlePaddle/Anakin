@@ -1,24 +1,36 @@
-// create by lxy890123
+/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
 
-#ifndef MERCURY_BASE_MEMORY_H
-#define MERCURY_BASE_MEMORY_H
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
 
-#include "common.h"
+       http://www.apache.org/licenses/LICENSE-2.0
 
-namespace mercury{
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
 
-// the alignment of all the allocated buffers
+#ifndef ANAKIN_SABER_LITE_CORE_BUFFER_LITE_H
+#define ANAKIN_SABER_LITE_CORE_BUFFER_LITE_H
+
+#include "saber/lite/core/common_lite.h"
+
+namespace anakin{
+
+namespace saber{
+
+namespace lite{
+
+//! the alignment of all the allocated buffers
 const int MALLOC_ALIGN = 16;
 
-static inline void* fast_malloc(size_t size)
-{
+inline void* fast_malloc(size_t size) {
     size_t offset = sizeof(void*) + MALLOC_ALIGN - 1;
     char* p;
-#ifdef USE_CUDA
-    CUDA_CHECK(cudaMallocHost(&p, offset + size));
-#else
     p = static_cast<char*>(malloc(offset + size));
-#endif
     if (!p) {
         return nullptr;
     }
@@ -27,80 +39,80 @@ static inline void* fast_malloc(size_t size)
     return r;
 }
 
-static inline void fast_free(void* ptr)
-{
+inline void fast_free(void* ptr) {
     if (ptr){
-#ifdef USE_CUDA
-        CUDA_CHECK(cudaFreeHost(static_cast<void**>(ptr)[-1]));
-#else
         free(static_cast<void**>(ptr)[-1]);
-#endif
     }
 }
 
-class Memory {
+class Buffer{
 public:
 
-    /*
+    /**
      * \brief constructor
      */
-    Memory(){
+    Buffer() {
         _capacity = 0;
         _data = nullptr;
         _own_data = false;
     }
-    /*
+    /**
      * \brief constructor, allocate data
      */
-    explicit Memory(size_t size){
+    explicit Buffer(size_t size){
         _capacity = size;
     }
-    /*
+    /**
      * \brief assigned function
      */
-    Memory& operator = (Memory& buf){
+    Buffer& operator = (Buffer& buf){
         this->_capacity = buf._capacity;
         this->_own_data = false;
         this->_data = buf._data;
         return *this;
     }
 	
-    /*
+    /**
      * \brief destructor
      */
-    ~Memory(){}
+    virtual ~Buffer(){}
 
-	/*
+	/**
 	* \brief deep copy function
 	*/
-	virtual void copyto(Memory& buf) = 0;
+	virtual void copy_from(Buffer& buf) = 0;
 
-    /*
+    /**
      * \brief set _data to (c) with length of (size)
      */
     virtual void mem_set(int c, size_t size) = 0;
 
-    /*
+    /**
      * \brief re-alloc memory
      */
-    virtual void re_alloc(size_t size) = 0;
+    virtual SaberStatus re_alloc(size_t size) = 0;
 
-    /*
+    /**
+     * \brief alloc memory
+     */
+    virtual SaberStatus alloc(size_t size) = 0;
+
+    /**
      * \brief free memory
      */
     virtual void clean() =0;
 
-    /*
+    /**
      * \brief return const data pointer
      */
     virtual const void* get_data() = 0;
 
-    /*
+    /**
      * \brief return mutable data pointer
      */
     virtual void* get_data_mutable() = 0;
 
-    /*
+    /**
      * \brief return total size of memory, in bytes
      */
     inline size_t get_capacity() { return _capacity;}
@@ -112,14 +124,14 @@ protected:
     size_t _capacity;
 
 };
-
-class GpuMemory : public Memory {
+#ifdef USE_ARM_CL
+class GpuBuffer : public Buffer {
 public:
-    explicit GpuMemory();
-    ~GpuMemory();
-    explicit GpuMemory(size_t size);
-    explicit GpuMemory(void* data, size_t size);
-    GpuMemory& operator = (GpuMemory& buf) {
+    explicit GpuBuffer();
+    ~GpuBuffer();
+    explicit GpuBuffer(size_t size);
+    explicit GpuBuffer(void* data, size_t size);
+    GpuBuffer& operator = (GpuBuffer& buf) {
         this->_capacity = buf._capacity;
         this->_own_data = false;
         this->_data = buf._data;
@@ -130,36 +142,29 @@ public:
     virtual void mem_set(int c, size_t size);
     virtual const void* get_data();
     virtual void* get_data_mutable();
-	virtual void copyto(Memory& buf);
+	virtual void copyto(GpuBuffer& buf);
 
 };
-
-class CpuMemory : public Memory {
+#endif
+class CpuBuffer : public Buffer {
 public:
-    explicit  CpuMemory();
-    ~CpuMemory();
-    explicit CpuMemory(size_t size);
-    explicit CpuMemory(void* data, size_t size);
-    CpuMemory& operator = (CpuMemory& buf) {
-        this->_capacity = buf._capacity;
-        this->_own_data = false;
-        this->_data = buf._data;
-        return *this;
-    }
-    virtual void re_alloc(size_t size);
+    explicit  CpuBuffer();
+    ~CpuBuffer();
+    explicit CpuBuffer(size_t size);
+    explicit CpuBuffer(void* data, size_t size);
+    CpuBuffer& operator = (CpuBuffer& buf);
+    virtual SaberStatus re_alloc(size_t size);
+    virtual SaberStatus alloc(size_t size);
     virtual void clean();
     virtual void mem_set(int c, size_t size);
     virtual const void* get_data();
     virtual void* get_data_mutable();
-	virtual void copyto(Memory& buf);
-
-    // register pinned memory.
-    inline void reg_page_lock(size_t size);
-
-private:
-    bool page_lock;  // whether the memory is pageable
-    bool num_page_aligned;
+	virtual void copy_from(Buffer& buf);
 };
 
-} //namespace mercury
-#endif //MERCURY_BASE_MEMORY_H
+} //namespace lite
+
+} //namespace saber
+
+} //namespace anakin
+#endif //ANAKIN_SABER_LITE_CORE_BUFFER_LITE_H

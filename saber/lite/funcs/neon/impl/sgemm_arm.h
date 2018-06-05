@@ -12,15 +12,17 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-#ifndef ANAKIN_SABER_FUNCS_ARM_IMPL_SGEMM_ARM_H
-#define ANAKIN_SABER_FUNCS_ARM_IMPL_SGEMM_ARM_H
+#ifndef ANAKIN_SABER_LITE_FUNCS_NEON_IMPL_SGEMM_ARM_H
+#define ANAKIN_SABER_LITE_FUNCS_NEON_IMPL_SGEMM_ARM_H
 
-#include "saber/core/common.h"
+#include "saber/lite/core/common_lite.h"
 #ifdef USE_ARM_PLACE
 
 namespace anakin{
 
 namespace saber{
+
+namespace lite{
 
 typedef void (*load_data)(float* out, const float* in, const int ldin, const int m0, \
     const int mmax, const int k0, const int kmax);
@@ -67,10 +69,12 @@ private:
     bool _init_flag{false};
 };
 
+} //namespace lite
+
 } //namespace saber
 
 } //namespace anakin
 
 #endif // USE_ARM_PLACE
 
-#endif //ANAKIN_SABER_FUNCS_ARM_IMPL_SGEMM_ARM_H
+#endif //ANAKIN_SABER_LITE_FUNCS_NEON_IMPL_SGEMM_ARM_H

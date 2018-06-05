@@ -4,6 +4,62 @@
 # @auther   cuichaowen
 # @date		2017-10-24
 # ----------------------------------------------------------------------------
+
+option(USE_CUDA "use nvidia gpu" OFF)
+option(USE_CUDNN "use cudnn lib" OFF)
+option(USE_ARM "build for arm devices" ON)
+option(USE_X86 "build for x86 device" OFF)
+option(USE_AMD "build for AMD gpu" OFF)
+
+option(USE_OPENMP "use openmp for muti-thread" ON)
+option(USE_OPENCV "build with opencv" OFF)
+
+if(USE_ARM)
+    # change path to your ANDROID_NDK
+    set(ANDROID_NDK "/Users/lixiaoyang05/Library/Android/sdk/ndk-bundle/")#"/home/public/android-ndk-r14b")#
+    message(STATUS "ANDROID_NDK = ${ANDROID_NDK}")
+    set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/android.toolchain.cmake)
+    #set(ANDROID_ABI "arm64-v8a")#armeabi-v7a-hard with NEON#"arm64-v8a")#"armeabi-v7a with NEON")
+
+    option(ARMV8 "build aarch64(armv8)" OFF)
+    option(ARM_HARD_FLOAT "Build for hard float abi" OFF)
+
+    if(ARMV8)
+        set(ANDROID_ABI "arm64-v8a")
+    else()
+        set(ANDROID_ABI "armeabi-v7a with NEON")
+    endif()
+
+    message(STATUS "ANDROID_ABI = ${ANDROID_ABI}")
+
+    if(CMAKE_TOOLCHAIN_FILE)
+        set(LIBRARY_OUTPUT_PATH_ROOT ${CMAKE_BINARY_DIR} CACHE PATH "root for library output, set this to change where android libs are compiled to")
+        # get absolute path, but get_filename_component ABSOLUTE only refer with source dir, so find_file here :(
+        get_filename_component(CMAKE_TOOLCHAIN_FILE_NAME ${CMAKE_TOOLCHAIN_FILE} NAME)
+        find_file(CMAKE_TOOLCHAIN_FILE ${CMAKE_TOOLCHAIN_FILE_NAME} PATHS ${CMAKE_SOURCE_DIR} NO_DEFAULT_PATH)
+        message(STATUS "CMAKE_TOOLCHAIN_FILE = ${CMAKE_TOOLCHAIN_FILE}")
+    endif()
+
+    if(NOT DEFINED CMAKE_INSTALL_PREFIX)
+        set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "Installation Directory")
+    endif()
+    message(STATUS "CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
+
+    if(ARM_HARD_FLOAT)
+        set(FLOAT_ABI "hard")
+    else()
+        set(FLOAT_ABI "softfp")
+    endif()
+
+    if(ARMV8)
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIE -pie")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIE -pie")
+    else()
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIE -pie -mfloat-abi=${FLOAT_ABI} -mfpu=neon")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIE -pie -mfloat-abi=${FLOAT_ABI} -mfpu=neon")
+    endif()
+endif()
+
 include(cmake/thirdparty_version.cmake)
 project(ANAKIN C CXX) 
 include(cmake/msg_color.cmake)

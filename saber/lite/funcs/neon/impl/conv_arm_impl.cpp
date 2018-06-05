@@ -1,9 +1,12 @@
-#include "saber/funcs/impl/arm/impl/conv_arm_impl.h"
+#include "saber/lite/funcs/neon/impl/conv_arm_impl.h"
 #ifdef USE_ARM_PLACE
 #include "saber/core/tensor_op.h"
 
 namespace anakin{
+
 namespace saber{
+
+namespace lite{
 /**
  * \brief neon implementation to add bias
  * @param tensor
@@ -30,7 +33,7 @@ void fill_bias(float* tensor, const float* bias, int channel, int channel_size) 
 /**
  * \brief basic direct convolution function
  */
-void conv_arm_basic(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, \
+void conv_arm_basic(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
     const float* weights, const float* bias, \
     int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
     int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space) {
@@ -212,7 +215,7 @@ void im2col1x1s2(const float* data_im, const int channels, const int height, \
 /**
  * \brief convolution function for kernel size 1x1, stride size 1, gemm implementation
  */
-void conv1x1s1_gemm(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, \
+void conv1x1s1_gemm(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
     const float* weights, const float* bias, \
     int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
     int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space) {
@@ -249,7 +252,7 @@ void conv1x1s1_gemm(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FLOA
 /**
  * \brief convolution function for kernel size 3x3, stride size 2, gemm implementation
  */
-void conv_im2col_gemm(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, \
+void conv_im2col_gemm(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
     const float* weights, const float* bias, \
     int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
     int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space) {
@@ -291,7 +294,7 @@ void conv_im2col_gemm(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FL
     }
 }
 
-void conv_3x3s1_direct(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, \
+void conv_3x3s1_direct(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
     const float* weights, const float* bias, \
     int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
     int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space) {
@@ -1361,6 +1364,8 @@ void conv_3x3s1_direct(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_F
 
     } // end of processing batchs
 }
+
+} //namespace lite
 
 } //namespace saber
 

@@ -19,6 +19,8 @@ if(USE_ARM_PLACE)
     anakin_fetch_files_with_suffix(${ANAKIN_SABER}/core/impl/arm "cpp" ANAKIN_SABER_BASE_SRC)
     anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/arm "cpp" ANAKIN_SABER_BASE_SRC)
     anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/arm/impl "cpp" ANAKIN_SABER_BASE_SRC)
+    #anakin_fetch_files_with_suffix(${ANAKIN_SABER}/lite/core/ "cpp" ANAKIN_SABER_BASE_SRC)
+    #anakin_fetch_files_with_suffix(${ANAKIN_SABER}/lite/funcs/ "cpp" ANAKIN_SABER_BASE_SRC)
 endif()
 
 if(USE_GPU_PLACE)
@@ -74,7 +76,15 @@ if(USE_CUDA)
 				      ${WHOLE_ARCHIVE_END})	
 endif()
 
-FILE(GLOB SRC_HEADERS "./*.h" "core/*.h" "funcs/*.h" "funcs/impl/*.h" "funcs/impl/arm/*.h" "funcs/impl/arm/impl/*.h")
+if (USE_ARM_PLACE)
+    FILE(GLOB SRC_HEADERS "./*.h" "core/*.h" "funcs/*.h" "funcs/impl/*.h" "funcs/impl/arm/*.h" "funcs/impl/arm/impl/*.h")
+endif ()
+
+if(USE_ARM_PLACE)
+    FILE(GLOB SRC_LITE "lite/core/*.h" "lite/core/*.cpp" "lite/funcs/*.h" "lite/funcs/*.cpp"
+            "lite/funcs/neon/*.cpp" "lite/funcs/neon/impl/*.cpp" "lite/funcs/neon/impl/*.h")
+    add_library(saber_lite STATIC ${SRC_LITE})
+endif()
 
 # add saber library to static
 if(UNIX OR APPLE) 

@@ -1,10 +1,12 @@
-#include "saber/funcs/impl/arm/impl/conv_arm_impl.h"
+#include "saber/lite/funcs/neon/impl/conv_arm_impl.h"
 
 #ifdef USE_ARM_PLACE
 
 namespace anakin{
 
 namespace saber{
+
+namespace lite{
 
 void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
     const float* weights, const float* bias, bool flag_bias, \
@@ -27,7 +29,7 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
     const int h_out, const int w_out);
 
 
-void conv_depthwise_3x3(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, \
+void conv_depthwise_3x3(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
     const float* weights, const float* bias, \
     int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
     int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space) {
@@ -2454,6 +2456,8 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
         }
     }
 }
+
+} //namespace lite
 
 } //namespace saber
 

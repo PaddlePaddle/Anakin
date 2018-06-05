@@ -1,11 +1,13 @@
-#include "saber/funcs/impl/detection_helper.h"
-#include "saber/funcs/impl/arm/impl/neon_mathfun.h"
-
+#include "detection_lite.h"
+#include "saber/lite/funcs/neon/impl/neon_mathfun.h"
+#include <cmath>
 #ifdef USE_ARM_PLACE
 
 namespace anakin{
 
 namespace saber{
+
+namespace lite{
 
 void decode_bbox_corner_variance_kernel(const int batch_num, \
         const float* loc_data, const float* prior_data, const float* variance, \
@@ -482,6 +484,8 @@ void decode_bboxes(const int batch_num, const float* loc_data, const float* prio
         }
     }
 }
+
+} //namespace lite
 
 } //namespace saber
 

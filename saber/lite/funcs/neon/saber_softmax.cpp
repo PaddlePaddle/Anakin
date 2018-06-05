@@ -2,7 +2,7 @@
 
 #ifdef USE_ARM_PLACE
 
-#include "saber/lite/funcs/impl/neon_mathfun.h"
+#include "saber/lite/funcs/neon/impl/neon_mathfun.h"
 
 namespace anakin{
 

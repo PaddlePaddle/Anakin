@@ -1,9 +1,12 @@
-#include "saber/funcs/impl/arm/impl/sgemm_arm.h"
+#include "saber/lite/funcs/neon/impl/sgemm_arm.h"
 #ifdef USE_ARM_PLACE
-
-#include "saber/core/target_wrapper.h"
+#include <cmath>
+#include "saber/lite/core/buffer_lite.h"
 namespace anakin{
+
 namespace saber{
+
+namespace lite{
 
 #ifdef __aarch64__
 const int A_INTERLEAVE = 8;
@@ -2735,6 +2738,8 @@ void merge_float_alpha1_beta1_relu(float *out, const float *in, const int ldout,
     }
 #endif // end of __aarch64__
 }
+
+} //namespace lite
 
 } //namespace saber
 

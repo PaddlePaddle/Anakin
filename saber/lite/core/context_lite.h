@@ -23,13 +23,13 @@ namespace saber{
 
 namespace lite{
 
-template <ARM_TYPE target>
+//template <ARM_TYPE target>
 struct ARM_API{
     typedef void* stream_t;
     typedef void* event_t;
 };
 
-template <typename TargetType>
+//template <typename TargetType>
 struct DeviceInfo{
 	int _idx;
 	std::string _device_name;
@@ -46,7 +46,7 @@ struct DeviceInfo{
 	std::vector<int> _cluster_ids;
 };
 
-template <typename TargetType>
+//template <typename TargetType>
 struct Device {
 
     Device(int max_stream = 4) : _max_stream(max_stream){
@@ -109,10 +109,10 @@ struct Device {
 };
 
 
-template <typename TargetType>
+//template <typename TargetType>
 class Env {
 public:
-    typedef std::vector<Device<TargetType>> Devs;
+    typedef std::vector<Device> Devs;
     static Devs& cur_env() {
         static Devs* _g_env = new Devs();
         return *_g_env;
@@ -123,27 +123,27 @@ public:
             return;
         }
         int count = 0;
-        Device<TargetType>::get_device_count(count);
+        Device::get_device_count(count);
         if (count == 0) {
             LOG(WARNING) << "no device found!";
         } else {
             LOG(INFO) << "found " << count << " device(s)";
         }
-        int cur_id = Device<TargetType>::get_device_id();
+        int cur_id = Device::get_device_id();
         for (int i = 0; i < count; i++) {
-            Device<TargetType>::set_device(i);
-            devs.push_back(Device<TargetType>(max_stream));
+            Device::set_device(i);
+            devs.push_back(Device(max_stream));
         }
-        Device<TargetType>::set_device(cur_id);
+        Device::set_device(cur_id);
     }
 private:
     Env(){}
 };
 
-template <typename TargetType>
+//template <typename TargetType>
 class Context final{
 public:
-    typename Env<TargetType>::Devs& devs = Env<TargetType>::cur_env();
+    typename Env::Devs& devs = Env::cur_env();
     /**
      * \brief context constructor, set device id, data stream id and compute stream id
      * @param device_id
@@ -173,7 +173,7 @@ public:
         _compute_stream_id = compute_stream_id;
     }
 
-    Context(const Context<TargetType>& ctx){
+    Context(const Context& ctx){
         _device_id = ctx._device_id;
         _data_stream_id = ctx._data_stream_id;
         _compute_stream_id = ctx._compute_stream_id;
@@ -224,7 +224,7 @@ public:
 
     void set_power_mode(PowerMode mode) {
         _mode = mode;
-        Device<ARM> dev = devs[_device_id];
+        Device dev = devs[_device_id];
         if (mode == SABER_POWER_FULL){
             _act_ids = dev._info._core_ids;
         }
@@ -255,7 +255,7 @@ public:
         bind_dev();
     }
     void set_act_cores(std::vector<int> ids) {
-        Device<ARM> dev = devs[_device_id];
+        Device dev = devs[_device_id];
         if (ids.size() == 0){
             _act_ids.resize(1);
             _act_ids[0] = dev._info._core_ids[0];

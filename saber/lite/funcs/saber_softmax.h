@@ -12,9 +12,11 @@
    See the License for the specific language governing permissions and
    limitations under the License. */
 
-#ifndef ANAKIN_SABER_FUNCS_IMPL_ARM_SABER_SOFTMAX_H
-#define ANAKIN_SABER_FUNCS_IMPL_ARM_SABER_SOFTMAX_H
-#include "saber/funcs/impl/impl_softmax.h"
+#ifndef ANAKIN_SABER_LITE_FUNCS_SABER_SOFTMAX_H
+#define ANAKIN_SABER_LITE_FUNCS_SABER_SOFTMAX_H
+#include "saber/saber_funcs_param.h"
+#include "saber/lite/core/tensor_lite.h"
+#include "saber/lite/core/context_lite.h"
 
 #ifdef USE_ARM_PLACE
 
@@ -22,43 +24,33 @@ namespace anakin{
 
 namespace saber{
 
+namespace lite{
 
-template <DataType OpDtype,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-class SaberSoftmax<ARM, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out> : \
-    public ImplBase<
-        Tensor<ARM, inDtype, LayOutType_in>,
-        Tensor<ARM, outDtype, LayOutType_out>,
-        Tensor<ARM, OpDtype, LayOutType_op>,
-        SoftmaxParam<Tensor<ARM, OpDtype, LayOutType_op>>> {
+template <typename Dtype>
+class SaberSoftmax{
 public:
-    typedef TargetWrapper<ARM> API;
-    typedef Tensor<ARM, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<ARM, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<ARM, OpDtype, LayOutType_op> OpTensor;
-    typedef typename DataTensor_in::Dtype InDataType;
-    typedef typename DataTensor_out::Dtype OutDataType;
-    typedef typename OpTensor::Dtype OpDataType;
 
     SaberSoftmax() = default;
     ~SaberSoftmax() {}
 
-    virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
-                             std::vector<DataTensor_out*>& outputs,
-                             SoftmaxParam<OpTensor> &param, Context<ARM> &ctx) override {
+
+    SaberStatus compute_output_shape(const std::vector<Tensor<Dtype>*>& inputs,
+                              std::vector<Tensor<Dtype>*>& outputs,
+                              SoftmaxParam<Tensor<Dtype>> &param) {
+        return outputs[0]->set_shape(inputs[0]->valid_shape());
+    }
+
+    SaberStatus init(const std::vector<Tensor<Dtype>*>& inputs,
+                             std::vector<Tensor<Dtype>*>& outputs,
+                             SoftmaxParam<Tensor<Dtype>> &param, Context &ctx) {
         // get context
-        this->_ctx = ctx;
+        _ctx = ctx;
         return create(inputs, outputs, param, ctx);
     }
 
-    virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
-                               std::vector<DataTensor_out*>& outputs,
-                               SoftmaxParam<OpTensor> &param, Context<ARM> &ctx) override {
+    SaberStatus create(const std::vector<Tensor<Dtype>*>& inputs,
+                               std::vector<Tensor<Dtype>*>& outputs,
+                               SoftmaxParam<Tensor<Dtype>> &param, Context &ctx) {
 
         Shape shape_in = inputs[0]->valid_shape();
         Shape shape_out = outputs[0]->valid_shape();
@@ -70,20 +62,23 @@ public:
         return SaberSuccess;
     }
 
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
-                                 std::vector<DataTensor_out*>& outputs,
-                                 SoftmaxParam<OpTensor> &param);
+    SaberStatus dispatch(const std::vector<Tensor<Dtype>*>& inputs,
+                                 std::vector<Tensor<Dtype>*>& outputs,
+                                 SoftmaxParam<Tensor<Dtype>> &param);
 
 private:
+    Context _ctx;
     int _axis_size{0};
     int _inner_num{0};
     int _outer_num{0};
 
 };
 
+} //namespace lite
+
 } //namespace saber
 
 } //namespace anakin
 #endif // USE_ARM_PLACE
 
-#endif //ANAKIN_SABER_FUNCS_IMPL_ARM_SABER_SOFTMAX_H
+#endif //ANAKIN_SABER_LITE_FUNCS_SABER_SOFTMAX_H

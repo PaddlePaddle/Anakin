@@ -11,34 +11,36 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License. */
-#ifndef ANAKIN_SABER_FUNCS_ARM_IMPL_CONV_ARM_IMPL_H
-#define ANAKIN_SABER_FUNCS_ARM_IMPL_CONV_ARM_IMPL_H
+#ifndef ANAKIN_SABER_LITE_FUNCS_NEON_IMPL_CONV_ARM_IMPL_H
+#define ANAKIN_SABER_LITE_FUNCS_NEON_IMPL_CONV_ARM_IMPL_H
 
-#include "saber/core/tensor.h"
+#include "saber/lite/core/tensor_lite.h"
 
 #ifdef USE_ARM_PLACE
 
-#include "saber/funcs/impl/arm/impl/sgemm_arm.h"
+#include "saber/lite/funcs/neon/impl/sgemm_arm.h"
 namespace anakin{
 
 namespace saber{
 
-void conv_arm_basic(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, \
+namespace lite{
+
+void conv_arm_basic(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
     const float* weights, const float* bias, \
     int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
     int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space);
 
-void conv_3x3s1_direct(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, \
+void conv_3x3s1_direct(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
     const float* weights, const float* bias, \
     int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
     int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space);
 
-void conv1x1s1_gemm(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, \
+void conv1x1s1_gemm(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
     const float* weights, const float* bias, \
     int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
     int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space);
 
-void conv_im2col_gemm(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, \
+void conv_im2col_gemm(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
     const float* weights, const float* bias, \
     int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
     int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space);
@@ -46,12 +48,12 @@ void conv_im2col_gemm(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FL
 /**
  * \brief depthwise convolution, kernel size 3x3, stride 1, pad 1, with bias
  */
-void conv_depthwise_3x3(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, \
+void conv_depthwise_3x3(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
     const float* weights, const float* bias, \
     int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
     int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space);
 
-void conv_arm_winograd3x3(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, \
+void conv_arm_winograd3x3(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
     const float* weights, const float* bias, \
     int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
     int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space);
@@ -90,10 +92,12 @@ private:
 };
 #endif
 
+} //namespace lite
+
 } //namespace saber
 
 } //namespace anakin
 
 #endif //USE_ARM_PLACE
 
-#endif //ANAKIN_SABER_FUNCS_ARM_IMPL_CONV_ARM_IMPL_H
+#endif //ANAKIN_SABER_LITE_FUNCS_NEON_IMPL_CONV_ARM_IMPL_H

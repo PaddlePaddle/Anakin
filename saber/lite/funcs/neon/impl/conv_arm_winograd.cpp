@@ -1,12 +1,12 @@
-#include "saber/funcs/impl/arm/impl/conv_arm_impl.h"
+#include "saber/lite/funcs/neon/impl/conv_arm_impl.h"
 
 #ifdef USE_ARM_PLACE
-
-#include "saber/funcs/timer.h"
 
 namespace anakin{
 
 namespace saber{
+
+namespace lite{
 
 void transpose(float* data_out, const float* data_in, int w_in, int h_in);
 void transform_input_f6x6(float* dout, const float* din);
@@ -33,7 +33,7 @@ bool ConvWinogradF63::operator()(const float *trans_weights, const float *din, \
     return true;
 }
 #endif
-void conv_arm_winograd3x3(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, \
+void conv_arm_winograd3x3(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
     const float* weights, const float* bias, \
     int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
     int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space) {
@@ -427,6 +427,8 @@ void transform_output_f6x6(float* output, const float* din, float bias) {
         output += 6;
     }
 }
+
+} //namespace lite
 
 } //namespace saber
 

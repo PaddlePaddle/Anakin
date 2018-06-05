@@ -13,30 +13,52 @@
    limitations under the License. 
 */
 
-#ifndef ANAKIN_SABER_CORE_COMMON_H
-#define ANAKIN_SABER_CORE_COMMON_H
+#ifndef ANAKIN_SABER_LITE_CORE_COMMON_H
+#define ANAKIN_SABER_LITE_CORE_COMMON_H
 
+//#include "utils/logger/logger.h"
 #include <iostream>
+#include <memory>
 #include <vector>
-#include <type_traits>
-#include <typeinfo>
-#include <stdlib.h>
-
-#include "utils/logger/logger.h"
 #include "anakin_config.h"
 #include "saber/saber_types.h"
+
+#ifdef USE_ARM_PLACE
+#include <arm_neon.h>
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif //openmp
+#endif //ARM
 
 namespace anakin{
 
 namespace saber{
 
-#define SABER_CHECK(condition) \
+namespace lite{
+
+#if defined WIN32 || defined _WIN32 || defined WINCE || defined __CYGWIN__
+#  define LITE_EXPORT __declspec(dllexport)
+#elif defined(__GNUC__) && (__GNUC__ >= 4)
+#  define LITE_EXPORT __attribute__ ((visibility ("default")))
+#else
+#  define LITE_EXPORT
+#endif
+
+#define CHECK_EQ(a, b) std::cout
+#define CHECK_LE(a, b) std::cout
+#define CHECK_LT(a, b) std::cout
+#define CHECK_GE(a, b) std::cout
+#define CHECK_GT(a, b) std::cout
+
+#define LOG(a) std::cout
+
+#define LITE_CHECK(condition) \
     do { \
     SaberStatus error = condition; \
-    CHECK_EQ(error, SaberSuccess) << " " << saber_get_error_string(error); \
+    /*CHECK_EQ(error, SaberSuccess) << " " << get_error_string_lite(error);*/ \
 } while (0)
 
-inline const char* saber_get_error_string(SaberStatus error_code){
+inline const char* get_error_string_lite(SaberStatus error_code){
     switch (error_code) {
         case SaberSuccess:
             return "ANAKIN_SABER_STATUS_SUCCESS";
@@ -58,94 +80,16 @@ inline const char* saber_get_error_string(SaberStatus error_code){
     return "ANAKIN SABER UNKOWN ERRORS";
 }
 
-template <bool If, typename ThenType, typename ElseType>
-struct IF {
-    /// Conditional type result
-    typedef ThenType Type;      // true
+enum ARM_TYPE {
+    ARM_CPU = 0,
+    ARM_GPU = 1
 };
 
-template <typename ThenType, typename ElseType>
-struct IF<false, ThenType, ElseType> {
-    typedef ElseType Type;      // false
-};
+} //namespace lite
 
 } //namespace saber
 
 } //namespace anakin
 
-#ifdef USE_CUDA
-//#include <cuda.h>
-#include <cuda_runtime.h>
-
-const int CUDA_NUM_THREADS = 512;
-
-#define CUDA_KERNEL_LE(i, n) \
-  int i = blockIdx.x * blockDim.x + threadIdx.x; \
-  if (i < n)
-
-#define CUDA_KERNEL_LOOP(i, n) \
-  for (int i = blockIdx.x * blockDim.x + threadIdx.x; \
-       i < (n); i += blockDim.x * gridDim.x)
-
-/// CUDA: number of blocks for threads.
-inline int CUDA_GET_BLOCKS(const int N) {
-    return (N + CUDA_NUM_THREADS - 1) / CUDA_NUM_THREADS;
-}
-
-#define CUDA_CHECK(condition) \
-  /* Code block avoids redefinition of cudaError_t error */ \
-  do { \
-    cudaError_t error = condition; \
-    CHECK_EQ(error, cudaSuccess) << " " << cudaGetErrorString(error); \
-  } while (0)
-
-#define CUDA_POST_KERNEL_CHECK CUDA_CHECK(cudaPeekAtLastError())
-
-#endif // USE_CUDA
-
-#ifdef USE_CUBLAS
-#include <cublas_v2.h>
-#define CUBLAS_CHECK(condition) \
-  do { \
-    cublasStatus_t status = condition; \
-    CHECK_EQ(status, CUBLAS_STATUS_SUCCESS) << cublas_get_errorstring(status); \
-  } while (0)
-const char* cublas_get_errorstring(cublasStatus_t error);
-#endif //USE_CUBLAS
-
-#ifdef USE_CURAND
-#include <curand.h>
-#endif //USE_CURAND
-
-#ifdef USE_CUFFT
-#include <cufft.h>
-#endif //USE_CUFFT
-
-#ifdef USE_CUDNN
-#include <cudnn.h>
-#define CUDNN_VERSION_MIN(major, minor, patch) \
-    (CUDNN_VERSION >= (major * 1000 + minor * 100 + patch))
-
-#define CUDNN_CHECK(condition) \
-  do { \
-    cudnnStatus_t status = condition; \
-    CHECK_EQ(status, CUDNN_STATUS_SUCCESS) << cudnn_get_errorstring(status); \
-  } while (0)
-
-const char* cudnn_get_errorstring(cudnnStatus_t status);
-#endif //USE_CUDNN
-
-#ifdef USE_AMD
-#include <hip/hip_runtime_api.h>
-#endif
-
-
-#ifdef USE_ARM_PLACE
-#ifdef USE_OPENMP
-#include <omp.h>
-#include <arm_neon.h>
-#endif //openmp
-#endif //ARM
-
-#endif //ANAKIN_SABER_CORE_COMMON_H
+#endif //ANAKIN_SABER_LITE_CORE_COMMON_H
 

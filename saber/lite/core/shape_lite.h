@@ -1,10 +1,28 @@
-#ifndef MERCURY_BASE_SHAPE_H
-#define MERCURY_BASE_SHAPE_H
-#include<algorithm>
-#include <vector>
-#include "base/common.h"
+/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
 
-namespace mercury{
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
+#ifndef ANAKIN_SABER_LITE_CORE_SHAPE_LITE_H
+#define ANAKIN_SABER_LITE_CORE_SHAPE_LITE_H
+#include <vector>
+#include "saber/lite/core/common_lite.h"
+
+namespace anakin{
+
+namespace saber{
+
+namespace lite{
 
 //! default layout is NCHW, CHW, HW, W
 //! maximum dim is 4
@@ -16,7 +34,7 @@ public:
     Shape():vector(){}
     template <typename First, typename ...Args>
     Shape(First first, Args... res) {
-       init_dims(first, res...); 
+       init_dims(first, res...);
     }
 
     int num() const {
@@ -112,7 +130,7 @@ public:
         for (size_t i = 0; i < size(); i++) {
             tmp_shape[i] = p[i] - shape[i];
         }
-        return tmp_shape;  
+        return tmp_shape;
     }
 
     bool operator<(const Shape& shape) const {
@@ -155,12 +173,28 @@ public:
         return flag;
     }
 
+    bool is_continue(const Shape real_shape) const {
+        if (real_shape.size() != this->size()){
+            return false;
+        }
+        const int* p = data();
+        for (int i = this->size() - 1; i >= 0; i--) {
+            if (p[i] != real_shape[i]) {
+                int size = this->count() / this->count(i);
+                return size == 1;
+            }
+        }
+        return true;
+    }
+
     int count(int start = 0) const {
         if (this->size() == 0) {
             return 0;
         }
         int sum = 1;
-        for_each(this->begin()+start, this->end(), [&](int n){sum *= n;});
+        for (int i = 0; i < this->size(); i++) {
+            sum *= data()[i];
+        }
         return sum;
     }
 
@@ -211,6 +245,12 @@ private:
     void init_dims(){};
 };
 
-} //namespace mercury
+} //namespace lite
 
-#endif //MERCURY_BASE_SHAPE_H
+} //namespace saber
+
+} //namespace anakin
+
+#endif //ANAKIN_SABER_LITE_CORE_SHAPE_LITE_H
+
+

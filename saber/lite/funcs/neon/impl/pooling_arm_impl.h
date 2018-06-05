@@ -12,41 +12,44 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-#ifndef ANAKIN_SABER_FUNCS_ARM_IMPL_POOLING_ARM_IMPL_H
-#define ANAKIN_SABER_FUNCS_ARM_IMPL_POOLING_ARM_IMPL_H
+#ifndef ANAKIN_SABER_LITE_FUNCS_NEON_IMPL_POOLING_ARM_IMPL_H
+#define ANAKIN_SABER_LITE_FUNCS_NEON_IMPL_POOLING_ARM_IMPL_H
 
-#include "saber/core/tensor.h"
-#include "saber/core/tensor_op.h"
+#include "saber/lite/core/tensor_lite.h"
 
 #ifdef USE_ARM_PLACE
 
-namespace anakin {
+namespace anakin{
 
 namespace saber{
 
-void pooling_basic(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
-    Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, PoolingType type, bool global, \
-    int kernel_w, int kernel_h, int stride_w, int stride_h, int pad_w, int pad_h);
+namespace lite{
 
-void pooling_global(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
-    Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, PoolingType type, bool global, \
-    int kernel_w, int kernel_h, int stride_w, int stride_h, int pad_w, int pad_h);
+void pooling_basic(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
+    PoolingType type, bool global, int kernel_w, int kernel_h, \
+    int stride_w, int stride_h, int pad_w, int pad_h);
 
-void pooling2x2s2_max(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
-    Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, PoolingType type, bool global, \
-    int kernel_w, int kernel_h, int stride_w, int stride_h, int pad_w, int pad_h);
+void pooling_global(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
+    PoolingType type, bool global, int kernel_w, int kernel_h, \
+    int stride_w, int stride_h, int pad_w, int pad_h);
 
-void pooling2x2s2_ave(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
-    Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, PoolingType type, bool global, \
-    int kernel_w, int kernel_h, int stride_w, int stride_h, int pad_w, int pad_h);
+void pooling2x2s2_max(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
+    PoolingType type, bool global, int kernel_w, int kernel_h, \
+    int stride_w, int stride_h, int pad_w, int pad_h);
 
-void pooling3x3s2_max(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
-    Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, PoolingType type, bool global, \
-    int kernel_w, int kernel_h, int stride_w, int stride_h, int pad_w, int pad_h);
+void pooling2x2s2_ave(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
+    PoolingType type, bool global, int kernel_w, int kernel_h, \
+    int stride_w, int stride_h, int pad_w, int pad_h);
 
-void pooling3x3s2_ave(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
-    Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, PoolingType type, bool global, \
-    int kernel_w, int kernel_h, int stride_w, int stride_h, int pad_w, int pad_h);
+void pooling3x3s2_max(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
+    PoolingType type, bool global, int kernel_w, int kernel_h, \
+    int stride_w, int stride_h, int pad_w, int pad_h);
+
+void pooling3x3s2_ave(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
+    PoolingType type, bool global, int kernel_w, int kernel_h, \
+    int stride_w, int stride_h, int pad_w, int pad_h);
+
+} //namespace lite
 
 } //namespace saber
 
@@ -54,4 +57,4 @@ void pooling3x3s2_ave(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
 
 #endif //USE_ARM_PLACE
 
-#endif //ANAKIN_SABER_FUNCS_ARM_IMPL_POOLING_ARM_IMPL_H
+#endif //ANAKIN_SABER_LITE_FUNCS_NEON_IMPL_POOLING_ARM_IMPL_H
