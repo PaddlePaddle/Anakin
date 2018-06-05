@@ -14,9 +14,13 @@ Net<Ttype, Dtype, Ptype, RunType>::~Net() {
 template<typename Ttype, DataType Dtype>
 double tensor_average(Tensor4dPtr<Ttype, Dtype>& out_tensor_p) {
     double sum = 0.0f;
+#ifdef USE_CUDA
     float* h_data = new float[out_tensor_p->valid_size()];
     const float* d_data = out_tensor_p->data();
     CUDA_CHECK(cudaMemcpy(h_data, d_data, out_tensor_p->valid_size()*sizeof(float), cudaMemcpyDeviceToHost));
+#else
+	float* h_data = out_tensor_p->data();
+#endif
     for (int i=0; i<out_tensor_p->valid_size(); i++) {
 		sum+=h_data[i];
     }
