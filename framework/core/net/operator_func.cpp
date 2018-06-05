@@ -11,6 +11,9 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 void OperatorFunc<Ttype, Dtype, Ptype>::infer_shape() {
     op->_helper->InferShape(ins, outs);
 }
+template class OperatorFunc<X86, AK_FLOAT, Precision::FP32>;
+template class OperatorFunc<X86, AK_FLOAT, Precision::FP16>;
+template class OperatorFunc<X86, AK_FLOAT, Precision::INT8>;
 
 template class OperatorFunc<NV, AK_FLOAT, Precision::FP32>;
 template class OperatorFunc<NV, AK_FLOAT, Precision::FP16>;

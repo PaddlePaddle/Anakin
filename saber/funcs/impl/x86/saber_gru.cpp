@@ -2,8 +2,6 @@
 
 #include "saber/funcs/impl/x86/saber_gru.h"
 #include "saber/core/tensor_op.h"
-#include "thrust/host_vector.h"
-#include "thrust/device_vector.h"
 #include "mkl_cblas.h"
 #include <immintrin.h>
 #include "avx_mathfun.h"
@@ -87,7 +85,7 @@ static void gemm(const bool TransA, const bool TransB, int m, int n, int k, cons
         (!TransA/* == CblasNoTrans*/) ? CblasNoTrans : CblasTrans;
     CBLAS_TRANSPOSE cuTransB =
         (!TransB/* == CblasNoTrans*/) ? CblasNoTrans : CblasTrans;
-    cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, m, n, k, alpha, a, k, b, n, beta, c, n);
+    cblas_sgemm(CblasRowMajor, cuTransA, cuTransB, m, n, k, alpha, a, k, b, n, beta, c, n);
 };
 
 template <typename Dtype>
