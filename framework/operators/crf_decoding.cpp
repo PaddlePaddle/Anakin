@@ -86,13 +86,13 @@ ANAKIN_REGISTER_OP_HELPER(CrfDecoding, CrfDecodingHelper, X86, AK_FLOAT, Precisi
 ANAKIN_REGISTER_OP(CrfDecoding)
 .Doc("CrfDecoding operator")
 #ifdef USE_CUDA
-.__alias__<NV, AK_FLOAT, Precision::FP32>("crf_decoding")
+.__alias__<NV, AK_FLOAT, Precision::FP32>("CrfDecoding")
 #endif
 #ifdef USE_ARM_PLACE
-.__alias__<ARM, AK_FLOAT, Precision::FP32>("crf_decoding")
+.__alias__<ARM, AK_FLOAT, Precision::FP32>("CrfDecoding")
 #endif
 #ifdef USE_X86_PLACE
-.__alias__<X86, AK_FLOAT, Precision::FP32>("crf_decoding")
+.__alias__<X86, AK_FLOAT, Precision::FP32>("CrfDecoding")
 #endif
 .num_in(1)
 .num_out(1);
