@@ -65,6 +65,9 @@ public:
                         std::vector<DataTensor_out *>& outputs,
                         CtcAlignParam<OpTensor>& param, 
                         Context<NV>& ctx) {
+        Shape offset_shape = {inputs[0]->get_seq_offset().size(), 1, 1, 1};
+        _in_offset.reshape(offset_shape);
+        _out_offset.reshape(offset_shape);
         return SaberSuccess;
     }
 

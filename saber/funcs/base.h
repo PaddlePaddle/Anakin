@@ -111,10 +111,10 @@ public:
         }
 
         for (auto imp : this->_impl) {
-            SaberStatus status = imp->init(input, output, param, ctx);
-            if (status != SaberSuccess) {
-                return status;
-            }
+            status = SaberStatus(status | imp->init(input, output, param, ctx));
+        }
+        if (status != SaberSuccess) {
+            return status;
         }
 
         this->pick_best(input, output, param, strategy, implenum, ctx);
