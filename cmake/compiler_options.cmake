@@ -85,6 +85,10 @@ if(X86_64)
 	anakin_add_compile_option(-Wno-long-long)
 endif()
 
+if(USE_ARM_PLACE)
+	anakin_add_compile_option(-fvisibility=hidden)
+endif()
+
 set(CMAKE_CXX_FLAGS  ${ANAKIN_EXTRA_CXX_FLAGS})
 
 #if(WIN32) 

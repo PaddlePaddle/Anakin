@@ -31,7 +31,8 @@ enum TargetTypeEnum {
     eARM = 3,
     eX86 = 4,
     eNVHX86 = 5,
-    eNVHARM = 6
+    eNVHARM = 6,
+    eARMGPU = 7
 };
 
 template <TargetTypeEnum T>
@@ -39,6 +40,7 @@ struct TargetType {};
 // NV device without pinned memory
 typedef TargetType<eNV> NV;
 typedef TargetType<eARM> ARM;
+typedef TargetType<eARMGPU> ARMGPU;
 typedef TargetType<eAMD> AMD;
 typedef TargetType<eX86> X86;
 // NV device with pinned memory
