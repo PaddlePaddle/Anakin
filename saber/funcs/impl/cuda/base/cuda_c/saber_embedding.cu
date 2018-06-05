@@ -44,9 +44,9 @@ SaberStatus SaberEmbedding<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, \
             <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(
             out_data, in_data, op_data, param.word_num, param.emb_dim, inputs[0]->num(),
             param.padding_idx, outputs[0]->valid_size());
-
+    outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
     CUDA_POST_KERNEL_CHECK;
-        return SaberSuccess;
+    return SaberSuccess;
 }
 
 }

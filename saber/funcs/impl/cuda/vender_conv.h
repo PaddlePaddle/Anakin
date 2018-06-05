@@ -57,6 +57,7 @@ public:
             , _workspaceSizeInBytes(0)
             , _fwd_algo((cudnnConvolutionFwdAlgo_t)0)
             , _input_nchw_descs(NULL)
+            , _bias_desc(NULL)
             , _output_nchw_descs(NULL)
             , x8_data(NULL)
             , y8_data(NULL)
@@ -74,6 +75,9 @@ public:
         }
         if (_output_descs) {
             CUDNN_CHECK(cudnnDestroyTensorDescriptor(_output_descs));
+        }
+        if (_bias_desc) {
+            CUDNN_CHECK(cudnnDestroyTensorDescriptor(_bias_desc));
         }
         if (_filter_desc) {
             CUDNN_CHECK(cudnnDestroyFilterDescriptor(_filter_desc));

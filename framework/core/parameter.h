@@ -164,69 +164,50 @@ private:
 
 template<typename T>
 struct DataTypeRecover; /// declare for PBlock
+
 /** 
  *  \brief a simple wrapper of tensor use in weights parameter.
  *   default layout [ NCHW ]
  */
-template<typename T>
-class PBlock {
+template<typename Dtype, typename Ttype>
+class PBlockBase {
 public:
-#ifdef USE_CUDA
-    typedef Tensor4d<NV, DataTypeRecover<T>::type> d_type;
-    typedef Tensor4d<NVHX86, DataTypeRecover<T>::type> h_type;
-#endif
-#ifdef USE_ARM_PLACE
-    typedef Tensor4d<ARM, DataTypeRecover<T>::type> d_type;
-    typedef Tensor4d<ARM, DataTypeRecover<T>::type> h_type;
-#endif
+	inline bool host_only() { return true; }
+};
 
-    PBlock() {
-        _d_inner_tensor = std::make_shared<d_type>();
-        _h_inner_tensor = std::make_shared<h_type>();
-    }
-    PBlock(Shape4d& shape) {
+#ifdef USE_CUDA
+template<typename Dtype>
+class PBlockBase<Dtype, NV> {
+public:
+	typedef Tensor4d<NV, DataTypeRecover<Dtype>::type> d_type;
+	typedef Tensor4d<NVHX86, DataTypeRecover<Dtype>::type> h_type;
+
+	PBlockBase() {
+		_d_inner_tensor = std::make_shared<d_type>(); 
+		_h_inner_tensor = std::make_shared<h_type>();
+	}
+
+	PBlockBase(Shape4d& shape) {
         _d_inner_tensor = std::make_shared<d_type>(shape);
         _h_inner_tensor = std::make_shared<h_type>(shape);
     }
 
-    /// shallow copy construction
-    PBlock(PBlock<T>& p_block) { *this = p_block; }
+	inline bool host_only() { return false; }
 
-    PBlock(const PBlock<T>& p_block) { *this = p_block; }
+    /// shallow copy construction
+    PBlockBase(PBlockBase<Dtype, NV>& p_block) { *this = p_block; }
+
+    PBlockBase(const PBlockBase<Dtype, NV>& p_block) { *this = p_block; }
 
     /// assign
-    PBlock<T>& operator=(const PBlock<T>& p_block) {
+    PBlockBase<Dtype, NV>& operator=(const PBlockBase<Dtype, NV>& p_block) {
         _d_inner_tensor = p_block._d_inner_tensor;
         _h_inner_tensor = p_block._h_inner_tensor;
-        /*_d_inner_tensor = std::make_shared<d_type>();
-        _h_inner_tensor = std::make_shared<h_type>();
-        _d_inner_tensor->set_shape(p_block._d_inner_tensor->shape());
-        _d_inner_tensor->share_from(*(p_block._d_inner_tensor));
-        _h_inner_tensor->set_shape(p_block._h_inner_tensor->shape()); 
-        _h_inner_tensor->share_from(*(p_block._h_inner_tensor));*/
-        /*_d_inner_tensor->share_sub_buffer(*(p_block._d_inner_tensor), 
-                                          p_block._d_inner_tensor->shape(),
-                                          p_block._d_inner_tensor->offset());
-        _h_inner_tensor->share_sub_buffer(*(p_block._h_inner_tensor),
-                                          p_block._h_inner_tensor->shape(),
-                                          p_block._h_inner_tensor->offset());*/
     }
 
-    PBlock<T>& operator=(PBlock<T>& p_block) {
+    PBlockBase<Dtype, NV>& operator=(PBlockBase<Dtype, NV>& p_block) {
         _d_inner_tensor = p_block._d_inner_tensor;
         _h_inner_tensor = p_block._h_inner_tensor;
-        /*_d_inner_tensor = std::make_shared<d_type>();
-        _h_inner_tensor = std::make_shared<h_type>();
-        _d_inner_tensor->set_shape(p_block._d_inner_tensor->shape());
-        _d_inner_tensor->share_from(*(p_block._d_inner_tensor));
-        _h_inner_tensor->set_shape(p_block._h_inner_tensor->shape()); 
-        _h_inner_tensor->share_from(*(p_block._h_inner_tensor));*/
-        /*_d_inner_tensor->share_sub_buffer(*(p_block._d_inner_tensor), 
-                                          p_block._d_inner_tensor->shape(),
-                                          p_block._d_inner_tensor->offset());
-        _h_inner_tensor->share_sub_buffer(*(p_block._h_inner_tensor),
-                                          p_block._h_inner_tensor->shape(),
-                                          p_block._h_inner_tensor->offset());*/
     }
 
     /// Get tensor.
@@ -234,8 +215,8 @@ public:
     h_type& h_tensor() { return *(_h_inner_tensor); }
 
     /// Get host data to vector.
-    std::vector<T> vector() {
-        std::vector<T> ret;
+    std::vector<Dtype> vector() {
+        std::vector<Dtype> ret;
         auto* data = _h_inner_tensor->mutable_data();
         for (int i = 0; i <_h_inner_tensor->valid_size(); i++) {
             ret.push_back(data[i]);
@@ -246,7 +227,7 @@ public:
     /// Get shape.
     Shape4d shape() { 
         CHECK(_d_inner_tensor->valid_shape() == _h_inner_tensor->valid_shape()) 
-            << " [Fatal Err]  device shape is not equal to that of host in PBlock";
+            << " [Fatal Err]  device shape is not equal to that of host in PBlockBase";
         return _d_inner_tensor->valid_shape(); 
     }
 
@@ -255,11 +236,145 @@ public:
         return this->shape().count();
     }
 
-    ~PBlock() {}
-private:
-    std::shared_ptr<d_type> _d_inner_tensor;
-    std::shared_ptr<h_type> _h_inner_tensor;
+    ~PBlockBase() {}
+
+private: 
+	std::shared_ptr<d_type> _d_inner_tensor; 
+	std::shared_ptr<h_type> _h_inner_tensor;
 };
+
+template<typename Dtype>
+using PBlock = PBlockBase<Dtype, NV>;
+#endif
+
+#ifdef USE_X86_PLACE
+template<typename Dtype>
+class PBlockBase<Dtype, X86> {
+public:
+	typedef Tensor4d<X86, DataTypeRecover<Dtype>::type> type;
+
+	PBlockBase() {
+		_inner_tensor = std::make_shared<type>(); 
+	}
+
+	PBlockBase(Shape4d& shape) {
+        _inner_tensor = std::make_shared<type>(shape);
+    }
+
+	inline bool host_only() { return true; }
+
+    /// shallow copy construction
+    PBlockBase(PBlockBase<Dtype, X86>& p_block) { *this = p_block; }
+
+    PBlockBase(const PBlockBase<Dtype, X86>& p_block) { *this = p_block; }
+
+    /// assign
+    PBlockBase<Dtype, X86>& operator=(const PBlockBase<Dtype, X86>& p_block) {
+        _inner_tensor = p_block._inner_tensor;
+    }
+
+    PBlockBase<Dtype, X86>& operator=(PBlockBase<Dtype, X86>& p_block) {
+        _inner_tensor = p_block._inner_tensor;
+    }
+
+    /// Get tensor.
+    type& d_tensor() { return *(_inner_tensor); }
+    type& h_tensor() { return *(_inner_tensor); }
+
+    /// Get host data to vector.
+    std::vector<Dtype> vector() {
+        std::vector<Dtype> ret;
+        auto* data = _inner_tensor->mutable_data();
+        for (int i = 0; i <_inner_tensor->valid_size(); i++) {
+            ret.push_back(data[i]);
+        }
+        return ret;
+    }
+
+    /// Get shape.
+    Shape4d shape() { 
+        return _inner_tensor->valid_shape(); 
+    }
+
+    /// Get size.
+    size_t count() { 
+        return this->shape().count();
+    }
+
+    ~PBlockBase() {}
+
+private: 
+	std::shared_ptr<type> _inner_tensor; 
+};
+
+template<typename Dtype>
+using PBlock = PBlockBase<Dtype, X86>;
+#endif
+
+#ifdef USE_ARM_PLACE
+template<typename Dtype>
+class PBlockBase<Dtype, ARM> {
+public:
+	typedef Tensor4d<ARM, DataTypeRecover<Dtype>::type> type;
+
+	PBlockBase() {
+		_inner_tensor = std::make_shared<type>(); 
+	}
+
+	PBlockBase(Shape4d& shape) {
+        _inner_tensor = std::make_shared<type>(shape);
+    }
+
+	inline bool host_only() { return true; }
+
+    /// shallow copy construction
+    PBlockBase(PBlockBase<Dtype, ARM>& p_block) { *this = p_block; }
+
+    PBlockBase(const PBlockBase<Dtype, ARM>& p_block) { *this = p_block; }
+
+    /// assign
+    PBlockBase<Dtype, ARM>& operator=(const PBlockBase<Dtype, ARM>& p_block) {
+        _inner_tensor = p_block._inner_tensor;
+    }
+
+    PBlockBase<Dtype, ARM>& operator=(PBlockBase<Dtype, ARM>& p_block) {
+        _inner_tensor = p_block._inner_tensor;
+    }
+
+    /// Get tensor.
+    type& d_tensor() { return *(_inner_tensor); }
+    type& h_tensor() { return *(_inner_tensor); }
+
+    /// Get host data to vector.
+    std::vector<Dtype> vector() {
+        std::vector<Dtype> ret;
+        auto* data = _inner_tensor->mutable_data();
+        for (int i = 0; i <_inner_tensor->valid_size(); i++) {
+            ret.push_back(data[i]);
+        }
+        return ret;
+    }
+
+    /// Get shape.
+    Shape4d shape() { 
+        return _inner_tensor->valid_shape(); 
+    }
+
+    /// Get size.
+    size_t count() { 
+        return this->shape().count();
+    }
+
+    ~PBlockBase() {}
+
+private: 
+	std::shared_ptr<type> _inner_tensor; 
+};
+
+template<typename Dtype>
+using PBlock = PBlockBase<Dtype, ARM>;
+#endif
+
 
 /** 
  *  \brief Enum type.

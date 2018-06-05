@@ -90,7 +90,12 @@ public:
 private:
 
     virtual void pick_best_static() override {
-        this->_best_impl = this->_impl[0];
+	//! saber softmax is better when axis is in outer dims
+        if (this->_param.axis > 1) {
+            this->_best_impl = this->_impl[1];
+        } else {
+            this->_best_impl = this->_impl[0];
+        }
     }
 
     virtual void pick_best_specify(ImplEnum implenum) override {

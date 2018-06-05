@@ -21,6 +21,7 @@
 #include "saber/saber_funcs_param.h"
 
 #ifdef NVIDIA_GPU
+#include "saber/funcs/impl/impl_sequence_pool.h"
 #endif
 
 #ifdef USE_X86_PLACE

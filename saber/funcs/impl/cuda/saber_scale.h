@@ -56,9 +56,6 @@ public:
         _axis = (param.num_axes == 0) ? 0 : param.axis;
         _num_axes = param.num_axes >= 0 ? param.num_axes : inputs[0]->shape().dims() - _axis;
         _bias_term = param.bias_term;
-        _inner_dim = inputs[0]->count(_axis + _num_axes, inputs[0]->shape().dims());
-        _scale_dim = inputs[0]->count(_axis, _axis + _num_axes);
-        CHECK_EQ(_scale_dim, param.scale_w.size()) << "scale dim not valid";
         if (param.scale_w.size() > 0) {   
             _weight.re_alloc({param.scale_w.size(), 1, 1, 1});
             cudaMemcpy(_weight.mutable_data(), &param.scale_w[0], 
@@ -70,13 +67,18 @@ public:
                     sizeof(OpDataType) * param.scale_w.size(), cudaMemcpyHostToDevice);
         }
         
-        return SaberSuccess;
+        return create(inputs, outputs, param, ctx);
     }
 
     virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             ScaleParam<OpTensor>& param, Context<NV> &ctx) {
         this->_ctx = ctx;
+        _inner_dim = inputs[0]->count(_axis + _num_axes, inputs[0]->shape().dims());
+        _scale_dim = inputs[0]->count(_axis, _axis + _num_axes);
+        if (inputs.size() == 1) {
+            CHECK_EQ(_scale_dim, param.scale_w.size()) << "scale dim not valid";
+        }
         return SaberSuccess;
     }
     
