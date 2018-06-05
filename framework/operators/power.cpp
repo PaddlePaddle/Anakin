@@ -4,6 +4,7 @@ namespace anakin {
 
 namespace ops {
 
+#ifdef USE_CUDA
 template<>
 void Power<NV, AK_FLOAT, Precision::FP32>::operator()(
     OpContext<NV>& ctx,
@@ -14,6 +15,7 @@ void Power<NV, AK_FLOAT, Precision::FP32>::operator()(
     auto& param = impl->_param_power;
     impl->_funcs_power(ins, outs, param, ctx);
 }
+#endif
 
 /// TODO ... specialization other type of operator
 
@@ -25,7 +27,7 @@ PowerHelper<Ttype, Dtype, Ptype>::~PowerHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status PowerHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Power op parameter.";
+    DLOG(WARNING) << "Parsing Power op parameter.";
     auto scale = GET_PARAMETER(float, scale);
     auto shift = GET_PARAMETER(float, shift);
     auto power = GET_PARAMETER(float, power);

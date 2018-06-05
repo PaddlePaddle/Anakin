@@ -103,7 +103,7 @@ public:
     }
     ~TensorDescriptors() {
         for (auto desc : descs_) {
-            cudnnDestroyTensorDescriptor(desc);
+            CUDNN_CHECK(cudnnDestroyTensorDescriptor(desc));
         }
     }
     const cudnnTensorDescriptor_t* descs() const {

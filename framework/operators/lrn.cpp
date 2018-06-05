@@ -4,6 +4,7 @@ namespace anakin {
 
 namespace ops {
 
+#ifdef USE_CUDA
 template<>
 void Lrn<NV, AK_FLOAT, Precision::FP32>::operator()(
     OpContext<NV>& ctx,
@@ -14,6 +15,7 @@ void Lrn<NV, AK_FLOAT, Precision::FP32>::operator()(
     auto& param = impl->_param_lrn;
     impl->_funcs_lrn(ins, outs, param, ctx);
 }
+#endif
 
 /// TODO ... specialization other type of operator
 
@@ -25,7 +27,7 @@ LrnHelper<Ttype, Dtype, Ptype>::~LrnHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status LrnHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Lrn op parameter.";
+    DLOG(WARNING) << "Parsing Lrn op parameter.";
 
     auto local_size_in = GET_PARAMETER(int, local_size);
     auto alpha_in = GET_PARAMETER(float, alpha);

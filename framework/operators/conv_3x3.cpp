@@ -27,7 +27,7 @@ SassConvolutionHelper<Ttype, Dtype, Ptype>::~SassConvolutionHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status SassConvolutionHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing SassConvolution op parameter.";
+    DLOG(WARNING) << "Parsing SassConvolution op parameter.";
     auto group = GET_PARAMETER(int, group);
     auto bias_term = GET_PARAMETER(bool, bias_term);
     auto padding = GET_PARAMETER(PTuple<int>, padding);

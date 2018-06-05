@@ -27,7 +27,7 @@ ConvolutionHelper<Ttype, Dtype, Ptype>::~ConvolutionHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ConvolutionHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Convolution op parameter.";
+    DLOG(WARNING) << "Parsing Convolution op parameter.";
     auto group = GET_PARAMETER(int, group);
     auto bias_term = GET_PARAMETER(bool, bias_term);
     auto padding = GET_PARAMETER(PTuple<int>, padding);

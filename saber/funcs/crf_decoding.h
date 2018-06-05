@@ -21,6 +21,8 @@
 #include "saber/saber_funcs_param.h"
 
 #ifdef NVIDIA_GPU
+
+#include "saber/funcs/impl/impl_crf_decoding.h"
 #endif
 
 #ifdef USE_X86_PLACE

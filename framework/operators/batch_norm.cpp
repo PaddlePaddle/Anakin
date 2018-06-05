@@ -3,6 +3,10 @@
 namespace anakin {
 
 namespace ops {
+<<<<<<< HEAD
+=======
+
+>>>>>>> developing
 #ifdef USE_CUDA
 template<>
 void BatchNorm<NV, AK_FLOAT, Precision::FP32>::operator()(
@@ -14,6 +18,7 @@ void BatchNorm<NV, AK_FLOAT, Precision::FP32>::operator()(
     impl->_funcs_permute(ins, outs, param, ctx);*/
 }
 #endif
+<<<<<<< HEAD
 #ifdef USE_ARM_PLACE
 template<>
 void BatchNorm<ARM, AK_FLOAT, Precision::FP32>::operator()(
@@ -25,6 +30,9 @@ void BatchNorm<ARM, AK_FLOAT, Precision::FP32>::operator()(
     impl->_funcs_permute(ins, outs, param, ctx);*/
 }
 #endif
+=======
+
+>>>>>>> developing
 /// TODO ... specialization other type of operator
 
 
@@ -67,23 +75,40 @@ template class BatchNormHelper<NV, AK_FLOAT, Precision::FP32>;
 template class BatchNormHelper<NV, AK_FLOAT, Precision::FP16>;
 template class BatchNormHelper<NV, AK_FLOAT, Precision::INT8>;
 #endif
+<<<<<<< HEAD
+=======
+
+>>>>>>> developing
 #ifdef USE_ARM_PLACE
 template class BatchNormHelper<ARM, AK_FLOAT, Precision::FP32>;
 template class BatchNormHelper<ARM, AK_FLOAT, Precision::FP16>;
 template class BatchNormHelper<ARM, AK_FLOAT, Precision::INT8>;
 #endif
+<<<<<<< HEAD
+=======
+
+>>>>>>> developing
 // register helper
+#ifdef USE_CUDA
 ANAKIN_REGISTER_OP_HELPER(BatchNorm, BatchNormHelper, NV, AK_FLOAT, Precision::FP32);
+#endif
+
+#ifdef USE_ARM_PLACE
 ANAKIN_REGISTER_OP_HELPER(BatchNorm, BatchNormHelper, ARM, AK_FLOAT, Precision::FP32);
+#endif
 
 //! register op
 ANAKIN_REGISTER_OP(BatchNorm)
-.Doc("BatchNorm operator")
-.__alias__<NV, AK_FLOAT, Precision::FP32>("power")
-.__alias__<ARM, AK_FLOAT, Precision::FP32>("power")
-.num_in(1)
-.num_out(1)
-.Args<PTuple<int>>("dims", " dims for permuting the order of input ");
+	.Doc("BatchNorm operator")
+#ifdef USE_CUDA
+	.__alias__<NV, AK_FLOAT, Precision::FP32>("power")
+#endif
+#ifdef USE_ARM_PLACE
+	.__alias__<ARM, AK_FLOAT, Precision::FP32>("power")
+#endif
+	.num_in(1)
+	.num_out(1)
+	.Args<PTuple<int>>("dims", " dims for permuting the order of input ");
 
 } /* namespace ops */
 
