@@ -96,8 +96,8 @@ public:
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
             case VENDER_IMPL:
-                this->_impl.push_back(new VenderConcat <TargetType, OpDtype, inDtype, outDtype,
-                LayOutType_op, LayOutType_in, LayOutType_out>);
+                this->_impl.push_back(new VenderConcat <TargetType, OpDtype, inDtype, outDtype, 
+							LayOutType_op, LayOutType_in, LayOutType_out>);
                 return SaberSuccess;
 
             case SABER_IMPL:

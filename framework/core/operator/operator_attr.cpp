@@ -15,19 +15,32 @@ OpAttrWarpper& OpAttrWarpper::__alias__(std::string op_name) {
     return *(this);
 }
 
+#ifdef USE_CUDA
 template
 OpAttrWarpper& OpAttrWarpper::__alias__<NV, AK_FLOAT, Precision::FP32>(std::string op_name);
 template
 OpAttrWarpper& OpAttrWarpper::__alias__<NV, AK_FLOAT, Precision::FP16>(std::string op_name);
 template
 OpAttrWarpper& OpAttrWarpper::__alias__<NV, AK_FLOAT, Precision::INT8>(std::string op_name);
+#endif
 
+#ifdef USE_X86_PLACE
+template
+OpAttrWarpper& OpAttrWarpper::__alias__<X86, AK_FLOAT, Precision::FP32>(std::string op_name);
+template
+OpAttrWarpper& OpAttrWarpper::__alias__<X86, AK_FLOAT, Precision::FP16>(std::string op_name);
+template
+OpAttrWarpper& OpAttrWarpper::__alias__<X86, AK_FLOAT, Precision::INT8>(std::string op_name);
+#endif
+
+#ifdef USE_ARM_PLACE
 template
 OpAttrWarpper& OpAttrWarpper::__alias__<ARM, AK_FLOAT, Precision::FP32>(std::string op_name);
 template
 OpAttrWarpper& OpAttrWarpper::__alias__<ARM, AK_FLOAT, Precision::FP16>(std::string op_name);
 template
 OpAttrWarpper& OpAttrWarpper::__alias__<ARM, AK_FLOAT, Precision::INT8>(std::string op_name);
+#endif
 
 OpAttrWarpper& OpAttrWarpper::Doc(std::string doc) {
     opAttr_.doc = doc;

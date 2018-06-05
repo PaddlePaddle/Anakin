@@ -31,26 +31,31 @@ Status GruHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto hidden_act = GET_PARAMETER(std::string, activation);
     auto formula = GET_PARAMETER(std::string, gru_formula);
 
-    auto weight_h2h = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_1);
-    auto bias = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_3);
-    auto weight_i2h = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_2);
+//    auto weight_h2h = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_1);
+//    auto bias = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_3);
+//    auto weight_i2h = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_2);
+
+    auto weight_wu = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_1);
+    auto bias = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_2);
 
     CHECK((formula != "") && (formula == "gru_origin"
                               || formula == "gru_cudnn")) << "formula illegal";
 
-    std::unordered_map<std::string, GruActivaty> act_map = {
-            {"sigmoid_fluid", GRU_SIGMOID_PADDLE},
-            {"relu_fluid", GRU_RELU},
-            {"tanh_fluid", GRU_TANH_PADDLE},
-            {"identity_fluid", GRU_INDENTITY}
+    std::unordered_map<std::string, ActiveType> act_map = {
+            {"sigmoid_fluid", Active_sigmoid_fluid},
+            {"relu_fluid", Active_relu},
+            {"tanh_fluid", Active_tanh_fluid},
+            {"identity_fluid", Active_identity}
     };
     std::unordered_map<std::string, GruFormula > formula_map = {
             {"gru_origin", GRU_ORIGIN},
             {"gru_cudnn", GRU_CUDNN},
     };
-    GruParam<Tensor4d<Ttype, Dtype>> gru_param(&(weight_h2h.d_tensor()), &(weight_i2h.d_tensor()),
-                                               &(bias.d_tensor()),
-                                               true, formula_map[formula], act_map[gate_act],
+    CHECK_GT(weight_wu.d_tensor().valid_size(),0)<<"weights size must > 0";
+    CHECK_GT(bias.d_tensor().valid_size(),0)<<"bias size must > 0";
+
+    GruParam<Tensor4d<Ttype, Dtype>> gru_param(&(weight_wu.d_tensor()), &(bias.d_tensor()),
+                                               formula_map[formula], act_map[gate_act],
                                                act_map[hidden_act], is_reverse);
 
     _param_gru = gru_param;
