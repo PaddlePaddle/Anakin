@@ -110,5 +110,5 @@ if(USE_CUDA)
         anakin_add_compile_option(-Wno-deprecated-gpu-targets NVCC)
     endif()
     # set default nvidia gpu arch
-    set(ANAKIN_ARCH_LIST "2.0;2.1;3.0;3.5;5.0;6.0;6.1")
+    set(ANAKIN_ARCH_LIST "3.5;5.0;6.0;6.1")
 endif()
