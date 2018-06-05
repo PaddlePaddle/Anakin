@@ -46,13 +46,13 @@ anakin_option(ANAKIN_TYPE_INT8 "define the INT8 for data precision." NO)
 
 #select the plantform to build
 anakin_option(USE_GPU_PLACE "Select the build mode for GPU place." NO)
-anakin_option(USE_X86_PLACE "Select the build mode for X86 place." YES)
-anakin_option(USE_ARM_PLACE "Select the build mode for ARM place." NO)
+anakin_option(USE_X86_PLACE "Select the build mode for X86 place." NO)
+anakin_option(USE_ARM_PLACE "Select the build mode for ARM place." YES)
 
 # plantfrom details
 anakin_option(NVIDIA_GPU "Use NVIDIA GPU place." YES if USE_GPU_PLACE)
 anakin_option(AMD_GPU "Use AMD GPU place." NO if USE_GPU_PLACE AND NOT NVIDIA_GPU)
-anakin_option(TARGET_ANDROID "" NO if USE_ARM_PLACE)
+anakin_option(TARGET_ANDROID "" YES if USE_ARM_PLACE)
 anakin_option(TARGET_IOS "" NO if USE_ARM_PLACE)
 
 # compile options for NVIDIA_GPU place
