@@ -29,6 +29,7 @@ static void write_tensorfile(Tensor <X86, AK_FLOAT, NCHW> tensor, const char* lo
 
     LOG(INFO) << "!!! write success: " << locate;
 }
+#ifdef USE_CUDA
 static void record_dev_tensorfile(const float* dev_tensor, int size, const char* locate) {
     Tensor <X86, AK_FLOAT, NCHW> host_temp;
     host_temp.re_alloc(Shape(1, 1, 1, size));
@@ -50,6 +51,7 @@ static void record_dev_tensorfile(const float* dev_tensor, int size, const char*
 
     LOG(INFO) << "!!! write success: " << locate;
 }
+#endif
 
 static void readTensorData(Tensor<X86, AK_FLOAT, NCHW> tensor, const char* locate) {
     typedef typename Tensor<X86, AK_FLOAT, NCHW>::Dtype Dtype;
@@ -79,6 +81,7 @@ static void readTensorData(Tensor<X86, AK_FLOAT, NCHW_C16> tensor, const char* l
         fclose(fp);
     }
 }
+
 }
 }
 

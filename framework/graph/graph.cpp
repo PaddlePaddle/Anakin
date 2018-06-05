@@ -371,6 +371,9 @@ Status Graph<Ttype, Dtype, Ptype>::Clean() {
 
     return Status::OK();
 }
+template class Graph<X86, AK_FLOAT, Precision::FP32>;
+template class Graph<X86, AK_FLOAT, Precision::FP16>;
+template class Graph<X86, AK_FLOAT, Precision::INT8>;
 
 template class Graph<NV, AK_FLOAT, Precision::FP32>;
 template class Graph<NV, AK_FLOAT, Precision::FP16>;

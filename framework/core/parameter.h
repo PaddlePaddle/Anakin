@@ -164,11 +164,157 @@ private:
 
 template<typename T>
 struct DataTypeRecover; /// declare for PBlock
+//////////////////////////
+//template<typename T >
+//class PBlock_X86_2 {
+//public:
+//    typedef Tensor4d<NV, DataTypeRecover<T>::type> d_type;
+//    typedef Tensor4d<X86, DataTypeRecover<T>::type> h_type;
+//
+//
+//    PBlock_X86_2() {
+//        _d_inner_tensor = std::make_shared<d_type>();
+//        _h_inner_tensor = std::make_shared<h_type>();
+//    }
+//    PBlock_X86_2(Shape4d& shape) {
+//        _d_inner_tensor = std::make_shared<d_type>(shape);
+//        _h_inner_tensor = std::make_shared<h_type>(shape);
+//    }
+//
+//    /// shallow copy construction
+//    PBlock_X86_2(PBlock_X86_2<T>& p_block) { *this = p_block; }
+//
+//    PBlock_X86_2(const PBlock_X86_2<T>& p_block) { *this = p_block; }
+//
+//    /// assign
+//    PBlock_X86_2<T>& operator=(const PBlock_X86_2<T>& p_block) {
+//        _d_inner_tensor = p_block._d_inner_tensor;
+//        _h_inner_tensor = p_block._h_inner_tensor;
+//        /*_d_inner_tensor = std::make_shared<d_type>();
+//        _h_inner_tensor = std::make_shared<h_type>();
+//        _d_inner_tensor->set_shape(p_block._d_inner_tensor->shape());
+//        _d_inner_tensor->share_from(*(p_block._d_inner_tensor));
+//        _h_inner_tensor->set_shape(p_block._h_inner_tensor->shape());
+//        _h_inner_tensor->share_from(*(p_block._h_inner_tensor));*/
+//        /*_d_inner_tensor->share_sub_buffer(*(p_block._d_inner_tensor),
+//                                          p_block._d_inner_tensor->shape(),
+//                                          p_block._d_inner_tensor->offset());
+//        _h_inner_tensor->share_sub_buffer(*(p_block._h_inner_tensor),
+//                                          p_block._h_inner_tensor->shape(),
+//                                          p_block._h_inner_tensor->offset());*/
+//    }
+//
+//    PBlock_X86_2<T>& operator=(PBlock_X86_2<T>& p_block) {
+//        _d_inner_tensor = p_block._d_inner_tensor;
+//        _h_inner_tensor = p_block._h_inner_tensor;
+//        /*_d_inner_tensor = std::make_shared<d_type>();
+//        _h_inner_tensor = std::make_shared<h_type>();
+//        _d_inner_tensor->set_shape(p_block._d_inner_tensor->shape());
+//        _d_inner_tensor->share_from(*(p_block._d_inner_tensor));
+//        _h_inner_tensor->set_shape(p_block._h_inner_tensor->shape());
+//        _h_inner_tensor->share_from(*(p_block._h_inner_tensor));*/
+//        /*_d_inner_tensor->share_sub_buffer(*(p_block._d_inner_tensor),
+//                                          p_block._d_inner_tensor->shape(),
+//                                          p_block._d_inner_tensor->offset());
+//        _h_inner_tensor->share_sub_buffer(*(p_block._h_inner_tensor),
+//                                          p_block._h_inner_tensor->shape(),
+//                                          p_block._h_inner_tensor->offset());*/
+//    }
+//
+//    /// Get tensor.
+//    d_type& d_tensor() { return *(_d_inner_tensor); }
+//    h_type& h_tensor() { return *(_h_inner_tensor); }
+//
+//    /// Get host data to vector.
+//    std::vector<T> vector() {
+//        std::vector<T> ret;
+//        auto* data = _h_inner_tensor->mutable_data();
+//        for (int i = 0; i <_h_inner_tensor->valid_size(); i++) {
+//            ret.push_back(data[i]);
+//        }
+//        return ret;
+//    }
+//
+//    /// Get shape.
+//    Shape4d shape() {
+//        CHECK(_d_inner_tensor->valid_shape() == _h_inner_tensor->valid_shape())
+//        << " [Fatal Err]  device shape is not equal to that of host in PBlock";
+//        return _d_inner_tensor->valid_shape();
+//    }
+//
+//    /// Get size.
+//    size_t count() {
+//        return this->shape().count();
+//    }
+//
+//    ~PBlock_X86_2() {}
+//private:
+//    std::shared_ptr<d_type> _d_inner_tensor;
+//    std::shared_ptr<h_type> _h_inner_tensor;
+//};
+//////////////////////////////////
+//template<typename T >
+//class PBlock_X86 {
+//public:
+//
+//    typedef Tensor4d<X86, DataTypeRecover<T>::type> h_type;
+//
+//
+//    PBlock_X86() {
+//        _h_inner_tensor = std::make_shared<h_type>();
+//    }
+//    PBlock_X86(Shape4d& shape) {
+//        _h_inner_tensor = std::make_shared<h_type>(shape);
+//    }
+//
+//    /// shallow copy construction
+//    PBlock_X86(PBlock_X86<T>& p_block) { *this = p_block; }
+//
+//    PBlock_X86(const PBlock_X86<T>& p_block) { *this = p_block; }
+//
+//    /// assign
+//    PBlock_X86<T>& operator=(const PBlock_X86<T>& p_block) {
+//        _h_inner_tensor = p_block._h_inner_tensor;
+//    }
+//
+//    PBlock_X86<T>& operator=(PBlock_X86<T>& p_block) {
+//        _h_inner_tensor = p_block._h_inner_tensor;
+//    }
+//
+//    /// Get tensor.
+//    h_type& h_tensor() { return *(_h_inner_tensor); }
+//
+//    /// Get host data to vector.
+//    std::vector<T> vector() {
+//        std::vector<T> ret;
+//        auto* data = _h_inner_tensor->mutable_data();
+//        for (int i = 0; i <_h_inner_tensor->valid_size(); i++) {
+//            ret.push_back(data[i]);
+//        }
+//        return ret;
+//    }
+//
+//    /// Get shape.
+//    Shape4d shape() {
+//        CHECK(_h_inner_tensor->valid_shape() == _h_inner_tensor->valid_shape())
+//        << " [Fatal Err]  device shape is not equal to that of host in PBlock";
+//        return _h_inner_tensor->valid_shape();
+//    }
+//
+//    /// Get size.
+//    size_t count() {
+//        return this->shape().count();
+//    }
+//
+//    ~PBlock_X86() {}
+//private:
+//    std::shared_ptr<h_type> _h_inner_tensor;
+//};
 /** 
  *  \brief a simple wrapper of tensor use in weights parameter.
  *   default layout [ NCHW ]
  */
-template<typename T>
+template<typename T >
 class PBlock {
 public:
     typedef Tensor4d<NV, DataTypeRecover<T>::type> d_type;

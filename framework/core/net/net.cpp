@@ -261,8 +261,8 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
     CUDA_CHECK(cudaPeekAtLastError());
 	for (auto out : executer.outs) {
         LOG(INFO) <<executer.name <<" d_tensor_out_p :" <<out->data();
-        record_dev_tensorfile(out->data(), out->valid_size(),
-                              ("net_record_" + executer.name + ".txt").data());
+//        record_dev_tensorfile(out->data(), out->valid_size(),
+//                              ("net_record_" + executer.name + ".txt").data());
 	    LOG(ERROR) << "    |---out avg " << tensor_average(out);
 	}
 	cudaDeviceSynchronize();
@@ -372,6 +372,9 @@ Status Net<Ttype, Dtype, Ptype, RunType>::init_env(graph::Graph<Ttype, Dtype, Pt
     return Status::OK();
 }
 
+template class Net<X86, AK_FLOAT, Precision::FP32, OpRunType::ASYNC>;
+template class Net<X86, AK_FLOAT, Precision::FP16, OpRunType::ASYNC>;
+template class Net<X86, AK_FLOAT, Precision::INT8, OpRunType::ASYNC>;
 
 template class Net<NV, AK_FLOAT, Precision::FP32, OpRunType::ASYNC>;
 template class Net<NV, AK_FLOAT, Precision::FP16, OpRunType::ASYNC>;
@@ -380,6 +383,10 @@ template class Net<NV, AK_FLOAT, Precision::INT8, OpRunType::ASYNC>;
 template class Net<ARM, AK_FLOAT, Precision::FP32, OpRunType::ASYNC>;
 template class Net<ARM, AK_FLOAT, Precision::FP16, OpRunType::ASYNC>;
 template class Net<ARM, AK_FLOAT, Precision::INT8, OpRunType::ASYNC>;
+
+template class Net<X86, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
+template class Net<X86, AK_FLOAT, Precision::FP16, OpRunType::SYNC>;
+template class Net<X86, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
 
 template class Net<NV, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
 template class Net<NV, AK_FLOAT, Precision::FP16, OpRunType::SYNC>;
