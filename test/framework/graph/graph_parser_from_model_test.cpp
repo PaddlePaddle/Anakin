@@ -23,7 +23,15 @@ TEST(GraphTest, graph_load_model) {
 }
 
 TEST(GraphTest, graph_save_model) {
+#ifdef USE_CUDA
     Graph<NV, AK_FLOAT, Precision::FP32>* graph = new Graph<NV, AK_FLOAT, Precision::FP32>();
+#endif
+#ifdef USE_X86_PLACE
+    Graph<X86, AK_FLOAT, Precision::FP32>* graph = new Graph<X86, AK_FLOAT, Precision::FP32>();
+#endif
+#ifdef USE_ARM_PLACE
+    Graph<ARM, AK_FLOAT, Precision::FP32>* graph = new Graph<ARM, AK_FLOAT, Precision::FP32>();
+#endif
     // load anakin model files.
     LOG(INFO) << "load anakin model file from " << model_path << " ...";
     graph->load(model_path);

@@ -54,7 +54,6 @@ Status SassConvBatchnormScaleReluPoolHelper<Ttype, Dtype, Ptype>::InitParam() {
     cudaDeviceSynchronize();
     CUDA_CHECK(cudaPeekAtLastError());
 
-
     if (bias_term) {
         auto bias = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_2);
         saber::ConvParam<Tensor4d<Ttype, Dtype>> conv_param(group, padding[0], padding[1],

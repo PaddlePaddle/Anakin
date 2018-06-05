@@ -3,7 +3,12 @@
 namespace anakin {
 
 namespace ops {
+<<<<<<< HEAD
 #ifdef USE_CDUA
+=======
+
+#ifdef USE_CUDA
+>>>>>>> developing
 template<>
 void Argmax<NV, AK_FLOAT, Precision::FP32>::operator()(
     OpContext<NV>& ctx,
@@ -14,7 +19,11 @@ void Argmax<NV, AK_FLOAT, Precision::FP32>::operator()(
     auto& param = impl->_param_argmax;
     impl->_funcs_argmax(ins, outs, param, ctx);
 }
+<<<<<<< HEAD
 #endif //CUDA
+=======
+#endif
+>>>>>>> developing
 
 #ifdef USE_ARM_PLACE
 template<>

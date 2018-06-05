@@ -4,6 +4,7 @@ namespace anakin {
 
 namespace ops {
 
+#ifdef USE_CUDA
 template<>
 void DeconvRelu<NV, AK_FLOAT, Precision::FP32>::operator()(
     OpContext<NV>& ctx,
@@ -14,6 +15,7 @@ void DeconvRelu<NV, AK_FLOAT, Precision::FP32>::operator()(
     auto& param = impl->_param_deconv_relu;
     impl->_funcs_deconv_relu(ins, outs, param, ctx);
 }
+#endif
 
 /// TODO ... specialization other type of operator
 
