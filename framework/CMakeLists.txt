@@ -40,19 +40,19 @@ if(UNIX OR APPLE)
 		target_link_libraries(${anakin_lib_so} ${ANAKIN_SABER_LIB_TARGET} ${ANAKIN_LINKER_LIBS})
 		set_target_properties(${anakin_lib_so} PROPERTIES LINK_FLAGS "")
 		set_target_properties(${anakin_lib_so} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/output/)
-        	install(DIRECTORY ${ANAKIN_FRAMEWORK} ${ANAKIN_SABER} ${ANAKIN_UTILS}
-                	DESTINATION ${PROJECT_SOURCE_DIR}/output/
-                	FILES_MATCHING PATTERN "*.h")
+        install(DIRECTORY ${ANAKIN_FRAMEWORK} ${ANAKIN_SABER} ${ANAKIN_UTILS}
+                DESTINATION ${PROJECT_SOURCE_DIR}/output/
+                FILES_MATCHING PATTERN "*.h")
 	endif()
 	if(BUILD_STATIC)
 		add_library(${anakin_lib_static} STATIC ${ANAKIN_SRC})
 		add_dependencies(${anakin_lib_static} ${ANAKIN_SABER_LIB_TARGET})
 		set_target_properties(${anakin_lib_static} PROPERTIES VERSION ${VERSION})
 		target_link_libraries(${anakin_lib_static} ${ANAKIN_SABER_LIB_TARGET} ${ANAKIN_LINKER_LIBS})
-        	set_target_properties(${anakin_lib_static} PROPERTIES LINK_FLAGS "")
+        set_target_properties(${anakin_lib_static} PROPERTIES LINK_FLAGS "")
 		set_target_properties(${anakin_lib_static} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/output/)
-        	install(DIRECTORY ${ANAKIN_FRAMEWORK} ${ANAKIN_SABER} ${ANAKIN_UTILS}
-                	DESTINATION ${PROJECT_SOURCE_DIR}/output/
-                	FILES_MATCHING PATTERN "*.h")
+        install(DIRECTORY ${ANAKIN_FRAMEWORK} ${ANAKIN_SABER} ${ANAKIN_UTILS}
+                DESTINATION ${PROJECT_SOURCE_DIR}/output/
+                FILES_MATCHING PATTERN "*.h")
 	endif()
 endif()

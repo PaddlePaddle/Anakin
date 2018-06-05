@@ -34,6 +34,7 @@
 #include <sys/stat.h> // mkdir
 #include <unistd.h>   // STDERR_FILENO
 
+#include "anakin_config.h"
 
 // Disable all warnings from gcc/clang:
 #if defined(__clang__)
@@ -51,16 +52,19 @@
 #define LOGGER_CATCH_SIGABRT 1
 
 #define SUPPORT_PTHREADS // support for pthreads
-#define ENABLE_STACKTRACES
+
+#ifndef PLATFORM_ANDROID
+  #define ENABLE_STACKTRACES
+#endif
 
 #if defined __linux__ || defined __APPLE__
-#include <pthread.h>
-#include <sys/utsname.h>  // For uname.
-#ifdef ENABLE_STACKTRACES
-#include <cxxabi.h>    // for __cxa_demangle for gcc
-#include <dlfcn.h>     // for dladdr
-#include <execinfo.h>  // for backtrace
-#endif //ENABLE_STACKTRACES
+  #include <pthread.h>
+  #include <sys/utsname.h>  // For uname.
+  #ifdef ENABLE_STACKTRACES
+    #include <cxxabi.h>    // for __cxa_demangle for gcc
+    #include <dlfcn.h>     // for dladdr
+    #include <execinfo.h>  // for backtrace
+  #endif //ENABLE_STACKTRACES
 #endif
 
 #if defined(_WIN32) || (defined(__APPLE__) && !TARGET_OS_IPHONE) || defined(__linux__)
