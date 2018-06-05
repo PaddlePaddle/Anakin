@@ -3,7 +3,7 @@
 namespace anakin {
 
 namespace ops {
-
+#ifdef USE_CUDA
 template<>
 void BatchNorm<NV, AK_FLOAT, Precision::FP32>::operator()(
     OpContext<NV>& ctx,
@@ -13,7 +13,18 @@ void BatchNorm<NV, AK_FLOAT, Precision::FP32>::operator()(
     auto& param = static_cast<BatchNorm<NV, AK_FLOAT, Precision::FP32>*>(this->_helper)->_param_permute;
     impl->_funcs_permute(ins, outs, param, ctx);*/
 }
-
+#endif
+#ifdef USE_ARM_PLACE
+template<>
+void BatchNorm<ARM, AK_FLOAT, Precision::FP32>::operator()(
+    OpContext<ARM>& ctx,
+    const std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& ins,
+    std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& outs) {
+    /*auto* impl = static_cast<BatchNorm<ARM, AK_FLOAT, Precision::FP32>*>(this->_helper);
+    auto& param = static_cast<BatchNorm<ARM, AK_FLOAT, Precision::FP32>*>(this->_helper)->_param_permute;
+    impl->_funcs_permute(ins, outs, param, ctx);*/
+}
+#endif
 /// TODO ... specialization other type of operator
 
 
@@ -51,14 +62,16 @@ Status BatchNormHelper<Ttype, Dtype, Ptype>::InferShape(const
 
     return Status::OK();
 }
-
+#ifdef USE_CUDA
 template class BatchNormHelper<NV, AK_FLOAT, Precision::FP32>;
 template class BatchNormHelper<NV, AK_FLOAT, Precision::FP16>;
 template class BatchNormHelper<NV, AK_FLOAT, Precision::INT8>;
-
+#endif
+#ifdef USE_ARM_PLACE
 template class BatchNormHelper<ARM, AK_FLOAT, Precision::FP32>;
 template class BatchNormHelper<ARM, AK_FLOAT, Precision::FP16>;
 template class BatchNormHelper<ARM, AK_FLOAT, Precision::INT8>;
+#endif
 // register helper
 ANAKIN_REGISTER_OP_HELPER(BatchNorm, BatchNormHelper, NV, AK_FLOAT, Precision::FP32);
 ANAKIN_REGISTER_OP_HELPER(BatchNorm, BatchNormHelper, ARM, AK_FLOAT, Precision::FP32);
