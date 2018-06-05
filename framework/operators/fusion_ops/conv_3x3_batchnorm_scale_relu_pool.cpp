@@ -48,6 +48,11 @@ Status SassConvBatchnormScaleReluPoolHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto weights = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_1);
     auto weight_vec = weights.vector();
 
+    //LOG(ERROR) << "weight vec size: " << weight_vec.size();
+    float* h_data = new float[weights.d_tensor().valid_size()];
+    cudaMemcpy(h_data, weights.d_tensor().mutable_data(), weights.d_tensor().valid_size()*sizeof(float), cudaMemcpyDeviceToHost);
+    cudaDeviceSynchronize();
+    CUDA_CHECK(cudaPeekAtLastError());
 
     if (bias_term) {
         auto bias = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_2);
