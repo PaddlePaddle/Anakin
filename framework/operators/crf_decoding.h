@@ -13,60 +13,60 @@
    limitations under the License. 
 */
 
-#ifndef ANAKIN_OPERATOR_SEQUENCE_POOL_H
-#define ANAKIN_OPERATOR_SEQUENCE_POOL_H
+#ifndef ANAKIN_OPERATOR_CRF_DECODING_H
+#define ANAKIN_OPERATOR_CRF_DECODING_H
 
 #include "framework/core/base.h"
 #include "framework/core/data_types.h"
 #include "framework/core/operator/operator.h"
 #include "utils/logger/logger.h"
-#include "saber/funcs/sequence_pool.h"
+#include "saber/funcs/crf_decoding.h"
 
 namespace anakin {
 
 namespace ops {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
-class SequencePoolHelper;
+class CrfDecodingHelper;
 
 /// pooling op
 /**
- * \brief SequencePool operation class
+ * \brief CrfDecoding operation class
  * public inheritance Operator
  */
 template<typename Ttype, DataType Dtype, Precision Ptype>
-class SequencePool : public Operator<Ttype, Dtype, Ptype> {
+class CrfDecoding : public Operator<Ttype, Dtype, Ptype> {
 public:
-    SequencePool() {}
+    CrfDecoding() {}
 
     /// forward impl
     virtual void operator() (OpContext<Ttype> &ctx, 
                              const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
                              std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-        LOG(ERROR) << "Not Impl Yet Operator SequencePool<TargetType:"<<"unknown"<<","
+        LOG(ERROR) << "Not Impl Yet Operator CrfDecoding<TargetType:"<<"unknown"<<","
                    <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info()<<">";
     }
 
-    friend class SequencePoolHelper<Ttype, Dtype, Ptype>;
+    friend class CrfDecodingHelper<Ttype, Dtype, Ptype>;
 };
 
 /**
- * \brief SequencePool helper class
+ * \brief CrfDecoding helper class
  * public inherit OperatorHelper
- * including init resource and shape size in sequence_pool context
+ * including init resource and shape size in crf_decoding context
  */
 template<typename Ttype, DataType Dtype, Precision Ptype>
-class SequencePoolHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
+class CrfDecodingHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
-    SequencePoolHelper()=default;
+    CrfDecodingHelper()=default;
 
-    ~SequencePoolHelper();
+    ~CrfDecodingHelper();
 
     Status InitParam() override;
 
     /**
     * \brief initial all the resource needed by pooling
-    * \param ctx stand for SequencePool operation context
+    * \param ctx stand for CrfDecoding operation context
     * \param ins stand for input tensor vector
     * \param outs stand for output tensor vector
     * \return status
@@ -85,15 +85,17 @@ public:
                       std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
 
 public:
-    ///< _param_sequence_pool stand for SequencePool parameter
-    saber::SequencePoolParam<Tensor4d<Ttype, Dtype>>  _param_sequence_pool;
-    ///< _funcs_sequence_pool stand for SequencePool function
-    saber::SequencePool<Ttype, Dtype> _funcs_sequence_pool;
+    ///< _param_crf_decoding stand for CrfDecoding parameter
+    saber::CrfDecodingParam<Tensor4d<Ttype, Dtype>>  _param_crf_decoding;
+    ///< _funcs_crf_decoding stand for CrfDecoding function
+    saber::CrfDecoding<Ttype, Dtype> _funcs_crf_decoding;
 
 private:
-    ///< _dims stand for SequencePool size
+    ///< _dims stand for CrfDecoding size
     PTuple<int> _dims; 
 };
+
+
 
 } /* namespace ops */
 

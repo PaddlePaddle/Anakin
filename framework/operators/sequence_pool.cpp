@@ -38,7 +38,7 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 Status SequencePoolHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
         const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
         std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-    SABER_CHECK(_funcs_sequence_pool.init(ins, outs, _param_sequence_pool, STATIC, VENDER_IMPL, ctx));
+    SABER_CHECK(_funcs_sequence_pool.init(ins, outs, _param_sequence_pool, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }
 
