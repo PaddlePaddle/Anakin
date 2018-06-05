@@ -85,13 +85,13 @@ ANAKIN_REGISTER_OP_HELPER(SequencePool, SequencePoolHelper, X86, AK_FLOAT, Preci
 ANAKIN_REGISTER_OP(SequencePool)
 .Doc("SequencePool operator")
 #ifdef USE_CUDA
-.__alias__<NV, AK_FLOAT, Precision::FP32>("sequence_pool")
+.__alias__<NV, AK_FLOAT, Precision::FP32>("SequencePool")
 #endif
 #ifdef USE_ARM_PLACE
-.__alias__<ARM, AK_FLOAT, Precision::FP32>("sequence_pool")
+.__alias__<ARM, AK_FLOAT, Precision::FP32>("SequencePool")
 #endif
 #ifdef USE_X86_PLACE
-.__alias__<X86, AK_FLOAT, Precision::FP32>("sequence_pool")
+.__alias__<X86, AK_FLOAT, Precision::FP32>("SequencePool")
 #endif
 .num_in(1)
 .num_out(1)
