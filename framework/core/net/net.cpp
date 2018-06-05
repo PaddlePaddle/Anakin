@@ -15,7 +15,6 @@ template<class Tensor_t>
 double tensor_average(Tensor_t& out_tensor_p) {
     double sum = 0.0f;
 #ifdef USE_CUDA
-<<<<<<< HEAD
     Tensor4d<X86, AK_FLOAT> h_tensor_result;
 #endif //USE_CUDA
 #ifdef USE_ARM_PLACE
@@ -27,16 +26,6 @@ double tensor_average(Tensor_t& out_tensor_p) {
     const float* h_data = h_tensor_result.data();
     for (int i = 0; i < out_tensor_p->valid_size(); i++) {
 	    sum += h_data[i];
-=======
-    float* h_data = new float[out_tensor_p->valid_size()];
-    const float* d_data = out_tensor_p->data();
-    CUDA_CHECK(cudaMemcpy(h_data, d_data, out_tensor_p->valid_size()*sizeof(float), cudaMemcpyDeviceToHost));
-#else
-	float* h_data = out_tensor_p->data();
-#endif
-    for (int i=0; i<out_tensor_p->valid_size(); i++) {
-		sum+=h_data[i];
->>>>>>> developing
     }
     return sum / out_tensor_p->valid_size();
 }

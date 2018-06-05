@@ -3,10 +3,7 @@
 namespace anakin {
 
 namespace ops {
-<<<<<<< HEAD
-=======
 
->>>>>>> developing
 #ifdef USE_CUDA
 template<>
 void Axpy<NV, AK_FLOAT, Precision::FP32>::operator()(
@@ -19,10 +16,6 @@ void Axpy<NV, AK_FLOAT, Precision::FP32>::operator()(
     impl->_funcs_axpy(ins, outs, param, ctx);
 }
 #endif
-<<<<<<< HEAD
-=======
-
->>>>>>> developing
 /// TODO ... specialization other type of operator
 #ifdef USE_ARM_PLACE
 template<>

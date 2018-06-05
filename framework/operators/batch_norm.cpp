@@ -3,10 +3,7 @@
 namespace anakin {
 
 namespace ops {
-<<<<<<< HEAD
-=======
 
->>>>>>> developing
 #ifdef USE_CUDA
 template<>
 void BatchNorm<NV, AK_FLOAT, Precision::FP32>::operator()(
@@ -18,7 +15,7 @@ void BatchNorm<NV, AK_FLOAT, Precision::FP32>::operator()(
     impl->_funcs_permute(ins, outs, param, ctx);*/
 }
 #endif
-<<<<<<< HEAD
+
 #ifdef USE_ARM_PLACE
 template<>
 void BatchNorm<ARM, AK_FLOAT, Precision::FP32>::operator()(
@@ -30,9 +27,6 @@ void BatchNorm<ARM, AK_FLOAT, Precision::FP32>::operator()(
     impl->_funcs_permute(ins, outs, param, ctx);*/
 }
 #endif
-=======
-
->>>>>>> developing
 /// TODO ... specialization other type of operator
 
 
@@ -75,19 +69,19 @@ template class BatchNormHelper<NV, AK_FLOAT, Precision::FP32>;
 template class BatchNormHelper<NV, AK_FLOAT, Precision::FP16>;
 template class BatchNormHelper<NV, AK_FLOAT, Precision::INT8>;
 #endif
-<<<<<<< HEAD
-=======
 
->>>>>>> developing
 #ifdef USE_ARM_PLACE
+#ifdef ANAKIN_TYPE_FP32
 template class BatchNormHelper<ARM, AK_FLOAT, Precision::FP32>;
+#endif
+#ifdef ANAKIN_TYPE_FP16
 template class BatchNormHelper<ARM, AK_FLOAT, Precision::FP16>;
+#endif
+#ifdef ANAKIN_TYPE_INT8
 template class BatchNormHelper<ARM, AK_FLOAT, Precision::INT8>;
 #endif
-<<<<<<< HEAD
-=======
+#endif
 
->>>>>>> developing
 // register helper
 #ifdef USE_CUDA
 ANAKIN_REGISTER_OP_HELPER(BatchNorm, BatchNormHelper, NV, AK_FLOAT, Precision::FP32);

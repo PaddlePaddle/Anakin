@@ -330,22 +330,12 @@ Status NodeIO<Ttype, Dtype, Ptype>::operator<<(GraphProto& graph) {
 
     return Status::OK();
 }
-<<<<<<< HEAD
-=======
 
->>>>>>> developing
 #ifdef USE_CUDA
 template class NodeIO<NV, AK_FLOAT, Precision::FP32>;
 template class NodeIO<NV, AK_FLOAT, Precision::FP16>;
 template class NodeIO<NV, AK_FLOAT, Precision::INT8>;
-<<<<<<< HEAD
 #endif //CUDA
-
-#ifdef USE_ARM_PLACE
-#ifdef ANAKIN_TYPE_FP32
-=======
-#endif
-
 #ifdef USE_X86_PLACE
 template class NodeIO<X86, AK_FLOAT, Precision::FP32>;
 template class NodeIO<X86, AK_FLOAT, Precision::FP16>;
@@ -353,7 +343,7 @@ template class NodeIO<X86, AK_FLOAT, Precision::INT8>;
 #endif
 
 #ifdef USE_ARM_PLACE
->>>>>>> developing
+#ifdef ANAKIN_TYPE_FP32
 template class NodeIO<ARM, AK_FLOAT, Precision::FP32>;
 #endif //FP32
 #ifdef ANAKIN_TYPE_FP16
@@ -361,13 +351,8 @@ template class NodeIO<ARM, AK_FLOAT, Precision::FP16>;
 #endif //FP16
 #ifdef ANAKIN_TYPE_INT8
 template class NodeIO<ARM, AK_FLOAT, Precision::INT8>;
-<<<<<<< HEAD
 #endif //INT8
 #endif //ARM
-=======
-#endif
-
->>>>>>> developing
 } /* parser */
 
 } /* anakin */

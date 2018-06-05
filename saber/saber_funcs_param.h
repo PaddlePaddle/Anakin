@@ -43,10 +43,10 @@ struct MatMulParam {
 
     bool _is_transpose_X{false};
     bool _is_transpose_Y{false};
-    int _M = 0;
-    int _N = 0;
-    int _K = 0;
-    int _B = 0;//batch_size
+    int _m = 0;
+    int _n = 0;
+    int _k = 0;
+    int _b = 0;//batch_size
 
 };
 
@@ -275,24 +275,12 @@ struct LSTMParam{
 
     int num_direction;
     float dropout_param;
-<<<<<<< HEAD
-    int numLayers;
-#ifdef USE_CUDA
-    Tensor<NV,AK_INT8,NCHW> in_weights;
-#endif //CUDA
-    bool isHW2Seq;
-    GruActivaty _gate_activity;
-    GruActivaty _h_activity;
-    GruFormula _formula;
-    bool _is_reverse;
-=======
     int num_layers;
     ActiveType gate_activity;
     ActiveType cell_activity;
     ActiveType candidate_activity;
     bool is_reverse;
     bool with_peephole;
->>>>>>> developing
 private:
     opTensor* weight_tensor;
     opTensor* bias_tensor;
