@@ -27,7 +27,7 @@ SassConvReluHelper<Ttype, Dtype, Ptype>::~SassConvReluHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status SassConvReluHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing SassConvRelu op parameter.";
+    DLOG(WARNING) << "Parsing SassConvRelu op parameter.";
     saber::ConvParam<Tensor4d<Ttype, Dtype>> _conv_param;
 
     // get conv param

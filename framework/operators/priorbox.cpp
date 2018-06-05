@@ -26,7 +26,7 @@ PriorBoxHelper<Ttype, Dtype, Ptype>::~PriorBoxHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status PriorBoxHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing PriorBox op parameter.";
+    DLOG(WARNING) << "Parsing PriorBox op parameter.";
     auto min_size_ = GET_PARAMETER(PTuple<float>, min_size);
     auto max_size_ = GET_PARAMETER(PTuple<float>, max_size);
     auto as_ratio  = GET_PARAMETER(PTuple<float>, aspect_ratio);

@@ -26,7 +26,7 @@ DetectionOutputHelper<Ttype, Dtype, Ptype>::~DetectionOutputHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status DetectionOutputHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Detectionoutput op parameter.";
+    DLOG(WARNING) << "Parsing Detectionoutput op parameter.";
     auto flag_share_location = GET_PARAMETER(bool, share_location);
     auto flag_var_in_target  = GET_PARAMETER(bool, variance_encode_in_target);
     auto classes_num         = GET_PARAMETER(int, class_num);

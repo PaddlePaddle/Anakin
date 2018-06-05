@@ -71,9 +71,9 @@ public:
             shape[i] = 1;
         }
         shape[0] = num;
-        _mean.re_alloc(shape);
+        _mean.reshape(shape);
         if (param.normalize_variance) {
-            _sd.re_alloc(shape);
+            _sd.reshape(shape);
         }
         return SaberSuccess;
     }

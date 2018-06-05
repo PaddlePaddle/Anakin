@@ -1,5 +1,6 @@
 #include "framework/core/net/net.h"
 #include "saber/funcs/timer.h"
+#include "saber/funcs/debug.h"
 namespace anakin {
 
 template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
@@ -84,10 +85,12 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
             _op_param.push_back(node_ptr->get_op_name());   
         }
 #endif
+
         // create operations
-#if 0
-        if (node_ptr->get_op_name() == "ConvReluPool"|| node_ptr->get_op_name() == "ConvBatchnormScaleRelu" || node_ptr->get_op_name() == "ConvBatchnormScaleReluPool" || node_ptr->get_op_name() == "ConvRelu" || node_ptr->get_op_name() == "Convolution") {
-        std::string key = "kernel_size";
+#if 1
+        //if (node_ptr->get_op_name() == "ConvReluPool"|| node_ptr->get_op_name() == "ConvBatchnormScaleRelu" || node_ptr->get_op_name() == "ConvBatchnormScaleReluPool" || node_ptr->get_op_name() == "ConvRelu" || node_ptr->get_op_name() == "Convolution") {
+       	if (node_ptr->get_op_name() == "ConvBatchnormScaleRelu" || node_ptr->get_op_name() == "ConvRelu" || node_ptr->get_op_name() == "Convolution") {
+	std::string key = "kernel_size";
         std::string strides = "strides";
         std::string group = "group";
         std::string dilation_rate = "dilation_rate";
@@ -234,8 +237,10 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
 	saber::SaberTimer<NV> my_time;
 	my_time.start(ctx);
 #endif
-      executer.infer_shape();
-      executer.launch();
+      if (executer.op_name != "Input") {
+          executer.infer_shape();
+          executer.launch();
+      }
 
       for(int i = 0; i < executer.outs.size(); i++) {
           executer.outs[i]->record_event(executer.ctx_p->get_compute_stream());
@@ -255,6 +260,9 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
 	cudaDeviceSynchronize();
     CUDA_CHECK(cudaPeekAtLastError());
 	for (auto out : executer.outs) {
+        LOG(INFO) <<executer.name <<" d_tensor_out_p :" <<out->data();
+        record_dev_tensorfile(out->data(), out->valid_size(),
+                              ("net_record_" + executer.name + ".txt").data());
 	    LOG(ERROR) << "    |---out avg " << tensor_average(out);
 	}
 	cudaDeviceSynchronize();

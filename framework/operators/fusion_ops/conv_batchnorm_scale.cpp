@@ -27,7 +27,7 @@ ConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::~ConvBatchnormScaleHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing ConvBatchnormScale op parameter.";
+    DLOG(WARNING) << "Parsing ConvBatchnormScale op parameter.";
     saber::ConvParam<Tensor4d<Ttype, Dtype>> _conv_param;
 
     // get conv param
