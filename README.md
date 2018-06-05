@@ -1,6 +1,6 @@
 # Anakin
 
-
+[![Build Status](https://travis-ci.org/xklnono/Anakin.svg?branch=developing)](https://travis-ci.org/xklnono/Anakin)
 [![License](https://img.shields.io/badge/license-Apache%202-blue.svg)](LICENSE)
 
 
