@@ -1,8 +1,8 @@
 
 #include <vector>
 #include "core/context.h"
+#include "funcs/debug.h"
 #include "tensor_op.h"
-#include "funcs/impl/cuda/cudnn_helper.h"
 #include "funcs/gru.h"
 #include "saber_types.h"
 #include "saber/funcs/timer.h"

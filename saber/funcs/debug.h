@@ -72,6 +72,7 @@ static void readTensorData(Tensor<X86, AK_FLOAT, NCHW> tensor, const char* locat
         fclose(fp);
     }
 }
+
 static void readTensorData(Tensor<X86, AK_FLOAT, NCHW_C16> tensor, const char* locate) {
     typedef typename Tensor<X86, AK_FLOAT, NCHW>::Dtype Dtype;
     FILE* fp = fopen(locate, "rb");
