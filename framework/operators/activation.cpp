@@ -17,7 +17,7 @@ void Activation<NV, AK_FLOAT, Precision::FP32>::operator()(
     impl->_funcs_activation(ins, outs, param, ctx);
 }
 #endif
-
+/*
 #ifdef USE_X86_PLACE
 template<>
 void Activation<X86, AK_FLOAT, Precision::FP32>::operator()(
@@ -31,6 +31,7 @@ void Activation<X86, AK_FLOAT, Precision::FP32>::operator()(
     impl->_funcs_activation(ins, outs, param, ctx);
 }
 #endif
+*/
 /// TODO ... specialization other type of operator
 
 
@@ -95,12 +96,13 @@ template class ActivationHelper<ARM, AK_FLOAT, Precision::FP32>;
 template class ActivationHelper<ARM, AK_FLOAT, Precision::FP16>;
 template class ActivationHelper<ARM, AK_FLOAT, Precision::INT8>;
 #endif
+/*
 #ifdef USE_X86_PLACE
 template class ActivationHelper<X86, AK_FLOAT, Precision::FP32>;
 template class ActivationHelper<X86, AK_FLOAT, Precision::FP16>;
 template class ActivationHelper<X86, AK_FLOAT, Precision::INT8>;
 #endif
-
+*/
 // register helper
 #ifdef USE_CUDA
 ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, NV, AK_FLOAT, Precision::FP32);
@@ -108,9 +110,11 @@ ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, NV, AK_FLOAT, Precision:
 #ifdef USE_ARM_PLACE
 ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
+/*
 #ifdef USE_X86_PLACE
 ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, X86, AK_FLOAT, Precision::FP32);
 #endif
+*/
 //! register op
 ANAKIN_REGISTER_OP(Activation)
 .Doc("Activation operator")
@@ -120,9 +124,11 @@ ANAKIN_REGISTER_OP(Activation)
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("activation")
 #endif
+/*
 #ifdef USE_X86_PLACE
 .__alias__<X86, AK_FLOAT, Precision::FP32>("activation")
 #endif
+*/
 .num_in(1)
 .num_out(1)
 .Args<std::string>("type", " type of Activation ");
