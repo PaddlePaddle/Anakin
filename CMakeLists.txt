@@ -16,7 +16,7 @@ option(USE_OPENCV "build with opencv" OFF)
 
 if(USE_ARM)
     # change path to your ANDROID_NDK
-    set(ANDROID_NDK "/your ndk path here")
+    set(ANDROID_NDK "/Users/lixiaoyang05/Library/Android/sdk/ndk-bundle")
     message(STATUS "ANDROID_NDK = ${ANDROID_NDK}")
     set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/android/android.toolchain.cmake)
     #set(ANDROID_ABI "arm64-v8a")#armeabi-v7a-hard with NEON#"arm64-v8a")#"armeabi-v7a with NEON")
