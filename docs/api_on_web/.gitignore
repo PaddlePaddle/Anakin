@@ -1,0 +1,5 @@
+# python
+*.pyc
+
+# doc gen file 
+html

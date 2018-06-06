@@ -1,0 +1,12 @@
+log
+
+*.pyc
+*pb2.py
+*.pb.py
+
+*.png
+*.jpg
+*.jpeg
+
+*.anakin.bin
+*.anakin.bin
