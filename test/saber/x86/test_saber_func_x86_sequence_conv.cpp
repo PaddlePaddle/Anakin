@@ -6,7 +6,7 @@
 #include "saber/funcs/timer.h"
 #include "stdio.h"
 #include "x86_test_common.h"
-#include "test_saber_func_x86_sequence_conv.h"
+#include "test_saber_func_x86.h"
 
 
 
@@ -21,7 +21,7 @@ void test_func_saber_sequence_conv_x86() {
 
     int hidden_size = 2;
     int context_length = 3; //kerner size
-    int feature_size = 1;
+    int feature_size = 5;
     int word_num = offsets[offsets.size() - 1];
     Shape shape_in(word_num, hidden_size, 1, 1);
     Shape shape_filter(1, 1, context_length * hidden_size, feature_size);
@@ -60,7 +60,7 @@ void test_func_saber_sequence_conv_x86() {
     //    return;
 }
 
-TEST(TestSaberSequenceConvX86, test_func_saber_sequence_conv) {
+TEST(TestSaberFuncX86, test_func_saber_sequence_conv) {
 
     test_func_saber_sequence_conv_x86();
 

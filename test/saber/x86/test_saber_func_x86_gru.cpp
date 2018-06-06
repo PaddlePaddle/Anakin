@@ -8,7 +8,7 @@
 #include "saber/funcs/timer.h"
 #include "stdio.h"
 #include "x86_test_common.h"
-#include "test_saber_func_x86_gru.h"
+#include "test_saber_func_x86.h"
 #include "saber/funcs/impl/x86/saber_gru.h"
 
 //#include "cublas.h"
@@ -211,7 +211,7 @@ void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size
     //    return;
 }
 
-TEST(TestSaberGruX86, test_func_saber_gru_x86) {
+TEST(TestSaberFuncX86, test_func_saber_gru_x86) {
 
     test_saber_gru_x86();
 
