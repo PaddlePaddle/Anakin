@@ -44,11 +44,11 @@ We tested them on single-GPU with single-thread.
 - GPU Memory Used (`MB`)
     BatchSize | TensorRT | Anakin
     :---: | :---: | :---: | 
-    1 | 963|997
-    2 | 965 |1039
-    4 | 991 |1115
-    8 | 1067 |1269
-    32 |1715 |2193
+    1 | 963 | 997
+    2 | 965 | 1039
+    4 | 991 | 1115
+    8 | 1067 | 1269
+    32 | 1715 | 2193
 
     
 ### <span id = '2'>Yolo </span>  
@@ -66,11 +66,11 @@ We tested them on single-GPU with single-thread.
 - GPU Memory Used (`MB`)
     BatchSize | TensorRT | Anakin
     :---: | :---: | :---: | 
-    1 | 1569| 1775
-    2 | 1649| 1815
-    4 |1709 | 1887
-    8 | 1731| 2031
-    32 |2253 | 2907
+    1 | 1569 | 1775
+    2 | 1649 | 1815
+    4 | 1709 | 1887
+    8 | 1731 | 2031
+    32 | 2253 | 2907
 
 ### <span id = '3'> Resnet50 </span> 
 
@@ -142,10 +142,10 @@ We tested them on single-GPU with single-thread.
 
     BatchSize | TensorRT | Anakin
     :---: | :---: | :---: | 
-    1 |   65.6861 |  2.9842
-    2 |   66.6814 |  4.7472
+    1 | 65.6861 | 2.9842
+    2 | 66.6814 | 4.7472
     4 | 69.7114 | 7.4163
-    8 | 76.1092|   12.8779
+    8 | 76.1092 | 12.8779
     32 | 124.9810 | 47.2142
 
 - GPU Memory Used (`MB`)
