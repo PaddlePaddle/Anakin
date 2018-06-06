@@ -30,6 +30,15 @@ using ::anakin::test::Test;
 
 using namespace anakin::graph;
 
+#ifdef USE_CUDA
+using Target = NV;
+#endif
+#ifdef USE_X86_PLACE
+using Target = X86;
+#endif
+#ifdef USE_ARM_PLACE
+using Target = ARM;
+#endif
 
 /**
  * \brief Graph test is base Test class for anakin graph funciton.  
@@ -43,10 +52,10 @@ public:
     void TearDown(){}
 
 protected:
-    Graph<NV, AK_FLOAT, Precision::FP32>* graph;
+    Graph<Target, AK_FLOAT, Precision::FP32>* graph;
 };
 
-void test_print(Tensor4dPtr<NV, AK_FLOAT>& out_tensor_p) {
+void test_print(Tensor4dPtr<Target, AK_FLOAT>& out_tensor_p) {
     Tensor4d<X86, AK_FLOAT> h_tensor_result;
     h_tensor_result.re_alloc(out_tensor_p->valid_shape());
     LOG(ERROR) << "result count : " << h_tensor_result.valid_shape().count();

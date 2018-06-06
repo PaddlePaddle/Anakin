@@ -3,6 +3,16 @@
 #include "saber/funcs/timer.h"
 #include <chrono>
 
+#ifdef USE_CUDA
+using Target = NV;
+#endif
+#ifdef USE_X86_PLACE
+using Target = X86;
+#endif
+#ifdef USE_ARM_PLACE
+using Target = ARM;
+#endif
+
 //#define USE_DIEPSE
 
 
@@ -32,7 +42,7 @@ std::string model_path = "/home/cuichaowen/anakin2/anakin2/benchmark/CNN/models/
 
 #if 1
 TEST(NetTest, net_execute_base_test) {
-    graph = new Graph<NV, AK_FLOAT, Precision::FP32>();
+    graph = new Graph<Target, AK_FLOAT, Precision::FP32>();
     LOG(WARNING) << "load anakin model file from " << model_path << " ...";
     // load anakin model files.
     auto status = graph->load(model_path);
@@ -52,9 +62,9 @@ TEST(NetTest, net_execute_base_test) {
     // constructs the executer net
 	{ // inner scope
 #ifdef USE_DIEPSE
-    Net<NV, AK_FLOAT, Precision::FP32, OpRunType::SYNC> net_executer(*graph, true);
+    Net<Target, AK_FLOAT, Precision::FP32, OpRunType::SYNC> net_executer(*graph, true);
 #else
-    Net<NV, AK_FLOAT, Precision::FP32> net_executer(*graph, true);
+    Net<Target, AK_FLOAT, Precision::FP32> net_executer(*graph, true);
 #endif
 
     // get in
@@ -112,8 +122,8 @@ TEST(NetTest, net_execute_base_test) {
 
     int epoch = 1;
     // do inference
-    Context<NV> ctx(0, 0, 0);
-    saber::SaberTimer<NV> my_time;
+    Context<Target> ctx(0, 0, 0);
+    saber::SaberTimer<Target> my_time;
     LOG(WARNING) << "EXECUTER !!!!!!!! ";
 	// warm up
 	/*for(int i=0; i<10; i++) {
@@ -173,7 +183,7 @@ TEST(NetTest, net_execute_base_test) {
 
 #if 0
 TEST(NetTest, net_execute_reconstruction_test) {
-    graph = new Graph<NV, AK_FLOAT, Precision::FP32>();
+    graph = new Graph<Target, AK_FLOAT, Precision::FP32>();
     LOG(WARNING) << "load anakin model file from optimized model " << model_saved_path << " ...";
     // load anakin model files.
     auto status = graph->load(model_saved_path);
@@ -189,7 +199,7 @@ TEST(NetTest, net_execute_reconstruction_test) {
     graph->Optimize();
 
     // constructs the executer net
-    Net<NV, AK_FLOAT, Precision::FP32> net_executer(*graph);
+    Net<Target, AK_FLOAT, Precision::FP32> net_executer(*graph);
 
     // get in
     auto d_tensor_in_p = net_executer.get_in("input_0");
@@ -210,8 +220,8 @@ TEST(NetTest, net_execute_reconstruction_test) {
     d_tensor_in_p->copy_from(h_tensor_in);
 
     // do inference
-    Context<NV> ctx(0, 0, 0);
-    saber::SaberTimer<NV> my_time;
+    Context<Target> ctx(0, 0, 0);
+    saber::SaberTimer<Target> my_time;
     my_time.start(ctx);
 
     LOG(WARNING) << "EXECUTER !!!!!!!! ";
@@ -242,9 +252,9 @@ TEST(NetTest, net_execute_muti_thread_test) {
 	LOG(WARNING) << "anakin model file from " << model_path;	
 	int thread_num = 10;
 	LOG(WARNING) << "Construct the muti-threads"<< <<" worker for anakin model."
-    Worker<NV, AK_FLOAT, Precision::FP32>  worker_for_model(model_path, thread_num); 
+    Worker<Target, AK_FLOAT, Precision::FP32>  worker_for_model(model_path, thread_num); 
 
-    std::vector<Tensor4dPtr<NV, AK_FLOAT> > net_in_list;
+    std::vector<Tensor4dPtr<Target, AK_FLOAT> > net_in_list;
 
     worker_for_yolo_net.async_prediction(net_in_list);
 }
