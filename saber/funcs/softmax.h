@@ -26,7 +26,9 @@
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_softmax.h"
 #endif
-
+#ifdef USE_ARM_PLACE
+#include "saber/funcs/impl/arm/saber_softmax.h"
+#endif
 namespace anakin{
 
 namespace saber{
@@ -88,7 +90,12 @@ public:
 private:
 
     virtual void pick_best_static() override {
-        this->_best_impl = this->_impl[0];
+	//! saber softmax is better when axis is in outer dims
+        if (this->_param.axis > 1) {
+            this->_best_impl = this->_impl[1];
+        } else {
+            this->_best_impl = this->_impl[0];
+        }
     }
 
     virtual void pick_best_specify(ImplEnum implenum) override {

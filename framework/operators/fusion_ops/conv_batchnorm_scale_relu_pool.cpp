@@ -25,7 +25,7 @@ ConvBatchnormScaleReluPoolHelper<Ttype, Dtype, Ptype>::~ConvBatchnormScaleReluPo
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ConvBatchnormScaleReluPoolHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing ConvBatchnormScaleReluPool op parameter.";
+    DLOG(WARNING) << "Parsing ConvBatchnormScaleReluPool op parameter.";
     saber::ConvParam<Tensor4d<Ttype, Dtype>> _conv_param;
     PoolingParam<Tensor4d<Ttype, Dtype>> _pooling_param;
     // get conv param

@@ -33,7 +33,7 @@ SassConvBatchnormScaleReluPoolHelper<Ttype, Dtype, Ptype>::~SassConvBatchnormSca
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status SassConvBatchnormScaleReluPoolHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing SassConvBatchnormScaleReluPool op parameter.";
+    DLOG(WARNING) << "Parsing SassConvBatchnormScaleReluPool op parameter.";
     saber::ConvParam<Tensor4d<Ttype, Dtype>> _conv_param;
     PoolingParam<Tensor4d<Ttype, Dtype>> _pooling_param;
     // get conv param
@@ -48,15 +48,11 @@ Status SassConvBatchnormScaleReluPoolHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto weights = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_1);
     auto weight_vec = weights.vector();
 
-    LOG(ERROR) << "weight vec size: " << weight_vec.size();
+    //LOG(ERROR) << "weight vec size: " << weight_vec.size();
     float* h_data = new float[weights.d_tensor().valid_size()];
     cudaMemcpy(h_data, weights.d_tensor().mutable_data(), weights.d_tensor().valid_size()*sizeof(float), cudaMemcpyDeviceToHost);
-    for (int i=weights.d_tensor().valid_size(); i>weights.d_tensor().valid_size()-10; i--) {
-	LOG(INFO) << "data [" << i << "] : " << h_data[i];
-    }
     cudaDeviceSynchronize();
     CUDA_CHECK(cudaPeekAtLastError());
-    LOG(ERROR) << "pass !!!!!!!!!! ";
 
     if (bias_term) {
         auto bias = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_2);
@@ -67,7 +63,7 @@ Status SassConvBatchnormScaleReluPoolHelper<Ttype, Dtype, Ptype>::InitParam() {
         _conv_param = conv_param;
     } else {
         Tensor4d<Ttype, Dtype>* bias = new Tensor4d<Ttype, Dtype>();
-	LOG(ERROR) << " bias data ptr? : " << bias->mutable_data();
+
         saber::ConvParam<Tensor4d<Ttype, Dtype>> conv_param(group, padding[0], padding[1],
                                                             strides[0], strides[1],
                                                             dilation_rate[0], dilation_rate[1],

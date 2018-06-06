@@ -34,10 +34,6 @@ if(USE_BOOST)
     anakin_find_boost()
 endif()
 
-if(USE_MKL)
-    anakin_find_mkl()
-endif()
-
 if(BUILD_WITH_GLOG)
     anakin_find_glog()
 endif()
@@ -51,14 +47,16 @@ if (USE_GFLAGS)
     anakin_find_gflags()
 endif()
 
+if(USE_MKL)
+    #anakin_find_mkl()
+endif()
+
 if (USE_XBYAK)
-    anakin_find_xbyak()
+    #anakin_find_xbyak()
 endif()
 if (USE_MKLML)
-    anakin_find_mklml()
+    #anakin_find_mklml()
 endif()
-
-
 
 if(ENABLE_VERBOSE_MSG)
     set(CMAKE_VERBOSE_MAKEFILE ON)
@@ -69,7 +67,7 @@ if(DISABLE_ALL_WARNINGS)
 endif()
 
 if(USE_ARM_PLACE)
-    if(TARGET_ANDRIOD)
+    if(TARGET_ANDROID)
 		if(USE_OPENMP)
         	anakin_find_openmp()
 		endif()

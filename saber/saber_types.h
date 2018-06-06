@@ -31,7 +31,8 @@ enum TargetTypeEnum {
     eARM = 3,
     eX86 = 4,
     eNVHX86 = 5,
-    eNVHARM = 6
+    eNVHARM = 6,
+    eARMGPU = 7
 };
 
 template <TargetTypeEnum T>
@@ -39,6 +40,7 @@ struct TargetType {};
 // NV device without pinned memory
 typedef TargetType<eNV> NV;
 typedef TargetType<eARM> ARM;
+typedef TargetType<eARMGPU> ARMGPU;
 typedef TargetType<eAMD> AMD;
 typedef TargetType<eX86> X86;
 // NV device with pinned memory
@@ -110,7 +112,11 @@ typedef enum{
     Active_relu = 2,
     Active_tanh = 3,
     Active_clipped_relu = 4,
-    Active_elu
+    Active_elu=5,
+    Active_identity=6,
+    Active_sigmoid_fluid=7,
+    Active_tanh_fluid=8
+
 } ActiveType;
 
 typedef enum{
@@ -143,29 +149,6 @@ enum CodeType {
     CENTER_SIZE = 2,
     CORNER_SIZE = 3
 };
-
-typedef enum {
-    ATRS_NormType_NONE = 0,
-    ATRS_NormType_WIDTH = 1,
-    ATRS_NormType_HEIGHT = 2,
-    ATRS_NormType_WIDTH_LOG = 3,
-    ATRS_NormType_HEIGHT_LOG = 4,
-} ATRS_NormType;
-
-typedef enum {
-    DetectionOutputSSD_HEIGHT_AND_WIDTH = 0,
-    DetectionOutputSSD_HEIGHT_OR_WIDTH = 1
-} DetectionOutputSSD_MIN_SIZE_MODE;
-
-typedef enum {
-    ProposalImgScaleToCamCoords_NormType_HEIGHT = 0,
-    ProposalImgScaleToCamCoords_NormType_HEIGHT_LOG = 1
-} ProposalImgScaleToCamCoords_NormType;
-
-typedef enum {
-    ProposalImgScaleToCamCoords_OrienType_PI = 0,
-    ProposalImgScaleToCamCoords_OrienType_PI2 = 1
-} ProposalImgScaleToCamCoords_OrienType;
 
 typedef enum {
     SABER_POWER_HIGH = 0,

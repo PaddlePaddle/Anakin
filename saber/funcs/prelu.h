@@ -23,9 +23,11 @@
 #endif
 
 #ifdef USE_X86_PLACE
-//#include "saber/funcs/impl/x86/saber_activation.h"
+#include "saber/funcs/impl/impl_prelu.h"
 #endif
-
+#ifdef USE_ARM_PLACE
+#include "saber/funcs/impl/arm/saber_prelu.h"
+#endif
 namespace anakin{
 
 namespace saber{

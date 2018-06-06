@@ -16,8 +16,22 @@ void Activation<NV, AK_FLOAT, Precision::FP32>::operator()(
         static_cast<ActivationHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper)->_param_activation;
     impl->_funcs_activation(ins, outs, param, ctx);
 }
-#endif
+#endif //CUDA
 
+
+#ifdef USE_ARM_PLACE
+template<>
+void Activation<ARM, AK_FLOAT, Precision::FP32>::operator()(
+    OpContext<ARM>& ctx,
+    const std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& ins,
+    std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& outs) {
+    auto* impl =
+        static_cast<ActivationHelper<ARM, AK_FLOAT, Precision::FP32>*>(this->_helper);
+    auto& param =
+        static_cast<ActivationHelper<ARM, AK_FLOAT, Precision::FP32>*>(this->_helper)->_param_activation;
+    impl->_funcs_activation(ins, outs, param, ctx);
+}
+#endif //ARM
 /// TODO ... specialization other type of operator
 
 
@@ -28,7 +42,7 @@ ActivationHelper<Ttype, Dtype, Ptype>::~ActivationHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ActivationHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Activation op parameter.";
+    DLOG(WARNING) << "Parsing Activation op parameter.";
     auto type = GET_PARAMETER(std::string, type);
 
     if (type == "TanH") {
@@ -66,10 +80,16 @@ template class ActivationHelper<NV, AK_FLOAT, Precision::FP16>;
 template class ActivationHelper<NV, AK_FLOAT, Precision::INT8>;
 #endif
 #ifdef USE_ARM_PLACE
+#ifdef ANAKIN_TYPE_FP32
 template class ActivationHelper<ARM, AK_FLOAT, Precision::FP32>;
+#endif//FP32
+#ifdef ANAKIN_TYPE_FP16
 template class ActivationHelper<ARM, AK_FLOAT, Precision::FP16>;
+#endif//FP16
+#ifdef ANAKIN_TYPE_INT8
 template class ActivationHelper<ARM, AK_FLOAT, Precision::INT8>;
-#endif
+#endif //INT8
+#endif //ARM
 // register helper
 #ifdef USE_CUDA
 ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, NV, AK_FLOAT, Precision::FP32);

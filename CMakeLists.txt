@@ -4,35 +4,68 @@
 # @auther   cuichaowen
 # @date		2017-10-24
 # ----------------------------------------------------------------------------
+
+option(USE_CUDA "use nvidia gpu" OFF)
+option(USE_CUDNN "use cudnn lib" OFF)
+option(USE_ARM "build for arm devices" ON)
+option(USE_X86 "build for x86 device" OFF)
+option(USE_AMD "build for AMD gpu" OFF)
+
+option(USE_OPENMP "use openmp for muti-thread" ON)
+option(USE_OPENCV "build with opencv" OFF)
+
+if(USE_ARM)
+    # change path to your ANDROID_NDK
+    set(ANDROID_NDK "/Users/lixiaoyang05/Library/Android/sdk/ndk-bundle")
+    message(STATUS "ANDROID_NDK = ${ANDROID_NDK}")
+    set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/android/android.toolchain.cmake)
+    set(ANDROID_NATIVE_API_LEVEL 21)
+    #set(ANDROID_ABI "arm64-v8a")#armeabi-v7a-hard with NEON#"arm64-v8a")#"armeabi-v7a with NEON")
+
+    option(ARMV8 "build aarch64(armv8)" OFF)
+    option(ARM_HARD_FLOAT "Build for hard float abi" OFF)
+
+    if(ARMV8)
+        set(ANDROID_ABI "arm64-v8a")
+    else()
+        set(ANDROID_ABI "armeabi-v7a with NEON")
+    endif()
+
+    message(STATUS "ANDROID_ABI = ${ANDROID_ABI}")
+
+    if(CMAKE_TOOLCHAIN_FILE)
+        set(LIBRARY_OUTPUT_PATH_ROOT ${CMAKE_BINARY_DIR} CACHE PATH "root for library output, set this to change where android libs are compiled to")
+        # get absolute path, but get_filename_component ABSOLUTE only refer with source dir, so find_file here :(
+        get_filename_component(CMAKE_TOOLCHAIN_FILE_NAME ${CMAKE_TOOLCHAIN_FILE} NAME)
+        find_file(CMAKE_TOOLCHAIN_FILE ${CMAKE_TOOLCHAIN_FILE_NAME} PATHS ${CMAKE_SOURCE_DIR} NO_DEFAULT_PATH)
+        message(STATUS "CMAKE_TOOLCHAIN_FILE = ${CMAKE_TOOLCHAIN_FILE}")
+    endif()
+
+    if(NOT DEFINED CMAKE_INSTALL_PREFIX)
+        set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "Installation Directory")
+    endif()
+    message(STATUS "CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
+
+    if(ARM_HARD_FLOAT)
+        set(FLOAT_ABI "hard")
+    else()
+        set(FLOAT_ABI "softfp")
+    endif()
+
+    if(ARMV8)
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIE -pie")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIE -pie")
+    else()
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIE -pie -mfloat-abi=${FLOAT_ABI} -mfpu=neon")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIE -pie -mfloat-abi=${FLOAT_ABI} -mfpu=neon")
+    endif()
+endif()
+
 include(cmake/thirdparty_version.cmake)
-cmake_minimum_required(VERSION ${MIN_CMAKE_V} FATAL_ERROR)
 project(ANAKIN C CXX) 
 include(cmake/msg_color.cmake)
 include(cmake/utils.cmake)
 include(cmake/statistic.cmake)
-include(cmake/cuda.cmake)
-
-# ----------------------------------------------------------------------------
-# section: global anakin version and lib name
-# ----------------------------------------------------------------------------
-# global anakin version 2.0.1
-set(VERSION_MAJOR "2")
-set(VERSION_MINOR "0")
-set(VERSION_PATCH "1")
-set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
-
-# anakin lib name and global directories
-set(anakin_lib_so "anakin")
-set(anakin_lib_static "anakin_static")
-# set root dir of modules
-set(ANAKIN_ROOT ${PROJECT_SOURCE_DIR})
-include_directories(${ANAKIN_ROOT})
-
-set(ANAKIN_FRAMEWORK ${ANAKIN_ROOT}/framework)
-set(ANAKIN_UTILS ${ANAKIN_ROOT}/utils)
-set(ANAKIN_MODEL_PARSER ${ANAKIN_FRAMEWORK}/model_parser)
-set(ANAKIN_SABER ${ANAKIN_ROOT}/saber)
-set(ANAKIN_UNIT_TEST ${ANAKIN_ROOT}/test)
 
 # ----------------------------------------------------------------------------
 # section: options for anakin
@@ -44,14 +77,14 @@ anakin_option(ANAKIN_TYPE_FP16 "define the FP16 for data precision." NO)
 anakin_option(ANAKIN_TYPE_INT8 "define the INT8 for data precision." NO)
 
 #select the plantform to build
-anakin_option(USE_GPU_PLACE "Select the build mode for GPU place." YES)
-anakin_option(USE_X86_PLACE "Select the build mode for X86 place." YES)
-anakin_option(USE_ARM_PLACE "Select the build mode for ARM place." NO)
+anakin_option(USE_GPU_PLACE "Select the build mode for GPU place." NO)
+anakin_option(USE_X86_PLACE "Select the build mode for X86 place." NO)
+anakin_option(USE_ARM_PLACE "Select the build mode for ARM place." YES)
 
 # plantfrom details
 anakin_option(NVIDIA_GPU "Use NVIDIA GPU place." YES if USE_GPU_PLACE)
 anakin_option(AMD_GPU "Use AMD GPU place." NO if USE_GPU_PLACE AND NOT NVIDIA_GPU)
-anakin_option(TARGET_ANDROID "" NO if USE_ARM_PLACE)
+anakin_option(TARGET_ANDROID "" YES if USE_ARM_PLACE)
 anakin_option(TARGET_IOS "" NO if USE_ARM_PLACE)
 
 # compile options for NVIDIA_GPU place
@@ -61,7 +94,10 @@ anakin_option(USE_CURAND "Use Curand libs." YES if USE_CUDA)
 anakin_option(USE_CUFFT "Use CuFFT libs." YES if USE_CUDA)
 anakin_option(USE_CUDNN "Use Cudnn libs." YES if USE_CUDA)
 anakin_option(BUILD_CROSS_PLANTFORM "Build anakin lib for any nvidia device plantform." YES if USE_CUDA)
-anakin_option(BUILD_FAT_BIN "Build anakin cuda fat-bin lib for all device plantform" NO if NOT BUILD_CROSS_PLANTFORM)
+anakin_option(BUILD_FAT_BIN "Build anakin cuda fat-bin lib for all device plantform" NO if BUILD_CROSS_PLANTFORM)
+
+cmake_minimum_required(VERSION ${MIN_CMAKE_V} FATAL_ERROR)
+
 if(USE_CUDA)
     # Select gpu target arch for local high performance implement sass code . Now we have checked on sm_61 sm_50 and it works well.
     set(SELECTED_SASS_TARGET_ARCH "61")
@@ -85,16 +121,18 @@ anakin_option(ENABLE_NOISY_WARNINGS "Enable noisy warning msg during compile." N
 # using 3rd party libs 
 anakin_option(USE_GLOG "Build Glog components." NO)
 anakin_option(USE_PROTOBUF "Build Google protobuf components." YES)
-#anakin_option(USE_OPENCV "Use static opencv libs." NO)
+anakin_option(USE_OPENCV "Use static opencv libs." NO)
 anakin_option(USE_BOOST "Use static BOOST libs." NO)
-anakin_option(USE_MKL "Use static BOOST libs." NO)
-anakin_option(USE_OPENMP "Use Openmp when in andriod environment." YES if TARGET_ANDROID)
+anakin_option(USE_OPENMP "Use Openmp when in android environment." YES if TARGET_ANDROID)
 anakin_option(USE_GTEST "Use googletest libs." NO if BUILD_WITH_UNIT_TEST)
 anakin_option(USE_PYTHON "Generate py wrappers." NO)
 anakin_option(USE_OPENCL "Use OpenCL ." NO)
 anakin_option(USE_GFLAGS "Build Google gflags components." NO)
+anakin_option(USE_MKL "Use mkl libs." NO if USE_X86_PLACE)
 anakin_option(USE_MKLML "Use MKLML libs." YES if USE_X86_PLACE)
 anakin_option(USE_XBYAK "Use XBYAK libs." YES if USE_X86_PLACE)
+anakin_option(USE_OPENMP "Use Openmp when in android environment." YES if TARGET_ANDROID)
+
 # build components
 anakin_option(BUILD_WITH_UNIT_TEST "Build anakin unit test components." YES)
 
@@ -114,6 +152,30 @@ else()
 endif()
 
 # ----------------------------------------------------------------------------
+# section: global anakin version and lib name
+# ----------------------------------------------------------------------------
+# global anakin version 2.0.1
+set(VERSION_MAJOR "2")
+set(VERSION_MINOR "0")
+set(VERSION_PATCH "1")
+set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
+
+# anakin lib name and global directories
+set(anakin_lib_so "anakin")
+set(anakin_lib_static "anakin_static")
+# set root dir of modules
+set(ANAKIN_ROOT ${PROJECT_SOURCE_DIR})
+include_directories(${ANAKIN_ROOT})
+
+set(ANAKIN_FRAMEWORK ${ANAKIN_ROOT}/framework)
+set(ANAKIN_THIRD_PARTY_PATH ${CMAKE_BINARY_DIR}/third-party)
+set(ANAKIN_UTILS ${ANAKIN_ROOT}/utils)
+set(ANAKIN_THIRD_PARTY_PATH ${ANAKIN_ROOT}/third-party)
+set(ANAKIN_MODEL_PARSER ${ANAKIN_FRAMEWORK}/model_parser)
+set(ANAKIN_SABER ${ANAKIN_ROOT}/saber)
+set(ANAKIN_UNIT_TEST ${ANAKIN_ROOT}/test)
+
+# ----------------------------------------------------------------------------
 # section:configure a header file to pass some of the CMake settings to the source
 # 		  code
 # ----------------------------------------------------------------------------
@@ -127,10 +189,27 @@ include_directories(${PROJECT_BINARY_DIR})
 # ----------------------------------------------------------------------------
 # section: find modules and configure
 # ----------------------------------------------------------------------------
-include(cmake/find_modules.cmake)
+set(ANAKIN_SABER_DEPENDENCIES) # set saber dependent third-party lib targets
 
 # check and set base compile options
 include(cmake/compiler_options.cmake)
+
+include(cmake/find_modules.cmake)
+if(USE_CUDA)
+    include(cmake/cuda.cmake)
+endif()
+
+if(USE_X86_PLACE)
+    set(ANAKIN_TEMP_THIRD_PARTY_PATH ${CMAKE_BINARY_DIR}/third-party)
+    if(USE_MKLML)
+        include(cmake/external/mklml.cmake)
+    endif()
+    if(USE_XBYAK)
+        include(cmake/external/xbyak.cmake)
+    endif()
+    #include(cmake/external/mkldnn.cmake)
+endif()
+
 # gather all the config options to anakin
 include(cmake/gather.cmake)
 

@@ -372,14 +372,28 @@ Status Graph<Ttype, Dtype, Ptype>::Clean() {
     return Status::OK();
 }
 
+#ifdef USE_CUDA
 template class Graph<NV, AK_FLOAT, Precision::FP32>;
 template class Graph<NV, AK_FLOAT, Precision::FP16>;
 template class Graph<NV, AK_FLOAT, Precision::INT8>;
+#endif//CUDA
 
+#ifdef USE_X86_PLACE
+template class Graph<X86, AK_FLOAT, Precision::FP32>;
+template class Graph<X86, AK_FLOAT, Precision::FP16>;
+template class Graph<X86, AK_FLOAT, Precision::INT8>;
+#endif
+#ifdef USE_ARM_PLACE
+#ifdef ANAKIN_TYPE_FP32
 template class Graph<ARM, AK_FLOAT, Precision::FP32>;
+#endif//FP32
+#ifdef ANAKIN_TYPE_FP16
 template class Graph<ARM, AK_FLOAT, Precision::FP16>;
+#endif //FP16
+#ifdef ANAKIN_TYPE_INT8
 template class Graph<ARM, AK_FLOAT, Precision::INT8>;
-
+#endif //INT8
+#endif //ARM
 } /* namespace graph */
 
 } /* namespace anakin */
