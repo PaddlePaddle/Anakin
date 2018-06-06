@@ -8,6 +8,7 @@
 #include "tensor.h"
 namespace anakin {
 namespace saber {
+
 #if defined(USE_X86_PLACE) || defined(USE_CUDA)
 static void write_tensorfile(Tensor <X86, AK_FLOAT, NCHW> tensor, const char* locate) {
     typedef typename Tensor<X86, AK_FLOAT, NCHW>::Dtype Dtype;
@@ -86,7 +87,6 @@ static void readTensorData(Tensor<X86, AK_FLOAT, NCHW_C16> tensor, const char* l
         fclose(fp);
     }
 }
-
 #endif
 }
 }

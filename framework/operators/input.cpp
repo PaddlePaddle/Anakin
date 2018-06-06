@@ -4,12 +4,13 @@ namespace anakin {
 
 namespace ops {
 
+#ifdef USE_CUDA
 template<>
 void Input<NV, AK_FLOAT, Precision::FP32>::operator()(OpContext<NV>& ctx,
         const std::vector<Tensor4dPtr<NV, AK_FLOAT>>& ins,
         std::vector<Tensor4dPtr<NV, AK_FLOAT>>& outs) {
 }
-
+#endif
 
 /// TODO ... specialization other type of operator
 
@@ -54,38 +55,42 @@ Status InputHelper<Ttype, Dtype, Ptype>::InferShape(const std::vector<Tensor4dPt
 
     return Status::OK();
 }
-template class InputHelper<X86, AK_FLOAT, Precision::FP32>;
-template class InputHelper<X86, AK_FLOAT, Precision::FP16>;
-template class InputHelper<X86, AK_FLOAT, Precision::INT8>;
 
+#ifdef USE_CUDA
 template class InputHelper<NV, AK_FLOAT, Precision::FP32>;
 template class InputHelper<NV, AK_FLOAT, Precision::FP16>;
 template class InputHelper<NV, AK_FLOAT, Precision::INT8>;
+#endif
 
+#ifdef USE_ARM_PLACE
 template class InputHelper<ARM, AK_FLOAT, Precision::FP32>;
 template class InputHelper<ARM, AK_FLOAT, Precision::FP16>;
 template class InputHelper<ARM, AK_FLOAT, Precision::INT8>;
+#endif
 
 // register help
-ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, X86, AK_FLOAT, Precision::FP32);
-ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, X86, AK_FLOAT, Precision::FP16);
-ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, X86, AK_FLOAT, Precision::INT8);
-
+#ifdef USE_CUDA
 ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, NV, AK_FLOAT, Precision::FP32);
 ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, NV, AK_FLOAT, Precision::FP16);
 ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, NV, AK_FLOAT, Precision::INT8);
+#endif
 
+#ifdef USE_ARM_PLACE
 ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, ARM, AK_FLOAT, Precision::FP32);
 ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, ARM, AK_FLOAT, Precision::FP16);
 ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, ARM, AK_FLOAT, Precision::INT8);
+#endif
 
 //! register op
 ANAKIN_REGISTER_OP(Input)
-.Doc("Input operator [ only a input data holder and reshape ] ")
-.__alias__<NV, AK_FLOAT, Precision::FP32>("input")
-.__alias__<ARM, AK_FLOAT, Precision::FP32>("input")
-.__alias__<X86, AK_FLOAT, Precision::FP32>("input")
-.Args<PTuple<int>>("input_shape", " shape of graph input.");
+    .Doc("Input operator [ only a input data holder and reshape ] ")
+#ifdef USE_CUDA
+    .__alias__<NV, AK_FLOAT, Precision::FP32>("input")
+#endif
+#ifdef USE_ARM_PLACE
+    .__alias__<ARM, AK_FLOAT, Precision::FP32>("input")
+#endif
+    .Args<PTuple<int>>("input_shape", " shape of graph input.");
 
 } /* namespace ops */
 

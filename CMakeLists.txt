@@ -45,7 +45,7 @@ anakin_option(ANAKIN_TYPE_FP16 "define the FP16 for data precision." NO)
 anakin_option(ANAKIN_TYPE_INT8 "define the INT8 for data precision." NO)
 
 #select the plantform to build
-anakin_option(USE_GPU_PLACE "Select the build mode for GPU place." YES)
+anakin_option(USE_GPU_PLACE "Select the build mode for GPU place." NO)
 anakin_option(USE_X86_PLACE "Select the build mode for X86 place." YES)
 anakin_option(USE_ARM_PLACE "Select the build mode for ARM place." NO)
 

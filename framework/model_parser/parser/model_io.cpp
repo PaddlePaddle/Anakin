@@ -334,13 +334,23 @@ template class NodeIO<X86, AK_FLOAT, Precision::FP32>;
 template class NodeIO<X86, AK_FLOAT, Precision::FP16>;
 template class NodeIO<X86, AK_FLOAT, Precision::INT8>;
 
+#ifdef USE_CUDA
 template class NodeIO<NV, AK_FLOAT, Precision::FP32>;
 template class NodeIO<NV, AK_FLOAT, Precision::FP16>;
 template class NodeIO<NV, AK_FLOAT, Precision::INT8>;
+#endif
 
+#ifdef USE_X86_PLACE
+template class NodeIO<X86, AK_FLOAT, Precision::FP32>;
+template class NodeIO<X86, AK_FLOAT, Precision::FP16>;
+template class NodeIO<X86, AK_FLOAT, Precision::INT8>;
+#endif
+
+#ifdef USE_ARM_PLACE
 template class NodeIO<ARM, AK_FLOAT, Precision::FP32>;
 template class NodeIO<ARM, AK_FLOAT, Precision::FP16>;
 template class NodeIO<ARM, AK_FLOAT, Precision::INT8>;
+#endif
 
 } /* parser */
 

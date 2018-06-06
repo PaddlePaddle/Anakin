@@ -38,7 +38,8 @@ void nms_detect(const dtype* bbox_cpu_data,
                 int batch_num, int class_num, int num_priors, int background_id, \
                 int keep_topk, int nms_topk, float conf_thresh, float nms_thresh,
                 float nms_eta, bool share_location);
-#ifdef USE_CUDA
+
+#if USE_CUDA
 template <typename Dtype>
 void decode_bboxes(const int nthreads, const Dtype* loc_data, const Dtype* prior_data, \
                    const CodeType code_type, const bool variance_encoded_in_target, \
@@ -46,6 +47,7 @@ void decode_bboxes(const int nthreads, const Dtype* loc_data, const Dtype* prior
                    const int num_loc_classes, const int background_label_id, \
                    Dtype* bbox_data, cudaStream_t stream);
 #endif
+
 } //namespace saber
 
 } //namespace anakin

@@ -31,6 +31,7 @@ template
 Status load<X86, AK_FLOAT, Precision::INT8>(graph::Graph<X86, AK_FLOAT, Precision::INT8>* graph,
                                            std::string& model_path);
 
+#ifdef USE_CUDA
 template
 Status load<NV, AK_FLOAT, Precision::FP32>(graph::Graph<NV, AK_FLOAT, Precision::FP32>* graph,
         std::string& model_path);
@@ -40,7 +41,21 @@ Status load<NV, AK_FLOAT, Precision::FP16>(graph::Graph<NV, AK_FLOAT, Precision:
 template
 Status load<NV, AK_FLOAT, Precision::INT8>(graph::Graph<NV, AK_FLOAT, Precision::INT8>* graph,
         std::string& model_path);
+#endif
 
+#ifdef USE_X86_PLACE
+template
+Status load<X86, AK_FLOAT, Precision::FP32>(graph::Graph<X86, AK_FLOAT, Precision::FP32>* graph,
+        std::string& model_path);
+template
+Status load<X86, AK_FLOAT, Precision::FP16>(graph::Graph<X86, AK_FLOAT, Precision::FP16>* graph,
+        std::string& model_path);
+template
+Status load<X86, AK_FLOAT, Precision::INT8>(graph::Graph<X86, AK_FLOAT, Precision::INT8>* graph,
+        std::string& model_path);
+#endif
+
+#ifdef USE_ARM_PLACE
 template
 Status load<ARM, AK_FLOAT, Precision::FP32>(graph::Graph<ARM, AK_FLOAT, Precision::FP32>* graph,
         std::string& model_path);
@@ -50,16 +65,7 @@ Status load<ARM, AK_FLOAT, Precision::FP16>(graph::Graph<ARM, AK_FLOAT, Precisio
 template
 Status load<ARM, AK_FLOAT, Precision::INT8>(graph::Graph<ARM, AK_FLOAT, Precision::INT8>* graph,
         std::string& model_path);
-
-template
-Status load<ARM, AK_FLOAT, Precision::FP32>(graph::Graph<ARM, AK_FLOAT, Precision::FP32>* graph,
-        std::string& model_path);
-template
-Status load<ARM, AK_FLOAT, Precision::FP16>(graph::Graph<ARM, AK_FLOAT, Precision::FP16>* graph,
-        std::string& model_path);
-template
-Status load<ARM, AK_FLOAT, Precision::INT8>(graph::Graph<ARM, AK_FLOAT, Precision::INT8>* graph,
-        std::string& model_path);
+#endif
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path) {
@@ -202,6 +208,7 @@ template
 Status load<X86, AK_FLOAT, Precision::INT8>(graph::Graph<X86, AK_FLOAT, Precision::INT8>* graph,
                                            const char* model_path);
 
+#ifdef USE_CUDA
 template
 Status load<NV, AK_FLOAT, Precision::FP32>(graph::Graph<NV, AK_FLOAT, Precision::FP32>* graph,
         const char* model_path);
@@ -211,7 +218,21 @@ Status load<NV, AK_FLOAT, Precision::FP16>(graph::Graph<NV, AK_FLOAT, Precision:
 template
 Status load<NV, AK_FLOAT, Precision::INT8>(graph::Graph<NV, AK_FLOAT, Precision::INT8>* graph,
         const char* model_path);
+#endif
 
+#ifdef USE_X86_PLACE
+template
+Status load<X86, AK_FLOAT, Precision::FP32>(graph::Graph<X86, AK_FLOAT, Precision::FP32>* graph,
+        const char* model_path);
+template
+Status load<X86, AK_FLOAT, Precision::FP16>(graph::Graph<X86, AK_FLOAT, Precision::FP16>* graph,
+        const char* model_path);
+template
+Status load<X86, AK_FLOAT, Precision::INT8>(graph::Graph<X86, AK_FLOAT, Precision::INT8>* graph,
+        const char* model_path);
+#endif
+
+#ifdef USE_ARM_PLACE
 template
 Status load<ARM, AK_FLOAT, Precision::FP32>(graph::Graph<ARM, AK_FLOAT, Precision::FP32>* graph,
         const char* model_path);
@@ -221,6 +242,7 @@ Status load<ARM, AK_FLOAT, Precision::FP16>(graph::Graph<ARM, AK_FLOAT, Precisio
 template
 Status load<ARM, AK_FLOAT, Precision::INT8>(graph::Graph<ARM, AK_FLOAT, Precision::INT8>* graph,
         const char* model_path);
+#endif
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status save(graph::Graph<Ttype, Dtype, Ptype>* graph, std::string& model_path) {
@@ -236,6 +258,7 @@ template
 Status save<X86, AK_FLOAT, Precision::INT8>(graph::Graph<X86, AK_FLOAT, Precision::INT8>* graph,
                                            std::string& model_path);
 
+#ifdef USE_CUDA
 template
 Status save<NV, AK_FLOAT, Precision::FP32>(graph::Graph<NV, AK_FLOAT, Precision::FP32>* graph,
         std::string& model_path);
@@ -245,7 +268,21 @@ Status save<NV, AK_FLOAT, Precision::FP16>(graph::Graph<NV, AK_FLOAT, Precision:
 template
 Status save<NV, AK_FLOAT, Precision::INT8>(graph::Graph<NV, AK_FLOAT, Precision::INT8>* graph,
         std::string& model_path);
+#endif
 
+#ifdef USE_X86_PLACE
+template
+Status save<X86, AK_FLOAT, Precision::FP32>(graph::Graph<X86, AK_FLOAT, Precision::FP32>* graph,
+        std::string& model_path);
+template
+Status save<X86, AK_FLOAT, Precision::FP16>(graph::Graph<X86, AK_FLOAT, Precision::FP16>* graph,
+        std::string& model_path);
+template
+Status save<X86, AK_FLOAT, Precision::INT8>(graph::Graph<X86, AK_FLOAT, Precision::INT8>* graph,
+        std::string& model_path);
+#endif
+
+#ifdef USE_ARM_PLACE
 template
 Status save<ARM, AK_FLOAT, Precision::FP32>(graph::Graph<ARM, AK_FLOAT, Precision::FP32>* graph,
         std::string& model_path);
@@ -255,6 +292,7 @@ Status save<ARM, AK_FLOAT, Precision::FP16>(graph::Graph<ARM, AK_FLOAT, Precisio
 template
 Status save<ARM, AK_FLOAT, Precision::INT8>(graph::Graph<ARM, AK_FLOAT, Precision::INT8>* graph,
         std::string& model_path);
+#endif
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status save(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path) {
@@ -341,6 +379,7 @@ Status save(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path) {
     return Status::OK();
 }
 
+#ifdef USE_CUDA
 template
 Status save<NV, AK_FLOAT, Precision::FP32>(graph::Graph<NV, AK_FLOAT, Precision::FP32>* graph,
         const char* model_path);
@@ -350,7 +389,21 @@ Status save<NV, AK_FLOAT, Precision::FP16>(graph::Graph<NV, AK_FLOAT, Precision:
 template
 Status save<NV, AK_FLOAT, Precision::INT8>(graph::Graph<NV, AK_FLOAT, Precision::INT8>* graph,
         const char* model_path);
+#endif
 
+#ifdef USE_X86_PLACE
+template
+Status save<X86, AK_FLOAT, Precision::FP32>(graph::Graph<X86, AK_FLOAT, Precision::FP32>* graph,
+        const char* model_path);
+template
+Status save<X86, AK_FLOAT, Precision::FP16>(graph::Graph<X86, AK_FLOAT, Precision::FP16>* graph,
+        const char* model_path);
+template
+Status save<X86, AK_FLOAT, Precision::INT8>(graph::Graph<X86, AK_FLOAT, Precision::INT8>* graph,
+        const char* model_path);
+#endif
+
+#ifdef USE_ARM_PLACE
 template
 Status save<ARM, AK_FLOAT, Precision::FP32>(graph::Graph<ARM, AK_FLOAT, Precision::FP32>* graph,
         const char* model_path);
@@ -360,6 +413,7 @@ Status save<ARM, AK_FLOAT, Precision::FP16>(graph::Graph<ARM, AK_FLOAT, Precisio
 template
 Status save<ARM, AK_FLOAT, Precision::INT8>(graph::Graph<ARM, AK_FLOAT, Precision::INT8>* graph,
         const char* model_path);
+#endif
 
 } /* parser */
 
