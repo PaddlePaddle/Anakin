@@ -16,6 +16,18 @@ void DetectionOutput<NV, AK_FLOAT, Precision::FP32>::operator()(OpContext<NV>& c
 }
 #endif
 
+#ifdef USE_ARM_PLACE
+template<>
+void DetectionOutput<ARM, AK_FLOAT, Precision::FP32>::operator()(OpContext<ARM>& ctx,
+        const std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& ins,
+        std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& outs) {
+    auto* impl = static_cast<DetectionOutputHelper<ARM, AK_FLOAT, Precision::FP32>*>(this->_helper);
+    auto& param = static_cast<DetectionOutputHelper<ARM, AK_FLOAT, \
+                  Precision::FP32>*>(this->_helper)->_param_detection_output;
+    impl->_funcs_detection_output(ins, outs, param, ctx);
+}
+#endif
+
 /// TODO ... specialization other type of operator
 
 
@@ -79,9 +91,15 @@ template class DetectionOutputHelper<NV, AK_FLOAT, Precision::FP16>;
 template class DetectionOutputHelper<NV, AK_FLOAT, Precision::INT8>;
 #endif
 #ifdef USE_ARM_PLACE
+#ifdef ANAKIN_TYPE_FP32
 template class DetectionOutputHelper<ARM, AK_FLOAT, Precision::FP32>;
+#endif
+#ifdef ANAKIN_TYPE_FP16
 template class DetectionOutputHelper<ARM, AK_FLOAT, Precision::FP16>;
+#endif
+#ifdef ANAKIN_TYPE_INT8
 template class DetectionOutputHelper<ARM, AK_FLOAT, Precision::INT8>;
+#endif
 #endif
 // register helper
 #ifdef USE_CUDA

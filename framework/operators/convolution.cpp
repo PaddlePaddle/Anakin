@@ -17,6 +17,19 @@ void Convolution<NV, AK_FLOAT, Precision::FP32>::operator()(
 }
 #endif
 
+#ifdef USE_ARM_PLACE
+template<>
+void Convolution<ARM, AK_FLOAT, Precision::FP32>::operator()(
+    OpContext<ARM>& ctx,
+    const std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& ins,
+    std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& outs) {
+    auto* impl = static_cast<ConvolutionHelper<ARM, AK_FLOAT, Precision::FP32>*>(this->_helper);
+    auto& param = static_cast<ConvolutionHelper<ARM, AK_FLOAT, Precision::FP32>*>
+                  (this->_helper)->_param_conv;
+    impl->_funcs_conv(ins, outs, param, ctx);
+}
+#endif
+
 /// TODO ... specialization other type of operator
 
 
@@ -90,9 +103,15 @@ template class ConvolutionHelper<NV, AK_FLOAT, Precision::INT8>;
 #endif
 
 #ifdef USE_ARM_PLACE
+#ifdef ANAKIN_TYPE_FP32
 template class ConvolutionHelper<ARM, AK_FLOAT, Precision::FP32>;
+#endif
+#ifdef ANAKIN_TYPE_FP16
 template class ConvolutionHelper<ARM, AK_FLOAT, Precision::FP16>;
+#endif
+#ifdef ANAKIN_TYPE_INT8
 template class ConvolutionHelper<ARM, AK_FLOAT, Precision::INT8>;
+#endif
 #endif
 
 // register helper
