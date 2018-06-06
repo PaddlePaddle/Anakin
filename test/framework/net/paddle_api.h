@@ -28,7 +28,12 @@ class AnakinEngine : public EngineBase {
 public:
   typedef typename anakin::saber::DataTrait<Dtype>::dtype Dtype_t;
   typedef anakin::saber::TargetWrapper<X86> X86_API;
+#ifdef USE_CUDA
   typedef anakin::saber::TargetWrapper<Ttype> NV_API;
+#elif defined(USE_AMD)
+  typedef anakin::saber::TargetWrapper<Ttype> AMD_API;
+#endif
+
   AnakinEngine(){}
 
   ~AnakinEngine(){};
@@ -67,8 +72,14 @@ public:
   {
     auto input_tensor = _net_executer.get_in(name);
     CHECK_EQ(size, input_tensor->valid_size());
+#ifdef USE_CUDA
     anakin::Tensor<Ttype, Dtype> tmp_tensor(data, NV(), NV_API::get_device_id(), input_tensor->valid_shape());
     *input_tensor = tmp_tensor;
+#elif defined(USE_AMD)
+    anakin::Tensor<Ttype, Dtype> tmp_tensor(data, AMD(), AMD_API::get_device_id(), input_tensor->valid_shape());
+    *input_tensor = tmp_tensor;
+#endif
+
   };
   // Get an output called name, the output of tensorrt is in GPU, so this method
   // will just return the output's GPU memory address.
@@ -92,5 +103,9 @@ template
 class AnakinEngine<X86, anakin::saber::AK_FLOAT, anakin::Precision::FP32>;
 #endif*/
 
+#ifdef USE_AMD
+template 
+class AnakinEngine<AMD, anakin::saber::AK_FLOAT, anakin::Precision::FP32>;
+#endif
 
 

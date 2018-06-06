@@ -58,6 +58,18 @@ Status load<ARM, AK_FLOAT, Precision::INT8>(graph::Graph<ARM, AK_FLOAT, Precisio
         std::string& model_path);
 #endif
 
+#ifdef USE_AMD
+template
+Status load<AMD, AK_FLOAT, Precision::FP32>(graph::Graph<AMD, AK_FLOAT, Precision::FP32>* graph,
+        std::string& model_path);
+template
+Status load<AMD, AK_FLOAT, Precision::FP16>(graph::Graph<AMD, AK_FLOAT, Precision::FP16>* graph,
+        std::string& model_path);
+template
+Status load<AMD, AK_FLOAT, Precision::INT8>(graph::Graph<AMD, AK_FLOAT, Precision::INT8>* graph,
+        std::string& model_path);
+#endif
+
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path) {
 #if 0
@@ -226,6 +238,18 @@ Status load<ARM, AK_FLOAT, Precision::INT8>(graph::Graph<ARM, AK_FLOAT, Precisio
         const char* model_path);
 #endif
 
+#ifdef USE_AMD
+template
+Status load<AMD, AK_FLOAT, Precision::FP32>(graph::Graph<AMD, AK_FLOAT, Precision::FP32>* graph,
+        const char* model_path);
+template
+Status load<AMD, AK_FLOAT, Precision::FP16>(graph::Graph<AMD, AK_FLOAT, Precision::FP16>* graph,
+        const char* model_path);
+template
+Status load<AMD, AK_FLOAT, Precision::INT8>(graph::Graph<AMD, AK_FLOAT, Precision::INT8>* graph,
+        const char* model_path);
+#endif
+
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status save(graph::Graph<Ttype, Dtype, Ptype>* graph, std::string& model_path) {
     return save(graph, model_path.c_str());
@@ -264,6 +288,18 @@ Status save<ARM, AK_FLOAT, Precision::FP16>(graph::Graph<ARM, AK_FLOAT, Precisio
         std::string& model_path);
 template
 Status save<ARM, AK_FLOAT, Precision::INT8>(graph::Graph<ARM, AK_FLOAT, Precision::INT8>* graph,
+        std::string& model_path);
+#endif
+
+#ifdef USE_AMD
+template
+Status save<AMD, AK_FLOAT, Precision::FP32>(graph::Graph<AMD, AK_FLOAT, Precision::FP32>* graph,
+        std::string& model_path);
+template
+Status save<AMD, AK_FLOAT, Precision::FP16>(graph::Graph<AMD, AK_FLOAT, Precision::FP16>* graph,
+        std::string& model_path);
+template
+Status save<AMD, AK_FLOAT, Precision::INT8>(graph::Graph<AMD, AK_FLOAT, Precision::INT8>* graph,
         std::string& model_path);
 #endif
 
@@ -388,6 +424,17 @@ Status save<ARM, AK_FLOAT, Precision::INT8>(graph::Graph<ARM, AK_FLOAT, Precisio
         const char* model_path);
 #endif
 
+#ifdef USE_AMD
+template
+Status save<AMD, AK_FLOAT, Precision::FP32>(graph::Graph<AMD, AK_FLOAT, Precision::FP32>* graph,
+        const char* model_path);
+template
+Status save<AMD, AK_FLOAT, Precision::FP16>(graph::Graph<AMD, AK_FLOAT, Precision::FP16>* graph,
+        const char* model_path);
+template
+Status save<AMD, AK_FLOAT, Precision::INT8>(graph::Graph<AMD, AK_FLOAT, Precision::INT8>* graph,
+        const char* model_path);
+#endif
 } /* parser */
 
 } /* anakin */

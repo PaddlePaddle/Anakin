@@ -30,5 +30,10 @@ template class OperatorFunc<ARM, AK_FLOAT, Precision::FP16>;
 template class OperatorFunc<ARM, AK_FLOAT, Precision::INT8>;
 #endif
 
+#ifdef USE_AMD
+template class OperatorFunc<AMD, AK_FLOAT, Precision::FP32>;
+template class OperatorFunc<AMD, AK_FLOAT, Precision::FP16>;
+template class OperatorFunc<AMD, AK_FLOAT, Precision::INT8>;
+#endif
 } /* namespace */
 

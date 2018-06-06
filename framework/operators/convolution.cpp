@@ -17,6 +17,18 @@ void Convolution<NV, AK_FLOAT, Precision::FP32>::operator()(
 }
 #endif
 
+#ifdef USE_AMD
+template<>
+void Convolution<AMD, AK_FLOAT, Precision::FP32>::operator()(
+    OpContext<AMD>& ctx,
+    const std::vector<Tensor4dPtr<AMD, AK_FLOAT> >& ins,
+    std::vector<Tensor4dPtr<AMD, AK_FLOAT> >& outs) {
+    auto* impl = static_cast<ConvolutionHelper<AMD, AK_FLOAT, Precision::FP32>*>(this->_helper);
+    auto& param = static_cast<ConvolutionHelper<AMD, AK_FLOAT, Precision::FP32>*>
+                  (this->_helper)->_param_conv;
+    impl->_funcs_conv(ins, outs, param, ctx);
+}
+#endif
 /// TODO ... specialization other type of operator
 
 
@@ -96,9 +108,19 @@ template class ConvolutionHelper<ARM, AK_FLOAT, Precision::FP16>;
 template class ConvolutionHelper<ARM, AK_FLOAT, Precision::INT8>;
 #endif
 
+#ifdef USE_AMD
+template class ConvolutionHelper<AMD, AK_FLOAT, Precision::FP32>;
+template class ConvolutionHelper<AMD, AK_FLOAT, Precision::FP16>;
+template class ConvolutionHelper<AMD, AK_FLOAT, Precision::INT8>;
+#endif
+
 // register helper
 #ifdef USE_CUDA
 ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, NV, AK_FLOAT, Precision::FP32);
+#endif
+
+#ifdef USE_AMD
+ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, AMD, AK_FLOAT, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE
@@ -110,6 +132,9 @@ ANAKIN_REGISTER_OP(Convolution)
 .Doc("Convolution operator")
 #ifdef USE_CUDA
 .__alias__<NV, AK_FLOAT, Precision::FP32>("convolution")
+#endif
+#ifdef USE_AMD
+.__alias__<AMD, AK_FLOAT, Precision::FP32>("convolution")
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("convolution")

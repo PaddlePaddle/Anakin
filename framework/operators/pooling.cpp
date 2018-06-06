@@ -16,6 +16,17 @@ void Pooling<NV, AK_FLOAT, Precision::FP32>::operator()(OpContext<NV>& ctx,
 }
 #endif
 
+#ifdef USE_AMD
+template<>
+void Pooling<AMD, AK_FLOAT, Precision::FP32>::operator()(OpContext<AMD>& ctx,
+        const std::vector<Tensor4dPtr<AMD, AK_FLOAT> >& ins,
+        std::vector<Tensor4dPtr<AMD, AK_FLOAT> >& outs) {
+    auto* impl = static_cast<PoolingHelper<AMD, AK_FLOAT, Precision::FP32>*>(this->_helper);
+    auto& param = static_cast<PoolingHelper<AMD, AK_FLOAT, Precision::FP32>*>
+                  (this->_helper)->_param_pooling;
+    impl->_funcs_pooling(ins, outs, param, ctx);
+}
+#endif
 /// TODO ... specialization other type of operator
 
 
@@ -57,7 +68,11 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 Status PoolingHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
         const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
         std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+#ifdef USE_AMD
+    SABER_CHECK(_funcs_pooling.init(ins, outs, _param_pooling, SPECIFY, SABER_IMPL /*VENDER_IMPL*/, ctx));
+#else
     SABER_CHECK(_funcs_pooling.init(ins, outs, _param_pooling, SPECIFY, VENDER_IMPL, ctx));
+#endif
     return Status::OK();
 }
 
@@ -81,6 +96,12 @@ template class PoolingHelper<ARM, AK_FLOAT, Precision::FP16>;
 template class PoolingHelper<ARM, AK_FLOAT, Precision::INT8>;
 #endif
 
+#ifdef USE_AMD
+template class PoolingHelper<AMD, AK_FLOAT, Precision::FP32>;
+template class PoolingHelper<AMD, AK_FLOAT, Precision::FP16>;
+template class PoolingHelper<AMD, AK_FLOAT, Precision::INT8>;
+#endif
+
 //template class PoolingHelper<ARM, AK_FLOAT, Precision::FP32>;
 //template class PoolingHelper<ARM, AK_FLOAT, Precision::FP16>;
 //template class PoolingHelper<ARM, AK_FLOAT, Precision::INT8>;
@@ -91,7 +112,9 @@ ANAKIN_REGISTER_OP_HELPER(Pooling, PoolingHelper, NV, AK_FLOAT, Precision::FP32)
 #ifdef USE_ARM_PLACE
 ANAKIN_REGISTER_OP_HELPER(Pooling, PoolingHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
-
+#ifdef USE_AMD
+ANAKIN_REGISTER_OP_HELPER(Pooling, PoolingHelper, AMD, AK_FLOAT, Precision::FP32);
+#endif
 //! register op
 ANAKIN_REGISTER_OP(Pooling)
 .Doc("Pooling operator")
@@ -102,6 +125,10 @@ ANAKIN_REGISTER_OP(Pooling)
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("pooling")
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("pool")
+#endif
+#ifdef USE_AMD
+.__alias__<AMD, AK_FLOAT, Precision::FP32>("pooling")
+.__alias__<AMD, AK_FLOAT, Precision::FP32>("pool")
 #endif
 .num_in(1)
 .num_out(1)

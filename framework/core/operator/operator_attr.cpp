@@ -37,6 +37,13 @@ OpAttrWarpper& OpAttrWarpper::__alias__<ARM, AK_FLOAT, Precision::FP16>(const st
 template
 OpAttrWarpper& OpAttrWarpper::__alias__<ARM, AK_FLOAT, Precision::INT8>(const std::string& op_name);
 
+template
+OpAttrWarpper& OpAttrWarpper::__alias__<AMD, AK_FLOAT, Precision::FP32>(const std::string& op_name);
+template
+OpAttrWarpper& OpAttrWarpper::__alias__<AMD, AK_FLOAT, Precision::FP16>(const std::string& op_name);
+template
+OpAttrWarpper& OpAttrWarpper::__alias__<AMD, AK_FLOAT, Precision::INT8>(const std::string& op_name);
+
 OpAttrWarpper& OpAttrWarpper::Doc(const std::string& doc) {
     opAttr_.doc = doc;
     return *this;

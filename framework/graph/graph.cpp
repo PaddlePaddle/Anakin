@@ -390,6 +390,11 @@ template class Graph<ARM, AK_FLOAT, Precision::FP16>;
 template class Graph<ARM, AK_FLOAT, Precision::INT8>;
 #endif
 
+#ifdef USE_AMD
+template class Graph<AMD, AK_FLOAT, Precision::FP32>;
+template class Graph<AMD, AK_FLOAT, Precision::FP16>;
+template class Graph<AMD, AK_FLOAT, Precision::INT8>;
+#endif
 } /* namespace graph */
 
 } /* namespace anakin */

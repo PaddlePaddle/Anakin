@@ -28,6 +28,8 @@ int FLAGS_epoch = 1000;
 
 #ifdef USE_CUDA
 typedef NV Target;
+#elif defined(USE_AMD)
+typedef AMD Target;
 #elif defined(USE_X86_PLACE)
 typedef X86 Target;
 #else
@@ -159,6 +161,11 @@ int main(int argc, const char** argv){
         FLAGS_epoch = atoi(argv[5]);
     }
 #endif
+
+#ifdef USE_AMD
+    Env<Target>::env_init();
+#endif
+
     InitTest();
     RUN_ALL_TESTS(argv[0]); 
     return 0;

@@ -17,6 +17,20 @@ void ReLU<NV, AK_FLOAT, Precision::FP32>::operator()(
 }
 #endif
 
+#ifdef USE_AMD
+template<>
+void ReLU<AMD, AK_FLOAT, Precision::FP32>::operator()(
+    OpContext<AMD>& ctx,
+    const std::vector<Tensor4dPtr<AMD, AK_FLOAT> >& ins,
+    std::vector<Tensor4dPtr<AMD, AK_FLOAT> >& outs) {
+    auto* impl =
+        static_cast<ReLUHelper<AMD, AK_FLOAT, Precision::FP32>*>(this->_helper);
+    auto& param = impl->_param_relu;
+    impl->_funcs_relu(ins, outs, param, ctx);
+}
+#endif
+
+
 /// TODO ... specialization other type of operator
 
 
@@ -40,7 +54,11 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ReLUHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
         const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
         std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+#ifdef USE_AMD
+    SABER_CHECK(_funcs_relu.init(ins, outs, _param_relu, SPECIFY, SABER_IMPL /*VENDER_IMPL*/, ctx));
+#else
     SABER_CHECK(_funcs_relu.init(ins, outs, _param_relu, SPECIFY, VENDER_IMPL, ctx));
+#endif
     return Status::OK();
 }
 
@@ -58,6 +76,12 @@ template class ReLUHelper<NV, AK_FLOAT, Precision::FP16>;
 template class ReLUHelper<NV, AK_FLOAT, Precision::INT8>;
 #endif
 
+#ifdef USE_AMD
+template class ReLUHelper<AMD, AK_FLOAT, Precision::FP32>;
+template class ReLUHelper<AMD, AK_FLOAT, Precision::FP16>;
+template class ReLUHelper<AMD, AK_FLOAT, Precision::INT8>;
+#endif
+
 #ifdef USE_ARM_PLACE
 template class ReLUHelper<ARM, AK_FLOAT, Precision::FP32>;
 template class ReLUHelper<ARM, AK_FLOAT, Precision::FP16>;
@@ -68,6 +92,11 @@ template class ReLUHelper<ARM, AK_FLOAT, Precision::INT8>;
 #ifdef USE_CUDA
 ANAKIN_REGISTER_OP_HELPER(ReLU, ReLUHelper, NV, AK_FLOAT, Precision::FP32);
 #endif
+
+#ifdef USE_AMD
+ANAKIN_REGISTER_OP_HELPER(ReLU, ReLUHelper, AMD, AK_FLOAT, Precision::FP32);
+#endif
+
 #ifdef USE_ARM_PLACE
 ANAKIN_REGISTER_OP_HELPER(ReLU, ReLUHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
@@ -78,6 +107,11 @@ ANAKIN_REGISTER_OP(ReLU)
 #ifdef USE_CUDA
 .__alias__<NV, AK_FLOAT, Precision::FP32>("Relu")
 #endif
+
+#ifdef USE_AMD
+.__alias__<AMD, AK_FLOAT, Precision::FP32>("Relu")
+#endif
+
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("Relu")
 #endif

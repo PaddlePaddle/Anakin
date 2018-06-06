@@ -30,6 +30,18 @@ void Softmax<X86, AK_FLOAT, Precision::FP32>::operator()(
 }
 #endif
 
+#ifdef USE_AMD
+template<>
+void Softmax<AMD, AK_FLOAT, Precision::FP32>::operator()(
+    OpContext<AMD>& ctx,
+    const std::vector<Tensor4dPtr<AMD, AK_FLOAT> >& ins,
+    std::vector<Tensor4dPtr<AMD, AK_FLOAT> >& outs) {
+    auto* impl = static_cast<SoftmaxHelper<AMD, AK_FLOAT, Precision::FP32>*>(this->_helper);
+    auto& param = static_cast<SoftmaxHelper<AMD, AK_FLOAT, Precision::FP32>*>
+                  (this->_helper)->_param_softmax;
+    impl->_funcs_softmax(ins, outs, param, ctx);
+}
+#endif
 /// TODO ... specialization other type of operator
 
 
@@ -101,6 +113,11 @@ template class SoftmaxHelper<ARM, AK_FLOAT, Precision::FP32>;
 template class SoftmaxHelper<ARM, AK_FLOAT, Precision::FP16>;
 template class SoftmaxHelper<ARM, AK_FLOAT, Precision::INT8>;
 #endif
+#ifdef USE_AMD
+template class SoftmaxHelper<AMD, AK_FLOAT, Precision::FP32>;
+template class SoftmaxHelper<AMD, AK_FLOAT, Precision::FP16>;
+template class SoftmaxHelper<AMD, AK_FLOAT, Precision::INT8>;
+#endif
 // register helper
 #ifdef USE_X86_PLACE
 ANAKIN_REGISTER_OP_HELPER(Softmax, SoftmaxHelper, X86, AK_FLOAT, Precision::FP32);
@@ -111,6 +128,9 @@ ANAKIN_REGISTER_OP_HELPER(Softmax, SoftmaxHelper, NV, AK_FLOAT, Precision::FP32)
 #endif
 #ifdef USE_ARM_PLACE
 ANAKIN_REGISTER_OP_HELPER(Softmax, SoftmaxHelper, ARM, AK_FLOAT, Precision::FP32);
+#endif
+#ifdef USE_AMD
+ANAKIN_REGISTER_OP_HELPER(Softmax, SoftmaxHelper, AMD, AK_FLOAT, Precision::FP32);
 #endif
 //! register op
 ANAKIN_REGISTER_OP(Softmax)
@@ -123,6 +143,9 @@ ANAKIN_REGISTER_OP(Softmax)
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("softmax")
+#endif
+#ifdef USE_AMD
+.__alias__<AMD, AK_FLOAT, Precision::FP32>("softmax")
 #endif
 .num_in(1)
 .num_out(1)

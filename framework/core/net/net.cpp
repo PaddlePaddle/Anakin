@@ -18,6 +18,11 @@ double tensor_average(Tensor4dPtr<Ttype, Dtype>& out_tensor_p) {
     float* h_data = new float[out_tensor_p->valid_size()];
     const float* d_data = out_tensor_p->data();
     CUDA_CHECK(cudaMemcpy(h_data, d_data, out_tensor_p->valid_size()*sizeof(float), cudaMemcpyDeviceToHost));
+#elif defined(USE_AMD)
+    float* h_data = new float[out_tensor_p->valid_size()];
+    const void* d_data = out_tensor_p->data();
+    typedef TargetWrapper<AMD> API;
+    API::sync_memcpy(h_data, 0, d_data, out_tensor_p->device_id(), out_tensor_p->valid_size()*sizeof(float), __DtoH());
 #else
 	float* h_data = out_tensor_p->data();
 #endif
@@ -504,6 +509,16 @@ template class Net<ARM, AK_FLOAT, Precision::INT8, OpRunType::ASYNC>;
 template class Net<ARM, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
 template class Net<ARM, AK_FLOAT, Precision::FP16, OpRunType::SYNC>;
 template class Net<ARM, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
+#endif
+
+#ifdef USE_AMD
+template class Net<AMD, AK_FLOAT, Precision::FP32, OpRunType::ASYNC>;
+template class Net<AMD, AK_FLOAT, Precision::FP16, OpRunType::ASYNC>;
+template class Net<AMD, AK_FLOAT, Precision::INT8, OpRunType::ASYNC>;
+
+template class Net<AMD, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
+template class Net<AMD, AK_FLOAT, Precision::FP16, OpRunType::SYNC>;
+template class Net<AMD, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
 #endif
 
 } /* namespace anakin */

@@ -17,6 +17,19 @@ void ConvRelu<NV, AK_FLOAT, Precision::FP32>::operator()(
 }
 #endif
 
+#ifdef USE_AMD
+template<>
+void ConvRelu<AMD, AK_FLOAT, Precision::FP32>::operator()(
+    OpContext<AMD>& ctx,
+    const std::vector<Tensor4dPtr<AMD, AK_FLOAT> >& ins,
+    std::vector<Tensor4dPtr<AMD, AK_FLOAT> >& outs) {
+    auto* impl =
+        static_cast<ConvReluHelper<AMD, AK_FLOAT, Precision::FP32>*>(this->_helper);
+    auto& param = impl->_param_conv_relu;
+    impl->_funcs_conv_relu(ins, outs, param, ctx);
+}
+#endif
+
 /// TODO ... specialization other type of operator
 
 
@@ -127,6 +140,12 @@ template class ConvReluHelper<ARM, AK_FLOAT, Precision::FP16>;
 template class ConvReluHelper<ARM, AK_FLOAT, Precision::INT8>;
 #endif
 
+#ifdef USE_AMD
+template class ConvReluHelper<AMD, AK_FLOAT, Precision::FP32>;
+template class ConvReluHelper<AMD, AK_FLOAT, Precision::FP16>;
+template class ConvReluHelper<AMD, AK_FLOAT, Precision::INT8>;
+#endif
+
 // register helper
 #ifdef USE_CUDA
 ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, NV, AK_FLOAT, Precision::FP32);
@@ -134,7 +153,9 @@ ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, NV, AK_FLOAT, Precision::FP3
 #ifdef USE_ARM_PLACE
 ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
-
+#ifdef USE_AMD
+ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, AMD, AK_FLOAT, Precision::FP32);
+#endif
 //! register op
 ANAKIN_REGISTER_OP(ConvRelu)
 .Doc("ConvRelu operator")
@@ -143,6 +164,9 @@ ANAKIN_REGISTER_OP(ConvRelu)
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("power")
+#endif
+#ifdef USE_AMD
+.__alias__<AMD, AK_FLOAT, Precision::FP32>("power")
 #endif
 .num_in(1)
 .num_out(1)

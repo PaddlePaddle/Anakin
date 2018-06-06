@@ -21,6 +21,8 @@ DEFINE_GLOBAL(bool, is_input_shape, false);
 
 #ifdef USE_CUDA
 typedef NV Target;
+#elif defined(USE_AMD)
+typedef AMD Target;
 #elif defined(USE_X86_PLACE)
 typedef X86 Target;
 #else

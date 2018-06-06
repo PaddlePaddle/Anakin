@@ -28,6 +28,17 @@ void Dense<X86, AK_FLOAT, Precision::FP32>::operator()(
 }
 #endif
 
+#ifdef USE_AMD
+template<>
+void Dense<AMD, AK_FLOAT, Precision::FP32>::operator()(
+    OpContext<AMD>& ctx,
+    const std::vector<Tensor4dPtr<AMD, AK_FLOAT> >& ins,
+    std::vector<Tensor4dPtr<AMD, AK_FLOAT> >& outs) {
+    auto* impl = static_cast<DenseHelper<AMD, AK_FLOAT, Precision::FP32>*>(this->_helper);
+    auto& param = static_cast<DenseHelper<AMD, AK_FLOAT, Precision::FP32>*>(this->_helper)->_param_dense;
+    impl->_funcs_dense(ins, outs, param, ctx);
+}
+#endif
 /// TODO ... specialization other type of operator
 
 
@@ -116,12 +127,18 @@ template class DenseHelper<ARM, AK_FLOAT, Precision::FP16>;
 template class DenseHelper<ARM, AK_FLOAT, Precision::INT8>;
 #endif
 
+#ifdef USE_AMD
+template class DenseHelper<AMD, AK_FLOAT, Precision::FP32>;
+template class DenseHelper<AMD, AK_FLOAT, Precision::FP16>;
+template class DenseHelper<AMD, AK_FLOAT, Precision::INT8>;
+#endif
 
 // register helper
 #ifdef USE_X86_PLACE
 ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, X86, AK_FLOAT, Precision::FP32);
 #endif
 
+// register helper
 #ifdef USE_CUDA
 ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, NV, AK_FLOAT, Precision::FP32);
 #endif
@@ -130,6 +147,9 @@ ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, NV, AK_FLOAT, Precision::FP32);
 ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
 
+#ifdef USE_AMD
+ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, AMD, AK_FLOAT, Precision::FP32);
+#endif
 
 //! register op
 ANAKIN_REGISTER_OP(Dense)
@@ -145,6 +165,10 @@ ANAKIN_REGISTER_OP(Dense)
 #ifdef USE_X86_PLACE
 .__alias__<X86, AK_FLOAT, Precision::FP32>("fullconnect")
 .__alias__<X86, AK_FLOAT, Precision::FP32>("fc")
+#endif
+#ifdef USE_AMD
+.__alias__<AMD, AK_FLOAT, Precision::FP32>("fullconnect")
+.__alias__<AMD, AK_FLOAT, Precision::FP32>("fc")
 #endif
 .num_in(1)
 .num_out(1)
