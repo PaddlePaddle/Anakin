@@ -26,77 +26,83 @@
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_sequence_conv.h"
 #endif
-
 namespace anakin {
-    namespace saber {
+namespace saber {
 
-        template<typename TargetType,
-                DataType OpDtype,
-                DataType inDtype = AK_FLOAT,
-                DataType outDtype = AK_FLOAT,
-                typename LayOutType_op = NCHW,
-                typename LayOutType_in = NCHW,
-                typename LayOutType_out = NCHW
-        >
-        class SequenceConv : public BaseFunc<
-                Tensor<TargetType, inDtype, LayOutType_in>,
-                Tensor<TargetType, outDtype, LayOutType_out>,
-                Tensor<TargetType, OpDtype, LayOutType_op>,
-                ImplBase,
-                SequenceConvParam
-        > {
-        public:
-            using BaseFunc<
-                    Tensor<TargetType, inDtype, LayOutType_in>,
-                    Tensor<TargetType, outDtype, LayOutType_out>,
-                    Tensor<TargetType, OpDtype, LayOutType_op>,
-                    ImplBase,
-                    SequenceConvParam>::BaseFunc;
+template<typename TargetType,
+         DataType OpDtype,
+         DataType inDtype = AK_FLOAT,
+         DataType outDtype = AK_FLOAT,
+         typename LayOutType_op = NCHW,
+         typename LayOutType_in = NCHW,
+         typename LayOutType_out = NCHW
+         >
+class SequenceConv : public BaseFunc <
+    Tensor<TargetType, inDtype, LayOutType_in>,
+    Tensor<TargetType, outDtype, LayOutType_out>,
+    Tensor<TargetType, OpDtype, LayOutType_op>,
+    ImplBase,
+    SequenceConvParam
+    > {
+public:
+    using BaseFunc <
+    Tensor<TargetType, inDtype, LayOutType_in>,
+           Tensor<TargetType, outDtype, LayOutType_out>,
+           Tensor<TargetType, OpDtype, LayOutType_op>,
+           ImplBase,
+           SequenceConvParam >::BaseFunc;
 
-            SequenceConv() = default;
+    SequenceConv() = default;
 
-            typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
-            typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
-            typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-            typedef SequenceConvParam<OpTensor> Param_t;
-            typedef std::vector<InDataTensor *> Input_v;
-            typedef std::vector<OutDataTensor *> Output_v;
-            typedef std::vector<Shape> Shape_v;
+    typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
+    typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
+    typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
+    typedef SequenceConvParam<OpTensor> Param_t;
+    typedef std::vector<InDataTensor*> Input_v;
+    typedef std::vector<OutDataTensor*> Output_v;
+    typedef std::vector<Shape> Shape_v;
 
-            virtual SaberStatus compute_output_shape(const Input_v& input, \
-        Output_v &output, Param_t& param) override {
-                InDataTensor* input_tensor = input[0];
-                Shape new_shape(input_tensor->num(),param.filter_tensor->width(),1,1);
-                return output[0]->set_shape(new_shape);
-            }
-
-            virtual SaberStatus init_impl(ImplEnum implenum) override {
-                switch (implenum) {
-                    case VENDER_IMPL:
-                        CHECK_EQ(1,0)<<"Sequence conv No Vender imp";
-//                        this->_impl.push_back(new VenderSequencePool <TargetType, OpDtype, inDtype, outDtype,
-//                                LayOutType_op, LayOutType_in, LayOutType_out>);
-                        return SaberSuccess;
-                    case SABER_IMPL:
-                        this->_impl.push_back(new SaberSequenceConv <TargetType, OpDtype, inDtype, outDtype,
-                                LayOutType_op, LayOutType_in, LayOutType_out>);
-                        return SaberSuccess;
-                    default:
-                        return SaberUnImplError;
-                }
-            }
-        private:
-
-            virtual void pick_best_static() override {
-                if (true) // some condition?
-                    this->_best_impl = this->_impl[0];
-            }
-
-            virtual void pick_best_specify(ImplEnum implenum) override {
-                this->_best_impl = this->_impl[0];
-            }
-
-        };
+    virtual SaberStatus compute_output_shape(const Input_v& input, \
+            Output_v& output, Param_t& param) override {
+        InDataTensor* input_tensor = input[0];
+        Shape new_shape(input_tensor->num(), param.filter_tensor->width(), 1, 1);
+        return output[0]->set_shape(new_shape);
     }
+
+    virtual SaberStatus init_impl(ImplEnum implenum) override {
+        switch (implenum) {
+#ifdef USE_X86_PLACE
+        case VENDER_IMPL:
+            CHECK_EQ(1, 0) << "Sequence conv No Vender imp";
+            //                        this->_impl.push_back(new VenderSequencePool <TargetType, OpDtype, inDtype, outDtype,
+            //                                LayOutType_op, LayOutType_in, LayOutType_out>);
+            return SaberSuccess;
+
+        case SABER_IMPL:
+            this->_impl.push_back(new SaberSequenceConv <TargetType, OpDtype, inDtype, outDtype,
+                                  LayOutType_op, LayOutType_in, LayOutType_out>);
+            return SaberSuccess;
+#endif
+
+        default:
+            return SaberUnImplError;
+        }
+    }
+private:
+
+    virtual void pick_best_static() override {
+        if (true) { // some condition?
+            this->_best_impl = this->_impl[0];
+        }
+    }
+
+    virtual void pick_best_specify(ImplEnum implenum) override {
+        this->_best_impl = this->_impl[0];
+    }
+
+};
 }
+}
+
+
 #endif

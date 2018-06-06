@@ -57,7 +57,8 @@ static void record_dev_tensorfile(const float* dev_tensor, int size, const char*
 }
 static void record_dev_tensorfile(Tensor <X86, AK_FLOAT, NCHW>* dev_tensor, const char* locate) {
     Tensor <X86, AK_FLOAT, NCHW> host_temp;
-    host_temp.re_alloc(Shape(1, 1, 1, dev_tensor->valid_size()));
+    int size=dev_tensor->valid_size();
+    host_temp.re_alloc(Shape(1, 1, 1, size));
     CUDA_CHECK(cudaMemcpy(host_temp.mutable_data(), dev_tensor->data(), sizeof(float) * size,
                           cudaMemcpyDeviceToHost));
     cudaDeviceSynchronize();
