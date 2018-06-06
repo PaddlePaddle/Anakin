@@ -17,6 +17,16 @@ DEFINE_GLOBAL(int, channel, 8);
 DEFINE_GLOBAL(int, height, 640);
 DEFINE_GLOBAL(int, width, 640);
 DEFINE_GLOBAL(bool, is_input_shape, false);
+#ifdef USE_CUDA
+using Target = NV;
+#endif
+#ifdef USE_X86_PLACE
+using Target = X86;
+#endif
+#ifdef USE_ARM_PLACE
+using Target = ARM;
+#endif
+
 void getModels(std::string path, std::vector<std::string>& files) {
     DIR* dir= nullptr;
     struct dirent* ptr;
@@ -46,7 +56,7 @@ TEST(NetTest, net_execute_base_test) {
     for (auto iter = models.begin(); iter < models.end(); iter++) {
         LOG(WARNING) << "load anakin model file from " << *iter << " ...";
 #if 1
-        Graph<NV, AK_FLOAT, Precision::FP32> graph;
+        Graph<Target, AK_FLOAT, Precision::FP32> graph;
         auto status = graph.load(*iter);
 
         if (!status) {
@@ -61,7 +71,7 @@ TEST(NetTest, net_execute_base_test) {
 
         graph.Optimize();
         // constructs the executer net
-        Net<NV, AK_FLOAT, Precision::FP32> net_executer(graph, true);
+        Net<Target, AK_FLOAT, Precision::FP32> net_executer(graph, true);
         // get in
         auto d_tensor_in_p = net_executer.get_in("input_0");
         Tensor4d<X86, AK_FLOAT> h_tensor_in;
@@ -77,8 +87,8 @@ TEST(NetTest, net_execute_base_test) {
         int warmup_iter = 10;
         int epoch = 1000;
         // do inference
-        Context<NV> ctx(0, 0, 0);
-        saber::SaberTimer<NV> my_time;
+        Context<Target> ctx(0, 0, 0);
+        saber::SaberTimer<Target> my_time;
         LOG(WARNING) << "EXECUTER !!!!!!!! ";
 
         for (int i = 0; i < warmup_iter; i++) {

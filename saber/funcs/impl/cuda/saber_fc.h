@@ -88,7 +88,6 @@ private:
     int _M;
     int _K;
     int _N;
-    cublasHandle_t _handle;
     bool _is_continue_buf{true};
     std::function<void(const int, const int, const int,
                        const float, const float*, const float,
