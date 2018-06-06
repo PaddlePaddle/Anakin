@@ -8,6 +8,7 @@
 #include "tensor.h"
 namespace anakin {
 namespace saber {
+#if defined(USE_X86_PLACE) || defined(USE_CUDA)
 static void write_tensorfile(Tensor <X86, AK_FLOAT, NCHW> tensor, const char* locate) {
     typedef typename Tensor<X86, AK_FLOAT, NCHW>::Dtype Dtype;
     LOG(INFO) << "host tensor data:" << tensor.size();
@@ -29,6 +30,8 @@ static void write_tensorfile(Tensor <X86, AK_FLOAT, NCHW> tensor, const char* lo
 
     LOG(INFO) << "!!! write success: " << locate;
 }
+#endif
+
 #ifdef USE_CUDA
 static void record_dev_tensorfile(const float* dev_tensor, int size, const char* locate) {
     Tensor <X86, AK_FLOAT, NCHW> host_temp;
@@ -53,6 +56,7 @@ static void record_dev_tensorfile(const float* dev_tensor, int size, const char*
 }
 #endif
 
+#if defined(USE_X86_PLACE) || defined(USE_CUDA)
 static void readTensorData(Tensor<X86, AK_FLOAT, NCHW> tensor, const char* locate) {
     typedef typename Tensor<X86, AK_FLOAT, NCHW>::Dtype Dtype;
     FILE* fp = fopen(locate, "rb");
@@ -67,6 +71,7 @@ static void readTensorData(Tensor<X86, AK_FLOAT, NCHW> tensor, const char* locat
         fclose(fp);
     }
 }
+
 static void readTensorData(Tensor<X86, AK_FLOAT, NCHW_C16> tensor, const char* locate) {
     typedef typename Tensor<X86, AK_FLOAT, NCHW>::Dtype Dtype;
     FILE* fp = fopen(locate, "rb");
@@ -82,6 +87,7 @@ static void readTensorData(Tensor<X86, AK_FLOAT, NCHW_C16> tensor, const char* l
     }
 }
 
+#endif
 }
 }
 
