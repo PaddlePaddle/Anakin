@@ -16,7 +16,16 @@ void Im2Sequence<NV, AK_FLOAT, Precision::FP32>::operator() (OpContext<NV> &ctx,
 #endif
 
 /// TODO ... specialization other type of operator
-
+#ifdef USE_ARM_PLACE
+template<>
+void Im2Sequence<ARM, AK_FLOAT, Precision::FP32>::operator() (OpContext<ARM> &ctx, 
+                          const std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& ins, 
+                          std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& outs) {
+    auto* impl = static_cast<Im2SequenceHelper<ARM, AK_FLOAT, Precision::FP32>*>(this->_helper);
+    auto& param = static_cast<Im2SequenceHelper<ARM, AK_FLOAT, Precision::FP32>*>(this->_helper)->_param_im2sequence;
+    impl->_funcs_im2sequence(ins, outs, param, ctx);
+}
+#endif
 
 /// set helper
 template<typename Ttype, DataType Dtype, Precision Ptype>
@@ -64,9 +73,15 @@ template class Im2SequenceHelper<NV, AK_FLOAT, Precision::INT8>;
 #endif
 
 #ifdef USE_ARM_PLACE
+#ifdef ANAKIN_TYPE_FP32
 template class Im2SequenceHelper<ARM, AK_FLOAT, Precision::FP32>;
+#endif
+#ifdef ANAKIN_TYPE_FP16
 template class Im2SequenceHelper<ARM, AK_FLOAT, Precision::FP16>;
+#endif
+#ifdef ANAKIN_TYPE_INT8
 template class Im2SequenceHelper<ARM, AK_FLOAT, Precision::INT8>;
+#endif
 #endif
 
 //template class Im2SequenceHelper<ARM, AK_FLOAT, Precision::FP32>;
