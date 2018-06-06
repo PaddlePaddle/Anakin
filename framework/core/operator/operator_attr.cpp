@@ -14,12 +14,6 @@ OpAttrWarpper& OpAttrWarpper::__alias__(std::string op_name) {
     OpFactory<Ttype, Dtype, Ptype>::Global().add_alias(this->opAttr_.name, op_name);
     return *(this);
 }
-template
-OpAttrWarpper& OpAttrWarpper::__alias__<X86, AK_FLOAT, Precision::FP32>(std::string op_name);
-template
-OpAttrWarpper& OpAttrWarpper::__alias__<X86, AK_FLOAT, Precision::FP16>(std::string op_name);
-template
-OpAttrWarpper& OpAttrWarpper::__alias__<X86, AK_FLOAT, Precision::INT8>(std::string op_name);
 
 template
 OpAttrWarpper& OpAttrWarpper::__alias__<NV, AK_FLOAT, Precision::FP32>(std::string op_name);

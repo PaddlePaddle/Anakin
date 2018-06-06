@@ -52,55 +52,11 @@ Status EmbeddingHelper<Ttype, Dtype, Ptype>::InitParam() {
 
     return Status::OK();
 }
-//
-//template<>
-//Status EmbeddingHelper<X86, AK_FLOAT, Precision::FP32>::InitParam() {
-//            DLOG(WARNING) << "Parsing Embedding op parameter.";
-//    auto word_num = GET_PARAMETER(int, word_num);
-//    auto emb_dim = GET_PARAMETER(int, emb_dim);
-//    auto padding_idx = GET_PARAMETER(int, padding_idx);
-//    auto weights = GET_PARAMETER(PBlock_X86_2<typename DataTypeWarpper<AK_FLOAT>::type>, weight_1);
-//    volatile const float *d=weights.h_tensor().data();
-//    (int)d[0];
-//    for(int i=0;i<100;i++)
-//        printf("%f\n",d[i]);
-//    EmbeddingParam<Tensor4d<X86, AK_FLOAT>> param_embedding(word_num, emb_dim, padding_idx, &(weights.h_tensor()));
-//    _param_embedding = param_embedding;
-//
-//    return Status::OK();
-//}
-//
-//template<>
-//Status EmbeddingHelper<X86, AK_FLOAT, Precision::FP16 >::InitParam() {
-//            DLOG(WARNING) << "Parsing Embedding op parameter.";
-//    auto word_num = GET_PARAMETER(int, word_num);
-//    auto emb_dim = GET_PARAMETER(int, emb_dim);
-//    auto padding_idx = GET_PARAMETER(int, padding_idx);
-//    auto weights = GET_PARAMETER(PBlock_X86<typename DataTypeWarpper<AK_FLOAT>::type>, weight_1);
-//
-//    EmbeddingParam<Tensor4d<X86, AK_FLOAT>> param_embedding(word_num, emb_dim, padding_idx, &(weights.h_tensor()));
-//    _param_embedding = param_embedding;
-//
-//    return Status::OK();
-//}
-//template<>
-//Status EmbeddingHelper<X86, AK_FLOAT, Precision::INT8 >::InitParam() {
-//            DLOG(WARNING) << "Parsing Embedding op parameter.";
-//    auto word_num = GET_PARAMETER(int, word_num);
-//    auto emb_dim = GET_PARAMETER(int, emb_dim);
-//    auto padding_idx = GET_PARAMETER(int, padding_idx);
-//    auto weights = GET_PARAMETER(PBlock_X86<typename DataTypeWarpper<AK_FLOAT>::type>, weight_1);
-//
-//    EmbeddingParam<Tensor4d<X86, AK_FLOAT>> param_embedding(word_num, emb_dim, padding_idx, &(weights.h_tensor()));
-//    _param_embedding = param_embedding;
-//
-//    return Status::OK();
-//}
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status EmbeddingHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
         const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
         std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-    SABER_CHECK(_funcs_embedding.init(ins, outs, _param_embedding, SPECIFY, VENDER_IMPL, ctx));
+    SABER_CHECK(_funcs_embedding.init(ins, outs, _param_embedding, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }
 
@@ -118,11 +74,11 @@ template class EmbeddingHelper<NV, AK_FLOAT, Precision::FP16>;
 template class EmbeddingHelper<NV, AK_FLOAT, Precision::INT8>;
 #endif
 
-//#ifdef USE_X86_PLACE
-//template class EmbeddingHelper<X86, AK_FLOAT, Precision::FP32>;
-//template class EmbeddingHelper<X86, AK_FLOAT, Precision::FP16>;
-//template class EmbeddingHelper<X86, AK_FLOAT, Precision::INT8>;
-//#endif
+#ifdef USE_X86_PLACE
+template class EmbeddingHelper<X86, AK_FLOAT, Precision::FP32>;
+template class EmbeddingHelper<X86, AK_FLOAT, Precision::FP16>;
+template class EmbeddingHelper<X86, AK_FLOAT, Precision::INT8>;
+#endif
 
 #ifdef USE_ARM_PLACE
 template class EmbeddingHelper<ARM, AK_FLOAT, Precision::FP32>;
@@ -138,9 +94,9 @@ ANAKIN_REGISTER_OP_HELPER(Embedding, EmbeddingHelper, NV, AK_FLOAT, Precision::F
 ANAKIN_REGISTER_OP_HELPER(Embedding, EmbeddingHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
 
-//#ifdef USE_X86_PLACE
-//ANAKIN_REGISTER_OP_HELPER(Embedding, EmbeddingHelper, X86, AK_FLOAT, Precision::FP32);
-//#endif
+#ifdef USE_X86_PLACE
+ANAKIN_REGISTER_OP_HELPER(Embedding, EmbeddingHelper, X86, AK_FLOAT, Precision::FP32);
+#endif
 
 //! register op
 ANAKIN_REGISTER_OP(Embedding)
@@ -151,9 +107,9 @@ ANAKIN_REGISTER_OP(Embedding)
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("embedding")
 #endif
-//#ifdef USE_X86_PLACE
-//.__alias__<X86, AK_FLOAT, Precision::FP32>("embedding")
-//#endif
+#ifdef USE_X86_PLACE
+.__alias__<X86, AK_FLOAT, Precision::FP32>("embedding")
+#endif
 .num_in(1)
 .num_out(1)
 .Args<std::string>("type", " type of Embedding ");

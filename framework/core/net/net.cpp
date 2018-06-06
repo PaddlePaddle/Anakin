@@ -203,8 +203,10 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
 	    for (auto out : executer.outs) {
 	        LOG(INFO) << "    |-- out tensor avg " << tensor_average(out);
 	    }
+#ifdef USE_CUDA
 	    CUDA_CHECK(cudaDeviceSynchronize());
         CUDA_CHECK(cudaPeekAtLastError());
+#endif
     }
 #endif
 }
@@ -260,16 +262,17 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
 #endif
 	//LOG(INFO)<< "op: " << executer.name<<"(" << executer.op_name <<")  ===  infer+launch time "<<my_time.get_average_ms() << " ms";
 #ifdef ENABLE_DEBUG	
-	cudaDeviceSynchronize();
-    CUDA_CHECK(cudaPeekAtLastError());
+#ifdef USE_CUDA
+        CUDA_CHECK(cudaDeviceSynchronize());
+        CUDA_CHECK(cudaPeekAtLastError());
+#endif
 	for (auto out : executer.outs) {
         LOG(INFO) <<executer.name <<" d_tensor_out_p :" <<out->data();
-//        record_dev_tensorfile(out->data(), out->valid_size(),
-//                              ("net_record_" + executer.name + ".txt").data());
+        record_dev_tensorfile(out->data(), out->valid_size(),
+                              ("net_record_" + executer.name + ".txt").data());
 	    LOG(ERROR) << "    |---out avg " << tensor_average(out);
 	}
-	cudaDeviceSynchronize();
-        CUDA_CHECK(cudaPeekAtLastError());
+
 #endif
     }
 }

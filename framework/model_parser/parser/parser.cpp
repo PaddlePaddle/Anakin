@@ -21,15 +21,6 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, std::string& model_path) {
     return load(graph, model_path.c_str());
 }
-template
-Status load<X86, AK_FLOAT, Precision::FP32>(graph::Graph<X86, AK_FLOAT, Precision::FP32>* graph,
-                                           std::string& model_path);
-template
-Status load<X86, AK_FLOAT, Precision::FP16>(graph::Graph<X86, AK_FLOAT, Precision::FP16>* graph,
-                                           std::string& model_path);
-template
-Status load<X86, AK_FLOAT, Precision::INT8>(graph::Graph<X86, AK_FLOAT, Precision::INT8>* graph,
-                                           std::string& model_path);
 
 #ifdef USE_CUDA
 template
@@ -198,15 +189,6 @@ Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path) {
 
     return Status::OK();
 }
-template
-Status load<X86, AK_FLOAT, Precision::FP32>(graph::Graph<X86, AK_FLOAT, Precision::FP32>* graph,
-                                           const char* model_path);
-template
-Status load<X86, AK_FLOAT, Precision::FP16>(graph::Graph<X86, AK_FLOAT, Precision::FP16>* graph,
-                                           const char* model_path);
-template
-Status load<X86, AK_FLOAT, Precision::INT8>(graph::Graph<X86, AK_FLOAT, Precision::INT8>* graph,
-                                           const char* model_path);
 
 #ifdef USE_CUDA
 template
@@ -248,15 +230,6 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 Status save(graph::Graph<Ttype, Dtype, Ptype>* graph, std::string& model_path) {
     return save(graph, model_path.c_str());
 }
-template
-Status save<X86, AK_FLOAT, Precision::FP32>(graph::Graph<X86, AK_FLOAT, Precision::FP32>* graph,
-                                           std::string& model_path);
-template
-Status save<X86, AK_FLOAT, Precision::FP16>(graph::Graph<X86, AK_FLOAT, Precision::FP16>* graph,
-                                           std::string& model_path);
-template
-Status save<X86, AK_FLOAT, Precision::INT8>(graph::Graph<X86, AK_FLOAT, Precision::INT8>* graph,
-                                           std::string& model_path);
 
 #ifdef USE_CUDA
 template

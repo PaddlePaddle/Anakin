@@ -6,7 +6,7 @@ namespace saber {
 
 typedef MKL_INT cblas_int;
 
-template class VenderFc<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
+
 
 template <DataType OpDtype ,
     DataType inDtype,
@@ -62,6 +62,8 @@ SaberStatus VenderFc<X86, OpDtype, inDtype, outDtype,
                   std::vector<DataTensor_out*>& outputs,
                   FcParam<OpTensor> &param)
 {
+
+    CHECK_EQ(inDtype,AK_FLOAT)<<"fc only support akfloat now";
     if (inDtype == AK_FLOAT) {
         const float* src = static_cast<const float*>(inputs[0]->get_buf()->get_data());
         const float* weights = static_cast<const float*>(param.weights->get_buf()->get_data());
@@ -78,7 +80,7 @@ SaberStatus VenderFc<X86, OpDtype, inDtype, outDtype,
         Shape output_shape = outputs[0]->shape();
         const cblas_int OC = output_shape[channel_idx];
         const cblas_int IC = k;
-
+//        LOG(INFO)<<"fc trans = "<<param.is_transpose_weights;
         cblas_sgemm(CblasColMajor, param.is_transpose_weights ? CblasNoTrans : CblasTrans,
                           CblasNoTrans, OC, MB, IC,
                           1.0, weights, IC, src, IC, 0.0, dst, OC);
@@ -88,9 +90,11 @@ SaberStatus VenderFc<X86, OpDtype, inDtype, outDtype,
                 cblas_saxpy(OC, 1.0, bias, 1, dst + mb * OC, 1);
             }
         }
+    }else{
+
     }
     return SaberSuccess;
 }
-
+    template class VenderFc<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
 }
 } // namespace anakin
