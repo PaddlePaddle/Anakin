@@ -34,7 +34,7 @@ We tested them on single-GPU with single-thread.
 - Latency (`ms`) of different batch  
 
     BatchSize | TensorRT | Anakin
-    :---: | :---: | :---: | :---:
+    :---: | :---: | :---: |
     1 | 8.8690 | 8.2815
     2 | 15.5344 | 13.9116
     4 | 26.6000 | 21.8747 
@@ -42,6 +42,7 @@ We tested them on single-GPU with single-thread.
     32 | 188.6270 | 163.7660 
 
 - GPU Memory Used (`MB`)
+
     BatchSize | TensorRT | Anakin
     :---: | :---: | :---: | 
     1 | 963 | 997
@@ -64,6 +65,7 @@ We tested them on single-GPU with single-thread.
     32 | 293.8080| 310.8810
 
 - GPU Memory Used (`MB`)
+
     BatchSize | TensorRT | Anakin
     :---: | :---: | :---: | 
     1 | 1569 | 1775
@@ -85,6 +87,7 @@ We tested them on single-GPU with single-thread.
     32 | 65.8582 | 77.8858
 
 - GPU Memory Used (`MB`)
+
     BatchSize | TensorRT | Anakin
     :---: | :---: | :---: | 
     1 | 531  | 503
@@ -106,13 +109,14 @@ We tested them on single-GPU with single-thread.
     32 | 123.2550 | 135.4880
 
 - GPU Memory Used (`MB)`
+
     BatchSize | TensorRT | Anakin
     :---: | :---: | :---: | 
     1 | 701  | 683
     2 | 713  | 697
     4 | 793 | 721
     8 | 819 | 769
-    32 |  1043 | 1059
+    32 | 1043 | 1059
  
 
 ###  <span id = '5'> MobileNet V1 </span> 
@@ -128,6 +132,7 @@ We tested them on single-GPU with single-thread.
     32 | 83.2519 | 31.3178
 
 - GPU Memory Used (`MB`)
+
     BatchSize | TensorRT | Anakin
     :---: | :---: | :---: | 
     1 | 329  | 283
@@ -149,6 +154,7 @@ We tested them on single-GPU with single-thread.
     32 | 124.9810 | 47.2142
 
 - GPU Memory Used (`MB`)
+
     BatchSize | TensorRT | Anakin
     :---: | :---: | :---: | 
     1 | 341 | 293
