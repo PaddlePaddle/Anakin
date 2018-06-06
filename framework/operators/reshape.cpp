@@ -28,7 +28,7 @@ ReshapeHelper<Ttype, Dtype, Ptype>::~ReshapeHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ReshapeHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Reshape op parameter.";
+    DLOG(WARNING) << "Parsing Reshape op parameter.";
     auto dims = GET_PARAMETER(PTuple<int>, dims);
 
     ReshapeParam<Tensor4d<Ttype, Dtype>> param_reshape(dims.vector());

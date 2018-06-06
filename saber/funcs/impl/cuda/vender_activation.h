@@ -55,7 +55,10 @@ public:
         }
         if (_active_descs != NULL) {
             CUDNN_CHECK(cudnnDestroyActivationDescriptor(_active_descs));
-        }
+        } 
+		if (_handle != NULL) { 
+			CUDNN_CHECK(cudnnDestroy(_handle)); 
+		}
     }
 
     virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,

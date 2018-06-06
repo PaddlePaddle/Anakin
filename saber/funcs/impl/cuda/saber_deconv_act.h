@@ -17,7 +17,7 @@
 #define ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_DECONV_ACT_H
 
 #include "saber/funcs/impl/impl_deconv_act.h"
-#include "saber/funcs/impl/cuda/base/cuda_c/ker_deconv.h"
+#include "saber/funcs/impl/cuda/base/sass_funcs.h"
 
 namespace anakin {
 

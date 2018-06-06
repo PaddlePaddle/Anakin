@@ -4,6 +4,7 @@ namespace anakin {
 
 namespace ops {
 
+#ifdef USE_CUDA
 template<>
 void ConvRelu<NV, AK_FLOAT, Precision::FP32>::operator()(
     OpContext<NV>& ctx,
@@ -14,6 +15,7 @@ void ConvRelu<NV, AK_FLOAT, Precision::FP32>::operator()(
     auto& param = impl->_param_conv_relu;
     impl->_funcs_conv_relu(ins, outs, param, ctx);
 }
+#endif
 
 /// TODO ... specialization other type of operator
 
@@ -25,7 +27,7 @@ ConvReluHelper<Ttype, Dtype, Ptype>::~ConvReluHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ConvReluHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing ConvRelu op parameter.";
+    DLOG(WARNING) << "Parsing ConvRelu op parameter.";
     saber::ConvParam<Tensor4d<Ttype, Dtype>> _conv_param;
 
     // get conv param

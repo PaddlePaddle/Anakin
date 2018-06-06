@@ -61,6 +61,9 @@ public:
                                std::vector<DataTensor_out*>& outputs,
                                TransposeParam<OpTensor> &param,
                                Context<NV> &ctx) {
+        if (!(ctx == this->_ctx)) {
+            this->_ctx = ctx;
+        }
         // do nothing
         return SaberSuccess;
     }

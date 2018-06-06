@@ -28,7 +28,7 @@ SassConvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::~SassConvBatchnormScaleRe
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status SassConvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing SassConvBatchnormScaleRelu op parameter.";
+    DLOG(WARNING) << "Parsing SassConvBatchnormScaleRelu op parameter.";
     saber::ConvParam<Tensor4d<Ttype, Dtype>> _conv_param;
 
     // get conv param
