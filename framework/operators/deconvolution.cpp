@@ -17,6 +17,19 @@ void Deconvolution<NV, AK_FLOAT, Precision::FP32>::operator()(
 }
 #endif
 
+#ifdef USE_ARM_PLACE
+template<>
+void Deconvolution<ARM, AK_FLOAT, Precision::FP32>::operator()(
+    OpContext<NV>& ctx,
+    const std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& ins,
+    std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& outs) {
+    auto* impl = static_cast<DeconvolutionHelper<ARM, AK_FLOAT, Precision::FP32>*>(this->_helper);
+    auto& param = static_cast<DeconvolutionHelper<ARM, AK_FLOAT, Precision::FP32>*>
+                  (this->_helper)->_param_deconv;
+    impl->_funcs_deconv(ins, outs, param, ctx);
+}
+#endif
+
 /// TODO ... specialization other type of operator
 
 
@@ -101,9 +114,15 @@ template class DeconvolutionHelper<NV, AK_FLOAT, Precision::INT8>;
 #endif
 
 #ifdef USE_ARM_PLACE
+#ifdef ANAKIN_TYPE_FP32
 template class DeconvolutionHelper<ARM, AK_FLOAT, Precision::FP32>;
+#endif
+#ifdef ANAKIN_TYPE_FP16
 template class DeconvolutionHelper<ARM, AK_FLOAT, Precision::FP16>;
+#endif
+#ifdef ANAKIN_TYPE_INT8
 template class DeconvolutionHelper<ARM, AK_FLOAT, Precision::INT8>;
+#endif
 #endif
 
 // register helper
