@@ -900,6 +900,7 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispa
     //        return naiv_256_s_aligned(inputs, outputs, param);
 //            return naiv_gru(inputs, outputs, param);
 //        return batch_gru(inputs, outputs, param);
+    outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
     if(inputs[0]->get_seq_offset().size()>2) {
         return batch_256_s_aligned(inputs, outputs, param);
     }else {
