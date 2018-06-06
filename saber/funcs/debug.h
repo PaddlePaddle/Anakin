@@ -84,7 +84,7 @@ static void record_dev_tensorfile(const float* dev_tensor, int size, const char*
     FILE* fp = fopen(locate, "w+");
 
     if (fp == 0) {
-                LOG(ERROR) << "file open failed " << locate;
+        LOG(ERROR) << "file open failed " << locate;
 
     } else {
         for (int i = 0; i < size; ++i) {
@@ -94,14 +94,14 @@ static void record_dev_tensorfile(const float* dev_tensor, int size, const char*
         fclose(fp);
     }
 
-            LOG(INFO) << "!!! write success: " << locate;
+    LOG(INFO) << "!!! write success: " << locate;
 }
 static void record_dev_tensorfile(Tensor <X86, AK_FLOAT, NCHW>* dev_tensor, const char* locate) {
     int size=dev_tensor->valid_size();
     FILE* fp = fopen(locate, "w+");
 
     if (fp == 0) {
-                LOG(ERROR) << "file open failed " << locate;
+        LOG(ERROR) << "file open failed " << locate;
 
     } else {
 
@@ -112,7 +112,7 @@ static void record_dev_tensorfile(Tensor <X86, AK_FLOAT, NCHW>* dev_tensor, cons
         fclose(fp);
     }
 
-            LOG(INFO) << "!!! write success: " << locate;
+        LOG(INFO) << "!!! write success: " << locate;
 }
 #endif
 
