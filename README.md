@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.org/PaddlePaddle/Anakin.svg?branch=developing)](https://travis-ci.org/PaddlePaddle/Anakin)
 [![License](https://img.shields.io/badge/license-Apache%202-blue.svg)](LICENSE)
+[![Coverage Status](https://coveralls.io/repos/github/xklnono/Anakin/badge.svg)](https://coveralls.io/github/xklnono/Anakin)
 
 
 Welcome to the Anakin GitHub.
