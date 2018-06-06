@@ -24,76 +24,76 @@
 
 namespace anakin {
 
-    namespace ops {
+namespace ops {
 
-        template<typename Ttype, DataType Dtype, Precision Ptype>
-        class SequenceConvHelper;
+template<typename Ttype, DataType Dtype, Precision Ptype>
+class SequenceConvHelper;
 
 /// pooling op
 /**
  * \brief SequenceConv implementation class
  * public inherit Operator
  */
-        template<typename Ttype, DataType Dtype, Precision Ptype>
-        class SequenceConv : public Operator<Ttype, Dtype, Ptype> {
-        public:
-            SequenceConv() {}
+template<typename Ttype, DataType Dtype, Precision Ptype>
+class SequenceConv : public Operator<Ttype, Dtype, Ptype> {
+public:
+    SequenceConv() {}
 
-            /// forward impl
-            virtual void operator() (OpContext<Ttype> &ctx,
-                                     const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                                     std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-                //LOG(ERROR) << "Not Impl Yet Operator power<TargetType:"<<"unknown"<<","
-                //          <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info()<<">";
-            }
+    /// forward impl
+    virtual void operator()(OpContext<Ttype>& ctx,
+                            const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
+                            std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+        //LOG(ERROR) << "Not Impl Yet Operator power<TargetType:"<<"unknown"<<","
+        //          <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info()<<">";
+    }
 
-            friend class SequenceConvHelper<Ttype, Dtype, Ptype>;
-        };
+    friend class SequenceConvHelper<Ttype, Dtype, Ptype>;
+};
 
 /**
  * \brief SequenceConv helper class to implement SequenceConv
  * public inherit OperatorHelper
  * including init resource and shape size in SequenceConv context
  */
-        template<typename Ttype, DataType Dtype, Precision Ptype>
-        class SequenceConvHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
-        public:
-            SequenceConvHelper()=default;
+template<typename Ttype, DataType Dtype, Precision Ptype>
+class SequenceConvHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
+public:
+    SequenceConvHelper() = default;
 
-            ~SequenceConvHelper();
+    ~SequenceConvHelper();
 
-            Status InitParam() override;
+    Status InitParam() override;
 
-            /**
-            * \brief initial all the resource needed by pooling
-            * \param ctx stand for SequenceConv operation context
-            * \param ins stand for input tensor vector
-            * \param outs stand for output tensor vector
-            * \return status
-            */
-            Status Init(OpContext<Ttype> &ctx,
-                        const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+    /**
+    * \brief initial all the resource needed by pooling
+    * \param ctx stand for SequenceConv operation context
+    * \param ins stand for input tensor vector
+    * \param outs stand for output tensor vector
+    * \return status
+    */
+    Status Init(OpContext<Ttype>& ctx,
+                const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
+                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
 
-            /**
-            * \brief infer the shape of output and input.
-            * \param ins stand for input tensor vector
-            * \param outs stand for output tensor vector
-            * \return status
-            */
-            Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                              std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+    /**
+    * \brief infer the shape of output and input.
+    * \param ins stand for input tensor vector
+    * \param outs stand for output tensor vector
+    * \return status
+    */
+    Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
+                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
 
-        public:
-            ///< _param_softmax stand for softmax parameter
-            saber::SequenceConvParam<Tensor4d<Ttype, Dtype>> _param;
-            ///< _funcs_SequenceConv stand for softmax function
-            saber::SequenceConv<Ttype, Dtype> _funcs;
-        };
+public:
+    ///< _param_softmax stand for softmax parameter
+    saber::SequenceConvParam<Tensor4d<Ttype, Dtype>> _param;
+    ///< _funcs_SequenceConv stand for softmax function
+    saber::SequenceConv<Ttype, Dtype> _funcs;
+};
 
 
 
-    } /* namespace ops */
+} /* namespace ops */
 
 } /* namespace anakin */
 
