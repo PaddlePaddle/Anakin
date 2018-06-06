@@ -128,6 +128,7 @@ TEST(NetTest, net_execute_base_test) {
 	//DLOG(ERROR) << " epoch(" << i << "/" << epoch << ") ";
         net_executer.prediction();
     }
+    cudaDeviceSynchronize();
     //auto end = std::chrono::system_clock::now();
 
     //double time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();

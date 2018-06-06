@@ -37,3 +37,9 @@ android_build
 ios_build
 gpu_build
 output
+
+.gitignore
+third-party
+cmake-build-debug
+log
+test/framework/net/net_exec_test_*
