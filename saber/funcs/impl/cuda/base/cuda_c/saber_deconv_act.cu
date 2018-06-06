@@ -1,5 +1,5 @@
 #include "saber/funcs/impl/cuda/saber_deconv_act.h"
-#include "saber/funcs/impl/cuda/base/cuda_c/ker_deconv.h"
+#include "saber/funcs/impl/cuda/base/sass_funcs.h"
 
 namespace anakin{
 

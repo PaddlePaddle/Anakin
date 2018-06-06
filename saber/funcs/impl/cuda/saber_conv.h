@@ -61,30 +61,12 @@ public:
         }
     }
 
-/**
- * [Create description] Init all cudnn resource here
- * @AuthorHTL
- * @DateTime  2018-02-01T16:13:06+0800
- * @param     inputs                    [description]
- * @param     outputs                   [description]
- * @param     conv_param                [conv parameters]
- */
+
+
     virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
-                            ConvParam<OpTensor>& param, Context<NV>& ctx) {
-
-        //std::cout<<"SaberConv2D init!!"<<std::endl;
-        return create(inputs, outputs, param, ctx);
-    }
-
-    virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
-                            std::vector<DataTensor_out *>& outputs,
                             ConvParam<OpTensor>& param, Context<NV> &ctx) {
-        
-        if (!(ctx == this->_ctx)) {
-            this->_ctx = ctx;
-        }
-        
+        this->_ctx = ctx;
         //This is an ugly impl for now
         if (param.stride_h == 1 &&
                 param.stride_w == 1 &&
@@ -108,8 +90,7 @@ public:
             CUDA_CHECK(cudaMemcpy((void*)_gpu_work_space,
                           (void*)_host_work_space,
                           weight4x4_size * sizeof(OpDataType),
-                          cudaMemcpyHostToDevice));
-                
+                          cudaMemcpyHostToDevice)); 
             dispatch_func = winograd_conv<OutDataType, OpDataType>;
 
         }
@@ -155,9 +136,16 @@ public:
         {
           return SaberUnImplError;
         }
+        cudaDeviceSynchronize();
+        return create(inputs, outputs, param, ctx);
 
+
+    }
+    
+    virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
+                            std::vector<DataTensor_out *>& outputs,
+                            ConvParam<OpTensor>& param, Context<NV>& ctx) {
         return SaberSuccess;
-
     }
 
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
@@ -206,7 +194,7 @@ public:
                     param.alpha,
                     param.beta,
                     this->_ctx.get_compute_stream()); 
-
+        
         CUDA_CHECK(cudaGetLastError()); 
         return SaberSuccess;
     }

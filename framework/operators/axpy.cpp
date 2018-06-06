@@ -4,6 +4,7 @@ namespace anakin {
 
 namespace ops {
 
+#ifdef USE_CUDA
 template<>
 void Axpy<NV, AK_FLOAT, Precision::FP32>::operator()(
     OpContext<NV>& ctx,
@@ -14,6 +15,7 @@ void Axpy<NV, AK_FLOAT, Precision::FP32>::operator()(
     auto& param = impl->_param_axpy;
     impl->_funcs_axpy(ins, outs, param, ctx);
 }
+#endif
 
 /// TODO ... specialization other type of operator
 
@@ -25,7 +27,7 @@ AxpyHelper<Ttype, Dtype, Ptype>::~AxpyHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status AxpyHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Axpy op parameter.";
+    DLOG(WARNING) << "Parsing Axpy op parameter.";
 
     saber::AxpyParam<Tensor4d<Ttype, Dtype>> axpy_param;
     _param_axpy = axpy_param;

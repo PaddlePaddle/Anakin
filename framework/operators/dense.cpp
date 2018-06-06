@@ -26,7 +26,7 @@ DenseHelper<Ttype, Dtype, Ptype>::~DenseHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status DenseHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Dense op parameter.";
+    DLOG(WARNING) << "Parsing Dense op parameter.";
     auto axis = GET_PARAMETER(int, axis);
     auto out_dim = GET_PARAMETER(int, out_dim);
     auto bias_term = GET_PARAMETER(bool, bias_term);
@@ -50,7 +50,7 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 Status DenseHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
         const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
         std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-    SABER_CHECK(_funcs_dense.init(ins, outs, _param_dense, SPECIFY, VENDER_IMPL, ctx));
+    SABER_CHECK(_funcs_dense.init(ins, outs, _param_dense, STATIC, VENDER_IMPL, ctx));
     return Status::OK();
 }
 
