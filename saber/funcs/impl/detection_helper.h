@@ -39,7 +39,7 @@ void nms_detect(const dtype* bbox_cpu_data,
                 int keep_topk, int nms_topk, float conf_thresh, float nms_thresh,
                 float nms_eta, bool share_location);
 
-#if USE_CUDA
+#ifdef USE_CUDA
 template <typename Dtype>
 void decode_bboxes(const int nthreads, const Dtype* loc_data, const Dtype* prior_data, \
                    const CodeType code_type, const bool variance_encoded_in_target, \
