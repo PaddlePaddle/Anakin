@@ -1,3 +1,4 @@
+#include "anakin_config.h"
 #include <string>
 #include <fstream>
 #include "net_test.h"
@@ -15,6 +16,12 @@
         type (GLB_##var) = (value)
 DEFINE_GLOBAL(std::string, model_dir, "");
 DEFINE_GLOBAL(std::string, input_file, "");
+#ifdef USE_CUDA
+using Target = NV;
+#endif
+#ifdef USE_X86_PLACE
+using Target = X86;
+#endif
 
 void getModels(std::string path, std::vector<std::string>& files) {
     DIR* dir= nullptr;
@@ -72,7 +79,7 @@ bool split_word_mention_idx_from_file(
     while (std::getline(infile, line)) {
         split_v.clear();
         SplitString(line, split_v, ";");
-        CHECK_EQ(split_v.size(), 5) << " file need ; split";
+        CHECK_GE(split_v.size(), 4) << " file need ; split";
         std::vector<float> word;
         std::vector<float> mention;
         split_w.clear();
@@ -88,10 +95,10 @@ bool split_word_mention_idx_from_file(
         word_idx.push_back(word);
         mention_idx.push_back(mention);
     }
-    return 0;
+    return true;
 }
 
-void get_batch_data_offset(
+int get_batch_data_offset(
         std::vector<float> &out_data,
         const std::vector<std::vector<float> > &seq_data,
         std::vector<int> &seq_offset,
@@ -108,9 +115,10 @@ void get_batch_data_offset(
         }
         seq_offset.push_back(len);
     }
+    return len;
 }
 
-TEST(NetTest, net_execute_base_test) {
+TEST(NetTest, chinese_ner_executor) {
     std::vector<std::string> models;
     getModels(GLB_model_dir, models);
     std::vector<std::vector<float> > word_idx;
@@ -121,19 +129,48 @@ TEST(NetTest, net_execute_base_test) {
     std::vector<int> word_seq_offset;
     std::vector<int> mention_seq_offset;
     int batch_num = 6;
-    for (int i = 0; i < word_idx.size(); i += batch_num) {
-        get_batch_data_offset(word_idx_data, word_idx, word_seq_offset, i, batch_num);
-        get_batch_data_offset(mention_idx_data, mention_idx, mention_seq_offset, i, batch_num);
-        for (auto w : word_idx_data) {
-            std::cout<<w<<",";
-        }
-        std::cout<<std::endl;
-        for (auto s : word_seq_offset) {
-            std::cout<<s<<", ";
-        }
-        std::cout<<std::endl<<std::endl<<std::endl;
-    }
 
+    graph = new Graph<Target, AK_FLOAT, Precision::FP32>();
+    LOG(WARNING) << "load anakin model file from " << models[0] << " ...";
+    // load anakin model files.
+    auto status = graph->load(models[0]);
+    if(!status ) {
+        LOG(FATAL) << " [ERROR] " << status.info();
+    }
+    graph->Reshape("input_0", {1000, 1, 1, 1});
+    graph->Reshape("input_1", {1000, 1, 1, 1});
+
+    //anakin graph optimization
+    graph->Optimize();
+    Net<Target, AK_FLOAT, Precision::FP32> net_executer(*graph, true);
+
+    for (int i = 0; i < word_idx.size(); i += batch_num) {
+        int word_len = get_batch_data_offset(word_idx_data, word_idx, word_seq_offset, i, batch_num);
+        int mention_len = get_batch_data_offset(mention_idx_data, mention_idx, mention_seq_offset, i, batch_num);
+//        for (auto w : word_idx_data) {
+//            std::cout << w << ",";
+//        }
+//        std::cout << std::endl;
+//        for (auto s : word_seq_offset) {
+//            std::cout << s << ", ";
+//        }
+//        std::cout << std::endl << std::endl << std::endl;
+        auto word_in_p = net_executer.get_in("input_0");
+        auto mention_in_p = net_executer.get_in("input_1");
+
+        word_in_p->reshape({word_len, 1, 1, 1});
+        mention_in_p->reshape({mention_len, 1, 1, 1});
+        for (int j = 0; j < word_idx_data.size(); ++j) {
+            word_in_p->mutable_data()[j] = word_idx_data[j];
+        }
+        for (int j = 0; j < mention_idx_data.size(); ++j) {
+            mention_in_p->mutable_data()[j] = mention_idx_data[j];
+        }
+
+        word_in_p->set_seq_offset(word_seq_offset);
+        mention_in_p->set_seq_offset(mention_seq_offset);
+        net_executer.prediction();
+    }
 
 }
 
