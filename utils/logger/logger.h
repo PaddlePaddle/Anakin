@@ -24,6 +24,8 @@ inline void init(const char* argv0){
 #endif 
 }
 
+}
+
 /// judge x if false or true
 #define LOGGER_IS_FALSE(x) (__builtin_expect(x,0)) 
 #define LOGGER_IS_TRUE(x)  (__builtin_expect(!!(x),1))
@@ -74,8 +76,8 @@ LOGGER_CHECK_SYMBOL_WARP(CHECK_GT_IMPL, >)
 #define LOGGER_CHECK(cond) LOGGER_CHECK_WITH_INFO(cond, #cond)
 #define LOGGER_CHECK_NOTNULL(x) LOGGER_CHECK_WITH_INFO((x) != nullptr, #x" != nullptr")
 
-#define LOGGER_CHECK_OP(func_name, expr1, op, expr2)                            \
-    while(auto errStr = func_name(#expr1 " " #op " " #expr2, expr1, #op, expr2))  \
+#define LOGGER_CHECK_OP(func_name, expr1, op, expr2)                            	\
+    while(auto errStr = func_name(#expr1 " " #op " " #expr2, expr1, #op, expr2))  	\
                  logger::core::LoggerMsg<logger::Verbose_FATAL>(errStr->c_str(), __FILE__, __LINE__)
 
 #define LOGGER_CHECK_EQ(A, B) LOGGER_CHECK_OP(CHECK_EQ_IMPL, A, ==, B)
@@ -85,7 +87,7 @@ LOGGER_CHECK_SYMBOL_WARP(CHECK_GT_IMPL, >)
 #define LOGGER_CHECK_GE(A, B) LOGGER_CHECK_OP(CHECK_GE_IMPL, A, >=, B)
 #define LOGGER_CHECK_GT(A, B) LOGGER_CHECK_OP(CHECK_GT_IMPL, A,  >, B)
 
-} /* namespace logger */
+//} /* namespace logger */
 
 #ifdef USE_LOGGER
     #ifdef LOGGER_SHUTDOWN

@@ -47,6 +47,8 @@
 
 #cmakedefine USE_OPENMP
 
+#cmakedefine USE_LOGGER
+
 #cmakedefine USE_GFLAGS
 
 // plantform to use

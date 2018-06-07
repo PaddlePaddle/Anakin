@@ -84,7 +84,8 @@ anakin_option(DISABLE_ALL_WARNINGS "Disable all the warning msg during compile."
 anakin_option(ENABLE_NOISY_WARNINGS "Enable noisy warning msg during compile." NO if DISABLE_ALL_WARNINGS)
 
 # using 3rd party libs 
-anakin_option(USE_GLOG "Build Glog components." NO)
+anakin_option(USE_LOGGER "Build native logger components." YES)
+anakin_option(USE_GLOG "Build Glog components." NO if NOT USE_LOGGER)
 anakin_option(USE_PROTOBUF "Build Google protobuf components." YES)
 anakin_option(USE_OPENCV "Use static opencv libs." NO)
 anakin_option(USE_BOOST "Use static BOOST libs." NO)
