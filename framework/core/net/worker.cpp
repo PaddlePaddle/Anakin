@@ -190,22 +190,35 @@ void Worker<Ttype, Dtype, Ptype, RunType>::auxiliary_funcs() {
     }
 }
 
+#ifdef USE_CUDA
 template class Worker<NV, AK_FLOAT, Precision::FP32, OpRunType::ASYNC>;
 template class Worker<NV, AK_FLOAT, Precision::FP16, OpRunType::ASYNC>;
 template class Worker<NV, AK_FLOAT, Precision::INT8, OpRunType::ASYNC>;
 
+template class Worker<NV, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
+template class Worker<NV, AK_FLOAT, Precision::FP16, OpRunType::SYNC>;
+template class Worker<NV, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
+#endif
+
+#ifdef USE_X86_PLACE
+template class Worker<X86, AK_FLOAT, Precision::FP32, OpRunType::ASYNC>;
+template class Worker<X86, AK_FLOAT, Precision::FP16, OpRunType::ASYNC>;
+template class Worker<X86, AK_FLOAT, Precision::INT8, OpRunType::ASYNC>;
+
+template class Worker<X86, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
+template class Worker<X86, AK_FLOAT, Precision::FP16, OpRunType::SYNC>;
+template class Worker<X86, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
+#endif
+
+#ifdef USE_ARM_PLACE
 template class Worker<ARM, AK_FLOAT, Precision::FP32, OpRunType::ASYNC>;
 template class Worker<ARM, AK_FLOAT, Precision::FP16, OpRunType::ASYNC>;
 template class Worker<ARM, AK_FLOAT, Precision::INT8, OpRunType::ASYNC>;
 
-template class Worker<NV, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
-template class Worker<NV, AK_FLOAT, Precision::FP16, OpRunType::SYNC>;
-template class Worker<NV, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
-
 template class Worker<ARM, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
 template class Worker<ARM, AK_FLOAT, Precision::FP16, OpRunType::SYNC>;
 template class Worker<ARM, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
-
+#endif
 
 } /* namespace */
 
