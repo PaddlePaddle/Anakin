@@ -214,7 +214,7 @@ SaberStatus SaberEltwise<Dtype>::dispatch(\
 
     const Dtype* din_a = inputs[0]->data();
     const Dtype* din_b = inputs[1]->data();
-    float* dout = outputs[0]->mutable_data();
+    Dtype* dout = outputs[0]->mutable_data();
 
     int size = outputs[0]->valid_size();
 

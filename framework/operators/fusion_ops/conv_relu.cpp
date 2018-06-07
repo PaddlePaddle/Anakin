@@ -18,7 +18,18 @@ void ConvRelu<NV, AK_FLOAT, Precision::FP32>::operator()(
 #endif
 
 /// TODO ... specialization other type of operator
-
+#ifdef USE_ARM_PLACE
+template<>
+void ConvRelu<ARM, AK_FLOAT, Precision::FP32>::operator()(
+    OpContext<ARM>& ctx,
+    const std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& ins,
+    std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& outs) {
+    auto* impl =
+        static_cast<ConvReluHelper<ARM, AK_FLOAT, Precision::FP32>*>(this->_helper);
+    auto& param = impl->_param_conv_relu;
+    impl->_funcs_conv_relu(ins, outs, param, ctx);
+}
+#endif
 
 /// set helper
 template<typename Ttype, DataType Dtype, Precision Ptype>
@@ -121,9 +132,15 @@ template class ConvReluHelper<NV, AK_FLOAT, Precision::INT8>;
 #endif
 
 #ifdef USE_ARM_PLACE
+#ifdef ANAKIN_TYPE_FP32
 template class ConvReluHelper<ARM, AK_FLOAT, Precision::FP32>;
+#endif
+#ifdef ANAKIN_TYPE_FP16
 template class ConvReluHelper<ARM, AK_FLOAT, Precision::FP16>;
+#endif
+#ifdef ANAKIN_TYPE_INT8
 template class ConvReluHelper<ARM, AK_FLOAT, Precision::INT8>;
+#endif
 #endif
 
 // register helper

@@ -20,7 +20,7 @@ void Deconvolution<NV, AK_FLOAT, Precision::FP32>::operator()(
 #ifdef USE_ARM_PLACE
 template<>
 void Deconvolution<ARM, AK_FLOAT, Precision::FP32>::operator()(
-    OpContext<NV>& ctx,
+    OpContext<ARM>& ctx,
     const std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& ins,
     std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& outs) {
     auto* impl = static_cast<DeconvolutionHelper<ARM, AK_FLOAT, Precision::FP32>*>(this->_helper);

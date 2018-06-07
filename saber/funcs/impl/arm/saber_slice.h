@@ -66,15 +66,15 @@ public:
        return SaberSuccess;
     }
 
-    virtual SaberStatus dispatch(std::vector<DataTensor_in*>& inputs,
+    virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                                  std::vector<DataTensor_out*>& outputs,
                                  SliceParam<OpTensor> &param) override {
         int offset_slice_axis = 0;
         const InDataType* din = inputs[0]->data();
-        const int in_slice_axis = inputs[0]->valid_shape[param.axis];
+        const int in_slice_axis = inputs[0]->valid_shape()[param.axis];
         for (int i = 0; i < outputs.size(); ++i) {
             OutDataType* dout = outputs[i]->mutable_data();
-            const int out_slice_axis = outputs[i]->valid_shape[param.axis];
+            const int out_slice_axis = outputs[i]->valid_shape()[param.axis];
             for (int n = 0; n < _slice_num; ++n) {
                 const int out_offset = n * out_slice_axis * _slice_size;
                 const int in_offset = (n * in_slice_axis + offset_slice_axis) * _slice_size;
