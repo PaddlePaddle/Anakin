@@ -32,8 +32,8 @@ Status ScaleHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto axis = GET_PARAMETER(int, axis);
     auto num_axes = GET_PARAMETER(int, num_axes);
     auto bias_term = GET_PARAMETER(bool, bias_term);
-    auto weights = GET_PARAMETER(PTuple<typename DataTypeWarpper<Dtype>::type>, scale_w);
-    auto bias = GET_PARAMETER(PTuple<typename DataTypeWarpper<Dtype>::type>, scale_b);
+    auto weights = GET_PARAMETER(PTuple<typename DataTypeWarpper<Dtype>::type>, weight_1);
+    auto bias = GET_PARAMETER(PTuple<typename DataTypeWarpper<Dtype>::type>, weight_2);
     ScaleParam<Tensor4d<Ttype, Dtype>> param_scale(weights.vector(), bias.vector(), bias_term, axis, num_axes);
     _param_scale = param_scale;
     return Status::OK();
@@ -76,10 +76,10 @@ ANAKIN_REGISTER_OP_HELPER(Scale, ScaleHelper, ARM, AK_FLOAT, Precision::FP32);
 ANAKIN_REGISTER_OP(Scale)
 .Doc("Scale operator")
 #ifdef USE_CUDA
-.__alias__<NV, AK_FLOAT, Precision::FP32>("scale")
+.__alias__<NV, AK_FLOAT, Precision::FP32>("Scale")
 #endif
 #ifdef USE_ARM_PLACE
-.__alias__<ARM, AK_FLOAT, Precision::FP32>("scale")
+.__alias__<ARM, AK_FLOAT, Precision::FP32>("Scale")
 #endif
 .num_in(1)
 .num_out(1)
