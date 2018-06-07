@@ -15,7 +15,8 @@
 #ifndef ANAKIN_SABER_FUNCS_ARM_IMPL_SABER_CONV_ACT_H
 #define ANAKIN_SABER_FUNCS_ARM_IMPL_SABER_CONV_ACT_H
 
-#include "saber/funcs/impl/arm/saber_conv_act.h"
+#include "saber/funcs/impl/arm/saber_conv.h"
+#include "saber/funcs/impl/impl_conv_act.h"
 
 #ifdef USE_ARM_PLACE
 
