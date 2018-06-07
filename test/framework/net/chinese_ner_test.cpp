@@ -23,6 +23,8 @@ using Target = NV;
 using Target = X86;
 #endif
 
+//#define WITH_MENTION
+
 void getModels(std::string path, std::vector<std::string>& files) {
     DIR* dir= nullptr;
     struct dirent* ptr;
@@ -138,8 +140,9 @@ TEST(NetTest, chinese_ner_executor) {
         LOG(FATAL) << " [ERROR] " << status.info();
     }
     graph->Reshape("input_0", {1000, 1, 1, 1});
+#ifdef WITH_MENTION
     graph->Reshape("input_1", {1000, 1, 1, 1});
-
+#endif
     //anakin graph optimization
     graph->Optimize();
     Net<Target, AK_FLOAT, Precision::FP32> net_executer(*graph, true);
@@ -148,7 +151,9 @@ TEST(NetTest, chinese_ner_executor) {
 //    {
 //        int i = 0;
         int word_len = get_batch_data_offset(word_idx_data, word_idx, word_seq_offset, i, batch_num);
+#ifdef WITH_MENTION
         int mention_len = get_batch_data_offset(mention_idx_data, mention_idx, mention_seq_offset, i, batch_num);
+#endif
 //        for (auto w : word_idx_data) {
 //            std::cout << w << ",";
 //        }
@@ -165,19 +170,19 @@ TEST(NetTest, chinese_ner_executor) {
 //        int mention_len = 7;
 
         auto word_in_p = net_executer.get_in("input_0");
-        auto mention_in_p = net_executer.get_in("input_1");
-
         word_in_p->reshape({word_len, 1, 1, 1});
-        mention_in_p->reshape({mention_len, 1, 1, 1});
         for (int j = 0; j < word_idx_data.size(); ++j) {
             word_in_p->mutable_data()[j] = word_idx_data[j];
         }
+        word_in_p->set_seq_offset(word_seq_offset);
+#ifdef WITH_MENTION
+        auto mention_in_p = net_executer.get_in("input_1");
+        mention_in_p->reshape({mention_len, 1, 1, 1});
         for (int j = 0; j < mention_idx_data.size(); ++j) {
             mention_in_p->mutable_data()[j] = mention_idx_data[j];
         }
-
-        word_in_p->set_seq_offset(word_seq_offset);
         mention_in_p->set_seq_offset(mention_seq_offset);
+#endif
         net_executer.prediction();
         auto tensor_out_5_p = net_executer.get_out("crf_decoding_0.tmp_0_out");
         int v_size = tensor_out_5_p->valid_size();
@@ -185,7 +190,6 @@ TEST(NetTest, chinese_ner_executor) {
             std::cout << tensor_out_5_p->data()[j]<<" ";
         }
         std::cout << std::endl;
-        break;
     }
 
 }
