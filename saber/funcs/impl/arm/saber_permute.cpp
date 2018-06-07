@@ -152,7 +152,7 @@ LayOutType_op, LayOutType_in, LayOutType_out>::create(\
         _transpose = true;
         _trans_num = outputs[0]->count_valid(0, std::max(axis_diff[0] - 1, 0));
         _trans_h = outputs[0]->count_valid(axis_diff[0] + 1, _num_axes);
-        _trans_w = outputs[0]->valid_shape[axis_diff[0]];
+        _trans_w = outputs[0]->valid_shape()[axis_diff[0]];
         LOG(INFO) << "permute: transpose=true, num=" << _trans_num \
             << ", h=" << _trans_h << ", w=" << _trans_w;
     } else {
@@ -195,6 +195,8 @@ LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(\
 
     return SaberSuccess;
 }
+
+template class SaberPermute<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
 
 } //namespace saber
 

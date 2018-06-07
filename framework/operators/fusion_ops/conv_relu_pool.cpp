@@ -48,10 +48,6 @@ Status ConvReluPoolHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto weights = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_1);
     auto weight_vec = weights.vector();
 
-    float* h_data = new float[weights.d_tensor().valid_size()];
-    cudaMemcpy(h_data, weights.d_tensor().mutable_data(), weights.d_tensor().valid_size()*sizeof(float), cudaMemcpyDeviceToHost);
-    cudaDeviceSynchronize();
-    CUDA_CHECK(cudaPeekAtLastError());
 
     if (bias_term) {
         auto bias = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_2);
@@ -128,9 +124,15 @@ template class ConvReluPoolHelper<NV, AK_FLOAT, Precision::INT8>;
 #endif
 
 #ifdef USE_ARM_PLACE
+#ifdef ANAKIN_TYPE_FP32
 template class ConvReluPoolHelper<ARM, AK_FLOAT, Precision::FP32>;
+#endif
+#ifdef ANAKIN_TYPE_FP16
 template class ConvReluPoolHelper<ARM, AK_FLOAT, Precision::FP16>;
+#endif
+#ifdef ANAKIN_TYPE_INT8
 template class ConvReluPoolHelper<ARM, AK_FLOAT, Precision::INT8>;
+#endif
 #endif
 
 // register helper 

@@ -57,6 +57,8 @@ SaberStatus SaberPooling<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::d
     return SaberSuccess;
 }
 
+template class SaberPooling<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
+
 } //namespace saber
 
 } // namespace anakin

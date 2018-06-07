@@ -65,21 +65,34 @@ template class OutputHelper<ARM, AK_FLOAT, Precision::FP16>;
 #ifdef ANAKIN_TYPE_INT8
 template class OutputHelper<ARM, AK_FLOAT, Precision::INT8>;
 #endif
+#endif
 
+#ifdef USE_CUDA
 // register help
 ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, NV, AK_FLOAT, Precision::FP32);
 ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, NV, AK_FLOAT, Precision::FP16);
 ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, NV, AK_FLOAT, Precision::INT8);
-
+#endif
+#ifdef USE_ARM_PLACE
+#ifdef ANAKIN_TYPE_FP32
 ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, ARM, AK_FLOAT, Precision::FP32);
+#endif
+#ifdef ANAKIN_TYPE_FP16
 ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, ARM, AK_FLOAT, Precision::FP16);
+#endif
+#ifdef ANAKIN_TYPE_INT8
 ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, ARM, AK_FLOAT, Precision::INT8);
-
+#endif
+#endif
 //! register op
 ANAKIN_REGISTER_OP(Output)
 .Doc("Output operator [ only a input data holder and reshape ] ")
+#ifdef USE_CUDA
 .__alias__<NV, AK_FLOAT, Precision::FP32>("output")
+#endif
+#ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("output");
+#endif
 
 } /* namespace ops */
 
