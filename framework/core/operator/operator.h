@@ -18,15 +18,18 @@
 
 #include <functional>
 #include "framework/core/operator/request.h"
-#include "framework/core/operator/operator_attr.h"
+//#include "framework/core/operator/operator_attr.h"
 #include "framework/core/factory.h"
 #include "framework/core/parameter.h"
 #include "framework/core/singleton.h"
+#include "framework/graph/graph.h"
 
 namespace anakin {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 class OperatorHelper;
+
+class OpAttrWarpper;
 
 /** 
  *  \brief Basic operation class.
@@ -173,17 +176,23 @@ public:
     /** 
      *  \brief Get list of op name.
      */
-    virtual std::vector<std::string>& get_list_op_name();
+    virtual std::vector<std::string>& get_list_op_name(){
+        return this->get_list_name();
+    }
 
     /** 
      *  \brief Get object pointer by op_name.
      */
-    virtual OpAttrWarpper* operator[](const std::string op_name);
+    virtual OpAttrWarpper* operator[](const std::string op_name) {
+        return ObjectRegister<OpAttrWarpper>::operator[](op_name);
+    }
 
     /** 
      *  \brief Add another alias to the type_id.
      */
-    virtual void add_alias(const std::string& ori_op_name, const std::string& op_name_alias);
+    virtual void add_alias(const std::string& ori_op_name, const std::string& op_name_alias) {
+        this->__alias__(ori_op_name, op_name_alias);
+    }
 };
 
 typedef Singleton<OpAttrObjectRegister> OpAttrRegister;

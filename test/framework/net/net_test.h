@@ -32,12 +32,15 @@ using namespace anakin::graph;
 
 #ifdef USE_CUDA
 using Target = NV;
+using Target_H = X86;
 #endif
 #ifdef USE_X86_PLACE
 using Target = X86;
+using Target_H = X86;
 #endif
 #ifdef USE_ARM_PLACE
 using Target = ARM;
+using Target_H = ARM;
 #endif
 
 /**
@@ -56,7 +59,7 @@ protected:
 };
 
 void test_print(Tensor4dPtr<Target, AK_FLOAT>& out_tensor_p) {
-    Tensor4d<X86, AK_FLOAT> h_tensor_result;
+    Tensor4d<Target_H, AK_FLOAT> h_tensor_result;
     h_tensor_result.re_alloc(out_tensor_p->valid_shape());
     LOG(ERROR) << "result count : " << h_tensor_result.valid_shape().count();
     h_tensor_result.copy_from(*out_tensor_p);

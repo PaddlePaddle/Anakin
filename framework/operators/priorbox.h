@@ -15,7 +15,7 @@
 #ifndef ANAKIN_OPERATOR_PRIORBOX_H
 #define ANAKIN_OPERATOR_PRIORBOX_H
 
-#include "framework/core/operator/operator.h"
+#include "framework/core/operator/operator_attr.h"
 #include "saber/funcs/priorbox.h"
 
 namespace anakin {
