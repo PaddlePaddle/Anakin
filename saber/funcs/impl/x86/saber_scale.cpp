@@ -38,11 +38,6 @@ SaberStatus SaberScale<X86, OpDtype, inDtype, outDtype,
         ScaleParam<OpTensor> &param,
         Context<X86> &ctx)
 {
-    typedef typename DataTensor_in::Dtype DataType_in;
-    typedef typename DataTensor_out::Dtype DataType_out;
-    typedef typename OpTensor::Dtype DataType_op;
-    this->_ctx = ctx;
-
     return SaberSuccess;
 }
 
