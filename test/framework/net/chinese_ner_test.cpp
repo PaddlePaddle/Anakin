@@ -146,7 +146,8 @@ TEST(NetTest, chinese_ner_executor) {
     //anakin graph optimization
     graph->Optimize();
     Net<Target, AK_FLOAT, Precision::FP32> net_executer(*graph, true);
-
+    SaberTimer<X86> timer;
+    Context<X86> ctx;
     for (int i = 0; i < word_idx.size(); i += batch_num) {
 //    {
 //        int i = 0;
@@ -183,15 +184,17 @@ TEST(NetTest, chinese_ner_executor) {
         }
         mention_in_p->set_seq_offset(mention_seq_offset);
 #endif
+        timer.start(ctx);
         net_executer.prediction();
-        auto tensor_out_5_p = net_executer.get_out("crf_decoding_0.tmp_0_out");
-        int v_size = tensor_out_5_p->valid_size();
-        for (int j = 0; j < v_size; ++j) {
-            std::cout << tensor_out_5_p->data()[j]<<" ";
-        }
-        std::cout << std::endl;
+        timer.end(ctx);
+//        auto tensor_out_5_p = net_executer.get_out("crf_decoding_0.tmp_0_out");
+//        int v_size = tensor_out_5_p->valid_size();
+//        for (int j = 0; j < v_size; ++j) {
+//            std::cout << tensor_out_5_p->data()[j]<<" ";
+//        }
+//        std::cout << std::endl;
     }
-
+    LOG(INFO)<<"elapse time: "<<timer.get_average_ms()<<" ms";
 }
 
 int main(int argc, const char** argv) {
