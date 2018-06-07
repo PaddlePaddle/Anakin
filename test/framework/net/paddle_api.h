@@ -13,12 +13,18 @@
 
 #ifdef USE_CUDA
 using Target = anakin::saber::NV;
+using Target_H = anakin::saber::X86;
+#define THost anakin::saber::X86()
 #endif
 #ifdef USE_X86_PLACE
 using Target = anakin::saber::X86;
+using Target_H = anakin::saber::X86;
+#define THost anakin::saber::X86()
 #endif
 #ifdef USE_ARM_PLACE
 using Target = anakin::saber::ARM;
+using Target_H = anakin::saber::ARM;
+#define THost anakin::saber::ARM()
 #endif
 
 class EngineBase {
@@ -37,7 +43,7 @@ template <typename Ttype, DataType Dtype, Precision Ptype>
 class AnakinEngine : public EngineBase {
 public:
   typedef typename anakin::saber::DataTrait<Dtype>::dtype Dtype_t;
-  typedef anakin::saber::TargetWrapper<X86> X86_API;
+  typedef anakin::saber::TargetWrapper<Target_H> X86_API;
   typedef anakin::saber::TargetWrapper<Ttype> NV_API;
   AnakinEngine(){}
 
@@ -68,7 +74,7 @@ public:
   void SetInputFromCPU(const std::string name, Dtype_t* data, size_t size)
   {
     auto input_tensor = _net_executer.get_in(name);
-    anakin::Tensor<Ttype, Dtype> tmp_tensor(data, anakin::saber::X86(), X86_API::get_device_id(), input_tensor->valid_shape());
+    anakin::Tensor<Ttype, Dtype> tmp_tensor(data, THost, X86_API::get_device_id(), input_tensor->valid_shape());
     *input_tensor = tmp_tensor;
   };
 

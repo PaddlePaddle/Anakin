@@ -21,12 +21,15 @@ DEFINE_GLOBAL(bool, is_input_shape, false);
 
 #ifdef USE_CUDA
 using Target = NV;
+using Target_H = X86;
 #endif
 #ifdef USE_X86_PLACE
 using Target = X86;
+using Target_H = X86;
 #endif
 #ifdef USE_ARM_PLACE
 using Target = ARM;
+using Target_H = ARM;
 #endif
 
 void getModels(std::string path, std::vector<std::string>& files)
@@ -64,7 +67,7 @@ TEST(NetTest, net_execute_base_test) {
 
         printf("Args = %d %d %d %d\n",GLB_num, GLB_channel, GLB_height, GLB_width);
         //fill input
-        Tensor4d<X86, AK_FLOAT> h_tensor_in;
+        Tensor4d<Target_H, AK_FLOAT> h_tensor_in;
         h_tensor_in.re_alloc({GLB_num, GLB_channel, GLB_height, GLB_width});
         fill_tensor_host_rand(h_tensor_in, -1.0f,1.0f);
 

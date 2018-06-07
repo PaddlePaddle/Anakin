@@ -18,7 +18,7 @@
 
 #include "framework/core/base.h"
 #include "framework/core/data_types.h"
-#include "framework/core/operator/operator.h"
+#include "framework/core/operator/operator_attr.h"
 #include "utils/logger/logger.h"
 #include "saber/funcs/axpy.h"
 

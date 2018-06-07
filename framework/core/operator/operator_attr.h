@@ -20,6 +20,7 @@
 #include "framework/core/parameter.h"
 #include "framework/core/common_macros.h"
 #include "framework/graph/graph.h"
+#include "framework/core/operator/operator.h"
 
 namespace anakin {
 
@@ -59,18 +60,36 @@ public:
     /** 
      *  \brief Set origin op name (opAttr_ = op_name)
      */
-    OpAttrWarpper& name(std::string op_name);
+    OpAttrWarpper& name(std::string op_name) {
+        opAttr_.name = op_name;
+    }
 
     /// set alias name of Operator.
     template<typename Ttype, DataType Dtype, Precision Ptype>
-    OpAttrWarpper& __alias__(std::string);
+    OpAttrWarpper& __alias__(std::string op_name) {
+        OpAttrRegister::Global().add_alias(this->opAttr_.name, op_name);
+        OpFactory<Ttype, Dtype, Ptype>::Global().add_alias(this->opAttr_.name, op_name);
+        return *(this);
+    }
     /// set description doc for target op.
-    OpAttrWarpper& Doc( std::string );
+    OpAttrWarpper& Doc( std::string doc) {
+        opAttr_.doc = doc;
+        return *(this);
+    }
     /// set and get number input and output.
-    OpAttrWarpper& num_in(size_t);
-    OpAttrWarpper& num_out(size_t);
+    OpAttrWarpper& num_in(size_t num) {
+        opAttr_.num_in = num;
+        return *(this);
+    }
+    OpAttrWarpper& num_out(size_t num) {
+        opAttr_.num_out = num;
+        return *(this);
+    }
     /// set commutative.
-    OpAttrWarpper& commutative(bool);
+    OpAttrWarpper& commutative(bool is_commutative) {
+        opAttr_.is_commutative = is_commutative;
+        return *(this);
+    }
     /** 
      *  \brief Set arguments of target op.
      *  e.g.
@@ -101,7 +120,13 @@ public:
      *  \brief Get arg value from attributes info (AttrInfo) in node.
      */
     template<typename T>
-    T& GetArg(std::string arg_name, graph::AttrInfo& info);
+    T& GetArg(std::string arg_name, graph::AttrInfo& info) {
+        CHECK(this->has_arg(arg_name)) << " the operator doesn't have target argument: " << arg_name;
+        CHECK(info.parameter.count(arg_name) > 0) << " Attr info doesn't have target argument: " <<
+                                                  arg_name;
+        any& target_arg = info.parameter[arg_name];
+        return any_cast<T>(target_arg);
+    }
 
     /** 
      *  \brief Get name of operator.
