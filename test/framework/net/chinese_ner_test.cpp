@@ -145,6 +145,8 @@ TEST(NetTest, chinese_ner_executor) {
     Net<Target, AK_FLOAT, Precision::FP32> net_executer(*graph, true);
 
     for (int i = 0; i < word_idx.size(); i += batch_num) {
+//    {
+//        int i = 0;
         int word_len = get_batch_data_offset(word_idx_data, word_idx, word_seq_offset, i, batch_num);
         int mention_len = get_batch_data_offset(mention_idx_data, mention_idx, mention_seq_offset, i, batch_num);
 //        for (auto w : word_idx_data) {
@@ -155,6 +157,13 @@ TEST(NetTest, chinese_ner_executor) {
 //            std::cout << s << ", ";
 //        }
 //        std::cout << std::endl << std::endl << std::endl;
+//        word_idx_data = {20, 21, 22, 23, 24, 25, 26};
+//        word_seq_offset = {0, 5, 7};
+//        int word_len = 7;
+//        mention_idx_data = {2, 1, 22, 23, 24, 25, 26};
+//        mention_seq_offset = {0, 5, 7};
+//        int mention_len = 7;
+
         auto word_in_p = net_executer.get_in("input_0");
         auto mention_in_p = net_executer.get_in("input_1");
 
@@ -170,6 +179,13 @@ TEST(NetTest, chinese_ner_executor) {
         word_in_p->set_seq_offset(word_seq_offset);
         mention_in_p->set_seq_offset(mention_seq_offset);
         net_executer.prediction();
+        auto tensor_out_5_p = net_executer.get_out("crf_decoding_0.tmp_0_out");
+        int v_size = tensor_out_5_p->valid_size();
+        for (int j = 0; j < v_size; ++j) {
+            std::cout << tensor_out_5_p->data()[j]<<" ";
+        }
+        std::cout << std::endl;
+        break;
     }
 
 }
