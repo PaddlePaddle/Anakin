@@ -7,7 +7,7 @@
 
 Welcome to the Anakin GitHub.
 
-Anakin is an cross-platform, high-performance inference engine, which is originally
+Anakin is a cross-platform, high-performance inference engine, which is originally
 developed by Baidu engineers and is a large-scale application of industrial products.
 
 Please refer to our [release announcement]() to track the latest feature of Anakin.
