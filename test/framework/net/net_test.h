@@ -66,6 +66,24 @@ void test_print(Tensor4dPtr<Target, AK_FLOAT>& out_tensor_p) {
 }
 
 
+static int record_dev_tensorfile(const Tensor4d<NV, AK_FLOAT>* dev_tensor, const char* locate) {
+    Tensor<X86, AK_FLOAT, NCHW> host_temp;
+    host_temp.re_alloc(dev_tensor->valid_shape());
+    host_temp.copy_from(*dev_tensor);
+    FILE* fp = fopen(locate, "w+");
+    int size = host_temp.valid_shape().count();
+    if (fp == 0) {
+        LOG(ERROR) << "[ FAILED ] file open target txt: " << locate;
+    } else {
+        for (int i = 0; i < size; ++i) {
+            fprintf(fp, "%.18f \n", i, (host_temp.data()[i]));
+        }
+        fclose(fp);
+    }
+    LOG(INFO) << "[ SUCCESS ] Write " << size << " data to: " << locate;
+    return 0;
+}
+
 #endif
 
 

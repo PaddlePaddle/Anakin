@@ -93,6 +93,7 @@ SaberStatus VenderFc<X86, OpDtype, inDtype, outDtype,
     }else{
 
     }
+    outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
     return SaberSuccess;
 }
     template class VenderFc<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;

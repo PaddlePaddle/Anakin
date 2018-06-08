@@ -31,6 +31,7 @@ void Embedding<X86, AK_FLOAT, Precision::FP32>::operator()(
     impl->_funcs_embedding(ins, outs, param, ctx);
 }
 #endif
+
 /// TODO ... specialization other type of operator
 
 
@@ -52,6 +53,7 @@ Status EmbeddingHelper<Ttype, Dtype, Ptype>::InitParam() {
 
     return Status::OK();
 }
+
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status EmbeddingHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
         const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
@@ -73,19 +75,16 @@ template class EmbeddingHelper<NV, AK_FLOAT, Precision::FP32>;
 template class EmbeddingHelper<NV, AK_FLOAT, Precision::FP16>;
 template class EmbeddingHelper<NV, AK_FLOAT, Precision::INT8>;
 #endif
-
-#ifdef USE_X86_PLACE
-template class EmbeddingHelper<X86, AK_FLOAT, Precision::FP32>;
-template class EmbeddingHelper<X86, AK_FLOAT, Precision::FP16>;
-template class EmbeddingHelper<X86, AK_FLOAT, Precision::INT8>;
-#endif
-
 #ifdef USE_ARM_PLACE
 template class EmbeddingHelper<ARM, AK_FLOAT, Precision::FP32>;
 template class EmbeddingHelper<ARM, AK_FLOAT, Precision::FP16>;
 template class EmbeddingHelper<ARM, AK_FLOAT, Precision::INT8>;
 #endif
-
+#ifdef USE_X86_PLACE
+template class EmbeddingHelper<X86, AK_FLOAT, Precision::FP32>;
+template class EmbeddingHelper<X86, AK_FLOAT, Precision::FP16>;
+template class EmbeddingHelper<X86, AK_FLOAT, Precision::INT8>;
+#endif
 // register helper
 #ifdef USE_CUDA
 ANAKIN_REGISTER_OP_HELPER(Embedding, EmbeddingHelper, NV, AK_FLOAT, Precision::FP32);
@@ -93,11 +92,9 @@ ANAKIN_REGISTER_OP_HELPER(Embedding, EmbeddingHelper, NV, AK_FLOAT, Precision::F
 #ifdef USE_ARM_PLACE
 ANAKIN_REGISTER_OP_HELPER(Embedding, EmbeddingHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
-
 #ifdef USE_X86_PLACE
 ANAKIN_REGISTER_OP_HELPER(Embedding, EmbeddingHelper, X86, AK_FLOAT, Precision::FP32);
 #endif
-
 //! register op
 ANAKIN_REGISTER_OP(Embedding)
 .Doc("Embedding operator")

@@ -14,7 +14,6 @@ void Gru<NV, AK_FLOAT, Precision::FP32>::operator() (OpContext<NV> &ctx,
     impl->_funcs_gru(ins, outs, param, ctx);
 }
 #endif
-
 #ifdef USE_X86_PLACE
 template<>
 void Gru<X86, AK_FLOAT, Precision::FP32>::operator() (OpContext<X86> &ctx,
@@ -27,8 +26,6 @@ void Gru<X86, AK_FLOAT, Precision::FP32>::operator() (OpContext<X86> &ctx,
 #endif
 
 /// TODO ... specialization other type of operator
-
-
 /// set helper
 template<typename Ttype, DataType Dtype, Precision Ptype>
 GruHelper<Ttype, Dtype, Ptype>::~GruHelper() {
@@ -91,18 +88,17 @@ template class GruHelper<NV, AK_FLOAT, Precision::FP16>;
 template class GruHelper<NV, AK_FLOAT, Precision::INT8>;
 #endif
 
-#ifdef USE_X86_PLACE
-template class GruHelper<X86, AK_FLOAT, Precision::FP32>;
-template class GruHelper<X86, AK_FLOAT, Precision::FP16>;
-template class GruHelper<X86, AK_FLOAT, Precision::INT8>;
-#endif
-
 #ifdef USE_ARM_PLACE
 template class GruHelper<ARM, AK_FLOAT, Precision::FP32>;
 template class GruHelper<ARM, AK_FLOAT, Precision::FP16>;
 template class GruHelper<ARM, AK_FLOAT, Precision::INT8>;
 #endif
 
+#ifdef USE_X86_PLACE
+template class GruHelper<X86, AK_FLOAT, Precision::FP32>;
+template class GruHelper<X86, AK_FLOAT, Precision::FP16>;
+template class GruHelper<X86, AK_FLOAT, Precision::INT8>;
+#endif
 
 #ifdef USE_CUDA
 ANAKIN_REGISTER_OP_HELPER(Gru, GruHelper, NV, AK_FLOAT, Precision::FP32);
@@ -110,11 +106,9 @@ ANAKIN_REGISTER_OP_HELPER(Gru, GruHelper, NV, AK_FLOAT, Precision::FP32);
 #ifdef USE_ARM_PLACE
 ANAKIN_REGISTER_OP_HELPER(Gru, GruHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
-
 #ifdef USE_X86_PLACE
 ANAKIN_REGISTER_OP_HELPER(Gru, GruHelper, X86, AK_FLOAT, Precision::FP32);
 #endif
-
 //! register op
 ANAKIN_REGISTER_OP(Gru)
     .Doc("Gru operator")
