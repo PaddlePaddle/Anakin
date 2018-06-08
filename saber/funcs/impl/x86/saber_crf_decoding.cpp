@@ -99,7 +99,6 @@ SaberStatus SaberCrfDecoding<X86, OpDtype, inDtype, outDtype,
         const std::vector<DataTensor_in*>& inputs,
         std::vector<DataTensor_out*>& outputs,
         CrfDecodingParam<OpTensor> &param) {
-
     typedef typename DataTensor_in::Dtype DataType_in;
     typedef typename DataTensor_out::Dtype DataType_out;
     typedef typename OpTensor::Dtype DataType_op;
@@ -111,15 +110,15 @@ SaberStatus SaberCrfDecoding<X86, OpDtype, inDtype, outDtype,
     DataType_out *decoded_path = outputs[0]->mutable_data();
 
     int seq_num = seq_offset.size() - 1;
-    int slice_size = outputs[0]->channel()
-                     * outputs[0]->height()
-                     * outputs[0]->width();
+    int slice_size = inputs[0]->channel()
+                     * inputs[0]->height()
+                     * inputs[0]->width();
 
     for (int i = 0; i < seq_num; ++i) {
         int seq_len = seq_offset[i+1] - seq_offset[i];
         decoding(decoded_path, emission_ptr, transition_ptr,
                  _alpha.mutable_data(), _track.mutable_data(),
-                 seq_len, param.tag_num);
+                 seq_len, inputs[0]->channel());
 
         decoded_path += seq_len;
         emission_ptr += slice_size * seq_len;

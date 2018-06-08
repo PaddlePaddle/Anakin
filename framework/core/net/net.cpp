@@ -203,8 +203,10 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
 	    for (auto out : executer.outs) {
 	        LOG(INFO) << "    |-- out tensor avg " << tensor_average(out);
 	    }
+#ifdef USE_CUDA
 	    CUDA_CHECK(cudaDeviceSynchronize());
         CUDA_CHECK(cudaPeekAtLastError());
+#endif
     }
 #endif
 }
@@ -260,6 +262,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
 #endif
 	//LOG(INFO)<< "op: " << executer.name<<"(" << executer.op_name <<")  ===  infer+launch time "<<my_time.get_average_ms() << " ms";
 #ifdef ENABLE_DEBUG	
+#ifdef USE_CUDA
 	cudaDeviceSynchronize();
     CUDA_CHECK(cudaPeekAtLastError());
 	for (auto out : executer.outs) {
@@ -269,7 +272,20 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
 	    LOG(ERROR) << "    |---out avg " << tensor_average(out);
 	}
 	cudaDeviceSynchronize();
-        CUDA_CHECK(cudaPeekAtLastError());
+    CUDA_CHECK(cudaPeekAtLastError());
+#endif
+#ifdef USE_X86_PLACE
+    for (auto out : executer.outs) {
+        LOG(INFO) <<executer.name <<" d_tensor_out_p :" <<out->data();
+        const float* out_data = out->data();
+        std::cout << "seq_offset size: " << out->get_seq_offset().size()<<" ";
+        for (int i = 0; i < 10; ++i) {
+            std::cout << out_data[i] << " ";
+        }
+        std::cout << std::endl;
+
+    }
+#endif
 #endif
     }
 }
