@@ -33,9 +33,17 @@ Status ScaleHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto num_axes = GET_PARAMETER(int, num_axes);
     auto bias_term = GET_PARAMETER(bool, bias_term);
     auto weights = GET_PARAMETER(PTuple<typename DataTypeWarpper<Dtype>::type>, weight_1);
-    auto bias = GET_PARAMETER(PTuple<typename DataTypeWarpper<Dtype>::type>, weight_2);
-    ScaleParam<Tensor4d<Ttype, Dtype>> param_scale(weights.vector(), bias.vector(), bias_term, axis, num_axes);
-    _param_scale = param_scale;
+
+    if (bias_term) {
+        auto bias = GET_PARAMETER(PTuple<typename DataTypeWarpper<Dtype>::type>, weight_2);
+        ScaleParam<Tensor4d<Ttype, Dtype>> param_scale(weights.vector(), bias.vector(), bias_term, axis, num_axes);
+        _param_scale = param_scale;
+    } else {
+        std::vector<typename DataTypeWarpper<Dtype>::type> bias;
+        ScaleParam<Tensor4d<Ttype, Dtype>> param_scale(weights.vector(), bias, bias_term, axis, num_axes);
+        _param_scale = param_scale;
+    }
+
     return Status::OK();
 }
 
