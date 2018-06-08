@@ -67,7 +67,7 @@ if(DISABLE_ALL_WARNINGS)
 endif()
 
 if(USE_ARM_PLACE)
-    if(TARGET_ANDRIOD)
+    if(TARGET_ANDROID)
 		if(USE_OPENMP)
         	anakin_find_openmp()
 		endif()
