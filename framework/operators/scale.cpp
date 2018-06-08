@@ -29,7 +29,7 @@ ScaleHelper<Ttype, Dtype, Ptype>::~ScaleHelper() {
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ScaleHelper<Ttype, Dtype, Ptype>::InitParam() {
     DLOG(WARNING) << "Parsing Scale op parameter.";
-    auto axis = GET_PARAMETER(int, axis);
+    auto axis = GET_PARAMETER(int, axis); 
     auto num_axes = GET_PARAMETER(int, num_axes);
     auto bias_term = GET_PARAMETER(bool, bias_term);
     auto weights = GET_PARAMETER(PTuple<typename DataTypeWarpper<Dtype>::type>, weight_1);
