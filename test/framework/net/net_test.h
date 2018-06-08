@@ -66,7 +66,7 @@ void test_print(Tensor4dPtr<Target, AK_FLOAT>& out_tensor_p) {
 }
 
 
-static int record_dev_tensorfile(const Tensor4d<NV, AK_FLOAT>* dev_tensor, const char* locate) {
+static int record_dev_tensorfile(const Tensor4d<Target , AK_FLOAT>* dev_tensor, const char* locate) {
     Tensor<X86, AK_FLOAT, NCHW> host_temp;
     host_temp.re_alloc(dev_tensor->valid_shape());
     host_temp.copy_from(*dev_tensor);
