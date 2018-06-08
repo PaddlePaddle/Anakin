@@ -56,6 +56,15 @@ SaberStatus SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::cr
         _bias_term = false;
     }
 
+    if (conv_param.dilation_h == 1 && conv_param.dilation_w == 1 \
+        && conv_param.stride_h == conv_param.stride_w \
+        && conv_param.pad_h == conv_param.pad_w && conv_param.pad_w == 3 \
+        && conv_param.stride_w == 1 && _kw == _kh && _kw == 7 ) {
+        //! basic conv
+        _impl = conv_arm_7x7s1;
+        //LOG(ERROR) << "USE con7x7";
+        return SaberSuccess;
+    }
     //! return basic conv func
     if (conv_param.dilation_h != 1 || conv_param.dilation_w != 1 \
         || conv_param.stride_h != conv_param.stride_w \
@@ -73,6 +82,7 @@ SaberStatus SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::cr
             //LOG(ERROR) << "USE DW";
             return SaberSuccess;
         }
+
 
         //! for conv3x3s2 and input channel < 10, use gemm conv
         if (_kw < 3 || (_kw == 3 && (conv_param.stride_w == 2) || chin < 10)) {

@@ -16,7 +16,7 @@ option(USE_OPENCV "build with opencv" OFF)
 
 if(USE_ARM)
     # change path to your ANDROID_NDK
-    set(ANDROID_NDK "/Users/lixiaoyang05/Library/Android/sdk/ndk-bundle")
+    set(ANDROID_NDK "/Users/chenjiao04/Documents/android-ndk-r14b")
     message(STATUS "ANDROID_NDK = ${ANDROID_NDK}")
     set(CMAKE_TOOLCHAIN_FILE ${CMAKE_SOURCE_DIR}/cmake/android/android.toolchain.cmake)
     set(ANDROID_NATIVE_API_LEVEL 21)
