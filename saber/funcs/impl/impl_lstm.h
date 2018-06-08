@@ -17,13 +17,12 @@
 #define ANAKIN_SABER_FUNCS_IMPL_LSTM_H
 
 #include "saber/funcs/impl/impl_macro.h"
-namespace anakin{
+namespace anakin {
+namespace saber {
 
-    namespace saber{
+DEFINE_OP_CLASS(Lstm, LstmParam);
 
-        DEFINE_OP_CLASS(LSTM, LSTMParam);
-
-    }
+}
 }
 
-#endif //ANAKIN_SABER_FUNCS_IMPL_GRU_H
+#endif // ANAKIN_SABER_FUNCS_IMPL_LSTM_H
