@@ -24,7 +24,10 @@
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/impl_deformable_conv.h"
 #endif
-
+#ifdef USE_ARM_PLACE
+//todo
+#include "saber/funcs/impl/impl_deformable_conv.h"
+#endif
 namespace anakin {
 namespace saber {
 

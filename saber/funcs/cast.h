@@ -26,6 +26,11 @@
 #include "saber/funcs/impl/impl_cast.h"
 #endif
 
+#ifdef USE_ARM_PLACE
+//todo
+#include "saber/funcs/impl/impl_cast.h"
+#endif
+
 namespace anakin {
 namespace saber {
 
