@@ -90,7 +90,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
 #endif
 
         // create operations
-#if 1
+#if 0
         //if (node_ptr->get_op_name() == "ConvReluPool"|| node_ptr->get_op_name() == "ConvBatchnormScaleRelu" || node_ptr->get_op_name() == "ConvBatchnormScaleReluPool" || node_ptr->get_op_name() == "ConvRelu" || node_ptr->get_op_name() == "Convolution") {
        	if (node_ptr->get_op_name() == "ConvBatchnormScaleRelu" || node_ptr->get_op_name() == "ConvRelu" || node_ptr->get_op_name() == "Convolution") {
 	std::string key = "kernel_size";
@@ -413,14 +413,22 @@ template class Net<X86, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
 #endif
 
 #ifdef USE_ARM_PLACE
+#ifdef ANAKIN_TYPE_FP32
 template class Net<ARM, AK_FLOAT, Precision::FP32, OpRunType::ASYNC>;
-template class Net<ARM, AK_FLOAT, Precision::FP16, OpRunType::ASYNC>;
-template class Net<ARM, AK_FLOAT, Precision::INT8, OpRunType::ASYNC>;
-
 template class Net<ARM, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
-template class Net<ARM, AK_FLOAT, Precision::FP16, OpRunType::SYNC>;
-template class Net<ARM, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
 #endif
+
+#ifdef ANAKIN_TYPE_FP16
+template class Net<ARM, AK_FLOAT, Precision::FP16, OpRunType::ASYNC>;
+template class Net<ARM, AK_FLOAT, Precision::FP16, OpRunType::SYNC>;
+#endif
+
+#ifdef ANAKIN_TYPE_INT8
+template class Net<ARM, AK_FLOAT, Precision::INT8, OpRunType::ASYNC>;
+template class Net<ARM, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
+#endif //int8
+
+#endif //arm
 
 } /* namespace anakin */
 
