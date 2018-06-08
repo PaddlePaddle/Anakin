@@ -80,11 +80,11 @@ template class SassConvolutionHelper<NV, AK_FLOAT, Precision::FP16>;
 template class SassConvolutionHelper<NV, AK_FLOAT, Precision::INT8>;
 #endif
 
-#ifdef USE_ARM_PLACE
-template class SassConvolutionHelper<ARM, AK_FLOAT, Precision::FP32>;
-template class SassConvolutionHelper<ARM, AK_FLOAT, Precision::FP16>;
-template class SassConvolutionHelper<ARM, AK_FLOAT, Precision::INT8>;
-#endif
+//#ifdef USE_ARM_PLACE
+//template class SassConvolutionHelper<ARM, AK_FLOAT, Precision::FP32>;
+//template class SassConvolutionHelper<ARM, AK_FLOAT, Precision::FP16>;
+//template class SassConvolutionHelper<ARM, AK_FLOAT, Precision::INT8>;
+//#endif
 
 // register helper
 #ifdef USE_CUDA
@@ -101,9 +101,9 @@ ANAKIN_REGISTER_OP(SassConvolution)
 #ifdef USE_CUDA
 .__alias__<NV, AK_FLOAT, Precision::FP32>("convolution")
 #endif
-#ifdef USE_ARM_PLACE
-.__alias__<ARM, AK_FLOAT, Precision::FP32>("convolution")
-#endif
+//#ifdef USE_ARM_PLACE
+//.__alias__<ARM, AK_FLOAT, Precision::FP32>("convolution")
+//#endif
 .num_in(1)
 .num_out(1)
 .Args<int>("group", " group of conv ")

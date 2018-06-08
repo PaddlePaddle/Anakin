@@ -4,22 +4,33 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void Scale<NV, AK_FLOAT, Precision::FP32>::operator()(
-    OpContext<NV>& ctx,
-    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
-    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    auto* impl =
-        static_cast<ScaleHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
-    auto& param =
-        static_cast<ScaleHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper)->_param_scale;
-    impl->_funcs_scale(ins, outs, param, ctx);
-}
-#endif
+//#ifdef USE_CUDA
+//template<>
+//void Scale<NV, AK_FLOAT, Precision::FP32>::operator()(
+//    OpContext<NV>& ctx,
+//    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
+//    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
+//    auto* impl =
+//        static_cast<ScaleHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
+//    auto& param =
+//        static_cast<ScaleHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper)->_param_scale;
+//    impl->_funcs_scale(ins, outs, param, ctx);
+//}
+//#endif
 
 /// TODO ... specialization other type of operator
-
+#define INSTANCE_SCALE(Ttype, Dtype, Ptype) \
+template<> \
+void Scale<Ttype, Dtype, Ptype>::operator()( \
+    OpContext<Ttype>& ctx, \
+    const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, \
+    std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) { \
+    auto* impl = \
+        static_cast<ScaleHelper<Ttype, Dtype, Ptype>*>(this->_helper); \
+    auto& param = \
+        static_cast<ScaleHelper<Ttype, Dtype, Ptype>*>(this->_helper)->_param_scale; \
+    impl->_funcs_scale(ins, outs, param, ctx); \
+}
 
 /// set helper
 template<typename Ttype, DataType Dtype, Precision Ptype>
@@ -56,22 +67,31 @@ Status ScaleHelper<Ttype, Dtype, Ptype>::InferShape(const
 }
 
 #ifdef USE_CUDA
+INSTANCE_SCALE(NV, AK_FLOAT, Precision::FP32);
 template class ScaleHelper<NV, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Scale, ScaleHelper, NV, AK_FLOAT, Precision::FP32);
 template class ScaleHelper<NV, AK_FLOAT, Precision::FP16>;
 template class ScaleHelper<NV, AK_FLOAT, Precision::INT8>;
 #endif
+
 #ifdef USE_ARM_PLACE
+
+#ifdef ANAKIN_TYPE_FP32
+INSTANCE_SCALE(ARM, AK_FLOAT, Precision::FP32);
 template class ScaleHelper<ARM, AK_FLOAT, Precision::FP32>;
-template class ScaleHelper<ARM, AK_FLOAT, Precision::FP16>;
-template class ScaleHelper<ARM, AK_FLOAT, Precision::INT8>;
-#endif
-// register helper
-#ifdef USE_CUDA
-ANAKIN_REGISTER_OP_HELPER(Scale, ScaleHelper, NV, AK_FLOAT, Precision::FP32);
-#endif
-#ifdef USE_ARM_PLACE
 ANAKIN_REGISTER_OP_HELPER(Scale, ScaleHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
+
+#ifdef ANAKIN_TYPE_FP16
+template class ScaleHelper<ARM, AK_FLOAT, Precision::FP16>;
+#endif
+
+#ifdef ANAKIN_TYPE_INT8
+template class ScaleHelper<ARM, AK_FLOAT, Precision::INT8>;
+#endif
+
+#endif//arm
+
 //! register op
 ANAKIN_REGISTER_OP(Scale)
 .Doc("Scale operator")

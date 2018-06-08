@@ -17,7 +17,11 @@ void BatchNorm<NV, AK_FLOAT, Precision::FP32>::operator()(
 #endif
 
 /// TODO ... specialization other type of operator
-
+#define INSTANCE_BATCHNORM(Ttype, Dtype, Ptype) \
+template<> \
+void BatchNorm<Ttype, Dtype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+    const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, \
+    std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) { }
 
 /// set helper
 template<typename Ttype, DataType Dtype, Precision Ptype>
@@ -54,34 +58,52 @@ Status BatchNormHelper<Ttype, Dtype, Ptype>::InferShape(const
     return Status::OK();
 }
 #ifdef USE_CUDA
+INSTANCE_BATCHNORM(NV, AK_FLOAT, Precision::FP32);
 template class BatchNormHelper<NV, AK_FLOAT, Precision::FP32>;
 template class BatchNormHelper<NV, AK_FLOAT, Precision::FP16>;
 template class BatchNormHelper<NV, AK_FLOAT, Precision::INT8>;
-#endif
-
-#ifdef USE_ARM_PLACE
-template class BatchNormHelper<ARM, AK_FLOAT, Precision::FP32>;
-template class BatchNormHelper<ARM, AK_FLOAT, Precision::FP16>;
-template class BatchNormHelper<ARM, AK_FLOAT, Precision::INT8>;
-#endif
-
-// register helper
-#ifdef USE_CUDA
 ANAKIN_REGISTER_OP_HELPER(BatchNorm, BatchNormHelper, NV, AK_FLOAT, Precision::FP32);
 #endif
 
+#ifdef USE_X86_PLACE
+INSTANCE_BATCHNORM(X86, AK_FLOAT, Precision::FP32);
+template class BatchNormHelper<X86, AK_FLOAT, Precision::FP32>;
+template class BatchNormHelper<X86, AK_FLOAT, Precision::FP16>;
+template class BatchNormHelper<X86, AK_FLOAT, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(BatchNorm, BatchNormHelper, X86, AK_FLOAT, Precision::FP32);
+#endif
+
 #ifdef USE_ARM_PLACE
+
+#ifdef ANAKIN_TYPE_FP32
+INSTANCE_BATCHNORM(ARM, AK_FLOAT, Precision::FP32);
+template class BatchNormHelper<ARM, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(BatchNorm, BatchNormHelper, ARM, AK_FLOAT, Precision::FP32);
+#endif
+
+#ifdef ANAKIN_TYPE_FP16
+template class BatchNormHelper<ARM, AK_FLOAT, Precision::FP16>;
+#endif
+
+#ifdef ANAKIN_TYPE_INT8
+template class BatchNormHelper<ARM, AK_FLOAT, Precision::INT8>;
+#endif
+
 #endif
 
 //! register op
 ANAKIN_REGISTER_OP(BatchNorm)
 	.Doc("BatchNorm operator")
 #ifdef USE_CUDA
-	.__alias__<NV, AK_FLOAT, Precision::FP32>("power")
+	.__alias__<NV, AK_FLOAT, Precision::FP32>("batchnorm")
 #endif
+
 #ifdef USE_ARM_PLACE
-	.__alias__<ARM, AK_FLOAT, Precision::FP32>("power")
+	.__alias__<ARM, AK_FLOAT, Precision::FP32>("batchnorm")
+#endif
+
+#ifdef USE_X86_PLACE
+    .__alias__<X86, AK_FLOAT, Precision::FP32>("batchnorm")
 #endif
 	.num_in(1)
 	.num_out(1)

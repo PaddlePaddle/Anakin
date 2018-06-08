@@ -4,20 +4,29 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void Pooling<NV, AK_FLOAT, Precision::FP32>::operator()(OpContext<NV>& ctx,
-        const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
-        std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    auto* impl = static_cast<PoolingHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<PoolingHelper<NV, AK_FLOAT, Precision::FP32>*>
-                  (this->_helper)->_param_pooling;
-    impl->_funcs_pooling(ins, outs, param, ctx);
-}
-#endif
+//#ifdef USE_CUDA
+//template<>
+//void Pooling<NV, AK_FLOAT, Precision::FP32>::operator()(OpContext<NV>& ctx,
+//        const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
+//        std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
+//    auto* impl = static_cast<PoolingHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
+//    auto& param = static_cast<PoolingHelper<NV, AK_FLOAT, Precision::FP32>*>
+//                  (this->_helper)->_param_pooling;
+//    impl->_funcs_pooling(ins, outs, param, ctx);
+//}
+//#endif
 
 /// TODO ... specialization other type of operator
-
+#define INSTANCE_POOLING(Ttype, Dtype, Ptype) \
+template<> \
+void Pooling<Ttype, Dtype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+        const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, \
+        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) { \
+    auto* impl = static_cast<PoolingHelper<Ttype, Dtype, Ptype>*>(this->_helper); \
+    auto& param = static_cast<PoolingHelper<Ttype, Dtype, Ptype>*>\
+                  (this->_helper)->_param_pooling; \
+    impl->_funcs_pooling(ins, outs, param, ctx); \
+}
 
 /// set helper
 template<typename Ttype, DataType Dtype, Precision Ptype>
@@ -70,27 +79,30 @@ Status PoolingHelper<Ttype, Dtype, Ptype>::InferShape(const std::vector<Tensor4d
 }
 
 #ifdef USE_CUDA
+INSTANCE_POOLING(NV, AK_FLOAT, Precision::FP32);
 template class PoolingHelper<NV, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Pooling, PoolingHelper, NV, AK_FLOAT, Precision::FP32);
 template class PoolingHelper<NV, AK_FLOAT, Precision::FP16>;
 template class PoolingHelper<NV, AK_FLOAT, Precision::INT8>;
 #endif
 
 #ifdef USE_ARM_PLACE
+
+#ifdef ANAKIN_TYPE_FP32
+INSTANCE_POOLING(ARM, AK_FLOAT, Precision::FP32);
 template class PoolingHelper<ARM, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Pooling, PoolingHelper, ARM, AK_FLOAT, Precision::FP32);
+#endif
+
+#ifdef ANAKIN_TYPE_FP16
 template class PoolingHelper<ARM, AK_FLOAT, Precision::FP16>;
+#endif
+#ifdef ANAKIN_TYPE_INT8
 template class PoolingHelper<ARM, AK_FLOAT, Precision::INT8>;
 #endif
 
-//template class PoolingHelper<ARM, AK_FLOAT, Precision::FP32>;
-//template class PoolingHelper<ARM, AK_FLOAT, Precision::FP16>;
-//template class PoolingHelper<ARM, AK_FLOAT, Precision::INT8>;
-// register helper
-#ifdef USE_CUDA
-ANAKIN_REGISTER_OP_HELPER(Pooling, PoolingHelper, NV, AK_FLOAT, Precision::FP32);
-#endif
-#ifdef USE_ARM_PLACE
-ANAKIN_REGISTER_OP_HELPER(Pooling, PoolingHelper, ARM, AK_FLOAT, Precision::FP32);
-#endif
+#endif  //arm
+
 
 //! register op
 ANAKIN_REGISTER_OP(Pooling)

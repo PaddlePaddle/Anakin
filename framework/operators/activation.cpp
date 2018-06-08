@@ -4,22 +4,32 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void Activation<NV, AK_FLOAT, Precision::FP32>::operator()(
-    OpContext<NV>& ctx,
-    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
-    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    auto* impl =
-        static_cast<ActivationHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
-    auto& param =
-        static_cast<ActivationHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper)->_param_activation;
-    impl->_funcs_activation(ins, outs, param, ctx);
+//#ifdef USE_CUDA
+//template<>
+//void Activation<NV, AK_FLOAT, Precision::FP32>::operator()(
+//    OpContext<NV>& ctx,
+//    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
+//    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
+//    auto* impl =
+//        static_cast<ActivationHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
+//    auto& param =
+//        static_cast<ActivationHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper)->_param_activation;
+//    impl->_funcs_activation(ins, outs, param, ctx);
+//}
+//#endif
+#define INSTANCE_ACTIVATION(Ttype, Dtype, Ptype) \
+template<> \
+void Activation<Ttype, Dtype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+    const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, \
+    std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) { \
+    auto* impl = \
+        static_cast<ActivationHelper<Ttype, Dtype, Ptype>*>(this->_helper); \
+    auto& param = \
+        static_cast<ActivationHelper<Ttype, Dtype, Ptype>*>(this->_helper)->_param_activation; \
+    impl->_funcs_activation(ins, outs, param, ctx); \
 }
-#endif
 
 /// TODO ... specialization other type of operator
-
 
 /// set helper
 template<typename Ttype, DataType Dtype, Precision Ptype>
@@ -61,21 +71,45 @@ Status ActivationHelper<Ttype, Dtype, Ptype>::InferShape(const
 }
 
 #ifdef USE_CUDA
+INSTANCE_ACTIVATION(NV, AK_FLOAT, Precision::FP32);
+INSTANCE_ACTIVATION(NV, AK_FLOAT, Precision::FP16);
+INSTANCE_ACTIVATION(NV, AK_FLOAT, Precision::INT8);
 template class ActivationHelper<NV, AK_FLOAT, Precision::FP32>;
 template class ActivationHelper<NV, AK_FLOAT, Precision::FP16>;
 template class ActivationHelper<NV, AK_FLOAT, Precision::INT8>;
-#endif
-#ifdef USE_ARM_PLACE
-template class ActivationHelper<ARM, AK_FLOAT, Precision::FP32>;
-template class ActivationHelper<ARM, AK_FLOAT, Precision::FP16>;
-template class ActivationHelper<ARM, AK_FLOAT, Precision::INT8>;
-#endif
-// register helper
-#ifdef USE_CUDA
 ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, NV, AK_FLOAT, Precision::FP32);
 #endif
+
+#ifdef USE_X86_PLACE
+INSTANCE_ACTIVATION(X86, AK_FLOAT, Precision::FP32);
+INSTANCE_ACTIVATION(X86, AK_FLOAT, Precision::FP16);
+INSTANCE_ACTIVATION(X86, AK_FLOAT, Precision::INT8);
+template class ActivationHelper<X86, AK_FLOAT, Precision::FP32>;
+template class ActivationHelper<X86, AK_FLOAT, Precision::FP16>;
+template class ActivationHelper<X86, AK_FLOAT, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, NV, AK_FLOAT, Precision::FP32);
+#endif
+
 #ifdef USE_ARM_PLACE
+
+#ifdef ANAKIN_TYPE_FP32
+INSTANCE_ACTIVATION(ARM, AK_FLOAT, Precision::FP32);
+template class ActivationHelper<ARM, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, ARM, AK_FLOAT, Precision::FP32);
+#endif//fp32
+
+#ifdef ANAKIN_TYPE_FP16
+INSTANCE_ACTIVATION(ARM, AK_FLOAT, Precision::FP16);
+template class ActivationHelper<ARM, AK_FLOAT, Precision::FP16>;
+#endif //fp16
+#ifdef ANAKIN_TYPE_INT8
+INSTANCE_ACTIVATION(ARM, AK_FLOAT, Precision::INT8);
+template class ActivationHelper<ARM, AK_FLOAT, Precision::INT8>;
+#endif//int8
+#endif//arm
+// register helper
+#ifdef USE_ARM_PLACE
+
 #endif
 //! register op
 ANAKIN_REGISTER_OP(Activation)
@@ -85,6 +119,9 @@ ANAKIN_REGISTER_OP(Activation)
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("activation")
+#endif
+#ifdef USE_X86_PLACE
+.__alias__<X86, AK_FLOAT, Precision::FP32>("activation")
 #endif
 .num_in(1)
 .num_out(1)

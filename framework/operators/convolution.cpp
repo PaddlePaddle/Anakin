@@ -18,7 +18,16 @@ void Convolution<NV, AK_FLOAT, Precision::FP32>::operator()(
 #endif
 
 /// TODO ... specialization other type of operator
-
+#define INSTANCE_CONVOLUTION(Ttype, Dtype, Ptype) \
+template<> \
+void Convolution<Ttype, Dtype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+    const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, \
+    std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) { \
+    auto* impl = static_cast<ConvolutionHelper<Ttype, Dtype, Ptype>*>(this->_helper); \
+    auto& param = static_cast<ConvolutionHelper<Ttype, Dtype, Ptype>*> \
+                  (this->_helper)->_param_conv; \
+    impl->_funcs_conv(ins, outs, param, ctx); \
+}
 
 /// set helper
 template<typename Ttype, DataType Dtype, Precision Ptype>
@@ -84,25 +93,38 @@ Status ConvolutionHelper<Ttype, Dtype, Ptype>::InferShape(const
 }
 
 #ifdef USE_CUDA
+INSTANCE_CONVOLUTION(NV, AK_FLOAT, Precision::FP32);
 template class ConvolutionHelper<NV, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, NV, AK_FLOAT, Precision::FP32);
 template class ConvolutionHelper<NV, AK_FLOAT, Precision::FP16>;
 template class ConvolutionHelper<NV, AK_FLOAT, Precision::INT8>;
 #endif
 
+#ifdef USE_X86_PLACE
+INSTANCE_CONVOLUTION(X86, AK_FLOAT, Precision::FP32);
+template class ConvolutionHelper<X86, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, X86, AK_FLOAT, Precision::FP32);
+template class ConvolutionHelper<X86, AK_FLOAT, Precision::FP16>;
+template class ConvolutionHelper<X86, AK_FLOAT, Precision::INT8>;
+#endif
+
 #ifdef USE_ARM_PLACE
+
+#ifdef ANAKIN_TYPE_FP32
+INSTANCE_CONVOLUTION(ARM, AK_FLOAT, Precision::FP32);
 template class ConvolutionHelper<ARM, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, ARM, AK_FLOAT, Precision::FP32);
+#endif
+
+#ifdef ANAKIN_TYPE_FP16
 template class ConvolutionHelper<ARM, AK_FLOAT, Precision::FP16>;
+#endif
+
+#ifdef ANAKIN_TYPE_INT8
 template class ConvolutionHelper<ARM, AK_FLOAT, Precision::INT8>;
 #endif
 
-// register helper
-#ifdef USE_CUDA
-ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, NV, AK_FLOAT, Precision::FP32);
-#endif
-
-#ifdef USE_ARM_PLACE
-ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, ARM, AK_FLOAT, Precision::FP32);
-#endif
+#endif //arm
 
 //! register op
 ANAKIN_REGISTER_OP(Convolution)
@@ -110,9 +132,15 @@ ANAKIN_REGISTER_OP(Convolution)
 #ifdef USE_CUDA
 .__alias__<NV, AK_FLOAT, Precision::FP32>("convolution")
 #endif
+
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("convolution")
 #endif
+
+#ifdef USE_X86_PLACE
+.__alias__<X86, AK_FLOAT, Precision::FP32>("convolution")
+#endif
+
 .num_in(1)
 .num_out(1)
 .Args<int>("group", " group of conv ")

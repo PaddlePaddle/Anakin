@@ -4,21 +4,31 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void Softmax<NV, AK_FLOAT, Precision::FP32>::operator()(
-    OpContext<NV>& ctx,
-    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
-    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    auto* impl = static_cast<SoftmaxHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<SoftmaxHelper<NV, AK_FLOAT, Precision::FP32>*>
-                  (this->_helper)->_param_softmax;
-    impl->_funcs_softmax(ins, outs, param, ctx);
-}
-#endif
+//#ifdef USE_CUDA
+//template<>
+//void Softmax<NV, AK_FLOAT, Precision::FP32>::operator()(
+//    OpContext<NV>& ctx,
+//    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
+//    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
+//    auto* impl = static_cast<SoftmaxHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
+//    auto& param = static_cast<SoftmaxHelper<NV, AK_FLOAT, Precision::FP32>*>
+//                  (this->_helper)->_param_softmax;
+//    impl->_funcs_softmax(ins, outs, param, ctx);
+//}
+//#endif
 
 /// TODO ... specialization other type of operator
-
+#define INSTANCE_SOFTMAX(Ttype, Dtype, Ptype) \
+template<> \
+void Softmax<Ttype, Dtype, Ptype>::operator()( \
+    OpContext<Ttype>& ctx, \
+    const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, \
+    std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) { \
+    auto* impl = static_cast<SoftmaxHelper<Ttype, Dtype, Ptype>*>(this->_helper); \
+    auto& param = static_cast<SoftmaxHelper<Ttype, Dtype, Ptype>*>\
+                  (this->_helper)->_param_softmax; \
+    impl->_funcs_softmax(ins, outs, param, ctx); \
+}
 
 /// set helper
 template<typename Ttype, DataType Dtype, Precision Ptype>
@@ -52,22 +62,29 @@ Status SoftmaxHelper<Ttype, Dtype, Ptype>::InferShape(const std::vector<Tensor4d
 }
 
 #ifdef USE_CUDA
+INSTANCE_SOFTMAX(ARM, AK_FLOAT, Precision::FP32);
 template class SoftmaxHelper<NV, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Softmax, SoftmaxHelper, NV, AK_FLOAT, Precision::FP32);
 template class SoftmaxHelper<NV, AK_FLOAT, Precision::FP16>;
 template class SoftmaxHelper<NV, AK_FLOAT, Precision::INT8>;
 #endif
+
 #ifdef USE_ARM_PLACE
+
+#ifdef ANAKIN_TYPE_FP32
+INSTANCE_SOFTMAX(ARM, AK_FLOAT, Precision::FP32);
 template class SoftmaxHelper<ARM, AK_FLOAT, Precision::FP32>;
-template class SoftmaxHelper<ARM, AK_FLOAT, Precision::FP16>;
-template class SoftmaxHelper<ARM, AK_FLOAT, Precision::INT8>;
-#endif
-// register helper
-#ifdef USE_CUDA
-ANAKIN_REGISTER_OP_HELPER(Softmax, SoftmaxHelper, NV, AK_FLOAT, Precision::FP32);
-#endif
-#ifdef USE_ARM_PLACE
 ANAKIN_REGISTER_OP_HELPER(Softmax, SoftmaxHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
+
+#ifdef ANAKIN_TYPE_FP16
+template class SoftmaxHelper<ARM, AK_FLOAT, Precision::FP16>;
+#endif
+#ifdef ANAKIN_TYPE_INT8
+template class SoftmaxHelper<ARM, AK_FLOAT, Precision::INT8>;
+#endif
+#endif//arm
+
 //! register op
 ANAKIN_REGISTER_OP(Softmax)
 .Doc("Softmax operator")
