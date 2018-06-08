@@ -55,6 +55,19 @@ ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, NV, AK_FLOAT, Precision::FP16);
 ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, NV, AK_FLOAT, Precision::INT8);
 #endif
 
+#ifdef USE_X86_PLACE
+INSTANCE_OUTPUT(X86, AK_FLOAT, Precision::FP32);
+INSTANCE_OUTPUT(X86, AK_FLOAT, Precision::FP16);
+INSTANCE_OUTPUT(X86, AK_FLOAT, Precision::INT8);
+template class OutputHelper<X86, AK_FLOAT, Precision::FP32>;
+template class OutputHelper<X86, AK_FLOAT, Precision::FP16>;
+template class OutputHelper<X86, AK_FLOAT, Precision::INT8>;
+// register help
+ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, X86, AK_FLOAT, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, X86, AK_FLOAT, Precision::FP16);
+ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, X86, AK_FLOAT, Precision::INT8);
+#endif
+
 #ifdef USE_ARM_PLACE
 
 #ifdef ANAKIN_TYPE_FP32
@@ -85,6 +98,10 @@ ANAKIN_REGISTER_OP(Output)
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("output");
+#endif
+
+#ifdef USE_X86_PLACE
+.__alias__<X86, AK_FLOAT, Precision::FP32>("output");
 #endif
 
 } /* namespace ops */

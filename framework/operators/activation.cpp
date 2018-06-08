@@ -87,7 +87,7 @@ INSTANCE_ACTIVATION(X86, AK_FLOAT, Precision::INT8);
 template class ActivationHelper<X86, AK_FLOAT, Precision::FP32>;
 template class ActivationHelper<X86, AK_FLOAT, Precision::FP16>;
 template class ActivationHelper<X86, AK_FLOAT, Precision::INT8>;
-ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, NV, AK_FLOAT, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, X86, AK_FLOAT, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE
