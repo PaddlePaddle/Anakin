@@ -5,12 +5,15 @@
 
 #ifdef USE_CUDA
 using Target = NV;
+using Target_H = X86;
 #endif
 #ifdef USE_X86_PLACE
 using Target = X86;
+using Target_H = X86;
 #endif
 #ifdef USE_ARM_PLACE
 using Target = ARM;
+using Target_H = ARM;
 #endif
 
 //#define USE_DIEPSE
@@ -69,7 +72,7 @@ TEST(NetTest, net_execute_base_test) {
 
     // get in
     auto d_tensor_in_p = net_executer.get_in("input_0");
-    Tensor4d<X86, AK_FLOAT> h_tensor_in;
+    Tensor4d<Target_H, AK_FLOAT> h_tensor_in;
 
     auto valid_shape_in = d_tensor_in_p->valid_shape();
     for (int i=0; i<valid_shape_in.size(); i++) {
@@ -138,7 +141,6 @@ TEST(NetTest, net_execute_base_test) {
 	//DLOG(ERROR) << " epoch(" << i << "/" << epoch << ") ";
         net_executer.prediction();
     }
-    cudaDeviceSynchronize();
     //auto end = std::chrono::system_clock::now();
 
     //double time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
