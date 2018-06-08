@@ -17,7 +17,7 @@ Please refer to our [release announcement]() to track the latest feature of Anak
 - **Flexibility**
 
     Anakin supports a wide range of neural network architectures and
-    diffrent hardware platform. It is easy to run Anakin on GPU/x86/ARM platforms.
+    different hardware platforms. It is easy to run Anakin on GPU/x86/ARM platforms.
 
 -  **High performance**
 
