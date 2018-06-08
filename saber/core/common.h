@@ -141,8 +141,11 @@ const char* cudnn_get_errorstring(cudnnStatus_t status);
 
 
 #ifdef USE_ARM_PLACE
-
-#endif
+#ifdef USE_OPENMP
+#include <omp.h>
+#include <arm_neon.h>
+#endif //openmp
+#endif //ARM
 
 #endif //ANAKIN_SABER_CORE_COMMON_H
 
