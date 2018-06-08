@@ -80,8 +80,12 @@ ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, ARM, AK_FLOAT, Precision::INT8);
 //! register op
 ANAKIN_REGISTER_OP(Output)
 .Doc("Output operator [ only a input data holder and reshape ] ")
-.__alias__<NV, AK_FLOAT, Precision::FP32>("output")
+#ifdef USE_CUDA
+.__alias__<NV, AK_FLOAT, Precision::FP32>("output");
+#endif
+#ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("output");
+#endif
 
 } /* namespace ops */
 

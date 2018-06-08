@@ -92,7 +92,7 @@ ANAKIN_REGISTER_OP_HELPER(SassConvolution, SassConvolutionHelper, NV, AK_FLOAT, 
 #endif
 
 #ifdef USE_ARM_PLACE
-ANAKIN_REGISTER_OP_HELPER(SassConvolution, SassConvolutionHelper, ARM, AK_FLOAT, Precision::FP32);
+//ANAKIN_REGISTER_OP_HELPER(SassConvolution, SassConvolutionHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
 
 //! register op

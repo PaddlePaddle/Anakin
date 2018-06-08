@@ -62,7 +62,7 @@ Status SoftmaxHelper<Ttype, Dtype, Ptype>::InferShape(const std::vector<Tensor4d
 }
 
 #ifdef USE_CUDA
-INSTANCE_SOFTMAX(ARM, AK_FLOAT, Precision::FP32);
+INSTANCE_SOFTMAX(NV, AK_FLOAT, Precision::FP32);
 template class SoftmaxHelper<NV, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Softmax, SoftmaxHelper, NV, AK_FLOAT, Precision::FP32);
 template class SoftmaxHelper<NV, AK_FLOAT, Precision::FP16>;

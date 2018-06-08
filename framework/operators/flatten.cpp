@@ -64,7 +64,7 @@ Status FlattenHelper<Ttype, Dtype, Ptype>::InferShape(const std::vector<Tensor4d
 }
 
 #ifdef USE_CUDA
-INSTANCE_FLATTEN(ARM, AK_FLOAT, Precision::FP32);
+INSTANCE_FLATTEN(NV, AK_FLOAT, Precision::FP32);
 template class FlattenHelper<NV, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Flatten, FlattenHelper, NV, AK_FLOAT, Precision::FP32);
 template class FlattenHelper<NV, AK_FLOAT, Precision::FP16>;

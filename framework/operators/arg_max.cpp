@@ -62,7 +62,7 @@ Status ArgmaxHelper<Ttype, Dtype, Ptype>::InferShape(const std::vector<Tensor4dP
 }
 
 #ifdef USE_CUDA
-INSTANCE_ARGMAX(ARM, AK_FLOAT, Precision::FP32);
+INSTANCE_ARGMAX(NV, AK_FLOAT, Precision::FP32);
 template class ArgmaxHelper<NV, AK_FLOAT, Precision::FP32>;
 template class ArgmaxHelper<NV, AK_FLOAT, Precision::FP16>;
 template class ArgmaxHelper<NV, AK_FLOAT, Precision::INT8>;

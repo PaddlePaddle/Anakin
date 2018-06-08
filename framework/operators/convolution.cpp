@@ -4,18 +4,18 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void Convolution<NV, AK_FLOAT, Precision::FP32>::operator()(
-    OpContext<NV>& ctx,
-    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
-    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    auto* impl = static_cast<ConvolutionHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<ConvolutionHelper<NV, AK_FLOAT, Precision::FP32>*>
-                  (this->_helper)->_param_conv;
-    impl->_funcs_conv(ins, outs, param, ctx);
-}
-#endif
+//#ifdef USE_CUDA
+//template<>
+//void Convolution<NV, AK_FLOAT, Precision::FP32>::operator()(
+//    OpContext<NV>& ctx,
+//    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
+//    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
+//    auto* impl = static_cast<ConvolutionHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
+//    auto& param = static_cast<ConvolutionHelper<NV, AK_FLOAT, Precision::FP32>*>
+//                  (this->_helper)->_param_conv;
+//    impl->_funcs_conv(ins, outs, param, ctx);
+//}
+//#endif
 
 /// TODO ... specialization other type of operator
 #define INSTANCE_CONVOLUTION(Ttype, Dtype, Ptype) \

@@ -4,17 +4,17 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void BatchNorm<NV, AK_FLOAT, Precision::FP32>::operator()(
-    OpContext<NV>& ctx,
-    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
-    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    /*auto* impl = static_cast<BatchNorm<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<BatchNorm<NV, AK_FLOAT, Precision::FP32>*>(this->_helper)->_param_permute;
-    impl->_funcs_permute(ins, outs, param, ctx);*/
-}
-#endif
+//#ifdef USE_CUDA
+//template<>
+//void BatchNorm<NV, AK_FLOAT, Precision::FP32>::operator()(
+//    OpContext<NV>& ctx,
+//    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
+//    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
+//    /*auto* impl = static_cast<BatchNorm<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
+//    auto& param = static_cast<BatchNorm<NV, AK_FLOAT, Precision::FP32>*>(this->_helper)->_param_permute;
+//    impl->_funcs_permute(ins, outs, param, ctx);*/
+//}
+//#endif
 
 /// TODO ... specialization other type of operator
 #define INSTANCE_BATCHNORM(Ttype, Dtype, Ptype) \
