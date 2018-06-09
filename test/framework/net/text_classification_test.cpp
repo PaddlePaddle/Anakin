@@ -127,7 +127,7 @@ TEST(NetTest, chinese_ner_executor) {
     LOG(INFO) << "READ SUCCESS!! I got " << word_idx.size() << " records";
     std::vector<float> word_idx_data;
     std::vector<int> word_seq_offset;
-    int batch_num = 128;
+    int batch_num = 6;
 
     graph = new Graph<Target, AK_FLOAT, Precision::FP32>();
     LOG(WARNING) << "load anakin model file from " << models[0] << " ...";
@@ -150,7 +150,8 @@ TEST(NetTest, chinese_ner_executor) {
         auto word_in_p = net_executer.get_in("input_0");
         word_in_p->reshape({word_len, 1, 1, 1});
         for (int j = 0; j < word_idx_data.size(); ++j) {
-            word_in_p->mutable_data()[j] = word_idx_data[j];
+            //word_in_p->mutable_data()[j] = word_idx_data[j];
+            word_in_p->mutable_data()[j] = j % 5000;
         }
         word_in_p->set_seq_offset(word_seq_offset);
 

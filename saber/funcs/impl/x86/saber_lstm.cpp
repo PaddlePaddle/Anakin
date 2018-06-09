@@ -163,6 +163,8 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
         // create buf in create func, batch_size * hidden_size
         batch_h0_ = new OpTensor(batched_state_shape);
     }
+    cell_out = new DataTensor_out();
+    cell_out->re_alloc(outputs[0]->valid_shape());
     return SaberSuccess;
 }
 
@@ -177,9 +179,11 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
         const std::vector<DataTensor_in*>& inputs,
         std::vector<DataTensor_out*>& outputs,
         LstmParam<OpTensor> &param) {
+    outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
+//    return SaberSuccess;
     DataTensor_in *input = inputs[0];
     DataTensor_out *hidden_out = outputs[0];
-    DataTensor_out *cell_out = outputs[1];
+    //DataTensor_out *cell_out = outputs[1];
     const OpTensor *bias = param.bias();
     const OpTensor *init_t0 = param.init_hidden();
 

@@ -120,23 +120,23 @@ SaberStatus VenderFc<X86, OpDtype, inDtype, outDtype,
             cblas_int IC = inputs[i]->count_valid(param.axis, inputs[i]->dims());
             if(i == 0) {
                 // C := alpha * op(A) * op(B) + beta * C
-                cblas_sgemm_compute(CblasColMajor,                                     // 二维数组Layout
-                                    CblasPacked,                                       // a
-                                    CblasNoTrans,                                      // b是否转置
-                                    OC, MB, IC,                                        // m, n, k
-                                    packed_weights[i], IC,                             // a, lda
-                                    src, IC,                                           // b, ldb
-                                    0.0,                                               // beta
-                                    dst, OC);                                          // c, ldc
+                cblas_sgemm_compute(CblasColMajor,         // 二维数组Layout
+                                    CblasPacked,           // a
+                                    CblasNoTrans,          // b是否转置
+                                    OC, MB, IC,            // m, n, k
+                                    packed_weights[i], IC, // a, lda
+                                    src, IC,               // b, ldb
+                                    0.0,                   // beta
+                                    dst, OC);              // c, ldc
             } else {
-                cblas_sgemm_compute(CblasColMajor,                                     // 二维数组Layout
-                                    CblasPacked,                                       // a
-                                    CblasNoTrans,                                      // b是否转置
-                                    OC, MB, IC,                                        // m, n, k
-                                    packed_weights[i], IC,                             // a, lda
-                                    src, IC,                                           // b, ldb
-                                    1.0,                                               // beta
-                                    dst, OC);                                          // c, ldc
+                cblas_sgemm_compute(CblasColMajor,         // 二维数组Layout
+                                    CblasPacked,           // a
+                                    CblasNoTrans,          // b是否转置
+                                    OC, MB, IC,            // m, n, k
+                                    packed_weights[i], IC, // a, lda
+                                    src, IC,               // b, ldb
+                                    1.0,                   // beta
+                                    dst, OC);              // c, ldc
             }
             //LOG(INFO) << "anakin compute[" << i << "] passed";
 
