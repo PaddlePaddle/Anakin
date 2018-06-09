@@ -6,7 +6,7 @@
 #include "saber/funcs/impl/x86/x86_utils.h"
 
 
-#ifdef __AVX512__
+#ifdef __AVX512F__
 #include "saber_avx512_activation.h"
 #define SABER_X86_TYPE __m512
 #elif __AVX2__

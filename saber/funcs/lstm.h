@@ -20,12 +20,13 @@
 #include "saber/funcs/impl/impl_base.h"
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_lstm.h"
-#include "saber/funcs/impl/cuda/vender_lstm.h"
+//#include "saber/funcs/impl/cuda/vender_lstm.h"
 #endif
 
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_lstm.h"
 #endif
+
 
 namespace anakin {
 namespace saber {
@@ -108,5 +109,7 @@ private:
 
 } // namespace saber
 } // namepace anakin
+
+
 #endif // ANAKIN_SABER_FUNCS_LSTM_H
 

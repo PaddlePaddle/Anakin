@@ -2,6 +2,9 @@
 #ifndef ANAKIN_SABER_NORMAL_ACTIVATION_H
 #define ANAKIN_SABER_NORMAL_ACTIVATION_H
 
+#define SIGMOID_THRESHOLD_MIN -40.0
+#define SIGMOID_THRESHOLD_MAX 13.0
+#define EXP_MAX_INPUT 40.0
 /*
 template <typename Dtype>
 inline Dtype InValidAct(Dtype a) {
