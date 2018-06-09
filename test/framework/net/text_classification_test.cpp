@@ -62,7 +62,7 @@ void SplitString(const std::string& s,
         v.push_back(s.substr(pos1));
 }
 
-bool split_word_from_file(
+int split_word_from_file(
         std::vector<std::vector<float> > &word_idx,
         const std::string input_file_path,
         const std::string split_token,
@@ -72,7 +72,7 @@ bool split_word_from_file(
     std::ifstream infile(input_file_path.c_str());
     if (!infile.good()) {
         std::cout << "Cannot open " << std::endl;
-        return false;
+        return 1;
     }
     LOG(INFO)<<"found filename: "<<input_file_path;
     std::string line;
@@ -91,7 +91,7 @@ bool split_word_from_file(
         }
         word_idx.push_back(word);
     }
-    return true;
+    return 0;
 }
 
 int get_batch_data_offset(
@@ -120,10 +120,14 @@ TEST(NetTest, chinese_ner_executor) {
     std::vector<std::string> models;
     getModels(GLB_model_dir, models);
     std::vector<std::vector<float> > word_idx;
-    split_word_from_file(word_idx, GLB_input_file, ";", " ", 1);
+    if (split_word_from_file(word_idx, GLB_input_file, "\t", " ", 0)) {
+        LOG(ERROR) << " NOT FOUND " << GLB_input_file;
+        exit(-1);
+    }
+    LOG(INFO) << "READ SUCCESS!! I got " << word_idx.size() << " records";
     std::vector<float> word_idx_data;
     std::vector<int> word_seq_offset;
-    int batch_num = 6;
+    int batch_num = 128;
 
     graph = new Graph<Target, AK_FLOAT, Precision::FP32>();
     LOG(WARNING) << "load anakin model file from " << models[0] << " ...";
