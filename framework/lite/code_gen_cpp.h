@@ -33,7 +33,7 @@ public:
 	~GenCPP() {}
 
 	/// generate all cpp files
-	inline virtual void gen_files() {
+	virtual void gen_files() {
 		this->gen_header();
 		this->gen_source();
 	}
@@ -55,6 +55,7 @@ private:
 private:
 	std::string _file_name;
 	CodeWritter _code;
+	CodeWritter _weights;
 };
 
 } /* namespace lite */

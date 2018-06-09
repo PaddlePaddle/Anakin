@@ -13,78 +13,14 @@
    limitations under the License. 
 */
 
-#ifndef ANAKIN_FRAMEWORK_LITE_WRITTER_H
-#define ANAKIN_FRAMEWORK_LITE_WRITTER_H
+#ifndef ANAKIN_FRAMEWORK_LITE_CODE_WRITTER_H
+#define ANAKIN_FRAMEWORK_LITE_CODE_WRITTER_H
+
+#include "framework/lite/file_stream.h"
 
 namespace anakin {
 
 namespace lite {
-
-/**  
- *  \brief file io class for generating code [ lack of output stream ]
- *
- */
-class LiteFileIO {
-public:
-	LiteFileIO() {}
-
-	explicit LiteFileIO(std::string path, const char* file_mode = "w") {
-		this->open(path, file_mode);
-	}
-
-	~LiteFileIO() {
-		if(_file_p) {
-			fflush(this->_file_p);
-			fclose(this->_file_p);
-		}
-	}
-
-	// write msg to file
-	inline size_t write(std::string& msg) {
-		fprintf(this->_file_p, "%s\n", msg.c_str());
-		fflush(this->_file_p);
-	}
-
-	inline bool is_file_open() {
-		return _file_p != nullptr ? true:false;
-	}
-	
-	inline std::string get_file_path() {
-		return _file_path;
-	}
-
-	/// open the target file path
-	void open(std::string& path, const char* file_mode) {
-		if (!this->is_file_open()) {
-		    _file_path = path;
-		    char* file_path = strdup(path.c_str()); 
-		    for (char* p = strchr(file_path + 1, '/'); p!=NULL; p = strchr(p + 1, '/')){ 
-		    	*p = '\0'; 
-		    	struct stat st; 
-		    	if ((stat(file_path, &st) == 0) && (((st.st_mode) & S_IFMT) == S_IFDIR)){ 
-		    		// file_path exists and is a directory. do nothing 
-		    		*p = '/'; 
-		    		continue; 
-		    	} else { 
-		    		if(mkdir(file_path,0755)==-1){ 
-		    			LOG(FATAL) << "Failed to ceate the path "<< file_path;
-		    		} 
-		    	} 
-		    	*p = '/'; 
-		    } 
-		    free(file_path); 
-		    this->_file_p = fopen(path.c_str(), file_mode);
-		    if (!this->_file_p){ 
-		    	LOG(FATAL)<< "Failed to open " << path.c_str();
-		    }
-		}
-	}
-
-private:
-	std::string _file_path{""};
-	FILE* _file_p{nullptr};
-};
-
 
 /**  
  *  \brief class to help generating code string.
@@ -92,12 +28,12 @@ private:
  */
 class CodeWritter {
 public:
-	Writter() {}
-	explicit Writter(std::string path, const char* file_mode = "w") {
+	CodeWritter() {}
+	explicit CodeWritter(std::string path, const char* file_mode = "w") {
 		_file_io.open(path, file_mode);
 	}
 
-	// Writter open file for code generating.
+	// CodeWritter open file for code generating.
 	void open(std::string& path, const char* file_mode) {
 		_file_io.open(path, file_mode);
 	}

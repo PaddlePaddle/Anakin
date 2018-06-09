@@ -29,10 +29,19 @@ public:
 	CodeGenBase() {}
 	virtual ~CodeGenBase(){}
 
+	/**
+	 *  \biref initial graph msg
+	 */
+	template<typename Ttype, DataType Dtype, Precision Ptype>
+	bool init_graph(Graph<Ttype, Dtype, Ptype>& graph) {
+		return false;
+	}
+
 	virtual void gen_files() {}
 
-
 private:
+	std::vector<std::string> _exec_op_order; /// running order of operation's name
+	BinaryWritter _weights_io; // weight file writter
 };
 
 } /* namespace lite */
