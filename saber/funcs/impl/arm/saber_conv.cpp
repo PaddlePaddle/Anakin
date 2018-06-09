@@ -63,14 +63,14 @@ SaberStatus SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::cr
         || ((conv_param.group > 1) && (conv_param.group != chin || conv_param.group != chout))) {
         //! basic conv
         _impl = conv_arm_basic;
-        LOG(ERROR) << "USE BASIC";
+        //LOG(ERROR) << "USE BASIC";
         return SaberSuccess;
     } else {
         //! depthwise conv, 3x3s1 or 3x3s2, pad must = 1
         if (conv_param.group == chin && chin == chout && _kw == 3 && conv_param.pad_w == 1 && \
                 conv_param.pad_h == 1) {
             _impl = conv_depthwise_3x3;
-            LOG(ERROR) << "USE DW";
+            //LOG(ERROR) << "USE DW";
             return SaberSuccess;
         }
 
@@ -90,8 +90,9 @@ SaberStatus SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::cr
                 _workspace_fwd_sizes = sizeof(float) * k * n;
                 _workspace_data->re_alloc(_workspace_fwd_sizes);
             }
+
             _gemmer.init(l1_cache, l2_cache, m, n, k, false, false, threads);
-            LOG(ERROR) << "USE GEMM";
+            //LOG(ERROR) << "USE GEMM";
             return SaberSuccess;
         }
 
@@ -128,11 +129,11 @@ SaberStatus SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::cr
                 _gemmer.init(l1_cache, l2_cache, m_wino, n_wino, k_wino, false, false, threads);
                 _impl = conv_arm_winograd3x3;
                 _is_trans_weights = true;
-                LOG(ERROR) << "USE WINO";
+                //LOG(ERROR) << "USE WINO";
             } else {
                 //! use direct
                 _impl = conv_3x3s1_direct;
-                LOG(ERROR) << "USE direct";
+                //LOG(ERROR) << "USE direct";
             }
             return SaberSuccess;
         }
@@ -164,7 +165,7 @@ SaberStatus SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::di
     if (_bias_term) {
         bias = conv_param.bias()->data();
     }
-    _impl(*inputs[0], *outputs[0], weight, bias, conv_param.group, _kw, _kh, \
+    _impl(*outputs[0], *inputs[0], weight, bias, conv_param.group, _kw, _kh, \
             conv_param.stride_w, conv_param.stride_h, conv_param.dilation_w, \
             conv_param.dilation_h, conv_param.pad_w, conv_param.pad_h, \
             _bias_term, _flag_relu, _gemmer, _workspace_data->get_data_mutable());
