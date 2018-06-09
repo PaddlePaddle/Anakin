@@ -172,14 +172,14 @@ void test_arm_conv(std::vector<TensorHf4*>& tin, \
     if (compare_result) {
         LOG(INFO) << "run basic conv for precision comparation";
         tout_basic.re_alloc(shape_out);
-        size_t workspace_size = sizeof(float) * num * chin * (hin + 2 * pad) * (win + 2 * pad);
-        void* work_space_data = fast_malloc(workspace_size);
+        //size_t workspace_size = sizeof(float) * num * chin * (hin + 2 * pad) * (win + 2 * pad);
+        //void* work_space_data = fast_malloc(workspace_size);
         Sgemm gemmer;
         conv_arm_basic(tout_basic, *thin, pweiht.data(), pbias.data(), group, kernel, \
         kernel, stride, stride, dila, dila, pad, pad, bias_flag, flag_relu, gemmer, nullptr);
         //conv_direct_basic1(tout_basic, *thin, pweiht.data(), pbias.data(), group, kernel, \
         kernel, stride, stride, dila, dila, pad, pad, bias_flag, flag_relu, &gemmer, work_space_data);
-        fast_free(work_space_data);
+        //fast_free(work_space_data);
         //print_tensor_host(tout_basic);
     }
 
@@ -205,8 +205,8 @@ void test_arm_conv(std::vector<TensorHf4*>& tin, \
         t1.clear();
         t1.start(ctx1);
         conv_saber(tin, tvout_saber, conv_param, ctx1);
-        tvout_saber[0]->record_event(ctx1.get_compute_stream());
-        tvout_saber[0]->sync();
+        //tvout_saber[0]->record_event(ctx1.get_compute_stream());
+        //tvout_saber[0]->sync();
         t1.end(ctx1);
         to += t1.get_average_ms();
         if (t1.get_average_ms() < min_time) {
