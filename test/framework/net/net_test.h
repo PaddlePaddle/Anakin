@@ -32,12 +32,15 @@ using namespace anakin::graph;
 
 #ifdef USE_CUDA
 using Target = NV;
+using Target_H = X86;
 #endif
 #ifdef USE_X86_PLACE
 using Target = X86;
+using Target_H = X86;
 #endif
 #ifdef USE_ARM_PLACE
 using Target = ARM;
+using Target_H = ARM;
 #endif
 
 /**
@@ -56,7 +59,7 @@ protected:
 };
 
 void test_print(Tensor4dPtr<Target, AK_FLOAT>& out_tensor_p) {
-    Tensor4d<X86, AK_FLOAT> h_tensor_result;
+    Tensor4d<Target_H, AK_FLOAT> h_tensor_result;
     h_tensor_result.re_alloc(out_tensor_p->valid_shape());
     LOG(ERROR) << "result count : " << h_tensor_result.valid_shape().count();
     h_tensor_result.copy_from(*out_tensor_p);
@@ -66,8 +69,8 @@ void test_print(Tensor4dPtr<Target, AK_FLOAT>& out_tensor_p) {
 }
 
 
-static int record_dev_tensorfile(const Tensor4d<NV, AK_FLOAT>* dev_tensor, const char* locate) {
-    Tensor<X86, AK_FLOAT, NCHW> host_temp;
+static int record_dev_tensorfile(const Tensor4d<Target, AK_FLOAT>* dev_tensor, const char* locate) {
+    Tensor<Target_H, AK_FLOAT> host_temp;
     host_temp.re_alloc(dev_tensor->valid_shape());
     host_temp.copy_from(*dev_tensor);
     FILE* fp = fopen(locate, "w+");

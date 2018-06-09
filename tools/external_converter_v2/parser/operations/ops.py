@@ -284,7 +284,8 @@ OpsRegister.Register("Argmax").set_attr(out_max_val=bool(),
                                         axis=int())
 
 
-OpsRegister.Register("Normalize").set_attr(is_across_spatial=bool(), 
+OpsRegister.Register("Normalize").set_attr(begin_norm_axis=int(), 
+                                           is_across_spatial=bool(), 
                                            is_shared_channel=bool(), 
                                            eps=float(), 
                                            p=int())

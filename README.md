@@ -7,7 +7,7 @@
 
 Welcome to the Anakin GitHub.
 
-Anakin is an cross-platform, high-performance inference engine, which is originally
+Anakin is a cross-platform, high-performance inference engine, which is originally
 developed by Baidu engineers and is a large-scale application of industrial products.
 
 Please refer to our [release announcement]() to track the latest feature of Anakin.
@@ -17,12 +17,12 @@ Please refer to our [release announcement]() to track the latest feature of Anak
 - **Flexibility**
 
     Anakin supports a wide range of neural network architectures and
-    diffrent hardware platform. It is easy to run Anakin at GPU/x86/ARM platform.
+    different hardware platforms. It is easy to run Anakin on GPU/x86/ARM platforms.
 
 -  **High performance**
 
-    In order to giving full play to the performance of hardware, we optimize the
-    forward prediction at diffrent levels.
+    In order to give full play to the performance of hardware, we optimize the
+    forward prediction at different levels.
       - Automatic graph fusion. The goal of all performance optimization under a 
       given algorithm is to make ALU as busy as possible, Operator fusion 
       can effectively reduce memory access and keep ALU busy.

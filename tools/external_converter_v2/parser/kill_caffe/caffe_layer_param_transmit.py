@@ -1042,6 +1042,7 @@ def Parser_normalize(args):
     layer = args[1]
     norm_param = layer.norm_param
     scale_filler = norm_param.scale_filler
+    OpsRegister()["Normalize"].begin_norm_axis = -1
     OpsRegister()["Normalize"].is_across_spatial = norm_param.across_spatial
     OpsRegister()["Normalize"].is_shared_channel = norm_param.channel_shared
     OpsRegister()["Normalize"].eps = norm_param.eps
