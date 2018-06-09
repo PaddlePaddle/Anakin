@@ -204,7 +204,7 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
     int cnt = xx.size();
     DataType_out *p = xx.mutable_data();
     switch (param._input_activity) {
-//        case Active_stanh:
+        case Active_stanh:
         case Active_tanh:
             activation(cnt, p, p, param._input_activity);
             break;

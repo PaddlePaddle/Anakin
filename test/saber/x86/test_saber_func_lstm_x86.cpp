@@ -80,10 +80,9 @@ void compute_ref_lstm_fwd(std::vector<Tensor4f*> &src, std::vector<Tensor4f*> &d
     float *xx = (float*)zmalloc(N * 4 * layer_size * sizeof(float), 4096);
     cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N, 4 * layer_size, input_size, 1, x, input_size, Wx, 4 * layer_size, 0, xx, 4 * layer_size);
     if (param._input_activity != Active_unknow) {
-//        if (param._input_activity == Active_stanh) {
-//            stanh(N * 4 * layer_size, xx, xx);
-//        } else
-        if (param._input_activity == Active_tanh) {
+        if (param._input_activity == Active_stanh) {
+            stanh(N * 4 * layer_size, xx, xx);
+        } else if (param._input_activity == Active_tanh) {
             tanh(N * 4 * layer_size, xx, xx);
         } else {
             LOG(ERROR) << "unsupported gate activation now";
@@ -299,12 +298,12 @@ TEST(TestSaberLSTMX86, test_tensor_lstm) {
         test_lstm_params{6, 55, 300, Active_tanh, Active_sigmoid, Active_relu, Active_sigmoid, true, false},
         test_lstm_params{6, 55, 100, Active_tanh, Active_sigmoid, Active_relu, Active_sigmoid, true, true},
         test_lstm_params{6, 55, 300, Active_tanh, Active_sigmoid, Active_relu, Active_sigmoid, false, true},
-//        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, false, false},
-//        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, true, false},
-//        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, false, true},
-//        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, true, true},
-//        test_lstm_params{16, 30, 256, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, true, true},
-//        test_lstm_params{16, 64, 1024, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, false, true},
+        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, false, false},
+        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, true, false},
+        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, false, true},
+        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, true, true},
+        test_lstm_params{16, 30, 256, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, true, true},
+        test_lstm_params{16, 64, 1024, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, false, true},
     };
 
     for (size_t i = 0; i < ARRAY_SIZE(test_param); i++) {
