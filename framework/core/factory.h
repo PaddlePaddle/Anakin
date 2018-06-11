@@ -36,7 +36,7 @@ public:
         if (_container.count(type_id) == 0) {
             LOG(FATAL) << type_id << " has not been registered! ";
         }
-        LOG(INFO) << "create fuction " << &_container.at(type_id);
+        LOG(INFO) << "create " << type_id << " fuction " << &_container.at(type_id);
         //auto ptr = _container.at(type_id)();
         //return ptr;
         return (_container.at(type_id))();
@@ -55,9 +55,10 @@ public:
                                          EXCLUSIVE_LOCKS_REQUIRED(container_mutex_) {
         std::lock_guard<std::mutex> guard(container_mutex_);
         LOG(ERROR) << "register " << type_id;
-        CHECK_EQ(_container.count(type_id), 0) << type_id << " has not been registered! ";
-        _type_id_list.push_back(type_id);
-        _container[type_id] = creator;
+        if (_container.count(type_id) == 0) {
+            _type_id_list.push_back(type_id);
+            _container[type_id] = creator;
+        }
         return true;
     }
     void UnRegister(const TypeIdentifier& type_id) 
@@ -123,11 +124,17 @@ public:
     }
     PolicyType& Register(TypeIdentifier type_id) EXCLUSIVE_LOCKS_REQUIRED(_container_mutex) { 
         std::lock_guard<std::mutex> guard(_container_mutex); 
-        CHECK_EQ(_container.count(type_id), 0) << type_id << " has been registered! ";
-        PolicyType* object= new PolicyType();
-        _container[type_id] = object; 
-        _type_id_list.push_back(type_id);
-        return *object;
+        //CHECK_EQ(_container.count(type_id), 0) << type_id << " has been registered! ";
+        if (_container.count(type_id) == 0) {
+            PolicyType* object= new PolicyType();
+            _container[type_id] = object;
+            _type_id_list.push_back(type_id);
+            return *object;
+        } else {
+            PolicyType* object = _container[type_id];
+            return *object;
+        }
+
     }
     void UnRegister(const TypeIdentifier& type_id) EXCLUSIVE_LOCKS_REQUIRED(_container_mutex) {
         std::lock_guard<std::mutex> guard(_container_mutex);

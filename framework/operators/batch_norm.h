@@ -99,10 +99,6 @@ public:
         return Status::OK();
     }
 
-public:
-    //PermuteParam<void> _param_permute;
-    //saber::Permute<Ttype, Dtype> _funcs_permute;
-
 private:
     ///< _dims stand for batchNorm size 
     PTuple<int> _dims; 
