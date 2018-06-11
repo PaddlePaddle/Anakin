@@ -1,6 +1,6 @@
 #include "test_saber_func_test_arm.h"
-#include "tensor_op.h"
-#include "saber/funcs/impl/arm/impl/sgemm_arm.h"
+#include "saber/core/tensor_op.h"
+#include "saber/funcs/impl/arm/impl/sgemv_arm.h"
 #include "saber/funcs/timer.h"
 
 using namespace anakin::saber;
@@ -10,13 +10,12 @@ int threads = 4;
 
 int batch = 1;
 int M = 100;
-int N = 100;
 int K = 100;
-bool traA = false;
-bool traB = false;
 
 int test_iter = 10;
 
+bool flag_bias = false;
+bool flag_relu = false;
 bool COMPARE_RESULT = false;
 
 typedef TargetWrapper<ARM> ARM_API;
@@ -39,34 +38,29 @@ void tensor_diff(Tensor_t& t1, Tensor_t& t2, Tensor_t& tdiff) {
 }
 
 template  <typename type>
-void basic_gemm(int m, int n, int k, const type* a, const type* b, type* c, type alpha, type beta, \
-    bool trans_a = false, bool trans_b = false) {
+void basic_gemv(int m, int k, const type* a, const type* b, type* c, const type* bias, bool flag_bias, \
+    type alpha, type beta, bool flag_relu = false, bool trans_a = false) {
 //#pragma omp parallel for
     for (int i = 0; i < m; ++i) {
-        for (int j = 0; j < n; ++j) {
-            type sum = static_cast<type>(0);
-            for (int l = 0; l < k; ++l) {
-                type av;
-                type bv;
-                if (trans_a) {
-                    av = a[l * m + i];
-                } else{
-                    av = a[i * k + l];
-                }
-                if (trans_b) {
-                    bv = b[j * k + l];
-                } else {
-                    bv = b[l * n + j];
-                }
-                sum += av * bv;
+        type sum = 0;
+        for (int j = 0; j < k; ++j) {
+            type av;
+            if (trans_a) {
+                av = a[j * m + i];
+            } else {
+                av = a[i * k + j];
             }
-            c[i * n + j] = alpha * sum + beta * c[i * n + j];
+            sum += av * b[j];
+        }
+        //printf("sum: %0.2f, alpha: %.2f, beta: %.2f, c: %.2f, flag: %d\n", sum, alpha, beta, c[i], flag_bias);
+        c[i] = alpha * sum + beta * c[i] + (flag_bias? bias[i] : 0);
+        if (flag_relu) {
+            c[i] = c[i] > type(0)? c[i] : type(0);
         }
     }
 }
 
-void test_arm_sgemm(TensorHf4& ta, TensorHf4& tb, TensorHf4& tc, \
-    bool flag_bias, bool flag_relu, int thread_num, int cluster_id) {
+void test_arm_sgemv(const int m, const int k, bool flag_bias, bool flag_relu, int thread_num, int cluster_id) {
 
     double to = 0;
     double min_time = 1000000;
@@ -131,60 +125,61 @@ void test_arm_sgemm(TensorHf4& ta, TensorHf4& tb, TensorHf4& tc, \
 #endif
     }
 
-    LOG(INFO) << "sgemm M: " << M << ", N: " << N << ", K: " << K;
-    LOG(INFO) << "transA: " << (traA? "true" : "false") << ", transB: " << (traB? "true" : "false");
+    LOG(INFO) << "sgemv M: " << M << ", K: " << K;
+    //LOG(INFO) << "transA: " << (traA? "true" : "false") << ", transB: " << (traB? "true" : "false");
     LOG(INFO) << "test iter: " << test_iter;
-    LOG(INFO) << "compare result with basic sgemm: " << (COMPARE_RESULT? "true" : "false");
+    LOG(INFO) << "compare result with basic sgemv: " << (COMPARE_RESULT? "true" : "false");
 
+    TensorHf4 tin;
+    TensorHf4 tw, tb;
     TensorHf4 tout_basic;
     TensorHf4 tout_saber;
-    Shape shape_out = tc.valid_shape();
-    int m = ta.height();
-    int n = tb.width();
-    int k = ta.width();
 
-    const float* da = ta.data();
-    const float* db = tb.data();
+    tin.reshape(Shape(1, 1, 1, k));
+    tw.reshape(Shape(1, 1, m, k));
+    tb.reshape(Shape(1, 1, 1, m));
+    tout_basic.reshape(Shape(1, 1, 1, m));
+    tout_saber.reshape(Shape(1, 1, 1, m));
+
+    fill_tensor_host_rand(tin, -1.f, 1.f);
+    fill_tensor_host_rand(tw, -1.f, 1.f);
+    fill_tensor_host_rand(tb, -1.f, 1.f);
+
+    //fill_tensor_host_const(tin, 1.f);
+    //fill_tensor_host_const(tw, 1.f);
+    //fill_tensor_host_const(tb, 1.f);
+
+    const float* da = tw.data();
+    const float* db = tin.data();
+    const float* dbias = tb.data();
+    float* dc_basic = tout_basic.mutable_data();
+    float* dc_saber = tout_saber.mutable_data();
 
     if(COMPARE_RESULT) {
         LOG(INFO) << "run basic conv for precision comparation";
-        tout_basic.re_alloc(shape_out);
-        float* dc_basic = tout_basic.mutable_data();
-        basic_gemm(m, n, k, da, db, dc_basic, 1.f, 0.f, traA, traB);
+        basic_gemv(m, k, da, db, dc_basic, dbias, flag_bias, 1.f, 0.f, flag_relu);
         //print_tensor_host(tout_basic);
     }
-
-    //! sgemm init
-    int l1_cache = ctx1.devs[ctx1.get_device_id()]._info._L1_cache;
-    int l2_cache = ctx1.devs[ctx1.get_device_id()]._info._L2_cache;
-    //! if L1 cache size is not provided, set to 31K
-    l1_cache = l1_cache > 0? l1_cache : 31000;
-    //! if L2 cache size is not provided, set to 2M
-    l2_cache = l2_cache > 0? l2_cache : 2000000;
-    Sgemm gemmer;
-    gemmer.init(l1_cache, l2_cache, m, n, k, traA, traB, ctx1.get_act_ids().size());
-
-    //! compute
-    LOG(INFO) << "saber sgemm compute";
-    to = 0;
-    int lda, ldb, ldc;
-    if (traA) {
-        lda = m;
-    } else {
-        lda = k;
+    for (int i = 0; i < 20; ++i) {
+        sgemv(false, m, k, da, db, dc_saber);
     }
-    if (traB) {
-        ldb = k;
-    } else {
-        ldb = n;
-    }
-    ldc = n;
-
-    float* dc_saber = tc.mutable_data();
     for (int i = 0; i < test_iter; ++i) {
         t1.clear();
         t1.start(ctx1);
-        gemmer(da, lda, db, ldb, dc_saber, ldc, 1.f, 0.f);
+        if (flag_bias) {
+            if (flag_relu) {
+                sgemv_bias_relu(false, m, k, da, db, dc_saber, dbias);
+            } else {
+                sgemv_bias(false, m, k, da, db, dc_saber, dbias);
+            }
+
+        } else {
+            if (flag_relu) {
+                sgemv_relu(false, m, k, da, db, dc_saber);
+            } else {
+                sgemv(false, m, k, da, db, dc_saber);
+            }
+        }
         t1.end(ctx1);
         to += t1.get_average_ms();
         if (t1.get_average_ms() < min_time) {
@@ -200,51 +195,15 @@ void test_arm_sgemm(TensorHf4& ta, TensorHf4& tb, TensorHf4& tc, \
         //TensorHf4 tdiff(tout_basic.valid_shape());
         //tensor_diff(tout_basic, tout_saber, tdiff);
         //print_tensor_host(tdiff);
-        tensor_cmp_host(tout_basic.data(), tc.data(), tout_basic.valid_size(), max_ratio, max_diff);
+        tensor_cmp_host(dc_basic, dc_saber, tout_basic.valid_size(), max_ratio, max_diff);
         LOG(INFO) << "compare result, max diff: " << max_diff << ", max ratio: " << max_ratio;
         CHECK_EQ(fabsf(max_ratio) < 1e-5f, true) << "compute result error";
     }
 }
 
-TEST(TestSaberFuncTest, test_func_sgemm_arm) {
+TEST(TestSaberFuncTest, test_func_sgemv_arm) {
 
-    int num = batch;
-    int ch = 1;
-    int h_a = M;
-    int w_a = K;
-
-    int h_b = K;
-    int w_b = N;
-
-    int h_c = M;
-    int w_c = N;
-
-    bool flag_relu = true;
-    bool flag_bias = true;
-
-    Shape sha(num, ch, h_a, w_a);
-    Shape shb(num, ch, h_b, w_b);
-    Shape shc(num, ch, h_c, w_c);
-
-    TensorHf4 ta, tb, tc;
-
-    ta.re_alloc(sha);
-    tb.re_alloc(shb);
-    tc.re_alloc(shc);
-#if 0
-    float* ptr_a = ta.mutable_data();
-    for (int i = 0; i < ta.valid_size(); ++i) {
-        ptr_a[i] = i;
-    }
-    float* ptr_b = tb.mutable_data();
-    for (int i = 0; i < tb.valid_size(); ++i) {
-        ptr_b[i] = i;
-    }
-#else
-    fill_tensor_host_rand(ta, -1.f, 1.f);
-    fill_tensor_host_rand(tb, -1.f, 1.f);
-#endif
-    test_arm_sgemm(ta, tb, tc, flag_bias, flag_relu, threads, cluster);
+    test_arm_sgemv(M, K, flag_bias, flag_relu, threads, cluster);
     //LOG(WARNING) << "conv3x3s1 not support yet";
 }
 
@@ -258,21 +217,24 @@ int main(int argc, const char** argv){
         threads = atoi(argv[2]);
     }
     if(argc >= 4) {
-        if (argc < 8) {
-            LOG(ERROR) << "usage: ./" << argv[0] << " cluster  threads  m  n  k transA transB";
+        if (argc < 5) {
+            LOG(ERROR) << "usage: " << argv[0] << " cluster  threads  m  k [iters] [flag_compare] [flag_bias] [flag_relu]";
             return 0;
         }
         M = atoi(argv[3]);
-        N = atoi(argv[4]);
-        K = atoi(argv[5]);
-        traA = atoi(argv[6]) > 0;
-        traB = atoi(argv[7]) > 0;
+        K = atoi(argv[4]);
+    }
+    if (argc > 5) {
+        test_iter = atoi(argv[5]);
+    }
+    if (argc > 6) {
+        COMPARE_RESULT = atoi(argv[6]) > 0;
+    }
+    if (argc > 7) {
+        flag_bias = atoi(argv[7]) > 0;
     }
     if (argc > 8) {
-        test_iter = atoi(argv[8]);
-    }
-    if (argc > 9) {
-        COMPARE_RESULT = atoi(argv[9]) > 0;
+        flag_relu = atoi(argv[8]) > 0;
     }
     // initial logger
     //logger::init(argv[0]);

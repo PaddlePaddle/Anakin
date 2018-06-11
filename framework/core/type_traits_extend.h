@@ -152,6 +152,12 @@ struct target_host<saber::ARM> {
     typedef saber::ARM type;
 };
 
+template<>
+struct target_host<saber::NV> {
+    typedef saber::NVHX86 type;
+};
+
+
 
 } /* namespace anakin */
 

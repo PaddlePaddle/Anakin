@@ -1,8 +1,10 @@
 #include "saber/funcs/impl/arm/impl/conv_arm_impl.h"
 #ifdef USE_ARM_PLACE
-#include "saber/core/tensor_op.h"
+
+#include "saber/funcs/impl/arm/impl/sgemv_arm.h"
 
 namespace anakin{
+
 namespace saber{
 /**
  * \brief neon implementation to add bias
@@ -233,16 +235,39 @@ void conv1x1s1_gemm(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FLOA
     const int n = h_out * w_out;
     const int k = ch_in;
 
-    for (int b = 0; b < num; ++b) {
-        // dC
-        float *data_out_batch = tensor_out.mutable_data(b * ch_out * channel_size_out);
-        const float* dB = tensor_in.data(b * ch_in * channel_size_in);
-        float beta = 0.f;
-        if (flag_bias){
-            fill_bias(data_out_batch, bias, ch_out, w_out * h_out);
-            beta = 1.f;
+    //! use gemv when the output channel size = 1
+    if (n == 1) {
+        for (int b = 0; b < num; ++b) {
+            float *data_out_batch = tensor_out.mutable_data() + b * ch_out * channel_size_out;
+            const float* dB = tensor_in.data() + b * ch_in * channel_size_in;
+            if (flag_bias){
+                if (flag_relu) {
+                    sgemv_bias_relu(false, m, k, weights, dB, data_out_batch, bias);
+                } else {
+                    sgemv_bias(false, m, k, weights, dB, data_out_batch, bias);
+                }
+
+            } else {
+                if (flag_relu) {
+                    sgemv_relu(false, m, k, weights, dB, data_out_batch);
+                } else {
+                    sgemv(false, m, k, weights, dB, data_out_batch);
+                }
+            }
         }
-        gemmer(weights, k, dB, n, data_out_batch, n, 1.f, beta, flag_relu);
+
+    } else {
+        for (int b = 0; b < num; ++b) {
+            // dC
+            float *data_out_batch = tensor_out.mutable_data(b * ch_out * channel_size_out);
+            const float* dB = tensor_in.data(b * ch_in * channel_size_in);
+            float beta = 0.f;
+            if (flag_bias){
+                fill_bias(data_out_batch, bias, ch_out, w_out * h_out);
+                beta = 1.f;
+            }
+            gemmer(weights, k, dB, n, data_out_batch, n, 1.f, beta, flag_relu);
+        }
     }
 }
 

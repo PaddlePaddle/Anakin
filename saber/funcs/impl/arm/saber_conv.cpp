@@ -18,7 +18,10 @@ SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::SaberConv2D() 
 }
 
 template <>
-SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::~SaberConv2D() {}
+SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::~SaberConv2D() {
+     //LOG(ERROR) << "release saber conv: kw=" << _kw << ", kh=" << _kh << ", num_out=" << _conv_param.weight()->num() << \
+        ", chin=" << _conv_param.weight()->channel();
+}
 
 template <>
 SaberStatus SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::create(\
@@ -90,6 +93,7 @@ SaberStatus SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::cr
                 _workspace_fwd_sizes = sizeof(float) * k * n;
                 _workspace_data->re_alloc(_workspace_fwd_sizes);
             }
+
             _gemmer.init(l1_cache, l2_cache, m, n, k, false, false, threads);
             //LOG(ERROR) << "USE GEMM";
             return SaberSuccess;
@@ -148,6 +152,7 @@ SaberStatus SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::in
     const std::vector<DataTensor_in *>& inputs, \
     std::vector<DataTensor_out *>& outputs, \
     ConvParam<OpTensor> &conv_param, Context<ARM> &ctx) {
+    _conv_param = conv_param;
     return create(inputs, outputs, conv_param, ctx);
 }
 
@@ -164,7 +169,7 @@ SaberStatus SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::di
     if (_bias_term) {
         bias = conv_param.bias()->data();
     }
-    _impl(*inputs[0], *outputs[0], weight, bias, conv_param.group, _kw, _kh, \
+    _impl(*outputs[0], *inputs[0], weight, bias, conv_param.group, _kw, _kh, \
             conv_param.stride_w, conv_param.stride_h, conv_param.dilation_w, \
             conv_param.dilation_h, conv_param.pad_w, conv_param.pad_h, \
             _bias_term, _flag_relu, _gemmer, _workspace_data->get_data_mutable());

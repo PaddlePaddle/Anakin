@@ -17,6 +17,7 @@
 
 #include "saber/funcs/impl/impl_fc.h"
 #include "saber/funcs/impl/arm/impl/sgemm_arm.h"
+#include "saber/funcs/impl/arm/impl/sgemv_arm.h"
 
 #ifdef USE_ARM_PLACE
 

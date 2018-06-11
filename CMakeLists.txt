@@ -5,11 +5,94 @@
 # @date		2017-10-24
 # ----------------------------------------------------------------------------
 include(cmake/thirdparty_version.cmake)
-cmake_minimum_required(VERSION ${MIN_CMAKE_V} FATAL_ERROR)
-project(ANAKIN C CXX) 
+project(ANAKIN C CXX)
 include(cmake/msg_color.cmake)
 include(cmake/utils.cmake)
 include(cmake/statistic.cmake)
+
+# ----------------------------------------------------------------------------
+# section: options for anakin
+# ----------------------------------------------------------------------------
+#anakin data float precision
+anakin_option(ANAKIN_TYPE_FP64 "define the FP64 for data precision." NO)
+anakin_option(ANAKIN_TYPE_FP32 "define the FP32 for data precision." YES)
+anakin_option(ANAKIN_TYPE_FP16 "define the FP16 for data precision." NO)
+anakin_option(ANAKIN_TYPE_INT8 "define the INT8 for data precision." NO)
+
+#select the plantform to build
+anakin_option(USE_GPU_PLACE "Select the build mode for GPU place." NO)
+anakin_option(USE_X86_PLACE "Select the build mode for X86 place." NO)
+anakin_option(USE_ARM_PLACE "Select the build mode for ARM place." YES)
+
+# plantfrom details
+anakin_option(NVIDIA_GPU "Use NVIDIA GPU place." YES if USE_GPU_PLACE)
+anakin_option(AMD_GPU "Use AMD GPU place." NO if USE_GPU_PLACE AND NOT NVIDIA_GPU)
+anakin_option(TARGET_ANDROID "" YES if USE_ARM_PLACE)
+anakin_option(TARGET_IOS "" NO if USE_ARM_PLACE)
+
+# compile options for NVIDIA_GPU place
+anakin_option(USE_CUDA "Use Cuda libs." YES if NVIDIA_GPU)
+anakin_option(USE_CUBLAS "Use Cublas libs." YES if USE_CUDA)
+anakin_option(USE_CURAND "Use Curand libs." YES if USE_CUDA)
+anakin_option(USE_CUFFT "Use CuFFT libs." YES if USE_CUDA)
+anakin_option(USE_CUDNN "Use Cudnn libs." YES if USE_CUDA)
+anakin_option(BUILD_CROSS_PLANTFORM "Build anakin lib for any nvidia device plantform." YES if USE_CUDA)
+anakin_option(BUILD_FAT_BIN "Build anakin cuda fat-bin lib for all device plantform" NO if BUILD_CROSS_PLANTFORM)
+
+cmake_minimum_required(VERSION ${MIN_CMAKE_V} FATAL_ERROR)
+
+if(USE_CUDA)
+    # Select gpu target arch for local high performance implement sass code . Now we have checked on sm_61 sm_50 and it works well.
+    set(SELECTED_SASS_TARGET_ARCH "61")
+endif()
+if((NOT BUILD_FAT_BIN) AND (NOT BUILD_CROSS_PLANTFORM) AND USE_CUDA)
+    # Select the only nvidia gpu arch you want to be built on
+    set(TARGET_GPUARCH 6.1)
+endif()
+
+# build options for cuda.
+anakin_option(BUILD_CUBIN "BUILD with the -cubin option in Device mode" NO if USE_CUDA)
+anakin_option(COMPILE_PTX "Returns a list of PTX files generated from src." NO if USE_CUDA)
+
+
+# common build options
+anakin_option(ENABLE_DEBUG "Enable DEBUG(default) mode." NO)
+anakin_option(ENABLE_VERBOSE_MSG "Enable verbose=1 : compile msg during make." NO)
+anakin_option(DISABLE_ALL_WARNINGS "Disable all the warning msg during compile." YES)
+anakin_option(ENABLE_NOISY_WARNINGS "Enable noisy warning msg during compile." NO if DISABLE_ALL_WARNINGS)
+
+# using 3rd party libs
+anakin_option(USE_GLOG "Build Glog components." NO)
+anakin_option(USE_PROTOBUF "Build Google protobuf components." YES)
+anakin_option(USE_OPENCV "Use static opencv libs." NO)
+anakin_option(USE_BOOST "Use static BOOST libs." NO)
+anakin_option(USE_OPENMP "Use Openmp when in android environment." YES if TARGET_ANDROID)
+anakin_option(USE_GTEST "Use googletest libs." NO if BUILD_WITH_UNIT_TEST)
+anakin_option(USE_PYTHON "Generate py wrappers." NO)
+anakin_option(USE_OPENCL "Use OpenCL ." NO)
+anakin_option(USE_GFLAGS "Build Google gflags components." NO)
+anakin_option(USE_MKL "Use mkl libs." NO if USE_X86_PLACE)
+anakin_option(USE_MKLML "Use MKLML libs." YES if USE_X86_PLACE)
+anakin_option(USE_XBYAK "Use XBYAK libs." YES if USE_X86_PLACE)
+anakin_option(USE_OPENMP "Use Openmp when in android environment." YES if TARGET_ANDROID)
+
+# build components
+anakin_option(BUILD_WITH_UNIT_TEST "Build anakin unit test components." YES)
+
+# build target
+anakin_option(BUILD_SHARED "Build anakin shared lib." NO)
+anakin_option(BUILD_STATIC "Build anakin static lib." YES if NOT BUILD_SHARED)
+
+anakin_option(ENABLE_OP_TIMER "Enable op timer mode." NO)
+
+# ----------------------------------------------------------------------------
+# section: anakin compiler and linker options
+# ----------------------------------------------------------------------------
+if(ENABLE_DEBUG)
+    set(CMAKE_BUILD_TYPE Debug FORCE)
+else()
+    set(CMAKE_BUILD_TYPE Release FORCE)
+endif()
 
 # ----------------------------------------------------------------------------
 # section: global anakin version and lib name
@@ -36,93 +119,12 @@ set(ANAKIN_SABER ${ANAKIN_ROOT}/saber)
 set(ANAKIN_UNIT_TEST ${ANAKIN_ROOT}/test)
 
 # ----------------------------------------------------------------------------
-# section: options for anakin
-# ----------------------------------------------------------------------------
-#anakin data float precision
-anakin_option(ANAKIN_TYPE_FP64 "define the FP64 for data precision." NO)
-anakin_option(ANAKIN_TYPE_FP32 "define the FP32 for data precision." YES)
-anakin_option(ANAKIN_TYPE_FP16 "define the FP16 for data precision." NO)
-anakin_option(ANAKIN_TYPE_INT8 "define the INT8 for data precision." NO)
-
-#select the plantform to build
-anakin_option(USE_GPU_PLACE "Select the build mode for GPU place." NO)
-anakin_option(USE_X86_PLACE "Select the build mode for X86 place." YES)
-anakin_option(USE_ARM_PLACE "Select the build mode for ARM place." NO)
-
-# plantfrom details
-anakin_option(NVIDIA_GPU "Use NVIDIA GPU place." YES if USE_GPU_PLACE)
-anakin_option(AMD_GPU "Use AMD GPU place." NO if USE_GPU_PLACE AND NOT NVIDIA_GPU)
-anakin_option(TARGET_ANDROID "" NO if USE_ARM_PLACE)
-anakin_option(TARGET_IOS "" NO if USE_ARM_PLACE)
-
-# compile options for NVIDIA_GPU place
-anakin_option(USE_CUDA "Use Cuda libs." YES if NVIDIA_GPU)
-anakin_option(USE_CUBLAS "Use Cublas libs." YES if USE_CUDA)
-anakin_option(USE_CURAND "Use Curand libs." YES if USE_CUDA)
-anakin_option(USE_CUFFT "Use CuFFT libs." YES if USE_CUDA)
-anakin_option(USE_CUDNN "Use Cudnn libs." YES if USE_CUDA)
-anakin_option(BUILD_CROSS_PLANTFORM "Build anakin lib for any nvidia device plantform." YES if USE_CUDA)
-anakin_option(BUILD_FAT_BIN "Build anakin cuda fat-bin lib for all device plantform" NO if BUILD_CROSS_PLANTFORM)
-if(USE_CUDA)
-    # Select gpu target arch for local high performance implement sass code . Now we have checked on sm_61 sm_50 and it works well.
-    set(SELECTED_SASS_TARGET_ARCH "61")
-endif()
-if((NOT BUILD_FAT_BIN) AND (NOT BUILD_CROSS_PLANTFORM) AND USE_CUDA)
-    # Select the only nvidia gpu arch you want to be built on
-    set(TARGET_GPUARCH 6.1) 
-endif()
-
-# build options for cuda.
-anakin_option(BUILD_CUBIN "BUILD with the -cubin option in Device mode" NO if USE_CUDA)
-anakin_option(COMPILE_PTX "Returns a list of PTX files generated from src." NO if USE_CUDA)
-
-
-# common build options
-anakin_option(ENABLE_DEBUG "Enable DEBUG(default) mode." NO)
-anakin_option(ENABLE_VERBOSE_MSG "Enable verbose=1 : compile msg during make." NO)
-anakin_option(DISABLE_ALL_WARNINGS "Disable all the warning msg during compile." YES)
-anakin_option(ENABLE_NOISY_WARNINGS "Enable noisy warning msg during compile." NO if DISABLE_ALL_WARNINGS)
-
-# using 3rd party libs 
-anakin_option(USE_GLOG "Build Glog components." NO)
-anakin_option(USE_PROTOBUF "Build Google protobuf components." YES)
-anakin_option(USE_OPENCV "Use static opencv libs." NO)
-anakin_option(USE_BOOST "Use static BOOST libs." NO)
-anakin_option(USE_OPENMP "Use Openmp when in andriod environment." YES if TARGET_ANDROID)
-anakin_option(USE_GTEST "Use googletest libs." NO if BUILD_WITH_UNIT_TEST)
-anakin_option(USE_PYTHON "Generate py wrappers." NO)
-anakin_option(USE_OPENCL "Use OpenCL ." NO)
-anakin_option(USE_GFLAGS "Build Google gflags components." NO)
-anakin_option(USE_MKL "Use mkl libs." NO if USE_X86_PLACE)
-anakin_option(USE_MKLML "Use MKLML libs." YES if USE_X86_PLACE)
-anakin_option(USE_XBYAK "Use XBYAK libs." YES if USE_X86_PLACE)
-anakin_option(USE_OPENMP "Use Openmp when in andriod environment." YES if TARGET_ANDROID)
-
-# build components
-anakin_option(BUILD_WITH_UNIT_TEST "Build anakin unit test components." YES)
-
-# build target
-anakin_option(BUILD_SHARED "Build anakin shared lib." YES)
-anakin_option(BUILD_STATIC "Build anakin static lib." YES if NOT BUILD_SHARED)
-
-anakin_option(ENABLE_OP_TIMER "Enable op timer mode." NO)
-
-# ----------------------------------------------------------------------------
-# section: anakin compiler and linker options
-# ----------------------------------------------------------------------------
-if(ENABLE_DEBUG)
-	set(CMAKE_BUILD_TYPE Debug FORCE)
-else()
-	set(CMAKE_BUILD_TYPE Release FORCE)
-endif()
-
-# ----------------------------------------------------------------------------
 # section:configure a header file to pass some of the CMake settings to the source
 # 		  code
 # ----------------------------------------------------------------------------
 configure_file (
-  "${PROJECT_SOURCE_DIR}/cmake/config/anakin_config.h.in"
-  "${PROJECT_BINARY_DIR}/anakin_config.h"
+        "${PROJECT_SOURCE_DIR}/cmake/config/anakin_config.h.in"
+        "${PROJECT_BINARY_DIR}/anakin_config.h"
 )
 # add the binary tree to the search path so that anakin will find ak_config.h
 include_directories(${PROJECT_BINARY_DIR})
