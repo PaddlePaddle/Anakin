@@ -41,7 +41,7 @@ using Target_H = ARM;
 //std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/residual_net_7patch_3hc.anakin.bin";
 
 // resnet 50
-std::string model_path = "/home/cuichaowen/anakin2/anakin2/benchmark/CNN/models/Resnet50.anakin.bin";
+std::string model_path = "/home/cuichaowen/anakin2/anakin2/benchmark/CNN/mobilenet_v2.anakin.bin";
 
 #if 1
 TEST(NetTest, net_execute_base_test) {
@@ -58,6 +58,9 @@ TEST(NetTest, net_execute_base_test) {
 
     // register all tensor inside graph
     //graph->RegistAllOut();
+	
+    // register edge
+    graph->RegistOut("conv2_2/expand/scale", "relu2_2/expand");
 
     //anakin graph optimization
     graph->Optimize();
@@ -137,10 +140,30 @@ TEST(NetTest, net_execute_base_test) {
 
 
     //auto start = std::chrono::system_clock::now();
-    for(int i=0; i<epoch; i++) {
-	//DLOG(ERROR) << " epoch(" << i << "/" << epoch << ") ";
+    /*for(int i=0; i<epoch; i++) {
+		//DLOG(ERROR) << " epoch(" << i << "/" << epoch << ") ";
         net_executer.prediction();
+    }*/
+    // running part of model
+    net_executer.execute_stop_at_node("relu2_2/expand");
+#ifdef USE_CUDA
+    cudaDeviceSynchronize();
+#endif
+
+	// get inner tensor after stop
+    auto tensor_out_inner_p = net_executer.get_tensor_from_edge("conv2_2/expand", "relu2_2/expand");
+    LOG(WARNING) << "inner tensor avg value : " << tensor_average(tensor_out_inner_p);
+#ifdef USE_CUDA
+	cudaDeviceSynchronize();
+#endif
+    
+    for (int i = 0; i < 3; i++) {
+    	net_executer.execute_start_from_node("relu2_2/expand");
     }
+
+#ifdef USE_CUDA
+    cudaDeviceSynchronize();
+#endif
     //auto end = std::chrono::system_clock::now();
 
     //double time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
