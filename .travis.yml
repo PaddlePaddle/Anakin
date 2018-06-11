@@ -25,7 +25,7 @@ install:
 
 script:
   - cd docker
-  - bash anakin_docker_build_and_run.sh ${JOB} -m Build
+  - bash anakin_docker_build_and_run.sh ${JOB} -m Run
 
 branches:
   only:
