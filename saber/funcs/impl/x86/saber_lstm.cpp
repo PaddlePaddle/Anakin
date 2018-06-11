@@ -179,13 +179,22 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
         LstmParam<OpTensor> &param) {
     DataTensor_in *input = inputs[0];
     DataTensor_out *hidden_out = outputs[0];
-    DataTensor_out *cell_out = outputs[1];
+    DataTensor_out *cell_out= nullptr;
+
     const OpTensor *bias = param.bias();
     const OpTensor *init_t0 = param.init_hidden();
 
     int frame_size = input->channel();
     int hidden_size = hidden_out->channel();
     int batch_size = input->get_seq_offset().size();
+
+    if(outputs.size()>=2) {
+        DataTensor_out *cell_out = outputs[1];
+    }else{
+
+        _inner_cell_workspace.try_expand_size((batch_size-1)*hidden_size);
+        DataTensor_out *cell_out = &_inner_cell_workspace;
+    }
 
     // init state shape
     Shape init_state_shape(batch_size, hidden_size, 1 , 1);

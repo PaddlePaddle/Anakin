@@ -195,6 +195,8 @@ public:
 private:
     mkl_packed_weight<OpDtype, LayOutType_op> * packed_w_x_;
     mkl_packed_weight<OpDtype, LayOutType_op> * packed_w_h_;
+    DataTensor_out _inner_cell_workspace;
+
     OpTensor *batch_h0_;
     OpTensor *batch_c0_;
     virtual SaberStatus check_conf(const std::vector<DataTensor_in*>& inputs,
