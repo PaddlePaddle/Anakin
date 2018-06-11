@@ -10,7 +10,7 @@
 #include <fcntl.h>
 #include <map>
 #include "framework/operators/ops.h"
-
+#ifdef USE_ARM_PLACE
 #ifdef USE_GFLAGS
 #include <gflags/gflags.h>
 
@@ -25,20 +25,11 @@ std::string FLAGS_model_file;
 int FLAGS_num = 1;
 int FLAGS_warmup_iter = 10;
 int FLAGS_epoch = 1000;
+int FLAGS_threads = 1;
 #endif
 
-#ifdef USE_CUDA
-using Target = NV;
-using Target_H = X86;
-#endif
-#ifdef USE_X86_PLACE
-using Target = X86;
-using Target_H = X86;
-#endif
-#ifdef USE_ARM_PLACE
 using Target = ARM;
 using Target_H = ARM;
-#endif
 
 void getModels(std::string path, std::vector<std::string>& files) {
     DIR *dir;
@@ -59,6 +50,54 @@ void getModels(std::string path, std::vector<std::string>& files) {
     closedir(dir);
 }
 TEST(NetTest, net_execute_base_test) {
+
+    std::shared_ptr<Context<ARM>> ctx1 = std::make_shared<Context<ARM>>();
+    //Context<ARM> ctx1;
+    std::vector<int> act_ids;
+    //! set runtime context
+            LOG(INFO) << "set runtine context";
+    std::vector<int> big_cores;
+    std::vector<int> small_cores;
+    for (int i = 0; i < ctx1->devs[0]._info._cluster_ids.size(); ++i) {
+        if (ctx1->devs[0]._info._cluster_ids[i] == 0) {
+            big_cores.push_back(ctx1->devs[0]._info._core_ids[i]);
+        } else {
+            small_cores.push_back(ctx1->devs[0]._info._core_ids[i]);
+        }
+    }
+    LOG(INFO) << "big core num: " << big_cores.size();
+    LOG(INFO) << "small core num: " << small_cores.size();
+
+    int end_big_idx = std::min(FLAGS_threads, (int)big_cores.size());
+    int end_small_idx = std::min((int)(FLAGS_threads - big_cores.size()), (int)small_cores.size());
+    LOG(INFO) << "threads: " << FLAGS_threads << ", big_core: " << end_big_idx << ", small cores: " << end_small_idx;
+    for (int j = 0; j < end_big_idx; ++j) {
+        act_ids.push_back(big_cores[j]);
+    }
+    for (int j = 0; j < end_small_idx; ++j) {
+        act_ids.push_back(small_cores[j]);
+    }
+
+    ctx1->set_act_cores(act_ids);
+
+    LOG(INFO) << "test threads activated";
+#pragma omp parallel
+    {
+#ifdef USE_OPENMP
+        int thread = omp_get_num_threads();
+        LOG(INFO) << "number of threads: " << thread;
+#endif
+    }
+    int th_id;
+#pragma omp parallel private(th_id)
+    {
+#ifdef USE_OPENMP
+        th_id = omp_get_thread_num();
+#pragma omp parallel
+        LOG(INFO) << "thread core ID: " << act_ids[th_id];
+#endif
+    }
+
     std::vector<std::string> models;
     if (FLAGS_model_file == "") {
         getModels(FLAGS_model_dir, models);
@@ -79,7 +118,7 @@ TEST(NetTest, net_execute_base_test) {
         graph.Optimize();
         // constructs the executer net
         LOG(INFO) << "create net to execute";
-        Net<Target, AK_FLOAT, Precision::FP32> net_executer(graph, true);
+        Net<Target, AK_FLOAT, Precision::FP32, OpRunType::SYNC> net_executer(graph, ctx1, true);
         // get in
         LOG(INFO) << "get input";
         auto d_tensor_in_p = net_executer.get_in("input_0");
@@ -135,6 +174,8 @@ TEST(NetTest, net_execute_base_test) {
     }
 }
 int main(int argc, const char** argv){
+
+    Env<Target>::env_init();
     // initial logger
     logger::init(argv[0]);
 
@@ -165,8 +206,16 @@ int main(int argc, const char** argv){
     if(argc > 5) {
         FLAGS_epoch = atoi(argv[5]);
     }
+    if(argc > 6) {
+        FLAGS_threads = atoi(argv[6]);
+    }
 #endif
     InitTest();
     RUN_ALL_TESTS(argv[0]); 
     return 0;
 }
+
+#else
+int main(int argc, const char** argv){
+    LOG(INFO)<< "this benchmark is only for arm device";
+#endif
