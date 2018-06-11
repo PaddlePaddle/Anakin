@@ -171,6 +171,7 @@ public:
             delete batch_c0_;
             batch_c0_ = nullptr;
         }
+        delete cell_out;
     }
 
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
@@ -199,6 +200,7 @@ private:
 
     OpTensor *batch_h0_;
     OpTensor *batch_c0_;
+    DataTensor_out *cell_out;
     virtual SaberStatus check_conf(const std::vector<DataTensor_in*>& inputs,
                                    std::vector<DataTensor_out*>& outputs,
                                    LstmParam<OpTensor>& param);

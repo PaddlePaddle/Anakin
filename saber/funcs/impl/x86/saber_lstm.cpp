@@ -177,6 +177,8 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
         const std::vector<DataTensor_in*>& inputs,
         std::vector<DataTensor_out*>& outputs,
         LstmParam<OpTensor> &param) {
+    outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
+//    return SaberSuccess;
     DataTensor_in *input = inputs[0];
     DataTensor_out *hidden_out = outputs[0];
     DataTensor_out *cell_out= nullptr;
@@ -213,7 +215,7 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
     int cnt = xx.size();
     DataType_out *p = xx.mutable_data();
     switch (param._input_activity) {
-//        case Active_stanh:
+        case Active_stanh:
         case Active_tanh:
             activation(cnt, p, p, param._input_activity);
             break;

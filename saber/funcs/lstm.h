@@ -69,7 +69,7 @@ public:
             Param_t& param) override {
         int seqLength = input[0]->num();
         int inputSize = input[0]->channel();
-        int hiddenSize = output[0]->channel();
+        int hiddenSize = input[0]->channel();
         Shape output_shape = Shape(seqLength, hiddenSize, param._num_direction, 1);
         output[0]->set_seq_offset(input[0]->get_seq_offset());
         if(output.size()>=2){

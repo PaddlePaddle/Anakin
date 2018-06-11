@@ -69,8 +69,12 @@ public:
         Shape output_shape = (input[0]->valid_shape());
         int num_idx = input[0]->num_index();
         std::vector<int> offset = input[0]->get_seq_offset();
-        CHECK_GT(offset.size(), 1) << "seq num error! " << offset.size();
-        output_shape[num_idx] = offset.size() - 1;
+        //CHECK_GT(offset.size(), 1) << "seq num error! " << offset.size();
+        if (offset.size() > 1) {
+            output_shape[num_idx] = offset.size() - 1;
+        } else {
+            output_shape[num_idx] = input[0]->num();
+        }
         return output[0]->set_shape(output_shape);
     }
 
