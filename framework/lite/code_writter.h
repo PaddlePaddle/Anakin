@@ -97,11 +97,11 @@ public:
 		_file_io.write(_code.str());
 	}
 
-private:
 	inline std::string get_code_string() {
 		return _code.str();
 	}
 
+private:
 	inline char* pick_format(const char* format, va_list vlist) {
 		char* msg = nullptr;
 		int result = vasprintf(&msg, format, vlist);

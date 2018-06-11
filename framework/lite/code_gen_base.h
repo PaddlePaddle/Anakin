@@ -16,6 +16,8 @@
 #ifndef ANAKIN_FRAMEWORK_LITE_CODE_GEN_BASE_H
 #define ANAKIN_FRAMEWORK_LITE_CODE_GEN_BASE_H
 
+#include "framework/graph/graph.h"
+
 namespace anakin {
 
 namespace lite {
@@ -24,22 +26,32 @@ namespace lite {
  *  \brief class for target language code generator.
  *
  */
+template<typename Ttype, DataType Dtype, Precision Ptype>
 class CodeGenBase {
 public:
 	CodeGenBase() {}
 	virtual ~CodeGenBase(){}
 
+	virtual void gen_files() {}
+
 	/**
 	 *  \biref initial graph msg
 	 */
-	template<typename Ttype, DataType Dtype, Precision Ptype>
-	bool init_graph(Graph<Ttype, Dtype, Ptype>& graph) {
-		return false;
-	}
-
-	virtual void gen_files() {}
+	bool init_graph(Graph<Ttype, Dtype, Ptype>& graph);
 
 private:
+	/**
+	 * \brief analyse the memory reuse info
+	 */
+	bool init_memory_info();
+
+	/**
+	 * \brief serialization of weights
+	 */
+	bool serialize_weights();
+
+private:
+	Graph<Ttype, Dtype, Ptype> _graph;
 	std::vector<std::string> _exec_op_order; /// running order of operation's name
 	BinaryWritter _weights_io; // weight file writter
 };
