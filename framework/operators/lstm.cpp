@@ -48,13 +48,27 @@ Status LstmHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto weight_wu = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_1);
     auto bias = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_2);
 
-    std::unordered_map<std::string, anakin::saber::ActiveType> enum_map;
-    enum_map.insert(std::make_pair("null", anakin::saber::Active_unknow));
-    enum_map.insert(std::make_pair("Sigmoid", Active_sigmoid));
-    enum_map.insert(std::make_pair("Relu", Active_relu));
-    enum_map.insert(std::make_pair("Tanh", Active_tanh));
-    enum_map.insert(std::make_pair("ClippedRelu", Active_clipped_relu));
-    enum_map.insert(std::make_pair("Elu", Active_elu));
+    DLOG(INFO)<<"lstm act = ["<<input_activation<<","<<gate_activation<<","<<cell_activation<<","<<candidate_activation<<"]";
+    DLOG(INFO)<<"lstm other param = ["<<use_peepholes<<","<<is_reverse<<","<<dropout_param<<","<<num_direction<<","<<num_layers<<"]";
+//    exit(0);
+
+    std::unordered_map<std::string, ActiveType> enum_map = {
+            {"null",Active_unknow},
+            {"sigmoid_fluid", Active_sigmoid_fluid},
+            {"relu_fluid", Active_relu},
+            {"tanh_fluid", Active_tanh_fluid},
+            {"identity_fluid", Active_identity},
+            {"sigmoid", Active_sigmoid},
+            {"tanh", Active_tanh},
+    };
+//    std::unordered_map<std::string, anakin::saber::ActiveType> enum_map;
+//    enum_map.insert(std::make_pair("null", anakin::saber::Active_unknow));
+//    enum_map.insert(std::make_pair("Sigmoid", Active_sigmoid));
+//    enum_map.insert(std::make_pair("Relu", Active_relu));
+//    enum_map.insert(std::make_pair("Tanh", Active_tanh));
+//    enum_map.insert(std::make_pair("ClippedRelu", Active_clipped_relu));
+//    enum_map.insert(std::make_pair("Elu", Active_elu));
+
 //    enum_map.insert(std::make_pair("null", Active_identity));
 //    enum_map.insert(std::make_pair("null", Active_sigmoid_fluid));
 //    enum_map.insert(std::make_pair("null", Active_tanh_fluid));
@@ -74,6 +88,7 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 Status LstmHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype> &ctx,
                                                 const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
                                                 std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+    DLOG(INFO)<<"inti lstm in op.cpp";
     SABER_CHECK(_funcs_lstm.init(ins, outs, _param_lstm, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }

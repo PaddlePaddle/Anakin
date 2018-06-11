@@ -178,6 +178,9 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
         }
 #endif
         op_func.op->_helper->Init(*(op_func.ctx_p), op_func.ins, op_func.outs);
+#ifdef ENABLE_DEBUG
+        DLOG(INFO)<<"op init success "<<op_func.name;
+#endif
     }
     
     // init memory of _graph_p

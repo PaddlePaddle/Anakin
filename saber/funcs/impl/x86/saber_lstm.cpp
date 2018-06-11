@@ -1,7 +1,7 @@
 
-#include "saber/funcs/impl/x86/saber_lstm.h"
-#include "saber/funcs/impl/x86/x86_utils.h"
 
+#include "saber/funcs/impl/x86/x86_utils.h"
+#include "saber/funcs/impl/x86/saber_lstm.h"
 namespace anakin {
 namespace saber {
 
@@ -102,7 +102,12 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
         std::vector<DataTensor_out*>& outputs,
         LstmParam<OpTensor> &param, Context<X86> &ctx) {
     this->_ctx = ctx;
-
+    DLOG(INFO)<<"init lstm in saber bias size = "<<param.bias()->valid_size();
+    if(param._with_peephole){
+        _hidden_size=param.bias()->valid_size()/7;
+    } else{
+        _hidden_size=param.bias()->valid_size()/4;
+    }
     return create(inputs, outputs, param, ctx);
 }
 
@@ -121,12 +126,12 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
     DataTensor_in *input = inputs[0];
 
     int frame_size = input->channel();
-    int hidden_size = outputs[0]->channel();
 
+    DLOG(INFO)<<"create lstm in saber start hid = "<<_hidden_size<<", word_size = "<<frame_size;
     // split the weight to two parts: [Wix, Wfx, Wcx, Wox], [Wih, Wfh, Wch, Woh]
     DataType_op *weights_data = const_cast<DataType_op *>(param.weight()->data());
-    MatrixInfo<DataType_op> weight_x(weights_data, frame_size, (hidden_size * 4));
-    MatrixInfo<DataType_op> weight_h((weights_data + frame_size * hidden_size * 4), hidden_size, (hidden_size * 4));
+    MatrixInfo<DataType_op> weight_x(weights_data, frame_size, (_hidden_size * 4));
+    MatrixInfo<DataType_op> weight_h((weights_data + frame_size * _hidden_size * 4), _hidden_size, (_hidden_size * 4));
 
     // clean the packed weight
     if (this->packed_w_x_) {
@@ -155,7 +160,7 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
     // tensor for batched init cell and batched init hidden, they are both with size batch_size * hidden_size
     if (init_t0) {
         int batch_size = input->get_seq_offset().size();
-        Shape batched_state_shape(batch_size, hidden_size, 1 , 1);
+        Shape batched_state_shape(batch_size, _hidden_size, 1 , 1);
 
         // create buf in create func, batch_size * hidden_size
         batch_c0_ = new OpTensor(batched_state_shape);
@@ -163,6 +168,7 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
         // create buf in create func, batch_size * hidden_size
         batch_h0_ = new OpTensor(batched_state_shape);
     }
+    DLOG(INFO)<<"create lstm in saber done ,["<<(int)param._input_activity<<","<<(int)param._gate_activity<<","<<(int)param._cell_activity<<","<<(int)param._candidate_activity<<"]";
     return SaberSuccess;
 }
 
@@ -187,26 +193,24 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
     const OpTensor *init_t0 = param.init_hidden();
 
     int frame_size = input->channel();
-    int hidden_size = hidden_out->channel();
-    int batch_size = input->get_seq_offset().size();
+    int batch_size = input->get_seq_offset().size()-1;
 
     if(outputs.size()>=2) {
-        DataTensor_out *cell_out = outputs[1];
+         cell_out = outputs[1];
     }else{
-
-        _inner_cell_workspace.try_expand_size((batch_size-1)*hidden_size);
-        DataTensor_out *cell_out = &_inner_cell_workspace;
+        _inner_cell_workspace.try_expand_size(outputs[0]->valid_shape());
+         cell_out = &_inner_cell_workspace;
     }
 
     // init state shape
-    Shape init_state_shape(batch_size, hidden_size, 1 , 1);
+    Shape init_state_shape(batch_size, _hidden_size, 1 , 1);
     utils::ReorderInitState<OpDtype, LayOutType_op> reorder;
 
     // xx = x * [Wix, Wfx, Wcx, Wox]
-    Shape xx_shape(input->num(), hidden_size * 4, 1, 1);
-    DataTensor_in xx(xx_shape);
+    Shape xx_shape(input->num(), _hidden_size * 4, 1, 1);
+    xx.try_expand_size(xx_shape);
 
-    Shape i_s = input->shape();
+    Shape i_s = input->valid_shape();
     MatrixInfo<DataType_in> src((input->mutable_data()), input->num(), input->channel());
     MatrixInfo<DataType_in> dst((xx.mutable_data()), xx.num(), xx.channel());
     packed_w_x_->gemm_compute(src, &dst, 0.0f);
@@ -226,10 +230,11 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
             return SaberUnImplError;
     }
 
-    DataTensor_in batch_xx(xx.shape());
-    DataTensor_out batch_hidden(hidden_out->shape());
-    DataTensor_out batch_cell(cell_out->shape());
-    DataTensor_out batch_cell_act(cell_out->shape());
+     batch_xx.try_expand_size(xx.valid_shape());
+     batch_hidden.try_expand_size(hidden_out->valid_shape());
+
+     batch_cell.try_expand_size(cell_out->valid_shape());
+     batch_cell_act.try_expand_size(cell_out->valid_shape());
 
     // using MatrixInfo class with better sub buf handling
     MatrixInfo<DataType_in> batch_xx_matrix((batch_xx.mutable_data()), batch_xx.num(), batch_xx.channel());
@@ -240,7 +245,8 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
     // seq to batch meta data
     std::vector<std::vector<int>> seq_to_batch_meta;
     std::vector<int> tmp = input->get_seq_offset();
-    tmp.push_back(input->num());
+    //TODO:delete
+//    tmp.push_back(input->num());
     seq_to_batch_meta.push_back(tmp);
 
     // sequence to batch
@@ -252,8 +258,9 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
     if (bias) {
         // row-wise-add bias to batch_xx, the layout of bias [bi, bf, bc, bo]
         const DataType_op *bias_data = bias->data();
-        for (int i = 0; i < input->shape()[0]; i++) {
-            int row_size = 4 * hidden_size;
+
+        for (int i = 0; i < input->num(); i++) {
+            int row_size = 4 * _hidden_size;
             cblas_saxpby(row_size, 1, bias_data, 1, 1, (batch_xx_matrix.buf() + i * row_size), 1);
         }
     }
@@ -264,9 +271,9 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
     if (bias && with_peephole) {
         // with peephole enable, [Wic, Wfc, Woc] is at the behind of bias
         const DataType_op *bias_data = bias->data();
-        lstm_value.check_ig = bias_data + 4 * hidden_size;
-        lstm_value.check_fg = lstm_value.check_ig + hidden_size;
-        lstm_value.check_og = lstm_value.check_fg + hidden_size;
+        lstm_value.check_ig = bias_data + 4 * _hidden_size;
+        lstm_value.check_fg = lstm_value.check_ig + _hidden_size;
+        lstm_value.check_og = lstm_value.check_fg + _hidden_size;
     } else {
         lstm_value.check_ig = nullptr;
         lstm_value.check_fg = nullptr;
@@ -297,6 +304,7 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
 
         // xx += Ht-1 * [Wih, Wfh, Wch, Woh] according to batch number
         MatrixInfo<DataType_in> dst = batch_xx_matrix.subMatrixInfo(bstart, bend);
+
         if (n > 0) {
             // if n > 0, get Ht-1 information from last calc, and convert it to src
             int pre_h_start = batch_starts[n - 1];
@@ -315,19 +323,30 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
             packed_w_h_->gemm_compute(src, &dst);
         }
 
+
         // calc [Wic*Ct-1, Wfc*Ct-1, WocCt] and activation
         // fill lstm value with the calc result before and the output buf
         lstm_value.gate_value = dst.buf();
         lstm_value.output_value = batch_hidden_matrix.subMatrixInfo(bstart, bend).buf();
         lstm_value.state_value = batch_cell_matrix.subMatrixInfo(bstart, bend).buf();
         lstm_value.state_active_value = batch_cell_act_matrix.subMatrixInfo(bstart, bend).buf();
-        compute(lstm_value, hidden_size, cur_batch_size, gate_act, cell_act, cand_act);
+
+        compute(lstm_value, _hidden_size, cur_batch_size, gate_act, cell_act, cand_act);
         lstm_value.prev_state_value = lstm_value.state_value;
+
     }
 
     // batch to sequence
     utils::Batch2LoDTensorFunctor<outDtype, LayOutType_out> to_seq;
+
+
+//    printf("ok\n");
+    //FIXME:sometime ouput is all zero
     to_seq(&batch_hidden, hidden_out, seq_to_batch_meta);
+//    for(int i=0;i<_hidden_size;i++){
+//        printf("[%d]=%f\n",i,batch_hidden.data()[i]);
+//    }
+
     to_seq(&batch_cell, cell_out, seq_to_batch_meta);
 
     return SaberSuccess;

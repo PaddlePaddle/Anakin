@@ -13,17 +13,13 @@
 #include <fcntl.h>
 #include <map>
 
+#ifdef USE_X86_PLACE
+
 #define DEFINE_GLOBAL(type, var, value) \
         type (GLB_##var) = (value)
 DEFINE_GLOBAL(std::string, model_dir, "");
 DEFINE_GLOBAL(std::string, input_file, "");
-#ifdef USE_CUDA
-using Target = NV;
-#endif
-#ifdef USE_X86_PLACE
-using Target = X86;
-#endif
-
+std::string model_path = "/home/liujunjie/macbuild/models/language_model_me/my_language_model.bin";
 void getModels(std::string path, std::vector<std::string>& files) {
     DIR* dir= nullptr;
     struct dirent* ptr;
@@ -45,8 +41,23 @@ void getModels(std::string path, std::vector<std::string>& files) {
     }
     closedir(dir);
 }
+
+int read_file(std::vector<float> &results, const char* file_name) {
+
+    std::ifstream infile(file_name);
+    if (!infile.good()) {
+        std::cout << "Cannot open " << std::endl;
+        return false;
+    }
+            LOG(INFO)<<"found filename: "<<file_name;
+    std::string line;
+    while (std::getline(infile, line)) {
+        results.push_back((float)atof(line.c_str()));
+    }
+    return 0;
+}
 void SplitString(const std::string& s,
-                  std::vector<std::string>& v, const std::string& c)
+                 std::vector<std::string>& v, const std::string& c)
 {
     std::string::size_type pos1, pos2;
     pos2 = s.find(c);
@@ -109,32 +120,36 @@ int get_batch_data_offset(
         for (auto d : seq_data[i + start_idx]) {
             len += 1;
             out_data.push_back(d);
+//            printf("%.0f, ",d);
         }
+//        printf("\n");
         seq_offset.push_back(len);
     }
     return len;
 }
 
-TEST(NetTest, chinese_ner_executor) {
 
+TEST(NetTest, net_execute_base_test) {
+    Graph<X86, AK_FLOAT, Precision::FP32> *graph = new Graph<X86, AK_FLOAT, Precision::FP32>();
+            LOG(WARNING) << "load anakin model file from " << model_path << " ...";
     std::vector<std::string> models;
     getModels(GLB_model_dir, models);
     std::vector<std::vector<float> > word_idx;
     if (split_word_from_file(word_idx, GLB_input_file, "\t", " ", 0)) {
-        LOG(ERROR) << " NOT FOUND " << GLB_input_file;
+                LOG(ERROR) << " NOT FOUND " << GLB_input_file;
         exit(-1);
     }
-    LOG(INFO) << "READ SUCCESS!! I got " << word_idx.size() << " records";
+            LOG(INFO) << "READ SUCCESS!! I got " << word_idx.size() << " records";
     std::vector<float> word_idx_data;
     std::vector<int> word_seq_offset;
     int batch_num = 6;
 
     graph = new Graph<Target, AK_FLOAT, Precision::FP32>();
-    LOG(WARNING) << "load anakin model file from " << models[0] << " ...";
+            LOG(WARNING) << "load anakin model file from " << models[0] << " ...";
     // load anakin model files.
     auto status = graph->load(models[0]);
     if(!status ) {
-        LOG(FATAL) << " [ERROR] " << status.info();
+                LOG(FATAL) << " [ERROR] " << status.info();
     }
     graph->Reshape("input_0", {1000, 1, 1, 1});
     //anakin graph optimization
@@ -142,50 +157,97 @@ TEST(NetTest, chinese_ner_executor) {
     Net<Target, AK_FLOAT, Precision::FP32> net_executer(*graph, true);
     SaberTimer<X86> timer;
     Context<X86> ctx;
-
-//    for (int i = 0; i < word_idx.size(); i += batch_num) {
-    {
-#if 1
-        int i = 0;
+    for (int i = 0; i < word_idx.size(); i += batch_num) {
         int word_len = get_batch_data_offset(word_idx_data, word_idx, word_seq_offset, i, batch_num);
-        for(int i=0;i<word_seq_offset.size();i++){
-            LOG(INFO)<<"seq offset ["<<i<<"] = "<<word_seq_offset[i];
-        }
-        LOG(INFO)<<"word len = "<<word_len<<",word_idx_data = "<<word_idx_data.size();
         auto word_in_p = net_executer.get_in("input_0");
         word_in_p->reshape({word_len, 1, 1, 1});
         for (int j = 0; j < word_idx_data.size(); ++j) {
-            //word_in_p->mutable_data()[j] = word_idx_data[j];
-            word_in_p->mutable_data()[j] = j % 5000;
+            word_in_p->mutable_data()[j] = word_idx_data[j];
         }
-
         word_in_p->set_seq_offset(word_seq_offset);
-#endif
-//        auto word_in_p = net_executer.get_in("input_0");
-//        word_in_p->mutable_data()[0]=1;
-//        word_in_p->mutable_data()[1]=2;
-//        word_in_p->mutable_data()[2]=3;
-//        word_in_p->set_seq_offset({0,3});
-
-//        timer.start(ctx);
+        timer.start(ctx);
         net_executer.prediction();
-//        timer.end(ctx);
-        auto tensor_out_5_p = net_executer.get_out("fc_2.tmp_2_out");
-        int v_size = tensor_out_5_p->valid_size();
-        for (int j = 0; j < v_size; ++j) {
-            std::cout << tensor_out_5_p->data()[j]<<" ";
-        }
-        std::cout << std::endl;
+        timer.end(ctx);
     }
-    //LOG(INFO)<<"elapse time: "<<timer.get_average_ms()<<" ms";
+            LOG(INFO)<<"elapse time: "<<timer.get_average_ms()<<" ms";
+//    for(int i=0;i<word_seq_offset.size()-1;i++){
+//
+//    }
+//    net_executer.prediction();
+#if 0
+// load anakin model files.
+    auto status = graph->load(model_path);
+    if(!status ) {
+                LOG(FATAL) << " [ERROR] " << status.info();
+    }
+
+    graph->Reshape("input_0", {7,1,1,1});     // right results
+//graph->Reshape("input_0", {1, 1, 48, 1500});     // wrong results
+
+    graph->Optimize();
+
+    //Net <NV, AK_FLOAT, Precision::FP32> net_executer(*graph, true);
+
+    Net<X86, AK_FLOAT, Precision::FP32, OpRunType::SYNC> net_executer(*graph, true);
+
+//    std::vector<float> input_data;
+//    std::string img_path = "/home/public/anakin2_ocr/inputs/48_194.txt";
+//    int res = read_file(input_data, img_path.c_str());
+
+
+    auto d_tensor_in_p = net_executer.get_in("input_0");
+    //Shape new_shape(1, 1, 48, 194);
+    //d_tensor_in_p->reshape(new_shape);
+//    float *h_data_in = input_data.data();
+    Shape input_shape(7,1,1,1);
+    Tensor4d<X86, AK_FLOAT> h_tensor_in;
+    h_tensor_in.re_alloc(input_shape);
+    float* h_data = h_tensor_in.mutable_data();
+
+    for (int i=0; i<h_tensor_in.size(); i++) {
+        h_data[i] = 20+i;
+    }
+    for (int i = 0; i < d_tensor_in_p->valid_shape().size(); i++) {
+                LOG(INFO) << " shape IN (" << i << ") " << d_tensor_in_p->valid_shape()[i];
+    }
+//    return ;
+    d_tensor_in_p->copy_from(h_tensor_in);
+    d_tensor_in_p->set_seq_offset({0,5,7});
+
+//    for (int i = 0; i < h_tensor_in.valid_shape().count(); i++) {
+//                LOG(INFO) << " GET IN (" << i << ") " << h_tensor_in.mutable_data()[i];
+//    }
+
+    int epoch = 1;
+// do inference
+    Context<X86> ctx(0, 0, 0);
+    saber::SaberTimer<X86> my_time;
+            LOG(WARNING) << "EXECUTER !!!!!!!! ";
+// warm up
+    for(int i=0; i<epoch; i++) {
+        net_executer.prediction();
+//        cudaDeviceSynchronize();
+    }
+
+//    Tensor4d<X86, AK_FLOAT> h_tensor_result;
+//    auto h_tensor_out_p = &h_tensor_result;
+//    auto d_tensor_out_p = net_executer.get_out("fc_2.tmp_4_out");
+//    LOG(INFO) <<"d_tensor_out_p :" <<d_tensor_out_p->data();
+//    h_tensor_out_p->re_alloc(d_tensor_out_p->valid_shape());
+//    h_tensor_out_p->copy_from(*d_tensor_out_p);
+//    for (int i = 0; i < h_tensor_out_p->valid_shape().count(); i++) {
+//                LOG(INFO) << " GET OUT (" << i << ") " << h_tensor_out_p->mutable_data()[i];
+//    }
+#endif
 }
 
-int main(int argc, const char** argv) {
+
+int main(int argc, const char** argv){
     // initial logger
     LOG(INFO) << "argc " << argc;
 
     if (argc < 3) {
-        LOG(INFO) << "Example of Usage:\n \
+                LOG(INFO) << "Example of Usage:\n \
         ./output/unit_test/model_test\n \
             anakin_models\n input file\n";
         exit(0);
@@ -193,8 +255,15 @@ int main(int argc, const char** argv) {
         GLB_model_dir = std::string(argv[1]);
         GLB_input_file = std::string(argv[2]);
     }
-//    logger::init(argv[0]);
+
+    logger::init(argv[0]);
     InitTest();
     RUN_ALL_TESTS(argv[0]);
     return 0;
 }
+#else
+int main(int argc, const char** argv){
+    return 0;
+}
+
+#endif

@@ -37,6 +37,19 @@ struct LstmMetaValue {
   const T *check_fg;
   const T *check_og;
 };
+#define SIGMOID_THRESHOLD_MIN -40.0
+#define SIGMOID_THRESHOLD_MAX 13.0
+#define EXP_MAX_INPUT 40.0
+
+template <typename T> void sigmoid_fluid(size_t len, T *x, T *y) {
+#pragma omp parallel for if (len > 1)
+    for (size_t i = 0; i < len; i++) {
+        const float min = SIGMOID_THRESHOLD_MIN;
+        const float max = SIGMOID_THRESHOLD_MAX;
+        T tmp = (x[i] < min) ? min : ((x[i] > max) ? max : x[i]);
+        y[i] = 1. / (1. + exp(-tmp));
+    }
+}
 
 template <typename T>
 void sigmoid(size_t len, T *x, T *y) {
@@ -51,6 +64,15 @@ void relu(size_t len, T *x, T *y) {
 #pragma omp parallel for if (len > 1)
     for (size_t i = 0; i < len; i++) {
         y[i] = x[i] < 0 ? 0 : x[i];
+    }
+}
+template <typename T>
+void tanh_fluid(size_t len, T *x, T *y) {
+#pragma omp parallel for if (len > 1)
+    for (size_t i = 0; i < len; i++) {
+        T tmp = -2.0 * x[i];
+        tmp = (tmp > EXP_MAX_INPUT) ? EXP_MAX_INPUT : tmp;
+        y[i]= (2.0 / (1.0 + exp(tmp))) - 1.0;
     }
 }
 
@@ -93,15 +115,15 @@ static Active<float>::Act kActFloat[] = {
         nullptr,
         nullptr,
         &identity<float>,
-        nullptr,
-        nullptr,
+        &sigmoid_fluid<float>,
+        &tanh_fluid<float>,
         &stanh<float>
 };
 
 inline void activation(size_t len, float *src, float *dst, int index) {
     auto *func = kActFloat[index];
     if (!func) {
-        LOG(ERROR) << "activation not implemented!";
+        LOG(ERROR) << "activation not implemented! = "<<index;
     }
     func(len, src, dst);
 }
@@ -171,7 +193,6 @@ public:
             delete batch_c0_;
             batch_c0_ = nullptr;
         }
-        delete cell_out;
     }
 
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
@@ -194,13 +215,20 @@ public:
                                   LstmParam<OpTensor>& param);
 
 private:
+    int _hidden_size;
+
     mkl_packed_weight<OpDtype, LayOutType_op> * packed_w_x_;
     mkl_packed_weight<OpDtype, LayOutType_op> * packed_w_h_;
     DataTensor_out _inner_cell_workspace;
-
+    DataTensor_in xx;
     OpTensor *batch_h0_;
     OpTensor *batch_c0_;
-    DataTensor_out *cell_out;
+
+    DataTensor_in batch_xx;
+    DataTensor_out batch_hidden;
+    DataTensor_out batch_cell;
+    DataTensor_out batch_cell_act;
+
     virtual SaberStatus check_conf(const std::vector<DataTensor_in*>& inputs,
                                    std::vector<DataTensor_out*>& outputs,
                                    LstmParam<OpTensor>& param);

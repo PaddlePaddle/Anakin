@@ -92,8 +92,8 @@ public:
                     std::vector<int> index_lod, ioTensor* dst,
                     bool is_src_index) {
         int* index = index_lod.data();
-        auto src_shape = src->shape();
-        auto dst_shape = dst->shape();
+        auto src_shape = src->valid_shape();
+        auto dst_shape = dst->valid_shape();
         /*if (src_shape.size() != 2) {
             LOG(ERROR) << "The src must be matrix with rank 2.";
             exit(-1);
@@ -245,17 +245,20 @@ class Batch2LoDTensorFunctor {
 public:
     typedef Tensor<X86, Dtype, LayOutType> ioTensor;
     void operator()(ioTensor* batch,
-                    ioTensor* seq, std::vector<std::vector<int>>& seq_to_batch_meta) const {
+                    ioTensor* seq, std::vector<std::vector<int>> &seq_to_batch_meta) const {
+
         if (seq_to_batch_meta.size() < 2) {
             LOG(ERROR) << "The size of seq_to_batch_meta should inlcude at least 2-level sequence information.";
             exit(-1);
         }
         if (seq_to_batch_meta[1].size() != static_cast<int>(seq->num())) {
-            LOG(ERROR) << "The seq_to_batch information should be consistent with the dims.";
+            LOG(ERROR) << "The seq_to_batch information should be consistent with the dims."<<seq_to_batch_meta[1].size()<<"!="<< static_cast<int>(seq->num());
             exit(-1);
         }
         CopyMatrixRowsFunctor<Dtype, LayOutType> to_seq;
+
         to_seq(batch, seq_to_batch_meta[1], seq, false);
+
     }
 };
 
@@ -789,7 +792,7 @@ inline void yield_thread() { }
 // reorder weight layout from NCHW(oc, ic, kh, kw) to OIhw16i16o
 inline void weight_reorder_OIhw16i16o(Tensor<X86, AK_FLOAT, NCHW>& input,
                                       Tensor<X86, AK_FLOAT, NCHW>& output) {
-    Shape shape = input.shape();
+    Shape shape = input.valid_shape();
     int oc_value = shape[0], ic_value = shape[1], kh_value = shape[2], kw_value = shape[3];
     #pragma omp parallel for collapse(6) schedule(static)
 
