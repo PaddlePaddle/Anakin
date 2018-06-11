@@ -83,6 +83,7 @@ public:
      */
     virtual Status InitParam() {
         DLOG(ERROR) << " Target ParserParam not overriden.";
+        return Status::FAIL();
     }
 
     /** 
@@ -92,6 +93,7 @@ public:
                         const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
                         std::vector<Tensor4dPtr<Ttype, Dtype> >& outs){
         DLOG(ERROR) << " Target init not overriden.";
+        return Status::FAIL();
     }
 
     /** 
@@ -100,6 +102,7 @@ public:
     virtual Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
                               std::vector<Tensor4dPtr<Ttype, Dtype> >& outs){
         DLOG(ERROR) << " Target infershape not overriden.";
+        return Status::FAIL();
     }
 
     /** 
@@ -173,17 +176,23 @@ public:
     /** 
      *  \brief Get list of op name.
      */
-    virtual std::vector<std::string>& get_list_op_name();
+    virtual std::vector<std::string>& get_list_op_name() {
+        return this->get_list_name();
+    }
 
     /** 
      *  \brief Get object pointer by op_name.
      */
-    virtual OpAttrWarpper* operator[](const std::string op_name);
+    virtual OpAttrWarpper* operator[](const std::string op_name) {
+        return ObjectRegister<OpAttrWarpper>::operator[](op_name);
+    }
 
     /** 
      *  \brief Add another alias to the type_id.
      */
-    virtual void add_alias(const std::string& ori_op_name, const std::string& op_name_alias);
+    virtual void add_alias(const std::string& ori_op_name, const std::string& op_name_alias) {
+        this->__alias__(ori_op_name, op_name_alias);
+    }
 };
 
 typedef Singleton<OpAttrObjectRegister> OpAttrRegister;

@@ -37,20 +37,104 @@ template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
 Net<Ttype, Dtype, Ptype, RunType>::Net(graph::Graph<Ttype, Dtype, Ptype>& graph, bool need_summary) {
     _graph_p = new graph::Graph<Ttype, Dtype, Ptype>();
     _need_summary = need_summary;
-    init_env(graph);
+    //init_env(graph);
     init(graph);
 }
+
+template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
+Net<Ttype, Dtype, Ptype, RunType>::Net(\
+    graph::Graph<Ttype, Dtype, Ptype>& graph, OpContextPtr<Ttype> ctx, bool need_summary) {
+    _graph_p = new graph::Graph<Ttype, Dtype, Ptype>();
+    _need_summary = need_summary;
+    //init_env(graph);
+    init(graph, ctx);
+}
+
+template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
+void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& graph, \
+    OpContextPtr<Ttype> ctx) {
+
+    init_env(graph);
+    // shallow copy
+    _graph_p->CopyFrom(graph);
+    auto node_names_in_exec_order = graph.get_nodes_in_order();
+    // infer basic shape and parsing parameter from graph
+    for (auto& node_name : node_names_in_exec_order) {
+        auto node_ptr = (*_graph_p)[node_name];
+        //LOG(ERROR) << "get node " << node_name << ", op type " << node_ptr->get_op_name();
+        if (node_ptr->get_op_name() == "Output") {
+            continue;
+        }
+
+        // create operations
+        auto* op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
+        if (op_pointer == nullptr) {
+            LOG(FATAL) << node_name << ", type " << node_ptr->get_op_name() << " is null";
+        }
+        node_ptr->set_op(op_pointer);
+        //LOG(ERROR) << "set op";
+        op_pointer = nullptr;
+
+        static_cast<Operator<Ttype, Dtype, Ptype>*>(node_ptr->Op())->_helper->BindParam(node_ptr);
+        //LOG(ERROR) << "bind param";
+        // parsing parameter
+        static_cast<Operator<Ttype, Dtype, Ptype>*>(node_ptr->Op())->_helper->InitParam();
+        //LOG(ERROR) << "init param";
+    }
+
+    // remove null op node
+    for (auto it = node_names_in_exec_order.begin(); it != node_names_in_exec_order.end(); ){
+        if (!(*_graph_p)[*it]->Op()) {
+            it = node_names_in_exec_order.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    _exec_funcs.resize(node_names_in_exec_order.size());
+    for(int i = 0; i < node_names_in_exec_order.size(); i++) {
+        auto& node_name = node_names_in_exec_order[i];
+        auto& op_func = _exec_funcs[i];
+        op_func.name = node_name;
+        auto& edge_in_its = _graph_p->get_in_arc_its(node_name);
+        DLOG(ERROR) << " node : " << op_func.name << " (" << (*_graph_p)[node_name]->get_op_name() << ") ";
+        for(auto& edge_it : edge_in_its) {
+            DLOG(INFO) << "  => find in arc : " << edge_it->bottom() << "  -->  " << edge_it->top();
+            op_func.ins.push_back(edge_it->weight().get());
+            op_func.in_lanes.push_back(edge_it->lane());
+        }
+        auto& edge_out_its = _graph_p->get_out_arc_its(node_name);
+        for(auto& edge_it : edge_out_its) {
+            DLOG(INFO) << "  <= find out arc : " << edge_it->bottom() << "  -->  " << edge_it->top();
+            op_func.outs.push_back(edge_it->weight().get());
+            op_func.out_lanes.push_back(edge_it->lane());
+        }
+        op_func.current_lane = (*_graph_p)[node_name]->lane();
+        op_func.need_sync = (*_graph_p)[node_name]->need_wait();
+        op_func.op = static_cast<Operator<ARM, AK_FLOAT, Precision::FP32>* >((*_graph_p)[node_name]->Op());
+        op_func.op_name = (*_graph_p)[node_name]->get_op_name();
+        op_func.ctx_p = ctx;
+        // call init of operator
+        CHECK_NOTNULL_S(op_func.op) << "Node(node_name) doesn't have op pointer! ";
+
+        op_func.op->_helper->InferShape(op_func.ins, op_func.outs);
+        op_func.op->_helper->Init(*(op_func.ctx_p), op_func.ins, op_func.outs);
+    }
+
+    // init memory of _graph_p
+    init_memory();
+}
+
 
 template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
 void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& graph) {
     init_env(graph);
     // shallow copy
     _graph_p->CopyFrom(graph);
-     
     auto node_names_in_exec_order = graph.get_nodes_in_order();
     // infer basic shape and parsing parameter from graph
     for (auto& node_name : node_names_in_exec_order) {
         auto node_ptr = (*_graph_p)[node_name];
+        //LOG(ERROR) << "get node " << node_name << ", op type " << node_ptr->get_op_name();
         if (node_ptr->get_op_name() == "Output") {
             continue;
         }
@@ -116,7 +200,11 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
         }
 #else
         auto* op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
+        if (op_pointer == nullptr) {
+            LOG(FATAL) << node_name << ", type " << node_ptr->get_op_name() << " is null";
+        }
         node_ptr->set_op(op_pointer);
+        //LOG(ERROR) << "set op";
 		op_pointer = nullptr;
 #endif
         // bind parameter structure

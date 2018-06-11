@@ -49,7 +49,16 @@ public:
 
     friend class EltwiseHelper<Ttype, Dtype, Ptype>;
 };
-
+#define INSTANCE_ELTWISE(Ttype, Dtype, Ptype) \
+template<> \
+void Eltwise<Ttype, Dtype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+    const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, \
+    std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) { \
+    auto* impl = static_cast<EltwiseHelper<Ttype, Dtype, Ptype>*>(this->_helper); \
+    auto& param = static_cast<EltwiseHelper<Ttype, Dtype, Ptype>*> \
+                  (this->_helper)->_param_eltwise; \
+    impl->_funcs_eltwise(ins, outs, param, ctx); \
+}
 /**
  * \brief Eltwise helper class to implement it
  * public inherit OperatorHelper
@@ -60,9 +69,25 @@ class EltwiseHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     EltwiseHelper()=default;
 
-    ~EltwiseHelper();
+    ~EltwiseHelper() {}
 
-    Status InitParam() override;
+    Status InitParam() override {
+                DLOG(WARNING) << "Parsing Eltwise op parameter.";
+        auto type = GET_PARAMETER(std::string, type);
+        auto coeff = GET_PARAMETER(PTuple<float>, coeff);
+        EltwiseType elt_type;
+
+        if (type == "Add") {
+            elt_type = Eltwise_sum;
+        } else if (type == "Max") {
+            elt_type = Eltwise_max;
+        } else {
+            elt_type = Eltwise_prod;
+        }
+        saber::EltwiseParam<Tensor4d<Ttype, Dtype> > eltwise_param(elt_type, coeff.vector());
+        _param_eltwise = eltwise_param;
+        return Status::OK();
+    }
 
     /**
     * \brief initial all the resource needed by pooling
@@ -73,7 +98,10 @@ public:
     */
     Status Init(OpContext<Ttype> &ctx,
                 const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override {
+        SABER_CHECK(_funcs_eltwise.init(ins, outs, _param_eltwise, SPECIFY, SABER_IMPL, ctx));
+        return Status::OK();
+    }
 
     /**
     * \brief infer the shape of output and input.
@@ -82,7 +110,10 @@ public:
     * \return status
     */
     Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override {
+        SABER_CHECK(_funcs_eltwise.compute_output_shape(ins, outs, _param_eltwise));
+        return Status::OK();
+    }
 
 public:
     ///< _param_eltwise stand for Eltwise parameter
@@ -95,7 +126,40 @@ private:
     PTuple<int> _dims; 
 };
 
+#ifdef USE_CUDA
+INSTANCE_ELTWISE(NV, AK_FLOAT, Precision::FP32);
+template class EltwiseHelper<NV, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Eltwise, EltwiseHelper, NV, AK_FLOAT, Precision::FP32);
+#endif
 
+#ifdef USE_X86_PLACE
+INSTANCE_ELTWISE(X86, AK_FLOAT, Precision::FP32);
+template class EltwiseHelper<X86, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Eltwise, EltwiseHelper, X86, AK_FLOAT, Precision::FP32);
+#endif
+
+#ifdef USE_ARM_PLACE
+INSTANCE_ELTWISE(ARM, AK_FLOAT, Precision::FP32);
+template class EltwiseHelper<ARM, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Eltwise, EltwiseHelper, ARM, AK_FLOAT, Precision::FP32);
+#endif
+
+//! register op
+ANAKIN_REGISTER_OP(Eltwise)
+.Doc("Eltwise operator")
+#ifdef USE_CUDA
+.__alias__<NV, AK_FLOAT, Precision::FP32>("eltwise")
+#endif
+#ifdef USE_ARM_PLACE
+.__alias__<ARM, AK_FLOAT, Precision::FP32>("eltwise")
+#endif
+#ifdef USE_X86_PLACE
+.__alias__<X86, AK_FLOAT, Precision::FP32>("eltwise")
+#endif
+.num_in(1)
+.num_out(1)
+.Args<std::string>("type", " eltwise type( string )")
+.Args<PTuple<float>>("coeff", "coeff of eltwise");
 
 } /* namespace ops */
 

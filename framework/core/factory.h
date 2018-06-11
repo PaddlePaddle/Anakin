@@ -36,6 +36,9 @@ public:
         if (_container.count(type_id) == 0) {
             LOG(FATAL) << type_id << " has not been registered! ";
         }
+        LOG(INFO) << "create fuction " << &_container.at(type_id);
+        //auto ptr = _container.at(type_id)();
+        //return ptr;
         return (_container.at(type_id))();
     }
     void __ALIAS__(const TypeIdentifier& ori_type_id, const TypeIdentifier& type_id) {
@@ -51,6 +54,7 @@ public:
     bool Register(TypeIdentifier type_id, PolicyCreator creator) 
                                          EXCLUSIVE_LOCKS_REQUIRED(container_mutex_) {
         std::lock_guard<std::mutex> guard(container_mutex_);
+        LOG(ERROR) << "register " << type_id;
         CHECK_EQ(_container.count(type_id), 0) << type_id << " has not been registered! ";
         _type_id_list.push_back(type_id);
         _container[type_id] = creator;
