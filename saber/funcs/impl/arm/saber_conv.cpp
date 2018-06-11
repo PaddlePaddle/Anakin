@@ -18,7 +18,10 @@ SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::SaberConv2D() 
 }
 
 template <>
-SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::~SaberConv2D() {}
+SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::~SaberConv2D() {
+     //LOG(ERROR) << "release saber conv: kw=" << _kw << ", kh=" << _kh << ", num_out=" << _conv_param.weight()->num() << \
+        ", chin=" << _conv_param.weight()->channel();
+}
 
 template <>
 SaberStatus SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::create(\
@@ -149,6 +152,7 @@ SaberStatus SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::in
     const std::vector<DataTensor_in *>& inputs, \
     std::vector<DataTensor_out *>& outputs, \
     ConvParam<OpTensor> &conv_param, Context<ARM> &ctx) {
+    _conv_param = conv_param;
     return create(inputs, outputs, conv_param, ctx);
 }
 

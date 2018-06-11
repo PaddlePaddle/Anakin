@@ -94,6 +94,8 @@ private:
     size_t _workspace_fwd_sizes{0};
     std::shared_ptr<Buffer<ARM>> _workspace_data{nullptr};
     std::shared_ptr<Buffer<ARM>> _weights_trans{nullptr};
+
+    ConvParam<OpTensor> _conv_param;
 };
 
 
