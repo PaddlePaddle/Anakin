@@ -6,8 +6,8 @@ namespace ops {
 
 #ifdef USE_CUDA
 template<>
-void Gru<NV, AK_FLOAT, Precision::FP32>::operator() (OpContext<NV> &ctx, 
-                          const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins, 
+void Gru<NV, AK_FLOAT, Precision::FP32>::operator() (OpContext<NV> &ctx,
+                          const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
                           std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
     auto* impl = static_cast<GruHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
     auto& param = static_cast<GruHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper)->_param_gru;
@@ -38,10 +38,6 @@ Status GruHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto gate_act = GET_PARAMETER(std::string, gate_activation);
     auto hidden_act = GET_PARAMETER(std::string, activation);
     auto formula = GET_PARAMETER(std::string, gru_formula);
-
-//    auto weight_h2h = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_1);
-//    auto bias = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_3);
-//    auto weight_i2h = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_2);
 
     auto weight_wu = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_1);
     auto bias = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_2);

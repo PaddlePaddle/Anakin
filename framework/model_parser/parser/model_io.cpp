@@ -13,7 +13,7 @@ NodeIO<Ttype, Dtype, Ptype>& NodeIO<Ttype, Dtype, Ptype>::operator>>(const NodeP
     node_p->need_wait() = node_proto.need_wait();
     node_p->lane() = node_proto.lane();
     auto it = node_proto.attr().begin();
-
+    DLOG(INFO)<<"read :"<<node_p->name();
     for (; it != node_proto.attr().end(); ++it) {
         auto& key = it->first;
         auto& value = it->second;

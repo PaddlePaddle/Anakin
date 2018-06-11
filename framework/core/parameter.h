@@ -165,7 +165,7 @@ private:
 template<typename T>
 struct DataTypeRecover; /// declare for PBlock
 
-/** 
+/**
  *  \brief a simple wrapper of tensor use in weights parameter.
  *   default layout [ NCHW ]
  */
@@ -183,7 +183,7 @@ public:
 	typedef Tensor4d<NVHX86, DataTypeRecover<Dtype>::type> h_type;
 
 	PBlockBase() {
-		_d_inner_tensor = std::make_shared<d_type>(); 
+		_d_inner_tensor = std::make_shared<d_type>();
 		_h_inner_tensor = std::make_shared<h_type>();
 	}
 
@@ -238,8 +238,8 @@ public:
 
     ~PBlockBase() {}
 
-private: 
-	std::shared_ptr<d_type> _d_inner_tensor; 
+private:
+	std::shared_ptr<d_type> _d_inner_tensor;
 	std::shared_ptr<h_type> _h_inner_tensor;
 };
 
@@ -254,7 +254,7 @@ public:
 	typedef Tensor4d<X86, DataTypeRecover<Dtype>::type> type;
 
 	PBlockBase() {
-		_inner_tensor = std::make_shared<type>(); 
+		_inner_tensor = std::make_shared<type>();
 	}
 
 	PBlockBase(Shape4d& shape) {
@@ -292,19 +292,19 @@ public:
     }
 
     /// Get shape.
-    Shape4d shape() { 
-        return _inner_tensor->valid_shape(); 
+    Shape4d shape() {
+        return _inner_tensor->valid_shape();
     }
 
     /// Get size.
-    size_t count() { 
+    size_t count() {
         return this->shape().count();
     }
 
     ~PBlockBase() {}
 
-private: 
-	std::shared_ptr<type> _inner_tensor; 
+private:
+	std::shared_ptr<type> _inner_tensor;
 };
 
 template<typename Dtype>
@@ -318,7 +318,7 @@ public:
 	typedef Tensor4d<ARM, DataTypeRecover<Dtype>::type> type;
 
 	PBlockBase() {
-		_inner_tensor = std::make_shared<type>(); 
+		_inner_tensor = std::make_shared<type>();
 	}
 
 	PBlockBase(Shape4d& shape) {
@@ -356,19 +356,19 @@ public:
     }
 
     /// Get shape.
-    Shape4d shape() { 
-        return _inner_tensor->valid_shape(); 
+    Shape4d shape() {
+        return _inner_tensor->valid_shape();
     }
 
     /// Get size.
-    size_t count() { 
+    size_t count() {
         return this->shape().count();
     }
 
     ~PBlockBase() {}
 
-private: 
-	std::shared_ptr<type> _inner_tensor; 
+private:
+	std::shared_ptr<type> _inner_tensor;
 };
 
 template<typename Dtype>
@@ -376,7 +376,7 @@ using PBlock = PBlockBase<Dtype, ARM>;
 #endif
 
 
-/** 
+/**
  *  \brief Enum type.
  */
 struct Enum {

@@ -54,7 +54,7 @@ public:
 
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                                  std::vector<DataTensor_out*>& outputs,
-                                 FcParam<OpTensor> &param) override;
+                                 FcParam<OpTensor> &param) ;
 
 private:
 
