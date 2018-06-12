@@ -13,21 +13,21 @@
    limitations under the License. 
 */
 
-#ifndef ANAKIN_SABER_FUNCS_NORMALIZE_H
-#define ANAKIN_SABER_FUNCS_NORMALIZE_H
+#ifndef ANAKIN_SABER_FUNCS_LAYER_NORM_H
+#define ANAKIN_SABER_FUNCS_LAYER_NORM_H
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
 #ifdef NVIDIA_GPU
-#include "saber/funcs/impl/cuda/saber_normalize.h"
+#include "saber/funcs/impl/cuda/saber_layer_norm.h"
 #endif
 
 #ifdef USE_X86_PLACE
-#include "saber/funcs/impl/impl_normalize.h"
+#include "saber/funcs/impl/impl_layer_norm.h"
 #endif
 #ifdef USE_ARM_PLACE
 //todo
-#include "saber/funcs/impl/impl_normalize.h"
+#include "saber/funcs/impl/impl_layer_norm.h"
 #endif
 namespace anakin{
 
@@ -41,12 +41,12 @@ template<typename TargetType,
         typename LayOutType_in = NCHW,
         typename LayOutType_out = NCHW
 >
-class Normalize : public BaseFunc<
+class LayerNorm : public BaseFunc<
         Tensor<TargetType, inDtype, LayOutType_in>,
         Tensor<TargetType, outDtype, LayOutType_out>,
         Tensor<TargetType, OpDtype, LayOutType_op>,
         ImplBase,
-        NormalizeParam
+        LayerNormParam
 > {
 public:
     using BaseFunc<
@@ -54,14 +54,14 @@ public:
             Tensor<TargetType, outDtype, LayOutType_out>,
             Tensor<TargetType, OpDtype, LayOutType_op>,
             ImplBase,
-            NormalizeParam>::BaseFunc;
+            LayerNormParam>::BaseFunc;
 
-    Normalize() = default;
+    LayerNorm() = default;
     
     typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
     typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
     typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-    typedef NormalizeParam<OpTensor> Param_t;
+    typedef LayerNormParam<OpTensor> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
@@ -78,12 +78,12 @@ public:
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
             case VENDER_IMPL:
-                this->_impl.push_back(new VenderNormalize <TargetType, OpDtype, inDtype, outDtype,
+                this->_impl.push_back(new VenderLayerNorm <TargetType, OpDtype, inDtype, outDtype,
                 LayOutType_op, LayOutType_in, LayOutType_out>);
                 return SaberSuccess;
 
             case SABER_IMPL:
-                this->_impl.push_back(new SaberNormalize <TargetType, OpDtype, inDtype, outDtype,
+                this->_impl.push_back(new SaberLayerNorm <TargetType, OpDtype, inDtype, outDtype,
                 LayOutType_op, LayOutType_in, LayOutType_out>);
                 return SaberSuccess;
 
@@ -117,4 +117,4 @@ private:
 
 } //namespace anakin
 
-#endif //ANAKIN_SABER_FUNCS_NORMALIZE_H
+#endif //ANAKIN_SABER_FUNCS_LAYER_NORM_H

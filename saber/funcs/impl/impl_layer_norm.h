@@ -13,17 +13,17 @@
    limitations under the License. 
 */
 
-#ifndef ANAKIN_SABER_FUNCS_IMPL_NORMALIZE_H
-#define ANAKIN_SABER_FUNCS_IMPL_NORMALIZE_H
+#ifndef ANAKIN_SABER_FUNCS_IMPL_LAYER_NORM_H
+#define ANAKIN_SABER_FUNCS_IMPL_LAYER_NORM_H
 
 #include "saber/funcs/impl/impl_macro.h"
 namespace anakin{
 
 namespace saber{
 
-DEFINE_OP_CLASS(Normalize, NormalizeParam);
+DEFINE_OP_CLASS(LayerNorm, LayerNormParam);
 
 }
 }
 
-#endif //ANAKIN_SABER_FUNCS_IMPL_NORMALIZE_H
+#endif //ANAKIN_SABER_FUNCS_IMPL_LAYER_NORM_H
