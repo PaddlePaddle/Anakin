@@ -13,8 +13,8 @@
    limitations under the License. 
 */
 
-#ifndef ANAKIN_OPERATOR_NORMALIZE_H
-#define ANAKIN_OPERATOR_NORMALIZE_H
+#ifndef ANAKIN_OPERATOR_LAYER_NORM_H
+#define ANAKIN_OPERATOR_LAYER_NORM_H
 
 #include "framework/core/base.h"
 #include "framework/core/data_types.h"
@@ -95,4 +95,4 @@ public:
 
 } /* namespace anakin */
 
-#endif
+#endif //ANAKIN_OPERATOR_LAYER_NORM_H
