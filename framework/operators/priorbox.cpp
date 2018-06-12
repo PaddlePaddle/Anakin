@@ -3,7 +3,7 @@
 namespace anakin {
 
 namespace ops {
-
+#if 0
 //#ifdef USE_CUDA
 //template<>
 //void PriorBox<NV, AK_FLOAT, Precision::FP32>::operator()(OpContext<NV>& ctx, \
@@ -118,6 +118,7 @@ ANAKIN_REGISTER_OP(PriorBox)
                   .Args<float>("step_w", "width step of bbox")
                   .Args<float>("offset", "center offset of bbox");
 
+#endif
 } /* namespace ops */
 
 } /* namespace anakin */

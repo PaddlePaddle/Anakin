@@ -3,20 +3,7 @@
 namespace anakin {
 
 namespace ops {
-
-//#ifdef USE_CUDA
-//template<>
-//void ConvRelu<NV, AK_FLOAT, Precision::FP32>::operator()(
-//    OpContext<NV>& ctx,
-//    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
-//    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-//    auto* impl =
-//        static_cast<ConvReluHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
-//    auto& param = impl->_param_conv_relu;
-//    impl->_funcs_conv_relu(ins, outs, param, ctx);
-//}
-//#endif
-
+#if 0
 /// TODO ... specialization other type of operator
 #define INSTANCE_CONVRELU(Ttype, Dtype, Ptype) \
 template<> \
@@ -167,7 +154,7 @@ ANAKIN_REGISTER_OP(ConvRelu)
                 .Args<PTuple<int>>("kernel_size", "kernel size of kernel (x, y)")
                 .Args<int>("axis", "axis of conv")
                 .Args<float>("relu_0_alpha", " alpha for relu");
-
+#endif
 } /* namespace ops */
 
 } /* namespace anakin */

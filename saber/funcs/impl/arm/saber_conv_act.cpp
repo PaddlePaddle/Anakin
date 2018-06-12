@@ -31,6 +31,8 @@ SaberStatus SaberConv2DAct<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>:
     ConvActiveParam<OpTensor> &param, Context<ARM> &ctx) {
     if (param.has_active) {
         SABER_CHECK(_conv_op->set_activation(true));
+    } else {
+        SABER_CHECK(_conv_op->set_activation(false));
     }
     _conv_op->init(inputs, outputs, param.conv_param, ctx);
     return SaberSuccess;
