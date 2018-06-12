@@ -13,8 +13,8 @@
    limitations under the License.
 */
 
-#ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_LAYER_NORMA_H
-#define ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_LAYER_NORMA_H
+#ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_LAYER_NORM_H
+#define ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_LAYER_NORM_H
 
 #include "saber/funcs/impl/impl_layer_norm.h"
 
@@ -104,4 +104,4 @@ template class SaberLayerNorm<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW
 
 } //namespace anakin
 
-#endif //ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_LAYER_NORMA_H
+#endif //ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_LAYER_NORM_H
