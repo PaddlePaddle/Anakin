@@ -24,7 +24,7 @@ std::string FLAGS_model_dir;
 std::string FLAGS_model_file;
 int FLAGS_num = 1;
 int FLAGS_warmup_iter = 10;
-int FLAGS_epoch = 1000;
+int FLAGS_epoch = 10;
 int FLAGS_threads = 1;
 #endif
 
@@ -140,11 +140,24 @@ TEST(NetTest, net_execute_base_test) {
 #ifdef ENABLE_OP_TIMER
         net_executer.reset_op_time();
 #endif
+        double to = 0;
+        double tmin = 1000000;
+        double tmax = 0;
         my_time.start(ctx);
-        //auto start = std::chrono::system_clock::now();
+        saber::SaberTimer<Target> t1;
         for (int i = 0; i < FLAGS_epoch; i++) {
-        //DLOG(ERROR) << " epoch(" << i << "/" << epoch << ") ";
+            t1.clear();
+            t1.start(ctx);
             net_executer.prediction();
+            t1.end(ctx);
+            double tdiff = t1.get_average_ms();
+            if (tdiff > tmax) {
+                tmax = tdiff;
+            }
+            if (tdiff < tmin) {
+                tmin = tdiff;
+            }
+            to += tdiff;
         }
         my_time.end(ctx);
 #ifdef ENABLE_OP_TIMER
@@ -170,7 +183,9 @@ TEST(NetTest, net_execute_base_test) {
         size_t start = FLAGS_model_dir.length();
         std::string model_name = (*iter).substr(start, end-start);
         
-        LOG(INFO) << model_name << " batch_size " << FLAGS_num << " average time "<< my_time.get_average_ms() / FLAGS_epoch << " ms";
+        LOG(INFO) << model_name << " batch_size " << FLAGS_num << " average time " << to/ FLAGS_epoch << \
+            ", min time: " << tmin << "ms, max time: " << tmax << " ms";
+       //my_time.get_average_ms() / FLAGS_epoch << " ms";
     }
 }
 int main(int argc, const char** argv){
