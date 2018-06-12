@@ -170,12 +170,14 @@ TEST(NetTest, chinese_ner_executor) {
 //        timer.start(ctx);
         net_executer.prediction();
 //        timer.end(ctx);
-        auto tensor_out_5_p = net_executer.get_out("fc_2.tmp_2_out");
-        int v_size = tensor_out_5_p->valid_size();
-        for (int j = 0; j < v_size; ++j) {
-            std::cout << tensor_out_5_p->data()[j]<<" ";
-        }
-        std::cout << std::endl;
+
+
+//        auto tensor_out_5_p = net_executer.get_out("fc_2.tmp_2_out");
+//        int v_size = tensor_out_5_p->valid_size();
+//        for (int j = 0; j < v_size; ++j) {
+//            std::cout << tensor_out_5_p->data()[j]<<" ";
+//        }
+//        std::cout << std::endl;
     }
     //LOG(INFO)<<"elapse time: "<<timer.get_average_ms()<<" ms";
 }

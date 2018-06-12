@@ -166,6 +166,12 @@ SaberStatus SaberSequencePool<X86, OpDtype, inDtype, outDtype,
         dst_ptr += slice_size;
         src_ptr += slice_size * slice_num;
     }
+    int batch_size=seq_offset.size()-1;
+    std::vector<int> offset_new(batch_size+1);
+    for(int i=0;i<=batch_size;++i){
+        offset_new[i]=i;
+    }
+    outputs[0]->set_seq_offset(offset_new);
     return SaberSuccess;
 
 }

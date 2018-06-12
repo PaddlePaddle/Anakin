@@ -270,6 +270,12 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
         CUDA_CHECK(cudaPeekAtLastError());
 #endif
 	for (auto out : executer.outs) {
+	    std::vector<int> offset=out->get_seq_offset();
+	    LOG(INFO)<<"print offset of "<<executer.name <<",size = "<<offset.size();
+	    for(int i=0;i<offset.size();++i){
+	        LOG(INFO)<<offset[i]<<",";
+	    }
+	    LOG(INFO)<<"  end print offset of "<<executer.name;
         LOG(INFO) <<executer.name <<" d_tensor_out_p :" <<out->data();
         record_dev_tensorfile(out->data(), out->valid_size(),
                               ("net_record_" + executer.name + ".txt").data());

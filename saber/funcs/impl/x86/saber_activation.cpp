@@ -153,7 +153,9 @@ SaberStatus SaberActivation<X86, OpDtype, inDtype, outDtype,
             }
         }
     }
-
+    for (size_t i = 0; i < inputs.size(); i++) {
+        outputs[i]->set_seq_offset(inputs[i]->get_seq_offset());
+    }
     return SaberSuccess;
 }
 

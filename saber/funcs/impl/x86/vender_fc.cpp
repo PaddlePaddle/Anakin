@@ -87,7 +87,7 @@ SaberStatus VenderFc<X86, OpDtype, inDtype, outDtype,
         total_IC += IC;
         // LOG(INFO) << "anakin input[" << i << "] pack passed";
     }
-
+    outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
     return SaberSuccess;
 }
 
