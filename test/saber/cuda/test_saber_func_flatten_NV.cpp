@@ -11,7 +11,7 @@ using namespace anakin::saber;
 TEST(TestSaberFuncNV, test_func_flatten) {
 
     Env<NV>::env_init();
-    Env<X86>::env_init();
+    //Env<X86>::env_init();
     typedef TargetWrapper<NV> API;
     typedef TargetWrapper<X86> X86_API;
 

@@ -13,19 +13,22 @@
    limitations under the License. 
 */
 
-#ifndef ANAKIN_SABER_FUNCS_MULTICLASS_NMS_H
-#define ANAKIN_SABER_FUNCS_MULTICLASS_NMS_H
+#ifndef ANAKIN_SABER_FUNCS_NORMALIZE_H
+#define ANAKIN_SABER_FUNCS_NORMALIZE_H
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
 #ifdef NVIDIA_GPU
-#include "saber/funcs/impl/cuda/saber_multiclass_nms.h"
+#include "saber/funcs/impl/cuda/saber_normalize.h"
 #endif
 
 #ifdef USE_X86_PLACE
-#include "saber/funcs/impl/impl_multiclass_nms.h"
+#include "saber/funcs/impl/impl_normalize.h"
 #endif
-
+#ifdef USE_ARM_PLACE
+//todo
+#include "saber/funcs/impl/impl_normalize.h"
+#endif
 namespace anakin{
 
 namespace saber{
@@ -34,16 +37,16 @@ template<typename TargetType,
         DataType OpDtype,
         DataType inDtype = AK_FLOAT,
         DataType outDtype = AK_FLOAT,
-        typename LayOutType_op = NHW,
-        typename LayOutType_in = NHW,
-        typename LayOutType_out = NW
+        typename LayOutType_op = NCHW,
+        typename LayOutType_in = NCHW,
+        typename LayOutType_out = NCHW
 >
-class MultiClassNMS : public BaseFunc<
+class Normalize : public BaseFunc<
         Tensor<TargetType, inDtype, LayOutType_in>,
         Tensor<TargetType, outDtype, LayOutType_out>,
         Tensor<TargetType, OpDtype, LayOutType_op>,
         ImplBase,
-        MultiClassNMSParam
+        NormalizeParam
 > {
 public:
     using BaseFunc<
@@ -51,66 +54,60 @@ public:
             Tensor<TargetType, outDtype, LayOutType_out>,
             Tensor<TargetType, OpDtype, LayOutType_op>,
             ImplBase,
-            MultiClassNMSParam>::BaseFunc;
+            NormalizeParam>::BaseFunc;
 
+    Normalize() = default;
+    
     typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
     typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
     typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-    typedef MultiClassNMSParam<OpTensor> Param_t;
+    typedef NormalizeParam<OpTensor> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
 
-    MultiClassNMS() = default;
-
     virtual SaberStatus compute_output_shape(const Input_v& input, Output_v& output, \
         Param_t& param) override {
-        //! inputs[0]: bbox map, dims = 3 {N, boxes, 4(xmin, ymin, xmax, ymax)}
-        //! inputs[1]: score map, dims = 3 {N, classes, boxes}
-        //! output[0]: output detection result, dims = 2 {No., 6}
-        Shape sh1 = input[0]->valid_shape();
-        Shape sh2 = input[1]->valid_shape();
-        CHECK_EQ(sh1.dims(), 3) << "only support 3d (NHW) layout";
-        Shape shape_out = output[0]->valid_shape();
-        CHECK_EQ(shape_out.dims(), 2) << "only support 2d(NW) layout";
-        int boxes = sh1[1];
-        shape_out[0] = 1;
-        shape_out[1] = 7;
-        return output[0]->set_shape(shape_out);
+
+        //! support inplace computation, output shape = input shape
+        Shape output_shape = input[0]->valid_shape();
+        output[0]->set_shape(output_shape);
+        return SaberSuccess;
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
             case VENDER_IMPL:
-                this->_impl.push_back(new VenderMultiClassNMS <TargetType, OpDtype, inDtype, outDtype,
+                this->_impl.push_back(new VenderNormalize <TargetType, OpDtype, inDtype, outDtype,
                 LayOutType_op, LayOutType_in, LayOutType_out>);
                 return SaberSuccess;
 
             case SABER_IMPL:
-                this->_impl.push_back(new SaberMultiClassNMS <TargetType, OpDtype, inDtype, outDtype,
+                this->_impl.push_back(new SaberNormalize <TargetType, OpDtype, inDtype, outDtype,
                 LayOutType_op, LayOutType_in, LayOutType_out>);
                 return SaberSuccess;
 
             default:
-                return SaberUnImplError;            
+                return SaberUnImplError;
         }
     }
+
 
 private:
 
     virtual void pick_best_static() override {
-        //! Fc only has saber implementation
+        //! Normalize only has saber implementation
         this->_best_impl = this->_impl[0];
     }
 
     virtual void pick_best_runtime(Input_v input, Output_v output, \
         Param_t& param, Context<TargetType> &ctx) override {
-        //! Fc only has saber implementation
+        //! Normalize only has saber implementation
         this->_best_impl = this->_impl[0];
     }
 
     virtual void pick_best_specify(ImplEnum implenum) override {
-        //! Fc only has saber implementation
+        //! Normalize only has saber implementation
         this->_best_impl = this->_impl[0];
     }
 
@@ -120,4 +117,4 @@ private:
 
 } //namespace anakin
 
-#endif //ANAKIN_SABER_FUNCS_MULTICLASS_NMS_H
+#endif //ANAKIN_SABER_FUNCS_NORMALIZE_H

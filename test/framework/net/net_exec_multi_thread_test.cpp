@@ -5,12 +5,15 @@
 
 #ifdef USE_CUDA
 using Target = NV;
+using Target_H = X86;
 #endif
 #ifdef USE_X86_PLACE
 using Target = X86;
+using Target_H = X86;
 #endif
 #ifdef USE_ARM_PLACE
 using Target = ARM;
+using Target_H = ARM;
 #endif
 
 

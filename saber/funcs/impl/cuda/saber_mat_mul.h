@@ -62,7 +62,7 @@ public:
                                std::vector<DataTensor_out*>& outputs,
                                MatMulParam<OpTensor> &param,
                                Context<NV> &ctx) {
-        _kernel =saber_find_fast_sass_gemm(param._is_transpose_X, param._is_transpose_Y, param._M, param._N, param._K);
+        _kernel =saber_find_fast_sass_gemm(param._is_transpose_X, param._is_transpose_Y, param._m, param._n, param._k);
         return SaberSuccess;
     }
 
@@ -76,13 +76,13 @@ public:
         OutDataType* out = outputs[0]->mutable_data();
 
         //should add batch gemm here
-        for (int b = 0; b < param._B; b++)
+        for (int b = 0; b < param._b; b++)
         {
-            _kernel(param._M, param._N, param._K, 1.f, 
-                X + b * param._M * param._K, 
+            _kernel(param._m, param._n, param._k, 1.f,
+                X + b * param._m * param._k,
                 0.f, 
-                Y + b * param._K * param._N, 
-                out + b * param._M * param._N, stream);
+                Y + b * param._k * param._n,
+                out + b * param._m * param._n, stream);
         }
         return SaberSuccess;
     }

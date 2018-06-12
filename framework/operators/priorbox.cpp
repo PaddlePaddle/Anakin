@@ -4,20 +4,28 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void PriorBox<NV, AK_FLOAT, Precision::FP32>::operator()(OpContext<NV>& ctx, \
-        const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins, \
-        std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    auto* impl = static_cast<PriorBoxHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<PriorBoxHelper<NV, AK_FLOAT, \
-                  Precision::FP32>*>(this->_helper)->_param_priorbox;
-    impl->_funcs_priorbox(ins, outs, param, ctx);
-}
-#endif
+//#ifdef USE_CUDA
+//template<>
+//void PriorBox<NV, AK_FLOAT, Precision::FP32>::operator()(OpContext<NV>& ctx, \
+//        const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins, \
+//        std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
+//    auto* impl = static_cast<PriorBoxHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
+//    auto& param = static_cast<PriorBoxHelper<NV, AK_FLOAT, \
+//                  Precision::FP32>*>(this->_helper)->_param_priorbox;
+//    impl->_funcs_priorbox(ins, outs, param, ctx);
+//}
+//#endif
 
 /// TODO ... specialization other type of operator
-
+#define INSTANCE_PRIORBOX(Ttype, Dtype, Ptype) \
+template<> \
+void PriorBox<Ttype, Dtype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+        const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, \
+        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) { \
+    auto* impl = static_cast<PriorBoxHelper<Ttype, Dtype, Ptype>*>(this->_helper); \
+    auto& param = static_cast<PriorBoxHelper<Ttype, Dtype, Ptype>*>(this->_helper)->_param_priorbox; \
+    impl->_funcs_priorbox(ins, outs, param, ctx); \
+}
 
 /// set helper
 template<typename Ttype, DataType Dtype, Precision Ptype>
@@ -63,22 +71,30 @@ Status PriorBoxHelper<Ttype, Dtype, Ptype>::InferShape(const
 }
 
 #ifdef USE_CUDA
+INSTANCE_PRIORBOX(NV, AK_FLOAT, Precision::FP32);
 template class PriorBoxHelper<NV, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(PriorBox, PriorBoxHelper, NV, AK_FLOAT, Precision::FP32);
 template class PriorBoxHelper<NV, AK_FLOAT, Precision::FP16>;
 template class PriorBoxHelper<NV, AK_FLOAT, Precision::INT8>;
 #endif
 #ifdef USE_ARM_PLACE
+
+#ifdef ANAKIN_TYPE_FP32
+INSTANCE_PRIORBOX(ARM, AK_FLOAT, Precision::FP32);
 template class PriorBoxHelper<ARM, AK_FLOAT, Precision::FP32>;
-template class PriorBoxHelper<ARM, AK_FLOAT, Precision::FP16>;
-template class PriorBoxHelper<ARM, AK_FLOAT, Precision::INT8>;
-#endif
-// register helper
-#ifdef USE_CUDA
-ANAKIN_REGISTER_OP_HELPER(PriorBox, PriorBoxHelper, NV, AK_FLOAT, Precision::FP32);
-#endif
-#ifdef USE_ARM_PLACE
 ANAKIN_REGISTER_OP_HELPER(PriorBox, PriorBoxHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
+
+#ifdef ANAKIN_TYPE_FP16
+template class PriorBoxHelper<ARM, AK_FLOAT, Precision::FP16>;
+#endif
+
+#ifdef ANAKIN_TYPE_INT8
+template class PriorBoxHelper<ARM, AK_FLOAT, Precision::INT8>;
+#endif
+
+#endif //arm
+
 //! register op
 ANAKIN_REGISTER_OP(PriorBox)
 .Doc("PriorBox operator")
