@@ -16,7 +16,7 @@ help_anakin_docker_run() {
     echo ""
 	echo " -p Hardware Place where docker will running [ NVIDIA-GPU / AMD_GPU / X86-ONLY / ARM ] "
 	echo " -o Operating system docker will reside on [ Centos / Ubuntu ] "
-	echo " -m Script exe mode [ Build / Run / All] default mode is build and run"
+	echo " -m Script exe mode [ Build / Run ] default mode is build and run"
 	exit 1
 }
 
@@ -135,7 +135,7 @@ fi
 
 place=0
 os=0
-mode=All
+mode=Build
 while getopts p:o:m:hold opt
 do
 	case $opt in
