@@ -209,11 +209,18 @@ struct LstmParam{
 
     {}
 
-    LstmParam(opTensor* weight_in, opTensor* bias_in, opTensor* hidden_init_in=nullptr,
-              ActiveType input_activity=Active_unknow, ActiveType gate_activity_in=Active_sigmoid, ActiveType cell_activity_in=Active_tanh,
-              ActiveType candidate_activity_in=Active_tanh,bool with_peephole_in=true, bool skip_input_in=false,
-              bool is_reverse_in=false,
-              float dropout_param_in=1.f, int num_direction_in=1, int numLayers_in=1)
+    LstmParam(opTensor* weight_in, opTensor* bias_in,
+              opTensor* hidden_init_in = nullptr,
+              ActiveType input_activity = Active_unknow,
+              ActiveType gate_activity_in = Active_sigmoid,
+              ActiveType cell_activity_in = Active_tanh,
+              ActiveType candidate_activity_in = Active_tanh,
+              bool with_peephole_in = true,
+              bool skip_input_in = false,
+              bool is_reverse_in = false,
+              float dropout_param_in = 1.f,
+              int num_direction_in = 1,
+              int numLayers_in = 1)
             :
             weight_tensor(weight_in)
             ,bias_tensor(bias_in)
