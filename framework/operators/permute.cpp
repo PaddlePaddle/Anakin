@@ -3,7 +3,7 @@
 namespace anakin {
 
 namespace ops {
-
+#if 0
 //#ifdef USE_CUDA
 //template<>
 //void Permute<NV, AK_FLOAT, Precision::FP32>::operator()(OpContext<NV>& ctx,
@@ -101,7 +101,7 @@ ANAKIN_REGISTER_OP(Permute)
 .num_in(1)
 .num_out(1)
 .Args<PTuple<int>>("dims", " dims for permuting the order of input ");
-
+#endif //if 0
 } /* namespace ops */
 
 } /* namespace anakin */

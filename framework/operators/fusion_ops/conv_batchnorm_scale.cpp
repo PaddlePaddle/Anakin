@@ -3,20 +3,7 @@
 namespace anakin {
 
 namespace ops {
-
-//#ifdef USE_CUDA
-//template<>
-//void ConvBatchnormScale<NV, AK_FLOAT, Precision::FP32>::operator()(
-//    OpContext<NV>& ctx,
-//    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
-//    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-//    auto* impl = static_cast<ConvBatchnormScaleHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
-//    auto& param = static_cast<ConvBatchnormScaleHelper<NV, AK_FLOAT, Precision::FP32>*>
-//                  (this->_helper)->_param_conv_batchnorm_scale;
-//    impl->_funcs_conv_batchnorm_scale(ins, outs, param, ctx);
-//}
-//#endif
-
+#if 0
 /// TODO ... specialization other type of operator
 #define INSTANCE_CONVBATCHNORMSCALE(Ttype, Dtype, Ptype) \
 template<> \
@@ -177,7 +164,7 @@ ANAKIN_REGISTER_OP(ConvBatchnormScale)
                 .Args<int>("scale_0_axis", "axis for scale")
                 .Args<float>("batchnorm_0_epsilon", "epsilon for batchnorm")
                 .Args<float>("batchnorm_0_momentum", "momentum for batchnorm");
-
+#endif
 } /* namespace ops */
 
 } /* namespace anakin */
