@@ -256,7 +256,8 @@ OpsRegister.Register("PriorBox").set_attr(min_size=list(),
                                           img_w=int(), 
                                           step_h=float(), 
                                           step_w=float(), 
-                                          offset=float())
+                                          offset=float(),
+                                          type="CAFFE")
 
 # enum code_type {
 #	 CORNER,
