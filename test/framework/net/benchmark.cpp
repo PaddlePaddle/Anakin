@@ -9,6 +9,7 @@
 #include <unistd.h>  
 #include <fcntl.h>
 #include <map>
+#include "framework/operators/ops.h"
 
 #ifdef USE_GFLAGS
 #include <gflags/gflags.h>
@@ -28,12 +29,15 @@ int FLAGS_epoch = 1000;
 
 #ifdef USE_CUDA
 using Target = NV;
+using Target_H = X86;
 #endif
 #ifdef USE_X86_PLACE
 using Target = X86;
+using Target_H = X86;
 #endif
 #ifdef USE_ARM_PLACE
 using Target = ARM;
+using Target_H = ARM;
 #endif
 
 void getModels(std::string path, std::vector<std::string>& files) {
@@ -69,13 +73,17 @@ TEST(NetTest, net_execute_base_test) {
         if (!status) {
             LOG(FATAL) << " [ERROR] " << status.info();
         }
-        graph.ResetBatchSize("input_0", FLAGS_num);        
+        LOG(INFO) << "set batchsize to " << FLAGS_num;
+        graph.ResetBatchSize("input_0", FLAGS_num);
+        LOG(INFO) << "optimize the graph";
         graph.Optimize();
         // constructs the executer net
+        LOG(INFO) << "create net to execute";
         Net<Target, AK_FLOAT, Precision::FP32> net_executer(graph, true);
         // get in
+        LOG(INFO) << "get input";
         auto d_tensor_in_p = net_executer.get_in("input_0");
-        Tensor4d<X86, AK_FLOAT> h_tensor_in;
+        Tensor4d<Target_H, AK_FLOAT> h_tensor_in;
         auto valid_shape_in = d_tensor_in_p->valid_shape();
         for (int i = 0; i < valid_shape_in.size(); i++) {
             LOG(INFO) << "detect input dims[" << i << "]" << valid_shape_in[i];

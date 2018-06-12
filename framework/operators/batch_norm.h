@@ -49,7 +49,11 @@ public:
 
     friend class BatchNormHelper<Ttype, Dtype, Ptype>;
 };
-
+#define INSTANCE_BATCHNORM(Ttype, Dtype, Ptype) \
+template<> \
+void BatchNorm<Ttype, Dtype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+    const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, \
+    std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) { }
 /**
  * \brief Batch normalization helper class
  * public inherit OperatorHelper
@@ -60,9 +64,11 @@ class BatchNormHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     BatchNormHelper()=default;
 
-    ~BatchNormHelper();
+    ~BatchNormHelper() {}
 
-    Status InitParam() override;
+    Status InitParam() override {
+        return Status::OK();
+    }
 
     /**
     * \brief initial all the resource needed by pooling
@@ -73,7 +79,9 @@ public:
     */
     Status Init(OpContext<Ttype> &ctx,
                 const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override {
+        return Status::OK();
+    }
 
     /**
     * \brief infer the shape of output and input.
@@ -82,11 +90,14 @@ public:
     * \return status
     */
     Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override {
+        for (int i = 0; i <  outs.size(); i++) {
+            // set tensor shape tensor->set_shape(shape[i]);
+            outs[i]->set_shape(ins[i]->shape());
+        }
 
-public:
-    //PermuteParam<void> _param_permute;
-    //saber::Permute<Ttype, Dtype> _funcs_permute;
+        return Status::OK();
+    }
 
 private:
     ///< _dims stand for batchNorm size 
@@ -94,6 +105,41 @@ private:
 };
 
 
+#ifdef USE_CUDA
+INSTANCE_BATCHNORM(NV, AK_FLOAT, Precision::FP32);
+template class BatchNormHelper<NV, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(BatchNorm, BatchNormHelper, NV, AK_FLOAT, Precision::FP32);
+#endif
+
+#ifdef USE_X86_PLACE
+INSTANCE_BATCHNORM(X86, AK_FLOAT, Precision::FP32);
+template class BatchNormHelper<X86, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(BatchNorm, BatchNormHelper, X86, AK_FLOAT, Precision::FP32);
+#endif
+
+#ifdef USE_ARM_PLACE
+INSTANCE_BATCHNORM(ARM, AK_FLOAT, Precision::FP32);
+template class BatchNormHelper<ARM, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(BatchNorm, BatchNormHelper, ARM, AK_FLOAT, Precision::FP32);
+#endif
+
+//! register op
+ANAKIN_REGISTER_OP(BatchNorm)
+.Doc("BatchNorm operator")
+#ifdef USE_CUDA
+.__alias__<NV, AK_FLOAT, Precision::FP32>("batchnorm")
+#endif
+
+#ifdef USE_ARM_PLACE
+.__alias__<ARM, AK_FLOAT, Precision::FP32>("batchnorm")
+#endif
+
+#ifdef USE_X86_PLACE
+.__alias__<X86, AK_FLOAT, Precision::FP32>("batchnorm")
+#endif
+.num_in(1)
+.num_out(1)
+.Args<PTuple<int>>("dims", " dims for permuting the order of input ");
 
 } /* namespace ops */
 

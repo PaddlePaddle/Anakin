@@ -25,6 +25,11 @@
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/impl_axpy.h"
 #endif
+
+#ifdef USE_ARM_PLACE
+//todo
+#include "saber/funcs/impl/impl_axpy.h"
+#endif
    
 namespace anakin {
 namespace saber {

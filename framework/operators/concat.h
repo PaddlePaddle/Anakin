@@ -49,7 +49,16 @@ public:
 
     friend class ConcatHelper<Ttype, Dtype, Ptype>;
 };
-
+#define INSTANCE_CONCAT(Ttype, Dtype, Ptype) \
+template<> \
+void Concat<Ttype, Dtype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+        const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, \
+                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) { \
+    auto* impl = static_cast<ConcatHelper<Ttype, Dtype, Ptype>*>(this->_helper); \
+    auto& param = \
+        static_cast<ConcatHelper<Ttype, Dtype, Ptype>*>(this->_helper)->_param_concat; \
+    impl->_funcs_concat(ins, outs, param, ctx); \
+}
 /**
  * \brief contact helper class
  * public inherit OperatorHelper 
@@ -60,9 +69,15 @@ class ConcatHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     ConcatHelper()=default;
 
-    ~ConcatHelper();
+    ~ConcatHelper() {}
 
-    Status InitParam() override;
+    Status InitParam() override {
+        DLOG(WARNING) << "Parsing Concat op parameter.";
+        auto axis = GET_PARAMETER(int, axis);
+        ConcatParam<Tensor4d<Ttype, Dtype>> param_concat(axis);
+        _param_concat = param_concat;
+        return Status::OK();
+    }
 
     /**
     * \brief initial all the resource needed by pooling
@@ -73,7 +88,10 @@ public:
     */
     Status Init(OpContext<Ttype> &ctx,
                 const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override {
+        SABER_CHECK(_funcs_concat.init(ins, outs, _param_concat, SPECIFY, SABER_IMPL, ctx));
+        return Status::OK();
+    }
 
     /**
     * \brief infer the shape of output and input.
@@ -82,7 +100,10 @@ public:
     * \return status
     */
     Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override {
+        SABER_CHECK(_funcs_concat.compute_output_shape(ins, outs, _param_concat));
+        return Status::OK();
+    }
 
 public:
     ///< _param_concat stand for contact parameter
@@ -95,6 +116,39 @@ private:
     PTuple<int> _dims; 
 };
 
+#ifdef USE_CUDA
+INSTANCE_CONCAT(NV, AK_FLOAT, Precision::FP32);
+template class ConcatHelper<NV, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Concat, ConcatHelper, NV, AK_FLOAT, Precision::FP32);
+#endif
+
+#ifdef USE_ARM_PLACE
+INSTANCE_CONCAT(ARM, AK_FLOAT, Precision::FP32);
+template class ConcatHelper<ARM, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Concat, ConcatHelper, ARM, AK_FLOAT, Precision::FP32);
+#endif
+
+#ifdef USE_X86_PLACE
+INSTANCE_CONCAT(X86, AK_FLOAT, Precision::FP32);
+template class ConcatHelper<X86, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Concat, ConcatHelper, X86, AK_FLOAT, Precision::FP32);
+#endif
+
+//! register op
+ANAKIN_REGISTER_OP(Concat)
+.Doc("Concat operator")
+#ifdef USE_CUDA
+.__alias__<NV, AK_FLOAT, Precision::FP32>("concat")
+#endif
+#ifdef USE_ARM_PLACE
+.__alias__<ARM, AK_FLOAT, Precision::FP32>("concat")
+#endif
+#ifdef USE_X86_PLACE
+.__alias__<X86, AK_FLOAT, Precision::FP32>("concat")
+#endif
+.num_in(2)
+.num_out(1)
+.Args<int>("axis", " axis for concat the input ");
 
 
 } /* namespace ops */

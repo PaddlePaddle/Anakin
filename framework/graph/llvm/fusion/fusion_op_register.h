@@ -3,7 +3,7 @@
 namespace anakin {
 
 namespace graph {
-
+#if 1
 REGISTER_GRAPH_FUSION_PATTERN(DeconvRelu)
 .Type(IN_ORDER)
 .AddOpNode("conv_0",  "Deconvolution")
@@ -79,8 +79,7 @@ REGISTER_GRAPH_FUSION_PATTERN(EltwiseRelu)
     .Type(IN_PARELLEL)
     .CreatePattern([](VGraph* graph){
     })*/
-
-
+#endif // 0
 } /* namespace graph */
 
 } /* namespace anakin */
