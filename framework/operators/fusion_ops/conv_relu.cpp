@@ -3,22 +3,19 @@
 namespace anakin {
 
 namespace ops {
-
-#ifdef USE_CUDA
-template<>
-void ConvRelu<NV, AK_FLOAT, Precision::FP32>::operator()(
-    OpContext<NV>& ctx,
-    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
-    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    auto* impl =
-        static_cast<ConvReluHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
-    auto& param = impl->_param_conv_relu;
-    impl->_funcs_conv_relu(ins, outs, param, ctx);
-}
-#endif
-
+#if 0
 /// TODO ... specialization other type of operator
-
+#define INSTANCE_CONVRELU(Ttype, Dtype, Ptype) \
+template<> \
+void ConvRelu<Ttype, Dtype, Ptype>::operator()(\
+    OpContext<Ttype>& ctx,\
+    const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,\
+    std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {\
+    auto* impl =\
+        static_cast<ConvReluHelper<Ttype, Dtype, Ptype>*>(this->_helper);\
+    auto& param = impl->_param_conv_relu;\
+    impl->_funcs_conv_relu(ins, outs, param, ctx);\
+}
 
 /// set helper
 template<typename Ttype, DataType Dtype, Precision Ptype>
@@ -115,24 +112,27 @@ Status ConvReluHelper<Ttype, Dtype, Ptype>::InferShape(const
 }
 
 #ifdef USE_CUDA
+INSTANCE_CONVRELU(NV, AK_FLOAT, Precision::FP32);
 template class ConvReluHelper<NV, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, NV, AK_FLOAT, Precision::FP32);
 template class ConvReluHelper<NV, AK_FLOAT, Precision::FP16>;
 template class ConvReluHelper<NV, AK_FLOAT, Precision::INT8>;
 #endif
 
 #ifdef USE_ARM_PLACE
+#ifdef ANAKIN_TYPE_FP32
+INSTANCE_CONVRELU(ARM, AK_FLOAT, Precision::FP32);
 template class ConvReluHelper<ARM, AK_FLOAT, Precision::FP32>;
-template class ConvReluHelper<ARM, AK_FLOAT, Precision::FP16>;
-template class ConvReluHelper<ARM, AK_FLOAT, Precision::INT8>;
-#endif
-
-// register helper
-#ifdef USE_CUDA
-ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, NV, AK_FLOAT, Precision::FP32);
-#endif
-#ifdef USE_ARM_PLACE
 ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
+#ifdef ANAKIN_TYPE_FP16
+template class ConvReluHelper<ARM, AK_FLOAT, Precision::FP16>;
+#endif
+#ifdef ANAKIN_TYPE_INT8
+template class ConvReluHelper<ARM, AK_FLOAT, Precision::INT8>;
+#endif
+#endif//arm
+
 
 //! register op
 ANAKIN_REGISTER_OP(ConvRelu)
@@ -154,7 +154,7 @@ ANAKIN_REGISTER_OP(ConvRelu)
                 .Args<PTuple<int>>("kernel_size", "kernel size of kernel (x, y)")
                 .Args<int>("axis", "axis of conv")
                 .Args<float>("relu_0_alpha", " alpha for relu");
-
+#endif
 } /* namespace ops */
 
 } /* namespace anakin */

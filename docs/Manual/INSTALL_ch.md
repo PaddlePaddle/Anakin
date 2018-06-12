@@ -6,7 +6,7 @@
 
 * [在CentOS上安装 Anakin]()
 * [在Ubuntu上安装 Anakin]()
-* [在ARM上安装 Anakin]()
+* [在ARM上安装 Anakin](run_on_arm_ch.md)
 * [验证安装]()
 
 

@@ -43,10 +43,10 @@ struct MatMulParam {
 
     bool _is_transpose_X{false};
     bool _is_transpose_Y{false};
-    int _M = 0;
-    int _N = 0;
-    int _K = 0;
-    int _B = 0;//batch_size
+    int _m = 0;
+    int _n = 0;
+    int _k = 0;
+    int _b = 0;//batch_size
 
 };
 
