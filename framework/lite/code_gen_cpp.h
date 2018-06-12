@@ -16,6 +16,8 @@
 #ifndef ANAKIN_FRAMEWORK_LITE_CODE_GENERATE_CPP_H
 #define ANAKIN_FRAMEWORK_LITE_CODE_GENERATE_CPP_H
 
+#include "framework/lite/op_map.h"
+
 namespace anakin {
 
 namespace lite {
@@ -24,7 +26,7 @@ namespace lite {
  *  \brief class to generate cpp files.
  *
  */
-class GenCPP : public CodeGenBase {
+class GenCPP : public CodeGenBase<ARM, AK_FLOAT, Precision::FP32> {
 public:
 	GenCPP() {}
 	explicit GenCPP(std::string& file_name):_file_name(file_name) {
@@ -50,12 +52,40 @@ private:
 	void gen_source_start();
 	void gen_source_end();
 
-	std::string gen_include_guard();
+	/**
+	 * \brief generate tensors for edges
+	 */
+	void gen_tensors();
+
+	/**
+	 * \brief generate model's inputs and outputs
+	 */
+	void gen_model_ios();
+
+	/**
+	 * \brief generate operations for model
+	 */
+	void gen_ops();
+
+	/**
+	 * \brief generate initial impl api for model
+	 */
+	void gen_init_impl();
+
+	/**
+	 * \brief generate running api impl for model
+	 */
+	void gen_api_impl();	
+
+	/**
+	 * \brief parsing parameter of graph
+	 */
+	virtual bool parser_param() final;
 
 private:
 	std::string _file_name;
 	CodeWritter _code;
-	CodeWritter _weights;
+	BinaryWritter _weights;
 };
 
 } /* namespace lite */

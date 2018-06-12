@@ -28,7 +28,7 @@ building_and_run_nvidia_gpu_docker() {
 	DockerfilePath=$1
 	MODE=$2
 	tag="$(echo $DockerfilePath | awk -F/ '{print tolower($(NF-3) "_" $(NF-1))}')"
-    echo "Setting env nvidia-docker2 in background ..."
+    	echo "Setting env nvidia-docker2 in background ..."
 	echo "Building nvidia docker ... [ docker_image_name: Anakin image_tag: $tag ]" 
 	if [ ! $MODE = "Run" ]; then
 		sudo docker build --network=host -t anakin:$tag"-base" . -f $DockerfilePath

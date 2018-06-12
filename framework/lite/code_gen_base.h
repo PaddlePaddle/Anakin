@@ -16,15 +16,46 @@
 #ifndef ANAKIN_FRAMEWORK_LITE_CODE_GEN_BASE_H
 #define ANAKIN_FRAMEWORK_LITE_CODE_GEN_BASE_H
 
+#include <string>
+#include <vector>
+#include <unordered_map>
+
 #include "framework/graph/graph.h"
 
 namespace anakin {
 
 namespace lite {
 
+/**
+ * \brief Node information for generating executor
+ */
+struct NodeInfo {
+	std::string name;				// node name
+	std::string op_name;			// op name 
+	std::vector<std::string> ins;	// input edge name
+	std::vector<std::string> outs;	// output edge name
+};
+
+
+/**
+ * \brief Edge information for generating edge tensors.
+ */
+struct EdgeInfo {
+	std::string name;	 			// edge name 
+	std::vector<int> valid_shape; 	// edge valid shape
+	std::vector<int> real_shape;	// edge real shape
+	bool is_shared{false}; 			// if the edge is shared by others
+	std::string share_from{""}; 	// if the edge is_shared(true), share_from will hold the target edge name.
+};
+
 /**  
  *  \brief class for target language code generator.
  *
+ *  The class CodeGenBase hold base information for running model.
+ *  There exists several base info:
+ *  	1. Operatoin name in execution order.
+ *  	2. All the tensor model needs and share info between those tensors.
+ *  	3. Model weights
  */
 template<typename Ttype, DataType Dtype, Precision Ptype>
 class CodeGenBase {
@@ -32,12 +63,10 @@ public:
 	CodeGenBase() {}
 	virtual ~CodeGenBase(){}
 
-	virtual void gen_files() {}
-
 	/**
-	 *  \biref initial graph msg
+	 *  \biref initialize graph msg
 	 */
-	bool init_graph(Graph<Ttype, Dtype, Ptype>& graph);
+	bool extract_graph(Graph<Ttype, Dtype, Ptype>& graph);
 
 private:
 	/**
@@ -46,14 +75,16 @@ private:
 	bool init_memory_info();
 
 	/**
-	 * \brief serialization of weights
+	 * \brief parsing parameter of graph
 	 */
-	bool serialize_weights();
+	virtual bool parser_param()=0;
 
-private:
+protected:
 	Graph<Ttype, Dtype, Ptype> _graph;
-	std::vector<std::string> _exec_op_order; /// running order of operation's name
-	BinaryWritter _weights_io; // weight file writter
+	std::vector<std::string> _exec_node_order; /// running order of operation's name
+	std::unordered_map<std::string, NodeInfo> _graph_node_map;
+	/// graph base arch
+	std::unordered_map<std::string, EdgeInfo> _tensor_map;
 };
 
 } /* namespace lite */

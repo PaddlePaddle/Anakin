@@ -34,9 +34,42 @@ inline T get_attr(std::string& attr_name, graph::AttrInfo& attrs) {
 	return any_cast<T>(attrs.parameter[attr_name]); 
 }
 
-typedef std::fuction<std::string(graph::AttrInfo&)> ParseParamFunctor;
+/**
+ * \brief class Weghts
+ */
+struct WeghtOffset {
+	struct Offset{
+		size_t offset; // offset from start
+		size_t length; // weight length
+	}
+	std::vector<Offset> weights;
+};
 
-std::unordered_map<std::string, ParseParamFunctor> OPERATION_MAP {};
+class WeightsWritter {
+public:
+
+private:
+	int _offset{0};
+	std::vector<WeghtOffset> _weights;
+	BinaryWritter _writter;
+};
+
+typedef Singleton<WeightsWritter> GraphWeghts;
+
+/// function type for parser
+typedef std::fuction<std::string(graph::AttrInfo& attr, 
+								 std::string& op_class_name, 
+								 std::string& node_name)> ParseParamFunctor;
+/**
+ * \brief class OpParser
+ */
+struct OpParser {
+	std::string OpClassName;
+	ParseParamFunctor parse;
+};
+
+/// operations map
+extern std::unordered_map<std::string, OpParser> OPERATION_MAP;
 
 } /* namespace lite */
 
