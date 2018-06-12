@@ -1,7 +1,6 @@
 #!/bin/bash
 # This script shows how one can build a anakin for the Android platform using android-tool-chain. 
-export ANDROID_NDK=/Users/lixiaoyang05/Library/Android/sdk/ndk-bundle/
-#export ANDROID_NDK=/home/xiaoE/anakin-v2/arm_relevant/android-ndk-r14b/
+export ANDROID_NDK="your ndk path"
 ANAKIN_ROOT="$( cd "$(dirname "$0")"/.. ; pwd -P)"
 echo "-- Anakin root dir is: $ANAKIN_ROOT"
 
@@ -39,7 +38,7 @@ cmake .. \
 	-DTARGET_ANDROID=YES \
 	-DBUILD_WITH_UNIT_TEST=YES \
     -DUSE_PYTHON=OFF \
-	-DENABLE_DEBUG=YES \
+	-DENABLE_DEBUG=NO \
 	-DENABLE_VERBOSE_MSG=NO \
 	-DDISABLE_ALL_WARNINGS=YES \
 	-DENABLE_NOISY_WARNINGS=NO \
