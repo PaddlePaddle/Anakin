@@ -109,8 +109,7 @@ public:
                     //! ymax
                     _output_host[idx++] = (center_y + box_height / 2.f) / img_height;
 
-                    if (param.max_size.size() > 0) {
-
+                    if (param.max_size.size() > 0 && param.type == CAFFE) {
                         int max_size = param.max_size[s];
                         //! second prior: aspect_ratio = 1, size = sqrt(min_size * max_size)
                         box_width = box_height = sqrtf(min_size * max_size);
@@ -132,6 +131,20 @@ public:
                         }
                         box_width = min_size * sqrt(ar);
                         box_height = min_size / sqrt(ar);
+                        //! xmin
+                        _output_host[idx++] = (center_x - box_width / 2.f) / img_width;
+                        //! ymin
+                        _output_host[idx++] = (center_y - box_height / 2.f) / img_height;
+                        //! xmax
+                        _output_host[idx++] = (center_x + box_width / 2.f) / img_width;
+                        //! ymax
+                        _output_host[idx++] = (center_y + box_height / 2.f) / img_height;
+                    }
+
+                    if (param.max_size.size() > 0 && param.type == FLUID) {
+                        int max_size = param.max_size[s];
+                        //! second prior: aspect_ratio = 1, size = sqrt(min_size * max_size)
+                        box_width = box_height = sqrtf(min_size * max_size);
                         //! xmin
                         _output_host[idx++] = (center_x - box_width / 2.f) / img_width;
                         //! ymin

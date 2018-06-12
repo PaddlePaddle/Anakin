@@ -52,9 +52,10 @@ TEST(TestSaberFuncNV, test_func_priorbox_NV) {
     int img_w = 0;
     int img_h = 0;
     float offset = 0.5;
+    FrameworkType type = FLUID;
 
     PriorBoxParam<TensorDf4> param(min_size, max_size, aspect_ratio, \
-                                   variance, flip, clip, img_w, img_h, step_w, step_h, offset);
+                                   variance, flip, clip, img_w, img_h, step_w, step_h, offset, type);
 
 
 
