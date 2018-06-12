@@ -43,7 +43,7 @@ It is recommended to check out the
 before looking into the
 [build from source guide](docs/Manual/INSTALL_en.md).
 
-for ARM, please refer [run on arm](docs/Manual/run_on_arm_ch.md)
+for ARM, please refer [run on arm](docs/Manual/run_on_arm_en.md)
 
 ## Benchmark
 It is recommended to check out the [Benchmark Readme](benchmark/README.md)
