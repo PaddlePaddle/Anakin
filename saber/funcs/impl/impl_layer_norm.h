@@ -21,7 +21,7 @@ namespace anakin{
 
 namespace saber{
 
-DEFINE_OP_CLASS(Normalize, NormalizeParam);
+DEFINE_OP_CLASS(LayerNorm, LayerNormParam);
 
 }
 }

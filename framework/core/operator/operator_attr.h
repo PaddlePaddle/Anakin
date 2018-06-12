@@ -91,7 +91,7 @@ public:
         if (!this->has_arg(arg_name)) {
             this->opAttr_.Args_map[arg_name] = arg;
         } else {
-            LOG(ERROR) << " you have set the argument: " << arg_name << " , so it's igrored by anakin";
+            //LOG(ERROR) << " you have set the argument: " << arg_name << " , so it's igrored by anakin";
         }
         return *(this);
     }
