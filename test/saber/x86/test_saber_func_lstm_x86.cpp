@@ -12,7 +12,7 @@
 #include "saber/core/tensor_op.h"
 #include "saber/saber_types.h"
 #include "x86_test_common.h"
-#include "test_saber_func_lstm_x86.h"
+#include "test_saber_func_x86.h"
 
 using namespace anakin::saber;
 using namespace std;
@@ -27,7 +27,9 @@ typedef struct _test_lstm_params {
     ActiveType cell_activation;
     bool with_peephole;
     bool with_init_hidden;
+    bool skip_input;
 } test_lstm_params;
+
 typedef Tensor<X86, AK_FLOAT, NCHW> Tensor4f;
 
 inline void sigmoid(int len, float *x, float *y) {
@@ -67,25 +69,37 @@ void compute_ref_lstm_fwd(std::vector<Tensor4f*> &src, std::vector<Tensor4f*> &d
 
     Tensor4f *input = src[0];
     float *h = dst[0]->mutable_data();
-    float *c = dst[1]->mutable_data();
+    float *c = nullptr;
 
     // get Wx = [Wix, Wfx, Wcx, Woc] while they are all input_size * layer_size matrices
-    const float *Wx = weights->data();
     const float *x = input->data();
     int N = input->num();
     int input_size = input->channel();
     int layer_size = dst[0]->channel();
 
-    // get xx = x * Wx
-    float *xx = (float*)zmalloc(N * 4 * layer_size * sizeof(float), 4096);
-    cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N, 4 * layer_size, input_size, 1, x, input_size, Wx, 4 * layer_size, 0, xx, 4 * layer_size);
-    if (param._input_activity != Active_unknow) {
-        if (param._input_activity == Active_stanh) {
-            stanh(N * 4 * layer_size, xx, xx);
-        } else if (param._input_activity == Active_tanh) {
-            tanh(N * 4 * layer_size, xx, xx);
-        } else {
-            LOG(ERROR) << "unsupported gate activation now";
+    if (dst.size() >= 2) {
+        c = dst[1]->mutable_data();
+    } else {
+        c = (float*)zmalloc(N * layer_size * sizeof(float), 4096);
+    }
+
+    float *xx = nullptr;
+    if (param.skip_input) {
+        // the input is x * Wx
+        xx = const_cast<float *>(x);
+    } else {
+        // get xx = x * Wx
+        const float *Wx = weights->data();
+        xx = (float*)zmalloc(N * 4 * layer_size * sizeof(float), 4096);
+        cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N, 4 * layer_size, input_size, 1, x, input_size, Wx, 4 * layer_size, 0, xx, 4 * layer_size);
+        if (param.input_activity != Active_unknow) {
+            if (param.input_activity == Active_stanh) {
+                stanh(N * 4 * layer_size, xx, xx);
+            } else if (param.input_activity == Active_tanh) {
+                tanh(N * 4 * layer_size, xx, xx);
+            } else {
+                LOG(ERROR) << "unsupported gate activation now";
+            }
         }
     }
 
@@ -94,13 +108,17 @@ void compute_ref_lstm_fwd(std::vector<Tensor4f*> &src, std::vector<Tensor4f*> &d
     float* p = (float*)zmalloc(layer_size * sizeof(float), 4096);
 
     std::vector<int> seq_offset = input->get_seq_offset();
-    seq_offset.push_back(input->shape()[0]);
     int seq_num = seq_offset.size() - 1;
 
-    const float *Wh = weights->data() + 4 * input_size * layer_size;
+    const float *Wh = nullptr;
+    if (param.skip_input) {
+        Wh = weights->data();
+    } else {
+        Wh = weights->data() + 4 * input_size * layer_size;
+    }
     const float *b = bias->data();
     const float *peephole = nullptr;
-    if (param._with_peephole) {
+    if (param.with_peephole) {
         peephole = bias->data() + 4 * layer_size;
     }
 
@@ -148,14 +166,14 @@ void compute_ref_lstm_fwd(std::vector<Tensor4f*> &src, std::vector<Tensor4f*> &d
             cblas_saxpby(4 * layer_size, 1, b, 1, 1, ihcot, 1);
 
             // gate activity for it and ft, candidate activity for cct
-            if (param._gate_activity == Active_sigmoid) {
+            if (param.gate_activity == Active_sigmoid) {
                 sigmoid(layer_size, ihcot, ihcot);
                 sigmoid(layer_size, ihcot + layer_size, ihcot + layer_size);
             } else {
                 LOG(ERROR) << "unsupported gate activation now";
             }
 
-            if (param._candidate_activity == Active_relu) {
+            if (param.candidate_activity == Active_relu) {
                 relu(layer_size, ihcot + 2 * layer_size, ihcot + 2 * layer_size);
             } else {
                 LOG(ERROR) << "unsupported candidate activation now";
@@ -172,19 +190,19 @@ void compute_ref_lstm_fwd(std::vector<Tensor4f*> &src, std::vector<Tensor4f*> &d
                 vsMul(layer_size, ct, peephole + 2 * layer_size, p);
                 cblas_saxpby(layer_size, 1, p, 1, 1, ihcot + 3 * layer_size, 1);
             }
-            if (param._gate_activity == Active_sigmoid) {
+            if (param.gate_activity == Active_sigmoid) {
                 sigmoid(layer_size, ihcot + 3 * layer_size, ihcot + 3 * layer_size);
             }
 
             // calc ht
-            if (param._cell_activity == Active_sigmoid) {
+            if (param.cell_activity == Active_sigmoid) {
                 sigmoid(layer_size, ct, act);
             }
             vsMul(layer_size, ihcot + 3 * layer_size, act, ht);
         }
     }
 
-    if (xx) {
+    if (!param.skip_input && xx) {
         zfree(xx);
         xx = nullptr;
     }
@@ -208,6 +226,10 @@ void compute_ref_lstm_fwd(std::vector<Tensor4f*> &src, std::vector<Tensor4f*> &d
         zfree(init_c);
         init_c = nullptr;
     }
+    if (dst.size() < 2 && c != nullptr) {
+        zfree(c);
+        c = nullptr;
+    }
 
     return;
 }
@@ -215,27 +237,36 @@ void compute_ref_lstm_fwd(std::vector<Tensor4f*> &src, std::vector<Tensor4f*> &d
 bool lstm_test(test_lstm_params &param) {
     std::vector<Tensor4f*> inputs;
 
-    std::vector<int> seq_offsets={0,3};
-    int total_seq_len = seq_offsets[seq_offsets.size()-1];
-    int offset = total_seq_len;
-//    for (int i = 0; i < param.mb; i++) {
-//        int seq_len = rand()%50 + 50;
-//        total_seq_len += seq_len;
-////        seq_offsets.push_back(offset);
-//        offset += seq_len;
-//    }
-//    seq_offsets.push_back(total_seq_len);
+    std::vector<int> seq_offsets;
+    int total_seq_len = 0;
+    int offset = 0;
+    for (int i = 0; i < param.mb; i++) {
+        int seq_len = rand()%50 + 50;
+        total_seq_len += seq_len;
+        seq_offsets.push_back(offset);
+        offset += seq_len;
+    }
+    seq_offsets.push_back(offset);
+
     Shape inputShape(total_seq_len, param.input_size, 1, 1);
+    if (param.skip_input) {
+        inputShape[1] = 4 * param.layer_size;
+    }
     Tensor4f *i = new Tensor4f(inputShape);
     i->set_seq_offset(seq_offsets);
     inputs.push_back(i);
     fill_tensor_host_rand<Tensor4f>(*(inputs[0]));
 
     // weight's layout:
-    // [ Wix Wfx Wcx Wox ]
     // [ Wih Wfh Wch Woh ]
-    // It's a (input_size + layer_size) * (4 * layer_size) matrix
-    Shape weightShape(param.input_size + param.layer_size, 4 * param.layer_size, 1, 1);
+    Shape weightShape(param.layer_size, 4 * param.layer_size, 1, 1);
+    if (!param.skip_input) {
+        // weight's layout:
+        // [ Wix Wfx Wcx Wox ]
+        // [ Wih Wfh Wch Woh ]
+        // It's a (input_size + layer_size) * (4 * layer_size) matrix
+        weightShape[0] = param.input_size + param.layer_size;
+    }
     Tensor4f saberWeight(weightShape);
     fill_tensor_host_rand(saberWeight);
 
@@ -256,7 +287,8 @@ bool lstm_test(test_lstm_params &param) {
     fill_tensor_host_rand(saberHidden);
 
     LstmParam<Tensor4f> lstm_param(&saberWeight, &saberBias, param.with_init_hidden ? &saberHidden : nullptr,
-                                   param.input_activation, param.gate_activation, param.cell_activation, param.candidate_activation, param.with_peephole);
+                                   param.input_activation, param.gate_activation, param.cell_activation,
+                                   param.candidate_activation, param.with_peephole, param.skip_input);
 
     Shape outputShape(total_seq_len, param.layer_size, 1, 1);
     std::vector<Tensor4f*> saber_outputs;
@@ -285,27 +317,35 @@ bool lstm_test(test_lstm_params &param) {
     return flag;
 }
 
-TEST(TestSaberLSTMX86, test_tensor_lstm) {
+TEST(TestSaberFuncX86, test_tensor_lstm) {
     Env<X86>::env_init();
 
     test_lstm_params test_param[] = {
-        // batch_size, input_size, layer_size, input_activation, gate_activation, candidate_activation, cell_activation, with_peephole, with_init_hidden
-        test_lstm_params{1, 128, 128, Active_unknow, Active_sigmoid, Active_sigmoid, Active_sigmoid, true, false},
-//        test_lstm_params{6, 55, 300, Active_unknow, Active_sigmoid, Active_relu, Active_sigmoid, false, false},
-//        test_lstm_params{6, 55, 300, Active_unknow, Active_sigmoid, Active_relu, Active_sigmoid, true, false},
-//        test_lstm_params{6, 55, 300, Active_unknow, Active_sigmoid, Active_relu, Active_sigmoid, false, true},
-//        test_lstm_params{6, 30, 300, Active_unknow, Active_sigmoid, Active_relu, Active_sigmoid, true, true},
-//        test_lstm_params{6, 55, 300, Active_tanh, Active_sigmoid, Active_relu, Active_sigmoid, false, false},
-//        test_lstm_params{6, 55, 300, Active_tanh, Active_sigmoid, Active_relu, Active_sigmoid, true, false},
-//        test_lstm_params{6, 55, 100, Active_tanh, Active_sigmoid, Active_relu, Active_sigmoid, true, true},
-//        test_lstm_params{6, 55, 300, Active_tanh, Active_sigmoid, Active_relu, Active_sigmoid, false, true},
-//        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, false, false},
-//        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, true, false},
-//        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, false, true},
-//        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, true, true},
-//        test_lstm_params{16, 30, 256, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, true, true},
-//        test_lstm_params{16, 64, 1024, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, false, true},
-//        test_lstm_params{300, 128, 128, Active_unknow, Active_sigmoid, Active_tanh, Active_tanh, true, false},
+        // batch_size, input_size, layer_size, input_activation, gate_activation, candidate_activation, cell_activation, with_peephole, with_init_hidden, skip_input
+        test_lstm_params{6, 55, 300, Active_unknow, Active_sigmoid, Active_relu, Active_sigmoid, false, false, false},
+        test_lstm_params{6, 55, 300, Active_unknow, Active_sigmoid, Active_relu, Active_sigmoid, true, false, false},
+        test_lstm_params{6, 55, 300, Active_unknow, Active_sigmoid, Active_relu, Active_sigmoid, false, true, false},
+        test_lstm_params{6, 55, 300, Active_unknow, Active_sigmoid, Active_relu, Active_sigmoid, true, true, false},
+        test_lstm_params{6, 55, 300, Active_tanh, Active_sigmoid, Active_relu, Active_sigmoid, false, false, false},
+        test_lstm_params{6, 55, 300, Active_tanh, Active_sigmoid, Active_relu, Active_sigmoid, true, false, false},
+        test_lstm_params{6, 55, 300, Active_tanh, Active_sigmoid, Active_relu, Active_sigmoid, true, true, false},
+        test_lstm_params{6, 55, 300, Active_tanh, Active_sigmoid, Active_relu, Active_sigmoid, false, true, false},
+        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, false, false, false},
+        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, true, false, false},
+        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, false, true, false},
+        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, true, true, false},
+        test_lstm_params{6, 55, 300, Active_unknow, Active_sigmoid, Active_relu, Active_sigmoid, false, false, true},
+        test_lstm_params{6, 55, 300, Active_unknow, Active_sigmoid, Active_relu, Active_sigmoid, true, false, true},
+        test_lstm_params{6, 55, 300, Active_unknow, Active_sigmoid, Active_relu, Active_sigmoid, false, true, true},
+        test_lstm_params{6, 55, 300, Active_unknow, Active_sigmoid, Active_relu, Active_sigmoid, true, true, true},
+        /*test_lstm_params{6, 55, 300, Active_tanh, Active_sigmoid, Active_relu, Active_sigmoid, false, false, true},
+        test_lstm_params{6, 55, 300, Active_tanh, Active_sigmoid, Active_relu, Active_sigmoid, true, false, true},
+        test_lstm_params{6, 55, 300, Active_tanh, Active_sigmoid, Active_relu, Active_sigmoid, true, true, true},
+        test_lstm_params{6, 55, 300, Active_tanh, Active_sigmoid, Active_relu, Active_sigmoid, false, true, true},
+        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, false, false, true},
+        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, true, false, true},
+        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, false, true, true},
+        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, true, true, true},*/
     };
 
     for (size_t i = 0; i < ARRAY_SIZE(test_param); i++) {
