@@ -74,7 +74,7 @@ void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size
 
 
     Context<X86> ctx_dev(0, 1, 1);
-    std::vector<int> offsets = {0,50,100,150,200,250,300};
+    std::vector<int> offsets = {0,12,40,90,100,101};
 
     bool is_reverse = true;
     batch_size = offsets.size() - 1;
@@ -146,7 +146,7 @@ void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size
     std::vector<TensorDf4*> input_dev_4d;
     std::vector<TensorDf4*> output_dev_4d;
     input_dev_4d.push_back(&dev_x);
-//    input_dev_4d.push_back(&dev_h);
+    input_dev_4d.push_back(&dev_h);
     output_dev_4d.push_back(&dev_out);
 
 
