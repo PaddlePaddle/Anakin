@@ -48,8 +48,8 @@ Status LstmHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto weight_wu = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_1);
     auto bias = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_2);
 
-    DLOG(INFO)<<"lstm act = ["<<input_activation<<","<<gate_activation<<","<<cell_activation<<","<<candidate_activation<<"]";
-    DLOG(INFO)<<"lstm other param = ["<<use_peepholes<<","<<is_reverse<<","<<dropout_param<<","<<num_direction<<","<<num_layers<<"]";
+    LOG(INFO)<<"lstm act = ["<<input_activation<<","<<gate_activation<<","<<cell_activation<<","<<candidate_activation<<"]";
+    LOG(INFO)<<"lstm other param = ["<<use_peepholes<<","<<is_reverse<<","<<dropout_param<<","<<num_direction<<","<<num_layers<<"]";
 //    exit(0);
 
     std::unordered_map<std::string, ActiveType> enum_map = {
@@ -61,23 +61,10 @@ Status LstmHelper<Ttype, Dtype, Ptype>::InitParam() {
             {"sigmoid", Active_sigmoid},
             {"tanh", Active_tanh},
     };
-//    std::unordered_map<std::string, anakin::saber::ActiveType> enum_map;
-//    enum_map.insert(std::make_pair("null", anakin::saber::Active_unknow));
-//    enum_map.insert(std::make_pair("Sigmoid", Active_sigmoid));
-//    enum_map.insert(std::make_pair("Relu", Active_relu));
-//    enum_map.insert(std::make_pair("Tanh", Active_tanh));
-//    enum_map.insert(std::make_pair("ClippedRelu", Active_clipped_relu));
-//    enum_map.insert(std::make_pair("Elu", Active_elu));
-
-//    enum_map.insert(std::make_pair("null", Active_identity));
-//    enum_map.insert(std::make_pair("null", Active_sigmoid_fluid));
-//    enum_map.insert(std::make_pair("null", Active_tanh_fluid));
-//    enum_map.insert(std::make_pair("null", Active_stanh));
-
     LstmParam<Tensor4d<Ttype, Dtype>> lstm_param(&(weight_wu.d_tensor()), &(bias.d_tensor()), nullptr,
             enum_map[input_activation], enum_map[gate_activation],
             enum_map[cell_activation], enum_map[candidate_activation],
-            use_peepholes, is_reverse, dropout_param,
+            use_peepholes, false, is_reverse, dropout_param,
             num_direction, num_layers);
     _param_lstm = lstm_param;
 

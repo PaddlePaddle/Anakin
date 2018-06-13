@@ -147,16 +147,20 @@ TEST(NetTest, chinese_ner_executor) {
     {
 #if 1
         int i = 0;
-        int word_len = get_batch_data_offset(word_idx_data, word_idx, word_seq_offset, i, batch_num);
+        //int word_len = get_batch_data_offset(word_idx_data, word_idx, word_seq_offset, i, batch_num);
+        int word_len = 7;
+        word_idx_data = {20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0};
+        word_seq_offset = {0, 5, 7};
         for(int i=0;i<word_seq_offset.size();i++){
             LOG(INFO)<<"seq offset ["<<i<<"] = "<<word_seq_offset[i];
         }
         LOG(INFO)<<"word len = "<<word_len<<",word_idx_data = "<<word_idx_data.size();
         auto word_in_p = net_executer.get_in("input_0");
         word_in_p->reshape({word_len, 1, 1, 1});
+
         for (int j = 0; j < word_idx_data.size(); ++j) {
-            //word_in_p->mutable_data()[j] = word_idx_data[j];
-            word_in_p->mutable_data()[j] = j % 5000;
+            word_in_p->mutable_data()[j] = word_idx_data[j];
+//            word_in_p->mutable_data()[j] = j % 5000;
         }
 
         word_in_p->set_seq_offset(word_seq_offset);
