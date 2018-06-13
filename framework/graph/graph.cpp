@@ -142,6 +142,9 @@ Status Graph<Ttype, Dtype, Ptype>::Optimize() EXCLUSIVE_LOCKS_REQUIRED(_mut) {
 
             LOG(INFO) << "input_0 name: " << (*_vgraph)["input_0"].name << " input_0 lane: " <<  (*_vgraph)["input_0"].lane << " wait: " << (*_vgraph)["input_0"].need_wait;
 
+            for (int i = 0; i < _outs.size(); i++) {
+                LOG(INFO) << "outputs: " << _outs[i];
+            }
             // set info for graph
             statistics.set_info<IS_OPTIMIZED>(true);
             DLOG(INFO) << " model size : " << graph::GraphGlobalMem::Global().get_sum_mbyte() << " mb ";
