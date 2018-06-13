@@ -6,9 +6,9 @@ namespace math {
 
 template <DataType Dtype, typename LayOutType>
 void CopyMatrixRowsFunctor<Dtype, LayOutType>::operator()(
-                  ioTensor* src,
-                  std::vector<int> index_lod, ioTensor* dst,
-                  bool is_src_index) {
+        ioTensor* src,
+        std::vector<int> index_lod, ioTensor* dst,
+        bool is_src_index, int fragment_num) {
     int* index = index_lod.data();
     auto src_shape = src->valid_shape();
     auto dst_shape = dst->valid_shape();
@@ -19,31 +19,44 @@ void CopyMatrixRowsFunctor<Dtype, LayOutType>::operator()(
     if (dst_shape.size() != 2) {
         LOG(ERROR) << "The dst must be matrix with rank 2.";
         exit(-1);
-    }*/
+    }
     if (dst_shape[1] != src_shape[1]) {
         LOG(ERROR) << "The width of src and dst must be same.";
         exit(-1);
+    }*/
+    if (dst_shape[1] % fragment_num != 0 && src_shape[1] % fragment_num != 0) {
+                LOG(ERROR) << "hidden size should be divided with no remainder by fragment_num.";
+        exit(-1);
     }
     auto height = dst_shape[0];
-    auto width = dst_shape[1];
+    auto dst_width = dst_shape[1] / fragment_num;
+    auto src_width = src_shape[1] / fragment_num;
+    auto real_width = (dst_width > src_width ? src_width: dst_width);
     auto* src_data = src->data();
     auto* dst_data = dst->mutable_data();
-//#pragma omp parallel for
-    for (int i = 0; i < height; ++i) {
-      if (is_src_index) {
-        memcpy(dst_data + i * width, src_data + index[i] * width,
-               width * sizeof(dtype));
-      } else {
-        memcpy(dst_data + index[i] * width, src_data + i * width,
-               width * sizeof(dtype));
-      }
+    if (is_src_index) {
+#pragma omp parallel for collapse(2)
+        for (int i = 0; i < height; ++i) {
+            for (int j = 0; j < fragment_num; j++) {
+                memcpy(dst_data + i * fragment_num * dst_width + j * dst_width, src_data + index[i] * fragment_num * src_width + j * src_width,
+                       real_width * sizeof(dtype));
+            }
+        }
+    } else {
+#pragma omp parallel for collapse(2)
+        for (int i = 0; i < height; ++i) {
+            for (int j = 0; j < fragment_num; j++) {
+                memcpy(dst_data + index[i] * fragment_num * dst_width + j * dst_width, src_data + i * fragment_num * src_width + j * src_width,
+                       real_width * sizeof(dtype));
+            }
+        }
     }
 }
 
 template class CopyMatrixRowsFunctor<AK_FLOAT, NCHW>;
 
-template class LoDTensor2BatchFunctor<AK_FLOAT, NCHW>;
-template class Batch2LoDTensorFunctor<AK_FLOAT, NCHW>;
+template class Seq2BatchFunctor<AK_FLOAT, NCHW>;
+template class Batch2SeqFunctor<AK_FLOAT, NCHW>;
 template class ReorderInitState<AK_FLOAT, NCHW>;
 
 }  // namespace math

@@ -5,8 +5,6 @@
 #include "mkl_cblas.h"
 #include <immintrin.h>
 
-
-
 namespace anakin {
 
 namespace saber {
