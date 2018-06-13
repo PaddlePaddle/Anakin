@@ -179,7 +179,7 @@ void anakin_net_thread(std::vector<Tensor4dPtr<X86, AK_FLOAT> > *data_in,std::st
     }
     gettimeofday(&time_end, nullptr);
     float use_ms=(time_end.tv_sec-time_start.tv_sec)*1000.f+(time_end.tv_usec-time_start.tv_usec)/1000.f;
-    LOG(INFO)<<"thread total : "<<use_ms<<" ms, avg = "<<(use_ms/data_in->size()/GLB_batch_size);
+    LOG(INFO)<<"summary_thread :thread total : "<<use_ms<<" ms, avg = "<<(use_ms/data_in->size()/GLB_batch_size);
 }
 void run_my_test(){
     omp_set_dynamic(0);
@@ -311,7 +311,9 @@ TEST(NetTest, net_execute_base_test) {
     gettimeofday(&time_end, nullptr);
     float use_ms=(time_end.tv_sec-time_start.tv_sec)*1000.f+(time_end.tv_usec-time_start.tv_usec)/1000.f;
 
-    LOG(INFO)<<"total time = "<<use_ms<<"ms ,batch = "<<batch_num<<", seconde/line = "<<(use_ms/word_idx.size());
+    LOG(INFO)<<"summary: "<<"thread num = "<<thread_num<<",total time = "<<use_ms<<"ms ,batch = "<<batch_num
+             <<",word sum = "<<GLB_word_count<<", seconde/line = "<<(use_ms/word_idx.size())
+             <<",QPS = "<<(word_idx.size()/use_ms*1000);
 
 #if 0
     Graph<X86, AK_FLOAT, Precision::FP32> *graph = new Graph<X86, AK_FLOAT, Precision::FP32>();
