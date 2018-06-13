@@ -109,7 +109,10 @@ int split_word_from_file(
         for (auto w : split_w) {
             word.push_back(atof(w.c_str()));
             word_count++;
+//            printf("%d,",atoi(w.c_str()));
         }
+//        printf("\n");
+//        exit(0);
         word_idx.push_back(word);
     }
     GLB_word_count=word_count;
@@ -152,7 +155,7 @@ void anakin_net_thread(std::vector<Tensor4dPtr<X86, AK_FLOAT> > *data_in,std::st
     if(!status ) {
                 LOG(FATAL) << " [ERROR] " << status.info();
     }
-    graph->Reshape("input_0", {1000, 1, 1, 1});
+    graph->Reshape("input_0", {GLB_max_word_len, 1, 1, 1});
     //anakin graph optimization
     graph->Optimize();
     Net<Target, AK_FLOAT, Precision::FP32> net_executer(*graph, true);
