@@ -2033,8 +2033,6 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
     uint32x4_t mask_rp = vcgtq_s32(vld1q_s32(right_pad_idx), vdupq_n_s32(0));
     uint32x4_t mask_w = vcgtq_s32(vld1q_s32(right_w_idx), vdupq_n_s32(size_right_remain));
 
-        LOG(INFO) << "size pad bottom: " << size_pad_bottom;
-
     size_right_remain *= sizeof(float);
 
     int size_in_channel = w_in * h_in;
