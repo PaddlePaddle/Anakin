@@ -1133,6 +1133,8 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
 
             // process bottom pad if needed
             if (size_pad_bottom) {
+                din0_ptr = dr0;
+                din1_ptr = dr1;
 #ifdef __aarch64__
                 // todo
 #else
