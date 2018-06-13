@@ -1,7 +1,61 @@
 #include "saber/funcs/impl/x86/saber_lstm.h"
+#include "saber/funcs/impl/x86/activation_functions.h"
+#include "saber/funcs/impl/x86/sequence2batch.h"
+#include "saber/funcs/impl/x86/kernel/jit_generator.h"
 
 namespace anakin {
 namespace saber {
+
+template <DataType OpDtype,
+        DataType inDtype,
+        DataType outDtype,
+        typename LayOutType_op,
+        typename LayOutType_in,
+        typename LayOutType_out>
+void SaberLstm<X86, OpDtype, inDtype, outDtype,
+        LayOutType_op, LayOutType_in, LayOutType_out>::compute_with_avx(LstmMetaValue<DataType_in> value,
+                                                                        int hidden_size, int batch_size,
+                                                                        const ActiveType &gate_act,
+                                                                        const ActiveType &cell_act,
+                                                                        const ActiveType &cand_act) {
+#ifdef __AVX__
+#pragma omp parallel for collapse(2)
+    for (int b = 0; b < batch_size; b++) {
+        for (int i = 0; i < hidden_size/8; i++) {
+            __m256 r_checkI = _mm256_set1_ps(0.0f);
+            __m256 r_checkF = _mm256_set1_ps(0.0f);
+            __m256 r_checkO = _mm256_set1_ps(0.0f);
+            __m256 prev_state_v = _mm256_set1_ps(0.0f);
+            int batch_offset = b * hidden_size;
+            __m256 *value_ig = reinterpret_cast<__m256 *>(value.gate_value + batch_offset * 4);
+            __m256 *value_fg = reinterpret_cast<__m256 *>(value.gate_value + batch_offset * 4 + hidden_size);
+            __m256 *value_in = reinterpret_cast<__m256 *>(value.gate_value + batch_offset * 4 + hidden_size * 2);
+            __m256 *value_og = reinterpret_cast<__m256 *>(value.gate_value + batch_offset * 4 + hidden_size * 3);
+
+            __m256 *state_active = reinterpret_cast<__m256 *>(value.state_active_value + batch_offset);
+            __m256 *state = reinterpret_cast<__m256 *>(value.state_value + batch_offset);
+            __m256 *output = reinterpret_cast<__m256 *>(value.output_value + batch_offset);
+
+            if (value.prev_state_value) {
+                prev_state_v = (reinterpret_cast<__m256 *>(value.prev_state_value + batch_offset))[i];
+            }
+            if (value.check_ig) {
+                r_checkI = (reinterpret_cast<const __m256 *>(value.check_ig))[i];
+                r_checkF = (reinterpret_cast<const __m256 *>(value.check_fg))[i];
+                r_checkO = (reinterpret_cast<const __m256 *>(value.check_og))[i];
+            }
+
+            value_in[i] = math::avx_activation(value_in[i], cand_act);
+            value_ig[i] = math::avx_activation(_mm256_add_ps(value_ig[i], _mm256_mul_ps(prev_state_v, r_checkI)), gate_act);
+            value_fg[i] = math::avx_activation(_mm256_add_ps(value_fg[i], _mm256_mul_ps(prev_state_v, r_checkF)), gate_act);
+            state[i] = _mm256_add_ps(_mm256_mul_ps(value_in[i],value_ig[i]), _mm256_mul_ps(prev_state_v, value_fg[i]));
+            value_og[i] = math::avx_activation(_mm256_add_ps(value_og[i], _mm256_mul_ps(state[i], r_checkO)), gate_act);
+            state_active[i] = math::avx_activation(state[i], cell_act);
+            output[i] = _mm256_mul_ps(value_og[i], state_active[i]);
+        }
+    }
+#endif
+}
 
 template <DataType OpDtype,
         DataType inDtype,
@@ -59,14 +113,28 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
         const std::vector<DataTensor_in*>& inputs,
         std::vector<DataTensor_out*>& outputs,
         LstmParam<OpTensor> &param, Context<X86> &ctx) {
+    avx2_available_ = jit::mayiuse(jit::avx2);
+
     DataTensor_in *input = inputs[0];
 
+    const OpTensor *bias = param.bias();
     int frame_size = input->channel();
     int hidden_size = outputs[0]->channel();
+
+    // aligned hidden_size with 8 float
+    int aligned_size = 8;
+    this->aligned_hidden_size_ = (hidden_size % aligned_size) ? ((hidden_size / aligned_size) + 1) * aligned_size : hidden_size;
+
+    OpTensor *aligned_weights_data_h = nullptr;
+    if (this->aligned_hidden_size_ != hidden_size) {
+        Shape aligned_w_shape(this->aligned_hidden_size_, this->aligned_hidden_size_ * 4, 1, 1);
+        aligned_weights_data_h = new OpTensor(aligned_w_shape);
+    }
 
     DataType_op *weights_data = const_cast<DataType_op *>(param.weight()->data());
     MatrixInfo<DataType_op> *weight_x = nullptr;
     MatrixInfo<DataType_op> *weight_h = nullptr;
+    MatrixInfo<DataType_op> *weight_h_tmp = nullptr;
     if (param.skip_input) {
         // if skip_input is true, the weights just includes [Wih, Wfh, Wch, Wph]
         weight_h = new MatrixInfo<DataType_op>(weights_data, hidden_size, (hidden_size * 4));
@@ -77,36 +145,53 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
         weight_h = new MatrixInfo<DataType_op>((weights_data + frame_size * hidden_size * 4), hidden_size, (hidden_size * 4));
     }
 
+    if (this->aligned_hidden_size_ != hidden_size) {
+        weight_h_tmp = weight_h;
+        weight_h = new MatrixInfo<DataType_op>(aligned_weights_data_h->mutable_data(), this->aligned_hidden_size_, (this->aligned_hidden_size_ * 4));
+        // do weight align
+        int stride = 0;
+        int diff = this->aligned_hidden_size_ - hidden_size;
+        DataType_op *src = nullptr;
+        DataType_op *dst = nullptr;
+        for (int i = 0; i < this->aligned_hidden_size_; i++) {
+            stride = 4 * (this->aligned_hidden_size_);
+
+            dst = weight_h->buf() + i * stride;
+            if (i >= hidden_size) {
+                memset(dst, 0, stride * sizeof(DataType_op));
+            } else {
+                src = weight_h_tmp->buf() + i * 4 * hidden_size;
+                for (int j = 0; j < 4; j++) {
+                    memcpy(dst + j * this->aligned_hidden_size_,
+                           src + j * hidden_size, hidden_size * sizeof(DataType_op));
+                    memset(dst + j * this->aligned_hidden_size_ + hidden_size,
+                           0, diff * sizeof(DataType_op));
+                }
+            }
+        }
+
+        delete weight_h_tmp;
+    }
+
     // clean the packed weight
-    if (this->packed_w_x_) {
-        delete this->packed_w_x_;
-        this->packed_w_x_ = nullptr;
-    }
-    if (this->packed_w_h_) {
-        delete this->packed_w_h_;
-        this->packed_w_h_ = nullptr;
-    }
+    safe_free(&(this->packed_w_x_));
+    safe_free(&(this->packed_w_h_));
     // pack weights for Wix, Wfx, Wcx, Wox] and [Wih, Wfh, Wch, Woh]
     if (weight_x) {
-        this->packed_w_x_ = new mkl_packed_weight<OpDtype, LayOutType_op>(weight_x, true);
+        int m = input->num();
+        this->packed_w_x_ = new mkl_packed_weight<OpDtype, LayOutType_op>(weight_x, m);
         this->packed_w_x_->pack();
     }
     this->packed_w_h_ = new mkl_packed_weight<OpDtype, LayOutType_op>(weight_h);
     this->packed_w_h_->pack();
 
     const OpTensor *init_t0 = param.init_hidden();
-    if (batch_c0_) {
-        delete batch_c0_;
-        batch_c0_ = nullptr;
-    }
-    if (batch_h0_) {
-        delete batch_h0_;
-        batch_h0_ = nullptr;
-    }
+    safe_free(&batch_c0_);
+    safe_free(&batch_h0_);
     // tensor for batched init cell and batched init hidden, they are both with size batch_size * hidden_size
     if (init_t0) {
         int batch_size = input->get_seq_offset().size() - 1;
-        Shape batched_state_shape(batch_size, hidden_size, 1 , 1);
+        Shape batched_state_shape(batch_size, this->aligned_hidden_size_, 1 , 1);
 
         // create buf in create func, batch_size * hidden_size
         batch_c0_ = new OpTensor(batched_state_shape);
@@ -115,14 +200,26 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
         batch_h0_ = new OpTensor(batched_state_shape);
     }
 
-    if (weight_x) {
-        delete weight_x;
-        weight_x = nullptr;
+    bool with_peephole = param.with_peephole;
+    if (bias && with_peephole) {
+        const DataType_op *bias_data = bias->data();
+        // shape for Wic, Wfc, Woc
+        Shape weights_c_shape(1, this->aligned_hidden_size_, 1, 1);
+        safe_free(&(this->check_ig_));
+        safe_free(&(this->check_fg_));
+        safe_free(&(this->check_og_));
+        this->check_ig_ = new OpTensor(weights_c_shape);
+        this->check_fg_ = new OpTensor(weights_c_shape);
+        this->check_og_ = new OpTensor(weights_c_shape);
+        memcpy(this->check_ig_->mutable_data(), bias_data + 4 * hidden_size, hidden_size * sizeof(DataType_op));
+        memcpy(this->check_fg_->mutable_data(), bias_data + 5 * hidden_size, hidden_size * sizeof(DataType_op));
+        memcpy(this->check_og_->mutable_data(), bias_data + 6 * hidden_size, hidden_size * sizeof(DataType_op));
     }
-    if (weight_h) {
-        delete weight_h;
-        weight_h = nullptr;
-    }
+
+    safe_free(&weight_x);
+    safe_free(&weight_h);
+    safe_free(&aligned_weights_data_h);
+
     this->_ctx = ctx;
 
     return create(inputs, outputs, param, ctx);
@@ -142,17 +239,22 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
         Context<X86> &ctx) {
     DataTensor_in *input = inputs[0];
     DataTensor_out *hidden_out = outputs[0];
-    Shape output_shape = hidden_out->valid_shape();
     int hidden_size = hidden_out->channel();
+
+    // aligned hidden_size with AVX-512
+    int aligned_size = 8;
+    this->aligned_hidden_size_ = (hidden_size % aligned_size) ? ((hidden_size / aligned_size) + 1) * aligned_size : hidden_size;
+    Shape aligned_output_shape(hidden_out->num(), this->aligned_hidden_size_, 1, 1);
 
     // xx = x * [Wix, Wfx, Wcx, Wox]
     Shape xx_shape(input->num(), hidden_size * 4, 1, 1);
-    // if current size < request size, realloc a buf for using
+    Shape aligned_xx_shape(input->num(), this->aligned_hidden_size_ * 4, 1, 1);
+    // if current size < request size, realloc a buf
     this->xx_ = request_buf_for_input(this->xx_, xx_shape);
-    this->batch_xx_ = request_buf_for_input(this->batch_xx_, xx_shape);
-    this->batch_hidden_ = request_buf_for_input(this->batch_hidden_, output_shape);
-    this->batch_cell_ = request_buf_for_input(this->batch_cell_, output_shape);
-    this->batch_cell_act_ = request_buf_for_input(this->batch_cell_act_, output_shape);
+    this->batch_xx_ = request_buf_for_input(this->batch_xx_, aligned_xx_shape);
+    this->batch_hidden_ = request_buf_for_input(this->batch_hidden_, aligned_output_shape);
+    this->batch_cell_ = request_buf_for_input(this->batch_cell_, aligned_output_shape);
+    this->batch_cell_act_ = request_buf_for_input(this->batch_cell_act_, aligned_output_shape);
 
     return SaberSuccess;
 }
@@ -217,27 +319,40 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
             case Active_unknow:
                 break;
             default:
-                LOG(ERROR) << "not supported input activation";
-            return SaberUnImplError;
+                        LOG(ERROR) << "not supported input activation";
+                return SaberUnImplError;
         }
     }
 
     DataTensor_in batch_xx;
-    batch_xx.share_sub_buffer(*(this->batch_xx_), xx->valid_shape(), offset);
+    Shape aligned_xx_shape(xx->num(), this->aligned_hidden_size_ * 4, 1 , 1);
+    batch_xx.share_sub_buffer(*(this->batch_xx_), aligned_xx_shape, offset);
 
     DataTensor_out batch_hidden;
-    batch_hidden.share_sub_buffer(*(this->batch_hidden_), hidden_out->valid_shape(), offset);
+    Shape aligned_output_shape(hidden_out->num(), this->aligned_hidden_size_, 1 , 1);
+    batch_hidden.share_sub_buffer(*(this->batch_hidden_), aligned_output_shape, offset);
 
     DataTensor_out batch_cell;
-    batch_cell.share_sub_buffer(*(this->batch_cell_), hidden_out->valid_shape(), offset);
+    batch_cell.share_sub_buffer(*(this->batch_cell_), aligned_output_shape, offset);
 
     DataTensor_out batch_cell_act;
-    batch_cell_act.share_sub_buffer(*(this->batch_cell_act_), hidden_out->valid_shape(), offset);
+    batch_cell_act.share_sub_buffer(*(this->batch_cell_act_), aligned_output_shape, offset);
 
-    MatrixInfo<DataType_in> batch_xx_matrix((batch_xx.mutable_data()), batch_xx.num(), batch_xx.channel());
-    MatrixInfo<DataType_out> batch_hidden_matrix((batch_hidden.mutable_data()), batch_hidden.num(), batch_hidden.channel());
-    MatrixInfo<DataType_out> batch_cell_matrix((batch_cell.mutable_data()), batch_cell.num(), batch_cell.channel());
-    MatrixInfo<DataType_out> batch_cell_act_matrix((batch_cell_act.mutable_data()), batch_cell_act.num(), batch_cell_act.channel());
+    MatrixInfo<DataType_in> xx_matrix(xx->mutable_data(), xx->num(), xx->channel());
+    MatrixInfo<DataType_in> batch_xx_matrix(batch_xx.mutable_data(), batch_xx.num(), batch_xx.channel());
+    MatrixInfo<DataType_out> batch_hidden_matrix(batch_hidden.mutable_data(), batch_hidden.num(), batch_hidden.channel());
+    MatrixInfo<DataType_out> batch_cell_matrix(batch_cell.mutable_data(), batch_cell.num(), batch_cell.channel());
+    MatrixInfo<DataType_out> batch_cell_act_matrix(batch_cell_act.mutable_data(), batch_cell_act.num(), batch_cell_act.channel());
+
+    // handle bias info
+    if (bias) {
+        // row-wise-add bias to batch_xx, the layout of bias [bi, bf, bc, bo]
+        const DataType_op *bias_data = bias->data();
+        for (int i = 0; i < input->num(); i++) {
+            int row_size = 4 * hidden_size;
+            cblas_saxpby(row_size, 1, bias_data, 1, 1, (xx_matrix.buf() + i * row_size), 1);
+        }
+    }
 
     // seq to batch meta data
     std::vector<std::vector<int>> seq_to_batch_meta;
@@ -245,18 +360,8 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
 
     // sequence to batch
     bool is_reverse = param.is_reverse;
-    math::LoDTensor2BatchFunctor<inDtype, LayOutType_in> to_batch;
-    to_batch(xx, &batch_xx, seq_to_batch_meta, true, is_reverse);
-
-    // handle bias info
-    if (bias) {
-        // row-wise-add bias to batch_xx, the layout of bias [bi, bf, bc, bo]
-        const DataType_op *bias_data = bias->data();
-        for (int i = 0; i < input->valid_shape()[0]; i++) {
-            int row_size = 4 * hidden_size;
-            cblas_saxpby(row_size, 1, bias_data, 1, 1, (batch_xx_matrix.buf() + i * row_size), 1);
-        }
-    }
+    math::Seq2BatchFunctor<inDtype, LayOutType_in> to_batch;
+    to_batch(xx, &batch_xx, seq_to_batch_meta, true, is_reverse, 4);
 
     std::vector<int> order(seq_to_batch_meta[2]);
     LstmMetaValue<DataType_in> lstm_value;
@@ -264,9 +369,9 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
     if (bias && with_peephole) {
         // with peephole enable, [Wic, Wfc, Woc] is at the behind of bias
         const DataType_op *bias_data = bias->data();
-        lstm_value.check_ig = bias_data + 4 * hidden_size;
-        lstm_value.check_fg = lstm_value.check_ig + hidden_size;
-        lstm_value.check_og = lstm_value.check_fg + hidden_size;
+        lstm_value.check_ig = this->check_ig_->data();
+        lstm_value.check_fg = this->check_fg_->data();
+        lstm_value.check_og = this->check_og_->data();
     } else {
         lstm_value.check_ig = nullptr;
         lstm_value.check_fg = nullptr;
@@ -321,12 +426,16 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
         lstm_value.output_value = batch_hidden_matrix.subMatrixInfo(bstart, bend).buf();
         lstm_value.state_value = batch_cell_matrix.subMatrixInfo(bstart, bend).buf();
         lstm_value.state_active_value = batch_cell_act_matrix.subMatrixInfo(bstart, bend).buf();
-        compute(lstm_value, hidden_size, cur_batch_size, gate_act, cell_act, cand_act);
+        if (avx2_available_) {
+            compute_with_avx(lstm_value, this->aligned_hidden_size_, cur_batch_size, gate_act, cell_act, cand_act);
+        } else {
+            compute(lstm_value, this->aligned_hidden_size_, cur_batch_size, gate_act, cell_act, cand_act);
+        }
         lstm_value.prev_state_value = lstm_value.state_value;
     }
 
     // batch to sequence
-    math::Batch2LoDTensorFunctor<outDtype, LayOutType_out> to_seq;
+    math::Batch2SeqFunctor<outDtype, LayOutType_out> to_seq;
     to_seq(&batch_hidden, hidden_out, seq_to_batch_meta);
 
     if (cell_out) {
@@ -340,6 +449,35 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
 
     return SaberSuccess;
 }
+
+template <DataType OpDtype,
+        DataType inDtype,
+        DataType outDtype,
+        typename LayOutType_op,
+        typename LayOutType_in,
+        typename LayOutType_out>
+SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
+        LayOutType_op, LayOutType_in, LayOutType_out>::init_conf(
+        const std::vector<DataTensor_in*>& inputs,
+        std::vector<DataTensor_out*>& outputs,
+        LstmParam<OpTensor> &param) {
+    return SaberSuccess;
+}
+
+template <DataType OpDtype,
+        DataType inDtype,
+        DataType outDtype,
+        typename LayOutType_op,
+        typename LayOutType_in,
+        typename LayOutType_out>
+SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
+        LayOutType_op, LayOutType_in, LayOutType_out>::check_conf(
+        const std::vector<DataTensor_in*>& inputs,
+        std::vector<DataTensor_out*>& outputs,
+        LstmParam<OpTensor> &param) {
+    return SaberSuccess;
+}
+
 template class SaberLstm<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
 
 } // namespace saber

@@ -21,12 +21,12 @@ public:
     // copy the input src to the indexed rows of output dst.
     // The indexed rows are based on the input index.
     void operator()(ioTensor* src,
-                  std::vector<int> index_lod, ioTensor* dst,
-                  bool is_src_index);
+                    std::vector<int> index_lod, ioTensor* dst,
+                    bool is_src_index, int fragment_num);
 };
 
 template <DataType Dtype, typename LayOutType>
-class LoDTensor2BatchFunctor {
+class Seq2BatchFunctor {
     // Calculate the length of each sequence and
     // sort sequence index by the length.
     // example:  sequences = {s0, s1, s2}
@@ -35,7 +35,7 @@ class LoDTensor2BatchFunctor {
     //
     struct SeqInfo {
         SeqInfo(int start, int length, int seq_idx)
-            : start(start), length(length), seq_idx(seq_idx) {}
+                : start(start), length(length), seq_idx(seq_idx) {}
         int start;
         int length;
         int seq_idx;
@@ -44,24 +44,24 @@ class LoDTensor2BatchFunctor {
 public:
     typedef Tensor<X86, Dtype, LayOutType> ioTensor;
     void operator()(ioTensor* seq,
-                  ioTensor* batch, std::vector<std::vector<int>>& seq_to_batch_meta, bool is_cal_batch_lod,
-                  bool is_reverse = false) const {
+                    ioTensor* batch, std::vector<std::vector<int>>& seq_to_batch_meta, bool is_cal_batch_lod,
+                    bool is_reverse = false, int fragment_num = 1) const {
         if (!is_cal_batch_lod) {
             if (seq_to_batch_meta.size() < 2) {
-                LOG(ERROR) << "The size of seq_to_batch_meta should inlcude at least 2-level sequence information.";
+                        LOG(ERROR) << "The size of seq_to_batch_meta should inlcude at least 2-level sequence information.";
                 exit(-1);
             }
             if (seq_to_batch_meta[1].size() != static_cast<int>(seq->num())) {
-                LOG(ERROR) << "The seq_to_batch information should be consistent with the dims.";
+                        LOG(ERROR) << "The seq_to_batch information should be consistent with the dims.";
                 exit(-1);
             }
             CopyMatrixRowsFunctor<Dtype, LayOutType> to_batch;
-            to_batch(seq, seq_to_batch_meta[1], batch, true);
+            to_batch(seq, seq_to_batch_meta[1], batch, true, fragment_num);
             return;
         }
 
         if (seq_to_batch_meta.size() != 1) {
-            LOG(ERROR) << "Only support one level sequence now.";
+                    LOG(ERROR) << "Only support one level sequence now.";
             exit(-1);
         }
 
@@ -75,7 +75,7 @@ public:
         }
 
         std::sort(seq_info.begin(), seq_info.end(),
-              [](SeqInfo a, SeqInfo b) { return a.length > b.length; });
+                  [](SeqInfo a, SeqInfo b) { return a.length > b.length; });
 
         // Calculate the start position of each batch.
         // example:  sequences = {s0, s1, s2}
@@ -123,7 +123,7 @@ public:
                 int start = seq_info[i].start;
                 if (n < seq_len) {
                     seq2batch_idx[batch_id] =
-                        is_reverse ? start + seq_len - 1 - n : start + n;
+                            is_reverse ? start + seq_len - 1 - n : start + n;
                     batch_id++;
                 } else {
                     break;
@@ -138,26 +138,26 @@ public:
         seq_to_batch_meta = batch_seq_meta;
 
         CopyMatrixRowsFunctor<Dtype, LayOutType> to_batch;
-        to_batch(seq, batch_seq_meta[1], batch, true);
+        to_batch(seq, batch_seq_meta[1], batch, true, fragment_num);
     }
 };
 
 template <DataType Dtype, typename LayOutType>
-class Batch2LoDTensorFunctor {
+class Batch2SeqFunctor {
 public:
     typedef Tensor<X86, Dtype, LayOutType> ioTensor;
     void operator()(ioTensor* batch,
-                  ioTensor* seq, std::vector<std::vector<int>>& seq_to_batch_meta) const {
+                    ioTensor* seq, std::vector<std::vector<int>>& seq_to_batch_meta, int fragment_num = 1) const {
         if (seq_to_batch_meta.size() < 2) {
-            LOG(ERROR) << "The size of seq_to_batch_meta should inlcude at least 2-level sequence information.";
+                    LOG(ERROR) << "The size of seq_to_batch_meta should inlcude at least 2-level sequence information.";
             exit(-1);
         }
         if (seq_to_batch_meta[1].size() != static_cast<int>(seq->num())) {
-            LOG(ERROR) << "The seq_to_batch information should be consistent with the dims.";
+                    LOG(ERROR) << "The seq_to_batch information should be consistent with the dims.";
             exit(-1);
         }
         CopyMatrixRowsFunctor<Dtype, LayOutType> to_seq;
-        to_seq(batch, seq_to_batch_meta[1], seq, false);
+        to_seq(batch, seq_to_batch_meta[1], seq, false, fragment_num);
     }
 };
 
@@ -165,9 +165,9 @@ template <DataType Dtype, typename LayOutType>
 class ReorderInitState {
 public:
     typedef Tensor<X86, Dtype, LayOutType> ioTensor;
-    void operator()(ioTensor *src, std::vector<int> ind_lod, ioTensor *dst, bool indexed_src) {
+    void operator()(ioTensor *src, std::vector<int> ind_lod, ioTensor *dst, bool indexed_src, int fragment_num = 1) {
         math::CopyMatrixRowsFunctor<Dtype, LayOutType> row_shuffle;
-        row_shuffle(src, ind_lod, dst, indexed_src);
+        row_shuffle(src, ind_lod, dst, indexed_src, fragment_num);
     }
 };
 }  // namespace math
