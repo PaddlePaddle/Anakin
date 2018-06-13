@@ -17,6 +17,7 @@
 #define ANAKIN_FRAMEWORK_LITE_CODE_GENERATE_CPP_H
 
 #include "framework/lite/op_map.h"
+#include "framework/lite/code_gen_base.h"
 
 namespace anakin {
 
@@ -26,25 +27,22 @@ namespace lite {
  *  \brief class to generate cpp files.
  *
  */
-class GenCPP : public CodeGenBase<ARM, AK_FLOAT, Precision::FP32> {
+class GenCPP : public CodeGenBase<NV, AK_FLOAT, Precision::FP32> {
 public:
-	GenCPP() {}
-	explicit GenCPP(std::string& file_name):_file_name(file_name) {
-		_code.open(file_name);
+	explicit GenCPP(std::string model_name, std::string model_dir = ".") {
+		_cpp_file_name = model_dir + '/' + model_name + ".cpp";
+		_h_file_name = model_dir + '/' + model_name + ".h";
+		_model_file_name = model_dir + '/' + model_name + ".bin";
+		_weights.open(_model_file_name);
+		_code_name = model_name;
 	}
-	~GenCPP() {}
+	~GenCPP()=default;
 
 	/// generate all cpp files
 	virtual void gen_files() {
 		this->gen_header();
 		this->gen_source();
 	}
-
-	inline void write_to(std::string& file_path) {
-	    _code.open(file_path, "w");
-		_code.save();
-	}
-
 
 private:
 	void gen_header_start();
@@ -63,9 +61,9 @@ private:
 	void gen_model_ios();
 
 	/**
-	 * \brief generate operations for model
+	 * \brief generate and parsing operations for model
 	 */
-	void gen_ops();
+	virtual void gen_and_parse_ops() final;
 
 	/**
 	 * \brief generate initial impl api for model
@@ -78,14 +76,22 @@ private:
 	void gen_api_impl();	
 
 	/**
-	 * \brief parsing parameter of graph
+	 * \biref generata header file
 	 */
-	virtual bool parser_param() final;
+	void gen_header();
+
+	/**
+	 * \biref generata source file
+	 */
+	void gen_source();
 
 private:
-	std::string _file_name;
+	std::string _cpp_file_name;
+	std::string _h_file_name;
+	std::string _model_file_name;
+	std::string _code_name;
 	CodeWritter _code;
-	BinaryWritter _weights;
+	WeightsWritter _weights;
 };
 
 } /* namespace lite */

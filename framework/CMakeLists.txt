@@ -4,7 +4,11 @@
 # @auther   cuichaowen
 # @date     2017-10-24
 # ----------------------------------------------------------------------------
-anakin_fetch_include_recursively(${ANAKIN_FRAMEWORK})
+anakin_fetch_include_recursively(${ANAKIN_FRAMEWORK}/core)
+anakin_fetch_include_recursively(${ANAKIN_FRAMEWORK}/graph)
+anakin_fetch_include_recursively(${ANAKIN_FRAMEWORK}/model_parser)
+anakin_fetch_include_recursively(${ANAKIN_FRAMEWORK}/operators)
+anakin_fetch_include_recursively(${ANAKIN_FRAMEWORK}/lite)
 anakin_fetch_include_recursively(${ANAKIN_SABER})
 anakin_fetch_include_recursively(${ANAKIN_MODEL_PARSER})
 anakin_fetch_include_recursively(${ANAKIN_UTILS})
@@ -25,6 +29,10 @@ anakin_fetch_files_with_suffix(${ANAKIN_FRAMEWORK}/operators/fusion_ops "cpp" AN
 anakin_fetch_files_with_suffix(${ANAKIN_FRAMEWORK}/utils "cpp" ANAKIN_BASE_SRC)
 anakin_fetch_files_with_suffix(${ANAKIN_FRAMEWORK}/utils/logger "cpp" ANAKIN_BASE_SRC)
 anakin_fetch_files_with_suffix(${ANAKIN_FRAMEWORK}/utils/unit_test "cpp" ANAKIN_BASE_SRC)
+
+#if(USE_ARM_PLACE)
+	anakin_fetch_files_with_suffix(${ANAKIN_FRAMEWORK}/lite "cpp" ANAKIN_BASE_SRC)
+#endif()
 
 list(APPEND ANAKIN_SRC ${ANAKIN_BASE_SRC})
 unset(ANAKIN_BASE_SRC)

@@ -24,7 +24,9 @@ inline void init(const char* argv0){
 #endif 
 }
 
-}
+} /* namespace logger */
+
+namespace {
 
 /// judge x if false or true
 #define LOGGER_IS_FALSE(x) (__builtin_expect(x,0)) 
@@ -58,10 +60,10 @@ LOGGER_CHECK_SYMBOL_WARP(CHECK_GT_IMPL, >)
 
 //#undef LOGGER_CHECK_SYMBOL_WARP
 
-#define LOGGER_VLOG_IF(verbose, cond)                                                   \
-                 (logger::verbose > logger::utils::sys::get_max_logger_verbose_level()  \
-                 || (cond)==false) ? (void)0                                            \
-                 : logger::core::voidify() & logger::core::LoggerMsg<logger::verbose>(__FILE__, __LINE__)
+#define LOGGER_VLOG_IF(verbose, cond)                                                   	\
+                 (::logger::verbose > ::logger::utils::sys::get_max_logger_verbose_level()  \
+                 || (cond)==false) ? (void)0                                            	\
+                 : ::logger::core::voidify() & ::logger::core::LoggerMsg<logger::verbose>(__FILE__, __LINE__)
 
 #define LOGGER_LOG_IF(verbose_name, cond) LOGGER_VLOG_IF(Verbose_##verbose_name, cond)
 #define LOGGER_VLOG(verbose) LOGGER_LOG_IF(verbose, true)
@@ -69,16 +71,16 @@ LOGGER_CHECK_SYMBOL_WARP(CHECK_GT_IMPL, >)
 
 #define LOGGER_CHECK_WITH_INFO(cond, info)                          \
                  LOGGER_IS_TRUE((cond)==true) ? (void)0             \
-                 : logger::core::voidify() &                        \
-                 logger::core::LoggerMsg<logger::Verbose_FATAL>(    \
+                 : ::logger::core::voidify() &                        \
+                 ::logger::core::LoggerMsg<::logger::Verbose_FATAL>(    \
                          "Check failed: " info " ", __FILE__, __LINE__)
 
 #define LOGGER_CHECK(cond) LOGGER_CHECK_WITH_INFO(cond, #cond)
 #define LOGGER_CHECK_NOTNULL(x) LOGGER_CHECK_WITH_INFO((x) != nullptr, #x" != nullptr")
 
-#define LOGGER_CHECK_OP(func_name, expr1, op, expr2)                            	\
-    while(auto errStr = func_name(#expr1 " " #op " " #expr2, expr1, #op, expr2))  	\
-                 logger::core::LoggerMsg<logger::Verbose_FATAL>(errStr->c_str(), __FILE__, __LINE__)
+#define LOGGER_CHECK_OP(func_name, expr1, op, expr2)                            \
+    while(auto errStr = func_name(#expr1 " " #op " " #expr2, expr1, #op, expr2))  \
+                 ::logger::core::LoggerMsg<::logger::Verbose_FATAL>(errStr->c_str(), __FILE__, __LINE__)
 
 #define LOGGER_CHECK_EQ(A, B) LOGGER_CHECK_OP(CHECK_EQ_IMPL, A, ==, B)
 #define LOGGER_CHECK_NE(A, B) LOGGER_CHECK_OP(CHECK_NE_IMPL, A, !=, B)
@@ -87,7 +89,7 @@ LOGGER_CHECK_SYMBOL_WARP(CHECK_GT_IMPL, >)
 #define LOGGER_CHECK_GE(A, B) LOGGER_CHECK_OP(CHECK_GE_IMPL, A, >=, B)
 #define LOGGER_CHECK_GT(A, B) LOGGER_CHECK_OP(CHECK_GT_IMPL, A,  >, B)
 
-//} /* namespace logger */
+} /* namespace anonymous */
 
 #ifdef USE_LOGGER
     #ifdef LOGGER_SHUTDOWN
@@ -121,8 +123,8 @@ LOGGER_CHECK_SYMBOL_WARP(CHECK_GT_IMPL, >)
         #define LOG_IF(verbose, cond)        LOGGER_LOG_IF(verbose, cond)
         #define VLOG(verbose)                LOGGER_LOG_IF(verbose, true)
         #define LOG(verbose)                 LOGGER_LOG_IF(verbose, true)
-        #define CHECK(cond)                  LOGGER_CHECK(true)
-        #define CHECK_NOTNULL(x)             LOGGER_CHECK(true)
+        #define CHECK(cond)                  LOGGER_CHECK(cond)
+        #define CHECK_NOTNULL(x)             LOGGER_CHECK(x!=nullptr)
         #define CHECK_EQ(a, b)               LOGGER_CHECK_EQ(a, b)
         #define CHECK_NE(a, b)               LOGGER_CHECK_NE(a, b)
         #define CHECK_LT(a, b)               LOGGER_CHECK_LT(a, b)

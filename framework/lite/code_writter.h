@@ -16,6 +16,7 @@
 #ifndef ANAKIN_FRAMEWORK_LITE_CODE_WRITTER_H
 #define ANAKIN_FRAMEWORK_LITE_CODE_WRITTER_H
 
+#include <sstream>
 #include "framework/lite/file_stream.h"
 
 namespace anakin {
@@ -29,12 +30,12 @@ namespace lite {
 class CodeWritter {
 public:
 	CodeWritter() {}
-	explicit CodeWritter(std::string path, const char* file_mode = "w") {
-		_file_io.open(path, file_mode);
+	explicit CodeWritter(std::string path) {
+		this->open(path);
 	}
 
 	// CodeWritter open file for code generating.
-	void open(std::string& path, const char* file_mode) {
+	void open(std::string& path, const char* file_mode = "w" ) {
 		_file_io.open(path, file_mode);
 	}
 
@@ -52,36 +53,37 @@ public:
 			pos_end--;
 		}
 		std::string name = std::string(pos_end+1);
-		split_idx='/';
+		*split_idx='/';
 		free(file_path);
 		return name;
 	}
 
 	/// feed code string for writter directly.
 	void feed(std::string& code_str) const {
-		_code<<code_str;
+		_code<<code_str.c_str();
 	}
 
 	/// feed format string for code writter.
 	void feed(const char* format, ...) {
 		va_list vlist;
 		va_start(vlist, format);
-		auto code_str = pick_format(format, vlist);
+		auto code_str_p = pick_format(format, vlist);
 		// get msg
-		free(code_str);
-		msg = nullptr;
+		_code<<code_str_p;
+		free(code_str_p);
+		code_str_p = nullptr;
 		va_end(vlist);
 	}
 
 	/// access to multi data type
 	template<typename T>
-	Writter& operator<<(const T& var) {
+	CodeWritter& operator<<(const T& var) {
 		_code<<var;
 		return *this;
 	}
 
 	/// access for std::endl and other std io
-	Writter& operator<<(std::ostream&(*func)(std::ostream&)) {
+	CodeWritter& operator<<(std::ostream&(*func)(std::ostream&)) {
 		func(_code);
 		return *this;
 	}

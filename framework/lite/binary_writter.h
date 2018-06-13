@@ -17,25 +17,26 @@
 #define ANAKIN_FRAMEWORK_LITE_BINARY_WRITTER_H
 
 #include "framework/lite/file_stream.h"
+#include "framework/graph/graph.h"
 
 namespace anakin {
 
 namespace lite {
 
 /**  
- *  \brief class to help generating code string.
+ *  \brief class to help generating binary file.
  *
  */
 class BinaryWritter {
 public:
 	BinaryWritter() {}
 
-	explicit BinaryWritter(std::string path, const char* file_mode = "wb") {
-		_file_io.open(path, file_mode);
+	explicit BinaryWritter(std::string path) {
+		this->open(path);
 	}
 
 	// BinaryWritteropen file for code generating.
-	void open(std::string& path, const char* file_mode) {
+	void open(std::string& path, const char* file_mode = "wb") {
 		_file_io.open(path, file_mode);
 	}
 
@@ -52,6 +53,55 @@ public:
 private:
 	LiteFileIO _file_io;
 };
+
+/**
+ * \brief class Weghts
+ */
+struct WeghtOffset {
+	struct Offset{
+		size_t offset; // offset from start
+		size_t length; // weight length
+	};
+	std::vector<Offset> weights;
+};
+
+/**  
+ *  \brief class to help generating model weigth file.
+ *
+ */
+class WeightsWritter : public BinaryWritter {
+public:
+	WeightsWritter() {}
+	~WeightsWritter() {}
+
+	// set weight
+	void register_weights(std::string node_name, PBlock<float>& weight) {
+		WeghtOffset::Offset offset_tmp;
+		offset_tmp.offset = _offset;
+		offset_tmp.length = weight.shape().count();
+		_offset += offset_tmp.length;
+		_node_weights_map[node_name].weights.push_back(offset_tmp);
+		write(weight.h_tensor().mutable_data(), sizeof(float), offset_tmp.length);
+	}
+
+	bool has_node(std::string node_name) {
+		return _node_weights_map.count(node_name) > 0 ? true : false;
+	}
+
+	WeghtOffset get_weights_by_name(std::string node_name) {
+		if(!has_node(node_name)) {
+			LOG(FATAL) << "WeightsWritter doesn't have target node name: " << node_name;
+			return WeghtOffset();
+		}
+		return _node_weights_map[node_name];
+	}
+
+private:
+	size_t _offset{0};
+	std::unordered_map<std::string, WeghtOffset> _node_weights_map;
+};
+
+
 
 } /* namespace lite */
 

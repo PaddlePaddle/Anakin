@@ -10,9 +10,10 @@
    See the License for the specific language governing permissions and
    limitations under the License. 
 */
-#ifndef LOGGER_CORE_H
-#define LOGGER_CORE_H
+#ifndef ANAKIN_LOGGER_CORE_H
+#define ANAKIN_LOGGER_CORE_H
 
+#include "anakin_config.h"
 #include "logger_utils.h"
 
 namespace logger {
@@ -23,7 +24,7 @@ namespace core {
  *  \brief logger init func
  *
  */
-void initial(const char* argv0){ 
+inline void initial(const char* argv0){ 
     utils::sys::init(); 
     utils::sys::set_max_logger_verbose_level(Verbose_Max);
     // get host and user info.  
@@ -49,24 +50,21 @@ template<VerBoseType Verbose>
 class LoggerDispatchMsg {
 public:
     void operator()(const char* expression, const char* file, unsigned line, const char* msg) {
-        log_msg_dispatch(expression, file, line, "%s", msg);
+        log_msg_dispatch(expression, file, line, msg);
     }
 
 private:
     /// compose the target log msg with non-Fatal log
     /// note: 
     ///    this api can accept c-format(printf) input msg
-    void log_msg_dispatch(const char* expr, const char* file, unsigned line, const char* format, ...) {
-        va_list vlist;
-        va_start(vlist, format);
-        auto msg = utils::sys::pick_format(format, vlist);
+    inline void log_msg_dispatch(const char* expr, 
+								 const char* file, 
+								 unsigned line, 
+								 const char* msg) {
 		char header[128];
         utils::sys::add_log_header<Verbose>(header, sizeof(header), file, line);
 		send_msg(false, expr, header, msg, DevType<__ERR>());
 		send_msg(false, expr, header, msg, DevType<__FILE>());
-        free(msg);
-        msg = nullptr;
-        va_end(vlist);
     }
 
 	inline void send_msg(bool exception, const char* expr, const char* header, const char* msg, DevType<__ERR>) {
@@ -100,8 +98,8 @@ private:
   		    }
 
             // here use file flush to flush everything
-            fflush(stderr);
-            //utils::sys::file_flush_all();
+            //fflush(stderr);
+            utils::sys::file_flush_all();
   		} // if Verbose <= LoggerConfig::currentVerbos	
 
 		if (exception) {
@@ -144,17 +142,14 @@ private:
 };
 
 template<>
-void LoggerDispatchMsg<Verbose_FATAL>::log_msg_dispatch(const char* expr, const char* file, unsigned line, const char* format, ...) {
-    va_list vlist;
-    va_start(vlist, format);
-    auto msg = utils::sys::pick_format(format, vlist);
+inline void LoggerDispatchMsg<Verbose_FATAL>::log_msg_dispatch(const char* expr, 
+															   const char* file, 
+															   unsigned line, 
+															   const char* msg) {
 	char header[128]; 
     utils::sys::add_log_header<Verbose_FATAL>(header, sizeof(header), file, line);
 	send_msg(true, expr, header, msg, DevType<__ERR>());
 	send_msg(true, expr, header, msg, DevType<__FILE>());
-    free(msg);
-    msg = nullptr;
-    va_end(vlist);
 }
 
 

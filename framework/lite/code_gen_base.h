@@ -64,9 +64,9 @@ public:
 	virtual ~CodeGenBase(){}
 
 	/**
-	 *  \biref initialize graph msg
+	 *  \biref extract graph msg
 	 */
-	bool extract_graph(Graph<Ttype, Dtype, Ptype>& graph);
+	bool extract_graph(std::string model_path);
 
 private:
 	/**
@@ -75,12 +75,17 @@ private:
 	bool init_memory_info();
 
 	/**
-	 * \brief parsing parameter of graph
+	 * \brief generate all source files
 	 */
-	virtual bool parser_param()=0;
+	virtual void gen_files() = 0;
+
+	/**
+	 * \brief parsing parameter and generate ops of graph
+	 */
+	virtual void gen_and_parse_ops()=0;
 
 protected:
-	Graph<Ttype, Dtype, Ptype> _graph;
+	graph::Graph<Ttype, Dtype, Ptype> _graph;
 	std::vector<std::string> _exec_node_order; /// running order of operation's name
 	std::unordered_map<std::string, NodeInfo> _graph_node_map;
 	/// graph base arch

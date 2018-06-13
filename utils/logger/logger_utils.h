@@ -34,6 +34,7 @@
 #include <sys/stat.h> // mkdir
 #include <unistd.h>   // STDERR_FILENO
 
+
 // Disable all warnings from gcc/clang:
 #if defined(__clang__)
         #pragma clang system_header
@@ -50,19 +51,16 @@
 #define LOGGER_CATCH_SIGABRT 1
 
 #define SUPPORT_PTHREADS // support for pthreads
-
-#ifndef PLATFORM_ANDROID
-  #define ENABLE_STACKTRACES
-#endif
+#define ENABLE_STACKTRACES
 
 #if defined __linux__ || defined __APPLE__
-  #include <pthread.h>
-  #include <sys/utsname.h>  // For uname.
-  #ifdef ENABLE_STACKTRACES
-    #include <cxxabi.h>    // for __cxa_demangle for gcc
-    #include <dlfcn.h>     // for dladdr
-    #include <execinfo.h>  // for backtrace
-  #endif //ENABLE_STACKTRACES
+#include <pthread.h>
+#include <sys/utsname.h>  // For uname.
+#ifdef ENABLE_STACKTRACES
+#include <cxxabi.h>    // for __cxa_demangle for gcc
+#include <dlfcn.h>     // for dladdr
+#include <execinfo.h>  // for backtrace
+#endif //ENABLE_STACKTRACES
 #endif
 
 #if defined(_WIN32) || (defined(__APPLE__) && !TARGET_OS_IPHONE) || defined(__linux__)
@@ -568,8 +566,8 @@ inline void sys::write_file_log_with_format(VerBoseType verbose,
     va_start(vlist, format); 
     auto msg = sys::pick_format(format, vlist);
     FileStream::Global().write_file_log(verbose, expr, header, msg);
-    free(msg);
-    msg = nullptr;
+    //free(msg);
+    //msg = nullptr;
     va_end(vlist);
 }
 inline void sys::add_file_stream(VerBoseType verbose, void* handle) {

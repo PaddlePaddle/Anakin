@@ -16,6 +16,8 @@
 #ifndef ANAKIN_FRAMEWORK_LITE_FILE_STREAM_H
 #define ANAKIN_FRAMEWORK_LITE_FILE_STREAM_H
 
+#include "utils/logger/logger.h"
+
 namespace anakin {
 
 namespace lite {
@@ -36,6 +38,7 @@ public:
 		if(_file_p) {
 			fflush(this->_file_p);
 			fclose(this->_file_p);
+			this->_file_p = nullptr;
 		}
 	}
 
@@ -77,6 +80,13 @@ public:
 
 	/// open the target file path
 	void open(const std::string& path, const char* file_mode) {
+		// close old 
+		if(is_file_open()) {
+			fflush(this->_file_p); 
+			fclose(this->_file_p);
+			this->_file_p = nullptr;
+		}
+		// open new
 		if (!this->is_file_open()) {
 		    _file_path = path;
 		    char* file_path = strdup(path.c_str()); 

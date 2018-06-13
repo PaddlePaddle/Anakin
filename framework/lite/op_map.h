@@ -19,12 +19,15 @@
 #include <string>
 #include <unordered_map>
 
+#include "framework/lite/code_writter.h"
+#include "framework/lite/binary_writter.h"
+
 namespace anakin {
 
 namespace lite {
 
 template<typename T> 
-inline T get_attr(std::string& attr_name, graph::AttrInfo& attrs) { 
+inline T get_attr(std::string attr_name, graph::AttrInfo& attrs) { 
 	const auto& it_end = attrs.parameter.end(); 
 	auto it_find = attrs.parameter.find(attr_name); 
 	if(it_find == it_end) { 
@@ -34,32 +37,11 @@ inline T get_attr(std::string& attr_name, graph::AttrInfo& attrs) {
 	return any_cast<T>(attrs.parameter[attr_name]); 
 }
 
-/**
- * \brief class Weghts
- */
-struct WeghtOffset {
-	struct Offset{
-		size_t offset; // offset from start
-		size_t length; // weight length
-	}
-	std::vector<Offset> weights;
-};
-
-class WeightsWritter {
-public:
-
-private:
-	int _offset{0};
-	std::vector<WeghtOffset> _weights;
-	BinaryWritter _writter;
-};
-
-typedef Singleton<WeightsWritter> GraphWeghts;
-
 /// function type for parser
-typedef std::fuction<std::string(graph::AttrInfo& attr, 
-								 std::string& op_class_name, 
-								 std::string& node_name)> ParseParamFunctor;
+typedef std::function<std::string(graph::AttrInfo& attr, 
+								  std::string& op_class_name, 
+								  std::string& node_name,
+								  WeightsWritter& writter)> ParseParamFunctor;
 /**
  * \brief class OpParser
  */
