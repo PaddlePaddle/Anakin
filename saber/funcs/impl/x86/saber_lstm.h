@@ -19,7 +19,10 @@
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/saber_funcs_param.h"
 #include "mkl_packed_weight.h"
+#include "sequence2batch.h"
+
 #include "saber/funcs/impl/impl_lstm.h"
+#include "saber/funcs/impl/x86/activation_functions.h"
 
 namespace anakin {
 namespace saber {
@@ -136,12 +139,12 @@ private:
     DataTensor_out *batch_cell_;
     DataTensor_out *batch_cell_act_;
 
-virtual void compute(LstmMetaValue<DataType_in> value,
-                     int frame_size, int batch_size,
-                     const ActiveType &gate_act,
-                     const ActiveType &cell_act,
-                     const ActiveType &cand_act);
-};
+    virtual void compute(LstmMetaValue<DataType_in> value,
+                         int frame_size, int batch_size,
+                         const ActiveType &gate_act,
+                         const ActiveType &cell_act,
+                         const ActiveType &cand_act);
+    };
 
 } // namespace saber
 } // namespace anakin

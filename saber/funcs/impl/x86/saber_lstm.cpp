@@ -1,9 +1,4 @@
-
 #include "saber/funcs/impl/x86/saber_lstm.h"
-#include "activation_functions.h"
-#include "sequence2batch.h"
-#include <immintrin.h>
-#include <cmath>
 
 namespace anakin {
 namespace saber {
@@ -147,7 +142,7 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
         Context<X86> &ctx) {
     DataTensor_in *input = inputs[0];
     DataTensor_out *hidden_out = outputs[0];
-    Shape output_shape = hidden_out->shape();
+    Shape output_shape = hidden_out->valid_shape();
     int hidden_size = hidden_out->channel();
 
     // xx = x * [Wix, Wfx, Wcx, Wox]
@@ -205,8 +200,7 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
         // if current size < request size, realloc a buf for using
         xx = new DataTensor_in();
         this->xx_ = request_buf_for_input(this->xx_, xx_shape);
-        //xx->share_sub_buffer(*(this->xx_), xx_shape, offset);
-        xx->reshape(xx_shape);
+        xx->share_sub_buffer(*(this->xx_), xx_shape, offset);
 
         MatrixInfo<DataType_in> src((input->mutable_data()), input->num(), input->channel());
         MatrixInfo<DataType_in> dst((xx->mutable_data()), xx->num(), xx->channel());
@@ -227,21 +221,18 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
             return SaberUnImplError;
         }
     }
+
     DataTensor_in batch_xx;
-    batch_xx.reshape(xx->valid_shape());
-    //batch_hidden.reshape(hidden_out->valid_shape());
+    batch_xx.share_sub_buffer(*(this->batch_xx_), xx->valid_shape(), offset);
 
     DataTensor_out batch_hidden;
-    //batch_hidden.share_sub_buffer(*(this->batch_hidden_), hidden_out->shape(), offset);
-    batch_hidden.reshape(hidden_out->valid_shape());
+    batch_hidden.share_sub_buffer(*(this->batch_hidden_), hidden_out->valid_shape(), offset);
 
     DataTensor_out batch_cell;
-    //batch_cell.share_sub_buffer(*(this->batch_cell_), hidden_out->shape(), offset);
-    batch_cell.reshape(hidden_out->valid_shape());
+    batch_cell.share_sub_buffer(*(this->batch_cell_), hidden_out->valid_shape(), offset);
 
     DataTensor_out batch_cell_act;
-    //batch_cell_act.share_sub_buffer(*(this->batch_cell_act_), hidden_out->shape(), offset);
-    batch_cell_act.reshape(hidden_out->valid_shape());
+    batch_cell_act.share_sub_buffer(*(this->batch_cell_act_), hidden_out->valid_shape(), offset);
 
     MatrixInfo<DataType_in> batch_xx_matrix((batch_xx.mutable_data()), batch_xx.num(), batch_xx.channel());
     MatrixInfo<DataType_out> batch_hidden_matrix((batch_hidden.mutable_data()), batch_hidden.num(), batch_hidden.channel());
@@ -291,8 +282,7 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
         // get init_c0 from init_t0 and reorder it
         Shape offset(batch_size, 0, 0, 0);
         OpTensor init_c0;
-        //init_c0.share_sub_buffer(*init_t0, init_state_shape, offset);
-        init_c0.reshape(init_state_shape);
+        init_c0.share_sub_buffer(*init_t0, init_state_shape, offset);
         reorder(&init_c0, order, batch_c0_, true);
 
         lstm_value.prev_state_value = batch_c0_->mutable_data();
@@ -318,8 +308,7 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
             // get init_h0 from init_t0 and reorder it
             Shape offset(0, 0, 0, 0);
             OpTensor init_h0;
-            //init_h0.share_sub_buffer(*init_t0, init_state_shape, offset);
-            init_h0.reshape(init_state_shape);
+            init_h0.share_sub_buffer(*init_t0, init_state_shape, offset);
             reorder(&init_h0, order, batch_h0_, true);
 
             MatrixInfo<DataType_in> src((batch_h0_->mutable_data()), batch_h0_->num(), batch_h0_->channel());
@@ -344,7 +333,10 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
         to_seq(&batch_cell, cell_out, seq_to_batch_meta);
     }
 
-    delete xx;
+    if (!param.skip_input && xx) {
+        delete xx;
+        xx = nullptr;
+    }
 
     return SaberSuccess;
 }
