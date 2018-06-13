@@ -42,8 +42,11 @@ cmake .. \
 	-DENABLE_VERBOSE_MSG=NO \
 	-DDISABLE_ALL_WARNINGS=YES \
 	-DENABLE_NOISY_WARNINGS=NO \
+	-DUSE_OPENCV=YES\
     -DUSE_OPENMP=YES\
-	-DBUILD_SHARED=NO
+	-DBUILD_SHARED=NO\
+	-DBUILD_WITH_UNIT_TEST=YES\
+	-DBUILD_EXAMPLES=YES
 
 # build target lib or unit test.
 if [ "$(uname)" = 'Darwin' ]; then

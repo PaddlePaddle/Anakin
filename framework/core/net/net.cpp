@@ -295,6 +295,8 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
 #ifdef ENABLE_OP_TIMER
     int op_id = 0;
 #endif
+
+    int i = 0;
     for(auto& executer : _exec_funcs) {
         if (RunType == OpRunType::SYNC || executer.need_sync) {
             for(int i = 0; i < executer.ins.size(); i++) {
@@ -338,7 +340,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
     _op_time[op_id++] += my_time.get_average_ms();
 #endif
 	//LOG(INFO)<< "op: " << executer.name<<"(" << executer.op_name <<")  ===  infer+launch time "<<my_time.get_average_ms() << " ms";
-#ifdef ENABLE_DEBUG	
+#ifdef ENABLE_DEBUG
 #ifdef USE_CUDA
 	cudaDeviceSynchronize();
     CUDA_CHECK(cudaPeekAtLastError());
@@ -360,10 +362,73 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
             std::cout << out_data[i] << " ";
         }
         std::cout << std::endl;
-
     }
 #endif
+#ifdef USE_ARM_PLACE
+        int idx = 0;
+        for (auto out : executer.outs) {
+            int size = out->valid_size();
+            const float* ptr_data = out->data();
+            int num = out->num();
+            int c = out->channel();
+            int w = out->width();
+            int h = out->height();
+            double sum = 0;
+            for (int j = 0; j < num * c; ++j) {
+                double sum_c = 0;
+                for (int k = 0; k < w * h; ++k) {
+                    sum_c += *ptr_data;
+                    sum += *ptr_data;
+                    ptr_data++;
+                }
+                //LOG(INFO) << "channel: " << j << ", mean value :" << sum_c / (w * h);
+            }
+
+            LOG(INFO) << executer.name << ", tensor idx: " << idx << ", mean value :" << sum / size << ", num: " << out->num() << \
+                 ", channel: " << out->channel() << ", height: " << out->height() << ", width: " << out->width();
+            idx++;
+        }
+
+
+        i++;
+        if (0/*executer.name == "conv4/dw"*/) {
+            for (auto out : executer.outs) {
+                printf("output size: dims=%d, ", out->dims());
+                for (int i = 0; i < out->dims(); i++){
+                    printf("%d ", out->valid_shape()[i]);
+                }
+                printf("\n");
+
+                printf("extract data: size: %d, num: %d, channel: %d, height=%d, width=%d\n", \
+                     out->valid_size(), out->num(), out->channel(), out->height(), out->width());
+
+                int ch_get = 1;
+                int size_channel = out->width() * out->height();
+                int start = ch_get * size_channel;
+                int end = start + size_channel;
+                end = (end > out->valid_size())? (out->valid_size() - start) : end;
+                const float* ptr_in = out->data(start);
+#if 1
+                //FILE* fp = fopen("conv0_relu_anakin.txt", "w+");
+
+                for (int i = 0; i < end - start; i++)
+                {
+                    //fprintf(fp, "%f ", ptr_in[i]);
+                    printf("%0.4f  ", ptr_in[i]);
+                    if ((i + 1) % 10 == 0) {
+                        //fprintf(fp, "\n");
+                        printf("\n");
+                    }
+                }
+                printf("\n");
+                //fflush(fp);
+                //fclose(fp);
 #endif
+            }
+            LOG(FATAL) << "exit";
+        }
+#endif
+#endif //debug
     }
 }
 

@@ -64,7 +64,7 @@ anakin_option(ENABLE_NOISY_WARNINGS "Enable noisy warning msg during compile." N
 # using 3rd party libs
 anakin_option(USE_GLOG "Build Glog components." NO)
 anakin_option(USE_PROTOBUF "Build Google protobuf components." YES)
-anakin_option(USE_OPENCV "Use static opencv libs." NO)
+anakin_option(USE_OPENCV "Use static opencv libs." YES)
 anakin_option(USE_BOOST "Use static BOOST libs." NO)
 anakin_option(USE_OPENMP "Use Openmp when in android environment." YES if TARGET_ANDROID)
 anakin_option(USE_GTEST "Use googletest libs." NO if BUILD_WITH_UNIT_TEST)
@@ -78,6 +78,9 @@ anakin_option(USE_OPENMP "Use Openmp when in android environment." YES if TARGET
 
 # build components
 anakin_option(BUILD_WITH_UNIT_TEST "Build anakin unit test components." YES)
+
+# build examples
+anakin_option(BUILD_EXAMPLES "build detection and classification examples" YES)
 
 # build target
 anakin_option(BUILD_SHARED "Build anakin shared lib." NO)
@@ -117,6 +120,7 @@ set(ANAKIN_THIRD_PARTY_PATH ${ANAKIN_ROOT}/third-party)
 set(ANAKIN_MODEL_PARSER ${ANAKIN_FRAMEWORK}/model_parser)
 set(ANAKIN_SABER ${ANAKIN_ROOT}/saber)
 set(ANAKIN_UNIT_TEST ${ANAKIN_ROOT}/test)
+set(ANAKIN_EXAMPLES ${ANAKIN_ROOT}/examples)
 
 # ----------------------------------------------------------------------------
 # section:configure a header file to pass some of the CMake settings to the source
@@ -168,6 +172,10 @@ add_subdirectory(${ANAKIN_FRAMEWORK})
 
 if(BUILD_WITH_UNIT_TEST)
     add_subdirectory(${ANAKIN_UNIT_TEST})
+endif()
+
+if (BUILD_EXAMPLES)
+    add_subdirectory(${ANAKIN_EXAMPLES})
 endif()
 
 anakin_print_statistic()

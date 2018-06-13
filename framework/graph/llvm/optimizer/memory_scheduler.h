@@ -32,7 +32,8 @@ struct check_self_shared {
     /// ops : Split and Reshape  
     std::vector<std::string> ops{
         "Split",
-        "Reshape"
+        "Reshape",
+        "Flatten"
     };
     /**
     * \brief whether node_arg's op is in ops
