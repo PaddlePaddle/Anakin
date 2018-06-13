@@ -44,7 +44,6 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ActivationHelper<Ttype, Dtype, Ptype>::InitParam() {
     DLOG(WARNING) << "Parsing Activation op parameter.";
     auto type = GET_PARAMETER(std::string, type);
-
     if (type == "TanH") {
         ActivationParam<Tensor4d<Ttype, Dtype>> param_activation(Active_tanh);
         _param_activation = param_activation;
@@ -74,7 +73,7 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ActivationHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
                                                    const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
                                                    std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-    SABER_CHECK(_funcs_activation.init(ins, outs, _param_activation, SPECIFY, VENDER_IMPL, ctx));
+    SABER_CHECK(_funcs_activation.init(ins, outs, _param_activation, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }
 

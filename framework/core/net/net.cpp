@@ -277,6 +277,10 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
 	    }
 	    LOG(INFO)<<"  end print offset of "<<executer.name;
         LOG(INFO) <<executer.name <<" d_tensor_out_p :" <<out->data();
+        for (int i = 0; i < 10; ++i) {
+            std::cout << out->data()[i]<<" ";
+        }
+        std::cout<<std::endl;
         record_dev_tensorfile(out->data(), out->valid_size(),
                               ("net_record_" + executer.name + ".txt").data());
 	    LOG(ERROR) << "    |---out avg " << tensor_average(out);
