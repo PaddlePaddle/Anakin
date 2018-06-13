@@ -12,8 +12,12 @@ template <typename dtype>
 void seq_pool_average(dtype* dst, const dtype* src_in,
                   const int slice_num, const int slice_size) {
     dtype sum = 0.f;
+#pragma omp parallel for
     for (int i = 0; i < slice_size; ++i) {
         sum = src_in[i];
+#pragma vector aligned
+#pragma simd reduction(+:sum)
+#pragma unroll(8)
         for (int s = 1; s < slice_num; ++s) {
             dtype src_in_read = src_in[s * slice_size +i];
             sum += src_in_read;
@@ -26,8 +30,12 @@ template <typename dtype>
 void seq_pool_sum(dtype* dst, const dtype* src_in,
                   const int slice_num, const int slice_size) {
     dtype sum = 0.f;
+#pragma omp parallel for
     for (int i = 0; i < slice_size; ++i) {
         sum = src_in[i];
+#pragma vector aligned
+#pragma simd reduction(+:sum)
+#pragma unroll(8)
         for (int s = 1; s < slice_num; ++s) {
             dtype src_in_read = src_in[s * slice_size +i];
             sum += src_in_read;
@@ -41,8 +49,12 @@ void seq_pool_sqrt(dtype* dst, const dtype* src_in,
                   const int slice_num, const int slice_size) {
     dtype sqrt_len = sqrtf(slice_num);
     dtype sum = 0.f;
+#pragma omp parallel for
     for (int i = 0; i < slice_size; ++i) {
         sum = src_in[i];
+#pragma vector aligned
+#pragma simd reduction(+:sum)
+#pragma unroll(4)
         for (int s = 1; s < slice_num; ++s) {
             dtype src_in_read = src_in[s * slice_size +i];
             sum += src_in_read;
@@ -55,6 +67,7 @@ template <typename dtype>
 void seq_pool_max(dtype* dst, const dtype* src_in,
                   const int slice_num, const int slice_size) {
     dtype max = 0.f;
+#pragma omp parallel for
     for (int i = 0; i < slice_size; ++i) {
         max = src_in[i];
         for (int s = 1; s < slice_num; ++s) {
