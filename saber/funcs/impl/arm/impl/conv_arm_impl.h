@@ -58,6 +58,19 @@ void conv_arm_winograd3x3(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, A
 
 void winograd_transform_weights(float* dout, const float* din, int ch_out, \
     int ch_in, void* work_space);
+/**
+* \brief conv7x7, stride 1, pad 3, with bias and group
+*/
+void conv_arm_7x7s1(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
+    Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, \
+    const float* weights, const float* bias, \
+    int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
+    int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm* gemmer, void* work_space);
+void conv_basic7x7(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
+    Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, \
+    const float* weights, const float* bias, \
+    int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
+    int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm* gemmer, void* work_space);
 #if 0
 class ConvWinogradF63 {
 public:
