@@ -28,7 +28,8 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 Status CrfDecodingHelper<Ttype, Dtype, Ptype>::InitParam() {
     DLOG(WARNING) << "Parsing CrfDecoding op parameter.";
 
-    auto weights = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_1);
+	using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
+    auto weights = GET_PARAMETER(pblock_type, weight_1);
     saber::CrfDecodingParam<Tensor4d<Ttype, Dtype>> crf_decoding_param(&(weights.d_tensor()));
     _param_crf_decoding = crf_decoding_param;
 
