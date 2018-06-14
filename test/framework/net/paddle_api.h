@@ -81,7 +81,16 @@ private:
     anakin::graph::Graph<Ttype, Dtype, Ptype> _graph;
     anakin::Net<Ttype, Dtype, Ptype> _net_executer;
 };  // class TensorRTEngine
+
+#ifdef USE_CUDA
 template 
 class AnakinEngine<NV, anakin::saber::AK_FLOAT, anakin::Precision::FP32>;
+#endif
+
+/*#ifdef USE_X86_PLACE
+template 
+class AnakinEngine<X86, anakin::saber::AK_FLOAT, anakin::Precision::FP32>;
+#endif*/
+
 
 
