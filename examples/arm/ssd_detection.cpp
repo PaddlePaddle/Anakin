@@ -56,8 +56,6 @@ void detect_object(Tensor4hf& tout, const float thresh, Mat& image) {
         Object object;
         const float *values = dout + iw * tout.width();
         int batch_id = static_cast<int>(values[0]);
-        LOG(INFO) << "batch id: " << batch_id;
-
         int oriw = image.cols;
         int orih = image.rows;
         object.batch_id = batch_id;
@@ -77,15 +75,12 @@ void detect_object(Tensor4hf& tout, const float thresh, Mat& image) {
             std::ostringstream pro_str;
             pro_str << object.prob;
             std::string label = std::string(class_names[object.class_id]) + ": " + pro_str.str();
-            int baseLine = 0;
-            cv::Size label_size = cv::getTextSize(label, cv::FONT_HERSHEY_SIMPLEX, 0.5, 1, &baseLine);
             cv::putText(image, label, cv::Point(object.rec.x, object.rec.y), \
                 cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
-            LOG(INFO) << "image size: " << image.cols << ", " << image.rows << ", detect object: " << \
-                      class_names[object.class_id] << ", location: x=" << object.rec.x << ", y=" << object.rec.y << \
+            LOG(INFO) << "detection in batch: " << object.batch_id << ", image size: " << image.cols << ", " << image.rows << \
+                    ", detect object: " << class_names[object.class_id] << ", location: x=" << object.rec.x << ", y=" << object.rec.y << \
                       ", width=" << object.rec.width << ", height=" << object.rec.height;
             cv::imwrite("detection_output.jpg", image);
-
         }
     }
 }
@@ -145,6 +140,10 @@ void test_net(const string model_file_name, const string image_file_name, float 
     LOG(INFO) << "optimize the graph";
     graph.Optimize();
 
+    //! get output name
+    std::vector<std::string>& vout_name = graph.get_outs();
+    LOG(INFO) << "output size: " << vout_name.size();
+
     //! constructs the executer net
     LOG(INFO) << "create net to execute";
     Net<ARM, AK_FLOAT, Precision::FP32, OpRunType::SYNC> net_executer(graph, ctx1, true);
@@ -202,12 +201,15 @@ void test_net(const string model_file_name, const string image_file_name, float 
         " average time " << to / test_iter << \
         ", min time: " << tmin << "ms, max time: " << tmax << " ms";
 
-    //! get output
+    //! fixme get output
     //std::vector<Tensor4hf*> vout = net_executer.get_out_list();
-    //LOG(INFO) << "output size: " << vout.size();
-    //Tensor4hf* tensor_out = vout[0];
-    Tensor4hf* tensor_out = net_executer.get_out("detection_out_out");
-
+    std::vector<Tensor4hf*> vout;
+    for (auto& it : vout_name) {
+        vout.push_back(net_executer.get_out(it));
+    }
+    Tensor4hf* tensor_out = vout[0];
+    LOG(INFO) << "output size: " << vout.size();
+#if 0 //print output data
     LOG(INFO) << "extract data: size: " << tensor_out->valid_size() << \
         ", width=" << tensor_out->width() << ", height=" << tensor_out->height();
     const float* ptr_out = tensor_out->data();
@@ -218,7 +220,7 @@ void test_net(const string model_file_name, const string image_file_name, float 
         }
     }
     printf("\n");
-
+#endif
 #ifdef USE_OPENCV
     detect_object(*tensor_out, thresh, img);
 #endif
