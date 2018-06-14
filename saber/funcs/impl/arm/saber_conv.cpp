@@ -30,6 +30,7 @@ SaberStatus SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::cr
     ConvParam<OpTensor> &conv_param, Context<ARM> &ctx) {
 
     this->_ctx = ctx;
+    //printf("conv init \n");
 
     int threads = this->_ctx.get_act_ids().size();
 
@@ -45,7 +46,7 @@ SaberStatus SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::cr
 
     _kw = conv_param.weight()->width();
     _kh = conv_param.weight()->height();
-
+   // printf("kw: %d, kh: %d\n", _kw, _kh);
     int l1_cache = this->_ctx.devs[this->_ctx.get_device_id()]._info._L1_cache;
     int l2_cache = this->_ctx.devs[this->_ctx.get_device_id()]._info._L2_cache;
     //! if L1 cache size is not provided, set to 31K
@@ -58,7 +59,18 @@ SaberStatus SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::cr
     } else {
         _bias_term = false;
     }
-
+   // printf("dilation: %d, stride: %d, pad: %d, kw: %d\n", conv_param.dilation_h, conv_param.stride_h, conv_param.pad_h, _kw);
+    //conv7x7s1
+    if (conv_param.dilation_h== 1 && conv_param.dilation_w == 1 \
+        && conv_param.stride_h == conv_param.stride_w \
+        && conv_param.stride_w == 1 && _kw == _kh && _kw == 7 \ 
+        && conv_param.pad_w == conv_param.pad_h && conv_param.pad_w == 3) {
+        //! basic conv
+        _impl = conv_arm_7x7s1;
+       // printf("conv7x7\n");
+        //LOG(ERROR) << "USE BASIC";
+        return SaberSuccess;
+    }
     //! return basic conv func
     if (conv_param.dilation_h != 1 || conv_param.dilation_w != 1 \
         || conv_param.stride_h != conv_param.stride_w \

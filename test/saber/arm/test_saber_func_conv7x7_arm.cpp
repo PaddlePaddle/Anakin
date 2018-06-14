@@ -47,7 +47,7 @@ void tensor_diff(Tensor_t& t1, Tensor_t& t2, Tensor_t& tdiff) {
 
 void test_arm_conv(int thread_num, int cluster_id) {
 
-    int test_iter = 100;
+    int test_iter = 10;
     double to = 0;
     double min_time = 1000000;
     SaberTimer<ARM> t1;
@@ -132,7 +132,7 @@ void test_arm_conv(int thread_num, int cluster_id) {
 
 
     tvout_saber.push_back(&tout_saber);
-    tvout_saber.push_back(&tout_ncnn);
+    //tvout_saber.push_back(&tout_ncnn);
     tvout_basic.push_back(&tout_basic);
 
     int num = tin[0]->num();
@@ -172,9 +172,9 @@ void test_arm_conv(int thread_num, int cluster_id) {
     //fill_tensor_host_const(pweiht, 1.f);
     fill_tensor_host_const(pbias, 1.f);
 
-    TensorHf4* bias_ptr = nullptr;
+    TensorHf4 bias_ptr;
     if (flag_bias) {
-        bias_ptr = &pbias;
+        bias_ptr = pbias;
     }
     /*
     printf("initial input tensor: \n");
@@ -186,7 +186,7 @@ void test_arm_conv(int thread_num, int cluster_id) {
     ConvParam<TensorHf4> conv_param(group, pad, pad,
                                     stride, stride,
                                     dila, dila,
-                                    &pweiht, bias_ptr);
+                                    &pweiht, &bias_ptr);
 
      size_t workspace_size = sizeof(float) * num * chin * (hin + 2 * pad) * (win + 2 * pad);
      void* work_space_data = fast_malloc(workspace_size);
@@ -223,18 +223,22 @@ void test_arm_conv(int thread_num, int cluster_id) {
 
     Conv<ARM, AK_FLOAT> conv_saber;
 
-    conv_saber.compute_output_shape(tvout_saber, tin, conv_param);
+    conv_saber.compute_output_shape(tin, tvout_saber, conv_param);
     Shape sh_out_saber = tvout_saber[0]->valid_shape();
     LOG(INFO) << "output shape: " << shape_out[0] << ", " << shape_out[1] << ", " \
         << shape_out[2] << ", " << shape_out[3];
+   //LOG(INFO) << "output shape1: " << sh_out_saber[0] << ", " << sh_out_saber[1] << ", " \
+        << sh_out_saber[2] << ", " << sh_out_saber[3];
     CHECK_EQ(shape_out == sh_out_saber, true) << "compute output shape error";
 
     //! re_alloc mem for output tensor
     tvout_saber[0]->re_alloc(shape_out);
-    tvout_saber[1]->re_alloc(shape_out);
+    //tvout_saber[1]->re_alloc(shape_out);
 
     Sgemm gemmer;
 
+    LOG(INFO) << "saber conv7x7 impl init";
+    SABER_CHECK(conv_saber.init(tin, tvout_saber, conv_param, SPECIFY, SABER_IMPL, ctx1));
     //int test_iter = 10;
     to = 0;
     min_time = 1000000;
@@ -242,7 +246,8 @@ void test_arm_conv(int thread_num, int cluster_id) {
     for (int i = 0; i < test_iter; ++i) {
         t1.clear();
         t1.start(ctx1);
-        conv_arm_7x7s1(tout_saber, *thin, pweiht.data(), pbias.data(), group, kernel, \
+        conv_saber(tin, tvout_saber, conv_param, ctx1);
+        //conv_arm_7x7s1(tout_saber, *thin, pweiht.data(), pbias.data(), group, kernel, \
         kernel, stride, stride, dila, dila, pad, pad, flag_bias, flag_relu, &gemmer,work_space_data);
         tvout_saber[0] ->record_event(ctx1.get_compute_stream());
         tvout_saber[0] ->sync();
@@ -256,25 +261,6 @@ void test_arm_conv(int thread_num, int cluster_id) {
     //fast_free(work_space_data);
     LOG(INFO) << "saber conv7x7 running time, ave: " << to / test_iter << ", min time: " << min_time;
     //print_tensor_host(tout_saber);
-    to = 0;
-    min_time = 1000000;
-    //SaberTimer<ARM> t1;
-    for (int i = 0; i < test_iter; ++i) {
-        t1.clear();
-        t1.start(ctx1);
-        //conv_ncnn7x7(tout_ncnn, *thin, pweiht.data(), pbias.data(), group, kernel, \
-        kernel, stride, stride, dila, dila, pad, pad, flag_bias, flag_relu, &gemmer,work_space_data);
-        tvout_saber[1] ->record_event(ctx1.get_compute_stream());
-        tvout_saber[1] ->sync();
-        t1.end(ctx1);
-        to += t1.get_average_ms();
-        if (t1.get_average_ms() < min_time) {
-            min_time = t1.get_average_ms();
-        }
-    }
-    //fast_free(work_space_data);
-    LOG(INFO) << "ncnn conv7x7 running time, ave: " << to / test_iter << ", min time: " << min_time;
-    //print_tensor_host(tout_ncnn);
 
     if (compare_result) {
         double max_ratio = 0;
