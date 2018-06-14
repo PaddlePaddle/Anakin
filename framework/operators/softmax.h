@@ -128,6 +128,13 @@ ANAKIN_REGISTER_OP_HELPER(Softmax, SoftmaxHelper, X86, AK_FLOAT, Precision::FP32
 
 #ifdef USE_ARM_PLACE
 INSTANCE_SOFTMAX(ARM, AK_FLOAT, Precision::FP32);
+template <>
+Status SoftmaxHelper<ARM, AK_FLOAT, Precision::FP32>::Init(OpContext<ARM> &ctx, \
+    const std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& ins, \
+    std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& outs) {
+    SABER_CHECK(_funcs_softmax.init(ins, outs, _param_softmax, SPECIFY, SABER_IMPL, ctx));
+    return Status::OK();
+}
 ANAKIN_REGISTER_OP_HELPER(Softmax, SoftmaxHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
 //! register op
