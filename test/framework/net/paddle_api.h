@@ -11,16 +11,6 @@
 #include <fcntl.h>
 #include <map>
 
-#ifdef USE_CUDA
-using Target = anakin::saber::NV;
-#endif
-#ifdef USE_X86_PLACE
-using Target = anakin::saber::X86;
-#endif
-#ifdef USE_ARM_PLACE
-using Target = anakin::saber::ARM;
-#endif
-
 class EngineBase {
  public:
   // Build the model and do some preparation, for example, in TensorRT, run
@@ -77,7 +67,7 @@ public:
   {
     auto input_tensor = _net_executer.get_in(name);
     CHECK_EQ(size, input_tensor->valid_size());
-    anakin::Tensor<Ttype, Dtype> tmp_tensor(data, Target(), NV_API::get_device_id(), input_tensor->valid_shape());
+    anakin::Tensor<Ttype, Dtype> tmp_tensor(data, NV(), NV_API::get_device_id(), input_tensor->valid_shape());
     *input_tensor = tmp_tensor;
   };
   // Get an output called name, the output of tensorrt is in GPU, so this method
@@ -92,6 +82,6 @@ private:
     anakin::Net<Ttype, Dtype, Ptype> _net_executer;
 };  // class TensorRTEngine
 template 
-class AnakinEngine<Target, anakin::saber::AK_FLOAT, anakin::Precision::FP32>;
+class AnakinEngine<NV, anakin::saber::AK_FLOAT, anakin::Precision::FP32>;
 
 
