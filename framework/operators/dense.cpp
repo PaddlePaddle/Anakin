@@ -43,10 +43,11 @@ Status DenseHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto out_dim = GET_PARAMETER(int, out_dim);
     auto bias_term = GET_PARAMETER(bool, bias_term);
 
-    auto weights = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_1);
+	using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
+    auto weights = GET_PARAMETER(pblock_type, weight_1);
 
         if (bias_term) {
-        auto bias = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_2);
+        auto bias = GET_PARAMETER(pblock_type, weight_2);
         saber::FcParam<Tensor4d<Ttype, Dtype>> fc_param(&(weights.d_tensor()), &(bias.d_tensor()), out_dim,
                                             axis);
         _param_dense = fc_param;
