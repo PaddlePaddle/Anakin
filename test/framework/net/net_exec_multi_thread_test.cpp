@@ -28,10 +28,10 @@ TEST(NetTest, net_execute_muti_thread_sync_test) {
 
     workers.launch();
 
-    std::vector<Tensor4dPtr<X86, AK_FLOAT> > host_tensor_p_in_list;
+    std::vector<Tensor4dPtr<target_host<Target>::type, AK_FLOAT> > host_tensor_p_in_list;
     // get in
     saber::Shape valid_shape_in({1, 384, 960, 3});
-    Tensor4dPtr<X86, AK_FLOAT> h_tensor_in = new Tensor4d<X86, AK_FLOAT>(valid_shape_in);
+    Tensor4dPtr<target_host<Target>::type, AK_FLOAT> h_tensor_in = new Tensor4d<target_host<Target>::type, AK_FLOAT>(valid_shape_in);
     float* h_data = h_tensor_in->mutable_data();
     for (int i=0; i<h_tensor_in->size(); i++) {
         h_data[i] = 1.0f;
@@ -71,10 +71,10 @@ TEST(NetTest, net_execute_muti_thread_sync_test) {
 
     workers.launch();
 
-    std::vector<Tensor4dPtr<X86, AK_FLOAT> > host_tensor_p_in_list;
+    std::vector<Tensor4dPtr<target_host<Target>::type, AK_FLOAT> > host_tensor_p_in_list;
     // get in
     saber::Shape valid_shape_in({1, 384, 960, 3});
-    Tensor4dPtr<X86, AK_FLOAT> h_tensor_in = new Tensor4d<X86, AK_FLOAT>(valid_shape_in);
+    Tensor4dPtr<target_host<Target>::type, AK_FLOAT> h_tensor_in = new Tensor4d<target_host<Target>::type, AK_FLOAT>(valid_shape_in);
     float* h_data = h_tensor_in->mutable_data();
     for (int i=0; i<h_tensor_in->size(); i++) {
         h_data[i] = 1.0f;
@@ -118,10 +118,10 @@ TEST(NetTest, net_execute_muti_thread_async_test) {
 
     workers.launch();
 
-    std::vector<Tensor4dPtr<X86, AK_FLOAT> > host_tensor_p_in_list;
+    std::vector<Tensor4dPtr<target_host<Target>::type, AK_FLOAT> > host_tensor_p_in_list;
     // get in
     saber::Shape valid_shape_in({1, 384, 960, 3});
-    Tensor4dPtr<X86, AK_FLOAT> h_tensor_in = new Tensor4d<X86, AK_FLOAT>(valid_shape_in);
+    Tensor4dPtr<target_host<Target>::type, AK_FLOAT> h_tensor_in = new Tensor4d<target_host<Target>::type, AK_FLOAT>(valid_shape_in);
     float* h_data = h_tensor_in->mutable_data();
     for (int i=0; i<h_tensor_in->size(); i++) {
         h_data[i] = 1.0f;
