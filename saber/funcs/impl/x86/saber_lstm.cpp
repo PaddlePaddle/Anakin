@@ -1,6 +1,5 @@
 #include "saber/funcs/impl/x86/saber_lstm.h"
 #include "saber/funcs/impl/x86/activation_functions.h"
-#include "saber/funcs/impl/x86/sequence2batch.h"
 #include "saber/funcs/impl/x86/kernel/jit_generator.h"
 
 namespace anakin {
@@ -19,7 +18,7 @@ void SaberLstm<X86, OpDtype, inDtype, outDtype,
                                                                         const ActiveType &cell_act,
                                                                         const ActiveType &cand_act) {
 #ifdef __AVX__
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for if(this->max_thread_num_ > 1) collapse(2)
     for (int b = 0; b < batch_size; b++) {
         for (int i = 0; i < hidden_size/8; i++) {
             __m256 r_checkI = _mm256_set1_ps(0.0f);
@@ -69,7 +68,7 @@ void SaberLstm<X86, OpDtype, inDtype, outDtype,
                                                                const ActiveType &gate_act,
                                                                const ActiveType &cell_act,
                                                                const ActiveType &cand_act) {
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for if(this->max_thread_num_ > 1) collapse(2)
     for (int b = 0; b < batch_size; b++) {
         for (int i = 0; i < hidden_size; i++) {
             DataType_in *value_ig = value.gate_value + b * hidden_size * 4;
@@ -221,6 +220,7 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
     safe_free(&aligned_weights_data_h);
 
     this->_ctx = ctx;
+    this->max_thread_num_ = omp_get_max_threads();
 
     return create(inputs, outputs, param, ctx);
 }
