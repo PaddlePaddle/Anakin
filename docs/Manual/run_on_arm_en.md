@@ -36,17 +36,20 @@ Now, we have successfully build on mac os and centos, using Android NDK
  ```bash
  
   ```
-  Set your protobuf path [here](../../cmake/find_modules.cmake), search `anakin_find_protobuf`, and change path as follow.    
+  Set your protobuf path [here](../../cmake/find_modules.cmake), search `anakin_find_protobuf`, and set `ARM_RPOTO_ROOT` to your path.    
   ```cmake
   set(ARM_RPOTO_ROOT "${CMAKE_SOURCE_DIR}/third-party/arm-android/protobuf")
   ```
   
 - 2.2 opencv 2.4.3+(optional)    
     We only use opencv in examples   
-    For Android, visit opencv [release page](https://opencv.org/releases.html), choose Android pack and download   
-    Set your opencv path [here](../../cmake/find_modules.cmake), search `anakin_find_opencv`, and change path as follow.   
+    For Android, visit opencv [release page](https://opencv.org/releases.html), choose Android pack and download, 
+    copy libs in `3rdparty/libs/armeabi-v7a` to `libs/armeabi-v7a`.   
+    Set your opencv path [here](../../cmake/find_modules.cmake),  Search `anakin_find_opencv`, 
+    and set `include_directories` and `LINK_DIRECTORIES` according to your path.   
     ```cmake
-    set(OpenCV_DIR ${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/sdk/native/jni/)
+    include_directories(${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/sdk/native/jni/include/)
+    LINK_DIRECTORIES(${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/sdk/native/libs/armeabi-v7a/)
     ```
 ### <span id = '0003'> 3. build from source </span> ###
 
@@ -118,6 +121,7 @@ Now, we have successfully build on mac os and centos, using Android NDK
   ```
 
 ### <span id = '0004'> 4. Verification </span> ###    
-  The build lib is in `${Anakin_root}/output`, and the unit test and benchmark file is in `${Anakin_root}/output/unit_test`    
+  The libs is in `${Anakin_root}/output`, the unit test and benchmark file is in `${Anakin_root}/output/unit_test` 
+  and the examples is in `${Anakin_root}/output/examples`   
   Open `USB debug mode` in your Android device, Use ADB to push the test files and model files to `data/local/tmp/your_dir`    
   run the test

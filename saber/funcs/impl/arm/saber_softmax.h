@@ -67,6 +67,7 @@ public:
         _axis_size = shape_in[param.axis];
 
         int buffer_size = this->_inner_num * this->_outer_num;
+
         return SaberSuccess;
     }
 

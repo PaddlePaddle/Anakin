@@ -60,6 +60,7 @@ macro(anakin_find_opencv)
 				message(STATUS "Found opencv: ${OpenCV_INCLUDE_DIRS}")
 				include_directories(SYSTEM ${OpenCV_INCLUDE_DIRS})
 				list(APPEND ANAKIN_LINKER_LIBS ${OpenCV_LIBS})
+
 			else()
 				message(SEND_ERROR "Could not found opencv !")
 			endif()

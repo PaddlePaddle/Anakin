@@ -154,7 +154,7 @@ LayOutType_op, LayOutType_in, LayOutType_out>::create(\
         _trans_num = inputs[0]->count_valid(0, std::max(axis_diff[0] - 1, 0));
         _trans_w = inputs[0]->count_valid(axis_diff[0] + 1, _num_axes);
         _trans_h = inputs[0]->valid_shape()[axis_diff[0]];
-        LOG(INFO) << "permute: transpose=true, num=" << _trans_num \
+        //LOG(INFO) << "permute: transpose=true, num=" << _trans_num \
             << ", h=" << _trans_h << ", w=" << _trans_w;
     } else {
         _transpose = false;

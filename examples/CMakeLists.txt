@@ -41,8 +41,12 @@ foreach(SRC_NAME ${ANAKIN_TEST_CASE_SRC})
 		target_link_libraries(${TEST_CASE_NAME} ${log-lib})
 	endif()
     if(USE_OPENCV)
-        target_link_libraries(${TEST_CASE_NAME} -lopencv_core -lopencv_highgui -lopencv_imgproc
-                -ltbb -llibtiff -llibpng -llibjpeg -llibjasper -lIlmImf -lc -lz)
+        if (USE_ARM_PLACE)
+            target_link_libraries(${TEST_CASE_NAME} -lopencv_core -lopencv_highgui -lopencv_imgproc
+                    -ltbb -llibtiff -llibpng -llibjpeg -llibjasper -lIlmImf -lc -lz)
+        else()
+            target_link_libraries(${TEST_CASE_NAME} -lopencv_core -lopencv_highgui -lopencv_imgproc)
+        endif()
     endif()
 	set_target_properties(${TEST_CASE_NAME} PROPERTIES
 						RUNTIME_OUTPUT_DIRECTORY 

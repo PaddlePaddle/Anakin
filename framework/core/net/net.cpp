@@ -391,7 +391,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
 
 
         i++;
-        if (0/*executer.name == "conv4/dw"*/) {
+        if (0/*executer.name == "prob"*/) {
             for (auto out : executer.outs) {
                 printf("output size: dims=%d, ", out->dims());
                 for (int i = 0; i < out->dims(); i++){
@@ -402,10 +402,10 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
                 printf("extract data: size: %d, num: %d, channel: %d, height=%d, width=%d\n", \
                      out->valid_size(), out->num(), out->channel(), out->height(), out->width());
 
-                int ch_get = 1;
+                int ch_get = 0;
                 int size_channel = out->width() * out->height();
                 int start = ch_get * size_channel;
-                int end = start + size_channel;
+                int end = start + 1000;//size_channel;
                 end = (end > out->valid_size())? (out->valid_size() - start) : end;
                 const float* ptr_in = out->data(start);
 #if 1
