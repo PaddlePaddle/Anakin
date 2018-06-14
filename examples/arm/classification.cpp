@@ -151,6 +151,7 @@ void test_net(const string model_file_name, const string image_file_name, \
     for (int i = 0; i < valid_shape_in.size(); i++) {
         LOG(INFO) << "detect input dims[" << i << "]" << valid_shape_in[i];
     }
+    Tensor4hf thin(valid_shape_in);
 
     //! feed input image to input tensor
 #ifdef USE_OPENCV
@@ -159,13 +160,13 @@ void test_net(const string model_file_name, const string image_file_name, \
     if (img.empty()) {
         LOG(FATAL) << "opencv read image " << image_file_name << " failed";
     }
-
     //! set your mean value and scale value here
     float mean_mb[3] = {103.94f, 116.78f, 123.68f};
     float scale_mb[3] = {0.017f, 0.017f, 0.017f};
-    fill_tensor_with_cvmat(img, *d_tensor_in_p, batch_size, d_tensor_in_p->width(), d_tensor_in_p->height(), mean_mb, scale_mb);
+    fill_tensor_with_cvmat(img, thin, batch_size, thin.width(), thin.height(), mean_mb, scale_mb);
+
 #else
-    fill_tensor_host_const(*d_tensor_in_p, 1.f);
+    fill_tensor_host_const(thin, 1.f);
 #endif
 
     //! do inference
@@ -179,6 +180,7 @@ void test_net(const string model_file_name, const string image_file_name, \
     my_time.start(ctx);
     saber::SaberTimer<ARM> t1;
     for (int i = 0; i < test_iter; i++) {
+        d_tensor_in_p->copy_from(thin);
         t1.clear();
         t1.start(ctx);
         net_executer.prediction();
@@ -229,15 +231,13 @@ int main(int argc, char** argv){
     LOG(INFO) << "initialized the device";
     Env<ARM>::env_init();
 
-    if (argc < 2) {
+    if (argc < 4) {
         LOG(ERROR) << "usage: " << argv[0] << ": model_file label_file image_name [topk] [test_iter] [threads]";
         return -1;
     }
     char* model_file = argv[1];
-
-    char* image_path = argv[2];
-
-    char* label_file = argv[3];
+    char* label_file = argv[2];
+    char* image_path = argv[3];
 
     std::vector<std::string> labels;
     load_labels(label_file, labels);

@@ -155,6 +155,7 @@ void test_net(const string model_file_name, const string image_file_name, float 
     for (int i = 0; i < valid_shape_in.size(); i++) {
         LOG(INFO) << "detect input dims[" << i << "]" << valid_shape_in[i];
     }
+    Tensor4hf thin(valid_shape_in);
 
     //! feed input image to input tensor
 #ifdef USE_OPENCV
@@ -165,9 +166,9 @@ void test_net(const string model_file_name, const string image_file_name, float 
     }
     float mean_mb[3] = {127.5f, 127.5f, 127.5f};
     float scale_mb[3] = {1 / 127.5f, 1 / 127.5f, 1 / 127.5f};
-    fill_tensor_with_cvmat(img, *d_tensor_in_p, batch_size, d_tensor_in_p->width(), d_tensor_in_p->height(), mean_mb, scale_mb);
+    fill_tensor_with_cvmat(img, thin, batch_size, thin.width(), thin.height(), mean_mb, scale_mb);
 #else
-    fill_tensor_host_const(*d_tensor_in_p, 1.f);
+    fill_tensor_host_const(thin, 1.f);
 #endif
 
     //! do inference
@@ -181,6 +182,7 @@ void test_net(const string model_file_name, const string image_file_name, float 
     my_time.start(ctx);
     saber::SaberTimer<ARM> t1;
     for (int i = 0; i < test_iter; i++) {
+        d_tensor_in_p->copy_from(thin);
         t1.clear();
         t1.start(ctx);
         net_executer.prediction();
