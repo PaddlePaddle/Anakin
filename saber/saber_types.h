@@ -31,7 +31,8 @@ enum TargetTypeEnum {
     eARM = 3,
     eX86 = 4,
     eNVHX86 = 5,
-    eNVHARM = 6
+    eNVHARM = 6,
+    eBM = 7
 };
 
 template <TargetTypeEnum T>
@@ -44,6 +45,8 @@ typedef TargetType<eX86> X86;
 // NV device with pinned memory
 typedef TargetType<eNVHX86> NVHX86;
 //typedef TargetType<eNVHARM> NVHARM;
+// Bitmain device support
+typedef TargetType<eBM> BM;
 // invalid target type, for target has only one memory block
 typedef TargetType<eINVALID> INVLD;
 
@@ -82,7 +85,8 @@ enum DataType {
     AK_STRING       =       10,
     AK_BOOL         =       11,
     AK_SHAPE        =       12,
-    AK_TENSOR       =       13
+    AK_TENSOR       =       13,
+    AK_BM           =       14
 };
 
 typedef enum {
