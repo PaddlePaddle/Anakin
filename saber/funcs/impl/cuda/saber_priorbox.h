@@ -155,12 +155,15 @@ public:
                         if (type == PRIOR_MIN) {
                             memcpy(_output_host + idx, min_buf, sizeof(float) * min_idx);
                             idx += min_idx;
+                            min_idx = 0;    // Prevents memory overrun caused by incorrect use.
                         } else if (type == PRIOR_MAX) {
                             memcpy(_output_host + idx, max_buf, sizeof(float) * max_idx);
                             idx += max_idx;
+                            max_idx = 0;
                         } else if (type == PRIOR_COM) {
                             memcpy(_output_host + idx, com_buf, sizeof(float) * com_idx);
                             idx += com_idx;
+                            com_idx = 0;
                         }
                     }
                 }
