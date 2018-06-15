@@ -65,6 +65,8 @@ public:
                         PriorBoxParam<OpTensor> &param,
                         Context<NV> &ctx){
 
+        CHECK_EQ(param.order.size(), 3)  << "Incorrect Priorbox order!";
+
         if (_output_host != nullptr) {
             fast_free(_output_host);
             _output_host = nullptr;

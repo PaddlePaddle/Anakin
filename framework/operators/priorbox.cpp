@@ -41,7 +41,6 @@ Status PriorBoxHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto order     = GET_PARAMETER(PTuple<std::string>, order);
     std::vector<PriorType> order_;
 
-    CHECK_EQ(order.size(), 3)  << "Incorrect Priorbox order!";
     for (int i = 0; i < order.size(); i++) {
         if (order[i] == "MIN") {
             order_.push_back(PRIOR_MIN);
