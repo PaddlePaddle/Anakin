@@ -75,7 +75,8 @@ void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size
 
     Context<X86> ctx_dev(0, 1, 1);
     std::vector<int> offsets = {0,12,40,90,100,101};
-
+    ImplEnum test_mode=SABER_IMPL;
+//    ImplEnum test_mode=VENDER_IMPL;
     bool is_reverse = true;
     batch_size = offsets.size() - 1;
     Shape shape_ux(1, 1, offsets[offsets.size() - 1], hidden_size * 3);
@@ -146,7 +147,7 @@ void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size
     std::vector<TensorDf4*> input_dev_4d;
     std::vector<TensorDf4*> output_dev_4d;
     input_dev_4d.push_back(&dev_x);
-    input_dev_4d.push_back(&dev_h);
+//    input_dev_4d.push_back(&dev_h);
     output_dev_4d.push_back(&dev_out);
 
 
@@ -164,7 +165,7 @@ void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size
                       << dev_out.valid_shape().data()[3];
 
     output_dev_4d[0]->re_alloc(output_dev_4d[0]->valid_shape());
-    SABER_CHECK(dev_gru.init(input_dev_4d, output_dev_4d, param, SPECIFY, SABER_IMPL, ctx_dev));
+    SABER_CHECK(dev_gru.init(input_dev_4d, output_dev_4d, param, SPECIFY, test_mode, ctx_dev));
     Shape shape = output_dev_4d[0]->get_stride();
     //    printShape(shape);
 

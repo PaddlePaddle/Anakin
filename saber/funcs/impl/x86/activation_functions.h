@@ -104,8 +104,8 @@ static Active<float>::Act k_act_float[] = {
         nullptr,
         nullptr,
         &identity<float>,
-        nullptr,
-        nullptr,
+        &sigmoid<float>,
+        &tanh<float>,
         &stanh<float>
 };
 
@@ -117,8 +117,8 @@ static Active<float>::Act k_parallel_act_float[] = {
         nullptr,
         nullptr,
         &parallel_identity<float>,
-        nullptr,
-        nullptr,
+        &parallel_sigmoid<float>,
+        &parallel_tanh<float>,
         &parallel_stanh<float>
 };
 
@@ -139,14 +139,14 @@ inline void parallel_activation(size_t len, float *src, float *dst, int index) {
 }
 
 #ifdef __AVX__
-__m256 Exp(__m256 a) { return exp256_ps(a); }
+inline __m256 Exp(__m256 a) { return exp256_ps(a); }
 
-__m256 Relu(const __m256 a) {
+inline __m256 Relu(const __m256 a) {
     __m256 tmp = _mm256_set1_ps(0.0f);
     return _mm256_max_ps(a, tmp);
 }
 
-__m256 Sigmoid(const __m256 a) {
+inline __m256 Sigmoid(const __m256 a) {
     __m256 tmp = _mm256_sub_ps(_mm256_set1_ps(0.0f), a);
     tmp = Exp(tmp);
     tmp = _mm256_add_ps(_mm256_set1_ps(1.0f), tmp);
@@ -154,7 +154,7 @@ __m256 Sigmoid(const __m256 a) {
     return tmp;
 }
 
-__m256 Tanh(const __m256 a) {
+inline __m256 Tanh(const __m256 a) {
     __m256 tmp = _mm256_mul_ps(_mm256_set1_ps(-2.0f), a);
     tmp = Exp(tmp);
     return _mm256_sub_ps(_mm256_div_ps(_mm256_set1_ps(2.0f),
@@ -162,7 +162,7 @@ __m256 Tanh(const __m256 a) {
                          _mm256_set1_ps(1.0f));
 }
 
-__m256 Identity(const __m256 a) { return a; }
+inline __m256 Identity(const __m256 a) { return a; }
 
 static Active<__m256>::Act_m256 k_act_avx[] = {
         nullptr,
@@ -172,8 +172,8 @@ static Active<__m256>::Act_m256 k_act_avx[] = {
         nullptr,
         nullptr,
         &Identity,
-        nullptr,
-        nullptr,
+        &Sigmoid,
+        &Tanh,
         nullptr
 };
 inline __m256 avx_activation(__m256 a, int index) {

@@ -24,6 +24,7 @@
 
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_gru.h"
+#include "saber/funcs/impl/x86/vender_gru.h"
 #endif
 
 namespace anakin {
@@ -115,6 +116,7 @@ public:
         case VENDER_IMPL:
             this->_impl.push_back(new VenderGru <TargetType, OpDtype, inDtype, outDtype,
                                   LayOutType_op, LayOutType_in, LayOutType_out>);
+            LOG(INFO)<<"VENDER_IMPL !!";
             return SaberSuccess;
 
         case SABER_IMPL:
