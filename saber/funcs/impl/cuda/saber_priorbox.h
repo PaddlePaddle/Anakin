@@ -71,9 +71,9 @@ public:
         }
         _output_host = (float*)fast_malloc(sizeof(float) * outputs[0]->valid_size());
 
-        float* min_buffer = (float*)fast_malloc(sizeof(float) * 4);
-        float* max_buffer = (float*)fast_malloc(sizeof(float) * 4);
-        float* com_buffer = (float*)fast_malloc(sizeof(float) * param.aspect_ratio.size() * 4);
+        float* min_buf = (float*)fast_malloc(sizeof(float) * 4);
+        float* max_buf = (float*)fast_malloc(sizeof(float) * 4);
+        float* com_buf = (float*)fast_malloc(sizeof(float) * param.aspect_ratio.size() * 4);
 
         const int width = inputs[0]->width();
         const int height = inputs[0]->height();
@@ -108,13 +108,13 @@ public:
                     //! first prior: aspect_ratio = 1, size = min_size
                     box_width = box_height = min_size;
                     //! xmin
-                    min_buffer[min_idx++] = (center_x - box_width / 2.f) / img_width;
+                    min_buf[min_idx++] = (center_x - box_width / 2.f) / img_width;
                     //! ymin
-                    min_buffer[min_idx++] = (center_y - box_height / 2.f) / img_height;
+                    min_buf[min_idx++] = (center_y - box_height / 2.f) / img_height;
                     //! xmax
-                    min_buffer[min_idx++] = (center_x + box_width / 2.f) / img_width;
+                    min_buf[min_idx++] = (center_x + box_width / 2.f) / img_width;
                     //! ymax
-                    min_buffer[min_idx++] = (center_y + box_height / 2.f) / img_height;
+                    min_buf[min_idx++] = (center_y + box_height / 2.f) / img_height;
 
                     if (param.max_size.size() > 0) {
 
@@ -122,13 +122,13 @@ public:
                         //! second prior: aspect_ratio = 1, size = sqrt(min_size * max_size)
                         box_width = box_height = sqrtf(min_size * max_size);
                         //! xmin
-                        max_buffer[max_idx++] = (center_x - box_width / 2.f) / img_width;
+                        max_buf[max_idx++] = (center_x - box_width / 2.f) / img_width;
                         //! ymin
-                        max_buffer[max_idx++] = (center_y - box_height / 2.f) / img_height;
+                        max_buf[max_idx++] = (center_y - box_height / 2.f) / img_height;
                         //! xmax
-                        max_buffer[max_idx++] = (center_x + box_width / 2.f) / img_width;
+                        max_buf[max_idx++] = (center_x + box_width / 2.f) / img_width;
                         //! ymax
-                        max_buffer[max_idx++] = (center_y + box_height / 2.f) / img_height;
+                        max_buf[max_idx++] = (center_y + box_height / 2.f) / img_height;
                     }
 
                     //! rest of priors
@@ -140,24 +140,24 @@ public:
                         box_width = min_size * sqrt(ar);
                         box_height = min_size / sqrt(ar);
                         //! xmin
-                        com_buffer[com_idx++] = (center_x - box_width / 2.f) / img_width;
+                        com_buf[com_idx++] = (center_x - box_width / 2.f) / img_width;
                         //! ymin
-                        com_buffer[com_idx++] = (center_y - box_height / 2.f) / img_height;
+                        com_buf[com_idx++] = (center_y - box_height / 2.f) / img_height;
                         //! xmax
-                        com_buffer[com_idx++] = (center_x + box_width / 2.f) / img_width;
+                        com_buf[com_idx++] = (center_x + box_width / 2.f) / img_width;
                         //! ymax
-                        com_buffer[com_idx++] = (center_y + box_height / 2.f) / img_height;
+                        com_buf[com_idx++] = (center_y + box_height / 2.f) / img_height;
                     }
 
                     for (const auto &type : param.order) {
                         if (type == PRIOR_MIN) {
-                            memcpy(_output_host + idx, min_buffer, sizeof(float) * min_idx);
+                            memcpy(_output_host + idx, min_buf, sizeof(float) * min_idx);
                             idx += min_idx;
                         } else if (type == PRIOR_MAX) {
-                            memcpy(_output_host + idx, max_buffer, sizeof(float) * max_idx);
+                            memcpy(_output_host + idx, max_buf, sizeof(float) * max_idx);
                             idx += max_idx;
                         } else if (type == PRIOR_COM) {
-                            memcpy(_output_host + idx, com_buffer, sizeof(float) * com_idx);
+                            memcpy(_output_host + idx, com_buf, sizeof(float) * com_idx);
                             idx += com_idx;
                         }
                     }
@@ -165,9 +165,9 @@ public:
             }
         }
 
-        fast_free(min_buffer);
-        fast_free(max_buffer);
-        fast_free(com_buffer);
+        fast_free(min_buf);
+        fast_free(max_buf);
+        fast_free(com_buf);
 
         //! clip the prior's coordidate such that it is within [0, 1]
         if (param.is_clip) {
