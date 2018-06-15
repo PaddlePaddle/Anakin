@@ -29,13 +29,22 @@ ScaleHelper<Ttype, Dtype, Ptype>::~ScaleHelper() {
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ScaleHelper<Ttype, Dtype, Ptype>::InitParam() {
     DLOG(WARNING) << "Parsing Scale op parameter.";
+    using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
+
     auto axis = GET_PARAMETER(int, axis);
     auto num_axes = GET_PARAMETER(int, num_axes);
     auto bias_term = GET_PARAMETER(bool, bias_term);
-    auto weights = GET_PARAMETER(PTuple<typename DataTypeWarpper<Dtype>::type>, weight_1);
-    auto bias = GET_PARAMETER(PTuple<typename DataTypeWarpper<Dtype>::type>, weight_2);
-    ScaleParam<Tensor4d<Ttype, Dtype>> param_scale(weights.vector(), bias.vector(), bias_term, axis, num_axes);
-    _param_scale = param_scale;
+    auto weights = GET_PARAMETER(pblock_type, weight_1);
+
+    if (bias_term) {
+        auto bias = GET_PARAMETER(pblock_type, weight_2);
+        ScaleParam <Tensor4d<Ttype, Dtype>> param_scale(weights.vector(), bias.vector(), bias_term, axis, num_axes);
+        _param_scale = param_scale;
+    } else {
+        Tensor4d<Ttype, Dtype>* bias = nullptr;
+        ScaleParam <Tensor4d<Ttype, Dtype>> param_scale(weights.vector(), bias, bias_term, axis, num_axes);
+        _param_scale = param_scale;
+    }
     return Status::OK();
 }
 
@@ -43,7 +52,7 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ScaleHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
         const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
         std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-    SABER_CHECK(_funcs_scale.init(ins, outs, _param_scale, SPECIFY, VENDER_IMPL, ctx));
+    SABER_CHECK(_funcs_scale.init(ins, outs, _param_scale, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }
 
