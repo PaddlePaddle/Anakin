@@ -150,12 +150,12 @@ void anakin_net_thread(std::vector<Tensor4dPtr<X86, AK_FLOAT> > *data_in,
     omp_set_num_threads(1);
     mkl_set_num_threads(1);
     Graph<X86, AK_FLOAT, Precision::FP32> *graph = new Graph<X86, AK_FLOAT, Precision::FP32>();
-    graph = new Graph<Target, AK_FLOAT, Precision::FP32>();
-            LOG(WARNING) << "load anakin model file from " << model_path << " ...";
+    //graph = new Graph<Target, AK_FLOAT, Precision::FP32>();
+    LOG(WARNING) << "load anakin model file from " << model_path << " ...";
     // load anakin model files.
     auto status = graph->load(model_path);
     if(!status ) {
-                LOG(FATAL) << " [ERROR] " << status.info();
+         LOG(FATAL) << " [ERROR] " << status.info();
     }
     graph->Reshape("input_0", {GLB_max_word_len, 1, 1, 1});
     graph->Reshape("input_1", {GLB_max_word_len, 1, 1, 1});
