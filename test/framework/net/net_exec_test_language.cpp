@@ -181,69 +181,6 @@ void anakin_net_thread(std::vector<Tensor4dPtr<X86, AK_FLOAT> > *data_in,std::st
     float use_ms=(time_end.tv_sec-time_start.tv_sec)*1000.f+(time_end.tv_usec-time_start.tv_usec)/1000.f;
     LOG(INFO)<<"summary_thread :thread total : "<<use_ms<<" ms, avg = "<<(use_ms/data_in->size()/GLB_batch_size);
 }
-void run_my_test(){
-    omp_set_dynamic(0);
-    omp_set_num_threads(1);
-    mkl_set_num_threads(1);
-
-    std::vector<std::string> models;
-    getModels(GLB_model_dir, models);
-
-    std::vector<std::vector<float> > word_idx;
-    if (split_word_from_file(word_idx, GLB_input_file, "\t", " ", 0)) {
-                LOG(ERROR) << " NOT FOUND " << GLB_input_file;
-        exit(-1);
-    }
-
-    std::vector<float> word_idx_data;
-    std::vector<int> word_seq_offset;
-    int batch_num = 6;//GLB_batch_size;
-    int max_batch_word_len=2000;
-    int thread_num=4;//GLB_run_threads;
-
-    int real_max_batch_word_len=0;
-
-
-    std::vector<std::vector<Tensor<X86, AK_FLOAT>* >> host_tensor_p_in_list;
-    for(int tid=0;tid<thread_num;++tid){
-        std::vector<Tensor<X86, AK_FLOAT>* > data4thread;
-        int start_wordid=tid*(word_idx.size()/thread_num);
-        int end_wordid=(tid+1)*(word_idx.size()/thread_num);
-        for (int i = start_wordid; i < end_wordid; ++i) {
-            int word_len = get_batch_data_offset(word_idx_data, word_idx, word_seq_offset, i, batch_num);
-            real_max_batch_word_len=real_max_batch_word_len<word_len?word_len:real_max_batch_word_len;
-            saber::Shape valid_shape({word_len, 1, 1, 1});
-            Tensor4d<X86, AK_FLOAT>* tensor_p=new Tensor4d<X86, AK_FLOAT>(valid_shape);
-                    CHECK_EQ(word_len,word_idx_data.size())<<"word_len == word_idx_data.size";
-            for (int j = 0; j < word_idx_data.size(); ++j) {
-                tensor_p->mutable_data()[j] = word_idx_data[j];
-            }
-            tensor_p->set_seq_offset(word_seq_offset);
-            data4thread.push_back(tensor_p);
-        }
-        host_tensor_p_in_list.push_back(data4thread);
-    }
-
-            LOG(WARNING) << "Async Runing multi_threads for model: " << models[0]<<",batch dim = "<<batch_num
-                         <<",line num = "<<word_idx.size()<<",thread number size = "<<thread_num<<",real max = "<<real_max_batch_word_len;
-
-    std::vector<std::unique_ptr<std::thread>> threads;
-    SaberTimer<X86> timer;
-    Context<X86> ctx;
-    timer.start(ctx);
-    for (int i = 0; i < thread_num; ++i) {
-        threads.emplace_back(
-                new std::thread(&anakin_net_thread, &host_tensor_p_in_list[i],models[0]));
-//        threads.emplace_back(
-//                new std::thread(&anakin_net_thread, &host_tensor_p_in_list[i]),models[0]);
-    }
-
-    for (int i = 0; i < thread_num; ++i) {
-        threads[i]->join();
-    }
-    timer.end(ctx);
-            LOG(INFO)<<"total time = "<<timer.get_average_ms()<<"ms ,batch = "<<batch_num<<", seconde/line = "<<(timer.get_average_ms()/word_idx.size()/batch_num);
-}
 #define ONE_THREAD 1
 
 TEST(NetTest, net_execute_base_test) {
