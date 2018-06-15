@@ -41,8 +41,7 @@ Status ScaleHelper<Ttype, Dtype, Ptype>::InitParam() {
         ScaleParam <Tensor4d<Ttype, Dtype>> param_scale(weights.vector(), bias.vector(), bias_term, axis, num_axes);
         _param_scale = param_scale;
     } else {
-        Tensor4d<Ttype, Dtype>* bias = nullptr;
-        ScaleParam <Tensor4d<Ttype, Dtype>> param_scale(weights.vector(), bias, bias_term, axis, num_axes);
+        ScaleParam <Tensor4d<Ttype, Dtype>> param_scale(weights.vector(), bias_term, axis, num_axes);
         _param_scale = param_scale;
     }
     return Status::OK();

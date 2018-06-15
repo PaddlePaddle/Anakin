@@ -114,6 +114,7 @@ int get_batch_data_offset(
     return len;
 }
 
+#ifdef USE_X86_PLACE
 TEST(NetTest, chinese_ner_executor) {
     std::vector<std::string> models;
     getModels(GLB_model_dir, models);
@@ -190,6 +191,7 @@ TEST(NetTest, chinese_ner_executor) {
     }
     LOG(INFO)<<"elapse time: "<<timer.get_average_ms()<<" ms";
 }
+#endif
 
 int main(int argc, const char** argv) {
     // initial logger
