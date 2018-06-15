@@ -21,10 +21,10 @@ std::string ParserConvolution(graph::AttrInfo& attr, std::string& op_class_name,
 	auto kernel_size = get_attr<PTuple<int>>("kernel_size", attr);
 	auto axis = get_attr<int>("axis", attr);
 
-	auto weights = get_attr<PBlock<float>>("weight_1", attr);
+	auto weights = get_attr<PBlock<float, ARM>>("weight_1", attr);
 	writter.register_weights(node_name, weights);
 	if(bias_term) {
-		auto bias = get_attr<PBlock<float>>("weight_2", attr);
+		auto bias = get_attr<PBlock<float, ARM>>("weight_2", attr);
 		writter.register_weights(node_name, bias);
 	}
 

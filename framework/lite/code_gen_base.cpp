@@ -21,7 +21,7 @@ bool CodeGenBase<Ttype, Dtype, Ptype>::extract_graph(std::string model_path) {
 		return false;
 	}
 	// Optimize
-#if 0
+#if USE_ARM_PLACE
 	auto vgraph = graph.get_vgraph();
 	graph::Scheduler scheduler; 
 	// schedule for exec order

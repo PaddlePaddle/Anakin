@@ -27,7 +27,8 @@ namespace lite {
  *  \brief class to generate cpp files.
  *
  */
-class GenCPP : public CodeGenBase<NV, AK_FLOAT, Precision::FP32> {
+template<typename Ttype, DataType Dtype, Precision Ptype>
+class GenCPP : public CodeGenBase<Ttype, Dtype, Ptype> {
 public:
 	explicit GenCPP(std::string model_name, std::string model_dir = ".") {
 		_cpp_file_name = model_dir + '/' + model_name + ".cpp";
@@ -91,7 +92,7 @@ private:
 	std::string _model_file_name;
 	std::string _code_name;
 	CodeWritter _code;
-	WeightsWritter _weights;
+	WeightsWritter<Ttype, Dtype> _weights;
 };
 
 } /* namespace lite */

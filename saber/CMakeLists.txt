@@ -79,7 +79,6 @@ if(USE_ARM_PLACE)
 	anakin_fetch_files_with_suffix(${ANAKIN_SABER}/lite/funcs "cpp" ANAKIN_SABER_ARM_LITE_SRC)
 	anakin_fetch_files_with_suffix(${ANAKIN_SABER}/lite/funcs/neon "cpp" ANAKIN_SABER_ARM_LITE_SRC)
 	anakin_fetch_files_with_suffix(${ANAKIN_SABER}/lite/funcs/neon/impl "cpp" ANAKIN_SABER_ARM_LITE_SRC)
-	add_library(saber_lite STATIC ${ANAKIN_SABER_ARM_LITE_SRC}) 
 endif()
 
 # add saber library to share

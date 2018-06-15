@@ -4,30 +4,35 @@ namespace anakin {
 
 namespace lite {
 
-void GenCPP::gen_header_start() {
+template<typename Ttype, DataType Dtype, Precision Ptype>
+void GenCPP<Ttype, Dtype, Ptype>::gen_header_start() {
 	_code.Clean();
 	_code.feed("#ifndef ANAKIN_%s_H \n", _code_name.c_str());
 	_code.feed("#define ANAKIN_%s_H \n\n", _code_name.c_str());
 	_code<<"namespace anakin { \n\n";
 }	
 
-void GenCPP::gen_header_end() {
+template<typename Ttype, DataType Dtype, Precision Ptype>
+void GenCPP<Ttype, Dtype, Ptype>::gen_header_end() {
 	_code<<"} /* namespace anakin */\n";
 	_code<<"#endif\n";
 }
 
-void GenCPP::gen_source_start() {
+template<typename Ttype, DataType Dtype, Precision Ptype>
+void GenCPP<Ttype, Dtype, Ptype>::gen_source_start() {
 	_code.Clean();
 	_code.feed("#include \"%s.h\" \n\n", _code_name.c_str());
 	_code<<"namespace anakin { \n\n";
 	// add running impl for model api
 }	
 
-void GenCPP::gen_source_end() {
+template<typename Ttype, DataType Dtype, Precision Ptype>
+void GenCPP<Ttype, Dtype, Ptype>::gen_source_end() {
 	_code<<"} /* namespace anakin */\n";
 }
 
-void GenCPP::gen_tensors() {
+template<typename Ttype, DataType Dtype, Precision Ptype>
+void GenCPP<Ttype, Dtype, Ptype>::gen_tensors() {
 	_code<<"// generating and setting tensors \n";
 	for(auto it = _tensor_map.begin(); it != _tensor_map.end(); ++it) {
 		auto& edge_name = it->first;
@@ -50,7 +55,8 @@ void GenCPP::gen_tensors() {
 	}
 }
 
-void GenCPP::gen_model_ios() {
+template<typename Ttype, DataType Dtype, Precision Ptype>
+void GenCPP<Ttype, Dtype, Ptype>::gen_model_ios() {
 	_code<<"// generating model's I/O \n";
 	for(auto & node_name : _exec_node_order) {
 		auto& node_info = _graph_node_map[node_name];
@@ -65,7 +71,8 @@ void GenCPP::gen_model_ios() {
 	}
 }
 
-void GenCPP::gen_and_parse_ops() {
+template<typename Ttype, DataType Dtype, Precision Ptype>
+void GenCPP<Ttype, Dtype, Ptype>::gen_and_parse_ops() {
 	_code<<"// generating model's operations\n";
 	for(auto & node_name : _exec_node_order) {
 		if(_graph_node_map[node_name].op_name == "Input" || _graph_node_map[node_name].op_name == "Output") {
@@ -82,13 +89,16 @@ void GenCPP::gen_and_parse_ops() {
 	return true;
 }
 
-void GenCPP::gen_init_impl() {
+template<typename Ttype, DataType Dtype, Precision Ptype>
+void GenCPP<Ttype, Dtype, Ptype>::gen_init_impl() {
 }
 
-void GenCPP::gen_api_impl() {
+template<typename Ttype, DataType Dtype, Precision Ptype>
+void GenCPP<Ttype, Dtype, Ptype>::gen_api_impl() {
 }
 
-void GenCPP::gen_header() {
+template<typename Ttype, DataType Dtype, Precision Ptype>
+void GenCPP<Ttype, Dtype, Ptype>::gen_header() {
 	_code.Clean();
 	_code.open(_h_file_name);
 	gen_header_start();
@@ -97,7 +107,8 @@ void GenCPP::gen_header() {
 	_code.save();	
 }
 
-void GenCPP::gen_source() {
+template<typename Ttype, DataType Dtype, Precision Ptype>
+void GenCPP<Ttype, Dtype, Ptype>::gen_source() {
 	_code.Clean();
 	_code.open(_cpp_file_name);
 	gen_source_start(); 
