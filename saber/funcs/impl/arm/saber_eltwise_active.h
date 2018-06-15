@@ -12,17 +12,17 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-#ifndef ANAKIN_SABER_FUNCS_IMPL_ARM_SABER_ELTWISE_H
-#define ANAKIN_SABER_FUNCS_IMPL_ARM_SABER_ELTWISE_H
+#ifndef ANAKIN_SABER_FUNCS_IMPL_ARM_SABER_ELTWISE_ACTIVE_H
+#define ANAKIN_SABER_FUNCS_IMPL_ARM_SABER_ELTWISE_ACTIVE_H
 
-#include "saber/funcs/impl/impl_eltwise.h"
+#include "saber/funcs/impl/impl_eltwise_act.h"
 
 #ifdef USE_ARM_PLACE
 namespace anakin{
 
 namespace saber{
 
-typedef void (*eltwise_func)(const float* din_a, \
+typedef void (*eltwise_active_func)(const float* din_a, \
     const float* din_b, float* dout, std::vector<float> coeff, const int size);
 
 
@@ -32,12 +32,12 @@ template <DataType OpDtype,
         typename LayOutType_op,
         typename LayOutType_in,
         typename LayOutType_out>
-class SaberEltwise<ARM, OpDtype, inDtype, outDtype, LayOutType_op, LayOutType_in, LayOutType_out>:\
+class SaberEltwiseActive<ARM, OpDtype, inDtype, outDtype, LayOutType_op, LayOutType_in, LayOutType_out>:\
 public ImplBase<
         Tensor<ARM, inDtype, LayOutType_in>,
         Tensor<ARM, outDtype, LayOutType_out>,
         Tensor<ARM, OpDtype, LayOutType_op>,
-        EltwiseParam<Tensor<ARM, OpDtype, LayOutType_op>>> {
+        EltwiseActiveParam<Tensor<ARM, OpDtype, LayOutType_op>>> {
 public:
     typedef Tensor<ARM, inDtype, LayOutType_in> DataTensor_in;
     typedef Tensor<ARM, outDtype, LayOutType_out> DataTensor_out;
@@ -47,27 +47,28 @@ public:
     typedef typename DataTensor_out::Dtype OutDataType;
     typedef typename OpTensor::Dtype OpDataType;
 
-    SaberEltwise() {}
-    ~SaberEltwise() {}
+    SaberEltwiseActive() {}
+    ~SaberEltwiseActive() {}
 
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
                              std::vector<DataTensor_out*>& outputs,
-                             EltwiseParam<OpTensor> &param, Context<ARM> &ctx) override {
+                             EltwiseActiveParam<OpTensor> &param, Context<ARM> &ctx) override {
         return create(inputs, outputs, param, ctx);
     }
 
     virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,\
                                std::vector<DataTensor_out*>& outputs,\
-                               EltwiseParam<OpTensor> &param, \
+                               EltwiseActiveParam<OpTensor> &param, \
                                Context<ARM> &ctx) override;
 
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs, \
                                  std::vector<DataTensor_out*>& outputs, \
-                                 EltwiseParam<OpTensor> &param) override;
+                                 EltwiseActiveParam<OpTensor> &param) override;
 
 private:
-    eltwise_func _impl{nullptr};
+    eltwise_active_func _impl{nullptr};
     std::vector<float> _coeff;
+    bool _flag_relu = true;
 };
 
 } //namespace saber
@@ -75,4 +76,4 @@ private:
 } //namespace anakin
 #endif // USE_ARM_PLACE
 
-#endif //ANAKIN_SABER_FUNCS_IMPL_ARM_SABER_POOLING_H
+#endif //ANAKIN_SABER_FUNCS_IMPL_ARM_SABER_ACTIVE_RELU_H
