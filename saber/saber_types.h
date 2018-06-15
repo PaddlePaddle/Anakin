@@ -159,6 +159,12 @@ typedef enum {
     BORDER_REPLICATE
 } BorderType;
 
+typedef enum {
+    CAFFE = 0,
+    FLUID = 1,
+    LEGO = 2
+} FrameworkType;
+
 } //namespace saber
 
 } //namespace anakin

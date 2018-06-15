@@ -38,10 +38,20 @@ Status PriorBoxHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto step_h_   = GET_PARAMETER(float, step_h);
     auto step_w_   = GET_PARAMETER(float, step_w);
     auto offset_   = GET_PARAMETER(float, offset);
+    auto type     = GET_PARAMETER(std::string, type);
+    FrameworkType type_;
+
+    if (type == "FLUID") {
+        type_ = FLUID;
+    } else if (type == "CAFFE") {
+        type_ = CAFFE;
+    } else {
+        LOG(FATAL) << "Priorbox type is not yet supported.";
+    }
 
     saber::PriorBoxParam<Tensor4d<Ttype, Dtype>> param_priorbox(min_size_.vector(), max_size_.vector(), \
                                        as_ratio.vector(), var.vector(), flip_flag, clip_flag, \
-                                       image_w, image_h, step_w_, step_h_, offset_);
+                                       image_w, image_h, step_w_, step_h_, offset_, type_);
     _param_priorbox = param_priorbox;
     return Status::OK();
 }
@@ -100,7 +110,8 @@ ANAKIN_REGISTER_OP(PriorBox)
                   .Args<int>("img_w", "input image width")
                   .Args<float>("step_h", "height step of bbox")
                   .Args<float>("step_w", "width step of bbox")
-                  .Args<float>("offset", "center offset of bbox");
+                  .Args<float>("offset", "center offset of bbox")
+                  .Args<std::string>("type", "framework type( string )");
 
 } /* namespace ops */
 
