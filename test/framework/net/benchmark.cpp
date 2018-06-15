@@ -27,13 +27,11 @@ int FLAGS_epoch = 1000;
 #endif
 
 #ifdef USE_CUDA
-using Target = NV;
-#endif
-#ifdef USE_X86_PLACE
-using Target = X86;
-#endif
-#ifdef USE_ARM_PLACE
-using Target = ARM;
+typedef NV Target;
+#elif defined(USE_X86_PLACE)
+typedef X86 Target;
+#else
+typedef ARM Target;
 #endif
 
 void getModels(std::string path, std::vector<std::string>& files) {

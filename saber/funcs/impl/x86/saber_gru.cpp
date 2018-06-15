@@ -559,8 +559,9 @@ naiv_256_s_aligned(const std::vector<DataTensor_in*>& inputs,
     const OpDataType* weight_h = _aligned_weights_h2h.data();
     const OpDataType* weight_w = _aligned_weights_i2h.data();
     const OpDataType* bias = _aligned_weights_bias.data();
-
+    CHECK_GE(inputs[0]->get_seq_offset().size(), 2);
     std::vector<int> offset_vec = inputs[0]->get_seq_offset();
+
     std::vector<int> length_vec(offset_vec.size() - 1);
     int batch_size = offset_vec.size() - 1;
     int seqsum = 0;
@@ -900,6 +901,7 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispa
     //        return naiv_256_s_aligned(inputs, outputs, param);
 //            return naiv_gru(inputs, outputs, param);
 //        return batch_gru(inputs, outputs, param);
+    outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
     if(inputs[0]->get_seq_offset().size()>2) {
         return batch_256_s_aligned(inputs, outputs, param);
     }else {

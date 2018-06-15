@@ -16,8 +16,33 @@ help_anakin_docker_run() {
     echo ""
 	echo " -p Hardware Place where docker will running [ NVIDIA-GPU / AMD_GPU / X86-ONLY / ARM ] "
 	echo " -o Operating system docker will reside on [ Centos / Ubuntu ] "
-	echo " -m Script exe mode [ Build / Run / All] default mode is build and run"
+	echo " -m Script exe mode [ Build / Run ] default mode is build and run"
 	exit 1
+}
+
+# install nvidia-docker 2 
+install_nvidia_docker_v2() {
+	echo "Setting env nvidia-docker2 in background ..."
+	distribution=$(source /etc/os-release;echo $ID$VERSION_ID)
+	if [ $ID == 'centos'];then
+		docker volume ls -q -f driver=nvidia-docker | xargs -r -I{} -n1 docker ps -q -a -f volume={} | xargs -r docker rm -f
+		sudo yum remove nvidia-docker
+		curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.repo | \
+			  sudo tee /etc/yum.repos.d/nvidia-docker.repo
+		sudo yum install -y nvidia-docker2 --skip-broken
+		sudo pkill -SIGHUP dockerd
+	else
+		# default ubuntu
+		# remove nv-doker v1
+		docker volume ls -q -f driver=nvidia-docker | xargs -r -I{} -n1 docker ps -q -a -f volume={} | xargs -r docker rm -f
+		sudo apt-get purge nvidia-docker
+		curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
+		curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | \
+					sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+		sudo apt-get update
+		sudo apt-get install -y nvidia-docker2
+		sudo pkill -SIGHUP dockerd
+	fi
 }
 
 # building and running docker for nvidia gpu
@@ -28,14 +53,14 @@ building_and_run_nvidia_gpu_docker() {
 	DockerfilePath=$1
 	MODE=$2
 	tag="$(echo $DockerfilePath | awk -F/ '{print tolower($(NF-3) "_" $(NF-1))}')"
-    	echo "Setting env nvidia-docker2 in background ..."
-	echo "Building nvidia docker ... [ docker_image_name: Anakin image_tag: $tag ]" 
 	if [ ! $MODE = "Run" ]; then
+		echo "Building nvidia docker ... [ docker_image_name: anakin image_tag: $tag ]"	
 		sudo docker build --network=host -t anakin:$tag"-base" . -f $DockerfilePath
-        sudo docker run --network=host --runtime=nvidia --rm -it anakin:$tag"-base"  Anakin/tools/gpu_build.sh
+        sudo docker run --network=host -it anakin:$tag"-base"  Anakin/tools/gpu_build.sh
         container_id=$(sudo docker ps -l | sed -n 2p | awk '{print $1}')
         sudo docker commit $container_id anakin:$tag
 	else
+		echo "Running nvidia docker ... [ docker_image_name: anakin image_tag: $tag ]" 
 		sudo docker run --network=host --runtime=nvidia --rm -it anakin:$tag  /bin/bash
 	fi
 }
@@ -110,7 +135,7 @@ fi
 
 place=0
 os=0
-mode=All
+mode=Build
 while getopts p:o:m:hold opt
 do
 	case $opt in

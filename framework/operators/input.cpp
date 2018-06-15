@@ -11,6 +11,13 @@ void Input<NV, AK_FLOAT, Precision::FP32>::operator()(OpContext<NV>& ctx,
         std::vector<Tensor4dPtr<NV, AK_FLOAT>>& outs) {
 }
 #endif
+#ifdef USE_X86_PLACE
+template<>
+void Input<X86, AK_FLOAT, Precision::FP32>::operator()(OpContext<X86>& ctx,
+      const std::vector<Tensor4dPtr<X86, AK_FLOAT>>& ins,
+      std::vector<Tensor4dPtr<X86, AK_FLOAT>>& outs) {
+}
+#endif
 
 /// TODO ... specialization other type of operator
 
@@ -67,6 +74,11 @@ template class InputHelper<ARM, AK_FLOAT, Precision::FP32>;
 template class InputHelper<ARM, AK_FLOAT, Precision::FP16>;
 template class InputHelper<ARM, AK_FLOAT, Precision::INT8>;
 #endif
+#ifdef USE_X86_PLACE
+template class InputHelper<X86, AK_FLOAT, Precision::FP32>;
+template class InputHelper<X86, AK_FLOAT, Precision::FP16>;
+template class InputHelper<X86, AK_FLOAT, Precision::INT8>;
+#endif
 
 // register help
 #ifdef USE_CUDA
@@ -81,6 +93,12 @@ ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, ARM, AK_FLOAT, Precision::FP16);
 ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, ARM, AK_FLOAT, Precision::INT8);
 #endif
 
+#ifdef USE_X86_PLACE
+ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, X86, AK_FLOAT, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, X86, AK_FLOAT, Precision::FP16);
+ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, X86, AK_FLOAT, Precision::INT8);
+#endif
+
 //! register op
 ANAKIN_REGISTER_OP(Input) 
     .Doc("Input operator [ only a input data holder and reshape ] ")
@@ -89,6 +107,9 @@ ANAKIN_REGISTER_OP(Input)
 #endif
 #ifdef USE_ARM_PLACE
     .__alias__<ARM, AK_FLOAT, Precision::FP32>("input")
+#endif
+#ifdef USE_X86_PLACE
+    .__alias__<X86, AK_FLOAT, Precision::FP32>("input")
 #endif
     .Args<PTuple<int>>("input_shape", " shape of graph input.");
 
