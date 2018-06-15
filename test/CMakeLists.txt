@@ -22,6 +22,10 @@ if(NVIDIA_GPU)
 anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/saber/cuda "cpp" ANAKIN_TEST_CASE_SRC)
 endif()
 
+if(USE_BM)
+anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/saber/bm "cpp" ANAKIN_TEST_CASE_SRC)
+endif()
+
 if(USE_X86_PLACE)
 anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/saber/x86 "cpp" ANAKIN_TEST_CASE_SRC)
 endif()
