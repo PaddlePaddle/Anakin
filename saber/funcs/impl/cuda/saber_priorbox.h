@@ -65,7 +65,9 @@ public:
                         PriorBoxParam<OpTensor> &param,
                         Context<NV> &ctx){
 
-        CHECK_EQ(param.order.size(), 3)  << "Incorrect Priorbox order!";
+        CHECK_EQ(param.order.size(), 3)  << "Incorrect size of priorbox order list.";
+        CHECK_EQ(std::accumulate(param.order.begin(), param.order.end(), 0), 3) \
+            << "Incorrect type of priorbox order.";
 
         if (_output_host != nullptr) {
             fast_free(_output_host);
@@ -155,15 +157,12 @@ public:
                         if (type == PRIOR_MIN) {
                             memcpy(_output_host + idx, min_buf, sizeof(float) * min_idx);
                             idx += min_idx;
-                            min_idx = 0;    // Prevents memory overrun caused by incorrect use.
                         } else if (type == PRIOR_MAX) {
                             memcpy(_output_host + idx, max_buf, sizeof(float) * max_idx);
                             idx += max_idx;
-                            max_idx = 0;
                         } else if (type == PRIOR_COM) {
                             memcpy(_output_host + idx, com_buf, sizeof(float) * com_idx);
                             idx += com_idx;
-                            com_idx = 0;
                         }
                     }
                 }
