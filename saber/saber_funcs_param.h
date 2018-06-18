@@ -379,6 +379,7 @@ private:
     opTensor* bias_tensor;
 };
 // specify for int8
+#ifdef USE_CUDA
 template <>
 struct ConvParam<Tensor<NV, AK_INT8, NCHW> > {
     ConvParam() : group(-1), pad_h(-1), pad_w(-1),
@@ -534,6 +535,90 @@ private:
     Tensor<NV, AK_INT8, NCHW_C4>* weight_tensor;
     Tensor<NV, AK_FLOAT, NCHW>* bias_tensor;
 };
+#endif //USE_CUDA
+
+#ifdef USE_BM
+template <>
+struct ConvParam<Tensor<BM, AK_BM, NCHW> > {
+    ConvParam() : group(-1), pad_h(-1), pad_w(-1),
+                  stride_h(-1), stride_w(-1),
+                  dilation_h(-1), dilation_w(-1),
+                  weight_tensor(NULL), bias_tensor(NULL), alpha(1.0), beta(0.0){}
+    ConvParam(int group_in, int pad_h_in, int pad_w_in,
+              int stride_h_in, int stride_w_in, int dilation_h_, int dilation_w_,
+              Tensor<BM, AK_BM, NCHW>* weight, Tensor<BM, AK_BM, NCHW>* bias,
+              float alpha_in = 1.0, float beta_in = 0.0)
+            : group(group_in), pad_h(pad_h_in), pad_w(pad_w_in)
+            , stride_h(stride_h_in), stride_w(stride_w_in)
+            , dilation_h(dilation_h_), dilation_w(dilation_w_)
+            , weight_tensor(weight), bias_tensor(bias)
+            , alpha(alpha_in), beta(beta_in)
+    {}
+    ConvParam(const ConvParam &right)
+            : group(right.group), pad_h(right.pad_h)
+            , pad_w(right.pad_w), stride_h(right.stride_h)
+            , stride_w(right.stride_w), dilation_h(right.dilation_h)
+            , dilation_w(right.dilation_w)
+            , weight_tensor(right.weight_tensor)
+            , bias_tensor(right.bias_tensor)
+            , alpha(right.alpha)
+            , beta(right.beta) {}
+    ConvParam &operator=(const ConvParam &right) {
+        group = right.group;
+        pad_h = right.pad_h;
+        pad_w = right.pad_w;
+        stride_h = right.stride_h;
+        stride_w = right.stride_w;
+        dilation_h = right.dilation_h;
+        dilation_w = right.dilation_w;
+        weight_tensor = right.weight_tensor;
+        bias_tensor = right.bias_tensor;
+        alpha = right.alpha;
+        beta = right.beta;
+        return *this;
+    }
+    bool operator==(const ConvParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (group == right.group);
+        comp_eq = comp_eq && (pad_h == right.pad_h);
+        comp_eq = comp_eq && (pad_w == right.pad_w);
+        comp_eq = comp_eq && (stride_h == right.stride_h);
+        comp_eq = comp_eq && (stride_w == right.stride_w);
+        comp_eq = comp_eq && (dilation_h == right.dilation_h);
+        comp_eq = comp_eq && (dilation_w == right.dilation_w);
+        comp_eq = comp_eq && (weight_tensor == right.weight_tensor);
+        comp_eq = comp_eq && (bias_tensor == right.bias_tensor);
+        comp_eq = comp_eq && (alpha == right.alpha);
+        comp_eq = comp_eq && (beta == right.beta);
+        return comp_eq;
+    }
+    inline const Tensor<BM, AK_BM, NCHW>* weight() {
+        return weight_tensor;
+    }
+    inline const Tensor<BM, AK_BM, NCHW>* bias() {
+        return bias_tensor;
+    }
+    inline Tensor<BM, AK_BM, NCHW>* mutable_weight() {
+        return weight_tensor;
+    }
+    inline Tensor<BM, AK_BM, NCHW>* mutable_bias() {
+        return bias_tensor;
+    }
+    int group;
+    int pad_h;
+    int pad_w;
+    int stride_h;
+    int stride_w;
+    int dilation_h;
+    int dilation_w;
+    float alpha;
+    float beta;
+private:
+    Tensor<BM, AK_BM, NCHW>* weight_tensor;
+    Tensor<BM, AK_BM, NCHW>* bias_tensor;
+};
+#endif //USE_BM
+
 template <typename opTensor>
 struct PermuteParam {
     PermuteParam() {}

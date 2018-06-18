@@ -17,6 +17,12 @@ if(USE_CUDA)
     anakin_find_cuda()
 endif()
 
+if(USE_BM)
+    #set other cuda path
+    #set(CUDA_TOOLKIT_ROOT_DIR $ENV{CUDA_PATH})
+    #anakin_find_cuda()
+endif()
+
 
 # find opencl
 if(USE_OPENCL)

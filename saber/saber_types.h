@@ -31,7 +31,8 @@ enum TargetTypeEnum {
     eARM = 3,
     eX86 = 4,
     eNVHX86 = 5,
-    eNVHARM = 6
+    eNVHARM = 6,
+    eBM = 7
 };
 
 template <TargetTypeEnum T>
@@ -44,6 +45,8 @@ typedef TargetType<eX86> X86;
 // NV device with pinned memory
 typedef TargetType<eNVHX86> NVHX86;
 //typedef TargetType<eNVHARM> NVHARM;
+// Bitmain device support
+typedef TargetType<eBM> BM;
 // invalid target type, for target has only one memory block
 typedef TargetType<eINVALID> INVLD;
 
@@ -82,7 +85,8 @@ enum DataType {
     AK_STRING       =       10,
     AK_BOOL         =       11,
     AK_SHAPE        =       12,
-    AK_TENSOR       =       13
+    AK_TENSOR       =       13,
+    AK_BM           =       14
 };
 
 typedef enum {
@@ -147,6 +151,29 @@ enum CodeType {
     CENTER_SIZE = 2,
     CORNER_SIZE = 3
 };
+
+typedef enum {
+    ATRS_NormType_NONE = 0,
+    ATRS_NormType_WIDTH = 1,
+    ATRS_NormType_HEIGHT = 2,
+    ATRS_NormType_WIDTH_LOG = 3,
+    ATRS_NormType_HEIGHT_LOG = 4,
+} ATRS_NormType;
+
+typedef enum {
+    DetectionOutputSSD_HEIGHT_AND_WIDTH = 0,
+    DetectionOutputSSD_HEIGHT_OR_WIDTH = 1
+} DetectionOutputSSD_MIN_SIZE_MODE;
+
+typedef enum {
+    ProposalImgScaleToCamCoords_NormType_HEIGHT = 0,
+    ProposalImgScaleToCamCoords_NormType_HEIGHT_LOG = 1
+} ProposalImgScaleToCamCoords_NormType;
+
+typedef enum {
+    ProposalImgScaleToCamCoords_OrienType_PI = 0,
+    ProposalImgScaleToCamCoords_OrienType_PI2 = 1
+} ProposalImgScaleToCamCoords_OrienType;
 
 typedef enum {
     SABER_POWER_HIGH = 0,

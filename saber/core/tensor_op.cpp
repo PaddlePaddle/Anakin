@@ -362,6 +362,100 @@ Context<NV> ctx) {
 }
 #endif
 
+
+/*#ifdef USE_BM
+
+template<>
+SaberStatus
+DataTensorTransformHelper::convert_weights<Tensor<X86, AK_INT8, NCHW_C4>,
+                          Tensor<X86, AK_FLOAT, NCHW> >(Tensor<X86, AK_INT8, NCHW_C4>& out_tensor,
+                                  const Tensor<X86, AK_FLOAT, NCHW>& in_tensor,
+Context<BM> ctx) {
+    int input_channel = in_tensor.channel();
+    int output_channel = out_tensor.shape()[1];
+    //            LOG(INFO)<<"input_channel = "<<input_channel<<" output_channel = "<<output_channel;
+    _vector_weight_scale.resize(input_channel);
+
+    int weight_inner_dim = in_tensor.channel()
+                           * in_tensor.height()
+                           * in_tensor.width();
+    const float* in_weight_data = in_tensor.data();
+
+    for (int c = 0; c < input_channel; ++c) {
+        float max_val = -1.f;
+
+        for (int i = 0; i < weight_inner_dim; ++i) {
+            float read_data = fabs(in_weight_data[i]);
+            max_val = (read_data > max_val) ? read_data : max_val;
+        }
+
+        _vector_weight_scale[c] = max_val / 127.f;
+        in_weight_data += weight_inner_dim;
+        //                LOG(INFO)<<"max_val = "<<max_val<<" vector: "<<max_val / 127.f;
+    }
+
+    int o_num = out_tensor.num();
+    int o_channel = output_channel;
+    int o_height = out_tensor.height();
+    int o_width = out_tensor.width();
+
+    int out_n_stride = o_channel * o_height * o_width;
+    int out_c_stride = o_height * o_width;
+    int out_h_stride = o_width;
+
+    Shape in_stride = in_tensor.get_stride();
+
+    in_weight_data = in_tensor.data();
+    char* out_weight_data = out_tensor.mutable_data();
+
+    for (int idx = 0; idx < o_num * o_channel * o_height * o_width; ++idx) {
+
+        int n = (idx / (out_n_stride)) % o_num;
+        int in_offset = ((idx / (out_n_stride)) % o_num) * in_stride[0]
+                        + ((idx / (out_c_stride)) % o_channel) * (in_stride[1] * 4)
+                        + ((idx / (out_h_stride)) % o_height) * in_stride[2]
+                        + (idx % o_width) * in_stride[3];
+
+        int out_offset = ((idx / (out_n_stride)) % o_num) * out_n_stride
+                         + ((idx / (out_c_stride)) % o_channel) * out_c_stride
+                         + ((idx / (out_h_stride)) % o_height) * out_h_stride
+                         + (idx % o_width);
+        out_weight_data[out_offset * 4 + 0] = (char)(round(
+                in_weight_data[in_offset + 0 * in_stride[1]] / _vector_weight_scale[n]));
+        out_weight_data[out_offset * 4 + 1] = (char)(round(
+                in_weight_data[in_offset + 1 * in_stride[1]] / _vector_weight_scale[n]));
+        out_weight_data[out_offset * 4 + 2] = (char)(round(
+                in_weight_data[in_offset + 2 * in_stride[1]] / _vector_weight_scale[n]));
+        out_weight_data[out_offset * 4 + 3] = (char)(round(
+                in_weight_data[in_offset + 3 * in_stride[1]] / _vector_weight_scale[n]));
+
+    }
+
+    return SaberSuccess;
+}
+template<>
+SaberStatus
+DataTensorTransformHelper::convert_bias<Tensor<X86, AK_FLOAT, NCHW>,
+                          Tensor<X86, AK_FLOAT, NCHW> >(Tensor<X86, AK_FLOAT, NCHW>& out_tensor,
+                                  const Tensor<X86, AK_FLOAT, NCHW>& in_tensor,
+Context<BM> ctx) {
+    unsigned long weight_size = _vector_weight_scale.size();
+    unsigned long bias_size = in_tensor.size();
+    CHECK_GT(_in_scale, 0);
+    CHECK_GT(weight_size, 0);
+    CHECK_EQ(bias_size, weight_size);
+
+    const float* in_data = in_tensor.data();
+    float* out_data = out_tensor.mutable_data();
+
+    for (int i = 0; i < bias_size; ++i) {
+        out_data[i] = in_data[i] / _in_scale / _vector_weight_scale[i];
+    }
+
+    return SaberSuccess;
+}
+#endif*/
+
 } //namespace saber
 
 } //namespace anakin
