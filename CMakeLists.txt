@@ -80,12 +80,12 @@ anakin_option(BUILD_CROSS_PLANTFORM "Build anakin lib for any nvidia device plan
 anakin_option(BUILD_FAT_BIN "Build anakin cuda fat-bin lib for all device plantform" NO if BUILD_CROSS_PLANTFORM)
 
 # compile options for BM place
-anakin_option(USE_BM "Use Cuda libs." YES if NVIDIA_GPU)
-anakin_option(USE_CUBLAS "Use Cublas libs." YES if USE_BM)
-anakin_option(USE_CURAND "Use Curand libs." YES if USE_BM)
-anakin_option(USE_CUFFT "Use CuFFT libs." YES if USE_BM)
-anakin_option(USE_CUDNN "Use Cudnn libs." YES if USE_BM)
-anakin_option(BUILD_CROSS_PLANTFORM "Build anakin lib for any nvidia device plantform." YES if USE_BM)
+#anakin_option(USE_BM "Use Cuda libs." YES if NVIDIA_GPU)
+#anakin_option(USE_CUBLAS "Use Cublas libs." YES if USE_BM)
+#anakin_option(USE_CURAND "Use Curand libs." YES if USE_BM)
+#anakin_option(USE_CUFFT "Use CuFFT libs." YES if USE_BM)
+#anakin_option(USE_CUDNN "Use Cudnn libs." YES if USE_BM)
+#anakin_option(BUILD_CROSS_PLANTFORM "Build anakin lib for any nvidia device plantform." YES if USE_BM)
 
 
 
