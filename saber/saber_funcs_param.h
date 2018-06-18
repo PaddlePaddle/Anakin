@@ -185,7 +185,7 @@ private:
 template <typename TargetType>
 struct NormalizeParam {
     NormalizeParam() = default;
-    
+
     NormalizeParam(bool is_across_spatial, float eps_in = 1e-6f, int pin = 2) {
         across_spatial = is_across_spatial;
         p = pin;
@@ -196,7 +196,7 @@ struct NormalizeParam {
     }
     NormalizeParam(bool is_across_spatial, bool is_shared_channel, \
                    Tensor<TargetType>* input_scale, float eps_in = 1e-6f, int pin = 2) {
-        
+
         across_spatial = is_across_spatial;
         channel_shared = is_shared_channel;
         p = pin;
@@ -205,7 +205,7 @@ struct NormalizeParam {
         eps = eps_in;
         CHECK_EQ(p == 2 || p == 1, true) << "only support L1 and L2 norm";
     }
-    
+
     NormalizeParam(const NormalizeParam<TargetType>& right) {
         channel_shared = right.channel_shared;
         across_spatial = right.across_spatial;
@@ -224,7 +224,7 @@ struct NormalizeParam {
         this->eps = right.eps;
         return *this;
     }
-    
+
     bool operator==(const NormalizeParam<TargetType>& right) {
         bool flag = this->across_spatial == right.across_spatial;
         flag = flag && (this->channel_shared == right.channel_shared);
@@ -233,7 +233,7 @@ struct NormalizeParam {
         flag = flag && (fabsf(this->eps - right.eps) < 1e-7f);
         return flag && (this->scale == right.scale);
     }
-    
+
     //! p = 1, L1 normalize, p = 2, L2 normalize
     int  p{2};
     //! whether normalize is across the spatial
@@ -247,7 +247,7 @@ struct NormalizeParam {
     Tensor<TargetType>* scale{nullptr};
     float eps{1e-6f};
 };
-  
+
 template <typename TargetType>
 struct PreluParam {
     PreluParam() = default;

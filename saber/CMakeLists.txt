@@ -67,7 +67,7 @@ if(USE_CUDA)
 	# set select arch for cuda
 	add_subdirectory(${ANAKIN_SABER}/funcs/impl/cuda/base)
 
-	set(FLAGS_BACKUP ${CMAKE_CXX_FLAGS}) 
+	set(FLAGS_BACKUP ${CMAKE_CXX_FLAGS})
 	set(CMAKE_CXX_FLAGS "")
 	if(BUILD_SHARED)
     		CUDA_COMPILE(ANAKIN_SABER_CUDA_C_SRC_OBJS SHARED ${ANAKIN_SABER_CUDA_C_SRC} OPTIONS ${ANAKIN_NVCC_FLAG})
@@ -77,16 +77,42 @@ if(USE_CUDA)
 	endif()
     	set(CMAKE_CXX_FLAGS ${FLAGS_BACKUP})
 
-	set(ANAKIN_SABER_STATIC_RELAY ${ANAKIN_SABER_STATIC_RELAY} 
-				      ${BEGIN_WHOLE_ARCHIVE} 
-				      ${ANAKIN_SABER_SASS_STATIC_LIB} 
-				      ${WHOLE_ARCHIVE_END})	
+	set(ANAKIN_SABER_STATIC_RELAY ${ANAKIN_SABER_STATIC_RELAY}
+				      ${BEGIN_WHOLE_ARCHIVE}
+				      ${ANAKIN_SABER_SASS_STATIC_LIB}
+				      ${WHOLE_ARCHIVE_END})
 endif()
+
+if(USE_BM)
+    anakin_fetch_files_with_suffix(${ANAKIN_SABER}/core/impl/bm "cpp" ANAKIN_SABER_BASE_SRC)
+    anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/bm "cpp" ANAKIN_SABER_BASE_SRC)
+
+    # set root
+    set(BM_BASE_CODE_ROOT ${ANAKIN_SABER}/funcs/impl/bm/base)
+    # set select arch for cuda
+    add_subdirectory(${ANAKIN_SABER}/funcs/impl/bm/base)
+
+    set(FLAGS_BACKUP ${CMAKE_CXX_FLAGS})
+    set(CMAKE_CXX_FLAGS "")
+    if(BUILD_SHARED)
+        CUDA_COMPILE(ANAKIN_SABER_BM_C_SRC_OBJS SHARED ${ANAKIN_SABER_BM_C_SRC} OPTIONS ${ANAKIN_NVCC_FLAG})
+    endif()
+    if(BUILD_STATIC)
+        CUDA_COMPILE(ANAKIN_SABER_BM_C_SRC_OBJS STATIC ${ANAKIN_SABER_BM_C_SRC} OPTIONS ${ANAKIN_NVCC_FLAG})
+    endif()
+    set(CMAKE_CXX_FLAGS ${FLAGS_BACKUP})
+
+    set(ANAKIN_SABER_STATIC_RELAY ${ANAKIN_SABER_STATIC_RELAY}
+            ${BEGIN_WHOLE_ARCHIVE}
+            ${ANAKIN_SABER_BM_STATIC_LIB}
+            ${WHOLE_ARCHIVE_END})
+endif()
+
 
 # add saber library to static
 if(UNIX OR APPLE)
     if (USE_ARM_PLACE)
-        ADD_LIBRARY(${ANAKIN_SABER_TEMP_COMMMON_LIB} STATIC ${ANAKIN_SABER_CUDA_C_SRC_OBJS} ${ANAKIN_SABER_BASE_SRC})
+        ADD_LIBRARY(${ANAKIN_SABER_TEMP_COMMMON_LIB} STATIC ${ANAKIN_SABER_CUDA_C_SRC_OBJS} ${ANAKIN_SABER_BM_C_SRC_OBJS} ${ANAKIN_SABER_BASE_SRC})
         set_target_properties(${ANAKIN_SABER_TEMP_COMMMON_LIB} PROPERTIES LIBRARY_OUTPUT_DIRECTORY
                 ${ANAKIN_ROOT}/output/)
     else()

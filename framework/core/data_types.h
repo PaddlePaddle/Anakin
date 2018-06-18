@@ -17,6 +17,7 @@
 #define ANAKIN_DATA_TYPES_H 
 
 #include "framework/core/parameter.h"
+#include "bmlib_runtime.h"
 #include <cstddef>
 
 namespace anakin {
@@ -45,6 +46,7 @@ SABER_TO_BASE_TYPE(AK_UINT16, uint16_t);
 SABER_TO_BASE_TYPE(AK_UINT32, uint32_t);
 SABER_TO_BASE_TYPE(AK_BOOL, bool);
 SABER_TO_BASE_TYPE(AK_STRING, std::string);
+SABER_TO_BASE_TYPE(AK_BM, bm_device_mem_t);
 
 template<typename T>
 struct DataTypeRecover {
@@ -69,6 +71,7 @@ BASE_TYPE_TO_SABER(uint8_t, AK_UINT8);
 BASE_TYPE_TO_SABER(uint32_t, AK_UINT32);
 BASE_TYPE_TO_SABER(bool, AK_BOOL);
 BASE_TYPE_TO_SABER(std::string, AK_STRING);
+BASE_TYPE_TO_SABER(bm_device_mem_t, AK_BM);
 
 template<typename T>
 struct TypeWarpper {
@@ -96,6 +99,7 @@ ANAKIN_TO_TYPE_ID(long long, anakin_int64)
 ANAKIN_TO_TYPE_ID(unsigned long long, anakin_uint64)
 ANAKIN_TO_TYPE_ID(bool, anakin_bool)
 ANAKIN_TO_TYPE_ID(std::string, anakin_string)
+ANAKIN_TO_TYPE_ID(bm_device_mem_t, anakin_bm)
 
 /// unique type tensor
 /// ANAKIN_TO_TYPE_ID(tensor, anakin_tensor)
@@ -132,6 +136,11 @@ ANAKIN_TO_TYPE_ID(Enum, anakin_tuple_enum)
 #ifdef USE_ARM_PLACE
 	ANAKIN_PBLOCK_TO_TYPE_ID(float, ARM, anakin_block_float)
 #endif
+
+#ifdef USE_BM
+	ANAKIN_PBLOCK_TO_TYPE_ID(bm_device_mem_t, BM, anakin_block_float)
+#endif
+
 
 template<typename T>
 struct type_id {
