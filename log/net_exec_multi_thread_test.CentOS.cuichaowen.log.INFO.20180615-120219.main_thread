@@ -1,8 +1,0 @@
-File verbosity level: 0
-  v  |     time     |  uptime  |  thread name/id | file:line ] 
-   0| 12:02:19.00521| 0.002s| main_thread| logger_core.h:558] Logging to './log/net_exec_multi_thread_test.CentOS.cuichaowen.log.INFO.20180615-120219.main_thread', FileMode: 'w', VerBoseType: 0
-
-   0| 12:02:19.00522| 0.002s| main_thread| logger_core.h:1152] Current Verbose Level: 0
-   0| 12:02:19.00522| 0.002s| main_thread| logger_core.h:1153] -----------start logging------------
- WAN| 12:02:19.00522| 0.003s| main_thread| net_exec_multi_thread_test.cpp:13] Sync Runing multi_threads for model: /home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/yolo_lane_v2.anakin.bin
- FTL| 12:02:19.00524| 0.004s|         5052D700| parser.cpp:84]  Cant open /home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/yolo_lane_v2.anakin.bin
