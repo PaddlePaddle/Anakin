@@ -540,16 +540,16 @@ struct TargetWrapper<BM, __device_target> {
     // brief create event, empty function for bitmain target
 
     static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-        size_t count, __DtoD);
+        size_t count, __DtoD) {};
 
     static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-        size_t count, __HtoD);
+        size_t count, __HtoD) {};
 
     static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-        size_t count, __DtoH);
+        size_t count, __DtoH) {};
 
     static void sync_memcpy_p2p(void* dst, int dst_dev, const void* src, \
-        int src_dev, size_t count);
+        int src_dev, size_t count) {};
 
     /**
      * \brief device target return currently used device id
