@@ -59,8 +59,8 @@ private:
  */
 struct WeghtOffset {
 	struct Offset{
-		size_t offset; // offset from start
-		size_t length; // weight length
+		size_t offset{0}; // offset from start
+		size_t length{0}; // weight length
 	};
 	std::vector<Offset> weights;
 };
