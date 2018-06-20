@@ -231,27 +231,33 @@ void conv1x1s1_gemm(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FLOA
     int channel_size_out = w_out * h_out;
     int channel_size_in = w_in * h_in;
 
-    const int m = ch_out;
+    const int m = ch_out / group;
     const int n = h_out * w_out;
-    const int k = ch_in;
+    const int k = ch_in / group;
 
-    //! use gemv when the output channel size = 1
+    int weights_size_per_group = ch_out * ch_in / (group * group);
+
+        //! use gemv when the output channel size = 1
     if (n == 1) {
         for (int b = 0; b < num; ++b) {
-            float *data_out_batch = tensor_out.mutable_data() + b * ch_out * channel_size_out;
-            const float* dB = tensor_in.data() + b * ch_in * channel_size_in;
-            if (flag_bias){
-                if (flag_relu) {
-                    sgemv_bias_relu(false, m, k, weights, dB, data_out_batch, bias);
-                } else {
-                    sgemv_bias(false, m, k, weights, dB, data_out_batch, bias);
-                }
+            for (int g = 0; g < group; ++g) {
+                float* dout_group = tensor_out.mutable_data() + (b * ch_out + g * m) * channel_size_out;
+                const float* din_group = tensor_in.data() + (b * ch_in + g * k)* channel_size_in;
+                const float* weights_group = weights + g * weights_size_per_group;
+                const float* bias_group = bias + g * m;
+                if (flag_bias){
+                    if (flag_relu) {
+                        sgemv_bias_relu(false, m, k, weights_group, din_group, dout_group, bias_group);
+                    } else {
+                        sgemv_bias(false, m, k, weights_group, din_group, dout_group, bias_group);
+                    }
 
-            } else {
-                if (flag_relu) {
-                    sgemv_relu(false, m, k, weights, dB, data_out_batch);
                 } else {
-                    sgemv(false, m, k, weights, dB, data_out_batch);
+                    if (flag_relu) {
+                        sgemv_relu(false, m, k, weights_group, din_group, dout_group);
+                    } else {
+                        sgemv(false, m, k, weights_group, din_group, dout_group);
+                    }
                 }
             }
         }
@@ -259,14 +265,19 @@ void conv1x1s1_gemm(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FLOA
     } else {
         for (int b = 0; b < num; ++b) {
             // dC
-            float *data_out_batch = tensor_out.mutable_data(b * ch_out * channel_size_out);
-            const float* dB = tensor_in.data(b * ch_in * channel_size_in);
-            float beta = 0.f;
-            if (flag_bias){
-                fill_bias(data_out_batch, bias, ch_out, w_out * h_out);
-                beta = 1.f;
+            for (int g = 0; g < group; ++g) {
+                float* dout_group = tensor_out.mutable_data() + (b * ch_out + g * m) * channel_size_out;
+                const float* din_group = tensor_in.data() + (b * ch_in + g * k) * channel_size_in;
+                const float* weights_group = weights + g * weights_size_per_group;
+                const float* bias_group = bias + g * m;
+                float beta = 0.f;
+                if (flag_bias) {
+                    fill_bias(dout_group, bias_group, m, w_out * h_out);
+                    beta = 1.f;
+                }
+                gemmer(weights_group, k, din_group, n, dout_group, n, 1.f, beta, flag_relu);
             }
-            gemmer(weights, k, dB, n, data_out_batch, n, 1.f, beta, flag_relu);
+
         }
     }
 }
@@ -287,32 +298,39 @@ void conv_im2col_gemm(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FL
     int h_out = tensor_out.height();
     int ch_out = tensor_out.channel();
 
-    const int m = ch_out;
+    const int m = ch_out / group;
     const int n = h_out * w_out;
-    const int k = ch_in * kernel_h * kernel_w;
+    const int k = ch_in * kernel_h * kernel_w / group;
+
+    const int chin_per_group = ch_in / group;
 
     int channel_size_out = w_out * h_out;
     int channel_size_in = w_in * h_in;
+
+    int weights_size_per_group = ch_out * ch_in * kernel_w * kernel_h / (group * group);
+        
     for (int b = 0; b < num; ++b) {
         // dC
-        float *data_out_batch = tensor_out.mutable_data(b * ch_out * channel_size_out);
-        float *data_in_batch = tensor_in.mutable_data(b * ch_in * channel_size_in);
+        for (int g = 0; g < group; ++g) {
+            float* dout_group = tensor_out.mutable_data() + (b * ch_out + g * m) * channel_size_out;
+            const float* din_group = tensor_in.data() + (b * ch_in + g * chin_per_group) * channel_size_in;
+            const float* weights_group = weights + g * weights_size_per_group;
+            const float* bias_group = bias + g * m;
+            float* dB = (float*)work_space;
+            if (kernel_w == 1 && pad_w == 0) {
+                im2col1x1s2(din_group, chin_per_group, h_in, w_in, dB);
+            } else {
+                im2col(din_group, chin_per_group, h_in, w_in, kernel_h, kernel_w, \
+                    pad_h, pad_w, stride_h, stride_w, dB);
+            }
+            float beta = 0.f;
+            if (flag_bias) {
+                fill_bias(dout_group, bias_group, m, w_out * h_out);
+                beta = 1.f;
+            }
 
-        float* dB = (float*)work_space;
-        if (kernel_w == 1 && pad_w == 0) {
-            im2col1x1s2(data_in_batch, ch_in, h_in, w_in, dB);
-        } else {
-            im2col(data_in_batch, ch_in, h_in, w_in, kernel_h, kernel_w, \
-            pad_h, pad_w, stride_h, stride_w, dB);
+            gemmer(weights_group, k, dB, n, dout_group, n, 1.f, beta, flag_relu);
         }
-
-        float beta = 0.f;
-        if (flag_bias) {
-            fill_bias(data_out_batch, bias, ch_out, w_out * h_out);
-            beta = 1.f;
-        }
-
-        gemmer(weights, k, dB, n, data_out_batch, n, 1.f, beta, flag_relu);
     }
 }
 
