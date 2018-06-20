@@ -58,6 +58,8 @@ void conv_arm_winograd3x3(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, A
 
 void winograd_transform_weights(float* dout, const float* din, int ch_out, \
     int ch_in, void* work_space);
+
+void fill_bias(float* tensor, const float* bias, int channel, int channel_size);
 #if 0
 class ConvWinogradF63 {
 public:
