@@ -1,3 +1,7 @@
+/*
+   Modifications (c) 2018 Advanced Micro Devices, Inc.
+*/
+
 #include "framework/core/net/net.h"
 #include "saber/funcs/timer.h"
 #include "saber/funcs/debug.h"

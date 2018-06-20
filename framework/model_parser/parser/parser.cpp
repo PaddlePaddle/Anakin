@@ -1,3 +1,6 @@
+/*
+   Modifications (c) 2018 Advanced Micro Devices, Inc.
+*/
 #include "framework/model_parser/parser/parser.h"
 #include "framework/model_parser/parser/model_io.h"
 #include "framework/model_parser/proto/graph.pb.h"

@@ -1,3 +1,6 @@
+/*
+   Modifications (c) 2018 Advanced Micro Devices, Inc.
+*/
 #include "framework/model_parser/parser/model_io.h"
 #include "framework/core/operator/operator.h"
 #include "framework/core/parameter.h"

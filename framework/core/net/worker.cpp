@@ -1,3 +1,6 @@
+/*
+   Modifications (c) 2018 Advanced Micro Devices, Inc.
+*/
 #include "framework/core/net/worker.h"
 #include "saber/funcs/timer.h"
 
