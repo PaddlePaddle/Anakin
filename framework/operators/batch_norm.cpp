@@ -10,6 +10,7 @@ void BatchNorm<NV, AK_FLOAT, Precision::FP32>::operator()(
     OpContext<NV>& ctx,
     const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
     std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
+    LOG(FATAL) << "Discrete batchnorm has not yet been implemented.";
     /*auto* impl = static_cast<BatchNorm<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
     auto& param = static_cast<BatchNorm<NV, AK_FLOAT, Precision::FP32>*>(this->_helper)->_param_permute;
     impl->_funcs_permute(ins, outs, param, ctx);*/
