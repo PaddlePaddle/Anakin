@@ -317,7 +317,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
                 << " offset_size "<<in->get_seq_offset().size();
         }
 #endif
-#ifdef ENABLE_OP_TIMER   
+#ifdef ENABLE_OP_TIMER
 	Context<Ttype> ctx(0, 0, 0);
 	saber::SaberTimer<Ttype> my_time;
 	my_time.start(ctx);

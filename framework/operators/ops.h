@@ -101,7 +101,7 @@ namespace graph{
             .AddOpNode("power_0", "Power")
             .AddConnect("permute_0", "power_0")
             .CreatePattern([](VGraph* graph) {});
-
+/*
     REGISTER_GRAPH_FUSION_PATTERN(ConvReluPool)
             .Type(IN_ORDER)
             .AddOpNode("conv_0",  "Convolution")
@@ -110,6 +110,7 @@ namespace graph{
             .AddConnect("conv_0", "relu_0")
             .AddConnect("relu_0", "pooling_0")
             .CreatePattern([](VGraph* graph) {});
+*/
 /*
     REGISTER_GRAPH_FUSION_PATTERN(ConvBatchnormScaleReluPool)
             .Type(IN_ORDER)
