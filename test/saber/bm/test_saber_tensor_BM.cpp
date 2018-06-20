@@ -55,7 +55,6 @@ TEST(TestSaberTensorBM, test_tensor_constructor) {
     TensorHf4 thost1(sh1);
     TensorDf4 tdev1(sh1);
 
-    /*
     //! test tensor copy_from() function
     LOG(INFO) << "test copy_from() function, input tensor could be any target";
     thost1.copy_from(thost0);
@@ -66,6 +65,7 @@ TEST(TestSaberTensorBM, test_tensor_constructor) {
     tdev1.copy_from(tdev0);
     print_tensor_host(thost1);
 
+    /*
     //! test tensor constructor with shape and real_shape
     LOG(INFO) << "test tensor constructor with shape and real_shape";
     //! constructor with 3 shapes is removed
