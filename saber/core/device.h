@@ -1,4 +1,5 @@
 /* Copyright (c) 2016 Anakin Authors All Rights Reserve.
+   Modifications (c) 2018 Advanced Micro Devices, Inc.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.

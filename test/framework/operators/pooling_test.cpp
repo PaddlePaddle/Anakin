@@ -1,3 +1,6 @@
+/*
+   Modifications (c) 2018 Advanced Micro Devices, Inc.
+*/
 #include "operator_tests.h"
 #include "thread_pool.h"
 

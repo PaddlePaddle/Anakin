@@ -1,4 +1,6 @@
-
+/*
+   Modifications (c) 2018 Advanced Micro Devices, Inc.
+*/
 #include <string>
 #include "saber/funcs/timer.h"
 #include <chrono>

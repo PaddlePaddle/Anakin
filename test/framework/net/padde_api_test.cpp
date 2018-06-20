@@ -1,3 +1,6 @@
+/*
+   Modifications (c) 2018 Advanced Micro Devices, Inc.
+*/
 #include <string>
 #include "net_test.h"
 #include "saber/funcs/timer.h"

@@ -1,5 +1,6 @@
 # ----------------------------------------------------------------------------
 # Copyright (c) 2017 Baidu.com, Inc. All Rights Reserved
+# Modifications (c) 2018 Advanced Micro Devices, Inc.
 # @file     gather_libs.cmake
 # @auther   cuichaowen
 # @date     2017-10-24
