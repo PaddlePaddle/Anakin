@@ -55,7 +55,7 @@ int BM_API::get_device_id(){
         
 void BM_API::mem_alloc(void** ptr, size_t n){
     //(bm_handle_t handle, bm_device_mem_t* pmem, unsigned int n)
-    bm_device_mem_t mem = bm_mem_from_system(ptr);
+    bm_device_mem_t mem = bm_mem_from_system(*ptr);
     BMDNN_CHECK(bm_malloc_device_byte(handle, &mem, n));
 }
         
