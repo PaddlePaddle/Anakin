@@ -143,7 +143,7 @@ NodeIO<Ttype, Dtype, Ptype>& NodeIO<Ttype, Dtype, Ptype>::operator>>(const NodeP
                     saber_shape[i] = shape.dim().value()[i];
                 }
 
-                auto* block = graph::GraphGlobalMem::Global().new_block<AK_FLOAT>(saber_shape);
+                auto* block = graph::GraphGlobalMem<Ttype>::Global().template new_block<AK_FLOAT>(saber_shape);
                 // fill data to block
                 float* cpu_data = static_cast<float*>(block->h_tensor().mutable_data());
 
@@ -299,7 +299,7 @@ Status NodeIO<Ttype, Dtype, Ptype>::operator<<(GraphProto& graph) {
                 (*node_proto_attr)[key].mutable_cache_list()->set_type(BOOLEN);
                 (*node_proto_attr)[key].mutable_cache_list()->set_size(tuple_bool.size());
             } else if (value.type() == "anakin_block_float") { // default block have float data
-                auto block_float = any_cast<PBlock<float>>(value);
+                auto block_float = any_cast<PBlock<float, Ttype>>(value);
                 float* cpu_data = static_cast<float*>(block_float.h_tensor().mutable_data());
                 auto shape_saber = block_float.shape();
 

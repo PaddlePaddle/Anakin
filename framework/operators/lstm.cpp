@@ -45,8 +45,12 @@ Status LstmHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto is_reverse = GET_PARAMETER(bool, is_reverse);
     auto use_peepholes = GET_PARAMETER(bool, use_peepholes);
 
-    auto weight_wu = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_1);
-    auto bias = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_2);
+    //auto weight_wu = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_1);
+    //auto bias = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_2);
+    using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
+    auto weight_wu = GET_PARAMETER(pblock_type, weight_1);
+    auto bias = GET_PARAMETER(pblock_type, weight_2);
+
 
     LOG(INFO)<<"lstm act = ["<<input_activation<<","<<gate_activation<<","<<cell_activation<<","<<candidate_activation<<"]";
     LOG(INFO)<<"lstm other param = ["<<use_peepholes<<","<<is_reverse<<","<<dropout_param<<","<<num_direction<<","<<num_layers<<"]";

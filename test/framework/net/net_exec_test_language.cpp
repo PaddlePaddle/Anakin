@@ -155,7 +155,7 @@ void anakin_net_thread(std::vector<Tensor4dPtr<X86, AK_FLOAT> > *data_in,std::st
     graph->Reshape("input_0", {1000, 1, 1, 1});
     //anakin graph optimization
     graph->Optimize();
-    Net<Target, AK_FLOAT, Precision::FP32> net_executer(*graph, true);
+    Net<X86, AK_FLOAT, Precision::FP32> net_executer(*graph, true);
 //    SaberTimer<X86> timer;
 //    Context<X86> ctx;
     struct timeval time_start,time_end;

@@ -17,12 +17,6 @@
         type (GLB_##var) = (value)
 DEFINE_GLOBAL(std::string, model_dir, "");
 DEFINE_GLOBAL(std::string, input_file, "");
-#ifdef USE_CUDA
-using Target = NV;
-#endif
-#ifdef USE_X86_PLACE
-using Target = X86;
-#endif
 
 void getModels(std::string path, std::vector<std::string>& files) {
     DIR* dir= nullptr;
@@ -129,17 +123,18 @@ TEST(NetTest, chinese_ner_executor) {
     std::vector<int> word_seq_offset;
     int batch_num = 6;
 
-    graph = new Graph<Target, AK_FLOAT, Precision::FP32>();
+    Graph<X86, AK_FLOAT, Precision::FP32> *graph_p;
+    graph_p = new Graph<X86, AK_FLOAT, Precision::FP32>();
     LOG(WARNING) << "load anakin model file from " << models[0] << " ...";
     // load anakin model files.
-    auto status = graph->load(models[0]);
+    auto status = graph_p->load(models[0]);
     if(!status ) {
         LOG(FATAL) << " [ERROR] " << status.info();
     }
-    graph->Reshape("input_0", {1000, 1, 1, 1});
+    graph_p->Reshape("input_0", {1000, 1, 1, 1});
     //anakin graph optimization
-    graph->Optimize();
-    Net<Target, AK_FLOAT, Precision::FP32> net_executer(*graph, true);
+    graph_p->Optimize();
+    Net<X86, AK_FLOAT, Precision::FP32> net_executer(*graph_p, true);
     SaberTimer<X86> timer;
     Context<X86> ctx;
 

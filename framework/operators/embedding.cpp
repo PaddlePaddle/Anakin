@@ -46,7 +46,8 @@ Status EmbeddingHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto word_num = GET_PARAMETER(int, word_num);
     auto emb_dim = GET_PARAMETER(int, emb_dim);
     auto padding_idx = GET_PARAMETER(int, padding_idx);
-    auto weights = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_1);
+	using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
+    auto weights = GET_PARAMETER(pblock_type, weight_1);
 
     EmbeddingParam<Tensor4d<Ttype, Dtype>> param_embedding(word_num, emb_dim, padding_idx, &(weights.d_tensor()));
     _param_embedding = param_embedding;

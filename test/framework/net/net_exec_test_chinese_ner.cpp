@@ -160,7 +160,7 @@ void anakin_net_thread(std::vector<Tensor4dPtr<X86, AK_FLOAT> > *data_in,
     graph->Reshape("input_0", {GLB_max_word_len, 1, 1, 1});
     graph->Reshape("input_1", {GLB_max_word_len, 1, 1, 1});
     graph->Optimize();
-    Net<Target, AK_FLOAT, Precision::FP32> net_executer(*graph, true);
+    Net<X86, AK_FLOAT, Precision::FP32> net_executer(*graph, true);
     struct timeval time_start,time_end;
 
     int slice_10=data_in->size()/10;
