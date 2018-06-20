@@ -539,14 +539,14 @@ private:
 
 #ifdef USE_BM
 template <>
-struct ConvParam<Tensor<BM, AK_FLOAT, NCHW> > {
+struct ConvParam<Tensor<BM, AK_BM, NCHW> > {
     ConvParam() : group(-1), pad_h(-1), pad_w(-1),
                   stride_h(-1), stride_w(-1),
                   dilation_h(-1), dilation_w(-1),
                   weight_tensor(NULL), bias_tensor(NULL), alpha(1.0), beta(0.0){}
     ConvParam(int group_in, int pad_h_in, int pad_w_in,
               int stride_h_in, int stride_w_in, int dilation_h_, int dilation_w_,
-              Tensor<BM, AK_FLOAT, NCHW>* weight, Tensor<BM, AK_FLOAT, NCHW>* bias,
+              Tensor<BM, AK_BM, NCHW>* weight, Tensor<BM, AK_BM, NCHW>* bias,
               float alpha_in = 1.0, float beta_in = 0.0)
             : group(group_in), pad_h(pad_h_in), pad_w(pad_w_in)
             , stride_h(stride_h_in), stride_w(stride_w_in)
@@ -592,16 +592,16 @@ struct ConvParam<Tensor<BM, AK_FLOAT, NCHW> > {
         comp_eq = comp_eq && (beta == right.beta);
         return comp_eq;
     }
-    inline const Tensor<BM, AK_FLOAT, NCHW>* weight() {
+    inline const Tensor<BM, AK_BM, NCHW>* weight() {
         return weight_tensor;
     }
-    inline const Tensor<BM, AK_FLOAT, NCHW>* bias() {
+    inline const Tensor<BM, AK_BM, NCHW>* bias() {
         return bias_tensor;
     }
-    inline Tensor<BM, AK_FLOAT, NCHW>* mutable_weight() {
+    inline Tensor<BM, AK_BM, NCHW>* mutable_weight() {
         return weight_tensor;
     }
-    inline Tensor<BM, AK_FLOAT, NCHW>* mutable_bias() {
+    inline Tensor<BM, AK_BM, NCHW>* mutable_bias() {
         return bias_tensor;
     }
     int group;
@@ -614,8 +614,8 @@ struct ConvParam<Tensor<BM, AK_FLOAT, NCHW> > {
     float alpha;
     float beta;
 private:
-    Tensor<BM, AK_FLOAT, NCHW>* weight_tensor;
-    Tensor<BM, AK_FLOAT, NCHW>* bias_tensor;
+    Tensor<BM, AK_BM, NCHW>* weight_tensor;
+    Tensor<BM, AK_BM, NCHW>* bias_tensor;
 };
 #endif //USE_BM
 
