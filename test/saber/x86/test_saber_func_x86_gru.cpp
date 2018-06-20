@@ -11,6 +11,9 @@
 #include "test_saber_func_x86.h"
 #include "saber/funcs/impl/x86/saber_gru.h"
 
+#include <mkl_service.h>
+#include "omp.h"
+
 //#include "cublas.h"
 
 using namespace anakin::saber;
@@ -69,15 +72,18 @@ void compute_compare_correct(TensorDf4 dev_x,TensorDf4 last_dev_out,GruParam<Ten
 
 }
 #endif
-void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size = 222,
-                    int hidden_size = 333) {
+void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size = 52,
+                    int hidden_size = 36) {
 
 
+      omp_set_dynamic(0);
+    omp_set_num_threads(1);
+    mkl_set_num_threads(1);
     Context<X86> ctx_dev(0, 1, 1);
-    std::vector<int> offsets = {0,12,40,90,100,101};
+    std::vector<int> offsets = {0,39};
     ImplEnum test_mode=SABER_IMPL;
 //    ImplEnum test_mode=VENDER_IMPL;
-    bool is_reverse = true;
+    bool is_reverse = false;
     batch_size = offsets.size() - 1;
     Shape shape_ux(1, 1, offsets[offsets.size() - 1], hidden_size * 3);
     Shape shape_x(offsets[offsets.size() - 1], word_size, 1, 1);

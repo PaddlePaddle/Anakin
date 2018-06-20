@@ -210,7 +210,7 @@ void anakin_net_thread(std::vector<Tensor4dPtr<X86, AK_FLOAT> >* data_in, std::s
             auto outs = net_executer.get_out(GLB_output_name);
             int out_cnt = 0;
             record_dev_tensorfile(outs,
-                                  ("output_" + std::to_string(thread_id) + "_" + std::to_string(i) +GLB_output_name+ ".txt").data());
+                                  ("output_" + std::to_string(thread_id) + "_" + std::to_string(i)+ ".txt").data());
         }
 //        out_cnt++;
 
@@ -374,7 +374,7 @@ void worker_run(){
 //        auto d_tensor_p = d_tensor_p_out_list[0];
     }
 }
-#define ONE_THREAD 1
+
 
 TEST(NetTest, net_execute_base_test) {
     if(GLB_run_mode=="instance"){
