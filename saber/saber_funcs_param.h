@@ -1615,7 +1615,7 @@ struct PriorBoxParam {
     PriorBoxParam(std::vector<float> min_in, std::vector<float> max_in, \
         std::vector<float> aspect_in, std::vector<float> variance_in,
         bool flip, bool clip, int image_width, int image_height, \
-        float step_width, float step_height, float offset_in) {
+        float step_width, float step_height, float offset_in, std::vector<PriorType> order_in) {
         is_flip = flip;
         is_clip = clip;
         min_size = min_in;
@@ -1624,6 +1624,7 @@ struct PriorBoxParam {
         step_w = step_width;
         step_h = step_height;
         offset = offset_in;
+        order = order_in;
         aspect_ratio.clear();
         aspect_ratio.push_back(1.f);
 
@@ -1680,6 +1681,7 @@ struct PriorBoxParam {
         step_w = right.step_w;
         step_h = right.step_h;
         offset = right.offset;
+        order = right.order;
         prior_num = right.prior_num;
     }
     PriorBoxParam<opTensor>& operator=(const PriorBoxParam<opTensor>& right) {
@@ -1694,6 +1696,7 @@ struct PriorBoxParam {
         this->step_w = right.step_w;
         this->step_h = right.step_h;
         this->offset = right.offset;
+        this->order = right.order;
         this->prior_num = right.prior_num;
         return *this;
     }
@@ -1737,6 +1740,7 @@ struct PriorBoxParam {
         flag = flag && (step_w == right.step_w);
         flag = flag && (step_h == right.step_h);
         flag = flag && (offset == right.offset);
+        flag = flag && (order == right.order);
         flag = flag && (prior_num == right.prior_num);
         return flag;
     }
@@ -1753,8 +1757,8 @@ struct PriorBoxParam {
     float step_h{0};
     float offset{0.5};
     int prior_num{0};
+    std::vector<PriorType> order;
 };
-
 template <typename opTensor>
 struct DeformableConvParam {
 

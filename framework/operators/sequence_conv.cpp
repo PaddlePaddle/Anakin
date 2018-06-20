@@ -46,8 +46,13 @@ Status SequenceConvHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto context_start=GET_PARAMETER(int, context_start);
     auto context_stride=GET_PARAMETER(int, context_stride);
     auto padding_trainable=GET_PARAMETER(bool, padding_trainable);
-    auto filter_tensor=GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type> , filter_tensor);
-    auto padding_tensor=GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type> , padding_tensor);
+    //auto filter_tensor=GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type> , filter_tensor);
+    //auto padding_tensor=GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type> , padding_tensor);
+    using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
+    auto filter_tensor = GET_PARAMETER(pblock_type, filter_tensor);
+    auto padding_tensor = GET_PARAMETER(pblock_type, padding_tensor);
+
+
     if(padding_tensor.d_tensor().valid_size()>0) {
         SequenceConvParam<Tensor4d<Ttype, Dtype>> param(&(filter_tensor.d_tensor()), context_length, context_start,
                                                         context_stride, padding_trainable, &(padding_tensor.d_tensor()));

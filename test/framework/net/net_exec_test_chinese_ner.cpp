@@ -26,8 +26,6 @@ volatile DEFINE_GLOBAL(int, max_word_len, 0);
 volatile DEFINE_GLOBAL(int, word_count, 0);
 DEFINE_GLOBAL(std::string, model_dir, "");
 DEFINE_GLOBAL(std::string, input_file, "");
-DEFINE_GLOBAL(std::string, split_word, "\t");
-DEFINE_GLOBAL(int, split_index, 0);
 
 
 void getModels(std::string path, std::vector<std::string>& files) {
@@ -111,7 +109,10 @@ int split_word_from_file(
         for (auto w : split_w) {
             word.push_back(atof(w.c_str()));
             word_count++;
+//            printf("%d,",atoi(w.c_str()));
         }
+//        printf("\n");
+//        exit(0);
         word_idx.push_back(word);
     }
     GLB_word_count=word_count;
@@ -141,101 +142,118 @@ int get_batch_data_offset(
     return len;
 }
 
-void anakin_net_thread(std::vector<Tensor4dPtr<X86, AK_FLOAT> > *data_in,std::string model_path
-        ) {
+void anakin_net_thread(std::vector<Tensor4dPtr<X86, AK_FLOAT> > *data_in,
+                       std::vector<Tensor4dPtr<X86, AK_FLOAT> > *mention_in,
+                       std::string model_path
+) {
     omp_set_dynamic(0);
     omp_set_num_threads(1);
     mkl_set_num_threads(1);
     Graph<X86, AK_FLOAT, Precision::FP32> *graph = new Graph<X86, AK_FLOAT, Precision::FP32>();
-            LOG(WARNING) << "load anakin model file from " << model_path << " ...";
+    //graph = new Graph<Target, AK_FLOAT, Precision::FP32>();
+    LOG(WARNING) << "load anakin model file from " << model_path << " ...";
     // load anakin model files.
     auto status = graph->load(model_path);
     if(!status ) {
-                LOG(FATAL) << " [ERROR] " << status.info();
+         LOG(FATAL) << " [ERROR] " << status.info();
     }
     graph->Reshape("input_0", {GLB_max_word_len, 1, 1, 1});
-    //anakin graph optimization
+    graph->Reshape("input_1", {GLB_max_word_len, 1, 1, 1});
     graph->Optimize();
-    Net<Target, AK_FLOAT, Precision::FP32> net_executer(*graph, true);
-//    SaberTimer<X86> timer;
-//    Context<X86> ctx;
+    Net<X86, AK_FLOAT, Precision::FP32> net_executer(*graph, true);
     struct timeval time_start,time_end;
 
     int slice_10=data_in->size()/10;
-    slice_10=slice_10>0?slice_10:1;
-    int word_sum=0;
     gettimeofday(&time_start, nullptr);
     for (int i = 0; i < data_in->size(); ++i) {
         auto input_tensor=(*data_in)[i];
+        auto input_mention_tensor=(*mention_in)[i];
         auto word_in_p = net_executer.get_in("input_0");
+        auto mention_in_p = net_executer.get_in("input_1");
         int len_sum=input_tensor->valid_size();
         word_in_p->reshape({len_sum, 1, 1, 1});
-        word_sum+=len_sum;
         for (int j = 0; j < len_sum; ++j) {
             word_in_p->mutable_data()[j] = input_tensor->data()[j];
         }
         word_in_p->set_seq_offset(input_tensor->get_seq_offset());
+        int mention_sum=input_mention_tensor->valid_size();
+        mention_in_p->reshape({len_sum, 1, 1, 1});
+        for (int j = 0; j < mention_sum; ++j) {
+            mention_in_p->mutable_data()[j] = input_mention_tensor->data()[j];
+        }
+        mention_in_p->set_seq_offset(input_mention_tensor->get_seq_offset());
 //        timer.start(ctx);
         net_executer.prediction();
 //        timer.end(ctx);
         if(i%slice_10==0)
-            LOG(INFO)<<"thread run "<<i<<" of "<<data_in->size();
+                    LOG(INFO)<<"thread run "<<i<<" of "<<data_in->size();
     }
     gettimeofday(&time_end, nullptr);
     float use_ms=(time_end.tv_sec-time_start.tv_sec)*1000.f+(time_end.tv_usec-time_start.tv_usec)/1000.f;
-    LOG(INFO)<<"summary_thread :thread total : "<<use_ms<<" ms, avg = "<<(use_ms/data_in->size())<<", consume words = "<<word_sum;
-    free(graph);
+            LOG(INFO)<<"summary_thread :thread total : "<<use_ms<<" ms, avg = "<<(use_ms/data_in->size()/GLB_batch_size);
 }
-#define ONE_THREAD 1
 
 TEST(NetTest, net_execute_base_test) {
-
-    omp_set_dynamic(0);
-    omp_set_num_threads(1);
-    mkl_set_num_threads(1);
 
     std::vector<std::string> models;
     getModels(GLB_model_dir, models);
 
     std::vector<std::vector<float> > word_idx;
-    if (split_word_from_file(word_idx, GLB_input_file, GLB_split_word, " ", GLB_split_index)) {
+    std::vector<std::vector<float> > mention_idx;
+    if (split_word_from_file(word_idx, GLB_input_file, ";", " ", 1)) {
+                LOG(ERROR) << " NOT FOUND " << GLB_input_file;
+        exit(-1);
+    }
+    if (split_word_from_file(mention_idx, GLB_input_file, ";", " ", 3)) {
                 LOG(ERROR) << " NOT FOUND " << GLB_input_file;
         exit(-1);
     }
 
     std::vector<float> word_idx_data;
     std::vector<int> word_seq_offset;
+    std::vector<float> mention_idx_data;
+    std::vector<int> mention_seq_offset;
     int batch_num =GLB_batch_size;
+    int max_batch_word_len=2000;
     int thread_num=GLB_run_threads;
 
     int real_max_batch_word_len=0;
 
-
     std::vector<std::vector<Tensor<X86, AK_FLOAT>* >> host_tensor_p_in_list;
+    std::vector<std::vector<Tensor<X86, AK_FLOAT>* >> mention_tensor_p_in_list;
     for(int tid=0;tid<thread_num;++tid){
         std::vector<Tensor<X86, AK_FLOAT>* > data4thread;
+        std::vector<Tensor<X86, AK_FLOAT>* > data4thread_m;
         int start_wordid=tid*(word_idx.size()/thread_num);
         int end_wordid=(tid+1)*(word_idx.size()/thread_num);
         for (int i = start_wordid; i < end_wordid; i+=batch_num) {
             int word_len = get_batch_data_offset(word_idx_data, word_idx, word_seq_offset, i, batch_num);
+            int mention_len = get_batch_data_offset(mention_idx_data, mention_idx, word_seq_offset, i, batch_num);
             real_max_batch_word_len=real_max_batch_word_len<word_len?word_len:real_max_batch_word_len;
             saber::Shape valid_shape({word_len, 1, 1, 1});
             Tensor4d<X86, AK_FLOAT>* tensor_p=new Tensor4d<X86, AK_FLOAT>(valid_shape);
-                    CHECK_EQ(word_len,word_idx_data.size())<<"word_len == word_idx_data.size";
+            CHECK_EQ(word_len,word_idx_data.size())<<"word_len == word_idx_data.size";
+
+            saber::Shape valid_shape_m({word_len, 1, 1, 1});
+            Tensor4d<X86, AK_FLOAT>* tensor_m=new Tensor4d<X86, AK_FLOAT>(valid_shape);
+            CHECK_EQ(mention_len,mention_idx_data.size())<<"mention_len == mention_idx_data.size";
             for (int j = 0; j < word_idx_data.size(); ++j) {
                 tensor_p->mutable_data()[j] = word_idx_data[j];
             }
+            for (int j = 0; j < mention_idx_data.size(); ++j) {
+                tensor_m->mutable_data()[j] = mention_idx_data[j];
+            }
             tensor_p->set_seq_offset(word_seq_offset);
             data4thread.push_back(tensor_p);
+            tensor_m->set_seq_offset(mention_seq_offset);
+            data4thread_m.push_back(tensor_m);
         }
         host_tensor_p_in_list.push_back(data4thread);
+        mention_tensor_p_in_list.push_back(data4thread_m);
     }
     GLB_max_word_len=real_max_batch_word_len;
-    for (int i = 0; i < GLB_split_word.size(); i++) {
-        LOG(INFO) << "splite  " << i <<" in "<<GLB_split_word.size()<< "  is " << int(char(GLB_split_word[i]));
-    }
-        LOG(WARNING) << "Async Runing multi_threads for model: " << models[0]<<",batch dim = "<<batch_num
-                         <<",line num = "<<word_idx.size()<<", number of word = "<<GLB_word_count<<",thread number size = "<<thread_num<<",real max = "<<real_max_batch_word_len;
+    LOG(WARNING) << "Async Runing multi_threads for model: " << models[0]<<",batch dim = "<<batch_num
+                 <<",line num = "<<word_idx.size()<<", number of word = "<<GLB_word_count<<",thread number size = "<<thread_num<<",real max = "<<real_max_batch_word_len;
 
     std::vector<std::unique_ptr<std::thread>> threads;
     struct timeval time_start,time_end;
@@ -244,9 +262,8 @@ TEST(NetTest, net_execute_base_test) {
 
     for (int i = 0; i < thread_num; ++i) {
         threads.emplace_back(
-                new std::thread(&anakin_net_thread, &host_tensor_p_in_list[i],models[0]));
-//        threads.emplace_back(
-//                new std::thread(&anakin_net_thread, &host_tensor_p_in_list[i]),models[0]);
+                new std::thread(&anakin_net_thread, &host_tensor_p_in_list[i],
+                                &mention_tensor_p_in_list[i], models[0]));
     }
 
     for (int i = 0; i < thread_num; ++i) {
@@ -258,11 +275,10 @@ TEST(NetTest, net_execute_base_test) {
     LOG(INFO)<<"summary: "<<"thread num = "<<thread_num<<",total time = "<<use_ms<<"ms ,batch = "<<batch_num
              <<",word sum = "<<GLB_word_count<<", seconde/line = "<<(use_ms/word_idx.size())
              <<",QPS = "<<(word_idx.size()/use_ms*1000);
-
 }
 
 
-int main(int argc, const char** argv) {
+int main(int argc, const char** argv){
     // initial logger
             LOG(INFO) << "argc " << argc;
 
@@ -275,27 +291,16 @@ int main(int argc, const char** argv) {
         GLB_model_dir = std::string(argv[1]);
         GLB_input_file = std::string(argv[2]);
     }
-    if (argc >= 4) {
-        GLB_run_threads = atoi(argv[3]);
+    if(argc>=4){
+        GLB_run_threads=atoi(argv[3]);
     }
-    if (argc >= 5) {
-        GLB_batch_size = atoi(argv[4]);
+    if(argc>=4){
+        GLB_batch_size=atoi(argv[4]);
     }
 
-    if (argc >= 6) {
-        GLB_split_index = atoi(argv[5]);
-    }
-    if (argc >= 7) {
-        GLB_split_word = std::string(argv[6]);
-    }
 
     logger::init(argv[0]);
-    for (int i = 0; i < GLB_split_word.size(); i++) {
-            LOG(INFO) << "splite  " << i <<" in "<<GLB_split_word.size()<< "  is " << int(char(GLB_split_word[i]));
-    }
 
-//    exit(0);
-//    run_my_test();
     InitTest();
     RUN_ALL_TESTS(argv[0]);
     return 0;
