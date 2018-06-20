@@ -84,7 +84,7 @@ template struct TargetWrapper<BM, __device_target>;
 template class Buffer<BM>;
 
 //! BM Tensor
-INSTANTIATE_TENSOR(BM, AK_BM, NCHW);
+INSTANTIATE_TENSOR(BM, AK_FLOAT, NCHW);
 
 template struct Env<BM>;
 
