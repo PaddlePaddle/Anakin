@@ -5,7 +5,7 @@ using namespace anakin::saber;
 
 typedef TargetWrapper<X86> X86_API;
 typedef TargetWrapper<BM> BM_API;
-typedef Tensor<X86, AK_BM, NCHW> TensorHf4;
+typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
 typedef Tensor<BM, AK_BM, NCHW> TensorDf4;
 typedef TensorHf4::Dtype dtype;
 
