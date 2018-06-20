@@ -55,21 +55,21 @@ int BM_API::get_device_id(){
         
 void BM_API::mem_alloc(void** ptr, size_t n){
     //(bm_handle_t handle, bm_device_mem_t* pmem, unsigned int n)
-    bm_device_mem_t* pmem = (struct bm_mem_desc *)(*ptr)
+    bm_device_mem_t* pmem = (struct bm_mem_desc *)(*ptr);
     BMDNN_CHECK(bm_malloc_device_byte(handle, pmem, n));
 }
         
 void BM_API::mem_free(void* ptr){
     //(bm_handle_t handle, bm_device_mem_t mem){
     if(ptr != nullptr){
-        bm_device_mem_t* pmem = (struct bm_mem_desc *)(ptr)
+        bm_device_mem_t* pmem = (struct bm_mem_desc *)(ptr);
         bm_free_device(handle, *pmem);
     }
 }
         
 void BM_API::mem_set(void* ptr, int value, size_t n){
     //(bm_handle_t handle, const int value, bm_device_mem_t mem){
-    bm_device_mem_t* pmem = (struct bm_mem_desc *)(ptr)
+    bm_device_mem_t* pmem = (struct bm_mem_desc *)(ptr);
     BMDNN_CHECK(bm_memset_device(handle, value, *pmem));
 }
 
