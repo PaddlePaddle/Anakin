@@ -1,4 +1,4 @@
-#include "saber/funcs/impl/arm/impl/sgemv_arm.h"
+#include "saber/lite/funcs/neon/impl/sgemv_arm.h"
 #ifdef USE_ARM_PLACE
 
 namespace anakin{

@@ -1,4 +1,4 @@
-#include "saber/funcs/impl/arm/impl/conv_arm_impl.h"
+#include "saber/lite/funcs/neon/impl/conv_arm_impl.h"
 #ifdef USE_ARM_PLACE
 
 namespace anakin{
