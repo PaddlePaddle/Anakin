@@ -1,8 +1,5 @@
 # ----------------------------------------------------------------------------
 # Copyright (c) 2016 Baidu.com, Inc. All Rights Reserved
-# @file		root cmakefile
-# @auther   cuichaowen
-# @date		2017-10-24
 # ----------------------------------------------------------------------------
 include(cmake/thirdparty_version.cmake)
 cmake_minimum_required(VERSION ${MIN_CMAKE_V} FATAL_ERROR)
@@ -28,7 +25,7 @@ set(ANAKIN_ROOT ${PROJECT_SOURCE_DIR})
 include_directories(${ANAKIN_ROOT})
 
 set(ANAKIN_FRAMEWORK ${ANAKIN_ROOT}/framework)
-set(ANAKIN_THIRD_PARTY_PATH ${CMAKE_BINARY_DIR}/third-party)
+set(ANAKIN_LITE_EXE ${ANAKIN_ROOT}/tools/anakin-lite)
 set(ANAKIN_UTILS ${ANAKIN_ROOT}/utils)
 set(ANAKIN_THIRD_PARTY_PATH ${ANAKIN_ROOT}/third-party)
 set(ANAKIN_MODEL_PARSER ${ANAKIN_FRAMEWORK}/model_parser)
@@ -167,6 +164,10 @@ add_subdirectory(${ANAKIN_FRAMEWORK})
 
 if(BUILD_WITH_UNIT_TEST)
     add_subdirectory(${ANAKIN_UNIT_TEST})
+endif()
+
+if(NOT USE_ARM_PLACE)
+	add_subdirectory(${ANAKIN_LITE_EXE})
 endif()
 
 anakin_print_statistic()
