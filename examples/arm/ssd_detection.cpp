@@ -86,7 +86,7 @@ void detect_object(Tensor4hf& tout, const float thresh, Mat& image) {
 }
 #endif
 
-void test_net(const string model_file_name, const string image_file_name, float thresh, \
+void test_net(const std::string model_file_name, const std::string image_file_name, float thresh, \
     int threads, int test_iter) {
 
     int batch_size = 1;

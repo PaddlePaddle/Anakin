@@ -62,7 +62,7 @@ SaberStatus SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::cr
 
     CHECK_EQ(chin % conv_param.group, 0) << "input channel or group size error";
     CHECK_EQ(chout % conv_param.group, 0) << "output channel or group size error";
-
+#if 0
     //! return basic conv func
     if (conv_param.dilation_h != 1 || conv_param.dilation_w != 1) {
         //! basic conv
@@ -70,6 +70,7 @@ SaberStatus SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::cr
         LOG(ERROR) << "USE BASIC";
         return SaberSuccess;
     }
+#endif
 
     if (conv_param.dilation_h== 1 && conv_param.dilation_w == 1 \
         && conv_param.stride_h == conv_param.stride_w \
