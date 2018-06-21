@@ -19,6 +19,12 @@
 #include "core/env.h"
 #include "saber/saber_types.h"
 
+#ifdef USE_BM
+#include "bmlib_runtime.h"
+#include "bmdnn_api.h"
+#include "bmlib_utils.h"
+#endif
+
 namespace anakin{
 
 namespace saber{
@@ -113,6 +119,12 @@ public:
     typename API::stream_t get_compute_stream(){
         return _stream_compute;
     }
+
+#ifdef USE_BM
+    bm_handle_t get_handler() {
+        return API::get_handler();
+    }
+#endif
 
 #ifdef USE_ARM_PLACE
     //void set_act_cores(std::vector<int> ids);
