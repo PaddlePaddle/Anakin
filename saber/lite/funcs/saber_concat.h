@@ -16,7 +16,6 @@
 #ifndef ANAKIN_SABER_LITE_FUNCS_SABER_CONCAT_H
 #define ANAKIN_SABER_LITE_FUNCS_SABER_CONCAT_H
 
-#include "saber/saber_funcs_param.h"
 #include "saber/lite/core/tensor_lite.h"
 #include "saber/lite/core/context_lite.h"
 
@@ -28,54 +27,27 @@ namespace saber{
 
 namespace lite{
 
-template <typename Dtype>
+//template <typename Dtype>
 class SaberConcat {
 public:
     SaberConcat() = default;
+    SaberConcat(int axis);
     ~SaberConcat() {}
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<Dtype>*>& inputs,
-                                     std::vector<Tensor<Dtype>*>& outputs,
-                                     ConcatParam<Tensor<Dtype>> &param) {
-        unsigned long input_size = inputs.size();
+    SaberStatus load_param(int axis);
 
-        Shape shape_out = inputs[0]->valid_shape();
+    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
 
-        //! compute output shape
-        for (int i = 1; i < input_size; ++i) {
-            Shape sh = inputs[i]->valid_shape();
-            for (int j = 0; j < sh.dims(); ++j) {
-                if (j == param.axis) { continue; }
+    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                      std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx);
 
-                CHECK_EQ(shape_out[j], sh[j]) \
-                        << "All inputs must have the same shape, except at concat_axis.";
-            }
-            shape_out[param.axis] += sh[param.axis];
-        }
-        return outputs[0]->set_shape(shape_out);
-    }
-
-    SaberStatus init(const std::vector<Tensor<Dtype>*>& inputs,
-                      std::vector<Tensor<Dtype>*>& outputs,
-                      ConcatParam<Tensor<Dtype>> &param, Context &ctx){
-        return create(inputs, outputs, param, ctx);
-    }
-
-    SaberStatus create(const std::vector<Tensor<Dtype>*>& inputs,
-                        std::vector<Tensor<Dtype>*>& outputs,
-                        ConcatParam<Tensor<Dtype>> &param, Context &ctx){
-        _ctx = ctx;
-        _num_concats = inputs[0]->count_valid(0, param.axis);
-        _concat_input_size = inputs[0]->count_valid(param.axis + 1, inputs[0]->dims());
-        return SaberSuccess;
-    }
-
-    SaberStatus dispatch(const std::vector<Tensor<Dtype>*>& inputs,
-                          std::vector<Tensor<Dtype>*>& outputs,
-                          ConcatParam<Tensor<Dtype>> &param);
+    SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                          std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
 
 private:
     Context _ctx;
+    int _axis;
     int _num_concats;
     int _concat_input_size;
 };
