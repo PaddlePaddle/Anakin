@@ -15,7 +15,6 @@
 #ifndef ANAKIN_SABER_LITE_FUNCS_SABER_PERMUTE_H
 #define ANAKIN_SABER_LITE_FUNCS_SABER_PERMUTE_H
 
-#include "saber/saber_funcs_param.h"
 #include "saber/lite/core/tensor_lite.h"
 #include "saber/lite/core/context_lite.h"
 
@@ -26,48 +25,25 @@ namespace saber{
 
 namespace lite{
 
-template <typename Dtype>
+//template <typename Dtype>
 class SaberPermute {
 public:
-    SaberPermute() {
-        _transpose = false;
-        _need_permute = false;
-    }
+    SaberPermute();
+
+    SaberPermute(std::vector<int> orders);
+
     ~SaberPermute() {}
 
+    SaberStatus load_param(std::vector<int> orders);
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<Dtype>*>& inputs,
-                                     std::vector<Tensor<Dtype>*>& outputs,
-                                     PermuteParam<Tensor<Dtype>> &param) {
-        SaberStatus status;
-        for (int i = 0; i < inputs.size(); ++i) {
-            Shape output_shape = inputs[i]->valid_shape();
+    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
 
-            if (inputs[i]->valid_shape().size() != param.order.size()) {
-                LOG(FATAL) << "permute order param is not valid";
-            }
+    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
+        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx);
 
-            //for example: (n, h, w, c)->(n, c, h, w)  by order(0, 3, 1, 2)
-            for (int j = 0; j < param.order.size(); j++) {
-                output_shape[j] = inputs[i]->valid_shape()[param.order[j]];
-            }
-            outputs[i]->set_shape(output_shape);
-        }
-        return SaberSuccess;
-    }
-
-    SaberStatus init(const std::vector<Tensor<Dtype>*>& inputs, \
-        std::vector<Tensor<Dtype>*>& outputs, \
-        PermuteParam<Tensor<Dtype>> &param, Context &ctx) {
-        return create(inputs, outputs, param, ctx);
-    }
-
-    SaberStatus create(const std::vector<Tensor<Dtype>*>& inputs, \
-        std::vector<Tensor<Dtype>*>& outputs, \
-        PermuteParam<Tensor<Dtype>> &param, Context &ctx);
-
-    SaberStatus dispatch(const std::vector<Tensor<Dtype>*>& inputs, \
-        std::vector<Tensor<Dtype>*>& outputs, PermuteParam<Tensor<Dtype>> &param);
+    SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
+        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
 
 
 private:

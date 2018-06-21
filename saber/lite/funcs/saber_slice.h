@@ -14,7 +14,7 @@
 */
 #ifndef ANAKIN_SABER_LITE_FUNCS_SABER_SLICE_H
 #define ANAKIN_SABER_LITE_FUNCS_SABER_SLICE_H
-#include "saber/saber_funcs_param.h"
+
 #include "saber/lite/core/tensor_lite.h"
 #include "saber/lite/core/context_lite.h"
 
@@ -24,7 +24,7 @@ namespace anakin{
 namespace saber{
 
 namespace lite{
-template <typename Dtype>
+//template <typename Dtype>
 class SaberSlice {
 public:
 
@@ -32,79 +32,29 @@ public:
         _slice_num = 4;
         _slice_size = 0;
     }
+
+    SaberSlice(int axis, std::vector<int> slice_points);
+
+    SaberStatus load_param(int axis, std::vector<int> slice_points);
+
     ~SaberSlice() {}
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<Dtype>*>& inputs,
-                                     std::vector<Tensor<Dtype>*>& outputs,
-                                     SliceParam<Tensor<Dtype>> &param) {
-        SaberStatus status;
-        //! input size is equal to 1
-        Shape shape_in = inputs[0]->valid_shape();
-        int top_size = outputs.size();
-        int slice_points_size = param.slice_points.size();
-        int axis_size = shape_in[param.axis];
+    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
 
-        CHECK_EQ(top_size > 0 || slice_points_size > 0, true) << \
-            "output shapes number is 0 and slice points size is 0";
+    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                             std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx);
 
-        if (slice_points_size > 0) {
-            CHECK_EQ(slice_points_size + 1, top_size) << "error params or ouput size";
-            int prev = 0;
-            Shape sh = shape_in;
-            for (int i = 0; i < slice_points_size; ++i) {
-                CHECK_GT(param.slice_points[i], prev) << " later should > prev";
-                CHECK_LT(param.slice_points[i], axis_size) << "slice point exceed";
-                sh[param.axis] = param.slice_points[i] - prev;
-                outputs[i]->set_shape(sh);
-                prev = param.slice_points[i];
-                sh = shape_in;
-            }
-            CHECK_GT(axis_size - prev, 0) << "slice point exceed";
-            sh[param.axis] = axis_size - prev;
-            return outputs[slice_points_size]->set_shape(sh);
-        } else {
-
-            CHECK_EQ(axis_size % top_size, 0) << \
-                "size in slice axis should divide exactly by top size";
-            int step = axis_size / top_size;
-            Shape sh = shape_in;
-            sh[param.axis] = step;
-            outputs[0]->set_shape(sh);
-            for (int i = 1; i < top_size; ++i) {
-                param.slice_points[i - 1] = i * step;
-                status = outputs[i]->set_shape(sh);
-                if (status != SaberSuccess) {
-                    return status;
-                }
-            }
-        }
-        return SaberSuccess;
-    }
-
-    SaberStatus init(const std::vector<Tensor<Dtype>*>& inputs,
-                             std::vector<Tensor<Dtype>*>& outputs,
-                             SliceParam<Tensor<Dtype>> &param, Context &ctx) {
-        // get context
-        return create(inputs, outputs, param ,ctx);
-    }
-
-    SaberStatus create(const std::vector<Tensor<Dtype>*>& inputs,
-                               std::vector<Tensor<Dtype>*>& outputs,
-                               SliceParam<Tensor<Dtype>> &param, Context &ctx) {
-        _ctx = ctx;
-        _slice_num = inputs[0]->count_valid(0, param.axis);
-        _slice_size = inputs[0]->count_valid(param.axis + 1, inputs[0]->dims());
-       return SaberSuccess;
-    }
-
-    SaberStatus dispatch(const std::vector<Tensor<Dtype>*>& inputs,
-                                 std::vector<Tensor<Dtype>*>& outputs,
-                                 SliceParam<Tensor<Dtype>> &param);
+    SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                                 std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
 
 private:
     Context _ctx;
     int _slice_num;
     int _slice_size;
+
+    int _axis;
+    std::vector<int> _slice_points;
 };
 
 } //namespace lite

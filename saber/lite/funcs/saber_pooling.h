@@ -15,7 +15,6 @@
 #ifndef ANAKIN_SABER_LITE_FUNCS_SABER_POOLING_H
 #define ANAKIN_SABER_LITE_FUNCS_SABER_POOLING_H
 
-#include "saber/saber_funcs_param.h"
 #include "saber/lite/core/tensor_lite.h"
 #include "saber/lite/core/context_lite.h"
 
@@ -26,84 +25,47 @@ namespace saber{
 
 namespace lite{
 
-typedef void (*pool_func)(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
-    PoolingType type, bool global, int kernel_w, int kernel_h, \
-    int stride_w, int stride_h, int pad_w, int pad_h);
+typedef void (*pool_func)(const float* din, float* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          PoolingType type, bool global, int kernel_w, int kernel_h, \
+                          int stride_w, int stride_h, int pad_w, int pad_h);
 
-template <typename Dtype>
+//template <typename Dtype>
 class SaberPooling {
 
 public:
     SaberPooling() {}
+
+    SaberPooling(PoolingType type, bool flag_global, int kernel_w, int kernel_h, \
+        int stride_w, int stride_h, int pad_w, int pad_h);
+
+    SaberStatus load_param(PoolingType type, bool flag_global, int kernel_w, int kernel_h, \
+        int stride_w, int stride_h, int pad_w, int pad_h);
+
     ~SaberPooling() {}
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<Dtype>*>& inputs,
-                                     std::vector<Tensor<Dtype>*>& outputs,
-                                     PoolingParam<Tensor<Dtype>> &param) {
-        Shape output_shape = inputs[0]->valid_shape();
+    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
 
-        int in_height = inputs[0]->height();
-        int in_width = inputs[0]->width();
+    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
+        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx);
 
-        int window_h = param.window_h;
-        int window_w = param.window_w;
-        int pad_h = param.pad_h;
-        int pad_w = param.pad_w;
-        int stride_h = param.stride_h;
-        int stride_w = param.stride_w;
-        int out_height;
-        int out_width;
-        if (param.global_pooling) {
-            out_height = 1;
-            out_width = 1;
-        } else {
-            if (param.cmp_out_shape_floor_as_conv) {
-                out_height = static_cast<int>((static_cast<float>(\
-                    in_height + 2 * pad_h - window_h) / stride_h)) + 1;
-                out_width = static_cast<int>((static_cast<float>(\
-                    in_width + 2 * pad_w - window_w) / stride_w)) + 1;
-            } else {
-                out_height = static_cast<int>(ceilf(static_cast<float>(\
-                    in_height + 2 * pad_h - window_h) / stride_h)) + 1;
-                out_width = static_cast<int>(ceilf(static_cast<float>(\
-                    in_width + 2 * pad_w - window_w) / stride_w)) + 1;
-            }
-        }
-
-        if (param.pooling_padded()) {
-            if ((out_height - 1) * stride_h >= in_height + pad_h) {
-                -- out_height;
-            }
-            if ((out_width - 1) * stride_w >= in_width + pad_w) {
-                -- out_width;
-            }
-        }
-
-        int height_idx = inputs[0]->height_index();
-        int width_idx = inputs[0]->width_index();
-
-        output_shape[height_idx] = out_height;
-        output_shape[width_idx] = out_width;
-
-        return outputs[0]->set_shape(output_shape);
-    }
-
-    SaberStatus init(const std::vector<Tensor<Dtype>*>& inputs, \
-        std::vector<Tensor<Dtype>*>& outputs, \
-        PoolingParam<Tensor<Dtype>> &param, Context &ctx) {
-        return create(inputs, outputs, param, ctx);
-    }
-
-    SaberStatus create(const std::vector<Tensor<Dtype>*>& inputs,
-                               std::vector<Tensor<Dtype>*>& outputs,
-                               PoolingParam<Tensor<Dtype>> &param, Context &ctx);
-
-    SaberStatus dispatch(const std::vector<Tensor<Dtype>*>& inputs, \
-        std::vector<Tensor<Dtype>*>& outputs, PoolingParam<Tensor<Dtype>> &param);
+    SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
+        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
 
 private:
     pool_func _impl{nullptr};
     Context _ctx;
+
+    PoolingType _type;
+    bool _is_global{false};
+    int _kw;
+    int _kh;
+    int _stride_w;
+    int _stride_h;
+    int _pad_w;
+    int _pad_h;
 };
 
 } //namespace lite

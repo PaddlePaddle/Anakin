@@ -69,26 +69,45 @@ void prelu_kernel<float>(const float* din, const float* slopes, \
     }
 }
 
-template <typename Dtype>
-SaberStatus SaberPrelu<Dtype>::dispatch(\
-    const std::vector<Tensor<Dtype>*>& inputs, \
-    std::vector<Tensor<Dtype>*>& outputs, \
-    PreluParam<Tensor<Dtype>> &param) {
+SaberPrelu::SaberPrelu(bool flag_shared, const float *weights) {
+    _flag_shared = flag_shared;
+    _weights = weights;
+}
+
+SaberStatus SaberPrelu::load_param(bool flag_shared, const float *weights) {
+    _flag_shared = flag_shared;
+    _weights = weights;
+    return SaberSuccess;
+}
+
+SaberStatus SaberPrelu::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
+                                             std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
+    return outputs[0]->set_shape(inputs[0]->valid_shape());
+}
+
+SaberStatus SaberPrelu::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
+                             std::vector<Tensor<CPU, AK_FLOAT> *> &outputs, Context &ctx) {
+    _ctx = ctx;
+    return SaberSuccess;
+}
+
+//template <typename Dtype>
+SaberStatus SaberPrelu::dispatch(\
+    const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
+    std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) {
 
     int num = inputs[0]->num();
     int channel = inputs[0]->channel();
     int width = inputs[0]->width();
     int height = inputs[0]->height();
-    const Dtype* din = inputs[0]->data();
-    Dtype* dout = outputs[0]->mutable_data();
-    const Dtype* ptr_slope = param.slope->data();
+    const float* din = inputs[0]->data();
+    float* dout = outputs[0]->mutable_data();
+    const float* ptr_slope = _weights;
 
-    prelu_kernel<float>(din, ptr_slope, dout, num, channel, width * height, param.channel_shared);
+    prelu_kernel<float>(din, ptr_slope, dout, num, channel, width * height, _flag_shared);
 
     return SaberSuccess;
 }
-
-template class SaberPrelu<float>;
 
 } //namespace lite
 

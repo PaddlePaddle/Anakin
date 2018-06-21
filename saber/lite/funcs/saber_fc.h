@@ -15,7 +15,6 @@
 #ifndef ANAKIN_SABER_LITE_FUNCS_SABER_FC_H
 #define ANAKIN_SABER_LITE_FUNCS_SABER_FC_H
 
-#include "saber/saber_funcs_param.h"
 #include "saber/lite/core/tensor_lite.h"
 #include "saber/lite/core/context_lite.h"
 
@@ -33,67 +32,27 @@ namespace lite{
 //! output size: 1xn
 //! weights size: nxk
 //! bias size: 1xn
-template <typename Dtype>
+//template <typename Dtype>
 class SaberFc {
 public:
     SaberFc() {}
+
+    SaberFc(int axis, int num_output, bool flag_trans, bool flag_bias, \
+        const float* weights, const float* bias);
+
+    SaberStatus load_param(int axis, int num_output, bool flag_trans, bool flag_bias, \
+        const float* weights, const float* bias);
+
     ~SaberFc() {}
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<Dtype>*>& inputs,
-                                     std::vector<Tensor<Dtype>*>& outputs,
-                                     FcParam<Tensor<Dtype>> &param) {
+    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
 
-        Shape shape_out = inputs[0]->valid_shape();
-        int m = inputs[0]->count_valid(0, param.axis);
-        int k = inputs[0]->count_valid(param.axis, inputs[0]->dims());
-        int n = param.num_output;
-        int weights_size = param.weights->valid_size();
-        if (n <= 0) {
-            n = weights_size / k;
-        }
-        CHECK_EQ(weights_size / n, k) << "weights size does not meet the input size";
+    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
+        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx);
 
-        shape_out.resize(param.axis + 1);
-        shape_out[param.axis] = n;
-        return outputs[0]->set_shape(shape_out);
-    }
-
-    SaberStatus init(const std::vector<Tensor<Dtype>*>& inputs, \
-        std::vector<Tensor<Dtype>*>& outputs, \
-        FcParam<Tensor<Dtype>> &param, Context &ctx) {
-        return create(inputs, outputs, param, ctx);
-    }
-
-    SaberStatus create(const std::vector<Tensor<Dtype>*>& inputs, \
-        std::vector<Tensor<Dtype>*>& outputs, \
-        FcParam<Tensor<Dtype>> &param, Context &ctx) {
-
-        _ctx = ctx;
-        int threads = _ctx.get_act_ids().size();
-
-        _m = inputs[0]->count_valid(0, param.axis);
-        _k = inputs[0]->count_valid(param.axis, inputs[0]->dims());
-        _n = param.num_output;
-        int weights_size = param.weights->valid_size();
-        if (_n <= 0) {
-            _n = weights_size / _k;
-        }
-        CHECK_EQ(weights_size / _n, _k) << "weights size does not meet the input size";
-
-        int l1_cache = _ctx.devs[_ctx.get_device_id()]._info._L1_cache;
-        int l2_cache = _ctx.devs[_ctx.get_device_id()]._info._L2_cache;
-        //! if L1 cache size is not provided, set to 31K
-        l1_cache = l1_cache > 0? l1_cache : 31000;
-        //! if L2 cache size is not provided, set to 2M
-        l2_cache = l2_cache > 0? l2_cache : 2000000;
-
-        _gemmer.init(l1_cache, l2_cache, _m, _n, _k, false, !param.is_transpose_weights, threads);
-        return SaberSuccess;
-    }
-
-    SaberStatus dispatch(const std::vector<Tensor<Dtype>*>& inputs, \
-        std::vector<Tensor<Dtype>*>& outputs, \
-        FcParam<Tensor<Dtype>> &param);
+    SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
+        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
 
 
 private:
@@ -102,6 +61,13 @@ private:
     int _m;
     int _k;
     int _n;
+
+    int _axis;
+    int _num_output;
+    bool _bias_term{true};
+    bool _flag_trans{false};
+    const float* _weights{nullptr};
+    const float* _bias{nullptr};
 };
 
 } //namespace lite
