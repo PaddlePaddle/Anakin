@@ -4,6 +4,7 @@
 #include "saber/core/tensor_op.h"
 #include "mkl_cblas.h"
 #include <immintrin.h>
+#include "sys/time.h"
 
 namespace anakin {
 
@@ -978,6 +979,32 @@ SaberStatus batch_256_s_aligned_template(std::vector<int> &offset_vec,const OpDa
 };
 
 #endif
+
+template <>
+template<typename BIT>
+SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
+nobatch_small_input_gru(const std::vector<DataTensor_in*>& inputs,
+                std::vector<DataTensor_out*>& outputs,
+                GruParam<OpTensor>& param){
+    int loop_div= sizeof(BIT)/4;
+//    LOG(INFO)<<"loop_div "<<loop_div;
+    const OpDataType* weight_h = _aligned_weights_h2h.data();
+    const OpDataType* weight_w = _aligned_weights_i2h.data();
+    const OpDataType* bias = _aligned_weights_bias.data();
+    float sum=0;
+    for(int i=0;i<_hidden_size*3;++i){
+        printf("%f\n",_weights_bias.data()[i]);
+        sum+=_weights_bias.data()[i];
+    }
+    printf("sum  =  %f\n",sum);
+};
+
+double fmsecond() {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return (double)tv.tv_sec*1000.0 + (double)tv.tv_usec / 1000.0;
+}
+
 template <>
 template<typename BIT>
 SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
@@ -1066,8 +1093,12 @@ batch_s_aligned(const std::vector<DataTensor_in*>& inputs,
     OutDataType* temp_whr = _temp_whr.mutable_data();
     /////////////////////////////////////////////////
     //wx
+    double t1, t2;
+    t1 = fmsecond();
     gemm(false, false, seqsum, 3 * _aligned_hidden_size, _word_size, 1.f, inner_x, weight_w, 0.f,
          temp_wx);
+    t2 = fmsecond();
+    LOG(INFO) << " GRU WX execute: "<< t2 - t1 << "ms";
 
     int o_offset = 0;
     int r_offset = 1;
@@ -1389,6 +1420,7 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispa
 
 
     outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
+//    nobatch_small_input_gru<SABER_X86_TYPE >(inputs, outputs, param);
     return batch_s_aligned<SABER_X86_TYPE >(inputs, outputs, param);
 
 //    if (inputs[0]->get_seq_offset().size() > 2) {

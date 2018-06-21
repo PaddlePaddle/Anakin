@@ -179,7 +179,7 @@ void anakin_net_thread(std::vector<Tensor4dPtr<X86, AK_FLOAT> >* data_in, std::s
     graph->Reshape("input_0", {GLB_max_word_len, 1, 1, 1});
     //anakin graph optimization
     graph->Optimize();
-    Net<Target, AK_FLOAT, Precision::FP32> net_executer(*graph, true);
+    Net<X86, AK_FLOAT, Precision::FP32> net_executer(*graph, true);
     //    SaberTimer<X86> timer;
     //    Context<X86> ctx;
     struct timeval time_start, time_end;
@@ -342,7 +342,7 @@ void instance_run(){
 }
 void worker_run(){
     std::string model_path=get_model_path();
-    Worker<Target, AK_FLOAT, Precision::FP32>  workers(model_path, 10);
+    Worker<X86, AK_FLOAT, Precision::FP32>  workers(model_path, 10);
     workers.register_inputs({"input_0"});
     if(GLB_output_name!=""){
         workers.register_outputs({GLB_output_name});
@@ -365,7 +365,7 @@ void worker_run(){
 
 
     for(int i=0; i<host_tensor_p_in_list[0].size(); i++) {
-        std::vector<Tensor4dPtr<target_host<Target>::type, AK_FLOAT> > tensor_in_vec(1);
+        std::vector<Tensor4dPtr<target_host<X86>::type, AK_FLOAT> > tensor_in_vec(1);
         tensor_in_vec[0]=host_tensor_p_in_list[0][i];
         workers.sync_prediction(tensor_in_vec);
 //        auto  d_tensor_p_out_list = workers.sync_prediction(host_tensor_p_in_list);

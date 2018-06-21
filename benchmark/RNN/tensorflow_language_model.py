@@ -103,16 +103,16 @@ def language_run(data_set):
 
 file=open('/home/liujunjie/jupyter_notepad/language_benchmark_data.txt')
 data_set=[[int(i) for i in line.split(' ')] for line in file.readlines()]
-thread_num=1
-import threading
+proc_num=2
+from multiprocessing import Process
 threads=[]
 t0 = timeit.default_timer()
-for i in range(thread_num):
-    t =threading.Thread(target=language_run,args=(data_set,))
+for i in range(proc_num):
+    t =Process(target=language_run,args=(data_set,))
     t.start()
     threads.append(t)
 
 for t in threads:
     t.join()
 elapsed = timeit.default_timer() - t0
-print('QPS = ',len(data_set)/elapsed)
+print('QPS = ',len(data_set)/elapsed*proc_num)
