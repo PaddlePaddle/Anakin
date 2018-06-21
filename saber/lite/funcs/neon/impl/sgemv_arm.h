@@ -22,6 +22,8 @@ namespace anakin{
 
 namespace saber{
 
+namespace lite{
+
 // fixme now only support transA = false
 void sgemv(const bool transA, const int M, const int N, \
     const float* A, const float* x, float* y);
@@ -34,6 +36,8 @@ void sgemv_bias(const bool transA, const int M, const int N, \
 
 void sgemv_bias_relu(const bool transA, const int M, const int N, \
     const float* A, const float* x, float* y, const float* bias);
+
+} //namespace lite
 
 } //namespace saber
 

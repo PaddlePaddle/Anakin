@@ -5,6 +5,8 @@ namespace anakin{
 
 namespace saber{
 
+namespace lite{
+
 void sgemv(const bool transA, const int M, const int N, \
     const float* A, const float* x, float* y) {
     float* data_out = y;
@@ -803,6 +805,8 @@ void sgemv_bias_relu(const bool transA, const int M, const int N, \
         );
     }
 }
+
+} //lite
 
 } //saber
 
