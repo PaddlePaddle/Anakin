@@ -33,7 +33,7 @@ DEFINE_GLOBAL(std::string, output_name, "");
 DEFINE_GLOBAL(std::string, run_mode, "instance");
 DEFINE_GLOBAL(int, split_index, 0);
 
-//#define AVG_INPUT
+#define AVG_INPUT
 void getModels(std::string path, std::vector<std::string>& files) {
     DIR* dir = nullptr;
     struct dirent* ptr;
