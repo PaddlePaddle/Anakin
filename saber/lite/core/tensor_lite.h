@@ -25,10 +25,13 @@ namespace saber{
 
 namespace lite{
 
-template <typename dtype>
+template <ARMType ttype, DataType dtype>
 class Tensor {
 public:
-    typedef dtype Dtype;
+    typedef typename DataTrait<ttype, dtype>::dtype Dtype;//float, char or CLMEM
+    typedef typename DataTrait<ttype, dtype>::Dtype Dtype_real;//float, char
+    typedef typename TargetTrait<ttype>::event_t event_t;
+    typedef typename TargetTrait<ttype>::stream_t stream_t;
     /**
      *  \brief Default constructor
      */
@@ -37,17 +40,17 @@ public:
     /**
      * \brief Constructor with shape, memory is alloced according to shape.
      */
-    Tensor(Shape shape, TargetTypeEnum target = eARM);
+    Tensor(Shape shape);
 
     /**
      * \brief Constructor with allocated data ptr and entire memory shape.
      */
-    Tensor(Dtype* data_ptr, TargetTypeEnum target, int id, Shape shape);
+    Tensor(Dtype* data_ptr, Shape shape);
 
     /**
      * \brief Copy constructor, shallow copy.
      */
-    Tensor(const Tensor<Dtype>& tensor);
+    Tensor(const Tensor<ttype, dtype>& tensor);
 
     /**
      *  \brief only change the shape and valid shape, do nothing to memory
@@ -123,11 +126,6 @@ public:
     Shape offset() const;
 
     /**
-     *  \brief Return tensor device id.
-     */
-    int device_id() const;
-
-    /**
      *  \brief Return number
      */
     int num() const;
@@ -185,7 +183,7 @@ public:
     /**
      *  \brief Return reference shared_ptr of tensor.
      */
-    const std::shared_ptr<Buffer>& get_buf() const;
+    const std::shared_ptr<Buffer<ttype>>& get_buf() const;
 
     /**
      *  \brief Share from same layout_type and same date type tensor,
@@ -194,19 +192,18 @@ public:
      *  only shared buffer ptr, current tensor will have continuous memory,
      *  only if current shape and valid shape are the same, and offset is all set to 0.
      */
-    template <typename Tensor_t>
+
+    template <class Tensor_t>
     SaberStatus share_from(const Tensor_t& tensor);
 
-    std::vector<int> get_seq_offset() const;
-    SaberStatus set_seq_offset(std::vector<int> seq_offset);
-
-    SaberStatus share_sub_buffer(const Tensor<Dtype>& tensor, \
+    SaberStatus share_sub_buffer(const Tensor<ttype, dtype>& tensor, \
         Shape valid_shape, Shape offset);
 
     /**
      *  \brief Deep copy data within region of interest from input tensor.
      */
-    SaberStatus copy_from(const Tensor<Dtype>& tensor);
+     template <class Tensor_t>
+    SaberStatus copy_from(const Tensor_t& tensor);
 
     /**
      *  \brief Synchronize the event tree, wait util all events are done.
@@ -217,44 +214,34 @@ public:
      *  \brief record Event to current tensor.
      *  \param stream  Input processing stream.
      */
-    void record_event(void* stream);
+    void record_event(stream_t* stream);
 
 
 private:
-    ///< target type, cpu or gpu
-    TargetTypeEnum _target_type;
-    ///< _layout
     ///< Length of datatype.
-    size_t _type_len{sizeof(Dtype)};
+    size_t _type_len{sizeof(Dtype_real)};
+
     ///< Represent the raw mem shape.
     Shape _shape;
+
     ///< Represent the mem you have right to access shape.
     Shape _valid_shape;
+
     ///< Represent the offset idx between _shape and _real_shape.
     Shape _offset;
+
     ///< Buffer shared ptr, hold the data pointer, and buffer capacity.
-    std::shared_ptr<Buffer> _buf{nullptr};
+    std::shared_ptr<Buffer<ttype>> _buf{nullptr};
+
     ///< share sub-buffer flag.
     bool _is_subbuf{false};
     bool _is_shared{false};
 
     ///< event
-    //fixme, add event
+    event_t _event;
 
     /// Get data real start index.
-    int start_index() const {
-        if (!_is_subbuf) {
-            return 0;
-        }
-        Shape stride = get_stride();
-        int idx = 0;
-        for (int i = 0; i < stride.size(); ++i) {
-            idx += _offset[i] * stride[i];
-        }
-        return idx;
-    }
-
-    std::vector<int> _seq_offset;
+    int start_index() const;
 };
 
 } //namespace lite

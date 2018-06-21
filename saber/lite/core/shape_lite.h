@@ -77,7 +77,8 @@ public:
     }
 
     Shape stride() const {
-        CHECK_GT(dims(), 0) << "shape is empty";
+        assert(dims() > 0);
+        //CHECK_GT(dims(), 0) << "shape is empty";
         Shape sh(dims());
         for (int i = 0; i < dims(); ++i) {
             sh[i] = count(i + 1);
@@ -86,35 +87,39 @@ public:
     }
 
     void set_num(int num) {
-        CHECK_GT(dims(), 0) << "shape is empty";
+        assert(dims() > 0);
+        //CHECK_GT(dims(), 0) << "shape is empty";
         if (dims() == 4) {
             data()[0] = num;
         }
     }
 
     void set_channel(int channel) {
-        CHECK_GT(dims(), 0) << "shape is empty";
+        assert(dims() > 0);
+        //CHECK_GT(dims(), 0) << "shape is empty";
         if (dims() >= 3) {
             data()[dims() - 3] = channel;
         }
     }
 
     void set_height(int height) {
-        CHECK_GT(dims(), 0) << "shape is empty";
+        assert(dims() > 0);
+        //CHECK_GT(dims(), 0) << "shape is empty";
         if (dims() >= 2) {
             data()[dims() - 2] = height;
         }
     }
 
     void set_width(int width) {
-        CHECK_GT(dims(), 0) << "shape is empty";
+        assert(dims() > 0);
+        //CHECK_GT(dims(), 0) << "shape is empty";
         if (dims() >= 1) {
             data()[dims() - 1] = width;
         }
     }
 
     Shape operator+(const Shape& shape) {
-
+        assert(dims() = shape.dims());
         Shape tmp_shape(*this);
         int* p = data();
         for (size_t i = 0; i < size(); i++) {
@@ -124,7 +129,7 @@ public:
     }
 
     Shape operator-(const Shape& shape) {
-
+        assert(dims() = shape.dims());
         Shape tmp_shape(*this);
         int* p = data();
         for (size_t i = 0; i < size(); i++) {
@@ -134,12 +139,10 @@ public:
     }
 
     bool operator<(const Shape& shape) const {
-
         bool flag = size() == shape.size();
         if (!flag) {
             return false;
         }
-
         const int* p = data();
         for (size_t i = 0; i < size(); i++) {
             flag &= (p[i] < shape[i]);
@@ -148,7 +151,6 @@ public:
     }
 
     bool operator<=(const Shape& shape) const{
-
         bool flag = size() == shape.size();
         if (!flag) {
             return false;
@@ -161,7 +163,6 @@ public:
     }
 
     bool operator==(const Shape& shape) const{
-
         bool flag = size() == shape.size();
         if (!flag) {
             return false;
