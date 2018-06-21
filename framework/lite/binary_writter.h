@@ -42,7 +42,7 @@ public:
 
 	// write data list to file
 	inline bool write(const void* ptr, size_t size, size_t count) {
-		return write(ptr, size, count);
+		return _file_io.write(ptr, size, count);
 	}
 
 	// read data list from file
@@ -75,11 +75,11 @@ public:
 	~WeightsWritter() {}
 
 	// set weight
-	template<typename Ttype, DataType Dtype>
-	void register_weights(std::string node_name, PBlock<Dtype, Ttype>& weight) {
+	template<typename Ttype, typename Dtype>
+	void register_weights(const std::string& node_name, const PBlock<Dtype, Ttype>& weight) {
 		WeghtOffset::Offset offset_tmp;
 		offset_tmp.offset = _offset;
-		offset_tmp.length = weight.shape().count();
+		offset_tmp.length = weight.count();
 		_offset += offset_tmp.length;
 		_node_weights_map[node_name].weights.push_back(offset_tmp);
 		write(weight.h_tensor().mutable_data(), sizeof(Dtype), offset_tmp.length);

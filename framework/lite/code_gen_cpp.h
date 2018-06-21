@@ -36,16 +36,18 @@ public:
 		_model_file_name = model_dir + '/' + model_name + ".bin";
 		_weights.open(_model_file_name);
 		_code_name = model_name;
+		_g_weights_ptr_name = _code_name+"_weights_ptr";
 	}
 	~GenCPP()=default;
 
 	/// generate all cpp files
 	virtual void gen_files() {
-		this->gen_header();
-		this->gen_source();
+		gen_header();
+		gen_source();
 	}
 
 private:
+	void gen_license();
 	void gen_header_start();
 	void gen_header_end();
 	void gen_source_start();
@@ -62,9 +64,9 @@ private:
 	void gen_model_ios();
 
 	/**
-	 * \brief generate and parsing operations for model
+	 * \brief generate operations for model
 	 */
-	virtual void gen_and_parse_ops() final;
+	virtual void gen_ops();
 
 	/**
 	 * \brief generate initial impl api for model
@@ -74,7 +76,18 @@ private:
 	/**
 	 * \brief generate running api impl for model
 	 */
-	void gen_api_impl();	
+	void gen_run_impl();	
+
+
+	/**
+	 * \brief  generate api for model
+	 */
+	void gen_head_api();
+
+	/**
+	 * \brief generate head api implement
+	 */
+	void gen_head_api_impl();
 
 	/**
 	 * \biref generata header file
@@ -91,8 +104,9 @@ private:
 	std::string _h_file_name;
 	std::string _model_file_name;
 	std::string _code_name;
+	std::string _g_weights_ptr_name;
 	CodeWritter _code;
-	WeightsWritter<Ttype, Dtype> _weights;
+	WeightsWritter _weights;
 };
 
 } /* namespace lite */

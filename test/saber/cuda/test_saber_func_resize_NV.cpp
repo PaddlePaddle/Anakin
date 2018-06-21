@@ -513,7 +513,7 @@ int main(int argc, const char** argv) {
     // initial logger
     //logger::init(argv[0]);
     Env<NV>::env_init();
-    Env<X86>::env_init();
+    //Env<X86>::env_init();
 
     InitTest();
     RUN_ALL_TESTS(argv[0]);

@@ -13,15 +13,19 @@ namespace lite {
  * this full specialization use for help generating lite device running api
  */
 template<typename Ttype, DataType Dtype, Precision Ptype>
-bool CodeGenBase<Ttype, Dtype, Ptype>::extract_graph(std::string model_path) {
+bool CodeGenBase<Ttype, Dtype, Ptype>::extract_graph(const std::string& model_path) {
 	graph::Graph<Ttype, Dtype, Ptype> graph;
 	auto status = graph.load(model_path);
 	if(!status ) { 
 		LOG(ERROR) << " [ERROR] " << status.info(); 
 		return false;
 	}
+
+	// change graph node and edge name to standard of c(or others)variable name
+	change_name(graph);
+
 	// Optimize
-#if USE_ARM_PLACE
+#ifdef USE_ARM_PLACE
 	auto vgraph = graph.get_vgraph();
 	graph::Scheduler scheduler; 
 	// schedule for exec order
@@ -43,15 +47,19 @@ bool CodeGenBase<Ttype, Dtype, Ptype>::extract_graph(std::string model_path) {
 	graph.Optimize();
 #endif
 
+	// get graph io
+	_ins =  graph.get_ins();
+	_outs = graph.get_outs();
+
 	// copy graph
 	_graph.CopyFrom(graph);
 	// getting execution order
 	auto& node_names_in_exec_order = _graph.get_nodes_in_order();
 	for (auto& node_name : node_names_in_exec_order) { 
 		auto node_ptr = _graph[node_name];
-		if(node_ptr->get_op_name() == "Output") {
-			continue;
-		} 
+		//if(node_ptr->get_op_name() == "Output") {
+		//	continue;
+		//} 
 		// op execution order
 		_exec_node_order.push_back(node_name);
 		_graph_node_map[node_name].name = node_name;
@@ -109,6 +117,33 @@ bool CodeGenBase<Ttype, Dtype, Ptype>::extract_graph(std::string model_path) {
 		return false;
 	}
 	return true;
+}
+
+template<typename Ttype, DataType Dtype, Precision Ptype>
+void CodeGenBase<Ttype, Dtype, Ptype>::change_name(graph::Graph<Ttype, Dtype, Ptype>& graph) {
+	auto convert2underline = [&](std::string& name, char converter_char) -> std::string {
+		char* target_p = strdup(name.c_str());
+		for(char* p = strchr(target_p + 1, converter_char); p!=NULL; p = strchr(p + 1, converter_char)) {
+			*p = '_';
+		}
+		return std::string(target_p);
+	};
+	auto change_node_name = [&, this](graph::NodePtr<Ttype, Dtype, Ptype>& node_p) {
+		auto & name = node_p->name();
+		// add_alias is an important api for changing node's name and edge
+		// and add_alias is useful only at this place so far.
+		graph.add_alias(name, convert2underline(name, '/'));
+		name = convert2underline(name, '/');
+	};
+	graph.Scanner->BFS(change_node_name);
+
+	auto change_edge_name = [&, this](graph::Edge<Ttype, Dtype>& edge) {
+		auto & first = edge.first();
+		auto & second = edge.second();
+		first = convert2underline(first, '/');
+		second = convert2underline(second, '/');
+	};
+	graph.Scanner->BFS_Edge(change_edge_name);
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype>

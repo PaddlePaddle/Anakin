@@ -41,6 +41,7 @@ inline T get_attr(std::string attr_name, graph::AttrInfo& attrs) {
 typedef std::function<std::string(graph::AttrInfo& attr, 
 								  std::string& op_class_name, 
 								  std::string& node_name,
+								  std::string& weights_ptr_name,
 								  WeightsWritter& writter)> ParseParamFunctor;
 /**
  * \brief class OpParser

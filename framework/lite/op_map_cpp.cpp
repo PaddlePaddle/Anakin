@@ -4,13 +4,21 @@ namespace anakin {
 
 namespace lite {
 
-std::string not_impl_yet(graph::AttrInfo&, std::string& op_class_name, std::string& node_name, WeightsWritter& writter) {
-	LOG(ERROR) << "Parsing not impl yet. continue ...";
+std::string not_impl_yet(graph::AttrInfo&, 
+						 std::string& op_class_name, 
+						 std::string& node_name, 
+						 std::string& weights_ptr_name, 
+						 WeightsWritter& writter) {
+	LOG(INFO) << "Target "<< op_class_name << "Parsing not impl yet. continue ...";
 	return "";
 }
 
 // SaberConv2D
-std::string ParserConvolution(graph::AttrInfo& attr, std::string& op_class_name, std::string& node_name, WeightsWritter& writter) {
+std::string ParserConvolution(graph::AttrInfo& attr, 
+							  std::string& op_class_name, 
+							  std::string& node_name, 
+							  std::string& weights_ptr_name, 
+							  WeightsWritter& writter) {
 	// parsing parameter
 	auto group = get_attr<int>("group", attr);
 	auto bias_term = get_attr<bool>("bias_term", attr);
@@ -21,19 +29,20 @@ std::string ParserConvolution(graph::AttrInfo& attr, std::string& op_class_name,
 	auto kernel_size = get_attr<PTuple<int>>("kernel_size", attr);
 	auto axis = get_attr<int>("axis", attr);
 
-	auto weights = get_attr<PBlock<float, ARM>>("weight_1", attr);
+	auto weights = get_attr<PBlock<float, NV>>("weight_1", attr);
 	writter.register_weights(node_name, weights);
 	if(bias_term) {
-		auto bias = get_attr<PBlock<float, ARM>>("weight_2", attr);
+		auto bias = get_attr<PBlock<float, NV>>("weight_2", attr);
 		writter.register_weights(node_name, bias);
 	}
 
+	auto offset_info = writter.get_weights_by_name(node_name);
+
 	// gen cpp code
 	CodeWritter code_w;
-	code_w.feed("%s %s; \n", op_class_name.c_str(), node_name.c_str());
-	code_w.feed("%s.load_param(%d,%d);\n", node_name.c_str(), 
+	code_w.feed("%s.load_param(%d,%s,%d,%d,%d,%d,%d,%d,%d,%d,%s+%d,%d,%s+%d,%d);\n", node_name.c_str(), 
 										   group,
-										   bias_term,
+										   bias_term ? "true":"false",
 										   padding[0],
 										   padding[1],
 										   kernel_size[0],
@@ -41,12 +50,22 @@ std::string ParserConvolution(graph::AttrInfo& attr, std::string& op_class_name,
 										   strides[0],
 										   strides[1],
 										   dilation_rate[0],
-										   dilation_rate[1]);
+										   dilation_rate[1],
+										   weights_ptr_name.c_str(),
+										   offset_info.weights[0].offset,
+										   offset_info.weights[0].length,
+										   weights_ptr_name.c_str(),
+										   bias_term ? offset_info.weights[1].offset : 0,
+										   bias_term ? offset_info.weights[1].length : 0);
 	return code_w.get_code_string();
 }
 
 // ParserConvolutionRelu
-std::string ParserConvolutionRelu(graph::AttrInfo& attr, std::string& op_class_name, std::string& node_name, WeightsWritter& writter) {
+std::string ParserConvolutionRelu(graph::AttrInfo& attr, 
+								  std::string& op_class_name, 
+								  std::string& node_name, 
+								  std::string& weights_ptr_name, 
+								  WeightsWritter& writter) {
 	// parsing parameter
 	auto group = get_attr<int>("group", attr);
 	auto bias_term = get_attr<bool>("bias_term", attr);
@@ -57,16 +76,15 @@ std::string ParserConvolutionRelu(graph::AttrInfo& attr, std::string& op_class_n
 	auto kernel_size = get_attr<PTuple<int>>("kernel_size", attr);
 	auto axis = get_attr<int>("axis", attr);
 
-	auto weights = get_attr<PBlock<float, ARM>>("weight_1", attr);
+	auto weights = get_attr<PBlock<float, NV>>("weight_1", attr);
 	writter.register_weights(node_name, weights);
 	if(bias_term) {
-		auto bias = get_attr<PBlock<float, ARM>>("weight_2", attr);
+		auto bias = get_attr<PBlock<float, NV>>("weight_2", attr);
 		writter.register_weights(node_name, bias);
 	}
 
 	// gen cpp code
 	CodeWritter code_w;
-	code_w.feed("%s %s; \n", op_class_name.c_str(), node_name.c_str());
 	code_w.feed("%s.load_param(%d,%d, Active_relu);\n", node_name.c_str(), 
 										   group,
 										   bias_term,
@@ -82,18 +100,25 @@ std::string ParserConvolutionRelu(graph::AttrInfo& attr, std::string& op_class_n
 }
 
 // SaberConcat
-std::string ParserConcat(graph::AttrInfo& attr, std::string& op_class_name, std::string& node_name, WeightsWritter& writter) {
+std::string ParserConcat(graph::AttrInfo& attr, 
+						 std::string& op_class_name, 
+						 std::string& node_name, 
+						 std::string& weights_ptr_name, 
+						 WeightsWritter& writter) {
 	// parsing parameter
 	auto axis = get_attr<int>("axis", attr);
 	// gen cpp code
 	CodeWritter code_w;
-	code_w.feed("%s %s; \n", op_class_name.c_str(), node_name.c_str());
 	code_w.feed("%s.load_param(%d);\n", node_name.c_str(), axis);
 	return code_w.get_code_string();
 }
 
 // SaberDectionOutput
-std::string ParserDectionOutput(graph::AttrInfo& attr, std::string& op_class_name, std::string& node_name, WeightsWritter& writter) {
+std::string ParserDectionOutput(graph::AttrInfo& attr, 
+								std::string& op_class_name, 
+								std::string& node_name, 
+								std::string& weights_ptr_name, 
+								WeightsWritter& writter) {
 	// parsing parameter
     auto flag_share_location = get_attr<bool>("share_location", attr);
     auto flag_var_in_target  = get_attr<bool>("variance_encode_in_target", attr);
@@ -108,14 +133,13 @@ std::string ParserDectionOutput(graph::AttrInfo& attr, std::string& op_class_nam
 
     // gen cpp code
 	CodeWritter code_w; 
-	code_w.feed("%s %s; \n", op_class_name.c_str(), node_name.c_str()); 
 	code_w.feed("%s.load_param(%s,%s,%d,%d,%d,%s,%f,%d,%f,%f);\n", node_name.c_str(), 
 										 flag_share_location ? "true":"false",
 										 flag_var_in_target ? "true":"false",
 										 classes_num,
 										 background_id,
 										 keep_top_k,
-										 code_type,
+										 code_type.c_str(),
 										 conf_thresh,
 										 nms_top_k,
 										 nms_thresh,
@@ -124,27 +148,38 @@ std::string ParserDectionOutput(graph::AttrInfo& attr, std::string& op_class_nam
 }
 
 // SaberEltwise
-std::string ParserEltwise(graph::AttrInfo& attr, std::string& op_class_name, std::string& node_name, WeightsWritter& writter) {
+std::string ParserEltwise(graph::AttrInfo& attr, 
+						  std::string& op_class_name, 
+						  std::string& node_name, 
+						  std::string& weights_ptr_name, 
+						  WeightsWritter& writter) {
 	// parsing parameter
     auto type = get_attr<std::string>("type", attr); 
     auto coeff = get_attr<PTuple<float>>("coeff", attr);
 
 	CodeWritter coeff_vec_code;
 	coeff_vec_code<<"{";
-	for(int i=0; i<coeff.vector().size()-1; i++) {
+	for(int i=0; i<coeff.size()-1; i++) {
 		coeff_vec_code<<coeff.vector()[i]<<",";
 	}
-	coeff_vec_code<<coeff.vector()[coeff.vector().size()-1] << "}";
+	if(coeff.size() > 0) {
+		coeff_vec_code<<coeff.vector()[coeff.size()-1] << "}";
+	} else {
+		coeff_vec_code<<"}";
+	}
 
 	// gen cpp code
 	CodeWritter code_w; 
-	code_w.feed("%s %s; \n", op_class_name.c_str(), node_name.c_str());
-	code_w.feed("%s.load_param(%s, %s);\n", node_name.c_str(), type, coeff_vec_code.get_code_string());
+	code_w.feed("%s.load_param(%s, %s);\n", node_name.c_str(), type.c_str(), coeff_vec_code.get_code_string().c_str());
 	return code_w.get_code_string();
 }
 
 // SaberActivation
-std::string ParserActivation(graph::AttrInfo& attr, std::string& op_class_name, std::string& node_name, WeightsWritter& writter) {
+std::string ParserActivation(graph::AttrInfo& attr, 
+							 std::string& op_class_name, 
+							 std::string& node_name, 
+							 std::string& weights_ptr_name, 
+							 WeightsWritter& writter) {
 	// parsing parameter
 	auto type = get_attr<std::string>("type", attr);
 
@@ -160,54 +195,69 @@ std::string ParserActivation(graph::AttrInfo& attr, std::string& op_class_name, 
 
 	// gen cpp code
 	CodeWritter code_w;
-	code_w.feed("%s %s; \n", op_class_name.c_str(), node_name.c_str());
-	code_w.feed("%s.load_param(%s);\n", node_name.c_str(), act_type);
+	code_w.feed("%s.load_param(%s);\n", node_name.c_str(), act_type.c_str());
 	return code_w.get_code_string();
 }
 
 // SaberFc
-std::string ParserFc(graph::AttrInfo& attr, std::string& op_class_name, std::string& node_name, WeightsWritter& writter) {
+std::string ParserFc(graph::AttrInfo& attr, 
+					 std::string& op_class_name, 
+					 std::string& node_name, 
+					 std::string& weights_ptr_name, 
+					 WeightsWritter& writter) {
 	// parsing parameter
     auto axis = get_attr<int>("axis", attr); 
     auto out_dim = get_attr<int>("out_dim", attr); 
     auto bias_term = get_attr<bool>("bias_term", attr);
 	
-	auto weights = get_attr<PBlock<float, ARM>>("weight_1", attr);
+	auto weights = get_attr<PBlock<float, NV>>("weight_1", attr);
 	writter.register_weights(node_name, weights);
 	if(bias_term) {
-		auto bias = get_attr<PBlock<float, ARM>>("weight_2", attr);
+		auto bias = get_attr<PBlock<float, NV>>("weight_2", attr);
 		writter.register_weights(node_name, bias);
 	}
 
+	auto offset_info = writter.get_weights_by_name(node_name);
+
 	// gen cpp code
 	CodeWritter code_w;
-	code_w.feed("%s %s; \n", op_class_name.c_str(), node_name.c_str());
 	code_w.feed("%s.load_param(%d, %d, %s);\n", node_name.c_str(), axis, out_dim,
 												bias_term ? "true":"false");
 	return code_w.get_code_string();
 }
 
 // SaberPermute
-std::string ParserPermute(graph::AttrInfo& attr, std::string& op_class_name, std::string& node_name, WeightsWritter& writter) {
+std::string ParserPermute(graph::AttrInfo& attr, 
+						  std::string& op_class_name, 
+						  std::string& node_name, 
+						  std::string& weights_ptr_name, 
+						  WeightsWritter& writter) {
 	// parsing parameter
 	auto dims = get_attr<PTuple<int>>("dims", attr);
 
 	CodeWritter dims_vec_code;
 	dims_vec_code<<"{";
-	for(int i=0; i<dims.vector().size()-1; i++) {
+	for(int i=0; i<dims.size()-1; i++) {
 		dims_vec_code<<dims.vector()[i]<<",";
 	}
-	dims_vec_code<<dims.vector()[dims.vector().size()-1] << "}";
+	if(dims.size() > 0) {
+		dims_vec_code<<dims.vector()[dims.size()-1] << "}";
+	} else {
+		dims_vec_code<< "}";
+	}
 
 	// gen cpp code
 	CodeWritter code_w; 
-	code_w.feed("%s %s; \n", op_class_name.c_str(), node_name.c_str()); 
-	code_w.feed("%s.load_param(%s);\n", node_name.c_str(), dims_vec_code.get_code_string()); 
+	code_w.feed("%s.load_param(%s);\n", node_name.c_str(), dims_vec_code.get_code_string().c_str()); 
 	return code_w.get_code_string();
 }
 
 // SaberPooling
-std::string ParserPooling(graph::AttrInfo& attr, std::string& op_class_name, std::string& node_name, WeightsWritter& writter) {
+std::string ParserPooling(graph::AttrInfo& attr, 
+						  std::string& op_class_name, 
+						  std::string& node_name, 
+						  std::string& weights_ptr_name, 
+						  WeightsWritter& writter) {
 	// parsing parameter
     auto global_pooling = get_attr<bool>("global_pooling", attr);
     auto pool_padding = get_attr<PTuple<int>>("padding", attr);
@@ -217,8 +267,7 @@ std::string ParserPooling(graph::AttrInfo& attr, std::string& op_class_name, std
 
 	// gen cpp code
     CodeWritter code_w; 
-	code_w.feed("%s %s; \n", op_class_name.c_str(), node_name.c_str()); 
-	code_w.feed("%s.load_param(%s,%s,%d,%d,%d,%d,%d,%d);\n", node_name.c_str(), pool_method,
+	code_w.feed("%s.load_param(%s,%s,%d,%d,%d,%d,%d,%d);\n", node_name.c_str(), pool_method.c_str(),
 										    global_pooling ? "true" : "false",
 											pool_size[1],
 											pool_size[0],
@@ -230,22 +279,29 @@ std::string ParserPooling(graph::AttrInfo& attr, std::string& op_class_name, std
 }
 
 // SaberPrelu
-std::string ParserPrelu(graph::AttrInfo& attr, std::string& op_class_name, std::string& node_name, WeightsWritter& writter) {
+std::string ParserPrelu(graph::AttrInfo& attr, 
+						std::string& op_class_name, 
+						std::string& node_name, 
+						std::string& weights_ptr_name, 
+						WeightsWritter& writter) {
 	// parsing parameter
 	auto channel_shared = get_attr<bool>("channel_shared", attr);
 
-	auto weights = get_attr<PBlock<float, ARM>>("weight_1", attr);
+	auto weights = get_attr<PBlock<float, NV>>("weight_1", attr);
 	writter.register_weights(node_name, weights);
 
 	// gen cpp code
     CodeWritter code_w; 
-	code_w.feed("%s %s; \n", op_class_name.c_str(), node_name.c_str());
 	code_w.feed("%s.load_param(%s);\n", node_name.c_str(), channel_shared ? "true":"false");
 	return code_w.get_code_string();
 }
 
 // SaberPriorBox
-std::string ParserPriorBox(graph::AttrInfo& attr, std::string& op_class_name, std::string& node_name, WeightsWritter& writter) {
+std::string ParserPriorBox(graph::AttrInfo& attr, 
+						   std::string& op_class_name, 
+						   std::string& node_name, 
+						   std::string& weights_ptr_name, 
+						   WeightsWritter& writter) {
 	// parsing parameter
     auto min_size  = get_attr<PTuple<float>>("min_size", attr); 
 	auto max_size  = get_attr<PTuple<float>>("max_size", attr); 
@@ -262,23 +318,26 @@ std::string ParserPriorBox(graph::AttrInfo& attr, std::string& op_class_name, st
 	auto gen_vec_code = [](PTuple<float>& ptuple) -> std::string {
 		CodeWritter dims_vec_code;
 		dims_vec_code<<"{";
-		for(int i=0; i<ptuple.vector().size()-1; i++) {
+		for(int i=0; i<ptuple.size()-1; i++) {
 			dims_vec_code<<ptuple.vector()[i]<<",";
 		}
-		dims_vec_code<<ptuple.vector()[ptuple.vector().size()-1] << "}";
+		if(ptuple.size() > 0) {
+			dims_vec_code<<ptuple.vector()[ptuple.size()-1] << "}";
+		} else {
+			dims_vec_code<< "}";
+		}
 		return dims_vec_code.get_code_string();
 	};
 
 	// gen cpp code
 	CodeWritter code_w; 
-	code_w.feed("%s %s; \n", op_class_name.c_str(), node_name.c_str()); 
 	code_w.feed("%s.load_param(%s,%s,%s,%s,%s,%s,%d,%d,%f,%f,%f);\n", node_name.c_str(),
 										 flip_flag ? "ture":"false",
 										 clip_flag ? "true":"false",
-										 gen_vec_code(min_size),
-										 gen_vec_code(max_size),
-										 gen_vec_code(as_ratio),
-										 gen_vec_code(var),
+										 gen_vec_code(min_size).c_str(),
+										 gen_vec_code(max_size).c_str(),
+										 gen_vec_code(as_ratio).c_str(),
+										 gen_vec_code(var).c_str(),
 										 image_w, 
 										 image_h,
 										 step_w,
@@ -288,7 +347,11 @@ std::string ParserPriorBox(graph::AttrInfo& attr, std::string& op_class_name, st
 }
 
 // SaberSlice
-std::string ParserSlice(graph::AttrInfo& attr, std::string& op_class_name, std::string& node_name, WeightsWritter& writter) {
+std::string ParserSlice(graph::AttrInfo& attr, 
+						std::string& op_class_name, 
+						std::string& node_name, 
+						std::string& weights_ptr_name, 
+						WeightsWritter& writter) {
     // parsing parameter 
 	auto slice_dim = get_attr<int>("slice_dim", attr); 
 	auto slice_point = get_attr<PTuple<int>>("slice_point", attr); 
@@ -296,26 +359,32 @@ std::string ParserSlice(graph::AttrInfo& attr, std::string& op_class_name, std::
 
 	CodeWritter slice_point_vec_code;
 	slice_point_vec_code<<"{";
-	for(int i=0; i<slice_point.vector().size()-1; i++) {
+	for(int i=0; i<slice_point.size()-1; i++) {
 		slice_point_vec_code<<slice_point.vector()[i]<<",";
 	}
-	slice_point_vec_code<<slice_point.vector()[slice_point.vector().size()-1] << "}";
+	if(slice_point.size() > 0) {
+		slice_point_vec_code<<slice_point.vector()[slice_point.size()-1] << "}";
+	} else {
+		slice_point_vec_code<< "}";
+	}
 
 	// gen cpp code
     CodeWritter code_w; 
-	code_w.feed("%s %s; \n", op_class_name.c_str(), node_name.c_str());
-	code_w.feed("%s.load_param(%d,%s);\n", node_name.c_str(), axis, slice_point_vec_code.get_code_string());
+	code_w.feed("%s.load_param(%d,%s);\n", node_name.c_str(), axis, slice_point_vec_code.get_code_string().c_str());
 	return code_w.get_code_string();
 }
 
 // SaberSoftmax
-std::string ParserSoftmax(graph::AttrInfo& attr, std::string& op_class_name, std::string& node_name, WeightsWritter& writter) {
+std::string ParserSoftmax(graph::AttrInfo& attr, 
+						  std::string& op_class_name, 
+						  std::string& node_name, 
+						  std::string& weights_ptr_name, 
+						  WeightsWritter& writter) {
 	// parsing parameter
     auto axis = get_attr<int>("axis", attr);
 
 	// gen cpp code
     CodeWritter code_w; 
-	code_w.feed("%s %s; \n", op_class_name.c_str(), node_name.c_str()); 
 	code_w.feed("%s.load_param(%d);\n", node_name.c_str(), axis); 
 	return code_w.get_code_string();
 }
@@ -325,9 +394,12 @@ std::unordered_map<std::string, OpParser> OPERATION_MAP({
 	{"Convolution", {"SaberConv2D", ParserConvolution} },
 	{"Activation", {"SaberActivation", ParserActivation} },
 	{"ConvRelu", {"SaberConvAct2D", ParserConvolutionRelu} }, 
+	{"ConvBatchnormScaleRelu", {"SaberConvBatchnormScaleRelu", not_impl_yet}},
+	{"ConvBatchnormScale", {"SaberConvBatchnormScale", not_impl_yet}},
 	{"Concat", {"SaberConcat", ParserConcat} }, 
 	{"DetectionOutput", {"SaberDectionOutput", ParserDectionOutput} }, // not certain
 	{"Eltwise", {"SaberEltwise", ParserEltwise} },
+	{"Eltwise", {"SaberEltwiseRelu", not_impl_yet}},
 	{"Dense", {"SaberFc", ParserFc} },
 	{"Permute", {"SaberPermute", ParserPermute} },
 	{"Pooling", {"SaberPooling", ParserPooling} },

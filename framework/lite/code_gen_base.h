@@ -66,7 +66,13 @@ public:
 	/**
 	 *  \biref extract graph msg
 	 */
-	bool extract_graph(std::string model_path);
+	bool extract_graph(const std::string& model_path);
+
+	/**
+	 * \brief generate all source files
+	 */
+	virtual void gen_files() = 0;
+
 
 private:
 	/**
@@ -75,18 +81,20 @@ private:
 	bool init_memory_info();
 
 	/**
-	 * \brief generate all source files
+	 * \brief change graph edge and node name to match the standard of c variable name
 	 */
-	virtual void gen_files() = 0;
+	void change_name(graph::Graph<Ttype, Dtype, Ptype>&);
 
 	/**
-	 * \brief parsing parameter and generate ops of graph
+	 * \brief generate ops of graph
 	 */
-	virtual void gen_and_parse_ops()=0;
+	virtual void gen_ops() = 0;
 
 protected:
 	graph::Graph<Ttype, Dtype, Ptype> _graph;
 	std::vector<std::string> _exec_node_order; /// running order of operation's name
+	std::vector<std::string> _ins;	/// graph ins
+	std::vector<std::string> _outs; /// graph outs
 	std::unordered_map<std::string, NodeInfo> _graph_node_map;
 	/// graph base arch
 	std::unordered_map<std::string, EdgeInfo> _tensor_map;

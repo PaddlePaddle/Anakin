@@ -1,21 +1,14 @@
 #include "lite_test.h"
 
-#ifdef USE_CUDA
-using Target = NV;
-#endif
-#ifdef USE_X86_PLACE
-using Target = X86;
-#endif
-#ifdef USE_ARM_PLACE
-using Target = ARM;
-#endif
-
 // resnet 50
-std::string model_path = "/home/cuichaowen/anakin2/anakin2/benchmark/CNN/models/Resnet50.anakin.bin";
+//std::string model_path = "/home/cuichaowen/anakin2/anakin2/benchmark/CNN/models/Resnet50.anakin.bin";
+//std::string model_path = "/home/cuichaowen/anakin2/anakin2/benchmark/CNN/models/arm_model/mobilenetv2.anakin.bin";
+
+std::string model_path = "/home/cuichaowen/anakin2/anakin2/benchmark/CNN/models/Resnet101.anakin.bin";
 
 TEST(AnakinLiteTest, net_execute_base_test) {
     // constructs 
-	GenCPP code_gen("Resnet50", "/home/cuichaowen/github_anakin/Anakin/build");
+	GenCPP<NV, AK_FLOAT, Precision::FP32> code_gen("Resnet101", "/home/cuichaowen/github_anakin/Anakin/build");
 	if(! code_gen.extract_graph(model_path)) {
 		LOG(ERROR) << "extract error on : " << model_path;
 	}

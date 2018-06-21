@@ -356,6 +356,8 @@ Status Graph<Ttype, Dtype, Ptype>::CopyFrom(Graph<Ttype, Dtype, Ptype>& graph) {
     graph.Scanner->BFS(shallow_copy_edge);
     // get node execution order
     _nodes_exec_order = graph.get_nodes_in_order();
+	_ins = graph._ins;
+	_outs = graph._outs;
     return Status::OK();
 }
 

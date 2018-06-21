@@ -11,7 +11,7 @@ using namespace anakin::saber;
 TEST(TestSaberFuncReshapeNV, test_func_reshape) {
 
     Env<NV>::env_init();
-    Env<X86>::env_init();
+    //Env<X86>::env_init();
     typedef TargetWrapper<NV> API;
     typedef TargetWrapper<X86> X86_API;
 
