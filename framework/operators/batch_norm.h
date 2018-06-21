@@ -20,7 +20,7 @@
 #include "framework/core/data_types.h"
 #include "framework/core/operator/operator.h"
 #include "utils/logger/logger.h"
-//#include "saber/funcs/permute.h"
+#include "saber/funcs/scale.h"
 
 namespace anakin {
 
@@ -85,12 +85,10 @@ public:
                       std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
 
 public:
-    //PermuteParam<void> _param_permute;
-    //saber::Permute<Ttype, Dtype> _funcs_permute;
+    saber::ScaleParam<Tensor4d<Ttype, Dtype>> _param_scale;
+    ///< _funcs_scale stand for scale function
+    saber::Scale<Ttype, Dtype> _funcs_scale;
 
-private:
-    ///< _dims stand for batchNorm size 
-    PTuple<int> _dims; 
 };
 
 
