@@ -40,6 +40,14 @@ void pooling2x2s2_ave(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
     Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, PoolingType type, bool global, \
     int kernel_w, int kernel_h, int stride_w, int stride_h, int pad_w, int pad_h);
 
+void pooling3x3s1_max(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
+    Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, PoolingType type, bool global, \
+    int kernel_w, int kernel_h, int stride_w, int stride_h, int pad_w, int pad_h);
+
+void pooling3x3s1_ave(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
+    Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, PoolingType type, bool global, \
+    int kernel_w, int kernel_h, int stride_w, int stride_h, int pad_w, int pad_h);
+
 void pooling3x3s2_max(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
     Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, PoolingType type, bool global, \
     int kernel_w, int kernel_h, int stride_w, int stride_h, int pad_w, int pad_h);
