@@ -106,7 +106,7 @@ SaberStatus SaberConv2D::init(\
 
     LCHECK_EQ(chin % _group, 0, "input channel or group size error");
     LCHECK_EQ(chout % _group, 0, "output channel or group size error");
-
+#if 0
     //! return basic conv func
     if (_dila_h != 1 || _dila_w != 1) {
         //! basic conv
@@ -114,7 +114,7 @@ SaberStatus SaberConv2D::init(\
         printf("USE BASIC\n");
         return SaberSuccess;
     }
-
+#endif
     //! depthwise conv, 3x3s1 or 3x3s2, pad must = 1
     if (_group == chin && chin == chout && _kw == 3 && _pad_w == 1 && _pad_h == 1) {
         _impl = conv_depthwise_3x3;
