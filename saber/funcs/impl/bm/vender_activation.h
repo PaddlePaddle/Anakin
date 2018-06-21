@@ -27,17 +27,9 @@ public:
     typedef typename DataTensor_out::Dtype OutDataType;
     typedef typename OpTensor::Dtype OpDataType;
 
-    VenderActivation()
-            : _handle(NULL), _active_descs(NULL), _input_descs(NULL), _output_descs(NULL) {}
+    VenderActivation(): _handle(NULL), _active_type(NULL) {}
 
-    ~VenderActivation() {
-        if (_input_descs) {
-            BMDNN_CHECK(bm_free_device(_input_descs));
-        }
-        if (_output_descs) {
-            BMDNN_CHECK(bm_free_device(_output_descs));
-        }
-    }
+    ~VenderActivation() {}
 
     virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
@@ -64,33 +56,29 @@ public:
         int input_n = inputs[0]->num();
 
         switch (_active_type) {
-            case Active_sigmoid:
-                BMDNN_CHECK(bmdnn_sigmoid_forward(_handle, _input_descs, input_n, input_dim, _output_descs));
-                break;
             case Active_relu:
-                BMDNN_CHECK(bmdnn_relu_forward(_handle, _input_descs, input_n, input_dim, _output_descs));
+                BMDNN_CHECK(bmdnn_relu_forward(_handle, in_data, input_n, input_dim, out_data));
+                break;
+            case Active_sigmoid:
+                BMDNN_CHECK(bmdnn_sigmoid_forward(_handle, in_data, input_n, input_dim, out_data));
                 break;
             case Active_tanh:
-                BMDNN_CHECK(bmdnn_tanh_forward(_handle, _input_descs, input_n, input_dim, _output_descs));
+                BMDNN_CHECK(bmdnn_tanh_forward(_handle, in_data, input_n, input_dim, out_data));
+                break;
+            case Active_elu:
+                BMDNN_CHECK(bmdnn_elu_forward(_handle, 1.0, in_data, input_n, input_dim, out_data));
                 break;
         }
-        /* BMDNN_CHECK(cudnnActivationForward(_handle, _active_descs, */
-        /*                                    cudnn::cudnnTypeWrapper<InDataType>::kOne(), */
-        /*                                    _input_descs, in_data, */
-        /*                                    cudnn::cudnnTypeWrapper<InDataType>::kZero(), */
-        /*                                    _output_descs, out_data */
-        /* )); */
         return SaberSuccess;
     }
 
 private:
     bm_handle_t _handle;
-    bm_device_mem_t _input_descs;
-    bm_device_mem_t _output_descs;
     ActiveType _active_type;
 };
-template class VenderActivation<BM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
-}
-}
 
+template class VenderActivation<BM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
+} // namespace saber
+
+} // namespace anakin
 #endif //ANAKIN_SABER_FUNCS_BMDNN_ACT_H
