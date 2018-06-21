@@ -31,8 +31,8 @@ $ ./andrid_build.sh  # it will generate directory 'android_build' in anakin root
 
 ## 3. external_converter_v2
 
-> Please refer to [this](tools/external_converter_v2/README.md)
+> Please refer to [this](external_converter_v2/README.md)
 
 ## 4. anakin-lite
 
-> Please refer to [this](tools/anakin-lite/README.md)
+> Please refer to [this](anakin-lite/README.md)
