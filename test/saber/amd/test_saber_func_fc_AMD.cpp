@@ -210,11 +210,13 @@ void test_inner_product(std::vector<TensorDf4*> &inputs, std::vector<TensorDf4*>
     }
     clFinish(ctx1.get_compute_stream());
 
+    Env<AMD>::start_record();
     for(auto i = 0; i < iter; i++) {
         timer.start(ctx1);
         fc(inputs, outputs, param, ctx1);
         timer.end(ctx1);
     }
+    Env<AMD>::stop_record();
     clFlush(ctx1.get_compute_stream());
     clFinish(ctx1.get_compute_stream());
 
@@ -331,7 +333,7 @@ TEST(TestSaberFuncAMD, test_saber_fc) {
         //auto p = *problemConfigList.begin();
         //TODO: get the problem and solve it...
         LOG(INFO) << "Problem: " << p->ConfigName;
-        
+        Env<AMD>::set_tag(p->ConfigName.c_str()); 
         //allocate input buffer
         LOG(INFO) << "allocate input buffer";
         in.re_alloc({p->M, p->channel, p->height, p->width});
@@ -420,6 +422,7 @@ TEST(TestSaberFuncAMD, test_saber_fc) {
         //Verify(out_golden_host, out_host, out_host.size());
         t_device.clear();
     }
+    Env<AMD>::pop();
 }
 
 int main(int argc, const char** argv) {

@@ -284,16 +284,19 @@ SaberStatus SaberConv2DAct<AMD, OpDtype, inDtype, outDtype,
             return SaberInvalidValue;
         }
         //LOG(INFO) << "COMPLETE SET ARGUMENT";
-        
+        cl_event event; 
         errNum = clEnqueueNDRangeKernel(cm, _kernel, 3, NULL,
                                         _globalWorkSize, _localWorkSize,
-                                        0, NULL, NULL); 
+                                        0, NULL, &event); 
         if (errNum != CL_SUCCESS)
         {
             LOG(ERROR) << "Fail to set execution: " << errNum;
             return SaberInvalidValue;
         }
 
+        cl_event_list list;
+        list.push_back(event);
+        Env<AMD>::add_event(list);
 
     } else {
         cl_uint uintObjects[8] = {0, 0, 0, 0,
@@ -326,10 +329,10 @@ SaberStatus SaberConv2DAct<AMD, OpDtype, inDtype, outDtype,
         }
 
         //LOG(INFO) << "COMPLETE SET ARGUMENT";
-
+        cl_event event, event2;
         errNum = clEnqueueNDRangeKernel(cm, _kernel, 3, NULL,
                                         _globalWorkSize, _localWorkSize,
-                                        0, NULL, NULL); 
+                                        0, NULL, &event); 
         if (errNum != CL_SUCCESS)
         {
             LOG(ERROR) << "Fail to set execution: " << errNum;
@@ -359,12 +362,17 @@ SaberStatus SaberConv2DAct<AMD, OpDtype, inDtype, outDtype,
         //LOG(INFO) << "COMPLETE SET ARGUMENT";
         errNum = clEnqueueNDRangeKernel(cm, _kernel2, 3, NULL,
                                         _globalWorkSize2, _localWorkSize2,
-                                        0, NULL, NULL);
+                                        0, NULL, &event2);
         if (errNum != CL_SUCCESS)
         {
             LOG(ERROR) << "Fail to set execution: " << errNum;
             return SaberInvalidValue;
         }
+
+        cl_event_list list;
+        list.push_back(event);
+        list.push_back(event2);
+        Env<AMD>::add_event(list);
     }
 
     return SaberSuccess;

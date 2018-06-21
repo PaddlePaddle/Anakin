@@ -290,7 +290,6 @@ SaberStatus SaberConv2DActPooling<AMD, OpDtype, inDtype, outDtype,
     }
     //LOG(INFO) << "COMPLETE EXECUTION";
 
-
     ////////////////////////////////////////////////////////////////////////////////////////
 
     //To set the argument
@@ -309,17 +308,20 @@ SaberStatus SaberConv2DActPooling<AMD, OpDtype, inDtype, outDtype,
     }
 
     //LOG(INFO) << "COMPLETE SET ARGUMENT";
-
+    cl_event event2;
     errNum = clEnqueueNDRangeKernel(cm, _kernel2, 3, NULL,
                                     _globalWorkSize2, _localWorkSize2,
-                                    1, &event, NULL);
+                                    0, NULL, &event2);
     if (errNum != CL_SUCCESS)
     {
         LOG(ERROR) << "Fail to set execution: " << errNum;
         return SaberInvalidValue;
     }
     //LOG(INFO) << "COMPLETE EXECUTION";
-
+    cl_event_list list;
+    list.push_back(event);
+    list.push_back(event2);
+    Env<AMD>::add_event(list);
     return SaberSuccess;
 }
 #endif

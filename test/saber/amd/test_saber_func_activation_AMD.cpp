@@ -65,13 +65,13 @@ void test_active(std::vector<TensorDf4*> &inputs, std::vector<TensorDf4*> &outpu
     for(int i=0; i < warm_iter; i++)
         activation(inputs, outputs, param, ctx1);
     clFinish(ctx1.get_compute_stream());
-
+    Env<AMD>::start_record();
     for(int i=0 ;i < iter; i++) {
         t_device.start(ctx1);
         activation(inputs, outputs, param, ctx1);
         t_device.end(ctx1);
-     }
-
+    }
+    Env<AMD>::stop_record();
     clFlush(ctx1.get_compute_stream());
     clFinish(ctx1.get_compute_stream());
 }
@@ -201,7 +201,7 @@ TEST(TestSaberFuncAMD, test_activation) {
     {
         //TODO: get the problem and solve it...
         LOG(INFO) << "Problem: " << p->ConfigName;
-
+        Env<AMD>::set_tag(p->ConfigName.c_str());
         //allocate input buffer
         in.re_alloc({p->N, p->C, p->H, p->W});
         in_host.re_alloc({p->N, p->C, p->H, p->W});
@@ -256,6 +256,7 @@ TEST(TestSaberFuncAMD, test_activation) {
         LOG(INFO) << "ConfigName = " << p->ConfigName << "cmp result: max_r = " << max_r << " max_d = " << max_d;
         LOG(INFO) << "cmp elapse time: device( best : " <<t_device.get_best_ms() <<" ms , average : " << t_device.get_average_ms() << " ms) : host(" << t_host.get_average_ms() << " ms)";
     }
+    Env<AMD>::pop();
 }
 int main(int argc, const char** argv) {
     anakin::saber::Env<AMD>::env_init();

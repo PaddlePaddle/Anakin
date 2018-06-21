@@ -226,6 +226,14 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
                 executer.ins[i]->sync();
             }
         }
+#ifdef USE_AMD
+        std::string tag;
+        tag.append(executer.name) ;
+        tag.append("(");
+        tag.append(executer.op_name);
+        tag.append(")");
+        Env<AMD>::set_tag(tag.c_str());
+#endif
 #ifdef ENABLE_DEBUG
         LOG(ERROR) << " executer : " << executer.name << " (" << executer.op_name << ") ";
         for(auto in : executer.ins) {

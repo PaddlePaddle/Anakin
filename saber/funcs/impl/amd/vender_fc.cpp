@@ -260,9 +260,10 @@ SaberStatus VenderFc<AMD, OpDtype, inDtype, outDtype,
         //LOG(INFO) << "COMPLETE SET ARGUMENT";
         //SaberTimer<AMD> timer;
         //timer.start(this->_ctx);
+        cl_event event;
         errNum = clEnqueueNDRangeKernel(cm, _kernel, 3, NULL,
                                         _globalWorkSize, _localWorkSize,
-                                        0, NULL, NULL);
+                                        0, NULL, &event);
         //timer.end(this->_ctx);
         //LOG(INFO) << "elapse: " << timer.get_best_ms();
         if (errNum != CL_SUCCESS)
@@ -270,6 +271,9 @@ SaberStatus VenderFc<AMD, OpDtype, inDtype, outDtype,
             LOG(ERROR) << "Fail to set execution: " << errNum;
             return SaberInvalidValue;
         }
+        cl_event_list list;
+        list.push_back(event);
+        Env<AMD>::add_event(list);
         //LOG(INFO) << "COMPLETE EXECUTION";
     }
     return SaberSuccess;

@@ -306,18 +306,20 @@ SaberStatus SaberActivation<AMD, OpDtype, inDtype, outDtype,
         LOG(ERROR) << "Fail to set kernel arguments";
         return SaberInvalidValue;
     }
-
+    cl_event event;
     //LOG(INFO) << "COMPLETE SET ARGUMENT";
     errNum = clEnqueueNDRangeKernel(cm, _kernel, 3, NULL,
                                     _globalWorkSize, _localWorkSize,
-                                    0, NULL, NULL);
+                                    0, NULL, &event);
     if (errNum != CL_SUCCESS)
     {
         LOG(ERROR) << "Fail to set execution: " << errNum;
         return SaberInvalidValue;
     }
     //LOG(INFO) << "COMPLETE EXECUTION";
-
+    cl_event_list list;
+    list.push_back(event);
+    Env<AMD>::add_event(list);
     return SaberSuccess;
 }
 

@@ -96,6 +96,9 @@ TEST(NetTest, net_execute_base_test) {
 #ifdef ENABLE_OP_TIMER
         net_executer.reset_op_time();
 #endif
+#ifdef USE_AMD
+        Env<AMD>::start_record();
+#endif
         my_time.start(ctx);
         //auto start = std::chrono::system_clock::now();
         for (int i = 0; i < FLAGS_epoch; i++) {
@@ -127,6 +130,10 @@ TEST(NetTest, net_execute_base_test) {
         std::string model_name = (*iter).substr(start, end-start);
 
         LOG(INFO) << model_name << " batch_size " << FLAGS_num << " average time "<< my_time.get_average_ms() / FLAGS_epoch << " ms";
+#ifdef USE_AMD
+        Env<AMD>::stop_record();
+        Env<AMD>::pop();
+#endif
     }
 }
 int main(int argc, const char** argv){

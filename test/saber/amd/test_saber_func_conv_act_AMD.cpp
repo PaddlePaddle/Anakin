@@ -81,11 +81,13 @@ void test_conv_active(std::vector<TensorDf4*> &inputs, std::vector<TensorDf4*> &
     outputs[0]->re_alloc(outputs[0]->valid_shape());
 
     SABER_CHECK(conv.init(inputs, outputs, param, SPECIFY, impl, ctx1));
+
     for(int i =0; i < warm_iter; i++) {
         conv(inputs, outputs, param, ctx1);
     }
     clFinish(ctx1.get_compute_stream());
 
+    Env<AMD>::start_record();
     SaberTimer<AMD> t1;
     
     for(int i =0; i < iter; i++) {
@@ -94,6 +96,7 @@ void test_conv_active(std::vector<TensorDf4*> &inputs, std::vector<TensorDf4*> &
         t1.end(ctx1);
     }
 
+    Env<AMD>::stop_record();
     score.ElapsedMilliSec = t1.get_average_ms();
     score.ElapsedMilliSecBest = t1.get_best_ms();
     clFlush(ctx1.get_compute_stream());
@@ -382,6 +385,7 @@ TEST(TestSaberFuncAMD, test_vgg_conv_3x3) {
     {
         //TODO: get the problem and solve it...
         LOG(INFO) << "Problem: " << p->ConfigName;
+        Env<AMD>::set_tag(p->ConfigName.c_str());
         statics = new T_Statics();
         //allocate weights buffer
         weights.re_alloc({p->K, p->C, p->Y, p->X});
@@ -410,7 +414,6 @@ TEST(TestSaberFuncAMD, test_vgg_conv_3x3) {
         //wait for device ready
         clFlush(amd_cstream);
         clFinish(amd_cstream);
-
         test_conv_active(input_v, output_v,
                  weights, 1, 1,
                  bias, p->NegSlope, SABER_IMPL, warm_iter, iter, ctx1, statics->score);
@@ -463,6 +466,8 @@ TEST(TestSaberFuncAMD, test_vgg_conv_3x3) {
 
         staticsList.push_back(statics);
     }
+    Env<AMD>::stop_record();
+    Env<AMD>::pop();
     LOG(INFO) << "GPU_CORE_FREQ_HZ: " << GPU_CORE_FREQ_HZ << " =================================";
     for (auto s : staticsList) {
         LOG(INFO) << "-----ConfigName:            " << s->ConfigName << "-----";

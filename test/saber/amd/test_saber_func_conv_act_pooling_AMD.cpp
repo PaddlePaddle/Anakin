@@ -122,12 +122,13 @@ void test_conv_active_pooling(T_ProblemConfig* problemConfig, std::vector<Tensor
     clFinish(ctx1.get_compute_stream());
 
     SaberTimer<AMD> t1;
-
+    Env<AMD>::start_record();
     for(int i =0 ; i < iter; i++) {
         t1.start(ctx1);
         conv(inputs, outputs, param, ctx1);
         t1.end(ctx1);
     }
+    Env<AMD>::stop_record();
 
     score.ElapsedMilliSec = t1.get_average_ms();
     score.ElapsedMilliSecBest = t1.get_best_ms();
@@ -487,6 +488,7 @@ TEST(TestSaberFuncAMD, test_vgg_conv_3x3) {
     {
         //TODO: get the problem and solve it...
         LOG(INFO) << "Problem: " << p->ConfigName;
+        Env<AMD>::set_tag(p->ConfigName.c_str());
         statics = new T_Statics();
 
         //allocate weights buffer
@@ -599,6 +601,7 @@ TEST(TestSaberFuncAMD, test_vgg_conv_3x3) {
         LOG(INFO) << " ";
     }
     LOG(INFO) << "===========================================================";
+    Env<AMD>::pop();
 }
 int main(int argc, const char** argv){
     anakin::saber::Env<AMD>::env_init();
