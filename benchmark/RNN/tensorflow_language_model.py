@@ -100,19 +100,32 @@ def language_run(data_set):
             sess.run([softmax],{x_input:np.array(one_batch).reshape(1,len(one_batch)),embedding_table:np.random.rand(voc_size, hidden_size)})
 
     benchmark(data_set)
+if __name__=='__main__':
+    import getopt
+    import sys
+    proc_num=1
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "ho:", ["help", "process_num="])
+        if '--help' in opts or '-h' in opts:
+            print('usage --process_num=k ,default=1')
+        if '--process_num' in opts:
+            proc_num=opts['--process_num']
+        print(opts)
+    except getopt.GetoptError:
+        pass
 
-file=open('/home/liujunjie/jupyter_notepad/language_benchmark_data.txt')
-data_set=[[int(i) for i in line.split(' ')] for line in file.readlines()]
-proc_num=2
-from multiprocessing import Process
-threads=[]
-t0 = timeit.default_timer()
-for i in range(proc_num):
-    t =Process(target=language_run,args=(data_set,))
-    t.start()
-    threads.append(t)
+    from read_ptb_data import PTB_Data_Reader
+    data_set=PTB_Data_Reader().read()
 
-for t in threads:
-    t.join()
-elapsed = timeit.default_timer() - t0
-print('QPS = ',len(data_set)/elapsed*proc_num)
+    from multiprocessing import Process
+    threads=[]
+    t0 = timeit.default_timer()
+    for i in range(proc_num):
+        t =Process(target=language_run,args=(data_set,))
+        t.start()
+        threads.append(t)
+
+    for t in threads:
+        t.join()
+    elapsed = timeit.default_timer() - t0
+    print('process = ',proc_num,',QPS = ',len(data_set)/elapsed*proc_num)

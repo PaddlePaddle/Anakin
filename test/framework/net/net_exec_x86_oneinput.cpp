@@ -33,7 +33,7 @@ DEFINE_GLOBAL(std::string, output_name, "");
 DEFINE_GLOBAL(std::string, run_mode, "instance");
 DEFINE_GLOBAL(int, split_index, 0);
 
-
+//#define AVG_INPUT
 void getModels(std::string path, std::vector<std::string>& files) {
     DIR* dir = nullptr;
     struct dirent* ptr;
@@ -288,7 +288,12 @@ void instance_run(){
 
 
     std::vector<std::vector<Tensor<X86, AK_FLOAT>* >> host_tensor_p_in_list;
+#ifdef AVG_INPUT
+    host_tensor_p_in_list=get_slice_input_data(word_idx,1,real_max_batch_word_len,batch_num);
+#else
     host_tensor_p_in_list=get_slice_input_data(word_idx,thread_num,real_max_batch_word_len,batch_num);
+#endif
+
 
     GLB_max_word_len = real_max_batch_word_len;
 
@@ -321,8 +326,13 @@ void instance_run(){
     gettimeofday(&time_start, nullptr);
 
     for (int i = 0; i < thread_num; ++i) {
+#ifdef AVG_INPUT
+        threads.emplace_back(
+                new std::thread(&anakin_net_thread, &host_tensor_p_in_list[0], model_path,GLB_output_name!="",i));
+#else
         threads.emplace_back(
                 new std::thread(&anakin_net_thread, &host_tensor_p_in_list[i], model_path,GLB_output_name!="",i));
+#endif
         //        threads.emplace_back(
         //                new std::thread(&anakin_net_thread, &host_tensor_p_in_list[i]),models[0]);
     }
@@ -338,7 +348,11 @@ void instance_run(){
             LOG(INFO) << "summary: " << "thread num = " << thread_num << ",total time = " << use_ms <<
                       "ms ,batch = " << batch_num
                       << ",word sum = " << GLB_word_count << ", seconde/line = " << (use_ms / word_idx.size())
-                      << ",QPS = " << (word_idx.size() / use_ms * 1000);
+#ifdef AVG_INPUT
+                      << ",AVG_INPUT QPS  = " << (thread_num*word_idx.size() / use_ms * 1000);
+#else
+                         << ",QPS = " << (word_idx.size() / use_ms * 1000);
+#endif
 }
 void worker_run(){
     std::string model_path=get_model_path();

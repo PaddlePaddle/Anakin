@@ -17,4 +17,5 @@ export OMP_NUM_THREADS=${core_num}
 unset MKL_NUM_THREADS
 export MKL_NUM_THREADS=${core_num}
 
-taskset -c ${core_range} numactl -l $*
+#taskset -c ${core_range} numactl -l $*
+taskset -c ${core_range}  $*
