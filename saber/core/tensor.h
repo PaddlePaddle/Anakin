@@ -578,6 +578,9 @@ public:
 
 #ifdef USE_BM
     SaberStatus copy_from(const Tensor<X86, AK_FLOAT, NCHW>& tensor) {
+        CHECK_EQ(typeof(BM), typeof(targetType_t)) \
+            << "this method is only for BM tensor";
+
         CHECK_EQ(valid_size(), tensor.valid_size()) \
             << "sizes of two valid shapes must be the same";
 
