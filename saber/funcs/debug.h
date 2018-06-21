@@ -23,7 +23,7 @@ static void write_tensorfile(Tensor <X86, AK_FLOAT, NCHW> tensor, const char* lo
         int size = tensor.valid_size();
 
         for (int i = 0; i < size; ++i) {
-            fprintf(fp, "%.8f \n", (host_temp.data()[i]));
+            fprintf(fp, "%.8f \n", (data_ptr[i]));
         }
 
         fclose(fp);
