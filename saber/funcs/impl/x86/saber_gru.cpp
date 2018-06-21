@@ -1425,7 +1425,7 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispa
     t1 = fmsecond();
      batch_s_aligned<SABER_X86_TYPE >(inputs, outputs, param);
     t2 = fmsecond();
-    LOG(INFO) << " GRU ALL execute: "<< t2 - t1 << "ms";
+    LOG(INFO) << " GRU ALL execute:  "<< t2 - t1 << "ms";
     return SaberSuccess;
 
 //    if (inputs[0]->get_seq_offset().size() > 2) {
