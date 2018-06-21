@@ -576,20 +576,6 @@ public:
         return SaberSuccess;
     }
 
-#ifdef USE_BM
-    SaberStatus copy_from(const Tensor<X86, AK_FLOAT, NCHW>& tensor) {
-        CHECK_EQ(typeof(BM), typeof(targetType_t)) \
-            << "this method is only for BM tensor";
-
-        CHECK_EQ(valid_size(), tensor.valid_size()) \
-            << "sizes of two valid shapes must be the same";
-
-        BMDNN_CHECK(m_memcpy_s2d(API::get_handler(), mutable_data(), bm_mem_from_system(tensor.data())));
-
-        return SaberSuccess;
-    }
-#endif
-
     /**
      *  \brief Deep copy data within region of interest from input tensor.
      */
