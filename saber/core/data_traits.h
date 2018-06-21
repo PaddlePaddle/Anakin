@@ -17,6 +17,12 @@
 
 #include "saber_types.h"
 
+#ifdef USE_BM
+#include "bmlib_runtime.h"
+#include "bmdnn_api.h"
+#include "bmlib_utils.h"
+#endif
+
 namespace anakin{
 
 namespace saber{
@@ -74,6 +80,11 @@ struct DataTrait<AK_UINT16> {
 template <>
 struct DataTrait<AK_UINT32> {
     typedef unsigned int dtype;
+};
+
+template <>
+struct DataTrait<AK_BM> {
+    typedef bm_device_mem_t dtype;
 };
 
 } //namespace saber

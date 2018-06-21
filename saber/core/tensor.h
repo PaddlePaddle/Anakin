@@ -21,6 +21,7 @@
 #include "core/tensor_traits.h"
 
 #ifdef USE_BM
+#include <typeinfo>
 #include "bmlib_runtime.h"
 #include "bmdnn_api.h"
 #include "bmlib_utils.h"
@@ -727,6 +728,21 @@ public:
         }
         return SaberSuccess;
     }
+
+#ifdef USE_BM
+    template <typename TargetType_t, DataType DataType_t, typename LayOutType_t>
+    SaberStatus copy_from(const Tensor<TargetType_t, DataType_t, LayOutType_t>& tensor) {
+        if (typeid(BM) == typeid(targetType_t) &&
+            typeid(X86) == typeid(TargetType_t) &&
+            typeid(AK_FLOAT) == typeid(DataType_t)){
+
+            Dtype* device_data_ptr = mutable_data();
+            BMDNN_CHECK(bm_memcpy_s2d(API::get_handler(), *device_data_ptr, bm_mem_from_system(tensor.data())));
+        }
+
+        return SaberSuccess;
+    };
+#endif
 
     /**
      * \brief Asynchronously copy entire buffer from source tensor.
