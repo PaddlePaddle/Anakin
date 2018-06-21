@@ -1098,7 +1098,7 @@ batch_s_aligned(const std::vector<DataTensor_in*>& inputs,
     gemm(false, false, seqsum, 3 * _aligned_hidden_size, _word_size, 1.f, inner_x, weight_w, 0.f,
          temp_wx);
     t2 = fmsecond();
-    LOG(INFO) << " GRU WX execute: "<< t2 - t1 << "ms";
+    LOG(INFO) << " GRU WX execute "<<seqsum<<" : "<< t2 - t1 << "ms";
 
     int o_offset = 0;
     int r_offset = 1;
