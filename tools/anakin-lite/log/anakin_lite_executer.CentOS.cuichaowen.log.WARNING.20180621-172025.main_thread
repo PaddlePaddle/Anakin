@@ -1,6 +1,0 @@
-File log level: -1
- V  |     time     |  uptime  |  thread name/id | File:line ] 
- Ftl| 17:20:25.00616| 0.000s| main_thread| :0] Signal caught:
-2             0x456729 -> ./bin/anakin_lite_executer() [0x456729]
- 1       0x7fbe18113c05 -> __libc_start_main + 245
- 0             0x456cb4 -> main + 71

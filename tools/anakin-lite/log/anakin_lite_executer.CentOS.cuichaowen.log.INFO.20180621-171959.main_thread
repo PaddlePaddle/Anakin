@@ -1,5 +1,0 @@
-File log level: 0
- V  |     time     |  uptime  |  thread name/id | File:line ] 
- Inf| 17:19:59.00686| 0.000s| main_thread| logger_utils.h:615] Logging to './log/anakin_lite_executer.CentOS.cuichaowen.log.INFO.20180621-171959.main_thread', FileMode: 'w', Level: 0
-
- Err| 17:19:59.00686| 0.000s| main_thread| anakin_lite_executer.cpp:24] Some arguments not supplied!
