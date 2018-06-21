@@ -27,7 +27,7 @@
 #endif
 #ifdef USE_ARM_PLACE
 //todo
-#include "saber/funcs/impl/impl_eltwise_act.h"
+#include "saber/funcs/impl/arm/saber_eltwise_active.h"
 #endif
 
 namespace anakin {

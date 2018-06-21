@@ -308,7 +308,7 @@ void conv_im2col_gemm(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FL
     int channel_size_in = w_in * h_in;
 
     int weights_size_per_group = ch_out * ch_in * kernel_w * kernel_h / (group * group);
-        
+
     for (int b = 0; b < num; ++b) {
         // dC
         for (int g = 0; g < group; ++g) {

@@ -47,7 +47,7 @@ void test_arm_pooling(std::vector<TensorHf4*>& tin, \
     int kernel, int stride, int pad, \
     PoolingType type, bool global, int threads, int cluster_id) {
 
-    int test_iter = 1000;
+    //int test_iter = 1000;
     double to = 0;
     double min_time = 1000000;
     SaberTimer<ARM> t1;
@@ -136,7 +136,7 @@ void test_arm_pooling(std::vector<TensorHf4*>& tin, \
     LOG(INFO) << "kernel size = " << kernel;
     LOG(INFO) << "stride = " << stride;
     LOG(INFO) << "pad = " << pad;
-    LOG(INFO) << "type = " << (int)type;
+    LOG(INFO) << "type = " << type;
     int wout = 1;
     int hout = 1;
     if(!global) {
@@ -150,13 +150,34 @@ void test_arm_pooling(std::vector<TensorHf4*>& tin, \
    Shape shape_out{num, chin, hout, wout};
    PoolingParam<TensorHf4> pooling_param(kernel,kernel, pad, pad,
                                     stride,stride,type,global);
+   //LOG(INFO) << "input tensor";
+   //print_tensor_host(*tin[0]);
 
     if (compare_result) {
         LOG(INFO) << "run basic pooling for precision comparation";
         tout_basic.re_alloc(shape_out);
-        pooling_basic(tout_basic, *thin, type,global, kernel, \
+        //pooling_basic(tout_basic, *thin, type,global, kernel, \
                 kernel, stride, stride, pad, pad);
         //print_tensor_host(tout_basic);
+         LOG(INFO) << "basic pooling compute";
+        to = 0;
+        min_time = 1000000;
+        for (int i = 0; i < test_iter; ++i) {
+           t1.clear();
+           t1.start(ctx1);
+           pooling_basic(tout_basic, *thin, type,global, kernel, \
+                kernel, stride, stride, pad, pad);
+           tvout_basic[0]->record_event(ctx1.get_compute_stream());
+           tvout_basic[0]->sync();
+           t1.end(ctx1);
+           to += t1.get_average_ms();
+           if (t1.get_average_ms() < min_time) {
+               min_time = t1.get_average_ms();
+             }
+        }
+        LOG(INFO) << "basic pooling running time, ave: " << to / test_iter << ", min time: " << min_time;
+       // print_tensor_host(tout_basic);
+
     }
 
     Pooling<ARM, AK_FLOAT> pooling_saber;
@@ -201,8 +222,8 @@ void test_arm_pooling(std::vector<TensorHf4*>& tin, \
     if (compare_result) {
         double max_ratio = 0;
         double max_diff = 0;
-        //TensorHf4 tdiff(tout_basic.valid_shape());
-        //tensor_diff(tout_basic, tout_saber, tdiff);
+        TensorHf4 tdiff(tout_basic.valid_shape());
+        tensor_diff(tout_basic, tout_saber, tdiff);
         //print_tensor_host(tdiff);
         tensor_cmp_host(tout_basic.data(), tout_saber.data(), tout_basic.valid_size(), max_ratio, max_diff);
 
