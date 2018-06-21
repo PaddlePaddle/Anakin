@@ -29,33 +29,33 @@ namespace saber{
 namespace lite{
 
 //template <typename Dtype>
-class SaberConv2DAct {
+class SaberConvAct2D {
 public:
-    SaberConv2DAct() {
+    SaberConvAct2D() {
         _conv_op = new SaberConv2D;
     }
 
-    SaberConv2DAct(int num_output, int group, int kw, int kh, int stride_w, int stride_h, \
+    SaberConvAct2D(int weights_size, int num_output, int group, int kw, int kh, int stride_w, int stride_h, \
         int pad_w, int pad_h, int dila_w, int dila_h, bool flag_bias, ActiveType type, \
         const float* weights, const float* bias) {
 
         LCHECK_EQ(type, Active_relu, "active type must be relu");
-        _conv_op = new SaberConv2D(num_output, group, kw, kh, stride_w, stride_h, \
+        _conv_op = new SaberConv2D(weights_size, num_output, group, kw, kh, stride_w, stride_h, \
             pad_w, pad_h, dila_w, dila_h, flag_bias, weights, bias);
     }
 
-    SaberStatus load_param(int num_output, int group, int kw, int kh, int stride_w, int stride_h, \
+    SaberStatus load_param(int weights_size, int num_output, int group, int kw, int kh, int stride_w, int stride_h, \
         int pad_w, int pad_h, int dila_w, int dila_h, bool flag_bias, ActiveType type, \
         const float* weights, const float* bias) {
 
         LCHECK_EQ(type, Active_relu, "active type must be relu");
         _conv_op->set_activation(true);
-        return _conv_op->load_param(num_output, group, kw, kh, stride_w, stride_h, \
+        return _conv_op->load_param(weights_size, num_output, group, kw, kh, stride_w, stride_h, \
             pad_w, pad_h, dila_w, dila_h, flag_bias, weights, bias);
 
     }
 
-    ~SaberConv2DAct() {
+    ~SaberConvAct2D() {
         delete _conv_op;
     }
 

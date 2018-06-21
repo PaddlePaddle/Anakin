@@ -41,13 +41,13 @@ class SaberConv2D {
 public:
     SaberConv2D();
 
-    SaberConv2D(int num_output, int group, int kw, int kh, int stride_w, int stride_h, \
-        int pad_w, int pad_h, int dila_w, int dila_h, bool flag_bias, \
-        const float* weights, const float* bias);
+    SaberConv2D(int weights_size, int num_output, int group, int kw, int kh, \
+        int stride_w, int stride_h, int pad_w, int pad_h, int dila_w, int dila_h, \
+        bool flag_bias, const float* weights, const float* bias);
 
-    SaberStatus load_param(int num_output, int group, int kw, int kh, int stride_w, int stride_h, \
-        int pad_w, int pad_h, int dila_w, int dila_h, bool flag_bias, \
-        const float* weights, const float* bias);
+    SaberStatus load_param(int weights_size, int num_output, int group, int kw, int kh, \
+        int stride_w, int stride_h, int pad_w, int pad_h, int dila_w, int dila_h, \
+        bool flag_bias, const float* weights, const float* bias);
 
     ~SaberConv2D() {}
 
@@ -81,9 +81,10 @@ private:
     int _dila_h;
     const float* _weights{nullptr};
     const float* _bias{nullptr};
+    int _weights_size;
     size_t _workspace_fwd_sizes{0};
-    std::shared_ptr<Tensor<CPU, AK_FLOAT>> _workspace_data{nullptr};
-    std::shared_ptr<Tensor<CPU, AK_FLOAT>> _weights_trans{nullptr};
+    Tensor<CPU, AK_FLOAT> _workspace_data;
+    Tensor<CPU, AK_FLOAT> _weights_trans;
 };
 
 

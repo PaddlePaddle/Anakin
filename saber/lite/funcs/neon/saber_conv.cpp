@@ -14,14 +14,11 @@ SaberConv2D::SaberConv2D() {
     _is_trans_weights = false;
     _flag_relu = false;
     _bias_term = true;
-    _workspace_data = std::make_shared<Tensor<CPU, AK_FLOAT>>();
-    _weights_trans = std::make_shared<Tensor<CPU, AK_FLOAT>>();
 }
 
-SaberConv2D::SaberConv2D(int num_output, int group, int kw, int kh, \
-    int stride_w, int stride_h, int pad_w, int pad_h, \
-    int dila_w, int dila_h, bool flag_bias, \
-    const float* weights, const float* bias) {
+SaberConv2D::SaberConv2D(int weights_size, int num_output, int group, int kw, int kh, \
+        int stride_w, int stride_h, int pad_w, int pad_h, int dila_w, int dila_h, \
+        bool flag_bias, const float* weights, const float* bias) {
     _num_output = num_output;
     _group = group;
     _kw = kw;
@@ -35,12 +32,12 @@ SaberConv2D::SaberConv2D(int num_output, int group, int kw, int kh, \
     _bias_term = flag_bias;
     _weights = weights;
     _bias = bias;
+    _weights_size = weights_size;
 }
 
-SaberStatus SaberConv2D::load_param(int num_output, int group, int kw, int kh, \
-    int stride_w, int stride_h, int pad_w, int pad_h, \
-    int dila_w, int dila_h, bool flag_bias, \
-    const float* weights, const float* bias) {
+SaberStatus SaberConv2D::load_param(int weights_size, int num_output, int group, int kw, int kh, \
+        int stride_w, int stride_h, int pad_w, int pad_h, int dila_w, int dila_h, \
+        bool flag_bias, const float* weights, const float* bias) {
     _num_output = num_output;
     _group = group;
     _kw = kw;
@@ -54,6 +51,8 @@ SaberStatus SaberConv2D::load_param(int num_output, int group, int kw, int kh, \
     _bias_term = flag_bias;
     _weights = weights;
     _bias = bias;
+    _weights_size = weights_size;
+    return SaberSuccess;
 }
 
 SaberStatus SaberConv2D::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
@@ -135,7 +134,7 @@ SaberStatus SaberConv2D::init(\
             printf("USE 3x3 direct\n");
         } else {
             //! use winograd
-            _weights_trans->re_alloc(sizeof(float) * 8 * 8 * chout * chin * 2);
+            _weights_trans.reshape(Shape(8 * 8 * chout * chin * 2));
             //! space for computation
             int tile_w = (wout + 5) / 6;
             int tile_h = (hout + 5) / 6;
@@ -143,11 +142,10 @@ SaberStatus SaberConv2D::init(\
             int size_trans_channel = 8 * 8 * size_tile;
             int max_ch = chin > chout? chin : chout;
 
-            _workspace_data->re_alloc(sizeof(float) * size_trans_channel * max_ch * 2);
+            _workspace_data.reshape(Shape(size_trans_channel * max_ch * 2));
 
-            void* trans_tmp_ptr =(void*)((char*)_weights_trans->mutable_data() + \
-                sizeof(float) * 8 * 8 * chout * chin);
-            float* weights_trans = (float*)_weights_trans->mutable_data();
+            void* trans_tmp_ptr =(void*)(_weights_trans.mutable_data() + 8 * 8 * chout * chin);
+            float* weights_trans = _weights_trans.mutable_data();
             winograd_transform_weights(weights_trans, _weights, chout, chin, trans_tmp_ptr);
 
             const int m_wino = chout;
@@ -174,8 +172,8 @@ SaberStatus SaberConv2D::init(\
         } else {
             //! otherwise
             _impl = conv_im2col_gemm;
-            _workspace_fwd_sizes = sizeof(float) * k * n;
-            _workspace_data->re_alloc(_workspace_fwd_sizes);
+            _workspace_fwd_sizes = k * n;
+            _workspace_data.reshape(Shape(_workspace_fwd_sizes));
         }
 
         _gemmer.init(l1_cache, l2_cache, m, n, k, false, false, threads);
@@ -196,7 +194,7 @@ SaberStatus SaberConv2D::dispatch(\
 
     const float* weight = _weights;
     if (_is_trans_weights) {
-        weight = _weights_trans->data();
+        weight = _weights_trans.data();
     }
     const float* bias = nullptr;
     if (_bias_term) {
@@ -212,7 +210,7 @@ SaberStatus SaberConv2D::dispatch(\
     _impl(inputs[0]->data(), outputs[0]->mutable_data(), num, chout, hout, wout, \
             chin, hin, win, weight, bias, _group, _kw, _kh, _stride_w, _stride_h, \
             _dila_w, _dila_h, _pad_w, _pad_h, _bias_term, _flag_relu, _gemmer, \
-            (void*)_workspace_data->mutable_data());
+            (void*)_workspace_data.mutable_data());
     return SaberSuccess;
 }
 
