@@ -14,7 +14,7 @@
 
 #ifndef ANAKIN_SABER_LITE_FUNCS_SABER_SOFTMAX_H
 #define ANAKIN_SABER_LITE_FUNCS_SABER_SOFTMAX_H
-#include "saber/saber_funcs_param.h"
+
 #include "saber/lite/core/tensor_lite.h"
 #include "saber/lite/core/context_lite.h"
 
@@ -26,51 +26,37 @@ namespace saber{
 
 namespace lite{
 
-template <typename Dtype>
+//template <typename Dtype>
 class SaberSoftmax{
 public:
 
     SaberSoftmax() = default;
+
+    SaberSoftmax(int axis);
+
+    SaberStatus load_param(int axis);
+
     ~SaberSoftmax() {}
 
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<Dtype>*>& inputs,
-                              std::vector<Tensor<Dtype>*>& outputs,
-                              SoftmaxParam<Tensor<Dtype>> &param) {
+    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                              std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) {
         return outputs[0]->set_shape(inputs[0]->valid_shape());
     }
 
-    SaberStatus init(const std::vector<Tensor<Dtype>*>& inputs,
-                             std::vector<Tensor<Dtype>*>& outputs,
-                             SoftmaxParam<Tensor<Dtype>> &param, Context &ctx) {
-        // get context
-        _ctx = ctx;
-        return create(inputs, outputs, param, ctx);
-    }
+    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                               std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx);
 
-    SaberStatus create(const std::vector<Tensor<Dtype>*>& inputs,
-                               std::vector<Tensor<Dtype>*>& outputs,
-                               SoftmaxParam<Tensor<Dtype>> &param, Context &ctx) {
-
-        Shape shape_in = inputs[0]->valid_shape();
-        Shape shape_out = outputs[0]->valid_shape();
-        _outer_num = inputs[0]->count_valid(0, param.axis);
-        _inner_num = inputs[0]->count_valid(param.axis + 1, inputs[0]->dims());
-        _axis_size = shape_in[param.axis];
-
-        int buffer_size = this->_inner_num * this->_outer_num;
-        return SaberSuccess;
-    }
-
-    SaberStatus dispatch(const std::vector<Tensor<Dtype>*>& inputs,
-                                 std::vector<Tensor<Dtype>*>& outputs,
-                                 SoftmaxParam<Tensor<Dtype>> &param);
+    SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                                 std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
 
 private:
     Context _ctx;
     int _axis_size{0};
     int _inner_num{0};
     int _outer_num{0};
+
+    int _axis;
 
 };
 

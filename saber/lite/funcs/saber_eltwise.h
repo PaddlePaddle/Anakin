@@ -15,7 +15,6 @@
 #ifndef ANAKIN_SABER_LITE_FUNCS_SABER_ELTWISE_H
 #define ANAKIN_SABER_LITE_FUNCS_SABER_ELTWISE_H
 
-#include "saber/saber_funcs_param.h"
 #include "saber/lite/core/tensor_lite.h"
 #include "saber/lite/core/context_lite.h"
 
@@ -29,43 +28,29 @@ namespace lite{
 typedef void (*eltwise_func)(const float* din_a, \
     const float* din_b, float* dout, const int size, std::vector<float> coef);
 
-template <typename Dtype>
+//template <typename Dtype>
 class SaberEltwise {
 public:
     SaberEltwise() {}
+    SaberEltwise(EltwiseType type, std::vector<float> coef);
+
+    SaberStatus load_param(EltwiseType type, std::vector<float> coef);
+
     ~SaberEltwise() {}
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<Dtype>*>& inputs,
-                                     std::vector<Tensor<Dtype>*>& outputs,
-                                     EltwiseParam<Tensor<Dtype>> &param) {
-        for (int i = 1; i < inputs.size(); ++i) {
-            CHECK_EQ(input[0]->num(), input[i]->num());
-            CHECK_EQ(input[0]->channel(), input[i]->channel());
-            CHECK_EQ(input[0]->height(), input[i]->height());
-            CHECK_EQ(input[0]->width(), input[i]->width());
-        }
+    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
 
-        Shape output_shape = inputs[0]->valid_shape();
-        return outputs[0]->set_shape(output_shape);
-    }
+    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                             std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx);
 
-    SaberStatus init(const std::vector<Tensor<Dtype>*>& inputs,
-                             std::vector<Tensor<Dtype>*>& outputs,
-                             EltwiseParam<Tensor<Dtype>> &param, Context &ctx) {
-        return create(inputs, outputs, param, ctx);
-    }
-
-    SaberStatus create(const std::vector<Tensor<Dtype>*>& inputs,\
-                               std::vector<Tensor<Dtype>*>& outputs,\
-                               EltwiseParam<Tensor<Dtype>> &param, \
-                               Context &ctx);
-
-    SaberStatus dispatch(const std::vector<Tensor<Dtype>*>& inputs, \
-                                 std::vector<Tensor<Dtype>*>& outputs, \
-                                 EltwiseParam<Tensor<Dtype>> &param);
+    SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
+                                 std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
 
 private:
     Context _ctx;
+    EltwiseType _type;
+    std::vector<float> _coef;
     eltwise_func _impl{nullptr};
 };
 

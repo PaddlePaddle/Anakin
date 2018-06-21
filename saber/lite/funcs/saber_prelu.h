@@ -17,7 +17,6 @@
 
 #include "saber/lite/core/tensor_lite.h"
 #include "saber/lite/core/context_lite.h"
-#include "saber/saber_funcs_param.h"
 
 #ifdef USE_ARM_PLACE
 namespace anakin{
@@ -26,38 +25,33 @@ namespace saber{
 
 namespace lite{
 
-template <typename Dtype>
+//template <typename Dtype>
 class SaberPrelu {
 
 public:
 
     SaberPrelu() {}
+
+    SaberPrelu(bool flag_shared, const float* weights);
+
+    SaberStatus load_param(bool flag_shared, const float* weights);
+
     ~SaberPrelu() {}
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<Dtype>*>& inputs,
-                                     std::vector<Tensor<Dtype>*>& outputs,
-                                     PreluParam<Tensor<Dtype>> &param) {
-        return outputs[0]->set_shape(inputs[0]->valid_shape());
-    }
+    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
 
-    SaberStatus init(const std::vector<Tensor<Dtype>*>& inputs, \
-        std::vector<Tensor<Dtype>*>& outputs, \
-        PreluParam<Tensor<Dtype>> &param, Context &ctx) {
-        return SaberSuccess;
-    }
+    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
+        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs,  Context &ctx);
 
-    SaberStatus create(const std::vector<Tensor<Dtype>*>& inputs, \
-        std::vector<Tensor<Dtype>*>& outputs, \
-        PreluParam<Tensor<Dtype>> &param, Context &ctx) {
-        _ctx = ctx;
-        return SaberSuccess;
-    }
-
-    SaberStatus dispatch(const std::vector<Tensor<Dtype>*>& inputs, \
-        std::vector<Tensor<Dtype>*>& outputs, PreluParam<Tensor<Dtype>> &param);
+    SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
+        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
 
 private:
     Context _ctx;
+
+    bool _flag_shared;
+    const float* _weights{nullptr};
 };
 
 } //namespace lite
