@@ -15,4 +15,24 @@
 #ifndef ANAKIN_SABER_FUNCS_ARM_IMPL_UTILS_ARM_H
 #define ANAKIN_SABER_FUNCS_ARM_IMPL_UTILS_ARM_H
 
+#include "saber/lite/core/common_lite.h"
+#include "saber/lite/core/tensor_lite.h"
+namespace anakin{
+
+namespace saber{
+
+namespace lite{
+
+void update_weights(Tensor<CPU, AK_FLOAT>& new_weight, Tensor<CPU, AK_FLOAT>& new_bias, \
+    const float* weights, const float* bias, int num, int ch, int kh, int kw, bool conv_bias_term, \
+    float batchnorm_scale, float batchnorm_eps, \
+    std::vector<float> batchnorm_mean, std::vector<float> batchnorm_variance, \
+    std::vector<float> scale_w, std::vector<float> scale_b, bool scale_bias_term);
+
+} //namespace lite
+
+} //namespace saber
+
+} //namespace anakin
+
 #endif //ANAKIN_SABER_FUNCS_ARM_IMPL_UTILS_ARM_H

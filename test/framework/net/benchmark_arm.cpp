@@ -158,6 +158,7 @@ TEST(NetTest, net_execute_base_test) {
                 tmin = tdiff;
             }
             to += tdiff;
+            LOG(INFO) << "iter: " << i << ", time: " << tdiff << "ms";
         }
         my_time.end(ctx);
 #ifdef ENABLE_OP_TIMER

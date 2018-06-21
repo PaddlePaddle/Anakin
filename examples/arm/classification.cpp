@@ -81,7 +81,7 @@ void fill_tensor_with_cvmat(const Mat& img_in, Tensor4hf& tout, const int num, \
 }
 #endif
 
-void test_net(const string model_file_name, const string image_file_name, \
+void test_net(const std::string model_file_name, const std::string image_file_name, \
     const std::vector<std::string>& labels, const int topk, const int threads, \
     const int test_iter) {
 
