@@ -18,6 +18,12 @@
 
 #include "saber_types.h"
 
+#ifdef USE_BM
+#include "bmlib_runtime.h"
+#include "bmdnn_api.h"
+#include "bmlib_utils.h"
+#endif
+
 namespace anakin{
 
 namespace saber{
@@ -41,6 +47,13 @@ struct DataTraitLp<AMD>{
 template <>
 struct DataTraitBase<AMD>{
     typedef cl_mem PtrDtype;
+};
+#endif
+
+#ifdef USE_BM
+template <>
+struct DataTrait<AK_BM> {
+    typedef bm_device_mem_t dtype;
 };
 #endif
 

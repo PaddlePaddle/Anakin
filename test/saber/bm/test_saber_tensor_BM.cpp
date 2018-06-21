@@ -55,11 +55,13 @@ TEST(TestSaberTensorBM, test_tensor_constructor) {
     TensorHf4 thost1(sh1);
     TensorDf4 tdev1(sh1);
 
-    /*
+
     //! test tensor copy_from() function
     LOG(INFO) << "test copy_from() function, input tensor could be any target";
-    thost1.copy_from(thost0);
+    //thost1.copy_from(thost0);
     tdev1.copy_from(thost0);
+
+    /*
     //TODO: print tensor for BM device
     print_tensor_host(tdev1);
     thost1.copy_from(tdev1);
