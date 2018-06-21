@@ -33,28 +33,22 @@ bool ConvWinogradF63::operator()(const float *trans_weights, const float *din, \
     return true;
 }
 #endif
-void conv_arm_winograd3x3(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
-    const float* weights, const float* bias, \
-    int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
-    int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space) {
-    int w_in = tensor_in.width();
-    int h_in = tensor_in.height();
-    int ch_in = tensor_in.channel();
-    int num = tensor_in.num();
+void conv_arm_winograd3x3(const float* din, float* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          const float* weights, const float* bias, \
+                          int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
+                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space) {
 
-    int w_out = tensor_out.width();
-    int h_out = tensor_out.height();
-    int ch_out = tensor_out.channel();
-
-    int size_in_channel = w_in * h_in;
-    int size_out_channel = w_out * h_out;
+    int size_in_channel = win * hin;
+    int size_out_channel = wout * hout;
 
     //! transform input
-    int tile_w = (w_out + 5) / 6;
-    int tile_h = (h_out + 5) / 6;
+    int tile_w = (wout + 5) / 6;
+    int tile_h = (hout + 5) / 6;
     int size_tile = tile_h * tile_w;
     int size_trans_channel = 8 * 8 * size_tile;
-    int max_ch = ch_in > ch_out? ch_in : ch_out;
+    int max_ch = chin > chout? chin : chout;
 
     //! tmp data buffer for input transform
     float* tmp_data1 = (float*)work_space;
@@ -66,13 +60,13 @@ void conv_arm_winograd3x3(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
 
     for (int i = 0; i < num; ++i) {
 
-        const float* din_batch = tensor_in.data() + i * ch_in * size_in_channel;
-        float* dout_batch = tensor_out.mutable_data() + i * ch_out * size_out_channel;
+        const float* din_batch = din + i * chin * size_in_channel;
+        float* dout_batch = dout + i * chout * size_out_channel;
 
         //t1.start(ctx1);
         //! transform input Bt * data * B
 #pragma omp parallel for
-        for (int j = 0; j < ch_in; ++j) {
+        for (int j = 0; j < chin; ++j) {
 
             const float* din_channel = din_batch + j * size_in_channel;
             float* data_trans_channel = tmp_data1 + j * size_trans_channel;
@@ -86,11 +80,11 @@ void conv_arm_winograd3x3(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
                     //memset(data_in_tmp[0], 0, sizeof(float) * 64);
                     for (int j = 0; j < 8; ++j) {
                         int start_row = h * 6 + j - pad_h;
-                        if (start_row >= 0 && start_row < h_in){
+                        if (start_row >= 0 && start_row < hin){
                             for (int k = 0; k < 8; ++k) {
                                 int start_col = w * 6 + k - pad_w;
-                                if (start_col >= 0 && start_col < w_in) {
-                                    data_in_tmp[j][k] = din_channel[start_row * w_in + start_col];
+                                if (start_col >= 0 && start_col < win) {
+                                    data_in_tmp[j][k] = din_channel[start_row * win + start_col];
                                 }
                             }
                         }
@@ -107,9 +101,9 @@ void conv_arm_winograd3x3(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
         //! dot mul
         //! transpose input, convert from ch_in * tile_h * tile_w * 64 to
         //! 64 * ch_in * tile_h * tile_w
-        int stride_a = ch_out * ch_in;
-        int stride_b = ch_in * size_tile;
-        int stride_c = ch_out * size_tile;
+        int stride_a = chout * chin;
+        int stride_b = chin * size_tile;
+        int stride_c = chout * size_tile;
         transpose(tmp_data2, tmp_data1, 64, stride_b);
 
         //t1.end(ctx1);
@@ -124,7 +118,7 @@ void conv_arm_winograd3x3(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
             const float* ptr_a = weights + l * stride_a;
             const float* ptr_b = tmp_data2 + l * stride_b;
             float* ptr_c = tmp_data1 + l * stride_c;
-            gemmer(ptr_a, ch_in, ptr_b, size_tile, ptr_c, size_tile, 1.f, 0.f, false);
+            gemmer(ptr_a, chin, ptr_b, size_tile, ptr_c, size_tile, 1.f, 0.f, false);
         }
 
         //! transpose output, convert from 64 * ch_out * tile_h * tile_w to
@@ -142,7 +136,7 @@ void conv_arm_winograd3x3(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
         ///////////////////////////////////////////////////////////////////////////////
         //! transform output
 #pragma omp parallel for
-        for (int i = 0; i < ch_out; ++i) {
+        for (int i = 0; i < chout; ++i) {
 
             float bias_value = flag_bias? bias[i] : 0.f;
             float* dout_tmp = tmp_data2 + i * size_trans_channel;
@@ -158,11 +152,11 @@ void conv_arm_winograd3x3(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
 
                     for (int j = 0; j < 6; ++j) {
                         int end_row = h * 6 + j;
-                        if (end_row < h_out) {
+                        if (end_row < hout) {
                             for (int k = 0; k < 6; ++k) {
                                 int end_col = w * 6 + k;
-                                if (end_col < w_out){
-                                    dout_channel[end_row * w_out + end_col] = out_tmp[j][k];
+                                if (end_col < wout){
+                                    dout_channel[end_row * wout + end_col] = out_tmp[j][k];
                                 }
                             }
                         }
