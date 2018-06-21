@@ -5,41 +5,33 @@ namespace anakin{
 
 namespace saber{
 
-void conv_3x3s1_direct(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, \
-    const float* weights, const float* bias, \
-    int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
-    int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space) {
+namespace lite{
+
+void conv_3x3s1_direct(const float* din, float* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          const float* weights, const float* bias, \
+                          int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
+                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space) {
     //! 3x3s1 convolution, implemented by direct algorithm
     //! pad is done implicit
     const float zero[6] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
     //! for 4x6 convolution window
     const int right_pad_idx[4] = {3, 2, 1, 0};
 
-    int w_in = tensor_in.width();
-    int h_in = tensor_in.height();
-    int ch_in = tensor_in.channel();
-    int num = tensor_in.num();
+    int size_in_channel = win * hin;
+    int size_out_channel = wout * hout;
+    int w_stride = chin * 9;
 
-    int w_out = tensor_out.width();
-    int h_out = tensor_out.height();
-    int ch_out = tensor_out.channel();
-
-    const float* din = tensor_in.data();
-    float* dout = tensor_out.mutable_data();
-
-    int size_in_channel = w_in * h_in;
-    int size_out_channel = w_out * h_out;
-    int w_stride = ch_in * 9;
-
-    int tile_w = (w_in + 3) >> 2;
-    int tile_h = (h_in + 1) >> 1;
-    int w_in_twice = w_in << 1;
+    int tile_w = (win + 3) >> 2;
+    int tile_h = (hin + 1) >> 1;
+    int w_in_twice = win << 1;
     int cnt_col = tile_w - 2;
 
-    int size_pad_right = 1 + (tile_w << 2) - w_in;
-    int size_pad_bottom = 1 + (tile_h << 1) - h_in;
+    int size_pad_right = 1 + (tile_w << 2) - win;
+    int size_pad_bottom = 1 + (tile_h << 1) - hin;
 
-    int cremain = ch_out - ((ch_out >> 1) << 1);
+    int cremain = chout - ((chout >> 1) << 1);
 
     uint32x4_t vmask_rp = vcgeq_s32(vld1q_s32(right_pad_idx), vdupq_n_s32(size_pad_right));
     unsigned int pmask_rp[4];
@@ -47,10 +39,10 @@ void conv_3x3s1_direct(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_F
     int right_pad_sub = (size_pad_right - 1) * sizeof(float);
 
     for (int n = 0; n < num; ++n) {
-        const float *din_batch = din + n * ch_in * size_in_channel;
-        float *dout_batch = dout + n * ch_in * size_out_channel;
+        const float *din_batch = din + n * chin * size_in_channel;
+        float *dout_batch = dout + n * chin * size_out_channel;
 #pragma omp parallel for
-        for (int c = 0; c < ch_out - 1; c += 2) {
+        for (int c = 0; c < chout - 1; c += 2) {
 
             float* dout_c0 = dout_batch + c * size_out_channel;
             float* dout_c1 = dout_c0 + size_out_channel;
@@ -72,7 +64,7 @@ void conv_3x3s1_direct(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_F
             //const float* wc2 = wc0 + w_stride;
             //const float* wc3 = wc0 + w_stride;
 
-            for (int i = 0; i < ch_in; ++i) {
+            for (int i = 0; i < chin; ++i) {
 
                 const float *din_channel = din_batch + i * size_in_channel;
 
@@ -87,15 +79,15 @@ void conv_3x3s1_direct(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_F
                 float32x4_t wr12 = vld1q_f32(wcin1 + 6);
 
                 float *doutc0r0 = dout_c0;
-                float *doutc0r1 = doutc0r0 + w_out;
+                float *doutc0r1 = doutc0r0 + wout;
 
                 float *doutc1r0 = dout_c1;
-                float *doutc1r1 = doutc1r0 + w_out;
+                float *doutc1r1 = doutc1r0 + wout;
 
                 const float *dr0 = din_channel;
-                const float *dr1 = dr0 + w_in;
-                const float *dr2 = dr1 + w_in;
-                const float *dr3 = dr2 + w_in;
+                const float *dr1 = dr0 + win;
+                const float *dr2 = dr1 + win;
+                const float *dr3 = dr2 + win;
 
                 const float *din0_ptr = dr0;
                 const float *din1_ptr = dr1;
@@ -384,15 +376,15 @@ void conv_3x3s1_direct(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_F
 #endif //__aarch64__
                     }
                     //! after process, increase pointer
-                    doutc0r0 += w_out;
-                    doutc0r1 = doutc0r0 + w_out;
-                    doutc1r0 += w_out;
-                    doutc1r1 = doutc1r0 + w_out;
+                    doutc0r0 += wout;
+                    doutc0r1 = doutc0r0 + wout;
+                    doutc1r0 += wout;
+                    doutc1r1 = doutc1r0 + wout;
 
                     dr0 = dr1;
                     dr1 = dr2;
-                    dr2 = dr1 + w_in;
-                    dr3 = dr2 + w_in;
+                    dr2 = dr1 + win;
+                    dr3 = dr2 + win;
                 } //! end of process top row
 
 
@@ -720,15 +712,15 @@ void conv_3x3s1_direct(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_F
                         );
 #endif //__aarch64__
                     }
-                    doutc0r0 += w_out;
-                    doutc0r1 = doutc0r0 + w_out;
-                    doutc1r0 += w_out;
-                    doutc1r1 = doutc1r0 + w_out;
+                    doutc0r0 += wout;
+                    doutc0r1 = doutc0r0 + wout;
+                    doutc1r0 += wout;
+                    doutc1r1 = doutc1r0 + wout;
 
                     dr0 = dr2;
                     dr1 = dr3;
-                    dr2 = dr1 + w_in;
-                    dr3 = dr2 + w_in;
+                    dr2 = dr1 + win;
+                    dr3 = dr2 + win;
                 } //! end of processing mid rows
 
                 //! deal with bottom pad
@@ -1178,7 +1170,7 @@ void conv_3x3s1_direct(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_F
         if (cremain > 0) {
             for (int c = 0; c < cremain; ++c) {
 
-                int cidx = ch_out - cremain + c;
+                int cidx = chout - cremain + c;
                 float* dout_c = dout_batch + cidx * size_out_channel;
 
                 if (flag_bias) {
@@ -1189,29 +1181,29 @@ void conv_3x3s1_direct(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_F
 
                 const float* wc0 = weights + cidx * w_stride;
 
-                for (int i = 0; i < ch_in; ++i) {
+                for (int i = 0; i < chin; ++i) {
                     const float* din_channel = din_batch + i * size_in_channel;
-                    for (int h = 0; h < h_out; ++h) {
+                    for (int h = 0; h < hout; ++h) {
 
                         int hstart = h - pad_h;
                         int hend = hstart + 3;
-                        hstart = std::max(hstart, 0);
-                        hend = std::min(hend, h_in);
+                        hstart = hstart > 0? hstart : 0;
+                        hend = hend < hin? hend : hin;
 
                         int khstart = hend < kernel_h? kernel_h - hend : 0;
 
-                        float* dout_row = dout_c + h * w_out;
+                        float* dout_row = dout_c + h * wout;
 
-                        for (int w = 0; w < w_out; ++w) {
+                        for (int w = 0; w < wout; ++w) {
                             int wstart = w - pad_w;
                             int wend = wstart + 3;
-                            wstart = std::max(wstart, 0);
-                            wend = std::min(wend, w_in);
+                            wstart = wstart > 0? wstart : 0;
+                            wend = wend < win? wend : win;
                             int kwstart = wend < kernel_w? kernel_w - wend : 0;
 
                             for (int kh = hstart; kh < hend; ++kh) {
                                 for (int kw = wstart; kw < wend; ++kw) {
-                                    dout_row[w] += din_channel[kh * w_in + kw] * \
+                                    dout_row[w] += din_channel[kh * win + kw] * \
                                         wc0[(khstart + kh - hstart) * 3 + kwstart + kw - wstart];
                                 }
                             }
@@ -1224,6 +1216,8 @@ void conv_3x3s1_direct(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_F
 
     } // end of processing batchs
 }
+
+} //namespace lite
 
 } //namespace saber
 
