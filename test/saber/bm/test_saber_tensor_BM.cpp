@@ -6,7 +6,7 @@ using namespace anakin::saber;
 typedef TargetWrapper<X86> X86_API;
 typedef TargetWrapper<BM> BM_API;
 typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
-typedef Tensor<BM, AK_FLOAT, NCHW> TensorDf4;
+typedef Tensor<BM, AK_BM, NCHW> TensorDf4;
 typedef TensorHf4::Dtype dtype;
 
 TEST(TestSaberTensorBM, test_tensor_constructor) {
