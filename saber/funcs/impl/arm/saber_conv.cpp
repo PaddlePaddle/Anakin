@@ -84,7 +84,11 @@ SaberStatus SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::cr
     if (_kw == 3 && _kh == 3 && conv_param.stride_h == 1 && \
         conv_param.pad_w == 1 && conv_param.group == 1) {
 
-        if (chout / (wout * hout) < 3 || chin > 14 || chout > 16) {
+        if (chout / (wout * hout) > 1 || chin < 16 || chout < 14) {
+            //! use direct
+            _impl = conv_3x3s1_direct;
+            LOG(ERROR) << "USE 3x3 direct";
+        } else {
             //! use winograd
             _weights_trans->re_alloc(sizeof(float) * 8 * 8 * chout * chin * 2);
             //! space for computation
@@ -115,10 +119,6 @@ SaberStatus SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::cr
             _impl = conv_arm_winograd3x3;
             _is_trans_weights = true;
             LOG(ERROR) << "USE WINO";
-        } else {
-            //! use direct
-            _impl = conv_3x3s1_direct;
-            LOG(ERROR) << "USE 3x3 direct";
         }
         return SaberSuccess;
     }
