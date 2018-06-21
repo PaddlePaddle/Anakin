@@ -29,22 +29,12 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
     const int h_out, const int w_out);
 
 
-void conv_depthwise_3x3(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
-    const float* weights, const float* bias, \
-    int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
-    int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space) {
-
-    int w_in = tensor_in.width();
-    int h_in = tensor_in.height();
-    int ch_in = tensor_in.channel();
-    int num = tensor_in.num();
-
-    int w_out = tensor_out.width();
-    int h_out = tensor_out.height();
-    int ch_out = tensor_out.channel();
-
-    const float *din = tensor_in.data();
-    float *dout = tensor_out.mutable_data();
+void conv_depthwise_3x3(const float* din, float* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          const float* weights, const float* bias, \
+                          int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
+                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space) {
 
     //! only support stride = 1 or 2
     //CHECK_EQ(stride_h, stride_w) << "stride w and h must = 1 or 2";
@@ -52,18 +42,18 @@ void conv_depthwise_3x3(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
     if (stride_h == 1) {
         if (flag_relu) {
             conv_depthwise_3x3s1p1_bias_relu(dout, din, weights, bias, flag_bias, \
-            num, ch_in, h_in, w_in, h_out, w_out);
+            num, chin, hin, win, hout, wout);
         } else {
             conv_depthwise_3x3s1p1_bias(dout, din, weights, bias, flag_bias, \
-            num, ch_in, h_in, w_in, h_out, w_out);
+            num, chin, hin, win, hout, wout);
         }
     } else { //! stride = 2
         if (flag_relu) {
             conv_depthwise_3x3s2p1_bias_relu(dout, din, weights, bias, flag_bias, \
-                num, ch_in, h_in, w_in, h_out, w_out);
+                num, chin, hin, win, hout, wout);
         } else {
             conv_depthwise_3x3s2p1_bias(dout, din, weights, bias, flag_bias, \
-                num, ch_in, h_in, w_in, h_out, w_out);
+                num, chin, hin, win, hout, wout);
         }
     }
 }

@@ -130,13 +130,17 @@ LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(\
     std::vector<DataTensor_out*>& outputs, \
     SoftmaxParam<OpTensor> &param) {
 
+    //LOG(INFO) << "in arm saber softmax";
+
     float* dout = (float*)outputs[0]->mutable_data();
     const float* din = (float*)inputs[0]->data();
 
     if (this->_inner_num == 1) {
+        //LOG(INFO) << "softmax inner1 axis size: " << _axis_size;
         softmax_inner1(din, dout, _outer_num, _axis_size);
     } else {
         int compute_size = inputs[0]->valid_size() / _axis_size;
+        //LOG(INFO) << "softmax compute size: " << compute_size;
         softmax_basic(din, dout, _axis_size, _inner_num, _outer_num, compute_size);
     }
 

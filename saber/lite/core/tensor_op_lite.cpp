@@ -9,61 +9,57 @@ namespace saber {
 
 namespace lite{
 
-template <typename Dtype>
-void fill_tensor_host_const(Tensor<Dtype>& tensor, Dtype value) {
-    Dtype* data_ptr = static_cast<Dtype*>(tensor.get_buf()->get_data_mutable());
-    int size = tensor.size();
-
+template <>
+void fill_tensor_const(Tensor<CPU, AK_FLOAT>& tensor, float value) {
+    float* data_ptr = tensor.mutable_data();
+    int size = tensor.valid_size();
     for (int i = 0; i < size; ++i) {
         data_ptr[i] = value;
     }
 }
 
-template <typename Dtype>
-void fill_tensor_host_rand(Tensor<Dtype>& tensor) {
-    Dtype* data_ptr = static_cast<Dtype*>(tensor.get_buf()->get_data_mutable());
+template <>
+void fill_tensor_rand(Tensor<CPU, AK_FLOAT>& tensor) {
+    float* data_ptr = tensor.mutable_data();
     for (int i = 0; i < tensor.size(); ++i) {
-        data_ptr[i] = static_cast<Dtype>(rand());
+        data_ptr[i] = static_cast<float>(rand());
     }
 }
 
-template <typename Dtype>
-void fill_tensor_host_rand(Tensor<Dtype>& tensor, Dtype vstart, Dtype vend) {
-    Dtype* data_ptr = static_cast<Dtype*>(tensor.get_buf()->get_data_mutable());
+template <>
+void fill_tensor_rand(Tensor<CPU, AK_FLOAT>& tensor, float vstart, float vend) {
+    float* data_ptr = tensor.mutable_data();
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<float> dis(0, 1.f);
     int size = tensor.size();
     for (int i = 0; i < size; ++i) {
-        Dtype random_num = vstart + (vend - vstart) * dis(gen);
+        float random_num = vstart + (vend - vstart) * dis(gen);
         data_ptr[i] = random_num;
     }
 }
 
-template <typename Dtype>
-void print_tensor_host(Tensor<Dtype>& tensor) {
-    LOG(INFO) << "host tensor data:" << tensor.size();
-    const Dtype* data_ptr = static_cast<const Dtype*>(tensor.get_buf()->get_data());
+template <>
+void print_tensor(Tensor<CPU, AK_FLOAT>& tensor) {
+    printf("host tensor data size: %d\n", tensor.size());
+    const float* data_ptr = tensor.mutable_data();
     int size = tensor.size();
-
     for (int i = 0; i < size; ++i) {
-        printf("%.2f ", static_cast<float>(data_ptr[i]));
-
+        printf("%.2f ", data_ptr[i]);
         if ((i + 1) % tensor.width() == 0) {
             printf("\n");
         }
     }
-
     printf("\n");
 }
 
-template <typename Dtype>
-void print_tensor_host_valid(Tensor<Dtype>& tensor) {
-    LOG(INFO) << "host tensor data:" << tensor.valid_size();
-    const Dtype* data_ptr = tensor.data();
+template <>
+void print_tensor_valid(Tensor<CPU, AK_FLOAT>& tensor) {
+    printf("host tensor data valid size: %d\n", tensor.valid_size());
+    const float* data_ptr = tensor.data();
     int size = tensor.valid_size();
     for (int i = 0; i < size; ++i) {
-        printf("%.2f ", static_cast<float>(data_ptr[i]));
+        printf("%.2f ", data_ptr[i]);
         if ((i + 1) % tensor.width() == 0) {
             printf("\n");
         }
@@ -88,25 +84,6 @@ void tensor_cmp_host(const Dtype* src1, const Dtype* src2, \
         }
     }
 }
-
-#define FILL_TENSOR_HOST(type) \
-    template void fill_tensor_host_const<type>\
-        (Tensor<type>& tensor, type value); \
-    template void fill_tensor_host_rand<type>\
-        (Tensor<type>& tensor); \
-    template void fill_tensor_host_rand<type>\
-        (Tensor<type>& tensor, type vstart, type vend); \
-    template void print_tensor_host<type>\
-        (Tensor<type>& tensor); \
-    template void print_tensor_host_valid<type>\
-        (Tensor<type>& tensor);
-
-template void tensor_cmp_host<float>(const float* src1, const float* src2, \
-                                     int size, double& max_ratio, double& max_diff);
-template void tensor_cmp_host<char>(const char* src1, const char* src2, int size, \
-                                    double& max_ratio, double& max_diff);
-
-FILL_TENSOR_HOST(float)
 
 } //namespace lite
 

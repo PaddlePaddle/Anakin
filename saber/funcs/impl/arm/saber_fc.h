@@ -25,10 +25,10 @@ namespace anakin{
 
 namespace saber{
 
-//! input size: 1xk
-//! output size: 1xn
-//! weights size: nxk
-//! bias size: 1xn
+//! input size: m x k
+//! output size: m x n
+//! weights size: n x k
+//! bias size: 1 x n
 
 template <DataType OpDtype,
         DataType inDtype,
@@ -85,7 +85,10 @@ public:
         //! if L2 cache size is not provided, set to 2M
         l2_cache = l2_cache > 0? l2_cache : 2000000;
 
-        _gemmer.init(l1_cache, l2_cache, _m, _n, _k, false, !param.is_transpose_weights, threads);
+        LOG(INFO) << "fc weights transpose: " << (param.is_transpose_weights? "true" : "false");
+        if (_m > 1 || param.is_transpose_weights) {
+            _gemmer.init(l1_cache, l2_cache, _m, _n, _k, false, !param.is_transpose_weights, threads);
+        }
         return SaberSuccess;
     }
 

@@ -16,7 +16,6 @@
 #ifndef ANAKIN_SABER_LITE_FUNCS_SABER_ACTIVATION_H
 #define ANAKIN_SABER_LITE_FUNCS_SABER_ACTIVATION_H
 
-#include "saber/saber_funcs_param.h"
 #include "saber/lite/core/tensor_lite.h"
 #include "saber/lite/core/context_lite.h"
 
@@ -26,50 +25,28 @@ namespace saber{
 
 namespace lite{
 
-template <typename Dtype>
+//template <ARMType ttype, DataType dtype>
 class SaberActivation {
 public:
     SaberActivation() {}
 
+    SaberActivation(ActiveType type, float neg_slop = 0.f);
+    SaberStatus load_param(ActiveType type, float neg_slop = 0.f);
+
     ~SaberActivation() {}
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<Dtype>*>& inputs,
-                                     std::vector<Tensor<Dtype>*>& outputs,
-                                     ActivationParam<Tensor<Dtype>> &param) {
-        return outputs[0]->set_shape(inputs[0]->valid_shape());
-    }
+    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
 
-    SaberStatus init(const std::vector<Tensor<Dtype>*>& inputs,
-                            std::vector<Tensor<Dtype>*>& outputs,
-                            ActivationParam<Tensor<Dtype>>& param, Context& ctx) {
-        _ctx = ctx;
-        return SaberSuccess;
-    }
-
-    virtual SaberStatus create(const std::vector<Tensor<Dtype>*>& inputs,
-                            std::vector<Tensor<Dtype>*>& outputs,
-                            ActivationParam<Tensor<Dtype>>& param, Context &ctx) {
-        _ctx = ctx;
-        return SaberSuccess;
-    }
+    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                            std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context& ctx);
     
-    virtual SaberStatus dispatch(const std::vector<Tensor<Dtype>*>& inputs,
-                          std::vector<Tensor<Dtype>*>& outputs,
-                          ActivationParam<Tensor<Dtype>>& param) {
-        const Dtype* din = inputs[0]->data();
-        Dtype* dout = outputs[0]->mutable_data();
-        int size = outputs[0]->valid_size();
-        if (param.active == Active_relu) {
-            for (int i = 0; i < size; ++i) {
-                dout[i] = std::max(din[i], (Dtype)0);
-            }
-            return SaberSuccess;
-        } else {
-            return SaberUnImplError;
-        }
-    }
+    virtual SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                          std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
 private:
     Context _ctx;
+    ActiveType _type;
+    float _neg_slop;
 };
 
 
