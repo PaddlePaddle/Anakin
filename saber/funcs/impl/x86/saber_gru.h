@@ -201,10 +201,6 @@ private:
     std::vector<DataTensor_out*>& outputs,
     GruParam<OpTensor>& param);
 
-    template <typename BIT>
-    SaberStatus nobatch_small_input_gru(const std::vector<DataTensor_in*>& inputs,
-                            std::vector<DataTensor_out*>& outputs,
-                            GruParam<OpTensor>& param);
 };
 
 }
