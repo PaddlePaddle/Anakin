@@ -59,8 +59,8 @@ TEST(TestSaberTensorBM, test_tensor_constructor) {
     LOG(INFO) << "test copy_from() function, input tensor could be any target";
     thost1.copy_from(thost0);
     tdev1.copy_from(thost0);
-    print_tensor_device(tdev1);
-    //cudaDeviceSynchronize();
+    //TODO: print tensor for BM device
+    print_tensor_host(tdev1);
     thost1.copy_from(tdev1);
     tdev1.copy_from(tdev0);
     print_tensor_host(thost1);
