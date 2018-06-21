@@ -203,8 +203,8 @@ void test_arm_conv(int thread_num, int cluster_id) {
             t1.clear();
             t1.start(ctx1);
             //eltwise_basic(ctx1, tout_basic, tin, operation, coeffs_ptr, num_coeff);
-            conv_basic7x7(tout_basic, *thin, pweiht.data(), pbias.data(), group, kernel, \
-        kernel, stride, stride, dila, dila, pad, pad, flag_bias, flag_relu, &gemmer,work_space_data);
+            conv_arm_basic(tout_basic, *thin, pweiht.data(), pbias.data(), group, kernel, \
+               kernel, stride, stride, dila, dila, pad, pad, flag_bias, flag_relu, gemmer,work_space_data);
             tvout_basic[0] ->record_event(ctx1.get_compute_stream());
             tvout_basic[0] ->sync();
             t1.end(ctx1);
