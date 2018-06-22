@@ -58,7 +58,9 @@
   ```
   
   编译生成 *.a 静态库，若希望编译*.so 动态链接库 ，请在./configure参数中改--disable-shared为--disable-static --enable-shared
+  
   生成文件在src/.libs/下，将生成的文件拷贝至Anakin/third-party/arm-android/protobuf/lib下
+  
   在[cmake](../../cmake/find_modules.cmake)中更新`ARM_RPOTO_ROOT`的路径。        
   ```cmake
   set(ARM_RPOTO_ROOT "${CMAKE_SOURCE_DIR}/third-party/arm-android/protobuf")
