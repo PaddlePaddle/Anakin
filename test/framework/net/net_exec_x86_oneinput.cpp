@@ -349,9 +349,11 @@ void instance_run(){
                       "ms ,batch = " << batch_num
                       << ",word sum = " << GLB_word_count << ", seconde/line = " << (use_ms / word_idx.size())
 #ifdef AVG_INPUT
-                      << ",AVG_INPUT QPS  = " << (thread_num*word_idx.size() / use_ms * 1000);
+                      << ",AVG_INPUT QPS  = " << (thread_num*word_idx.size() / use_ms * 1000)
+                      <<"line/second, "<<(GLB_word_count*thread_num)/use_ms*1000<<" words/second";
 #else
                          << ",QPS = " << (word_idx.size() / use_ms * 1000);
+                         <<"line/second, "<<(GLB_word_count)/use_ms*1000<<" words/second";
 #endif
 }
 void worker_run(){

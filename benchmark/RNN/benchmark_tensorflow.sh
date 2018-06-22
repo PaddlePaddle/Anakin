@@ -12,5 +12,5 @@ sh $sdir/prepare.sh
 #sh $sdir/sh_base/cpu_benchmark_base_some_thread.sh 6 python $sdir/tensorflow_language_model.py 6
 
 for i in {1,2,4,6};do
-python $sdir/tensorflow_language_model.py $i
+python $sdir/tensorflow_language_model.py --process_num=$i
 done

@@ -4,7 +4,7 @@ import os
 class PTB_Data_Reader():
 
     def read(self):
-        print(os.path.dirname(__file__)+'/data/ptb.valid.txt')
+        # print(os.path.dirname(__file__)+'/data/ptb.valid.txt')
         file=open(os.path.dirname(__file__)+'/data/ptb.valid.txt')
         lines=file.readlines()
         tokenizer=Tokenizer(9999,oov_token=1)

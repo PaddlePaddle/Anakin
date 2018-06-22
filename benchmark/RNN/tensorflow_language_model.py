@@ -66,11 +66,9 @@ def language_run(data_set):
 
 
     # In[8]:
-    config = tf.ConfigProto(device_count={"CPU": 4}, # limit to num_cpu_core CPU usage
-                            inter_op_parallelism_threads = 1)
 
     init = tf.global_variables_initializer()
-    sess = tf.Session(config=config)
+    sess = tf.Session()
     sess.run(init)
 
     # In[9]:
@@ -97,7 +95,7 @@ def language_run(data_set):
     @clock
     def benchmark(data_set):
         for one_batch in data_set:
-            sess.run([softmax],{x_input:np.array(one_batch).reshape(1,len(one_batch)),embedding_table:np.random.rand(voc_size, hidden_size)})
+            sess.run([softmax],{x_input:np.array(one_batch).reshape(1,len(one_batch))})
 
     benchmark(data_set)
 if __name__=='__main__':
@@ -106,17 +104,18 @@ if __name__=='__main__':
     proc_num=1
     try:
         opts, args = getopt.getopt(sys.argv[1:], "ho:", ["help", "process_num="])
-        if '--help' in opts or '-h' in opts:
-            print('usage --process_num=k ,default=1')
-        if '--process_num' in opts:
-            proc_num=opts['--process_num']
+        for key,arg in opts:
+            if key in ('-h','--help'):
+                print('usage --process_num=k ,default=1')
+            if key in ('--process_num'):
+                proc_num=int(arg)
         print(opts)
     except getopt.GetoptError:
         pass
 
     from read_ptb_data import PTB_Data_Reader
     data_set=PTB_Data_Reader().read()
-
+    word_sum=sum(len(i) for i in data_set)
     from multiprocessing import Process
     threads=[]
     t0 = timeit.default_timer()
@@ -128,4 +127,4 @@ if __name__=='__main__':
     for t in threads:
         t.join()
     elapsed = timeit.default_timer() - t0
-    print('process = ',proc_num,',QPS = ',len(data_set)/elapsed*proc_num)
+    print('process = ',proc_num,',QPS = ',len(data_set)/elapsed*proc_num,' line / second ,',word_sum/elapsed*proc_num,'words/second')
