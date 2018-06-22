@@ -25,29 +25,41 @@ namespace saber{
 
 namespace lite{
 
-void pooling_basic(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
-    PoolingType type, bool global, int kernel_w, int kernel_h, \
-    int stride_w, int stride_h, int pad_w, int pad_h);
+void pooling_basic(const float* din, float* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          PoolingType type, bool global, int kernel_w, int kernel_h, \
+                          int stride_w, int stride_h, int pad_w, int pad_h);
 
-void pooling_global(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
-    PoolingType type, bool global, int kernel_w, int kernel_h, \
-    int stride_w, int stride_h, int pad_w, int pad_h);
+void pooling_global(const float* din, float* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          PoolingType type, bool global, int kernel_w, int kernel_h, \
+                          int stride_w, int stride_h, int pad_w, int pad_h);
 
-void pooling2x2s2_max(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
-    PoolingType type, bool global, int kernel_w, int kernel_h, \
-    int stride_w, int stride_h, int pad_w, int pad_h);
+void pooling2x2s2_max(const float* din, float* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          PoolingType type, bool global, int kernel_w, int kernel_h, \
+                          int stride_w, int stride_h, int pad_w, int pad_h);
 
-void pooling2x2s2_ave(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
-    PoolingType type, bool global, int kernel_w, int kernel_h, \
-    int stride_w, int stride_h, int pad_w, int pad_h);
+void pooling2x2s2_ave(const float* din, float* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          PoolingType type, bool global, int kernel_w, int kernel_h, \
+                          int stride_w, int stride_h, int pad_w, int pad_h);
 
-void pooling3x3s2_max(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
-    PoolingType type, bool global, int kernel_w, int kernel_h, \
-    int stride_w, int stride_h, int pad_w, int pad_h);
+void pooling3x3s2_max(const float* din, float* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          PoolingType type, bool global, int kernel_w, int kernel_h, \
+                          int stride_w, int stride_h, int pad_w, int pad_h);
 
-void pooling3x3s2_ave(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
-    PoolingType type, bool global, int kernel_w, int kernel_h, \
-    int stride_w, int stride_h, int pad_w, int pad_h);
+void pooling3x3s2_ave(const float* din, float* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          PoolingType type, bool global, int kernel_w, int kernel_h, \
+                          int stride_w, int stride_h, int pad_w, int pad_h);
 
 } //namespace lite
 

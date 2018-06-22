@@ -32,7 +32,8 @@ enum TargetTypeEnum {
     eX86 = 4,
     eNVHX86 = 5,
     eNVHARM = 6,
-    eARMGPU = 7
+    eARMGPU = 7,
+    eARMDSP
 };
 
 template <TargetTypeEnum T>

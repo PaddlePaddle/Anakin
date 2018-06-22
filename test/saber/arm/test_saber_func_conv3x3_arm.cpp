@@ -168,13 +168,13 @@ void test_arm_conv(std::vector<TensorHf4*>& tin, \
                                     stride, stride,
                                     dila, dila,
                                     &pweiht, bias_ptr);
+    Sgemm gemmer;
 
     if (compare_result) {
         LOG(INFO) << "run basic conv for precision comparation";
         tout_basic.re_alloc(shape_out);
         size_t workspace_size = sizeof(float) * num * chin * (hin + 2 * pad) * (win + 2 * pad);
         void* work_space_data = fast_malloc(workspace_size);
-        Sgemm gemmer;
         conv_arm_basic(tout_basic, *thin, pweiht.data(), pbias.data(), group, kernel, \
         kernel, stride, stride, dila, dila, pad, pad, bias_flag, flag_relu, gemmer, nullptr);
         //conv_direct_basic1(tout_basic, *thin, pweiht.data(), pbias.data(), group, kernel, \
@@ -197,7 +197,7 @@ void test_arm_conv(std::vector<TensorHf4*>& tin, \
     //LOG(INFO) << "saber conv impl init";
     //SABER_CHECK(conv_saber.init(tin, tvout_saber, conv_param, SPECIFY, SABER_IMPL, ctx1));
 
-#if 0 //GEMMM_CONV
+#if 1 //GEMMM_CONV
     LOG(INFO) << "saber sgemm conv 3x3";
     //! gemm impl
     const int m = ch_out;
@@ -206,7 +206,7 @@ void test_arm_conv(std::vector<TensorHf4*>& tin, \
 
     std::shared_ptr<Buffer<ARM>> _workspace_data = std::make_shared<Buffer<ARM>>();
     _workspace_data->re_alloc(sizeof(float) * k * n);
-    Sgemm gemmer;
+
     int l1_cache = ctx1.devs[ctx1.get_device_id()]._info._L1_cache;
     int l2_cache = ctx1.devs[ctx1.get_device_id()]._info._L2_cache;
     gemmer.init(l1_cache, l2_cache, m, n, k, false, false, threads);
@@ -217,9 +217,7 @@ void test_arm_conv(std::vector<TensorHf4*>& tin, \
         t1.start(ctx1);
         conv_im2col_gemm(tout_saber, *thin, pweiht.data(), pbias.data(), \
             group, kernel, kernel, stride, stride, dila, dila, pad, pad, \
-            flag_bias, flag_relu, &gemmer, _workspace_data->get_data_mutable());
-        //tvout_saber[0]->record_event(ctx1.get_compute_stream());
-        //tvout_saber[0]->sync();
+            flag_bias, flag_relu, gemmer, _workspace_data->get_data_mutable());
         t1.end(ctx1);
         to += t1.get_average_ms();
         if (t1.get_average_ms() < min_time) {
@@ -243,7 +241,7 @@ void test_arm_conv(std::vector<TensorHf4*>& tin, \
 
 #endif //USE_CONV_GEMM
 
-#if 0 //USE_WINOGRAD
+#if 1 //USE_WINOGRAD
     LOG(INFO) << "saber winograd conv 3x3";
     //! space for transform weights
     std::shared_ptr<Buffer<ARM>> weigths_trans_space = std::make_shared<Buffer<ARM>>();
@@ -277,9 +275,7 @@ void test_arm_conv(std::vector<TensorHf4*>& tin, \
         t1.clear();
         t1.start(ctx1);
         conv_arm_winograd3x3(tout_saber, *thin, weights_trans, pbias.data(), group, 3, 3, 1, 1, 1, 1, 1, 1, \
-            flag_bias, flag_relu, &gemmer_wino, compute_space->get_data_mutable());
-        //tvout_saber[0]->record_event(ctx1.get_compute_stream());
-        //tvout_saber[0]->sync();
+            flag_bias, flag_relu, gemmer_wino, compute_space->get_data_mutable());
         t1.end(ctx1);
         to += t1.get_average_ms();
         if (t1.get_average_ms() < min_time) {
@@ -315,9 +311,8 @@ void test_arm_conv(std::vector<TensorHf4*>& tin, \
     for (int i = 0; i < test_iter; ++i) {
         t1.clear();
         t1.start(ctx1);
-        //conv_3x3s1p1_bias(dout, din, wptr, bptr, flag_bias, num, chin, hin, win, ch_out, hout, wout);
-        //tvout_saber[0]->record_event(ctx1.get_compute_stream());
-        //tvout_saber[0]->sync();
+        conv_3x3s1_direct(tout_saber, *thin, pweiht.data(), pbias.data(), group, kernel, \
+        kernel, stride, stride, dila, dila, pad, pad, bias_flag, flag_relu, gemmer, nullptr);
         t1.end(ctx1);
         to += t1.get_average_ms();
         if (t1.get_average_ms() < min_time) {
@@ -326,7 +321,7 @@ void test_arm_conv(std::vector<TensorHf4*>& tin, \
     }
 
     LOG(INFO) << "saber direct neon conv running time, ave: " << to / test_iter << ", min time: " << min_time;
-    print_tensor_host(tout_saber);
+    //print_tensor_host(tout_saber);
 
     if (compare_result) {
         double max_ratio = 0;
