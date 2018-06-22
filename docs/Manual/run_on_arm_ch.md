@@ -34,7 +34,24 @@
     
  - 2.1.2 交叉编译Android`armeabi-v7a`的protobuf    
  ```bash
- 
+   $ make distclean
+   $ export ANDROID_NDK=your_ndk_path 
+   $ export SYSROOT=$ANDROID_NDK/platforms/android-9/arch-arm  
+   $ export PREBUILT=$ANDROID_NDK/toolchains/arm-linux-androideabi-4.9
+   $ export LDFLAGS="--sysroot=$SYSROOT"
+   $ export LD="$ANDROID_NDK/toolchains/arm-linux-androideabi-4.9/prebuilt/darwin-x86_64/arm-linux-androideabi/bin/ld $LDFLAGS"
+   $ export LIBS="-llog $ANDROID_NDK/sources/cxx-stl/gnu-libstdc++/4.9/libs/armeabi-v7a/libgnustl_static.a"
+   $ export CPPFLAGS=""
+   $ export INCLUDES="-I$ANDROID_NDK/sources/cxx-stl/gnu-libstdc++/4.9/include/ -I$ANDROID_NDK/platforms/android-9/arch-arm/usr/include/ -I$ANDROID_NDK/sources/cxx-stl/gnu-libstdc++/4.9/libs/armeabi-v7a/include/"
+   $ export CXXFLAGS="-march=armv7-a -mfloat-abi=softfp -DGOOGLE_PROTOBUF_NO_RTTI --sysroot=$SYSROOT"
+   $ export CCFLAGS="$CXXFLAGS"
+   $ export CXX="$PREBUILT/prebuilt/darwin-x86_64/bin/arm-linux-androideabi-g++ $CXXFLAGS"
+   $ export CC="$CXX"
+   $ export RANLIB="$ANDROID_NDK/toolchains/arm-linux-androideabi-4.9/prebuilt/darwin-x86_64/bin/arm-linux-androideabi-ranlib"  
+   $ ./autogen.sh  
+   $ ./configure --ANDROID_NDK-linux-androideabi --with-sysroot=$SYSROOT --enable-cross-compile --with-protoc=protoc --disable-shared CXX="$CXX" CC="$CC" LD="$LD"  
+   $ make
+
   ```
   安装完成后，在[cmake](../../cmake/find_modules.cmake)中设置`ARM_RPOTO_ROOT`的路径。        
   ```cmake
