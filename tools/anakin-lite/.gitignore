@@ -31,6 +31,16 @@
 *.out
 *.app
 
+# generate code
+*.bin
+*.h
+*.cpp
+
 # dir
 log
 bin
+lite
+saber
+utils
+build
+output
