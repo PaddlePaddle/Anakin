@@ -13,60 +13,60 @@
    limitations under the License. 
 */
 
-#ifndef ANAKIN_OPERATOR_BATCH_NORM_H
-#define ANAKIN_OPERATOR_BATCH_NORM_H
+#ifndef ANAKIN_OPERATOR_CRF_DECODING_H
+#define ANAKIN_OPERATOR_CRF_DECODING_H
 
 #include "framework/core/base.h"
 #include "framework/core/data_types.h"
 #include "framework/core/operator/operator.h"
 #include "utils/logger/logger.h"
-#include "saber/funcs/scale.h"
+#include "saber/funcs/crf_decoding.h"
 
 namespace anakin {
 
 namespace ops {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
-class BatchNormHelper;
+class CrfDecodingHelper;
 
 /// pooling op
 /**
- * \brief Batch normalization class
- * public inherit Operator
+ * \brief CrfDecoding operation class
+ * public inheritance Operator
  */
 template<typename Ttype, DataType Dtype, Precision Ptype>
-class BatchNorm : public Operator<Ttype, Dtype, Ptype> {
+class CrfDecoding : public Operator<Ttype, Dtype, Ptype> {
 public:
-    BatchNorm() {}
+    CrfDecoding() {}
 
     /// forward impl
     virtual void operator() (OpContext<Ttype> &ctx, 
                              const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
                              std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-        LOG(ERROR) << "Not Impl Yet Operator power<TargetType:"<<"unknown"<<","
+        LOG(ERROR) << "Not Impl Yet Operator CrfDecoding<TargetType:"<<"unknown"<<","
                    <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info()<<">";
     }
 
-    friend class BatchNormHelper<Ttype, Dtype, Ptype>;
+    friend class CrfDecodingHelper<Ttype, Dtype, Ptype>;
 };
 
 /**
- * \brief Batch normalization helper class
+ * \brief CrfDecoding helper class
  * public inherit OperatorHelper
- * including init resource and shape size in BatchNorm processing
+ * including init resource and shape size in crf_decoding context
  */
 template<typename Ttype, DataType Dtype, Precision Ptype>
-class BatchNormHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
+class CrfDecodingHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
-    BatchNormHelper()=default;
+    CrfDecodingHelper()=default;
 
-    ~BatchNormHelper();
+    ~CrfDecodingHelper();
 
     Status InitParam() override;
 
     /**
     * \brief initial all the resource needed by pooling
-    * \param ctx stand for batchNorm operation context
+    * \param ctx stand for CrfDecoding operation context
     * \param ins stand for input tensor vector
     * \param outs stand for output tensor vector
     * \return status
@@ -85,10 +85,14 @@ public:
                       std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
 
 public:
-    saber::ScaleParam<Tensor4d<Ttype, Dtype>> _param_scale;
-    ///< _funcs_scale stand for scale function
-    saber::Scale<Ttype, Dtype> _funcs_scale;
+    ///< _param_crf_decoding stand for CrfDecoding parameter
+    saber::CrfDecodingParam<Tensor4d<Ttype, Dtype>>  _param_crf_decoding;
+    ///< _funcs_crf_decoding stand for CrfDecoding function
+    saber::CrfDecoding<Ttype, Dtype> _funcs_crf_decoding;
 
+private:
+    ///< _dims stand for CrfDecoding size
+    PTuple<int> _dims; 
 };
 
 

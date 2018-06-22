@@ -23,7 +23,7 @@
 #endif
 
 #ifdef USE_X86_PLACE
-#include "saber/funcs/impl/impl_concat.h"
+#include "saber/funcs/impl/x86/saber_concat.h"
 #endif
 
 namespace anakin {

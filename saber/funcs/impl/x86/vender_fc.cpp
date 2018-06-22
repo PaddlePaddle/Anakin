@@ -89,6 +89,7 @@ SaberStatus VenderFc<X86, OpDtype, inDtype, outDtype,
             }
         }
     }
+    outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
     return SaberSuccess;
 }
 

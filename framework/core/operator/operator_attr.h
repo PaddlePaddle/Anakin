@@ -59,13 +59,13 @@ public:
     /** 
      *  \brief Set origin op name (opAttr_ = op_name)
      */
-    OpAttrWarpper& name(std::string op_name);
+    OpAttrWarpper& name(const std::string&);
 
     /// set alias name of Operator.
     template<typename Ttype, DataType Dtype, Precision Ptype>
-    OpAttrWarpper& __alias__(std::string);
+    OpAttrWarpper& __alias__(const std::string&);
     /// set description doc for target op.
-    OpAttrWarpper& Doc( std::string );
+    OpAttrWarpper& Doc(const std::string&);
     /// set and get number input and output.
     OpAttrWarpper& num_in(size_t);
     OpAttrWarpper& num_out(size_t);
@@ -83,7 +83,7 @@ public:
      *   param arg_doc   : the doc for argument [default = ""].
      */
     template<typename T>
-    OpAttrWarpper& Args(std::string arg_name, std::string arg_doc = "") {
+    OpAttrWarpper& Args(const std::string& arg_name, const std::string& arg_doc = "") {
         Argument arg;        
         arg.name = arg_name;
         arg.type = type_id<T>().type_info();
@@ -101,7 +101,13 @@ public:
      *  \brief Get arg value from attributes info (AttrInfo) in node.
      */
     template<typename T>
-    T& GetArg(std::string arg_name, graph::AttrInfo& info);
+    T& GetArg(std::string arg_name, graph::AttrInfo& info) {
+        CHECK(this->has_arg(arg_name)) << " the operator doesn't have target argument: " << arg_name;
+        CHECK(info.parameter.count(arg_name) > 0) << " Attr info doesn't have target argument: " 
+                                                  << arg_name;
+        any& target_arg = info.parameter[arg_name];
+        return any_cast<T>(target_arg);
+    }
 
     /** 
      *  \brief Get name of operator.
@@ -125,7 +131,7 @@ public:
     /** 
      *  \brief Judge if OperatorAttr the argument's name.
      */
-    bool has_arg(std::string arg_name) { return opAttr_.Args_map.count(arg_name) > 0; }
+    bool has_arg(const std::string& arg_name) { return opAttr_.Args_map.count(arg_name) > 0; }
 
     friend class OpAttrHelper;
 private:

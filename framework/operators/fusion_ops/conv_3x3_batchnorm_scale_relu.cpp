@@ -40,10 +40,12 @@ Status SassConvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto filter_num = GET_PARAMETER(int, filter_num);
     auto kernel_size = GET_PARAMETER(PTuple<int>, kernel_size);
     auto axis = GET_PARAMETER(int, axis);
-    auto weights = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_1);
+
+	using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
+    auto weights = GET_PARAMETER(pblock_type, weight_1);
 
     if (bias_term) {
-        auto bias = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_2);
+        auto bias = GET_PARAMETER(pblock_type, weight_2);
         saber::ConvParam<Tensor4d<Ttype, Dtype>> conv_param(group, padding[0], padding[1],
                                               strides[0], strides[1],
                                               dilation_rate[0], dilation_rate[1],
@@ -62,14 +64,11 @@ Status SassConvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::InitParam() {
     // get batchnorm param
     auto epsilon = GET_PARAMETER(float, batchnorm_0_epsilon);
     auto momentum = GET_PARAMETER(float, batchnorm_0_momentum);
-    auto batch_norm_weight_1 = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>,
-                               batchnorm_0_weight_1);
+    auto batch_norm_weight_1 = GET_PARAMETER(pblock_type, batchnorm_0_weight_1);
     auto batch_norm_weight_1_vector = batch_norm_weight_1.vector();
-    auto batch_norm_weight_2 = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>,
-                               batchnorm_0_weight_2);
+    auto batch_norm_weight_2 = GET_PARAMETER(pblock_type, batchnorm_0_weight_2);
     auto batch_norm_weight_2_vector = batch_norm_weight_2.vector();
-    auto batch_norm_weight_3 = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>,
-                               batchnorm_0_weight_3);
+    auto batch_norm_weight_3 = GET_PARAMETER(pblock_type, batchnorm_0_weight_3);
     auto batch_norm_weight_3_vector = batch_norm_weight_3.vector();
     BatchnormParam<Tensor4d<Ttype, Dtype>> batchnorm_param(batch_norm_weight_1_vector,
                                         batch_norm_weight_2_vector,
@@ -79,11 +78,9 @@ Status SassConvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto scale_num_axes = GET_PARAMETER(int, scale_0_num_axes);
     auto scale_bias_term = GET_PARAMETER(bool, scale_0_bias_term);
     auto scale_axis = GET_PARAMETER(int, scale_0_axis);
-    auto scale_weight_1 = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>,
-                                        scale_0_weight_1);
+    auto scale_weight_1 = GET_PARAMETER(pblock_type, scale_0_weight_1);
     auto scale_weight_1_vector = scale_weight_1.vector();
-    auto scale_weight_2 = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>,
-                                        scale_0_weight_2);
+    auto scale_weight_2 = GET_PARAMETER(pblock_type, scale_0_weight_2);
     auto  scale_weight_2_vector = scale_weight_2.vector();
     saber::ScaleParam<Tensor4d<Ttype, Dtype>> scale_param(scale_weight_1_vector,  scale_weight_2_vector,
                                            scale_bias_term, scale_axis, scale_num_axes);

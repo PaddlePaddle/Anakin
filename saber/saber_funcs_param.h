@@ -1542,7 +1542,7 @@ struct PriorBoxParam {
     PriorBoxParam(std::vector<float> min_in, std::vector<float> max_in, \
         std::vector<float> aspect_in, std::vector<float> variance_in,
         bool flip, bool clip, int image_width, int image_height, \
-        float step_width, float step_height, float offset_in) {
+        float step_width, float step_height, float offset_in, std::vector<PriorType> order_in) {
         is_flip = flip;
         is_clip = clip;
         min_size = min_in;
@@ -1551,6 +1551,7 @@ struct PriorBoxParam {
         step_w = step_width;
         step_h = step_height;
         offset = offset_in;
+        order = order_in;
         aspect_ratio.clear();
         aspect_ratio.push_back(1.f);
 
@@ -1607,6 +1608,7 @@ struct PriorBoxParam {
         step_w = right.step_w;
         step_h = right.step_h;
         offset = right.offset;
+        order = right.order;
         prior_num = right.prior_num;
     }
     PriorBoxParam<opTensor>& operator=(const PriorBoxParam<opTensor>& right) {
@@ -1621,6 +1623,7 @@ struct PriorBoxParam {
         this->step_w = right.step_w;
         this->step_h = right.step_h;
         this->offset = right.offset;
+        this->order = right.order;
         this->prior_num = right.prior_num;
         return *this;
     }
@@ -1664,6 +1667,7 @@ struct PriorBoxParam {
         flag = flag && (step_w == right.step_w);
         flag = flag && (step_h == right.step_h);
         flag = flag && (offset == right.offset);
+        flag = flag && (order == right.order);
         flag = flag && (prior_num == right.prior_num);
         return flag;
     }
@@ -1680,8 +1684,8 @@ struct PriorBoxParam {
     float step_h{0};
     float offset{0.5};
     int prior_num{0};
+    std::vector<PriorType> order;
 };
-
 template <typename opTensor>
 struct DeformableConvParam {
 
@@ -2414,6 +2418,60 @@ struct EmbeddingParam {
     int padding_idx;
 private:
     opTensor* weight_tensor;
+};
+
+template <typename opTensor>
+struct LayerNormParam {
+    LayerNormParam() = default;
+    LayerNormParam(int axis_in, float eps_in, opTensor* weights_scale, opTensor* weights_bias) {
+        axis = axis_in;
+        eps = eps_in;
+        scale = weights_scale;
+        bias = weights_bias;
+    }
+    LayerNormParam(const LayerNormParam &right) {
+        axis = right.axis;
+        eps = right.eps;
+        scale = right.scale;
+        bias = right.bias;
+    }
+    LayerNormParam &operator=(const LayerNormParam &right) {
+        this->axis = right.axis;
+        this->eps = right.eps;
+        this->scale = right.scale;
+        this->bias = right.bias;
+        return *this;
+    }
+    bool operator==(const LayerNormParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (axis == right.axis);
+        comp_eq = comp_eq && (fabsf(eps - right.eps) < 1e-7f);
+        comp_eq = comp_eq && (scale == scale);
+        comp_eq = comp_eq && (bias == bias);
+        return comp_eq;
+    }
+    inline const opTensor* scale_weights() {
+        return scale;
+    }
+
+    inline opTensor* mutable_scale_weights() {
+        return scale;
+    }
+
+    inline const opTensor* bias_weights() {
+        return bias;
+    }
+
+    inline opTensor* mutable_bias_weights() {
+        return bias;
+    }
+
+    int axis;
+    float eps{1e-5f};
+
+private:
+    opTensor* scale;
+    opTensor* bias;
 };
 
 }
