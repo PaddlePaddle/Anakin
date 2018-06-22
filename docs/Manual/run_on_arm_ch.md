@@ -30,8 +30,7 @@
    $ make check   
    $ make install
    ```
-   上述 $make install 执行后，可在 /usr/local/include/google 找到 libprotobuf 所需的头文件,将整个google文件夹拷贝至Anakin/third-party/arm-android/protobuf/下
-   
+   上述 $make install 执行后，可在 /usr/local/include/google 找到 libprotobuf 所需的头文件,将整个google文件夹拷贝至Anakin/third-party/arm-android/protobuf/下，
    如有问题，请点[这里](https://github.com/google/protobuf/blob/v3.4.0/src/README.md)
     
  - 2.1.1 交叉编译Android`armeabi-v7a`的protobuf，注意设置ANDROID_NDK的路径，以及ARCH_ABI、HOSTOSN的值，   
@@ -57,10 +56,8 @@
    $ make
   ```
   
-  编译生成 *.a 静态库，若希望编译*.so 动态链接库 ，请在./configure参数中改--disable-shared为--disable-static --enable-shared
-  
-  生成文件在src/.libs/下，将生成的文件拷贝至Anakin/third-party/arm-android/protobuf/lib下
-  
+  编译生成 *.a 静态库，若希望编译*.so 动态链接库 ，请在./configure参数中改--disable-shared为--disable-static --enable-shared。  
+  生成文件在src/.libs/下，将生成的文件拷贝至Anakin/third-party/arm-android/protobuf/lib下。  
   在[cmake](../../cmake/find_modules.cmake)中更新`ARM_RPOTO_ROOT`的路径。        
   ```cmake
   set(ARM_RPOTO_ROOT "${CMAKE_SOURCE_DIR}/third-party/arm-android/protobuf")
