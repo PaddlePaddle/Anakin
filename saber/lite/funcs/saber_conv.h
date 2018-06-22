@@ -15,7 +15,6 @@
 #ifndef ANAKIN_SABER_LITE_FUNCS_SABER_CONV_H
 #define ANAKIN_SABER_LITE_FUNCS_SABER_CONV_H
 
-#include "saber/saber_funcs_param.h"
 #include "saber/lite/core/tensor_lite.h"
 #include "saber/lite/core/context_lite.h"
 
@@ -29,75 +28,39 @@ namespace saber{
 
 namespace lite{
 
-typedef void (*conv_func)(Tensor<float>& tensor_out, Tensor<float>& tensor_in, \
-    const float* weights, const float* bias, \
-    int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
-    int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space);
+typedef void (*conv_func)(const float* din, float* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          const float* weights, const float* bias, \
+                          int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
+                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space);
 
 
-template <typename Dtype>
+//template <typename Dtype>
 class SaberConv2D {
 public:
-    SaberConv2D() {
-        _impl = nullptr;
-        _workspace_fwd_sizes = 0;
-        _is_trans_weights = false;
-        _flag_relu = false;
-        _bias_term = true;
-        _workspace_data = std::make_shared<Tensor<Dtype>>();
-        _weights_trans = std::make_shared<Tensor<Dtype>>();
-    }
+    SaberConv2D();
+
+    SaberConv2D(int weights_size, int num_output, int group, int kw, int kh, \
+        int stride_w, int stride_h, int pad_w, int pad_h, int dila_w, int dila_h, \
+        bool flag_bias, const float* weights, const float* bias);
+
+    SaberStatus load_param(int weights_size, int num_output, int group, int kw, int kh, \
+        int stride_w, int stride_h, int pad_w, int pad_h, int dila_w, int dila_h, \
+        bool flag_bias, const float* weights, const float* bias);
 
     ~SaberConv2D() {}
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<Dtype>*>& inputs,
-                                     std::vector<Tensor<Dtype>*>& outputs,
-                                     ConvParam<Tensor<Dtype>> &param) {
-        Shape output_shape = inputs[0]->valid_shape();
-        CHECK_EQ(input[0]->valid_shape().size(), 4) << "using reshape2d to reshape a 1d conv?";
+    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
 
-        // append the $n and $c/$k, output: N * K * P * Q
-        int num_idx = inputs[0]->num_index();
-        int channel_idx = inputs[0]->channel_index();
-        int height_idx = inputs[0]->height_index();
-        int width_idx = inputs[0]->width_index();
+    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                             std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx);
 
-        output_shape[num_idx] = inputs[0]->num(); // N
-        output_shape[channel_idx] = param.weight()->num(); // K
+    SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                                 std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
 
-        int input_dim = inputs[0]->height(); // P
-        int kernel_exten = param.dilation_h * (param.weight()->height() - 1) + 1;
-        int output_dim = (input_dim + 2 * param.pad_h - kernel_exten)
-                         / param.stride_h + 1;
-
-        output_shape[height_idx] = output_dim;
-
-        input_dim = inputs[0]->width(); // Q
-        kernel_exten = param.dilation_w * (param.weight()->width() - 1) + 1;
-        output_dim = (input_dim + 2 * param.pad_w - kernel_exten)
-                     / param.stride_w + 1;
-
-        output_shape[width_idx] = output_dim;
-
-        return outputs[0]->set_shape(output_shape);
-    }
-
-    SaberStatus init(const std::vector<Tensor<Dtype>*>& inputs,
-                             std::vector<Tensor<Dtype>*>& outputs,
-                             ConvParam<Tensor<Dtype>> &conv_param, Context &ctx);
-
-    SaberStatus create(const std::vector<Tensor<Dtype>*>& inputs,
-                               std::vector<Tensor<Dtype>*>& outputs,
-                               ConvParam<Tensor<Dtype>> &conv_param, Context &ctx);
-
-    SaberStatus dispatch(const std::vector<Tensor<Dtype>*>& inputs,
-                                 std::vector<Tensor<Dtype>*>& outputs,
-                                 ConvParam<Tensor<Dtype>> &conv_param);
-
-    SaberStatus set_activation(bool flag) {
-        _flag_relu = flag;
-        return SaberSuccess;
-    }
+    SaberStatus set_activation(bool flag);
 
 private:
     Context _ctx;
@@ -106,11 +69,22 @@ private:
     bool _flag_relu{false};
     bool _is_trans_weights{false};
     bool _bias_term{true};
+    int _num_output;
+    int _group;
     int _kw;
     int _kh;
+    int _stride_w;
+    int _stride_h;
+    int _pad_w;
+    int _pad_h;
+    int _dila_w;
+    int _dila_h;
+    const float* _weights{nullptr};
+    const float* _bias{nullptr};
+    int _weights_size;
     size_t _workspace_fwd_sizes{0};
-    std::shared_ptr<Tensor<Dtype>> _workspace_data{nullptr};
-    std::shared_ptr<Tensor<Dtype>> _weights_trans{nullptr};
+    Tensor<CPU, AK_FLOAT> _workspace_data;
+    Tensor<CPU, AK_FLOAT> _weights_trans;
 };
 
 

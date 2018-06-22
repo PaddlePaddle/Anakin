@@ -17,9 +17,11 @@
 #define ANAKIN_SABER_LITE_CORE_COMMON_H
 
 //#include "utils/logger/logger.h"
-#include <iostream>
 #include <memory>
 #include <vector>
+#include <cassert>
+#include <stdlib.h>
+#include <stdio.h>
 #include "anakin_config.h"
 #include "saber/saber_types.h"
 
@@ -44,21 +46,38 @@ namespace lite{
 #  define LITE_EXPORT
 #endif
 
-#define CHECK_EQ(a, b) std::cout
-#define CHECK_LE(a, b) std::cout
-#define CHECK_LT(a, b) std::cout
-#define CHECK_GE(a, b) std::cout
-#define CHECK_GT(a, b) std::cout
+//#define CHECK_EQ(a, b) std::cout
+//#define CHECK_LE(a, b) std::cout
+//#define CHECK_LT(a, b) std::cout
+//#define CHECK_GE(a, b) std::cout
+//#define CHECK_GT(a, b) std::cout
+//#define LOG(a) std::cout
 
-#define LOG(a) std::cout
+#define LCHECK_EQ(a, b, out) \
+do { if (a != b) { printf("%s\n", out); assert(0);} } while (0)
+
+#define LCHECK_GE(a, b, out) \
+do { if (a < b) { printf("%s\n", out); assert(0);} } while (0)
+
+#define LCHECK_GT(a, b, out) \
+do { if (a <= b) { printf("%s\n", out); assert(0);} } while (0)
+
+#define LCHECK_LE(a, b, out) \
+do { if (a > b) { printf("%s\n", out); assert(0);} } while (0)
+
+#define LCHECK_LT(a, b, out) \
+do { if (a >= b) { printf("%s\n", out); assert(0);} } while (0)
 
 #define LITE_CHECK(condition) \
     do { \
     SaberStatus error = condition; \
-    /*CHECK_EQ(error, SaberSuccess) << " " << get_error_string_lite(error);*/ \
+    if (error != SaberSuccess) { \
+        printf("SaberLite runtime error type %s\n", get_error_string_lite(error)); \
+        assert(0);\
+    } \
 } while (0)
 
-inline const char* get_error_string_lite(SaberStatus error_code){
+inline const char* get_error_string_lite(SaberStatus error_code) {
     switch (error_code) {
         case SaberSuccess:
             return "ANAKIN_SABER_STATUS_SUCCESS";
@@ -79,11 +98,80 @@ inline const char* get_error_string_lite(SaberStatus error_code){
     }
     return "ANAKIN SABER UNKOWN ERRORS";
 }
+#if 0 //add support for opencl device memory
+template <typename dtype>
+struct CLDtype{
+    CLDtype(){
+        offset = 0;
+        ptr = nullptr;
+    }
 
-enum ARM_TYPE {
-    ARM_CPU = 0,
-    ARM_GPU = 1
+    CLDtype& operator++(){
+        offset++;
+        return *this;
+    }
+    CLDtype operator++(int){
+
+    }
+    int offset;
+    cl_mem ptr;
 };
+#endif
+
+enum ARMType{
+    CPU = 0,
+    GPU = 1,
+    DSP = 2
+};
+
+template <ARMType Ttype, DataType Dtype>
+struct DataTrait{
+    typedef void dtype;
+};
+
+
+template <ARMType Ttype>
+struct DataTrait<Ttype, AK_FLOAT>{
+    typedef float dtype;
+    typedef float Dtype;
+};
+
+template <ARMType Ttype>
+struct DataTrait<Ttype, AK_INT8>{
+    typedef char dtype;
+    typedef char Dtype;
+};
+
+template <ARMType Ttype>
+struct TargetTrait{
+    typedef void* stream_t;
+    typedef void* event_t;
+    typedef void bdtype;
+    int get_device_count() { return 1;}
+    int get_device_id(){ return 0;}
+    void set_device_id(int id){}
+};
+
+//! the alignment of all the allocated buffers
+const int MALLOC_ALIGN = 16;
+
+static void* fast_malloc(size_t size) {
+    size_t offset = sizeof(void*) + MALLOC_ALIGN - 1;
+    char* p;
+    p = static_cast<char*>(malloc(offset + size));
+    if (!p) {
+        return nullptr;
+    }
+    void* r = reinterpret_cast<void*>(reinterpret_cast<size_t>(p + offset) & (~(MALLOC_ALIGN - 1)));
+    static_cast<void**>(r)[-1] = p;
+    return r;
+}
+
+static void fast_free(void* ptr) {
+    if (ptr){
+        free(static_cast<void**>(ptr)[-1]);
+    }
+}
 
 } //namespace lite
 

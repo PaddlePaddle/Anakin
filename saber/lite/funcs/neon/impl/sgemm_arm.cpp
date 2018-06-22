@@ -141,7 +141,7 @@ void Sgemm::init(unsigned int L1_cache, unsigned int L2_cache, unsigned int M, u
     size_t size_gemm_align = _work_size + GEMM_ALIGN - 1;
     if (mem_align(GEMM_ALIGN, _work_size, _align_ptr, \
             size_gemm_align) == nullptr) {
-        LOG(ERROR) << "Not enough space to align buffer!";
+        LCHECK_EQ(0, 1, "Not enough space to align buffer!");
     }
     _loop_count = (_K - 1) / _k_block;
     _init_flag = true;
@@ -152,7 +152,7 @@ void Sgemm::operator()(const float *A, const int lda, \
     float *C, const int ldc, \
     const float alpha, const float beta, bool flag_relu) {
 
-    CHECK_EQ(_init_flag, true) << "gemm is not init";
+    LCHECK_EQ(_init_flag, true, "gemm is not init");
 
     bool flag_beta = (fabsf(beta - 1.f) < 1e-6f);
     bool flag_alpha = (fabsf(alpha -1.f) < 1e-6f);

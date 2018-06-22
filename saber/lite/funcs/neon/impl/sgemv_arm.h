@@ -12,22 +12,30 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-#ifndef ANAKIN_SABER_FUNCS_ARM_IMPL_UTILS_ARM_H
-#define ANAKIN_SABER_FUNCS_ARM_IMPL_UTILS_ARM_H
+#ifndef ANAKIN_SABER_FUNCS_ARM_IMPL_SGEMV_ARM_H
+#define ANAKIN_SABER_FUNCS_ARM_IMPL_SGEMV_ARM_H
 
 #include "saber/lite/core/common_lite.h"
-#include "saber/lite/core/tensor_lite.h"
+#ifdef USE_ARM_PLACE
+
 namespace anakin{
 
 namespace saber{
 
 namespace lite{
 
-void update_weights(Tensor<CPU, AK_FLOAT>& new_weight, Tensor<CPU, AK_FLOAT>& new_bias, \
-    const float* weights, const float* bias, int num, int ch, int kh, int kw, bool conv_bias_term, \
-    float batchnorm_scale, float batchnorm_eps, \
-    std::vector<float> batchnorm_mean, std::vector<float> batchnorm_variance, \
-    std::vector<float> scale_w, std::vector<float> scale_b, bool scale_bias_term);
+// fixme now only support transA = false
+void sgemv(const bool transA, const int M, const int N, \
+    const float* A, const float* x, float* y);
+
+void sgemv_relu(const bool transA, const int M, const int N, \
+    const float* A, const float* x, float* y);
+
+void sgemv_bias(const bool transA, const int M, const int N, \
+    const float* A, const float* x, float* y, const float* bias);
+
+void sgemv_bias_relu(const bool transA, const int M, const int N, \
+    const float* A, const float* x, float* y, const float* bias);
 
 } //namespace lite
 
@@ -35,4 +43,6 @@ void update_weights(Tensor<CPU, AK_FLOAT>& new_weight, Tensor<CPU, AK_FLOAT>& ne
 
 } //namespace anakin
 
-#endif //ANAKIN_SABER_FUNCS_ARM_IMPL_UTILS_ARM_H
+#endif // USE_ARM_PLACE
+
+#endif //ANAKIN_SABER_FUNCS_ARM_IMPL_SGEMV_ARM_H

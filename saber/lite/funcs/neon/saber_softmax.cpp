@@ -2,6 +2,7 @@
 
 #ifdef USE_ARM_PLACE
 
+#include <cmath>
 #include "saber/lite/funcs/neon/impl/neon_mathfun.h"
 
 namespace anakin{
@@ -120,11 +121,30 @@ void softmax_inner1(const float* din, float* dout, \
     }
 }
 
-template <typename Dtype>
-SaberStatus SaberSoftmax<Dtype>::dispatch(\
-    const std::vector<Tensor<Dtype>*>& inputs, \
-    std::vector<Tensor<Dtype>*>& outputs, \
-    SoftmaxParam<Tensor<Dtype>> &param) {
+SaberSoftmax::SaberSoftmax(int axis) {
+    _axis = axis;
+}
+
+SaberStatus SaberSoftmax::load_param(int axis) {
+    _axis = axis;
+}
+
+SaberStatus SaberSoftmax::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
+                               std::vector<Tensor<CPU, AK_FLOAT> *> &outputs, Context &ctx) {
+    _ctx = ctx;
+    Shape shape_in = inputs[0]->valid_shape();
+    Shape shape_out = outputs[0]->valid_shape();
+    _outer_num = inputs[0]->count_valid(0, _axis);
+    _inner_num = inputs[0]->count_valid(_axis + 1, inputs[0]->dims());
+    _axis_size = shape_in[_axis];
+
+    int buffer_size = this->_inner_num * this->_outer_num;
+    return SaberSuccess;
+}
+
+//template <typename Dtype>
+SaberStatus SaberSoftmax::dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
+    std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) {
 
     float* dout = (float*)outputs[0]->mutable_data();
     const float* din = (float*)inputs[0]->data();
@@ -138,8 +158,6 @@ SaberStatus SaberSoftmax<Dtype>::dispatch(\
 
     return SaberSuccess;
 }
-
-template class SaberSoftmax<float>;
 
 } //namespace lite
 

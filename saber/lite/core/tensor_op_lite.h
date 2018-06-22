@@ -30,36 +30,38 @@ const float eps = 1e-6f;
  *  \brief Fill the host tensor buffer with rand value.
  *  \param tensor  The reference of input tensor.
  */
-template <typename Dtype>
-void fill_tensor_host_const(Tensor<Dtype>& tensor, Dtype value);
+template <ARMType ttype, DataType dtype>
+void fill_tensor_const(Tensor<ttype, dtype>& tensor, typename DataTrait<ttype, dtype>::Dtype value);
 
 
 /**
  *  \brief Fill the host tensor buffer with rand value.
  *  \param The reference of input tensor.
  */
-template <typename Dtype>
-void fill_tensor_host_rand(Tensor<Dtype>& tensor);
+template <ARMType ttype, DataType dtype>
+void fill_tensor_rand(Tensor<ttype, dtype>& tensor);
 
 
 /**
  *  \brief Fill the host tensor buffer with rand value from vstart to vend.
  *  \param tensor The reference of input tensor.
  */
-template <typename Dtype>
-void fill_tensor_host_rand(Tensor<Dtype>& tensor, Dtype vstart, Dtype vend);
+template <ARMType ttype, DataType dtype>
+void fill_tensor_rand(Tensor<ttype, dtype>& tensor, \
+    typename DataTrait<ttype, dtype>::Dtype vstart, \
+    typename DataTrait<ttype, dtype>::Dtype vend);
 
 /**
  *  \brief Print the data in host tensor.
  *  \param tensor  The reference of input tensor.
  */
-template <typename Dtype>
-void print_tensor_host(Tensor<Dtype>& tensor);
+template <ARMType ttype, DataType dtype>
+void print_tensor(Tensor<ttype, dtype>& tensor);
+
+template <ARMType ttype, DataType dtype>
+void print_tensor_valid(Tensor<ttype, dtype>& tensor);
 
 template <typename Dtype>
-void print_tensor_host_valid(Tensor<Dtype>& tensor);
-
-template <typename Dtype >
 void tensor_cmp_host(const Dtype* src1, const Dtype* src2, int size, double& max_ratio, double& max_diff);
 
 } //namespace lite

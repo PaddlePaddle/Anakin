@@ -173,23 +173,45 @@ void eltwise_max(const float* din_a, const float* din_b, float* dout, const int 
     }
 }
 
+SaberEltwise::SaberEltwise(EltwiseType type, std::vector<float> coef) {
+    _type = type;
+    _coef = coef;
+}
 
-template <typename Dtype>
-SaberStatus SaberEltwise<Dtype>::create(\
-    const std::vector<Tensor<Dtype>*>& inputs,\
-        std::vector<Tensor<Dtype>*>& outputs,\
-        EltwiseParam<Tensor<Dtype>> &param, \
-        Context &ctx) {
+SaberStatus SaberEltwise::load_param(EltwiseType type, std::vector<float> coef) {
+    _type = type;
+    _coef = coef;
+    return SaberSuccess;
+}
+
+SaberStatus SaberEltwise::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
+                                               std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
+    for (int i = 1; i < inputs.size(); ++i) {
+        LCHECK_EQ(inputs[0]->num(), inputs[i]->num(), "input size must be the same");
+        LCHECK_EQ(inputs[0]->channel(), inputs[i]->channel(), "input size must be the same");
+        LCHECK_EQ(inputs[0]->height(), inputs[i]->height(), "input size must be the same");
+        LCHECK_EQ(inputs[0]->width(), inputs[i]->width(), "input size must be the same");
+    }
+
+    Shape output_shape = inputs[0]->valid_shape();
+    return outputs[0]->set_shape(output_shape);
+}
+
+//template <typename Dtype>
+SaberStatus SaberEltwise::init(\
+    const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx) {
+
     _ctx = ctx;
     Shape sh_out_saber = outputs[0]->valid_shape();
     for (int i = 0; i < inputs.size(); i ++){
         Shape sh_in_saber = inputs[i]->valid_shape();
         if (sh_out_saber != sh_in_saber){
-            LOG(INFO) << "input shape is not same with output shape ";
+            printf("input shape is not same with output shape\n");
             return SaberInvalidValue;
         }
     }
-    switch (param.operation) {
+    switch (_type) {
         case Eltwise_prod:
             _impl = eltwise_prod;
             break;
@@ -200,34 +222,31 @@ SaberStatus SaberEltwise<Dtype>::create(\
             _impl = eltwise_max;
             break;
         default:
-            LOG(ERROR) << "unknown eltwise type!!";
+            printf("unknown eltwise type!!\n");
             return SaberUnKownError;
     }
     return SaberSuccess;
 }
 
-template <typename Dtype>
-SaberStatus SaberEltwise<Dtype>::dispatch(\
-    const std::vector<Tensor<Dtype>*>& inputs, \
-    std::vector<Tensor<Dtype>*>& outputs, \
-    EltwiseParam<Tensor<Dtype>> &param) {
+//template <typename Dtype>
+SaberStatus SaberEltwise::dispatch(\
+    const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
+    std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) {
 
-    const Dtype* din_a = inputs[0]->data();
-    const Dtype* din_b = inputs[1]->data();
-    Dtype* dout = outputs[0]->mutable_data();
+    const float* din_a = inputs[0]->data();
+    const float* din_b = inputs[1]->data();
+    float* dout = outputs[0]->mutable_data();
 
     int size = outputs[0]->valid_size();
 
-    _impl(din_a, din_b, dout, size, param.coeff);
+    _impl(din_a, din_b, dout, size, _coef);
     for (int i = 2; i < inputs.size(); ++i) {
         din_a = inputs[i]->data();
-        _impl(din_a, dout, dout, size, param.coeff);
+        _impl(din_a, dout, dout, size, _coef);
     }
 
     return SaberSuccess;
 }
-
-template class SaberEltwise<float>;
 
 } //namespace lite
 
