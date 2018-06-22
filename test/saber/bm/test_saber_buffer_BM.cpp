@@ -1,4 +1,4 @@
-#include "test_saber_buffer_bm.h"
+#include "test_saber_buffer_BM.h"
 #include "saber/core/buffer.h"
 #include "saber/core/data_traits.h"
 

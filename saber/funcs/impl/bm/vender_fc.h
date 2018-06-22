@@ -28,7 +28,7 @@ public:
     typedef typename DataTensor_out::Dtype OutDataType;
     typedef typename OpTensor::Dtype OpDataType;
 
-    VenderFc() {};
+    VenderFc(): _handle(NULL) {};
     ~VenderFc() {}
 
     virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
@@ -40,38 +40,28 @@ public:
     virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             FcParam<OpTensor>& param, Context<BM>& ctx){
-
-        if (!(ctx == this->_ctx)) {
-            if (_handle != NULL) {
-                CUBLAS_CHECK(cublasDestroy(_handle));
-            }
-            this->_ctx = ctx;
-
-            cudaStream_t cuda_stream;
-            cuda_stream = ctx.get_compute_stream();
-            CUBLAS_CHECK(cublasCreate(&_handle));
-            CUBLAS_CHECK(cublasSetStream(_handle, cuda_stream));
-        }
-
-        Shape shape_out = inputs[0]->valid_shape();
-        _M = inputs[0]->count_valid(0, param.axis);
-        _K = inputs[0]->count_valid(param.axis, inputs[0]->dims());
-        _N = param.num_output;
-        if (_N <= 0) {
-            int weight_size = param.weights->valid_size();
-            _N = weight_size / _K;
-        }
-        //! weights dims must be in h and w
-        _flag_trans_weights = param.is_transpose_weights;
         return SaberSuccess;
     }
 
     virtual SaberStatus dispatch(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             FcParam<OpTensor>& param){
-
+        const InDataType *in_data = (const InDataType *) inputs[0]->data();
+        const InDataType *weights = (const InDataType *) param.weights->get_buf()->get_data();
+        const InDataType *bias = (const InDataType *) param.bias->get_buf()->get_data();
+        OutDataType *out_data = (OutDataType *) outputs[0]->mutable_data();
+        int batch_size = inputs[0]->num();
+        int input_len = inputs[0]->channel();
+        int output_len = param.num_output;
+        int is_transpose = param.is_transpose_weights ? 1 : 0;
+        BMDNN_CHECK(bmdnn_fc_forward(_handle, in_data, weights, bias,
+                                    batch_size, output_len, input_len, is_transpose, 1, 0,
+                                    out_data));
+        return SaberSuccess;
     };
 
+private:
+    bm_handle_t _handle;
 };
 
 template class VenderFc<BM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
@@ -79,4 +69,4 @@ template class VenderFc<BM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
 
 } //namespace anakin
 
-#endif // ANAKIN_SABER_FUNCS_CUDA_CUBLAS_FC_H
+#endif // ANAKIN_SABER_FUNCS_BMDNN_FC_H
