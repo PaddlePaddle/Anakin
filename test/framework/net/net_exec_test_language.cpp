@@ -12,12 +12,12 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <map>
-#include <mkl_service.h>
-#include "omp.h"
+
 #include "sys/time.h"
 
 #ifdef USE_X86_PLACE
-
+#include <mkl_service.h>
+#include "omp.h"
 using Target = X86;
 
 #define DEFINE_GLOBAL(type, var, value) \

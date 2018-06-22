@@ -12,14 +12,12 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <map>
-
 #include "sys/time.h"
 #include "debug.h"
 #include "string"
 
-#ifdef USE_X86_PLACE
-#include <mkl_service.h>
-#include "omp.h"
+#ifdef USE_CUDA
+
 #define DEFINE_GLOBAL(type, var, value) \
         type (GLB_##var) = (value)
 DEFINE_GLOBAL(int, run_threads, 1);
@@ -163,13 +161,10 @@ int get_batch_data_offset(
     return len;
 }
 
-void anakin_net_thread(std::vector<Tensor4dPtr<X86, AK_FLOAT> >* data_in, std::string model_path
+void anakin_net_thread(std::vector<Tensor4dPtr<NV, AK_FLOAT> >* data_in, std::string model_path
                       , bool is_save_result=false,int thread_id=0) {
-    omp_set_dynamic(0);
-    omp_set_num_threads(1);
-    mkl_set_num_threads(1);
-    Graph<X86, AK_FLOAT, Precision::FP32>* graph = new Graph<X86, AK_FLOAT, Precision::FP32>();
-    LOG(WARNING) << "load anakin model file from " << model_path << " ...";
+    Graph<NV, AK_FLOAT, Precision::FP32>* graph = new Graph<NV, AK_FLOAT, Precision::FP32>();
+    LOG(WARNING) << "load anakin model file from " << model_path << " ... ";
     // load anakin model files.
     auto status = graph->load(model_path);
     if (!status) {
@@ -179,7 +174,7 @@ void anakin_net_thread(std::vector<Tensor4dPtr<X86, AK_FLOAT> >* data_in, std::s
     graph->Reshape("input_0", {GLB_max_word_len, 1, 1, 1});
     //anakin graph optimization
     graph->Optimize();
-    Net<X86, AK_FLOAT, Precision::FP32> net_executer(*graph, true);
+    Net<NV, AK_FLOAT, Precision::FP32> net_executer(*graph, true);
     //    SaberTimer<X86> timer;
     //    Context<X86> ctx;
     struct timeval time_start, time_end;
@@ -196,22 +191,22 @@ void anakin_net_thread(std::vector<Tensor4dPtr<X86, AK_FLOAT> >* data_in, std::s
         word_in_p->reshape({len_sum, 1, 1, 1});
         word_sum += len_sum;
 
-        for (int j = 0; j < len_sum; ++j) {
-            word_in_p->mutable_data()[j] = input_tensor->data()[j];
-        }
+        word_in_p->copy_from(*input_tensor);
 
         word_in_p->set_seq_offset(input_tensor->get_seq_offset());
         //        timer.start(ctx);
-
+//        LOG(INFO)<<"ready to prediction size = "<<input_tensor->get_seq_offset().size();
         net_executer.prediction();
+
+
         if(is_save_result) {
             int k = net_executer.get_out_list().size();
                     LOG(INFO) << "out size = " << k;
             auto outs = net_executer.get_out(GLB_output_name);
             int out_cnt = 0;
-            record_dev_tensorfile(outs,
-                                  ("output_" + std::to_string(thread_id) + "_" + std::to_string(i)+ ".txt").data());
+            record_dev_tensorfile(outs,("output_" + std::to_string(thread_id) + "_" + std::to_string(i)+ ".txt").data());
         }
+
 //        out_cnt++;
 
         //        timer.end(ctx);
@@ -219,7 +214,7 @@ void anakin_net_thread(std::vector<Tensor4dPtr<X86, AK_FLOAT> >* data_in, std::s
             LOG(INFO) << "thread run " << i << " of " << data_in->size();
         }
     }
-
+    cudaDeviceSynchronize();
     gettimeofday(&time_end, nullptr);
     float use_ms = (time_end.tv_sec - time_start.tv_sec) * 1000.f + (time_end.tv_usec -
                    time_start.tv_usec) / 1000.f;
@@ -242,13 +237,13 @@ std::vector<std::vector<float> > get_input_data(){
     }
     return word_idx;
 };
-std::vector<std::vector<Tensor<X86, AK_FLOAT>* >> get_slice_input_data(std::vector<std::vector<float> > &word_idx,
+std::vector<std::vector<Tensor<NV, AK_FLOAT>* >> get_slice_input_data(std::vector<std::vector<float> > &word_idx,
                                                                        int thread_num,int &real_max_batch_word_len,int batch_num){
-    std::vector<std::vector<Tensor<X86, AK_FLOAT>* >> host_tensor_p_in_list;
+    std::vector<std::vector<Tensor<NV, AK_FLOAT>* >> host_tensor_p_in_list;
     std::vector<float> word_idx_data;
     std::vector<int> word_seq_offset;
     for (int tid = 0; tid < thread_num; ++tid) {
-        std::vector<Tensor<X86, AK_FLOAT>* > data4thread;
+        std::vector<Tensor<NV, AK_FLOAT>* > data4thread;
         int start_wordid = tid * (word_idx.size() / thread_num);
         int end_wordid = (tid + 1) * (word_idx.size() / thread_num);
 
@@ -256,12 +251,14 @@ std::vector<std::vector<Tensor<X86, AK_FLOAT>* >> get_slice_input_data(std::vect
             int word_len = get_batch_data_offset(word_idx_data, word_idx, word_seq_offset, i, batch_num);
             real_max_batch_word_len = real_max_batch_word_len < word_len ? word_len : real_max_batch_word_len;
             saber::Shape valid_shape({word_len, 1, 1, 1});
-            Tensor4d<X86, AK_FLOAT>* tensor_p = new Tensor4d<X86, AK_FLOAT>(valid_shape);
+            Tensor4d<NV, AK_FLOAT>* tensor_p = new Tensor4d<NV, AK_FLOAT>(valid_shape);
+            Tensor4d<NVHX86, AK_FLOAT> temp_tensor(valid_shape);
                     CHECK_EQ(word_len, word_idx_data.size()) << "word_len == word_idx_data.size";
 
             for (int j = 0; j < word_idx_data.size(); ++j) {
-                tensor_p->mutable_data()[j] = word_idx_data[j];
+                temp_tensor.mutable_data()[j] = word_idx_data[j];
             }
+            tensor_p->copy_from(temp_tensor);
 
             tensor_p->set_seq_offset(word_seq_offset);
             data4thread.push_back(tensor_p);
@@ -271,9 +268,6 @@ std::vector<std::vector<Tensor<X86, AK_FLOAT>* >> get_slice_input_data(std::vect
     return host_tensor_p_in_list;
 };
 void instance_run(){
-    omp_set_dynamic(0);
-    omp_set_num_threads(1);
-    mkl_set_num_threads(1);
 
     std::string model_path=get_model_path();
 
@@ -287,7 +281,7 @@ void instance_run(){
     int real_max_batch_word_len = 0;
 
 
-    std::vector<std::vector<Tensor<X86, AK_FLOAT>* >> host_tensor_p_in_list;
+    std::vector<std::vector<Tensor<NV, AK_FLOAT>* >> host_tensor_p_in_list;
 #ifdef AVG_INPUT
     host_tensor_p_in_list=get_slice_input_data(word_idx,1,real_max_batch_word_len,batch_num);
 #else
@@ -307,13 +301,6 @@ void instance_run(){
         GLB_split_word[i]));
     }
 
-    std::string first_line="";
-    Tensor<X86, AK_FLOAT>* first_tensor=host_tensor_p_in_list[0][0];
-    for(int  i=0 ;i<first_tensor->valid_size() ;++i){
-        first_line=first_line+std::to_string(first_tensor->data()[i])+",";
-        LOG(INFO)<<"first line : "<<first_tensor->data()[i];
-    }
-    LOG(INFO)<<"first line2 :"<<first_line;
 
     LOG(WARNING) << "Async Runing multi_threads for model: " << model_path << ",batch dim = " <<
                  batch_num
@@ -358,7 +345,7 @@ void instance_run(){
 }
 void worker_run(){
     std::string model_path=get_model_path();
-    Worker<X86, AK_FLOAT, Precision::FP32>  workers(model_path, 10);
+    Worker<NV, AK_FLOAT, Precision::FP32>  workers(model_path, 10);
     workers.register_inputs({"input_0"});
     if(GLB_output_name!=""){
         workers.register_outputs({GLB_output_name});
@@ -371,7 +358,7 @@ void worker_run(){
     int thread_num = GLB_run_threads;
     int real_max_batch_word_len = 0;
 
-    std::vector<std::vector<Tensor<X86, AK_FLOAT>* >> host_tensor_p_in_list;
+    std::vector<std::vector<Tensor<NV, AK_FLOAT>* >> host_tensor_p_in_list;
     host_tensor_p_in_list=get_slice_input_data(word_idx,1,real_max_batch_word_len,batch_num);
 
     workers.Reshape("input_0", {real_max_batch_word_len,1,1,1});
@@ -381,8 +368,8 @@ void worker_run(){
 
 
     for(int i=0; i<host_tensor_p_in_list[0].size(); i++) {
-        std::vector<Tensor4dPtr<target_host<X86>::type, AK_FLOAT> > tensor_in_vec(1);
-        tensor_in_vec[0]=host_tensor_p_in_list[0][i];
+        std::vector<Tensor4dPtr<target_host<NV>::type, AK_FLOAT> > tensor_in_vec(1);
+//        tensor_in_vec[0]=host_tensor_p_in_list[0][i];
         workers.sync_prediction(tensor_in_vec);
 //        auto  d_tensor_p_out_list = workers.sync_prediction(host_tensor_p_in_list);
 

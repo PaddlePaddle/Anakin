@@ -13,6 +13,7 @@
 #include <fcntl.h>
 #include <map>
 
+#ifdef USE_X86_PLACE
 #define DEFINE_GLOBAL(type, var, value) \
         type (GLB_##var) = (value)
 DEFINE_GLOBAL(std::string, model_dir, "");
@@ -199,3 +200,8 @@ int main(int argc, const char** argv) {
     RUN_ALL_TESTS(argv[0]);
     return 0;
 }
+#else
+int main(int argc, const char** argv) {
+
+}
+#endif

@@ -46,7 +46,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
     init_env(graph);
     // shallow copy
     _graph_p->CopyFrom(graph);
-     
+
     auto node_names_in_exec_order = graph.get_nodes_in_order();
     // infer basic shape and parsing parameter from graph
     for (auto& node_name : node_names_in_exec_order) {
@@ -161,13 +161,16 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
                           << " " << in->valid_shape()[1] 
                           << " " << in->valid_shape()[2] 
                           << " " << in->valid_shape()[3];
+                LOG(INFO) <<"in offset size = "<<in->get_seq_offset().size();
         }
         for(auto& out : op_func.outs) {
                 LOG(INFO) << "  <= [shape]: " << out->valid_shape()[0] 
                           << " " << out->valid_shape()[1] 
                           << " " << out->valid_shape()[2] 
                           << " " << out->valid_shape()[3];
+                LOG(INFO) <<"out offset size = "<<out->get_seq_offset().size();
         }
+
 #endif
         op_func.op->_helper->Init(*(op_func.ctx_p), op_func.ins, op_func.outs);
 #ifdef ENABLE_DEBUG
@@ -266,9 +269,11 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
 	    }
 	    LOG(INFO)<<"  end print offset of "<<executer.name;
         LOG(INFO) <<executer.name <<" d_tensor_out_p :" <<out->data();
+#ifdef USE_X86_PLACE
         for (int i = 0; i < 10; ++i) {
             std::cout << out->data()[i]<<" ";
         }
+#endif
         std::cout<<std::endl;
         record_dev_tensorfile(out->data(), out->valid_size(),
                               ("net_record_" + executer.name + ".txt").data());

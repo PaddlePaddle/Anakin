@@ -266,7 +266,7 @@ public:
         }
 
         int batch_size = inputs[0]->get_seq_offset().size() - 1;
-        int sequence = inputs[0]->get_seq_offset()[batch_size];
+        int sequence = inputs[0]->num();
         _gemm_wx = saber_find_fast_sass_gemm(false, false, sequence * batch_size, 3 * _hidden_size,
                                              _word_size);
         _gemm_wh_2 = saber_find_fast_sass_gemm(false, false, batch_size, 2 * _hidden_size, _hidden_size);
