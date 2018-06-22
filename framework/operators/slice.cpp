@@ -3,7 +3,7 @@
 namespace anakin {
 
 namespace ops {
-
+#if 0
 //#ifdef USE_CUDA
 //template<>
 //void Slice<NV, AK_FLOAT, Precision::FP32>::operator()(
@@ -123,7 +123,7 @@ ANAKIN_REGISTER_OP(Slice)
 .Args<int>("slice_dim", " slice dim at input ")
 .Args<PTuple<int>>("slice_point", " slice point of op")
                 .Args<int>("axis", " axis of input to slice");
-
+#endif
 } /* namespace ops */
 
 } /* namespace anakin */

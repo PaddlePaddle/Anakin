@@ -49,7 +49,18 @@ public:
 
     friend class SliceHelper<Ttype, Dtype, Ptype>;
 };
-
+#define INSTANCE_SLICE(Ttype, Dtype, Ptype) \
+template<> \
+void Slice<Ttype, Dtype, Ptype>::operator()( \
+    OpContext<Ttype>& ctx, \
+    const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, \
+    std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) { \
+    auto* impl = \
+        static_cast<SliceHelper<Ttype, Dtype, Ptype>*>(this->_helper); \
+    auto& param = \
+        static_cast<SliceHelper<Ttype, Dtype, Ptype>*>(this->_helper)->_param_slice; \
+    impl->_funcs_slice(ins, outs, param, ctx); \
+}
 /**
  * \brief Slice helper class to implement Slice
  * public inherit OperatorHelper
@@ -60,9 +71,26 @@ class SliceHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     SliceHelper()=default;
 
-    ~SliceHelper();
+    ~SliceHelper() {}
 
-    Status InitParam() override;
+    Status InitParam() override {
+        DLOG(WARNING) << "Parsing Slice op parameter.";
+        auto slice_dim = GET_PARAMETER(int, slice_dim);
+        _slice_point = GET_PARAMETER(PTuple<int>, slice_point);
+        _axis = GET_PARAMETER(int, axis);
+                LOG(INFO) << " slice_dim " << slice_dim;
+                LOG(INFO) << " slice_point size(" << _slice_point.size() << ").";
+
+        for (auto item : _slice_point.vector()) {
+                    LOG(INFO) << "  |-- " << item;
+        }
+
+                LOG(INFO) << " axis " << _axis;
+
+        SliceParam<Tensor4d<Ttype, Dtype>> param_slice(_axis, _slice_point.vector());
+        _param_slice = param_slice;
+        return Status::OK();
+    }
 
     /**
     * \brief initial all the resource needed by pooling
@@ -73,7 +101,10 @@ public:
     */
     Status Init(OpContext<Ttype> &ctx,
                 const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override {
+        SABER_CHECK(_funcs_slice.init(ins, outs, _param_slice, SPECIFY, SABER_IMPL, ctx));
+        return Status::OK();
+    }
 
     /**
     * \brief infer the shape of output and input.
@@ -82,7 +113,21 @@ public:
     * \return status
     */
     Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override {
+        if (_slice_point.size() + 1 != outs.size()) {
+            if (_slice_point.size() == 1) {
+                for (int i = 0; i < outs.size() - 2; i++) {
+                    _slice_point.push_back(_slice_point[0] + _slice_point[_slice_point.size() - 1]);
+                }
+
+                SliceParam<Tensor4d<Ttype, Dtype>> param_slice(_axis, _slice_point.vector());
+                _param_slice = param_slice;
+            }
+        }
+
+        SABER_CHECK(_funcs_slice.compute_output_shape(ins, outs, _param_slice));
+        return Status::OK();
+    }
 
 public:
     ///< _param_slice stand for slice parameter
@@ -97,7 +142,34 @@ private:
     int _axis;
 };
 
+#ifdef USE_CUDA
+INSTANCE_SLICE(NV, AK_FLOAT, Precision::FP32);
+template class SliceHelper<NV, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Slice, SliceHelper, NV, AK_FLOAT, Precision::FP32);
+template class SliceHelper<NV, AK_FLOAT, Precision::FP16>;
+template class SliceHelper<NV, AK_FLOAT, Precision::INT8>;
+#endif
 
+#ifdef USE_ARM_PLACE
+INSTANCE_SLICE(ARM, AK_FLOAT, Precision::FP32);
+template class SliceHelper<ARM, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Slice, SliceHelper, ARM, AK_FLOAT, Precision::FP32);
+#endif
+
+//! register op
+ANAKIN_REGISTER_OP(Slice)
+.Doc("Slice operator")
+#ifdef USE_CUDA
+.__alias__<NV, AK_FLOAT, Precision::FP32>("slice")
+#endif
+#ifdef USE_ARM_PLACE
+.__alias__<ARM, AK_FLOAT, Precision::FP32>("slice")
+#endif
+.num_in(1)
+.num_out(1)
+.Args<int>("slice_dim", " slice dim at input ")
+.Args<PTuple<int>>("slice_point", " slice point of op")
+.Args<int>("axis", " axis of input to slice");
 
 } /* namespace ops */
 

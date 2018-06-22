@@ -161,7 +161,6 @@ SaberStatus SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::in
     const std::vector<DataTensor_in *>& inputs, \
     std::vector<DataTensor_out *>& outputs, \
     ConvParam<OpTensor> &conv_param, Context<ARM> &ctx) {
-    _conv_param = conv_param;
     return create(inputs, outputs, conv_param, ctx);
 }
 
