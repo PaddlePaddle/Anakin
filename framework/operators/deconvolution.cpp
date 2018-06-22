@@ -3,7 +3,7 @@
 namespace anakin {
 
 namespace ops {
-
+#if 0
 #ifdef USE_CUDA
 template<>
 void Deconvolution<NV, AK_FLOAT, Precision::FP32>::operator()(
@@ -134,7 +134,7 @@ ANAKIN_REGISTER_OP(Deconvolution)
                 .Args<int>("filter_num", "filter(kernel) number of weights")
                 .Args<PTuple<int>>("kernel_size", "kernel size of kernel (x, y)")
                 .Args<int>("axis", "axis of conv");
-
+#endif
 } /* namespace ops */
 
 } /* namespace anakin */
