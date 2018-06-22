@@ -18,6 +18,15 @@ DEFINE_GLOBAL(int, channel, 8);
 DEFINE_GLOBAL(int, height, 640);
 DEFINE_GLOBAL(int, width, 640);
 DEFINE_GLOBAL(bool, is_input_shape, false);
+
+#ifdef USE_CUDA
+typedef NV Target;
+#elif defined(USE_X86_PLACE)
+typedef X86 Target;
+#else
+typedef ARM Target;
+#endif
+
 void getModels(std::string path, std::vector<std::string>& files)
 {
     DIR *dir;
@@ -45,7 +54,7 @@ TEST(NetTest, net_execute_base_test) {
     getModels(GLB_model_dir, models);
     for (auto iter = models.begin(); iter < models.end(); iter++)
     {
-        AnakinEngine<NV, AK_FLOAT, Precision::FP32> anakin_engine;
+        AnakinEngine<Target, AK_FLOAT, Precision::FP32> anakin_engine;
         LOG(WARNING) << "load anakin model file from " << *iter << " ...";
         std::vector<int> shape{GLB_num, GLB_channel, GLB_height, GLB_width};
         //anakin_engine.Build(*iter, shape);
@@ -62,8 +71,8 @@ TEST(NetTest, net_execute_base_test) {
         int warmup_iter = 10;
         int epoch = 1000;
         // do inference
-        Context<NV> ctx(0, 0, 0);
-        saber::SaberTimer<NV> my_time;
+        Context<Target> ctx(0, 0, 0);
+        saber::SaberTimer<Target> my_time;
         LOG(WARNING) << "EXECUTER !!!!!!!! ";
         for (int i = 0; i < warmup_iter; i++) {
             anakin_engine.Execute();

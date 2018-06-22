@@ -4,6 +4,7 @@ namespace anakin {
 
 namespace ops {
 
+#ifdef USE_CUDA
 template<>
 void Argmax<NV, AK_FLOAT, Precision::FP32>::operator()(
     OpContext<NV>& ctx,
@@ -14,6 +15,7 @@ void Argmax<NV, AK_FLOAT, Precision::FP32>::operator()(
     auto& param = impl->_param_argmax;
     impl->_funcs_argmax(ins, outs, param, ctx);
 }
+#endif
 
 /// TODO ... specialization other type of operator
 
@@ -25,7 +27,7 @@ ArgmaxHelper<Ttype, Dtype, Ptype>::~ArgmaxHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ArgmaxHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Argmax op parameter.";
+    DLOG(WARNING) << "Parsing Argmax op parameter.";
     auto out_max_val = GET_PARAMETER(bool, out_max_val);
     auto top_k = GET_PARAMETER(int, top_k);
     auto axis = GET_PARAMETER(int, axis);

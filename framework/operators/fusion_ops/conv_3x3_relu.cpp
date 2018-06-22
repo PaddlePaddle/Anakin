@@ -27,7 +27,7 @@ SassConvReluHelper<Ttype, Dtype, Ptype>::~SassConvReluHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status SassConvReluHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing SassConvRelu op parameter.";
+    DLOG(WARNING) << "Parsing SassConvRelu op parameter.";
     saber::ConvParam<Tensor4d<Ttype, Dtype>> _conv_param;
 
     // get conv param
@@ -39,10 +39,12 @@ Status SassConvReluHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto filter_num = GET_PARAMETER(int, filter_num);
     auto kernel_size = GET_PARAMETER(PTuple<int>, kernel_size);
     auto axis = GET_PARAMETER(int, axis);
-    auto weights = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_1);
+
+	using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
+    auto weights = GET_PARAMETER(pblock_type, weight_1);
 
     if (bias_term) {
-        auto bias = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_2);
+        auto bias = GET_PARAMETER(pblock_type, weight_2);
         saber::ConvParam<Tensor4d<Ttype, Dtype>> conv_param(group, padding[0], padding[1],
                                               strides[0], strides[1],
                                               dilation_rate[0], dilation_rate[1],

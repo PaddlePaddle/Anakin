@@ -44,7 +44,11 @@ public:
     typedef typename OpTensor::Dtype OpDataType;
 
     SaberGru() {}
-    ~SaberGru() {}
+    ~SaberGru() {
+        if (_cublas_handle != NULL) {
+            CUBLAS_CHECK(cublasDestroy(_cublas_handle));
+        }
+    }
     
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs, \
         std::vector<DataTensor_out*>& outputs, \
@@ -53,6 +57,33 @@ public:
         this->_ctx = ctx;
         CUBLAS_CHECK(cublasCreate(&_cublas_handle));
         CUBLAS_CHECK(cublasSetStream(_cublas_handle, this->_ctx.get_compute_stream()));
+        if(gru_param.formula==GRU_ORIGIN) {
+            _hidden_size = gru_param.bias()->valid_size() / 3;
+
+            int weights_bias_size = _hidden_size * 3;
+            int weights_h2h_size = _hidden_size * _hidden_size * 3;
+            int weights_i2h_size = gru_param.weight()->valid_size() - weights_h2h_size;
+
+            _word_size = weights_i2h_size / _hidden_size / 3;
+            _weights_i2h.try_expand_size(weights_i2h_size);
+            _weights_h2h.try_expand_size(weights_h2h_size);
+            _weights_bias.try_expand_size(weights_bias_size);
+
+            int size_data_type = sizeof(InDataType);
+//            memcpy(_weights_i2h.mutable_data(), gru_param.weight()->data(),
+//                   size_data_type * weights_i2h_size);
+//            memcpy(_weights_h2h.mutable_data(), gru_param.weight()->data() + weights_i2h_size,
+//                   size_data_type * weights_h2h_size);
+//            memcpy(_weights_bias.mutable_data(), gru_param.bias()->data(),
+//                   size_data_type * weights_bias_size);
+
+            CUDA_CHECK(cudaMemcpy(_weights_i2h.mutable_data(), gru_param.weight()->data(), size_data_type * weights_i2h_size
+                    ,cudaMemcpyDeviceToDevice));
+            CUDA_CHECK(cudaMemcpy(_weights_h2h.mutable_data(), gru_param.weight()->data() + weights_i2h_size,
+                                  size_data_type * weights_h2h_size,cudaMemcpyDeviceToDevice));
+            CUDA_CHECK(cudaMemcpy(_weights_bias.mutable_data(), gru_param.bias()->data(), size_data_type * weights_bias_size
+                    ,cudaMemcpyDeviceToDevice));
+        }
         return create(inputs, outputs, gru_param, ctx);
     }
 
@@ -70,16 +101,6 @@ public:
             cuda_stream = ctx.get_compute_stream();
             CUBLAS_CHECK(cublasCreate(&_cublas_handle));
             CUBLAS_CHECK(cublasSetStream(_cublas_handle, cuda_stream));
-        }
-
-        if (gru_param.isHW2Seq) {
-            if (inputs.size() > 0 && inputs[0]->get_seq_offset().size() > 0) {
-                std::vector<int>offset = inputs[0]->get_seq_offset();
-                int seqsum = offset[offset.size() - 1];
-                int hiddensize = gru_param.bias()->valid_size() / 3;
-                Shape shape(seqsum, hiddensize, 1, 1);
-                outputs[0]->reshape(shape);
-            }
         }
 
         return SaberSuccess;
@@ -104,6 +125,13 @@ private:
     Tensor<X86, AK_INT32, LayOutType_in> _temp_map_host;
     Tensor<NV, AK_INT32, LayOutType_in> _temp_map_dev;
 
+    int _word_size;
+    int _hidden_size;
+
+    OpTensor _weights_i2h;
+    OpTensor _weights_h2h;
+    OpTensor _weights_bias;
+
     void seq2hw(std::vector<DataTensor_out*> outputs, std::vector<DataTensor_in*> inputs,
                 GruParam<OpTensor>& param, int hidden_size,void* real_temp_out);
 /**
@@ -124,7 +152,7 @@ private:
                           GruParam<OpTensor>& param);
 };
 
-template class SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
+
 
 } //namespace saber
 

@@ -1,16 +1,28 @@
 #include "framework/core/net/net.h"
 #include "saber/funcs/timer.h"
+#include "saber/funcs/debug.h"
 namespace anakin {
+
+template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
+Net<Ttype, Dtype, Ptype, RunType>::~Net() {
+	if(_graph_p) {
+		delete _graph_p;
+		_graph_p = nullptr;
+	}
+}
 
 template<typename Ttype, DataType Dtype>
 double tensor_average(Tensor4dPtr<Ttype, Dtype>& out_tensor_p) {
     double sum = 0.0f;
-    Tensor4d<X86, AK_FLOAT> h_tensor_result;
+#ifdef USE_CUDA
     float* h_data = new float[out_tensor_p->valid_size()];
     const float* d_data = out_tensor_p->data();
     CUDA_CHECK(cudaMemcpy(h_data, d_data, out_tensor_p->valid_size()*sizeof(float), cudaMemcpyDeviceToHost));
+#else
+	float* h_data = out_tensor_p->data();
+#endif
     for (int i=0; i<out_tensor_p->valid_size(); i++) {
-	sum+=h_data[i];
+		sum+=h_data[i];
     }
     return sum/out_tensor_p->valid_size();
 }
@@ -38,7 +50,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
     auto node_names_in_exec_order = graph.get_nodes_in_order();
     // infer basic shape and parsing parameter from graph
     for (auto& node_name : node_names_in_exec_order) {
-        auto& node_ptr = (*_graph_p)[node_name];
+        auto node_ptr = (*_graph_p)[node_name];
         if (node_ptr->get_op_name() == "Output") {
             continue;
         }
@@ -76,18 +88,12 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
             _op_param.push_back(node_ptr->get_op_name());   
         }
 #endif
+
         // create operations
-#if 1
-        if (node_ptr->get_op_name() == "ConvReluPool"|| node_ptr->get_op_name() == "ConvBatchnormScaleRelu" || node_ptr->get_op_name() == "ConvBatchnormScaleReluPool" || node_ptr->get_op_name() == "ConvRelu" || node_ptr->get_op_name() == "Convolution") {
-        std::string key = "kernel_size";
-        std::string strides = "strides";
+#if defined(USE_CUDA)
+       	if (node_ptr->get_op_name() == "ConvBatchnormScaleRelu" || node_ptr->get_op_name() == "ConvRelu" || node_ptr->get_op_name() == "Convolution") {
         std::string group = "group";
-        std::string dilation_rate = "dilation_rate";
-        auto kernel_size = node_ptr->template get_attr<PTuple<int>>(key);
-        auto stride_size = node_ptr->template get_attr<PTuple<int>>(strides);
         auto group_val =  node_ptr->template get_attr<int>(group);
-        auto dilation = node_ptr->template get_attr<PTuple<int>>(dilation_rate);
-        //if (dilation[0] == 1 && dilation[1] == 1 && kernel_size[0] == 3 && kernel_size[1] == 3 && stride_size[0] == 1 && stride_size[1] == 1 /*&& count > 3*/ && group_val == 1) {
         if (group_val == 1) {
             node_ptr->set_op(OpFactory<Ttype, Dtype, Ptype>::Global()["Sass"+node_ptr->get_op_name()]);
             node_ptr->get_op_name() = "Sass" + node_ptr->get_op_name();
@@ -103,6 +109,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
 #else
         auto* op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
         node_ptr->set_op(op_pointer);
+		op_pointer = nullptr;
 #endif
         // bind parameter structure
         static_cast<Operator<Ttype, Dtype, Ptype>*>(node_ptr->Op())->_helper->BindParam(node_ptr);
@@ -178,7 +185,6 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
             for(int i = 0; i < executer.ins.size(); i++) {
                 // record
                 executer.ins[i]->record_event(executer.ctx_p->get_compute_stream());
-                //Env<TargetType>::cur_env()[]
                 executer.ins[i]->sync();
             }
         }
@@ -188,8 +194,10 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
 	    for (auto out : executer.outs) {
 	        LOG(INFO) << "    |-- out tensor avg " << tensor_average(out);
 	    }
+#ifdef USE_CUDA
 	    CUDA_CHECK(cudaDeviceSynchronize());
         CUDA_CHECK(cudaPeekAtLastError());
+#endif
     }
 #endif
 }
@@ -204,7 +212,6 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
             for(int i = 0; i < executer.ins.size(); i++) {
                 // record
                 executer.ins[i]->record_event(executer.ctx_p->get_compute_stream());
-                //Env<TargetType>::cur_env()[]
                 executer.ins[i]->sync();
             }
         }
@@ -221,12 +228,14 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
         }
 #endif
 #ifdef ENABLE_OP_TIMER   
-	Context<NV> ctx(0, 0, 0);
-	saber::SaberTimer<NV> my_time;
+	Context<Ttype> ctx(0, 0, 0);
+	saber::SaberTimer<Ttype> my_time;
 	my_time.start(ctx);
 #endif
-      executer.infer_shape();
-      executer.launch();
+      if (executer.op_name != "Input") {
+          executer.infer_shape();
+          executer.launch();
+      }
 
       for(int i = 0; i < executer.outs.size(); i++) {
           executer.outs[i]->record_event(executer.ctx_p->get_compute_stream());
@@ -235,7 +244,6 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
     for (int i = 0; i < executer.outs.size(); i++) {
         // record
         executer.outs[i]->record_event(executer.ctx_p->get_compute_stream());
-        //Env<TargetType>::cur_env()[]
         executer.outs[i]->sync();
     }
 	my_time.end(ctx);
@@ -243,15 +251,122 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
 #endif
 	//LOG(INFO)<< "op: " << executer.name<<"(" << executer.op_name <<")  ===  infer+launch time "<<my_time.get_average_ms() << " ms";
 #ifdef ENABLE_DEBUG	
+#ifdef USE_CUDA
 	cudaDeviceSynchronize();
     CUDA_CHECK(cudaPeekAtLastError());
 	for (auto out : executer.outs) {
+        LOG(INFO) <<executer.name <<" d_tensor_out_p :" <<out->data();
+        record_dev_tensorfile(out->data(), out->valid_size(),
+                              ("net_record_" + executer.name + ".txt").data());
 	    LOG(ERROR) << "    |---out avg " << tensor_average(out);
 	}
 	cudaDeviceSynchronize();
-        CUDA_CHECK(cudaPeekAtLastError());
+    CUDA_CHECK(cudaPeekAtLastError());
+#endif
+#ifdef USE_X86_PLACE
+    for (auto out : executer.outs) {
+        LOG(INFO) <<executer.name <<" d_tensor_out_p :" <<out->data();
+        const float* out_data = out->data();
+        std::cout << "seq_offset size: " << out->get_seq_offset().size()<<" ";
+        for (int i = 0; i < 10; ++i) {
+            std::cout << out_data[i] << " ";
+        }
+        std::cout << std::endl;
+
+    }
+#endif
 #endif
     }
+}
+
+template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
+void Net<Ttype, Dtype, Ptype, RunType>::execute_stop_at_node(std::string node_name) {
+	if(_suspended_point==-1) { 
+		for(int i=0; i<_exec_funcs.size(); i++) {
+			if(_exec_funcs[i].name == node_name) {
+				_suspended_point = i;
+			}
+		}
+	}
+	for(int i=0; i<_suspended_point; i++) {
+		auto& executer = _exec_funcs[i];
+        if (RunType == OpRunType::SYNC || executer.need_sync) {
+            for(int i = 0; i < executer.ins.size(); i++) {
+                // record
+                executer.ins[i]->record_event(executer.ctx_p->get_compute_stream());
+                executer.ins[i]->sync();
+            }
+        }
+#ifdef ENABLE_DEBUG
+        LOG(ERROR) << " executer : " << executer.name << " (" << executer.op_name << ") ";
+        for(auto in : executer.ins) {
+                LOG(ERROR) << "    \\in shape " << in->valid_shape()[0] 
+                           << " " << in->valid_shape()[1] 
+                           << " " << in->valid_shape()[2] 
+                           << " " << in->valid_shape()[3] 
+			   			   << " valid_size: " << in->valid_size() 
+						   << " realsize: " << in->size() 
+						   << " offset_size "<<in->get_seq_offset().size();
+        }
+		for (auto out : executer.outs) {
+	        LOG(INFO) << "    |-- out tensor avg " << tensor_average(out);
+	    }
+
+#endif 
+		if (executer.op_name != "Input") { 
+			executer.infer_shape(); 
+			executer.launch(); 
+		} 
+      
+		for(int i = 0; i < executer.outs.size(); i++) { 
+			executer.outs[i]->record_event(executer.ctx_p->get_compute_stream()); 
+		} 
+	}
+}
+
+template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
+void Net<Ttype, Dtype, Ptype, RunType>::execute_start_from_node(std::string node_name) {
+	if(_start_point == -1) {
+		for(int i=0; i<_exec_funcs.size(); i++) {
+			if(_exec_funcs[i].name == node_name) {
+				_start_point = i;
+			}
+		}
+	}
+	for(int i=_start_point; i<_exec_funcs.size(); i++) {
+		auto& executer = _exec_funcs[i];
+        if (RunType == OpRunType::SYNC || executer.need_sync) {
+            for(int i = 0; i < executer.ins.size(); i++) {
+                // record
+                executer.ins[i]->record_event(executer.ctx_p->get_compute_stream());
+                executer.ins[i]->sync();
+            }
+        }
+#ifdef ENABLE_DEBUG
+        LOG(ERROR) << " executer : " << executer.name << " (" << executer.op_name << ") ";
+        for(auto in : executer.ins) {
+                LOG(ERROR) << "    \\in shape " << in->valid_shape()[0] 
+                           << " " << in->valid_shape()[1] 
+                           << " " << in->valid_shape()[2] 
+                           << " " << in->valid_shape()[3] 
+			   			   << " valid_size: " << in->valid_size() 
+						   << " realsize: " << in->size() 
+						   << " offset_size "<<in->get_seq_offset().size();
+        }
+		for (auto out : executer.outs) {
+	        LOG(INFO) << "    |-- out tensor avg " << tensor_average(out);
+	    }
+
+#endif 
+		if (executer.op_name != "Input") { 
+			executer.infer_shape(); 
+			executer.launch(); 
+		} 
+      
+		for(int i = 0; i < executer.outs.size(); i++) { 
+			executer.outs[i]->record_event(executer.ctx_p->get_compute_stream()); 
+		} 
+	}
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
@@ -350,27 +465,41 @@ Status Net<Ttype, Dtype, Ptype, RunType>::init_memory() {
 template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
 Status Net<Ttype, Dtype, Ptype, RunType>::init_env(graph::Graph<Ttype, Dtype, Ptype>& graph) {
     LOG(WARNING) << "Detect and initial " << graph.get_ins().size() << " lanes.";
-    Env<NV>::env_init(graph.get_ins().size()); 
+    Env<Ttype>::env_init(graph.get_ins().size()); 
     LOG(WARNING) << "Current used device id : " << TargetWrapper<Ttype>::get_device_id();
     return Status::OK();
 }
 
 
+#ifdef USE_CUDA
 template class Net<NV, AK_FLOAT, Precision::FP32, OpRunType::ASYNC>;
 template class Net<NV, AK_FLOAT, Precision::FP16, OpRunType::ASYNC>;
 template class Net<NV, AK_FLOAT, Precision::INT8, OpRunType::ASYNC>;
 
+template class Net<NV, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
+template class Net<NV, AK_FLOAT, Precision::FP16, OpRunType::SYNC>;
+template class Net<NV, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
+#endif
+
+#ifdef USE_X86_PLACE
+template class Net<X86, AK_FLOAT, Precision::FP32, OpRunType::ASYNC>;
+template class Net<X86, AK_FLOAT, Precision::FP16, OpRunType::ASYNC>;
+template class Net<X86, AK_FLOAT, Precision::INT8, OpRunType::ASYNC>;
+
+template class Net<X86, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
+template class Net<X86, AK_FLOAT, Precision::FP16, OpRunType::SYNC>;
+template class Net<X86, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
+#endif
+
+#ifdef USE_ARM_PLACE
 template class Net<ARM, AK_FLOAT, Precision::FP32, OpRunType::ASYNC>;
 template class Net<ARM, AK_FLOAT, Precision::FP16, OpRunType::ASYNC>;
 template class Net<ARM, AK_FLOAT, Precision::INT8, OpRunType::ASYNC>;
 
-template class Net<NV, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
-template class Net<NV, AK_FLOAT, Precision::FP16, OpRunType::SYNC>;
-template class Net<NV, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
-
 template class Net<ARM, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
 template class Net<ARM, AK_FLOAT, Precision::FP16, OpRunType::SYNC>;
 template class Net<ARM, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
+#endif
 
 } /* namespace anakin */
 

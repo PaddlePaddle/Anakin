@@ -36,7 +36,7 @@ public:
      */
     explicit Net(graph::Graph<Ttype, Dtype, Ptype>&, bool need_summary = false); 
 
-    ~Net() {}
+    ~Net();
 
 public:
     
@@ -50,6 +50,27 @@ public:
      * \brief do inference.   
      */
     void prediction();
+
+	/**
+	 *  \brief Running model from inputs to target edge
+	 *
+	 *   We support some api for partly running mode.
+	 *   For example, you can execute part of the model by using api
+	 *   execute_stop_at_edge(node name), then anakin will run the model 
+	 *   in order from input to the node(its computation is not invoked) 
+	 *   and other computation is suspended. Beside, anakin supply an api 
+	 *   running from target node throughtout end of model.
+	 *   NOTE: 
+	 *   	Those api should be carefully used, if you want to get edge 
+	 *   	tensors after target node you stop at, you need to register 
+	 *   	the edges at graph optimizing stage at first.
+	 */
+	void execute_stop_at_node(std::string node_name);
+
+	/**
+	 *  \brief running from edge to end
+	 */
+	void execute_start_from_node(std::string node_name);
 
     //! get time for each op;
 #ifdef ENABLE_OP_TIMER
@@ -94,6 +115,10 @@ private:
 private:
     ///< executor for operators in node.
     std::vector<OperatorFunc<Ttype, Dtype, Ptype> > _exec_funcs;
+	///< suspended point is set when you invoke execute_stop_at_node
+	int _suspended_point{-1};
+	///< start point is set when you invoke execute_start_from_node
+	int _start_point{-1};
     ///< The pointer to Context.
     OpContextPtr<Ttype> _ctx_p;
     graph::Graph<Ttype, Dtype, Ptype>* _graph_p{nullptr};

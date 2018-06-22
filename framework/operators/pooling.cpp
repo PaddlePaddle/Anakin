@@ -26,7 +26,7 @@ PoolingHelper<Ttype, Dtype, Ptype>::~PoolingHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status PoolingHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Pooling op parameter.";
+    DLOG(WARNING) << "Parsing Pooling op parameter.";
     auto cmp_out_shape_floor_as_conv = GET_PARAMETER(bool, cmp_out_shape_floor_as_conv);
     auto global_pooling = GET_PARAMETER(bool, global_pooling);
     auto pool_padding = GET_PARAMETER(PTuple<int>, padding);

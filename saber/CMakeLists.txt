@@ -29,14 +29,14 @@ if(USE_GPU_PLACE)
 endif()
 
 
-    anakin_fetch_files_with_suffix(${ANAKIN_SABER}/core/impl/x86 "cpp" ANAKIN_SABER_BASE_SRC)
+anakin_fetch_files_with_suffix(${ANAKIN_SABER}/core/impl/x86 "cpp" ANAKIN_SABER_BASE_SRC)
 if(USE_X86_PLACE)
     anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/x86 "cpp" ANAKIN_SABER_BASE_SRC)
     anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/x86/kernel "cpp" ANAKIN_SABER_BASE_SRC)
 endif()
 
 # compile cpp objs
-add_library(ANAKIN_SABER_BASE_OBJS OBJECT ${ANAKIN_SABER_BASE_SRC})
+# add_library(ANAKIN_SABER_BASE_OBJS OBJECT ${ANAKIN_SABER_BASE_SRC})
 
 # whole archive for static lib
 if(NOT MSVC AND NOT APPLE)
@@ -48,6 +48,7 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(WHOLE_ARCHIVE_END)
 endif()
 
+set(ANAKIN_SABER_TEMP_COMMMON_LIB "anakin_saber_common")
 
 if(USE_CUDA)
 	# set root
@@ -55,11 +56,10 @@ if(USE_CUDA)
 	# set select arch for cuda
 	add_subdirectory(${ANAKIN_SABER}/funcs/impl/cuda/base)
 
-	set(ANAKIN_SABER_TEMP_COMMMON_LIB "anakin_saber_common")
 	set(FLAGS_BACKUP ${CMAKE_CXX_FLAGS}) 
 	set(CMAKE_CXX_FLAGS "")
 	if(BUILD_SHARED)
-    	CUDA_COMPILE(ANAKIN_SABER_CUDA_C_SRC_OBJS SHARED ${ANAKIN_SABER_CUDA_C_SRC} OPTIONS ${ANAKIN_NVCC_FLAG})
+    		CUDA_COMPILE(ANAKIN_SABER_CUDA_C_SRC_OBJS SHARED ${ANAKIN_SABER_CUDA_C_SRC} OPTIONS ${ANAKIN_NVCC_FLAG})
 	endif()
 	if(BUILD_STATIC)
 		CUDA_COMPILE(ANAKIN_SABER_CUDA_C_SRC_OBJS STATIC ${ANAKIN_SABER_CUDA_C_SRC} OPTIONS ${ANAKIN_NVCC_FLAG})
@@ -74,8 +74,12 @@ endif()
 
 # add saber library to static
 if(UNIX OR APPLE) 
-    ADD_LIBRARY(${ANAKIN_SABER_TEMP_COMMMON_LIB} SHARED ${ANAKIN_SABER_CUDA_C_SRC_OBJS} 
-						$<TARGET_OBJECTS:ANAKIN_SABER_BASE_OBJS>) 
+    ADD_LIBRARY(${ANAKIN_SABER_TEMP_COMMMON_LIB} SHARED ${ANAKIN_SABER_CUDA_C_SRC_OBJS} ${ANAKIN_SABER_BASE_SRC})
+							#$<TARGET_OBJECTS:ANAKIN_SABER_BASE_OBJS>) 
+    if(USE_X86_PLACE)
+		message(STATUS ${ANAKIN_SABER_DEPENDENCIES})
+        add_dependencies(${ANAKIN_SABER_TEMP_COMMMON_LIB} ${ANAKIN_SABER_DEPENDENCIES})
+    endif()
     set_target_properties(${ANAKIN_SABER_TEMP_COMMMON_LIB} PROPERTIES VERSION ${VERSION}) 
     target_link_libraries(${ANAKIN_SABER_TEMP_COMMMON_LIB} ${ANAKIN_LINKER_LIBS}) 
     target_link_libraries(${ANAKIN_SABER_TEMP_COMMMON_LIB} ${ANAKIN_SABER_STATIC_RELAY})

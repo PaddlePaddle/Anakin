@@ -110,7 +110,11 @@ typedef enum{
     Active_relu = 2,
     Active_tanh = 3,
     Active_clipped_relu = 4,
-    Active_elu
+    Active_elu=5,
+    Active_identity=6,
+    Active_sigmoid_fluid=7,
+    Active_tanh_fluid=8
+
 } ActiveType;
 
 typedef enum{
@@ -145,29 +149,6 @@ enum CodeType {
 };
 
 typedef enum {
-    ATRS_NormType_NONE = 0,
-    ATRS_NormType_WIDTH = 1,
-    ATRS_NormType_HEIGHT = 2,
-    ATRS_NormType_WIDTH_LOG = 3,
-    ATRS_NormType_HEIGHT_LOG = 4,
-} ATRS_NormType;
-
-typedef enum {
-    DetectionOutputSSD_HEIGHT_AND_WIDTH = 0,
-    DetectionOutputSSD_HEIGHT_OR_WIDTH = 1
-} DetectionOutputSSD_MIN_SIZE_MODE;
-
-typedef enum {
-    ProposalImgScaleToCamCoords_NormType_HEIGHT = 0,
-    ProposalImgScaleToCamCoords_NormType_HEIGHT_LOG = 1
-} ProposalImgScaleToCamCoords_NormType;
-
-typedef enum {
-    ProposalImgScaleToCamCoords_OrienType_PI = 0,
-    ProposalImgScaleToCamCoords_OrienType_PI2 = 1
-} ProposalImgScaleToCamCoords_OrienType;
-
-typedef enum {
     SABER_POWER_HIGH = 0,
     SABER_POWER_LOW  = 1,
     SABER_POWER_FULL = 2
@@ -177,6 +158,12 @@ typedef enum {
     BORDER_CONSTANT = 0,
     BORDER_REPLICATE
 } BorderType;
+
+typedef enum {
+    PRIOR_MIN = 0,
+    PRIOR_MAX = 1,
+    PRIOR_COM = 2
+} PriorType;
 
 } //namespace saber
 

@@ -26,7 +26,7 @@ PriorBoxHelper<Ttype, Dtype, Ptype>::~PriorBoxHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status PriorBoxHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing PriorBox op parameter.";
+    DLOG(WARNING) << "Parsing PriorBox op parameter.";
     auto min_size_ = GET_PARAMETER(PTuple<float>, min_size);
     auto max_size_ = GET_PARAMETER(PTuple<float>, max_size);
     auto as_ratio  = GET_PARAMETER(PTuple<float>, aspect_ratio);
@@ -38,10 +38,22 @@ Status PriorBoxHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto step_h_   = GET_PARAMETER(float, step_h);
     auto step_w_   = GET_PARAMETER(float, step_w);
     auto offset_   = GET_PARAMETER(float, offset);
+    auto order     = GET_PARAMETER(PTuple<std::string>, order);
+    std::vector<PriorType> order_;
+
+    for (int i = 0; i < order.size(); i++) {
+        if (order[i] == "MIN") {
+            order_.push_back(PRIOR_MIN);
+        } else if (order[i] == "MAX") {
+            order_.push_back(PRIOR_MAX);
+        } else if (order[i] == "COM") {
+            order_.push_back(PRIOR_COM);
+        }
+    }
 
     saber::PriorBoxParam<Tensor4d<Ttype, Dtype>> param_priorbox(min_size_.vector(), max_size_.vector(), \
                                        as_ratio.vector(), var.vector(), flip_flag, clip_flag, \
-                                       image_w, image_h, step_w_, step_h_, offset_);
+                                       image_w, image_h, step_w_, step_h_, offset_, order_);
     _param_priorbox = param_priorbox;
     return Status::OK();
 }
