@@ -790,7 +790,7 @@ public:
             typeid(BM) == typeid(TargetType_t) &&
             typeid(AK_BM) == typeid(DataType_t)){
 
-            Dtype* device_data_ptr = tensor.data();
+            Dtype* device_data_ptr = const_cast<Dtype*>(tensor.data());
             BMDNN_CHECK(bm_memcpy_s2d(API::get_handler(), bm_mem_from_system(mutable_data()), *device_data_ptr));
 
             return SaberSuccess;
