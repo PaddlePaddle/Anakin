@@ -66,6 +66,10 @@
 
 #cmakedefine NVIDIA_GPU
 
+#cmakedefine ENABLE_STACKTRACES
+
+#cmakedefine SUPPORT_PTHREADS
+
 
 #if defined(ANDROID) || defined(__ANDROID__)
     #define PLATFORM_ANDROID

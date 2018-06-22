@@ -42,9 +42,9 @@ anakin_option(ANAKIN_TYPE_FP16 "define the FP16 for data precision." NO)
 anakin_option(ANAKIN_TYPE_INT8 "define the INT8 for data precision." NO)
 
 #select the plantform to build
-anakin_option(USE_GPU_PLACE "Select the build mode for GPU place." YES)
+anakin_option(USE_GPU_PLACE "Select the build mode for GPU place." NO)
 anakin_option(USE_X86_PLACE "Select the build mode for X86 place." NO)
-anakin_option(USE_ARM_PLACE "Select the build mode for ARM place." NO)
+anakin_option(USE_ARM_PLACE "Select the build mode for ARM place." YES)
 
 # plantfrom details
 anakin_option(NVIDIA_GPU "Use NVIDIA GPU place." YES if USE_GPU_PLACE)
@@ -114,6 +114,11 @@ else()
 	set(CMAKE_BUILD_TYPE Release FORCE)
 endif()
 
+if(USE_LOGGER) 
+	anakin_option(ENABLE_STACKTRACES "If enable local logger with stacktrace." YES if NOT USE_ARM_PLACE)
+	anakin_option(SUPPORT_PTHREADS "If enable local logger with supporting pthreads. " YES)
+endif()
+
 # ----------------------------------------------------------------------------
 # section:configure a header file to pass some of the CMake settings to the source
 # 		  code
@@ -166,7 +171,7 @@ if(BUILD_WITH_UNIT_TEST)
     add_subdirectory(${ANAKIN_UNIT_TEST})
 endif()
 
-if(NOT USE_ARM_PLACE)
+if(USE_ARM_PLACE)
 	add_subdirectory(${ANAKIN_LITE_EXE})
 endif()
 

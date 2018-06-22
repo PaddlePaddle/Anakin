@@ -1,9 +1,4 @@
-# Tools
-
-## Tools list
-> andrid_build.sh
-> ios_build.sh
-> gpu_build.sh
+# Anakin Tools
 
 ## 1. Andrid Build Script
 

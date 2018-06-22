@@ -34,6 +34,7 @@
 #include <sys/stat.h> // mkdir
 #include <unistd.h>   // STDERR_FILENO
 
+#include "anakin_config.h"
 
 // Disable all warnings from gcc/clang:
 #if defined(__clang__)
@@ -49,9 +50,6 @@
 /// for usage: signal(SIGABRT, SIG_DFL);
 /// SIG_DFL:default signal handle invoke param
 #define LOGGER_CATCH_SIGABRT 1
-
-#define SUPPORT_PTHREADS // support for pthreads
-#define ENABLE_STACKTRACES
 
 #if defined __linux__ || defined __APPLE__
 #include <pthread.h>
