@@ -1,6 +1,6 @@
 #include "core/context.h"
 #include "funcs/fc.h"
-#include "test_saber_func_fc_BM.h"
+#include "test_saber_func_BM.h"
 #include "tensor_op.h"
 #include "saber_types.h"
 #include <vector>
@@ -41,7 +41,7 @@ void fc_compute(const TensorHf4& tin, const TensorHf4& weight, \
     }
 }
 
-TEST(TestSaberFuncFcBM, test_func_fc) {
+TEST(TestSaberFuncBM, test_func_fc) {
 
     int test_iter = 100;
     int w_in = 7;
@@ -109,12 +109,10 @@ TEST(TestSaberFuncFcBM, test_func_fc) {
         //cudaDeviceSynchronize();
     }
 
-    CUDA_POST_KERNEL_CHECK;
     t1.end(ctx_dev);
     float ts = t1.get_average_ms();
     LOG(INFO) << "total time: " << ts << "avg time: " << ts / test_iter;
     //print_tensor_device(*output_dev_4d[0]);
-    //cudaDeviceSynchronize();
 
     //! check result
     TensorHf4 thin(shape_in);

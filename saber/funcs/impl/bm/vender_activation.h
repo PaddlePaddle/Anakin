@@ -49,7 +49,6 @@ public:
     virtual SaberStatus dispatch(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             ActivationParam<OpTensor>& param) {
-
         const InDataType *in_data = (const InDataType *) inputs[0]->data();
         OutDataType *out_data = (OutDataType *) outputs[0]->mutable_data();
         int input_dim = inputs[0]->channel() * inputs[0]->height() * inputs[0]->width();
