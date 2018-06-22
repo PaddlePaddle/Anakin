@@ -25,7 +25,7 @@ set(ANAKIN_ROOT ${PROJECT_SOURCE_DIR})
 include_directories(${ANAKIN_ROOT})
 
 set(ANAKIN_FRAMEWORK ${ANAKIN_ROOT}/framework)
-set(ANAKIN_LITE_EXE ${ANAKIN_ROOT}/tools/anakin-lite)
+set(ANAKIN_LITE ${ANAKIN_FRAMEWORK}/lite)
 set(ANAKIN_UTILS ${ANAKIN_ROOT}/utils)
 set(ANAKIN_THIRD_PARTY_PATH ${ANAKIN_ROOT}/third-party)
 set(ANAKIN_MODEL_PARSER ${ANAKIN_FRAMEWORK}/model_parser)
@@ -42,9 +42,9 @@ anakin_option(ANAKIN_TYPE_FP16 "define the FP16 for data precision." NO)
 anakin_option(ANAKIN_TYPE_INT8 "define the INT8 for data precision." NO)
 
 #select the plantform to build
-anakin_option(USE_GPU_PLACE "Select the build mode for GPU place." NO)
+anakin_option(USE_GPU_PLACE "Select the build mode for GPU place." YES)
 anakin_option(USE_X86_PLACE "Select the build mode for X86 place." NO)
-anakin_option(USE_ARM_PLACE "Select the build mode for ARM place." YES)
+anakin_option(USE_ARM_PLACE "Select the build mode for ARM place." NO)
 
 # plantfrom details
 anakin_option(NVIDIA_GPU "Use NVIDIA GPU place." YES if USE_GPU_PLACE)
@@ -98,6 +98,7 @@ anakin_option(USE_OPENMP "Use Openmp when in andriod environment." YES if TARGET
 
 # build components
 anakin_option(BUILD_WITH_UNIT_TEST "Build anakin unit test components." YES)
+anakin_option(BUILD_WITH_LITE "Build anakin lite components." YES)
 
 # build target
 anakin_option(BUILD_SHARED "Build anakin shared lib." YES)
@@ -171,8 +172,8 @@ if(BUILD_WITH_UNIT_TEST)
     add_subdirectory(${ANAKIN_UNIT_TEST})
 endif()
 
-if(USE_ARM_PLACE)
-	add_subdirectory(${ANAKIN_LITE_EXE})
+if(BUILD_WITH_LITE)
+	add_subdirectory(${ANAKIN_LITE})
 endif()
 
 anakin_print_statistic()

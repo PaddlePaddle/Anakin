@@ -94,10 +94,11 @@ void Buffer<CPU>::mem_set(int c, size_t size) {
     memset(_data, c, size);
 }
 
-template <ARMType ttype>
-size_t Buffer<ttype>::get_capacity() {
+template <>
+size_t Buffer<CPU>::get_capacity() {
     return _capacity;
 }
+
 
 } //namespace lite
 

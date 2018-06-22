@@ -74,13 +74,6 @@ if(USE_CUDA)
 				      ${WHOLE_ARCHIVE_END})	
 endif()
 
-if(USE_ARM_PLACE) 
-	anakin_fetch_files_with_suffix(${ANAKIN_SABER}/lite/core "cpp" ANAKIN_SABER_ARM_LITE_SRC)
-	anakin_fetch_files_with_suffix(${ANAKIN_SABER}/lite/funcs "cpp" ANAKIN_SABER_ARM_LITE_SRC)
-	anakin_fetch_files_with_suffix(${ANAKIN_SABER}/lite/funcs/neon "cpp" ANAKIN_SABER_ARM_LITE_SRC)
-	anakin_fetch_files_with_suffix(${ANAKIN_SABER}/lite/funcs/neon/impl "cpp" ANAKIN_SABER_ARM_LITE_SRC)
-endif()
-
 # add saber library to share
 if(UNIX OR APPLE) 
     ADD_LIBRARY(${ANAKIN_SABER_TEMP_COMMMON_LIB} SHARED ${ANAKIN_SABER_CUDA_C_SRC_OBJS} ${ANAKIN_SABER_BASE_SRC})

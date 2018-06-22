@@ -24,9 +24,9 @@ function(anakin_fetch_files_with_suffix search_dir suffix outputs)
 		endforeach()
 		set(${outputs} ${${outputs}} ${abs_dir} PARENT_SCOPE)
 	else()
-        #message(WARNING "anakin_fetch_files_recursively ${BoldRed}failed${ColourReset}:\n"
-        #                "real_dir:${BoldYellow}${search_dir}${ColourReset}\n"
-        #                "suffix:*.${BoldYellow}${suffix}${ColourReset} \n")
+		#message(WARNING "anakin_fetch_files_recursively ${BoldRed}failed${ColourReset}:\n"
+		#                "real_dir:${BoldYellow}${search_dir}${ColourReset}\n"
+		#                "suffix:*.${BoldYellow}${suffix}${ColourReset} \n")
 	endif()
 endfunction()
 
@@ -39,7 +39,7 @@ endfunction()
 # recursively fetch include dir 
 function(anakin_fetch_include_recursively root_dir)
     if (IS_DIRECTORY ${root_dir})
-        #message(STATUS "include dir: " ${Magenta}${root_dir}${ColourReset})
+		#message(STATUS "include dir: " ${Magenta}${root_dir}${ColourReset})
 		include_directories(${root_dir})
     endif()
 
