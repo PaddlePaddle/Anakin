@@ -785,16 +785,16 @@ public:
         }
 
         /// copy from device to system
-        if (typeid(X86) == typeid(targetType_t) &&
+        /*if (typeid(X86) == typeid(targetType_t) &&
             typeid(AK_FLOAT) == typeid(datatype) &&
             typeid(BM) == typeid(TargetType_t) &&
             typeid(AK_BM) == typeid(DataType_t)){
 
-            Dtype* device_data_ptr = const_cast<Dtype*>(tensor.data());
+            auto* device_data_ptr = tensor.data();
             BMDNN_CHECK(bm_memcpy_s2d(API::get_handler(), bm_mem_from_system(mutable_data()), *device_data_ptr));
 
             return SaberSuccess;
-        }
+        }*/
 
         /// other types are not allowed here
         return SaberInvalidValue;
