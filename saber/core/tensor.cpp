@@ -7,6 +7,9 @@
 #include "bmlib_utils.h"
 
 template<>
+size_t Tensor<BM, AK_BM, NCHW>::_type_len{1};
+
+template<>
 template<>
 SaberStatus Tensor<BM, AK_BM, NCHW>::copy_from<X86, AK_FLOAT, NCHW>(const Tensor<X86, AK_FLOAT, NCHW>& tensor) {
     //auto* device_data_ptr = mutable_data();
