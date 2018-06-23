@@ -90,7 +90,7 @@ public:
         _shape = shape;
         _valid_shape = shape;
         _offset = Shape::zero(shape.dims());
-        _buf = std::make_shared<Buffer<TargetType>>(shape.count() * _type_len);
+        _buf = std::make_shared<Buffer<TargetType>>(shape.count() * _type_len());
         _is_subbuf = false;
     }
 #if 0
@@ -126,7 +126,7 @@ public:
         _valid_shape = shape;
         _offset = Shape::zero(shape.dims());
         std::shared_ptr<Buffer<TargetType_t>> buf_from_date = \
-            std::make_shared<Buffer<TargetType_t>>(data_ptr, shape.count() * _type_len, id);
+            std::make_shared<Buffer<TargetType_t>>(data_ptr, shape.count() * _type_len(), id);
         BufferMemShare(_buf, buf_from_date);
         _is_subbuf = false;
     }
@@ -224,7 +224,7 @@ public:
         _shape = shape;
         _valid_shape = _shape;
         _offset =Shape::zero(_shape.dims());
-        _buf->alloc(_shape.count() * _type_len);
+        _buf->alloc(_shape.count() * _type_len());
         return SaberSuccess;
     }
 
@@ -286,13 +286,13 @@ public:
             CHECK_EQ(_valid_shape + _offset <= _shape, true) << \
                 "valid_shape + offet should <= shape";
         }
-        bool exceed_flag = _shape.count() * _type_len > _buf->get_capacity() \
+        bool exceed_flag = _shape.count() * _type_len() > _buf->get_capacity() \
             && (_is_subbuf || _is_shared);
         //if (exceed_flag) {
         //    return SaberOutOfAuthority;
         //}
         CHECK_EQ(exceed_flag, false) << "shared tensor shape exceed origin data buffer size";
-        SABER_CHECK(_buf->re_alloc(_shape.count() * _type_len));
+        SABER_CHECK(_buf->re_alloc(_shape.count() * _type_len()));
         return SaberSuccess;
     }
 
@@ -529,7 +529,7 @@ public:
         CHECK_EQ(_shape > Shape::zero(TensorAPI::layout_dims::value), true) << \
             "current tensor is not initialized (no shape info, use set_shape)";
         typedef typename Tensor_t::Dtype dtype_t;
-        CHECK_LE(size() * _type_len, tensor.size() * sizeof(dtype_t)) << \
+        CHECK_LE(size() * _type_len(), tensor.size() * sizeof(dtype_t)) << \
             "current tensor size should <= input tensor size";
 
         _is_shared = BufferMemShare(_buf, tensor.get_buf()) > 0;
@@ -599,7 +599,7 @@ public:
             Dtype* ptr_dst = mutable_data();
             const Dtype* ptr_src = tensor.data();
             process_API::sync_memcpy(ptr_dst, device_id(), ptr_src, tensor.device_id(), \
-                _type_len * valid_size(), flag_type());
+                _type_len() * valid_size(), flag_type());
             return SaberSuccess;
         }
 
@@ -717,7 +717,7 @@ public:
             Dtype* ptr_dst = dst + idx_dst;//_buf->get_data_mutable() + idx_dst;
             const Dtype* ptr_src = src + idx_src;//tensor.get_buf()->get_data() + idx_src;
             process_API::sync_memcpy(ptr_dst, device_id(), ptr_src, tensor.device_id(), \
-                _type_len * cpy_len, flag_type());
+                _type_len() * cpy_len, flag_type());
         }
         return SaberSuccess;
     }
@@ -758,7 +758,7 @@ public:
             Dtype* ptr_dst = mutable_data();
             const Dtype* ptr_src = tensor.data();
             process_API::async_memcpy(ptr_dst, device_id(), ptr_src, tensor.device_id(), \
-                _type_len * valid_size(), stream, flag_type());
+                _type_len() * valid_size(), stream, flag_type());
             return SaberSuccess;
         }
 
@@ -876,7 +876,7 @@ public:
             Dtype* ptr_dst = dst + idx_dst;//_buf->get_data_mutable() + idx_dst;
             const Dtype* ptr_src = src + idx_src;//tensor.get_buf()->get_data() + idx_src;
             process_API::async_memcpy(ptr_dst, device_id(), ptr_src, tensor.device_id(), \
-                _type_len * cpy_len, stream, flag_type());
+                _type_len() * cpy_len, stream, flag_type());
         }
         return SaberSuccess;
     }
@@ -906,7 +906,9 @@ public:
 
 private:
     ///< Length of datatype.
-    size_t _type_len{sizeof(Dtype)};
+    size_t _type_len(){
+        return sizeof(Dtype);
+    }
     ///< Represent the raw mem shape.
     Shape _shape;
     ///< Represent the mem you have right to access shape.

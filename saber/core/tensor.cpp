@@ -12,8 +12,10 @@ namespace saber {
 
 #ifdef USE_BM
 
-//template<>
-//size_t Tensor<BM, AK_BM, NCHW>::_type_len{1};
+template<>
+size_t Tensor<BM, AK_BM, NCHW>::_type_len(){
+    return 1;
+}
 
 template<>
 template<>
