@@ -58,15 +58,23 @@ TEST(TestSaberTensorBM, test_tensor_constructor) {
 
     //! test tensor copy_from() function
     LOG(INFO) << "test copy_from() function, input tensor could be any target";
-    //thost1.copy_from(thost0);
+
+    // host to host
+    thost1.copy_from(thost0);
+    print_tensor_host(thost1);
+
+    // host to device
     tdev1.copy_from(thost0);
+    //TODO: print tensor for BM device
+    //print_tensor_host(tdev1);
+
+    // device to host
+    thost1.copy_from(tdev1);
+    print_tensor_host(thost1);
 
     /*
-    //TODO: print tensor for BM device
-    print_tensor_host(tdev1);
-    thost1.copy_from(tdev1);
+    // device to device
     tdev1.copy_from(tdev0);
-    print_tensor_host(thost1);
 
     //! test tensor constructor with shape and real_shape
     LOG(INFO) << "test tensor constructor with shape and real_shape";
