@@ -1,13 +1,19 @@
 #include "tensor.h"
 
 #ifdef USE_BM
-
 #include "bmlib_runtime.h"
 #include "bmdnn_api.h"
 #include "bmlib_utils.h"
+#endif
 
-template<>
-size_t Tensor<BM, AK_BM, NCHW>::_type_len{1};
+namespace anakin {
+
+namespace saber {
+
+#ifdef USE_BM
+
+        //template<>
+//size_t Tensor<BM, AK_BM, NCHW>::_type_len{1};
 
 template<>
 template<>
@@ -25,3 +31,5 @@ SaberStatus Tensor<X86, AK_FLOAT, NCHW>::copy_from<BM, AK_BM, NCHW>(const Tensor
 
 #endif
 
+}
+}
