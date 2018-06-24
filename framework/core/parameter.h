@@ -224,14 +224,14 @@ public:
     }
 
     /// Get shape.
-    Shape4d shape() { 
+    Shape4d shape() const { 
         CHECK(_d_inner_tensor->valid_shape() == _h_inner_tensor->valid_shape()) 
             << " [Fatal Err]  device shape is not equal to that of host in PBlock";
         return _d_inner_tensor->valid_shape(); 
     }
 
     /// Get size.
-    size_t count() { 
+    size_t count() const { 
         return this->shape().count();
     }
 

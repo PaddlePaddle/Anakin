@@ -41,7 +41,7 @@ public:
 	}
 
 	// write data list to file
-	inline bool write(const void* ptr, size_t size, size_t count) {
+	inline bool write(void* ptr, size_t size, size_t count) {
 		return _file_io.write(ptr, size, count);
 	}
 
@@ -76,7 +76,7 @@ public:
 
 	// set weight
 	template<typename Ttype, typename Dtype>
-	void register_weights(const std::string& node_name, const PBlock<Dtype, Ttype>& weight) {
+	void register_weights(const std::string& node_name, PBlock<Dtype, Ttype>& weight) {
 		WeghtOffset::Offset offset_tmp;
 		offset_tmp.offset = _offset;
 		offset_tmp.length = weight.count();

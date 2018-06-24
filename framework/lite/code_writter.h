@@ -58,11 +58,6 @@ public:
 		return name;
 	}
 
-	/// feed code string for writter directly.
-	void feed(std::string& code_str) const {
-		_code<<code_str.c_str();
-	}
-
 	/// feed format string for code writter.
 	void feed(const char* format, ...) {
 		va_list vlist;

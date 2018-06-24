@@ -18,7 +18,26 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_header_start() {
 	_code<<"#include <stdio.h>\n";
 	_code<<"#include <stdlib.h>\n";
 	_code<<"#include <string.h>\n\n";
-	_code<<"namespace anakin { \n\n";
+    _code<<"#include <saber/lite/funcs/detection_lite.h>\n";
+    _code<<"#include <saber/lite/funcs/op_base.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_activation.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_concat.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_detection_output.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_eltwise.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_permute.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_prelu.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_priorbox.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_slice.h>\n";
+    _code<<"#include <saber/lite/funcs/timer_lite.h>\n";
+    _code<<"#include <saber/lite/funcs/utils_arm.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_conv.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_conv_act.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_conv_batchnorm_scale.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_conv_batchnorm_scale_relu.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_fc.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_pooling.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_softmax.h>\n";
+    _code<<"namespace anakin { \n\n";
 }	
 
 template<typename Ttype, DataType Dtype, Precision Ptype>

@@ -21,7 +21,6 @@ int main(int argc, const char** argv){
     // initial logger
     logger::init(argv[0]);
 	if(argc < 3) {
-		int a = 3/0;
 		LOG(ERROR) << "Some arguments not supplied!";
 		return 1;
 	}
