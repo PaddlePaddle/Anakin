@@ -8,15 +8,20 @@ static bm_handle_t handle;
 int main() {
     bmdnn_init(&handle);
     typedef TargetWrapper<BM> API;
-    void *pmem;
     int dev_count = 0;
     API::get_device_count(dev_count);
-    std::cout << dev_count << std::endl;
-    API::mem_alloc(&pmem, 3*200*200);
-    //API::mem_free(pmem);
-    std::cout << "Press any key to finish execution." << std::endl;
-    int a;
-    std::cin >> a;
+    std::cout << "dev_count: " << dev_count << std::endl;
+    
+    //void *pmem;
+    bm_device_mem_t *pmem = new bm_device_mem_t();
+    std::cout << "mem addr before mem_alloc: " << pmem << std::endl;
+    API::mem_alloc(&pmem, 3*200*400);
+    std::cout << "mem addr after  mem_alloc: " << pmem << std::endl;
+    
+    bm_device_mem_t *test = reinterpret_cast<bm_device_mem_t *>(pmem);
+    API::mem_free_BM((bm_device_mem_t)(*test));
+    std::cout << "End mem_free test." << std::endl;
+    delete pmem;
     bmdnn_deinit(handle);
 }
 #endif

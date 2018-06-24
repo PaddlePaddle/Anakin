@@ -65,21 +65,32 @@ void BM_API::mem_alloc(void** ptr, size_t n){
     //BMDNN_CHECK(bm_malloc_device_byte(handle, pmem, n));
     //bm_device_mem_t mem = bm_mem_from_system(*ptr);
     handle = get_bm_handle();
-    bm_device_mem_t *mem = new bm_device_mem_t[1];
-    mem = reinterpret_cast<struct bm_mem_desc *>(ptr);
+    //bm_device_mem_t *mem = new bm_device_mem_t[1];
+    bm_device_mem_t *mem = reinterpret_cast<struct bm_mem_desc *>(*ptr);
     BMDNN_CHECK(bm_malloc_device_byte(handle, mem, n));
 }
         
 void BM_API::mem_free(void* ptr){
     //(bm_handle_t handle, bm_device_mem_t mem){
     if(ptr != nullptr){
-        bm_free_device(handle, bm_mem_from_system(ptr));
+        //bm_free_device(handle, bm_mem_from_system(ptr));
         //bm_device_mem_t* pmem = (struct bm_mem_desc *)(ptr);
         //bm_free_device(handle, *pmem);
-        //handle = get_bm_handle();
-	//bm_free_device(handle, reinterpret_cast<struct bm_mem_desc>(*ptr));
+        handle = get_bm_handle();
+        bm_device_mem_t *mem = reinterpret_cast<struct bm_mem_desc *>(ptr);
+	//bm_free_device(handle, reinterpret_cast<struct bm_mem_desc>(ptr));
+	bm_free_device(handle, *mem);
     }
 }
+
+void BM_API::mem_free_BM(bm_device_mem_t mem){
+    //(bm_handle_t handle, bm_device_mem_t mem){
+    if(&mem != nullptr){
+        handle = get_bm_handle();
+	bm_free_device(handle, mem);
+    }
+}
+ 
         
 void BM_API::mem_set(void* ptr, int value, size_t n){
     //(bm_handle_t handle, const int value, bm_device_mem_t mem){
