@@ -522,7 +522,9 @@ struct TargetWrapper<BM, __device_target> {
 
     //template <typename void>
     static void mem_free(void * ptr);
-
+    
+    static void mem_free_BM(bm_device_mem_t mem);
+    
     //template <typename void>
     static void mem_set(void* ptr, int value, size_t n);
 
