@@ -38,7 +38,6 @@
    ```
  - 2.1.1 交叉编译Android`armeabi-v7a`的protobuf，注意设置ANDROID_NDK的路径，以及ARCH_ABI、HOSTOSN的值，   
  ```bash
-
    $ export ANDROID_NDK=your_ndk_path 
    $ ARCH_ABI="arm-linux-androideabi-4.9"
    $ HOSTOSN="darwin-x86_64"
