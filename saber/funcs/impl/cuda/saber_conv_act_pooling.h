@@ -128,24 +128,19 @@ public:
                                    cudaMemcpyHostToDevice ));
 
             const int K = param.conv_param.weight()->num();
-            if (K % 4 == 0)
-            {
+            if (K % 4 == 0) {
                 if (param.conv_param.bias()->size() > 0)
                     dispatch_func = direct_conv_bias_relu_maxpool2k2s0p_Kdivis4<InDataType, OpDataType>;
                 else
                     return SaberUnImplError;
-            }
-            else
-            {   // TODO: would merge the bias(with/without) version
+            } else {   // TODO: would merge the bias(with/without) version
                 if (param.conv_param.bias()->size() > 0)
                     dispatch_func = direct_conv_bias_relu_maxpool2k2s0p_Kindiv4<InDataType, OpDataType>;
                 else
                     return SaberUnImplError;
             }      
-        }
-        else
-        {
-          return SaberUnImplError;
+        } else {
+            return SaberUnImplError;
         }
         cudaDeviceSynchronize();
         return create(inputs, outputs, param, ctx);

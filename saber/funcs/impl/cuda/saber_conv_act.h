@@ -272,9 +272,10 @@ public:
             _host_work_space = trans_weights_host.mutable_data();
 
             transform_3x3_weight_2_4x4(weight_data, _host_work_space, param.conv_param.weight()->num(), round_out_channel, inputs[0]->channel(), round_in_channel);
-
+            Shape old_shape = param.conv_param.weight()->shape();
             param.conv_param.mutable_weight()->re_alloc({weight4x4_size, 1, 1, 1});
             param.conv_param.mutable_weight()->copy_from(trans_weights_host);
+            param.conv_param.mutable_weight()->set_shape(old_shape);
         } else if(param.conv_param.group == 1) {
             Shape weight_shape = param.conv_param.weight()->shape();
             Tensor<X86, OpDtype, LayOutType_op> new_weight;
@@ -283,7 +284,7 @@ public:
             OpDataType *weight_data = new_weight.mutable_data();
 
             int weight_size = param.conv_param.weight()->shape().count();
-            trans_weights_host.re_alloc({weight_size, 1, 1, 1});
+            trans_weights_host.re_alloc(param.conv_param.weight()->shape());
             OpDataType* _host_work_space;
             _host_work_space = trans_weights_host.mutable_data();
 
@@ -293,7 +294,7 @@ public:
                                          _kernel_height, \
                                          _kernel_width);
 
-            param.conv_param.mutable_weight()->re_alloc({weight_size, 1, 1, 1});
+            param.conv_param.mutable_weight()->re_alloc(param.conv_param.weight()->shape());
             param.conv_param.mutable_weight()->copy_from(trans_weights_host);
 
         }
