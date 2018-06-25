@@ -30,17 +30,6 @@ using ::anakin::test::Test;
 
 using namespace anakin::graph;
 
-#if defined(USE_CUDA)
-using Target = NV;
-using Target_H = X86;
-#elif defined(USE_X86_PLACE)
-using Target = X86;
-using Target_H = X86;
-#elif defined(USE_ARM_PLACE)
-using Target = ARM;
-using Target_H = ARM;
-#endif
-
 /**
  * \brief Graph test is base Test class for anakin graph funciton.  
  */

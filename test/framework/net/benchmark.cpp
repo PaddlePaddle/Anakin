@@ -11,6 +11,17 @@
 #include <map>
 #include "framework/operators/ops.h"
 
+#if defined(USE_CUDA)
+using Target = NV;
+using Target_H = X86;
+#elif defined(USE_X86_PLACE)
+using Target = X86;
+using Target_H = X86;
+#elif defined(USE_ARM_PLACE)
+using Target = ARM;
+using Target_H = ARM;
+#endif
+
 #ifdef USE_GFLAGS
 #include <gflags/gflags.h>
 

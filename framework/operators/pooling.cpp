@@ -95,8 +95,8 @@ ANAKIN_REGISTER_OP(Pooling)
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("pool")
 #endif
 #ifdef USE_X86_PLACE
-.__alias__<ARM, AK_FLOAT, Precision::FP32>("pooling")
-.__alias__<ARM, AK_FLOAT, Precision::FP32>("pool")
+.__alias__<X86, AK_FLOAT, Precision::FP32>("pooling")
+.__alias__<X86, AK_FLOAT, Precision::FP32>("pool")
 #endif
 .num_in(1)
 .num_out(1)

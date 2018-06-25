@@ -89,11 +89,11 @@ template class ConvolutionHelper<NV, AK_FLOAT, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, NV, AK_FLOAT, Precision::FP32);
 #endif
 
-#ifdef USE_X86_PLACE
-INSTANCE_CONVOLUTION(X86, AK_FLOAT, Precision::FP32);
-template class ConvolutionHelper<X86, AK_FLOAT, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, X86, AK_FLOAT, Precision::FP32);
-#endif
+//#ifdef USE_X86_PLACE
+//INSTANCE_CONVOLUTION(X86, AK_FLOAT, Precision::FP32);
+//template class ConvolutionHelper<X86, AK_FLOAT, Precision::FP32>;
+//ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, X86, AK_FLOAT, Precision::FP32);
+//#endif
 
 #ifdef USE_ARM_PLACE
 INSTANCE_CONVOLUTION(ARM, AK_FLOAT, Precision::FP32);

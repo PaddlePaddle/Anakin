@@ -75,7 +75,7 @@ ANAKIN_REGISTER_OP(ReLU)
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("Relu")
 #endif
 #ifdef USE_X86_PLACE
-.__alias__<ARM, AK_FLOAT, Precision::FP32>("Relu")
+.__alias__<X86, AK_FLOAT, Precision::FP32>("Relu")
 #endif
 .num_in(1)
 .num_out(1)
