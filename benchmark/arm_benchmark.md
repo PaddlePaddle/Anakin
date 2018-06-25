@@ -8,7 +8,7 @@
 4. 多线程：openmp
 5. 时间：warmup10次，运行10次取均值
 6. ncnn版本：来源于github的master branch中commits ID：307a77f04be29875f40d337cfff6df747df09de6（msg:convert            LogisticRegressionOutput)版本
-7.TFlite版本：来源于github的master branch中commits ID：65c05bc2ac19f51f7027e66350bc71652662125c（msg:Removed unneeded file copy that was causing failure in Pi builds)版本
+7. TFlite版本：来源于github的master branch中commits ID：65c05bc2ac19f51f7027e66350bc71652662125c（msg:Removed unneeded file copy that was causing failure in Pi builds)版本
 
 ## 测试结果
 ### mobilenetv1
