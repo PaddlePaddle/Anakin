@@ -1,18 +1,3 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-   
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License. 
-*/
-
 #ifndef ANAKIN_SABER_FUNCS_IMPL_BMDNN_CONV2D_H
 #define ANAKIN_SABER_FUNCS_IMPL_BMDNN_CONV2D_H
 
@@ -44,105 +29,13 @@ public:
     typedef typename DataTensor_in::Dtype InDataType;
     typedef typename DataTensor_out::Dtype OutDataType;
     typedef typename OpTensor::Dtype OpDataType;
-    VenderConv2D()
-            : _handle(NULL)
-            , _workspaceData(NULL)
-            , _workspace(NULL)
-            , _conv_descs(NULL)
-            , _input_descs(NULL)
-            , _output_descs(NULL)
-            , _filter_desc(NULL)
-            , _workspace_fwd_sizes(0)
-            , _workspaceSizeInBytes(0)
-            , _fwd_algo((cudnnConvolutionFwdAlgo_t)0)
-            , _input_nchw_descs(NULL)
-            , _output_nchw_descs(NULL)
-            , x8_data(NULL)
-            , y8_data(NULL)
-            , x8_data_size(0)
-            , y8_data_size(0)
-    {}
 
-    ~VenderConv2D() {
+    VenderConv2D(): _handle(NULL) {}
+    ~VenderConv2D() {}
 
-        if (_conv_descs) {
-            CUDNN_CHECK(cudnnDestroyConvolutionDescriptor(_conv_descs));
-        }
-        if (_input_descs) {
-            CUDNN_CHECK(cudnnDestroyTensorDescriptor(_input_descs));
-        }
-        if (_output_descs) {
-            CUDNN_CHECK(cudnnDestroyTensorDescriptor(_output_descs));
-        }
-        if (_filter_desc) {
-            CUDNN_CHECK(cudnnDestroyFilterDescriptor(_filter_desc));
-        }
-        if (_handle != NULL) {
-            CUDNN_CHECK(cudnnDestroy(_handle));
-        }
-        if (_workspaceData != NULL) {
-            cudaFree(_workspaceData);
-        }
-        if (_input_nchw_descs != NULL) {
-            CUDNN_CHECK(cudnnDestroyTensorDescriptor(_input_nchw_descs));
-        }
-        if (_output_nchw_descs != NULL) {
-            CUDNN_CHECK(cudnnDestroyTensorDescriptor(_output_nchw_descs));
-        }
-        if (x8_data != NULL) {
-            CUDA_CHECK(cudaFree(x8_data));
-        }
-        if (y8_data != NULL) {
-            CUDA_CHECK(cudaFree(y8_data));
-        }
-    }
-
-    /**
-     * [Create description] Init all cudnn resource here
-     * @AuthorHTL
-     * @DateTime  2018-02-01T16:13:06+0800
-     * @param     inputs                    [description]
-     * @param     outputs                   [description]
-     * @param     param                [conv parameters]
-     */
     virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             ConvParam<OpTensor>& param, Context<BM>& ctx) {
-
-        // ---- init cudnn resources ----
-
-        _workspaceSizeInBytes = 0;
-        _workspaceData = NULL;
-
-        _workspace_fwd_sizes = 0;
-
-        this->_ctx = ctx;
-        // ---- get cuda resources ----
-
-        cudaStream_t cuda_stream;
-        cuda_stream = ctx.get_compute_stream();
-
-        CUDNN_CHECK(cudnnCreate(&_handle));
-        CUDNN_CHECK(cudnnSetStream(_handle, cuda_stream));
-
-        _workspace = NULL;
-
-        int in_channels = inputs[0]->channel();
-
-        // ---- create cudnn Descs ----
-        cudnn::createFilterDesc<OpDataType>(&_filter_desc);
-
-        cudnn::createTensorDesc<InDataType>(&_input_descs);
-        cudnn::createTensorDesc<InDataType>(&_output_descs);
-        cudnn::createConvolutionDesc<OpDataType>(&_conv_descs);
-
-        if (param.bias()->size() > 0) {
-            cudnn::createTensorDesc<OpDataType>(&_bias_desc);
-        }
-
-        cudnnCreateTensorDescriptor(&_input_nchw_descs);
-        cudnnCreateTensorDescriptor(&_output_nchw_descs);
-
         return create(inputs, outputs, param, ctx);
     }
 
@@ -150,46 +43,36 @@ public:
                             std::vector<DataTensor_out *>& outputs,
                             ConvParam<OpTensor>& param, Context<BM>& ctx);
 
-    //call cudnnConvolutionForward here
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                           std::vector<DataTensor_out*>& outputs,
-                          ConvParam<OpTensor>& param);
+                          ConvParam<OpTensor>& param) {
+        const InDataType *in_data = (const InDataType *) inputs[0]->data();
+        const InDataType *weight = (const InDataType *) param.weight()->data();
+        const InDataType *bias = (const InDataType *) param.bias()->data();
+        OutDataType *out_data = (OutDataType *) outputs[0]->mutable_data();
+        int input_n = inputs[0]->num();
+        int input_c = inputs[0]->channel();
+        int input_h = inputs[0]->height();
+        int input_w = inputs[0]->width();
+        int group = param.group;
+        int output_c = outputs[0]->channel();
+        int kh = param.weight()->height();
+        int kw = param.weight()->width();
+        int pad_h = param.pad_h;
+        int pad_w = param.pad_w;
+        int stride_h = param.stride_h;
+        int stride_w = param.stride_w;
+        BMDNN_CHECK(bmdnn_conv_forward(_handle, in_data, weights, bias,
+                                    input_n, input_c, input_h, input_w, group, output_c,
+                                    kh, kw, pad_h, pad_w, stride_h, stride_w, 1, 0, 0, 
+                                    out_data, NULL));
+        return SaberSuccess;
+    }
 
 private:
     cudnnHandle_t _handle;
-    cudnnConvolutionFwdAlgo_t _fwd_algo;
-
-    cudnnTensorDescriptor_t _input_descs;
-    cudnnTensorDescriptor_t _output_descs;
-    cudnnTensorDescriptor_t _bias_desc;
-
-    cudnnFilterDescriptor_t _filter_desc;
-
-    cudnnConvolutionDescriptor_t _conv_descs;
-
-    size_t _workspace_fwd_sizes;
-    size_t _workspaceSizeInBytes;  // size of underlying storage
-
-    void *_workspaceData;  // underlying storage
-    void *_workspace;  // aliases into _workspaceData
-
-    const bool _use_tensor_core = true;
-    const size_t _workspace_limit_bytes = 64 * 1024 * 1024;
-    const cudnnConvolutionFwdPreference_t _preference = CUDNN_CONVOLUTION_FWD_PREFER_FASTEST;
-
-    // create transform descriptor
-    cudnnTensorDescriptor_t _input_nchw_descs;
-    cudnnTensorDescriptor_t _output_nchw_descs;
-
-    void *x8_data;
-    void *y8_data;
-
-    int x8_data_size;
-    int y8_data_size;
 };
 
-
 }
-
 }
 #endif //ANAKIN_SABER_FUNCS_BMDNN_CONV2D_H
