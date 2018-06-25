@@ -2,7 +2,7 @@
 
 ## 基本概念
 
-简单介绍下几个同Operator相关的基本概念，详细请参考设计文档。
+简单介绍下几个同Operator相关的基本概念，详情请参考设计文档。
 
 ```framework```: 上层的逻辑代码，负责从parser中获取参数及weights，添加op时主要修改framework/operator目录下的内容。
 
@@ -215,7 +215,7 @@ private:
 }
 }
 ```
-这里重点说一下```init```和```create```的区别，```init```接口是第一次初始化op的时候进入的接口，此函数只在第一次初始化op时调用，这个接口一般放一些只需要执行一次的代码，如malloc或者create之类的函数。```create```函数除了第一次init执行外，在输入发生变化或者param发生变化时会再次触发，create一般放置set函数，设置内部变量，当input发生变化时这里执行一些同input或weights直接相关的代码。但create因为触发位置在网络内，如果```create```函数执行了一些严重耗时的操作，这里会拖慢整个op的执行时间，需要慎重选择操作放置的位置。
+```init```和```create```的区别：```init```接口是第一次初始化op的时候进入的接口，此函数只在第一次初始化op时调用，这个接口一般放一些只需要执行一次的代码，如malloc或者create之类的函数。```create```函数除了第一次init执行外，在输入发生变化或者param发生变化时会再次触发，create一般放置set函数，设置内部变量，当input发生变化时这里执行一些同input或weights直接相关的代码。但create因为触发位置在网络内，如果```create```函数执行了一些严重耗时的操作，这里会拖慢整个op的执行时间，需要慎重选择操作放置的位置。
 ### 添加framework的特化
 
 涉及的文件:```framework/operators/mul.h```和```framework/operators/mul.cpp```。
