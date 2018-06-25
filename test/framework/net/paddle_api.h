@@ -29,8 +29,8 @@ template <typename Ttype, DataType Dtype, Precision Ptype>
 class AnakinEngine : public EngineBase {
 public:
   typedef typename anakin::saber::DataTrait<Dtype>::dtype Dtype_t;
-  typedef anakin::saber::TargetWrapper<Target_H> X86_API;
-  typedef anakin::saber::TargetWrapper<Ttype> NV_API;
+  typedef anakin::saber::TargetWrapper<X86> X86_API;
+  typedef anakin::saber::TargetWrapper<NV> NV_API;
   AnakinEngine(){}
 
   ~AnakinEngine(){};
@@ -60,7 +60,7 @@ public:
   void SetInputFromCPU(const std::string name, Dtype_t* data, size_t size)
   {
     auto input_tensor = _net_executer.get_in(name);
-    anakin::Tensor<Ttype, Dtype> tmp_tensor(data, Target_H(), 0, input_tensor->valid_shape());
+    anakin::Tensor<Ttype, Dtype> tmp_tensor(data, X86(), 0, input_tensor->valid_shape());
     *input_tensor = tmp_tensor;
   };
 
