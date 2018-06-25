@@ -50,15 +50,11 @@ struct MatMulParam {
 
 };
 
-    
 //should design this one for pick_best_specify()
 enum ImplEnum{
     VENDER_IMPL = 0,
     SABER_IMPL
 };
-
-
-
 
 enum SequencePoolType{
     Sequence_pool_unknow = 0,
@@ -192,21 +188,18 @@ private:
 template <typename opTensor>
 struct LSTMParam{
 
-
-
-    LSTMParam() :
-             weight_tensor(nullptr)
-            ,bias_tensor(nullptr)
-            ,init_hidden_tensor(nullptr)
-            ,dropout_param(1.0f)
-            ,num_direction(1)
-            ,num_layers(1)
-            ,is_reverse(false)
-            ,gate_activity(Active_sigmoid)
-            ,cell_activity(Active_tanh)
-            ,candidate_activity(Active_tanh)
-            ,with_peephole(true)
-
+    LSTMParam()
+            : weight_tensor(nullptr)
+            , bias_tensor(nullptr)
+            , init_hidden_tensor(nullptr)
+            , dropout_param(1.0f)
+            , num_direction(1)
+            , num_layers(1)
+            , is_reverse(false)
+            , gate_activity(Active_sigmoid)
+            , cell_activity(Active_tanh)
+            , candidate_activity(Active_tanh)
+            , with_peephole(true)
     {}
 
     LSTMParam(opTensor* weight_in, opTensor* bias_in,
@@ -215,18 +208,17 @@ struct LSTMParam{
              bool is_reverse_in=false,opTensor* hidden_init_in=nullptr,
              float dropout_param_in=1.f
             ,int num_direction_in=1,int numLayers_in=1)
-            :
-             weight_tensor(weight_in)
-            ,bias_tensor(bias_in)
-            ,dropout_param(dropout_param_in)
-            ,num_direction(num_direction_in)
-            ,num_layers(numLayers_in)
-            ,is_reverse(is_reverse_in)
-            ,gate_activity(gate_activity_in)
-            ,candidate_activity(candidate_activity_in)
-            ,cell_activity(cell_activity_in)
-            ,init_hidden_tensor(hidden_init_in)
-            ,with_peephole(with_peephole_in)
+            : weight_tensor(weight_in)
+            , bias_tensor(bias_in)
+            , dropout_param(dropout_param_in)
+            , num_direction(num_direction_in)
+            , num_layers(numLayers_in)
+            , is_reverse(is_reverse_in)
+            , gate_activity(gate_activity_in)
+            , candidate_activity(candidate_activity_in)
+            , cell_activity(cell_activity_in)
+            , init_hidden_tensor(hidden_init_in)
+            , with_peephole(with_peephole_in)
     {}
 
 
