@@ -164,7 +164,7 @@ SaberStatus SaberDeconv2D<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, \
     if (_use_k4_s2_p1) {
         const float * bias_data = (param.bias()->valid_size() > 0) ?
                                   param.bias()->data() : NULL;
-        const float *weights_data = new_weights_dev.data();
+        const float *weights_data = param.weight()->data();
         ker_deconv_implicit_gemm_k4_s2_p1_16x64(dout, din,
                                                 weights_data, bias_data,
                                                 num,
