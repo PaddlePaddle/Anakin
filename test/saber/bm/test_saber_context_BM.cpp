@@ -12,11 +12,8 @@ TEST(TestSaberContextBM, test_BM_context) {
     LOG(INFO) << "test context constructor";
     Context<BM> ctx0;
     Context<BM> ctx1(0, 1, 1);
-    LOG(INFO) << "test record event to context data stream and compute stream";
-    API::record_event(event, ctx0.get_data_stream());
-    API::record_event(event, ctx0.get_compute_stream());
-    API::record_event(event, ctx1.get_data_stream());
-    API::record_event(event, ctx1.get_compute_stream());
+
+    //for BM no need to test stream as it is not in use
 }
 
 #endif
