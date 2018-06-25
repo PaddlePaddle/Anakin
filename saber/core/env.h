@@ -16,7 +16,6 @@
 #define ANAKIN_SABER_CORE_ENV_H
 
 #include "core/device.h"
-#include <type_traits>
 
 namespace anakin{
 
@@ -32,10 +31,6 @@ public:
         return *_g_env;
     }
     static void env_init(int max_stream = 4){
-        if(std::is_same<TargetType,BM>::value){
-            LOG(INFO) << "env init for BM";
-            return;
-        }
         Devs& devs = cur_env();
         if (devs.size() > 0){
             return;
