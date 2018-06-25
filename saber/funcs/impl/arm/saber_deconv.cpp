@@ -63,10 +63,10 @@ SaberStatus SaberDeconv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
     std::vector<DataTensor_out *>& outputs,\
     ConvParam<OpTensor> &conv_param, Context<ARM> &ctx) {
 
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
     //printf("conv init \n");
 
-    int threads = this->_ctx.get_act_ids().size();
+    int threads = this->_ctx->get_act_ids().size();
 
     Shape shape_in = inputs[0]->valid_shape();
     Shape shape_out = outputs[0]->valid_shape();
@@ -81,8 +81,8 @@ SaberStatus SaberDeconv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
     _kw = conv_param.weight()->width();
     _kh = conv_param.weight()->height();
    // printf("kw: %d, kh: %d\n", _kw, _kh);
-    int l1_cache = this->_ctx.devs[this->_ctx.get_device_id()]._info._L1_cache;
-    int l2_cache = this->_ctx.devs[this->_ctx.get_device_id()]._info._L2_cache;
+    int l1_cache = this->_ctx->devs[this->_ctx->get_device_id()]._info._L1_cache;
+    int l2_cache = this->_ctx->devs[this->_ctx->get_device_id()]._info._L2_cache;
     //! if L1 cache size is not provided, set to 31K
     l1_cache = l1_cache > 0? l1_cache : 31000;
     //! if L2 cache size is not provided, set to 2M

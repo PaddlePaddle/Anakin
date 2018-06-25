@@ -114,8 +114,14 @@ void test_arm_priorbox(std::vector<TensorHf4*>& tin, \
     int img_h = 0;
     float offset = 0.5;
 
+    std::vector<PriorType> order;
+
+    order.push_back(PRIOR_MIN);
+    order.push_back(PRIOR_MAX);
+    order.push_back(PRIOR_COM);
+
     PriorBoxParam<TensorHf4> param(min_size, max_size, aspect_ratio, \
-        variance, flip, clip, img_w, img_h, step_w, step_h, offset);
+        variance, flip, clip, img_w, img_h, step_w, step_h, offset, order);
     PriorBox<ARM, AK_FLOAT> priorbox_saber;
 
     priorbox_saber.compute_output_shape(tin, tvout_saber, param);

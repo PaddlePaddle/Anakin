@@ -10,11 +10,11 @@ SaberStatus VenderConv2DActPooling<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW,
             std::vector<DataTensor_out *>& outputs,
             ConvActivePoolingParam<OpTensor>& param, Context<NV> &ctx) {
 
-    if (!(ctx == this->_ctx)) {
+    if (!(&ctx == this->_ctx)) {
         if (_handle != NULL) {
             CUDNN_CHECK(cudnnDestroy(_handle));
         }
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
 
         cudaStream_t cuda_stream;
         cuda_stream = ctx.get_compute_stream();

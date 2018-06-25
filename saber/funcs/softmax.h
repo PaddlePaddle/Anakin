@@ -67,7 +67,7 @@ public:
 
     virtual SaberStatus compute_output_shape(const Input_v& input,\
      Output_v &output, Param_t& param) override {
-
+        output[0]->set_seq_offset(input[0]->get_seq_offset());
         //! "input" only has one input tensor
         return output[0]->set_shape(input[0]->valid_shape());
     }

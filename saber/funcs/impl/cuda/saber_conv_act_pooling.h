@@ -66,7 +66,7 @@ public:
     virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             ConvActivePoolingParam<OpTensor>& param, Context<NV> &ctx) {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         if (_host_work_space)
         {
             free(_host_work_space);
@@ -209,7 +209,7 @@ public:
                     param.conv_param.group, 
                     param.conv_param.alpha, 
                     param.conv_param.beta, 
-                    this->_ctx.get_compute_stream()); 
+                    this->_ctx->get_compute_stream());
                     
         CUDA_CHECK(cudaGetLastError());
 

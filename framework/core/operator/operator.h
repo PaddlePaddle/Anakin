@@ -176,23 +176,17 @@ public:
     /** 
      *  \brief Get list of op name.
      */
-    virtual std::vector<std::string>& get_list_op_name() {
-        return this->get_list_name();
-    }
+    virtual std::vector<std::string>& get_list_op_name();
 
     /** 
      *  \brief Get object pointer by op_name.
      */
-    virtual OpAttrWarpper* operator[](const std::string op_name) {
-        return ObjectRegister<OpAttrWarpper>::operator[](op_name);
-    }
+    virtual OpAttrWarpper* operator[](const std::string op_name);
 
     /** 
      *  \brief Add another alias to the type_id.
      */
-    virtual void add_alias(const std::string& ori_op_name, const std::string& op_name_alias) {
-        this->__alias__(ori_op_name, op_name_alias);
-    }
+    virtual void add_alias(const std::string& ori_op_name, const std::string& op_name_alias);
 };
 
 typedef Singleton<OpAttrObjectRegister> OpAttrRegister;
@@ -218,15 +212,15 @@ typedef Singleton<OpAttrObjectRegister> OpAttrRegister;
 ///    .set_in(1)
 ///    .set_out(1)
 ///    .Args<int>("axis",  " the axis in input dim index. ")
-///    .Arg<bool>("bias_term", " whether include bias parameter.")
+///    .Args<bool>("bias_term", " whether include bias parameter.")
 ///    .Args<PTuple<float>>("weight", " the weight name.")
 ///    .Args<PTuple<float>>("bias", " the bias name.");       
 #define ANAKIN_REGISTER_OP(OpName) \
-    static AK_ATTRIBUTE_UNUSED OpAttrWarpper& AK_MAKE_UNIQ_OPERATOR_NAME(OpName) = \
-                   OpAttrRegister::Global().Register(#OpName).name(#OpName)                
+    static AK_ATTRIBUTE_UNUSED OpAttrWarpper& AK_MAKE_UNIQ_OPERATOR_NAME(OpName) =  \
+                   OpAttrRegister::Global().Register(#OpName).name(#OpName)
 
 #define ANAKIN_REGISTER_OP_HELPER(OpName, OpHelperName, TargetT, DataT, PrecisionT)                                             \
-    static AK_ATTRIBUTE_UNUSED bool AK_MAKE_UNIQ_OPERATOR_NAME(OpName##_##OpHelperName##TargetT##DataT) =           \
+    static AK_ATTRIBUTE_UNUSED bool AK_MAKE_UNIQ_OPERATOR_NAME(OpName##_##OpHelperName##TargetT##DataT) =                       \
     OpFactory<TargetT, DataT, PrecisionT>::Global().Register(#OpName,                                                           \
                                   []() {                                                                                        \
                                         OpName<TargetT, DataT, PrecisionT>* tmpop = new OpName<TargetT, DataT, PrecisionT>();   \

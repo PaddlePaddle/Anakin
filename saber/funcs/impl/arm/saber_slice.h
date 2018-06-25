@@ -60,7 +60,7 @@ public:
     virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
                                std::vector<DataTensor_out*>& outputs,
                                SliceParam<OpTensor> &param, Context<ARM> &ctx) override {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         _slice_num = inputs[0]->count_valid(0, param.axis);
         _slice_size = inputs[0]->count_valid(param.axis + 1, inputs[0]->dims());
        return SaberSuccess;

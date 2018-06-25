@@ -65,7 +65,7 @@ public:
                   std::vector<DataTensor_out*>& outputs,
                   PoolingParam<OpTensor> &pooling_param, Context<NV> &ctx) {
 
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
 
         cudaStream_t cuda_stream;
         cuda_stream = ctx.get_compute_stream();
@@ -84,11 +84,11 @@ public:
     virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
                 std::vector<DataTensor_out*>& outputs,
                 PoolingParam<OpTensor> &pooling_param, Context<NV> &ctx) {
-        if (!(ctx == this->_ctx)) {
+        if (!(&ctx == this->_ctx)) {
             if (_handle != NULL) {
                 CUDNN_CHECK(cudnnDestroy(_handle));
             }
-            this->_ctx = ctx;
+            this->_ctx = &ctx;
 
             cudaStream_t cuda_stream;
             cuda_stream = ctx.get_compute_stream();

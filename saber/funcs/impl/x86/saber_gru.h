@@ -4,6 +4,19 @@
 #define ANAKIN_SABER_FUNCS_IMPL_X86_SABER_GRU_H
 #include "saber/funcs/impl/impl_gru.h"
 #include "saber/funcs/impl/x86/x86_utils.h"
+
+
+#ifdef __AVX512F__
+#include "saber_avx512_activation.h"
+#define SABER_X86_TYPE __m512
+#elif __AVX2__
+#include "saber_avx2_activation.h"
+#define SABER_X86_TYPE __m256
+#else
+#include "saber_normal_activation.h"
+#define SABER_X86_TYPE float
+#endif
+
 namespace anakin {
 
 namespace saber {
@@ -37,12 +50,12 @@ public:
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs, \
                              std::vector<DataTensor_out*>& outputs, \
                              GruParam<OpTensor>& gru_param, Context<X86>& ctx) {
-        this->_ctx=ctx;
+        this->_ctx = &ctx;
         CHECK_EQ(gru_param.formula ,GRU_ORIGIN)<<"only support gru_origin now";
         _hidden_size = gru_param.bias()->valid_size() / 3;
         if (gru_param.formula == GRU_ORIGIN&&_aligned_way) {
             //FIXME:aligned should be determine by framework
-            int aligned_byte=64;
+            int aligned_byte= sizeof(SABER_X86_TYPE);
             int c_size=aligned_byte/sizeof(OpDataType);
 
             _hidden_size = gru_param.bias()->valid_size() / 3;
@@ -132,6 +145,7 @@ private:
     int _word_size;
     int _hidden_size;
 
+//    typedef  __m256 _aligned_type;
     bool _aligned_way=true;
     int _aligned_word_size;
     int _aligned_hidden_size;
@@ -142,25 +156,21 @@ private:
     OpTensor _weights_i2h;
     OpTensor _weights_h2h;
     OpTensor _weights_bias;
-    DataTensor_out _init_hidden;
+    OpTensor _init_hidden;
 
     OpTensor _aligned_weights_i2h;
     OpTensor _aligned_weights_h2h;
     OpTensor _aligned_weights_bias;
-    DataTensor_out _aligned_init_hidden;
+    OpTensor _aligned_init_hidden;
 
-    DataTensor_out _temp_wx;
-    DataTensor_out _temp_wh;
-    DataTensor_out _temp_whr;
+    OpTensor _temp_wx;
+    OpTensor _temp_wh;
+    OpTensor _temp_whr;
 
-    DataTensor_in _temp_x;
-    DataTensor_out _temp_out;
-    DataTensor_out _temp_h_init;
-//    lod_no_batch_gru(const OpDataType* weight_w, const OpDataType* weight_h,const OpDataType* b, const OutDataType* h_init, OutDataType* h_out,
-//                     const InDataType* x,OutDataType *temp_wx,OutDataType *temp_wh,OutDataType *temp_whr,
-//                     int hidden_size, int word_size, std::vector<int>& offset_vec, bool is_reverse);
-
-
+    OpTensor _temp_x;
+    OpTensor _temp_out;
+    OpTensor _temp_h_init;
+#if 0
     SaberStatus batch_gru(\
         const std::vector<DataTensor_in*>& inputs,
         std::vector<DataTensor_out*>& outputs,
@@ -180,6 +190,17 @@ private:
     const std::vector<DataTensor_in*>& inputs,
                        std::vector<DataTensor_out*>& outputs,
                        GruParam<OpTensor>& param);
+    SaberStatus batch_s_aligned__m256SigmoidTanh(\
+    const std::vector<DataTensor_in*>& inputs,
+    std::vector<DataTensor_out*>& outputs,
+    GruParam<OpTensor>& param);
+#endif
+    template <typename BIT>
+    SaberStatus batch_s_aligned(\
+    const std::vector<DataTensor_in*>& inputs,
+    std::vector<DataTensor_out*>& outputs,
+    GruParam<OpTensor>& param);
+
 };
 
 }

@@ -9,7 +9,7 @@ namespace anakin{
 
 namespace saber{
 
-void conv7x7_mid_top2(const float* din, float* dout, int w_out, int width, int height, float* weight_ch_in){
+void conv7x7_mid_top2(const float* din, float* dout, int w_out, int width, int height, const float* weight_ch_in){
     float32x4_t vweights10 = vld1q_f32(weight_ch_in + 7);
     float32x4_t vweights11 = vld1q_f32(weight_ch_in + 11);
     vweights11 = vsetq_lane_f32(0.f, vweights11, 3);
@@ -351,7 +351,7 @@ void conv7x7_mid_top2(const float* din, float* dout, int w_out, int width, int h
             "exit_top2:                                           @ exit \n"
             :[cnt] "+r" (cnt), [wei_ptr] "+r" (wei_ptr), [outptr] "+r" (outptr), \
             [inptr_ch0] "+r" (inptr_ch0), [inptr_ch1] "+r" (inptr_ch1), \
-            [inptr_ch2] "+r" (inptr_ch2), [inptr_ch3] "+r" (inptr_ch3), \ 
+            [inptr_ch2] "+r" (inptr_ch2), [inptr_ch3] "+r" (inptr_ch3), \
             [inptr_ch4] "+r" (inptr_ch4), [inptr_ch5] "+r" (inptr_ch5)
             :
             :"q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10"
@@ -400,7 +400,7 @@ void conv7x7_mid_top2(const float* din, float* dout, int w_out, int width, int h
     }
 }
 
-void conv7x7_mid_top1(const float* din, float* dout, int w_out, int width, int height, float* weight_ch_in){
+void conv7x7_mid_top1(const float* din, float* dout, int w_out, int width, int height, const float* weight_ch_in){
     
     const float* inptr_ch0 = din;
     const float* inptr_ch1 = inptr_ch0 + width;
@@ -534,7 +534,7 @@ void conv7x7_mid_top1(const float* din, float* dout, int w_out, int width, int h
             "exit_top1:                                           @ exit \n"
             :[cnt] "+r" (cnt), [wei_ptr] "+r" (wei_ptr), [outptr] "+r" (outptr), \
             [inptr_ch0] "+r" (inptr_ch0), [inptr_ch1] "+r" (inptr_ch1), \
-            [inptr_ch2] "+r" (inptr_ch2), [inptr_ch3] "+r" (inptr_ch3), \ 
+            [inptr_ch2] "+r" (inptr_ch2), [inptr_ch3] "+r" (inptr_ch3), \
             [inptr_ch4] "+r" (inptr_ch4)
             :
             :"q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10"
@@ -595,7 +595,7 @@ void conv7x7_mid_top1(const float* din, float* dout, int w_out, int width, int h
     }
 }
 
-void conv7x7_mid_top0(const float* din, float* dout, int w_out, int width, int height, float* weight_ch_in){
+void conv7x7_mid_top0(const float* din, float* dout, int w_out, int width, int height, const float* weight_ch_in){
     
     const float* inptr_ch0 = din;
     const float* inptr_ch1 = inptr_ch0 + width;
@@ -759,7 +759,7 @@ void conv7x7_mid_top0(const float* din, float* dout, int w_out, int width, int h
 }
 
 
-void conv7x7_mid_mid(const float* din, float* dout, int w_out, int width, int height, float* weight_ch_in){
+void conv7x7_mid_mid(const float* din, float* dout, int w_out, int width, int height, const float* weight_ch_in){
     float32x4_t vweights00 = vld1q_f32(weight_ch_in);
     float32x4_t vweights01 = vld1q_f32(weight_ch_in + 4);
     vweights01 = vsetq_lane_f32(0.f, vweights01, 3);
@@ -1155,8 +1155,8 @@ void conv7x7_mid_mid(const float* din, float* dout, int w_out, int width, int he
             "exit1:                                               @ exit \n"
             :[cnt] "+r" (cnt), [wei_ptr] "+r" (wei_ptr), [outptr] "+r" (outptr), \
             [inptr_ch0] "+r" (inptr_ch0), [inptr_ch1] "+r" (inptr_ch1), \
-            [inptr_ch2] "+r" (inptr_ch2), [inptr_ch3] "+r" (inptr_ch3), \ 
-            [inptr_ch4] "+r" (inptr_ch4), [inptr_ch5] "+r" (inptr_ch5), \ 
+            [inptr_ch2] "+r" (inptr_ch2), [inptr_ch3] "+r" (inptr_ch3), \
+            [inptr_ch4] "+r" (inptr_ch4), [inptr_ch5] "+r" (inptr_ch5), \
             [inptr_ch6] "+r" (inptr_ch6)
             :
             :"q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10"
@@ -1226,9 +1226,6 @@ void conv_arm_7x7s1(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FLOA
 
     const int size_kernel = kernel_h * kernel_w;
 
-    int kernel_ext_w = (kernel_w - 1) * dila_w + 1;
-    int kernel_ext_h = (kernel_h - 1) * dila_h + 1;
-
     const int ch_out_g = ch_out / group;
     const int ch_in_g = ch_in / group;
     const int size_in_channel = w_in * h_in;
@@ -1260,18 +1257,18 @@ void conv_arm_7x7s1(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FLOA
                     const float *inptr_ch = inptr_group + cin * size_in_channel;
                     const float *weight_ch_in = weight_ch + cin * size_kernel;
                     float32x4_t vzero = vdupq_n_f32(0.f);
-                    float *inptr_ch0 = inptr_ch;
-                    float *inptr_ch1 = inptr_ch0 + w_in;
-                    float *inptr_ch2 = inptr_ch1 + w_in;
-                    float *inptr_ch3 = inptr_ch2 + w_in;
-                    float *inptr_ch4 = inptr_ch3 + w_in;
-                    float *inptr_ch5 = inptr_ch4 + w_in;
-                    float *inptr_ch6 = inptr_ch5 + w_in;
+                    const float *inptr_ch0 = inptr_ch;
+                    const float *inptr_ch1 = inptr_ch0 + w_in;
+                    const float *inptr_ch2 = inptr_ch1 + w_in;
+                    const float *inptr_ch3 = inptr_ch2 + w_in;
+                    const float *inptr_ch4 = inptr_ch3 + w_in;
+                    const float *inptr_ch5 = inptr_ch4 + w_in;
+                    const float *inptr_ch6 = inptr_ch5 + w_in;
 
                     //mid
                     float* outptr_imd = outptr_ch ;
-                    float* inptr_imd = inptr_ch0;
-                    float* wei_ptr = weight_ch_in;
+                    const float* inptr_imd = inptr_ch0;
+                    const float* wei_ptr = weight_ch_in;
                     conv7x7_mid_top0(inptr_imd, outptr_imd, w_out, w_in, 1, wei_ptr);
 
                     outptr_imd = outptr_ch + 1 * w_out;

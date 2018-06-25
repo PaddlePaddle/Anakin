@@ -20,8 +20,9 @@ Status LayerNormHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto axis = GET_PARAMETER(int, begin_norm_axis);
     auto eps = GET_PARAMETER(float, eps);
 
-    auto input_scale = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_1);
-    auto input_bias = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_2);
+	using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
+    auto input_scale = GET_PARAMETER(pblock_type, weight_1);
+    auto input_bias = GET_PARAMETER(pblock_type, weight_2);
 
     saber::LayerNormParam<Tensor4d<Ttype, Dtype>> param(axis, eps, &(input_scale.d_tensor()), \
             &(input_bias.d_tensor()));

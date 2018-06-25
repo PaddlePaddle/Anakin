@@ -115,6 +115,8 @@ LayOutType_op, LayOutType_in, LayOutType_out>::create(\
     const std::vector<DataTensor_in*>& inputs, \
         std::vector<DataTensor_out*>& outputs, \
         PermuteParam<OpTensor> &param, Context<ARM> &ctx) {
+
+    this->_ctx = &ctx;
     _num_axes = inputs[0]->dims();
     _count = outputs[0]->valid_size();
     _order_dims.clear();

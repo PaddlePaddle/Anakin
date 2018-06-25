@@ -31,14 +31,14 @@ if(USE_ARM_PLACE) #build unit test for arm devices
 	if(USE_OPENMP)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 	endif()
-	if (USE_PROTOBUF)
-		find_library( # Sets the name of the path variable.
-				log-lib
-
-				# Specifies the name of the NDK library that
-				# you want CMake to locate.
-				log )
-	endif()
+#	if (USE_PROTOBUF)
+#		find_library( # Sets the name of the path variable.
+#				log-lib
+#
+#				# Specifies the name of the NDK library that
+#				# you want CMake to locate.
+#				log )
+#	endif()
 
 endif()
 
@@ -58,9 +58,9 @@ foreach(SRC_NAME ${ANAKIN_TEST_CASE_SRC})
 	else()
 		target_link_libraries(${TEST_CASE_NAME} ${anakin_lib_static})
 	endif()
-	if(USE_ARM_PLACE)
-		target_link_libraries(${TEST_CASE_NAME} ${log-lib})
-	endif()
+#	if(USE_ARM_PLACE)
+#		target_link_libraries(${TEST_CASE_NAME} ${log-lib})
+#	endif()
 	set_target_properties(${TEST_CASE_NAME} PROPERTIES
 						RUNTIME_OUTPUT_DIRECTORY 
 						${PROJECT_SOURCE_DIR}/output/unit_test)

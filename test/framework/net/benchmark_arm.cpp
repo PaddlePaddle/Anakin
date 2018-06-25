@@ -9,7 +9,6 @@
 #include <unistd.h>  
 #include <fcntl.h>
 #include <map>
-#include "framework/operators/ops.h"
 #ifdef USE_ARM_PLACE
 #ifdef USE_GFLAGS
 #include <gflags/gflags.h>
@@ -232,6 +231,7 @@ int main(int argc, const char** argv){
 }
 
 #else
-int main(int argc, const char** argv){
-    LOG(INFO)<< "this benchmark is only for arm device";
+int main(int argc, const char** argv) {
+    LOG(INFO) << "this benchmark is only for arm device";
+}
 #endif

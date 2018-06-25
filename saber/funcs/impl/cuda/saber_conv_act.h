@@ -82,7 +82,7 @@ public:
     virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             ConvActiveParam<OpTensor>& param, Context<NV> &ctx) {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
 
         _use_k1s1p0 = true;
         _use_k1s1p0 = _use_k1s1p0 && (param.conv_param.weight()->height() == 1);
@@ -206,7 +206,7 @@ public:
                              inputs[0]->data(),
                              param.conv_param.weight()->data(),
                              chout, chin, hin, win, bias_data,
-                             this->_ctx.get_compute_stream());
+                             this->_ctx->get_compute_stream());
             return SaberSuccess;
         }
         if (param.conv_param.group == chin && param.conv_param.group == chout) {
@@ -218,14 +218,14 @@ public:
                         wout, kw, kh, param.conv_param.stride_w, \
                         param.conv_param.stride_h, param.conv_param.pad_w, param.conv_param.pad_h,\
                         (const OpDataType*)param.conv_param.weight()->data(), bias_data, \
-                        this->_ctx.get_compute_stream());
+                        this->_ctx->get_compute_stream());
                 } else {
                     saber_depthwise_conv_act<InDataType, true, false>(inputs[0]->data(), \
                         outputs[0]->mutable_data(), num, chin, hin, win, hout, \
                         wout, kw, kh, param.conv_param.stride_w, \
                         param.conv_param.stride_h, param.conv_param.pad_w, param.conv_param.pad_h,\
                         (const OpDataType*)param.conv_param.weight()->data(), bias_data, \
-                        this->_ctx.get_compute_stream());
+                        this->_ctx->get_compute_stream());
                 }
 
             } else {
@@ -237,7 +237,7 @@ public:
                         param.conv_param.weight()->height(), param.conv_param.stride_w, \
                         param.conv_param.stride_h, param.conv_param.pad_w, param.conv_param.pad_h,\
                         (const OpDataType*)param.conv_param.weight()->data(), bias_data, \
-                        this->_ctx.get_compute_stream());
+                        this->_ctx->get_compute_stream());
                 } else {
                     saber_depthwise_conv_act<InDataType, false, false>(inputs[0]->data(), \
                         outputs[0]->mutable_data(), inputs[0]->num(), inputs[0]->channel(), \
@@ -246,7 +246,7 @@ public:
                         param.conv_param.weight()->height(), param.conv_param.stride_w, \
                         param.conv_param.stride_h, param.conv_param.pad_w, param.conv_param.pad_h,\
                         (const OpDataType*)param.conv_param.weight()->data(), bias_data, \
-                        this->_ctx.get_compute_stream());
+                        this->_ctx->get_compute_stream());
                 }
 
             }
@@ -273,7 +273,7 @@ public:
                     param.conv_param.alpha, 
                     param.conv_param.beta,
                     param.eltwise_param.operation, 
-                    this->_ctx.get_compute_stream()); 
+                    this->_ctx->get_compute_stream());
             } else {
                 dispatch_func(inputs[0]->data(), outputs[0]->mutable_data(), \
                     _gpu_work_space, bias_data, num, chin, hin, win, \
@@ -295,7 +295,7 @@ public:
                     param.conv_param.group, 
                     param.conv_param.alpha, 
                     param.conv_param.beta, 
-                    this->_ctx.get_compute_stream());                 
+                    this->_ctx->get_compute_stream());
             }
 
         return SaberSuccess;

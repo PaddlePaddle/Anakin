@@ -50,13 +50,16 @@ Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path) {
 
     google::protobuf::io::ZeroCopyInputStream* raw_input = new google::protobuf::io::FileInputStream(
         file_descriptor);
+
     google::protobuf::io::CodedInputStream* coded_input = new google::protobuf::io::CodedInputStream(
         raw_input);
+
     coded_input->SetTotalBytesLimit(ProtoReadBytesLimit, 536870912);
+
     bool success = graph_proto.ParseFromCodedStream(coded_input);
 
     if (!success) {
-        LOG(FATAL) << " Parsing GraphProto " << model_path;
+        LOG(FATAL) << " Parsing GraphProto " << model_path << " ERROR";
     }
 
     delete coded_input;
@@ -64,8 +67,8 @@ Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path) {
     close(file_descriptor);
 #endif
     // fill the graph with name
-    LOG(INFO) << " graph name: " << graph_proto.name();
-    graph->name() = graph_proto.name();
+    LOG(INFO) << "graph name: " << graph_proto.name();
+    graph->set_name(graph_proto.name());
 
     // fill the graph with ins/outs
     for (int i = 0; i < graph_proto.ins().size(); i++) {

@@ -52,7 +52,7 @@ public:
     virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             ActivationParam<OpTensor>& param, Context<ARM>& ctx) {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         return SaberSuccess;
     }
 

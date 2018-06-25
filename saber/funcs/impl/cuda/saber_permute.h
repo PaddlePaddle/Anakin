@@ -53,7 +53,7 @@ public:
                              std::vector<DataTensor_out*>& outputs,
                              PermuteParam<OpTensor> &param,
                              Context<NV> &ctx) {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         _num_axes = inputs[0]->valid_shape().size();
         for (int i = 0; i < _num_axes; i++) {
             if (std::find(_order_dims.begin(), _order_dims.end(),
