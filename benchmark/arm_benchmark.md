@@ -1,7 +1,8 @@
 # 测试环境和参数:
 1. 测试模型Mobilenetv1, mobilenetv2, mobilenet-ssd
 2. 采用android ndk交叉编译，gcc 4.9，enable neon， ABI： armveabi-v7a with neon -mfloat-abi=softfp
-3. 测试平台
+3. 测试平台:
+
    a)荣耀v9(root): 处理器:麒麟960,    4 big cores in 2.36GHz, 4 little cores in 1.8GHz
    b)nubia z17:处理器:高通835,    4 big cores in 2.36GHz, 4 little cores in 1.9GHz
    c)360 N5:处理器:高通653,    4 big cores in 1.8GHz, 4 little cores in 1.4GHz
