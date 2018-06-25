@@ -583,6 +583,610 @@ void pooling2x2s2_ave(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
     }
 }
 
+void pooling3x3s1_max(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
+    Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, PoolingType type, bool global, \
+    int kernel_w, int kernel_h, int stride_w, int stride_h, int pad_w, int pad_h) {
+
+    //no need to pad input tensor, pad_size is not used, default border is zero padded
+
+    int w_in = tensor_in.width();
+    int h_in = tensor_in.height();
+    int ch_in = tensor_in.channel();
+    int num = tensor_in.num();
+
+    int w_out = tensor_out.width();
+    int h_out = tensor_out.height();
+    int ch_out = tensor_out.channel();
+    //printf("3x3s1 \n");
+
+    if (global) {
+        LOG(ERROR) << "not supported in this funcs, instead, use the basic func";
+    }
+
+    int size_channel_out = w_out * h_out;
+    int size_channel_in = w_in * h_in;
+    float* data_out = tensor_out.mutable_data();
+    const float* data_in = tensor_in.data();
+
+    int w_even = (w_in >> 1) << 1;
+    //int w_remains = w_in - w_even; // should be 0 or 1
+    int h_even = (h_in >> 1) << 1;
+    //int h_remains = h_in - h_even; // should be 0 or 1
+    //int w_unroll_size = (w_even >> 3) << 3;
+    //int w_unroll_remian = w_even - w_unroll_size;
+    int w_in_2 = w_in << 1;
+    int w_unroll_size =  (w_in - 2) >> 2;
+    int w_unroll_remian = w_in - 2 - w_unroll_size * 4;
+    float minval = std::numeric_limits<float>::lowest();
+    float32x4_t vzero = vdupq_n_f32(minval); //zero pad
+
+    for (int n = 0; n < num; ++n) {
+
+        float* data_out_batch = data_out + n * ch_out * size_channel_out;
+        const float* data_in_batch = data_in + n * ch_in * size_channel_in;
+#pragma omp parallel for
+        for (int c = 0; c < ch_out; c++) {
+            float* data_out_channel = data_out_batch + c * size_channel_out;
+            const float* data_in_channel = data_in_batch + c * size_channel_in;
+            const float* r0 = data_in_channel;
+            const float* r1 = r0 + w_in;
+            const float* r2 = r1 + w_in;
+            int cnt_num = w_unroll_size; //w_in / 4
+            float* dr_out = data_out_channel;
+            const float* dr0 = r0;
+            const float* dr1 = r1;
+            const float* dr2 = r2;
+            int w = 0;
+            int cnt = 1;
+            //left
+            data_out_channel[0] = std::max(std::max(r0[0], r0[1]), std::max(r1[0], r1[1]));
+            // first row with zero pad
+        #ifdef __aarch64__
+            for (; w < w_in - 6; w += 4) {
+                float32x4_t vr0_1234 = vld1q_f32(&r0[w]);
+                float32x4_t vr1_1234 = vld1q_f32(&r1[w]);
+                float32x4_t vr0_5678 = vld1q_f32(&r0[w + 4]);
+                float32x4_t vr1_5678 = vld1q_f32(&r1[w + 4]);
+                float32x4_t vmax_1234 = vmaxq_f32(vr0_1234, vr1_1234);
+                float32x4_t vmax_5678 = vmaxq_f32(vr0_5678, vr1_5678);
+
+                float32x4_t vmax_2345 = vextq_f32(vmax_1234, vmax_5678,1);
+                float32x4_t vmax_3456 = vextq_f32(vmax_1234, vmax_5678,2);
+                float32x2_t vmax_12_34 = vpmax_f32(vget_low_f32(vmax_1234), vget_high_f32(vmax_1234));
+                float32x2_t vmax_23_45 = vpmax_f32(vget_low_f32(vmax_2345), vget_high_f32(vmax_2345));
+                float32x2_t vmax_34_56 = vpmax_f32(vget_low_f32(vmax_3456), vget_high_f32(vmax_3456));
+                float32x2_t vmax_123_345 = vmax_f32(vmax_12_34, vmax_23_45);
+                float32x2_t vmax_234_456 = vmax_f32(vmax_23_45, vmax_34_56);
+                float32x4_t vmax = vdupq_n_f32(vget_lane_f32(vmax_123_345, 0));
+                vmax = vsetq_lane_f32(vget_lane_f32(vmax_234_456, 0), vmax, 1);
+                vmax = vsetq_lane_f32(vget_lane_f32(vmax_123_345, 1), vmax, 2);
+                vmax = vsetq_lane_f32(vget_lane_f32(vmax_234_456, 1), vmax, 3);
+                vst1_f32(&data_out_channel[cnt],vmax);
+                cnt += 4;
+            }
+            
+        #else
+            dr_out = dr_out + 1;
+           // printf("cnt_num: %d, cnt_num1: %d \n",cnt_num, cnt_num1);
+            if (cnt_num > 0){
+                asm volatile(
+                "s1_max_loop_1:                                    @main loop\n"
+                "vld1.f32  {d0-d1}, [%[dr0]]!                     @load d0-d5, dr0\n"
+                "vld1.f32  {d4-d5}, [%[dr1]]!                    @load d4-d7, dr1\n"
+                "vld1.f32  {d2}, [%[dr0]]!                     @load d0-d5, dr0\n"
+                "vld1.f32  {d6}, [%[dr1]]!                    @load d4-d7, dr1\n"
+                "vmax.f32  q5, q0, q2                            @max r0_1234,r1_1234\n"
+                "vmax.f32  d12, d2, d6                            @max r0_5678,r1_5678\n"
+                //"vmov.f32  s7,s6                                 @mov s7, s6\n"
+                "vext.f32  q0, q5, q6, #1                        @vext max_2345\n"
+                "vext.f32  q2, q5, q6, #2                        @vext max_3456\n"
+                "vpmax.f32 d2, d10, d11                          @pmax d4, max_1234, max_1234\n"
+                "vpmax.f32 d3, d0, d1                            @pmax d4, max_2345, max_2345\n"
+                "vpmax.f32 d6, d4, d5                            @pmax d6, max_3456, max_3456\n"
+                "vmax.f32  d8, d2, d3                            @max d2, vmax_12_34, vmax_23_45\n"
+                "vmax.f32  d9, d3, d6                            @max d2, vmax_23_45, vmax_34_56\n"
+                "sub       %[dr0], #8                            @sub w, 8\n"
+                "sub       %[dr1], #8                            @sub w, 8\n"
+                //swap
+                "vmov.f32  s0, s17                               @mov \n"
+                "vmov.f32  s17, s18                              @mov \n"
+                "vmov.f32  s18, s0                               @mov \n"
+                "subs      %[cnt_num], #1                        @subs cnt_num, #1\n"
+                "vst1.f32  d8, [%[dr_out]]!                      @vst1 d0, dr_out\n"
+                "vst1.f32  d9, [%[dr_out]]!                      @vst1 d0, dr_out\n"
+                "bne       s1_max_loop_1                           @bne s1_max_loop\n"
+                :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out] "+r" (dr_out), [cnt_num] "+r" (cnt_num)
+                :"r" (dr0), "r" (dr1), "r" (dr_out), "r"(cnt_num)
+                :"q0", "q1", "q2", "q3", "q4", "q5", "q6"
+                );
+            }
+           // printf("cnt_num: %d, cnt_num1: %d \n",cnt_num, cnt_num1);
+        #endif
+            //remian
+            w = w_unroll_size * 4;
+            for(int j = 0; j < w_unroll_remian; j++){
+                float tmp_max = std::max(r0[j + w], r1[j + w]);
+                tmp_max = std::max(tmp_max, std::max(r0[j + w + 1], r1[j + w + 1]));
+                tmp_max = std::max(tmp_max, std::max(r0[j + w + 2], r1[j + w + 2]));
+                data_out_channel[j + w + 1] = tmp_max;
+            }
+            //right
+            float tmp = std::max(r0[w_in - 2],r1[w_in - 2]);
+            tmp =std::max(tmp, std::max(r0[w_in - 1],r1[w_in - 1]));
+            data_out_channel[w_out-1]  = tmp;
+
+           // r0 = r1;
+           // r1 = r0 + w_in;
+           // r2 = r1 + w_in;
+            data_out_channel += w_out;
+            int h = 0;
+            for (; h < h_in - 2; h += 1) {
+                // deal with left pad
+                float maxr0 = std::max(r0[0], r0[1]);
+                float maxr1 = std::max(r1[0], r1[1]);
+                float maxr2 = std::max(r2[0], r2[1]);
+                data_out_channel[0] = std::max(std::max(maxr0, maxr1), maxr2);
+            #ifdef __aarch64__
+                w = 0;
+                cnt = 1;
+                for (; w < w_in - 6; w += 4) {
+                    float32x4_t vr0_1234 = vld1q_f32(&r0[w]);
+                    float32x4_t vr1_1234 = vld1q_f32(&r1[w]);
+                    float32x4_t vr2_1234 = vld1q_f32(&r2[w]);
+                    float32x4_t vr0_5678 = vld1q_f32(&r0[w + 4]);
+                    float32x4_t vr1_5678 = vld1q_f32(&r1[w + 4]);
+                    float32x4_t vr2_5678 = vld1q_f32(&r2[w + 4]);
+                    float32x4_t vmax_1234 = vmaxq_f32(vr0_1234, vr1_1234);
+                    vmax_1234 = vamxq_f32(vmax_1234, vr2_1234);
+                    float32x4_t vmax_5678 = vmaxq_f32(vr0_5678, vr1_5678);
+                    vmax_5678 = vamxq_f32(vmax_5678, vr2_5678);
+
+                    float32x4_t vmax_2345 = vextq_f32(vmax_1234, vmax_5678,1);
+                    float32x4_t vmax_3456 = vextq_f32(vmax_1234, vmax_5678,2);
+                    float32x2_t vmax_12_34 = vpmax_f32(vget_low_f32(vmax_1234), vget_high_f32(vmax_1234));
+                    float32x2_t vmax_23_45 = vpmax_f32(vget_low_f32(vmax_2345), vget_high_f32(vmax_2345));
+                    float32x2_t vmax_34_56 = vpmax_f32(vget_low_f32(vmax_3456), vget_high_f32(vmax_3456));
+                    float32x2_t vmax_123_345 = vmax_f32(vmax_12_34, vmax_23_45);
+                    float32x2_t vmax_234_456 = vmax_f32(vmax_23_45, vmax_34_56);
+                    float32x4_t vmax = vdupq_n_f32(vget_lane_f32(vmax_123_345, 0));
+                    vmax = vsetq_lane_f32(vget_lane_f32(vmax_234_456, 0), vmax, 1);
+                    vmax = vsetq_lane_f32(vget_lane_f32(vmax_123_345, 1), vmax, 2);
+                    vmax = vsetq_lane_f32(vget_lane_f32(vmax_234_456, 1), vmax, 3);
+                    vst1_f32(&data_out_channel[cnt],vmax);
+                    cnt += 4;
+                }
+            #else
+                 dr_out = data_out_channel + 1;
+                 dr0 = r0;
+                 dr1 = r1;
+                 dr2 = r2;
+                 cnt_num = w_unroll_size;
+                if (cnt_num > 0){
+                    asm volatile(
+                    "s1_max_loop_mid_1:                                    @main loop\n"
+                    "vld1.f32  {d0-d1}, [%[dr0]]!                     @load d0-d5, dr0\n"
+                    "vld1.f32  {d4-d5}, [%[dr1]]!                    @load d4-d7, dr1\n"
+                    "vld1.f32  {d8-d9}, [%[dr2]]!                    @load d4-d7, dr1\n"
+                    "vld1.f32  {d2}, [%[dr0]]!                     @load d0-d5, dr0\n"
+                    "vld1.f32  {d6}, [%[dr1]]!                    @load d4-d7, dr1\n"
+                    "vld1.f32  {d10}, [%[dr2]]!                  @load d4-d7, dr1\n"
+                    "vmax.f32  q7, q0, q2                            @max r0_1234,r1_1234\n"
+                    "vmax.f32  d16, d2, d6                            @max r0_5678,r1_5678\n"
+                    "vmax.f32  q3, q7, q4                            @max r0_1234,r1_1234\n"
+                    "vmax.f32  d12, d16, d10                            @max r0_5678,r1_5678\n"
+                    //"vmov.f32  s7,s6                                 @mov s7, s6\n"
+                   "vext.f32  q0, q3, q6, #1                        @vext max_2345\n"
+                   "vext.f32  q2, q3, q6, #2                        @vext max_3456\n"
+                   "vpmax.f32 d2, d6, d7                            @pmax d4, max_1234, max_1234\n"
+                   "vpmax.f32 d3, d0, d1                            @pmax d4, max_2345, max_2345\n"
+                   "vpmax.f32 d6, d4, d5                            @pmax d6, max_3456, max_3456\n"
+                   "vmax.f32  d8, d2, d3                            @max d2, vmax_12_34, vmax_23_45\n"
+                   "vmax.f32  d9, d3, d6                            @max d2, vmax_23_45, vmax_34_56\n"
+                   "sub       %[dr0], #8                            @sub w, 8\n"
+                   "sub       %[dr1], #8                            @sub w, 8\n"
+                   "sub       %[dr2], #8                            @sub w, 8\n"
+                   //swap
+                   "vmov.f32  s0, s17                               @mov \n"
+                   "vmov.f32  s17, s18                              @mov \n"
+                   "vmov.f32  s18, s0                               @mov \n"
+                   "subs      %[cnt_num], #1                        @subs cnt_num, #1\n"
+                   "vst1.f32  d8, [%[dr_out]]!                      @vst1 d0, dr_out\n"
+                   "vst1.f32  d9, [%[dr_out]]!                      @vst1 d0, dr_out\n"
+                   "bne       s1_max_loop_mid_1                     @bne s1_max_loop\n"
+                   :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr2] "+r" (dr2), [dr_out] "+r" (dr_out), [cnt_num] "+r" (cnt_num)
+                   :"r" (dr0), "r" (dr1), "r" (dr_out), "r"(cnt_num)
+                   :"q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8"
+                   );
+                }
+            #endif 
+               //remian
+               w = w_unroll_size * 4;
+               for(int j = 0; j < w_unroll_remian; j++){
+                   float tmp_max = std::max(r0[j + w], r1[j + w]);
+                   tmp_max = std::max(tmp_max, std::max(r0[j + w + 1], r1[j + w + 1]));
+                   tmp_max = std::max(tmp_max, std::max(r0[j + w + 2], r1[j + w + 2]));
+                   tmp_max = std::max(tmp_max, std::max(r2[j + w], r2[j + w + 1]));
+                   tmp_max = std::max(tmp_max, r2[j + w + 2]);
+                   data_out_channel[j + w + 1] = tmp_max;
+                }
+                //right
+                tmp = std::max(r0[w_in - 2],r1[w_in - 2]);
+                tmp =std::max(tmp, std::max(r0[w_in - 1],r1[w_in - 1]));
+                tmp =std::max(tmp, std::max(r2[w_in - 2],r2[w_in - 1]));
+                data_out_channel[w_out-1]  = tmp;
+
+                r0 = r1;
+                r1 = r2;
+                r2 = r1 + w_in;
+                data_out_channel += w_out;
+            }
+
+            //the last two line
+            float maxr0 = std::max(r0[0], r0[1]);
+            float maxr1 = std::max(r1[0], r1[1]);
+            data_out_channel[0] = std::max(maxr0, maxr1);
+            #ifdef __aarch64__
+            w = 0;
+            cnt = 1;
+            for (; w < w_in - 6; w += 4) {
+                float32x4_t vr0_1234 = vld1q_f32(&r0[w]);
+                float32x4_t vr1_1234 = vld1q_f32(&r1[w]);
+                float32x4_t vr0_5678 = vld1q_f32(&r0[w + 4]);
+                float32x4_t vr1_5678 = vld1q_f32(&r1[w + 4]);
+                float32x4_t vmax_1234 = vmaxq_f32(vr0_1234, vr1_1234);
+                float32x4_t vmax_5678 = vmaxq_f32(vr0_5678, vr1_5678);
+
+                float32x4_t vmax_2345 = vextq_f32(vmax_1234, vmax_5678,1);
+                float32x4_t vmax_3456 = vextq_f32(vmax_1234, vmax_5678,2);
+                float32x2_t vmax_12_34 = vpmax_f32(vget_low_f32(vmax_1234), vget_high_f32(vmax_1234));
+                float32x2_t vmax_23_45 = vpmax_f32(vget_low_f32(vmax_2345), vget_high_f32(vmax_2345));
+                float32x2_t vmax_34_56 = vpmax_f32(vget_low_f32(vmax_3456), vget_high_f32(vmax_3456));
+                float32x2_t vmax_123_345 = vmax_f32(vmax_12_34, vmax_23_45);
+                float32x2_t vmax_234_456 = vmax_f32(vmax_23_45, vmax_34_56);
+                float32x4_t vmax = vdupq_n_f32(vget_lane_f32(vmax_123_345, 0));
+                vmax = vsetq_lane_f32(vget_lane_f32(vmax_234_456, 0), vmax, 1);
+                vmax = vsetq_lane_f32(vget_lane_f32(vmax_123_345, 1), vmax, 2);
+                vmax = vsetq_lane_f32(vget_lane_f32(vmax_234_456, 1), vmax, 3);
+                vst1_f32(&data_out_channel[cnt],vmax);
+                cnt += 4;
+            }
+            #else
+            dr_out = data_out_channel + 1;
+            dr0 = r0;
+            dr1 = r1;
+            cnt_num = w_unroll_size;
+            if (cnt_num > 0){
+                asm volatile(
+                "s1_max_loop_bot_1:                                 @main loop\n"
+                "vld1.f32  {d0-d1}, [%[dr0]]!                     @load d0-d5, dr0\n"
+                "vld1.f32  {d4-d5}, [%[dr1]]!                    @load d4-d7, dr1\n"
+                "vld1.f32  {d2}, [%[dr0]]!                     @load d0-d5, dr0\n"
+                "vld1.f32  {d6}, [%[dr1]]!                    @load d4-d7, dr1\n"
+                "vmax.f32  q5, q0, q2                            @max r0_1234,r1_1234\n"
+                "vmax.f32  d12, d2, d6                            @max r0_5678,r1_5678\n"
+                //"vmov.f32  s7,s6                                 @mov s7, s6\n"
+                "vext.f32  q0, q5, q6, #1                        @vext max_2345\n"
+                "vext.f32  q2, q5, q6, #2                        @vext max_3456\n"
+                "vpmax.f32 d2, d10, d11                          @pmax d4, max_1234, max_1234\n"
+                "vpmax.f32 d3, d0, d1                            @pmax d4, max_2345, max_2345\n"
+                "vpmax.f32 d6, d4, d5                            @pmax d6, max_3456, max_3456\n"
+                "vmax.f32  d8, d2, d3                            @max d2, vmax_12_34, vmax_23_45\n"
+                "vmax.f32  d9, d3, d6                            @max d2, vmax_23_45, vmax_34_56\n"
+                "sub       %[dr0], #8                            @sub w, 8\n"
+                "sub       %[dr1], #8                            @sub w, 8\n"
+                //swap
+                "vmov.f32  s0, s17                               @mov \n"
+                "vmov.f32  s17, s18                              @mov \n"
+                "vmov.f32  s18, s0                               @mov \n"
+                "subs      %[cnt_num], #1                        @subs cnt_num, #1\n"
+                "vst1.f32  d8, [%[dr_out]]!                      @vst1 d0, dr_out\n"
+                "vst1.f32  d9, [%[dr_out]]!                      @vst1 d0, dr_out\n"
+                "bne       s1_max_loop_bot_1                           @bne s1_max_loop\n"
+                :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out] "+r" (dr_out), [cnt_num] "+r" (cnt_num)
+                :"r" (dr0), "r" (dr1), "r" (dr_out), "r"(cnt_num)
+                :"q0", "q1", "q2", "q3", "q4", "q5", "q6"
+                );
+            }
+            #endif 
+            //remian
+            w = w_unroll_size * 4;
+            for(int j = 0; j < w_unroll_remian; j++){
+                float tmp_max = std::max(r0[j + w], r1[j + w]);
+                tmp_max = std::max(tmp_max, std::max(r0[j + w + 1], r1[j + w + 1]));
+                tmp_max = std::max(tmp_max, std::max(r0[j + w + 2], r1[j + w + 2]));
+                data_out_channel[j + w + 1] = tmp_max;
+            }
+            tmp = std::max(r0[w_in - 2],r1[w_in - 2]);
+            tmp =std::max(tmp, std::max(r0[w_in - 1],r1[w_in - 1]));
+            data_out_channel[w_out-1]  = tmp;
+
+        }
+    }
+}
+
+void pooling3x3s1_ave(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
+    Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, PoolingType type, bool global, \
+    int kernel_w, int kernel_h, int stride_w, int stride_h, int pad_w, int pad_h) {
+
+    //no need to pad input tensor, pad_size is not used, default border is zero padded
+
+    int w_in = tensor_in.width();
+    int h_in = tensor_in.height();
+    int ch_in = tensor_in.channel();
+    int num = tensor_in.num();
+
+    int w_out = tensor_out.width();
+    int h_out = tensor_out.height();
+    int ch_out = tensor_out.channel();
+    //printf("3x3s1 \n");
+
+    if (global) {
+        LOG(ERROR) << "not supported in this funcs, instead, use the basic func";
+    }
+
+    int size_channel_out = w_out * h_out;
+    int size_channel_in = w_in * h_in;
+    float* data_out = tensor_out.mutable_data();
+    const float* data_in = tensor_in.data();
+
+    int w_even = (w_in >> 1) << 1;
+    int h_even = (h_in >> 1) << 1;
+    int w_in_2 = w_in << 1;
+    int w_unroll_size =  (w_in - 2) >> 2;
+    int w_unroll_remian = w_in - 2 - w_unroll_size * 4;
+    float32x4_t vzero = vdupq_n_f32(0.f); //zero pad
+    float32x4_t vcoef = vdupq_n_f32(1.f / 9.f); //zero pad
+
+    for (int n = 0; n < num; ++n) {
+
+        float* data_out_batch = data_out + n * ch_out * size_channel_out;
+        const float* data_in_batch = data_in + n * ch_in * size_channel_in;
+#pragma omp parallel for
+        for (int c = 0; c < ch_out; c++) {
+            float* data_out_channel = data_out_batch + c * size_channel_out;
+            const float* data_in_channel = data_in_batch + c * size_channel_in;
+            const float* r0 = data_in_channel;
+            const float* r1 = r0 + w_in;
+            const float* r2 = r1 + w_in;
+            int cnt_num = w_unroll_size; //w_in / 4
+            float* dr_out = data_out_channel;
+            const float* dr0 = r0;
+            const float* dr1 = r1;
+            const float* dr2 = r2;
+            int w = 0;
+            int cnt = 1;
+            //left
+            data_out_channel[0] = (r0[0] + r0[1]+ r1[0] + r1[1]) / 9.f;
+            // first row with zero pad
+        #ifdef __aarch64__
+            for (; w < w_in - 6; w += 4) {
+                float32x4_t vr0_1234 = vld1q_f32(&r0[w]);
+                float32x4_t vr1_1234 = vld1q_f32(&r1[w]);
+                float32x4_t vr0_5678 = vld1q_f32(&r0[w + 4]);
+                float32x4_t vr1_5678 = vld1q_f32(&r1[w + 4]);
+                float32x4_t vsum_1234 = vaddq_f32(vr0_1234, vr1_1234);
+                float32x4_t vsum_5678 = vaddq_f32(vr0_5678, vr1_5678);
+
+                float32x4_t vsum_2345 = vextq_f32(vsum_1234, vsum_5678,1);
+                float32x4_t vsum_3456 = vextq_f32(vsum_1234, vsum_5678,2);
+                float32x4_t vsum = vaddq_f32(vsum_1234, vsum_2345);
+                vsum = vaddq_f32(vsum, vsum_3456);
+                vsum = vmulq_f32(vsum, vcoef);
+                vst1_f32(&data_out_channel[cnt],vsum);
+                cnt += 4;
+            }
+            
+        #else
+            dr_out = dr_out + 1;
+           // printf("cnt_num: %d, cnt_num1: %d \n",cnt_num, cnt_num1);
+            if (cnt_num > 0){
+                asm volatile(
+                "s1_ave_loop_1:                                    @main loop\n"
+                "vld1.f32  {d0-d1}, [%[dr0]]!                     @load d0-d5, dr0\n"
+                "vld1.f32  {d4-d5}, [%[dr1]]!                    @load d4-d7, dr1\n"
+                "vld1.f32  {d2}, [%[dr0]]!                     @load d0-d5, dr0\n"
+                "vld1.f32  {d6}, [%[dr1]]!                    @load d4-d7, dr1\n"
+                "vadd.f32  q5, q0, q2                            @max r0_1234,r1_1234\n"
+                "vadd.f32  d12, d2, d6                            @max r0_5678,r1_5678\n"
+                //"vmov.f32  s7,s6                                 @mov s7, s6\n"
+                "vext.f32  q0, q5, q6, #1                        @vext max_2345\n"
+                "vext.f32  q2, q5, q6, #2                        @vext max_3456\n"
+                "vadd.f32  q1, q5, q0                            @add 1234 + 2345\n"
+                "vadd.f32  q1, q1, q2                            @add + 3456\n"
+                "vmul.f32  q4, q1, %q[vcoef]                     @mul * 1/9.f \n"
+                "sub       %[dr0], #8                            @sub w, 8\n"
+                "sub       %[dr1], #8                            @sub w, 8\n"
+                "subs      %[cnt_num], #1                        @subs cnt_num, #1\n"
+                "vst1.f32  d8, [%[dr_out]]!                      @vst1 d0, dr_out\n"
+                "vst1.f32  d9, [%[dr_out]]!                      @vst1 d0, dr_out\n"
+                "bne       s1_ave_loop_1                           @bne s1_max_loop\n"
+                :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out] "+r" (dr_out), [cnt_num] "+r" (cnt_num), [vcoef] "+w" (vcoef)
+                :"r" (dr0), "r" (dr1), "r" (dr_out), "r"(cnt_num)
+                :"q0", "q1", "q2", "q3", "q4", "q5", "q6"
+                );
+            }
+           // printf("cnt_num: %d, cnt_num1: %d \n",cnt_num, cnt_num1);
+        #endif
+            //remian
+            w = w_unroll_size * 4;
+            for(int j = 0; j < w_unroll_remian; j++){
+                float tmp_sum = r0[j + w] + r1[j + w];
+                tmp_sum += (r0[j + w + 1] + r1[j + w + 1]);
+                tmp_sum += (r0[j + w + 2] + r1[j + w + 2]);
+                data_out_channel[j + w + 1] = tmp_sum / 9.f;
+            }
+            //right
+            float tmp = r0[w_in - 2] + r1[w_in - 2];
+            tmp +=(r0[w_in - 1] + r1[w_in - 1]);
+            data_out_channel[w_out-1]  = tmp / 9.f;
+
+           // r0 = r1;
+           // r1 = r0 + w_in;
+           // r2 = r1 + w_in;
+            data_out_channel += w_out;
+            int h = 0;
+            for (; h < h_in - 2; h += 1) {
+                // deal with left pad
+                float maxr0 = r0[0] + r0[1];
+                float maxr1 = r1[0] + r1[1];
+                float maxr2 = r2[0] + r2[1];
+                data_out_channel[0] = (maxr0 + maxr1 + maxr2) / 9.f;
+            #ifdef __aarch64__
+                w = 0;
+                cnt = 1;
+                for (; w < w_in - 6; w += 4) {
+                    float32x4_t vr0_1234 = vld1q_f32(&r0[w]);
+                    float32x4_t vr1_1234 = vld1q_f32(&r1[w]);
+                    float32x4_t vr2_1234 = vld1q_f32(&r2[w]);
+                    float32x4_t vr0_5678 = vld1q_f32(&r0[w + 4]);
+                    float32x4_t vr1_5678 = vld1q_f32(&r1[w + 4]);
+                    float32x4_t vr2_5678 = vld1q_f32(&r2[w + 4]);
+                    float32x4_t vsum_1234 = vaddq_f32(vr0_1234, vr1_1234);
+                    vsum_1234 = vaddq_f32(vsum_1234, vr2_1234);
+                    float32x4_t vsum_5678 = vaddq_f32(vr0_5678, vr1_5678);
+                    vsum_5678 = vaddq_f32(vsum_5678, vr2_5678);
+
+                    float32x4_t vsum_2345 = vextq_f32(vsum_1234, vsum_5678,1);
+                    float32x4_t vsum_3456 = vextq_f32(vsum_1234, vsum_5678,2);
+                    float32x4_t vsum = vaddq_f32(vsum_1234, vsum_2345);
+                    vsum = vaddq_f32(vsum, vsum_3456);
+                    vsum = vmulq_f32(vsum, vcoef);
+                    vst1_f32(&data_out_channel[cnt],vsum);
+                    cnt += 4;
+                }
+            #else
+                 dr_out = data_out_channel + 1;
+                 dr0 = r0;
+                 dr1 = r1;
+                 dr2 = r2;
+                 cnt_num = w_unroll_size;
+                if (cnt_num > 0){
+                    asm volatile(
+                    "s1_ave_loop_mid_1:                                    @main loop\n"
+                    "vld1.f32  {d0-d1}, [%[dr0]]!                     @load d0-d5, dr0\n"
+                    "vld1.f32  {d4-d5}, [%[dr1]]!                    @load d4-d7, dr1\n"
+                    "vld1.f32  {d8-d9}, [%[dr2]]!                    @load d4-d7, dr1\n"
+                    "vld1.f32  {d2}, [%[dr0]]!                     @load d0-d5, dr0\n"
+                    "vld1.f32  {d6}, [%[dr1]]!                    @load d4-d7, dr1\n"
+                    "vld1.f32  {d10}, [%[dr2]]!                  @load d4-d7, dr1\n"
+                    "vadd.f32  q7, q0, q2                            @max r0_1234,r1_1234\n"
+                    "vadd.f32  d16, d2, d6                            @max r0_5678,r1_5678\n"
+                    "vadd.f32  q3, q7, q4                            @max r0_1234,r1_1234\n"
+                    "vadd.f32  d12, d16, d10                            @max r0_5678,r1_5678\n"
+                    //"vmov.f32  s7,s6                                 @mov s7, s6\n"
+                    "vext.f32  q0, q3, q6, #1                        @vext max_2345\n"
+                    "vext.f32  q2, q3, q6, #2                        @vext max_3456\n"
+                    "vadd.f32  q1, q3, q0                            @add 1234 + 2345\n"
+                    "vadd.f32  q1, q1, q2                            @add + 3456\n"
+                    "vmul.f32  q4, q1, %q[vcoef]                     @mul * 1/9.f \n"
+                    "sub       %[dr0], #8                            @sub w, 8\n"
+                    "sub       %[dr1], #8                            @sub w, 8\n"
+                    "sub       %[dr2], #8                            @sub w, 8\n"
+                    "subs      %[cnt_num], #1                        @subs cnt_num, #1\n"
+                    "vst1.f32  d8, [%[dr_out]]!                      @vst1 d0, dr_out\n"
+                    "vst1.f32  d9, [%[dr_out]]!                      @vst1 d0, dr_out\n"
+                    "bne       s1_ave_loop_mid_1                     @bne s1_max_loop\n"
+                   :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr2] "+r" (dr2), [dr_out] "+r" (dr_out), \
+                    [cnt_num] "+r" (cnt_num), [vcoef] "+w" (vcoef)
+                   :"r" (dr0), "r" (dr1), "r" (dr_out), "r"(cnt_num)
+                   :"q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8"
+                   );
+                }
+            #endif 
+               //remian
+               w = w_unroll_size * 4;
+               for(int j = 0; j < w_unroll_remian; j++){
+                   float tmp_sum = r0[j + w] + r1[j + w];
+                   tmp_sum += (r0[j + w + 1] + r1[j + w + 1]);
+                   tmp_sum += (r0[j + w + 2] + r1[j + w + 2]);
+                   tmp_sum += (r2[j + w + 1] + r2[j + w + 2]);
+                   tmp_sum += r2[j + w];
+                   data_out_channel[j + w + 1] = tmp_sum / 9.f;
+                }
+                //right
+                tmp = r0[w_in - 2] + r1[w_in - 2];
+                tmp += (r0[w_in - 1] + r1[w_in - 1]);
+                tmp += (r2[w_in - 2] + r2[w_in - 1]);
+                data_out_channel[w_out-1]  = tmp / 9.f;
+
+                r0 = r1;
+                r1 = r2;
+                r2 = r1 + w_in;
+                data_out_channel += w_out;
+            }
+
+            //the last two line
+            float maxr0 = (r0[0] + r0[1]);
+            float maxr1 = (r1[0] + r1[1]);
+            data_out_channel[0] = (maxr0 + maxr1) / 9.f;
+            #ifdef __aarch64__
+            w = 0;
+            cnt = 1;
+            for (; w < w_in - 6; w += 4) {
+                float32x4_t vr0_1234 = vld1q_f32(&r0[w]);
+                float32x4_t vr1_1234 = vld1q_f32(&r1[w]);
+                float32x4_t vr0_5678 = vld1q_f32(&r0[w + 4]);
+                float32x4_t vr1_5678 = vld1q_f32(&r1[w + 4]);
+                float32x4_t vsum_1234 = vaddq_f32(vr0_1234, vr1_1234);
+                float32x4_t vsum_5678 = vaddq_f32(vr0_5678, vr1_5678);
+
+                float32x4_t vsum_2345 = vextq_f32(vsum_1234, vsum_5678,1);
+                float32x4_t vsum_3456 = vextq_f32(vsum_1234, vsum_5678,2);
+                float32x4_t vsum = vaddq_f32(vsum_1234, vsum_2345);
+                vsum = vaddq_f32(vsum, vsum_3456);
+                vsum = vmulq_f32(vsum, vcoef);
+                vst1_f32(&data_out_channel[cnt],vsum);
+                cnt += 4;
+            }
+            #else
+            dr_out = data_out_channel + 1;
+            dr0 = r0;
+            dr1 = r1;
+            cnt_num = w_unroll_size;
+            if (cnt_num > 0){
+                asm volatile(
+                "s1_ave_loop_bot_1:                                 @main loop\n"
+                "vld1.f32  {d0-d1}, [%[dr0]]!                     @load d0-d5, dr0\n"
+                "vld1.f32  {d4-d5}, [%[dr1]]!                    @load d4-d7, dr1\n"
+                "vld1.f32  {d2}, [%[dr0]]!                     @load d0-d5, dr0\n"
+                "vld1.f32  {d6}, [%[dr1]]!                    @load d4-d7, dr1\n"
+                "vadd.f32  q5, q0, q2                            @max r0_1234,r1_1234\n"
+                "vadd.f32  d12, d2, d6                            @max r0_5678,r1_5678\n"
+                //"vmov.f32  s7,s6                                 @mov s7, s6\n"
+                "vext.f32  q0, q5, q6, #1                        @vext max_2345\n"
+                "vext.f32  q2, q5, q6, #2                        @vext max_3456\n"
+                "vadd.f32  q1, q5, q0                            @add 1234 + 2345\n"
+                "vadd.f32  q1, q1, q2                            @add + 3456\n"
+                "vmul.f32  q4, q1, %q[vcoef]                     @mul * 1/9.f \n"
+                "sub       %[dr0], #8                            @sub w, 8\n"
+                "sub       %[dr1], #8                            @sub w, 8\n"
+                "subs      %[cnt_num], #1                        @subs cnt_num, #1\n"
+                "vst1.f32  d8, [%[dr_out]]!                      @vst1 d0, dr_out\n"
+                "vst1.f32  d9, [%[dr_out]]!                      @vst1 d0, dr_out\n"
+                "bne       s1_ave_loop_bot_1                           @bne s1_max_loop\n"
+                :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out] "+r" (dr_out), [cnt_num] "+r" (cnt_num), [vcoef] "+w" (vcoef)
+                :"r" (dr0), "r" (dr1), "r" (dr_out), "r"(cnt_num)
+                :"q0", "q1", "q2", "q3", "q4", "q5", "q6"
+                );
+            }
+            #endif 
+            //remian
+            w = w_unroll_size * 4;
+            for(int j = 0; j < w_unroll_remian; j++){
+                float tmp_sum = r0[j + w] + r1[j + w];
+                tmp_sum += (r0[j + w + 1] + r1[j + w + 1]);
+                tmp_sum += (r0[j + w + 2] + r1[j + w + 2]);
+                data_out_channel[j + w + 1] = tmp_sum / 9.f;
+            }
+            //right
+            tmp = r0[w_in - 2] + r1[w_in - 2];
+            tmp +=(r0[w_in - 1] + r1[w_in - 1]);
+            data_out_channel[w_out-1]  = tmp / 9.f;
+
+        }
+    }
+}
+
 void pooling3x3s2_max(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
     Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, PoolingType type, bool global, \
     int kernel_w, int kernel_h, int stride_w, int stride_h, int pad_w, int pad_h) {
@@ -617,8 +1221,8 @@ void pooling3x3s2_max(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
     //int w_remains = w_in - w_even; // should be 0 or 1
     int h_even = (h_in >> 1) << 1;
     //int h_remains = h_in - h_even; // should be 0 or 1
-    //int w_unroll_size = (w_even >> 3) << 3;
-    //int w_unroll_remian = w_even - w_unroll_size;
+    int w_unroll_size = w_in >> 3;
+    int w_unroll_remian = (w_in - w_unroll_size * 8 - 1) / 2;
     int w_in_2 = w_in << 1;
     float minval = std::numeric_limits<float>::lowest();
     float32x4_t vzero = vdupq_n_f32(minval); //zero pad
@@ -635,9 +1239,9 @@ void pooling3x3s2_max(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
             float* r0 = data_in_channel;
             float* r1 = r0 + w_in;
             float* r2 = r1 + w_in;
-            int cnt_num = w_in / 8;
+            int cnt_num = w_unroll_size;
             //w = w_in - 8;
-            int cnt_num1 = (w_in - cnt_num * 8 - 1) / 2;
+            int cnt_num1 = w_unroll_remian;
             float* dr_out = data_out_channel;
             float* dr0 = r0;
             float* dr1 = r1;
@@ -692,11 +1296,11 @@ void pooling3x3s2_max(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
                 "s3_max_loop:                                    @main loop\n"
                 "vld1.f32  {d0-d3}, [%[dr0]]!                     @load d0-d5, dr0\n"
                 "vld1.f32  {d6-d9}, [%[dr1]]!                    @load d4-d7, dr1\n"
-                "vld1.f32  {d4-d5}, [%[dr0]]!                     @load d0-d5, dr0\n"
-                "vld1.f32  {d10-d11}, [%[dr1]]!                    @load d4-d7, dr1\n"
+                "vld1.f32  {d4}, [%[dr0]]!                     @load d0-d5, dr0\n"
+                "vld1.f32  {d10}, [%[dr1]]!                    @load d4-d7, dr1\n"
                 "vmax.f32  q6, q0, q3                            @max r0_1234,r1_1234\n"
                 "vmax.f32  q7, q1, q4                            @max r0_5678,r1_5678\n"
-                "vmax.f32  q8, q2, q5                            @max r0_9101112,r1_9101112\n"
+                "vmax.f32  d16, d4, d10                            @max r0_910,r1_910\n"
                 //"vmov.f32  s7,s6                                 @mov s7, s6\n"
                 "vext.f32  q0, q6, q7, #1                        @vext max_2345\n"
                 "vext.f32  q1, q7, q8, #1                        @vext max_6789\n"
@@ -706,8 +1310,8 @@ void pooling3x3s2_max(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
                 "vpmax.f32 d7, d2, d3                            @pmax d7, vmax_6789, vmax_6789\n"
                 "vmax.f32 d8, d4, d5                             @max d2, vmax_12_34, vmax_23_45\n"
                 "vmax.f32 d9, d6, d7                             @max d2, vmax_56_78, vmax_67_89\n"
-                "sub       %[dr0], #16                           @add w, 8\n"
-                "sub       %[dr1], #16                           @add w, 8\n"
+                "sub       %[dr0], #8                           @add w, 8\n"
+                "sub       %[dr1], #8                           @add w, 8\n"
                 "vst1.f32  d8, [%[dr_out]]!                      @vst1 d0, dr_out\n"
                 "vst1.f32  d9, [%[dr_out]]!                      @vst1 d0, dr_out\n"
                 "subs      %[cnt_num], #1                            @subs cnt_num, #1\n"
@@ -810,8 +1414,8 @@ void pooling3x3s2_max(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
                  dr0 = (r0 + 1);
                  dr1 = (r1 + 1);
                  dr2 = (r2 + 1);
-                 cnt_num = w_in / 8;
-                 cnt_num1 = (w_in - cnt_num * 8 - 1) / 2;
+                 cnt_num = w_unroll_size;
+                 cnt_num1 = w_unroll_remian;
                 if (cnt_num > 0 || cnt_num1 > 0){
                     asm volatile(
                     "cmp       %[cnt_num], #0                        @cmp cnt_num, 0\n"
@@ -820,15 +1424,15 @@ void pooling3x3s2_max(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
                     "vld1.f32  {d0-d3}, [%[dr0]]!                     @load d0-d5, dr0\n"
                     "vld1.f32  {d6-d9}, [%[dr1]]!                    @load d4-d7, dr1\n"
                     "vld1.f32  {d12-d15}, [%[dr2]]!                   @load d4-d7, dr1\n"
-                    "vld1.f32  {d4-d5}, [%[dr0]]!                     @load d0-d5, dr0\n"
-                    "vld1.f32  {d10-d11}, [%[dr1]]!                    @load d4-d7, dr1\n"
-                    "vld1.f32  {d16-d17}, [%[dr2]]!                   @load d4-d7, dr1\n"
+                    "vld1.f32  {d4}, [%[dr0]]!                     @load d0-d5, dr0\n"
+                    "vld1.f32  {d10}, [%[dr1]]!                    @load d4-d7, dr1\n"
+                    "vld1.f32  {d16}, [%[dr2]]!                   @load d4-d7, dr1\n"
                     "vmax.f32  q9, q0, q3                            @max q0,q0,q2\n"
                     "vmax.f32  q10, q1, q4                           @max q1,q1,q3\n"
-                    "vmax.f32  q11, q2, q5                           @max q1,q1,q3\n"
+                    "vmax.f32  d22, d4, d10                           @max q1,q1,q3\n"
                     "vmax.f32  q0, q9, q6                            @max q0,q0,q2 1234\n"
                     "vmax.f32  q3, q10, q7                           @max q1,q1,q3 5678\n"
-                    "vmax.f32  q1, q11, q8                           @max q1,q1,q3 9101112\n"
+                    "vmax.f32  d2, d22, d16                           @max q1,q1,q3 9101112\n"
                     //"vmov.f32  s7,s6                               @mov s7, s6\n"
                     "vext.f32  q4, q0, q3, #1                        @vext 2345\n"
                     "vext.f32  q2, q3, q1, #1                        @vext 6789\n"
@@ -838,9 +1442,9 @@ void pooling3x3s2_max(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
                     "vpmax.f32 d13, d4, d5                           @pmax d13, vmax_6789, vmax_6789\n"
                     "vmax.f32 d0, d10, d11                          @pmax d0, vmax_12_34, vmax_23_45\n"
                     "vmax.f32 d1, d12, d13                          @pmax d1, vmax_56_78, vmax_67_89\n"
-                    "sub       %[dr0], #16                           @add w, 8\n"
-                    "sub       %[dr1], #16                           @add w, 8\n"
-                    "sub       %[dr2], #16                           @add w, 8\n"
+                    "sub       %[dr0], #8                           @add w, 8\n"
+                    "sub       %[dr1], #8                           @add w, 8\n"
+                    "sub       %[dr2], #8                           @add w, 8\n"
                     "vst1.f32  d0, [%[dr_out]]!                      @vst1 d0, dr_out\n"
                     "vst1.f32  d1, [%[dr_out]]!                      @vst1 d0, dr_out\n"
                     "subs      %[cnt_num], #1                            @subs cnt_num, #1\n"
@@ -929,15 +1533,15 @@ void pooling3x3s2_max(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
                 #else
                     dr_out = data_out_channel + 1;
                     dr0 = (r0 + 1);
-                    cnt_num = w_in / 8;
-                    cnt_num1 = (w_in - cnt_num * 8 - 1) / 2;
+                    cnt_num = w_unroll_size;
+                    cnt_num1 = w_unroll_remian;
                     if (cnt_num > 0 || cnt_num1 > 0){
                         asm volatile(
                         "cmp       %[cnt_num], #0                        @cmp cnt_num, 0\n"
                         "ble       loop4                                  @ble exit\n"
                         "s3_max_loop_bot:                                @main loop\n"
                         "vld1.f32  {d0-d3}, [%[dr0]]!                     @load d0-d3, dr0\n"
-                        "vld1.f32  {d4-d5}, [%[dr0]]!                     @load d0-d3, dr0\n"
+                        "vld1.f32  {d4}, [%[dr0]]!                     @load d0-d3, dr0\n"
                         "vext.f32  q4, q0, q1, #1                        @vext q4, q0, q1, 1 2345\n"
                         "vext.f32  q5, q1, q2, #1                        @vext q5, q0, q1, 1 6789\n"
                         "vpmax.f32 d12, d0, d1                           @pmax d12, vmax_1234, vmax_1234\n"
@@ -946,7 +1550,7 @@ void pooling3x3s2_max(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
                         "vpmax.f32 d15, d10, d11                         @pmax d15, vmax_6789, vmax_6789\n"
                         "vmax.f32  d0, d12, d13                          @max d0, vmax_12_34,vmax_23_45\n"
                         "vmax.f32  d1, d14, d15                          @pmax d2, vmax_56_78, vmax_67_89\n"
-                        "sub       %[dr0], #16                           @add w, 6\n"
+                        "sub       %[dr0], #8                           @add w, 6\n"
                         "vst1.f32  d0, [%[dr_out]]!                      @vst1 d0, dr_out\n"
                         "vst1.f32  d1, [%[dr_out]]!                      @vst1 d0, dr_out\n"
                         "subs      %[cnt_num], #1                            @subs cnt_num, #1\n"
@@ -1022,8 +1626,8 @@ void pooling3x3s2_max(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
                     dr_out = data_out_channel + 1;
                     dr0 = (r0 + 1);
                     dr1 = (r1 + 1);
-                    cnt_num = w_in / 8;
-                    cnt_num1 = (w_in - cnt_num * 8 - 1) / 2;
+                    cnt_num = w_unroll_size;
+                    cnt_num1 = w_unroll_remian;
                     if (cnt_num > 0 || cnt_num1 > 0){
                         asm volatile(
                         "cmp       %[cnt_num], #0                        @cmp cnt_num, 0\n"
@@ -1031,11 +1635,11 @@ void pooling3x3s2_max(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
                         "s3_max_loop_bot1:                               @main loop\n"
                         "vld1.f32  {d0-d3}, [%[dr0]]!                     @load d0-d5, dr0\n"
                         "vld1.f32  {d6-d9}, [%[dr1]]!                    @load d4-d7, dr1\n"
-                        "vld1.f32  {d4-d5}, [%[dr0]]!                     @load d0-d3, dr0\n"
-                        "vld1.f32  {d10-d11}, [%[dr1]]!                  @load d4-d7, dr1\n"
+                        "vld1.f32  {d4}, [%[dr0]]!                     @load d0-d3, dr0\n"
+                        "vld1.f32  {d10}, [%[dr1]]!                  @load d4-d7, dr1\n"
                         "vmax.f32  q6, q0, q3                            @max q0,q0,q2 1234\n"
                         "vmax.f32  q7, q1, q4                            @max q1,q1,q3 5678\n"
-                        "vmax.f32  q8, q2, q5                            @max q1,q1,q3 9101112\n"
+                        "vmax.f32  d16, d4, d10                            @max q1,q1,q3 9101112\n"
                         //"vmov.f32  s7,s6                                 @mov s7, s6\n"
                         "vext.f32  q0, q6, q7, #1                        @vext q0, 2345\n"
                         "vext.f32  q1, q7, q8, #1                        @vext q1, 6789\n"
@@ -1045,8 +1649,8 @@ void pooling3x3s2_max(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
                         "vpmax.f32 d7, d2, d3                            @pmax d7, vmax_6789, vmax_6789\n"
                         "vmax.f32 d8, d4, d5                             @max d2, vmax_12_34, vmax_23_45\n"
                         "vmax.f32 d9, d6, d7                             @max d2, vmax_56_78, vmax_67_89\n"
-                        "sub       %[dr0], #16                           @add w, 8\n"
-                        "sub       %[dr1], #16                           @add w, 8\n"
+                        "sub       %[dr0], #8                           @add w, 8\n"
+                        "sub       %[dr1], #8                           @add w, 8\n"
                         "vst1.f32  d8, [%[dr_out]]!                      @vst1 d0, dr_out\n"
                         "vst1.f32  d9, [%[dr_out]]!                      @vst1 d0, dr_out\n"
                         "subs      %[cnt_num], #1                            @subs cnt_num, #1\n"
@@ -1207,11 +1811,11 @@ void pooling3x3s2_ave(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
                 "s3_ave_loop:                                    @main loop\n"
                 "vld1.f32  {d0-d3}, [%[dr0]]!                     @load d0-d5, dr0\n"
                 "vld1.f32  {d6-d9}, [%[dr1]]!                    @load d4-d7, dr1\n"
-                "vld1.f32  {d4-d5}, [%[dr0]]!                     @load d0-d5, dr0\n"
-                "vld1.f32  {d10-d11}, [%[dr1]]!                    @load d4-d7, dr1\n"
+                "vld1.f32  {d4}, [%[dr0]]!                     @load d0-d5, dr0\n"
+                "vld1.f32  {d10}, [%[dr1]]!                    @load d4-d7, dr1\n"
                 "vadd.f32  q6, q0, q3                            @max r0_1234,r1_1234\n"
                 "vadd.f32  q7, q1, q4                            @max r0_5678,r1_5678\n"
-                "vadd.f32  q8, q2, q5                            @max r0_9101112,r1_9101112\n"
+                "vadd.f32  d16, d4, d10                           @max r0_9101112,r1_9101112\n"
                 //"vmov.f32  s7,s6                                 @mov s7, s6\n"
                 "vext.f32  q0, q6, q7, #1                        @vext max_2345\n"
                 "vext.f32  q1, q6, q7, #3                        @vext max_4567\n"
@@ -1225,8 +1829,8 @@ void pooling3x3s2_ave(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
                 "vmov.f32  s18, s21                              @mov \n"
                 "vmov.f32  s19, s23                              @mov \n"
                 "vmul.f32  q4, q4, %q[vcoef]                     @mul \n"
-                "sub       %[dr0], #16                           @add w, 8\n"
-                "sub       %[dr1], #16                           @add w, 8\n"
+                "sub       %[dr0], #8                           @add w, 8\n"
+                "sub       %[dr1], #8                           @add w, 8\n"
                 "subs      %[cnt_num], #1                        @subs cnt_num, #1\n"
                 "vst1.f32  d8, [%[dr_out]]!                      @vst1 d0, dr_out\n"
                 "vst1.f32  d9, [%[dr_out]]!                      @vst1 d0, dr_out\n"
@@ -1345,15 +1949,15 @@ void pooling3x3s2_ave(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
                     "vld1.f32  {d0-d3}, [%[dr0]]!                     @load d0-d5, dr0\n"
                     "vld1.f32  {d6-d9}, [%[dr1]]!                    @load d4-d7, dr1\n"
                     "vld1.f32  {d12-d15}, [%[dr2]]!                   @load d4-d7, dr1\n"
-                    "vld1.f32  {d4-d5}, [%[dr0]]!                     @load d0-d5, dr0\n"
-                    "vld1.f32  {d10-d11}, [%[dr1]]!                    @load d4-d7, dr1\n"
-                    "vld1.f32  {d16-d17}, [%[dr2]]!                   @load d4-d7, dr1\n"
+                    "vld1.f32  {d4}, [%[dr0]]!                     @load d0-d5, dr0\n"
+                    "vld1.f32  {d10}, [%[dr1]]!                    @load d4-d7, dr1\n"
+                    "vld1.f32  {d16}, [%[dr2]]!                   @load d4-d7, dr1\n"
                     "vadd.f32  q9, q0, q3                            @max q0,q0,q2\n"
                     "vadd.f32  q10, q1, q4                           @max q1,q1,q3\n"
-                    "vadd.f32  q11, q2, q5                           @max q1,q1,q3\n"
+                    "vadd.f32  d22, d4, d10                           @max q1,q1,q3\n"
                     "vadd.f32  q6, q9, q6                            @max q0,q0,q2 1234\n"
                     "vadd.f32  q7, q10, q7                           @max q1,q1,q3 5678\n"
-                    "vadd.f32  q8, q11, q8                           @max q1,q1,q3 9101112\n"
+                    "vadd.f32  d16, d22, d16                           @max q1,q1,q3 9101112\n"
                     //"vmov.f32  s7,s6                               @mov s7, s6\n"
                     "vext.f32  q0, q6, q7, #1                        @vext max_2345\n"
                     "vext.f32  q1, q6, q7, #3                        @vext max_4567\n"
@@ -1367,9 +1971,9 @@ void pooling3x3s2_ave(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
                     "vmov.f32  s18, s21                              @mov \n"
                     "vmov.f32  s19, s23                              @mov \n"
                     "vmul.f32  q4, q4, %q[vcoef]                     @mul \n"
-                    "sub       %[dr0], #16                           @add w, 8\n"
-                    "sub       %[dr1], #16                           @add w, 8\n"
-                    "sub       %[dr2], #16                           @add w, 8\n"
+                    "sub       %[dr0], #8                           @add w, 8\n"
+                    "sub       %[dr1], #8                           @add w, 8\n"
+                    "sub       %[dr2], #8                           @add w, 8\n"
                     "subs      %[cnt_num], #1                            @subs cnt_num, #1\n"
                     "vst1.f32  d8, [%[dr_out]]!                      @vst1 d0, dr_out\n"
                     "vst1.f32  d9, [%[dr_out]]!                      @vst1 d0, dr_out\n"
@@ -1470,7 +2074,7 @@ void pooling3x3s2_ave(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
                         "ble       loop4_ave                                  @ble exit\n"
                         "s3_ave_loop_bot:                                @main loop\n"
                         "vld1.f32  {d12-d15}, [%[dr0]]!                     @load d0-d3, dr0\n"
-                        "vld1.f32  {d16-d17}, [%[dr0]]!                     @load d0-d3, dr0\n"
+                        "vld1.f32  {d16}, [%[dr0]]!                     @load d0-d3, dr0\n"
                         "vext.f32  q0, q6, q7, #1                        @vext max_2345\n"
                         "vext.f32  q1, q6, q7, #3                        @vext max_4567\n"
                         "vext.f32  q2, q6, q7, #2                        @vext max_3456\n"
@@ -1483,7 +2087,7 @@ void pooling3x3s2_ave(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
                         "vmov.f32  s18, s21                              @mov \n"
                         "vmov.f32  s19, s23                              @mov \n"
                         "vmul.f32  q4, q4, %q[vcoef]                     @mul \n"
-                        "sub       %[dr0], #16                           @add w, 6\n"
+                        "sub       %[dr0], #8                           @add w, 6\n"
                         "subs      %[cnt_num], #1                            @subs cnt_num, #1\n"
                         "vst1.f32  d8, [%[dr_out]]!                      @vst1 d0, dr_out\n"
                         "vst1.f32  d9, [%[dr_out]]!                      @vst1 d0, dr_out\n"
@@ -1575,11 +2179,11 @@ void pooling3x3s2_ave(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
                         "s3_ave_loop_bot1:                               @main loop\n"
                         "vld1.f32  {d0-d3}, [%[dr0]]!                     @load d0-d5, dr0\n"
                         "vld1.f32  {d6-d9}, [%[dr1]]!                    @load d4-d7, dr1\n"
-                        "vld1.f32  {d4-d5}, [%[dr0]]!                     @load d0-d3, dr0\n"
-                        "vld1.f32  {d10-d11}, [%[dr1]]!                  @load d4-d7, dr1\n"
+                        "vld1.f32  {d4}, [%[dr0]]!                     @load d0-d3, dr0\n"
+                        "vld1.f32  {d10}, [%[dr1]]!                  @load d4-d7, dr1\n"
                         "vmax.f32  q6, q0, q3                            @max q0,q0,q2 1234\n"
                         "vmax.f32  q7, q1, q4                            @max q1,q1,q3 5678\n"
-                        "vmax.f32  q8, q2, q5                            @max q1,q1,q3 9101112\n"
+                        "vmax.f32  d16, d4, d10                            @max q1,q1,q3 9101112\n"
                         //"vmov.f32  s7,s6                                 @mov s7, s6\n"
                         "vext.f32  q0, q6, q7, #1                        @vext max_2345\n"
                         "vext.f32  q1, q6, q7, #3                        @vext max_4567\n"
@@ -1593,8 +2197,8 @@ void pooling3x3s2_ave(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
                         "vmov.f32  s18, s21                              @mov \n"
                         "vmov.f32  s19, s23                              @mov \n"
                         "vmul.f32  q4, q4, %q[vcoef]                     @mul \n"
-                        "sub       %[dr0], #16                           @add w, 8\n"
-                        "sub       %[dr1], #16                           @add w, 8\n"
+                        "sub       %[dr0], #8                           @add w, 8\n"
+                        "sub       %[dr1], #8                           @add w, 8\n"
                         "subs      %[cnt_num], #1                            @subs cnt_num, #1\n"
                         "vst1.f32  d8, [%[dr_out]]!                      @vst1 d0, dr_out\n"
                         "vst1.f32  d9, [%[dr_out]]!                      @vst1 d0, dr_out\n"
