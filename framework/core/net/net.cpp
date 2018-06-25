@@ -46,7 +46,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
     init_env(graph);
     // shallow copy
     _graph_p->CopyFrom(graph);
-     
+
     auto node_names_in_exec_order = graph.get_nodes_in_order();
     // infer basic shape and parsing parameter from graph
     for (auto& node_name : node_names_in_exec_order) {
@@ -161,15 +161,21 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
                           << " " << in->valid_shape()[1] 
                           << " " << in->valid_shape()[2] 
                           << " " << in->valid_shape()[3];
+                LOG(INFO) <<"in offset size = "<<in->get_seq_offset().size();
         }
         for(auto& out : op_func.outs) {
                 LOG(INFO) << "  <= [shape]: " << out->valid_shape()[0] 
                           << " " << out->valid_shape()[1] 
                           << " " << out->valid_shape()[2] 
                           << " " << out->valid_shape()[3];
+                LOG(INFO) <<"out offset size = "<<out->get_seq_offset().size();
         }
+
 #endif
         op_func.op->_helper->Init(*(op_func.ctx_p), op_func.ins, op_func.outs);
+#ifdef ENABLE_DEBUG
+        DLOG(INFO)<<"op init success "<<op_func.name;
+#endif
     }
     
     // init memory of _graph_p
@@ -252,29 +258,28 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
 	//LOG(INFO)<< "op: " << executer.name<<"(" << executer.op_name <<")  ===  infer+launch time "<<my_time.get_average_ms() << " ms";
 #ifdef ENABLE_DEBUG	
 #ifdef USE_CUDA
-	cudaDeviceSynchronize();
-    CUDA_CHECK(cudaPeekAtLastError());
+        CUDA_CHECK(cudaDeviceSynchronize());
+        CUDA_CHECK(cudaPeekAtLastError());
+#endif
 	for (auto out : executer.outs) {
+	    std::vector<int> offset=out->get_seq_offset();
+	    LOG(INFO)<<"print offset of "<<executer.name <<",size = "<<offset.size();
+	    for(int i=0;i<offset.size();++i){
+	        LOG(INFO)<<offset[i]<<",";
+	    }
+	    LOG(INFO)<<"  end print offset of "<<executer.name;
         LOG(INFO) <<executer.name <<" d_tensor_out_p :" <<out->data();
+#ifdef USE_X86_PLACE
+        for (int i = 0; i < 10; ++i) {
+            std::cout << out->data()[i]<<" ";
+        }
+#endif
+        std::cout<<std::endl;
         record_dev_tensorfile(out->data(), out->valid_size(),
                               ("net_record_" + executer.name + ".txt").data());
 	    LOG(ERROR) << "    |---out avg " << tensor_average(out);
 	}
-	cudaDeviceSynchronize();
-    CUDA_CHECK(cudaPeekAtLastError());
-#endif
-#ifdef USE_X86_PLACE
-    for (auto out : executer.outs) {
-        LOG(INFO) <<executer.name <<" d_tensor_out_p :" <<out->data();
-        const float* out_data = out->data();
-        std::cout << "seq_offset size: " << out->get_seq_offset().size()<<" ";
-        for (int i = 0; i < 10; ++i) {
-            std::cout << out_data[i] << " ";
-        }
-        std::cout << std::endl;
 
-    }
-#endif
 #endif
     }
 }
@@ -465,7 +470,7 @@ Status Net<Ttype, Dtype, Ptype, RunType>::init_memory() {
 template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
 Status Net<Ttype, Dtype, Ptype, RunType>::init_env(graph::Graph<Ttype, Dtype, Ptype>& graph) {
     LOG(WARNING) << "Detect and initial " << graph.get_ins().size() << " lanes.";
-    Env<Ttype>::env_init(graph.get_ins().size()); 
+    Env<Ttype>::env_init(graph.get_ins().size());
     LOG(WARNING) << "Current used device id : " << TargetWrapper<Ttype>::get_device_id();
     return Status::OK();
 }

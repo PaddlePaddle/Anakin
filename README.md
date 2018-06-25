@@ -59,9 +59,10 @@ We provide [English](docs/Manual/Tutorial_en.md) and
 
    Python API is under-developing.
 
-- [How to Contribute]()
+- [How to Contribute](docs/Manual/Contribution_ch.md)
 
    We appreciate your contributions!
+
 
 
 ## Ask Questions
