@@ -761,6 +761,7 @@ public:
 #ifdef USE_BM
     template <typename NewTargetType_t, DataType NewDataType_t, typename NewLayOutType_t>
     SaberStatus copy_from(const Tensor<NewTargetType_t, NewDataType_t, NewLayOutType_t>& tensor) {
+        LOG(INFO) << "base copy_from";
         return SaberInvalidValue;
     }
 #endif
@@ -1000,6 +1001,33 @@ private:
         return idx;
     }
 };
+
+#ifdef USE_BM
+
+template<> inline
+size_t Tensor<BM, AK_BM, NCHW>::_type_len(){
+    return 1;
+}
+
+template<>
+template<> inline
+SaberStatus Tensor<BM, AK_BM, NCHW>::copy_from<X86, AK_FLOAT, NCHW>(const Tensor<X86, AK_FLOAT, NCHW>& tensor) {
+    LOG(INFO) << "BM copy_from";
+    auto* device_data_ptr = mutable_data();
+    BMDNN_CHECK(bm_memcpy_s2d(API::get_handler(), *device_data_ptr, bm_mem_from_system(const_cast<float *>(tensor.data()))));
+    return SaberSuccess;
+}
+
+template<>
+template<> inline
+SaberStatus Tensor<X86, AK_FLOAT, NCHW>::copy_from<BM, AK_BM, NCHW>(const Tensor<BM, AK_BM, NCHW>& tensor) {
+    LOG(INFO) << "X86 copy_from";
+    auto* device_data_ptr = const_cast<bm_device_mem_t *>(tensor.data());
+    BMDNN_CHECK(bm_memcpy_d2s(TargetWrapper<BM>::get_handler(), bm_mem_from_system(mutable_data()), *device_data_ptr));
+    return SaberSuccess;
+}
+
+#endif
 
 } //namespace saber
 
