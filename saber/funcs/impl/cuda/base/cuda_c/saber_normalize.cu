@@ -227,7 +227,7 @@ SaberStatus SaberNormalize<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
     const std::vector<DataTensor_in*>& inputs, \
     std::vector<DataTensor_out*>& outputs, \
     NormalizeParam<OpTensor> &param) {
-    cudaStream_t stream = this->_ctx.get_compute_stream();
+    cudaStream_t stream = this->_ctx->get_compute_stream();
     const float* src = inputs[0]->data();
     float* dst = outputs[0]->mutable_data();
     if (!param.across_spatial) {

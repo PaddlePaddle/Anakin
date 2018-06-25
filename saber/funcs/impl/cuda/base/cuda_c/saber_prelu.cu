@@ -76,7 +76,7 @@ SaberStatus SaberPrelu<NV, OpDtype, inDtype, outDtype,\
     const std::vector<DataTensor_in *>& inputs, \
     std::vector<DataTensor_out *>& outputs, \
     PreluParam<OpTensor>& param) {
-    cudaStream_t stream = this->_ctx.get_compute_stream();
+    cudaStream_t stream = this->_ctx->get_compute_stream();
 
     const InDataType* src = inputs[0]->data();
     OutDataType* dst = outputs[0]->mutable_data();

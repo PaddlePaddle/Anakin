@@ -231,6 +231,7 @@ int main(int argc, const char** argv){
 }
 
 #else
-int main(int argc, const char** argv){
-    LOG(INFO)<< "this benchmark is only for arm device";
+int main(int argc, const char** argv) {
+    LOG(INFO) << "this benchmark is only for arm device";
+}
 #endif

@@ -122,6 +122,9 @@ TEST(NetTest, net_execute_base_test) {
     }
 }
 int main(int argc, const char** argv){
+
+    Env<Target>::env_init();
+
     // initial logger
     logger::init(argv[0]);
 

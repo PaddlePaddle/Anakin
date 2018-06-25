@@ -114,7 +114,7 @@ public:
 
         _workspace_fwd_sizes = 0;
 
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         // ---- get cuda resources ----
 
         cudaStream_t cuda_stream;

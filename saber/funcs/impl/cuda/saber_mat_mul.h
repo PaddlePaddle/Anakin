@@ -53,7 +53,7 @@ public:
                              std::vector<DataTensor_out*>& outputs,
                              MatMulParam<OpTensor> &param,
                              Context<NV> &ctx) {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
 
         return create(inputs, outputs, param, ctx);
     }
@@ -70,7 +70,7 @@ public:
                                  std::vector<DataTensor_out*>& outputs,
                                  MatMulParam<OpTensor>  &param)
     {
-        cudaStream_t stream = this->_ctx.get_compute_stream();
+        cudaStream_t stream = this->_ctx->get_compute_stream();
         const InDataType* X = inputs[0]->data();
         const InDataType* Y = inputs[1]->data();
         OutDataType* out = outputs[0]->mutable_data();

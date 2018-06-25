@@ -72,12 +72,10 @@ template class SliceHelper<NV, AK_FLOAT, Precision::FP16>;
 template class SliceHelper<NV, AK_FLOAT, Precision::INT8>;
 #endif
 
-#ifdef USE_CUDA
-        INSTANCE_SLICE(NV, AK_FLOAT, Precision::FP32);
-template class SliceHelper<NV, AK_FLOAT, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(Slice, SliceHelper, NV, AK_FLOAT, Precision::FP32);
-template class SliceHelper<NV, AK_FLOAT, Precision::FP16>;
-template class SliceHelper<NV, AK_FLOAT, Precision::INT8>;
+#ifdef USE_X86_PLACE
+INSTANCE_SLICE(X86, AK_FLOAT, Precision::FP32);
+template class SliceHelper<X86, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Slice, SliceHelper, X86, AK_FLOAT, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE

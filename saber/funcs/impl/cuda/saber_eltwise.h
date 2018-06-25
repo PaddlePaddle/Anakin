@@ -52,7 +52,7 @@ public:
                          EltwiseParam<OpTensor> &param,
                          Context<NV> &ctx) {
         // get context
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         return create(inputs, outputs, param, ctx);
     }
 
@@ -60,7 +60,7 @@ public:
                            std::vector<DataTensor_out*>& outputs,
                            EltwiseParam<OpTensor> &param,
                            Context<NV> &ctx) {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         if ((param.operation == Eltwise_max) && (outputs.size() == 1)) {
             _max_idx.reshape(inputs[0]->shape());
         }

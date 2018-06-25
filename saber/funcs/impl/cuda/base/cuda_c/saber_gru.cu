@@ -51,7 +51,7 @@ void SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::seq2hw(\
     //source is sequence id in seq target is hw id in seq,map is source to target ptr offset
     int seq_sum = offset_vec[batch_size];
     CUDA_CHECK(cudaMemcpyAsync(_temp_map_dev.mutable_data(), _temp_map_host.data(), sizeof(int)*seq_sum,
-                               cudaMemcpyHostToDevice, _ctx.get_compute_stream()));
+                               cudaMemcpyHostToDevice, _ctx->get_compute_stream()));
     int count=seq_sum * hidden_size;
     int block_dim=count;
     int grid_dim=1;
@@ -59,7 +59,7 @@ void SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::seq2hw(\
         block_dim=256;
         grid_dim=(count+block_dim-1)/block_dim;
     }
-    trans_map2in <<< grid_dim, block_dim, 0, _ctx.get_compute_stream()>>>(target, origin, _temp_map_dev.data(),
+    trans_map2in <<< grid_dim, block_dim, 0, _ctx->get_compute_stream()>>>(target, origin, _temp_map_dev.data(),
             count, hidden_size);
 
 //    trans_map2in_old <<< 4, 128, 0, _ctx.get_compute_stream()>>>(target, origin, _temp_map_dev.data(),
@@ -128,7 +128,7 @@ const float* SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::hw2se
     }
 
     CUDA_CHECK(cudaMemcpyAsync(_temp_map_dev.mutable_data(), _temp_map_host.data(), sizeof(int)*seq_sum,
-                               cudaMemcpyHostToDevice, _ctx.get_compute_stream()));
+                               cudaMemcpyHostToDevice, _ctx->get_compute_stream()));
     int count=seq_sum * wordsize;
     int block_dim=count;
     int grid_dim=1;
@@ -136,7 +136,7 @@ const float* SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::hw2se
         block_dim=256;
         grid_dim=(count+block_dim-1)/block_dim;
     }
-    trans_map2out <<< grid_dim, block_dim, 0, _ctx.get_compute_stream()>>>(target, origin, _temp_map_dev.data(),
+    trans_map2out <<< grid_dim, block_dim, 0, _ctx->get_compute_stream()>>>(target, origin, _temp_map_dev.data(),
             count, wordsize);
 
 //    trans_map2out_old <<< 4, 128, 0, _ctx.get_compute_stream()>>>(target, origin, _temp_map_dev.data(),
@@ -595,7 +595,7 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::gru_cu
 
     if (inputs.size() == 1) {
         CUDA_CHECK(cudaMemsetAsync(dout_data, 0, sizeof(InDataType) * batch_size * hidden_size,
-                                   _ctx.get_compute_stream()));
+                                   _ctx->get_compute_stream()));
         h = dout_data;
     } else {
         h = inputs[1]->data();
@@ -633,19 +633,19 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::gru_cu
         if (param.gate_activity == Active_sigmoid
                 && param.h_activity == Active_tanh) {
             cal_one_kernel_sigmoid_tanh_modi_cudnn_formula
-                    << < batch_size, frame_per_block, 0, _ctx.get_compute_stream() >> >
+                    << < batch_size, frame_per_block, 0, _ctx->get_compute_stream() >> >
                     (w_x_r, w_x_z, w_x_o, w_h_r, w_h_z, w_h_o
                      , b_r, b_z, b_o, hidden_size, hidden_out, hidden_in);
         } else if (param.gate_activity == Active_sigmoid_fluid
                    && param.h_activity == Active_tanh) {
             cal_one_kernel_paddlesigmoid_tanh_cudnn_formula
-                    << < batch_size, frame_per_block, 0, _ctx.get_compute_stream() >> >
+                    << < batch_size, frame_per_block, 0, _ctx->get_compute_stream() >> >
                     (w_x_r, w_x_z, w_x_o, w_h_r, w_h_z, w_h_o
                      , b_r, b_z, b_o, hidden_size, hidden_out, hidden_in);
         } else if (param.gate_activity == Active_sigmoid_fluid
                    && param.h_activity == Active_relu) {
             cal_one_kernel_paddlesigmoid_relu_cudnn_formula
-                    << < batch_size, frame_per_block, 0, _ctx.get_compute_stream() >> >
+                    << < batch_size, frame_per_block, 0, _ctx->get_compute_stream() >> >
                     (w_x_r, w_x_z, w_x_o, w_h_r, w_h_z, w_h_o
                      , b_r, b_z, b_o, hidden_size, hidden_out, hidden_in);
         } else {
@@ -724,7 +724,7 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispat
 
     if (inputs.size() == 1) {
         CUDA_CHECK(cudaMemsetAsync(dout_data, 0, sizeof(OutDataType)*batch_size * hidden_size,
-                                   _ctx.get_compute_stream()));
+                                   _ctx->get_compute_stream()));
         h = dout_data;
     } else {
         h = inputs[1]->data();
@@ -775,7 +775,7 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispat
                 && param.h_activity == Active_tanh) {
             cal_one_kernel_sigmoid_tanh_paddle_formula
             <<< batch_size, frame_per_block, sizeof(OutDataType)*hidden_size
-            , _ctx.get_compute_stream()>>>(
+            , _ctx->get_compute_stream()>>>(
                 w_x_r, w_x_z, w_x_o, w_h_r, w_h_z, w_o
                 , b_r, b_z, b_o, hidden_size, hidden_out, hidden_in);
 
@@ -783,7 +783,7 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispat
                     && param.h_activity == Active_relu) {
             cal_one_kernel_paddlesigmoid_relu_paddle_formula
                     << < batch_size, frame_per_block, sizeof(OutDataType)*hidden_size
-                    , _ctx.get_compute_stream() >> >
+                    , _ctx->get_compute_stream() >> >
                     (w_x_r, w_x_z, w_x_o, w_h_r, w_h_z, w_o
                      , b_r, b_z, b_o, hidden_size, hidden_out, hidden_in);
 

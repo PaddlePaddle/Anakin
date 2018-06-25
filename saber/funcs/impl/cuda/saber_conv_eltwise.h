@@ -64,7 +64,7 @@ public:
     virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             ConvActiveParam<OpTensor>& param, Context<NV> &ctx)  {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         //This is an ugly impl for now
         if (param.conv_param.stride_h == 1 && 
             param.conv_param.stride_w == 1 && 
@@ -143,7 +143,7 @@ public:
                     param.conv_param.alpha, 
                     param.conv_param.beta,
                     param.eltwise_param.operation, 
-                    this->_ctx.get_compute_stream()); 
+                    *this->_ctx->get_compute_stream());
 
         CUDA_CHECK(cudaGetLastError()); 
         return SaberSuccess;

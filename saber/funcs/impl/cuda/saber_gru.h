@@ -54,9 +54,9 @@ public:
         std::vector<DataTensor_out*>& outputs, \
         GruParam <OpTensor>& gru_param, Context<NV>& ctx) {
 
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         CUBLAS_CHECK(cublasCreate(&_cublas_handle));
-        CUBLAS_CHECK(cublasSetStream(_cublas_handle, this->_ctx.get_compute_stream()));
+        CUBLAS_CHECK(cublasSetStream(_cublas_handle, this->_ctx->get_compute_stream()));
         if(gru_param.formula==GRU_ORIGIN) {
             _hidden_size = gru_param.bias()->valid_size() / 3;
 
@@ -91,11 +91,11 @@ public:
         std::vector<DataTensor_out*>& outputs, \
         GruParam<OpTensor>& gru_param, Context<NV>& ctx) {
 
-        if (!(ctx == this->_ctx)) {
+        if (!(&ctx == this->_ctx)) {
             if (_cublas_handle != NULL) {
                 CUBLAS_CHECK(cublasDestroy(_cublas_handle));
             }
-            this->_ctx = ctx;
+            this->_ctx = &ctx;
 
             cudaStream_t cuda_stream;
             cuda_stream = ctx.get_compute_stream();
