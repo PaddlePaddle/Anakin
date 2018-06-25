@@ -35,7 +35,7 @@
    为了继续交叉编译arm版本的protobuf，需要将已经生成文件清除。
  ```bash
    $ make distclean
-   ```
+ ```
  - 2.1.1 交叉编译Android`armeabi-v7a`的protobuf，注意设置ANDROID_NDK的路径，以及ARCH_ABI、HOSTOSN的值，   
  ```bash
    $ export ANDROID_NDK=your_ndk_path 
