@@ -31,11 +31,14 @@
    $ make install
    ```
    上述 $make install 执行后，可在 /usr/local/include/google 找到 libprotobuf 所需的头文件,将整个google文件夹拷贝至Anakin/third-party/arm-android/protobuf/下，
-   如有问题，请点[这里](https://github.com/google/protobuf/blob/v3.4.0/src/README.md)
-    
- - 2.1.1 交叉编译Android`armeabi-v7a`的protobuf，注意设置ANDROID_NDK的路径，以及ARCH_ABI、HOSTOSN的值，   
+   如有问题，请点[这里](https://github.com/google/protobuf/blob/v3.4.0/src/README.md).
+   然后将已经生成文件清除。
  ```bash
    $ make distclean
+   ```
+ - 2.1.1 交叉编译Android`armeabi-v7a`的protobuf，注意设置ANDROID_NDK的路径，以及ARCH_ABI、HOSTOSN的值，   
+ ```bash
+
    $ export ANDROID_NDK=your_ndk_path 
    $ ARCH_ABI="arm-linux-androideabi-4.9"
    $ HOSTOSN="darwin-x86_64"
