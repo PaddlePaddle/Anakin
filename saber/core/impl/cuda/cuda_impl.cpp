@@ -157,6 +157,9 @@ void NV_API::set_device(int id){
 }
         
 void NV_API::mem_alloc(void** ptr, size_t n){
+    static size_t total_mem = 0;
+    total_mem += n;
+    LOG(INFO) << "!!!!!!!! mem_alloc on GPU: " << n <<" byte, total_mem: "<<total_mem << "byte";
     CUDA_CHECK(cudaMalloc(ptr, n));
 }
         
