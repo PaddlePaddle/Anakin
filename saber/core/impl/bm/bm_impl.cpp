@@ -71,6 +71,7 @@ void BM_API::mem_free(void* ptr){
     if(ptr != nullptr){
         handle = get_bm_handle();
         bm_free_device(handle, *(struct bm_mem_desc*)(ptr));
+        delete ptr;
     }
 }
         
