@@ -8,8 +8,11 @@
 #include "saber/funcs/timer.h"
 #include "stdio.h"
 #include "x86_test_common.h"
-#include "test_saber_func_x86_gru.h"
+#include "test_saber_func_x86.h"
 #include "saber/funcs/impl/x86/saber_gru.h"
+
+#include <mkl_service.h>
+#include "omp.h"
 
 //#include "cublas.h"
 
@@ -28,7 +31,7 @@ LOG(INFO)<<"("<<tensor[0]<<","<<tensor[1]<<","<<tensor[2]<<","<<tensor[3]<<")";\
 
 typedef Tensor<X86, AK_FLOAT, NCHW> TensorDf4;
 typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
-
+#ifdef INNER_TEST
 void compute_compare_correct(TensorDf4 dev_x,TensorDf4 last_dev_out,GruParam<TensorDf4> param){
     Context<X86> ctx_dev(0, 1, 1);
     std::vector<TensorDf4*> input_dev_4d;
@@ -68,14 +71,19 @@ void compute_compare_correct(TensorDf4 dev_x,TensorDf4 last_dev_out,GruParam<Ten
     }
 
 }
-void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size = 222,
-                    int hidden_size = 333) {
+#endif
+void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size = 52,
+                    int hidden_size = 36) {
 
 
+      omp_set_dynamic(0);
+    omp_set_num_threads(1);
+    mkl_set_num_threads(1);
     Context<X86> ctx_dev(0, 1, 1);
-    std::vector<int> offsets = {0,20,40,50};
-
-    bool is_reverse = true;
+    std::vector<int> offsets = {0,39};
+    ImplEnum test_mode=SABER_IMPL;
+//    ImplEnum test_mode=VENDER_IMPL;
+    bool is_reverse = false;
     batch_size = offsets.size() - 1;
     Shape shape_ux(1, 1, offsets[offsets.size() - 1], hidden_size * 3);
     Shape shape_x(offsets[offsets.size() - 1], word_size, 1, 1);
@@ -150,7 +158,7 @@ void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size
 
 
     dev_x.set_seq_offset(offsets);
-    GruParam<TensorDf4> param(&dev_wu, &dev_b, GRU_ORIGIN,Active_sigmoid_fluid,Active_tanh_fluid,is_reverse);
+    GruParam<TensorDf4> param(&dev_wu, &dev_b, GRU_ORIGIN,Active_sigmoid,Active_tanh,is_reverse);
 
 
     Gru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW> dev_gru;
@@ -163,13 +171,13 @@ void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size
                       << dev_out.valid_shape().data()[3];
 
     output_dev_4d[0]->re_alloc(output_dev_4d[0]->valid_shape());
-    SABER_CHECK(dev_gru.init(input_dev_4d, output_dev_4d, param, SPECIFY, SABER_IMPL, ctx_dev));
+    SABER_CHECK(dev_gru.init(input_dev_4d, output_dev_4d, param, SPECIFY, test_mode, ctx_dev));
     Shape shape = output_dev_4d[0]->get_stride();
     //    printShape(shape);
 
     dev_gru(input_dev_4d, output_dev_4d, param, ctx_dev);
 
-    int test_iter = 111;
+    int test_iter = 1000;
 
     t1.start(ctx_dev);
 
@@ -202,16 +210,16 @@ void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size
     tensor_cmp_host(host_g.data(), compare_g.data(), host_g.valid_size(), maxratio, maxdiff);
 
     if (abs(maxratio) <= 0.001) {
-                LOG(INFO) << "passed  " << maxratio;
+                LOG(INFO) << "passed  " << maxratio<<","<<maxdiff<<",?="<<abs(maxratio);
     } else {
-                LOG(INFO) << "failed : ratio " << maxratio;
+                LOG(INFO) << "failed : ratio " << maxratio<<","<<maxdiff;
     }
     return;
 #endif
     //    return;
 }
 
-TEST(TestSaberGruX86, test_func_saber_gru_x86) {
+TEST(TestSaberFuncX86, test_func_saber_gru_x86) {
 
     test_saber_gru_x86();
 

@@ -26,6 +26,29 @@ Status SoftmaxHelper<Ttype, Dtype, Ptype>::InitParam() {
     return Status::OK();
 }
 
+template<>
+Status SoftmaxHelper<X86, AK_FLOAT, Precision::FP32>::Init(OpContext<X86>& ctx,
+        const std::vector<Tensor4dPtr<X86, AK_FLOAT> >& ins,
+        std::vector<Tensor4dPtr<X86, AK_FLOAT> >& outs) {
+    SABER_CHECK(_funcs_softmax.init(ins, outs, _param_softmax, SPECIFY, SABER_IMPL, ctx));
+    return Status::OK();
+}
+template<>
+Status SoftmaxHelper<X86, AK_FLOAT, Precision::FP16>::Init(OpContext<X86>& ctx,
+                                                           const std::vector<Tensor4dPtr<X86, AK_FLOAT> >& ins,
+                                                           std::vector<Tensor4dPtr<X86, AK_FLOAT> >& outs) {
+    SABER_CHECK(_funcs_softmax.init(ins, outs, _param_softmax, SPECIFY, SABER_IMPL, ctx));
+    return Status::OK();
+}
+
+template<>
+Status SoftmaxHelper<X86, AK_FLOAT, Precision::INT8>::Init(OpContext<X86>& ctx,
+                                                           const std::vector<Tensor4dPtr<X86, AK_FLOAT> >& ins,
+                                                           std::vector<Tensor4dPtr<X86, AK_FLOAT> >& outs) {
+    SABER_CHECK(_funcs_softmax.init(ins, outs, _param_softmax, SPECIFY, SABER_IMPL, ctx));
+    return Status::OK();
+}
+
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status SoftmaxHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype> &ctx, const std::vector<Tensor4dPtr<Ttype, Dtype>> &ins,
                            std::vector<Tensor4dPtr<Ttype, Dtype>> &outs) {
@@ -42,11 +65,15 @@ Status SoftmaxHelper<Ttype, Dtype, Ptype>::InferShape(const std::vector<Tensor4d
 
 #ifdef USE_CUDA
 INSTANCE_SOFTMAX(NV, AK_FLOAT, Precision::FP32);
+template class SoftmaxHelper<NV, AK_FLOAT, Precision::FP32>;
+template class SoftmaxHelper<NV, AK_FLOAT, Precision::FP16>;
+template class SoftmaxHelper<NV, AK_FLOAT, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(Softmax, SoftmaxHelper, NV, AK_FLOAT, Precision::FP32);
 #endif
 
 #ifdef USE_X86_PLACE
 INSTANCE_SOFTMAX(X86, AK_FLOAT, Precision::FP32);
+template class SoftmaxHelper<X86, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Softmax, SoftmaxHelper, X86, AK_FLOAT, Precision::FP32);
 #endif
 
