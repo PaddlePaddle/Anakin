@@ -54,7 +54,7 @@ public:
     bool Register(TypeIdentifier type_id, PolicyCreator creator) 
                                          EXCLUSIVE_LOCKS_REQUIRED(container_mutex_) {
         std::lock_guard<std::mutex> guard(container_mutex_);
-        LOG(ERROR) << "register " << type_id;
+        //LOG(ERROR) << "register " << type_id;
         if (_container.count(type_id) == 0) {
             _type_id_list.push_back(type_id);
             _container[type_id] = creator;

@@ -51,14 +51,14 @@ typedef typename OpTensor::Dtype OpDataType;
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs, \
         std::vector<DataTensor_out*>& outputs, \
         PreluParam<OpTensor> &param, Context<ARM> &ctx) override {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         return SaberSuccess;
     }
 
     virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs, \
         std::vector<DataTensor_out*>& outputs, \
         PreluParam<OpTensor> &param, Context<ARM> &ctx) override {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         return SaberSuccess;
     }
 

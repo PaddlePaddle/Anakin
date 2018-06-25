@@ -19,19 +19,6 @@ DEFINE_GLOBAL(int, height, 640);
 DEFINE_GLOBAL(int, width, 640);
 DEFINE_GLOBAL(bool, is_input_shape, false);
 
-#ifdef USE_CUDA
-using Target = NV;
-using Target_H = X86;
-#endif
-#ifdef USE_X86_PLACE
-using Target = X86;
-using Target_H = X86;
-#endif
-#ifdef USE_ARM_PLACE
-using Target = ARM;
-using Target_H = ARM;
-#endif
-
 void getModels(std::string path, std::vector<std::string>& files)
 {
     DIR *dir;
@@ -53,7 +40,7 @@ void getModels(std::string path, std::vector<std::string>& files)
     closedir(dir);
 }
 
-
+#ifdef USE_CUDA
 TEST(NetTest, net_execute_base_test) {
     std::vector<std::string> models;
     getModels(GLB_model_dir, models);
@@ -91,7 +78,7 @@ TEST(NetTest, net_execute_base_test) {
         LOG(INFO) << *iter << " aveage time "<< my_time.get_average_ms() / epoch << " ms";            
     }
 }
-
+#endif
 int main(int argc, const char** argv){
     // initial logger
     LOG(INFO)<<"argc"<<argc;

@@ -9,7 +9,6 @@
 #include <unistd.h>  
 #include <fcntl.h>
 #include <map>
-#include "framework/operators/ops.h"
 #ifdef USE_ARM_PLACE
 #ifdef USE_GFLAGS
 #include <gflags/gflags.h>

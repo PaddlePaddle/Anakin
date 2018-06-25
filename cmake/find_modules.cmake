@@ -294,11 +294,18 @@ macro(anakin_find_protobuf)
 		set(ARM_RPOTO_ROOT "${CMAKE_SOURCE_DIR}/third-party/arm-android/protobuf")
 		include_directories(${ARM_RPOTO_ROOT}/include)
 		set(PROTOBUF_LIBRARIES "")
-		if(BUILD_SHARED)
-			list(APPEND ANAKIN_LINKER_LIBS ${ARM_RPOTO_ROOT}/lib/libprotobuf.so)
-		else()
+		#if(BUILD_SHARED)
+		#	list(APPEND ANAKIN_LINKER_LIBS ${ARM_RPOTO_ROOT}/lib/libprotobuf.so)
+		#else()
 			list(APPEND ANAKIN_LINKER_LIBS ${ARM_RPOTO_ROOT}/lib/libprotobuf.a)
-		endif()
+		#endif()
+		find_library( # Sets the name of the path variable.
+				log-lib
+
+				# Specifies the name of the NDK library that
+				# you want CMake to locate.
+				log )
+		list(APPEND ANAKIN_LINKER_LIBS ${log-lib})
 	else()
 		find_package(Protobuf REQUIRED)
 		if(PROTOBUF_FOUND)

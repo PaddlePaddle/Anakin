@@ -13,6 +13,8 @@ SaberStatus SaberPooling<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::c
     std::vector<DataTensor_out*>& outputs, \
     PoolingParam<OpTensor> &param, Context<ARM> &ctx) {
 
+    this->_ctx = &ctx;
+
     if (param.global_pooling) {
         _impl = pooling_global;
         return SaberSuccess;

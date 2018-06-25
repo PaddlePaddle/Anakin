@@ -144,8 +144,8 @@ Status Graph<Ttype, Dtype, Ptype>::Optimize() EXCLUSIVE_LOCKS_REQUIRED(_mut) {
 
             // set info for graph
             statistics.set_info<IS_OPTIMIZED>(true);
-            DLOG(INFO) << " model size : " << graph::GraphGlobalMem::Global().get_sum_mbyte() << " mb ";
-            statistics.set_info<MODEL_MEM>(graph::GraphGlobalMem::Global().get_sum_mbyte());
+            DLOG(INFO) << " model size : " << graph::GraphGlobalMem<Ttype>::Global().get_sum_mbyte() << " mb ";
+            statistics.set_info<MODEL_MEM>(graph::GraphGlobalMem<Ttype>::Global().get_sum_mbyte());
 
             DLOG(WARNING) << "Restore graph from virtual graph of ... ";
             restore_from_vgraph(_vgraph);
@@ -367,7 +367,7 @@ Status Graph<Ttype, Dtype, Ptype>::Clean() {
     delete _vgraph;
     _vgraph = nullptr;
     // clenn all weights
-    graph::GraphGlobalMem::Global().clean_all();
+    graph::GraphGlobalMem<Ttype>::Global().clean_all();
 
     return Status::OK();
 }

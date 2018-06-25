@@ -5,7 +5,6 @@
 #include "worker.h"
 #include "tensor_op.h"
 #include "timer.h"
-#include "ops.h"
 
 using namespace anakin::saber;
 using namespace anakin::graph;

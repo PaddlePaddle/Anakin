@@ -15,8 +15,8 @@
 
 #ifndef ANAKIN_OPERATORS_H
 #define ANAKIN_OPERATORS_H
-
-#include "framework/graph/llvm/fusion/graph_pattern.h"
+#if 1
+//#include "framework/graph/llvm/fusion/graph_pattern.h"
 #include "framework/operators/activation.h"
 #include "framework/operators/arg_max.h"
 //#include "framework/operators/axpy.h"
@@ -74,11 +74,12 @@
 #include "framework/operators/fusion_ops/deconv_relu.h"
 #include "framework/operators/fusion_ops/eltwise_relu.h"
 #include "framework/operators/fusion_ops/permute_power.h"
+#endif //0
 namespace anakin {
 namespace ops {
 } /* namespace ops */
 } /* namespace anakin */
-
+#if 0
 namespace anakin{
 namespace graph{
     REGISTER_GRAPH_FUSION_PATTERN(DeconvRelu)
@@ -153,5 +154,5 @@ namespace graph{
             .CreatePattern([](VGraph* graph) {});
 }
 }
-
+#endif //0
 #endif

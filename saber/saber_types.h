@@ -162,6 +162,12 @@ typedef enum {
     BORDER_REPLICATE
 } BorderType;
 
+typedef enum {
+    PRIOR_MIN = 0,
+    PRIOR_MAX = 1,
+    PRIOR_COM = 2
+} PriorType;
+
 } //namespace saber
 
 } //namespace anakin

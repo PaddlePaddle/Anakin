@@ -5,10 +5,12 @@ namespace anakin {
 
 template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
 Net<Ttype, Dtype, Ptype, RunType>::~Net() {
+            LOG(ERROR) << "begin net destructor";
 	if(_graph_p) {
 		delete _graph_p;
 		_graph_p = nullptr;
 	}
+            LOG(ERROR) << "end net destructor";
 }
 
 template<typename Ttype, DataType Dtype>
@@ -18,7 +20,7 @@ double tensor_average(Tensor4dPtr<Ttype, Dtype>& out_tensor_p) {
     const dtype* hptr = nullptr;
 
     Shape shin = out_tensor_p->valid_shape();
-    PBlock<dtype> tensorptr(shin);
+    PBlock<dtype, Ttype> tensorptr(shin);
     tensorptr.h_tensor().copy_from(*out_tensor_p);
     hptr = tensorptr.h_tensor().data();
     for (int i=0; i<out_tensor_p->valid_size(); i++) {
@@ -119,6 +121,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
         op_func.op->_helper->InferShape(op_func.ins, op_func.outs);
         op_func.op->_helper->Init(*(op_func.ctx_p), op_func.ins, op_func.outs);
     }
+    //LOG(ERROR) << "finish create op";
 
     // init memory of _graph_p
     init_memory();
@@ -618,7 +621,7 @@ Status Net<Ttype, Dtype, Ptype, RunType>::init_memory() {
 template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
 Status Net<Ttype, Dtype, Ptype, RunType>::init_env(graph::Graph<Ttype, Dtype, Ptype>& graph) {
     LOG(WARNING) << "Detect and initial " << graph.get_ins().size() << " lanes.";
-    Env<Ttype>::env_init(graph.get_ins().size()); 
+    //Env<Ttype>::env_init(graph.get_ins().size());
     LOG(WARNING) << "Current used device id : " << TargetWrapper<Ttype>::get_device_id();
     return Status::OK();
 }
