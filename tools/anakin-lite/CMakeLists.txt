@@ -16,19 +16,28 @@ anakin_option(USE_IOS "using android place." NO if NOT USE_ANDROID)
 anakin_option(USE_OMP "using openmp for lite." YES)
 anakin_option(USE_LOGGER "using local logger" YES)
 
+anakin_option(ENABLE_DEBUG "Enable DEBUG(default) mode." NO)
+
 configure_file ( 
 	"../../cmake/config/anakin_config.h.in" 
 	"${PROJECT_BINARY_DIR}/anakin_config.h"
 )
 
-
 # add compile flags
 anakin_add_compile_option(-std=c++11)
 anakin_add_compile_option(-fPIC)
 anakin_add_compile_option(-ldl)
+anakin_add_compile_option(-fvisibility=hidden)
+anakin_add_compile_option(-fvisibility-inlines-hidden)
+anakin_add_compile_option(-ffunction-sections)
+anakin_add_compile_option(-fdata-sections)
+anakin_add_compile_option(-s)
+
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--gc-sections -Wl,--icf=safe")
+set(MAKE_STATIC_LINKER_FLAGS "${MAKE_STATIC_LINKER_FLAGS} -Wl,--gc-sections -Wl,--icf=safe")
+
 anakin_add_compile_option(-W)
 anakin_add_compile_option(-Wall)
-anakin_add_compile_option(-pthread)
 anakin_add_compile_option(-Wno-unused-variable) # no unused-variable
 anakin_add_compile_option(-Wformat)
 anakin_add_compile_option(-Wmissing-declarations)
@@ -47,11 +56,17 @@ anakin_add_compile_option(-Wno-sign-compare)
 anakin_add_compile_option(-Wno-ignored-qualifiers) 
 anakin_add_compile_option(-Wno-enum-compare)
 
+if(ENABLE_DEBUG)
+	set(CMAKE_BUILD_TYPE Debug FORCE)
+else()
+	set(CMAKE_BUILD_TYPE Release FORCE)
+endif()
+
 if(CMAKE_BUILD_TYPE MATCHES Debug) 
 	anakin_add_compile_option(-O0) 
 	anakin_add_compile_option(-g) 
 else() 
-	anakin_add_compile_option(-O3) 
+	anakin_add_compile_option(-Os) 
 	anakin_add_compile_option(-DNDEBUG) 
 endif()
 

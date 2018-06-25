@@ -57,11 +57,21 @@ private:
 	 * \brief generate tensors for edges
 	 */
 	void gen_tensors();
+	
+	/**
+	 * \brief initialize tensors for edges
+	 */
+	void tensors_init();
 
 	/**
 	 * \brief generate model's inputs and outputs
 	 */
 	void gen_model_ios();
+
+	/**
+	 * \brief initialize model's inputs and outputs
+	 */
+	void model_ios_init();
 
 	/**
 	 * \brief generate operations for model

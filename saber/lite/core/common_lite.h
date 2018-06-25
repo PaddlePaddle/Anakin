@@ -16,7 +16,6 @@
 #ifndef ANAKIN_SABER_LITE_CORE_COMMON_H
 #define ANAKIN_SABER_LITE_CORE_COMMON_H
 
-#include "logger/logger.h"
 #include <memory>
 #include <vector>
 #include <cassert>

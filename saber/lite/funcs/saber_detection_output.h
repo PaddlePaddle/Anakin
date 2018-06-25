@@ -13,8 +13,8 @@
    limitations under the License. 
 */
 
-#ifndef ANAKIN_SABER_LITE_FUNCS_SABER_ELTWISE_H
-#define ANAKIN_SABER_LITE_FUNCS_SABER_ELTWISE_H
+#ifndef ANAKIN_SABER_LITE_FUNCS_SABER_DETECTION_OUTPUT_H
+#define ANAKIN_SABER_LITE_FUNCS_SABER_DETECTION_OUTPUT_H
 
 #include "saber/lite/core/tensor_lite.h"
 #include "saber/lite/core/context_lite.h"

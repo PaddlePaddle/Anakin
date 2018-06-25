@@ -194,10 +194,10 @@ std::string ParserConvBatchnormScale(graph::AttrInfo& attr,
                                            bias_term ? "true":"false",
                                            epsilon,
                                            momentum,
-                                           batch_norm_weight_1_vector.c_str(),
-                                           batch_norm_weight_2_vector.c_str(),
-                                           scale_weight_1_vector.c_str(),
-                                           scale_weight_2_vector.c_str(),
+										   "{}"/*batch_norm_weight_1_vector.c_str()*/,
+                                           "{}"/*batch_norm_weight_2_vector.c_str()*/,
+                                           "{}"/*scale_weight_1_vector.c_str()*/,
+										   "{}"/*scale_weight_2_vector.c_str()*/,
                                            scale_bias_term ? "true" : "false",
                                            weights_ptr_name.c_str(),
                                            offset_info.weights[0].offset,
@@ -286,10 +286,10 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
                                            bias_term ? "true":"false",
                                            epsilon,
                                            momentum,
-                                           batch_norm_weight_1_vector.c_str(),
-                                           batch_norm_weight_2_vector.c_str(),
-                                           scale_weight_1_vector.c_str(),
-                                           scale_weight_2_vector.c_str(),
+                                           "{}"/*batch_norm_weight_1_vector.c_str()*/,
+                                           "{}"/*batch_norm_weight_2_vector.c_str()*/,
+                                           "{}"/*scale_weight_1_vector.c_str()*/,
+										   "{}"/*scale_weight_2_vector.c_str()*/,
                                            scale_bias_term ? "true" : "false",
                                            weights_ptr_name.c_str(),
                                            offset_info.weights[0].offset,
@@ -356,6 +356,16 @@ std::string ParserEltwise(graph::AttrInfo& attr,
     auto type = get_attr<std::string>("type", attr); 
     auto coeff = get_attr<PTuple<float>>("coeff", attr);
 
+	std::string eltwise_type_str("Eltwise_unknow");
+
+	if (type == "Add") {
+        eltwise_type_str = "Eltwise_sum";
+    } else if (type == "Max") {
+        eltwise_type_str = "Eltwise_max";
+    } else {
+        eltwise_type_str = "Eltwise_prod";
+    }
+
 	CodeWritter coeff_vec_code;
 	coeff_vec_code<<"{";
 	for(int i=0; i<coeff.size()-1; i++) {
@@ -369,7 +379,8 @@ std::string ParserEltwise(graph::AttrInfo& attr,
 
 	// gen cpp code
 	CodeWritter code_w; 
-	code_w.feed("%s.load_param(%s, %s);\n", node_name.c_str(), type.c_str(), coeff_vec_code.get_code_string().c_str());
+	code_w.feed("%s.load_param(%s, %s);\n", node_name.c_str(), eltwise_type_str.c_str(), 
+											coeff_vec_code.get_code_string().c_str());
 	return code_w.get_code_string();
 }
 
