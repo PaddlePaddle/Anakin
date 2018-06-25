@@ -19,6 +19,10 @@ TEST(TestSaberContextBM, test_BM_context) {
 #endif
 
 int main(int argc, const char** argv) {
+    //TODO: init in another place
+    static bm_handle_t handle;
+    bmdnn_init(&handle);
+    
     // initial logger
     logger::init(argv[0]);
     InitTest();
