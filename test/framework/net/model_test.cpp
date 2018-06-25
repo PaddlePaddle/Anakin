@@ -18,6 +18,17 @@ DEFINE_GLOBAL(int, height, 640);
 DEFINE_GLOBAL(int, width, 640);
 DEFINE_GLOBAL(bool, is_input_shape, false);
 
+#if defined(USE_CUDA)
+using Target = NV;
+using Target_H = X86;
+#elif defined(USE_X86_PLACE)
+using Target = X86;
+using Target_H = X86;
+#elif defined(USE_ARM_PLACE)
+using Target = ARM;
+using Target_H = ARM;
+#endif
+
 void getModels(std::string path, std::vector<std::string>& files) {
     DIR* dir= nullptr;
     struct dirent* ptr;
@@ -140,6 +151,10 @@ TEST(NetTest, nv_net_execute_base_test) {
 #endif
 
 int main(int argc, const char** argv) {
+
+    Env<Target>::env_init();
+    Env<Target_H>::env_init();
+
     // initial logger
     LOG(INFO) << "argc " << argc;
 

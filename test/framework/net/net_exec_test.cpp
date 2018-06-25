@@ -3,6 +3,17 @@
 #include "saber/funcs/timer.h"
 #include <chrono>
 
+#if defined(USE_CUDA)
+using Target = NV;
+using Target_H = X86;
+#elif defined(USE_X86_PLACE)
+using Target = X86;
+using Target_H = X86;
+#elif defined(USE_ARM_PLACE)
+using Target = ARM;
+using Target_H = ARM;
+#endif
+
 //#define USE_DIEPSE
 
 //std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/diepsie_light_head.anakin.bin";
@@ -265,6 +276,9 @@ TEST(NetTest, net_execute_reconstruction_test) {
 #endif
 
 int main(int argc, const char** argv){
+
+	Env<Target>::env_init();
+	Env<Target_H>::env_init();
     // initial logger
     logger::init(argv[0]);
 	InitTest();
