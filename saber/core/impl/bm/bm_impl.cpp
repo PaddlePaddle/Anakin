@@ -82,6 +82,25 @@ void BM_API::mem_set(void* ptr, int value, size_t n){
     //BMDNN_CHECK(bm_memset_device(handle, value, *pmem));
 }
 
+//static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
+//    size_t count, __DtoD) {};
+
+//static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
+//    size_t count, __HtoD) {};
+
+void BM_API::sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
+    size_t count, __DtoH) {
+    handle = get_bm_handle(); 
+    //auto* dev_ptr = const_cast<bm_device_mem_t *>(src);
+    BMDNN_CHECK(bm_memcpy_d2s(handle, bm_mem_from_system(dst), *(bm_device_mem_t *)(src)));
+    //BMDNN_CHECK(bm_memcpy_d2s(handle, bm_mem_from_system(dst), *src));
+    LOG(INFO) << "End sync_memcpy process";
+};
+
+//static void sync_memcpy_p2p(void* dst, int dst_dev, const void* src, \
+//    int src_dev, size_t count) {};
+
+
 //! target wrapper
 template struct TargetWrapper<BM, __device_target>;
 
