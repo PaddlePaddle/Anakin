@@ -35,6 +35,8 @@
 
 #cmakedefine USE_CUDA
 
+#cmakedefine USE_BM
+
 #cmakedefine USE_CUDNN
 
 #cmakedefine USE_PYTHON
