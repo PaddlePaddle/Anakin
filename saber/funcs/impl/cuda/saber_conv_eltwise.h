@@ -146,8 +146,6 @@ public:
 
             transform_3x3_weight_2_4x4(weight_data, host_work_space, param.conv_param.weight()->num(), round_out_channel, inputs[0]->channel(), round_in_channel);
 
-//            trans_weights_dev.re_alloc({weight4x4_size, 1, 1, 1});
-//            trans_weights_dev.copy_from(trans_weights_host);
             Shape old_shape = param.conv_param.weight()->shape();
             param.conv_param.mutable_weight()->re_alloc({weight4x4_size, 1, 1, 1});
             param.conv_param.mutable_weight()->copy_from(trans_weights_host);

@@ -145,11 +145,20 @@ public:
         //LOG(INFO) << "saber conv act";
         if (_use_k1s1p0) {
 //            LOG(INFO)<<"using k1s1p0";
-            conv_gemm_k1s1p0(outputs[0]->mutable_data(),
-                             inputs[0]->data(),
-                             param.conv_param.weight()->data(),
-                             chout, chin, hin, win, bias_data,
-                             this->_ctx.get_compute_stream());
+            if (param.has_eltwise) {
+
+                conv_gemm_k1s1p0(outputs[0]->mutable_data(),
+                                 inputs[0]->data(),
+                                 param.conv_param.weight()->data(),
+                                 chout, chin, hin, win, bias_data,
+                                 this->_ctx.get_compute_stream(), 1.f, 1.f);
+            } else {
+                conv_gemm_k1s1p0(outputs[0]->mutable_data(),
+                                 inputs[0]->data(),
+                                 param.conv_param.weight()->data(),
+                                 chout, chin, hin, win, bias_data,
+                                 this->_ctx.get_compute_stream());
+            }
             return SaberSuccess;
         }
         if (param.conv_param.group == chin && param.conv_param.group == chout) {
@@ -369,9 +378,10 @@ private:
     void conv_gemm_k1s1p0(float* out, const float* img,
                           const float* weights, int out_channel,
                           int in_channel, int img_h, int img_w,
-                          const float* bias, cudaStream_t cuda_stream) {
-        float alpha = 1.0f;
-        float beta = 0.0f;
+                          const float* bias, cudaStream_t cuda_stream,
+                          float a = 1.f, float b = 0.f) {
+
+        float alpha = a; float beta = b;
         int m = out_channel;
         int k = in_channel;
         int n = img_h * img_w;
