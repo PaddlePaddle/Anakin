@@ -434,6 +434,8 @@ void print_tensor_device<Tensor<BM, AK_BM, NCHW>>(Tensor<BM, AK_BM, NCHW>& tenso
     }*/
 
     float *host_mem = new float[tensor.size()];
+    bm_flush(get_bm_handle());
+
     auto* device_data_ptr = const_cast<bm_device_mem_t *>(tensor.data());
     bm_memcpy_d2s(get_bm_handle(), bm_mem_from_system(host_mem), *device_data_ptr);
 
