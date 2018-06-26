@@ -714,9 +714,9 @@ TARGET:
 
   > 注意：对于language model， 本文使用'ptb_valid_txt'作测试数据集
 
-    <span id = '111'> 3.1. language model in i7-7700 </span>
+  <span id = '111'> 3.1. language model in i7-7700 </span>
 
-    - Latency (`ms`) of one batch
+  - Latency (`ms`) of one batch
 
     ThreadNum | Tensorflow | Anakin
     :---: | :---: | :---: |
@@ -725,7 +725,7 @@ TARGET:
     4 | 14.23   | 9.91
     6 | 19.83   | 15.51
 
-    - Throughput (`words/s`)
+  - Throughput (`words/s`)
 
     ThreadNum | Tensorflow | Anakin
     :---: | :---: | :---: |
@@ -734,9 +734,9 @@ TARGET:
     4 | 5498 | 8418
     6 | 5764 | 8070
 
-    <span id = '222'> 3.2. language model in E5-2620 v4 </span>
+  <span id = '222'> 3.2. language model in E5-2620 v4 </span>
 
-    - Latency (`ms`) of one batch
+  - Latency (`ms`) of one batch
 
     ThreadNum | Tensorflow | Anakin
     :---: | :---: | :---: |
@@ -745,7 +745,7 @@ TARGET:
     4 | 8.66    | 4.32
     6 | 12.33   | 7.12
 
-    - Throughput (`words/s`)
+  - Throughput (`words/s`)
 
     ThreadNum | Tensorflow | Anakin
     :---: | :---: | :---: |
@@ -754,9 +754,9 @@ TARGET:
     4 | 8659 | 18351
     6 | 9414 | 17461
 
-    <span id = '333'> 3.3. language model in E5-2650 v4 </span>
+  <span id = '333'> 3.3. language model in E5-2650 v4 </span>
 
-    - Latency (`ms`) of one batch
+  - Latency (`ms`) of one batch
 
     ThreadNum | Tensorflow | Anakin
     :---: | :---: | :---: |
@@ -765,7 +765,7 @@ TARGET:
     4 | 7.78    | 3.48
     6 | 13.54   | 4.79
 
-    - Throughput (`words/s`)
+  - Throughput (`words/s`)
 
     ThreadNum | Tensorflow | Anakin
     :---: | :---: | :---: |
