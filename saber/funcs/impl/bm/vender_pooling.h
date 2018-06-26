@@ -67,8 +67,7 @@ public:
         _handle = get_bm_handle();
         BMDNN_CHECK(bmdnn_pooling_forward(_handle, in_data, 
                             input_n, input_c, input_h, input_w, kh, kw, pad_h, pad_w, 
-                            stride_h, stride_w, is_avg_pooling, 0,
-                            out_data, bm_mem_null, bm_mem_null));
+                            stride_h, stride_w, is_avg_pooling, out_data));
         return SaberSuccess;
     }
 
