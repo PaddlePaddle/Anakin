@@ -22,6 +22,7 @@
 	- How to add custom operators
 	- How to add new device
 
+
 ## User Manual
 ---
 
@@ -158,6 +159,7 @@ $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
 
 > we are coming soon...
 
+
 ## <span id = '10002'> Run on ARM </span>
 ---
 
@@ -274,14 +276,14 @@ $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
 
 2. 修改`android_build.sh`    
 
-  2.1 修改NDK路径
+  2.1. 修改NDK路径
 
   ```bash
     #modify "your_ndk_path" to your NDK path
     export ANDROID_NDK=your_ndk_path
   ```
 
-  2.2 修改ARM 处理器架构 
+  2.2. 修改ARM 处理器架构 
 
   * 对于32位ARM处理器, 将ANDROID_ABI 设置为 `armeabi-v7a with NEON`， 
   * 对于64位ARM处理器, 可以将ANDROID_ABI 设置为 `armeabi-v7a with NEON`或者`arm64-v8a`。        
@@ -290,7 +292,8 @@ $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
   ```bash
       -DANDROID_ABI="armeabi-v7a with NEON"
   ```
-  2.3 设置Android API    
+
+  2.3. 设置Android API    
 
   根据Android系统的版本设置API level， 例如API Level 21 -> Android 5.0.1   
 
@@ -298,7 +301,7 @@ $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
       -DANDROID_NATIVE_API_LEVEL=21
   ```
 
-  2.4 选择编译静态库或动态库  
+  2.4. 选择编译静态库或动态库  
 
   设置`BUILD_SHARED=NO`编译静态库    
   设置`BUILD_SHARED=YES`编译动态库 
@@ -306,7 +309,7 @@ $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
   ```bash
       -DBUILD_SHARED=NO
   ```
-  2.5 OpenMP多线程支持    
+  2.5. OpenMP多线程支持    
 
   设置`USE_OPENMP=YES`开启OpenMP多线程   
 
@@ -314,7 +317,7 @@ $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
       -DUSE_OPENMP=YES
   ```
   
-  2.6 编译单测文件  
+  2.6. 编译单测文件  
 
   设置`BUILD_WITH_UNIT_TEST=YES`将会编译单测文件   
 
@@ -322,7 +325,7 @@ $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
         -DBUILD_WITH_UNIT_TEST=YES
     ```
 
-  2.7 编译示例文件   
+  2.7. 编译示例文件   
 
   设置`BUILD_EXAMPLES=YES`将会编译示例文件
 
@@ -330,7 +333,7 @@ $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
         -DBUILD_EXAMPLES=YES
     ```
 
-  2.8 开启opencv   
+  2.8. 开启opencv   
 
   如果使用opencv，设置`USE_OPENCV=YES`    
 
@@ -338,7 +341,7 @@ $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
         -DUSE_OPENCV=YES
     ```
     
-  2.9 开始编译   
+  2.9. 开始编译   
 
   运行脚本 `android_build.sh` 将自动编译Anakin   
 
@@ -375,7 +378,7 @@ git clone https://xxxxxxxxx
 
   3.1. 配置
 
-  对工程目录中*config.yaml* 文件进行相关配置，具体配置流程如下：
+    对工程目录中*config.yaml* 文件进行相关配置，具体配置流程如下：
 
 ```bash
 OPTIONS:
@@ -416,34 +419,35 @@ TARGET:
 
   3.2. 转换 
 
-  完成相关配置后，就可以运行```python converter.py```脚本进行转换
+    完成相关配置后，就可以运行```python converter.py```脚本进行转换
 
   3.3. Launching dash board
 
-  在转换完成后，转换后的Anakin model可在 http://0.0.0.0:8888 （可配置） 进行下载。
+    在转换完成后，转换后的Anakin model可在 http://0.0.0.0:8888 （可配置） 进行下载。
 
-  > 如果你在配置文件中将远程服务器ip地址设置为 0.0.0.0, 则当打开本地的浏览器时，相应的地址栏中需要输入服务器的真实ip地址，而不是 0.0.0.0
+    > 如果你在配置文件中将远程服务器ip地址设置为 0.0.0.0, 则当打开本地的浏览器时，相应的地址栏中需要输入服务器的真实ip地址，而不是 0.0.0.0
 
   3.4. Note
 
-  > 我们目前只支持caffe model的转换
+    > 我们目前只支持caffe model的转换
 
 
 ## <span id = '10004'> Examples </span>
 ---
+
 
 ## <span id = '10005'> Benchmark </span>
 ---
 
 ### NV GPU
 
-1. Machine:
+1. Machine
 
   >  CPU: `12-core Intel(R) Xeon(R) CPU E5-2620 v2 @2.10GHz`
   >  GPU: `Tesla P4`  
   >  cuDNN: `v7`  
 
-2. Anakin:
+2. Anakin
 
   **`NVIDIA TensorRT`** 是公认的高性能前向预测引擎，故在BenchMark中本文将使用**`NVIDIA TensorRT 3`**与**`Anakin`**进行性能对比分析
 
@@ -597,7 +601,7 @@ BatchSize | TensorRT | Anakin
     8 | 421 | 351
     32 | 637 | 551
 
-4. How to run those Benchmark models?
+4. 怎么运行 Benchmark models?
 
 > 首先, 使用[External Converter](#10003)对caffe model 进行转换  
 
@@ -611,7 +615,7 @@ BatchSize | TensorRT | Anakin
 
 ### ARM
 
-1. Machine:
+1. Machine
 
 + 测试模型Mobilenetv1, mobilenetv2, mobilenet-ssd
 + 采用android ndk交叉编译，gcc 4.9，enable neon， ABI： armveabi-v7a with neon -mfloat-abi=softfp
@@ -660,7 +664,7 @@ BatchSize | TensorRT | Anakin
    |高通835|213.0ms|125.7ms|~~98.4ms~~|292.9ms|177.9ms|~~167.8ms~~|nan|nan|nan|
    |高通653|236.0ms|129.6ms|96.0ms|377.7ms|228.9ms|165.0ms|nan|nan|nan|
 
-4. How to run those Benchmark models?
+4. 怎么运行 Benchmark models?
 
   > 首先, 使用[External Converter](#10003)对caffe model 进行转换 
 
@@ -676,13 +680,13 @@ BatchSize | TensorRT | Anakin
 
 #### CPU
 
-1. Machine:
+1. Machine
 
   > CPU: `12-core Intel(R) Xeon(R) CPU E5-2620 v2 @2.10GHz`
   > Docker 1.13.1
   > CentOS Linux release 7.5.1804
 
-2. Anakin:
+2. Anakin
 
   > 在BenchMark中本文将使用**`Tensorflow 1.8.0`**和**`Anakin`**进行性能对比分析, `Tensorflow 1.8.0` 是通过 Anaconda 4.5.4 进行安装，python版本号是Python 3.6
 
@@ -709,7 +713,7 @@ BatchSize | TensorRT | Anakin
 
   > 注意：对于language model， 本文使用'ptb_valid_txt'作测试数据集
 
-  <span id = '111'> 1. language model in i7-7700 </span>
+  <span id = '111'> 3.1. language model in i7-7700 </span>
 
 - Latency (`ms`) of one batch
 
@@ -729,7 +733,7 @@ BatchSize | TensorRT | Anakin
     4 | 5498 | 8418
     6 | 5764 | 8070
 
-  <span id = '222'> 2. language model in E5-2620 v4 </span>
+  <span id = '222'> 3.2. language model in E5-2620 v4 </span>
 
 - Latency (`ms`) of one batch
 
@@ -749,7 +753,7 @@ BatchSize | TensorRT | Anakin
     4 | 8659 | 18351
     6 | 9414 | 17461
 
-  <span id = '333'> 3. language model in E5-2650 v4 </span>
+  <span id = '333'> 3.3. language model in E5-2650 v4 </span>
 
 - Latency (`ms`) of one batch
 
@@ -790,8 +794,10 @@ BatchSize | TensorRT | Anakin
 + [How to add custom operators](#20003)
 + [How to add new device](#20004)
 
+
 ## <span id = '20001'> C++ APIs </span>
 ---
+
 
 ## <span id = '20002'> How to contribute </span>
 ---
@@ -832,14 +838,14 @@ git checkout -b YOUR_NEW_BRANCH
 ```
 
 4. 开发
-  
+
   4.1. 编写代码
 
   4.2. 构建和测试
 
     详细请参考 [Instal and Compile](#10001)
 
-  4.3. 提交（commit）
+  4.3. 提交(commit)
 
     提交代码时，请认真写好提交说明，这样其他人就可以清楚的知道这次提交做了哪些改变：
 
@@ -937,43 +943,45 @@ git branch -D YOUR_NEW_BRANCH
    - 请给出总体的修改情况 
    - 请采用[start a review](https://help.github.com/articles/reviewing-proposed-changes-in-a-pull-request/)进行回复，而非直接回复的方式 
 
+
 ## <span id = '20003'> How to add custom operators </span>
 ---
 
 1. 基本概念
+
   1.1. 与Operator相关的基本概念
 
     简单介绍下几个与Operator相关的基本概念，详情请参考设计文档。
 
-    > ```framework```: 上层的逻辑代码，负责从parser中获取参数及weights，添加op时主要修改framework/operator目录下的内容。
+    + ```framework```: 上层的逻辑代码，负责从parser中获取参数及weights，添加op时主要修改framework/operator目录下的内容。
 
-    > ```saber```: 底层的实现代码，Anakin通过saber封装了不同的backends，不同的实现(impl)分别特化出自己的实现，外层framework通过不同的template进入各自的impl完成调用。各个op的parameter放在saber/saber_funcs_param.h文件中，增加op主要修改saber/funcs下的内容。
+    + ```saber```: 底层的实现代码，Anakin通过saber封装了不同的backends，不同的实现(impl)分别特化出自己的实现，外层framework通过不同的template进入各自的impl完成调用。各个op的parameter放在saber/saber_funcs_param.h文件中，增加op主要修改saber/funcs下的内容。
 
-    > saber的文件结构：
-    * saber/funcs下的是各个funcs的外部接口，这一层的op与具体的设备实现无关，只与各op完成的功能有关。由于跟实现(impl)无关，本层文件明均不带impl。
-    * saber/funcs/impl下是各个op的impl声明，特定设备需要完成该层声明的特化版本，如saber/funcs/impl/x86实现了上一层impl声明的x86特化版本，saber/funcs/impl/cuda实现了上一层impl声明的NV特化版本。当增加新的backends时需要特化出新的实现。本层代码同实现相关，均带有```impl_```前缀。
-    * saber/funcs/impl/cuda/base/cuda_c内有cuda```.cu```扩展名的文件，添加cuda的kernel需要在该文件目录下添加。
-    * saber/funcs/impl/cuda/base/sass 内有不同架构的汇编代码编译的静态库。
+    + saber的文件结构：
+      - saber/funcs下的是各个funcs的外部接口，这一层的op与具体的设备实现无关，只与各op完成的功能有关。由于跟实现(impl)无关，本层文件明均不带impl。
+      - saber/funcs/impl下是各个op的impl声明，特定设备需要完成该层声明的特化版本，如saber/funcs/impl/x86实现了上一层impl声明的x86特化版本，saber/funcs/impl/cuda实现了上一层impl声明的NV特化版本。当增加新的backends时需要特化出新的实现。本层代码同实现相关，均带有```impl_```前缀。
+      - saber/funcs/impl/cuda/base/cuda_c内有cuda```.cu```扩展名的文件，添加cuda的kernel需要在该文件目录下添加。
+      - saber/funcs/impl/cuda/base/sass 内有不同架构的汇编代码编译的静态库。
 
   2.2. 涉及到的基类及各个类之前的关系
 
     简单介绍相关的基类
 
-    * ```anakin::Operator```: framework的operator基类，位于framework/core/operator/operator.h
+    + ```anakin::Operator```: framework的operator基类，位于framework/core/operator/operator.h
 
-    * ```anakin::saber::BaseFunc```: saber对外的op接口基类，提供统一的对外接口，位于saber/funcs/base.h。BaseFunc的```compute_output_shape```接口只根据input的shape和param的参数计算输出的shape，并通过```tensor```的```set_shape```接口(只设置shape，不分配空间)设置到output中。```operator()```接口为各个op的计算接口。
+    + ```anakin::saber::BaseFunc```: saber对外的op接口基类，提供统一的对外接口，位于saber/funcs/base.h。BaseFunc的```compute_output_shape```接口只根据input的shape和param的参数计算输出的shape，并通过```tensor```的```set_shape```接口(只设置shape，不分配空间)设置到output中。```operator()```接口为各个op的计算接口。
 
-    * ```ankain::saber::ImplBase```: saber设备实现的op的接口，所有设备相关实现的基类。位于saber/funcs/impl/impl_base.h。实现版本中这里分为两类，一类以```vender_```为前缀，带有```vender_```代码意为使用第三方库来实现该op，如cudnn的conv，或mkl的conv等等，这类op的性能我们难以调优，因此单独列为一类。另一类是带有源码的saber实现，这些实现都带有```saber_```为前缀，此类实现带有源码，能够通过后续优化不断提升性能，实现起名时需要注意这一点。
+    + ```ankain::saber::ImplBase```: saber设备实现的op的接口，所有设备相关实现的基类。位于saber/funcs/impl/impl_base.h。实现版本中这里分为两类，一类以```vender_```为前缀，带有```vender_```代码意为使用第三方库来实现该op，如cudnn的conv，或mkl的conv等等，这类op的性能我们难以调优，因此单独列为一类。另一类是带有源码的saber实现，这些实现都带有```saber_```为前缀，此类实现带有源码，能够通过后续优化不断提升性能，实现起名时需要注意这一点。
 
 2. 添加operator
 
   添加一个新的op需要以下几步：
 
-- 添加saber的param
-- 定义saber的Operator类
-- 定义新的impl声明
-- 完成新的impl实现
-- 增加framework的实现或特化
+  - 添加saber的param
+  - 定义saber的Operator类
+  - 定义新的impl声明
+  - 完成新的impl实现
+  - 增加framework的实现或特化
 
   接下来就针对这几步，以一个简单例子为例介绍实现。
 
@@ -1369,3 +1377,5 @@ int main(int argc, const char** argv){
 
 
 ## <span id = '20004'> How to add new device </span>
+---
+
