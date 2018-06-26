@@ -30,6 +30,8 @@ class Graph(object):
             pass
         elif config.framework == 'MXNET':
             pass
+        elif config.framework == 'FLUID':
+            self.parser = FluidParser(config.framework_config_dict)
         else:
             raise NameError('ERROR: GrapProtoIO not support %s model.' % (config.framework))
         self.graph_io = self.parser()
