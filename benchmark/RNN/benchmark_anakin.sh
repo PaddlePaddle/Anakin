@@ -13,3 +13,11 @@ sh $sdir/prepare.sh
 for i in {1,2,4,6} ;do
 $sdir/../../output/unit_test/net_exec_x86_oneinput $sdir/model/language_model/ $sdir/data/ptb.valid_tokenlize.txt $i
 done
+
+for i in {1,2,4,6} ;do
+$sdir/../../output/unit_test/net_exec_test_chinese_ner $sdir/model/chinese_ner_model/ $sdir/data/ner_data.txt $i 1
+done
+
+for i in {1,2,4,6} ;do
+$sdir/../../output/unit_test/net_exec_x86_oneinput $sdir/model/text_classfication/ $sdir/data/ptb.valid_tokenlize.txt $i
+done
