@@ -262,6 +262,58 @@ template void tensor_cmp_host<float>(const float* src1, const float* src2, \
 template void tensor_cmp_host<char>(const char* src1, const char* src2, int size, \
                                     double& max_ratio, double& max_diff);
 
+#ifdef USE_BM
+
+        template<>
+void fill_tensor_device_rand<Tensor<BM, AK_BM, NCHW>>(Tensor<BM, AK_BM, NCHW>& tensor, \
+    typename Tensor<BM, AK_BM, NCHW>::API::stream_t stream) {
+
+    float *host_mem_input = new float[tensor.size()];
+    for (int i = 0; i < tensor.size(); ++i) {
+        host_mem_input[i] = static_cast<float>(rand());
+    }
+
+    bm_device_mem_t* device_data_ptr = tensor.mutable_data();
+    BMDNN_CHECK(bm_memcpy_s2d(get_bm_handle(), *device_data_ptr, bm_mem_from_system(host_mem_input)));
+
+    delete [] host_mem_input;
+}
+
+void fill_tensor_device_rand(Tensor<BM, AK_BM, NCHW>& tensor, float vstart, \
+    float vend, typename Tensor<BM, AK_BM, NCHW>::API::stream_t stream = NULL){
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dis(0, 1.f);
+
+    float *host_mem_input = new float[tensor.size()];
+    for (int i = 0; i < tensor.size(); ++i) {
+        float random_num = vstart + (vend - vstart) * dis(gen);
+        host_mem_input[i] = random_num;
+    }
+
+    bm_device_mem_t* device_data_ptr = tensor.mutable_data();
+    BMDNN_CHECK(bm_memcpy_s2d(get_bm_handle(), *device_data_ptr, bm_mem_from_system(host_mem_input)));
+
+    delete [] host_mem_input;
+}
+
+void fill_tensor_device_const(Tensor<BM, AK_BM, NCHW>& tensor, float value, \
+    typename Tensor<BM, AK_BM, NCHW>::API::stream_t stream = NULL){
+
+    float *host_mem_input = new float[tensor.size()];
+    for (int i = 0; i < tensor.size(); ++i) {
+        host_mem_input[i] = value;
+    }
+
+    bm_device_mem_t* device_data_ptr = tensor.mutable_data();
+    BMDNN_CHECK(bm_memcpy_s2d(get_bm_handle(), *device_data_ptr, bm_mem_from_system(host_mem_input)));
+
+    delete [] host_mem_input;
+}
+
+#endif
+
 } //namespace saber
 
 } //namespace anakin
