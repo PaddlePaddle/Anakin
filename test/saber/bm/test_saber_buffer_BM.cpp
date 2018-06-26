@@ -4,17 +4,12 @@
 
 using namespace anakin::saber;
 
-static bm_handle_t handle;
-
 int get_bm_size() {
     return 1;
 }
 
 template <DataType Ddatatype, DataType Hdatatype>
 void test_buffer() {
-
-    //TODO: init in another place
-    bmdnn_init(&handle);
 
     typedef TargetWrapper<X86> X86_API;
     typedef TargetWrapper<BM> BM_API;
@@ -137,6 +132,10 @@ TEST(TestSaberBufferBM, test_buffer_memcpy) {
 }
 
 int main(int argc, const char** argv) {
+    //TODO: init in another place
+    static bm_handle_t handle;
+    bmdnn_init(&handle);
+
     // initial logger
     logger::init(argv[0]);
     InitTest();
