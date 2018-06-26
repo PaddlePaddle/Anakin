@@ -34,12 +34,12 @@ OpsRegister.Register("Exp").set_attr(base=float(),
                                      scale=float(), 
                                      shift=float())
 # one input
-# y=log(shift + scale * x)
+# y = log(shift + scale * x)
 OpsRegister.Register("Log").set_attr(base=float(), 
                                      scale=float(), 
                                      shift=float())
 # one input
-# y= (shift + scale * x) ^ power
+# y = (shift + scale * x) ^ power
 OpsRegister.Register("Power").set_attr(shift=float(), 
                                        scale=float(), 
                                        power=float())
@@ -55,23 +55,23 @@ OpsRegister.Register("Softmax").set_attr(axis=int())
 # 		  }
 OpsRegister.Register("Activation").set_attr(type="")
 # Leaky version of a Rectified Linear Unit ( alpha != 0 ).
-# 	f(x)=alpha * x  	 : x < 0
-# 	f(x)=		   x  	 : x >= 0
+# 	f(x) = alpha * x  	 : x < 0
+# 	f(x) = 		   x  	 : x >= 0
 # Standard ReLU ( alpha=0 )
-#   f(x)=0 * x     : x < 0
-#   f(x)=    x     : x >= 0
+#   f(x) = 0 * x     : x < 0
+#   f(x) =     x     : x >= 0
 #   note:  alpha is fixed value
 OpsRegister.Register("ReLU").set_attr(alpha=float())
 # Parametric Rectified Linear Unit
-#   f(x)=alpha * x 	 : x < 0
-#   f(x)=x 			 : x >= 0
+#   f(x) = alpha * x 	 : x < 0
+#   f(x) = x 			 : x >= 0
 #   note: alpha is learned array with the same shape as x.
 #   ref: Parametric ReLU described in K. He et al, Delving Deep into Rectifiers: 
 #        	<<Surpassing Human-Level Performance on ImageNet Classification>>, 2015.
 OpsRegister.Register("PReLU").set_attr(channel_shared=bool())
 # Exponential Linear Unit.
-# 	f(x)= alpha * (exp(x) - 1.0) 	: x < 0
-#   f(x)=x 						: x >= 0
+# 	f(x) =  alpha * (exp(x) - 1.0) 	: x < 0
+#   f(x) = x 						: x >= 0
 OpsRegister.Register("ELU").set_attr(alpha=int())
 
 # dense op parameter
