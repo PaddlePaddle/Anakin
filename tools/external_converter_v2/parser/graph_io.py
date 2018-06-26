@@ -277,6 +277,7 @@ class GraphProtoIO(object):
 
     def add_in(self, node_name):
         self.graph_proto.ins.append(node_name)
+
     def rm_in(self, node_name):
         graph_ins = list(self.graph_proto.ins)
         for in_name in graph_ins:
@@ -292,6 +293,7 @@ class GraphProtoIO(object):
 
     def outs(self):
         return list(self.graph_proto.outs)
+
     def add_out_fluid(self, output_node_name, in_node_name):
         """
         add output node for graph
