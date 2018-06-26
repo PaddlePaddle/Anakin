@@ -9,8 +9,7 @@ try:
     from google.protobuf.pyext._message import RepeatedScalarContainer as repeat_container # 3.5.1 + 
 except ImportError:
     pass
-from ..operations import OpParam
-from ..operations import OpsRegister
+from ..operations import OpsParam, OpsRegister
 from ..logger import *
 from ..pbs import *
 
@@ -1052,66 +1051,66 @@ def Parser_normalize(args):
 
 # caffe layer parameter parser map
 CAFFE_LAYER_PARSER = {
-                "Split": OpParam().set_parser(Parser_split),
-                "Accuracy": OpParam().set_parser(NotNeededInInference),
-                "ArgMax": OpParam().set_parser(NotNeededInInference),
-                "BatchNorm": OpParam().set_parser(Parser_batch_norm),
-                "Bias": OpParam().set_parser(NotNeededInInference),
-                "Concat": OpParam().set_parser(Parser_concat),
-                "ContrastiveLoss": OpParam().set_parser(NotNeededInInference),
-                "Convolution": OpParam().set_parser(Parser_convolution),
-                "ConvolutionDepthwise": OpParam().set_parser(Parser_convolution),
-                "Deconvolution": OpParam().set_parser(Parser_deconvolution),
-                "DeformableConvolution": OpParam().set_parser(Parser_deformable_convolution),
-                "Crop": OpParam().set_parser(Parser_crop),
-                "Data": OpParam().set_parser(NotNeededInInference),
-                "Dropout": OpParam().set_parser(Parser_dropout),
-                "DummyData": OpParam().set_parser(NotNeededInInference),
-                "Eltwise": OpParam().set_parser(Parser_eltwise),
-                "ELU": OpParam().set_parser(Parser_elu),
-                "Embed": OpParam().set_parser(Parser_embed),
-                "Exp": OpParam().set_parser(Parser_exp),
-                "Flatten": OpParam().set_parser(Parser_flatten),
-                "HDF5Data": OpParam().set_parser(NotNeededInInference),
-                "HDF5Output": OpParam().set_parser(NotNeededInInference),
-                "HingeLoss": OpParam().set_parser(NotNeededInInference),
-                "ImageData": OpParam().set_parser(NotNeededInInference),
-                "InfogainLoss": OpParam().set_parser(NotNeededInInference),
-                "InnerProduct": OpParam().set_parser(Parser_innerproduct),
-                "Input": OpParam().set_parser(Parser_input),
-                "Log": OpParam().set_parser(Parser_log),
-                "LRN": OpParam().set_parser(Parser_lrn),
-                "MemoryData": OpParam().set_parser(NotNeededInInference),
-                "MVN": OpParam().set_parser(Parser_mvn),
-                "Parameter": OpParam().set_parser(NotNeededInInference),
-                "Pooling": OpParam().set_parser(Parser_pooling),
-                "Power": OpParam().set_parser(Parser_power),
-                "PReLU": OpParam().set_parser(Parser_prelu),
-                "Permute": OpParam().set_parser(Parser_permute),
-                "Python": OpParam().set_parser(NotNeededInInference),
-                "Recurrent": OpParam().set_parser(Parser_rnn_ori),
-                "RNN": OpParam().set_parser(Parser_rnn_ori),
-                "LSTM": OpParam().set_parser(Parser_rnn_lstm),
-                "Reduction": OpParam().set_parser(NotNeededInInference),
-                "ReLU": OpParam().set_parser(Parser_relu),
-                "Reshape": OpParam().set_parser(Parser_reshape),
-                "Scale": OpParam().set_parser(Parser_scale),
-                "Sigmoid": OpParam().set_parser(Parser_sigmoid),
-                "Softmax": OpParam().set_parser(Parser_softmax),
-                "SPP": OpParam().set_parser(Parser_spp),
-                "Slice": OpParam().set_parser(Parser_slice),
-                "TanH": OpParam().set_parser(Parser_tanh),
-                "Threshold": OpParam().set_parser(NotNeededInInference),
-                "Tile": OpParam().set_parser(NotNeededInInference),
-                "WindowData": OpParam().set_parser(NotNeededInInference),
-                "RPNProposalSSD": OpParam().set_parser(Parser_rpn_proposal_ssd), # adu add
-                "RCNNDetOutputWithAttr": OpParam().set_parser(Parser_rcnn_net_output_with_attr), # adu add
-                "DFMBPSROIAlign": OpParam().set_parser(Parser_dfmbps_roi_align), # adu add
-                "RCNNProposal": OpParam().set_parser(Parser_rcnn_proposal), # adu add
-                "ProposalImgScaleToCamCoords": OpParam().set_parser(Parser_proposal_img_scale_to_cam_coords), # adu add
-                "Axpy": OpParam().set_parser(Parser_axpy), # vis add
-                "PriorBox": OpParam().set_parser(Parser_priorbox), # vis add
-                "DetectionOutput": OpParam().set_parser(Parser_detectionoutput), # vis add
-                "ArgMax": OpParam().set_parser(Parser_argmax),
-                "Normalize": OpParam().set_parser(Parser_normalize)
+                "Split": OpsParam().set_parser(Parser_split),
+                "Accuracy": OpsParam().set_parser(NotNeededInInference),
+                "ArgMax": OpsParam().set_parser(NotNeededInInference),
+                "BatchNorm": OpsParam().set_parser(Parser_batch_norm),
+                "Bias": OpsParam().set_parser(NotNeededInInference),
+                "Concat": OpsParam().set_parser(Parser_concat),
+                "ContrastiveLoss": OpsParam().set_parser(NotNeededInInference),
+                "Convolution": OpsParam().set_parser(Parser_convolution),
+                "ConvolutionDepthwise": OpsParam().set_parser(Parser_convolution),
+                "Deconvolution": OpsParam().set_parser(Parser_deconvolution),
+                "DeformableConvolution": OpsParam().set_parser(Parser_deformable_convolution),
+                "Crop": OpsParam().set_parser(Parser_crop),
+                "Data": OpsParam().set_parser(NotNeededInInference),
+                "Dropout": OpsParam().set_parser(Parser_dropout),
+                "DummyData": OpsParam().set_parser(NotNeededInInference),
+                "Eltwise": OpsParam().set_parser(Parser_eltwise),
+                "ELU": OpsParam().set_parser(Parser_elu),
+                "Embed": OpsParam().set_parser(Parser_embed),
+                "Exp": OpsParam().set_parser(Parser_exp),
+                "Flatten": OpsParam().set_parser(Parser_flatten),
+                "HDF5Data": OpsParam().set_parser(NotNeededInInference),
+                "HDF5Output": OpsParam().set_parser(NotNeededInInference),
+                "HingeLoss": OpsParam().set_parser(NotNeededInInference),
+                "ImageData": OpsParam().set_parser(NotNeededInInference),
+                "InfogainLoss": OpsParam().set_parser(NotNeededInInference),
+                "InnerProduct": OpsParam().set_parser(Parser_innerproduct),
+                "Input": OpsParam().set_parser(Parser_input),
+                "Log": OpsParam().set_parser(Parser_log),
+                "LRN": OpsParam().set_parser(Parser_lrn),
+                "MemoryData": OpsParam().set_parser(NotNeededInInference),
+                "MVN": OpsParam().set_parser(Parser_mvn),
+                "Parameter": OpsParam().set_parser(NotNeededInInference),
+                "Pooling": OpsParam().set_parser(Parser_pooling),
+                "Power": OpsParam().set_parser(Parser_power),
+                "PReLU": OpsParam().set_parser(Parser_prelu),
+                "Permute": OpsParam().set_parser(Parser_permute),
+                "Python": OpsParam().set_parser(NotNeededInInference),
+                "Recurrent": OpsParam().set_parser(Parser_rnn_ori),
+                "RNN": OpsParam().set_parser(Parser_rnn_ori),
+                "LSTM": OpsParam().set_parser(Parser_rnn_lstm),
+                "Reduction": OpsParam().set_parser(NotNeededInInference),
+                "ReLU": OpsParam().set_parser(Parser_relu),
+                "Reshape": OpsParam().set_parser(Parser_reshape),
+                "Scale": OpsParam().set_parser(Parser_scale),
+                "Sigmoid": OpsParam().set_parser(Parser_sigmoid),
+                "Softmax": OpsParam().set_parser(Parser_softmax),
+                "SPP": OpsParam().set_parser(Parser_spp),
+                "Slice": OpsParam().set_parser(Parser_slice),
+                "TanH": OpsParam().set_parser(Parser_tanh),
+                "Threshold": OpsParam().set_parser(NotNeededInInference),
+                "Tile": OpsParam().set_parser(NotNeededInInference),
+                "WindowData": OpsParam().set_parser(NotNeededInInference),
+                "RPNProposalSSD": OpsParam().set_parser(Parser_rpn_proposal_ssd), # adu add
+                "RCNNDetOutputWithAttr": OpsParam().set_parser(Parser_rcnn_net_output_with_attr), # adu add
+                "DFMBPSROIAlign": OpsParam().set_parser(Parser_dfmbps_roi_align), # adu add
+                "RCNNProposal": OpsParam().set_parser(Parser_rcnn_proposal), # adu add
+                "ProposalImgScaleToCamCoords": OpsParam().set_parser(Parser_proposal_img_scale_to_cam_coords), # adu add
+                "Axpy": OpsParam().set_parser(Parser_axpy), # vis add
+                "PriorBox": OpsParam().set_parser(Parser_priorbox), # vis add
+                "DetectionOutput": OpsParam().set_parser(Parser_detectionoutput), # vis add
+                "ArgMax": OpsParam().set_parser(Parser_argmax),
+                "Normalize": OpsParam().set_parser(Parser_normalize)
                 }
