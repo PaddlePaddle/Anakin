@@ -72,7 +72,6 @@ double tensor_average(Tensor4dPtr<Ttype, Dtype>& out_tensor_p) {
     return sum/out_tensor_p->valid_size();
 }
 
-
 #ifdef USE_X86_PLACE
 static int record_dev_tensorfile(const Tensor4d<X86, AK_FLOAT>* dev_tensor, const char* locate) {
     Tensor<target_host<X86>::type, AK_FLOAT, NCHW> host_temp;

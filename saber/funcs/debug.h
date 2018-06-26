@@ -32,9 +32,12 @@ static void write_tensorfile(Tensor <X86, AK_FLOAT, NCHW> tensor, const char* lo
     LOG(INFO) << "!!! write success: " << locate;
 }
 #endif
+template <typename TargetType>
+static void record_dev_tensorfile(const float* dev_tensor, int size, const char* locate){};
 
 #ifdef USE_CUDA
-static void record_dev_tensorfile(const float* dev_tensor, int size, const char* locate) {
+template <>
+void record_dev_tensorfile<NV>(const float* dev_tensor, int size, const char* locate) {
     Tensor <X86, AK_FLOAT, NCHW> host_temp;
     host_temp.re_alloc(Shape(1, 1, 1, size));
     CUDA_CHECK(cudaMemcpy(host_temp.mutable_data(), dev_tensor, sizeof(float) * size,
@@ -54,6 +57,66 @@ static void record_dev_tensorfile(const float* dev_tensor, int size, const char*
     }
 
     LOG(INFO) << "!!! write success: " << locate;
+}
+static void record_dev_tensorfile(Tensor <NV, AK_FLOAT, NCHW>* dev_tensor, const char* locate) {
+    Tensor <X86, AK_FLOAT, NCHW> host_temp;
+    int size=dev_tensor->valid_size();
+    host_temp.re_alloc(Shape(1, 1, 1, size));
+    CUDA_CHECK(cudaMemcpy(host_temp.mutable_data(), dev_tensor->data(), sizeof(float) * size,
+                          cudaMemcpyDeviceToHost));
+    cudaDeviceSynchronize();
+    FILE* fp = fopen(locate, "w+");
+
+    if (fp == 0) {
+                LOG(ERROR) << "file open failed " << locate;
+
+    } else {
+        for (int i = 0; i < size; ++i) {
+            fprintf(fp, "[%d] %g \n", i, (host_temp.data()[i]));
+        }
+
+        fclose(fp);
+    }
+
+            LOG(INFO) << "!!! write success: " << locate;
+}
+#endif
+
+#ifdef USE_X86_PLACE
+template<>
+void record_dev_tensorfile<X86>(const float* dev_tensor, int size, const char* locate) {
+    FILE* fp = fopen(locate, "w+");
+
+    if (fp == 0) {
+        LOG(ERROR) << "file open failed " << locate;
+
+    } else {
+        for (int i = 0; i < size; ++i) {
+            fprintf(fp, "[%d] %g \n", i, (dev_tensor[i]));
+        }
+
+        fclose(fp);
+    }
+
+    LOG(INFO) << "!!! write success: " << locate;
+}
+static void record_dev_tensorfile(Tensor <X86, AK_FLOAT, NCHW>* dev_tensor, const char* locate) {
+    int size=dev_tensor->valid_size();
+    FILE* fp = fopen(locate, "w+");
+
+    if (fp == 0) {
+        LOG(ERROR) << "file open failed " << locate;
+
+    } else {
+
+        for (int i = 0; i < size; ++i) {
+            fprintf(fp, "[%d] %g \n", i, (dev_tensor->data()[i]));
+        }
+
+        fclose(fp);
+    }
+
+        LOG(INFO) << "!!! write success: " << locate;
 }
 #endif
 

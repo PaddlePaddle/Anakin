@@ -168,7 +168,7 @@ SaberStatus SaberDeconv2DAct<NV, OpDtype, inDtype, outDtype,\
     if (_use_k4_s2_p1) {
         const InDataType * bias_data = (param.conv_param.bias()->valid_size() > 0) ?
                                   param.conv_param.bias()->data() : NULL;
-        const OpDataType *weights_data = new_weights_dev.data();
+        const OpDataType *weights_data = param.conv_param.weight()->data();
         ker_deconv_implicit_gemm_k4_s2_p1_32x32_relu(dout, din,
                                                 weights_data, bias_data,
                                                 num,
