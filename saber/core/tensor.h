@@ -944,7 +944,7 @@ private:
 
 template<> inline
 size_t Tensor<BM, AK_BM, NCHW>::_type_len(){
-    return 1;
+    return 4;
 }
 
 template<>
