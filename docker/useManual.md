@@ -5,13 +5,13 @@
 + User Manual
 	+ Instal and Compile
 		- Docker
-		- Build from source
+		- Builde from source
 	+ Run on ARM
 		- Android
 		- Linux
 		- IOS
-  + External Converter
-	+ Examples
+  - External Converter
+	- Examples
 	+ Benchmark
 		- NV GPU
 		- ARM
