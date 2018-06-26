@@ -119,7 +119,7 @@ public:
     }
 
     Shape operator+(const Shape& shape) {
-        assert(dims() = shape.dims());
+        assert(dims() == shape.dims());
         Shape tmp_shape(*this);
         int* p = data();
         for (size_t i = 0; i < size(); i++) {
@@ -129,7 +129,7 @@ public:
     }
 
     Shape operator-(const Shape& shape) {
-        assert(dims() = shape.dims());
+        assert(dims() == shape.dims());
         Shape tmp_shape(*this);
         int* p = data();
         for (size_t i = 0; i < size(); i++) {
