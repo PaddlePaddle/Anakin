@@ -1,7 +1,5 @@
 # **Paddle Anakin**
 
-[TOC]
-
 ## 目录:
 
 - User Manual
@@ -36,7 +34,7 @@
 + [Benchmark](#10005)
 
 
-## <span id = '10001'> Instal and Compile </span>
+<span id = '10001'> ## Instal and Compile </span> 
 ---
 ### Docker
 
