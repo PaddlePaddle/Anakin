@@ -113,9 +113,9 @@ $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
 
 3. 编译支持NVIDIA GPU的Anakin
 
-- 3.1. 安装依赖
+  3.1. 安装依赖
 
-  - 3.1.1 protobuf  
+    3.1.1 protobuf  
     >$ git clone https://github.com/google/protobuf  
     >$ cd protobuf  
     >$ git submodule update --init --recursive  
@@ -129,12 +129,12 @@ $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
 
     如安装protobuf遇到任何问题，请访问[这里](https://github.com/google/protobuf/blob/master/src/README.md)
 
-- 3.2 CUDA Toolkit
+  3.2 CUDA Toolkit
 
   - [CUDA 8.0](https://developer.nvidia.com/cuda-zone) or higher. 具体信息参见[NVIDIA's documentation](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/).
   - [cuDNN v7](https://developer.nvidia.com/cudnn). 具体信息参见[NVIDIA's documentation](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/).
 
-- 3.3  编译Anakin
+  3.3  编译Anakin
 
   >$ git clone https:/xxxxx  
   >$ cd anakin  
@@ -144,7 +144,7 @@ $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
 
 4. 编译支持AMD GPU的Anakin
 
-> 暂时不支持
+  > 暂时不支持
 
 #### <span id = '12002'> 在Ubuntu上安装 Anakin </span>
 
@@ -152,7 +152,7 @@ $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
 
 #### <span id = '12003'> 在ARM上安装 Anakin </span>
 
-详情请参考[Run on ARM](###Android)
+详情请参考[Run on ARM](#10002)
 
 #### <span id = '12004'> 验证安装 </span>
 
@@ -170,19 +170,19 @@ $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
 + [Anakin源码编译](#13003)
 + [验证安装](#13004)
 
-<span id = '13001'> 系统需求 </span>
+<span id = '13001'> 1. 系统需求 </span>
 
 *  宿主机: linux, mac    
 *  cmake 3.8.2+    
 *  Android NDK r14, Linux 版本[从这里下载](https://dl.google.com/android/repository/android-ndk-r14b-linux-x86_64.zip)
 
-<span id = '13002'> 安装第三方依赖 </span>
+<span id = '13002'> 2. 安装第三方依赖 </span>
 
-2.1 protobuf3.4.0  
+  2.1 protobuf3.4.0  
 
-   源码从这里[下载](https://github.com/google/protobuf/releases/tag/v3.4.0)   
+    源码从这里[下载](https://github.com/google/protobuf/releases/tag/v3.4.0)   
 
-  2.1.1 为宿主机编译protobuf 
+    2.1.1 为宿主机编译protobuf 
 
 ```bash
    $ tar -xzf protobuf-3.4.0.tar.gz  
@@ -202,7 +202,7 @@ $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
    $ make distclean
    ```
 
-   2.1.2 交叉编译Android`armeabi-v7a`的protobuf，注意设置ANDROID_NDK的路径，以及ARCH_ABI、HOSTOSN的值
+    2.1.2 交叉编译Android`armeabi-v7a`的protobuf，注意设置ANDROID_NDK的路径，以及ARCH_ABI、HOSTOSN的值
 
 ```bash
    $ export ANDROID_NDK=your_ndk_path 
@@ -225,21 +225,21 @@ $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
    $ make
 ```
   
-  > 编译生成 *.a 静态库，若希望编译*.so 动态链接库 ，请在./configure参数中改--disable-shared为--disable-static --enable-shared
+    > 编译生成 *.a 静态库，若希望编译*.so 动态链接库 ，请在./configure参数中改--disable-shared为--disable-static --enable-shared
 
-  > 生成文件在src/.libs/下，将生成的文件拷贝至Anakin/third-party/arm-android/protobuf/lib下
+    > 生成文件在src/.libs/下，将生成的文件拷贝至Anakin/third-party/arm-android/protobuf/lib下
 
-  > 在[cmake](../../cmake/find_modules.cmake)中更新`ARM_RPOTO_ROOT`的路径
+    > 在[cmake](../cmake/find_modules.cmake)中更新`ARM_RPOTO_ROOT`的路径
 
 ```cmake
   set(ARM_RPOTO_ROOT "${CMAKE_SOURCE_DIR}/third-party/arm-android/protobuf")
 ```
 
-2.2 opencv 2.4.3+(optional)    
+  2.2 opencv 2.4.3+(optional)    
 
-   * Anakin只在examples示例中使用opencv   
-   * Android系统的opencv从[这里下载](https://opencv.org/releases.html)    
-   * 解压后将 `3rdparty/libs/armeabi-v7a`中的库文件拷贝到`libs/armeabi-v7a`    
+    * Anakin只在examples示例中使用opencv   
+    * Android系统的opencv从[这里下载](https://opencv.org/releases.html)    
+    * 解压后将 `3rdparty/libs/armeabi-v7a`中的库文件拷贝到`libs/armeabi-v7a`    
     在[cmake](../../cmake/find_modules.cmake)中搜索`anakin_find_opencv`, 
     并设置 `include_directories` 和 `LINK_DIRECTORIES`为自己安装的库的路径
 
@@ -250,13 +250,13 @@ $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
 
 <span id = '13003'> 3. Anakin源码编译 </span>
 
-详情请见[Android](#0000)
+  详情请见[Android](#0000)
 
 <span id = '13004'> 4. 验证安装 </span> 
 
-* 编译好的库会放在目录`${Anakin_root}/output`下；    
-*  编译好的单测文件会放在`${Anakin_root}/output/unit_test`目录下     
-*  编译好的示例文件会放在`${Anakin_root}/output/examples`目录下 
+  * 编译好的库会放在目录`${Anakin_root}/output`下；    
+  *  编译好的单测文件会放在`${Anakin_root}/output/unit_test`目录下     
+  *  编译好的示例文件会放在`${Anakin_root}/output/examples`目录下 
   
   对于Android系统，打开设备的调试模式，通过ADB可以访问的目录是`data/local/tmp`，通过ADB push将测试文件、模型和数据发送到设备目录， 运行测试文件 
 
@@ -371,7 +371,7 @@ $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
 git clone https://xxxxxxxxx
 ``` 
 
-3. Usage
+3. 使用
 
   3.1. 配置
 
