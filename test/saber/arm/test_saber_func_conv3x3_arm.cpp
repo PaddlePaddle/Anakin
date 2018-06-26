@@ -18,7 +18,7 @@ int ch_in = 32;
 int h_in = 112;
 int w_in = 112;
 
-int ch_out = 64;
+int ch_out = 32;
 int group = 1;
 int kernel = 3;
 int pad = 1;
@@ -175,29 +175,41 @@ void test_arm_conv(std::vector<TensorHf4*>& tin, \
         tout_basic.re_alloc(shape_out);
         size_t workspace_size = sizeof(float) * num * chin * (hin + 2 * pad) * (win + 2 * pad);
         void* work_space_data = fast_malloc(workspace_size);
-        conv_arm_basic(tout_basic, *thin, pweiht.data(), pbias.data(), group, kernel, \
-        kernel, stride, stride, dila, dila, pad, pad, bias_flag, flag_relu, gemmer, nullptr);
+        
         //conv_direct_basic1(tout_basic, *thin, pweiht.data(), pbias.data(), group, kernel, \
         kernel, stride, stride, dila, dila, pad, pad, bias_flag, flag_relu, &gemmer, work_space_data);
+         to = 0;
+        for (int i = 0; i < test_iter; ++i) {
+            t1.clear();
+            t1.start(ctx1);
+            conv_arm_basic(tout_basic, *thin, pweiht.data(), pbias.data(), group, kernel, \
+             kernel, stride, stride, dila, dila, pad, pad, bias_flag, flag_relu, gemmer, nullptr);
+            t1.end(ctx1);
+            to += t1.get_average_ms();
+            if (t1.get_average_ms() < min_time) {
+            min_time = t1.get_average_ms();
+            }
+        }
+        LOG(INFO) << "saber basic conv running time, ave: " << to / test_iter << ", min time: " << min_time;
         fast_free(work_space_data);
         //print_tensor_host(tout_basic);
     }
 
-    //Conv<ARM, AK_FLOAT> conv_saber;
+    Conv<ARM, AK_FLOAT> conv_saber;
 
-    //conv_saber.compute_output_shape(tvout_saber, tin, conv_param);
-    //Shape sh_out_saber = tvout_saber[0]->valid_shape();
-    //LOG(INFO) << "output shape: " << shape_out[0] << ", " << shape_out[1] << ", " \
-    //    << shape_out[2] << ", " << shape_out[3];
-    //CHECK_EQ(shape_out == sh_out_saber, true) << "compute output shape error";
+    conv_saber.compute_output_shape(tin, tvout_saber, conv_param);
+    Shape sh_out_saber = tvout_saber[0]->valid_shape();
+    LOG(INFO) << "output shape: " << shape_out[0] << ", " << shape_out[1] << ", " \
+        << shape_out[2] << ", " << shape_out[3];
+    CHECK_EQ(shape_out == sh_out_saber, true) << "compute output shape error";
 
     //! re_alloc mem for output tensor
     tvout_saber[0]->re_alloc(shape_out);
 
-    //LOG(INFO) << "saber conv impl init";
-    //SABER_CHECK(conv_saber.init(tin, tvout_saber, conv_param, SPECIFY, SABER_IMPL, ctx1));
+    LOG(INFO) << "saber conv impl init";
+    SABER_CHECK(conv_saber.init(tin, tvout_saber, conv_param, SPECIFY, SABER_IMPL, ctx1));
 
-#if 1 //GEMMM_CONV
+#if 0 //GEMMM_CONV
     LOG(INFO) << "saber sgemm conv 3x3";
     //! gemm impl
     const int m = ch_out;
@@ -241,7 +253,7 @@ void test_arm_conv(std::vector<TensorHf4*>& tin, \
 
 #endif //USE_CONV_GEMM
 
-#if 1 //USE_WINOGRAD
+#if 0 //USE_WINOGRAD
     LOG(INFO) << "saber winograd conv 3x3";
     //! space for transform weights
     std::shared_ptr<Buffer<ARM>> weigths_trans_space = std::make_shared<Buffer<ARM>>();
@@ -300,19 +312,20 @@ void test_arm_conv(std::vector<TensorHf4*>& tin, \
 #endif //USE_WINOGRAD
 
 #if 1 //USE_direct
-    LOG(INFO) << "saber direct neon conv 3x3";
+    LOG(INFO) << "saber direct conv 3x3";
 
-    float* dout = tout_saber.mutable_data();
-    const float* din = thin->data();
-    const float* wptr = pweiht.data();
-    const float* bptr = pbias.data();
+    //float* dout = tout_saber.mutable_data();
+   // const float* din = thin->data();
+   //const float* wptr = pweiht.data();
+   // const float* bptr = pbias.data();
     to = 0;
     min_time = 100000000;
     for (int i = 0; i < test_iter; ++i) {
         t1.clear();
         t1.start(ctx1);
-        conv_3x3s1_direct(tout_saber, *thin, pweiht.data(), pbias.data(), group, kernel, \
+        //conv_3x3s1_direct(tout_saber, *thin, pweiht.data(), pbias.data(), group, kernel, \
         kernel, stride, stride, dila, dila, pad, pad, bias_flag, flag_relu, gemmer, nullptr);
+        conv_saber(tin, tvout_saber, conv_param, ctx1);
         t1.end(ctx1);
         to += t1.get_average_ms();
         if (t1.get_average_ms() < min_time) {
@@ -320,14 +333,14 @@ void test_arm_conv(std::vector<TensorHf4*>& tin, \
         }
     }
 
-    LOG(INFO) << "saber direct neon conv running time, ave: " << to / test_iter << ", min time: " << min_time;
+    LOG(INFO) << "saber direct conv running time, ave: " << to / test_iter << ", min time: " << min_time;
     //print_tensor_host(tout_saber);
 
     if (compare_result) {
         double max_ratio = 0;
         double max_diff = 0;
-        //TensorHf4 tdiff(tout_basic.valid_shape());
-        //tensor_diff(tout_basic, tout_saber, tdiff);
+        TensorHf4 tdiff(tout_basic.valid_shape());
+        tensor_diff(tout_basic, tout_saber, tdiff);
         //print_tensor_host(tdiff);
         tensor_cmp_host(tout_basic.data(), tout_saber.data(), tout_basic.valid_size(), max_ratio, max_diff);
         LOG(INFO) << "compare result, max diff: " << max_diff << ", max ratio: " << max_ratio;
