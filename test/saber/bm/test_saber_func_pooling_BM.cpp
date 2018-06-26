@@ -12,8 +12,6 @@ TEST(TestSaberFuncBM, test_func_pooling) {
 
     Env<BM>::env_init();
     typedef TargetWrapper<BM> API;
-    typename API::event_t event;
-    API::create_event(event);
 
     typedef TargetWrapper<X86> X86_API;
     typedef TargetWrapper<BM> BM_API;
@@ -104,8 +102,6 @@ TEST(TestSaberFuncBM, test_pooling_result) {
 
     Env<BM>::env_init();
     typedef TargetWrapper<BM> API;
-    typename API::event_t event;
-    API::create_event(event);
 
     typedef TargetWrapper<X86> X86_API;
     typedef TargetWrapper<BM> BM_API;
@@ -180,8 +176,6 @@ TEST(TestSaberFuncBM, test_pooling_shared_buffer) {
 
     Env<BM>::env_init();
     typedef TargetWrapper<BM> API;
-    typename API::event_t event;
-    API::create_event(event);
 
     typedef TargetWrapper<X86> X86_API;
     typedef TargetWrapper<BM> BM_API;

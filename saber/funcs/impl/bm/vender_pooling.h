@@ -1,23 +1,7 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-   
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License. 
-*/
-
-#ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_POOLING_H
-#define ANAKIN_SABER_FUNCS_IMPL_CUDA_POOLING_H
+#ifndef ANAKIN_SABER_FUNCS_IMPL_BMDNN_POOLING_H
+#define ANAKIN_SABER_FUNCS_IMPL_BMDNN_POOLING_H
 
 #include "saber/funcs/impl/impl_pooling.h"
-#include "saber/funcs/impl/cuda/cudnn_helper.h"
 
 namespace anakin{
 
@@ -29,12 +13,12 @@ template <DataType OpDtype ,
     typename LayOutType_op,
     typename LayOutType_in,
     typename LayOutType_out>
-class VenderPooling<NV, OpDtype, inDtype, outDtype, LayOutType_op, LayOutType_in, LayOutType_out>:\
+class VenderPooling<BM, OpDtype, inDtype, outDtype, LayOutType_op, LayOutType_in, LayOutType_out>:\
  public ImplBase<
-    Tensor<NV, inDtype, LayOutType_in>, 
-    Tensor<NV, outDtype, LayOutType_out>,
-    Tensor<NV, OpDtype, LayOutType_op>,
-    PoolingParam<Tensor<NV, OpDtype, LayOutType_op>>> {
+    Tensor<BM, inDtype, LayOutType_in>, 
+    Tensor<BM, outDtype, LayOutType_out>,
+    Tensor<BM, OpDtype, LayOutType_op>,
+    PoolingParam<Tensor<BM, OpDtype, LayOutType_op>>> {
 public:
     typedef Tensor<BM, inDtype, LayOutType_in> DataTensor_in;
     typedef Tensor<BM, outDtype, LayOutType_out> DataTensor_out;
@@ -62,8 +46,8 @@ public:
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                           std::vector<DataTensor_out*>& outputs,
                           PoolingParam<OpTensor> &param) {
-        const InDataType *in_data = inputs[0]->data();
-        OutDataType *out_data = outputs[0]->mutable_data();
+        const InDataType in_data = *(inputs[0]->data());
+        OutDataType out_data = *(outputs[0]->mutable_data());
         int input_n = inputs[0]->num();
         int input_c = inputs[0]->channel();
         int input_h = inputs[0]->height();
@@ -74,27 +58,29 @@ public:
         int pad_w = param.pad_w;
         int stride_h = param.stride_h;
         int stride_w = param.stride_w;
+        int is_avg_pooling;
         if(_pooling_type == Pooling_max){
-            int is_avg_pooling = 0;
+            is_avg_pooling = 0;
         } else {
-            int is_avg_pooling = 1;
+            is_avg_pooling = 1;
         }
+        _handle = get_bm_handle();
         BMDNN_CHECK(bmdnn_pooling_forward(_handle, in_data, 
-                            input_n, input_c, input_h, input_w, kh, hw, pad_h, pad_w, 
+                            input_n, input_c, input_h, input_w, kh, kw, pad_h, pad_w, 
                             stride_h, stride_w, is_avg_pooling, 0,
-                            out_data, NULL, NULL));
+                            out_data, bm_mem_null, bm_mem_null));
         return SaberSuccess;
     }
 
 private:
     bm_handle_t _handle;
-    PoolType _pooling_type;
+    PoolingType _pooling_type;
 };
 
-template class VenderPooling<BM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
+template class VenderPooling<BM, AK_BM, AK_BM, AK_BM, NCHW, NCHW, NCHW>;
 
 } //namespace saber
 
 } // namespace anakin
 
-#endif //ANAKIN_SABER_FUNCS_IMPL_CUDA_POOLING_H
+#endif //ANAKIN_SABER_FUNCS_IMPL_BMDNN_POOLING_H
