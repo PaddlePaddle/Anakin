@@ -368,6 +368,15 @@ struct TargetWrapper<NV, __device_target> {
 */
 template <>
 struct TargetWrapper<BM, __device_target> {
+//    TargetWrapper<BM, __device_target> ()
+//    {
+//        CHECK_EQ(bmdnn_init(&handle),BM_SUCCESS) << "Error:bmdnn_init failed";
+//    }
+//    ~TargetWrapper<BM, __device_target> ()
+//    {
+//        CHECK_EQ(bmdnn_deinit(handle),BM_SUCCESS) << "Error:bmdnn_deinit failed";
+//    }
+
     typedef void* event_t;
     typedef void* stream_t;
 
@@ -418,6 +427,8 @@ struct TargetWrapper<BM, __device_target> {
     static int get_device_id();
 
     static bm_handle_t get_handler();
+    
+//    bm_handle_t handle;
 };
 
 #endif //USE_BM
