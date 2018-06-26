@@ -62,10 +62,43 @@ public:
         int pad_w = param.pad_w;
         int stride_h = param.stride_h;
         int stride_w = param.stride_w;
-        BMDNN_CHECK(bmdnn_conv_forward(_handle, in_data, weights, bias,
-                                    input_n, input_c, input_h, input_w, group, output_c,
-                                    kh, kw, pad_h, pad_w, stride_h, stride_w, 1, 0, 0, 
-                                    out_data, NULL));
+
+        bm_tensor_4d_t input_shape = {
+            input_n,
+            input_c,
+            input_h,
+            input_w
+        };
+
+        bm_tensor_4d_t output_shape = {
+            input_n,
+            output_c,
+            input_h,
+            input_w
+        };
+
+        bm_kernel_param_t kernel_param = {
+            group,
+            output_c,
+            input_c,
+            kh,
+            kw
+        };
+
+        bm_conv_param_t conv_param = {
+            stride_h,
+            stride_w,
+            pad_h,
+            pad_w,
+            kh,
+            kw,
+            0
+        };
+
+        _handle = get_bm_handle();
+        BMDNN_CHECK(bmdnn_conv_forward(_handle, *in_data, *weight, *bias, input_shape, 
+                                    kernel_param, output_shape, conv_param, 1, *out_data));
+                                    
         return SaberSuccess;
     }
 
