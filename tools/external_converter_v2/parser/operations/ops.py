@@ -39,7 +39,7 @@ OpsRegister.Register("Log").set_attr(base=float(),
                                      scale=float(), 
                                      shift=float())
 # one input
-# y = (shift + scale * x) ^ power
+# y =  (shift + scale * x) ^ power
 OpsRegister.Register("Power").set_attr(shift=float(), 
                                        scale=float(), 
                                        power=float())
@@ -57,7 +57,7 @@ OpsRegister.Register("Activation").set_attr(type="")
 # Leaky version of a Rectified Linear Unit ( alpha != 0 ).
 # 	f(x) = alpha * x  	 : x < 0
 # 	f(x) = 		   x  	 : x >= 0
-# Standard ReLU ( alpha=0 )
+# Standard ReLU ( alpha = 0 )
 #   f(x) = 0 * x     : x < 0
 #   f(x) =     x     : x >= 0
 #   note:  alpha is fixed value
