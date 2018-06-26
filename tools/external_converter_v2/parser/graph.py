@@ -5,6 +5,7 @@
 from utils import *
 from proto import *
 from kill_caffe import *
+from kill_fluid import *
 from logger import *
 from frontend import RunServerOnGraph
 
