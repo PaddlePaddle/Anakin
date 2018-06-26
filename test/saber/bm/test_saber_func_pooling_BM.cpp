@@ -9,8 +9,6 @@
 using namespace anakin::saber;
 
 TEST(TestSaberFuncBM, test_func_pooling) {
-
-    Env<BM>::env_init();
     typedef TargetWrapper<BM> API;
 
     typedef TargetWrapper<X86> X86_API;
@@ -42,6 +40,8 @@ TEST(TestSaberFuncBM, test_func_pooling) {
 
     // start Reshape & doInfer
 
+    LOG(INFO) << "init env...";
+    Env<BM>::env_init();
     Context<BM> ctx1(0, 1, 1);
     int window_h = 2;
     int window_w = 2;
@@ -279,6 +279,9 @@ TEST(TestSaberFuncBM, test_pooling_shared_buffer) {
 }
 
 int main(int argc, const char** argv) {
+    //TODO: init in another place
+    static bm_handle_t handle;
+    bmdnn_init(&handle);
     // initial logger
     //logger::init(argv[0]);
     InitTest();
