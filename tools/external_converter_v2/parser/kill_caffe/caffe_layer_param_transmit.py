@@ -1036,6 +1036,7 @@ def Parser_argmax(args):
     OpsRegister()["Argmax"].out_max_val = argmax_param.out_max_val
     OpsRegister()["Argmax"].top_k = argmax_param.top_k
     OpsRegister()["Argmax"].axis = argmax_param.axis
+    OpsRegister()["Argmax"].axis_term = True
 
 
 @ParserFeedDecorator("Normalize")
