@@ -32,3 +32,5 @@ OpsRegister.Register("matmul").set_attr()
 OpsRegister.Register("layer_norm").set_attr()
 OpsRegister.Register("dropout").set_attr()
 OpsRegister.Register("scale").set_attr()
+
+
