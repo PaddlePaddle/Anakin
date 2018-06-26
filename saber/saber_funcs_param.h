@@ -50,15 +50,11 @@ struct MatMulParam {
 
 };
 
-    
 //should design this one for pick_best_specify()
 enum ImplEnum{
     VENDER_IMPL = 0,
     SABER_IMPL
 };
-
-
-
 
 enum SequencePoolType{
     Sequence_pool_unknow = 0,
