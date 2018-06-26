@@ -907,13 +907,13 @@ TARGET:
 
   2.1. <span id='target'> TargetType </sapn>
 
-      Anakin TargetType | platform
-      :----: | :----:|
-      NV | NVIDIA GPU
-      ARM | ARM
-      AMD | AMD GPU
-      X86 | X86
-      NVHX86 | NVIDIA GPU with Pinned Memory
+    Anakin TargetType | platform
+    :----: | :----:|
+    NV | NVIDIA GPU
+    ARM | ARM
+    AMD | AMD GPU
+    X86 | X86
+    NVHX86 | NVIDIA GPU with Pinned Memory
 
   2.2. <sapn id='datatype'> DataType </span>
 
