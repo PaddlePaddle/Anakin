@@ -2072,3 +2072,23 @@ int main(int argc, const char** argv){
 ## <span id = '20004'> How to add new device </span>
 ---
 
+---
+
+### 基本概念
+
+### 在`saber/core`中添加设备的实现
+
+#### `TargetWraper`
+
+### 在`framework`中添加设备的实现
+
+#### `graph`
+
+#### `net`
+
+#### `operator`
+
+### 在`CMakeList`中添加设备的实现
+
+### 注意事项
+
