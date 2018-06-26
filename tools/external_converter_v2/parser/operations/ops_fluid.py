@@ -5,7 +5,7 @@ from op import OpsParam, OpsRegister
 from op_io import *
 
 
-OpsRegister.Register("Elementwise_mul").set_attr()
+OpsRegister.Register("elementwise_mul").set_attr()
 OpsRegister.Register("depthwise_conv2d").set_attr()
 OpsRegister.Register("transpose").set_attr()
 OpsRegister.Register("reshape").set_attr()
