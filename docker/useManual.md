@@ -100,7 +100,7 @@ $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
  
 #### <span id = '12001'> 在CentOS上安装 Anakin </span>
 
-1. 系统要求
+<span id = ''> 1. 系统要求 </span>
 
 *  make 3.82+
 *  cmake 2.8.12+
@@ -108,7 +108,7 @@ $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
 *  g++ 4.8.2+
 *  其他需要补充的。。。
 
-2. 编译CPU版Anakin
+<span id = ''> 2. 编译CPU版Anakin </span>
 
 > 暂时不支持
 
@@ -144,7 +144,7 @@ $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
   >$ camke ..  
   >$ make
 
-4. 编译支持AMD GPU的Anakin
+<span id = ''> 4. 编译支持AMD GPU的Anakin </span>
 
   > 暂时不支持
 
@@ -265,7 +265,7 @@ $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
 
 ### <span id = '0000'> Android </span>
 
-1. 克隆[源码](https://github.com/PaddlePaddle/Anakin/tree/arm)
+<span id = ''> 1. 克隆[源码](https://github.com/PaddlePaddle/Anakin/tree/arm) </span>
 
 ```bash
     cd your_dir
@@ -641,7 +641,7 @@ TARGET:
   - [Mobilenet v2](#22)  *caffe model 可以在[这儿](https://github.com/shicai/MobileNet-Caffe)下载*
   - [mobilenet-ssd](#33)  *caffe model 可以在[这儿](https://github.com/chuanqi305/MobileNet-SSD)下载*
 
-  <span id = '11'> 3.1. mobilenetv1 </span>
+    <span id = '11'> 3.1. mobilenetv1 </span>
 
    |platform | Anakin (1) | Anakin (2) | Anakin (4) | ncnn (1) | ncnn (2) | ncnn (4) | TFlite (1) | TFlite (2) | TFlite (4)| 
    |:---: | :---: | :---: | :---:| :---:| :---:| :---:| :---:| :---:| :---:|
@@ -649,7 +649,7 @@ TARGET:
    |高通835|105.7ms|63.1ms|~~46.8ms~~|152.7ms|87.0ms|~~92.7ms~~|146.9ms|nan|nan|
    |高通653|120.3ms|64.2ms|46.6ms|202.5ms|117.6ms|84.8ms|158.6ms|nan|nan| 
 
-  <span id = '22'> 3.2. mobilenetv2 </span>
+    <span id = '22'> 3.2. mobilenetv2 </span>
 
    |platform | Anakin (1) | Anakin (2) | Anakin (4) | ncnn (1) | ncnn (2) | ncnn (4) | TFlite (1) | TFlite (2) | TFlite (4)| 
    |:---: | :---: | :---: | :---:| :---:| :---:| :---:| :---:| :---:| :---:|
@@ -657,7 +657,7 @@ TARGET:
    |高通835|93.0ms|55.6ms|41.1ms|139.1ms|88.4ms|58.1ms|95.2ms|nan|nan|
    |高通653|106.6ms|64.2ms|48.0ms|199.9ms|125.1ms|98.9ms|108.5ms|nan|nan|
 
-  <span id = '33'> 3.3. mobilenet-ssd </span>
+    <span id = '33'> 3.3. mobilenet-ssd </span>
 
    |platform | Anakin (1) | Anakin (2) | Anakin (4) | ncnn (1) | ncnn (2) | ncnn (4) | TFlite (1) | TFlite (2) | TFlite (4)| 
    |:---: | :---: | :---: | :---:| :---:| :---:| :---:| :---:| :---:| :---:|
@@ -714,9 +714,9 @@ TARGET:
 
   > 注意：对于language model， 本文使用'ptb_valid_txt'作测试数据集
 
-  <span id = '111'> 3.1. language model in i7-7700 </span>
+    <span id = '111'> 3.1. language model in i7-7700 </span>
 
-  - Latency (`ms`) of one batch
+    - Latency (`ms`) of one batch
 
     ThreadNum | Tensorflow | Anakin
     :---: | :---: | :---: |
@@ -725,7 +725,7 @@ TARGET:
     4 | 14.23   | 9.91
     6 | 19.83   | 15.51
 
-  - Throughput (`words/s`)
+    - Throughput (`words/s`)
 
     ThreadNum | Tensorflow | Anakin
     :---: | :---: | :---: |
@@ -734,9 +734,9 @@ TARGET:
     4 | 5498 | 8418
     6 | 5764 | 8070
 
-  <span id = '222'> 3.2. language model in E5-2620 v4 </span>
+    <span id = '222'> 3.2. language model in E5-2620 v4 </span>
 
-  - Latency (`ms`) of one batch
+    - Latency (`ms`) of one batch
 
     ThreadNum | Tensorflow | Anakin
     :---: | :---: | :---: |
@@ -745,7 +745,7 @@ TARGET:
     4 | 8.66    | 4.32
     6 | 12.33   | 7.12
 
-  - Throughput (`words/s`)
+    - Throughput (`words/s`)
 
     ThreadNum | Tensorflow | Anakin
     :---: | :---: | :---: |
@@ -754,9 +754,9 @@ TARGET:
     4 | 8659 | 18351
     6 | 9414 | 17461
 
-  <span id = '333'> 3.3. language model in E5-2650 v4 </span>
+    <span id = '333'> 3.3. language model in E5-2650 v4 </span>
 
-  - Latency (`ms`) of one batch
+    - Latency (`ms`) of one batch
 
     ThreadNum | Tensorflow | Anakin
     :---: | :---: | :---: |
@@ -765,7 +765,7 @@ TARGET:
     4 | 7.78    | 3.48
     6 | 13.54   | 4.79
 
-  - Throughput (`words/s`)
+    - Throughput (`words/s`)
 
     ThreadNum | Tensorflow | Anakin
     :---: | :---: | :---: |
@@ -775,7 +775,7 @@ TARGET:
     6 | 8664 | 23938
 
 
-4. 怎么运行 Benchmark models?
+<span id = ''> 4. 怎么运行 Benchmark models? </span>
 
  这儿有两种方式运行：
 
@@ -813,11 +813,11 @@ TARGET:
 
 以下教程将指导您提交代码
 
-1. Fork
+<span id = ''> 1. Fork </span>
 
   首先跳转到[Anakin](https://github.com/PaddlePaddle/Anakin)的github首页，然后点击`Fork`, 生成自己目录下的仓库
 
-2. 克隆（clone）
+<span id = ''> 2. 克隆（clone）</span>
 
   将远程仓库clone到本地：
 
@@ -826,7 +826,7 @@ git clone YOUR_REPOSITORY_URL
 cd Anakin
 ```
 
-3. 创建本地分支
+<span id = ''> 3. 创建本地分支 </span>
 
   > Anakin目前使用[Git流分支模型](https://nvie.com/posts/a-successful-git-branching-model/)进行开发, 测试和维护
 
@@ -854,7 +854,7 @@ git checkout -b YOUR_NEW_BRANCH
   git commit -m 'description'
   ```
 
-5. 保持本地仓库最新
+<span id = ''> 5. 保持本地仓库最新 </span>
 
   在发起Pull Request之前，需要与原始仓库同步。
 
