@@ -9,7 +9,9 @@ typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
 typedef Tensor<BM, AK_BM, NCHW> TensorDf4;
 typedef TensorHf4::Dtype dtype;
 
+static bm_handle_t handle;
 TEST(TestSaberTensorBM, test_tensor_constructor) {
+    bmdnn_init(&handle);
 
     //! test empty constructor
     LOG(INFO) << "test default (empty) constructor";
@@ -28,13 +30,13 @@ TEST(TestSaberTensorBM, test_tensor_constructor) {
 
     //! test tensor re_alloc function on tensor with data
     LOG(INFO) << "|--test tensor re_alloc function on tensor with data";
-    Shape sh1(1, 2, 4, 4);
+    Shape sh1(2, 4, 4, 2);
     thost0.re_alloc(sh1);
     tdev0.re_alloc(sh1);
     LOG(INFO) << "|--tensor size of host: " << thost0.size();
     LOG(INFO) << "|--tensor size of device: " << tdev0.size();
-    CHECK_EQ(thost0.size(), 32) << "error with tensor size";
-    CHECK_EQ(tdev0.size(), 32) << "error with tensor size";
+    CHECK_EQ(thost0.size(), 64) << "error with tensor size";
+    CHECK_EQ(tdev0.size(), 64) << "error with tensor size";
 
     //! test tensor shape() function
     LOG(INFO) << "|--test tensor shape() function";
@@ -45,15 +47,16 @@ TEST(TestSaberTensorBM, test_tensor_constructor) {
               << thost0.height() << ", width = " << thost0.width();
 
     //! test tensor mutable_data() function
-    LOG(INFO) << "|--test tensor mutable_data() function, write tensor data buffer with 1.f";
-    fill_tensor_host_const(thost0, 1.f);
-    LOG(INFO) << "|--test tensor data() function, show the const data, 1.f";
+    LOG(INFO) << "|--test tensor mutable_data() function, write tensor data buffer with 2.f";
+    fill_tensor_host_const(thost0, 2.f);
+    LOG(INFO) << "|--test tensor data() function, show the const data, 2.f";
     print_tensor_host(thost0);
 
     //! test tensor constructor with shape
     LOG(INFO) << "test tensor constructor with shape";
     TensorHf4 thost1(sh1);
     TensorDf4 tdev1(sh1);
+
 
     //! test tensor copy_from() function
     LOG(INFO) << "test copy_from() function, input tensor could be any target";
@@ -64,17 +67,17 @@ TEST(TestSaberTensorBM, test_tensor_constructor) {
 
     // host to device
     tdev1.copy_from(thost0);
-    print_tensor_device(tdev1);
+    //TODO: print tensor for BM device
+    //print_tensor_host(tdev1);
 
     // device to host
     thost1.copy_from(tdev1);
     print_tensor_host(thost1);
 
-    //device to device
+    
+    // device to device
     tdev1.copy_from(tdev0);
-    print_tensor_device(tdev1);
 
-    /*
     //! test tensor constructor with shape and real_shape
     LOG(INFO) << "test tensor constructor with shape and real_shape";
     //! constructor with 3 shapes is removed
@@ -97,22 +100,35 @@ TEST(TestSaberTensorBM, test_tensor_constructor) {
 
     BM_API::mem_alloc(&tmp_pt_dev, sizeof(dtype) * sh1.count());
     dev_data_ptr = static_cast<dtype*>(tmp_pt_dev);
-    cudaMemcpy(dev_data_ptr, host_data_ptr, sizeof(dtype) * sh1.count(), cudaMemcpyHostToDevice);
+//    bm_memcpy_d2s(handle,host_data_ptr,dev_data_ptr)
+//    cudaMemcpy(dev_data_ptr, host_data_ptr, sizeof(dtype) * sh1.count(), cudaMemcpyHostToDevice);
     LOG(INFO) << "|--construct host tensor from host data ptr";
     TensorHf4 thost3(host_data_ptr, X86(), X86_API::get_device_id(), sh1);
     LOG(INFO) << "|--constructor device tensor from host data ptr";
-    TensorDf4 tdev3(host_data_ptr, X86(), X86_API::get_device_id(), sh1);
-    print_tensor_host(thost3);
-    print_tensor_device(tdev3);
-    //cudaDeviceSynchronize();
 
+//    TensorDf4 tdev3(&bm_mem_from_system(const_cast<float *>(host_data_ptr)), X86(), X86_API::get_device_id(), sh1);
+
+    TensorDf4 tdev3(&bm_mem_from_system(const_cast<float *>(host_data_ptr)), X86(), X86_API::get_device_id(), sh1);
+
+    print_tensor_host(thost3);
+
+    TensorHf4 thost_lian(sh1);
+    thost_lian.copy_from(tdev3);
+    print_tensor_host(thost_lian);
+
+    thost_lian.copy_from(thost3);
+    print_tensor_host(thost_lian);
+
+    //cudaDeviceSynchronize();
+    //
+/*
     LOG(INFO) << "|--construct host tensor from device data ptr";
     TensorHf4 thost4(dev_data_ptr, BM(), BM_API::get_device_id(), sh1);
     LOG(INFO) << "|--constructor device tensor from device data ptr";
     TensorDf4 tdev4(dev_data_ptr, BM(), BM_API::get_device_id(), sh1);
     print_tensor_host(thost4);
     print_tensor_device(tdev4);
-
+/*
     //BM_API::stream_t dev_stream0;
     //BM_API::create_stream_with_flag(dev_stream0, 1);
     //cudaDeviceSynchronize();
@@ -202,6 +218,7 @@ TEST(TestSaberTensorBM, test_tensor_constructor) {
     LOG(INFO) << "|--show root tensor while data is changed by shared tensor";
     print_tensor_host(thost4);
      */
+//    bmdnn_deinit(handle);
 }
 
 /*

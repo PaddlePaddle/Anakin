@@ -1003,10 +1003,11 @@ private:
 };
 
 #ifdef USE_BM
-
+#ifndef BM_TENSOR_COPY
+#define BM_TENSOR_COPY
 template<> inline
 size_t Tensor<BM, AK_BM, NCHW>::_type_len(){
-    return 1;
+    return 4;
 }
 
 template<>
@@ -1030,7 +1031,7 @@ SaberStatus Tensor<X86, AK_FLOAT, NCHW>::copy_from<BM, AK_BM, NCHW>(const Tensor
     BMDNN_CHECK(bm_memcpy_d2s(get_bm_handle(), bm_mem_from_system(mutable_data()), *device_data_ptr));
     return SaberSuccess;
 }
-
+#endif
 #endif
 
 } //namespace saber
