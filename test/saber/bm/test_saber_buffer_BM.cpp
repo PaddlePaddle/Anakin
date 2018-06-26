@@ -90,7 +90,7 @@ void test_buffer() {
     x86_buf1.sync_copy_from(x86_buf2);
     LOG(INFO) << "deep copy between two host buffer: ";
     const Hdtype* ptr1 = static_cast<const Hdtype*>(x86_buf1.get_data());
-    const Hdtype* ptr2 = static_cast<const Hdtype*>(x86_buf1.get_data());
+    const Hdtype* ptr2 = static_cast<const Hdtype*>(x86_buf2.get_data());
 
     for (int i = 0; i < 10; i++) {
         std::cout << ptr1[i] << std::endl;
