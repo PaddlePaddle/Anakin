@@ -1012,7 +1012,7 @@ size_t Tensor<BM, AK_BM, NCHW>::_type_len(){
 template<>
 template<> inline
 SaberStatus Tensor<BM, AK_BM, NCHW>::copy_from<X86, AK_FLOAT, NCHW>(const Tensor<X86, AK_FLOAT, NCHW>& tensor) {
-    LOG(INFO) << "BM copy_from";
+    LOG(INFO) << "BM copy_from X86";
     CHECK_EQ(valid_size(), tensor.valid_size()) << "sizes of two valid shapes must be the same";
 
     auto* device_data_ptr = mutable_data();
@@ -1023,7 +1023,7 @@ SaberStatus Tensor<BM, AK_BM, NCHW>::copy_from<X86, AK_FLOAT, NCHW>(const Tensor
 template<>
 template<> inline
 SaberStatus Tensor<X86, AK_FLOAT, NCHW>::copy_from<BM, AK_BM, NCHW>(const Tensor<BM, AK_BM, NCHW>& tensor) {
-    LOG(INFO) << "X86 copy_from";
+    LOG(INFO) << "X86 copy_from BM";
     CHECK_EQ(valid_size(), tensor.valid_size()) << "sizes of two valid shapes must be the same";
 
     auto* device_data_ptr = const_cast<bm_device_mem_t *>(tensor.data());
