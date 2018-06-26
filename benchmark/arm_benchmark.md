@@ -54,3 +54,4 @@
 > 接着在测试机含有Anakin model的目录中运行'./benchmark_arm ./ anakin_model.anakin.bin 1 10 10 1' 命令
 > 最后，终端显示器上将会打印该模型的运行时间
 > 其中运行命令的参数个数和含义可以通过运行'./benchmark_arm'看到
+
