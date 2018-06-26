@@ -172,13 +172,11 @@ We tested them on single-GPU with single-thread.
 
 
 
-# RNN Benchmark
+# RNN Benchmark \<Anakin VS Tensorflow\>
 
 ## Machine:
 
 This time, we only provide benchmark on CPU. In the near future, we will add benchmark on ARM and GPU.
-
-
 
 ## Counterpart of anakin  :
 
@@ -266,4 +264,75 @@ All test run in docker 1.13.1, with CentOS Linux release 7.5.1804
 
 ## How to run those Benchmark models?
 
+
 > Please refer to [Instructions](RNN/README.md)
+
+# RNN Benchmark \<Anakin VS PaddlePaddle/Fluid\>
+
+## Machine:
+
+This time, we only provide benchmark on CPU. In the near future, we will add benchmark on ARM and GPU.
+
+## Counterpart of anakin  :
+
+The counterpart of **`Anakin`** is `Fluid`,commit = 0b3d7f1f4c525f40cc178774e0eec74f88047cc9
+
+## Benchmark Model
+
+The following convolutional neural networks are tested with both `Anakin` and `Fluid`.
+ You can use pretrained model or the model trained by youself.
+
+> Please note that you should transform fluid model or others into anakin model with the help of [`external converter ->`](#)
+
+
+- [Language model](#1)   *fluid model can be found [here->](https://github.com/PaddlePaddle/models/tree/develop/fluid/language_model)*
+
+- [Chinese_ner](#2)   *fluid model can be found [here->](https://github.com/PaddlePaddle/models/blob/develop/fluid/chinese_ner)*
+
+We tested them on single-CPU with different thread numbers.
+
+Anakin and Fluid run in c api, and we set openmp thread pool = 1, mkl thread pool=1.
+
+### <span id = '1'>language model in E5-2650 v4 </span>
+
+- Latency (`ms`) of one batch
+
+    ThreadNum | Fluid | Anakin
+    :---: | :---: | :---: |
+    1 | 42.09    | 1.90
+    2 | 42.14    | 2.16
+    6 | 42.15   | 4.21
+    10 | 42.14   | 9.26
+    12 | 42.34   | 11.17
+
+- Throughput (`sentence/s`)
+
+    ThreadNum | Fluid | Anakin
+    :---: | :---: | :---: |
+    1 | 23 | 524
+    2 | 47 | 916
+    6 | 141 | 1402
+    10 | 236   | 1063
+    12 | 282   | 1044
+
+### <span id = '2'>Chinese_ner model in E5-2650 v4 </span>
+
+- Latency (`ms`) of one batch
+
+    ThreadNum | Fluid | Anakin
+    :---: | :---: | :---: |
+    1 | 0.47    | 0.17
+    4 | 0.26    | 0.17
+    6 | 0.36    | 0.17
+    10 | 0.59   | 0.17
+    12 | 0.72   | 0.17
+
+- Throughput (`sentence/s`)
+
+    ThreadNum | Fluid | Anakin
+    :---: | :---: | :---: |
+    1 | 2129  | 5819
+    4 | 3866  | 11182
+    6 | 8095  | 30948
+    10 | 8250 | 44093
+    12 | 8112  | 47185
