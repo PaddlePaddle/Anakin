@@ -4,18 +4,18 @@
 
 - User Manual
 	- Instal and Compile
-		Docker
-		Builde from source
+		- Docker
+		- Build from source
 	- Run on ARM
-		Android
-		Linux
-		IOS
+		- Android
+		- Linux
+		- IOS
   - External Converter
 	- Examples
 	- Benchmark
-		NV GPU
-		ARM
-		More devices
+		- NV GPU
+		- ARM
+		- More devices
 - Developing Guide
 	- C++ APIs
 	- How to contribute
@@ -86,7 +86,7 @@ $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
 
 > 暂时不支持
 
-### Builde from source
+### Build from source
 
 我们已经在CentOS 7.3上成功的安装和测试了Anakin，对于其他操作系统，我们将很快支持
 
