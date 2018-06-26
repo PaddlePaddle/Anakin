@@ -761,7 +761,7 @@ public:
 #ifdef USE_BM
     template <typename NewTargetType_t, DataType NewDataType_t, typename NewLayOutType_t>
     SaberStatus copy_from(const Tensor<NewTargetType_t, NewDataType_t, NewLayOutType_t>& tensor) {
-        LOG(INFO) << "base copy_from";
+        LOG(WARNING) << "Invalid: copy_from is not allowed for current type.";
         return SaberInvalidValue;
     }
 #endif
@@ -1013,6 +1013,8 @@ template<>
 template<> inline
 SaberStatus Tensor<BM, AK_BM, NCHW>::copy_from<X86, AK_FLOAT, NCHW>(const Tensor<X86, AK_FLOAT, NCHW>& tensor) {
     LOG(INFO) << "BM copy_from";
+    CHECK_EQ(valid_size(), tensor.valid_size()) << "sizes of two valid shapes must be the same";
+
     auto* device_data_ptr = mutable_data();
     BMDNN_CHECK(bm_memcpy_s2d(API::get_handler(), *device_data_ptr, bm_mem_from_system(const_cast<float *>(tensor.data()))));
     return SaberSuccess;
@@ -1022,6 +1024,8 @@ template<>
 template<> inline
 SaberStatus Tensor<X86, AK_FLOAT, NCHW>::copy_from<BM, AK_BM, NCHW>(const Tensor<BM, AK_BM, NCHW>& tensor) {
     LOG(INFO) << "X86 copy_from";
+    CHECK_EQ(valid_size(), tensor.valid_size()) << "sizes of two valid shapes must be the same";
+
     auto* device_data_ptr = const_cast<bm_device_mem_t *>(tensor.data());
     BMDNN_CHECK(bm_memcpy_d2s(TargetWrapper<BM>::get_handler(), bm_mem_from_system(mutable_data()), *device_data_ptr));
     return SaberSuccess;
