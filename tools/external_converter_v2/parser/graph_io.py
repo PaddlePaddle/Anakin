@@ -113,7 +113,7 @@ class TensorProtoIO(object):
         return self.tensor_proto
 
 
-class OpProtoIO(object):
+class OpsProtoIO(object):
     """
     """
     def __init__(self):
@@ -269,7 +269,7 @@ class GraphProtoIO(object):
         nodeIO = NodeProtoIO()
         nodeIO.set_name(output_node_name)
         nodeIO.add_in(in_node_name)
-        opIO = OpProtoIO()
+        opIO = OpsProtoIO()
         opIO.set_name("Output")
         nodeIO.set_op(opIO())
         self.add_out_edge(in_node_name, output_node_name)
