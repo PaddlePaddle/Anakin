@@ -47,7 +47,7 @@ void BM_API::get_device_count(int &count) {
 
 void BM_API::set_device(int id){
     //(bm_handle_t &handle, bool bmkernel_used, int id){
-    BMDNN_CHECK(bm_dev_request(&handle, 0, id));
+    //BMDNN_CHECK(bm_dev_request(&handle, 0, id));
 }
 
 //TODO: Do we have this functionality?
