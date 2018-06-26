@@ -119,7 +119,7 @@ class OpsProtoIO(object):
     def __init__(self):
         """
         """
-        self.op_proto = OpProto()
+        self.op_proto = OpsProto()
 
     def set_name(self, op_name):
         self.op_proto.name = op_name
@@ -159,7 +159,7 @@ class NodeProtoIO(object):
     def add_out(self, node_name):
         self.node_proto.outs.append(node_name)
 
-    def set_op(self, operator=OpProto()):
+    def set_op(self, operator=OpsProto()):
         self.node_proto.Op.CopyFrom(operator)
 
     def add_attr(self, value_name, data, data_type_str):
