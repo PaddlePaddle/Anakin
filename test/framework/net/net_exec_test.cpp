@@ -48,7 +48,7 @@ TEST(NetTest, net_execute_base_test) {
 
     // register all tensor inside graph
     //graph->RegistAllOut();
-	
+
     // register edge
     // graph->RegistOut("conv2_2/expand/scale", "relu2_2/expand");
 
@@ -146,7 +146,7 @@ TEST(NetTest, net_execute_base_test) {
 #ifdef USE_CUDA
 	cudaDeviceSynchronize();
 #endif
-    
+
     for (int i = 0; i < 3; i++) {
     	net_executer.execute_start_from_node("relu2_2/expand");
     }

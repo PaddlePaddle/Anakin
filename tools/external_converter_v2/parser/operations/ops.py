@@ -282,7 +282,8 @@ OpsRegister.Register("DetectionOutput").set_attr(share_location=bool(),
 
 OpsRegister.Register("Argmax").set_attr(out_max_val=bool(), 
                                         top_k=int(), 
-                                        axis=int())
+                                        axis=int(),
+                                        axis_term=bool())
 
 
 OpsRegister.Register("Normalize").set_attr(is_across_spatial=bool(), 

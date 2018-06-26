@@ -597,7 +597,7 @@ inline void yield_thread() { }
 // reorder weight layout from NCHW(oc, ic, kh, kw) to OIhw16i16o
 inline void weight_reorder_OIhw16i16o(Tensor<X86, AK_FLOAT, NCHW>& input,
                                       Tensor<X86, AK_FLOAT, NCHW>& output) {
-    Shape shape = input.shape();
+    Shape shape = input.valid_shape();
     int oc_value = shape[0], ic_value = shape[1], kh_value = shape[2], kw_value = shape[3];
     #pragma omp parallel for collapse(6) schedule(static)
 

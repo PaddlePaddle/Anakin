@@ -6,8 +6,8 @@ namespace ops {
 
 #ifdef USE_CUDA
 template<>
-void Gru<NV, AK_FLOAT, Precision::FP32>::operator() (OpContext<NV> &ctx, 
-                          const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins, 
+void Gru<NV, AK_FLOAT, Precision::FP32>::operator() (OpContext<NV> &ctx,
+                          const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
                           std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
     auto* impl = static_cast<GruHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
     auto& param = static_cast<GruHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper)->_param_gru;
@@ -77,6 +77,7 @@ Status GruHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype> &ctx,
                                                 const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
                                                 std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
     SABER_CHECK(_funcs_gru.init(ins, outs, _param_gru, SPECIFY, SABER_IMPL, ctx));
+//    SABER_CHECK(_funcs_gru.init(ins, outs, _param_gru, SPECIFY, VENDER_IMPL, ctx));
     return Status::OK();
 }
 

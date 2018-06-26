@@ -142,6 +142,7 @@ SaberStatus SaberSoftmax<X86, OpDtype, inDtype, outDtype,
     int channel = inputs[0]->channel();
     float *src_ptr = inputs[0]->mutable_data();
     float *dst_ptr = outputs[0]->mutable_data();
+    outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
 
 #pragma omp parallel for schedule(static)
     for (int ou = 0; ou < num ; ou++) {
