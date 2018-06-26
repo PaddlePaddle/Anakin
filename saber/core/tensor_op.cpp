@@ -413,6 +413,42 @@ void fill_tensor_device_const(Tensor<BM, AK_BM, NCHW>& tensor, float value, \
     delete [] host_mem_input;
 }
 
+template <>
+void print_tensor_device<Tensor<BM, AK_BM, NCHW>>(Tensor<BM, AK_BM, NCHW>& tensor,  \
+    typename Tensor<BM, AK_BM, NCHW>::API::stream_t stream) {
+
+    LOG(INFO) << "BM device tensor data:" << tensor.size();
+
+    /*
+    const bm_device_mem_t* device_data_ptr = tensor.data();
+    unsigned long long gaddr = bm_mem_get_device_addr(*device_data_ptr);
+    bm_flush(get_bm_handle());
+    float* device_data = (float*)bm_get_global_addr(gaddr);
+
+    for (int i = 0; i < tensor.size(); ++i) {
+        printf("%.2f ", device_data[i]);
+
+        if ((i + 1) % (4 * tensor.width()) == 0) {
+            printf("\n");
+        }
+    }*/
+
+    float *host_mem = new float[tensor.size()];
+    auto* device_data_ptr = const_cast<bm_device_mem_t *>(tensor.data());
+    bm_memcpy_d2s(get_bm_handle(), bm_mem_from_system(host_mem), *device_data_ptr);
+
+    for (int i = 0; i < tensor.size(); ++i) {
+        printf("%.2f ", host_mem[i]);
+
+        if ((i + 1) % (4 * tensor.width()) == 0) {
+            printf("\n");
+        }
+    }
+    printf("\n");
+
+    delete [] host_mem;
+}
+
 #endif
 
 } //namespace saber
