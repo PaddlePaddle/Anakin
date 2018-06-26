@@ -24,7 +24,7 @@ REGISTER_GRAPH_FUSION_PATTERN(PermutePower)
 .AddOpNode("power_0", "Power")
 .AddConnect("permute_0", "power_0")
 .CreatePattern([](VGraph* graph) {});
-#if 0
+#if 1
 REGISTER_GRAPH_FUSION_PATTERN(ConvReluPool)
 .Type(IN_ORDER)
 .AddOpNode("conv_0",  "Convolution")
