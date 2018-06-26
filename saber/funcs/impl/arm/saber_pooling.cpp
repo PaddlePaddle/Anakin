@@ -20,6 +20,21 @@ SaberStatus SaberPooling<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::c
         return SaberSuccess;
     }
 
+    if (param.window_w == 3) {
+        if (param.pooling_type == Pooling_max) {
+            if (param.stride_w == 2)
+               _impl = pooling3x3s2_max;
+           else
+               _impl = pooling3x3s1_max;
+        } else {
+            if (param.stride_w == 2)
+               _impl = pooling3x3s2_ave;
+           else
+               _impl = pooling3x3s1_ave;
+        }
+        return SaberSuccess;
+    }
+
     if (param.window_w != param.window_h || param.stride_w != param.stride_h \
         || param.stride_w != 2 || param.pad_w != param.pad_h || param.pad_w > 1) {
         _impl = pooling_basic;
@@ -31,15 +46,6 @@ SaberStatus SaberPooling<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::c
             _impl = pooling2x2s2_max;
         } else {
             _impl = pooling2x2s2_ave;
-        }
-        return SaberSuccess;
-    }
-
-    if (param.window_w == 3) {
-        if (param.pooling_type == Pooling_max) {
-            _impl = pooling3x3s2_max;
-        } else {
-            _impl = pooling3x3s2_ave;
         }
         return SaberSuccess;
     }

@@ -30,13 +30,38 @@
    $ make check   
    $ make install
    ```
-   如有问题，请点[这里](https://github.com/google/protobuf/blob/v3.4.0/src/README.md)
-    
- - 2.1.2 交叉编译Android`armeabi-v7a`的protobuf    
+   上述 $make install 执行后，可在 /usr/local/include/google 找到 libprotobuf 所需的头文件,将整个google文件夹拷贝至Anakin/third-party/arm-android/protobuf/下，
+   如有问题，请点[这里](https://github.com/google/protobuf/blob/v3.4.0/src/README.md)。
+   然后将已经生成文件清除。
  ```bash
- 
+   $ make distclean
+   ```
+ - 2.1.1 交叉编译Android`armeabi-v7a`的protobuf，注意设置ANDROID_NDK的路径，以及ARCH_ABI、HOSTOSN的值，   
+ ```bash
+
+   $ export ANDROID_NDK=your_ndk_path 
+   $ ARCH_ABI="arm-linux-androideabi-4.9"
+   $ HOSTOSN="darwin-x86_64"
+   $ export SYSROOT=$ANDROID_NDK/platforms/android-9/arch-arm  
+   $ export PREBUILT=$ANDROID_NDK/toolchains/$ARCH_ABI
+   $ export LDFLAGS="--sysroot=$SYSROOT"
+   $ export LD="$ANDROID_NDK/toolchains/$ARCH_ABI/prebuilt/$HOSTOSN/arm-linux-androideabi/bin/ld $LDFLAGS"
+   $ export LIBS="-llog $ANDROID_NDK/sources/cxx-stl/gnu-libstdc++/4.9/libs/armeabi-v7a/libgnustl_static.a"
+   $ export CPPFLAGS=""
+   $ export INCLUDES="-I$ANDROID_NDK/sources/cxx-stl/gnu-libstdc++/4.9/include/ -I$ANDROID_NDK/platforms/android-9/arch-arm/usr/include/ -I$ANDROID_NDK/sources/cxx-stl/gnu-libstdc++/4.9/libs/armeabi-v7a/include/"
+   $ export CXXFLAGS="-march=armv7-a -mfloat-abi=softfp -DGOOGLE_PROTOBUF_NO_RTTI --sysroot=$SYSROOT"
+   $ export CCFLAGS="$CXXFLAGS"
+   $ export CXX="$PREBUILT/prebuilt/$HOSTOSN/bin/arm-linux-androideabi-g++ $CXXFLAGS"
+   $ export CC="$CXX"
+   $ export RANLIB="$ANDROID_NDK/toolchains/$ARCH_ABI/prebuilt/$HOSTOSN/bin/arm-linux-androideabi-ranlib"  
+   $ ./autogen.sh  
+   $ ./configure --host=arm-linux-androideabi --with-sysroot=$SYSROOT --enable-cross-compile --with-protoc=protoc --disable-shared CXX="$CXX" CC="$CC" LD="$LD"  
+   $ make
   ```
-  安装完成后，在[cmake](../../cmake/find_modules.cmake)中设置`ARM_RPOTO_ROOT`的路径。        
+  
+  编译生成 *.a 静态库，若希望编译*.so 动态链接库 ，请在./configure参数中改--disable-shared为--disable-static --enable-shared。  
+  生成文件在src/.libs/下，将生成的文件拷贝至Anakin/third-party/arm-android/protobuf/lib下。  
+  在[cmake](../../cmake/find_modules.cmake)中更新`ARM_RPOTO_ROOT`的路径。        
   ```cmake
   set(ARM_RPOTO_ROOT "${CMAKE_SOURCE_DIR}/third-party/arm-android/protobuf")
   ```
