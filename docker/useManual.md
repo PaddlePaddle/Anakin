@@ -2,21 +2,21 @@
 
 ## 目录:
 
-- User Manual
-	- Instal and Compile
++ User Manual
+	+ Instal and Compile
 		- Docker
 		- Build from source
-	- Run on ARM
+	+ Run on ARM
 		- Android
 		- Linux
 		- IOS
-  - External Converter
-	- Examples
-	- Benchmark
+  + External Converter
+	+ Examples
+	+ Benchmark
 		- NV GPU
 		- ARM
 		- More devices
-- Developing Guide
++ Developing Guide
 	- C++ APIs
 	- How to contribute
 	- How to add custom operators
