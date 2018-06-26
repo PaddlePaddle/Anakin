@@ -146,12 +146,13 @@ public:
         if (_use_k1s1p0) {
 //            LOG(INFO)<<"using k1s1p0";
             if (param.has_eltwise) {
-
-                conv_gemm_k1s1p0(outputs[0]->mutable_data(),
-                                 inputs[0]->data(),
-                                 param.conv_param.weight()->data(),
-                                 chout, chin, hin, win, bias_data,
-                                 this->_ctx.get_compute_stream(), 1.f, 1.f);
+                if (param.eltwise_param.operation == Eltwise_sum) {
+                    conv_gemm_k1s1p0(outputs[0]->mutable_data(),
+                                     inputs[0]->data(),
+                                     param.conv_param.weight()->data(),
+                                     chout, chin, hin, win, bias_data,
+                                     this->_ctx.get_compute_stream(), 1.f, 1.f);
+                }
             } else {
                 conv_gemm_k1s1p0(outputs[0]->mutable_data(),
                                  inputs[0]->data(),
