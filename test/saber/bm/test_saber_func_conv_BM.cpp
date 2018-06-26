@@ -601,7 +601,7 @@ void test_conv_fp32_speed(std::vector<TensorDf4*> &inputs, std::vector<TensorDf4
     //cudaDeviceSynchronize();
 }
 
-
+/*
 cublasHandle_t  cublas_handle;
 
 void caffe_gemm(const int M, const int N, const int K,\
@@ -717,7 +717,7 @@ TEST(TestSaberFuncBM, test_conv_fp32_1x1_speed) {
     tensor_cmp_host(out_host.data(), out_gemm_host.data(), out_host.size(), max_r, max_d);
     LOG(INFO) << "cmp result: max_r = " << max_r << " max_d = " << max_d;
 }
-
+*/
 int main(int argc, const char** argv){
     anakin::saber::Env<BM>::env_init();
 
