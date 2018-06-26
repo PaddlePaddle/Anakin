@@ -6,9 +6,9 @@ import os
 import subprocess
 from yaml import load, dump
 try:
-	from yaml import CLoader as Loader, CDumper as Dumper
+    from yaml import CLoader as Loader, CDumper as Dumper
 except ImportError:
-	from yaml import Loader, Dumper
+    from yaml import Loader, Dumper
 
 ConfigFilePath = './config.yaml'
 
@@ -51,9 +51,9 @@ class Configuration:
             pass
         elif self.framework == "MXNET":
             pass
-		elif self.framework == "FLUID":
-			proto_list = data['TARGET'][self.framework]['ProtoPaths']
-			self.framework_config_dict = data['TARGET'][self.framework]
+        elif self.framework == "FLUID":
+            proto_list = data['TARGET'][self.framework]['ProtoPaths']
+            self.framework_config_dict = data['TARGET'][self.framework]
         else:
             raise NameError('ERROR: Framework not support yet ' % (self.framework))
         try:
