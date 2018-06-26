@@ -543,7 +543,7 @@ struct TargetWrapper<BM, __device_target> {
         size_t count, __DtoD) {};
 
     static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-        size_t count, __HtoD) {};
+        size_t count, __HtoD);
 
     static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
         size_t count, __DtoH) {};

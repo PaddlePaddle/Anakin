@@ -5,7 +5,7 @@
 using namespace anakin::saber;
 
 int get_bm_size() {
-    return 1;
+    return 4;
 }
 
 template <DataType Ddatatype, DataType Hdatatype>
@@ -27,7 +27,7 @@ void test_buffer() {
     x86_ptr = static_cast<Hdtype*>(tmp_x86);
 
     for (int i = 0; i < n0; i++) {
-        x86_ptr[i] = static_cast<Hdtype>(i);
+        x86_ptr[i] = static_cast<Hdtype>(100);
     }
 
     void* tmp_bm;
@@ -105,6 +105,7 @@ void test_buffer() {
     for (int i = 0; i < 10; i++) {
 	std::cout << "x86: " << x86_buf2_ptr[i] << std::endl;
     }
+    */
 
     const Hdtype* bm_buf1_ptr = static_cast<const Hdtype*>(bm_buf1.get_data());
     for (int i = 0; i < 10; i++) {
@@ -115,16 +116,17 @@ void test_buffer() {
     LOG(INFO) << "x86_buf1 cap & cnt: " << x86_buf1.get_capacity() << " " << x86_buf1.get_count(); 
     LOG(INFO) << "size of Hdtype: " << sizeof(Hdtype);
     LOG(INFO) << "size of Ddtype: " << sizeof(Ddtype);
-    */
+    
 
     x86_buf1.re_alloc(bm_buf1.get_capacity());
     x86_buf1.sync_copy_from(bm_buf1);
     LOG(INFO) << "deep copy from device buffer to host buffer: ";
     ptr1 = static_cast<const Hdtype*>(x86_buf1.get_data());
 
-    for (int i = 0; i < 30; i++) {
+    for (int i = 0; i < 10; i++) {
         std::cout << ptr1[i] << std::endl;
     }
+
 }
 
 TEST(TestSaberBufferBM, test_buffer_memcpy) {

@@ -148,6 +148,9 @@ bm_status_t bm_memset_device(
 bm_device_mem_t bm_mem_from_system(
     void *              system_addr);
 
+bm_device_mem_t bm_mem_from_device(
+    void *              device_addr);
+	
 /*
 *brief malloc one device memory with the shape of (N,C,H,W), copy the sys_mem to
 device mem if need_copy is true
