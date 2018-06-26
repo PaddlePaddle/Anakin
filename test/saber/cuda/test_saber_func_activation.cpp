@@ -94,8 +94,8 @@ TEST(TestSaberFuncNV, test_func_activation) {
     ActivationParam<TensorDf4> param_prelu_0(Active_prelu, 0.f, 0.f, prelu_0);
     ActivationParam<TensorDf4> param_prelu_1(Active_prelu, 0.f, 0.f, prelu_1);
 
-    //for (ActivationParam<TensorDf4> param : {param_elu, param_relu, param_sigmoid, param_tanh, param_prelu_0, param_prelu_1}) {
-    for (ActivationParam<TensorDf4> param : {param_sigmoid}) {
+    for (ActivationParam<TensorDf4> param : {param_elu, param_relu, param_sigmoid, param_tanh, param_prelu_0, param_prelu_1}) {
+    //for (ActivationParam<TensorDf4> param : {param_sigmoid}) {
         for (auto share_from : {false, true}) {
             for (auto offset: {offset_0, offset_1}) {
                 test_activation(input_big_shape,

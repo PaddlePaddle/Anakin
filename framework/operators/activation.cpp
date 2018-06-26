@@ -80,15 +80,9 @@ Status ActivationHelper<Ttype, Dtype, Ptype>::InitParam() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ActivationHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
-<<<<<<< HEAD
         const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
         std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
     SABER_CHECK(_funcs_activation.init(ins, outs, _param_activation, STATIC, VENDER_IMPL, ctx));
-=======
-                                                   const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                                                   std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-    SABER_CHECK(_funcs_activation.init(ins, outs, _param_activation, SPECIFY, SABER_IMPL, ctx));
->>>>>>> upstream/developing
     return Status::OK();
 }
 
