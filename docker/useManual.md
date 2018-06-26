@@ -94,8 +94,8 @@ $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
 
 + [在CentOS上安装 Anakin](#12001)
 + [在Ubuntu上安装 Anakin](#12002)
-+ [在ARM上安装 Anakin](#12002)
-+ [验证安装]()
++ [在ARM上安装 Anakin](#12003)
++ [验证安装](#12004)
 
  
 #### <span id = '12001'> 在CentOS上安装 Anakin </span>
@@ -112,11 +112,12 @@ $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
 
 > 暂时不支持
 
-3. 编译支持NVIDIA GPU的Anakin
+<span id = ''> 3. 编译支持NVIDIA GPU的Anakin </span>
 
   3.1. 安装依赖
 
     3.1.1 protobuf  
+
     >$ git clone https://github.com/google/protobuf  
     >$ cd protobuf  
     >$ git submodule update --init --recursive  
@@ -274,7 +275,7 @@ $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
     git checkout arm
 ```
 
-2. 修改`android_build.sh`    
+<span id = ''> 2. 修改`android_build.sh` </span>   
 
   2.1. 修改NDK路径
 
@@ -374,7 +375,7 @@ $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
 git clone https://xxxxxxxxx
 ``` 
 
-3. 使用
+<span id = ''> 3. 使用 </span>
 
   3.1. 配置
 
@@ -469,9 +470,9 @@ TARGET:
 
   <span id = '1'> 3.1. VGG16 </span>  
 
-- Latency (`ms`) of different batch
+  - Latency (`ms`) of different batch
 
-BatchSize | TensorRT | Anakin
+  BatchSize | TensorRT | Anakin
     :---: | :---: | :---: |
     1 | 8.8690 | 8.2815
     2 | 15.5344 | 13.9116
@@ -479,7 +480,7 @@ BatchSize | TensorRT | Anakin
     8 | 49.8279 | 40.4076 
     32 | 188.6270 | 163.7660 
 
-- GPU Memory Used (`MB`)
+  - GPU Memory Used (`MB`)
 
     BatchSize | TensorRT | Anakin
     :---: | :---: | :---: | 
@@ -492,7 +493,7 @@ BatchSize | TensorRT | Anakin
     
   <span id = '2'> 3.2. Yolo </span>  
 
-- Latency (`ms`) of different batch  
+  - Latency (`ms`) of different batch  
 
     BatchSize | TensorRT | Anakin
     :---: | :---: | :---: | 
@@ -502,7 +503,7 @@ BatchSize | TensorRT | Anakin
     8 | 80.9139 | 80.9880
     32 | 293.8080| 310.8810
 
-- GPU Memory Used (`MB`)
+  - GPU Memory Used (`MB`)
 
     BatchSize | TensorRT | Anakin
     :---: | :---: | :---: | 
@@ -514,7 +515,7 @@ BatchSize | TensorRT | Anakin
 
   <span id = '3'> 3.3. Resnet50 </span> 
 
-- Latency (`ms`) of different batch  
+  - Latency (`ms`) of different batch  
 
     BatchSize | TensorRT | Anakin
     :---: | :---: | :---: | 
@@ -524,7 +525,7 @@ BatchSize | TensorRT | Anakin
     8 | 17.8209 |   20.6680 
     32 | 65.8582 | 77.8858
 
-- GPU Memory Used (`MB`)
+  - GPU Memory Used (`MB`)
 
     BatchSize | TensorRT | Anakin
     :---: | :---: | :---: | 
@@ -536,7 +537,7 @@ BatchSize | TensorRT | Anakin
 
   <span id = '4'> 3.4. Resnet101 </span> 
 
-- Latency (`ms`) of different batch 
+  - Latency (`ms`) of different batch 
 
     BatchSize | TensorRT | Anakin
     :---: | :---: | :---: | 
@@ -546,7 +547,7 @@ BatchSize | TensorRT | Anakin
     8 | 32.7632 | 36.0648
     32 | 123.2550 | 135.4880
 
-- GPU Memory Used (`MB)`
+  - GPU Memory Used (`MB)`
 
     BatchSize | TensorRT | Anakin
     :---: | :---: | :---: | 
@@ -559,7 +560,7 @@ BatchSize | TensorRT | Anakin
 
   <span id = '5'> 3.5. MobileNet V1 </span> 
 
-- Latency (`ms`) of different batch  
+  - Latency (`ms`) of different batch  
 
     BatchSize | TensorRT | Anakin
     :---: | :---: | :---: | 
@@ -569,7 +570,7 @@ BatchSize | TensorRT | Anakin
     8 |  52.7957 |  8.1513
     32 | 83.2519 | 31.3178
 
-- GPU Memory Used (`MB`)
+  - GPU Memory Used (`MB`)
 
     BatchSize | TensorRT | Anakin
     :---: | :---: | :---: | 
@@ -581,7 +582,7 @@ BatchSize | TensorRT | Anakin
 
   <span id = '6'> 3.6. MobileNet V2</span> 
 
-- Latency (`ms`) of different batch  
+  - Latency (`ms`) of different batch  
 
     BatchSize | TensorRT | Anakin
     :---: | :---: | :---: | 
@@ -591,7 +592,7 @@ BatchSize | TensorRT | Anakin
     8 | 76.1092 | 12.8779
     32 | 124.9810 | 47.2142
 
-- GPU Memory Used (`MB`)
+  - GPU Memory Used (`MB`)
 
     BatchSize | TensorRT | Anakin
     :---: | :---: | :---: | 
@@ -603,44 +604,44 @@ BatchSize | TensorRT | Anakin
 
 4. 怎么运行 Benchmark models?
 
-> 首先, 使用[External Converter](#10003)对caffe model 进行转换  
+  > 首先, 使用[External Converter](#10003)对caffe model 进行转换  
 
-> 然后进入 *source_root/benchmark/CNN* 目录， 使用 'mkdir ./models' 创建 ./models 目录，并把转换好的Anakin models 放在该目录下 
+  > 然后进入 *source_root/benchmark/CNN* 目录， 使用 'mkdir ./models' 创建 ./models 目录，并把转换好的Anakin models 放在该目录下 
 
-> 接着运行 'sh run.sh'命令  
+  > 接着运行 'sh run.sh'命令  
 
-> 最后，终端显示器上将会打印该模型的运行时间
+  > 最后，终端显示器上将会打印该模型的运行时间
 
-> 如果你想看到model中每个OP的运行时间，只用修改 CMakeLists.txt 文件，将 `ENABLE_OP_TIMER` 修改为 `YES`，然后进行编译运行，最后终端显示器上会打印出每个OP的运行时间
+  > 如果你想看到model中每个OP的运行时间，只用修改 CMakeLists.txt 文件，将 `ENABLE_OP_TIMER` 修改为 `YES`，然后进行编译运行，最后终端显示器上会打印出每个OP的运行时间
 
 ### ARM
 
 1. Machine
 
-+ 测试模型Mobilenetv1, mobilenetv2, mobilenet-ssd
-+ 采用android ndk交叉编译，gcc 4.9，enable neon， ABI： armveabi-v7a with neon -mfloat-abi=softfp
-+ 测试平台
+  + 测试模型Mobilenetv1, mobilenetv2, mobilenet-ssd
+  + 采用android ndk交叉编译，gcc 4.9，enable neon， ABI： armveabi-v7a with neon -mfloat-abi=softfp
+  + 测试平台
   - 荣耀v9(root): 处理器:麒麟960, 4 big cores in 2.36GHz, 4 little cores in 1.8GHz
   - ubia z17:处理器:高通835, 4 big cores in 2.36GHz, 4 little cores in 1.9GHz
   - 360 N5:处理器:高通653, 4 big cores in 1.8GHz, 4 little cores in 1.4GHz
-+ 多线程：openmp
-+ 时间：warmup10次，运行10次取均值
+  + 多线程：openmp
+  + 时间：warmup10次，运行10次取均值
 
 2. Anakin
 
- 在BenchMark中本文将使用**`ncnn`**、**`TFlite`**和**`Anakin`**进行性能对比分析
+  在BenchMark中本文将使用**`ncnn`**、**`TFlite`**和**`Anakin`**进行性能对比分析
 
 3. BenchMark model
 
-> 注意在性能测试之前，请先将测试model通过[External Converter](#10003)转换为Anakin model
+  > 注意在性能测试之前，请先将测试model通过[External Converter](#10003)转换为Anakin model
 
-> 对这些model，本文在ARM上进行多线程的单batch size测试。
+  > 对这些model，本文在ARM上进行多线程的单batch size测试。
 
-- [Mobilenet v1](#11)  *caffe model 可以在[这儿](https://github.com/shicai/MobileNet-Caffe)下载*
-- [Mobilenet v2](#22)  *caffe model 可以在[这儿](https://github.com/shicai/MobileNet-Caffe)下载*
-- [mobilenet-ssd](#33)  *caffe model 可以在[这儿](https://github.com/chuanqi305/MobileNet-SSD)下载*
+  - [Mobilenet v1](#11)  *caffe model 可以在[这儿](https://github.com/shicai/MobileNet-Caffe)下载*
+  - [Mobilenet v2](#22)  *caffe model 可以在[这儿](https://github.com/shicai/MobileNet-Caffe)下载*
+  - [mobilenet-ssd](#33)  *caffe model 可以在[这儿](https://github.com/chuanqi305/MobileNet-SSD)下载*
 
-<span id = '11'> 3.1. mobilenetv1 </span>
+  <span id = '11'> 3.1. mobilenetv1 </span>
 
    |platform | Anakin (1) | Anakin (2) | Anakin (4) | ncnn (1) | ncnn (2) | ncnn (4) | TFlite (1) | TFlite (2) | TFlite (4)| 
    |:---: | :---: | :---: | :---:| :---:| :---:| :---:| :---:| :---:| :---:|
@@ -648,7 +649,7 @@ BatchSize | TensorRT | Anakin
    |高通835|105.7ms|63.1ms|~~46.8ms~~|152.7ms|87.0ms|~~92.7ms~~|146.9ms|nan|nan|
    |高通653|120.3ms|64.2ms|46.6ms|202.5ms|117.6ms|84.8ms|158.6ms|nan|nan| 
 
-<span id = '22'> 3.2. mobilenetv2 </span>
+  <span id = '22'> 3.2. mobilenetv2 </span>
 
    |platform | Anakin (1) | Anakin (2) | Anakin (4) | ncnn (1) | ncnn (2) | ncnn (4) | TFlite (1) | TFlite (2) | TFlite (4)| 
    |:---: | :---: | :---: | :---:| :---:| :---:| :---:| :---:| :---:| :---:|
@@ -656,7 +657,7 @@ BatchSize | TensorRT | Anakin
    |高通835|93.0ms|55.6ms|41.1ms|139.1ms|88.4ms|58.1ms|95.2ms|nan|nan|
    |高通653|106.6ms|64.2ms|48.0ms|199.9ms|125.1ms|98.9ms|108.5ms|nan|nan|
 
-<span id = '33'> 3.3. mobilenet-ssd </span>
+  <span id = '33'> 3.3. mobilenet-ssd </span>
 
    |platform | Anakin (1) | Anakin (2) | Anakin (4) | ncnn (1) | ncnn (2) | ncnn (4) | TFlite (1) | TFlite (2) | TFlite (4)| 
    |:---: | :---: | :---: | :---:| :---:| :---:| :---:| :---:| :---:| :---:|
@@ -703,19 +704,19 @@ BatchSize | TensorRT | Anakin
   > 注意在性能测试之前，请先将测试model通过[External Converter](#10003)转换为Anakin model
   > 本文在单CPU上进行多线程的单batch size测试。
 
-- [Language model](#111)   *fluid model 可以在[这儿](https://github.com/PaddlePaddle/models/tree/develop/fluid/language_model)下载*
+  - [Language model](#111)   *fluid model 可以在[这儿](https://github.com/PaddlePaddle/models/tree/develop/fluid/language_model)下载*
 
   测试结果：
 
-- [language model in i7-7700](#111)
-- [language model in E5-2620 v4](#222)
-- [language model in E5-2650 v4](#333)
+  * [language model in i7-7700](#111)
+  * [language model in E5-2620 v4](#222)
+  * [language model in E5-2650 v4](#333)
 
   > 注意：对于language model， 本文使用'ptb_valid_txt'作测试数据集
 
   <span id = '111'> 3.1. language model in i7-7700 </span>
 
-- Latency (`ms`) of one batch
+  - Latency (`ms`) of one batch
 
     ThreadNum | Tensorflow | Anakin
     :---: | :---: | :---: |
@@ -724,7 +725,7 @@ BatchSize | TensorRT | Anakin
     4 | 14.23   | 9.91
     6 | 19.83   | 15.51
 
-- Throughput (`words/s`)
+  - Throughput (`words/s`)
 
     ThreadNum | Tensorflow | Anakin
     :---: | :---: | :---: |
@@ -735,7 +736,7 @@ BatchSize | TensorRT | Anakin
 
   <span id = '222'> 3.2. language model in E5-2620 v4 </span>
 
-- Latency (`ms`) of one batch
+  - Latency (`ms`) of one batch
 
     ThreadNum | Tensorflow | Anakin
     :---: | :---: | :---: |
@@ -744,7 +745,7 @@ BatchSize | TensorRT | Anakin
     4 | 8.66    | 4.32
     6 | 12.33   | 7.12
 
-- Throughput (`words/s`)
+  - Throughput (`words/s`)
 
     ThreadNum | Tensorflow | Anakin
     :---: | :---: | :---: |
@@ -755,7 +756,7 @@ BatchSize | TensorRT | Anakin
 
   <span id = '333'> 3.3. language model in E5-2650 v4 </span>
 
-- Latency (`ms`) of one batch
+  - Latency (`ms`) of one batch
 
     ThreadNum | Tensorflow | Anakin
     :---: | :---: | :---: |
@@ -764,7 +765,7 @@ BatchSize | TensorRT | Anakin
     4 | 7.78    | 3.48
     6 | 13.54   | 4.79
 
-- Throughput (`words/s`)
+  - Throughput (`words/s`)
 
     ThreadNum | Tensorflow | Anakin
     :---: | :---: | :---: |
@@ -837,7 +838,7 @@ cd Anakin
 git checkout -b YOUR_NEW_BRANCH
 ```
 
-4. 开发
+<span id = ''> 4. 开发 </span>
 
   4.1. 编写代码
 
@@ -947,7 +948,7 @@ git branch -D YOUR_NEW_BRANCH
 ## <span id = '20003'> How to add custom operators </span>
 ---
 
-1. 基本概念
+<span id = ''> 1. 基本概念 </span>
 
   1.1. 与Operator相关的基本概念
 
@@ -973,7 +974,7 @@ git branch -D YOUR_NEW_BRANCH
 
     + ```ankain::saber::ImplBase```: saber设备实现的op的接口，所有设备相关实现的基类。位于saber/funcs/impl/impl_base.h。实现版本中这里分为两类，一类以```vender_```为前缀，带有```vender_```代码意为使用第三方库来实现该op，如cudnn的conv，或mkl的conv等等，这类op的性能我们难以调优，因此单独列为一类。另一类是带有源码的saber实现，这些实现都带有```saber_```为前缀，此类实现带有源码，能够通过后续优化不断提升性能，实现起名时需要注意这一点。
 
-2. 添加operator
+<span id = ''> 2. 添加operator </span>
 
   添加一个新的op需要以下几步：
 
@@ -1371,7 +1372,7 @@ int main(int argc, const char** argv){
 
 ```
 
-3. 调试及注意事项
+<span id = ''> 3. 调试及注意事项 </span>
 
   一个op需要有对外的op接口和内部实现，由于存在saber/funcs/impl的非特化版本声明，当有op在某种设备下没有对应实现时，也能够编译，但此时是没有任何实现的空实现
 
