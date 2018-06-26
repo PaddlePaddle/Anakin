@@ -209,15 +209,15 @@ typedef Singleton<OpAttrObjectRegister> OpAttrRegister;
 ///    .set_in(1)
 ///    .set_out(1)
 ///    .Args<int>("axis",  " the axis in input dim index. ")
-///    .Arg<bool>("bias_term", " whether include bias parameter.")
+///    .Args<bool>("bias_term", " whether include bias parameter.")
 ///    .Args<PTuple<float>>("weight", " the weight name.")
 ///    .Args<PTuple<float>>("bias", " the bias name.");       
 #define ANAKIN_REGISTER_OP(OpName) \
-    static AK_ATTRIBUTE_UNUSED OpAttrWarpper& AK_MAKE_UNIQ_OPERATOR_NAME(OpName) = \
-                   OpAttrRegister::Global().Register(#OpName).name(#OpName)                
+    static AK_ATTRIBUTE_UNUSED OpAttrWarpper& AK_MAKE_UNIQ_OPERATOR_NAME(OpName) =  \
+                   OpAttrRegister::Global().Register(#OpName).name(#OpName)
 
 #define ANAKIN_REGISTER_OP_HELPER(OpName, OpHelperName, TargetT, DataT, PrecisionT)                                             \
-    static AK_ATTRIBUTE_UNUSED bool AK_MAKE_UNIQ_OPERATOR_NAME(OpName##_##OpHelperName##TargetT##DataT) =           \
+    static AK_ATTRIBUTE_UNUSED bool AK_MAKE_UNIQ_OPERATOR_NAME(OpName##_##OpHelperName##TargetT##DataT) =                       \
     OpFactory<TargetT, DataT, PrecisionT>::Global().Register(#OpName,                                                           \
                                   []() {                                                                                        \
                                         OpName<TargetT, DataT, PrecisionT>* tmpop = new OpName<TargetT, DataT, PrecisionT>();   \

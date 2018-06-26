@@ -6,18 +6,26 @@ namespace ops {
 
 #ifdef USE_CUDA
 template<>
-void Gru<NV, AK_FLOAT, Precision::FP32>::operator() (OpContext<NV> &ctx, 
-                          const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins, 
+void Gru<NV, AK_FLOAT, Precision::FP32>::operator() (OpContext<NV> &ctx,
+                          const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
                           std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
     auto* impl = static_cast<GruHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
     auto& param = static_cast<GruHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper)->_param_gru;
     impl->_funcs_gru(ins, outs, param, ctx);
 }
 #endif
+#ifdef USE_X86_PLACE
+template<>
+void Gru<X86, AK_FLOAT, Precision::FP32>::operator() (OpContext<X86> &ctx,
+                                                     const std::vector<Tensor4dPtr<X86, AK_FLOAT> >& ins,
+                                                     std::vector<Tensor4dPtr<X86, AK_FLOAT> >& outs) {
+    auto* impl = static_cast<GruHelper<X86, AK_FLOAT, Precision::FP32>*>(this->_helper);
+    auto& param = static_cast<GruHelper<X86, AK_FLOAT, Precision::FP32>*>(this->_helper)->_param_gru;
+    impl->_funcs_gru(ins, outs, param, ctx);
+}
+#endif
 
 /// TODO ... specialization other type of operator
-
-
 /// set helper
 template<typename Ttype, DataType Dtype, Precision Ptype>
 GruHelper<Ttype, Dtype, Ptype>::~GruHelper() {
@@ -31,12 +39,13 @@ Status GruHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto hidden_act = GET_PARAMETER(std::string, activation);
     auto formula = GET_PARAMETER(std::string, gru_formula);
 
-//    auto weight_h2h = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_1);
-//    auto bias = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_3);
-//    auto weight_i2h = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_2);
+//    auto weight_h2h = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>, weight_1);
+//    auto bias = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>, weight_3);
+//    auto weight_i2h = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>, weight_2);
 
-    auto weight_wu = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_1);
-    auto bias = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_2);
+	using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
+    auto weight_wu = GET_PARAMETER(pblock_type, weight_1);
+    auto bias = GET_PARAMETER(pblock_type, weight_2);
 
     CHECK((formula != "") && (formula == "gru_origin"
                               || formula == "gru_cudnn")) << "formula illegal";
@@ -68,6 +77,7 @@ Status GruHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype> &ctx,
                                                 const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
                                                 std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
     SABER_CHECK(_funcs_gru.init(ins, outs, _param_gru, SPECIFY, SABER_IMPL, ctx));
+//    SABER_CHECK(_funcs_gru.init(ins, outs, _param_gru, SPECIFY, VENDER_IMPL, ctx));
     return Status::OK();
 }
 
@@ -90,6 +100,11 @@ template class GruHelper<ARM, AK_FLOAT, Precision::FP16>;
 template class GruHelper<ARM, AK_FLOAT, Precision::INT8>;
 #endif
 
+#ifdef USE_X86_PLACE
+template class GruHelper<X86, AK_FLOAT, Precision::FP32>;
+template class GruHelper<X86, AK_FLOAT, Precision::FP16>;
+template class GruHelper<X86, AK_FLOAT, Precision::INT8>;
+#endif
 
 #ifdef USE_CUDA
 ANAKIN_REGISTER_OP_HELPER(Gru, GruHelper, NV, AK_FLOAT, Precision::FP32);
@@ -97,7 +112,9 @@ ANAKIN_REGISTER_OP_HELPER(Gru, GruHelper, NV, AK_FLOAT, Precision::FP32);
 #ifdef USE_ARM_PLACE
 ANAKIN_REGISTER_OP_HELPER(Gru, GruHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
-
+#ifdef USE_X86_PLACE
+ANAKIN_REGISTER_OP_HELPER(Gru, GruHelper, X86, AK_FLOAT, Precision::FP32);
+#endif
 //! register op
 ANAKIN_REGISTER_OP(Gru)
     .Doc("Gru operator")
@@ -106,6 +123,9 @@ ANAKIN_REGISTER_OP(Gru)
 #endif
 #ifdef USE_ARM_PLACE
     .__alias__<ARM, AK_FLOAT, Precision::FP32>("gru")
+#endif
+#ifdef USE_X86_PLACE
+    .__alias__<X86, AK_FLOAT, Precision::FP32>("gru")
 #endif
     .num_in(1)
     .num_out(1)

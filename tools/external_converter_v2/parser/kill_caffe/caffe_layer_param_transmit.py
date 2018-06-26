@@ -1002,6 +1002,7 @@ def Parser_priorbox(args):
     OpsRegister()["PriorBox"].step_h = prior_box_param.step_h
     OpsRegister()["PriorBox"].step_w = prior_box_param.step_w
     OpsRegister()["PriorBox"].offset = prior_box_param.offset
+    OpsRegister()["PriorBox"].order = ['MIN', 'MAX', 'COM']
 
 
 @ParserFeedDecorator("DetectionOutput")
@@ -1035,6 +1036,7 @@ def Parser_argmax(args):
     OpsRegister()["Argmax"].out_max_val = argmax_param.out_max_val
     OpsRegister()["Argmax"].top_k = argmax_param.top_k
     OpsRegister()["Argmax"].axis = argmax_param.axis
+    OpsRegister()["Argmax"].axis_term = True
 
 
 @ParserFeedDecorator("Normalize")

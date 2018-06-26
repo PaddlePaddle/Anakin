@@ -101,8 +101,8 @@ struct node {
     node(const node& rhs) {
         name = rhs.name;
         opName = rhs.opName;
-        functorName = rhs.functorName;
-        property = rhs.property;
+        //functorName = rhs.functorName;
+        //property = rhs.property;
         mergeNodeNames.clear();
         for (auto& node_name : rhs.mergeNodeNames) {
             mergeNodeNames.push_back(node_name);
@@ -116,8 +116,8 @@ struct node {
     inline node& operator=(const node& rhs) {
         name = rhs.name;
         opName = rhs.opName;
-        functorName = rhs.functorName;
-        property = rhs.property;
+        //functorName = rhs.functorName;
+        //property = rhs.property;
         mergeNodeNames.clear();
         for (auto& node_name : rhs.mergeNodeNames) {
             mergeNodeNames.push_back(node_name);

@@ -24,6 +24,7 @@
 
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_gru.h"
+#include "saber/funcs/impl/x86/vender_gru.h"
 #endif
 
 namespace anakin {
@@ -90,8 +91,11 @@ public:
 //            } else {
             int seq_sum = input[0]->num();
 //            CHECK_LE(seq_sum, max_seq_sum) << "seq_sum should le than the init shape";
+
             Shape output_shape = Shape(seq_sum, hiddenSize * param.num_direction, 1, 1);
-            return output[0]->set_shape(output_shape);
+            output[0]->set_shape(output_shape);
+            output[0]->set_seq_offset(input[0]->get_seq_offset());
+            return SaberSuccess;
 //            }
 //        }
 //        else {
@@ -112,6 +116,7 @@ public:
         case VENDER_IMPL:
             this->_impl.push_back(new VenderGru <TargetType, OpDtype, inDtype, outDtype,
                                   LayOutType_op, LayOutType_in, LayOutType_out>);
+            LOG(INFO)<<"VENDER_IMPL !!";
             return SaberSuccess;
 
         case SABER_IMPL:

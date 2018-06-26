@@ -91,6 +91,7 @@ public:
             shape_out[widht_idx] = 1;
         }
         shape_out[channel_idx] = n;
+        output[0]->set_seq_offset(input[0]->get_seq_offset());
         return output[0]->set_shape(shape_out);
     }
 
@@ -110,10 +111,10 @@ public:
         }
     }
 
-
 private:
 
     virtual void pick_best_static() override {
+#ifdef USE_CUDA
         bool use_saber_fc = true;
         use_saber_fc &= this->_last_input_shape[0] > 1;
         use_saber_fc &= this->_last_input_shape[0] <= 32;
@@ -122,6 +123,10 @@ private:
         } else {
             this->_best_impl = this->_impl[0];
         }
+#endif
+#ifdef USE_X86_PLACE
+        this->_best_impl = this->_impl[0];
+#endif
     }
 
     virtual void pick_best_specify(ImplEnum implenum) override {
