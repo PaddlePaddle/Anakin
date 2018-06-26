@@ -5,12 +5,10 @@ namespace anakin {
 
 template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
 Net<Ttype, Dtype, Ptype, RunType>::~Net() {
-            LOG(ERROR) << "begin net destructor";
 	if(_graph_p) {
 		delete _graph_p;
 		_graph_p = nullptr;
 	}
-            LOG(ERROR) << "end net destructor";
 }
 
 template<typename Ttype, DataType Dtype>

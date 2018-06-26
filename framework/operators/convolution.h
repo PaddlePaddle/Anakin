@@ -64,7 +64,7 @@ class ConvolutionHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     ConvolutionHelper()=default;
 
-    ~ConvolutionHelper(){LOG(ERROR) << "convolution destructor";}
+    ~ConvolutionHelper(){}
 
     Status InitParam() override;
 

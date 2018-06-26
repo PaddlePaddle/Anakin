@@ -36,7 +36,7 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 class NodeIO {
 public:
     NodeIO() {}
-    ~NodeIO() {LOG(ERROR) << "nodeio destructor";}
+    ~NodeIO() {}
 
     size_t size() { return _que.size(); }
     bool empty() { return _que.empty(); }

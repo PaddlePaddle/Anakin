@@ -47,12 +47,10 @@ public:
                                  Edge<Ttype, Dtype> >(size) {}
 
     ~Graph() {
-        LOG(ERROR) << "begin graph destructor";
         if(_vgraph) { 
             delete _vgraph;
             _vgraph = nullptr;
         }
-                LOG(ERROR) << "end graph destructor";
     }
 
     /// get graph name

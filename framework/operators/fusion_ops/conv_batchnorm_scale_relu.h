@@ -60,7 +60,7 @@ class ConvBatchnormScaleReluHelper : public OperatorHelper<Ttype, Dtype, Ptype> 
 public:
     ConvBatchnormScaleReluHelper()=default;
 
-    ~ConvBatchnormScaleReluHelper() {LOG(ERROR) << "convbnscalerelu destructor";}
+    ~ConvBatchnormScaleReluHelper() {}
 
     Status InitParam() override;
 

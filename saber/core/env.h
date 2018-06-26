@@ -32,7 +32,6 @@ public:
     }
     static void env_init(int max_stream = 4){
         Devs& devs = cur_env();
-        LOG(ERROR) << "devs size: " << devs.size();
         if (devs.size() > 0){
             return;
         }

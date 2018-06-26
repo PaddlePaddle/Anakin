@@ -62,7 +62,7 @@ class SoftmaxHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     SoftmaxHelper()=default;
 
-    ~SoftmaxHelper() {LOG(ERROR) << "softmax destructor";}
+    ~SoftmaxHelper() {}
 
     Status InitParam() override;
 

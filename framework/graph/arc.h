@@ -34,7 +34,7 @@ public:
     Arc(VertexNameType vertex_1, VertexNameType vertex_2);
     Arc(VertexNameType vertex_1, VertexNameType vertex_2, WeightType weight);
     Arc(const Arc& otherArc);
-    virtual ~Arc() {LOG(ERROR) << "clear arcs: " << name();}
+    virtual ~Arc() {}
 	
     /// judge if one arc equal to another
     bool operator==(const Arc<VertexNameType, WeightType>& otherArc) const {

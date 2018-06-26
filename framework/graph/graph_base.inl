@@ -16,36 +16,21 @@ GraphBase<VertexNameType, VertexType, WeightType, ArcType>::GraphBase(size_t siz
 
 template<typename VertexNameType, typename VertexType, typename WeightType, typename ArcType>
 GraphBase<VertexNameType, VertexType, WeightType, ArcType>::~GraphBase() {
-            LOG(ERROR) << "begin graph base destructor";
 	all_clear();
-    LOG(ERROR) << "clean arcs and vetices";
     delete Scanner;
     Scanner = nullptr;
-            LOG(ERROR) << "end graph base destructor";
 }
 
 template<typename VertexNameType, typename VertexType, typename WeightType, typename ArcType>
 void GraphBase<VertexNameType, VertexType, WeightType, ArcType>::arcs_clear() {
-    LOG(ERROR) << "begin clear arcs";
-    LOG(ERROR) << "arcs size: " << _arcs.size();
-    auto arc0 = _arcs.begin();
-    printf("get arc0: %x\n", arc0);
     _arcs.clear();
-    LOG(ERROR) << "end clear arcs";
-            LOG(ERROR) << "begin clear out arcs";
-            LOG(ERROR) << "out arcs size: " << _graph_out_arcs.size();
     _graph_out_arcs.clear();
-            LOG(ERROR) << "end clear out arcs";
-            LOG(ERROR) << "begin clear in arcs";
-            LOG(ERROR) << "in arcs size: " << _arcs.size();
     _graph_in_arcs.clear();
-            LOG(ERROR) << "end clear in arcs";
 }
 
 template<typename VertexNameType, typename VertexType, typename WeightType, typename ArcType>
 void GraphBase<VertexNameType, VertexType, WeightType, ArcType>::vertices_clear() {
     _vertices.clear();
-            LOG(ERROR) << "clear vertices";
 }
 
 template<typename VertexNameType, typename VertexType, typename WeightType, typename ArcType>
