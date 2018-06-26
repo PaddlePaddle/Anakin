@@ -4,3 +4,4 @@
 
 from op import OpsParam, OpsRegister
 import ops
+import ops_fluid

@@ -34,12 +34,12 @@ OpsRegister.Register("Exp").set_attr(base=float(),
                                      scale=float(), 
                                      shift=float())
 # one input
-# y = log(shift + scale * x)
+# y=log(shift + scale * x)
 OpsRegister.Register("Log").set_attr(base=float(), 
                                      scale=float(), 
                                      shift=float())
 # one input
-# y =  (shift + scale * x) ^ power
+# y= (shift + scale * x) ^ power
 OpsRegister.Register("Power").set_attr(shift=float(), 
                                        scale=float(), 
                                        power=float())
@@ -55,23 +55,23 @@ OpsRegister.Register("Softmax").set_attr(axis=int())
 # 		  }
 OpsRegister.Register("Activation").set_attr(type="")
 # Leaky version of a Rectified Linear Unit ( alpha != 0 ).
-# 	f(x) = alpha * x  	 : x < 0
-# 	f(x) = 		   x  	 : x >= 0
-# Standard ReLU ( alpha = 0 )
-#   f(x) = 0 * x     : x < 0
-#   f(x) =     x     : x >= 0
+# 	f(x)=alpha * x  	 : x < 0
+# 	f(x)=		   x  	 : x >= 0
+# Standard ReLU ( alpha=0 )
+#   f(x)=0 * x     : x < 0
+#   f(x)=    x     : x >= 0
 #   note:  alpha is fixed value
 OpsRegister.Register("ReLU").set_attr(alpha=float())
 # Parametric Rectified Linear Unit
-#   f(x) = alpha * x 	 : x < 0
-#   f(x) = x 			 : x >= 0
+#   f(x)=alpha * x 	 : x < 0
+#   f(x)=x 			 : x >= 0
 #   note: alpha is learned array with the same shape as x.
 #   ref: Parametric ReLU described in K. He et al, Delving Deep into Rectifiers: 
 #        	<<Surpassing Human-Level Performance on ImageNet Classification>>, 2015.
 OpsRegister.Register("PReLU").set_attr(channel_shared=bool())
 # Exponential Linear Unit.
-# 	f(x) =  alpha * (exp(x) - 1.0) 	: x < 0
-#   f(x) = x 						: x >= 0
+# 	f(x)= alpha * (exp(x) - 1.0) 	: x < 0
+#   f(x)=x 						: x >= 0
 OpsRegister.Register("ELU").set_attr(alpha=int())
 
 # dense op parameter
@@ -285,7 +285,65 @@ OpsRegister.Register("Argmax").set_attr(out_max_val=bool(),
                                         axis_term=bool())
 
 
-OpsRegister.Register("Normalize").set_attr(is_across_spatial=bool(), 
-                                           is_shared_channel=bool(), 
-                                           eps=float(), 
-                                           p=int())
+########### OCR Op define #############
+
+OpsRegister.Register("Im2Sequence").set_attr(paddings=list(),
+                                             strides=list(),
+                                             window_size=list(),
+                                             dilations=list())
+
+
+OpsRegister.Register("Cast").set_attr(in_type=int(),
+                                      out_type=int())
+
+
+OpsRegister.Register("Gru").set_attr(is_reverse=bool(),
+                                     gate_activation="sigmoid",
+                                     activation="relu",
+                                     gru_formula="")
+
+OpsRegister.Register("CtcAlign").set_attr(merge_repeated=bool(),
+                                          blank=int())
+
+
+########### RNN Op define #############
+
+
+OpsRegister.Register("Embedding").set_attr(word_num=int(),
+                                           emb_dim=int(),
+                       padding_idx=int())
+
+
+OpsRegister.Register("SequencePool").set_attr(pooltype="LAST")
+
+
+OpsRegister.Register("SequenceConv").set_attr(filter_num=int(),
+                                              kernel_size=list(), 
+                                              padding_trainable=bool(),
+                                              context_stride=int(),
+                                              context_start=int(),
+                                              context_length=int())
+
+OpsRegister.Register("CrfDecoding").set_attr()
+
+
+OpsRegister.Register("LSTM").set_attr(candidate_activation="tanh",
+                                      cell_activation="tanh",
+                                      gate_activation="sigmoid",
+                                      is_reverse=bool(),
+                                      use_peepholes=bool(),
+                                      num_direction=int(),
+                                      dropout_param=float(),
+                                      num_layers=int(),
+                                      input_activation="null")
+
+
+OpsRegister.Register("MatMul").set_attr(transpose_x=bool(),
+                                        transpose_y=bool())
+
+
+OpsRegister.Register("LayerNorm").set_attr(is_across_spatial=bool(),
+                                           is_shared_channel=bool(),
+                                           begin_norm_axis=int(),
+                                           eps=float())
+
