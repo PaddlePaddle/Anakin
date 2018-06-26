@@ -70,7 +70,7 @@ class PoolingHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     PoolingHelper()=default;
 
-    ~PoolingHelper() {}
+    ~PoolingHelper() {LOG(ERROR) << "pooling destructor";}
 
     Status InitParam() override;
 

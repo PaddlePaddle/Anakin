@@ -369,8 +369,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
         }
 #endif
         std::cout<<std::endl;
-        record_dev_tensorfile(out->data(), out->valid_size(),
-                              ("net_record_" + executer.name + ".txt").data());
+        //record_dev_tensorfile(out->data(), out->valid_size(), ("net_record_" + executer.name + ".txt").data());
 	    LOG(ERROR) << "    |---out avg " << tensor_average(out);
 	}
 
@@ -628,7 +627,7 @@ Status Net<Ttype, Dtype, Ptype, RunType>::init_memory() {
 template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
 Status Net<Ttype, Dtype, Ptype, RunType>::init_env(graph::Graph<Ttype, Dtype, Ptype>& graph) {
     LOG(WARNING) << "Detect and initial " << graph.get_ins().size() << " lanes.";
-    //Env<Ttype>::env_init(graph.get_ins().size());
+    Env<Ttype>::env_init(graph.get_ins().size());
     LOG(WARNING) << "Current used device id : " << TargetWrapper<Ttype>::get_device_id();
     return Status::OK();
 }
