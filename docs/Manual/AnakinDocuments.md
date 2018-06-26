@@ -17,14 +17,10 @@
     - ARM
     - More devices
 + Developing Guide
-  + C++ APIs
-    - Anakin working principle
-    - APIs 
-    - Code example
+  - C++ APIs
   - How to contribute
   - How to add custom operators
   - How to add new device
-
 
 ## User Manual
 ---
@@ -827,36 +823,8 @@ TARGET:
 # Developing Guide
 ---
 
-本节主要包含以下四个方面内容：
-  
-+ [C++ APIs](#20001)
-+ [How to contribute](#20002)
-+ [How to add custom operators](#20003)
-+ [How to add new device](#20004)
-
-
 ## <span id = '20001'> C++ APIs </span>
 ---
-
-本节主要内容包含以下几个方面：
-
-- [Anakin的工作原理](#principle)
-- [Anakin APIs](#api)
-- [示例代码](#example)
-
-### <span id = 'principle'> Anakin的工作原理</span> ###
-
-![Anakin_principle](pics/anakin_fm_ch.png)
-
-用Anakin来进行前向计算主要分为三个步骤：
-
-- 将外部模型通过[External Converter](#10003)转换为Anakin模型  
-  在使用Anakin之前，用户必须将所有其他模型转换成Anakin模型，我们提供了转换脚本，用户可通过[Anakin Parser](./Converter_ch.md)进行模型转换
-- 生成Anakin计算图
-  加载Anakin模型生成原始计算图，然后需要对原始计算图进行优化。你只需要调用相应的API优化即可
-- 执行计算图  
-  Anakin会选择不同硬件平台执行计算图
-
 
 ### <span id ='api'>Anakin APIs </span> ###
 #### Tensor ####
@@ -1423,74 +1391,6 @@ Tensor<NV, AK_FLOAT>* tensor_out_d = executor.get_out("pred_out");
 ```c++
 executor.prediction();
 ```
- 
-### <span id='example'> 示例代码 </span> ###
-
-下面的例子展示了如何调用Anakin
-
-在这儿之前， 请确保你已经有了Anakin模型。如果还没有，那么请使用[Anakin Parser](./Converter_ch.md)转换你的模型。
-
-#### 单线程
-
-  单线程例子在 *source_root/test/framework/net/net_exec_test.cpp*
-
-```c++
-
-std::string model_path = "your_Anakin_models/xxxxx.anakin.bin";
-// Create an empty graph object.
-auto graph = new Graph<NV, AK_FLOAT, Precision::FP32>();
-// Load Anakin model.
-auto status = graph->load(model_path);
-if(!status ) {
-    LOG(FATAL) << " [ERROR] " << status.info();
-}
-// Reshape
-graph->Reshape("input_0", {10, 384, 960, 10});
-// You must optimize graph for the first time.
-graph->Optimize();
-// Create a executer.
-Net<NV, AK_FLOAT, Precision::FP32> net_executer(*graph);
-
-//Get your input tensors through some specific string such as "input_0", "input_1", and 
-//so on. 
-//And then, feed the input tensor.
-//If you don't know Which input do these specific string ("input_0", "input_1") correspond with, you can launch dash board to find out.
-auto d_tensor_in_p = net_executer.get_in("input_0");
-Tensor4d<X86, AK_FLOAT> h_tensor_in;
-auto valid_shape_in = d_tensor_in_p->valid_shape();
-for (int i=0; i<valid_shape_in.size(); i++) {
-    LOG(INFO) << "detect input dims[" << i << "]" << valid_shape_in[i]; //see tensor's dimentions
-}
-h_tensor_in.re_alloc(valid_shape_in);
-float* h_data = h_tensor_in.mutable_data();
-for (int i=0; i<h_tensor_in.size(); i++) {
-    h_data[i] = 1.0f;
-}
-d_tensor_in_p->copy_from(h_tensor_in);
-
-//Do inference.
-net_executer.prediction();
-
-//Get result tensor through the name of output node.
-//And also, you need to see the dash board again to find out how many output nodes are and remember their name.
-
-//For example, you've got a output node named obj_pre_out
-//Then, you can get an output tensor.
-auto d_tensor_out_0_p = net_executer.get_out("obj_pred_out"); //get_out returns a pointer to output tensor.
-auto d_tensor_out_1_p = net_executer.get_out("lc_pred_out"); //get_out returns a pointer to output tensor.
-//......
-// do something else ...
-//...
-//save model.
-//You might not optimize the graph when you load the saved model again.
-std::string save_model_path = model_path + std::string(".saved");
-auto status = graph->save(save_model_path);
-if (!status ) {
-    LOG(FATAL) << " [ERROR] " << status.info();
-}
-
-```
-
 
 ## <span id = '20002'> How to contribute </span>
 ---
