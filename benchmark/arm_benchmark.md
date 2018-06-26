@@ -49,9 +49,9 @@
 
 ## How to run those Benchmark models?
 
-> 首先, 使用[External Converter](../docs/Manual/Converter_en.md)对caffe model 进行转换
-> 然后将转换后的Anakin model和编译好的benchmark_arm 二进制文件通过'adb push'命令上传至测试机
-> 接着在测试机含有Anakin model的目录中运行'./benchmark_arm ./ anakin_model.anakin.bin 1 10 10 1' 命令
-> 最后，终端显示器上将会打印该模型的运行时间
-> 其中运行命令的参数个数和含义可以通过运行'./benchmark_arm'看到
+1. 首先, 使用[External Converter](../docs/Manual/Converter_en.md)对caffe model 进行转换
+2. 然后将转换后的Anakin model和编译好的benchmark_arm 二进制文件通过'adb push'命令上传至测试机
+3. 接着在测试机含有Anakin model的目录中运行'./benchmark_arm ./ anakin_model.anakin.bin 1 10 10 1' 命令
+4. 最后，终端显示器上将会打印该模型的运行时间
+5. 其中运行命令的参数个数和含义可以通过运行'./benchmark_arm'看到
 
