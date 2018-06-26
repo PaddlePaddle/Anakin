@@ -3,27 +3,27 @@
 ## 目录:
 
 + User Manual
-	+ Instal and Compile
-		- Docker
-		- Builde from source
-	+ Run on ARM
-		- Android
-		- Linux
-		- IOS
-  	- External Converter
-	- Examples
-	+ Benchmark
-		- NV GPU
-		- ARM
-		- More devices
+  + Instal and Compile
+    - Docker
+    - Builde from source
+  + Run on ARM
+    - Android
+    - Linux
+    - IOS
+    - External Converter
+  - Examples
+  + Benchmark
+    - NV GPU
+    - ARM
+    - More devices
 + Developing Guide
-	+ C++ APIs
-		- Anakin working principle
-		- APIs 
-		- Code example
-	- How to contribute
-	- How to add custom operators
-	- How to add new device
+  + C++ APIs
+    - Anakin working principle
+    - APIs 
+    - Code example
+  - How to contribute
+  - How to add custom operators
+  - How to add new device
 
 
 ## User Manual
@@ -886,6 +886,7 @@ TARGET:
     3 | 3-tensor
     n | n-tensor
 
+
 2. <span id =' '> 声明tensor对象 </span>
 
   `Tensor`接受三个模板参数:
@@ -915,6 +916,7 @@ TARGET:
     X86 | X86
     NVHX86 | NVIDIA GPU with Pinned Memory
 
+
   2.2. <sapn id='datatype'> DataType </span>
 
     Anakin DataType | C++ | Description 
@@ -933,6 +935,7 @@ TARGET:
     AK_BOOL | bool | /
     AK_SHAPE | / | Anakin Shape 
     AK_TENSOR | / | Anakin Tensor 
+
 
   2.3. <span id = 'layout'> LayOutType </span>
 
