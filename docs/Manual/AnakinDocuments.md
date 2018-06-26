@@ -2076,18 +2076,17 @@ int main(int argc, const char** argv){
 
 2. 在`saber/core`中添加设备的实现
 
-  2.1. `TargetWraper`
+  <span id = ''> 2.1. `TargetWraper` </span>
 
-3. 在`framework`中添加设备的实现
+3. <span id = ''> 在`framework`中添加设备的实现 </span>
 
-  3.1. `graph`
+  3.1. <span id = ''> `graph` </span>
 
   3.2. `net`
 
   3.3. `operator`
 
-4. 在`CMakeList`中添加设备的实现
+4. <span id = ''> 在`CMakeList`中添加设备的实现 </span>
 
 5. 注意事项
-
 
