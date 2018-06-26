@@ -18,7 +18,7 @@ TEST(TestSaberFuncBM, test_func_pooling) {
     typedef TargetWrapper<X86> X86_API;
     typedef TargetWrapper<BM> BM_API;
     typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
-    typedef Tensor<BM, AK_FLOAT, NCHW> TensorDf4;
+    typedef Tensor<BM, AK_BM, NCHW> TensorDf4;
 
     int img_num = 1;
     int in_channels = 4;
@@ -71,7 +71,7 @@ TEST(TestSaberFuncBM, test_func_pooling) {
     input.push_back(&img_dev);
     output.push_back(&output_dev);
 
-    Pooling<BM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW> pooling;
+    Pooling<BM, AK_BM, AK_BM, AK_BM, NCHW> pooling;
     pooling.compute_output_shape(input, output, param);
 
     output_dev.re_alloc(output[0]->shape());
@@ -92,15 +92,12 @@ TEST(TestSaberFuncBM, test_func_pooling) {
     }
 
     output_dev.sync();
-    cudaDeviceSynchronize();
     LOG(INFO) << " average time: " << t1.get_average_ms() << " ms";
     LOG(INFO) << " tile 10% time: " << t1.get_tile_time(10) << " ms";
     LOG(INFO) << " tile 50% time: " << t1.get_tile_time(50) << " ms";
     LOG(INFO) << " tile 90% time: " << t1.get_tile_time(90) << " ms";
     LOG(INFO) << " tile 95% time: " << t1.get_tile_time(95) << " ms";
     LOG(INFO) << " tile 99% time: " << t1.get_tile_time(99) << " ms";
-
-    CUDA_CHECK(cudaPeekAtLastError());
 }
 
 TEST(TestSaberFuncBM, test_pooling_result) {
@@ -113,7 +110,7 @@ TEST(TestSaberFuncBM, test_pooling_result) {
     typedef TargetWrapper<X86> X86_API;
     typedef TargetWrapper<BM> BM_API;
     typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
-    typedef Tensor<BM, AK_FLOAT, NCHW> TensorDf4;
+    typedef Tensor<BM, AK_BM, NCHW> TensorDf4;
 
     int img_num = 1;
     int in_channels = 2;
@@ -166,7 +163,7 @@ TEST(TestSaberFuncBM, test_pooling_result) {
     input.push_back(&img_dev);
     output.push_back(&output_dev);
 
-    Pooling<BM, AK_FLOAT> pooling;
+    Pooling<BM, AK_BM> pooling;
     pooling.compute_output_shape(input, output, param);
 
     output_dev.re_alloc(output[0]->shape());
@@ -174,14 +171,9 @@ TEST(TestSaberFuncBM, test_pooling_result) {
     // init assume output tensor has been reshpaed by user.
     pooling.init(input, output, param, SPECIFY, VENDER_IMPL, ctx1);
     pooling(input, output, param, ctx1);
-    cudaStream_t cuda_stream = ctx1.get_compute_stream();
-    output[0]->record_event(cuda_stream);
 
     output_dev.sync();
     print_tensor_device(output_dev);
-
-    cudaDeviceSynchronize();
-    CUDA_CHECK(cudaPeekAtLastError());
 }
 
 TEST(TestSaberFuncBM, test_pooling_shared_buffer) {
@@ -194,7 +186,7 @@ TEST(TestSaberFuncBM, test_pooling_shared_buffer) {
     typedef TargetWrapper<X86> X86_API;
     typedef TargetWrapper<BM> BM_API;
     typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
-    typedef Tensor<BM, AK_FLOAT, NCHW> TensorDf4;
+    typedef Tensor<BM, AK_BM, NCHW> TensorDf4;
 
     int img_num = 1;
     int in_channels = 2;
@@ -257,9 +249,9 @@ TEST(TestSaberFuncBM, test_pooling_shared_buffer) {
     input.push_back(&img_dev);
     output.push_back(&output_dev);
 
-    Pooling<BM, AK_FLOAT> pooling;
-    Pooling<BM, AK_FLOAT> pooling0;
-    Pooling<BM, AK_FLOAT> pooling1;
+    Pooling<BM, AK_BM> pooling;
+    Pooling<BM, AK_BM> pooling0;
+    Pooling<BM, AK_BM> pooling1;
 
     pooling.compute_output_shape(input,output,  param);
 
@@ -286,19 +278,10 @@ TEST(TestSaberFuncBM, test_pooling_shared_buffer) {
     pooling1.init(input1, output1, param, SPECIFY, VENDER_IMPL, ctx1);
     pooling1(input1, output1, param, ctx1);
 
-    cudaStream_t cuda_stream = ctx1.get_compute_stream();
-    out0.record_event(cuda_stream);
-
-    cudaStream_t cuda_stream1 = ctx1.get_compute_stream();
-    out1.record_event(cuda_stream1);
-
     out0.sync();
     out1.sync();
 
     print_tensor_device(output_dev);
-
-    cudaDeviceSynchronize();
-    CUDA_CHECK(cudaPeekAtLastError());
 }
 
 int main(int argc, const char** argv) {
