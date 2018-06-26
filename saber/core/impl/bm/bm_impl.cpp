@@ -37,9 +37,9 @@ namespace saber{
 
 typedef TargetWrapper<BM, __device_target> BM_API;
 
-//TODO: check exception
-//static bm_handle_t handle = get_bm_handle();
+// Init handle only once in the lifetime
 static bm_handle_t handle;
+static bm_status_t init_handle{bmdnn_init(&handle)};
 
 void BM_API::get_device_count(int &count) {
     BMDNN_CHECK(bm_dev_getcount(&count));
