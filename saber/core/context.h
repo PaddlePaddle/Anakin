@@ -111,11 +111,6 @@ public:
         return _stream_compute;
     }
 
-#ifdef USE_BM
-    bm_handle_t get_handler() {
-        return API::get_handler();
-    }
-#endif
 
 #ifdef USE_ARM_PLACE
     void set_power_mode(PowerMode mode);
