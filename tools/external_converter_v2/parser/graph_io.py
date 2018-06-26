@@ -213,6 +213,22 @@ class GraphProtoIO(object):
     def add_node(self, node=NodeProtoIO()):
         self.graph_proto.nodes.extend([node])
 
+    def rm_node(self, node):
+        if node in self.graph_proto.nodes:
+            index = -1
+            for idx, tmp_node in enumerate(self.graph_proto.nodes):
+                if tmp_node == node:
+                    index = idx
+                    break
+            if index >= 0:
+                del self.graph_proto.nodes[index]
+        else:
+            raise NameError('ERROR: (%s) node not exist.' % ( node ) )
+
+    def find_node_proto(self, node_name):
+        for node in self.graph_proto.nodes:
+            if node.name == node_name:
+                return node
     def get_edge_nexts(self, node_name_0):
         """
         get edge's next node_name
@@ -261,6 +277,33 @@ class GraphProtoIO(object):
 
     def add_in(self, node_name):
         self.graph_proto.ins.append(node_name)
+    def rm_in(self, node_name):
+        graph_ins = list(self.graph_proto.ins)
+        for in_name in graph_ins:
+            if node_name == in_name:
+                idx = graph_ins.index(in_name)
+                del graph_ins[idx]
+        self.graph_proto.ins[:] = graph_ins
+        print 'self.graph_proto.ins[:]'
+        print self.graph_proto.ins[:]
+
+    def ins(self):
+        return list(self.graph_proto.ins)
+
+    def outs(self):
+        return list(self.graph_proto.outs)
+    def add_out_fluid(self, output_node_name, in_node_name):
+        """
+        add output node for graph
+        """
+        nodeIO = NodeProtoIO()
+        nodeIO.set_name(output_node_name)
+        nodeIO.add_in(in_node_name)
+        opIO = OpsProtoIO()
+        opIO.set_name("Output")
+        nodeIO.set_op(opIO())
+        self.add_node(nodeIO())
+        self.graph_proto.outs.append(output_node_name)
 
     def add_out(self, output_node_name, in_node_name):
         """
@@ -277,5 +320,14 @@ class GraphProtoIO(object):
         self.add_node(nodeIO())
         self.graph_proto.outs.append(output_node_name)
 
+    def rm_out(self, node_name):
+        graph_outs = list(self.graph_proto.outs)
+        for out_name in graph_outs:
+            if node_name == out_name:
+                idx = graph_outs.index(out_name)
+                del graph_outs[idx]
+        self.graph_proto.outs[:] = graph_outs
+        print 'self.graph_proto.outs[:]'
+        print self.graph_proto.outs[:]
     def __call__(self):
         return self.graph_proto
