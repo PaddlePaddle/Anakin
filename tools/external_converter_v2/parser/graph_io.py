@@ -327,7 +327,6 @@ class GraphProtoIO(object):
                 idx = graph_outs.index(out_name)
                 del graph_outs[idx]
         self.graph_proto.outs[:] = graph_outs
-        print 'self.graph_proto.outs[:]'
-        print self.graph_proto.outs[:]
+
     def __call__(self):
         return self.graph_proto
