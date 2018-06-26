@@ -18,6 +18,7 @@
 
 #include "core/env.h"
 #include "saber/saber_types.h"
+#include <type_traits>
 
 #ifdef USE_BM
 #include "bmlib_runtime.h"
@@ -41,6 +42,11 @@ public:
      * @param compute_stream_id
      */
     Context(int device_id = 0, int data_stream_id = 0, int compute_stream_id = 0){
+        if(std::is_same<TargetType, BM>::value){
+            LOG(INFO) << "context init for BM";
+            return;
+        }
+
         CHECK_GT(devs.size(), 0) << "Env is not initialized or current target is not exit!";
         if (device_id >= devs.size()){
             LOG(WARNING) << "device index exceeds the number of devices, set to default device(0)!";
@@ -64,6 +70,11 @@ public:
     }
 
     Context(const Context<TargetType>& ctx){
+        if(std::is_same<TargetType, BM>::value){
+            LOG(INFO) << "context init for BM";
+            return;
+        }
+
         _device_id = ctx._device_id;
         _data_stream_id = ctx._data_stream_id;
         _compute_stream_id = ctx._compute_stream_id;
