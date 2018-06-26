@@ -879,12 +879,12 @@ TARGET:
 
   `Tensor`不同维度与分别与数学中的向量、矩阵等相对应如下表所示 
 
-    Dimentions | Math entity |
-    :----: | :----:
-    1 | vector
-    2 | matrix
-    3 | 3-tensor
-    n | n-tensor
+  Dimentions | Math entity |
+  :----: | :----:
+  1 | vector
+  2 | matrix
+  3 | 3-tensor
+  n | n-tensor
 
 
 2. <span id =' '> 声明tensor对象 </span>
@@ -908,47 +908,46 @@ TARGET:
 
   2.1. <span id='target'> TargetType </sapn>
 
-    Anakin TargetType | platform
-    :----: | :----:|
-    NV | NVIDIA GPU
-    ARM | ARM
-    AMD | AMD GPU
-    X86 | X86
-    NVHX86 | NVIDIA GPU with Pinned Memory
+  Anakin TargetType | platform
+  :----: | :----:|
+  NV | NVIDIA GPU
+  ARM | ARM
+  AMD | AMD GPU
+  X86 | X86
+  NVHX86 | NVIDIA GPU with Pinned Memory
 
 
   2.2. <sapn id='datatype'> DataType </span>
 
-    Anakin DataType | C++ | Description 
-    :---: | :---: | :---: |
-    AK_HALF | short | fp16
-    AK_FLOAT | float | fp32
-    AK_DOUBLE | double | fp64
-    AK_INT8 | char | int8
-    AK_INT16 | short | int16
-    AK_INT32 | int | int32
-    AK_INT64 | long | int64
-    AK_UINT8 | unsigned char | uint8
-    AK_UINT16 | unsigned short | uint8
-    AK_UINT32 | unsigned int | uint32
-    AK_STRING | std::string | /
-    AK_BOOL | bool | /
-    AK_SHAPE | / | Anakin Shape 
-    AK_TENSOR | / | Anakin Tensor 
-
+  Anakin DataType | C++ | Description 
+  :---: | :---: | :---: |
+  AK_HALF | short | fp16
+  AK_FLOAT | float | fp32
+  AK_DOUBLE | double | fp64
+  AK_INT8 | char | int8
+  AK_INT16 | short | int16
+  AK_INT32 | int | int32
+  AK_INT64 | long | int64
+  AK_UINT8 | unsigned char | uint8
+  AK_UINT16 | unsigned short | uint8
+  AK_UINT32 | unsigned int | uint32
+  AK_STRING | std::string | /
+  AK_BOOL | bool | /
+  AK_SHAPE | / | Anakin Shape 
+  AK_TENSOR | / | Anakin Tensor 
 
   2.3. <span id = 'layout'> LayOutType </span>
 
-    Anakin LayOutType ( Tensor LayOut ) | Tensor Dimention | Tensor Support | Op Support
-    :---: | :---: | :---: | :---: |
-    W | 1-D | YES | NO
-    HW | 2-D | YES | NO
-    WH | 2-D | YES | NO
-    NW | 2-D | YES | YES
-    NHW | 3-D | YES |YES
-    NCHW ( default ) | 4-D | YES | YES
-    NHWC | 4-D | YES | NO
-    NCHW_C4 | 5-D | YES | YES
+  Anakin LayOutType ( Tensor LayOut ) | Tensor Dimention | Tensor Support | Op Support
+  :---: | :---: | :---: | :---: |
+  W | 1-D | YES | NO
+  HW | 2-D | YES | NO
+  WH | 2-D | YES | NO
+  NW | 2-D | YES | YES
+  NHW | 3-D | YES |YES
+  NCHW ( default ) | 4-D | YES | YES
+  NHWC | 4-D | YES | NO
+  NCHW_C4 | 5-D | YES | YES
 
     理论上，Anakin支持申明1维以上的tensor。但是对于Anakin中的OP来说，只支持NW、NHW、NCHW、NCHW_C4这四种LayOut，
     其中NCHW是默认的LayOutType，NCHW_C4是专门针对于int8这种数据类型的。
