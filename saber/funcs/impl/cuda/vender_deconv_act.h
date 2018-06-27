@@ -301,7 +301,7 @@ private:
     void *_workspaceData;  // underlying storage
     void *_workspace;  // aliases into _workspaceData
     const bool _use_tensor_core = true;
-    const size_t _workspace_limit_bytes = 64 * 1024 * 1024;
+    const size_t _workspace_limit_bytes = 4 * 1024 * 1024;
     const cudnnConvolutionBwdDataPreference_t _preference = CUDNN_CONVOLUTION_BWD_DATA_PREFER_FASTEST;
 };
 template class VenderDeconv2DAct<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
