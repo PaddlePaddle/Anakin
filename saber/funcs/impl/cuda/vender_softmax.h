@@ -76,10 +76,10 @@ public:
 
         // ---- init cudnn resources ----
 
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         // ---- get cuda resources ----
 
-        cudaStream_t cuda_stream = this->_ctx.get_compute_stream();
+        cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
 
         CUDNN_CHECK(cudnnCreate(&_handle));
         CUDNN_CHECK(cudnnSetStream(_handle, cuda_stream));
@@ -110,7 +110,7 @@ public:
             if (_handle != NULL) {
                 CUDNN_CHECK(cudnnDestroy(_handle));
             }
-            this->_ctx = ctx;
+            this->_ctx = &ctx;
             cudaStream_t cuda_stream;
             cuda_stream = ctx.get_compute_stream();
             CUDNN_CHECK(cudnnCreate(&_handle));
@@ -144,7 +144,7 @@ public:
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                           std::vector<DataTensor_out*>& outputs,
                           SoftmaxParam<OpTensor> &param){
-        cudaStream_t stream = this->_ctx.get_compute_stream();
+        cudaStream_t stream = this->_ctx->get_compute_stream();
         const InDataType* input_data = inputs[0]->data();
         InDataType * output_data = outputs[0]->mutable_data();
         CUDNN_CHECK(cudnnSoftmaxForward(_handle, CUDNN_SOFTMAX_ACCURATE, \

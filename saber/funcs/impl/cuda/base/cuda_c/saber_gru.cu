@@ -90,7 +90,7 @@ void SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::seq2hw(\
     //source is sequence id in seq target is hw id in seq,map is source to target ptr offset
     int seq_sum = offset_vec[batch_size];
     CUDA_CHECK(cudaMemcpyAsync(_temp_map_dev.mutable_data(), _temp_map_host.data(), sizeof(int)*seq_sum,
-                               cudaMemcpyHostToDevice, _ctx.get_compute_stream()));
+                               cudaMemcpyHostToDevice, _ctx->get_compute_stream()));
     int count=seq_sum * hidden_size;
     int block_dim=count;
     int grid_dim=1;
@@ -98,7 +98,7 @@ void SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::seq2hw(\
         block_dim=256;
         grid_dim=(count+block_dim-1)/block_dim;
     }
-    trans_map2in <<< grid_dim, block_dim, 0, _ctx.get_compute_stream()>>>(target, origin, _temp_map_dev.data(),
+    trans_map2in <<< grid_dim, block_dim, 0, _ctx->get_compute_stream()>>>(target, origin, _temp_map_dev.data(),
             count, hidden_size);
 
 //    trans_map2in_old <<< 4, 128, 0, _ctx.get_compute_stream()>>>(target, origin, _temp_map_dev.data(),
@@ -168,7 +168,7 @@ const float* SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::hw2se
     }
 
     CUDA_CHECK(cudaMemcpyAsync(_temp_map_dev.mutable_data(), _temp_map_host.data(), sizeof(int)*seq_sum,
-                               cudaMemcpyHostToDevice, _ctx.get_compute_stream()));
+                               cudaMemcpyHostToDevice, _ctx->get_compute_stream()));
     int count=seq_sum * wordsize;
     int block_dim=count;
     int grid_dim=1;
@@ -176,7 +176,7 @@ const float* SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::hw2se
         block_dim=256;
         grid_dim=(count+block_dim-1)/block_dim;
     }
-    trans_map2out <<< grid_dim, block_dim, 0, _ctx.get_compute_stream()>>>(target, origin, _temp_map_dev.data(),
+    trans_map2out <<< grid_dim, block_dim, 0, _ctx->get_compute_stream()>>>(target, origin, _temp_map_dev.data(),
             count, wordsize);
 
 //    trans_map2out_old <<< 4, 128, 0, _ctx.get_compute_stream()>>>(target, origin, _temp_map_dev.data(),
@@ -415,7 +415,7 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::gru_cu
 
     if (inputs.size() == 1) {
         CUDA_CHECK(cudaMemsetAsync(dout_data, 0, sizeof(InDataType) * batch_size * hidden_size,
-                                   _ctx.get_compute_stream()));
+                                   _ctx->get_compute_stream()));
         h = dout_data;
     } else {
         h = inputs[1]->data();
@@ -453,13 +453,13 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::gru_cu
         if (param.gate_activity == Active_sigmoid
                 && param.h_activity == Active_tanh) {
             cal_one_kernel_sigmoid_tanh_modi_cudnn_formula
-                    << < batch_size, frame_per_block, 0, _ctx.get_compute_stream() >> >
+                    << < batch_size, frame_per_block, 0, _ctx->get_compute_stream() >> >
                     (w_x_r, w_x_z, w_x_o, w_h_r, w_h_z, w_h_o
                      , b_r, b_z, b_o, hidden_size, hidden_out, hidden_in);
         } else if (param.gate_activity == Active_sigmoid_fluid
                    && param.h_activity == Active_tanh) {
             cal_one_kernel_paddlesigmoid_tanh_cudnn_formula
-                    << < batch_size, frame_per_block, 0, _ctx.get_compute_stream() >> >
+                    << < batch_size, frame_per_block, 0, _ctx->get_compute_stream() >> >
                     (w_x_r, w_x_z, w_x_o, w_h_r, w_h_z, w_h_o
                      , b_r, b_z, b_o, hidden_size, hidden_out, hidden_in);
         } else {
@@ -512,13 +512,13 @@ GruParam <OpTensor>& param) {
     std::vector<int> emit_offset_vec;
     int emit_length=0;
     _temp_map_dev.try_expand_size(seq_sum);
-    isHW2Seq=_seq_util.get_sorted_map(offset,emit_offset_vec,emit_length,_ctx.get_compute_stream());
+    isHW2Seq=_seq_util.get_sorted_map(offset,emit_offset_vec,emit_length,_ctx->get_compute_stream());
     if (isHW2Seq) {
         Shape seq_shape(1, 1, seq_sum, _word_size);
         _temp_tensor_in.try_expand_size(seq_shape);
         Shape seq_out_shape(1, 1, seq_sum, _hidden_size);
         _temp_tensor_out.try_expand_size(seq_out_shape);
-        _seq_util.seq_2_sorted_seq(x_data,_temp_tensor_in.mutable_data(),_word_size,_ctx.get_compute_stream());
+        _seq_util.seq_2_sorted_seq(x_data,_temp_tensor_in.mutable_data(),_word_size,_ctx->get_compute_stream());
         x_data=_temp_tensor_in.data();
         dout_data = _temp_tensor_out.mutable_data();
     }
@@ -532,7 +532,7 @@ GruParam <OpTensor>& param) {
     Shape shape_WHR(1, batch_size, 1, hidden_size);
     _temp_WHR.try_expand_size(shape_WHR);
 
-    _gemm_wx(seq_sum * batch_size, 3 * hidden_size, _word_size,1.0, x_data,0.0, _weights_i2h.data(),_temp_WX.mutable_data(),_ctx.get_compute_stream());
+    _gemm_wx(seq_sum * batch_size, 3 * hidden_size, _word_size,1.0, x_data,0.0, _weights_i2h.data(),_temp_WX.mutable_data(),_ctx->get_compute_stream());
 
     const OpDataType* b_r = b->data() + r_offset * hidden_size;
     const OpDataType* b_z = b->data() + z_offset * hidden_size;
@@ -542,7 +542,7 @@ GruParam <OpTensor>& param) {
         if(_temp_zero.valid_size()<batch_size * hidden_size){
             _temp_zero.try_expand_size(batch_size * hidden_size);
             CUDA_CHECK(cudaMemsetAsync(_temp_zero.mutable_data(), 0, sizeof(OutDataType)*batch_size * hidden_size,
-                                       _ctx.get_compute_stream()));
+                                       _ctx->get_compute_stream()));
         }
 
         h = _temp_zero.data();
@@ -572,7 +572,7 @@ GruParam <OpTensor>& param) {
             hidden_in = dout_data + emit_offset_vec[last_word_id] * hidden_size;
         }
 
-        _gemm_wh_2(emit_word_length, 2 * hidden_size, hidden_size,1.0, hidden_in,0.0, _weights_h2h.data() + hidden_size * hidden_size,_temp_WH.mutable_data(),_ctx.get_compute_stream());
+        _gemm_wh_2(emit_word_length, 2 * hidden_size, hidden_size,1.0, hidden_in,0.0, _weights_h2h.data() + hidden_size * hidden_size,_temp_WH.mutable_data(),_ctx->get_compute_stream());
 
         OutDataType* w_x_r = _temp_WX.mutable_data() + r_offset * hidden_size
                              + emit_word_id_start * hidden_size * 3;
@@ -591,27 +591,27 @@ GruParam <OpTensor>& param) {
         int frame_per_block = hidden_size <= 1024 ? hidden_size : 1024;
         if(param.gate_activity == Active_sigmoid) {
             RESET_KERNEL_NAME(sigmoid) << < emit_word_length, frame_per_block, 0
-                    , _ctx.get_compute_stream() >> > (
+                    , _ctx->get_compute_stream() >> > (
                     w_x_r, w_h_r
                             , b_r, hidden_size, hidden_out, hidden_in);
         }else if(param.gate_activity == Active_sigmoid_fluid){
             RESET_KERNEL_NAME(sigmoid_fluid) << < emit_word_length, frame_per_block, 0
-                    , _ctx.get_compute_stream() >> > (
+                    , _ctx->get_compute_stream() >> > (
                     w_x_r, w_h_r
                             , b_r, hidden_size, hidden_out, hidden_in);
         }else{
             CHECK_EQ(0,1) << "not support gate active  function "<<param.gate_activity;
         }
 
-        _gemm_wh_o(emit_word_length, hidden_size, hidden_size,1.0, hidden_out,0.0,w_o,_temp_WHR.mutable_data(),_ctx.get_compute_stream());
+        _gemm_wh_o(emit_word_length, hidden_size, hidden_size,1.0, hidden_out,0.0,w_o,_temp_WHR.mutable_data(),_ctx->get_compute_stream());
 
         if(param.gate_activity == Active_sigmoid_fluid&&param.h_activity == Active_tanh_fluid) {
             FINAL_KERNEL_NAME(sigmoid_fluid,tanh_fluid)<< < emit_word_length, frame_per_block, 0
-                    , _ctx.get_compute_stream() >> > (
+                    , _ctx->get_compute_stream() >> > (
                     w_x_z, w_x_o, w_h_z, b_z, b_o, hidden_size, hidden_out, hidden_in, _temp_WHR.data());
         }else if(param.gate_activity == Active_sigmoid_fluid&&param.h_activity == Active_relu){
             FINAL_KERNEL_NAME(sigmoid_fluid,relu)<< < emit_word_length, frame_per_block, 0
-                    , _ctx.get_compute_stream() >> > (
+                    , _ctx->get_compute_stream() >> > (
                     w_x_z, w_x_o, w_h_z, b_z, b_o, hidden_size, hidden_out, hidden_in, _temp_WHR.data());
         }else{
             CHECK_EQ(0,1) << "not support active  function "<<param.gate_activity<<","<<param.h_activity;
@@ -647,7 +647,7 @@ GruParam <OpTensor>& param) {
     }
 
     if (isHW2Seq) {
-        _seq_util.sorted_seq_2_seq(_temp_tensor_out.data(),dout->mutable_data(),_hidden_size,_ctx.get_compute_stream());
+        _seq_util.sorted_seq_2_seq(_temp_tensor_out.data(),dout->mutable_data(),_hidden_size,_ctx->get_compute_stream());
 //        LOG(INFO)<<"are you ok";
 //        seq2hw(outputs, inputs, param, hidden_size, dout_data);
     }
@@ -721,7 +721,7 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispat
 
     if (inputs.size() == 1) {
         CUDA_CHECK(cudaMemsetAsync(dout_data, 0, sizeof(OutDataType)*batch_size * hidden_size,
-                                   _ctx.get_compute_stream()));
+                                   _ctx->get_compute_stream()));
         h = dout_data;
     } else {
         h = inputs[1]->data();
@@ -772,7 +772,7 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispat
                 && param.h_activity == Active_tanh) {
             cal_one_kernel_sigmoid_tanh_paddle_formula
             <<< batch_size, frame_per_block, sizeof(OutDataType)*hidden_size
-            , _ctx.get_compute_stream()>>>(
+            , _ctx->get_compute_stream()>>>(
                 w_x_r, w_x_z, w_x_o, w_h_r, w_h_z, w_o
                 , b_r, b_z, b_o, hidden_size, hidden_out, hidden_in);
 
@@ -788,7 +788,7 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispat
                     && param.h_activity == Active_relu) {
             cal_one_kernel_paddlesigmoid_relu_paddle_formula
                     << < batch_size, frame_per_block, sizeof(OutDataType)*hidden_size
-                    , _ctx.get_compute_stream() >> >
+                    , _ctx->get_compute_stream() >> >
                     (w_x_r, w_x_z, w_x_o, w_h_r, w_h_z, w_o
                      , b_r, b_z, b_o, hidden_size, hidden_out, hidden_in);
 

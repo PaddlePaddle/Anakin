@@ -25,6 +25,11 @@
 #include "saber/funcs/impl/impl_ctc_align.h"
 #endif
 
+#ifdef USE_ARM_PLACE
+//todo
+#include "saber/funcs/impl/impl_ctc_align.h"
+#endif
+
 namespace anakin {
 namespace saber {
 

@@ -70,7 +70,7 @@ class PoolingHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     PoolingHelper()=default;
 
-    ~PoolingHelper();
+    ~PoolingHelper() {}
 
     Status InitParam() override;
 
@@ -100,6 +100,7 @@ public:
     ///< _funcs_pooling stand for Pooling function
     saber::Pooling<Ttype, Dtype> _funcs_pooling;
 };
+
 
 } /* namespace ops */
 

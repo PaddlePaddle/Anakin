@@ -56,7 +56,7 @@
 
 #cmakedefine USE_ARM_PLACE
 
-#cmakedefine TARGET_ANDRIOD
+#cmakedefine TARGET_ANDROID
 
 #cmakedefine TARGET_IOS
 

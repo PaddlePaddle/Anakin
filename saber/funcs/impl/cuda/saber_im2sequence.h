@@ -53,7 +53,7 @@ public:
                              std::vector<DataTensor_out*>& outputs,
                              Im2SequenceParam<OpTensor> &param,
                              Context<NV> &ctx) {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         return create(inputs, outputs, param, ctx);
     }
 

@@ -60,7 +60,7 @@ class ConvReluHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     ConvReluHelper()=default;
 
-    ~ConvReluHelper();
+    ~ConvReluHelper() {}
 
     Status InitParam() override;
 
@@ -89,13 +89,7 @@ public:
     saber::ConvActiveParam<Tensor4d<Ttype, Dtype>> _param_conv_relu;
     ///< _funcs_conv_relu stand for ConvRelu function 
     saber::ConvAct<Ttype, Dtype> _funcs_conv_relu;
-
-private:
-    ///< _dims stand for ConvRelu size
-    PTuple<int> _dims; 
 };
-
-
 
 } /* namespace ops */
 

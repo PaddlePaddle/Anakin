@@ -33,7 +33,7 @@ struct check_self_shared {
     std::vector<std::string> ops{
         "Split",
         "Reshape",
-		"Flatten"
+        "Flatten"
     };
     /**
     * \brief whether node_arg's op is in ops

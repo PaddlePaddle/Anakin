@@ -60,7 +60,7 @@ class DeconvolutionHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     DeconvolutionHelper()=default;
 
-    ~DeconvolutionHelper();
+    ~DeconvolutionHelper(){}
 
     Status InitParam() override;
 
@@ -95,8 +95,6 @@ private:
     ///< _dims stand for batchNorm size
     PTuple<int> _dims; 
 };
-
-
 
 } /* namespace ops */
 

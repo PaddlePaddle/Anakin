@@ -60,7 +60,7 @@ class ConvBatchnormScaleReluHelper : public OperatorHelper<Ttype, Dtype, Ptype> 
 public:
     ConvBatchnormScaleReluHelper()=default;
 
-    ~ConvBatchnormScaleReluHelper();
+    ~ConvBatchnormScaleReluHelper() {}
 
     Status InitParam() override;
 
@@ -94,8 +94,6 @@ private:
     ///< _dims stand for ConvBatchnormScaleRelu size
     PTuple<int> _dims; 
 };
-
-
 
 } /* namespace ops */
 

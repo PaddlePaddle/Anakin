@@ -2,11 +2,14 @@
 
 ## Machine:
 
-This time, we only provide benchmark on GPU. In the near future, we will add benchmark on ARM and CPU.
+This time, we only provide benchmark on GPU and [ARM](arm_benchmark.md). In the near future, we will add benchmark on CPU.
+
+For ARM benchmark, please refer [here](arm_benchmark.md)
 
 >  CPU: `12-core Intel(R) Xeon(R) CPU E5-2620 v2 @2.10GHz`
 >  GPU: `Tesla P4`  
 >  cuDNN: `v7`  
+
 
 ## Counterpart of anakin  :
 The counterpart of **`Anakin`** is the acknowledged high performance inference engine **`NVIDIA TensorRT 3`** ,   The models which TensorRT 3 doesn't support we use the custom plugins  to support.  

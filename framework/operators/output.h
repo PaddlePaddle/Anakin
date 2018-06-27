@@ -57,7 +57,7 @@ class OutputHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     OutputHelper() {}
 
-    ~OutputHelper();
+    ~OutputHelper(){}
 
     Status InitParam() override;
 
@@ -80,7 +80,6 @@ public:
     */
     Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
                       std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
-
 
 };
 

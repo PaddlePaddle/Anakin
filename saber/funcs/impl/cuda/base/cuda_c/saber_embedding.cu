@@ -38,7 +38,7 @@ SaberStatus SaberEmbedding<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, \
     OutDataType *out_data = (OutDataType*)outputs[0]->mutable_data();
 
     const int count = outputs[0]->valid_size();
-    cudaStream_t cuda_stream = this->_ctx.get_compute_stream();
+    cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
 
     ker_embedding_fwd<InDataType, OpDataType, OutDataType>
             <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(

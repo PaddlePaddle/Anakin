@@ -60,7 +60,7 @@ class DenseHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     DenseHelper()=default;
 
-    ~DenseHelper();
+    ~DenseHelper() {}
 
     Status InitParam() override;
 
@@ -94,8 +94,6 @@ private:
     ///< _dims stand for Dense size
     PTuple<int> _dims; 
 };
-
-
 
 } /* namespace ops */
 

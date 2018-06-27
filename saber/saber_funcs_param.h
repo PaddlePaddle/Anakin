@@ -43,22 +43,18 @@ struct MatMulParam {
 
     bool _is_transpose_X{false};
     bool _is_transpose_Y{false};
-    int _M = 0;
-    int _N = 0;
-    int _K = 0;
-    int _B = 0;//batch_size
+    int _m = 0;
+    int _n = 0;
+    int _k = 0;
+    int _b = 0;//batch_size
 
 };
 
-    
 //should design this one for pick_best_specify()
 enum ImplEnum{
     VENDER_IMPL = 0,
     SABER_IMPL
 };
-
-
-
 
 enum SequencePoolType{
     Sequence_pool_unknow = 0,
@@ -753,27 +749,56 @@ struct BatchnormParam {
 };
 
 template <typename opTensor>
+struct PreluParam {
+    PreluParam() = default;
+    PreluParam(bool is_channel_shared, opTensor* input_slope) {
+        channel_shared = is_channel_shared;
+        slope = input_slope;
+    }
+    PreluParam(const PreluParam<opTensor>& right) {
+        channel_shared = right.channel_shared;
+        slope = right.slope;
+    }
+    PreluParam<opTensor>& operator=(const PreluParam<opTensor>& right) {
+        this->channel_shared = right.channel_shared;
+        this->slope = right.slope;
+        return *this;
+    }
+    bool operator==(const PreluParam<opTensor>& right) {
+        bool flag = this->channel_shared == right.channel_shared;
+        return flag && (this->slope == right.slope);
+    }
+    bool channel_shared{false};
+    opTensor* slope{nullptr};
+};
+
+template <typename opTensor>
 struct ActivationParam {
     typedef typename opTensor::Dtype DataDtype;
     ActivationParam()
             : active(Active_unknow)
             , negative_slope(DataDtype(-1))
-            , coef(DataDtype(-1)) {}
+            , coef(DataDtype(-1))
+            , prelu_param(PreluParam<opTensor>(false, nullptr)) {}
     ActivationParam(ActiveType act, DataDtype n_slope = DataDtype(0),
-                    DataDtype co = DataDtype(1))
+                    DataDtype co = DataDtype(1), 
+                    PreluParam<opTensor> prelu = PreluParam<opTensor>(false, nullptr))
             : active(act)
             , negative_slope(n_slope)
             , coef(co)
+            , prelu_param(prelu)
     {}
     ActivationParam(const ActivationParam &right)
             : active(right.active)
             , negative_slope(right.negative_slope)
             , coef(right.coef)
+            , prelu_param(right.prelu_param)
     {}
     ActivationParam &operator=(const ActivationParam &right) {
         active = right.active;
         negative_slope = right.negative_slope;
         coef = right.coef;
+        prelu_param = right.prelu_param;
         return *this;
     }
     bool operator==(const ActivationParam &right) {
@@ -781,6 +806,7 @@ struct ActivationParam {
         comp_eq = comp_eq && (active == right.active);
         comp_eq = comp_eq && (negative_slope == right.negative_slope);
         comp_eq = comp_eq && (coef == right.coef);
+        comp_eq = comp_eq && (prelu_param == right.prelu_param);
         return comp_eq;
     }
     bool has_negative_slope(){
@@ -789,6 +815,7 @@ struct ActivationParam {
     ActiveType active;
     DataDtype negative_slope;
     DataDtype coef;
+    PreluParam<opTensor> prelu_param;
 };
 template <typename opTensor>
 struct ScaleParam {
@@ -1295,29 +1322,6 @@ struct ResizeParam {
     }
     float width_scale{0.f};
     float height_scale{0.f};
-};
-template <typename opTensor>
-struct PreluParam {
-    PreluParam() = default;
-    PreluParam(bool is_channel_shared, opTensor* input_slope) {
-        channel_shared = is_channel_shared;
-        slope = input_slope;
-    }
-    PreluParam(const PreluParam<opTensor>& right) {
-        channel_shared = right.channel_shared;
-        slope = right.slope;
-    }
-    PreluParam<opTensor>& operator=(const PreluParam<opTensor>& right) {
-        this->channel_shared = right.channel_shared;
-        this->slope = right.slope;
-        return *this;
-    }
-    bool operator==(const PreluParam<opTensor>& right) {
-        bool flag = this->channel_shared == right.channel_shared;
-        return flag && (this->slope == right.slope);
-    }
-    bool channel_shared{false};
-    opTensor* slope{nullptr};
 };
 
 template <typename opTensor>
