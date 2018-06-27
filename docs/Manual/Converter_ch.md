@@ -25,7 +25,7 @@ Anakin 模型转换器输入支持 Caffe 和 Fluid 两种格式的预测模型�
 转换器所需的依赖标注于 *系统要求* 一节。
 
 ### 2、配置
-您需要对 *config.yaml* 文件进行修改以告知您的需求。工程中给出了 *config.yaml* 的示例，下面作进一步说明。
+您需要对 *config.yaml* 文件进行修改以告知您的需求。工程中给出了 *config.yaml* 示例，下面作进一步说明。
 
 #### config.yaml
 ```bash
