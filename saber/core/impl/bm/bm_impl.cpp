@@ -78,27 +78,45 @@ void BM_API::mem_set(void* ptr, int value, size_t n){
     //BMDNN_CHECK(bm_memset_device(handle, value, *pmem));
 }
 
-//static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-//    size_t count, __DtoD) {};
+void BM_API::sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
+    size_t count, __DtoD) {
+    handle = get_bm_handle(); 
+    //BMDNN_CHECK(bm_memcpy_s2d(handle, bm_mem_from_device(dst), dst_id, bm_mem_from_device(src), src_id, count));
+    BMDNN_CHECK(bm_memcpy_d2d(handle, *(bm_device_mem_t *)(dst), dst_id, *(bm_device_mem_t *)(src), src_id, count));
+    LOG(INFO) << "BM sync_memcpy: device to device, finished";
+};
 
 void BM_API::sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
     size_t count, __HtoD) {
     handle = get_bm_handle(); 
-    BMDNN_CHECK(bm_memcpy_s2d(handle, bm_mem_from_device(dst), bm_mem_from_system(src)));
+    BMDNN_CHECK(bm_memcpy_s2d(handle, *(bm_device_mem_t *)(dst), bm_mem_from_system(src)));
+
+    #ifdef DEBUG
+    for(int i=0; i<10; i++)
+	    LOG(INFO) << "HtoD src: " << *((float *)(src)+i);
+    #endif
+    
     LOG(INFO) << "BM sync_memcpy: host to device, finished";
 };
 
 void BM_API::sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
     size_t count, __DtoH) {
     handle = get_bm_handle(); 
-    BMDNN_CHECK(bm_memcpy_d2s(handle, bm_mem_from_system(dst), bm_mem_from_device(src)));
-    //BMDNN_CHECK(bm_memcpy_d2s(handle, bm_mem_from_system(dst), *(bm_device_mem_t *)(src)));
-    //BMDNN_CHECK(bm_memcpy_d2s(handle, bm_mem_from_system(dst), *(reinterpret_cast<struct bm_mem_desc *>(src))));
+    BMDNN_CHECK(bm_memcpy_d2s(handle, bm_mem_from_system(dst), *(bm_device_mem_t *)(src)));
+
+    #ifdef DEBUG
+    for(int i=0; i<10; i++)
+        LOG(INFO) << "DtoH dst: " << *((float *)(dst)+i);
+    #endif
+
     LOG(INFO) << "BM sync_memcpy: device to host, finished";
 };
 
-//static void sync_memcpy_p2p(void* dst, int dst_dev, const void* src, \
-//    int src_dev, size_t count) {};
+void BM_API::sync_memcpy_p2p(void* dst, int dst_dev, const void* src, \
+    int src_dev, size_t count) { 
+
+    LOG(INFO) << "BM sync_memcpy_p2p: temporarily no used";
+};
 
 
 //! target wrapper
