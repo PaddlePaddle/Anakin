@@ -8,6 +8,8 @@ typedef TargetWrapper<BM> BM_API;
 typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
 typedef Tensor<BM, AK_BM, NCHW> TensorDf4;
 typedef TensorHf4::Dtype dtype;
+typedef TensorDf4::Dtype dtype2;
+
 
 static bm_handle_t handle;
 TEST(TestSaberTensorBM, test_tensor_constructor) {
@@ -47,7 +49,7 @@ TEST(TestSaberTensorBM, test_tensor_constructor) {
               << thost0.height() << ", width = " << thost0.width();
 
     //! test tensor mutable_data() function
-    LOG(INFO) << "|--test tensor mutable_data() function, write tensor data buffer with 2.f";
+    LOG(INFO) << "|--xxxxxxxxtest tensor mutable_data() function, write tensor data buffer with 2.f";
     fill_tensor_host_const(thost0, 2.f);
     LOG(INFO) << "|--test tensor data() function, show the const data, 2.f";
     print_tensor_host(thost0);
@@ -88,7 +90,7 @@ TEST(TestSaberTensorBM, test_tensor_constructor) {
     LOG(INFO) <<
               "test tensor constructor with data, if target is different, create buffer, and copy the data";
     dtype* host_data_ptr;
-    dtype* dev_data_ptr;
+//    dtype2* dev_data_ptr;
     void* tmp_pt_host;
     void* tmp_pt_dev;
     X86_API::mem_alloc(&tmp_pt_host, sizeof(dtype) * sh1.count());
@@ -98,26 +100,28 @@ TEST(TestSaberTensorBM, test_tensor_constructor) {
         host_data_ptr[i] = i;
     }
 
-    BM_API::mem_alloc(&tmp_pt_dev, sizeof(dtype) * sh1.count());
-    dev_data_ptr = static_cast<dtype*>(tmp_pt_dev);
-//    bm_memcpy_d2s(handle,host_data_ptr,dev_data_ptr)
-//    cudaMemcpy(dev_data_ptr, host_data_ptr, sizeof(dtype) * sh1.count(), cudaMemcpyHostToDevice);
+    BM_API::mem_alloc(&tmp_pt_dev, sizeof(dtype2) * sh1.count());
+//    dev_data_ptr = static_cast<dtype2*>(tmp_pt_dev);
+//    bm_memcpy_d2s(handle,*dev_data_ptr,bm_mem_from_system(const_cast<float *>(host_data_ptr)));
+
+//---    cudaMemcpy(dev_data_ptr, host_data_ptr, sizeof(dtype) * sh1.count(), cudaMemcpyHostToDevice);
+
     LOG(INFO) << "|--construct host tensor from host data ptr";
     TensorHf4 thost3(host_data_ptr, X86(), X86_API::get_device_id(), sh1);
     LOG(INFO) << "|--constructor device tensor from host data ptr";
-
-//    TensorDf4 tdev3(&bm_mem_from_system(const_cast<float *>(host_data_ptr)), X86(), X86_API::get_device_id(), sh1);
 
     TensorDf4 tdev3(&bm_mem_from_system(const_cast<float *>(host_data_ptr)), X86(), X86_API::get_device_id(), sh1);
 
     print_tensor_host(thost3);
 
-    TensorHf4 thost_lian(sh1);
-    thost_lian.copy_from(tdev3);
-    print_tensor_host(thost_lian);
+    print_tensor_device(tdev3);
 
-    thost_lian.copy_from(thost3);
-    print_tensor_host(thost_lian);
+//    TensorHf4 thost_lian(sh1);
+//    thost_lian.copy_from(tdev3);
+//    print_tensor_host(thost_lian);
+//
+//    thost_lian.copy_from(thost3);
+//    print_tensor_host(thost_lian);
 
     //cudaDeviceSynchronize();
     //
@@ -128,16 +132,17 @@ TEST(TestSaberTensorBM, test_tensor_constructor) {
     TensorDf4 tdev4(dev_data_ptr, BM(), BM_API::get_device_id(), sh1);
     print_tensor_host(thost4);
     print_tensor_device(tdev4);
-/*
+*/
+
     //BM_API::stream_t dev_stream0;
     //BM_API::create_stream_with_flag(dev_stream0, 1);
     //cudaDeviceSynchronize();
-
+/*
     //! test tensor copy constructor
     LOG(INFO) << "test tensor copy constructor";
     LOG(INFO) << "|--normal copy constructor";
-    TensorHf4 thost5(thost4);
-    TensorDf4 tdev5(tdev4);
+//    TensorHf4 thost5(thost4);
+//    TensorDf4 tdev5(tdev4);
 
     LOG(INFO) << "|--push back to vector";
     std::vector<TensorHf4> vthost;
@@ -146,18 +151,18 @@ TEST(TestSaberTensorBM, test_tensor_constructor) {
     vthost.push_back(thost1);
     vthost.push_back(thost2);
     vthost.push_back(thost3);
-    vthost.push_back(thost4);
-    vthost.push_back(thost5);
+//    vthost.push_back(thost4);
+//    vthost.push_back(thost5);
     vtdev.push_back(tdev0);
     vtdev.push_back(tdev1);
     vtdev.push_back(tdev2);
     vtdev.push_back(tdev3);
-    vtdev.push_back(tdev4);
-    vtdev.push_back(tdev5);
+//   vtdev.push_back(tdev4);
+//    vtdev.push_back(tdev5);
     print_tensor_host(vthost[5]);
     print_tensor_device(vtdev[5]);
     //cudaDeviceSynchronize();
-
+/*
     //! test share_from function, if targets are the same, buffer is shared, otherwise, buffer is copied
     LOG(INFO) << "test share_from function";
     TensorHf4 thost6, thost7;
