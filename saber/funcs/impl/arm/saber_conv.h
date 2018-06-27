@@ -58,14 +58,6 @@ public:
 
     ~SaberConv2D();
 
-/**
- * [Create description] Init all resource here
- * @AuthorHTL
- * @DateTime  2018-02-01T16:13:06+0800
- * @param     inputs                    [description]
- * @param     outputs                   [description]
- * @param     conv_param                [conv parameters]
- */
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
                              std::vector<DataTensor_out*>& outputs,
                              ConvParam<OpTensor> &conv_param, Context<ARM> &ctx) override;
@@ -94,8 +86,6 @@ private:
     size_t _workspace_fwd_sizes{0};
     std::shared_ptr<Buffer<ARM>> _workspace_data{nullptr};
     std::shared_ptr<Buffer<ARM>> _weights_trans{nullptr};
-
-    ConvParam<OpTensor> _conv_param;
 };
 
 

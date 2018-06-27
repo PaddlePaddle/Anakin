@@ -273,7 +273,7 @@ LayOutType_op, LayOutType_in, LayOutType_out>::create(\
         std::vector<DataTensor_out*>& outputs,\
         EltwiseParam<OpTensor> &param, \
         Context<ARM> &ctx) {
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
     this->_coeff = param.coeff;
     Shape sh_out_saber = outputs[0]->valid_shape();
     for (int i = 0; i < inputs.size(); i ++){

@@ -134,7 +134,7 @@ SaberStatus SaberDeconv2D<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, \
         const std::vector<DataTensor_in*>& inputs,
         std::vector<DataTensor_out*>& outputs,
         ConvParam<OpTensor>& param) {
-    cudaStream_t stream = this->_ctx.get_compute_stream();
+    cudaStream_t stream = this->_ctx->get_compute_stream();
     //! inputs only has one tensor
 
     const float* din = inputs[0]->data();
@@ -164,7 +164,7 @@ SaberStatus SaberDeconv2D<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, \
     if (_use_k4_s2_p1) {
         const float * bias_data = (param.bias()->valid_size() > 0) ?
                                   param.bias()->data() : NULL;
-        const float *weights_data = new_weights_dev.data();
+        const float *weights_data = param.weight()->data();
         ker_deconv_implicit_gemm_k4_s2_p1_16x64(dout, din,
                                                 weights_data, bias_data,
                                                 num,

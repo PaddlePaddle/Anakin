@@ -95,6 +95,7 @@ public:
             shape_out[widht_idx] = 1;
         }
         shape_out[channel_idx] = n;
+        output[0]->set_seq_offset(input[0]->get_seq_offset());
         return output[0]->set_shape(shape_out);
     }
 

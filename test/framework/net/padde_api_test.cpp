@@ -18,20 +18,7 @@ DEFINE_GLOBAL(int, channel, 8);
 DEFINE_GLOBAL(int, height, 640);
 DEFINE_GLOBAL(int, width, 640);
 DEFINE_GLOBAL(bool, is_input_shape, false);
-
 #ifdef USE_CUDA
-using Target = NV;
-using Target_H = X86;
-#endif
-#ifdef USE_X86_PLACE
-using Target = X86;
-using Target_H = X86;
-#endif
-#ifdef USE_ARM_PLACE
-using Target = ARM;
-using Target_H = ARM;
-#endif
-
 void getModels(std::string path, std::vector<std::string>& files)
 {
     DIR *dir;
@@ -59,7 +46,7 @@ TEST(NetTest, net_execute_base_test) {
     getModels(GLB_model_dir, models);
     for (auto iter = models.begin(); iter < models.end(); iter++)
     {
-        AnakinEngine<Target, AK_FLOAT, Precision::FP32> anakin_engine;
+        AnakinEngine<NV, AK_FLOAT, Precision::FP32> anakin_engine;
         LOG(WARNING) << "load anakin model file from " << *iter << " ...";
         std::vector<int> shape{GLB_num, GLB_channel, GLB_height, GLB_width};
         //anakin_engine.Build(*iter, shape);
@@ -67,7 +54,7 @@ TEST(NetTest, net_execute_base_test) {
 
         printf("Args = %d %d %d %d\n",GLB_num, GLB_channel, GLB_height, GLB_width);
         //fill input
-        Tensor4d<Target_H, AK_FLOAT> h_tensor_in;
+        Tensor4d<X86, AK_FLOAT> h_tensor_in;
         h_tensor_in.re_alloc({GLB_num, GLB_channel, GLB_height, GLB_width});
         fill_tensor_host_rand(h_tensor_in, -1.0f,1.0f);
 
@@ -76,8 +63,8 @@ TEST(NetTest, net_execute_base_test) {
         int warmup_iter = 10;
         int epoch = 1000;
         // do inference
-        Context<Target> ctx(0, 0, 0);
-        saber::SaberTimer<Target> my_time;
+        Context<NV> ctx(0, 0, 0);
+        saber::SaberTimer<NV> my_time;
         LOG(WARNING) << "EXECUTER !!!!!!!! ";
         for (int i = 0; i < warmup_iter; i++) {
             anakin_engine.Execute();
@@ -93,6 +80,8 @@ TEST(NetTest, net_execute_base_test) {
 }
 
 int main(int argc, const char** argv){
+
+    Env<NV>::env_init();
     // initial logger
     LOG(INFO)<<"argc"<<argc;
     if (argc < 1) {
@@ -124,3 +113,10 @@ int main(int argc, const char** argv){
     RUN_ALL_TESTS(argv[0]); 
     return 0;
 }
+
+#else
+int main(int argc, char** argv) {
+        return 0;
+}
+
+#endif

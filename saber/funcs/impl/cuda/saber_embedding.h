@@ -52,7 +52,7 @@ public:
     virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             EmbeddingParam<OpTensor>& param, Context<NV>& ctx) {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         
         return SaberSuccess;
     }
@@ -60,7 +60,7 @@ public:
     virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             EmbeddingParam<OpTensor>& param, Context<NV> &ctx) {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         return SaberSuccess;
     }
     

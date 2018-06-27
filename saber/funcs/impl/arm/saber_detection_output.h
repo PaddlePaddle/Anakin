@@ -53,14 +53,14 @@ public:
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
                       std::vector<DataTensor_out*>& outputs,
                       DetectionOutputParam<OpTensor> &param, Context<ARM> &ctx){
-        // get context
-        this->_ctx = ctx;
         return create(inputs, outputs, param, ctx);
     }
 
     virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
                         std::vector<DataTensor_out*>& outputs,
                         DetectionOutputParam<OpTensor> &param, Context<ARM> &ctx){
+
+        this->_ctx = &ctx;
 
         //! inputs[0]: location map, dims = 4 {N, boxes * 4, 1, 1}
         //! inputs[1]: confidence map, dims = 4 {N, boxes * classes, 1, 1}

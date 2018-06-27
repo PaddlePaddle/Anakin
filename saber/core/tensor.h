@@ -228,7 +228,7 @@ public:
         return SaberSuccess;
     }
 
-    void try_expand_size(Shape& shape) {
+    void try_expand_size(Shape shape) {
         //        LOG(INFO)<<"in try expand "<<shape.count()<<","<<valid_size();
         if (shape.count() > (valid_size())) {
             re_alloc(shape);

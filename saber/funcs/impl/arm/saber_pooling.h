@@ -55,8 +55,6 @@ public:
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs, \
         std::vector<DataTensor_out*>& outputs, \
         PoolingParam<OpTensor> &param, Context<ARM> &ctx) override {
-        // get context
-        this->_ctx = ctx;
         return create(inputs, outputs, param, ctx);
     }
 

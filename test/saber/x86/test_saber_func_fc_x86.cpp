@@ -103,8 +103,11 @@ bool inner_product_test(inprod_test_params& p) {
     // get saber result
     Context<X86> ctx_host;
     saberFc.init(input_host_4d, output_host_4d, param_host_4d, SPECIFY, VENDER_IMPL, ctx_host);
+    SaberTimer<X86> timer;
+    timer.start(ctx_host);
     saberFc(input_host_4d, output_host_4d, param_host_4d, ctx_host);
-
+    timer.end(ctx_host);
+    LOG(INFO)<<" time: "<< timer.get_average_ms()<<" ms";
     bool ret = false;
     ret = compare_tensor<Tensor4f>(saberOutput, refOutput);
     return ret;
