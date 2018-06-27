@@ -833,8 +833,7 @@ TARGET:
 ## <span id = '20001'> C++ APIs </span>
 ---
 
-### <span id ='api'>Anakin APIs </span> ###
-#### Tensor ####
+### Tensor ###
 
 1. <span id =' '> Tensor结构 </span>
 
@@ -1144,7 +1143,7 @@ mytensor.reshape(valid_shape, shape, offset);
   注意： Reshape操作仍然需要shape的[LayOutType](#layout) 与tensor的相同
 
 
-#### Graph ####
+### Graph ###
 
 `Graph`类负责加载Anakin模型生成计算图、对图进行优化、存储模型等操作。
 
@@ -1264,7 +1263,7 @@ int new_batch_size = 4;
 graph->ResetBatchSize(input_name, new_batch_size);
 ```
 
-####  Net ####
+### Net ###
 
 `Net` 是计算图的执行器。你可以通过Net对象获得输入和输出
 
