@@ -1216,7 +1216,7 @@ graph->Optimize();
   > 注意： 第一次加载原始图，必须要优化。
 
 4. 保存模型
-
+  
   你可以在任何时候保存模型， 特别的， 你可以保存一个优化的模型，这样，下次再加载模型时，就不必进行优化操作。
 
 
@@ -2040,11 +2040,11 @@ int main(int argc, const char** argv){
 
 2. <span id = '21002'> 在`saber`中添加设备的实现 </span> 
   
-  `saber`是`Anakin`的基础计算库，对外提供设备无关的统一的API，设备相关的实现都会封装到`TargetWrapper`中。
+  `saber`是`Anakin`的基础计算库，对外提供设备无关的统一的API，设备相关的实现都会封装到`TargetWrapper`中 
 
   2.1. 在`saber/saber_types.h`中添加设备
 
-    ```c++
+```c++
 enum TargetTypeEnum {
     eINVALID = -1,
     eNV = 1,
@@ -2070,11 +2070,11 @@ typedef TargetType<eTNEW> TNEW;
     * 增加设备类型
 
 ```c++
-struct __cuda_device{};
-struct __arm_device{};
-struct __amd_device{};
-struct __x86_device{};
-struct __tnew_device{};
+  struct __cuda_device{};
+  struct __arm_device{};
+  struct __amd_device{};
+  struct __x86_device{};
+  struct __tnew_device{};
 ```
 
     * `TargetTypeTraits`模板具体化
@@ -2265,16 +2265,16 @@ void Device<TNEW>::get_info() {
   参考[如何增加新的Operator](#20003)
 
 
-3. <span id = '21003'> 在`framework`中添加设备的具体化或实例化 </span> 
-
+3. <span id = '21003'> 在`framework`中添加设备的具体化或实例化 </span>  
+  
   3.1. `framework/core`
 
   * `net.cpp`中添加实例化
 
 ```c++
 #ifdef USE_TNEW_PLACE
-template class Net<TNEW, AK_FLOAT, Precision::FP32, OpRunType::ASYNC>;
-template class Net<TNEW, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
+  template class Net<TNEW, AK_FLOAT, Precision::FP32, OpRunType::ASYNC>;
+  template class Net<TNEW, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
 #endif
 ```
 
@@ -2282,7 +2282,7 @@ template class Net<TNEW, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
 
 ```c++
 #ifdef USE_TNEW_PLACE
-template class OperatorFunc<TNEW, AK_FLOAT, Precision::FP32>;
+  template class OperatorFunc<TNEW, AK_FLOAT, Precision::FP32>;
 #endif
 ```
 
@@ -2290,8 +2290,8 @@ template class OperatorFunc<TNEW, AK_FLOAT, Precision::FP32>;
 
 ```c++
 #ifdef USE_TNEW_PLACE
-template class Worker<TNEW, AK_FLOAT, Precision::FP32, OpRunType::ASYNC>;
-template class Worker<TNEW, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
+  template class Worker<TNEW, AK_FLOAT, Precision::FP32, OpRunType::ASYNC>;
+  template class Worker<TNEW, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
 #endif
 ```
 
@@ -2445,8 +2445,8 @@ ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, TNEW, AK_FLOAT, Precisio
 ```
 
 4. 注意事项
-
-不要修改`Tensor`/`Buffer`/`Env`/`Context`这些类函数的接口和实现
+  
+  不要修改`Tensor`/`Buffer`/`Env`/`Context`这些类函数的接口和实现
 
 
 
