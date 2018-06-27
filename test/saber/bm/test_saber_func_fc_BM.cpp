@@ -7,7 +7,7 @@
 
 using namespace anakin::saber;
 typedef TargetWrapper<BM> API;
-typedef Tensor<BM, AK_FLOAT, NCHW> TensorDf4;
+typedef Tensor<BM, AK_BM, NCHW> TensorDf4;
 typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
 typedef TensorDf4::Dtype ftype;
 
@@ -80,7 +80,7 @@ TEST(TestSaberFuncBM, test_func_fc) {
 
     FcParam<TensorDf4> param(&weight, &bias, num_out, axis);
 
-    Fc<BM, AK_FLOAT> fc;
+    Fc<BM, AK_BM> fc;
 
     LOG(INFO) << "shape out 4d: " << shape_out[0] << ", " << shape_out[1] << ", " << \
               shape_out[2] << ", " << shape_out[3];
