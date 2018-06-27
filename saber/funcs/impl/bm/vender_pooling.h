@@ -35,6 +35,8 @@ public:
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
                   std::vector<DataTensor_out*>& outputs,
                   PoolingParam<OpTensor> &pooling_param, Context<BM> &ctx) {
+
+        _handle = get_bm_handle();
         return create(inputs, outputs, pooling_param, ctx);
     }
 
@@ -64,7 +66,7 @@ public:
         } else {
             is_avg_pooling = 1;
         }
-        _handle = get_bm_handle();
+
         BMDNN_CHECK(bmdnn_pooling_forward(_handle, in_data, 
                             input_n, input_c, input_h, input_w, kh, kw, pad_h, pad_w, 
                             stride_h, stride_w, is_avg_pooling, out_data));
