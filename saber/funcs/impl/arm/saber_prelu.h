@@ -14,7 +14,7 @@
 */
 #ifndef ANAKIN_SABER_FUNCS_IMPL_ARM_SABER_PRELU_H
 #define ANAKIN_SABER_FUNCS_IMPL_ARM_SABER_PRELU_H
-
+#if 0 //remove prelu
 #include "saber/funcs/impl/impl_prelu.h"
 
 #ifdef USE_ARM_PLACE
@@ -72,3 +72,4 @@ typedef typename OpTensor::Dtype OpDataType;
 #endif // USE_ARM_PLACE
 
 #endif //ANAKIN_SABER_FUNCS_IMPL_ARM_SABER_POOLING_H
+#endif
