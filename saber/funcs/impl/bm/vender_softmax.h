@@ -63,12 +63,13 @@ public:
         const InDataType *in_data = (const InDataType *) inputs[0]->data();
         OutDataType *out_data = (OutDataType *) outputs[0]->mutable_data();
 
+        /*
         int input_n = inputs[0]->num();
         int input_c = inputs[0]->channel();
         int input_h = inputs[0]->height();
         int input_w = inputs[0]->width();
+        */
 
-        /*
         int outer_num = inputs[0]->count(0, param.axis);
         int inner_num = inputs[0]->count(param.axis + 1, inputs[0]->dims());
 
@@ -77,18 +78,19 @@ public:
         int H = inner_num;
         int W = 1;
 
+        /*
         const int stride_w = 1;
         const int stride_h = W * stride_w;
         const int stride_c = H * stride_h;
         const int stride_n = K * stride_c;
-         */
-
+        */
+        
         bmdnn_softmax_forward(
                 _handle,
                 *in_data,
-                input_n,
-                input_c,
-                input_h * input_w,
+                N,
+                K,
+                H * W,
                 *out_data
         );
 

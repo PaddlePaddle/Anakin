@@ -1,15 +1,16 @@
 #include "core/context.h"
 #include "funcs/softmax.h"
-#include "test_saber_func_softmax_BM.h"
+#include "test_saber_func_BM.h"
 #include "tensor_op.h"
 #include "saber_types.h"
 #include <vector>
 
 using namespace anakin::saber;
 
-TEST(TestSaberFuncSoftmaxBM, test_func_softmax_BM) {
 
-    Env<BM>::env_init();
+TEST(TestSaberFuncBM, test_func_softmax_BM) {
+
+    //Env<BM>::env_init();
     typedef TargetWrapper<BM> API;
 
     typedef Tensor<BM, AK_BM, NCHW> TensorDf4;
@@ -74,8 +75,8 @@ TEST(TestSaberFuncSoftmaxBM, test_func_softmax_BM) {
 
     for (int i = 0; i < test_iter; ++i) {
         softmax_dev(input_dev_4d, output_dev_4d, param, ctx_dev);
-        output_dev_4d[0]->record_event(ctx_dev.get_compute_stream());
-        output_dev_4d[0]->sync();
+        //output_dev_4d[0]->record_event(ctx_dev.get_compute_stream());
+        //output_dev_4d[0]->sync();
     }
 
     t1.end(ctx_dev);
@@ -91,8 +92,8 @@ TEST(TestSaberFuncSoftmaxBM, test_func_softmax_BM) {
 
     for (int i = 0; i < test_iter; ++i) {
         softmax_dev(input_dev_4d, output_dev_4d, param, ctx_dev);
-        output_dev_4d[0]->record_event(ctx_dev.get_compute_stream());
-        output_dev_4d[0]->sync();
+        //output_dev_4d[0]->record_event(ctx_dev.get_compute_stream());
+        //output_dev_4d[0]->sync();
     }
 
     t1.end(ctx_dev);
@@ -101,9 +102,9 @@ TEST(TestSaberFuncSoftmaxBM, test_func_softmax_BM) {
     //print_tensor_device(*output_dev_4d[0]);
 }
 
-TEST(TestSaberFuncSoftmaxBM, test_func_softmax_ROI_BM) {
+TEST(TestSaberFuncBM, test_func_softmax_ROI_BM) {
 
-    Env<BM>::env_init();
+    //Env<BM>::env_init();
     typedef TargetWrapper<BM> API;
 
     typedef Tensor<BM, AK_BM, NCHW> TensorDf4;
@@ -170,8 +171,8 @@ TEST(TestSaberFuncSoftmaxBM, test_func_softmax_ROI_BM) {
 
     for (int i = 0; i < test_iter; ++i) {
         softmax_dev(input_dev_4d, output_dev_4d, param, ctx_dev);
-        output_dev_4d[0]->record_event(ctx_dev.get_compute_stream());
-        output_dev_4d[0]->sync();
+        //output_dev_4d[0]->record_event(ctx_dev.get_compute_stream());
+        //output_dev_4d[0]->sync();
     }
 
     t1.end(ctx_dev);
