@@ -63,7 +63,7 @@ void test(int num, int channel) {
     dst_saber.re_alloc(shape_out);
     output_softmax.push_back(&dst_saber);
 
-    Softmax<X86, AK_FLOAT> op_softmax;
+    Softmax<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW> op_softmax;
     SoftmaxParam<Tensor4f> smx_pm;
 
     op_softmax.init(input_softmax, output_softmax, smx_pm, SPECIFY, SABER_IMPL, ctx_host);
