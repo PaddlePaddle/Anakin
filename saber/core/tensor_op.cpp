@@ -339,7 +339,7 @@ void print_tensor_device<Tensor<BM, AK_BM, NCHW>>(Tensor<BM, AK_BM, NCHW>& tenso
     for (int i = 0; i < tensor.size(); ++i) {
         printf("%.2f ", host_mem[i]);
 
-        if ((i + 1) % (4 * tensor.width()) == 0) {
+        if ((i + 1) % tensor.width() == 0){
             printf("\n");
         }
     }
