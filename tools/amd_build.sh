@@ -47,7 +47,7 @@ cmake \
     -DNVIDIA_GPU=NO \
     -DAMD_GPU=YES \
     -DUSE_OPENCL=YES \
-    -DUSE_ANAKIN_FRAMEWORK=OFF \
+    -DUSE_ANAKIN_FRAMEWORK=ON \
     ..
         
 
