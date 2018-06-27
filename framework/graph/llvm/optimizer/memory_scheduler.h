@@ -24,22 +24,24 @@
 namespace anakin {
 
 namespace graph {
+
 /**
-* \brief check_self_shared struct
-*  used to check arcs in graph whether is shared
-*/
+ * \brief check_self_shared struct
+ *  used to check arcs in graph whether is shared
+ */
 struct check_self_shared {
     /// ops : Split and Reshape  
     std::vector<std::string> ops{
         "Split",
         "Reshape",
+		"Gather",
 		"Flatten"
     };
     /**
-    * \brief whether node_arg's op is in ops
-    * \param node_arg stand for certain node
-    * \return bool the value of ops == node_arg.opName
-    */
+     * \brief whether node_arg's op is in ops
+     * \param node_arg stand for certain node
+     * \return bool the value of ops == node_arg.opName
+     */
     inline bool operator()(node& node_arg) {
         for (auto& op_type : ops) {
             if (op_type == node_arg.opName) {
@@ -50,12 +52,12 @@ struct check_self_shared {
     }
 
     /**
-    * \brief whether bottom_node's op is in ops
-    * \param graph stand for current graph
-    * \param node_tmp stand for certain node
-    * \param self_shared_ios stand for shared ios queue
-    * \return bool the value of ret
-    */
+     * \brief whether bottom_node's op is in ops
+     * \param graph stand for current graph
+     * \param node_tmp stand for certain node
+     * \param self_shared_ios stand for shared ios queue
+     * \return bool the value of ret
+     */
     inline bool last_op_is_self_shared(VGraph* graph, node& node_tmp, std::vector<io>& self_shared_ios) {
 	bool ret = false;
         auto node_arc_in_its = graph->get_in_arc_its(node_tmp.name);
@@ -73,8 +75,8 @@ struct check_self_shared {
 };
 
 /**
-* \brief io block resource class used for scheduler of VGraph memory usage
-*/
+ * \brief io block resource class used for scheduler of VGraph memory usage
+ */
 class IOBlockResource {
 public:
     IOBlockResource() {}

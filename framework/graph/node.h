@@ -155,6 +155,17 @@ public:
     /// Access to attributes.
     AttrInfo& attr() { return _attr; } 
 
+	/// inspect if node attr have target attr name
+	inline bool inspect_attr(std::string& attr_name) {
+		auto& attrs = this->attr();
+		const auto& it_end = attrs.parameter.end();
+		auto it_find = attrs.parameter.find(attr_name);
+		if(it_find != it_end) {
+			return true;
+		}
+		return false;
+	}
+
     /**
     * \brief Get target attr by name
     * \param attr_name stand for target_attr name

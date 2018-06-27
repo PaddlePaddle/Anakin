@@ -30,7 +30,10 @@
 //std::string model_path = "/home/cuichaowen/anakin2/anakin2/benchmark/CNN/mobilenet_v2.anakin.bin";
 
 // vgg16
-std::string model_path = "/home/cuichaowen/anakin2/anakin2/benchmark/CNN/models/vgg16.anakin.bin";
+//std::string model_path = "/home/cuichaowen/anakin2/anakin2/benchmark/CNN/models/vgg16.anakin.bin";
+
+// resnet 101
+std::string model_path = "/home/cuichaowen/parsing/external_converter_v2/output/ResNet-101.anakin.bin";
 
 #ifdef USE_CUDA
 #if 1
@@ -189,11 +192,11 @@ TEST(NetTest, net_execute_base_test) {
 
 
     // save the optimized model to disk.
-    /*std::string save_model_path = model_path + std::string(".saved");
+    std::string save_model_path = model_path + std::string(".saved");
     status = graph->save(save_model_path);
     if (!status ) { 
         LOG(FATAL) << " [ERROR] " << status.info(); 
-    }*/
+    }
 }
 #endif 
 #endif

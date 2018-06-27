@@ -201,6 +201,7 @@ public:
     inline void exe_push(OpType& op) {
         _exec_que.push(op);
     }
+	
     /**
     *  \brief operations of op queue
     *  push_back operation
@@ -217,6 +218,23 @@ public:
     *  \return void 
     */
     virtual void launch(OpType&) = 0;
+
+	/**
+     *  \brief judge if target op have been launched
+	 *
+     *  \param op stand for operation type
+     *  \return bool
+     */
+	inline bool have_launched(OpType& op) {
+		for(auto it = _wait_que.begin(); it != _wait_que.end();) {
+			if(*it == op) {
+				return false;
+			}
+			++it;
+		}
+		return true;
+	}
+
 
     /**
     *  \brief get exec queue.

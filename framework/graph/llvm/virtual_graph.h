@@ -80,10 +80,12 @@ struct node {
 
     ///< mergeNodes stand for sub merged nodes
     std::vector<node> mergeNodes;
+	///< save node's index in mergeNodes which shouldn't be removed in reconstructing Graph
+	std::vector<int> idx_keep_in_merge_nodes;
 
     ///<mergeNodeNames stand for sub merged node names from pattern
     std::vector<std::string> mergeNodeNames;
-    
+
     ///< lane stand for the stream of lane the node operator occurs. default 0
     int lane{0};
     ///<need_wait stand forwhether it needs wait .default false
@@ -134,6 +136,11 @@ struct node {
         this->mergeNodes.push_back(rhs);
         return *this;
     }
+
+	// register node index should keep
+	inline void register_keep(int idx) {
+		idx_keep_in_merge_nodes.push_back(idx);
+	}
 };
 
 /**
