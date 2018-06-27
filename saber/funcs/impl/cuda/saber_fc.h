@@ -51,7 +51,7 @@ public:
                              std::vector<DataTensor_out *>& outputs,
                              FcParam<OpTensor>& param, Context<NV>& ctx){
         // get context
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         return create(inputs, outputs, param, ctx);
     }
 
@@ -59,8 +59,8 @@ public:
                                std::vector<DataTensor_out *>& outputs,
                                FcParam<OpTensor>& param, Context<NV>& ctx){
 
-        if (!(ctx == this->_ctx)) {
-            this->_ctx = ctx;
+        if (!(&ctx == this->_ctx)) {
+            this->_ctx = &ctx;
         }
 
         Shape shape_out = inputs[0]->valid_shape();

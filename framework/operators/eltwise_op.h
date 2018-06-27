@@ -60,7 +60,7 @@ class EltwiseHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     EltwiseHelper()=default;
 
-    ~EltwiseHelper();
+    ~EltwiseHelper() {}
 
     Status InitParam() override;
 
@@ -94,8 +94,6 @@ private:
     ///< _dims stand for Eltwise size
     PTuple<int> _dims; 
 };
-
-
 
 } /* namespace ops */
 

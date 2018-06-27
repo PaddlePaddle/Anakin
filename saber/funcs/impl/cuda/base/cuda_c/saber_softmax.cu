@@ -317,7 +317,7 @@ SaberStatus SaberSoftmax<NV, OpDtype, inDtype, outDtype,\
     std::vector<DataTensor_out *>& outputs, \
     SoftmaxParam<OpTensor>& param) {
 
-    cudaStream_t stream = this->_ctx.get_compute_stream();
+    cudaStream_t stream = this->_ctx->get_compute_stream();
     //! inputs only has one tensor
     int total_threads = this->_inner_num * this->_outer_num;
     const InDataType* data_in = inputs[0]->data();

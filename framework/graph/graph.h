@@ -54,6 +54,7 @@ public:
     }
 
     /// get graph name
+    void set_name(std::string name){_name = name;}
     std::string& name() { return _name; }
 
     /// add i/o
@@ -126,7 +127,7 @@ private:
     ///< _vgraph stand for graph. default nullptr
     VGraph* _vgraph{nullptr};
     ///< _name stand for message
-    std::string _name;
+    std::string _name{"default"};
     ///< graph input node name
     std::vector<std::string> _ins; 
     ///< graph output node name     

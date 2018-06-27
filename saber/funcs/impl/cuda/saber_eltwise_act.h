@@ -53,7 +53,7 @@ public:
                              EltwiseActiveParam<OpTensor> &param,
                              Context<NV> &ctx) {
         // get context
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         return create(inputs, outputs, param, ctx);
     }
 
@@ -62,7 +62,7 @@ public:
                                EltwiseActiveParam<OpTensor> &param,
                                Context<NV> &ctx) {
 
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         EltwiseParam<OpTensor> &elt_param = param.eltwise_param;
         if ((elt_param.operation == Eltwise_max) && (outputs.size() == 1)) {
             _max_idx.reshape(inputs[0]->shape());

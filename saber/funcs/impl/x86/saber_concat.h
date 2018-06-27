@@ -54,7 +54,7 @@ public:
                       std::vector<DataTensor_out*>& outputs,
                       ConcatParam<OpTensor> &param, Context<X86> &ctx){
         // get context
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         return create(inputs, outputs, param, ctx);
     }
 

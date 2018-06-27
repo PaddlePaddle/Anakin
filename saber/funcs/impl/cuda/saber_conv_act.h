@@ -69,7 +69,7 @@ public:
     virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             ConvActiveParam<OpTensor>& param, Context<NV> &ctx) {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
 
         _kernel_height = param.conv_param.weight()->height();
         _kernel_width = param.conv_param.weight()->width();
@@ -151,14 +151,14 @@ public:
                                      inputs[0]->data(),
                                      param.conv_param.weight()->data(),
                                      chout, chin, hin, win, bias_data,
-                                     this->_ctx.get_compute_stream(), 1.f, 1.f);
+                                     this->_ctx->get_compute_stream(), 1.f, 1.f);
                 }
             } else {
                 conv_gemm_k1s1p0(outputs[0]->mutable_data(),
                                  inputs[0]->data(),
                                  param.conv_param.weight()->data(),
                                  chout, chin, hin, win, bias_data,
-                                 this->_ctx.get_compute_stream());
+                                 this->_ctx->get_compute_stream());
             }
             return SaberSuccess;
         }
@@ -171,14 +171,14 @@ public:
                         wout, _kernel_width, _kernel_height, param.conv_param.stride_w, \
                         param.conv_param.stride_h, param.conv_param.pad_w, param.conv_param.pad_h,\
                         (const OpDataType*)param.conv_param.weight()->data(), bias_data, \
-                        this->_ctx.get_compute_stream());
+                        this->_ctx->get_compute_stream());
                 } else {
                     saber_depthwise_conv_act<InDataType, true, false>(inputs[0]->data(), \
                         outputs[0]->mutable_data(), num, chin, hin, win, hout, \
                         wout, _kernel_width, _kernel_height, param.conv_param.stride_w, \
                         param.conv_param.stride_h, param.conv_param.pad_w, param.conv_param.pad_h,\
                         (const OpDataType*)param.conv_param.weight()->data(), bias_data, \
-                        this->_ctx.get_compute_stream());
+                        this->_ctx->get_compute_stream());
                 }
 
             } else {
@@ -190,7 +190,7 @@ public:
                         _kernel_height, param.conv_param.stride_w, \
                         param.conv_param.stride_h, param.conv_param.pad_w, param.conv_param.pad_h,\
                         (const OpDataType*)param.conv_param.weight()->data(), bias_data, \
-                        this->_ctx.get_compute_stream());
+                        this->_ctx->get_compute_stream());
                 } else {
                     saber_depthwise_conv_act<InDataType, false, false>(inputs[0]->data(), \
                         outputs[0]->mutable_data(), inputs[0]->num(), inputs[0]->channel(), \
@@ -199,7 +199,7 @@ public:
                         _kernel_height, param.conv_param.stride_w, \
                         param.conv_param.stride_h, param.conv_param.pad_w, param.conv_param.pad_h,\
                         (const OpDataType*)param.conv_param.weight()->data(), bias_data, \
-                        this->_ctx.get_compute_stream());
+                        this->_ctx->get_compute_stream());
                 }
             }
         } else if (param.has_eltwise) {
@@ -224,7 +224,7 @@ public:
                     param.conv_param.alpha, 
                     param.conv_param.beta,
                     param.eltwise_param.operation, 
-                    this->_ctx.get_compute_stream()); 
+                    this->_ctx->get_compute_stream());
             } else {
                 dispatch_func(inputs[0]->data(), outputs[0]->mutable_data(), \
                     param.conv_param.weight()->data(), bias_data, num, chin, hin, win, \
@@ -246,7 +246,7 @@ public:
                     param.conv_param.group, 
                     param.conv_param.alpha, 
                     param.conv_param.beta, 
-                    this->_ctx.get_compute_stream());                 
+                    this->_ctx->get_compute_stream());
             }
 
         return SaberSuccess;

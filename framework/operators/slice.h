@@ -60,7 +60,7 @@ class SliceHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     SliceHelper()=default;
 
-    ~SliceHelper();
+    ~SliceHelper() {}
 
     Status InitParam() override;
 
@@ -96,8 +96,6 @@ private:
     ///< _axis stand for axis of input to slice
     int _axis;
 };
-
-
 
 } /* namespace ops */
 

@@ -104,7 +104,7 @@ public:
 
         _workspace_bwd_sizes = 0;
 
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         // ---- get cuda resources ----
 
         cudaStream_t cuda_stream;
@@ -133,11 +133,11 @@ public:
                             std::vector<DataTensor_out *>& outputs,
                             ConvParam<OpTensor>& param, Context<NV> &ctx) {
 
-        if (!(ctx == this->_ctx)) {
+        if (!(&ctx == this->_ctx)) {
             if (_handle != NULL) {
                 CUDNN_CHECK(cudnnDestroy(_handle));
             }
-            this->_ctx = ctx;
+            this->_ctx = &ctx;
 
             cudaStream_t cuda_stream;
             cuda_stream = ctx.get_compute_stream();

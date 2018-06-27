@@ -73,9 +73,9 @@ public:
                             DeformableConvParam<OpTensor>& param, Context<NV>& ctx) {
 
         // ---- init cudnn resources ----
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         CUBLAS_CHECK(cublasCreate(&_handle));
-        CUBLAS_CHECK(cublasSetStream(_handle, this->_ctx.get_compute_stream()));
+        CUBLAS_CHECK(cublasSetStream(_handle, this->_ctx->get_compute_stream()));
 
         _kernel_dim = param.weight()->channel()
                       * param.weight()->height()
@@ -99,13 +99,13 @@ public:
                             std::vector<DataTensor_out *>& outputs,
                             DeformableConvParam<OpTensor>& param, Context<NV>& ctx) {
 
-        if (!(ctx == this->_ctx)) {
-            this->_ctx = ctx;
+        if (!(&ctx == this->_ctx)) {
+            this->_ctx = &ctx;
             if (_handle != NULL) {
                 CUBLAS_CHECK(cublasDestroy(_handle));
             }
             CUBLAS_CHECK(cublasCreate(&_handle));
-            CUBLAS_CHECK(cublasSetStream(_handle, this->_ctx.get_compute_stream()));
+            CUBLAS_CHECK(cublasSetStream(_handle, this->_ctx->get_compute_stream()));
         }
 
         int in_channel = inputs[0]->channel();

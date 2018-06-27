@@ -134,7 +134,7 @@ SaberStatus SaberDeconv2D<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, \
         const std::vector<DataTensor_in*>& inputs,
         std::vector<DataTensor_out*>& outputs,
         ConvParam<OpTensor>& param) {
-    cudaStream_t stream = this->_ctx.get_compute_stream();
+    cudaStream_t stream = this->_ctx->get_compute_stream();
     //! inputs only has one tensor
 
     const float* din = inputs[0]->data();

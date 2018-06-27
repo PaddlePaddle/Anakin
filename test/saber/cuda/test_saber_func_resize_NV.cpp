@@ -61,7 +61,7 @@ TEST(TestSaberFuncResizeNV, test_func_resize_NCHW) {
 
     // start Reshape & doInfer
     Context<NV> ctx_dev(0, 1, 1);
-    Context<X86> ctx_host;
+    //Context<X86> ctx_host;
 
     std::vector<TensorDf4*> input_dev_4d;
     std::vector<TensorDf4*> output_dev_4d;
@@ -153,7 +153,7 @@ TEST(TestSaberFuncResizeNV, test_func_resize_NCHW_INT8) {
 
     // start Reshape & doInfer
     Context<NV> ctx_dev(0, 1, 1);
-    Context<X86> ctx_host;
+    //Context<X86> ctx_host;
 
     std::vector<TensorDc4*> input_dev_4d;
     std::vector<TensorDc4*> output_dev_4d;
@@ -240,7 +240,7 @@ TEST(TestSaberFuncResizeNV, test_func_resize_HW) {
 
     // start Reshape & doInfer
     Context<NV> ctx_dev(0, 1, 1);
-    Context<X86> ctx_host;
+    //Context<X86> ctx_host;
 
     std::vector<TensorDf2*> input_dev_2d;
     std::vector<TensorDf2*> output_dev_2d;
@@ -291,7 +291,7 @@ TEST(TestSaberFuncResizeNV, test_resize_image_NHWC) {
     typedef Tensor<X86, AK_FLOAT, NHWC> TensorHf4;
     typedef Tensor<NV, AK_FLOAT, NHWC> TensorDf4;
 
-    Context<X86> ctx_host;
+    //Context<X86> ctx_host;
     Context<NV> ctx_dev;
 
     typedef TensorDf4::Dtype dtype;
@@ -333,7 +333,7 @@ TEST(TestSaberFuncResizeNV, test_resize_image_NHWC) {
 
     Mat im_r;
     SaberTimer<X86> t1;
-    t1.start(ctx_host);
+    //t1.start(ctx_host);
 
     //auto ts1 = std::chrono::system_clock::now();
     //double tcv = getTickCount();
@@ -341,7 +341,7 @@ TEST(TestSaberFuncResizeNV, test_resize_image_NHWC) {
         resize(imf, im_r, Size(0, 0), scale_w, scale_h, INTER_LINEAR);
     }
 
-    t1.end(ctx_host);
+    //t1.end(ctx_host);
     //auto ts2 = std::chrono::system_clock::now();
     //tcv = getTickCount() - tcv;
     //tcv = tcv / getTickFrequency();
@@ -411,7 +411,7 @@ TEST(TestSaberFuncResizeNV, test_resize_image_NHWC_WITH_ROI) {
     typedef Tensor<X86, AK_FLOAT, NHWC> TensorHf4;
     typedef Tensor<NV, AK_FLOAT, NHWC> TensorDf4;
 
-    Context<X86> ctx_host;
+    //Context<X86> ctx_host;
     Context<NV> ctx_dev;
 
     typedef TensorDf4::Dtype dtype;
@@ -513,7 +513,7 @@ int main(int argc, const char** argv) {
     // initial logger
     //logger::init(argv[0]);
     Env<NV>::env_init();
-    Env<X86>::env_init();
+    //Env<X86>::env_init();
 
     InitTest();
     RUN_ALL_TESTS(argv[0]);

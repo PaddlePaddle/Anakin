@@ -59,7 +59,7 @@ class SplitHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     SplitHelper()=default;
 
-    ~SplitHelper();
+    ~SplitHelper(){}
 
     Status InitParam() override;
 
@@ -88,8 +88,6 @@ public:
     int split_num;
 
 };
-
-
 
 } /* namespace ops */
 

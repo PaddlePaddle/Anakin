@@ -60,7 +60,7 @@ class ReLUHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     ReLUHelper()=default;
 
-    ~ReLUHelper();
+    ~ReLUHelper() {}
 
     Status InitParam() override;
 
@@ -94,8 +94,6 @@ private:
     ///< _dims stand for ReLU size
     PTuple<int> _dims; 
 };
-
-
 
 } /* namespace ops */
 

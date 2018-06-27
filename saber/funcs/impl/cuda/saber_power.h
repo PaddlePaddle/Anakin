@@ -52,7 +52,7 @@ public:
                              std::vector<DataTensor_out*>& outputs,
                              PowerParam<OpTensor> &power_param,
                              Context<NV> &ctx) {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         return SaberSuccess;
     }
 

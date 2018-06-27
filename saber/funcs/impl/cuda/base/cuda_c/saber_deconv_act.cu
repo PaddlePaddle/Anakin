@@ -138,7 +138,7 @@ SaberStatus SaberDeconv2DAct<NV, OpDtype, inDtype, outDtype,\
     LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(const std::vector<DataTensor_in *>& inputs,
     std::vector<DataTensor_out *>& outputs,
     ConvActiveParam<OpTensor>& param) {
-    cudaStream_t stream = this->_ctx.get_compute_stream();
+    cudaStream_t stream = this->_ctx->get_compute_stream();
     //! inputs only has one tensor
 
     const InDataType* din = inputs[0]->data();

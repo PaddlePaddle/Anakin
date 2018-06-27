@@ -192,7 +192,7 @@ SaberStatus SaberActivation<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, \
     OutDataType *out_data = (OutDataType*)outputs[0]->mutable_data();
 
     const int count = inputs[0]->valid_size();
-    cudaStream_t cuda_stream = this->_ctx.get_compute_stream();
+    cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
 
     InDataType negative_slope = param.negative_slope;
     InDataType coef = param.coef;

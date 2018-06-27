@@ -67,7 +67,7 @@ public:
                              std::vector<DataTensor_out*>& outputs,
                              SPPParam<OpTensor> &param,
                              Context<NV> &ctx)  {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         _pooling.clear();
         _pooling_output.clear();
         _pooling_param.clear();

@@ -60,7 +60,7 @@ class ConvBatchnormScaleHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     ConvBatchnormScaleHelper()=default;
 
-    ~ConvBatchnormScaleHelper();
+    ~ConvBatchnormScaleHelper() {}
 
     Status InitParam() override;
 
@@ -89,13 +89,7 @@ public:
     saber::ConvActiveParam<Tensor4d<Ttype, Dtype>>  _param_conv_batchnorm_scale;
     ///< _funcs_conv stand for ConvBatchnormScale function 
     saber::ConvAct<Ttype, Dtype> _funcs_conv_batchnorm_scale;
-
-private:
-    ///< _dims stand for ConvBatchnormScale size
-    PTuple<int> _dims; 
 };
-
-
 
 } /* namespace ops */
 

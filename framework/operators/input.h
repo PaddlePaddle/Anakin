@@ -57,7 +57,7 @@ class InputHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     InputHelper() {}
 
-    ~InputHelper();
+    ~InputHelper() {}
 
     Status InitParam() override;
 
@@ -80,7 +80,6 @@ public:
     */
     Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
                       std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
-
 
 private:
     ///<  input_shape :input op may hold motl-input

@@ -50,6 +50,7 @@ public:
     friend class ReshapeHelper<Ttype, Dtype, Ptype>;
 };
 
+
 /**
  * \brief Reshape helper class to implement reshape
  * public inherit OperatorHelper
@@ -60,7 +61,7 @@ class ReshapeHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     ReshapeHelper()=default;
 
-    ~ReshapeHelper();
+    ~ReshapeHelper() {}
 
     Status InitParam() override;
 
@@ -90,8 +91,6 @@ public:
     ///< _funcs_reshape stand for reshape function 
     saber::Reshape<Ttype, Dtype> _funcs_reshape;
 };
-
-
 
 } /* namespace ops */
 

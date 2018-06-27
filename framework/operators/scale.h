@@ -60,7 +60,7 @@ class ScaleHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     ScaleHelper()=default;
 
-    ~ScaleHelper();
+    ~ScaleHelper(){}
 
     Status InitParam() override;
 
@@ -90,8 +90,6 @@ public:
     ///< _funcs_scale stand for scale function
     saber::Scale<Ttype, Dtype> _funcs_scale;
 };
-
-
 
 } /* namespace ops */
 

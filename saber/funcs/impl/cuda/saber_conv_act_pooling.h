@@ -54,7 +54,7 @@ public:
     virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             ConvActivePoolingParam<OpTensor>& param, Context<NV> &ctx) {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         _kernel_height = param.conv_param.weight()->height();
         _kernel_width = param.conv_param.weight()->width();
 
@@ -140,7 +140,7 @@ public:
                     param.conv_param.group, 
                     param.conv_param.alpha, 
                     param.conv_param.beta, 
-                    this->_ctx.get_compute_stream()); 
+                    this->_ctx->get_compute_stream());
                     
         CUDA_CHECK(cudaGetLastError());
         return SaberSuccess;

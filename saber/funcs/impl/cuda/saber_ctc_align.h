@@ -54,7 +54,7 @@ public:
                         std::vector<DataTensor_out *>& outputs,
                         CtcAlignParam<OpTensor>& param, 
                         Context<NV> &ctx) {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         Shape offset_shape = {inputs[0]->num(), 1, 1, 1};
         _in_offset.re_alloc(offset_shape);
         _out_offset.re_alloc(offset_shape);
