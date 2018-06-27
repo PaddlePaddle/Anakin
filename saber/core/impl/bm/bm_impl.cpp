@@ -90,8 +90,11 @@ void BM_API::sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
     size_t count, __HtoD) {
     handle = get_bm_handle(); 
     BMDNN_CHECK(bm_memcpy_s2d(handle, *(bm_device_mem_t *)(dst), bm_mem_from_system(src)));
+
+    #ifdef DEBUG
     for(int i=0; i<10; i++)
-	std::cout << "HtoD src: " << *((float *)(src)+i) << std::endl;
+	    LOG(INFO) << "HtoD src: " << *((float *)(src)+i);
+    #endif
     
     LOG(INFO) << "BM sync_memcpy: host to device, finished";
 };
@@ -100,8 +103,11 @@ void BM_API::sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
     size_t count, __DtoH) {
     handle = get_bm_handle(); 
     BMDNN_CHECK(bm_memcpy_d2s(handle, bm_mem_from_system(dst), *(bm_device_mem_t *)(src)));
+
+    #ifdef DEBUG
     for(int i=0; i<10; i++)
-        std::cout << "DtoH dst: " << *((float *)(dst)+i) << std::endl;
+        LOG(INFO) << "DtoH dst: " << *((float *)(dst)+i);
+    #endif
 
     LOG(INFO) << "BM sync_memcpy: device to host, finished";
 };
