@@ -27,7 +27,7 @@ public:
     typedef typename DataTensor_out::Dtype OutDataType;
     typedef typename OpTensor::Dtype OpDataType;
 
-    VenderActivation(): _handle(NULL), _active_type(NULL) {}
+    VenderActivation(): _handle(NULL), _active_type(Active_relu) {}
 
     ~VenderActivation() {}
 
@@ -35,6 +35,7 @@ public:
                             std::vector<DataTensor_out *>& outputs,
                             ActivationParam<OpTensor>& param, Context<BM>& ctx) {
         // not sure
+	_handle = get_bm_handle();
         return create(inputs, outputs, param, ctx);
     }
 
@@ -49,23 +50,21 @@ public:
     virtual SaberStatus dispatch(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             ActivationParam<OpTensor>& param) {
-        const InDataType *in_data = (const InDataType *) inputs[0]->data();
-        OutDataType *out_data = (OutDataType *) outputs[0]->mutable_data();
+        const InDataType in_data = *(inputs[0]->data());
+        OutDataType out_data = *(outputs[0]->mutable_data());
         int input_dim = inputs[0]->channel() * inputs[0]->height() * inputs[0]->width();
         int input_n = inputs[0]->num();
 
+        _active_type = param.active;
         switch (_active_type) {
             case Active_relu:
-                BMDNN_CHECK(bmdnn_relu_forward(_handle, in_data, input_n, input_dim, out_data));
+                BMDNN_CHECK(bmdnn_relu_forward(_handle, in_data, 0.0, input_n, input_dim, out_data));
                 break;
             case Active_sigmoid:
                 BMDNN_CHECK(bmdnn_sigmoid_forward(_handle, in_data, input_n, input_dim, out_data));
                 break;
             case Active_tanh:
                 BMDNN_CHECK(bmdnn_tanh_forward(_handle, in_data, input_n, input_dim, out_data));
-                break;
-            case Active_elu:
-                BMDNN_CHECK(bmdnn_elu_forward(_handle, 1.0, in_data, input_n, input_dim, out_data));
                 break;
         }
         return SaberSuccess;
@@ -76,7 +75,7 @@ private:
     ActiveType _active_type;
 };
 
-template class VenderActivation<BM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
+template class VenderActivation<BM, AK_BM, AK_BM, AK_BM, NCHW, NCHW, NCHW>;
 } // namespace saber
 
 } // namespace anakin

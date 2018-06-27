@@ -80,7 +80,7 @@ TEST(TestSaberFuncBM, test_func_pooling) {
     pooling(input, output, param, ctx1);
 
     SaberTimer<BM> t1;
-    int ts = 1000;
+    int ts = 100;
 
     for (int i = 0; i < ts; ++i) {
         t1.start(ctx1);
