@@ -1,5 +1,6 @@
 #ifndef ANAKIN_SABER_FUNCS_BMDNN_FC_H
 #define ANAKIN_SABER_FUNCS_BMDNN_FC_H
+
 #include "saber/funcs/impl/impl_fc.h"
 
 namespace anakin{
@@ -33,7 +34,6 @@ public:
     virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             FcParam<OpTensor>& param, Context<BM>& ctx){
-        _handle = get_bm_handle();
         return create(inputs, outputs, param, ctx);
     }
 
@@ -46,10 +46,10 @@ public:
     virtual SaberStatus dispatch(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             FcParam<OpTensor>& param){
-        const InDataType in_data = *(inputs[0]->data());
-        const InDataType weights = *(InDataType*)(param.weights->get_buf()->get_data());
-        const InDataType bias = *(InDataType*)(param.bias->get_buf()->get_data());
-        OutDataType out_data = *(outputs[0]->mutable_data());
+        const InDataType *in_data = (const InDataType *) inputs[0]->data();
+        const InDataType *weights = (const InDataType *) param.weights->get_buf()->get_data();
+        const InDataType *bias = (const InDataType *) param.bias->get_buf()->get_data();
+        OutDataType *out_data = (OutDataType *) outputs[0]->mutable_data();
         int batch_size = inputs[0]->num();
         int input_len = inputs[0]->channel();
         int output_len = param.num_output;
@@ -64,7 +64,7 @@ private:
     bm_handle_t _handle;
 };
 
-template class VenderFc<BM, AK_BM, AK_BM, AK_BM, NCHW, NCHW, NCHW>;
+template class VenderFc<BM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
 } //namespace saber
 
 } //namespace anakin
