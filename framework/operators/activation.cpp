@@ -33,19 +33,28 @@ Status ActivationHelper<Ttype, Dtype, Ptype>::InitParam() {
     } else if (type == "Sigmoid") {
         ActivationParam<Tensor4d<Ttype, Dtype>> param_activation(Active_sigmoid);
         _param_activation = param_activation;
+    } else if (type == "PReLU") {
+        auto channel_shared = GET_PARAMETER(bool, channel_shared);
+        using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
+        auto weights = GET_PARAMETER(pblock_type, weight_1);
+
+        PreluParam<Tensor4d<Ttype, Dtype>> prelu_param(channel_shared, &(weights.d_tensor()));
+        
+        ActivationParam<Tensor4d<Ttype, Dtype>> param_activation(Active_prelu, 0, 0, prelu_param);
+        _param_activation = param_activation;
     } else if (type == "Stanh") {
         ActivationParam<Tensor4d<Ttype, Dtype>> param_activation(Active_stanh);
         _param_activation = param_activation;
-    }else if (type == "Relu") {
-        ActivationParam<Tensor4d<Ttype, Dtype>> param_activation(Active_relu);
-        _param_activation = param_activation;
-    }else if (type == "ClippedRelu") {
-        ActivationParam<Tensor4d<Ttype, Dtype>> param_activation(Active_clipped_relu);
-        _param_activation = param_activation;
-    }else if (type == "Elu") {
-        ActivationParam<Tensor4d<Ttype, Dtype>> param_activation(Active_elu);
-        _param_activation = param_activation;
-    }else {
+    } else if (type == "Relu") {
+         ActivationParam<Tensor4d<Ttype, Dtype>> param_activation(Active_relu);
+         _param_activation = param_activation;
+    } else if (type == "ClippedRelu") {
+         ActivationParam<Tensor4d<Ttype, Dtype>> param_activation(Active_clipped_relu);
+         _param_activation = param_activation;
+    } else if (type == "Elu") {
+         ActivationParam<Tensor4d<Ttype, Dtype>> param_activation(Active_elu);
+         _param_activation = param_activation;
+    } else {
         LOG(FATAL) << "Other Activation type" << type << " should be replace by other ops.";
     }
 
@@ -54,9 +63,9 @@ Status ActivationHelper<Ttype, Dtype, Ptype>::InitParam() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ActivationHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
-                                                   const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                                                   std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-    SABER_CHECK(_funcs_activation.init(ins, outs, _param_activation, SPECIFY, SABER_IMPL, ctx));
+        const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
+        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+    SABER_CHECK(_funcs_activation.init(ins, outs, _param_activation, STATIC, VENDER_IMPL, ctx));
     return Status::OK();
 }
 

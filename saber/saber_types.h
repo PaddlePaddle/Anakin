@@ -117,7 +117,8 @@ typedef enum{
     Active_identity = 6,
     Active_sigmoid_fluid = 7,
     Active_tanh_fluid = 8,
-    Active_stanh = 9
+    Active_stanh = 9,
+    Active_prelu = 10
 
 } ActiveType;
 

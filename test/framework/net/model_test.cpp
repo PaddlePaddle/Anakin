@@ -153,7 +153,6 @@ TEST(NetTest, nv_net_execute_base_test) {
 int main(int argc, const char** argv) {
 
     Env<Target>::env_init();
-    Env<Target_H>::env_init();
 
     // initial logger
     LOG(INFO) << "argc " << argc;
