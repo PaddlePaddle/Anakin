@@ -47,14 +47,14 @@ OPTIONS:
 
 TARGET:
     CAFFE:
-        # 当 Framework 填写 CAFFE 时，请填写下面三项
+        # 当 Framework 填写 CAFFE 时需填写
         ProtoPaths:
             - /path/to/caffe/src/caffe/proto/caffe.proto
         PrototxtPath: /path/to/your/googlenet.prototxt
         ModelPath: /path/to/your/googlenet.caffemodel
 
     FLUID:
-        # 当 Framework 填写 FLUID 时，请填写下面三项  
+        # 当 Framework 填写 FLUID 时需填写
         Debug: NULL
         ProtoPaths:
             - /
@@ -68,6 +68,6 @@ TARGET:
 
 
 ### 4、查看预览
-最后一步，就是在浏览器中查看令人振奋的转换结果！网址是在 *config.yaml* 中配置的，例如 http://0.0.0.0:8888。
+最后一步，就是在浏览器中查看令人振奋的转换结果！网址是在 *config.yaml* 中配置的，例如 http://0.0.0.0:8888 。
 
-> 注意：若您使用了默认的 IP 地址 0.0.0.0，请在查看预览时使用真实的服务器地址 real_ip:port 代替它。
+> 注意：若您使用了默认的 IP 地址 0.0.0.0，请在查看预览时使用真实的服务器地址 real_ip:port 替代它。
