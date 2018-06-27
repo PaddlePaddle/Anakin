@@ -67,7 +67,7 @@ public:
                               std::vector<DataTensor_out *>& outputs,
                               ConvActivePoolingParam<OpTensor> &param) {
 
-        ConvParam conv_param = param.conv_param;
+        ConvParam<OpTensor> conv_param = param.conv_param;
 
         Shape conv_out_shape = inputs[0]->valid_shape();
         // append the $n and $c/$k, output: N * K * P * Q
