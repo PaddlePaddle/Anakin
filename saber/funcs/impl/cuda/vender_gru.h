@@ -201,7 +201,7 @@ private:
 
 
 //! workspace for cudnn
-    const size_t _workspace_limit_bytes = 64 * 1024 * 1024;
+    const size_t _workspace_limit_bytes = 4 * 1024 * 1024;
     size_t _workspace_size_in_bytes;
     Tensor<NV, AK_INT8, NCHW> _workspace_tensor;  // underlying storage
 

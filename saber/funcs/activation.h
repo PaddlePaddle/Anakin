@@ -100,8 +100,11 @@ public:
 private:
 
     virtual void pick_best_static() override {
-        if (true) // some condition?
+        if (this->_param.active == Active_prelu) {
+            this->_best_impl = this->_impl[1];
+        } else {
             this->_best_impl = this->_impl[0];
+        }
     }
 
     virtual void pick_best_specify(ImplEnum implenum) override {

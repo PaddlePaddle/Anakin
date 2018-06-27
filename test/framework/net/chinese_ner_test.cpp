@@ -206,6 +206,7 @@ TEST(NetTest, chinese_ner_executor) {
 #endif
 
 int main(int argc, const char** argv) {
+    Env<Target>::env_init();
     // initial logger
     LOG(INFO) << "argc " << argc;
 
