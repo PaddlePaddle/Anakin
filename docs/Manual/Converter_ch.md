@@ -16,6 +16,7 @@ Anakin 模型转换器输入支持 Caffe 和 Fluid 两种格式的预测模型�
 - python 2.7+
 - pyyaml
 - flask
+- protobuf 3.5+
 
 
 ## 用法
