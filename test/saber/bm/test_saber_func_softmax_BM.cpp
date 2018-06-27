@@ -16,7 +16,7 @@ TEST(TestSaberFuncSoftmaxBM, test_func_softmax_BM) {
 
     typedef TensorDf4::Dtype dtype;
 
-    int test_iter = 10;
+    int test_iter = 1000;
 
     int softmax_axis = 3; // channel
     int w_in = 3;
