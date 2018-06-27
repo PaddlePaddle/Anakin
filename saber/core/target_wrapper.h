@@ -423,13 +423,10 @@ struct TargetWrapper<BM, __device_target> {
      * @return          currently activated device id
      */
     static int get_device_id();
-<<<<<<< HEAD
 
-    static bm_handle_t get_handler();
+//    static bm_handle_t get_handler();
     
 //    bm_handle_t handle;
-=======
->>>>>>> c0edd55a1bdd22e12dc62c9463d229285e5f5d80
 };
 
 #endif //USE_BM

@@ -72,12 +72,6 @@ TEST(TestSaberTensorBM, test_tensor_constructor) {
     thost1.copy_from(tdev1);
     print_tensor_host(thost1);
 
-<<<<<<< HEAD
-    
-    // device to device
-=======
-    //device to device
->>>>>>> c0edd55a1bdd22e12dc62c9463d229285e5f5d80
     tdev1.copy_from(tdev0);
     print_tensor_device(tdev1);
 
