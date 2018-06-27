@@ -8,7 +8,7 @@ Anakin 模型转换器输入支持 Caffe 和 Fluid 两种格式的预测模型�
 
 模型转换的输出是一个 bin 文件，它作为 anakin 框架的 graph 参数导入。   
 
-您还可以使用模型转换器的 LaunchBoard 功能生成网络结构的 HTML 预览。   
+您还可以使用模型转换器的 launch board 功能生成网络结构的 HTML 预览。   
 
 
 ## 系统要求
@@ -20,11 +20,11 @@ Anakin 模型转换器输入支持 Caffe 和 Fluid 两种格式的预测模型�
 
 ## 用法
 
-### 1、依赖
-
+### 1、安装依赖
+转换器所需的依赖标注于 *系统要求* 一节。
 
 ### 2、配置
-您需要对 *config.yaml* 文件进行修改以告知转换器您的需求。工程中给出了 *config.yaml* 的示例，下面作进一步说明。
+您需要对 *config.yaml* 文件进行修改以告知您的需求。工程中给出了 *config.yaml* 的示例，下面作进一步说明。
 
 #### config.yaml
 ```bash
