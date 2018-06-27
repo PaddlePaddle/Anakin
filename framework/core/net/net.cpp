@@ -186,6 +186,8 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
 	this->_graph_p->statistics.template set_info<graph::SYSTEM_MEM>(curr_mem_in_mb_end - curr_mem_in_mb_start);
     // init memory of _graph_p
     init_memory();
+	
+	graph.statistics = _graph_p->statistics; // copy statistic back
 	LOG(INFO) << "Temp mem used:        " << this->_graph_p->statistics.template get_info<graph::TEMP_MEM>() << " MB"; 
 	LOG(INFO) << "Original mem used:    " << this->_graph_p->statistics.template get_info<graph::ORI_TEMP_MEM>() << " MB";
 	LOG(INFO) << "Model mem used:       " << this->_graph_p->statistics.template get_info<graph::MODEL_MEM>() << " MB";
@@ -194,7 +196,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
     _op_time = std::vector<float>(_exec_funcs.size(), 0.0f);
 #endif
 
-#ifndef ENABLE_DEBUG
+#ifdef ENABLE_DEBUG
     LOG(ERROR) << "Checking memroy...";
     for(auto& executer : _exec_funcs) {
         if (executer.need_sync) {

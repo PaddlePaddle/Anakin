@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="/static/cytoscape/qtip2/jquery.qtip.css"/>
 <script src="/static/bootstraptest/jquery.min.js"></script>
 <script src="/static/bootstraptest/js/bootstrap.min.js"></script>
-<script src="/static/echart/echarts.min.js"></script>
+<script src="/static/echart/echarts.min.js"></script> 
 <script src="/static/cytoscape/cytoscape.min.js"></script>
 <script src="/static/cytoscape/dagre.js"></script>
 <script src="/static/cytoscape/cytoscape-dagre.js"></script>
@@ -263,7 +263,7 @@
 		});
 		//console.log( 'tapped ' + node.id() );
 	});
-
+	var mem_info = {{ mem_info | tojson | safe }};
 </script>
 <script src="/static/js/cytoscape_functional.js"></script>
 <script src="/static/js/cytoscape_functional_for_optimization.js"> </script>
