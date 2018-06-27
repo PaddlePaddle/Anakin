@@ -18,6 +18,7 @@
 #include "anakin_config.h"
 #include <vector>
 #include <string>
+#include <type_traits>
 #include "saber/core/shape.h"
 #include "saber/core/tensor.h"
 #include "saber/saber_types.h"
@@ -858,6 +859,29 @@ struct ActivationParam {
     DataDtype negative_slope;
     DataDtype coef;
 };
+
+#ifdef USE_BM
+template <>
+struct ActivationParam<Tensor<BM, AK_BM, NCHW> > {
+    ActivationParam(): active(Active_unknow) {}
+    ActivationParam(ActiveType act): active(act) {}
+    ActivationParam(const ActivationParam &right): active(right.active) {}
+    ActivationParam &operator=(const ActivationParam &right) {
+        active = right.active;
+        return *this;
+    }
+    bool operator==(const ActivationParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (active == right.active);
+        return comp_eq;
+    }
+    bool has_negative_slope(){
+        return (active == Active_relu);
+    }
+    ActiveType active;
+};
+#endif
+
 template <typename opTensor>
 struct ScaleParam {
     typedef typename opTensor::Dtype DataDtype;

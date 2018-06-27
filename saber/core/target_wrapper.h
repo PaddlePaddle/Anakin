@@ -388,9 +388,7 @@ struct TargetWrapper<BM, __device_target> {
     static void mem_alloc(void** ptr, size_t n);
 
     //template <typename void>
-    static void mem_free(void * ptr);
-    
-    static void mem_free_BM(bm_device_mem_t mem);
+    static void mem_free(void * ptr); 
     
     //template <typename void>
     static void mem_set(void* ptr, int value, size_t n);
@@ -412,10 +410,10 @@ struct TargetWrapper<BM, __device_target> {
         size_t count, __DtoD) {};
 
     static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-        size_t count, __HtoD) {};
+        size_t count, __HtoD);
 
     static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-        size_t count, __DtoH) {};
+        size_t count, __DtoH);
 
     static void sync_memcpy_p2p(void* dst, int dst_dev, const void* src, \
         int src_dev, size_t count) {};
@@ -425,10 +423,13 @@ struct TargetWrapper<BM, __device_target> {
      * @return          currently activated device id
      */
     static int get_device_id();
+<<<<<<< HEAD
 
     static bm_handle_t get_handler();
     
 //    bm_handle_t handle;
+=======
+>>>>>>> c0edd55a1bdd22e12dc62c9463d229285e5f5d80
 };
 
 #endif //USE_BM

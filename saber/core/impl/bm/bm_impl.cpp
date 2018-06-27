@@ -37,13 +37,9 @@ namespace saber{
 
 typedef TargetWrapper<BM, __device_target> BM_API;
 
-//TODO: check exception
-//static bm_handle_t handle = get_bm_handle();
+// Init handle only once in the lifetime
 static bm_handle_t handle;
-
-bm_handle_t BM_API::get_handler() {
-    return handle;
-}
+static bm_status_t init_handle{bmdnn_init(&handle)};
 
 void BM_API::get_device_count(int &count) {
     BMDNN_CHECK(bm_dev_getcount(&count));
@@ -51,7 +47,7 @@ void BM_API::get_device_count(int &count) {
 
 void BM_API::set_device(int id){
     //(bm_handle_t &handle, bool bmkernel_used, int id){
-    BMDNN_CHECK(bm_dev_request(&handle, 0, id));
+    //BMDNN_CHECK(bm_dev_request(&handle, 0, id));
 }
 
 //TODO: Do we have this functionality?
@@ -71,6 +67,7 @@ void BM_API::mem_free(void* ptr){
     if(ptr != nullptr){
         handle = get_bm_handle();
         bm_free_device(handle, *(struct bm_mem_desc*)(ptr));
+        delete ptr;
     }
 }
         
@@ -80,6 +77,29 @@ void BM_API::mem_set(void* ptr, int value, size_t n){
     //bm_device_mem_t* pmem = (struct bm_mem_desc *)(ptr);
     //BMDNN_CHECK(bm_memset_device(handle, value, *pmem));
 }
+
+//static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
+//    size_t count, __DtoD) {};
+
+void BM_API::sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
+    size_t count, __HtoD) {
+    handle = get_bm_handle(); 
+    BMDNN_CHECK(bm_memcpy_s2d(handle, bm_mem_from_device(dst), bm_mem_from_system(src)));
+    LOG(INFO) << "BM sync_memcpy: host to device, finished";
+};
+
+void BM_API::sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
+    size_t count, __DtoH) {
+    handle = get_bm_handle(); 
+    BMDNN_CHECK(bm_memcpy_d2s(handle, bm_mem_from_system(dst), bm_mem_from_device(src)));
+    //BMDNN_CHECK(bm_memcpy_d2s(handle, bm_mem_from_system(dst), *(bm_device_mem_t *)(src)));
+    //BMDNN_CHECK(bm_memcpy_d2s(handle, bm_mem_from_system(dst), *(reinterpret_cast<struct bm_mem_desc *>(src))));
+    LOG(INFO) << "BM sync_memcpy: device to host, finished";
+};
+
+//static void sync_memcpy_p2p(void* dst, int dst_dev, const void* src, \
+//    int src_dev, size_t count) {};
+
 
 //! target wrapper
 template struct TargetWrapper<BM, __device_target>;
