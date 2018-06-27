@@ -429,12 +429,11 @@ void direct_conv_bias_relu_maxpool2k2s0p_Kindiv4(const DataType* src,
     cudaStream_t cuda_stream);
 
 template<int k>
-void scale_to_new_tensor_k4_s2_p1_decov (Tensor<NV, AK_FLOAT, NCHW> &new_weights_dev,
-                                         const Tensor<NV, AK_FLOAT, NCHW> *weight,
+void scale_to_new_tensor_k4_s2_p1_deconv (Tensor<NV, AK_FLOAT, NCHW> *weight,
                                          int in_channel, int out_channel) {
     Tensor<X86, AK_FLOAT, NCHW> new_weights_h;
     Tensor<X86, AK_FLOAT, NCHW> temp_weights;
-    new_weights_dev.reshape(weight->valid_shape());
+//    new_weights_dev.reshape(weight->valid_shape());
     new_weights_h.reshape(weight->valid_shape());
     temp_weights.reshape(weight->valid_shape());
 
@@ -447,7 +446,7 @@ void scale_to_new_tensor_k4_s2_p1_decov (Tensor<NV, AK_FLOAT, NCHW> &new_weights
                                       trans_w + 3 * offset,
                                       temp_weights.data(),
                                       in_channel, out_channel);
-    new_weights_dev.copy_from(new_weights_h);
+    weight->copy_from(new_weights_h);
 }
 
 void ker_deconv_implicit_gemm_k4_s2_p1_16x64(
