@@ -42,7 +42,9 @@ public:
 
     virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
-                            ConvParam<OpTensor>& param, Context<BM>& ctx);
+                            ConvParam<OpTensor>& param, Context<BM>& ctx) {
+        
+    }
 
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                           std::vector<DataTensor_out*>& outputs,
