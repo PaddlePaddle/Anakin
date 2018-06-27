@@ -47,14 +47,14 @@ OPTIONS:
 
 TARGET:
     CAFFE:
-        # 当 Framework 填写 CAFFE 时需填写
+        # 当 Framework 为 CAFFE 时需填写
         ProtoPaths:
             - /path/to/caffe/src/caffe/proto/caffe.proto
         PrototxtPath: /path/to/your/googlenet.prototxt
         ModelPath: /path/to/your/googlenet.caffemodel
 
     FLUID:
-        # 当 Framework 填写 FLUID 时需填写
+        # 当 Framework 为 FLUID 时需填写
         Debug: NULL
         ProtoPaths:
             - /
