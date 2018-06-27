@@ -1,7 +1,7 @@
 #ifndef ANAKIN_SABER_FUNCS_IMPL_BMDNN_CONV2D_H
 #define ANAKIN_SABER_FUNCS_IMPL_BMDNN_CONV2D_H
 
-#include "saber/funcs/impl/impl_conv.h" 
+#include "saber/funcs/impl/impl_conv.h"
 
 namespace anakin{
 
@@ -74,6 +74,8 @@ public:
         int dilation_h = param.dilation_h;
         int dilation_w = param.dilation_w;
 
+        bool with_bias = param.bias()->size() > 0;
+
         bm_tensor_4d_t input_shape = {
             input_n,
             input_c,
@@ -107,7 +109,7 @@ public:
         };
 
         BMDNN_CHECK(bmdnn_conv_forward(_handle, *in_data, *weight, *bias, input_shape, 
-                                    kernel_param, output_shape, conv_param, 1, *out_data));
+                                    kernel_param, output_shape, conv_param, with_bias, *out_data));
                                     
         return SaberSuccess;
     }
