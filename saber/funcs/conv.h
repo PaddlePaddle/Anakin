@@ -27,6 +27,9 @@
 #include "saber/funcs/impl/impl_conv.h"
 #endif
 
+#ifdef USE_ARM_PLACE
+#include "saber/funcs/impl/arm/saber_conv.h"
+#endif
 namespace anakin {
 namespace saber {
 

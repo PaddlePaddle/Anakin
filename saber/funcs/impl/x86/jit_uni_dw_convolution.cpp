@@ -29,7 +29,7 @@ SaberStatus JitUniDWConvolution<OpDtype, inDtype, outDtype,
     }
     
     // get context of uni_dw_convolution
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
 
     ConvParam<opTensor> *conv_param = &(param.conv_param);
     ActivationParam<opTensor> *act_param = &(param.activation_param);

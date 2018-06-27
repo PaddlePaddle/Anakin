@@ -26,7 +26,7 @@ SaberStatus SaberAxpy<NV, OpDtype, inDtype, outDtype,\
     std::vector<DataTensor_out *>& outputs,
     AxpyParam<OpTensor>& param) {
 
-    cudaStream_t cuda_stream = this->_ctx.get_compute_stream();
+    cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
     if (!(inputs[1]->valid_shape() == outputs[0]->valid_shape()) 
         || !(inputs[2]->valid_shape() == outputs[0]->valid_shape())) {
          return SaberUnKownError;

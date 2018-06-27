@@ -37,11 +37,6 @@ public:
 protected:
 };
 
-
-
-
-
-
 #endif
 
 

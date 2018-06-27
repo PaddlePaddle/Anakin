@@ -25,7 +25,7 @@ SaberStatus SaberPooling<X86, OpDtype, inDtype, outDtype,
     typedef typename DataTensor_in::Dtype DataType_in;
     typedef typename DataTensor_out::Dtype DataType_out;
     typedef typename OpTensor::Dtype DataType_op;
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
 
     return create(inputs, outputs, param, ctx);
 }

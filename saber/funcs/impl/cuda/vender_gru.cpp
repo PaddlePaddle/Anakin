@@ -256,12 +256,12 @@ create(const std::vector<DataTensor*>& inputs,
        std::vector<OutDataTensor*>& outputs,
        GruParam<OpTensor>& gru_param, Context<NV>& ctx) {
 
-    if (!(ctx == this->_ctx)) {
+    if (!(&ctx == this->_ctx)) {
         if (_handle != NULL) {
             CUDNN_CHECK(cudnnDestroy(_handle));
         }
 
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
 
         cudaStream_t cuda_stream;
         cuda_stream = ctx.get_compute_stream();
@@ -367,7 +367,7 @@ dispatch(const std::vector<DataTensor*>& inputs,
     if (isHW2Seq) {
         DataTensor temp_tensor_in;
         DataTensor temp_tensor_out;
-        hw2seq(inputs, param, _word_size, temp_tensor_in, temp_tensor_out, _ctx);
+        hw2seq(inputs, param, _word_size, temp_tensor_in, temp_tensor_out, *_ctx);
         CUDNN_CHECK(cudnnRNNForwardInference(_handle,
                                              _rnnDesc,
                                              _xDesc->sizes(),//sequence
@@ -388,7 +388,7 @@ dispatch(const std::vector<DataTensor*>& inputs,
                                              _workspace_tensor.mutable_data(),
                                              _workspace_size_in_bytes));
 
-        seq2hw(outputs, inputs, param, _hidden_size, temp_tensor_out, _ctx);
+        seq2hw(outputs, inputs, param, _hidden_size, temp_tensor_out, *_ctx);
         outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
 
     } else {

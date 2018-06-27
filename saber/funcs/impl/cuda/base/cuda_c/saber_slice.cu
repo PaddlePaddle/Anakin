@@ -32,7 +32,7 @@ SaberStatus SaberSlice<NV, OpDtype, inDtype, outDtype,\
     std::vector<DataTensor_out *>& outputs, \
     SliceParam<OpTensor>& param) {
 
-    cudaStream_t stream = this->_ctx.get_compute_stream();
+    cudaStream_t stream = this->_ctx->get_compute_stream();
     //! inputs only has one tensor
     Shape shape_in = inputs[0]->valid_shape();
 

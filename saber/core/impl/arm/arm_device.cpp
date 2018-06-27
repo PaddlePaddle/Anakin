@@ -97,6 +97,18 @@ void Context<ARM>::set_power_mode(PowerMode mode) {
 
 template <>
 void Context<ARM>::set_act_cores(std::vector<int> ids) {
+
+#ifdef USE_OPENMP
+    int dynamic_current = 0;
+    int num_threads_current = 1;
+    dynamic_current = omp_get_dynamic();
+    num_threads_current = omp_get_num_threads();
+    omp_set_dynamic(0);
+    omp_set_num_threads(ids.size());
+    _act_ids = ids;
+#endif
+
+#if 0
     Device<ARM> dev = devs[_device_id];
     if (ids.size() == 0){
         _act_ids.resize(1);
@@ -110,6 +122,7 @@ void Context<ARM>::set_act_cores(std::vector<int> ids) {
         }
     }
     bind_dev();
+#endif
 }
 
 template <>
