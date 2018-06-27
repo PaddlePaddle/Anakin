@@ -63,8 +63,7 @@ public:
                                  std::vector<DataTensor_out *>& outputs,
                                  ConvActivePoolingParam<OpTensor> &param) override;
 
-    Shape get_conv_out_tensor(const std::vector<DataTensor_in *>& inputs,
-                              std::vector<DataTensor_out *>& outputs,
+    void get_conv_out_tensor(const std::vector<DataTensor_in *>& inputs,
                               ConvActivePoolingParam<OpTensor> &param) {
 
         ConvParam<OpTensor> conv_param = param.conv_param;
@@ -94,9 +93,7 @@ public:
         conv_out_shape[width_idx] = output_dim;
 
         _tensor_tmp.reshape(conv_out_shape);
-
-        outputs.clear();
-        outputs.push_back(&_tensor_tmp);
+        _vtensor_tmp[0] = &_tensor_tmp;
     }
 
 private:
@@ -104,7 +101,7 @@ private:
     LayOutType_op, LayOutType_in, LayOutType_out>* _conv_op;
     SaberPooling<ARM, OpDtype, inDtype, outDtype,\
     LayOutType_op, LayOutType_in, LayOutType_out>* _pool_op;
-    Tensor<ARM, outDtype, LayOutType_out> _tensor_tmp;
+    DataTensor_in _tensor_tmp;
     std::vector<DataTensor_in *> _vtensor_tmp;
 };
 

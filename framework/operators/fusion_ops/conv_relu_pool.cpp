@@ -12,7 +12,7 @@ void ConvReluPool<Ttype, Dtype, Ptype>::operator()(\
     std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {\
     auto* impl = static_cast<ConvReluPoolHelper<Ttype, Dtype, Ptype>*>(this->_helper);\
     auto& param = static_cast<ConvReluPoolHelper<Ttype, Dtype, Ptype>*>(this->_helper)->_param_conv_relu_pooling;\
-    impl->_funcs_conv_relu_pooling(ins, outs, param, ctx);\
+    SABER_CHECK(impl->_funcs_conv_relu_pooling(ins, outs, param, ctx));\
 }
 /// set helper
 template<typename Ttype, DataType Dtype, Precision Ptype>
@@ -94,7 +94,7 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ConvReluPoolHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype> &ctx, 
                                                                    const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
                                                                    std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-    _funcs_conv_relu_pooling.init(ins, outs, _param_conv_relu_pooling, SPECIFY, SABER_IMPL, ctx);
+    SABER_CHECK(_funcs_conv_relu_pooling.init(ins, outs, _param_conv_relu_pooling, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }
 

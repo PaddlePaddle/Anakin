@@ -14,7 +14,7 @@ void ConvBatchnormScaleReluPool<Ttype, Dtype, Ptype>::operator()(\
                  (this->_helper);\
     auto& param = static_cast<ConvBatchnormScaleReluPoolHelper<Ttype, Dtype, Ptype>*>\
                   (this->_helper)->_param_conv_batchnorm_scale_relu_pooling;\
-    impl->_funcs_conv_batchnorm_scale_relu_pooling(ins, outs, param, ctx);\
+    SABER_CHECK(impl->_funcs_conv_batchnorm_scale_relu_pooling(ins, outs, param, ctx));\
 }
 
 /// set helper
@@ -121,14 +121,16 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ConvBatchnormScaleReluPoolHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype> &ctx, 
                                                                    const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
                                                                    std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-    _funcs_conv_batchnorm_scale_relu_pooling.init(ins, outs, _param_conv_batchnorm_scale_relu_pooling, SPECIFY, SABER_IMPL, ctx);
+    SABER_CHECK(_funcs_conv_batchnorm_scale_relu_pooling.init(ins, outs, \
+        _param_conv_batchnorm_scale_relu_pooling, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ConvBatchnormScaleReluPoolHelper<Ttype, Dtype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
                                                                          std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-   _funcs_conv_batchnorm_scale_relu_pooling.compute_output_shape(ins, outs, _param_conv_batchnorm_scale_relu_pooling);
+    SABER_CHECK(_funcs_conv_batchnorm_scale_relu_pooling.compute_output_shape(ins, outs, \
+        _param_conv_batchnorm_scale_relu_pooling));
    return Status::OK();
 }
 
