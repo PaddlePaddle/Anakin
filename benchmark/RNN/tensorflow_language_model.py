@@ -97,6 +97,12 @@ def language_run(data_set):
         for one_batch in data_set:
             sess.run([softmax],{x_input:np.array(one_batch).reshape(1,len(one_batch))})
 
+            # tf.train.write_graph(sess.graph.as_graph_def(), 'model/language_model_tf/', 'graph.pb', as_text=False)
+            # saver=tf.train.Saver()
+            # saver.save(sess, "model/language_model_tf/model.cpkt")
+            # exit()
+
+
     benchmark(data_set)
 if __name__=='__main__':
     import getopt

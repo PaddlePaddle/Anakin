@@ -17,9 +17,9 @@ def language_run(data_set):
     word_hidden_size=32
     mention_hidden_size=20
     gru_hidden_size=36
-    hidden_size=mention_hidden_size+word_hidden_size
+
     fc1_hidden_size=49
-    crf_hidden_size=51
+
 
     batch_size=1
     tf.device('/cpu:0')
@@ -102,7 +102,6 @@ def language_run(data_set):
     sess = tf.Session()
     sess.run(init)
 
-
     # In[9]:
 
 
@@ -129,6 +128,11 @@ def language_run(data_set):
         for one_batch in data_set:
             word_vec,mention_vec=one_batch[0],one_batch[1]
             sess.run([crf_out],{x_input:np.array(word_vec).reshape(1,len(word_vec)),mention_input:np.array(mention_vec).reshape(1,len(mention_vec)),x_input_len:[len(word_vec)]})
+
+            # tf.train.write_graph(sess.graph.as_graph_def(), 'model/language_model_tf/', 'graph.pb', as_text=False)
+            # saver=tf.train.Saver()
+            # saver.save(sess, "model/chinese_ner_model_tf/")
+            # exit()
 
     benchmark(data_set)
 if __name__=='__main__':
