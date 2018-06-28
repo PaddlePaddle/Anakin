@@ -1,6 +1,3 @@
-/*
-   Modifications (c) 2018 Advanced Micro Devices, Inc.
-*/
 #include "framework/operators/fusion_ops/conv_relu_pool.h"
 
 namespace anakin {
@@ -128,7 +125,6 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ConvReluPoolHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype> &ctx, 
                                                                    const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
                                                                    std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-    LOG(INFO)<<"IN THIS!!!!!";
     _funcs_conv_relu_pooling.init(ins, outs, _param_conv_relu_pooling, STATIC, SABER_IMPL/*VENDER_IMPL*/, ctx);
     return Status::OK();
 }

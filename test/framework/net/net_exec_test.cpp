@@ -3,6 +3,20 @@
 #include "saber/funcs/timer.h"
 #include <chrono>
 
+#if defined(USE_CUDA)
+using Target = NV;
+using Target_H = X86;
+#elif defined(USE_X86_PLACE)
+using Target = X86;
+using Target_H = X86;
+#elif defined(USE_ARM_PLACE)
+using Target = ARM;
+using Target_H = ARM;
+#elif defined(USE_AMD)
+using Target = AMD;
+using Target_H = X86;
+#endif
+
 //#define USE_DIEPSE
 
 //std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/diepsie_light_head.anakin.bin";
@@ -65,7 +79,7 @@ TEST(NetTest, net_execute_base_test) {
 
     // get in
     auto d_tensor_in_p = net_executer.get_in("input_0");
-    Tensor4d<X86, AK_FLOAT> h_tensor_in;
+    Tensor4d<Target_H, AK_FLOAT> h_tensor_in;
 
     auto valid_shape_in = d_tensor_in_p->valid_shape();
     for (int i=0; i<valid_shape_in.size(); i++) {
@@ -265,6 +279,8 @@ TEST(NetTest, net_execute_reconstruction_test) {
 #endif
 
 int main(int argc, const char** argv){
+
+	Env<Target>::env_init();
     // initial logger
     logger::init(argv[0]);
 	InitTest();

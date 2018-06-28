@@ -784,7 +784,7 @@ SaberStatus SaberArgmax<NV, OpDtype, inDtype, outDtype,\
     std::vector<DataTensor_out *>& outputs,
     ArgmaxParam<OpTensor>& param) {
             
-    cudaStream_t cuda_stream = this->_ctx.get_compute_stream();
+    cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
     outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
     const InDataType * in_data = inputs[0]->data();
     OutDataType * out_data = outputs[0]->mutable_data();

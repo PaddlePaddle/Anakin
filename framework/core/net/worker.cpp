@@ -1,6 +1,3 @@
-/*
-   Modifications (c) 2018 Advanced Micro Devices, Inc.
-*/
 #include "framework/core/net/worker.h"
 #include "saber/funcs/timer.h"
 
@@ -218,16 +215,6 @@ template class Worker<X86, AK_FLOAT, Precision::FP16, OpRunType::SYNC>;
 template class Worker<X86, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
 #endif
 
-#ifdef USE_ARM_PLACE
-template class Worker<ARM, AK_FLOAT, Precision::FP32, OpRunType::ASYNC>;
-template class Worker<ARM, AK_FLOAT, Precision::FP16, OpRunType::ASYNC>;
-template class Worker<ARM, AK_FLOAT, Precision::INT8, OpRunType::ASYNC>;
-
-template class Worker<ARM, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
-template class Worker<ARM, AK_FLOAT, Precision::FP16, OpRunType::SYNC>;
-template class Worker<ARM, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
-#endif
-
 #ifdef USE_AMD
 template class Worker<AMD, AK_FLOAT, Precision::FP32, OpRunType::ASYNC>;
 template class Worker<AMD, AK_FLOAT, Precision::FP16, OpRunType::ASYNC>;
@@ -237,5 +224,25 @@ template class Worker<AMD, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
 template class Worker<AMD, AK_FLOAT, Precision::FP16, OpRunType::SYNC>;
 template class Worker<AMD, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
 #endif
+
+#ifdef USE_ARM_PLACE
+
+#ifdef ANAKIN_TYPE_FP32
+template class Worker<ARM, AK_FLOAT, Precision::FP32, OpRunType::ASYNC>;
+template class Worker<ARM, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
+#endif
+
+#ifdef ANAKIN_TYPE_FP16
+template class Worker<ARM, AK_FLOAT, Precision::FP16, OpRunType::ASYNC>;
+template class Worker<ARM, AK_FLOAT, Precision::FP16, OpRunType::SYNC>;
+#endif
+
+#ifdef ANAKIN_TYPE_INT8
+template class Worker<ARM, AK_FLOAT, Precision::INT8, OpRunType::ASYNC>;
+template class Worker<ARM, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
+#endif
+
+#endif //arm
+
 } /* namespace */
 

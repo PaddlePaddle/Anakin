@@ -1,18 +1,3 @@
-/* Copyright (c) 2018 Advanced Micro Devices, Inc. All Rights Reserved.
- 
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-   http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-*/
-
 #include "saber/funcs/impl/amd/saber_conv_act.h"
 #include "saber/funcs/impl/amd/amd_utils.h"
 #include "saber/funcs/conv.h"
@@ -44,7 +29,7 @@ SaberStatus SaberConv2DAct<AMD, OpDtype, inDtype, outDtype,
         Context<AMD> &ctx)
 {
 //    LOG(INFO) << "init";
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
     return create(inputs, outputs, param, ctx);
 }
 
@@ -245,7 +230,7 @@ SaberStatus SaberConv2DAct<AMD, OpDtype, inDtype, outDtype,
         //LOG(INFO) << "COMPLETE CREATE KERNEL";
     }
 
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
     return SaberSuccess;
 }
 
@@ -264,7 +249,7 @@ SaberStatus SaberConv2DAct<AMD, OpDtype, inDtype, outDtype,
 
     //LOG(INFO) << "dispatch";
     cl_int errNum = 0;
-    AMD_API::stream_t cm = this->_ctx.get_compute_stream();
+    AMD_API::stream_t cm = this->_ctx->get_compute_stream();
     //LOG(INFO) << "num=" << inputs[0]->num() << " channel=" << inputs[0]->channel() << " height=" << inputs[0]->height() << " width=" << inputs[0]->width();
     //To set the argument
     if (/*inputs[0]->num() == 1 && */inputs[0]->channel() == 3 &&

@@ -175,7 +175,7 @@ SaberStatus SaberLayerNorm<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
     std::vector<DataTensor_out*>& outputs, \
     LayerNormParam<OpTensor> &param) {
 
-    cudaStream_t stream = this->_ctx.get_compute_stream();
+    cudaStream_t stream = this->_ctx->get_compute_stream();
 
     int total_size = inputs[0]->valid_size();
 

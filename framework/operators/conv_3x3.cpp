@@ -1,6 +1,3 @@
-/*
-   Modifications (c) 2018 Advanced Micro Devices, Inc.
-*/
 #include "framework/operators/conv_3x3.h"
 
 namespace anakin {
@@ -95,11 +92,11 @@ template class SassConvolutionHelper<NV, AK_FLOAT, Precision::FP16>;
 template class SassConvolutionHelper<NV, AK_FLOAT, Precision::INT8>;
 #endif
 
-#ifdef USE_ARM_PLACE
-template class SassConvolutionHelper<ARM, AK_FLOAT, Precision::FP32>;
-template class SassConvolutionHelper<ARM, AK_FLOAT, Precision::FP16>;
-template class SassConvolutionHelper<ARM, AK_FLOAT, Precision::INT8>;
-#endif
+//#ifdef USE_ARM_PLACE
+//template class SassConvolutionHelper<ARM, AK_FLOAT, Precision::FP32>;
+//template class SassConvolutionHelper<ARM, AK_FLOAT, Precision::FP16>;
+//template class SassConvolutionHelper<ARM, AK_FLOAT, Precision::INT8>;
+//#endif
 
 #ifdef USE_AMD
 template class SassConvolutionHelper<AMD, AK_FLOAT, Precision::FP32>;
@@ -113,7 +110,7 @@ ANAKIN_REGISTER_OP_HELPER(SassConvolution, SassConvolutionHelper, NV, AK_FLOAT, 
 #endif
 
 #ifdef USE_ARM_PLACE
-ANAKIN_REGISTER_OP_HELPER(SassConvolution, SassConvolutionHelper, ARM, AK_FLOAT, Precision::FP32);
+//ANAKIN_REGISTER_OP_HELPER(SassConvolution, SassConvolutionHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
 
 #ifdef USE_AMD
@@ -129,9 +126,9 @@ ANAKIN_REGISTER_OP(SassConvolution)
 #ifdef USE_AMD
 .__alias__<AMD, AK_FLOAT, Precision::FP32>("convolution")
 #endif
-#ifdef USE_ARM_PLACE
-.__alias__<ARM, AK_FLOAT, Precision::FP32>("convolution")
-#endif
+//#ifdef USE_ARM_PLACE
+//.__alias__<ARM, AK_FLOAT, Precision::FP32>("convolution")
+//#endif
 .num_in(1)
 .num_out(1)
 .Args<int>("group", " group of conv ")

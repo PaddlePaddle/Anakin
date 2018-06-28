@@ -1,6 +1,3 @@
-/*
-   Modifications (c) 2018 Advanced Micro Devices, Inc.
-*/
 #include "tensor_op.h"
 #include "anakin_config.h"
 #include <cstdlib>

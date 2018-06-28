@@ -16,7 +16,7 @@ Before using Anakin, you must convert your models to Anakin ones. If you don't, 
 
 ```bash
 git clone https://xxxxxxxxx
-``` 
+```
 
 ## Usage
 
@@ -47,9 +47,8 @@ TARGET:
             - /path/to/caffe/src/caffe/proto/caffe.proto
         PrototxtPath: /path/to/your/googlenet.prototxt
         ModelPath: /path/to/your/googlenet.caffemodel
-   
-	# not support yet 
-    PADDLE:
+
+    FLUID:
         # path to proto files   
         ProtoPath:
             - /path/to/proto_0
@@ -57,10 +56,10 @@ TARGET:
             - /path/to/proto_n
         PrototxtPath: /path/to/prototxt
         ModelPath: /path/to/model
-	# ... 
+	# ...
 ```
 
-### 2. Converting 
+### 2. Converting
 After finishing configuration , you just need to call python script ```python converter.py```  to complete transfromation.
 
 ### 3. Launching dash board
@@ -73,5 +72,3 @@ Then open you browser and search http://0.0.0.0:8888, amazing things will happen
 ### 4. Note
 
 > 1.We support caffe so far
-
-

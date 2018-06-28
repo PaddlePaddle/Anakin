@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -43,12 +43,14 @@ public:
     virtual void operator() (OpContext<Ttype> &ctx, 
                              const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
                              std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-        //LOG(ERROR) << "Not Impl Yet Operator power<TargetType:"<<"unknown"<<","
-         //          <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info()<<">";
+        LOG(ERROR) << "Not Impl Yet Operator power<TargetType:"<<"unknown"<<","
+                   <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info()<<">";
     }
 
     friend class SoftmaxHelper<Ttype, Dtype, Ptype>;
 };
+
+
 
 /**
  * \brief softmax helper class to implement softmax
@@ -60,7 +62,7 @@ class SoftmaxHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     SoftmaxHelper()=default;
 
-    ~SoftmaxHelper();
+    ~SoftmaxHelper() {}
 
     Status InitParam() override;
 
@@ -90,8 +92,6 @@ public:
     ///< _funcs_softmax stand for softmax function 
     saber::Softmax<Ttype, Dtype> _funcs_softmax;
 };
-
-
 
 } /* namespace ops */
 

@@ -11,12 +11,12 @@ SaberStatus VenderConv2D<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::\
             std::vector<DataTensor_out *>& outputs,
             ConvParam<OpTensor>& param, Context<NV>& ctx) {
 
-    if (!(ctx == this->_ctx)) {
+    if (!(&ctx == this->_ctx)) {
         if (_handle != NULL) {
             CUDNN_CHECK(cudnnDestroy(_handle));
         }
 
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
 
         cudaStream_t cuda_stream;
         cuda_stream = ctx.get_compute_stream();
@@ -151,12 +151,12 @@ SaberStatus VenderConv2D<NV, AK_INT8, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::\
             std::vector<DataTensor_out *>& outputs,
             ConvParam<OpTensor>& param, Context<NV>& ctx) {
 
-    if (!(ctx == this->_ctx)) {
+    if (!(&ctx == this->_ctx)) {
         if (_handle != NULL) {
             CUDNN_CHECK(cudnnDestroy(_handle));
         }
 
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
 
         cudaStream_t cuda_stream;
         cuda_stream = ctx.get_compute_stream();
@@ -344,12 +344,12 @@ SaberStatus VenderConv2D<NV, AK_INT8, AK_INT8, AK_INT8, NCHW_C4, NCHW_C4, NCHW_C
     CHECK_EQ(outputs[0]->dims(), 5);
     CHECK_EQ(outputs[0]->shape()[4], 4);
 
-    if (!(ctx == this->_ctx)) {
+    if (!(&ctx == this->_ctx)) {
         if (_handle != NULL) {
             CUDNN_CHECK(cudnnDestroy(_handle));
         }
 
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
 
         cudaStream_t cuda_stream;
         cuda_stream = ctx.get_compute_stream();
@@ -514,12 +514,12 @@ SaberStatus VenderConv2D<NV, AK_INT8, AK_INT8, AK_FLOAT, NCHW_C4, NCHW, NCHW>::c
     CHECK_EQ(inputs[0]->dims(), 5);
     CHECK_EQ(inputs[0]->shape()[4], 4);
 
-    if (!(ctx == this->_ctx)) {
+    if (!(&ctx == this->_ctx)) {
         if (_handle != NULL) {
             CUDNN_CHECK(cudnnDestroy(_handle));
         }
 
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
 
         cudaStream_t cuda_stream;
         cuda_stream = ctx.get_compute_stream();

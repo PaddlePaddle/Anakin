@@ -42,7 +42,7 @@ SaberStatus SaberScale<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, \
         std::vector<DataTensor_out*>& outputs,
         ScaleParam<OpTensor>& param) {
 
-    cudaStream_t cuda_stream = this->_ctx.get_compute_stream();
+    cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
 
     auto in_data = inputs[0]->data();
     auto out_data = outputs[0]->mutable_data();

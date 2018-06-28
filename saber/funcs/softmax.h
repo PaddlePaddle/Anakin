@@ -1,5 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
-   Modifications (c) 2018 Advanced Micro Devices, Inc.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -30,6 +29,10 @@
 
 #ifdef USE_AMD
 #include "saber/funcs/impl/amd/saber_softmax.h"
+#endif
+
+#ifdef USE_ARM_PLACE
+#include "saber/funcs/impl/arm/saber_softmax.h"
 #endif
 namespace anakin{
 

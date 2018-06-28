@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -23,6 +23,16 @@
 #endif
 
 #ifdef USE_X86_PLACE
+#include "saber/funcs/impl/impl_mat_mul.h"
+#endif
+
+#ifdef USE_ARM_PLACE
+//todo
+#include "saber/funcs/impl/impl_mat_mul.h"
+#endif
+
+#ifdef USE_AMD
+//todo
 #include "saber/funcs/impl/impl_mat_mul.h"
 #endif
 
@@ -90,10 +100,10 @@ public:
         }
         CHECK_EQ(K0, K1);
 
-        param._B = input[0]->num() * input[0]->channel();
-        param._M = M;
-        param._N = N;
-        param._K = K0;
+        param._b = input[0]->num() * input[0]->channel();
+        param._m = M;
+        param._n = N;
+        param._k = K0;
         return output[0]->set_shape({input[0]->num(), input[0]->channel(), M, N});
     }
 

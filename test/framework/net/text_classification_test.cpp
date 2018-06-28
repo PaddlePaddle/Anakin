@@ -183,6 +183,8 @@ TEST(NetTest, chinese_ner_executor) {
 }
 
 int main(int argc, const char** argv) {
+
+    Env<X86>::env_init();
     // initial logger
     LOG(INFO) << "argc " << argc;
 
@@ -202,6 +204,6 @@ int main(int argc, const char** argv) {
 }
 #else
 int main(int argc, const char** argv) {
-
+    return 0;
 }
 #endif

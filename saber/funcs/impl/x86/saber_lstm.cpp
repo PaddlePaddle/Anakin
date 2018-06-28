@@ -219,7 +219,7 @@ SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
     safe_free(&weight_h);
     safe_free(&aligned_weights_data_h);
 
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
     this->max_thread_num_ = omp_get_max_threads();
 
     return create(inputs, outputs, param, ctx);

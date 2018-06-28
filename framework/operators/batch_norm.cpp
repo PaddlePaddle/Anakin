@@ -4,7 +4,17 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
+#define INSTANCE_BATCHNORM(Ttype, Dtype, Ptype) \
+template<> \
+void BatchNorm<Ttype, Dtype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+    const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, \
+    std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) { \
+        auto* impl = static_cast<BatchNormHelper<Ttype, Dtype, Ptype>*>(this->_helper); \
+        auto& param = static_cast<BatchNormHelper<Ttype, Dtype, Ptype>*>(this->_helper)->_param_scale; \
+        impl->_funcs_scale(ins, outs, param, ctx); \
+}
+
+#if 0//def USE_CUDA
 template<>
 void BatchNorm<NV, AK_FLOAT, Precision::FP32>::operator()(
     OpContext<NV>& ctx,
@@ -15,15 +25,6 @@ void BatchNorm<NV, AK_FLOAT, Precision::FP32>::operator()(
     impl->_funcs_scale(ins, outs, param, ctx);
 }
 #endif
-
-/// TODO ... specialization other type of operator
-
-
-/// set helper
-template<typename Ttype, DataType Dtype, Precision Ptype>
-BatchNormHelper<Ttype, Dtype, Ptype>::~BatchNormHelper() {
-    LOG(INFO) << "Decons permute_cpu_float";
-}
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status BatchNormHelper<Ttype, Dtype, Ptype>::InitParam() {
@@ -67,38 +68,37 @@ Status BatchNormHelper<Ttype, Dtype, Ptype>::InferShape(const
     SABER_CHECK(_funcs_scale.compute_output_shape(ins, outs, _param_scale));
     return Status::OK();
 }
-#ifdef USE_CUDA
-template class BatchNormHelper<NV, AK_FLOAT, Precision::FP32>;
-template class BatchNormHelper<NV, AK_FLOAT, Precision::FP16>;
-template class BatchNormHelper<NV, AK_FLOAT, Precision::INT8>;
-#endif
-
-#ifdef USE_ARM_PLACE
-template class BatchNormHelper<ARM, AK_FLOAT, Precision::FP32>;
-template class BatchNormHelper<ARM, AK_FLOAT, Precision::FP16>;
-template class BatchNormHelper<ARM, AK_FLOAT, Precision::INT8>;
-#endif
 
 // register helper
 #ifdef USE_CUDA
+INSTANCE_BATCHNORM(NV, AK_FLOAT, Precision::FP32);
+template class BatchNormHelper<NV, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(BatchNorm, BatchNormHelper, NV, AK_FLOAT, Precision::FP32);
 #endif
 
+#ifdef USE_X86_PLACE
+INSTANCE_BATCHNORM(X86, AK_FLOAT, Precision::FP32);
+template class BatchNormHelper<X86, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(BatchNorm, BatchNormHelper, X86, AK_FLOAT, Precision::FP32);
+#endif
+
 #ifdef USE_ARM_PLACE
+INSTANCE_BATCHNORM(ARM, AK_FLOAT, Precision::FP32);
+template class BatchNormHelper<ARM, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(BatchNorm, BatchNormHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
 
 //! register op
 ANAKIN_REGISTER_OP(BatchNorm)
-	.Doc("BatchNorm operator")
+.Doc("BatchNorm operator")
 #ifdef USE_CUDA
-	.__alias__<NV, AK_FLOAT, Precision::FP32>("eps")
+.__alias__<NV, AK_FLOAT, Precision::FP32>("eps")
 #endif
 #ifdef USE_ARM_PLACE
-	.__alias__<ARM, AK_FLOAT, Precision::FP32>("eps")
+.__alias__<ARM, AK_FLOAT, Precision::FP32>("eps")
 #endif
-	.num_in(1)
-	.num_out(1);
+.num_in(1)
+.num_out(1);
 
 } /* namespace ops */
 

@@ -1,5 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
-   Modifications (c) 2018 Advanced Micro Devices, Inc.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -22,6 +21,8 @@
 #include <type_traits>
 #include <typeinfo>
 #include <stdlib.h>
+#include <map>
+#include <list>
 
 #include "utils/logger/logger.h"
 #include "anakin_config.h"
@@ -138,6 +139,14 @@ const char* cudnn_get_errorstring(cudnnStatus_t status);
 
 #ifdef USE_AMD
 
+#ifdef __APPLE__
+#include <OpenCL/cl_ext.h>
+#include <OpenCL/cl.h>
+#else
+#include <CL/cl_ext.h>
+#include <CL/cl.h>
+#endif
+
 #define AMD_CHECK_MSG(condition, msg) \
   /* Code block avoids redefinition of cudaError_t error */ \
   do { \
@@ -156,8 +165,11 @@ const char* cudnn_get_errorstring(cudnnStatus_t status);
 
 
 #ifdef USE_ARM_PLACE
-
-#endif
+#ifdef USE_OPENMP
+#include <omp.h>
+#include <arm_neon.h>
+#endif //openmp
+#endif //ARM
 
 #endif //ANAKIN_SABER_CORE_COMMON_H
 

@@ -6,170 +6,105 @@
 #include <vector>
 
 using namespace anakin::saber;
+typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
+typedef Tensor<NV, AK_FLOAT, NCHW> TensorDf4;
 
-template <typename Tensor>
-void print_tensor_shape(std::string name, Tensor& t0) {
-
-    LOG(INFO) << name << " valid shape is ["
-              << t0.valid_shape()[0] << ", "
-              << t0.valid_shape()[1] << ", "
-              << t0.valid_shape()[2] << ", "
-              << t0.valid_shape()[3] << "].";
-
-    LOG(INFO) << name << " real shape is ["
-              << t0.shape()[0] << ", "
-              << t0.shape()[1] << ", "
-              << t0.shape()[2] << ", "
-              << t0.shape()[3] << "].";
-
-    LOG(INFO) << name << " offset is ["
-              << t0.offset()[0] << ", "
-              << t0.offset()[1] << ", "
-              << t0.offset()[2] << ", "
-              << t0.offset()[3] << "].";
-}
-
-TEST(TestSaberFuncNV, test_func_constructor) {
-
+void test_activation(Shape input_big_shape, Shape input_shape, 
+         ActivationParam<TensorDf4> param, Shape offset, bool is_share_from) {
+    Context<NV> ctx(0, 1, 1);
     typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
     typedef Tensor<NV, AK_FLOAT, NCHW> TensorDf4;
 
-    int img_num = 1;
-    int in_channels = 2;
-    int img_h = 8;
-    int img_w = 8;
+    TensorDf4 big_input;
+    TensorDf4 small_input;
+    TensorDf4 big_output;
+    TensorDf4 small_output;
 
-    Shape img_s(img_num, in_channels, img_h, img_w);
+    big_input.re_alloc(input_big_shape);
+    big_output.re_alloc(input_big_shape);
+    small_input.set_shape(input_shape, input_shape);
+    small_output.set_shape(input_shape, input_shape);
+    TensorHf4 host_big_input(input_big_shape);
+    fill_tensor_host_rand(host_big_input, -1, 1);
+    big_input.copy_from(host_big_input);
+    //fill_tensor_device_rand(big_input, -1, 1);
 
-    TensorHf4 img_host;
-    TensorDf4 img_dev;
-
-    img_host.re_alloc(img_s);
-    img_dev.re_alloc(img_s);
-
-    for (int i = 0; i < img_host.size(); ++i) {
-        img_host.mutable_data()[i] = (float)(0.05 * (i & 0x1f) * -1);
+    if (is_share_from) {
+        small_input.share_from(big_input);
+        small_output.share_from(big_output);
+    } else {
+        small_input.share_sub_buffer(big_input, input_shape, offset);
+        small_output.share_sub_buffer(big_output, input_shape, offset);
     }
 
-    img_dev.copy_from(img_host);
     TensorDf4 output_dev;
-
     // start Reshape & doInfer
 
-    Context<NV> ctx1(0, 1, 1);
+    std::vector<TensorDf4*> inputs;
+    std::vector<TensorDf4*> outputs;
 
-    ActivationParam<TensorDf4> param(Active_elu, 0.1f, 0.1f);
-
-    std::vector<TensorDf4*> input;
-    std::vector<TensorDf4*> output;
-
-    input.push_back(&img_dev);
-    output.push_back(&output_dev);
+    inputs.push_back(&small_input);
+    outputs.push_back(&small_output);
 
     Activation<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW> act;
-    act.compute_output_shape(input, output, param);
-    output_dev.re_alloc(output[0]->shape());
 
+    act.compute_output_shape(inputs, outputs, param);
     // init assume output tensor has been reshpaed by user.
-    act.init(input, output, param, SPECIFY, VENDER_IMPL, ctx1);
-    act(input, output, param, ctx1);
-
-    cudaStream_t cuda_stream = ctx1.get_compute_stream();
-    output[0]->record_event(cuda_stream);
-    output_dev.sync();
-    print_tensor_device(output_dev);
+    act.init(inputs, outputs, param, SPECIFY, SABER_IMPL, ctx);
+    act(inputs, outputs, param, ctx);
+    cudaStream_t cuda_stream = ctx.get_compute_stream();
+    outputs[0]->record_event(cuda_stream);
+    outputs[0]->sync();
+    print_tensor_device(big_output);
+    print_tensor_device(big_input);
+    if (param.prelu_param.slope) {
+        print_tensor_device((*param.prelu_param.slope));
+    }
     cudaDeviceSynchronize();
     CUDA_POST_KERNEL_CHECK;
 }
 
-TEST(TestSaberFuncNV, test_func_sub_tensor) {
 
-    typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
-    typedef Tensor<NV, AK_FLOAT, NCHW> TensorDf4;
+TEST(TestSaberFuncNV, test_func_activation) {
+    int num = 1;
+    int channel = 2;
+    int height = 5;
+    int width = 4;
 
-    int img_num = 1;
-    int in_channels = 2;
-    int img_h = 8;
-    int img_w = 8;
+    Shape input_shape(num, channel, height, width);
+    Shape input_big_shape(num, channel, height+1, width+1);
+    Shape offset_0(0, 0, 0, 0);
+    Shape offset_1(0, 0, 1, 1);
+    Shape slope_shape_0(1, channel, 1, 1);
+    Shape slope_shape_1(1, 1, 1, 1);
+    TensorDf4 prelu_slope_0;
+    prelu_slope_0.reshape(slope_shape_0);
+    PreluParam<TensorDf4> prelu_0(false, &prelu_slope_0);
+    
+    TensorDf4 prelu_slope_1;
+    prelu_slope_1.reshape(slope_shape_1);
+    PreluParam<TensorDf4> prelu_1(true, &prelu_slope_1);
+    fill_tensor_device_rand(prelu_slope_0, 0, 1);
+    fill_tensor_device_rand(prelu_slope_1, 0, 1);
 
-    Shape img_s(img_num, in_channels, img_h, img_w);
+    ActivationParam<TensorDf4> param_elu(Active_elu, 0.1f, 0.1f);
+    ActivationParam<TensorDf4> param_relu(Active_relu, 0.0f, 0.0f);
+    ActivationParam<TensorDf4> param_sigmoid(Active_sigmoid, 0.1f, 0.1f);
+	ActivationParam<TensorDf4> param_tanh(Active_tanh, 0.1f, 0.1f);
+    ActivationParam<TensorDf4> param_prelu_0(Active_prelu, 0.f, 0.f, prelu_0);
+    ActivationParam<TensorDf4> param_prelu_1(Active_prelu, 0.f, 0.f, prelu_1);
 
-    TensorHf4 img_host;
-    TensorDf4 img_dev;
-
-    img_host.re_alloc(img_s);
-    img_dev.re_alloc(img_s);
-
-    for (int i = 0; i < img_host.size(); ++i) {
-        img_host.mutable_data()[i] = (float)(0.05 * (i & 0x1f) * -1);
+    for (ActivationParam<TensorDf4> param : {param_elu, param_relu, param_sigmoid, param_tanh, param_prelu_0, param_prelu_1}) {
+    //for (ActivationParam<TensorDf4> param : {param_sigmoid}) {
+        for (auto share_from : {false, true}) {
+            for (auto offset: {offset_0, offset_1}) {
+                test_activation(input_big_shape,
+                        input_shape, param, offset, share_from);
+            }
+        }
     }
 
-    img_dev.copy_from(img_host);
-    Shape img_s_t0(img_num, in_channels, 4, 4);
-
-    TensorDf4 t0;
-    TensorDf4 t1;
-
-    t0.share_sub_buffer(img_dev, img_s_t0, {0, 0, 0, 0});
-    t1.share_sub_buffer(img_dev, img_s_t0, {0, 0, 4, 4});
-
-    print_tensor_shape("t0", t0);
-    print_tensor_shape("t1", t1);
-
-    TensorDf4 output_dev;
-
-    TensorDf4 out0;
-    TensorDf4 out1;
-
-    // start Reshape & doInfer
-    Context<NV> ctx1(0, 1, 1);
-    Context<NV> ctx2(0, 2, 2);
-
-    ActivationParam<TensorDf4> param1(Active_elu, 0.1f, 0.1f);
-    ActivationParam<TensorDf4> param2(Active_elu, 0.1f, 0.1f);
-
-    std::vector<TensorDf4*> input1, input2;
-    std::vector<TensorDf4*> output1, output2;
-
-    input1.push_back(&t0);
-    input2.push_back(&t1);
-
-    output1.push_back(&out0);
-    output2.push_back(&out1);
-
-    //FIXME where do I get img_s and all those shapes ????
-    output_dev.re_alloc(img_s);
-
-    out0.share_sub_buffer(output_dev, img_s_t0, {0, 0, 0, 0});
-    out1.share_sub_buffer(output_dev, img_s_t0, {0, 0, 4, 4});
-
-    print_tensor_shape("output_dev", output_dev);
-
-    Activation<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW> act1;
-    Activation<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW> act2;
-
-    act1.compute_output_shape(output1, input1, param1);
-    act2.compute_output_shape(output2, input2, param2);
-
-    print_tensor_shape("out0", out0);
-    print_tensor_shape("out1", out1);
-
-    // init assume output tensor has been reshpaed by user.
-    act1.init(input1, output1, param1, SPECIFY, SABER_IMPL, ctx1);
-    act1(input1, output1, param1, ctx1);
-    cudaStream_t cuda_stream = ctx1.get_compute_stream();
-    output1[0]->record_event(cuda_stream);
-
-    act2.init(input2, output2, param2, SPECIFY, SABER_IMPL, ctx2);
-    act2(input2, output2, param2, ctx2);
-    cudaStream_t cuda_stream2 = ctx2.get_compute_stream();
-    output2[0]->record_event(cuda_stream2);
-
-    out0.sync();
-    out1.sync();
-    print_tensor_device(output_dev);
-    cudaDeviceSynchronize();
-    CUDA_POST_KERNEL_CHECK;
+    
 }
 
 int main(int argc, const char** argv) {

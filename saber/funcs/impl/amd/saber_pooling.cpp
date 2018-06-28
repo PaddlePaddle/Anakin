@@ -1,10 +1,10 @@
-/* Copyright (c) 2018 Advanced Micro Devices, Inc. All Rights Reserved.
- 
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+       http://www.apache.org/licenses/LICENSE-2.0
 
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
@@ -42,7 +42,7 @@ SaberStatus SaberPooling<AMD, OpDtype, inDtype, outDtype,
         Context<AMD> &ctx)
 {
 
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
     return create(inputs, outputs, param, ctx);
 }
 
@@ -183,7 +183,7 @@ SaberStatus SaberPooling<AMD, OpDtype, inDtype, outDtype,
     }
 
     LOG(INFO) << "COMPLETE CREATE KERNEL";
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
     return SaberSuccess;
 }
 
@@ -214,7 +214,7 @@ SaberStatus SaberPooling<AMD, OpDtype, inDtype, outDtype,
     cl_int errNum = 0;
 
     //To get the commpute command queue
-    AMD_API::stream_t cm = this->_ctx.get_compute_stream();
+    AMD_API::stream_t cm = this->_ctx->get_compute_stream();
 
     //To set the argument
     cl_mem memObjects[2] = { 0, 0 };

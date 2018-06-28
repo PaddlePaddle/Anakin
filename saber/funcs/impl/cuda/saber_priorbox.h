@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -56,7 +56,7 @@ public:
                       PriorBoxParam<OpTensor> &param,
                       Context<NV> &ctx) {
         // get context
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         return create(inputs, outputs, param, ctx);
     }
 
@@ -204,7 +204,7 @@ public:
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                           std::vector<DataTensor_out*>& outputs,
                           PriorBoxParam<OpTensor> &param){
-        cudaStream_t stream = this->_ctx.get_compute_stream();
+        cudaStream_t stream = this->_ctx->get_compute_stream();
         CUDA_CHECK(cudaMemcpyAsync(outputs[0]->mutable_data(), _output_nv.data(), \
                 outputs[0]->valid_size() * sizeof(float), cudaMemcpyDeviceToDevice, stream));
         return SaberSuccess;

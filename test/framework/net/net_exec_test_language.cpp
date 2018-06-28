@@ -266,6 +266,7 @@ TEST(NetTest, net_execute_base_test) {
 
 int main(int argc, const char** argv) {
     // initial logger
+    Env<X86>::env_init();
             LOG(INFO) << "argc " << argc;
 
     if (argc < 3) {

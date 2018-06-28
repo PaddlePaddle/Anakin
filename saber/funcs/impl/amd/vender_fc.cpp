@@ -1,10 +1,10 @@
-/* Copyright (c) 2018 Advanced Micro Devices, Inc. All Rights Reserved.
- 
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+       http://www.apache.org/licenses/LICENSE-2.0
 
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,8 +23,6 @@ typedef TargetWrapper<AMD> AMD_API;
 typedef Env<AMD> AMD_ENV;
 typedef Tensor<AMD, AK_FLOAT, NCHW> TensorDf4;
 
-template class VenderFc<AMD, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
-
 template <DataType OpDtype ,
     DataType inDtype,
     DataType outDtype,
@@ -41,7 +39,7 @@ SaberStatus VenderFc<AMD, OpDtype, inDtype, outDtype,
     typedef typename DataTensor_in::Dtype DataType_in;
     typedef typename DataTensor_out::Dtype DataType_out;
     typedef typename OpTensor::Dtype DataType_op;
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
 
     return create(inputs, outputs, param, ctx);
 }
@@ -117,7 +115,7 @@ SaberStatus VenderFc<AMD, OpDtype, inDtype, outDtype,
                   std::vector<DataTensor_out*>& outputs,
                   FcParam<OpTensor> &param, Context<AMD> &ctx)
 {
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
     this->_param = &param;
 
     cl_device_id device = 0;
@@ -231,15 +229,15 @@ SaberStatus VenderFc<AMD, OpDtype, inDtype, outDtype,
                   FcParam<OpTensor> &param)
 {
 //    LOG(INFO) << "dispatch";
-//LOG(INFO) << "num_output=" << param.num_output << "axis=" << param.axis;
-//LOG(INFO) << "num=" << inputs[0]->num() << " channel=" << inputs[0]->channel() << " height=" << inputs[0]->height() << " width=" << inputs[0]->width();
-//LOG(INFO) << "num=" << param.weights->num() << " channel=" << param.weights->channel() << " height=" << param.weights->height() << " width=" << param.weights->width();
+//    LOG(INFO) << "num_output=" << param.num_output << "axis=" << param.axis;
+//    LOG(INFO) << "num=" << inputs[0]->num() << " channel=" << inputs[0]->channel() << " height=" << inputs[0]->height() << " width=" << inputs[0]->width();
+//    LOG(INFO) << "num=" << param.weights->num() << " channel=" << param.weights->channel() << " height=" << param.weights->height() << " width=" << param.weights->width();
     if (inDtype == AK_FLOAT) {
         cl_int errNum = 0;
         //LOG(INFO) << "device id= " << device << " conext = " << context;
         
         //To get the commpute command queue
-        AMD_API::stream_t cm = this->_ctx.get_compute_stream();
+        AMD_API::stream_t cm = this->_ctx->get_compute_stream();
 
         //To set the argument
         cl_mem memObjects[4] = { 0, 0 , 0, 0};
@@ -278,6 +276,8 @@ SaberStatus VenderFc<AMD, OpDtype, inDtype, outDtype,
     }
     return SaberSuccess;
 }
+
+template class VenderFc<AMD, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
 #endif
 }
 } // namespace anakin

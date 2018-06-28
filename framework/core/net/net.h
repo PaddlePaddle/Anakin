@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -34,14 +34,25 @@ public:
      *  \brief Construct a net by graph. 
      *  This construction should be use in thread call and make sure thread safety.
      */
-    explicit Net(graph::Graph<Ttype, Dtype, Ptype>&, bool need_summary = false); 
+    explicit Net(graph::Graph<Ttype, Dtype, Ptype>&, bool need_summary = false);
+
+    /**
+     *  \brief Construct a net by graph, init with specified context.
+     *  This construction should be use in thread call and make sure thread safety.
+     */
+    explicit Net(graph::Graph<Ttype, Dtype, Ptype>&, OpContextPtr<Ttype> ctx, bool need_summary = false);
 
     ~Net();
 
 public:
-    
-    /** 
-     * \brief init execute net from graph.   
+    /**
+     * \brief init execute net from graph, init with specified context.
+     *  you can use Net(Graph&) instead.
+     */
+    void init(graph::Graph<Ttype, Dtype, Ptype>& graph, OpContextPtr<Ttype> ctx);
+
+    /**
+     * \brief init execute net from graph.
      *  you can use Net(Graph&) instead.
      */
     void init(graph::Graph<Ttype, Dtype, Ptype>&);

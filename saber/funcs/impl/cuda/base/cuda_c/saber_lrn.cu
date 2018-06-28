@@ -66,7 +66,7 @@ SaberStatus SaberLrn<NV, OpDtype, inDtype, outDtype,\
 
     const InDataType* in_data = inputs[0]->data();
     OutDataType* out_data = outputs[0]->mutable_data();
-    cudaStream_t cuda_stream = this->_ctx.get_compute_stream();
+    cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
     int out_n = outputs[0]->num();
     int out_c = outputs[0]->channel();
     int out_h = outputs[0]->height();
