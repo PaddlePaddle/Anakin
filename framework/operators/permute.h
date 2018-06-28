@@ -60,7 +60,7 @@ class PermuteHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     PermuteHelper()=default;
 
-    ~PermuteHelper();
+    ~PermuteHelper() {}
 
     Status InitParam() override;
 
@@ -90,9 +90,7 @@ public:
     ///< _funcs_permute stand for permute function
     saber::Permute<Ttype, Dtype> _funcs_permute;
 };
-
-
-
+        
 } /* namespace ops */
 
 } /* namespace anakin */

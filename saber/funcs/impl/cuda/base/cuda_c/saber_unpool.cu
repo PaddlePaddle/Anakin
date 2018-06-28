@@ -40,7 +40,7 @@ SaberStatus SaberUnpool<NV, OpDtype, inDtype, outDtype,\
     const InDataType* in_data = inputs[0]->data();
     const OutDataType* in_max_index = inputs[1]->data();
     OutDataType* out_data = outputs[0]->mutable_data();
-    cudaStream_t cuda_stream = this->_ctx.get_compute_stream();
+    cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
     int count = inputs[0]->valid_size();
     int in_n = inputs[0]->num();
     int in_c = inputs[0]->channel();

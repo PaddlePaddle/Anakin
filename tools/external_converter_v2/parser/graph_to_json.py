@@ -5,7 +5,7 @@
 import random
 from utils import *
 from proto import *
-from kill_caffe import *
+#from kill_caffe import *
 from logger import *
 from graph_io import GraphProtoIO
 

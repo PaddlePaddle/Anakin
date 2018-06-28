@@ -56,7 +56,7 @@ public:
                              std::vector<DataTensor_out*>& outputs,
                              RoiPoolParam<OpTensor> &param,
                              Context<NV> &ctx) {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         Shape out_stride = outputs[0]->get_stride();
         Shape in_stride = inputs[0]->get_stride();
         int in_n_index = inputs[0]->num_index();

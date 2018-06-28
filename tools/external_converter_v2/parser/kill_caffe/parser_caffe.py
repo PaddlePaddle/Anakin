@@ -222,7 +222,7 @@ class CaffeParser:
         """
         # create node scale
         scale_nodeIO = NodeProtoIO() # init a NodeProtoIO 
-        scale_opIO = OpProtoIO() # init a OpProtoIO 
+        scale_opIO = OpsProtoIO() # init a OpsProtoIO 
         scale_nodeIO.set_name(batchnorm_name + "_scale") # set node name 
         scale_opIO.set_name("Scale") # set op
         # change edge for graph_io
@@ -243,7 +243,7 @@ class CaffeParser:
         """
         """
         node_io = NodeProtoIO()
-        op_io = OpProtoIO()
+        op_io = OpsProtoIO()
         inputs = list(self.net_parameter.input)
         if len(inputs):
             input_dim = map(int, list(self.net_parameter.input_dim))
@@ -343,7 +343,7 @@ class CaffeParser:
             logger(verbose.INFO).feed(" Dectect [%s:\t%s] " % (source_layer_type, source_layer_name))
             # construct the node_io and op_io
             nodeIO = NodeProtoIO() # init a NodeProtoIO
-            opIO = OpProtoIO() # init a OpProtoIO
+            opIO = OpsProtoIO() # init a OpsProtoIO
             nodeIO.set_name(source_layer_name) # set node name
             opIO.set_name(source_layer_type) # set op name 
 
@@ -441,7 +441,7 @@ class CaffeParser:
             logger(verbose.INFO).feed(" Dectect [%s:\t%s] " % (source_layer_type, source_layer_name))
             # construct the node_io and op_io
             nodeIO = NodeProtoIO() # init a NodeProtoIO
-            opIO = OpProtoIO() # init a OpProtoIO
+            opIO = OpsProtoIO() # init a OpsProtoIO
             nodeIO.set_name(source_layer_name) # set node name
             opIO.set_name(source_layer_type) # set op name
             # set link edge

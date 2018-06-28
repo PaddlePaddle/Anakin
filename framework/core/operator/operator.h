@@ -83,6 +83,7 @@ public:
      */
     virtual Status InitParam() {
         DLOG(ERROR) << " Target ParserParam not overriden.";
+        return Status::FAIL();
     }
 
     /** 
@@ -92,6 +93,7 @@ public:
                         const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
                         std::vector<Tensor4dPtr<Ttype, Dtype> >& outs){
         DLOG(ERROR) << " Target init not overriden.";
+        return Status::FAIL();
     }
 
     /** 
@@ -100,6 +102,7 @@ public:
     virtual Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
                               std::vector<Tensor4dPtr<Ttype, Dtype> >& outs){
         DLOG(ERROR) << " Target infershape not overriden.";
+        return Status::FAIL();
     }
 
     /** 

@@ -27,6 +27,11 @@
 #include "saber/funcs/impl/x86/saber_conv_act_pooling.h"
 #endif
 
+#ifdef USE_ARM_PLACE
+//todo
+#include "saber/funcs/impl/impl_conv_act_pooling.h"
+#endif
+
 namespace anakin {
 namespace saber {
 
@@ -202,9 +207,13 @@ private:
         _use_saber_conv_pooling &= (this->_param).pooling_param.pooling_type == Pooling_max;
 
         if (!_use_saber_conv_pooling) {
+            delete this->_impl[1];
+            this->_impl.erase(this->_impl.end());
             this->_best_impl = this->_impl[0];
         } else {
-            this->_best_impl = this->_impl[1];
+            delete this->_impl[0];
+            this->_impl.erase(this->_impl.begin());
+            this->_best_impl = this->_impl[0];
         }
     }
 

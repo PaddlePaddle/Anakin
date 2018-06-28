@@ -25,7 +25,9 @@
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/impl_priorbox.h"
 #endif
-
+#ifdef USE_ARM_PLACE
+#include "saber/funcs/impl/arm/saber_priorbox.h"
+#endif
 namespace anakin{
 
 namespace saber{

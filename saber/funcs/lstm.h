@@ -27,6 +27,9 @@
 #include "saber/funcs/impl/x86/saber_lstm.h"
 #endif
 
+#ifdef USE_ARM_PLACE
+#include "saber/funcs/impl/impl_lstm.h"
+#endif
 
 namespace anakin {
 namespace saber {

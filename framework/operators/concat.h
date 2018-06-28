@@ -60,7 +60,7 @@ class ConcatHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     ConcatHelper()=default;
 
-    ~ConcatHelper();
+    ~ConcatHelper() {}
 
     Status InitParam() override;
 
@@ -94,7 +94,6 @@ private:
     ///< _dims stand for contact size
     PTuple<int> _dims; 
 };
-
 
 
 } /* namespace ops */

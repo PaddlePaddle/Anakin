@@ -4,36 +4,14 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void Dense<NV, AK_FLOAT, Precision::FP32>::operator()(
-    OpContext<NV>& ctx,
-    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
-    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    auto* impl = static_cast<DenseHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<DenseHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper)->_param_dense;
-    impl->_funcs_dense(ins, outs, param, ctx);
-}
-#endif
-
-#ifdef USE_X86_PLACE
-template<>
-void Dense<X86, AK_FLOAT, Precision::FP32>::operator()(
-        OpContext<X86>& ctx,
-        const std::vector<Tensor4dPtr<X86, AK_FLOAT> >& ins,
-        std::vector<Tensor4dPtr<X86, AK_FLOAT> >& outs) {
-    auto* impl = static_cast<DenseHelper<X86, AK_FLOAT, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<DenseHelper<X86, AK_FLOAT, Precision::FP32>*>(this->_helper)->_param_dense;
-    impl->_funcs_dense(ins, outs, param, ctx);
-}
-#endif
-
-/// TODO ... specialization other type of operator
-
-
-/// set helper
-template<typename Ttype, DataType Dtype, Precision Ptype>
-DenseHelper<Ttype, Dtype, Ptype>::~DenseHelper() {
+#define INSTANCE_DENSE(Ttype, Dtype, Ptype) \
+template<> \
+void Dense<Ttype, Dtype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+        const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, \
+        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) { \
+    auto* impl = static_cast<DenseHelper<Ttype, Dtype, Ptype>*>(this->_helper); \
+    auto& param = static_cast<DenseHelper<Ttype, Dtype, Ptype>*>(this->_helper)->_param_dense; \
+    impl->_funcs_dense(ins, outs, param, ctx); \
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
@@ -98,38 +76,32 @@ Status DenseHelper<Ttype, Dtype, Ptype>::InferShape(const std::vector<Tensor4dPt
     SABER_CHECK(_funcs_dense.compute_output_shape(ins, outs, _param_dense));
     return Status::OK();
 }
-#ifdef USE_X86_PLACE
-template class DenseHelper<X86, AK_FLOAT, Precision::FP32>;
-template class DenseHelper<X86, AK_FLOAT, Precision::FP16>;
-template class DenseHelper<X86, AK_FLOAT, Precision::INT8>;
-#endif
 
 #ifdef USE_CUDA
+INSTANCE_DENSE(NV, AK_FLOAT, Precision::FP32);
 template class DenseHelper<NV, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, NV, AK_FLOAT, Precision::FP32);
 template class DenseHelper<NV, AK_FLOAT, Precision::FP16>;
 template class DenseHelper<NV, AK_FLOAT, Precision::INT8>;
 #endif
 
 #ifdef USE_ARM_PLACE
-template class DenseHelper<ARM, AK_FLOAT, Precision::FP32>;
-template class DenseHelper<ARM, AK_FLOAT, Precision::FP16>;
-template class DenseHelper<ARM, AK_FLOAT, Precision::INT8>;
-#endif
-
-
-// register helper
-#ifdef USE_X86_PLACE
-ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, X86, AK_FLOAT, Precision::FP32);
-#endif
-
-#ifdef USE_CUDA
-ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, NV, AK_FLOAT, Precision::FP32);
-#endif
-
-#ifdef USE_ARM_PLACE
+INSTANCE_DENSE(ARM, AK_FLOAT, Precision::FP32);
+template<>
+Status DenseHelper<ARM, AK_FLOAT, Precision::FP32>::Init(OpContext<ARM> &ctx,\
+        const std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& ins, \
+                std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& outs) {
+    SABER_CHECK(_funcs_dense.init(ins, outs, _param_dense, SPECIFY, SABER_IMPL, ctx));
+    return Status::OK();
+}
 ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
 
+#ifdef USE_X86_PLACE
+INSTANCE_DENSE(X86, AK_FLOAT, Precision::FP32);
+template class DenseHelper<X86, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, X86, AK_FLOAT, Precision::FP32);
+#endif
 
 //! register op
 ANAKIN_REGISTER_OP(Dense)

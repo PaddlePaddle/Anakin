@@ -18,6 +18,17 @@ DEFINE_GLOBAL(int, height, 640);
 DEFINE_GLOBAL(int, width, 640);
 DEFINE_GLOBAL(bool, is_input_shape, false);
 
+#if defined(USE_CUDA)
+using Target = NV;
+using Target_H = X86;
+#elif defined(USE_X86_PLACE)
+using Target = X86;
+using Target_H = X86;
+#elif defined(USE_ARM_PLACE)
+using Target = ARM;
+using Target_H = ARM;
+#endif
+
 void getModels(std::string path, std::vector<std::string>& files) {
     DIR* dir= nullptr;
     struct dirent* ptr;
@@ -67,7 +78,7 @@ TEST(NetTest, nv_net_execute_base_test) {
         Net<NV, AK_FLOAT, Precision::FP32> net_executer(graph, true);
         // get in
         auto d_tensor_in_p = net_executer.get_in("input_0");
-        Tensor4d<X86, AK_FLOAT> h_tensor_in;
+        Tensor4d<Target_H, AK_FLOAT> h_tensor_in;
         auto valid_shape_in = d_tensor_in_p->valid_shape();
 
         for (int i = 0; i < valid_shape_in.size(); i++) {
@@ -140,6 +151,9 @@ TEST(NetTest, nv_net_execute_base_test) {
 #endif
 
 int main(int argc, const char** argv) {
+
+    Env<Target>::env_init();
+
     // initial logger
     LOG(INFO) << "argc " << argc;
 

@@ -57,7 +57,7 @@ public:
 
 protected:
     Param* _param;
-    Context<targetType_t> _ctx;
+    Context<targetType_t>* _ctx;
 };
 
 }

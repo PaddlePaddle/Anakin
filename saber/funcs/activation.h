@@ -29,6 +29,10 @@
 #include "saber/funcs/impl/x86/saber_activation.h"
 #endif
 
+#ifdef USE_ARM_PLACE
+#include "saber/funcs/impl/arm/saber_activation.h"
+#endif
+
 namespace anakin {
 namespace saber {
 
@@ -96,8 +100,11 @@ public:
 private:
 
     virtual void pick_best_static() override {
-        if (true) // some condition?
+        if (this->_param.active == Active_prelu) {
+            this->_best_impl = this->_impl[1];
+        } else {
             this->_best_impl = this->_impl[0];
+        }
     }
 
     virtual void pick_best_specify(ImplEnum implenum) override {

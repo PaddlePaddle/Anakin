@@ -6,7 +6,7 @@ We've built and tested Anakin on CentOS 7.3. The other operating systems install
 
 * [Installing on CentOS](#0001)
 * [Installing on Ubuntu](#0002)
-* [Installing on ARM](#0003)
+* [Installing on ARM](run_on_arm_en.md)
 * [Verifying installation](#0004)
 
 

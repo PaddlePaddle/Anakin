@@ -22,7 +22,7 @@ SaberStatus SaberEmbedding<X86, OpDtype, inDtype, outDtype,
         Context<X86> &ctx)
 {
     // get context
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
     return create(inputs, outputs, param, ctx);
 }
 
