@@ -32,10 +32,10 @@ void print_tensor_shape(std::string name, Tensor& t0) {
 TEST(TestSaberFuncBM, test_func_constructor) {
 
     typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
-    typedef Tensor<BM, AK_FLOAT, NCHW> TensorDf4;
+    typedef Tensor<BM, AK_BM, NCHW> TensorDf4;
 
     int img_num = 1;
-    int in_channels = 2;
+    int in_channels = 1;
     int img_h = 8;
     int img_w = 8;
 
@@ -47,18 +47,21 @@ TEST(TestSaberFuncBM, test_func_constructor) {
     img_host.re_alloc(img_s);
     img_dev.re_alloc(img_s);
 
+    int sign = -1;
     for (int i = 0; i < img_host.size(); ++i) {
-        img_host.mutable_data()[i] = (float)(0.05 * (i & 0x1f) * -1);
+	sign = i % 2 ? -1 : 1;
+        img_host.mutable_data()[i] = (float)(0.05 * (i & 0x1f) * sign);
     }
 
     img_dev.copy_from(img_host);
     TensorDf4 output_dev;
+    print_tensor_device(img_dev);
 
     // start Reshape & doInfer
 
     Context<BM> ctx1(0, 1, 1);
 
-    ActivationParam<TensorDf4> param(Active_relu, 0.1f, 0.1f);
+    ActivationParam<TensorDf4> param(Active_relu);
 
     std::vector<TensorDf4*> input;
     std::vector<TensorDf4*> output;
@@ -66,7 +69,7 @@ TEST(TestSaberFuncBM, test_func_constructor) {
     input.push_back(&img_dev);
     output.push_back(&output_dev);
 
-    Activation<BM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW> act;
+    Activation<BM, AK_BM, AK_BM, AK_BM, NCHW> act;
     act.compute_output_shape(input, output, param);
     output_dev.re_alloc(output[0]->shape());
 

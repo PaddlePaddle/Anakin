@@ -9,7 +9,7 @@
 using namespace anakin::saber;
 
 typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
-typedef Tensor<BM, AK_FLOAT, NCHW> TensorDf4;
+typedef Tensor<BM, AK_BM, NCHW> TensorDf4;
 
 template <typename Tensor>
 void print_tensor_shape(std::string name, Tensor &t0) {
@@ -33,7 +33,11 @@ void print_tensor_shape(std::string name, Tensor &t0) {
                       << t0.offset()[3] << "].";
 }
 
-
+//Round a / b to nearest higher integer value
+inline int i_div_up(int a, int b)
+{
+    return (a % b != 0) ? (a / b + 1) : (a / b);
+}
 
 #if 1
 TEST(TestSaberFuncBM, test_depthwise_conv) {
@@ -126,7 +130,7 @@ TEST(TestSaberFuncBM, test_depthwise_conv) {
     input.push_back(&img_dev);
     output.push_back(&output_dev);
 
-    Conv<BM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW> conv;
+    Conv<BM, AK_BM, AK_BM, AK_BM, NCHW> conv;
     conv.compute_output_shape(input, output, param);
 
     output_dev.re_alloc(output[0]->shape());
@@ -138,23 +142,11 @@ TEST(TestSaberFuncBM, test_depthwise_conv) {
 
     conv(input, output, param, ctx1);
 
-    cudaStream_t cuda_stream = ctx1.get_compute_stream();
-    output[0]->record_event(cuda_stream);
+    //cudaStream_t cuda_stream = ctx1.get_compute_stream();
+    //output[0]->record_event(cuda_stream);
 
-    output_dev.sync();
+    //output_dev.sync();
     print_tensor_device(output_dev);
-
-//    param.group = 1;
-//    param.pad_h = 1;
-//    param.pad_w = 1;
-//
-//    LOG(INFO) << " param changed start with group = "<<param.group;
-//    conv(input, output, param, ctx1);
-//
-//    output_dev.sync();
-//    print_tensor_device(output_dev);
-    cudaDeviceSynchronize();
-    CUDA_CHECK(cudaPeekAtLastError());
 }
 
 TEST(TestSaberFuncBM, test_conv_param_change) {
@@ -247,7 +239,7 @@ TEST(TestSaberFuncBM, test_conv_param_change) {
     input.push_back(&img_dev);
     output.push_back(&output_dev);
 
-    Conv<BM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW> conv;
+    Conv<BM, AK_BM, AK_BM, AK_BM, NCHW> conv;
     conv.compute_output_shape(input, output, param);
 
     output_dev.re_alloc(output[0]->shape());
@@ -258,8 +250,7 @@ TEST(TestSaberFuncBM, test_conv_param_change) {
     conv.init(input, output, param, SPECIFY, VENDER_IMPL, ctx1);
 
     conv(input, output, param, ctx1);
-    output_dev.sync();
-//    print_tensor_device(output_dev);
+    //output_dev.sync();
 
     param.group = 1;
     param.pad_h = 1;
@@ -268,15 +259,11 @@ TEST(TestSaberFuncBM, test_conv_param_change) {
     LOG(INFO)<<" param changed start with group = "<<param.group;
     conv(input, output, param, ctx1);
 
-    cudaStream_t cuda_stream = ctx1.get_compute_stream();
-    output[0]->record_event(cuda_stream);
+    //print_tensor_device(output_dev);
 
-    output_dev.sync();
-//    print_tensor_device(output_dev);
-    cudaDeviceSynchronize();
-    CUDA_CHECK(cudaPeekAtLastError());
 }
 
+/*
 TEST(TestSaberFuncBM, test_conv_share_sub_tensor) {
 
     int group = 1;
@@ -392,8 +379,8 @@ TEST(TestSaberFuncBM, test_conv_share_sub_tensor) {
     // FIXME ? where do i get output shape
     output_dev.re_alloc(img_s);
 
-    Conv<BM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW> conv0;
-    Conv<BM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW> conv1;
+    Conv<BM, AK_BM, AK_BM, AK_BM, NCHW> conv0;
+    Conv<BM, AK_BM, AK_BM, AK_BM, NCHW> conv1;
 
     conv0.compute_output_shape(input0, output0, param0);
     conv1.compute_output_shape(input1, output1, param1);
@@ -407,22 +394,14 @@ TEST(TestSaberFuncBM, test_conv_share_sub_tensor) {
     conv0(input0, output0, param0, ctx1);
     conv1(input1, output1, param1, ctx2);
 
-    cudaStream_t cuda_stream1 = ctx1.get_compute_stream();
-    output0[0]->record_event(cuda_stream1);
-
-    cudaStream_t cuda_stream2 = ctx2.get_compute_stream();
-    output1[0]->record_event(cuda_stream2);
-
-    out0.sync();
-    out1.sync();
-
     print_tensor_device(output_dev);
 
 //    print_tensor_device(output_dev);
 
-    cudaDeviceSynchronize();
-    CUDA_CHECK(cudaPeekAtLastError());
+    //cudaDeviceSynchronize();
+    //CUDA_CHECK(cudaPeekAtLastError());
 }
+*/
 #endif
 
 TEST(TestSaberFuncBM, test_conv_fp32_speed_test) {
@@ -513,7 +492,7 @@ TEST(TestSaberFuncBM, test_conv_fp32_speed_test) {
     input.push_back(&img_dev);
     output.push_back(&output_dev);
 
-    Conv<BM, AK_FLOAT> conv;
+    Conv<BM, AK_BM, AK_BM, AK_BM, NCHW> conv;
     conv.compute_output_shape(input, output, param);
 
     output_dev.re_alloc(output[0]->shape());
@@ -539,10 +518,10 @@ TEST(TestSaberFuncBM, test_conv_fp32_speed_test) {
     LOG(INFO) << "saber conv dispatch";
     conv(input, output, param, ctx1);
 
-    cudaStream_t cuda_stream = ctx1.get_compute_stream();
-    output[0]->record_event(cuda_stream);
+    //cudaStream_t cuda_stream = ctx1.get_compute_stream();
+    //output[0]->record_event(cuda_stream);
 
-    output_dev.sync();
+    //output_dev.sync();
 
     SaberTimer<BM> t1;
     int ts = 1;
@@ -556,8 +535,6 @@ TEST(TestSaberFuncBM, test_conv_fp32_speed_test) {
 
     LOG(INFO) << "fp32 average time: " << t1.get_average_ms() << " ms";
 
-    cudaDeviceSynchronize();
-    CUDA_CHECK(cudaPeekAtLastError());
 }
 
 void test_conv_fp32_speed(std::vector<TensorDf4*> &inputs, std::vector<TensorDf4*> &outputs,
@@ -569,7 +546,7 @@ void test_conv_fp32_speed(std::vector<TensorDf4*> &inputs, std::vector<TensorDf4
                                     stride, stride,
                                     1, 1,
                                     &weights, &bias);
-    Conv<BM, AK_FLOAT> conv;
+    Conv<BM, AK_BM, AK_BM, AK_BM, NCHW> conv;
     conv.compute_output_shape(inputs, outputs, conv_param);
     outputs[0]->re_alloc(outputs[0]->shape());
     Context<BM> ctx1(0, 1, 1);
@@ -580,7 +557,7 @@ void test_conv_fp32_speed(std::vector<TensorDf4*> &inputs, std::vector<TensorDf4
     outputs[0]->record_event(ctx1.get_compute_stream());
     outputs[0]->sync();
 
-    cudaDeviceSynchronize();
+    //cudaDeviceSynchronize();
 
     SaberTimer<BM> t1;
     int ts = 100;
@@ -593,26 +570,9 @@ void test_conv_fp32_speed(std::vector<TensorDf4*> &inputs, std::vector<TensorDf4
     }
             LOG(INFO) << "elapse time: " << t1.get_average_ms() << " ms";
 
-    cudaDeviceSynchronize();
+    //cudaDeviceSynchronize();
 }
 
-
-cublasHandle_t  cublas_handle;
-
-void caffe_gemm(const int M, const int N, const int K,\
-					 const float alpha, const float* A,\
-					 const float* B, const float beta, float* C) {
-    int lda = K;
-    int ldb = N;
-    CUBLAS_CHECK(cublasSgemm(cublas_handle,
-                             CUBLAS_OP_N,
-                             CUBLAS_OP_N,
-                             N, M, K,
-                             &alpha, B,
-                             ldb, A,
-                             lda, &beta,
-                             C, N));
-}
 
 TEST(TestSaberFuncBM, test_conv_fp32_1x1_speed) {
     int img_num = 1;
@@ -639,9 +599,6 @@ TEST(TestSaberFuncBM, test_conv_fp32_1x1_speed) {
     int pad = 0;
     int stride = 1;
     Context<BM> ctx1(0, 1, 1);
-
-    CUBLAS_CHECK(cublasCreate(&cublas_handle));
-    CUBLAS_CHECK(cublasSetStream(cublas_handle, ctx1.get_compute_stream()));
 
     TensorDf4 weights;
     weights.re_alloc({out_channels, in_channels, 1, 1});
@@ -674,43 +631,11 @@ TEST(TestSaberFuncBM, test_conv_fp32_1x1_speed) {
     input_v.push_back(&img);
     output_v.push_back(&out);
     output_gemm_v.push_back(&out_gemm);
-    cudaDeviceSynchronize();
+    //cudaDeviceSynchronize();
     test_conv_fp32_speed(input_v, output_v,
                          weights, kernel, stride, pad,
             in_channels, out_channels, bias,
             SABER_IMPL);
-    cudaDeviceSynchronize();
-    caffe_gemm(out_channels, img_h * img_w, in_channels,\
-					 1.f, weights.data(),\
-					 img.data(), 0.f, out_gemm.mutable_data());
-    cudaDeviceSynchronize();
-    SaberTimer<BM> t1;
-    int ts = 100;
-
-    for (int i = 0; i < ts; ++i) {
-        t1.start(ctx1);
-        caffe_gemm(out_channels, img_h * img_w, in_channels,\
-					 1.f, weights.data(),\
-					 img.data(), 0.f, out_gemm.mutable_data());
-        out_gemm.record_event(ctx1.get_compute_stream());
-        out_gemm.sync();
-        t1.end(ctx1);
-    }
-    LOG(INFO) << "elapse time: " << t1.get_average_ms() << " ms";
-
-    cudaDeviceSynchronize();
-//    print_tensor_device(out);
-//    print_tensor_device(out_gemm);
-    TensorHf4 out_host;
-    TensorHf4 out_gemm_host;
-    out_host.re_alloc(out.shape());
-    out_host.copy_from(out);
-
-    out_gemm_host.re_alloc(out_gemm.shape());
-    out_gemm_host.copy_from(out_gemm);
-    double max_r, max_d;
-    tensor_cmp_host(out_host.data(), out_gemm_host.data(), out_host.size(), max_r, max_d);
-    LOG(INFO) << "cmp result: max_r = " << max_r << " max_d = " << max_d;
 }
 
 int main(int argc, const char** argv){

@@ -368,6 +368,15 @@ struct TargetWrapper<NV, __device_target> {
 */
 template <>
 struct TargetWrapper<BM, __device_target> {
+//    TargetWrapper<BM, __device_target> ()
+//    {
+//        CHECK_EQ(bmdnn_init(&handle),BM_SUCCESS) << "Error:bmdnn_init failed";
+//    }
+//    ~TargetWrapper<BM, __device_target> ()
+//    {
+//        CHECK_EQ(bmdnn_deinit(handle),BM_SUCCESS) << "Error:bmdnn_deinit failed";
+//    }
+
     typedef void* event_t;
     typedef void* stream_t;
 
@@ -398,22 +407,26 @@ struct TargetWrapper<BM, __device_target> {
     // brief create event, empty function for bitmain target
 
     static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-        size_t count, __DtoD) {};
+        size_t count, __DtoD);
 
     static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-        size_t count, __HtoD) {};
+        size_t count, __HtoD);
 
     static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
         size_t count, __DtoH);
 
     static void sync_memcpy_p2p(void* dst, int dst_dev, const void* src, \
-        int src_dev, size_t count) {};
+        int src_dev, size_t count);
 
     /**
      * \brief device target return currently used device id
      * @return          currently activated device id
      */
     static int get_device_id();
+
+//    static bm_handle_t get_handler();
+    
+//    bm_handle_t handle;
 };
 
 #endif //USE_BM

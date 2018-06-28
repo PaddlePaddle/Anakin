@@ -18,6 +18,7 @@
 #include "anakin_config.h"
 #include <vector>
 #include <string>
+#include <type_traits>
 #include "saber/core/shape.h"
 #include "saber/core/tensor.h"
 #include "saber/saber_types.h"
@@ -775,6 +776,53 @@ struct SoftmaxParam {
     }
     int axis;
 };
+
+#ifdef USE_BM
+template <typename opTensor>
+struct BatchnormParam {
+    typedef typename opTensor::Dtype DataDtype;
+    BatchnormParam()
+        : scale(float(0))
+        , use_global_stats(true)
+        , moving_average_fraction(float(0.999))
+        , eps(float(1e-5))
+        , mean(), variance()
+    {}
+    //scale_factor = 1 / scale;
+    BatchnormParam(std::vector<float> mean_in, std::vector<float> variance_in,
+                float scale_in, float moving_average_fraction_in = float(0.999),
+                float eps_in = float(1e-5), bool use_global_stats_in = true)
+        : mean(mean_in), variance(variance_in), scale(scale_in)
+        , moving_average_fraction(moving_average_fraction_in)
+        , eps(eps_in), use_global_stats(use_global_stats_in)
+    {}
+    BatchnormParam &operator=(const BatchnormParam &right) {
+        scale = right.scale;
+        moving_average_fraction = right.moving_average_fraction;
+        eps = right.eps;
+        use_global_stats = right.use_global_stats;
+        mean = right.mean;
+        variance = right.variance;
+        return *this;
+    }
+    bool operator==(const BatchnormParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (scale == right.scale);
+        comp_eq = comp_eq && (moving_average_fraction == right.moving_average_fraction);
+        comp_eq = comp_eq && (eps == right.eps);
+        comp_eq = comp_eq && (use_global_stats == right.use_global_stats);
+        comp_eq = comp_eq && (mean == right.mean);
+        comp_eq = comp_eq && (variance == right.variance);
+        return comp_eq;
+    }
+    float scale;
+    float moving_average_fraction;
+    float eps;
+    bool use_global_stats;
+    std::vector<float> mean;
+    std::vector<float> variance;
+};
+#else
 template <typename opTensor>
 struct BatchnormParam {
     typedef typename opTensor::Dtype DataDtype;
@@ -819,6 +867,7 @@ struct BatchnormParam {
     std::vector<DataDtype> mean;
     std::vector<DataDtype> variance;
 };
+#endif
 
 template <typename opTensor>
 struct ActivationParam {
@@ -858,6 +907,29 @@ struct ActivationParam {
     DataDtype negative_slope;
     DataDtype coef;
 };
+
+#ifdef USE_BM
+template <>
+struct ActivationParam<Tensor<BM, AK_BM, NCHW> > {
+    ActivationParam(): active(Active_unknow) {}
+    ActivationParam(ActiveType act): active(act) {}
+    ActivationParam(const ActivationParam &right): active(right.active) {}
+    ActivationParam &operator=(const ActivationParam &right) {
+        active = right.active;
+        return *this;
+    }
+    bool operator==(const ActivationParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (active == right.active);
+        return comp_eq;
+    }
+    bool has_negative_slope(){
+        return (active == Active_relu);
+    }
+    ActiveType active;
+};
+#endif
+
 template <typename opTensor>
 struct ScaleParam {
     typedef typename opTensor::Dtype DataDtype;

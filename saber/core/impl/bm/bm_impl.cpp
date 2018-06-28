@@ -37,9 +37,9 @@ namespace saber{
 
 typedef TargetWrapper<BM, __device_target> BM_API;
 
-//TODO: check exception
-//static bm_handle_t handle = get_bm_handle();
+// Init handle only once in the lifetime
 static bm_handle_t handle;
+static bm_status_t init_handle{bmdnn_init(&handle)};
 
 void BM_API::get_device_count(int &count) {
     BMDNN_CHECK(bm_dev_getcount(&count));
@@ -47,7 +47,7 @@ void BM_API::get_device_count(int &count) {
 
 void BM_API::set_device(int id){
     //(bm_handle_t &handle, bool bmkernel_used, int id){
-    BMDNN_CHECK(bm_dev_request(&handle, 0, id));
+    //BMDNN_CHECK(bm_dev_request(&handle, 0, id));
 }
 
 //TODO: Do we have this functionality?
@@ -78,23 +78,45 @@ void BM_API::mem_set(void* ptr, int value, size_t n){
     //BMDNN_CHECK(bm_memset_device(handle, value, *pmem));
 }
 
-//static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-//    size_t count, __DtoD) {};
+void BM_API::sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
+    size_t count, __DtoD) {
+    handle = get_bm_handle(); 
+    //BMDNN_CHECK(bm_memcpy_d2d(handle, bm_mem_from_device(dst), dst_id, bm_mem_from_device(src), src_id, count));
+    BMDNN_CHECK(bm_memcpy_d2d(handle, *(bm_device_mem_t *)(dst), dst_id, *(bm_device_mem_t *)(src), src_id, count));
+    LOG(INFO) << "BM sync_memcpy: device to device, finished";
+};
 
-//static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-//    size_t count, __HtoD) {};
+void BM_API::sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
+    size_t count, __HtoD) {
+    handle = get_bm_handle(); 
+    BMDNN_CHECK(bm_memcpy_s2d(handle, *(bm_device_mem_t *)(dst), bm_mem_from_system(src)));
+
+    #ifdef DEBUG
+    for(int i=0; i<10; i++)
+	    LOG(INFO) << "HtoD src: " << *((float *)(src)+i);
+    #endif
+    
+    LOG(INFO) << "BM sync_memcpy: host to device, finished";
+};
 
 void BM_API::sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
     size_t count, __DtoH) {
     handle = get_bm_handle(); 
-    //auto* dev_ptr = const_cast<bm_device_mem_t *>(src);
     BMDNN_CHECK(bm_memcpy_d2s(handle, bm_mem_from_system(dst), *(bm_device_mem_t *)(src)));
-    //BMDNN_CHECK(bm_memcpy_d2s(handle, bm_mem_from_system(dst), *src));
-    LOG(INFO) << "End sync_memcpy process";
+
+    #ifdef DEBUG
+    for(int i=0; i<10; i++)
+        LOG(INFO) << "DtoH dst: " << *((float *)(dst)+i);
+    #endif
+
+    LOG(INFO) << "BM sync_memcpy: device to host, finished";
 };
 
-//static void sync_memcpy_p2p(void* dst, int dst_dev, const void* src, \
-//    int src_dev, size_t count) {};
+void BM_API::sync_memcpy_p2p(void* dst, int dst_dev, const void* src, \
+    int src_dev, size_t count) { 
+
+    LOG(INFO) << "BM sync_memcpy_p2p: temporarily no used";
+};
 
 
 //! target wrapper

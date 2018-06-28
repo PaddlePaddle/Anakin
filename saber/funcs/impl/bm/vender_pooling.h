@@ -28,13 +28,15 @@ public:
     typedef typename DataTensor_out::Dtype OutDataType;
     typedef typename OpTensor::Dtype OpDataType;
 
-    VenderPooling() : _handle(NULL), _pooling_type(NULL) {}
+    VenderPooling() : _handle(NULL) {}
 
     ~VenderPooling() {}
 
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
                   std::vector<DataTensor_out*>& outputs,
                   PoolingParam<OpTensor> &pooling_param, Context<BM> &ctx) {
+
+        _handle = get_bm_handle();
         return create(inputs, outputs, pooling_param, ctx);
     }
 
@@ -59,16 +61,15 @@ public:
         int stride_h = param.stride_h;
         int stride_w = param.stride_w;
         int is_avg_pooling;
-        if(_pooling_type == Pooling_max){
+        if(param.pooling_type == Pooling_max){
             is_avg_pooling = 0;
         } else {
             is_avg_pooling = 1;
         }
-        _handle = get_bm_handle();
+
         BMDNN_CHECK(bmdnn_pooling_forward(_handle, in_data, 
                             input_n, input_c, input_h, input_w, kh, kw, pad_h, pad_w, 
-                            stride_h, stride_w, is_avg_pooling, 0,
-                            out_data, bm_mem_null, bm_mem_null));
+                            stride_h, stride_w, is_avg_pooling, out_data));
         return SaberSuccess;
     }
 

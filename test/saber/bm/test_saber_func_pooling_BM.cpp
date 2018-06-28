@@ -9,8 +9,6 @@
 using namespace anakin::saber;
 
 TEST(TestSaberFuncBM, test_func_pooling) {
-
-    Env<BM>::env_init();
     typedef TargetWrapper<BM> API;
 
     typedef TargetWrapper<X86> X86_API;
@@ -42,6 +40,8 @@ TEST(TestSaberFuncBM, test_func_pooling) {
 
     // start Reshape & doInfer
 
+    LOG(INFO) << "init env...";
+    Env<BM>::env_init();
     Context<BM> ctx1(0, 1, 1);
     int window_h = 2;
     int window_w = 2;
@@ -49,16 +49,6 @@ TEST(TestSaberFuncBM, test_func_pooling) {
     int pad_w = 1;
     int stride_h = 1;
     int stride_w = 1;
-    LOG(INFO) << " img_num: " << img_num;
-    LOG(INFO) << " in_channels: " << in_channels;
-    LOG(INFO) << " img_h: " << img_h;
-    LOG(INFO) << " img_w: " << img_w;
-    LOG(INFO) << " window_h: " << window_h;
-    LOG(INFO) << " window_w: " << window_w;
-    LOG(INFO) << " pad_h: " << pad_h;
-    LOG(INFO) << " pad_w: " << pad_w;
-    LOG(INFO) << " stride_h: " << stride_h;
-    LOG(INFO) << " stride_w: " << stride_w;
 
     PoolingParam<TensorDf4> param(window_h, window_w, pad_h, pad_w
                                   , stride_h, stride_w, Pooling_max);
@@ -80,7 +70,7 @@ TEST(TestSaberFuncBM, test_func_pooling) {
     pooling(input, output, param, ctx1);
 
     SaberTimer<BM> t1;
-    int ts = 1000;
+    int ts = 10;
 
     for (int i = 0; i < ts; ++i) {
         t1.start(ctx1);
@@ -100,7 +90,6 @@ TEST(TestSaberFuncBM, test_func_pooling) {
 
 TEST(TestSaberFuncBM, test_pooling_result) {
 
-    Env<BM>::env_init();
     typedef TargetWrapper<BM> API;
 
     typedef TargetWrapper<X86> X86_API;
@@ -109,7 +98,7 @@ TEST(TestSaberFuncBM, test_pooling_result) {
     typedef Tensor<BM, AK_BM, NCHW> TensorDf4;
 
     int img_num = 1;
-    int in_channels = 2;
+    int in_channels = 1;
     int img_h = 8;
     int img_w = 8;
 
@@ -122,7 +111,7 @@ TEST(TestSaberFuncBM, test_pooling_result) {
     img_dev.re_alloc(img_s);
 
     for (int i = 0; i < img_host.size(); ++i) {
-        img_host.mutable_data()[i] = 0x7f & i;
+        img_host.mutable_data()[i] = rand() % 20;
     }
 
     img_dev.copy_from(img_host);
@@ -150,8 +139,8 @@ TEST(TestSaberFuncBM, test_pooling_result) {
     LOG(INFO) << " stride_h: " << stride_h;
     LOG(INFO) << " stride_w: " << stride_w;
 
-    PoolingParam<TensorDf4> param(window_h, window_w, pad_h, pad_w
-                                  , stride_h, stride_w, Pooling_max);
+    PoolingParam<TensorDf4> param(window_h, window_w, pad_h, pad_w,
+                                  stride_h, stride_w, Pooling_average_include_padding);
 
     std::vector<TensorDf4*> input;
     std::vector<TensorDf4*> output;
@@ -159,7 +148,7 @@ TEST(TestSaberFuncBM, test_pooling_result) {
     input.push_back(&img_dev);
     output.push_back(&output_dev);
 
-    Pooling<BM, AK_BM> pooling;
+    Pooling<BM, AK_BM, AK_BM, AK_BM, NCHW> pooling;
     pooling.compute_output_shape(input, output, param);
 
     output_dev.re_alloc(output[0]->shape());
@@ -169,12 +158,14 @@ TEST(TestSaberFuncBM, test_pooling_result) {
     pooling(input, output, param, ctx1);
 
     output_dev.sync();
+    LOG(INFO) << "tensor data before pooling: ";
+    print_tensor_device(img_dev);
+    LOG(INFO) << "tensor data after pooling: ";
     print_tensor_device(output_dev);
 }
 
 TEST(TestSaberFuncBM, test_pooling_shared_buffer) {
 
-    Env<BM>::env_init();
     typedef TargetWrapper<BM> API;
 
     typedef TargetWrapper<X86> X86_API;
@@ -243,9 +234,9 @@ TEST(TestSaberFuncBM, test_pooling_shared_buffer) {
     input.push_back(&img_dev);
     output.push_back(&output_dev);
 
-    Pooling<BM, AK_BM> pooling;
-    Pooling<BM, AK_BM> pooling0;
-    Pooling<BM, AK_BM> pooling1;
+    Pooling<BM, AK_BM, AK_BM, AK_BM, NCHW> pooling;
+    Pooling<BM, AK_BM, AK_BM, AK_BM, NCHW> pooling0;
+    Pooling<BM, AK_BM, AK_BM, AK_BM, NCHW> pooling1;
 
     pooling.compute_output_shape(input,output,  param);
 
@@ -275,12 +266,13 @@ TEST(TestSaberFuncBM, test_pooling_shared_buffer) {
     out0.sync();
     out1.sync();
 
-    print_tensor_device(output_dev);
+    /* print_tensor_device(output_dev); */
 }
 
 int main(int argc, const char** argv) {
     // initial logger
     //logger::init(argv[0]);
+    Env<BM>::env_init();
     InitTest();
     RUN_ALL_TESTS(argv[0]);
     return 0;

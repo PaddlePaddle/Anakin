@@ -29,6 +29,10 @@
 #include "saber/funcs/impl/x86/saber_activation.h"
 #endif
 
+#ifdef USE_BM
+#include "saber/funcs/impl/bm/vender_activation.h"
+#endif
+
 namespace anakin {
 namespace saber {
 

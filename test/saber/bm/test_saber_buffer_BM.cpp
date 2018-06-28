@@ -5,7 +5,7 @@
 using namespace anakin::saber;
 
 int get_bm_size() {
-    return 1;
+    return 4;
 }
 
 template <DataType Ddatatype, DataType Hdatatype>
@@ -97,34 +97,24 @@ void test_buffer() {
     }
 
     CHECK_EQ(ptr1[n0 / 2], ptr2[n0 / 2]) << "deep copy between host is incorrect";
+    bm_buf1.sync_copy_from(x86_buf2); 
     LOG(INFO) << "deep copy from host buffer to device buffer";
-    bm_buf1.sync_copy_from(x86_buf2);
+
+    //LOG(INFO) << "bm_buf1 cap & cnt: " << bm_buf1.get_capacity() << " " << bm_buf1.get_count();
+    //LOG(INFO) << "x86_buf1 cap & cnt: " << x86_buf1.get_capacity() << " " << x86_buf1.get_count(); 
+    //LOG(INFO) << "size of Hdtype: " << sizeof(Hdtype);
+    //LOG(INFO) << "size of Ddtype: " << sizeof(Ddtype);
     
-    /*
-    const Hdtype* x86_buf2_ptr = static_cast<const Hdtype*>(x86_buf2.get_data());
-    for (int i = 0; i < 10; i++) {
-	std::cout << "x86: " << x86_buf2_ptr[i] << std::endl;
-    }
-
-    const Hdtype* bm_buf1_ptr = static_cast<const Hdtype*>(bm_buf1.get_data());
-    for (int i = 0; i < 10; i++) {
-	std::cout << "bm: " << bm_buf1_ptr[i] << std::endl;
-    }
-
-    LOG(INFO) << "bm_buf1 cap & cnt: " << bm_buf1.get_capacity() << " " << bm_buf1.get_count();
-    LOG(INFO) << "x86_buf1 cap & cnt: " << x86_buf1.get_capacity() << " " << x86_buf1.get_count(); 
-    LOG(INFO) << "size of Hdtype: " << sizeof(Hdtype);
-    LOG(INFO) << "size of Ddtype: " << sizeof(Ddtype);
-    */
 
     x86_buf1.re_alloc(bm_buf1.get_capacity());
     x86_buf1.sync_copy_from(bm_buf1);
     LOG(INFO) << "deep copy from device buffer to host buffer: ";
     ptr1 = static_cast<const Hdtype*>(x86_buf1.get_data());
 
-    for (int i = 0; i < 30; i++) {
+    for (int i = 0; i < 10; i++) {
         std::cout << ptr1[i] << std::endl;
     }
+
 }
 
 TEST(TestSaberBufferBM, test_buffer_memcpy) {
@@ -132,10 +122,6 @@ TEST(TestSaberBufferBM, test_buffer_memcpy) {
 }
 
 int main(int argc, const char** argv) {
-    //TODO: init in another place
-    static bm_handle_t handle;
-    bmdnn_init(&handle);
-
     // initial logger
     logger::init(argv[0]);
     InitTest();

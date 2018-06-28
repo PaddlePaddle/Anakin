@@ -4,9 +4,9 @@
 
 #ifdef USE_BM
 using namespace anakin::saber;
-static bm_handle_t handle;
+//static bm_handle_t handle;
 int main() {
-    bmdnn_init(&handle);
+    //bmdnn_init(&handle);
     typedef TargetWrapper<BM> API;
     //int dev_count = 0;
     //API::get_device_count(dev_count);
@@ -20,7 +20,7 @@ int main() {
     std::cout << "Start mem_free test." << std::endl;
     API::mem_free(pmem);
     std::cout << "End mem_free test." << std::endl;
-    bmdnn_deinit(handle);
+    //bmdnn_deinit(handle);
 }
 #endif
 
