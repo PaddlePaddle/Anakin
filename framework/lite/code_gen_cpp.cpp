@@ -29,11 +29,8 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_header_start() {
     _code<<"#include <saber/lite/funcs/saber_priorbox.h>\n";
     _code<<"#include <saber/lite/funcs/saber_slice.h>\n";
     _code<<"#include <saber/lite/funcs/timer_lite.h>\n";
-    _code<<"#include <saber/lite/funcs/utils_arm.h>\n";
     _code<<"#include <saber/lite/funcs/saber_conv.h>\n";
     _code<<"#include <saber/lite/funcs/saber_conv_act.h>\n";
-    _code<<"#include <saber/lite/funcs/saber_conv_batchnorm_scale.h>\n";
-    _code<<"#include <saber/lite/funcs/saber_conv_batchnorm_scale_relu.h>\n";
     _code<<"#include <saber/lite/funcs/saber_fc.h>\n";
     _code<<"#include <saber/lite/funcs/saber_pooling.h>\n";
     _code<<"#include <saber/lite/funcs/saber_softmax.h>\n\n";

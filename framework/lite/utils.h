@@ -28,7 +28,7 @@ namespace lite {
  */
 template<typename D, typename T>
 void update_weights(PBlock<D, T> weights, PBlock<D, T> bias,
-					int num, int c, int h, int w, bool conv_bias_term, 
+					int n, int c, int h, int w, bool conv_bias_term, 
 					float batchnorm_scale, float batchnorm_eps, 
 					std::vector<float> batchnorm_mean, 
 					std::vector<float> batchnorm_variance, 
@@ -36,14 +36,36 @@ void update_weights(PBlock<D, T> weights, PBlock<D, T> bias,
 					std::vector<float> scale_b, 
 					bool scale_bias_term) {
 	D* weights_p = weights.h_tensor().mutable_data();
-	D* bias_p = conv_bias_term ? bias.h_tensor().mutable_data() : nullptr;
+	if(!conv_bias_term) {
+		bias.re_alloc({1,batchnorm_mean.size(),1,1});
+		void* new_bias_data = bias.h_tensor().mutable_data();
+		memset(new_bias_data, 0, sizeof(D) * bias.h_tensor().size());
+	}
+	D* bias_p = bias.h_tensor().mutable_data();
+
+	batchnorm_scale = (batchnorm_scale == 0) ? 1.f : batchnorm_scale;
 	int chw = c*h*w;
 	for(int i=0; i <n; i++ ) {
 		D alpha = 0.f;
 		D beta = 0.f;
-		batchnorm_scale = (batchnorm_scale == 0) ? 1.f : batchnorm_scale;
-		for(int j=0; j < chw; j++) {
+		// insert batchnorm parameters
+		alpha = batchnorm_variance[i] * batchnorm_scale + batchnorm_eps;
+		alpha = 1.f / sqrtf(alpha);
+		beta = -1.f * (batchnorm_mean[i] * batchnorm_scale);
+		beta = beta * alpha;
+
+		// insert scale parameters
+		alpha = scale_w[i] * alpha;
+		if(scale_bias_term) {
+			beta = beta * scale_w[i] + scale_b[i];
+		} else {
+			beta = beta * scale_w[i];
 		}
+		for(int j=0; j < chw; j++) {
+			weights_p[i * chw + j] *= alpha;
+		}
+		bias_p[i] *= alpha;
+		bias_p[i] += beta;
 	}
 }
 

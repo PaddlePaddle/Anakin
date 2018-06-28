@@ -1,4 +1,5 @@
 #include "framework/lite/op_map.h"
+#include "framework/lite/utils.h"
 
 namespace anakin {
 
@@ -135,51 +136,62 @@ std::string ParserConvBatchnormScale(graph::AttrInfo& attr,
     int weights_size = weights_shape[2]*weights_shape[3];
     int num_output = weights_shape[0]*weights_shape[1];
 
-	writter.register_weights(node_name, weights);
-	if(bias_term) {
-		auto bias = get_attr<PBlock<float, NV>>("weight_2", attr);
-		writter.register_weights(node_name, bias);
-	}
-
-    auto gen_vec_code = [](std::vector<float> pvec) -> std::string {
-		CodeWritter dims_vec_code;
-		dims_vec_code<<"{";
-		for(int i=0; i<pvec.size()-1; i++) {
-			dims_vec_code<<pvec[i]<<",";
-		}
-		if(pvec.size() > 0) {
-			dims_vec_code<<pvec[pvec.size()-1] << "}";
-		} else {
-			dims_vec_code<< "}";
-		}
-		return dims_vec_code.get_code_string();
-	};
-
-
     // get batchnorm param
     auto epsilon = get_attr<float>("batchnorm_0_epsilon", attr);
     auto momentum = get_attr<float>("batchnorm_0_momentum", attr);
     auto batch_norm_weight_1 = get_attr<PBlock<float, NV>>("batchnorm_0_weight_1", attr);
-    auto batch_norm_weight_1_vector = gen_vec_code(batch_norm_weight_1.vector());
+    auto batch_norm_weight_1_vector = batch_norm_weight_1.vector();
     auto batch_norm_weight_2 = get_attr<PBlock<float, NV>>("batchnorm_0_weight_2", attr);
-    auto batch_norm_weight_2_vector = gen_vec_code(batch_norm_weight_2.vector());
+    auto batch_norm_weight_2_vector = batch_norm_weight_2.vector();
     auto batch_norm_weight_3 = get_attr<PBlock<float, NV>>("batchnorm_0_weight_3", attr);
-    auto batch_norm_weight_3_vector = gen_vec_code(batch_norm_weight_3.vector()); // ???? not impl bias
+    auto batch_norm_weight_3_vector = batch_norm_weight_3.vector();
 
     // get scale param
     auto scale_num_axes = get_attr<int>("scale_0_num_axes", attr);
     auto scale_bias_term = get_attr<bool>("scale_0_bias_term", attr);
     auto scale_axis = get_attr<int>("scale_0_axis", attr);
     auto scale_weight_1 = get_attr<PBlock<float, NV>>("scale_0_weight_1", attr);
-    auto scale_weight_1_vector = gen_vec_code(scale_weight_1.vector());
+    auto scale_weight_1_vector = scale_weight_1.vector();
     auto scale_weight_2 = get_attr<PBlock<float, NV>>("scale_0_weight_2", attr);
-    auto scale_weight_2_vector = gen_vec_code(scale_weight_2.vector());
+    auto scale_weight_2_vector = scale_weight_2.vector();
+
+
+	if(bias_term) {
+		auto bias = get_attr<PBlock<float, NV>>("weight_2", attr);
+		update_weights(weights, bias,
+					   weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+					   bias_term, 
+					   batch_norm_weight_3_vector[0], epsilon, 
+					   batch_norm_weight_1_vector, 
+					   batch_norm_weight_2_vector,
+					   scale_weight_1_vector,
+					   scale_weight_2_vector,
+					   scale_bias_term);
+	
+		
+		writter.register_weights(node_name, weights);
+		writter.register_weights(node_name, bias);
+	} else {
+		auto bias = PBlock<float, NV>();
+		update_weights(weights, bias,
+					   weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+					   false, 
+					   batch_norm_weight_3_vector[0], epsilon, 
+					   batch_norm_weight_1_vector, 
+					   batch_norm_weight_2_vector,
+					   scale_weight_1_vector,
+					   scale_weight_2_vector,
+					   scale_bias_term);
+
+		writter.register_weights(node_name, weights);
+		writter.register_weights(node_name, bias);
+	}
 
     auto offset_info = writter.get_weights_by_name(node_name);
 
 	// gen cpp code
 	CodeWritter code_w;
-    code_w.feed("%s.load_param(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%f,%f,%s,%s,%s,%s,%s,%s+%d,%s+%d);\n", node_name.c_str(),
+    code_w.feed("%s.load_param(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(),
                                            weights_size,
                                            num_output,
                                            group,
@@ -191,14 +203,7 @@ std::string ParserConvBatchnormScale(graph::AttrInfo& attr,
                                            padding[0],
                                            dilation_rate[1],
                                            dilation_rate[0],
-                                           bias_term ? "true":"false",
-                                           epsilon,
-                                           momentum,
-										   batch_norm_weight_1_vector.c_str(),
-                                           batch_norm_weight_2_vector.c_str(),
-                                           scale_weight_1_vector.c_str(),
-										   scale_weight_2_vector.c_str(),
-                                           scale_bias_term ? "true" : "false",
+                                           "true",
                                            weights_ptr_name.c_str(),
                                            offset_info.weights[0].offset,
                                            weights_ptr_name.c_str(),
@@ -227,51 +232,61 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
     int weights_size = weights_shape[2]*weights_shape[3];
     int num_output = weights_shape[0]*weights_shape[1];
 
-	writter.register_weights(node_name, weights);
-	if(bias_term) {
-		auto bias = get_attr<PBlock<float, NV>>("weight_2", attr);
-		writter.register_weights(node_name, bias);
-	}
-
-    auto gen_vec_code = [](std::vector<float> pvec) -> std::string {
-		CodeWritter dims_vec_code;
-		dims_vec_code<<"{";
-		for(int i=0; i<pvec.size()-1; i++) {
-			dims_vec_code<<pvec[i]<<",";
-		}
-		if(pvec.size() > 0) {
-			dims_vec_code<<pvec[pvec.size()-1] << "}";
-		} else {
-			dims_vec_code<< "}";
-		}
-		return dims_vec_code.get_code_string();
-	};
-
-
     // get batchnorm param
     auto epsilon = get_attr<float>("batchnorm_0_epsilon", attr);
     auto momentum = get_attr<float>("batchnorm_0_momentum", attr);
     auto batch_norm_weight_1 = get_attr<PBlock<float, NV>>("batchnorm_0_weight_1", attr);
-    auto batch_norm_weight_1_vector = gen_vec_code(batch_norm_weight_1.vector());
+    auto batch_norm_weight_1_vector = batch_norm_weight_1.vector();
     auto batch_norm_weight_2 = get_attr<PBlock<float, NV>>("batchnorm_0_weight_2", attr);
-    auto batch_norm_weight_2_vector = gen_vec_code(batch_norm_weight_2.vector());
+    auto batch_norm_weight_2_vector = batch_norm_weight_2.vector();
     auto batch_norm_weight_3 = get_attr<PBlock<float, NV>>("batchnorm_0_weight_3", attr);
-    auto batch_norm_weight_3_vector = gen_vec_code(batch_norm_weight_3.vector()); // ???? not impl bias
+    auto batch_norm_weight_3_vector = batch_norm_weight_3.vector(); 
 
     // get scale param
     auto scale_num_axes = get_attr<int>("scale_0_num_axes", attr);
     auto scale_bias_term = get_attr<bool>("scale_0_bias_term", attr);
     auto scale_axis = get_attr<int>("scale_0_axis", attr);
     auto scale_weight_1 = get_attr<PBlock<float, NV>>("scale_0_weight_1", attr);
-    auto scale_weight_1_vector = gen_vec_code(scale_weight_1.vector());
+    auto scale_weight_1_vector = scale_weight_1.vector();
     auto scale_weight_2 = get_attr<PBlock<float, NV>>("scale_0_weight_2", attr);
-    auto scale_weight_2_vector = gen_vec_code(scale_weight_2.vector());
+    auto scale_weight_2_vector = scale_weight_2.vector();
+
+	if(bias_term) {
+		auto bias = get_attr<PBlock<float, NV>>("weight_2", attr);
+		update_weights(weights, bias,
+					   weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+					   bias_term, 
+					   batch_norm_weight_3_vector[0], epsilon, 
+					   batch_norm_weight_1_vector, 
+					   batch_norm_weight_2_vector,
+					   scale_weight_1_vector,
+					   scale_weight_2_vector,
+					   scale_bias_term);
+	
+		
+		writter.register_weights(node_name, weights);
+		writter.register_weights(node_name, bias);
+	} else {
+		auto bias = PBlock<float, NV>();
+		update_weights(weights, bias,
+					   weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+					   false, 
+					   batch_norm_weight_3_vector[0], epsilon, 
+					   batch_norm_weight_1_vector, 
+					   batch_norm_weight_2_vector,
+					   scale_weight_1_vector,
+					   scale_weight_2_vector,
+					   scale_bias_term);
+
+		writter.register_weights(node_name, weights);
+		writter.register_weights(node_name, bias);
+	}
 
     auto offset_info = writter.get_weights_by_name(node_name);
 
 	// gen cpp code
 	CodeWritter code_w;
-    code_w.feed("%s.load_param(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%f,%f,%s,%s,%s,%s,%s,Active_relu,%s+%d,%s+%d);\n", node_name.c_str(),
+    code_w.feed("%s.load_param(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s+%d,%s+%d);\n", node_name.c_str(),
                                            weights_size,
                                            num_output,
                                            group,
@@ -283,14 +298,7 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
                                            padding[0],
                                            dilation_rate[1],
                                            dilation_rate[0],
-                                           bias_term ? "true":"false",
-                                           epsilon,
-                                           momentum,
-                                           batch_norm_weight_1_vector.c_str(),
-                                           batch_norm_weight_2_vector.c_str(),
-                                           scale_weight_1_vector.c_str(),
-										   scale_weight_2_vector.c_str(),
-                                           scale_bias_term ? "true" : "false",
+                                           "true",
                                            weights_ptr_name.c_str(),
                                            offset_info.weights[0].offset,
                                            weights_ptr_name.c_str(),
@@ -630,8 +638,8 @@ std::unordered_map<std::string, OpParser> OPERATION_MAP({
 	{"Activation", {"SaberActivation", ParserActivation} }, // done
     {"ReLU", {"SaberActivation",ParserRelu}}, // done
 	{"ConvRelu", {"SaberConvAct2D", ParserConvolutionRelu} },  // done
-	{"ConvBatchnormScaleRelu", {"SaberConvBatchnormScaleRelu", ParserConvBatchnormScaleRelu}}, // done have question ??
-	{"ConvBatchnormScale", {"SaberConvBatchnormScale", ParserConvBatchnormScale}}, //done
+	{"ConvBatchnormScaleRelu", {"SaberConvAct2D", ParserConvBatchnormScaleRelu}}, // done have question ??
+	{"ConvBatchnormScale", {"SaberConv2D", ParserConvBatchnormScale}}, //done
 	{"Concat", {"SaberConcat", ParserConcat} },  // done
 	{"DetectionOutput", {"SaberDectionOutput", ParserDectionOutput} }, // done 
 	{"Eltwise", {"SaberEltwise", ParserEltwise} }, //done

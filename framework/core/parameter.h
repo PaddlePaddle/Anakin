@@ -223,6 +223,12 @@ public:
         return ret;
     }
 
+	// reallocate the storage
+	void re_alloc(Shape4d shape) {
+		_d_inner_tensor->re_alloc(shape);
+		_h_inner_tensor->re_alloc(shape);
+	}
+
     /// Get shape.
     Shape4d shape() const { 
         CHECK(_d_inner_tensor->valid_shape() == _h_inner_tensor->valid_shape()) 
@@ -285,6 +291,11 @@ public:
         return ret;
     }
 
+	// reallocate storage	
+	void re_alloc(Shape4d shape) {
+		_inner_tensor->re_alloc(shape);
+	}
+
     /// Get shape.
     Shape4d shape() { 
         return _inner_tensor->valid_shape(); 
@@ -343,6 +354,11 @@ public:
         }
         return ret;
     }
+
+	// reallocate the storage
+	void re_alloc(Shape4d shape) {
+		_inner_tensor->re_alloc(shape);
+	}
 
     /// Get shape.
     Shape4d shape() { 
