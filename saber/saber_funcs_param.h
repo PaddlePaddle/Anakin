@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -1050,14 +1050,21 @@ private:
 
 template <typename opTensor>
 struct EltwiseParam;
+template <typename opTensor>
+struct EltwiseActiveParam;
 // Fusion conv with batchnorm, scale, activation, eltwise(sigmoid, relu, tanh, clipped_relu, elu)
 template <typename opTensor>
 struct ConvActiveParam {
-    ConvActiveParam() : has_batchnorm(false), has_scale(false), has_active(false), has_eltwise(false){}
-
+    ConvActiveParam()
+            : has_batchnorm(false)
+            , has_scale(false)
+            , has_active(false)
+            , has_eltwise(false)
+            , has_eltwise_act(false)
+    {}
     ConvActiveParam(ConvParam<opTensor> &conv_param_in)
         : conv_param(conv_param_in), has_active(false)
-        , has_batchnorm(false), has_scale(false), has_eltwise(false)
+        , has_batchnorm(false), has_scale(false), has_eltwise(false), has_eltwise_act(false)
     {}
     ConvActiveParam(ConvParam<opTensor> &conv_param_in,
                     ActivationParam<opTensor> &activation_param_in)
@@ -1066,6 +1073,7 @@ struct ConvActiveParam {
         , has_scale(false)
         , has_active(true)
         , has_eltwise(false)
+        , has_eltwise_act(false)
     {}
     ConvActiveParam(ConvParam<opTensor> &conv_param_in
                     , ActivationParam<opTensor> &activation_param_in
@@ -1077,6 +1085,7 @@ struct ConvActiveParam {
         , has_scale(false)
         , has_active(true)
         , has_eltwise(true)
+        , has_eltwise_act(false)
     {}
     ConvActiveParam(ConvParam<opTensor> &conv_param_in
             , ActivationParam<opTensor> &activation_param_in
@@ -1088,6 +1097,7 @@ struct ConvActiveParam {
             , has_scale(false)
             , has_active(true)
             , has_eltwise(false)
+            , has_eltwise_act(false)
     {}
     ConvActiveParam(ConvParam<opTensor> &conv_param_in
             , ActivationParam<opTensor> &activation_param_in
@@ -1101,6 +1111,7 @@ struct ConvActiveParam {
             , has_scale(false)
             , has_active(true)
             , has_eltwise(true)
+            , has_eltwise_act(false)
     {}
     ConvActiveParam(ConvParam<opTensor> &conv_param_in
             , ActivationParam<opTensor> &activation_param_in
@@ -1112,6 +1123,7 @@ struct ConvActiveParam {
             , has_scale(true)
             , has_active(true)
             , has_eltwise(false)
+            , has_eltwise_act(false)
     {}
     ConvActiveParam(ConvParam<opTensor> &conv_param_in
             , ActivationParam<opTensor> &activation_param_in
@@ -1125,6 +1137,7 @@ struct ConvActiveParam {
             , has_scale(true)
             , has_active(true)
             , has_eltwise(true)
+            , has_eltwise_act(false)
     {}
     ConvActiveParam(ConvParam<opTensor> &conv_param_in
             , ActivationParam<opTensor> &activation_param_in
@@ -1138,6 +1151,7 @@ struct ConvActiveParam {
             , has_scale(true)
             , has_active(true)
             , has_eltwise(false)
+            , has_eltwise_act(false)
     {}
     ConvActiveParam(ConvParam<opTensor> &conv_param_in
             , BatchnormParam<opTensor> &batchnorm_param_in
@@ -1149,6 +1163,21 @@ struct ConvActiveParam {
             , has_scale(true)
             , has_active(false)
             , has_eltwise(false)
+            , has_eltwise_act(false)
+    {}
+    ConvActiveParam(ConvParam<opTensor> &conv_param_in
+            , BatchnormParam<opTensor> &batchnorm_param_in
+            , ScaleParam<opTensor> &scale_param_in
+            , EltwiseActiveParam<opTensor> &elt_act_param_in)
+            : conv_param(conv_param_in)
+            , batchnorm_param(batchnorm_param_in)
+            , scale_param(scale_param_in)
+            , eltwise_act_param(elt_act_param_in)
+            , has_batchnorm(true)
+            , has_scale(true)
+            , has_active(false)
+            , has_eltwise(false)
+            , has_eltwise_act(true)
     {}
     ConvActiveParam(ConvParam<opTensor> &conv_param_in
             , ActivationParam<opTensor> &activation_param_in
@@ -1164,6 +1193,7 @@ struct ConvActiveParam {
             , has_scale(true)
             , has_active(true)
             , has_eltwise(true)
+            , has_eltwise_act(false)
     {}
     ConvActiveParam(const ConvActiveParam &right)
             : conv_param(right.conv_param)
@@ -1173,6 +1203,7 @@ struct ConvActiveParam {
             , has_batchnorm(right.has_batchnorm)
             , has_scale(right.has_scale)
             , has_active(right.has_active)
+            , has_eltwise_act(right.has_active)
     {}
     ConvActiveParam &operator=(const ConvActiveParam &right) {
         conv_param = right.conv_param;
@@ -1182,6 +1213,8 @@ struct ConvActiveParam {
         has_batchnorm = right.has_batchnorm;
         has_scale = right.has_scale;
         has_active = right.has_active;
+        has_eltwise = right.has_eltwise;
+        has_eltwise_act = right.has_eltwise_act;
         return *this;
     }
     bool operator==(const ConvActiveParam &right) {
@@ -1192,6 +1225,9 @@ struct ConvActiveParam {
         comp_eq = comp_eq && (scale_param == right.scale_param);
         comp_eq = comp_eq && (has_batchnorm == right.has_batchnorm);
         comp_eq = comp_eq && (has_scale == right.has_scale);
+        comp_eq = comp_eq && (has_active == right.has_active);
+        comp_eq = comp_eq && (has_eltwise == right.has_eltwise);
+        comp_eq = comp_eq && (has_eltwise_act == right.has_eltwise_act);
         return comp_eq;
     }
     ConvParam<opTensor> conv_param;
@@ -1199,10 +1235,13 @@ struct ConvActiveParam {
     BatchnormParam<opTensor> batchnorm_param;
     ScaleParam<opTensor> scale_param;
     EltwiseParam<opTensor> eltwise_param;
+    EltwiseActiveParam<opTensor> eltwise_act_param;
+
     bool has_batchnorm;
     bool has_scale;
     bool has_active;
     bool has_eltwise;
+    bool has_eltwise_act;
 };
 // Fusion conv with batchnorm, scale, activation(sigmoid, relu, tanh, clipped_relu, elu)
 template <typename opTensor>
