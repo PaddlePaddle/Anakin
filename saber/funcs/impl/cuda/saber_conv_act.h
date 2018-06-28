@@ -154,11 +154,19 @@ public:
                                      this->_ctx->get_compute_stream(), 1.f, 1.f, true);
                 }
             } else {
-                conv_gemm_k1s1p0(outputs[0]->mutable_data(),
-                                 inputs[0]->data(),
-                                 param.conv_param.weight()->data(),
-                                 chout, chin, hin, win, bias_data,
-                                 this->_ctx->get_compute_stream(), 1.f, 0.f, false);
+                if (param.has_active) {
+                    conv_gemm_k1s1p0(outputs[0]->mutable_data(),
+                                     inputs[0]->data(),
+                                     param.conv_param.weight()->data(),
+                                     chout, chin, hin, win, bias_data,
+                                     this->_ctx->get_compute_stream(), 1.f, 0.f, true);
+                } else {
+                    conv_gemm_k1s1p0(outputs[0]->mutable_data(),
+                                     inputs[0]->data(),
+                                     param.conv_param.weight()->data(),
+                                     chout, chin, hin, win, bias_data,
+                                     this->_ctx->get_compute_stream(), 1.f, 0.f, false);
+                }
             }
             return SaberSuccess;
         }
