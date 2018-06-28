@@ -50,7 +50,7 @@ public:
                              std::vector<DataTensor_out*>& outputs,
                              SequenceConvParam<OpTensor>& param,
                              Context<X86>& ctx) {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         CHECK_EQ(param.padding_trainable, false) << "not support padding_trainable==true";
         CHECK_EQ(param.context_stride, 1) << "not support context_stride!=1";
 

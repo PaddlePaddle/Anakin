@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -55,126 +55,71 @@ public:
     typedef typename OpTensor::Dtype OpDataType;
 
     SaberConv2DAct()
-            : _host_work_space(nullptr)
-            , _gpu_work_space(nullptr)
-            , _use_k1s1p0(false)
+            : _use_k1s1p0(false)
     {}
 
-    ~SaberConv2DAct() {
-        if (_host_work_space)
-        {
-            free(_host_work_space);
-        }
-        if (_gpu_work_space)
-        {
-            cudaFree(_gpu_work_space);
-        }
-    }
+    ~SaberConv2DAct() {}
 
     virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             ConvActiveParam<OpTensor>& param, Context<NV>& ctx) {
-
-
         return SaberSuccess;
     }
 
     virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             ConvActiveParam<OpTensor>& param, Context<NV> &ctx) {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
 
+        _kernel_height = param.conv_param.weight()->height();
+        _kernel_width = param.conv_param.weight()->width();
         _use_k1s1p0 = true;
-        _use_k1s1p0 = _use_k1s1p0 && (param.conv_param.weight()->height() == 1);
-        _use_k1s1p0 = _use_k1s1p0 && (param.conv_param.weight()->width() == 1);
+        _use_k1s1p0 = _use_k1s1p0 && (_kernel_height == 1);
+        _use_k1s1p0 = _use_k1s1p0 && (_kernel_width == 1);
         _use_k1s1p0 = _use_k1s1p0 && (param.conv_param.pad_h == 0);
         _use_k1s1p0 = _use_k1s1p0 && (param.conv_param.pad_w == 0);
         _use_k1s1p0 = _use_k1s1p0 && (param.conv_param.stride_h == 1);
         _use_k1s1p0 = _use_k1s1p0 && (param.conv_param.stride_w == 1);
         _use_k1s1p0 = _use_k1s1p0 && (inputs[0]->num() == 1);
-        //This is an ugly impl for now
+        if (_use_k1s1p0) {
+            return SaberSuccess;
+        }
         if (param.conv_param.group == inputs[0]->channel() && \
             param.conv_param.group == outputs[0]->channel()){
+            return SaberSuccess;
 
         } else if (param.conv_param.stride_h == 1 &&
             param.conv_param.stride_w == 1 && 
-            param.conv_param.weight()->height() == 3 && 
-            param.conv_param.weight()->width() == 3
-            &&param.conv_param.group == 1)
-        {
-            //Update weights if need
-            Shape weight_shape = param.conv_param.weight()->shape();
-            Tensor<X86, OpDtype, LayOutType_op> new_weight;
-            new_weight.re_alloc(weight_shape);
-            new_weight.copy_from(*(param.conv_param.weight()));
-            OpDataType *weight_data = new_weight.mutable_data();
+            _kernel_height == 3 &&
+            _kernel_width == 3
+            &&param.conv_param.group == 1) {
 
-            int round_in_channel = i_align_up(inputs[0]->channel(),8);
-            int round_out_channel = i_align_up(param.conv_param.weight()->num(),32);
-            int weight4x4_size = round_in_channel * round_out_channel * 4 * 4;
-            _host_work_space = (OpDataType* )malloc(weight4x4_size * sizeof(OpDataType));
-            CUDA_CHECK(cudaMalloc((void**)&_gpu_work_space, weight4x4_size * sizeof(OpDataType)));
-            transform_3x3_weight_2_4x4(weight_data, _host_work_space, param.conv_param.weight()->num(), round_out_channel, inputs[0]->channel(), round_in_channel);    
-            CUDA_CHECK(cudaMemcpy((void*)_gpu_work_space,
-                          (void*)_host_work_space,
-                          weight4x4_size*sizeof(OpDataType),
-                          cudaMemcpyHostToDevice));
             if (param.has_eltwise) {
                 dispatch_func_elt = winograd_conv_eltwise<InDataType, OpDataType>;
             } else {
                 dispatch_func = winograd_conv_relu<InDataType, OpDataType>;
             }
-        }
-        else if(param.conv_param.group == 1)
-        {
-            Shape weight_shape = param.conv_param.weight()->shape();
-            Tensor<X86, OpDtype, LayOutType_op> new_weight;
-            new_weight.re_alloc(weight_shape);
-            new_weight.copy_from(*(param.conv_param.weight()));
-            OpDataType *weight_data = new_weight.mutable_data();
-
-            int weight_size = param.conv_param.weight()->shape().count();
-            _host_work_space = (OpDataType* )malloc(weight_size * sizeof(OpDataType));
-            CUDA_CHECK(cudaMalloc((void**)&_gpu_work_space, weight_size * sizeof(OpDataType)));
-
-            //const OpDataType *weight_data = param.conv_param.weight()->data();
-            transpose_filter_KCRS_2_CRSK(weight_data, _host_work_space, \
-                                         param.conv_param.weight()->num(), \
-                                         param.conv_param.weight()->channel(), \
-                                         param.conv_param.weight()->height(), \
-                                         param.conv_param.weight()->width());
-            CUDA_CHECK(cudaMemcpy( (void*)_gpu_work_space, \
-                                   (void*)_host_work_space, \
-                                   weight_size * sizeof(OpDataType), \
-                                   cudaMemcpyHostToDevice ));
-
+        } else if(param.conv_param.group == 1) {
             const int K = param.conv_param.weight()->num();
-            if(K % 4 == 0)
-            {
+            if(K % 4 == 0) {
                 if (param.conv_param.bias()->size() > 0)
                     dispatch_func = direct_conv_bias_relu_Kdivis4<InDataType, OpDataType>;
                 else
                     return SaberUnImplError;
-            }
-            else
-            {   // TODO: would merge the bias(with/without) version
+            } else {   // TODO: would merge the bias(with/without) version
                 if (param.conv_param.bias()->size() > 0)
                     dispatch_func = direct_conv_bias_relu_Kindiv4<InDataType, OpDataType>;
                 else
                     return SaberUnImplError;
             }      
+        } else {
+            return SaberUnImplError;
         }
-        else{
-          return SaberUnImplError;
-        }
+        trans_weights(inputs, outputs, param, ctx);
         cudaDeviceSynchronize();
 
         return create(inputs, outputs, param, ctx);
-        //return SaberSuccess;
-
     }
-
-    
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                           std::vector<DataTensor_out*>& outputs,
                           ConvActiveParam<OpTensor>& param) {
@@ -197,16 +142,24 @@ public:
         int wout = outputs[0]->width();
         int hout = outputs[0]->height();
 
-        int kw = param.conv_param.weight()->width();
-        int kh = param.conv_param.weight()->height();
         //LOG(INFO) << "saber conv act";
         if (_use_k1s1p0) {
 //            LOG(INFO)<<"using k1s1p0";
-            conv_gemm_k1s1p0(outputs[0]->mutable_data(),
-                             inputs[0]->data(),
-                             param.conv_param.weight()->data(),
-                             chout, chin, hin, win, bias_data,
-                             this->_ctx.get_compute_stream());
+            if (param.has_eltwise) {
+                if (param.eltwise_param.operation == Eltwise_sum) {
+                    conv_gemm_k1s1p0(outputs[0]->mutable_data(),
+                                     inputs[0]->data(),
+                                     param.conv_param.weight()->data(),
+                                     chout, chin, hin, win, bias_data,
+                                     this->_ctx->get_compute_stream(), 1.f, 1.f);
+                }
+            } else {
+                conv_gemm_k1s1p0(outputs[0]->mutable_data(),
+                                 inputs[0]->data(),
+                                 param.conv_param.weight()->data(),
+                                 chout, chin, hin, win, bias_data,
+                                 this->_ctx->get_compute_stream());
+            }
             return SaberSuccess;
         }
         if (param.conv_param.group == chin && param.conv_param.group == chout) {
@@ -215,17 +168,17 @@ public:
                 if (param.has_active) {
                     saber_depthwise_conv_act<InDataType, true, true>(inputs[0]->data(), \
                         outputs[0]->mutable_data(), num, chin, hin, win, hout, \
-                        wout, kw, kh, param.conv_param.stride_w, \
+                        wout, _kernel_width, _kernel_height, param.conv_param.stride_w, \
                         param.conv_param.stride_h, param.conv_param.pad_w, param.conv_param.pad_h,\
                         (const OpDataType*)param.conv_param.weight()->data(), bias_data, \
-                        this->_ctx.get_compute_stream());
+                        this->_ctx->get_compute_stream());
                 } else {
                     saber_depthwise_conv_act<InDataType, true, false>(inputs[0]->data(), \
                         outputs[0]->mutable_data(), num, chin, hin, win, hout, \
-                        wout, kw, kh, param.conv_param.stride_w, \
+                        wout, _kernel_width, _kernel_height, param.conv_param.stride_w, \
                         param.conv_param.stride_h, param.conv_param.pad_w, param.conv_param.pad_h,\
                         (const OpDataType*)param.conv_param.weight()->data(), bias_data, \
-                        this->_ctx.get_compute_stream());
+                        this->_ctx->get_compute_stream());
                 }
 
             } else {
@@ -233,28 +186,26 @@ public:
                     saber_depthwise_conv_act<InDataType, false, true>(inputs[0]->data(), \
                         outputs[0]->mutable_data(), inputs[0]->num(), inputs[0]->channel(), \
                         inputs[0]->height(), inputs[0]->width(), outputs[0]->height(), \
-                        outputs[0]->width(), param.conv_param.weight()->width(), \
-                        param.conv_param.weight()->height(), param.conv_param.stride_w, \
+                        outputs[0]->width(), _kernel_width, \
+                        _kernel_height, param.conv_param.stride_w, \
                         param.conv_param.stride_h, param.conv_param.pad_w, param.conv_param.pad_h,\
                         (const OpDataType*)param.conv_param.weight()->data(), bias_data, \
-                        this->_ctx.get_compute_stream());
+                        this->_ctx->get_compute_stream());
                 } else {
                     saber_depthwise_conv_act<InDataType, false, false>(inputs[0]->data(), \
                         outputs[0]->mutable_data(), inputs[0]->num(), inputs[0]->channel(), \
                         inputs[0]->height(), inputs[0]->width(), outputs[0]->height(), \
-                        outputs[0]->width(), param.conv_param.weight()->width(), \
-                        param.conv_param.weight()->height(), param.conv_param.stride_w, \
+                        outputs[0]->width(), _kernel_width, \
+                        _kernel_height, param.conv_param.stride_w, \
                         param.conv_param.stride_h, param.conv_param.pad_w, param.conv_param.pad_h,\
                         (const OpDataType*)param.conv_param.weight()->data(), bias_data, \
-                        this->_ctx.get_compute_stream());
+                        this->_ctx->get_compute_stream());
                 }
-
             }
-
         } else if (param.has_eltwise) {
             //std::cout << "In dispatch_func_elt" << std::endl;
             dispatch_func_elt(inputs[0]->data(), outputs[0]->mutable_data(), \
-                _gpu_work_space, bias_data, num, chin, hin, win, \
+                param.conv_param.weight()->data(), bias_data, num, chin, hin, win, \
                 chout, hout, wout,
                     shape_in[1],
                     shape_in[2],
@@ -262,7 +213,7 @@ public:
                     shape_out[1],
                     shape_out[2],
                     shape_out[3], 
-                    kh, kw,
+                    _kernel_height, _kernel_width,
                     param.conv_param.pad_h,              
                     param.conv_param.pad_w,              
                     param.conv_param.stride_h,              
@@ -273,10 +224,10 @@ public:
                     param.conv_param.alpha, 
                     param.conv_param.beta,
                     param.eltwise_param.operation, 
-                    this->_ctx.get_compute_stream()); 
+                    this->_ctx->get_compute_stream());
             } else {
                 dispatch_func(inputs[0]->data(), outputs[0]->mutable_data(), \
-                    _gpu_work_space, bias_data, num, chin, hin, win, \
+                    param.conv_param.weight()->data(), bias_data, num, chin, hin, win, \
                     chout, hout, wout, \
                     shape_in[1],
                     shape_in[2],
@@ -284,8 +235,8 @@ public:
                     shape_out[1],
                     shape_out[2],
                     shape_out[3], 
-                    param.conv_param.weight()->height(),
-                    param.conv_param.weight()->width(),
+                    _kernel_height,
+                    _kernel_width,
                     param.conv_param.pad_h,              
                     param.conv_param.pad_w,              
                     param.conv_param.stride_h,              
@@ -295,16 +246,75 @@ public:
                     param.conv_param.group, 
                     param.conv_param.alpha, 
                     param.conv_param.beta, 
-                    this->_ctx.get_compute_stream());                 
+                    this->_ctx->get_compute_stream());
             }
 
         return SaberSuccess;
     }
+    void trans_weights(const std::vector<DataTensor_in *>& inputs,
+                       std::vector<DataTensor_out *>& outputs,
+                       ConvActiveParam<OpTensor>& param, Context<NV> &ctx) {
+        Tensor<X86, OpDtype, LayOutType_op> trans_weights_host;
+        if (_use_k1s1p0) {
+            return;
+        }
+        if (param.conv_param.group == inputs[0]->channel() && \
+            param.conv_param.group == outputs[0]->channel()){
+            return;
+
+        } else if (param.conv_param.stride_h == 1 &&
+                   param.conv_param.stride_w == 1 &&
+                   _kernel_height == 3 &&
+                   _kernel_width == 3
+                   &&param.conv_param.group == 1) {
+            //Update weights if need
+            Shape weight_shape = param.conv_param.weight()->shape();
+            Tensor<X86, OpDtype, LayOutType_op> new_weight;
+            new_weight.re_alloc(weight_shape);
+            new_weight.copy_from(*(param.conv_param.weight()));
+            OpDataType *weight_data = new_weight.mutable_data();
+
+            int round_in_channel = i_align_up(inputs[0]->channel(),8);
+            int round_out_channel = i_align_up(param.conv_param.weight()->num(),32);
+            int weight4x4_size = round_in_channel * round_out_channel * 4 * 4;
+            trans_weights_host.re_alloc({weight4x4_size, 1, 1, 1});
+            OpDataType* _host_work_space;
+            _host_work_space = trans_weights_host.mutable_data();
+
+            transform_3x3_weight_2_4x4(weight_data, _host_work_space, param.conv_param.weight()->num(), round_out_channel, inputs[0]->channel(), round_in_channel);
+            Shape old_shape = param.conv_param.weight()->shape();
+            param.conv_param.mutable_weight()->re_alloc({weight4x4_size, 1, 1, 1});
+            param.conv_param.mutable_weight()->copy_from(trans_weights_host);
+            param.conv_param.mutable_weight()->set_shape(old_shape);
+        } else if(param.conv_param.group == 1) {
+            Shape weight_shape = param.conv_param.weight()->shape();
+            Tensor<X86, OpDtype, LayOutType_op> new_weight;
+            new_weight.re_alloc(weight_shape);
+            new_weight.copy_from(*(param.conv_param.weight()));
+            OpDataType *weight_data = new_weight.mutable_data();
+
+            int weight_size = param.conv_param.weight()->shape().count();
+            trans_weights_host.re_alloc(param.conv_param.weight()->shape());
+            OpDataType* _host_work_space;
+            _host_work_space = trans_weights_host.mutable_data();
+
+            transpose_filter_KCRS_2_CRSK(weight_data, _host_work_space, \
+                                         param.conv_param.weight()->num(), \
+                                         param.conv_param.weight()->channel(), \
+                                         _kernel_height, \
+                                         _kernel_width);
+
+            param.conv_param.mutable_weight()->re_alloc(param.conv_param.weight()->shape());
+            param.conv_param.mutable_weight()->copy_from(trans_weights_host);
+
+        }
+    }
 
 private:
-    OpDataType* _host_work_space;
-    OpDataType* _gpu_work_space;
-    std::function<void(const InDataType*, 
+    int _kernel_height;
+    int _kernel_width;
+
+    std::function<void(const InDataType*,
       OutDataType*,
       const OpDataType*,
       const InDataType*,
@@ -369,9 +379,10 @@ private:
     void conv_gemm_k1s1p0(float* out, const float* img,
                           const float* weights, int out_channel,
                           int in_channel, int img_h, int img_w,
-                          const float* bias, cudaStream_t cuda_stream) {
-        float alpha = 1.0f;
-        float beta = 0.0f;
+                          const float* bias, cudaStream_t cuda_stream,
+                          float a = 1.f, float b = 0.f) {
+
+        float alpha = a; float beta = b;
         int m = out_channel;
         int k = in_channel;
         int n = img_h * img_w;

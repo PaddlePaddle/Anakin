@@ -20,6 +20,8 @@ TEST(OperatorsTest, PoolingFactoryTest) {
     std::vector<Tensor4dPtr<Target, AK_FLOAT> > in;
     std::vector<Tensor4dPtr<Target, AK_FLOAT> > out;
 
+    auto* Op_name_in =
+            OpFactory<Target, AK_FLOAT, Precision::FP32>::Global()["input"];
 
     /*Operator<RTCUDA, float>*/ auto* Op_name1 =
         OpFactory<Target, AK_FLOAT, Precision::FP32>::Global()["pooling"];
@@ -46,6 +48,7 @@ int main(int argc, const char** argv) {
     Env<AMD>::env_init();
 #endif
     // initial logger
+    Env<Target>::env_init();
     logger::init(argv[0]);
     InitTest();
     RUN_ALL_TESTS(argv[0]);

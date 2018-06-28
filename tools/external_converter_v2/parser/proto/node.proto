@@ -38,6 +38,6 @@ message NodeProto {
     bool need_wait = 12;
 
     // Operator of node.
-    OpProto Op = 15;
+    OpsProto Op = 15;
 };
 

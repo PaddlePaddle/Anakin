@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ class BatchNormHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     BatchNormHelper()=default;
 
-    ~BatchNormHelper();
+    ~BatchNormHelper() {}
 
     Status InitParam() override;
 
@@ -83,15 +83,12 @@ public:
     */
     Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
                       std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
-
 public:
     saber::ScaleParam<Tensor4d<Ttype, Dtype>> _param_scale;
     ///< _funcs_scale stand for scale function
     saber::Scale<Ttype, Dtype> _funcs_scale;
 
 };
-
-
 
 } /* namespace ops */
 

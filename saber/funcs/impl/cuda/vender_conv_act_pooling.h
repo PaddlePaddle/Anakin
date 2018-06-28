@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -114,7 +114,7 @@ public:
 
         _workspace_fwd_sizes = 0;
 
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         // ---- get cuda resources ----
 
         cudaStream_t cuda_stream;
@@ -175,7 +175,7 @@ private:
     void *_workspace;  // aliases into workspaceData
 
     const bool _use_tensor_core = true;
-    const size_t _workspace_limit_bytes = 64 * 1024 * 1024;
+    const size_t _workspace_limit_bytes = 4 * 1024 * 1024;
     const cudnnConvolutionFwdPreference_t _preference = CUDNN_CONVOLUTION_FWD_PREFER_FASTEST;
 
     // activation descriptor

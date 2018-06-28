@@ -15,7 +15,7 @@ SaberStatus SaberMultiClassNMS<NV, OpDtype, inDtype, outDtype,\
                           std::vector<DataTensor_out*>& outputs,
                           MultiClassNMSParam<OpTensor>& param) {
 
-    cudaStream_t stream = this->_ctx.get_compute_stream();
+    cudaStream_t stream = this->_ctx->get_compute_stream();
 
     DataTensor_in* t_loc = inputs[0];
     DataTensor_in* t_conf = inputs[1];

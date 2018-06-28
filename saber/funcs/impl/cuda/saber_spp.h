@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -67,7 +67,7 @@ public:
                              std::vector<DataTensor_out*>& outputs,
                              SPPParam<OpTensor> &param,
                              Context<NV> &ctx)  {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         _pooling.clear();
         _pooling_output.clear();
         _pooling_param.clear();

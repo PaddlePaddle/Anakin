@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -217,8 +217,13 @@ void transpose_filter_KCRS_2_CRSK(const Dtype *input, Dtype *output, \
 template < typename Tensor_t, template <typename T> class Param >
 void update_conv_weights(Param<Tensor_t>& param)
 {
+#ifdef USE_ARM_PLACE
+    Tensor<ARM, AK_FLOAT, NCHW> new_weight;
+    Tensor<ARM, AK_FLOAT, NCHW> new_bias;
+#else
     Tensor<X86, AK_FLOAT, NCHW> new_weight;
     Tensor<X86, AK_FLOAT, NCHW> new_bias;
+#endif //USE_ARM_PLACE
     typedef typename Tensor_t::Dtype dtype;
 
     Shape weight_shape = param.conv_param.weight()->shape();

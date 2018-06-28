@@ -1,5 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
-   Modifications (c) 2018 Advanced Micro Devices, Inc.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -20,27 +19,15 @@
 #include "anakin_config.h"
 //#include <sys/time.h>
 #include <chrono>
-#ifdef USE_CUDA
-#include <cuda_runtime.h>
-#endif
 #include <list>
 #include "saber/core/common.h"
 #include "saber/core/context.h"
-
-#ifdef USE_AMD
-#include <CL/cl.h>
-#endif
 
 namespace anakin{
 namespace saber{
 
 template <typename TargetType>
 class SaberTimer final {
-
-};
-
-template <>
-class SaberTimer<X86> final {
 
 public:
     SaberTimer() {}
@@ -51,11 +38,11 @@ public:
         ms_time.clear();
     }
 
-    void start(Context<X86> &ctx) {
+    void start(Context<TargetType> &ctx) {
         tstart = std::chrono::system_clock::now();
     }
 
-    void end(Context<X86> &ctx) {
+    void end(Context<TargetType> &ctx) {
         tend = std::chrono::system_clock::now();
         auto ts = std::chrono::duration_cast<std::chrono::microseconds>(tend - tstart);
         float elapse_ms = 1000.f * float(ts.count()) * std::chrono::microseconds::period::num / \

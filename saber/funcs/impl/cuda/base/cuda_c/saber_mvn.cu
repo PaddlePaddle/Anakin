@@ -209,7 +209,7 @@ SaberStatus SaberMvn<NV, OpDtype, inDtype, outDtype,\
     std::vector<DataTensor_out *>& outputs, \
     MvnParam<OpTensor>& param) {
 
-    cudaStream_t cuda_stream = this->_ctx.get_compute_stream();
+    cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
     const InDataType * in_data = inputs[0]->data();
     OutDataType * out_data = outputs[0]->mutable_data();
     int num = inputs[0]->num() * inputs[0]->channel();

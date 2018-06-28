@@ -50,7 +50,7 @@ public:
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs, \
                              std::vector<DataTensor_out*>& outputs, \
                              GruParam<OpTensor>& gru_param, Context<X86>& ctx) {
-        this->_ctx=ctx;
+        this->_ctx = &ctx;
         CHECK_EQ(gru_param.formula ,GRU_ORIGIN)<<"only support gru_origin now";
         _hidden_size = gru_param.bias()->valid_size() / 3;
         if (gru_param.formula == GRU_ORIGIN&&_aligned_way) {

@@ -1,6 +1,3 @@
-/*
-   Modifications (c) 2018 Advanced Micro Devices, Inc.
-*/
 #include "framework/model_parser/parser/model_io.h"
 #include "framework/core/operator/operator.h"
 #include "framework/core/parameter.h"
@@ -353,11 +350,19 @@ template class NodeIO<X86, AK_FLOAT, Precision::INT8>;
 #endif
 
 #ifdef USE_ARM_PLACE
+#ifdef ANAKIN_TYPE_FP32
 template class NodeIO<ARM, AK_FLOAT, Precision::FP32>;
+#endif
+
+#ifdef ANAKIN_TYPE_FP16
 template class NodeIO<ARM, AK_FLOAT, Precision::FP16>;
+#endif
+
+#ifdef ANAKIN_TYPE_INT8
 template class NodeIO<ARM, AK_FLOAT, Precision::INT8>;
 #endif
 
+#endif
 
 } /* parser */
 
