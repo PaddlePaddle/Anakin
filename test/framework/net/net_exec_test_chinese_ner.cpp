@@ -275,7 +275,7 @@ TEST(NetTest, net_execute_base_test) {
 
     LOG(INFO)<<"summary: "<<"thread num = "<<thread_num<<",total time = "<<use_ms<<"ms ,batch = "<<batch_num
              <<",word sum = "<<GLB_word_count<<", seconde/line = "<<(use_ms/word_idx.size())
-             <<",QPS = "<<(word_idx.size()/use_ms*1000);
+             <<",QPS = "<<(word_idx.size()/use_ms*1000)<<" line/s , QPS_W = "<<(GLB_word_count/use_ms*1000);
 }
 
 

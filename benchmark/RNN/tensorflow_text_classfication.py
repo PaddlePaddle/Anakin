@@ -12,8 +12,10 @@ import timeit
 # In[2]:
 
 def language_run(data_set):
-    voc_size=10001
-    hidden_size=200
+    voc_size=566227
+    hidden_size=128
+    hidden_size_after_lstm=96
+    hidden_size_after_fc=2
     batch_size=1
     tf.device('/cpu:0')
 
@@ -23,8 +25,6 @@ def language_run(data_set):
 
     x_input = tf.placeholder(
         tf.int32, [1,None], name="x_input")
-    # x_input_len = tf.placeholder(
-    #                 tf.int32, name="x_input_len")
 
 
     # In[4]:
@@ -37,32 +37,45 @@ def language_run(data_set):
     # In[5]:
 
 
-    gru_cell = tf.contrib.rnn.GRUCell(hidden_size)
-    gru_init_state=gru_cell.zero_state(batch_size, dtype=tf.float32)
-    gru_out,_=tf.nn.dynamic_rnn(gru_cell,embedding_out,initial_state=gru_init_state)
+    lstm_cell = tf.contrib.rnn.LSTMCell(hidden_size)
+    # lstm_init_state=lstm_cell.zero_state(batch_size, dtype=tf.float32)
+    # lstm_out,_=tf.nn.dynamic_rnn(lstm_cell,embedding_out,initial_state=lstm_init_state)
+    (output_fw, output_bw), _=tf.nn.bidirectional_dynamic_rnn(lstm_cell,
+                                                              lstm_cell, embedding_out,
+                                                              dtype=tf.float32)
 
+    bi_lstm_out = tf.concat([output_fw, output_bw], axis=-1)
 
     # In[6]:
 
 
     fc_weights = tf.get_variable(
-        'fc_weights', [ hidden_size,voc_size],
+        'fc_weights', [ hidden_size*2,hidden_size_after_lstm],
         initializer=tf.truncated_normal_initializer(
             stddev=0.01, dtype=tf.float32),
         dtype=tf.float32)
     fc_bias = tf.get_variable(
-        'fc_bias', [voc_size],
+        'fc_bias', [hidden_size_after_lstm],
         initializer=tf.truncated_normal_initializer(
             stddev=0.0, dtype=tf.float32),
         dtype=tf.float32)
-    gru_out=tf.squeeze(gru_out,[0])
-    fc_out=tf.matmul(gru_out,fc_weights) + fc_bias
-
+    bi_lstm_out=tf.squeeze(bi_lstm_out,[0])
+    fc1_out=tf.tanh(tf.matmul(bi_lstm_out,fc_weights) + fc_bias)
 
     # In[7]:
+    fc2_weights = tf.get_variable(
+        'fc2_weights', [ hidden_size_after_lstm,hidden_size_after_fc],
+        initializer=tf.truncated_normal_initializer(
+            stddev=0.01, dtype=tf.float32),
+        dtype=tf.float32)
+    fc2_bias = tf.get_variable(
+        'fc2_bias', [hidden_size_after_fc],
+        initializer=tf.truncated_normal_initializer(
+            stddev=0.0, dtype=tf.float32),
+        dtype=tf.float32)
+    fc2_out=tf.matmul(fc1_out,fc2_weights) + fc2_bias
 
-
-    softmax=tf.nn.softmax(fc_out)
+    softmax=tf.nn.softmax(fc2_out)
 
 
     # In[8]:
@@ -97,9 +110,9 @@ def language_run(data_set):
         for one_batch in data_set:
             sess.run([softmax],{x_input:np.array(one_batch).reshape(1,len(one_batch))})
 
-            # tf.train.write_graph(sess.graph.as_graph_def(), 'model/language_model_tf/', 'graph.pb', as_text=False)
+            # tf.train.write_graph(sess.graph.as_graph_def(), 'model/text_classfi_model_tf/', 'graph.pb', as_text=False)
             # saver=tf.train.Saver()
-            # saver.save(sess, "model/language_model_tf/model.cpkt")
+            # saver.save(sess, "model/text_classfi_model_tf/model.cpkt")
             # exit()
 
 
