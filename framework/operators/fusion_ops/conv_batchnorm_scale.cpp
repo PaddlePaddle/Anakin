@@ -79,6 +79,38 @@ Status ConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::InitParam() {
     /*auto alpha = GET_PARAMETER(float, relu_0_alpha);
     ActivationParam<Tensor4d<Ttype, Dtype>> active_param(Active_relu);//, alpha); // TEMP */
 
+	// check if conv has eltwise_relu op attr
+	if(check_attr("type") && check_attr("relu_0_alpha") && check_attr("coeff")) {
+		auto type = GET_PARAMETER(std::string, type);
+    	auto alpha = GET_PARAMETER(float, relu_0_alpha);
+    	auto coeff = GET_PARAMETER(PTuple<float>, coeff);
+    	ActivationParam<Tensor4d<Ttype, Dtype>> activation_param(Active_relu);
+    	EltwiseType elt_type;
+    	if (type == "Add") {
+        	elt_type = Eltwise_sum;
+    	} else if (type == "Max") {
+        	elt_type = Eltwise_max;
+    	} else {
+        	elt_type = Eltwise_prod;
+    	}
+    	saber::EltwiseParam<Tensor4d<Ttype, Dtype>>  eltwise_param(elt_type, coeff.vector());
+    	EltwiseActiveParam<Tensor4d<Ttype, Dtype>> eltwise_relu_param(eltwise_param, activation_param);
+	}
+	// check if conv has eltwise op attr
+	if(check_attr("type") && check_attr("coeff")) {
+		auto type = GET_PARAMETER(std::string, type);
+    	auto coeff = GET_PARAMETER(PTuple<float>, coeff);
+    	EltwiseType elt_type;
+    	if (type == "Add") {
+        	elt_type = Eltwise_sum;
+    	} else if (type == "Max") {
+        	elt_type = Eltwise_max;
+    	} else {
+        	elt_type = Eltwise_prod;
+    	}
+    	saber::EltwiseParam<Tensor4d<Ttype, Dtype> > eltwise_param(elt_type, coeff.vector());
+	}
+
 
     ConvActiveParam<Tensor4d<Ttype, Dtype>> conv_act_param(_conv_param, batchnorm_param, scale_param);
     _param_conv_batchnorm_scale = conv_act_param;

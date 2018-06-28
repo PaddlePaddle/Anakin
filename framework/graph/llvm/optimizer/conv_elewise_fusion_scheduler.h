@@ -31,10 +31,7 @@ namespace graph {
 struct ConvElsFusionHelper {
 private:
 	std::vector<std::string> ops {
-		"Convolution",
 		"ConvBatchnormScale",
-		"ConvBatchnormScaleRelu",
-		"ConvBatchnormScaleReluPool"
 	};
 	struct conv_eltwise_pair {
 		std::string conv_name;

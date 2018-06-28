@@ -205,7 +205,6 @@ class GraphToJson(object):
         sum_mem = self.graph_proto.summary.temp_mem_used + \
 				self.graph_proto.summary.system_mem_used + \
 				self.graph_proto.summary.model_mem_used
-        print "temp_mem_used " + str(temp_mem_used) + "  system_mem_used  " + str(system_mem_used) + "  model_mem_used  " + str(model_mem_used)
         mem_info =  CreateJson(temp_mem=temp_mem_used, 
 							   system_mem=system_mem_used, 
 							   model_mem=model_mem_used,
