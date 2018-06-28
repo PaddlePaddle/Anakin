@@ -38,7 +38,8 @@ struct MatMulParam {
     bool operator==(const MatMulParam &right) {
         bool comp_eq = true;
         comp_eq = comp_eq && (_is_transpose_X == right._is_transpose_X);        
-        comp_eq = comp_eq && (_is_transpose_Y == right._is_transpose_Y);        
+        comp_eq = comp_eq && (_is_transpose_Y == right._is_transpose_Y);
+        return comp_eq;
     }
 
     bool _is_transpose_X{false};
@@ -1570,6 +1571,7 @@ struct EltwiseParam {
         for (int i = 0; i < coeff.size(); ++i) {
             comp_eq = comp_eq && (coeff[i] == right.coeff[i]);
         }
+        return comp_eq;
     }
     EltwiseType operation;
     std::vector<DataDtype> coeff;
@@ -2313,7 +2315,7 @@ template <class opTensor>
 struct FlattenParam {
     FlattenParam() = default;
     FlattenParam(const FlattenParam& right) {}
-    FlattenParam& operator=(const FlattenParam& right){}
+    FlattenParam& operator=(const FlattenParam& right){ return *this;}
     bool operator==(const FlattenParam& right){
         return true;
     }
@@ -2321,8 +2323,8 @@ struct FlattenParam {
 template <class opTensor>
 struct AxpyParam {
     AxpyParam() = default;
-    AxpyParam(const AxpyParam& right) {}
-    AxpyParam& operator=(const AxpyParam& right){}
+    AxpyParam(const AxpyParam& right) { }
+    AxpyParam& operator=(const AxpyParam& right){ return *this;}
     bool operator==(const AxpyParam& right){
         return true;
     }
@@ -2400,6 +2402,7 @@ struct Im2SequenceParam {
         stride_w = right.stride_w;
         dilation_h = right.dilation_h;
         dilation_w = right.dilation_w;
+        return *this;
     }
     bool operator==(const Im2SequenceParam &right) {
         bool comp_eq = true;

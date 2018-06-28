@@ -152,7 +152,7 @@ public:
      *  \brief Create Operator object by op_name.
      */
     virtual Operator<Ttype, Dtype, Ptype>* operator[](const std::string op_name) {
-        Factory<Operator<Ttype, Dtype, Ptype>, OperatorCreator<Ttype, Dtype, Ptype>>::operator[](op_name);
+        return Factory<Operator<Ttype, Dtype, Ptype>, OperatorCreator<Ttype, Dtype, Ptype>>::operator[](op_name);
     }
 
     /** 

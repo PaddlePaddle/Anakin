@@ -29,7 +29,7 @@ SaberStatus SaberConv2DActPooling<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW,
     get_conv_out_tensor(inputs, param);
 
     SaberStatus state = _conv_op->create(inputs, _vtensor_tmp, param.conv_param, ctx);
-    return state & _pool_op->create(_vtensor_tmp, outputs, param.pooling_param, ctx);
+    return (SaberStatus)(state & _pool_op->create(_vtensor_tmp, outputs, param.pooling_param, ctx));
 }
 
 template <>
@@ -46,7 +46,7 @@ SaberStatus SaberConv2DActPooling<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW,
 
     get_conv_out_tensor(inputs, param);
     SaberStatus state = _conv_op->init(inputs, _vtensor_tmp, param.conv_param, ctx);
-    return state & _pool_op->init(_vtensor_tmp, outputs, param.pooling_param, ctx);
+    return (SaberStatus)(state & _pool_op->init(_vtensor_tmp, outputs, param.pooling_param, ctx));
 }
 
 template <>
@@ -55,7 +55,7 @@ SaberStatus SaberConv2DActPooling<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW,
     std::vector<DataTensor_out *>& outputs, \
     ConvActivePoolingParam<OpTensor> &param) {
     SaberStatus state = _conv_op->dispatch(inputs, _vtensor_tmp, param.conv_param);
-    return state & _pool_op->dispatch(_vtensor_tmp, outputs, param.pooling_param);
+    return (SaberStatus)(state & _pool_op->dispatch(_vtensor_tmp, outputs, param.pooling_param));
 }
 
 } //namespace saber
