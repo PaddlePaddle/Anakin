@@ -28,7 +28,7 @@ public:
     typedef typename DataTensor_out::Dtype OutDataType;
     typedef typename OpTensor::Dtype OpDataType;
 
-    VenderPooling() : _handle(NULL), _pooling_type(NULL) {}
+    VenderPooling() : _handle(NULL) {}
 
     ~VenderPooling() {}
 
@@ -61,7 +61,7 @@ public:
         int stride_h = param.stride_h;
         int stride_w = param.stride_w;
         int is_avg_pooling;
-        if(_pooling_type == Pooling_max){
+        if(param.pooling_type == Pooling_max){
             is_avg_pooling = 0;
         } else {
             is_avg_pooling = 1;
