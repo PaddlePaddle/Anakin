@@ -58,7 +58,7 @@ We provide [English](docs/Manual/Tutorial_en.md) and [Chinese](docs/Manual/Tutor
 
 - User guide
 
-   You can get the working principle of the project, c++ interface description and code examples from [here](docs/Manual/Tutorial_ch.md). You can also learn about model converters [here](docs/Manual/Converter_ch.md).
+   You can get the working principle of the project, c++ interface description and code examples from [here](docs/Manual/Tutorial_ch.md). You can also learn about the model converter [here](docs/Manual/Converter_ch.md).
 
 - [How to Contribute](docs/Manual/Contribution_ch.md)
 
