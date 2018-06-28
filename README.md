@@ -23,15 +23,15 @@ Please refer to our [release announcement](https://github.com/PaddlePaddle/Anaki
 
     In order to give full play to the performance of hardware, we optimized the
     forward prediction at different levels.
-      - **Automatic graph fusion.** The goal of all performance optimizations under a
+      - Automatic graph fusion. The goal of all performance optimizations under a
       given algorithm is to make the ALU as busy as possible. Operator fusion
       can effectively reduce memory access and keep the ALU busy.
 
-      - **Memory reuse.** Forward prediction is a one-way calculation. We reuse
+      - Memory reuse. Forward prediction is a one-way calculation. We reuse
       the memory between the input and output of different operators, thus
       reducing the overall memory overhead.
 
-      - **Assembly level optimization.** Saber is a underlying DNN library for Anakin, which
+      - Assembly level optimization. Saber is a underlying DNN library for Anakin, which
       is deeply optimized at assembly level. Performance comparison between Anakin, TensorRT
       and Tensorflow-lite, please refer to the [benchmark tests](benchmark/README.md).
 
@@ -50,8 +50,7 @@ It is recommended to check out the [readme of benchmark](benchmark/README.md).
 
 ## Documentation
 
-We provide [English documentation](docs/Manual/Tutorial_en.md) and
-[中文文档](docs/Manual/Tutorial_ch.md) .
+We provide [English](docs/Manual/Tutorial_en.md) and [Chinese](docs/Manual/Tutorial_ch.md) documentation.
 
 - Developer guide
 
