@@ -81,7 +81,7 @@ void BM_API::mem_set(void* ptr, int value, size_t n){
 void BM_API::sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
     size_t count, __DtoD) {
     handle = get_bm_handle(); 
-    //BMDNN_CHECK(bm_memcpy_s2d(handle, bm_mem_from_device(dst), dst_id, bm_mem_from_device(src), src_id, count));
+    //BMDNN_CHECK(bm_memcpy_d2d(handle, bm_mem_from_device(dst), dst_id, bm_mem_from_device(src), src_id, count));
     BMDNN_CHECK(bm_memcpy_d2d(handle, *(bm_device_mem_t *)(dst), dst_id, *(bm_device_mem_t *)(src), src_id, count));
     LOG(INFO) << "BM sync_memcpy: device to device, finished";
 };
