@@ -42,7 +42,7 @@ SaberStatus SaberPooling<AMD, OpDtype, inDtype, outDtype,
         Context<AMD> &ctx)
 {
 
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
     return create(inputs, outputs, param, ctx);
 }
 
@@ -183,7 +183,7 @@ SaberStatus SaberPooling<AMD, OpDtype, inDtype, outDtype,
     }
 
     LOG(INFO) << "COMPLETE CREATE KERNEL";
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
     return SaberSuccess;
 }
 
@@ -214,7 +214,7 @@ SaberStatus SaberPooling<AMD, OpDtype, inDtype, outDtype,
     cl_int errNum = 0;
 
     //To get the commpute command queue
-    AMD_API::stream_t cm = this->_ctx.get_compute_stream();
+    AMD_API::stream_t cm = this->_ctx->get_compute_stream();
 
     //To set the argument
     cl_mem memObjects[2] = { 0, 0 };

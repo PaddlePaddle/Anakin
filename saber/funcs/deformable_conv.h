@@ -28,6 +28,12 @@
 //todo
 #include "saber/funcs/impl/impl_deformable_conv.h"
 #endif
+
+#ifdef USE_AMD
+//todo
+#include "saber/funcs/impl/impl_deformable_conv.h"
+#endif
+
 namespace anakin {
 namespace saber {
 

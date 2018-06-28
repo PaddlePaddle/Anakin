@@ -29,6 +29,12 @@
 //todo
 #include "saber/funcs/impl/impl_roi_pooling.h"
 #endif
+
+#ifdef USE_AMD
+//todo
+#include "saber/funcs/impl/impl_roi_pooling.h"
+#endif
+
 namespace anakin {
 namespace saber {
 

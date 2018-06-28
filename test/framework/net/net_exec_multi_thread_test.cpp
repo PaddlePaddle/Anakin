@@ -11,6 +11,9 @@ using Target_H = X86;
 #elif defined(USE_ARM_PLACE)
 using Target = ARM;
 using Target_H = ARM;
+#elif defined(USE_AMD)
+using Target = AMD;
+using Target_H = X86;
 #endif
 std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/yolo_lane_v2.anakin.bin";
 

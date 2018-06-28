@@ -37,7 +37,7 @@ SaberStatus SaberSoftmax<AMD, OpDtype, inDtype, outDtype,
         Context<AMD> &ctx)
 {
 
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
     return create(inputs, outputs, param, ctx);
 }
 
@@ -109,7 +109,7 @@ SaberStatus SaberSoftmax<AMD, OpDtype, inDtype, outDtype,
     }
     
     LOG(INFO) << "COMPLETE CREATE KERNEL";
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
     return SaberSuccess;
 }
 
@@ -158,7 +158,7 @@ SaberStatus SaberSoftmax<AMD, OpDtype, inDtype, outDtype,
     LOG(INFO) << "COMPLETE SET ARGUMENT";
 
     //To get the commpute command queue
-    AMD_API::stream_t cm = this->_ctx.get_compute_stream();
+    AMD_API::stream_t cm = this->_ctx->get_compute_stream();
 
     errNum = clEnqueueNDRangeKernel(cm, _kernel, 3, NULL,
                                     _globalWorkSize, _localWorkSize,

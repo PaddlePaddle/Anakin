@@ -21,6 +21,8 @@
 #include <type_traits>
 #include <typeinfo>
 #include <stdlib.h>
+#include <map>
+#include <list>
 
 #include "utils/logger/logger.h"
 #include "anakin_config.h"

@@ -43,7 +43,7 @@ SaberStatus SaberConv2D<AMD, OpDtype, inDtype, outDtype,
         Context<AMD> &ctx)
 {
 
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
     return create(inputs, outputs, param, ctx);
 }
 
@@ -174,7 +174,7 @@ SaberStatus SaberConv2D<AMD, OpDtype, inDtype, outDtype,
     }
 
     //LOG(INFO) << "COMPLETE CREATE KERNEL";
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
     return SaberSuccess;
 }
 
@@ -193,7 +193,7 @@ SaberStatus SaberConv2D<AMD, OpDtype, inDtype, outDtype,
     //LOG(INFO) << "dispatch";
 
     cl_int errNum = 0;
-    AMD_API::stream_t cm = this->_ctx.get_compute_stream();
+    AMD_API::stream_t cm = this->_ctx->get_compute_stream();
     //To set the argument
     if (inputs[0]->num() == 1 && inputs[0]->channel() == 3 &&
         inputs[0]->height() == 224 && inputs[0]->width() == 224) {

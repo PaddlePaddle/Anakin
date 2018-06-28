@@ -30,6 +30,11 @@
 #include "saber/funcs/impl/impl_crop.h"
 #endif
 
+#ifdef USE_AMD
+//todo
+#include "saber/funcs/impl/impl_crop.h"
+#endif
+
 namespace anakin {
 namespace saber {
 

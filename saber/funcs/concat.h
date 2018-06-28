@@ -30,6 +30,11 @@
 #include "saber/funcs/impl/arm/saber_concat.h"
 #endif
 
+#ifdef USE_AMD
+//todo
+#include "saber/funcs/impl/impl_concat.h"
+#endif
+
 namespace anakin {
 namespace saber {
 

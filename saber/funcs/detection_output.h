@@ -29,6 +29,11 @@
 #include "saber/funcs/impl/arm/saber_detection_output.h"
 #endif
 
+#ifdef USE_AMD
+//todo
+#include "saber/funcs/impl/impl_detection_output.h"
+#endif
+
 namespace anakin {
 namespace saber {
 

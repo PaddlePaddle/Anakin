@@ -28,6 +28,12 @@
 #ifdef USE_ARM_PLACE
 #include "saber/funcs/impl/arm/saber_eltwise.h"
 #endif
+
+#ifdef USE_AMD
+//todo
+#include "saber/funcs/impl/impl_eltwise.h"
+#endif
+
 namespace anakin {
 namespace saber {
 

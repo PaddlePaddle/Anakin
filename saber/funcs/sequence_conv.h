@@ -26,6 +26,17 @@
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_sequence_conv.h"
 #endif
+
+#ifdef USE_ARM_PLACE
+//todo
+#include "saber/funcs/impl/impl_sequence_conv.h"
+#endif
+
+#ifdef USE_AMD
+//todo
+#include "saber/funcs/impl/impl_sequence_conv.h"
+#endif
+
 namespace anakin {
 namespace saber {
 

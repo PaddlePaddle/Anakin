@@ -260,7 +260,7 @@ TEST(TestSaberFuncAMD, test_activation) {
 }
 int main(int argc, const char** argv) {
     anakin::saber::Env<AMD>::env_init();
-    anakin::saber::Env<X86>::env_init();
+    //anakin::saber::Env<X86>::env_init();
     // initial logger
     //logger::init(argv[0]);
     InitTest();
