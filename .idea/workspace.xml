@@ -9,10 +9,7 @@
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="05b5ffab-037b-4c62-b3a1-7655f7441f38" name="Default" comment="">
-      <change afterPath="$PROJECT_DIR$/saber/funcs/impl/bm/vender_scale.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/saber/funcs/activation.h" beforeDir="false" afterPath="$PROJECT_DIR$/saber/funcs/activation.h" afterDir="false" />
-    </list>
+    <list default="true" id="05b5ffab-037b-4c62-b3a1-7655f7441f38" name="Default" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -22,11 +19,22 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="saber_funcs_param.h" pinned="false" current-in-tab="false">
+      <file leaf-file-name="saber_funcs_param.h" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/saber/saber_funcs_param.h">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="402">
-              <caret line="32" column="12" selection-start-line="32" selection-start-column="12" selection-end-line="32" selection-end-column="12" />
+            <state relative-caret-position="135">
+              <caret line="9" column="64" selection-start-line="9" selection-start-column="64" selection-end-line="9" selection-end-column="64" />
+              <folding>
+                <element signature="e#897#918#0" expanded="true" />
+                <element signature="e#948#969#0" expanded="true" />
+                <element signature="e#2779#2800#0" expanded="true" />
+                <element signature="e#6280#6301#0" expanded="true" />
+                <element signature="e#8615#8636#0" expanded="true" />
+                <element signature="e#9435#9456#0" expanded="true" />
+                <element signature="e#10395#10416#0" expanded="true" />
+                <element signature="e#12109#12130#0" expanded="true" />
+                <element signature="e#13826#13841#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -48,25 +56,22 @@
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="225">
               <caret line="17" column="29" selection-start-line="17" selection-start-column="29" selection-end-line="17" selection-end-column="29" />
-              <folding>
-                <element signature="e#854#946#0" expanded="true" />
-                <element signature="e#976#1015#0" expanded="true" />
-                <element signature="e#1038#1082#0" expanded="true" />
-                <element signature="e#1112#1158#0" expanded="true" />
-                <element signature="e#1212#1259#0" expanded="true" />
-              </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="activation.h" pinned="false" current-in-tab="true">
+      <file leaf-file-name="activation.h" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/saber/funcs/activation.h">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="525">
-              <caret line="36" column="50" lean-forward="true" selection-start-line="36" selection-start-column="50" selection-end-line="36" selection-end-column="50" />
+            <state relative-caret-position="435">
+              <caret line="29" column="6" selection-start-line="29" selection-start-column="6" selection-end-line="29" selection-end-column="6" />
               <folding>
+                <element signature="e#836#940#0" expanded="true" />
+                <element signature="e#970#1020#0" expanded="true" />
+                <element signature="e#1044#1094#0" expanded="true" />
                 <element signature="e#1124#1174#0" expanded="true" />
-                <element signature="e#1197#1242#0" expanded="true" />
+                <element signature="e#1197#1247#0" expanded="true" />
+                <element signature="e#1302#1349#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -142,6 +147,7 @@
       <find>AMD_API</find>
       <find>BM</find>
       <find>print_tensor_host</find>
+      <find>batch</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -257,24 +263,24 @@
       <option name="presentableId" value="Default" />
       <updated>1533519941069</updated>
       <workItem from="1533519943497" duration="1090000" />
-      <workItem from="1533533623166" duration="6388000" />
+      <workItem from="1533533623166" duration="6760000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="7478000" />
+    <option name="totallyTimeSpent" value="7850000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="23" width="2560" height="1353" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.25" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.25" />
       <window_info anchor="bottom" id="TODO" order="6" />
       <window_info anchor="bottom" id="Event Log" order="7" side_tool="true" />
       <window_info anchor="bottom" id="Version Control" order="7" weight="0.28850666" />
       <window_info anchor="bottom" id="Run" order="2" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
-      <window_info anchor="bottom" id="Terminal" order="7" visible="true" weight="0.19077404" />
+      <window_info active="true" anchor="bottom" id="Terminal" order="7" visible="true" weight="0.19077404" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
@@ -353,13 +359,6 @@
     <entry file="file://$PROJECT_DIR$/CMakeLists.txt">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
-    <entry file="file://$PROJECT_DIR$/saber/saber_funcs_param.h">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="402">
-          <caret line="32" column="12" selection-start-line="32" selection-start-column="12" selection-end-line="32" selection-end-column="12" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/saber/core/tensor.h">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-1028">
@@ -414,23 +413,38 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="225">
           <caret line="17" column="29" selection-start-line="17" selection-start-column="29" selection-end-line="17" selection-end-column="29" />
-          <folding>
-            <element signature="e#854#946#0" expanded="true" />
-            <element signature="e#976#1015#0" expanded="true" />
-            <element signature="e#1038#1082#0" expanded="true" />
-            <element signature="e#1112#1158#0" expanded="true" />
-            <element signature="e#1212#1259#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/saber/funcs/activation.h">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="525">
-          <caret line="36" column="50" lean-forward="true" selection-start-line="36" selection-start-column="50" selection-end-line="36" selection-end-column="50" />
+        <state relative-caret-position="435">
+          <caret line="29" column="6" selection-start-line="29" selection-start-column="6" selection-end-line="29" selection-end-column="6" />
           <folding>
+            <element signature="e#836#940#0" expanded="true" />
+            <element signature="e#970#1020#0" expanded="true" />
+            <element signature="e#1044#1094#0" expanded="true" />
             <element signature="e#1124#1174#0" expanded="true" />
-            <element signature="e#1197#1242#0" expanded="true" />
+            <element signature="e#1197#1247#0" expanded="true" />
+            <element signature="e#1302#1349#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/saber/saber_funcs_param.h">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="135">
+          <caret line="9" column="64" selection-start-line="9" selection-start-column="64" selection-end-line="9" selection-end-column="64" />
+          <folding>
+            <element signature="e#897#918#0" expanded="true" />
+            <element signature="e#948#969#0" expanded="true" />
+            <element signature="e#2779#2800#0" expanded="true" />
+            <element signature="e#6280#6301#0" expanded="true" />
+            <element signature="e#8615#8636#0" expanded="true" />
+            <element signature="e#9435#9456#0" expanded="true" />
+            <element signature="e#10395#10416#0" expanded="true" />
+            <element signature="e#12109#12130#0" expanded="true" />
+            <element signature="e#13826#13841#0" expanded="true" />
           </folding>
         </state>
       </provider>
