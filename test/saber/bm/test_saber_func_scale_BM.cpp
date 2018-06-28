@@ -86,7 +86,7 @@ void test_scale(int n, int c, int h, int w, int axis, int num_axes, bool bias_te
     output_dev.re_alloc(output[0]->valid_shape());
 
     // init assume output tensor has been reshpaed by user.
-    scale.init(input, output, param, SPECIFY, SABER_IMPL, ctx1);
+    scale.init(input, output, param, SPECIFY, VENDER_IMPL, ctx1);
     scale(input, output, param, ctx1);
 
     output_dev.sync();
