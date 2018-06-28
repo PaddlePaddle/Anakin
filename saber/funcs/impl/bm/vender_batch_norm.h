@@ -49,6 +49,37 @@ public:
                           std::vector<DataTensor_out*>& outputs,
                           BatchNormParam<OpTensor> &param) {
 
+        const InDataType *in_data = (const InDataType *) inputs[0]->data();
+        OutDataType *out_data = (OutDataType *) outputs[0]->mutable_data();
+
+        int input_n = inputs[0]->num();
+        int input_c = inputs[0]->channel();
+        int input_h = inputs[0]->height();
+        int input_w = inputs[0]->width();
+
+        OpDataType eps = param.eps;
+        OpDataType scale = param.scale;
+
+        bm_device_mem_t mean_ma = bm_mem_from_system(&param.mean);
+        bm_device_mem_t variance_ma = bm_mem_from_system(&param.variance);
+
+        bmdnn_batchnorm_forward_inference(
+                _handle,
+                //input
+                *in_data,
+                mean_ma,
+                variance_ma,
+                scale,
+                new bm_device_mem_t(),
+                eps,
+                input_n,
+                input_c,
+                input_h,
+                input_w,
+                //output
+                *out_data
+        );
+
         return SaberSuccess;
     }
 
