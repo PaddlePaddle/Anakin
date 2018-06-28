@@ -36,7 +36,7 @@ public:
         if (_container.count(type_id) == 0) {
             LOG(FATAL) << type_id << " has not been registered! ";
         }
-        LOG(INFO) << "create " << type_id << " fuction " << &_container.at(type_id);
+        //LOG(INFO) << "create " << type_id << " fuction " << &_container.at(type_id);
         //auto ptr = _container.at(type_id)();
         //return ptr;
         return (_container.at(type_id))();
