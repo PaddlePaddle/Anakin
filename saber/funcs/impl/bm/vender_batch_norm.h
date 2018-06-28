@@ -59,9 +59,9 @@ public:
 
         float eps = param.eps;
         float scale = param.scale;
-
-        bm_device_mem_t mean_ma = bm_mem_from_system(&param.mean);
-        bm_device_mem_t variance_ma = bm_mem_from_system(&param.variance);
+        
+        bm_device_mem_t mean_ma = bm_mem_from_system(&param.mean[0]);
+        bm_device_mem_t variance_ma = bm_mem_from_system(&param.variance[0]);
 
         bm_device_mem_t* variance_holder = new bm_device_mem_t();
 
