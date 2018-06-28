@@ -38,7 +38,7 @@
 #endif
 
 #ifdef USE_BM
-#include "saber/funcs/impl/bm/vender_scale.h"
+#include "saber/funcs/impl/bm/vender_activation.h"
 #endif
 
 namespace anakin {
@@ -79,15 +79,9 @@ public:
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
             case VENDER_IMPL:
-<<<<<<< HEAD:saber/funcs/activation.h
                 //this->_impl.push_back(new VenderActivation <TargetType,
                 this->_impl.push_back(new VenderActivation <TargetType,
                         OpDtype>);
-=======
-                this->_impl.push_back(new VenderScale <TargetType,
-                OpDtype, inDtype, outDtype,
-                LayOutType_op, LayOutType_in, LayOutType_out>);
->>>>>>> Add batch norm operation:saber/funcs/scale.h
                 return SaberSuccess;
 
             case SABER_IMPL:

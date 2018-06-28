@@ -52,7 +52,7 @@ TEST(TestSaberFuncBM, test_func_softmax_BM) {
     // start Reshape & doInfer
     Context<BM> ctx_dev(0, 1, 1);
 
-    Softmax<BM, AK_BM> softmax_dev;
+    Softmax<BM, AK_BM, AK_BM, AK_BM, NCHW> softmax_dev;
 
     typedef std::vector<Shape> Shape_v;
 
@@ -150,7 +150,7 @@ TEST(TestSaberFuncBM, test_func_softmax_ROI_BM) {
     // start Reshape & doInfer
     Context<BM> ctx_dev(0, 1, 1);
 
-    Softmax<BM, AK_BM> softmax_dev;
+    Softmax<BM, AK_BM, AK_BM, AK_BM, NCHW> softmax_dev;
 
     LOG(INFO) << "shape out 4d: " << shape_out[0] << ", " << shape_out[1] << ", " << \
               shape_out[2] << ", " << shape_out[3];
