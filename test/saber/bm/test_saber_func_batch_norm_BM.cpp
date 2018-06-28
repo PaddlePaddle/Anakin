@@ -23,7 +23,7 @@ TEST(TestSaberFuncBM, test_func_batch_norm_BM) {
 
     Tensor<X86, AK_FLOAT, NCHW> thin(shape_in);
     for (int i = 0; i < thin.size(); ++i) {
-        thin.mutable_data()[i] = 10;
+        thin.mutable_data()[i] = 1+i;
     }
 
     TensorDf4 tdin, tdout;
@@ -31,9 +31,12 @@ TEST(TestSaberFuncBM, test_func_batch_norm_BM) {
     tdin.copy_from(thin);
     input_dev_4d.push_back(&tdin);
 
+    LOG(INFO) << "Input tensor is:";
+    print_tensor_device(*input_dev_4d[0]);
+
     //Batch norm param
     std::vector<float> mean;
-    mean.push_back(10);
+    mean.push_back(1);
 
     std::vector<float> variance;
     variance.push_back(0);
@@ -65,7 +68,7 @@ TEST(TestSaberFuncBM, test_func_batch_norm_BM) {
 
     t1.end(ctx_dev);
     float ts = t1.get_average_ms();
-    printf("cudnn softmax total time : %.4f, avg time : %.4f\n", ts, ts);
+    printf("bm batch norm total time : %.4f, avg time : %.4f\n", ts, ts);
 
     print_tensor_device(*output_dev_4d[0]);
 }

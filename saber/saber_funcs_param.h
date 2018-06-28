@@ -972,6 +972,48 @@ struct ScaleParam {
     std::vector<DataDtype> scale_w;
     std::vector<DataDtype> scale_b;
 };
+#ifdef USE_BM
+template <>
+struct ScaleParam<Tensor<BM, AK_BM, NCHW>> {
+    ScaleParam(): axis(1), num_axes(1), bias_term(false) {}
+    ScaleParam(bm_device_mem_t scale_w_in, bm_device_mem_t scale_b_in,
+               bool bias_term_in = true, int axis_in = 1, int num_axes_in = 1)
+            : scale_w(scale_w_in), scale_b(scale_b_in)
+            , bias_term(bias_term_in), axis(axis_in), num_axes(num_axes_in)
+    {}
+    ScaleParam(bm_device_mem_t scale_w_in,
+               bool bias_term_in = false, int axis_in = 1, int num_axes_in = 1)
+            : scale_w(scale_w_in)
+            , bias_term(bias_term_in), axis(axis_in), num_axes(num_axes_in)
+    {}
+    ScaleParam(const ScaleParam &right)
+            : scale_w(right.scale_w), scale_b(right.scale_b)
+            , bias_term(right.bias_term), axis(right.axis), num_axes(right.num_axes)
+    {}
+    ScaleParam &operator=(const ScaleParam &right) {
+        scale_w = right.scale_w;
+        scale_b = right.scale_b;
+        bias_term = right.bias_term;
+        axis = right.axis;
+        num_axes = right.num_axes;
+        return *this;
+    }
+    bool operator==(const ScaleParam &right) {
+        bool comp_eq = true;
+        /* comp_eq = comp_eq && (scale_w == right.scale_w); */
+        /* comp_eq = comp_eq && (scale_b == right.scale_b); */
+        comp_eq = comp_eq && (bias_term == right.bias_term);
+        comp_eq = comp_eq && (axis == right.axis);
+        comp_eq = comp_eq && (num_axes == right.num_axes);
+        return comp_eq;
+    }
+    int axis; // default is 1
+    int num_axes; // default is 1
+    bool bias_term; // default false
+    bm_device_mem_t scale_w;
+    bm_device_mem_t scale_b;
+};
+#endif
 template <typename opTensor>
 struct PoolingParam {
     PoolingParam() : window_h(-1), window_w(-1)
