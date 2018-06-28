@@ -115,7 +115,8 @@ ANAKIN_REGISTER_OP(Activation)
 #endif
 .num_in(1)
 .num_out(1)
-.Args<std::string>("type", " type of Activation ");
+.Args<std::string>("type", " type of Activation ")
+.Args<bool>("channel_shared", "prelu channel is shared or not ");
 
 } /* namespace ops */
 
