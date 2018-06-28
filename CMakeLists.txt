@@ -64,7 +64,7 @@ anakin_option(ENABLE_NOISY_WARNINGS "Enable noisy warning msg during compile." N
 # using 3rd party libs
 anakin_option(USE_GLOG "Build Glog components." NO)
 anakin_option(USE_PROTOBUF "Build Google protobuf components." YES)
-anakin_option(USE_OPENCV "Use static opencv libs." YES)
+anakin_option(USE_OPENCV "Use static opencv libs." NO)
 anakin_option(USE_BOOST "Use static BOOST libs." NO)
 anakin_option(USE_OPENMP "Use Openmp when in android environment." YES if TARGET_ANDROID)
 anakin_option(USE_GTEST "Use googletest libs." NO if BUILD_WITH_UNIT_TEST)
@@ -80,7 +80,7 @@ anakin_option(USE_OPENMP "Use Openmp when in android environment." YES if TARGET
 anakin_option(BUILD_WITH_UNIT_TEST "Build anakin unit test components." YES)
 
 # build examples
-anakin_option(BUILD_EXAMPLES "build detection and classification examples" YES)
+anakin_option(BUILD_EXAMPLES "build detection and classification examples" NO)
 
 # build target
 anakin_option(BUILD_SHARED "Build anakin shared lib." YES)
