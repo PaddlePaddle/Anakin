@@ -228,10 +228,10 @@ SaberStatus VenderFc<AMD, OpDtype, inDtype, outDtype,
                   std::vector<DataTensor_out*>& outputs,
                   FcParam<OpTensor> &param)
 {
-    LOG(INFO) << "dispatch";
-    LOG(INFO) << "num_output=" << param.num_output << "axis=" << param.axis;
-    LOG(INFO) << "num=" << inputs[0]->num() << " channel=" << inputs[0]->channel() << " height=" << inputs[0]->height() << " width=" << inputs[0]->width();
-    LOG(INFO) << "num=" << param.weights->num() << " channel=" << param.weights->channel() << " height=" << param.weights->height() << " width=" << param.weights->width();
+//    LOG(INFO) << "dispatch";
+//    LOG(INFO) << "num_output=" << param.num_output << "axis=" << param.axis;
+//    LOG(INFO) << "num=" << inputs[0]->num() << " channel=" << inputs[0]->channel() << " height=" << inputs[0]->height() << " width=" << inputs[0]->width();
+//    LOG(INFO) << "num=" << param.weights->num() << " channel=" << param.weights->channel() << " height=" << param.weights->height() << " width=" << param.weights->width();
     if (inDtype == AK_FLOAT) {
         cl_int errNum = 0;
         //LOG(INFO) << "device id= " << device << " conext = " << context;

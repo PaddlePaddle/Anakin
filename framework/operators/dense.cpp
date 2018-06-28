@@ -11,7 +11,6 @@ void Dense<Ttype, Dtype, Ptype>::operator()(OpContext<Ttype>& ctx, \
         std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) { \
     auto* impl = static_cast<DenseHelper<Ttype, Dtype, Ptype>*>(this->_helper); \
     auto& param = static_cast<DenseHelper<Ttype, Dtype, Ptype>*>(this->_helper)->_param_dense; \
-    LOG(ERROR) << "run fc"; \
     SABER_CHECK(impl->_funcs_dense(ins, outs, param, ctx)); \
 }
 
