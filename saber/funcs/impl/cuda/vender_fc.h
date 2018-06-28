@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -54,7 +54,7 @@ public:
                             std::vector<DataTensor_out *>& outputs,
                             FcParam<OpTensor>& param, Context<NV>& ctx){
         // get context
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         cudaStream_t cuda_stream;
         cuda_stream = ctx.get_compute_stream();
 
@@ -67,11 +67,11 @@ public:
                             std::vector<DataTensor_out *>& outputs,
                             FcParam<OpTensor>& param, Context<NV>& ctx){
 
-        if (!(ctx == this->_ctx)) {
+        if (!(&ctx == this->_ctx)) {
             if (_handle != NULL) {
                 CUBLAS_CHECK(cublasDestroy(_handle));
             }
-            this->_ctx = ctx;
+            this->_ctx = &ctx;
 
             cudaStream_t cuda_stream;
             cuda_stream = ctx.get_compute_stream();

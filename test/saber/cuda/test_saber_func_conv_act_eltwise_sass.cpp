@@ -15,21 +15,26 @@ typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
 typedef Tensor<NV, AK_FLOAT, NCHW> TensorDf4;
 
 #if 0
-std::vector<int> param0 {3, 3, 480, 1440, 16};
-std::vector<int> param1{3, 16, 240, 720, 32};
-std::vector<int> param2{3, 32, 120, 360, 64};
-std::vector<int> param3{3, 64, 60, 180, 128};
-std::vector<int> param4{3, 128, 30, 90, 128};
-std::vector<int> param5{3, 256, 15, 45, 512};
-std::vector<int> param6{3, 512, 15, 45, 512};
-std::vector<int> param7{3, 1024, 15, 45, 512};
+std::vector<int> param0 {3, 3, 480, 1440, 16, 1, 3};
+std::vector<int> param1{3, 16, 240, 720, 32, 1, 3};
+std::vector<int> param2{3, 32, 120, 360, 64, 1, 3};
+std::vector<int> param3{3, 64, 60, 180, 128, 1, 3};
+std::vector<int> param4{3, 128, 30, 90, 128, 1, 3};
+std::vector<int> param5{3, 256, 15, 45, 512, 1, 3};
+std::vector<int> param6{3, 512, 15, 45, 512, 1, 3};
+std::vector<int> param7{3, 1024, 15, 45, 512, 1, 3};
 #else
-std::vector<int> param_test {1, 256, 16, 16, 512};
+std::vector<int> param_test {1, 256, 16, 16, 512, 0, 1};
+std::vector<int> param_test1 {1, 16, 240, 720, 32, 0, 1};
+std::vector<int> param_test2 {1, 32, 120, 360, 64, 0, 1};
+std::vector<int> param_test3 {1, 64, 60, 180, 128, 0, 1};
+std::vector<int> param_test4 {1, 512, 15, 45, 512, 0, 1};
+std::vector<int> param_test5 {1, 256, 16, 16, 512, 1, 3};
 #endif
 std::map<std::string, std::vector<int>> param_map;
 
 //std::vector<EltwiseType> elt = {Eltwise_prod, Eltwise_sum, Eltwise_max};
-std::vector<EltwiseType> elt = {Eltwise_prod};
+std::vector<EltwiseType> elt = {Eltwise_sum};
 
 
 TEST(TestSaberFuncNV, test_func_conv_relu_elt_fusion) {
@@ -43,10 +48,14 @@ TEST(TestSaberFuncNV, test_func_conv_relu_elt_fusion) {
     param_map.insert(std::pair<std::string, std::vector<int>>("conv6", param6));
     param_map.insert(std::pair<std::string, std::vector<int>>("conv7", param7));
 #else
-    param_map.insert(std::pair<std::string, std::vector<int>>("conv4", param_test));
+    param_map.insert(std::pair<std::string, std::vector<int>>("conv1", param_test1));
+    param_map.insert(std::pair<std::string, std::vector<int>>("conv2", param_test2));
+    param_map.insert(std::pair<std::string, std::vector<int>>("conv3", param_test3));
+    param_map.insert(std::pair<std::string, std::vector<int>>("conv4", param_test4));
+    param_map.insert(std::pair<std::string, std::vector<int>>("conv5", param_test5));
 #endif
 
-    for (int jj = 0; jj < 20; jj ++) {
+//    for (int jj = 0; jj < 20; jj ++) {
         for (int a = 0; a < elt.size(); a++) {
             EltwiseType elt_type = elt[a];
 
@@ -59,15 +68,15 @@ TEST(TestSaberFuncNV, test_func_conv_relu_elt_fusion) {
                 int out_channel = iter->second[4];
 
                 int group = 1;
-                int pad_h = 1;
-                int pad_w = 1;
+                int pad_h = iter->second[5];
+                int pad_w = iter->second[5];
                 int stride_h = 1;
                 int stride_w = 1;
                 int dilation_h = 1;
                 int dilation_w = 1;
 
-                int kernel_h = 3;
-                int kernel_w = 3;
+                int kernel_h = iter->second[6];
+                int kernel_w = iter->second[6];
                 bool bias_term = true;
 
                 Shape img_s(img_num, in_channels, img_h, img_w);
@@ -135,7 +144,7 @@ TEST(TestSaberFuncNV, test_func_conv_relu_elt_fusion) {
                 conv.compute_output_shape(input, output, param);
                 output_dev.re_alloc(output[0]->shape());
 
-                std::cout << "output shape = " << output[0]->shape()[0] << " " << output[0]->shape()[1] << " "
+                std::cout << "kernel = "<<iter->second[6]<<" output shape = " << output[0]->shape()[0] << " " << output[0]->shape()[1] << " "
                           << output[0]->shape()[2] << " " << output[0]->shape()[3] << std::endl;
                 result_cudnn.re_alloc(output[0]->shape());
                 cudaDeviceSynchronize();
@@ -146,7 +155,7 @@ TEST(TestSaberFuncNV, test_func_conv_relu_elt_fusion) {
                 output_dev.sync();
                 result_cudnn.copy_from(*output[0]);
                 cudaDeviceSynchronize();
-
+                std::cout<<"calling saber conv !!!"<<std::endl;
                 ConvAct<NV, AK_FLOAT> conv_saber;
                 output1.push_back(&output_dev1);
                 output_dev1.re_alloc(output[0]->shape());
@@ -173,11 +182,11 @@ TEST(TestSaberFuncNV, test_func_conv_relu_elt_fusion) {
                     float err;
 
                     if (elt_type == Eltwise_prod) {
-                        err = result_saber.data(0)[i] - (result_cudnn.data(0)[i] * output_host.data(0)[i]);
+                        err = result_saber.data()[i] - (result_cudnn.data()[i] * output_host.data()[i]);
                     } else if (elt_type == Eltwise_sum) {
-                        err = result_saber.data(0)[i] - (result_cudnn.data(0)[i] + output_host.data(0)[i]);
+                        err = result_saber.data()[i] - (result_cudnn.data()[i] + output_host.data()[i]);
                     } else if (elt_type == Eltwise_max) {
-                        err = result_saber.data(0)[i] - std::max(result_cudnn.data(0)[i], output_host.data(0)[i]);
+                        err = result_saber.data()[i] - std::max(result_cudnn.data()[i], output_host.data()[i]);
                     }
 
                     if (abs(err) > 0.001) {
@@ -194,7 +203,7 @@ TEST(TestSaberFuncNV, test_func_conv_relu_elt_fusion) {
                 }
             }
         }
-    }
+//    }
 }
 
 int main(int argc, const char** argv) {

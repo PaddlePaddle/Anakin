@@ -25,7 +25,7 @@ Im2SequenceHelper<Ttype, Dtype, Ptype>::~Im2SequenceHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status Im2SequenceHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Im2Sequence op parameter.";
+    DLOG(WARNING) << "Parsing Im2Sequence op parameter.";
     auto paddings = GET_PARAMETER(PTuple<int>, paddings);
     auto strides = GET_PARAMETER(PTuple<int>, strides);
     auto window_size = GET_PARAMETER(PTuple<int>, window_size);

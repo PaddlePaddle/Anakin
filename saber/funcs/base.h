@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -43,8 +43,10 @@ public:
     ~BaseFunc() {
         std::for_each(this->_impl.begin(), this->_impl.end(),
             [&](Impl_t* impl){
-            delete impl;
-            impl = nullptr;
+			if(impl) {
+            	delete impl;
+            	impl = nullptr;
+			}
         });
     }
 
@@ -77,7 +79,14 @@ public:
 
         this->_param = param;
         this->_last_input_shape = input[0]->valid_shape();
-        this->_strategy = strategy;
+        this->_strategy = strategy; 
+		std::for_each(this->_impl.begin(), this->_impl.end(), 
+				[&](Impl_t* impl){ 
+					delete impl; 
+					impl = nullptr; 
+				}
+		);
+
         this->_impl.clear();
 
         SaberStatus status = SaberSuccess;
@@ -102,10 +111,10 @@ public:
         }
 
         for (auto imp : this->_impl) {
-            SaberStatus status = imp->init(input, output, param, ctx);
-            if (status != SaberSuccess) {
-                return status;
-            }
+            status = SaberStatus(status | imp->init(input, output, param, ctx));
+        }
+        if (status != SaberSuccess) {
+            return status;
         }
 
         this->pick_best(input, output, param, strategy, implenum, ctx);
