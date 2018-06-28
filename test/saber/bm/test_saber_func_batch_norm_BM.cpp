@@ -39,7 +39,7 @@ TEST(TestSaberFuncBM, test_func_batch_norm_BM) {
     mean.push_back(1);
 
     std::vector<float> variance;
-    variance.push_back(0);
+    variance.push_back(0.001);
 
     float scale_in = 1;
     float eps_in = float(1e-5);
