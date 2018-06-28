@@ -122,7 +122,7 @@ public:
 	/**
 	 *  \brief Judge if op access target attr
 	 */
-	inline bool check_attr(std::string attr_name) {
+	inline bool check_attr(const std::string& attr_name) {
 		return _node_p->inspect_attr(attr_name);
 	}
 

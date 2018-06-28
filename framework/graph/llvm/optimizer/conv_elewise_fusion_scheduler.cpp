@@ -57,7 +57,7 @@ void ConvElsFusionScheduler::Run() {
 		auto& node_eltwise = (*_vgraph)[tmp_pair.eltwise_name];
 		node_conv += node_eltwise; // merge node parameter
 		node_conv.register_keep(node_conv.mergeNodes.size()-1); // keep eltwise node in reconstruction
-		node_conv.mergeNodeNames.push_back(""); // eltwise op's pattern name is equal to its original attr's name
+		node_conv.mergeNodeNames.push_back("merge"); // eltwise op's pattern name is equal to its original attr's name
 
 		node_eltwise.opName = "Gather"; // change eltwise op to Gather op
 	}

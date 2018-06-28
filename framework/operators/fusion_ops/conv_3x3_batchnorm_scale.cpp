@@ -1,24 +1,34 @@
-#include "framework/operators/fusion_ops/conv_batchnorm_scale.h"
+#include "framework/operators/fusion_ops/conv_3x3_batchnorm_scale.h"
 
 namespace anakin {
 
 namespace ops {
 
-#define INSTANCE_CONVBATCHNORMSCALE(Ttype, Dtype, Ptype) \
-template<> \
-void ConvBatchnormScale<Ttype, Dtype, Ptype>::operator()(\
-    OpContext<Ttype>& ctx,\
-    const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,\
-    std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {\
-    auto* impl = static_cast<ConvBatchnormScaleHelper<Ttype, Dtype, Ptype>*>(this->_helper);\
-    auto& param = static_cast<ConvBatchnormScaleHelper<Ttype, Dtype, Ptype>*>\
-                  (this->_helper)->_param_conv_batchnorm_scale;\
-    impl->_funcs_conv_batchnorm_scale(ins, outs, param, ctx);\
+#ifdef USE_CUDA
+template<>
+void SassConvBatchnormScale<NV, AK_FLOAT, Precision::FP32>::operator()(
+    OpContext<NV>& ctx,
+    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
+    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
+    auto* impl = static_cast<SassConvBatchnormScaleHelper<NV, AK_FLOAT, Precision::FP32>*>
+                 (this->_helper);
+    auto& param = static_cast<SassConvBatchnormScaleHelper<NV, AK_FLOAT, Precision::FP32>*>
+                  (this->_helper)->_param_conv_batchnorm_scale_relu;
+    impl->_funcs_conv_batchnorm_scale_relu(ins, outs, param, ctx);
+}
+#endif
+
+/// TODO ... specialization other type of operator
+
+
+/// set helper
+template<typename Ttype, DataType Dtype, Precision Ptype>
+SassConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::~SassConvBatchnormScaleHelper() {
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
-Status ConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing ConvBatchnormScale op parameter.";
+Status SassConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::InitParam() {
+    LOG(WARNING) << "Parsing SassConvBatchnormScale op parameter.";
     saber::ConvParam<Tensor4d<Ttype, Dtype>> _conv_param;
 
     // get conv param
@@ -31,6 +41,7 @@ Status ConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto kernel_size = GET_PARAMETER(PTuple<int>, kernel_size);
     auto axis = GET_PARAMETER(int, axis);
 
+	
 	using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
 
@@ -76,66 +87,84 @@ Status ConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::InitParam() {
                                            scale_bias_term, scale_axis, scale_num_axes);
 
     // get relu param
-    /*auto alpha = GET_PARAMETER(float, relu_0_alpha);
-    ActivationParam<Tensor4d<Ttype, Dtype>> active_param(Active_relu);//, alpha); // TEMP */
+    //auto alpha = GET_PARAMETER(float, relu_0_alpha);
+    //ActivationParam<Tensor4d<Ttype, Dtype>> active_param(Active_relu);//, alpha); // TEMP
 
-	ConvActiveParam<Tensor4d<Ttype, Dtype>> conv_act_param(_conv_param, batchnorm_param, scale_param); 
-	_param_conv_batchnorm_scale = conv_act_param;
+	// check if conv has eltwise_relu op attr
+	if(check_attr("merge_type") && check_attr("merge_relu_0_alpha")) {
+		LOG(ERROR) << "detect eltwise relu!!!!!!!! ";
+		auto type = GET_PARAMETER(std::string, merge_type);
+    	auto alpha = GET_PARAMETER(float, merge_relu_0_alpha);
+    	auto coeff = GET_PARAMETER(PTuple<float>, merge_coeff);
+    	ActivationParam<Tensor4d<Ttype, Dtype>> activation_param(Active_relu);
+    	EltwiseType elt_type;
+    	if (type == "Add") {
+        	elt_type = Eltwise_sum;
+    	} else if (type == "Max") {
+        	elt_type = Eltwise_max;
+    	} else {
+        	elt_type = Eltwise_prod;
+    	}
+    	saber::EltwiseParam<Tensor4d<Ttype, Dtype>>  eltwise_param(elt_type, coeff.vector());
+    	EltwiseActiveParam<Tensor4d<Ttype, Dtype>> eltwise_relu_param(eltwise_param, activation_param);
 
-	
+		ConvActiveParam<Tensor4d<Ttype, Dtype>> conv_act_param(_conv_param, batchnorm_param, scale_param, eltwise_relu_param);
+		_param_conv_batchnorm_scale_relu = conv_act_param;
+	} else { 
+		ConvActiveParam<Tensor4d<Ttype, Dtype>> conv_act_param(_conv_param, batchnorm_param, scale_param); 
+		_param_conv_batchnorm_scale_relu = conv_act_param;
+	}
+
     return Status::OK();
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
-Status ConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
+Status SassConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
         const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
         std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-    _funcs_conv_batchnorm_scale.init(ins, outs, _param_conv_batchnorm_scale, SPECIFY, VENDER_IMPL, ctx);
+    _funcs_conv_batchnorm_scale_relu.init(ins, outs, _param_conv_batchnorm_scale_relu, SPECIFY, SABER_IMPL, ctx);
     return Status::OK();
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
-Status ConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::InferShape(const
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-    _funcs_conv_batchnorm_scale.compute_output_shape(ins, outs, _param_conv_batchnorm_scale);
+Status SassConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::InferShape(
+    const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
+    std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+    _funcs_conv_batchnorm_scale_relu.compute_output_shape(ins, outs, _param_conv_batchnorm_scale_relu);
     return Status::OK();
 }
-
-#ifdef USE_ARM_PLACE
-INSTANCE_CONVBATCHNORMSCALE(ARM, AK_FLOAT, Precision::FP32);
-template class ConvBatchnormScaleHelper<ARM, AK_FLOAT, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScale, ConvBatchnormScaleHelper, ARM, AK_FLOAT, Precision::FP32);
-#endif
 
 #ifdef USE_CUDA
-INSTANCE_CONVBATCHNORMSCALE(NV, AK_FLOAT, Precision::FP32);
-template<>
-Status ConvBatchnormScaleHelper<NV, AK_FLOAT, Precision::FP32>::Init(OpContext<NV>& ctx, \
-    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins, \
-    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    _funcs_conv_batchnorm_scale.init(ins, outs, _param_conv_batchnorm_scale, SPECIFY, VENDER_IMPL, ctx);
-    return Status::OK();
-}
-ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScale, ConvBatchnormScaleHelper, NV, AK_FLOAT,
-                          Precision::FP32);
+template class SassConvBatchnormScaleHelper<NV, AK_FLOAT, Precision::FP32>;
+template class SassConvBatchnormScaleHelper<NV, AK_FLOAT, Precision::FP16>;
+template class SassConvBatchnormScaleHelper<NV, AK_FLOAT, Precision::INT8>;
 #endif
-//#ifdef USE_X86_PLACE
-//INSTANCE_CONVBATCHNORMSCALE(X86, AK_FLOAT, Precision::FP32);
-//template class ConvBatchnormScaleHelper<X86, AK_FLOAT, Precision::FP32>;
-//ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScale, ConvBatchnormScaleHelper, X86, AK_FLOAT,
-//                          Precision::FP32);
-//#endif
 
+#ifdef USE_ARM_PLACE
+template class SassConvBatchnormScaleHelper<ARM, AK_FLOAT, Precision::FP32>;
+template class SassConvBatchnormScaleHelper<ARM, AK_FLOAT, Precision::FP16>;
+template class SassConvBatchnormScaleHelper<ARM, AK_FLOAT, Precision::INT8>;
+#endif
+
+// register helper
+#ifdef USE_CUDA
+ANAKIN_REGISTER_OP_HELPER(SassConvBatchnormScale, SassConvBatchnormScaleHelper, NV,
+                          AK_FLOAT, Precision::FP32);
+#endif
+
+#ifdef USE_ARM_PLACE
+ANAKIN_REGISTER_OP_HELPER(SassConvBatchnormScale, SassConvBatchnormScaleHelper, ARM,
+                          AK_FLOAT, Precision::FP32);
+#endif
 
 //! register op
-ANAKIN_REGISTER_OP(ConvBatchnormScale)
-.Doc("ConvBatchnormScale fusion operator")
+ANAKIN_REGISTER_OP(SassConvBatchnormScale)
+.Doc("SassConvBatchnormScale fusion operator")
 #ifdef USE_CUDA
-.__alias__<NV, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale")
+.__alias__<NV, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale_relu")
 #endif
 #ifdef USE_ARM_PLACE
-.__alias__<ARM, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale")
+.__alias__<ARM, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale_relu")
 #endif
 .num_in(1)
 .num_out(1)
@@ -147,6 +176,7 @@ ANAKIN_REGISTER_OP(ConvBatchnormScale)
                 .Args<int>("filter_num", "filter(kernel) number of weights")
                 .Args<PTuple<int>>("kernel_size", "kernel size of kernel (x, y)")
                 .Args<int>("axis", "axis of conv")
+                .Args<float>("relu_0_alpha", " alpha for relu")
                 .Args<int>("scale_0_num_axes", " num axes for scale")
                 .Args<bool>("scale_0_bias_term", "whether scale has bias")
                 .Args<int>("scale_0_axis", "axis for scale")

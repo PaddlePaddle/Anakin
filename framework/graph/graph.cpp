@@ -134,9 +134,9 @@ Status Graph<Ttype, Dtype, Ptype>::Optimize() EXCLUSIVE_LOCKS_REQUIRED(_mut) {
             _nodes_exec_order = scheduler.get_exec_node_in_order();
 
             // optimization
-			ConvElsFusionScheduler conv_eltwise_fusion_scheduler;
+			/*ConvElsFusionScheduler conv_eltwise_fusion_scheduler;
 			conv_eltwise_fusion_scheduler.RegIOResource(_vgraph);
-			conv_eltwise_fusion_scheduler.Run();
+			conv_eltwise_fusion_scheduler.Run();*/
             MemoryScheduler mem_scheduler;
             mem_scheduler.RegIOResource(_vgraph);
             mem_scheduler.Run();
@@ -322,6 +322,7 @@ Status Graph<Ttype, Dtype, Ptype>::restore_from_vgraph(VGraph* vgraph) {
                 auto& tmp_node_p = this->operator[](this->_node_merges[target_node_name][i]);
                 (*node_p).Merge(*tmp_node_p,
                                 this->_pattern_name_merges[target_node_name][i]); // add the merge node's attr
+
 				// detect if the i-th node in _node_merges should be saved in Graph
 				auto ret = std::find(this->_node_merges_keep[target_node_name].begin(), 
 									 this->_node_merges_keep[target_node_name].end(), 
