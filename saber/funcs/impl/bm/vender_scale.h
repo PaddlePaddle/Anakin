@@ -78,7 +78,7 @@ public:
 
         if (param.bias_term) {
             OpDataType bias_data = param.scale_b;
-            BMDNN_CHECK(bmdnn_bias_forward(_handle, in_data, bias_data,
+            BMDNN_CHECK(bmdnn_bias_forward(_handle, out_data, bias_data,
                     outer_dim, inner_dim, out_data));
         }
         return SaberSuccess;
