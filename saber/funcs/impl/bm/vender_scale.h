@@ -13,7 +13,7 @@ template <DataType OpDtype,
     typename LayOutType_op,
     typename LayOutType_in,
     typename LayOutType_out>
-class SaberScale<BM, OpDtype, inDtype, outDtype,\
+class VenderScale<BM, OpDtype, inDtype, outDtype,\
     LayOutType_op, LayOutType_in, LayOutType_out> : \
     public ImplBase<
         Tensor<BM, inDtype, LayOutType_in>,
@@ -29,10 +29,10 @@ public:
     typedef typename DataTensor_out::Dtype OutDataType;
     typedef typename OpTensor::Dtype OpDataType;
 
-    SaberScale()
+    VenderScale()
     {}
 
-    ~SaberScale() {}
+    ~VenderScale() {}
 
     virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
