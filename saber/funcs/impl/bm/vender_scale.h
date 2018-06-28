@@ -70,6 +70,7 @@ public:
             CHECK_EQ(scale_dim, param.scale_w.size()) << "scale dim not valid";
         }
 
+        bm_device_mem_t* scale_extension = new bm_device_mem_t();
         OpDataType* scale_data = param.scale_w[0];
         bmdnn_scale_forward(
                 _handle,
@@ -84,7 +85,7 @@ public:
                 inner_dim,
                 0,
                 //output
-                new bm_device_mem_t(),
+                *scale_extension,
                 *out_data
         );
 

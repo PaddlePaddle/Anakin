@@ -42,7 +42,7 @@ class BatchNorm : public BaseFunc<
         Tensor<TargetType, outDtype, LayOutType_out>,
         Tensor<TargetType, OpDtype, LayOutType_op>,
         ImplBase,
-        BatchNormParam
+        BatchnormParam
 > {
 public:
     using BaseFunc<
@@ -50,14 +50,14 @@ public:
             Tensor<TargetType, outDtype, LayOutType_out>,
             Tensor<TargetType, OpDtype, LayOutType_op>,
             ImplBase,
-            BatchNormParam>::BaseFunc;
+            BatchnormParam>::BaseFunc;
 
     BatchNorm() = default;
 
     typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
     typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
     typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-    typedef BatchNormParam<OpTensor> Param_t;
+    typedef BatchnormParam<OpTensor> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
