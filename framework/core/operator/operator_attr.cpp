@@ -1,6 +1,3 @@
-/*
-   Modifications (c) 2018 Advanced Micro Devices, Inc.
-*/
 #include "framework/core/operator/operator_attr.h"
 #include "framework/core/operator/operator.h"
 

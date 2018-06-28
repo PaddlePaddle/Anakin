@@ -1,6 +1,3 @@
-/*
-   Modifications (c) 2018 Advanced Micro Devices, Inc.
-*/
 #include "framework/operators/fusion_ops/conv_relu_pool.h"
 
 namespace anakin {
