@@ -438,7 +438,7 @@ void print_tensor_device<Tensor<BM, AK_BM, NCHW>>(Tensor<BM, AK_BM, NCHW>& tenso
     bm_memcpy_d2s(get_bm_handle(), bm_mem_from_system(host_mem), *device_data_ptr);
 
     for (int i = 0; i < tensor.size(); ++i) {
-        printf("%.2f ", host_mem[i]);
+        printf("%.2f\t", host_mem[i]);
 
         if ((i + 1) % tensor.width() == 0){
             printf("\n");
