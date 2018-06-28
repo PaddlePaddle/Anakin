@@ -104,7 +104,7 @@ void test_scale(int n, int c, int h, int w, int axis, int num_axes, bool bias_te
 
 TEST(TestSaberFuncBM, test_func_constructor_elt) {
     test_scale(2, 2, 4, 4, 1, 1, false, 2);
-    /* test_scale(2, 2, 4, 4, 1, 1, true, 2); */
+    test_scale(2, 2, 4, 4, 1, 1, true, 2);
     /* test_scale(2, 2, 4, 4, 0, -1, true, 64); */
     /* test_scale(2, 2, 4, 4, 0, -1, true, 64); */
     /* test_scale(2, 2, 4, 4, 0, 0, true, 1); */
