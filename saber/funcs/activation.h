@@ -37,6 +37,10 @@
 #include "saber/funcs/impl/arm/saber_activation.h"
 #endif
 
+#ifdef USE_BM
+#include "saber/funcs/impl/bm/vender_scale.h"
+#endif
+
 namespace anakin {
 namespace saber {
 
