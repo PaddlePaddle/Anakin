@@ -38,6 +38,5 @@ ENV LIBRARY_PATH /opt/rocm/lib:/opt/rocm/opencl/lib/x86_64:$LIBRARY_PATH
 ENV OCL_ROOT /opt/rocm/opencl/lib/x86_64
 ENV PATH /opt/rocm/bin:/opt/rocm/opencl/bin/x86_64:$PATH
 
-# build and install anakin
-#RUN git clone --branch master --recursive http://gitlab.baidu.com/cuichaowen/anakin2.git \
-#    && cd anakin2/tools && ./gpu_build.sh
+RUN git clone --branch AMD --recursive "https://github.com/PaddlePaddle/Anakin.git" /root/Anakin && cd /root/Anakin/tools/ && ./amd_gpu_build.sh && cd -
+
