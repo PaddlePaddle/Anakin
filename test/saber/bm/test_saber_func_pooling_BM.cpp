@@ -148,7 +148,7 @@ TEST(TestSaberFuncBM, test_pooling_result) {
     input.push_back(&img_dev);
     output.push_back(&output_dev);
 
-    Pooling<BM, AK_BM> pooling;
+    Pooling<BM, AK_BM, AK_BM, AK_BM, NCHW> pooling;
     pooling.compute_output_shape(input, output, param);
 
     output_dev.re_alloc(output[0]->shape());
@@ -234,9 +234,9 @@ TEST(TestSaberFuncBM, test_pooling_shared_buffer) {
     input.push_back(&img_dev);
     output.push_back(&output_dev);
 
-    Pooling<BM, AK_BM> pooling;
-    Pooling<BM, AK_BM> pooling0;
-    Pooling<BM, AK_BM> pooling1;
+    Pooling<BM, AK_BM, AK_BM, AK_BM, NCHW> pooling;
+    Pooling<BM, AK_BM, AK_BM, AK_BM, NCHW> pooling0;
+    Pooling<BM, AK_BM, AK_BM, AK_BM, NCHW> pooling1;
 
     pooling.compute_output_shape(input,output,  param);
 

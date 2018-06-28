@@ -35,16 +35,6 @@ namespace anakin{
 
 namespace saber{
 
-#ifdef USE_BM
-template<typename TargetType,
-        DataType OpDtype,
-        DataType inDtype = AK_BM,
-        DataType outDtype = AK_BM,
-        typename LayOutType_op = NCHW,
-        typename LayOutType_in = NCHW,
-        typename LayOutType_out = NCHW
->
-#else
 template <typename TargetType,
         DataType OpDtype,
         DataType inDtype = AK_FLOAT,
@@ -53,7 +43,6 @@ template <typename TargetType,
         typename LayOutType_in = NCHW,
         typename LayOutType_out = NCHW
 >
-#endif
 class Softmax : public BaseFunc<
         Tensor<TargetType, inDtype, LayOutType_in>,
         Tensor<TargetType, outDtype, LayOutType_out>,

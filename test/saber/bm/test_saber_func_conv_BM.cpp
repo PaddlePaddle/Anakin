@@ -492,7 +492,7 @@ TEST(TestSaberFuncBM, test_conv_fp32_speed_test) {
     input.push_back(&img_dev);
     output.push_back(&output_dev);
 
-    Conv<BM, AK_BM> conv;
+    Conv<BM, AK_BM, AK_BM, AK_BM, NCHW> conv;
     conv.compute_output_shape(input, output, param);
 
     output_dev.re_alloc(output[0]->shape());
@@ -546,7 +546,7 @@ void test_conv_fp32_speed(std::vector<TensorDf4*> &inputs, std::vector<TensorDf4
                                     stride, stride,
                                     1, 1,
                                     &weights, &bias);
-    Conv<BM, AK_BM> conv;
+    Conv<BM, AK_BM, AK_BM, AK_BM, NCHW> conv;
     conv.compute_output_shape(inputs, outputs, conv_param);
     outputs[0]->re_alloc(outputs[0]->shape());
     Context<BM> ctx1(0, 1, 1);
