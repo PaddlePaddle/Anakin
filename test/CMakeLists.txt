@@ -13,22 +13,18 @@
 # limitations under the License.
 
 # used for temporary
-if(USE_ANAKIN_FRAMEWORK)
-    anakin_fetch_include_recursively(${ANAKIN_FRAMEWORK})
-    anakin_fetch_include_recursively(${ANAKIN_MODEL_PARSER})
-endif()
+anakin_fetch_include_recursively(${ANAKIN_FRAMEWORK})
+anakin_fetch_include_recursively(${ANAKIN_MODEL_PARSER})
 anakin_fetch_include_recursively(${ANAKIN_SABER})
 
 if(USE_GTEST)
     anakin_find_gtest()
 endif()
 
-if(USE_ANAKIN_FRAMEWORK)
 anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/core "cpp" ANAKIN_TEST_CASE_SRC)
 anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/graph "cpp" ANAKIN_TEST_CASE_SRC)
 anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/operators "cpp" ANAKIN_TEST_CASE_SRC)
 anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/net "cpp" ANAKIN_TEST_CASE_SRC)
-endif()
 
 if(NVIDIA_GPU)
 anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/saber/cuda "cpp" ANAKIN_TEST_CASE_SRC)

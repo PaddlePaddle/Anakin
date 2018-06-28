@@ -20,7 +20,7 @@ ANAKIN_ROOT="$( cd "$(dirname "$0")"/.. ; pwd -P)"
 echo "-- Anakin root dir is: $ANAKIN_ROOT"
 
 # build the target into gpu_build.
-BUILD_ROOT=$ANAKIN_ROOT/amd_build
+BUILD_ROOT=$ANAKIN_ROOT/amd_gpu_build
 
 export OCL_ROOT=/opt/rocm/opencl
 
@@ -35,7 +35,8 @@ cmake \
     -DCMAKE_BUILD_TYPE=Release \
     -DUSE_ARM_PLACE=NO \
     -DUSE_GPU_PLACE=YES \
-    -DAMD_GPU=YES \
+    -DUSE_NVI_GPU=NO \
+    -DUSE_AMD_GPU=YES \
     -DUSE_X86_PLACE=YES \
     -DBUILD_WITH_UNIT_TEST=YES \
     -DUSE_PYTHON=OFF \
@@ -45,8 +46,6 @@ cmake \
     -DENABLE_NOISY_WARNINGS=NO \
     -DUSE_OPENMP=NO\
     -DBUILD_SHARED=YES\
-    -DNVIDIA_GPU=NO \
-    -DAMD_GPU=YES \
     -DUSE_OPENCL=YES \
     ..
         

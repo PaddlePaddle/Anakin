@@ -9,7 +9,7 @@
 #include <unistd.h>  
 #include <fcntl.h>
 #include <map>
-#include "paddle_api.h"s
+#include "paddle_api.h"
 #define DEFINE_GLOBAL(type, var, value) \
         type (GLB_##var) = (value)
 DEFINE_GLOBAL(std::string, model_dir, "");

@@ -4,7 +4,7 @@ ANAKIN_ROOT="$( cd "$(dirname "$0")"/.. ; pwd -P)"
 echo "-- Anakin root dir is: $ANAKIN_ROOT"
 
 # build the target into gpu_build.
-BUILD_ROOT=$ANAKIN_ROOT/gpu_build
+BUILD_ROOT=$ANAKIN_ROOT/nv_gpu_build
 
 mkdir -p $BUILD_ROOT
 echo "-- Build anakin gpu(NVIDIA) into: $BUILD_ROOT"
@@ -17,12 +17,13 @@ cmake .. \
     -DCMAKE_BUILD_TYPE=Release \
 	-DUSE_ARM_PLACE=NO \
 	-DUSE_GPU_PLACE=YES \
-	-DNVIDIA_GPU=YES \
+	-DUSE_NV_GPU=YES \
+	-DUSE_AMD_GPU=NO \
 	-DUSE_X86_PLACE=NO \
 	-DBUILD_FAT_BIN=YES \
 	-DBUILD_WITH_UNIT_TEST=YES \
    	-DUSE_PYTHON=OFF \
-	-DENABLE_DEBUG=YES \
+	-DENABLE_DEBUG=NO \
 	-DENABLE_VERBOSE_MSG=NO \
 	-DDISABLE_ALL_WARNINGS=YES \
 	-DENABLE_NOISY_WARNINGS=NO \

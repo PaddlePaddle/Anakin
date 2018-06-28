@@ -31,10 +31,12 @@ anakin_option(ANAKIN_TYPE_INT8 "define the INT8 for data precision." NO)
 anakin_option(USE_GPU_PLACE "Select the build mode for GPU place." YES)
 anakin_option(USE_X86_PLACE "Select the build mode for X86 place." NO)
 anakin_option(USE_ARM_PLACE "Select the build mode for ARM place." NO)
+anakin_option(USE_NV_GPU "build for nvidia gpu" YES)
+anakin_option(USE_AMD_GPU "build for nvidia gpu" NO)
 
 # plantfrom details
-anakin_option(NVIDIA_GPU "Use NVIDIA GPU place." YES if USE_GPU_PLACE AND NVIDIA_GPU)
-anakin_option(AMD_GPU "Use AMD GPU place." YES if USE_GPU_PLACE AND AMD_GPU)
+anakin_option(NVIDIA_GPU "Use NVIDIA GPU place." YES if USE_GPU_PLACE AND USE_NV_GPU)
+anakin_option(AMD_GPU "Use AMD GPU place." YES if USE_GPU_PLACE AND USE_AMD_GPU)
 anakin_option(TARGET_ANDROID "build for android" YES if USE_ARM_PLACE)
 anakin_option(TARGET_IOS "not supported now" NO)
 
