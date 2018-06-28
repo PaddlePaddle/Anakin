@@ -54,8 +54,11 @@ inline const char* saber_get_error_string(SaberStatus error_code){
             return "ANAKIN_SABER_STATUS_OUT_OF_MEMORY";
         case SaberUnImplError:
             return "ANAKIN_SABER_STATUS_UNIMPL_ERROR";
+        case SaberWrongDevice:
+            return "ANAKIN_SABER_STATUS_WRONG_DEVICE";
+        default:
+            return "ANAKIN SABER UNKOWN ERRORS";
     }
-    return "ANAKIN SABER UNKOWN ERRORS";
 }
 
 template <bool If, typename ThenType, typename ElseType>

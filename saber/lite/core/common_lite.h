@@ -95,8 +95,11 @@ inline const char* get_error_string_lite(SaberStatus error_code) {
             return "ANAKIN_SABER_STATUS_OUT_OF_MEMORY";
         case SaberUnImplError:
             return "ANAKIN_SABER_STATUS_UNIMPL_ERROR";
+        case SaberWrongDevice:
+            return "ANAKIN_SABER_STATUS_WRONG_DEVICE";
+        default:
+            return "ANAKIN SABER UNKOWN ERRORS";
     }
-    return "ANAKIN SABER UNKOWN ERRORS";
 }
 #if 0 //add support for opencl device memory
 template <typename dtype>
