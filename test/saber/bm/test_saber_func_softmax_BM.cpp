@@ -17,7 +17,7 @@ TEST(TestSaberFuncBM, test_func_softmax_BM) {
 
     typedef TensorDf4::Dtype dtype;
 
-    int test_iter = 1000;
+    int test_iter = 10;
 
     int softmax_axis = 3; // channel
     int w_in = 3;
@@ -182,12 +182,13 @@ TEST(TestSaberFuncBM, test_func_softmax_ROI_BM) {
 
     TensorDf4 troi(output_dev_4d[0]->valid_shape());
     troi.copy_from(*output_dev_4d[0]);
-    print_tensor_device(troi);
+    //print_tensor_device(troi);
 }
 
 int main(int argc, const char** argv) {
     // initial logger
     //logger::init(argv[0]);
+    Env<BM>::env_init();
     InitTest();
     RUN_ALL_TESTS(argv[0]);
     return 0;
