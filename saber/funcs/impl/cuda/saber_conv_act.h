@@ -145,20 +145,20 @@ public:
         //LOG(INFO) << "saber conv act";
         if (_use_k1s1p0) {
 //            LOG(INFO)<<"using k1s1p0";
-            if (param.has_eltwise) {
+            if (param.has_eltwise_act) {
                 if (param.eltwise_param.operation == Eltwise_sum) {
                     conv_gemm_k1s1p0(outputs[0]->mutable_data(),
                                      inputs[0]->data(),
                                      param.conv_param.weight()->data(),
                                      chout, chin, hin, win, bias_data,
-                                     this->_ctx->get_compute_stream(), 1.f, 1.f);
+                                     this->_ctx->get_compute_stream(), 1.f, 1.f, true);
                 }
             } else {
                 conv_gemm_k1s1p0(outputs[0]->mutable_data(),
                                  inputs[0]->data(),
                                  param.conv_param.weight()->data(),
                                  chout, chin, hin, win, bias_data,
-                                 this->_ctx->get_compute_stream());
+                                 this->_ctx->get_compute_stream(), 1.f, 0.f, false);
             }
             return SaberSuccess;
         }
@@ -380,24 +380,40 @@ private:
                           const float* weights, int out_channel,
                           int in_channel, int img_h, int img_w,
                           const float* bias, cudaStream_t cuda_stream,
-                          float a = 1.f, float b = 0.f) {
+                          float a = 1.f, float b = 0.f, bool relu = true) {
 
         float alpha = a; float beta = b;
         int m = out_channel;
         int k = in_channel;
         int n = img_h * img_w;
         if (ifVec(m, n, k, k, n, n)) {
-            ker_gemm_32x32x32_NN_vec_bias_relu(m, n, k,
-                                           alpha, weights,
-                                           beta, img,
-                                           out, bias,
-                                           cuda_stream);
+            if (relu) {
+                ker_gemm_32x32x32_NN_vec_bias_relu(m, n, k,
+                                                   alpha, weights,
+                                                   beta, img,
+                                                   out, bias,
+                                                   cuda_stream);
+            } else {
+                ker_gemm_32x32x32_NN_vec_bias(m, n, k,
+                                              alpha, weights,
+                                              beta, img,
+                                              out, bias,
+                                              cuda_stream);
+            }
         } else {
-            ker_gemm_32x32x32_NN_bias_relu(m, n, k,
-                                           alpha, weights,
-                                           beta, img,
-                                           out, bias,
-                                           cuda_stream);
+            if (relu) {
+                ker_gemm_32x32x32_NN_bias_relu(m, n, k,
+                                               alpha, weights,
+                                               beta, img,
+                                               out, bias,
+                                               cuda_stream);
+            } else {
+                ker_gemm_32x32x32_NN_bias(m, n, k,
+                                          alpha, weights,
+                                          beta, img,
+                                          out, bias,
+                                          cuda_stream);
+            }
         }
     }
 
