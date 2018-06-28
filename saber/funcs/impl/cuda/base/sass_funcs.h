@@ -486,6 +486,16 @@ void ker_gemm_32x32x32_NN_vec_bias_relu(const int M, const int N, const int K,
                                         const float beta, const float* B,
                                         float* C, const float* bias, cudaStream_t cuda_stream);
 
+void ker_gemm_32x32x32_NN_bias(const int M, const int N, const int K,
+                               const float alpha, const float* A,
+                               const float beta, const float* B,
+                               float* C, const float* bias, cudaStream_t cuda_stream);
+
+void ker_gemm_32x32x32_NN_vec_bias(const int M, const int N, const int K,
+                                   const float alpha, const float* A,
+                                   const float beta, const float* B,
+                                   float* C, const float* bias, cudaStream_t cuda_stream);
+
 template <int tile>
 void ker_sgemm_nn(const int M, const int N, const int K,
                   const int lda, const int ldb, const int ldc,
