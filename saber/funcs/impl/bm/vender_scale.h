@@ -70,10 +70,11 @@ public:
         /* } */
 
         OpDataType scale_data = param.scale_w;
+        bm_device_mem_t* scale_extension = new bm_device_mem_t();
         BMDNN_CHECK(bmdnn_scale_forward(_handle, in_data, scale_data,
                 input_n, input_c, input_h, input_w,
                 scale_dim, inner_dim, 0,
-                bm_mem_null(), out_data));
+                *scale_extension, out_data));
 
         if (param.bias_term) {
             OpDataType bias_data = param.scale_b;
