@@ -29,8 +29,7 @@ public:
     typedef typename DataTensor_out::Dtype OutDataType;
     typedef typename OpTensor::Dtype OpDataType;
 
-    VenderScale()
-    {}
+    VenderScale() {}
 
     ~VenderScale() {}
 
@@ -52,8 +51,8 @@ public:
                           std::vector<DataTensor_out*>& outputs,
                           ScaleParam<OpTensor>& param) {
 
-        const InDataType *in_data = (const InDataType *) inputs[0]->data();
-        OutDataType *out_data = (OutDataType *) outputs[0]->mutable_data();
+        const InDataType in_data = *(inputs[0]->data());
+        OutDataType out_data = *(outputs[0]->mutable_data());
 
         int input_n = inputs[0]->num();
         int input_c = inputs[0]->channel();
@@ -66,43 +65,21 @@ public:
         int outer_dim = inputs[0]->count(0, axis);
         int inner_dim = inputs[0]->count(axis + num_axes, inputs[0]->shape().dims());
         int scale_dim = inputs[0]->count(axis, axis + num_axes);
-        if (inputs.size() == 1) {
-            CHECK_EQ(scale_dim, param.scale_w.size()) << "scale dim not valid";
-        }
+        /* if (inputs.size() == 1) { */
+        /*     CHECK_EQ(scale_dim, param.scale_w.size()) << "scale dim not valid"; */
+        /* } */
 
-        bm_device_mem_t* scale_extension = new bm_device_mem_t();
-        OpDataType* scale_data = param.scale_w[0];
-        bmdnn_scale_forward(
-                _handle,
-                //input
-                *in_data,
-                *scale_data,
-                input_n,
-                input_c,
-                input_h,
-                input_w,
-                scale_dim,
-                inner_dim,
-                0,
-                //output
-                *scale_extension,
-                *out_data
-        );
+        OpDataType scale_data = param.scale_w;
+        BMDNN_CHECK(bmdnn_scale_forward(_handle, in_data, scale_data,
+                input_n, input_c, input_h, input_w,
+                scale_dim, inner_dim, 0,
+                bm_mem_null(), out_data));
 
         if (param.bias_term) {
-            OpDataType* bias_data = param.scale_b[0];
-            bmdnn_bias_forward(
-                    _handle,
-                    //input
-                    *out_data,
-                    *bias_data,
-                    outer_dim,
-                    inner_dim,
-                    //output
-                    *out_data
-            );
+            OpDataType bias_data = param.scale_b;
+            BMDNN_CHECK(bmdnn_bias_forward(_handle, in_data, bias_data,
+                    outer_dim, inner_dim, out_data));
         }
-
         return SaberSuccess;
     }
 private:
@@ -110,6 +87,5 @@ private:
 };
 
 }
-
 }
 #endif //ANAKIN_SABER_FUNCS_IMPL_BMDNN_SCALE_H
