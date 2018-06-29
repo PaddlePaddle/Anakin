@@ -1,4 +1,4 @@
-#include "framework/operators/fusion_ops/conv_3x3_batchnorm_scale_relu.h"
+#include "framework/operators/fusion_ops/conv_3x3_batchnorm_scale.h"
 
 namespace anakin {
 
@@ -6,13 +6,13 @@ namespace ops {
 
 #ifdef USE_CUDA
 template<>
-void SassConvBatchnormScaleRelu<NV, AK_FLOAT, Precision::FP32>::operator()(
+void SassConvBatchnormScale<NV, AK_FLOAT, Precision::FP32>::operator()(
     OpContext<NV>& ctx,
     const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
     std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    auto* impl = static_cast<SassConvBatchnormScaleReluHelper<NV, AK_FLOAT, Precision::FP32>*>
+    auto* impl = static_cast<SassConvBatchnormScaleHelper<NV, AK_FLOAT, Precision::FP32>*>
                  (this->_helper);
-    auto& param = static_cast<SassConvBatchnormScaleReluHelper<NV, AK_FLOAT, Precision::FP32>*>
+    auto& param = static_cast<SassConvBatchnormScaleHelper<NV, AK_FLOAT, Precision::FP32>*>
                   (this->_helper)->_param_conv_batchnorm_scale_relu;
     impl->_funcs_conv_batchnorm_scale_relu(ins, outs, param, ctx);
 }
@@ -23,12 +23,12 @@ void SassConvBatchnormScaleRelu<NV, AK_FLOAT, Precision::FP32>::operator()(
 
 /// set helper
 template<typename Ttype, DataType Dtype, Precision Ptype>
-SassConvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::~SassConvBatchnormScaleReluHelper() {
+SassConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::~SassConvBatchnormScaleHelper() {
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
-Status SassConvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::InitParam() {
-    DLOG(WARNING) << "Parsing SassConvBatchnormScaleRelu op parameter.";
+Status SassConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::InitParam() {
+    LOG(WARNING) << "Parsing SassConvBatchnormScale op parameter.";
     saber::ConvParam<Tensor4d<Ttype, Dtype>> _conv_param;
 
     // get conv param
@@ -87,28 +87,47 @@ Status SassConvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::InitParam() {
                                            scale_bias_term, scale_axis, scale_num_axes);
 
     // get relu param
-    auto alpha = GET_PARAMETER(float, relu_0_alpha);
-    ActivationParam<Tensor4d<Ttype, Dtype>> active_param(Active_relu);//, alpha); // TEMP
+    //auto alpha = GET_PARAMETER(float, relu_0_alpha);
+    //ActivationParam<Tensor4d<Ttype, Dtype>> active_param(Active_relu);//, alpha); // TEMP
 
+	// check if conv has eltwise_relu op attr
+	if(check_attr("merge_type") && check_attr("merge_relu_0_alpha")) {
+		LOG(ERROR) << "detect eltwise relu!!!!!!!! ";
+		auto type = GET_PARAMETER(std::string, merge_type);
+    	auto alpha = GET_PARAMETER(float, merge_relu_0_alpha);
+    	auto coeff = GET_PARAMETER(PTuple<float>, merge_coeff);
+    	ActivationParam<Tensor4d<Ttype, Dtype>> activation_param(Active_relu);
+    	EltwiseType elt_type;
+    	if (type == "Add") {
+        	elt_type = Eltwise_sum;
+    	} else if (type == "Max") {
+        	elt_type = Eltwise_max;
+    	} else {
+        	elt_type = Eltwise_prod;
+    	}
+    	saber::EltwiseParam<Tensor4d<Ttype, Dtype>>  eltwise_param(elt_type, coeff.vector());
+    	EltwiseActiveParam<Tensor4d<Ttype, Dtype>> eltwise_relu_param(eltwise_param, activation_param);
 
-    ConvActiveParam<Tensor4d<Ttype, Dtype>> conv_act_param(_conv_param, active_param, batchnorm_param,
-                                         scale_param);
-    _param_conv_batchnorm_scale_relu = conv_act_param;
+		ConvActiveParam<Tensor4d<Ttype, Dtype>> conv_act_param(_conv_param, batchnorm_param, scale_param, eltwise_relu_param);
+		_param_conv_batchnorm_scale_relu = conv_act_param;
+	} else { 
+		ConvActiveParam<Tensor4d<Ttype, Dtype>> conv_act_param(_conv_param, batchnorm_param, scale_param); 
+		_param_conv_batchnorm_scale_relu = conv_act_param;
+	}
 
     return Status::OK();
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
-Status SassConvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
+Status SassConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
         const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
         std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-    _funcs_conv_batchnorm_scale_relu.init(ins, outs, _param_conv_batchnorm_scale_relu, SPECIFY,
-                                          SABER_IMPL, ctx);
+    _funcs_conv_batchnorm_scale_relu.init(ins, outs, _param_conv_batchnorm_scale_relu, SPECIFY, SABER_IMPL, ctx);
     return Status::OK();
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
-Status SassConvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::InferShape(
+Status SassConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::InferShape(
     const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
     std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
     _funcs_conv_batchnorm_scale_relu.compute_output_shape(ins, outs, _param_conv_batchnorm_scale_relu);
@@ -116,31 +135,31 @@ Status SassConvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::InferShape(
 }
 
 #ifdef USE_CUDA
-template class SassConvBatchnormScaleReluHelper<NV, AK_FLOAT, Precision::FP32>;
-template class SassConvBatchnormScaleReluHelper<NV, AK_FLOAT, Precision::FP16>;
-template class SassConvBatchnormScaleReluHelper<NV, AK_FLOAT, Precision::INT8>;
+template class SassConvBatchnormScaleHelper<NV, AK_FLOAT, Precision::FP32>;
+template class SassConvBatchnormScaleHelper<NV, AK_FLOAT, Precision::FP16>;
+template class SassConvBatchnormScaleHelper<NV, AK_FLOAT, Precision::INT8>;
 #endif
 
 #ifdef USE_ARM_PLACE
-template class SassConvBatchnormScaleReluHelper<ARM, AK_FLOAT, Precision::FP32>;
-template class SassConvBatchnormScaleReluHelper<ARM, AK_FLOAT, Precision::FP16>;
-template class SassConvBatchnormScaleReluHelper<ARM, AK_FLOAT, Precision::INT8>;
+template class SassConvBatchnormScaleHelper<ARM, AK_FLOAT, Precision::FP32>;
+template class SassConvBatchnormScaleHelper<ARM, AK_FLOAT, Precision::FP16>;
+template class SassConvBatchnormScaleHelper<ARM, AK_FLOAT, Precision::INT8>;
 #endif
 
 // register helper
 #ifdef USE_CUDA
-ANAKIN_REGISTER_OP_HELPER(SassConvBatchnormScaleRelu, SassConvBatchnormScaleReluHelper, NV,
+ANAKIN_REGISTER_OP_HELPER(SassConvBatchnormScale, SassConvBatchnormScaleHelper, NV,
                           AK_FLOAT, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE
-ANAKIN_REGISTER_OP_HELPER(SassConvBatchnormScaleRelu, SassConvBatchnormScaleReluHelper, ARM,
+ANAKIN_REGISTER_OP_HELPER(SassConvBatchnormScale, SassConvBatchnormScaleHelper, ARM,
                           AK_FLOAT, Precision::FP32);
 #endif
 
 //! register op
-ANAKIN_REGISTER_OP(SassConvBatchnormScaleRelu)
-.Doc("SassConvBatchnormScaleRelu fusion operator")
+ANAKIN_REGISTER_OP(SassConvBatchnormScale)
+.Doc("SassConvBatchnormScale fusion operator")
 #ifdef USE_CUDA
 .__alias__<NV, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale_relu")
 #endif
