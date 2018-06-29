@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -165,7 +165,7 @@ private:
 template<typename T>
 struct DataTypeRecover; /// declare for PBlock
 
-/** 
+/**
  *  \brief a simple wrapper of tensor use in weights parameter.
  *   default layout [ NCHW ]
  */
@@ -243,8 +243,8 @@ public:
 
     ~PBlock() {}
 
-private: 
-	std::shared_ptr<d_type> _d_inner_tensor; 
+private:
+	std::shared_ptr<d_type> _d_inner_tensor;
 	std::shared_ptr<h_type> _h_inner_tensor;
 };
 
@@ -297,19 +297,19 @@ public:
 	}
 
     /// Get shape.
-    Shape4d shape() { 
-        return _inner_tensor->valid_shape(); 
+    Shape4d shape() {
+        return _inner_tensor->valid_shape();
     }
 
     /// Get size.
-    size_t count() { 
+    size_t count() {
         return this->shape().count();
     }
 
     ~PBlock() {}
 
-private: 
-	std::shared_ptr<type> _inner_tensor; 
+private:
+	std::shared_ptr<type> _inner_tensor;
 };
 
 template<typename Dtype>
@@ -334,11 +334,13 @@ public:
 
     /// assign
     PBlock<Dtype, ARM>& operator=(const PBlock<Dtype, ARM>& p_block) {
-        _inner_tensor = p_block._inner_tensor;
+        this->_inner_tensor = p_block._inner_tensor;
+        return *this;
     }
 
     PBlock<Dtype, ARM>& operator=(PBlock<Dtype, ARM>& p_block) {
-        _inner_tensor = p_block._inner_tensor;
+        this->_inner_tensor = p_block._inner_tensor;
+        return *this;
     }
 
     /// Get tensor.
@@ -361,22 +363,22 @@ public:
 	}
 
     /// Get shape.
-    Shape4d shape() { 
-        return _inner_tensor->valid_shape(); 
+    Shape4d shape() {
+        return _inner_tensor->valid_shape();
     }
 
     /// Get size.
-    size_t count() { 
+    size_t count() {
         return this->shape().count();
     }
 
     ~PBlock() {}
 
-private: 
-	std::shared_ptr<type> _inner_tensor; 
+private:
+	std::shared_ptr<type> _inner_tensor;
 };
 
-/** 
+/**
  *  \brief Enum type.
  */
 struct Enum {

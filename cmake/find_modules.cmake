@@ -1,9 +1,16 @@
-# ----------------------------------------------------------------------------
-# Copyright (c) 2017 Baidu.com, Inc. All Rights Reserved
-# @file     find_modules.cmake
-# @auther   cuichaowen
-# @date     2016-11-9
-# ----------------------------------------------------------------------------
+# Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 #anakin cmake module
 set(CMAKE_MODULE_PATH "${ANAKIN_ROOT}/cmake")
@@ -11,13 +18,14 @@ set(CMAKE_MODULE_PATH "${ANAKIN_ROOT}/cmake")
 set(ANAKIN_LINKER_LIBS "")
 
 if(UNIX)
-	if(NOT USE_ARM_PLACE) 
-    	find_library(RTLIB rt)
-    	if(RTLIB)
-        	list(APPEND ANAKIN_LINKER_LIBS ${RTLIB})
-    	else()
-        	message(SEND_ERROR "Could not found -lrt !")
-    	endif()
+	if(USE_ARM_PLACE)
+	else()
+		find_library(RTLIB rt)
+		if(RTLIB)
+			list(APPEND ANAKIN_LINKER_LIBS ${RTLIB})
+		else()
+			message(SEND_ERROR "Could not found -lrt !")
+		endif()
 	endif()
 
     find_library(DLLIB dl)
@@ -30,30 +38,52 @@ endif()
 
 #find opencv version >= 2.4.3
 macro(anakin_find_opencv)
-    if(BUILD_SHARED OR TRUE) # temporary not support static link opencv.
-	    #set(CMAKE_FIND_ROOT_PATH ${ANAKIN_ROOT}/third-party/opencv243/lib)
-        find_package(OpenCV QUIET COMPONENTS core highgui imgproc imgcodecs)
-        if(NOT OpenCV_FOUND)
-            find_package(OpenCV QUIET COMPONENTS core highgui imgproc)
-        endif()
-	    if(OpenCV_FOUND)
-	    	message(STATUS "Found opencv: ${OpenCV_INCLUDE_DIRS}")
-	    	include_directories(SYSTEM ${OpenCV_INCLUDE_DIRS})
-	    	list(APPEND ANAKIN_LINKER_LIBS ${OpenCV_LIBS})	
-	    else()
-	    	message(SEND_ERROR "Could not found opencv !")
-	    endif()	
-    else() # BUILD_STATIC
-        list(APPEND OPENCV_STATIC_LIBS libopencv_core.a
-                                       libopencv_highgui.a
-                                       libopencv_imgproc.a
-                                       libopencv_contrib.a)
-        foreach(CV_LIB ${OPENCV_STATIC_LIBS})
-            set(__CV_LIB_FULL_PATH "${ANAKIN_ROOT}/third-party/opencv243/lib/${CV_LIB}")    
-            #message(STATUS ${__CV_LIB_FULL_PATH})
-            list(APPEND ANAKIN_LINKER_LIBS ${__CV_LIB_FULL_PATH})
-        endforeach()
-        unset(__CV_LIB_FULL_PATH)
+
+	if(USE_ARM_PLACE AND TARGET_ANDROID)
+		include_directories(${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/sdk/native/jni/include/)
+		LINK_DIRECTORIES(${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/sdk/native/libs/armeabi-v7a/)
+
+		#set(OpenCV_DIR ${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/sdk/native/jni/)
+		#find_package(OpenCV QUIET COMPONENTS core highgui imgproc)
+		#if(OpenCV_FOUND)
+		#	message(STATUS "Found opencv: ${OpenCV_INCLUDE_DIRS}")
+		#	include_directories(SYSTEM ${OpenCV_INCLUDE_DIRS})
+		#	include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/sdk/native/jni/include/)
+		#	link_directories(${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/sdk/native/libs/armeabi-v7a/)
+		#	link_directories(${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/sdk/native/3rdparty/libs/armeabi-v7a/)
+		#	#list(APPEND ANAKIN_LINKER_LIBS ${OpenCV_LIBS})
+		#else()
+		#	message(SEND_ERROR "Could not found opencv !")
+		#endif()
+	else()
+
+		if(BUILD_SHARED OR TRUE) # temporary not support static link opencv.
+			#set(CMAKE_FIND_ROOT_PATH ${ANAKIN_ROOT}/third-party/opencv243/lib)
+			find_package(OpenCV QUIET COMPONENTS core highgui imgproc imgcodecs)
+			if(NOT OpenCV_FOUND)
+				find_package(OpenCV QUIET COMPONENTS core highgui imgproc)
+			endif()
+			if(OpenCV_FOUND)
+				message(STATUS "Found opencv: ${OpenCV_INCLUDE_DIRS}")
+				include_directories(SYSTEM ${OpenCV_INCLUDE_DIRS})
+				list(APPEND ANAKIN_LINKER_LIBS ${OpenCV_LIBS})
+
+			else()
+				message(SEND_ERROR "Could not found opencv !")
+			endif()
+		else() # BUILD_STATIC
+			list(APPEND OPENCV_STATIC_LIBS libopencv_core.a
+					libopencv_highgui.a
+					libopencv_imgproc.a
+					libopencv_contrib.a)
+			foreach(CV_LIB ${OPENCV_STATIC_LIBS})
+				set(__CV_LIB_FULL_PATH "${ANAKIN_ROOT}/third-party/opencv243/lib/${CV_LIB}")
+				#message(STATUS ${__CV_LIB_FULL_PATH})
+				list(APPEND ANAKIN_LINKER_LIBS ${__CV_LIB_FULL_PATH})
+			endforeach()
+			unset(__CV_LIB_FULL_PATH)
+		endif()
+
     endif()
 endmacro()
 
@@ -267,22 +297,28 @@ macro(anakin_find_mklml)
 endmacro()
 
 macro(anakin_find_protobuf)
-	if(USE_ARM_PLACE) 
-		set(ARM_PROTOBUF_ROOT "" CACHE PATH "arm use protobuf root dir.") 
-		find_path(PROTO_INCLUDE_DIR stubs/common.h PATHS ${ARM_PROTOBUF_ROOT}/include/google/protobuf 
-														 ${ANAKIN_ROOT}/third-party/protobuf/include/google/protobuf 
-														 NO_DEFAULT_PATH)
-		if(BUILD_SHARED) 
-			list(APPEND ANAKIN_LINKER_LIBS ${ARM_RPOTO_ROOT}/lib/libprotobuf.so) 
-		else() 
-			list(APPEND ANAKIN_LINKER_LIBS ${ARM_RPOTO_ROOT}/lib/libprotobuf.a) 
-		endif()
+	if(USE_ARM_PLACE)
+		set(ARM_RPOTO_ROOT "${CMAKE_SOURCE_DIR}/third-party/arm-android/protobuf")
+		include_directories(${ARM_RPOTO_ROOT}/include)
+		set(PROTOBUF_LIBRARIES "")
+		#if(BUILD_SHARED)
+		#	list(APPEND ANAKIN_LINKER_LIBS ${ARM_RPOTO_ROOT}/lib/libprotobuf.so)
+		#else()
+			list(APPEND ANAKIN_LINKER_LIBS ${ARM_RPOTO_ROOT}/lib/libprotobuf.a)
+		#endif()
+		find_library( # Sets the name of the path variable.
+				log-lib
+
+				# Specifies the name of the NDK library that
+				# you want CMake to locate.
+				log )
+		list(APPEND ANAKIN_LINKER_LIBS ${log-lib})
 	else()
-		find_package(Protobuf REQUIRED) 
-		if(PROTOBUF_FOUND) 
-			message(STATUS "Found protobuf in ${PROTOBUF_INCLUDE_DIR}") 
-			include_directories(${PROTOBUF_INCLUDE_DIR}) 
-			list(APPEND ANAKIN_LINKER_LIBS ${PROTOBUF_LIBRARIES}) 
+		find_package(Protobuf REQUIRED)
+		if(PROTOBUF_FOUND)
+			message(STATUS "Found protobuf in ${PROTOBUF_INCLUDE_DIR}")
+			include_directories(${PROTOBUF_INCLUDE_DIR})
+			list(APPEND ANAKIN_LINKER_LIBS ${PROTOBUF_LIBRARIES})
 		endif()
 	endif()
 endmacro()
@@ -291,12 +327,12 @@ endmacro()
 macro(anakin_find_openmp)
 	find_package(OpenMP REQUIRED)
 	if(OPENMP_FOUND OR OpenMP_CXX_FOUND)
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 		message(STATUS "Found openmp in ${OPENMP_INCLUDE_DIR}")
-		message(STATUS " |-- openmp c flags:  ${OpenMP_C_FLAGS}")
-	    	message(STATUS " |-- openmp cxx flags:  ${OpenMP_CXX_FLAGS}")
-	    	message(STATUS " `-- openmp link flags:  ${OpenMP_EXE_LINKER_FLAGS}")
-		include_directories(${OPENMP_INCLUDE_DIR})
-		list(APPEND ANAKIN_LINKER_LIBS ${OPENMP_LIBRARIES})
+		message(STATUS " |--openmp cflags: ${OpenMP_C_FLAGS}")
+		message(STATUS " |--openmp cxxflags: ${OpenMP_CXX_FLAGS}")
+		message(STATUS " |--openmp cflags: ${OpenMP_EXE_LINKER_FLAGS}")
 	else()
 		message(FATAL_ERROR "Could not found openmp !")
 	endif()

@@ -50,7 +50,7 @@ SaberStatus SaberTranspose<NV, OpDtype, inDtype, outDtype,\
     std::vector<DataTensor_out *>& outputs, \
     TransposeParam<OpTensor>& param) {
 
-    cudaStream_t stream = this->_ctx.get_compute_stream();
+    cudaStream_t stream = this->_ctx->get_compute_stream();
 
     int w_out = outputs[0]->width();
     int h_out = outputs[0]->height();

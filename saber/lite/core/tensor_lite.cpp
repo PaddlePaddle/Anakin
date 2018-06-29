@@ -251,6 +251,19 @@ const std::shared_ptr<Buffer<ttype>>& Tensor<ttype, dtype>::get_buf() const {
 }
 
 template<ARMType ttype, DataType dtype>
+template <typename Tensor_t>
+SaberStatus Tensor<ttype, dtype>::share_from(const Tensor_t& tensor) {
+
+    LCHECK_EQ(_shape.dims() > 0, true, "current tensor is not initialized (no shape info, use set_shape)");
+    typedef typename Tensor_t::Dtype_real dtype_real_t;
+    LCHECK_LE(size() * _type_len, tensor.size() * sizeof(dtype_real_t), "current tensor size should <= input tensor size");
+    _buf = tensor.get_buf();
+    _is_shared = true;
+    _is_subbuf = false;
+    return SaberSuccess;
+}
+
+template<ARMType ttype, DataType dtype>
 SaberStatus Tensor<ttype, dtype>::share_sub_buffer(const Tensor<ttype, dtype>& tensor, \
         Shape valid_shape, Shape offset) {
 
@@ -261,6 +274,18 @@ SaberStatus Tensor<ttype, dtype>::share_sub_buffer(const Tensor<ttype, dtype>& t
     _buf = tensor.get_buf();
     _is_subbuf = true;
     _is_shared = true;
+    return SaberSuccess;
+}
+
+template<ARMType ttype, DataType dtype>
+template <class Tensor_t>
+SaberStatus Tensor<ttype, dtype>::copy_from(const Tensor_t& tensor) {
+
+    size_t cap_dst = valid_size() * _type_len;
+    typedef typename Tensor_t::Dtype_real dtype_real_t;
+    size_t cap_src = tensor.valid_size() * sizeof(dtype_real_t);
+    LCHECK_EQ(cap_dst, cap_src, "sizes of two valid shapes must be the same");
+    _buf->copy_from(*tensor.get_buf());
     return SaberSuccess;
 }
 

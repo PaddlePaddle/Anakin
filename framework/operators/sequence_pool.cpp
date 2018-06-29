@@ -4,7 +4,7 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_X86
+#ifdef USE_X86_PLACE
 template<>
 void SequencePool<X86, AK_FLOAT, Precision::FP32>::operator()(
     OpContext<X86>& ctx,
@@ -28,8 +28,15 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 Status SequencePoolHelper<Ttype, Dtype, Ptype>::InitParam() {
     DLOG(WARNING) << "Parsing SequencePool op parameter.";
     auto pooltype = GET_PARAMETER(std::string, pooltype);
-
-    saber::SequencePoolParam<Tensor4d<Ttype, Dtype>> sequence_pool_param;
+    std::unordered_map<std::string, SequencePoolType> type_map;
+    type_map.insert(std::make_pair("null", anakin::saber::Sequence_pool_unknow));
+    type_map.insert(std::make_pair("AVERAGE", anakin::saber::Sequence_pool_average));
+    type_map.insert(std::make_pair("SUM", anakin::saber::Sequence_pool_sum));
+    type_map.insert(std::make_pair("SQRT", anakin::saber::Sequence_pool_sqrt));
+    type_map.insert(std::make_pair("LAST", anakin::saber::Sequence_pool_last));
+    type_map.insert(std::make_pair("FIRST", anakin::saber::Sequence_pool_first));
+    type_map.insert(std::make_pair("MAX", anakin::saber::Sequence_pool_max));
+    saber::SequencePoolParam<Tensor4d<Ttype, Dtype>> sequence_pool_param(type_map[pooltype]);
     _param_sequence_pool = sequence_pool_param;
     return Status::OK();
 }

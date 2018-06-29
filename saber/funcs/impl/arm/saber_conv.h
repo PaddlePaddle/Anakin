@@ -1,5 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
-
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -58,14 +57,6 @@ public:
 
     ~SaberConv2D();
 
-/**
- * [Create description] Init all resource here
- * @AuthorHTL
- * @DateTime  2018-02-01T16:13:06+0800
- * @param     inputs                    [description]
- * @param     outputs                   [description]
- * @param     conv_param                [conv parameters]
- */
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
                              std::vector<DataTensor_out*>& outputs,
                              ConvParam<OpTensor> &conv_param, Context<ARM> &ctx) override;

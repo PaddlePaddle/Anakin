@@ -4,26 +4,17 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void ConvBatchnormScaleRelu<NV, AK_FLOAT, Precision::FP32>::operator()(
-    OpContext<NV>& ctx,
-    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
-    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    auto* impl = static_cast<ConvBatchnormScaleReluHelper<NV, AK_FLOAT, Precision::FP32>*>
-                 (this->_helper);
-    auto& param = static_cast<ConvBatchnormScaleReluHelper<NV, AK_FLOAT, Precision::FP32>*>
-                  (this->_helper)->_param_conv_batchnorm_scale_relu;
-    impl->_funcs_conv_batchnorm_scale_relu(ins, outs, param, ctx);
-}
-#endif
-
-/// TODO ... specialization other type of operator
-
-
-/// set helper
-template<typename Ttype, DataType Dtype, Precision Ptype>
-ConvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::~ConvBatchnormScaleReluHelper() {
+#define INSTANCE_CONVBATCHNORMSCALERELU(Ttype, Dtype, Ptype) \
+template<> \
+void ConvBatchnormScaleRelu<Ttype, Dtype, Ptype>::operator()(\
+    OpContext<Ttype>& ctx,\
+    const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,\
+    std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {\
+    auto* impl = static_cast<ConvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>*>\
+                 (this->_helper);\
+    auto& param = static_cast<ConvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>*>\
+                  (this->_helper)->_param_conv_batchnorm_scale_relu;\
+    SABER_CHECK(impl->_funcs_conv_batchnorm_scale_relu(ins, outs, param, ctx));\
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
@@ -106,6 +97,24 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ConvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
         const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
         std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+
+    SABER_CHECK(_funcs_conv_batchnorm_scale_relu.init(ins, outs, _param_conv_batchnorm_scale_relu, SPECIFY,
+                                              SABER_IMPL, ctx));
+    return Status::OK();
+}
+
+template<typename Ttype, DataType Dtype, Precision Ptype>
+Status ConvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::InferShape(const
+        std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
+        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+    SABER_CHECK(_funcs_conv_batchnorm_scale_relu.compute_output_shape(ins, outs, _param_conv_batchnorm_scale_relu));
+    return Status::OK();
+}
+
+#ifdef USE_CUDA
+template <>
+Status ConvBatchnormScaleReluHelper<NV, AK_FLOAT, Precision::FP32>::Init(OpContext<NV> &ctx, \
+    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins, std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
     if (_param_conv_batchnorm_scale_relu.conv_param.group == ins[0]->channel() && \
             _param_conv_batchnorm_scale_relu.conv_param.group == outs[0]->channel()) {
         _funcs_conv_batchnorm_scale_relu.init(ins, outs, _param_conv_batchnorm_scale_relu, SPECIFY,
@@ -118,36 +127,23 @@ Status ConvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>&
     //_funcs_conv_batchnorm_scale_relu.init(ins, outs, _param_conv_batchnorm_scale_relu, SPECIFY, VENDER_IMPL, ctx);
     return Status::OK();
 }
-
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status ConvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::InferShape(const
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-    _funcs_conv_batchnorm_scale_relu.compute_output_shape(ins, outs, _param_conv_batchnorm_scale_relu);
-    return Status::OK();
-}
-
-#ifdef USE_CUDA
-template class ConvBatchnormScaleReluHelper<NV, AK_FLOAT, Precision::FP32>;
-template class ConvBatchnormScaleReluHelper<NV, AK_FLOAT, Precision::FP16>;
-template class ConvBatchnormScaleReluHelper<NV, AK_FLOAT, Precision::INT8>;
-#endif
-
-#ifdef USE_ARM_PLACE
-template class ConvBatchnormScaleReluHelper<ARM, AK_FLOAT, Precision::FP32>;
-template class ConvBatchnormScaleReluHelper<ARM, AK_FLOAT, Precision::FP16>;
-template class ConvBatchnormScaleReluHelper<ARM, AK_FLOAT, Precision::INT8>;
-#endif
-
-// register helper
-#ifdef USE_CUDA
+INSTANCE_CONVBATCHNORMSCALERELU(NV, AK_FLOAT, Precision::FP32);
 ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScaleRelu, ConvBatchnormScaleReluHelper, NV, AK_FLOAT,
-                          Precision::FP32);
+                                  Precision::FP32);
 #endif
 
+//#ifdef USE_X86_PLACE
+//template class ConvBatchnormScaleReluHelper<X86, AK_FLOAT, Precision::FP32>;
+//INSTANCE_CONVBATCHNORMSCALERELU(X86, AK_FLOAT, Precision::FP32);
+//ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScaleRelu, ConvBatchnormScaleReluHelper, X86, AK_FLOAT,
+//                                  Precision::FP32);
+//#endif
+
 #ifdef USE_ARM_PLACE
+INSTANCE_CONVBATCHNORMSCALERELU(ARM, AK_FLOAT, Precision::FP32);
+template class ConvBatchnormScaleReluHelper<ARM, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScaleRelu, ConvBatchnormScaleReluHelper, ARM, AK_FLOAT,
-                          Precision::FP32);
+                                  Precision::FP32);
 #endif
 
 //! register op

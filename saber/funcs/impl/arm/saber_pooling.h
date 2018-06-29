@@ -1,5 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
-
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -55,8 +54,6 @@ public:
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs, \
         std::vector<DataTensor_out*>& outputs, \
         PoolingParam<OpTensor> &param, Context<ARM> &ctx) override {
-        // get context
-        this->_ctx = ctx;
         return create(inputs, outputs, param, ctx);
     }
 

@@ -1,16 +1,17 @@
-/* Copyright (c) 2016 Anakin Authors All Rights Reserve.
-
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+       http://www.apache.org/licenses/LICENSE-2.0
 
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License. */
+   limitations under the License.
+*/
+
 #ifndef ANAKIN_SABER_FUNCS_ARM_IMPL_CONV_ARM_IMPL_H
 #define ANAKIN_SABER_FUNCS_ARM_IMPL_CONV_ARM_IMPL_H
 
@@ -56,8 +57,19 @@ void conv_arm_winograd3x3(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, A
     int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
     int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space);
 
+/**
+* \brief conv7x7, stride 1, pad 3, with bias and group
+*/
+void conv_arm_7x7s1(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, \
+    const float* weights, const float* bias, \
+    int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
+    int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space);
+
 void winograd_transform_weights(float* dout, const float* din, int ch_out, \
     int ch_in, void* work_space);
+
+void fill_bias(float* tensor, const float* bias, int channel, int channel_size);
+
 #if 0
 class ConvWinogradF63 {
 public:

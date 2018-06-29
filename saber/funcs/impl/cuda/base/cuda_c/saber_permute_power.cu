@@ -218,7 +218,7 @@ SaberStatus SaberPermutePower<NV, OpDtype, inDtype, outDtype,\
 
     const InDataType *in_data = inputs[0]->data();
     OutDataType *out_data = outputs[0]->mutable_data();
-    cudaStream_t cuda_stream = this->_ctx.get_compute_stream();
+    cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
     int count = outputs[0]->valid_size();
     const int * permute_order = _permute_order.data();
     const int * new_steps = _new_steps.data();

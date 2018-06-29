@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -194,15 +194,7 @@ public:
      */
 
     template <class Tensor_t>
-    SaberStatus share_from(const Tensor_t& tensor) {
-		LCHECK_EQ(_shape.dims() > 0, true, "current tensor is not initialized (no shape info, use set_shape)");
-    	typedef typename Tensor_t::Dtype_real dtype_real_t;
-    	LCHECK_LE(size() * _type_len, tensor.size() * sizeof(dtype_real_t), "current tensor size should <= input tensor size");
-    	_buf = tensor.get_buf();
-    	_is_shared = true;
-    	_is_subbuf = false;
-    	return SaberSuccess;
-	}
+    SaberStatus share_from(const Tensor_t& tensor);
 
     SaberStatus share_sub_buffer(const Tensor<ttype, dtype>& tensor, \
         Shape valid_shape, Shape offset);
@@ -211,14 +203,7 @@ public:
      *  \brief Deep copy data within region of interest from input tensor.
      */
      template <class Tensor_t>
-    SaberStatus copy_from(const Tensor_t& tensor) {
-    	size_t cap_dst = valid_size() * _type_len;
-    	typedef typename Tensor_t::Dtype_real dtype_real_t;
-    	size_t cap_src = tensor.valid_size() * sizeof(dtype_real_t);
-    	LCHECK_EQ(cap_dst, cap_src, "sizes of two valid shapes must be the same");
-    	_buf->copy_from(*tensor.get_buf());
-    	return SaberSuccess;
-	}
+    SaberStatus copy_from(const Tensor_t& tensor);
 
     /**
      *  \brief Synchronize the event tree, wait util all events are done.

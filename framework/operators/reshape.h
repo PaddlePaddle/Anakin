@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -50,6 +50,7 @@ public:
     friend class ReshapeHelper<Ttype, Dtype, Ptype>;
 };
 
+
 /**
  * \brief Reshape helper class to implement reshape
  * public inherit OperatorHelper
@@ -60,7 +61,7 @@ class ReshapeHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     ReshapeHelper()=default;
 
-    ~ReshapeHelper();
+    ~ReshapeHelper() {}
 
     Status InitParam() override;
 
@@ -90,8 +91,6 @@ public:
     ///< _funcs_reshape stand for reshape function 
     saber::Reshape<Ttype, Dtype> _funcs_reshape;
 };
-
-
 
 } /* namespace ops */
 

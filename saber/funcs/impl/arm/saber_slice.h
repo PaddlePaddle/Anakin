@@ -1,5 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
-
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -60,7 +59,7 @@ public:
     virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
                                std::vector<DataTensor_out*>& outputs,
                                SliceParam<OpTensor> &param, Context<ARM> &ctx) override {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         _slice_num = inputs[0]->count_valid(0, param.axis);
         _slice_size = inputs[0]->count_valid(param.axis + 1, inputs[0]->dims());
        return SaberSuccess;

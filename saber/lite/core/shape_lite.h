@@ -1,5 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
-
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -119,7 +118,7 @@ public:
     }
 
     Shape operator+(const Shape& shape) {
-        assert(dims() = shape.dims());
+        assert(dims() == shape.dims());
         Shape tmp_shape(*this);
         int* p = data();
         for (size_t i = 0; i < size(); i++) {
@@ -129,7 +128,7 @@ public:
     }
 
     Shape operator-(const Shape& shape) {
-        assert(dims() = shape.dims());
+        assert(dims() == shape.dims());
         Shape tmp_shape(*this);
         int* p = data();
         for (size_t i = 0; i < size(); i++) {

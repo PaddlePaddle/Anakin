@@ -182,7 +182,7 @@ SaberStatus JitAvx512Conv1x1Act<OpDtype, inDtype, outDtype,
     const std::vector<inTensor*>& inputs,
     std::vector<outTensor*>& outputs,
     ConvActiveParam<opTensor> &param, Context<X86> &ctx) {
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
     // TODO: type checking
     // src = dst = nChw16c 
     // weight = group ? gOIhw16i16o : OIhw16i16o

@@ -43,6 +43,8 @@ It is recommended to check out the
 before looking into the
 [build from source guide](docs/Manual/INSTALL_en.md).
 
+for ARM, please refer [run on arm](docs/Manual/run_on_arm_en.md)
+
 ## Benchmark
 It is recommended to check out the [Benchmark Readme](benchmark/README.md)
 
@@ -59,9 +61,10 @@ We provide [English](docs/Manual/Tutorial_en.md) and
 
    Python API is under-developing.
 
-- [How to Contribute]()
+- [How to Contribute](docs/Manual/Contribution_ch.md)
 
    We appreciate your contributions!
+
 
 
 ## Ask Questions

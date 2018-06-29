@@ -1,5 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
-
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -25,10 +24,10 @@ namespace anakin{
 
 namespace saber{
 
-//! input size: 1xk
-//! output size: 1xn
-//! weights size: nxk
-//! bias size: 1xn
+//! input size: m x k
+//! output size: m x n
+//! weights size: n x k
+//! bias size: 1 x n
 
 template <DataType OpDtype,
         DataType inDtype,
@@ -58,7 +57,7 @@ public:
         std::vector<DataTensor_out*>& outputs, \
         FcParam<OpTensor> &param, Context<ARM> &ctx) override {
         // get context
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         return create(inputs, outputs, param, ctx);
     }
 
@@ -66,8 +65,9 @@ public:
         std::vector<DataTensor_out*>& outputs, \
         FcParam<OpTensor> &param, Context<ARM> &ctx) override {
 
-        this->_ctx = ctx;
-        int threads = this->_ctx.get_act_ids().size();
+        this->_ctx = &ctx;
+        int threads = 1;
+        this->_ctx->get_mode(threads);
 
         _m = inputs[0]->count_valid(0, param.axis);
         _k = inputs[0]->count_valid(param.axis, inputs[0]->dims());
@@ -78,14 +78,17 @@ public:
         }
         CHECK_EQ(weights_size / _n, _k) << "weights size does not meet the input size";
 
-        int l1_cache = this->_ctx.devs[this->_ctx.get_device_id()]._info._L1_cache;
-        int l2_cache = this->_ctx.devs[this->_ctx.get_device_id()]._info._L2_cache;
+        int l1_cache = this->_ctx->devs[this->_ctx->get_device_id()]._info._L1_cache;
+        int l2_cache = this->_ctx->devs[this->_ctx->get_device_id()]._info._L2_cache;
         //! if L1 cache size is not provided, set to 31K
         l1_cache = l1_cache > 0? l1_cache : 31000;
         //! if L2 cache size is not provided, set to 2M
         l2_cache = l2_cache > 0? l2_cache : 2000000;
 
-        _gemmer.init(l1_cache, l2_cache, _m, _n, _k, false, !param.is_transpose_weights, threads);
+        LOG(INFO) << "fc weights transpose: " << (param.is_transpose_weights? "true" : "false");
+        if (_m > 1 || param.is_transpose_weights) {
+            _gemmer.init(l1_cache, l2_cache, _m, _n, _k, false, !param.is_transpose_weights, threads);
+        }
         return SaberSuccess;
     }
 

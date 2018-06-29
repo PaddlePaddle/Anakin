@@ -91,7 +91,7 @@ void test_argmax(std::vector<TensorType*>& inputs_big, std::vector<TensorType*>&
 
     cudaDeviceSynchronize();
     //print_tensor_device(*inputs[0]);
-    //print_tensor_device(*outputs[0]);
+    print_tensor_device(*outputs[0]);
     //cudaDeviceSynchronize();
     //print_tensor_device(out_valid);
     cudaDeviceSynchronize();
@@ -106,12 +106,12 @@ TEST(TestSaberFuncNV, test_func_argmax) {
     typedef Tensor<NV, AK_FLOAT, NCHW> TensorDf4;
 
     int n = 10;
-    int c = 16;
-    int h = 8;
-    int w = 8;
+    int c = 3;
+    int h = 20;
+    int w = 20;
 
     //Shape img_s(img_num, in_channels, img_h, img_w);
-    Shape real_shape(n + 1, c + 1, h + 1, w + 1);
+    Shape real_shape(n, c, h, w );
     Shape valid_shape(n, c, h, w);
     Shape input_offset(0, 0, 0, 0);
     Shape output_offset(0, 0, 0, 0);

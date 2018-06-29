@@ -1,5 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
-
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -52,7 +51,7 @@ public:
     virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             ActivationParam<OpTensor>& param, Context<ARM>& ctx) {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         return SaberSuccess;
     }
 
@@ -73,6 +72,7 @@ public:
                 dout[i] = std::max(din[i], (OutDataType)0);
             }
         }
+        return SaberSuccess;
     }
 
 };

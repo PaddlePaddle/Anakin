@@ -3,9 +3,17 @@
 #include "saber/funcs/timer.h"
 #include <chrono>
 
-//std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/yolo_lane_v2.anakin.bin";
-std::string model_path = "/home/cuichaowen/anakin2/anakin2/benchmark/CNN/models/vgg16.anakin.bin";
-
+#if defined(USE_CUDA)
+using Target = NV;
+using Target_H = X86;
+#elif defined(USE_X86_PLACE)
+using Target = X86;
+using Target_H = X86;
+#elif defined(USE_ARM_PLACE)
+using Target = ARM;
+using Target_H = ARM;
+#endif
+std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/yolo_lane_v2.anakin.bin";
 
 #ifdef USE_CUDA
 #if 0
@@ -143,6 +151,9 @@ TEST(NetTest, net_execute_muti_thread_async_test) {
 #endif
 
 int main(int argc, const char** argv){
+
+	Env<Target>::env_init();
+
     // initial logger
     logger::init(argv[0]);
 	InitTest();

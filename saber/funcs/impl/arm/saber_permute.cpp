@@ -115,6 +115,8 @@ LayOutType_op, LayOutType_in, LayOutType_out>::create(\
     const std::vector<DataTensor_in*>& inputs, \
         std::vector<DataTensor_out*>& outputs, \
         PermuteParam<OpTensor> &param, Context<ARM> &ctx) {
+
+    this->_ctx = &ctx;
     _num_axes = inputs[0]->dims();
     _count = outputs[0]->valid_size();
     _order_dims.clear();
@@ -142,24 +144,25 @@ LayOutType_op, LayOutType_in, LayOutType_out>::create(\
     std::vector<int> axis_diff;
     int j = 0;
     for (int i = 0; i < _num_axes; ++i) {
-        if (_order_dims[i] != j) {
-            axis_diff.push_back(i);
+        if (_order_dims[j] != i) {
+            axis_diff.push_back(j);
+            //LOG(INFO) << "diff axis: " << _order_dims[j];
         } else {
             j++;
         }
     }
     if (axis_diff.size() == 1) {
         _transpose = true;
-        _trans_num = outputs[0]->count_valid(0, std::max(axis_diff[0] - 1, 0));
-        _trans_h = outputs[0]->count_valid(axis_diff[0] + 1, _num_axes);
-        _trans_w = outputs[0]->valid_shape()[axis_diff[0]];
-        LOG(INFO) << "permute: transpose=true, num=" << _trans_num \
+        _trans_num = inputs[0]->count_valid(0, std::max(axis_diff[0] - 1, 0));
+        _trans_w = inputs[0]->count_valid(axis_diff[0] + 1, _num_axes);
+        _trans_h = inputs[0]->valid_shape()[axis_diff[0]];
+        //LOG(INFO) << "permute: transpose=true, num=" << _trans_num \
             << ", h=" << _trans_h << ", w=" << _trans_w;
     } else {
         _transpose = false;
         _new_steps = outputs[0]->get_stride();
         _old_steps = inputs[0]->get_stride();
-        LOG(INFO) << "permute: transpose=false";
+        //LOG(INFO) << "permute: transpose=false";
     }
 
     return SaberSuccess;

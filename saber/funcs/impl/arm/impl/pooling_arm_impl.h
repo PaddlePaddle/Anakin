@@ -1,5 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
-
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -37,6 +36,14 @@ void pooling2x2s2_max(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
     int kernel_w, int kernel_h, int stride_w, int stride_h, int pad_w, int pad_h);
 
 void pooling2x2s2_ave(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
+    Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, PoolingType type, bool global, \
+    int kernel_w, int kernel_h, int stride_w, int stride_h, int pad_w, int pad_h);
+
+void pooling3x3s1_max(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
+    Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, PoolingType type, bool global, \
+    int kernel_w, int kernel_h, int stride_w, int stride_h, int pad_w, int pad_h);
+
+void pooling3x3s1_ave(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, \
     Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, PoolingType type, bool global, \
     int kernel_w, int kernel_h, int stride_w, int stride_h, int pad_w, int pad_h);
 

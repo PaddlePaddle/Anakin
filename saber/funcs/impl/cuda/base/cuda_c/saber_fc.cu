@@ -25,7 +25,7 @@ SaberStatus SaberFc<NV, OpDtype, inDtype, outDtype, \
             std::vector<DataTensor_out *>& outputs,
             FcParam<OpTensor>& param) {
 
-    cudaStream_t stream = this->_ctx.get_compute_stream();
+    cudaStream_t stream = this->_ctx->get_compute_stream();
 
     const InDataType* din = inputs[0]->data();
     OutDataType* dout = outputs[0]->mutable_data();

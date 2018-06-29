@@ -216,9 +216,10 @@ ArcType& GraphBase<VertexNameType, VertexType, WeightType, ArcType>::get_arc(Ver
     }
     Arc_iterator<VertexNameType, WeightType, ArcType> it_end = _arcs.end(); 
     Arc_iterator<VertexNameType, WeightType, ArcType> it = find(vertex_name_from, vertex_name_to); 
-    if(it != it_end) { 
-        return *it; 
-    } 
+//    if(it != it_end) {
+//        return *it;
+//    }
+    return *it;
 }
 
 template<typename VertexNameType, typename VertexType, typename WeightType, typename ArcType>

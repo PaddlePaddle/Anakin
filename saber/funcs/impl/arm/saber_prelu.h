@@ -1,5 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
-
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -14,7 +13,7 @@
 */
 #ifndef ANAKIN_SABER_FUNCS_IMPL_ARM_SABER_PRELU_H
 #define ANAKIN_SABER_FUNCS_IMPL_ARM_SABER_PRELU_H
-
+#if 0 //remove prelu
 #include "saber/funcs/impl/impl_prelu.h"
 
 #ifdef USE_ARM_PLACE
@@ -51,14 +50,14 @@ typedef typename OpTensor::Dtype OpDataType;
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs, \
         std::vector<DataTensor_out*>& outputs, \
         PreluParam<OpTensor> &param, Context<ARM> &ctx) override {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         return SaberSuccess;
     }
 
     virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs, \
         std::vector<DataTensor_out*>& outputs, \
         PreluParam<OpTensor> &param, Context<ARM> &ctx) override {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         return SaberSuccess;
     }
 
@@ -72,3 +71,4 @@ typedef typename OpTensor::Dtype OpDataType;
 #endif // USE_ARM_PLACE
 
 #endif //ANAKIN_SABER_FUNCS_IMPL_ARM_SABER_POOLING_H
+#endif

@@ -41,20 +41,23 @@ cmake .. \
 	-DUSE_ARM_PLACE=YES \
 	-DUSE_GPU_PLACE=NO \
 	-DUSE_X86_PLACE=NO \
-	-DTARGET_ANDRIOD=YES \
+	-DTARGET_ANDROID=YES \
 	-DBUILD_WITH_UNIT_TEST=YES \
     -DUSE_PYTHON=OFF \
-	-DENABLE_DEBUG=YES \
+	-DENABLE_DEBUG=NO \
 	-DENABLE_VERBOSE_MSG=NO \
 	-DDISABLE_ALL_WARNINGS=YES \
 	-DENABLE_NOISY_WARNINGS=NO \
+	-DUSE_OPENCV=YES\
     -DUSE_OPENMP=YES\
-	-DBUILD_SHARED=NO
+	-DBUILD_SHARED=NO\
+	-DBUILD_WITH_UNIT_TEST=YES\
+	-DBUILD_EXAMPLES=YES
 
 # build target lib or unit test.
 if [ "$(uname)" = 'Darwin' ]; then
-    make "-j$(sysctl -n hw.ncpu)" && make install
+    make -j4 # && make install
 else
-    make "-j$(nproc)" && make install
+    make -j4 # && make install
 fi
 

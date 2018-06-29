@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ struct check_self_shared {
     std::vector<std::string> ops{
         "Split",
         "Reshape",
-		"Flatten"
+        "Flatten"
     };
     /**
     * \brief whether node_arg's op is in ops
