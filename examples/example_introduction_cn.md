@@ -7,7 +7,7 @@ Anakin目前只支持NCHW的格式
 - 将模型的的path设置为anakin模型的路径，初始化NV平台的图对象。 anakin模型可以通过转换器转化caffe或fluid的模型得到
 ```cpp
 Graph<NV, AK_FLOAT, Precision::FP32> graph;
-auto status = graph.load("/home/public/anakin-models/anakin_models/Resnet50/Resnet50.anakin.bin");
+auto status = graph.load("Resnet50.anakin.bin");
 ```
 
 - 根据模型设置网络图的输入尺寸，进行图优化
@@ -68,7 +68,7 @@ h_tensor_in_p->set_seq_offset({0,10,15,30});
 整体流程与在NV的GPU上运行CNN模型相似，不同之处如下：
 - 用模型地址和线程池大小初始化worker对象，注册输入输出，启动线程池  
 ```cpp
-Worker<NV, AK_FLOAT, Precision::FP32>  workers("/home/public/anakin-models/anakin_models/Resnet50/Resnet50.anakin.bin", 10);
+Worker<NV, AK_FLOAT, Precision::FP32>  workers("Resnet50.anakin.bin", 10);
 workers.register_inputs({"input_0"});
 workers.register_outputs({"prob_out"});
 workers.Reshape("input_0", {1, 3, 224, 224});
