@@ -15,6 +15,7 @@ set(ANAKIN_SABER_STATIC_RELAY "" )
 
 set(ANAKIN_SABER_BASE_SRC "")
 anakin_fetch_include_recursively(${ANAKIN_SABER})
+anakin_fetch_include_recursively(${ANAKIN_UTILS})
 
 # add ak_base_source files
 anakin_fetch_files_with_suffix(${ANAKIN_SABER}/core "cpp" ANAKIN_SABER_BASE_SRC)

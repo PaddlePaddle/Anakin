@@ -41,6 +41,8 @@ set(ANAKIN_THIRD_PARTY_PATH ${ANAKIN_ROOT}/third-party)
 set(ANAKIN_MODEL_PARSER ${ANAKIN_FRAMEWORK}/model_parser)
 set(ANAKIN_SABER ${ANAKIN_ROOT}/saber)
 set(ANAKIN_UNIT_TEST ${ANAKIN_ROOT}/test)
+set(ANAKIN_EXAMPLES ${ANAKIN_ROOT}/examples)
+
 
 # ----------------------------------------------------------------------------
 # section: options for anakin
@@ -136,31 +138,6 @@ if(USE_LOGGER)
 	anakin_option(ENABLE_STACKTRACES "If enable local logger with stacktrace." YES if NOT USE_ARM_PLACE)
 	anakin_option(SUPPORT_PTHREADS "If enable local logger with supporting pthreads. " YES)
 endif()
-
-# ----------------------------------------------------------------------------
-# section: global anakin version and lib name
-# ----------------------------------------------------------------------------
-# global anakin version 2.0.1
-set(VERSION_MAJOR "2")
-set(VERSION_MINOR "0")
-set(VERSION_PATCH "1")
-set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
-
-# anakin lib name and global directories
-set(anakin_lib_so "anakin")
-set(anakin_lib_static "anakin_static")
-# set root dir of modules
-set(ANAKIN_ROOT ${PROJECT_SOURCE_DIR})
-include_directories(${ANAKIN_ROOT})
-
-set(ANAKIN_FRAMEWORK ${ANAKIN_ROOT}/framework)
-set(ANAKIN_THIRD_PARTY_PATH ${CMAKE_BINARY_DIR}/third-party)
-set(ANAKIN_UTILS ${ANAKIN_ROOT}/utils)
-set(ANAKIN_THIRD_PARTY_PATH ${ANAKIN_ROOT}/third-party)
-set(ANAKIN_MODEL_PARSER ${ANAKIN_FRAMEWORK}/model_parser)
-set(ANAKIN_SABER ${ANAKIN_ROOT}/saber)
-set(ANAKIN_UNIT_TEST ${ANAKIN_ROOT}/test)
-set(ANAKIN_EXAMPLES ${ANAKIN_ROOT}/examples)
 
 # ----------------------------------------------------------------------------
 # section:configure a header file to pass some of the CMake settings to the source

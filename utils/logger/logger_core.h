@@ -13,6 +13,7 @@
 #ifndef ANAKIN_LOGGER_CORE_H
 #define ANAKIN_LOGGER_CORE_H
 
+#include "anakin_config.h"
 #include "logger_utils.h"
 
 namespace logger {

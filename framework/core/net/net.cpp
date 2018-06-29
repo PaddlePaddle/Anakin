@@ -114,7 +114,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
         op_func.op_name = (*_graph_p)[node_name]->get_op_name();
         op_func.ctx_p = ctx;
         // call init of operator
-        CHECK_NOTNULL_S(op_func.op) << "Node(node_name) doesn't have op pointer! ";
+        CHECK_NOTNULL(op_func.op) << "Node(node_name) doesn't have op pointer! ";
 
         op_func.op->_helper->InferShape(op_func.ins, op_func.outs);
         op_func.op->_helper->Init(*(op_func.ctx_p), op_func.ins, op_func.outs);
