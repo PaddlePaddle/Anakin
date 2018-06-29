@@ -102,15 +102,17 @@ public:
         } else if(param.conv_param.group == 1) {
             const int K = param.conv_param.weight()->num();
             if(K % 4 == 0) {
-                if (param.conv_param.bias()->size() > 0)
-                    dispatch_func = direct_conv_bias_relu_Kdivis4<InDataType, OpDataType>;
-                else
+                if (param.conv_param.bias()->size() > 0){
+                    dispatch_func = param.has_active ?  direct_conv_bias_relu_Kdivis4<InDataType, OpDataType>: direct_conv_bias_Kdivis4<InDataType, OpDataType>;
+                } else {
                     return SaberUnImplError;
+                }
             } else {   // TODO: would merge the bias(with/without) version
-                if (param.conv_param.bias()->size() > 0)
-                    dispatch_func = direct_conv_bias_relu_Kindiv4<InDataType, OpDataType>;
-                else
+                if (param.conv_param.bias()->size() > 0) {
+                    dispatch_func = param.has_active ? direct_conv_bias_relu_Kindiv4<InDataType, OpDataType> : direct_conv_bias_Kindiv4<InDataType, OpDataType>;
+                } else {
                     return SaberUnImplError;
+                }
             }      
         } else {
             return SaberUnImplError;
@@ -146,13 +148,13 @@ public:
         if (_use_k1s1p0) {
 //            LOG(INFO)<<"using k1s1p0";
             if (param.has_eltwise_act) {
-                if (param.eltwise_param.operation == Eltwise_sum) {
+                //if (param.eltwise_param.operation == Eltwise_sum) {
                     conv_gemm_k1s1p0(outputs[0]->mutable_data(),
                                      inputs[0]->data(),
                                      param.conv_param.weight()->data(),
                                      chout, chin, hin, win, bias_data,
                                      this->_ctx->get_compute_stream(), 1.f, 1.f, true);
-                }
+                //}
             } else {
                 if (param.has_active) {
                     conv_gemm_k1s1p0(outputs[0]->mutable_data(),
@@ -254,7 +256,6 @@ public:
                     param.conv_param.group, 
                     param.conv_param.alpha, 
                     param.conv_param.beta, 
-                    this->_ctx->get_compute_stream());
             }
 
         return SaberSuccess;
