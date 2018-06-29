@@ -22,7 +22,8 @@ bool ConvElsFusionScheduler::callable(node& node_arg) {
 								io_in.push_back(arc_it->weight()); 
 							}
 							_helper.set_holder(io_in, _vgraph);*/
-							_helper.register_pair(node_arg.name, node_next.name);
+							//_helper.register_pair(node_arg.name, node_next.name);
+							_helper.register_pair(it->bottom(), node_next.name);
 							return false;
 						} else {
 							_helper.release(node_arg.name);
