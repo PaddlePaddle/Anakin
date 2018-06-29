@@ -81,15 +81,13 @@ public:
         if (param.bias_term) {
             float* host_bias = &param.scale_b[0];
             float* host_extension = new float[size];
-            //printf(".........\n");
             int dim = inner_dim * scale_dim;
             for (int i = 0; i < size; ++i) {
                  int bias_dim = (i % dim) / inner_dim;
                  host_extension[i] = host_bias[bias_dim];
-                 //printf("%f, ", host_extension[i]);
             }
-            //printf("\n");
 
+            bm_flush(get_bm_handle());
             BMDNN_CHECK(bmdnn_bias_forward(_handle, out_data, bm_mem_from_system(host_extension),
                     outer_dim, scale_dim * inner_dim, out_data));
 
