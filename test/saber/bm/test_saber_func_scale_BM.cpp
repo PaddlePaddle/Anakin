@@ -73,7 +73,7 @@ void test_scale(int n, int c, int h, int w, int axis, int num_axes, bool bias_te
     fill_vector_const(scale_w, 2);
     if (bias_term) {
         scale_b.resize(scale_dim);
-        fill_vector_const(scale_b, 0);
+        fill_vector_const(scale_b, 3);
     }
 
     ScaleParam<TensorDf4> param(scale_w,
