@@ -4,7 +4,7 @@
 
 > Please note that you should transform caffe model or others into anakin model with the help of [`external converter ->`](#)
 
-1. GPU 
+### GPU 
 
 The following convolutional neural networks are tested with both `Anakin` and `TenorRT3` on GPU.
  You can use pretrained caffe model or the model trained by youself.
@@ -17,7 +17,7 @@ The following convolutional neural networks are tested with both `Anakin` and `T
 - [Mobilenet v2]()  *caffe model can be found [here->](https://github.com/shicai/MobileNet-Caffe)*
 - [RNN]()  *not support yet*
 
-2. CPU
+### CPU
 
 The following convolutional neural networks are tested with `Anakin`, 'Tensorflow' and `Tensorflow`.
  You can use pretrained model or the model trained by youself.
@@ -26,7 +26,7 @@ The following convolutional neural networks are tested with `Anakin`, 'Tensorflo
 - [Chinese_ner]()   *fluid model can be found [here->](https://github.com/PaddlePaddle/models/blob/develop/fluid/chinese_ner)*
 - [text_classification]()   *fluid model can be found [here->](https://github.com/PaddlePaddle/models/blob/develop/fluid/text_classification)*
 
-3. ARM
+### ARM
 
 The following convolutional neural networks are tested with `Anakin`, 'Tensorflow' and `Tensorflow`.
  You can use pretrained model or the model trained by youself.
