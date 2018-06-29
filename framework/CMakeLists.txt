@@ -1,9 +1,16 @@
-# ----------------------------------------------------------------------------
-# Copyright (c) 2016 Baidu.com, Inc. All Rights Reserved
-# @file     CMakeLists files in the framework directory of project
-# @auther   cuichaowen
-# @date     2017-10-24
-# ----------------------------------------------------------------------------
+# Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 anakin_fetch_include_recursively(${ANAKIN_FRAMEWORK})
 anakin_fetch_include_recursively(${ANAKIN_SABER})
 anakin_fetch_include_recursively(${ANAKIN_MODEL_PARSER})
@@ -47,13 +54,16 @@ if(UNIX OR APPLE)
 				PATTERN "*.inl")
 	endif()
 	if(BUILD_STATIC)
+		#add_compile_options("--whole-archive")
+        #set(anakin_framework_static "framework_lib")
+        #add_library(${anakin_framework_static} STATIC ${ANAKIN_SRC})
 		add_library(${anakin_lib_static} STATIC ${ANAKIN_SRC})
-		add_dependencies(${anakin_lib_static} ${ANAKIN_SABER_LIB_TARGET})
-		set_target_properties(${anakin_lib_static} PROPERTIES VERSION ${VERSION})
+		add_dependencies(${anakin_lib_static} ${ANAKIN_SABER_LIB_TARGET})# ${anakin_framework_static})
+		#set_target_properties(${anakin_lib_static} PROPERTIES VERSION ${VERSION})
 		target_link_libraries(${anakin_lib_static} ${ANAKIN_SABER_LIB_TARGET} ${ANAKIN_LINKER_LIBS})
-        	set_target_properties(${anakin_lib_static} PROPERTIES LINK_FLAGS "")
+        set_target_properties(${anakin_lib_static} PROPERTIES LINK_FLAGS "")
 		set_target_properties(${anakin_lib_static} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/output/)
-        	install(DIRECTORY ${ANAKIN_FRAMEWORK} ${ANAKIN_SABER} ${ANAKIN_UTILS}
+        install(DIRECTORY ${ANAKIN_FRAMEWORK} ${ANAKIN_SABER} ${ANAKIN_UTILS}
                 	DESTINATION ${PROJECT_SOURCE_DIR}/output/
                 	FILES_MATCHING 
 					PATTERN "*.h"

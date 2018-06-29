@@ -21,7 +21,7 @@ SaberStatus VenderFc<X86, OpDtype, inDtype, outDtype,
     ::init(const std::vector<DataTensor_in*>& inputs,
                   std::vector<DataTensor_out*>& outputs,
                   FcParam<OpTensor> &param, Context<X86> &ctx) {
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
 
     return create(inputs, outputs, param, ctx);
 }
@@ -42,7 +42,7 @@ SaberStatus VenderFc<X86, OpDtype, inDtype, outDtype,
         return SaberUnImplError;
     }
 
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
     this->_param = &param;
 
     MB = inputs[0]->count_valid(0, param.axis);

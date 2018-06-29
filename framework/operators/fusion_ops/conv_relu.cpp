@@ -4,25 +4,16 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void ConvRelu<NV, AK_FLOAT, Precision::FP32>::operator()(
-    OpContext<NV>& ctx,
-    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
-    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    auto* impl =
-        static_cast<ConvReluHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
-    auto& param = impl->_param_conv_relu;
-    impl->_funcs_conv_relu(ins, outs, param, ctx);
-}
-#endif
-
-/// TODO ... specialization other type of operator
-
-
-/// set helper
-template<typename Ttype, DataType Dtype, Precision Ptype>
-ConvReluHelper<Ttype, Dtype, Ptype>::~ConvReluHelper() {
+#define INSTANCE_CONVRELU(Ttype, Dtype, Ptype) \
+template<> \
+void ConvRelu<Ttype, Dtype, Ptype>::operator()(\
+    OpContext<Ttype>& ctx,\
+    const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,\
+    std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {\
+    auto* impl =\
+        static_cast<ConvReluHelper<Ttype, Dtype, Ptype>*>(this->_helper);\
+    auto& param = impl->_param_conv_relu;\
+    impl->_funcs_conv_relu(ins, outs, param, ctx);\
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
@@ -85,25 +76,8 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ConvReluHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
         const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
         std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-#if 0
 
-    if (_param_conv_relu.conv_param.group == ins[0]->channel() && \
-            _param_conv_relu.conv_param.group == outs[0]->channel()) {
-        _funcs_conv_relu.init(ins, outs, _param_conv_relu, SPECIFY, SABER_IMPL, ctx);
-    } else {
-        _funcs_conv_relu.init(ins, outs, _param_conv_relu, SPECIFY, VENDER_IMPL, ctx);
-    }
-
-#else
-
-    if (_param_conv_relu.conv_param.group == 1|| (_param_conv_relu.conv_param.group == ins[0]->channel() && _param_conv_relu.conv_param.group == outs[0]->channel())) {
-        _funcs_conv_relu.init(ins, outs, _param_conv_relu, SPECIFY, SABER_IMPL, ctx);
-    } else {
-        _funcs_conv_relu.init(ins, outs, _param_conv_relu, SPECIFY, VENDER_IMPL, ctx);
-    }
-
-#endif
-    //_funcs_conv_relu.init(ins, outs, _param_conv_relu, SPECIFY, VENDER_IMPL, ctx);
+    SABER_CHECK(_funcs_conv_relu.init(ins, outs, _param_conv_relu, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }
 
@@ -116,24 +90,34 @@ Status ConvReluHelper<Ttype, Dtype, Ptype>::InferShape(const
 }
 
 #ifdef USE_CUDA
-template class ConvReluHelper<NV, AK_FLOAT, Precision::FP32>;
-template class ConvReluHelper<NV, AK_FLOAT, Precision::FP16>;
-template class ConvReluHelper<NV, AK_FLOAT, Precision::INT8>;
-#endif
-
-#ifdef USE_ARM_PLACE
-template class ConvReluHelper<ARM, AK_FLOAT, Precision::FP32>;
-template class ConvReluHelper<ARM, AK_FLOAT, Precision::FP16>;
-template class ConvReluHelper<ARM, AK_FLOAT, Precision::INT8>;
-#endif
-
-// register helper
-#ifdef USE_CUDA
+INSTANCE_CONVRELU(NV, AK_FLOAT, Precision::FP32);
+template <>
+Status ConvReluHelper<NV, AK_FLOAT, Precision::FP32>::Init(OpContext<NV>& ctx, \
+        const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins, \
+        std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
+    if (_param_conv_relu.conv_param.group == 1|| (_param_conv_relu.conv_param.group == ins[0]->channel() && \
+        _param_conv_relu.conv_param.group == outs[0]->channel())) {
+        _funcs_conv_relu.init(ins, outs, _param_conv_relu, SPECIFY, SABER_IMPL, ctx);
+    } else {
+        _funcs_conv_relu.init(ins, outs, _param_conv_relu, SPECIFY, VENDER_IMPL, ctx);
+    }
+    return Status::OK();
+}
 ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, NV, AK_FLOAT, Precision::FP32);
 #endif
+
+//#ifdef USE_X86_PLACE
+//INSTANCE_CONVRELU(X86, AK_FLOAT, Precision::FP32);
+//template class ConvReluHelper<X86, AK_FLOAT, Precision::FP32>;
+//ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, X86, AK_FLOAT, Precision::FP32);
+//#endif
+
 #ifdef USE_ARM_PLACE
+INSTANCE_CONVRELU(ARM, AK_FLOAT, Precision::FP32);
+template class ConvReluHelper<ARM, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
+
 
 //! register op
 ANAKIN_REGISTER_OP(ConvRelu)
@@ -144,6 +128,9 @@ ANAKIN_REGISTER_OP(ConvRelu)
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("power")
 #endif
+//#ifdef USE_X86_PLACE
+//.__alias__<X86, AK_FLOAT, Precision::FP32>("power")
+//#endif
 .num_in(1)
 .num_out(1)
 .Args<int>("group", " group of conv ")

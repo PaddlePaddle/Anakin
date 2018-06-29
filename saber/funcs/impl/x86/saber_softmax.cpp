@@ -19,7 +19,7 @@ SaberStatus SaberSoftmax<X86, OpDtype, inDtype, outDtype,
         std::vector<DataTensor_out*>& outputs,
         SoftmaxParam<OpTensor> &param, Context<X86> &ctx)
 {
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
     return create(inputs, outputs, param, ctx);
 }
 
@@ -37,7 +37,7 @@ SaberStatus SaberSoftmax<X86, OpDtype, inDtype, outDtype,
 {
 //    LOG(INFO)<<"here!!!";
     this->_param = &param;
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
 
     return SaberSuccess;
 }

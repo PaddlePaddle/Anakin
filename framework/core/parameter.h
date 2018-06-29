@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -328,11 +328,13 @@ public:
 
     /// assign
     PBlock<Dtype, ARM>& operator=(const PBlock<Dtype, ARM>& p_block) {
-        _inner_tensor = p_block._inner_tensor;
+        this->_inner_tensor = p_block._inner_tensor;
+        return *this;
     }
 
     PBlock<Dtype, ARM>& operator=(PBlock<Dtype, ARM>& p_block) {
-        _inner_tensor = p_block._inner_tensor;
+        this->_inner_tensor = p_block._inner_tensor;
+        return *this;
     }
 
     /// Get tensor.

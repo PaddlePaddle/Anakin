@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -51,7 +51,7 @@ public:
                              std::vector<DataTensor_out *>& outputs,
                              FcParam<OpTensor>& param, Context<NV>& ctx){
         // get context
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         return create(inputs, outputs, param, ctx);
     }
 
@@ -59,8 +59,8 @@ public:
                                std::vector<DataTensor_out *>& outputs,
                                FcParam<OpTensor>& param, Context<NV>& ctx){
 
-        if (!(ctx == this->_ctx)) {
-            this->_ctx = ctx;
+        if (!(&ctx == this->_ctx)) {
+            this->_ctx = &ctx;
         }
 
         Shape shape_out = inputs[0]->valid_shape();

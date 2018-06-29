@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -38,27 +38,24 @@ struct MatMulParam {
     bool operator==(const MatMulParam &right) {
         bool comp_eq = true;
         comp_eq = comp_eq && (_is_transpose_X == right._is_transpose_X);        
-        comp_eq = comp_eq && (_is_transpose_Y == right._is_transpose_Y);        
+        comp_eq = comp_eq && (_is_transpose_Y == right._is_transpose_Y);
+        return comp_eq;
     }
 
     bool _is_transpose_X{false};
     bool _is_transpose_Y{false};
-    int _M = 0;
-    int _N = 0;
-    int _K = 0;
-    int _B = 0;//batch_size
+    int _m = 0;
+    int _n = 0;
+    int _k = 0;
+    int _b = 0;//batch_size
 
 };
 
-    
 //should design this one for pick_best_specify()
 enum ImplEnum{
     VENDER_IMPL = 0,
     SABER_IMPL
 };
-
-
-
 
 enum SequencePoolType{
     Sequence_pool_unknow = 0,
@@ -753,27 +750,56 @@ struct BatchnormParam {
 };
 
 template <typename opTensor>
+struct PreluParam {
+    PreluParam() = default;
+    PreluParam(bool is_channel_shared, opTensor* input_slope) {
+        channel_shared = is_channel_shared;
+        slope = input_slope;
+    }
+    PreluParam(const PreluParam<opTensor>& right) {
+        channel_shared = right.channel_shared;
+        slope = right.slope;
+    }
+    PreluParam<opTensor>& operator=(const PreluParam<opTensor>& right) {
+        this->channel_shared = right.channel_shared;
+        this->slope = right.slope;
+        return *this;
+    }
+    bool operator==(const PreluParam<opTensor>& right) {
+        bool flag = this->channel_shared == right.channel_shared;
+        return flag && (this->slope == right.slope);
+    }
+    bool channel_shared{false};
+    opTensor* slope{nullptr};
+};
+
+template <typename opTensor>
 struct ActivationParam {
     typedef typename opTensor::Dtype DataDtype;
     ActivationParam()
             : active(Active_unknow)
             , negative_slope(DataDtype(-1))
-            , coef(DataDtype(-1)) {}
+            , coef(DataDtype(-1))
+            , prelu_param(PreluParam<opTensor>(false, nullptr)) {}
     ActivationParam(ActiveType act, DataDtype n_slope = DataDtype(0),
-                    DataDtype co = DataDtype(1))
+                    DataDtype co = DataDtype(1), 
+                    PreluParam<opTensor> prelu = PreluParam<opTensor>(false, nullptr))
             : active(act)
             , negative_slope(n_slope)
             , coef(co)
+            , prelu_param(prelu)
     {}
     ActivationParam(const ActivationParam &right)
             : active(right.active)
             , negative_slope(right.negative_slope)
             , coef(right.coef)
+            , prelu_param(right.prelu_param)
     {}
     ActivationParam &operator=(const ActivationParam &right) {
         active = right.active;
         negative_slope = right.negative_slope;
         coef = right.coef;
+        prelu_param = right.prelu_param;
         return *this;
     }
     bool operator==(const ActivationParam &right) {
@@ -781,6 +807,7 @@ struct ActivationParam {
         comp_eq = comp_eq && (active == right.active);
         comp_eq = comp_eq && (negative_slope == right.negative_slope);
         comp_eq = comp_eq && (coef == right.coef);
+        comp_eq = comp_eq && (prelu_param == right.prelu_param);
         return comp_eq;
     }
     bool has_negative_slope(){
@@ -789,6 +816,7 @@ struct ActivationParam {
     ActiveType active;
     DataDtype negative_slope;
     DataDtype coef;
+    PreluParam<opTensor> prelu_param;
 };
 template <typename opTensor>
 struct ScaleParam {
@@ -1023,14 +1051,21 @@ private:
 
 template <typename opTensor>
 struct EltwiseParam;
+template <typename opTensor>
+struct EltwiseActiveParam;
 // Fusion conv with batchnorm, scale, activation, eltwise(sigmoid, relu, tanh, clipped_relu, elu)
 template <typename opTensor>
 struct ConvActiveParam {
-    ConvActiveParam() : has_batchnorm(false), has_scale(false), has_active(false), has_eltwise(false){}
-
+    ConvActiveParam()
+            : has_batchnorm(false)
+            , has_scale(false)
+            , has_active(false)
+            , has_eltwise(false)
+            , has_eltwise_act(false)
+    {}
     ConvActiveParam(ConvParam<opTensor> &conv_param_in)
         : conv_param(conv_param_in), has_active(false)
-        , has_batchnorm(false), has_scale(false), has_eltwise(false)
+        , has_batchnorm(false), has_scale(false), has_eltwise(false), has_eltwise_act(false)
     {}
     ConvActiveParam(ConvParam<opTensor> &conv_param_in,
                     ActivationParam<opTensor> &activation_param_in)
@@ -1039,6 +1074,7 @@ struct ConvActiveParam {
         , has_scale(false)
         , has_active(true)
         , has_eltwise(false)
+        , has_eltwise_act(false)
     {}
     ConvActiveParam(ConvParam<opTensor> &conv_param_in
                     , ActivationParam<opTensor> &activation_param_in
@@ -1050,6 +1086,7 @@ struct ConvActiveParam {
         , has_scale(false)
         , has_active(true)
         , has_eltwise(true)
+        , has_eltwise_act(false)
     {}
     ConvActiveParam(ConvParam<opTensor> &conv_param_in
             , ActivationParam<opTensor> &activation_param_in
@@ -1061,6 +1098,7 @@ struct ConvActiveParam {
             , has_scale(false)
             , has_active(true)
             , has_eltwise(false)
+            , has_eltwise_act(false)
     {}
     ConvActiveParam(ConvParam<opTensor> &conv_param_in
             , ActivationParam<opTensor> &activation_param_in
@@ -1074,6 +1112,7 @@ struct ConvActiveParam {
             , has_scale(false)
             , has_active(true)
             , has_eltwise(true)
+            , has_eltwise_act(false)
     {}
     ConvActiveParam(ConvParam<opTensor> &conv_param_in
             , ActivationParam<opTensor> &activation_param_in
@@ -1085,6 +1124,7 @@ struct ConvActiveParam {
             , has_scale(true)
             , has_active(true)
             , has_eltwise(false)
+            , has_eltwise_act(false)
     {}
     ConvActiveParam(ConvParam<opTensor> &conv_param_in
             , ActivationParam<opTensor> &activation_param_in
@@ -1098,6 +1138,7 @@ struct ConvActiveParam {
             , has_scale(true)
             , has_active(true)
             , has_eltwise(true)
+            , has_eltwise_act(false)
     {}
     ConvActiveParam(ConvParam<opTensor> &conv_param_in
             , ActivationParam<opTensor> &activation_param_in
@@ -1111,6 +1152,7 @@ struct ConvActiveParam {
             , has_scale(true)
             , has_active(true)
             , has_eltwise(false)
+            , has_eltwise_act(false)
     {}
     ConvActiveParam(ConvParam<opTensor> &conv_param_in
             , BatchnormParam<opTensor> &batchnorm_param_in
@@ -1122,6 +1164,21 @@ struct ConvActiveParam {
             , has_scale(true)
             , has_active(false)
             , has_eltwise(false)
+            , has_eltwise_act(false)
+    {}
+    ConvActiveParam(ConvParam<opTensor> &conv_param_in
+            , BatchnormParam<opTensor> &batchnorm_param_in
+            , ScaleParam<opTensor> &scale_param_in
+            , EltwiseActiveParam<opTensor> &elt_act_param_in)
+            : conv_param(conv_param_in)
+            , batchnorm_param(batchnorm_param_in)
+            , scale_param(scale_param_in)
+            , eltwise_act_param(elt_act_param_in)
+            , has_batchnorm(true)
+            , has_scale(true)
+            , has_active(false)
+            , has_eltwise(false)
+            , has_eltwise_act(true)
     {}
     ConvActiveParam(ConvParam<opTensor> &conv_param_in
             , ActivationParam<opTensor> &activation_param_in
@@ -1137,6 +1194,7 @@ struct ConvActiveParam {
             , has_scale(true)
             , has_active(true)
             , has_eltwise(true)
+            , has_eltwise_act(false)
     {}
     ConvActiveParam(const ConvActiveParam &right)
             : conv_param(right.conv_param)
@@ -1146,6 +1204,7 @@ struct ConvActiveParam {
             , has_batchnorm(right.has_batchnorm)
             , has_scale(right.has_scale)
             , has_active(right.has_active)
+            , has_eltwise_act(right.has_active)
     {}
     ConvActiveParam &operator=(const ConvActiveParam &right) {
         conv_param = right.conv_param;
@@ -1155,6 +1214,8 @@ struct ConvActiveParam {
         has_batchnorm = right.has_batchnorm;
         has_scale = right.has_scale;
         has_active = right.has_active;
+        has_eltwise = right.has_eltwise;
+        has_eltwise_act = right.has_eltwise_act;
         return *this;
     }
     bool operator==(const ConvActiveParam &right) {
@@ -1165,6 +1226,9 @@ struct ConvActiveParam {
         comp_eq = comp_eq && (scale_param == right.scale_param);
         comp_eq = comp_eq && (has_batchnorm == right.has_batchnorm);
         comp_eq = comp_eq && (has_scale == right.has_scale);
+        comp_eq = comp_eq && (has_active == right.has_active);
+        comp_eq = comp_eq && (has_eltwise == right.has_eltwise);
+        comp_eq = comp_eq && (has_eltwise_act == right.has_eltwise_act);
         return comp_eq;
     }
     ConvParam<opTensor> conv_param;
@@ -1172,10 +1236,13 @@ struct ConvActiveParam {
     BatchnormParam<opTensor> batchnorm_param;
     ScaleParam<opTensor> scale_param;
     EltwiseParam<opTensor> eltwise_param;
+    EltwiseActiveParam<opTensor> eltwise_act_param;
+
     bool has_batchnorm;
     bool has_scale;
     bool has_active;
     bool has_eltwise;
+    bool has_eltwise_act;
 };
 // Fusion conv with batchnorm, scale, activation(sigmoid, relu, tanh, clipped_relu, elu)
 template <typename opTensor>
@@ -1295,29 +1362,6 @@ struct ResizeParam {
     }
     float width_scale{0.f};
     float height_scale{0.f};
-};
-template <typename opTensor>
-struct PreluParam {
-    PreluParam() = default;
-    PreluParam(bool is_channel_shared, opTensor* input_slope) {
-        channel_shared = is_channel_shared;
-        slope = input_slope;
-    }
-    PreluParam(const PreluParam<opTensor>& right) {
-        channel_shared = right.channel_shared;
-        slope = right.slope;
-    }
-    PreluParam<opTensor>& operator=(const PreluParam<opTensor>& right) {
-        this->channel_shared = right.channel_shared;
-        this->slope = right.slope;
-        return *this;
-    }
-    bool operator==(const PreluParam<opTensor>& right) {
-        bool flag = this->channel_shared == right.channel_shared;
-        return flag && (this->slope == right.slope);
-    }
-    bool channel_shared{false};
-    opTensor* slope{nullptr};
 };
 
 template <typename opTensor>
@@ -1566,6 +1610,7 @@ struct EltwiseParam {
         for (int i = 0; i < coeff.size(); ++i) {
             comp_eq = comp_eq && (coeff[i] == right.coeff[i]);
         }
+        return comp_eq;
     }
     EltwiseType operation;
     std::vector<DataDtype> coeff;
@@ -2309,7 +2354,7 @@ template <class opTensor>
 struct FlattenParam {
     FlattenParam() = default;
     FlattenParam(const FlattenParam& right) {}
-    FlattenParam& operator=(const FlattenParam& right){}
+    FlattenParam& operator=(const FlattenParam& right){ return *this;}
     bool operator==(const FlattenParam& right){
         return true;
     }
@@ -2317,8 +2362,8 @@ struct FlattenParam {
 template <class opTensor>
 struct AxpyParam {
     AxpyParam() = default;
-    AxpyParam(const AxpyParam& right) {}
-    AxpyParam& operator=(const AxpyParam& right){}
+    AxpyParam(const AxpyParam& right) { }
+    AxpyParam& operator=(const AxpyParam& right){ return *this;}
     bool operator==(const AxpyParam& right){
         return true;
     }
@@ -2396,6 +2441,7 @@ struct Im2SequenceParam {
         stride_w = right.stride_w;
         dilation_h = right.dilation_h;
         dilation_w = right.dilation_w;
+        return *this;
     }
     bool operator==(const Im2SequenceParam &right) {
         bool comp_eq = true;

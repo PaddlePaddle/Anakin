@@ -50,7 +50,7 @@ class DetectionOutputHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     DetectionOutputHelper()=default;
 
-    ~DetectionOutputHelper();
+    ~DetectionOutputHelper(){}
 
     Status InitParam() override;
 
@@ -67,8 +67,6 @@ public:
     saber::DetectionOutputParam<Tensor4d<Ttype, Dtype>> _param_detection_output;
     saber::DetectionOutput<Ttype, Dtype> _funcs_detection_output;
 };
-
-
 
 } /* namespace ops */
 

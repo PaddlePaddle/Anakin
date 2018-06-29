@@ -1,16 +1,17 @@
-/* Copyright (c) 2016 Anakin Authors All Rights Reserve.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+       http://www.apache.org/licenses/LICENSE-2.0
 
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License. */
+   limitations under the License.
+*/
 
 #ifndef ANAKIN_SABER_CORE_TYPES_H
 #define ANAKIN_SABER_CORE_TYPES_H
@@ -31,7 +32,9 @@ enum TargetTypeEnum {
     eARM = 3,
     eX86 = 4,
     eNVHX86 = 5,
-    eNVHARM = 6
+    eNVHARM = 6,
+    eARMGPU = 7,
+    eARMDSP
 };
 
 template <TargetTypeEnum T>
@@ -39,6 +42,7 @@ struct TargetType {};
 // NV device without pinned memory
 typedef TargetType<eNV> NV;
 typedef TargetType<eARM> ARM;
+typedef TargetType<eARMGPU> ARMGPU;
 typedef TargetType<eAMD> AMD;
 typedef TargetType<eX86> X86;
 // NV device with pinned memory
@@ -114,7 +118,8 @@ typedef enum{
     Active_identity = 6,
     Active_sigmoid_fluid = 7,
     Active_tanh_fluid = 8,
-    Active_stanh = 9
+    Active_stanh = 9,
+    Active_prelu = 10
 
 } ActiveType;
 

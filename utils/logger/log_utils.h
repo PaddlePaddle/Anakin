@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ namespace logger {
 
 #define SUPPORT_PTHREADS  1 // support for pthreads
 
-#ifdef TARGET_ANDRIOD
+#ifdef TARGET_ANDROID
 	#define STACKTRACES 0
 #else
 	#define STACKTRACES 1

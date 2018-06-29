@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -52,7 +52,7 @@ public:
     virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             ScaleParam<OpTensor>& param, Context<NV>& ctx) {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         _axis = (param.num_axes == 0) ? 0 : param.axis;
         _num_axes = param.num_axes >= 0 ? param.num_axes : inputs[0]->shape().dims() - _axis;
         _bias_term = param.bias_term;
@@ -73,7 +73,7 @@ public:
     virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             ScaleParam<OpTensor>& param, Context<NV> &ctx) {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         _inner_dim = inputs[0]->count(_axis + _num_axes, inputs[0]->shape().dims());
         _scale_dim = inputs[0]->count(_axis, _axis + _num_axes);
         if (inputs.size() == 1) {

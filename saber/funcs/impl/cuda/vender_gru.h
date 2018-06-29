@@ -1,16 +1,17 @@
-/* Copyright (c) 2016 Anakin Authors All Rights Reserve.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+       http://www.apache.org/licenses/LICENSE-2.0
 
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License. */
+   limitations under the License.
+*/
 
 #ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_CUDNN_GRU_H
 #define ANAKIN_SABER_FUNCS_IMPL_CUDA_CUDNN_GRU_H
@@ -106,7 +107,7 @@ public:
 
         _workspace_size_in_bytes = 0;
 
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         // ---- get cuda resources ----
 
         cudaStream_t cuda_stream;
@@ -201,7 +202,7 @@ private:
 
 
 //! workspace for cudnn
-    const size_t _workspace_limit_bytes = 64 * 1024 * 1024;
+    const size_t _workspace_limit_bytes = 4 * 1024 * 1024;
     size_t _workspace_size_in_bytes;
     Tensor<NV, AK_INT8, NCHW> _workspace_tensor;  // underlying storage
 

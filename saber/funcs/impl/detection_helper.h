@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -48,6 +48,13 @@ void decode_bboxes(const int nthreads, const Dtype* loc_data, const Dtype* prior
                    Dtype* bbox_data, cudaStream_t stream);
 #endif
 
+#ifdef USE_ARM_PLACE
+void decode_bboxes(const int batch_num, const float* loc_data, const float* prior_data, \
+                       const CodeType code_type, const bool variance_encoded_in_target, \
+                       const int num_priors, const bool share_location, \
+                       const int num_loc_classes, const int background_label_id, \
+                       float* bbox_data);
+#endif
 } //namespace saber
 
 } //namespace anakin

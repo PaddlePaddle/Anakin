@@ -41,6 +41,7 @@ struct NetGraphWrapper {
             return _thread_to_net[id];
         }
         LOG(FATAL) << " target key(thread_id) not found in NetGraphWrapper";
+        return _thread_to_net[id];
     }
     
 private:
@@ -216,13 +217,22 @@ template class Worker<X86, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
 #endif
 
 #ifdef USE_ARM_PLACE
-template class Worker<ARM, AK_FLOAT, Precision::FP32, OpRunType::ASYNC>;
-template class Worker<ARM, AK_FLOAT, Precision::FP16, OpRunType::ASYNC>;
-template class Worker<ARM, AK_FLOAT, Precision::INT8, OpRunType::ASYNC>;
 
+#ifdef ANAKIN_TYPE_FP32
+template class Worker<ARM, AK_FLOAT, Precision::FP32, OpRunType::ASYNC>;
 template class Worker<ARM, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
+#endif
+
+#ifdef ANAKIN_TYPE_FP16
+template class Worker<ARM, AK_FLOAT, Precision::FP16, OpRunType::ASYNC>;
 template class Worker<ARM, AK_FLOAT, Precision::FP16, OpRunType::SYNC>;
+#endif
+
+#ifdef ANAKIN_TYPE_INT8
+template class Worker<ARM, AK_FLOAT, Precision::INT8, OpRunType::ASYNC>;
 template class Worker<ARM, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
+#endif
+
 #endif
 
 } /* namespace */

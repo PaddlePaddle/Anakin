@@ -7,7 +7,3 @@ try:
 except ImportError:
     raise ImportError(' No module named caffe_pb2 . ')
 
-try:
-    from caffe_yolo_pb2 import *
-except ImportError:
-    raise ImportError(' No module named caffe_yolo_pb2 . ')

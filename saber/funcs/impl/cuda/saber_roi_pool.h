@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -56,7 +56,7 @@ public:
                              std::vector<DataTensor_out*>& outputs,
                              RoiPoolParam<OpTensor> &param,
                              Context<NV> &ctx) {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         Shape out_stride = outputs[0]->get_stride();
         Shape in_stride = inputs[0]->get_stride();
         int in_n_index = inputs[0]->num_index();

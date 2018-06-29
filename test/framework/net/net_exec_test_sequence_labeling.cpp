@@ -471,6 +471,7 @@ TEST(NetTest, net_execute_base_test) {
 
 
 int main(int argc, const char** argv){
+    Env<X86>::env_init();
     // initial logger
     LOG(INFO) << "argc " << argc;
 

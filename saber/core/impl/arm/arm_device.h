@@ -297,6 +297,7 @@ static int set_cpu_affinity(const std::vector<int>& cpuids){
             return -1;
         }
 #endif
+    return 0;
 }
 
 #endif //PLATFORN_ANDROID

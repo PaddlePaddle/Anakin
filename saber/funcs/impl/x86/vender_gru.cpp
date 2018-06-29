@@ -21,7 +21,7 @@ SaberStatus VenderGru<X86, OpDtype, inDtype, outDtype,
                 const std::vector<DataTensor_in*>& inputs,
                 std::vector<DataTensor_out*>& outputs,
 GruParam<OpTensor>& param, Context<X86>& ctx) {
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
     this->max_thread_num_ = omp_get_max_threads();
     hidden_size_ = outputs[0]->channel();
     word_size_ = inputs[0]->channel();
