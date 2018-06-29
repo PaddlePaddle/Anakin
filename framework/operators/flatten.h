@@ -51,7 +51,7 @@ class FlattenHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     FlattenHelper()=default;
 
-    ~FlattenHelper();
+    ~FlattenHelper() {}
 
     Status InitParam() override;
 
@@ -71,8 +71,6 @@ public:
 private:
     PTuple<int> _dims; 
 };
-
-
 
 } /* namespace ops */
 

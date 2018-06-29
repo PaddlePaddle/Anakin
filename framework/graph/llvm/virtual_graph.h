@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -101,8 +101,8 @@ struct node {
     node(const node& rhs) {
         name = rhs.name;
         opName = rhs.opName;
-        functorName = rhs.functorName;
-        property = rhs.property;
+        //functorName = rhs.functorName;
+        //property = rhs.property;
         mergeNodeNames.clear();
         for (auto& node_name : rhs.mergeNodeNames) {
             mergeNodeNames.push_back(node_name);
@@ -116,8 +116,8 @@ struct node {
     inline node& operator=(const node& rhs) {
         name = rhs.name;
         opName = rhs.opName;
-        functorName = rhs.functorName;
-        property = rhs.property;
+        //functorName = rhs.functorName;
+        //property = rhs.property;
         mergeNodeNames.clear();
         for (auto& node_name : rhs.mergeNodeNames) {
             mergeNodeNames.push_back(node_name);

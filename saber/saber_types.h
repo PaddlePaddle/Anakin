@@ -1,16 +1,17 @@
-/* Copyright (c) 2016 Anakin Authors All Rights Reserve.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+       http://www.apache.org/licenses/LICENSE-2.0
 
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License. */
+   limitations under the License.
+*/
 
 #ifndef ANAKIN_SABER_CORE_TYPES_H
 #define ANAKIN_SABER_CORE_TYPES_H
@@ -31,7 +32,9 @@ enum TargetTypeEnum {
     eARM = 3,
     eX86 = 4,
     eNVHX86 = 5,
-    eNVHARM = 6
+    eNVHARM = 6,
+    eARMGPU = 7,
+    eARMDSP
 };
 
 template <TargetTypeEnum T>
@@ -39,6 +42,7 @@ struct TargetType {};
 // NV device without pinned memory
 typedef TargetType<eNV> NV;
 typedef TargetType<eARM> ARM;
+typedef TargetType<eARMGPU> ARMGPU;
 typedef TargetType<eAMD> AMD;
 typedef TargetType<eX86> X86;
 // NV device with pinned memory
@@ -110,7 +114,13 @@ typedef enum{
     Active_relu = 2,
     Active_tanh = 3,
     Active_clipped_relu = 4,
-    Active_elu
+    Active_elu = 5,
+    Active_identity = 6,
+    Active_sigmoid_fluid = 7,
+    Active_tanh_fluid = 8,
+    Active_stanh = 9,
+    Active_prelu = 10
+
 } ActiveType;
 
 typedef enum{
@@ -145,29 +155,6 @@ enum CodeType {
 };
 
 typedef enum {
-    ATRS_NormType_NONE = 0,
-    ATRS_NormType_WIDTH = 1,
-    ATRS_NormType_HEIGHT = 2,
-    ATRS_NormType_WIDTH_LOG = 3,
-    ATRS_NormType_HEIGHT_LOG = 4,
-} ATRS_NormType;
-
-typedef enum {
-    DetectionOutputSSD_HEIGHT_AND_WIDTH = 0,
-    DetectionOutputSSD_HEIGHT_OR_WIDTH = 1
-} DetectionOutputSSD_MIN_SIZE_MODE;
-
-typedef enum {
-    ProposalImgScaleToCamCoords_NormType_HEIGHT = 0,
-    ProposalImgScaleToCamCoords_NormType_HEIGHT_LOG = 1
-} ProposalImgScaleToCamCoords_NormType;
-
-typedef enum {
-    ProposalImgScaleToCamCoords_OrienType_PI = 0,
-    ProposalImgScaleToCamCoords_OrienType_PI2 = 1
-} ProposalImgScaleToCamCoords_OrienType;
-
-typedef enum {
     SABER_POWER_HIGH = 0,
     SABER_POWER_LOW  = 1,
     SABER_POWER_FULL = 2
@@ -177,6 +164,12 @@ typedef enum {
     BORDER_CONSTANT = 0,
     BORDER_REPLICATE
 } BorderType;
+
+typedef enum {
+    PRIOR_MIN = 0,
+    PRIOR_MAX = 1,
+    PRIOR_COM = 2
+} PriorType;
 
 } //namespace saber
 

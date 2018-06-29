@@ -1,9 +1,17 @@
-# ----------------------------------------------------------------------------
-# Copyright (c) 2016 Baidu.com, Inc. All Rights Reserved
-# @file     CMakeLists files in the unit test directory of project
-# @auther   cuichaowen
-# @date     2017-10-24
-# ----------------------------------------------------------------------------
+# Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # used for temporary
 anakin_fetch_include_recursively(${ANAKIN_FRAMEWORK})
 anakin_fetch_include_recursively(${ANAKIN_MODEL_PARSER})
@@ -31,6 +39,15 @@ if(USE_ARM_PLACE) #build unit test for arm devices
 	if(USE_OPENMP)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 	endif()
+#	if (USE_PROTOBUF)
+#		find_library( # Sets the name of the path variable.
+#				log-lib
+#
+#				# Specifies the name of the NDK library that
+#				# you want CMake to locate.
+#				log )
+#	endif()
+
 endif()
 
 file(REMOVE ${PROJECT_SOURCE_DIR}/output/unit_test/*)
@@ -45,10 +62,13 @@ foreach(SRC_NAME ${ANAKIN_TEST_CASE_SRC})
 	list(GET SEXY_LIST 0 TEST_CASE_NAME)
 	add_executable(${TEST_CASE_NAME}  ${SRC_NAME})
 	if(BUILD_SHARED)
-        	target_link_libraries(${TEST_CASE_NAME} ${anakin_lib_so})
-    	else()
-        	target_link_libraries(${TEST_CASE_NAME} ${anakin_lib_static})
-    	endif()	
+		target_link_libraries(${TEST_CASE_NAME} ${anakin_lib_so})
+	else()
+		target_link_libraries(${TEST_CASE_NAME} -Wl,--whole-archive ${anakin_lib_static} -Wl,--no-whole-archive)
+	endif()
+#	if(USE_ARM_PLACE)
+#		target_link_libraries(${TEST_CASE_NAME} ${log-lib})
+#	endif()
 	set_target_properties(${TEST_CASE_NAME} PROPERTIES
 						RUNTIME_OUTPUT_DIRECTORY 
 						${PROJECT_SOURCE_DIR}/output/unit_test)

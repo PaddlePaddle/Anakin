@@ -133,7 +133,7 @@ SaberStatus SaberDeformableConv2D<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT,\
     InDataType* deformable_col_buffer_data = _deform_col_buffer.mutable_data();
     const InDataType* deform_col_buffer_data_const = _deform_col_buffer.data();
 
-    cudaStream_t cuda_stream = this->_ctx.get_compute_stream();
+    cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
 
     for (int n = 0; n < inputs[0]->num(); ++n) {
 

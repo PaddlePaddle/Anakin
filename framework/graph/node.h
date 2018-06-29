@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -121,7 +121,12 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 class Node {
 public:
     Node() {}
-    ~Node() {}
+    ~Node() {
+		if(_Op) {
+			delete _Op;
+			_Op = nullptr;
+		}
+	}
     /// print message
     std::string DebugString();
 
@@ -232,7 +237,7 @@ public:
     inline Node<Ttype, Dtype, Ptype>& operator=(const Node<Ttype, Dtype, Ptype>& operand) {
         _name = operand._name;
         _current_lane = operand._current_lane;
-        _Op = operand._Op;
+        _Op = nullptr; // Assign the op pointer with operand's should be disabled, because it causes double free after binding the nodeptr by op itself.
         _op_name = operand._op_name;
         // copy attributes
         auto it_begin = operand._attr.parameter.begin();

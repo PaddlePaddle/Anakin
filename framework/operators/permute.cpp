@@ -4,24 +4,15 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void Permute<NV, AK_FLOAT, Precision::FP32>::operator()(OpContext<NV>& ctx,
-        const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
-        std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    auto* impl = static_cast<PermuteHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<PermuteHelper<NV, AK_FLOAT, Precision::FP32>*>
-                  (this->_helper)->_param_permute;
-    impl->_funcs_permute(ins, outs, param, ctx);
-}
-#endif
-
-/// TODO ... specialization other type of operator
-
-
-/// set helper
-template<typename Ttype, DataType Dtype, Precision Ptype>
-PermuteHelper<Ttype, Dtype, Ptype>::~PermuteHelper() {
+#define INSTANCE_PERMUTE(Ttype, Dtype, Ptype) \
+template<> \
+void Permute<Ttype, Dtype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+        const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, \
+        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) { \
+    auto* impl = static_cast<PermuteHelper<Ttype, Dtype, Ptype>*>(this->_helper); \
+    auto& param = static_cast<PermuteHelper<Ttype, Dtype, Ptype>*>\
+                  (this->_helper)->_param_permute; \
+    impl->_funcs_permute(ins, outs, param, ctx); \
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
@@ -55,22 +46,20 @@ Status PermuteHelper<Ttype, Dtype, Ptype>::InferShape(const std::vector<Tensor4d
 }
 
 #ifdef USE_CUDA
+INSTANCE_PERMUTE(NV, AK_FLOAT, Precision::FP32);
 template class PermuteHelper<NV, AK_FLOAT, Precision::FP32>;
-template class PermuteHelper<NV, AK_FLOAT, Precision::FP16>;
-template class PermuteHelper<NV, AK_FLOAT, Precision::INT8>;
-#endif
-
-#ifdef USE_ARM_PLACE
-template class PermuteHelper<ARM, AK_FLOAT, Precision::FP32>;
-template class PermuteHelper<ARM, AK_FLOAT, Precision::FP16>;
-template class PermuteHelper<ARM, AK_FLOAT, Precision::INT8>;
-#endif
-
-// register helper
-#ifdef USE_CUDA
 ANAKIN_REGISTER_OP_HELPER(Permute, PermuteHelper, NV, AK_FLOAT, Precision::FP32);
 #endif
+
+#ifdef USE_X86_PLACE
+INSTANCE_PERMUTE(X86, AK_FLOAT, Precision::FP32);
+template class PermuteHelper<X86, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Permute, PermuteHelper, X86, AK_FLOAT, Precision::FP32);
+#endif
+
 #ifdef USE_ARM_PLACE
+INSTANCE_PERMUTE(ARM, AK_FLOAT, Precision::FP32);
+template class PermuteHelper<ARM, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Permute, PermuteHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
 
@@ -82,6 +71,9 @@ ANAKIN_REGISTER_OP(Permute)
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("permute")
+#endif
+#ifdef USE_X86_PLACE
+.__alias__<X86, AK_FLOAT, Precision::FP32>("permute")
 #endif
 .num_in(1)
 .num_out(1)

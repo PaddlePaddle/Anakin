@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -228,7 +228,7 @@ public:
         return SaberSuccess;
     }
 
-    void try_expand_size(Shape& shape) {
+    void try_expand_size(Shape shape) {
         //        LOG(INFO)<<"in try expand "<<shape.count()<<","<<valid_size();
         if (shape.count() > (valid_size())) {
             re_alloc(shape);

@@ -13,18 +13,23 @@ template struct TargetWrapper<ARM, __host_target>;
 template class Buffer<ARM>;
 
 //! ARM Tensor
+#ifdef ANAKIN_TYPE_FP32
 template class Tensor<ARM, AK_FLOAT, NCHW>;
-template class Tensor<ARM, AK_FLOAT, NHWC>;
-template class Tensor<ARM, AK_FLOAT, HW>;
+//template class Tensor<ARM, AK_FLOAT, NHWC>;
+//template class Tensor<ARM, AK_FLOAT, HW>;
+#endif
 
+#ifdef ANAKIN_TYPE_INT8
 template class Tensor<ARM, AK_INT8, NCHW>;
 template class Tensor<ARM, AK_INT8, NHWC>;
 template class Tensor<ARM, AK_INT8, HW>;
+#endif
 
+#ifdef ANAKIN_TYPE_FP16
 template class Tensor<ARM, AK_HALF, NCHW>;
 template class Tensor<ARM, AK_HALF, NHWC>;
 template class Tensor<ARM, AK_HALF, HW>;
-
+#endif
 template class Env<ARM>;
 
 #endif //USE_ARM_PLACE
