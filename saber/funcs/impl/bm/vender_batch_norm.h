@@ -18,7 +18,7 @@ class VenderBatchNorm<BM, OpDtype, inDtype, outDtype, LayOutType_op, LayOutType_
     Tensor<BM, inDtype, LayOutType_in>, 
     Tensor<BM, outDtype, LayOutType_out>,
     Tensor<BM, OpDtype, LayOutType_op>,
-    BatchNormParam<Tensor<BM, OpDtype, LayOutType_op>>> {
+    BatchnormParam<Tensor<BM, OpDtype, LayOutType_op>>> {
 public:
     typedef Tensor<BM, inDtype, LayOutType_in> DataTensor_in;
     typedef Tensor<BM, outDtype, LayOutType_out> DataTensor_out;
@@ -34,7 +34,7 @@ public:
 
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
                   std::vector<DataTensor_out*>& outputs,
-                  BatchNormParam<OpTensor> &batch_norm_param, Context<BM> &ctx) {
+                  BatchnormParam<OpTensor> &batch_norm_param, Context<BM> &ctx) {
 
         _handle = get_bm_handle();
         return create(inputs, outputs, batch_norm_param, ctx);
@@ -42,12 +42,12 @@ public:
 
     virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
                 std::vector<DataTensor_out*>& outputs,
-                BatchNormParam<OpTensor> &batch_norm_param, Context<BM> &ctx) {
+                BatchnormParam<OpTensor> &batch_norm_param, Context<BM> &ctx) {
     }
 
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                           std::vector<DataTensor_out*>& outputs,
-                          BatchNormParam<OpTensor> &param) {
+                          BatchnormParam<OpTensor> &param) {
 
         const InDataType *in_data = (const InDataType *) inputs[0]->data();
         OutDataType *out_data = (OutDataType *) outputs[0]->mutable_data();
@@ -57,11 +57,13 @@ public:
         int input_h = inputs[0]->height();
         int input_w = inputs[0]->width();
 
-        OpDataType eps = param.eps;
-        OpDataType scale = param.scale;
+        float eps = param.eps;
+        float scale = param.scale;
+        
+        bm_device_mem_t mean_ma = bm_mem_from_system(&param.mean[0]);
+        bm_device_mem_t variance_ma = bm_mem_from_system(&param.variance[0]);
 
-        bm_device_mem_t mean_ma = bm_mem_from_system(&param.mean);
-        bm_device_mem_t variance_ma = bm_mem_from_system(&param.variance);
+        bm_device_mem_t* variance_holder = new bm_device_mem_t();
 
         bmdnn_batchnorm_forward_inference(
                 _handle,
@@ -70,7 +72,7 @@ public:
                 mean_ma,
                 variance_ma,
                 scale,
-                new bm_device_mem_t(),
+                *variance_holder,
                 eps,
                 input_n,
                 input_c,

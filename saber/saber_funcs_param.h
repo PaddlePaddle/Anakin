@@ -777,52 +777,6 @@ struct SoftmaxParam {
     int axis;
 };
 
-#ifdef USE_BM
-template <typename opTensor>
-struct BatchnormParam {
-    typedef typename opTensor::Dtype DataDtype;
-    BatchnormParam()
-        : scale(float(0))
-        , use_global_stats(true)
-        , moving_average_fraction(float(0.999))
-        , eps(float(1e-5))
-        , mean(), variance()
-    {}
-    //scale_factor = 1 / scale;
-    BatchnormParam(std::vector<float> mean_in, std::vector<float> variance_in,
-                float scale_in, float moving_average_fraction_in = float(0.999),
-                float eps_in = float(1e-5), bool use_global_stats_in = true)
-        : mean(mean_in), variance(variance_in), scale(scale_in)
-        , moving_average_fraction(moving_average_fraction_in)
-        , eps(eps_in), use_global_stats(use_global_stats_in)
-    {}
-    BatchnormParam &operator=(const BatchnormParam &right) {
-        scale = right.scale;
-        moving_average_fraction = right.moving_average_fraction;
-        eps = right.eps;
-        use_global_stats = right.use_global_stats;
-        mean = right.mean;
-        variance = right.variance;
-        return *this;
-    }
-    bool operator==(const BatchnormParam &right) {
-        bool comp_eq = true;
-        comp_eq = comp_eq && (scale == right.scale);
-        comp_eq = comp_eq && (moving_average_fraction == right.moving_average_fraction);
-        comp_eq = comp_eq && (eps == right.eps);
-        comp_eq = comp_eq && (use_global_stats == right.use_global_stats);
-        comp_eq = comp_eq && (mean == right.mean);
-        comp_eq = comp_eq && (variance == right.variance);
-        return comp_eq;
-    }
-    float scale;
-    float moving_average_fraction;
-    float eps;
-    bool use_global_stats;
-    std::vector<float> mean;
-    std::vector<float> variance;
-};
-#else
 template <typename opTensor>
 struct BatchnormParam {
     typedef typename opTensor::Dtype DataDtype;
@@ -866,6 +820,50 @@ struct BatchnormParam {
     bool use_global_stats;
     std::vector<DataDtype> mean;
     std::vector<DataDtype> variance;
+};
+#ifdef USE_BM
+template <>
+struct BatchnormParam<Tensor<BM, AK_BM, NCHW>> {
+    BatchnormParam()
+        : scale(float(0))
+        , use_global_stats(true)
+        , moving_average_fraction(float(0.999))
+        , eps(float(1e-5))
+        , mean(), variance()
+    {}
+    //scale_factor = 1 / scale;
+    BatchnormParam(std::vector<float> mean_in, std::vector<float> variance_in,
+                float scale_in, float moving_average_fraction_in = float(0.999),
+                float eps_in = float(1e-5), bool use_global_stats_in = true)
+        : mean(mean_in), variance(variance_in), scale(scale_in)
+        , moving_average_fraction(moving_average_fraction_in)
+        , eps(eps_in), use_global_stats(use_global_stats_in)
+    {}
+    BatchnormParam &operator=(const BatchnormParam &right) {
+        scale = right.scale;
+        moving_average_fraction = right.moving_average_fraction;
+        eps = right.eps;
+        use_global_stats = right.use_global_stats;
+        mean = right.mean;
+        variance = right.variance;
+        return *this;
+    }
+    bool operator==(const BatchnormParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (scale == right.scale);
+        comp_eq = comp_eq && (moving_average_fraction == right.moving_average_fraction);
+        comp_eq = comp_eq && (eps == right.eps);
+        comp_eq = comp_eq && (use_global_stats == right.use_global_stats);
+        comp_eq = comp_eq && (mean == right.mean);
+        comp_eq = comp_eq && (variance == right.variance);
+        return comp_eq;
+    }
+    float scale;
+    float moving_average_fraction;
+    float eps;
+    bool use_global_stats;
+    std::vector<float> mean;
+    std::vector<float> variance;
 };
 #endif
 
@@ -974,6 +972,48 @@ struct ScaleParam {
     std::vector<DataDtype> scale_w;
     std::vector<DataDtype> scale_b;
 };
+#ifdef USE_BM
+template <>
+struct ScaleParam<Tensor<BM, AK_BM, NCHW>> {
+    ScaleParam(): axis(1), num_axes(1), bias_term(false) {}
+    ScaleParam(std::vector<float> scale_w_in, std::vector<float> scale_b_in,
+               bool bias_term_in = true, int axis_in = 1, int num_axes_in = 1)
+            : scale_w(scale_w_in), scale_b(scale_b_in)
+            , bias_term(bias_term_in), axis(axis_in), num_axes(num_axes_in)
+    {}
+    ScaleParam(std::vector<float> scale_w_in,
+               bool bias_term_in = false, int axis_in = 1, int num_axes_in = 1)
+            : scale_w(scale_w_in)
+            , bias_term(bias_term_in), axis(axis_in), num_axes(num_axes_in)
+    {}
+    ScaleParam(const ScaleParam &right)
+            : scale_w(right.scale_w), scale_b(right.scale_b)
+            , bias_term(right.bias_term), axis(right.axis), num_axes(right.num_axes)
+    {}
+    ScaleParam &operator=(const ScaleParam &right) {
+        scale_w = right.scale_w;
+        scale_b = right.scale_b;
+        bias_term = right.bias_term;
+        axis = right.axis;
+        num_axes = right.num_axes;
+        return *this;
+    }
+    bool operator==(const ScaleParam &right) {
+        bool comp_eq = true;
+        /* comp_eq = comp_eq && (scale_w == right.scale_w); */
+        /* comp_eq = comp_eq && (scale_b == right.scale_b); */
+        comp_eq = comp_eq && (bias_term == right.bias_term);
+        comp_eq = comp_eq && (axis == right.axis);
+        comp_eq = comp_eq && (num_axes == right.num_axes);
+        return comp_eq;
+    }
+    int axis; // default is 1
+    int num_axes; // default is 1
+    bool bias_term; // default false
+    std::vector<float> scale_w;
+    std::vector<float> scale_b;
+};
+#endif
 template <typename opTensor>
 struct PoolingParam {
     PoolingParam() : window_h(-1), window_w(-1)
