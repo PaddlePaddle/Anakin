@@ -92,19 +92,22 @@ const std::unordered_map<Fusion, std::function<int(VGraph*, Pattern*)>, FusionHa
                 }
             };
             vgraph->Scanner->BFS(search_vgraph, pattern);
+            return 0;
         }
     },
     {
         IN_PARELLEL,
         [](VGraph * vgraph, Pattern * pattern) ->int {
+            return 0;
         }
     },
     {
         GRAPH,
         [](VGraph * vgraph, Pattern * pattern) ->int {
+            return 0;
         }
     },
-    { None, [](VGraph*, Pattern*) ->int {} }
+    { None, [](VGraph*, Pattern*) ->int { return 0;} }
 };
 
 Pattern& Pattern::name(std::string fusion_op_name) {

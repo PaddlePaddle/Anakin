@@ -102,7 +102,7 @@ public:
     //Reshape ops do nothing
     virtual SaberStatus operator()(const Input_v& input, Output_v& output, Param_t& param, \
         Context<TargetType> &ctx) {
-
+        return SaberSuccess;
     }
 private:
 
