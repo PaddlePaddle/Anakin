@@ -130,6 +130,9 @@ Status Graph<Ttype, Dtype, Ptype>::Optimize() EXCLUSIVE_LOCKS_REQUIRED(_mut) {
             scheduler.RegIOResource(_vgraph);
             scheduler.Run();
 
+			_nodes_exec_order = scheduler.get_exec_node_in_order();
+
+
 #if 0
             // get node exec in order
             _nodes_exec_order = scheduler.get_exec_node_in_order();
@@ -139,7 +142,7 @@ Status Graph<Ttype, Dtype, Ptype>::Optimize() EXCLUSIVE_LOCKS_REQUIRED(_mut) {
 			conv_eltwise_fusion_scheduler.RegIOResource(_vgraph);
 			conv_eltwise_fusion_scheduler.Run();
 			// get node exec in order
-			_nodes_exec_order = conv_eltwise_fusion_scheduler.get_exec_node_in_order();
+			//_nodes_exec_order = conv_eltwise_fusion_scheduler.get_exec_node_in_order();
 #endif
 			// optimization again
             MemoryScheduler mem_scheduler;

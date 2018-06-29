@@ -23,7 +23,13 @@ bool ConvElsFusionScheduler::callable(node& node_arg) {
 							}
 							_helper.set_holder(io_in, _vgraph);*/
 							//_helper.register_pair(node_arg.name, node_next.name);
-							_helper.register_pair(it->bottom(), node_next.name);
+							if ((*_vgraph)[it->bottom()].opName == "Split") { 
+								_helper.register_pair(node_arg.name, node_next.name); } 
+							else { 
+								_helper.register_pair(it->bottom(), node_next.name); 
+							}
+
+							//_helper.register_pair(it->bottom(), node_next.name);
 							return false;
 						} else {
 							_helper.release(node_arg.name);

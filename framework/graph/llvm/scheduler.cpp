@@ -14,19 +14,19 @@ void Scheduler::RegIOResource(VGraph* vgraph) {
     // register io resources.
     vgraph->Scanner->BFS_Edge(register_io_f);
 
-	if(vgraph->has_exec_order()) {
+	/*if(vgraph->has_exec_order()) {
 		auto node_exec_order = vgraph->get_exec_order();
 		for(auto& node_name : node_exec_order) {
 			this->wait_push((*vgraph)[node_name]);
 		}
-	} else {
+	} else {*/
     	auto push_wait_que_f = [this](node & node_arg) {
         	this->wait_push(node_arg);
         	return 0;
     	};
     	// push all node op to wait que and disable the out resources.
     	vgraph->Scanner->BFS(push_wait_que_f);
-	}
+	//}
 
     // scheduler add fix arc io
     auto& regist_outs = vgraph->get_registed_outs();
