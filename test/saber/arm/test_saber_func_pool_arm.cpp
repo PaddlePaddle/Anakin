@@ -54,61 +54,14 @@ void test_arm_pooling(std::vector<TensorHf4*>& tin, \
     SaberTimer<ARM> t2;
 
     Context<ARM> ctx1;
-    std::vector<int> act_ids;
-    //! set runtime context
-    LOG(INFO) << "set runtine context";
-    std::vector<int> big_cores;
-    std::vector<int> small_cores;
-    for (int i = 0; i < ctx1.devs[0]._info._cluster_ids.size(); ++i) {
-        if (ctx1.devs[0]._info._cluster_ids[i] == 0) {
-            big_cores.push_back(ctx1.devs[0]._info._core_ids[i]);
-        } else {
-            small_cores.push_back(ctx1.devs[0]._info._cluster_ids[i]);
-        }
-    }
-
-    if (cluster_id == 0) {
-        if (big_cores.size() == 0) {
-            LOG(FATAL) << "big cores are not supported";
-        }
-        if (threads > big_cores.size()) {
-            LOG(WARNING) << "not enough big cores for inference";
-            act_ids = big_cores;
-        } else {
-            for (int i = 0; i < threads; ++i) {
-                act_ids.push_back(big_cores[i]);
-            }
-        }
-    } else {
-        if (small_cores.size() == 0) {
-            LOG(FATAL) << "small cores are not supported";
-        }
-        if (threads > small_cores.size()) {
-            LOG(WARNING) << "not enough small cores for inference";
-            act_ids = small_cores;
-        } else {
-            for (int i = 0; i < threads; ++i) {
-                act_ids.push_back(small_cores[i]);
-            }
-        }
-    }
-    ctx1.set_act_cores(act_ids);
-
-    LOG(INFO) << "test threads activated";
+    PowerMode mode = cluster_id == 0? SABER_POWER_HIGH : SABER_POWER_LOW;
+    ctx1.set_run_mode(mode, threads);
+            LOG(INFO) << "test threads activated";
 #pragma omp parallel
     {
 #ifdef USE_OPENMP
-        int threads = omp_get_num_threads();
-        LOG(INFO) << "number of threads: " << threads;
-#endif
-    }
-    int th_id;
-#pragma omp parallel private(th_id)
-    {
-#ifdef USE_OPENMP
-        th_id = omp_get_thread_num();
-#pragma omp parallel
-        LOG(INFO) << "thread core ID: " << big_cores[th_id];
+        int thread = omp_get_num_threads();
+                LOG(INFO) << "number of threads: " << thread;
 #endif
     }
 

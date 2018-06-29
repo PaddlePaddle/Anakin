@@ -13,7 +13,7 @@ void ConvBatchnormScale<Ttype, Dtype, Ptype>::operator()(\
     auto* impl = static_cast<ConvBatchnormScaleHelper<Ttype, Dtype, Ptype>*>(this->_helper);\
     auto& param = static_cast<ConvBatchnormScaleHelper<Ttype, Dtype, Ptype>*>\
                   (this->_helper)->_param_conv_batchnorm_scale;\
-    impl->_funcs_conv_batchnorm_scale(ins, outs, param, ctx);\
+    SABER_CHECK(impl->_funcs_conv_batchnorm_scale(ins, outs, param, ctx));\
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
@@ -90,7 +90,8 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
         const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
         std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-    _funcs_conv_batchnorm_scale.init(ins, outs, _param_conv_batchnorm_scale, SPECIFY, SABER_IMPL, ctx);
+    SABER_CHECK(_funcs_conv_batchnorm_scale.init(ins, outs, \
+        _param_conv_batchnorm_scale, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }
 
@@ -98,7 +99,8 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::InferShape(const
         std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
         std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-    _funcs_conv_batchnorm_scale.compute_output_shape(ins, outs, _param_conv_batchnorm_scale);
+    SABER_CHECK(_funcs_conv_batchnorm_scale.compute_output_shape(ins, outs, \
+        _param_conv_batchnorm_scale));
     return Status::OK();
 }
 
