@@ -83,6 +83,13 @@ SaberStatus SaberActivation::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *>
                     ptr_out_thread++;
                 }
             }
+            ptr_out = outputs[0]->mutable_data()+threads * nums_per_thread;
+            ptr_in = inputs[0]->data()+threads * nums_per_thread;
+            for (int j = 0; j < remain; ++j) {
+                ptr_out[0] = ptr_in[0] > 0.f? ptr_in[0] : 0.f;
+                ptr_in++;
+                ptr_out++;
+            }
             return SaberSuccess;
         case Active_sigmoid:
             return SaberUnImplError;
