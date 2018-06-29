@@ -22,6 +22,27 @@
 
 using namespace anakin::test;
 
+template <typename T>
+bool compare_tensor(T& data, T& ref_data, float eps = 1e-4) {
+    typedef typename T::Dtype data_t;
+    if (data.size() != ref_data.size()) {
+        return false;
+    }
+    data_t absdiff = 0.f;
+    data_t absref = 0.f;
+    for (int i = 0; i < data.size(); i++) {
+        absdiff = std::fabs(data.data()[i] - ref_data.data()[i]);
+        absref = std::fabs(ref_data.data()[i]);
+        float e = absdiff > eps ? absdiff / absref : absdiff;
+        if (e > eps) {
+            LOG(ERROR) << "out = " << data.data()[i];
+            LOG(ERROR) << "out_ref = " << ref_data.data()[i];
+            return false;
+        }
+    }
+    return true;
+}
+
 int read_file(std::vector<float> &results, const char* file_name) {
 
     std::ifstream infile(file_name);
