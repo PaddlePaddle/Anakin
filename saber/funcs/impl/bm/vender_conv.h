@@ -51,7 +51,6 @@ public:
                           ConvParam<OpTensor>& param) {
         const InDataType *in_data = (const InDataType *) inputs[0]->data();
         const InDataType *weight = (const InDataType *) param.weight()->data();
-        const InDataType *bias = (const InDataType *) param.bias()->data();
         OutDataType *out_data = (OutDataType *) outputs[0]->mutable_data();
 
         int input_n = inputs[0]->num();
@@ -75,6 +74,7 @@ public:
         int dilation_w = param.dilation_w;
 
         bool with_bias = param.bias()->size() > 0;
+        const InDataType *bias = with_bias? (const InDataType *) param.bias()->data() : &bm_mem_null();
 
         bm_tensor_4d_t input_shape = {
             input_n,
