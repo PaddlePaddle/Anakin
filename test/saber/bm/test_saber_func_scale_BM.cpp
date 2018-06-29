@@ -66,6 +66,8 @@ void test_scale(int n, int c, int h, int w, int axis, int num_axes, bool bias_te
     std::vector<float> scale_b;
     scale_w.resize(scale_dim);
     fill_vector_rand(scale_w);
+    scale_w[0] = 0;
+    scale_w[1] = 0;
     if (bias_term) {
         scale_b.resize(scale_dim);
         fill_vector_rand(scale_b);
@@ -103,8 +105,8 @@ void test_scale(int n, int c, int h, int w, int axis, int num_axes, bool bias_te
 }
 
 TEST(TestSaberFuncBM, test_func_constructor_elt) {
-    test_scale(2, 2, 4, 4, 1, 1, false, 2);
-    test_scale(2, 2, 4, 4, 1, 1, true, 2);
+//    test_scale(1, 2, 1, 2, 1, 1, false, 2);
+    test_scale(1, 2, 1, 2, 1, 1, true, 2);
     /* test_scale(2, 2, 4, 4, 0, -1, true, 64); */
     /* test_scale(2, 2, 4, 4, 0, -1, true, 64); */
     /* test_scale(2, 2, 4, 4, 0, 0, true, 1); */

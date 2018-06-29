@@ -70,17 +70,40 @@ public:
         /* } */
 
         OpDataType scale_data = param.scale_w;
-        bm_device_mem_t* scale_extension = new bm_device_mem_t();
+        bm_device_mem_t* data_extension = new bm_device_mem_t();
+        int size = input_n * input_c * input_h * input_w;
+        bm_malloc_device_byte(_handle, data_extension, size * sizeof(float));
         BMDNN_CHECK(bmdnn_scale_forward(_handle, in_data, scale_data,
                 input_n, input_c, input_h, input_w,
                 scale_dim, inner_dim, 0,
-                *scale_extension, out_data));
-
+                *data_extension, out_data));
+        
         if (param.bias_term) {
             OpDataType bias_data = param.scale_b;
-            BMDNN_CHECK(bmdnn_bias_forward(_handle, out_data, bias_data,
-                    outer_dim, inner_dim, out_data));
+            float* host_bias = new float[scale_dim];
+            float* host_extension = new float[size];
+            printf(".........\n");
+//        bm_device_mem_t temp;;
+//        bm_malloc_device_byte(_handle, &temp, scale_dim * sizeof(float));
+//            bm_memcpy_d2s(_handle, bm_mem_from_system(host_bias), temp);
+//            bm_memcpy_d2s(_handle, bm_mem_from_system(host_bias), reinterpret_cast<bm_device_mem_t>(param.scale_b));
+            bm_memcpy_d2s(_handle, bm_mem_from_system(host_bias), bm_mem_from_device(&bias_data));
+            int dim = inner_dim * scale_dim;
+            host_bias[0] = 1;
+            host_bias[1] = 2;
+            for (int i = 0; i < size; ++i) {
+                 int bias_dim = (i % dim) / inner_dim;
+                 host_extension[i] = host_bias[bias_dim];
+                 printf("%f, ", host_extension[i]);
+            }
+            printf("\n");
+            bm_memcpy_s2d(_handle, *data_extension, bm_mem_from_system(const_cast<float *>(host_extension)));
+            delete [] host_bias;
+            delete [] host_extension; 
+            BMDNN_CHECK(bmdnn_bias_forward(_handle, out_data, *data_extension,
+                    outer_dim, scale_dim * inner_dim, out_data));
         }
+        bm_free_device(_handle, *data_extension);
         return SaberSuccess;
     }
 private:
