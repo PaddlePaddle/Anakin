@@ -976,12 +976,12 @@ struct ScaleParam {
 template <>
 struct ScaleParam<Tensor<BM, AK_BM, NCHW>> {
     ScaleParam(): axis(1), num_axes(1), bias_term(false) {}
-    ScaleParam(bm_device_mem_t scale_w_in, bm_device_mem_t scale_b_in,
+    ScaleParam(std::vector<float> scale_w_in, std::vector<float> scale_b_in,
                bool bias_term_in = true, int axis_in = 1, int num_axes_in = 1)
             : scale_w(scale_w_in), scale_b(scale_b_in)
             , bias_term(bias_term_in), axis(axis_in), num_axes(num_axes_in)
     {}
-    ScaleParam(bm_device_mem_t scale_w_in,
+    ScaleParam(std::vector<float> scale_w_in,
                bool bias_term_in = false, int axis_in = 1, int num_axes_in = 1)
             : scale_w(scale_w_in)
             , bias_term(bias_term_in), axis(axis_in), num_axes(num_axes_in)
@@ -1010,8 +1010,8 @@ struct ScaleParam<Tensor<BM, AK_BM, NCHW>> {
     int axis; // default is 1
     int num_axes; // default is 1
     bool bias_term; // default false
-    bm_device_mem_t scale_w;
-    bm_device_mem_t scale_b;
+    std::vector<float> scale_w;
+    std::vector<float> scale_b;
 };
 #endif
 template <typename opTensor>

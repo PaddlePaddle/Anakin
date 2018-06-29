@@ -73,8 +73,8 @@ void test_scale(int n, int c, int h, int w, int axis, int num_axes, bool bias_te
         fill_vector_rand(scale_b);
     }
 
-    ScaleParam<TensorDf4> param(bm_mem_from_system(&scale_w[0]), 
-                                bm_mem_from_system(&scale_b[0]), 
+    ScaleParam<TensorDf4> param(scale_w,
+                                scale_b,
                                 bias_term, axis, num_axes);
 
     std::vector<TensorDf4*> input;
