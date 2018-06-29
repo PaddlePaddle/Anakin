@@ -1,8 +1,9 @@
-#ifdef USE_X86_PLACE
+
 #include "utils/logger/logger.h"
 #include "graph.h"
 #include "net.h"
 
+#ifdef USE_X86_PLACE
 /*util to fill tensor*/
 #include "saber/core/tensor_op.h"
 using namespace anakin;

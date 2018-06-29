@@ -1,8 +1,9 @@
-#ifdef USE_CUDA
+
 #include "utils/logger/logger.h"
 #include "graph.h"
 #include "net.h"
 
+#ifdef USE_CUDA
 /*util to fill tensor*/
 #include "saber/core/tensor_op.h"
 using namespace anakin;
