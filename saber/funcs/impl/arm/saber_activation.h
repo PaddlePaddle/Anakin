@@ -73,6 +73,7 @@ public:
                 dout[i] = std::max(din[i], (OutDataType)0);
             }
         }
+        return SaberSuccess;
     }
 
 };

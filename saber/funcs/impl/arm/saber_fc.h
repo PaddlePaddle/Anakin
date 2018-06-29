@@ -67,7 +67,8 @@ public:
         FcParam<OpTensor> &param, Context<ARM> &ctx) override {
 
         this->_ctx = &ctx;
-        int threads = this->_ctx->get_act_ids().size();
+        int threads = 1;
+        this->_ctx->get_mode(threads);
 
         _m = inputs[0]->count_valid(0, param.axis);
         _k = inputs[0]->count_valid(param.axis, inputs[0]->dims());

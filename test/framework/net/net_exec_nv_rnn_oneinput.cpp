@@ -31,7 +31,7 @@ DEFINE_GLOBAL(std::string, output_name, "");
 DEFINE_GLOBAL(std::string, run_mode, "instance");
 DEFINE_GLOBAL(int, split_index, 0);
 
-#define AVG_INPUT
+//#define AVG_INPUT
 void getModels(std::string path, std::vector<std::string>& files) {
     DIR* dir = nullptr;
     struct dirent* ptr;
@@ -339,7 +339,7 @@ void instance_run(){
                       << ",AVG_INPUT QPS  = " << (thread_num*word_idx.size() / use_ms * 1000)
                       <<"line/second, "<<(GLB_word_count*thread_num)/use_ms*1000<<" words/second";
 #else
-                         << ",QPS = " << (word_idx.size() / use_ms * 1000);
+                         << ",QPS = " << (word_idx.size() / use_ms * 1000)
                          <<"line/second, "<<(GLB_word_count)/use_ms*1000<<" words/second";
 #endif
 }

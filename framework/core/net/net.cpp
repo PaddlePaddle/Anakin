@@ -14,7 +14,7 @@ Net<Ttype, Dtype, Ptype, RunType>::~Net() {
 template<typename Ttype, DataType Dtype>
 double tensor_average(Tensor4dPtr<Ttype, Dtype>& out_tensor_p) {
     double sum = 0.0f;
-    typedef typename DataTrait<Dtype>::dtype dtype;
+    typedef typename DataTrait<Ttype, Dtype>::dtype dtype;
     const dtype* hptr = nullptr;
 
     Shape shin = out_tensor_p->valid_shape();

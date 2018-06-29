@@ -248,6 +248,7 @@ public:
         _need_wait = operand._need_wait;
         _in_degree = operand._in_degree;
         _out_degree = operand._out_degree;
+        return *this;
     }
     
     /// print message

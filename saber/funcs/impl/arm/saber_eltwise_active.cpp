@@ -398,8 +398,8 @@ LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(\
     float* dout = outputs[0]->mutable_data();
 
   // printf("threads compute begin:device.id: %d \n", this->_ctx.get_device_id());
-   std::vector<int> ids = this->_ctx->get_act_ids();
-   int threads = ids.size();
+   int threads = 1;
+    this->_ctx->get_mode(threads);
    // printf("threads: %d\n", threads);
     int size = outputs[0]->valid_size();
     int num = size / threads;
