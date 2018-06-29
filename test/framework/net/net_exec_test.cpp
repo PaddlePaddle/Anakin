@@ -16,32 +16,8 @@ using Target_H = ARM;
 
 //#define USE_DIEPSE
 
-//std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/diepsie_light_head.anakin.bin";
-
-//std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/diepsie_light_head_base.anakin.bin";
-
-
-//std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/densebox.anakin.bin";
-
-//std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/cnn_seg.anakin.bin";
-
-//std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/yolo_camera_detector.anakin.bin";
-
-//std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/yolo_lane_v2.anakin.bin";
-
-// alignment of face
-//std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/net_deploy_stageI.anakin.bin";
-
-//std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/net_deploy_stageII.anakin.bin";
-
-// residual 7 patch of face
-//std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/residual_net_7patch_3hc.anakin.bin";
-
-// resnet 50
-//std::string model_path = "/home/cuichaowen/anakin2/anakin2/benchmark/CNN/mobilenet_v2.anakin.bin";
-
 // vgg16
-std::string model_path = "/home/cuichaowen/anakin2/anakin2/benchmark/CNN/models/vgg16.anakin.bin";
+std::string model_path = "../benchmark/CNN/models/vgg16.anakin.bin";
 
 #ifdef USE_CUDA
 #if 1
