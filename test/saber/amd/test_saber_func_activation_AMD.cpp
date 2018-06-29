@@ -50,10 +50,10 @@ void print_tensor_shape(std::string name, Tensor &t0) {
 }
 
 void test_active(std::vector<TensorDf4*> &inputs, std::vector<TensorDf4*> &outputs,
-                         int stride, int pad, TensorDf4 &bias,
+                         int stride, int pad, int slope, TensorDf4 &bias,
                          anakin::saber::ImplEnum impl, int warm_iter, int iter, Context<AMD> &ctx1, SaberTimer<AMD> &t_device) {
 
-    ActivationParam<TensorDf4> param(Active_relu);
+    ActivationParam<TensorDf4> param(Active_relu, slope);
 
     Activation<AMD, AK_FLOAT> activation;
     activation.compute_output_shape(inputs, outputs, param);
@@ -220,7 +220,7 @@ TEST(TestSaberFuncAMD, test_activation) {
         clFinish(amd_cstream);
 
         test_active(input_v, output_v,
-                         1, 1,
+                         1, 1, p->NegSlope,
                          bias, SABER_IMPL, warm_iter, iter, ctx1, t_device);
 
         print_tensor_shape("in", in);
@@ -244,11 +244,11 @@ TEST(TestSaberFuncAMD, test_activation) {
         //sleep(2);
 
         //LOG(INFO) << "PRINT DEVICE TENSOR: out";
-        print_tensor_device(out);
+        //print_tensor_device(out);
         //sleep(2);
 
         //LOG(INFO) << "PRINT HOST TENSOR: out";
-        print_tensor_host(out_golden_host);
+        //print_tensor_host(out_golden_host);
         //sleep(2);
 
         double max_r, max_d;
