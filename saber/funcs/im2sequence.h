@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -23,7 +23,16 @@
 #endif
 
 #ifdef USE_X86_PLACE
-//#include "saber/funcs/impl/x86/saber_activation.h"
+#include "saber/funcs/impl/impl_im2sequence.h"
+#endif
+#ifdef USE_ARM_PLACE
+//todo
+#include "saber/funcs/impl/impl_im2sequence.h"
+#endif
+
+#ifdef USE_AMD
+//todo
+#include "saber/funcs/impl/impl_im2sequence.h"
 #endif
 
 namespace anakin {
@@ -89,7 +98,12 @@ public:
         output_shape[width_idx] = 1;
         output[0]->set_shape(output_shape);
 
-
+        int n=input[0]->num();
+        std::vector<int> offset(n+1);
+        for(int i=0;i<=n;i++){
+            offset.push_back(i*output_height * output_width);
+        }
+        output[0]->set_seq_offset(offset);
         return SaberSuccess;
     }
 

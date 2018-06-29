@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -56,7 +56,7 @@ public:
                       PriorBoxParam<OpTensor> &param,
                       Context<NV> &ctx) {
         // get context
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         return create(inputs, outputs, param, ctx);
     }
 
@@ -65,10 +65,19 @@ public:
                         PriorBoxParam<OpTensor> &param,
                         Context<NV> &ctx){
 
+        CHECK_EQ(param.order.size(), 3)  << "Incorrect size of priorbox order list.";
+        CHECK_EQ(std::accumulate(param.order.begin(), param.order.end(), 0), 3) \
+            << "Incorrect type of priorbox order.";
+
         if (_output_host != nullptr) {
             fast_free(_output_host);
+            _output_host = nullptr;
         }
         _output_host = (float*)fast_malloc(sizeof(float) * outputs[0]->valid_size());
+
+        float* min_buf = (float*)fast_malloc(sizeof(float) * 4);
+        float* max_buf = (float*)fast_malloc(sizeof(float) * 4);
+        float* com_buf = (float*)fast_malloc(sizeof(float) * param.aspect_ratio.size() * 4);
 
         const int width = inputs[0]->width();
         const int height = inputs[0]->height();
@@ -96,17 +105,20 @@ public:
                 float box_width;
                 float box_height;
                 for (int s = 0; s < param.min_size.size(); ++s) {
+                    int min_idx = 0;
+                    int max_idx = 0;
+                    int com_idx = 0;
                     int min_size = param.min_size[s];
                     //! first prior: aspect_ratio = 1, size = min_size
                     box_width = box_height = min_size;
                     //! xmin
-                    _output_host[idx++] = (center_x - box_width / 2.f) / img_width;
+                    min_buf[min_idx++] = (center_x - box_width / 2.f) / img_width;
                     //! ymin
-                    _output_host[idx++] = (center_y - box_height / 2.f) / img_height;
+                    min_buf[min_idx++] = (center_y - box_height / 2.f) / img_height;
                     //! xmax
-                    _output_host[idx++] = (center_x + box_width / 2.f) / img_width;
+                    min_buf[min_idx++] = (center_x + box_width / 2.f) / img_width;
                     //! ymax
-                    _output_host[idx++] = (center_y + box_height / 2.f) / img_height;
+                    min_buf[min_idx++] = (center_y + box_height / 2.f) / img_height;
 
                     if (param.max_size.size() > 0) {
 
@@ -114,13 +126,13 @@ public:
                         //! second prior: aspect_ratio = 1, size = sqrt(min_size * max_size)
                         box_width = box_height = sqrtf(min_size * max_size);
                         //! xmin
-                        _output_host[idx++] = (center_x - box_width / 2.f) / img_width;
+                        max_buf[max_idx++] = (center_x - box_width / 2.f) / img_width;
                         //! ymin
-                        _output_host[idx++] = (center_y - box_height / 2.f) / img_height;
+                        max_buf[max_idx++] = (center_y - box_height / 2.f) / img_height;
                         //! xmax
-                        _output_host[idx++] = (center_x + box_width / 2.f) / img_width;
+                        max_buf[max_idx++] = (center_x + box_width / 2.f) / img_width;
                         //! ymax
-                        _output_host[idx++] = (center_y + box_height / 2.f) / img_height;
+                        max_buf[max_idx++] = (center_y + box_height / 2.f) / img_height;
                     }
 
                     //! rest of priors
@@ -132,17 +144,35 @@ public:
                         box_width = min_size * sqrt(ar);
                         box_height = min_size / sqrt(ar);
                         //! xmin
-                        _output_host[idx++] = (center_x - box_width / 2.f) / img_width;
+                        com_buf[com_idx++] = (center_x - box_width / 2.f) / img_width;
                         //! ymin
-                        _output_host[idx++] = (center_y - box_height / 2.f) / img_height;
+                        com_buf[com_idx++] = (center_y - box_height / 2.f) / img_height;
                         //! xmax
-                        _output_host[idx++] = (center_x + box_width / 2.f) / img_width;
+                        com_buf[com_idx++] = (center_x + box_width / 2.f) / img_width;
                         //! ymax
-                        _output_host[idx++] = (center_y + box_height / 2.f) / img_height;
+                        com_buf[com_idx++] = (center_y + box_height / 2.f) / img_height;
+                    }
+
+                    for (const auto &type : param.order) {
+                        if (type == PRIOR_MIN) {
+                            memcpy(_output_host + idx, min_buf, sizeof(float) * min_idx);
+                            idx += min_idx;
+                        } else if (type == PRIOR_MAX) {
+                            memcpy(_output_host + idx, max_buf, sizeof(float) * max_idx);
+                            idx += max_idx;
+                        } else if (type == PRIOR_COM) {
+                            memcpy(_output_host + idx, com_buf, sizeof(float) * com_idx);
+                            idx += com_idx;
+                        }
                     }
                 }
             }
         }
+
+        fast_free(min_buf);
+        fast_free(max_buf);
+        fast_free(com_buf);
+
         //! clip the prior's coordidate such that it is within [0, 1]
         if (param.is_clip) {
             for (int d = 0; d < channel_size; ++d) {
@@ -174,7 +204,7 @@ public:
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                           std::vector<DataTensor_out*>& outputs,
                           PriorBoxParam<OpTensor> &param){
-        cudaStream_t stream = this->_ctx.get_compute_stream();
+        cudaStream_t stream = this->_ctx->get_compute_stream();
         CUDA_CHECK(cudaMemcpyAsync(outputs[0]->mutable_data(), _output_nv.data(), \
                 outputs[0]->valid_size() * sizeof(float), cudaMemcpyDeviceToDevice, stream));
         return SaberSuccess;

@@ -17,6 +17,18 @@ void SassConvRelu<NV, AK_FLOAT, Precision::FP32>::operator()(
 }
 #endif
 
+#ifdef USE_AMD
+template<>
+void SassConvRelu<AMD, AK_FLOAT, Precision::FP32>::operator()(
+    OpContext<AMD>& ctx,
+    const std::vector<Tensor4dPtr<AMD, AK_FLOAT> >& ins,
+    std::vector<Tensor4dPtr<AMD, AK_FLOAT> >& outs) {
+    auto* impl = static_cast<SassConvReluHelper<AMD, AK_FLOAT, Precision::FP32>*>(this->_helper);
+    auto& param = static_cast<SassConvReluHelper<AMD, AK_FLOAT, Precision::FP32>*>
+                  (this->_helper)->_param_conv_relu;
+    impl->_funcs_conv_relu(ins, outs, param, ctx);
+}
+#endif
 /// TODO ... specialization other type of operator
 
 
@@ -27,7 +39,7 @@ SassConvReluHelper<Ttype, Dtype, Ptype>::~SassConvReluHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status SassConvReluHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing SassConvRelu op parameter.";
+    DLOG(WARNING) << "Parsing SassConvRelu op parameter.";
     saber::ConvParam<Tensor4d<Ttype, Dtype>> _conv_param;
 
     // get conv param
@@ -39,10 +51,12 @@ Status SassConvReluHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto filter_num = GET_PARAMETER(int, filter_num);
     auto kernel_size = GET_PARAMETER(PTuple<int>, kernel_size);
     auto axis = GET_PARAMETER(int, axis);
-    auto weights = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_1);
+
+	using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
+    auto weights = GET_PARAMETER(pblock_type, weight_1);
 
     if (bias_term) {
-        auto bias = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_2);
+        auto bias = GET_PARAMETER(pblock_type, weight_2);
         saber::ConvParam<Tensor4d<Ttype, Dtype>> conv_param(group, padding[0], padding[1],
                                               strides[0], strides[1],
                                               dilation_rate[0], dilation_rate[1],
@@ -96,6 +110,12 @@ template class SassConvReluHelper<ARM, AK_FLOAT, Precision::FP16>;
 template class SassConvReluHelper<ARM, AK_FLOAT, Precision::INT8>;
 #endif
 
+#ifdef USE_AMD
+template class SassConvReluHelper<AMD, AK_FLOAT, Precision::FP32>;
+template class SassConvReluHelper<AMD, AK_FLOAT, Precision::FP16>;
+template class SassConvReluHelper<AMD, AK_FLOAT, Precision::INT8>;
+#endif
+
 // register helper
 #ifdef USE_CUDA
 ANAKIN_REGISTER_OP_HELPER(SassConvRelu, SassConvReluHelper, NV, AK_FLOAT, Precision::FP32);
@@ -105,6 +125,9 @@ ANAKIN_REGISTER_OP_HELPER(SassConvRelu, SassConvReluHelper, NV, AK_FLOAT, Precis
 ANAKIN_REGISTER_OP_HELPER(SassConvRelu, SassConvReluHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
 
+#ifdef USE_AMD
+ANAKIN_REGISTER_OP_HELPER(SassConvRelu, SassConvReluHelper, AMD, AK_FLOAT, Precision::FP32);
+#endif
 //! register op
 ANAKIN_REGISTER_OP(SassConvRelu)
 .Doc("SassConvRelu fusion operator")
@@ -113,6 +136,9 @@ ANAKIN_REGISTER_OP(SassConvRelu)
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale_relu")
+#endif
+#ifdef USE_AMD
+.__alias__<AMD, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale_relu")
 #endif
 .num_in(1)
 .num_out(1)

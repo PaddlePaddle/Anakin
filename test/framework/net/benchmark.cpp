@@ -9,6 +9,21 @@
 #include <unistd.h>  
 #include <fcntl.h>
 #include <map>
+#include "framework/operators/ops.h"
+
+#if defined(USE_CUDA)
+using Target = NV;
+using Target_H = X86;
+#elif defined(USE_X86_PLACE)
+using Target = X86;
+using Target_H = X86;
+#elif defined(USE_ARM_PLACE)
+using Target = ARM;
+using Target_H = ARM;
+#elif defined(USE_AMD)
+using Target = AMD;
+using Target_H = X86;
+#endif
 
 #ifdef USE_GFLAGS
 #include <gflags/gflags.h>
@@ -54,18 +69,22 @@ TEST(NetTest, net_execute_base_test) {
     for (auto iter = models.begin(); iter < models.end(); iter++)
     {
         LOG(WARNING) << "load anakin model file from " << *iter << " ...";
-        Graph<NV, AK_FLOAT, Precision::FP32> graph;   
+        Graph<Target, AK_FLOAT, Precision::FP32> graph;   
         auto status = graph.load(*iter);
         if (!status) {
             LOG(FATAL) << " [ERROR] " << status.info();
         }
-        graph.ResetBatchSize("input_0", FLAGS_num);        
+        LOG(INFO) << "set batchsize to " << FLAGS_num;
+        graph.ResetBatchSize("input_0", FLAGS_num);
+        LOG(INFO) << "optimize the graph";
         graph.Optimize();
         // constructs the executer net
-        Net<NV, AK_FLOAT, Precision::FP32> net_executer(graph, true);
+        LOG(INFO) << "create net to execute";
+        Net<Target, AK_FLOAT, Precision::FP32> net_executer(graph, true);
         // get in
+        LOG(INFO) << "get input";
         auto d_tensor_in_p = net_executer.get_in("input_0");
-        Tensor4d<X86, AK_FLOAT> h_tensor_in;
+        Tensor4d<Target_H, AK_FLOAT> h_tensor_in;
         auto valid_shape_in = d_tensor_in_p->valid_shape();
         for (int i = 0; i < valid_shape_in.size(); i++) {
             LOG(INFO) << "detect input dims[" << i << "]" << valid_shape_in[i];
@@ -74,14 +93,20 @@ TEST(NetTest, net_execute_base_test) {
         fill_tensor_host_rand(h_tensor_in, -1.0f,1.0f);
         d_tensor_in_p->copy_from(h_tensor_in);
         // do inference
-        Context<NV> ctx(0, 0, 0);
-        saber::SaberTimer<NV> my_time;
+        Context<Target> ctx(0, 0, 0);
+        saber::SaberTimer<Target> my_time;
         LOG(WARNING) << "EXECUTER !!!!!!!! ";
+        my_time.start(ctx);
         for (int i = 0; i < FLAGS_warmup_iter; i++) {
             net_executer.prediction();
         }
+        my_time.end(ctx);
+        my_time.clear();
 #ifdef ENABLE_OP_TIMER
         net_executer.reset_op_time();
+#endif
+#ifdef USE_AMD
+        Env<AMD>::start_record();
 #endif
         my_time.start(ctx);
         //auto start = std::chrono::system_clock::now();
@@ -112,11 +137,18 @@ TEST(NetTest, net_execute_base_test) {
         size_t end = (*iter).find(".anakin.bin");
         size_t start = FLAGS_model_dir.length();
         std::string model_name = (*iter).substr(start, end-start);
-        
+
         LOG(INFO) << model_name << " batch_size " << FLAGS_num << " average time "<< my_time.get_average_ms() / FLAGS_epoch << " ms";
+#ifdef USE_AMD
+        Env<AMD>::stop_record();
+        Env<AMD>::pop();
+#endif
     }
 }
 int main(int argc, const char** argv){
+
+    Env<Target>::env_init();
+
     // initial logger
     logger::init(argv[0]);
 
@@ -148,6 +180,7 @@ int main(int argc, const char** argv){
         FLAGS_epoch = atoi(argv[5]);
     }
 #endif
+
     InitTest();
     RUN_ALL_TESTS(argv[0]); 
     return 0;

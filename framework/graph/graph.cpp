@@ -144,8 +144,8 @@ Status Graph<Ttype, Dtype, Ptype>::Optimize() EXCLUSIVE_LOCKS_REQUIRED(_mut) {
 
             // set info for graph
             statistics.set_info<IS_OPTIMIZED>(true);
-            DLOG(INFO) << " model size : " << graph::GraphGlobalMem::Global().get_sum_mbyte() << " mb ";
-            statistics.set_info<MODEL_MEM>(graph::GraphGlobalMem::Global().get_sum_mbyte());
+            DLOG(INFO) << " model size : " << graph::GraphGlobalMem<Ttype>::Global().get_sum_mbyte() << " mb ";
+            statistics.set_info<MODEL_MEM>(graph::GraphGlobalMem<Ttype>::Global().get_sum_mbyte());
 
             DLOG(WARNING) << "Restore graph from virtual graph of ... ";
             restore_from_vgraph(_vgraph);
@@ -367,19 +367,40 @@ Status Graph<Ttype, Dtype, Ptype>::Clean() {
     delete _vgraph;
     _vgraph = nullptr;
     // clenn all weights
-    graph::GraphGlobalMem::Global().clean_all();
+    graph::GraphGlobalMem<Ttype>::Global().clean_all();
 
     return Status::OK();
 }
 
+#ifdef USE_CUDA
 template class Graph<NV, AK_FLOAT, Precision::FP32>;
 template class Graph<NV, AK_FLOAT, Precision::FP16>;
 template class Graph<NV, AK_FLOAT, Precision::INT8>;
+#endif
 
+#ifdef USE_X86_PLACE
+template class Graph<X86, AK_FLOAT, Precision::FP32>;
+template class Graph<X86, AK_FLOAT, Precision::FP16>;
+template class Graph<X86, AK_FLOAT, Precision::INT8>;
+#endif
+
+#ifdef USE_ARM_PLACE
+#ifdef ANAKIN_TYPE_FP32
 template class Graph<ARM, AK_FLOAT, Precision::FP32>;
+#endif
+#ifdef ANAKIN_TYPE_FP16
 template class Graph<ARM, AK_FLOAT, Precision::FP16>;
+#endif
+#ifdef ANAKIN_TYPE_INT8
 template class Graph<ARM, AK_FLOAT, Precision::INT8>;
+#endif
+#endif
 
+#ifdef USE_AMD
+template class Graph<AMD, AK_FLOAT, Precision::FP32>;
+template class Graph<AMD, AK_FLOAT, Precision::FP16>;
+template class Graph<AMD, AK_FLOAT, Precision::INT8>;
+#endif
 } /* namespace graph */
 
 } /* namespace anakin */
