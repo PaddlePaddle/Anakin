@@ -1,7 +1,7 @@
 # Anakin 2.0 And Docker
 ---
 
-## 依赖软件
+## 依赖软件
 
 + 你的操作系统上应该已经安装了docker.
 + 如果你要在docker中使用`NVIDIA GPU` 还需要安装[nvidia-docker2](https://github.com/NVIDIA/nvidia-docker/wiki/Installation-(version-2.0))
@@ -36,10 +36,6 @@ or
 chmod +x ./anakin_docker_build_and_run.sh
 ./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
 ```
-#### 拉取和运行构建好的镜像
-以下镜像以ubuntu16.04-cuda8-cudnn7构建，非anakin最新版
-`docker pull registry.cn-hangzhou.aliyuncs.com/liujunjie/anakin`
-`nvidia-docker run -it registry.cn-hangzhou.aliyuncs.com/liujunjie/anakin`
 
 ### X86 Docker
 
