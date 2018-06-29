@@ -91,6 +91,7 @@ public:
     inline void push_self_lock(io& io_tmp) { _self_lock.push_back(io_tmp);}
     void reg_self_lock_tree(io&, std::vector<io>&);
     void rm_self_lock_tree(io&);
+	bool is_in_self_tree(io&);
     void free_self(std::vector<io>&, VGraph*);
     void map_ios_to_vgraph(std::vector<io>&, VGraph*);
 

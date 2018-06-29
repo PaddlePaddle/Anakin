@@ -29,7 +29,6 @@ void IOBlockResource::rm_self_lock_tree(io& io_in) {
     }
 }
 
-
 void IOBlockResource::free_self(std::vector<io>& self_shared_edges, VGraph* vgraph_p) {
     for (auto& io : self_shared_edges) {
         rm_self_lock_tree(io);
@@ -188,9 +187,9 @@ void MemoryScheduler::launch(node& node_arg) {
 			int selected = 0;
 			std::vector<int> io_locked_idx;
 			for(int i=0; i < node_arc_in_its.size(); i++) {
-				if(_io_block_res.is_locked(node_arc_in_its[i]->weight())) {
+				//if(_io_block_res.is_locked(node_arc_in_its[i]->weight())) {
 					io_locked_idx.push_back(i);
-				}
+				//}
 			}
 			// collect all locked io bottom node's inputs io
 			std::vector<io> all_collected;
@@ -205,6 +204,11 @@ void MemoryScheduler::launch(node& node_arg) {
 				bool dismiss = false;
 				for(auto& io : all_collected) {
 					if(node_arc_in_its[idx]->weight().shared) {
+						auto& node_btm = (*_vgraph)[node_arc_in_its[idx]->bottom()]; 
+						if(_need_self_shared(node_btm)) { 
+							dismiss = false; 
+							break; 
+						}
 						if((io.share_from == node_arc_in_its[idx]->weight().share_from) || \
 								(io.name == node_arc_in_its[idx]->weight().share_from)) {
 							dismiss = true;
@@ -217,6 +221,7 @@ void MemoryScheduler::launch(node& node_arg) {
 				}
 				if(!dismiss) {
 					selected = idx;
+					break;
 				}
 			}
 			_io_block_res.push_self_lock(node_arc_in_its[selected]->weight());
