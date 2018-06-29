@@ -38,15 +38,13 @@ bool compare_tensor(T& data, T& ref_data, float eps = 1e-4) {
         absdiff = std::fabs(data.data()[i] - ref_data.data()[i]);
         absref = std::fabs(ref_data.data()[i]);
         float e = absdiff > eps ? absdiff / absref : absdiff;
-        if (e <= eps) {
-            return true;
-        } else {
+        if (e > eps) {
             LOG(ERROR) << "out = " << data.data()[i];
             LOG(ERROR) << "out_ref = " << ref_data.data()[i];
             return false;
         }
     }
-    return false;
+    return true;
 }
 
 #define ARRAY_SIZE(array)  (sizeof(array) / sizeof(*array))
