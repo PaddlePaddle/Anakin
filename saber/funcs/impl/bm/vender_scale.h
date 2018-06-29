@@ -83,8 +83,8 @@ public:
             float* host_extension = new float[size];
             printf(".........\n");
             int dim = inner_dim * scale_dim;
-            host_bias[0] = 1;
-            host_bias[1] = 2;
+            //host_bias[0] = 1;
+            //host_bias[1] = 2;
             for (int i = 0; i < size; ++i) {
                  int bias_dim = (i % dim) / inner_dim;
                  host_extension[i] = host_bias[bias_dim];
