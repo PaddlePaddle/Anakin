@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -102,15 +102,17 @@ public:
         } else if(param.conv_param.group == 1) {
             const int K = param.conv_param.weight()->num();
             if(K % 4 == 0) {
-                if (param.conv_param.bias()->size() > 0)
-                    dispatch_func = direct_conv_bias_relu_Kdivis4<InDataType, OpDataType>;
-                else
+                if (param.conv_param.bias()->size() > 0){
+                    dispatch_func = param.has_active ?  direct_conv_bias_relu_Kdivis4<InDataType, OpDataType>: direct_conv_bias_Kdivis4<InDataType, OpDataType>;
+                } else {
                     return SaberUnImplError;
+                }
             } else {   // TODO: would merge the bias(with/without) version
-                if (param.conv_param.bias()->size() > 0)
-                    dispatch_func = direct_conv_bias_relu_Kindiv4<InDataType, OpDataType>;
-                else
+                if (param.conv_param.bias()->size() > 0) {
+                    dispatch_func = param.has_active ? direct_conv_bias_relu_Kindiv4<InDataType, OpDataType> : direct_conv_bias_Kindiv4<InDataType, OpDataType>;
+                } else {
                     return SaberUnImplError;
+                }
             }      
         } else {
             return SaberUnImplError;
@@ -145,20 +147,28 @@ public:
         //LOG(INFO) << "saber conv act";
         if (_use_k1s1p0) {
 //            LOG(INFO)<<"using k1s1p0";
-            if (param.has_eltwise) {
-                if (param.eltwise_param.operation == Eltwise_sum) {
+            if (param.has_eltwise_act) {
+                //if (param.eltwise_param.operation == Eltwise_sum) {
                     conv_gemm_k1s1p0(outputs[0]->mutable_data(),
                                      inputs[0]->data(),
                                      param.conv_param.weight()->data(),
                                      chout, chin, hin, win, bias_data,
-                                     this->_ctx->get_compute_stream(), 1.f, 1.f);
-                }
+                                     this->_ctx->get_compute_stream(), 1.f, 1.f, true);
+                //}
             } else {
-                conv_gemm_k1s1p0(outputs[0]->mutable_data(),
-                                 inputs[0]->data(),
-                                 param.conv_param.weight()->data(),
-                                 chout, chin, hin, win, bias_data,
-                                 this->_ctx->get_compute_stream());
+                if (param.has_active) {
+                    conv_gemm_k1s1p0(outputs[0]->mutable_data(),
+                                     inputs[0]->data(),
+                                     param.conv_param.weight()->data(),
+                                     chout, chin, hin, win, bias_data,
+                                     this->_ctx->get_compute_stream(), 1.f, 0.f, true);
+                } else {
+                    conv_gemm_k1s1p0(outputs[0]->mutable_data(),
+                                     inputs[0]->data(),
+                                     param.conv_param.weight()->data(),
+                                     chout, chin, hin, win, bias_data,
+                                     this->_ctx->get_compute_stream(), 1.f, 0.f, false);
+                }
             }
             return SaberSuccess;
         }
@@ -246,7 +256,6 @@ public:
                     param.conv_param.group, 
                     param.conv_param.alpha, 
                     param.conv_param.beta, 
-                    this->_ctx->get_compute_stream());
             }
 
         return SaberSuccess;
@@ -380,24 +389,40 @@ private:
                           const float* weights, int out_channel,
                           int in_channel, int img_h, int img_w,
                           const float* bias, cudaStream_t cuda_stream,
-                          float a = 1.f, float b = 0.f) {
+                          float a = 1.f, float b = 0.f, bool relu = true) {
 
         float alpha = a; float beta = b;
         int m = out_channel;
         int k = in_channel;
         int n = img_h * img_w;
         if (ifVec(m, n, k, k, n, n)) {
-            ker_gemm_32x32x32_NN_vec_bias_relu(m, n, k,
-                                           alpha, weights,
-                                           beta, img,
-                                           out, bias,
-                                           cuda_stream);
+            if (relu) {
+                ker_gemm_32x32x32_NN_vec_bias_relu(m, n, k,
+                                                   alpha, weights,
+                                                   beta, img,
+                                                   out, bias,
+                                                   cuda_stream);
+            } else {
+                ker_gemm_32x32x32_NN_vec_bias(m, n, k,
+                                              alpha, weights,
+                                              beta, img,
+                                              out, bias,
+                                              cuda_stream);
+            }
         } else {
-            ker_gemm_32x32x32_NN_bias_relu(m, n, k,
-                                           alpha, weights,
-                                           beta, img,
-                                           out, bias,
-                                           cuda_stream);
+            if (relu) {
+                ker_gemm_32x32x32_NN_bias_relu(m, n, k,
+                                               alpha, weights,
+                                               beta, img,
+                                               out, bias,
+                                               cuda_stream);
+            } else {
+                ker_gemm_32x32x32_NN_bias(m, n, k,
+                                          alpha, weights,
+                                          beta, img,
+                                          out, bias,
+                                          cuda_stream);
+            }
         }
     }
 

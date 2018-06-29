@@ -59,7 +59,7 @@ namespace logger {
 
 #define SUPPORT_PTHREADS  1 // support for pthreads
 
-#ifdef TARGET_ANDROID
+#ifdef TARGET_ANDRIOD
 	#define STACKTRACES 0
 #else
 	#define STACKTRACES 1

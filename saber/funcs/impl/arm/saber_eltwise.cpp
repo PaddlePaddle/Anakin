@@ -197,7 +197,7 @@ void eltwise_sum_coeff(const float* din_a, const float* din_b, float* dout, std:
                 "vst1.f32 {d18-d19}, [%[out_ptr]]!      @ store data\n"
                 "bne       sum_coeff_loop               @ top_loop \n"
         :[loop_cnt] "+r" (loop_cnt), [a_ptr] "+r" (a_ptr), \
-            [b_ptr] "+r" (b_ptr), [out_ptr] "+r" (out_ptr), \ 
+            [b_ptr] "+r" (b_ptr), [out_ptr] "+r" (out_ptr), \
             [vcoef0] "+w" (vcoef0), [vcoef1] "+w" (vcoef1)
         :
         :"q0", "q1", "q2", "q3", "q8", "q9"

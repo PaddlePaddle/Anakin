@@ -462,12 +462,13 @@ def Parser_power(args):
     OpsRegister()["Power"].power = power_param.power
 
 
-@ParserFeedDecorator("PReLU")
+@ParserFeedDecorator("Activation")
 def Parser_prelu(args):
     layer = args[1]
     # parser caffe parameter
     prelu_param = layer.prelu_param
-    OpsRegister()["PReLU"].channel_shared = prelu_param.channel_shared
+    OpsRegister()["Activation"].type = "PReLU"
+    OpsRegister()["Activation"].channel_shared = prelu_param.channel_shared
 
 
 @ParserFeedDecorator("RNN")

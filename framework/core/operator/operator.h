@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -119,6 +119,13 @@ public:
     template<typename T>
     T get_attr(std::string attr_name) { return _node_p->get_attr<T>(attr_name); }
 
+	/**
+	 *  \brief Judge if op access target attr
+	 */
+	inline bool check_attr(const std::string& attr_name) {
+		return _node_p->inspect_attr(attr_name);
+	}
+
 private:
     ///< Pointer to graph node.
     graph::NodePtr<Ttype, Dtype, Ptype> _node_p;
@@ -152,7 +159,7 @@ public:
      *  \brief Create Operator object by op_name.
      */
     virtual Operator<Ttype, Dtype, Ptype>* operator[](const std::string op_name) {
-        Factory<Operator<Ttype, Dtype, Ptype>, OperatorCreator<Ttype, Dtype, Ptype>>::operator[](op_name);
+        return Factory<Operator<Ttype, Dtype, Ptype>, OperatorCreator<Ttype, Dtype, Ptype>>::operator[](op_name);
     }
 
     /** 

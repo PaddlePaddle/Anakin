@@ -1,9 +1,16 @@
-# ----------------------------------------------------------------------------
-# Copyright (c) 2016 Baidu.com, Inc. All Rights Reserved
-# @file     utils.cmake
-# @auther   cuichaowen
-# @date     2016-11-8
-# ----------------------------------------------------------------------------
+# Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 # ----------------------------------------------------------------------------
 # section: help to search src and include files
@@ -24,9 +31,9 @@ function(anakin_fetch_files_with_suffix search_dir suffix outputs)
 		endforeach()
 		set(${outputs} ${${outputs}} ${abs_dir} PARENT_SCOPE)
 	else()
-        #message(WARNING "anakin_fetch_files_recursively ${BoldRed}failed${ColourReset}:\n"
-        #                "real_dir:${BoldYellow}${search_dir}${ColourReset}\n"
-        #                "suffix:*.${BoldYellow}${suffix}${ColourReset} \n")
+		#message(WARNING "anakin_fetch_files_recursively ${BoldRed}failed${ColourReset}:\n"
+		#                "real_dir:${BoldYellow}${search_dir}${ColourReset}\n"
+		#                "suffix:*.${BoldYellow}${suffix}${ColourReset} \n")
 	endif()
 endfunction()
 
@@ -39,7 +46,7 @@ endfunction()
 # recursively fetch include dir 
 function(anakin_fetch_include_recursively root_dir)
     if (IS_DIRECTORY ${root_dir})
-        #message(STATUS "include dir: " ${Magenta}${root_dir}${ColourReset})
+		#message(STATUS "include dir: " ${Magenta}${root_dir}${ColourReset})
 		include_directories(${root_dir})
     endif()
 

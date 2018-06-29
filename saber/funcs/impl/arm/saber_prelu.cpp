@@ -1,5 +1,5 @@
 #include "saber/funcs/impl/arm/saber_prelu.h"
-
+#if 0 //remove prelu
 #ifdef USE_ARM_PLACE
 namespace anakin{
 
@@ -99,3 +99,4 @@ template class SaberPrelu<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
 } // namespace anakin
 
 #endif //USE_ARM_PLACE
+#endif
