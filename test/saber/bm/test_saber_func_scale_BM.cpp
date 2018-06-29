@@ -33,6 +33,11 @@ void fill_vector_rand(std::vector<float>& vec) {
         vec[i] = rand() *1.0f/RAND_MAX - 0.5;
     }
 }
+void fill_vector_const(std::vector<float>& vec, float num) {
+    for (int i = 0; i < vec.size(); i++) {
+        vec[i] = num;
+    }
+}
 void print_vector_data(std::vector<float>& vec) {
     for (int i = 0; i < vec.size(); i++) {
         printf("%d, %f\n", i, vec[i]);
@@ -56,7 +61,7 @@ void test_scale(int n, int c, int h, int w, int axis, int num_axes, bool bias_te
 
     img_host.re_alloc(img_s);
     img_dev.re_alloc(img_s);
-    fill_tensor_host_rand(img_host, -0.5, 0.5);
+    fill_tensor_host_const(img_host, 1);
     img_dev.copy_from(img_host);
 
     TensorDf4 output_dev;
@@ -65,12 +70,10 @@ void test_scale(int n, int c, int h, int w, int axis, int num_axes, bool bias_te
     std::vector<float> scale_w;
     std::vector<float> scale_b;
     scale_w.resize(scale_dim);
-    fill_vector_rand(scale_w);
-    scale_w[0] = 0;
-    scale_w[1] = 0;
+    fill_vector_const(scale_w, 2);
     if (bias_term) {
         scale_b.resize(scale_dim);
-        fill_vector_rand(scale_b);
+        fill_vector_const(scale_b, 0);
     }
 
     ScaleParam<TensorDf4> param(scale_w,
@@ -105,7 +108,7 @@ void test_scale(int n, int c, int h, int w, int axis, int num_axes, bool bias_te
 }
 
 TEST(TestSaberFuncBM, test_func_constructor_elt) {
-//    test_scale(1, 2, 1, 2, 1, 1, false, 2);
+    test_scale(1, 2, 1, 2, 1, 1, false, 2);
     test_scale(1, 2, 1, 2, 1, 1, true, 2);
     /* test_scale(2, 2, 4, 4, 0, -1, true, 64); */
     /* test_scale(2, 2, 4, 4, 0, -1, true, 64); */
