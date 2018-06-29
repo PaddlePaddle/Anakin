@@ -1,9 +1,17 @@
-# ----------------------------------------------------------------------------
-# Copyright (c) 2016 Baidu.com, Inc. All Rights Reserved
-# @file		root cmakefile
-# @auther   cuichaowen
-# @date		2017-10-24
-# ----------------------------------------------------------------------------
+# Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 include(cmake/thirdparty_version.cmake)
 project(ANAKIN C CXX)
 include(cmake/msg_color.cmake)
@@ -64,7 +72,7 @@ anakin_option(ENABLE_NOISY_WARNINGS "Enable noisy warning msg during compile." N
 # using 3rd party libs
 anakin_option(USE_GLOG "Build Glog components." NO)
 anakin_option(USE_PROTOBUF "Build Google protobuf components." YES)
-anakin_option(USE_OPENCV "Use static opencv libs." YES)
+anakin_option(USE_OPENCV "Use static opencv libs." NO)
 anakin_option(USE_BOOST "Use static BOOST libs." NO)
 anakin_option(USE_OPENMP "Use Openmp when in android environment." YES if TARGET_ANDROID)
 anakin_option(USE_GTEST "Use googletest libs." NO if BUILD_WITH_UNIT_TEST)
@@ -80,7 +88,7 @@ anakin_option(USE_OPENMP "Use Openmp when in android environment." YES if TARGET
 anakin_option(BUILD_WITH_UNIT_TEST "Build anakin unit test components." YES)
 
 # build examples
-anakin_option(BUILD_EXAMPLES "build detection and classification examples" YES)
+anakin_option(BUILD_EXAMPLES "build detection and classification examples" NO)
 
 # build target
 anakin_option(BUILD_SHARED "Build anakin shared lib." YES)

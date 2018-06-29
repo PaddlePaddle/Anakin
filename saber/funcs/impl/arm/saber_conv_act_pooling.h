@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ class SaberConv2DActPooling<ARM, OpDtype, inDtype, outDtype,\
         Tensor<ARM, inDtype, LayOutType_in>,
         Tensor<ARM, outDtype, LayOutType_out>,
         Tensor<ARM, OpDtype, LayOutType_op>,
-        ConvActiveParam<Tensor<ARM, OpDtype, LayOutType_op> > > {
+        ConvActivePoolingParam<Tensor<ARM, OpDtype, LayOutType_op> > > {
 public:
     typedef Tensor<ARM, inDtype, LayOutType_in> DataTensor_in;
     typedef Tensor<ARM, outDtype, LayOutType_out> DataTensor_out;
@@ -53,19 +53,56 @@ public:
 
     virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
                              std::vector<DataTensor_out *>& outputs,
-                             ConvActiveParam<OpTensor> &param, Context<ARM> &ctx) override;
+                             ConvActivePoolingParam<OpTensor> &param, Context<ARM> &ctx) override;
 
     virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
                                std::vector<DataTensor_out *>& outputs,
-                               ConvActiveParam<OpTensor> &param, Context<ARM> &ctx) override;
+                               ConvActivePoolingParam<OpTensor> &param, Context<ARM> &ctx) override;
 
     virtual SaberStatus dispatch(const std::vector<DataTensor_in *>& inputs,
                                  std::vector<DataTensor_out *>& outputs,
-                                 ConvActiveParam<OpTensor> &param) override;
+                                 ConvActivePoolingParam<OpTensor> &param) override;
+
+    void get_conv_out_tensor(const std::vector<DataTensor_in *>& inputs,
+                              ConvActivePoolingParam<OpTensor> &param) {
+
+        ConvParam<OpTensor> conv_param = param.conv_param;
+
+        Shape conv_out_shape = inputs[0]->valid_shape();
+        // append the $n and $c/$k, output: N * K * P * Q
+        int num_idx = inputs[0]->num_index();
+        int channel_idx = inputs[0]->channel_index();
+        int height_idx = inputs[0]->height_index();
+        int width_idx = inputs[0]->width_index();
+
+        conv_out_shape[num_idx] = inputs[0]->num(); // N
+        conv_out_shape[channel_idx] = conv_param.weight()->num(); // K
+
+        int input_dim = inputs[0]->height(); // P
+        int kernel_exten = conv_param.dilation_h * (conv_param.weight()->height() - 1) + 1;
+        int output_dim = (input_dim + 2 * conv_param.pad_h - kernel_exten)
+                         / conv_param.stride_h + 1;
+
+        conv_out_shape[height_idx] = output_dim;
+
+        input_dim = inputs[0]->width(); // Q
+        kernel_exten = conv_param.dilation_w * (conv_param.weight()->width() - 1) + 1;
+        output_dim = (input_dim + 2 * conv_param.pad_w - kernel_exten)
+                     / conv_param.stride_w + 1;
+
+        conv_out_shape[width_idx] = output_dim;
+
+        _tensor_tmp.reshape(conv_out_shape);
+        _vtensor_tmp[0] = &_tensor_tmp;
+    }
 
 private:
-    SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>* _conv_op;
-    SaberPooling<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>* _pool_op;
+    SaberConv2D<ARM, OpDtype, inDtype, outDtype,\
+    LayOutType_op, LayOutType_in, LayOutType_out>* _conv_op;
+    SaberPooling<ARM, OpDtype, inDtype, outDtype,\
+    LayOutType_op, LayOutType_in, LayOutType_out>* _pool_op;
+    DataTensor_in _tensor_tmp;
+    std::vector<DataTensor_in *> _vtensor_tmp;
 };
 
 } //namespace saber

@@ -339,7 +339,8 @@ OpsRegister.Register("LSTM").set_attr(candidate_activation="tanh",
 
 
 OpsRegister.Register("MatMul").set_attr(transpose_x=bool(),
-                                        transpose_y=bool())
+                                        transpose_y=bool(),
+                                        coeff=float())
 
 
 OpsRegister.Register("LayerNorm").set_attr(is_across_spatial=bool(),

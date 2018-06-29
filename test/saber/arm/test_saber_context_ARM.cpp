@@ -9,7 +9,8 @@ TEST(TestSaberContextARM, test_arm_context) {
     Context<ARM> ctx;
     LOG(INFO) << "create runtime ctx";
     //ctx.set_power_mode(MERC_HIGH);
-    ctx.set_act_cores({4, 5, 6, 7});
+    //ctx.set_act_cores({4, 5, 6, 7});
+    ctx.set_run_mode(SABER_POWER_HIGH, 4);
     LOG(INFO) << "set active ids";
 
     LOG(INFO) << "test threads activated";
