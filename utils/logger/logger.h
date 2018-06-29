@@ -1,9 +1,7 @@
-/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
-
+/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
-
        http://www.apache.org/licenses/LICENSE-2.0
    
    Unless required by applicable law or agreed to in writing, software
@@ -12,133 +10,164 @@
    See the License for the specific language governing permissions and
    limitations under the License. 
 */
-
 #ifndef LOGGER_H
 #define LOGGER_H
 
-#define LOGGER_SHUTDOWN 0
-
-#include "anakin_config.h"
 #include "logger_core.h"
-
-#define SCOPE_LOGGER_CORE_FUNC 		logger::core::funcRegister
-#define SCOPE_LOGGER_CORE      		logger::core
-#define SCOPE_LOGGER_CORE_CONFIG	logger::core::LoggerConfig
 
 namespace logger {
 
+/// logger inital api
+inline void init(const char* argv0){
+#ifndef LOGGER_SHUTDOWN 
+    core::initial(argv0); 
+#endif 
+}
 
-    inline void init(const char* argv0){
-#if not LOGGER_SHUTDOWN
-        SCOPE_LOGGER_CORE_FUNC::initial(argv0);
-#endif
-
-    }
-
-} // namespace logger
-
+} /* namespace logger */
 
 namespace {
 
-#define CHECK_SYMBOL_WARP(name, symbol)    											\
-    template <typename T1, typename T2>    											\
-    inline std::string * name(const char* expr, const T1& lvalue, const char* op, const T2& rvalue){	\
-        if(LOGGER_IS_TRUE(lvalue symbol rvalue)){return nullptr;}					\
-        std::ostringstream ss;														\
-        ss<<"Check failed:"<< expr <<" ("<<lvalue<<" "<<op<<" "<<rvalue<<") ";		\
-        return new std::string(ss.str());											\
-    }																				\
-    inline std::string * name(const char* expr, int lvalue, const char* op, int rvalue){	\
-        return name<int,int>(expr, lvalue, op, rvalue);								\
-    }																				\
-	inline std::string * name(const char* expr, char lvalue, const char* op, char rvalue){    \
-		return name<char,char>(expr, lvalue, op, rvalue);                           \
-	}																				\
-	inline std::string * name(const char* expr, std::string lvalue, const char* op, std::string rvalue){    \
-		return name<std::string,std::string>(expr, lvalue, op, rvalue);             \
-	}	
-	
+/// judge x if false or true
+#define LOGGER_IS_FALSE(x) (__builtin_expect(x,0)) 
+#define LOGGER_IS_TRUE(x)  (__builtin_expect(!!(x),1))
 
-CHECK_SYMBOL_WARP(CHECK_EQ_IMPL, ==)
-CHECK_SYMBOL_WARP(CHECK_LE_IMPL, <=)
-CHECK_SYMBOL_WARP(CHECK_GE_IMPL, >=)
-CHECK_SYMBOL_WARP(CHECK_NE_IMPL, !=)
-CHECK_SYMBOL_WARP(CHECK_LT_IMPL, <)
-CHECK_SYMBOL_WARP(CHECK_GT_IMPL, >)
-#undef CHECK_SYMBOL_WARP
-
-/// usage: LOG_S(INFO)<<"function? "<<comevalue<<std::endl;
-#define VLOG_IF_S(verbose, cond)																						\
-  (SCOPE_LOGGER_CORE::verbose > SCOPE_LOGGER_CORE_CONFIG::current_verbosity_cutoff()									\
-			 || (cond)==false) ? (void)0																				\
-			 :SCOPE_LOGGER_CORE::voidify() & SCOPE_LOGGER_CORE::loggerMsg(SCOPE_LOGGER_CORE::verbose, __FILE__, __LINE__)
-#define LOG_IF_S(verbose_name, cond) VLOG_IF_S(Verbose_##verbose_name, cond)
-#define VLOG_S(verbose) VLOG_IF_S(verbose, true)
-#define LOG_S(verbose_name) VLOG_S(Verbose_##verbose_name)
-
-/// usage: ABORT_S()<<"error:"<<msg;
-#define ABORT_S() SCOPE_LOGGER_CORE::loggerMsg("Abort: ", __FILE__, __LINE__)
-
-#define CHECK_WITH_INFO_S(cond, info)\
-    LOGGER_IS_TRUE((cond)==true)?(void)0\
-	:SCOPE_LOGGER_CORE::voidify() & SCOPE_LOGGER_CORE::loggerMsg("Check failed: " info " ", __FILE__, __LINE__)
-#define CHECK_S(cond) CHECK_WITH_INFO_S(cond, #cond)
-#define CHECK_NOTNULL_S(x) CHECK_WITH_INFO_S((x) != nullptr, #x" != nullptr")
-
-#define CHECK_OP_S(func_name, expr1,op,expr2)					 \
-    while(auto errStr = func_name(#expr1 " " #op " " #expr2, expr1, #op, expr2)) \
-        SCOPE_LOGGER_CORE::loggerMsg(errStr->c_str(), __FILE__, __LINE__)
-
-#define CHECK_EQ_S(A,B) CHECK_OP_S(CHECK_EQ_IMPL,A,==,B)
-#define CHECK_NE_S(A,B) CHECK_OP_S(CHECK_NE_IMPL,A,!=,B)
-#define CHECK_LE_S(A,B) CHECK_OP_S(CHECK_LE_IMPL,A,<=,B)
-#define CHECK_LT_S(A,B) CHECK_OP_S(CHECK_LT_IMPL,A,<,B)
-#define CHECK_GE_S(A,B) CHECK_OP_S(CHECK_GE_IMPL,A,>=,B)
-#define CHECK_GT_S(A,B) CHECK_OP_S(CHECK_GT_IMPL,A,>,B)
-
-}  // namespace non-name
-
-#if LOGGER_SHUTDOWN
-	#undef ENABLE_DEBUG // turn to release mode.
-#endif
+#define LOGGER_CHECK_SYMBOL_WARP(name, symbol)                                                        \
+    template <typename T1, typename T2>                                                               \
+    inline std::string* name(const char* expr, const T1& lvalue, const char* op, const T2& rvalue){    \
+        if(LOGGER_IS_TRUE(lvalue symbol rvalue)){return nullptr;}                   \
+        std::ostringstream ss;                                                      \
+        ss<<"Check failed:"<< expr <<" ("<<lvalue<<" "<<op<<" "<<rvalue<<") ";      \
+        return new std::string(ss.str());                                           \
+    }                                                                               \
+    inline std::string* name(const char* expr, int lvalue, const char* op, int rvalue){      \
+        return name<int,int>(expr, lvalue, op, rvalue);                             \
+    }                                                                               \
+    inline std::string* name(const char* expr, char lvalue, const char* op, char rvalue){    \
+        return name<char,char>(expr, lvalue, op, rvalue);                           \
+    }                                                                               \
+    inline std::string* name(const char* expr, std::string lvalue, const char* op, std::string rvalue){    \
+        return name<std::string,std::string>(expr, lvalue, op, rvalue);             \
+    }
 
 
-#ifdef  ENABLE_DEBUG
-#define DVLOG_IF_S(verbose, cond)     	VLOG_IF_S(verbose, cond)
-#define DLOG_IF_S(verbose_name, cond) 	LOG_IF_S(verbose_name, cond)
-#define DVLOG_S(verbose)              	VLOG_S(verbose)
-#define DLOG_S(verbose_name)          	LOG_S(verbose_name)
-#define DCHECK_S(cond)                  CHECK_S(cond)
-#define DCHECK_NOTNULL_S(x)             CHECK_NOTNULL_S(x)
-#define DCHECK_EQ_S(a, b)               CHECK_EQ_S(a, b)
-#define DCHECK_NE_S(a, b)               CHECK_NE_S(a, b)
-#define DCHECK_LT_S(a, b)               CHECK_LT_S(a, b)
-#define DCHECK_LE_S(a, b)               CHECK_LE_S(a, b)
-#define DCHECK_GT_S(a, b)               CHECK_GT_S(a, b)
-#define DCHECK_GE_S(a, b)               CHECK_GE_S(a, b)
-#else //BUILD_RELEASE
-// log nothing
-#define DVLOG_IF_S(verbose, cond)     VLOG_IF_S(verbose, false)
-#define DLOG_IF_S(verbose_name, cond) DVLOG_IF_S(Verbose_##verbose_name, cond)
-#define DVLOG_S(verbose)              DVLOG_IF_S(verbose,false)
-#define DLOG_S(verbose_name)          DVLOG_S(Verbose_##verbose_name)
-#define DCHECK_S(cond)                CHECK_S(true || (cond) == true)
-#define DCHECK_NOTNULL_S(x)           CHECK_S(true || (x) != nullptr)
-#define DCHECK_EQ_S(a, b)             CHECK_S(true || (a) == (b))
-#define DCHECK_NE_S(a, b)             CHECK_S(true || (a) != (b))
-#define DCHECK_LT_S(a, b)             CHECK_S(true || (a) < (b))
-#define DCHECK_LE_S(a, b)             CHECK_S(true || (a) <= (b))
-#define DCHECK_GT_S(a, b)             CHECK_S(true || (a) > (b))
-#define DCHECK_GE_S(a, b)             CHECK_S(true || (a) >= (b))
-#endif
+LOGGER_CHECK_SYMBOL_WARP(CHECK_EQ_IMPL, ==)
+LOGGER_CHECK_SYMBOL_WARP(CHECK_LE_IMPL, <=)
+LOGGER_CHECK_SYMBOL_WARP(CHECK_GE_IMPL, >=)
+LOGGER_CHECK_SYMBOL_WARP(CHECK_NE_IMPL, !=)
+LOGGER_CHECK_SYMBOL_WARP(CHECK_LT_IMPL, <)
+LOGGER_CHECK_SYMBOL_WARP(CHECK_GT_IMPL, >)
 
+//#undef LOGGER_CHECK_SYMBOL_WARP
 
-// use local simple logger instead
-#ifndef USE_GLOG
-#undef LOG
-#undef VLOG
-#undef LOG_IF
+#define LOGGER_VLOG_IF(verbose, cond)                                                   	\
+                 (::logger::verbose > ::logger::utils::sys::get_max_logger_verbose_level()  \
+                 || (cond)==false) ? (void)0                                            	\
+                 : ::logger::core::voidify() & ::logger::core::LoggerMsg<logger::verbose>(__FILE__, __LINE__)
+
+#define LOGGER_LOG_IF(verbose_name, cond) LOGGER_VLOG_IF(Verbose_##verbose_name, cond)
+#define LOGGER_VLOG(verbose) LOGGER_LOG_IF(verbose, true)
+#define LOGGER_LOG(verbose) LOGGER_VLOG(verbose)
+
+#define LOGGER_CHECK_WITH_INFO(cond, info)                          \
+                 LOGGER_IS_TRUE((cond)==true) ? (void)0             \
+                 : ::logger::core::voidify() &                        \
+                 ::logger::core::LoggerMsg<::logger::Verbose_FATAL>(    \
+                         "Check failed: " info " ", __FILE__, __LINE__)
+
+#define LOGGER_CHECK(cond) LOGGER_CHECK_WITH_INFO(cond, #cond)
+#define LOGGER_CHECK_NOTNULL(x) LOGGER_CHECK_WITH_INFO((x) != nullptr, #x" != nullptr")
+
+#define LOGGER_CHECK_OP(func_name, expr1, op, expr2)                            \
+    while(auto errStr = func_name(#expr1 " " #op " " #expr2, expr1, #op, expr2))  \
+                 ::logger::core::LoggerMsg<::logger::Verbose_FATAL>(errStr->c_str(), __FILE__, __LINE__)
+
+#define LOGGER_CHECK_EQ(A, B) LOGGER_CHECK_OP(CHECK_EQ_IMPL, A, ==, B)
+#define LOGGER_CHECK_NE(A, B) LOGGER_CHECK_OP(CHECK_NE_IMPL, A, !=, B)
+#define LOGGER_CHECK_LE(A, B) LOGGER_CHECK_OP(CHECK_LE_IMPL, A, <=, B)
+#define LOGGER_CHECK_LT(A, B) LOGGER_CHECK_OP(CHECK_LT_IMPL, A,  <, B)
+#define LOGGER_CHECK_GE(A, B) LOGGER_CHECK_OP(CHECK_GE_IMPL, A, >=, B)
+#define LOGGER_CHECK_GT(A, B) LOGGER_CHECK_OP(CHECK_GT_IMPL, A,  >, B)
+
+} /* namespace anonymous */
+
+#ifdef USE_LOGGER
+    #ifdef LOGGER_SHUTDOWN
+        #define VLOG_IF(verbose, cond)       LOGGER_LOG_IF(verbose, false)
+        #define LOG_IF(verbose, cond)        LOGGER_LOG_IF(verbose, false)
+        #define VLOG(verbose)                LOGGER_LOG_IF(verbose,false)
+        #define LOG(verbose)                 LOGGER_LOG_IF(verbose,false)
+        #define CHECK(cond)                  LOGGER_CHECK(true)
+        #define CHECK_NOTNULL(x)             LOGGER_CHECK(true)
+        #define CHECK_EQ(a, b)               LOGGER_CHECK(true) 
+        #define CHECK_NE(a, b)               LOGGER_CHECK(true) 
+        #define CHECK_LT(a, b)               LOGGER_CHECK(true) 
+        #define CHECK_LE(a, b)               LOGGER_CHECK(true) 
+        #define CHECK_GT(a, b)               LOGGER_CHECK(true) 
+        #define CHECK_GE(a, b)               LOGGER_CHECK(true) 
+        #define DVLOG_IF(verbose, cond)      LOGGER_LOG_IF(verbose, false)
+        #define DLOG_IF(verbose, cond)       LOGGER_LOG_IF(verbose, false)
+        #define DVLOG(verbose)               DVLOG_IF(verbose,false)
+        #define DLOG(verbose)                DLOG_IF(verbose,false)
+        #define DCHECK(cond)                 LOGGER_CHECK(true)
+        #define DCHECK_NOTNULL(x)            LOGGER_CHECK(true)
+        #define DCHECK_EQ(a, b)              LOGGER_CHECK(true)
+        #define DCHECK_NE(a, b)              LOGGER_CHECK(true)
+        #define DCHECK_LT(a, b)              LOGGER_CHECK(true)
+        #define DCHECK_LE(a, b)              LOGGER_CHECK(true)
+        #define DCHECK_GT(a, b)              LOGGER_CHECK(true)
+        #define DCHECK_GE(a, b)              LOGGER_CHECK(true)
+
+    #else
+        #define VLOG_IF(verbose, cond)       LOGGER_LOG_IF(verbose, cond)
+        #define LOG_IF(verbose, cond)        LOGGER_LOG_IF(verbose, cond)
+        #define VLOG(verbose)                LOGGER_LOG_IF(verbose, true)
+        #define LOG(verbose)                 LOGGER_LOG_IF(verbose, true)
+        #define CHECK(cond)                  LOGGER_CHECK(cond)
+        #define CHECK_NOTNULL(x)             LOGGER_CHECK(x!=nullptr)
+        #define CHECK_EQ(a, b)               LOGGER_CHECK_EQ(a, b)
+        #define CHECK_NE(a, b)               LOGGER_CHECK_NE(a, b)
+        #define CHECK_LT(a, b)               LOGGER_CHECK_LT(a, b)
+        #define CHECK_LE(a, b)               LOGGER_CHECK_LE(a, b)
+        #define CHECK_GT(a, b)               LOGGER_CHECK_GT(a, b)
+        #define CHECK_GE(a, b)               LOGGER_CHECK_GE(a, b)
+
+        #ifdef ENABLE_DEBUG
+            #define DVLOG_IF(verbose, cond)       LOGGER_LOG_IF(verbose, cond)
+            #define DLOG_IF(verbose, cond)        LOGGER_LOG_IF(verbose, cond)
+            #define DVLOG(verbose)                LOGGER_VLOG(verbose)
+            #define DLOG(verbose)                 LOGGER_LOG(verbose)
+            #define DCHECK(cond)                  LOGGER_CHECK(cond)
+            #define DCHECK_NOTNULL(x)             LOGGER_CHECK_NOTNULL(x)
+            #define DCHECK_EQ(a, b)               LOGGER_CHECK_EQ(a, b)
+            #define DCHECK_NE(a, b)               LOGGER_CHECK_NE(a, b)
+            #define DCHECK_LT(a, b)               LOGGER_CHECK_LT(a, b)
+            #define DCHECK_LE(a, b)               LOGGER_CHECK_LE(a, b)
+            #define DCHECK_GT(a, b)               LOGGER_CHECK_GT(a, b)
+            #define DCHECK_GE(a, b)               LOGGER_CHECK_GE(a, b)
+        #else
+            #define DVLOG_IF(verbose, cond)       LOGGER_LOG_IF(verbose, false)
+            #define DLOG_IF(verbose, cond)        LOGGER_LOG_IF(verbose, false)
+            #define DVLOG(verbose)                DVLOG_IF(verbose,false)
+            #define DLOG(verbose)                 DLOG_IF(verbose,false)
+            #define DCHECK(cond)                  LOGGER_CHECK(true)
+            #define DCHECK_NOTNULL(x)             LOGGER_CHECK(true)
+            #define DCHECK_EQ(a, b)               LOGGER_CHECK(true)
+            #define DCHECK_NE(a, b)               LOGGER_CHECK(true)
+            #define DCHECK_LT(a, b)               LOGGER_CHECK(true)
+            #define DCHECK_LE(a, b)               LOGGER_CHECK(true)
+            #define DCHECK_GT(a, b)               LOGGER_CHECK(true)
+            #define DCHECK_GE(a, b)               LOGGER_CHECK(true)
+        #endif
+
+    #endif  // LOGGER_SHUTDOWN end
+
+#else // use glog instead
+
 #undef VLOG_IF
+#undef LOG_IF
+#undef VLOG
+#undef LOG
 #undef CHECK
 #undef CHECK_NOTNULL
 #undef CHECK_EQ
@@ -147,63 +176,22 @@ CHECK_SYMBOL_WARP(CHECK_GT_IMPL, >)
 #undef CHECK_LE
 #undef CHECK_GT
 #undef CHECK_GE
-#undef DLOG
-#undef DVLOG
-#undef DLOG_IF
+
 #undef DVLOG_IF
+#undef DLOG_IF
+#undef DVLOG
+#undef DLOG
 #undef DCHECK
 #undef DCHECK_NOTNULL
-#undef DCHECK_EQ
-#undef DCHECK_NE
-#undef DCHECK_LT
-#undef DCHECK_LE
-#undef DCHECK_GT
-#undef DCHECK_GE
-#undef VLOG_IS_ON
+#undef DCHECK_EQ              
+#undef DCHECK_NE              
+#undef DCHECK_LT              
+#undef DCHECK_LE              
+#undef DCHECK_GT              
+#undef DCHECK_GE              
 
-#if LOGGER_SHUTDOWN // if  LOGGER_SHUTDOWN , turn to release mode.
-#define LOG            DLOG_S
-#define VLOG           DLOG_S
-#define LOG_IF         DLOG_IF_S
-#define VLOG_IF        DVLOG_IF_S
-#define CHECK(cond)    DCHECK_S((cond))
-#define CHECK_NOTNULL  DCHECK_NOTNULL_S
-#define CHECK_EQ       DCHECK_EQ_S
-#define CHECK_NE       DCHECK_NE_S
-#define CHECK_LT       DCHECK_LT_S
-#define CHECK_LE       DCHECK_LE_S
-#define CHECK_GT       DCHECK_GT_S
-#define CHECK_GE       DCHECK_GE_S
-#else
-#define LOG            LOG_S
-#define VLOG           LOG_S
-#define LOG_IF         LOG_IF_S
-#define VLOG_IF        VLOG_IF_S
-#define CHECK(cond)    CHECK_S((cond))
-#define CHECK_NOTNULL  CHECK_NOTNULL_S
-#define CHECK_EQ       CHECK_EQ_S
-#define CHECK_NE       CHECK_NE_S
-#define CHECK_LT       CHECK_LT_S
-#define CHECK_LE       CHECK_LE_S
-#define CHECK_GT       CHECK_GT_S
-#define CHECK_GE       CHECK_GE_S
-#endif
-
-#define DLOG           DLOG_S
-#define DVLOG          DVLOG_S
-#define DLOG_IF        DLOG_IF_S
-#define DVLOG_IF       DVLOG_IF_S
-#define DCHECK         DCHECK_S
-#define DCHECK_NOTNULL DCHECK_NOTNULL_S
-#define DCHECK_EQ      DCHECK_EQ_S
-#define DCHECK_NE      DCHECK_NE_S
-#define DCHECK_LT      DCHECK_LT_S
-#define DCHECK_LE      DCHECK_LE_S
-#define DCHECK_GT      DCHECK_GT_S
-#define DCHECK_GE      DCHECK_GE_S
-#define VLOG_IS_ON(verbose) ((verbose) <= SCOPE_LOGGER_CORE_CONFIG::current_verbosity_cutoff())
 #endif
 
 
 
-#endif // LOGGER_H
+#endif // LOGGER_H end

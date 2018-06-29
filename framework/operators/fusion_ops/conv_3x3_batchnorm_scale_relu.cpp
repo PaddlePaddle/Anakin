@@ -41,6 +41,7 @@ Status SassConvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto kernel_size = GET_PARAMETER(PTuple<int>, kernel_size);
     auto axis = GET_PARAMETER(int, axis);
 
+	
 	using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
 
