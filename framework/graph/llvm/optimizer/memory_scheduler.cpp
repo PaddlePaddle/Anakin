@@ -113,7 +113,6 @@ void IOBlockResource::free(std::vector<io>& io_vec, VGraph* vgraph_p) {
             tmp_io.name = io_res.name;
 
             if ((*it) == tmp_io) {
-                //_free.push(*it);
                 push_free(*it, vgraph_p);
                 it = _lock.erase(it);
             } else {
@@ -142,6 +141,16 @@ void IOBlockResource::lock(std::vector<io>& io_vec) {
             _lock.push_back(io_res);
         }
     }
+}
+
+bool IOBlockResource::is_locked(io& io_in) {
+	for(auto it = _lock.begin(); it != _lock.end();) {
+		if((*it) == io_in) {
+			return true;
+		} else {
+			++it;
+		}
+	}
 }
 
 void IOBlockResource::map_ios_to_vgraph(std::vector<io>& io_vec, VGraph* vgraph_p) {
@@ -176,18 +185,56 @@ void MemoryScheduler::launch(node& node_arg) {
     if (_need_self_shared(node_arg)) {
 		auto& node_arc_in_its = _vgraph->get_in_arc_its(node_arg.name);
 		if(node_arc_in_its.size() > 1) {
-			_io_block_res.push_self_lock(node_arc_in_its[0]->weight());
-			for(int i=1; i<node_arc_in_its.size(); i++) {
-				io_out.push_back(node_arc_in_its[i]->weight());
+			int selected = 0;
+			std::vector<int> io_locked_idx;
+			for(int i=0; i < node_arc_in_its.size(); i++) {
+				if(_io_block_res.is_locked(node_arc_in_its[i]->weight())) {
+					io_locked_idx.push_back(i);
+				}
+			}
+			// collect all locked io bottom node's inputs io
+			std::vector<io> all_collected;
+			for(auto idx : io_locked_idx) {
+				auto& arc_select = node_arc_in_its[idx];
+				auto& temp_arc_in_its = _vgraph->get_in_arc_its(arc_select->bottom());
+				for(auto& it : temp_arc_in_its) {
+					all_collected.push_back(it->weight());
+				}
+			}
+			for(auto idx : io_locked_idx) {
+				bool dismiss = false;
+				for(auto& io : all_collected) {
+					if(node_arc_in_its[idx]->weight().shared) {
+						if((io.share_from == node_arc_in_its[idx]->weight().share_from) || \
+								(io.name == node_arc_in_its[idx]->weight().share_from)) {
+							dismiss = true;
+							break;
+						}
+					} else {
+						dismiss = false;
+						break;
+					}
+				}
+				if(!dismiss) {
+					selected = idx;
+				}
+			}
+			_io_block_res.push_self_lock(node_arc_in_its[selected]->weight());
+			for(int i=0; i<node_arc_in_its.size(); i++) {
+				if(i != selected) {
+					io_out.push_back(node_arc_in_its[i]->weight());
+				}
 			}
 			for(auto& io_tmp : io_out) {
 				io_tmp.shared = true;
-				if (node_arc_in_its[0]->weight().shared) {
-                	io_tmp.share_from = node_arc_in_its[0]->weight().share_from;
+				if (node_arc_in_its[selected]->weight().shared) {
+                	io_tmp.share_from = node_arc_in_its[selected]->weight().share_from;
             	} else {
-                	io_tmp.share_from = node_arc_in_its[0]->weight().name;
+                	io_tmp.share_from = node_arc_in_its[selected]->weight().name;
             	}
 			}
+			_io_block_res.reg_self_lock_tree(node_arc_in_its[selected]->weight(), io_out); 
+			_io_block_res.map_ios_to_vgraph(io_out, _vgraph); // map changes to _vgraph
 		} else {
 			// original impl
 			auto& node_arc_in_its = _vgraph->get_in_arc_its(node_arg.name);
@@ -205,9 +252,9 @@ void MemoryScheduler::launch(node& node_arg) {
         	        io_tmp.share_from = node_arc_in_its[0]->weight().name;
         	    }
         	}
+			_io_block_res.reg_self_lock_tree(node_arc_in_its[0]->weight(), io_out); 
+			_io_block_res.map_ios_to_vgraph(io_out, _vgraph); // map changes to _vgraph
 		}
-		_io_block_res.reg_self_lock_tree(node_arc_in_its[0]->weight(), io_out);
-        _io_block_res.map_ios_to_vgraph(io_out, _vgraph); // map changes to _vgraph
     } else {
         _io_block_res.lock(io_out); // lock out
         _io_block_res.map_ios_to_vgraph(io_out, _vgraph); // map changes to _vgraph

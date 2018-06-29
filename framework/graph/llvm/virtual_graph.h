@@ -168,9 +168,17 @@ public:
 
     std::vector<std::pair<std::string, std::string>>& get_registed_outs() { return _registed_outs; }
 
+	bool has_exec_order() { return _nodes_exec_order.size() == 0 ? false : true; }
+
+	void set_exec_order(std::vector<std::string>& exe_order) { _nodes_exec_order = exe_order; }
+
+	std::vector<std::string>& get_exec_order() { return _nodes_exec_order; }
+
 private:
     ///< _registed_outs :outs that needs to be exported
     std::vector<std::pair<std::string, std::string>> _registed_outs;
+	///< node execute order
+	std::vector<std::string> _nodes_exec_order;
 };
 
 

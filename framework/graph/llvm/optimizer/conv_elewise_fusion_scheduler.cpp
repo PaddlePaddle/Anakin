@@ -7,6 +7,7 @@ namespace graph {
 bool ConvElsFusionScheduler::callable(node& node_arg) {
 	if(_helper.has_node(node_arg)) {
 		auto& node_arc_out_its = _vgraph->get_out_arc_its(node_arg.name);	
+		auto& node_arc_in_its = _vgraph->get_in_arc_its(node_arg.name);
 		CHECK_EQ(node_arc_out_its.size(), 1)<<"Conv+eltwise analysis: Convolution like op should have only one output.";
 		auto& node_next = (*_vgraph)[node_arc_out_its[0]->top()];
 		if(node_next.opName == "EltwiseRelu" || node_next.opName == "Eltwise") {
@@ -16,8 +17,15 @@ bool ConvElsFusionScheduler::callable(node& node_arg) {
 					if(!_helper.need_wait(it->bottom())) {
 						_helper.push_wait(node_arg.name);
 						if(!this->have_launched((*_vgraph)[it->bottom()])) {
+							/*std::vector<io> io_in; 
+							for (auto& arc_it : node_arc_in_its) { 
+								io_in.push_back(arc_it->weight()); 
+							}
+							_helper.set_holder(io_in, _vgraph);*/
 							_helper.register_pair(node_arg.name, node_next.name);
 							return false;
+						} else {
+							_helper.release(node_arg.name);
 						}
 						break;
 					}
@@ -61,6 +69,9 @@ void ConvElsFusionScheduler::Run() {
 
 		node_eltwise.opName = "Gather"; // change eltwise op to Gather op
 	}
+	// set exec order for vgraph
+	auto exec_node_order = this->get_exec_node_in_order();
+	_vgraph->set_exec_order(exec_node_order);
 }
 
 

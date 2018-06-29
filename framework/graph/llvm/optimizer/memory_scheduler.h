@@ -65,7 +65,7 @@ struct check_self_shared {
             auto& node_ref = (*graph)[arc_in_it->bottom()];
             for (auto& op_type : ops) {
                 if (op_type == node_ref.opName) {
-		    self_shared_ios.push_back(arc_in_it->weight());
+		    		self_shared_ios.push_back(arc_in_it->weight());
                     ret = true;
                 }
             }
@@ -87,6 +87,7 @@ public:
     bool is_same_target(io&, io&, VGraph*);
     void push_free(io&, VGraph*);
     void lock(std::vector<io>&);
+	bool is_locked(io&);
     inline void push_self_lock(io& io_tmp) { _self_lock.push_back(io_tmp);}
     void reg_self_lock_tree(io&, std::vector<io>&);
     void rm_self_lock_tree(io&);

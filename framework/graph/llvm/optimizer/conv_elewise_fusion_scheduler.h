@@ -71,6 +71,35 @@ public:
 		}
 	}
 
+	void release(std::string& node_name) {
+		int index = -1;
+		for(int i=0; i<_node_need_to_wait.size();i++) {
+			if(_node_need_to_wait[i] == node_name) {
+				index = i;
+			}
+		}
+		if(index != -1) {
+			_node_need_to_wait.erase(_node_need_to_wait.begin()+index);
+		}
+	}
+
+	/*void set_holder(std::vector<io>& io_vec, VGraph* graph) {
+		for(auto io : io_vec) {
+			io.holder = true;
+		}
+		for (auto& io_res : io_vec) { 
+			auto replace_arc = [&](Arc<std::string, io>& arc) { 
+				if (arc.weight() == io_res) { 
+					auto& io_tmp = arc.weight(); 
+					io_tmp = io_res; 
+					return Status::EXIT(" Find the matched target arc io. "); 
+				} 
+				return Status::OK(); 
+			}; 
+			graph->Scanner->BFS_Edge(replace_arc); 
+		}
+	}*/
+
 	void register_pair(std::string& conv_name, std::string& eltwise_name) {
 		conv_eltwise_pair tmp_pair;
 		tmp_pair.conv_name = conv_name;
