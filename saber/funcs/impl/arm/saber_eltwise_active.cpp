@@ -323,7 +323,7 @@ LayOutType_op, LayOutType_in, LayOutType_out>::create(\
         std::vector<DataTensor_out*>& outputs,\
         EltwiseActiveParam<OpTensor> &param, \
         Context<ARM> &ctx) {
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
     _coeff = param.eltwise_param.coeff;
     Shape sh_out_saber = outputs[0]->valid_shape();
     for (int i = 0; i < inputs.size(); i ++){
@@ -398,16 +398,16 @@ LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(\
     float* dout = outputs[0]->mutable_data();
 
   // printf("threads compute begin:device.id: %d \n", this->_ctx.get_device_id());
-   std::vector<int> ids = this->_ctx.get_act_ids();
-   int threads = ids.size();
+   int threads = 1;
+    this->_ctx->get_mode(threads);
    // printf("threads: %d\n", threads);
     int size = outputs[0]->valid_size();
     int num = size / threads;
   //  printf("threads: %d, size: %d, num: %d\n", threads, size, num);
 #pragma omp parallel for 
     for(int i = 0; i < size; i+=num){
-        float* din0_ptr = din_a + i;
-        float* din1_ptr = din_b + i;
+        const float* din0_ptr = din_a + i;
+        const float* din1_ptr = din_b + i;
         float* dout_ptr = dout + i;
         _impl(din0_ptr, din1_ptr, dout_ptr, _coeff, num);
     }

@@ -51,8 +51,6 @@ public:
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
                              std::vector<DataTensor_out*>& outputs,
                              SoftmaxParam<OpTensor> &param, Context<ARM> &ctx) override {
-        // get context
-        this->_ctx = ctx;
         return create(inputs, outputs, param, ctx);
     }
 
@@ -60,6 +58,7 @@ public:
                                std::vector<DataTensor_out*>& outputs,
                                SoftmaxParam<OpTensor> &param, Context<ARM> &ctx) override {
 
+        this->_ctx = &ctx;
         Shape shape_in = inputs[0]->valid_shape();
         Shape shape_out = outputs[0]->valid_shape();
         _outer_num = inputs[0]->count_valid(0, param.axis);

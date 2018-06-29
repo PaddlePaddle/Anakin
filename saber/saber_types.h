@@ -113,10 +113,12 @@ typedef enum{
     Active_relu = 2,
     Active_tanh = 3,
     Active_clipped_relu = 4,
-    Active_elu=5,
-    Active_identity=6,
-    Active_sigmoid_fluid=7,
-    Active_tanh_fluid=8
+    Active_elu = 5,
+    Active_identity = 6,
+    Active_sigmoid_fluid = 7,
+    Active_tanh_fluid = 8,
+    Active_stanh = 9,
+    Active_prelu = 10
 
 } ActiveType;
 
@@ -161,6 +163,12 @@ typedef enum {
     BORDER_CONSTANT = 0,
     BORDER_REPLICATE
 } BorderType;
+
+typedef enum {
+    PRIOR_MIN = 0,
+    PRIOR_MAX = 1,
+    PRIOR_COM = 2
+} PriorType;
 
 } //namespace saber
 

@@ -12,20 +12,6 @@
 #include <map>
 
 #ifdef USE_CUDA
-using Target = anakin::saber::NV;
-using Target_H = anakin::saber::X86;
-#define THost anakin::saber::X86()
-#endif
-#ifdef USE_X86_PLACE
-using Target = anakin::saber::X86;
-using Target_H = anakin::saber::X86;
-#define THost anakin::saber::X86()
-#endif
-#ifdef USE_ARM_PLACE
-using Target = anakin::saber::ARM;
-using Target_H = anakin::saber::ARM;
-#define THost anakin::saber::ARM()
-#endif
 
 class EngineBase {
  public:
@@ -43,8 +29,8 @@ template <typename Ttype, DataType Dtype, Precision Ptype>
 class AnakinEngine : public EngineBase {
 public:
   typedef typename anakin::saber::DataTrait<Dtype>::dtype Dtype_t;
-  typedef anakin::saber::TargetWrapper<Target_H> X86_API;
-  typedef anakin::saber::TargetWrapper<Ttype> NV_API;
+  typedef anakin::saber::TargetWrapper<X86> X86_API;
+  typedef anakin::saber::TargetWrapper<NV> NV_API;
   AnakinEngine(){}
 
   ~AnakinEngine(){};
@@ -74,7 +60,7 @@ public:
   void SetInputFromCPU(const std::string name, Dtype_t* data, size_t size)
   {
     auto input_tensor = _net_executer.get_in(name);
-    anakin::Tensor<Ttype, Dtype> tmp_tensor(data, THost, X86_API::get_device_id(), input_tensor->valid_shape());
+    anakin::Tensor<Ttype, Dtype> tmp_tensor(data, X86(), 0, input_tensor->valid_shape());
     *input_tensor = tmp_tensor;
   };
 
@@ -83,7 +69,7 @@ public:
   {
     auto input_tensor = _net_executer.get_in(name);
     CHECK_EQ(size, input_tensor->valid_size());
-    anakin::Tensor<Ttype, Dtype> tmp_tensor(data, Target(), NV_API::get_device_id(), input_tensor->valid_shape());
+    anakin::Tensor<Ttype, Dtype> tmp_tensor(data, NV(), NV_API::get_device_id(), input_tensor->valid_shape());
     *input_tensor = tmp_tensor;
   };
   // Get an output called name, the output of tensorrt is in GPU, so this method
@@ -92,12 +78,19 @@ public:
   {
     return _net_executer.get_out(name);
   }
-
 private:
     anakin::graph::Graph<Ttype, Dtype, Ptype> _graph;
     anakin::Net<Ttype, Dtype, Ptype> _net_executer;
 };  // class TensorRTEngine
+
 template 
-class AnakinEngine<Target, anakin::saber::AK_FLOAT, anakin::Precision::FP32>;
+class AnakinEngine<NV, anakin::saber::AK_FLOAT, anakin::Precision::FP32>;
+#endif
+
+/*#ifdef USE_X86_PLACE
+template 
+class AnakinEngine<X86, anakin::saber::AK_FLOAT, anakin::Precision::FP32>;
+#endif*/
+
 
 

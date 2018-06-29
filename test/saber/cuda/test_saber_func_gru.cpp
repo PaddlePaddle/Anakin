@@ -70,8 +70,8 @@ void anakin_NV_gemm_2(cublasHandle_t handle, const int M, const int N, const int
 #define GRUOFFSET
 //#define CUDNNGRU
 //#define TEST_X86
-void test_saber_gru(int sequence_size = 2, int batch_size = 1, int word_size = 22,
-                    int hidden_size = 33) {
+void test_saber_gru(int sequence_size = 2, int batch_size = 1, int word_size = 222,
+                    int hidden_size = 333) {
 
 #ifdef TEST_X86
     Context<X86> ctx_dev(0, 1, 1);
@@ -85,7 +85,7 @@ void test_saber_gru(int sequence_size = 2, int batch_size = 1, int word_size = 2
 
 
 #ifdef GRUOFFSET
-    std::vector<int> offsets = {0,10,15,30};
+    std::vector<int> offsets = {0,12,40,90,100,101};
     bool is_reverse = true;
     batch_size = offsets.size() - 1;
     Shape shape_ux(1, 1, offsets[offsets.size() - 1], hidden_size * 3);
@@ -163,7 +163,7 @@ void test_saber_gru(int sequence_size = 2, int batch_size = 1, int word_size = 2
     std::vector<TensorDf4*> input_dev_4d;
     std::vector<TensorDf4*> output_dev_4d;
     input_dev_4d.push_back(&dev_x);
-    input_dev_4d.push_back(&dev_h);
+//    input_dev_4d.push_back(&dev_h);
     output_dev_4d.push_back(&dev_out);
 
 #ifdef CUDNNGRU
@@ -239,7 +239,7 @@ void test_saber_gru(int sequence_size = 2, int batch_size = 1, int word_size = 2
 #ifdef GRUOFFSET
 
     dev_x.set_seq_offset(offsets);
-    GruParam<TensorDf4> param(&dev_wu, &dev_b, GRU_ORIGIN,Active_sigmoid_fluid,Active_relu,is_reverse);
+    GruParam<TensorDf4> param(&dev_wu, &dev_b, GRU_ORIGIN,Active_sigmoid_fluid,Active_tanh_fluid,is_reverse);
 #else
 #ifdef CUDNNGRU
     GruParam<TensorDf4> param(&dev_w, &dev_u, &dev_b, false, GRU_CUDNN);
@@ -268,7 +268,7 @@ void test_saber_gru(int sequence_size = 2, int batch_size = 1, int word_size = 2
 
     dev_gru(input_dev_4d, output_dev_4d, param, ctx_dev);
 
-    int test_iter = 1;
+    int test_iter = 1000;
 
     t1.start(ctx_dev);
 
@@ -300,9 +300,9 @@ void test_saber_gru(int sequence_size = 2, int batch_size = 1, int word_size = 2
     tensor_cmp_host(host_g.data(), compare_g.data(), host_g.valid_size(), maxratio, maxdiff);
 
     if (abs(maxratio) <= 0.001) {
-        LOG(INFO) << "passed  " << maxratio;
+        LOG(INFO) << "passed  " << maxratio<<","<<maxdiff;
     } else {
-        LOG(INFO) << "failed : ratio " << maxratio;
+        LOG(INFO) << "failed : ratio " << maxratio<<","<<maxdiff;
     }
 
 #elif (!defined(FAKEINPUT)&&defined(CUDNNGRU))

@@ -55,7 +55,7 @@ public:
                         std::vector<DataTensor_out *>& outputs,
                         ArgmaxParam<OpTensor>& param, 
                         Context<NV> &ctx) {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         if (!param.has_axis) {
             int inner_dim = inputs[0]->count(1, inputs[0]->dims());
             int outer_dim = inputs[0]->num();

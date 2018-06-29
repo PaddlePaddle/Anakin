@@ -5,8 +5,8 @@ dist: trusty
 os:
   - linux
 env:
-  #- JOB="-p NVIDIA-GPU -o Centos"
-  #- JOB="-p NVIDIA-GPU -o Ubuntu"
+  - JOB="-p NVIDIA-GPU -o Centos"
+  - JOB="-p NVIDIA-GPU -o Ubuntu"
   #- JOB="-p AMD_GPU -o Centos"
   #- JOB="-p AMD_GPU -o Ubuntu"
   #- JOB="-p X86-ONLY -o Centos"

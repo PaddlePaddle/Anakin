@@ -167,10 +167,106 @@ We tested them on single-GPU with single-thread.
     32 | 637 | 551
 
 
-### <span id = '8'> RNN </span>
 
-The benchmark of rnn network will be added later.
 
 ## How to run those Benchmark models?
 
 > Please refer to [Instructions](CNN/README.md)
+
+
+
+# RNN Benchmark
+
+## Machine:
+
+This time, we only provide benchmark on CPU. In the near future, we will add benchmark on ARM and GPU.
+
+
+
+## Counterpart of anakin  :
+
+The counterpart of **`Anakin`** is `Tensorflow 1.8.0`, which installed by Anaconda 4.5.4, run by Python 3.6
+
+## Benchmark Model
+
+The following convolutional neural networks are tested with both `Anakin` and `Tensorflow`.
+ You can use pretrained model or the model trained by youself.
+
+> Please note that you should transform fluid model or others into anakin model with the help of [`external converter ->`](#)
+
+
+- [Language model](#1)   *fluid model can be found [here->](https://github.com/PaddlePaddle/models/tree/develop/fluid/language_model)*
+
+
+We tested them on single-CPU with different thread numbers.
+For language model, we use ptb_valid_txt as dataset.
+
+Tensorflow run in python api, and the thread number for tensorfow is actually process number. You can run it by ` sh benchmark_tensorflow.sh`
+
+Anakin run in c api, and we set openmp thread pool = 1, mkl thread pool=1. You can run it by `sh benchmark_anakin.sh`
+
+All test run in docker 1.13.1, with CentOS Linux release 7.5.1804
+### <span id = '1'>language model in i7-7700 </span>
+
+- Latency (`ms`) of one batch
+
+    ThreadNum | Tensorflow | Anakin
+    :---: | :---: | :---: |
+    1 | 5.64    | 2.44
+    2 | 8.29    | 4.44
+    4 | 14.23   | 9.91
+    6 | 19.83   | 15.51
+
+- Throughput (`words/s`)
+
+    ThreadNum | Tensorflow | Anakin
+    :---: | :---: | :---: |
+    1 | 3459 | 8536
+    2 | 4772 | 9399
+    4 | 5498 | 8418
+    6 | 5764 | 8070
+
+### <span id = '2'>language model in E5-2620 v4 </span>
+
+- Latency (`ms`) of one batch
+
+    ThreadNum | Tensorflow | Anakin
+    :---: | :---: | :---: |
+    1 | 6.31    | 2.84
+    2 | 7.94    | 2.678
+    4 | 8.66    | 4.32
+    6 | 12.33   | 7.12
+
+- Throughput (`words/s`)
+
+    ThreadNum | Tensorflow | Anakin
+    :---: | :---: | :---: |
+    1 | 2890 | 7257
+    2 | 4726 | 15439
+    4 | 8659 | 18351
+    6 | 9414 | 17461
+
+### <span id = '3'>language model in E5-2650 v4 </span>
+
+- Latency (`ms`) of one batch
+
+    ThreadNum | Tensorflow | Anakin
+    :---: | :---: | :---: |
+    1 | 3.69    | 2.84
+    2 | 4.62    | 2.85
+    4 | 7.78    | 3.48
+    6 | 13.54   | 4.79
+
+- Throughput (`words/s`)
+
+    ThreadNum | Tensorflow | Anakin
+    :---: | :---: | :---: |
+    1 | 4456 | 7300
+    2 | 7522 | 14556
+    4 | 9580 | 22086
+    6 | 8664 | 23938
+
+
+## How to run those Benchmark models?
+
+> Please refer to [Instructions](RNN/README.md)

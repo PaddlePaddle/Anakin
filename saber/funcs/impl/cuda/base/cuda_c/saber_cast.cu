@@ -30,7 +30,7 @@ SaberStatus SaberCast<NV, OpDtype, inDtype, outDtype,\
 
     const InDataType* in_data = inputs[0]->data();
     OutDataType* out_data = outputs[0]->mutable_data();
-    cudaStream_t cuda_stream = this->_ctx.get_compute_stream();
+    cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
 
     int count = outputs[0]->valid_size();
     outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());

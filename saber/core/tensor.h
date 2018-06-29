@@ -61,7 +61,8 @@ template<typename TargetType, DataType datatype, typename LayOutType = NCHW>
 class Tensor : public TensorBase {
 public:
     typedef TargetType targetType_t;
-    typedef typename DataTrait<datatype>::dtype Dtype;
+    typedef typename DataTrait<TargetType, datatype>::Dtype Dtype;
+    typedef typename DataTrait<TargetType, datatype>::dtype dtype;
     typedef typename TargetTypeTraits<TargetType>::target_category target_category;
     typedef typename TargetTypeTraits<TargetType>::target_type target_type;
     typedef TargetWrapper<TargetType> API;
@@ -228,7 +229,7 @@ public:
         return SaberSuccess;
     }
 
-    void try_expand_size(Shape& shape) {
+    void try_expand_size(Shape shape) {
         //        LOG(INFO)<<"in try expand "<<shape.count()<<","<<valid_size();
         if (shape.count() > (valid_size())) {
             re_alloc(shape);
@@ -502,7 +503,7 @@ public:
     /**
      *  \brief Return tensor data pointer, with data type of current tensor (Dtype*).
      */
-    const Dtype * data(int index = 0) const {
+    const Dtype* data(int index = 0) const {
         // synchronize the events tree
         //sync();
         CHECK_EQ(device_id(), API::get_device_id()) << \
@@ -899,7 +900,7 @@ public:
 
 private:
     ///< Length of datatype.
-    size_t _type_len{sizeof(Dtype)};
+    size_t _type_len{sizeof(dtype)};
     ///< Represent the raw mem shape.
     Shape _shape;
     ///< Represent the mem you have right to access shape.

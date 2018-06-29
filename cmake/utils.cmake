@@ -51,6 +51,14 @@ function(anakin_fetch_include_recursively root_dir)
     endforeach()
 endfunction()
 
+# judge fetch files
+function(anakin_judge_avx   outputs)
+	exec_program(cat /proc/cpuinfo|greps flag|uniq
+			OUTPUT_VARIABLE OUTPUT
+			RETURN_VALUE VALUE)
+	message("it is anakin_judge_avx " OUTPUT)
+	set(${outputs} ${${outputs}} PARENT_SCOPE)
+endfunction()
 # ----------------------------------------------------------------------------
 # section: help to detect the compiler options
 # ----------------------------------------------------------------------------

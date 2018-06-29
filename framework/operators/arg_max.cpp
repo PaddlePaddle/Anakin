@@ -39,9 +39,17 @@ Status ArgmaxHelper<Ttype, Dtype, Ptype>::InitParam() {
     DLOG(WARNING) << "Parsing Argmax op parameter.";
     auto out_max_val = GET_PARAMETER(bool, out_max_val);
     auto top_k = GET_PARAMETER(int, top_k);
-    auto axis = GET_PARAMETER(int, axis);
-    saber::ArgmaxParam<Tensor4d<Ttype, Dtype>> argmax_param(out_max_val, top_k, axis);
-    _param_argmax = argmax_param;
+    auto axis_term = GET_PARAMETER(bool, axis_term);
+
+    if (axis_term == true) {
+        auto axis = GET_PARAMETER(int, axis);
+        saber::ArgmaxParam <Tensor4d<Ttype, Dtype>> argmax_param(out_max_val, top_k, axis);
+        _param_argmax = argmax_param;
+    } else {
+        saber::ArgmaxParam <Tensor4d<Ttype, Dtype>> argmax_param(out_max_val, top_k);
+        _param_argmax = argmax_param;
+    }
+
     return Status::OK();
 }
 

@@ -20,9 +20,9 @@ anakin_option(ANAKIN_TYPE_FP16 "define the FP16 for data precision." NO)
 anakin_option(ANAKIN_TYPE_INT8 "define the INT8 for data precision." NO)
 
 #select the plantform to build
-anakin_option(USE_GPU_PLACE "Select the build mode for GPU place." NO)
+anakin_option(USE_GPU_PLACE "Select the build mode for GPU place." YES)
 anakin_option(USE_X86_PLACE "Select the build mode for X86 place." NO)
-anakin_option(USE_ARM_PLACE "Select the build mode for ARM place." YES)
+anakin_option(USE_ARM_PLACE "Select the build mode for ARM place." NO)
 
 # plantfrom details
 anakin_option(NVIDIA_GPU "Use NVIDIA GPU place." YES if USE_GPU_PLACE)
@@ -83,7 +83,7 @@ anakin_option(BUILD_WITH_UNIT_TEST "Build anakin unit test components." YES)
 anakin_option(BUILD_EXAMPLES "build detection and classification examples" YES)
 
 # build target
-anakin_option(BUILD_SHARED "Build anakin shared lib." NO)
+anakin_option(BUILD_SHARED "Build anakin shared lib." YES)
 anakin_option(BUILD_STATIC "Build anakin static lib." YES if NOT BUILD_SHARED)
 
 anakin_option(ENABLE_OP_TIMER "Enable op timer mode." NO)

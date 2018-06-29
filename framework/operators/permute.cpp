@@ -3,20 +3,7 @@
 namespace anakin {
 
 namespace ops {
-#if 0
-//#ifdef USE_CUDA
-//template<>
-//void Permute<NV, AK_FLOAT, Precision::FP32>::operator()(OpContext<NV>& ctx,
-//        const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
-//        std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-//    auto* impl = static_cast<PermuteHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
-//    auto& param = static_cast<PermuteHelper<NV, AK_FLOAT, Precision::FP32>*>
-//                  (this->_helper)->_param_permute;
-//    impl->_funcs_permute(ins, outs, param, ctx);
-//}
-//#endif
 
-/// TODO ... specialization other type of operator
 #define INSTANCE_PERMUTE(Ttype, Dtype, Ptype) \
 template<> \
 void Permute<Ttype, Dtype, Ptype>::operator()(OpContext<Ttype>& ctx, \
@@ -26,11 +13,6 @@ void Permute<Ttype, Dtype, Ptype>::operator()(OpContext<Ttype>& ctx, \
     auto& param = static_cast<PermuteHelper<Ttype, Dtype, Ptype>*>\
                   (this->_helper)->_param_permute; \
     impl->_funcs_permute(ins, outs, param, ctx); \
-}
-
-/// set helper
-template<typename Ttype, DataType Dtype, Precision Ptype>
-PermuteHelper<Ttype, Dtype, Ptype>::~PermuteHelper() {
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
@@ -67,27 +49,19 @@ Status PermuteHelper<Ttype, Dtype, Ptype>::InferShape(const std::vector<Tensor4d
 INSTANCE_PERMUTE(NV, AK_FLOAT, Precision::FP32);
 template class PermuteHelper<NV, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Permute, PermuteHelper, NV, AK_FLOAT, Precision::FP32);
-template class PermuteHelper<NV, AK_FLOAT, Precision::FP16>;
-template class PermuteHelper<NV, AK_FLOAT, Precision::INT8>;
+#endif
+
+#ifdef USE_X86_PLACE
+INSTANCE_PERMUTE(X86, AK_FLOAT, Precision::FP32);
+template class PermuteHelper<X86, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Permute, PermuteHelper, X86, AK_FLOAT, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE
-
-#ifdef ANAKIN_TYPE_FP32
 INSTANCE_PERMUTE(ARM, AK_FLOAT, Precision::FP32);
 template class PermuteHelper<ARM, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Permute, PermuteHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
-
-#ifdef ANAKIN_TYPE_FP16
-template class PermuteHelper<ARM, AK_FLOAT, Precision::FP16>;
-#endif
-
-#ifdef ANAKIN_TYPE_INT8
-template class PermuteHelper<ARM, AK_FLOAT, Precision::INT8>;
-#endif
-
-#endif//arm
 
 //! register op
 ANAKIN_REGISTER_OP(Permute)
@@ -98,10 +72,13 @@ ANAKIN_REGISTER_OP(Permute)
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("permute")
 #endif
+#ifdef USE_X86_PLACE
+.__alias__<X86, AK_FLOAT, Precision::FP32>("permute")
+#endif
 .num_in(1)
 .num_out(1)
 .Args<PTuple<int>>("dims", " dims for permuting the order of input ");
-#endif //if 0
+
 } /* namespace ops */
 
 } /* namespace anakin */

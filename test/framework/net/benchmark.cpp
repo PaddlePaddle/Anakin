@@ -11,6 +11,17 @@
 #include <map>
 #include "framework/operators/ops.h"
 
+#if defined(USE_CUDA)
+using Target = NV;
+using Target_H = X86;
+#elif defined(USE_X86_PLACE)
+using Target = X86;
+using Target_H = X86;
+#elif defined(USE_ARM_PLACE)
+using Target = ARM;
+using Target_H = ARM;
+#endif
+
 #ifdef USE_GFLAGS
 #include <gflags/gflags.h>
 
@@ -25,19 +36,6 @@ std::string FLAGS_model_file;
 int FLAGS_num = 1;
 int FLAGS_warmup_iter = 10;
 int FLAGS_epoch = 1000;
-#endif
-
-#ifdef USE_CUDA
-using Target = NV;
-using Target_H = X86;
-#endif
-#ifdef USE_X86_PLACE
-using Target = X86;
-using Target_H = X86;
-#endif
-#ifdef USE_ARM_PLACE
-using Target = ARM;
-using Target_H = ARM;
 #endif
 
 void getModels(std::string path, std::vector<std::string>& files) {
@@ -135,6 +133,9 @@ TEST(NetTest, net_execute_base_test) {
     }
 }
 int main(int argc, const char** argv){
+
+    Env<Target>::env_init();
+
     // initial logger
     logger::init(argv[0]);
 

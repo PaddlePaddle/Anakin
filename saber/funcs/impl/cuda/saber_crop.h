@@ -55,7 +55,7 @@ public:
                         std::vector<DataTensor_out *>& outputs,
                         CropParam<OpTensor>& param, 
                         Context<NV> &ctx) {
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         return create(inputs, outputs, param, ctx);
     }
 

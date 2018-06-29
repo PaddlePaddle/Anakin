@@ -92,7 +92,12 @@ public:
         output_shape[width_idx] = 1;
         output[0]->set_shape(output_shape);
 
-
+        int n=input[0]->num();
+        std::vector<int> offset(n+1);
+        for(int i=0;i<=n;i++){
+            offset.push_back(i*output_height * output_width);
+        }
+        output[0]->set_seq_offset(offset);
         return SaberSuccess;
     }
 

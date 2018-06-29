@@ -30,19 +30,6 @@ using ::anakin::test::Test;
 
 using namespace anakin::graph;
 
-#ifdef USE_CUDA
-using Target = NV;
-using Target_H = X86;
-#endif
-#ifdef USE_X86_PLACE
-using Target = X86;
-using Target_H = X86;
-#endif
-#ifdef USE_ARM_PLACE
-using Target = ARM;
-using Target_H = ARM;
-#endif
-
 /**
  * \brief Graph test is base Test class for anakin graph funciton.  
  */
@@ -55,11 +42,11 @@ public:
     void TearDown(){}
 
 protected:
-    Graph<Target, AK_FLOAT, Precision::FP32>* graph;
 };
 
-void test_print(Tensor4dPtr<Target, AK_FLOAT>& out_tensor_p) {
-    Tensor4d<target_host<Target>::type, AK_FLOAT> h_tensor_result;
+#ifdef USE_CUDA
+void test_print(Tensor4dPtr<NV, AK_FLOAT>& out_tensor_p) {
+    Tensor4d<target_host<NV>::type, AK_FLOAT> h_tensor_result;
     h_tensor_result.re_alloc(out_tensor_p->valid_shape());
     LOG(ERROR) << "result count : " << h_tensor_result.valid_shape().count();
     h_tensor_result.copy_from(*out_tensor_p);
@@ -67,6 +54,7 @@ void test_print(Tensor4dPtr<Target, AK_FLOAT>& out_tensor_p) {
         LOG(INFO) << " GET OUT (" << i << ") " << h_tensor_result.mutable_data()[i];
     }
 }
+#endif
 
 template<typename Ttype, DataType Dtype>
 double tensor_average(Tensor4dPtr<Ttype, Dtype>& out_tensor_p) {
@@ -84,9 +72,9 @@ double tensor_average(Tensor4dPtr<Ttype, Dtype>& out_tensor_p) {
     return sum/out_tensor_p->valid_size();
 }
 
-
-static int record_dev_tensorfile(const Tensor4d<Target, AK_FLOAT>* dev_tensor, const char* locate) {
-    Tensor<target_host<Target>::type, AK_FLOAT, NCHW> host_temp;
+#ifdef USE_X86_PLACE
+static int record_dev_tensorfile(const Tensor4d<X86, AK_FLOAT>* dev_tensor, const char* locate) {
+    Tensor<target_host<X86>::type, AK_FLOAT, NCHW> host_temp;
     host_temp.re_alloc(dev_tensor->valid_shape());
     host_temp.copy_from(*dev_tensor);
     FILE* fp = fopen(locate, "w+");
@@ -102,6 +90,7 @@ static int record_dev_tensorfile(const Tensor4d<Target, AK_FLOAT>* dev_tensor, c
     LOG(INFO) << "[ SUCCESS ] Write " << size << " data to: " << locate;
     return 0;
 }
+#endif
 
 #endif
 

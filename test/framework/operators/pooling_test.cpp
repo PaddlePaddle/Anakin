@@ -3,11 +3,9 @@
 
 #ifdef USE_CUDA
 using Target = NV;
-#endif
-#ifdef USE_X86_PLACE
+#elif defined(USE_X86_PLACE)
 using Target = X86;
-#endif
-#ifdef USE_ARM_PLACE
+#else
 using Target = ARM;
 #endif
 

@@ -53,7 +53,7 @@ public:
                             std::vector<DataTensor_out *>& outputs,
                             ConvParam<OpTensor>& param, Context<NV>& ctx) {
 
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
 
         return create(inputs, outputs, param, ctx);
     }
@@ -72,8 +72,8 @@ public:
         if (_use_k4_s2_p1) {
             int in_channel = inputs[0]->channel();
             int out_channel = outputs[0]->channel();
-            scale_to_new_tensor_k4_s2_p1_decov<4>(new_weights_dev,
-                                               param.weight(), in_channel, out_channel);
+            scale_to_new_tensor_k4_s2_p1_deconv<4>(param.mutable_weight(),
+                                                   in_channel, out_channel);
 //            LOG(INFO)<<"scale weights finished!!";
         } 
         return SaberSuccess;
@@ -84,7 +84,6 @@ public:
                           ConvParam<OpTensor>& param);
 private:
     bool _use_k4_s2_p1;
-    OpTensor new_weights_dev;
 };
 template class SaberDeconv2D<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
 
