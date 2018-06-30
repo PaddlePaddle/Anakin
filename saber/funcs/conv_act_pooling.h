@@ -206,7 +206,7 @@ private:
         _use_saber_conv_pooling &= !(this->_param).pooling_param.global_pooling;
         _use_saber_conv_pooling &= (this->_param).pooling_param.pooling_type == Pooling_max;
 
-        if (!_use_saber_conv_pooling) {
+        if (_use_saber_conv_pooling) {
             delete this->_impl[1];
             this->_impl.erase(this->_impl.end());
             this->_best_impl = this->_impl[0];
