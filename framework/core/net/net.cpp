@@ -187,9 +187,9 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
 			using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
 			std::string weight_name = "weight_1";
 			auto weights = node_ptr->template get_attr<pblock_type>(weight_name);
-			int c = weights.d_tensor().channel();
+			//int c = weights.d_tensor().channel();
 			
-        	if ((group_val == 1) || (group_val == c)) {
+        	if ((group_val == 1)) {
             	node_ptr->set_op(OpFactory<Ttype, Dtype, Ptype>::Global()["Sass"+node_ptr->get_op_name()]);
             	node_ptr->get_op_name() = "Sass" + node_ptr->get_op_name();
         	} else {
