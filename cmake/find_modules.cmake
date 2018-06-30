@@ -43,22 +43,9 @@ macro(anakin_find_opencv)
 		include_directories(${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/sdk/native/jni/include/)
 		LINK_DIRECTORIES(${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/sdk/native/libs/armeabi-v7a/)
 
-		#set(OpenCV_DIR ${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/sdk/native/jni/)
-		#find_package(OpenCV QUIET COMPONENTS core highgui imgproc)
-		#if(OpenCV_FOUND)
-		#	message(STATUS "Found opencv: ${OpenCV_INCLUDE_DIRS}")
-		#	include_directories(SYSTEM ${OpenCV_INCLUDE_DIRS})
-		#	include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/sdk/native/jni/include/)
-		#	link_directories(${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/sdk/native/libs/armeabi-v7a/)
-		#	link_directories(${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/sdk/native/3rdparty/libs/armeabi-v7a/)
-		#	#list(APPEND ANAKIN_LINKER_LIBS ${OpenCV_LIBS})
-		#else()
-		#	message(SEND_ERROR "Could not found opencv !")
-		#endif()
 	else()
 
-		if(BUILD_SHARED OR TRUE) # temporary not support static link opencv.
-			#set(CMAKE_FIND_ROOT_PATH ${ANAKIN_ROOT}/third-party/opencv243/lib)
+		if(BUILD_SHARED) # temporary not support static link opencv.
 			find_package(OpenCV QUIET COMPONENTS core highgui imgproc imgcodecs)
 			if(NOT OpenCV_FOUND)
 				find_package(OpenCV QUIET COMPONENTS core highgui imgproc)
@@ -72,14 +59,13 @@ macro(anakin_find_opencv)
 				message(SEND_ERROR "Could not found opencv !")
 			endif()
 		else() # BUILD_STATIC
-			list(APPEND OPENCV_STATIC_LIBS libopencv_core.a
-					libopencv_highgui.a
-					libopencv_imgproc.a
-					libopencv_contrib.a)
+			set(OPENCV_LIB_PATH "" CACHE "Path to oopen cv library")
+			list(APPEND OPENCV_STATIC_LIBS ${OPENCV_LIB_PATH}/libopencv_core.a
+					${OPENCV_LIB_PATH}libopencv_highgui.a
+					${OPENCV_LIB_PATH}libopencv_imgproc.a
+					${OPENCV_LIB_PATH}libopencv_contrib.a)
 			foreach(CV_LIB ${OPENCV_STATIC_LIBS})
-				set(__CV_LIB_FULL_PATH "${ANAKIN_ROOT}/third-party/opencv243/lib/${CV_LIB}")
-				#message(STATUS ${__CV_LIB_FULL_PATH})
-				list(APPEND ANAKIN_LINKER_LIBS ${__CV_LIB_FULL_PATH})
+				list(APPEND ANAKIN_LINKER_LIBS ${CV_LIB})
 			endforeach()
 			unset(__CV_LIB_FULL_PATH)
 		endif()
