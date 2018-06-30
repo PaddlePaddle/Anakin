@@ -126,7 +126,7 @@ We tested them on single-CPU with different thread numbers.
 
 - Latency (`ms`) of one batch
 
-ThreadNum | Tensorflow | Anakin
+    ThreadNum | Tensorflow | Anakin
     :---: | :---: | :---: |
     1 | 2.26    | 0.67
     2 | 2.34    | 0.7
