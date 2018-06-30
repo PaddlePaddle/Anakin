@@ -383,6 +383,7 @@ void conv_3x3s1_direct(const float* din, float* dout, \
                                 "vst1.32  {d26-d27}, [%[doutc0r0]]!    @ store result, add pointer\n"
                                 "vst1.32  {d28-d29}, [%[doutc0r1]]!    @ store result, add pointer\n"
 
+
                                 "vbif q8, q10, q15                      @ bit select\n"
                                 "vbif q9, q11, q15                      @ bit select\n"
 
@@ -710,6 +711,7 @@ void conv_3x3s1_direct(const float* din, float* dout, \
                                 "vld1.32  {d20-d22}, [%[din3_ptr]]!      @ load din r3\n"
                                 "vbif d21, d31, %e[vmask_rp]             @ bit select, deal with right pad\n"
                                 "vbif d22, d31, %f[vmask_rp]             @ bit select, deal with right pad\n"
+
                                 "vmla.f32 q14, q10, %e[wr02][0]          @ mul weight0 20, out0r1\n"
                                 "vmla.f32 q9, q10, %e[wr12][0]           @ mul weight1 20, out1r1\n"
 
@@ -979,6 +981,7 @@ void conv_3x3s1_direct(const float* din, float* dout, \
                                 "pld [%[doutc0r1], #192]                @ preload data\n"
                                 "pld [%[doutc1r0], #192]                @ preload data\n"
                                 "pld [%[doutc1r1], #192]                @ preload data\n"
+
                                 "vld1.32  {d26-d27}, [%[doutc0r0]]      @ load dout0r0\n"
                                 "pld [%[din0_ptr], #192]                @ preload data\n"
                                 "pld [%[din1_ptr], #192]                @ preload data\n"

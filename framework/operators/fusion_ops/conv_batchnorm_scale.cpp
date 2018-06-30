@@ -18,7 +18,7 @@ void ConvBatchnormScale<Ttype, Dtype, Ptype>::operator()(\
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::InitParam() {
-    DLOG(WARNING) << "Parsing ConvBatchnormScale op parameter.";
+    LOG(WARNING) << "Parsing ConvBatchnormScale op parameter.";
     saber::ConvParam<Tensor4d<Ttype, Dtype>> _conv_param;
 
     // get conv param
@@ -79,10 +79,10 @@ Status ConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::InitParam() {
     /*auto alpha = GET_PARAMETER(float, relu_0_alpha);
     ActivationParam<Tensor4d<Ttype, Dtype>> active_param(Active_relu);//, alpha); // TEMP */
 
+	ConvActiveParam<Tensor4d<Ttype, Dtype>> conv_act_param(_conv_param, batchnorm_param, scale_param); 
+	_param_conv_batchnorm_scale = conv_act_param;
 
-    ConvActiveParam<Tensor4d<Ttype, Dtype>> conv_act_param(_conv_param, batchnorm_param, scale_param);
-    _param_conv_batchnorm_scale = conv_act_param;
-
+	
     return Status::OK();
 }
 

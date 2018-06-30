@@ -49,6 +49,25 @@ void GraphBase<VertexNameType, VertexType, WeightType, ArcType>::add_vertex(Vert
     }
 }
 
+template<typename VertexNameType, typename VertexType, typename WeightType, typename ArcType>
+void GraphBase<VertexNameType, VertexType, WeightType, ArcType>::add_alias(VertexNameType vertexNameOri, VertexNameType vertexNameAlias) {
+	if(vertexNameOri == vertexNameAlias) {
+		return;
+	}
+	if(!this->has_vertex(vertexNameOri)) {
+		LOG(FATAL) << "The graph doesn't have vertext " << vertexNameOri;
+		return;
+	}
+	if(this->has_vertex(vertexNameAlias)) {
+		LOG(FATAL) <<"The graph shouldn't have alias vertex("
+				   <<vertexNameAlias<<") for vertex(" << vertexNameOri
+				   <<"), which already exists.";
+	}
+	_vertices[vertexNameAlias] = _vertices[vertexNameOri];
+	_graph_out_arcs[vertexNameAlias] = _graph_out_arcs[vertexNameOri];
+	_graph_in_arcs[vertexNameAlias] = _graph_in_arcs[vertexNameOri];
+}
+
 
 template<typename VertexNameType, typename VertexType, typename WeightType, typename ArcType>
 void GraphBase<VertexNameType, VertexType, WeightType, ArcType>::add_in_arc(ArcType& arc) {
