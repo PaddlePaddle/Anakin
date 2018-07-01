@@ -15,7 +15,8 @@
 
 #ifndef ANAKIN_SABER_CORE_BUFFER_H
 #define ANAKIN_SABER_CORE_BUFFER_H
-#include "core/target_wrapper.h"
+#include "saber/core/target_wrapper.h"
+#include "saber/core/data_traits.h"
 namespace anakin{
 
 namespace saber{
@@ -186,12 +187,16 @@ public:
     /**
      * \brief return const data pointer
      */
-    const void* get_data(){return _data;}
+    const void* get_data(){
+        return _data;
+    }
 
     /**
      * \brief return mutable data pointer
      */
-    void* get_data_mutable(){return _data;}
+    void* get_data_mutable(){
+        return _data;
+    }
 
     /**
      * \brief return current size of memory, in size

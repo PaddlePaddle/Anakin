@@ -11,7 +11,7 @@ void test_buffer(){
 
     typedef TargetWrapper<X86> X86_API;
     typedef TargetWrapper<AMD> AMD_API;
-    typedef typename DataTrait<datatype>::dtype Dtype;
+    typedef typename DataTrait<X86, datatype>::dtype Dtype;
     typedef Buffer<X86> BufferH;
     typedef Buffer<AMD> BufferD;
 

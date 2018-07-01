@@ -115,14 +115,14 @@ public:
     }
 
 #ifdef USE_ARM_PLACE
-    void set_act_cores(std::vector<int> ids);
-    void set_power_mode(PowerMode mode);
-    //void set_run_mode(PowerMode mode, int threads);
+    //void set_act_cores(std::vector<int> ids);
+    //void set_power_mode(PowerMode mode);
+    void set_run_mode(PowerMode mode, int threads);
     //void set_cache(size_t l1size, size_t l2size, size_t l3size);
     void bind_dev();
-    //PowerMode get_mode(int& threads);
-    PowerMode get_mode();
-    std::vector<int> get_act_ids();
+    PowerMode get_mode(int& threads);
+    //PowerMode get_mode();
+    //std::vector<int> get_act_ids();
 #endif
 
 
@@ -135,8 +135,8 @@ private:
     int _data_stream_id;
     int _compute_stream_id;
 #ifdef USE_ARM_PLACE
-    PowerMode _mode;
-    std::vector<int> _act_ids;
+    PowerMode _mode{SABER_POWER_HIGH};
+    std::vector<int> _act_ids{0};
 #endif
 };
 

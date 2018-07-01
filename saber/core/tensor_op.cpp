@@ -7,9 +7,9 @@ namespace anakin {
 namespace saber {
 
 template <class Tensor_t>
-void fill_tensor_host_const(Tensor_t& tensor, typename Tensor_t::Dtype value) {
+void fill_tensor_host_const(Tensor_t& tensor, typename Tensor_t::dtype value) {
 
-    typedef typename Tensor_t::Dtype Dtype;
+    typedef typename Tensor_t::dtype Dtype;
     Dtype* data_ptr = static_cast<Dtype*>(tensor.get_buf()->get_data_mutable());
     int size = tensor.size();
 
@@ -20,7 +20,7 @@ void fill_tensor_host_const(Tensor_t& tensor, typename Tensor_t::Dtype value) {
 
 template <class Tensor_t>
 void fill_tensor_host_rand(Tensor_t& tensor) {
-    typedef typename Tensor_t::Dtype Dtype;
+    typedef typename Tensor_t::dtype Dtype;
     Dtype* data_ptr = static_cast<Dtype*>(tensor.get_buf()->get_data_mutable());
 
     for (int i = 0; i < tensor.size(); ++i) {
@@ -30,7 +30,7 @@ void fill_tensor_host_rand(Tensor_t& tensor) {
 
 template <class Tensor_t>
 void fill_tensor_host_seq(Tensor_t& tensor) {
-    typedef typename Tensor_t::Dtype Dtype;
+    typedef typename Tensor_t::dtype Dtype;
     Dtype* data_ptr = static_cast<Dtype*>(tensor.get_buf()->get_data_mutable());
 
     for (int i = 0; i < tensor.size(); ++i) {
@@ -39,8 +39,8 @@ void fill_tensor_host_seq(Tensor_t& tensor) {
 }
 
 template <class Tensor_t>
-void fill_tensor_host_rand(Tensor_t& tensor, typename Tensor_t::Dtype vstart, \
-                           typename Tensor_t::Dtype vend) {
+void fill_tensor_host_rand(Tensor_t& tensor, typename Tensor_t::dtype vstart, \
+                           typename Tensor_t::dtype vend) {
     typedef typename Tensor_t::Dtype Dtype;
     Dtype* data_ptr = static_cast<Dtype*>(tensor.get_buf()->get_data_mutable());
     std::random_device rd;
@@ -56,7 +56,7 @@ void fill_tensor_host_rand(Tensor_t& tensor, typename Tensor_t::Dtype vstart, \
 template <class Tensor_t>
 void print_tensor_host(Tensor_t& tensor) {
 
-    typedef typename Tensor_t::Dtype Dtype;
+    typedef typename Tensor_t::dtype Dtype;
     LOG(INFO) << "host tensor data:" << tensor.size();
     const Dtype* data_ptr = static_cast<const Dtype*>(tensor.get_buf()->get_data());
     int size = tensor.size();
@@ -92,12 +92,12 @@ void tensor_cmp_host(const Dtype* src1, const Dtype* src2, \
 
 #define FILL_TENSOR_HOST(target, type, layout) \
     template void fill_tensor_host_const<Tensor<target, type, layout>>\
-        (Tensor<target, type, layout>& tensor, DataTrait<type>::dtype value); \
+        (Tensor<target, type, layout>& tensor, DataTrait<target, type>::dtype value); \
     template void fill_tensor_host_rand<Tensor<target, type, layout>>\
         (Tensor<target, type, layout>& tensor); \
     template void fill_tensor_host_rand<Tensor<target, type, layout>>\
-        (Tensor<target, type, layout>& tensor, DataTrait<type>::dtype vstart, \
-        DataTrait<type>::dtype vend); \
+        (Tensor<target, type, layout>& tensor, DataTrait<target, type>::dtype vstart, \
+        DataTrait<target, type>::dtype vend); \
     template void print_tensor_host<Tensor<target, type, layout>>\
         (Tensor<target, type, layout>& tensor);\
     template void fill_tensor_host_seq<Tensor<target, type, layout>>\
@@ -135,7 +135,7 @@ template <>
 void print_tensor_host<Tensor<X86, AK_INT8, NCHW_C4>>(Tensor<X86, AK_INT8, NCHW_C4>& tensor) {
     typedef typename Tensor<X86, AK_INT8, NCHW_C4>::Dtype Dtype;
     LOG(INFO) << "host tensor data:" << tensor.size();
-    const Dtype* data_ptr = static_cast<const Dtype*>(tensor.get_buf()->get_data());
+    const Dtype* data_ptr = (const Dtype*)tensor.get_buf()->get_data();
     int size = tensor.size();
 
     for (int i = 0; i < size; ++i) {

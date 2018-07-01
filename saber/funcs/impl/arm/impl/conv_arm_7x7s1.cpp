@@ -40,7 +40,7 @@ void conv7x7_mid_top2(const float* din, float* dout, int w_out, int width, int h
         const float* inptr_ch3 = inptr_ch2 + width;
         const float* inptr_ch4 = inptr_ch3 + width;
         const float* inptr_ch5 = inptr_ch4 + width;
-        float* wei_ptr = weight_ch_in + 7;//1
+        const float* wei_ptr = weight_ch_in + 7;//1
         float* outptr = dout + 3;
         int cnt = (width - 6) / 4;
         int remain = (width - 6) - cnt * 4;
@@ -407,7 +407,7 @@ void conv7x7_mid_top1(const float* din, float* dout, int w_out, int width, int h
     const float* inptr_ch2 = inptr_ch1 + width;
     const float* inptr_ch3 = inptr_ch2 + width;
     const float* inptr_ch4 = inptr_ch3 + width;
-    float* wei_ptr = weight_ch_in + 14;//2
+    const float* wei_ptr = weight_ch_in + 14;//2
     float* outptr = dout + 3;
     int cnt = (width - 6) / 4;
     int remain = (width - 6) - cnt * 4;
@@ -601,7 +601,7 @@ void conv7x7_mid_top0(const float* din, float* dout, int w_out, int width, int h
     const float* inptr_ch1 = inptr_ch0 + width;
     const float* inptr_ch2 = inptr_ch1 + width;
     const float* inptr_ch3 = inptr_ch2 + width;
-    float* wei_ptr = weight_ch_in + 21;//3
+    const float* wei_ptr = weight_ch_in + 21;//3
     float* outptr = dout + 3;
     int cnt = (width - 6) / 4;
     int remain = (width - 6) - cnt * 4;
@@ -796,7 +796,7 @@ void conv7x7_mid_mid(const float* din, float* dout, int w_out, int width, int he
         const float* inptr_ch4 = inptr_ch3 + width;
         const float* inptr_ch5 = inptr_ch4 + width;
         const float* inptr_ch6 = inptr_ch5 + width;
-        float* wei_ptr = weight_ch_in;
+        const float* wei_ptr = weight_ch_in;
         float* outptr = dout + i * w_out + 3;
         int cnt = (width - 6) / 4;
         int remain = (width - 6) - cnt * 4;

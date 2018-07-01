@@ -41,6 +41,7 @@ struct NetGraphWrapper {
             return _thread_to_net[id];
         }
         LOG(FATAL) << " target key(thread_id) not found in NetGraphWrapper";
+        return _thread_to_net[id];
     }
     
 private:

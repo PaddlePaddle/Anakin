@@ -295,8 +295,19 @@ SaberStatus SaberActivation<AMD, OpDtype, inDtype, outDtype,
 
     //To set the argument
     cl_mem memObjects[2] = { 0, 0 };
-    memObjects[0] = (cl_mem)inputs[0]->data();
-    memObjects[1] = (cl_mem)outputs[0]->mutable_data();
+
+    const ClMem* clin;
+    ClMem* clout;
+
+    size_t offset_in, offset_out;
+
+    clin = inputs[0]->data();
+    clout = outputs[0]->mutable_data();
+    offset_in = clin->offset;
+    offset_out = clout->offset;
+
+    memObjects[0] = clin->dmem;//(cl_mem)inputs[0]->data();
+    memObjects[1] = clout->dmem;//(cl_mem)outputs[0]->mutable_data();
 
     errNum = clSetKernelArg(_kernel, 0, sizeof(cl_mem), &memObjects[0]);
     errNum |= clSetKernelArg(_kernel, 1, sizeof(cl_mem), &memObjects[1]);

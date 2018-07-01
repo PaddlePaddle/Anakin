@@ -9,7 +9,11 @@ typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
 typedef Tensor<AMD, AK_FLOAT, NCHW> TensorDf4;
 typedef Tensor<X86, AK_FLOAT, HW> TensorHf2;
 typedef Tensor<AMD, AK_FLOAT, HW> TensorDf2;
-typedef TensorHf4::Dtype dtype;
+
+typedef TensorHf4::dtype dtype;
+
+typedef TensorHf4::Dtype h_dtype;
+typedef TensorDf4::Dtype d_dtype;
 
 
 TEST(TestSaberCoreAMD, test_tensor_constructor) {
@@ -53,6 +57,7 @@ TEST(TestSaberCoreAMD, test_tensor_constructor) {
     fill_tensor_host_const(thost0, 1.f);
     LOG(INFO) << "|--test tensor data() function, show the const data, 1.f";
     print_tensor_host(thost0);
+    print_tensor_device(tdev0);
 
     //! test tensor constructor with shape
     LOG(INFO) << "test tensor constructor with shape";
@@ -79,18 +84,18 @@ TEST(TestSaberCoreAMD, test_tensor_constructor) {
 
     //! test tensor constructor with data, if target is different, create buffer, and copy the data
     LOG(INFO) << "test tensor constructor with data, if target is different, create buffer, and copy the data";
-    dtype* host_data_ptr;
-    dtype* dev_data_ptr;
+    h_dtype* host_data_ptr;
+    d_dtype* dev_data_ptr;
     void *tmp_pt_host;
     void *tmp_pt_dev;
     X86_API::mem_alloc(&tmp_pt_host, sizeof(dtype) * sh1.count());
-    host_data_ptr = static_cast<dtype *>(tmp_pt_host);
+    host_data_ptr = static_cast<h_dtype*>(tmp_pt_host);
     for (int i = 0; i < sh1.count(); ++i) {
         host_data_ptr[i] = i;
     }
 
     AMD_API::mem_alloc(&tmp_pt_dev, sizeof(dtype) * sh1.count());
-    dev_data_ptr = static_cast<dtype *>(tmp_pt_dev);
+    dev_data_ptr = static_cast<d_dtype*>(tmp_pt_dev);
 
     AMD_API::sync_memcpy(dev_data_ptr, AMD_API::get_device_id(), host_data_ptr, 0, sizeof(dtype) * sh1.count(),  __HtoD());
 //    cudaMemcpy(dev_data_ptr, host_data_ptr, sizeof(dtype) * sh1.count(), cudaMemcpyHostToDevice);

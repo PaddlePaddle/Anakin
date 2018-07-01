@@ -224,7 +224,7 @@ void update_conv_weights(Param<Tensor_t>& param)
     Tensor<X86, AK_FLOAT, NCHW> new_weight;
     Tensor<X86, AK_FLOAT, NCHW> new_bias;
 #endif //USE_ARM_PLACE
-    typedef typename Tensor_t::Dtype dtype;
+    typedef typename Tensor_t::dtype dtype;
 
     Shape weight_shape = param.conv_param.weight()->shape();
     new_weight.re_alloc(weight_shape);

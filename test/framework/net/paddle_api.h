@@ -27,7 +27,7 @@ class EngineBase {
 template <typename Ttype, DataType Dtype, Precision Ptype>
 class AnakinEngine : public EngineBase {
 public:
-  typedef typename anakin::saber::DataTrait<Dtype>::dtype Dtype_t;
+  typedef typename anakin::saber::DataTrait<NV, Dtype>::dtype Dtype_t;
   typedef anakin::saber::TargetWrapper<X86> X86_API;
 
 #ifdef USE_CUDA
