@@ -51,33 +51,8 @@ void getModels(std::string path, std::vector<std::string>& files) {
 TEST(NetTest, net_execute_base_test) {
 
     std::shared_ptr<Context<ARM>> ctx1 = std::make_shared<Context<ARM>>();
-    //Context<ARM> ctx1;
-    std::vector<int> act_ids;
-    //! set runtime context
-            LOG(INFO) << "set runtine context";
-    std::vector<int> big_cores;
-    std::vector<int> small_cores;
-    for (int i = 0; i < ctx1->devs[0]._info._cluster_ids.size(); ++i) {
-        if (ctx1->devs[0]._info._cluster_ids[i] == 0) {
-            big_cores.push_back(ctx1->devs[0]._info._core_ids[i]);
-        } else {
-            small_cores.push_back(ctx1->devs[0]._info._core_ids[i]);
-        }
-    }
-    LOG(INFO) << "big core num: " << big_cores.size();
-    LOG(INFO) << "small core num: " << small_cores.size();
 
-    int end_big_idx = std::min(FLAGS_threads, (int)big_cores.size());
-    int end_small_idx = std::min((int)(FLAGS_threads - big_cores.size()), (int)small_cores.size());
-    LOG(INFO) << "threads: " << FLAGS_threads << ", big_core: " << end_big_idx << ", small cores: " << end_small_idx;
-    for (int j = 0; j < end_big_idx; ++j) {
-        act_ids.push_back(big_cores[j]);
-    }
-    for (int j = 0; j < end_small_idx; ++j) {
-        act_ids.push_back(small_cores[j]);
-    }
-
-    ctx1->set_act_cores(act_ids);
+    ctx1->set_run_mode(SABER_POWER_HIGH, FLAGS_threads);
 
     LOG(INFO) << "test threads activated";
 #pragma omp parallel
@@ -85,15 +60,6 @@ TEST(NetTest, net_execute_base_test) {
 #ifdef USE_OPENMP
         int thread = omp_get_num_threads();
         LOG(INFO) << "number of threads: " << thread;
-#endif
-    }
-    int th_id;
-#pragma omp parallel private(th_id)
-    {
-#ifdef USE_OPENMP
-        th_id = omp_get_thread_num();
-#pragma omp parallel
-        LOG(INFO) << "thread core ID: " << act_ids[th_id];
 #endif
     }
 

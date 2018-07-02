@@ -1,5 +1,4 @@
 /* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
-
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -67,7 +66,8 @@ public:
         FcParam<OpTensor> &param, Context<ARM> &ctx) override {
 
         this->_ctx = &ctx;
-        int threads = this->_ctx->get_act_ids().size();
+        int threads = 1;
+        this->_ctx->get_mode(threads);
 
         _m = inputs[0]->count_valid(0, param.axis);
         _k = inputs[0]->count_valid(param.axis, inputs[0]->dims());

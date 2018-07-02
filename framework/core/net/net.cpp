@@ -1,6 +1,8 @@
 #include "framework/core/net/net.h"
 #include "saber/funcs/timer.h"
 #include "saber/funcs/debug.h"
+#include "framework/core/mem_info.h"
+
 namespace anakin {
 
 template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
@@ -14,7 +16,7 @@ Net<Ttype, Dtype, Ptype, RunType>::~Net() {
 template<typename Ttype, DataType Dtype>
 double tensor_average(Tensor4dPtr<Ttype, Dtype>& out_tensor_p) {
     double sum = 0.0f;
-    typedef typename DataTrait<Dtype>::dtype dtype;
+    typedef typename DataTrait<Ttype, Dtype>::dtype dtype;
     const dtype* hptr = nullptr;
 
     Shape shin = out_tensor_p->valid_shape();
@@ -114,7 +116,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
         op_func.op_name = (*_graph_p)[node_name]->get_op_name();
         op_func.ctx_p = ctx;
         // call init of operator
-        CHECK_NOTNULL_S(op_func.op) << "Node(node_name) doesn't have op pointer! ";
+        CHECK_NOTNULL(op_func.op) << "Node(node_name) doesn't have op pointer! ";
 
         op_func.op->_helper->InferShape(op_func.ins, op_func.outs);
         op_func.op->_helper->Init(*(op_func.ctx_p), op_func.ins, op_func.outs);
@@ -131,6 +133,8 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
     init_env(graph);
     // shallow copy
     _graph_p->CopyFrom(graph);
+	
+	double curr_mem_in_mb_start = MemoryInfo<Ttype>::Global().get_used_mem_in_mb(); 
 
     auto node_names_in_exec_order = graph.get_nodes_in_order();
     // infer basic shape and parsing parameter from graph
@@ -177,17 +181,22 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
 
         // create operations
 #if defined(USE_CUDA)
-       	if (node_ptr->get_op_name() == "ConvBatchnormScaleRelu" || node_ptr->get_op_name() == "ConvRelu" || node_ptr->get_op_name() == "Convolution") {
-        std::string group = "group";
-        auto group_val =  node_ptr->template get_attr<int>(group);
-        if (group_val == 1) {
-            node_ptr->set_op(OpFactory<Ttype, Dtype, Ptype>::Global()["Sass"+node_ptr->get_op_name()]);
-            node_ptr->get_op_name() = "Sass" + node_ptr->get_op_name();
-        } else {
-            LOG(ERROR) << "node_ptr->get_op_name()  sass not support yet.";
-            auto* op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
-            node_ptr->set_op(op_pointer);
-        }
+       	if (node_ptr->get_op_name() == "ConvBatchnormScale" || node_ptr->get_op_name() == "ConvBatchnormScaleRelu" || node_ptr->get_op_name() == "ConvRelu" || node_ptr->get_op_name() == "Convolution") {
+        	std::string group = "group";
+        	auto group_val =  node_ptr->template get_attr<int>(group);
+			using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
+			std::string weight_name = "weight_1";
+			auto weights = node_ptr->template get_attr<pblock_type>(weight_name);
+			//int c = weights.d_tensor().channel();
+			
+        	if ((group_val == 1)) {
+            	node_ptr->set_op(OpFactory<Ttype, Dtype, Ptype>::Global()["Sass"+node_ptr->get_op_name()]);
+            	node_ptr->get_op_name() = "Sass" + node_ptr->get_op_name();
+        	} else {
+            	LOG(ERROR) << "node_ptr->get_op_name()  sass not support yet.";
+            	auto* op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
+            	node_ptr->set_op(op_pointer);
+        	}
         } else {
             auto* op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
             node_ptr->set_op(op_pointer);
@@ -241,7 +250,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
                                                          op_func.current_lane, 
                                                          op_func.current_lane);
         // call init of operator
-        CHECK_NOTNULL_S(op_func.op) << "Node(node_name) doesn't have op pointer! ";
+        CHECK_NOTNULL(op_func.op) << "Node(node_name) doesn't have op pointer! ";
 
         op_func.op->_helper->InferShape(op_func.ins, op_func.outs);
 
@@ -268,8 +277,16 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
 #endif
     }
     
+	double curr_mem_in_mb_end = MemoryInfo<Ttype>::Global().get_used_mem_in_mb(); 
+	this->_graph_p->statistics.template set_info<graph::SYSTEM_MEM>(curr_mem_in_mb_end - curr_mem_in_mb_start);
     // init memory of _graph_p
     init_memory();
+	
+	graph.statistics = _graph_p->statistics; // copy statistic back
+	LOG(INFO) << "Temp mem used:        " << this->_graph_p->statistics.template get_info<graph::TEMP_MEM>() << " MB"; 
+	LOG(INFO) << "Original mem used:    " << this->_graph_p->statistics.template get_info<graph::ORI_TEMP_MEM>() << " MB";
+	LOG(INFO) << "Model mem used:       " << this->_graph_p->statistics.template get_info<graph::MODEL_MEM>() << " MB";
+	LOG(INFO) << "System mem used:      " << this->_graph_p->statistics.template get_info<graph::SYSTEM_MEM>() << " MB";
 #ifdef ENABLE_OP_TIMER
     _op_time = std::vector<float>(_exec_funcs.size(), 0.0f);
 #endif
@@ -366,8 +383,6 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
             std::cout << out->data()[i]<<" ";
         }
 #endif
-        std::cout<<std::endl;
-        //record_dev_tensorfile(out->data(), out->valid_size(), ("net_record_" + executer.name + ".txt").data());
 	    LOG(ERROR) << "    |---out avg " << tensor_average(out);
 	}
 
@@ -616,8 +631,9 @@ Status Net<Ttype, Dtype, Ptype, RunType>::init_memory() {
             ori_temp_mem_in_mbytes += (tensor_p->valid_shape().count() * 4);
         };
         this->_graph_p->Scanner->BFS_Edge(analysis_used_of_temp_mem);
-        LOG(ERROR) << " temp !!!!!! " << temp_mem_in_mbytes / 1e6 << "  mb ";
-        LOG(ERROR) << " origin temp !!!!!! " << ori_temp_mem_in_mbytes / 1e6 << "  mb ";
+
+		this->_graph_p->statistics.template set_info<graph::TEMP_MEM>(temp_mem_in_mbytes / 1e6);
+		this->_graph_p->statistics.template set_info<graph::ORI_TEMP_MEM>(ori_temp_mem_in_mbytes / 1e6);
     }
     return Status::OK();
 }

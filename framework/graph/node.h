@@ -155,6 +155,17 @@ public:
     /// Access to attributes.
     AttrInfo& attr() { return _attr; } 
 
+	/// inspect if node attr have target attr name
+	inline bool inspect_attr(const std::string& attr_name) {
+		auto& attrs = this->attr();
+		auto it_end = attrs.parameter.end();
+		auto it_find = attrs.parameter.find(attr_name);
+		if(it_find != it_end) {
+			return true;
+		}
+		return false;
+	}
+
     /**
     * \brief Get target attr by name
     * \param attr_name stand for target_attr name
@@ -163,7 +174,7 @@ public:
     template<typename T>
     T get_attr(std::string& attr_name) {
         auto& attrs = this->attr();
-        const auto& it_end = attrs.parameter.end();
+        auto it_end = attrs.parameter.end();
         auto it_find = attrs.parameter.find(attr_name);
         if(it_find == it_end) {
             LOG(FATAL) << "Target attr name(" << attr_name << ") not found.";
@@ -180,7 +191,7 @@ public:
     template<typename T>
     Status set_attr(const std::string& attr_name, const T val) {
         auto& attrs = this->attr();    
-        const auto& it_end = attrs.parameter.end();
+        auto it_end = attrs.parameter.end();
         auto it_find = attrs.parameter.find(attr_name);
         if(it_find != it_end) {
             return Status::FAIL();
@@ -196,7 +207,7 @@ public:
     */
     Status remove_attr(const std::string& attr_name) {
         auto& attrs = this->attr();
-        const auto& it_end = attrs.parameter.end();
+        auto it_end = attrs.parameter.end();
         auto it_find = attrs.parameter.find(attr_name);
         if(it_find != it_end) {
             attrs.parameter.erase(attr_name);
@@ -248,6 +259,7 @@ public:
         _need_wait = operand._need_wait;
         _in_degree = operand._in_degree;
         _out_degree = operand._out_degree;
+        return *this;
     }
     
     /// print message

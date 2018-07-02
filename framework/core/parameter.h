@@ -175,7 +175,6 @@ public:
 	inline bool host_only() { return true; }
 };
 
-#ifdef USE_CUDA
 template<typename Dtype>
 class PBlock<Dtype, NV> {
 public:
@@ -224,15 +223,21 @@ public:
         return ret;
     }
 
+	// reallocate the storage
+	void re_alloc(Shape4d shape) {
+		_d_inner_tensor->re_alloc(shape);
+		_h_inner_tensor->re_alloc(shape);
+	}
+
     /// Get shape.
-    Shape4d shape() { 
+    Shape4d shape() const { 
         CHECK(_d_inner_tensor->valid_shape() == _h_inner_tensor->valid_shape()) 
             << " [Fatal Err]  device shape is not equal to that of host in PBlock";
         return _d_inner_tensor->valid_shape(); 
     }
 
     /// Get size.
-    size_t count() { 
+    size_t count() const { 
         return this->shape().count();
     }
 
@@ -242,9 +247,7 @@ private:
 	std::shared_ptr<d_type> _d_inner_tensor;
 	std::shared_ptr<h_type> _h_inner_tensor;
 };
-#endif
 
-#ifdef USE_X86_PLACE
 template<typename Dtype>
 class PBlock<Dtype, X86> {
 public:
@@ -288,6 +291,11 @@ public:
         return ret;
     }
 
+	// reallocate storage	
+	void re_alloc(Shape4d shape) {
+		_inner_tensor->re_alloc(shape);
+	}
+
     /// Get shape.
     Shape4d shape() {
         return _inner_tensor->valid_shape();
@@ -303,9 +311,7 @@ public:
 private:
 	std::shared_ptr<type> _inner_tensor;
 };
-#endif
 
-#ifdef USE_ARM_PLACE
 template<typename Dtype>
 class PBlock<Dtype, ARM> {
 public:
@@ -328,11 +334,13 @@ public:
 
     /// assign
     PBlock<Dtype, ARM>& operator=(const PBlock<Dtype, ARM>& p_block) {
-        _inner_tensor = p_block._inner_tensor;
+        this->_inner_tensor = p_block._inner_tensor;
+        return *this;
     }
 
     PBlock<Dtype, ARM>& operator=(PBlock<Dtype, ARM>& p_block) {
-        _inner_tensor = p_block._inner_tensor;
+        this->_inner_tensor = p_block._inner_tensor;
+        return *this;
     }
 
     /// Get tensor.
@@ -349,6 +357,11 @@ public:
         return ret;
     }
 
+	// reallocate the storage
+	void re_alloc(Shape4d shape) {
+		_inner_tensor->re_alloc(shape);
+	}
+
     /// Get shape.
     Shape4d shape() {
         return _inner_tensor->valid_shape();
@@ -364,8 +377,6 @@ public:
 private:
 	std::shared_ptr<type> _inner_tensor;
 };
-#endif
-
 
 /**
  *  \brief Enum type.
