@@ -28,7 +28,7 @@ struct VoidPtr{
         offset = 0;
         ptr = nullptr;
     }
-    VoidPtr(void* ptr_in, size_t offset_in = 0) {
+    VoidPtr(const void* ptr_in, size_t offset_in = 0) {
         offset = offset_in;
         ptr = (char*)ptr_in + offset_in;
     }
@@ -39,6 +39,7 @@ struct VoidPtr{
     VoidPtr&operator=(const VoidPtr& right) {
         this->offset = right.offset;
         this->ptr = right.ptr;
+        return *this;
     }
 
     VoidPtr&operator+(const size_t offset_in) {
@@ -193,7 +194,7 @@ struct VoidPtr<AMD> {
         }
     }
 
-    VoidPtr(void* ptr_in, size_t offset_in = 0) {
+    VoidPtr(const void* ptr_in, size_t offset_in = 0) {
         ptr = new ClMem;
         ClMem* mem_in = (ClMem*)ptr_in;
         ptr->dmem = mem_in->dmem;

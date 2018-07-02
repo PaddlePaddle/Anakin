@@ -32,10 +32,10 @@ __global__ void cuda_cvt_data(const float* src, Dtype* dst, Dtype scale, int siz
 
 template <class Tensor_t>
 void fill_tensor_device_const(Tensor_t& tensor, \
-    typename Tensor_t::Dtype value, \
+    typename Tensor_t::dtype value, \
     typename Tensor_t::API::stream_t stream){
 
-    typedef typename Tensor_t::Dtype Dtype;
+    typedef typename Tensor_t::dtype Dtype;
     Dtype* data_ptr = static_cast<Dtype*>(tensor.get_buf()->get_data_mutable());
     int size = tensor.size();
     set_device_data<<<CUDA_GET_BLOCKS(size), CUDA_NUM_THREADS, 0, stream>>>(data_ptr, value, size);
@@ -46,7 +46,7 @@ void fill_tensor_device_const(Tensor_t& tensor, \
 template <class Tensor_t>
 void fill_tensor_device_rand(Tensor_t& tensor, typename Tensor_t::API::stream_t stream) {
 
-    typedef typename Tensor_t::Dtype Dtype;
+    typedef typename Tensor_t::dtype Dtype;
     Dtype* data_ptr = static_cast<Dtype*>(tensor.get_buf()->get_data_mutable());
     int size = tensor.size();
 
@@ -69,10 +69,10 @@ void fill_tensor_device_rand(Tensor_t& tensor, typename Tensor_t::API::stream_t 
 };
 
 template <class Tensor_t>
-void fill_tensor_device_rand(Tensor_t& tensor, typename Tensor_t::Dtype vstart, \
-    typename Tensor_t::Dtype vend, typename Tensor_t::API::stream_t stream) {
+void fill_tensor_device_rand(Tensor_t& tensor, typename Tensor_t::dtype vstart, \
+    typename Tensor_t::dtype vend, typename Tensor_t::API::stream_t stream) {
 
-    typedef typename Tensor_t::Dtype Dtype;
+    typedef typename Tensor_t::dtype Dtype;
     Dtype* data_ptr = static_cast<Dtype*>(tensor.get_buf()->get_data_mutable());
     int size = tensor.size();
 
