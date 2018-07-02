@@ -2,6 +2,56 @@
 
 我们真诚地感谢您的贡献，欢迎通过 GitHub 的 fork 和 pull request 流程来提交代码。
 
+## Contributor License Agreements
+
+在您的代码合入之前请签署个人或者公司的Contributor License Agreement(CLA)。
+
+- 如果您个人是原始代码的拥有者，并拥有代码的知识产权，您需要签署[个人CLA](https://gist.github.com/tanzhongyibidu/6605bdef5f7bb03b9084dd8fed027037)    
+- 如果原始代码属于公司，并且公司同意提交代码到我们的仓储，那您需要签署[公司CLA](https://gist.github.com/tanzhongyibidu/709c675c1e79804e3e871f8c1e62292d)    
+
+请您选择合适的CLA并仔细阅读，在您签署CLA后方可将代码合入。
+
+## 添加License
+
+在新提交的代码中包含license：
+
+- c++代码头文件
+
+```c++
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+   
+       http://www.apache.org/licenses/LICENSE-2.0
+   
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License. 
+*/
+```
+
+- python代码
+
+```python
+# Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+```
+
 ## 代码要求
 
 - 代码注释请遵守[Doxygen](http://www.stack.nl/~dimitri/doxygen/)的样式
