@@ -17,6 +17,10 @@
 #define ANAKIN_SABER_FUNCS_IMPL_ARM_SABER_ACTIVATION_H
 
 #include "saber/funcs/impl/impl_activation.h"
+#include "saber/funcs/impl/arm/impl/neon_mathfun.h"
+#include "saber/core/tensor_op.h"
+#include "saber/saber_types.h"
+#include "saber/core/context.h"
 
 namespace anakin{
 
@@ -49,31 +53,20 @@ public:
 
     ~SaberActivation() {}
 
-    virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
-                            std::vector<DataTensor_out *>& outputs,
-                            ActivationParam<OpTensor>& param, Context<ARM>& ctx) {
-        this->_ctx = &ctx;
-        return SaberSuccess;
-    }
-
-    virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
-                            std::vector<DataTensor_out *>& outputs,
-                            ActivationParam<OpTensor>& param, Context<ARM> &ctx) {
-        return SaberSuccess;
-    }
+    virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
+                             std::vector<DataTensor_out*>& outputs,
+                             ActivationParam<OpTensor> &param,
+                             Context<ARM> &ctx) override;
+    
+    virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
+                               std::vector<DataTensor_out*>& outputs,
+                               ActivationParam<OpTensor> &param,
+                               Context<ARM> &ctx) override;
     
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
-                          std::vector<DataTensor_out*>& outputs,
-                          ActivationParam<OpTensor>& param) {
-        const InDataType* din = inputs[0]->data();
-        OutDataType* dout = outputs[0]->mutable_data();
-        int size = outputs[0]->valid_size();
-        if (param.active == Active_relu) {
-            for (int i = 0; i < size; ++i) {
-                dout[i] = std::max(din[i], (OutDataType)0);
-            }
-        }
-    }
+                                 std::vector<DataTensor_out*>& outputs,
+                                 ActivationParam<OpTensor> &param) override;
+
 
 };
 
