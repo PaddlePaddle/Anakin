@@ -1,8 +1,9 @@
-#ifdef USE_X86_PLACE
+
 #include "utils/logger/logger.h"
 #include "graph.h"
 #include "net.h"
 
+#ifdef USE_X86_PLACE
 /*util to fill tensor*/
 #include "saber/core/tensor_op.h"
 using namespace anakin;
@@ -14,7 +15,7 @@ int main(int argc, const char** argv) {
     Graph<X86, AK_FLOAT, Precision::FP32> graph;
 
     /*load model from file to init the graph*/
-    auto status = graph.load("/home/liujunjie/macbuild/models/language_model/anakin/language_model.anakin2.bin");
+    auto status = graph.load("language_model.anakin2.bin");
     if (!status) {
         LOG(FATAL) << " [ERROR] " << status.info();
     }

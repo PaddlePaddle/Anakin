@@ -1,8 +1,9 @@
-#ifdef USE_CUDA
+
 #include "utils/logger/logger.h"
 #include "graph.h"
 #include "net.h"
 
+#ifdef USE_CUDA
 /*util to fill tensor*/
 #include "saber/core/tensor_op.h"
 using namespace anakin;
@@ -14,7 +15,7 @@ int main(int argc, const char** argv) {
     Graph<NV, AK_FLOAT, Precision::FP32> graph;
 
     /*load model from file to init the graph*/
-    auto status = graph.load("/home/public/anakin-models/anakin_models/Resnet50/Resnet50.anakin.bin");
+    auto status = graph.load("Resnet50.anakin.bin");
     if (!status) {
         LOG(FATAL) << " [ERROR] " << status.info();
     }
