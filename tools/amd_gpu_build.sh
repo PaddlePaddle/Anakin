@@ -32,6 +32,8 @@ cmake \
     -DUSE_OPENMP=NO\
     -DBUILD_SHARED=YES\
     -DUSE_OPENCL=YES \
+    -DUSE_OPENCV=NO \
+    -DBUILD_EXAMPLES=NO \
     ..
         
 
