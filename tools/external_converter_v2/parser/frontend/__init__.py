@@ -14,7 +14,7 @@ def RunServerOnGraph(f_graph_get):
     """
     def warpper(self, *args):
         graph, config = f_graph_get(self, *args)
-        graph_to_json, attrs = GraphToJson(graph)()
+        graph_to_json, attrs, mem_info_hold= GraphToJson(graph)()
         # parser origin graph
         GraphBoard.config['graph_attrs'] = attrs
         GraphBoard.config['graph_option'] = graph_to_json
@@ -24,9 +24,10 @@ def RunServerOnGraph(f_graph_get):
         graph_optimized = GraphProtoIO()
         if config.hasOptimizedGraph:
             graph_optimized.parse_from_string(config.optimizedGraphPath)
-            optimized_graph_to_json, optimized_graph_attrs = GraphToJson(graph_optimized)()
+            optimized_graph_to_json, optimized_graph_attrs, mem_info= GraphToJson(graph_optimized)()
             GraphBoard.config['optimized_graph_attrs'] = optimized_graph_attrs
-            GraphBoard.config['optimized_graph_option'] = optimized_graph_to_json
+            GraphBoard.config['optimized_graph_option'] = optimized_graph_to_json 
+            GraphBoard.config['mem_info'] = mem_info 
             GraphBoard.config['disable_optimization'] = False
         else:
             GraphBoard.config['disable_optimization'] = True
