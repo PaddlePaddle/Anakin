@@ -54,7 +54,7 @@ anakin_option(ANAKIN_TYPE_FP16 "define the FP16 for data precision." NO)
 anakin_option(ANAKIN_TYPE_INT8 "define the INT8 for data precision." NO)
 
 #select the plantform to build
-anakin_option(USE_GPU_PLACE "Select the build mode for GPU place." NO)
+anakin_option(USE_GPU_PLACE "Select the build mode for GPU place." YES)
 anakin_option(USE_X86_PLACE "Select the build mode for X86 place." YES)
 anakin_option(USE_ARM_PLACE "Select the build mode for ARM place." NO)
 
@@ -90,7 +90,7 @@ anakin_option(COMPILE_PTX "Returns a list of PTX files generated from src." NO i
 
 
 # common build options
-anakin_option(ENABLE_DEBUG "Enable DEBUG(default) mode." YES)
+anakin_option(ENABLE_DEBUG "Enable DEBUG(default) mode." NO)
 anakin_option(ENABLE_VERBOSE_MSG "Enable verbose=1 : compile msg during make." NO)
 anakin_option(DISABLE_ALL_WARNINGS "Disable all the warning msg during compile." YES)
 anakin_option(ENABLE_NOISY_WARNINGS "Enable noisy warning msg during compile." NO if DISABLE_ALL_WARNINGS)
