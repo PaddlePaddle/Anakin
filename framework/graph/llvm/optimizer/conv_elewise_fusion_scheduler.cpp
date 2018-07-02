@@ -10,7 +10,7 @@ bool ConvElsFusionScheduler::callable(node& node_arg) {
 		auto& node_arc_in_its = _vgraph->get_in_arc_its(node_arg.name);
 		CHECK_EQ(node_arc_out_its.size(), 1)<<"Conv+eltwise analysis: Convolution like op should have only one output.";
 		auto& node_next = (*_vgraph)[node_arc_out_its[0]->top()];
-		if(node_next.opName == "EltwiseRelu" || node_next.opName == "Eltwise") {
+		if(node_next.opName == "EltwiseRelu" /*|| node_next.opName == "Eltwise"*/) {
 			auto& elt_node_in_its = _vgraph->get_in_arc_its(node_next.name);
 			for(auto& it : elt_node_in_its) {
 				if(it->bottom() != node_arg.name) {

@@ -38,20 +38,20 @@ using Target_H = ARM;
 //std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/residual_net_7patch_3hc.anakin.bin";
 
 // resnet 50
-//std::string model_path = "/home/cuichaowen/anakin2/anakin2/benchmark/CNN/mobilenet_v2.anakin.bin";
+// std::string model_path = "/home/cuichaowen/anakin2/anakin2/benchmark/CNN/mobilenet_v2.anakin.bin";
 
 // vgg16
 // std::string model_path = "/home/cuichaowen/anakin2/anakin2/benchmark/CNN/models/vgg16.anakin.bin";
 
 // resnet 101
-//std::string model_path = "/home/cuichaowen/parsing/external_converter_v2/output/ResNet-101.anakin.bin";
+std::string model_path = "/home/cuichaowen/parsing/external_converter_v2/output/ResNet-101.anakin.bin";
 
 // animal
-//std::string model_path = "/home/cuichaowen/parsing/external_converter_v2/output/animal.anakin.bin";
+// std::string model_path = "/home/cuichaowen/parsing/external_converter_v2/output/animal.anakin.bin";
 
-// std::string model_path = "/home/cuichaowen/github_anakin/icode_model/anakin-models/vis/anakin-models/mainbody/mainbody.anakin2.bin";
+//std::string model_path = "/home/cuichaowen/github_anakin/icode_model/anakin-models/vis/anakin-models/mainbody/mainbody.anakin2.bin";
 
-std::string model_path = "/home/cuichaowen/github_anakin/icode_model/anakin-models/vis/anakin-models/MobileNetSSD/mobilenet-ssd_fluid.anakin2.bin";
+//std::string model_path = "/home/cuichaowen/github_anakin/icode_model/anakin-models/vis/anakin-models/MobileNetSSD/mobilenet-ssd_fluid.anakin2.bin";
 
 #ifdef USE_CUDA
 #if 1
@@ -66,14 +66,14 @@ TEST(NetTest, net_execute_base_test) {
 
     // reshape the input_0 's shape for graph model
     //graph->Reshape("input_0", {1, 8, 640, 640});
-	graph->ResetBatchSize("input_0", 2);
+	//graph->ResetBatchSize("input_0", 2);
 
     // register all tensor inside graph
     // graph->RegistAllOut();
 
     // register edge
     // graph->RegistOut("conv2_2/expand/scale", "relu2_2/expand");
-	//graph->RegistOut("conv2d#1(conv2d_0) ","relu#3(conv2d_0)");
+	// graph->RegistOut("relu#3(conv2d_0)","pool2d#4(pool2d_0)");
 
     //anakin graph optimization
     graph->Optimize();
@@ -210,8 +210,10 @@ TEST(NetTest, net_execute_base_test) {
 	auto tensor_out_6_p = net_executer.get_out("height_pt_out");*/
 
 	// restnet 101
-	// auto tensor_out_0_p = net_executer.get_out("elementwise_add_0.tmp_0_out");
-	auto tensor_out_0_p = net_executer.get_out("detection_output_0.tmp_0_out");
+ 	//auto tensor_out_0_p = net_executer.get_out("elementwise_add_0.tmp_0_out");
+	auto tensor_out_0_p = net_executer.get_out("prob_out");
+
+	//auto tensor_out_0_p = net_executer.get_out("detection_output_0.tmp_0_out");
 
     // get out result
     //LOG(WARNING)<< "result avg: " << tensor_average(tensor_out_0_p);

@@ -94,19 +94,36 @@ Status SassConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::InitParam() {
 	if(check_attr("merge_type")) {
 		LOG(ERROR) << "detect eltwise relu!!!!!!!! ";
 		auto type = GET_PARAMETER(std::string, merge_type);
-    	auto alpha = GET_PARAMETER(float, merge_relu_0_alpha);
+    	//auto alpha = GET_PARAMETER(float, merge_relu_0_alpha);
     	auto coeff = GET_PARAMETER(PTuple<float>, merge_coeff);
-    	ActivationParam<Tensor4d<Ttype, Dtype>> activation_param(Active_relu);
-    	EltwiseType elt_type;
-    	if (type == "Add") {
-        	elt_type = Eltwise_sum;
-    	} else if (type == "Max") {
-        	elt_type = Eltwise_max;
-    	} else {
-        	elt_type = Eltwise_prod;
-    	}
-    	saber::EltwiseParam<Tensor4d<Ttype, Dtype>>  eltwise_param(elt_type, coeff.vector());
-    	EltwiseActiveParam<Tensor4d<Ttype, Dtype>> eltwise_relu_param(eltwise_param, activation_param);
+
+		if(check_attr("merge_relu_0_alpha") {
+    		ActivationParam<Tensor4d<Ttype, Dtype>> activation_param(Active_relu);
+    		EltwiseType elt_type;
+    		if (type == "Add") {
+        		elt_type = Eltwise_sum;
+    		} else if (type == "Max") {
+        		elt_type = Eltwise_max;
+    		} else {
+        		elt_type = Eltwise_prod;
+    		}
+    		saber::EltwiseParam<Tensor4d<Ttype, Dtype>>  eltwise_param(elt_type, coeff.vector());
+    		EltwiseActiveParam<Tensor4d<Ttype, Dtype>> eltwise_relu_param(eltwise_param, activation_param);
+			ConvActiveParam<Tensor4d<Ttype, Dtype>> conv_act_param(_conv_param, batchnorm_param, scale_param, eltwise_relu_param); 
+			_param_conv_batchnorm_scale_relu = conv_act_param;
+		} else {
+			EltwiseType elt_type;
+    		if (type == "Add") {
+        		elt_type = Eltwise_sum;
+    		} else if (type == "Max") {
+        		elt_type = Eltwise_max;
+    		} else {
+        		elt_type = Eltwise_prod;
+    		}
+			saber::EltwiseParam<Tensor4d<Ttype, Dtype>>  eltwise_param(elt_type, coeff.vector());	
+			ConvActiveParam<Tensor4d<Ttype, Dtype>> conv_act_param(_conv_param, batchnorm_param, scale_param, eltwise_relu_param);
+			        _param_conv_batchnorm_scale_relu = conv_act_param;
+		}
 
 		ConvActiveParam<Tensor4d<Ttype, Dtype>> conv_act_param(_conv_param, batchnorm_param, scale_param, eltwise_relu_param);
 		_param_conv_batchnorm_scale_relu = conv_act_param;
