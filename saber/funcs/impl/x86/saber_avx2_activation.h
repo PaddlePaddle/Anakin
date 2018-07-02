@@ -92,7 +92,7 @@ inline __m256 Tanh_fast(const __m256 a) {
 inline __m256 Identity(const __m256 a) {
     return a;
 }
-__m256 (*act_func[])(__m256)= {&InValidAct, &Sigmoid, &Relu, &Tanh, &InValidAct, \
+static __m256 (*act_func[])(__m256)= {&InValidAct, &Sigmoid, &Relu, &Tanh, &InValidAct, \
                                         & InValidAct, &Identity, &Sigmoid_fluid, &Tanh_fluid
 };
 

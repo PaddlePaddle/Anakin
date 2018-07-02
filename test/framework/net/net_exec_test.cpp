@@ -32,12 +32,14 @@ TEST(NetTest, net_execute_base_test) {
 
     // reshape the input_0 's shape for graph model
     //graph->Reshape("input_0", {1, 8, 640, 640});
+	//graph->ResetBatchSize("input_0", 2);
 
     // register all tensor inside graph
-    //graph->RegistAllOut();
+    // graph->RegistAllOut();
 
     // register edge
     // graph->RegistOut("conv2_2/expand/scale", "relu2_2/expand");
+	// graph->RegistOut("relu#3(conv2d_0)","pool2d#4(pool2d_0)");
 
     //anakin graph optimization
     graph->Optimize();
@@ -174,10 +176,13 @@ TEST(NetTest, net_execute_base_test) {
 	auto tensor_out_6_p = net_executer.get_out("height_pt_out");*/
 
 	// restnet 101
+ 	//auto tensor_out_0_p = net_executer.get_out("elementwise_add_0.tmp_0_out");
 	auto tensor_out_0_p = net_executer.get_out("prob_out");
 
+	//auto tensor_out_0_p = net_executer.get_out("detection_output_0.tmp_0_out");
+
     // get out result
-    LOG(WARNING)<< "result avg: " << tensor_average(tensor_out_0_p);
+    //LOG(WARNING)<< "result avg: " << tensor_average(tensor_out_0_p);
 	test_print(tensor_out_0_p);
 
 
