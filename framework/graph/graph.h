@@ -136,6 +136,8 @@ private:
     std::vector<std::string> _nodes_exec_order;
     ///< node_merges map: target node map to all its fusion node
     std::unordered_map<std::string, std::vector<std::string> > _node_merges;
+	///< _node_merges_keep map: target node map to all its fusion node that shouldn't be removed
+	std::unordered_map<std::string, std::vector<int> > _node_merges_keep;
 
     ///< _pattern_name_merges map: target node map to all its fusion pattern node
     std::unordered_map<std::string, std::vector<std::string> > _pattern_name_merges;

@@ -43,7 +43,7 @@ TEST(NetTest, net_execute_base_test) {
     graph->Optimize();
 
     // constructs the executer net
-	{ // inner scope
+	//{ // inner scope
 #ifdef USE_DIEPSE
     Net<NV, AK_FLOAT, Precision::FP32, OpRunType::SYNC> net_executer(*graph, true);
 #else
@@ -150,11 +150,12 @@ TEST(NetTest, net_execute_base_test) {
     my_time.end(ctx);
     LOG(INFO)<<"aveage time "<<my_time.get_average_ms()/epoch << " ms";
 
-	} // inner scope over
+	//} // inner scope over
 
 	LOG(ERROR) << "inner net exe over !";
 
     //auto& tensor_out_inner_p = net_executer.get_tensor_from_edge("data_perm", "conv1");
+	
 
     // get out yolo_v2
     /*auto tensor_out_0_p = net_executer.get_out("loc_pred_out");
@@ -171,16 +172,21 @@ TEST(NetTest, net_execute_base_test) {
 	auto tensor_out_4_p = net_executer.get_out("class_score_out");
 	auto tensor_out_5_p = net_executer.get_out("heading_pt_out");
 	auto tensor_out_6_p = net_executer.get_out("height_pt_out");*/
+
+	// restnet 101
+	auto tensor_out_0_p = net_executer.get_out("prob_out");
+
     // get out result
-    //test_print<NV>(tensor_out_4_p);
+    LOG(WARNING)<< "result avg: " << tensor_average(tensor_out_0_p);
+	test_print(tensor_out_0_p);
 
 
     // save the optimized model to disk.
-    /*std::string save_model_path = model_path + std::string(".saved");
+    std::string save_model_path = model_path + std::string(".saved");
     status = graph->save(save_model_path);
     if (!status ) { 
         LOG(FATAL) << " [ERROR] " << status.info(); 
-    }*/
+    }
 }
 #endif 
 #endif

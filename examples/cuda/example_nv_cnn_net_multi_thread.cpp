@@ -16,7 +16,7 @@ using namespace anakin::saber;
 int main(int argc, const char** argv) {
 
     /*init works object by model path and thread pool size*/
-    Worker<NV, AK_FLOAT, Precision::FP32>  workers("/home/public/anakin-models/anakin_models/Resnet50/Resnet50.anakin.bin", 10);
+    Worker<NV, AK_FLOAT, Precision::FP32>  workers("Resnet50.anakin.bin", 10);
     workers.register_inputs({"input_0"});
     workers.register_outputs({"prob_out"});
     /*set input shape*/
