@@ -131,7 +131,7 @@ SaberStatus SaberConv2D<AMD, OpDtype, inDtype, outDtype,
         std::string(" -DMLO_N_OUT_TILES_PERSTACK=") + std::to_string(extSolution.n_out_tiles_perstack) +
         std::string(" -DMLO_N_IN_TILES_PERSTACK=") + std::to_string(extSolution.n_in_data_tiles) +
         std::string(" -DMLO_N_READ_PROCS=") + std::to_string(extSolution.n_read_procs) +
-        std::string(" -DMLO_CONV_BIAS=0") + // (for now not support)
+        //std::string(" -DMLO_CONV_BIAS=0") + // (for now not support)
         std::string(" -DMLO_ALU_VTILE0=") + std::to_string(extSolution.alu_tile0) +
         std::string(" -DMLO_ALU_VTILE1=") + std::to_string(extSolution.alu_tile1);
 

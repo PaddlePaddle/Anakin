@@ -128,8 +128,8 @@ TEST(TestSaberFuncAMD, test_conv_fp32_1x1_speed) {
     out.re_alloc({batch, out_channels, img_h, img_w});
     out_h.re_alloc({batch, out_channels, img_h, img_w});
 
-    fill_tensor_device_rand(weights, -50.f, 50.f);
-    fill_tensor_device_rand(img, -50.f, 50.f);
+    fill_tensor_device_rand(weights, -0.01f, 0.01f);
+    fill_tensor_device_rand(img, -0.01f, 0.01f);
     //fill_tensor_device_const(weights, 2.f);
     //fill_tensor_host_const(weights_host, 2.f);
     //fill_tensor_device_const(img, 1.f);
@@ -303,7 +303,7 @@ TEST(TestSaberFuncAMD, test_vgg_conv_3x3) {
     problemConfig->Y = 3;    //height of kernel
     problemConfig->PadW = 1; //width of pad
     problemConfig->PadH = 1; //height of pad
-    problemConfigList.push_back(problemConfig);
+    //problemConfigList.push_back(problemConfig);
 
     // ======================================================================
     // problem config conv12:
@@ -319,7 +319,7 @@ TEST(TestSaberFuncAMD, test_vgg_conv_3x3) {
     problemConfig->Y = 3;    //height of kernel
     problemConfig->PadW = 1; //width of pad
     problemConfig->PadH = 1; //height of pad
-    problemConfigList.push_back(problemConfig);
+    //problemConfigList.push_back(problemConfig);
 
     // ======================================================================
     // problem config conv21:
@@ -336,7 +336,7 @@ TEST(TestSaberFuncAMD, test_vgg_conv_3x3) {
     problemConfig->PadW = 1; //width of pad
     problemConfig->PadH = 1; //height of pad
     problemConfigList.push_back(problemConfig);
-
+/*
     // ======================================================================
     // problem config conv22:
     // ======================================================================
@@ -496,7 +496,7 @@ TEST(TestSaberFuncAMD, test_vgg_conv_3x3) {
     problemConfig->PadW = 1; //width of pad
     problemConfig->PadH = 1; //height of pad
     problemConfigList.push_back(problemConfig);
-
+*/
     Context<AMD> ctx1(0, 1, 1);
 
     API::stream_t amd_cstream = ctx1.get_compute_stream();
@@ -582,7 +582,7 @@ TEST(TestSaberFuncAMD, test_vgg_conv_3x3) {
         //sleep(2);
 
         //LOG(INFO) << "PRINT DEVICE TENSOR: out";
-        //print_tensor_device(out);
+        print_tensor_device(out);
         //sleep(2);
 
         //LOG(INFO) << "PRINT HOST TENSOR: out";

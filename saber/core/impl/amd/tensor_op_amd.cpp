@@ -143,7 +143,7 @@ void print_tensor_device(Tensor_t& tensor, typename Tensor_t::API::stream_t stre
     }
 
     for (int i = 0; i < size; ++i) {
-        printf("%.2f ", static_cast<float>(data_ptr[i]));
+        printf("%.5f ", static_cast<float>(data_ptr[i]));
         if ((i + 1) % tensor.width() == 0) {
             printf("\n");
         }
