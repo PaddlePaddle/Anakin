@@ -95,8 +95,7 @@ Status SassConvReluPoolHelper<Ttype, Dtype, Ptype>::InitParam() {
         LOG(FATAL) << " SassConvReluPool fusion op doesn't support : " << pool_method << " pooling.";
     }
 
-    ConvActivePoolingParam<Tensor4d<Ttype, Dtype>> conv_act_pooling_param(_conv_param,
-									  active_param,
+    ConvActivePoolingParam<Tensor4d<Ttype, Dtype>> conv_act_pooling_param(_conv_param, active_param,
                                                                           _pooling_param);
     _param_conv_relu_pooling = conv_act_pooling_param;
     return Status::OK();
