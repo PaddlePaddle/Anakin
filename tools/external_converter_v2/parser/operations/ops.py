@@ -348,3 +348,11 @@ OpsRegister.Register("LayerNorm").set_attr(is_across_spatial=bool(),
                                            begin_norm_axis=int(),
                                            eps=float())
 
+
+OpsRegister.Register("Normalize").set_attr(begin_norm_axis=int(),
+                                           is_across_spatial=bool(),
+                                           is_shared_channel=bool(),
+                                           eps=float(),
+                                           p=int())
+
+
