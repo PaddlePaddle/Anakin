@@ -369,7 +369,7 @@ void py_lstm(int word_size = 222,
     if (abs(maxratio) <= 0.001) {
         LOG(INFO) << "passed  " << maxratio<<","<<maxdiff<<",?="<<abs(maxratio);
     } else {
-        LOG(INFO) << "failed : ratio  " << maxratio<<","<<maxdiff;
+        LOG(INFO) << "failed : ratio " << maxratio<<","<<maxdiff;
     }
 
 }
