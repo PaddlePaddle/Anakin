@@ -1,5 +1,4 @@
 /* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
-
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -67,7 +66,6 @@ public:
         _axis_size = shape_in[param.axis];
 
         int buffer_size = this->_inner_num * this->_outer_num;
-
         return SaberSuccess;
     }
 

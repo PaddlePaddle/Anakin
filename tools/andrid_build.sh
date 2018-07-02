@@ -1,6 +1,8 @@
 #!/bin/bash
 # This script shows how one can build a anakin for the Android platform using android-tool-chain. 
 export ANDROID_NDK=/home/public/android-ndk-r14b
+export ARM_PROTOBUF_ROOT=/home/public/arm-android/protobuf
+
 ANAKIN_ROOT="$( cd "$(dirname "$0")"/.. ; pwd -P)"
 echo "-- Anakin root dir is: $ANAKIN_ROOT"
 
@@ -18,6 +20,10 @@ fi
 
 # build the target into build_android.
 BUILD_ROOT=$ANAKIN_ROOT/android_build
+
+if [ -d $BUILD_ROOT ];then
+	rm -rf $BUILD_ROOT
+fi
 
 mkdir -p $BUILD_ROOT
 echo "-- Build anakin Android into: $BUILD_ROOT"
