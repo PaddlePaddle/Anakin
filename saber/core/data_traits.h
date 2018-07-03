@@ -25,7 +25,7 @@ namespace saber{
 template <typename Ttype, DataType datatype>
 struct DataTrait{
     typedef __invalid_type Dtype;
-    typedef __invalid_type dtype;
+    typedef __invalid_type PtrDtype;
 };
 
 template <typename Ttype>
@@ -164,7 +164,6 @@ struct PtrTrait<AMD> {
     typedef ClMem PtrType;
 };
 #endif //USE_OPENCL
-
 } //namespace saber
 
 } //namespace anakin
