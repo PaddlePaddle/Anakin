@@ -21,36 +21,7 @@
 namespace anakin{
 
 namespace saber{
-#if 0
-template <typename TargetType>
-struct VoidPtr{
-    VoidPtr(){
-        offset = 0;
-        ptr = nullptr;
-    }
-    VoidPtr(void* ptr_in, size_t offset_in = 0) {
-        offset = offset_in;
-        ptr = (char*)ptr_in + offset_in;
-    }
-    VoidPtr(const VoidPtr& right) {
-        offset = right.offset;
-        ptr = right.ptr;
-    }
-    VoidPtr&operator=(const VoidPtr& right) {
-        this->offset = right.offset;
-        this->ptr = right.ptr;
-    }
 
-    VoidPtr&operator+(const size_t offset_in) {
-        this->offset += offset_in;
-        ptr = (char*)ptr + offset_in;
-        return *this;
-    }
-
-    size_t offset{0};
-    void* ptr{nullptr};
-};
-#endif
 template <typename Ttype, DataType datatype>
 struct DataTrait{
     typedef __invalid_type Dtype;
@@ -163,7 +134,6 @@ struct ClMem{
     size_t offset{0};
     cl_mem dmem{nullptr};
 };
-#endif //USE_OPENCL
 
 template <>
 struct DataTrait<AMD, AK_FLOAT> {
@@ -193,47 +163,7 @@ template <>
 struct PtrTrait<AMD> {
     typedef ClMem PtrType;
 };
-
-#if 0
-template <>
-struct VoidPtr<AMD> {
-    VoidPtr(){}
-
-    ~VoidPtr() {
-        if (!ptr) {
-            LOG(ERROR) << "release voidptr";
-            delete ptr;
-        }
-    }
-
-    VoidPtr(void* ptr_in, size_t offset_in = 0) {
-        ptr = new ClMem;
-        ClMem* mem_in = (ClMem*)ptr_in;
-        ptr->dmem = mem_in->dmem;
-        ptr->offset = mem_in->offset + offset_in;
-    }
-    VoidPtr(const VoidPtr& right) {
-        ptr = new ClMem;
-        ptr->dmem = right.ptr->dmem;
-        ptr->offset = right.ptr->offset;
-    }
-    VoidPtr&operator=(const VoidPtr& right) {
-        if (this->ptr == nullptr) {
-            ptr = new ClMem;
-        }
-        this->ptr->dmem = right.ptr->dmem;
-        this->ptr->offset = right.ptr->offset;
-        return *this;
-    }
-
-    VoidPtr&operator+(const size_t offset_in) {
-        this->ptr->offset += offset_in;
-        return *this;
-    }
-
-    ClMem* ptr{nullptr};
-};
-#endif //0
+#endif //USE_OPENCL
 
 } //namespace saber
 
