@@ -44,14 +44,14 @@ using Target_H = ARM;
 // std::string model_path = "/home/cuichaowen/anakin2/anakin2/benchmark/CNN/models/vgg16.anakin.bin";
 
 // resnet 101
-std::string model_path = "/home/cuichaowen/parsing/external_converter_v2/output/ResNet-101.anakin.bin";
+// std::string model_path = "/home/cuichaowen/parsing/external_converter_v2/output/ResNet-101.anakin.bin";
 
 // animal
 // std::string model_path = "/home/cuichaowen/parsing/external_converter_v2/output/animal.anakin.bin";
 
 //std::string model_path = "/home/cuichaowen/github_anakin/icode_model/anakin-models/vis/anakin-models/mainbody/mainbody.anakin2.bin";
 
-//std::string model_path = "/home/cuichaowen/github_anakin/icode_model/anakin-models/vis/anakin-models/MobileNetSSD/mobilenet-ssd_fluid.anakin2.bin";
+std::string model_path = "/home/cuichaowen/github_anakin/icode_model/anakin-models/vis/anakin-models/MobileNetSSD/mobilenet-ssd_fluid.anakin2.bin";
 
 #ifdef USE_CUDA
 #if 1
@@ -211,9 +211,9 @@ TEST(NetTest, net_execute_base_test) {
 
 	// restnet 101
  	//auto tensor_out_0_p = net_executer.get_out("elementwise_add_0.tmp_0_out");
-	auto tensor_out_0_p = net_executer.get_out("prob_out");
+	//auto tensor_out_0_p = net_executer.get_out("prob_out");
 
-	//auto tensor_out_0_p = net_executer.get_out("detection_output_0.tmp_0_out");
+	auto tensor_out_0_p = net_executer.get_out("detection_output_0.tmp_0_out");
 
     // get out result
     //LOG(WARNING)<< "result avg: " << tensor_average(tensor_out_0_p);
