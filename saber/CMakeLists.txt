@@ -1,14 +1,21 @@
-# ----------------------------------------------------------------------------
-# Copyright (c) 2016 Baidu.com, Inc. All Rights Reserved
-# @file     CMakeLists files in the saber directory of project
-# @auther   cuichaowen
-# @date     2017-10-24
-# ----------------------------------------------------------------------------
-
+# Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 set(ANAKIN_SABER_STATIC_RELAY "" )
 
 set(ANAKIN_SABER_BASE_SRC "")
 anakin_fetch_include_recursively(${ANAKIN_SABER})
+anakin_fetch_include_recursively(${ANAKIN_UTILS})
 
 # add ak_base_source files
 anakin_fetch_files_with_suffix(${ANAKIN_SABER}/core "cpp" ANAKIN_SABER_BASE_SRC)
@@ -72,12 +79,6 @@ if(USE_CUDA)
 				      ${BEGIN_WHOLE_ARCHIVE} 
 				      ${ANAKIN_SABER_SASS_STATIC_LIB} 
 				      ${WHOLE_ARCHIVE_END})	
-endif()
-
-if(USE_ARM_PLACE)
-    FILE(GLOB SRC_LITE "lite/core/*.h" "lite/core/*.cpp" "lite/funcs/*.h" "lite/funcs/*.cpp"
-            "lite/funcs/neon/*.cpp" "lite/funcs/neon/impl/*.cpp" "lite/funcs/neon/impl/*.h")
-    add_library(saber_lite STATIC ${SRC_LITE})
 endif()
 
 # add saber library to static

@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -69,7 +69,7 @@ double tensor_average(Tensor4dPtr<Ttype, Dtype>& out_tensor_p) {
     for (int i=0; i<out_tensor_p->valid_size(); i++) {
 		sum+=h_data[i];
     }
-    return sum/out_tensor_p->valid_size();
+    return sum/*/out_tensor_p->valid_size()*/;
 }
 
 #ifdef USE_X86_PLACE

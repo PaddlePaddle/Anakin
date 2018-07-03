@@ -1,7 +1,4 @@
-
 #include "saber/funcs/impl/arm/saber_activation.h"
-#include "saber/funcs/impl/arm/impl/conv_arm_impl.h"
-#include "saber/core/impl/arm/arm_device.h"
 
 #ifdef USE_ARM_PLACE
 namespace anakin{

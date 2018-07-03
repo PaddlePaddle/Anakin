@@ -2,6 +2,7 @@
 #include "net_test.h"
 #include "saber/funcs/timer.h"
 #include <chrono>
+
 #if defined(USE_CUDA)
 using Target = NV;
 using Target_H = X86;
@@ -15,7 +16,7 @@ using Target_H = ARM;
 std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/yolo_lane_v2.anakin.bin";
 
 #ifdef USE_CUDA
-#if 1
+#if 0
 TEST(NetTest, nv_net_execute_muti_thread_sync_test) {
 #if 1 // use host input
     //Env<NV>::env_init(1);
@@ -107,25 +108,25 @@ TEST(NetTest, nv_net_execute_muti_thread_sync_test) {
 }
 #endif
 
-#if 0
+#if 1
 TEST(NetTest, net_execute_muti_thread_async_test) {
     LOG(WARNING) << "Async Runing multi_threads for model: " << model_path;
     Worker<NV, AK_FLOAT, Precision::FP32>  workers(model_path, 10); 
-    workers.register_inputs({"input_0"});
-    workers.register_outputs({"softmax_out"});    
-    workers.Reshape("input_0", {1, 384, 960, 3});
+    //workers.register_inputs({"input_0"});
+    //workers.register_outputs({"softmax_out"});    
+    //workers.Reshape("input_0", {1, 384, 960, 3});
 
     workers.launch();
 
     std::vector<Tensor4dPtr<target_host<NV>::type, AK_FLOAT> > host_tensor_p_in_list;
     // get in
-    saber::Shape valid_shape_in({1, 384, 960, 3});
+    /*saber::Shape valid_shape_in({1, 384, 960, 3});
     Tensor4dPtr<target_host<NV>::type, AK_FLOAT> h_tensor_in = new Tensor4d<target_host<NV>::type, AK_FLOAT>(valid_shape_in);
     float* h_data = h_tensor_in->mutable_data();
     for (int i=0; i<h_tensor_in->size(); i++) {
         h_data[i] = 1.0f;
     }
-    host_tensor_p_in_list.push_back(h_tensor_in);
+    host_tensor_p_in_list.push_back(h_tensor_in);*/
 
     int epoch = 10000;
 

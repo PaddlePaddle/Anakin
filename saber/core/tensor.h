@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@
 #ifndef ANAKIN_SABER_CORE_TENSOR_H
 #define ANAKIN_SABER_CORE_TENSOR_H
 
-#include "core/shape.h"
-#include "core/events.h"
-#include "core/tensor_traits.h"
+#include "saber/core/shape.h"
+#include "saber/core/events.h"
+#include "saber/core/tensor_traits.h"
 
 namespace anakin{
 

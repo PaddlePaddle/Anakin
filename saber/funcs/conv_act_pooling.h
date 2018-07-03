@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -206,14 +206,14 @@ private:
         _use_saber_conv_pooling &= !(this->_param).pooling_param.global_pooling;
         _use_saber_conv_pooling &= (this->_param).pooling_param.pooling_type == Pooling_max;
 
-        if (!_use_saber_conv_pooling) {
-            delete this->_impl[1];
-            this->_impl.erase(this->_impl.end());
-            this->_best_impl = this->_impl[0];
-        } else {
+        if (_use_saber_conv_pooling) {
+            this->_best_impl = this->_impl[1];
             delete this->_impl[0];
-            this->_impl.erase(this->_impl.begin());
+            this->_impl[0] = NULL;
+        } else {
             this->_best_impl = this->_impl[0];
+            delete this->_impl[1];
+            this->_impl[1] = NULL;
         }
     }
 

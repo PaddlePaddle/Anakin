@@ -742,6 +742,7 @@ SaberStatus SaberDetectionOutput::load_param(bool share_loc,
     _nms_top_k = nms_topk;
     _nms_thresh = nms_thresh;
     _nms_eta = nms_eta;
+    return SaberSuccess;
 }
 
 SaberStatus SaberDetectionOutput::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,

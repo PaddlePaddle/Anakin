@@ -14,3 +14,11 @@ sh $sdir/prepare.sh
 for i in {1,2,4,6};do
 python $sdir/tensorflow_language_model.py --process_num=$i
 done
+
+for i in {1,2,4,6};do
+python $sdir/tensorflow_chinese_ner.py --process_num=$i
+done
+
+for i in {1,2,4,6};do
+python $sdir/tensorflow_text_classfication.py --process_num=$i
+done

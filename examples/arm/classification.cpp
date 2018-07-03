@@ -182,17 +182,15 @@ void test_net(const std::string model_file_name, const std::string image_file_na
     Tensor4hf* tensor_out = vout[0];
     LOG(INFO) << "output size: " << vout.size();
 
-#if 0 //print output tensor data
+#if 1 //print output tensor data
     LOG(INFO) << "extract data: size: " << tensor_out->valid_size() << \
         ", width=" << tensor_out->width() << ", height=" << tensor_out->height();
     const float* ptr_out = tensor_out->data();
+    double mean_val = 0.0;
     for (int i = 0; i < tensor_out->valid_size(); i++) {
-        printf("%0.4f  ", ptr_out[i]);
-        if ((i + 1) % 7 == 0) {
-            printf("\n");
-        }
+        mean_val += ptr_out[i];
     }
-    printf("\n");
+    LOG(INFO) << "output mean val: " << mean_val;
 #endif
     print_topk(tensor_out->data(), tensor_out->valid_size(), topk, labels);
 }
