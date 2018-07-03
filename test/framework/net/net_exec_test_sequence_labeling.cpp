@@ -419,7 +419,7 @@ TEST(NetTest, net_execute_base_test) {
     Net<X86, AK_FLOAT, Precision::FP32, OpRunType::SYNC> net_executer(*graph, true);
 
 //    std::vector<float> input_data;
-//    std::string img_path = "/home/public/anakin2_ocr/inputs/48_194.txt";
+//    std::string img_path = "/path/to/0.txt";
 //    int res = read_file(input_data, img_path.c_str());
 
 
