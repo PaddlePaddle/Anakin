@@ -199,9 +199,10 @@ SaberStatus SaberSoftmax<AMD, OpDtype, inDtype, outDtype,
     //To get the commpute command queue
     AMD_API::stream_t cm = this->_ctx->get_compute_stream();
 
+    cl_event event;
     errNum = clEnqueueNDRangeKernel(cm, _kernel, 3, NULL,
                                     _globalWorkSize, _localWorkSize,
-                                    0, NULL, NULL);
+                                    0, NULL, &event);
     if (errNum != CL_SUCCESS)
     {
         LOG(ERROR) << "Fail to set execution: " << errNum;
@@ -209,6 +210,9 @@ SaberStatus SaberSoftmax<AMD, OpDtype, inDtype, outDtype,
     }
     //LOG(INFO) << "COMPLETE EXECUTION";
 
+    cl_event_list list;
+    list.push_back(event);
+    Env<AMD>::add_event(list);
     return SaberSuccess;
 }
 #endif
