@@ -25,6 +25,7 @@ int FLAGS_num = 1;
 int FLAGS_warmup_iter = 10;
 int FLAGS_epoch = 10;
 int FLAGS_threads = 1;
+int FLAGS_cluster = 0;
 #endif
 
 using Target = ARM;
@@ -52,7 +53,7 @@ TEST(NetTest, net_execute_base_test) {
 
     std::shared_ptr<Context<ARM>> ctx1 = std::make_shared<Context<ARM>>();
 
-    ctx1->set_run_mode(SABER_POWER_HIGH, FLAGS_threads);
+    ctx1->set_run_mode((PowerMode)FLAGS_cluster, FLAGS_threads);
 
     LOG(INFO) << "test threads activated";
 #pragma omp parallel
@@ -169,7 +170,9 @@ int main(int argc, const char** argv){
     LOG(INFO)<< "   model_file:     path to model";
     LOG(INFO)<< "   num:            batchSize default to 1";
     LOG(INFO)<< "   warmup_iter:    warm up iterations default to 10";
-    LOG(INFO)<< "   epoch:          time statistic epoch default to 1000";
+    LOG(INFO)<< "   epoch:          time statistic epoch default to 10";
+    LOG(INFO)<< "   cluster:        choose which cluster to run, 0: big cores, 1: small cores";
+    LOG(INFO)<< "   threads:        set openmp threads";
     if(argc < 3) {
         LOG(ERROR) << "You should fill in the variable model_dir and model_file at least.";
         return 0;
@@ -188,7 +191,16 @@ int main(int argc, const char** argv){
         FLAGS_epoch = atoi(argv[5]);
     }
     if(argc > 6) {
-        FLAGS_threads = atoi(argv[6]);
+        FLAGS_cluster = atoi(argv[6]);
+        if (FLAGS_cluster < 0) {
+            FLAGS_cluster = 0;
+        }
+        if (FLAGS_cluster > 1) {
+            FLAGS_cluster = 1;
+        }
+    }
+    if(argc > 7) {
+        FLAGS_threads = atoi(argv[7]);
     }
 #endif
     InitTest();

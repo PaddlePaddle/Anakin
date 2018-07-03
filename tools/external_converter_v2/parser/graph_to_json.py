@@ -195,5 +195,21 @@ class GraphToJson(object):
                                                   edges=self.create_edges())
         return elements()
 
+    def create_mem_info(self):
+        """
+        create memory optimization information
+        """
+        temp_mem_used = self.graph_proto.summary.temp_mem_used
+        system_mem_used = self.graph_proto.summary.system_mem_used
+        model_mem_used = self.graph_proto.summary.model_mem_used
+        sum_mem = self.graph_proto.summary.temp_mem_used + \
+				self.graph_proto.summary.system_mem_used + \
+				self.graph_proto.summary.model_mem_used
+        mem_info =  CreateJson(temp_mem=temp_mem_used, 
+							   system_mem=system_mem_used, 
+							   model_mem=model_mem_used,
+							   total_mem=sum_mem)
+        return mem_info()
+
     def __call__(self):
-        return self.create_elements(), self.create_attr()
+        return self.create_elements(), self.create_attr(), self.create_mem_info()

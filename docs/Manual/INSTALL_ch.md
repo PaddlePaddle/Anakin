@@ -63,10 +63,11 @@
 
 ### 在ARM上安装 Anakin ###
 
-暂时还不支持
+请参考[ARM安装文档](run_on_arm_ch.md)
 
 ### 验证安装 ###
-we are coming soon...
+
+安装完成后，如果没有报错信息，你可以通过运行 `output/unit_test`路径下的单测示例验证是否编译成功。
 
 
 
