@@ -4,6 +4,9 @@
 
 This time, we only provide benchmark on CPU. In the near future, we will add benchmark on ARM and GPU.
 
+> System: `CentOS 7 in Docker`, for benchmark between Anakin and Tensorflow  
+> System: `CentOS 6.3`, for benchmark between Anakin and Paddle
+
 ## Counterpart of anakin  :
 
 The counterpart of **`Anakin`** is `Tensorflow 1.8.0`, which installed by Anaconda 4.5.4, run by Python 3.6
@@ -202,29 +205,29 @@ We tested them on single-CPU with different thread numbers.
     4 | 18074 | 118696
     6 | 26607 | 102044
 
-2. **`Anakin`** VS **`PaddlePaddle/Fluid\`**
-
+2. **`Anakin`** VS **`PaddlePaddle/Fluid`**  
+We use private dataset and different QPS index in this benchmark.
 ### <span id = '1'>language model in E5-2650 v4 </span>
 
 - Latency (`ms`) of one batch
 
     ThreadNum | Fluid | Anakin
     :---: | :---: | :---: |
-    1 | 42.09    | 1.90
-    2 | 42.14    | 2.16
-    6 | 42.15   | 4.21
-    10 | 42.14   | 9.26
-    12 | 42.34   | 11.17
+    1 | 42.7418    | 1.93589
+    2 | 42.7418    | 2.49537
+    6 | 42.7734   | 3.14332
+    10 | 43.0721   | 4.55329
+    12 | 42.8501   | 5.09893
 
 - Throughput (`sentence/s`)
 
     ThreadNum | Fluid | Anakin
     :---: | :---: | :---: |
-    1 | 23 | 524
-    2 | 47 | 916
-    6 | 141 | 1402
-    10 | 236   | 1063
-    12 | 282   | 1044
+    1 | 23 | 504
+    2 | 46 | 762
+    6 | 134 | 1393
+    10 | 218   | 1556
+    12 | 260   | 1541
 
 ### <span id = '2'>Chinese_ner model in E5-2650 v4 </span>
 
@@ -232,25 +235,47 @@ We tested them on single-CPU with different thread numbers.
 
     ThreadNum | Fluid | Anakin
     :---: | :---: | :---: |
-    1 | 0.47    | 0.17
-    4 | 0.26    | 0.17
-    6 | 0.36    | 0.17
-    10 | 0.59   | 0.17
-    12 | 0.72   | 0.17
+    1 | 0.380475    | 0.17034
+    4 | 0.380475    | 0.171143
+    6 | 0.380475    | 0.172688
+    10 | 0.380475   | 0.173269
+    12 | 0.380475   | 0.17668
 
 - Throughput (`sentence/s`)
     
     ThreadNum | Fluid | Anakin
     :---: | :---: | :---: |
-    1 | 2129  | 5819
-    4 | 3866  | 11182
-    6 | 8095  | 30948
-    10 | 8250 | 44093
-    12 | 8112  | 47185
+    1 | 7844  | 5822
+    4 | 7844  | 11377
+    6 | 7844  | 29725
+    10 | 7844 | 41238
+    12 | 7844  | 42790
+
+### <span id = '3'>text_classfication model in E5-2650 v4 </span>
+
+- Latency (`ms`) of one batch
+
+    ThreadNum | Fluid | Anakin
+    :---: | :---: | :---: |
+    1 | 1.48578    | 1.10088
+    4 | 1.54025    | 1.11258
+    6 | 1.68529    | 1.1257
+    10 | 1.9817    | 1.13267
+    12 | 2.21864   | 1.1429
+
+- Throughput (`sentence/s`)
+    
+    ThreadNum | Fluid | Anakin
+    :---: | :---: | :---: |
+    1 | 673  | 901
+    4 | 1289  | 1665
+    6 | 3458  | 4449
+    10 | 4875 | 6183
+    12 | 5265 | 6188
 
 ## How to run those Benchmark models?
 
-> 1. You can just run `sh benchmark_tensorflow.sh` and  `sh benchmark_anakin.sh`
-> 2. Get the model of caffe or fluid, convert model to anakin model, use net_test_*** to test your model.
+> 1. You can just run `sh benchmark_tensorflow.sh` and  `sh benchmark_anakin.sh`  
+> 2. Get the model of caffe or fluid, convert model to anakin model, use net_test_*** to test your model.  
 
 
