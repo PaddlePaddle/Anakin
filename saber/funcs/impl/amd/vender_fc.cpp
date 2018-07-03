@@ -242,10 +242,10 @@ SaberStatus VenderFc<AMD, OpDtype, inDtype, outDtype,
         //To set the argument
         cl_mem memObjects[4] = { 0, 0 , 0, 0};
 
-        const ClMem* clin;
-        ClMem* clout;
-        const ClMem* clweight;
-        const ClMem* clbias;
+        const ClMem clin;
+        ClMem clout;
+        const ClMem clweight;
+        const ClMem clbias;
 
         size_t offset_in, offset_out, offset_weight, offset_bias;
 
@@ -254,16 +254,16 @@ SaberStatus VenderFc<AMD, OpDtype, inDtype, outDtype,
         clweight = param.weights->data();
         clbias = param.bias->data();
 
-        offset_in = clin->offset;
-        offset_out = clout->offset;
-        offset_weight = clweight->offset;
-        offset_bias = clbias->offset;
+        offset_in = clin.offset;
+        offset_out = clout.offset;
+        offset_weight = clweight.offset;
+        offset_bias = clbias.offset;
 
 
-        memObjects[0] = clin->dmem;//(cl_mem)inputs[0]->data();
-        memObjects[1] = clweight->dmem;//(cl_mem)param.weights->data();
-        memObjects[2] = clbias->dmem;//(cl_mem)param.bias->data();
-        memObjects[3] = clout->dmem;//(cl_mem)outputs[0]->mutable_data();
+        memObjects[0] = clin.dmem;//(cl_mem)inputs[0]->data();
+        memObjects[1] = clweight.dmem;//(cl_mem)param.weights->data();
+        memObjects[2] = clbias.dmem;//(cl_mem)param.bias->data();
+        memObjects[3] = clout.dmem;//(cl_mem)outputs[0]->mutable_data();
 
         errNum = setKernelArgs(_kernel, memObjects[0], memObjects[1],
                                memObjects[2], memObjects[3]);

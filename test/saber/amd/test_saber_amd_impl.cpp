@@ -58,19 +58,24 @@ void print_result(T *result, size_t size = ARRAY_SIZE) {
 bool CreateCLMem(int id, cl_mem mems[3],
                       float *a, float *b)
 {
+    ClMem mem1[3];
 
-    API::mem_alloc((void **) &mems[0], sizeof(float) * ARRAY_SIZE);
-    API::mem_alloc((void **) &mems[1], sizeof(float) * ARRAY_SIZE);
-    API::mem_alloc((void **) &mems[2], sizeof(float) * ARRAY_SIZE);
+    API::mem_alloc(&mem1[0], sizeof(float) * ARRAY_SIZE);
+    API::mem_alloc(&mem1[1], sizeof(float) * ARRAY_SIZE);
+    API::mem_alloc(&mem1[2], sizeof(float) * ARRAY_SIZE);
 
-    API::sync_memcpy((void*) mems[0], id, (void *) a, 0, sizeof(float) * ARRAY_SIZE, __HtoD()); 
-    API::sync_memcpy((void*) mems[1], id, (void *) b, 0, sizeof(float) * ARRAY_SIZE, __HtoD());
+    API::sync_memcpy(mem1[0], id, (void *) a, 0, sizeof(float) * ARRAY_SIZE, __HtoD());
+    API::sync_memcpy(mem1[1], id, (void *) b, 0, sizeof(float) * ARRAY_SIZE, __HtoD());
 
     if (mems[0] == NULL || mems[1] == NULL || mems[2] == NULL)
     {
         LOG(ERROR) << "Failed to create memory objects." ;
         return false;
     }
+
+    mems[0] = mem1[0].dmem;
+    mems[1] = mem1[1].dmem;
+    mems[2] = mem1[2].dmem;
 
     return true;
 }
@@ -78,19 +83,24 @@ bool CreateCLMem(int id, cl_mem mems[3],
 bool CreateCLMem_Async(int id, cl_mem mems[3], cl_command_queue cm,
                       float *a, float *b)
 {
+    ClMem mem1[3];
 
-    API::mem_alloc((void **) &mems[0], sizeof(float) * ARRAY_SIZE);
-    API::mem_alloc((void **) &mems[1], sizeof(float) * ARRAY_SIZE);
-    API::mem_alloc((void **) &mems[2], sizeof(float) * ARRAY_SIZE);
+    API::mem_alloc(&mem1[0], sizeof(float) * ARRAY_SIZE);
+    API::mem_alloc(&mem1[1], sizeof(float) * ARRAY_SIZE);
+    API::mem_alloc(&mem1[2], sizeof(float) * ARRAY_SIZE);
 
-    API::async_memcpy((void*) mems[0], id, (void *) a, 0, sizeof(float) * ARRAY_SIZE, cm, __HtoD()); 
-    API::async_memcpy((void*) mems[1], id, (void *) b, 0, sizeof(float) * ARRAY_SIZE, cm, __HtoD());
+    API::async_memcpy(mem1[0], id, (void *) a, 0, sizeof(float) * ARRAY_SIZE, cm, __HtoD());
+    API::async_memcpy(mem1[1], id, (void *) b, 0, sizeof(float) * ARRAY_SIZE, cm, __HtoD());
 
     if (mems[0] == NULL || mems[1] == NULL || mems[2] == NULL)
     {
         LOG(ERROR) << "Failed to create memory objects." ;
         return false;
     }
+
+    mems[0] = mem1[0].dmem;
+    mems[1] = mem1[1].dmem;
+    mems[2] = mem1[2].dmem;
 
     return true;
 }
@@ -148,8 +158,11 @@ void memset(Dtype pattern) {
     }
 
     cl_mem buf;
-    API::mem_alloc((void**) &buf, size);
-    API::mem_set(buf, pattern, size);
+    ClMem membuf;
+    API::mem_alloc(&membuf, size);
+    API::mem_set(membuf, pattern, size);
+
+    buf = membuf.dmem;
 
     cl_int err;
     void *data_res = clEnqueueMapBuffer(cm, buf, CL_TRUE, CL_MAP_READ, 0, size, 0, NULL, NULL, &err);
@@ -196,8 +209,12 @@ TEST(TestSaberFuncAMD, test_memcpy_h2d) {
         data[i] = i;
     }
     cl_mem buf;
-    API::mem_alloc((void**) &buf, size);
-    API::sync_memcpy((void *) buf, 0, (void*) &data[0], 0, size, __HtoD());
+    ClMem membuf;
+
+    API::mem_alloc(&membuf, size);
+    API::sync_memcpy(membuf, 0, (void*) &data[0], 0, size, __HtoD());
+
+    buf = membuf.dmem;
 
     cl_int err;
     void *data_res = clEnqueueMapBuffer(cm, buf, CL_TRUE, CL_MAP_READ, 0, size, 0, NULL, NULL, &err);
@@ -236,11 +253,12 @@ TEST(TestSaberFuncAMD, test_memcpy_d2h) {
         data[i] = i;
     }
     cl_mem buf;
-    API::mem_alloc((void**) &buf, size);
-    API::sync_memcpy((void *) buf, 0, (void*) &data[0], 0, size, __HtoD());
+    ClMem membuf;
+    API::mem_alloc(&membuf, size);
+    API::sync_memcpy(membuf, 0, (void*) &data[0], 0, size, __HtoD());
 
     float data_res[ARRAY_SIZE];
-    API::sync_memcpy((void *) &data_res[0], 0, buf, 0, size, __DtoH());
+    API::sync_memcpy((void *) &data_res[0], 0, membuf, 0, size, __DtoH());
 
    
     cl_int err = CL_INVALID_VALUE;
@@ -271,12 +289,15 @@ TEST(TestSaberFuncAMD, test_memcpy_d2d) {
         data[i] = i;
     }
     cl_mem buf, buf2;
-    API::mem_alloc((void**) &buf, size);
-    API::sync_memcpy((void *) buf, 0, (void*) &data[0], 0, size, __HtoD());
+    ClMem membuf, membuf2;
+    API::mem_alloc(&membuf, size);
+    API::sync_memcpy(membuf, 0, (void*) &data[0], 0, size, __HtoD());
 
-    API::mem_alloc((void**) &buf2, size);
-    API::sync_memcpy((void*) buf2, 0, (void*) buf, 0, size, __DtoD());
+    API::mem_alloc(&membuf2, size);
+    API::sync_memcpy(membuf2, 0, membuf, 0, size, __DtoD());
 
+    buf = membuf.dmem;
+    buf2 = membuf2.dmem;
    
     cl_int err;
     void *data_res = clEnqueueMapBuffer(cm, buf2, CL_TRUE, CL_MAP_READ, 0, size, 0, NULL, NULL, &err);
@@ -383,7 +404,9 @@ TEST(TestSaberFuncAMD, test_func_tensor) {
         //return 1;
     }
 
-    cl_mem mems[3] = {(cl_mem) tdev1.mutable_data(), (cl_mem) tdev2.mutable_data(), (cl_mem) tdev3.mutable_data()};
+    ClMem mem1[3] = {tdev1.mutable_data(), tdev2.mutable_data(), tdev3.mutable_data()};
+
+    cl_mem mems[3] = {mem1[0].dmem, mem1[1].dmem, mem1[2].dmem};//{(cl_mem) tdev1.mutable_data(), (cl_mem) tdev2.mutable_data(), (cl_mem) tdev3.mutable_data()};
     
     // Set the kernel arguments (result, a, b)
     errNum = clSetKernelArg(kernel, 0, sizeof(cl_mem),  & mems[0]);
@@ -479,17 +502,22 @@ TEST(TestSaberFuncAMD, test_saber_impl_amd) {
     cm = ctx.get_compute_stream();
     if (cm == NULL)
     {
+        LOG(INFO) << "clean cl";
         CleanCL(NULL, NULL, program, kernel, mems);
         //return 1;
     }
 
+    LOG(INFO) << "create cl test kernel";
     program = CreateCLProgram(context, device, "amd_test.cl");
     if (program == NULL)
     {
+
+        LOG(INFO) << "clean cl";
         CleanCL(NULL, NULL, program, kernel, mems);
         //return 1;
     }
 
+    LOG(INFO) << "create cl plus kernel";
     // Create OpenCL kernel
     kernel = clCreateKernel(program, "plus_kernel", NULL);
     if (kernel == NULL)
@@ -518,6 +546,7 @@ TEST(TestSaberFuncAMD, test_saber_impl_amd) {
         //return 1;
     }
 
+    LOG(INFO) << "set cl args";
     // Set the kernel arguments (result, a, b)
     errNum = clSetKernelArg(kernel, 0, sizeof(cl_mem), &mems[0]);
     errNum |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &mems[1]);

@@ -40,7 +40,7 @@ void reorder(Tensor_s& src, Tensor_d& dst);
  */
 template <class Tensor_t>
 void fill_tensor_host_const(Tensor_t& tensor, \
-    typename Tensor_t::dtype value);
+    typename Tensor_t::Dtype value);
 
 
 /**
@@ -56,8 +56,8 @@ void fill_tensor_host_rand(Tensor_t& tensor);
  *  \param tensor The reference of input tensor.
  */
 template <class Tensor_t>
-void fill_tensor_host_rand(Tensor_t& tensor, typename Tensor_t::dtype vstart, \
-    typename Tensor_t::dtype vend);
+void fill_tensor_host_rand(Tensor_t& tensor, typename Tensor_t::Dtype vstart, \
+    typename Tensor_t::Dtype vend);
 
 /**
 * \brief fill_tensor_host_seq fill the host tensor buffer with sequence value
@@ -73,7 +73,7 @@ void fill_tensor_host_seq(Tensor_t& tensor);
  */
 template <class Tensor_t>
 void fill_tensor_device_const(Tensor_t& tensor, \
-    typename Tensor_t::dtype value, \
+    typename Tensor_t::Dtype value, \
     typename Tensor_t::API::stream_t stream = NULL);
 
 /**
@@ -85,8 +85,8 @@ void fill_tensor_device_rand(Tensor_t& tensor, \
     typename Tensor_t::API::stream_t stream = NULL);
 
 template <class Tensor_t>
-void fill_tensor_device_rand(Tensor_t& tensor, typename Tensor_t::dtype vstart, \
-    typename Tensor_t::dtype vend, typename Tensor_t::API::stream_t stream = NULL);
+void fill_tensor_device_rand(Tensor_t& tensor, typename Tensor_t::Dtype vstart, \
+    typename Tensor_t::Dtype vend, typename Tensor_t::API::stream_t stream = NULL);
 /**
  *  \brief Print the data in host tensor.
  *  \param tensor  The reference of input tensor.

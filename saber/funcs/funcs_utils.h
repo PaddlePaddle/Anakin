@@ -224,7 +224,7 @@ void update_conv_weights(Param<Tensor_t>& param)
     Tensor<X86, AK_FLOAT, NCHW> new_weight;
     Tensor<X86, AK_FLOAT, NCHW> new_bias;
 #endif //USE_ARM_PLACE
-    typedef typename Tensor_t::dtype dtype;
+    typedef typename Tensor_t::Dtype Dtype;
 
     Shape weight_shape = param.conv_param.weight()->shape();
     new_weight.re_alloc(weight_shape);
@@ -240,13 +240,13 @@ void update_conv_weights(Param<Tensor_t>& param)
         bias_shape = {1, param.batchnorm_param.mean.size(), 1, 1};
         new_bias.re_alloc(bias_shape);
         void* new_bias_data = new_bias.mutable_data();
-        memset(new_bias_data, 0, sizeof(dtype) * new_bias.size());
+        memset(new_bias_data, 0, sizeof(Dtype) * new_bias.size());
 
     } else if (param.has_scale) {
         bias_shape = {1, param.scale_param.scale_w.size(), 1, 1};
         new_bias.re_alloc(bias_shape);
         void* new_bias_data = new_bias.mutable_data();
-        memset(new_bias_data, 0, sizeof(dtype) * new_bias.size());
+        memset(new_bias_data, 0, sizeof(Dtype) * new_bias.size());
     } else {
         return;
     }
@@ -254,15 +254,15 @@ void update_conv_weights(Param<Tensor_t>& param)
     int filter_num = new_weight.num();
     int chw = new_weight.channel();
 
-    dtype* weight_data = new_weight.mutable_data();
-    dtype* bias_data = new_bias.mutable_data();
+    Dtype* weight_data = new_weight.mutable_data();
+    Dtype* bias_data = new_bias.mutable_data();
 
     chw *= new_weight.height();
     chw *= new_weight.width();
 
     for (int i = 0; i < filter_num; ++i) {
-        dtype alpha = 1.f;
-        dtype beta = 0.f;
+        Dtype alpha = 1.f;
+        Dtype beta = 0.f;
 
         if (param.has_batchnorm) {
             float scale_factor = 1.f;

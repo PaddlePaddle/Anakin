@@ -11,7 +11,7 @@ void test_buffer(){
 
     typedef TargetWrapper<X86> X86_API;
     typedef TargetWrapper<AMD> AMD_API;
-    typedef typename DataTrait<X86, datatype>::dtype Dtype;
+    typedef typename DataTrait<X86, datatype>::Dtype Dtype;
     typedef Buffer<X86> BufferH;
     typedef Buffer<AMD> BufferD;
 
@@ -26,10 +26,14 @@ void test_buffer(){
         x86_ptr[i] = static_cast<Dtype>(i);
     }
 
-    void* tmp_amd;
+    //void* tmp_amd;
+
+    ClMem tmp_amd;
+
     Dtype* amd_ptr;
     AMD_API::mem_alloc(&tmp_amd, sizeof(Dtype) * n0);
-    amd_ptr = static_cast<Dtype*>(tmp_amd);
+
+    //amd_ptr = static_cast<Dtype*>(tmp_amd.dmem);
 
     LOG(INFO) << "Buffer: test default(empty) constructor";
     BufferH x86_buf0;
@@ -41,7 +45,7 @@ void test_buffer(){
 
     LOG(INFO) << "Buffer: test constructor with data pointer, size and device id";
     BufferH x86_buf2(x86_ptr, n0 * sizeof(Dtype), X86_API::get_device_id());
-    BufferD amd_buf2(amd_ptr, n0 * sizeof(Dtype), AMD_API::get_device_id());
+    BufferD amd_buf2(tmp_amd, n0 * sizeof(Dtype), AMD_API::get_device_id());
 
     LOG(INFO) << "Buffer: test copy constructor";
     BufferH x86_buf3(x86_buf2);

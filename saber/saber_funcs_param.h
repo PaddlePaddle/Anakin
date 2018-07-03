@@ -706,7 +706,7 @@ struct SoftmaxParam {
 };
 template <typename opTensor>
 struct BatchnormParam {
-    typedef typename opTensor::dtype DataDtype;
+    typedef typename opTensor::Dtype DataDtype;
     BatchnormParam()
         : scale(DataDtype(0))
         , use_global_stats(true)
@@ -775,7 +775,7 @@ struct PreluParam {
 
 template <typename opTensor>
 struct ActivationParam {
-    typedef typename opTensor::dtype DataDtype;
+    typedef typename opTensor::Dtype DataDtype;
     ActivationParam()
             : active(Active_unknow)
             , negative_slope(DataDtype(-1))
@@ -820,7 +820,7 @@ struct ActivationParam {
 };
 template <typename opTensor>
 struct ScaleParam {
-    typedef typename opTensor::dtype DataDtype;
+    typedef typename opTensor::Dtype DataDtype;
     ScaleParam()
             : axis(1), num_axes(1)
             , bias_term(false)
@@ -1570,7 +1570,7 @@ struct FcParam {
 
 template <typename opTensor>
 struct EltwiseParam {
-    typedef typename opTensor::dtype DataDtype;
+    typedef typename opTensor::Dtype DataDtype;
     EltwiseParam()
         : operation(Eltwise_unknow)
         , coeff()

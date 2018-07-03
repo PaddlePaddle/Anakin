@@ -252,10 +252,10 @@ SaberStatus SaberConv2DAct<AMD, OpDtype, inDtype, outDtype,
     AMD_API::stream_t cm = this->_ctx->get_compute_stream();
     //LOG(INFO) << "num=" << inputs[0]->num() << " channel=" << inputs[0]->channel() << " height=" << inputs[0]->height() << " width=" << inputs[0]->width();
 
-    const ClMem* clin;
-    ClMem* clout;
-    const ClMem* clweight;
-    const ClMem* clbias;
+    const ClMem clin;
+    ClMem clout;
+    const ClMem clweight;
+    const ClMem clbias;
 
     size_t offset_in, offset_out, offset_weight, offset_bias;
 
@@ -269,15 +269,15 @@ SaberStatus SaberConv2DAct<AMD, OpDtype, inDtype, outDtype,
         clweight = param.conv_param.weight()->data();
         clbias = param.conv_param.bias()->data();
 
-        offset_in = clin->offset;
-        offset_out = clout->offset;
-        offset_weight = clweight->offset;
-        offset_bias = clbias->offset;
+        offset_in = clin.offset;
+        offset_out = clout.offset;
+        offset_weight = clweight.offset;
+        offset_bias = clbias.offset;
 
-        memObjects[0] = clin->dmem;
-        memObjects[1] = clweight->dmem;
-        memObjects[2] = clbias->dmem;
-        memObjects[3] = clout->dmem;
+        memObjects[0] = clin.dmem;
+        memObjects[1] = clweight.dmem;
+        memObjects[2] = clbias.dmem;
+        memObjects[3] = clout.dmem;
 
         //memObjects[0] = (cl_mem)inputs[0]->data();
         //memObjects[1] = (cl_mem)param.conv_param.weight()->data();
@@ -326,13 +326,13 @@ SaberStatus SaberConv2DAct<AMD, OpDtype, inDtype, outDtype,
         clout = _outConvRelu->mutable_data();
         clweight = param.conv_param.weight()->data();
 
-        offset_in = clin->offset;
-        offset_out = clout->offset;
-        offset_weight = clweight->offset;
+        offset_in = clin.offset;
+        offset_out = clout.offset;
+        offset_weight = clweight.offset;
 
-        memObjects[0] = clin->dmem;//(cl_mem)inputs[0]->data();
-        memObjects[1] = clweight->dmem;//(cl_mem)param.weight()->data();
-        memObjects[2] = clout->dmem;//(cl_mem)outputs[0]->mutable_data();
+        memObjects[0] = clin.dmem;//(cl_mem)inputs[0]->data();
+        memObjects[1] = clweight.dmem;//(cl_mem)param.weight()->data();
+        memObjects[2] = clout.dmem;//(cl_mem)outputs[0]->mutable_data();
 
         //memObjects[0] = (cl_mem)inputs[0]->data();
         //memObjects[1] = (cl_mem)param.conv_param.weight()->data();
@@ -369,13 +369,13 @@ SaberStatus SaberConv2DAct<AMD, OpDtype, inDtype, outDtype,
         clin = _outConvRelu->data();
         clbias = param.conv_param.bias()->data();
 
-        offset_in = clin->offset;
-        offset_out = clout->offset;
-        offset_bias = clbias->offset;
+        offset_in = clin.offset;
+        offset_out = clout.offset;
+        offset_bias = clbias.offset;
 
-        memObjects2[0] = clin->dmem;//(cl_mem)_outConvRelu->data();
-        memObjects2[1] = clout->dmem;//(cl_mem)outputs[0]->mutable_data();
-        memObjects2[2] = clbias->dmem;//(cl_mem)param.conv_param.bias()->data();
+        memObjects2[0] = clin.dmem;//(cl_mem)_outConvRelu->data();
+        memObjects2[1] = clout.dmem;//(cl_mem)outputs[0]->mutable_data();
+        memObjects2[2] = clbias.dmem;//(cl_mem)param.conv_param.bias()->data();
 
 
         uintObjects2[0] = (cl_uint)inputs[0]->num();

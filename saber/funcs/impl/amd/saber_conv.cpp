@@ -199,17 +199,17 @@ SaberStatus SaberConv2D<AMD, OpDtype, inDtype, outDtype,
         inputs[0]->height() == 224 && inputs[0]->width() == 224) {
         cl_mem memObjects[3] = { 0, 0, 0 };
 
-        const ClMem* clin = inputs[0]->data();
-        ClMem* clout = outputs[0]->mutable_data();
-        const ClMem* clweight = param.weight()->data();
+        const ClMem clin = inputs[0]->data();
+        ClMem clout = outputs[0]->mutable_data();
+        const ClMem clweight = param.weight()->data();
 
-        size_t offset_in = clin->offset;
-        size_t offset_out = clout->offset;
-        size_t offset_weight = clweight->offset;
+        size_t offset_in = clin.offset;
+        size_t offset_out = clout.offset;
+        size_t offset_weight = clweight.offset;
 
-        memObjects[0] = clin->dmem;//(cl_mem)inputs[0]->data();
-        memObjects[1] = clweight->dmem;//(cl_mem)param.weight()->data();
-        memObjects[2] = clout->dmem;//(cl_mem)outputs[0]->mutable_data();
+        memObjects[0] = clin.dmem;//(cl_mem)inputs[0]->data();
+        memObjects[1] = clweight.dmem;//(cl_mem)param.weight()->data();
+        memObjects[2] = clout.dmem;//(cl_mem)outputs[0]->mutable_data();
 
         errNum = setKernelArgs(_kernel, memObjects[0], memObjects[1], memObjects[2]);
         if (errNum != CL_SUCCESS)
@@ -233,17 +233,17 @@ SaberStatus SaberConv2D<AMD, OpDtype, inDtype, outDtype,
         uintObjects[6] = d_flags;
         uintObjects[7] = d_reserved;
 
-        const ClMem* clin = inputs[0]->data();
-        ClMem* clout = outputs[0]->mutable_data();
-        const ClMem* clweight = param.weight()->data();
+        const ClMem clin = inputs[0]->data();
+        ClMem clout = outputs[0]->mutable_data();
+        const ClMem clweight = param.weight()->data();
 
-        size_t offset_in = clin->offset;
-        size_t offset_out = clout->offset;
-        size_t offset_weight = clweight->offset;
+        size_t offset_in = clin.offset;
+        size_t offset_out = clout.offset;
+        size_t offset_weight = clweight.offset;
 
-        memObjects[0] = clin->dmem;//(cl_mem)inputs[0]->data();
-        memObjects[1] = clweight->dmem;//(cl_mem)param.weight()->data();
-        memObjects[2] = clout->dmem;//(cl_mem)outputs[0]->mutable_data();
+        memObjects[0] = clin.dmem;//(cl_mem)inputs[0]->data();
+        memObjects[1] = clweight.dmem;//(cl_mem)param.weight()->data();
+        memObjects[2] = clout.dmem;//(cl_mem)outputs[0]->mutable_data();
 
         //memObjects[0] = (cl_mem)inputs[0]->data();
         //memObjects[1] = (cl_mem)param.weight()->data();

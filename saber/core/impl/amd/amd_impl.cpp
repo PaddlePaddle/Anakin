@@ -62,7 +62,7 @@ void AMD_API::set_device(int id){
     current_device_id_index = id;
 }
         
-void AMD_API::mem_alloc(void** ptr, size_t n){
+void AMD_API::mem_alloc(TPtr* ptr, size_t n){
     AMD_ENV::is_init();
 
 #ifdef  USE_AMD_EXTENSION
@@ -86,30 +86,31 @@ void AMD_API::mem_alloc(void** ptr, size_t n){
 
     AMD_CHECK(err);
 
-    ClMem* clbuf = (ClMem*)malloc(sizeof(ClMem));
-    clbuf->dmem = buf;
-    clbuf->offset = 0;
+    //ClMem* clbuf = (ClMem*)malloc(sizeof(ClMem));
+    //clbuf->dmem = buf;
+    //clbuf->offset = 0;
+    ClMem clbuf(buf);
 
     //*ptr = (void *) buf;
-    *ptr = (void*)clbuf;
+    *ptr = clbuf;
 
     LOG(INFO) << __func__ << "device =" << index << " get context :" << context << " buffer :" << buf <<" size :" << n;
 }
 
-void AMD_API::mem_free(void* ptr){
+void AMD_API::mem_free(TPtr ptr){
 
-    if(ptr != nullptr){
-        //cl_mem mem = (cl_mem) ptr;
-        ClMem* clbuf = (ClMem*)ptr;
-        cl_mem mem = clbuf->dmem;
+    cl_mem mem = ptr.dmem;
+    if (mem != nullptr) {
         clReleaseMemObject(mem);
-        free(ptr);
     }
 }
 
 #if 1
-void AMD_API::mem_set(void* ptr, int value, size_t n){
-    if(ptr == nullptr)
+void AMD_API::mem_set(TPtr ptr, int value, size_t n){
+
+    cl_mem mem = ptr.dmem;
+
+    if(mem == nullptr)
         return ;
     
     AMD_ENV::is_init();
@@ -117,18 +118,13 @@ void AMD_API::mem_set(void* ptr, int value, size_t n){
     Device<AMD> dev = AMD_ENV::cur_env()[current_device_id_index];
     stream_t cm = dev.get_available_stream();
 
-    //cl_mem mem = (cl_mem) ptr;
-
-    ClMem* clbuf = (ClMem*)ptr;
-    cl_mem mem = clbuf->dmem;
-
     clEnqueueFillBuffer(cm, mem, &value, sizeof(int), 0, n, 0, NULL, NULL);
 }
 
 #else
 
 template<typename U>
-void AMD_API::mem_set(void* ptr, U value, size_t n){
+void AMD_API::mem_set(TPtr ptr, U value, size_t n){
     if(ptr == nullptr)
         return ;
     
@@ -137,10 +133,7 @@ void AMD_API::mem_set(void* ptr, U value, size_t n){
     Device<AMD> dev = AMD_ENV::cur_env()[current_device_id_index];
     stream_t cm = dev.get_available_stream(stream);
 
-    //cl_mem mem = (cl_mem) ptr;
-
-    ClMem* clbuf = (ClMem*)ptr;
-    cl_mem mem = clbuf->dmem;
+    cl_mem mem = ptr.dmem;
 
     clEnqueueFillBuffer(cm, mem, &value, sizeof(U), 0, n, 0, NULL, NULL);
 }
@@ -251,19 +244,16 @@ void AMD_API::sync_stream(event_t& event, stream_t& stream) {
 }
 
         
-void AMD_API::sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
+void AMD_API::sync_memcpy(TPtr dst, int dst_id, const TPtr src, int src_id, \
         size_t count, __DtoD) {
 
-    ClMem* clbuf_dst = (ClMem*)dst;
-    ClMem* clbuf_src = (ClMem*)src;
+    cl_mem dst_mem = dst.dmem;
+    cl_mem src_mem = src.dmem;
 
-    cl_mem dst_mem = clbuf_dst->dmem;
-    cl_mem src_mem = clbuf_src->dmem;
+    size_t dst_offset = dst.offset;
+    size_t src_offset = src.offset;
 
-    size_t dst_offset = clbuf_dst->offset;
-    size_t src_offset = clbuf_src->offset;
-
-    LOG(INFO)  << __func__<< " D2D dst=" << dst << " dst_id=" << dst_id << " dst_office=" << dst_offset << " src=" <<src << " src_id=" << src_id << " src_offset=" << src_offset << " count=" << count;
+    LOG(INFO)  << __func__<< " D2D dst=" << (void*)dst_mem << " dst_id=" << dst_id << " dst_office=" << dst_offset << " src=" <<(void*)src_mem << " src_id=" << src_id << " src_offset=" << src_offset << " count=" << count;
     //sync_memcpy_with_offset(dst, dst_id, 0, src, src_id, 0, count, __DtoD());
 
     if(dst_id == src_id){
@@ -299,8 +289,8 @@ void AMD_API::sync_memcpy_with_offset(void* dst, int dst_id, size_t dst_offset, 
     ClMem* clbuf_dst = (ClMem*)dst;
     ClMem* clbuf_src = (ClMem*)src;
 
-    cl_mem dst_mem = clbuf_dst->dmem;
-    cl_mem src_mem = clbuf_src->dmem;
+    cl_mem dst_mem = dst.dmem;
+    cl_mem src_mem = src.dmem;
 
     //cl_mem dst_mem = (cl_mem) dst;
     //cl_mem src_mem = (cl_mem) src;
@@ -331,20 +321,17 @@ void AMD_API::sync_memcpy_with_offset(void* dst, int dst_id, size_t dst_offset, 
 }
 #endif
         
-void AMD_API::async_memcpy(void* dst, int dst_id, const void* src, int src_id, \
+void AMD_API::async_memcpy(TPtr dst, int dst_id, const TPtr src, int src_id, \
         size_t count, stream_t &stream, __DtoD) {
 
-    ClMem* clbuf_dst = (ClMem*)dst;
-    ClMem* clbuf_src = (ClMem*)src;
+    cl_mem dst_mem = dst.dmem;
+    cl_mem src_mem = src.dmem;
 
-    cl_mem dst_mem = clbuf_dst->dmem;
-    cl_mem src_mem = clbuf_src->dmem;
-
-    size_t dst_offset = clbuf_dst->offset;
-    size_t src_offset = clbuf_src->offset;
+    size_t dst_offset = dst.offset;
+    size_t src_offset = src.offset;
     //async_memcpy_with_offset(dst, dst_id, 0, src, src_id, 0, count, stream, __DtoD());
 
-    LOG(INFO)  << __func__<< " D2D dst=" << dst << " dst_id=" << dst_id << " dst_office=" << dst_offset << " src=" <<src << " src_id=" << src_id << " src_offset=" << src_offset << " count=" << count;
+    LOG(INFO)  << __func__<< " D2D dst=" << (void*)dst_mem << " dst_id=" << dst_id << " dst_office=" << dst_offset << " src=" << (void*)src_mem << " src_id=" << src_id << " src_offset=" << src_offset << " count=" << count;
 
     //cl_mem dst_mem = (cl_mem) dst;
     //cl_mem src_mem = (cl_mem) src;
@@ -402,14 +389,13 @@ void AMD_API::async_memcpy_with_offset(void* dst, int dst_id, size_t dst_offset,
 }
 #endif
 
-void AMD_API::sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
+void AMD_API::sync_memcpy(TPtr dst, int dst_id, const void* src, int src_id, \
         size_t count, __HtoD) {
 
-    ClMem* clbuf_dst = (ClMem*)dst;
-    cl_mem dst_mem = clbuf_dst->dmem;
-    size_t dst_offset = clbuf_dst->offset;
+    cl_mem dst_mem = dst.dmem;
+    size_t dst_offset = dst.offset;
 
-    LOG(INFO)  << __func__<< " H2D dst=" << dst << " dst_id=" << dst_id << " dst_office=" << dst_offset << " src=" <<src << " src_id=" << src_id << " count=" << count;
+    LOG(INFO)  << __func__<< " H2D dst=" << (void*)dst_mem << " dst_id=" << dst_id << " dst_office=" << dst_offset << " src=" <<src << " src_id=" << src_id << " count=" << count;
 
     cl_event event;
     cl_command_queue dst_cm = AMD_ENV::cur_env()[dst_id].get_available_stream();
@@ -434,14 +420,13 @@ void AMD_API::sync_memcpy_with_offset(void* dst, int dst_id, size_t dst_offset, 
 
 }
 #endif
-void AMD_API::async_memcpy(void* dst, int dst_id, const void* src, int src_id, \
+void AMD_API::async_memcpy(TPtr dst, int dst_id, const void* src, int src_id, \
         size_t count, stream_t& stream, __HtoD) {
     //async_memcpy_with_offset(dst, dst_id, 0, src, src_id, 0, count, stream, __HtoD());
-    ClMem* clbuf_dst = (ClMem*)dst;
-    cl_mem dst_mem = clbuf_dst->dmem;
-    size_t dst_offset = clbuf_dst->offset;
+    cl_mem dst_mem = dst.dmem;
+    size_t dst_offset = dst.offset;
 
-    LOG(INFO)  << __func__<< " H2D dst=" << dst << " dst_id=" << dst_id << " dst_office=" << dst_offset << " src=" <<src << " src_id=" << src_id << " count=" << count;
+    LOG(INFO)  << __func__<< " H2D dst=" << (void*)dst_mem << " dst_id=" << dst_id << " dst_office=" << dst_offset << " src=" <<src << " src_id=" << src_id << " count=" << count;
 
     cl_command_queue dst_cm = AMD_ENV::cur_env()[dst_id].get_available_stream(stream);
     clEnqueueWriteBuffer(dst_cm, dst_mem, CL_FALSE, dst_offset, count, src, 0, NULL, NULL);
@@ -462,12 +447,13 @@ void AMD_API::async_memcpy_with_offset(void* dst, int dst_id, size_t dst_offset,
     LOG(INFO) << "OpenCL, async, H2D, size: " << count;
 }
 #endif
-void AMD_API::sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
+void AMD_API::sync_memcpy(void* dst, int dst_id, const TPtr src, int src_id, \
         size_t count, __DtoH) {
     //sync_memcpy_with_offset(dst, dst_id, 0, src, src_id, 0, count, __DtoH());
-    const ClMem* clbuf_src = (const ClMem*)src;
-    cl_mem src_mem = clbuf_src->dmem;
-    size_t src_offset = clbuf_src->offset;
+    cl_mem src_mem = src.dmem;
+    size_t src_offset = src.offset;
+
+    LOG(INFO)  << __func__<< " D2H dst=" << dst << " dst_id=" << dst_id << " src=" << (void*)src_mem << " src_id=" << src_id << " src_offset=" << src_offset << " count=" << count;
 
     cl_event event;
     cl_command_queue src_cm = AMD_ENV::cur_env()[src_id].get_available_stream();
@@ -491,14 +477,13 @@ void AMD_API::sync_memcpy_with_offset(void* dst, int dst_id, size_t dst_offset, 
 }
 #endif
 
-void AMD_API::async_memcpy(void* dst, int dst_id, const void* src, int src_id, \
+void AMD_API::async_memcpy(void* dst, int dst_id, const TPtr src, int src_id, \
         size_t count, stream_t& stream, __DtoH) {
     //async_memcpy_with_offset(dst, dst_id, 0, src, src_id, 0, count, stream, __DtoH());
-    const ClMem* clbuf_src = (const ClMem*)src;
-    cl_mem src_mem = clbuf_src->dmem;
-    size_t src_offset = clbuf_src->offset;
+    cl_mem src_mem = src.dmem;
+    size_t src_offset = src.offset;
 
-    LOG(INFO)  << __func__<< " D2H dst=" << dst << " dst_id=" << dst_id << " src=" <<src << " src_id=" << src_id << " src_offset=" << src_offset << " count=" << count;
+    LOG(INFO)  << __func__<< " D2H dst=" << dst << " dst_id=" << dst_id << " src=" << (void*)src_mem << " src_id=" << src_id << " src_offset=" << src_offset << " count=" << count;
 
     //cl_mem src_mem = (cl_mem) src;
     cl_command_queue src_cm = AMD_ENV::cur_env()[src_id].get_available_stream(stream);
@@ -520,20 +505,14 @@ void AMD_API::async_memcpy_with_offset(void* dst, int dst_id, size_t dst_offset,
 }
 #endif
 
-void AMD_API::sync_memcpy_p2p(void* dst, int dst_dev, const void* src, \
+void AMD_API::sync_memcpy_p2p(TPtr dst, int dst_dev, const TPtr src, \
         int src_dev, size_t count) {
 
-    //cl_mem dst_mem = (cl_mem) dst;
-    //cl_mem src_mem = (cl_mem) src;
+    cl_mem dst_mem = dst.dmem;
+    cl_mem src_mem = src.dmem;
 
-    ClMem* clbuf_dst = (ClMem*)dst;
-    ClMem* clbuf_src = (ClMem*)src;
-
-    cl_mem dst_mem = clbuf_dst->dmem;
-    cl_mem src_mem = clbuf_src->dmem;
-
-    size_t dst_offset = clbuf_dst->offset;
-    size_t src_offset = clbuf_src->offset;
+    size_t dst_offset = dst.offset;
+    size_t src_offset = src.offset;
 
     cl_command_queue dst_cm = AMD_ENV::cur_env()[dst_dev].get_available_stream();
     cl_command_queue src_cm = AMD_ENV::cur_env()[src_dev].get_available_stream();
@@ -550,20 +529,14 @@ void AMD_API::sync_memcpy_p2p(void* dst, int dst_dev, const void* src, \
     LOG(INFO) << "OpenCL, sync, P2P, size: " << count;
 }
         
-void AMD_API::async_memcpy_p2p(void* dst, int dst_dev, const void* src, \
+void AMD_API::async_memcpy_p2p(TPtr dst, int dst_dev, const TPtr src, \
         int src_dev, size_t count, stream_t& stream) {
 
-    //cl_mem dst_mem = (cl_mem) dst;
-    //cl_mem src_mem = (cl_mem) src;
+    cl_mem dst_mem = dst.dmem;
+    cl_mem src_mem = src.dmem;
 
-    ClMem* clbuf_dst = (ClMem*)dst;
-    ClMem* clbuf_src = (ClMem*)src;
-
-    cl_mem dst_mem = clbuf_dst->dmem;
-    cl_mem src_mem = clbuf_src->dmem;
-
-    size_t dst_offset = clbuf_dst->offset;
-    size_t src_offset = clbuf_src->offset;
+    size_t dst_offset = dst.offset;
+    size_t src_offset = src.offset;
 
     cl_command_queue dst_cm = AMD_ENV::cur_env()[dst_dev].get_available_stream(stream);
     cl_command_queue src_cm = AMD_ENV::cur_env()[src_dev].get_available_stream(stream);
