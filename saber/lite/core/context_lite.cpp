@@ -417,7 +417,11 @@ void Context::set_run_mode(PowerMode mode, int threads) {
             }
             break;
     }
-
+    printf("run mode: %d\n", _mode);
+    printf("thread num: %d\n", _act_ids.size());
+    for (int j = 0; j < _act_ids.size(); ++j) {
+        printf("|----active id: %d\n", _act_ids[j]);
+    }
     bind_dev();
 }
 

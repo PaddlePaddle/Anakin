@@ -31,6 +31,7 @@ template <>
 Buffer<CPU>::Buffer(size_t size) {
     _own_data = true;
     _data = fast_malloc(size);
+    _capacity = size;
 }
 
 template <>

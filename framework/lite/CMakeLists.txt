@@ -26,6 +26,8 @@ anakin_fetch_include_recursively(${ANAKIN_FRAMEWORK}/lite)
 # install saber arm lite to tools/anakin-lite
 install(FILES ${ANAKIN_SABER}/saber_types.h DESTINATION ${PROJECT_SOURCE_DIR}/tools/anakin-lite/saber)
 install(DIRECTORY ${ANAKIN_SABER}/lite DESTINATION ${PROJECT_SOURCE_DIR}/tools/anakin-lite/saber)
+install(DIRECTORY ${ANAKIN_UNIT_TEST}/lite DESTINATION ${PROJECT_SOURCE_DIR}/tools/anakin-lite/test)
+install(DIRECTORY ${ANAKIN_UTILS}/unit_test DESTINATION ${PROJECT_SOURCE_DIR}/tools/anakin-lite/utils)
 install(DIRECTORY ${ANAKIN_UTILS}/logger DESTINATION ${PROJECT_SOURCE_DIR}/tools/anakin-lite/utils)
 
 anakin_fetch_files_with_suffix(${ANAKIN_LITE}/generator/src "cpp" ANAKIN_LITE_EXE_SRC)
