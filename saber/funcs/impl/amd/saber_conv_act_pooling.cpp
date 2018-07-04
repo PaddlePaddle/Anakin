@@ -252,6 +252,14 @@ SaberStatus SaberConv2DActPooling<AMD, OpDtype, inDtype, outDtype,
     cl_uint uintObjects[8] = {0, 0, 0, 0,
                             0, 0, 0, 0};
     cl_mem memObjects[4] = {0, 0, 0, 0};
+
+    const ClMem clin;
+    ClMem clout;
+    const ClMem clweight;
+    const ClMem clbias;
+
+    size_t offset_in, offset_out, offset_weight, offset_bias;
+
     int d_n_groups = 64, d_flags = 0;
 
     uintObjects[0] = (cl_uint)inputs[0]->num();
@@ -262,9 +270,19 @@ SaberStatus SaberConv2DActPooling<AMD, OpDtype, inDtype, outDtype,
     uintObjects[5] = d_n_groups;
     uintObjects[6] = d_flags;
     uintObjects[7] = 0;
-    memObjects[0] = (cl_mem)inputs[0]->data();
-    memObjects[1] = (cl_mem)param.conv_param.weight()->data();
-    memObjects[2] = (cl_mem)_outConvRelu->mutable_data();
+
+
+    clin = inputs[0]->data();
+    clweight = param.conv_param.weight()->data();
+    clout = _outConvRelu->mutable_data();
+
+    offset_in = clin.offset;
+    offset_weight = clweight.offset;
+    offset_out = clout.offset;
+
+    memObjects[0] = clin.dmem;//(cl_mem)inputs[0]->data();
+    memObjects[1] = clweight.dmem;//(cl_mem)param.conv_param.weight()->data();
+    memObjects[2] = clout.dmem;//(cl_mem)_outConvRelu->mutable_data();
     //memObjects[3] = (cl_mem)d_return_addr;
 
     errNum = setKernelArgs(_kernel, uintObjects[0], uintObjects[1], uintObjects[2],
@@ -294,9 +312,18 @@ SaberStatus SaberConv2DActPooling<AMD, OpDtype, inDtype, outDtype,
 
     //To set the argument
     cl_mem memObjects2[3] = { 0, 0, 0};
-    memObjects2[0] = (cl_mem)_outConvRelu->data();
-    memObjects2[1] = (cl_mem)outputs[0]->mutable_data();
-    memObjects2[2] = (cl_mem)param.conv_param.bias()->data();
+
+    clin = _outConvRelu->data();
+    clout = outputs[0]->mutable_data();
+    clbias = param.conv_param.bias()->data();
+
+    offset_in = clin.offset;
+    offset_out = clout.offset;
+    offset_bias = clbias.offset;
+
+    memObjects2[0] = clin.dmem;//(cl_mem)_outConvRelu->data();
+    memObjects2[1] = clout.dmem;//(cl_mem)outputs[0]->mutable_data();
+    memObjects2[2] = clbias.dmem;//(cl_mem)param.conv_param.bias()->data();
 
     //errNum = clSetKernelArg(_kernel2, 0, sizeof(cl_mem), &memObjects2[0]);
     //errNum |= clSetKernelArg(_kernel2, 1, sizeof(cl_mem), &memObjects2[1]);

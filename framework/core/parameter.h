@@ -399,11 +399,13 @@ public:
 
     /// assign
     PBlock<Dtype, ARM>& operator=(const PBlock<Dtype, ARM>& p_block) {
-        _inner_tensor = p_block._inner_tensor;
+        this->_inner_tensor = p_block._inner_tensor;
+        return *this;
     }
 
     PBlock<Dtype, ARM>& operator=(PBlock<Dtype, ARM>& p_block) {
-        _inner_tensor = p_block._inner_tensor;
+        this->_inner_tensor = p_block._inner_tensor;
+        return *this;
     }
 
     /// Get tensor.

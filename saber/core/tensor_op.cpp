@@ -92,12 +92,12 @@ void tensor_cmp_host(const Dtype* src1, const Dtype* src2, \
 
 #define FILL_TENSOR_HOST(target, type, layout) \
     template void fill_tensor_host_const<Tensor<target, type, layout>>\
-        (Tensor<target, type, layout>& tensor, DataTrait<type>::dtype value); \
+        (Tensor<target, type, layout>& tensor, DataTrait<target, type>::Dtype value); \
     template void fill_tensor_host_rand<Tensor<target, type, layout>>\
         (Tensor<target, type, layout>& tensor); \
     template void fill_tensor_host_rand<Tensor<target, type, layout>>\
-        (Tensor<target, type, layout>& tensor, DataTrait<type>::dtype vstart, \
-        DataTrait<type>::dtype vend); \
+        (Tensor<target, type, layout>& tensor, DataTrait<target, type>::Dtype vstart, \
+        DataTrait<target, type>::Dtype vend); \
     template void print_tensor_host<Tensor<target, type, layout>>\
         (Tensor<target, type, layout>& tensor);\
     template void fill_tensor_host_seq<Tensor<target, type, layout>>\
@@ -135,7 +135,7 @@ template <>
 void print_tensor_host<Tensor<X86, AK_INT8, NCHW_C4>>(Tensor<X86, AK_INT8, NCHW_C4>& tensor) {
     typedef typename Tensor<X86, AK_INT8, NCHW_C4>::Dtype Dtype;
     LOG(INFO) << "host tensor data:" << tensor.size();
-    const Dtype* data_ptr = static_cast<const Dtype*>(tensor.get_buf()->get_data());
+    const Dtype* data_ptr = (const Dtype*)tensor.get_buf()->get_data();
     int size = tensor.size();
 
     for (int i = 0; i < size; ++i) {

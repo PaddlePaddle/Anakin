@@ -29,7 +29,7 @@ namespace saber{
 
 namespace lite{
 
-static int arm_get_cpucount() {
+int arm_get_cpucount() {
 #ifdef PLATFORM_ANDROID
     // get cpu count from /proc/cpuinfo
     FILE* fp = fopen("/proc/cpuinfo", "rb");
@@ -188,7 +188,7 @@ int sort_cpuid_by_max_frequency(int cpu_count, std::vector<int>& cpuids, \
 #endif // __ANDROID__
 
 #ifdef __IOS__
-static int sort_cpuid_by_max_frequency(int cpu_count, std::vector<int>& cpuids, \
+int sort_cpuid_by_max_frequency(int cpu_count, std::vector<int>& cpuids, \
        std::vector<int>& cpu_freq, std::vector<int>& cluster_ids){
     if (cpu_count == 0) {
         return 0;
@@ -231,7 +231,7 @@ int set_sched_affinity(const std::vector<int>& cpuids) {
     return 0;
 }
 
-static int set_cpu_affinity(const std::vector<int>& cpuids){
+int set_cpu_affinity(const std::vector<int>& cpuids){
 #ifdef USE_OPENMP
     int num_threads = cpuids.size();
     omp_set_num_threads(num_threads);
@@ -255,11 +255,12 @@ static int set_cpu_affinity(const std::vector<int>& cpuids){
             return -1;
         }
 #endif
+    return 0;
 }
 #endif //PLATFORN_ANDROID
 
 //template <>
-static void Env::get_info(DeviceInfo& dev) {
+void Env::get_info(DeviceInfo& dev) {
     //! set to const value, need to fetch from device
     dev._L1_cache = 31000;
     dev._L2_cache = 2000000;

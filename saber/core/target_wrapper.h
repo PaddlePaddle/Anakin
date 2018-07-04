@@ -15,7 +15,8 @@
 
 #ifndef ANAKIN_SABER_CORE_TARGET_WRAPPER_H
 #define ANAKIN_SABER_CORE_TARGET_WRAPPER_H
-#include "core/target_traits.h"
+#include "saber/core/target_traits.h"
+#include "saber/core/data_traits.h"
 #include <memory>
 
 namespace anakin{
@@ -371,6 +372,8 @@ struct TargetWrapper<NV, __device_target> {
 template <>
 struct TargetWrapper<AMD, __device_target> {
 
+    typedef typename PtrTrait<AMD>::PtrType TPtr;
+
     typedef cl_event event_t;
     typedef cl_command_queue stream_t;
 
@@ -379,12 +382,12 @@ struct TargetWrapper<AMD, __device_target> {
     static void set_device(int id);
 
     //We should add strategy to avoid malloc directly
-    static void mem_alloc(void** ptr, size_t n);
+    static void mem_alloc(TPtr* ptr, size_t n);
 
     //template <typename void>
-    static void mem_free(void * ptr);
+    static void mem_free(TPtr ptr);
 
-    static void mem_set(void* ptr, int value, size_t n);
+    static void mem_set(TPtr ptr, int value, size_t n);
 
     static void create_event(event_t& event, bool flag = false);
 
@@ -411,28 +414,28 @@ struct TargetWrapper<AMD, __device_target> {
 
     static void sync_stream(event_t& event, stream_t& stream);
     
-    static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
+    static void sync_memcpy(TPtr dst, int dst_id, const TPtr src, int src_id, \
         size_t count, __DtoD);
 
-    static void async_memcpy(void* dst, int dst_id, const void* src, int src_id, \
+    static void async_memcpy(TPtr dst, int dst_id, const TPtr src, int src_id, \
         size_t count, stream_t& stream, __DtoD);
 
-    static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
+    static void sync_memcpy(TPtr dst, int dst_id, const void* src, int src_id, \
         size_t count, __HtoD);
 
-    static void async_memcpy(void* dst, int dst_id, const void* src, int src_id, \
+    static void async_memcpy(TPtr dst, int dst_id, const void* src, int src_id, \
         size_t count, stream_t& stream, __HtoD);
 
-    static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
+    static void sync_memcpy(void* dst, int dst_id, const TPtr src, int src_id, \
         size_t count, __DtoH);
 
-    static void async_memcpy(void* dst, int dst_id, const void* src, int src_id, \
+    static void async_memcpy(void* dst, int dst_id, const TPtr src, int src_id, \
         size_t count, stream_t& stream, __DtoH);
 
-    static void sync_memcpy_p2p(void* dst, int dst_dev, const void* src, \
+    static void sync_memcpy_p2p(TPtr dst, int dst_dev, const TPtr src, \
         int src_dev, size_t count);
 
-    static void async_memcpy_p2p(void* dst, int dst_dev, const void* src, \
+    static void async_memcpy_p2p(TPtr dst, int dst_dev, const TPtr src, \
         int src_dev, size_t count, stream_t& stream);
 
     /**

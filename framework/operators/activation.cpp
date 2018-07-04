@@ -63,7 +63,7 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ActivationHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
         const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
         std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-    SABER_CHECK(_funcs_activation.init(ins, outs, _param_activation, STATIC, VENDER_IMPL, ctx));
+    SABER_CHECK(_funcs_activation.init(ins, outs, _param_activation, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }
 
@@ -77,11 +77,13 @@ Status ActivationHelper<Ttype, Dtype, Ptype>::InferShape(const
 
 #ifdef USE_CUDA
 INSTANCE_ACTIVATION(NV, AK_FLOAT, Precision::FP32);
-INSTANCE_ACTIVATION(NV, AK_FLOAT, Precision::FP16);
-INSTANCE_ACTIVATION(NV, AK_FLOAT, Precision::INT8);
-template class ActivationHelper<NV, AK_FLOAT, Precision::FP32>;
-template class ActivationHelper<NV, AK_FLOAT, Precision::FP16>;
-template class ActivationHelper<NV, AK_FLOAT, Precision::INT8>;
+template<>
+Status ActivationHelper<NV, AK_FLOAT, Precision::FP32>::Init(OpContext<NV>& ctx,
+        const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
+        std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
+    SABER_CHECK(_funcs_activation.init(ins, outs, _param_activation, STATIC, VENDER_IMPL, ctx));
+    return Status::OK();
+}
 ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, NV, AK_FLOAT, Precision::FP32);
 #endif
 
@@ -123,7 +125,8 @@ ANAKIN_REGISTER_OP(Activation)
 #endif
 .num_in(1)
 .num_out(1)
-.Args<std::string>("type", " type of Activation ");
+.Args<std::string>("type", " type of Activation ")
+.Args<bool>("channel_shared", "prelu channel is shared or not ");
 
 } /* namespace ops */
 

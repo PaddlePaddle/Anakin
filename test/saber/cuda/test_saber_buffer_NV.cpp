@@ -10,7 +10,7 @@ void test_buffer() {
 
     typedef TargetWrapper<X86> X86_API;
     typedef TargetWrapper<NV> NV_API;
-    typedef typename DataTrait<datatype>::dtype Dtype;
+    typedef typename DataTrait<NV, datatype>::Dtype Dtype;
     typedef Buffer<X86> BufferH;
     typedef Buffer<NV> BufferD;
 
