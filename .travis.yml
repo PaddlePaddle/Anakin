@@ -7,8 +7,8 @@ os:
 env:
   - JOB="-p NVIDIA-GPU -o Centos"
   - JOB="-p NVIDIA-GPU -o Ubuntu"
-  #- JOB="-p AMD_GPU -o Centos"
-  #- JOB="-p AMD_GPU -o Ubuntu"
+  - JOB="-p AMD-GPU -o Centos"
+  #- JOB="-p AMD-GPU -o Ubuntu"
   #- JOB="-p X86-ONLY -o Centos"
   #- JOB="-p X86-ONLY -o Ubuntu"
   #- JOB="-p ARM -o Centos"
