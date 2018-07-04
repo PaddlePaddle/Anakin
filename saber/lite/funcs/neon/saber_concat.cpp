@@ -38,7 +38,7 @@ SaberStatus SaberConcat::compute_output_shape(const std::vector<Tensor<CPU, AK_F
 SaberStatus SaberConcat::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                               std::vector<Tensor<CPU, AK_FLOAT> *> &outputs,
                               Context &ctx) {
-    _ctx = ctx;
+    this->_ctx = &ctx;
     _num_concats = inputs[0]->count_valid(0, _axis);
     _concat_input_size = inputs[0]->count_valid(_axis + 1, inputs[0]->dims());
     return SaberSuccess;

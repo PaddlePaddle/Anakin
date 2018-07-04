@@ -132,7 +132,7 @@ SaberStatus SaberSoftmax::load_param(int axis) {
 
 SaberStatus SaberSoftmax::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                std::vector<Tensor<CPU, AK_FLOAT> *> &outputs, Context &ctx) {
-    _ctx = ctx;
+    this->_ctx = &ctx;
     Shape shape_in = inputs[0]->valid_shape();
     Shape shape_out = outputs[0]->valid_shape();
     _outer_num = inputs[0]->count_valid(0, _axis);

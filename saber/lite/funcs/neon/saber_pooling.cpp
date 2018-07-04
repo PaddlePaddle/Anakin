@@ -65,7 +65,7 @@ SaberStatus SaberPooling::compute_output_shape(const std::vector<Tensor<CPU, AK_
 //template <>
 SaberStatus SaberPooling::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                std::vector<Tensor<CPU, AK_FLOAT> *> &outputs, Context &ctx) {
-    _ctx = ctx;
+    this->_ctx = &ctx;
 
     if (_is_global) {
         _impl = pooling_global;

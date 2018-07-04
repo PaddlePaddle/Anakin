@@ -759,7 +759,7 @@ SaberStatus SaberDetectionOutput::compute_output_shape(const std::vector<Tensor<
 
 SaberStatus SaberDetectionOutput::init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
                       std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx) {
-    _ctx = ctx;
+    this->_ctx = &ctx;
 
 //! inputs[0]: location map, dims = 2 {N, boxes * 4}
 //! inputs[1]: confidence map, dims = 2 {N, boxes * classes}

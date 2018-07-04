@@ -83,9 +83,10 @@ SaberStatus SaberConv2D::init(\
     const std::vector<Tensor<CPU, AK_FLOAT> *>& inputs, \
     std::vector<Tensor<CPU, AK_FLOAT> *>& outputs, Context &ctx) {
 
-    _ctx = &ctx;
+    this->_ctx = &ctx;
 
-    int threads = _ctx.get_act_ids().size();
+    int threads = 1;
+    this->_ctx->get_mode(threads);
 
     Shape shape_in = inputs[0]->valid_shape();
     Shape shape_out = outputs[0]->valid_shape();

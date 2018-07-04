@@ -39,7 +39,7 @@ public:
             _flag_relu = false;
         }
         SaberConv2D::set_activation(_flag_relu);
-        SaberConv2D::SaberConv2D(weights_size, num_output, group, kw, kh, stride_w, stride_h, \
+        SaberConv2D::load_param(weights_size, num_output, group, kw, kh, stride_w, stride_h, \
             pad_w, pad_h, dila_w, dila_h, flag_bias, weights, bias);
     }
 

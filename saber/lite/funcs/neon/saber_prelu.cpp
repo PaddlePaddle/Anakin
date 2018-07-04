@@ -87,7 +87,7 @@ SaberStatus SaberPrelu::compute_output_shape(const std::vector<Tensor<CPU, AK_FL
 
 SaberStatus SaberPrelu::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                              std::vector<Tensor<CPU, AK_FLOAT> *> &outputs, Context &ctx) {
-    _ctx = ctx;
+    this->_ctx = &ctx;
     return SaberSuccess;
 }
 

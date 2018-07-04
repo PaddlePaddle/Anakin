@@ -26,7 +26,7 @@ SaberStatus SaberActivation::compute_output_shape(const std::vector<Tensor<CPU, 
 
 SaberStatus SaberActivation::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                   std::vector<Tensor<CPU, AK_FLOAT> *> &outputs, Context &ctx) {
-    _ctx = ctx;
+    this->_ctx = &ctx;
     return SaberSuccess;
 }
 
@@ -37,7 +37,8 @@ SaberStatus SaberActivation::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *>
     const float* ptr_in = inputs[0]->data();
 
     int size = inputs[0]->valid_size();
-    int threads = _ctx.get_act_ids().size();
+    int threads = 1;
+    this->_ctx->get_mode(threads);
     int nums_per_thread = size / threads;
     int remain = size - threads * nums_per_thread;
     int neon_loop_cnt = nums_per_thread >> 4;

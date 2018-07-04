@@ -47,7 +47,7 @@ public:
         return SaberUnImplError;
     }
 
-private:
+protected:
     Context* _ctx;
 };
 

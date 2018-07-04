@@ -66,7 +66,7 @@ SaberStatus SaberSlice::compute_output_shape(const std::vector<Tensor<CPU, AK_FL
 SaberStatus SaberSlice::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                              std::vector<Tensor<CPU, AK_FLOAT> *> &outputs, Context &ctx) {
     // get context
-    _ctx = &ctx;
+    this->_ctx = &ctx;
     _slice_num = inputs[0]->count_valid(0, _axis);
     _slice_size = inputs[0]->count_valid(_axis + 1, inputs[0]->dims());
     return SaberSuccess;

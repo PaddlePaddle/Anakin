@@ -103,7 +103,7 @@ SaberStatus SaberPriorBox::compute_output_shape(const std::vector<Tensor<CPU, AK
 
 SaberStatus SaberPriorBox::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                 std::vector<Tensor<CPU, AK_FLOAT> *> &outputs, Context &ctx) {
-    _ctx = ctx;
+    this->_ctx = &ctx;
 
     LITE_CHECK(_output_arm.reshape(outputs[0]->valid_shape()));
     float* output_host = _output_arm.mutable_data();

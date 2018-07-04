@@ -329,10 +329,6 @@ PowerMode Context::get_mode(int& threads) {
     return _mode;
 }
 
-std::vector<int> Context::get_act_ids() {
-    return _act_ids;
-}
-
 Context::Context(const Context& ctx){
     _mode = ctx._mode;
     _act_ids = ctx._act_ids;

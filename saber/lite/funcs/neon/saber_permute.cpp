@@ -123,7 +123,7 @@ SaberStatus SaberPermute::load_param(std::vector<int> orders) {
 //template <typename Dtype>
 SaberStatus SaberPermute::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                std::vector<Tensor<CPU, AK_FLOAT> *> &outputs, Context &ctx) {
-    _ctx = ctx;
+    this->_ctx = &ctx;
     _num_axes = inputs[0]->dims();
     _count = outputs[0]->valid_size();
 

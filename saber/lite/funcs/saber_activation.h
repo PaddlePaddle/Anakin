@@ -24,7 +24,7 @@ namespace saber{
 namespace lite{
 
 //template <ARMType ttype, DataType dtype>
-class SaberActivation : public BaseOp {
+class SaberActivation : public OpBase {
 public:
     SaberActivation() {}
 

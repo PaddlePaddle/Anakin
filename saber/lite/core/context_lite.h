@@ -105,7 +105,7 @@ public:
     //void set_act_cores(std::vector<int> ids);
     void bind_dev();
     PowerMode get_mode(int& threads);
-    std::vector<int> get_act_ids();
+    //std::vector<int> get_act_ids();
     void set_cache(size_t l1size, size_t l2size, size_t l3size);
     void* get_work_space();
 private:

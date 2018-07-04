@@ -84,8 +84,9 @@ SaberStatus SaberFc::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT
 SaberStatus SaberFc::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs, \
     std::vector<Tensor<CPU, AK_FLOAT> *> &outputs, Context &ctx) {
 
-    _ctx = ctx;
-    int threads = _ctx.get_act_ids().size();
+    this->_ctx = &ctx;
+    int threads = 1;
+    this->_ctx->get_mode(threads);
 
     _m = inputs[0]->count_valid(0, _axis);
     _k = inputs[0]->count_valid(_axis, inputs[0]->dims());

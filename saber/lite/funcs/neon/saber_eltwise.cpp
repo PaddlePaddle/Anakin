@@ -202,7 +202,7 @@ SaberStatus SaberEltwise::init(\
     const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
         std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx) {
 
-    _ctx = ctx;
+    this->_ctx = &ctx;
     Shape sh_out_saber = outputs[0]->valid_shape();
     for (int i = 0; i < inputs.size(); i ++){
         Shape sh_in_saber = inputs[i]->valid_shape();
