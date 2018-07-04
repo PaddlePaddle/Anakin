@@ -113,7 +113,7 @@ anakin_option(USE_XBYAK "Use XBYAK libs." YES if USE_X86_PLACE)
 # build components
 anakin_option(BUILD_WITH_UNIT_TEST "Build anakin unit test components." YES)
 
-anakin_option(BUILD_WITH_LITE "Build anakin lite components." NO)
+anakin_option(BUILD_LITE "Build anakin lite components." NO)
 
 # build examples
 anakin_option(BUILD_EXAMPLES "build detection and classification examples" NO)
@@ -190,7 +190,7 @@ if(BUILD_WITH_UNIT_TEST)
     add_subdirectory(${ANAKIN_UNIT_TEST})
 endif()
 
-if(BUILD_WITH_LITE)
+if(BUILD_LITE)
 	add_subdirectory(${ANAKIN_LITE})
 endif()
 
