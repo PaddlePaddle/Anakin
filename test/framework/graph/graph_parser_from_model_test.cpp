@@ -7,8 +7,7 @@
 using namespace anakin;
 using namespace anakin::graph;
 
-//std::string model_path = "/home/chaowen/anakin_v2/model_v2/google_net/googlenet.anakin.bin";
-std::string model_path = "/home/chaowen/anakin_v2/model_v2/yolo/yolo.anakin.bin";
+std::string model_path = "/path/to/name.anakin.bin";
 
 
 TEST(GraphTest, graph_load_model) {
