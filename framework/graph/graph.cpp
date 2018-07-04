@@ -405,7 +405,7 @@ template class Graph<NV, AK_FLOAT, Precision::FP16>;
 template class Graph<NV, AK_FLOAT, Precision::INT8>;
 #endif
 
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 template class Graph<X86, AK_FLOAT, Precision::FP32>;
 template class Graph<X86, AK_FLOAT, Precision::FP16>;
 template class Graph<X86, AK_FLOAT, Precision::INT8>;
@@ -422,12 +422,6 @@ template class Graph<ARM, AK_FLOAT, Precision::FP16>;
 template class Graph<ARM, AK_FLOAT, Precision::INT8>;
 #endif
 #endif //USE_ARM_PLACE
-
-#ifdef BUILD_LITE
-template class Graph<X86, AK_FLOAT, Precision::FP32>;
-template class Graph<X86, AK_FLOAT, Precision::FP16>;
-template class Graph<X86, AK_FLOAT, Precision::INT8>;
-#endif
 
 } /* namespace graph */
 

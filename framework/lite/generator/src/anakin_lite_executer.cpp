@@ -22,6 +22,10 @@ int main(int argc, const char** argv){
     logger::init(argv[0]);
 	if(argc < 3) {
 		LOG(ERROR) << "Some arguments not supplied!";
+		LOG(ERROR) << "usage: " << argv[0] << " model_name model_weights_path(xxx.anakin.bin) output_path";
+		LOG(ERROR) << "model_name: output lib and api name";
+		LOG(ERROR) << "model_weights_path: path to your anakin model";
+		LOG(ERROR) << "output_path: output path";
 		return 1;
 	}
 	const char* model_name = argv[1];

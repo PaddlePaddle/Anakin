@@ -27,7 +27,7 @@ cmake .. \
     -DUSE_OPENMP=NO \
 	-DBUILD_SHARED=YES \
 	-DBUILD_EXAMPLES=NO \
-	-DBUILD_WITH_LITE=YES
+	-DBUILD_LITE=YES
 
 # build target lib or unit test.
 if [ "$(uname)" = 'Darwin' ]; then

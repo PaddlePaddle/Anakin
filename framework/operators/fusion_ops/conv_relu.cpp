@@ -106,11 +106,11 @@ Status ConvReluHelper<NV, AK_FLOAT, Precision::FP32>::Init(OpContext<NV>& ctx, \
 ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, NV, AK_FLOAT, Precision::FP32);
 #endif
 
-//#ifdef USE_X86_PLACE
-//INSTANCE_CONVRELU(X86, AK_FLOAT, Precision::FP32);
-//template class ConvReluHelper<X86, AK_FLOAT, Precision::FP32>;
-//ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, X86, AK_FLOAT, Precision::FP32);
-//#endif
+#if defined(BUILD_LITE)
+INSTANCE_CONVRELU(X86, AK_FLOAT, Precision::FP32);
+template class ConvReluHelper<X86, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, X86, AK_FLOAT, Precision::FP32);
+#endif
 
 #ifdef USE_ARM_PLACE
 INSTANCE_CONVRELU(ARM, AK_FLOAT, Precision::FP32);
@@ -128,9 +128,9 @@ ANAKIN_REGISTER_OP(ConvRelu)
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("power")
 #endif
-//#ifdef USE_X86_PLACE
-//.__alias__<X86, AK_FLOAT, Precision::FP32>("power")
-//#endif
+#if defined(BUILD_LITE)
+.__alias__<X86, AK_FLOAT, Precision::FP32>("power")
+#endif
 .num_in(1)
 .num_out(1)
 .Args<int>("group", " group of conv ")
