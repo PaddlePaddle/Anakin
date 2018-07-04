@@ -377,10 +377,50 @@ Status save<ARM, AK_FLOAT, Precision::INT8>(graph::Graph<ARM, AK_FLOAT, Precisio
                                                     const char* model_path);
 #endif
 
-#endif
+#endif //USE_ARM_PLACE
 
 
+#ifdef BUILD_LITE
+template
+Status load<X86, AK_FLOAT, Precision::FP32>(graph::Graph<X86, AK_FLOAT, Precision::FP32>* graph,
+        const char* model_path);
+template
+Status load<X86, AK_FLOAT, Precision::FP16>(graph::Graph<X86, AK_FLOAT, Precision::FP16>* graph,
+        const char* model_path);
+template
+Status load<X86, AK_FLOAT, Precision::INT8>(graph::Graph<X86, AK_FLOAT, Precision::INT8>* graph,
+        const char* model_path);
 
+template
+Status save<X86, AK_FLOAT, Precision::FP32>(graph::Graph<X86, AK_FLOAT, Precision::FP32>* graph,
+        std::string& model_path);
+template
+Status save<X86, AK_FLOAT, Precision::FP16>(graph::Graph<X86, AK_FLOAT, Precision::FP16>* graph,
+        std::string& model_path);
+template
+Status save<X86, AK_FLOAT, Precision::INT8>(graph::Graph<X86, AK_FLOAT, Precision::INT8>* graph,
+        std::string& model_path);
+
+template
+Status load<X86, AK_FLOAT, Precision::FP32>(graph::Graph<X86, AK_FLOAT, Precision::FP32>* graph,
+        std::string& model_path);
+template
+Status load<X86, AK_FLOAT, Precision::FP16>(graph::Graph<X86, AK_FLOAT, Precision::FP16>* graph,
+        std::string& model_path);
+template
+Status load<X86, AK_FLOAT, Precision::INT8>(graph::Graph<X86, AK_FLOAT, Precision::INT8>* graph,
+        std::string& model_path);
+
+template
+Status save<X86, AK_FLOAT, Precision::FP32>(graph::Graph<X86, AK_FLOAT, Precision::FP32>* graph,
+        const char* model_path);
+template
+Status save<X86, AK_FLOAT, Precision::FP16>(graph::Graph<X86, AK_FLOAT, Precision::FP16>* graph,
+        const char* model_path);
+template
+Status save<X86, AK_FLOAT, Precision::INT8>(graph::Graph<X86, AK_FLOAT, Precision::INT8>* graph,
+        const char* model_path);
+#endif //lite
 
 } /* parser */
 

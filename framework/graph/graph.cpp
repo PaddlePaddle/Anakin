@@ -421,6 +421,12 @@ template class Graph<ARM, AK_FLOAT, Precision::FP16>;
 #ifdef ANAKIN_TYPE_INT8
 template class Graph<ARM, AK_FLOAT, Precision::INT8>;
 #endif
+#endif //USE_ARM_PLACE
+
+#ifdef BUILD_LITE
+template class Graph<X86, AK_FLOAT, Precision::FP32>;
+template class Graph<X86, AK_FLOAT, Precision::FP16>;
+template class Graph<X86, AK_FLOAT, Precision::INT8>;
 #endif
 
 } /* namespace graph */
