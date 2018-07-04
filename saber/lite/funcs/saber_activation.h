@@ -15,8 +15,7 @@
 #ifndef ANAKIN_SABER_LITE_FUNCS_SABER_ACTIVATION_H
 #define ANAKIN_SABER_LITE_FUNCS_SABER_ACTIVATION_H
 
-#include "saber/lite/core/tensor_lite.h"
-#include "saber/lite/core/context_lite.h"
+#include "saber/lite/funcs/op_base.h"
 
 namespace anakin{
 
@@ -25,7 +24,7 @@ namespace saber{
 namespace lite{
 
 //template <ARMType ttype, DataType dtype>
-class SaberActivation {
+class SaberActivation : public BaseOp {
 public:
     SaberActivation() {}
 
@@ -34,16 +33,15 @@ public:
 
     ~SaberActivation() {}
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+    virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
                                      std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
 
-    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+    virtual SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
                             std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context& ctx);
     
     virtual SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
                           std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
 private:
-    Context _ctx;
     ActiveType _type;
     float _neg_slop;
 };

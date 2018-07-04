@@ -17,6 +17,7 @@
 
 #include "saber/lite/core/common_lite.h"
 #include "saber/lite/core/tensor_lite.h"
+#include "saber/lite/core/context_lite.h"
 
 namespace anakin{
 
@@ -27,11 +28,16 @@ namespace lite{
 class OpBase {
 public:
     OpBase(){}
-    virtual SaberStatus load_param() = 0;
-    virtual compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+    virtual ~OpBase(){}
+    OpBase(const char* parm_name);
+    virtual SaberStatus load_param(const char* param_name) {
+        return SaberUnImplError;
+    }
+    virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
                                  std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) {
         return SaberUnImplError;
     }
+
     virtual SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
                              std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context& ctx) {
         return SaberUnImplError;
@@ -41,6 +47,8 @@ public:
         return SaberUnImplError;
     }
 
+private:
+    Context* _ctx;
 };
 
 } //namespace lite

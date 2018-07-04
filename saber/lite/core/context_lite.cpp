@@ -425,6 +425,10 @@ void Context::set_run_mode(PowerMode mode, int threads) {
     bind_dev();
 }
 
+void* Context::get_work_space() {
+    return _work_space;
+}
+
 #if 0
 template <>
 Context<CPU>::Context(int device_id, int data_stream_id, int compute_stream_id) {

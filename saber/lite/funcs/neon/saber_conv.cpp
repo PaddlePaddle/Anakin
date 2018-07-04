@@ -83,7 +83,7 @@ SaberStatus SaberConv2D::init(\
     const std::vector<Tensor<CPU, AK_FLOAT> *>& inputs, \
     std::vector<Tensor<CPU, AK_FLOAT> *>& outputs, Context &ctx) {
 
-    _ctx = ctx;
+    _ctx = &ctx;
 
     int threads = _ctx.get_act_ids().size();
 

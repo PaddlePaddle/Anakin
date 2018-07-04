@@ -193,8 +193,8 @@ public:
      *  only if current shape and valid shape are the same, and offset is all set to 0.
      */
 
-    template <class Tensor_t>
-    SaberStatus share_from(const Tensor_t& tensor);
+    //template <class Tensor_t>
+    SaberStatus share_from(const Tensor& tensor);
 
     SaberStatus share_sub_buffer(const Tensor<ttype, dtype>& tensor, \
         Shape valid_shape, Shape offset);
@@ -202,8 +202,8 @@ public:
     /**
      *  \brief Deep copy data within region of interest from input tensor.
      */
-     template <class Tensor_t>
-    SaberStatus copy_from(const Tensor_t& tensor);
+    //template <class Tensor_t>
+    SaberStatus copy_from(const Tensor& tensor);
 
     /**
      *  \brief Synchronize the event tree, wait util all events are done.

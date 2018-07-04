@@ -15,8 +15,7 @@
 #ifndef ANAKIN_SABER_LITE_FUNCS_SABER_DETECTION_OUTPUT_H
 #define ANAKIN_SABER_LITE_FUNCS_SABER_DETECTION_OUTPUT_H
 
-#include "saber/lite/core/tensor_lite.h"
-#include "saber/lite/core/context_lite.h"
+#include "saber/lite/funcs/op_base.h"
 
 #ifdef USE_ARM_PLACE
 
@@ -27,7 +26,7 @@ namespace saber{
 namespace lite{
 
 //template <ARMType ttype, DataType dtype>
-class SaberDetectionOutput {
+class SaberDetectionOutput : public OpBase {
 public:
     SaberDetectionOutput(){}
     SaberDetectionOutput(bool share_loc,
@@ -53,18 +52,17 @@ public:
                            float nms_thresh = 0.3f,
                            float nms_eta = 1.f);
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 
-    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
-                      std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx);
+    virtual SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
+                      std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx) override;
 
-    SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                          std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                          std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 
 
 private:
-    Context _ctx;
     bool _share_loacation{true};
     bool _variance_encode_in_target{false};
     int _class_num;

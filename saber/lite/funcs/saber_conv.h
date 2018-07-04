@@ -14,8 +14,7 @@
 #ifndef ANAKIN_SABER_LITE_FUNCS_SABER_CONV_H
 #define ANAKIN_SABER_LITE_FUNCS_SABER_CONV_H
 
-#include "saber/lite/core/tensor_lite.h"
-#include "saber/lite/core/context_lite.h"
+#include "saber/lite/funcs/op_base.h"
 
 #ifdef USE_ARM_PLACE
 
@@ -36,7 +35,7 @@ typedef void (*conv_func)(const float* din, float* dout, \
 
 
 //template <typename Dtype>
-class SaberConv2D {
+class SaberConv2D : public OpBase {
 public:
     SaberConv2D();
 
@@ -50,19 +49,18 @@ public:
 
     ~SaberConv2D() {}
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 
-    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                             std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx);
+    virtual SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                             std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx) override;
 
-    SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                 std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                                 std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 
     SaberStatus set_activation(bool flag);
 
 private:
-    Context _ctx;
     conv_func _impl{nullptr};
     Sgemm _gemmer;
     bool _flag_relu{false};

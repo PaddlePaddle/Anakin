@@ -14,8 +14,7 @@
 #ifndef ANAKIN_SABER_LITE_FUNCS_NEON_SABER_PRELU_H
 #define ANAKIN_SABER_LITE_FUNCS_NEON_SABER_PRELU_H
 
-#include "saber/lite/core/tensor_lite.h"
-#include "saber/lite/core/context_lite.h"
+#include "saber/lite/funcs/op_base.h"
 
 #ifdef USE_ARM_PLACE
 namespace anakin{
@@ -25,7 +24,7 @@ namespace saber{
 namespace lite{
 
 //template <typename Dtype>
-class SaberPrelu {
+class SaberPrelu : public OpBase {
 
 public:
 
@@ -37,17 +36,16 @@ public:
 
     ~SaberPrelu() {}
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 
-    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
-        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs,  Context &ctx);
+    virtual SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
+        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs,  Context &ctx) override;
 
-    SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
-        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
+        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 
 private:
-    Context _ctx;
 
     bool _flag_shared;
     const float* _weights{nullptr};

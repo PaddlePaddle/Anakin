@@ -16,7 +16,7 @@ void Buffer<CPU>::clean() {
 }
 
 template <>
-const Buffer<CPU>::dtype* Buffer<CPU>::get_data() {
+const Buffer<CPU>::ptrtype Buffer<CPU>::get_data() {
     return _data;
 }
 
@@ -34,7 +34,7 @@ Buffer<CPU>::Buffer(size_t size) {
 }
 
 template <>
-Buffer<CPU>::Buffer(dtype* data, size_t size) {
+Buffer<CPU>::Buffer(ptrtype data, size_t size) {
     _own_data = false;
     _data = data;
     _capacity = size;
@@ -82,7 +82,7 @@ void Buffer<CPU>::copy_from(Buffer<CPU> &buf) {
 }
 
 template <>
-Buffer<CPU>::dtype* Buffer<CPU>::get_data_mutable() {
+Buffer<CPU>::ptrtype Buffer<CPU>::get_data_mutable() {
     return _data;
 }
 
@@ -94,8 +94,8 @@ void Buffer<CPU>::mem_set(int c, size_t size) {
     memset(_data, c, size);
 }
 
-template <ARMType ttype>
-size_t Buffer<ttype>::get_capacity() {
+template <>
+size_t Buffer<CPU>::get_capacity() {
     return _capacity;
 }
 

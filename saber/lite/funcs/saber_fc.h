@@ -14,8 +14,7 @@
 #ifndef ANAKIN_SABER_LITE_FUNCS_SABER_FC_H
 #define ANAKIN_SABER_LITE_FUNCS_SABER_FC_H
 
-#include "saber/lite/core/tensor_lite.h"
-#include "saber/lite/core/context_lite.h"
+#include "saber/lite/funcs/op_base.h"
 
 #ifdef USE_ARM_PLACE
 
@@ -32,7 +31,7 @@ namespace lite{
 //! weights size: nxk
 //! bias size: 1xn
 //template <typename Dtype>
-class SaberFc {
+class SaberFc : public OpBase {
 public:
     SaberFc() {}
 
@@ -44,18 +43,17 @@ public:
 
     ~SaberFc() {}
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 
-    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
-        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx);
+    virtual SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
+        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx) override;
 
-    SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
-        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
+        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 
 
 private:
-    Context _ctx;
     Sgemm _gemmer;
     int _m;
     int _k;

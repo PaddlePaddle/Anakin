@@ -147,7 +147,7 @@ template <ARMType Ttype>
 struct TargetTrait{
     typedef void* stream_t;
     typedef void* event_t;
-    typedef void bdtype;
+    typedef void* ptrtype;
     int get_device_count() { return 1;}
     int get_device_id(){ return 0;}
     void set_device_id(int id){}

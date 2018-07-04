@@ -14,9 +14,7 @@
 #ifndef ANAKIN_SABER_LITE_FUNCS_SABER_POOLING_H
 #define ANAKIN_SABER_LITE_FUNCS_SABER_POOLING_H
 
-#include "saber/lite/core/tensor_lite.h"
-#include "saber/lite/core/context_lite.h"
-
+#include "saber/lite/funcs/op_base.h"
 #ifdef USE_ARM_PLACE
 namespace anakin{
 
@@ -31,7 +29,7 @@ typedef void (*pool_func)(const float* din, float* dout, \
                           int stride_w, int stride_h, int pad_w, int pad_h);
 
 //template <typename Dtype>
-class SaberPooling {
+class SaberPooling : public OpBase {
 
 public:
     SaberPooling() {}
@@ -44,18 +42,17 @@ public:
 
     ~SaberPooling() {}
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 
-    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
-        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx);
+    virtual SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
+        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx) override;
 
-    SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
-        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
+        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 
 private:
     pool_func _impl{nullptr};
-    Context _ctx;
 
     PoolingType _type;
     bool _is_global{false};
