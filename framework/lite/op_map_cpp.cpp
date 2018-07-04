@@ -96,7 +96,7 @@ std::string ParserConvolutionRelu(graph::AttrInfo& attr,
 
 	// gen cpp code
 	CodeWritter code_w;
-    code_w.feed("%s.load_param(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s+%d,%s+%d);\n", node_name.c_str(),
+    code_w.feed("%s.load_param(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%s+%d,%s+%d);\n", node_name.c_str(),
                                            weights_size,
                                            num_output,
                                            group,
@@ -109,6 +109,7 @@ std::string ParserConvolutionRelu(graph::AttrInfo& attr,
                                            dilation_rate[1],
                                            dilation_rate[0],
                                            bias_term ? "true":"false",
+										   "true", //set flag_relu true
                                            weights_ptr_name.c_str(),
                                            offset_info.weights[0].offset,
                                            weights_ptr_name.c_str(),
@@ -286,7 +287,7 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
 
 	// gen cpp code
 	CodeWritter code_w;
-    code_w.feed("%s.load_param(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s+%d,%s+%d);\n", node_name.c_str(),
+    code_w.feed("%s.load_param(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%s+%d,%s+%d);\n", node_name.c_str(),
                                            weights_size,
                                            num_output,
                                            group,
@@ -298,7 +299,8 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
                                            padding[0],
                                            dilation_rate[1],
                                            dilation_rate[0],
-                                           "true",
+                                           "true", // set bias to true
+                                           "true", //set flag_relu true
                                            weights_ptr_name.c_str(),
                                            offset_info.weights[0].offset,
                                            weights_ptr_name.c_str(),

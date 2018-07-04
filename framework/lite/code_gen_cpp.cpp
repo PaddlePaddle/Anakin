@@ -6,7 +6,7 @@ namespace lite {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 void GenCPP<Ttype, Dtype, Ptype>::gen_license() {
-	_code<< "/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.\n\n   Licensed under the Apache License, Version 2.0 (the \"License\");\n   you may not use this file except in compliance with the License.\n   You may obtain a copy of the License at\n\n       http://www.apache.org/licenses/LICENSE-2.0\n\n   Unless required by applicable law or agreed to in writing, software\n   distributed under the License is distributed on an \"AS IS\" BASIS,\n   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n   See the License for the specific language governing permissions and\n   limitations under the License.\n*/\n\n";
+	_code<< "/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.\n\n   Licensed under the Apache License, Version 2.0 (the \"License\");\n   you may not use this file except in compliance with the License.\n   You may obtain a copy of the License at\n\n       http://www.apache.org/licenses/LICENSE-2.0\n\n   Unless required by applicable law or agreed to in writing, software\n   distributed under the License is distributed on an \"AS IS\" BASIS,\n   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n   See the License for the specific language governing permissions and\n   limitations under the License.\n*/\n\n";
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
@@ -31,6 +31,7 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_header_start() {
     _code<<"#include <saber/lite/funcs/timer_lite.h>\n";
     _code<<"#include <saber/lite/funcs/saber_conv.h>\n";
     _code<<"#include <saber/lite/funcs/saber_conv_act.h>\n";
+	_code<<"#include <saber/lite/funcs/saber_conv_act_pooling.h>\n";
     _code<<"#include <saber/lite/funcs/saber_fc.h>\n";
     _code<<"#include <saber/lite/funcs/saber_pooling.h>\n";
     _code<<"#include <saber/lite/funcs/saber_softmax.h>\n\n";
@@ -185,9 +186,11 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_run_impl() {
 		}
 		auto& node_info = this->_graph_node_map[node_name];
 		if(OPERATION_MAP.count(node_info.op_name) > 0) {
+            /*
 			_code.feed("    %s.compute_output_shape(%s_ins,%s_outs); \n", node_name.c_str(), 
 																	  	  node_name.c_str(), 
 																		  node_name.c_str());
+																		  */
 			_code.feed("    %s.dispatch(%s_ins,%s_outs); \n", node_name.c_str(),
 														  	  node_name.c_str(), 
 															  node_name.c_str());
