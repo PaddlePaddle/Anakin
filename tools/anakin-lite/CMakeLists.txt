@@ -18,6 +18,8 @@ anakin_option(USE_LOGGER "using local logger" YES)
 
 anakin_option(ENABLE_DEBUG "Enable DEBUG(default) mode." NO)
 
+anakin_option(BUILD_LITE_UNIT_TEST "build unit test for lite." NO)
+
 configure_file ( 
 	"../../cmake/config/anakin_config.h.in" 
 	"${PROJECT_BINARY_DIR}/anakin_config.h"
@@ -118,6 +120,7 @@ anakin_fetch_files_with_suffix(${ANAKIN_LITE_ROOT}/saber/lite/core "cpp" ANAKIN_
 anakin_fetch_files_with_suffix(${ANAKIN_LITE_ROOT}/saber/lite/funcs "cpp" ANAKIN_SABER_ARM_LITE_SRC)
 anakin_fetch_files_with_suffix(${ANAKIN_LITE_ROOT}/saber/lite/funcs/neon "cpp" ANAKIN_SABER_ARM_LITE_SRC)
 anakin_fetch_files_with_suffix(${ANAKIN_LITE_ROOT}/saber/lite/funcs/neon/impl "cpp" ANAKIN_SABER_ARM_LITE_SRC)
+anakin_fetch_files_with_suffix(${ANAKIN_LITE_ROOT}/test/lite "cpp" UNIT_TEST_LITE_SRC)
 
 add_library(ANAKIN_LITE_OBJS OBJECT ${ANAKIN_LITE_SRC} ${ANAKIN_SABER_ARM_LITE_SRC})
 
@@ -128,6 +131,30 @@ set_target_properties(${anakin_lite_lib_so} PROPERTIES
 add_library(${anakin_lite_lib_static} STATIC $<TARGET_OBJECTS:ANAKIN_LITE_OBJS>)
 set_target_properties(${anakin_lite_lib_static} PROPERTIES 
 					  ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/output/)
+
+if(BUILD_LITE_UNIT_TEST)
+	# build test cases
+	foreach(SRC_NAME ${UNIT_TEST_LITE_SRC})
+		#unpack the dir "/"
+		string(REPLACE "/" ";" SEXY_LIST ${SRC_NAME})
+		list(GET SEXY_LIST -1 TEST_CASE_NAME)
+		#get the file name without suffix
+		string(REPLACE "." ";" SEXY_LIST ${TEST_CASE_NAME})
+		list(GET SEXY_LIST 0 TEST_CASE_NAME)
+		add_executable(${TEST_CASE_NAME}  ${SRC_NAME})
+		if(NO)#BUILD_SHARED)
+			target_link_libraries(${TEST_CASE_NAME} ${anakin_lite_lib_so})
+		else()
+			target_link_libraries(${TEST_CASE_NAME} ${anakin_lite_lib_static})
+		endif()
+		#	if(USE_ARM_PLACE)
+		#		target_link_libraries(${TEST_CASE_NAME} ${log-lib})
+		#	endif()
+		set_target_properties(${TEST_CASE_NAME} PROPERTIES
+				RUNTIME_OUTPUT_DIRECTORY
+				${PROJECT_SOURCE_DIR}/output/unit_test)
+	endforeach()
+endif()
 
 install(DIRECTORY ${ANAKIN_LITE_ROOT}/saber  ${ANAKIN_LITE_ROOT}/utils
 		DESTINATION ${PROJECT_SOURCE_DIR}/output/
