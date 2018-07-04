@@ -13,7 +13,7 @@ anakin_option(USE_ARM_PLACE "Select the build mode for ARM place." YES)
 anakin_option(USE_ANDROID "using android place." YES)
 anakin_option(USE_IOS "using android place." NO if NOT USE_ANDROID)
 
-anakin_option(USE_OMP "using openmp for lite." YES)
+anakin_option(USE_OPENMP "using openmp for lite." YES)
 anakin_option(USE_LOGGER "using local logger" YES)
 
 anakin_option(ENABLE_DEBUG "Enable DEBUG(default) mode." NO)
@@ -91,7 +91,7 @@ message(STATUS "cmake flags: ${CMAKE_CXX_FLAGS}")
 if(USE_IOS)
 endif()
 
-if(USE_OMP) 
+if(USE_OPENMP)
 	find_package(OpenMP REQUIRED) 
 	if(OPENMP_FOUND OR OpenMP_CXX_FOUND) 
 		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}") 
