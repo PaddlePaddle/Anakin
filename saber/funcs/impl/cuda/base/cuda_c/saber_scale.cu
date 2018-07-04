@@ -47,6 +47,10 @@ SaberStatus SaberScale<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, \
     auto in_data = inputs[0]->data();
     auto out_data = outputs[0]->mutable_data();
     const int count = inputs[0]->valid_size();
+    if (inputs.size() > 1) {
+        _scale_dim = inputs[1]->valid_size();
+        _inner_dim = count / _scale_dim;
+    }
     if (_scale_dim > 1 || inputs.size() > 1) {
         auto scale_data = inputs.size() > 1 ? inputs[1]->data() : _weight.data();
         auto bias_data = param.bias_term ? _bias.data() : NULL;
