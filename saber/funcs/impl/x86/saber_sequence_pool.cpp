@@ -169,7 +169,7 @@ SaberStatus SaberSequencePool<X86, OpDtype, inDtype, outDtype,
                      * outputs[0]->width();
 
     DataType_in *dst_ptr = outputs[0]->mutable_data();
-    DataType_out *src_ptr = inputs[0]->data();
+    const DataType_out *src_ptr = inputs[0]->data();
     for (int i = 0; i < seq_offset.size()-1; ++i) {
         int slice_num = seq_offset[i+1] - seq_offset[i];
 

@@ -17,6 +17,7 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+#include "saber/funcs/impl/impl_ctc_align.h"
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_ctc_align.h"
 #endif

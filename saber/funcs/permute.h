@@ -18,6 +18,7 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+#include "saber/funcs/impl/impl_permute.h"
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_permute.h"
 #endif

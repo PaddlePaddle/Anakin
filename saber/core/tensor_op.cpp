@@ -1,7 +1,8 @@
 #include "tensor_op.h"
 #include "anakin_config.h"
 #include <cstdlib>
-
+#include <math.h>
+#include <random>
 namespace anakin {
 
 namespace saber {

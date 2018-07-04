@@ -59,8 +59,8 @@ SaberStatus SaberScale<X86, OpDtype, inDtype, outDtype,
 
     auto in_data = inputs[0]->data();
     auto out_data = outputs[0]->mutable_data();
-    DataType_op* scale_data = (inputs.size() > 1) ? inputs[1]->data() : &(param.scale_w[0]);
-    DataType_op* bias_data = param.bias_term ? &(param.scale_b[0]) : NULL;
+    const DataType_op* scale_data = (inputs.size() > 1) ? inputs[1]->data() : &(param.scale_w[0]);
+    const DataType_op* bias_data = param.bias_term ? &(param.scale_b[0]) : NULL;
 
     const int count = inputs[0]->valid_size();
     int axis = (param.num_axes == 0) ? 0 : param.axis;
