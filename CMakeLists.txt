@@ -101,7 +101,7 @@ anakin_option(USE_GLOG "Build Glog components." NO if NOT USE_LOGGER)
 anakin_option(USE_PROTOBUF "Build Google protobuf components." YES)
 anakin_option(USE_OPENCV "Use static opencv libs." NO)
 anakin_option(USE_BOOST "Use static BOOST libs." NO)
-anakin_option(USE_OPENMP "Use Openmp when in android environment." YES if TARGET_ANDROID)
+anakin_option(USE_OPENMP "Use Openmp when in android environment." NO)
 anakin_option(USE_GTEST "Use googletest libs." NO if BUILD_WITH_UNIT_TEST)
 anakin_option(USE_PYTHON "Generate py wrappers." NO)
 anakin_option(USE_OPENCL "Use OpenCL ." NO)
@@ -109,12 +109,11 @@ anakin_option(USE_GFLAGS "Build Google gflags components." NO)
 anakin_option(USE_MKL "Use mkl libs." NO if USE_X86_PLACE)
 anakin_option(USE_MKLML "Use MKLML libs." YES if USE_X86_PLACE)
 anakin_option(USE_XBYAK "Use XBYAK libs." YES if USE_X86_PLACE)
-anakin_option(USE_OPENMP "Use Openmp when in android environment." YES if TARGET_ANDROID)
 
 # build components
 anakin_option(BUILD_WITH_UNIT_TEST "Build anakin unit test components." YES)
 
-anakin_option(BUILD_WITH_LITE "Build anakin lite components." YES if USE_GPU_PLACE)
+anakin_option(BUILD_WITH_LITE "Build anakin lite components." NO)
 
 # build examples
 anakin_option(BUILD_EXAMPLES "build detection and classification examples" NO)
