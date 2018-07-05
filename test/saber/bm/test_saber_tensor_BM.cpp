@@ -415,12 +415,12 @@ TEST(TestSaberTensorBM, test_tensor_deepcopy) {
     td21.copy_from(td01);
     print_tensor_device(td21);
     //cudaDeviceSynchronize();
-}
+}*/
 
 TEST(TestSaberTensorBM, test_tensor_shape) {
-    typedef Tensor<X86, AK_BM, NCHW> Tensor4_0;
-    typedef Tensor<X86, AK_BM, NHWC> Tensor4_1;
-    typedef Tensor<X86, AK_BM, HW> Tensor2;
+    typedef Tensor<X86, AK_FLOAT, NCHW> Tensor4_0;
+    typedef Tensor<X86, AK_FLOAT, NHWC> Tensor4_1;
+    typedef Tensor<X86, AK_FLOAT, HW> Tensor2;
 
     int nin = 2;
     int cin = 2;
@@ -562,8 +562,8 @@ TEST(TestSaberTensorBM, test_tensor_op) {
     Shape sh{1, 2, 2, 10};
     TensorDf4 td1(sh);
     TensorHf4 th1(sh);
-    Tensor<BM, AK_INT8, NCHW> td2(sh);
-    Tensor<X86, AK_INT8, NCHW> th2(sh);
+    Tensor<BM, AK_BM, NCHW> td2(sh);
+    Tensor<X86, AK_FLOAT, NCHW> th2(sh);
     LOG(INFO) << "testing host fill tensor with const 1.";
     fill_tensor_host_const(th1, 1.f);
     LOG(INFO) << "data type: float";
@@ -616,9 +616,9 @@ TEST(TestSaberTensorBM, test_tensor_op) {
 TEST(TestSaberTensorBM, test_tensor_share_diff_dtype) {
     Shape sh{1, 1, 2, 10};
     Tensor<BM, AK_BM, NCHW> td1(sh);
-    Tensor<X86, AK_BM, NCHW> th1(sh);
-    Tensor<BM, AK_INT8, NCHW> td2;
-    Tensor<X86, AK_INT8, NCHW> th2;
+    Tensor<X86, AK_FLOAT, NCHW> th1(sh);
+    Tensor<BM, AK_BM, NCHW> td2;
+    Tensor<X86, AK_FLOAT, NCHW> th2;
     td2.set_shape(sh);
     th2.set_shape(sh);
     LOG(INFO) << "testing host fill tensor with const 1.";
@@ -641,7 +641,7 @@ TEST(TestSaberTensorBM, test_tensor_share_diff_dtype) {
 TEST(TestSaberTensorBM, test_tensor_base_type) {
     Shape sh(1, 3, 10, 10);
     Tensor<BM, AK_BM, NCHW> td1(sh);
-    Tensor<X86, AK_BM, NCHW> th1(sh);
+    Tensor<X86, AK_FLOAT, NCHW> th1(sh);
     fill_tensor_host_rand(th1, 0.f, 255.f);
     td1.copy_from(th1);
     TensorBase* tb1;
@@ -652,7 +652,7 @@ TEST(TestSaberTensorBM, test_tensor_base_type) {
     Shape sh11 = th1.valid_shape();
     LOG(INFO) << "base tensor call set shape: " << "n=" << sh11[0] << ", c=" << sh11[1] << \
               ", h=" << sh11[2] << ", w=" << sh11[3];
-}*/
+}
 
 int main(int argc, const char** argv) {
     // initial logger
