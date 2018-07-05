@@ -27,7 +27,7 @@ EltwiseHelper<Ttype, Dtype, Ptype>::~EltwiseHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status EltwiseHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Eltwise op parameter.";
+    DLOG(WARNING) << "Parsing Eltwise op parameter.";
     auto type = GET_PARAMETER(std::string, type);
     auto coeff = GET_PARAMETER(PTuple<float>, coeff);
     EltwiseType elt_type;

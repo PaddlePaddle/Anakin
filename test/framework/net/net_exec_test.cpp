@@ -3,10 +3,9 @@
 #include "saber/funcs/timer.h"
 #include <chrono>
 
-#define USE_DIEPSE
+//#define USE_DIEPSE
 
-
-std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/diepsie_light_head.anakin.bin";
+//std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/diepsie_light_head.anakin.bin";
 
 //std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/diepsie_light_head_base.anakin.bin";
 
@@ -27,10 +26,16 @@ std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/ana
 // residual 7 patch of face
 //std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/residual_net_7patch_3hc.anakin.bin";
 
+// resnet 50
+//std::string model_path = "/home/cuichaowen/anakin2/anakin2/benchmark/CNN/mobilenet_v2.anakin.bin";
 
+// vgg16
+std::string model_path = "/home/cuichaowen/anakin2/anakin2/benchmark/CNN/models/vgg16.anakin.bin";
+
+#ifdef USE_CUDA
 #if 1
 TEST(NetTest, net_execute_base_test) {
-    graph = new Graph<NV, AK_FLOAT, Precision::FP32>();
+    Graph<NV, AK_FLOAT, Precision::FP32>* graph = new Graph<NV, AK_FLOAT, Precision::FP32>();
     LOG(WARNING) << "load anakin model file from " << model_path << " ...";
     // load anakin model files.
     auto status = graph->load(model_path);
@@ -43,11 +48,15 @@ TEST(NetTest, net_execute_base_test) {
 
     // register all tensor inside graph
     //graph->RegistAllOut();
+	
+    // register edge
+    // graph->RegistOut("conv2_2/expand/scale", "relu2_2/expand");
 
     //anakin graph optimization
     graph->Optimize();
 
     // constructs the executer net
+	{ // inner scope
 #ifdef USE_DIEPSE
     Net<NV, AK_FLOAT, Precision::FP32, OpRunType::SYNC> net_executer(*graph, true);
 #else
@@ -107,24 +116,45 @@ TEST(NetTest, net_execute_base_test) {
     d_tensor_in_2_p->copy_from(h_tensor_in_2);
 #endif
 
-    int epoch = 1000;
+    int epoch = 1;
     // do inference
     Context<NV> ctx(0, 0, 0);
     saber::SaberTimer<NV> my_time;
     LOG(WARNING) << "EXECUTER !!!!!!!! ";
 	// warm up
-	for(int i=0; i<10; i++) {
+	/*for(int i=0; i<10; i++) {
 		net_executer.prediction();
-	}
+	}*/
 
     my_time.start(ctx);
 
 
     //auto start = std::chrono::system_clock::now();
     for(int i=0; i<epoch; i++) {
-	//DLOG(ERROR) << " epoch(" << i << "/" << epoch << ") ";
+		//DLOG(ERROR) << " epoch(" << i << "/" << epoch << ") ";
         net_executer.prediction();
     }
+   /* // running part of model
+    net_executer.execute_stop_at_node("relu2_2/expand");
+#ifdef USE_CUDA
+    cudaDeviceSynchronize();
+#endif
+
+	// get inner tensor after stop
+    auto tensor_out_inner_p = net_executer.get_tensor_from_edge("conv2_2/expand", "relu2_2/expand");
+    LOG(WARNING) << "inner tensor avg value : " << tensor_average(tensor_out_inner_p);
+#ifdef USE_CUDA
+	cudaDeviceSynchronize();
+#endif
+    
+    for (int i = 0; i < 3; i++) {
+    	net_executer.execute_start_from_node("relu2_2/expand");
+    }
+
+#ifdef USE_CUDA
+    cudaDeviceSynchronize();
+#endif*/
+
     //auto end = std::chrono::system_clock::now();
 
     //double time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -132,6 +162,10 @@ TEST(NetTest, net_execute_base_test) {
 
     my_time.end(ctx);
     LOG(INFO)<<"aveage time "<<my_time.get_average_ms()/epoch << " ms";
+
+	} // inner scope over
+
+	LOG(ERROR) << "inner net exe over !";
 
     //auto& tensor_out_inner_p = net_executer.get_tensor_from_edge("data_perm", "conv1");
 
@@ -151,7 +185,7 @@ TEST(NetTest, net_execute_base_test) {
 	auto tensor_out_5_p = net_executer.get_out("heading_pt_out");
 	auto tensor_out_6_p = net_executer.get_out("height_pt_out");*/
     // get out result
-    //test_print(tensor_out_4_p);
+    //test_print<NV>(tensor_out_4_p);
 
 
     // save the optimized model to disk.
@@ -162,6 +196,7 @@ TEST(NetTest, net_execute_base_test) {
     }*/
 }
 #endif 
+#endif
 
 #if 0
 TEST(NetTest, net_execute_reconstruction_test) {
@@ -225,20 +260,7 @@ TEST(NetTest, net_execute_reconstruction_test) {
 
     
     // get out result
-    test_print(tensor_out_inner_p);
-}
-#endif
-
-#if 0
-TEST(NetTest, net_execute_muti_thread_test) {
-	LOG(WARNING) << "anakin model file from " << model_path;	
-	int thread_num = 10;
-	LOG(WARNING) << "Construct the muti-threads"<< <<" worker for anakin model."
-    Worker<NV, AK_FLOAT, Precision::FP32>  worker_for_model(model_path, thread_num); 
-
-    std::vector<Tensor4dPtr<NV, AK_FLOAT> > net_in_list;
-
-    worker_for_yolo_net.async_prediction(net_in_list);
+    test_print<NV>(tensor_out_inner_p);
 }
 #endif
 

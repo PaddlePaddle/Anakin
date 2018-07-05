@@ -59,6 +59,8 @@ public:
             , _fwd_algo((cudnnConvolutionFwdAlgo_t)0)
             , _input_nchw_descs(NULL)
             , _output_nchw_descs(NULL)
+            , _active_descs(NULL)
+            , _bias_desc(NULL)
             , x8_data(NULL)
             , y8_data(NULL)
             , x8_data_size(0)
@@ -96,6 +98,12 @@ public:
         }
         if (y8_data != NULL) {
             CUDA_CHECK(cudaFree(y8_data));
+        }
+        if (_active_descs) {
+            CUDNN_CHECK(cudnnDestroyActivationDescriptor(_active_descs));
+        }
+        if (_bias_desc) {
+            CUDNN_CHECK(cudnnDestroyTensorDescriptor(_bias_desc));
         }
     }
 

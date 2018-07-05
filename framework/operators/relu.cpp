@@ -4,6 +4,7 @@ namespace anakin {
 
 namespace ops {
 
+#ifdef USE_CUDA
 template<>
 void ReLU<NV, AK_FLOAT, Precision::FP32>::operator()(
     OpContext<NV>& ctx,
@@ -14,6 +15,7 @@ void ReLU<NV, AK_FLOAT, Precision::FP32>::operator()(
     auto& param = impl->_param_relu;
     impl->_funcs_relu(ins, outs, param, ctx);
 }
+#endif
 
 /// TODO ... specialization other type of operator
 
@@ -25,7 +27,7 @@ ReLUHelper<Ttype, Dtype, Ptype>::~ReLUHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ReLUHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing ReLU op parameter.";
+    DLOG(WARNING) << "Parsing ReLU op parameter.";
 
     // get relu param
     auto alpha = GET_PARAMETER(float, alpha);

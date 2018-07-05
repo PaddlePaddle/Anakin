@@ -78,6 +78,15 @@ public:
         CHECK_EQ(sh_conf[2], sh_bbox[1]) << \
             "Number of bboxes must match the number of scores per class.";
 
+        if (_conf_cpu_data != nullptr) {
+            fast_free(_conf_cpu_data);
+            _conf_cpu_data = nullptr;
+        }
+
+        if (_bbox_cpu_data != nullptr) {
+            fast_free(_bbox_cpu_data);
+            _bbox_cpu_data = nullptr;
+        }
         _conf_cpu_data = (InDataType*)fast_malloc(sizeof(InDataType) * sh_conf.count());
         _bbox_cpu_data = (InDataType*)fast_malloc(sizeof(InDataType) * sh_bbox.count());
 
@@ -87,7 +96,6 @@ public:
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                           std::vector<DataTensor_out*>& outputs,
                           MultiClassNMSParam<OpTensor>& param);
-
 
 private:
     int _num_priors;

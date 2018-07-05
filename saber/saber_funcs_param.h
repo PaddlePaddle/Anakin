@@ -25,29 +25,49 @@
 namespace anakin{
 
 namespace saber {
+
+template <typename Type>
+struct MatMulParam {
+    MatMulParam():_is_transpose_X(false),_is_transpose_Y(false){}
+    MatMulParam(bool x, bool y):_is_transpose_X(x),_is_transpose_Y(y){}
+    MatMulParam &operator=(const MatMulParam &right)
+    {
+        _is_transpose_X = right._is_transpose_X;
+        _is_transpose_Y = right._is_transpose_Y;
+    }
+    bool operator==(const MatMulParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (_is_transpose_X == right._is_transpose_X);        
+        comp_eq = comp_eq && (_is_transpose_Y == right._is_transpose_Y);        
+    }
+
+    bool _is_transpose_X{false};
+    bool _is_transpose_Y{false};
+    int _M = 0;
+    int _N = 0;
+    int _K = 0;
+    int _B = 0;//batch_size
+
+};
+
+    
 //should design this one for pick_best_specify()
 enum ImplEnum{
     VENDER_IMPL = 0,
     SABER_IMPL
 };
 
-enum GruActivaty{
-    GRU_SIGMOID_PADDLE=0,
-    GRU_TANH_PADDLE,
-    GRU_RELU,
-    GRU_INDENTITY,
-    GRU_SIGMOID_NORMAL,
-    GRU_TANH_NORMAL
-};
 
-/**
- * GRU_Formula,origin for paddle,Cudnn for cudnn,difference is w_h_r and weighted mean
- * weight for origin is [W_h_o][W_h_r,W_h_z]
- * weight for cudnn is [W_h_o,W_h_r,W_h_z]
- */
-enum GruFormula{
-    GRU_ORIGIN = 0,
-    GRU_CUDNN
+
+
+enum SequencePoolType{
+    Sequence_pool_unknow = 0,
+    Sequence_pool_average,
+    Sequence_pool_sum,
+    Sequence_pool_sqrt,
+    Sequence_pool_last,
+    Sequence_pool_first,
+    Sequence_pool_max
 };
 
 template <typename opTensor>
@@ -59,40 +79,32 @@ struct TransposeParam {
         return true;
     }
 };
-struct ParamsRegion {
-
-    ParamsRegion():_offset(NULL), _size(0){};
-    ParamsRegion(void *offset, size_t size):_offset(offset), _size(size){}
-    ~ParamsRegion(){}
-    ParamsRegion(const ParamsRegion &right): _offset(right._offset),_size(right._size){};
-
-    ParamsRegion &operator=(const ParamsRegion &right) {
-        _offset = right._offset;
-        _size=right._size;
-        return *this;
-    }
-    bool operator==(const ParamsRegion &right) const {
-        bool comp_eq = true;
-        comp_eq = comp_eq && (_offset == right._offset);
-        comp_eq = comp_eq && (_size == right._size);
-        return  comp_eq;
-    }
-
-    void * _offset;
-    size_t _size;
+/**
+ * GRU_Formula,origin for paddle,Cudnn for cudnn,difference is w_h_r and weighted mean
+ * weight for origin is [W_h_o][W_h_r,W_h_z]
+ * weight for cudnn is [W_h_o,W_h_r,W_h_z]
+ */
+enum GruFormula {
+    GRU_ORIGIN = 0,
+    GRU_CUDNN
 };
 
 template <typename opTensor>
 struct GruParam {
 
+
+
     GruParam() :
-            weight_tensor(nullptr), _bias_tensor(nullptr)
+             weight_tensor(nullptr)
+            ,bias_tensor(nullptr)
+            ,init_hidden_tensor(nullptr)
             ,dropout_param(1.0f)
-            ,numDirection(-1),numLayers(-1)
-            ,isHW2Seq(false),_weight_h2h_tensor(nullptr)
-            ,_weight_i2h_tensor(nullptr),_is_reverse(false)
-            ,_gate_activity(GRU_SIGMOID_NORMAL),_h_activity(GRU_TANH_NORMAL)
-            ,_formula(GRU_ORIGIN)
+            ,num_direction(1)
+            ,num_layers(1)
+            ,is_reverse(false)
+            ,gate_activity(Active_sigmoid)
+            ,h_activity(Active_tanh)
+            ,formula(GRU_ORIGIN)
 
     {}
     /**
@@ -100,81 +112,40 @@ struct GruParam {
      * @param weight i2h,i2h_r,i2h_z,h2h,h2h_r,h2h_z (different from paddlepaddle h2h_z,h2h_r,h2h and i2h* is the fc weights before gru)
      * @param bias if bias is NULL bias will be zero
      * @param dropout_param_in default 1.0f
-     * @param numDirection_in 1 or 2 ,output will be channged
+     * @param num_direction_in 1 or 2 ,output will be channged
      * @param numLayers_in
      * @param mode_in
      */
-    GruParam(opTensor* weight, opTensor* bias,GruFormula formula, float dropout_param_in=1.f
-            ,int numDirection_in=1,int numLayers_in=1,bool isHW2Seq_in=false)
+    GruParam(opTensor* weight_in, opTensor* bias_in,GruFormula formula_in,
+            ActiveType gate_activity_in=Active_sigmoid, ActiveType h_activity_in=Active_tanh,
+            bool is_reverse_in=false,opTensor* hidden_init_in=nullptr,
+            float dropout_param_in=1.f
+            ,int num_direction_in=1,int numLayers_in=1)
             :
-            weight_tensor(weight), _bias_tensor(bias)
+             weight_tensor(weight_in)
+            ,bias_tensor(bias_in)
             ,dropout_param(dropout_param_in)
-            ,numDirection(numDirection_in),numLayers(numLayers_in)
-            ,isHW2Seq(isHW2Seq_in),_weight_h2h_tensor(nullptr)
-            ,_is_reverse(false),_gate_activity(GRU_SIGMOID_NORMAL)
-            ,_h_activity(GRU_TANH_NORMAL),_formula(formula)
-
-    {}
-/**
- *  for saber impl
- * @param weight_h2h
- * @param weight_i2h
- * @param bias
- * @param isHW2Seq_in
- * @param gate_activity
- * @param h_activity
- * @param is_reverse
- */
-    GruParam(opTensor* weight_h2h, opTensor* weight_i2h,opTensor* bias,
-             bool isHW2Seq_in,GruFormula formula, GruActivaty gate_activity=GRU_SIGMOID_NORMAL,
-                     GruActivaty h_activity=GRU_TANH_NORMAL,bool is_reverse=false)
-            :
-            weight_tensor(nullptr), _bias_tensor(bias)
-            ,dropout_param(1.0f)
-            ,numDirection(1),numLayers(1)
-            ,isHW2Seq(isHW2Seq_in)
-            ,_weight_h2h_tensor(weight_h2h)
-            ,_weight_i2h_tensor(weight_i2h)
-            ,_is_reverse(is_reverse)
-            ,_gate_activity(gate_activity)
-            ,_h_activity(h_activity)
-            ,_formula(formula)
-
+            ,num_direction(num_direction_in)
+            ,num_layers(numLayers_in)
+            ,is_reverse(is_reverse_in)
+            ,gate_activity(gate_activity_in)
+            ,h_activity(h_activity_in)
+            ,formula(formula_in)
+            ,init_hidden_tensor(hidden_init_in)
     {}
 
-    GruParam(const GruParam &right):
-            weight_tensor(right.weight_tensor)
-            , dropout_param(right.dropout_param)
-            ,numDirection(right.numDirection)
-            ,numLayers(right.numLayers)
-            ,inner_weights_vector(right.inner_weights_vector)
-            ,inner_bias_vector(right.inner_bias_vector)
-            ,isHW2Seq(right.isHW2Seq_in)
-            ,_weight_h2h_tensor(right._weight_h2h_tensor)
-            ,_bias_tensor(right._bias_tensor)
-            ,_weight_i2h_tensor(right._weight_i2h_tensor)
-            ,_is_reverse(right.is_reverse)
-            ,_gate_activity(right.gate_activity)
-            ,_h_activity(right.h_activity)
-            ,_formula(right._formula)
-
-    {}
 
     GruParam &operator=(const GruParam &right) {
         weight_tensor = right.weight_tensor;
         dropout_param=right.dropout_param;
-        numDirection=right.numDirection;
-        numLayers=right.numLayers;
-        inner_weights_vector=right.inner_weights_vector;
-        inner_bias_vector=right.inner_bias_vector;
-        isHW2Seq=right.isHW2Seq;
-        _weight_h2h_tensor = right._weight_h2h_tensor;
-        _bias_tensor = right._bias_tensor;
-        _weight_i2h_tensor=right._weight_i2h_tensor;
-        _gate_activity=right._gate_activity;
-        _h_activity=right._h_activity;
-        _is_reverse=right._is_reverse;
-        _formula=right._formula;
+        num_direction=right.num_direction;
+        num_layers=right.num_layers;
+        bias_tensor = right.bias_tensor;
+        gate_activity=right.gate_activity;
+        h_activity=right.h_activity;
+        is_reverse=right.is_reverse;
+        formula=right.formula;
+        init_hidden_tensor=right.init_hidden_tensor;
         return *this;
     }
 
@@ -182,18 +153,14 @@ struct GruParam {
         bool comp_eq = true;
         comp_eq = comp_eq && (weight_tensor == right.weight_tensor);
         comp_eq = comp_eq && (dropout_param == right.dropout_param);
-        comp_eq = comp_eq && (numDirection == right.numDirection);
-        comp_eq = comp_eq && (numLayers == right.numLayers);
-        comp_eq = comp_eq && (inner_weights_vector==right.inner_weights_vector);
-        comp_eq = comp_eq && (inner_bias_vector==right.inner_bias_vector);
-        comp_eq = comp_eq && (isHW2Seq==right.isHW2Seq);
-        comp_eq = comp_eq && (_weight_h2h_tensor == right._weight_h2h_tensor);
-        comp_eq = comp_eq && (_bias_tensor == right._bias_tensor);
-        comp_eq = comp_eq && (_weight_i2h_tensor == right._weight_i2h_tensor);
-        comp_eq = comp_eq && (_gate_activity=right._gate_activity);
-        comp_eq = comp_eq && (_h_activity=right._h_activity);
-        comp_eq = comp_eq && (_is_reverse=right._is_reverse);
-        comp_eq = comp_eq && (_formula=right._formula);
+        comp_eq = comp_eq && (num_direction == right.num_direction);
+        comp_eq = comp_eq && (num_layers == right.num_layers);
+        comp_eq = comp_eq && (bias_tensor == right.bias_tensor);
+        comp_eq = comp_eq && (gate_activity=right.gate_activity);
+        comp_eq = comp_eq && (h_activity=right.h_activity);
+        comp_eq = comp_eq && (is_reverse=right.is_reverse);
+        comp_eq = comp_eq && (formula=right.formula);
+        comp_eq = comp_eq && (init_hidden_tensor==right.init_hidden_tensor);
         return comp_eq;
     }
 
@@ -202,60 +169,124 @@ struct GruParam {
     }
 
     inline const opTensor* bias() {
-        return _bias_tensor;
+        return bias_tensor;
     }
 
-    inline const std::vector<ParamsRegion>& inner_weight(){
-        return inner_weights_vector;
+    inline const opTensor* init_hidden() {
+        return init_hidden_tensor;
     }
 
-    inline const std::vector<ParamsRegion>& inner_bias(){
-        return  inner_bias_vector;
+    int num_direction;
+    float dropout_param;
+    int num_layers;
+    ActiveType gate_activity;
+    ActiveType h_activity;
+    GruFormula formula;
+    bool is_reverse;
+private:
+    opTensor* weight_tensor;
+    opTensor* bias_tensor;
+    opTensor* init_hidden_tensor;
+};
+
+template <typename opTensor>
+struct LSTMParam{
+
+
+
+    LSTMParam() :
+             weight_tensor(nullptr)
+            ,bias_tensor(nullptr)
+            ,init_hidden_tensor(nullptr)
+            ,dropout_param(1.0f)
+            ,num_direction(1)
+            ,num_layers(1)
+            ,is_reverse(false)
+            ,gate_activity(Active_sigmoid)
+            ,cell_activity(Active_tanh)
+            ,candidate_activity(Active_tanh)
+            ,with_peephole(true)
+
+    {}
+
+    LSTMParam(opTensor* weight_in, opTensor* bias_in,
+             ActiveType gate_activity_in=Active_sigmoid, ActiveType cell_activity_in=Active_tanh,
+                     ActiveType candidate_activity_in=Active_tanh,bool with_peephole_in=true,
+             bool is_reverse_in=false,opTensor* hidden_init_in=nullptr,
+             float dropout_param_in=1.f
+            ,int num_direction_in=1,int numLayers_in=1)
+            :
+             weight_tensor(weight_in)
+            ,bias_tensor(bias_in)
+            ,dropout_param(dropout_param_in)
+            ,num_direction(num_direction_in)
+            ,num_layers(numLayers_in)
+            ,is_reverse(is_reverse_in)
+            ,gate_activity(gate_activity_in)
+            ,candidate_activity(candidate_activity_in)
+            ,cell_activity(cell_activity_in)
+            ,init_hidden_tensor(hidden_init_in)
+            ,with_peephole(with_peephole_in)
+    {}
+
+
+    LSTMParam &operator=(const LSTMParam &right) {
+        weight_tensor = right.weight_tensor;
+        dropout_param=right.dropout_param;
+        num_direction=right.num_direction;
+        num_layers=right.num_layers;
+        bias_tensor = right.bias_tensor;
+        gate_activity=right.gate_activity;
+        cell_activity=right.cell_activity;
+        candidate_activity=right.candidate_activity;
+        with_peephole=right.with_peephole;
+        is_reverse=right.is_reverse;
+        init_hidden_tensor=right.init_hidden_tensor;
+        return *this;
     }
 
-    inline const opTensor* weight_h2h() {
-        return _weight_h2h_tensor;
+    bool operator==(const LSTMParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (weight_tensor == right.weight_tensor);
+        comp_eq = comp_eq && (dropout_param == right.dropout_param);
+        comp_eq = comp_eq && (num_direction == right.num_direction);
+        comp_eq = comp_eq && (num_layers == right.num_layers);
+        comp_eq = comp_eq && (bias_tensor == right.bias_tensor);
+        comp_eq = comp_eq && (gate_activity==right.gate_activity);
+        comp_eq = comp_eq && (cell_activity==right.cell_activity);
+        comp_eq = comp_eq && (with_peephole==right.with_peephole);
+        comp_eq = comp_eq && (candidate_activity==right.candidate_activity);
+        comp_eq = comp_eq && (is_reverse=right.is_reverse);
+        comp_eq = comp_eq && (init_hidden_tensor==right.init_hidden_tensor);
+        return comp_eq;
     }
 
-    inline const opTensor* weight_i2h() {
-        return _weight_i2h_tensor;
-    }
-
-    inline opTensor* mutable_weight() {
+    inline const opTensor* weight() {
         return weight_tensor;
     }
 
-    inline opTensor* mutable_bias() {
-        return _bias_tensor;
+    inline const opTensor* bias() {
+        return bias_tensor;
     }
 
-    inline std::vector<ParamsRegion>& mutable_inner_weight(){
-        return inner_weights_vector;
+    inline const opTensor* init_hidden() {
+        return init_hidden_tensor;
     }
 
-    inline std::vector<ParamsRegion>& mutable_inner_bias(){
-        return  inner_bias_vector;
-    }
-
-    int numDirection;
+    int num_direction;
     float dropout_param;
-    int numLayers;
-    Tensor<NV,AK_INT8,NCHW> in_weights;
-    bool isHW2Seq;
-    GruActivaty _gate_activity;
-    GruActivaty _h_activity;
-    GruFormula _formula;
-    bool _is_reverse;
+    int num_layers;
+    ActiveType gate_activity;
+    ActiveType cell_activity;
+    ActiveType candidate_activity;
+    bool is_reverse;
+    bool with_peephole;
 private:
     opTensor* weight_tensor;
-
-    std::vector<ParamsRegion> inner_weights_vector;
-    std::vector<ParamsRegion> inner_bias_vector;
-
-    opTensor* _weight_h2h_tensor;
-    opTensor* _bias_tensor;
-    opTensor* _weight_i2h_tensor;
+    opTensor* bias_tensor;
+    opTensor* init_hidden_tensor;
 };
+
 
 template <typename opTensor>
 struct ConvParam {
@@ -856,6 +887,68 @@ struct PoolingParam {
 };
 
 template <typename opTensor>
+struct SequencePoolParam {
+    SequencePoolParam()
+            : sequence_pool_type(Sequence_pool_unknow)
+    {}
+    SequencePoolParam(SequencePoolType sequence_pool_type_in)
+            : sequence_pool_type(sequence_pool_type_in)
+    {}
+    SequencePoolParam(const SequencePoolParam &right)
+            : sequence_pool_type(right.sequence_pool_type)
+    {}
+    SequencePoolParam &operator=(const SequencePoolParam &right) {
+        sequence_pool_type = right.sequence_pool_type;
+        return *this;
+    }
+    bool operator==(const SequencePoolParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (sequence_pool_type == right.sequence_pool_type);
+        return comp_eq;
+    }
+    SequencePoolType sequence_pool_type;
+};
+template <typename opTensor>
+struct CrfDecodingParam {
+    CrfDecodingParam()
+            : weight_tensor(NULL)
+            , tag_num(0)
+    {}
+    CrfDecodingParam(opTensor* weight_tensor_in, int tag_num_in = 0)
+            : weight_tensor(weight_tensor_in) {
+        if (tag_num_in == 0) {
+            tag_num = weight_tensor->channel();
+        } else {
+            tag_num = tag_num_in;
+        }
+    }
+    CrfDecodingParam(const CrfDecodingParam &right)
+            : weight_tensor(right.weight_tensor)
+            , tag_num(right.tag_num)
+    {}
+    CrfDecodingParam &operator=(const CrfDecodingParam &right) {
+        weight_tensor = right.weight_tensor;
+        tag_num = right.tag_num;
+        return *this;
+    }
+    bool operator==(const CrfDecodingParam &right) {
+        bool comp_eq = true;
+        comp_eq &= (weight_tensor == right.weight_tensor);
+        comp_eq &= (tag_num == right.tag_num);
+        return comp_eq;
+    }
+    inline const opTensor* transition_weight() {
+        return weight_tensor;
+    }
+    inline opTensor* mutable_transition_weight() {
+        return weight_tensor;
+    }
+    int tag_num;
+private:
+    opTensor *weight_tensor;
+};
+
+template <typename opTensor>
 struct EltwiseParam;
 // Fusion conv with batchnorm, scale, activation, eltwise(sigmoid, relu, tanh, clipped_relu, elu)
 template <typename opTensor>
@@ -1449,7 +1542,7 @@ struct PriorBoxParam {
     PriorBoxParam(std::vector<float> min_in, std::vector<float> max_in, \
         std::vector<float> aspect_in, std::vector<float> variance_in,
         bool flip, bool clip, int image_width, int image_height, \
-        float step_width, float step_height, float offset_in) {
+        float step_width, float step_height, float offset_in, std::vector<PriorType> order_in) {
         is_flip = flip;
         is_clip = clip;
         min_size = min_in;
@@ -1458,6 +1551,7 @@ struct PriorBoxParam {
         step_w = step_width;
         step_h = step_height;
         offset = offset_in;
+        order = order_in;
         aspect_ratio.clear();
         aspect_ratio.push_back(1.f);
 
@@ -1514,6 +1608,7 @@ struct PriorBoxParam {
         step_w = right.step_w;
         step_h = right.step_h;
         offset = right.offset;
+        order = right.order;
         prior_num = right.prior_num;
     }
     PriorBoxParam<opTensor>& operator=(const PriorBoxParam<opTensor>& right) {
@@ -1528,6 +1623,7 @@ struct PriorBoxParam {
         this->step_w = right.step_w;
         this->step_h = right.step_h;
         this->offset = right.offset;
+        this->order = right.order;
         this->prior_num = right.prior_num;
         return *this;
     }
@@ -1571,6 +1667,7 @@ struct PriorBoxParam {
         flag = flag && (step_w == right.step_w);
         flag = flag && (step_h == right.step_h);
         flag = flag && (offset == right.offset);
+        flag = flag && (order == right.order);
         flag = flag && (prior_num == right.prior_num);
         return flag;
     }
@@ -1587,8 +1684,8 @@ struct PriorBoxParam {
     float step_h{0};
     float offset{0.5};
     int prior_num{0};
+    std::vector<PriorType> order;
 };
-
 template <typename opTensor>
 struct DeformableConvParam {
 
@@ -2278,7 +2375,105 @@ struct CastParam {
     int in_type;
     int out_type;
 };
+template <typename opTensor>
+struct EmbeddingParam {
+    EmbeddingParam() = default;
+    EmbeddingParam(int word_num_in, int emb_dim_in, int padding_idx_in,
+             opTensor* weight_tensor_in)
+            : word_num(word_num_in)
+            , emb_dim(emb_dim_in)
+            , padding_idx(padding_idx_in)
+            , weight_tensor(weight_tensor_in)
+    {}
+    EmbeddingParam(const EmbeddingParam &right)
+            : word_num(right.word_num)
+            , emb_dim(right.emb_dim)
+            , padding_idx(right.padding_idx)
+            , weight_tensor(right.weight_tensor)
+    {}
+    EmbeddingParam &operator=(const EmbeddingParam &right) {
+        word_num = right.word_num;
+        emb_dim = right.emb_dim;
+        padding_idx = right.padding_idx;
+        weight_tensor = right.weight_tensor;
+        return *this;
+    }
+    bool operator==(const EmbeddingParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (word_num == right.word_num);
+        comp_eq = comp_eq && (emb_dim == right.emb_dim);
+        comp_eq = comp_eq && (padding_idx == right.padding_idx);
+        comp_eq = comp_eq && (weight_tensor == right.weight_tensor);
+        return comp_eq;
+    }
+    inline const opTensor* weight() {
+        return weight_tensor;
+    }
+
+    inline opTensor* mutable_weight() {
+        return weight_tensor;
+    }
+    int emb_dim;
+    int word_num;
+    int padding_idx;
+private:
+    opTensor* weight_tensor;
+};
+
+template <typename opTensor>
+struct LayerNormParam {
+    LayerNormParam() = default;
+    LayerNormParam(int axis_in, float eps_in, opTensor* weights_scale, opTensor* weights_bias) {
+        axis = axis_in;
+        eps = eps_in;
+        scale = weights_scale;
+        bias = weights_bias;
+    }
+    LayerNormParam(const LayerNormParam &right) {
+        axis = right.axis;
+        eps = right.eps;
+        scale = right.scale;
+        bias = right.bias;
+    }
+    LayerNormParam &operator=(const LayerNormParam &right) {
+        this->axis = right.axis;
+        this->eps = right.eps;
+        this->scale = right.scale;
+        this->bias = right.bias;
+        return *this;
+    }
+    bool operator==(const LayerNormParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (axis == right.axis);
+        comp_eq = comp_eq && (fabsf(eps - right.eps) < 1e-7f);
+        comp_eq = comp_eq && (scale == scale);
+        comp_eq = comp_eq && (bias == bias);
+        return comp_eq;
+    }
+    inline const opTensor* scale_weights() {
+        return scale;
+    }
+
+    inline opTensor* mutable_scale_weights() {
+        return scale;
+    }
+
+    inline const opTensor* bias_weights() {
+        return bias;
+    }
+
+    inline opTensor* mutable_bias_weights() {
+        return bias;
+    }
+
+    int axis;
+    float eps{1e-5f};
+
+private:
+    opTensor* scale;
+    opTensor* bias;
+};
 
 }
-} // namespace anakin
+}
 #endif //SABER_FUNCS_PARAM_H

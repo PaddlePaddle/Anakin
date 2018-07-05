@@ -5,8 +5,9 @@
 
 std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/yolo_lane_v2.anakin.bin";
 
+#ifdef USE_CUDA
 #if 1
-TEST(NetTest, net_execute_muti_thread_sync_test) {
+TEST(NetTest, nv_net_execute_muti_thread_sync_test) {
 #if 1 // use host input
     //Env<NV>::env_init(1);
     LOG(WARNING) << "Sync Runing multi_threads for model: " << model_path;
@@ -17,10 +18,10 @@ TEST(NetTest, net_execute_muti_thread_sync_test) {
 
     workers.launch();
 
-    std::vector<Tensor4dPtr<X86, AK_FLOAT> > host_tensor_p_in_list;
+    std::vector<Tensor4dPtr<target_host<NV>::type, AK_FLOAT> > host_tensor_p_in_list;
     // get in
     saber::Shape valid_shape_in({1, 384, 960, 3});
-    Tensor4dPtr<X86, AK_FLOAT> h_tensor_in = new Tensor4d<X86, AK_FLOAT>(valid_shape_in);
+    Tensor4dPtr<target_host<NV>::type, AK_FLOAT> h_tensor_in = new Tensor4d<target_host<NV>::type, AK_FLOAT>(valid_shape_in);
     float* h_data = h_tensor_in->mutable_data();
     for (int i=0; i<h_tensor_in->size(); i++) {
         h_data[i] = 1.0f;
@@ -60,10 +61,10 @@ TEST(NetTest, net_execute_muti_thread_sync_test) {
 
     workers.launch();
 
-    std::vector<Tensor4dPtr<X86, AK_FLOAT> > host_tensor_p_in_list;
+    std::vector<Tensor4dPtr<target_host<NV>::type, AK_FLOAT> > host_tensor_p_in_list;
     // get in
     saber::Shape valid_shape_in({1, 384, 960, 3});
-    Tensor4dPtr<X86, AK_FLOAT> h_tensor_in = new Tensor4d<X86, AK_FLOAT>(valid_shape_in);
+    Tensor4dPtr<target_host<NV>::type, AK_FLOAT> h_tensor_in = new Tensor4d<target_host<NV>::type, AK_FLOAT>(valid_shape_in);
     float* h_data = h_tensor_in->mutable_data();
     for (int i=0; i<h_tensor_in->size(); i++) {
         h_data[i] = 1.0f;
@@ -107,10 +108,10 @@ TEST(NetTest, net_execute_muti_thread_async_test) {
 
     workers.launch();
 
-    std::vector<Tensor4dPtr<X86, AK_FLOAT> > host_tensor_p_in_list;
+    std::vector<Tensor4dPtr<target_host<NV>::type, AK_FLOAT> > host_tensor_p_in_list;
     // get in
     saber::Shape valid_shape_in({1, 384, 960, 3});
-    Tensor4dPtr<X86, AK_FLOAT> h_tensor_in = new Tensor4d<X86, AK_FLOAT>(valid_shape_in);
+    Tensor4dPtr<target_host<NV>::type, AK_FLOAT> h_tensor_in = new Tensor4d<target_host<NV>::type, AK_FLOAT>(valid_shape_in);
     float* h_data = h_tensor_in->mutable_data();
     for (int i=0; i<h_tensor_in->size(); i++) {
         h_data[i] = 1.0f;
@@ -137,6 +138,7 @@ TEST(NetTest, net_execute_muti_thread_async_test) {
 
 }
 #endif 
+#endif
 
 int main(int argc, const char** argv){
     // initial logger

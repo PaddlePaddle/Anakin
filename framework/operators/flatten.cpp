@@ -28,7 +28,7 @@ FlattenHelper<Ttype, Dtype, Ptype>::~FlattenHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status FlattenHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Flatten op parameter.";
+    DLOG(WARNING) << "Parsing Flatten op parameter.";
     auto start_axis = GET_PARAMETER(int, start_axis);
     auto end_axis = GET_PARAMETER(int, end_axis);
 

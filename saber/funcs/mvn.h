@@ -23,7 +23,7 @@
 #endif
 
 #ifdef USE_X86_PLACE
-//#include "saber/funcs/impl/x86/saber_activation.h"
+#include "saber/funcs/impl/impl_mvn.h"
 #endif
 
 namespace anakin{

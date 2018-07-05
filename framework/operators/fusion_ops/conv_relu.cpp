@@ -4,6 +4,7 @@ namespace anakin {
 
 namespace ops {
 
+#ifdef USE_CUDA
 template<>
 void ConvRelu<NV, AK_FLOAT, Precision::FP32>::operator()(
     OpContext<NV>& ctx,
@@ -14,6 +15,7 @@ void ConvRelu<NV, AK_FLOAT, Precision::FP32>::operator()(
     auto& param = impl->_param_conv_relu;
     impl->_funcs_conv_relu(ins, outs, param, ctx);
 }
+#endif
 
 /// TODO ... specialization other type of operator
 
@@ -25,7 +27,7 @@ ConvReluHelper<Ttype, Dtype, Ptype>::~ConvReluHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ConvReluHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing ConvRelu op parameter.";
+    DLOG(WARNING) << "Parsing ConvRelu op parameter.";
     saber::ConvParam<Tensor4d<Ttype, Dtype>> _conv_param;
 
     // get conv param
@@ -46,10 +48,11 @@ Status ConvReluHelper<Ttype, Dtype, Ptype>::InitParam() {
     DLOG(INFO) << "conv kernel_size : [" << kernel_size[0] << " " << kernel_size[1] << "]";
     DLOG(INFO) << "conv axis : " << axis;
 
-    auto weights = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_1);
+	using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
+    auto weights = GET_PARAMETER(pblock_type, weight_1);
 
     if (bias_term) {
-        auto bias = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_2);
+        auto bias = GET_PARAMETER(pblock_type, weight_2);
         saber::ConvParam<Tensor4d<Ttype, Dtype>> conv_param(group, padding[0], padding[1],
                                               strides[0], strides[1],
                                               dilation_rate[0], dilation_rate[1],
@@ -93,7 +96,7 @@ Status ConvReluHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
 
 #else
 
-    if (_param_conv_relu.conv_param.group == 1) {
+    if (_param_conv_relu.conv_param.group == 1|| (_param_conv_relu.conv_param.group == ins[0]->channel() && _param_conv_relu.conv_param.group == outs[0]->channel())) {
         _funcs_conv_relu.init(ins, outs, _param_conv_relu, SPECIFY, SABER_IMPL, ctx);
     } else {
         _funcs_conv_relu.init(ins, outs, _param_conv_relu, SPECIFY, VENDER_IMPL, ctx);

@@ -19,7 +19,7 @@
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
 #ifdef NVIDIA_GPU
-//#include "saber/funcs/impl/cuda/saber_fc.h"
+#include "saber/funcs/impl/cuda/saber_fc.h"
 #include "saber/funcs/impl/cuda/vender_fc.h"
 #endif
 
@@ -100,7 +100,6 @@ public:
                 this->_impl.push_back(new VenderFc <TargetType, OpDtype, inDtype, outDtype,
                 LayOutType_op, LayOutType_in, LayOutType_out>);
                 return SaberSuccess;
-
             case SABER_IMPL:
                 this->_impl.push_back(new SaberFc <TargetType, OpDtype, inDtype, outDtype,
                 LayOutType_op, LayOutType_in, LayOutType_out>);
@@ -111,25 +110,27 @@ public:
         }
     }
 
-
 private:
 
     virtual void pick_best_static() override {
-        //! Fc only has saber implementation
+#ifdef USE_CUDA
+        bool use_saber_fc = true;
+        use_saber_fc &= this->_last_input_shape[0] > 1;
+        use_saber_fc &= this->_last_input_shape[0] <= 32;
+        if (use_saber_fc) {
+            this->_best_impl = this->_impl[1];
+        } else {
+            this->_best_impl = this->_impl[0];
+        }
+#endif
+#ifdef USE_X86_PLACE
         this->_best_impl = this->_impl[0];
-    }
-
-    virtual void pick_best_runtime(Input_v input, Output_v output, \
-        Param_t& param, Context<TargetType> &ctx) override {
-        //! Fc only has saber implementation
-        this->_best_impl = this->_impl[0];
+#endif
     }
 
     virtual void pick_best_specify(ImplEnum implenum) override {
-        //! Fc only has saber implementation
         this->_best_impl = this->_impl[0];
     }
-
 };
 
 } //namespace saber

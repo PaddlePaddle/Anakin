@@ -17,6 +17,7 @@ DEFINE_GLOBAL(int, channel, 8);
 DEFINE_GLOBAL(int, height, 640);
 DEFINE_GLOBAL(int, width, 640);
 DEFINE_GLOBAL(bool, is_input_shape, false);
+
 void getModels(std::string path, std::vector<std::string>& files) {
     DIR* dir= nullptr;
     struct dirent* ptr;
@@ -39,7 +40,9 @@ void getModels(std::string path, std::vector<std::string>& files) {
 
     closedir(dir);
 }
-TEST(NetTest, net_execute_base_test) {
+
+#ifdef USE_CUDA
+TEST(NetTest, nv_net_execute_base_test) {
     std::vector<std::string> models;
     getModels(GLB_model_dir, models);
 
@@ -134,6 +137,8 @@ TEST(NetTest, net_execute_base_test) {
 #endif
     }
 }
+#endif
+
 int main(int argc, const char** argv) {
     // initial logger
     LOG(INFO) << "argc " << argc;

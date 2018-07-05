@@ -16,9 +16,20 @@ void Concat<NV, AK_FLOAT, Precision::FP32>::operator()(
     impl->_funcs_concat(ins, outs, param, ctx);
 }
 #endif
+#ifdef USE_X86_PLACE
+template<>
+void Concat<X86, AK_FLOAT, Precision::FP32>::operator()(
+        OpContext<X86>& ctx,
+        const std::vector<Tensor4dPtr<X86, AK_FLOAT> >& ins,
+        std::vector<Tensor4dPtr<X86, AK_FLOAT> >& outs) {
+    auto* impl = static_cast<ConcatHelper<X86, AK_FLOAT, Precision::FP32>*>(this->_helper);
+    auto& param = static_cast<ConcatHelper<X86, AK_FLOAT, Precision::FP32>*>
+    (this->_helper)->_param_concat;
+    impl->_funcs_concat(ins, outs, param, ctx);
+}
+#endif
 
 /// TODO ... specialization other type of operator
-
 
 /// set helper
 template<typename Ttype, DataType Dtype, Precision Ptype>
@@ -27,7 +38,7 @@ ConcatHelper<Ttype, Dtype, Ptype>::~ConcatHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ConcatHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing Concat op parameter.";
+    DLOG(WARNING) << "Parsing Concat op parameter.";
     auto axis = GET_PARAMETER(int, axis);
     ConcatParam<Tensor4d<Ttype, Dtype>> param_concat(axis);
     _param_concat = param_concat;
@@ -60,12 +71,20 @@ template class ConcatHelper<ARM, AK_FLOAT, Precision::FP32>;
 template class ConcatHelper<ARM, AK_FLOAT, Precision::FP16>;
 template class ConcatHelper<ARM, AK_FLOAT, Precision::INT8>;
 #endif
+#ifdef USE_X86_PLACE
+template class ConcatHelper<X86, AK_FLOAT, Precision::FP32>;
+template class ConcatHelper<X86, AK_FLOAT, Precision::FP16>;
+template class ConcatHelper<X86, AK_FLOAT, Precision::INT8>;
+#endif
 // register helper
 #ifdef USE_CUDA
 ANAKIN_REGISTER_OP_HELPER(Concat, ConcatHelper, NV, AK_FLOAT, Precision::FP32);
 #endif
 #ifdef USE_ARM_PLACE
 ANAKIN_REGISTER_OP_HELPER(Concat, ConcatHelper, ARM, AK_FLOAT, Precision::FP32);
+#endif
+#ifdef USE_X86_PLACE
+ANAKIN_REGISTER_OP_HELPER(Concat, ConcatHelper, X86, AK_FLOAT, Precision::FP32);
 #endif
 
 //! register op
@@ -76,6 +95,9 @@ ANAKIN_REGISTER_OP(Concat)
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("concat")
+#endif
+#ifdef USE_X86_PLACE
+.__alias__<X86, AK_FLOAT, Precision::FP32>("concat")
 #endif
 .num_in(2)
 .num_out(1)
