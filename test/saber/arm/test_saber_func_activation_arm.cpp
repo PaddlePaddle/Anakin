@@ -17,7 +17,9 @@ ActiveType active_type=Active_relu;
 int threads=1;
 int test_iter=10;
 std::vector<int> act_ids;
-void test(int n, int c, int h, int w) {
+bool channel_shared = false;
+Tensor4f slopes;
+void test(int n, int c, int h, int w, bool channel_shared, Tensor4f slopes) {
     int num_in = n;
     int ch_in = c;
     int h_in = h;
@@ -47,6 +49,16 @@ void test(int n, int c, int h, int w) {
                 dst_ref.mutable_data()[i] = 1/(1+exp(-src_in.data()[i]));
             }
             break;
+        case Active_prelu:
+            for (int i = 0; i < dst_ref.size(); ++i) {
+                if(channel_shared)
+                    dst_ref.mutable_data()[i] = src_in.data()[i] < 0.f ?  src_in.data()[i]* slopes.data()[0]: src_in.data()[i];
+                else{
+                    int cin = i /(h_in*w_in);
+                    dst_ref.mutable_data()[i] = src_in.data()[i] < 0.f ?  src_in.data()[i]* slopes.data()[cin]: src_in.data()[i];
+                }
+            }
+            break;
         default:
             LOG(ERROR)<<"error activation type!";
             break;
@@ -60,7 +72,8 @@ void test(int n, int c, int h, int w) {
     dst_saber.re_alloc(shape_out);
     outputs.push_back(&dst_saber);
 
-    ActivationParam<Tensor4f> param_host(active_type);
+    PreluParam<Tensor4f> prelu_param(channel_shared, &slopes);
+    ActivationParam<Tensor4f> param_host(active_type, 0.f, 1.0f, prelu_param);
 
     Activation<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW> op;
     
@@ -104,13 +117,20 @@ void test(int n, int c, int h, int w) {
 
 
 TEST(TestSaberActivationARM, test_tensor_activation) {
+    Shape shw{1, 128, 1, 1};
+    Tensor4f slopes(shw);
 
+    if(channel_shared){
+        fill_tensor_host_const(slopes,0.6f);
+    }else{
+        fill_tensor_host_rand(slopes, -1.f, 1.f);
+    }
     LOG(INFO) << "case 1:";
-    test(1, 1, 1, 1024);
+    test(1, 1, 1, 1024, channel_shared, slopes);
     LOG(INFO) << "case 2:";
-    test(1, 32, 112, 112);
+    test(1, 32, 112, 112, channel_shared, slopes);
     LOG(INFO) << "case 3:";
-    test(1, 128,128, 128);
+    test(1, 128,128, 128, channel_shared, slopes);
 }
 
 int main(int argc, const char** argv) {
@@ -123,6 +143,8 @@ int main(int argc, const char** argv) {
             active_type= Active_tanh;
         else if(strcmp(argv[1],"sigmoid")==0)
             active_type= Active_sigmoid;
+        else if(strcmp(argv[1],"prelu")==0)
+            active_type= Active_prelu;
         else
             active_type=Active_unknow;
     }
@@ -130,11 +152,15 @@ int main(int argc, const char** argv) {
         threads=atoi(argv[2]);
         LOG(INFO)<<"threads:"<<threads;
     }
-    if (argc  ==4) {
-        test_iter = atoi(argv[3]);
+    if(argc == 4){
+        channel_shared = atoi(argv[3]) == 0 ? false: true;
     }
-    if (argc>4){
-        LOG(ERROR)<<"please use ./"<<argv[0]<<"[activation_tpye] [threads] [test_iter]";
+    if (argc  == 5) {
+        test_iter = atoi(argv[4]);
+    }
+    
+    if (argc> 5 || argc < 2){
+        LOG(ERROR)<<"please use ./"<<argv[0]<<"[activation_tpye] [threads] [test_iter] [channel_shared]";
     }
     logger::init(argv[0]);
     InitTest();
