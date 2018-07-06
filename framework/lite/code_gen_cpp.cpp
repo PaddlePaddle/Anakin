@@ -18,6 +18,7 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_header_start() {
 	_code<<"#include <stdio.h>\n";
 	_code<<"#include <stdlib.h>\n";
 	_code<<"#include <string.h>\n\n";
+    _code<<"#include <saber/lite/core/tensor_op_lite.h>\n";
 	_code<<"#include <saber/lite/core/common_lite.h>\n";
     _code<<"#include <saber/lite/funcs/detection_lite.h>\n";
     _code<<"#include <saber/lite/funcs/saber_activation.h>\n";
@@ -194,6 +195,8 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_run_impl() {
 			_code.feed("    %s.dispatch(%s_ins,%s_outs); \n", node_name.c_str(),
 														  	  node_name.c_str(), 
 															  node_name.c_str());
+            _code.feed("    double mean_%s = tensor_mean(*%s_outs[0]); \n", node_name.c_str(), node_name.c_str());
+            _code.feed("    printf(\"%s run mean_val: %s %s\", mean_%s);\n", node_name.c_str(), "%.8f", "\\n", node_name.c_str());
 		}
 	}
 	_code << "}\n";

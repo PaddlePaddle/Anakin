@@ -32,8 +32,8 @@ std::string ParserConvolution(graph::AttrInfo& attr,
 
 	auto weights = get_attr<PBlock<float, X86>>("weight_1", attr);
     auto weights_shape = weights.shape();
-    int weights_size = weights_shape[2]*weights_shape[3];
-    int num_output = weights_shape[0]*weights_shape[1];
+    int weights_size = weights_shape.count();//weights_shape[2]*weights_shape[3];
+    int num_output = weights_shape[0];//*weights_shape[1];
 
 	writter.register_weights(node_name, weights);
 	if(bias_term) {
@@ -83,8 +83,8 @@ std::string ParserConvolutionRelu(graph::AttrInfo& attr,
 
 	auto weights = get_attr<PBlock<float, X86>>("weight_1", attr);
     auto weights_shape = weights.shape();
-    int weights_size = weights_shape[2]*weights_shape[3];
-    int num_output = weights_shape[0]*weights_shape[1];
+    int weights_size = weights_shape.count();//weights_shape[2]*weights_shape[3];
+    int num_output = weights_shape[0];//*weights_shape[1];
 
 	writter.register_weights(node_name, weights);
 	if(bias_term) {
@@ -134,8 +134,8 @@ std::string ParserConvBatchnormScale(graph::AttrInfo& attr,
 
 	auto weights = get_attr<PBlock<float, X86>>("weight_1", attr);
     auto weights_shape = weights.shape();
-    int weights_size = weights_shape[2]*weights_shape[3];
-    int num_output = weights_shape[0]*weights_shape[1];
+    int weights_size = weights_shape.count();//weights_shape[2]*weights_shape[3];
+    int num_output = weights_shape[0];//*weights_shape[1];
 
     // get batchnorm param
     auto epsilon = get_attr<float>("batchnorm_0_epsilon", attr);
@@ -230,8 +230,8 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
 
 	auto weights = get_attr<PBlock<float, X86>>("weight_1", attr);
     auto weights_shape = weights.shape();
-    int weights_size = weights_shape[2]*weights_shape[3];
-    int num_output = weights_shape[0]*weights_shape[1];
+    int weights_size = weights_shape.count();//weights_shape[2]*weights_shape[3];
+    int num_output = weights_shape[0];//*weights_shape[1];
 
     // get batchnorm param
     auto epsilon = get_attr<float>("batchnorm_0_epsilon", attr);
