@@ -55,7 +55,9 @@ public:
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
                              std::vector<DataTensor_out*>& outputs,
                              ActivationParam<OpTensor> &param,
-                             Context<ARM> &ctx) override;
+                             Context<ARM> &ctx) override{
+      return create(inputs, outputs, param, ctx);
+    }
     
     virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
                                std::vector<DataTensor_out*>& outputs,
@@ -65,6 +67,17 @@ public:
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                                  std::vector<DataTensor_out*>& outputs,
                                  ActivationParam<OpTensor> &param) override;
+public:
+    int _threads;
+    int _nums_per_thread;
+    int _dim16;
+    int _dim16_remain;
+    int _dim4;
+    int _dim4_remain;
+    int _remain;
+    int _size;
+    int _channel;
+    int _num;
 
 };
 
