@@ -417,6 +417,7 @@ int main(int argc, const char** argv){
     if (argc >= 7) {
         flag_relu = atoi(argv[6]) > 0;
     }
+    flag_relu = 0;
     if(argc >= 8) {
         if (argc < 17) {
             LOG(ERROR) << "usage: ./" << argv[0] << " cluster  threads  test_iter " << \

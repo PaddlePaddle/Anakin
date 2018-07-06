@@ -40,7 +40,7 @@ void fill_tensor_rand(Tensor<CPU, AK_FLOAT>& tensor, float vstart, float vend) {
 }
 
 template <>
-void print_tensor(Tensor<CPU, AK_FLOAT>& tensor) {
+void print_tensor(const Tensor<CPU, AK_FLOAT>& tensor) {
     printf("host tensor data size: %d\n", tensor.size());
     const float* data_ptr = (const float*)tensor.get_buf()->get_data();
     int size = tensor.size();
@@ -54,7 +54,7 @@ void print_tensor(Tensor<CPU, AK_FLOAT>& tensor) {
 }
 
 template <>
-void print_tensor_valid(Tensor<CPU, AK_FLOAT>& tensor) {
+void print_tensor_valid(const Tensor<CPU, AK_FLOAT>& tensor) {
     printf("host tensor data valid size: %d\n", tensor.valid_size());
 
     const float* data_ptr = tensor.data();
@@ -85,11 +85,11 @@ void print_tensor_valid(Tensor<CPU, AK_FLOAT>& tensor) {
 
     const float* ptr_host = tensor.data();
     for (int in = 0; in < n; ++in) {
-        float* ptr_batch = ptr_host + in * stride_n;
+        const float* ptr_batch = ptr_host + in * stride_n;
         for (int ic = 0; ic < c; ++ic) {
-            float* ptr_channel = ptr_batch + ic * stride_c;
+            const float* ptr_channel = ptr_batch + ic * stride_c;
             for (int ih = 0; ih < h; ++ih) {
-                float* ptr_row = ptr_channel + ih * stride_h;
+                const float* ptr_row = ptr_channel + ih * stride_h;
                 for (int iw = 0; iw < w; ++iw) {
                     printf("%.2f ", ptr_row[iw]);
                 }
@@ -98,6 +98,42 @@ void print_tensor_valid(Tensor<CPU, AK_FLOAT>& tensor) {
         }
     }
     printf("\n");
+}
+
+template <>
+double tensor_mean(const Tensor<CPU, AK_FLOAT>& tensor) {
+
+    double val = 0.0;
+
+    Shape sh_act = tensor.valid_shape();
+
+    Shape stride = tensor.get_stride();
+
+    int stride_w = stride.width();
+    int stride_h = stride.height();
+    int stride_c = stride.channel();
+    int stride_n = stride.num();
+
+    int w = tensor.width();
+    int h = tensor.height();
+    int c = tensor.channel();
+    int n = tensor.num();
+
+    const float* ptr_host = tensor.data();
+
+    for (int in = 0; in < n; ++in) {
+        const float* ptr_batch = ptr_host + in * stride_n;
+        for (int ic = 0; ic < c; ++ic) {
+            const float* ptr_channel = ptr_batch + ic * stride_c;
+            for (int ih = 0; ih < h; ++ih) {
+                const float* ptr_row = ptr_channel + ih * stride_h;
+                for (int iw = 0; iw < w; ++iw) {
+                    val += ptr_row[iw];
+                }
+            }
+        }
+    }
+    return val;
 }
 
 template <typename Dtype>
