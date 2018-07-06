@@ -24,14 +24,14 @@ anakin_fetch_include_recursively(${ANAKIN_FRAMEWORK}/lite)
 #endif()
 
 # install saber arm lite to tools/anakin-lite
-install(FILES ${ANAKIN_SABER}/saber_types.h DESTINATION ${PROJECT_SOURCE_DIR}/tools/anakin-lite/saber)
-install(DIRECTORY ${ANAKIN_SABER}/lite DESTINATION ${PROJECT_SOURCE_DIR}/tools/anakin-lite/saber)
-install(DIRECTORY ${ANAKIN_UNIT_TEST}/lite DESTINATION ${PROJECT_SOURCE_DIR}/tools/anakin-lite/test)
-install(DIRECTORY ${ANAKIN_UTILS}/unit_test DESTINATION ${PROJECT_SOURCE_DIR}/tools/anakin-lite/utils)
-install(DIRECTORY ${ANAKIN_UTILS}/logger DESTINATION ${PROJECT_SOURCE_DIR}/tools/anakin-lite/utils)
+#install(FILES ${ANAKIN_SABER}/saber_types.h DESTINATION ${PROJECT_SOURCE_DIR}/tools/anakin-lite/saber)
+#install(DIRECTORY ${ANAKIN_SABER}/lite DESTINATION ${PROJECT_SOURCE_DIR}/tools/anakin-lite/saber)
+#install(DIRECTORY ${ANAKIN_UNIT_TEST}/lite DESTINATION ${PROJECT_SOURCE_DIR}/tools/anakin-lite/test)
+#install(DIRECTORY ${ANAKIN_UTILS}/unit_test DESTINATION ${PROJECT_SOURCE_DIR}/tools/anakin-lite/utils)
+#install(DIRECTORY ${ANAKIN_UTILS}/logger DESTINATION ${PROJECT_SOURCE_DIR}/tools/anakin-lite/utils)
 
-anakin_fetch_files_with_suffix(${ANAKIN_LITE}/generator/src "cpp" ANAKIN_LITE_EXE_SRC)
-anakin_fetch_files_with_suffix(${ANAKIN_FRAMEWORK}/lite "cpp" ANAKIN_LITE_SRC)
+anakin_fetch_files_with_suffix(${ANAKIN_LITE_FRAMEWORK}/generator/src "cpp" ANAKIN_LITE_EXE_SRC)
+anakin_fetch_files_with_suffix(${ANAKIN_LITE_FRAMEWORK} "cpp" ANAKIN_LITE_SRC)
 
 # build test cases
 foreach(SRC_NAME ${ANAKIN_LITE_EXE_SRC})
@@ -50,7 +50,7 @@ foreach(SRC_NAME ${ANAKIN_LITE_EXE_SRC})
 	set_target_properties(${LITE_EXE_NAME} PROPERTIES
 						  RUNTIME_OUTPUT_DIRECTORY 
 						  ${PROJECT_SOURCE_DIR}/output/generator/src)
-	install(DIRECTORY ${ANAKIN_LITE}/generator
+	install(DIRECTORY ${ANAKIN_LITE_FRAMEWORK}/generator
 			DESTINATION ${PROJECT_SOURCE_DIR}/output/
 			FILES_MATCHING
 			PATTERN "*.sh"
