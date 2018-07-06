@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@
 #ifndef ANAKIN_SABER_CORE_TENSOR_H
 #define ANAKIN_SABER_CORE_TENSOR_H
 
-#include "core/shape.h"
-#include "core/events.h"
-#include "core/tensor_traits.h"
+#include "saber/core/shape.h"
+#include "saber/core/events.h"
+#include "saber/core/tensor_traits.h"
 
 namespace anakin{
 
@@ -61,7 +61,8 @@ template<typename TargetType, DataType datatype, typename LayOutType = NCHW>
 class Tensor : public TensorBase {
 public:
     typedef TargetType targetType_t;
-    typedef typename DataTrait<datatype>::dtype Dtype;
+    typedef typename DataTrait<TargetType, datatype>::Dtype Dtype;
+    typedef typename DataTrait<TargetType, datatype>::dtype dtype;
     typedef typename TargetTypeTraits<TargetType>::target_category target_category;
     typedef typename TargetTypeTraits<TargetType>::target_type target_type;
     typedef TargetWrapper<TargetType> API;
@@ -502,7 +503,7 @@ public:
     /**
      *  \brief Return tensor data pointer, with data type of current tensor (Dtype*).
      */
-    const Dtype * data(int index = 0) const {
+    const Dtype* data(int index = 0) const {
         // synchronize the events tree
         //sync();
         CHECK_EQ(device_id(), API::get_device_id()) << \
@@ -899,7 +900,7 @@ public:
 
 private:
     ///< Length of datatype.
-    size_t _type_len{sizeof(Dtype)};
+    size_t _type_len{sizeof(dtype)};
     ///< Represent the raw mem shape.
     Shape _shape;
     ///< Represent the mem you have right to access shape.

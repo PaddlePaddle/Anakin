@@ -1,10 +1,10 @@
-/* Copyright (c) 2018 Anakin Authors All Rights Reserve.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+       http://www.apache.org/licenses/LICENSE-2.0
 
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,6 +25,7 @@
 
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_lstm.h"
+#include "saber/funcs/impl/x86/vender_lstm.h"
 #endif
 
 #ifdef USE_ARM_PLACE
@@ -92,6 +93,7 @@ public:
                 this->_impl.push_back(new SaberLstm<TargetType, OpDtype, inDtype, outDtype, LayOutType_op, LayOutType_in, LayOutType_out>);
                 return SaberSuccess;
             case VENDER_IMPL:
+                LOG(INFO)<<"init vender";
                 this->_impl.push_back(new VenderLstm<TargetType, OpDtype, inDtype, outDtype, LayOutType_op, LayOutType_in, LayOutType_out>);
                 return SaberSuccess;
             default:

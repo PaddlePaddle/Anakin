@@ -89,35 +89,7 @@ void test_net(const std::string model_file_name, const std::string image_file_na
     //! create runtime context
     LOG(INFO) << "create runtime context";
     std::shared_ptr<Context<ARM>> ctx1 = std::make_shared<Context<ARM>>();
-    std::vector<int> act_ids;
-#if 0 //choose big or small cluster
-    //! set runtime context
-    LOG(INFO) << "set runtine context";
-    std::vector<int> big_cores;
-    std::vector<int> small_cores;
-    for (int i = 0; i < ctx1->devs[0]._info._cluster_ids.size(); ++i) {
-        if (ctx1->devs[0]._info._cluster_ids[i] == 0) {
-            big_cores.push_back(ctx1->devs[0]._info._core_ids[i]);
-        } else {
-            small_cores.push_back(ctx1->devs[0]._info._core_ids[i]);
-        }
-    }
-    LOG(INFO) << "big core num: " << big_cores.size();
-    LOG(INFO) << "small core num: " << small_cores.size();
-
-    int end_big_idx = std::min(threads, (int)big_cores.size());
-    int end_small_idx = std::min((int)(threads - big_cores.size()), (int)small_cores.size());
-    LOG(INFO) << "threads: " << threads << ", big_core: " << end_big_idx << ", small cores: " << end_small_idx;
-    for (int j = 0; j < end_big_idx; ++j) {
-        act_ids.push_back(big_cores[j]);
-    }
-    for (int j = 0; j < end_small_idx; ++j) {
-        act_ids.push_back(small_cores[j]);
-    }
-#else //only set threads
-    act_ids.resize(threads);
-#endif
-    ctx1->set_act_cores(act_ids);
+    ctx1->set_run_mode(SABER_POWER_HIGH, threads);
     LOG(INFO) << omp_get_num_threads() << " threads is activated";
 
     //! load model
@@ -210,17 +182,15 @@ void test_net(const std::string model_file_name, const std::string image_file_na
     Tensor4hf* tensor_out = vout[0];
     LOG(INFO) << "output size: " << vout.size();
 
-#if 0 //print output tensor data
+#if 1 //print output tensor data
     LOG(INFO) << "extract data: size: " << tensor_out->valid_size() << \
         ", width=" << tensor_out->width() << ", height=" << tensor_out->height();
     const float* ptr_out = tensor_out->data();
+    double mean_val = 0.0;
     for (int i = 0; i < tensor_out->valid_size(); i++) {
-        printf("%0.4f  ", ptr_out[i]);
-        if ((i + 1) % 7 == 0) {
-            printf("\n");
-        }
+        mean_val += ptr_out[i];
     }
-    printf("\n");
+    LOG(INFO) << "output mean val: " << mean_val;
 #endif
     print_topk(tensor_out->data(), tensor_out->valid_size(), topk, labels);
 }

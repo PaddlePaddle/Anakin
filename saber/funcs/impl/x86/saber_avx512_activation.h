@@ -89,7 +89,7 @@ inline __m512 Identity(const __m512 a) {
 }
 
 
-__m512 (*act_func[])(__m512)= {&InValidAct, &Sigmoid_fast, &Relu, &Tanh, &InValidAct, \
+static __m512 (*act_func[])(__m512)= {&InValidAct, &Sigmoid_fast, &Relu, &Tanh, &InValidAct, \
                                         & InValidAct, &Identity, &Sigmoid_fluid, &Tanh_fluid
 };
 #endif //ANAKIN_SABER_AVX512_ACTIVATION_H

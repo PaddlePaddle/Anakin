@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -81,8 +81,8 @@ public:
         } else {
             return SaberUnImplError;
         }
-        trans_weights(inputs, outputs, param, ctx);
-        cudaDeviceSynchronize();
+        //trans_weights(inputs, outputs, param, ctx);
+
         return create(inputs, outputs, param, ctx);
     }
     virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
@@ -106,42 +106,46 @@ public:
                           std::vector<DataTensor_out*>& outputs,
                           ConvActivePoolingParam<OpTensor>& param)
     {
-            Shape shape_in = inputs[0]->valid_shape();
-            Shape shape_out = outputs[0]->valid_shape();
-            const InDataType* bias_data = nullptr;
-            if (param.conv_param.bias()->size() > 0) {
-                bias_data = param.conv_param.bias()->data();
-            }
+        if (!_transed_weights) {
+            trans_weights(inputs, outputs, param, *(this->_ctx));
+            _transed_weights = true;
+        }
+        Shape shape_in = inputs[0]->valid_shape();
+        Shape shape_out = outputs[0]->valid_shape();
+        const InDataType* bias_data = nullptr;
+        if (param.conv_param.bias()->size() > 0) {
+            bias_data = param.conv_param.bias()->data();
+        }
 
-            dispatch_func(inputs[0]->data(), outputs[0]->mutable_data(),
-                    param.conv_param.weight()->data(),
-                    bias_data,
-                    inputs[0]->num(),
-                    inputs[0]->channel(),
-                    inputs[0]->height(),
-                    inputs[0]->width(),
-                    outputs[0]->channel(),
-                    _conv_out_height,
-                    _conv_out_width,
-                    shape_in[1],
-                    shape_in[2],
-                    shape_in[3],
-                    shape_out[1],
-                    shape_out[2],
-                    shape_out[3], 
-                    _kernel_height,
-                    _kernel_width,
-                    param.conv_param.pad_h,              
-                    param.conv_param.pad_w,              
-                    param.conv_param.stride_h,              
-                    param.conv_param.stride_w,              
-                    param.conv_param.dilation_h,              
-                    param.conv_param.dilation_w, 
-                    param.conv_param.group, 
-                    param.conv_param.alpha, 
-                    param.conv_param.beta, 
-                    this->_ctx->get_compute_stream());
-                    
+        dispatch_func(inputs[0]->data(), outputs[0]->mutable_data(),
+                param.conv_param.weight()->data(),
+                bias_data,
+                inputs[0]->num(),
+                inputs[0]->channel(),
+                inputs[0]->height(),
+                inputs[0]->width(),
+                outputs[0]->channel(),
+                _conv_out_height,
+                _conv_out_width,
+                shape_in[1],
+                shape_in[2],
+                shape_in[3],
+                shape_out[1],
+                shape_out[2],
+                shape_out[3],
+                _kernel_height,
+                _kernel_width,
+                param.conv_param.pad_h,
+                param.conv_param.pad_w,
+                param.conv_param.stride_h,
+                param.conv_param.stride_w,
+                param.conv_param.dilation_h,
+                param.conv_param.dilation_w,
+                param.conv_param.group,
+                param.conv_param.alpha,
+                param.conv_param.beta,
+                this->_ctx->get_compute_stream());
+
         CUDA_CHECK(cudaGetLastError());
         return SaberSuccess;
     }
@@ -234,6 +238,7 @@ private:
       float, 
       cudaStream_t)> dispatch_func;
 
+    bool _transed_weights{false};
 };
 template class SaberConv2DActPooling<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
 

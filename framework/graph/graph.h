@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -136,6 +136,8 @@ private:
     std::vector<std::string> _nodes_exec_order;
     ///< node_merges map: target node map to all its fusion node
     std::unordered_map<std::string, std::vector<std::string> > _node_merges;
+	///< _node_merges_keep map: target node map to all its fusion node that shouldn't be removed
+	std::unordered_map<std::string, std::vector<int> > _node_merges_keep;
 
     ///< _pattern_name_merges map: target node map to all its fusion pattern node
     std::unordered_map<std::string, std::vector<std::string> > _pattern_name_merges;

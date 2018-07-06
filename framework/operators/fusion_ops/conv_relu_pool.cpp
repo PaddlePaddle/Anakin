@@ -4,28 +4,16 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void ConvReluPool<NV, AK_FLOAT, Precision::FP32>::operator() (
-	OpContext<NV> &ctx, 
-	const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins, 
-	std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    /*LOG(ERROR) << " compute of ConvReluPool ";
-    float * h_data = new float[outs[0]->size()];//valid_size()];
-    LOG(ERROR) << " outs[0]->valid_size() : " << outs[0]->size();
-    cudaMemcpy(h_data, outs[0]->mutable_data(), outs[0]->size()*sizeof(float), cudaMemcpyDeviceToHost);
-    cudaDeviceSynchronize();
-    CUDA_CHECK(cudaPeekAtLastError()); 
-    LOG(ERROR) << "over "; */
-    auto* impl = static_cast<ConvReluPoolHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<ConvReluPoolHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper)->_param_conv_relu_pooling;
-    impl->_funcs_conv_relu_pooling(ins, outs, param, ctx);
+#define INSTANCE_CONVRELUPOOLING(Ttype, Dtype, Ptype) \
+template<> \
+void ConvReluPool<Ttype, Dtype, Ptype>::operator()(\
+    OpContext<Ttype>& ctx,\
+    const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,\
+    std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {\
+    auto* impl = static_cast<ConvReluPoolHelper<Ttype, Dtype, Ptype>*>(this->_helper);\
+    auto& param = static_cast<ConvReluPoolHelper<Ttype, Dtype, Ptype>*>(this->_helper)->_param_conv_relu_pooling;\
+    SABER_CHECK(impl->_funcs_conv_relu_pooling(ins, outs, param, ctx));\
 }
-#endif
-
-/// TODO ... specialization other type of operator
-
-
 /// set helper
 template<typename Ttype, DataType Dtype, Precision Ptype>
 ConvReluPoolHelper<Ttype, Dtype, Ptype>::~ConvReluPoolHelper() {
@@ -95,8 +83,7 @@ Status ConvReluPoolHelper<Ttype, Dtype, Ptype>::InitParam() {
         LOG(FATAL) << " ConvReluPool fusion op doesn't support : " << pool_method << " pooling.";
     }
 
-    ConvActivePoolingParam<Tensor4d<Ttype, Dtype>> conv_act_pooling_param(_conv_param,
-									  active_param,
+    ConvActivePoolingParam<Tensor4d<Ttype, Dtype>> conv_act_pooling_param(_conv_param, active_param,
                                                                           _pooling_param);
     _param_conv_relu_pooling = conv_act_pooling_param;
     return Status::OK();
@@ -106,7 +93,7 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 Status ConvReluPoolHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype> &ctx, 
                                                                    const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
                                                                    std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-    _funcs_conv_relu_pooling.init(ins, outs, _param_conv_relu_pooling, STATIC, SABER_IMPL/*VENDER_IMPL*/, ctx);
+    SABER_CHECK(_funcs_conv_relu_pooling.init(ins, outs, _param_conv_relu_pooling, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }
 
@@ -118,25 +105,23 @@ Status ConvReluPoolHelper<Ttype, Dtype, Ptype>::InferShape(const std::vector<Ten
 }
 
 #ifdef USE_CUDA
-template class ConvReluPoolHelper<NV, AK_FLOAT, Precision::FP32>;
-template class ConvReluPoolHelper<NV, AK_FLOAT, Precision::FP16>;
-template class ConvReluPoolHelper<NV, AK_FLOAT, Precision::INT8>;
-#endif
-
-#ifdef USE_ARM_PLACE
-template class ConvReluPoolHelper<ARM, AK_FLOAT, Precision::FP32>;
-template class ConvReluPoolHelper<ARM, AK_FLOAT, Precision::FP16>;
-template class ConvReluPoolHelper<ARM, AK_FLOAT, Precision::INT8>;
-#endif
-
-// register helper 
-#ifdef USE_CUDA
+INSTANCE_CONVRELUPOOLING(NV, AK_FLOAT, Precision::FP32);
+template<>
+Status ConvReluPoolHelper<NV, AK_FLOAT, Precision::FP32>::Init(OpContext<NV> &ctx,
+                                                                   const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
+                                                                   std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
+    _funcs_conv_relu_pooling.init(ins, outs, _param_conv_relu_pooling, STATIC, SABER_IMPL, ctx);
+    return Status::OK();
+}
 ANAKIN_REGISTER_OP_HELPER(ConvReluPool, ConvReluPoolHelper, NV, AK_FLOAT, Precision::FP32);
-#endif 
+#endif
 
 #ifdef USE_ARM_PLACE
+INSTANCE_CONVRELUPOOLING(ARM, AK_FLOAT, Precision::FP32);
+template class ConvReluPoolHelper<ARM, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ConvReluPool, ConvReluPoolHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
+
 
 //! register op
 ANAKIN_REGISTER_OP(ConvReluPool)

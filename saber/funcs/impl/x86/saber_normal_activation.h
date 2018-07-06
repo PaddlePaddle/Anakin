@@ -85,7 +85,7 @@ inline float Relu(const float a) {
 inline float Identity(const float a) {
     return a;
 }
-float (*act_funcs[])(float)= {&InValidAct, &Sigmoid, &Relu, &Tanh, &InValidAct, \
+static float (*act_funcs[])(float)= {&InValidAct, &Sigmoid, &Relu, &Tanh, &InValidAct, \
                                         & InValidAct, &Identity, &Sigmoid_fluid, &Tanh_fluid
 };
 #endif //ANAKIN_SABER_NORMAL_ACTIVATION_H
