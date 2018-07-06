@@ -20,6 +20,10 @@
 #include <fstream>
 #include <vector>
 
+#include "saber/lite/core/context_lite.h"
+#include "saber/lite/core/tensor_op_lite.h"
+#include "saber/lite/funcs/timer_lite.h"
+
 using namespace anakin::test;
 
 int read_file(std::vector<float> &results, const char* file_name) {
