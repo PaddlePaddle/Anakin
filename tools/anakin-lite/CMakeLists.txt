@@ -120,6 +120,7 @@ anakin_fetch_include_recursively(${ANAKIN_LITE_SABER})
 include_directories(${ANAKIN_LITE_SABER}/../)
 include_directories(${ANAKIN_LITE_SABER}/../../)
 include_directories(${PROJECT_BINARY_DIR}/)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/)
 
 anakin_fetch_files_with_suffix(${CMAKE_CURRENT_SOURCE_DIR}/ "cpp" ANAKIN_LITE_SRC)
 anakin_fetch_files_with_suffix(${ANAKIN_LITE_SABER}/core "cpp" ANAKIN_SABER_ARM_LITE_SRC)
