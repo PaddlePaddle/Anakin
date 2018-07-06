@@ -33,9 +33,9 @@ public:
 
     SaberConvActPooling2D(int weights_size, int num_output, int group, int kw, int kh, \
         int stride_w, int stride_h, int pad_w, int pad_h, int dila_w, int dila_h, bool flag_bias, \
-        ActiveType type, bool flag_relu, const float* weights, const float* bias, \
-        PoolingType pool_type, bool flag_global, int pool_kw, int pool_kh, \
-        int pool_stride_w, int pool_stride_h, int pool_pad_w, int pool_pad_h) {
+        ActiveType type, bool flag_relu, PoolingType pool_type, bool flag_global, int pool_kw, int pool_kh, \
+        int pool_stride_w, int pool_stride_h, int pool_pad_w, int pool_pad_h, \
+        const float* weights, const float* bias) {
 
         _vtensor_tmp.push_back(&_tensor_tmp);
 
@@ -54,9 +54,9 @@ public:
 
     SaberStatus load_param(int weights_size, int num_output, int group, int kw, int kh, \
         int stride_w, int stride_h, int pad_w, int pad_h, int dila_w, int dila_h, bool flag_bias, \
-        ActiveType type, bool flag_relu, const float* weights, const float* bias, \
-        PoolingType type, bool flag_global, int kernel_w, int kernel_h, \
-        int stride_w, int stride_h, int pad_w, int pad_h) {
+        ActiveType type, bool flag_relu, PoolingType pool_type, bool flag_global, int pool_kw, int pool_kh, \
+        int pool_stride_w, int pool_stride_h, int pool_pad_w, int pool_pad_h, \
+        const float* weights, const float* bias) {
 
         if (flag_relu) {
             _flag_relu = true;
