@@ -196,7 +196,7 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_run_impl() {
 														  	  node_name.c_str(), 
 															  node_name.c_str());
             _code.feed("    double mean_%s = tensor_mean(*%s_outs[0]); \n", node_name.c_str(), node_name.c_str());
-            _code.feed("    printf(\"%s run mean_val: %s %s\", mean_%s);\n", node_name.c_str(), "%.8f", "\\n", node_name.c_str());
+            _code.feed("    printf(\"%s run mean_val: %s %s\", mean_%s);\n", node_name.c_str(), "%.6f", "\\n", node_name.c_str());
 		}
 	}
 	_code << "}\n";

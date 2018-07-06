@@ -246,7 +246,9 @@ std::string ParserConvBatchnormScale(graph::AttrInfo& attr,
 	
 		
 		writter.register_weights(node_name, weights);
+        LOG(INFO) << node_name << " write weights: " << weights.count();
 		writter.register_weights(node_name, bias);
+        LOG(INFO) << node_name << " write bias: " << bias.count();
 	} else {
 		auto bias = PBlock<float, X86>();
 		update_weights(weights, bias,
@@ -260,7 +262,9 @@ std::string ParserConvBatchnormScale(graph::AttrInfo& attr,
 					   scale_bias_term);
 
 		writter.register_weights(node_name, weights);
+        LOG(INFO) << node_name << " write weights: " << weights.count();
 		writter.register_weights(node_name, bias);
+        LOG(INFO) << node_name << " write bias: " << bias.count();
 	}
 
     auto offset_info = writter.get_weights_by_name(node_name);
@@ -283,7 +287,7 @@ std::string ParserConvBatchnormScale(graph::AttrInfo& attr,
                                            weights_ptr_name.c_str(),
                                            offset_info.weights[0].offset,
                                            weights_ptr_name.c_str(),
-                                           bias_term ? offset_info.weights[1].offset : 0);
+                                           offset_info.weights[1].offset);
 	return code_w.get_code_string();
 }
 
@@ -341,7 +345,9 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
 	
 		
 		writter.register_weights(node_name, weights);
+        LOG(INFO) << node_name << " write weights: " << weights.count();
 		writter.register_weights(node_name, bias);
+        LOG(INFO) << node_name << " write bias: " << bias.count();
 	} else {
 		auto bias = PBlock<float, X86>();
 		update_weights(weights, bias,
@@ -355,7 +361,9 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
 					   scale_bias_term);
 
 		writter.register_weights(node_name, weights);
+        LOG(INFO) << node_name << " write weights: " << weights.count();
 		writter.register_weights(node_name, bias);
+        LOG(INFO) << node_name << " write bias: " << bias.count();
 	}
 
     auto offset_info = writter.get_weights_by_name(node_name);
@@ -379,7 +387,7 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
                                            weights_ptr_name.c_str(),
                                            offset_info.weights[0].offset,
                                            weights_ptr_name.c_str(),
-                                           bias_term ? offset_info.weights[1].offset : 0);
+                                           offset_info.weights[1].offset);
 	return code_w.get_code_string();
 }
 
@@ -437,7 +445,9 @@ std::string ParserConvBatchnormScaleReluPool(graph::AttrInfo& attr,
 
 
         writter.register_weights(node_name, weights);
+        LOG(INFO) << node_name << " write weights: " << weights.count();
         writter.register_weights(node_name, bias);
+        LOG(INFO) << node_name << " write bias: " << bias.count();
     } else {
         auto bias = PBlock<float, X86>();
         update_weights(weights, bias,
@@ -451,7 +461,9 @@ std::string ParserConvBatchnormScaleReluPool(graph::AttrInfo& attr,
                        scale_bias_term);
 
         writter.register_weights(node_name, weights);
+        LOG(INFO) << node_name << " write weights: " << weights.count();
         writter.register_weights(node_name, bias);
+        LOG(INFO) << node_name << " write bias: " << bias.count();
     }
 
     // parsing pooling parameter
@@ -498,7 +510,7 @@ std::string ParserConvBatchnormScaleReluPool(graph::AttrInfo& attr,
                 weights_ptr_name.c_str(),
                 offset_info.weights[0].offset,
                 weights_ptr_name.c_str(),
-                bias_term ? offset_info.weights[1].offset : 0);
+                offset_info.weights[1].offset);
     return code_w.get_code_string();
 }
 

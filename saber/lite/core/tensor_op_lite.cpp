@@ -133,7 +133,7 @@ double tensor_mean(const Tensor<CPU, AK_FLOAT>& tensor) {
             }
         }
     }
-    return val;
+    return val / tensor.valid_size();
 }
 
 template <typename Dtype>
