@@ -118,6 +118,8 @@ void tensor_cmp_host(const Dtype* src1, const Dtype* src2, \
     }
 }
 
+template void tensor_cmp_host(const float* src1, const float* src2, int size, double& max_ratio, double& max_diff);
+
 } //namespace lite
 
 } //namespace saber

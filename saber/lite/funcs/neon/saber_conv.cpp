@@ -84,6 +84,7 @@ SaberStatus SaberConv2D::init(\
     std::vector<Tensor<CPU, AK_FLOAT> *>& outputs, Context &ctx) {
 
     this->_ctx = &ctx;
+    //printf("conv init \n");
 
     int threads = 1;
     this->_ctx->get_mode(threads);
@@ -98,6 +99,7 @@ SaberStatus SaberConv2D::init(\
     int hout = outputs[0]->height();
     int chout = outputs[0]->channel();
 
+    // printf("kw: %d, kh: %d\n", _kw, _kh);
     int l1_cache = Env::cur_env()._L1_cache;
     int l2_cache = Env::cur_env()._L2_cache;
     //! if L1 cache size is not provided, set to 31K
@@ -107,32 +109,37 @@ SaberStatus SaberConv2D::init(\
 
     LCHECK_EQ(chin % _group, 0, "input channel or group size error");
     LCHECK_EQ(chout % _group, 0, "output channel or group size error");
-#if 0
-    //! return basic conv func
-    if (_dila_h != 1 || _dila_w != 1) {
-        //! basic conv
-        _impl = conv_arm_basic;
-        printf("USE BASIC\n");
+
+    if (_dila_h == 1 && _dila_w == 1 \
+        && _stride_h == _stride_w && _group == 1 \
+        && _stride_w == 1 && _kw == _kh && _kw == 7 \
+        && _pad_w == _pad_h && _pad_w == 3) {
+        //! 7x7 conv
+        _impl = conv_7x7s1_direct;
+        printf("USE 7x7s1 direct, num=%d, channel=%d, height=%d, width=%d, group=%d, kernel=%d, stride=%d, dila=%d, pad=%d\n", \
+            num, chin, hin, win, _group, _kw, _stride_w, _dila_w, _pad_w);
         return SaberSuccess;
     }
-#endif
+
     //! depthwise conv, 3x3s1 or 3x3s2, pad must = 1
     if (_group == chin && chin == chout && _kw == 3 && _pad_w == 1 && _pad_h == 1) {
         _impl = conv_depthwise_3x3;
-        printf("USE DW\n");
+        printf("USE DW, num=%d, channel=%d, height=%d, width=%d, group=%d, kernel=%d, stride=%d, dila=%d, pad=%d\n", \
+            num, chin, hin, win, _group, _kw, _stride_w, _dila_w, _pad_w);
         return SaberSuccess;
     }
 
     //! 3x3s1, when channel size or image size is large enough, use winograd
     //! otherwise use direct conv
 
-    if (_kw == 3 && _kh == 3 && _stride_h == 1 && \
-        _pad_w == 1 && _group == 1) {
+    if (_kw == 3 && _kh == 3 && _stride_h == 1 && _stride_w == 1 && \
+        _pad_w == 1 && _pad_h == 1 && _dila_w == 1 && _dila_h == 1 && _group == 1) {
 
         if (chout / (wout * hout) > 1 || chin < 16 || chout < 14) {
             //! use direct
             _impl = conv_3x3s1_direct;
-            printf("USE 3x3 direct\n");
+            printf("USE 3x3s1 direct, num=%d, channel=%d, height=%d, width=%d, group=%d, kernel=%d, stride=%d, dila=%d, pad=%d\n", \
+                num, chin, hin, win, _group, _kw, _stride_w, _dila_w, _pad_w);
         } else {
             //! use winograd
             _weights_trans.reshape(Shape(8 * 8 * chout * chin * 2));
@@ -143,43 +150,50 @@ SaberStatus SaberConv2D::init(\
             int size_trans_channel = 8 * 8 * size_tile;
             int max_ch = chin > chout? chin : chout;
 
+            //LOG(INFO) << "threads " << threads;
+
             _workspace_data.reshape(Shape(size_trans_channel * max_ch * 2));
 
             void* trans_tmp_ptr =(void*)(_weights_trans.mutable_data() + 8 * 8 * chout * chin);
             float* weights_trans = _weights_trans.mutable_data();
             winograd_transform_weights(weights_trans, _weights, chout, chin, trans_tmp_ptr);
 
+            //LOG(INFO) << "weighs size: " << this->_weight_data.size() << ", chout: " << chout << ", chin: " << chin;
+
             const int m_wino = chout;
             const int n_wino = size_tile;
             const int k_wino = chin;
 
+            //LOG(INFO) << "threads " << threads << ", m " << m_wino << ", n " << n_wino << ", k " << k_wino;
             _gemmer.init(l1_cache, l2_cache, m_wino, n_wino, k_wino, false, false, threads);
             _impl = conv_arm_winograd3x3;
             _is_trans_weights = true;
-            printf("USE WINO\n");
+            printf("USE WINOGRAD, num=%d, channel=%d, height=%d, width=%d, group=%d, kernel=%d, stride=%d, dila=%d, pad=%d\n", \
+                num, chin, hin, win, _group, _kw, _stride_w, _dila_w, _pad_w);
         }
         return SaberSuccess;
     }
 
-        //! use im2col and gemm conv
-        const int m = chout / _group;
-        const int n = hout * wout;
-        const int k = chin * _kh * _kw / _group;
-        if (_kw == 1 && _kh == 1 && _stride_w == 1 && _stride_h == 1 && \
+    //! use im2col and gemm conv
+    const int m = chout / _group;
+    const int n = hout * wout;
+    const int k = chin * _kh * _kw / _group;
+    if (_kw == 1 && _kh == 1 && _stride_w == 1 && _stride_h == 1 && \
             _pad_w == 0 && _pad_h == 0) {
-            //! 1x1s1p0
-            _impl = conv1x1s1_gemm;
-            _workspace_fwd_sizes = 0;
-        } else {
-            //! otherwise
-            _impl = conv_im2col_gemm;
-            _workspace_fwd_sizes = k * n;
-            _workspace_data.reshape(Shape(_workspace_fwd_sizes));
-        }
+        //! 1x1s1p0
+        _impl = conv1x1s1_gemm;
+        _workspace_fwd_sizes = 0;
+    } else {
+        //! otherwise
+        _impl = conv_im2col_gemm;
+        _workspace_fwd_sizes = k * n;
+        _workspace_data.reshape(Shape(_workspace_fwd_sizes));
+    }
 
-        _gemmer.init(l1_cache, l2_cache, m, n, k, false, false, threads);
-        printf("USE GEMM\n");
-        return SaberSuccess;
+    _gemmer.init(l1_cache, l2_cache, m, n, k, false, false, threads);
+    printf("USE GEMM, num=%d, channel=%d, height=%d, width=%d, group=%d, kernel=%d, stride=%d, dila=%d, pad=%d\n", \
+            num, chin, hin, win, _group, _kw, _stride_w, _dila_w, _pad_w);
+    return SaberSuccess;
 }
 
 SaberStatus SaberConv2D::set_activation(bool flag) {

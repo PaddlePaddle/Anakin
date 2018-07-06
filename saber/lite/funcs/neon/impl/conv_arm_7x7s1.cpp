@@ -1,13 +1,11 @@
-#include "saber/funcs/impl/arm/impl/conv_arm_impl.h"
+#include "saber/lite/funcs/neon/impl/conv_arm_impl.h"
 #ifdef USE_ARM_PLACE
-#include "saber/core/tensor_op.h"
-#if __ARM_NEON
-#include <arm_neon.h>
-#endif // __ARM_NEON
 
 namespace anakin{
 
 namespace saber{
+
+namespace lite{
 
 void conv7x7_mid_top2(const float* din, float* dout, int w_out, int width, int height, const float* weight_ch_in){
     float32x4_t vweights10 = vld1q_f32(weight_ch_in + 7);
@@ -1210,19 +1208,20 @@ void conv7x7_mid_mid(const float* din, float* dout, int w_out, int width, int he
     }
 }
 
-void conv_arm_7x7s1(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, \
-    const float* weights, const float* bias, \
-    int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
-    int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space) {
+void conv_7x7s1_direct(const float* din, float* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          const float* weights, const float* bias, \
+                          int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
+                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space) {
 
-    int w_in = tensor_in.width();
-    int h_in = tensor_in.height();
-    int ch_in = tensor_in.channel();
-    int num_in = tensor_in.num();
+    int w_in = win;
+    int h_in = hin;
+    int ch_in = chin;
 
-    int w_out = tensor_out.width();
-    int h_out = tensor_out.height();
-    int ch_out = tensor_out.channel();
+    int w_out = wout;
+    int h_out = hout;
+    int ch_out = chout;
 
     const int size_kernel = kernel_h * kernel_w;
 
@@ -1234,13 +1233,13 @@ void conv_arm_7x7s1(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FLOA
     const int size_out_batch = size_out_channel * ch_out;
 
     //printf("extend kernel size: %d, %d\n", kernel_ext_w, kernel_ext_h);
-    const float *data_in = tensor_in.data();
-    float *outptr = tensor_out.mutable_data();
+    const float *data_in = din;
+    float *outptr = dout;
 
     int kernel_w_even = kernel_w >> 1;
     int kernel_h_even = kernel_h >> 1;
 
-    for (int b = 0; b < num_in; ++b) {
+    for (int b = 0; b < num; ++b) {
         float *outptr_batch = outptr + b * size_out_batch;
         const float* data_in_batch = data_in + b * size_in_batch;
 //#pragma omp parallel for collapse(2)
@@ -3306,6 +3305,10 @@ void conv_arm_7x7s1(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FLOA
         }
     }
 }
-}//anakin
+
+} //lite
+
 }//saber
+
+}//anakin
 #endif //USE_ARM_PLACE
