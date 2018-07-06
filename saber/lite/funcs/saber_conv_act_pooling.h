@@ -11,8 +11,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-#ifndef ANAKIN_SABER_LITE_FUNCS_SABER_CONV_ACT_H
-#define ANAKIN_SABER_LITE_FUNCS_SABER_CONV_ACT_H
+#ifndef ANAKIN_SABER_LITE_FUNCS_SABER_CONV_ACT_POOLING_H
+#define ANAKIN_SABER_LITE_FUNCS_SABER_CONV_ACT_POOLING_H
 
 #include "saber/lite/funcs/saber_conv.h"
 #include "saber/lite/funcs/saber_pooling.h"
@@ -46,9 +46,9 @@ public:
             _flag_relu = false;
         }
         SaberConv2D::set_activation(_flag_relu);
-        SaberConv2D::SaberConv2D(weights_size, num_output, group, kw, kh, stride_w, stride_h, \
+        SaberConv2D::load_param(weights_size, num_output, group, kw, kh, stride_w, stride_h, \
             pad_w, pad_h, dila_w, dila_h, flag_bias, weights, bias);
-        SaberPooling::SaberPooling(pool_type, flag_global, pool_kw, pool_kh, \
+        SaberPooling::load_param(pool_type, flag_global, pool_kw, pool_kh, \
             pool_stride_w, pool_stride_h, pool_pad_w, pool_pad_h);
     }
 
@@ -119,4 +119,4 @@ private:
 } //namespace anakin
 #endif // USE_ARM_PLACE
 
-#endif //ANAKIN_SABER_LITE_FUNCS_SABER_CONV_ACT_H
+#endif //ANAKIN_SABER_LITE_FUNCS_SABER_CONV_ACT_POOLING_H

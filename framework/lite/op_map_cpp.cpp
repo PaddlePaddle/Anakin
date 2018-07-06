@@ -117,6 +117,81 @@ std::string ParserConvolutionRelu(graph::AttrInfo& attr,
 	return code_w.get_code_string();
 }
 
+// ParserConvolutionRelu
+std::string ParserConvolutionReluPool(graph::AttrInfo& attr,
+                                  std::string& op_class_name,
+                                  std::string& node_name,
+                                  std::string& weights_ptr_name,
+                                  WeightsWritter& writter) {
+    // parsing parameter
+    auto group = get_attr<int>("group", attr);
+    auto bias_term = get_attr<bool>("bias_term", attr);
+    auto padding = get_attr<PTuple<int>>("padding", attr);
+    auto strides = get_attr<PTuple<int>>("strides", attr);
+    auto dilation_rate = get_attr<PTuple<int>>("dilation_rate", attr);
+    auto filter_num = get_attr<int>("filter_num", attr);
+    auto kernel_size = get_attr<PTuple<int>>("kernel_size", attr);
+    auto axis = get_attr<int>("axis", attr);
+
+    auto weights = get_attr<PBlock<float, X86>>("weight_1", attr);
+    auto weights_shape = weights.shape();
+    int weights_size = weights_shape.count();//weights_shape[2]*weights_shape[3];
+    int num_output = weights_shape[0];//*weights_shape[1];
+
+    writter.register_weights(node_name, weights);
+    if(bias_term) {
+        auto bias = get_attr<PBlock<float, X86>>("weight_2", attr);
+        writter.register_weights(node_name, bias);
+    }
+
+    // parsing pooling parameter
+    auto global_pooling = get_attr<bool>("pooling_0_global_pooling", attr);
+    auto pool_padding = get_attr<PTuple<int>>("pooling_0_padding", attr);
+    auto pool_strides = get_attr<PTuple<int>>("pooling_0_strides", attr);
+    auto pool_size = get_attr<PTuple<int>>("pooling_0_pool_size", attr);
+    auto pool_method = get_attr<std::string>("pooling_0_method", attr);
+
+    PoolingType pool_type;
+    if (pool_method == "MAX") {
+        pool_type = Pooling_max;
+    }
+    if (pool_method == "AVG") {
+        pool_type = Pooling_average_include_padding;
+    }
+
+    auto offset_info = writter.get_weights_by_name(node_name);
+
+    // gen cpp code
+    CodeWritter code_w;
+    code_w.feed("%s.load_param(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%d,%s,%d,%d,%d,%d,%d,%d,%s+%d,%s+%d);\n", node_name.c_str(),
+                weights_size,
+                num_output,
+                group,
+                kernel_size[1],
+                kernel_size[0],
+                strides[1],
+                strides[0],
+                padding[1],
+                padding[0],
+                dilation_rate[1],
+                dilation_rate[0],
+                bias_term ? "true":"false",
+                "true", //set flag_relu true
+                (int)pool_type,
+                global_pooling? "true" : "false",
+                pool_size[1],
+                pool_size[0],
+                pool_strides[1],
+                pool_strides[0],
+                pool_padding[1],
+                pool_padding[0],
+                weights_ptr_name.c_str(),
+                offset_info.weights[0].offset,
+                weights_ptr_name.c_str(),
+                bias_term ? offset_info.weights[1].offset : 0);
+    return code_w.get_code_string();
+}
+
 std::string ParserConvBatchnormScale(graph::AttrInfo& attr, 
 					                 std::string& op_class_name, 
 					                 std::string& node_name, 
@@ -306,6 +381,125 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
                                            weights_ptr_name.c_str(),
                                            bias_term ? offset_info.weights[1].offset : 0);
 	return code_w.get_code_string();
+}
+
+// SaberConvBatchnormScaleRelu
+std::string ParserConvBatchnormScaleReluPool(graph::AttrInfo& attr,
+                                         std::string& op_class_name,
+                                         std::string& node_name,
+                                         std::string& weights_ptr_name,
+                                         WeightsWritter& writter) {
+    // parsing parameter
+    auto group = get_attr<int>("group", attr);
+    auto bias_term = get_attr<bool>("bias_term", attr);
+    auto padding = get_attr<PTuple<int>>("padding", attr);
+    auto strides = get_attr<PTuple<int>>("strides", attr);
+    auto dilation_rate = get_attr<PTuple<int>>("dilation_rate", attr);
+    auto filter_num = get_attr<int>("filter_num", attr);
+    auto kernel_size = get_attr<PTuple<int>>("kernel_size", attr);
+    auto axis = get_attr<int>("axis", attr);
+
+    auto weights = get_attr<PBlock<float, X86>>("weight_1", attr);
+    auto weights_shape = weights.shape();
+    int weights_size = weights_shape.count();//weights_shape[2]*weights_shape[3];
+    int num_output = weights_shape[0];//*weights_shape[1];
+
+    // get batchnorm param
+    auto epsilon = get_attr<float>("batchnorm_0_epsilon", attr);
+    auto momentum = get_attr<float>("batchnorm_0_momentum", attr);
+    auto batch_norm_weight_1 = get_attr<PBlock<float, X86>>("batchnorm_0_weight_1", attr);
+    auto batch_norm_weight_1_vector = batch_norm_weight_1.vector();
+    auto batch_norm_weight_2 = get_attr<PBlock<float, X86>>("batchnorm_0_weight_2", attr);
+    auto batch_norm_weight_2_vector = batch_norm_weight_2.vector();
+    auto batch_norm_weight_3 = get_attr<PBlock<float, X86>>("batchnorm_0_weight_3", attr);
+    auto batch_norm_weight_3_vector = batch_norm_weight_3.vector();
+
+    // get scale param
+    auto scale_num_axes = get_attr<int>("scale_0_num_axes", attr);
+    auto scale_bias_term = get_attr<bool>("scale_0_bias_term", attr);
+    auto scale_axis = get_attr<int>("scale_0_axis", attr);
+    auto scale_weight_1 = get_attr<PBlock<float, X86>>("scale_0_weight_1", attr);
+    auto scale_weight_1_vector = scale_weight_1.vector();
+    auto scale_weight_2 = get_attr<PBlock<float, X86>>("scale_0_weight_2", attr);
+    auto scale_weight_2_vector = scale_weight_2.vector();
+
+    if(bias_term) {
+        auto bias = get_attr<PBlock<float, X86>>("weight_2", attr);
+        update_weights(weights, bias,
+                       weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+                       bias_term,
+                       batch_norm_weight_3_vector[0], epsilon,
+                       batch_norm_weight_1_vector,
+                       batch_norm_weight_2_vector,
+                       scale_weight_1_vector,
+                       scale_weight_2_vector,
+                       scale_bias_term);
+
+
+        writter.register_weights(node_name, weights);
+        writter.register_weights(node_name, bias);
+    } else {
+        auto bias = PBlock<float, X86>();
+        update_weights(weights, bias,
+                       weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+                       false,
+                       batch_norm_weight_3_vector[0], epsilon,
+                       batch_norm_weight_1_vector,
+                       batch_norm_weight_2_vector,
+                       scale_weight_1_vector,
+                       scale_weight_2_vector,
+                       scale_bias_term);
+
+        writter.register_weights(node_name, weights);
+        writter.register_weights(node_name, bias);
+    }
+
+    // parsing pooling parameter
+    auto global_pooling = get_attr<bool>("pooling_0_global_pooling", attr);
+    auto pool_padding = get_attr<PTuple<int>>("pooling_0_padding", attr);
+    auto pool_strides = get_attr<PTuple<int>>("pooling_0_strides", attr);
+    auto pool_size = get_attr<PTuple<int>>("pooling_0_pool_size", attr);
+    auto pool_method = get_attr<std::string>("pooling_0_method", attr);
+
+    PoolingType pool_type;
+    if (pool_method == "MAX") {
+        pool_type = Pooling_max;
+    }
+    if (pool_method == "AVG") {
+        pool_type = Pooling_average_include_padding;
+    }
+
+    auto offset_info = writter.get_weights_by_name(node_name);
+
+    // gen cpp code
+    CodeWritter code_w;
+    code_w.feed("%s.load_param(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%d,%s,%d,%d,%d,%d,%d,%d,%s+%d,%s+%d);\n", node_name.c_str(),
+                weights_size,
+                num_output,
+                group,
+                kernel_size[1],
+                kernel_size[0],
+                strides[1],
+                strides[0],
+                padding[1],
+                padding[0],
+                dilation_rate[1],
+                dilation_rate[0],
+                "true", // set bias to true
+                "true", //set flag_relu true
+                (int)pool_type,
+                global_pooling? "true" : "false",
+                pool_size[1],
+                pool_size[0],
+                pool_strides[1],
+                pool_strides[0],
+                pool_padding[1],
+                pool_padding[0],
+                weights_ptr_name.c_str(),
+                offset_info.weights[0].offset,
+                weights_ptr_name.c_str(),
+                bias_term ? offset_info.weights[1].offset : 0);
+    return code_w.get_code_string();
 }
 
 // SaberConcat
@@ -640,7 +834,9 @@ std::unordered_map<std::string, OpParser> OPERATION_MAP({
 	{"Activation", {"SaberActivation", ParserActivation} }, // done
     {"ReLU", {"SaberActivation",ParserRelu}}, // done
 	{"ConvRelu", {"SaberConvAct2D", ParserConvolutionRelu} },  // done
+    {"ConvReluPool", {"SaberConvActPooling2D", ParserConvolutionReluPool} },  // done
 	{"ConvBatchnormScaleRelu", {"SaberConvAct2D", ParserConvBatchnormScaleRelu}}, // done have question ??
+    {"ConvBatchnormScaleReluPool", {"SaberConvActPooling2D", ParserConvBatchnormScaleReluPool}}, // done have question ??
 	{"ConvBatchnormScale", {"SaberConv2D", ParserConvBatchnormScale}}, //done
 	{"Concat", {"SaberConcat", ParserConcat} },  // done
 	{"DetectionOutput", {"SaberDectionOutput", ParserDectionOutput} }, // done 
