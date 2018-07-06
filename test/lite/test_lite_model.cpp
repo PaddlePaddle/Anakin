@@ -6,8 +6,8 @@ using namespace anakin::saber::lite;
 
 std::string model_file_name;
 int FLAGS_num = 1;
-int FLAGS_warmup_iter = 10;
-int FLAGS_epoch = 10;
+int FLAGS_warmup_iter = 1;
+int FLAGS_epoch = 1;
 int FLAGS_threads = 1;
 int FLAGS_cluster = 0;
 
@@ -28,20 +28,6 @@ TEST(TestSaberLite, test_lite_model) {
 #endif
     }
 
-    TensorHf* tin = get_in("input_0");
-    LOG(INFO) << "input tensor size: ";
-    Shape shin = tin->valid_shape();
-    for (int j = 0; j < tin->dims(); ++j) {
-        LOG(INFO) << "|---: " << shin[j];
-    }
-
-    TensorHf* tout = get_out("prob_out");
-    LOG(INFO) << "output tensor size: ";
-    Shape shout = tout->valid_shape();
-    for (int j = 0; j < tout->dims(); ++j) {
-        LOG(INFO) << "|---: " << shout[j];
-    }
-
     bool load_flag = mobilenet_load_param(model_file_name.c_str());
     LOG(WARNING) << "load anakin model file from " << model_file_name << " ...";
     CHECK_EQ(load_flag, true) << "load model: " << model_file_name << " failed";
@@ -49,6 +35,22 @@ TEST(TestSaberLite, test_lite_model) {
     //! init net
     mobilenet_init(ctx1);
     LOG(INFO) << "INIT";
+
+    TensorHf* tin = get_in("input_0");
+    LOG(INFO) << "input tensor size: ";
+    Shape shin = tin->valid_shape();
+    for (int j = 0; j < tin->dims(); ++j) {
+        LOG(INFO) << "|---: " << shin[j];
+    }
+    //! feed data to input
+    fill_tensor_const(*tin, 1.f);
+
+    TensorHf* tout = get_out("prob_out");
+    LOG(INFO) << "output tensor size: ";
+    Shape shout = tout->valid_shape();
+    for (int j = 0; j < tout->dims(); ++j) {
+        LOG(INFO) << "|---: " << shout[j];
+    }
 
     SaberTimer my_time;
     double to = 0;
