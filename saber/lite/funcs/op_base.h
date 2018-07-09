@@ -18,6 +18,7 @@
 #include "saber/lite/core/common_lite.h"
 #include "saber/lite/core/tensor_lite.h"
 #include "saber/lite/core/context_lite.h"
+#include "saber/lite/funcs/op_param.h"
 
 namespace anakin{
 
@@ -29,26 +30,20 @@ class OpBase {
 public:
     OpBase(){}
     virtual ~OpBase(){}
-    OpBase(const char* parm_name);
-    virtual SaberStatus load_param(const char* param_name) {
-        return SaberUnImplError;
-    }
+    OpBase(const ParamBase* param) {}
+    virtual SaberStatus load_param(const ParamBase* param) = 0;
     virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                 std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) {
-        return SaberUnImplError;
-    }
+                                 std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) = 0;
 
     virtual SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                             std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context& ctx) {
-        return SaberUnImplError;
-    }
+                             std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context& ctx) = 0;
     virtual SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                 std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) {
-        return SaberUnImplError;
-    }
+                                 std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) = 0;
 
 protected:
     Context* _ctx;
+    bool _flag_param;
+    bool _flag_init;
 };
 
 } //namespace lite

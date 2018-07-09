@@ -15,7 +15,7 @@
 #define ANAKIN_SABER_LITE_FUNCS_NEON_SABER_PRELU_H
 
 #include "saber/lite/funcs/op_base.h"
-
+#if 0
 #ifdef USE_ARM_PLACE
 namespace anakin{
 
@@ -57,5 +57,5 @@ private:
 
 } //namespace anakin
 #endif // USE_ARM_PLACE
-
+#endif
 #endif //ANAKIN_SABER_LITE_FUNCS_NEON_SABER_PRELU_H

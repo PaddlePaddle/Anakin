@@ -12,48 +12,55 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-#ifndef ANAKIN_SABER_LITE_FUNCS_SABER_ELTWISE_H
-#define ANAKIN_SABER_LITE_FUNCS_SABER_ELTWISE_H
+#ifndef ANAKIN_SABER_LITE_FUNCS_SABER_DECONV_H
+#define ANAKIN_SABER_LITE_FUNCS_SABER_DECONV_H
 
 #include "saber/lite/funcs/op_base.h"
 
 #ifdef USE_ARM_PLACE
+
+#include "saber/lite/funcs/neon/impl/sgemm_arm.h"
+
 namespace anakin{
 
 namespace saber{
 
 namespace lite{
 
-typedef void (*eltwise_func)(const float* din_a, \
-    const float* din_b, float* dout, const int size, std::vector<float> coef);
-
-//template <typename Dtype>
-class SaberEltwise : public OpBase {
+class SaberDeconv2D : public OpBase {
 public:
-    SaberEltwise() {}
 
-    SaberEltwise(const ParamBase* param);
-    //SaberEltwise(EltwiseType type, std::vector<float> coef);
+    SaberDeconv2D();
+
+    SaberDeconv2D(const ParamBase* param);
+
+    ~SaberDeconv2D();
 
     virtual SaberStatus load_param(const ParamBase* param) override;
-    //SaberStatus load_param(EltwiseType type, std::vector<float> coef);
-
-    ~SaberEltwise() {}
 
     virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
+                                      std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 
     virtual SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
                              std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx) override;
 
-    virtual SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
+    virtual SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
                                  std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 
+    SaberStatus set_activation(bool flag) {
+        _flag_relu = flag;
+        return SaberSuccess;
+    }
+
 private:
-    const EltwiseParam* _param;
-//    EltwiseType _type;
-//    std::vector<float> _coef;
-    eltwise_func _impl{nullptr};
+    const DeConv2DParam* _param;
+    Sgemm _gemmer;
+    bool _flag_relu{false};
+    int _m;
+    int _n;
+    int _k;
+    size_t _workspace_fwd_sizes{0};
+    Tensor<CPU, AK_FLOAT> _workspace_data;
 };
 
 } //namespace lite
@@ -63,4 +70,4 @@ private:
 } //namespace anakin
 #endif // USE_ARM_PLACE
 
-#endif //ANAKIN_SABER_LITE_FUNCS_SABER_ELTWISE_H
+#endif //ANAKIN_SABER_LITE_FUNCS_SABER_DECONV_H

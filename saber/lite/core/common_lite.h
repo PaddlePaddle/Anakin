@@ -20,6 +20,7 @@
 #include <cassert>
 #include <stdlib.h>
 #include <stdio.h>
+#include <cmath>
 #include "anakin_config.h"
 #include "saber/saber_types.h"
 

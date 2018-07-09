@@ -121,25 +121,49 @@ void softmax_inner1(const float* din, float* dout, \
     }
 }
 
-SaberSoftmax::SaberSoftmax(int axis) {
-    _axis = axis;
+//SaberSoftmax::SaberSoftmax(int axis) {
+//    _axis = axis;
+//}
+//
+//SaberStatus SaberSoftmax::load_param(int axis) {
+//    _axis = axis;
+//    return SaberSuccess;
+//}
+
+SaberSoftmax::SaberSoftmax(const ParamBase *param) {
+    _param = (const SoftmaxParam*)param;
+    this->_flag_param = true;
 }
 
-SaberStatus SaberSoftmax::load_param(int axis) {
-    _axis = axis;
+SaberStatus SaberSoftmax::load_param(const ParamBase *param) {
+    _param = (const SoftmaxParam*)param;
+    this->_flag_param = true;
     return SaberSuccess;
+}
+
+SaberStatus SaberSoftmax::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
+                                               std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
+    if (!this->_flag_param) {
+        printf("load softmax param first\n");
+        return SaberNotInitialized;
+    }
+    return outputs[0]->set_shape(inputs[0]->valid_shape());
 }
 
 SaberStatus SaberSoftmax::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                std::vector<Tensor<CPU, AK_FLOAT> *> &outputs, Context &ctx) {
+    if (!this->_flag_param) {
+        printf("load softmax param first\n");
+        return SaberNotInitialized;
+    }
     this->_ctx = &ctx;
     Shape shape_in = inputs[0]->valid_shape();
     Shape shape_out = outputs[0]->valid_shape();
-    _outer_num = inputs[0]->count_valid(0, _axis);
-    _inner_num = inputs[0]->count_valid(_axis + 1, inputs[0]->dims());
-    _axis_size = shape_in[_axis];
+    _outer_num = inputs[0]->count_valid(0, _param->_axis);
+    _inner_num = inputs[0]->count_valid(_param->_axis + 1, inputs[0]->dims());
+    _axis_size = shape_in[_param->_axis];
 
-    int buffer_size = this->_inner_num * this->_outer_num;
+    this->_flag_init = true;
     return SaberSuccess;
 }
 
@@ -147,7 +171,12 @@ SaberStatus SaberSoftmax::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &input
 SaberStatus SaberSoftmax::dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) {
 
-    float* dout = (float*)outputs[0]->mutable_data();
+    if (!this->_flag_init) {
+        printf("init softmax first\n");
+        return SaberNotInitialized;
+    }
+
+    float* dout = outputs[0]->mutable_data();
     const float* din = (float*)inputs[0]->data();
 
     if (this->_inner_num == 1) {

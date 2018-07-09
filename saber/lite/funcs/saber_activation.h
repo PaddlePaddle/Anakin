@@ -27,23 +27,25 @@ namespace lite{
 class SaberActivation : public OpBase {
 public:
     SaberActivation() {}
-
-    SaberActivation(ActiveType type, float neg_slop = 0.f);
-    SaberStatus load_param(ActiveType type, float neg_slop = 0.f);
+    SaberActivation(const ParamBase* param);
+    //SaberActivation(ActiveType type, float neg_slop = 0.f);
+    //SaberStatus load_param(ActiveType type, float neg_slop = 0.f);
+    virtual SaberStatus load_param(const ParamBase* param) override;
 
     ~SaberActivation() {}
 
     virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 
     virtual SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                            std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context& ctx);
+                            std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context& ctx) override;
     
     virtual SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                          std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+                          std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 private:
-    ActiveType _type;
-    float _neg_slop;
+    const ActivationParam* _param;
+    //ActiveType _type;
+    //float _neg_slop;
 };
 
 

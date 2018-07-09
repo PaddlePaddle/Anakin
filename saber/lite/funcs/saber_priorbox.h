@@ -28,13 +28,17 @@ public:
 
     SaberPriorBox() = default;
 
-    SaberPriorBox(bool is_flip, bool is_clip, std::vector<float> min_size, std::vector<float> max_size, \
-        std::vector<float> aspect_ratio, std::vector<float> variance, \
-        int img_width, int img_height, float step_w, float step_h, float offset);
+    SaberPriorBox(const ParamBase* param);
 
-    SaberStatus load_param(bool is_flip, bool is_clip, std::vector<float> min_size, std::vector<float> max_size, \
-        std::vector<float> aspect_ratio, std::vector<float> variance, \
-        int img_width, int img_height, float step_w, float step_h, float offset);
+    virtual SaberStatus load_param(const ParamBase* param) override;
+
+//    SaberPriorBox(bool is_flip, bool is_clip, std::vector<float> min_size, std::vector<float> max_size, \
+//        std::vector<float> aspect_ratio, std::vector<float> variance, \
+//        int img_width, int img_height, float step_w, float step_h, float offset);
+//
+//    SaberStatus load_param(bool is_flip, bool is_clip, std::vector<float> min_size, std::vector<float> max_size, \
+//        std::vector<float> aspect_ratio, std::vector<float> variance, \
+//        int img_width, int img_height, float step_w, float step_h, float offset);
 
     ~SaberPriorBox() {}
 
@@ -48,21 +52,21 @@ public:
                           std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 
 private:
+    const PriorBoxParam* _param;
     Tensor<CPU, AK_FLOAT> _output_arm;
-
     int _num_priors;
 
-    bool _is_flip;
-    bool _is_clip;
-    std::vector<float> _min_size;
-    std::vector<float> _max_size;
-    std::vector<float> _aspect_ratio;
-    std::vector<float> _variance;
-    int _img_width;
-    int _img_height;
-    float _step_w;
-    float _step_h;
-    float _offset;
+//    bool _is_flip;
+//    bool _is_clip;
+//    std::vector<float> _min_size;
+//    std::vector<float> _max_size;
+//    std::vector<float> _aspect_ratio;
+//    std::vector<float> _variance;
+//    int _img_width;
+//    int _img_height;
+//    float _step_w;
+//    float _step_h;
+//    float _offset;
 };
 
 } //namespace lite

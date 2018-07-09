@@ -35,11 +35,15 @@ class SaberFc : public OpBase {
 public:
     SaberFc() {}
 
-    SaberFc(int axis, int num_output, bool flag_trans, bool flag_bias, \
-        const float* weights, const float* bias);
+    SaberFc(const ParamBase* param);
 
-    SaberStatus load_param(int axis, int num_output, bool flag_trans, bool flag_bias, \
-        const float* weights, const float* bias);
+    virtual SaberStatus load_param(const ParamBase* param) override;
+
+//    SaberFc(int axis, int num_output, bool flag_trans, bool flag_bias, \
+//        const float* weights, const float* bias);
+//
+//    SaberStatus load_param(int axis, int num_output, bool flag_trans, bool flag_bias, \
+//        const float* weights, const float* bias);
 
     ~SaberFc() {}
 
@@ -54,17 +58,17 @@ public:
 
 
 private:
+    const FcParam* _param;
     Sgemm _gemmer;
     int _m;
     int _k;
     int _n;
-
-    int _axis;
-    int _num_output;
-    bool _bias_term{true};
-    bool _flag_trans{false};
-    const float* _weights{nullptr};
-    const float* _bias{nullptr};
+//    int _axis;
+//    int _num_output;
+//    bool _bias_term{true};
+//    bool _flag_trans{false};
+//    const float* _weights{nullptr};
+//    const float* _bias{nullptr};
 };
 
 } //namespace lite

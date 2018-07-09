@@ -24,59 +24,95 @@ namespace saber{
 namespace lite{
 
 //template <typename Dtype>
-class SaberConvAct2D : public SaberConv2D {
+class SaberConvAct2D : public OpBase {
 public:
-    SaberConvAct2D() {}
-
-    SaberConvAct2D(int weights_size, int num_output, int group, int kw, int kh, int stride_w, int stride_h, \
-        int pad_w, int pad_h, int dila_w, int dila_h, bool flag_bias, ActiveType type, bool flag_relu, \
-        const float* weights, const float* bias) {
-
-        if (flag_relu) {
-            LCHECK_EQ(type, Active_relu, "active type must be relu");
-            _flag_relu = true;
-        } else {
-            _flag_relu = false;
-        }
-        SaberConv2D::set_activation(_flag_relu);
-        SaberConv2D::load_param(weights_size, num_output, group, kw, kh, stride_w, stride_h, \
-            pad_w, pad_h, dila_w, dila_h, flag_bias, weights, bias);
+    SaberConvAct2D() {
+        _conv_func = new SaberConv2D;
     }
 
-    SaberStatus load_param(int weights_size, int num_output, int group, int kw, int kh, int stride_w, int stride_h, \
-        int pad_w, int pad_h, int dila_w, int dila_h, bool flag_bias, ActiveType type, bool flag_relu, \
-        const float* weights, const float* bias) {
-
-        if (flag_relu) {
-            LCHECK_EQ(type, Active_relu, "active type must be relu");
-            _flag_relu = true;
-        } else {
-            _flag_relu = false;
+    SaberConvAct2D(const ParamBase* param) {
+        _conv_func = new SaberConv2D;
+        _param = (const ConvAct2DParam*)param;
+        if (_param->_flag_act) {
+            LCHECK_EQ(_param->_act_type, Active_relu, "active type must be relu");
         }
-        SaberConv2D::set_activation(_flag_relu);
-        return SaberConv2D::load_param(weights_size, num_output, group, kw, kh, stride_w, stride_h, \
-            pad_w, pad_h, dila_w, dila_h, flag_bias, weights, bias);
+        this->_flag_param = true;
+        _conv_func->load_param(&_param->_conv_param);
     }
 
-    ~SaberConvAct2D() {}
+    virtual SaberStatus load_param(const ParamBase* param) override {
+        _param = (const ConvAct2DParam*)param;
+        this->_flag_param = true;
+        _conv_func->set_activation(_param->_flag_act);
+        return _conv_func->load_param(&_param->_conv_param);
+    }
+
+
+//    SaberConvAct2D(int weights_size, int num_output, int group, int kw, int kh, int stride_w, int stride_h, \
+//        int pad_w, int pad_h, int dila_w, int dila_h, bool flag_bias, ActiveType type, bool flag_relu, \
+//        const float* weights, const float* bias) {
+//
+//        if (flag_relu) {
+//            LCHECK_EQ(type, Active_relu, "active type must be relu");
+//            _flag_relu = true;
+//        } else {
+//            _flag_relu = false;
+//        }
+//        SaberConv2D::set_activation(_flag_relu);
+//        SaberConv2D::load_param(weights_size, num_output, group, kw, kh, stride_w, stride_h, \
+//            pad_w, pad_h, dila_w, dila_h, flag_bias, weights, bias);
+//    }
+//
+//    SaberStatus load_param(int weights_size, int num_output, int group, int kw, int kh, int stride_w, int stride_h, \
+//        int pad_w, int pad_h, int dila_w, int dila_h, bool flag_bias, ActiveType type, bool flag_relu, \
+//        const float* weights, const float* bias) {
+//
+//        if (flag_relu) {
+//            LCHECK_EQ(type, Active_relu, "active type must be relu");
+//            _flag_relu = true;
+//        } else {
+//            _flag_relu = false;
+//        }
+//        SaberConv2D::set_activation(_flag_relu);
+//        return SaberConv2D::load_param(weights_size, num_output, group, kw, kh, stride_w, stride_h, \
+//            pad_w, pad_h, dila_w, dila_h, flag_bias, weights, bias);
+//    }
+
+    ~SaberConvAct2D() {
+        delete _conv_func;
+    }
 
     virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
                                      std::vector<Tensor<CPU, AK_FLOAT>*>& outputs)  override{
-        return SaberConv2D::compute_output_shape(inputs, outputs);
+        if (!this->_flag_param) {
+            printf("load conv_act param first\n");
+            return SaberNotInitialized;
+        }
+        return _conv_func->compute_output_shape(inputs, outputs);
     }
 
     virtual SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                             std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx)  override{
-        SaberConv2D::set_activation(_flag_relu);
-        return SaberConv2D::init(inputs, outputs, ctx);
+                             std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx) override{
+        if (!this->_flag_param) {
+            printf("load conv_act param first\n");
+            return SaberNotInitialized;
+        }
+        _conv_func->set_activation(_param->_flag_act);
+        this->_flag_init = true;
+        return _conv_func->init(inputs, outputs, ctx);
     }
 
     virtual SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *>& inputs,
-                                 std::vector<Tensor<CPU, AK_FLOAT> *>& outputs)  override{
-        return SaberConv2D::dispatch(inputs, outputs);
+                                 std::vector<Tensor<CPU, AK_FLOAT> *>& outputs) override{
+        if (!this->_flag_init) {
+            printf("init conv_act first\n");
+            return SaberNotInitialized;
+        }
+        return _conv_func->dispatch(inputs, outputs);
     }
 private:
-    bool _flag_relu;
+    const ConvAct2DParam* _param;
+    SaberConv2D* _conv_func;
 };
 
 } //namespace lite

@@ -45,52 +45,73 @@ void fill_bias_fc<float>(float* tensor, const float* bias, const int num, const 
     }
 }
 
-
-SaberFc::SaberFc(int axis, int num_output, bool flag_trans, bool flag_bias, \
-    const float *weights, const float *bias) {
-
-    _axis = axis;
-    _num_output = num_output;
-    _flag_trans = flag_trans;
-    _bias_term = flag_bias;
-    _weights = weights;
-    _bias = bias;
+SaberFc::SaberFc(const ParamBase *param) {
+    _param = (const FcParam*)param;
+    this->_flag_param = true;
 }
 
-SaberStatus SaberFc::load_param(int axis, int num_output, bool flag_trans, bool flag_bias, \
-    const float *weights, const float *bias) {
-
-    _axis = axis;
-    _num_output = num_output;
-    _flag_trans = flag_trans;
-    _bias_term = flag_bias;
-    _weights = weights;
-    _bias = bias;
+SaberStatus SaberFc::load_param(const ParamBase *param) {
+    _param = (const FcParam*)param;
+    this->_flag_param = true;
     return SaberSuccess;
 }
 
+//SaberFc::SaberFc(int axis, int num_output, bool flag_trans, bool flag_bias, \
+//    const float *weights, const float *bias) {
+//
+//    _axis = axis;
+//    _num_output = num_output;
+//    _flag_trans = flag_trans;
+//    _bias_term = flag_bias;
+//    _weights = weights;
+//    _bias = bias;
+//}
+//
+//SaberStatus SaberFc::load_param(int axis, int num_output, bool flag_trans, bool flag_bias, \
+//    const float *weights, const float *bias) {
+//
+//    _axis = axis;
+//    _num_output = num_output;
+//    _flag_trans = flag_trans;
+//    _bias_term = flag_bias;
+//    _weights = weights;
+//    _bias = bias;
+//    return SaberSuccess;
+//}
+
 SaberStatus SaberFc::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                           std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
-    Shape shape_out = inputs[0]->valid_shape();
-    int m = inputs[0]->count_valid(0, _axis);
-    int k = inputs[0]->count_valid(_axis, inputs[0]->dims());
-    int n = _num_output;
 
-    shape_out.resize(_axis + 1);
-    shape_out[_axis] = n;
+    if (!this->_flag_param) {
+        printf("load fc param first\n");
+        return SaberNotInitialized;
+    }
+
+    Shape shape_out = inputs[0]->valid_shape();
+    int m = inputs[0]->count_valid(0, _param->_axis);
+    int k = inputs[0]->count_valid(_param->_axis, inputs[0]->dims());
+    int n = _param->_num_output;
+
+    shape_out.resize(_param->_axis + 1);
+    shape_out[_param->_axis] = n;
     return outputs[0]->set_shape(shape_out);
 }
 
 SaberStatus SaberFc::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs, \
     std::vector<Tensor<CPU, AK_FLOAT> *> &outputs, Context &ctx) {
 
+    if (!this->_flag_param) {
+        printf("load fc param first\n");
+        return SaberNotInitialized;
+    }
+
     this->_ctx = &ctx;
     int threads = 1;
     this->_ctx->get_mode(threads);
 
-    _m = inputs[0]->count_valid(0, _axis);
-    _k = inputs[0]->count_valid(_axis, inputs[0]->dims());
-    _n = _num_output;
+    _m = inputs[0]->count_valid(0, _param->_axis);
+    _k = inputs[0]->count_valid(_param->_axis, inputs[0]->dims());
+    _n = _param->_num_output;
 
     int l1_cache = Env::cur_env()._L1_cache;
     int l2_cache = Env::cur_env()._L2_cache;
@@ -99,10 +120,11 @@ SaberStatus SaberFc::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs, \
     //! if L2 cache size is not provided, set to 2M
     l2_cache = l2_cache > 0? l2_cache : 2000000;
 
-    printf("fc weights transpose: %s\n", _flag_trans? "true" : "false");
-    if (_m > 1 || _flag_trans) {
-        _gemmer.init(l1_cache, l2_cache, _m, _n, _k, false, !_flag_trans, threads);
+    printf("fc weights transpose: %s\n", _param->_flag_trans? "true" : "false");
+    if (_m > 1 || _param->_flag_trans) {
+        _gemmer.init(l1_cache, l2_cache, _m, _n, _k, false, !_param->_flag_trans, threads);
     }
+    this->_flag_init = true;
     return SaberSuccess;
 }
 
@@ -111,21 +133,26 @@ SaberStatus SaberFc::dispatch(\
     const std::vector<Tensor<CPU, AK_FLOAT> *>& inputs, \
     std::vector<Tensor<CPU, AK_FLOAT> *>& outputs) {
 
-    const float* din = inputs[0]->data();
-    float* dout = outputs[0]->mutable_data();
-    const float* weights = _weights;
-    const float* bias = nullptr;
-    if (_bias_term) {
-        bias = _bias;
+    if (!this->_flag_init) {
+        printf("init fc first\n");
+        return SaberNotInitialized;
     }
 
-    if (_m > 1 || _flag_trans) {
-        _gemmer(din, _k, weights, (_flag_trans? _n : _k), dout, _n, 1.f, 0.f, false);
-        if (_bias_term) {
+    const float* din = inputs[0]->data();
+    float* dout = outputs[0]->mutable_data();
+    const float* weights = _param->_weights;
+    const float* bias = nullptr;
+    if (_param->_flag_bias) {
+        bias = _param->_bias;
+    }
+
+    if (_m > 1 || _param->_flag_trans) {
+        _gemmer(din, _k, weights, (_param->_flag_trans? _n : _k), dout, _n, 1.f, 0.f, false);
+        if (_param->_flag_bias) {
             fill_bias_fc(dout, bias, _m, _n);
         }
     } else {
-        if (_bias_term) {
+        if (_param->_flag_bias) {
             sgemv_bias(false, _n, _k, weights, din, dout, bias);
         } else {
             sgemv(false, _n, _k, weights, din, dout);

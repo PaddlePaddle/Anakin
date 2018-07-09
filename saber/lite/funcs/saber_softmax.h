@@ -31,17 +31,18 @@ public:
 
     SaberSoftmax() = default;
 
-    SaberSoftmax(int axis);
+    SaberSoftmax(const ParamBase* param);
 
-    SaberStatus load_param(int axis);
+    virtual SaberStatus load_param(const ParamBase* param) override;
+//    SaberSoftmax(int axis);
+//
+//    SaberStatus load_param(int axis);
 
     ~SaberSoftmax() {}
 
 
     virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                              std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override {
-        return outputs[0]->set_shape(inputs[0]->valid_shape());
-    }
+                              std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 
     virtual SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
                                std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx) override;
@@ -50,11 +51,12 @@ public:
                                  std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 
 private:
+    const SoftmaxParam* _param;
     int _axis_size{0};
     int _inner_num{0};
     int _outer_num{0};
 
-    int _axis;
+    //int _axis;
 
 };
 

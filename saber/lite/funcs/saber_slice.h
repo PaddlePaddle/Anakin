@@ -31,9 +31,13 @@ public:
         _slice_size = 0;
     }
 
-    SaberSlice(int axis, std::vector<int> slice_points);
+    SaberSlice(const ParamBase* param);
 
-    SaberStatus load_param(int axis, std::vector<int> slice_points);
+    virtual SaberStatus load_param(const ParamBase* param) override;
+
+    //SaberSlice(int axis, std::vector<int> slice_points);
+
+    //SaberStatus load_param(int axis, std::vector<int> slice_points);
 
     ~SaberSlice() {}
 
@@ -47,10 +51,11 @@ public:
                                  std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 
 private:
+    const SliceParam* _param;
     int _slice_num;
     int _slice_size;
 
-    int _axis;
+//    int _axis;
     std::vector<int> _slice_points;
 };
 

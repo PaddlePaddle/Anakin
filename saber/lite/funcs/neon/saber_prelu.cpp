@@ -1,5 +1,5 @@
 #include "saber/lite/funcs/saber_prelu.h"
-
+#if 0
 #ifdef USE_ARM_PLACE
 namespace anakin{
 
@@ -116,3 +116,5 @@ SaberStatus SaberPrelu::dispatch(\
 } // namespace anakin
 
 #endif //USE_ARM_PLACE
+
+#endif
