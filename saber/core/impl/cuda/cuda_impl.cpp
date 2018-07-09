@@ -228,6 +228,7 @@ void NV_API::sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
         CUDA_CHECK(cudaMemcpyPeer(dst, dst_id, src, src_id, count));
         //LOG(INFO) << "cuda, async, P2P, size: " << count;
     }
+    cudaStreamSynchronize(NULL);
 }
         
 void NV_API::async_memcpy(void* dst, int dst_id, const void* src, int src_id, \
@@ -247,6 +248,7 @@ void NV_API::async_memcpy(void* dst, int dst_id, const void* src, int src_id, \
 void NV_API::sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
         size_t count, __HtoD) {
     CUDA_CHECK(cudaMemcpy(dst, src, count, cudaMemcpyHostToDevice));
+    cudaStreamSynchronize(NULL);
     //LOG(INFO) << "cuda, sync, H2D, size: " << count;
 }
         
@@ -260,6 +262,7 @@ void NV_API::async_memcpy(void* dst, int dst_id, const void* src, int src_id, \
 void NV_API::sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
         size_t count, __DtoH) {
     CUDA_CHECK(cudaMemcpy(dst, src, count, cudaMemcpyDeviceToHost));
+    cudaStreamSynchronize(NULL);
     //LOG(INFO) << "cuda, sync, D2H, size: " << count;
 }
         
@@ -273,6 +276,7 @@ void NV_API::async_memcpy(void* dst, int dst_id, const void* src, int src_id, \
 void NV_API::sync_memcpy_p2p(void* dst, int dst_dev, const void* src, \
         int src_dev, size_t count) {
     CUDA_CHECK(cudaMemcpyPeer(dst, dst_dev, src, src_dev, count));
+    cudaStreamSynchronize(NULL);
     //LOG(INFO) << "cuda, sync, P2P, size: " << count;
 }
         
