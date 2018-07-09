@@ -175,8 +175,21 @@ TEST(TestSaberFuncAMD, test_vgg_softmax) {
     problemConfig->W = 14;  //width
     problemConfig->H = 14;  //height
     problemConfig->C = 512;    //channel
-    problemConfig->K = 512;   //kernels
     problemConfigList.push_back(problemConfig);
+
+
+    for (int batch_size = 1; batch_size <= 32; batch_size *= 2) {
+        if (batch_size == 16) continue;
+
+        problemConfig = new T_ProblemConfig();
+        problemConfig->ConfigName = "Softmax53";
+        problemConfig->N = batch_size;    //batch
+        problemConfig->W = 1;  //width
+        problemConfig->H = 1;  //height
+        problemConfig->C = 1000;    //channel
+        problemConfigList.push_back(problemConfig);
+
+    }
 
     Context<AMD> ctx1(0, 1, 1);
 

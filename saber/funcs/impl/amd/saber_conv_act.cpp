@@ -171,15 +171,14 @@ SaberStatus SaberConv2DAct<AMD, OpDtype, inDtype, outDtype,
 
     
     //start to do activation and bias operation for CONV21, CONV31, CONV32 and etc...
-    if (inputs[0]->channel() != 3 ||
-    inputs[0]->height() != 224 || inputs[0]->width() != 224) {
+    if (inputs[0]->channel() != 3) {
         switch (param.activation_param.active){
             case Active_relu:
                 kernelInfo.l_wk = {256, 1, 1};
-                kernelInfo.g_wk = {inputs[0]->num() *
-				inputs[0]->channel() *
-				inputs[0]->height() *
-				inputs[0]->width(), 1, 1};
+                kernelInfo.g_wk = {_outConvRelu->num() *
+                                    _outConvRelu->channel() *
+                                    _outConvRelu->height() *
+                                    _outConvRelu->width(), 1, 1};
                 kernelInfo.kernel_file = "MIOpenBiasReLuUni.cl";
                 kernelInfo.kernel_name = "MIOpenReLu";
                 break;
@@ -258,7 +257,7 @@ SaberStatus SaberConv2DAct<AMD, OpDtype, inDtype, outDtype,
         memObjects[0] = (cl_mem)inputs[0]->data();
         memObjects[1] = (cl_mem)param.conv_param.weight()->data();
         memObjects[2] = (cl_mem)param.conv_param.bias()->data();
-        memObjects[3] = (cl_mem)_outConvRelu->mutable_data();
+        memObjects[3] = (cl_mem)outputs[0]->mutable_data();
 
         errNum = setKernelArgs(_kernel, memObjects[0], memObjects[1], 
                                 memObjects[2], memObjects[3], 
@@ -330,12 +329,12 @@ SaberStatus SaberConv2DAct<AMD, OpDtype, inDtype, outDtype,
         memObjects2[0] = (cl_mem)_outConvRelu->data();
         memObjects2[1] = (cl_mem)outputs[0]->mutable_data();
         memObjects2[2] = (cl_mem)param.conv_param.bias()->data();
-        uintObjects2[0] = (cl_uint)inputs[0]->num();
-        uintObjects2[1] = (cl_uint)inputs[0]->channel();
-        uintObjects2[2] = (cl_uint)inputs[0]->height();
-        uintObjects2[3] = (cl_uint)inputs[0]->width();
+        uintObjects2[0] = (cl_uint)_outConvRelu->num();
+        uintObjects2[1] = (cl_uint)_outConvRelu->channel();
+        uintObjects2[2] = (cl_uint)_outConvRelu->height();
+        uintObjects2[3] = (cl_uint)_outConvRelu->width();
 
-        errNum = setKernelArgs(_kernel2, memObjects2[0], memObjects2[1], memObjects2[2], 
+        errNum = setKernelArgs(_kernel2, memObjects2[0], memObjects2[1], memObjects2[2],
             param.activation_param.negative_slope, uintObjects2[0], uintObjects2[1],
             uintObjects2[2], uintObjects2[3]);
 
