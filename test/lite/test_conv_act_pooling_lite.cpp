@@ -104,9 +104,13 @@ void test_arm_conv(std::vector<TensorHf4*>& tin, \
     }
 
     SaberConvActPooling2D conv_lite;
-    conv_lite.load_param(pweiht.valid_size(), ch_out, group, \
+    ConvActPool2DParam param(pweiht.valid_size(), ch_out, group, \
         kernel, kernel, stride, stride, pad, pad, dila, dila, bias, Active_relu, true, \
         Pooling_average_include_padding, true, 1, 1, 1, 1, 1, 1, pweiht.data(), pbias.data());
+//    conv_lite.load_param(pweiht.valid_size(), ch_out, group, \
+//        kernel, kernel, stride, stride, pad, pad, dila, dila, bias, Active_relu, true, \
+//        Pooling_average_include_padding, true, 1, 1, 1, 1, 1, 1, pweiht.data(), pbias.data());
+    LITE_CHECK(conv_lite.load_param(&param));
 
     conv_lite.compute_output_shape(tin, tvout_saber);
     Shape sh_out_saber = tvout_saber[0]->valid_shape();

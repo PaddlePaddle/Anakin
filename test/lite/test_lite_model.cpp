@@ -1,5 +1,5 @@
 #include "test_lite.h"
-#include "mobilenet.h"
+#include "douyin.h"
 
 using namespace anakin::saber;
 using namespace anakin::saber::lite;
@@ -28,12 +28,12 @@ TEST(TestSaberLite, test_lite_model) {
 #endif
     }
 
-    bool load_flag = mobilenet_load_param(model_file_name.c_str());
+    bool load_flag = douyin_load_param(model_file_name.c_str());
     LOG(WARNING) << "load anakin model file from " << model_file_name << " ...";
     CHECK_EQ(load_flag, true) << "load model: " << model_file_name << " failed";
 
     //! init net
-    mobilenet_init(ctx1);
+    douyin_init(ctx1);
     LOG(INFO) << "INIT";
 
     TensorHf* tin = get_in("input_0");
@@ -45,7 +45,7 @@ TEST(TestSaberLite, test_lite_model) {
     //! feed data to input
     fill_tensor_const(*tin, 1.f);
 
-    TensorHf* tout = get_out("prob_out");
+    TensorHf* tout = get_out("concat_stage5_out");
     LOG(INFO) << "output tensor size: ";
     Shape shout = tout->valid_shape();
     for (int j = 0; j < tout->dims(); ++j) {
@@ -61,7 +61,7 @@ TEST(TestSaberLite, test_lite_model) {
     for (int i = 0; i < FLAGS_epoch; i++) {
         t1.clear();
         t1.start();
-        mobilenet_prediction();
+        douyin_prediction();
         t1.end();
         double tdiff = t1.get_average_ms();
         if (tdiff > tmax) {
@@ -78,7 +78,7 @@ TEST(TestSaberLite, test_lite_model) {
     LOG(INFO) << model_file_name << " batch_size " << FLAGS_num << " average time " << to/ FLAGS_epoch << \
             ", min time: " << tmin << "ms, max time: " << tmax << " ms";
 
-    mobilenet_release_resource();
+    douyin_release_resource();
 }
 int main(int argc, const char** argv){
 

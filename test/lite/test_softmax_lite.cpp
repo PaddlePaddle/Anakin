@@ -111,7 +111,8 @@ TEST(TestSaberLite, test_func_softmax_arm) {
 #endif
 
     SaberSoftmax softmax_lite;
-    softmax_lite.load_param(softmax_axis);
+    SoftmaxParam param(softmax_axis);
+    softmax_lite.load_param(&param);
 
     LOG(INFO) << "shape out 4d: " << shape_out[0] << ", " << shape_out[1] << ", " << \
               shape_out[2] << ", " << shape_out[3];

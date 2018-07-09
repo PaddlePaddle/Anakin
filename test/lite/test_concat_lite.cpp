@@ -84,7 +84,8 @@ TEST(TestSaberLite, test_func_concat_arm) {
 
 
     SaberConcat concat_lite;
-    concat_lite.load_param(concat_axis);
+    ConcatParam param(concat_axis);
+    concat_lite.load_param(&param);
 
     LOG(INFO) << "concat compute output shape";
     concat_lite.compute_output_shape(vin, vout);

@@ -138,8 +138,14 @@ void test_arm_conv(std::vector<TensorHf4*>& tin, \
     }
 
     SaberConv2D conv_lite;
-    conv_lite.load_param(pweiht.valid_size(), ch_out, group, kernel, kernel, \
+
+    Conv2DParam param(pweiht.valid_size(), ch_out, group, kernel, kernel, \
         stride, stride, pad, pad, dila, dila, flag_bias, pweiht.data(), pbias.data());
+
+    conv_lite.load_param(&param);
+
+//    conv_lite.load_param(pweiht.valid_size(), ch_out, group, kernel, kernel, \
+//        stride, stride, pad, pad, dila, dila, flag_bias, pweiht.data(), pbias.data());
     conv_lite.compute_output_shape(tin, tvout_saber);
 
     Shape sh_out_saber = tvout_saber[0]->valid_shape();
