@@ -1,4 +1,4 @@
-#include "test_saber_tensor_arm.h"
+#include "test_saber_func_test_arm.h"
 #include "tensor_op.h"
 #include <vector>
 using namespace anakin::saber;
@@ -7,7 +7,7 @@ typedef TargetWrapper<ARM> ARM_API;
 typedef Tensor<ARM, AK_FLOAT, NCHW> Tensor4f;
 //typedef Tensor<ARM, AK_FLOAT, HW> Tensor2f;
 
-TEST(TestSaberTensorARM, test_tensor_constructor) {
+TEST(TestSaberFuncTest, test_tensor_constructor) {
 
 //! test empty constructor
     LOG(INFO) << "test default (empty) constructor";

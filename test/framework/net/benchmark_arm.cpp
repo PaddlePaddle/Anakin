@@ -94,7 +94,8 @@ TEST(NetTest, net_execute_base_test) {
             LOG(INFO) << "detect input dims[" << i << "]" << valid_shape_in[i];
         }
         h_tensor_in.re_alloc(valid_shape_in);
-        fill_tensor_host_rand(h_tensor_in, -1.0f,1.0f);
+        //fill_tensor_host_rand(h_tensor_in, -1.0f,1.0f);
+        fill_tensor_host_const(h_tensor_in, 1.f);
         d_tensor_in_p->copy_from(h_tensor_in);
         // do inference
         Context<Target> ctx(0, 0, 0);
@@ -112,6 +113,7 @@ TEST(NetTest, net_execute_base_test) {
         my_time.start(ctx);
         saber::SaberTimer<Target> t1;
         for (int i = 0; i < FLAGS_epoch; i++) {
+            d_tensor_in_p->copy_from(h_tensor_in);
             t1.clear();
             t1.start(ctx);
             net_executer.prediction();
