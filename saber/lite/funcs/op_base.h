@@ -40,7 +40,11 @@ public:
     virtual SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
                                  std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) = 0;
 
+    void set_op_name(const char* name){_op_name = name;}
+    const char* get_op_name() { return _op_name;}
+
 protected:
+    const char* _op_name;
     Context* _ctx;
     bool _flag_param;
     bool _flag_init;

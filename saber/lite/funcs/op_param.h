@@ -582,6 +582,12 @@ struct SoftmaxParam : public ParamBase {
     int _axis;
 };
 
+struct SplitParam : public ParamBase {
+    SplitParam(){}
+    SplitParam(const SplitParam& param) {}
+    SplitParam&operator=(const SplitParam& param) { return *this; }
+};
+
 } //namespace lite
 
 } //namespace saber

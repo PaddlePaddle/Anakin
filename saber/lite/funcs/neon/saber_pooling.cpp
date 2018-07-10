@@ -89,12 +89,14 @@ SaberStatus SaberPooling::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &input
 
     if (_param->_flag_global) {
         _impl = pooling_global;
+        this->_flag_init = true;
         return SaberSuccess;
     }
 
     if (_param->_pool_kw != _param->_pool_kh || _param->_pool_stride_w != _param->_pool_stride_h \
         || _param->_pool_stride_w != 2 || _param->_pool_pad_w != _param->_pool_pad_h || _param->_pool_pad_w > 1) {
         _impl = pooling_basic;
+        this->_flag_init = true;
         return SaberSuccess;
     }
 
@@ -104,6 +106,7 @@ SaberStatus SaberPooling::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &input
         } else {
             _impl = pooling2x2s2_ave;
         }
+        this->_flag_init = true;
         return SaberSuccess;
     }
 
@@ -113,6 +116,7 @@ SaberStatus SaberPooling::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &input
         } else {
             _impl = pooling3x3s2_ave;
         }
+        this->_flag_init = true;
         return SaberSuccess;
     }
 
