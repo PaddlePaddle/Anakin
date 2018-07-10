@@ -34,6 +34,7 @@ public:
     virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             FcParam<OpTensor>& param, Context<BM>& ctx){
+        _handle = get_bm_handle();
         return create(inputs, outputs, param, ctx);
     }
 
@@ -47,16 +48,20 @@ public:
                             std::vector<DataTensor_out *>& outputs,
                             FcParam<OpTensor>& param){
         const InDataType *in_data = (const InDataType *) inputs[0]->data();
-        const InDataType *weights = (const InDataType *) param.weights->get_buf()->get_data();
-        const InDataType *bias = (const InDataType *) param.bias->get_buf()->get_data();
+        const InDataType *weights = (const InDataType *) param.weights->data();
+        const InDataType *bias = (const InDataType *) param.bias->data();
         OutDataType *out_data = (OutDataType *) outputs[0]->mutable_data();
-        int batch_size = inputs[0]->num();
-        int input_len = inputs[0]->channel();
+        int batch_size = inputs[0]->count_valid(0, param.axis);
+        int input_len = inputs[0]->count_valid(param.axis, inputs[0]->dims());
         int output_len = param.num_output;
-        int is_transpose = param.is_transpose_weights ? 1 : 0;
-        BMDNN_CHECK(bmdnn_fc_forward(_handle, in_data, weights, bias,
-                                    batch_size, output_len, input_len, is_transpose, 1, 0,
-                                    out_data));
+        if (output_len <= 0) {
+            int weight_size = param.weights->valid_size();
+            output_len = weight_size / input_len;
+        }
+
+        BMDNN_CHECK(bmdnn_fc_forward(_handle, *in_data, *weights, *bias,
+                                    batch_size, output_len, input_len, param.is_transpose_weights, 1, 0,
+                                    *out_data));
         return SaberSuccess;
     };
 
@@ -64,7 +69,6 @@ private:
     bm_handle_t _handle;
 };
 
-template class VenderFc<BM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
 } //namespace saber
 
 } //namespace anakin

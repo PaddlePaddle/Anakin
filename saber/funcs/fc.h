@@ -26,6 +26,10 @@
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/vender_fc.h"
 #endif
+
+#ifdef USE_BM
+#include "saber/funcs/impl/bm/vender_fc.h"
+#endif
    
 namespace anakin{
 
