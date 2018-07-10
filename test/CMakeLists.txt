@@ -10,22 +10,26 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
-# limitations under the License.
+# limitation under the License.
 
 # used for temporary
+if(BUILD_WITH_FRAMEWORK)
 anakin_fetch_include_recursively(${ANAKIN_FRAMEWORK})
 anakin_fetch_include_recursively(${ANAKIN_MODEL_PARSER})
+endif()
 anakin_fetch_include_recursively(${ANAKIN_SABER})
 
 if(USE_GTEST)
     anakin_find_gtest()
 endif()
 
-anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/core "cpp" ANAKIN_TEST_CASE_SRC)
-anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/graph "cpp" ANAKIN_TEST_CASE_SRC)
-anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/operators "cpp" ANAKIN_TEST_CASE_SRC)
-anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/net "cpp" ANAKIN_TEST_CASE_SRC)
-anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/lite "cpp" ANAKIN_TEST_CASE_SRC)
+if(BUILD_WITH_FRAMEWORK)
+    anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/core "cpp" ANAKIN_TEST_CASE_SRC)
+    anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/graph "cpp" ANAKIN_TEST_CASE_SRC)
+    anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/operators "cpp" ANAKIN_TEST_CASE_SRC)
+    anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/net "cpp" ANAKIN_TEST_CASE_SRC)
+    anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/lite "cpp" ANAKIN_TEST_CASE_SRC)
+endif()
 
 
 if(NVIDIA_GPU)
@@ -64,7 +68,11 @@ foreach(SRC_NAME ${ANAKIN_TEST_CASE_SRC})
 	list(GET SEXY_LIST 0 TEST_CASE_NAME)
 	add_executable(${TEST_CASE_NAME}  ${SRC_NAME})
 	if(BUILD_SHARED)
-		target_link_libraries(${TEST_CASE_NAME} ${anakin_lib_so})
+            if(BUILD_WITH_FRAMEWORK)
+                target_link_libraries(${TEST_CASE_NAME} ${anakin_lib_so})
+            else()
+                target_link_libraries(${TEST_CASE_NAME} ${ANAKIN_SABER_LIB_TARGET})
+            endif()
 	else()
 		target_link_libraries(${TEST_CASE_NAME} -Wl,--whole-archive ${anakin_lib_static} -Wl,--no-whole-archive)
 	endif()
