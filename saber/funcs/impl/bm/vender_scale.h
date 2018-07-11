@@ -87,7 +87,7 @@ public:
                  host_extension[i] = host_bias[bias_dim];
             }
 
-            bm_flush(get_bm_handle());
+            bm_flush(_handle);
             BMDNN_CHECK(bmdnn_bias_forward(_handle, out_data, bm_mem_from_system(host_extension),
                     outer_dim, scale_dim * inner_dim, out_data));
 
