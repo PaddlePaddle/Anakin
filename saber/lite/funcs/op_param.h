@@ -14,7 +14,7 @@
 #ifndef ANAKIN_SABER_LITE_FUNCS_OP_PARAM_H
 #define ANAKIN_SABER_LITE_FUNCS_OP_PARAM_H
 
-#include "common_lite.h"
+#include "saber/lite/core/common_lite.h"
 namespace anakin{
 
 namespace saber{

@@ -137,6 +137,10 @@ void GenCPP<Ttype, Dtype, Ptype>::model_ios_init() {
     _code.feed("void %s_model_ios_init() {\n", _code_name.c_str());
     _code.feed("    %s_tensor_ins.resize(%d);\n", _code_name.c_str(), this->_exec_node_order.size());
     _code.feed("    %s_tensor_outs.resize(%d);\n", _code_name.c_str(), this->_exec_node_order.size());
+    _code.feed("    for(int i = 0; i < %d; i++) {\n", this->_exec_node_order.size());
+    _code.feed("        %s_tensor_ins[i].clear();\n", _code_name.c_str());
+    _code.feed("        %s_tensor_outs[i].clear();\n", _code_name.c_str());
+    _code.feed("    }\n");
     _code.feed("    int i = 0;\n");
     for(auto & node_name : this->_exec_node_order) {
         if(this->_graph_node_map[node_name].op_name == "Input" || this->_graph_node_map[node_name].op_name == "Output") {
@@ -180,11 +184,15 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_ops() {
 template<typename Ttype, DataType Dtype, Precision Ptype>
 void GenCPP<Ttype, Dtype, Ptype>::gen_init_impl() {
 	_code<<"// initial function for model.\n"; 
-	_code.feed("void %s_init(Context& ctx) {\n", _code_name.c_str());
-
+	_code.feed("bool %s_init(Context& ctx) {\n", _code_name.c_str());
+    _code.feed("    bool flag = false;\n");
     _code.feed("    for (int i = 0; i < %s_g_ops.size(); i++) {\n", _code_name.c_str());
     _code.feed("        %s_g_ops[i]->compute_output_shape(%s_tensor_ins[i], %s_tensor_outs[i]);\n", _code_name.c_str(), _code_name.c_str(), _code_name.c_str());
-    _code.feed("        %s_g_ops[i]->init(%s_tensor_ins[i], %s_tensor_outs[i], ctx);\n", _code_name.c_str(), _code_name.c_str(), _code_name.c_str());
+    _code.feed("        flag = %s_g_ops[i]->init(%s_tensor_ins[i], %s_tensor_outs[i], ctx);\n", _code_name.c_str(), _code_name.c_str(), _code_name.c_str());
+    _code.feed("        if (!flag) {\n");
+    _code.feed("            printf(\"%s op init failed;\\n\", %s_g_ops[i]->get_op_name());\n", "%s", _code_name.c_str());
+    _code.feed("            return false;\n");
+    _code.feed("        }\n");
     _code << "    }\n";
 //	for(auto & node_name : this->_exec_node_order) {
 //		if(this->_graph_node_map[node_name].op_name == "Input" || this->_graph_node_map[node_name].op_name == "Output") {
@@ -200,15 +208,21 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_init_impl() {
 //															  node_name.c_str());
 //		}
 //	}
+    _code << "    return true;\n";
 	_code << "}\n";
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 void GenCPP<Ttype, Dtype, Ptype>::gen_run_impl(const bool debug_mode) {
 	_code << "// Running prediction for model. \n";
-	_code.feed("void %s_prediction() {\n", _code_name.c_str());
+	_code.feed("bool %s_prediction() {\n", _code_name.c_str());
+    _code.feed("    bool flag = false;\n");
     _code.feed("    for (int i = 0; i < %s_g_ops.size(); i++) {\n", _code_name.c_str());
-    _code.feed("        %s_g_ops[i]->dispatch(%s_tensor_ins[i], %s_tensor_outs[i]);\n", _code_name.c_str(), _code_name.c_str(), _code_name.c_str());
+    _code.feed("        flag = %s_g_ops[i]->dispatch(%s_tensor_ins[i], %s_tensor_outs[i]);\n", _code_name.c_str(), _code_name.c_str(), _code_name.c_str());
+    _code.feed("        if (!flag) {\n");
+    _code.feed("            printf(\"%s op dispatch failed;\\n\", %s_g_ops[i]->get_op_name());\n", "%s", _code_name.c_str());
+    _code.feed("            return false;\n");
+    _code.feed("        }\n");
     if (debug_mode) {
         _code.feed("        double mean_val = tensor_mean(*%s_tensor_outs[i][0]); \n", _code_name.c_str());
         _code.feed("        printf(\"mean_val in %s ops: %s \\n\", %s_g_ops[i]->get_op_name(), mean_val);\n", "%s", "%.6f", _code_name.c_str());
@@ -235,6 +249,7 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_run_impl(const bool debug_mode) {
 //            }
 //		}
 //	}
+    _code << "    return true;\n";
 	_code << "}\n";
 }
 
@@ -284,11 +299,11 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_head_api() {
 
 	// gen api for model init
 	_code.feed("/// %s_init should only be invoked once when input shape changes.\n", _code_name.c_str());
-	_code.feed("LITE_EXPORT void %s_init(Context& ctx);\n\n", _code_name.c_str());
+	_code.feed("LITE_EXPORT bool %s_init(Context& ctx);\n\n", _code_name.c_str());
 
 	// gen api for model prediction
 	_code.feed("/// Running prediction for model %s.\n", _code_name.c_str());
-	_code.feed("LITE_EXPORT void %s_prediction();\n\n", _code_name.c_str());
+	_code.feed("LITE_EXPORT bool %s_prediction();\n\n", _code_name.c_str());
 
 	// gen free function
 	_code.feed("/// Release all resource used by model %s.\n", _code_name.c_str());
@@ -366,7 +381,9 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_head_api_impl() {
 	_code.feed("    %s_tensors_init();\n", _code_name.c_str()); // invoke (model_name)_tensors_init()
 	_code.feed("    %s_model_ios_init();\n", _code_name.c_str()); // invoke (model_name)_model_ios_init()
     _code.feed("    for (int i = 0; i < %s_g_param.size(); i++) {\n", _code_name.c_str());
-    _code.feed("        delete %s_g_param[i];\n", _code_name.c_str());
+    _code.feed("        if (%s_g_param[i]) {\n", _code_name.c_str());
+    _code.feed("            delete %s_g_param[i];\n", _code_name.c_str());
+    _code.feed("        }\n");
     _code.feed("        %s_g_param[i] = nullptr;\n", _code_name.c_str());
     _code.feed("    }\n");
     _code.feed("    %s_g_param.clear();\n", _code_name.c_str());
@@ -406,13 +423,17 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_head_api_impl() {
     _code.feed("    for (int i = 0; i < %s_g_ops.size(); i++) {\n", _code_name.c_str());
     _code.feed("        if (%s_g_ops[i]) {\n", _code_name.c_str());
     _code.feed("            delete %s_g_ops[i];\n", _code_name.c_str());
+    _code.feed("            %s_g_ops[i] = nullptr;\n", _code_name.c_str());
     _code.feed("        }\n");
     _code.feed("    }\n");
+    _code.feed("    %s_g_ops.clear();\n", _code_name.c_str());
     _code.feed("    for (int i = 0; i < %s_g_param.size(); i++) {\n", _code_name.c_str());
     _code.feed("        if (%s_g_param[i]) {\n", _code_name.c_str());
     _code.feed("            delete %s_g_param[i];\n", _code_name.c_str());
+    _code.feed("            %s_g_param[i] = nullptr;\n", _code_name.c_str());
     _code.feed("        }\n");
     _code.feed("    }\n");
+    _code.feed("    %s_g_param.clear();\n", _code_name.c_str());
 	_code.feed("    delete [] %s;\n", _g_weights_ptr_name.c_str());
 	_code.feed("    %s = nullptr;\n", _g_weights_ptr_name.c_str());
 	_code <<"}\n\n";
