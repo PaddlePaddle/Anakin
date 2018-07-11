@@ -1695,6 +1695,54 @@ struct EltwiseParam {
     std::vector<DataDtype> coeff;
 };
 
+#ifdef USE_BM
+template <>
+struct EltwiseParam<Tensor<BM, AK_BM, NCHW>> {
+    EltwiseParam()
+        : operation(Eltwise_unknow)
+        , coeff()
+    {}
+    EltwiseParam(EltwiseType operation_in
+            , std::vector<float> coeff_in = std::vector<float>({1,1}))
+        : operation(operation_in)
+        , coeff(coeff_in)
+    {
+        if ((operation == Eltwise_sum) && (coeff.size() == 0)) {
+            coeff.push_back(1);
+            coeff.push_back(1);
+        }
+    }
+
+    EltwiseParam(const EltwiseParam<Tensor<BM, AK_BM, NCHW>>& right)
+        : operation(right.operation)
+        , coeff(right.coeff)
+    {}
+
+    EltwiseParam<Tensor<BM, AK_BM, NCHW>>& operator=(const EltwiseParam<Tensor<BM, AK_BM, NCHW>>& right) {
+        operation = right.operation;
+        coeff.resize(right.coeff.size());
+        for (int i = 0; i < coeff.size(); ++i) {
+            coeff[i] = right.coeff[i];
+        }
+        return *this;
+    }
+
+    bool operator==(const EltwiseParam<Tensor<BM, AK_BM, NCHW>>& right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (operation == right.operation);
+        comp_eq = comp_eq && (coeff.size() == right.coeff.size());
+        if (!comp_eq) {
+            return comp_eq;
+        }
+        for (int i = 0; i < coeff.size(); ++i) {
+            comp_eq = comp_eq && (coeff[i] == right.coeff[i]);
+        }
+    }
+    EltwiseType operation;
+    std::vector<float> coeff;
+};
+#endif
+
 template <typename opTensor>
 struct EltwiseActiveParam {
     EltwiseActiveParam()

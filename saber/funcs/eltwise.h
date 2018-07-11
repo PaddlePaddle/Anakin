@@ -26,6 +26,10 @@
 #include "saber/funcs/impl/x86/saber_eltwise.h"
 #endif
 
+#ifdef USE_BM
+#include "saber/funcs/impl/bm/vender_eltwise.h"
+#endif
+
 namespace anakin {
 namespace saber {
 
