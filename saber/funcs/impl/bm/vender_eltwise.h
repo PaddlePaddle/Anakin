@@ -13,7 +13,7 @@ template <DataType OpDtype,
             typename LayOutType_op,
             typename LayOutType_in,
             typename LayOutType_out>
-class SaberEltwise<BM, OpDtype, inDtype, outDtype, LayOutType_op, LayOutType_in, LayOutType_out>:\
+class VenderEltwise<BM, OpDtype, inDtype, outDtype, LayOutType_op, LayOutType_in, LayOutType_out>:\
 public ImplBase<
         Tensor<BM, inDtype, LayOutType_in>,
         Tensor<BM, outDtype, LayOutType_out>,
@@ -28,9 +28,9 @@ public:
     typedef typename DataTensor_out::Dtype OutDataType;
     typedef typename OpTensor::Dtype OpDataType;
 
-    SaberEltwise() {}
+    VenderEltwise() {}
 
-    ~SaberEltwise() {}
+    ~VenderEltwise() {}
 
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
                          std::vector<DataTensor_out*>& outputs,
@@ -44,7 +44,6 @@ public:
                            std::vector<DataTensor_out*>& outputs,
                            EltwiseParam<OpTensor> &param,
                            Context<BM> &ctx) {
-        return SaberSuccess;
     }
 
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
@@ -77,7 +76,8 @@ public:
 
         std::vector<float> coeff_ = param.coeff;
         if (coeff_.size() != inputs.size()) {
-            for (int j=0; j<(inputs.size() - coeff_.size()); j++) {
+            int diff = inputs.size() - coeff_.size();
+            for (int j=0; j<diff; j++) {
                 coeff_.push_back(1);
             }
         }
@@ -103,7 +103,8 @@ public:
             bm_flush(_handle);
             flag_first = 0;
         }
-        bm_free_device(_handle, *mask_data);
+
+        //bm_free_device(_handle, *mask_data);
         return SaberSuccess;
     }
 
