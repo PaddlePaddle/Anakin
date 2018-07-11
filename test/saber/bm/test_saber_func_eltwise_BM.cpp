@@ -7,7 +7,7 @@
 
 using namespace anakin::saber;
 
-/*
+
 TEST(TestSaberFuncBM, test_func_prod) {
 
     Env<BM>::env_init();
@@ -63,12 +63,10 @@ TEST(TestSaberFuncBM, test_func_prod) {
 
 
     Context<BM> ctx_dev(0, 1, 1);
-    Eltwise<BM, AK_BM> eltwise_dev;
+    Eltwise<BM, AK_BM, AK_BM, AK_BM, NCHW> eltwise_dev;
 
     LOG(INFO) << "eltwise compute output shape";
-    eltwise_dev.compute_output_shape(output_dev_4d, input_dev_4d, param);
-
-    //SABER_CHECK(eltwise_dev.compute_output_shape(output_dev_4d, input_dev_4d, param));
+    eltwise_dev.compute_output_shape(input_dev_4d, output_dev_4d, param);
 
     // Verify output shape
     Shape sh = output_dev_4d[0]->valid_shape();
@@ -86,22 +84,9 @@ TEST(TestSaberFuncBM, test_func_prod) {
     LOG(INFO) << "eltwise compute";
     eltwise_dev(input_dev_4d, output_dev_4d, param, ctx_dev);
 
-
-    output_dev_4d[0]->record_event(ctx_dev.get_compute_stream());
-    output_dev_4d[0]->sync();
     print_tensor_device(*output_dev_4d[0]);
-    cudaDeviceSynchronize();
-
-
-    TensorHf4 th_for_print;
-    th_for_print.re_alloc(output_dev_4d[0]->valid_shape());
-    th_for_print.copy_from(*output_dev_4d[0]);
-    print_tensor_host(th_for_print);
-
-    CUDA_CHECK(cudaPeekAtLastError());
 }
 
-*/
 
 TEST(TestSaberFuncBM, test_func_sum) {
 
