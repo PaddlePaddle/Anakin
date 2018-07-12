@@ -163,9 +163,18 @@ if(BUILD_LITE_UNIT_TEST)
 	endforeach()
 endif()
 
-install(DIRECTORY ${ANAKIN_LITE_ROOT}/saber  ${ANAKIN_LITE_ROOT}/utils
-		DESTINATION ${PROJECT_SOURCE_DIR}/output/
+FILE(GLOB MODEL_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
+
+install(DIRECTORY ${ANAKIN_LITE_SABER}/../../saber/lite
+		DESTINATION ${PROJECT_SOURCE_DIR}/output/include/saber/lite
 		FILES_MATCHING
-		PATTERN "*.bin"
-		PATTERN "*.h"
-		PATTERN "*.inl")
+		PATTERN "*.h")
+install(FILES ${ANAKIN_LITE_SABER}/../../saber/saber_types.h
+        DESTINATION ${PROJECT_SOURCE_DIR}/output/include/saber)
+install(FILES ${MODEL_HEADER}
+        DESTINATION ${PROJECT_SOURCE_DIR}/output/include)
+install(FILES ${PROJECT_BINARY_DIR}/anakin_config.h
+        DESTINATION ${PROJECT_SOURCE_DIR}/output/include)
+install(TARGETS ${anakin_lite_lib_so} ${anakin_lite_lib_static}
+		LIBRARY DESTINATION ${PROJECT_SOURCE_DIR}/output/lib
+		ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/output/lib)
