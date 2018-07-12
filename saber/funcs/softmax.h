@@ -26,6 +26,11 @@
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_softmax.h"
 #endif
+
+#ifdef USE_AMD
+#include "saber/funcs/impl/amd/saber_softmax.h"
+#endif
+
 #ifdef USE_ARM_PLACE
 #include "saber/funcs/impl/arm/saber_softmax.h"
 #endif

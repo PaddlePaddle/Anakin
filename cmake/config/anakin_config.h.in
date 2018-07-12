@@ -52,6 +52,8 @@
 
 #cmakedefine USE_GFLAGS
 
+#cmakedefine USE_AMD
+
 // plantform to use
 #cmakedefine USE_GPU_PLACE
 

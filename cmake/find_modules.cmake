@@ -79,8 +79,8 @@ macro(anakin_find_opencl)
 	set(OCL_ROOT "" CACHE PATH "openCL root dir.")
 
 	find_path(OCL_INCLUDE_DIR  NAMES  CL/cl.h PATHS ${OCL_ROOT}/include $ENV{OCL_ROOT}/include)
+	find_library(OCL_LIBRARIES NAMES libOpenCL.so PATHS ${OCL_ROOT} ${OCL_ROOT}/lib/x86_64 $ENV{OCL_ROOT}/lib $ENV{OCL_ROOT}/lib/x86_64)
 
-	find_library(OCL_LIBRARIES NAMES libOpenCL.so PATHS ${OCL_ROOT})
 	if(OCL_INCLUDE_DIR AND OCL_LIBRARIES)
 		set(OCL_FOUND  TRUE)
 		message(STATUS "Found opencl: ${OCL_INCLUDE_DIR}")

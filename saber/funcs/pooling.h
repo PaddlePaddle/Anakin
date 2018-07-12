@@ -26,9 +26,15 @@
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_pooling.h"
 #endif
+
+#ifdef USE_AMD
+#include "saber/funcs/impl/amd/saber_pooling.h"
+#endif
+
 #ifdef USE_ARM_PLACE
 #include "saber/funcs/impl/arm/saber_pooling.h"
 #endif
+
 namespace anakin {
 namespace saber {
 

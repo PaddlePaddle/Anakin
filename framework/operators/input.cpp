@@ -62,11 +62,20 @@ template class InputHelper<X86, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, X86, AK_FLOAT, Precision::FP32);
 #endif
 
+#ifdef USE_AMD
+INSTANCE_INPUT(AMD, AK_FLOAT, Precision::FP32);
+template class InputHelper<AMD, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, AMD, AK_FLOAT, Precision::FP32);
+#endif
+
 //! register op
 ANAKIN_REGISTER_OP(Input)
 .Doc("Input operator [ only a input data holder and reshape ] ")
 #ifdef USE_CUDA
 .__alias__<NV, AK_FLOAT, Precision::FP32>("input")
+#endif
+#ifdef USE_AMD
+    .__alias__<AMD, AK_FLOAT, Precision::FP32>("input")
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("input")

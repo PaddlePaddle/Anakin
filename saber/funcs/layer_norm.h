@@ -29,6 +29,12 @@
 //todo
 #include "saber/funcs/impl/impl_layer_norm.h"
 #endif
+
+#ifdef USE_AMD
+//todo
+#include "saber/funcs/impl/impl_layer_norm.h"
+#endif
+
 namespace anakin{
 
 namespace saber{

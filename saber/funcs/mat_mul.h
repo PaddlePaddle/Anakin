@@ -26,6 +26,16 @@
 #include "saber/funcs/impl/impl_mat_mul.h"
 #endif
 
+#ifdef USE_ARM_PLACE
+//todo
+#include "saber/funcs/impl/impl_mat_mul.h"
+#endif
+
+#ifdef USE_AMD
+//todo
+#include "saber/funcs/impl/impl_mat_mul.h"
+#endif
+
 namespace anakin{
 
 namespace saber{

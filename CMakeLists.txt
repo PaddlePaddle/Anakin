@@ -57,12 +57,14 @@ anakin_option(ANAKIN_TYPE_INT8 "define the INT8 for data precision." NO)
 anakin_option(USE_GPU_PLACE "Select the build mode for GPU place." NO)
 anakin_option(USE_X86_PLACE "Select the build mode for X86 place." YES)
 anakin_option(USE_ARM_PLACE "Select the build mode for ARM place." NO)
+anakin_option(USE_NV_GPU "build for nvidia gpu" YES)
+anakin_option(USE_AMD_GPU "build for nvidia gpu" NO)
 
 # plantfrom details
-anakin_option(NVIDIA_GPU "Use NVIDIA GPU place." YES if USE_GPU_PLACE)
-anakin_option(AMD_GPU "Use AMD GPU place." NO if USE_GPU_PLACE AND NOT NVIDIA_GPU)
-anakin_option(TARGET_ANDROID "" YES if USE_ARM_PLACE)
-anakin_option(TARGET_IOS "" NO if USE_ARM_PLACE)
+anakin_option(NVIDIA_GPU "Use NVIDIA GPU place." YES if USE_GPU_PLACE AND USE_NV_GPU)
+anakin_option(AMD_GPU "Use AMD GPU place." YES if USE_GPU_PLACE AND USE_AMD_GPU)
+anakin_option(TARGET_ANDROID "build for android" YES if USE_ARM_PLACE)
+anakin_option(TARGET_IOS "not supported now" NO)
 
 # compile options for NVIDIA_GPU place
 anakin_option(USE_CUDA "Use Cuda libs." YES if NVIDIA_GPU)
@@ -72,6 +74,9 @@ anakin_option(USE_CUFFT "Use CuFFT libs." YES if USE_CUDA)
 anakin_option(USE_CUDNN "Use Cudnn libs." YES if USE_CUDA)
 anakin_option(BUILD_CROSS_PLANTFORM "Build anakin lib for any nvidia device plantform." YES if USE_CUDA)
 anakin_option(BUILD_FAT_BIN "Build anakin cuda fat-bin lib for all device plantform" NO if BUILD_CROSS_PLANTFORM)
+
+# build options for amd.
+anakin_option(USE_AMD "Use AMD ROCm OpenCL" YES if AMD_GPU)
 
 cmake_minimum_required(VERSION ${MIN_CMAKE_V} FATAL_ERROR)
 
@@ -88,7 +93,6 @@ endif()
 anakin_option(BUILD_CUBIN "BUILD with the -cubin option in Device mode" NO if USE_CUDA)
 anakin_option(COMPILE_PTX "Returns a list of PTX files generated from src." NO if USE_CUDA)
 
-
 # common build options
 anakin_option(ENABLE_DEBUG "Enable DEBUG(default) mode." NO)
 anakin_option(ENABLE_VERBOSE_MSG "Enable verbose=1 : compile msg during make." NO)
@@ -104,7 +108,7 @@ anakin_option(USE_BOOST "Use static BOOST libs." NO)
 anakin_option(USE_OPENMP "Use Openmp when in android environment." YES if TARGET_ANDROID)
 anakin_option(USE_GTEST "Use googletest libs." NO if BUILD_WITH_UNIT_TEST)
 anakin_option(USE_PYTHON "Generate py wrappers." NO)
-anakin_option(USE_OPENCL "Use OpenCL ." NO)
+anakin_option(USE_OPENCL "Use OpenCL ." YES if USE_AMD)
 anakin_option(USE_GFLAGS "Build Google gflags components." NO)
 anakin_option(USE_MKL "Use mkl libs." NO if USE_X86_PLACE)
 anakin_option(USE_MKLML "Use MKLML libs." YES if USE_X86_PLACE)
@@ -172,6 +176,10 @@ if(USE_X86_PLACE)
         include(cmake/external/xbyak.cmake)
     endif()
     #include(cmake/external/mkldnn.cmake)
+endif()
+
+if(USE_AMD)
+    include(cmake/amd.cmake)
 endif()
 
 # gather all the config options to anakin

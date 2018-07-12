@@ -27,6 +27,10 @@
 #include "saber/funcs/impl/impl_conv.h"
 #endif
 
+#ifdef USE_AMD
+#include "saber/funcs/impl/amd/saber_conv.h"
+#endif
+
 #ifdef USE_ARM_PLACE
 #include "saber/funcs/impl/arm/saber_conv.h"
 #endif

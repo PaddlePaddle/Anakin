@@ -248,6 +248,78 @@ private:
 	std::shared_ptr<h_type> _h_inner_tensor;
 };
 
+#ifdef USE_AMD
+
+template<typename Dtype>
+class PBlock<Dtype, AMD> {
+public:
+	typedef Tensor4d<AMD, DataTypeRecover<Dtype>::type> d_type;
+	typedef Tensor4d<X86, DataTypeRecover<Dtype>::type> h_type;
+
+	PBlock() {
+		_d_inner_tensor = std::make_shared<d_type>(); 
+		_h_inner_tensor = std::make_shared<h_type>();
+	}
+
+	PBlock(Shape4d& shape) {
+        _d_inner_tensor = std::make_shared<d_type>(shape);
+        _h_inner_tensor = std::make_shared<h_type>(shape);
+    }
+
+	inline bool host_only() { return false; }
+
+    /// shallow copy construction
+    PBlock(PBlock<Dtype, AMD>& p_block) { *this = p_block; }
+
+    PBlock(const PBlock<Dtype, AMD>& p_block) { *this = p_block; }
+
+    /// assign
+    PBlock<Dtype, AMD>& operator=(const PBlock<Dtype, AMD>& p_block) {
+        _d_inner_tensor = p_block._d_inner_tensor;
+        _h_inner_tensor = p_block._h_inner_tensor;
+    }
+
+    PBlock<Dtype, AMD>& operator=(PBlock<Dtype, AMD>& p_block) {
+        _d_inner_tensor = p_block._d_inner_tensor;
+        _h_inner_tensor = p_block._h_inner_tensor;
+    }
+
+    /// Get tensor.
+    d_type& d_tensor() { return *(_d_inner_tensor); }
+    h_type& h_tensor() { return *(_h_inner_tensor); }
+
+    /// Get host data to vector.
+    std::vector<Dtype> vector() {
+        std::vector<Dtype> ret;
+        auto* data = _h_inner_tensor->mutable_data();
+        for (int i = 0; i <_h_inner_tensor->valid_size(); i++) {
+            ret.push_back(data[i]);
+        }
+        return ret;
+    }
+
+    /// Get shape.
+    Shape4d shape() { 
+        CHECK(_d_inner_tensor->valid_shape() == _h_inner_tensor->valid_shape()) 
+            << " [Fatal Err]  device shape is not equal to that of host in PBlock";
+        return _d_inner_tensor->valid_shape(); 
+    }
+
+    /// Get size.
+    size_t count() { 
+        return this->shape().count();
+    }
+
+    ~PBlock() {}
+
+private: 
+	std::shared_ptr<d_type> _d_inner_tensor; 
+	std::shared_ptr<h_type> _h_inner_tensor;
+};
+#endif
+
+#ifdef USE_X86_PLACE
+
 template<typename Dtype>
 class PBlock<Dtype, X86> {
 public:

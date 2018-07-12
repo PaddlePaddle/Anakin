@@ -29,6 +29,13 @@
 //todo
 #include "saber/funcs/impl/impl_mvn.h"
 #endif
+
+
+#ifdef USE_AMD
+//todo
+#include "saber/funcs/impl/impl_mvn.h"
+#endif
+
 namespace anakin{
 
 namespace saber{

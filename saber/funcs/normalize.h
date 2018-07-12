@@ -29,6 +29,13 @@
 //todo
 #include "saber/funcs/impl/impl_normalize.h"
 #endif
+
+
+#ifdef USE_AMD
+//todo
+#include "saber/funcs/impl/impl_normalize.h"
+#endif
+
 namespace anakin{
 
 namespace saber{

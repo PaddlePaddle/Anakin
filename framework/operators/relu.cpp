@@ -65,12 +65,23 @@ template class ReLUHelper<ARM, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ReLU, ReLUHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif//arm
 
+#ifdef USE_AMD
+INSTANCE_RELU(AMD, AK_FLOAT, Precision::FP32);
+template class ReLUHelper<AMD, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(ReLU, ReLUHelper, AMD, AK_FLOAT, Precision::FP32);
+#endif
+
 //! register op
 ANAKIN_REGISTER_OP(ReLU)
 .Doc("ReLU operator")
 #ifdef USE_CUDA
 .__alias__<NV, AK_FLOAT, Precision::FP32>("Relu")
 #endif
+
+#ifdef USE_AMD
+.__alias__<AMD, AK_FLOAT, Precision::FP32>("Relu")
+#endif
+
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("Relu")
 #endif

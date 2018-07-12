@@ -1,4 +1,3 @@
-
 #include <string>
 #include "saber/funcs/timer.h"
 #include <chrono>
@@ -28,9 +27,13 @@ class EngineBase {
 template <typename Ttype, DataType Dtype, Precision Ptype>
 class AnakinEngine : public EngineBase {
 public:
-  typedef typename anakin::saber::DataTrait<NV, Dtype>::dtype Dtype_t;
+  typedef typename anakin::saber::DataTrait<NV, Dtype>::Dtype Dtype_t;
   typedef anakin::saber::TargetWrapper<X86> X86_API;
-  typedef anakin::saber::TargetWrapper<NV> NV_API;
+
+#ifdef USE_CUDA
+  typedef anakin::saber::TargetWrapper<Ttype> NV_API;
+#endif
+
   AnakinEngine(){}
 
   ~AnakinEngine(){};
@@ -69,8 +72,11 @@ public:
   {
     auto input_tensor = _net_executer.get_in(name);
     CHECK_EQ(size, input_tensor->valid_size());
+#ifdef USE_CUDA
     anakin::Tensor<Ttype, Dtype> tmp_tensor(data, NV(), NV_API::get_device_id(), input_tensor->valid_shape());
     *input_tensor = tmp_tensor;
+#endif
+
   };
   // Get an output called name, the output of tensorrt is in GPU, so this method
   // will just return the output's GPU memory address.
@@ -91,6 +97,5 @@ class AnakinEngine<NV, anakin::saber::AK_FLOAT, anakin::Precision::FP32>;
 template 
 class AnakinEngine<X86, anakin::saber::AK_FLOAT, anakin::Precision::FP32>;
 #endif*/
-
 
 

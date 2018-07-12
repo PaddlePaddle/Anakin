@@ -30,6 +30,12 @@
 //todo
 #include "saber/funcs/impl/impl_permute_power.h"
 #endif
+
+#ifdef USE_AMD
+//todo
+#include "saber/funcs/impl/impl_permute_power.h"
+#endif
+
 namespace anakin {
 namespace saber {
 

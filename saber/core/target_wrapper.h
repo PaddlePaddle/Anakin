@@ -15,10 +15,11 @@
 
 #ifndef ANAKIN_SABER_CORE_TARGET_WRAPPER_H
 #define ANAKIN_SABER_CORE_TARGET_WRAPPER_H
-#include "core/target_traits.h"
+#include "saber/core/target_traits.h"
+#include "saber/core/data_traits.h"
 #include <memory>
 
-namespace anakin {
+namespace anakin{
 
 namespace saber {
 
@@ -360,6 +361,142 @@ struct TargetWrapper<NV, __device_target> {
 };
 
 #endif //USE_CUDA
+
+#ifdef USE_AMD
+
+/**
+ * \brief for AMD device target only, device target is AMD gpu
+ * use cuda api to manage memory
+ * support device to device, device to host, host to device memcpy
+*/
+template <>
+struct TargetWrapper<AMD, __device_target> {
+
+    typedef typename PtrTrait<AMD>::PtrType TPtr;
+
+    typedef cl_event event_t;
+    typedef cl_command_queue stream_t;
+
+    static void get_device_count(int& count);
+
+    static void set_device(int id);
+
+    //We should add strategy to avoid malloc directly
+    static void mem_alloc(TPtr* ptr, size_t n);
+
+    //template <typename void>
+    static void mem_free(TPtr ptr);
+
+    static void mem_set(TPtr ptr, int value, size_t n);
+
+    static void create_event(event_t& event, bool flag = false);
+
+    static void create_stream(stream_t& stream);
+
+    /**
+     * \brief create cuda stream with flag
+     * @param stream    input stream
+     * @param flag      input flag, 0: default stream flag, 1: cudaStreamNonBlocking
+     */
+    static void create_stream_with_flag(stream_t& stream, unsigned int flag);
+
+    static void create_stream_with_priority(stream_t& stream, unsigned int flag, int priority);
+
+    static void destroy_stream(stream_t& stream);
+
+    static void destroy_event(event_t& event);
+
+    static void record_event(event_t& event, stream_t stream);
+
+    static void query_event(event_t& event);
+
+    static void sync_event(event_t& event);
+
+    static void sync_stream(event_t& event, stream_t& stream);
+    
+    static void sync_memcpy(TPtr dst, int dst_id, const TPtr src, int src_id, \
+        size_t count, __DtoD);
+
+    static void async_memcpy(TPtr dst, int dst_id, const TPtr src, int src_id, \
+        size_t count, stream_t& stream, __DtoD);
+
+    static void sync_memcpy(TPtr dst, int dst_id, const void* src, int src_id, \
+        size_t count, __HtoD);
+
+    static void async_memcpy(TPtr dst, int dst_id, const void* src, int src_id, \
+        size_t count, stream_t& stream, __HtoD);
+
+    static void sync_memcpy(void* dst, int dst_id, const TPtr src, int src_id, \
+        size_t count, __DtoH);
+
+    static void async_memcpy(void* dst, int dst_id, const TPtr src, int src_id, \
+        size_t count, stream_t& stream, __DtoH);
+
+    static void sync_memcpy_p2p(TPtr dst, int dst_dev, const TPtr src, \
+        int src_dev, size_t count);
+
+    static void async_memcpy_p2p(TPtr dst, int dst_dev, const TPtr src, \
+        int src_dev, size_t count, stream_t& stream);
+
+    /**
+     * \brief device target return currently used device id
+     * @return          currently activated device id
+     */
+    static int get_device_id();
+
+    //static cl_platform_id platform_id;
+    //static cl_device_id current_device_id;
+
+    static cl_platform_id get_platform_id();
+
+    /**
+     * \brief create cuda stream with flag
+     * @param stream    input stream
+     * @param flag      input flag
+     */
+    static void _create_stream_with_flag(stream_t& stream, cl_context context, cl_device_id dev, unsigned int flag);
+
+    static void sync_memcpy_with_offset(void* dst, int dst_id, size_t dst_offset, const void* src, int src_id, size_t src_offset, \
+        size_t count, __DtoD);
+
+    static void async_memcpy_with_offset(void* dst, int dst_id, size_t dst_offset, const void* src, int src_id, size_t src_offset, \
+        size_t count, stream_t& stream, __DtoD);
+
+    static void sync_memcpy_with_offset(void* dst, int dst_id, size_t dst_offset, const void* src, int src_id, size_t src_offset, \
+        size_t count, __HtoD);
+
+    static void async_memcpy_with_offset(void* dst, int dst_id, size_t dst_offset, const void* src, int src_id, size_t src_offset, \
+        size_t count, stream_t& stream, __HtoD);
+
+    static void sync_memcpy_with_offset(void* dst, int dst_id, size_t dst_offset, const void* src, int src_id, size_t src_offset, \
+        size_t count, __DtoH);
+
+    static void async_memcpy_with_offset(void* dst, int dst_id, size_t dst_offset, const void* src, int src_id, size_t src_offset, \
+        size_t count, stream_t& stream, __DtoH);
+
+    static void sync_memcpy_with_offset(void* dst, int dst_id, size_t dst_office, const void* src, int src_id, size_t src_office, \
+        size_t count, __HtoH) {
+        CHECK(false) << "AMD sync_memcpy H2H, should not be here";
+    }
+
+    template<typename stream_type>
+    static void async_memcpy_with_offset(void* dst, int dst_id, size_t dst_office, const void* src, int src_id, size_t src_office, \
+        size_t count, stream_type &stream, __HtoH) {
+        CHECK(false) << "AMD async_memcpy H2H, should not be here";
+    }
+    //static void init();
+
+    //static cl_int enable_amd;
+    //static cl_device_id* device_ids;
+    //static cl_platform_id platform_id;
+    //static cl_uint device_nums;
+    static int current_device_id_index;
+    static std::map<void *, cl_mem> buffers;
+    //static cl_context* contexts;
+
+};
+
+#endif //USE_AMD
 
 } //namespace saber
 

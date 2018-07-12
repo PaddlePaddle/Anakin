@@ -151,7 +151,7 @@ NodeIO<Ttype, Dtype, Ptype>& NodeIO<Ttype, Dtype, Ptype>::operator>>(const NodeP
                     cpu_data[i] = data.f()[i];
                 }
 
-#ifdef USE_CUDA
+#if defined(USE_CUDA) || defined(USE_AMD) 
                 //! map cpu data to GPU
                 //block->tensor().get_gpu_data();
                 block->d_tensor().set_shape(saber_shape);
@@ -335,6 +335,12 @@ Status NodeIO<Ttype, Dtype, Ptype>::operator<<(GraphProto& graph) {
 template class NodeIO<NV, AK_FLOAT, Precision::FP32>;
 template class NodeIO<NV, AK_FLOAT, Precision::FP16>;
 template class NodeIO<NV, AK_FLOAT, Precision::INT8>;
+#endif
+
+#ifdef USE_AMD
+template class NodeIO<AMD, AK_FLOAT, Precision::FP32>;
+template class NodeIO<AMD, AK_FLOAT, Precision::FP16>;
+template class NodeIO<AMD, AK_FLOAT, Precision::INT8>;
 #endif
 
 #ifdef USE_X86_PLACE

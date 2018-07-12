@@ -29,6 +29,12 @@
 //todo
 #include "saber/funcs/impl/impl_transpose.h"
 #endif
+
+#ifdef USE_AMD
+//todo
+#include "saber/funcs/impl/impl_transpose.h"
+#endif
+
 namespace anakin{
 
 namespace saber{

@@ -27,6 +27,10 @@
 #include "saber/funcs/impl/x86/saber_conv_act_pooling.h"
 #endif
 
+#ifdef USE_AMD
+#include "saber/funcs/impl/amd/saber_conv_act_pooling.h"
+#endif
+
 #ifdef USE_ARM_PLACE
 //todo
 #include "saber/funcs/impl/arm/saber_conv_act_pooling.h"
