@@ -71,26 +71,32 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_tensors() {
 		auto& edge_name = it->first;
 		auto& edge_info = it->second;
 		if(! edge_info.is_shared) {
-			_code.feed("Tensor<CPU, AK_FLOAT> %s;\n", edge_name.c_str());
-			_code.feed("Shape %s_real_shape(%d,%d,%d,%d);\n", edge_name.c_str(), edge_info.real_shape[0],
-																			edge_info.real_shape[1],
-																			edge_info.real_shape[2],
-																			edge_info.real_shape[3]);
-			_code.feed("Shape %s_valid_shape(%d,%d,%d,%d);\n", edge_name.c_str(), edge_info.valid_shape[0],
-																				  edge_info.valid_shape[1],
-																				  edge_info.valid_shape[2],
-																				  edge_info.valid_shape[3]); 
+			_code.feed("Tensor<CPU, AK_FLOAT> %s_%s;\n", _code_name.c_str(), edge_name.c_str());
+			_code.feed("Shape %s_%s_real_shape(%d,%d,%d,%d);\n", _code_name.c_str(),
+                       edge_name.c_str(),
+                       edge_info.real_shape[0],
+                       edge_info.real_shape[1],
+                       edge_info.real_shape[2],
+                       edge_info.real_shape[3]);
+			_code.feed("Shape %s_%s_valid_shape(%d,%d,%d,%d);\n", _code_name.c_str(),
+                       edge_name.c_str(),
+                       edge_info.valid_shape[0],
+                       edge_info.valid_shape[1],
+                       edge_info.valid_shape[2],
+                       edge_info.valid_shape[3]);
 		}
 	}
 	for(auto it = this->_tensor_map.begin(); it != this->_tensor_map.end(); ++it) {
 		auto& edge_name = it->first;
 		auto& edge_info = it->second;
 		if(edge_info.is_shared) {
-			_code.feed("Tensor<CPU, AK_FLOAT> %s;\n", edge_name.c_str());
-			_code.feed("Shape %s_valid_shape(%d,%d,%d,%d);\n", edge_name.c_str(), edge_info.valid_shape[0],
-																				  edge_info.valid_shape[1],
-																				  edge_info.valid_shape[2],
-																				  edge_info.valid_shape[3]); 
+			_code.feed("Tensor<CPU, AK_FLOAT> %s_%s;\n", _code_name.c_str(), edge_name.c_str());
+			_code.feed("Shape %s_%s_valid_shape(%d,%d,%d,%d);\n", _code_name.c_str(),
+                       edge_name.c_str(),
+                       edge_info.valid_shape[0],
+                       edge_info.valid_shape[1],
+                       edge_info.valid_shape[2],
+                       edge_info.valid_shape[3]);
 		}
 	}
 }
@@ -103,16 +109,16 @@ void GenCPP<Ttype, Dtype, Ptype>::tensors_init() {
 		auto& edge_name = it->first;
 		auto& edge_info = it->second;
 		if(! edge_info.is_shared) {
-			_code.feed("    %s.re_alloc(%s_real_shape);\n", edge_name.c_str(), edge_name.c_str());
-			_code.feed("    %s.set_shape(%s_valid_shape);\n", edge_name.c_str(), edge_name.c_str());
+			_code.feed("    %s_%s.re_alloc(%s_%s_real_shape);\n", _code_name.c_str(), edge_name.c_str(), _code_name.c_str(), edge_name.c_str());
+			_code.feed("    %s_%s.set_shape(%s_%s_valid_shape);\n", _code_name.c_str(), edge_name.c_str(), _code_name.c_str(), edge_name.c_str());
 		}
 	}
 	for(auto it = this->_tensor_map.begin(); it != this->_tensor_map.end(); ++it) {
 		auto& edge_name = it->first;
 		auto& edge_info = it->second;
 		if(edge_info.is_shared) {
-			_code.feed("    %s.set_shape(%s_valid_shape);\n", edge_name.c_str(), edge_name.c_str());
-			_code.feed("    %s.share_from(%s);\n", edge_name.c_str(), edge_info.share_from.c_str());
+			_code.feed("    %s_%s.set_shape(%s_%s_valid_shape);\n", _code_name.c_str(), edge_name.c_str(), _code_name.c_str(), edge_name.c_str());
+			_code.feed("    %s_%s.share_from(%s_%s);\n", _code_name.c_str(), edge_name.c_str(), _code_name.c_str(), edge_info.share_from.c_str());
 		}
 	}
 	_code<<"}\n";
@@ -148,10 +154,10 @@ void GenCPP<Ttype, Dtype, Ptype>::model_ios_init() {
         }
         auto& node_info = this->_graph_node_map[node_name];
         for(auto &edge_in : node_info.ins) {
-            _code.feed("    %s_tensor_ins[i].push_back(&%s);\n", _code_name.c_str(), edge_in.c_str());
+            _code.feed("    %s_tensor_ins[i].push_back(&%s_%s);\n", _code_name.c_str(), _code_name.c_str(), edge_in.c_str());
         }
         for(auto &edge_out : node_info.outs) {
-            _code.feed("    %s_tensor_outs[i].push_back(&%s);\n", _code_name.c_str(), edge_out.c_str());
+            _code.feed("    %s_tensor_outs[i].push_back(&%s_%s);\n", _code_name.c_str(), _code_name.c_str(), edge_out.c_str());
         }
         _code.feed("    i++;\n");
     }	
@@ -320,7 +326,7 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_head_api_impl() {
     for(int i = 0; i < this->_ins.size(); i++) {
         auto node_info = this->_graph_node_map[this->_ins[i]];
         auto edge_info = this->_tensor_map[node_info.outs[0]];
-        _code.feed("    vin.push_back(&%s);\n", edge_info.name.c_str());
+        _code.feed("    vin.push_back(&%s_%s);\n", _code_name.c_str(), edge_info.name.c_str());
     }
     _code.feed("    return vin;\n");
 
@@ -344,7 +350,7 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_head_api_impl() {
     for(int i = 0; i < this->_outs.size(); i++) {
         auto node_info = this->_graph_node_map[this->_outs[i]];
         auto edge_info = this->_tensor_map[node_info.ins[0]];
-        _code.feed("    vout.push_back(&%s);\n", edge_info.name.c_str());
+        _code.feed("    vout.push_back(&%s_%s);\n", _code_name.c_str(), edge_info.name.c_str());
     }
     _code.feed("    return vout;\n");
 
