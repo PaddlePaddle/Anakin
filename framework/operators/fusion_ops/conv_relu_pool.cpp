@@ -14,6 +14,7 @@ void ConvReluPool<Ttype, Dtype, Ptype>::operator()(\
     auto& param = static_cast<ConvReluPoolHelper<Ttype, Dtype, Ptype>*>(this->_helper)->_param_conv_relu_pooling;\
     SABER_CHECK(impl->_funcs_conv_relu_pooling(ins, outs, param, ctx));\
 }
+
 /// set helper
 template<typename Ttype, DataType Dtype, Precision Ptype>
 ConvReluPoolHelper<Ttype, Dtype, Ptype>::~ConvReluPoolHelper() {
@@ -122,6 +123,11 @@ template class ConvReluPoolHelper<ARM, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ConvReluPool, ConvReluPoolHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
 
+#ifdef USE_AMD
+INSTANCE_CONVRELUPOOLING(AMD, AK_FLOAT, Precision::FP32);
+template class ConvReluPoolHelper<AMD, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(ConvReluPool, ConvReluPoolHelper, AMD, AK_FLOAT, Precision::FP32);
+#endif
 
 //! register op
 ANAKIN_REGISTER_OP(ConvReluPool)
@@ -131,6 +137,9 @@ ANAKIN_REGISTER_OP(ConvReluPool)
 #endif
 #ifdef USE_ARM_PLACE
     .__alias__<ARM, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale_relu_pooling")
+#endif
+#ifdef USE_AMD
+    .__alias__<AMD, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale_relu_pooling")
 #endif
     .num_in(1)
     .num_out(1)

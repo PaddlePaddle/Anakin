@@ -112,12 +112,18 @@ ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, NV, AK_FLOAT, Precision::FP3
 //ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, X86, AK_FLOAT, Precision::FP32);
 //#endif
 
+
 #ifdef USE_ARM_PLACE
 INSTANCE_CONVRELU(ARM, AK_FLOAT, Precision::FP32);
 template class ConvReluHelper<ARM, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
 
+#ifdef USE_AMD
+INSTANCE_CONVRELU(AMD, AK_FLOAT, Precision::FP32);
+template class ConvReluHelper<AMD, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, AMD, AK_FLOAT, Precision::FP32);
+#endif
 
 //! register op
 ANAKIN_REGISTER_OP(ConvRelu)
@@ -127,6 +133,9 @@ ANAKIN_REGISTER_OP(ConvRelu)
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("power")
+#endif
+#ifdef USE_AMD
+.__alias__<AMD, AK_FLOAT, Precision::FP32>("power")
 #endif
 //#ifdef USE_X86_PLACE
 //.__alias__<X86, AK_FLOAT, Precision::FP32>("power")

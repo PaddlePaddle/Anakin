@@ -25,67 +25,72 @@ namespace saber{
 template <typename Ttype, DataType datatype>
 struct DataTrait{
     typedef __invalid_type Dtype;
-    typedef __invalid_type dtype;
+    typedef __invalid_type PtrDtype;
 };
 
 template <typename Ttype>
 struct DataTrait<Ttype, AK_HALF> {
     typedef short Dtype;
-    typedef short dtype;
+    typedef short* PtrDtype;
 };
 
 template <typename Ttype>
 struct DataTrait<Ttype, AK_FLOAT> {
     typedef float Dtype;
-    typedef float dtype;
+    typedef float* PtrDtype;
 };
 
 template <typename Ttype>
 struct DataTrait<Ttype, AK_DOUBLE> {
     typedef double Dtype;
-    typedef double dtype;
+    typedef double* PtrDtype;
 };
 
 template <typename Ttype>
 struct DataTrait<Ttype, AK_INT8> {
     typedef char Dtype;
-    typedef char dtype;
+    typedef char* PtrDtype;
 };
 
 template <typename Ttype>
 struct DataTrait<Ttype, AK_INT16> {
     typedef short Dtype;
-    typedef short dtype;
+    typedef short* PtrDtype;
 };
 
 template <typename Ttype>
 struct DataTrait<Ttype, AK_INT32> {
     typedef int Dtype;
-    typedef int dtype;
+    typedef int* PtrDtype;
 };
 
 template <typename Ttype>
 struct DataTrait<Ttype, AK_INT64> {
     typedef long Dtype;
-    typedef long dtype;
+    typedef long* PtrDtype;
 };
 
 template <typename Ttype>
 struct DataTrait<Ttype, AK_UINT8> {
     typedef unsigned char Dtype;
-    typedef unsigned char dtype;
+    typedef unsigned char* PtrDtype;
 };
 
 template <typename Ttype>
 struct DataTrait<Ttype, AK_UINT16> {
     typedef unsigned short Dtype;
-    typedef unsigned short dtype;
+    typedef unsigned short* PtrDtype;
 };
 
 template <typename Ttype>
 struct DataTrait<Ttype, AK_UINT32> {
     typedef unsigned int Dtype;
-    typedef unsigned int dtype;
+    typedef unsigned int* PtrDtype;
+};
+
+template <typename Ttype>
+struct PtrTrait {
+    typedef void* PtrType;
 };
 
 #ifdef USE_OPENCL
@@ -95,51 +100,70 @@ struct ClMem{
         offset = 0;
     }
 
-    ClMem(cl_mem* mem_in, int offset_in = 0) {
+    ClMem(cl_mem mem_in, size_t offset_in = 0) {
         dmem = mem_in;
         offset = offset_in;
     }
 
-    ClMem(ClMem& right) {
+    ClMem(const ClMem& right) {
         dmem = right.dmem;
         offset = right.offset;
     }
 
-    ClMem& operator=(ClMem& right) {
+    ClMem& operator=(const ClMem& right) {
         this->dmem = right.dmem;
         this->offset = right.offset;
         return *this;
     }
 
-    ClMem& operator+(int offset_in) {
+    ClMem& operator+(const size_t offset_in) {
         this->offset += offset_in;
         return *this;
     }
 
-    int offset{0};
-    cl_mem* dmem{nullptr};
+    ClMem& operator ++() {
+        this->offset += 1;
+        return *this;
+    }
+
+    ClMem& operator ++(int) {
+        this->offset += 1;
+        return *this;
+    }
+
+    size_t offset{0};
+    cl_mem dmem{nullptr};
 };
 
 template <>
 struct DataTrait<AMD, AK_FLOAT> {
-    typedef ClMem Dtype;
-    typedef float dtype;
+    typedef float Dtype;
+    typedef ClMem PtrDtype;
 };
 
 template <>
 struct DataTrait<AMD, AK_DOUBLE> {
-    typedef ClMem Dtype;
-    typedef double dtype;
+    typedef double Dtype;
+    typedef ClMem PtrDtype;
 };
 
 template <>
 struct DataTrait<AMD, AK_INT8> {
-    typedef ClMem Dtype;
-    typedef char dtype;
+    typedef char Dtype;
+    typedef ClMem PtrDtype;
 };
 
-#endif
+template <>
+struct DataTrait<AMD, AK_HALF> {
+    typedef short Dtype;
+    typedef ClMem PtrDtype;
+};
 
+template <>
+struct PtrTrait<AMD> {
+    typedef ClMem PtrType;
+};
+#endif //USE_OPENCL
 } //namespace saber
 
 } //namespace anakin

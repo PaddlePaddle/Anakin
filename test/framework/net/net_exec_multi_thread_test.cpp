@@ -12,6 +12,9 @@ using Target_H = X86;
 #elif defined(USE_ARM_PLACE)
 using Target = ARM;
 using Target_H = ARM;
+#elif defined(USE_AMD)
+using Target = AMD;
+using Target_H = X86;
 #endif
 std::string model_path = "../benchmark/CNN/models/vgg16.anakin.bin";
 

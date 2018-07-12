@@ -101,11 +101,22 @@ template class ConvolutionHelper<ARM, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
 
+#ifdef USE_AMD
+INSTANCE_CONVOLUTION(AMD, AK_FLOAT, Precision::FP32);
+template class ConvolutionHelper<AMD, AK_FLOAT, Precision::FP32>;
+template class ConvolutionHelper<AMD, AK_FLOAT, Precision::FP16>;
+template class ConvolutionHelper<AMD, AK_FLOAT, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, AMD, AK_FLOAT, Precision::FP32);
+#endif
+
 //! register op
 ANAKIN_REGISTER_OP(Convolution)
 .Doc("Convolution operator")
 #ifdef USE_CUDA
 .__alias__<NV, AK_FLOAT, Precision::FP32>("convolution")
+#endif
+#ifdef USE_AMD
+.__alias__<AMD, AK_FLOAT, Precision::FP32>("convolution")
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("convolution")

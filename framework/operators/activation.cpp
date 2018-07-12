@@ -16,8 +16,6 @@ void Activation<Ttype, Dtype, Ptype>::operator()(OpContext<Ttype>& ctx, \
     impl->_funcs_activation(ins, outs, param, ctx); \
 }
 
-/// TODO ... specialization other type of operator
-
 /// set helper
 template<typename Ttype, DataType Dtype, Precision Ptype>
 ActivationHelper<Ttype, Dtype, Ptype>::~ActivationHelper() {
@@ -103,6 +101,13 @@ template class ActivationHelper<ARM, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif//arm
 
+#ifdef USE_AMD
+INSTANCE_ACTIVATION(AMD, AK_FLOAT, Precision::FP32);
+template class ActivationHelper<AMD, AK_FLOAT, Precision::FP32>;
+template class ActivationHelper<AMD, AK_FLOAT, Precision::FP16>;
+template class ActivationHelper<AMD, AK_FLOAT, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, AMD, AK_FLOAT, Precision::FP32);
+#endif
 //! register op
 ANAKIN_REGISTER_OP(Activation)
 .Doc("Activation operator")
@@ -114,6 +119,9 @@ ANAKIN_REGISTER_OP(Activation)
 #endif
 #ifdef USE_X86_PLACE
 .__alias__<X86, AK_FLOAT, Precision::FP32>("activation")
+#endif
+#ifdef USE_AMD
+.__alias__<AMD, AK_FLOAT, Precision::FP32>("activation")
 #endif
 .num_in(1)
 .num_out(1)

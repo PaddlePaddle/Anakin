@@ -3,11 +3,14 @@
 
 #ifdef USE_CUDA
 using Target = NV;
+#elif defined(USE_AMD)
+using Target = AMD;
 #elif defined(USE_X86_PLACE)
 using Target = X86;
 #else
 using Target = ARM;
 #endif
+
 
 TEST(OperatorsTest, PoolingFactoryTest) {
     OpContext<Target> opctx;
@@ -29,6 +32,7 @@ TEST(OperatorsTest, PoolingFactoryTest) {
 
     LOG(WARNING) << " op name alias 1 : pooling";
     LOG(INFO) << "  run forward function";
+    CHECK(Op_name1 != nullptr);
     (*Op_name1)(opctx, in, out);
     LOG(WARNING) << " op name alias 2 : pool";
     LOG(INFO) << "  run forward function";
@@ -37,6 +41,9 @@ TEST(OperatorsTest, PoolingFactoryTest) {
 
 
 int main(int argc, const char** argv) {
+#ifdef USE_AMD
+    Env<AMD>::env_init();
+#endif
     // initial logger
     Env<Target>::env_init();
     logger::init(argv[0]);

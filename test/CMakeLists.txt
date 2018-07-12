@@ -40,6 +40,10 @@ if(USE_X86_PLACE)
 anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/saber/x86 "cpp" ANAKIN_TEST_CASE_SRC)
 endif()
 
+if(USE_AMD)
+    anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/saber/amd "cpp" ANAKIN_TEST_CASE_SRC)
+endif()
+
 if(USE_ARM_PLACE) #build unit test for arm devices
 	anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/saber/arm "cpp" ANAKIN_TEST_CASE_SRC)
 	if(USE_OPENMP)

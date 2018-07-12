@@ -27,6 +27,9 @@ using Target_H = X86;
 #elif defined(USE_ARM_PLACE)
 using Target = ARM;
 using Target_H = ARM;
+#elif defined(USE_AMD)
+using Target = AMD;
+using Target_H = X86;
 #endif
 
 void getModels(std::string path, std::vector<std::string>& files) {
