@@ -1,5 +1,5 @@
 #include "test_lite.h"
-#include "pose.h" //change here according to your own model
+//#include "mobilenet.h" //change here according to your own model
 
 using namespace anakin::saber;
 using namespace anakin::saber::lite;
@@ -29,36 +29,36 @@ TEST(TestSaberLite, test_lite_model) {
     }
 
     //! change here according to your own model
-    bool load_flag = pose_load_param(model_file_name.c_str());
-    LOG(WARNING) << "load anakin model file from " << model_file_name << " ...";
-    CHECK_EQ(load_flag, true) << "load model: " << model_file_name << " failed";
+    //bool load_flag = mobilenet_load_param(model_file_name.c_str());
+    //LOG(WARNING) << "load anakin model file from " << model_file_name << " ...";
+    //CHECK_EQ(load_flag, true) << "load model: " << model_file_name << " failed";
 
     //! init net
     //! change here according to your own model
-    pose_init(*ctx1);
+    //mobilenet_init(*ctx1);
     LOG(INFO) << "INIT";
 
     //! change here according to your own model
-    std::vector<TensorHf*> vtin = pose_get_in();
-    LOG(INFO) << "number of input tensor: " << vtin.size();
-    TensorHf* tin = vtin[0];
-    LOG(INFO) << "input tensor size: ";
-    Shape shin = tin->valid_shape();
-    for (int j = 0; j < tin->dims(); ++j) {
-        LOG(INFO) << "|---: " << shin[j];
-    }
+    //std::vector<TensorHf*> vtin = mobilenet_get_in();
+    //LOG(INFO) << "number of input tensor: " << vtin.size();
+    //TensorHf* tin = vtin[0];
+    //LOG(INFO) << "input tensor size: ";
+    //Shape shin = tin->valid_shape();
+    //for (int j = 0; j < tin->dims(); ++j) {
+    //    LOG(INFO) << "|---: " << shin[j];
+    //}
     //! feed data to input
-    fill_tensor_const(*tin, 1.f);
+    //fill_tensor_const(*tin, 1.f);
 
     //! change here according to your own model
-    std::vector<TensorHf*> vtout = pose_get_out();
-    LOG(INFO) << "number of output tensor: " << vtout.size();
-    TensorHf* tout = vtout[0];
-    LOG(INFO) << "output tensor size: ";
-    Shape shout = tout->valid_shape();
-    for (int j = 0; j < tout->dims(); ++j) {
-        LOG(INFO) << "|---: " << shout[j];
-    }
+    //std::vector<TensorHf*> vtout = mobilenet_get_out();
+    //LOG(INFO) << "number of output tensor: " << vtout.size();
+    //TensorHf* tout = vtout[0];
+    //LOG(INFO) << "output tensor size: ";
+    //Shape shout = tout->valid_shape();
+    //for (int j = 0; j < tout->dims(); ++j) {
+    //    LOG(INFO) << "|---: " << shout[j];
+    //}
 
     SaberTimer my_time;
     double to = 0;
@@ -67,12 +67,12 @@ TEST(TestSaberLite, test_lite_model) {
     my_time.start();
     SaberTimer t1;
     for (int i = 0; i < FLAGS_epoch; i++) {
-        fill_tensor_const(*tin, 1.f);
-        printf("input mean val: %.6f\n", tensor_mean(*tin));
+        //fill_tensor_const(*tin, 1.f);
+        //printf("input mean val: %.6f\n", tensor_mean(*tin));
         t1.clear();
         t1.start();
         //! change here according to your own model
-        pose_prediction();
+        //mobilenet_prediction();
         t1.end();
         double tdiff = t1.get_average_ms();
         if (tdiff > tmax) {
@@ -89,11 +89,11 @@ TEST(TestSaberLite, test_lite_model) {
     LOG(INFO) << model_file_name << " batch_size " << FLAGS_num << " average time " << to/ FLAGS_epoch << \
             ", min time: " << tmin << "ms, max time: " << tmax << " ms";
 
-    double mean_val = tensor_mean(*tout);
-    LOG(INFO) << "output mean: " << mean_val;
+    //double mean_val = tensor_mean(*tout);
+    //LOG(INFO) << "output mean: " << mean_val;
 
     //! change here according to your own model
-    pose_release_resource();
+    //mobilenet_release_resource();
     delete ctx1;
 }
 int main(int argc, const char** argv){
