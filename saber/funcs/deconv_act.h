@@ -114,6 +114,23 @@ public:
                 return SaberUnImplError;
         }
     }
+virtual SaberStatus init(const Input_v& input, Output_v& output, Param_t& param,
+                      SaberImplStrategy strategy, ImplEnum implenum,
+                      Context<TargetType> &ctx) override {
+
+        update_weights(param);
+
+        return BaseFunc<Tensor<TargetType, inDtype, LayOutType_in>,
+                Tensor<TargetType, outDtype, LayOutType_out>,
+                Tensor<TargetType, OpDtype, LayOutType_op>,
+                ImplBase,
+                ConvActiveParam>::init(input, output, param, strategy, implenum, ctx);
+    }
+
+    //should move this funcs to utils
+    void update_weights(ConvActiveParam<OpTensor> &param) {
+        update_deconv_weights<OpTensor, ConvActiveParam>(param);
+    }
 
 private:
 
