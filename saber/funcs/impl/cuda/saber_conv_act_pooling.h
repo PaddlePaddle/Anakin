@@ -145,7 +145,6 @@ public:
                 param.conv_param.alpha,
                 param.conv_param.beta,
                 this->_ctx->get_compute_stream());
-        cudaDeviceSynchronize();
         CUDA_CHECK(cudaGetLastError());
         return SaberSuccess;
     }
