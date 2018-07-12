@@ -117,7 +117,7 @@ anakin_option(USE_OPENMP "Use Openmp when in android environment." YES if TARGET
 
 # build components
 anakin_option(BUILD_WITH_UNIT_TEST "Build anakin unit test components." YES)
-anakin_option(BUILD_WITH_FRAMEWORK "Build anakin framework" YES)
+anakin_option(BUILD_WITH_FRAMEWORK "Build anakin framework" NO)
 anakin_option(BUILD_WITH_LITE "Build anakin lite components." YES if USE_GPU_PLACE)
 
 # build examples

@@ -6,25 +6,23 @@
 #include <vector>
 
 using namespace anakin::saber;
-typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
-typedef Tensor<NV, AK_FLOAT, NCHW> TensorDf4;
-
+typedef Tensor<X86> TensorH;
+typedef Tensor<NV> TensorD;
+template <typename ActParam>
 void test_activation(Shape input_big_shape, Shape input_shape, 
-         ActivationParam<TensorDf4> param, Shape offset, bool is_share_from) {
+         ActParam param, Shape offset, bool is_share_from) {
     Context<NV> ctx(0, 1, 1);
-    typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
-    typedef Tensor<NV, AK_FLOAT, NCHW> TensorDf4;
 
-    TensorDf4 big_input;
-    TensorDf4 small_input;
-    TensorDf4 big_output;
-    TensorDf4 small_output;
+    TensorD big_input;
+    TensorD small_input;
+    TensorD big_output;
+    TensorD small_output;
 
     big_input.re_alloc(input_big_shape);
     big_output.re_alloc(input_big_shape);
     small_input.set_shape(input_shape, input_shape);
     small_output.set_shape(input_shape, input_shape);
-    TensorHf4 host_big_input(input_big_shape);
+    TensorH host_big_input(input_big_shape);
     fill_tensor_host_rand(host_big_input, -1, 1);
     big_input.copy_from(host_big_input);
     //fill_tensor_device_rand(big_input, -1, 1);
@@ -37,11 +35,11 @@ void test_activation(Shape input_big_shape, Shape input_shape,
         small_output.share_sub_buffer(big_output, input_shape, offset);
     }
 
-    TensorDf4 output_dev;
+    TensorD output_dev;
     // start Reshape & doInfer
 
-    std::vector<TensorDf4*> inputs;
-    std::vector<TensorDf4*> outputs;
+    std::vector<TensorD*> inputs;
+    std::vector<TensorD*> outputs;
 
     inputs.push_back(&small_input);
     outputs.push_back(&small_output);
@@ -64,7 +62,6 @@ void test_activation(Shape input_big_shape, Shape input_shape,
     CUDA_POST_KERNEL_CHECK;
 }
 
-
 TEST(TestSaberFuncNV, test_func_activation) {
     int num = 1;
     int channel = 2;
@@ -77,25 +74,25 @@ TEST(TestSaberFuncNV, test_func_activation) {
     Shape offset_1(0, 0, 1, 1);
     Shape slope_shape_0(1, channel, 1, 1);
     Shape slope_shape_1(1, 1, 1, 1);
-    TensorDf4 prelu_slope_0;
+    TensorD prelu_slope_0;
     prelu_slope_0.reshape(slope_shape_0);
-    PreluParam<TensorDf4> prelu_0(false, &prelu_slope_0);
+    PreluParam<TensorD> prelu_0(false, &prelu_slope_0);
     
-    TensorDf4 prelu_slope_1;
+    TensorD prelu_slope_1;
     prelu_slope_1.reshape(slope_shape_1);
-    PreluParam<TensorDf4> prelu_1(true, &prelu_slope_1);
+    PreluParam<TensorD> prelu_1(true, &prelu_slope_1);
     fill_tensor_device_rand(prelu_slope_0, 0, 1);
     fill_tensor_device_rand(prelu_slope_1, 0, 1);
 
-    ActivationParam<TensorDf4> param_elu(Active_elu, 0.1f, 0.1f);
-    ActivationParam<TensorDf4> param_relu(Active_relu, 0.0f, 0.0f);
-    ActivationParam<TensorDf4> param_sigmoid(Active_sigmoid, 0.1f, 0.1f);
-	ActivationParam<TensorDf4> param_tanh(Active_tanh, 0.1f, 0.1f);
-    ActivationParam<TensorDf4> param_prelu_0(Active_prelu, 0.f, 0.f, prelu_0);
-    ActivationParam<TensorDf4> param_prelu_1(Active_prelu, 0.f, 0.f, prelu_1);
+    ActivationParam<TensorD> param_elu(Active_elu, 0.1f, 0.1f);
+    ActivationParam<TensorD> param_relu(Active_relu, 0.0f, 0.0f);
+    ActivationParam<TensorD> param_sigmoid(Active_sigmoid, 0.1f, 0.1f);
+	ActivationParam<TensorD> param_tanh(Active_tanh, 0.1f, 0.1f);
+    ActivationParam<TensorD> param_prelu_0(Active_prelu, 0.f, 0.f, prelu_0);
+    ActivationParam<TensorD> param_prelu_1(Active_prelu, 0.f, 0.f, prelu_1);
 
-    for (ActivationParam<TensorDf4> param : {param_elu, param_relu, param_sigmoid, param_tanh, param_prelu_0, param_prelu_1}) {
-    //for (ActivationParam<TensorDf4> param : {param_sigmoid}) {
+    for (ActivationParam<TensorD> param : {param_elu, param_relu, param_sigmoid, param_tanh, param_prelu_0, param_prelu_1}) {
+    //for (ActivationParam<TensorD> param : {param_sigmoid}) {
         for (auto share_from : {false, true}) {
             for (auto offset: {offset_0, offset_1}) {
                 test_activation(input_big_shape,
