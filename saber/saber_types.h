@@ -108,6 +108,42 @@ typedef enum{
     UNKNOWN = 4
 }SaberImplStrategy;
 
+
+//should design this one for pick_best_specify()
+enum ImplEnum{
+    VENDER_IMPL = 0,
+    SABER_IMPL
+};
+
+enum SequencePoolType{
+    Sequence_pool_unknow = 0,
+    Sequence_pool_average,
+    Sequence_pool_sum,
+    Sequence_pool_sqrt,
+    Sequence_pool_last,
+    Sequence_pool_first,
+    Sequence_pool_max
+};
+
+template <typename opTensor>
+struct TransposeParam {
+    TransposeParam() = default;
+    TransposeParam(const TransposeParam& right){}
+    TransposeParam& operator=(const TransposeParam& right){}
+    bool operator==(const TransposeParam& right){
+        return true;
+    }
+};
+/**
+ * GRU_Formula,origin for paddle,Cudnn for cudnn,difference is w_h_r and weighted mean
+ * weight for origin is [W_h_o][W_h_r,W_h_z]
+ * weight for cudnn is [W_h_o,W_h_r,W_h_z]
+ */
+enum GruFormula {
+    GRU_ORIGIN = 0,
+    GRU_CUDNN
+};
+
 typedef enum{
     Active_unknow = 0,
     Active_sigmoid = 1,
