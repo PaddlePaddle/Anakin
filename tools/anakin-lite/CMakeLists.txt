@@ -1,7 +1,7 @@
 # ----------------------------------------------------------------------------
 # Copyright (c) 2016 Baidu.com, Inc. All Rights Reserved
 # ----------------------------------------------------------------------------
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 2.8)
 project(ANAKIN-lite C CXX)
 
 include(../../cmake/msg_color.cmake)
