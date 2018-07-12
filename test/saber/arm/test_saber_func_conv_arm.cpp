@@ -1,4 +1,4 @@
-#include "funcs/conv.h"
+#include "funcs/conv_act.h"
 #include "test_saber_func_test_arm.h"
 #include "tensor_op.h"
 #include "saber/funcs/impl/arm/impl/conv_arm_impl.h"
@@ -9,7 +9,7 @@ int cluster = 0;
 int threads = 4;
 int test_iter = 10;
 
-bool compare_result = false;
+bool compare_result = true;
 bool flag_relu = false;
 bool flag_bias = true;
 
@@ -122,6 +122,15 @@ void test_arm_conv(std::vector<TensorHf4*>& tin, \
                                     dila, dila,
                                     &pweiht, bias_ptr);
 
+    ActivationParam<TensorHf4> act_param(Active_relu);
+
+    ConvActiveParam<TensorHf4> conv_act_param;
+    if (flag_relu) {
+        conv_act_param = ConvActiveParam<TensorHf4>(conv_param, act_param);
+    } else {
+        conv_act_param = ConvActiveParam<TensorHf4>(conv_param);
+    }
+
     if (compare_result) {
         LOG(INFO) << "run basic conv for precision comparation";
         tout_basic.re_alloc(shape_out);
@@ -136,9 +145,9 @@ void test_arm_conv(std::vector<TensorHf4*>& tin, \
         //print_tensor_host(tout_basic);
     }
 
-    Conv<ARM, AK_FLOAT> conv_saber;
+    ConvAct<ARM, AK_FLOAT> conv_saber;
 
-    conv_saber.compute_output_shape(tin, tvout_saber, conv_param);
+    conv_saber.compute_output_shape(tin, tvout_saber, conv_act_param);
     Shape sh_out_saber = tvout_saber[0]->valid_shape();
     LOG(INFO) << "output shape: " << shape_out[0] << ", " << shape_out[1] << ", " \
         << shape_out[2] << ", " << shape_out[3];
@@ -148,7 +157,7 @@ void test_arm_conv(std::vector<TensorHf4*>& tin, \
     tvout_saber[0]->re_alloc(shape_out);
 
     LOG(INFO) << "saber conv impl init";
-    SABER_CHECK(conv_saber.init(tin, tvout_saber, conv_param, SPECIFY, SABER_IMPL, ctx1));
+    SABER_CHECK(conv_saber.init(tin, tvout_saber, conv_act_param, SPECIFY, SABER_IMPL, ctx1));
 
     //! compute
     LOG(INFO) << "saber conv compute";
@@ -157,7 +166,7 @@ void test_arm_conv(std::vector<TensorHf4*>& tin, \
     for (int i = 0; i < test_iter; ++i) {
         t1.clear();
         t1.start(ctx1);
-        conv_saber(tin, tvout_saber, conv_param, ctx1);
+        conv_saber(tin, tvout_saber, conv_act_param, ctx1);
         //tvout_saber[0]->record_event(ctx1.get_compute_stream());
         //tvout_saber[0]->sync();
         t1.end(ctx1);
@@ -177,12 +186,12 @@ void test_arm_conv(std::vector<TensorHf4*>& tin, \
         //print_tensor_host(tdiff);
         tensor_cmp_host(tout_basic.data(), tout_saber.data(), tout_basic.valid_size(), max_ratio, max_diff);
         LOG(INFO) << "compare result, max diff: " << max_diff << ", max ratio: " << max_ratio;
-        CHECK_EQ(fabsf(max_ratio) < 1e-5f, true) << "compute result error";
+        CHECK_EQ(fabsf(max_ratio) < 1e-4f, true) << "compute result error";
     }
 
 }
 
-#if 0
+#if 1
 TEST(TestSaberFuncTest, test_func_conv3x3s1_arm) {
 
     int num = 1;

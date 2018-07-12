@@ -28,6 +28,12 @@ int FLAGS_threads = 1;
 int FLAGS_cluster = 0;
 #endif
 
+#define WRITE_RESULT 1
+#if WRITE_RESULT
+#include <fstream>
+FILE *fp = fopen("benchmark_result.txt", "w+");
+#endif
+
 using Target = ARM;
 using Target_H = ARM;
 
@@ -70,8 +76,7 @@ TEST(NetTest, net_execute_base_test) {
     } else {
         models.push_back(FLAGS_model_dir + FLAGS_model_file);
     }
-    for (auto iter = models.begin(); iter < models.end(); iter++)
-    {
+    for (auto iter = models.begin(); iter < models.end(); iter++) {
         LOG(WARNING) << "load anakin model file from " << *iter << " ...";
         Graph<Target, AK_FLOAT, Precision::FP32> graph;   
         auto status = graph.load(*iter);
@@ -82,6 +87,11 @@ TEST(NetTest, net_execute_base_test) {
         graph.ResetBatchSize("input_0", FLAGS_num);
         LOG(INFO) << "optimize the graph";
         graph.Optimize();
+
+        //! get output name
+        std::vector<std::string>& vout_name = graph.get_outs();
+        LOG(INFO) << "output size: " << vout_name.size();
+
         // constructs the executer net
         LOG(INFO) << "create net to execute";
         Net<Target, AK_FLOAT, Precision::FP32, OpRunType::SYNC> net_executer(graph, ctx1, true);
@@ -155,6 +165,26 @@ TEST(NetTest, net_execute_base_test) {
         LOG(INFO) << model_name << " batch_size " << FLAGS_num << " average time " << to/ FLAGS_epoch << \
             ", min time: " << tmin << "ms, max time: " << tmax << " ms";
        //my_time.get_average_ms() / FLAGS_epoch << " ms";
+
+        std::vector<Tensor4d<Target_H, AK_FLOAT>*> vout;
+        for (auto& it : vout_name) {
+            vout.push_back(net_executer.get_out(it));
+        }
+        Tensor4d<Target_H, AK_FLOAT>* tensor_out = vout[0];
+        LOG(INFO) << "output size: " << vout.size();
+
+#if WRITE_RESULT //print output tensor data
+        LOG(INFO) << "extract data: size: " << tensor_out->valid_size() << \
+            ", width=" << tensor_out->width() << ", height=" << tensor_out->height();
+        const float* ptr_out = tensor_out->data();
+        double mean_val = 0.0;
+        for (int i = 0; i < tensor_out->valid_size(); i++) {
+            mean_val += ptr_out[i];
+            fprintf(fp, "%.6f\n", ptr_out[i]);
+        }
+        LOG(INFO) << "output mean val: " << mean_val / tensor_out->valid_size();
+        fclose(fp);
+#endif
     }
 }
 int main(int argc, const char** argv){
