@@ -57,7 +57,7 @@ public:
     virtual int width_index() const = 0;
 };
 
-template<typename TargetType, DataType datatype, typename LayOutType = NCHW>
+template<typename TargetType, DataType datatype = AK_FLOAT, typename LayOutType = NCHW>
 class Tensor : public TensorBase {
 public:
     typedef TargetType targetType_t;
