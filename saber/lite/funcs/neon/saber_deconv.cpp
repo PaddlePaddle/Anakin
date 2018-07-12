@@ -139,7 +139,7 @@ SaberStatus SaberDeconv2D::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inpu
     _gemmer.init(l1_cache, l2_cache, _m, _n, _k, true, false, threads);
 
     printf("Deconv: USE GEMM, numout=%d, chin=%d, kernel=%d, stride=%d, pad=%d, group=%d, win=%d, hin=%d\n", \
-            chout, chin, _param->_kw, _param->_stride_w, _param->_group, win, hin);
+            chout, chin, _param->_kw, _param->_stride_w, _param->_pad_w, _param->_group, win, hin);
     this->_flag_init = true;
     return SaberSuccess;
 }

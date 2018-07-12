@@ -38,7 +38,7 @@ struct ActivationParam : public ParamBase {
         _prelu_channel_shared = channel_shared;
         _prelu_weights = weights;
     }
-    ActivationParam(const ActivationParam& param) {
+    ActivationParam(const ActivationParam& param) : ParamBase(param) {
         _act_type = param._act_type;
         _neg_slope = param._neg_slope;
         _coef = param._coef;
@@ -81,7 +81,7 @@ struct Conv2DParam : public ParamBase{
         _bias = bias;
     }
 
-    Conv2DParam(const Conv2DParam& param) {
+    Conv2DParam(const Conv2DParam& param) : ParamBase(param) {
         _weights_size = param._weights_size;
         _num_output = param._num_output;
         _group = param._group;
@@ -153,7 +153,7 @@ struct DeConv2DParam : public ParamBase{
         _bias = bias;
     }
 
-    DeConv2DParam(const DeConv2DParam& param) {
+    DeConv2DParam(const DeConv2DParam& param) : ParamBase(param) {
         _weights_size = param._weights_size;
         _num_output = param._num_output;
         _group = param._group;
@@ -215,7 +215,8 @@ struct ConvAct2DParam : public ParamBase {
         _flag_act = flag_act;
     }
 
-    ConvAct2DParam(const ConvAct2DParam& param) : _conv_param(param._conv_param) {
+    ConvAct2DParam(const ConvAct2DParam& param) : ParamBase(param),
+                                                  _conv_param(param._conv_param) {
         _act_type = param._act_type;
         _flag_act = param._act_type;
     }
@@ -244,7 +245,7 @@ struct PoolParam : public ParamBase {
         _pool_pad_w = pad_w;
         _pool_pad_h = pad_h;
     }
-    PoolParam(const PoolParam& param) {
+    PoolParam(const PoolParam& param) : ParamBase(param) {
         _pool_type = param._pool_type;
         _flag_global = param._flag_global;
         _pool_kw = param._pool_kw;
@@ -289,7 +290,9 @@ struct ConvActPool2DParam : public ParamBase {
     ConvActPool2DParam(const ConvAct2DParam& conv_act_param, const PoolParam& pool_param) : _conv_act_param(conv_act_param), \
              _pool_param(pool_param) {}
 
-    ConvActPool2DParam(const ConvActPool2DParam& param) : _conv_act_param(param._conv_act_param), _pool_param(param._pool_param) {}
+    ConvActPool2DParam(const ConvActPool2DParam& param) : ParamBase(param),
+                                                          _conv_act_param(param._conv_act_param),
+                                                          _pool_param(param._pool_param) {}
 
     ConvActPool2DParam&operator=(const ConvActPool2DParam& param) {
         _conv_act_param = param._conv_act_param;
@@ -306,7 +309,7 @@ struct ConcatParam : public ParamBase {
     ConcatParam(int axis) {
         _axis = axis;
     }
-    ConcatParam(const ConcatParam& param) {
+    ConcatParam(const ConcatParam& param) : ParamBase(param) {
         _axis = param._axis;
     }
     ConcatParam&operator=(const ConcatParam& param) {
@@ -332,7 +335,7 @@ struct DetectionOutputParam : public ParamBase {
         _share_location = share_location;
         _variance_encode_in_target = encode_in_target;
     }
-    DetectionOutputParam(const DetectionOutputParam& param) {
+    DetectionOutputParam(const DetectionOutputParam& param) : ParamBase(param) {
         _class_num = param._class_num;
         _conf_thresh = param._conf_thresh;
         _nms_top_k = param._nms_top_k;
@@ -376,7 +379,7 @@ struct EltwiseParam : public ParamBase {
         _elt_type = elt_type;
         _coef = coef;
     }
-    EltwiseParam(const EltwiseParam& param) {
+    EltwiseParam(const EltwiseParam& param) : ParamBase(param) {
         _elt_type = param._elt_type;
         _coef= param._coef;
     }
@@ -400,7 +403,7 @@ struct FcParam : public ParamBase {
         _bias = bias;
         _flag_trans = flag_trans;
     }
-    FcParam(const FcParam& param) {
+    FcParam(const FcParam& param) : ParamBase(param) {
         _axis = param._axis;
         _num_output = param._num_output;
         _flag_bias = param._flag_bias;
@@ -430,7 +433,7 @@ struct PermuteParam : public ParamBase {
     PermuteParam(std::vector<int> order) {
         _order = order;
     }
-    PermuteParam(const PermuteParam& param) {
+    PermuteParam(const PermuteParam& param) : ParamBase(param) {
         _order = param._order;
     }
     PermuteParam&operator=(const PermuteParam& param) {
@@ -500,7 +503,7 @@ struct PriorBoxParam : public ParamBase {
             }
         }
     }
-    PriorBoxParam(const PriorBoxParam& param) {
+    PriorBoxParam(const PriorBoxParam& param) : ParamBase(param) {
         _is_flip = param._is_flip;
         _is_clip = param._is_clip;
         _min_size = param._min_size;
@@ -553,7 +556,7 @@ struct SliceParam : public ParamBase {
         _axis = axis;
         _points = points;
     }
-    SliceParam(const SliceParam& param) {
+    SliceParam(const SliceParam& param) : ParamBase(param) {
         _axis = param._axis;
         _points = param._points;
     }
@@ -571,7 +574,7 @@ struct SoftmaxParam : public ParamBase {
     SoftmaxParam(int axis) {
         _axis = axis;
     }
-    SoftmaxParam(const SoftmaxParam& param) {
+    SoftmaxParam(const SoftmaxParam& param) : ParamBase(param) {
         _axis = param._axis;
     }
     SoftmaxParam&operator=(const SoftmaxParam& param) {
@@ -584,7 +587,7 @@ struct SoftmaxParam : public ParamBase {
 
 struct SplitParam : public ParamBase {
     SplitParam(){}
-    SplitParam(const SplitParam& param) {}
+    SplitParam(const SplitParam& param) : ParamBase(param) {}
     SplitParam&operator=(const SplitParam& param) { return *this; }
 };
 

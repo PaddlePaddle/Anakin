@@ -12,8 +12,8 @@
    See the License for the specific language governing permissions and
    limitations under the License. */
 
-#ifndef ANAKIN_SABER_LITE_FUNCS_SABER_SOFTMAX_H
-#define ANAKIN_SABER_LITE_FUNCS_SABER_SOFTMAX_H
+#ifndef ANAKIN_SABER_LITE_FUNCS_SABER_SPLIT_H
+#define ANAKIN_SABER_LITE_FUNCS_SABER_SPLIT_H
 
 #include "saber/lite/funcs/op_base.h"
 
@@ -76,4 +76,4 @@ private:
 } //namespace anakin
 #endif // USE_ARM_PLACE
 
-#endif //ANAKIN_SABER_LITE_FUNCS_SABER_SOFTMAX_H
+#endif //ANAKIN_SABER_LITE_FUNCS_SABER_SPLIT_H
