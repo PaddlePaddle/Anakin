@@ -110,13 +110,16 @@ public:
             trans_weights(inputs, outputs, param, *(this->_ctx));
             _transed_weights = true;
         }
+
+        cudaDeviceSynchronize();
+
         Shape shape_in = inputs[0]->valid_shape();
         Shape shape_out = outputs[0]->valid_shape();
         const InDataType* bias_data = nullptr;
         if (param.conv_param.bias()->size() > 0) {
             bias_data = param.conv_param.bias()->data();
         }
-        cudaDeviceSynchronize();
+
         dispatch_func(inputs[0]->data(), outputs[0]->mutable_data(),
                 param.conv_param.weight()->data(),
                 bias_data,
