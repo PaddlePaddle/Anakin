@@ -171,15 +171,14 @@ SaberStatus SaberConv2DAct<AMD, OpDtype, inDtype, outDtype,
 
     
     //start to do activation and bias operation for CONV21, CONV31, CONV32 and etc...
-    if (inputs[0]->channel() != 3 ||
-    inputs[0]->height() != 224 || inputs[0]->width() != 224) {
+    if (inputs[0]->channel() != 3) {
         switch (param.activation_param.active){
             case Active_relu:
                 kernelInfo.l_wk = {256, 1, 1};
-                kernelInfo.g_wk = {inputs[0]->num() *
-				inputs[0]->channel() *
-				inputs[0]->height() *
-				inputs[0]->width(), 1, 1};
+                kernelInfo.g_wk = {_outConvRelu->num() *
+                                    _outConvRelu->channel() *
+                                    _outConvRelu->height() *
+                                    _outConvRelu->width(), 1, 1};
                 kernelInfo.kernel_file = "MIOpenBiasReLuUni.cl";
                 kernelInfo.kernel_name = "MIOpenReLu";
                 break;
@@ -383,7 +382,7 @@ SaberStatus SaberConv2DAct<AMD, OpDtype, inDtype, outDtype,
         uintObjects2[2] = (cl_uint)inputs[0]->height();
         uintObjects2[3] = (cl_uint)inputs[0]->width();
 
-        errNum = setKernelArgs(_kernel2, memObjects2[0], memObjects2[1], memObjects2[2], 
+        errNum = setKernelArgs(_kernel2, memObjects2[0], memObjects2[1], memObjects2[2],
             param.activation_param.negative_slope, uintObjects2[0], uintObjects2[1],
             uintObjects2[2], uintObjects2[3]);
 

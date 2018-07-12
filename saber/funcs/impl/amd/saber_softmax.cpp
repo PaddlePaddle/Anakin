@@ -41,6 +41,26 @@ SaberStatus SaberSoftmax<AMD, OpDtype, inDtype, outDtype,
     return create(inputs, outputs, param, ctx);
 }
 
+int nextPow2(int v)
+{
+
+    if(v == 1)
+    {
+        return (v << 1);
+    }
+    else
+    {
+        v--;
+        v |= v >> 1;
+        v |= v >> 2;
+        v |= v >> 4;
+        v |= v >> 8;
+        v |= v >> 16;
+        v++;
+        return v;
+    }
+}
+
 template <DataType OpDtype,
     DataType inDtype,
     DataType outDtype,
@@ -62,53 +82,79 @@ SaberStatus SaberSoftmax<AMD, OpDtype, inDtype, outDtype,
     device = dev.get_device();
     context = dev.get_context();
 
-    LOG(INFO) << "device id= " << device << " conext = " << context;
+    //LOG(INFO) << "device id= " << device << " conext = " << context;
 
     //To create vld, gld and compile options
-    KernelInfo construction_params;
-
-    int grid_size = inputs[0]->num() * inputs[0]->width() * inputs[0]->height();
-    size_t workgroups = std::min(grid_size, 64 * 40 * 8);
-
-    construction_params.l_wk = {256, 1, 1};
-    construction_params.g_wk = {workgroups * construction_params.l_wk[0], 1, 1};
-    construction_params.kernel_file = "Softmax.cl";
-    construction_params.kernel_name = "Softmax";
+    KernelInfo kernerlInfo;
 
     //To set comp_options
-    construction_params.comp_options = std::string(" -DNUM_BATCH=1");
+    kernerlInfo.comp_options = std::string(" -DNUM_BATCH=1");
 
-    LOG(INFO) << "kernel file name: " << construction_params.kernel_file;
-    LOG(INFO) << "kernel name: " << construction_params.kernel_name;
-    LOG(INFO) << "local work size: " << construction_params.l_wk[0] << " " << construction_params.l_wk[1] << "  " << construction_params.l_wk[2];
-    LOG(INFO) << "global work size: " << construction_params.g_wk[0] << " " << construction_params.g_wk[1] << "  " << construction_params.g_wk[2];
-    LOG(INFO) << "compile option: " << construction_params.comp_options;
+    //To set local work size
+    kernerlInfo.l_wk = {256, 1, 1};
 
-    std::copy(construction_params.g_wk.begin(), construction_params.g_wk.end(), _globalWorkSize);
-    std::copy(construction_params.l_wk.begin(), construction_params.l_wk.end(), _localWorkSize);
+    int num_batch = inputs[0]->num();
+    int c = inputs[0]->channel();
+    int grid_size = inputs[0]->num() * inputs[0]->width() * inputs[0]->height();
 
-    std::string kernel_file = construction_params.kernel_file;
-    std::string kernel_name = construction_params.kernel_name;
+    if(num_batch == 1)
+    { // CSR-Vector like approach
+
+        // Control the max. number of workgroups launched so that we do not
+        // start getting workgroup scheduling overheads
+        size_t workgroups = std::min(grid_size, 64 * 40 * 8);
+        kernerlInfo.g_wk = {workgroups * kernerlInfo.l_wk[0], 1, 1};
+    }
+    else
+    { // CSR-Stream like approach
+
+        // num_threads iterating over channels for one spatial_dim
+        int batch_size = 256 / num_batch;
+        // num_channels each threads iterates over to cover all the channels
+        int u_batch_size = c > batch_size ? nextPow2(c / batch_size) : 1;
+
+        size_t workgroups =
+            grid_size % num_batch == 0 ? grid_size / num_batch : grid_size / num_batch + 1;
+        kernerlInfo.g_wk = {workgroups * kernerlInfo.l_wk[0], 1, 1};
+
+        kernerlInfo.comp_options += " -DBATCH_SIZE=" + std::to_string(batch_size) + " -DU_BATCH_SIZE=" +
+                 std::to_string(u_batch_size);
+    }
+
+    kernerlInfo.kernel_file = "Softmax.cl";
+    kernerlInfo.kernel_name = "Softmax";
+
+    //LOG(INFO) << "kernel file name: " << kernerlInfo.kernel_file;
+    //LOG(INFO) << "kernel name: " << kernerlInfo.kernel_name;
+    //LOG(INFO) << "local work size: " << kernerlInfo.l_wk[0] << " " << kernerlInfo.l_wk[1] << "  " << kernerlInfo.l_wk[2];
+    //LOG(INFO) << "global work size: " << kernerlInfo.g_wk[0] << " " << kernerlInfo.g_wk[1] << "  " << kernerlInfo.g_wk[2];
+    //LOG(INFO) << "compile option: " << kernerlInfo.comp_options;
+
+    std::copy(kernerlInfo.g_wk.begin(), kernerlInfo.g_wk.end(), _globalWorkSize);
+    std::copy(kernerlInfo.l_wk.begin(), kernerlInfo.l_wk.end(), _localWorkSize);
+
+    std::string kernel_file = kernerlInfo.kernel_file;
+    std::string kernel_name = kernerlInfo.kernel_name;
 
     //To create the program
-    cl_program program = CreateCLProgram(context, device, construction_params.kernel_file.c_str(), &construction_params);
+    cl_program program = CreateCLProgram(context, device, kernerlInfo.kernel_file.c_str(), &kernerlInfo);
     if (program == NULL)
     {
-        LOG(INFO) << "Failed to load program";
+        LOG(ERROR) << "Failed to load program";
         return SaberInvalidValue;
     }
 
-    LOG(INFO) << "COMPILE OCL KERNEL CODE";
+    //LOG(INFO) << "COMPILE OCL KERNEL CODE";
 
     //To create kernel
-    _kernel = clCreateKernel(program, construction_params.kernel_name.c_str(), NULL);
+    _kernel = clCreateKernel(program, kernerlInfo.kernel_name.c_str(), NULL);
     if (_kernel == NULL)
     {
-        LOG(INFO) << "Failed to create kernel";
+        LOG(ERROR) << "Failed to create kernel";
         return SaberInvalidValue;
     }
     
-    LOG(INFO) << "COMPLETE CREATE KERNEL";
+    //LOG(INFO) << "COMPLETE CREATE KERNEL";
     this->_ctx = &ctx;
     return SaberSuccess;
 }
@@ -126,14 +172,7 @@ SaberStatus SaberSoftmax<AMD, OpDtype, inDtype, outDtype,
         SoftmaxParam<OpTensor> &param)
 {
 
-    LOG(INFO) << "SaberSoftmax::dispatch";
-
-    Shape in_shape = inputs[0]->valid_shape();
-    Shape out_shape = outputs[0]->valid_shape();
-
-    Shape stride_in = inputs[0]->get_stride();
-    Shape stride_out = outputs[0]->get_stride();
-
+    //LOG(INFO) << "SaberSoftmax::dispatch";
     cl_int errNum = 0;
     
     //To set the argument
@@ -163,25 +202,29 @@ SaberStatus SaberSoftmax<AMD, OpDtype, inDtype, outDtype,
 
     if (errNum != CL_SUCCESS)
     {
-        LOG(INFO) << "Fail to set kernel arguments";
+        LOG(ERROR) << "Fail to set kernel arguments: " << errNum;
         return SaberInvalidValue;
     }
 
-    LOG(INFO) << "COMPLETE SET ARGUMENT";
+    //LOG(INFO) << "COMPLETE SET ARGUMENT";
 
     //To get the commpute command queue
     AMD_API::stream_t cm = this->_ctx->get_compute_stream();
 
+    cl_event event;
     errNum = clEnqueueNDRangeKernel(cm, _kernel, 3, NULL,
                                     _globalWorkSize, _localWorkSize,
-                                    0, NULL, NULL);
+                                    0, NULL, &event);
     if (errNum != CL_SUCCESS)
     {
-        LOG(INFO) << "Fail to set execution: " << errNum;
+        LOG(ERROR) << "Fail to set execution: " << errNum;
         return SaberInvalidValue;
     }
-    LOG(INFO) << "COMPLETE EXECUTION";
+    //LOG(INFO) << "COMPLETE EXECUTION";
 
+    cl_event_list list;
+    list.push_back(event);
+    Env<AMD>::add_event(list);
     return SaberSuccess;
 }
 #endif
