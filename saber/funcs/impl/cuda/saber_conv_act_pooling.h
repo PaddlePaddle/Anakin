@@ -116,7 +116,7 @@ public:
         if (param.conv_param.bias()->size() > 0) {
             bias_data = param.conv_param.bias()->data();
         }
-
+        cudaDeviceSynchronize();
         dispatch_func(inputs[0]->data(), outputs[0]->mutable_data(),
                 param.conv_param.weight()->data(),
                 bias_data,
@@ -145,7 +145,7 @@ public:
                 param.conv_param.alpha,
                 param.conv_param.beta,
                 this->_ctx->get_compute_stream());
-
+        cudaDeviceSynchronize();
         CUDA_CHECK(cudaGetLastError());
         return SaberSuccess;
     }
