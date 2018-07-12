@@ -5,7 +5,7 @@ template <DataType datatype>
 void test_buffer(){
 
     typedef TargetWrapper<ARM> ARM_API;
-    typedef typename DataTrait<datatype>::dtype Dtype;
+    typedef typename DataTrait<ARM, datatype>::dtype Dtype;
     typedef Buffer<ARM> BufferH;
 
     int n0 = 1024;

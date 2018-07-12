@@ -33,7 +33,7 @@
 
 #ifdef USE_ARM_PLACE
 //todo
-#include "saber/funcs/impl/impl_conv_act_pooling.h"
+#include "saber/funcs/impl/arm/saber_conv_act_pooling.h"
 #endif
 
 namespace anakin {

@@ -127,6 +127,7 @@ SaberSoftmax::SaberSoftmax(int axis) {
 
 SaberStatus SaberSoftmax::load_param(int axis) {
     _axis = axis;
+    return SaberSuccess;
 }
 
 SaberStatus SaberSoftmax::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,

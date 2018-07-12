@@ -1,9 +1,11 @@
 from Tokenizer import Tokenizer
 # from keras.preprocessing.text import Tokenizer
 import os
+import sys
 class PTB_Data_Reader():
 
     def read(self):
+        # print('!',sys.argv[0])
         # print(os.path.dirname(__file__)+'/data/ptb.valid.txt')
         file=open(os.path.dirname(__file__)+'/data/ptb.valid.txt')
         lines=file.readlines()
@@ -19,7 +21,16 @@ class PTB_Data_Reader():
             line_str=line_str[:-1]
             save_file.write(line_str+'\n')
 
+class NER_Data_Reader():
+    def read(self):
+        # print(os.path.dirname(__file__)+'/data/ptb.valid.txt')
+        file=open(os.path.dirname(__file__)+'/data/ner_data.txt')
+        self.seqs=[[[int(i) for i in line.split(';')[1].split(' ')],[int(i) for i in line.split(';')[3].split(' ')]] for line in file.readlines()]
+
+        return self.seqs
+
 if __name__ == '__main__':
     read=PTB_Data_Reader()
     read.read()
     read.save_to()
+

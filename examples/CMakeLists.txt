@@ -47,7 +47,7 @@ foreach(SRC_NAME ${ANAKIN_TEST_CASE_SRC})
     if(USE_OPENCV)
         if (USE_ARM_PLACE)
             target_link_libraries(${TEST_CASE_NAME} -lopencv_core -lopencv_highgui -lopencv_imgproc
-                    -ltbb -llibtiff -llibpng -llibjpeg -llibjasper -lIlmImf -lc -lz)
+					-ltbb -llibtiff -llibpng -llibjpeg -llibjasper -lIlmImf -lc -lz -llog -ldl)
         else()
             target_link_libraries(${TEST_CASE_NAME} -lopencv_core -lopencv_highgui -lopencv_imgproc)
         endif()

@@ -15,7 +15,8 @@
 
 #ifndef ANAKIN_SABER_CORE_BUFFER_H
 #define ANAKIN_SABER_CORE_BUFFER_H
-#include "core/target_wrapper.h"
+#include "saber/core/target_wrapper.h"
+#include "saber/core/data_traits.h"
 namespace anakin{
 
 namespace saber{
@@ -27,6 +28,7 @@ namespace saber{
 template <typename TargetType>
 class Buffer {
 public:
+    typedef typename PtrTrait<TargetType>::PtrType TPtr;
     typedef TargetWrapper<TargetType> API;
     //typedef typename TargetTypeTraits<TargetType>::target_type target_type;
 
@@ -43,7 +45,7 @@ public:
         _id = API::get_device_id();
     }
 
-    explicit Buffer(void* data, size_t size, int id)
+    explicit Buffer(TPtr data, size_t size, int id)
     	: _own_data(false), _count(size), _capacity(size){
         _data = data;
         _id = API::get_device_id();
@@ -54,7 +56,7 @@ public:
      * \brief copy constructor
      */
     Buffer(Buffer<TargetType>& buf){
-        CHECK_EQ(buf._data != nullptr, true) << "input buffer is empty";
+        CHECK_GT(buf._count, 0) << "input buffer is empty";
         _count = buf._count;
         _id = API::get_device_id();
         if (buf._id == _id){
@@ -125,7 +127,7 @@ public:
      * \brief re-alloc memory, only if hold the data, can be relloc
      */
     SaberStatus re_alloc(size_t size){
-        if (size > _capacity || _data == nullptr){
+        if (size > _capacity){
             if (_own_data) {
                 CHECK_EQ(_id, API::get_device_id()) << \
                     "buffer is not declared in current device, could not re_alloc buffer";
@@ -186,12 +188,16 @@ public:
     /**
      * \brief return const data pointer
      */
-    const void* get_data(){return _data;}
+    const TPtr get_data(){
+        return _data;
+    }
 
     /**
      * \brief return mutable data pointer
      */
-    void* get_data_mutable(){return _data;}
+    TPtr get_data_mutable(){
+        return _data;
+    }
 
     /**
      * \brief return current size of memory, in size
@@ -206,7 +212,7 @@ public:
 private:
     //! \brief device id where data allocated
     int _id;
-    void* _data;
+    TPtr _data;
     bool _own_data;
     size_t _count;
     size_t _capacity;

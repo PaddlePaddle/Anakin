@@ -84,7 +84,9 @@ public:
     virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
                             ActivationParam<OpTensor>& param, Context<NV>& ctx) {
-
+        if (param.active == Active_prelu) {
+            return SaberUnImplError;
+        }
         if (!(&ctx == this->_ctx)) {
             if (_handle != NULL) {
                 CUDNN_CHECK(cudnnDestroy(_handle));

@@ -177,8 +177,20 @@ SaberStatus SaberSoftmax<AMD, OpDtype, inDtype, outDtype,
     
     //To set the argument
     cl_mem memObjects[1] = { 0 };
+
+    const ClMem clin;
+    ClMem clout;
+
+    size_t offset_in, offset_out;
+
+    clin = inputs[0]->data();
+    clout = outputs[0]->mutable_data();
+
+    offset_in = clin.offset;
+    offset_out = clout.offset;
+
     outputs[0]->copy_from(*inputs[0]);
-    memObjects[0] = (cl_mem)outputs[0]->data();
+    memObjects[0] = clout.dmem;//(cl_mem)outputs[0]->data();
     int arg1_channel = inputs[0]->channel();
     int arg2_grid_size = inputs[0]->num() * inputs[0]->width() * inputs[0]->height();
     int arg3_stride_c = inputs[0]->width() * inputs[0]->height();
