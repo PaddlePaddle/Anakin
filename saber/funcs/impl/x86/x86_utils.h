@@ -246,7 +246,7 @@ private:
 };
 
 inline int round_up(int k, int c) {
-    return  k+(c-k%c);
+    return  ((k + c - 1) / c) * c;
 }
 
 inline int div_up(int k, int c) {
