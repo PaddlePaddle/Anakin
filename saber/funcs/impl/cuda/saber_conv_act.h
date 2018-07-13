@@ -96,9 +96,12 @@ public:
 
             if (param.has_eltwise) {
                 dispatch_func_elt = winograd_conv_eltwise<InDataType, OpDataType>;
-            } else {
+            } else if(param.has_active) {
                 dispatch_func = winograd_conv_relu<InDataType, OpDataType>;
+            } else {
+                dispatch_func = winograd_conv<OutDataType, OpDataType>;
             }
+            
         } else if(param.conv_param.group == 1) {
             const int K = param.conv_param.weight()->num();
             if(K % 4 == 0) {
