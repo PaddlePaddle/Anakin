@@ -29,6 +29,7 @@ bool compare_tensor(T& data, T& ref_data, float eps = 1e-4) {
     typedef typename T::Dtype data_t;
 
     if (data.size() != ref_data.size()) {
+        LOG(ERROR)<<"data.size() != ref_data.size()";
         return false;
     }
 
@@ -41,11 +42,13 @@ bool compare_tensor(T& data, T& ref_data, float eps = 1e-4) {
         if (e <= eps) {
             return true;
         } else {
+            LOG(ERROR)<<"i = "<<i;
             LOG(ERROR) << "out = " << data.data()[i];
             LOG(ERROR) << "out_ref = " << ref_data.data()[i];
             return false;
         }
     }
+    LOG(ERROR)<<"data.size() = "<<data.size();
     return false;
 }
 
