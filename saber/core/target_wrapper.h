@@ -107,70 +107,73 @@ struct TargetWrapper<TargetType, __host_target> {
      * \brief create event, empty function for host target
      *
     */
-    static void create_event(event_t& event, bool flag = false) {}
+    static void create_event(event_t* event, bool flag = false) {}
 
     /**
      * \brief destroy event, empty function for host target
      *
     */
-    static void destroy_event(event_t& event) {}
+    static void destroy_event(event_t event) {}
 
     /**
      * \brief create stream, empty function for host target
      *
     */
-    static void create_stream(stream_t& stream) {}
+    static void create_stream(stream_t* stream) {}
 
     /**
      * \brief create stream with flag, empty function for host target
      *
     */
-    static void create_stream_with_flag(stream_t& stream, unsigned int flag) {}
+    static void create_stream_with_flag(stream_t* stream, unsigned int flag) {}
 
 
     /**
      * \brief create stream with priority, empty function for host target
      *
     */
-    static void create_stream_with_priority(stream_t& stream, unsigned int flag, int priority) {}
+    static void create_stream_with_priority(stream_t* stream, unsigned int flag, int priority) {}
 
     /**
      * \brief destroy event, empty function for host target
      *
     */
-    static void destroy_stream(stream_t& stream) {}
+    static void destroy_stream(stream_t stream) {}
 
     /**
      * \brief record event, empty function for host target
      *
     */
-    static void record_event(event_t& event, stream_t stream) {}
+    static void record_event(event_t event, stream_t stream) {}
 
     /**
      * \brief query event, empty function for host target
      *
     */
-    static void query_event(event_t& event) {}
+    static void query_event(event_t event) {}
 
     /**
      * \brief synchronize event, empty function for host target
      *
     */
-    static void sync_event(event_t& event) {}
+    static void sync_event(event_t event) {}
 
     /**
      * \brief crreate event, empty function for host target
      *
     */
-    static void sync_stream(event_t& event, stream_t& stream) {}
+    static void sync_stream(event_t event, stream_t stream) {}
+
+    static void sync_stream(stream_t stream) {}
 
     /**
      * \brief memory copy function, use memcopy from host to host
      *
     */
-    static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-                            size_t count, __HtoH) {
-        memcpy(dst, src, count);
+    static void sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, int src_id, size_t src_offset, \
+        size_t count, __HtoH) {
+        memcpy((char*)dst + dst_offset, (char*)src + src_offset, count);
         //LOG(INFO) << "host, sync, H2H, size: " << count;
     }
 
@@ -183,9 +186,10 @@ struct TargetWrapper<TargetType, __host_target> {
      * @param src_id
      * @param count
      */
-    static void async_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-                             size_t count, stream_t& stream, __HtoH) {
-        memcpy(dst, src, count);
+    static void async_memcpy(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
+        size_t count, stream_t stream, __HtoH) {
+        memcpy((char*)dst + dst_offset, (char*)src + src_offset, count);
         //LOG(INFO) << "host, sync, H2H, size: " << count;
     }
 
@@ -198,8 +202,8 @@ struct TargetWrapper<TargetType, __host_target> {
      * @param src_dev
      * @param count
      */
-    static void sync_memcpy_p2p(void* dst, int dst_dev, const void* src, \
-                                int src_dev, size_t count) {}
+    static void sync_memcpy_p2p(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, size_t count) {}
 
     /**
      * \brief asynchronize memcpy peer to peer, for device memory copy between different devices
@@ -210,8 +214,8 @@ struct TargetWrapper<TargetType, __host_target> {
      * @param src_dev
      * @param count
      */
-    static void async_memcpy_p2p(void* dst, int dst_dev, const void* src, \
-                                 int src_dev, size_t count, stream_t& stream) {}
+    static void async_memcpy_p2p(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, size_t count, stream_t stream) {}
 
     /**
      * \brief host target return 0
@@ -223,7 +227,7 @@ struct TargetWrapper<TargetType, __host_target> {
 };
 
 
-#ifdef USE_CUDA
+#if 1//def USE_CUDA
 /**
  * \brief for NV host target only, device target is NV gpu
  * use cuda api to manage memory
@@ -232,8 +236,8 @@ struct TargetWrapper<TargetType, __host_target> {
 */
 template <>
 struct TargetWrapper<NVHX86, __host_target> {
-    typedef __invalid_type event_t;
-    typedef __invalid_type stream_t;
+    typedef cudaEvent_t event_t;
+    typedef cudaStream_t stream_t;
 
     static void get_device_count(int& count);
 
@@ -245,37 +249,42 @@ struct TargetWrapper<NVHX86, __host_target> {
 
     static void mem_set(void* ptr, int value, size_t n);
 
-    static void create_event(event_t& event, bool flag = false);
+    static void create_event(event_t* event, bool flag = false);
 
-    static void destroy_event(event_t& event);
+    static void destroy_event(event_t event);
 
-    static void record_event(event_t& event, stream_t stream);
+    static void record_event(event_t event, stream_t stream);
 
-    static void create_stream(stream_t& stream);
+    static void create_stream(stream_t* stream);
 
-    static void create_stream_with_flag(stream_t& stream, unsigned int flag);
+    static void create_stream_with_flag(stream_t* stream, unsigned int flag);
 
-    static void create_stream_with_priority(stream_t& stream, unsigned int flag, int priority);
+    static void create_stream_with_priority(stream_t* stream, unsigned int flag, int priority);
 
-    static void destroy_stream(stream_t& stream);
+    static void destroy_stream(stream_t stream);
 
-    static void query_event(event_t& event);
+    static void query_event(event_t event);
 
-    static void sync_event(event_t& event);
+    static void sync_event(event_t event);
 
-    static void sync_stream(event_t& event, stream_t& stream);
+    static void sync_stream(event_t event, stream_t stream);
 
-    static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-                            size_t count, __HtoH);
+    static void sync_stream(stream_t stream);
 
-    static void async_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-                             size_t count, stream_t& stream, __HtoH);
+    static void sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
+        size_t count, __HtoH);
 
-    static void sync_memcpy_p2p(void* dst, int dst_dev, const void* src, \
-                                int src_dev, size_t count);
+    static void async_memcpy(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
+        size_t count, stream_t stream, __HtoH);
 
-    static void async_memcpy_p2p(void* dst, int dst_dev, const void* src, \
-                                 int src_dev, size_t count, stream_t& stream);
+    static void sync_memcpy_p2p(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, size_t count);
+
+    static void async_memcpy_p2p(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
+        size_t count, stream_t stream);
 
     static int get_device_id();
 };
@@ -304,54 +313,63 @@ struct TargetWrapper<NV, __device_target> {
     //template <typename void>
     static void mem_set(void* ptr, int value, size_t n);
 
-    static void create_event(event_t& event, bool flag = false);
+    static void create_event(event_t* event, bool flag = false);
 
-    static void create_stream(stream_t& stream);
+    static void create_stream(stream_t* stream);
 
     /**
      * \brief create cuda stream with flag
      * @param stream    input stream
      * @param flag      input flag, 0: default stream flag, 1: cudaStreamNonBlocking
      */
-    static void create_stream_with_flag(stream_t& stream, unsigned int flag);
+    static void create_stream_with_flag(stream_t* stream, unsigned int flag);
 
-    static void create_stream_with_priority(stream_t& stream, unsigned int flag, int priority);
+    static void create_stream_with_priority(stream_t* stream, unsigned int flag, int priority);
 
-    static void destroy_stream(stream_t& stream);
+    static void destroy_stream(stream_t stream);
 
-    static void destroy_event(event_t& event);
+    static void destroy_event(event_t event);
 
-    static void record_event(event_t& event, stream_t stream);
+    static void record_event(event_t event, stream_t stream);
 
-    static void query_event(event_t& event);
+    static void query_event(event_t event);
 
-    static void sync_event(event_t& event);
+    static void sync_event(event_t event);
 
-    static void sync_stream(event_t& event, stream_t& stream);
+    static void sync_stream(event_t event, stream_t stream);
+    static void sync_stream(stream_t stream);
 
-    static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-                            size_t count, __DtoD);
+    static void sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
+        size_t count, __DtoD);
 
-    static void async_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-                             size_t count, stream_t& stream, __DtoD);
+    static void async_memcpy(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
+        size_t count, stream_t stream, __DtoD);
 
-    static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-                            size_t count, __HtoD);
+    static void sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
+        size_t count, __HtoD);
 
-    static void async_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-                             size_t count, stream_t& stream, __HtoD);
+    static void async_memcpy(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
+        size_t count, stream_t stream, __HtoD);
 
-    static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-                            size_t count, __DtoH);
+    static void sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
+        size_t count, __DtoH);
 
-    static void async_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-                             size_t count, stream_t& stream, __DtoH);
+    static void async_memcpy(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
+        size_t count, stream_t stream, __DtoH);
 
-    static void sync_memcpy_p2p(void* dst, int dst_dev, const void* src, \
-                                int src_dev, size_t count);
+    static void sync_memcpy_p2p(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
+        size_t count);
 
-    static void async_memcpy_p2p(void* dst, int dst_dev, const void* src, \
-                                 int src_dev, size_t count, stream_t& stream);
+    static void async_memcpy_p2p(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
+        size_t count, stream_t stream);
 
     /**
      * \brief device target return currently used device id
@@ -372,7 +390,7 @@ struct TargetWrapper<NV, __device_target> {
 template <>
 struct TargetWrapper<AMD, __device_target> {
 
-    typedef typename PtrTrait<AMD>::PtrType TPtr;
+    typedef typename DataTraitBase<AMD>::PtrDtype TPtr;
 
     typedef cl_event event_t;
     typedef cl_command_queue stream_t;
@@ -389,54 +407,62 @@ struct TargetWrapper<AMD, __device_target> {
 
     static void mem_set(TPtr ptr, int value, size_t n);
 
-    static void create_event(event_t& event, bool flag = false);
+    static void create_event(event_t* event, bool flag = false);
 
-    static void create_stream(stream_t& stream);
+    static void create_stream(stream_t* stream);
 
     /**
      * \brief create cuda stream with flag
      * @param stream    input stream
      * @param flag      input flag, 0: default stream flag, 1: cudaStreamNonBlocking
      */
-    static void create_stream_with_flag(stream_t& stream, unsigned int flag);
+    static void create_stream_with_flag(stream_t* stream, unsigned int flag);
 
-    static void create_stream_with_priority(stream_t& stream, unsigned int flag, int priority);
+    static void create_stream_with_priority(stream_t* stream, unsigned int flag, int priority);
 
-    static void destroy_stream(stream_t& stream);
+    static void destroy_stream(stream_t stream);
 
-    static void destroy_event(event_t& event);
+    static void destroy_event(event_t event);
 
-    static void record_event(event_t& event, stream_t stream);
+    static void record_event(event_t event, stream_t stream);
 
-    static void query_event(event_t& event);
+    static void query_event(event_t event);
 
-    static void sync_event(event_t& event);
+    static void sync_event(event_t event);
 
-    static void sync_stream(event_t& event, stream_t& stream);
+    static void sync_stream(event_t event, stream_t stream);
+    static void sync_stream(stream_t stream);
     
-    static void sync_memcpy(TPtr dst, int dst_id, const TPtr src, int src_id, \
+    static void sync_memcpy(TPtr dst, size_t dst_offset, int dst_id, \
+        const TPtr src, size_t src_offset, int src_id, \
         size_t count, __DtoD);
 
-    static void async_memcpy(TPtr dst, int dst_id, const TPtr src, int src_id, \
-        size_t count, stream_t& stream, __DtoD);
+    static void async_memcpy(TPtr dst, size_t dst_offset, int dst_id, \
+        const TPtr src, size_t src_offset, int src_id, \
+        size_t count, stream_t stream, __DtoD);
 
-    static void sync_memcpy(TPtr dst, int dst_id, const void* src, int src_id, \
+    static void sync_memcpy(TPtr dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
         size_t count, __HtoD);
 
-    static void async_memcpy(TPtr dst, int dst_id, const void* src, int src_id, \
-        size_t count, stream_t& stream, __HtoD);
+    static void async_memcpy(TPtr dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
+        size_t count, stream_t stream, __HtoD);
 
-    static void sync_memcpy(void* dst, int dst_id, const TPtr src, int src_id, \
+    static void sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
+        const TPtr src, size_t src_offset, int src_id, \
         size_t count, __DtoH);
 
-    static void async_memcpy(void* dst, int dst_id, const TPtr src, int src_id, \
-        size_t count, stream_t& stream, __DtoH);
+    static void async_memcpy(void* dst, size_t dst_offset, int dst_id, \
+        const TPtr src, size_t src_offset, int src_id, \
+        size_t count, stream_t stream, __DtoH);
 
-    static void sync_memcpy_p2p(TPtr dst, int dst_dev, const TPtr src, \
-        int src_dev, size_t count);
+    static void sync_memcpy_p2p(TPtr dst, size_t dst_offset, int dst_id, \
+        const TPtr src, size_t src_offset, int src_id, size_t count);
 
-    static void async_memcpy_p2p(TPtr dst, int dst_dev, const TPtr src, \
-        int src_dev, size_t count, stream_t& stream);
+    static void async_memcpy_p2p(TPtr dst, size_t dst_offset, int dst_id, \
+        const TPtr src, size_t src_offset, int src_id, \
+        size_t count, stream_t stream);
 
     /**
      * \brief device target return currently used device id
@@ -454,36 +480,8 @@ struct TargetWrapper<AMD, __device_target> {
      * @param stream    input stream
      * @param flag      input flag
      */
-    static void _create_stream_with_flag(stream_t& stream, cl_context context, cl_device_id dev, unsigned int flag);
+    static void _create_stream_with_flag(stream_t* stream, cl_context context, cl_device_id dev, unsigned int flag);
 
-    static void sync_memcpy_with_offset(void* dst, int dst_id, size_t dst_offset, const void* src, int src_id, size_t src_offset, \
-        size_t count, __DtoD);
-
-    static void async_memcpy_with_offset(void* dst, int dst_id, size_t dst_offset, const void* src, int src_id, size_t src_offset, \
-        size_t count, stream_t& stream, __DtoD);
-
-    static void sync_memcpy_with_offset(void* dst, int dst_id, size_t dst_offset, const void* src, int src_id, size_t src_offset, \
-        size_t count, __HtoD);
-
-    static void async_memcpy_with_offset(void* dst, int dst_id, size_t dst_offset, const void* src, int src_id, size_t src_offset, \
-        size_t count, stream_t& stream, __HtoD);
-
-    static void sync_memcpy_with_offset(void* dst, int dst_id, size_t dst_offset, const void* src, int src_id, size_t src_offset, \
-        size_t count, __DtoH);
-
-    static void async_memcpy_with_offset(void* dst, int dst_id, size_t dst_offset, const void* src, int src_id, size_t src_offset, \
-        size_t count, stream_t& stream, __DtoH);
-
-    static void sync_memcpy_with_offset(void* dst, int dst_id, size_t dst_office, const void* src, int src_id, size_t src_office, \
-        size_t count, __HtoH) {
-        CHECK(false) << "AMD sync_memcpy H2H, should not be here";
-    }
-
-    template<typename stream_type>
-    static void async_memcpy_with_offset(void* dst, int dst_id, size_t dst_office, const void* src, int src_id, size_t src_office, \
-        size_t count, stream_type &stream, __HtoH) {
-        CHECK(false) << "AMD async_memcpy H2H, should not be here";
-    }
     //static void init();
 
     //static cl_int enable_amd;

@@ -1,25 +1,23 @@
-#include "test_saber_tensor_NV.h"
+#include "test_saber_func_NV.h"
 #include "tensor_op.h"
 #include <vector>
 using namespace anakin::saber;
 
-typedef TargetWrapper<X86> X86_API;
+typedef TargetWrapper<NVHX86> X86_API;
 typedef TargetWrapper<NV> NV_API;
-typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
-typedef Tensor<NV, AK_FLOAT, NCHW> TensorDf4;
-typedef Tensor<X86, AK_FLOAT, HW> TensorHf2;
-typedef Tensor<NV, AK_FLOAT, HW> TensorDf2;
-typedef TensorHf4::Dtype dtype;
+typedef Tensor<NVHX86> TensorH;
+typedef Tensor<NV> TensorD;
+typedef TensorH::FDtype dtype;
 
-TEST(TestSaberTensorNV, test_tensor_constructor) {
+TEST(TestSaberFuncNV, test_tensor_constructor) {
 
     //! test empty constructor
     LOG(INFO) << "test default (empty) constructor";
-    TensorHf4 thost0;
-    TensorDf4 tdev0;
+    TensorH thost0;
+    TensorD tdev0;
 
     //! test tensor re_alloc function empty constructor
-    Shape sh0(2, 2, 8, 8);
+    Shape sh0({2, 2, 8, 8}, Layout_NCHW);
     LOG(INFO) << "|--test tensor re_alloc function on empty tensor";
     thost0.re_alloc(sh0);
     tdev0.re_alloc(sh0);
@@ -30,7 +28,7 @@ TEST(TestSaberTensorNV, test_tensor_constructor) {
 
     //! test tensor re_alloc function on tensor with data
     LOG(INFO) << "|--test tensor re_alloc function on tensor with data";
-    Shape sh1(1, 2, 4, 4);
+    Shape sh1({1, 2, 4, 4}, Layout_NCHW);
     thost0.re_alloc(sh1);
     tdev0.re_alloc(sh1);
     LOG(INFO) << "|--tensor size of host: " << thost0.size();
@@ -54,8 +52,8 @@ TEST(TestSaberTensorNV, test_tensor_constructor) {
 
     //! test tensor constructor with shape
     LOG(INFO) << "test tensor constructor with shape";
-    TensorHf4 thost1(sh1);
-    TensorDf4 tdev1(sh1);
+    TensorH thost1(sh1);
+    TensorD tdev1(sh1);
 
     //! test tensor copy_from() function
     LOG(INFO) << "test copy_from() function, input tensor could be any target";
@@ -70,8 +68,8 @@ TEST(TestSaberTensorNV, test_tensor_constructor) {
     //! test tensor constructor with shape and real_shape
     LOG(INFO) << "test tensor constructor with shape and real_shape";
     //! constructor with 3 shapes is removed
-    TensorHf4 thost2(sh0);
-    TensorDf4 tdev2(sh0);
+    TensorH thost2(sh0);
+    TensorD tdev2(sh0);
 
     //! test tensor constructor with data, if target is different, create buffer, and copy the data
     LOG(INFO) <<
@@ -91,32 +89,32 @@ TEST(TestSaberTensorNV, test_tensor_constructor) {
     dev_data_ptr = static_cast<dtype*>(tmp_pt_dev);
     cudaMemcpy(dev_data_ptr, host_data_ptr, sizeof(dtype) * sh1.count(), cudaMemcpyHostToDevice);
     LOG(INFO) << "|--construct host tensor from host data ptr";
-    TensorHf4 thost3(host_data_ptr, X86(), X86_API::get_device_id(), sh1);
+    TensorH thost3(host_data_ptr, NVHX86(), X86_API::get_device_id(), sh1);
     LOG(INFO) << "|--constructor device tensor from host data ptr";
-    TensorDf4 tdev3(host_data_ptr, X86(), X86_API::get_device_id(), sh1);
+    TensorD tdev3(host_data_ptr, NVHX86(), X86_API::get_device_id(), sh1);
     print_tensor_host(thost3);
     print_tensor_device(tdev3);
     cudaDeviceSynchronize();
 
     LOG(INFO) << "|--construct host tensor from device data ptr";
-    TensorHf4 thost4(dev_data_ptr, NV(), NV_API::get_device_id(), sh1);
+    TensorH thost4(dev_data_ptr, NV(), NV_API::get_device_id(), sh1);
     LOG(INFO) << "|--constructor device tensor from device data ptr";
-    TensorDf4 tdev4(dev_data_ptr, NV(), NV_API::get_device_id(), sh1);
+    TensorD tdev4(dev_data_ptr, NV(), NV_API::get_device_id(), sh1);
     print_tensor_host(thost4);
     print_tensor_device(tdev4);
     NV_API::stream_t dev_stream0;
-    NV_API::create_stream_with_flag(dev_stream0, 1);
+    NV_API::create_stream_with_flag(&dev_stream0, 1);
     cudaDeviceSynchronize();
 
     //! test tensor copy constructor
     LOG(INFO) << "test tensor copy constructor";
     LOG(INFO) << "|--normal copy constructor";
-    TensorHf4 thost5(thost4);
-    TensorDf4 tdev5(tdev4);
+    TensorH thost5(thost4);
+    TensorD tdev5(tdev4);
 
     LOG(INFO) << "|--push back to vector";
-    std::vector<TensorHf4> vthost;
-    std::vector<TensorDf4> vtdev;
+    std::vector<TensorH> vthost;
+    std::vector<TensorD> vtdev;
     vthost.push_back(thost0);
     vthost.push_back(thost1);
     vthost.push_back(thost2);
@@ -135,20 +133,22 @@ TEST(TestSaberTensorNV, test_tensor_constructor) {
 
     //! test share_from function, if targets are the same, buffer is shared, otherwise, buffer is copied
     LOG(INFO) << "test share_from function";
-    TensorHf4 thost6, thost7;
-    TensorDf4 tdev6, tdev7;
+    TensorH thost6, thost7;
+    TensorD tdev6, tdev7;
     thost6.set_shape(thost4.shape());
     thost7.set_shape(thost4.shape());
     tdev6.set_shape(thost4.shape());
     tdev7.set_shape(thost4.shape());
-    Shape sh2(1, 2, 2, 2);
-    Shape offset(0, 0, 1, 1);
+    Shape sh2({1, 2, 2, 2}, Layout_NCHW);
+    Shape offset({0, 0, 1, 1}, Layout_NCHW);
     LOG(INFO) << "|--shared host";
     thost6.share_sub_buffer(thost4, sh2, offset);
     LOG(INFO) << "|--copied host";
-    tdev6.share_from(thost4);
+    tdev6.reshape(sh1);
+    tdev6.copy_from(thost4);
     LOG(INFO) << "|--copied device";
-    thost7.share_from(tdev4);
+    thost7.reshape(sh1);
+    thost7.copy_from(tdev4);
     LOG(INFO) << "|--shared device";
     tdev7.share_from(tdev4);
 
@@ -172,7 +172,7 @@ TEST(TestSaberTensorNV, test_tensor_constructor) {
     int c = thost6.channel();
     int n = thost6.num();
 
-    dtype* ptr_host = thost6.mutable_data();
+    dtype* ptr_host = thost6.mutable_data() + thost6.data_offset();
 
     for (int in = 0; in < n; ++in) {
         dtype* ptr_batch = ptr_host + in * stride[0];
@@ -197,10 +197,10 @@ TEST(TestSaberTensorNV, test_tensor_constructor) {
     LOG(INFO) << "test record tensor event";
     NV_API::stream_t dev_stream;
     NV_API::stream_t dev_stream1;
-    NV_API::create_stream_with_flag(dev_stream, 1);
-    NV_API::create_stream_with_flag(dev_stream1, 1);
+    NV_API::create_stream_with_flag(&dev_stream, 1);
+    NV_API::create_stream_with_flag(&dev_stream1, 1);
     X86_API::stream_t host_stream;
-    X86_API::create_stream_with_flag(host_stream, 1);
+    X86_API::create_stream_with_flag(&host_stream, 1);
     LOG(INFO) << "|--test record event on host tensor";
     fill_tensor_host_const(thost4, 888.f);
     thost4.record_event(host_stream);
@@ -214,67 +214,67 @@ TEST(TestSaberTensorNV, test_tensor_constructor) {
     tdev4.record_event(dev_stream1);
     tdev4.sync();
 #if 0
-    TensorDf4 td;
-    Shape sh = {1, 3, 10, 10};
+    TensorD td;
+    Shape sh({1, 3, 10, 10}, Layout_NCHW);
     td.re_alloc(sh);
     NV_API::stream_t stream00, stream01;
-    NV_API::create_stream(stream00);
-    NV_API::create_stream(stream01);
+    NV_API::create_stream(&stream00);
+    NV_API::create_stream(&stream01);
     fill_tensor_device_const(td, 666);
     cudaDeviceSynchronize();
     print_tensor_device(td, stream00);
     td.record_event(stream00);
-    //! uncomment the flowing line will print wrong result
-    td.sync();
+    //! comment the flowing line and turn off cudaDeviceSynchronize in print_tensor_device will print wrong result
+    //td.sync();
     fill_tensor_device_const(td, 888, stream01);
     cudaDeviceSynchronize();
 #endif
 }
 
-TEST(TestSaberTensorNV, test_tensor_deepcopy) {
+TEST(TestSaberFuncNV, test_tensor_deepcopy) {
     //! tensor constructor with alloc data, if target is different, create buffer, and copy the data
     LOG(INFO) << "test tensor deep copy";
-    Shape sh0(2, 2, 4, 4);
-    Shape va_sh0(2, 2, 2, 2);
-    Shape off_sh0(0, 0, 1, 1);
+    Shape sh0({2, 2, 4, 4}, Layout_NCHW);
+    Shape va_sh0({2, 2, 2, 2}, Layout_NCHW);
+    Shape off_sh0({0, 0, 1, 1}, Layout_NCHW);
 
-    Shape sh1(2, 2, 4, 4);
+    Shape sh1({2, 2, 4, 4}, Layout_NCHW);
     Shape va_sh1(va_sh0);
-    Shape off_sh1(0, 0, 1, 0);
+    Shape off_sh1({0, 0, 1, 0}, Layout_NCHW);
 
-    Shape sh2(2, 32);
-    Shape va_sh2(2, 8);
-    Shape off_sh2(0, 8);
+    Shape sh2({2, 32}, Layout_NW);
+    Shape va_sh2({2, 8}, Layout_NW);
+    Shape off_sh2({0, 8}, Layout_NW);
 
     X86_API::stream_t x86_stream;
     NV_API::stream_t nv_stream;
-    X86_API::create_stream(x86_stream);
-    NV_API::create_stream(nv_stream);
+    X86_API::create_stream(&x86_stream);
+    NV_API::create_stream(&nv_stream);
 
     //! create source tensor, th0, td0, th01, td01, th1, td1;
-    TensorHf4 th0(sh0);
+    TensorH th0(sh0);
 
     for (int i = 0; i < sh0.count(); ++i) {
         th0.mutable_data()[i] = i;
     }
 
-    TensorHf4 th1(va_sh0);
+    TensorH th1(va_sh0);
 
     for (int i = 0; i < va_sh0.count(); ++i) {
         th1.mutable_data()[i] = i;
     }
 
-    TensorHf4 th01;
+    TensorH th01;
     th01.share_sub_buffer(th0, va_sh0, off_sh0);
 
-    TensorDf4 td0, td1, td01;
+    TensorD td0, td1, td01;
     td0.set_shape(th0.shape());
     td1.set_shape(th1.shape());
-    td0.share_from(th0);
-    td1.share_from(th1);
-    TensorDf4 dev_tmp0;
+    td0.copy_from(th0);
+    td1.copy_from(th1);
+    TensorD dev_tmp0;
     dev_tmp0.set_shape(th0.shape());
-    dev_tmp0.share_from(th0);
+    dev_tmp0.copy_from(th0);
     td01.share_sub_buffer(dev_tmp0, va_sh0, off_sh0);
 
     print_tensor_host(th0);
@@ -283,18 +283,18 @@ TEST(TestSaberTensorNV, test_tensor_deepcopy) {
     print_tensor_device(td1);
 
     //! create th2, th3, th21, td2, td3, td21 as dst tensor
-    TensorHf2 th2(sh2);
+    TensorH th2(sh2);
     fill_tensor_host_const(th2, 0.f);
-    TensorHf2 th21;
+    TensorH th21;
     th21.share_sub_buffer(th2, va_sh2, off_sh2);
-    TensorHf2 th3(va_sh2);
+    TensorH th3(va_sh2);
 
-    TensorDf2 td2(sh2);
+    TensorD td2(sh2);
     fill_tensor_device_const(td2, 0.f);
     cudaDeviceSynchronize();
-    TensorDf2 td21;
+    TensorD td21;
     td21.share_sub_buffer(td2, va_sh2, off_sh2);
-    TensorDf2 td3(va_sh2);
+    TensorD td3(va_sh2);
 
     double max_diff;
     double  max_ratio;
@@ -317,7 +317,7 @@ TEST(TestSaberTensorNV, test_tensor_deepcopy) {
     tensor_cmp_host(th1.data(), th3.data(), th3.size(), max_ratio, max_diff);
     CHECK_LE(max_ratio, 1e-5f) << "error result of entire buffer copy, sync, D2H";
     fill_tensor_host_const(th3, 0.f);
-    th3.async_copy_from(td1, nv_stream);
+    th3.async_copy_from(td1, x86_stream);
     th3.record_event(x86_stream);
     th3.sync();
     tensor_cmp_host(th1.data(), th3.data(), th3.size(), max_ratio, max_diff);
@@ -411,11 +411,11 @@ TEST(TestSaberTensorNV, test_tensor_deepcopy) {
     print_tensor_device(td21);
     cudaDeviceSynchronize();
 }
-
-TEST(TestSaberTensorNV, test_tensor_shape) {
-    typedef Tensor<X86, AK_FLOAT, NCHW> Tensor4_0;
-    typedef Tensor<X86, AK_FLOAT, NHWC> Tensor4_1;
-    typedef Tensor<X86, AK_FLOAT, HW> Tensor2;
+#if 0
+TEST(TestSaberFuncNV, test_tensor_shape) {
+    typedef Tensor<NVHX86> Tensor4_0;
+    typedef Tensor<NVHX86> Tensor4_1;
+    typedef Tensor<NVHX86> Tensor2;
 
     int nin = 2;
     int cin = 2;
@@ -477,15 +477,16 @@ TEST(TestSaberTensorNV, test_tensor_shape) {
     CHECK_EQ(t3.width_index(), 1) << "HW get width index error";
 
 }
-
-TEST(TestSaberTensorNV, test_tensor_reshape_realloc) {
+#endif
+#if 1
+TEST(TestSaberFuncNV, test_tensor_reshape_realloc) {
 
     LOG(INFO) << "test tensor reshape and re_alloc funcs";
 
-    Shape sh0(2, 2, 2, 2);
-    Shape sh1(2, 2, 4, 4);
-    TensorHf4 th0(sh1);
-    TensorDf4 td0(sh1);
+    Shape sh0({2, 2, 2, 2}, Layout_NCHW);
+    Shape sh1({2, 2, 4, 4}, Layout_NCHW);
+    TensorH th0(sh1);
+    TensorD td0(sh1);
     fill_tensor_host_const(th0, 1);
     fill_tensor_device_const(td0, 1);
     LOG(INFO) << "ori tensor with size: " << th0.valid_size();
@@ -518,8 +519,8 @@ TEST(TestSaberTensorNV, test_tensor_reshape_realloc) {
     print_tensor_device(td0);
     cudaDeviceSynchronize();
 
-    TensorHf4 th1(sh0);
-    TensorDf4 td1(sh0);
+    TensorH th1(sh0);
+    TensorD td1(sh0);
     LOG(INFO) << "ori tensor with size: " << th1.valid_size();
     fill_tensor_host_const(th1, 1);
     fill_tensor_device_const(td1, 1);
@@ -553,12 +554,12 @@ TEST(TestSaberTensorNV, test_tensor_reshape_realloc) {
 
 }
 
-TEST(TestSaberTensorNV, test_tensor_op) {
-    Shape sh{1, 2, 2, 10};
-    TensorDf4 td1(sh);
-    TensorHf4 th1(sh);
-    Tensor<NV, AK_INT8, NCHW> td2(sh);
-    Tensor<X86, AK_INT8, NCHW> th2(sh);
+TEST(TestSaberFuncNV, test_tensor_op) {
+    Shape sh({1, 2, 2, 10}, Layout_NCHW);
+    TensorD td1(sh);
+    TensorH th1(sh);
+    Tensor<NV> td2(sh);
+    Tensor<X86> th2(sh);
     LOG(INFO) << "testing host fill tensor with const 1.";
     fill_tensor_host_const(th1, 1.f);
     LOG(INFO) << "data type: float";
@@ -608,12 +609,12 @@ TEST(TestSaberTensorNV, test_tensor_op) {
     print_tensor_device(td2);
 }
 
-TEST(TestSaberTensorNV, test_tensor_share_diff_dtype) {
-    Shape sh{1, 1, 2, 10};
-    Tensor<NV, AK_FLOAT, NCHW> td1(sh);
-    Tensor<X86, AK_FLOAT, NCHW> th1(sh);
-    Tensor<NV, AK_INT8, NCHW> td2;
-    Tensor<X86, AK_INT8, NCHW> th2;
+TEST(TestSaberFuncNV, test_tensor_share_diff_dtype) {
+    Shape sh({1, 1, 2, 10}, Layout_NCHW);
+    Tensor<NV> td1(sh);
+    Tensor<NVHX86> th1(sh);
+    Tensor<NV> td2;
+    Tensor<NVHX86> th2;
     td2.set_shape(sh);
     th2.set_shape(sh);
     LOG(INFO) << "testing host fill tensor with const 1.";
@@ -633,22 +634,7 @@ TEST(TestSaberTensorNV, test_tensor_share_diff_dtype) {
     cudaDeviceSynchronize();
 }
 
-TEST(TestSaberTensorNV, test_tensor_base_type) {
-    Shape sh(1, 3, 10, 10);
-    Tensor<NV, AK_FLOAT, NCHW> td1(sh);
-    Tensor<X86, AK_FLOAT, NCHW> th1(sh);
-    fill_tensor_host_rand(th1, 0.f, 255.f);
-    td1.copy_from(th1);
-    TensorBase* tb1;
-    TensorBase* tb2;
-    tb1 = &th1;
-    Shape sh1(1, 1, 10, 10);
-    tb1->set_shape(sh1);
-    Shape sh11 = th1.valid_shape();
-    LOG(INFO) << "base tensor call set shape: " << "n=" << sh11[0] << ", c=" << sh11[1] << \
-              ", h=" << sh11[2] << ", w=" << sh11[3];
-}
-
+#endif
 int main(int argc, const char** argv) {
     // initial logger
     logger::init(argv[0]);

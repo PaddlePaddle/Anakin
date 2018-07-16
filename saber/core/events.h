@@ -30,7 +30,7 @@ public:
      * \brief create target specific event
      */
     explicit Events(){
-        API::create_event(_event);
+        API::create_event(&_event);
     }
 
     /**

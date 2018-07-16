@@ -22,6 +22,30 @@ namespace anakin{
 
 namespace saber{
 
+
+template <typename Ttype>
+struct DataTraitLp{
+    typedef void* PtrDtype;
+};
+
+template <typename Ttype>
+struct DataTraitBase{
+    typedef void* PtrDtype;
+};
+
+#ifdef USE_OPENCL
+template <>
+struct DataTraitLp<AMD>{
+    typedef cl_mem PtrDtype;
+};
+
+template <>
+struct DataTraitBase<AMD>{
+    typedef cl_mem PtrDtype;
+};
+#endif
+
+
 template <typename Ttype, DataType datatype>
 struct DataTrait{
     typedef __invalid_type Dtype;
@@ -88,11 +112,6 @@ struct DataTrait<Ttype, AK_UINT32> {
     typedef unsigned int* PtrDtype;
 };
 
-template <typename Ttype>
-struct PtrTrait {
-    typedef void* PtrType;
-};
-
 #ifdef USE_OPENCL
 struct ClMem{
     ClMem(){
@@ -138,30 +157,25 @@ struct ClMem{
 template <>
 struct DataTrait<AMD, AK_FLOAT> {
     typedef float Dtype;
-    typedef ClMem PtrDtype;
+    typedef cl_mem PtrDtype;
 };
 
 template <>
 struct DataTrait<AMD, AK_DOUBLE> {
     typedef double Dtype;
-    typedef ClMem PtrDtype;
+    typedef cl_mem PtrDtype;
 };
 
 template <>
 struct DataTrait<AMD, AK_INT8> {
     typedef char Dtype;
-    typedef ClMem PtrDtype;
+    typedef cl_mem PtrDtype;
 };
 
 template <>
 struct DataTrait<AMD, AK_HALF> {
     typedef short Dtype;
-    typedef ClMem PtrDtype;
-};
-
-template <>
-struct PtrTrait<AMD> {
-    typedef ClMem PtrType;
+    typedef cl_mem PtrDtype;
 };
 #endif //USE_OPENCL
 } //namespace saber

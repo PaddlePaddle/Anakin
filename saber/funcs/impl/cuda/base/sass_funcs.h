@@ -429,10 +429,9 @@ void direct_conv_bias_relu_maxpool2k2s0p_Kindiv4(const DataType* src,
     cudaStream_t cuda_stream);
 
 template<int k>
-void scale_to_new_tensor_k4_s2_p1_deconv (Tensor<NV, AK_FLOAT, NCHW> *weight,
-                                         int in_channel, int out_channel) {
-    Tensor<X86, AK_FLOAT, NCHW> new_weights_h;
-    Tensor<X86, AK_FLOAT, NCHW> temp_weights;
+void scale_to_new_tensor_k4_s2_p1_deconv (Tensor<NV> *weight, int in_channel, int out_channel) {
+    Tensor<X86> new_weights_h;
+    Tensor<X86> temp_weights;
 //    new_weights_dev.reshape(weight->valid_shape());
     new_weights_h.reshape(weight->valid_shape());
     temp_weights.reshape(weight->valid_shape());

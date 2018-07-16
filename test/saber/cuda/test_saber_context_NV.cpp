@@ -1,14 +1,15 @@
-#include "test_saber_context_NV.h"
+#include "test_saber_func_NV.h"
+#include "saber/core/context.h"
 
 #ifdef USE_CUDA
 
 using namespace anakin::saber;
 
-TEST(TestSaberContextNV, test_NV_context) {
+TEST(TestSaberFuncNV, test_NV_context) {
     Env<NV>::env_init();
     typedef TargetWrapper<NV> API;
     typename API::event_t event;
-    API::create_event(event);
+    API::create_event(&event);
     LOG(INFO) << "test context constructor";
     Context<NV> ctx0;
     Context<NV> ctx1(0, 1, 1);

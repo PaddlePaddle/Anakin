@@ -219,13 +219,13 @@ template < typename Tensor_t, template <typename T> class Param >
 void update_conv_weights(Param<Tensor_t>& param)
 {
 #ifdef USE_ARM_PLACE
-    Tensor<ARM, AK_FLOAT, NCHW> new_weight;
-    Tensor<ARM, AK_FLOAT, NCHW> new_bias;
+    Tensor<ARM> new_weight;
+    Tensor<ARM> new_bias;
 #else
-    Tensor<X86, AK_FLOAT, NCHW> new_weight;
-    Tensor<X86, AK_FLOAT, NCHW> new_bias;
+    Tensor<X86> new_weight;
+    Tensor<X86> new_bias;
 #endif //USE_ARM_PLACE
-    typedef typename Tensor_t::Dtype Dtype;
+    typedef typename Tensor_t::FDtype Dtype;
 
     Shape weight_shape = param.conv_param.weight()->shape();
     new_weight.re_alloc(weight_shape);
@@ -307,13 +307,13 @@ template < typename Tensor_t, template <typename T> class Param >
 void update_deconv_weights(Param<Tensor_t>& param)
 {
 #ifdef USE_ARM_PLACE
-    Tensor<ARM, AK_FLOAT, NCHW> new_weight;
-    Tensor<ARM, AK_FLOAT, NCHW> new_bias;
+    Tensor<ARM> new_weight;
+    Tensor<ARM> new_bias;
 #else
-    Tensor<X86, AK_FLOAT, NCHW> new_weight;
-    Tensor<X86, AK_FLOAT, NCHW> new_bias;
+    Tensor<X86> new_weight;
+    Tensor<X86> new_bias;
 #endif //USE_ARM_PLACE
-    typedef typename Tensor_t::Dtype dtype;
+    typedef typename Tensor_t::FDtype dtype;
 
     Shape weight_shape = param.conv_param.weight()->shape();
     new_weight.re_alloc(weight_shape);
