@@ -1,6 +1,3 @@
-//
-// Created by Li,Xiaoyang(SYS) on 17/11/1.
-//
 
 #include "test_saber_shape.h"
 #include "shape.h"
@@ -312,6 +309,48 @@ TEST(TestSaberShape, test_dim_2) {
             LOG(INFO) << "Layout_NW PASS";
     test_dim2(Layout_HW);
             LOG(INFO) << "Layout_HW PASS";
+}
+
+TEST(TestSaberShape, test_set_layout) {
+    Shape test_shape;
+    test_shape.push_back(2);
+    test_shape.push_back(8);
+    test_shape.push_back(4);
+    test_shape.push_back(5);
+
+    test_shape.set_layout(Layout_NCHW);
+    LOG(INFO) <<"NCHW";
+    LOG(INFO) << "test_shape[0] = "<< test_shape[0];
+    LOG(INFO) << "test_shape[1] = "<< test_shape[1];
+    LOG(INFO) << "test_shape[2] = "<< test_shape[2];
+    LOG(INFO) << "test_shape[3] = "<< test_shape[3];
+    test_shape.set_layout(Layout_NHWC);
+    LOG(INFO) <<"NHWC";
+    LOG(INFO) << "test_shape[0] = "<< test_shape[0];
+    LOG(INFO) << "test_shape[1] = "<< test_shape[1];
+    LOG(INFO) << "test_shape[2] = "<< test_shape[2];
+    LOG(INFO) << "test_shape[3] = "<< test_shape[3];
+    test_shape.set_layout(Layout_NCHW_C4);
+    LOG(INFO) <<"NCHW_C4";
+    LOG(INFO) << "test_shape.channel = "<< test_shape.channel();
+    LOG(INFO) << "test_shape[0] = "<< test_shape[0];
+    LOG(INFO) << "test_shape[1] = "<< test_shape[1];
+    LOG(INFO) << "test_shape[2] = "<< test_shape[2];
+    LOG(INFO) << "test_shape[3] = "<< test_shape[3];
+    test_shape.set_layout(Layout_HW);
+    LOG(INFO) <<"HW";
+    LOG(INFO) << "test_shape[0] = "<< test_shape[0];
+    LOG(INFO) << "test_shape[1] = "<< test_shape[1];
+    test_shape.set_layout(Layout_NCHW);
+    LOG(INFO) <<"NCHW";
+    LOG(INFO) << "test_shape[0] = "<< test_shape[0];
+    LOG(INFO) << "test_shape[1] = "<< test_shape[1];
+    LOG(INFO) << "test_shape[2] = "<< test_shape[2];
+    LOG(INFO) << "test_shape[3] = "<< test_shape[3];
+    test_shape.set_layout(Layout_HW, {10, 5});
+    LOG(INFO) <<"HW";
+    LOG(INFO) << "test_shape[0] = "<< test_shape[0];
+    LOG(INFO) << "test_shape[1] = "<< test_shape[1];
 }
 
 int main(int argc, const char** argv) {
