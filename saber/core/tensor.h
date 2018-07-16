@@ -28,9 +28,6 @@ template<typename TargetType>
 class Tensor {
 public:
 
-    typedef typename DataTrait<TargetType, AK_FLOAT>::Dtype FDtype;
-    typedef typename DataTrait<TargetType, AK_FLOAT>::PtrDtype PtrFDtype;
-    typedef typename DataTraitLp<TargetType>::PtrDtype PtrLpDtype;
     typedef typename DataTraitBase<TargetType>::PtrDtype BaseDtype;
 
     typedef typename TargetTypeTraits<TargetType>::target_category target_category;
@@ -40,30 +37,22 @@ public:
     /**`
      *  \brief Default constructor
      */
-    Tensor(size_t lptype_len = 1) : _valid_shape(), _shape(), _offset(), \
-        _ftype_len(sizeof(FDtype)), _lptype_len(lptype_len) {
-        _fbuf = std::make_shared<Buffer<TargetType>>();
-        _lpbuf = std::make_shared<Buffer<TargetType>>();
-        _state = DSYNC;
+    Tensor(DataType type = AK_FLOAT) : _valid_shape(), _shape(), _offset() {
+        _dtype = type;
+        _type_len = type_length(type);
+        _buf = std::make_shared<Buffer<TargetType>>();
         _is_subbuf = false;
     }
 
     /**
      * \brief Constructor with shape, memory is alloced according to shape.
      */
-    Tensor(Shape shape, size_t type_len = 1, bool flag_create_lp = false) : _ftype_len(sizeof(FDtype)), \
-        _lptype_len(type_len), _has_lp_buf(flag_create_lp) {
+    Tensor(Shape shape, DataType type = AK_FLOAT) {
         _shape = shape;
         _valid_shape = shape;
         _offset = Shape::zero(shape);
-        _fbuf = std::make_shared<Buffer<TargetType>>(shape.count() * _ftype_len);
-        if (_has_lp_buf) {
-            _lpbuf = std::make_shared<Buffer<TargetType>>(shape.count() * _lptype_len);
-            _state = DSYNC;
-        } else {
-            _lpbuf = std::make_shared<Buffer<TargetType>>();
-            _state = DFP32;
-        }
+        _type_len = type_length(type);
+        _buf = std::make_shared<Buffer<TargetType>>(shape.count() * _type_len);
         _is_shared = false;
         _is_subbuf = false;
     }
@@ -73,21 +62,16 @@ public:
      */
     //! now only support fp32 data pointer
     template <typename TargetType_t>
-    Tensor(void* data_ptr, TargetType_t target, int id, Shape shape, size_t type_len = 1, bool flag_create_lp = false) : \
-        _ftype_len(sizeof(FDtype)), _has_lp_buf(flag_create_lp) {
+    Tensor(void* data_ptr, TargetType_t target, int id, Shape shape, DataType type = AK_FLOAT) {
 
         _shape = shape;
         _valid_shape = shape;
         _offset = Shape::zero(shape);
+        _dtype = type;
+        _type_len = type_length(type);
         std::shared_ptr<Buffer<TargetType_t>> buf_from_date = \
-            std::make_shared<Buffer<TargetType_t>>(data_ptr, shape.count() * _ftype_len, id);
-        BufferMemShare(_fbuf, buf_from_date);
-        if (_has_lp_buf) {
-            _lpbuf = std::make_shared<Buffer<TargetType>>(shape.count() * _lptype_len);
-        } else {
-            _lpbuf = std::make_shared<Buffer<TargetType>>();
-        }
-        _state = DFP32;
+            std::make_shared<Buffer<TargetType_t>>(data_ptr, shape.count() * _type_len, id);
+        BufferMemShare(_buf, buf_from_date);
         _is_shared = true;
         _is_subbuf = false;
     }
@@ -95,71 +79,58 @@ public:
     /**
      * \brief Copy constructor, shallow copy.
      */
-    Tensor(const Tensor<TargetType>& tensor) : _ftype_len(sizeof(FDtype)) {
+    Tensor(const Tensor<TargetType>& tensor) {
         _shape = tensor._shape;
         _valid_shape = tensor._valid_shape;
         _offset = tensor._offset;
-        _fbuf = tensor._fbuf;
+        _dtype = tensor._dtype;
+        _type_len = tensor._type_len;
+        _buf = tensor._buf;
         _is_subbuf = tensor._is_subbuf;
         _is_shared = tensor._is_shared;
         _seq_offset = tensor._seq_offset;
-
-        _state = tensor._state;
         _scale = tensor._scale;
-        _lpbuf = tensor._lpbuf;
-        _lptype_len = tensor._lptype_len;
-        _has_lp_buf = tensor._has_lp_buf;
     }
 
     /**
      * \brief Copy constructor without events control.
      */
-    Tensor(Tensor<TargetType>& tensor) : _ftype_len(sizeof(FDtype)) {
+    Tensor(Tensor<TargetType>& tensor) {
         _shape = tensor._shape;
         _valid_shape = tensor._valid_shape;
         _offset = tensor._offset;
-        _fbuf = tensor._fbuf;
+        _buf = tensor._buf;
         tensor.add_events(&_events_tree);
         _is_subbuf = tensor._is_subbuf;
         _is_shared = tensor._is_shared;
         _seq_offset = tensor._seq_offset;
-
-        _state = tensor._state;
         _scale = tensor._scale;
-        _lptype_len = tensor._lptype_len;
-        _lpbuf = tensor._lpbuf;
-        _has_lp_buf = tensor._has_lp_buf;
     }
-
+#if 0
     /**
      * \brief create tensor with buffer
      * @param shape
      * @param type_len
      * @param flag_create_lp
      */
-    void create(Shape shape, size_t type_len = 1, bool flag_create_lp = false) {
-        _lptype_len = type_len;
-        _has_lp_buf = flag_create_lp;
+    void create(Shape shape, DataType type = AK_FLOAT) {
+        _dtype = type;
+        _type_len = type_length(type);
         _shape = shape;
         _valid_shape = shape;
         _offset = Shape::zero(shape);
-        _fbuf = std::make_shared<Buffer<TargetType>>(shape.count() * _ftype_len);
-        if (_has_lp_buf) {
-            _lpbuf = std::make_shared<Buffer<TargetType>>(shape.count() * _lptype_len);
-            _state = DSYNC;
-        } else {
-            _lpbuf = std::make_shared<Buffer<TargetType>>();
-            _state = DFP32;
-        }
+        _dtype = type;
+        _type_len = type_length(type);
+        _buf = std::make_shared<Buffer<TargetType>>(shape.count() * _type_len);
         _is_shared = false;
         _is_subbuf = false;
     }
-
+#endif // 0
     /**
      * \brief set scale for different precision data convert
      * @param scale
      */
-    void set_scale(std::vector<FDtype> scale) {
+    void set_scale(std::vector<float> scale) {
         _scale = scale;
     }
 
@@ -167,8 +138,25 @@ public:
      * \brief get scale
      * @param scale
      */
-    std::vector<FDtype> get_scale() const {
+    std::vector<float> get_scale() const {
         return _scale;
+    }
+
+    SaberStatus set_dtype(DataType type) {
+        _dtype = type;
+        _type_len = type_length(type);
+        if (_buf->get_capacity() < _shape.count() * _type_len) {
+            if (_is_shared || _is_subbuf) {
+                LOG(FATAL) << "tensor is shared, memory can not be re-alloced";
+                return SaberOutOfAuthority;
+            }
+            _buf->re_alloc(_shape.count() * _type_len);
+        }
+        return SaberSuccess;
+    }
+
+    DataType get_dtype() const {
+        return _dtype;
     }
 
     /**
@@ -209,7 +197,7 @@ public:
     /**
      *  \brief Free old buffer and alloc a new tensor buffer.
      */
-    SaberStatus re_alloc(Shape shape){
+    SaberStatus re_alloc(Shape shape, DataType type) {
         //if (!shape.dims() == TensorAPI::layout_dims::value) {
         //    return SaberInvalidValue;
         //}
@@ -217,13 +205,12 @@ public:
         //    return SaberOutOfAuthority;
         //}
         CHECK_EQ(_is_shared || _is_subbuf, false) << "shared tensor could not re_alloc";
+        _dtype = type;
+        _type_len = type_length(type);
         _shape = shape;
         _valid_shape = _shape;
         _offset =Shape::zero(_shape);
-        _fbuf->alloc(_shape.count() * _ftype_len);
-        if (_has_lp_buf) {
-            _lpbuf->alloc(_shape.count() * _lptype_len);
-        }
+        _buf->alloc(_shape.count() * _type_len);
         return SaberSuccess;
     }
 
@@ -258,16 +245,13 @@ public:
             CHECK_EQ(_valid_shape + _offset <= _shape, true) << \
                 "valid_shape + offet should <= shape";
         }
-        bool exceed_flag = _shape.count() * _ftype_len > _fbuf->get_capacity() \
+        bool exceed_flag = _shape.count() * _type_len > _buf->get_capacity() \
             && (_is_subbuf || _is_shared);
         //if (exceed_flag) {
         //    return SaberOutOfAuthority;
         //}
         CHECK_EQ(exceed_flag, false) << "shared tensor shape exceed origin data buffer size";
-        SABER_CHECK(_fbuf->re_alloc(_shape.count() * _ftype_len));
-        if (_has_lp_buf) {
-            SABER_CHECK(_lpbuf->re_alloc(_shape.count() * _lptype_len));
-        }
+        SABER_CHECK(_buf->re_alloc(_shape.count() * _type_len));
         return SaberSuccess;
     }
 
@@ -395,7 +379,7 @@ public:
      *  \brief Return tensor device id.
      */
     int device_id() const {
-        return _lpbuf->get_id();
+        return _buf->get_id();
     }
 
     /**
@@ -459,69 +443,33 @@ public:
         return _valid_shape.width_index();
     }
 
-    size_t lptype_len() const {
-        return _lptype_len;
-    }
-
-    bool has_lpbuf() const {
-        return _has_lp_buf;
-    }
-
     /**
      *  \brief Return tensor mutable data pointer void*.
      */
-    PtrFDtype mutable_data() {
+    BaseDtype mutable_data() {
         // synchronize the events tree
         //sync();
         CHECK_EQ(device_id(), API::get_device_id()) << \
             "tensor is not declared in current device";
-        if (_fbuf->get_capacity() == 0){
+        if (_buf->get_capacity() == 0){
             return nullptr;
         }
 
-        return static_cast<PtrFDtype>(_fbuf->get_data_mutable());
+        return static_cast<BaseDtype >(_buf->get_data_mutable());
     }
 
     /**
      *  \brief Return tensor data pointer, with data type of current tensor (Dtype*).
      */
-    const PtrFDtype data() const {
+    const BaseDtype data() const {
         // synchronize the events tree
         //sync();
         CHECK_EQ(device_id(), API::get_device_id()) << \
             "tensor is not declared in current device";
-        if (_fbuf->get_capacity() == 0){
+        if (_buf->get_capacity() == 0){
             return nullptr;
         }
-        return static_cast<PtrFDtype>(_fbuf->get_data_mutable());
-    }
-
-    /**
-     *  \brief Return tensor low precision mutable data pointer, with data type of current tensor (Dtype*).
-     */
-    PtrLpDtype lp_mutable_data() {
-        // synchronize the events tree
-        //sync();
-        CHECK_EQ(device_id(), API::get_device_id()) << \
-            "tensor is not declared in current device";
-        if (_fbuf->get_capacity() == 0){
-            return nullptr;
-        }
-        return _fbuf->get_data_mutable();
-    }
-
-    /**
-     *  \brief Return tensor data pointer, with data type of current tensor (Dtype*).
-     */
-    const PtrLpDtype lp_data() const {
-        // synchronize the events tree
-        //sync();
-                CHECK_EQ(device_id(), API::get_device_id()) << \
-            "tensor is not declared in current device";
-        if (_fbuf->get_capacity() == 0){
-            return nullptr;
-        }
-        return  _fbuf->get_data_mutable();
+        return static_cast<BaseDtype >(_buf->get_data_mutable());
     }
 
     /**
@@ -536,12 +484,13 @@ public:
         CHECK_LE(size(), tensor.size()) << "current tensor size should <= input tensor size";
 
         //_is_shared = BufferMemShare(_buf, tensor.get_buf()) > 0;
-        _fbuf = tensor._fbuf;
+
+        CHECK_GE(tensor._buf->get_capacity(), _shape.count() * _type_len) << "capacity of input tensor should > current tensor";
+
+        _buf = tensor._buf;
         _is_subbuf = false;
         _seq_offset = tensor._seq_offset;
         _is_shared = true;
-
-        _lpbuf = tensor._lpbuf;
 
         //if(shared){
         //    _is_root = false;
@@ -565,8 +514,7 @@ public:
         _valid_shape = valid_shape;
         _offset = offset;
         _shape = tensor.shape();
-        _fbuf = tensor._fbuf;
-        _lpbuf = tensor._lpbuf;
+        _buf = tensor._buf;
         _is_subbuf = true;
         _is_shared = true;
         _seq_offset = tensor._seq_offset;
@@ -582,10 +530,11 @@ public:
         //if (valid_size() != tensor.valid_size()) { \
             return SaberInvalidValue; \
         }
+        CHECK_EQ(tensor.get_dtype(), _dtype) << "data type should be the same";
         CHECK_EQ(valid_size(), tensor.valid_size()) \
             << "sizes of two valid shapes must be the same";
 
-        if (_fbuf->get_capacity() == 0) {
+        if (_buf->get_capacity() == 0) {
             reshape(_valid_shape);
         }
 
@@ -597,12 +546,7 @@ public:
         typedef typename IF<std::is_same<target_category, __host_target>::value, then_type, else_type>::Type flag_type;
         typedef typename IF<std::is_same<target_category , __host_target>::value, API_t, API>::Type process_API;
 
-        typedef typename DataTrait<TargetType_t, AK_FLOAT>::Dtype FDtype_src;
-        typedef typename DataTrait<TargetType_t, AK_FLOAT>::PtrDtype PtrFDtype_src;
-        typedef typename DataTraitLp<TargetType_t>::PtrDtype PtrLpDtype_src;
         typedef typename DataTraitBase<TargetType>::PtrDtype BaseDtype_src;
-
-        bool flag_copy_lp = _has_lp_buf && tensor.has_lpbuf();
 
         /// return if src and dst data ptrs are the same
         if (std::is_same<TargetType, TargetType_t>::value){
@@ -616,24 +560,12 @@ public:
             int dst_data_offset = data_offset();
             int src_data_offset = tensor.data_offset();
 
-            BaseDtype ptr_dst = _fbuf->get_data_mutable();
-            const PtrFDtype_src ptr_src = tensor.data();
+            BaseDtype ptr_dst = _buf->get_data_mutable();
+            const BaseDtype_src ptr_src = tensor.data();
 
-            process_API::sync_memcpy(ptr_dst, _ftype_len * dst_data_offset, device_id(), \
-                ptr_src, _ftype_len * src_data_offset, tensor.device_id(), \
-                _ftype_len * valid_size(), flag_type());
-
-            if (flag_copy_lp) {
-                if (_lpbuf->get_capacity() == 0) {
-                }
-                BaseDtype ptr_lp_dst = _lpbuf->get_data_mutable();
-                const PtrLpDtype_src ptr_lp_src = tensor.lp_data();
-                process_API::sync_memcpy(ptr_dst, _lptype_len * dst_data_offset, device_id(), \
-                ptr_src, _lptype_len * src_data_offset, tensor.device_id(), \
-                _lptype_len * valid_size(), flag_type());
-            }
-
-            _state = DSYNC;
+            process_API::sync_memcpy(ptr_dst, _type_len * dst_data_offset, device_id(), \
+                ptr_src, _type_len * src_data_offset, tensor.device_id(), \
+                _type_len * valid_size(), flag_type());
 
             return SaberSuccess;
         }
@@ -732,16 +664,8 @@ public:
         int dst_data_offset = data_offset();
         int src_data_offset = tensor.data_offset();
 
-        BaseDtype ptr_dst = _fbuf->get_data_mutable();
-        const PtrFDtype_src ptr_src = tensor.data();
-
-        BaseDtype ptr_dst_lp = nullptr;
-        PtrLpDtype_src ptr_src_lp = nullptr;
-
-        if (flag_copy_lp) {
-            ptr_dst_lp = _lpbuf->get_data_mutable();
-            ptr_src_lp = tensor.lp_data();
-        }
+        BaseDtype ptr_dst = _buf->get_data_mutable();
+        const BaseDtype_src ptr_src = tensor.data();
 
         for (int i = 0; i < cpy_num; ++i) {
             int idx_dst = (i % ratio_dst) * cpy_len;//off_dst[abs(axis_discontinue_dst)] * \
@@ -765,15 +689,9 @@ public:
             int cpy_dst_offset = dst_data_offset + idx_dst;
             int cpy_src_offset = src_data_offset + idx_src;
 
-            process_API::sync_memcpy(ptr_dst, _ftype_len * cpy_dst_offset, device_id(), \
-                ptr_src, _ftype_len * cpy_src_offset, tensor.device_id(), \
-                    _ftype_len * cpy_len, flag_type());
-
-            if (flag_copy_lp) {
-                process_API::sync_memcpy(ptr_dst_lp, _lptype_len * cpy_dst_offset, device_id(), \
-                    ptr_src_lp, _lptype_len * cpy_src_offset, tensor.device_id(), \
-                    _ftype_len * cpy_len, flag_type());
-            }
+            process_API::sync_memcpy(ptr_dst, _type_len * cpy_dst_offset, device_id(), \
+                ptr_src, _type_len * cpy_src_offset, tensor.device_id(), \
+                    _type_len * cpy_len, flag_type());
         }
         return SaberSuccess;
     }
@@ -786,10 +704,11 @@ public:
         typename TargetWrapper<TargetType_t>::stream_t, typename TargetWrapper<TargetType>::stream_t>::Type>
     SaberStatus async_copy_from(const Tensor<TargetType_t>& tensor, stream_type stream) {
 
+        CHECK_EQ(tensor.get_dtype(), _dtype) << "data type should be the same";
         CHECK_EQ(valid_size(), tensor.valid_size()) \
             << "sizes of two valid shapes must be the same";
 
-        if (_fbuf->get_capacity() == 0) {
+        if (_buf->get_capacity() == 0) {
             reshape(_valid_shape);
         }
 
@@ -801,12 +720,7 @@ public:
         typedef typename IF<std::is_same<target_category, __host_target>::value, then_type, else_type>::Type flag_type;
         typedef typename IF<std::is_same<target_category , __host_target>::value, API_t, API>::Type process_API;
 
-        typedef typename DataTrait<TargetType_t, AK_FLOAT>::Dtype FDtype_src;
-        typedef typename DataTrait<TargetType_t, AK_FLOAT>::PtrDtype PtrFDtype_src;
-        typedef typename DataTraitLp<TargetType_t>::PtrDtype PtrLpDtype_src;
         typedef typename DataTraitBase<TargetType>::PtrDtype BaseDtype_src;
-
-        bool flag_copy_lp = _has_lp_buf && tensor.has_lpbuf();
 
         /// return if src and dst data ptrs are the same
         if (std::is_same<TargetType, TargetType_t>::value){
@@ -820,22 +734,12 @@ public:
             int dst_data_offset = data_offset();
             int src_data_offset = tensor.data_offset();
 
-            BaseDtype ptr_dst = _fbuf->get_data_mutable();
-            const PtrFDtype_src ptr_src = tensor.data();
+            BaseDtype ptr_dst = _buf->get_data_mutable();
+            const BaseDtype_src ptr_src = tensor.data();
 
-            process_API::async_memcpy(ptr_dst, _ftype_len * dst_data_offset, device_id(), \
-                ptr_src, _ftype_len * src_data_offset, tensor.device_id(), \
-                _ftype_len * valid_size(), stream, flag_type());
-
-            if (flag_copy_lp) {
-                BaseDtype ptr_lp_dst = _lpbuf->get_data_mutable();
-                const PtrLpDtype_src ptr_lp_src = tensor.lp_data();
-                process_API::async_memcpy(ptr_dst, _lptype_len * dst_data_offset, device_id(), \
-                ptr_src, _lptype_len * src_data_offset, tensor.device_id(), \
-                _lptype_len * valid_size(), stream, flag_type());
-            }
-
-            _state = DSYNC;
+            process_API::async_memcpy(ptr_dst, _type_len * dst_data_offset, device_id(), \
+                ptr_src, _type_len * src_data_offset, tensor.device_id(), \
+                _type_len * valid_size(), stream, flag_type());
 
             return SaberSuccess;
         }
@@ -934,16 +838,8 @@ public:
         int dst_data_offset = data_offset();
         int src_data_offset = tensor.data_offset();
 
-        BaseDtype ptr_dst = _fbuf->get_data_mutable();
-        const PtrFDtype_src ptr_src = tensor.data();
-
-        BaseDtype ptr_dst_lp = nullptr;
-        PtrLpDtype_src ptr_src_lp = nullptr;
-
-        if (flag_copy_lp) {
-            ptr_dst_lp = _lpbuf->get_data_mutable();
-            ptr_src_lp = tensor.lp_data();
-        }
+        BaseDtype ptr_dst = _buf->get_data_mutable();
+        const BaseDtype_src ptr_src = tensor.data();
 
         for (int i = 0; i < cpy_num; ++i) {
             int idx_dst = (i % ratio_dst) * cpy_len;//off_dst[abs(axis_discontinue_dst)] * \
@@ -967,15 +863,9 @@ public:
             int cpy_dst_offset = dst_data_offset + idx_dst;
             int cpy_src_offset = src_data_offset + idx_src;
 
-            process_API::async_memcpy(ptr_dst, _ftype_len * cpy_dst_offset, device_id(), \
-                ptr_src, _ftype_len * cpy_src_offset, tensor.device_id(), \
-                    _ftype_len * cpy_len, stream, flag_type());
-
-            if (flag_copy_lp) {
-                process_API::async_memcpy(ptr_dst_lp, _lptype_len * cpy_dst_offset, device_id(), \
-                    ptr_src_lp, _lptype_len * cpy_src_offset, tensor.device_id(), \
-                    _ftype_len * cpy_len, stream, flag_type());
-            }
+            process_API::async_memcpy(ptr_dst, _type_len * cpy_dst_offset, device_id(), \
+                ptr_src, _type_len * cpy_src_offset, tensor.device_id(), \
+                    _type_len * cpy_len, stream, flag_type());
         }
         return SaberSuccess;
     }
@@ -1004,22 +894,12 @@ public:
 
 
 private:
-    //! tensor data type state
-    enum DState{
-        DSYNC = 0,
-        DFP32 = 1,
-        DINt8 = 2
-    };
-
-    DState _state{DSYNC};
-
     //! scale for quantization
-    std::vector<FDtype> _scale;
+    std::vector<float> _scale;
 
     ///< Length of datatype.
-    const size_t _ftype_len;
-    size_t _lptype_len{1};
-    bool _has_lp_buf{false};
+    DataType _dtype;
+    size_t _type_len;
 
     ///< Represent the raw mem shape.
     Shape _shape;
@@ -1028,8 +908,7 @@ private:
     ///< Represent the offset idx between _shape and _real_shape.
     Shape _offset;
     ///< Buffer shared ptr, hold the data pointer, and buffer capacity.
-    std::shared_ptr<Buffer<TargetType>> _fbuf{nullptr};
-    std::shared_ptr<Buffer<TargetType>> _lpbuf{nullptr};
+    std::shared_ptr<Buffer<TargetType>> _buf{nullptr};
     ///< Events tree, to synchronize the tensor.
     EventsTree<TargetType> _events_tree;
     ///< share sub-buffer flag.
