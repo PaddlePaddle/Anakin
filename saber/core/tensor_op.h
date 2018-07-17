@@ -39,8 +39,7 @@ void reorder(Tensor_s& src, Tensor_d& dst);
  *  \param tensor  The reference of input tensor.
  */
 template <class Tensor_t>
-void fill_tensor_host_const(Tensor_t& tensor, \
-    typename Tensor_t::FDtype value);
+void fill_tensor_host_const(Tensor_t& tensor, float value);
 
 
 /**
@@ -56,8 +55,7 @@ void fill_tensor_host_rand(Tensor_t& tensor);
  *  \param tensor The reference of input tensor.
  */
 template <class Tensor_t>
-void fill_tensor_host_rand(Tensor_t& tensor, typename Tensor_t::FDtype vstart, \
-    typename Tensor_t::FDtype vend);
+void fill_tensor_host_rand(Tensor_t& tensor, float vstart, float vend);
 
 /**
 * \brief fill_tensor_host_seq fill the host tensor buffer with sequence value
@@ -72,8 +70,7 @@ void fill_tensor_host_seq(Tensor_t& tensor);
  *  \param value  Input value.
  */
 template <class Tensor_t>
-void fill_tensor_device_const(Tensor_t& tensor, \
-    typename Tensor_t::FDtype value, \
+void fill_tensor_device_const(Tensor_t& tensor, float value, \
     typename Tensor_t::API::stream_t stream = NULL);
 
 /**
@@ -85,8 +82,8 @@ void fill_tensor_device_rand(Tensor_t& tensor, \
     typename Tensor_t::API::stream_t stream = NULL);
 
 template <class Tensor_t>
-void fill_tensor_device_rand(Tensor_t& tensor, typename Tensor_t::FDtype vstart, \
-    typename Tensor_t::FDtype vend, typename Tensor_t::API::stream_t stream = NULL);
+void fill_tensor_device_rand(Tensor_t& tensor, float vstart, \
+    float vend, typename Tensor_t::API::stream_t stream = NULL);
 /**
  *  \brief Print the data in host tensor.
  *  \param tensor  The reference of input tensor.
@@ -95,11 +92,41 @@ template <class Tensor_t>
 void print_tensor_host(Tensor_t& tensor);
 
 /**
+ *  \brief Print the valid data in host tensor.
+ *  \param tensor  The reference of input tensor.
+ */
+template <class Tensor_t>
+void print_tensor_host_valid(Tensor_t& tensor);
+
+/**
+ *  \brief compute mean value of the valid data in device tensor.
+ *  \param tensor  The reference of input tensor.
+ */
+template <class Tensor_t>
+double tensor_mean_value_host(Tensor_t& tensor);
+
+/**
  *  \brief Print the data in device tensor.
  *  \param tensor  The reference of input tensor.
  */
 template <class Tensor_t>
 void print_tensor_device(Tensor_t& tensor,  \
+    typename Tensor_t::API::stream_t stream = NULL);
+
+/**
+ *  \brief Print the valid data in device tensor.
+ *  \param tensor  The reference of input tensor.
+ */
+template <class Tensor_t>
+void print_tensor_device_valid(Tensor_t& tensor, \
+    typename Tensor_t::API::stream_t stream = NULL);
+
+/**
+ *  \brief compute mean value of the valid data in device tensor.
+ *  \param tensor  The reference of input tensor.
+ */
+template <class Tensor_t>
+double tensor_mean_value_device(Tensor_t& tensor, \
     typename Tensor_t::API::stream_t stream = NULL);
 
 template <typename Dtype >
