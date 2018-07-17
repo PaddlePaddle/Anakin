@@ -17,7 +17,7 @@
 #define ANAKIN_SABER_CORE_SHAPE_H
 
 #include <vector>
-#include "saber/core/common.h"
+#include "core/common.h"
 
 namespace anakin{
 
@@ -31,12 +31,12 @@ public:
 
     Shape(vector data, LayoutType layout_type = Layout_NCHW) {
         create_layout(layout_type);
-                CHECK_EQ(_layout->dims(), data.size());
+        CHECK_EQ(_layout->dims(), data.size());
         for (int i = 0; i < _layout->dims(); ++i) {
             this->push_back(data[i]);
         }
         if (_layout->inner_c() != -1) {
-                    CHECK_EQ(data[4], _layout->inner_c()) \
+            CHECK_EQ(data[4], _layout->inner_c()) \
                 << " Layout must be an integer multiple of "
                 << _layout->inner_c();
         }
@@ -151,19 +151,39 @@ public:
         return flag;
     }
     int num_index() const {
-        return _layout->num_index();
+        if (_layout) {
+            return _layout->num_index();
+        } else {
+            return -1;
+        }
     }
     int channel_index() const {
-        return _layout->channel_index();
+        if (_layout) {
+            return _layout->channel_index();
+        } else {
+            return -1;
+        }
     }
     int height_index() const {
-        return _layout->height_index();
+        if (_layout) {
+            return _layout->height_index();
+        } else {
+            return -1;
+        }
     }
     int width_index() const {
-        return _layout->width_index();
+        if (_layout) {
+            return _layout->width_index();
+        } else {
+            return -1;
+        }
     }
     int depth_index() const {
-        return _layout->depth_index();
+        if (_layout) {
+            return _layout->depth_index();
+        } else {
+            return -1;
+        }
     }
     int num() const {
         int shape_num = this->num_index() == -1 ? 1 : this->data()[this->num_index()];
@@ -241,7 +261,48 @@ public:
         return true;
     }
     LayoutType get_layout() const {
-        return _layout->type();
+        if (_layout) {
+            return _layout->type();
+        } else {
+            return Layout_invalid;
+        }
+    }
+    void set_layout(LayoutType layout_type, std::vector<int> new_shape = {}) {
+        Shape sh = *this;
+        Layout* layout = this->_layout;
+        create_layout(layout_type);
+        if (sh._layout== nullptr) {
+            return;
+        }
+        this->clear();
+        if (new_shape.size() != 0) {
+            CHECK_EQ(_layout->dims(), new_shape.size()) << "new_shape dims miss match with layout dims";
+            for (auto i : new_shape) {
+                this->push_back(i);
+            }
+            return;
+        }
+        this->resize(_layout->dims());
+        if (_layout->num_index() != -1) {
+            this->data()[_layout->num_index()] = sh.num();
+        }
+        if (_layout->channel_index() != -1) {
+            this->data()[_layout->channel_index()] = sh.channel();
+            if (_layout->inner_c() != -1) {
+                CHECK_EQ(sh.channel() % _layout->inner_c(), 0);
+                this->data()[_layout->channel_index()] /= _layout->inner_c();
+            }
+        }
+        if (_layout->height_index() != -1) {
+            this->data()[_layout->height_index()] = sh.height();
+        }
+        if (_layout->width_index() != -1) {
+            this->data()[_layout->width_index()] = sh.width();
+        }
+        if (_layout->depth_index() != -1) {
+            this->data()[_layout->depth_index()] = sh.depth();
+        }
+        delete layout;
     }
     static Shape zero(const Shape &right){
         Shape sh = right;

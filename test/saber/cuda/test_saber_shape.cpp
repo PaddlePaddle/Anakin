@@ -1,5 +1,12 @@
+
 #include "test_saber_func_NV.h"
 #include "saber/core/shape.h"
+#include "anakin_config.h"
+
+#ifdef USE_OPENMP
+#include <omp.h>
+#include <core/shape.h>
+#endif
 
 using namespace anakin;
 using namespace saber;
@@ -41,57 +48,57 @@ bool test_dim4(LayoutType  layout_type) {
                     flag &= sh3 >= sh1;
                     Shape zero_shape = Shape::zero(sh3);
                     Shape minus_shape = Shape::minusone(sh3);
-                            CHECK_EQ(equal_shape, true);
-                            CHECK_EQ(sh1.num(), N);
-                            CHECK_EQ(sh1.channel(), C * inner_c);
-                            CHECK_EQ(sh1.height(), H);
-                            CHECK_EQ(sh1.width(), W);
-                            CHECK_EQ(sh1.depth(), 1);
-                            CHECK_EQ(sh1.count(), N * C * H * W * inner_c);
-                            CHECK_EQ(sh1.count(1), check[1] * check[2] * check[3] * inner_c);
-                            CHECK_EQ(sh1.count(2), check[2] * check[3] * inner_c);
-                            CHECK_EQ(sh1.count(3), check[3] * inner_c);
-                            CHECK_EQ(sh1.get_layout(), layout_type);
-                            CHECK_EQ(sh1.dims(), data.size());
-                            CHECK_EQ(sh2.num(), N);
-                            CHECK_EQ(sh2.channel(), C * inner_c);
-                            CHECK_EQ(sh2.height(), H);
-                            CHECK_EQ(sh2.width(), W);
-                            CHECK_EQ(sh2.depth(), 1);
-                            CHECK_EQ(sh2.count(), N * C * H * W * inner_c);
-                            CHECK_EQ(sh2.count(1), check[1] * check[2] * check[3] * inner_c);
-                            CHECK_EQ(sh2.count(2), check[2] * check[3] * inner_c);
-                            CHECK_EQ(sh2.count(3), check[3] * inner_c);
-                            CHECK_EQ(sh2.count(1, 4),  check[1] * check[2] * check[3]);
-                            CHECK_EQ(sh2.count(1, 2),  data[1]);
-                            CHECK_EQ(sh2.count(1, 1),  1);
-                            CHECK_EQ(sh2.get_layout(), layout_type);
-                            CHECK_EQ(sh2.dims(), data.size());
-                            CHECK_EQ(stride[0], check[1] * check[2] * check[3] * inner_c);
-                            CHECK_EQ(stride[1], check[2] * check[3] * inner_c);
-                            CHECK_EQ(stride[2], check[3] * inner_c);
-                            CHECK_EQ(stride[3], inner_c);
-                            CHECK_EQ(stride.get_layout(), layout_type);
-                            CHECK_EQ(stride.dims(), data.size());
-                            CHECK_EQ(flag, true);
-                            CHECK_EQ(sh3.num(), 2 * N);
-                            CHECK_EQ(sh3.channel(), 2 * C * inner_c);
-                            CHECK_EQ(sh3.height(), 2 * H);
-                            CHECK_EQ(sh3.width(), 2 * W);
-                            CHECK_EQ(sh3.get_layout(), layout_type);
-                            CHECK_EQ(sh3.dims(), data.size());
-                            CHECK_EQ(zero_shape.num(), 0);
-                            CHECK_EQ(zero_shape.channel(), 0);
-                            CHECK_EQ(zero_shape.height(), 0);
-                            CHECK_EQ(zero_shape.width(), 0);
-                            CHECK_EQ(zero_shape.get_layout(), layout_type);
-                            CHECK_EQ(zero_shape.dims(), data.size());
-                            CHECK_EQ(minus_shape.num(), -1);
-                            CHECK_EQ(minus_shape.channel(), -1 * inner_c);
-                            CHECK_EQ(minus_shape.height(), -1);
-                            CHECK_EQ(minus_shape.width(), -1);
-                            CHECK_EQ(minus_shape.get_layout(), layout_type);
-                            CHECK_EQ(minus_shape.dims(), data.size());
+                    CHECK_EQ(equal_shape, true);
+                    CHECK_EQ(sh1.num(), N);
+                    CHECK_EQ(sh1.channel(), C * inner_c);
+                    CHECK_EQ(sh1.height(), H);
+                    CHECK_EQ(sh1.width(), W);
+                    CHECK_EQ(sh1.depth(), 1);
+                    CHECK_EQ(sh1.count(), N * C * H * W * inner_c);
+                    CHECK_EQ(sh1.count(1), check[1] * check[2] * check[3] * inner_c);
+                    CHECK_EQ(sh1.count(2), check[2] * check[3] * inner_c);
+                    CHECK_EQ(sh1.count(3), check[3] * inner_c);
+                    CHECK_EQ(sh1.get_layout(), layout_type);
+                    CHECK_EQ(sh1.dims(), data.size());
+                    CHECK_EQ(sh2.num(), N);
+                    CHECK_EQ(sh2.channel(), C * inner_c);
+                    CHECK_EQ(sh2.height(), H);
+                    CHECK_EQ(sh2.width(), W);
+                    CHECK_EQ(sh2.depth(), 1);
+                    CHECK_EQ(sh2.count(), N * C * H * W * inner_c);
+                    CHECK_EQ(sh2.count(1), check[1] * check[2] * check[3] * inner_c);
+                    CHECK_EQ(sh2.count(2), check[2] * check[3] * inner_c);
+                    CHECK_EQ(sh2.count(3), check[3] * inner_c);
+                    CHECK_EQ(sh2.count(1, 4),  check[1] * check[2] * check[3]);
+                    CHECK_EQ(sh2.count(1, 2),  data[1]);
+                    CHECK_EQ(sh2.count(1, 1),  1);
+                    CHECK_EQ(sh2.get_layout(), layout_type);
+                    CHECK_EQ(sh2.dims(), data.size());
+                    CHECK_EQ(stride[0], check[1] * check[2] * check[3] * inner_c);
+                    CHECK_EQ(stride[1], check[2] * check[3] * inner_c);
+                    CHECK_EQ(stride[2], check[3] * inner_c);
+                    CHECK_EQ(stride[3], inner_c);
+                    CHECK_EQ(stride.get_layout(), layout_type);
+                    CHECK_EQ(stride.dims(), data.size());
+                    CHECK_EQ(flag, true);
+                    CHECK_EQ(sh3.num(), 2 * N);
+                    CHECK_EQ(sh3.channel(), 2 * C * inner_c);
+                    CHECK_EQ(sh3.height(), 2 * H);
+                    CHECK_EQ(sh3.width(), 2 * W);
+                    CHECK_EQ(sh3.get_layout(), layout_type);
+                    CHECK_EQ(sh3.dims(), data.size());
+                    CHECK_EQ(zero_shape.num(), 0);
+                    CHECK_EQ(zero_shape.channel(), 0);
+                    CHECK_EQ(zero_shape.height(), 0);
+                    CHECK_EQ(zero_shape.width(), 0);
+                    CHECK_EQ(zero_shape.get_layout(), layout_type);
+                    CHECK_EQ(zero_shape.dims(), data.size());
+                    CHECK_EQ(minus_shape.num(), -1);
+                    CHECK_EQ(minus_shape.channel(), -1 * inner_c);
+                    CHECK_EQ(minus_shape.height(), -1);
+                    CHECK_EQ(minus_shape.width(), -1);
+                    CHECK_EQ(minus_shape.get_layout(), layout_type);
+                    CHECK_EQ(minus_shape.dims(), data.size());
                 }
             }
         }
@@ -132,43 +139,43 @@ bool test_dim2(LayoutType  layout_type) {
                     flag &= sh3 >= sh1;
                     Shape zero_shape = Shape::zero(sh3);
                     Shape minus_shape = Shape::minusone(sh3);
-                            CHECK_EQ(equal_shape, true);
-                            CHECK_EQ(sh1.num(), check[0]);
-                            CHECK_EQ(sh1.channel(), check[1] * inner_c);
-                            CHECK_EQ(sh1.height(), check[2]);
-                            CHECK_EQ(sh1.width(), check[3]);
-                            CHECK_EQ(sh1.depth(), 1);
-                            CHECK_EQ(sh1.count(), check[0] * check[1] * check[2] * check[3] * inner_c);
-                            CHECK_EQ(sh1.count(1), check[3] * inner_c);
-                            CHECK_EQ(sh1.count(2), 1);
-                            CHECK_EQ(sh1.count(3), 1);
-                            CHECK_EQ(sh1.get_layout(), layout_type);
-                            CHECK_EQ(sh1.dims(), data.size());
-                            CHECK_EQ(sh2.num(), check[0]);
-                            CHECK_EQ(sh2.channel(), check[1] * inner_c);
-                            CHECK_EQ(sh2.height(), check[2]);
-                            CHECK_EQ(sh2.width(), check[3]);
-                            CHECK_EQ(sh2.depth(), 1);
-                            CHECK_EQ(sh2.count(), check[0] * check[1] * check[2] * check[3] * inner_c);
-                            CHECK_EQ(sh2.count(1), check[3] * inner_c);
-                            CHECK_EQ(sh2.count(2), 1);
-                            CHECK_EQ(sh2.count(3), 1);
-                            CHECK_EQ(sh2.get_layout(), layout_type);
-                            CHECK_EQ(sh2.dims(), data.size());
-                            CHECK_EQ(stride[0], check[3] * inner_c);
-                            CHECK_EQ(stride[1], inner_c);
-                            CHECK_EQ(stride.get_layout(), layout_type);
-                            CHECK_EQ(stride.dims(), data.size());
-                            CHECK_EQ(flag, true);
-                            CHECK_EQ(sh3.width(), 2 * W);
-                            CHECK_EQ(sh3.get_layout(), layout_type);
-                            CHECK_EQ(sh3.dims(), data.size());
-                            CHECK_EQ(zero_shape.width(), 0);
-                            CHECK_EQ(zero_shape.get_layout(), layout_type);
-                            CHECK_EQ(zero_shape.dims(), data.size());
-                            CHECK_EQ(minus_shape.width(), -1);
-                            CHECK_EQ(minus_shape.get_layout(), layout_type);
-                            CHECK_EQ(minus_shape.dims(), data.size());
+                    CHECK_EQ(equal_shape, true);
+                    CHECK_EQ(sh1.num(), check[0]);
+                    CHECK_EQ(sh1.channel(), check[1] * inner_c);
+                    CHECK_EQ(sh1.height(), check[2]);
+                    CHECK_EQ(sh1.width(), check[3]);
+                    CHECK_EQ(sh1.depth(), 1);
+                    CHECK_EQ(sh1.count(), check[0] * check[1] * check[2] * check[3] * inner_c);
+                    CHECK_EQ(sh1.count(1), check[3] * inner_c);
+                    CHECK_EQ(sh1.count(2), 1);
+                    CHECK_EQ(sh1.count(3), 1);
+                    CHECK_EQ(sh1.get_layout(), layout_type);
+                    CHECK_EQ(sh1.dims(), data.size());
+                    CHECK_EQ(sh2.num(), check[0]);
+                    CHECK_EQ(sh2.channel(), check[1] * inner_c);
+                    CHECK_EQ(sh2.height(), check[2]);
+                    CHECK_EQ(sh2.width(), check[3]);
+                    CHECK_EQ(sh2.depth(), 1);
+                    CHECK_EQ(sh2.count(), check[0] * check[1] * check[2] * check[3] * inner_c);
+                    CHECK_EQ(sh2.count(1), check[3] * inner_c);
+                    CHECK_EQ(sh2.count(2), 1);
+                    CHECK_EQ(sh2.count(3), 1);
+                    CHECK_EQ(sh2.get_layout(), layout_type);
+                    CHECK_EQ(sh2.dims(), data.size());
+                    CHECK_EQ(stride[0], check[3] * inner_c);
+                    CHECK_EQ(stride[1], inner_c);
+                    CHECK_EQ(stride.get_layout(), layout_type);
+                    CHECK_EQ(stride.dims(), data.size());
+                    CHECK_EQ(flag, true);
+                    CHECK_EQ(sh3.width(), 2 * W);
+                    CHECK_EQ(sh3.get_layout(), layout_type);
+                    CHECK_EQ(sh3.dims(), data.size());
+                    CHECK_EQ(zero_shape.width(), 0);
+                    CHECK_EQ(zero_shape.get_layout(), layout_type);
+                    CHECK_EQ(zero_shape.dims(), data.size());
+                    CHECK_EQ(minus_shape.width(), -1);
+                    CHECK_EQ(minus_shape.get_layout(), layout_type);
+                    CHECK_EQ(minus_shape.dims(), data.size());
                 }
             }
         }
@@ -191,11 +198,53 @@ TEST(TestSaberFuncNV, test_dim_4) {
 }
 
 TEST(TestSaberFuncNV, test_dim_2) {
-// constructor test
+    // constructor test
     test_dim2(Layout_NW);
     LOG(INFO) << "Layout_NW PASS";
     test_dim2(Layout_HW);
     LOG(INFO) << "Layout_HW PASS";
+}
+
+TEST(TestSaberFuncNV, test_set_layout) {
+    Shape test_shape;
+    test_shape.push_back(2);
+    test_shape.push_back(8);
+    test_shape.push_back(4);
+    test_shape.push_back(5);
+
+    test_shape.set_layout(Layout_NCHW);
+    LOG(INFO) <<"NCHW";
+    LOG(INFO) << "test_shape[0] = "<< test_shape[0];
+    LOG(INFO) << "test_shape[1] = "<< test_shape[1];
+    LOG(INFO) << "test_shape[2] = "<< test_shape[2];
+    LOG(INFO) << "test_shape[3] = "<< test_shape[3];
+    test_shape.set_layout(Layout_NHWC);
+    LOG(INFO) <<"NHWC";
+    LOG(INFO) << "test_shape[0] = "<< test_shape[0];
+    LOG(INFO) << "test_shape[1] = "<< test_shape[1];
+    LOG(INFO) << "test_shape[2] = "<< test_shape[2];
+    LOG(INFO) << "test_shape[3] = "<< test_shape[3];
+    test_shape.set_layout(Layout_NCHW_C4);
+    LOG(INFO) <<"NCHW_C4";
+    LOG(INFO) << "test_shape.channel = "<< test_shape.channel();
+    LOG(INFO) << "test_shape[0] = "<< test_shape[0];
+    LOG(INFO) << "test_shape[1] = "<< test_shape[1];
+    LOG(INFO) << "test_shape[2] = "<< test_shape[2];
+    LOG(INFO) << "test_shape[3] = "<< test_shape[3];
+    test_shape.set_layout(Layout_HW);
+    LOG(INFO) <<"HW";
+    LOG(INFO) << "test_shape[0] = "<< test_shape[0];
+    LOG(INFO) << "test_shape[1] = "<< test_shape[1];
+    test_shape.set_layout(Layout_NCHW);
+    LOG(INFO) <<"NCHW";
+    LOG(INFO) << "test_shape[0] = "<< test_shape[0];
+    LOG(INFO) << "test_shape[1] = "<< test_shape[1];
+    LOG(INFO) << "test_shape[2] = "<< test_shape[2];
+    LOG(INFO) << "test_shape[3] = "<< test_shape[3];
+    test_shape.set_layout(Layout_HW, {10, 5});
+    LOG(INFO) <<"HW";
+    LOG(INFO) << "test_shape[0] = "<< test_shape[0];
+    LOG(INFO) << "test_shape[1] = "<< test_shape[1];
 }
 
 int main(int argc, const char** argv) {
@@ -205,3 +254,5 @@ int main(int argc, const char** argv) {
     RUN_ALL_TESTS(argv[0]);
     return 0;
 }
+
+
