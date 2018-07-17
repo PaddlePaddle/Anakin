@@ -409,7 +409,10 @@ SaberLstm<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispatch(
     const std::vector < DataTensor_in* >& inputs,
     std::vector < DataTensor_out* >& outputs,
     LstmParam < OpTensor >& param) {
-
+    CHECK_EQ(inputs.size(),1)<<"only support input size = 1";
+    CHECK_EQ(outputs.size(),1)<<"only support outputs size = 1";
+    CHECK_EQ(param.init_hidden()==nullptr, true )<<"only support param.init_hidden() == nullptr";
+    CHECK_EQ(param.num_layers,1)<<"only support param.num_layers==1";
     return dispatch_batch(inputs, outputs, param);
 
 }
