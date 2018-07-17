@@ -16,68 +16,30 @@
 #ifndef ANAKIN_SABER_CORE_TENSOR_H
 #define ANAKIN_SABER_CORE_TENSOR_H
 
-#include "core/shape.h"
-#include "core/events.h"
-#include "core/tensor_traits.h"
+#include "saber/core/shape.h"
+#include "saber/core/events.h"
+#include "saber/core/buffer.h"
 
 namespace anakin{
 
 namespace saber{
 
-#define INSTANTIATE_TENSOR(TargetType, datatype, LayOutType) \
-  template class Tensor<TargetType, datatype, LayOutType>;
-
-class TensorBase {
+template<typename TargetType>
+class Tensor {
 public:
-    TensorBase() {}
-    virtual ~TensorBase() {}
-    virtual SaberStatus set_shape(Shape valid_shape, Shape shape = Shape(), \
-        Shape offset = Shape()) = 0;
-    virtual SaberStatus reshape(Shape valid_shape, Shape shape = Shape(), \
-        Shape offset = Shape()) = 0;
-    virtual SaberStatus re_alloc(Shape shape) = 0;
-    virtual bool is_continue_mem() const = 0;
-    virtual int size() const = 0;
-    virtual int valid_size() const = 0;
-    virtual int count(int start, int end) const = 0;
-    virtual int count_valid(int start, int end) const = 0;
-    virtual int dims() const = 0;
-    virtual Shape shape() const = 0;
-    virtual Shape valid_shape() const = 0;
-    virtual Shape get_stride() const = 0;
-    virtual Shape offset() const = 0;
-    virtual int device_id() const = 0;
-    virtual int num() const = 0;
-    virtual int num_index() const = 0;
-    virtual int channel() const = 0;
-    virtual int channel_index() const = 0;
-    virtual int height() const = 0;
-    virtual int height_index() const = 0;
-    virtual int width() const = 0;
-    virtual int width_index() const = 0;
-};
 
-template<typename TargetType, DataType datatype = AK_FLOAT, typename LayOutType = NCHW>
-class Tensor : public TensorBase {
-public:
-    typedef TargetType targetType_t;
-    typedef typename DataTrait<TargetType, datatype>::Dtype Dtype;
-    typedef typename DataTrait<TargetType, datatype>::PtrDtype PtrDtype;
-    typedef typename PtrTrait<TargetType>::PtrType PtrType;
+    typedef typename DataTraitBase<TargetType>::PtrDtype BaseDtype;
+
     typedef typename TargetTypeTraits<TargetType>::target_category target_category;
     typedef typename TargetTypeTraits<TargetType>::target_type target_type;
     typedef TargetWrapper<TargetType> API;
-    typedef TensorTraits<Tensor<TargetType, datatype, LayOutType>> TensorAPI;
-    typedef typename TensorAPI::layout_category layout_category;
-    typedef typename TensorAPI::layout_type layout_type;
 
-    /**
+    /**`
      *  \brief Default constructor
      */
-    Tensor() {
-        _shape = Shape::zero(TensorAPI::layout_dims::value);
-        _valid_shape = Shape::zero(TensorAPI::layout_dims::value);
-        _offset = Shape::zero(TensorAPI::layout_dims::value);
+    Tensor(DataType type = AK_FLOAT) : _valid_shape(), _shape(), _offset() {
+        _dtype = type;
+        _type_len = type_length(type);
         _buf = std::make_shared<Buffer<TargetType>>();
         _is_subbuf = false;
     }
@@ -85,77 +47,135 @@ public:
     /**
      * \brief Constructor with shape, memory is alloced according to shape.
      */
-    Tensor(Shape shape) {
-
-        CHECK_EQ(shape.dims(), TensorAPI::layout_dims::value) << \
-            "shape dims is not matched to layout type";
+    Tensor(Shape shape, DataType type = AK_FLOAT) {
         _shape = shape;
         _valid_shape = shape;
-        _offset = Shape::zero(shape.dims());
+        _offset = Shape::zero(shape);
+        _dtype = type;
+        _type_len = type_length(type);
         _buf = std::make_shared<Buffer<TargetType>>(shape.count() * _type_len);
+        _is_shared = false;
         _is_subbuf = false;
     }
-#if 0
-    /**
-     * \brief constructor with currently used shape, offset and entire memory shape,
-     * memory is alloced according to the shape
-     */
-    Tensor(Shape shape, Shape valid_shape, Shape offset) {
-        CHECK_EQ(shape.dims(), TensorAPI::layout_dims::value) << \
-            "shape dims is not matched to layout type";
-        CHECK_EQ(valid_shape.dims(), TensorAPI::layout_dims::value) << \
-            "valid shape dims is not matched to layout type";
-        CHECK_EQ(offset.dims(), TensorAPI::layout_dims::value) << \
-            "offset dims is not matched to layout type";
-        CHECK_EQ(true, (offset + valid_shape) <= shape) << \
-            "valid shape + offset should <= shape";
-        _shape = shape;
-        _valid_shape = valid_shape;
-        _offset = offset;
-        _buf = std::make_shared<Buffer<TargetType, datatype>>(_shape.count());
-        _is_subbuf = false;
-    }
-#endif
+
     /**
      * \brief Constructor with allocated data ptr and entire memory shape.
      */
+    //! now only support fp32 data pointer
     template <typename TargetType_t>
-    Tensor(typename DataTrait<TargetType_t, datatype>::PtrDtype data_ptr, TargetType_t target, int id, Shape shape) {
+    Tensor(void* data_ptr, TargetType_t target, int id, Shape shape, DataType type = AK_FLOAT) {
 
-        CHECK_EQ(shape.dims(), TensorAPI::layout_dims::value) << \
-            "shape dims is not matched to layout type";
         _shape = shape;
         _valid_shape = shape;
-        _offset = Shape::zero(shape.dims());
+        _offset = Shape::zero(shape);
+        _dtype = type;
+        _type_len = type_length(type);
         std::shared_ptr<Buffer<TargetType_t>> buf_from_date = \
             std::make_shared<Buffer<TargetType_t>>(data_ptr, shape.count() * _type_len, id);
         BufferMemShare(_buf, buf_from_date);
+        _is_shared = true;
         _is_subbuf = false;
     }
 
     /**
      * \brief Copy constructor, shallow copy.
      */
-    Tensor(const Tensor<TargetType, datatype, LayOutType>& tensor){
+    Tensor(const Tensor<TargetType>& tensor) {
         _shape = tensor._shape;
         _valid_shape = tensor._valid_shape;
         _offset = tensor._offset;
+        _dtype = tensor._dtype;
+        _type_len = tensor._type_len;
         _buf = tensor._buf;
         _is_subbuf = tensor._is_subbuf;
+        _is_shared = tensor._is_shared;
         _seq_offset = tensor._seq_offset;
+        _scale = tensor._scale;
     }
 
     /**
      * \brief Copy constructor without events control.
      */
-    Tensor(Tensor<TargetType, datatype, LayOutType>& tensor){
+    Tensor(Tensor<TargetType>& tensor) {
         _shape = tensor._shape;
         _valid_shape = tensor._valid_shape;
         _offset = tensor._offset;
+        _dtype = tensor._dtype;
+        _type_len = tensor._type_len;
         _buf = tensor._buf;
         tensor.add_events(&_events_tree);
         _is_subbuf = tensor._is_subbuf;
+        _is_shared = tensor._is_shared;
         _seq_offset = tensor._seq_offset;
+        _scale = tensor._scale;
+    }
+#if 0
+    /**
+     * \brief create tensor with buffer
+     * @param shape
+     * @param type_len
+     * @param flag_create_lp
+     */
+    void create(Shape shape, DataType type = AK_FLOAT) {
+        _dtype = type;
+        _type_len = type_length(type);
+        _shape = shape;
+        _valid_shape = shape;
+        _offset = Shape::zero(shape);
+        _dtype = type;
+        _type_len = type_length(type);
+        _buf = std::make_shared<Buffer<TargetType>>(shape.count() * _type_len);
+        _is_shared = false;
+        _is_subbuf = false;
+    }
+#endif // 0
+    /**
+     * \brief set scale for different precision data convert
+     * @param scale
+     */
+    void set_scale(std::vector<float> scale) {
+        _scale = scale;
+    }
+
+    /**
+     * \brief get scale
+     * @param scale
+     */
+    std::vector<float> get_scale() const {
+        return _scale;
+    }
+
+    SaberStatus set_dtype(DataType type) {
+        _dtype = type;
+        _type_len = type_length(type);
+        if (_buf->get_capacity() < _shape.count() * _type_len) {
+            if (_is_shared || _is_subbuf) {
+                LOG(FATAL) << "tensor is shared, memory can not be re-alloced";
+                return SaberOutOfAuthority;
+            }
+            _buf->re_alloc(_shape.count() * _type_len);
+        }
+        return SaberSuccess;
+    }
+
+    /**
+     * \brief get tensor's DataType, AK_INT8 / AK_FLOAT ...
+     * @return
+     */
+    DataType get_dtype() const {
+        return _dtype;
+    }
+
+
+    /**
+     * \brief change tensor's layout and type
+     * @param layout
+     * @param data
+     * @return
+     */
+    SaberStatus set_layout(LayoutType layout, std::vector<int> data = {}) {
+        _valid_shape.set_layout(layout, data);
+        return SaberSuccess;
     }
 
     /**
@@ -164,40 +184,24 @@ public:
      *  \param valid_shape
      *  \param offset
      */
-    SaberStatus set_shape(Shape valid_shape, Shape shape = Shape(), Shape offset = Shape() \
-        /*Shape shape = Shape::zero(TensorAPI::layout_dims::value), \
-        Shape offset = Shape::minusone(TensorAPI::layout_dims::value)*/) {
+    SaberStatus set_shape(Shape valid_shape, Shape shape = Shape(), Shape offset = Shape()) {
 
-        //if (shape.dims() != TensorAPI::layout_dims::value || \
-            valid_shape.dims() != TensorAPI::layout_dims::value \
-            || offset.dims() != TensorAPI::layout_dims::value || \
-            !(valid_shape > Shape::zero(TensorAPI::layout_dims::value))) { \
-            return SaberInvalidValue; \
-        }
-        CHECK_EQ(valid_shape.dims(), TensorAPI::layout_dims::value) << \
-            "valid shape dims is not matched to layout type";
         if (shape.dims() > 0) {
-            CHECK_EQ(shape.dims(), TensorAPI::layout_dims::value) << \
-                "shape dims is not matched to layout type";
             _shape = shape;
         }
         if (offset.dims() > 0 && _is_subbuf) {
-            CHECK_EQ(offset.dims(), TensorAPI::layout_dims::value) << \
-                "offset dims is not matched to layout type";
             _offset = offset;
         }
-        CHECK_EQ(valid_shape > Shape::zero(TensorAPI::layout_dims::value), true) << \
-            "valid_shape size should > 0";
+        CHECK_EQ(valid_shape > Shape::zero(valid_shape), true) << "valid_shape size should > 0";
         _valid_shape = valid_shape;
 
         if (!_is_subbuf) {
             if (_shape.count() <= _valid_shape.count()) {
                 _shape = _valid_shape;
             }
-            _offset = Shape::zero(TensorAPI::layout_dims::value);
+            _offset = Shape::zero(valid_shape);
         } else {
-            auto shape_zero = Shape::zero(TensorAPI::layout_dims::value);
-            if (_shape == shape_zero) {
+            if (_shape == Shape::zero(_valid_shape)) {
                 _shape = valid_shape;
             }
             //if (!(_valid_shape + _offset <= _shape)) { \
@@ -212,64 +216,36 @@ public:
     /**
      *  \brief Free old buffer and alloc a new tensor buffer.
      */
-    SaberStatus re_alloc(Shape shape){
+    SaberStatus re_alloc(Shape shape, DataType type) {
         //if (!shape.dims() == TensorAPI::layout_dims::value) {
         //    return SaberInvalidValue;
         //}
         //if (_is_subbuf || _is_shared) {
         //    return SaberOutOfAuthority;
         //}
-        CHECK_EQ(shape.dims(), TensorAPI::layout_dims::value) << \
-            "shape dims is not matched to layout type";
-        CHECK_EQ(_is_shared || _is_subbuf, false) << \
-            "shared tensor could not re_alloc"; // by ccw 2018/4/3
+        CHECK_EQ(_is_shared || _is_subbuf, false) << "shared tensor could not re_alloc";
+        _dtype = type;
+        _type_len = type_length(type);
         _shape = shape;
         _valid_shape = _shape;
-        _offset =Shape::zero(_shape.dims());
+        _offset =Shape::zero(_shape);
         _buf->alloc(_shape.count() * _type_len);
         return SaberSuccess;
     }
-
-    void try_expand_size(Shape shape) {
-        //        LOG(INFO)<<"in try expand "<<shape.count()<<","<<valid_size();
-        if (shape.count() > (valid_size())) {
-            re_alloc(shape);
-        }
-
-    }
-    void try_expand_size(int size) {
-        Shape shape(1, 1, 1, size);
-        try_expand_size(shape);
-    }
-
 
     /**
      *  \brief Change tensor shape,
      *  if input shape's count is bigger than the capacity of buffer, alloc a new buffer.
      */
-    SaberStatus reshape(Shape valid_shape, Shape shape = Shape(), Shape offset = Shape()\
-        /*Shape::zero(TensorAPI::layout_dims::value), \
-        Shape offset = Shape::minusone(TensorAPI::layout_dims::value)*/) {
+    SaberStatus reshape(Shape valid_shape, Shape shape = Shape(), Shape offset = Shape()) {
 
-        //if (shape.dims() != TensorAPI::layout_dims::value || \
-            valid_shape.dims() != TensorAPI::layout_dims::value \
-            || offset.dims() != TensorAPI::layout_dims::value || \
-            !(valid_shape > Shape::zero(TensorAPI::layout_dims::value))) { \
-            return SaberInvalidValue; \
-        }
-        CHECK_EQ(valid_shape.dims(), TensorAPI::layout_dims::value) << \
-            "valid shape dims is not matched to layout type";
         if (shape.dims() > 0) {
-            CHECK_EQ(shape.dims(), TensorAPI::layout_dims::value) << \
-                "shape dims is not matched to layout type";
             _shape = shape;
         }
         if (offset.dims() > 0 && _is_subbuf) {
-            CHECK_EQ(offset.dims(), TensorAPI::layout_dims::value) << \
-                "offset dims is not matched to layout type";
             _offset = offset;
         }
-        CHECK_EQ(valid_shape > Shape::zero(TensorAPI::layout_dims::value), true) << \
+        CHECK_EQ(valid_shape > Shape::zero(valid_shape), true) << \
             "valid_shape size should > 0";
         _valid_shape = valid_shape;
 
@@ -277,9 +253,9 @@ public:
             if (_shape.count() < _valid_shape.count()) {
                 _shape = _valid_shape;
             }
-            _offset = Shape::zero(TensorAPI::layout_dims::value);
+            _offset = Shape::zero(_valid_shape);
         } else {
-            if (_shape == Shape::zero(TensorAPI::layout_dims::value)) {
+            if (_shape == Shape::zero(valid_shape)) {
                 _shape = valid_shape;
             }
             //if (!(_valid_shape + _offset <= _shape)) { \
@@ -311,21 +287,8 @@ public:
      *  \param end   Input end index (exclude in calculation).
      *  \return the size from start index to end index.
      */
-    int count(int start, int end) const {
-        //if (start < 0) { \
-            start = 0; \
-        }
-        //if (end > dims()) { \
-            end = dims(); \
-        }
-        CHECK_GE(start, 0) << "start index shold >= 0!";
-        CHECK_LE(end, _shape.size()) << "end index shold <= shape dims!";
-        CHECK_LE(start, end) << "start index should < end index!";
-        int sum  = 1;
-        for (int i = start; i < end; ++i) {
-            sum *= _shape[i];
-        }
-        return sum;
+    long long count(int start, int end) const {
+        return _shape.count(start, end);
     }
 
     /**
@@ -334,27 +297,14 @@ public:
      *  \param end   input end index (exclude in calculation).
      *  \return the size from start index to end index.
      */
-    int count_valid(int start, int end) const {
-        //if (start < 0) { \
-            start = 0; \
-        }
-        //if (end > dims()) { \
-            end = dims(); \
-        }
-        CHECK_GE(start, 0) << "start index shold >= 0!";
-        CHECK_LE(end, _valid_shape.size()) << "end index shold <= shape dims!";
-        CHECK_LE(start, end) << "start index should < end index!";
-        int sum  = 1;
-        for (int i = start; i < end; ++i) {
-            sum *= _valid_shape[i];
-        }
-        return sum;
+    long long count_valid(int start, int end) const {
+        return _valid_shape.count(start, end);
     }
 
     /**
      *  \brief Return tensor shape size, not the valid shape size.
      */
-    int size() const {
+    long long size() const {
         return _shape.count();
     }
 
@@ -362,7 +312,7 @@ public:
      *  \brief Return the valid shape size.
      *  \return Return the valid shape size.
      */
-    int valid_size() const{
+    long long valid_size() const{
         return _valid_shape.count();
     }
 
@@ -370,7 +320,7 @@ public:
      *  \brief Return tensor shape dims.
      */
     int dims() const {
-        return TensorAPI::layout_dims::value;
+        return _valid_shape.dims();
     }
 
     /**
@@ -391,18 +341,10 @@ public:
      *  \brief compute data stride.
      */
     Shape get_stride() const {
-        Shape data_stride = Shape::zero(dims());
         if (_is_subbuf) {
-            for (int i = 0; i < dims(); ++i) {
-                data_stride[i] = _shape.count(i + 1);
-            }
-        } else {
-            for (int i = 0; i < dims(); ++i) {
-                data_stride[i] = _valid_shape.count(i + 1);
-            }
+            return  _shape.get_stride();
         }
-
-        return data_stride;
+        return  _valid_shape.get_stride();
     }
 
     /**
@@ -413,11 +355,44 @@ public:
     }
 
     /**
-     *  \brief Return reference shared_ptr of tensor.
+     *  \brief Return valid shape of tensor
      */
-     const std::shared_ptr<Buffer<TargetType>>& get_buf() const {
-         return _buf;
-     }
+    int data_offset() const {
+        return start_index();
+    }
+
+
+    /**
+     * \brief get sequence offset, lot tensor
+     * @return
+     */
+    std::vector<int> get_seq_offset() const {
+        return _seq_offset;
+    }
+
+    /**
+     * \brief set sequence offset, lot tensor
+     * @param seq_offset
+     * @return
+     */
+    SaberStatus set_seq_offset(std::vector<int> seq_offset) {
+        _seq_offset = seq_offset;
+        return SaberSuccess;
+    }
+
+//    /**
+//     *  \brief Return reference shared_ptr of tensor.
+//     */
+//     const std::shared_ptr<Buffer<TargetType>>& get_buf() const {
+//         return _fbuf;
+//     }
+//
+//    /**
+//     *  \brief Return reference shared_ptr of tensor.
+//     */
+//    const std::shared_ptr<Buffer<TargetType>>& get_lpbuf() const {
+//        return _lpbuf;
+//    }
 
     /**
      *  \brief Return tensor device id.
@@ -430,21 +405,21 @@ public:
      *  \brief Return number
      */
     int num() const {
-        return TensorAPI::num(_valid_shape);
+        return _valid_shape.num();
     }
 
     /**
      *  \brief Return number index in shape.
      */
     int num_index() const {
-        return TensorAPI::num_idx::value;
+        return _valid_shape.num_index();
     };
 
     /**
      *  \brief Return channel.
      */
     int channel() const {
-        return TensorAPI::channel(_valid_shape);
+        return _valid_shape.channel();
     }
 
     /**
@@ -452,7 +427,7 @@ public:
      *  \return
      */
     int channel_index() const {
-        return TensorAPI::channel_idx::value;
+        return _valid_shape.channel_index();
     }
 
     /**
@@ -460,7 +435,7 @@ public:
      *  \return
      */
     int height() const {
-        return TensorAPI::height(_valid_shape);
+        return _valid_shape.height();
     }
 
     /**
@@ -468,7 +443,7 @@ public:
      *  \return
      */
     int height_index() const {
-        return TensorAPI::height_idx::value;
+        return _valid_shape.height_index();
     }
 
     /**
@@ -476,7 +451,7 @@ public:
      *  \return
      */
     int width() const {
-        return TensorAPI::width(_valid_shape);
+        return _valid_shape.width();
     }
 
     /**
@@ -484,13 +459,13 @@ public:
      *  \return
      */
     int width_index() const {
-        return TensorAPI::width_idx::value;
+        return _valid_shape.width_index();
     }
 
     /**
-     *  \brief Return tensor mutable data pointer, with data type of current tensor (Dtype*).
+     *  \brief Return tensor mutable data pointer void*.
      */
-    PtrDtype mutable_data(int index = 0) {
+    BaseDtype mutable_data() {
         // synchronize the events tree
         //sync();
         CHECK_EQ(device_id(), API::get_device_id()) << \
@@ -498,14 +473,14 @@ public:
         if (_buf->get_capacity() == 0){
             return nullptr;
         }
-        PtrType data = _buf->get_data_mutable() + (start_index() + index) * _type_len;
-        return static_cast<PtrDtype>(data);
+
+        return static_cast<BaseDtype >(_buf->get_data_mutable());
     }
 
     /**
      *  \brief Return tensor data pointer, with data type of current tensor (Dtype*).
      */
-    const PtrDtype data(int index = 0) const {
+    const BaseDtype data() const {
         // synchronize the events tree
         //sync();
         CHECK_EQ(device_id(), API::get_device_id()) << \
@@ -513,8 +488,7 @@ public:
         if (_buf->get_capacity() == 0){
             return nullptr;
         }
-        PtrType data = _buf->get_data_mutable() + (start_index() + index) * _type_len;
-        return static_cast<const PtrDtype>(data);
+        return static_cast<BaseDtype >(_buf->get_data_mutable());
     }
 
     /**
@@ -524,21 +498,19 @@ public:
      *  only shared buffer ptr, current tensor will have continuous memory,
      *  only if current shape and valid shape are the same, and offset is all set to 0.
      */
-    //template <typename Tensor1,
-    //    class = typename std::enable_if<std::is_same<layout_type, typename TensorTraits<Tensor1>::layout_type>::value>::type>
-        //class = typename std::enable_if<std::is_same<layout_type, typename TensorTraits<Tensor1>::layout_type>::value>::type >
-    template <typename Tensor_t>
-    SaberStatus share_from(const Tensor_t& tensor) {
+    SaberStatus share_from(const Tensor& tensor) {
 
-        CHECK_EQ(_shape > Shape::zero(TensorAPI::layout_dims::value), true) << \
-            "current tensor is not initialized (no shape info, use set_shape)";
-        typedef typename Tensor_t::Dtype dtype_t;
-        CHECK_LE(size() * _type_len, tensor.size() * sizeof(dtype_t)) << \
-            "current tensor size should <= input tensor size";
+        CHECK_LE(size(), tensor.size()) << "current tensor size should <= input tensor size";
 
-        _is_shared = BufferMemShare(_buf, tensor.get_buf()) > 0;
+        //_is_shared = BufferMemShare(_buf, tensor.get_buf()) > 0;
+
+        CHECK_GE(tensor._buf->get_capacity(), _shape.count() * _type_len) << "capacity of input tensor should > current tensor";
+
+        _buf = tensor._buf;
         _is_subbuf = false;
-        _seq_offset = tensor.get_seq_offset();
+        _seq_offset = tensor._seq_offset;
+        _is_shared = true;
+
         //if(shared){
         //    _is_root = false;
         //    tensor.add_events((EventsTree<TargetType_t>*)(&_events_tree));
@@ -547,43 +519,43 @@ public:
         //}
         return SaberSuccess;
     }
-    std::vector<int> get_seq_offset() const {return _seq_offset;}
-    SaberStatus set_seq_offset(std::vector<int> seq_offset) {_seq_offset = seq_offset; return SaberSuccess;}
 
-    SaberStatus share_sub_buffer(const Tensor<TargetType, datatype, LayOutType>& tensor, \
-        Shape valid_shape, Shape offset) {
+
+    SaberStatus share_sub_buffer(const Tensor& tensor, Shape valid_shape, Shape offset) {
 
         //if (valid_shape.dims() != TensorAPI::layout_dims::value \
             || offset.dims() != TensorAPI::layout_dims::value || \
             !((offset + valid_shape) <= tensor.shape())) { \
             return SaberInvalidValue; \
         }
-        CHECK_EQ(valid_shape.dims(), TensorAPI::layout_dims::value) << \
-            "shape dims is not matched to layout type";
-        CHECK_EQ(offset.dims(), TensorAPI::layout_dims::value) << \
-            "shape dims is not matched to layout type";
         CHECK_EQ(true, (offset + valid_shape) <= tensor.shape()) << \
             "offset + valid_shape <= shape";
         _valid_shape = valid_shape;
         _offset = offset;
         _shape = tensor.shape();
-        _buf = tensor.get_buf();
+        _buf = tensor._buf;
         _is_subbuf = true;
         _is_shared = true;
-        _seq_offset = tensor.get_seq_offset();
+        _seq_offset = tensor._seq_offset;
         return SaberSuccess;
     }
 
     /**
      *  \brief Deep copy data within region of interest from input tensor.
      */
-    template <typename TargetType_t, typename LayOutType_t>
-    SaberStatus copy_from(const Tensor<TargetType_t, datatype, LayOutType_t>& tensor) {
+    template <typename TargetType_t>
+    SaberStatus copy_from(const Tensor<TargetType_t>& tensor) {
+
         //if (valid_size() != tensor.valid_size()) { \
             return SaberInvalidValue; \
         }
+        CHECK_EQ(tensor.get_dtype(), _dtype) << "data type should be the same";
         CHECK_EQ(valid_size(), tensor.valid_size()) \
             << "sizes of two valid shapes must be the same";
+
+        if (_buf->get_capacity() == 0) {
+            reshape(_valid_shape);
+        }
 
         /// get the proper process target wrapper
         typedef  TargetWrapper<TargetType_t> API_t;
@@ -593,23 +565,27 @@ public:
         typedef typename IF<std::is_same<target_category, __host_target>::value, then_type, else_type>::Type flag_type;
         typedef typename IF<std::is_same<target_category , __host_target>::value, API_t, API>::Type process_API;
 
-        typedef typename Tensor<TargetType_t, datatype, LayOutType_t>::Dtype Dtype_src;
-        typedef typename Tensor<TargetType_t, datatype, LayOutType_t>::PtrDtype PtrDtype_src;
-        typedef typename PtrTrait<TargetType_t>::PtrType PtrType_src;
+        typedef typename DataTraitBase<TargetType>::PtrDtype BaseDtype_src;
 
         /// return if src and dst data ptrs are the same
-//        if (std::is_same<TargetType, TargetType_t>::value){
-//            if ((const void*)data() == (const void*)tensor.data()) {
-//                return SaberSuccess;
-//            }
-//        }
+        if (std::is_same<TargetType, TargetType_t>::value){
+            if ((const void*)data() == (const void*)(tensor.data())) {
+                return SaberSuccess;
+            }
+        }
 
         /// both tensors are continuous, copy entire buffer
         if (is_continue_mem() && tensor.is_continue_mem()) {
-            PtrType ptr_dst = mutable_data();
-            const PtrType_src ptr_src = tensor.data();
-            process_API::sync_memcpy(ptr_dst, device_id(), ptr_src, tensor.device_id(), \
+            int dst_data_offset = data_offset();
+            int src_data_offset = tensor.data_offset();
+
+            BaseDtype ptr_dst = _buf->get_data_mutable();
+            const BaseDtype_src ptr_src = tensor.data();
+
+            process_API::sync_memcpy(ptr_dst, _type_len * dst_data_offset, device_id(), \
+                ptr_src, _type_len * src_data_offset, tensor.device_id(), \
                 _type_len * valid_size(), flag_type());
+
             return SaberSuccess;
         }
 
@@ -703,8 +679,12 @@ public:
         int ratio_dst = cpy_len_dst / cpy_len;
         int ratio_src = cpy_len_src / cpy_len;
 
-        PtrDtype dst = mutable_data();
-        const PtrDtype_src src = tensor.data();
+
+        int dst_data_offset = data_offset();
+        int src_data_offset = tensor.data_offset();
+
+        BaseDtype ptr_dst = _buf->get_data_mutable();
+        const BaseDtype_src ptr_src = tensor.data();
 
         for (int i = 0; i < cpy_num; ++i) {
             int idx_dst = (i % ratio_dst) * cpy_len;//off_dst[abs(axis_discontinue_dst)] * \
@@ -725,10 +705,11 @@ public:
             }
             //printf("i: %d, idx_src: %d, idx_dst: %d\n", i, idx_src, idx_dst);
 
-            PtrType dst_ptr = (PtrType)(dst) + idx_dst * _type_len;
-            PtrType_src src_ptr = (PtrType_src)(src) + idx_src * _type_len;
+            int cpy_dst_offset = dst_data_offset + idx_dst;
+            int cpy_src_offset = src_data_offset + idx_src;
 
-            process_API::sync_memcpy(dst_ptr, device_id(), src_ptr, tensor.device_id(), \
+            process_API::sync_memcpy(ptr_dst, _type_len * cpy_dst_offset, device_id(), \
+                ptr_src, _type_len * cpy_src_offset, tensor.device_id(), \
                     _type_len * cpy_len, flag_type());
         }
         return SaberSuccess;
@@ -737,13 +718,18 @@ public:
     /**
      * \brief Asynchronously copy entire buffer from source tensor.
      */
-    template <typename TargetType_t, typename LayOutType_t, typename stream_type \
+    template <typename TargetType_t, typename stream_type \
         = typename IF<std::is_same<typename TargetTypeTraits<TargetType>::target_category, __host_target>::value, \
         typename TargetWrapper<TargetType_t>::stream_t, typename TargetWrapper<TargetType>::stream_t>::Type>
-    SaberStatus async_copy_from(const Tensor<TargetType_t, datatype, LayOutType_t>& tensor, \
-        stream_type stream) {
-        CHECK_EQ(valid_size() == tensor.valid_size(), true) \
-            << "input tensor size should equal to this tensor size";
+    SaberStatus async_copy_from(const Tensor<TargetType_t>& tensor, stream_type stream) {
+
+        CHECK_EQ(tensor.get_dtype(), _dtype) << "data type should be the same";
+        CHECK_EQ(valid_size(), tensor.valid_size()) \
+            << "sizes of two valid shapes must be the same";
+
+        if (_buf->get_capacity() == 0) {
+            reshape(_valid_shape);
+        }
 
         /// get the proper process target wrapper
         typedef  TargetWrapper<TargetType_t> API_t;
@@ -753,22 +739,27 @@ public:
         typedef typename IF<std::is_same<target_category, __host_target>::value, then_type, else_type>::Type flag_type;
         typedef typename IF<std::is_same<target_category , __host_target>::value, API_t, API>::Type process_API;
 
-
-        typedef typename Tensor<TargetType_t, datatype, LayOutType_t>::Dtype Dtype_src;
-        typedef typename Tensor<TargetType_t, datatype, LayOutType_t>::PtrDtype PtrDtype_src;
-        typedef typename PtrTrait<TargetType_t>::PtrType PtrType_src;
+        typedef typename DataTraitBase<TargetType>::PtrDtype BaseDtype_src;
 
         /// return if src and dst data ptrs are the same
-//        if ((void*)data() == (void*)tensor.data()){
-//            return SaberSuccess;
-//        }
+        if (std::is_same<TargetType, TargetType_t>::value){
+            if ((const void*)data() == (const void*)(tensor.data())) {
+                return SaberSuccess;
+            }
+        }
 
         /// both tensors are continuous, copy entire buffer
         if (is_continue_mem() && tensor.is_continue_mem()) {
-            PtrDtype ptr_dst = mutable_data();
-            const PtrDtype_src ptr_src = tensor.data();
-            process_API::async_memcpy(ptr_dst, device_id(), ptr_src, tensor.device_id(), \
+            int dst_data_offset = data_offset();
+            int src_data_offset = tensor.data_offset();
+
+            BaseDtype ptr_dst = _buf->get_data_mutable();
+            const BaseDtype_src ptr_src = tensor.data();
+
+            process_API::async_memcpy(ptr_dst, _type_len * dst_data_offset, device_id(), \
+                ptr_src, _type_len * src_data_offset, tensor.device_id(), \
                 _type_len * valid_size(), stream, flag_type());
+
             return SaberSuccess;
         }
 
@@ -776,8 +767,8 @@ public:
         Shape val_sh_dst = _valid_shape;
         Shape sh_src = tensor.shape();
         Shape val_sh_src = tensor.valid_shape();
-        Shape off_dst = _offset;
-        Shape off_src = tensor.offset();
+        //Shape off_dst = _offset;
+        //Shape off_src = tensor.offset();
 
         if (is_continue_mem()) {
             sh_dst = _valid_shape;
@@ -810,8 +801,8 @@ public:
         }
         //printf("dst axis=%d, src axis=%d\n", axis_discontinue_dst, axis_discontinue_src);
 
-        /// Only copy the region of interest.
-        /// Compute the copy length of each memcpy.
+        /// only copy the region of interest
+        /// compute the copy length of each memcpy
         int cpy_len_dst = 1;
         int cpy_len_src = 1;
         if (axis_discontinue_dst < 0){
@@ -831,11 +822,11 @@ public:
         //printf("cpy_len_dst=%d, %d, cpy_len_src=%d, %d\n", cpy_len_dst, valid_size(), cpy_len_src, tensor.valid_size());
         int cpy_len = cpy_len_dst < cpy_len_src? cpy_len_dst : cpy_len_src;
 
-        /// Compute the total copy times.
+        /// compute the total copy times
         int cpy_num = valid_size() / cpy_len;
         //printf("cpy_len=%d, cpy_num=%d\n", cpy_len, cpy_num);
 
-        /// Compute the stride and start index of dst buffer and src buffer.
+        /// compute the stride and start index of dst buffer and src buffer
         std::vector<int> count_dst(abs(axis_discontinue_dst) + 1);
         std::vector<int> count_src(abs(axis_discontinue_src) + 1);
 
@@ -858,12 +849,16 @@ public:
             }
         }
 
-        /// Compute the start position of each buffer, memcpy from src to dst.
+        /// compute the start position of each buffer, memcpy from src to dst
         int ratio_dst = cpy_len_dst / cpy_len;
         int ratio_src = cpy_len_src / cpy_len;
 
-        PtrDtype dst = mutable_data();
-        const PtrDtype_src src = tensor.data();
+
+        int dst_data_offset = data_offset();
+        int src_data_offset = tensor.data_offset();
+
+        BaseDtype ptr_dst = _buf->get_data_mutable();
+        const BaseDtype_src ptr_src = tensor.data();
 
         for (int i = 0; i < cpy_num; ++i) {
             int idx_dst = (i % ratio_dst) * cpy_len;//off_dst[abs(axis_discontinue_dst)] * \
@@ -882,13 +877,14 @@ public:
                 idx_src += (div /*+ off_src[j]*/) * stride_src[j];
                 res_src = res_src % count_src[j];
             }
+            //printf("i: %d, idx_src: %d, idx_dst: %d\n", i, idx_src, idx_dst);
 
-            PtrType dst_ptr = (PtrType)(dst) + idx_dst * _type_len;
-            PtrType_src src_ptr = (PtrType_src)(src) + idx_src * _type_len;
+            int cpy_dst_offset = dst_data_offset + idx_dst;
+            int cpy_src_offset = src_data_offset + idx_src;
 
-            process_API::async_memcpy(dst_ptr, device_id(), src_ptr, tensor.device_id(), \
+            process_API::async_memcpy(ptr_dst, _type_len * cpy_dst_offset, device_id(), \
+                ptr_src, _type_len * cpy_src_offset, tensor.device_id(), \
                     _type_len * cpy_len, stream, flag_type());
-
         }
         return SaberSuccess;
     }
@@ -917,8 +913,13 @@ public:
 
 
 private:
+    //! scale for quantization
+    std::vector<float> _scale;
+
     ///< Length of datatype.
-    size_t _type_len{sizeof(Dtype)};
+    DataType _dtype;
+    size_t _type_len;
+
     ///< Represent the raw mem shape.
     Shape _shape;
     ///< Represent the mem you have right to access shape.
@@ -933,6 +934,9 @@ private:
     bool _is_subbuf{false};
     bool _is_shared{false};
 
+    //! lot tensor
+    std::vector<int> _seq_offset;
+
     /// Get data real start index.
     int start_index() const {
         if (!_is_subbuf) {
@@ -945,8 +949,6 @@ private:
         }
         return idx;
     }
-
-    std::vector<int> _seq_offset;
 };
 
 } //namespace saber

@@ -80,10 +80,13 @@ typedef TargetWrapper<NVHX86, __host_target> NVH_API;
 
 void NVH_API::get_device_count(int &count) {
     //todo
+    LOG(WARNING) << "host target NVHX86 \" get_device_count\" is not implemented";
+    count = 1;
 }
 
 void NVH_API::set_device(int id) {
     //todo
+    LOG(WARNING) << "host target NVHX86 \" set_device\" is not implemented";
 }
         
 void NVH_API::mem_alloc(void** ptr, size_t n) {
@@ -100,43 +103,75 @@ void NVH_API::mem_set(void* ptr, int value, size_t n){
     memset(ptr, value, n);
 }
 
-void NVH_API::create_event(event_t& event, bool flag) {}
+void NVH_API::create_event(event_t* event, bool flag) {
+    if(flag) {
+        CUDA_CHECK(cudaEventCreateWithFlags(event, cudaEventDefault));
+    }else{
+        CUDA_CHECK(cudaEventCreateWithFlags(event, cudaEventDisableTiming));
+    }
+}
 
-void NVH_API::destroy_event(event_t& event) {}
+void NVH_API::destroy_event(event_t event) {
+    CUDA_CHECK(cudaEventDestroy(event));
+}
 
-void NVH_API::record_event(event_t& event, stream_t stream) {}
+void NVH_API::record_event(event_t event, stream_t stream) {
+    CUDA_CHECK(cudaEventRecord(event, stream));
+}
 
-void NVH_API::create_stream(stream_t& stream) {}
+void NVH_API::create_stream(stream_t* stream) {
+    CUDA_CHECK(cudaStreamCreate(stream));
+}
 
-void NVH_API::create_stream_with_flag(stream_t& stream, unsigned int flag) {}
+void NVH_API::create_stream_with_flag(stream_t* stream, unsigned int flag) {
+    CUDA_CHECK(cudaStreamCreateWithFlags(stream, flag));
+}
 
-void NVH_API::create_stream_with_priority(stream_t& stream, unsigned int flag, int priority) {}
+void NVH_API::create_stream_with_priority(stream_t* stream, unsigned int flag, int priority) {
+    CUDA_CHECK(cudaStreamCreateWithPriority(stream, flag, priority));
+}
 
-void NVH_API::destroy_stream(stream_t& stream) {}
+void NVH_API::destroy_stream(stream_t stream) {
+    CUDA_CHECK(cudaStreamDestroy(stream));
+}
 
-void NVH_API::query_event(event_t& event) {}
+void NVH_API::query_event(event_t event) {
+    CUDA_CHECK(cudaEventQuery(event));
+}
 
-void NVH_API::sync_event(event_t& event) {}
+void NVH_API::sync_event(event_t event) {
+    CUDA_CHECK(cudaEventSynchronize(event));
+}
 
-void NVH_API::sync_stream(event_t& event, stream_t& stream) {}
+void NVH_API::sync_stream(event_t event, stream_t stream) {
+    CUDA_CHECK(cudaStreamWaitEvent(stream, event, 0));
+}
+
+void NVH_API::sync_stream(stream_t stream) {
+    CUDA_CHECK(cudaStreamSynchronize(stream));
+}
         
-void NVH_API::sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-        size_t count, __HtoH) {
-    CUDA_CHECK(cudaMemcpy(dst, src, count, cudaMemcpyHostToHost));
+void NVH_API::sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
+    const void* src, size_t src_offset, int src_id, \
+    size_t count, __HtoH) {
+    CUDA_CHECK(cudaMemcpy((char*)dst + dst_offset, (char*)src + src_offset, count, cudaMemcpyHostToHost));
+    //LOG(INFO) << "NVH, sync, H2H, size: " << count << ", src_offset: " \
+          << src_offset << ", data:" << ((const float*)((char*)src + src_offset))[0];
+}
+        
+void NVH_API::async_memcpy(void* dst, size_t dst_offset, int dst_id, \
+    const void* src, size_t src_offset, int src_id, \
+    size_t count, stream_t stream, __HtoH) {
+    CUDA_CHECK(cudaMemcpy((char*)dst + dst_offset, (char*)src + src_offset, count, cudaMemcpyHostToHost));
     //LOG(INFO) << "NVH, sync, H2H, size: " << count;
 }
         
-void NVH_API::async_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-        size_t count, stream_t& stream, __HtoH) {
-    CUDA_CHECK(cudaMemcpy(dst, src, count, cudaMemcpyHostToHost));
-    //LOG(INFO) << "NVH, sync, H2H, size: " << count;
-}
+void NVH_API::sync_memcpy_p2p(void* dst, size_t dst_offset, int dst_id, \
+    const void* src, size_t src_offset, int src_id, size_t count) {}
         
-void NVH_API::sync_memcpy_p2p(void* dst, int dst_dev, const void* src, \
-        int src_dev, size_t count) {}
-        
-void NVH_API::async_memcpy_p2p(void* dst, int dst_dev, const void* src, \
-        int src_dev, size_t count, stream_t& stream) {}
+void NVH_API::async_memcpy_p2p(void* dst, size_t dst_offset, int dst_id, \
+    const void* src, size_t src_offset, int src_id, \
+    size_t count, stream_t stream) {}
 
 int NVH_API::get_device_id(){
     return 0;
@@ -170,16 +205,16 @@ void NV_API::mem_set(void* ptr, int value, size_t n){
     CUDA_CHECK(cudaMemset(ptr, value, n));
 }
 
-void NV_API::create_event(event_t& event, bool flag) {
+void NV_API::create_event(event_t* event, bool flag) {
     if(flag) {
-        CUDA_CHECK(cudaEventCreateWithFlags(&event, cudaEventDefault));
+        CUDA_CHECK(cudaEventCreateWithFlags(event, cudaEventDefault));
     }else{
-        CUDA_CHECK(cudaEventCreateWithFlags(&event, cudaEventDisableTiming));
+        CUDA_CHECK(cudaEventCreateWithFlags(event, cudaEventDisableTiming));
     }
 }
 
-void NV_API::create_stream(stream_t& stream) {
-    CUDA_CHECK(cudaStreamCreate(&stream));
+void NV_API::create_stream(stream_t* stream) {
+    CUDA_CHECK(cudaStreamCreate(stream));
 }
 
 /**
@@ -187,98 +222,112 @@ void NV_API::create_stream(stream_t& stream) {
  * @param stream    input stream
  * @param flag      input flag, 0: default stream flag, 1: cudaStreamNonBlocking
  */
-void NV_API::create_stream_with_flag(stream_t& stream, unsigned int flag) {
-    CUDA_CHECK(cudaStreamCreateWithFlags(&stream, flag));
+void NV_API::create_stream_with_flag(stream_t* stream, unsigned int flag) {
+    CUDA_CHECK(cudaStreamCreateWithFlags(stream, flag));
 }
 
-void NV_API::create_stream_with_priority(stream_t& stream, unsigned int flag, int priority) {
-    CUDA_CHECK(cudaStreamCreateWithPriority(&stream, flag, priority));
+void NV_API::create_stream_with_priority(stream_t* stream, unsigned int flag, int priority) {
+    CUDA_CHECK(cudaStreamCreateWithPriority(stream, flag, priority));
 }
 
-void NV_API::destroy_stream(stream_t& stream) {
+void NV_API::destroy_stream(stream_t stream) {
     CUDA_CHECK(cudaStreamDestroy(stream));
 }
 
-void NV_API::destroy_event(event_t& event) {
-    cudaEventDestroy(event);
+void NV_API::destroy_event(event_t event) {
+    CUDA_CHECK(cudaEventDestroy(event));
 }
 
-void NV_API::record_event(event_t& event, stream_t stream) {
-    cudaEventRecord(event, stream);
+void NV_API::record_event(event_t event, stream_t stream) {
+    CUDA_CHECK(cudaEventRecord(event, stream));
 }
 
-void NV_API::query_event(event_t& event) {
-    cudaEventQuery(event);
+void NV_API::query_event(event_t event) {
+    CUDA_CHECK(cudaEventQuery(event));
 }
 
-void NV_API::sync_event(event_t& event) {
-    cudaEventSynchronize(event);
+void NV_API::sync_event(event_t event) {
+    CUDA_CHECK(cudaEventSynchronize(event));
 }
 
-void NV_API::sync_stream(event_t& event, stream_t& stream) {
-    cudaStreamWaitEvent(stream, event, 0);
+void NV_API::sync_stream(event_t event, stream_t stream) {
+    CUDA_CHECK(cudaStreamWaitEvent(stream, event, 0));
+}
+
+void NV_API::sync_stream(stream_t stream) {
+    CUDA_CHECK(cudaStreamSynchronize(stream));
 }
         
-void NV_API::sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-        size_t count, __DtoD) {
+void NV_API::sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
+    const void* src, size_t src_offset, int src_id, \
+    size_t count, __DtoD) {
+
     if(dst_id == src_id){
-        CUDA_CHECK(cudaMemcpy(dst, src, count, cudaMemcpyDeviceToDevice));
+        CUDA_CHECK(cudaMemcpy((char*)dst + dst_offset, (char*)src + src_offset, count, cudaMemcpyDeviceToDevice));
         //LOG(INFO) << "cuda, sync, D2D, size: " << count;
     } else{
-        CUDA_CHECK(cudaMemcpyPeer(dst, dst_id, src, src_id, count));
+        CUDA_CHECK(cudaMemcpyPeer((char*)dst + dst_offset, dst_id, (char*)src + src_offset, src_id, count));
         //LOG(INFO) << "cuda, async, P2P, size: " << count;
     }
 }
         
-void NV_API::async_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-        size_t count, stream_t& stream, __DtoD) {
+void NV_API::async_memcpy(void* dst, size_t dst_offset, int dst_id, \
+    const void* src, size_t src_offset, int src_id, \
+        size_t count, stream_t stream, __DtoD) {
+
     if(dst_id == src_id){
-        CUDA_CHECK(cudaMemcpyAsync(dst, src, count, cudaMemcpyDeviceToDevice, stream));
+        CUDA_CHECK(cudaMemcpyAsync((char*)dst + dst_offset, (char*)src + src_offset, count, cudaMemcpyDeviceToDevice, stream));
         //record_event(event, stream);
         //LOG(INFO) << "cuda, async, D2D, size: " << count;
     } else{
-        CUDA_CHECK(cudaMemcpyPeerAsync(dst, dst_id, src, src_id, count, stream));
+        CUDA_CHECK(cudaMemcpyPeerAsync((char*)dst + dst_offset, dst_id, (char*)src + src_offset, src_id, count, stream));
         //record_event(event, stream);
         //LOG(INFO) << "cuda, async P2P, size: " << count;
     }
 }
 
         
-void NV_API::sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
+void NV_API::sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
+    const void* src, size_t src_offset, int src_id, \
         size_t count, __HtoD) {
-    CUDA_CHECK(cudaMemcpy(dst, src, count, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy((char*)dst + dst_offset, (char*)src + src_offset, count, cudaMemcpyHostToDevice));
     //LOG(INFO) << "cuda, sync, H2D, size: " << count;
 }
         
-void NV_API::async_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-        size_t count, stream_t& stream, __HtoD) {
-    CUDA_CHECK(cudaMemcpyAsync(dst, src, count, cudaMemcpyHostToDevice, stream));
+void NV_API::async_memcpy(void* dst, size_t dst_offset, int dst_id, \
+    const void* src, size_t src_offset, int src_id, \
+        size_t count, stream_t stream, __HtoD) {
+    CUDA_CHECK(cudaMemcpyAsync((char*)dst + dst_offset, (char*)src + src_offset, count, cudaMemcpyHostToDevice, stream));
     //record_event(event, stream);
     //LOG(INFO) << "cuda, async, H2D, size: " << count;
 }
         
-void NV_API::sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
+void NV_API::sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
+    const void* src, size_t src_offset, int src_id, \
         size_t count, __DtoH) {
-    CUDA_CHECK(cudaMemcpy(dst, src, count, cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy((char*)dst + dst_offset, (char*)src + src_offset, count, cudaMemcpyDeviceToHost));
     //LOG(INFO) << "cuda, sync, D2H, size: " << count;
 }
         
-void NV_API::async_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-        size_t count, stream_t& stream, __DtoH) {
-    CUDA_CHECK(cudaMemcpyAsync(dst, src, count, cudaMemcpyDeviceToHost, stream));
+void NV_API::async_memcpy(void* dst, size_t dst_offset, int dst_id, \
+    const void* src, size_t src_offset, int src_id, \
+        size_t count, stream_t stream, __DtoH) {
+    CUDA_CHECK(cudaMemcpyAsync((char*)dst + dst_offset, (char*)src + src_offset, count, cudaMemcpyDeviceToHost, stream));
     //record_event(event, stream);
     //LOG(INFO) << "cuda, async, D2H, size: " << count;
 }
         
-void NV_API::sync_memcpy_p2p(void* dst, int dst_dev, const void* src, \
-        int src_dev, size_t count) {
-    CUDA_CHECK(cudaMemcpyPeer(dst, dst_dev, src, src_dev, count));
+void NV_API::sync_memcpy_p2p(void* dst, size_t dst_offset, int dst_id, \
+    const void* src, size_t src_offset, int src_id, \
+        size_t count) {
+    CUDA_CHECK(cudaMemcpyPeer((char*)dst + dst_offset, dst_id, (char*)src + src_offset, src_id, count));
     //LOG(INFO) << "cuda, sync, P2P, size: " << count;
 }
         
-void NV_API::async_memcpy_p2p(void* dst, int dst_dev, const void* src, \
-        int src_dev, size_t count, stream_t& stream) {
-    CUDA_CHECK(cudaMemcpyPeerAsync(dst, dst_dev, src, src_dev, count, stream));
+void NV_API::async_memcpy_p2p(void* dst, size_t dst_offset, int dst_id, \
+    const void* src, size_t src_offset, int src_id, \
+        size_t count, stream_t stream) {
+    CUDA_CHECK(cudaMemcpyPeerAsync((char*)dst + dst_offset, dst_id, (char*)src + src_offset, src_id, count, stream));
     //record_event(event, stream);
     //LOG(INFO) << "cuda, async, P2P, size: " << count;
 }
@@ -293,41 +342,13 @@ int NV_API::get_device_id(){
     return device_id;
 }
 
-//! NV TargetWrapper
-template struct TargetWrapper<NV, __device_target>;
-
-//! NVH Buffer
-INSTANTIATE_BUFFER(NVHX86);
-
 //! NV Buffer
-INSTANTIATE_BUFFER(NV);
+template class Buffer<NV>;
+template class Buffer<NVHX86>;
 
-//! NVH Tensor
-INSTANTIATE_TENSOR(NVHX86, AK_FLOAT, NCHW);
-INSTANTIATE_TENSOR(NVHX86, AK_FLOAT, NHWC);
-INSTANTIATE_TENSOR(NVHX86, AK_FLOAT, HW);
+template class Tensor<NV>;
+template class Tensor<NVHX86>;
 
-INSTANTIATE_TENSOR(NVHX86, AK_INT8, NCHW);
-INSTANTIATE_TENSOR(NVHX86, AK_INT8, NHWC);
-INSTANTIATE_TENSOR(NVHX86, AK_INT8, HW);
-
-INSTANTIATE_TENSOR(NVHX86, AK_HALF, NCHW);
-INSTANTIATE_TENSOR(NVHX86, AK_HALF, NHWC);
-INSTANTIATE_TENSOR(NVHX86, AK_HALF, HW);
-
-//! NV Tensor
-
-INSTANTIATE_TENSOR(NV, AK_FLOAT, NCHW);
-INSTANTIATE_TENSOR(NV, AK_FLOAT, NHWC);
-INSTANTIATE_TENSOR(NV, AK_FLOAT, HW);
-
-INSTANTIATE_TENSOR(NV, AK_INT8, NCHW);
-INSTANTIATE_TENSOR(NV, AK_INT8, NHWC);
-INSTANTIATE_TENSOR(NV, AK_INT8, HW);
-
-INSTANTIATE_TENSOR(NV, AK_HALF, NCHW);
-INSTANTIATE_TENSOR(NV, AK_HALF, NHWC);
-INSTANTIATE_TENSOR(NV, AK_HALF, HW);
 
 //!
 template struct Env<NV>;

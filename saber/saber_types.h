@@ -51,25 +51,104 @@ typedef TargetType<eNVHX86> NVHX86;
 // invalid target type, for target has only one memory block
 typedef TargetType<eINVALID> INVLD;
 
+enum LayoutType {
+    Layout_invalid = 0,
+    Layout_W = 1,
+    Layout_HW = 2,
+    Layout_WH = 3,
+    Layout_NW = 4,
+    Layout_NHW = 5,
+    Layout_NCHW = 6,
+    Layout_NHWC = 7,
+    Layout_NCHW_C4 = 8,
+    Layout_NCHW_C8 = 9,
+    Layout_NCHW_C16 = 10
+};
+
 //! target_type struct
-struct W{};
-struct HW{};
-struct WH{};
-struct NW{};
-struct NHW{};
-struct NCHW{};
-struct NHWC{};
-struct NCHW_C4{};
-struct NCHW_C8{};
-struct NCHW_C16{};
-struct OIHW16I16O {};
-struct GOIHW16I16O {};
-//!target_category struct
-struct _5D{};
-struct _4D{};
-struct _3D{};
-struct _2D{};
-struct _1D{};
+struct Layout {
+    virtual int num_index() {return -1;}
+    virtual int channel_index() {return -1;}
+    virtual int height_index() {return -1;}
+    virtual int width_index() {return -1;}
+    virtual int depth_index() {return -1;}
+    virtual int inner_c() {return -1;}
+    virtual int dims() {return -1;}
+    virtual LayoutType type() {return Layout_invalid;}
+};
+struct W : public Layout {
+    int width_index() {return 0;}
+    int dims() {return 1;}
+    LayoutType type() {return Layout_W;}
+};
+struct HW : public Layout {
+    int height_index() {return 0;}
+    int width_index() {return 1;}
+    int dims() {return 2;}
+    LayoutType type() {return Layout_HW;}
+};
+struct WH : public Layout {
+    int height_index() {return 1;}
+    int width_index() {return 0;}
+    int dims() {return 2;}
+    LayoutType type() {return Layout_WH;}
+};
+struct NW : public Layout {
+    int num_index() {return 0;}
+    int width_index() {return 1;}
+    int dims() {return 2;}
+    LayoutType type() {return Layout_NW;}
+};
+struct NHW : public Layout {
+    int num_index() {return 0;}
+    int height_index() {return 1;}
+    int width_index() {return 2;}
+    int dims() {return 3;}
+    LayoutType type() {return Layout_NHW;}
+};
+struct NCHW : public Layout {
+    int num_index() {return 0;}
+    int channel_index() {return 1;}
+    int height_index() {return 2;}
+    int width_index() {return 3;}
+    int dims() {return 4;}
+    LayoutType type() {return Layout_NCHW;}
+};
+struct NHWC : public Layout {
+    int num_index() {return 0;}
+    int height_index() {return 1;}
+    int width_index() {return 2;}
+    int channel_index() {return 3;}
+    int dims() {return 4;}
+    LayoutType type() {return Layout_NHWC;}
+};
+struct NCHW_C4 : public Layout {
+    int num_index() {return 0;}
+    int channel_index() {return 1;}
+    int height_index() {return 2;}
+    int width_index() {return 3;}
+    int inner_c() {return 4;}
+    int dims() {return 5;}
+    LayoutType type() {return Layout_NCHW_C4;}
+};
+struct NCHW_C8 : public Layout {
+    int num_index() {return 0;}
+    int channel_index() {return 1;}
+    int height_index() {return 2;}
+    int width_index() {return 3;}
+    int inner_c() {return 8;}
+    int dims() {return 5;}
+    LayoutType type() {return Layout_NCHW_C8;}
+};
+struct NCHW_C16 : public Layout {
+    int num_index() {return 0;}
+    int channel_index() {return 1;}
+    int height_index() {return 2;}
+    int width_index() {return 3;}
+    int inner_c() {return 16;}
+    int dims() {return 5;}
+    LayoutType type() {return Layout_NCHW_C16;}
+};
 
 enum DataType {
     AK_INVALID      =       -1,

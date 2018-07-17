@@ -1,4 +1,4 @@
-#include "test_saber_buffer_NV.h"
+#include "test_saber_func_NV.h"
 #include "saber/core/buffer.h"
 #include "saber/core/data_traits.h"
 
@@ -112,7 +112,7 @@ void test_buffer() {
     }
 }
 
-TEST(TestSaberBufferNV, test_buffer_memcpy) {
+TEST(TestSaberFuncNV, test_buffer_memcpy) {
     test_buffer<AK_FLOAT>();
 }
 

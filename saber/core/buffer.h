@@ -21,14 +21,10 @@ namespace anakin{
 
 namespace saber{
 
-//struct TargetWrapper;
-#define INSTANTIATE_BUFFER(TargetType) \
-  template class Buffer<TargetType>;
-
 template <typename TargetType>
 class Buffer {
 public:
-    typedef typename PtrTrait<TargetType>::PtrType TPtr;
+    typedef typename DataTraitBase<TargetType>::PtrDtype TPtr;
     typedef TargetWrapper<TargetType> API;
     //typedef typename TargetTypeTraits<TargetType>::target_type target_type;
 
@@ -66,7 +62,7 @@ public:
         } else{
             _own_data = true;
             SABER_CHECK(re_alloc(buf._count));
-            API::sync_memcpy_p2p(_data, _id, buf.get_data(), buf._id, buf._count);
+            API::sync_memcpy_p2p(_data, 0, _id, buf.get_data(), 0, buf._id, buf._count);
         }
     }
 
@@ -83,7 +79,7 @@ public:
         } else{
             this->_own_data = true;
             SABER_CHECK(this->re_alloc(buf._count));
-            API::sync_memcpy_p2p(this->_data, this->_id, buf.get_data(), buf._id, \
+            API::sync_memcpy_p2p(this->_data, 0, this->_id, buf.get_data(), 0, buf._id, \
                 buf._count);
         }
         return *this;
@@ -100,7 +96,7 @@ public:
         } else{
             _own_data = true;
             SABER_CHECK(re_alloc(buf._count));
-            API::sync_memcpy_p2p(_data, _id, buf.get_data(), buf._id, buf._count);
+            API::sync_memcpy_p2p(_data, 0, _id, buf.get_data(), 0, buf._id, buf._count);
             return 0;
         }
     }
@@ -179,8 +175,8 @@ public:
 
         LOG(INFO) << "sync memcpy h2h, size: " << buf.get_count();
 
-        process_API::sync_memcpy(_data, _id, buf.get_data(), \
-            buf.get_id(), buf.get_count(), flag_type());
+        process_API::sync_memcpy(_data, 0, _id, buf.get_data(), \
+            0, buf.get_id(), buf.get_count(), flag_type());
 
         return SaberSuccess;
     }
@@ -231,6 +227,65 @@ private:
         return SaberSuccess;
     }
 };
+
+template <typename TargetType_dst, typename TargetType_src>
+static inline int MemShare(std::shared_ptr<Buffer<TargetType_dst>>& dst, \
+    const std::shared_ptr<Buffer<TargetType_src>>& src, __DtoD) {
+    //LOG(INFO) << "shared D2D";
+    if(dst->get_id() == src->get_id()){
+        dst = src;
+        return 1;
+    }
+    //LOG(INFO) << "copied D2D";
+    SABER_CHECK(dst->re_alloc(src->get_count()));
+    SABER_CHECK(dst->sync_copy_from(*src));
+    return 0;
+}
+
+template <typename TargetType_dst, typename TargetType_src>
+static inline int MemShare(std::shared_ptr<Buffer<TargetType_dst>>& dst, \
+    const std::shared_ptr<Buffer<TargetType_src>>& src, __HtoD) {
+    //LOG(INFO) << "copied H2D";
+    SABER_CHECK(dst->re_alloc(src->get_count()));
+    SABER_CHECK(dst->sync_copy_from(*src));
+    return 0;
+}
+
+template <typename TargetType_dst, typename TargetType_src>
+static inline int MemShare(std::shared_ptr<Buffer<TargetType_dst>>& dst, \
+    const std::shared_ptr<Buffer<TargetType_src>>& src, __HtoH) {
+    //LOG(INFO) << "shared H2H";
+    dst = src;
+    return 1;
+}
+
+template <typename TargetType_dst, typename TargetType_src>
+static inline int MemShare(std::shared_ptr<Buffer<TargetType_dst>>& dst, \
+    const std::shared_ptr<Buffer<TargetType_src>>& src, __DtoH) {
+    //LOG(INFO) << "copied D2H";
+    SABER_CHECK(dst->re_alloc(src->get_count()));
+    SABER_CHECK(dst->sync_copy_from(*src));
+    return 0;
+}
+
+template <typename TargetType_dst, typename TargetType_src>
+static inline int BufferMemShare(std::shared_ptr<Buffer<TargetType_dst>>& dst, \
+    const std::shared_ptr<Buffer<TargetType_src>>& src){
+
+    typedef typename TargetTypeTraits<TargetType_dst>::target_type target_type_dst;
+    typedef typename TargetTypeTraits<TargetType_src>::target_type target_type_src;
+    typedef typename TargetTypeTraits<TargetType_dst>::target_category target_category_dst;
+
+    typedef typename IF<std::is_same<target_type_dst, target_type_src>::value, __HtoH, __DtoH>::Type then_type;
+    typedef typename IF<std::is_same<target_type_dst, target_type_src>::value, __DtoD, __HtoD>::Type else_type;
+    typedef typename IF<std::is_same<target_category_dst, __host_target>::value, then_type, else_type>::Type flag_type;
+            CHECK_EQ(src == nullptr, false) << "input buffer is null!";
+    if (!dst){
+        dst = std::make_shared<Buffer<TargetType_dst>>(src->get_count());
+    }
+    return MemShare(dst, src, flag_type());
+}
+
 
 } //namespace saber
 

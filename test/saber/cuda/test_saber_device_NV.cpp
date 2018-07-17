@@ -1,10 +1,11 @@
-#include "test_saber_device_NV.h"
+#include "test_saber_func_NV.h"
+#include "saber/core/device.h"
 
 #ifdef USE_CUDA
 
 using namespace anakin::saber;
 
-TEST(TestSaberDeviceNV, test_NV_device) {
+TEST(TestSaberFuncNV, test_NV_device) {
     Device<NV> dev_NV;
 }
 
