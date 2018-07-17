@@ -206,45 +206,71 @@ TEST(TestSaberFuncNV, test_dim_2) {
 }
 
 TEST(TestSaberFuncNV, test_set_layout) {
-    Shape test_shape;
-    test_shape.push_back(2);
-    test_shape.push_back(8);
-    test_shape.push_back(4);
-    test_shape.push_back(5);
 
-    test_shape.set_layout(Layout_NCHW);
-    LOG(INFO) <<"NCHW";
-    LOG(INFO) << "test_shape[0] = "<< test_shape[0];
-    LOG(INFO) << "test_shape[1] = "<< test_shape[1];
-    LOG(INFO) << "test_shape[2] = "<< test_shape[2];
-    LOG(INFO) << "test_shape[3] = "<< test_shape[3];
-    test_shape.set_layout(Layout_NHWC);
-    LOG(INFO) <<"NHWC";
-    LOG(INFO) << "test_shape[0] = "<< test_shape[0];
-    LOG(INFO) << "test_shape[1] = "<< test_shape[1];
-    LOG(INFO) << "test_shape[2] = "<< test_shape[2];
-    LOG(INFO) << "test_shape[3] = "<< test_shape[3];
-    test_shape.set_layout(Layout_NCHW_C4);
-    LOG(INFO) <<"NCHW_C4";
-    LOG(INFO) << "test_shape.channel = "<< test_shape.channel();
-    LOG(INFO) << "test_shape[0] = "<< test_shape[0];
-    LOG(INFO) << "test_shape[1] = "<< test_shape[1];
-    LOG(INFO) << "test_shape[2] = "<< test_shape[2];
-    LOG(INFO) << "test_shape[3] = "<< test_shape[3];
-    test_shape.set_layout(Layout_HW);
-    LOG(INFO) <<"HW";
-    LOG(INFO) << "test_shape[0] = "<< test_shape[0];
-    LOG(INFO) << "test_shape[1] = "<< test_shape[1];
-    test_shape.set_layout(Layout_NCHW);
-    LOG(INFO) <<"NCHW";
-    LOG(INFO) << "test_shape[0] = "<< test_shape[0];
-    LOG(INFO) << "test_shape[1] = "<< test_shape[1];
-    LOG(INFO) << "test_shape[2] = "<< test_shape[2];
-    LOG(INFO) << "test_shape[3] = "<< test_shape[3];
-    test_shape.set_layout(Layout_HW, {10, 5});
-    LOG(INFO) <<"HW";
-    LOG(INFO) << "test_shape[0] = "<< test_shape[0];
-    LOG(INFO) << "test_shape[1] = "<< test_shape[1];
+    for (int N = 1; N < 20; ++N) {
+        for (int C = 1; C < 20; ++C) {
+            for (int H = 1; H < 20; ++H) {
+                for (int W = 1; W < 20; ++W) {
+                    Shape test_shape;
+                    test_shape.push_back(N);
+                    test_shape.push_back(C);
+                    test_shape.push_back(H);
+                    test_shape.push_back(W);
+                    test_shape.set_layout(Layout_NCHW);
+                    CHECK_EQ(test_shape[0], N);
+                    CHECK_EQ(test_shape[1], C);
+                    CHECK_EQ(test_shape[2], H);
+                    CHECK_EQ(test_shape[3], W);
+                    test_shape.set_layout(Layout_NHWC);
+                    CHECK_EQ(test_shape[0], N);
+                    CHECK_EQ(test_shape[1], H);
+                    CHECK_EQ(test_shape[2], W);
+                    CHECK_EQ(test_shape[3], C);
+                    if (C % 4 ==0) {
+                        test_shape.set_layout(Layout_NCHW_C4);
+                        CHECK_EQ(test_shape[0], N);
+                        CHECK_EQ(test_shape[1], C / 4);
+                        CHECK_EQ(test_shape[2], H);
+                        CHECK_EQ(test_shape[3], W);
+                        CHECK_EQ(test_shape[4], 4);
+                        CHECK_EQ(test_shape.channel(), C);
+                    }
+                    if (C % 8 ==0) {
+                        test_shape.set_layout(Layout_NCHW_C8);
+                        CHECK_EQ(test_shape[0], N);
+                        CHECK_EQ(test_shape[1], C / 8);
+                        CHECK_EQ(test_shape[2], H);
+                        CHECK_EQ(test_shape[3], W);
+                        CHECK_EQ(test_shape[4], 8);
+                        CHECK_EQ(test_shape.channel(), C);
+                    }
+                    if (C % 16 ==0) {
+                        test_shape.set_layout(Layout_NCHW_C16);
+                        CHECK_EQ(test_shape[0], N);
+                        CHECK_EQ(test_shape[1], C / 16);
+                        CHECK_EQ(test_shape[2], H);
+                        CHECK_EQ(test_shape[3], W);
+                        CHECK_EQ(test_shape[4], 16);
+                        CHECK_EQ(test_shape.channel(), C);
+                    }
+                    test_shape.set_layout(Layout_HW);
+                    CHECK_EQ(test_shape[0], H);
+                    CHECK_EQ(test_shape[1], W);
+                    test_shape.set_layout(Layout_NCHW);
+                    CHECK_EQ(test_shape[0], 1);
+                    CHECK_EQ(test_shape[1], 1);
+                    CHECK_EQ(test_shape[2], H);
+                    CHECK_EQ(test_shape[3], W);
+                    test_shape.set_layout(Layout_NCHW, {N, C, H, W});
+                    CHECK_EQ(test_shape[0], N);
+                    CHECK_EQ(test_shape[1], C);
+                    CHECK_EQ(test_shape[2], H);
+                    CHECK_EQ(test_shape[3], W);
+                }
+            }
+        }
+    }
+    LOG(INFO) << "set layout PASS";
 }
 
 int main(int argc, const char** argv) {

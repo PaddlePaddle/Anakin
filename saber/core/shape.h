@@ -291,6 +291,7 @@ public:
             if (_layout->inner_c() != -1) {
                 CHECK_EQ(sh.channel() % _layout->inner_c(), 0);
                 this->data()[_layout->channel_index()] /= _layout->inner_c();
+                this->data()[4] = _layout->inner_c();
             }
         }
         if (_layout->height_index() != -1) {
