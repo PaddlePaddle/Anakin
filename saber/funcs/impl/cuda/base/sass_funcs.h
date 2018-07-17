@@ -438,7 +438,7 @@ void scale_to_new_tensor_k4_s2_p1_deconv (Tensor<NV> *weight, int in_channel, in
 
     temp_weights.copy_from(*weight);
     int offset = in_channel * out_channel * k;
-    float* trans_w = new_weights_h.mutable_data();
+    float* trans_w = (float*)new_weights_h.mutable_data();
     scale_weight_deconv_w4x4<k, true>(trans_w + 0 * offset,
                                       trans_w + 1 * offset,
                                       trans_w + 2 * offset,

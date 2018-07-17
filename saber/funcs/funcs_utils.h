@@ -216,36 +216,40 @@ void transpose_filter_KCRS_2_CRSK(const Dtype *input, Dtype *output, \
 }
 
 template < typename Tensor_t, template <typename T> class Param >
-void update_conv_weights(Param<Tensor_t>& param)
-{
+void update_conv_weights(Param<Tensor_t>& param) {
 #ifdef USE_ARM_PLACE
     Tensor<ARM> new_weight;
     Tensor<ARM> new_bias;
+#elif defined(USE_CUDA)
+    Tensor<NVHX86> new_weight;
+    Tensor<NVHX86> new_bias;
 #else
     Tensor<X86> new_weight;
     Tensor<X86> new_bias;
 #endif //USE_ARM_PLACE
     typedef typename Tensor_t::FDtype Dtype;
+    DataType dtype = param.conv_param.weight()->get_dtype();
+    CHECK_EQ(dtype, AK_FLOAT) << "only support float type weights";
 
     Shape weight_shape = param.conv_param.weight()->shape();
-    new_weight.re_alloc(weight_shape);
+    new_weight.re_alloc(weight_shape, AK_FLOAT);
     new_weight.copy_from(*(param.conv_param.weight()));
     Shape bias_shape;
 
     if (param.conv_param.bias()->size() > 0) {
         bias_shape = param.conv_param.bias()->shape();
-        new_bias.re_alloc(bias_shape);
+        new_bias.re_alloc(bias_shape, AK_FLOAT);
         new_bias.copy_from(*(param.conv_param.bias()));
 
     } else if (param.has_batchnorm) {
         bias_shape = {1, param.batchnorm_param.mean.size(), 1, 1};
-        new_bias.re_alloc(bias_shape);
+        new_bias.re_alloc(bias_shape, AK_FLOAT);
         void* new_bias_data = new_bias.mutable_data();
         memset(new_bias_data, 0, sizeof(Dtype) * new_bias.size());
 
     } else if (param.has_scale) {
         bias_shape = {1, param.scale_param.scale_w.size(), 1, 1};
-        new_bias.re_alloc(bias_shape);
+        new_bias.re_alloc(bias_shape, AK_FLOAT);
         void* new_bias_data = new_bias.mutable_data();
         memset(new_bias_data, 0, sizeof(Dtype) * new_bias.size());
     } else {
@@ -309,44 +313,48 @@ void update_deconv_weights(Param<Tensor_t>& param)
 #ifdef USE_ARM_PLACE
     Tensor<ARM> new_weight;
     Tensor<ARM> new_bias;
+#elif defined(USE_CUDA)
+    Tensor<NVHX86> new_weight;
+    Tensor<NVHX86> new_bias;
 #else
     Tensor<X86> new_weight;
     Tensor<X86> new_bias;
 #endif //USE_ARM_PLACE
-    typedef typename Tensor_t::FDtype dtype;
+    //typedef typename Tensor_t::FDtype dtype;
+    CHECK_EQ(AK_FLOAT, param.conv_param.weight()->get_dtype()) << "only support float weights";
 
     Shape weight_shape = param.conv_param.weight()->shape();
-    new_weight.re_alloc(weight_shape);
+    new_weight.re_alloc(weight_shape, AK_FLOAT);
     new_weight.copy_from(*(param.conv_param.weight()));
     Shape bias_shape;
 
     if (param.conv_param.bias()->size() > 0) {
         bias_shape = param.conv_param.bias()->shape();
-        new_bias.re_alloc(bias_shape);
+        new_bias.re_alloc(bias_shape, AK_FLOAT);
         new_bias.copy_from(*(param.conv_param.bias()));
 
     } else if (param.has_batchnorm) {
         bias_shape = {1, param.batchnorm_param.mean.size(), 1, 1};
-        new_bias.re_alloc(bias_shape);
+        new_bias.re_alloc(bias_shape, AK_FLOAT);
         void* new_bias_data = new_bias.mutable_data();
-        memset(new_bias_data, 0, sizeof(dtype) * new_bias.size());
+        memset(new_bias_data, 0, sizeof(float) * new_bias.size());
 
     } else if (param.has_scale) {
         bias_shape = {1, param.scale_param.scale_w.size(), 1, 1};
-        new_bias.re_alloc(bias_shape);
+        new_bias.re_alloc(bias_shape, AK_FLOAT);
         void* new_bias_data = new_bias.mutable_data();
-        memset(new_bias_data, 0, sizeof(dtype) * new_bias.size());
+        memset(new_bias_data, 0, sizeof(float) * new_bias.size());
     } else {
         return;
     }
     int filter_num = new_weight.num();
     int channel_num_per_group = new_weight.channel();
-    std::vector<dtype> scale(new_weight.num(), 0);
-    std::vector<dtype> shift(new_weight.num(), 0);
+    std::vector<float> scale(new_weight.num(), 0);
+    std::vector<float> shift(new_weight.num(), 0);
 
     for (int i = 0; i < filter_num; ++i) {
-        dtype alpha = 1.f;
-        dtype beta = 0.f;
+        float alpha = 1.f;
+        float beta = 0.f;
 
         if (param.has_batchnorm) {
             float scale_factor = 1.f;
@@ -376,8 +384,8 @@ void update_deconv_weights(Param<Tensor_t>& param)
     }
 
 
-    dtype* weight_data = new_weight.mutable_data();
-    dtype* bias_data = new_bias.mutable_data();
+    float* weight_data = (float*)new_weight.mutable_data();
+    float* bias_data = (float*)new_bias.mutable_data();
     // {Ic, Oc/group, K_h, K_w} real shape
     // {Oc, Ic/group, K_h, K_w} parser return back shape
     // filter_num = Oc;
