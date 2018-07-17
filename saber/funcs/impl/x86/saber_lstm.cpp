@@ -123,7 +123,7 @@ SaberStatus SaberLstm<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
     const BIT *b_c = (BIT *) (bias + c_offset * _aligned_hidden_size);
     const BIT *b_o = (BIT *) (bias + o_offset * _aligned_hidden_size);
 
-            DLOG(INFO)<<"wordsum = "<<word_sum<<",emit length = "<<emit_offset_vec.size();
+     DLOG(INFO)<<"wordsum = "<<word_sum<<",emit length = "<<emit_offset_vec.size();
     for (int word_id = 0; word_id < emit_length; word_id++) {
         int real_word_id = word_id;
         int last_word_id = word_id - 1;
