@@ -1,22 +1,25 @@
 #include "saber/core/tensor_op.h"
+#include "anakin_config.h"
 #include <limits>
 
 namespace anakin{
 
 namespace saber{
 
+#ifdef USE_CUDA
+
 template <typename Dtype>
-__global__ void set_device_data(Dtype* data_ptr, Dtype value, int size){
-    CUDA_KERNEL_LOOP(index, size){
+__global__ void set_device_data(Dtype* data_ptr, Dtype value, long long size) {
+    CUDA_KERNEL_LOOP(index, size) {
         data_ptr[index] = value;
     }
 }
 
 template <typename Dtype>
-__global__ void print_device_data(const Dtype* data_ptr, int size, int width){
-    for (int i = 0; i < size; i++){
-        printf("%.2f ", static_cast<float>(data_ptr[i]));
-        if ((i + 1) % width == 0){
+__global__ void print_device_data(const Dtype* data_ptr, long long size, int width) {
+    for (int i = 0; i < size; i++) {
+        printf("%.6f ", static_cast<float>(data_ptr[i]));
+        if ((i + 1) % width == 0) {
             printf("\n");
         }
     }
@@ -24,31 +27,15 @@ __global__ void print_device_data(const Dtype* data_ptr, int size, int width){
 }
 
 template <typename Dtype>
-__global__ void cuda_cvt_data(const float* src, Dtype* dst, Dtype scale, int size){
-    CUDA_KERNEL_LOOP(index, size){
+__global__ void cuda_cvt_data(const float* src, Dtype* dst, Dtype scale, int size) {
+    CUDA_KERNEL_LOOP(index, size) {
         dst[index] = static_cast<Dtype>(src[index] * scale);
     }
 }
 
-template <class Tensor_t>
-void fill_tensor_device_const(Tensor_t& tensor, \
-    typename Tensor_t::FDtype value, \
-    typename Tensor_t::API::stream_t stream){
-
-    typedef typename Tensor_t::FDtype Dtype;
-    Dtype* data_ptr = tensor.mutable_data();
-    int size = tensor.size();
-    set_device_data<<<CUDA_GET_BLOCKS(size), CUDA_NUM_THREADS, 0, stream>>>(data_ptr, value, size);
-    CUDA_POST_KERNEL_CHECK;
-};
-
-
-template <class Tensor_t>
-void fill_tensor_device_rand(Tensor_t& tensor, typename Tensor_t::API::stream_t stream) {
-
-    typedef typename Tensor_t::FDtype Dtype;
-    Dtype* data_ptr = tensor.mutable_data();
-    int size = tensor.size();
+template <typename Dtype>
+void fill_tensor_device_rand_impl(Dtype* data_ptr, long long size,
+        typename Tensor<NV>::API::stream_t stream) {
 
     float* data_f;
     cudaMalloc(&data_f, size * sizeof(float));
@@ -68,13 +55,9 @@ void fill_tensor_device_rand(Tensor_t& tensor, typename Tensor_t::API::stream_t 
     CUDA_POST_KERNEL_CHECK;
 };
 
-template <class Tensor_t>
-void fill_tensor_device_rand(Tensor_t& tensor, typename Tensor_t::FDtype vstart, \
-    typename Tensor_t::FDtype vend, typename Tensor_t::API::stream_t stream) {
-
-    typedef typename Tensor_t::FDtype Dtype;
-    Dtype* data_ptr = tensor.mutable_data();
-    int size = tensor.size();
+template <typename Dtype>
+void fill_tensor_device_rand_impl2(Dtype* data_ptr, Dtype vstart, \
+    Dtype vend, long long size , typename Tensor<NV>::API::stream_t stream) {
 
     float* data_f;
     cudaMalloc(&data_f, size * sizeof(float));
@@ -94,24 +77,161 @@ void fill_tensor_device_rand(Tensor_t& tensor, typename Tensor_t::FDtype vstart,
     CUDA_POST_KERNEL_CHECK;
 };
 
-template <class Tensor_t>
-void print_tensor_device(Tensor_t& tensor, typename Tensor_t::API::stream_t stream){
+template<>
+void fill_tensor_const<NV>(Tensor<NV>& tensor, float value, typename Tensor<NV>::API::stream_t stream) {
+    long long size = tensor.size();
+    void* dio = tensor.mutable_data();
+    DataType type = tensor.get_dtype();
+    switch (type) {
+        case AK_UINT8: set_device_data<<<CUDA_GET_BLOCKS(size), CUDA_NUM_THREADS,
+                    0, stream>>>((unsigned char*)dio, static_cast<unsigned char>(value), size); break;
+        case AK_INT8: set_device_data<<<CUDA_GET_BLOCKS(size), CUDA_NUM_THREADS,
+                    0, stream>>>((char*)dio, static_cast<char>(value), size); break;
+        case AK_INT16: set_device_data<<<CUDA_GET_BLOCKS(size), CUDA_NUM_THREADS,
+                    0, stream>>>((short*)dio, static_cast<short>(value), size); break;
+        case AK_UINT16: set_device_data<<<CUDA_GET_BLOCKS(size), CUDA_NUM_THREADS,
+                    0, stream>>>((unsigned short*)dio, static_cast<unsigned short>(value), size); break;
+        case AK_HALF: set_device_data<<<CUDA_GET_BLOCKS(size), CUDA_NUM_THREADS,
+                    0, stream>>>((short*)dio, static_cast<short>(value), size); break;
+        case AK_UINT32: set_device_data<<<CUDA_GET_BLOCKS(size), CUDA_NUM_THREADS,
+                    0, stream>>>((unsigned int*)dio, static_cast<unsigned int>(value), size); break;
+        case AK_INT32: set_device_data<<<CUDA_GET_BLOCKS(size), CUDA_NUM_THREADS,
+                    0, stream>>>((int*)dio, static_cast<int>(value), size); break;
+        case AK_FLOAT: set_device_data<<<CUDA_GET_BLOCKS(size), CUDA_NUM_THREADS,
+                    0, stream>>>((float*)dio, static_cast<float>(value), size); break;
+        case AK_DOUBLE: set_device_data<<<CUDA_GET_BLOCKS(size), CUDA_NUM_THREADS,
+                    0, stream>>>((double*)dio, static_cast<double>(value), size); break;
+        default: LOG(FATAL) << "data type: " << type << " is unsupported now";
+    }
+}
 
-    typedef typename Tensor_t::FDtype Dtype;
-    LOG(INFO) << "device tensor size: " << tensor.size();
-    const Dtype* data_ptr = tensor.data();
-    int size = tensor.size();
-    print_device_data<<<1, 1, 0, stream>>>(data_ptr, size, tensor.width());
+template<>
+void fill_tensor_rand<NV>(Tensor<NV>& tensor, typename Tensor<NV>::API::stream_t stream) {
+    long long size = tensor.size();
+    void* dio = tensor.mutable_data();
+    DataType type = tensor.get_dtype();
+    switch (type) {
+        case AK_UINT8: fill_tensor_device_rand_impl((unsigned char*)dio, size, stream); break;
+        case AK_INT8: fill_tensor_device_rand_impl((char*)dio, size, stream); break;
+        case AK_INT16: fill_tensor_device_rand_impl((short*)dio, size, stream); break;
+        case AK_UINT16: fill_tensor_device_rand_impl((unsigned short*)dio, size, stream); break;
+        case AK_UINT32: fill_tensor_device_rand_impl((unsigned int*)dio, size, stream); break;
+        case AK_INT32: fill_tensor_device_rand_impl((int*)dio, size, stream); break;
+        case AK_HALF: fill_tensor_device_rand_impl((short*)dio, size, stream); break;
+        case AK_FLOAT: fill_tensor_device_rand_impl((float*)dio, size, stream); break;
+        case AK_DOUBLE: fill_tensor_device_rand_impl((double*)dio, size, stream); break;
+        default: LOG(FATAL) << "data type: " << type << " is unsupported now";
+    }
+}
+
+template<>
+void fill_tensor_rand<NV>(Tensor<NV>& tensor, float vstart, float vend, typename Tensor<NV>::API::stream_t stream) {
+    long long size = tensor.size();
+    void* dio = tensor.mutable_data();
+    DataType type = tensor.get_dtype();
+    switch (type) {
+        case AK_UINT8: fill_tensor_device_rand_impl2((unsigned char*)dio, static_cast<unsigned char>(vstart),
+                                                   static_cast<unsigned char>(vend), size, stream); break;
+        case AK_INT8: fill_tensor_device_rand_impl2((char*)dio, static_cast<char>(vstart), static_cast<char>(vend), size, stream); break;
+        case AK_INT16: fill_tensor_device_rand_impl2((short*)dio, static_cast<short>(vstart), static_cast<short>(vend), size, stream); break;
+        case AK_UINT16: fill_tensor_device_rand_impl2((unsigned short*)dio, static_cast<unsigned short>(vstart),
+                                                    static_cast<unsigned short>(vend), size, stream); break;
+        case AK_UINT32: fill_tensor_device_rand_impl2((unsigned int*)dio, static_cast<unsigned int>(vstart),
+                                                    static_cast<unsigned int>(vend), size, stream); break;
+        case AK_INT32: fill_tensor_device_rand_impl2((int*)dio, static_cast<int>(vstart), static_cast<int>(vend), size, stream); break;
+        case AK_HALF: fill_tensor_device_rand_impl2((short*)dio, static_cast<short>(vstart), static_cast<short>(vend), size, stream); break;
+        case AK_FLOAT: fill_tensor_device_rand_impl2((float*)dio, static_cast<float>(vstart), static_cast<float>(vend), size, stream); break;
+        case AK_DOUBLE: fill_tensor_device_rand_impl2((double*)dio, static_cast<double>(vstart), static_cast<double>(vend), size, stream); break;
+        default: LOG(FATAL) << "data type: " << type << " is unsupported now";
+    }
+}
+
+template<>
+void print_tensor<NV>(Tensor<NV>& tensor, typename Tensor<NV>::API::stream_t stream) {
+    LOG(INFO) << "device tensor data:" << tensor.size();
+    const void* data_ptr = tensor.data();
+    long long size = tensor.size();
+    int width = tensor.width();
+    DataType type = tensor.get_dtype();
+    switch(type) {
+        case AK_UINT8: print_device_data<<<1, 1,
+                    0, stream>>>((const unsigned char*)data_ptr, size, width); break;
+        case AK_INT8: print_device_data<<<1, 1,
+                    0, stream>>>((const char*)data_ptr, size, width); break;
+        case AK_UINT16: print_device_data<<<1, 1,
+                    0, stream>>>((const unsigned short*)data_ptr, size, width); break;
+        case AK_INT16: print_device_data<<<1, 1,
+                    0, stream>>>((const short*)data_ptr, size, width); break;
+        case AK_UINT32: print_device_data<<<1, 1,
+                    0, stream>>>((const unsigned int*)data_ptr, size, width); break;
+        case AK_INT32: print_device_data<<<1, 1,
+                    0, stream>>>((const int*)data_ptr, size, width); break;
+        case AK_FLOAT: print_device_data<<<1, 1,
+                    0, stream>>>((const float*)data_ptr, size, width); break;
+        case AK_DOUBLE: print_device_data<<<1, 1,
+                    0, stream>>>((const double*)data_ptr, size, width); break;
+        default: LOG(FATAL) << "data type: " << type << " is unsupported now";
+    }
     cudaDeviceSynchronize();
     CUDA_POST_KERNEL_CHECK;
-};
+    printf("\n");
+}
 
-template void fill_tensor_device_const<Tensor<NV>>(Tensor<NV>& tensor, Tensor<NV>::FDtype value, \
-        typename TargetWrapper<NV>::stream_t stream);
-template void fill_tensor_device_rand<Tensor<NV>>(Tensor<NV>& tensor, typename TargetWrapper<NV>::stream_t stream);
-template void fill_tensor_device_rand<Tensor<NV>>(Tensor<NV>& tensor, Tensor<NV>::FDtype vstart, \
-        Tensor<NV>::FDtype vend, typename TargetWrapper<NV>::stream_t stream);
-template void print_tensor_device<Tensor<NV>>(Tensor<NV>& tensor, typename TargetWrapper<NV>::stream_t stream);
+template<>
+void print_tensor_valid<NV>(Tensor<NV>& tensor, typename Tensor<NV>::API::stream_t stream) {
+    LOG(INFO) << "device tensor data:" << tensor.valid_size();
+    const void* data_ptr = (const void*)((const char*)tensor.data() + tensor.data_offset() * type_length(tensor.get_dtype()));
+    long long size = tensor.valid_size();
+    int width = tensor.width();
+    DataType type = tensor.get_dtype();
+    if (tensor.is_continue_mem()) {
+        switch(type) {
+            case AK_UINT8: print_device_data<<<1, 1,
+                        0, stream>>>((const unsigned char*)data_ptr, size, width); break;
+            case AK_INT8: print_device_data<<<1, 1,
+                        0, stream>>>((const char*)data_ptr, size, width); break;
+            case AK_UINT16: print_device_data<<<1, 1,
+                        0, stream>>>((const unsigned short*)data_ptr, size, width); break;
+            case AK_INT16: print_device_data<<<1, 1,
+                        0, stream>>>((const short*)data_ptr, size, width); break;
+            case AK_UINT32: print_device_data<<<1, 1,
+                        0, stream>>>((const unsigned int*)data_ptr, size, width); break;
+            case AK_INT32: print_device_data<<<1, 1,
+                        0, stream>>>((const int*)data_ptr, size, width); break;
+            case AK_FLOAT: print_device_data<<<1, 1,
+                        0, stream>>>((const float*)data_ptr, size, width); break;
+            case AK_DOUBLE: print_device_data<<<1, 1,
+                        0, stream>>>((const double*)data_ptr, size, width); break;
+            default: LOG(FATAL) << "data type: " << type << " is unsupported now";
+        }
+        cudaDeviceSynchronize();
+        CUDA_POST_KERNEL_CHECK;
+        printf("\n");
+    } else {
+        Tensor<NV> tvalid(tensor.valid_shape());
+        tvalid.copy_from(tensor);
+        print_tensor<NV>(tvalid, stream);
+    }
+}
+
+
+template<>
+double tensor_mean_value<NV>(Tensor<NV>& tensor, typename Tensor<NV>::API::stream_t stream) {
+    Tensor<NVHX86> tvalid(tensor.valid_shape());
+    tvalid.copy_from(tensor);
+    return tensor_mean_value<NVHX86>(tvalid, stream);
+}
+
+template<>
+double tensor_mean_value_valid<NV>(Tensor<NV>& tensor, typename Tensor<NV>::API::stream_t stream) {
+
+        Tensor<NVHX86> tvalid(tensor.valid_shape());
+        tvalid.copy_from(tensor);
+        return tensor_mean_value<NVHX86>(tvalid, stream);
+
+
+}
+#endif
 
 } //namespace saber
 

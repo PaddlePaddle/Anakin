@@ -202,8 +202,6 @@ double tensor_mean_value(Tensor<TargetType>& tensor, typename Tensor<TargetType>
     return 0.0;
 }
 
-template
-
 template <typename TargetType>
 double tensor_mean_value_valid(Tensor<TargetType>& tensor, typename Tensor<TargetType>::API::stream_t stream) {
 
@@ -234,13 +232,13 @@ double tensor_mean_value_valid(Tensor<TargetType>& tensor, typename Tensor<Targe
 
 
 #define FILL_TENSOR_HOST(target) \
-    template void fill_tensor_const<target>(Tensor<target>& tensor, float value); \
-    template void fill_tensor_rand<target>(Tensor<target>& tensor); \
-    template void fill_tensor_rand<target>(Tensor<target>& tensor, float vstart, float vend); \
-    template void print_tensor<target>(Tensor<target>& tensor); \
-    template void print_tensor_valid<target>(Tensor<target>& tensor); \
-    double tensor_mean_value<target>(Tensor<target>& tensor, typename Tensor<target>::API::stream_t stream); \
-    double tensor_mean_value_valid<target>(Tensor<target>& tensor, typename Tensor<target>::API::stream_t stream);
+    template void fill_tensor_const<target>(Tensor<target>& tensor, float value, typename Tensor<target>::API::stream_t stream); \
+    template void fill_tensor_rand<target>(Tensor<target>& tensor, typename Tensor<target>::API::stream_t stream); \
+    template void fill_tensor_rand<target>(Tensor<target>& tensor, float vstart, float vend, typename Tensor<target>::API::stream_t stream); \
+    template void print_tensor<target>(Tensor<target>& tensor, typename Tensor<target>::API::stream_t stream); \
+    template void print_tensor_valid<target>(Tensor<target>& tensor, typename Tensor<target>::API::stream_t stream); \
+    template double tensor_mean_value<target>(Tensor<target>& tensor, typename Tensor<target>::API::stream_t stream); \
+    template double tensor_mean_value_valid<target>(Tensor<target>& tensor, typename Tensor<target>::API::stream_t stream);
 
 #if defined(BUILD_LITE) || defined(USE_X86_PLACE) || defined(USE_AMD) || defined(USE_CUDA)
 FILL_TENSOR_HOST(X86)
