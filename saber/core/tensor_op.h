@@ -78,6 +78,12 @@ void print_tensor_valid(Tensor<TargetType>& tensor, typename Tensor<TargetType>:
 template <typename TargetType>
 double tensor_mean_value(Tensor<TargetType>& tensor, typename Tensor<TargetType>::API::stream_t stream = NULL);
 
+/**
+ *  \brief compute mean value of the valid data in device tensor.
+ *  \param tensor  The reference of input tensor.
+ */
+template <typename TargetType>
+double tensor_mean_value_valid(Tensor<TargetType>& tensor, typename Tensor<TargetType>::API::stream_t stream = NULL);
 
 template <typename Dtype >
 void tensor_cmp_host(const Dtype* src1, const Dtype* src2, int size, double& max_ratio, double& max_diff);

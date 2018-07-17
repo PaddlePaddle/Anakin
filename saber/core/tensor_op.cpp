@@ -1,6 +1,4 @@
 #include "tensor_op.h"
-#include "anakin_config.h"
-#include <cstdlib>
 #include <random>
 
 namespace anakin {
@@ -8,80 +6,153 @@ namespace anakin {
 namespace saber {
 
 template <typename Dtype>
-void fill_tensor_host_const_impl(Dtype* dio, Dtype value, int size) {
-    for (int i = 0; i < size; ++i) {
+void fill_tensor_host_const_impl(Dtype* dio, Dtype value, long long size) {
+    for (long long i = 0; i < size; ++i) {
         dio[i] = value;
     }
 }
 
-
-template <class Tensor_t>
-void fill_tensor_host_const(Tensor_t& tensor, float value) {
+template <typename TargetType>
+void fill_tensor_const(Tensor<TargetType>& tensor, float value, typename Tensor<TargetType>::API::stream_t stream) {
 
     long long size = tensor.size();
+    void* dio = tensor.mutable_data();
     DataType type = tensor.get_dtype();
     switch (type){
-        case AK_UINT8:
-    }
-    Dtype* data_ptr = static_cast<Dtype*>(tensor.mutable_data());
-    int size = tensor.size();
-
-    for (int i = 0; i < size; ++i) {
-        data_ptr[i] = value;
-    }
-}
-
-template <class Tensor_t>
-void fill_tensor_host_rand(Tensor_t& tensor) {
-    typedef typename Tensor_t::FDtype Dtype;
-    Dtype* data_ptr = static_cast<Dtype*>(tensor.mutable_data());
-
-    for (int i = 0; i < tensor.size(); ++i) {
-        data_ptr[i] = static_cast<Dtype>(rand());
+        case AK_UINT8: fill_tensor_host_const_impl((unsigned char*)dio, static_cast<unsigned char>(value), size); break;
+        case AK_INT8: fill_tensor_host_const_impl((char*)dio, static_cast<char>(value), size); break;
+        case AK_INT16: fill_tensor_host_const_impl((short*)dio, static_cast<short>(value), size); break;
+        case AK_UINT16: fill_tensor_host_const_impl((unsigned short*)dio, static_cast<unsigned short>(value), size); break;
+        case AK_HALF: fill_tensor_host_const_impl((short*)dio, static_cast<short>(value), size); break;
+        case AK_UINT32: fill_tensor_host_const_impl((unsigned int*)dio, static_cast<unsigned int>(value), size); break;
+        case AK_INT32: fill_tensor_host_const_impl((int*)dio, static_cast<int>(value), size); break;
+        case AK_FLOAT: fill_tensor_host_const_impl((float*)dio, static_cast<float>(value), size); break;
+        case AK_DOUBLE: fill_tensor_host_const_impl((double*)dio, static_cast<double>(value), size); break;
+        default: LOG(FATAL) << "data type: " << type << " is unsupported now";
     }
 }
 
-template <class Tensor_t>
-void fill_tensor_host_seq(Tensor_t& tensor) {
-    typedef typename Tensor_t::FDtype Dtype;
-    Dtype* data_ptr = static_cast<Dtype*>(tensor.mutable_data());
-
-    for (int i = 0; i < tensor.size(); ++i) {
-        data_ptr[i] = static_cast<Dtype>(i);
+template <typename Dtype>
+void fill_tensor_host_rand_impl(Dtype* dio, long long size) {
+    for (long long i = 0; i < size; ++i) {
+        dio[i] = static_cast<Dtype>(rand());
     }
 }
 
-template <class Tensor_t>
-void fill_tensor_host_rand(Tensor_t& tensor, typename Tensor_t::FDtype vstart, \
-                           typename Tensor_t::FDtype vend) {
-    typedef typename Tensor_t::FDtype Dtype;
-    Dtype* data_ptr = static_cast<Dtype*>(tensor.mutable_data());
+template <typename TargetType>
+void fill_tensor_rand(Tensor<TargetType>& tensor, typename Tensor<TargetType>::API::stream_t stream) {
+    long long size = tensor.size();
+    void* dio = tensor.mutable_data();
+    DataType type = tensor.get_dtype();
+    switch (type){
+        case AK_UINT8: fill_tensor_host_rand_impl((unsigned char*)dio, size); break;
+        case AK_INT8: fill_tensor_host_rand_impl((char*)dio, size); break;
+        case AK_INT16: fill_tensor_host_rand_impl((short*)dio, size); break;
+        case AK_UINT16: fill_tensor_host_rand_impl((unsigned short*)dio, size); break;
+        case AK_UINT32: fill_tensor_host_rand_impl((unsigned int*)dio, size); break;
+        case AK_INT32: fill_tensor_host_rand_impl((int*)dio, size); break;
+        case AK_HALF: fill_tensor_host_rand_impl((short*)dio, size); break;
+        case AK_FLOAT: fill_tensor_host_rand_impl((float*)dio, size); break;
+        case AK_DOUBLE: fill_tensor_host_rand_impl((double*)dio, size); break;
+        default: LOG(FATAL) << "data type: " << type << " is unsupported now";
+    }
+}
+
+template <typename Dtype>
+void fill_tensor_host_rand_impl2(Dtype* dio, Dtype vstart, Dtype vend, long long size) {
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<float> dis(0, 1.f);
-    int size = tensor.size();
-    for (int i = 0; i < size; ++i) {
-        Dtype random_num = vstart + (vend - vstart) * dis(gen);
-        data_ptr[i] = random_num;
+    for (long long i = 0; i < size; ++i) {
+        Dtype random_num = static_cast<Dtype>(vstart + (vend - vstart) * dis(gen));
+        dio[i] = random_num;
     }
 }
 
-template <class Tensor_t>
-void print_tensor_host(Tensor_t& tensor) {
+template <typename TargetType>
+void fill_tensor_rand(Tensor<TargetType>& tensor, float vstart, float vend, \
+    typename Tensor<TargetType>::API::stream_t stream) {
 
-    typedef typename Tensor_t::FDtype Dtype;
-    LOG(INFO) << "host tensor data:" << tensor.size();
-    const Dtype* data_ptr = static_cast<const Dtype*>(tensor.data());
-    int size = tensor.size();
+    long long size = tensor.size();
+    void* dio = tensor.mutable_data();
+    DataType type = tensor.get_dtype();
+    switch (type){
+        case AK_UINT8: fill_tensor_host_rand_impl2((unsigned char*)dio, static_cast<unsigned char>(vstart),
+                                                   static_cast<unsigned char>(vend), size); break;
+        case AK_INT8: fill_tensor_host_rand_impl2((char*)dio, static_cast<char>(vstart), static_cast<char>(vend), size); break;
+        case AK_INT16: fill_tensor_host_rand_impl2((short*)dio, static_cast<short>(vstart), static_cast<short>(vend), size); break;
+        case AK_UINT16: fill_tensor_host_rand_impl2((unsigned short*)dio, static_cast<unsigned short>(vstart),
+                                                    static_cast<unsigned short>(vend), size); break;
+        case AK_UINT32: fill_tensor_host_rand_impl2((unsigned int*)dio, static_cast<unsigned int>(vstart),
+                                                    static_cast<unsigned int>(vend), size); break;
+        case AK_INT32: fill_tensor_host_rand_impl2((int*)dio, static_cast<int>(vstart), static_cast<int>(vend), size); break;
+        case AK_HALF: fill_tensor_host_rand_impl2((short*)dio, static_cast<short>(vstart), static_cast<short>(vend), size); break;
+        case AK_FLOAT: fill_tensor_host_rand_impl2((float*)dio, static_cast<float>(vstart), static_cast<float>(vend), size); break;
+        case AK_DOUBLE: fill_tensor_host_rand_impl2((double*)dio, static_cast<double>(vstart), static_cast<double>(vend), size); break;
+        default: LOG(FATAL) << "data type: " << type << " is unsupported now";
+    }
+}
 
+template <typename Dtype>
+void print_tensor_host_impl(const Dtype* din, long long size, int width) {
     for (int i = 0; i < size; ++i) {
-        printf("%.2f ", static_cast<float>(data_ptr[i]));
-
-        if ((i + 1) % tensor.width() == 0) {
+        printf("%.6f ", static_cast<float>(din[i]));
+        if ((i + 1) % width == 0) {
             printf("\n");
         }
     }
     printf("\n");
+}
+
+template <typename TargetType>
+void print_tensor(Tensor<TargetType>& tensor, typename Tensor<TargetType>::API::stream_t stream) {
+
+    LOG(INFO) << "host tensor data:" << tensor.size();
+    const void* data_ptr = tensor.data();
+    long long size = tensor.size();
+    int width = tensor.width();
+    DataType type = tensor.get_dtype();
+    switch(type) {
+        case AK_UINT8: print_tensor_host_impl((const unsigned char*)data_ptr, size, width); break;
+        case AK_INT8: print_tensor_host_impl((const char*)data_ptr, size, width); break;
+        case AK_UINT16: print_tensor_host_impl((const unsigned short*)data_ptr, size, width); break;
+        case AK_INT16: print_tensor_host_impl((const short*)data_ptr, size, width); break;
+        case AK_UINT32: print_tensor_host_impl((const unsigned int*)data_ptr, size, width); break;
+        case AK_INT32: print_tensor_host_impl((const int*)data_ptr, size, width); break;
+        case AK_FLOAT: print_tensor_host_impl((const float*)data_ptr, size, width); break;
+        case AK_DOUBLE: print_tensor_host_impl((const double*)data_ptr, size, width); break;
+        default: LOG(FATAL) << "data type: " << type << " is unsupported now";
+    }
+    printf("\n");
+}
+
+template <typename TargetType>
+void print_tensor_valid(Tensor<TargetType>& tensor, typename Tensor<TargetType>::API::stream_t stream) {
+
+    LOG(INFO) << "host tensor data:" << tensor.valid_size();
+    const void* data_ptr = (const void*)((const char*)tensor.data() + tensor.data_offset() * type_length(tensor.get_dtype()));
+    long long size = tensor.valid_size();
+    int width = tensor.width();
+    DataType type = tensor.get_dtype();
+    if (tensor.is_continue_mem()) {
+        switch(type) {
+            case AK_UINT8: print_tensor_host_impl((const unsigned char*)data_ptr, size, width); break;
+            case AK_INT8: print_tensor_host_impl((const char*)data_ptr, size, width); break;
+            case AK_UINT16: print_tensor_host_impl((const unsigned short*)data_ptr, size, width); break;
+            case AK_INT16: print_tensor_host_impl((const short*)data_ptr, size, width); break;
+            case AK_UINT32: print_tensor_host_impl((const unsigned int*)data_ptr, size, width); break;
+            case AK_INT32: print_tensor_host_impl((const int*)data_ptr, size, width); break;
+            case AK_FLOAT: print_tensor_host_impl((const float*)data_ptr, size, width); break;
+            case AK_DOUBLE: print_tensor_host_impl((const double*)data_ptr, size, width); break;
+            default: LOG(FATAL) << "data type: " << type << " is unsupported now";
+        }
+        printf("\n");
+    } else {
+        Tensor<TargetType> tvalid(tensor.valid_shape());
+        tvalid.copy_from(tensor);
+        print_tensor<TargetType>(tvalid, stream);
+    }
+
 }
 
 template <typename Dtype>
@@ -102,14 +173,74 @@ void tensor_cmp_host(const Dtype* src1, const Dtype* src2, \
     }
 }
 
+template <typename Dtype>
+double tensor_mean_value_host_impl(const Dtype* din, long long size) {
+    double sum = 0.0;
+    for (long long i = 0; i < size; ++i) {
+        sum += din[i];
+    }
+    return sum / size;
+}
+
+template <typename TargetType>
+double tensor_mean_value(Tensor<TargetType>& tensor, typename Tensor<TargetType>::API::stream_t stream) {
+
+    const void* data_ptr = tensor.data();
+    long long size = tensor.size();
+    DataType type = tensor.get_dtype();
+    switch (type) {
+        case AK_UINT8: return tensor_mean_value_host_impl((const unsigned char*)data_ptr, size);
+        case AK_INT8: return tensor_mean_value_host_impl((const char*)data_ptr, size);
+        case AK_UINT16: return tensor_mean_value_host_impl((const unsigned short*)data_ptr, size);
+        case AK_INT16: return tensor_mean_value_host_impl((const short*)data_ptr, size);
+        case AK_UINT32: return tensor_mean_value_host_impl((const unsigned int*)data_ptr, size);
+        case AK_INT32: return tensor_mean_value_host_impl((const int*)data_ptr, size);
+        case AK_FLOAT: return tensor_mean_value_host_impl((const float*)data_ptr, size);
+        case AK_DOUBLE: return tensor_mean_value_host_impl((const double*)data_ptr, size);
+        default: LOG(FATAL) << "data type: " << type << " is unsupported now";
+    }
+    return 0.0;
+}
+
+template
+
+template <typename TargetType>
+double tensor_mean_value_valid(Tensor<TargetType>& tensor, typename Tensor<TargetType>::API::stream_t stream) {
+
+    const void* data_ptr = (const void*)((const char*)tensor.data() + tensor.data_offset() * type_length(tensor.get_dtype()));
+    long long size = tensor.valid_size();
+    DataType type = tensor.get_dtype();
+
+    if (tensor.is_continue_mem()) {
+        switch (type) {
+            case AK_UINT8: return tensor_mean_value_host_impl((const unsigned char*)data_ptr, size);
+            case AK_INT8: return tensor_mean_value_host_impl((const char*)data_ptr, size);
+            case AK_UINT16: return tensor_mean_value_host_impl((const unsigned short*)data_ptr, size);
+            case AK_INT16: return tensor_mean_value_host_impl((const short*)data_ptr, size);
+            case AK_UINT32: return tensor_mean_value_host_impl((const unsigned int*)data_ptr, size);
+            case AK_INT32: return tensor_mean_value_host_impl((const int*)data_ptr, size);
+            case AK_FLOAT: return tensor_mean_value_host_impl((const float*)data_ptr, size);
+            case AK_DOUBLE: return tensor_mean_value_host_impl((const double*)data_ptr, size);
+            default: LOG(FATAL) << "data type: " << type << " is unsupported now";
+        }
+    } else {
+        Tensor<TargetType> tvalid(tensor.valid_shape());
+        tvalid.copy_from(tensor);
+        return tensor_mean_value<TargetType>(tvalid, stream);
+    }
+
+    return 0.0;
+}
+
+
 #define FILL_TENSOR_HOST(target) \
-    template void fill_tensor_host_const<Tensor<target>>(Tensor<target>& tensor, \
-        Tensor<target>::FDtype value); \
-    template void fill_tensor_host_rand<Tensor<target>>(Tensor<target>& tensor); \
-    template void fill_tensor_host_rand<Tensor<target>>(Tensor<target>& tensor, Tensor<target>::FDtype vstart, \
-        Tensor<target>::FDtype vend); \
-    template void print_tensor_host<Tensor<target>>(Tensor<target>& tensor);\
-    template void fill_tensor_host_seq<Tensor<target>>(Tensor<target>& tensor);
+    template void fill_tensor_const<target>(Tensor<target>& tensor, float value); \
+    template void fill_tensor_rand<target>(Tensor<target>& tensor); \
+    template void fill_tensor_rand<target>(Tensor<target>& tensor, float vstart, float vend); \
+    template void print_tensor<target>(Tensor<target>& tensor); \
+    template void print_tensor_valid<target>(Tensor<target>& tensor); \
+    double tensor_mean_value<target>(Tensor<target>& tensor, typename Tensor<target>::API::stream_t stream); \
+    double tensor_mean_value_valid<target>(Tensor<target>& tensor, typename Tensor<target>::API::stream_t stream);
 
 #if defined(BUILD_LITE) || defined(USE_X86_PLACE) || defined(USE_AMD) || defined(USE_CUDA)
 FILL_TENSOR_HOST(X86)
