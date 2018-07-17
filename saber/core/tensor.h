@@ -268,7 +268,7 @@ public:
      *  \param end   Input end index (exclude in calculation).
      *  \return the size from start index to end index.
      */
-    int count(int start, int end) const {
+    long long count(int start, int end) const {
         return _shape.count(start, end);
     }
 
@@ -278,14 +278,14 @@ public:
      *  \param end   input end index (exclude in calculation).
      *  \return the size from start index to end index.
      */
-    int count_valid(int start, int end) const {
+    long long count_valid(int start, int end) const {
         return _valid_shape.count(start, end);
     }
 
     /**
      *  \brief Return tensor shape size, not the valid shape size.
      */
-    int size() const {
+    long long size() const {
         return _shape.count();
     }
 
@@ -293,7 +293,7 @@ public:
      *  \brief Return the valid shape size.
      *  \return Return the valid shape size.
      */
-    int valid_size() const{
+    long long valid_size() const{
         return _valid_shape.count();
     }
 

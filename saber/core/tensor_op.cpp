@@ -7,10 +7,22 @@ namespace anakin {
 
 namespace saber {
 
-template <class Tensor_t>
-void fill_tensor_host_const(Tensor_t& tensor, typename Tensor_t::FDtype value) {
+template <typename Dtype>
+void fill_tensor_host_const_impl(Dtype* dio, Dtype value, int size) {
+    for (int i = 0; i < size; ++i) {
+        dio[i] = value;
+    }
+}
 
-    typedef typename Tensor_t::FDtype Dtype;
+
+template <class Tensor_t>
+void fill_tensor_host_const(Tensor_t& tensor, float value) {
+
+    long long size = tensor.size();
+    DataType type = tensor.get_dtype();
+    switch (type){
+        case AK_UINT8:
+    }
     Dtype* data_ptr = static_cast<Dtype*>(tensor.mutable_data());
     int size = tensor.size();
 
