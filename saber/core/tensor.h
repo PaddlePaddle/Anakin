@@ -51,6 +51,7 @@ public:
         _shape = shape;
         _valid_shape = shape;
         _offset = Shape::zero(shape);
+        _dtype = type;
         _type_len = type_length(type);
         _buf = std::make_shared<Buffer<TargetType>>(shape.count() * _type_len);
         _is_shared = false;
@@ -99,6 +100,8 @@ public:
         _shape = tensor._shape;
         _valid_shape = tensor._valid_shape;
         _offset = tensor._offset;
+        _dtype = tensor._dtype;
+        _type_len = tensor._type_len;
         _buf = tensor._buf;
         tensor.add_events(&_events_tree);
         _is_subbuf = tensor._is_subbuf;
@@ -155,8 +158,24 @@ public:
         return SaberSuccess;
     }
 
+    /**
+     * \brief get tensor's DataType, AK_INT8 / AK_FLOAT ...
+     * @return
+     */
     DataType get_dtype() const {
         return _dtype;
+    }
+
+
+    /**
+     * \brief change tensor's layout and type
+     * @param layout
+     * @param data
+     * @return
+     */
+    SaberStatus set_layout(LayoutType layout, std::vector<int> data = {}) {
+        _valid_shape.set_layout(layout, data);
+        return SaberSuccess;
     }
 
     /**

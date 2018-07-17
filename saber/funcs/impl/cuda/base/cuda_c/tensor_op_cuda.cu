@@ -224,12 +224,9 @@ double tensor_mean_value<NV>(Tensor<NV>& tensor, typename Tensor<NV>::API::strea
 
 template<>
 double tensor_mean_value_valid<NV>(Tensor<NV>& tensor, typename Tensor<NV>::API::stream_t stream) {
-
-        Tensor<NVHX86> tvalid(tensor.valid_shape());
-        tvalid.copy_from(tensor);
-        return tensor_mean_value<NVHX86>(tvalid, stream);
-
-
+    Tensor<NVHX86> tvalid(tensor.valid_shape());
+    tvalid.copy_from(tensor);
+    return tensor_mean_value<NVHX86>(tvalid, stream);
 }
 #endif
 
