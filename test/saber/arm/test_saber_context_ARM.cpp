@@ -1,15 +1,13 @@
-#include "test_saber_context_ARM.h"
-
+#include "test_saber_func_test_arm.h"
+#include "saber/core/context.h"
 #ifdef USE_ARM_PLACE
 
 using namespace anakin::saber;
 
-TEST(TestSaberContextARM, test_arm_context) {
+TEST(TestSaberFuncTest, test_arm_context) {
 
     Context<ARM> ctx;
     LOG(INFO) << "create runtime ctx";
-    //ctx.set_power_mode(MERC_HIGH);
-    //ctx.set_act_cores({4, 5, 6, 7});
     ctx.set_run_mode(SABER_POWER_HIGH, 4);
     LOG(INFO) << "set active ids";
 

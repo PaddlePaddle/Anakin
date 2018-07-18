@@ -1,18 +1,18 @@
-#include "test_saber_buffer_arm.h"
-#include "core/data_traits.h"
+#include "test_saber_func_test_arm.h"
+#include "saber/core/buffer.h"
 using namespace anakin::saber;
 template <DataType datatype>
 void test_buffer(){
 
     typedef TargetWrapper<ARM> ARM_API;
-    typedef typename DataTrait<ARM, datatype>::dtype Dtype;
     typedef Buffer<ARM> BufferH;
+    typedef typename DataTrait<ARM, datatype>::Dtype Dtype;
 
     int n0 = 1024;
     int n1 = 2048;
 
     void* tmp_ptr = nullptr;
-    Dtype* arm_ptr;
+    Dtype* arm_ptr = nullptr;
     ARM_API::mem_alloc(&tmp_ptr, sizeof(Dtype) * n0);
     arm_ptr = static_cast<Dtype*>(tmp_ptr);
     for(int i = 0; i < n0; i++){
@@ -73,7 +73,7 @@ void test_buffer(){
     LOG(INFO) << "deep copy from host buffer to device buffer";
 }
 
-TEST(TestSaberBufferARM, test_buffer_memcpy) {
+TEST(TestSaberFuncTest, test_buffer_memcpy) {
     test_buffer<AK_FLOAT>();
 }
 
