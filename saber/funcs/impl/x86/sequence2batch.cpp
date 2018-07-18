@@ -9,6 +9,7 @@ void CopyMatrixRowsFunctor<Dtype, LayOutType>::operator()(
         ioTensor* src,
         std::vector<int> index_lod, ioTensor* dst,
         bool is_src_index, int fragment_num) {
+    typedef typename DataTrait<X86, Dtype>::Dtype dtype;
     int* index = index_lod.data();
     auto src_shape = src->valid_shape();
     auto dst_shape = dst->valid_shape();
@@ -32,8 +33,8 @@ void CopyMatrixRowsFunctor<Dtype, LayOutType>::operator()(
     auto dst_width = dst_shape[1] / fragment_num;
     auto src_width = src_shape[1] / fragment_num;
     auto real_width = (dst_width > src_width ? src_width: dst_width);
-    auto* src_data = src->data();
-    auto* dst_data = dst->mutable_data();
+    const dtype* src_data = (const dtype*)src->data();
+    dtype* dst_data = (dtype*)dst->mutable_data();
     if (is_src_index) {
 #pragma omp parallel for collapse(2)
         for (int i = 0; i < height; ++i) {

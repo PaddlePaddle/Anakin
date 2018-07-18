@@ -9,7 +9,7 @@ template <DataType OpDtype>
 SaberStatus SaberActivation<X86, OpDtype>::init(
         const std::vector<Tensor<X86>*>& inputs,
         std::vector<Tensor<X86>*>& outputs,
-        ActivationParam<NV> &param,
+        ActivationParam<X86> &param,
         Context<X86> &ctx) {
     this->_ctx = &ctx;
     return create(inputs, outputs, param, ctx);
@@ -19,7 +19,7 @@ template <DataType OpDtype>
 SaberStatus SaberActivation<X86, OpDtype>::create(
         const std::vector<Tensor<X86>*>& inputs,
         std::vector<Tensor<X86>*>& outputs,
-        ActivationParam<NV> &param,
+        ActivationParam<X86> &param,
         Context<X86> &ctx) {
     this->_ctx = &ctx;
     return SaberSuccess;
@@ -29,10 +29,10 @@ template <DataType OpDtype>
 SaberStatus SaberActivation<X86, OpDtype>::dispatch(
         const std::vector<Tensor<X86>*>& inputs,
         std::vector<Tensor<X86>*>& outputs,
-        ActivationParam<NV> &param) {
-    typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
-    typedef typename DataTrait<NV, OpDtype>::Dtype DataType_in;
-    typedef typename DataTrait<NV, OpDtype>::Dtype DataType_out;
+        ActivationParam<X86> &param) {
+    typedef typename DataTrait<X86, OpDtype>::Dtype OpDataType;
+    typedef typename DataTrait<X86, OpDtype>::Dtype DataType_in;
+    typedef typename DataTrait<X86, OpDtype>::Dtype DataType_out;
     // TODO !! need add other types of activation
     if (param.active == Active_relu) {
         for (size_t vc = 0; vc < inputs.size(); vc++) {
@@ -128,7 +128,7 @@ SaberStatus SaberActivation<X86, OpDtype>::dispatch(
     return SaberSuccess;
 }
 
-template class SaberActivation<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
+template class SaberActivation<X86, AK_FLOAT>;
 
 }
 } // namespace anakin
