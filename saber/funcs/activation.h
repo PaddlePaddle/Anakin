@@ -69,14 +69,6 @@ public:
 
         Shape output_shape = (input[0]->valid_shape());
         output[0]->set_seq_offset(input[0]->get_seq_offset());
-        if (OpDtype==AK_FLOAT) {
-
-        } else {
-            input[0]->channel()
-            input[0]->set_dtype(AK_INT8);
-            output[0]->set_dtype(AK_INT8);
-        }
-
         return output[0]->set_shape(output_shape);
     }
 
