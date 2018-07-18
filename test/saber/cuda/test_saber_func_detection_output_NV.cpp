@@ -85,7 +85,7 @@ TEST(TestSaberFuncNV, test_detection_output) {
     CHECK_EQ(va_sh == outputs[0]->valid_shape(), true) << "compute shape error";
 
     LOG(INFO) << "detection output init";
-    SABER_CHECK(det_dev.init(inputs, outputs, param, RUNTIME, SABER_IMPL, ctx_dev));
+    SABER_CHECK(det_dev.init(inputs, outputs, param, SPECIFY, SABER_IMPL, ctx_dev));
 
     LOG(INFO) << "detection output compute";
     SaberTimer<NV> t1;
