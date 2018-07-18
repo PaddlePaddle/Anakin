@@ -31,9 +31,6 @@ public:
     ImplBase() {}
     virtual ~ImplBase() {}
 
-    virtual ~ImplBase(){
-	}
-
     virtual SaberStatus init(const std::vector<Tensor<TargetType>* >& inputs,
               std::vector<Tensor<TargetType> *>& outputs,
               Param &param, Context<TargetType > &ctx) {

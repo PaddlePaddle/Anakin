@@ -24,30 +24,16 @@ namespace saber{
 
 #define DEFINE_OP_CLASS(class_name, param_name) \
 template <typename TargetType, \
-    DataType OpDtype = AK_FLOAT, \
-    DataType inDtype = AK_FLOAT, \
-    DataType outDtype = AK_FLOAT, \
-    typename LayOutType_op = NCHW, \
-    typename LayOutType_in = NCHW, \
-    typename LayOutType_out = NCHW> \
+    DataType OpDtype = AK_FLOAT> \
 class Saber##class_name : public ImplBase< \
-    Tensor<TargetType, inDtype, LayOutType_in>, \
-    Tensor<TargetType, outDtype, LayOutType_out>, \
-    Tensor<TargetType, OpDtype, LayOutType_op>, \
-    param_name <Tensor<TargetType, OpDtype, LayOutType_op> > > {}; \
+    TargetType, OpDtype,\
+    param_name <TargetType> > {}; \
 \
 template <typename TargetType, \
-    DataType OpDtype = AK_FLOAT, \
-    DataType inDtype = AK_FLOAT, \
-    DataType outDtype = AK_FLOAT, \
-    typename LayOutType_op = NCHW, \
-    typename LayOutType_in = NCHW, \
-    typename LayOutType_out = NCHW> \
+    DataType OpDtype = AK_FLOAT> \
 class Vender##class_name : public ImplBase< \
-    Tensor<TargetType, inDtype, LayOutType_in>, \
-    Tensor<TargetType, outDtype, LayOutType_out>, \
-    Tensor<TargetType, OpDtype, LayOutType_op>, \
-    param_name <Tensor<TargetType, OpDtype, LayOutType_op> > > {}; 
+    TargetType, OpDtype,\
+    param_name <TargetType> > {};
 
 }
 }

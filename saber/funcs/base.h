@@ -28,8 +28,8 @@ namespace saber {
 
 template<typename TargetType,
         DataType Dtype,
-        template <typename t0, typename d0, typename p0> class Impl,
-        typename Param>
+        template <typename T, DataType D, typename P> class Impl,
+        template <typename T> class Param >
 class BaseFunc {
 public:
     typedef Param<TargetType> Param_t;
