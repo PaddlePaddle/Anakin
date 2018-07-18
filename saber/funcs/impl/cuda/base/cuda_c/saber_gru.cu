@@ -389,39 +389,10 @@ GruParam <OpTensor>& param) {
             CHECK_EQ(0,1) << "not support active  function "<<param.gate_activity<<","<<param.h_activity;
         }
 
-//        if (param.gate_activity == Active_sigmoid
-//            && param.h_activity == Active_tanh) {
-//            cal_one_kernel_sigmoid_tanh_paddle_formula
-//                    <<< emit_word_length, frame_per_block, sizeof(OutDataType)*hidden_size
-//                    , _ctx.get_compute_stream()>>>(
-//                    w_x_r, w_x_z, w_x_o, w_h_r, w_h_z, w_o
-//                            , b_r, b_z, b_o, hidden_size, hidden_out, hidden_in);
-//
-//        } else if (param.gate_activity == Active_sigmoid_fluid
-//                   && param.h_activity == Active_tanh_fluid) {
-//            cal_one_kernel_sigmoidfluid_tanhfluid_paddle_formula
-//                    <<< emit_word_length, frame_per_block, sizeof(OutDataType)*hidden_size
-//                    , _ctx.get_compute_stream()>>>(
-//                    w_x_r, w_x_z, w_x_o, w_h_r, w_h_z, w_o
-//                            , b_r, b_z, b_o, hidden_size, hidden_out, hidden_in);
-//
-//        }  else if (param.gate_activity == Active_sigmoid_fluid
-//                    && param.h_activity == Active_relu) {
-//            cal_one_kernel_paddlesigmoid_relu_paddle_formula
-//                    << < emit_word_length, frame_per_block, sizeof(OutDataType)*hidden_size
-//                    , _ctx.get_compute_stream() >> >
-//                      (w_x_r, w_x_z, w_x_o, w_h_r, w_h_z, w_o
-//                              , b_r, b_z, b_o, hidden_size, hidden_out, hidden_in);
-//
-//        } else {
-//                    LOG(ERROR) << "not support active  function";
-//        }
     }
 
     if (isHW2Seq) {
         _seq_util.sorted_seq_2_seq(_temp_tensor_out.data(),dout->mutable_data(),_hidden_size,_ctx->get_compute_stream());
-//        LOG(INFO)<<"are you ok";
-//        seq2hw(outputs, inputs, param, hidden_size, dout_data);
     }
     outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
     return SaberSuccess;

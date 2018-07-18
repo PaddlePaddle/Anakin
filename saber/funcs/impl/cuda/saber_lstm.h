@@ -61,33 +61,6 @@ public:
         }
         _word_size=(param.weight()->valid_size()-_hidden_size*_hidden_size*4)/_hidden_size/4;
 
-        int weights_i2h_size=4*_hidden_size*_word_size;
-        int weights_h2h_size=4*_hidden_size*_hidden_size;
-        int weights_bias_size=4*_hidden_size;
-        int weights_peephole_size=3*_hidden_size;
-
-        Shape weights_i2h_shape(1,_word_size,4,_hidden_size);
-        Shape weights_h2h_shape(1,_hidden_size,4,_hidden_size);
-        Shape weights_bias_shape(1,1,4,_hidden_size);
-
-        _weights_i2h.re_alloc(weights_i2h_shape);
-        _weights_h2h.re_alloc(weights_h2h_shape);
-        _weights_bias.re_alloc(weights_bias_shape);
-
-        CUDA_CHECK(cudaMemcpy(_weights_i2h.mutable_data(), param.weight()->data(),
-                              _weights_i2h.valid_size()*sizeof(OpDataType),cudaMemcpyDeviceToDevice));
-        CUDA_CHECK(cudaMemcpy(_weights_h2h.mutable_data(), param.weight()->data()+weights_i2h_size,
-                              _weights_h2h.valid_size()*sizeof(OpDataType),cudaMemcpyDeviceToDevice));
-        CUDA_CHECK(cudaMemcpy(_weights_bias.mutable_data(), param.bias()->data(),
-                              _weights_bias.valid_size()*sizeof(OpDataType),cudaMemcpyDeviceToDevice));
-
-        if(param.with_peephole){
-            Shape weights_peephole_shape(1,1,3,_hidden_size);
-            _weights_peephole.re_alloc(weights_peephole_shape);
-            CUDA_CHECK(cudaMemcpy(_weights_peephole.mutable_data(), param.bias()->data()+weights_bias_size,
-                                  _weights_peephole.valid_size()*sizeof(OpDataType),cudaMemcpyDeviceToDevice));
-        }
-
         _seq_util = SeqSortedseqTranseUtil(param.is_reverse);
         return create(inputs, outputs, param, ctx);
     }
@@ -101,9 +74,9 @@ public:
 
         int batch_size = inputs[0]->get_seq_offset().size() - 1;
         CHECK_GE(batch_size,1)<<"batchsize must >= 1";
+
         int sequence = inputs[0]->num();
-        _gemm_wx = saber_find_fast_sass_gemm(false, false, sequence, 4 * _hidden_size,
-                                             _word_size);
+        _gemm_wx = saber_find_fast_sass_gemm(false, false, sequence, 4 * _hidden_size,_word_size);
         _gemm_wh = saber_find_fast_sass_gemm(false, false, batch_size, 4 * _hidden_size, _hidden_size);
         return SaberSuccess;
     }
@@ -117,10 +90,6 @@ private:
     int _word_size;
     int _hidden_size;
 
-    OpTensor _weights_i2h;
-    OpTensor _weights_h2h;
-    OpTensor _weights_bias;
-    OpTensor _weights_peephole;
     OpTensor _init_hidden;
 
     OpTensor _temp_wx;

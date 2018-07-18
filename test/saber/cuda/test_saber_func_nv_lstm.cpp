@@ -12,7 +12,7 @@ void py_lstm(int word_size = 222,
     ImplEnum test_mode=SABER_IMPL;
 //    ImplEnum test_mode=VENDER_IMPL;
     bool is_reverse = true;
-    bool with_peephole= false;
+    bool with_peephole= true;
     Shape shape_weight(1, 1, 1,hidden_size*hidden_size*4+hidden_size*word_size*4);
     Shape shape_bias;
     if(with_peephole){
