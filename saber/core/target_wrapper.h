@@ -227,7 +227,7 @@ struct TargetWrapper<TargetType, __host_target> {
 };
 
 
-#if 1//def USE_CUDA
+#ifdef USE_CUDA
 /**
  * \brief for NV host target only, device target is NV gpu
  * use cuda api to manage memory

@@ -649,7 +649,7 @@ TEST(TestSaberFuncNV, test_tensor_share_diff_dtype) {
     fill_tensor_const(td1, -1);
     print_tensor(td1);
     cudaDeviceSynchronize();
-    
+
     LOG(INFO) << "INT8 Tensor shared from FP32 tensor";
     td2.share_from(td1);
     th2.share_from(th1);
