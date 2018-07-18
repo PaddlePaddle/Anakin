@@ -10,7 +10,7 @@ void test_buffer() {
 
     typedef TargetWrapper<Th> HAPI;
     typedef TargetWrapper<Td> DAPI;
-    typedef typename DataTrait<Th, datatype>::dtype Dtype;
+    typedef typename DataTrait<Th, datatype>::Dtype Dtype;
     typedef Buffer<Th> BufferH;
     typedef Buffer<Td> BufferD;
 
@@ -97,8 +97,9 @@ void test_buffer() {
     const Dtype* ptr2 = static_cast<const Dtype*>(h_buf2.get_data());
 
     for (int i = 0; i < 10; i++) {
-        std::cout << ptr1[i] << std::endl;
+        printf("%.6f  ", static_cast<float>(ptr1[i]));
     }
+    printf("\n");
 
     CHECK_EQ(ptr1[n0 / 2], ptr2[n0 / 2]) << "deep copy between host is incorrect";
     LOG(INFO) << "deep copy from host buffer to device buffer";
@@ -108,8 +109,9 @@ void test_buffer() {
     ptr1 = static_cast<const Dtype*>(h_buf1.get_data());
 
     for (int i = 0; i < 10; i++) {
-        std::cout << ptr1[i] << std::endl;
+        printf("%.6f  ", static_cast<float>(ptr1[i]));
     }
+    printf("\n");
 }
 
 TEST(TestSaberFunc, test_saber_buffer) {
