@@ -602,11 +602,26 @@ TEST(TestSaberFunc, test_saber_tensor_shape) {
 }
 #endif
 
-#if 0
-template <DataType Dtype, typename dtype>
+#if 1
+template <typename TargetD, typename TargetH, DataType Dtype>
 void tensor_reshape_realloc() {
 
-            LOG(INFO) << "test tensor reshape and re_alloc funcs";
+    typedef TargetWrapper<TargetH> HAPI;
+    typedef TargetWrapper<TargetD> DAPI;
+
+    typedef typename TargetTypeTraits<TargetH>::target_type target_H;
+    typedef typename TargetTypeTraits<TargetD>::target_type target_D;
+    typedef typename IF<std::is_same<target_D, target_H>::value, __HtoH, __DtoH>::Type then_type;
+    typedef typename IF<std::is_same<target_D, target_H>::value, __DtoD, __HtoD>::Type else_type;
+    typedef typename IF<std::is_same<target_D, __host_target>::value, else_type, then_type>::Type flag_type;
+    typedef typename IF<std::is_same<target_D, __host_target>::value, HAPI, DAPI>::Type copy_API;
+
+    typedef Tensor<TargetH> TensorH;
+    typedef Tensor<TargetD> TensorD;
+
+    typedef typename DataTrait<TargetH, Dtype>::Dtype dtype;
+
+    LOG(INFO) << "test tensor reshape and re_alloc funcs";
 
     Shape sh0({2, 2, 2, 2}, Layout_NCHW);
     Shape sh1({2, 2, 4, 4}, Layout_NCHW);
@@ -614,141 +629,210 @@ void tensor_reshape_realloc() {
     TensorD td0(sh1, Dtype);
     fill_tensor_const(th0, 1);
     fill_tensor_const(td0, 1);
-            LOG(INFO) << "ori tensor with size: " << th0.valid_size();
+    DAPI::device_sync();
+    LOG(INFO) << "ori tensor with size: " << th0.valid_size();
     print_tensor(th0);
     print_tensor(td0);
-    cudaDeviceSynchronize();
 
     th0.reshape(sh0);
     td0.reshape(sh0);
-            LOG(INFO) << "tensor after reshape(from big space to small) with size: " << th0.valid_size();
+    LOG(INFO) << "tensor after reshape(from big space to small) with size: " << th0.valid_size();
     print_tensor(th0);
     print_tensor(td0);
-    cudaDeviceSynchronize();
+
     fill_tensor_const(th0, 1);
     fill_tensor_const(td0, 1);
-    cudaDeviceSynchronize();
+    DAPI::device_sync();
 
     th0.reshape(sh1);
     td0.reshape(sh1);
-            LOG(INFO) << "tensor after reshape(from small to big, not larger than ori) with size: " <<
+    LOG(INFO) << "tensor after reshape(from small to big, not larger than ori) with size: " <<
                       th0.valid_size();
     print_tensor(th0);
     print_tensor(td0);
-    cudaDeviceSynchronize();
 
     th0.re_alloc(sh0, Dtype);
     td0.re_alloc(sh0, Dtype);
-            LOG(INFO) << "tensor after re_alloc(from big space to small) with size: " << th0.valid_size();
+    LOG(INFO) << "tensor after re_alloc(from big space to small) with size: " << th0.valid_size();
     print_tensor(th0);
     print_tensor(td0);
-    cudaDeviceSynchronize();
 
     TensorH th1(sh0, Dtype);
     TensorD td1(sh0, Dtype);
-            LOG(INFO) << "ori tensor with size: " << th1.valid_size();
+    LOG(INFO) << "ori tensor with size: " << th1.valid_size();
     fill_tensor_const(th1, 1);
     fill_tensor_const(td1, 1);
-    cudaDeviceSynchronize();
+    DAPI::device_sync();
     print_tensor(th1);
     print_tensor(td1);
-    cudaDeviceSynchronize();
 
     th1.reshape(sh1);
     td1.reshape(sh1);
-            LOG(INFO) << "tensor after reshape(from small space to big) with size: " << th1.valid_size();
+    LOG(INFO) << "tensor after reshape(from small space to big) with size: " << th1.valid_size();
     //printf("real_shape: %d,%d, %d, %d, valid_shape: %d, %d, %d, %d\n", \
     th1.shape()[0], th1.shape()[1], th1.shape()[2], th1.shape()[3], \
     th1.valid_shape()[0], th1.valid_shape()[1], th1.valid_shape()[2], th1.valid_shape()[3]);
     print_tensor(th1);
     print_tensor(td1);
-    cudaDeviceSynchronize();
     fill_tensor_const(th1, 1);
     fill_tensor_const(td1, 1);
-    cudaDeviceSynchronize();
 
     th1.reshape(sh0);
     td1.reshape(sh0);
 
-            LOG(INFO) << "tensor after re_alloc(from small space to big) with size: " << th1.valid_size();
+    LOG(INFO) << "tensor after re_alloc(from small space to big) with size: " << th1.valid_size();
     th1.re_alloc(sh1, Dtype);
     td1.re_alloc(sh1, Dtype);
     print_tensor(th1);
     print_tensor(td1);
-    cudaDeviceSynchronize();
 
 }
 
-TEST(TestSaberFuncNV, test_tensor_reshape_realloc) {
-LOG(INFO) << "FP32 Tensor realloc";
-tensor_reshape_realloc<AK_FLOAT, float>();
-LOG(INFO) << "INT8 Tensor realloc";
-tensor_reshape_realloc<AK_INT8, char>();
+TEST(TestSaberFunc, test_tensor_reshape_realloc) {
+#ifdef USE_CUDA
+    Env<NV>::env_init();
+    Env<NVHX86>::env_init();
+    LOG(INFO) << "test CUDA FP32 tensor reshape realloc";
+    tensor_reshape_realloc<NV, NVHX86, AK_FLOAT>();
+    LOG(INFO) << "test CUDA INT8 tensor reshape realloc";
+    tensor_reshape_realloc<NV, NVHX86, AK_INT8>();
+#endif //USE_CUDA
+
+#ifdef USE_X86_PLACE
+    Env<X86>::env_init();
+    LOG(INFO) << "test X86 FP32 tensor reshape realloc";
+    tensor_reshape_realloc<X86, X86, AK_FLOAT>();
+    LOG(INFO) << "test X86 INT8 tensor reshape realloc";
+    tensor_reshape_realloc<X86, X86, AK_INT8>();
+#endif //USE_X86_PLACE
+
+#ifdef USE_ARM_PLACE
+    Env<ARM>::env_init();
+    LOG(INFO) << "test ARM FP32 tensor reshape realloc";
+    tensor_reshape_realloc<ARM, ARM, AK_FLOAT>();
+    LOG(INFO) << "test ARM INT8 tensor reshape realloc";
+    tensor_reshape_realloc<ARM, ARM, AK_INT8>();
+#endif //USE_ARM_PLACE
 }
 #endif
-#if 0
-template <DataType Dtype, typename dtype>
+
+#if 1
+template <typename TargetD, typename TargetH, DataType Dtype>
 void test_tensor_op() {
+    typedef TargetWrapper<TargetH> HAPI;
+    typedef TargetWrapper<TargetD> DAPI;
+
+    typedef typename TargetTypeTraits<TargetH>::target_type target_H;
+    typedef typename TargetTypeTraits<TargetD>::target_type target_D;
+    typedef typename IF<std::is_same<target_D, target_H>::value, __HtoH, __DtoH>::Type then_type;
+    typedef typename IF<std::is_same<target_D, target_H>::value, __DtoD, __HtoD>::Type else_type;
+    typedef typename IF<std::is_same<target_D, __host_target>::value, else_type, then_type>::Type flag_type;
+    typedef typename IF<std::is_same<target_D, __host_target>::value, HAPI, DAPI>::Type copy_API;
+
+    typedef Tensor<TargetH> TensorH;
+    typedef Tensor<TargetD> TensorD;
+
+    typedef typename DataTrait<TargetH, Dtype>::Dtype dtype;
+
     Shape sh({1, 2, 2, 10}, Layout_NCHW);
     TensorD td1(sh, Dtype);
     TensorH th1(sh, Dtype);
 
-            LOG(INFO) << "testing host fill tensor with const 1.";
+    LOG(INFO) << "testing host fill tensor with const 1.";
     fill_tensor_const(th1, 1.f);
     print_tensor(th1);
 
-            LOG(INFO) << "testing device fill tensor with const 1.";
+    LOG(INFO) << "testing device fill tensor with const 1.";
     fill_tensor_const(td1, 1.f);
     print_tensor(td1);
 
-            LOG(INFO) << "testing host fill tensor with rand";
+    LOG(INFO) << "testing host fill tensor with rand";
     fill_tensor_rand(th1);
     print_tensor(th1);
 
-            LOG(INFO) << "testing device fill tensor with rand";
+    LOG(INFO) << "testing device fill tensor with rand";
     fill_tensor_rand(td1);
     print_tensor(td1);
 
-            LOG(INFO) << "testing host fill tensor with rand from 1 to 10";
+    LOG(INFO) << "testing host fill tensor with rand from 1 to 10";
     fill_tensor_rand(th1, 1, 10);
     print_tensor(th1);
 
-            LOG(INFO) << "testing device fill tensor with rand from 1 to 10";
+    LOG(INFO) << "testing device fill tensor with rand from 1 to 10";
     fill_tensor_rand(td1, 1, 10);
     print_tensor(td1);
 }
-TEST(TestSaberFuncNV, test_tensor_ops) {
-LOG(INFO) << "test tensor op FP32";
-test_tensor_op<AK_FLOAT, float>();
-LOG(INFO) << "test tensor op INT8";
-test_tensor_op<AK_INT8, char>();
+TEST(TestSaberFunc, test_tensor_ops) {
+#ifdef USE_CUDA
+    Env<NV>::env_init();
+    Env<NVHX86>::env_init();
+    LOG(INFO) << "test CUDA FP32 tensor op";
+    test_tensor_op<NV, NVHX86, AK_FLOAT>();
+    LOG(INFO) << "test CUDA INT8 tensor op";
+    test_tensor_op<NV, NVHX86, AK_INT8>();
+#endif //USE_CUDA
+
+#ifdef USE_X86_PLACE
+    Env<X86>::env_init();
+    LOG(INFO) << "test X86 FP32 tensor op";
+    test_tensor_op<X86, X86, AK_FLOAT>();
+    LOG(INFO) << "test X86 INT8 tensor op";
+    test_tensor_op<X86, X86, AK_INT8>();
+#endif //USE_X86_PLACE
+
+#ifdef USE_ARM_PLACE
+    Env<ARM>::env_init();
+    LOG(INFO) << "test ARM FP32 tensor op";
+    test_tensor_op<ARM, ARM, AK_FLOAT>();
+    LOG(INFO) << "test ARM INT8 tensor op";
+    test_tensor_op<ARM, ARM, AK_INT8>();
+#endif //USE_ARM_PLACE
+}
+#endif
+
+#if 1
+template <typename TargetD, typename TargetH>
+void tensor_share_diff_dtype() {
+    Shape sh({1, 1, 2, 10}, Layout_NCHW);
+    Tensor<TargetD> td1(sh, AK_FLOAT);
+    Tensor<TargetH> th1(sh, AK_FLOAT);
+    Tensor<TargetD> td2(AK_INT8);
+    Tensor<TargetH> th2(AK_INT8);
+    td2.set_shape(sh);
+    th2.set_shape(sh);
+    LOG(INFO) << "testing host fill tensor with const 1.";
+    fill_tensor_const(th1, -1);
+    LOG(INFO) << "data type: float";
+    print_tensor(th1);
+    fill_tensor_const(td1, -1);
+    print_tensor(td1);
+    LOG(INFO) << "INT8 Tensor shared from FP32 tensor";
+    td2.share_from(td1);
+    th2.share_from(th1);
+
+    print_tensor(th2);
+    print_tensor(td2);
 }
 
-#endif
-#if 0
-TEST(TestSaberFuncNV, test_tensor_share_diff_dtype) {
-Shape sh({1, 1, 2, 10}, Layout_NCHW);
-Tensor<NV> td1(sh, AK_FLOAT);
-Tensor<NVHX86> th1(sh, AK_FLOAT);
-Tensor<NV> td2(AK_INT8);
-Tensor<NVHX86> th2(AK_INT8);
-td2.set_shape(sh);
-th2.set_shape(sh);
-LOG(INFO) << "testing host fill tensor with const 1.";
-fill_tensor_const(th1, -1);
-LOG(INFO) << "data type: float";
-print_tensor(th1);
-fill_tensor_const(td1, -1);
-print_tensor(td1);
-cudaDeviceSynchronize();
+TEST(TestSaberFunc, test_tensor_share_diff_dtype) {
+#ifdef USE_CUDA
+    Env<NV>::env_init();
+    Env<NVHX86>::env_init();
+    LOG(INFO) << "test CUDA tensor share different data type";
+    tensor_share_diff_dtype<NV, NVHX86>();
+#endif //USE_CUDA
 
-LOG(INFO) << "INT8 Tensor shared from FP32 tensor";
-td2.share_from(td1);
-th2.share_from(th1);
+#ifdef USE_X86_PLACE
+    Env<X86>::env_init();
+    LOG(INFO) << "test X86 tensor share different data type";
+    tensor_share_diff_dtype<X86, X86>();
+#endif //USE_X86_PLACE
 
-print_tensor(th2);
-print_tensor(td2);
-cudaDeviceSynchronize();
+#ifdef USE_ARM_PLACE
+    Env<ARM>::env_init();
+    LOG(INFO) << "test ARM tensor share different data type";
+    tensor_share_diff_dtype<ARM, ARM>();
+#endif //USE_ARM_PLACE
 }
 #endif
 int main(int argc, const char** argv) {
