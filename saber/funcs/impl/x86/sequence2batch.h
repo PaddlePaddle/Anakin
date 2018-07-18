@@ -13,8 +13,8 @@ namespace math {
 template <DataType Dtype, typename LayOutType>
 class CopyMatrixRowsFunctor {
 public:
-    typedef Tensor<X86, Dtype, LayOutType> ioTensor;
-    typedef typename ioTensor::Dtype dtype;
+    typedef Tensor<X86> ioTensor;
+    typedef typename DataTrait<X86, Dtype>::Dtype dtype;
 
     // If is_src_index is true,
     // copy the indexed rows of input src to the output dst.
@@ -43,7 +43,7 @@ class Seq2BatchFunctor {
     };
 
 public:
-    typedef Tensor<X86, Dtype, LayOutType> ioTensor;
+    typedef Tensor<X86> ioTensor;
     void operator()(ioTensor* seq,
                     ioTensor* batch, std::vector<std::vector<int>>& seq_to_batch_meta, bool is_cal_batch_lod,
                     bool is_reverse = false, int fragment_num = 1) const {
@@ -158,7 +158,7 @@ public:
 template <DataType Dtype, typename LayOutType>
 class Batch2SeqFunctor {
 public:
-    typedef Tensor<X86, Dtype, LayOutType> ioTensor;
+    typedef Tensor<X86> ioTensor;
     void operator()(ioTensor* batch,
                     ioTensor* seq, std::vector<std::vector<int>>& seq_to_batch_meta, int fragment_num = 1) const {
         if (seq_to_batch_meta.size() < 2) {
@@ -179,7 +179,7 @@ public:
 template <DataType Dtype, typename LayOutType>
 class ReorderInitState {
 public:
-    typedef Tensor<X86, Dtype, LayOutType> ioTensor;
+    typedef Tensor<X86> ioTensor;
     void operator()(ioTensor* src, std::vector<int> ind_lod, ioTensor* dst, bool indexed_src,
                     int fragment_num = 1) {
         math::CopyMatrixRowsFunctor<Dtype, LayOutType> row_shuffle;
