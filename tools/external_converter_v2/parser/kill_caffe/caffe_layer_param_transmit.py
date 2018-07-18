@@ -88,6 +88,17 @@ def Parser_concat(args):
     concat_param = layer.concat_param
     OpsRegister()["Concat"].axis = concat_param.axis
 
+@ParserFeedDecorator("Resize")
+def Parser_resize(args):
+    layer = args[1]
+    # parser caffe parameter
+    resize_param = layer.resize_param
+    if resize_param.HasField("out_width_scale"):
+        OpsRegister()["Resize"].width_scale = resize_param.out_width_scale
+    if resize_param.HasField("out_height_scale"):
+        OpsRegister()["Resize"].height_scale = resize_param.out_height_scale
+    
+
 
 @ParserFeedDecorator("DeformConvolution")
 def Parser_deformable_convolution(args):
@@ -1113,5 +1124,6 @@ CAFFE_LAYER_PARSER = {
                 "PriorBox": OpsParam().set_parser(Parser_priorbox), # vis add
                 "DetectionOutput": OpsParam().set_parser(Parser_detectionoutput), # vis add
                 "ArgMax": OpsParam().set_parser(Parser_argmax),
-                "Normalize": OpsParam().set_parser(Parser_normalize)
+                "Normalize": OpsParam().set_parser(Parser_normalize),
+                "Resize": OpsParam().set_parser(Parser_resize)
                 }
