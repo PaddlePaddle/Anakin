@@ -41,34 +41,25 @@ namespace anakin {
 namespace saber {
 
 template<typename TargetType,
-        DataType OpDtype,
-        DataType inDtype = AK_FLOAT,
-        DataType outDtype = AK_FLOAT,
-        typename LayOutType_op = NCHW,
-        typename LayOutType_in = NCHW,
-        typename LayOutType_out = NCHW
->
+        DataType OpDtype>
 class Activation : public BaseFunc<
-        Tensor<TargetType, inDtype, LayOutType_in>,
-        Tensor<TargetType, outDtype, LayOutType_out>,
-        Tensor<TargetType, OpDtype, LayOutType_op>,
+        TargetType,
+        OpDtype,
         ImplBase,
-        ActivationParam
-> {
+        ActivationParam> {
 public:
     using BaseFunc<
-            Tensor<TargetType, inDtype, LayOutType_in>,
-            Tensor<TargetType, outDtype, LayOutType_out>,
-            Tensor<TargetType, OpDtype, LayOutType_op>,
+            TargetType,
+            OpDtype,
             ImplBase,
             ActivationParam>::BaseFunc;
 
     Activation() = default;
 
-    typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
-    typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
-    typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-    typedef ActivationParam<OpTensor> Param_t;
+    typedef Tensor<TargetType> InDataTensor;
+    typedef Tensor<TargetType> OutDataTensor;
+    typedef Tensor<TargetType> OpTensor;
+    typedef ActivationParam<TargetType> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
@@ -78,6 +69,14 @@ public:
 
         Shape output_shape = (input[0]->valid_shape());
         output[0]->set_seq_offset(input[0]->get_seq_offset());
+        if (OpDtype==AK_FLOAT) {
+
+        } else {
+            input[0]->channel()
+            input[0]->set_dtype(AK_INT8);
+            output[0]->set_dtype(AK_INT8);
+        }
+
         return output[0]->set_shape(output_shape);
     }
 
@@ -86,14 +85,12 @@ public:
             case VENDER_IMPL:
                 //this->_impl.push_back(new VenderActivation <TargetType,
                 this->_impl.push_back(new VenderActivation <TargetType,
-                        OpDtype, inDtype, outDtype,
-                        LayOutType_op, LayOutType_in, LayOutType_out>);
+                        OpDtype>);
                 return SaberSuccess;
 
             case SABER_IMPL:
                 this->_impl.push_back(new SaberActivation <TargetType,
-                        OpDtype, inDtype, outDtype,
-                        LayOutType_op, LayOutType_in, LayOutType_out>);
+                        OpDtype>);
                 return SaberSuccess;
 
             default:
