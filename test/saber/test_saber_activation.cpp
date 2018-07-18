@@ -6,11 +6,12 @@
 #include <vector>
 
 using namespace anakin::saber;
-typedef Tensor<X86> TensorH;
-typedef Tensor<NV> TensorD;
-template <typename targetType, typename ActParam>
+
+template <typename targetType, typename targetType_H>
 void test_activation(Shape input_big_shape, Shape input_shape,
-                     ActParam param, Shape offset, bool is_share_from) {
+                     ActivationParam<targetType> param, Shape offset, bool is_share_from) {
+    typedef Tensor<targetType_H> TensorH;
+    typedef Tensor<targetType> TensorD;
     Context<targetType> ctx(0, 1, 1);
 
     TensorD big_input;
@@ -50,20 +51,26 @@ void test_activation(Shape input_big_shape, Shape input_shape,
     // init assume output tensor has been reshpaed by user.
     act.init(inputs, outputs, param, SPECIFY, SABER_IMPL, ctx);
     act(inputs, outputs, param, ctx);
-    cudaStream_t cuda_stream = ctx.get_compute_stream();
-    outputs[0]->record_event(cuda_stream);
+    typename TensorD::API::stream_t stream = ctx.get_compute_stream();
+    outputs[0]->record_event(stream);
     outputs[0]->sync();
     print_tensor(big_output);
     print_tensor(big_input);
     if (param.prelu_param.slope) {
         print_tensor((*param.prelu_param.slope));
     }
+#ifdef USE_CUDA
     cudaDeviceSynchronize();
     CUDA_POST_KERNEL_CHECK;
+#endif
 }
 
-template <typename targetType>
+template <typename targetType, typename targetType_H>
 void test_accuracy(int num, int channel, int height, int width) {
+
+    typedef Tensor<targetType_H> TensorH;
+    typedef Tensor<targetType> TensorD;
+
     Shape input_shape({num, channel, height, width}, Layout_NCHW);
     Shape input_big_shape({num, channel, height+1, width+1}, Layout_NCHW);
     Shape offset_0({0, 0, 0, 0}, Layout_NCHW);
@@ -91,7 +98,7 @@ void test_accuracy(int num, int channel, int height, int width) {
         //for (ActivationParam<TensorD> param : {param_sigmoid}) {
         for (auto share_from : {false, true}) {
             for (auto offset: {offset_0, offset_1}) {
-                test_activation<targetType>(input_big_shape,
+                test_activation<targetType, targetType_H>(input_big_shape,
                                 input_shape, param, offset, share_from);
             }
         }
@@ -106,11 +113,11 @@ TEST(TestSaberFunc, test_func_activation) {
 #ifdef USE_CUDA
     Env<NV>::env_init();
     Env<NVHX86>::env_init();
-    test_accuracy<NV>(num, channel, height, width);
+    test_accuracy<NV, NVHX86>(num, channel, height, width);
 #endif
 #ifdef USE_X86_PLACE
     Env<X86>::env_init();
-    test_accuracy<X86>(num, channel, height, width);
+    test_accuracy<X86, X86>(num, channel, height, width);
 #endif
 }
 
