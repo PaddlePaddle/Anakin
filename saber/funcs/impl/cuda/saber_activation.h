@@ -48,7 +48,6 @@ public:
     virtual SaberStatus dispatch(const std::vector<Tensor<NV>*>& inputs,
                           std::vector<Tensor<NV>*>& outputs,
                           ActivationParam<NV>& param);
-    map<std:pair<>, funtion>
 };
 
 //template class SaberActivation<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;

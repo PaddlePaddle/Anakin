@@ -1,11 +1,260 @@
 #include "device.h"
 #include "context.h"
+
 #ifdef USE_ARM_PLACE
-#include "arm_device.h"
+
+#ifdef PLATFORM_ANDROID
+#include <sys/syscall.h>
+#include <unistd.h>
+#define __NCPUBITS__  (8 * sizeof (unsigned long))
+
+#define __CPU_SET(cpu, cpusetp) \
+  ((cpusetp)->mask_bits[(cpu) / __NCPUBITS__] |= (1UL << ((cpu) % __NCPUBITS__)))
+
+#define __CPU_ZERO(cpusetp) \
+  memset((cpusetp), 0, sizeof(cpu_set_t))
+
+#endif //PLATFORM_ANDROID
+
+#if __APPLE__
+#include "TargetConditionals.h"
+#if TARGET_OS_IPHONE
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#include <mach/machine.h>
+#endif //TARGET_OS_IPHONE
+#endif //__APPLE__
 
 namespace anakin{
 
 namespace saber{
+
+int arm_get_cpucount() {
+#ifdef PLATFORM_ANDROID
+    // get cpu count from /proc/cpuinfo
+    FILE* fp = fopen("/proc/cpuinfo", "rb");
+    if (!fp) {
+        return 1;
+    }
+    int count = 0;
+    char line[1024];
+    while (!feof(fp)) {
+        char* s = fgets(line, 1024, fp);
+        if (!s) {
+            break;
+        }
+
+        if (memcmp(line, "processor", 9) == 0) {
+            count++;
+        }
+    }
+
+    fclose(fp);
+
+    if (count < 1) {
+        count = 1;
+    }
+    return count;
+
+#elif TARGET_IOS
+    int count = 0;
+    size_t len = sizeof(count);
+    sysctlbyname("hw.ncpu", &count, &len, NULL, 0);
+    if (count < 1) {
+        count = 1;
+    }
+    return count;
+#else
+    return 1;
+#endif
+}
+
+size_t arm_get_meminfo() {
+#ifdef PLATFORM_ANDROID
+    // get cpu count from /proc/cpuinfo
+    FILE* fp = fopen("/proc/meminfo", "rb");
+    if (!fp) {
+        return 1;
+    }
+
+    size_t memsize = 0;
+    char line[1024];
+    while (!feof(fp))
+    {
+        char* s = fgets(line, 1024, fp);
+        if (!s) {
+            break;
+        }
+        sscanf(s, "MemTotal:        %d kB", &memsize);
+    }
+
+    fclose(fp);
+
+    return memsize;
+#elif TARGET_IOS
+    // to be implemented
+    LOG(ERROR) << "not implemented";
+    return 0;
+#endif
+}
+
+#ifdef PLATFORM_ANDROID
+static int get_max_freq_khz(int cpuid)
+{
+    // first try, for all possible cpu
+    char path[256];
+    snprintf(path, sizeof(path), "/sys/devices/system/cpu/cpufreq/stats/cpu%d/time_in_state",\
+     cpuid);
+
+    FILE* fp = fopen(path, "rb");
+
+    if (!fp)
+    {
+        // second try, for online cpu
+        snprintf(path, sizeof(path), "/sys/devices/system/cpu/cpu%d/cpufreq/stats/time_in_state",\
+         cpuid);
+        fp = fopen(path, "rb");
+
+        if (!fp)
+        {
+            // third try, for online cpu
+            snprintf(path, sizeof(path), "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq",\
+             cpuid);
+            fp = fopen(path, "rb");
+
+            if (!fp) {
+                return -1;
+            }
+
+            int max_freq_khz = -1;
+            fscanf(fp, "%d", &max_freq_khz);
+
+            fclose(fp);
+
+            return max_freq_khz;
+        }
+    }
+
+    int max_freq_khz = 0;
+    while (!feof(fp))
+    {
+        int freq_khz = 0;
+        int nscan = fscanf(fp, "%d %*d", &freq_khz);
+        if (nscan != 1) {
+            break;
+        }
+
+        if (freq_khz > max_freq_khz) {
+            max_freq_khz = freq_khz;
+        }
+    }
+
+    fclose(fp);
+
+    return max_freq_khz;
+}
+
+int arm_sort_cpuid_by_max_frequency(int cpu_count, std::vector<int>& cpuids, \
+           std::vector<int>& cpu_freq, std::vector<int>& cluster_ids) {
+    //const int cpu_count = cpuids.size();
+
+    if (cpu_count == 0) {
+        return 0;
+    }
+
+    //std::vector<int> cpu_max_freq_khz;
+    cpuids.resize(cpu_count);
+    cpu_freq.resize(cpu_count);
+    cluster_ids.resize(cpu_count);
+
+    for (int i = 0; i < cpu_count; i++)
+    {
+        int max_freq_khz = get_max_freq_khz(i);
+        //printf("%d max freq = %d khz\n", i, max_freq_khz);
+        cpuids[i] = i;
+        cpu_freq[i] = max_freq_khz / 1000;
+    }
+
+    // SMP
+    int mid_max_freq_khz = (cpu_freq.front() + cpu_freq.back()) / 2;
+
+    for (int i = 0; i < cpu_count; i++) {
+        if (cpu_freq[i] >= mid_max_freq_khz) {
+            cluster_ids[i] = 0;
+        }
+        else{
+            cluster_ids[i] = 1;
+        }
+    }
+
+    return 0;
+}
+
+int set_sched_affinity(const std::vector<int>& cpuids) {
+    // cpu_set_t definition
+    // ref http://stackoverflow.com/questions/16319725/android-set-thread-affinity
+
+    typedef struct {
+        unsigned long mask_bits[1024 / __NCPUBITS__];
+    }cpu_set_t;
+
+    // set affinity for thread
+    pid_t pid = gettid();
+
+    cpu_set_t mask;
+    __CPU_ZERO(&mask);
+    for (int i = 0; i < (int)cpuids.size(); i++)
+    {
+        __CPU_SET(cpuids[i], &mask);
+    }
+
+    int syscallret = syscall(__NR_sched_setaffinity, pid, sizeof(mask), &mask);
+    if (syscallret)
+    {
+        LOG(ERROR) << "syscall error " << syscallret;
+        return -1;
+    }
+
+    return 0;
+}
+
+int set_cpu_affinity(const std::vector<int>& cpuids) {
+#ifdef USE_OPENMP
+    int num_threads = cpuids.size();
+    omp_set_num_threads(num_threads);
+    std::vector<int> ssarets(num_threads, 0);
+#pragma omp parallel for
+    for (int i = 0; i < num_threads; i++) {
+        ssarets[i] = set_sched_affinity(cpuids);
+    }
+    for (int i = 0; i < num_threads; i++) {
+        if (ssarets[i] != 0) {
+            LOG(ERROR)<<"set cpu affinity failed, cpuID: " << cpuids[i];
+            return -1;
+        }
+    }
+#else
+    std::vector<int> cpuid1;
+    cpuid1.push_back(cpuids[0]);
+    int ssaret = set_sched_affinity(cpuid1);
+        if (ssaret != 0) {
+            LOG(ERROR)<<"set cpu affinity failed, cpuID: " << cpuids[0];
+            return -1;
+        }
+#endif
+    return 0;
+}
+#endif //PLATFORM_ANDROID
+
+#ifdef TARGET_IOS
+int set_cpu_affinity(const std::vector<int>& cpuids) {
+#ifdef USE_OPENMP
+    int num_threads = cpuids.size();
+    omp_set_num_threads(num_threads);
+#endif
+    return 0;
+}
+#endif
 
 template <>
 void Device<ARM>::create_stream() {
@@ -91,7 +340,7 @@ void Context<ARM>::set_run_mode(PowerMode mode, int threads) {
             if (big_core_size > 0) {
                 _mode = SABER_POWER_HIGH;
                 if (threads > big_core_size) {
-                    printf("threads: %d, exceed the big cores size: %d\n", threads, big_core_size);
+                    LOG(ERROR) << "threads: " << threads << " exceed the big cores size: " << big_core_size;
                     _act_ids = big_cores;
                 } else {
                     for (int i = 0; i < threads; ++i) {
@@ -100,7 +349,7 @@ void Context<ARM>::set_run_mode(PowerMode mode, int threads) {
                 }
             } else {
                 _mode = SABER_POWER_LOW;
-                printf("HIGH POWER MODE is not support, switch to small cores\n");
+                LOG(ERROR) << "HIGH POWER MODE is not support, switch to small cores";
                 if(threads > small_core_size) {
                     _act_ids = small_cores;
                 } else {
@@ -116,7 +365,7 @@ void Context<ARM>::set_run_mode(PowerMode mode, int threads) {
             if (small_core_size > 0) {
                 _mode = SABER_POWER_LOW;
                 if (threads > small_core_size) {
-                    printf("threads: %d, exceed the small cores size: %d\n", threads, small_core_size);
+                    LOG(ERROR) << "threads: " << threads << " exceed the small cores size: " << small_core_size;
                     _act_ids = small_cores;
                 } else {
                     for (int i = 0; i < threads; ++i) {
@@ -125,7 +374,7 @@ void Context<ARM>::set_run_mode(PowerMode mode, int threads) {
                 }
             } else {
                 _mode = SABER_POWER_HIGH;
-                printf("LOW POWER MODE is not support, switch to big cores\n");
+                LOG(ERROR) << "LOW POWER MODE is not support, switch to big cores";
                 if(threads > big_core_size) {
                     _act_ids = big_cores;
                 } else {
@@ -137,7 +386,12 @@ void Context<ARM>::set_run_mode(PowerMode mode, int threads) {
             }
             break;
     }
-
+    LOG(INFO) << "mode: \n0: big cores only;\n1: small cores only;\n2: all cores";
+    LOG(INFO) << "|----run mode: " << 0;
+    LOG(INFO) << "|----thread num: " << _act_ids.size();
+    for (int j = 0; j < _act_ids.size(); ++j) {
+        LOG(INFO) << "|----active id: " << _act_ids[j];
+    }
     bind_dev();
 }
 
@@ -146,83 +400,6 @@ PowerMode Context<ARM>::get_mode(int& threads) {
     threads = _act_ids.size();
     return _mode;
 }
-
-#if 0
-template <>
-void Context<ARM>::set_power_mode(PowerMode mode) {
-    _mode = mode;
-    Device<ARM> dev = devs[_device_id];
-    if (mode == SABER_POWER_FULL){
-        _act_ids = dev._info._core_ids;
-    }
-    else if (mode == SABER_POWER_LOW) {
-        _act_ids.clear();
-        for (int i = 0; i < dev._info._cluster_ids.size(); ++i) {
-            if (dev._info._cluster_ids[i] == 1) {
-                _act_ids.push_back(dev._info._core_ids[i]);
-            }
-        }
-        if (_act_ids.size() == 0){
-            LOG(WARNING) << "LOW POWER MODE is not support";
-            _act_ids.push_back(dev._info._core_ids[0]);
-        }
-    }
-    else if (mode == SABER_POWER_HIGH){
-        _act_ids.clear();
-        for (int i = 0; i < dev._info._cluster_ids.size(); ++i) {
-            if (dev._info._cluster_ids[i] == 0) {
-                _act_ids.push_back(dev._info._core_ids[i]);
-            }
-        }
-        if (_act_ids.size() == 0){
-            LOG(WARNING) << "HIGH POWER MODE is not support";
-            _act_ids.push_back(dev._info._core_ids[0]);
-        }
-    }
-    bind_dev();
-}
-
-template <>
-void Context<ARM>::set_act_cores(std::vector<int> ids) {
-
-#ifdef USE_OPENMP
-    int dynamic_current = 0;
-    int num_threads_current = 1;
-    dynamic_current = omp_get_dynamic();
-    num_threads_current = omp_get_num_threads();
-    omp_set_dynamic(0);
-    omp_set_num_threads(ids.size());
-    _act_ids = ids;
-#endif
-
-#if 0
-    Device<ARM> dev = devs[_device_id];
-    if (ids.size() == 0){
-        _act_ids.resize(1);
-        _act_ids[0] = dev._info._core_ids[0];
-    }else {
-        _act_ids.clear();
-        for (int i = 0; i < ids.size(); ++i) {
-            if (ids[i] < dev._info._core_ids.size()){
-                _act_ids.push_back(ids[i]);
-            }
-        }
-    }
-    bind_dev();
-#endif
-}
-
-template <>
-PowerMode Context<ARM>::get_mode() {
-    return _mode;
-}
-
-template <>
-std::vector<int> Context<ARM>::get_act_ids() {
-    return _act_ids;
-}
-#endif
-
 
 } //namespace saber
 

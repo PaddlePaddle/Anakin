@@ -54,17 +54,21 @@ anakin_option(ANAKIN_TYPE_FP16 "define the FP16 for data precision." NO)
 anakin_option(ANAKIN_TYPE_INT8 "define the INT8 for data precision." NO)
 
 #select the plantform to build
-anakin_option(USE_GPU_PLACE "Select the build mode for GPU place." YES)
-anakin_option(USE_X86_PLACE "Select the build mode for X86 place." NO)
+anakin_option(USE_GPU_PLACE "Select the build mode for GPU place." NO)
+anakin_option(USE_X86_PLACE "Select the build mode for X86 place." YES)
 anakin_option(USE_ARM_PLACE "Select the build mode for ARM place." NO)
+
+#select platform
 anakin_option(USE_NV_GPU "build for nvidia gpu" YES)
 anakin_option(USE_AMD_GPU "build for nvidia gpu" NO)
+anakin_option(USE_ANDROID "build for android target" YES)
+anakin_option(USE_IOS "build for ios target" NO)
 
 # plantfrom details
 anakin_option(NVIDIA_GPU "Use NVIDIA GPU place." YES if USE_GPU_PLACE AND USE_NV_GPU)
 anakin_option(AMD_GPU "Use AMD GPU place." YES if USE_GPU_PLACE AND USE_AMD_GPU)
-anakin_option(TARGET_ANDROID "build for android" YES if USE_ARM_PLACE)
-anakin_option(TARGET_IOS "not supported now" NO)
+anakin_option(TARGET_ANDROID "build for android" YES if USE_ANDROID AND USE_ARM_PLACE)
+anakin_option(TARGET_IOS "not supported now" YES if USE_IOS AND USE_ARM_PLACE)
 
 # compile options for NVIDIA_GPU place
 anakin_option(USE_CUDA "Use Cuda libs." YES if NVIDIA_GPU)
