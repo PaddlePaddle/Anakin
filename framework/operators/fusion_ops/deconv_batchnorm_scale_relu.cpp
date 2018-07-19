@@ -19,7 +19,19 @@ void DeconvBatchnormScaleRelu<NV, AK_FLOAT, Precision::FP32>::operator()(
 #endif
 
 /// TODO ... specialization other type of operator
-
+#ifdef USE_ARM_PLACE
+template<>
+void DeconvBatchnormScaleRelu<ARM, AK_FLOAT, Precision::FP32>::operator()(
+    OpContext<ARM>& ctx,
+    const std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& ins,
+    std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& outs) {
+    auto* impl = static_cast<DeconvBatchnormScaleReluHelper<ARM, AK_FLOAT, Precision::FP32>*>
+                 (this->_helper);
+    auto& param = static_cast<DeconvBatchnormScaleReluHelper<ARM, AK_FLOAT, Precision::FP32>*>
+                  (this->_helper)->_param_deconv_batchnorm_scale_relu;
+    impl->_funcs_deconv_batchnorm_scale_relu(ins, outs, param, ctx);
+}
+#endif
 
 /// set helper
 template<typename Ttype, DataType Dtype, Precision Ptype>

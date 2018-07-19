@@ -29,7 +29,7 @@
 #endif
 #ifdef USE_ARM_PLACE
 //todo
-#include "saber/funcs/impl/impl_deconv_act.h"
+#include "saber/funcs/impl/arm/saber_deconv_act.h"
 #endif
 namespace anakin {
 namespace saber {
@@ -83,7 +83,7 @@ public:
 
         output_shape[num_idx] = input[0]->num(); // N
         ConvParam<OpTensor> conv_param = param.conv_param;
-        output_shape[channel_idx] = conv_param.weight()->num(); // K
+        output_shape[channel_idx] = conv_param.weight()->num() * conv_param.group; // K
 
         int kernel_extent_h = conv_param.dilation_h *
                                       (conv_param.weight()->height() - 1) + 1;

@@ -16,6 +16,18 @@ void DeconvRelu<NV, AK_FLOAT, Precision::FP32>::operator()(
     impl->_funcs_deconv_relu(ins, outs, param, ctx);
 }
 #endif
+#ifdef USE_ARM_PLACE
+template<>
+void DeconvRelu<ARM, AK_FLOAT, Precision::FP32>::operator()(
+    OpContext<ARM>& ctx,
+    const std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& ins,
+    std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& outs) {
+    auto* impl =
+        static_cast<DeconvReluHelper<ARM, AK_FLOAT, Precision::FP32>*>(this->_helper);
+    auto& param = impl->_param_deconv_relu;
+    impl->_funcs_deconv_relu(ins, outs, param, ctx);
+}
+#endif
 
 /// TODO ... specialization other type of operator
 
@@ -77,6 +89,24 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 Status DeconvReluHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
         const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
         std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+    SABER_CHECK(_funcs_deconv_relu.init(ins, outs, _param_deconv_relu, SPECIFY, SABER_IMPL, ctx));
+    return Status::OK();
+}
+
+template<typename Ttype, DataType Dtype, Precision Ptype>
+Status DeconvReluHelper<Ttype, Dtype, Ptype>::InferShape(const
+        std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
+        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+    _funcs_deconv_relu.compute_output_shape(ins, outs, _param_deconv_relu);
+    return Status::OK();
+}
+
+#ifdef USE_CUDA
+
+template<>
+Status DeconvReluHelper<NV, AK_FLOAT, Precision::FP32>::Init(OpContext<Ttype>& ctx,
+        const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
+        std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
     bool p = true;
     p = p && (_param_deconv_relu.conv_param.weight()->width() == 4);
     p = p && (_param_deconv_relu.conv_param.weight()->height() == 4);
@@ -100,15 +130,6 @@ Status DeconvReluHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status DeconvReluHelper<Ttype, Dtype, Ptype>::InferShape(const
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-    _funcs_deconv_relu.compute_output_shape(ins, outs, _param_deconv_relu);
-    return Status::OK();
-}
-
-#ifdef USE_CUDA
 template class DeconvReluHelper<NV, AK_FLOAT, Precision::FP32>;
 template class DeconvReluHelper<NV, AK_FLOAT, Precision::FP16>;
 template class DeconvReluHelper<NV, AK_FLOAT, Precision::INT8>;

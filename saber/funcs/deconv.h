@@ -81,7 +81,7 @@ public:
         int width_idx = input[0]->width_index();
 
         output_shape[num_idx] = input[0]->num(); // N
-        output_shape[channel_idx] = param.weight()->num(); // K
+        output_shape[channel_idx] = param.weight()->num() * param.group; // K
 
         int kernel_extent_h = param.dilation_h *
                                       (param.weight()->height() - 1) + 1;
