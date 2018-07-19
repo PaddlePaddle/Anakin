@@ -77,7 +77,7 @@ template class ArgmaxHelper<NV, AK_FLOAT, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(Argmax, ArgmaxHelper, NV, AK_FLOAT, Precision::FP32);
 #endif
 
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 INSTANCE_ARGMAX(X86, AK_FLOAT, Precision::FP32);
 template class ArgmaxHelper<X86, AK_FLOAT, Precision::FP32>;
 template class ArgmaxHelper<X86, AK_FLOAT, Precision::FP16>;
@@ -113,7 +113,7 @@ ANAKIN_REGISTER_OP(Argmax)
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("Argmax")
 #endif
 
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 .__alias__<X86, AK_FLOAT, Precision::FP32>("Argmax")
 #endif
 .num_in(1)

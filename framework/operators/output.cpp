@@ -36,7 +36,7 @@ template class OutputHelper<NV, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, NV, AK_FLOAT, Precision::FP32);
 #endif
 
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 INSTANCE_OUTPUT(X86, AK_FLOAT, Precision::FP32);
 template class OutputHelper<X86, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, X86, AK_FLOAT, Precision::FP32);
@@ -56,8 +56,9 @@ ANAKIN_REGISTER_OP(Output)
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("output")
 #endif
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 .__alias__<X86, AK_FLOAT, Precision::FP32>("output")
+.__alias__<X86, AK_FLOAT, Precision::FP32>("Output")
 #endif
 .Doc("Output operator [ only a input data holder and reshape ] ");
 
