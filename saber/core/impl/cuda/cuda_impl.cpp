@@ -176,6 +176,10 @@ void NVH_API::async_memcpy_p2p(void* dst, size_t dst_offset, int dst_id, \
 int NVH_API::get_device_id(){
     return 0;
 }
+
+void NVH_API::device_sync() {
+    CUDA_CHECK(cudaDeviceSynchronize());
+}
 /**
  * \brief for NV device target only, device target is NV gpu
  * use cuda api to manage memory
@@ -340,6 +344,10 @@ int NV_API::get_device_id(){
     int device_id;
     cudaGetDevice(&device_id);
     return device_id;
+}
+
+void NV_API::device_sync() {
+    CUDA_CHECK(cudaDeviceSynchronize());
 }
 
 //! NV Buffer

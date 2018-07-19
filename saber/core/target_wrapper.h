@@ -171,7 +171,7 @@ struct TargetWrapper<TargetType, __host_target> {
      *
     */
     static void sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
-        const void* src, int src_id, size_t src_offset, \
+        const void* src, size_t src_offset, int src_id, \
         size_t count, __HtoH) {
         memcpy((char*)dst + dst_offset, (char*)src + src_offset, count);
         //LOG(INFO) << "host, sync, H2H, size: " << count;
@@ -224,6 +224,8 @@ struct TargetWrapper<TargetType, __host_target> {
     static int get_device_id() {
         return 0;
     }
+
+    static void device_sync() {}
 };
 
 
@@ -287,6 +289,7 @@ struct TargetWrapper<NVHX86, __host_target> {
         size_t count, stream_t stream);
 
     static int get_device_id();
+    static void device_sync();
 };
 
 /**
@@ -376,6 +379,7 @@ struct TargetWrapper<NV, __device_target> {
      * @return          currently activated device id
      */
     static int get_device_id();
+    static void device_sync();
 };
 
 #endif //USE_CUDA
@@ -469,6 +473,8 @@ struct TargetWrapper<AMD, __device_target> {
      * @return          currently activated device id
      */
     static int get_device_id();
+
+    static void device_sync();
 
     //static cl_platform_id platform_id;
     //static cl_device_id current_device_id;

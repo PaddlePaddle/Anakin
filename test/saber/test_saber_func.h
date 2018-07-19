@@ -5,22 +5,22 @@
    You may obtain a copy of the License at
 
        http://www.apache.org/licenses/LICENSE-2.0
-
+   
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License.
+   limitations under the License. 
 */
-#ifndef ANAKIN_TEST_SABER_TEST_SABER_FUNC_AMD_H
-#define ANAKIN_TEST_SABER_TEST_SABER_FUNC_AMD_H
+
+#ifndef ANAKIN_TEST_SABER_FUNC_H
+#define ANAKIN_TEST_SABER_FUNC_H
 
 #include "utils/unit_test/aktest.h"
 #include "utils/logger/logger.h"
 #include "core/tensor.h"
 #include <fstream>
 #include <vector>
-#include "core/target_wrapper.h"
 
 using namespace anakin::test;
 
@@ -39,19 +39,15 @@ int read_file(std::vector<float> &results, const char* file_name) {
     return 0;
 }
 
-class TestSaberFuncAMD : public Test {
+class TestSaberFunc : public Test {
 public:
-    TestSaberFuncAMD() {}
-    ~TestSaberFuncAMD() {}
+    TestSaberFunc() {}
+    ~TestSaberFunc() {}
 
 protected:
     virtual void setup() {}
     virtual void teardown() {}
-    int warm_iter = 2;
-    int iter = 100;
-private :
-
 
 };
 
-#endif //ANAKIN_TEST_SABER_TEST_SABER_FUNC_AMD_H
+#endif //ANAKIN_TEST_SABER_TEST_SABER_TENSOR_NV_H

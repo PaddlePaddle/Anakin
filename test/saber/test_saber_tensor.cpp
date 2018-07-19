@@ -1,16 +1,26 @@
-#include "test_saber_func_NV.h"
+#include "test_saber_func.h"
 #include "tensor_op.h"
 #include <vector>
+
 using namespace anakin::saber;
 
-typedef TargetWrapper<NVHX86> X86_API;
-typedef TargetWrapper<NV> NV_API;
-typedef Tensor<NVHX86> TensorH;
-typedef Tensor<NV> TensorD;
-
-
-template <DataType Dtype, typename dtype>
+template <typename TargetD, typename TargetH, DataType Dtype>
 void tensor_constructor() {
+
+    typedef TargetWrapper<TargetH> HAPI;
+    typedef TargetWrapper<TargetD> DAPI;
+
+    typedef typename TargetTypeTraits<TargetH>::target_type target_H;
+    typedef typename TargetTypeTraits<TargetD>::target_type target_D;
+    typedef typename IF<std::is_same<target_D, target_H>::value, __HtoH, __DtoH>::Type then_type;
+    typedef typename IF<std::is_same<target_D, target_H>::value, __DtoD, __HtoD>::Type else_type;
+    typedef typename IF<std::is_same<target_D, __host_target>::value, else_type, then_type>::Type flag_type;
+    typedef typename IF<std::is_same<target_D, __host_target>::value, HAPI, DAPI>::Type copy_API;
+
+    typedef Tensor<TargetH> TensorH;
+    typedef Tensor<TargetD> TensorD;
+
+    typedef typename DataTrait<TargetH, Dtype>::Dtype dtype;
 
     //! test empty constructor
     LOG(INFO) << "test default (empty) constructor";
@@ -61,7 +71,7 @@ void tensor_constructor() {
     thost1.copy_from(thost0);
     tdev1.copy_from(thost0);
     print_tensor(tdev1);
-    cudaDeviceSynchronize();
+    DAPI::device_sync();
     thost1.copy_from(tdev1);
     tdev1.copy_from(tdev0);
     print_tensor(thost1);
@@ -73,39 +83,42 @@ void tensor_constructor() {
     TensorD tdev2(sh0, Dtype);
 
     //! test tensor constructor with data, if target is different, create buffer, and copy the data
-    LOG(INFO) <<
-              "test tensor constructor with data, if target is different, create buffer, and copy the data";
+    LOG(INFO) << "test tensor constructor with data, if target is different, create buffer, and copy the data";
     dtype* host_data_ptr;
     dtype* dev_data_ptr;
     void* tmp_pt_host;
     void* tmp_pt_dev;
-    X86_API::mem_alloc(&tmp_pt_host, sizeof(dtype) * sh1.count());
+    HAPI::mem_alloc(&tmp_pt_host, sizeof(dtype) * sh1.count());
     host_data_ptr = static_cast<dtype*>(tmp_pt_host);
 
     for (int i = 0; i < sh1.count(); ++i) {
-        host_data_ptr[i] = i;
+        host_data_ptr[i] = static_cast<dtype>(i);
     }
 
-    NV_API::mem_alloc(&tmp_pt_dev, sizeof(dtype) * sh1.count());
+    DAPI::mem_alloc(&tmp_pt_dev, sizeof(dtype) * sh1.count());
     dev_data_ptr = static_cast<dtype*>(tmp_pt_dev);
-    cudaMemcpy(dev_data_ptr, host_data_ptr, sizeof(dtype) * sh1.count(), cudaMemcpyHostToDevice);
+
+    copy_API::sync_memcpy(dev_data_ptr, 0, DAPI::get_device_id(), \
+        host_data_ptr, 0, HAPI::get_device_id(), \
+        sizeof(dtype) * sh1.count(), flag_type());
+
     LOG(INFO) << "|--construct host tensor from host data ptr";
-    TensorH thost3(host_data_ptr, NVHX86(), X86_API::get_device_id(), sh1, Dtype);
+    TensorH thost3(host_data_ptr, TargetH(), HAPI::get_device_id(), sh1, Dtype);
     LOG(INFO) << "|--constructor device tensor from host data ptr";
-    TensorD tdev3(host_data_ptr, NVHX86(), X86_API::get_device_id(), sh1, Dtype);
+    TensorD tdev3(host_data_ptr, TargetH(), HAPI::get_device_id(), sh1, Dtype);
     print_tensor(thost3);
     print_tensor(tdev3);
-    cudaDeviceSynchronize();
+    DAPI::device_sync();
 
     LOG(INFO) << "|--construct host tensor from device data ptr";
-    TensorH thost4(dev_data_ptr, NV(), NV_API::get_device_id(), sh1, Dtype);
+    TensorH thost4(dev_data_ptr, TargetD(), DAPI::get_device_id(), sh1, Dtype);
     LOG(INFO) << "|--constructor device tensor from device data ptr";
-    TensorD tdev4(dev_data_ptr, NV(), NV_API::get_device_id(), sh1, Dtype);
+    TensorD tdev4(dev_data_ptr, TargetD(), DAPI::get_device_id(), sh1, Dtype);
     print_tensor(thost4);
     print_tensor(tdev4);
-    NV_API::stream_t dev_stream0;
-    NV_API::create_stream_with_flag(&dev_stream0, 1);
-    cudaDeviceSynchronize();
+    typename DAPI::stream_t dev_stream0;
+    DAPI::create_stream_with_flag(&dev_stream0, 1);
+    DAPI::device_sync();
 
     //! test tensor copy constructor
     LOG(INFO) << "test tensor copy constructor";
@@ -130,7 +143,7 @@ void tensor_constructor() {
     vtdev.push_back(tdev5);
     print_tensor(vthost[5]);
     print_tensor(vtdev[5]);
-    cudaDeviceSynchronize();
+    DAPI::device_sync();
 
     //! test share_from function, if targets are the same, buffer is shared, otherwise, buffer is copied
     LOG(INFO) << "test share_from function";
@@ -185,7 +198,7 @@ void tensor_constructor() {
                 dtype* ptr_row = ptr_channel + ih * stride[2];
 
                 for (int iw = 0; iw < w; ++iw) {
-                    ptr_row[iw] = 1.f;
+                    ptr_row[iw] = static_cast<dtype>(1);
                 }
             }
         }
@@ -196,52 +209,91 @@ void tensor_constructor() {
 
     //! test record tensor event
     LOG(INFO) << "test record tensor event";
-    NV_API::stream_t dev_stream;
-    NV_API::stream_t dev_stream1;
-    NV_API::create_stream_with_flag(&dev_stream, 1);
-    NV_API::create_stream_with_flag(&dev_stream1, 1);
-    X86_API::stream_t host_stream;
-    X86_API::create_stream_with_flag(&host_stream, 1);
+    Context<TargetD> ctx1(DAPI::get_device_id(), 0, 0);
+    Context<TargetD> ctx2(DAPI::get_device_id(), 1, 1);
+    typename DAPI::stream_t dev_stream1 = ctx1.get_compute_stream();
+    typename DAPI::stream_t dev_stream2 = ctx2.get_compute_stream();
+
+    Context<TargetH> ctx3(HAPI::get_device_id(), 0, 0);
+    typename HAPI::stream_t host_stream = ctx3.get_compute_stream();
+
     LOG(INFO) << "|--test record event on host tensor";
     fill_tensor_const(thost4, 63.f);
     thost4.record_event(host_stream);
     thost4.sync();
     print_tensor(thost4);
     LOG(INFO) << "|--test record event on device tensor";
-    fill_tensor_const(tdev4, 127.f, dev_stream);
-    tdev4.record_event(dev_stream);
-    tdev4.sync();
-    print_tensor(tdev4, dev_stream1);
+    fill_tensor_const(tdev4, 127.f, dev_stream1);
     tdev4.record_event(dev_stream1);
+    tdev4.sync();
+    print_tensor(tdev4, dev_stream2);
+    tdev4.record_event(dev_stream2);
     tdev4.sync();
 #if 0
     TensorD td;
     Shape sh({1, 3, 10, 10}, Layout_NCHW);
     td.re_alloc(sh, AK_FLOAT);
-    NV_API::stream_t stream00, stream01;
-    NV_API::create_stream(&stream00);
-    NV_API::create_stream(&stream01);
+    DAPI::stream_t stream00, stream01;
+    DAPI::create_stream(&stream00);
+    DAPI::create_stream(&stream01);
     fill_tensor_const(td, 666);
-    cudaDeviceSynchronize();
+    DAPI::device_sync();
     print_tensor(td, stream00);
     td.record_event(stream00);
     //! comment the flowing line and turn off cudaDeviceSynchronize in print_tensor_device will print wrong result
     //td.sync();
     fill_tensor_const(td, 888, stream01);
-    cudaDeviceSynchronize();
+    DAPI::device_sync();
 #endif
 }
 
-TEST(TestSaberFuncNV, test_tensor_constructor) {
-    LOG(INFO) << "test FP32 tensor";
-    tensor_constructor<AK_FLOAT, float>();
-    LOG(INFO) << "test INT8 tensor";
-    tensor_constructor<AK_INT8, char>();
+TEST(TestSaberFunc, test_tensor_constructor) {
+
+#ifdef USE_CUDA
+    Env<NV>::env_init();
+    Env<NVHX86>::env_init();
+    LOG(INFO) << "test CUDA FP32 tensor";
+    tensor_constructor<NV, NVHX86, AK_FLOAT>();
+    LOG(INFO) << "test CUDA INT8 tensor";
+    tensor_constructor<NV, NVHX86, AK_INT8>();
+#endif
+
+#ifdef USE_X86_PLACE
+    Env<X86>::env_init();
+    LOG(INFO) << "test X86 FP32 tensor";
+    tensor_constructor<X86, X86, AK_FLOAT>();
+    LOG(INFO) << "test X86 INT8 tensor";
+    tensor_constructor<X86, X86, AK_INT8>();
+#endif
+
+#ifdef USE_ARM_PLACE
+    Env<ARM>::env_init();
+    LOG(INFO) << "test ARM FP32 tensor";
+    tensor_constructor<ARM, ARM, AK_FLOAT>();
+    LOG(INFO) << "test ARM INT8 tensor";
+    tensor_constructor<ARM, ARM, AK_INT8>();
+#endif
 }
 
 #if 1
-template <DataType Dtype, typename dtype>
+template <typename TargetD, typename TargetH, DataType Dtype>
 void tensor_deepcopy() {
+
+    typedef TargetWrapper<TargetH> HAPI;
+    typedef TargetWrapper<TargetD> DAPI;
+
+    typedef typename TargetTypeTraits<TargetH>::target_type target_H;
+    typedef typename TargetTypeTraits<TargetD>::target_type target_D;
+    typedef typename IF<std::is_same<target_D, target_H>::value, __HtoH, __DtoH>::Type then_type;
+    typedef typename IF<std::is_same<target_D, target_H>::value, __DtoD, __HtoD>::Type else_type;
+    typedef typename IF<std::is_same<target_D, __host_target>::value, else_type, then_type>::Type flag_type;
+    typedef typename IF<std::is_same<target_D, __host_target>::value, HAPI, DAPI>::Type copy_API;
+
+    typedef Tensor<TargetH> TensorH;
+    typedef Tensor<TargetD> TensorD;
+
+    typedef typename DataTrait<TargetH, Dtype>::Dtype dtype;
+
     //! tensor constructor with alloc data, if target is different, create buffer, and copy the data
     LOG(INFO) << "test tensor deep copy";
     Shape sh0({2, 2, 4, 4}, Layout_NCHW);
@@ -256,23 +308,23 @@ void tensor_deepcopy() {
     Shape va_sh2({2, 8}, Layout_NW);
     Shape off_sh2({0, 8}, Layout_NW);
 
-    X86_API::stream_t x86_stream;
-    NV_API::stream_t nv_stream;
-    X86_API::create_stream(&x86_stream);
-    NV_API::create_stream(&nv_stream);
+    Context<TargetH> ctxh1(HAPI::get_device_id(), 0, 0);
+    Context<TargetD> ctxd1(DAPI::get_device_id(), 0, 0);
+    typename HAPI::stream_t x86_stream = ctxh1.get_compute_stream();
+    typename DAPI::stream_t nv_stream = ctxd1.get_compute_stream();
 
     //! create source tensor, th0, td0, th01, td01, th1, td1;
     TensorH th0(sh0, Dtype);
     dtype* ptr0 = (dtype*)th0.mutable_data();
 
     for (int i = 0; i < sh0.count(); ++i) {
-        ptr0[i] = i;
+        ptr0[i] = static_cast<dtype>(i);
     }
 
     TensorH th1(va_sh0, Dtype);
     dtype* ptr1 = (dtype*)th1.mutable_data();
     for (int i = 0; i < va_sh0.count(); ++i) {
-        ptr1[i] = i;
+        ptr1[i] = static_cast<dtype>(i);
     }
 
     TensorH th01(Dtype);
@@ -302,7 +354,7 @@ void tensor_deepcopy() {
 
     TensorD td2(sh2, Dtype);
     fill_tensor_const(td2, 0.f);
-    cudaDeviceSynchronize();
+    DAPI::device_sync();
     TensorD td21(Dtype);
     td21.share_sub_buffer(td2, va_sh2, off_sh2);
     TensorD td3(va_sh2, Dtype);
@@ -337,11 +389,11 @@ void tensor_deepcopy() {
     LOG(INFO) << "test tensor deep copy, entire buffer copy, H2D";
     td3.copy_from(th1);
     print_tensor(td3);
-    cudaDeviceSynchronize();
+    DAPI::device_sync();
     tensor_cmp_host((const dtype*)th1.data(), (const dtype*)th3.data(), th3.size(), max_ratio, max_diff);
     CHECK_LE(max_ratio, 1e-5f) << "error result of entire buffer copy, sync, D2H";
     fill_tensor_const(td3, 0.f);
-    cudaDeviceSynchronize();
+    DAPI::device_sync();
     td3.async_copy_from(th1, nv_stream);
     td3.record_event(nv_stream);
     td3.sync();
@@ -351,10 +403,10 @@ void tensor_deepcopy() {
     LOG(INFO) << "test tensor deep copy, entire buffer copy, D2D";
     td3.copy_from(td1);
     print_tensor(td3);
-    cudaDeviceSynchronize();
+    DAPI::device_sync();
     CHECK_LE(max_ratio, 1e-5f) << "error result of entire buffer copy, sync, D2D";
     fill_tensor_const(td3, 0.f);
-    cudaDeviceSynchronize();
+    DAPI::device_sync();
     td3.async_copy_from(td1, nv_stream);
     td3.record_event(nv_stream);
     td3.sync();
@@ -373,12 +425,12 @@ void tensor_deepcopy() {
     LOG(INFO) << "test tensor deep copy, src with roi, H2D";
     td3.copy_from(th01);
     print_tensor(td3);
-    cudaDeviceSynchronize();
+    DAPI::device_sync();
 
     LOG(INFO) << "test tensor deep copy, src with roi, D2D";
     td3.copy_from(td01);
     print_tensor(td3);
-    cudaDeviceSynchronize();
+    DAPI::device_sync();
 
 
     //! test tensor deep copy, dst with roi
@@ -395,12 +447,12 @@ void tensor_deepcopy() {
     LOG(INFO) << "test tensor deep copy, dst with roi, H2D";
     td21.copy_from(th1);
     print_tensor(td21);
-    cudaDeviceSynchronize();
+    DAPI::device_sync();
 
     LOG(INFO) << "test tensor deep copy, dst with roi, D2D";
     td21.copy_from(td1);
     print_tensor(td21);
-    cudaDeviceSynchronize();
+    DAPI::device_sync();
 
 
     //! test tensor deep copy, src and dst are with roi
@@ -415,27 +467,48 @@ void tensor_deepcopy() {
     LOG(INFO) << "test tensor deep copy, src and dst are with roi, H2D";
     td21.copy_from(th01);
     print_tensor(td21);
-    cudaDeviceSynchronize();
+    DAPI::device_sync();
 
     LOG(INFO) << "test tensor deep copy, src and dst are with roi, D2D";
     td21.copy_from(td01);
     print_tensor(td21);
-    cudaDeviceSynchronize();
+    DAPI::device_sync();
 }
 
-TEST(TestSaberFuncNV, test_tensor_deepcopy) {
-    LOG(INFO) << "test FP32 tensor deep copy";
-    tensor_deepcopy<AK_FLOAT, float>();
-    LOG(INFO) << "test INT8 tensor deep copy";
-    tensor_deepcopy<AK_INT8, char>();
-}
+TEST(TestSaberFunc, test_tensor_deepcopy) {
+#ifdef USE_CUDA
+    Env<NV>::env_init();
+    Env<NVHX86>::env_init();
+    LOG(INFO) << "test CUDA FP32 tensor deep copy";
+    tensor_deepcopy<NV, NVHX86, AK_FLOAT>();
+    LOG(INFO) << "test CUDA INT8 tensor deep copy";
+    tensor_deepcopy<NV, NVHX86, AK_INT8>();
+#endif //USE_CUDA
 
+#ifdef USE_X86_PLACE
+    Env<X86>::env_init();
+    LOG(INFO) << "test X86 FP32 tensor deep copy";
+    tensor_deepcopy<X86, X86, AK_FLOAT>();
+    LOG(INFO) << "test X86 INT8 tensor deep copy";
+    tensor_deepcopy<X86, X86, AK_INT8>();
+#endif //USE_X86_PLACE
+
+#ifdef USE_ARM_PLACE
+    Env<ARM>::env_init();
+    LOG(INFO) << "test ARM FP32 tensor deep copy";
+    tensor_deepcopy<ARM, ARM, AK_FLOAT>();
+    LOG(INFO) << "test ARM INT8 tensor deep copy";
+    tensor_deepcopy<ARM, ARM, AK_INT8>();
+#endif //USE_ARM_PLACE
+}
 #endif
+
 #if 1
-TEST(TestSaberFuncNV, test_tensor_shape) {
-    typedef Tensor<NVHX86> Tensor4_0;
-    typedef Tensor<NVHX86> Tensor4_1;
-    typedef Tensor<NVHX86> Tensor2;
+template <typename Target>
+void test_tensor_shape() {
+    typedef Tensor<Target> Tensor4_0;
+    typedef Tensor<Target> Tensor4_1;
+    typedef Tensor<Target> Tensor2;
 
     int nin = 2;
     int cin = 4;
@@ -506,13 +579,48 @@ TEST(TestSaberFuncNV, test_tensor_shape) {
     CHECK_EQ(t1.channel_index(), 1) << "NCHW get channel index error";
     CHECK_EQ(t1.height_index(), 2) << "NCHW get height index error";
     CHECK_EQ(t1.width_index(), 3) << "NCHW get width index error";
+}
 
+TEST(TestSaberFunc, test_saber_tensor_shape) {
+#ifdef USE_CUDA
+    Env<NV>::env_init();
+    Env<NVHX86>::env_init();
+    LOG(INFO) << "test CUDA tensor shape API";
+    test_tensor_shape<NV>();
+#endif //USE_CUDA
 
+#ifdef USE_X86_PLACE
+    Env<X86>::env_init();
+    LOG(INFO) << "test X86 tensor shape API";
+    test_tensor_shape<X86>();
+#endif //USE_X86_PLACE
+
+#ifdef USE_ARM_PLACE
+    Env<ARM>::env_init();
+    LOG(INFO) << "test ARM tensor shape API";
+    test_tensor_shape<ARM>();
+#endif //USE_ARM_PLACE
 }
 #endif
+
 #if 1
-template <DataType Dtype, typename dtype>
+template <typename TargetD, typename TargetH, DataType Dtype>
 void tensor_reshape_realloc() {
+
+    typedef TargetWrapper<TargetH> HAPI;
+    typedef TargetWrapper<TargetD> DAPI;
+
+    typedef typename TargetTypeTraits<TargetH>::target_type target_H;
+    typedef typename TargetTypeTraits<TargetD>::target_type target_D;
+    typedef typename IF<std::is_same<target_D, target_H>::value, __HtoH, __DtoH>::Type then_type;
+    typedef typename IF<std::is_same<target_D, target_H>::value, __DtoD, __HtoD>::Type else_type;
+    typedef typename IF<std::is_same<target_D, __host_target>::value, else_type, then_type>::Type flag_type;
+    typedef typename IF<std::is_same<target_D, __host_target>::value, HAPI, DAPI>::Type copy_API;
+
+    typedef Tensor<TargetH> TensorH;
+    typedef Tensor<TargetD> TensorD;
+
+    typedef typename DataTrait<TargetH, Dtype>::Dtype dtype;
 
     LOG(INFO) << "test tensor reshape and re_alloc funcs";
 
@@ -522,45 +630,42 @@ void tensor_reshape_realloc() {
     TensorD td0(sh1, Dtype);
     fill_tensor_const(th0, 1);
     fill_tensor_const(td0, 1);
+    DAPI::device_sync();
     LOG(INFO) << "ori tensor with size: " << th0.valid_size();
     print_tensor(th0);
     print_tensor(td0);
-    cudaDeviceSynchronize();
 
     th0.reshape(sh0);
     td0.reshape(sh0);
     LOG(INFO) << "tensor after reshape(from big space to small) with size: " << th0.valid_size();
     print_tensor(th0);
     print_tensor(td0);
-    cudaDeviceSynchronize();
+
     fill_tensor_const(th0, 1);
     fill_tensor_const(td0, 1);
-    cudaDeviceSynchronize();
+    DAPI::device_sync();
 
     th0.reshape(sh1);
     td0.reshape(sh1);
     LOG(INFO) << "tensor after reshape(from small to big, not larger than ori) with size: " <<
-              th0.valid_size();
+                      th0.valid_size();
     print_tensor(th0);
     print_tensor(td0);
-    cudaDeviceSynchronize();
 
     th0.re_alloc(sh0, Dtype);
     td0.re_alloc(sh0, Dtype);
     LOG(INFO) << "tensor after re_alloc(from big space to small) with size: " << th0.valid_size();
     print_tensor(th0);
     print_tensor(td0);
-    cudaDeviceSynchronize();
 
     TensorH th1(sh0, Dtype);
     TensorD td1(sh0, Dtype);
     LOG(INFO) << "ori tensor with size: " << th1.valid_size();
     fill_tensor_const(th1, 1);
     fill_tensor_const(td1, 1);
-    cudaDeviceSynchronize();
+    DAPI::device_sync();
     print_tensor(th1);
     print_tensor(td1);
-    cudaDeviceSynchronize();
 
     th1.reshape(sh1);
     td1.reshape(sh1);
@@ -570,10 +675,8 @@ void tensor_reshape_realloc() {
     th1.valid_shape()[0], th1.valid_shape()[1], th1.valid_shape()[2], th1.valid_shape()[3]);
     print_tensor(th1);
     print_tensor(td1);
-    cudaDeviceSynchronize();
     fill_tensor_const(th1, 1);
     fill_tensor_const(td1, 1);
-    cudaDeviceSynchronize();
 
     th1.reshape(sh0);
     td1.reshape(sh0);
@@ -583,20 +686,55 @@ void tensor_reshape_realloc() {
     td1.re_alloc(sh1, Dtype);
     print_tensor(th1);
     print_tensor(td1);
-    cudaDeviceSynchronize();
 
 }
 
-TEST(TestSaberFuncNV, test_tensor_reshape_realloc) {
-    LOG(INFO) << "FP32 Tensor realloc";
-    tensor_reshape_realloc<AK_FLOAT, float>();
-    LOG(INFO) << "INT8 Tensor realloc";
-    tensor_reshape_realloc<AK_INT8, char>();
+TEST(TestSaberFunc, test_tensor_reshape_realloc) {
+#ifdef USE_CUDA
+    Env<NV>::env_init();
+    Env<NVHX86>::env_init();
+    LOG(INFO) << "test CUDA FP32 tensor reshape realloc";
+    tensor_reshape_realloc<NV, NVHX86, AK_FLOAT>();
+    LOG(INFO) << "test CUDA INT8 tensor reshape realloc";
+    tensor_reshape_realloc<NV, NVHX86, AK_INT8>();
+#endif //USE_CUDA
+
+#ifdef USE_X86_PLACE
+    Env<X86>::env_init();
+    LOG(INFO) << "test X86 FP32 tensor reshape realloc";
+    tensor_reshape_realloc<X86, X86, AK_FLOAT>();
+    LOG(INFO) << "test X86 INT8 tensor reshape realloc";
+    tensor_reshape_realloc<X86, X86, AK_INT8>();
+#endif //USE_X86_PLACE
+
+#ifdef USE_ARM_PLACE
+    Env<ARM>::env_init();
+    LOG(INFO) << "test ARM FP32 tensor reshape realloc";
+    tensor_reshape_realloc<ARM, ARM, AK_FLOAT>();
+    LOG(INFO) << "test ARM INT8 tensor reshape realloc";
+    tensor_reshape_realloc<ARM, ARM, AK_INT8>();
+#endif //USE_ARM_PLACE
 }
 #endif
+
 #if 1
-template <DataType Dtype, typename dtype>
+template <typename TargetD, typename TargetH, DataType Dtype>
 void test_tensor_op() {
+    typedef TargetWrapper<TargetH> HAPI;
+    typedef TargetWrapper<TargetD> DAPI;
+
+    typedef typename TargetTypeTraits<TargetH>::target_type target_H;
+    typedef typename TargetTypeTraits<TargetD>::target_type target_D;
+    typedef typename IF<std::is_same<target_D, target_H>::value, __HtoH, __DtoH>::Type then_type;
+    typedef typename IF<std::is_same<target_D, target_H>::value, __DtoD, __HtoD>::Type else_type;
+    typedef typename IF<std::is_same<target_D, __host_target>::value, else_type, then_type>::Type flag_type;
+    typedef typename IF<std::is_same<target_D, __host_target>::value, HAPI, DAPI>::Type copy_API;
+
+    typedef Tensor<TargetH> TensorH;
+    typedef Tensor<TargetD> TensorD;
+
+    typedef typename DataTrait<TargetH, Dtype>::Dtype dtype;
+
     Shape sh({1, 2, 2, 10}, Layout_NCHW);
     TensorD td1(sh, Dtype);
     TensorH th1(sh, Dtype);
@@ -625,21 +763,42 @@ void test_tensor_op() {
     fill_tensor_rand(td1, 1, 10);
     print_tensor(td1);
 }
-TEST(TestSaberFuncNV, test_tensor_ops) {
-    LOG(INFO) << "test tensor op FP32";
-    test_tensor_op<AK_FLOAT, float>();
-    LOG(INFO) << "test tensor op INT8";
-    test_tensor_op<AK_INT8, char>();
-}
+TEST(TestSaberFunc, test_tensor_ops) {
+#ifdef USE_CUDA
+    Env<NV>::env_init();
+    Env<NVHX86>::env_init();
+    LOG(INFO) << "test CUDA FP32 tensor op";
+    test_tensor_op<NV, NVHX86, AK_FLOAT>();
+    LOG(INFO) << "test CUDA INT8 tensor op";
+    test_tensor_op<NV, NVHX86, AK_INT8>();
+#endif //USE_CUDA
 
+#ifdef USE_X86_PLACE
+    Env<X86>::env_init();
+    LOG(INFO) << "test X86 FP32 tensor op";
+    test_tensor_op<X86, X86, AK_FLOAT>();
+    LOG(INFO) << "test X86 INT8 tensor op";
+    test_tensor_op<X86, X86, AK_INT8>();
+#endif //USE_X86_PLACE
+
+#ifdef USE_ARM_PLACE
+    Env<ARM>::env_init();
+    LOG(INFO) << "test ARM FP32 tensor op";
+    test_tensor_op<ARM, ARM, AK_FLOAT>();
+    LOG(INFO) << "test ARM INT8 tensor op";
+    test_tensor_op<ARM, ARM, AK_INT8>();
+#endif //USE_ARM_PLACE
+}
 #endif
+
 #if 1
-TEST(TestSaberFuncNV, test_tensor_share_diff_dtype) {
+template <typename TargetD, typename TargetH>
+void tensor_share_diff_dtype() {
     Shape sh({1, 1, 2, 10}, Layout_NCHW);
-    Tensor<NV> td1(sh, AK_FLOAT);
-    Tensor<NVHX86> th1(sh, AK_FLOAT);
-    Tensor<NV> td2(AK_INT8);
-    Tensor<NVHX86> th2(AK_INT8);
+    Tensor<TargetD> td1(sh, AK_FLOAT);
+    Tensor<TargetH> th1(sh, AK_FLOAT);
+    Tensor<TargetD> td2(AK_INT8);
+    Tensor<TargetH> th2(AK_INT8);
     td2.set_shape(sh);
     th2.set_shape(sh);
     LOG(INFO) << "testing host fill tensor with const 1.";
@@ -648,15 +807,33 @@ TEST(TestSaberFuncNV, test_tensor_share_diff_dtype) {
     print_tensor(th1);
     fill_tensor_const(td1, -1);
     print_tensor(td1);
-    cudaDeviceSynchronize();
-
     LOG(INFO) << "INT8 Tensor shared from FP32 tensor";
     td2.share_from(td1);
     th2.share_from(th1);
 
     print_tensor(th2);
     print_tensor(td2);
-    cudaDeviceSynchronize();
+}
+
+TEST(TestSaberFunc, test_tensor_share_diff_dtype) {
+#ifdef USE_CUDA
+    Env<NV>::env_init();
+    Env<NVHX86>::env_init();
+    LOG(INFO) << "test CUDA tensor share different data type";
+    tensor_share_diff_dtype<NV, NVHX86>();
+#endif //USE_CUDA
+
+#ifdef USE_X86_PLACE
+    Env<X86>::env_init();
+    LOG(INFO) << "test X86 tensor share different data type";
+    tensor_share_diff_dtype<X86, X86>();
+#endif //USE_X86_PLACE
+
+#ifdef USE_ARM_PLACE
+    Env<ARM>::env_init();
+    LOG(INFO) << "test ARM tensor share different data type";
+    tensor_share_diff_dtype<ARM, ARM>();
+#endif //USE_ARM_PLACE
 }
 #endif
 int main(int argc, const char** argv) {
@@ -666,4 +843,3 @@ int main(int argc, const char** argv) {
     RUN_ALL_TESTS(argv[0]);
     return 0;
 }
-
