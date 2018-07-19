@@ -387,9 +387,9 @@ class FluidParser:
 					elt_op = self._GetOp(source_ops, input_name)
 					x_of_elt = self.ins[input_name].target('X')
 					has_weights = helper.is_persistable_param(elt_op, 'Y')
-					if x_of_elt.startswith('conv2d') and has_weights:
+					if (x_of_elt.startswith('conv2d') or x_of_elt.startswith('depthwise_conv2d')) and has_weights:
 						discrete_flag = False
-				elif input_name.startswith('conv2d'):
+				elif input_name.startswith('conv2d') or input_name.startswith('depthwise_conv2d'):
 					discrete_flag = False
 				if discrete_flag is True:
 					self._RmProtoNode(main_node_name)
