@@ -329,10 +329,6 @@ PowerMode Context::get_mode(int& threads) {
     return _mode;
 }
 
-std::vector<int> Context::get_act_ids() {
-    return _act_ids;
-}
-
 Context::Context(const Context& ctx){
     _mode = ctx._mode;
     _act_ids = ctx._act_ids;
@@ -421,8 +417,16 @@ void Context::set_run_mode(PowerMode mode, int threads) {
             }
             break;
     }
-
+    printf("run mode: %d\n", _mode);
+    printf("thread num: %d\n", _act_ids.size());
+    for (int j = 0; j < _act_ids.size(); ++j) {
+        printf("|----active id: %d\n", _act_ids[j]);
+    }
     bind_dev();
+}
+
+void* Context::get_work_space() {
+    return _work_space;
 }
 
 #if 0

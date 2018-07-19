@@ -71,6 +71,9 @@
 
 #cmakedefine SUPPORT_PTHREADS
 
+// build arm lite
+#cmakedefine BUILD_LITE
+
 
 #if defined(ANDROID) || defined(__ANDROID__)
     #define PLATFORM_ANDROID
