@@ -177,6 +177,9 @@ public:
         _valid_shape.set_layout(layout, data);
         return SaberSuccess;
     }
+    LayoutType get_layout() const {
+        return _shape.get_layout();
+    }
 
     /**
      *  \brief only change the shape and valid shape, do nothing to memory
