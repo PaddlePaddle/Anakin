@@ -366,7 +366,7 @@ public:
      * \brief get sequence offset, lot tensor
      * @return
      */
-    std::vector<int> get_seq_offset() const {
+    std::vector<std::vector<int>> get_seq_offset() const {
         return _seq_offset;
     }
 
@@ -375,7 +375,7 @@ public:
      * @param seq_offset
      * @return
      */
-    SaberStatus set_seq_offset(std::vector<int> seq_offset) {
+    SaberStatus set_seq_offset(std::vector<std::vector<int>> seq_offset) {
         _seq_offset = seq_offset;
         return SaberSuccess;
     }
@@ -935,7 +935,7 @@ private:
     bool _is_shared{false};
 
     //! lot tensor
-    std::vector<int> _seq_offset;
+    std::vector<std::vector<int>> _seq_offset;
 
     /// Get data real start index.
     int start_index() const {
