@@ -1,6 +1,7 @@
 #include "test_saber_func.h"
 #include "tensor_op.h"
 #include <vector>
+
 using namespace anakin::saber;
 
 template <typename TargetD, typename TargetH, DataType Dtype>
