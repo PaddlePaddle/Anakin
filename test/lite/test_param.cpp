@@ -1,5 +1,5 @@
 #include "test_lite.h"
-#include "op_param.h"
+#include "saber/lite/funcs/op_param.h"
 
 using namespace anakin::saber;
 using namespace anakin::saber::lite;

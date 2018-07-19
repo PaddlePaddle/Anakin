@@ -131,17 +131,17 @@ SaberStatus SaberConv2D::init(\
     LCHECK_EQ(chin % _param->_group, 0, "input channel or group size error");
     LCHECK_EQ(chout % _param->_group, 0, "output channel or group size error");
 
-    if (_param->_dila_h == 1 && _param->_dila_w == 1 \
-        && _param->_stride_h == _param->_stride_w && _param->_group == 1 \
-        && _param->_stride_w == 1 && _param->_kw == _param->_kh && _param->_kw == 7 \
-        && _param->_pad_w == _param->_pad_h && _param->_pad_w == 3) {
-        //! 7x7 conv
-        _impl = conv_7x7s1_direct;
-        printf("USE 7x7s1 direct, num=%d, channel=%d, height=%d, width=%d, group=%d, kernel=%d, stride=%d, dila=%d, pad=%d\n", \
-            num, chin, hin, win, _param->_group, _param->_kw, _param->_stride_w, _param->_dila_w, _param->_pad_w);
-        this->_flag_init = true;
-        return SaberSuccess;
-    }
+//    if (_param->_dila_h == 1 && _param->_dila_w == 1 \
+//        && _param->_stride_h == _param->_stride_w && _param->_group == 1 \
+//        && _param->_stride_w == 1 && _param->_kw == _param->_kh && _param->_kw == 7 \
+//        && _param->_pad_w == _param->_pad_h && _param->_pad_w == 3) {
+//        //! 7x7 conv
+//        _impl = conv_7x7s1_direct;
+//        printf("USE 7x7s1 direct, num=%d, channel=%d, height=%d, width=%d, group=%d, kernel=%d, stride=%d, dila=%d, pad=%d\n", \
+//            num, chin, hin, win, _param->_group, _param->_kw, _param->_stride_w, _param->_dila_w, _param->_pad_w);
+//        this->_flag_init = true;
+//        return SaberSuccess;
+//    }
 
     //! depthwise conv, 3x3s1 or 3x3s2, pad must = 1
     if (_param->_group == chin && chin == chout && _param->_kw == 3 && _param->_kh == 3 && \
