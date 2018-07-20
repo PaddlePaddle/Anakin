@@ -2518,7 +2518,7 @@ void pooling3x3s2p0_max(const float* din, float* dout, \
     }
 }
 
-void pooling3x3s2_ave_0(const float* din, float* dout, \
+void pooling3x3s2p0_ave(const float* din, float* dout, \
                           int num, int chout, int hout, int wout, \
                           int chin, int hin, int win, \
                           PoolingType type, bool global, int kernel_w, int kernel_h, \
