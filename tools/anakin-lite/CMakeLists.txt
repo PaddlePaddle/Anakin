@@ -18,17 +18,13 @@ message(STATUS "CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
 cmake_minimum_required(VERSION 2.8)
 project(ANAKIN-lite C CXX)
 
-option(USE_ARM_PLACE "Select the build mode for ARM place." YES)
-
 # options
+option(USE_ARM_PLACE "Select the build mode for ARM place." YES)
 option(USE_ANDROID "using android place." YES)
 option(USE_IOS "using android place." NO)
-
+option(TARGET_IOS "using ios" NO)
 option(USE_OPENMP "using openmp for lite." YES)
-option(USE_LOGGER "using local logger" YES)
-
 option(ENABLE_DEBUG "Enable DEBUG(default) mode." NO)
-
 option(BUILD_LITE_UNIT_TEST "build unit test for lite." NO)
 
 configure_file ( 
@@ -49,13 +45,71 @@ set(anakin_lite_lib_static "anakin_lite_static")
 
 # disable shared library on xcode ios
 set_property(GLOBAL PROPERTY TARGET_SUPPORTS_SHARED_LIBS FALSE)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -fno-exceptions")
-
+add_definitions(-std=c++11)
 add_definitions(-Wall -Wextra -Wno-unused-function)
+add_definitions(-fPIC)
+add_definitions(-fvisibility=hidden -fvisibility-inlines-hidden)
 
 add_definitions(-fPIC)
+add_definitions(-fvisibility=hidden)
+add_definitions(-fvisibility-inlines-hidden)
+if (USE_ANDROID)
+add_definitions(-ldl)
+add_definitions(-ffunction-sections)
+add_definitions(-fdata-sections)
+add_definitions(-s)
+endif()
+#anakin_add_compile_option(-fstrict-aliasing)
+add_definitions(-W)
+add_definitions(-Wall)
+add_definitions(-Wno-unused-variable) # no unused-variable
+add_definitions(-Wformat)
+add_definitions(-Wmissing-declarations)
+add_definitions(-Winit-self)
+add_definitions(-Wpointer-arith)
+add_definitions(-Wno-shadow)
+add_definitions(-fpermissive)
+add_definitions(-Wsign-promo)
+add_definitions(-fdiagnostics-show-option)
+add_definitions(-Wno-undef)
+add_definitions(-Wno-narrowing)
+add_definitions(-Wno-unknown-pragmas)
+add_definitions(-Wno-delete-non-virtual-dtor)
+add_definitions(-Wno-comment)
+add_definitions(-Wno-sign-compare)
+add_definitions(-Wno-ignored-qualifiers)
+add_definitions(-Wno-enum-compare)
+add_definitions(-Wno-unused-parameter)
+add_definitions(-Wno-unused-function)
 
-add_definitions(-fvisibility=hidden -fvisibility-inlines-hidden)
+if(USE_ANDROID)
+	add_definitions(-pie)
+	add_definitions(-mfloat-abi=softfp)
+	add_definitions(-mfpu=neon)
+	add_definitions(-ffast-math)
+	add_definitions(-lc)
+endif()
+
+if(USE_OPENMP)
+	find_package(OpenMP REQUIRED)
+	if(OPENMP_FOUND OR OpenMP_CXX_FOUND)
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+		message(STATUS "Found openmp in ${OPENMP_INCLUDE_DIR}")
+		message(STATUS " |-- openmp c flags:  ${OpenMP_C_FLAGS}")
+		message(STATUS " |-- openmp cxx flags:  ${OpenMP_CXX_FLAGS}")
+		message(STATUS " `-- openmp link flags:  ${OpenMP_EXE_LINKER_FLAGS}")
+		include_directories(${OPENMP_INCLUDE_DIR})
+	else()
+		message(FATAL_ERROR "Could not found openmp !")
+	endif()
+endif()
+
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -fno-exceptions")
+
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--gc-sections -Wl,--icf=safe")
+set(MAKE_STATIC_LINKER_FLAGS "${MAKE_STATIC_LINKER_FLAGS} -Wl,--gc-sections -Wl,--icf=safe")
 
 set(ANAKIN_LITE_SABER ${CMAKE_CURRENT_SOURCE_DIR}/../../saber/lite)
 set(UNIT_TEST_LITE ${CMAKE_CURRENT_SOURCE_DIR}/../../test/lite)
@@ -70,18 +124,21 @@ FILE(GLOB BUILD_SRC_FILES2 "${ANAKIN_LITE_SABER}/core/*.cpp")
 FILE(GLOB BUILD_SRC_FILES3 "${ANAKIN_LITE_SABER}/funcs/*.cpp")
 FILE(GLOB BUILD_SRC_FILES4 "${ANAKIN_LITE_SABER}/funcs/neon/*.cpp")
 FILE(GLOB BUILD_SRC_FILES5 "${ANAKIN_LITE_SABER}/funcs/neon/impl/*.cpp")
+FILE(GLOB UNIT_TEST_LITE_SRC "${UNIT_TEST_LITE}/*.cpp")
 
 add_library(ANAKIN_LITE_OBJS OBJECT ${BUILD_SRC_FILES1} ${BUILD_SRC_FILES2} ${BUILD_SRC_FILES3} ${BUILD_SRC_FILES4} ${BUILD_SRC_FILES5})
 
-add_library(${anakin_lite_lib_so} SHARED $<TARGET_OBJECTS:ANAKIN_LITE_OBJS>)
-set_target_properties(${anakin_lite_lib_so} PROPERTIES 
+if(USE_ANDROID)
+	add_library(${anakin_lite_lib_so} SHARED $<TARGET_OBJECTS:ANAKIN_LITE_OBJS>)
+	set_target_properties(${anakin_lite_lib_so} PROPERTIES
 					  LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/output/)
-
+endif()
 add_library(${anakin_lite_lib_static} STATIC $<TARGET_OBJECTS:ANAKIN_LITE_OBJS>)
 set_target_properties(${anakin_lite_lib_static} PROPERTIES 
 					  ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/output/)
 
 if(BUILD_LITE_UNIT_TEST)
+	add_definitions(-fexceptions)
 	# build test cases
 	foreach(SRC_NAME ${UNIT_TEST_LITE_SRC})
 		#unpack the dir "/"
@@ -117,6 +174,11 @@ install(FILES ${MODEL_HEADER}
         DESTINATION ${PROJECT_SOURCE_DIR}/output/include)
 install(FILES ${PROJECT_BINARY_DIR}/anakin_config.h
         DESTINATION ${PROJECT_SOURCE_DIR}/output/include)
-install(TARGETS ${anakin_lite_lib_so} ${anakin_lite_lib_static}
-		LIBRARY DESTINATION ${PROJECT_SOURCE_DIR}/output/lib
-		ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/output/lib)
+if(USE_ANDROID)
+	install(TARGETS ${anakin_lite_lib_static} ${anakin_lite_lib_so}
+		ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/output/lib
+		LIBRARY DESTINATION ${PROJECT_SOURCE_DIR}/output/lib)
+else()
+	install(TARGETS ${anakin_lite_lib_static}
+			ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/output/lib)
+endif()
