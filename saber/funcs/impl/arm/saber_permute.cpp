@@ -115,7 +115,6 @@ LayOutType_op, LayOutType_in, LayOutType_out>::create(\
     const std::vector<DataTensor_in*>& inputs, \
         std::vector<DataTensor_out*>& outputs, \
         PermuteParam<OpTensor> &param, Context<ARM> &ctx) {
-
     this->_ctx = &ctx;
     _num_axes = inputs[0]->dims();
     _count = outputs[0]->valid_size();
@@ -151,6 +150,12 @@ LayOutType_op, LayOutType_in, LayOutType_out>::create(\
             j++;
         }
     }
+
+    if (inputs[0]->count_valid(axis_diff[0], _num_axes) == 1) {
+        _need_permute = false;
+        return SaberSuccess;
+    }
+
     if (axis_diff.size() == 1) {
         _transpose = true;
         _trans_num = inputs[0]->count_valid(0, std::max(axis_diff[0] - 1, 0));
