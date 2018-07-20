@@ -190,6 +190,12 @@ SaberStatus SaberPermute::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &input
             j++;
         }
     }
+
+    if (inputs[0]->count_valid(axis_diff[0], _num_axes) == 1) {
+        _need_permute = false;
+        return SaberSuccess;
+    }
+
     if (axis_diff.size() == 1) {
         _transpose = true;
         _trans_num = inputs[0]->count_valid(0, std::max(axis_diff[0] - 1, 0));
