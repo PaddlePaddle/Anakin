@@ -1,8 +1,8 @@
-#include "core/context.h"
-#include "funcs/activation.h"
+#include "saber/core/context.h"
+#include "saber/core/tensor_op.h"
+#include "saber/funcs/activation.h"
+#include "saber/saber_types.h"
 #include "test_saber_func.h"
-#include "tensor_op.h"
-#include "saber_types.h"
 #include <vector>
 
 using namespace anakin::saber;
