@@ -77,7 +77,7 @@ template class PoolingHelper<ARM, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Pooling, PoolingHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif  //arm
 
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 INSTANCE_POOLING(X86, AK_FLOAT, Precision::FP32);
 template class PoolingHelper<X86, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Pooling, PoolingHelper, X86, AK_FLOAT, Precision::FP32);
@@ -94,7 +94,7 @@ ANAKIN_REGISTER_OP(Pooling)
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("pooling")
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("pool")
 #endif
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 .__alias__<X86, AK_FLOAT, Precision::FP32>("pooling")
 .__alias__<X86, AK_FLOAT, Precision::FP32>("pool")
 #endif

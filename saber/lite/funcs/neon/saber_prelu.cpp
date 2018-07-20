@@ -1,5 +1,5 @@
 #include "saber/lite/funcs/saber_prelu.h"
-
+#if 0
 #ifdef USE_ARM_PLACE
 namespace anakin{
 
@@ -87,7 +87,7 @@ SaberStatus SaberPrelu::compute_output_shape(const std::vector<Tensor<CPU, AK_FL
 
 SaberStatus SaberPrelu::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                              std::vector<Tensor<CPU, AK_FLOAT> *> &outputs, Context &ctx) {
-    _ctx = ctx;
+    this->_ctx = &ctx;
     return SaberSuccess;
 }
 
@@ -116,3 +116,5 @@ SaberStatus SaberPrelu::dispatch(\
 } // namespace anakin
 
 #endif //USE_ARM_PLACE
+
+#endif

@@ -38,7 +38,8 @@ inline T get_attr(std::string attr_name, graph::AttrInfo& attrs) {
 }
 
 /// function type for parser
-typedef std::function<std::string(graph::AttrInfo& attr, 
+typedef std::function<std::string(graph::AttrInfo& attr,
+                                  std::string& code_name,
 								  std::string& op_class_name, 
 								  std::string& node_name,
 								  std::string& weights_ptr_name,

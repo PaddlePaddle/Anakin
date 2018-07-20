@@ -4,7 +4,7 @@ namespace anakin {
 
 namespace graph {
 
-const std::unordered_map<Fusion, std::function<int(VGraph*, Pattern*)>, FusionHash> FusionSniffer = {
+std::unordered_map<Fusion, std::function<int(VGraph*, Pattern*)>, FusionHash> FusionSniffer = {
     {
         IN_ORDER,
         [](VGraph * vgraph, Pattern * pattern) -> int {

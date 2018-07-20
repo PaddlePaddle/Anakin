@@ -55,7 +55,7 @@ template class EltwiseHelper<NV, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Eltwise, EltwiseHelper, NV, AK_FLOAT, Precision::FP32);
 #endif
 
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 INSTANCE_ELTWISE(X86, AK_FLOAT, Precision::FP32);
 template class EltwiseHelper<X86, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Eltwise, EltwiseHelper, X86, AK_FLOAT, Precision::FP32);
@@ -76,7 +76,7 @@ ANAKIN_REGISTER_OP(Eltwise)
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("eltwise")
 #endif
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 .__alias__<X86, AK_FLOAT, Precision::FP32>("eltwise")
 #endif
 .num_in(1)
