@@ -416,7 +416,17 @@ public:
      */
     int num_index() const {
         return _valid_shape.num_index();
-    };
+    }
+
+    /**
+     *  \brief set number to valid shape.
+     */
+    void set_num(int num) {
+        _valid_shape.set_num(num);
+        if (_shape.count() < _valid_shape.count()) {
+            _shape = _valid_shape;
+        }
+    }
 
     /**
      *  \brief Return channel.
@@ -431,6 +441,16 @@ public:
      */
     int channel_index() const {
         return _valid_shape.channel_index();
+    }
+
+    /**
+     *  \brief set channel to valid shape.
+     */
+    void set_channel(int channel) {
+        _valid_shape.set_channel(channel);
+        if (_shape.count() < _valid_shape.count()) {
+            _shape = _valid_shape;
+        }
     }
 
     /**
@@ -450,6 +470,16 @@ public:
     }
 
     /**
+     *  \brief set height to valid shape.
+     */
+    void set_height(int h) {
+        _valid_shape.set_height(h);
+        if (_shape.count() < _valid_shape.count()) {
+            _shape = _valid_shape;
+        }
+    }
+
+    /**
      *  \brief Return width.
      *  \return
      */
@@ -463,6 +493,16 @@ public:
      */
     int width_index() const {
         return _valid_shape.width_index();
+    }
+
+    /**
+     *  \brief set width to valid shape.
+     */
+    void set_width(int w) {
+        _valid_shape.set_width(w);
+        if (_shape.count() < _valid_shape.count()) {
+            _shape = _valid_shape;
+        }
     }
 
     /**
