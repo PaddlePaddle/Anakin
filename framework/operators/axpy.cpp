@@ -67,7 +67,7 @@ template class AxpyHelper<NV, AK_FLOAT, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(Axpy, AxpyHelper, NV, AK_FLOAT, Precision::FP32);
 #endif
 
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 INSTANCE_AXPY(X86, AK_FLOAT, Precision::FP32);
 template class AxpyHelper<X86, AK_FLOAT, Precision::FP32>;
 template class AxpyHelper<X86, AK_FLOAT, Precision::FP16>;
@@ -102,7 +102,7 @@ ANAKIN_REGISTER_OP(Axpy)
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("axpy")
 #endif
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 .__alias__<X86, AK_FLOAT, Precision::FP32>("axpy")
 #endif
 .num_in(3)

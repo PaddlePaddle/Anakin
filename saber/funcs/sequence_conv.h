@@ -19,6 +19,7 @@
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/saber_funcs_param.h"
+#include "saber/funcs/impl/impl_sequence_conv.h"
 
 #ifdef NVIDIA_GPU
 #endif

@@ -75,6 +75,7 @@ SaberStatus SaberEmbedding<X86, OpDtype, inDtype, outDtype,
             memcpy(out_data + i * emb_dim, param.weight()->data(int(in_data[i]) * emb_dim), sizeof(DataType_out) * emb_dim);
         }
     }
+    return SaberSuccess;
       
 }
 

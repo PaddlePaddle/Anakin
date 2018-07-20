@@ -192,7 +192,7 @@ public:
             return 0;
         }
         int sum = 1;
-        for (int i = 0; i < this->size(); i++) {
+        for (int i = start; i < this->size(); i++) {
             sum *= data()[i];
         }
         return sum;

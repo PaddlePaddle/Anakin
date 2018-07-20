@@ -18,6 +18,7 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+#include "saber/funcs/impl/impl_softmax.h"
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_softmax.h"
 #include "saber/funcs/impl/cuda/vender_softmax.h"

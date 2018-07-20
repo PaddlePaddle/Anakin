@@ -156,7 +156,11 @@ void conv_arm_winograd3x3(const float* din, float* dout, \
                             for (int k = 0; k < 6; ++k) {
                                 int end_col = w * 6 + k;
                                 if (end_col < wout){
-                                    dout_channel[end_row * wout + end_col] = out_tmp[j][k];
+                                    if (flag_relu) {
+                                        dout_channel[end_row * wout + end_col] = out_tmp[j][k] > 0.f? out_tmp[j][k] : 0.f;
+                                    } else {
+                                        dout_channel[end_row * wout + end_col] = out_tmp[j][k];
+                                    }
                                 }
                             }
                         }
