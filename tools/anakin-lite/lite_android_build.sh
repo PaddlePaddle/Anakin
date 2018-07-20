@@ -18,7 +18,7 @@ else
 fi
 
 # build the target into build_android.
-BUILD_ROOT=$ANAKIN_LITE_ROOT/build
+BUILD_ROOT=$ANAKIN_LITE_ROOT/build-android
 
 #if [ -d $BUILD_ROOT ];then
 #	rm -rf $BUILD_ROOT
@@ -32,7 +32,7 @@ echo "-- Building anakin lite ..."
 cd $BUILD_ROOT
 
 cmake .. \
-    -DCMAKE_TOOLCHAIN_FILE=../../cmake/android/android.toolchain.cmake \
+    -DCMAKE_TOOLCHAIN_FILE=../../../cmake/android/android.toolchain.cmake \
     -DANDROID_NDK=$ANDROID_NDK \
     -DCMAKE_BUILD_TYPE=Release \
     -DANDROID_ABI="armeabi-v7a with NEON" \

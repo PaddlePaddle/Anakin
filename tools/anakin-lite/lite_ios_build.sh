@@ -18,16 +18,16 @@ echo "-- Build anakin lite ios into: $BUILD_ROOT"
 echo "-- Building anakin lite ..."
 cd $BUILD_ROOT
 
-cmake -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_TOOLCHAIN_FILE=../ios.toolchain.cmake \
+cmake .. \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_TOOLCHAIN_FILE=../../../cmake/ios/ios.toolchain.cmake \
     -DIOS_PLATFORM=iPhoneOS \
     -DCMAKE_OSX_ARCHITECTURES=armv7 \
 	-DUSE_IOS=YES \
 	-DUSE_ANDROID=NO \
 	-DTARGET_IOS=YES \
     -DUSE_OPENMP=NO \
-    -DBUILD_LITE_UNIT_TEST=NO  \
-    ..
+    -DBUILD_LITE_UNIT_TEST=NO
 
 # build target lib or unit test.
 if [ "$(uname)" = 'Darwin' ]; then
