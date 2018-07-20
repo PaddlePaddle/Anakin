@@ -14,21 +14,21 @@ void test_conv_results(int group,
                        int out_channels, int kernel_h, int kernel_w,
                        int stride_h, int stride_w, int dilation_h, int dilation_w,
                        int pad_h, int pad_w, bool bias_term) {
-//    LOG(INFO) << "conv param: "
-//            << " input_num = " << input_num
-//            << " in_channels = " << in_channels
-//            << " height = " << height
-//            << " width = " << width
-//            << " group = " << group
-//            << " pad_h = " << pad_h
-//            << " pad_w = " << pad_w
-//            << " stride_h = " << stride_h
-//            << " stride_w = " << stride_w
-//            << " dilation_h = " << dilation_h
-//            << " dilation_w = " << dilation_w
-//            << " kernel_h = " << kernel_h
-//            << " kernel_w = " << kernel_w
-//            << " out_channels = " << out_channels;
+    LOG(INFO) << "conv param: "
+            << " input_num = " << input_num
+            << " in_channels = " << in_channels
+            << " height = " << height
+            << " width = " << width
+            << " group = " << group
+            << " pad_h = " << pad_h
+            << " pad_w = " << pad_w
+            << " stride_h = " << stride_h
+            << " stride_w = " << stride_w
+            << " dilation_h = " << dilation_h
+            << " dilation_w = " << dilation_w
+            << " kernel_h = " << kernel_h
+            << " kernel_w = " << kernel_w
+            << " out_channels = " << out_channels;
 
     Shape input_s({input_num, in_channels, height, width}, Layout_NCHW);
     Shape weights_s({out_channels, in_channels, kernel_h, kernel_w}, Layout_NCHW);
