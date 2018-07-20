@@ -64,9 +64,11 @@ public:
             output[i]->reshape(output[i]->valid_shape());
         }
         for (auto imp : this->_impl) {
-            SaberStatus status = imp->create(input, output, param, ctx);
-            if (status != SaberSuccess) {
-                return status;
+            if (imp) {
+                SaberStatus status = imp->create(input, output, param, ctx);
+                if (status != SaberSuccess) {
+                    return status;
+                }
             }
         }
         return SaberSuccess;

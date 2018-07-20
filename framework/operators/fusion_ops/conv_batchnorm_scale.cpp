@@ -122,12 +122,12 @@ Status ConvBatchnormScaleHelper<NV, AK_FLOAT, Precision::FP32>::Init(OpContext<N
 ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScale, ConvBatchnormScaleHelper, NV, AK_FLOAT,
                           Precision::FP32);
 #endif
-//#ifdef USE_X86_PLACE
-//INSTANCE_CONVBATCHNORMSCALE(X86, AK_FLOAT, Precision::FP32);
-//template class ConvBatchnormScaleHelper<X86, AK_FLOAT, Precision::FP32>;
-//ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScale, ConvBatchnormScaleHelper, X86, AK_FLOAT,
-//                          Precision::FP32);
-//#endif
+#if defined(BUILD_LITE)
+INSTANCE_CONVBATCHNORMSCALE(X86, AK_FLOAT, Precision::FP32);
+template class ConvBatchnormScaleHelper<X86, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScale, ConvBatchnormScaleHelper, X86, AK_FLOAT,
+                          Precision::FP32);
+#endif
 
 
 //! register op
@@ -138,6 +138,10 @@ ANAKIN_REGISTER_OP(ConvBatchnormScale)
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale")
+#endif
+
+#if defined(BUILD_LITE)
+.__alias__<X86, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale")
 #endif
 .num_in(1)
 .num_out(1)

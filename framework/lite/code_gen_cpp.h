@@ -41,9 +41,9 @@ public:
 	~GenCPP()=default;
 
 	/// generate all cpp files
-	virtual void gen_files() {
+	virtual void gen_files(const bool debug_mode) {
 		gen_header();
-		gen_source();
+		gen_source(debug_mode);
 	}
 
 private:
@@ -86,7 +86,7 @@ private:
 	/**
 	 * \brief generate running api impl for model
 	 */
-	void gen_run_impl();	
+	void gen_run_impl(const bool debug_mode);
 
 
 	/**
@@ -107,7 +107,7 @@ private:
 	/**
 	 * \biref generata source file
 	 */
-	void gen_source();
+	void gen_source(const bool debug_mode);
 
 private:
 	std::string _cpp_file_name;

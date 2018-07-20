@@ -20,6 +20,7 @@
 #include <cassert>
 #include <stdlib.h>
 #include <stdio.h>
+#include <cmath>
 #include "anakin_config.h"
 #include "saber/saber_types.h"
 
@@ -125,29 +126,29 @@ enum ARMType{
     DSP = 2
 };
 
-template <ARMType Ttype, DataType Dtype>
+template <ARMType Ttype, DataType dtype>
 struct DataTrait{
-    typedef void dtype;
+    typedef void Dtype;
 };
 
 
 template <ARMType Ttype>
 struct DataTrait<Ttype, AK_FLOAT>{
-    typedef float dtype;
     typedef float Dtype;
+    typedef float dtype;
 };
 
 template <ARMType Ttype>
 struct DataTrait<Ttype, AK_INT8>{
-    typedef char dtype;
     typedef char Dtype;
+    typedef char dtype;
 };
 
 template <ARMType Ttype>
 struct TargetTrait{
     typedef void* stream_t;
     typedef void* event_t;
-    typedef void bdtype;
+    typedef void* ptrtype;
     int get_device_count() { return 1;}
     int get_device_id(){ return 0;}
     void set_device_id(int id){}

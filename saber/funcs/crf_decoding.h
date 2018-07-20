@@ -19,6 +19,7 @@
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/saber_funcs_param.h"
+#include "saber/funcs/impl/impl_crf_decoding.h"
 
 #ifdef NVIDIA_GPU
 

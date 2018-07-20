@@ -19,6 +19,7 @@
 #include <iostream>
 #include <map>
 #include "saber/core/tensor.h"
+#include "saber/core/tensor_op.h"
 namespace anakin{
 namespace saber{
 
@@ -302,9 +303,118 @@ void update_conv_weights(Param<Tensor_t>& param)
     param.conv_param.mutable_bias()->copy_from(new_bias);
 }
 
+template < typename Tensor_t, template <typename T> class Param >
+void update_deconv_weights(Param<Tensor_t>& param)
+{
+#ifdef USE_ARM_PLACE
+    Tensor<ARM, AK_FLOAT, NCHW> new_weight;
+    Tensor<ARM, AK_FLOAT, NCHW> new_bias;
+#else
+    Tensor<X86, AK_FLOAT, NCHW> new_weight;
+    Tensor<X86, AK_FLOAT, NCHW> new_bias;
+#endif //USE_ARM_PLACE
+    typedef typename Tensor_t::Dtype dtype;
 
+    Shape weight_shape = param.conv_param.weight()->shape();
+    new_weight.re_alloc(weight_shape);
+    new_weight.copy_from(*(param.conv_param.weight()));
+    Shape bias_shape;
+
+    if (param.conv_param.bias()->size() > 0) {
+        bias_shape = param.conv_param.bias()->shape();
+        new_bias.re_alloc(bias_shape);
+        new_bias.copy_from(*(param.conv_param.bias()));
+
+    } else if (param.has_batchnorm) {
+        bias_shape = {1, param.batchnorm_param.mean.size(), 1, 1};
+        new_bias.re_alloc(bias_shape);
+        void* new_bias_data = new_bias.mutable_data();
+        memset(new_bias_data, 0, sizeof(dtype) * new_bias.size());
+
+    } else if (param.has_scale) {
+        bias_shape = {1, param.scale_param.scale_w.size(), 1, 1};
+        new_bias.re_alloc(bias_shape);
+        void* new_bias_data = new_bias.mutable_data();
+        memset(new_bias_data, 0, sizeof(dtype) * new_bias.size());
+    } else {
+        return;
+    }
+    int filter_num = new_weight.num();
+    int channel_num_per_group = new_weight.channel();
+    std::vector<dtype> scale(new_weight.num(), 0);
+    std::vector<dtype> shift(new_weight.num(), 0);
+
+    for (int i = 0; i < filter_num; ++i) {
+        dtype alpha = 1.f;
+        dtype beta = 0.f;
+
+        if (param.has_batchnorm) {
+            float scale_factor = 1.f;
+            scale_factor = (param.batchnorm_param.scale == 0) ?
+                           1 : 1.f / param.batchnorm_param.scale;
+            float eps = param.batchnorm_param.eps;
+            float variance;
+            float mean;
+            alpha = param.batchnorm_param.variance[i] * scale_factor + eps;
+            alpha = 1.f / sqrtf(alpha);
+            beta = -1.f * (param.batchnorm_param.mean[i] * scale_factor);
+            beta *= alpha;
+        }
+
+        if (param.has_scale) {
+            alpha *= param.scale_param.scale_w[i];
+
+            if (param.scale_param.bias_term) {
+                beta = beta * param.scale_param.scale_w[i]
+                       + param.scale_param.scale_b[i];
+            } else {
+                beta *= param.scale_param.scale_w[i];
+            }
+        }
+        scale[i] = alpha;
+        shift[i] = beta;
+    }
+
+
+    dtype* weight_data = new_weight.mutable_data();
+    dtype* bias_data = new_bias.mutable_data();
+    // {Ic, Oc/group, K_h, K_w} real shape
+    // {Oc, Ic/group, K_h, K_w} parser return back shape
+    // filter_num = Oc;
+    // channel_num_per_group = Ic/group;
+    // [group, Ic/group, Oc/group, K_h, k_w]
+
+    int hw = new_weight.height() * new_weight.width();
+    int group = param.conv_param.group;
+    int filter_num_per_group = filter_num / group;
+    int id = 0;
+    for (int i = 0; i < group; i++) {
+        for (int j = 0; j < channel_num_per_group; j++) {
+            for (int k = 0; k < filter_num_per_group; k++) {
+                int out_channel_id = i * filter_num_per_group + k;
+                for (int m = 0; m < hw; m++) {
+                    weight_data[id] = weight_data[id]* scale[out_channel_id];
+                    id++;
+                }
+            }
+        }
+    }
+
+    for (int i = 0; i < filter_num; i++) {
+        bias_data[i] *= scale[i];
+        bias_data[i] += shift[i];
+    }
+
+    param.conv_param.mutable_weight()->copy_from(new_weight);
+    Shape new_bias_shape = new_bias.shape();
+    param.conv_param.mutable_bias()->re_alloc(new_bias_shape);
+    param.conv_param.mutable_bias()->copy_from(new_bias);
+}
 
 } // namespace saber
 
 } // namespace anakin
 #endif //SABER_FUNCS_UTILS_H
+
+
+

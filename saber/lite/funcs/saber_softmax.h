@@ -15,8 +15,7 @@
 #ifndef ANAKIN_SABER_LITE_FUNCS_SABER_SOFTMAX_H
 #define ANAKIN_SABER_LITE_FUNCS_SABER_SOFTMAX_H
 
-#include "saber/lite/core/tensor_lite.h"
-#include "saber/lite/core/context_lite.h"
+#include "saber/lite/funcs/op_base.h"
 
 #ifdef USE_ARM_PLACE
 
@@ -27,36 +26,37 @@ namespace saber{
 namespace lite{
 
 //template <typename Dtype>
-class SaberSoftmax{
+class SaberSoftmax : public OpBase {
 public:
 
     SaberSoftmax() = default;
 
-    SaberSoftmax(int axis);
+    SaberSoftmax(const ParamBase* param);
 
-    SaberStatus load_param(int axis);
+    virtual SaberStatus load_param(const ParamBase* param) override;
+//    SaberSoftmax(int axis);
+//
+//    SaberStatus load_param(int axis);
 
     ~SaberSoftmax() {}
 
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                              std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) {
-        return outputs[0]->set_shape(inputs[0]->valid_shape());
-    }
+    virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                              std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 
-    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                               std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx);
+    virtual SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                               std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx) override;
 
-    SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                 std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                                 std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 
 private:
-    Context _ctx;
+    const SoftmaxParam* _param;
     int _axis_size{0};
     int _inner_num{0};
     int _outer_num{0};
 
-    int _axis;
+    //int _axis;
 
 };
 

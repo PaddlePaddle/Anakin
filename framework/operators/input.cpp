@@ -56,7 +56,7 @@ template class InputHelper<ARM, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif //arm
 
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 INSTANCE_INPUT(X86, AK_FLOAT, Precision::FP32);
 template class InputHelper<X86, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, X86, AK_FLOAT, Precision::FP32);
@@ -71,7 +71,7 @@ ANAKIN_REGISTER_OP(Input)
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("input")
 #endif
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 .__alias__<X86, AK_FLOAT, Precision::FP32>("input")
 #endif
 .Args<PTuple<int>>("input_shape", " shape of graph input.");

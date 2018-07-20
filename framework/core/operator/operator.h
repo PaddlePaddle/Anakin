@@ -117,7 +117,7 @@ public:
      *  \brief Get target attr by name.
      */
     template<typename T>
-    T get_attr(std::string attr_name) { return _node_p->get_attr<T>(attr_name); }
+    T get_attr(std::string attr_name) { return _node_p-> template get_attr<T>(attr_name); }
 
 	/**
 	 *  \brief Judge if op access target attr

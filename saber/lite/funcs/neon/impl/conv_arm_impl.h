@@ -39,6 +39,13 @@ void conv_3x3s1_direct(const float* din, float* dout, \
                           int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
                           int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space);
 
+void conv_7x7s1_direct(const float* din, float* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          const float* weights, const float* bias, \
+                          int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
+                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space);
+
 void conv1x1s1_gemm(const float* din, float* dout, \
                           int num, int chout, int hout, int wout, \
                           int chin, int hin, int win, \
