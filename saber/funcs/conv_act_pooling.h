@@ -206,6 +206,8 @@ private:
         _use_saber_conv_pooling &= (this->_param).pooling_param.window_w == 2;
         _use_saber_conv_pooling &= !(this->_param).pooling_param.global_pooling;
         _use_saber_conv_pooling &= (this->_param).pooling_param.pooling_type == Pooling_max;
+	_use_saber_conv_pooling &= ((this->_last_input_shape[2] % 2) == 0);
+        _use_saber_conv_pooling &= ((this->_last_input_shape[3] % 2) == 0);
 
         if (_use_saber_conv_pooling) {
             this->_best_impl = this->_impl[1];
