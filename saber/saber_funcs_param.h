@@ -27,6 +27,61 @@ namespace anakin{
 namespace saber {
 
 template <typename TargetType>
+struct ArgmaxParam {
+
+    ArgmaxParam() = default;
+
+    ArgmaxParam(bool out_max_val_in,int top_k_in, bool has_axis_in, int axis_in) {
+        out_max_val = out_max_val_in;
+        top_k = top_k_in;
+        has_axis = has_axis_in;
+        axis = axis_in;
+    }
+
+    ArgmaxParam(bool out_max_val_in,int top_k_in, int axis_in) {
+        out_max_val = out_max_val_in;
+        has_axis = true;
+        top_k = top_k_in;
+        axis = axis_in;
+    }
+    
+    ArgmaxParam(bool out_max_val_in,int top_k_in) {
+        out_max_val = out_max_val_in;
+        top_k = top_k_in;
+        has_axis = false;
+        axis = 3;
+    }
+    
+
+    ArgmaxParam(const ArgmaxParam<TargetType>& right) {
+        out_max_val = right.out_max_val;
+        top_k = right.top_k;
+        has_axis = right.has_axis;
+        axis = right.axis;
+    }
+
+    ArgmaxParam<TargetType>& operator=(const ArgmaxParam<TargetType>& right) {
+        this->out_max_val = right.out_max_val;
+        this->top_k = right.top_k;
+        this->axis = right.axis;
+        this->has_axis = right.has_axis;
+        return *this;
+    }
+
+    bool operator==(const ArgmaxParam<TargetType>& right) {
+        bool flag = this->out_max_val == right.out_max_val;
+        flag = flag && this->top_k == right.top_k;
+        flag = flag && this->has_axis == right.has_axis;
+        return flag && (this->axis == right.axis);
+    }
+    bool out_max_val{false};
+    bool has_axis{true};
+    int top_k{1};
+    int axis{3};
+};
+
+
+template <typename TargetType>
 struct PreluParam {
     PreluParam() = default;
     PreluParam(bool is_channel_shared, Tensor<TargetType>* input_slope) {
