@@ -1,19 +1,10 @@
 #include "saber/funcs/impl/x86/saber_lstm.h"
 #include "sys/time.h"
 #include "mkl_cblas.h"
-#include "saber/funcs/impl/x86/x86_utils.h"
 
 
-#ifdef __AVX512F__
-#include "saber_avx512_activation.h"
-#define SABER_X86_TYPE __m512
-#elif __AVX2__
-#include "saber_avx2_activation.h"
-#define SABER_X86_TYPE __m256
-#else
-#include "saber_normal_activation.h"
-#define SABER_X86_TYPE float
-#endif
+
+
 
 namespace anakin {
 
@@ -33,58 +24,6 @@ static void gemm(const bool TransA, const bool TransB, int m, int n, int k, cons
     cblas_sgemm(CblasRowMajor, cuTransA, cuTransB, m, n, k, alpha, a, k, b, n, beta, c, n);
 };
 
-template <DataType OpDtype>
-SaberStatus SaberLstm<X86, OpDtype>::init(const std::vector<Tensor<X86>*>& inputs,
-                                          std::vector<Tensor<X86>*>& outputs,
-                                          LstmParam<X86>& param,
-                                          Context<X86>& ctx) {
-    if(param.with_peephole){
-        _hidden_size=param.bias()->valid_size()/7;
-    }else{
-        _hidden_size=param.bias()->valid_size()/4;
-    }
-    _word_size=(param.weight()->valid_size()-_hidden_size*_hidden_size*4)/_hidden_size/4;
-
-            DLOG(INFO)<<"wordsize = "<<_word_size;
-    int weights_i2h_size=4*_hidden_size*_word_size;
-    int weights_h2h_size=4*_hidden_size*_hidden_size;
-    int weights_bias_size=4*_hidden_size;
-    int weights_peephole_size=3*_hidden_size;
-
-    int aligned_byte= sizeof(SABER_X86_TYPE);
-    int c_size=aligned_byte/sizeof(OpDataType);
-
-    _aligned_word_size=utils::round_up(_word_size,c_size);
-    _aligned_hidden_size=utils::round_up(_hidden_size,c_size);
-
-
-    Shape aligned_weights_i2h_shape(1,_word_size,4,_aligned_hidden_size);
-    Shape aligned_weights_h2h_shape(1,_aligned_hidden_size,4,_aligned_hidden_size);
-    Shape aligned_weights_bias_shape(1,1,4,_aligned_hidden_size);
-    utils::try_expand_tensor(_aligned_weights_i2h,aligned_weights_i2h_shape);
-    utils::try_expand_tensor(_aligned_weights_h2h,aligned_weights_h2h_shape);
-    utils::try_expand_tensor(_aligned_weights_bias,aligned_weights_bias_shape);
-
-    utils::AlignedUtils aligned_tool;
-    aligned_tool.aligned_last_dim(param.weight()->data(),_aligned_weights_i2h.mutable_data(),
-                                  weights_i2h_size,_hidden_size,_aligned_hidden_size);
-
-    aligned_tool.aligned_last_dim(param.weight()->data() + weights_i2h_size,_aligned_weights_h2h.mutable_data(),
-                                  weights_h2h_size,_hidden_size,_aligned_hidden_size);
-
-    aligned_tool.aligned_last_dim(param.bias()->data(),_aligned_weights_bias.mutable_data(),
-                                  weights_bias_size,_hidden_size,_aligned_hidden_size);
-//FIXME:init weights tensor
-    if(param.with_peephole){
-        Shape aligned_weights_peephole_shape(1,1,3,_aligned_hidden_size);
-        utils:try_expand_tensor(_aligned_weights_peephole,aligned_weights_peephole_shape);
-        aligned_tool.aligned_last_dim(param.bias()->data()+weights_bias_size,_aligned_weights_peephole.mutable_data(),
-                                      weights_peephole_size,_hidden_size,_aligned_hidden_size);
-    }
-
-    return SaberSuccess;
-};
-
 
 template<>
 template <typename BIT>
@@ -94,15 +33,15 @@ avx_dispatch_with_peephole(const std::vector<Tensor<X86>*>& inputs,
                            LstmParam<X86>& param) {
 
     int loop_div = sizeof(BIT) / sizeof(OpDataType);
-    const OpDataType* weight_h = _aligned_weights_h2h.data();
-    const OpDataType* weight_w = _aligned_weights_i2h.data();
-    const OpDataType* bias = _aligned_weights_bias.data();
-    const OpDataType* weight_peephole = _aligned_weights_peephole.data();
+    const OpDataType* weight_h = (const OpDataType*)_aligned_weights_h2h.data();
+    const OpDataType* weight_w = (const OpDataType*)_aligned_weights_i2h.data();
+    const OpDataType* bias = (const OpDataType*)_aligned_weights_bias.data();
+    const OpDataType* weight_peephole = (const OpDataType*)_aligned_weights_peephole.data();
     BIT(*gate_act)(const BIT) = act_func[param.gate_activity];
     BIT(*cell_act)(const BIT) = act_func[param.cell_activity];
     BIT(*candi_act)(const BIT) = act_func[param.candidate_activity];
 
-    std::vector<int> offset_vec = inputs[0]->get_seq_offset();
+    std::vector<int> offset_vec = inputs[0]->get_seq_offset()[inputs[0]->get_seq_offset().size()-1];
     std::vector<int> length_vec(offset_vec.size() - 1);
     int batch_size = offset_vec.size() - 1;
     int seqsum = 0;
@@ -110,23 +49,22 @@ avx_dispatch_with_peephole(const std::vector<Tensor<X86>*>& inputs,
     bool is_hw2seq = offset_vec.size() > 2;
     int word_sum = is_hw2seq ? offset_vec[offset_vec.size() - 1] : inputs[0]->channel();
     utils::AlignedUtils aligned_utils;
-    utils::VectorPrint vector_print;
     const OpDataType* h_init = nullptr;
     const OpDataType* cell_init = nullptr;
 
-    const OpDataType* x = inputs[0]->data();
-    OpDataType* out = outputs[0]->mutable_data();
+    const OpDataType* x = (const OpDataType*)inputs[0]->data();
+    OpDataType* out =  (OpDataType*)outputs[0]->mutable_data();
     bool is_reverse = param.is_reverse;
 
     if (inputs.size() > 1) {
-        h_init = inputs[1]->data();
+        h_init = (const OpDataType*)inputs[1]->data();
         utils::try_expand_tensor(_aligned_init_hidden,batch_size * _aligned_hidden_size);
         aligned_utils.aligned_last_dim(h_init, (OpDataType*)_aligned_init_hidden.mutable_data(),
                                        batch_size * _hidden_size, _hidden_size, _aligned_hidden_size);
-        h_init = _aligned_init_hidden.data();
+        h_init = (const OpDataType*)_aligned_init_hidden.data();
     } else if (param.init_hidden() != nullptr) {
 
-        h_init =(OpDataType*) param.init_hidden()->data();
+        h_init =(const OpDataType*) param.init_hidden()->data();
         //FIXME:is it correct?
     } else {
         //        _aligned_init_hidden.try_expand_tensor(batch_size * _aligned_hidden_size);
@@ -159,24 +97,24 @@ avx_dispatch_with_peephole(const std::vector<Tensor<X86>*>& inputs,
 
     if (transform) {
         utils::try_expand_tensor(_temp_x,seqsum * _word_size);
-        inner_h_out = _temp_out.mutable_data();
-        inner_x = _temp_x.mutable_data();
+        inner_h_out = (OpDataType*)_temp_out.mutable_data();
+        inner_x = (OpDataType*)_temp_x.mutable_data();
         transe_util.seq_2_sorted_seq(x, (OpDataType*)inner_x, _word_size);
 
         if (inner_h_init != nullptr) {
             utils::try_expand_tensor(_temp_h_init,batch_size * _aligned_hidden_size);
             transe_util.hidden_2_sorted_hidden(inner_h_init, (OpDataType*)_temp_h_init.mutable_data(), _aligned_hidden_size);
-            inner_h_init = _temp_h_init.data();
+            inner_h_init = (const OpDataType*)_temp_h_init.data();
         }
     } else if (_hidden_size != _aligned_hidden_size) {
-        inner_h_out = _temp_out.mutable_data();
+        inner_h_out = (OpDataType*)_temp_out.mutable_data();
     }
 
-    inner_cell = _temp_cell.mutable_data();
+    inner_cell = (OpDataType*)_temp_cell.mutable_data();
     memset(inner_cell, 0, _temp_cell.valid_size()* sizeof(OpDataType));
 
-    OpDataType* temp_wh = _temp_wh.mutable_data();
-    OpDataType* temp_wx = _temp_wx.mutable_data();
+    OpDataType* temp_wh = (OpDataType*)_temp_wh.mutable_data();
+    OpDataType* temp_wx = (OpDataType*)_temp_wx.mutable_data();
 
     gemm(false, false, seqsum, 4 * _aligned_hidden_size, _word_size, 1.f, inner_x, weight_w, 0.f,
          temp_wx);
@@ -302,15 +240,15 @@ avx_dispatch_without_peephole(const std::vector<Tensor<X86>*>& inputs,
                               std::vector<Tensor<X86>*>& outputs,
                               LstmParam<X86>& param) {
     int loop_div = sizeof(BIT) / sizeof(OpDataType);
-    const OpDataType* weight_h = _aligned_weights_h2h.data();
-    const OpDataType* weight_w = _aligned_weights_i2h.data();
-    const OpDataType* bias = _aligned_weights_bias.data();
-    const OpDataType* weight_peephole = _aligned_weights_peephole.data();
+    const OpDataType* weight_h = (const OpDataType*)_aligned_weights_h2h.data();
+    const OpDataType* weight_w = (const OpDataType*)_aligned_weights_i2h.data();
+    const OpDataType* bias = (const OpDataType*)_aligned_weights_bias.data();
+    const OpDataType* weight_peephole = (const OpDataType*)_aligned_weights_peephole.data();
     BIT(*gate_act)(const BIT) = act_func[param.gate_activity];
     BIT(*cell_act)(const BIT) = act_func[param.cell_activity];
     BIT(*candi_act)(const BIT) = act_func[param.candidate_activity];
 
-    std::vector<int> offset_vec = inputs[0]->get_seq_offset();
+    std::vector<int> offset_vec = inputs[0]->get_seq_offset()[inputs[0]->get_seq_offset().size()-1];
     std::vector<int> length_vec(offset_vec.size() - 1);
     int batch_size = offset_vec.size() - 1;
     int seqsum = 0;
@@ -322,18 +260,18 @@ avx_dispatch_without_peephole(const std::vector<Tensor<X86>*>& inputs,
     const OpDataType* h_init = nullptr;
     const OpDataType* cell_init = nullptr;
 
-    const OpDataType* x = inputs[0]->data();
-    OpDataType* out = outputs[0]->mutable_data();
+    const OpDataType* x = (const OpDataType*)inputs[0]->data();
+    OpDataType* out = (OpDataType*)outputs[0]->mutable_data();
     bool is_reverse = param.is_reverse;
 
     if (inputs.size() > 1) {
-        h_init = inputs[1]->data();
+        h_init = (const OpDataType*)inputs[1]->data();
         utils::try_expand_tensor(_aligned_init_hidden,batch_size * _aligned_hidden_size);
         aligned_utils.aligned_last_dim(h_init,(OpDataType*) _aligned_init_hidden.mutable_data(),
                                        batch_size * _hidden_size, _hidden_size, _aligned_hidden_size);
-        h_init = _aligned_init_hidden.data();
+        h_init = (const OpDataType*)_aligned_init_hidden.data();
     } else if (param.init_hidden() != nullptr) {
-        h_init = param.init_hidden()->data();
+        h_init = (const OpDataType*)param.init_hidden()->data();
         //FIXME:is it correct?
     } else {
         //        _aligned_init_hidden.try_expand_tensor(batch_size * _aligned_hidden_size);
@@ -366,24 +304,24 @@ avx_dispatch_without_peephole(const std::vector<Tensor<X86>*>& inputs,
 
     if (transform) {
         utils::try_expand_tensor(_temp_x,seqsum * _word_size);
-        inner_h_out = _temp_out.mutable_data();
-        inner_x = _temp_x.mutable_data();
+        inner_h_out = (OpDataType*)_temp_out.mutable_data();
+        inner_x = (OpDataType*)_temp_x.mutable_data();
         transe_util.seq_2_sorted_seq(x, (OpDataType*)inner_x, _word_size);
 
         if (inner_h_init != nullptr) {
             utils::try_expand_tensor(_temp_h_init,batch_size * _aligned_hidden_size);
             transe_util.hidden_2_sorted_hidden(inner_h_init, (OpDataType*)_temp_h_init.mutable_data(), _aligned_hidden_size);
-            inner_h_init = _temp_h_init.data();
+            inner_h_init = (const OpDataType*)_temp_h_init.data();
         }
     } else if (_hidden_size != _aligned_hidden_size) {
-        inner_h_out = _temp_out.mutable_data();
+        inner_h_out = (OpDataType*)_temp_out.mutable_data();
     }
 
-    inner_cell = _temp_cell.mutable_data();
+    inner_cell = (OpDataType*)_temp_cell.mutable_data();
     memset(inner_cell, 0, _temp_cell.valid_size()* sizeof(OpDataType));
 
-    OpDataType* temp_wh = _temp_wh.mutable_data();
-    OpDataType* temp_wx = _temp_wx.mutable_data();
+    OpDataType* temp_wh = (OpDataType*)_temp_wh.mutable_data();
+    OpDataType* temp_wx = (OpDataType*)_temp_wx.mutable_data();
 
     gemm(false, false, seqsum, 4 * _aligned_hidden_size, _word_size, 1.f, inner_x, weight_w, 0.f,
          temp_wx);

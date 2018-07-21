@@ -72,7 +72,7 @@ public:
             hiddenSize = param.bias()->valid_size() / 4;
         }
 
-        Shape output_shape = Shape({seqLength, hiddenSize, param.num_direction, 1},input[0]->get_);
+        Shape output_shape = Shape({seqLength, hiddenSize, param.num_direction, 1},input[0]->get_layout());
         output[0]->set_seq_offset(input[0]->get_seq_offset());
 
         if (output.size() >= 2) {
@@ -103,11 +103,7 @@ public:
 private:
 
     virtual void pick_best_static() override {
-        if (this->_param.active == Active_prelu) {
-            this->_best_impl = this->_impl[1];
-        } else {
-            this->_best_impl = this->_impl[0];
-        }
+        this->_best_impl = this->_impl[0];
     }
 
     virtual void pick_best_specify(ImplEnum implenum) override {
