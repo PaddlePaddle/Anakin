@@ -95,8 +95,9 @@ template <typename Dtype>
 struct ACTIVATION{
     typedef Dtype(*Act)(const Dtype);
 };
+
 template <typename Dtype>
-typename ACTIVATION<Dtype>::Act Activate(ActiveType type){
+inline typename ACTIVATION<Dtype>::Act Activate(ActiveType type){
     static  typename ACTIVATION<Dtype>::Act vec[9]={&InValidAct<Dtype>, &Sigmoid<Dtype>, &Relu<Dtype>, &Tanh<Dtype>,
                                                     &InValidAct<Dtype>,& InValidAct<Dtype>, &Identity<Dtype>, &Sigmoid_fluid<Dtype>,
                                                     &Tanh_fluid<Dtype>};
@@ -130,12 +131,21 @@ static void gemm(const bool TransA, const bool TransB, int m, int n, int k, cons
 };
 
 template <typename Dtype>
-void compute_ref_lstm_one_word(Dtype* wx_i,Dtype* wx_f,Dtype* wx_c,Dtype* wx_o,Dtype* h_old,Dtype* h_new,Dtype* cell_old,Dtype* cell_new,
+void compute_ref_lstm_one_word(Dtype* wx_i,Dtype* wx_f,Dtype* wx_c,Dtype* wx_o,Dtype* h_new,Dtype* cell_old,Dtype* cell_new,
                                Dtype* bias_i,Dtype* bias_f,Dtype* bias_c,Dtype* bias_o,Dtype* w_c_i,
                                Dtype* w_c_f,Dtype* w_c_o,int hidden_size,
                                ActiveType gate_activity,ActiveType cell_activity,ActiveType candidate_activity){
+    typename ACTIVATION<Dtype>::Act gate_func=Activate<Dtype >(gate_activity);
+    typename ACTIVATION<Dtype>::Act cell_func=Activate<Dtype >(cell_activity);
+    typename ACTIVATION<Dtype>::Act candi_func=Activate<Dtype >(candidate_activity);
     for(int i=0;i<hidden_size;i++){
-        Dtype gate_i=Activate<Dtype >(gate_activity)(wx_i[i]+w_c_i[i]*cell_old[i]))
+        Dtype gate_i=gate_func(wx_i[i]+w_c_i[i]*cell_old[i]+bias_i[i]);
+        Dtype gate_f=gate_func(wx_f[i]+w_c_f[i]*cell_old[i]+bias_f[i]);
+        Dtype gate_c_t=cell_func(wx_c[i]+bias_c[i]);
+        Dtype gate_o=gate_func(wx_o[i]+w_c_o[i]*cell_old[i]+bias_o[i]);
+        Dtype gate_c=gate_f*cell_old[i]+gate_i*gate_c_t;
+        h_new[i]=gate_o*candi_func(gate_c);
+        cell_new[i]=gate_c;
     }
 }
 
@@ -156,16 +166,21 @@ void compute_ref_lstm_fwd_me(std::vector<Tensor4f*> &src, std::vector<Tensor4f*>
     const Dtype *weights_h=weights+4*word_size*hidden_size;
     const Dtype *bias = (const Dtype *)param.bias()->data();
     const Dtype *weights_peephole=bias+4*hidden_size;
-    const Dtype *init_hidden = (const Dtype *)param.init_hidden()->data();
+    const Dtype *init_hidden = nullptr;
+    if(param.init_hidden!= nullptr){
+        init_hidden=(const Dtype *)param.init_hidden()->data();
+    } else{
+        init_hidden=new Dtype[hidden_size];
+    }
 
     Dtype *h = (Dtype*)dst[0]->mutable_data();
     Dtype *c = new Dtype[seq_sum*hidden_size];
     Dtype *wx= new Dtype[seq_sum*4*hidden_size];
-    Dtype *wh= new Dtype[4*hidden_size];
+
 
     std::vector<int> seq_offset = input_tensor->get_seq_offset()[input_tensor->get_seq_offset().size()-1];
 
-
+    gemm(false, false,seq_sum,4*hidden_size,word_size,1,x,weights,0,wx);
     for(int seq_id=0;seq_id<seq_offset.size()-1;seq_id++){
         int seq_start=seq_offset[seq_id];
         int seq_end=seq_offset[seq_id+1];
@@ -173,10 +188,40 @@ void compute_ref_lstm_fwd_me(std::vector<Tensor4f*> &src, std::vector<Tensor4f*>
 
         }
         for(int word_id=seq_offset[seq_id];word_id<seq_offset[seq_id+1];word_id++){
-            Activate<Dtype>(Active_sigmoid)(1.f);
+            Dtype* cell_old= nullptr;
+            if(word_id==seq_offset[seq_id]){
+                cell_old=c+word_id*hidden_size;
+                gemm(false, false,hidden_size,4*hidden_size,hidden_size,1,init_hidden,weights_h,0,wx+word_id*4*hidden_size);
+            }else{
+                cell_old=c+(word_id-1)*hidden_size;
+                gemm(false, false,hidden_size,4*hidden_size,hidden_size,1,h+(word_id-1)*hidden_size,weights_h,0,wx+word_id*4*hidden_size);
+            }
+            Dtype* wx_i=wx+word_id*4*hidden_size+0*hidden_size;
+            Dtype* wx_f=wx+word_id*4*hidden_size+1*hidden_size;
+            Dtype* wx_c=wx+word_id*4*hidden_size+2*hidden_size;
+            Dtype* wx_o=wx+word_id*4*hidden_size+3*hidden_size;
+            const Dtype* b_i=bias+0*hidden_size;
+            const Dtype* b_f=bias+1*hidden_size;
+            const Dtype* b_c=bias+2*hidden_size;
+            const Dtype* b_o=bias+3*hidden_size;
+
+            const Dtype* wc_i=weights_peephole+3*hidden_size;
+            const Dtype* wc_f=weights_peephole+3*hidden_size;
+            const Dtype* wc_o=weights_peephole+3*hidden_size;
+
+            Dtype* h_new=h+word_id*hidden_size;
+            Dtype* cell_new=c+word_id*hidden_size;
+
+            compute_ref_lstm_one_word(wx_i,wx_f,wx_c,wx_o,h_new,cell_old,cell_new,b_i,b_f,b_c,b_o,wc_i,wc_f,wc_o,
+                                      hidden_size,param.gate_activity,param.cell_activity,param.candidate_activity);
         }
     }
 
+    delete c;
+    delete wx;
+    if(param.init_hidden== nullptr){
+        delete init_hidden;
+    }
 
 
 }
@@ -223,6 +268,9 @@ void py_lstm(int word_size = 222,
     SABER_CHECK(lstm_op.compute_output_shape(inputs, outputs, param));
     outputs[0]->re_alloc(outputs[0]->valid_shape(),outputs[0]->get_dtype());
     SABER_CHECK(lstm_op(inputs, outputs, param, ctx_dev));
+
+    compute_ref_lstm_fwd_me(inputs,outputs,param);
+
 
     TensorHf4 compare_g(shape_h);
     readTensorData(compare_g, "host_correct");
