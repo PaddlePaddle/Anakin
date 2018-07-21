@@ -19,7 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-
+#include "core/common.h"
 #include "saber/core/tensor.h"
 
 namespace anakin {
@@ -740,7 +740,7 @@ inline size_t datatype_size(DataType data_type) {
 } // namespace saber
 } // namespace anakin
 
-#if defined(_OPENMP)
+#ifdef USE_OPENMP
 #include <omp.h>
 #else
 inline int omp_get_max_threads() {
