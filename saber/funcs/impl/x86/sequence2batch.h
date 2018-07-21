@@ -4,8 +4,9 @@
 #include <algorithm>
 #include <vector>
 #include "saber/core/tensor.h"
+#ifdef USE_OPENMP
 #include "omp.h"
-
+#endif
 namespace anakin {
 namespace saber {
 namespace math {
@@ -358,7 +359,9 @@ protected:
     std::vector<int> batchStartPositions_;
     std::vector<int> seq2BatchIdx_;
     size_t numBatch_;
+#ifdef USE_OPENMP
     int thread_num = omp_get_max_threads();
+#endif
 };
 }  // namespace math
 }  // namespace saber

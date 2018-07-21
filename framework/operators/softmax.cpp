@@ -71,7 +71,7 @@ template class SoftmaxHelper<NV, AK_FLOAT, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(Softmax, SoftmaxHelper, NV, AK_FLOAT, Precision::FP32);
 #endif
 
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 INSTANCE_SOFTMAX(X86, AK_FLOAT, Precision::FP32);
 template class SoftmaxHelper<X86, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Softmax, SoftmaxHelper, X86, AK_FLOAT, Precision::FP32);
@@ -97,7 +97,7 @@ ANAKIN_REGISTER_OP(Softmax)
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("softmax")
 #endif
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 .__alias__<X86, AK_FLOAT, Precision::FP32>("softmax")
 #endif
 .num_in(1)

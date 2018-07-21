@@ -152,7 +152,11 @@ template class ConvBatchnormScaleReluPoolHelper<ARM, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScaleReluPool, ConvBatchnormScaleReluPoolHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
 
-
+#if defined(BUILD_LITE)
+INSTANCE_CONVBATCHNORMSCALERELUPOOLING(X86, AK_FLOAT, Precision::FP32);
+template class ConvBatchnormScaleReluPoolHelper<X86, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScaleReluPool, ConvBatchnormScaleReluPoolHelper, X86, AK_FLOAT, Precision::FP32);
+#endif
 //! register op
 ANAKIN_REGISTER_OP(ConvBatchnormScaleReluPool)
     .Doc("ConvBatchnormScaleReluPool fusion operator")
@@ -161,6 +165,9 @@ ANAKIN_REGISTER_OP(ConvBatchnormScaleReluPool)
 #endif
 #ifdef USE_ARM_PLACE
     .__alias__<ARM, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale_relu_pooling")
+#endif
+#if defined(BUILD_LITE)
+    .__alias__<X86, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale_relu_pooling")
 #endif
     .num_in(1)
     .num_out(1)

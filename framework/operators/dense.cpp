@@ -97,7 +97,7 @@ Status DenseHelper<ARM, AK_FLOAT, Precision::FP32>::Init(OpContext<ARM> &ctx,\
 ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
 
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 INSTANCE_DENSE(X86, AK_FLOAT, Precision::FP32);
 template class DenseHelper<X86, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, X86, AK_FLOAT, Precision::FP32);
@@ -114,7 +114,7 @@ ANAKIN_REGISTER_OP(Dense)
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("fullconnect")
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("fc")
 #endif
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 .__alias__<X86, AK_FLOAT, Precision::FP32>("fullconnect")
 .__alias__<X86, AK_FLOAT, Precision::FP32>("fc")
 #endif

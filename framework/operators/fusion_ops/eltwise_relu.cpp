@@ -16,7 +16,18 @@ void EltwiseRelu<NV, AK_FLOAT, Precision::FP32>::operator()(
     impl->_funcs_eltwise_relu(ins, outs, param, ctx);
 }
 #endif
-
+#ifdef USE_ARM_PLACE
+template<>
+void EltwiseRelu<ARM, AK_FLOAT, Precision::FP32>::operator()(
+    OpContext<ARM>& ctx,
+    const std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& ins,
+    std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& outs) {
+    auto* impl = static_cast<EltwiseReluHelper<ARM, AK_FLOAT, Precision::FP32>*>(this->_helper);
+    auto& param = static_cast<EltwiseReluHelper<ARM, AK_FLOAT, Precision::FP32>*>
+                  (this->_helper)->_param_eltwise_relu;
+    impl->_funcs_eltwise_relu(ins, outs, param, ctx);
+}
+#endif
 /// TODO ... specialization other type of operator
 
 
