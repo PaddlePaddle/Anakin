@@ -787,25 +787,19 @@ class FluidParser:
 		self._ParseBase(source_ops, helper)
 		if self.NetType == "FLUIDBASE":
 			pass
-		elif self.NetType == "OCR":
+		else:
 			reshape_dict = {}
-			reshape_dict['input_0'] = [1, 1, 48, 1500]
+			if self.NetType == "OCR":
+				reshape_dict['input_0'] = [1, 1, 48, 1500]
 			self._ReplaceInputs(source_ops, helper, reshape_dict)
 			self._InsertSplit(source_ops, helper)
 			self._DealWithGru(source_ops, helper)
+			self._DealWithLstm(source_ops, helper)
 			self._DealWithBias(source_ops, helper)
 			self._DealWithBatchnorm(source_ops, helper)
 			self._DealWithMultiFC(source_ops, helper)
 			self._DealWithArgmax(source_ops, helper)
-		else:
-			self._ReplaceInputs(source_ops, helper)
-			self._InsertSplit(source_ops, helper)
-			self._DealWithBias(source_ops, helper)
-			self._DealWithBatchnorm(source_ops, helper)
-			if self.NetType == "VGG":
-				pass
-			elif self.NetType == "SeResnext50":
-				self._DealWithAxpy(source_ops, helper)
+			self._DealWithAxpy(source_ops, helper)
 		self._Graph()
 
 
