@@ -1,9 +1,9 @@
 
-#include "core/context.h"
-#include "funcs/normalize.h"
-#include "test_saber_func.h"
-#include "tensor_op.h"
-#include "saber_types.h"
+#include "saber/core/context.h"
+#include "saber/funcs/normalize.h"
+#include "test/saber/test_saber_func.h"
+#include "saber/core/tensor_op.h"
+#include "saber/saber_types.h"
 #include "saber/core/tensor_op.h"
 #include <vector>
 
@@ -251,10 +251,10 @@ TEST(TestSaberFunc, test_func_normalize) {
                                                             #endif
                                     if(status==SaberUnKownError)
                                     {
-                                        LOG(INFO)<<"TEST FAILED!!!"<<"\n";
                                         LOG(INFO) << " input tensor size, num=" << num_in << ", channel=" << \
-                                                                    ch_in << ", height=" << h_in << ", width=" << w_in;
+                                        ch_in << ", height=" << h_in << ", width=" << w_in;
                                         
+                                        LOG(ERROR)<<"TEST FAILED!!!"<<"\n";
                                         //LOG(INFO) << "total time: " << ts << ", avg time: " << ts / test_iter;
                                         
                                     }
