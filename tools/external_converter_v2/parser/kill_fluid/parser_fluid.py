@@ -310,7 +310,7 @@ class FluidParser:
 				cache.pop()
 		return results
 
-	def _CropGraph(self, ins_of_graph, outs_of_graph, helper):
+	def _CropGraph(self, ins_of_graph, outs_of_graph, helper, need_io = True):
 		def all_nodes():
 			all_nodes = []
 			for main_node in self.ins.keys():
@@ -328,19 +328,20 @@ class FluidParser:
 				self.graphIO.rm_in(node_name)
 			if node_name in self.graphIO.outs():
 				self.graphIO.rm_out(node_name)
-		for node_name in outs_of_graph:
-			if node_name not in self.graphIO.outs():
-				out_node_name = node_name + '_crop_out'
-				self.ins[out_node_name] = Fluid_edger('_In', node_name)
-				self.outs[node_name] = Fluid_edger('_Out', out_node_name)
-				self.graphIO.add_out_fluid(out_node_name, node_name)
-		for node_name in ins_of_graph:
-			if node_name not in self.graphIO.ins():
-				in_node_name = node_name + '_crop_in'
-				private_data = {'input_shape': [-1, -1, -1, -1]}
-				self.ins[node_name] = Fluid_edger('_In', in_node_name)
-				self.outs[in_node_name] = Fluid_edger('_Out', node_name)
-				self._AddProtoNode(in_node_name, None, helper, private_data, 'feed')
+		if need_io is True:
+			for node_name in outs_of_graph:
+				if node_name not in self.graphIO.outs():
+					out_node_name = node_name + '_crop_out'
+					self.ins[out_node_name] = Fluid_edger('_In', node_name)
+					self.outs[node_name] = Fluid_edger('_Out', out_node_name)
+					self.graphIO.add_out_fluid(out_node_name, node_name)
+			for node_name in ins_of_graph:
+				if node_name not in self.graphIO.ins():
+					in_node_name = node_name + '_crop_in'
+					private_data = {'input_shape': [-1, -1, -1, -1]}
+					self.ins[node_name] = Fluid_edger('_In', in_node_name)
+					self.outs[in_node_name] = Fluid_edger('_Out', node_name)
+					self._AddProtoNode(in_node_name, None, helper, private_data, 'feed')
 
 	def _IntegrateNodes(self, main_op, main_node_name, sec_node_name, helper, private_data):
 		# Merge secondary nodes to the primary node and process the edges.
