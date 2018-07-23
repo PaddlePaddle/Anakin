@@ -762,26 +762,30 @@ class FluidParser:
 					self._RmProtoNode(bn_node_name)
 					self._AddProtoNode(bn_node_name, source_op, helper, {}, 'disc_bn')
 
-	def _InsertCommonLayer(self,
-						   source_ops,
-						   in_target,
-						   in_param,
-						   out_target,
-						   out_param,
-						   layer_type,
-						   private_data,
-						   helper):
-
-		if in_target in self.ins[out_target].all_targets() and \
-		out_target in self.outs[in_target].all_targets():
-			main_layer = layer_type + '_after_' + in_target
-			self.ins[out_target].mv(in_target, main_layer)
-			self.outs[in_target].mv(out_target, main_layer)
-			self.ins[main_layer] = Fluid_edger(in_param, in_target)
-			self.outs[main_layer] = Fluid_edger(out_param, out_target)
-			self._AddProtoNode(main_layer, None, helper, private_data, layer_type)
+	def _NewCommonLayer(self,
+						source_ops,
+						in_target,
+						in_param,
+						out_target,
+						out_param,
+						layer_type,
+						private_data,
+						helper,
+						insert_mode = True):
+		main_layer = layer_type + '_after_' + in_target
+		if insert_mode is True:
+			if in_target in self.ins[out_target].all_targets() and \
+			out_target in self.outs[in_target].all_targets():
+				self.ins[out_target].mv(in_target, main_layer)
+				self.outs[in_target].mv(out_target, main_layer)
+			else:
+				raise NameError('ERROR: Usage of InsertCommonLayer has not supported.')
 		else:
-			raise NameError('ERROR: Usage of InsertCommonLayer has not supported.')
+			self.ins[out_target].add(in_param + '_insert', main_layer)
+			self.outs[in_target].add(out_param + '_insert', main_layer)
+		self.ins[main_layer] = Fluid_edger(in_param, in_target)
+		self.outs[main_layer] = Fluid_edger(out_param, out_target)
+		self._AddProtoNode(main_layer, None, helper, private_data, layer_type)
 
 	def _ParseNetwork(self, source_ops, helper):
 		self._ParseBase(source_ops, helper)
