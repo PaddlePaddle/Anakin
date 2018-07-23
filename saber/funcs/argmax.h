@@ -64,6 +64,18 @@ public:
 
         //! support inplace computation, output shape = input shape
 
+        int top_k = param.top_k;
+        bool out_max_val = param.out_max_val;
+        bool has_axis = param.has_axis;
+        int axis = param.axis;
+        CHECK_GE(top_k, 1) << "top k must not less than 1.";
+        if(has_axis){
+           CHECK_GE(axis, 0) << "axis must not less than 0.";
+           CHECK_LE(axis, input[0]->dims()) << "axis must be less than or equal to the number od dims.";
+           CHECK_LE(top_k, input[0]->valid_shape()[axis]) << "top_k must be less than or equal to the dimension of the axis.";
+        } else{
+           CHECK_LE(top_k, input[0]->count(1, input[0]->dims())) << "top_k must be less than or equal to the dimension of input.";
+        }
         int num_top_axes = input[0]->dims();
         if(num_top_axes < 3) num_top_axes = 3;
         Shape output_shape({1, 1, 1, 1}, Layout_NCHW);
