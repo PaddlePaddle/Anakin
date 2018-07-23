@@ -45,7 +45,7 @@ void conv_basic_check(Tensor<targetType> &tensor_in,Tensor<targetType> &tensor_o
     int out_c_group = out_channels / group;
     int in_c_group = in_channel / group;
 
-#pragma omp parallel for num_threads(40) collapse(5) schedule(static)
+#pragma omp parallel for num_threads(8) collapse(5) schedule(static)
     for (int n = 0; n < in_num; ++n) {
         for (int g = 0; g < group; ++g) {
             for (int oc = 0; oc < out_c_group; ++oc) {
@@ -58,8 +58,8 @@ void conv_basic_check(Tensor<targetType> &tensor_in,Tensor<targetType> &tensor_o
                         for (int ic = 0; ic < in_c_group; ++ic) {
                             for (int kh = 0; kh < kernel_h; ++kh) {
                                 for (int kw = 0; kw < kernel_w; ++kw) {
-                                    int iw = ow * stride_w - pad_w + kw * (1 + dilation_h);
-                                    int ih = oh * stride_h - pad_h + kh * (1 + dilation_w);
+                                    int iw = ow * stride_w - pad_w + kw * (dilation_w);
+                                    int ih = oh * stride_h - pad_h + kh * (dilation_h);
                                     if (iw < 0 || iw >= in_w) continue;
                                     if (ih < 0 || ih >= in_h) continue;
 
