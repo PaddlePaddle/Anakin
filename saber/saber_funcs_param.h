@@ -93,8 +93,6 @@ struct ActivationParam {
     float negative_slope;
     float coef;
     PreluParam<TargetType> prelu_param;
-//<<<<<<< HEAD
-//=======
 };
 
 template <typename TargetType>
@@ -188,7 +186,7 @@ struct ConvParam {
 private:
     Tensor<TargetType>* weight_tensor;
     Tensor<TargetType>* bias_tensor;
-//>>>>>>> upstream/dev_v2
+
 };
 
 template <typename TargetType>

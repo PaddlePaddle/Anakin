@@ -116,9 +116,6 @@ private:
     int _channels;
     int _dims;
     int _channel_stride;
-    //Tensor<NV, AK_INT32, NCHW> _input_stride;
-    //Tensor<NV, AK_INT32, NCHW> _output_stride;
-    //Tensor<NV, AK_INT32, NCHW> _valid_shape;
     //todo:
     Tensor<NV> _input_stride;
     Tensor<NV> _output_stride;

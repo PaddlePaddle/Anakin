@@ -10,8 +10,8 @@
 using namespace anakin::saber;
 
 template <typename dtype>
-void norm_cpu_nchw(int& p, const dtype* scale, const dtype* src, dtype* dst, \
-                   bool& across_spatial, bool& has_scale,bool& channel_shared, float eps, \
+void norm_cpu_nchw(int p, const dtype* scale, const dtype* src, dtype* dst, \
+                   bool across_spatial, bool has_scale,bool channel_shared, float eps, \
                    int n, int c, int h, int w) {
 
     const dtype* src_ptr = src;
@@ -37,7 +37,7 @@ void norm_cpu_nchw(int& p, const dtype* scale, const dtype* src, dtype* dst, \
             if (p == 1) {
                 sum = 1 / (sum + eps);
             } else {
-                sum = 1 / (sqrtf(sum) + eps);
+                sum = 1 / sqrtf(sum+eps);
             }
 
             if (has_scale) { //! with scale
@@ -69,8 +69,8 @@ void norm_cpu_nchw(int& p, const dtype* scale, const dtype* src, dtype* dst, \
 
             for (int j = 0; j < h; ++j) {
                 for (int k = 0; k < w; ++k) {
-                    const dtype* src_pixel = src_batch_ptr + 0 * channel_in_size + j * w + k;
-                    dtype* dst_pixel = dst_batch_ptr + 0 * channel_in_size + j * w + k;
+                    const dtype* src_pixel = src_batch_ptr + j * w + k;
+                    dtype* dst_pixel = dst_batch_ptr  + j * w + k;
                     float norm = 0.f;
 
                     for (int l = 0; l < c; ++l) {
@@ -84,7 +84,7 @@ void norm_cpu_nchw(int& p, const dtype* scale, const dtype* src, dtype* dst, \
                     if (p == 1) {
                         norm = 1.f / (norm + eps);
                     } else {
-                        norm = 1.f / (sqrtf(norm) + eps);
+                        norm = 1.f / sqrtf(norm+eps);
                     }
 
                     for (int l = 0; l < c; ++l) {
@@ -108,8 +108,9 @@ void norm_cpu_nchw(int& p, const dtype* scale, const dtype* src, dtype* dst, \
 }
 
 template <typename TargetType,typename TargetType_H>
-SaberStatus test_norm_continue_nchw(int& p, bool& across_spatial, \
-                                    bool& has_scale,bool& channel_shared) {
+SaberStatus test_norm_continue_nchw(int p, bool across_spatial, bool has_scale,bool channel_shared,\
+                            int w_in,int h_in,int ch_in,int num_in)
+{
     
     typedef TargetWrapper<TargetType> API;
     typedef Tensor<TargetType> TensorD;
@@ -118,11 +119,7 @@ SaberStatus test_norm_continue_nchw(int& p, bool& across_spatial, \
     int test_iter = 100;
     float eps = 1e-6f;
 
-    int w_in = 128;
-    int h_in = 128;
-    int ch_in = 64;
-    int num_in = 1;
-    LOG(INFO) << " input tensor size, num=" << num_in << ", channel=" << \
+    //LOG(INFO) << " input tensor size, num=" << num_in << ", channel=" << \
               ch_in << ", height=" << h_in << ", width=" << w_in;
 
     //! create normalize param
@@ -146,19 +143,19 @@ SaberStatus test_norm_continue_nchw(int& p, bool& across_spatial, \
         param = param_tmp;
     }
 
-    LOG(INFO) << "create normalize param";
+    //LOG(INFO) << "create normalize param";
 
     //! create input output tensor
     Shape shape_in({num_in, ch_in, h_in, w_in});
     Shape shape_out = shape_in;
 
-    std::vector<TensorD*> input_dev_4d;
-    std::vector<TensorD*> output_dev_4d;
+    std::vector<TensorD*> input_dev;
+    std::vector<TensorD*> output_dev;
 
-    Tensor<TargetType_H> thin(shape_in), thout(shape_in);
+    Tensor<TargetType_H> thin(shape_in), thout(shape_out);
 
     for (int i = 0; i < thin.size(); ++i) {
-        static_cast<dtype*>(thin.mutable_data())[i] = 1;//-i + thin.size() / 2 / ch_in;/**/
+        static_cast<dtype*>(thin.mutable_data())[i] = 1;
     }
 
     TensorD tdin, tdout;
@@ -167,222 +164,118 @@ SaberStatus test_norm_continue_nchw(int& p, bool& across_spatial, \
 #ifdef USE_CUDA
     CUDA_POST_KERNEL_CHECK;
 #endif
-    input_dev_4d.push_back(&tdin);
-    output_dev_4d.push_back(&tdout);
-    //print_tensor_device(tdin);
-    //cudaDeviceSynchronize();
-    //CUDA_POST_KERNEL_CHECK;
+    input_dev.push_back(&tdin);
+    output_dev.push_back(&tdout);
+    
     //! create process contex
-    Context<TargetType> ctx_dev(0, 1, 1);/*context.h:105*/
+    Context<TargetType> ctx_dev(0, 1, 1);
 
     //! create normalize class
-    Normalize<TargetType,AK_FLOAT> norm;/**/
-    LOG(INFO) << "normalize compute ouput shape";
-    SABER_CHECK(norm.compute_output_shape(input_dev_4d, output_dev_4d, param));/**/
-    //LOG(INFO) << "re-alloc tensor buffer";
-    //output_dev_4d[0]->re_alloc(output_dev_4d[0]->valid_shape());
-    output_dev_4d[0]->re_alloc(output_dev_4d[0]->valid_shape(),AK_FLOAT);
+    Normalize<TargetType,AK_FLOAT> norm;
+    //LOG(INFO) << "normalize compute ouput shape";
+    SABER_CHECK(norm.compute_output_shape(input_dev, output_dev, param));
+    
+    output_dev[0]->re_alloc(output_dev[0]->valid_shape(),AK_FLOAT);
     
     Shape va_sh = tdout.valid_shape();
-    LOG(INFO) << "shape out 4d: " << va_sh[0] << ", " << va_sh[1] << ", " << \
-              va_sh[2] << ", " << va_sh[3];
+    //LOG(INFO) << "shape out 4d: " << va_sh[0] << ", " << va_sh[1] << ", " << va_sh[2] << ", " << va_sh[3];
     CHECK_EQ(va_sh == shape_out, true) << "compute output shape error";
 
-    LOG(INFO) << "normalize initialization";
-    SABER_CHECK(norm.init(input_dev_4d, output_dev_4d, param, SPECIFY, SABER_IMPL, ctx_dev));
+    //LOG(INFO) << "normalize initialization";
+    SABER_CHECK(norm.init(input_dev, output_dev, param, SPECIFY, SABER_IMPL, ctx_dev));
 
-    LOG(INFO) << "normalize compute";
+    //LOG(INFO) << "normalize compute";
     //! compute result by cpu funcs
     norm_cpu_nchw(p, static_cast<dtype*>(th_scale.data()), static_cast<dtype*>(thin.data()), static_cast<dtype*>(thout.mutable_data()), \
                   across_spatial, has_scale, channel_shared, eps, num_in, ch_in, h_in, w_in);
-    //print_tensor_host(thout);
+    
     SaberTimer<TargetType> t1;
     t1.clear();
     t1.start(ctx_dev);
 
     for (int i = 0; i < test_iter; ++i) {
-        SABER_CHECK(norm(input_dev_4d, output_dev_4d, param, ctx_dev));
+        SABER_CHECK(norm(input_dev, output_dev, param, ctx_dev));
         //output_dev_4d[0]->record_event(ctx_dev.get_compute_stream());/**/
         typename TensorD::API::stream_t stream = ctx_dev.get_compute_stream();
-        output_dev_4d[0]->record_event(stream);
-        output_dev_4d[0]->sync();
+        output_dev[0]->record_event(stream);
+        output_dev[0]->sync();
     }
 #ifdef USE_CUDA
     CUDA_POST_KERNEL_CHECK;
 #endif
     t1.end(ctx_dev);
     float ts = t1.get_average_ms();
-    LOG(INFO) << "total time: " << ts << ", avg time: " << ts / test_iter;
-    //print_tensor_device(*output_dev_4d[0]);
-    //cudaDeviceSynchronize();
-
+    
     Tensor<TargetType_H> th_result(shape_in);
     th_result.copy_from(tdout);
     double max_ratio = 0;
     double max_diff = 0;
     tensor_cmp_host<float>(static_cast<float*>(thout.data()), static_cast<float*>(th_result.data()), thout.valid_size(), max_ratio, max_diff);
-    LOG(INFO) << "compare result, max diff: " << max_diff << ", max ratio: " << max_ratio;
-    //CHECK_LE(fabs(max_ratio), 1.0e-6) << "error result";
-    LOG(INFO) << "\n";
-    if(max_ratio<0.001)
-        LOG(INFO)<<"Normalize TEST PASS!!!"<<"\n";
-    else
-        LOG(INFO)<<"Normalize TEST FAILED!!!"<<"\n";
+    //LOG(INFO) << "total time: " << ts << ", avg time: " << ts / test_iter;
+    //LOG(INFO) << "compare result, max diff: " << max_diff << ", max ratio: " << max_ratio;
+    
+   // LOG(INFO) << "\n";
+    if(max_ratio<=0.000001){
+        //LOG(INFO)<<"TEST PASSED!!!"<<"\n";
+        return SaberSuccess;
+    }
+    else{
+        //LOG(INFO)<<"TEST FAILED!!!"<<"\n";
+        return SaberUnKownError;
+    }
     return SaberSuccess;
 }
 
-TEST(TestSaberFunc, test_func_normalize_without_roi) {
-    for (bool sp_flag : {
-                false, true
-            }) {
-        for (bool scale_flag : {
-                    false
-                }) {
-            for (bool channel_flag : {
-                        false, true
-                    }) {
-                for (int p : {
-                            1, 2
-                        }) {
-                    LOG(WARNING) << "across spatio: " << sp_flag << ", has scale: " << \
-                                 scale_flag << ", shared channel: " << channel_flag << ", p:" << p;
-                                #ifdef USE_CUDA
-                    Env<NV>::env_init();
-                    Env<NVHX86>::env_init();
-                    test_norm_continue_nchw<NV,NVHX86>(p, sp_flag, scale_flag, channel_flag);
-                                #endif
-                                #ifdef USE_X86_PLACE
-                    Env<X86>::env_init();
-                    test_norm_continue_nchw<X86,X86>(p, sp_flag, scale_flag, channel_flag);
-                                #endif
+TEST(TestSaberFunc, test_func_normalize) {
+    bool scale_flag=false;
+    int total_count=2 * 2 * 2 * 3 * 3 * 2 * 2;
+    int pass_count=0;
+    for (bool sp_flag : {false, true}) {
+            for (bool channel_flag : {false, true}) {
+                for (int p : {1, 2}) {
+                    for(int w_in:{64,128,256}){
+                        for(int h_in: {64,128,256}){
+                            for(int ch_in:{32,64}){
+                                for(int num_in:{1,2}){
+                        
+                                    LOG(WARNING) << "across spatio: " << sp_flag << ", has scale: " << \
+                                    scale_flag << ", shared channel: " << channel_flag << ", p:" << p;
+                                                            #ifdef USE_CUDA
+                                    Env<NV>::env_init();
+                                    Env<NVHX86>::env_init();
+                                    SaberStatus status=test_norm_continue_nchw<NV,NVHX86>(p, sp_flag, scale_flag, channel_flag,w_in,h_in,ch_in,num_in);
+                                                            #endif
+                                                            #ifdef USE_X86_PLACE
+                                    Env<X86>::env_init();
+                                    SaberStatus status=test_norm_continue_nchw<X86,X86>(p, sp_flag, scale_flag, channel_flag,w_in,h_in,ch_in,num_in);
+                                                            #endif
+                                    if(status==SaberUnKownError)
+                                    {
+                                        LOG(INFO)<<"TEST FAILED!!!"<<"\n";
+                                        LOG(INFO) << " input tensor size, num=" << num_in << ", channel=" << \
+                                                                    ch_in << ", height=" << h_in << ", width=" << w_in;
+                                        
+                                        //LOG(INFO) << "total time: " << ts << ", avg time: " << ts / test_iter;
+                                        
+                                    }
+                                    else
+                                    {
+                                        LOG(INFO)<<"TEST PASSED!!!"<<"\n";
+                                        ++pass_count;
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
-        }
+        
     }
-}
-
-#if 0
-TEST(TestSaberFunc, test_func_normalize_ROI) {
-
-    typedef TargetWrapper<NV> API;
-
-    typedef Tensor<NV> TensorD;
-
-    //typedef TensorDf4::Dtype dtype;
-    //typedef DataTrait<NV,AK_FLOAT>::Dtype dtype;
-    typedef float dtype;
+    LOG(INFO)<<"Tested total "<<total_count<<"\n";
+    LOG(INFO)<<"Passed "<<pass_count<<"\n";
     
-    int test_iter = 1000;
-
-    int w_in = 10;
-    int h_in = 4;
-    int ch_in = 2;
-    int num_in = 1;
-
-    Shape shape_in({num_in, ch_in, h_in, w_in});
-    Shape shape_in_roi({num_in, ch_in, h_in / 2, w_in / 2});
-    Shape off1({0, 0, 0, 0});
-    Shape off2({0, 0, 2, 5});
-    Shape shape_out = shape_in_roi;
-
-    Shape sh_slope({1, 1, 1, ch_in});
-    Tensor<NVHX86> th_slope(sh_slope);
-    TensorD tslop(sh_slope);
-
-    for (int i = 0; i < ch_in; ++i) {
-        static_cast<dtype*>(th_slope.mutable_data())[i] = 0.1f * (i + 1);
-    }
-
-    tslop.copy_from(th_slope);
-
-    PreluParam<TensorD> param_shared(true, &tslop);
-    PreluParam<TensorD> param(false, &tslop);
-
-    LOG(INFO) << " input tensor size, num=" << num_in << ", channel=" << \
-              ch_in << ", height=" << h_in << ", width=" << w_in;
-
-    std::vector<TensorD*> in_4d1, in_4d2;
-    std::vector<TensorD*> out_4d1, out_4d2;
-
-    Tensor<NVHX86> thin(shape_in);
-
-    for (int i = 0; i < thin.size(); ++i) {
-        static_cast<dtype*>(thin.mutable_data())[i] = -i + thin.size() / 2 / ch_in;
-    }
-
-    TensorD tdin, tdin_roi1, tdin_roi2, tdout, tdout_roi1, tdout_roi2;
-    tdin.re_alloc(shape_in,AK_FLOAT);
-    tdout.re_alloc(shape_in,AK_FLOAT);
-    tdin.copy_from(thin);
-    tdin_roi1.share_sub_buffer(tdin, shape_in_roi, off1);
-    tdin_roi2.share_sub_buffer(tdin, shape_in_roi, off2);
-    in_4d1.push_back(&tdin_roi1);
-    in_4d2.push_back(&tdin_roi2);
-    out_4d1.push_back(&tdout_roi1);
-    out_4d2.push_back(&tdout_roi2);
-
-    // start Reshape & doInfer
-    Context<NV> ctx_dev(0, 1, 1);
-
-    //not sure yet
-    //Prelu<NV, AK_FLOAT> prelu_dev1;
-    //Prelu<NV, AK_FLOAT> prelu_dev2;
-    Prelu<NV> prelu_dev1;
-    Prelu<NV> prelu_dev2;
-
-    LOG(INFO) << "shape out 4d: " << shape_out[0] << ", " << shape_out[1] << ", " << \
-              shape_out[2] << ", " << shape_out[3];
-
-    prelu_dev1.compute_output_shape(out_4d1, in_4d1, param);
-    prelu_dev2.compute_output_shape(out_4d2, in_4d2, param_shared);
-
-    LOG(INFO) << "re-alloc tensor buffer";
-    out_4d1[0]->share_sub_buffer(tdout, shape_in_roi, off1);
-    out_4d2[0]->share_sub_buffer(tdout, shape_in_roi, off2);
-
-    CHECK_EQ(out_4d1[0]->valid_shape() == shape_out, true) << "compute shape error";
-
-    LOG(INFO) << "prelu initialization";
-    prelu_dev1.init(in_4d1, out_4d1, param, SPECIFY, SABER_IMPL, ctx_dev);
-    prelu_dev2.init(in_4d2, out_4d2, param_shared, SPECIFY, SABER_IMPL, ctx_dev);
-
-    LOG(INFO) << "prelu compute";
-    SaberTimer<NV> t1;
-    t1.clear();
-    t1.start(ctx_dev);
-
-    for (int i = 0; i < test_iter; ++i) {
-        prelu_dev1(in_4d1, out_4d1, param, ctx_dev);
-        out_4d1[0]->record_event(ctx_dev.get_compute_stream());
-        prelu_dev2(in_4d2, out_4d2, param_shared, ctx_dev);
-        out_4d2[0]->record_event(ctx_dev.get_compute_stream());
-        out_4d1[0]->sync();
-        out_4d2[0]->sync();
-    }
-#ifdef USE_CUDA
-    CUDA_POST_KERNEL_CHECK;
-#endif
-    t1.end(ctx_dev);
-    float ts = t1.get_average_ms();
-    printf("total time : %.4f, avg time : %.4f\n", ts, ts / test_iter);
-    print_tensor_device(tdout);
-#ifdef USE_CUDA
-    cudaDeviceSynchronize();
-#endif
-    TensorD troi(out_4d1[0]->valid_shape());
-    troi.copy_from(*out_4d1[0]);
-    print_tensor_device(troi);
-#ifdef USE_CUDA
-    cudaDeviceSynchronize();
-#endif
-    troi.copy_from(*out_4d2[0]);
-    print_tensor_device(troi);
-#ifdef USE_CUDA
-    CUDA_POST_KERNEL_CHECK;
-    cudaDeviceSynchronize();
-#endif
 }
-#endif //if 0
+
 int main(int argc, const char** argv) {
     // initial logger
     //logger::init(argv[0]);
