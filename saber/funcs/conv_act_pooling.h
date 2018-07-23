@@ -18,6 +18,7 @@
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/funcs/funcs_utils.h"
+#include "saber/funcs/impl/impl_conv_act_pooling.h"
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_conv_act_pooling.h"
 #include "saber/funcs/impl/cuda/vender_conv_act_pooling.h"

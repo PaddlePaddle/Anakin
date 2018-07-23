@@ -17,7 +17,7 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
-
+#include "saber/funcs/impl/impl_axpy.h"
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_axpy.h"
 #endif

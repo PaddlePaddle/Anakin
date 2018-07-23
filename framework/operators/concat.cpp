@@ -52,7 +52,7 @@ template class ConcatHelper<ARM, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Concat, ConcatHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
 
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 INSTANCE_CONCAT(X86, AK_FLOAT, Precision::FP32);
 template class ConcatHelper<X86, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Concat, ConcatHelper, X86, AK_FLOAT, Precision::FP32);
@@ -67,7 +67,7 @@ ANAKIN_REGISTER_OP(Concat)
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("concat")
 #endif
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 .__alias__<X86, AK_FLOAT, Precision::FP32>("concat")
 #endif
 .num_in(2)

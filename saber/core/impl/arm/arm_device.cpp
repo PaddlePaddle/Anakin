@@ -41,8 +41,8 @@ void Device<ARM>::get_info() {
             << ", frequence: " << max_freq[_info._core_ids[i]] << " MHz" << \
             ", cluster ID: " << _info._cluster_ids[_info._core_ids[i]];
     }
-    //LOG(INFO) << "L1 DataCache size: " << L1_cache << "B";
-    //LOG(INFO) << "L2 Cache size: " << L2_cache << "B";
+    LOG(WARNING) << "L1 DataCache size is unknown, manually set L1 DataCache size: " << _info._L1_cache << "B";
+    LOG(WARNING) << "L2 DataCache size is unknown, manually set L2 DataCache size: " << _info._L2_cache << "B";
     LOG(INFO) << "Total memory: " << _info._max_memory << "kB";
 
     _info._max_frequence = max_freq[0];
@@ -55,7 +55,11 @@ void Device<ARM>::get_info() {
 
 template <>
 void Context<ARM>::bind_dev() {
-    set_cpu_affinity(_act_ids);
+#ifdef USE_OPENMP
+    omp_set_dynamic(0);
+    omp_set_num_threads(_act_ids.size());
+#endif
+    //set_cpu_affinity(_act_ids);
 }
 
 template <>
@@ -74,6 +78,7 @@ void Context<ARM>::set_run_mode(PowerMode mode, int threads) {
     if (threads > big_core_size + small_core_size) {
         threads = big_core_size + small_core_size;
     }
+
     switch (mode) {
         case SABER_POWER_FULL:
             _mode = mode;
@@ -137,8 +142,13 @@ void Context<ARM>::set_run_mode(PowerMode mode, int threads) {
             }
             break;
     }
-
-    bind_dev();
+    LOG(INFO) << "run mode: " << (int)_mode;
+    LOG(INFO) << "thread num: " << _act_ids.size();
+    for (int j = 0; j < _act_ids.size(); ++j) {
+        LOG(INFO) << "|----active id: " << _act_ids[j];
+    }
+    //bind_dev();
+    set_cpu_affinity(_act_ids);
 }
 
 template <>

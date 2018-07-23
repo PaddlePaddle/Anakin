@@ -55,10 +55,13 @@ void fill_tensor_rand(Tensor<ttype, dtype>& tensor, \
  *  \param tensor  The reference of input tensor.
  */
 template <ARMType ttype, DataType dtype>
-void print_tensor(Tensor<ttype, dtype>& tensor);
+void print_tensor(const Tensor<ttype, dtype>& tensor);
 
 template <ARMType ttype, DataType dtype>
-void print_tensor_valid(Tensor<ttype, dtype>& tensor);
+void print_tensor_valid(const Tensor<ttype, dtype>& tensor);
+
+template <ARMType ttype, DataType dtype>
+double tensor_mean(const Tensor<ttype, dtype>& tensor);
 
 template <typename Dtype>
 void tensor_cmp_host(const Dtype* src1, const Dtype* src2, int size, double& max_ratio, double& max_diff);

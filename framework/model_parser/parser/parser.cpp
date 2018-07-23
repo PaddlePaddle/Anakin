@@ -289,7 +289,7 @@ Status save<NV, AK_FLOAT, Precision::INT8>(graph::Graph<NV, AK_FLOAT, Precision:
         const char* model_path);
 #endif
 
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 template
 Status load<X86, AK_FLOAT, Precision::FP32>(graph::Graph<X86, AK_FLOAT, Precision::FP32>* graph,
         const char* model_path);
@@ -377,10 +377,7 @@ Status save<ARM, AK_FLOAT, Precision::INT8>(graph::Graph<ARM, AK_FLOAT, Precisio
                                                     const char* model_path);
 #endif
 
-#endif
-
-
-
+#endif //USE_ARM_PLACE
 
 } /* parser */
 

@@ -26,7 +26,7 @@ namespace anakin {
 template<EnumReqType ReqT>
 struct EnumReqTyptify {
     typedef void type;
-    const std::string info = type_id<type>::type_info();
+    const std::string info;// = type_id<type>::type_info();
 };
 
 /// OFFSET map to tensor type.

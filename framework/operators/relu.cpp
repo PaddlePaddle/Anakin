@@ -53,7 +53,7 @@ Status ReLUHelper<NV, AK_FLOAT, Precision::FP32>::Init(OpContext<NV> &ctx,
 ANAKIN_REGISTER_OP_HELPER(ReLU, ReLUHelper, NV, AK_FLOAT, Precision::FP32);
 #endif
 
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 INSTANCE_RELU(X86, AK_FLOAT, Precision::FP32);
 template class ReLUHelper<X86, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ReLU, ReLUHelper, X86, AK_FLOAT, Precision::FP32);
@@ -74,7 +74,7 @@ ANAKIN_REGISTER_OP(ReLU)
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("Relu")
 #endif
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 .__alias__<X86, AK_FLOAT, Precision::FP32>("Relu")
 #endif
 .num_in(1)

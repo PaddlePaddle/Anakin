@@ -25,6 +25,13 @@ int FLAGS_num = 1;
 int FLAGS_warmup_iter = 10;
 int FLAGS_epoch = 10;
 int FLAGS_threads = 1;
+int FLAGS_cluster = 0;
+#endif
+
+#define WRITE_RESULT 1
+#if WRITE_RESULT
+#include <fstream>
+FILE *fp = fopen("benchmark_result.txt", "w+");
 #endif
 
 using Target = ARM;
@@ -52,7 +59,7 @@ TEST(NetTest, net_execute_base_test) {
 
     std::shared_ptr<Context<ARM>> ctx1 = std::make_shared<Context<ARM>>();
 
-    ctx1->set_run_mode(SABER_POWER_HIGH, FLAGS_threads);
+    ctx1->set_run_mode((PowerMode)FLAGS_cluster, FLAGS_threads);
 
     LOG(INFO) << "test threads activated";
 #pragma omp parallel
@@ -69,8 +76,7 @@ TEST(NetTest, net_execute_base_test) {
     } else {
         models.push_back(FLAGS_model_dir + FLAGS_model_file);
     }
-    for (auto iter = models.begin(); iter < models.end(); iter++)
-    {
+    for (auto iter = models.begin(); iter < models.end(); iter++) {
         LOG(WARNING) << "load anakin model file from " << *iter << " ...";
         Graph<Target, AK_FLOAT, Precision::FP32> graph;   
         auto status = graph.load(*iter);
@@ -81,6 +87,11 @@ TEST(NetTest, net_execute_base_test) {
         graph.ResetBatchSize("input_0", FLAGS_num);
         LOG(INFO) << "optimize the graph";
         graph.Optimize();
+
+        //! get output name
+        std::vector<std::string>& vout_name = graph.get_outs();
+        LOG(INFO) << "output size: " << vout_name.size();
+
         // constructs the executer net
         LOG(INFO) << "create net to execute";
         Net<Target, AK_FLOAT, Precision::FP32, OpRunType::SYNC> net_executer(graph, ctx1, true);
@@ -93,7 +104,8 @@ TEST(NetTest, net_execute_base_test) {
             LOG(INFO) << "detect input dims[" << i << "]" << valid_shape_in[i];
         }
         h_tensor_in.re_alloc(valid_shape_in);
-        fill_tensor_host_rand(h_tensor_in, -1.0f,1.0f);
+        //fill_tensor_host_rand(h_tensor_in, -1.0f,1.0f);
+        fill_tensor_host_const(h_tensor_in, 1.f);
         d_tensor_in_p->copy_from(h_tensor_in);
         // do inference
         Context<Target> ctx(0, 0, 0);
@@ -111,6 +123,7 @@ TEST(NetTest, net_execute_base_test) {
         my_time.start(ctx);
         saber::SaberTimer<Target> t1;
         for (int i = 0; i < FLAGS_epoch; i++) {
+            d_tensor_in_p->copy_from(h_tensor_in);
             t1.clear();
             t1.start(ctx);
             net_executer.prediction();
@@ -152,6 +165,26 @@ TEST(NetTest, net_execute_base_test) {
         LOG(INFO) << model_name << " batch_size " << FLAGS_num << " average time " << to/ FLAGS_epoch << \
             ", min time: " << tmin << "ms, max time: " << tmax << " ms";
        //my_time.get_average_ms() / FLAGS_epoch << " ms";
+
+        std::vector<Tensor4d<Target_H, AK_FLOAT>*> vout;
+        for (auto& it : vout_name) {
+            vout.push_back(net_executer.get_out(it));
+        }
+        Tensor4d<Target_H, AK_FLOAT>* tensor_out = vout[0];
+        LOG(INFO) << "output size: " << vout.size();
+
+#if WRITE_RESULT //print output tensor data
+        LOG(INFO) << "extract data: size: " << tensor_out->valid_size() << \
+            ", width=" << tensor_out->width() << ", height=" << tensor_out->height();
+        const float* ptr_out = tensor_out->data();
+        double mean_val = 0.0;
+        for (int i = 0; i < tensor_out->valid_size(); i++) {
+            mean_val += ptr_out[i];
+            fprintf(fp, "%.6f\n", ptr_out[i]);
+        }
+        LOG(INFO) << "output mean val: " << mean_val / tensor_out->valid_size();
+        fclose(fp);
+#endif
     }
 }
 int main(int argc, const char** argv){
@@ -169,7 +202,9 @@ int main(int argc, const char** argv){
     LOG(INFO)<< "   model_file:     path to model";
     LOG(INFO)<< "   num:            batchSize default to 1";
     LOG(INFO)<< "   warmup_iter:    warm up iterations default to 10";
-    LOG(INFO)<< "   epoch:          time statistic epoch default to 1000";
+    LOG(INFO)<< "   epoch:          time statistic epoch default to 10";
+    LOG(INFO)<< "   cluster:        choose which cluster to run, 0: big cores, 1: small cores";
+    LOG(INFO)<< "   threads:        set openmp threads";
     if(argc < 3) {
         LOG(ERROR) << "You should fill in the variable model_dir and model_file at least.";
         return 0;
@@ -188,7 +223,16 @@ int main(int argc, const char** argv){
         FLAGS_epoch = atoi(argv[5]);
     }
     if(argc > 6) {
-        FLAGS_threads = atoi(argv[6]);
+        FLAGS_cluster = atoi(argv[6]);
+        if (FLAGS_cluster < 0) {
+            FLAGS_cluster = 0;
+        }
+        if (FLAGS_cluster > 1) {
+            FLAGS_cluster = 1;
+        }
+    }
+    if(argc > 7) {
+        FLAGS_threads = atoi(argv[7]);
     }
 #endif
     InitTest();

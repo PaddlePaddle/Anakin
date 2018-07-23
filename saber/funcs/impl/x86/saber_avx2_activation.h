@@ -18,6 +18,7 @@ static inline __m256 _mm256_expfaster_ps(const __m256 &a) {
 
 inline __m256 InValidAct(__m256 a) {
     CHECK_EQ(0,1)<<"InValidAct";
+    return a;
 }
 
 inline __m256 Exp_fast(__m256 a) {

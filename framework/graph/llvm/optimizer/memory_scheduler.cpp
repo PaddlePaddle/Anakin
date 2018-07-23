@@ -150,6 +150,7 @@ bool IOBlockResource::is_locked(io& io_in) {
 			++it;
 		}
 	}
+    return false;
 }
 
 void IOBlockResource::map_ios_to_vgraph(std::vector<io>& io_vec, VGraph* vgraph_p) {
