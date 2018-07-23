@@ -573,35 +573,47 @@ class FluidParser:
 		for source_op in source_ops:
 			if source_op.type == 'lstm':
 				private_data = {}
-				lstm_flags = [True, False, False]
+				lstm_flags = [False, False]
 				lstm_node_name = self._NameNodeMid(source_op)
 				lstm_op = self._GetOp(source_ops, lstm_node_name)
 				input_list_of_lstm = self.ins[lstm_node_name].targets('Input')
-				if lstm_flags[0] is True and len(input_list_of_lstm) == 1:
+				input_list = []
+				if len(input_list_of_lstm) == 1:
+					in_lstm_node_name = input_list_of_lstm[0]
 					if input_list_of_lstm[0].split('#')[0] == 'elementwise_add':
-						elt_node_name = input_list_of_lstm[0]
-						elt_op = self._GetOp(source_ops, elt_node_name)
+						elt_op = self._GetOp(source_ops, in_lstm_node_name)
 						has_weights = helper.is_persistable_param(elt_op, 'Y')
 						if has_weights is True:
 							private_data['np_flat_fc_bias'] = helper.np_param(elt_op, 'Y')
-							lstm_flags[1] = True
-						input_list_of_elt = self.ins[elt_node_name].targets('X')
-				if lstm_flags[1] is True and len(input_list_of_elt) == 1:
-					if input_list_of_elt[0].split('#')[0] == 'mul':
-						mul_node_name = input_list_of_elt[0]
+							lstm_flags[0] = True
+						input_list = self.ins[in_lstm_node_name].targets('X')
+					elif input_list_of_lstm[0].split('#')[0] == 'mul':
+						private_data['np_flat_fc_bias'] = None
+						input_list = input_list_of_lstm
+						lstm_flags[0] = True
+				if lstm_flags[0] is True and len(input_list) == 1:
+					if input_list[0].split('#')[0] == 'mul':
+						mul_node_name = input_list[0]
 						mul_op = self._GetOp(source_ops, mul_node_name)
 						if helper.var_name_by_param(mul_op, 'Y').startswith('fc'):
 							if helper.attr_data(mul_op, 'x_num_col_dims') == 1:
 								input_list_of_mul = self.ins[mul_node_name].targets('X')
 								input_name_of_mul = input_list_of_mul[0]
-								private_data['np_flat_fc_weight'] = helper.np_param(mul_op, 'Y')
-								lstm_flags[2] = True
+								[w_np, w_sh] = helper.data_with_shape_by_param(mul_op, 'Y', \
+									False, None, 0, False)
+								private_data['np_flat_fc_weight'] = w_np
+								private_data['np_fc_outdim'] = w_sh[3]
+								lstm_flags[1] = True
 							else:
 								raise NameError('ERROR: Axis of LSTM_FC must be 1.')
-				if lstm_flags == [True, True, True]:
+				if lstm_flags == [True, True]:
 					self.outs[input_name_of_mul].mv(mul_node_name, lstm_node_name)
-					self.ins[lstm_node_name].mv(elt_node_name, input_name_of_mul)
-					for node_to_del_name in [mul_node_name, elt_node_name, lstm_node_name]:
+					self.ins[lstm_node_name].mv(in_lstm_node_name, input_name_of_mul)
+					if in_lstm_node_name == mul_node_name:
+						nodes_to_del = [mul_node_name, lstm_node_name]
+					else:
+						nodes_to_del = [mul_node_name, in_lstm_node_name, lstm_node_name]
+					for node_to_del_name in nodes_to_del:
 						self._RmProtoNode(node_to_del_name)
 						if node_to_del_name is not lstm_node_name:
 							self._ClearEdges(node_to_del_name)
