@@ -350,7 +350,7 @@ class Fluid_helper:
 			split_fc_bc = origin_fc_b.flatten()[: 1 * layer_size]
 			split_fc_bi = origin_fc_b.flatten()[1 * layer_size : 2 * layer_size]
 			split_fc_bf = origin_fc_b.flatten()[2 * layer_size : 3 * layer_size]
-			split_fc_bo = origin_fc_b.flatten()[3 * layer_size : 4*layer_size]
+			split_fc_bo = origin_fc_b.flatten()[3 * layer_size : 4 * layer_size]
 		else:
 			split_fc_bc = np.zeros(layer_size)
 			split_fc_bi = np.zeros(layer_size)
