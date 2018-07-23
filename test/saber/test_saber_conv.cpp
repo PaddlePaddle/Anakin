@@ -13,7 +13,7 @@ void test_conv_results(int group,
                        int input_num, int in_channels, int height, int width,
                        int out_channels, int kernel_h, int kernel_w,
                        int stride_h, int stride_w, int dilation_h, int dilation_w,
-                       int pad_h, int pad_w, bool bias_term) {
+                       int pad_h, int pad_w, bool bias_term, ImplEnum imp) {
     LOG(INFO) << "conv param: "
             << " input_num = " << input_num
             << " in_channels = " << in_channels
@@ -39,7 +39,7 @@ void test_conv_results(int group,
     Tensor<TargetType_H> input_host;
     input_dev.re_alloc(input_s, AK_FLOAT);
     input_host.re_alloc(input_s, AK_FLOAT);
-    fill_tensor_rand(input_dev, -255.0, 255.0);
+    fill_tensor_rand(input_dev, -10.0f, 10.0f);
     input_host.copy_from(input_dev);
 
     // init weights Tensor
@@ -47,7 +47,7 @@ void test_conv_results(int group,
     Tensor<TargetType_H> weights_host;
     weights_dev.re_alloc(weights_s, AK_FLOAT);
     weights_host.re_alloc(weights_s, AK_FLOAT);
-    fill_tensor_rand(weights_dev, -255.0, 255.0);
+    fill_tensor_rand(weights_dev, -10.0f, 10.0f);
     weights_host.copy_from(weights_dev);
 
     Tensor<TargetType> bias_dev;
@@ -55,7 +55,7 @@ void test_conv_results(int group,
     if (bias_term) {
         bias_dev.re_alloc(bias_s, AK_FLOAT);
         bias_host.re_alloc(bias_s, AK_FLOAT);
-        fill_tensor_rand(bias_dev, -255.0, 255.0);
+        fill_tensor_rand(bias_dev, -10.0f, 10.0f);
         bias_host.copy_from(bias_dev);
     }
     Tensor<TargetType> output_dev;
@@ -76,7 +76,7 @@ void test_conv_results(int group,
     conv.compute_output_shape(input_v, output_v, param);
     output_dev.re_alloc(output_dev.valid_shape(), AK_FLOAT);
 
-    conv.init(input_v, output_v, param, SPECIFY, VENDER_IMPL, ctx1);
+    conv.init(input_v, output_v, param, SPECIFY, imp, ctx1);
     conv(input_v, output_v, param, ctx1);
 
     typename Tensor<TargetType>::API::stream_t stream = ctx1.get_compute_stream();
@@ -84,7 +84,6 @@ void test_conv_results(int group,
     output_v[0]->sync();
     output_host.re_alloc(output_dev.valid_shape(), AK_FLOAT);
     output_host.copy_from(output_dev);
-
     check_host.re_alloc(output_host.valid_shape(), AK_FLOAT);
 
     conv_basic_check<NVHX86>(input_host, check_host,
@@ -95,38 +94,77 @@ void test_conv_results(int group,
     double max_diff = 0.0;
     tensor_cmp_host((const float*)output_host.data(), (const float*)check_host.data(),
                     check_host.valid_size(), max_ratio, max_diff);
-    if (max_ratio > 0.001) {
-        LOG(INFO) << " PASS!!!";
+    if (max_ratio < 0.0001) {
+        LOG(INFO) << " PASS!!! max_ratio = " << max_ratio << " max_diff = "<< max_diff;
     } else {
-        LOG(INFO) << "FAIL!!! max_ratio = "<< max_ratio << " max_diff = "<<max_diff;
+        LOG(INFO) << "cudnn!";
+        print_tensor_valid(output_host);
+        LOG(INFO) << "check!";
+        print_tensor_valid(check_host);
+        LOG(FATAL) << "FAIL!!! max_ratio = "<< max_ratio << " max_diff = "<<max_diff;
     }
 
 }
 
 TEST(TestSaberFunc, test_saber_conv_results) {
-    int group = 4;
-    int input_num = 1;
-    int in_channels = 4;
-    int height = 16;
-    int width = 16;
-    int out_channels = 4;
-    int kernel_h = 7;
-    int kernel_w = 2;
-    int stride_h = 1;
-    int stride_w = 1;
-    int dilation_h = 1;
-    int dilation_w = 1;
-    int pad_h = 1;
-    int pad_w = 1;
-    bool bias_term = true;
+//    int pad_h;
+//    int pad_w;
     Env<NV>::env_init();
     Env<NVHX86>::env_init();
+    test_conv_results<NV, NVHX86>(1, 1, 2, 2, 2, 2, 1, 2, 1, 1,
+                                  1, 2, 0, 1, false, VENDER_IMPL);
 
-    test_conv_results<NV, NVHX86>(group,
-            input_num, in_channels, height, width,
-            out_channels, kernel_h, kernel_w,
-            stride_h, stride_w, dilation_h, dilation_w,
-            pad_h, pad_w, bias_term);
+    for (int input_num = 1; input_num <= 4; ++input_num) {
+        for (int in_channels = 4; in_channels <= 10; ++in_channels) {
+            for (int out_channels = 4; out_channels <= 10; ++out_channels) {
+                for (int kernel_h = 1; kernel_h <= 7; ++kernel_h) {
+                    for (int kernel_w = 1; kernel_w <= 7; ++kernel_w) {
+                        for (int height = 15; height <= 20; ++height) {
+                            for (int width = 15; width <= 20; ++width) {
+                                for (int stride_h = 1; stride_h <= 3; ++stride_h) {
+                                    for (int stride_w = 1; stride_w <= 3; ++stride_w) {
+                                        for (int dilation_h = 1; dilation_h <=3; ++dilation_h) {
+                                            for (int dilation_w = 1; dilation_w <= 3; ++dilation_w) {
+                                                int pad_h = kernel_h / 2;
+                                                int pad_w = kernel_w / 2;
+//                                                for (int pad_h = 0; pad_h <= 3; ++pad_h) {
+//                                                    for (int pad_w = 0; pad_w <=3; ++pad_w) {
+                                                        for (auto bias_term : {true, false}) {
+                                                            for (int group = 1; group <= std::min(in_channels, out_channels); ++group) {
+                                                                if (in_channels % group != 0) {
+                                                                    continue;
+                                                                }
+                                                                if (out_channels % group != 0) {
+                                                                    continue;
+                                                                }
+                                                                test_conv_results<NV, NVHX86>(group,
+                                                                                              input_num, in_channels,
+                                                                                              height,
+                                                                                              width,
+                                                                                              out_channels, kernel_h,
+                                                                                              kernel_w,
+                                                                                              stride_h, stride_w,
+                                                                                              dilation_h,
+                                                                                              dilation_w,
+                                                                                              pad_h, pad_w, bias_term,
+                                                                                              VENDER_IMPL);
+
+                                                            }
+                                                        }
+//                                                    }
+//                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 }
 
 TEST(TestSaberFunc, test_saber_conv_speed) {
