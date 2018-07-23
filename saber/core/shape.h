@@ -267,6 +267,41 @@ public:
             return Layout_invalid;
         }
     }
+    void set_num (const int num) {
+        CHECK_GT(num, 0);
+        if (_layout->num_index() != -1) {
+            this->data()[_layout->num_index()] = num;
+        }
+    }
+    void set_channel (const int channel) {
+        CHECK_GT(channel, 0);
+        if (_layout->channel_index() != -1) {
+            int shape_channel = channel;
+            if (_layout->inner_c() != -1) {
+                CHECK_EQ(channel % _layout->inner_c(), 0);
+                shape_channel /= _layout->inner_c();
+            }
+            this->data()[_layout->channel_index()] = shape_channel;
+        }
+    }
+    void set_height (const int height) {
+        CHECK_GT(height, 0);
+        if (_layout->height_index() != -1) {
+            this->data()[_layout->height_index()] = height;
+        }
+    }
+    void set_width (const int width) {
+        CHECK_GT(width, 0);
+        if (_layout->width_index() != -1) {
+            this->data()[_layout->width_index()] = width;
+        }
+    }
+    void set_depth (const int depth) {
+        CHECK_GT(depth, 0);
+        if (_layout->depth_index() != -1) {
+            this->data()[_layout->depth_index()] = depth;
+        }
+    }
     void set_layout(LayoutType layout_type, std::vector<int> new_shape = {}) {
         Shape sh = *this;
         Layout* layout = this->_layout;
