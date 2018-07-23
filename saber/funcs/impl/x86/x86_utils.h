@@ -767,19 +767,19 @@ inline size_t datatype_size(DataType data_type) {
 } // namespace saber
 } // namespace anakin
 
-#if defined(_OPENMP)
+#if defined(USE_OPENMP)
 #include <omp.h>
 #else
-inline int omp_get_max_threads() {
+static inline int omp_get_max_threads() {
     return 1;
 }
-inline int omp_get_num_threads() {
+static inline int omp_get_num_threads() {
     return 1;
 }
-inline int omp_get_thread_num() {
+static inline int omp_get_thread_num() {
     return 0;
 }
-inline int omp_in_parallel() {
+static inline int omp_in_parallel() {
     return 0;
 }
 #endif

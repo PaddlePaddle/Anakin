@@ -18,34 +18,6 @@
 using namespace anakin::saber;
 using namespace std;
 
-template <typename T>
-bool compare_tensor(T& data, T& ref_data, float eps = 1e-4) {
-    typedef float data_t;
-
-    if (data.size() != ref_data.size()) {
-                LOG(ERROR)<<"data.size() != ref_data.size()";
-        return false;
-    }
-
-    data_t absdiff = 0.f;
-    data_t absref = 0.f;
-    for (int i = 0; i < data.size(); i++) {
-        absdiff = std::fabs(((const data_t*)data.data())[i] - ((const data_t*)ref_data.data())[i]);
-        absref = std::fabs(((const float*)(ref_data.data()))[i]);
-        float e = absdiff > eps ? absdiff / absref : absdiff;
-        if (e <= eps) {
-            return true;
-        } else {
-            LOG(ERROR)<<"i = "<<i;
-            LOG(ERROR) << "out = " << ((data_t*)data.data())[i];
-            LOG(ERROR) << "out_ref = " << ((data_t*)ref_data.data())[i];
-            return false;
-        }
-    }
-            LOG(ERROR)<<"data.size() = "<<data.size();
-    return false;
-}
-
 template <typename Dtype>
 static Dtype InValidAct(Dtype a) {
     CHECK(false)<<"InValidAct";
@@ -104,19 +76,6 @@ inline typename ACTIVATION<Dtype>::Act Activate(ActiveType type){
     return vec[type];
 }
 
-//template <typename Dtype>
-//class Activate{
-//public:
-//    static  typename ACTIVATION<Dtype>::Act vec[9]={&InValidAct<Dtype>, &Sigmoid<Dtype>, &Relu<Dtype>, &Tanh<Dtype>,
-//                                            &InValidAct<Dtype>,& InValidAct<Dtype>, &Identity<Dtype>, &Sigmoid_fluid<Dtype>,
-//                                            &Tanh_fluid<Dtype>};
-//    static typename ACTIVATION<Dtype>::Act get(ActiveType type){
-//        return vec[type];
-//    }
-//    Activate(){
-//
-//    }
-//};
 
 static void gemm(const bool TransA, const bool TransB, int m, int n, int k, const float alpha,
                  const float* a, const float* b, const float beta, float* c) {
@@ -131,26 +90,41 @@ static void gemm(const bool TransA, const bool TransB, int m, int n, int k, cons
 };
 
 template <typename Dtype>
-void compute_ref_lstm_one_word(Dtype* wx_i,Dtype* wx_f,Dtype* wx_c,Dtype* wx_o,Dtype* h_new,Dtype* cell_old,Dtype* cell_new,
-                               Dtype* bias_i,Dtype* bias_f,Dtype* bias_c,Dtype* bias_o,Dtype* w_c_i,
-                               Dtype* w_c_f,Dtype* w_c_o,int hidden_size,
-                               ActiveType gate_activity,ActiveType cell_activity,ActiveType candidate_activity){
+void compute_ref_lstm_one_word(const Dtype* wx_i,const Dtype* wx_f,const Dtype* wx_c,const Dtype* wx_o,Dtype* h_new,const Dtype* cell_old,Dtype* cell_new,
+                               const Dtype* bias_i,const Dtype* bias_f,const Dtype* bias_c,const Dtype* bias_o,const Dtype* w_c_i,
+                               const Dtype* w_c_f,const Dtype* w_c_o,int hidden_size,
+                               ActiveType gate_activity,ActiveType cell_activity,ActiveType candidate_activity, bool with_peephole){
+
     typename ACTIVATION<Dtype>::Act gate_func=Activate<Dtype >(gate_activity);
     typename ACTIVATION<Dtype>::Act cell_func=Activate<Dtype >(cell_activity);
     typename ACTIVATION<Dtype>::Act candi_func=Activate<Dtype >(candidate_activity);
-    for(int i=0;i<hidden_size;i++){
-        Dtype gate_i=gate_func(wx_i[i]+w_c_i[i]*cell_old[i]+bias_i[i]);
-        Dtype gate_f=gate_func(wx_f[i]+w_c_f[i]*cell_old[i]+bias_f[i]);
-        Dtype gate_c_t=cell_func(wx_c[i]+bias_c[i]);
-        Dtype gate_o=gate_func(wx_o[i]+w_c_o[i]*cell_old[i]+bias_o[i]);
-        Dtype gate_c=gate_f*cell_old[i]+gate_i*gate_c_t;
-        h_new[i]=gate_o*candi_func(gate_c);
-        cell_new[i]=gate_c;
+    if(with_peephole) {
+        for (int i = 0; i < hidden_size; i++) {
+            Dtype gate_i = gate_func(wx_i[i] + w_c_i[i] * cell_old[i] + bias_i[i]);
+            Dtype gate_f = gate_func(wx_f[i] + w_c_f[i] * cell_old[i] + bias_f[i]);
+            Dtype gate_c_t = cell_func(wx_c[i] + bias_c[i]);
+            Dtype gate_c = gate_f * cell_old[i] + gate_i * gate_c_t;
+            Dtype gate_o = gate_func(wx_o[i] + w_c_o[i] * gate_c + bias_o[i]);
+            h_new[i] = gate_o * candi_func(gate_c);
+            cell_new[i] = gate_c;
+//        DLOG(INFO)<<"gate_i = "<<gate_i<<","<<wx_i[i]<<","<<w_c_i[i]<<","<<cell_old[i]<<","<<bias_i[i]<<",befor "<<wx_o[i]+w_c_o[i]*gate_c+bias_o[i]<<",h = "<<h_new[i]<<",c = "<<cell_new[i];
+        }
+    }else{
+        for (int i = 0; i < hidden_size; i++) {
+            Dtype gate_i = gate_func(wx_i[i]  + bias_i[i]);
+            Dtype gate_f = gate_func(wx_f[i]  + bias_f[i]);
+            Dtype gate_c_t = cell_func(wx_c[i] + bias_c[i]);
+            Dtype gate_c = gate_f * cell_old[i] + gate_i * gate_c_t;
+            Dtype gate_o = gate_func(wx_o[i]  + bias_o[i]);
+            h_new[i] = gate_o * candi_func(gate_c);
+            cell_new[i] = gate_c;
+//        DLOG(INFO)<<"gate_i = "<<gate_i<<","<<wx_i[i]<<","<<w_c_i[i]<<","<<cell_old[i]<<","<<bias_i[i]<<",befor "<<wx_o[i]+w_c_o[i]*gate_c+bias_o[i]<<",h = "<<h_new[i]<<",c = "<<cell_new[i];
+        }
     }
 }
 
-template <typename Tensor4f>
-void compute_ref_lstm_fwd_me(std::vector<Tensor4f*> &src, std::vector<Tensor4f*> &dst, LstmParam<X86> &param){
+template <typename Tensor4f,typename TargetType>
+void compute_ref_lstm_fwd_me(std::vector<Tensor4f*> &src, std::vector<Tensor4f*> &dst, LstmParam<TargetType> &param){
     typedef float Dtype;
     SaberStatus status = SaberSuccess;
 
@@ -167,17 +141,26 @@ void compute_ref_lstm_fwd_me(std::vector<Tensor4f*> &src, std::vector<Tensor4f*>
     const Dtype *bias = (const Dtype *)param.bias()->data();
     const Dtype *weights_peephole=bias+4*hidden_size;
     const Dtype *init_hidden = nullptr;
-    if(param.init_hidden!= nullptr){
+    vector<Dtype> vec_init_hidden(hidden_size,0);
+    if(param.init_hidden()!= nullptr){
         init_hidden=(const Dtype *)param.init_hidden()->data();
     } else{
-        init_hidden=new Dtype[hidden_size];
+        init_hidden=vec_init_hidden.data();
     }
+    const Dtype *b_i = bias + 0 * hidden_size;
+    const Dtype *b_f = bias + 1 * hidden_size;
+    const Dtype *b_c = bias + 2 * hidden_size;
+    const Dtype *b_o = bias + 3 * hidden_size;
+
+    const Dtype *wc_i = weights_peephole + 0 * hidden_size;
+    const Dtype *wc_f = weights_peephole + 1 * hidden_size;
+    const Dtype *wc_o = weights_peephole + 2 * hidden_size;
 
     Dtype *h = (Dtype*)dst[0]->mutable_data();
-    Dtype *c = new Dtype[seq_sum*hidden_size];
-    Dtype *wx= new Dtype[seq_sum*4*hidden_size];
-
-
+    vector<Dtype> vec_c(seq_sum*hidden_size,0);
+    vector<Dtype> vec_wx(seq_sum*4*hidden_size,0);
+    Dtype *c=vec_c.data();
+    Dtype *wx= vec_wx.data();
     std::vector<int> seq_offset = input_tensor->get_seq_offset()[input_tensor->get_seq_offset().size()-1];
 
     gemm(false, false,seq_sum,4*hidden_size,word_size,1,x,weights,0,wx);
@@ -185,58 +168,77 @@ void compute_ref_lstm_fwd_me(std::vector<Tensor4f*> &src, std::vector<Tensor4f*>
         int seq_start=seq_offset[seq_id];
         int seq_end=seq_offset[seq_id+1];
         if(param.is_reverse){
+            for (int word_id = seq_end-1; word_id >= seq_start; word_id--) {
 
-        }
-        for(int word_id=seq_offset[seq_id];word_id<seq_offset[seq_id+1];word_id++){
-            Dtype* cell_old= nullptr;
-            if(word_id==seq_offset[seq_id]){
-                cell_old=c+word_id*hidden_size;
-                gemm(false, false,hidden_size,4*hidden_size,hidden_size,1,init_hidden,weights_h,0,wx+word_id*4*hidden_size);
-            }else{
-                cell_old=c+(word_id-1)*hidden_size;
-                gemm(false, false,hidden_size,4*hidden_size,hidden_size,1,h+(word_id-1)*hidden_size,weights_h,0,wx+word_id*4*hidden_size);
+                Dtype *cell_old = nullptr;
+                if (word_id == seq_end-1) {
+                    cell_old = c + word_id * hidden_size;
+//                    LOG(INFO) << "word = " << word_id << ",seq sum = " << seq_sum<<",cell[]="<<word_id * hidden_size<<","<<seq_sum*hidden_size<<","<<c[4];
+                    gemm(false, false, 1, 4 * hidden_size, hidden_size, 1, init_hidden, weights_h, 1,
+                         wx + word_id * 4 * hidden_size);
+                } else {
+                    cell_old = c + (word_id + 1) * hidden_size;
+                    gemm(false, false, 1, 4 * hidden_size, hidden_size, 1, h + (word_id + 1) * hidden_size, weights_h,
+                         1, wx + word_id * 4 * hidden_size);
+                }
+                const Dtype *wx_i = wx + word_id * 4 * hidden_size + 0 * hidden_size;
+                const Dtype *wx_f = wx + word_id * 4 * hidden_size + 1 * hidden_size;
+                const Dtype *wx_c = wx + word_id * 4 * hidden_size + 2 * hidden_size;
+                const Dtype *wx_o = wx + word_id * 4 * hidden_size + 3 * hidden_size;
+
+                Dtype *h_new = h + word_id * hidden_size;
+                Dtype *cell_new = c + word_id * hidden_size;
+
+                compute_ref_lstm_one_word(wx_i, wx_f, wx_c, wx_o, h_new, cell_old, cell_new, b_i, b_f, b_c, b_o, wc_i,
+                                          wc_f, wc_o,
+                                          hidden_size, param.gate_activity, param.cell_activity,
+                                          param.candidate_activity,param.with_peephole);
             }
-            Dtype* wx_i=wx+word_id*4*hidden_size+0*hidden_size;
-            Dtype* wx_f=wx+word_id*4*hidden_size+1*hidden_size;
-            Dtype* wx_c=wx+word_id*4*hidden_size+2*hidden_size;
-            Dtype* wx_o=wx+word_id*4*hidden_size+3*hidden_size;
-            const Dtype* b_i=bias+0*hidden_size;
-            const Dtype* b_f=bias+1*hidden_size;
-            const Dtype* b_c=bias+2*hidden_size;
-            const Dtype* b_o=bias+3*hidden_size;
 
-            const Dtype* wc_i=weights_peephole+3*hidden_size;
-            const Dtype* wc_f=weights_peephole+3*hidden_size;
-            const Dtype* wc_o=weights_peephole+3*hidden_size;
+        }else {
+            for (int word_id = seq_start; word_id < seq_end; word_id++) {
 
-            Dtype* h_new=h+word_id*hidden_size;
-            Dtype* cell_new=c+word_id*hidden_size;
+                Dtype *cell_old = nullptr;
+                if (word_id == seq_start) {
+                    cell_old = c + word_id * hidden_size;
+                    gemm(false, false, 1, 4 * hidden_size, hidden_size, 1, init_hidden, weights_h, 1,
+                         wx + word_id * 4 * hidden_size);
+                } else {
+                    cell_old = c + (word_id - 1) * hidden_size;
+                    gemm(false, false, 1, 4 * hidden_size, hidden_size, 1, h + (word_id - 1) * hidden_size, weights_h,
+                         1, wx + word_id * 4 * hidden_size);
+                }
+                const Dtype *wx_i = wx + word_id * 4 * hidden_size + 0 * hidden_size;
+                const Dtype *wx_f = wx + word_id * 4 * hidden_size + 1 * hidden_size;
+                const Dtype *wx_c = wx + word_id * 4 * hidden_size + 2 * hidden_size;
+                const Dtype *wx_o = wx + word_id * 4 * hidden_size + 3 * hidden_size;
 
-            compute_ref_lstm_one_word(wx_i,wx_f,wx_c,wx_o,h_new,cell_old,cell_new,b_i,b_f,b_c,b_o,wc_i,wc_f,wc_o,
-                                      hidden_size,param.gate_activity,param.cell_activity,param.candidate_activity);
+                Dtype *h_new = h + word_id * hidden_size;
+                Dtype *cell_new = c + word_id * hidden_size;
+
+                compute_ref_lstm_one_word(wx_i, wx_f, wx_c, wx_o, h_new, cell_old, cell_new, b_i, b_f, b_c, b_o, wc_i,
+                                          wc_f, wc_o,
+                                          hidden_size, param.gate_activity, param.cell_activity,
+                                          param.candidate_activity,param.with_peephole);
+            }
         }
     }
-
-    delete c;
-    delete wx;
-    if(param.init_hidden== nullptr){
-        delete init_hidden;
-    }
-
 
 }
+template <typename HOST,typename DEVICE>
+void lstm_ut(int word_size = 222,
+             int hidden_size = 333,
+             std::vector<int> offsets = {0, 3,13,22,30,50},
+             bool is_reverse = true,
+             bool with_peephole= true,
+             ActiveType gate_activity=Active_sigmoid,
+             ActiveType cell_activity=Active_tanh,
+             ActiveType candi_activity=Active_tanh,
+             int perf_iter=0,ImplEnum test_mode=SABER_IMPL){
+    typedef Tensor<HOST> TensorHf4;
+    typedef Tensor<DEVICE> TensorDf4;
+    Context<DEVICE> ctx_dev(0, 1, 1);
 
-
-
-typedef Tensor<X86> TensorHf4;
-void py_lstm(int word_size = 222,
-             int hidden_size = 333){
-    Context<X86> ctx_dev(0, 1, 1);
-    std::vector<int> offsets = {0, 3,12,19,20};
-    ImplEnum test_mode=SABER_IMPL;
-//    ImplEnum test_mode=VENDER_IMPL;
-    bool is_reverse = false;
-    bool with_peephole=false;
     Shape shape_weight({1, 1, 1,hidden_size*hidden_size*4+hidden_size*word_size*4},Layout_NCHW);
     Shape shape_bias;
     if(with_peephole){
@@ -250,53 +252,132 @@ void py_lstm(int word_size = 222,
     TensorHf4 host_weight(shape_weight);
     TensorHf4 host_bias(shape_bias);
     TensorHf4 host_hidden_out(shape_h);
-    readTensorData(host_weight, "host_w");
-    readTensorData(host_x, "host_x");
-    readTensorData(host_bias, "host_b");
+    TensorDf4 dev_x(shape_x);
+    TensorDf4 dev_weight(shape_weight);
+    TensorDf4 dev_bias(shape_bias);
+    TensorDf4 dev_hidden_out(shape_h);
+//    readTensorData(host_weight, "host_w");
+//    readTensorData(host_x, "host_x");
+//    readTensorData(host_bias, "host_b");
+    fill_tensor_rand(host_weight);
+    fill_tensor_rand(host_x);
+    fill_tensor_rand(host_bias);
+    dev_weight.copy_from(host_weight);
+    dev_x.copy_from(host_x);
+    dev_bias.copy_from(host_bias);
 
     host_x.set_seq_offset({offsets});
-    LstmParam<X86> param(&host_weight, &host_bias,nullptr,Active_unknow,Active_sigmoid,Active_tanh,Active_tanh,
-                               with_peephole,false,is_reverse);
-    Lstm<X86, AK_FLOAT> lstm_op;
+    dev_x.set_seq_offset({offsets});
+    LstmParam<DEVICE> param(&dev_weight, &dev_bias,nullptr,Active_unknow,gate_activity,cell_activity,candi_activity,
+                            with_peephole,false,is_reverse);
+    Lstm<DEVICE, AK_FLOAT> lstm_op;
 
-    std::vector<TensorHf4*> inputs;
-    std::vector<TensorHf4*> outputs;
-    inputs.push_back(&host_x);
-    outputs.push_back(&host_hidden_out);
+    std::vector<TensorDf4*> inputs;
+    std::vector<TensorDf4*> outputs;
+    inputs.push_back(&dev_x);
+    outputs.push_back(&dev_hidden_out);
 
     SABER_CHECK(lstm_op.init(inputs, outputs, param, SPECIFY, test_mode, ctx_dev));
     SABER_CHECK(lstm_op.compute_output_shape(inputs, outputs, param));
     outputs[0]->re_alloc(outputs[0]->valid_shape(),outputs[0]->get_dtype());
     SABER_CHECK(lstm_op(inputs, outputs, param, ctx_dev));
+    outputs[0]->record_event(ctx_dev.get_compute_stream());
+    outputs[0]->sync();
 
-    compute_ref_lstm_fwd_me(inputs,outputs,param);
+    if(perf_iter>0) {
+        SaberTimer<DEVICE> t1;
+        t1.start(ctx_dev);
+        for (int i = 0; i < perf_iter; ++i) {
+            SABER_CHECK(lstm_op(inputs, outputs, param, ctx_dev));
+            outputs[0]->record_event(ctx_dev.get_compute_stream());
+            outputs[0]->sync();
+        }
+        t1.end(ctx_dev);
+                LOG(INFO) << "!!saber care: iter = " << perf_iter << " , total time: " << t1.get_average_ms() <<
+                          "avg time : " << t1.get_average_ms() / perf_iter << " args [" << offsets[offsets.size() - 1]
+                          << "," << offsets.size() - 1 << ","<< word_size << "," << hidden_size << "]";
+    }
 
-
+    host_hidden_out.copy_from(dev_hidden_out);
     TensorHf4 compare_g(shape_h);
-    readTensorData(compare_g, "host_correct");
-    write_tensorfile(host_hidden_out, "host_g.txt");
-    write_tensorfile(compare_g, "host_correct.txt");
+
+//    readTensorData(compare_g, "host_correct");
+//    write_tensorfile(host_hidden_out, "host_g.txt");
+//    write_tensorfile(compare_g, "host_correct.txt");
+
+    std::vector<TensorHf4*> inputs_ref;
+    std::vector<TensorHf4*> outputs_ref;
+    outputs_ref.push_back(&compare_g);
+    inputs_ref.push_back(&host_x);
+    LstmParam<HOST> param_ref(&host_weight, &host_bias,nullptr,Active_unknow,gate_activity,cell_activity,candi_activity,
+                              with_peephole,false,is_reverse);
+    compute_ref_lstm_fwd_me(inputs_ref,outputs_ref,param_ref);
+
     double maxdiff = 0;
     double maxratio = 0;
     tensor_cmp_host((const float*)host_hidden_out.data(), (const float*)compare_g.data(), host_hidden_out.valid_size(), maxratio, maxdiff);
-    if (abs(maxratio) <= 0.001) {
+    if (abs(maxratio) <= 0.001||abs(maxdiff)<0.001) {
                 LOG(INFO) << "passed  " << maxratio<<","<<maxdiff<<",?="<<abs(maxratio);
     } else {
-                LOG(INFO) << "failed : ratio " << maxratio<<","<<maxdiff;
+        CHECK(false) << "failed : ratio " << maxratio<<","<<maxdiff;
     }
 
 }
 
-TEST(TestSaberFunc, test_func_lstm) {
+#ifdef USE_X86_PLACE
+
+
+TEST(TestSaberFunc, test_func_lstm_x86) {
     Env<X86>::env_init();
 
-    py_lstm();
+    lstm_ut<X86,X86>(222,333,{0,1,3,5,10},false, false,Active_sigmoid,Active_tanh,Active_tanh,100,SABER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,1,3,5,10},false, true,Active_sigmoid,Active_tanh,Active_tanh,100,SABER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,1,3,5,10},true, false,Active_sigmoid,Active_tanh,Active_tanh,100,SABER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,1,3,5,10},true, true,Active_sigmoid,Active_tanh,Active_tanh,100,SABER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,10},false, true,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,10},false, false,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,10},true, true,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,10},true, false,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
+
+    lstm_ut<X86,X86>(222,333,{0,1,3,5,10},false, false,Active_sigmoid,Active_tanh,Active_tanh,100,VENDER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,1,3,5,10},false, true,Active_sigmoid,Active_tanh,Active_tanh,100,VENDER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,1,3,5,10},true, false,Active_sigmoid,Active_tanh,Active_tanh,100,VENDER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,1,3,5,10},true, true,Active_sigmoid,Active_tanh,Active_tanh,100,VENDER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,10},false, true,Active_sigmoid,Active_tanh,Active_tanh,0,VENDER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,10},false, false,Active_sigmoid,Active_tanh,Active_tanh,0,VENDER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,10},true, true,Active_sigmoid,Active_tanh,Active_tanh,0,VENDER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,10},true, false,Active_sigmoid,Active_tanh,Active_tanh,0,VENDER_IMPL);
 }
 
+#endif
+
+#ifdef NVIDIA_GPU
+
+TEST(TestSaberFunc, test_func_lstm_nv) {
+    Env<NV>::env_init();
+
+    lstm_ut<NVHX86,NV>(222,333,{0,1,3,5,10},false, true,Active_sigmoid,Active_tanh,Active_tanh,100,SABER_IMPL);
+    lstm_ut<NVHX86,NV>(222,333,{0,1,3,5,10},true, false,Active_sigmoid,Active_tanh,Active_tanh,100,SABER_IMPL);
+    lstm_ut<NVHX86,NV>(222,333,{0,1,3,5,10},true, true,Active_sigmoid,Active_tanh,Active_tanh,100,SABER_IMPL);
+    lstm_ut<NVHX86,NV>(222,333,{0,10},false, true,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
+    lstm_ut<NVHX86,NV>(222,333,{0,10},false, false,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
+    lstm_ut<NVHX86,NV>(222,333,{0,10},true, true,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
+    lstm_ut<NVHX86,NV>(222,333,{0,10},true, false,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
+
+//    lstm_ut<NVHX86,NV>(222,333,{0,1,3,5,10},false, false,Active_sigmoid,Active_tanh,Active_tanh,100,VENDER_IMPL);
+//    lstm_ut<NVHX86,NV>(222,333,{0,1,3,5,10},false, true,Active_sigmoid,Active_tanh,Active_tanh,100,VENDER_IMPL);
+//    lstm_ut<NVHX86,NV>(222,333,{0,1,3,5,10},true, false,Active_sigmoid,Active_tanh,Active_tanh,100,VENDER_IMPL);
+//    lstm_ut<NVHX86,NV>(222,333,{0,1,3,5,10},true, true,Active_sigmoid,Active_tanh,Active_tanh,100,VENDER_IMPL);
+//    lstm_ut<NVHX86,NV>(222,333,{0,10},false, true,Active_sigmoid,Active_tanh,Active_tanh,0,VENDER_IMPL);
+//    lstm_ut<NVHX86,NV>(222,333,{0,10},false, false,Active_sigmoid,Active_tanh,Active_tanh,0,VENDER_IMPL);
+//    lstm_ut<NVHX86,NV>(222,333,{0,10},true, true,Active_sigmoid,Active_tanh,Active_tanh,0,VENDER_IMPL);
+//    lstm_ut<NVHX86,NV>(222,333,{0,10},true, false,Active_sigmoid,Active_tanh,Active_tanh,0,VENDER_IMPL);
+}
+
+#endif
 int main(int argc, const char** argv) {
     logger::init(argv[0]);
     printf("%f",Activate<float >(Active_sigmoid)(1.f));
-    return 0;
     InitTest();
     RUN_ALL_TESTS(argv[0]);
     return 0;

@@ -21,7 +21,7 @@ static inline __m512 _mm512_expfaster_ps(const __m512 &a) {
     return _mm512_castsi512_ps(_mm512_cvttps_epi32(_mm512_fmadd_ps(C2, a, C1)));
 }
 
-__mm512 exp512_ps_fma(__mm512 x) {
+inline __mm512 exp512_ps_fma(const __mm512 x) {
     __m512 tmp = _mm512_setzero_ps(), fx;
     __m512i imm0;
     __m512 one=_mm256_set1_ps(1.f);

@@ -28,6 +28,10 @@ public:
         return vector::size();
     }
 
+    Dtype* data(){
+        return vector::data();
+    }
+
     VectorEX& operator =(const VectorEX& right){
         this->clear();
         for (int i = 0; i < right.size(); ++i) {

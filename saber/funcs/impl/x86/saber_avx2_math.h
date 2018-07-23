@@ -294,6 +294,14 @@ inline v8sf exp256_ps_fma(v8sf x) {
     return y;
 }
 
+inline __m256 _mm256_expfaster_ps(const __m256 &a) {
+
+    const __m256 C1 = _mm256_set1_ps(1064872507.1541044f);
+    const __m256 C2 = _mm256_set1_ps(12102203.161561485f);
+
+    return _mm256_castsi256_ps(_mm256_cvttps_epi32(_mm256_fmadd_ps(C2, a, C1)));
+}
+
 _PS256_CONST(minus_cephes_DP1, -0.78515625);
 _PS256_CONST(minus_cephes_DP2, -2.4187564849853515625e-4);
 _PS256_CONST(minus_cephes_DP3, -3.77489497744594108e-8);

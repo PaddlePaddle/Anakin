@@ -4,16 +4,15 @@
 #include "saber_funcs_param.h"
 #include "saber/funcs/impl/x86/x86_utils.h"
 
+
 #ifdef __AVX512F__
-#include "saber_avx512_activation.h"
 #define SABER_X86_TYPE __m512
 #elif __AVX2__
-#include "saber_avx2_activation.h"
 #define SABER_X86_TYPE __m256
 #else
-#include "saber_normal_activation.h"
 #define SABER_X86_TYPE float
 #endif
+
 namespace anakin {
 namespace saber {
 
@@ -39,7 +38,6 @@ public:
         }
         _word_size=(param.weight()->valid_size()-_hidden_size*_hidden_size*4)/_hidden_size/4;
 
-        DLOG(INFO)<<"wordsize = "<<_word_size;
         int weights_i2h_size=4*_hidden_size*_word_size;
         int weights_h2h_size=4*_hidden_size*_hidden_size;
         int weights_bias_size=4*_hidden_size;
@@ -119,15 +117,11 @@ private:
     Tensor<X86> _temp_out;
     Tensor<X86> _temp_h_init;
 
-    template <typename BIT>
-    SaberStatus avx_dispatch_without_peephole(const std::vector<Tensor<X86>*>& inputs,
+    template <typename BIT,bool with_peephole >
+    SaberStatus avx_dispatch(const std::vector<Tensor<X86>*>& inputs,
                                               std::vector<Tensor<X86>*>& outputs,
                                               LstmParam<X86>& param);
 
-    template <typename BIT>
-    SaberStatus avx_dispatch_with_peephole(const std::vector<Tensor<X86>*>& inputs,
-                                           std::vector<Tensor<X86>*>& outputs,
-                                           LstmParam<X86>& param);
 
 };
 

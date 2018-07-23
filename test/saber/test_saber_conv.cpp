@@ -104,6 +104,7 @@ void test_conv_results(int group,
 }
 
 TEST(TestSaberFunc, test_saber_conv_results) {
+#ifdef USE_CUDA
     int group = 4;
     int input_num = 1;
     int in_channels = 4;
@@ -127,6 +128,7 @@ TEST(TestSaberFunc, test_saber_conv_results) {
             out_channels, kernel_h, kernel_w,
             stride_h, stride_w, dilation_h, dilation_w,
             pad_h, pad_w, bias_term);
+#endif
 }
 
 TEST(TestSaberFunc, test_saber_conv_speed) {

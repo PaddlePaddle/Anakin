@@ -27,7 +27,7 @@
 
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_lstm.h"
-//#include "saber/funcs/impl/x86/vender_lstm.h"
+#include "saber/funcs/impl/x86/vender_lstm.h"
 #endif
 
 #ifdef USE_ARM_PLACE
