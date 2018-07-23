@@ -15,7 +15,7 @@
 #ifndef ANAKIN_SABER_FUNCS_ARM_IMPL_SABER_CONV_ACT_POOLING_H
 #define ANAKIN_SABER_FUNCS_ARM_IMPL_SABER_CONV_ACT_POOLING_H
 
-#include "saber/funcs/impl/arm/saber_conv.h"
+#include "saber/funcs/impl/arm/saber_conv_act.h"
 #include "saber/funcs/impl/arm/saber_pooling.h"
 #include "saber/funcs/impl/impl_conv_act_pooling.h"
 
@@ -97,10 +97,11 @@ public:
     }
 
 private:
-    SaberConv2D<ARM, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out>* _conv_op;
-    SaberPooling<ARM, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out>* _pool_op;
+    SaberConv2DAct<ARM, OpDtype, inDtype, outDtype, LayOutType_op, LayOutType_in, LayOutType_out>* _conv_act_op;
+    SaberPooling<ARM, OpDtype, inDtype, outDtype, LayOutType_op, LayOutType_in, LayOutType_out>* _pool_op;
+
+    ConvActiveParam<OpTensor>* _conv_act_param;
+
     DataTensor_in _tensor_tmp;
     std::vector<DataTensor_in *> _vtensor_tmp;
 };
