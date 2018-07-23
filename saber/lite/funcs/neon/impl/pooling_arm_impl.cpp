@@ -172,7 +172,7 @@ void pooling_basic(const float* din, float* dout, \
             printf("not support\n");
     }
 }
-
+#if 1
 void pooling_global(const float* din, float* dout, \
                           int num, int chout, int hout, int wout, \
                           int chin, int hin, int win, \
@@ -309,8 +309,6 @@ void pooling2x2s2_max(const float* din, float* dout, \
                 int w = 0;
 #ifdef  __aarch64__
                 for (; w < w_unroll_size; w += 8) {
-                    prefetch_2x(r0);
-                    prefetch_2x(r1);
                     float32x4_t dr00 = vld1q_f32(&r0[w]);
                     float32x4_t dr01 = vld1q_f32(&r0[w + 4]);
                     float32x4_t dr10 = vld1q_f32(&r1[w]);
@@ -369,7 +367,6 @@ void pooling2x2s2_max(const float* din, float* dout, \
                 int w = 0;
 #ifdef  __aarch64__
                 for (; w < w_unroll_size; w += 8) {
-                    prefetch_2x(r0);
                     float32x4_t dr00 = vld1q_f32(&r0[w]);
                     float32x4_t dr01 = vld1q_f32(&r0[w + 4]);
                 #ifdef __aarch64__
@@ -450,8 +447,6 @@ void pooling2x2s2_ave(const float* din, float* dout, \
                 int w = 0;
             #ifdef __aarch64__
                 for (; w < w_unroll_size; w += 8) {
-                    prefetch_2x(r0);
-                    prefetch_2x(r1);
                     float32x4_t dr00 = vld1q_f32(&r0[w]);
                     float32x4_t dr01 = vld1q_f32(&r0[w + 4]);
                     float32x4_t dr10 = vld1q_f32(&r1[w]);
@@ -510,7 +505,6 @@ void pooling2x2s2_ave(const float* din, float* dout, \
                 int w = 0;
             #ifdef __aarch64__
                 for (; w < w_unroll_size; w += 8) {
-                    prefetch_2x(r0);
                     float32x4_t dr00 = vld1q_f32(&r0[w]);
                     float32x4_t dr01 = vld1q_f32(&r0[w + 4]);
                 #ifdef __aarch64__
@@ -631,7 +625,7 @@ void pooling3x3s1p1_max(const float* din, float* dout, \
                 vmax = vsetq_lane_f32(vget_lane_f32(vmax_234_456, 0), vmax, 1);
                 vmax = vsetq_lane_f32(vget_lane_f32(vmax_123_345, 1), vmax, 2);
                 vmax = vsetq_lane_f32(vget_lane_f32(vmax_234_456, 1), vmax, 3);
-                vst1_f32(&data_out_channel[cnt],vmax);
+                vst1q_f32(&data_out_channel[cnt],vmax);
                 cnt += 4;
             }
 
@@ -707,9 +701,9 @@ void pooling3x3s1p1_max(const float* din, float* dout, \
                     float32x4_t vr1_5678 = vld1q_f32(&r1[w + 4]);
                     float32x4_t vr2_5678 = vld1q_f32(&r2[w + 4]);
                     float32x4_t vmax_1234 = vmaxq_f32(vr0_1234, vr1_1234);
-                    vmax_1234 = vamxq_f32(vmax_1234, vr2_1234);
+                    vmax_1234 = vmaxq_f32(vmax_1234, vr2_1234);
                     float32x4_t vmax_5678 = vmaxq_f32(vr0_5678, vr1_5678);
-                    vmax_5678 = vamxq_f32(vmax_5678, vr2_5678);
+                    vmax_5678 = vmaxq_f32(vmax_5678, vr2_5678);
 
                     float32x4_t vmax_2345 = vextq_f32(vmax_1234, vmax_5678,1);
                     float32x4_t vmax_3456 = vextq_f32(vmax_1234, vmax_5678,2);
@@ -722,7 +716,7 @@ void pooling3x3s1p1_max(const float* din, float* dout, \
                     vmax = vsetq_lane_f32(vget_lane_f32(vmax_234_456, 0), vmax, 1);
                     vmax = vsetq_lane_f32(vget_lane_f32(vmax_123_345, 1), vmax, 2);
                     vmax = vsetq_lane_f32(vget_lane_f32(vmax_234_456, 1), vmax, 3);
-                    vst1_f32(&data_out_channel[cnt],vmax);
+                    vst1q_f32(&data_out_channel[cnt],vmax);
                     cnt += 4;
                 }
 #else
@@ -817,7 +811,7 @@ void pooling3x3s1p1_max(const float* din, float* dout, \
                 vmax = vsetq_lane_f32(vget_lane_f32(vmax_234_456, 0), vmax, 1);
                 vmax = vsetq_lane_f32(vget_lane_f32(vmax_123_345, 1), vmax, 2);
                 vmax = vsetq_lane_f32(vget_lane_f32(vmax_234_456, 1), vmax, 3);
-                vst1_f32(&data_out_channel[cnt],vmax);
+                vst1q_f32(&data_out_channel[cnt],vmax);
                 cnt += 4;
             }
 #else
@@ -938,7 +932,7 @@ void pooling3x3s1p1_ave(const float* din, float* dout, \
                 float32x4_t vsum = vaddq_f32(vsum_1234, vsum_2345);
                 vsum = vaddq_f32(vsum, vsum_3456);
                 vsum = vmulq_f32(vsum, vcoef);
-                vst1_f32(&data_out_channel[cnt],vsum);
+                vst1q_f32(&data_out_channel[cnt],vsum);
                 cnt += 4;
             }
 
@@ -1017,7 +1011,7 @@ void pooling3x3s1p1_ave(const float* din, float* dout, \
                     float32x4_t vsum = vaddq_f32(vsum_1234, vsum_2345);
                     vsum = vaddq_f32(vsum, vsum_3456);
                     vsum = vmulq_f32(vsum, vcoef);
-                    vst1_f32(&data_out_channel[cnt],vsum);
+                    vst1q_f32(&data_out_channel[cnt],vsum);
                     cnt += 4;
                 }
 #else
@@ -1101,7 +1095,7 @@ void pooling3x3s1p1_ave(const float* din, float* dout, \
                 float32x4_t vsum = vaddq_f32(vsum_1234, vsum_2345);
                 vsum = vaddq_f32(vsum, vsum_3456);
                 vsum = vmulq_f32(vsum, vcoef);
-                vst1_f32(&data_out_channel[cnt],vsum);
+                vst1q_f32(&data_out_channel[cnt],vsum);
                 cnt += 4;
             }
 #else
@@ -1210,7 +1204,7 @@ void pooling3x3s2p1_max(const float* din, float* dout, \
             data_out_channel[0] = std::max(std::max(r0[0], r0[1]), std::max(r1[0], r1[1]));
             // first row with zero pad
 #ifdef __aarch64__
-            for (; w < w_in - 8; w += 8) {
+            for (; w < win - 8; w += 8) {
                 float32x4_t vr0_1234 = vld1q_f32(&r0[w]);
                 float32x4_t vr0_5678 = vld1q_f32(&r0[w + 4]);
                 float32x4_t vr0_9101112 = vld1q_f32(&r0[w + 8]);
@@ -1326,7 +1320,7 @@ void pooling3x3s2p1_max(const float* din, float* dout, \
 #ifdef __aarch64__
                 w = 1;
                 cnt = 1;
-                for (; w < w_in - 8; w += 8) {
+                for (; w < win - 8; w += 8) {
                     float32x4_t vr0_1234 = vld1q_f32(&r0[w]);
                     float32x4_t vr0_5678 = vld1q_f32(&r0[w + 4]);
                     float32x4_t vr0_9101112 = vld1q_f32(&r0[w + 8]);
@@ -1465,7 +1459,7 @@ void pooling3x3s2p1_max(const float* din, float* dout, \
 #ifdef __aarch64__
                     w = 1;
                     cnt = 1;
-                    for (; w < w_in - 8; w += 8) {
+                    for (; w < win - 8; w += 8) {
                         float32x4_t vmax_1234 = vld1q_f32(&r0[w]);
                         float32x4_t vmax_5678 = vld1q_f32(&r0[w + 4]);
                         float32x4_t vmax_9101112 = vld1q_f32(&r0[w + 8]);
@@ -1548,7 +1542,7 @@ void pooling3x3s2p1_max(const float* din, float* dout, \
 #ifdef __aarch64__
                     w = 1;
                     cnt = 1;
-                    for (; w < w_in - 8; w += 8) {
+                    for (; w < win - 8; w += 8) {
                         float32x4_t vr0_1234 = vld1q_f32(&r0[w]);
                         float32x4_t vr0_5678 = vld1q_f32(&r0[w + 4]);
                         float32x4_t vr0_9101112 = vld1q_f32(&r0[w + 8]);
@@ -1714,7 +1708,7 @@ void pooling3x3s2p1_ave(const float* din, float* dout, \
             data_out_channel[0] = (r0[0] + r0[1] + r1[0] + r1[1])/9.f;
             // first row with zero pad
 #ifdef __aarch64__
-            for (; w < w_in - 8; w += 8) {
+            for (; w < win - 8; w += 8) {
                 float32x4_t vr0_1234 = vld1q_f32(&r0[w]);
                 float32x4_t vr0_5678 = vld1q_f32(&r0[w + 4]);
                 float32x4_t vr0_9101112 = vld1q_f32(&r0[w + 8]);
@@ -1841,7 +1835,7 @@ void pooling3x3s2p1_ave(const float* din, float* dout, \
 #ifdef __aarch64__
                 w = 1;
                 cnt = 1;
-                for (; w < w_in - 8; w += 8) {
+                for (; w < win - 8; w += 8) {
                     float32x4_t vr0_1234 = vld1q_f32(&r0[w]);
                     float32x4_t vr0_5678 = vld1q_f32(&r0[w + 4]);
                     float32x4_t vr0_9101112 = vld1q_f32(&r0[w + 8]);
@@ -1988,7 +1982,7 @@ void pooling3x3s2p1_ave(const float* din, float* dout, \
 #ifdef __aarch64__
                     w = 1;
                     cnt = 1;
-                    for (; w < w_in - 8; w += 8) {
+                    for (; w < win - 8; w += 8) {
                         float32x4_t vsum_1234 = vld1q_f32(&r0[w]);
                         float32x4_t vsum_5678 = vld1q_f32(&r0[w + 4]);
                         float32x4_t vsum_9101112 = vld1q_f32(&r0[w + 8]);
@@ -2081,7 +2075,7 @@ void pooling3x3s2p1_ave(const float* din, float* dout, \
 #ifdef __aarch64__
                     w = 1;
                     cnt = 1;
-                    for (; w < w_in - 8; w += 8) {
+                    for (; w < win - 8; w += 8) {
                         float32x4_t vr0_1234 = vld1q_f32(&r0[w]);
                         float32x4_t vr0_5678 = vld1q_f32(&r0[w + 4]);
                         float32x4_t vr0_9101112 = vld1q_f32(&r0[w + 8]);
@@ -2859,7 +2853,7 @@ void pooling3x3s2p0_ave(const float* din, float* dout, \
         }
     }
 }
-
+#endif
 }  //namespace lite
 
 } //namespace saber

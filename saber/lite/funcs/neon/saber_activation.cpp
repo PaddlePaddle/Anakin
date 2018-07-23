@@ -74,6 +74,8 @@ SaberStatus SaberActivation::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *>
                 const float* ptr_in_thread = ptr_in + i * nums_per_thread;
                 float* ptr_out_thread = ptr_out + i * nums_per_thread;
                 int cnt = neon_loop_cnt;
+#ifdef __aarch64__
+#else
                 asm volatile (
                 "1:                                     @ loop header\n"
                         "vld1.32  {d0-d1}, [%[din]]!            @ load din 0\n"
@@ -101,6 +103,7 @@ SaberStatus SaberActivation::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *>
                 :[vzero] "w" (vzero)
                 :"q0", "q1", "q2", "q3", "q8", "q9", "q10", "q11"
                 );
+#endif
                 for (int j = 0; j < neon_loop_remain; ++j) {
                     ptr_out_thread[0] = ptr_in_thread[0] > 0.f? ptr_in_thread[0] : 0.f;
                     ptr_in_thread++;

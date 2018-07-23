@@ -18,7 +18,7 @@ else
 fi
 
 # build the target into build_android.
-BUILD_ROOT=$ANAKIN_LITE_ROOT/build-android
+BUILD_ROOT=$ANAKIN_LITE_ROOT/build-android-v7
 
 #if [ -d $BUILD_ROOT ];then
 #	rm -rf $BUILD_ROOT

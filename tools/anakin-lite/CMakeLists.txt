@@ -2,6 +2,22 @@
 # Copyright (c) 2016 Baidu.com, Inc. All Rights Reserved
 # ----------------------------------------------------------------------------
 
+# options
+option(USE_ARM_PLACE "Select the build mode for ARM place." YES)
+option(USE_ARMV8 "build armv8" ON)
+option(USE_ANDROID "using android place." YES)
+option(USE_IOS "using android place." NO)
+option(TARGET_IOS "using ios" NO)
+option(USE_OPENMP "using openmp for lite." YES)
+option(ENABLE_DEBUG "Enable DEBUG(default) mode." NO)
+option(BUILD_LITE_UNIT_TEST "build unit test for lite." YES)
+
+if (USE_ARMV8)
+	set(ANDROID_ABI "arm64-v8a")
+else()
+	set(ANDROID_ABI "armeabi-v7a with NEON")
+endif()
+
 if(CMAKE_TOOLCHAIN_FILE)
 	set(LIBRARY_OUTPUT_PATH_ROOT ${CMAKE_BINARY_DIR} CACHE PATH "root for library output, set this to change where android libs are compiled to")
 	# get absolute path, but get_filename_component ABSOLUTE only refer with source dir, so find_file here :(
@@ -17,15 +33,6 @@ message(STATUS "CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
 
 cmake_minimum_required(VERSION 2.8)
 project(ANAKIN-lite C CXX)
-
-# options
-option(USE_ARM_PLACE "Select the build mode for ARM place." YES)
-option(USE_ANDROID "using android place." YES)
-option(USE_IOS "using android place." NO)
-option(TARGET_IOS "using ios" NO)
-option(USE_OPENMP "using openmp for lite." YES)
-option(ENABLE_DEBUG "Enable DEBUG(default) mode." NO)
-option(BUILD_LITE_UNIT_TEST "build unit test for lite." NO)
 
 configure_file ( 
 	"../../cmake/config/anakin_config.h.in" 
@@ -84,8 +91,11 @@ add_definitions(-Wno-unused-function)
 
 if(USE_ANDROID)
 	add_definitions(-pie)
-	add_definitions(-mfloat-abi=softfp)
-	add_definitions(-mfpu=neon)
+	if(USE_ARMV8)
+	else()
+		add_definitions(-mfloat-abi=softfp)
+		add_definitions(-mfpu=neon)
+	endif()
 	add_definitions(-ffast-math)
 	add_definitions(-lc)
 endif()

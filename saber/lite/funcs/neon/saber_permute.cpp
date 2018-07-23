@@ -49,7 +49,7 @@ void transpose_mat(const float* din, float* dout, \
                 float* dout1 = dout0 + height;
                 float* dout2 = dout1 + height;
                 float* dout3 = dout2 + height;
-
+#if 0
 #ifdef __aarch64__
                 float32x4_t vr0 = vld1q_f32(din0);
                     float32x4_t vr1 = vld1q_f32(din1);
@@ -83,6 +83,7 @@ void transpose_mat(const float* din, float* dout, \
                          [in2] "r" (din2), [in3] "r" (din3)
                 : "q0", "q1", "q2", "q3"
                 );
+#endif
 #endif
                 ptr_din_row += 4;
             }
