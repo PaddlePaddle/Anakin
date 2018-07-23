@@ -100,7 +100,7 @@ private:
     SaberConv2DAct<ARM, OpDtype, inDtype, outDtype, LayOutType_op, LayOutType_in, LayOutType_out>* _conv_act_op;
     SaberPooling<ARM, OpDtype, inDtype, outDtype, LayOutType_op, LayOutType_in, LayOutType_out>* _pool_op;
 
-    ConvActiveParam<OpTensor>* _conv_act_param;
+    ConvActiveParam<OpTensor> _conv_act_param;
 
     DataTensor_in _tensor_tmp;
     std::vector<DataTensor_in *> _vtensor_tmp;
