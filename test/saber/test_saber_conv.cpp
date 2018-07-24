@@ -81,7 +81,7 @@ int test_conv_results(int group,
     tensor_cmp_host((const float*)output_host.data(), (const float*)check_host.data(),
                     check_host.valid_size(), max_ratio, max_diff);
     if (max_ratio < 1e-5) {
-//        LOG(INFO) << " PASS!!! max_ratio = " << max_ratio << " max_diff = " << max_diff;
+        LOG(INFO) << " PASS!!! max_ratio = " << max_ratio << " max_diff = " << max_diff;
         return 0;
     } else {
         LOG(FATAL) << "FAIL!!! max_ratio = " << max_ratio << " max_diff = " << max_diff
@@ -316,20 +316,20 @@ TEST(TestSaberFunc, test_saber_conv_results) {
 #ifdef USE_X86_PLACE
     Env<X86>::env_init();
 #endif
-    std::vector<int> kernel_h_v{1, 2, 3};
-    std::vector<int> kernel_w_v{1, 2, 3};
+    std::vector<int> kernel_h_v{1, 3};
+    std::vector<int> kernel_w_v{1, 3};
     std::vector<int> pad_h_v{0, 1};
     std::vector<int> pad_w_v{0, 1};
     std::vector<int> stride_h_v{1, 2};
     std::vector<int> stride_w_v{1, 2};
     std::vector<int> dilation_h_v{1, 2};
     std::vector<int> dilation_w_v{1, 2};
-    std::vector<int> in_channels_v{3, 32, 64};
-    std::vector<int> out_channels_v{4, 7, 32, 48, 57};
-    std::vector<int> group_v{1, 2, 4, 8, 16, 32};
-    std::vector<int> in_h_v{15, 117, 224};
-    std::vector<int> in_w_v{15, 117, 224};
-    std::vector<int> input_num_v{1, 2, 4};
+    std::vector<int> in_channels_v{3, 32};
+    std::vector<int> out_channels_v{32, 57};
+    std::vector<int> group_v{1, 2, 32};
+    std::vector<int> in_h_v{17, 32};
+    std::vector<int> in_w_v{17, 32};
+    std::vector<int> input_num_v{1, 3};
     std::vector<bool> bias_term_v{true, false};
 
     for (auto input_num : input_num_v)
@@ -392,20 +392,20 @@ TEST(TestSaberFunc, test_saber_conv_results) {
 
 TEST(TestSaberFunc, test_saber_conv_speed) {
 
-    std::vector<int> kernel_h_v{1, 3, 5};
-    std::vector<int> kernel_w_v{1, 3, 5};
+    std::vector<int> kernel_h_v{1, 3};
+    std::vector<int> kernel_w_v{1, 3};
     std::vector<int> pad_h_v{0, 1};
     std::vector<int> pad_w_v{0, 1};
     std::vector<int> stride_h_v{1, 2};
     std::vector<int> stride_w_v{1, 2};
     std::vector<int> dilation_h_v{1, 2};
     std::vector<int> dilation_w_v{1, 2};
-    std::vector<int> in_channels_v{32, 64, 128};
-    std::vector<int> out_channels_v{32, 48, 57};
-    std::vector<int> group_v{1, 2, 4, 8, 16, 32};
-    std::vector<int> in_h_v{224, 300};
-    std::vector<int> in_w_v{224, 300};
-    std::vector<int> input_num_v{1};
+    std::vector<int> in_channels_v{3, 32};
+    std::vector<int> out_channels_v{32, 57};
+    std::vector<int> group_v{1, 2, 32};
+    std::vector<int> in_h_v{17, 32};
+    std::vector<int> in_w_v{17, 32};
+    std::vector<int> input_num_v{1, 3};
     std::vector<bool> bias_term_v{true, false};
 #ifdef USE_CUDA
     Env<NV>::env_init();
@@ -476,10 +476,10 @@ TEST(TestSaberFunc, test_saber_conv_op_func) {
     std::vector<int> out_channels_v{48, 57};
     std::vector<int> in_h_v{224, 300};
     std::vector<int> in_w_v{224, 300};
-    std::vector<int> input_num_v{1};
+    std::vector<int> input_num_v{1, 3};
     std::vector<bool> bias_term_v{true, false};
-    std::vector<int> in_h2_v{117, 235};
-    std::vector<int> in_w2_v{117, 235};
+    std::vector<int> in_h2_v{117, 215};
+    std::vector<int> in_w2_v{113, 211};
     for (auto input_num : input_num_v)
     for (auto out_channels : out_channels_v)
     for (auto in_channels : in_channels_v)
