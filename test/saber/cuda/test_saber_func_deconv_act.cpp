@@ -53,13 +53,13 @@ void test_deconv(std::vector<TensorDf4*>& tin, \
     int kernel_extent_w = dila * (kernel - 1) + 1;
     int wout = (win - 1) * stride + kernel_extent_w - 2 * pad;
 
-    Shape shape_out{num, ch_out, hout, wout};
+    Shape shape_out{num, ch_out * group, hout, wout};
 
     Shape shw{ch_out, chin / group, kernel, kernel};
     Shape shb{1, ch_out, 1, 1};
     TensorDf4 pweiht(shw);
     TensorDf4 pbias(shb);
-    fill_tensor_device_const(pweiht, 1.f);
+    fill_tensor_device_rand(pweiht, -1.f, 1.f);
     fill_tensor_device_const(pbias, 1.f);
 
     TensorDf4* bias_ptr = nullptr;
@@ -84,8 +84,8 @@ void test_deconv(std::vector<TensorDf4*>& tin, \
     Shape sh_out_saber = tvout_saber[0]->valid_shape();
     LOG(INFO) << "output shape: " << shape_out[0] << ", " << shape_out[1] << ", " \
               << shape_out[2] << ", " << shape_out[3];
-    CHECK_EQ(shape_out == sh_out_cudnn, true) << "compute output shape error";
-    CHECK_EQ(shape_out == sh_out_saber, true) << "compute output shape error";
+    CHECK(shape_out == sh_out_cudnn) << "compute output shape error";
+    CHECK(shape_out == sh_out_saber) << "compute output shape error";
 
     //! re_alloc mem for output tensor
     tvout_cudnn[0]->re_alloc(shape_out);
@@ -152,7 +152,7 @@ TEST(TestSaberFuncNV, test_func_deconv_act) {
     int stride = 2;
     int dilation = 1;
     int kernel = 3;
-    int chout = chin;
+    int chout = chin / group;
 
     bool bias_term = true;
 
