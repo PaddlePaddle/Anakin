@@ -472,14 +472,15 @@ TEST(TestSaberFunc, test_saber_conv_speed) {
 TEST(TestSaberFunc, test_saber_conv_op_func) {
     std::vector<int> kernel_h_v{1, 3};
     std::vector<int> kernel_w_v{1, 3};
-    std::vector<int> in_channels_v{32, 64, 128};
-    std::vector<int> out_channels_v{48, 57};
-    std::vector<int> in_h_v{224, 300};
-    std::vector<int> in_w_v{224, 300};
+    std::vector<int> in_channels_v{5, 16};
+    std::vector<int> out_channels_v{7, 16};
+    std::vector<int> in_h_v{117, 224};
+    std::vector<int> in_w_v{117, 224};
     std::vector<int> input_num_v{1, 3};
     std::vector<bool> bias_term_v{true, false};
-    std::vector<int> in_h2_v{117, 215};
-    std::vector<int> in_w2_v{113, 211};
+    std::vector<int> in_h2_v{48, 67};
+    std::vector<int> in_w2_v{74, 35};
+    std::vector<int> group_v{1};
     for (auto input_num : input_num_v)
     for (auto out_channels : out_channels_v)
     for (auto in_channels : in_channels_v)
@@ -490,7 +491,7 @@ TEST(TestSaberFunc, test_saber_conv_op_func) {
     for (auto height2 : in_h2_v)
     for (auto width2 : in_w2_v)
     for (auto bias_term : bias_term_v)
-    for (int group = 1; group <= std::min(in_channels, out_channels); ++group) {
+    for (auto group : group_v) {
         if (in_channels % group != 0) {
             continue;
         }
