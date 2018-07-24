@@ -12,7 +12,9 @@
 #include "saber/funcs/impl/x86/saber_gru.h"
 
 #include <mkl_service.h>
+#if defined(_OPENMP)
 #include "omp.h"
+#endif
 
 //#include "cublas.h"
 
@@ -74,10 +76,10 @@ void compute_compare_correct(TensorDf4 dev_x,TensorDf4 last_dev_out,GruParam<Ten
 #endif
 void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size = 52,
                     int hidden_size = 36) {
-
-
+#if defined(_OPENMP)
       omp_set_dynamic(0);
     omp_set_num_threads(1);
+#endif
     mkl_set_num_threads(1);
     Context<X86> ctx_dev(0, 1, 1);
     std::vector<int> offsets = {0,39};
