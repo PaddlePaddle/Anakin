@@ -147,7 +147,7 @@ TEST(TestSaberFuncNV, test_func_deconv_act) {
     int hin = 112;
     int win = 112;
 
-    int group = chin;
+    int group = 1;
     int pad = 1;
     int stride = 2;
     int dilation = 1;
