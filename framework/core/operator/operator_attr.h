@@ -62,7 +62,7 @@ public:
     OpAttrWarpper& name(const std::string&);
 
     /// set alias name of Operator.
-    template<typename Ttype, DataType Dtype, Precision Ptype>
+    template<typename Ttype, Precision Ptype>
     OpAttrWarpper& __alias__(const std::string&);
     /// set description doc for target op.
     OpAttrWarpper& Doc(const std::string&);

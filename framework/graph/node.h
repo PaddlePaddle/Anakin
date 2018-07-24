@@ -25,7 +25,7 @@ namespace anakin {
 
 class OperatorBase;
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class Operator;
 
 namespace graph {
@@ -56,19 +56,19 @@ struct Lane {
 * \brief Edge class used for Global edge type
 * public inherit Arc
 */
-template<typename Ttype, DataType Dtype>
-class Edge : public Arc<std::string, TensorSharedPtr<Ttype, Dtype> > {
+template<typename Ttype>
+class Edge : public Arc<std::string, TensorSharedPtr<Ttype> > {
 public:
-    Edge():Arc<std::string, TensorSharedPtr<Ttype, Dtype> >() {}
-    Edge(const Edge<Ttype, Dtype>& edge):Arc<std::string, TensorSharedPtr<Ttype, Dtype> >(edge) {
+    Edge():Arc<std::string, TensorSharedPtr<Ttype> >() {}
+    Edge(const Edge<Ttype>& edge):Arc<std::string, TensorSharedPtr<Ttype> >(edge) {
         _shared = edge._shared; 
         _share_from = edge._share_from; 
         _current_lane = edge._current_lane; 
     }
 
-    explicit Edge(std::string first, std::string second):Arc<std::string, TensorSharedPtr<Ttype, Dtype> >(first, second) {}
-    explicit Edge(std::string first, std::string second, TensorSharedPtr<Ttype, Dtype> tensor_ptr)
-        :Arc<std::string, TensorSharedPtr<Ttype, Dtype> >(first, second, tensor_ptr) {}
+    explicit Edge(std::string first, std::string second):Arc<std::string, TensorSharedPtr<Ttype> >(first, second) {}
+    explicit Edge(std::string first, std::string second, TensorSharedPtr<Ttype> tensor_ptr)
+        :Arc<std::string, TensorSharedPtr<Ttype> >(first, second, tensor_ptr) {}
 
     /// Get first node name of the edge.
     inline std::string& first() { return this->bottom(); }
@@ -77,7 +77,7 @@ public:
     inline std::string& second() { return this->top(); }
 
     /// get data weigts of the edge.
-    inline TensorSharedPtr<Ttype, Dtype> data() { return this->weight(); }
+    inline TensorSharedPtr<Ttype> data() { return this->weight(); }
 
     /// If edge's data is shared from the others.
     bool& shared() { return _shared; }
@@ -102,7 +102,7 @@ public:
         _shared = edge._shared;
         _share_from = edge._share_from;
         _current_lane = edge._current_lane;
-        Arc<std::string, TensorSharedPtr<Ttype, Dtype> >::operator=(edge);
+        Arc<std::string, TensorSharedPtr<Ttype> >::operator=(edge);
     }
 
 private:
@@ -117,7 +117,6 @@ private:
 /**
 * \brief Node class used for Graph
 */
-template<typename Ttype, DataType Dtype, Precision Ptype>
 class Node {
 public:
     Node() {}
@@ -139,12 +138,10 @@ public:
     void set_name(std::string name) { _name = name; }
 
     /// Node operator
-    //Operator<Ttype, Dtype, Ptype>* Op() { return _Op; }
     OperatorBase* Op() { return _Op; }
 
 
     /// set node operator
-    //void set_op(Operator<Ttype, Dtype, Ptype>* other) { _Op = other; }
     void set_op(OperatorBase* other) { _Op = other; }
 
     /// Node need wait
@@ -226,7 +223,7 @@ public:
     * \param pattern_name 
     * \return Node 
     */
-    inline Node<Ttype, Dtype, Ptype>& Merge(const Node<Ttype, Dtype, Ptype>& operand, std::string& pattern_name) {
+    inline Node& Merge(const Node& operand, std::string& pattern_name) {
         auto it_begin = operand._attr.parameter.begin();
         auto it_end = operand._attr.parameter.end();
         for(auto it = it_begin; it != it_end; ++it ) {
@@ -245,7 +242,7 @@ public:
     }
 
     /// copy construction [ shallow copy ]
-    inline Node<Ttype, Dtype, Ptype>& operator=(const Node<Ttype, Dtype, Ptype>& operand) {
+    inline Node& operator=(const Node& operand) {
         _name = operand._name;
         _current_lane = operand._current_lane;
         _Op = nullptr; // Assign the op pointer with operand's should be disabled, because it causes double free after binding the nodeptr by op itself.
@@ -275,7 +272,6 @@ private:
     ///< _current_lane stand for Current lane the node resides in.
     Lane _current_lane;
     ///< _Op stand for Operator in node.default bullptr
-    //Operator<Ttype, Dtype, Ptype>* _Op{nullptr};
     OperatorBase* _Op{nullptr};
     ///< _op_name stand for op name
     std::string _op_name;
@@ -293,8 +289,7 @@ private:
 
 /// global node pointer type
 //typedef std::shared_ptr<Node> NodePtr;
-template<typename Ttype, DataType Dtype, Precision Ptype>
-using NodePtr = std::shared_ptr<Node<Ttype, Dtype, Ptype>>;
+using NodePtr = std::shared_ptr<Node>;
 
 } /* namespace graph */
 

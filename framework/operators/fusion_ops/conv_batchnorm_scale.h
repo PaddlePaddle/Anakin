@@ -26,7 +26,7 @@ namespace anakin {
 
 namespace ops {
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class ConvBatchnormScaleHelper;
 
 /// pooling op
@@ -34,20 +34,20 @@ class ConvBatchnormScaleHelper;
  * \brief ConvBatchnormScaleHelper implementation class
  * public inherit Operator
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class ConvBatchnormScale : public Operator<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class ConvBatchnormScale : public Operator<Ttype, Ptype> {
 public:
     ConvBatchnormScale() {}
 
     /// forward impl
     virtual void operator() (OpContext<Ttype> &ctx, 
-                             const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                             std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-        LOG(ERROR) << "Not Impl Yet Operator convolution<TargetType:"<<"unknown"<<","
-                   <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info()<<">";
+                             const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                             std::vector<Tensor4dPtr<Ttype> >& outs) {
+		LOG(ERROR) << "Not Impl Yet Operator ConvBatchnormScale< Ttype("
+				   << Ttype << "), Precision("<< Ptype <<") >";	
     }
 
-    friend class ConvBatchnormScaleHelper<Ttype, Dtype, Ptype>;
+    friend class ConvBatchnormScaleHelper<Ttype, Ptype>;
 };
 
 /**
@@ -55,8 +55,8 @@ public:
  * public inherit OperatorHelper
  * including init resource and shape size in ConvBatchnormScaleHelper context
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class ConvBatchnormScaleHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class ConvBatchnormScaleHelper : public OperatorHelper<Ttype, Ptype> {
 public:
     ConvBatchnormScaleHelper()=default;
 
@@ -72,8 +72,8 @@ public:
     * \return status
     */
     Status Init(OpContext<Ttype> &ctx,
-                const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
     /**
     * \brief infer the shape of output and input.
@@ -81,14 +81,14 @@ public:
     * \param outs stand for output tensor vector
     * \return status
     */
-    Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+    Status InferShape(const std::vector<Tensor4dPtr<Ttype> >& ins,
+                      std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
 public:
     ///< _param_conv_batchnorm_scale stand for ConvBatchnormScale parameter
-    saber::ConvActiveParam<Tensor4d<Ttype, Dtype>>  _param_conv_batchnorm_scale;
+    saber::ConvActiveParam<Tensor4d<Ttype>>  _param_conv_batchnorm_scale;
     ///< _funcs_conv stand for ConvBatchnormScale function 
-    saber::ConvAct<Ttype, Dtype> _funcs_conv_batchnorm_scale;
+    saber::ConvAct<Ttype, typename PrecisionWrapper<Ptype>::saber_type> _funcs_conv_batchnorm_scale;
 };
 
 } /* namespace ops */

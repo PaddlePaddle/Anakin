@@ -4,19 +4,19 @@ namespace anakin {
 
 namespace ops {
 
-#define INSTANCE_CONVOLUTION(Ttype, Dtype, Ptype) \
+#define INSTANCE_CONVOLUTION(Ttype, Ptype) \
 template<> \
-void Convolution<Ttype, Dtype, Ptype>::operator()(OpContext<Ttype>& ctx, \
-    const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, \
-    std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) { \
-    auto* impl = static_cast<ConvolutionHelper<Ttype, Dtype, Ptype>*>(this->_helper); \
-    auto& param = static_cast<ConvolutionHelper<Ttype, Dtype, Ptype>*> \
+void Convolution<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+    const std::vector<Tensor4dPtr<Ttype> >& ins, \
+    std::vector<Tensor4dPtr<Ttype> >& outs) { \
+    auto* impl = static_cast<ConvolutionHelper<Ttype, Ptype>*>(this->_helper); \
+    auto& param = static_cast<ConvolutionHelper<Ttype, Ptype>*> \
                   (this->_helper)->_param_conv; \
     impl->_funcs_conv(ins, outs, param, ctx); \
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status ConvolutionHelper<Ttype, Dtype, Ptype>::InitParam() {
+template<typename Ttype, Precision Ptype>
+Status ConvolutionHelper<Ttype, Ptype>::InitParam() {
     DLOG(WARNING) << "Parsing Convolution op parameter.";
     auto group = GET_PARAMETER(int, group);
     auto bias_term = GET_PARAMETER(bool, bias_term);
@@ -36,19 +36,19 @@ Status ConvolutionHelper<Ttype, Dtype, Ptype>::InitParam() {
     DLOG(INFO) << "conv axis : " << axis;
 
 
-	using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
+	using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
 
     if (bias_term) {
         auto bias = GET_PARAMETER(pblock_type, weight_2);
-        saber::ConvParam<Tensor4d<Ttype, Dtype>> conv_param(group, padding[0], padding[1],
+        saber::ConvParam<Tensor4d<Ttype>> conv_param(group, padding[0], padding[1],
                                               strides[0], strides[1],
                                               dilation_rate[0], dilation_rate[1],
                                               &(weights.d_tensor()), &(bias.d_tensor()));
         _param_conv = conv_param;
     } else {
-        Tensor4d<Ttype, Dtype>* bias = new Tensor4d<Ttype, Dtype>();;
-        saber::ConvParam<Tensor4d<Ttype, Dtype>> conv_param(group, padding[0], padding[1],
+        Tensor4d<Ttype>* bias = new Tensor4d<Ttype>();;
+        saber::ConvParam<Tensor4d<Ttype>> conv_param(group, padding[0], padding[1],
                                               strides[0], strides[1],
                                               dilation_rate[0], dilation_rate[1],
                                               &(weights.d_tensor()), bias);
@@ -58,68 +58,68 @@ Status ConvolutionHelper<Ttype, Dtype, Ptype>::InitParam() {
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status ConvolutionHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
-        const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+template<typename Ttype, Precision Ptype>
+Status ConvolutionHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
+        const std::vector<Tensor4dPtr<Ttype> >& ins,
+        std::vector<Tensor4dPtr<Ttype> >& outs) {
     SABER_CHECK(_funcs_conv.init(ins, outs, _param_conv, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status ConvolutionHelper<Ttype, Dtype, Ptype>::InferShape(const
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+template<typename Ttype, Precision Ptype>
+Status ConvolutionHelper<Ttype, Ptype>::InferShape(const
+        std::vector<Tensor4dPtr<Ttype> >& ins,
+        std::vector<Tensor4dPtr<Ttype> >& outs) {
     SABER_CHECK(_funcs_conv.compute_output_shape(ins, outs, _param_conv));
     return Status::OK();
 }
 
 #ifdef USE_CUDA
-INSTANCE_CONVOLUTION(NV, AK_FLOAT, Precision::FP32);
+INSTANCE_CONVOLUTION(NV, Precision::FP32);
 template <>
-Status ConvolutionHelper<NV, AK_FLOAT, Precision ::FP32>::Init(OpContext<NV> &ctx, \
-    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
-                    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
+Status ConvolutionHelper<NV, Precision ::FP32>::Init(OpContext<NV> &ctx, \
+    const std::vector<Tensor4dPtr<NV> >& ins,
+                    std::vector<Tensor4dPtr<NV> >& outs) {
     SABER_CHECK(_funcs_conv.init(ins, outs, _param_conv, SPECIFY, VENDER_IMPL, ctx));
     return Status::OK();
 }
-template class ConvolutionHelper<NV, AK_FLOAT, Precision::FP32>;
-template class ConvolutionHelper<NV, AK_FLOAT, Precision::FP16>;
-template class ConvolutionHelper<NV, AK_FLOAT, Precision::INT8>;
-ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, NV, AK_FLOAT, Precision::FP32);
+template class ConvolutionHelper<NV, Precision::FP32>;
+template class ConvolutionHelper<NV, Precision::FP16>;
+template class ConvolutionHelper<NV, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, NV, Precision::FP32);
 #endif
 
 //#ifdef USE_X86_PLACE
-//INSTANCE_CONVOLUTION(X86, AK_FLOAT, Precision::FP32);
-//template class ConvolutionHelper<X86, AK_FLOAT, Precision::FP32>;
-//ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, X86, AK_FLOAT, Precision::FP32);
+//INSTANCE_CONVOLUTION(X86, Precision::FP32);
+//template class ConvolutionHelper<X86, Precision::FP32>;
+//ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, X86, Precision::FP32);
 //#endif
 
 #ifdef USE_ARM_PLACE
-INSTANCE_CONVOLUTION(ARM, AK_FLOAT, Precision::FP32);
-template class ConvolutionHelper<ARM, AK_FLOAT, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, ARM, AK_FLOAT, Precision::FP32);
+INSTANCE_CONVOLUTION(ARM, Precision::FP32);
+template class ConvolutionHelper<ARM, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, ARM, Precision::FP32);
 #endif
 
 #ifdef USE_AMD
-INSTANCE_CONVOLUTION(AMD, AK_FLOAT, Precision::FP32);
-template class ConvolutionHelper<AMD, AK_FLOAT, Precision::FP32>;
-template class ConvolutionHelper<AMD, AK_FLOAT, Precision::FP16>;
-template class ConvolutionHelper<AMD, AK_FLOAT, Precision::INT8>;
-ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, AMD, AK_FLOAT, Precision::FP32);
+INSTANCE_CONVOLUTION(AMD, Precision::FP32);
+template class ConvolutionHelper<AMD, Precision::FP32>;
+template class ConvolutionHelper<AMD, Precision::FP16>;
+template class ConvolutionHelper<AMD, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, AMD, Precision::FP32);
 #endif
 
 //! register op
 ANAKIN_REGISTER_OP(Convolution)
 .Doc("Convolution operator")
 #ifdef USE_CUDA
-.__alias__<NV, AK_FLOAT, Precision::FP32>("convolution")
+.__alias__<NV, Precision::FP32>("convolution")
 #endif
 #ifdef USE_AMD
-.__alias__<AMD, AK_FLOAT, Precision::FP32>("convolution")
+.__alias__<AMD, Precision::FP32>("convolution")
 #endif
 #ifdef USE_ARM_PLACE
-.__alias__<ARM, AK_FLOAT, Precision::FP32>("convolution")
+.__alias__<ARM, Precision::FP32>("convolution")
 #endif
 .num_in(1)
 .num_out(1)

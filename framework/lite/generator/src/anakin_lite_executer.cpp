@@ -8,7 +8,7 @@ using namespace anakin::lite;
 
 void anakin_lite_executer(const char* model_name, const char* model_path, const char* output_path = "./") {
     // constructs 
-	GenCPP<NV, AK_FLOAT, Precision::FP32> code_gen(model_name, output_path);
+	GenCPP<NV, Precision::FP32> code_gen(model_name, output_path);
 	if(! code_gen.extract_graph(model_path)) {
 		LOG(ERROR) << "extract error on : " << model_path;
 	}

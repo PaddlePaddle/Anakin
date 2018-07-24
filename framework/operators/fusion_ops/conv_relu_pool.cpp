@@ -4,27 +4,27 @@ namespace anakin {
 
 namespace ops {
 
-#define INSTANCE_CONVRELUPOOLING(Ttype, Dtype, Ptype) \
+#define INSTANCE_CONVRELUPOOLING(Ttype, Ptype) \
 template<> \
-void ConvReluPool<Ttype, Dtype, Ptype>::operator()(\
+void ConvReluPool<Ttype, Ptype>::operator()(\
     OpContext<Ttype>& ctx,\
-    const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,\
-    std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {\
-    auto* impl = static_cast<ConvReluPoolHelper<Ttype, Dtype, Ptype>*>(this->_helper);\
-    auto& param = static_cast<ConvReluPoolHelper<Ttype, Dtype, Ptype>*>(this->_helper)->_param_conv_relu_pooling;\
+    const std::vector<Tensor4dPtr<Ttype> >& ins,\
+    std::vector<Tensor4dPtr<Ttype> >& outs) {\
+    auto* impl = static_cast<ConvReluPoolHelper<Ttype, Ptype>*>(this->_helper);\
+    auto& param = static_cast<ConvReluPoolHelper<Ttype, Ptype>*>(this->_helper)->_param_conv_relu_pooling;\
     SABER_CHECK(impl->_funcs_conv_relu_pooling(ins, outs, param, ctx));\
 }
 
 /// set helper
-template<typename Ttype, DataType Dtype, Precision Ptype>
-ConvReluPoolHelper<Ttype, Dtype, Ptype>::~ConvReluPoolHelper() {
+template<typename Ttype, Precision Ptype>
+ConvReluPoolHelper<Ttype, Ptype>::~ConvReluPoolHelper() {
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status ConvReluPoolHelper<Ttype, Dtype, Ptype>::InitParam() {
+template<typename Ttype, Precision Ptype>
+Status ConvReluPoolHelper<Ttype, Ptype>::InitParam() {
     DLOG(WARNING) << "Parsing ConvReluPool op parameter.";
-    saber::ConvParam<Tensor4d<Ttype, Dtype>> _conv_param;
-    PoolingParam<Tensor4d<Ttype, Dtype>> _pooling_param;
+    saber::ConvParam<Tensor4d<Ttype>> _conv_param;
+    PoolingParam<Tensor4d<Ttype>> _pooling_param;
     // get conv param
     auto group = GET_PARAMETER(int, group);
     auto bias_term = GET_PARAMETER(bool, bias_term);
@@ -35,20 +35,20 @@ Status ConvReluPoolHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto kernel_size = GET_PARAMETER(PTuple<int>, kernel_size);
     auto axis = GET_PARAMETER(int, axis);
 
-	using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
+	using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
     auto weight_vec = weights.vector();
 
     if (bias_term) {
         auto bias = GET_PARAMETER(pblock_type, weight_2);
-        saber::ConvParam<Tensor4d<Ttype, Dtype>> conv_param(group, padding[0], padding[1],
+        saber::ConvParam<Tensor4d<Ttype>> conv_param(group, padding[0], padding[1],
                                                             strides[0], strides[1],
                                                             dilation_rate[0], dilation_rate[1],
                                                             &(weights.d_tensor()), &(bias.d_tensor()));
         _conv_param = conv_param;
     } else {
-        Tensor4d<Ttype, Dtype>* bias = new Tensor4d<Ttype, Dtype>();
-        saber::ConvParam<Tensor4d<Ttype, Dtype>> conv_param(group, padding[0], padding[1],
+        Tensor4d<Ttype>* bias = new Tensor4d<Ttype>();
+        saber::ConvParam<Tensor4d<Ttype>> conv_param(group, padding[0], padding[1],
                                                             strides[0], strides[1],
                                                             dilation_rate[0], dilation_rate[1],
                                                             &(weights.d_tensor()), bias);
@@ -57,7 +57,7 @@ Status ConvReluPoolHelper<Ttype, Dtype, Ptype>::InitParam() {
 
     // get relu param
     auto alpha = GET_PARAMETER(float, relu_0_alpha);
-    ActivationParam<Tensor4d<Ttype, Dtype>> active_param(Active_relu);//, alpha); // Temp
+    ActivationParam<Tensor4d<Ttype>> active_param(Active_relu);//, alpha); // Temp
 
     // get pooling param
     auto global_pooling = GET_PARAMETER(bool, pooling_0_global_pooling);
@@ -67,14 +67,14 @@ Status ConvReluPoolHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto pool_method = GET_PARAMETER(std::string, pooling_0_method);
     auto cmp_out_shape_floor_as_conv = GET_PARAMETER(bool, pooling_0_cmp_out_shape_floor_as_conv);
     if (pool_method == "MAX") {
-        PoolingParam<Tensor4d<Ttype, Dtype>> pooling_param(pool_size[0], pool_size[1],
+        PoolingParam<Tensor4d<Ttype>> pooling_param(pool_size[0], pool_size[1],
                                                            pool_padding[0], pool_padding[1],
                                                            pool_strides[0], pool_strides[1],
                                                            Pooling_max, global_pooling,
                                                            cmp_out_shape_floor_as_conv);
         _pooling_param = pooling_param;
     } else if (pool_method == "AVG") {
-        PoolingParam<Tensor4d<Ttype, Dtype>> pooling_param(pool_size[0], pool_size[1],
+        PoolingParam<Tensor4d<Ttype>> pooling_param(pool_size[0], pool_size[1],
                                                            pool_padding[0], pool_padding[1],
                                                            pool_strides[0], pool_strides[1],
                                                            Pooling_average_include_padding, global_pooling,
@@ -84,62 +84,62 @@ Status ConvReluPoolHelper<Ttype, Dtype, Ptype>::InitParam() {
         LOG(FATAL) << " ConvReluPool fusion op doesn't support : " << pool_method << " pooling.";
     }
 
-    ConvActivePoolingParam<Tensor4d<Ttype, Dtype>> conv_act_pooling_param(_conv_param, active_param,
+    ConvActivePoolingParam<Tensor4d<Ttype>> conv_act_pooling_param(_conv_param, active_param,
                                                                           _pooling_param);
     _param_conv_relu_pooling = conv_act_pooling_param;
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status ConvReluPoolHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype> &ctx, 
-                                                                   const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                                                                   std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+template<typename Ttype, Precision Ptype>
+Status ConvReluPoolHelper<Ttype, Ptype>::Init(OpContext<Ttype> &ctx, 
+                                                                   const std::vector<Tensor4dPtr<Ttype> >& ins,
+                                                                   std::vector<Tensor4dPtr<Ttype> >& outs) {
     SABER_CHECK(_funcs_conv_relu_pooling.init(ins, outs, _param_conv_relu_pooling, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status ConvReluPoolHelper<Ttype, Dtype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                                                                         std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+template<typename Ttype, Precision Ptype>
+Status ConvReluPoolHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype> >& ins,
+                                                                         std::vector<Tensor4dPtr<Ttype> >& outs) {
    SABER_CHECK(_funcs_conv_relu_pooling.compute_output_shape(ins, outs, _param_conv_relu_pooling));
    return Status::OK();
 }
 
 #ifdef USE_CUDA
-INSTANCE_CONVRELUPOOLING(NV, AK_FLOAT, Precision::FP32);
+INSTANCE_CONVRELUPOOLING(NV, Precision::FP32);
 template<>
-Status ConvReluPoolHelper<NV, AK_FLOAT, Precision::FP32>::Init(OpContext<NV> &ctx,
-                                                                   const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
-                                                                   std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
+Status ConvReluPoolHelper<NV, Precision::FP32>::Init(OpContext<NV> &ctx,
+                                                                   const std::vector<Tensor4dPtr<NV> >& ins,
+                                                                   std::vector<Tensor4dPtr<NV> >& outs) {
     _funcs_conv_relu_pooling.init(ins, outs, _param_conv_relu_pooling, STATIC, SABER_IMPL, ctx);
     return Status::OK();
 }
-ANAKIN_REGISTER_OP_HELPER(ConvReluPool, ConvReluPoolHelper, NV, AK_FLOAT, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(ConvReluPool, ConvReluPoolHelper, NV, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE
-INSTANCE_CONVRELUPOOLING(ARM, AK_FLOAT, Precision::FP32);
-template class ConvReluPoolHelper<ARM, AK_FLOAT, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(ConvReluPool, ConvReluPoolHelper, ARM, AK_FLOAT, Precision::FP32);
+INSTANCE_CONVRELUPOOLING(ARM, Precision::FP32);
+template class ConvReluPoolHelper<ARM, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(ConvReluPool, ConvReluPoolHelper, ARM, Precision::FP32);
 #endif
 
 #ifdef USE_AMD
-INSTANCE_CONVRELUPOOLING(AMD, AK_FLOAT, Precision::FP32);
-template class ConvReluPoolHelper<AMD, AK_FLOAT, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(ConvReluPool, ConvReluPoolHelper, AMD, AK_FLOAT, Precision::FP32);
+INSTANCE_CONVRELUPOOLING(AMD, Precision::FP32);
+template class ConvReluPoolHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(ConvReluPool, ConvReluPoolHelper, AMD, Precision::FP32);
 #endif
 
 //! register op
 ANAKIN_REGISTER_OP(ConvReluPool)
     .Doc("ConvReluPool fusion operator")
 #ifdef USE_CUDA
-    .__alias__<NV, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale_relu_pooling")
+    .__alias__<NV, Precision::FP32>("convolution_batchnorm_scale_relu_pooling")
 #endif
 #ifdef USE_ARM_PLACE
-    .__alias__<ARM, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale_relu_pooling")
+    .__alias__<ARM, Precision::FP32>("convolution_batchnorm_scale_relu_pooling")
 #endif
 #ifdef USE_AMD
-    .__alias__<AMD, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale_relu_pooling")
+    .__alias__<AMD, Precision::FP32>("convolution_batchnorm_scale_relu_pooling")
 #endif
     .num_in(1)
     .num_out(1)

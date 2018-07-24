@@ -39,9 +39,9 @@ public:
 
     /// create Block memory
     template<DataType Dtype>
-    PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>* new_block(saber::Shape& shape) EXCLUSIVE_LOCKS_REQUIRED(_mut) {
+    PBlock<Ttype>* new_block(saber::Shape& shape) EXCLUSIVE_LOCKS_REQUIRED(_mut) {
         std::unique_lock<std::mutex> lock(this->_mut); 
-        PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>* block_p = new PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>(shape);
+        PBlock<Ttype>* block_p = new PBlock<Ttype>(shape, Dtype);
         _push_mem_pool(block_p, DataTypeWarpper<Dtype>()); 
         return block_p;
     }
@@ -85,15 +85,15 @@ public:
 
 private:
     /// push int8_mem operaiton 
-    void _push_mem_pool(PBlock<int8_t, Ttype>* block_p, DataTypeWarpper<AK_INT8>) {
+    void _push_mem_pool(PBlock<Ttype>* block_p, DataTypeWarpper<AK_INT8>) {
         _int8_mem_pool.push_back(block_p);
     }
     /// push fp16_mem operaiton 
-    void _push_mem_pool(PBlock<unsigned short, Ttype>* block_p, DataTypeWarpper<AK_HALF>) {
+    void _push_mem_pool(PBlock<Ttype>* block_p, DataTypeWarpper<AK_HALF>) {
         _fp16_mem_pool.push_back(block_p);
     }
     /// push fp32_mem operaiton 
-    void _push_mem_pool(PBlock<float, Ttype>* block_p, DataTypeWarpper<AK_FLOAT>) {
+    void _push_mem_pool(PBlock<Ttype>* block_p, DataTypeWarpper<AK_FLOAT>) {
         _fp32_mem_pool.push_back(block_p);
     }
 
@@ -112,11 +112,11 @@ private:
 
 private:
     ///< _int8_mem_pool stand for int8 type memory
-    std::vector<PBlock<typename DataTypeWarpper<AK_INT8>::type, Ttype>* > _int8_mem_pool GUARDED_BY(_mut);
+    std::vector<PBlock<Ttype>* > _int8_mem_pool GUARDED_BY(_mut);
     ///< _fp16_mem_pool stand for fp16 type memory
-    std::vector<PBlock<typename DataTypeWarpper<AK_HALF>::type, Ttype>* > _fp16_mem_pool GUARDED_BY(_mut);
+    std::vector<PBlock<Ttype>* > _fp16_mem_pool GUARDED_BY(_mut);
     ///< _fp32_mem_pool stand for fp32 type memory
-    std::vector<PBlock<typename DataTypeWarpper<AK_FLOAT>::type, Ttype>* > _fp32_mem_pool GUARDED_BY(_mut);
+    std::vector<PBlock<Ttype>* > _fp32_mem_pool GUARDED_BY(_mut);
     ///< _mut
     std::mutex _mut;
 };

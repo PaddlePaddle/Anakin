@@ -26,7 +26,7 @@ namespace anakin {
 
 namespace ops {
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class ReshapeHelper;
 
 /// pooling op
@@ -34,20 +34,20 @@ class ReshapeHelper;
  * \brief Reshape implementation class
  * public inherit Operator
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class Reshape : public Operator<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class Reshape : public Operator<Ttype, Ptype> {
 public:
     Reshape() {}
 
     /// forward impl
     virtual void operator() (OpContext<Ttype> &ctx, 
-                             const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                             std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-        LOG(ERROR) << "Not Impl Yet Operator power<TargetType:"<<"unknown"<<","
-                   <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info()<<">";
+                             const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                             std::vector<Tensor4dPtr<Ttype> >& outs) {
+		LOG(ERROR) << "Not Impl Yet Operator Reshape< Ttype("
+				   << Ttype << "), Precision("<< Ptype <<") >";	
     }
 
-    friend class ReshapeHelper<Ttype, Dtype, Ptype>;
+    friend class ReshapeHelper<Ttype, Ptype>;
 };
 
 
@@ -56,8 +56,8 @@ public:
  * public inherit OperatorHelper
  * including init resource and shape size in reshape context
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class ReshapeHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class ReshapeHelper : public OperatorHelper<Ttype, Ptype> {
 public:
     ReshapeHelper()=default;
 
@@ -73,8 +73,8 @@ public:
     * \return status
     */
     Status Init(OpContext<Ttype> &ctx,
-                const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
     /**
     * \brief infer the shape of output and input.
@@ -82,14 +82,14 @@ public:
     * \param outs stand for output tensor vector
     * \return status
     */
-    Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+    Status InferShape(const std::vector<Tensor4dPtr<Ttype> >& ins,
+                      std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
 public:
     ///< _param_reshape stand for reshape parameter
-    saber::ReshapeParam<Tensor4d<Ttype, Dtype>> _param_reshape;
+    saber::ReshapeParam<Tensor4d<Ttype>> _param_reshape;
     ///< _funcs_reshape stand for reshape function 
-    saber::Reshape<Ttype, Dtype> _funcs_reshape;
+    saber::Reshape<Ttype, typename PrecisionWrapper<Ptype>::saber_type> _funcs_reshape;
 };
 
 } /* namespace ops */

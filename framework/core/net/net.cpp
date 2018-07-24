@@ -5,22 +5,22 @@
 
 namespace anakin {
 
-template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
-Net<Ttype, Dtype, Ptype, RunType>::~Net() {
+template<typename Ttype, Precision Ptype, OpRunType RunType>
+Net<Ttype, Ptype, RunType>::~Net() {
 	if(_graph_p) {
 		delete _graph_p;
 		_graph_p = nullptr;
 	}
 }
 
-template<typename Ttype, DataType Dtype>
-double tensor_average(Tensor4dPtr<Ttype, Dtype>& out_tensor_p) {
+template<typename Ttype>
+double tensor_average(Tensor4dPtr<Ttype>& out_tensor_p) {
     double sum = 0.0f;
-    typedef typename DataTrait<Ttype, Dtype>::dtype dtype;
+    typedef typename DataTrait<Ttype>::dtype dtype;
     const dtype* hptr = nullptr;
 
     Shape shin = out_tensor_p->valid_shape();
-    PBlock<dtype, Ttype> tensorptr(shin);
+    PBlock<Ttype> tensorptr(shin);
     tensorptr.h_tensor().copy_from(*out_tensor_p);
     hptr = tensorptr.h_tensor().data();
     for (int i=0; i<out_tensor_p->valid_size(); i++) {
@@ -29,31 +29,31 @@ double tensor_average(Tensor4dPtr<Ttype, Dtype>& out_tensor_p) {
     return sum/out_tensor_p->valid_size();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
-Net<Ttype, Dtype, Ptype, RunType>::Net(bool need_summary) {
-    _graph_p = new graph::Graph<Ttype, Dtype, Ptype>();
+template<typename Ttype, Precision Ptype, OpRunType RunType>
+Net<Ttype, Ptype, RunType>::Net(bool need_summary) {
+    _graph_p = new graph::Graph<Ttype, Ptype>();
     _need_summary = need_summary;
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
-Net<Ttype, Dtype, Ptype, RunType>::Net(graph::Graph<Ttype, Dtype, Ptype>& graph, bool need_summary) {
-    _graph_p = new graph::Graph<Ttype, Dtype, Ptype>();
+template<typename Ttype, Precision Ptype, OpRunType RunType>
+Net<Ttype, Ptype, RunType>::Net(graph::Graph<Ttype, Ptype>& graph, bool need_summary) {
+    _graph_p = new graph::Graph<Ttype, Ptype>();
     _need_summary = need_summary;
     //init_env(graph);
     init(graph);
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
-Net<Ttype, Dtype, Ptype, RunType>::Net(\
-    graph::Graph<Ttype, Dtype, Ptype>& graph, OpContextPtr<Ttype> ctx, bool need_summary) {
-    _graph_p = new graph::Graph<Ttype, Dtype, Ptype>();
+template<typename Ttype, Precision Ptype, OpRunType RunType>
+Net<Ttype, Ptype, RunType>::Net(\
+    graph::Graph<Ttype, Ptype>& graph, OpContextPtr<Ttype> ctx, bool need_summary) {
+    _graph_p = new graph::Graph<Ttype, Ptype>();
     _need_summary = need_summary;
     //init_env(graph);
     init(graph, ctx);
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
-void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& graph, \
+template<typename Ttype, Precision Ptype, OpRunType RunType>
+void Net<Ttype, Ptype, RunType>::init(graph::Graph<Ttype, Ptype>& graph, \
     OpContextPtr<Ttype> ctx) {
 
     init_env(graph);
@@ -69,7 +69,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
         }
 
         // create operations
-        auto* op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
+        auto* op_pointer = OpFactory<Ttype, Ptype>::Global()[node_ptr->get_op_name()];
         if (op_pointer == nullptr) {
             LOG(FATAL) << node_name << ", type " << node_ptr->get_op_name() << " is null";
         }
@@ -77,10 +77,10 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
         //LOG(ERROR) << "set op";
         op_pointer = nullptr;
 
-        static_cast<Operator<Ttype, Dtype, Ptype>*>(node_ptr->Op())->_helper->BindParam(node_ptr);
+        static_cast<Operator<Ttype, Ptype>*>(node_ptr->Op())->_helper->BindParam(node_ptr);
         //LOG(ERROR) << "bind param";
         // parsing parameter
-        static_cast<Operator<Ttype, Dtype, Ptype>*>(node_ptr->Op())->_helper->InitParam();
+        static_cast<Operator<Ttype, Ptype>*>(node_ptr->Op())->_helper->InitParam();
         //LOG(ERROR) << "init param";
     }
 
@@ -112,7 +112,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
         }
         op_func.current_lane = (*_graph_p)[node_name]->lane();
         op_func.need_sync = (*_graph_p)[node_name]->need_wait();
-        op_func.op = static_cast<Operator<Ttype, Dtype, Ptype>* >((*_graph_p)[node_name]->Op());
+        op_func.op = static_cast<Operator<Ttype, Ptype>* >((*_graph_p)[node_name]->Op());
         op_func.op_name = (*_graph_p)[node_name]->get_op_name();
         op_func.ctx_p = ctx;
         // call init of operator
@@ -128,8 +128,8 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
 }
 
 
-template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
-void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& graph) {
+template<typename Ttype, Precision Ptype, OpRunType RunType>
+void Net<Ttype, Ptype, RunType>::init(graph::Graph<Ttype, Ptype>& graph) {
     init_env(graph);
     // shallow copy
     _graph_p->CopyFrom(graph);
@@ -184,25 +184,25 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
        	if (node_ptr->get_op_name() == "ConvBatchnormScale" || node_ptr->get_op_name() == "ConvBatchnormScaleRelu" || node_ptr->get_op_name() == "ConvRelu" || node_ptr->get_op_name() == "Convolution") {
         	std::string group = "group";
         	auto group_val =  node_ptr->template get_attr<int>(group);
-			using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
+			using pblock_type = PBlock<Ttype>;
 			std::string weight_name = "weight_1";
 			auto weights = node_ptr->template get_attr<pblock_type>(weight_name);
 			//int c = weights.d_tensor().channel();
 			
         	if ((group_val == 1)) {
-            	node_ptr->set_op(OpFactory<Ttype, Dtype, Ptype>::Global()["Sass"+node_ptr->get_op_name()]);
+            	node_ptr->set_op(OpFactory<Ttype, Ptype>::Global()["Sass"+node_ptr->get_op_name()]);
             	node_ptr->get_op_name() = "Sass" + node_ptr->get_op_name();
         	} else {
             	LOG(ERROR) << "node_ptr->get_op_name()  sass not support yet.";
-            	auto* op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
+            	auto* op_pointer = OpFactory<Ttype, Ptype>::Global()[node_ptr->get_op_name()];
             	node_ptr->set_op(op_pointer);
         	}
         } else {
-            auto* op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
+            auto* op_pointer = OpFactory<Ttype, Ptype>::Global()[node_ptr->get_op_name()];
             node_ptr->set_op(op_pointer);
         }
 #else
-        auto* op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
+        auto* op_pointer = OpFactory<Ttype, Ptype>::Global()[node_ptr->get_op_name()];
         if (op_pointer == nullptr) {
             LOG(FATAL) << node_name << ", type " << node_ptr->get_op_name() << " is null";
         }
@@ -211,9 +211,9 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
 		op_pointer = nullptr;
 #endif
         // bind parameter structure
-        static_cast<Operator<Ttype, Dtype, Ptype>*>(node_ptr->Op())->_helper->BindParam(node_ptr);
+        static_cast<Operator<Ttype, Ptype>*>(node_ptr->Op())->_helper->BindParam(node_ptr);
         // parsing parameter
-        static_cast<Operator<Ttype, Dtype, Ptype>*>(node_ptr->Op())->_helper->InitParam();
+        static_cast<Operator<Ttype, Ptype>*>(node_ptr->Op())->_helper->InitParam();
     }
 
     // remove null op node
@@ -244,7 +244,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
         }
         op_func.current_lane = (*_graph_p)[node_name]->lane();
         op_func.need_sync = (*_graph_p)[node_name]->need_wait();
-        op_func.op = static_cast<Operator<Ttype, Dtype, Ptype>* >((*_graph_p)[node_name]->Op());
+        op_func.op = static_cast<Operator<Ttype, Ptype>* >((*_graph_p)[node_name]->Op());
         op_func.op_name = (*_graph_p)[node_name]->get_op_name();
         op_func.ctx_p = std::make_shared<Context<Ttype>>(TargetWrapper<Ttype>::get_device_id(), 
                                                          op_func.current_lane, 
@@ -315,8 +315,8 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
 #endif
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
-void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
+template<typename Ttype, Precision Ptype, OpRunType RunType>
+void Net<Ttype, Ptype, RunType>::prediction() {
 #ifdef ENABLE_OP_TIMER
     int op_id = 0;
 #endif
@@ -462,8 +462,8 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
     }
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
-void Net<Ttype, Dtype, Ptype, RunType>::execute_stop_at_node(std::string node_name) {
+template<typename Ttype, Precision Ptype, OpRunType RunType>
+void Net<Ttype, Ptype, RunType>::execute_stop_at_node(std::string node_name) {
 	if(_suspended_point==-1) { 
 		for(int i=0; i<_exec_funcs.size(); i++) {
 			if(_exec_funcs[i].name == node_name) {
@@ -507,8 +507,8 @@ void Net<Ttype, Dtype, Ptype, RunType>::execute_stop_at_node(std::string node_na
 	}
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
-void Net<Ttype, Dtype, Ptype, RunType>::execute_start_from_node(std::string node_name) {
+template<typename Ttype, Precision Ptype, OpRunType RunType>
+void Net<Ttype, Ptype, RunType>::execute_start_from_node(std::string node_name) {
 	if(_start_point == -1) {
 		for(int i=0; i<_exec_funcs.size(); i++) {
 			if(_exec_funcs[i].name == node_name) {
@@ -552,15 +552,15 @@ void Net<Ttype, Dtype, Ptype, RunType>::execute_start_from_node(std::string node
 	}
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
-Tensor4dPtr<Ttype, Dtype> Net<Ttype, Dtype, Ptype, RunType>::get_out(std::string out_name) {
+template<typename Ttype, Precision Ptype, OpRunType RunType>
+Tensor4dPtr<Ttype> Net<Ttype, Ptype, RunType>::get_out(std::string out_name) {
     auto& edge_it_list = _graph_p->get_in_arc_its(out_name);
     CHECK_EQ(edge_it_list.size(), 1) << " Node(" << out_name << ") should have 1 in edge.";
     return edge_it_list[0]->weight().get();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
-std::vector<Tensor4dPtr<Ttype, Dtype> > Net<Ttype, Dtype, Ptype, RunType>::get_out_list() {
+template<typename Ttype, Precision Ptype, OpRunType RunType>
+std::vector<Tensor4dPtr<Ttype> > Net<Ttype, Ptype, RunType>::get_out_list() {
     auto& out_list_vec = _graph_p->get_outs();
     for (auto& out : out_list_vec) {
         _out_tensor_list.push_back(get_out(out.c_str()));
@@ -568,15 +568,15 @@ std::vector<Tensor4dPtr<Ttype, Dtype> > Net<Ttype, Dtype, Ptype, RunType>::get_o
     return _out_tensor_list;
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
-Tensor4dPtr<Ttype, Dtype> Net<Ttype, Dtype, Ptype, RunType>::get_in(std::string in_name) {
+template<typename Ttype, Precision Ptype, OpRunType RunType>
+Tensor4dPtr<Ttype> Net<Ttype, Ptype, RunType>::get_in(std::string in_name) {
     auto& edge_it_list = _graph_p->get_out_arc_its(in_name);
     CHECK_EQ(edge_it_list.size(), 1) << " Node(" << in_name << ") should have 1 out edge.";
     return edge_it_list[0]->weight().get();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
-std::vector<Tensor4dPtr<Ttype, Dtype> > Net<Ttype, Dtype, Ptype, RunType>::get_in_list() {
+template<typename Ttype, Precision Ptype, OpRunType RunType>
+std::vector<Tensor4dPtr<Ttype> > Net<Ttype, Ptype, RunType>::get_in_list() {
     auto& in_list_vec = _graph_p->get_ins();
     for (auto& in : in_list_vec) {
         _in_tensor_list.push_back(get_in(in.c_str()));
@@ -584,14 +584,14 @@ std::vector<Tensor4dPtr<Ttype, Dtype> > Net<Ttype, Dtype, Ptype, RunType>::get_i
     return _in_tensor_list;
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
-Tensor4dPtr<Ttype, Dtype> Net<Ttype, Dtype, Ptype, RunType>::get_tensor_from_edge(const char* from, const char* to) {
+template<typename Ttype, Precision Ptype, OpRunType RunType>
+Tensor4dPtr<Ttype> Net<Ttype, Ptype, RunType>::get_tensor_from_edge(const char* from, const char* to) {
     return _graph_p->get_arc(std::string(from), std::string(to)).weight().get();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
-Status Net<Ttype, Dtype, Ptype, RunType>::init_memory() {
-    auto alloc_memory = [this](graph::Edge<Ttype, Dtype>& edge) {
+template<typename Ttype, Precision Ptype, OpRunType RunType>
+Status Net<Ttype, Ptype, RunType>::init_memory() {
+    auto alloc_memory = [this](graph::Edge<Ttype>& edge) {
         auto& tensor_p = edge.weight();
         if(!edge.shared()) {
             tensor_p->re_alloc(tensor_p->shape());
@@ -600,12 +600,12 @@ Status Net<Ttype, Dtype, Ptype, RunType>::init_memory() {
     };
     _graph_p->Scanner->BFS_Edge(alloc_memory);
 
-    auto share_memory = [this](graph::Edge<Ttype, Dtype>& edge) {
+    auto share_memory = [this](graph::Edge<Ttype>& edge) {
         if(edge.shared()) {
             auto& edge_name = edge.share_from();
 	    bool continue_search = true;
 	    while(continue_search) {
-            	auto match_edge = [&](graph::Edge<Ttype, Dtype>& inner_edge) {
+            	auto match_edge = [&](graph::Edge<Ttype>& inner_edge) {
             	    if(inner_edge.name() == edge_name) {
 	    	        if(inner_edge.shared()) {
 	    	    	    edge_name = inner_edge.share_from();
@@ -631,7 +631,7 @@ Status Net<Ttype, Dtype, Ptype, RunType>::init_memory() {
     if (_need_summary) {
         size_t temp_mem_in_mbytes = 0;
         size_t ori_temp_mem_in_mbytes = 0;
-        auto analysis_used_of_temp_mem = [&](graph::Edge<Ttype, Dtype>& edge) {
+        auto analysis_used_of_temp_mem = [&](graph::Edge<Ttype>& edge) {
             auto& tensor_p = edge.weight();
             if (!edge.shared()) {
                 temp_mem_in_mbytes += (tensor_p->size() * 4);
@@ -646,8 +646,8 @@ Status Net<Ttype, Dtype, Ptype, RunType>::init_memory() {
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
-Status Net<Ttype, Dtype, Ptype, RunType>::init_env(graph::Graph<Ttype, Dtype, Ptype>& graph) {
+template<typename Ttype, Precision Ptype, OpRunType RunType>
+Status Net<Ttype, Ptype, RunType>::init_env(graph::Graph<Ttype, Ptype>& graph) {
     LOG(WARNING) << "Detect and initial " << graph.get_ins().size() << " lanes.";
     Env<Ttype>::env_init(graph.get_ins().size());
     LOG(WARNING) << "Current used device id : " << TargetWrapper<Ttype>::get_device_id();
@@ -656,49 +656,49 @@ Status Net<Ttype, Dtype, Ptype, RunType>::init_env(graph::Graph<Ttype, Dtype, Pt
 
 
 #ifdef USE_CUDA
-template class Net<NV, AK_FLOAT, Precision::FP32, OpRunType::ASYNC>;
-template class Net<NV, AK_FLOAT, Precision::FP16, OpRunType::ASYNC>;
-template class Net<NV, AK_FLOAT, Precision::INT8, OpRunType::ASYNC>;
+template class Net<NV, Precision::FP32, OpRunType::ASYNC>;
+template class Net<NV, Precision::FP16, OpRunType::ASYNC>;
+template class Net<NV, Precision::INT8, OpRunType::ASYNC>;
 
-template class Net<NV, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
-template class Net<NV, AK_FLOAT, Precision::FP16, OpRunType::SYNC>;
-template class Net<NV, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
+template class Net<NV, Precision::FP32, OpRunType::SYNC>;
+template class Net<NV, Precision::FP16, OpRunType::SYNC>;
+template class Net<NV, Precision::INT8, OpRunType::SYNC>;
 #endif
 
 #ifdef USE_X86_PLACE
-template class Net<X86, AK_FLOAT, Precision::FP32, OpRunType::ASYNC>;
-template class Net<X86, AK_FLOAT, Precision::FP16, OpRunType::ASYNC>;
-template class Net<X86, AK_FLOAT, Precision::INT8, OpRunType::ASYNC>;
+template class Net<X86, Precision::FP32, OpRunType::ASYNC>;
+template class Net<X86, Precision::FP16, OpRunType::ASYNC>;
+template class Net<X86, Precision::INT8, OpRunType::ASYNC>;
 
-template class Net<X86, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
-template class Net<X86, AK_FLOAT, Precision::FP16, OpRunType::SYNC>;
-template class Net<X86, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
+template class Net<X86, Precision::FP32, OpRunType::SYNC>;
+template class Net<X86, Precision::FP16, OpRunType::SYNC>;
+template class Net<X86, Precision::INT8, OpRunType::SYNC>;
 #endif
 
 #ifdef USE_AMD
-template class Net<AMD, AK_FLOAT, Precision::FP32, OpRunType::ASYNC>;
-template class Net<AMD, AK_FLOAT, Precision::FP16, OpRunType::ASYNC>;
-template class Net<AMD, AK_FLOAT, Precision::INT8, OpRunType::ASYNC>;
+template class Net<AMD, Precision::FP32, OpRunType::ASYNC>;
+template class Net<AMD, Precision::FP16, OpRunType::ASYNC>;
+template class Net<AMD, Precision::INT8, OpRunType::ASYNC>;
 
-template class Net<AMD, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
-template class Net<AMD, AK_FLOAT, Precision::FP16, OpRunType::SYNC>;
-template class Net<AMD, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
+template class Net<AMD, Precision::FP32, OpRunType::SYNC>;
+template class Net<AMD, Precision::FP16, OpRunType::SYNC>;
+template class Net<AMD, Precision::INT8, OpRunType::SYNC>;
 #endif
 
 #ifdef USE_ARM_PLACE
 #ifdef ANAKIN_TYPE_FP32
-template class Net<ARM, AK_FLOAT, Precision::FP32, OpRunType::ASYNC>;
-template class Net<ARM, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
+template class Net<ARM, Precision::FP32, OpRunType::ASYNC>;
+template class Net<ARM, Precision::FP32, OpRunType::SYNC>;
 #endif
 
 #ifdef ANAKIN_TYPE_FP16
-template class Net<ARM, AK_FLOAT, Precision::FP16, OpRunType::ASYNC>;
-template class Net<ARM, AK_FLOAT, Precision::FP16, OpRunType::SYNC>;
+template class Net<ARM, Precision::FP16, OpRunType::ASYNC>;
+template class Net<ARM, Precision::FP16, OpRunType::SYNC>;
 #endif
 
 #ifdef ANAKIN_TYPE_INT8
-template class Net<ARM, AK_FLOAT, Precision::INT8, OpRunType::ASYNC>;
-template class Net<ARM, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
+template class Net<ARM, Precision::INT8, OpRunType::ASYNC>;
+template class Net<ARM, Precision::INT8, OpRunType::SYNC>;
 #endif //int8
 
 #endif //arm

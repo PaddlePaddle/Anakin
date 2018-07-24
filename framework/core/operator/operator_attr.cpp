@@ -9,10 +9,10 @@ OpAttrWarpper& OpAttrWarpper::name(const std::string& op_name) {
     return *this;
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 OpAttrWarpper& OpAttrWarpper::__alias__(const std::string& op_name) {
     OpAttrRegister::Global().add_alias(this->opAttr_.name, op_name);
-    OpFactory<Ttype, Dtype, Ptype>::Global().add_alias(this->opAttr_.name, op_name);
+    OpFactory<Ttype, Ptype>::Global().add_alias(this->opAttr_.name, op_name);
     return *this;
 }
 //#ifdef USE_CUDA

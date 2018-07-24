@@ -22,14 +22,14 @@ void DeconvBatchnormScaleRelu<NV, AK_FLOAT, Precision::FP32>::operator()(
 
 
 /// set helper
-template<typename Ttype, DataType Dtype, Precision Ptype>
-DeconvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::~DeconvBatchnormScaleReluHelper() {
+template<typename Ttype, Precision Ptype>
+DeconvBatchnormScaleReluHelper<Ttype, Ptype>::~DeconvBatchnormScaleReluHelper() {
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status DeconvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::InitParam() {
+template<typename Ttype, Precision Ptype>
+Status DeconvBatchnormScaleReluHelper<Ttype, Ptype>::InitParam() {
     DLOG(WARNING) << "Parsing DeconvBatchnormScaleRelu op parameter.";
-    saber::ConvParam<Tensor4d<Ttype, Dtype>> _conv_param;
+    saber::ConvParam<Tensor4d<Ttype>> _conv_param;
 
     // get conv param
     auto group = GET_PARAMETER(int, group);
@@ -41,19 +41,19 @@ Status DeconvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto kernel_size = GET_PARAMETER(PTuple<int>, kernel_size);
     auto axis = GET_PARAMETER(int, axis);
 
-	using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
+	using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
 
     if (bias_term) {
         auto bias = GET_PARAMETER(pblock_type, weight_2);
-        saber::ConvParam<Tensor4d<Ttype, Dtype>> conv_param(group, padding[0], padding[1],
+        saber::ConvParam<Tensor4d<Ttype>> conv_param(group, padding[0], padding[1],
                                               strides[0], strides[1],
                                               dilation_rate[0], dilation_rate[1],
                                               &(weights.d_tensor()), &(bias.d_tensor()));
         _conv_param = conv_param;
     } else {
-        Tensor4d<Ttype, Dtype>* bias = new Tensor4d<Ttype, Dtype>();;
-        saber::ConvParam<Tensor4d<Ttype, Dtype>> conv_param(group, padding[0], padding[1],
+        Tensor4d<Ttype>* bias = new Tensor4d<Ttype>();;
+        saber::ConvParam<Tensor4d<Ttype>> conv_param(group, padding[0], padding[1],
                                               strides[0], strides[1],
                                               dilation_rate[0], dilation_rate[1],
                                               &(weights.d_tensor()), bias);
@@ -73,7 +73,7 @@ Status DeconvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto batch_norm_weight_3 = GET_PARAMETER(pblock_type,
                                batchnorm_0_weight_3);
     auto batch_norm_weight_3_vector = batch_norm_weight_3.vector();
-    BatchnormParam<Tensor4d<Ttype, Dtype>> batchnorm_param(batch_norm_weight_1_vector,
+    BatchnormParam<Tensor4d<Ttype>> batchnorm_param(batch_norm_weight_1_vector,
                                         batch_norm_weight_2_vector,
                                         batch_norm_weight_3_vector[0],
                                         momentum, epsilon);
@@ -87,25 +87,25 @@ Status DeconvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto scale_weight_2 = GET_PARAMETER(pblock_type,
                                         scale_0_weight_2);
     auto  scale_weight_2_vector = scale_weight_2.vector();
-    saber::ScaleParam<Tensor4d<Ttype, Dtype>> scale_param(scale_weight_1_vector,  scale_weight_2_vector,
+    saber::ScaleParam<Tensor4d<Ttype>> scale_param(scale_weight_1_vector,  scale_weight_2_vector,
                                            scale_bias_term, scale_axis, scale_num_axes);
 
     // get relu param
     auto alpha = GET_PARAMETER(float, relu_0_alpha);
-    ActivationParam<Tensor4d<Ttype, Dtype>> active_param(Active_relu);//, alpha); // TEMP
+    ActivationParam<Tensor4d<Ttype>> active_param(Active_relu);//, alpha); // TEMP
 
 
-    ConvActiveParam<Tensor4d<Ttype, Dtype>> conv_act_param(_conv_param, active_param, batchnorm_param,
+    ConvActiveParam<Tensor4d<Ttype>> conv_act_param(_conv_param, active_param, batchnorm_param,
                                          scale_param);
     _param_deconv_batchnorm_scale_relu = conv_act_param;
 
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status DeconvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
-        const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+template<typename Ttype, Precision Ptype>
+Status DeconvBatchnormScaleReluHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
+        const std::vector<Tensor4dPtr<Ttype> >& ins,
+        std::vector<Tensor4dPtr<Ttype> >& outs) {
     if (_param_deconv_batchnorm_scale_relu.conv_param.group == ins[0]->channel() && \
             _param_deconv_batchnorm_scale_relu.conv_param.group == outs[0]->channel()) {
         _funcs_deconv_batchnorm_scale_relu.init(ins, outs, _param_deconv_batchnorm_scale_relu, SPECIFY,
@@ -119,10 +119,10 @@ Status DeconvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status DeconvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::InferShape(const
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+template<typename Ttype, Precision Ptype>
+Status DeconvBatchnormScaleReluHelper<Ttype, Ptype>::InferShape(const
+        std::vector<Tensor4dPtr<Ttype> >& ins,
+        std::vector<Tensor4dPtr<Ttype> >& outs) {
     _funcs_deconv_batchnorm_scale_relu.compute_output_shape(ins, outs, _param_deconv_batchnorm_scale_relu);
     return Status::OK();
 }

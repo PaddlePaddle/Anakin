@@ -4,21 +4,21 @@ namespace anakin {
 
 namespace ops {
 
-#define INSTANCE_BATCHNORMSCALE(Ttype, Dtype, Ptype) \
+#define INSTANCE_BATCHNORMSCALE(Ttype, Ptype) \
 template<> \
-void BatchnormScale<Ttype, Dtype, Ptype>::operator()(\
+void BatchnormScale<Ttype, Ptype>::operator()(\
     OpContext<Ttype>& ctx,\
-    const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,\
-    std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {\
-    auto* impl = static_cast<BatchnormScaleHelper<Ttype, Dtype, Ptype>*>(this->_helper);\
-    auto& param = static_cast<BatchnormScaleHelper<Ttype, Dtype, Ptype>*>\
+    const std::vector<Tensor4dPtr<Ttype> >& ins,\
+    std::vector<Tensor4dPtr<Ttype> >& outs) {\
+    auto* impl = static_cast<BatchnormScaleHelper<Ttype, Ptype>*>(this->_helper);\
+    auto& param = static_cast<BatchnormScaleHelper<Ttype, Ptype>*>\
                   (this->_helper)->_param_scale;\
     SABER_CHECK(impl->_funcs_scale(ins, outs, param, ctx));\
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status BatchnormScaleHelper<Ttype, Dtype, Ptype>::InitParam() {
-	using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
+template<typename Ttype, Precision Ptype>
+Status BatchnormScaleHelper<Ttype, Ptype>::InitParam() {
+	using pblock_type = PBlock<Ttype>;
     LOG(WARNING) << "Parsing BatchnormScale op parameter.";
 
     // get batchnorm param
@@ -60,7 +60,7 @@ Status BatchnormScaleHelper<Ttype, Dtype, Ptype>::InitParam() {
         }
     }
     
-    saber::ScaleParam<Tensor4d<Ttype, Dtype>> scale_param(new_scale,  new_shift,
+    saber::ScaleParam<Tensor4d<Ttype>> scale_param(new_scale,  new_shift,
                                            scale_bias_term, scale_axis, scale_num_axes);
 
 	_param_scale = scale_param;
@@ -69,45 +69,44 @@ Status BatchnormScaleHelper<Ttype, Dtype, Ptype>::InitParam() {
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status BatchnormScaleHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
-        const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+template<typename Ttype, Precision Ptype>
+Status BatchnormScaleHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
+        const std::vector<Tensor4dPtr<Ttype> >& ins,
+        std::vector<Tensor4dPtr<Ttype> >& outs) {
     SABER_CHECK(_funcs_scale.init(ins, outs, \
         _param_scale, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status BatchnormScaleHelper<Ttype, Dtype, Ptype>::InferShape(const
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+template<typename Ttype, Precision Ptype>
+Status BatchnormScaleHelper<Ttype, Ptype>::InferShape(const
+        std::vector<Tensor4dPtr<Ttype> >& ins,
+        std::vector<Tensor4dPtr<Ttype> >& outs) {
     SABER_CHECK(_funcs_scale.compute_output_shape(ins, outs, \
         _param_scale));
     return Status::OK();
 }
 
 #ifdef USE_ARM_PLACE
-INSTANCE_BATCHNORMSCALE(ARM, AK_FLOAT, Precision::FP32);
-template class BatchnormScaleHelper<ARM, AK_FLOAT, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(BatchnormScale, BatchnormScaleHelper, ARM, AK_FLOAT, Precision::FP32);
+INSTANCE_BATCHNORMSCALE(ARM, Precision::FP32);
+template class BatchnormScaleHelper<ARM, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(BatchnormScale, BatchnormScaleHelper, ARM, Precision::FP32);
 #endif
 
 #ifdef USE_CUDA
-INSTANCE_BATCHNORMSCALE(NV, AK_FLOAT, Precision::FP32);
+INSTANCE_BATCHNORMSCALE(NV, Precision::FP32);
 template<>
-Status BatchnormScaleHelper<NV, AK_FLOAT, Precision::FP32>::Init(OpContext<NV>& ctx, \
-    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins, \
-    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
+Status BatchnormScaleHelper<NV, Precision::FP32>::Init(OpContext<NV>& ctx, \
+    const std::vector<Tensor4dPtr<NV> >& ins, \
+    std::vector<Tensor4dPtr<NV> >& outs) {
     _funcs_scale.init(ins, outs, _param_scale, SPECIFY, VENDER_IMPL, ctx);
     return Status::OK();
 }
-ANAKIN_REGISTER_OP_HELPER(BatchnormScale, BatchnormScaleHelper, NV, AK_FLOAT,
-                          Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(BatchnormScale, BatchnormScaleHelper, NV, Precision::FP32);
 #endif
 //#ifdef USE_X86_PLACE
-//INSTANCE_CONVBATCHNORMSCALE(X86, AK_FLOAT, Precision::FP32);
-//template class BatchnormScaleHelper<X86, AK_FLOAT, Precision::FP32>;
+//INSTANCE_CONVBATCHNORMSCALE(X86, Precision::FP32);
+//template class BatchnormScaleHelper<X86, Precision::FP32>;
 //ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScale, BatchnormScaleHelper, X86, AK_FLOAT,
 //                          Precision::FP32);
 //#endif
@@ -117,10 +116,10 @@ ANAKIN_REGISTER_OP_HELPER(BatchnormScale, BatchnormScaleHelper, NV, AK_FLOAT,
 ANAKIN_REGISTER_OP(BatchnormScale)
 .Doc("BatchnormScale fusion operator")
 #ifdef USE_CUDA
-.__alias__<NV, AK_FLOAT, Precision::FP32>("batchnorm_scale")
+.__alias__<NV, Precision::FP32>("batchnorm_scale")
 #endif
 #ifdef USE_ARM_PLACE
-.__alias__<ARM, AK_FLOAT, Precision::FP32>("batchnorm_scale")
+.__alias__<ARM, Precision::FP32>("batchnorm_scale")
 #endif
 .num_in(1)
 .num_out(1)

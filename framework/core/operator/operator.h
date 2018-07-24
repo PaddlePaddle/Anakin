@@ -25,7 +25,7 @@
 
 namespace anakin {
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class OperatorHelper;
 
 /** 
@@ -40,7 +40,7 @@ public:
 /** 
  *  \brief Operator class, it's a base class for other op defined by anakin.
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class Operator : public OperatorBase {
 public:
     Operator() {}
@@ -52,27 +52,27 @@ public:
 	}
 
     virtual void operator() (OpContext<Ttype> &ctx, 
-                             const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                             std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+                             const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                             std::vector<Tensor4dPtr<Ttype> >& outs) {
         LOG(ERROR) << "The Operator is basic";
     }
 
     /** 
      *  \brief Bind helper.
      */
-    Operator<Ttype, Dtype, Ptype>* operator>>(OperatorHelper<Ttype, Dtype, Ptype>* helper) {
+    Operator<Ttype, Ptype>* operator>>(OperatorHelper<Ttype, Ptype>* helper) {
         _helper = helper;
         return this;
     }
 
     ///< Receive helper and attr from outside define.
-    OperatorHelper<Ttype, Dtype, Ptype>* _helper{nullptr};
+    OperatorHelper<Ttype, Ptype>* _helper{nullptr};
 };
 
 /** 
  *  \brief Helper for operator, user defined helper should derived from it.
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class OperatorHelper {
 public:
     OperatorHelper() {}
@@ -90,8 +90,8 @@ public:
      *  \brief Initial all the resource needed by operator and it's also need to be overrided.
      */
     virtual Status Init(OpContext<Ttype> &ctx,
-                        const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs){
+                        const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                        std::vector<Tensor4dPtr<Ttype> >& outs){
         DLOG(ERROR) << " Target init not overriden.";
         return Status::FAIL();
     }
@@ -99,8 +99,8 @@ public:
     /** 
      *  \brief Infer the shape of output and input and it's also need to be overrided.
      */
-    virtual Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                              std::vector<Tensor4dPtr<Ttype, Dtype> >& outs){
+    virtual Status InferShape(const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                              std::vector<Tensor4dPtr<Ttype> >& outs){
         DLOG(ERROR) << " Target infershape not overriden.";
         return Status::FAIL();
     }
@@ -108,8 +108,8 @@ public:
     /** 
      *  \brief Bind parameter pack from graph.
      */
-    void BindParam(graph::NodePtr<Ttype, Dtype, Ptype>& node_p) { 
-		_node_p = std::make_shared<graph::Node<Ttype, Dtype, Ptype>>(); 
+    void BindParam(graph::NodePtr& node_p) { 
+		_node_p = std::make_shared<graph::Node<Ttype, Ptype>>(); 
 		*_node_p = *node_p;
 	}
 
@@ -128,7 +128,7 @@ public:
 
 private:
     ///< Pointer to graph node.
-    graph::NodePtr<Ttype, Dtype, Ptype> _node_p;
+    graph::NodePtr _node_p;
 };
 
 /**
@@ -141,11 +141,11 @@ private:
  *  \brief Operator creator.
  *  Typedef std::function<Operator*()> OperatorCreator.
  */ 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-using OperatorCreator = std::function<Operator<Ttype, Dtype, Ptype>*()>;
+template<typename Ttype, Precision Ptype>
+using OperatorCreator = std::function<Operator<Ttype, Ptype>*()>;
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class OperatorFactory : public Factory<Operator<Ttype, Dtype, Ptype>, OperatorCreator<Ttype, Dtype, Ptype>> {
+template<typename Ttype, Precision Ptype>
+class OperatorFactory : public Factory<Operator<Ttype, Ptype>, OperatorCreator<Ttype, Ptype>> {
 public:
 
     /** 
@@ -158,8 +158,8 @@ public:
     /** 
      *  \brief Create Operator object by op_name.
      */
-    virtual Operator<Ttype, Dtype, Ptype>* operator[](const std::string op_name) {
-        return Factory<Operator<Ttype, Dtype, Ptype>, OperatorCreator<Ttype, Dtype, Ptype>>::operator[](op_name);
+    virtual Operator<Ttype, Ptype>* operator[](const std::string op_name) {
+        return Factory<Operator<Ttype, Ptype>, OperatorCreator<Ttype, Ptype>>::operator[](op_name);
     }
 
     /** 
@@ -171,8 +171,8 @@ public:
 };
 
 ///< Typedef Singleton<OperatorFactory> OpFactory.
-template<typename Ttype, DataType Dtype, Precision Ptype>
-using OpFactory = Singleton<OperatorFactory<Ttype, Dtype, Ptype> >;
+template<typename Ttype, Precision Ptype>
+using OpFactory = Singleton<OperatorFactory<Ttype, Ptype> >;
 
 /**
  *  \brief Operator objector register type.
@@ -226,13 +226,13 @@ typedef Singleton<OpAttrObjectRegister> OpAttrRegister;
     static AK_ATTRIBUTE_UNUSED OpAttrWarpper& AK_MAKE_UNIQ_OPERATOR_NAME(OpName) =  \
                    OpAttrRegister::Global().Register(#OpName).name(#OpName)
 
-#define ANAKIN_REGISTER_OP_HELPER(OpName, OpHelperName, TargetT, DataT, PrecisionT)                                             \
-    static AK_ATTRIBUTE_UNUSED bool AK_MAKE_UNIQ_OPERATOR_NAME(OpName##_##OpHelperName##TargetT##DataT) =                       \
-    OpFactory<TargetT, DataT, PrecisionT>::Global().Register(#OpName,                                                           \
-                                  []() {                                                                                        \
-                                        OpName<TargetT, DataT, PrecisionT>* tmpop = new OpName<TargetT, DataT, PrecisionT>();   \
-                                        (*tmpop)>>(new OpHelperName<TargetT, DataT, PrecisionT>());                             \
-                                        return tmpop;                                                                           \
+#define ANAKIN_REGISTER_OP_HELPER(OpName, OpHelperName, TargetT, PrecisionT)                                             \
+    static AK_ATTRIBUTE_UNUSED bool AK_MAKE_UNIQ_OPERATOR_NAME(OpName##_##OpHelperName##TargetT) =                       \
+    OpFactory<TargetT, PrecisionT>::Global().Register(#OpName,                                                           \
+                                  []() {                                                                                 \
+                                        OpName<TargetT, PrecisionT>* tmpop = new OpName<TargetT, PrecisionT>();   		 \
+                                        (*tmpop)>>(new OpHelperName<TargetT, PrecisionT>());                             \
+                                        return tmpop;                                                                    \
                                   } )
 
 

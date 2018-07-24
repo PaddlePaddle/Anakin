@@ -165,6 +165,31 @@ public:
     DataType get_dtype() const {
         return _dtype;
     }
+    
+	size_t get_dtype_size() const {
+		switch(_dtype) {
+			case AK_HALF: {
+				return sizeof(unsigned short);
+	  		} break;
+			case AK_FLOAT: {
+				return sizeof(float);
+	  		} break;
+			case AK_DOUBLE: {
+				return sizeof(double);
+	  		} break;
+			case AK_INT8: {
+				return sizeof(int8_t);
+	  		} break;
+			case AK_INT32: {
+				return sizeof(int);
+	  		} break;
+			default: { 
+				LOG(ERROR) << "tensor's data type is not supported. "; 	
+				return -1;
+			} break;
+		}
+		return -1;
+	}
 
 
     /**
