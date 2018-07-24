@@ -152,7 +152,6 @@ SaberLstm<NV, AK_FLOAT>::dispatch_batch(
     const OpDataType *bias = (const OpDataType *)param.bias()->data();
     const OpDataType *weight_peephole = (const OpDataType *)(param.bias()->data())+4*_hidden_size;
     const OpDataType* h_init = nullptr;
-    const OpDataType* cell_init = nullptr;
     const OpDataType* inner_x = (const OpDataType *)inputs[0]->data();
     OpDataType* inner_h_out = (OpDataType *)outputs[0]->mutable_data();
     OpDataType* inner_cell = nullptr;
@@ -163,7 +162,6 @@ SaberLstm<NV, AK_FLOAT>::dispatch_batch(
     try_expand_tensor(_temp_map_dev,seq_sum);
     bool transform = _seq_util.get_sorted_map(offset_vec, emit_offset_vec, emit_length,
                      _ctx->get_compute_stream());
-    bool is_reverse = param.is_reverse;
 
     if (inputs.size() > 1) {
         h_init = (const OpDataType *)inputs[1]->data();
@@ -179,7 +177,6 @@ SaberLstm<NV, AK_FLOAT>::dispatch_batch(
                                        sizeof(OpDataType)*batch_size * _hidden_size,
                                        _ctx->get_compute_stream()));
         }
-
         h_init = (const OpDataType *)_temp_zero.data();
     }
 
@@ -199,6 +196,7 @@ SaberLstm<NV, AK_FLOAT>::dispatch_batch(
             CHECK(false) << "not support inner_h_init != nullptr";
         }
     }
+
 
     inner_cell = (OpDataType *)_temp_cell.mutable_data();
     CUDA_CHECK(cudaMemsetAsync(inner_cell, 0, sizeof(OpDataType)*batch_size * _hidden_size,

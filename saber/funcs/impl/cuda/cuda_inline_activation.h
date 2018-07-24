@@ -19,6 +19,7 @@ static inline __device__ Dtype
 InValidAct(Dtype
            a) {
     printf("invalid act\n");
+    return (Dtype)0;
 }
 
 template<typename Dtype>
