@@ -1,5 +1,14 @@
-template <typename dtype>
-void norm_cpu_nchw(const int p, const dtype* scale, const dtype* src, dtype* dst, \
+
+#include "saber/funcs/impl/x86/saber_normalize.h"
+#include <math.h>
+
+namespace anakin {
+
+namespace saber {
+
+
+template<typename dtype>
+static void norm_cpu_nchw(const int p, const dtype* scale, const dtype* src, dtype* dst, \
                    bool across_spatial, bool has_scale, bool channel_shared, float eps, \
                    int n, int c, int h, int w) {
 
@@ -94,4 +103,20 @@ void norm_cpu_nchw(const int p, const dtype* scale, const dtype* src, dtype* dst
             }
         }
     }
+}
+template <>
+SaberStatus SaberNormalize<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispatch(const std::vector<DataTensor_in*>& inputs,
+                     std::vector<DataTensor_out*>& outputs,
+                     NormalizeParam<OpTensor>& param) {
+
+    if(param.has_scale){
+        norm_cpu_nchw(param.p,param.scale->data(),inputs[0]->data(),outputs[0]->mutable_data(),param.across_spatial,
+                      param.has_scale,param.channel_shared,param.eps,inputs[0]->num(),inputs[0]->channel(),inputs[0]->height(),inputs[0]->width());
+    }else{
+        norm_cpu_nchw(param.p,(const InDataType*)nullptr,inputs[0]->data(),outputs[0]->mutable_data(),param.across_spatial,
+                      param.has_scale,param.channel_shared,param.eps,inputs[0]->num(),inputs[0]->channel(),inputs[0]->height(),inputs[0]->width());
+    }
+}
+
+}
 }
