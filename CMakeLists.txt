@@ -21,6 +21,8 @@ include(cmake/statistic.cmake)
 # ----------------------------------------------------------------------------
 # section: global anakin version and lib name
 # ----------------------------------------------------------------------------
+cmake_minimum_required(VERSION ${MIN_CMAKE_V} FATAL_ERROR)
+
 # global anakin version 0.1.0
 set(VERSION_MAJOR "0")
 set(VERSION_MINOR "1")
@@ -81,8 +83,6 @@ anakin_option(BUILD_FAT_BIN "Build anakin cuda fat-bin lib for all device plantf
 
 # build options for amd.
 anakin_option(USE_AMD "Use AMD ROCm OpenCL" YES if AMD_GPU)
-
-cmake_minimum_required(VERSION ${MIN_CMAKE_V} FATAL_ERROR)
 
 if(USE_CUDA)
     # Select gpu target arch for local high performance implement sass code . Now we have checked on sm_61 sm_50 and it works well.

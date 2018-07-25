@@ -121,19 +121,19 @@ struct is_status_function :
 template<Precision P>
 struct PrecisionWrapper {
     typedef float type;
-	const static saber::DataType saber_type = AK_FLOAT;
+	const static saber::DataType saber_type = saber::AK_FLOAT;
 };
 
 template<>
 struct PrecisionWrapper<Precision::INT8> {
     typedef int8_t type;
-	const static DataType saber_type = AK_INT8;
+	const static saber::DataType saber_type = saber::AK_INT8;
 };
 
 template<>
 struct PrecisionWrapper<Precision::FP16> { 
     typedef unsigned short type;
-	const static DataType saber_type = AK_HALF;
+	const static saber::DataType saber_type = saber::AK_HALF;
 };
 
 template<Precision P>

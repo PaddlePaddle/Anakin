@@ -136,7 +136,7 @@ NodeIO<Ttype, Ptype>& NodeIO<Ttype, Ptype>::operator>>(const NodeProto& node_pro
 
             switch (data.type()) {
             case FLOAT: { /* At so far, we only support weights saved as float. */
-                saber::Shape saber_shape(1, 1, 1, 1);
+                saber::Shape saber_shape({1, 1, 1, 1});
 
                 // get shape
                 for (int i = 0; i < 4; i++) {
@@ -298,8 +298,8 @@ Status NodeIO<Ttype, Ptype>::operator<<(GraphProto& graph) {
                 (*node_proto_attr)[key].set_type(CACHE_LIST);
                 (*node_proto_attr)[key].mutable_cache_list()->set_type(BOOLEN);
                 (*node_proto_attr)[key].mutable_cache_list()->set_size(tuple_bool.size());
-            } else if (value.type() == "anakin_block_float") { // default block have float data
-                auto block_float = any_cast<PBlock<float, Ttype>>(value);
+            } else if (value.type() == "anakin_block") { // default block have float data
+                auto block_float = any_cast<PBlock<Ttype>>(value);
                 float* cpu_data = static_cast<float*>(block_float.h_tensor().mutable_data());
                 auto shape_saber = block_float.shape();
 

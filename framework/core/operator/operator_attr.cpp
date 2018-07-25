@@ -17,46 +17,46 @@ OpAttrWarpper& OpAttrWarpper::__alias__(const std::string& op_name) {
 }
 //#ifdef USE_CUDA
 template
-OpAttrWarpper& OpAttrWarpper::__alias__<NV, AK_FLOAT, Precision::FP32>(const std::string& op_name);
+OpAttrWarpper& OpAttrWarpper::__alias__<NV, Precision::FP32>(const std::string& op_name);
 template
-OpAttrWarpper& OpAttrWarpper::__alias__<NV, AK_FLOAT, Precision::FP16>(const std::string& op_name);
+OpAttrWarpper& OpAttrWarpper::__alias__<NV, Precision::FP16>(const std::string& op_name);
 template
-OpAttrWarpper& OpAttrWarpper::__alias__<NV, AK_FLOAT, Precision::INT8>(const std::string& op_name);
+OpAttrWarpper& OpAttrWarpper::__alias__<NV, Precision::INT8>(const std::string& op_name);
 //#endif
 
 //#ifdef USE_X86_PLACE
 template
-OpAttrWarpper& OpAttrWarpper::__alias__<X86, AK_FLOAT, Precision::FP32>(const std::string& op_name);
+OpAttrWarpper& OpAttrWarpper::__alias__<X86, Precision::FP32>(const std::string& op_name);
 template
-OpAttrWarpper& OpAttrWarpper::__alias__<X86, AK_FLOAT, Precision::FP16>(const std::string& op_name);
+OpAttrWarpper& OpAttrWarpper::__alias__<X86, Precision::FP16>(const std::string& op_name);
 template
-OpAttrWarpper& OpAttrWarpper::__alias__<X86, AK_FLOAT, Precision::INT8>(const std::string& op_name);
+OpAttrWarpper& OpAttrWarpper::__alias__<X86, Precision::INT8>(const std::string& op_name);
 //#endif
 
 //#ifdef USE_ARM_PLACE
 //#ifdef ANAKIN_TYPE_FP32
 template
-OpAttrWarpper& OpAttrWarpper::__alias__<ARM, AK_FLOAT, Precision::FP32>(const std::string& op_name);
+OpAttrWarpper& OpAttrWarpper::__alias__<ARM, Precision::FP32>(const std::string& op_name);
 //#endif
 
 //#ifdef ANAKIN_TYPE_FP16
 template
-OpAttrWarpper& OpAttrWarpper::__alias__<ARM, AK_FLOAT, Precision::FP16>(const std::string& op_name);
+OpAttrWarpper& OpAttrWarpper::__alias__<ARM, Precision::FP16>(const std::string& op_name);
 //#endif
 
 //#ifdef ANAKIN_TYPE_INT8
 template
-OpAttrWarpper& OpAttrWarpper::__alias__<ARM, AK_FLOAT, Precision::INT8>(const std::string& op_name);
+OpAttrWarpper& OpAttrWarpper::__alias__<ARM, Precision::INT8>(const std::string& op_name);
 //#endif
 
 //#endif
 
 template
-OpAttrWarpper& OpAttrWarpper::__alias__<AMD, AK_FLOAT, Precision::FP32>(const std::string& op_name);
+OpAttrWarpper& OpAttrWarpper::__alias__<AMD, Precision::FP32>(const std::string& op_name);
 template
-OpAttrWarpper& OpAttrWarpper::__alias__<AMD, AK_FLOAT, Precision::FP16>(const std::string& op_name);
+OpAttrWarpper& OpAttrWarpper::__alias__<AMD, Precision::FP16>(const std::string& op_name);
 template
-OpAttrWarpper& OpAttrWarpper::__alias__<AMD, AK_FLOAT, Precision::INT8>(const std::string& op_name);
+OpAttrWarpper& OpAttrWarpper::__alias__<AMD, Precision::INT8>(const std::string& op_name);
 
 OpAttrWarpper& OpAttrWarpper::Doc(const std::string& doc) {
     opAttr_.doc = doc;

@@ -175,20 +175,22 @@ public:
 	inline bool host_only() { return true; }
 };
 
+#ifdef USE_NV_GPU
+
 template<>
 class PBlock<NV> {
 public:
 	typedef Tensor4d<NV> d_type;
 	typedef Tensor4d<NVHX86> h_type;
 
-	PBlock(DataType type = AK_FLOAT) {
-		_d_inner_tensor = std::make_shared<d_type>(type); 
-		_h_inner_tensor = std::make_shared<h_type>(type);
+	PBlock(DataType Dtype = AK_FLOAT) {
+		_d_inner_tensor = std::make_shared<d_type>(Dtype); 
+		_h_inner_tensor = std::make_shared<h_type>(Dtype);
 	}
 
-	PBlock(Shape4d& shape, DataType type = AK_FLOAT) {
-        _d_inner_tensor = std::make_shared<d_type>(shape, type);
-        _h_inner_tensor = std::make_shared<h_type>(shape, type);
+	PBlock(Shape4d& shape, DataType Dtype = AK_FLOAT) {
+        _d_inner_tensor = std::make_shared<d_type>(shape, Dtype);
+        _h_inner_tensor = std::make_shared<h_type>(shape, Dtype);
     }
 
 	inline bool host_only() { return false; }
@@ -216,9 +218,9 @@ public:
     /// Get host data to vector.
     std::vector<float> vector() {
         std::vector<float> ret;
-        auto* data = _h_inner_tensor->mutable_data();
+        DataTraitBase<NV>::PtrDtype data = _h_inner_tensor->mutable_data();
         for (int i = 0; i <_h_inner_tensor->valid_size(); i++) {
-            ret.push_back(data[i]);
+            ret.push_back(((float*)data)[i]);
         }
         return ret;
     }
@@ -247,6 +249,7 @@ private:
 	std::shared_ptr<d_type> _d_inner_tensor;
 	std::shared_ptr<h_type> _h_inner_tensor;
 };
+#endif
 
 #ifdef USE_AMD
 
@@ -256,14 +259,14 @@ public:
 	typedef Tensor4d<AMD> d_type;
 	typedef Tensor4d<X86> h_type;
 
-	PBlock(DataType type = AK_FLOAT) {
-		_d_inner_tensor = std::make_shared<d_type>(type); 
-		_h_inner_tensor = std::make_shared<h_type>(type);
+	PBlock(DataType Dtype = AK_FLOAT) {
+		_d_inner_tensor = std::make_shared<d_type>(Dtype); 
+		_h_inner_tensor = std::make_shared<h_type>(Dtype);
 	}
 
-	PBlock(Shape4d& shape, DataType type = AK_FLOAT) {
-        _d_inner_tensor = std::make_shared<d_type>(shape, type);
-        _h_inner_tensor = std::make_shared<h_type>(shape, type);
+	PBlock(Shape4d& shape, DataType Dtype = AK_FLOAT) {
+        _d_inner_tensor = std::make_shared<d_type>(shape, Dtype);
+        _h_inner_tensor = std::make_shared<h_type>(shape, Dtype);
     }
 
 	inline bool host_only() { return false; }
@@ -291,9 +294,9 @@ public:
     /// Get host data to vector.
     std::vector<float> vector() {
         std::vector<float> ret;
-        auto* data = _h_inner_tensor->mutable_data();
+        DataTraitBase<AMD>::PtrDtype data = _h_inner_tensor->mutable_data();
         for (int i = 0; i <_h_inner_tensor->valid_size(); i++) {
-            ret.push_back(data[i]);
+            ret.push_back(((float*)data)[i]);
         }
         return ret;
     }
@@ -325,12 +328,12 @@ class PBlock<X86> {
 public:
 	typedef Tensor4d<X86> type;
 
-	PBlock(DataType type = AK_FLOAT) {
-		_inner_tensor = std::make_shared<type>(type); 
+	PBlock(DataType Dtype = AK_FLOAT) {
+		_inner_tensor = std::make_shared<type>(Dtype); 
 	}
 
-	PBlock(Shape4d& shape, DataType type = AK_FLOAT) {
-        _inner_tensor = std::make_shared<type>(shape, type);
+	PBlock(Shape4d& shape, DataType Dtype = AK_FLOAT) {
+        _inner_tensor = std::make_shared<type>(shape, Dtype);
     }
 
 	inline bool host_only() { return true; }
@@ -356,9 +359,9 @@ public:
     /// Get host data to vector.
     std::vector<float> vector() {
         std::vector<float> ret;
-        auto* data = _inner_tensor->mutable_data();
+        DataTraitBase<X86>::PtrDtype data = _inner_tensor->mutable_data();
         for (int i = 0; i <_inner_tensor->valid_size(); i++) {
-            ret.push_back(data[i]);
+            ret.push_back(((float*)data)[i]);
         }
         return ret;
     }
@@ -383,18 +386,21 @@ public:
 private:
 	std::shared_ptr<type> _inner_tensor;
 };
+#endif
+
+#ifdef USE_ARM_PLACE
 
 template<>
 class PBlock<ARM> {
 public:
 	typedef Tensor4d<ARM> type;
 
-	PBlock(DataType type = AK_FLOAT) {
-		_inner_tensor = std::make_shared<type>(type); 
+	PBlock(DataType Dtype = AK_FLOAT) {
+		_inner_tensor = std::make_shared<type>(Dtype); 
 	}
 
-	PBlock(Shape4d& shape, DataType type = AK_FLOAT) {
-        _inner_tensor = std::make_shared<type>(shape, type);
+	PBlock(Shape4d& shape, DataType Dtype = AK_FLOAT) {
+        _inner_tensor = std::make_shared<type>(shape, Dtype);
     }
 
 	inline bool host_only() { return true; }
@@ -422,9 +428,9 @@ public:
     /// Get host data to vector.
     std::vector<float> vector() {
         std::vector<float> ret;
-        auto* data = _inner_tensor->mutable_data();
+        DataTraitBase<ARM>::PtrDtype data = _inner_tensor->mutable_data();
         for (int i = 0; i <_inner_tensor->valid_size(); i++) {
-            ret.push_back(data[i]);
+            ret.push_back(((float*)data)[i]);
         }
         return ret;
     }
@@ -449,6 +455,7 @@ public:
 private:
 	std::shared_ptr<type> _inner_tensor;
 };
+#endif
 
 /**
  *  \brief Enum type.

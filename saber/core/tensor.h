@@ -244,7 +244,7 @@ public:
     /**
      *  \brief Free old buffer and alloc a new tensor buffer.
      */
-    SaberStatus re_alloc(Shape shape, DataType type) {
+    SaberStatus re_alloc(Shape shape, DataType type = AK_FLOAT) {
         //if (!shape.dims() == TensorAPI::layout_dims::value) {
         //    return SaberInvalidValue;
         //}

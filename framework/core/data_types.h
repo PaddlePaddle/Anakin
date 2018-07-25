@@ -122,15 +122,15 @@ ANAKIN_TO_TYPE_ID(Enum, anakin_tuple_enum)
 	ANAKIN_TO_TYPE_ID(__type##target, type_id)
 
 #ifdef USE_CUDA
-	ANAKIN_PBLOCK_TO_TYPE_ID(NV, anakin_nv_block)
+	ANAKIN_PBLOCK_TO_TYPE_ID(NV, anakin_block)
 #endif
 
 #ifdef USE_X86_PLACE
-	ANAKIN_PBLOCK_TO_TYPE_ID(X86, anakin_x86_block)
+	ANAKIN_PBLOCK_TO_TYPE_ID(X86, anakin_block)
 #endif
 
 #ifdef USE_ARM_PLACE
-	ANAKIN_PBLOCK_TO_TYPE_ID(ARM, anakin_arm_block)
+	ANAKIN_PBLOCK_TO_TYPE_ID(ARM, anakin_block)
 #endif
 
 template<typename T>

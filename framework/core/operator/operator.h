@@ -109,7 +109,7 @@ public:
      *  \brief Bind parameter pack from graph.
      */
     void BindParam(graph::NodePtr& node_p) { 
-		_node_p = std::make_shared<graph::Node<Ttype, Ptype>>(); 
+		_node_p = std::make_shared<graph::Node>(); 
 		*_node_p = *node_p;
 	}
 
