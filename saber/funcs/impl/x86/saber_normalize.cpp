@@ -116,6 +116,7 @@ SaberStatus SaberNormalize<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>:
         norm_cpu_nchw(param.p,(const InDataType*)nullptr,inputs[0]->data(),outputs[0]->mutable_data(),param.across_spatial,
                       param.has_scale,param.channel_shared,param.eps,inputs[0]->num(),inputs[0]->channel(),inputs[0]->height(),inputs[0]->width());
     }
+    return SaberSuccess;
 }
 
 }

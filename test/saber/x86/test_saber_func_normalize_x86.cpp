@@ -2,6 +2,7 @@
 #include "core/context.h"
 #include "funcs/normalize.h"
 #include "x86_test_common.h"
+#include "test_saber_func_x86.h"
 #include "tensor_op.h"
 #include "saber_types.h"
 #include <vector>
@@ -163,7 +164,6 @@ static SaberStatus test_norm_continue_nchw(int p, bool across_spatial, \
     TensorDf4 tdin, tdout;
     tdin.re_alloc(shape_in);
     SABER_CHECK(tdin.copy_from(thin));
-    CUDA_POST_KERNEL_CHECK;
     input_dev_4d.push_back(&tdin);
     output_dev_4d.push_back(&tdout);
     //print_tensor_device(tdin);
@@ -201,7 +201,6 @@ static SaberStatus test_norm_continue_nchw(int p, bool across_spatial, \
         output_dev_4d[0]->sync();
     }
 
-    CUDA_POST_KERNEL_CHECK;
     t1.end(ctx_dev);
     float ts = t1.get_average_ms();
     LOG(INFO) << "total time: " << ts << ", avg time: " << ts / test_iter;
@@ -219,7 +218,7 @@ static SaberStatus test_norm_continue_nchw(int p, bool across_spatial, \
     return SaberSuccess;
 }
 
-TEST(TestSaberFuncNormalizeX86, test_func_normalize_without_roi_x86) {
+TEST(TestSaberFuncX86, test_func_normalize_without_roi_x86) {
     for (auto& sp_flag : {
                 false, true
             }) {

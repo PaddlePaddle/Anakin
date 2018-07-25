@@ -24,19 +24,18 @@
 
 namespace anakin {
 namespace saber {
-template <DataType OpDtype ,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
+template <DataType OpDtype,
+          DataType inDtype,
+          DataType outDtype,
+          typename LayOutType_op,
+          typename LayOutType_in,
+          typename LayOutType_out>
 class SaberConv2DAct<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out> : public ImplBase<
-        Tensor<X86, inDtype, LayOutType_in>,
-                                                        Tensor<X86, outDtype, LayOutType_out>,
-                                                        Tensor<X86, OpDtype, LayOutType_op>,
-                                                        ConvActiveParam<Tensor<X86, OpDtype, LayOutType_op> > >
-{
+          LayOutType_op, LayOutType_in, LayOutType_out> : public ImplBase <
+          Tensor<X86, inDtype, LayOutType_in>,
+          Tensor<X86, outDtype, LayOutType_out>,
+          Tensor<X86, OpDtype, LayOutType_op>,
+          ConvActiveParam<Tensor<X86, OpDtype, LayOutType_op> > > {
 public:
     typedef Tensor<X86, inDtype, LayOutType_in> DataTensor_in;
     typedef Tensor<X86, outDtype, LayOutType_out> DataTensor_out;
@@ -45,28 +44,29 @@ public:
     typedef ImplBase<DataTensor_in, DataTensor_out, OpTensor, Param_t> Impl_t;
 
     SaberConv2DAct()
-            : impl(NULL)
+        : impl(NULL)
     {}
 
     ~SaberConv2DAct() {
         if (impl != NULL) {
+            CHECK(false)<<"deconstruct conv2dact";
             delete impl;
         }
     }
 
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
                              std::vector<DataTensor_out*>& outputs,
-                             ConvActiveParam<OpTensor> &param,
-                             Context<X86> &ctx) override;
+                             ConvActiveParam<OpTensor>& param,
+                             Context<X86>& ctx) override;
 
     virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
                                std::vector<DataTensor_out*>& outputs,
-                               ConvActiveParam<OpTensor> &param,
-                               Context<X86> &ctx) override;
+                               ConvActiveParam<OpTensor>& param,
+                               Context<X86>& ctx) override;
 
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                                  std::vector<DataTensor_out*>& outputs,
-                                 ConvActiveParam<OpTensor> &param) override;
+                                 ConvActiveParam<OpTensor>& param) override;
 
 private:
     Impl_t* impl;
