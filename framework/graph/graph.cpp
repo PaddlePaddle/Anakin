@@ -133,7 +133,7 @@ Status Graph<Ttype, Dtype, Ptype>::Optimize() EXCLUSIVE_LOCKS_REQUIRED(_mut) {
 			_nodes_exec_order = scheduler.get_exec_node_in_order();
 
 
-#if 1
+#if 0
             // get node exec in order
             _nodes_exec_order = scheduler.get_exec_node_in_order();
 #else		// enable conv+eltwise fusion
