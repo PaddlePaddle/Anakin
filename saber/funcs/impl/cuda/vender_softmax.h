@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -76,10 +76,10 @@ public:
 
         // ---- init cudnn resources ----
 
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         // ---- get cuda resources ----
 
-        cudaStream_t cuda_stream = this->_ctx.get_compute_stream();
+        cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
 
         CUDNN_CHECK(cudnnCreate(&_handle));
         CUDNN_CHECK(cudnnSetStream(_handle, cuda_stream));
@@ -105,12 +105,12 @@ public:
         //CHECK_EQ(outputs[0]->shape() == outputs[0]->valid_shape(), true) << \
                 "cudnn softmax does not support tensor with roi";
 
-        Shape shape_in = inputs[0]->shape();
+        Shape shape_in = inputs[0]->valid_shape();
         if (!(ctx == this->_ctx)) {
             if (_handle != NULL) {
                 CUDNN_CHECK(cudnnDestroy(_handle));
             }
-            this->_ctx = ctx;
+            this->_ctx = &ctx;
             cudaStream_t cuda_stream;
             cuda_stream = ctx.get_compute_stream();
             CUDNN_CHECK(cudnnCreate(&_handle));
@@ -121,7 +121,7 @@ public:
         int inner_num = inputs[0]->count(param.axis + 1, inputs[0]->dims());
 
         int N = outer_num;
-        int K = inputs[0]->shape()[param.axis];
+        int K = inputs[0]->valid_shape()[param.axis];
         int H = inner_num;
         int W = 1;
 
@@ -144,7 +144,7 @@ public:
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                           std::vector<DataTensor_out*>& outputs,
                           SoftmaxParam<OpTensor> &param){
-        cudaStream_t stream = this->_ctx.get_compute_stream();
+        cudaStream_t stream = this->_ctx->get_compute_stream();
         const InDataType* input_data = inputs[0]->data();
         InDataType * output_data = outputs[0]->mutable_data();
         CUDNN_CHECK(cudnnSoftmaxForward(_handle, CUDNN_SOFTMAX_ACCURATE, \

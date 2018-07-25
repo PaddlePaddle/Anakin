@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ namespace graph {
 /**
 * \brief GraphGlobalMemBase class
 */
+template<typename Ttype>
 class GraphGlobalMemBase {
 public:
     GraphGlobalMemBase() {}
@@ -38,9 +39,9 @@ public:
 
     /// create Block memory
     template<DataType Dtype>
-    PBlock<typename DataTypeWarpper<Dtype>::type>* new_block(saber::Shape& shape) EXCLUSIVE_LOCKS_REQUIRED(_mut) {
+    PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>* new_block(saber::Shape& shape) EXCLUSIVE_LOCKS_REQUIRED(_mut) {
         std::unique_lock<std::mutex> lock(this->_mut); 
-        PBlock<typename DataTypeWarpper<Dtype>::type>* block_p = new PBlock<typename DataTypeWarpper<Dtype>::type>(shape);
+        PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>* block_p = new PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>(shape);
         _push_mem_pool(block_p, DataTypeWarpper<Dtype>()); 
         return block_p;
     }
@@ -84,15 +85,15 @@ public:
 
 private:
     /// push int8_mem operaiton 
-    void _push_mem_pool(PBlock<int8_t>* block_p, DataTypeWarpper<AK_INT8>) {
+    void _push_mem_pool(PBlock<int8_t, Ttype>* block_p, DataTypeWarpper<AK_INT8>) {
         _int8_mem_pool.push_back(block_p);
     }
     /// push fp16_mem operaiton 
-    void _push_mem_pool(PBlock<unsigned short>* block_p, DataTypeWarpper<AK_HALF>) {
+    void _push_mem_pool(PBlock<unsigned short, Ttype>* block_p, DataTypeWarpper<AK_HALF>) {
         _fp16_mem_pool.push_back(block_p);
     }
     /// push fp32_mem operaiton 
-    void _push_mem_pool(PBlock<float>* block_p, DataTypeWarpper<AK_FLOAT>) {
+    void _push_mem_pool(PBlock<float, Ttype>* block_p, DataTypeWarpper<AK_FLOAT>) {
         _fp32_mem_pool.push_back(block_p);
     }
 
@@ -111,17 +112,18 @@ private:
 
 private:
     ///< _int8_mem_pool stand for int8 type memory
-    std::vector<PBlock<typename DataTypeWarpper<AK_INT8>::type>* > _int8_mem_pool GUARDED_BY(_mut);
+    std::vector<PBlock<typename DataTypeWarpper<AK_INT8>::type, Ttype>* > _int8_mem_pool GUARDED_BY(_mut);
     ///< _fp16_mem_pool stand for fp16 type memory
-    std::vector<PBlock<typename DataTypeWarpper<AK_HALF>::type>* > _fp16_mem_pool GUARDED_BY(_mut);
+    std::vector<PBlock<typename DataTypeWarpper<AK_HALF>::type, Ttype>* > _fp16_mem_pool GUARDED_BY(_mut);
     ///< _fp32_mem_pool stand for fp32 type memory
-    std::vector<PBlock<typename DataTypeWarpper<AK_FLOAT>::type>* > _fp32_mem_pool GUARDED_BY(_mut);
+    std::vector<PBlock<typename DataTypeWarpper<AK_FLOAT>::type, Ttype>* > _fp32_mem_pool GUARDED_BY(_mut);
     ///< _mut
     std::mutex _mut;
 };
 
 /// graph memory pool for graph weights and large parameter
-using GraphGlobalMem = Singleton<GraphGlobalMemBase>;
+template<typename Ttype>
+using GraphGlobalMem = Singleton<GraphGlobalMemBase<Ttype>>;
 
 /** 
  * \brief InFO enum

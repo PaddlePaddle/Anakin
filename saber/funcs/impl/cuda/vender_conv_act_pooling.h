@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -54,6 +54,10 @@ public:
             , _input_descs(NULL)
             , _output_descs(NULL)
             , _filter_desc(NULL)
+            , _inner_descs(NULL)
+            , _bias_desc(NULL)
+            , _pooling_descs(NULL)
+            , _active_descs(NULL)
             , _workspace_fwd_sizes(0)
             , _workspaceSizeInBytes(0)
             , _fwd_algo((cudnnConvolutionFwdAlgo_t)0)
@@ -72,11 +76,23 @@ public:
         if (_filter_desc) {
             CUDNN_CHECK(cudnnDestroyFilterDescriptor(_filter_desc));
         }
-        if (_handle != NULL) {
+        if (_handle) {
             CUDNN_CHECK(cudnnDestroy(_handle));
         }
-        if (_workspaceData != NULL) {
-            cudaFree(_workspaceData);
+        if (_workspaceData) {
+            CUDA_CHECK(cudaFree(_workspaceData));
+        }
+        if (_active_descs) {
+            CUDNN_CHECK(cudnnDestroyActivationDescriptor(_active_descs));
+        }
+        if (_inner_descs) {
+            CUDNN_CHECK(cudnnDestroyTensorDescriptor(_inner_descs));
+        }
+        if (_bias_desc) {
+            CUDNN_CHECK(cudnnDestroyTensorDescriptor(_bias_desc));
+        }
+        if (_pooling_descs) {
+            CUDNN_CHECK(cudnnDestroyPoolingDescriptor(_pooling_descs));
         }
     }
 
@@ -98,7 +114,7 @@ public:
 
         _workspace_fwd_sizes = 0;
 
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         // ---- get cuda resources ----
 
         cudaStream_t cuda_stream;
@@ -159,7 +175,7 @@ private:
     void *_workspace;  // aliases into workspaceData
 
     const bool _use_tensor_core = true;
-    const size_t _workspace_limit_bytes = 64 * 1024 * 1024;
+    const size_t _workspace_limit_bytes = 4 * 1024 * 1024;
     const cudnnConvolutionFwdPreference_t _preference = CUDNN_CONVOLUTION_FWD_PREFER_FASTEST;
 
     // activation descriptor

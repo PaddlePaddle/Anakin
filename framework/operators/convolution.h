@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -45,6 +45,10 @@ public:
                              std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
         LOG(ERROR) << "Not Impl Yet Operator convolution<TargetType:"<<"unknown"<<","
                    <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info()<<">";
+        //auto* impl = static_cast<ConvolutionHelper<Ttype, Dtype, Ptype>*>(this->_helper); \
+        auto& param = static_cast<ConvolutionHelper<Ttype, Dtype, Ptype>*> \
+                  (this->_helper)->_param_conv; \
+        impl->_funcs_conv(ins, outs, param, ctx);
     }
 
     friend class ConvolutionHelper<Ttype, Dtype, Ptype>;
@@ -60,7 +64,7 @@ class ConvolutionHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     ConvolutionHelper()=default;
 
-    ~ConvolutionHelper();
+    ~ConvolutionHelper(){}
 
     Status InitParam() override;
 
@@ -94,8 +98,6 @@ private:
     ///< _dims stand for Convolution size
     PTuple<int> _dims; 
 };
-
-
 
 } /* namespace ops */
 

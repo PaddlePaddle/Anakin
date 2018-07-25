@@ -31,117 +31,68 @@ cy_graph.filter(function(element, i){
 });
 
 // memory bar draw
-var MemoryChart = echarts.init(document.getElementById('memory_bar'));
-var memory_bar_colors = ['#50AE28', '#89CD6B', '#1B5C00', '#398D6B'];
-var memory_option = {
-	color: memory_bar_colors,
+var MemoryChart = echarts.init(document.getElementById('memory_bar'), 'default');
+memory_option = {
+    title : {
+        text: 'Anakin memory optimization result',
+        subtext: 'Total memory size ('+ mem_info.total_mem + 'MB)',
+        x:'center'
+    },
     tooltip : {
-        trigger: 'axis'
+        trigger: 'item',
+        formatter: "{a} <br/>{b} : {c} MB ({d}%)"
     },
-	legend: {
-        data: ['System Used', 'Model Used', 'Temp Space', 'Sum Used']
+    legend: {
+        //orient : 'vertical',
+		orient: 'horizontal',
+        x : 'center',
+		y : 'bottom',
+        data:['temp_mem','system_mem','model_mem']
     },
-    toolbox: {
-        show : true,
-        feature : {
-            dataView : {show: true, readOnly: false},
-            magicType : {show: true, type: ['line', 'bar']},
-            restore : {show: true},
-            saveAsImage : {show: true}
-        }
-    },
-    calculable : true,
-	grid: {
-		show: false,
-	},
-    xAxis : [
-        {
-            type : 'category',
-			name : 'Version',
-            data : ['TensorRT','anakin_v2'],
-			axisLine: {
-                lineStyle: {
-                    color: memory_bar_colors[0]
-                }
-            },
-        }
-    ],
-    yAxis : [
-        {
-            type : 'value',
-			name : 'MB',
-			axisLabel: {
-                formatter: '{value} MB'
-            },
-			splitLine: {show: false},
-			axisLine: {
-                lineStyle: {
-                    color: memory_bar_colors[0]
-                }
-            }
-
-        }
-    ],
+    toolbox: { 
+		show : true, 
+		feature : { 
+			dataView : {show: true, readOnly: false}, 
+			restore : {show: true}, 
+			saveAsImage : {show: true} 
+		} 
+	},	
+    calculable : false,
     series : [
-		{
-			name: 'System Used',
-			type: 'bar',
-			stack: 'Sum Used',
-			barWidth: '15%',
-			data:[1297, 371],
-			label: {
-                normal: {
-                    show: true,
-                    position: 'inside'
-                }
-            },
-		},
         {
-            name:'Model Used',
-            type:'bar',
-			stack: 'Sum Used',
-			barWidth: '15%',
-            data:[0, 52],
-			label: {
-                normal: {
-                    show: true,
-                    position: 'inside'
-                }
-            },
-        },
-		{
-            name:'Temp Space',
-            type:'bar',
-			stack: 'Sum Used',
-			barWidth: '15%',
-            data:[0, 38],
-			label: {
-                normal: {
-                    show: true,
-                    position: 'inside'
-                }
-            },
-        },
-		{
-			name: 'Sum Used',
-            type: 'line',
-            data:[1297, 461], 
-			barWidth: '5%',
-			symbol: 'circle',
-			lineStyle: {
-				normal: {
-					width: 1,
-					type: 'dashed',
-				}
-			},
-			markPoint: {
-                data: [
-                    {type: 'max'}, {type: 'min'}
-                ]
-            },
-		}
-	]
+            name:'memory type',
+            type:'pie',
+			selectedMode: 'single',
+            radius : '55%',
+            center: ['50%', '60%'],
+            data:[
+                {
+					value: mem_info.temp_mem, 
+					name:'temp_mem',
+					itemStyle: {
+						color: '#89CD6B'
+					},
+					selected:true
+				},
+                {
+					value: mem_info.system_mem, 
+					name:'system_mem',
+					itemStyle: {
+						color: '#1B5C00'
+					}
+				},
+                {
+					value: mem_info.model_mem, 
+					name:'model_mem',
+					itemStyle: {
+						color: '#50AE28'
+					}
+				},
+            ]
+        }
+    ]
 };
+                    
 
 MemoryChart.setOption(memory_option);
 

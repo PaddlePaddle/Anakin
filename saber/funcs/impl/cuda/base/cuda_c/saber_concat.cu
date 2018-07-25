@@ -52,7 +52,7 @@ SaberStatus SaberConcat<NV, OpDtype, inDtype, outDtype,\
     std::vector<DataTensor_out *>& outputs,
     ConcatParam<OpTensor>& param) {
 
-    cudaStream_t stream = this->_ctx.get_compute_stream();
+    cudaStream_t stream = this->_ctx->get_compute_stream();
 
     int input_size = inputs.size();
 

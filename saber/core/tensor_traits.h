@@ -1,16 +1,17 @@
-/* Copyright (c) 2016 Anakin Authors All Rights Reserve.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+       http://www.apache.org/licenses/LICENSE-2.0
 
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License. */
+   limitations under the License.
+*/
 
 #ifndef ANAKIN_SABER_CORE_TENSOR_TRAITS_H
 #define ANAKIN_SABER_CORE_TENSOR_TRAITS_H
@@ -39,7 +40,7 @@ struct TensorTraits<Tensor<TargetType, datatype, NCHW_C16>>
 {
     typedef typename Tensor<TargetType, datatype, NCHW_C16>::target_category  target_category;
     typedef typename Tensor<TargetType, datatype, NCHW_C16>::target_type target_type;
-    typedef typename DataTrait<datatype>::dtype Dtype;
+    typedef typename DataTrait<target_type, datatype>::dtype Dtype;
     typedef _5D layout_category;
     typedef NCHW_C16 layout_type;
     using layout_dims = std::integral_constant<int, 5>;
@@ -71,7 +72,7 @@ struct TensorTraits<Tensor<TargetType, datatype, NCHW_C8>>
 {
     typedef typename Tensor<TargetType, datatype, NCHW_C8>::target_category  target_category;
     typedef typename Tensor<TargetType, datatype, NCHW_C8>::target_type target_type;
-    typedef typename DataTrait<datatype>::dtype Dtype;
+    typedef typename DataTrait<target_type, datatype>::dtype Dtype;
     typedef _5D layout_category;
     typedef NCHW_C8 layout_type;
     using layout_dims = std::integral_constant<int, 5>;
@@ -103,7 +104,7 @@ struct TensorTraits<Tensor<TargetType, datatype, NCHW_C4>>
 {
     typedef typename Tensor<TargetType, datatype, NCHW_C4>::target_category  target_category;
     typedef typename Tensor<TargetType, datatype, NCHW_C4>::target_type target_type;
-    typedef typename DataTrait<datatype>::dtype Dtype;
+    typedef typename DataTrait<target_type, datatype>::dtype Dtype;
     typedef _5D layout_category;
     typedef NCHW_C4 layout_type;
     using layout_dims = std::integral_constant<int, 5>;
@@ -134,7 +135,7 @@ struct TensorTraits<Tensor<TargetType, datatype, NCHW>>
 {
     typedef typename Tensor<TargetType, datatype, NCHW>::target_category  target_category;
     typedef typename Tensor<TargetType, datatype, NCHW>::target_type target_type;
-    typedef typename DataTrait<datatype>::dtype Dtype;
+    typedef typename DataTrait<target_type, datatype>::dtype Dtype;
     typedef _4D layout_category;
     typedef NCHW layout_type;
     using layout_dims = std::integral_constant<int, 4>;

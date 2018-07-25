@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -70,7 +70,7 @@ class PoolingHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     PoolingHelper()=default;
 
-    ~PoolingHelper();
+    ~PoolingHelper() {}
 
     Status InitParam() override;
 
@@ -100,6 +100,7 @@ public:
     ///< _funcs_pooling stand for Pooling function
     saber::Pooling<Ttype, Dtype> _funcs_pooling;
 };
+
 
 } /* namespace ops */
 

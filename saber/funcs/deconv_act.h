@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -17,15 +17,20 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+#include "saber/funcs/impl/impl_deconv_act.h"
+#include "saber/funcs/funcs_utils.h"
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_deconv_act.h"
 #include "saber/funcs/impl/cuda/vender_deconv_act.h"
 #endif
 
 #ifdef USE_X86_PLACE
-//#include "saber/funcs/impl/x86/saber_activation.h"
+#include "saber/funcs/impl/impl_deconv_act.h"
 #endif
-
+#ifdef USE_ARM_PLACE
+//todo
+#include "saber/funcs/impl/arm/saber_deconv_act.h"
+#endif
 namespace anakin {
 namespace saber {
 
@@ -78,7 +83,7 @@ public:
 
         output_shape[num_idx] = input[0]->num(); // N
         ConvParam<OpTensor> conv_param = param.conv_param;
-        output_shape[channel_idx] = conv_param.weight()->num(); // K
+        output_shape[channel_idx] = conv_param.weight()->num() * conv_param.group; // K
 
         int kernel_extent_h = conv_param.dilation_h *
                                       (conv_param.weight()->height() - 1) + 1;
@@ -109,6 +114,23 @@ public:
             default:
                 return SaberUnImplError;
         }
+    }
+virtual SaberStatus init(const Input_v& input, Output_v& output, Param_t& param,
+                      SaberImplStrategy strategy, ImplEnum implenum,
+                      Context<TargetType> &ctx) override {
+
+        update_weights(param);
+
+        return BaseFunc<Tensor<TargetType, inDtype, LayOutType_in>,
+                Tensor<TargetType, outDtype, LayOutType_out>,
+                Tensor<TargetType, OpDtype, LayOutType_op>,
+                ImplBase,
+                ConvActiveParam>::init(input, output, param, strategy, implenum, ctx);
+    }
+
+    //should move this funcs to utils
+    void update_weights(ConvActiveParam<OpTensor> &param) {
+        update_deconv_weights<OpTensor, ConvActiveParam>(param);
     }
 
 private:

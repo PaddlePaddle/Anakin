@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ public:
     Arc(VertexNameType vertex_1, VertexNameType vertex_2);
     Arc(VertexNameType vertex_1, VertexNameType vertex_2, WeightType weight);
     Arc(const Arc& otherArc);
-    virtual ~Arc() {};
+    virtual ~Arc() {}
 	
     /// judge if one arc equal to another
     bool operator==(const Arc<VertexNameType, WeightType>& otherArc) const {

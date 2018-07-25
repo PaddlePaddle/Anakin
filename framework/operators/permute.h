@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ class PermuteHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     PermuteHelper()=default;
 
-    ~PermuteHelper();
+    ~PermuteHelper() {}
 
     Status InitParam() override;
 
@@ -90,9 +90,7 @@ public:
     ///< _funcs_permute stand for permute function
     saber::Permute<Ttype, Dtype> _funcs_permute;
 };
-
-
-
+        
 } /* namespace ops */
 
 } /* namespace anakin */
