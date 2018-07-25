@@ -138,6 +138,7 @@ static void readTensorData(Tensor<X86, AK_FLOAT, NCHW> tensor, const char* locat
 
     if (fp == 0) {
         LOG(ERROR) << "file open failed " << locate;
+        exit(0);
 
     } else {
         LOG(INFO) << "file open success [" << locate << " ],read " << tensor.valid_shape().count();

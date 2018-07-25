@@ -303,6 +303,36 @@ private:
 };
 
 template <typename opTensor>
+struct LstmUnitParam{
+
+    LstmUnitParam() :
+            forget_bias(0.f)
+    {}
+
+    LstmUnitParam(float forget_bias_in)
+            :
+            forget_bias(forget_bias_in)
+    {}
+
+
+    LstmUnitParam &operator=(const LstmUnitParam &right) {
+        forget_bias = right.forget_bias;
+        return *this;
+    }
+
+    bool operator==(const LstmUnitParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (forget_bias == right.forget_bias);
+        return comp_eq;
+    }
+    float forget_bias;
+private:
+
+};
+
+
+
+template <typename opTensor>
 struct ConvParam {
 
     ConvParam() : group(-1), pad_h(-1), pad_w(-1),
