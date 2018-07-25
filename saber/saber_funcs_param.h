@@ -188,6 +188,34 @@ private:
     Tensor<TargetType>* bias_tensor;
 };
 
+template<typename TargetType>
+struct ResizeParam{
+    ResizeParam() = default;
+    explicit ResizeParam(float scale_w, float scale_h){
+        bool flag = scale_w > 0.f && scale_h > 0.f;
+        CHECK_EQ(flag, true) << "wrong parameters";
+        width_scale = scale_w;
+        height_scale = scale_h;
+    }
+    ResizeParam(const ResizeParam<TargetType>& right){
+        width_scale = right.width_scale;
+        height_scale = right.height_scale;
+    }
+    ResizeParam<TargetType>& operator=(const ResizeParam<TargetType>& right){
+        this->width_scale = right.width_scale;
+        this->height_scale = right.height_scale;
+        return *this;
+    }
+    bool operator==(const ResizeParam<TargetType>& right){
+        float eps = 1e-6;
+        bool flag = fabsf(width_scale - right.width_scale) < eps;
+        flag &= fabsf(height_scale - right.height_scale) < eps;
+        return flag;
+    }
+    float width_scale{0.0f};
+    float height_scale{0.0f};
+};
+
 }
 }
 #endif //SABER_FUNCS_PARAM_H
