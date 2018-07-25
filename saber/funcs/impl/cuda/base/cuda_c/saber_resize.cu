@@ -150,12 +150,12 @@ SaberStatus SaberResize<NV, OpDtype>::dispatch(\
     int dst_stride_channel = dst_real_shape.count(channel_idx + 1);//outputs[0]->count(channel_idx + 1, dims);
     int dst_stride_batch = dst_real_shape.count(num_idx + 1);//outputs[0]->count(num_idx + 1, dims);
     resize_bilinear_2d_kernel<OpDataType><<<grid, block, 0, stream>>>(
-            w_out, h_out, n_out, c_out,
-                    dst_stride_w, dst_stride_h, dst_stride_channel, dst_stride_batch,
-                    w_in, h_in,
-                    src_stride_w, src_stride_h, src_stride_channel, src_stride_batch,
-                    1 / param.width_scale, 1 / param.height_scale,
-                    (const OpDataType*)inputs[0]->data(), (OpDataType*)outputs[0]->mutable_data());
+			w_out, h_out, n_out, c_out,
+                    	dst_stride_w, dst_stride_h, dst_stride_channel, dst_stride_batch,
+                    	w_in, h_in,
+                    	src_stride_w, src_stride_h, src_stride_channel, src_stride_batch,
+                    	1 / param.width_scale, 1 / param.height_scale,
+                    	(const OpDataType*)inputs[0]->data(), (OpDataType*)outputs[0]->mutable_data());
 
     //outputs[0]->record_event(stream);
     return SaberSuccess;
