@@ -69,7 +69,7 @@ public:
         }
         _word_size=(param.weight()->valid_size()-_hidden_size*_hidden_size*4)/_hidden_size/4;
 
-        LOG(INFO)<<"wordsize = "<<_word_size;
+        DLOG(INFO)<<"wordsize = "<<_word_size;
         int weights_i2h_size=4*_hidden_size*_word_size;
         int weights_h2h_size=4*_hidden_size*_hidden_size;
         int weights_bias_size=4*_hidden_size;
