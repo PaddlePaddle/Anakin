@@ -391,9 +391,9 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
 	    LOG(INFO)<<"  end print offset of "<<executer.name;
         LOG(INFO) <<executer.name <<" d_tensor_out_p :" <<out->data();
 #ifdef USE_X86_PLACE
-        for (int i = 0; i < 10; ++i) {
-            std::cout << out->data()[i]<<" ";
-        }
+//        for (int i = 0; i < 10; ++i) {
+//            std::cout << out->data()[i]<<" ";
+//        }
 #endif
 	    LOG(ERROR) << "    |---out avg " << tensor_average(out);
 	}

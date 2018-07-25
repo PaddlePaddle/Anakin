@@ -6,6 +6,33 @@ namespace saber {
 
 template class SaberEltwiseActive<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
 
+template <typename HTensor>
+static void very_simple_eltwise_act(const std::vector<HTensor*>& inputs,
+                                    std::vector<HTensor*>& outputs,
+                                    EltwiseActiveParam<HTensor>& param){
+    typedef typename HTensor::Dtype Dtype;
+    const int input_num = inputs.size();
+    volatile const size_t inner_size = inputs[0]->valid_size();
+    Dtype* target=outputs[0]->mutable_data();
+    std::vector<const Dtype*> in_ptrs(input_num);
+    bool is_relu=param.has_activation&&param.activation_param.active==Active_relu;
+    for(int i=0;i<input_num;++i){
+        in_ptrs[i]=inputs[i]->data();
+    }
+//TODO:can be SIMD to improve cache efficient
+//TODO:can be opt by check coeff == 1
+    for(int inner_id=0;inner_id<inner_size;++inner_id){
+        Dtype temp=0;
+        for(int input_id=0;input_id<input_num;++input_id) {
+            temp+=in_ptrs[input_id][inner_id]*param.eltwise_param.coeff[input_id];
+        }
+        if(is_relu&&temp<0){
+            target[inner_id]=0;
+        }
+        target[inner_id]=temp;
+    }
+}
+
 template <DataType OpDtype ,
         DataType inDtype,
         DataType outDtype,
@@ -133,6 +160,7 @@ SaberStatus SaberEltwiseActive<X86, OpDtype, inDtype, outDtype,
                   std::vector<DataTensor_out*>& outputs,
                   EltwiseActiveParam<OpTensor> &param)
 {
+#if 0
     CHECK_EQ(outputs.size(), (size_t)1);
     switch (param.eltwise_param.operation) {
         case Eltwise_sum:
@@ -150,6 +178,13 @@ SaberStatus SaberEltwiseActive<X86, OpDtype, inDtype, outDtype,
             default:
                 return SaberUnImplError;
         }
+    }
+#endif
+    CHECK_EQ(outputs.size(), (size_t)1);
+    if (param.eltwise_param.operation) {
+        very_simple_eltwise_act(inputs, outputs, param);
+    }else{
+        CHECK(false)<<"not impl";
     }
     return SaberSuccess;
       
