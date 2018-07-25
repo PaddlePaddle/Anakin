@@ -271,10 +271,12 @@ public:
     /// assign
     PBlock<Dtype, X86>& operator=(const PBlock<Dtype, X86>& p_block) {
         _inner_tensor = p_block._inner_tensor;
+        return *this;
     }
 
     PBlock<Dtype, X86>& operator=(PBlock<Dtype, X86>& p_block) {
         _inner_tensor = p_block._inner_tensor;
+        return *this;
     }
 
     /// Get tensor.

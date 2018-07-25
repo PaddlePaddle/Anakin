@@ -19,7 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-
+#include "core/common.h"
 #include "saber/core/tensor.h"
 
 namespace anakin {
@@ -246,7 +246,7 @@ private:
 };
 
 inline int round_up(int k, int c) {
-    return  k+(c-k%c);
+    return  ((k + c - 1) / c) * c;
 }
 
 inline int div_up(int k, int c) {
@@ -740,7 +740,7 @@ inline size_t datatype_size(DataType data_type) {
 } // namespace saber
 } // namespace anakin
 
-#if defined(_OPENMP)
+#ifdef USE_OPENMP
 #include <omp.h>
 #else
 inline int omp_get_max_threads() {
