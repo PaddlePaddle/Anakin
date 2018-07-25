@@ -310,7 +310,7 @@ class FluidParser:
 				cache.pop()
 		return results
 
-	def _CropGraph(self, ins_of_graph, outs_of_graph, helper, need_io = True):
+	def _CropGraph(self, ins_of_subgraph, outs_of_subgraph, helper, need_io = True):
 		def all_nodes():
 			all_nodes = []
 			for main_node in self.ins.keys():
@@ -318,7 +318,7 @@ class FluidParser:
 			for main_node in self.outs.keys():
 				all_nodes.extend(self.outs[main_node].all_targets())
 			return list(set(all_nodes))
-		stayed_nodes = self._Subgraph(ins_of_graph, outs_of_graph)
+		stayed_nodes = self._Subgraph(ins_of_subgraph, outs_of_subgraph)
 		all_nodes = all_nodes()
 		extra_nodes = difference(all_nodes, stayed_nodes)
 		for node_name in extra_nodes:
@@ -328,14 +328,20 @@ class FluidParser:
 				self.graphIO.rm_in(node_name)
 			if node_name in self.graphIO.outs():
 				self.graphIO.rm_out(node_name)
+		for node_name in ins_of_subgraph:
+			if node_name in self.ins:
+				self.ins[node_name].clear()
+		for node_name in outs_of_subgraph:
+			if node_name in self.outs:
+				self.outs[node_name].clear()
 		if need_io is True:
-			for node_name in outs_of_graph:
+			for node_name in outs_of_subgraph:
 				if node_name not in self.graphIO.outs():
 					out_node_name = node_name + '_crop_out'
 					self.ins[out_node_name] = Fluid_edger('_In', node_name)
 					self.outs[node_name] = Fluid_edger('_Out', out_node_name)
 					self.graphIO.add_out_fluid(out_node_name, node_name)
-			for node_name in ins_of_graph:
+			for node_name in ins_of_subgraph:
 				if node_name not in self.graphIO.ins():
 					in_node_name = node_name + '_crop_in'
 					private_data = {'input_shape': [-1, -1, -1, -1]}
