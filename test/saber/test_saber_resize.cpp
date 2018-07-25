@@ -8,9 +8,6 @@
 
 #include <chrono>
 
-#ifdef USE_OPENCV
-#include "opencv2/opencv.hpp"
-#endif
 
 using namespace anakin::saber;
 template<typename dtype>
@@ -292,10 +289,8 @@ void test_saber_resize_speed_2d(int h_in, int w_in) {
 template <typename TargetType, typename TargetType_H>
 void test_saber_resize_accurancy(int num_in, int c_in, int h_in, int w_in) {
     
-    using namespace cv;
     typedef Tensor<TargetType_H> TensorHf4;
     typedef Tensor<TargetType> TensorDf4;
-    
     
     float scale_w = 2;
     float scale_h = 2;
