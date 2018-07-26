@@ -17,7 +17,6 @@
 #define ANAKIN_SABER_FUNCS_IMPL_CUDA_CUDNN_CONV2D_H
 
 #include "saber/funcs/impl/impl_conv.h"
-#include "saber/funcs/impl/cuda/cudnn_helper.h"
 #include <cudnn.h>
 
 namespace anakin{
@@ -29,8 +28,6 @@ class VenderConv2D<NV, OpDtype> : public ImplBase<
         NV, OpDtype, ConvParam<NV> > {
 public:
     typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
-    typedef typename DataTrait<NV, OpDtype>::Dtype InDataType;
-    typedef typename DataTrait<NV, OpDtype>::Dtype OutDataType;
 
     VenderConv2D()
             : _handle(NULL)
@@ -46,10 +43,7 @@ public:
             , _input_nchw_descs(NULL)
             , _bias_desc(NULL)
             , _output_nchw_descs(NULL)
-            , x8_data(NULL)
-            , y8_data(NULL)
-            , x8_data_size(0)
-            , y8_data_size(0)
+            , weights_scale(NULL)
     {}
 
     ~VenderConv2D() {
@@ -81,12 +75,7 @@ public:
         if (_output_nchw_descs != NULL) {
             CUDNN_CHECK(cudnnDestroyTensorDescriptor(_output_nchw_descs));
         }
-        if (x8_data != NULL) {
-            CUDA_CHECK(cudaFree(x8_data));
-        }
-        if (y8_data != NULL) {
-            CUDA_CHECK(cudaFree(y8_data));
-        }
+        cudaFree(weights_scale);
     }
 
     /**
@@ -99,35 +88,7 @@ public:
      */
     virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
                              std::vector<Tensor<NV> *>& outputs,
-                             ConvParam<NV>& param, Context<NV>& ctx) {
-
-        // ---- init cudnn resources ----
-        _workspaceSizeInBytes = 0;
-        _workspaceData = NULL;
-        _workspace_fwd_sizes = 0;
-
-        this->_ctx = &ctx;
-        // ---- get cuda resources ----
-        cudaStream_t cuda_stream;
-        cuda_stream = ctx.get_compute_stream();
-        CUDNN_CHECK(cudnnCreate(&_handle));
-        CUDNN_CHECK(cudnnSetStream(_handle, cuda_stream));
-
-        _workspace = NULL;
-        int in_channels = inputs[0]->channel();
-        // ---- create cudnn Descs ----
-        cudnn::createFilterDesc<OpDataType>(&_filter_desc);
-        cudnn::createTensorDesc<InDataType>(&_input_descs);
-        cudnn::createTensorDesc<InDataType>(&_output_descs);
-        cudnn::createConvolutionDesc<OpDataType>(&_conv_descs);
-
-        if (param.bias()->size() > 0) {
-            cudnn::createTensorDesc<OpDataType>(&_bias_desc);
-        }
-        cudnnCreateTensorDescriptor(&_input_nchw_descs);
-        cudnnCreateTensorDescriptor(&_output_nchw_descs);
-        return create(inputs, outputs, param, ctx);
-    }
+                             ConvParam<NV>& param, Context<NV>& ctx);
 
     virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
                                std::vector<Tensor<NV> *>& outputs,
@@ -159,11 +120,10 @@ private:
     cudnnTensorDescriptor_t _input_nchw_descs;
     cudnnTensorDescriptor_t _output_nchw_descs;
 
-    void *x8_data;
-    void *y8_data;
-
-    int x8_data_size;
-    int y8_data_size;
+    float* weights_scale;
+    Tensor<NV> int8_weights;
+    Tensor<NV> int8_input;
+    Tensor<NV> int8_output;
 };
 
 
