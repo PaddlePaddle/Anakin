@@ -56,7 +56,7 @@ building_and_run_nvidia_gpu_docker() {
 	if [ ! $MODE = "Run" ]; then
 		echo "Building nvidia docker ... [ docker_image_name: anakin image_tag: $tag ]"	
 		sudo docker build --network=host -t anakin:$tag"-base" . -f $DockerfilePath
-        sudo docker run --network=host -it anakin:$tag"-base"  Anakin/tools/nv_gpu_build.sh
+        sudo docker run --network=host -it anakin:$tag"-base"  Anakin/tools/gpu_build.sh
         container_id=$(sudo docker ps -l | sed -n 2p | awk '{print $1}')
         sudo docker commit $container_id anakin:$tag
 	else
