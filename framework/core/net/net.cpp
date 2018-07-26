@@ -325,8 +325,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
     for(auto& executer : _exec_funcs) {
         if (RunType == OpRunType::SYNC || executer.need_sync) {
             for(int i = 0; i < executer.ins.size(); i++) {
-                // record
-                executer.ins[i]->record_event(executer.ctx_p->get_compute_stream());
+                // sync event record in multi_stream
                 executer.ins[i]->sync();
             }
         }
@@ -641,7 +640,9 @@ Status Net<Ttype, Dtype, Ptype, RunType>::init_memory() {
 template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
 Status Net<Ttype, Dtype, Ptype, RunType>::init_env(graph::Graph<Ttype, Dtype, Ptype>& graph) {
     LOG(WARNING) << "Detect and initial " << graph.get_ins().size() << " lanes.";
-    Env<Ttype>::env_init(graph.get_ins().size());
+    // fixme, multi_stream error
+    //Env<Ttype>::env_init(graph.get_ins().size());
+    Env<Ttype>::env_init(1);
     LOG(WARNING) << "Current used device id : " << TargetWrapper<Ttype>::get_device_id();
     return Status::OK();
 }
