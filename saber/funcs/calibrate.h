@@ -14,6 +14,12 @@ SaberStatus conv_calibrate_fp32_int8_c4(
 SaberStatus conv_calibrate_int32_fp32(
         Tensor<NV> &out_tensor, const Tensor<NV> &in_tensor,
         float in_scale, float* weight_scale, Context<NV> ctx);
+
+SaberStatus conv_calibrate_int8_c4_fp32(
+        Tensor<NV> &out_tensor,
+        const Tensor<NV> &in_tensor,
+        float* weight_scale,
+        Context<NV> ctx);
 }
 
 }

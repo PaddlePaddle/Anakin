@@ -140,5 +140,73 @@ SaberStatus conv_calibrate_int32_fp32(
     return SaberSuccess;
 }
 
+__global__
+void int8nchwc4_fp32nchw(float* out_data, const char* in_data,
+                         int valid_num, int valid_channel_4, int valid_height, int valid_width,
+                         int in_n_stride, int in_c_stride, int in_h_stride, int in_w_stride,
+                         int out_n_stride, int out_c_stride, int out_h_stride, int out_w_stride,
+                         float* scale, int count) {
+
+    float load0, load1, load2, load3;
+    int gid = threadIdx.x + blockIdx.x * blockDim.x;
+
+    int read_w = (gid) % valid_width;
+    int read_h = (gid / (in_h_stride)) % valid_height;
+    int read_c = (gid / (in_c_stride)) % valid_channel_4;
+    int read_n = (gid / (in_n_stride)) % valid_num;
+    int scale_index = read_c << 2;
+
+    int in_offset = read_n * in_n_stride
+                    + read_c * in_c_stride
+                    + read_h * in_h_stride
+                    + read_w;
+
+    int out_offset = read_n * out_n_stride
+                     + read_c * (out_c_stride << 2)
+                     + read_h * out_h_stride
+                     + read_w * out_w_stride;
+
+    if (gid < count) {
+
+        char4 readin = __ldg(&((const char4*)in_data)[in_offset]);
+
+        load0 = static_cast<float>(readin.x);
+        load1 = static_cast<float>(readin.y);
+        load2 = static_cast<float>(readin.z);
+        load3 = static_cast<float>(readin.w);
+
+        out_data[out_offset] = load0 * scale[scale_index]; out_offset += out_c_stride;
+        out_data[out_offset] = load1 * scale[scale_index + 1]; out_offset += out_c_stride;
+        out_data[out_offset] = load2 * scale[scale_index + 2]; out_offset += out_c_stride;
+        out_data[out_offset] = load3 * scale[scale_index + 3];
+    }
+}
+
+SaberStatus conv_calibrate_int8_c4_fp32(
+        Tensor<NV> &out_tensor,
+        const Tensor<NV> &in_tensor,
+        float* weight_scale,
+        Context<NV> ctx) {
+
+    Shape out_stride = out_tensor.get_stride();
+    Shape in_shape = in_tensor.valid_shape();
+    Shape out_shape = out_tensor.valid_shape();
+    int count = in_shape[0] * in_shape[1] * in_shape[2] * in_shape[3];
+
+    const char * in_data = (const char*)in_tensor.data();
+    float * out_data = (float*)out_tensor.mutable_data();
+
+    cudaStream_t cuda_stream = ctx.get_compute_stream();
+    int8nchwc4_fp32nchw<<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(out_data, in_data,
+            in_shape[0], in_shape[1], in_shape[2], in_shape[3],
+            in_shape[1] * in_shape[2] * in_shape[3],
+            in_shape[2] * in_shape[3],
+            in_shape[3], 1,
+            out_stride[0], out_stride[1], out_stride[2], out_stride[3],
+            weight_scale, count);
+
+    return SaberSuccess;
+}
+
 }
 }
