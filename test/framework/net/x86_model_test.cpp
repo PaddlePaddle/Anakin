@@ -128,7 +128,7 @@ TEST(NetTest, net_execute_base_test) {
 
             net_executer.prediction();
 
-//#define LOG_OUTPUT
+#define LOG_OUTPUT
 #ifdef LOG_OUTPUT
             std::vector<Tensor4d<Target, AK_FLOAT>*> vout;
             for (auto& it : vout_name) {
@@ -149,7 +149,7 @@ TEST(NetTest, net_execute_base_test) {
                 if (fabs(ptr_out[j] - 0.708581f) > 1e-5f) {
                     flag_pass = false;
                 }
-                printf("%.8f ", ptr_out[j]);
+                printf("out = %.8f ", ptr_out[j]);
                 mean_val += ptr_out[j];
                 if ((j + 1) % 10 == 0) {
                     printf("\n");

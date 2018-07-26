@@ -15,6 +15,9 @@ static void very_simple_eltwise_act(const std::vector<HTensor*>& inputs,
     volatile const size_t inner_size = inputs[0]->valid_size();
     Dtype* target=outputs[0]->mutable_data();
     std::vector<const Dtype*> in_ptrs(input_num);
+    if(param.has_activation&&param.activation_param.active!=Active_relu){
+        CHECK(false)<<"not impl";
+    }
     bool is_relu=param.has_activation&&param.activation_param.active==Active_relu;
     for(int i=0;i<input_num;++i){
         in_ptrs[i]=inputs[i]->data();
@@ -27,7 +30,7 @@ static void very_simple_eltwise_act(const std::vector<HTensor*>& inputs,
             temp+=in_ptrs[input_id][inner_id]*param.eltwise_param.coeff[input_id];
         }
         if(is_relu&&temp<0){
-            target[inner_id]=0;
+            temp=0;
         }
         target[inner_id]=temp;
     }

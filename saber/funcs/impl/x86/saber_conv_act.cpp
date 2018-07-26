@@ -34,7 +34,7 @@ SaberStatus SaberConv2DAct<X86, OpDtype, inDtype, outDtype,
     Shape weight_shape(weight->shape());
 
     // go to different engines per different input parameters
-    if(std::is_same<LayOutType_out, NCHW>::value){
+    if(std::is_same<LayOutType_out, NCHW>::value&&std::is_same<LayOutType_in, NCHW>::value&&std::is_same<LayOutType_op, NCHW>::value){
         return SaberSuccess;
     }
     else if (conv_param->group == weight_shape[0] && conv_param->group == weight_shape[1]) {
@@ -102,7 +102,7 @@ SaberStatus SaberConv2DAct<X86, OpDtype, inDtype, outDtype,
         Context<X86> &ctx)
 {
 
-    if(std::is_same<LayOutType_out, NCHW>::value){
+    if(std::is_same<LayOutType_out, NCHW>::value&&std::is_same<LayOutType_in, NCHW>::value&&std::is_same<LayOutType_op, NCHW>::value){
         return SaberSuccess;
     }
     SaberStatus ret = SaberSuccess;
@@ -216,7 +216,7 @@ SaberStatus SaberConv2DAct<X86, OpDtype, inDtype, outDtype,
         ConvActiveParam<OpTensor> &param)
 {
 
-    if(std::is_same<LayOutType_out, NCHW>::value){
+    if(std::is_same<LayOutType_out, NCHW>::value&&std::is_same<LayOutType_in, NCHW>::value&&std::is_same<LayOutType_op, NCHW>::value){
         const float* bias_ptr= nullptr;
         bool with_bias=false;
         if(param.conv_param.bias()!= nullptr){
