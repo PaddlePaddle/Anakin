@@ -355,7 +355,7 @@ TEST(TestSaberFunc, test_func_lstm_x86) {
 
 TEST(TestSaberFunc, test_func_lstm_nv) {
     Env<NV>::env_init();
-
+    Env<NVHX86>::env_init();
     lstm_ut<NVHX86,NV>(222,333,{0,1,3,5,10},false, true,Active_sigmoid,Active_tanh,Active_tanh,100,SABER_IMPL);
     lstm_ut<NVHX86,NV>(222,333,{0,1,3,5,10},true, false,Active_sigmoid,Active_tanh,Active_tanh,100,SABER_IMPL);
     lstm_ut<NVHX86,NV>(222,333,{0,1,3,5,10},true, true,Active_sigmoid,Active_tanh,Active_tanh,100,SABER_IMPL);

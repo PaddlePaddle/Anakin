@@ -21,13 +21,13 @@
 #include "saber/funcs/impl/impl_gru.h"
 
 #ifdef NVIDIA_GPU
-//#include "saber/funcs/impl/cuda/saber_gru.h"
+#include "saber/funcs/impl/cuda/saber_gru.h"
 //#include "saber/funcs/impl/cuda/vender_gru.h"
 #endif
 
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_gru.h"
-//#include "saber/funcs/impl/x86/vender_gru.h"
+#include "saber/funcs/impl/x86/vender_gru.h"
 #endif
 
 #ifdef USE_ARM_PLACE
@@ -85,7 +85,6 @@ public:
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
             case VENDER_IMPL:
-                //this->_impl.push_back(new VenderLstm <TargetType,
                 this->_impl.push_back(new VenderGru <TargetType,
                 OpDtype>);
                 return SaberSuccess;

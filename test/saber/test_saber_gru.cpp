@@ -102,7 +102,7 @@ void compute_ref_gru_fwd_me(std::vector<Tensor4f*> &inputs, std::vector<Tensor4f
     const OpDataType* weight_w = (const OpDataType*)param.weight()->data();
     const OpDataType* bias = (const OpDataType*)param.bias()->data();
 
-    OpDataType(* gat_act)(const OpDataType) = Activate<OpDataType>(param.gate_activity);;
+    OpDataType(* gat_act)(const OpDataType) = Activate<OpDataType>(param.gate_activity);
     OpDataType(* h_act)(const OpDataType) = Activate<OpDataType>(param.h_activity);
 
     std::vector<std::vector<int> > offset_vec_vec = inputs[0]->get_seq_offset();
@@ -136,12 +136,9 @@ void compute_ref_gru_fwd_me(std::vector<Tensor4f*> &inputs, std::vector<Tensor4f
     Tensor4f temp_wh_t(temp_wh_shape);
     Tensor4f temp_whr_t(temp_whr_shape);
 
-
-
     OpDataType* temp_wx = (OpDataType*)temp_wx_t.mutable_data();
     OpDataType* temp_wh = (OpDataType*)temp_wh_t.mutable_data();
     OpDataType* temp_whr =(OpDataType*)temp_whr_t.mutable_data();
-
 
     //    LOG(INFO) << "gemm b" << inputs[0]->valid_shape().count() << "," <<
     //              _weights_i2h.valid_shape().count() << "," << _temp_wx.valid_shape().count();
@@ -217,7 +214,7 @@ void compute_ref_gru_fwd_me(std::vector<Tensor4f*> &inputs, std::vector<Tensor4f
     }
 
 }
-//#define COMWITH_OUT
+//#define COMPARE_WITH_OUT
 template <typename HOST,typename DEVICE>
 void gru_ut(int word_size = 222,
              int hidden_size = 333,
@@ -243,7 +240,7 @@ void gru_ut(int word_size = 222,
     TensorDf4 dev_weight(shape_weight);
     TensorDf4 dev_bias(shape_bias);
     TensorDf4 dev_hidden_out(shape_h);
-#ifdef COMWITH_OUT
+#ifdef COMPARE_WITH_OUT
     readTensorData(host_weight, "host_w");
     readTensorData(host_x, "host_x");
     readTensorData(host_bias, "host_b");
@@ -271,7 +268,7 @@ void gru_ut(int word_size = 222,
     SABER_CHECK(gru_op.init(inputs, outputs, param, SPECIFY, test_mode, ctx_dev));
     SABER_CHECK(gru_op.compute_output_shape(inputs, outputs, param));
     outputs[0]->re_alloc(outputs[0]->valid_shape(),outputs[0]->get_dtype());
-#ifndef COMWITH_OUT
+#ifndef COMPARE_WITH_OUT
     SABER_CHECK(gru_op(inputs, outputs, param, ctx_dev));
     outputs[0]->record_event(ctx_dev.get_compute_stream());
     outputs[0]->sync();
@@ -302,10 +299,10 @@ void gru_ut(int word_size = 222,
     std::vector<TensorHf4*> outputs_ref;
     inputs_ref.push_back(&host_x);
     outputs_ref.push_back(&compare_g);
-    GruParam<HOST> param_ref(&dev_weight, &dev_bias,GRU_ORIGIN,gate_activity,h_activity_in,
-                           is_reverse, nullptr,1.f,1,1);
+    GruParam<HOST> param_ref(&host_weight, &host_bias,GRU_ORIGIN,gate_activity,h_activity_in,
+                             is_reverse, nullptr,1.f,1,1);
     compute_ref_gru_fwd_me(inputs_ref,outputs_ref,param_ref);
-#ifdef COMWITH_OUT
+#ifdef COMPARE_WITH_OUT
     host_hidden_out.copy_from(compare_g);
     write_tensorfile(host_hidden_out, "host_g.txt");
     readTensorData(compare_g, "host_correct");
@@ -329,6 +326,15 @@ TEST(TestSaberFunc, test_func_gru_x86) {
     gru_ut<X86,X86>(222,333,{0,2,5,12,30}, false,Active_sigmoid,Active_tanh,100);
     gru_ut<X86,X86>(222,333,{0,2,5,12,30}, true,Active_sigmoid,Active_relu,100);
     gru_ut<X86,X86>(222,333,{0,2,5,12,30}, false,Active_sigmoid,Active_relu,100);
+    gru_ut<X86,X86>(222,333,{0,30},        true,Active_sigmoid,Active_tanh,100);
+    gru_ut<X86,X86>(222,333,{0,30},        false,Active_sigmoid,Active_tanh,100);
+
+    gru_ut<X86,X86>(222,333,{0,2,5,12,30}, true,Active_sigmoid,Active_tanh,100,VENDER_IMPL);
+    gru_ut<X86,X86>(222,333,{0,2,5,12,30}, false,Active_sigmoid,Active_tanh,100,VENDER_IMPL);
+    gru_ut<X86,X86>(222,333,{0,2,5,12,30}, true,Active_sigmoid,Active_relu,100,VENDER_IMPL);
+    gru_ut<X86,X86>(222,333,{0,2,5,12,30}, false,Active_sigmoid,Active_relu,100,VENDER_IMPL);
+    gru_ut<X86,X86>(222,333,{0,30},        true,Active_sigmoid,Active_tanh,100,VENDER_IMPL);
+    gru_ut<X86,X86>(222,333,{0,30},        false,Active_sigmoid,Active_tanh,100,VENDER_IMPL);
 
 }
 
@@ -338,6 +344,13 @@ TEST(TestSaberFunc, test_func_gru_x86) {
 
 TEST(TestSaberFunc, test_func_gru_nv) {
     Env<NV>::env_init();
+    Env<NVHX86>::env_init();
+    gru_ut<NVHX86,NV>(222,333,{0,2,5,12,30}, true,Active_sigmoid,Active_tanh,100);
+    gru_ut<NVHX86,NV>(222,333,{0,2,5,12,30}, false,Active_sigmoid,Active_tanh,100);
+    gru_ut<NVHX86,NV>(222,333,{0,2,5,12,30}, true,Active_sigmoid,Active_relu,100);
+    gru_ut<NVHX86,NV>(222,333,{0,2,5,12,30}, false,Active_sigmoid,Active_relu,100);
+    gru_ut<NVHX86,NV>(222,333,{0,30},        true,Active_sigmoid,Active_tanh,100);
+    gru_ut<NVHX86,NV>(222,333,{0,30},        false,Active_sigmoid,Active_tanh,100);
 
 }
 
