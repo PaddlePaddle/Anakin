@@ -1041,7 +1041,7 @@ batch_s_aligned(const std::vector<DataTensor_in*>& inputs,
     bool transform = transe_util.get_sorted_map(offset_vec, emit_offset_vec, emit_length);
 
     float* inner_h_out = out;
-    const float* inner_x = x;
+    float* inner_x = const_cast<float*>(x);
     const float* inner_h_init = h_init;
 
     for (int i = 0; i < offset_vec.size() - 1; ++i) {
@@ -1060,7 +1060,7 @@ batch_s_aligned(const std::vector<DataTensor_in*>& inputs,
         _temp_x.try_expand_size(seqsum * _word_size);
         inner_h_out = _temp_out.mutable_data();
         inner_x = _temp_x.mutable_data();
-        //transe_util.seq_2_sorted_seq(x, inner_x, _word_size);
+        transe_util.seq_2_sorted_seq(x, inner_x, _word_size);
 
         if (inner_h_init != nullptr) {
             _temp_h_init.try_expand_size(batch_size * _aligned_hidden_size);
@@ -1174,7 +1174,7 @@ batch_s_aligned(const std::vector<DataTensor_in*>& inputs,
                 z = gate_act(w_x_z[frame_id] + w_h_z[frame_id] + b_z[frame_id]);
                 _h = w_x_o[frame_id] + w_h_o[frame_id] + b_o[frame_id];
                 _h = hid_act(_h);
-                //emit_hout[frame_id] = (1 - z) * emit_hin[frame_id] + z * _h;
+                emit_hout[frame_id] = (1 - z) * emit_hin[frame_id] + z * _h;
             }
         }
 
