@@ -231,6 +231,26 @@ SaberStatus convert_weights(Tensor<X86>& out_tensor,
     return SaberSuccess;
 }
 
+SaberStatus convert_bias(Tensor<X86>& out_tensor,
+                         const Tensor<X86>& in_tensor,
+                         float in_scale, std::vector<float> vector_weight_scale,
+                         Context<NV> ctx) {
+    unsigned long weight_size = vector_weight_scale.size();
+    unsigned long bias_size = in_tensor.size();
+    CHECK_GT(in_scale, 0);
+    CHECK_GT(weight_size, 0);
+    CHECK_EQ(bias_size, weight_size);
+
+    const float* in_data = in_tensor.data();
+    float* out_data = out_tensor.mutable_data();
+
+    for (int i = 0; i < bias_size; ++i) {
+        out_data[i] = in_data[i] / in_scale / vector_weight_scale[i];
+    }
+
+    return SaberSuccess;
+}
+
 // INT8 part
 template <>
 SaberStatus VenderConv2D<NV, AK_INT8>::\
@@ -247,7 +267,6 @@ SaberStatus VenderConv2D<NV, AK_INT8>::\
 
         cudaStream_t cuda_stream;
         cuda_stream = ctx.get_compute_stream();
-
         CUDNN_CHECK(cudnnCreate(&_handle));
         CUDNN_CHECK(cudnnSetStream(_handle, cuda_stream));
     }
@@ -338,6 +357,7 @@ SaberStatus VenderConv2D<NV, AK_INT8>::\
     bool use_int8 = true;
     use_int8 &= ((inputs[0]->channel() % 4) == 0);
     use_int8 &= ((outputs[0]->channel() % 4) == 0);
+
     if (!use_int8) {
         return SaberInvalidValue;
     } else {
@@ -382,6 +402,22 @@ SaberStatus VenderConv2D<NV, AK_INT8>::\
 
     if (param.bias()->size() > 0) {
         cudnn::createTensorDesc<OpDataType>(&_bias_desc);
+        if (use_int8) {
+            float in_scale;
+            if (inputs[0]->get_scale().size() == 1) {
+                in_scale = inputs[0]->get_scale()[0];
+            } else {
+                LOG(FATAL) << "scale now support static calibrate only!!";
+            }
+            Tensor<X86> bias_fp32_host;
+            Tensor<X86> bias_int32_host;
+            bias_fp32_host.re_alloc(param.bias()->valid_shape(), AK_FLOAT);
+            bias_int32_host.re_alloc(param.bias()->valid_shape(), AK_FLOAT);
+            int32_bias.re_alloc(param.bias()->valid_shape(), AK_FLOAT);
+            bias_fp32_host.copy_from(*param.bias());
+            convert_bias(bias_int32_host, bias_fp32_host, in_scale, int8_weights.get_scale(), ctx);
+            int32_bias.copy_from(bias_int32_host);
+        }
     }
 
     cudnnCreateTensorDescriptor(&_input_nchw_descs);
@@ -424,16 +460,9 @@ SaberStatus VenderConv2D<NV, AK_INT8>::dispatch(
                                         _conv_descs, _fwd_algo, _workspace, _workspace_fwd_sizes,
                                         cudnn::cudnnTypeWrapper<float>::kZero(),
                                         _output_descs, out_data));
-    if (outputs[0]->get_dtype() == AK_FLOAT) {
-        conv_calibrate_int32_fp32(
-                *outputs[0], *outputs[0], in_scale, weights_scale, *_ctx);
-    } else if (outputs[0]->get_dtype() == AK_INT8) {
-
-    }
-
     if (param.bias()-> size() > 0) {
         // add up bias.
-        const void* bias_data = (const void*)param.bias()->data();
+        const void* bias_data = (const void*)int32_bias.data();
         CUDNN_CHECK(cudnnAddTensor(_handle,
                                    cudnn::cudnnTypeWrapper<float>::kOne(),
                                    _bias_desc, bias_data,
@@ -441,6 +470,12 @@ SaberStatus VenderConv2D<NV, AK_INT8>::dispatch(
                                    _output_descs, out_data));
     }
 
+    if (outputs[0]->get_dtype() == AK_FLOAT) {
+        conv_calibrate_int32_fp32(
+                *outputs[0], *outputs[0], in_scale, weights_scale, *_ctx);
+    } else if (outputs[0]->get_dtype() == AK_INT8) {
+        LOG(FATAL) << "not support output int8 now!!!";
+    }
     return SaberSuccess;
 };
 

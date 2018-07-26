@@ -124,6 +124,7 @@ private:
     Tensor<NV> int8_weights;
     Tensor<NV> int8_input;
     Tensor<NV> int8_output;
+    Tensor<NV> int32_bias;
 };
 
 

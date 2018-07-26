@@ -72,14 +72,14 @@ int test_conv_results(int group,
     output_v[0]->sync();
     output_host.re_alloc(output_dev.valid_shape(), AK_FLOAT);
     output_host.copy_from(output_dev);
-//    print_tensor_valid(output_host);
+    print_tensor_valid(output_host);
     check_host.re_alloc(output_host.valid_shape(), AK_FLOAT);
 
     conv_basic_check<TargetType_H>(input_host, check_host,
                                    (const float*)weights_host.data(), (const float*)bias_host.data(),
                                    group, kernel_w, kernel_h, stride_w, stride_h,
                                    dilation_w, dilation_h, pad_w, pad_h, bias_term, false);
-//    print_tensor_valid(check_host);
+    print_tensor_valid(check_host);
     double max_ratio = 0.0;
     double max_diff = 0.0;
     tensor_cmp_host((const float*)output_host.data(), (const float*)check_host.data(),
@@ -141,7 +141,7 @@ TEST(TestSaberFunc, test_saber_conv_int8_results) {
                       3,
                       3,
                       1, 1, 1, 1,
-                      1, 1, false,
+                      1, 1, true,
                       SPECIFY,
                       VENDER_IMPL);
 #endif

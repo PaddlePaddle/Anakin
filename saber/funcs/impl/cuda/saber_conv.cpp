@@ -94,8 +94,7 @@ SaberStatus SaberConv2D<NV, AK_INT8>::\
     init(const std::vector<Tensor<NV> *>& inputs,
          std::vector<Tensor<NV> *>& outputs,
          ConvParam<NV>& param, Context<NV>& ctx) {
-
-    return create(inputs, outputs, param, ctx);
+    return SaberInvalidValue;
 }
 
 template <>
@@ -104,7 +103,7 @@ SaberStatus SaberConv2D<NV, AK_INT8>::\
              std::vector<Tensor<NV> *>& outputs,
              ConvParam<NV>& param) {
 
-    return SaberSuccess;
+    return SaberInvalidValue;
 }
 
 }
