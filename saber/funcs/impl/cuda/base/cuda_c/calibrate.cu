@@ -55,7 +55,7 @@ void transform_nchw_2_c4(char* out_data, const float* in_data,
     }
 }
 
-SaberStatus conv_calibrate_fp32_int8(Tensor<NV> &out_tensor,
+SaberStatus conv_calibrate_fp32_int8_c4(Tensor<NV> &out_tensor,
         const Tensor<NV> &in_tensor, float in_scale, Context<NV> ctx) {
 
     const float * in_data = (const float*)in_tensor.data();

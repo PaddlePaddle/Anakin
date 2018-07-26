@@ -8,7 +8,7 @@
 namespace anakin {
 namespace saber {
 
-SaberStatus conv_calibrate_fp32_int8(
+SaberStatus conv_calibrate_fp32_int8_c4(
         Tensor<NV> &out_tensor, const Tensor<NV> &in_tensor, float in_scale, Context<NV> ctx);
 
 SaberStatus conv_calibrate_int32_fp32(

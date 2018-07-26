@@ -444,7 +444,7 @@ SaberStatus VenderConv2D<NV, AK_INT8>::dispatch(
         }
         int8_input.re_alloc(inputs[0]->valid_shape(), AK_INT8);
         int8_input.set_layout(Layout_NCHW_C4);
-        conv_calibrate_fp32_int8(int8_input, *inputs[0], in_scale, *(this->_ctx));
+        conv_calibrate_fp32_int8_c4(int8_input, *inputs[0], in_scale, *(this->_ctx));
         in_data = (const void *)int8_input.data();
     } else {
         in_data = (const void*)inputs[0]->data();
