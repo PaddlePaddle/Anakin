@@ -143,6 +143,7 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
     uint32x4_t vmask_rp = vcgeq_u32(vld1q_u32(right_pad_idx), vdupq_n_u32(size_pad_right));
     int right_pad_sub = (size_pad_right - 1) * sizeof(float);
 
+    //printf("size_pad_right: %d, right_pad_sub: %d, cnt_col: %d\n", size_pad_right, right_pad_sub, cnt_col);
     //unsigned int tmp1[4];
     //vst1q_u32(tmp1, vmask_rp);
     //printf("mask_rp: %d, %d, %d, %d\n", tmp1[0], tmp1[1], tmp1[2], tmp1[3]);
@@ -695,6 +696,7 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
             } else {
                 din2_ptr = dr2;
             }
+
 #ifdef __aarch64__
             // todo
             //left
@@ -889,8 +891,9 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
             vst1q_f32(doutr0_ptr, vdata0);
             //store data
             if(size_pad_bottom != 2){
-              //  vdata1 = vld1q_f32(doutr1_ptr);
-                vst1q_f32(doutr1_ptr, sum1);
+                vdata1 = vld1q_f32(doutr1_ptr);
+                vdata1 = vbslq_f32(vmask_rp1, sum1, vdata1);
+                vst1q_f32(doutr1_ptr, vdata1);
                 //doutr1_ptr += 4;
             }
             //printf("dout0: %x, dout1: %x \n", doutr0_ptr, doutr1_ptr);
