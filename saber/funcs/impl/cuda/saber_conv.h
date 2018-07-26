@@ -41,29 +41,29 @@ public:
                              ConvParam<NV>& param, Context<NV> &ctx) {
         this->_ctx = &ctx;
 
-        if (param.stride_h == 1 &&
-            param.stride_w == 1 &&
-            param.weight()->height() == 3 &&
-            param.weight()->width() == 3 && param.group == 1) {
-            dispatch_func = winograd_conv<OutDataType, OpDataType>;
-        } else if (param.group == 1) {
-            const int K = param.weight()->num();
-            if (K % 4 == 0) {
-                if (param.bias()->size() > 0) {
-                    dispatch_func = direct_conv_bias_Kdivis4<OutDataType, OpDataType>;
-                } else {
-                    dispatch_func = direct_conv_Kdivis4<OutDataType, OpDataType>;
-                }
-            } else {
-                if (param.bias()->size() > 0) {
-                    dispatch_func = direct_conv_bias_Kindiv4<OutDataType, OpDataType>;
-                } else {
-                    dispatch_func = direct_conv_Kindiv4<OutDataType, OpDataType>;
-                }
-            }
-        } else {
-            return SaberUnImplError;
-        }
+//        if (param.stride_h == 1 &&
+//            param.stride_w == 1 &&
+//            param.weight()->height() == 3 &&
+//            param.weight()->width() == 3 && param.group == 1) {
+//            dispatch_func = winograd_conv<OutDataType, OpDataType>;
+//        } else if (param.group == 1) {
+//            const int K = param.weight()->num();
+//            if (K % 4 == 0) {
+//                if (param.bias()->size() > 0) {
+//                    dispatch_func = direct_conv_bias_Kdivis4<OutDataType, OpDataType>;
+//                } else {
+//                    dispatch_func = direct_conv_Kdivis4<OutDataType, OpDataType>;
+//                }
+//            } else {
+//                if (param.bias()->size() > 0) {
+//                    dispatch_func = direct_conv_bias_Kindiv4<OutDataType, OpDataType>;
+//                } else {
+//                    dispatch_func = direct_conv_Kindiv4<OutDataType, OpDataType>;
+//                }
+//            }
+//        } else {
+//            return SaberUnImplError;
+//        }
 
         _kernel_height = param.weight()->height();
         _kernel_width = param.weight()->width();
