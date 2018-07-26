@@ -2,11 +2,11 @@
 #ifdef USE_ARM_PLACE
 #include <cmath>
 #include "saber/lite/core/buffer_lite.h"
-namespace anakin{}
+namespace anakin{
 
-namespace saber{}
+namespace saber{
 
-namespace lite{}
+namespace lite{
 
 using namespace anakin::saber::lite;
 
@@ -188,7 +188,7 @@ void Sgemm::operator()(const float *A, const int lda, \
             }
             int bblocks = (xmax - x0 + OUT_WIDTH - 1) / OUT_WIDTH;
             _load_b(b_panel, B, ldb, k0, kmax, x0, xmax);
-#pragma omp parallel for
+#pragma omp parallel for num_threads(_thread_num)
             for (unsigned int y = 0; y < _M; y += OUT_HEIGHT) {
                 unsigned int ymax = y + OUT_HEIGHT;
                 if (ymax > _M) {
@@ -200,10 +200,11 @@ void Sgemm::operator()(const float *A, const int lda, \
                 float* cpan1 = c_panel;
 #endif
                 sgemm_impl(a_panel + (y * kern_k), b_panel, cpan1, 1, bblocks, kern_k);
-                //! bias must add before gemm
+                //! bias must be added to output before doing gemm
                 if (flag_relu && (index == _loop_count)) {
                     if ((k0 > 0) || flag_beta) {
                         merge_float_alpha1_beta1_relu(C, cpan1, ldc, y, ymax, x0, xmax);
+                        //merge_float_basic_relu(C, cpan1, ldc, y, ymax, x0, xmax, alpha, (k0 == 0 ? beta : 1.f));
                     } else {
                         merge_float_basic_relu(C, cpan1, ldc, y, ymax, x0, xmax, alpha, (k0 == 0 ? beta : 1.f));
                     }
@@ -891,8 +892,8 @@ void load_apanel_no_trans(float* out, const float* in, const int ldin, const int
 
 #ifdef __aarch64__
     uint32_t zerobuff[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-    //! data A is not transposed, transpose A to k * 6
-//#pragma omp parallel for
+    //! data A is not transposed, transpose A to k * 8
+#pragma omp parallel for
     for (int y = m0; y < mmax; y += 8) {
         const uint32_t *inptr0 = inptr + y * ldin + k0;
         const uint32_t *inptr1 = inptr0 + ldin;
@@ -1037,7 +1038,6 @@ void load_apanel_no_trans(float* out, const float* in, const int ldin, const int
             *outptr++ = *inptr7++;
         }
     }
-
 #else //__aarch64__
 
     uint32_t zerobuff[8] = {0, 0, 0, 0, 0, 0, 0, 0};
@@ -1196,7 +1196,6 @@ void load_bpanel_trans(float* out, const float* in, const int ldin, const int k0
     const uint32_t *inptr = reinterpret_cast<const uint32_t *>(in) + k0 * ldin + n0;
 
 #ifdef __aarch64__
-#if 0
     uint32_t mask_buffer[12] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
     int x_len = nmax - n0;
     int y_len = kmax - k0;
@@ -1212,101 +1211,211 @@ void load_bpanel_trans(float* out, const float* in, const int ldin, const int k0
     uint32x4_t vzero = vdupq_n_u32(0);
     uint32x4_t vmask1 = vcltq_u32(vld1q_u32(mask_buffer), vdupq_n_u32(right_remain));
     uint32x4_t vmask2 = vcltq_u32(vld1q_u32(mask_buffer + 4), vdupq_n_u32(right_remain));
+    uint32x4_t vmask3 = vcltq_u32(vld1q_u32(mask_buffer + 8), vdupq_n_u32(right_remain));
 
 #pragma omp parallel for
     for (int y = 0; y < y_len - 3; y += 4) {
 
-        const uint32_t* ptr0 = inptr + y * ldin;
-        const uint32_t* ptr1 = ptr0 + ldin;
-        const uint32_t* ptr2 = ptr1 + ldin;
-        const uint32_t* ptr3 = ptr2 + ldin;
+        const uint32_t *ptr0 = inptr + y * ldin;
+        const uint32_t *ptr1 = ptr0 + ldin;
+        const uint32_t *ptr2 = ptr1 + ldin;
+        const uint32_t *ptr3 = ptr2 + ldin;
+#if 0
+        const uint32_t *ptr4 = ptr2 + ldin;
+        const uint32_t *ptr5 = ptr2 + ldin;
+        const uint32_t *ptr6 = ptr2 + ldin;
+        const uint32_t *ptr7 = ptr2 + ldin;
+#endif
 
-        uint32_t *outptr_row_col = outptr_row + y * 8;
+        asm volatile(
+        "prfm   pldl1keep, [%[ptr0]]                \n"
+                "prfm   pldl1keep, [%[ptr0], #64]   \n"
+                "prfm   pldl1keep, [%[ptr1]]        \n"
+                "prfm   pldl1keep, [%[ptr1], #64]   \n"
+                "prfm   pldl1keep, [%[ptr2]]        \n"
+                "prfm   pldl1keep, [%[ptr2], #64]   \n"
+                "prfm   pldl1keep, [%[ptr3]]        \n"
+                "prfm   pldl1keep, [%[ptr3], #64]   \n"
+#if 0
+                "prfm   pldl1keep, [%[ptr4]]        \n"
+                "prfm   pldl1keep, [%[ptr4], #64]   \n"
+                "prfm   pldl1keep, [%[ptr5]]        \n"
+                "prfm   pldl1keep, [%[ptr5], #64]   \n"
+                "prfm   pldl1keep, [%[ptr6]]        \n"
+                "prfm   pldl1keep, [%[ptr6], #64]   \n"
+                "prfm   pldl1keep, [%[ptr7]]        \n"
+                "prfm   pldl1keep, [%[ptr7], #64]   \n"
+#endif
+        :
+        :[ptr0] "r"(ptr0),[ptr1] "r"(ptr1),[ptr2] "r"(ptr2),[ptr3] "r"(ptr3)
+#if 0
+          , [ptr4] "r"(ptr4),[ptr5] "r"(ptr5),[ptr6] "r"(ptr6),[ptr7] "r"(ptr7)
+#endif
+        :"memory"
+        );
+
+        uint32_t *outptr_row_col = outptr_row + y * 12;
+
         int i = 0;
-        for (; i < x_len - 7; i += 8) {
-            uint32_t *ptr_out = outptr_row_col;
-            asm volatile(
-            "vld1.32 {d0-d3}, [%[ptr0]]!        @ load r0, 8 elements\n"
-                    "vld1.32 {d4-d7}, [%[ptr1]]!        @ load r1, 8 elements\n"
-                    "vst1.32 {d0-d3}, [%[outptr]]!      @ write to output ptr\n"
-                    "vst1.32 {d4-d7}, [%[outptr]]!      @ write to output ptr\n"
+        for (; i < x_len - 11; i += 12) {
 
-                    "vld1.32 {d0-d3}, [%[ptr2]]!        @ load r2, 8 elements\n"
-                    "vld1.32 {d4-d7}, [%[ptr3]]!        @ load r3, 8 elements\n"
-                    "vst1.32 {d0-d3}, [%[outptr]]!      @ write to output ptr\n"
-                    "vst1.32 {d4-d7}, [%[outptr]]!      @ write to output ptr\n"
-            : [outptr] "+r" (ptr_out), [ptr0] "+r" (ptr0), [ptr1] "+r" (ptr1),
-            [ptr2] "+r" (ptr2), [ptr3] "+r" (ptr3)
-            :
-            : "q0", "q1", "q2", "q3", "memory"
-            );
+            uint32x4_t vr00 = vld1q_u32(ptr0);
+            uint32x4_t vr01 = vld1q_u32(ptr0 + 4);
+            uint32x4_t vr02 = vld1q_u32(ptr0 + 8);
+
+            uint32x4_t vr10 = vld1q_u32(ptr1);
+            uint32x4_t vr11 = vld1q_u32(ptr1 + 4);
+            uint32x4_t vr12 = vld1q_u32(ptr1 + 8);
+
+            vst1q_u32(outptr_row_col, vr00);
+            vst1q_u32(outptr_row_col + 4, vr01);
+            vst1q_u32(outptr_row_col + 8, vr02);
+
+            uint32x4_t vr20 = vld1q_u32(ptr2);
+            uint32x4_t vr21 = vld1q_u32(ptr2 + 4);
+            uint32x4_t vr22 = vld1q_u32(ptr2 + 8);
+
+            vst1q_u32(outptr_row_col + 12, vr10);
+            vst1q_u32(outptr_row_col + 16, vr11);
+            vst1q_u32(outptr_row_col + 20, vr12);
+
+            uint32x4_t vr30 = vld1q_u32(ptr3);
+            uint32x4_t vr31 = vld1q_u32(ptr3 + 4);
+            uint32x4_t vr32 = vld1q_u32(ptr3 + 8);
+
+            vst1q_u32(outptr_row_col + 24, vr20);
+            vst1q_u32(outptr_row_col + 28, vr21);
+            vst1q_u32(outptr_row_col + 32, vr22);
+
+            vst1q_u32(outptr_row_col + 36, vr30);
+            vst1q_u32(outptr_row_col + 40, vr31);
+            vst1q_u32(outptr_row_col + 44, vr32);
+
+#if 0
+            vr00 = vld1q_u32(ptr4);
+            vr01 = vld1q_u32(ptr4 + 4);
+            vr02 = vld1q_u32(ptr4 + 8);
+
+            vr10 = vld1q_u32(ptr5);
+            vr11 = vld1q_u32(ptr5 + 4);
+            vr12 = vld1q_u32(ptr5 + 8);
+
+            vst1q_u32(outptr_row_col + 48, vr00);
+            vst1q_u32(outptr_row_col + 52, vr01);
+            vst1q_u32(outptr_row_col + 56, vr02);
+
+            vr20 = vld1q_u32(ptr6);
+            vr21 = vld1q_u32(ptr6 + 4);
+            vr22 = vld1q_u32(ptr6 + 8);
+
+            vst1q_u32(outptr_row_col + 60, vr10);
+            vst1q_u32(outptr_row_col + 64, vr11);
+            vst1q_u32(outptr_row_col + 68, vr12);
+
+            vr30 = vld1q_u32(ptr7);
+            vr31 = vld1q_u32(ptr7 + 4);
+            vr32 = vld1q_u32(ptr7 + 8);
+
+            vst1q_u32(outptr_row_col + 72, vr20);
+            vst1q_u32(outptr_row_col + 76, vr21);
+            vst1q_u32(outptr_row_col + 80, vr22);
+
+            vst1q_u32(outptr_row_col + 84, vr30);
+            vst1q_u32(outptr_row_col + 88, vr31);
+            vst1q_u32(outptr_row_col + 92, vr32);
+#endif
+            ptr0 += 12;
+            ptr1 += 12;
+            ptr2 += 12;
+            ptr3 += 12;
+
             outptr_row_col += stride_out;
         }
-        if (right_pad > 0) {
-            uint32_t *ptr_out = outptr_row_col;
-            asm volatile(
-            "vld1.32 {d0-d3}, [%[ptr0]]!        @ load r0, 8 elements\n"
-                    "vld1.32 {d4-d7}, [%[ptr1]]!        @ load r1, 8 elements\n"
-                    "vbif   q0, %q[vzero], %q[vmask1]   @ bit select, pad zero\n"
-                    "vbif   q1, %q[vzero], %q[vmask2]   @ bit select, pad zero\n"
-                    //"vst1.32 {d0-d3}, [%[outptr]]!      @ write to output ptr\n"
-                    "vbif   q2, %q[vzero], %q[vmask1]   @ bit select, pad zero\n"
-                    "vbif   q3, %q[vzero], %q[vmask2]   @ bit select, pad zero\n"
-                    "vst1.32 {d0-d3}, [%[outptr]]!      @ write to output ptr\n"
-                    "vst1.32 {d4-d7}, [%[outptr]]!      @ write to output ptr\n"
+        if (right_remain > 0) {
 
-                    "vld1.32 {d0-d3}, [%[ptr2]]!        @ load r2, 8 elements\n"
-                    "vld1.32 {d4-d7}, [%[ptr3]]!        @ load r3, 8 elements\n"
-                    "vbif   q0, %q[vzero], %q[vmask1]   @ bit select, pad zero\n"
-                    "vbif   q1, %q[vzero], %q[vmask2]   @ bit select, pad zero\n"
-                    //"vst1.32 {d0-d3}, [%[outptr]]!      @ write to output ptr\n"
-                    "vbif   q2, %q[vzero], %q[vmask1]   @ bit select, pad zero\n"
-                    "vbif   q3, %q[vzero], %q[vmask2]   @ bit select, pad zero\n"
-                    "vst1.32 {d0-d3}, [%[outptr]]!      @ write to output ptr\n"
-                    "vst1.32 {d4-d7}, [%[outptr]]!      @ write to output ptr\n"
-            : [outptr] "+r" (ptr_out), [ptr0] "+r" (ptr0), [ptr1] "+r" (ptr1),
-            [ptr2] "+r" (ptr2), [ptr3] "+r" (ptr3)
-            : [vmask1] "w" (vmask1), [vmask2] "w" (vmask2), \
-              [vzero] "w" (vzero)
-            : "q0", "q1", "q2", "q3", "memory"
-            );
+            uint32x4_t vr00 = vld1q_u32(ptr0);
+            uint32x4_t vr01 = vld1q_u32(ptr0 + 4);
+            uint32x4_t vr02 = vld1q_u32(ptr0 + 8);
+
+            uint32x4_t vr10 = vld1q_u32(ptr1);
+            uint32x4_t vr11 = vld1q_u32(ptr1 + 4);
+            uint32x4_t vr12 = vld1q_u32(ptr1 + 8);
+
+
+            uint32x4_t vr00_1 = vbslq_u32(vmask1, vr00, vzero);
+            uint32x4_t vr01_1 = vbslq_u32(vmask2, vr01, vzero);
+            uint32x4_t vr02_1 = vbslq_u32(vmask3, vr02, vzero);
+            vst1q_u32(outptr_row_col, vr00_1);
+            vst1q_u32(outptr_row_col + 4, vr01_1);
+            vst1q_u32(outptr_row_col + 8, vr02_1);
+
+            uint32x4_t vr20 = vld1q_u32(ptr2);
+            uint32x4_t vr21 = vld1q_u32(ptr2 + 4);
+            uint32x4_t vr22 = vld1q_u32(ptr2 + 8);
+
+            uint32x4_t vr10_1 = vbslq_u32(vmask1, vr10, vzero);
+            uint32x4_t vr11_1 = vbslq_u32(vmask2, vr11, vzero);
+            uint32x4_t vr12_1 = vbslq_u32(vmask3, vr12, vzero);
+            vst1q_u32(outptr_row_col + 12, vr10_1);
+            vst1q_u32(outptr_row_col + 16, vr11_1);
+            vst1q_u32(outptr_row_col + 20, vr12_1);
+
+            uint32x4_t vr30 = vld1q_u32(ptr3);
+            uint32x4_t vr31 = vld1q_u32(ptr3 + 4);
+            uint32x4_t vr32 = vld1q_u32(ptr3 + 8);
+
+            uint32x4_t vr20_1 = vbslq_u32(vmask1, vr20, vzero);
+            uint32x4_t vr21_1 = vbslq_u32(vmask2, vr21, vzero);
+            uint32x4_t vr22_1 = vbslq_u32(vmask3, vr22, vzero);
+            vst1q_u32(outptr_row_col + 24, vr20_1);
+            vst1q_u32(outptr_row_col + 28, vr21_1);
+            vst1q_u32(outptr_row_col + 32, vr22_1);
+
+            uint32x4_t vr30_1 = vbslq_u32(vmask1, vr30, vzero);
+            uint32x4_t vr31_1 = vbslq_u32(vmask2, vr31, vzero);
+            uint32x4_t vr32_1 = vbslq_u32(vmask3, vr32, vzero);
+            vst1q_u32(outptr_row_col + 36, vr30_1);
+            vst1q_u32(outptr_row_col + 40, vr31_1);
+            vst1q_u32(outptr_row_col + 44, vr32_1);
         }
-        //outptr_row += 32;
     }
 
 #pragma omp parallel for
     for (int y = 4 * (y_len / 4); y < y_len; ++y) {
 
         const uint32_t* ptr0 = inptr + y * ldin;
-        uint32_t *outptr_row_col = outptr_row + y * 8;
+        uint32_t *outptr_row_col = outptr_row + y * 12;
+
         int i = 0;
-        for (; i < x_len - 7; i += 8) {
-            uint32_t *ptr_out = outptr_row_col;
-            asm volatile(
-            "vld1.32 {d0-d3}, [%[ptr0]]!        @ load r0, 8 elements\n"
-                    "vst1.32 {d0-d3}, [%[outptr]]!      @ write to output ptr\n"
-            : [ptr0] "+r" (ptr0), [outptr] "+r" (ptr_out)
-            :
-            : "q0", "q1", "memory"
-            );
+        for (; i < x_len - 11; i += 12) {
+
+            uint32x4_t vr0 = vld1q_u32(ptr0);
+            uint32x4_t vr1 = vld1q_u32(ptr0 + 4);
+            uint32x4_t vr2 = vld1q_u32(ptr0 + 8);
+            vst1q_u32(outptr_row_col, vr0);
+            vst1q_u32(outptr_row_col + 4, vr1);
+            vst1q_u32(outptr_row_col + 8, vr2);
+
+            ptr0 += 12;
+
             outptr_row_col += stride_out;
         }
-        if (right_pad > 0) {
-            uint32_t *ptr_out = outptr_row_col;
-            asm volatile(
-            "vld1.32 {d0-d3}, [%[ptr0]]!        @ load r0, 8 elements\n"
-                    "vbif   q0, %q[vzero], %q[vmask1]   @ bit select, pad zero\n"
-                    "vbif   q1, %q[vzero], %q[vmask2]   @ bit select, pad zero\n"
-                    "vst1.32 {d0-d3}, [%[outptr]]!      @ write to output ptr\n"
-            : [ptr0] "+r" (ptr0), [outptr] "+r" (ptr_out)
-            : [vmask1] "w" (vmask1), [vmask2] "w" (vmask2), \
-              [vzero] "w" (vzero)
-            : "q0", "q1", "memory"
-            );
+        if (right_remain > 0) {
+
+            uint32x4_t vr0 = vld1q_u32(ptr0);
+            uint32x4_t vr1 = vld1q_u32(ptr0 + 4);
+            uint32x4_t vr2 = vld1q_u32(ptr0 + 8);
+
+            uint32x4_t vr0_1 = vbslq_u32(vmask1, vr0, vzero);
+            uint32x4_t vr1_1 = vbslq_u32(vmask2, vr1, vzero);
+            uint32x4_t vr2_1 = vbslq_u32(vmask3, vr2, vzero);
+
+            vst1q_u32(outptr_row_col, vr0_1);
+            vst1q_u32(outptr_row_col + 4, vr1_1);
+            vst1q_u32(outptr_row_col + 8, vr2_1);
         }
-        //outptr_row += 8;
     }
-#endif
+
 #else
 
     uint32_t mask_buffer[8] = {0, 1, 2, 3, 4, 5, 6, 7};
@@ -2155,6 +2264,7 @@ void merge_float_basic_relu(float *out, const float *in, const int ldout, const 
                         "FMAX   v17.4s, v17.4s, %[vzero].4s\n"
                         "STP	q16, q17, [%[outptr0]], #32\n"
                         "FMLA	v18.4s, v2.4s, %[av].4s\n"
+                        "FMAX   v18.4s, v18.4s, %[vzero].4s\n"
                         "STR	q18, [%[outptr0]], #16\n"
                         "FMLA	v19.4s, v3.4s, %[av].4s\n"
                         "prfm   pldl1keep, [%[inptr], #896]\n"
@@ -2163,6 +2273,7 @@ void merge_float_basic_relu(float *out, const float *in, const int ldout, const 
                         "FMAX   v20.4s, v20.4s, %[vzero].4s\n"
                         "STP	q19, q20, [%[outptr1]], #32\n"
                         "FMLA	v21.4s, v5.4s, %[av].4s\n"
+                        "FMAX   v21.4s, v21.4s, %[vzero].4s\n"
                         "STR	q21, [%[outptr1]], #16\n"
 
                         // Rows 2-3
@@ -2187,6 +2298,7 @@ void merge_float_basic_relu(float *out, const float *in, const int ldout, const 
                         "FMAX   v17.4s, v17.4s, %[vzero].4s\n"
                         "STP	q16, q17, [%[outptr2]], #32\n"
                         "FMLA	v18.4s, v2.4s, %[av].4s\n"
+                        "FMAX   v18.4s, v18.4s, %[vzero].4s\n"
                         "STR	q18, [%[outptr2]], #16\n"
                         "FMLA	v19.4s, v3.4s, %[av].4s\n"
                         "prfm   pldl1keep, [%[inptr], #1088]\n"
@@ -2195,6 +2307,7 @@ void merge_float_basic_relu(float *out, const float *in, const int ldout, const 
                         "FMAX   v20.4s, v20.4s, %[vzero].4s\n"
                         "STP	q19, q20, [%[outptr3]], #32\n"
                         "FMLA	v21.4s, v5.4s, %[av].4s\n"
+                        "FMAX   v21.4s, v21.4s, %[vzero].4s\n"
                         "STR	q21, [%[outptr3]], #16\n"
 
                         // Rows 4-5
@@ -2220,6 +2333,7 @@ void merge_float_basic_relu(float *out, const float *in, const int ldout, const 
                         "FMAX   v17.4s, v17.4s, %[vzero].4s\n"
                         "STP	q16, q17, [%[outptr4]], #32\n"
                         "FMLA	v18.4s, v2.4s, %[av].4s\n"
+                        "FMAX   v18.4s, v18.4s, %[vzero].4s\n"
                         "STR	q18, [%[outptr4]], #16\n"
                         "FMLA	v19.4s, v3.4s, %[av].4s\n"
                         "prfm   pldl1keep, [%[outptr3], #80]\n"
@@ -2228,6 +2342,7 @@ void merge_float_basic_relu(float *out, const float *in, const int ldout, const 
                         "FMAX   v20.4s, v20.4s, %[vzero].4s\n"
                         "STP	q19, q20, [%[outptr5]], #32\n"
                         "FMLA	v21.4s, v5.4s, %[av].4s\n"
+                        "FMAX   v21.4s, v21.4s, %[vzero].4s\n"
                         "STR	q21, [%[outptr5]], #16\n"
 
                         // Rows 6-7
@@ -2253,6 +2368,7 @@ void merge_float_basic_relu(float *out, const float *in, const int ldout, const 
                         "FMAX   v17.4s, v17.4s, %[vzero].4s\n"
                         "STP	q16, q17, [%[outptr6]], #32\n"
                         "FMLA	v18.4s, v2.4s, %[av].4s\n"
+                        "FMAX   v18.4s, v18.4s, %[vzero].4s\n"
                         "STR	q18, [%[outptr6]], #16\n"
                         "FMLA	v19.4s, v3.4s, %[av].4s\n"
                         "prfm   pldl1keep, [%[outptr7], #128]\n"
@@ -2261,6 +2377,7 @@ void merge_float_basic_relu(float *out, const float *in, const int ldout, const 
                         "FMAX   v20.4s, v20.4s, %[vzero].4s\n"
                         "STP	q19, q20, [%[outptr7]], #32\n"
                         "FMLA	v21.4s, v5.4s, %[av].4s\n"
+                        "FMAX   v21.4s, v21.4s, %[vzero].4s\n"
                         "STR	q21, [%[outptr7]], #16\n"
                         "ADD	%[inptr], %[inptr], #384\n"
                 : [outptr0] "+r" (outptr0), [outptr1] "+r" (outptr1), \
@@ -2720,6 +2837,10 @@ void merge_float_alpha1_beta1_relu(float *out, const float *in, const int ldout,
 
         for (int i = x0; i < xmax; i += 12) {
             float dummyres[12];
+
+            /* Make sure we throw away results if Y isn't a multiple of 8.
+             * We do this by pointing the result pointer at a dummy buffer
+             * we later discard.  */
             if ((y+7) >= ymax) {
                 switch ((y + 7) - ymax) {
                     case 6:
@@ -2740,37 +2861,48 @@ void merge_float_alpha1_beta1_relu(float *out, const float *in, const int ldout,
                         break;
                 }
             }
+
+            /* For ragged X, manually copy over the valid results. */
             if ((i + 11) >= xmax) {
-                for (int xi=0; xi<8; xi++) {
+                for (int xi = 0; xi < 12; xi++) {
                     if ((i + xi) < xmax) {
-                        *outptr0 = inptr[xi] + *outptr0;
-                        *outptr0 > 0? *outptr0 : 0.f;
+
+                        outptr0[0] = inptr[xi] + outptr0[0];
+                        outptr0[0] = fmaxf(outptr0[0], 0.f);
                         outptr0++;
-                        *outptr1 = inptr[xi + 12] + *outptr1;
-                        *outptr1 > 0? *outptr1 : 0.f;
+
+                        outptr1[0] = inptr[xi + 12] + outptr1[0];
+                        outptr1[0] = fmaxf(outptr1[0], 0.f);
                         outptr1++;
-                        *outptr2 = inptr[xi + 24] + *outptr2;
-                        *outptr2 > 0? *outptr2 : 0.f;
+
+                        outptr2[0] = inptr[xi + 24] + outptr2[0];
+                        outptr2[0] = fmaxf(outptr2[0], 0.f);
                         outptr2++;
-                        *outptr3 = inptr[xi + 36] + *outptr3;
-                        *outptr3 > 0? *outptr3 : 0.f;
+
+                        outptr3[0] = inptr[xi + 36] + outptr3[0];
+                        outptr3[0] = fmaxf(outptr3[0], 0.f);
                         outptr3++;
-                        *outptr4 = inptr[xi + 48] + *outptr4;
-                        *outptr4 > 0? *outptr4 : 0.f;
+
+                        outptr4[0] = inptr[xi + 48] + outptr4[0];
+                        outptr4[0] = fmaxf(outptr4[0], 0.f);
                         outptr4++;
-                        *outptr5 = inptr[xi + 60] + *outptr5;
-                        *outptr5 > 0? *outptr5 : 0.f;
+
+                        outptr5[0] = inptr[xi + 60] + outptr5[0];
+                        outptr5[0] = fmaxf(outptr5[0], 0.f);
                         outptr5++;
-                        *outptr6 = inptr[xi + 72] + *outptr6;
-                        *outptr6 > 0? *outptr6 : 0.f;
+
+                        outptr6[0] = inptr[xi + 72] + outptr6[0];
+                        outptr6[0] = fmaxf(outptr6[0], 0.f);
                         outptr6++;
-                        *outptr7 = inptr[xi + 84] + *outptr7;
-                        *outptr7 > 0? *outptr7 : 0.f;
+
+                        outptr7[0] = inptr[xi + 84] + outptr7[0];
+                        outptr7[0] = fmaxf(outptr7[0], 0.f);
                         outptr7++;
                     }
                 }
                 inptr += 96;
             } else {
+
                 /* Optimized routine to copy an entire block */
                 asm volatile (
                         // Rows 0-1
@@ -2789,6 +2921,7 @@ void merge_float_alpha1_beta1_relu(float *out, const float *in, const int ldout,
                         "FMAX   v17.4s, v17.4s, %[vzero].4s\n"
                         "STP	q16, q17, [%[outptr0]], #32\n"
                         "FADD	v18.4s, v2.4s, v18.4s\n"
+                        "FMAX   v18.4s, v18.4s, %[vzero].4s\n"
                         "STR	q18, [%[outptr0]], #16\n"
                         "FADD	v19.4s, v3.4s, v19.4s\n"
                         "prfm   pldl1keep, [%[inptr], #896]\n"
@@ -2797,6 +2930,7 @@ void merge_float_alpha1_beta1_relu(float *out, const float *in, const int ldout,
                         "FMAX   v20.4s, v20.4s, %[vzero].4s\n"
                         "STP	q19, q20, [%[outptr1]], #32\n"
                         "FADD	v21.4s, v5.4s, v21.4s\n"
+                        "FMAX   v21.4s, v21.4s, %[vzero].4s\n"
                         "STR	q21, [%[outptr1]], #16\n"
 
                         // Rows 2-3
@@ -2815,6 +2949,7 @@ void merge_float_alpha1_beta1_relu(float *out, const float *in, const int ldout,
                         "FMAX   v17.4s, v17.4s, %[vzero].4s\n"
                         "STP	q16, q17, [%[outptr2]], #32\n"
                         "FADD	v18.4s, v2.4s, v18.4s\n"
+                        "FMAX   v18.4s, v18.4s, %[vzero].4s\n"
                         "STR	q18, [%[outptr2]], #16\n"
                         "FADD	v19.4s, v3.4s, v19.4s\n"
                         "prfm   pldl1keep, [%[inptr], #1088]\n"
@@ -2823,6 +2958,7 @@ void merge_float_alpha1_beta1_relu(float *out, const float *in, const int ldout,
                         "FMAX   v20.4s, v20.4s, %[vzero].4s\n"
                         "STP	q19, q20, [%[outptr3]], #32\n"
                         "FADD	v21.4s, v5.4s, v21.4s\n"
+                        "FMAX   v21.4s, v21.4s, %[vzero].4s\n"
                         "STR	q21, [%[outptr3]], #16\n"
 
                         // Rows 4-5
@@ -2842,6 +2978,7 @@ void merge_float_alpha1_beta1_relu(float *out, const float *in, const int ldout,
                         "FMAX   v17.4s, v17.4s, %[vzero].4s\n"
                         "STP	q16, q17, [%[outptr4]], #32\n"
                         "FADD	v18.4s, v2.4s, v18.4s\n"
+                        "FMAX   v18.4s, v18.4s, %[vzero].4s\n"
                         "STR	q18, [%[outptr4]], #16\n"
                         "FADD	v19.4s, v3.4s, v19.4s\n"
                         "prfm   pldl1keep, [%[outptr3], #80]\n"
@@ -2850,6 +2987,7 @@ void merge_float_alpha1_beta1_relu(float *out, const float *in, const int ldout,
                         "FMAX   v20.4s, v20.4s, %[vzero].4s\n"
                         "STP	q19, q20, [%[outptr5]], #32\n"
                         "FADD	v21.4s, v5.4s, v21.4s\n"
+                        "FMAX   v21.4s, v21.4s, %[vzero].4s\n"
                         "STR	q21, [%[outptr5]], #16\n"
 
                         // Rows 6-7
@@ -2869,6 +3007,7 @@ void merge_float_alpha1_beta1_relu(float *out, const float *in, const int ldout,
                         "FMAX   v17.4s, v17.4s, %[vzero].4s\n"
                         "STP	q16, q17, [%[outptr6]], #32\n"
                         "FADD	v18.4s, v2.4s, v18.4s\n"
+                        "FMAX   v18.4s, v18.4s, %[vzero].4s\n"
                         "STR	q18, [%[outptr6]], #16\n"
                         "FADD	v19.4s, v3.4s, v19.4s\n"
                         "prfm   pldl1keep, [%[outptr7], #128]\n"
@@ -2877,6 +3016,7 @@ void merge_float_alpha1_beta1_relu(float *out, const float *in, const int ldout,
                         "FMAX   v20.4s, v20.4s, %[vzero].4s\n"
                         "STP	q19, q20, [%[outptr7]], #32\n"
                         "FADD	v21.4s, v5.4s, v21.4s\n"
+                        "FMAX   v21.4s, v21.4s, %[vzero].4s\n"
                         "STR	q21, [%[outptr7]], #16\n"
                         "ADD	%[inptr], %[inptr], #384\n"
                 : [outptr0] "+r" (outptr0), [outptr1] "+r" (outptr1), \

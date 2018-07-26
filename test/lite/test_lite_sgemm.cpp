@@ -13,6 +13,7 @@ int N = 100;
 int K = 100;
 bool traA = false;
 bool traB = false;
+bool flag_relu = false;
 
 int test_iter = 10;
 
@@ -39,7 +40,7 @@ void tensor_diff(Tensor_t& t1, Tensor_t& t2, Tensor_t& tdiff) {
 
 template  <typename type>
 void basic_gemm(int m, int n, int k, const type* a, const type* b, type* c, type alpha, type beta, \
-    bool trans_a = false, bool trans_b = false) {
+    bool trans_a = false, bool trans_b = false, bool flag_relu = false) {
 //#pragma omp parallel for
     for (int i = 0; i < m; ++i) {
         for (int j = 0; j < n; ++j) {
@@ -59,7 +60,13 @@ void basic_gemm(int m, int n, int k, const type* a, const type* b, type* c, type
                 }
                 sum += av * bv;
             }
-            c[i * n + j] = alpha * sum + beta * c[i * n + j];
+            type tmp = alpha * sum + beta * c[i * n + j];
+            if (flag_relu) {
+                c[i * n + j] = tmp > (type)0? tmp : (type)0;
+            } else {
+                c[i * n + j] = tmp;
+            }
+
         }
     }
 }
@@ -103,7 +110,7 @@ void test_arm_sgemm(TensorHf4& ta, TensorHf4& tb, TensorHf4& tc, \
         tout_basic.re_alloc(shape_out);
         float* dc_basic = tout_basic.mutable_data();
         basic_gemm(m, n, k, da, db, dc_basic, 1.f, 0.f, traA, traB);
-        //print_tensor_host(tout_basic);
+        //print_tensor(tout_basic);
     }
 
     //! sgemm init
@@ -144,14 +151,14 @@ void test_arm_sgemm(TensorHf4& ta, TensorHf4& tb, TensorHf4& tc, \
         }
     }
     LOG(INFO) << "saber conv running time, ave: " << to / test_iter << ", min time: " << min_time;
-    //print_tensor_host(tc);
+    //print_tensor(tc);
 
     if (COMPARE_RESULT) {
         double max_ratio = 0;
         double max_diff = 0;
-        //TensorHf4 tdiff(tout_basic.valid_shape());
-        //tensor_diff(tout_basic, tout_saber, tdiff);
-        //print_tensor_host(tdiff);
+//        TensorHf4 tdiff(tout_basic.valid_shape());
+//        tensor_diff(tout_basic, tc, tdiff);
+//        print_tensor(tdiff);
         tensor_cmp_host(tout_basic.data(), tc.data(), tout_basic.valid_size(), max_ratio, max_diff);
         LOG(INFO) << "compare result, max diff: " << max_diff << ", max ratio: " << max_ratio;
         CHECK_EQ(fabsf(max_ratio) < 1e-5f, true) << "compute result error";
@@ -193,6 +200,8 @@ TEST(TestSaberLite, test_func_sgemm_arm) {
         ptr_b[i] = i;
     }
 #else
+//    fill_tensor_const(ta, 1.f);
+//    fill_tensor_const(tb, 1.f);
     fill_tensor_rand(ta, -1.f, 1.f);
     fill_tensor_rand(tb, -1.f, 1.f);
 #endif
@@ -203,6 +212,8 @@ TEST(TestSaberLite, test_func_sgemm_arm) {
 int main(int argc, const char** argv){
     anakin::saber::lite::Env::env_init();
 
+    LOG(ERROR) << "usage: ./" << argv[0] << " [cluster]  [threads]  [m] [n]  [k] [transA] [transB] [relu] [test iter] [compare result]";
+
     if (argc >= 2) {
         cluster = atoi(argv[1]);
     }
@@ -210,8 +221,8 @@ int main(int argc, const char** argv){
         threads = atoi(argv[2]);
     }
     if(argc >= 4) {
-        if (argc < 8) {
-            LOG(ERROR) << "usage: ./" << argv[0] << " cluster  threads  m  n  k transA transB [test iter] [compare result]";
+        if (argc < 9) {
+            LOG(ERROR) << "usage: ./" << argv[0] << " [cluster]  [threads]  [m] [n]  [k] [transA] [transB] [relu] [test iter] [compare result]";
             return 0;
         }
         M = atoi(argv[3]);
@@ -219,12 +230,13 @@ int main(int argc, const char** argv){
         K = atoi(argv[5]);
         traA = atoi(argv[6]) > 0;
         traB = atoi(argv[7]) > 0;
-    }
-    if (argc > 8) {
-        test_iter = atoi(argv[8]);
+        flag_relu = atoi(argv[8]) > 0;
     }
     if (argc > 9) {
-        COMPARE_RESULT = atoi(argv[9]) > 0;
+        test_iter = atoi(argv[9]);
+    }
+    if (argc > 10) {
+        COMPARE_RESULT = atoi(argv[10]) > 0;
     }
     // initial logger
     //logger::init(argv[0]);
