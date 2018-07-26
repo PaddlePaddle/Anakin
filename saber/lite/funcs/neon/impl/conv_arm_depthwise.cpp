@@ -1666,7 +1666,7 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
             right_pad_idx[2] = 1;
         }
     }
-    uint32x4_t mask_rp = vcgtq_s32(vld1q_s32(right_pad_idx), vdupq_n_s32(0));
+    uint32x4_t vmask_rp = vcgtq_s32(vld1q_s32(right_pad_idx), vdupq_n_s32(0));
     uint32x4_t mask_w = vcgtq_s32(vld1q_s32(right_w_idx), vdupq_n_s32(size_right_remain));
 
     size_right_remain *= sizeof(float);
@@ -1770,13 +1770,11 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
             din0_1234 = vld1q_f32(din0_ptr);
             din1_1234 = vld1q_f32(din1_ptr);
 
-            if(vgetq_lane_u32(mask_rp, 0) == 0){
-                din0_1234 = vcombine_f32(vget_low_f32(din0_1234), vget_low_f32(vzero));
-                din1_1234 = vcombine_f32(vget_low_f32(din1_1234), vget_low_f32(vzero));
-            }else if(vgetq_lane_u32(mask_rp, 1) == 0){
-                din0_1234 = vsetq_lane_f32(0.f, din0_1234, 3);
-                din1_1234 = vsetq_lane_f32(0.f, din1_1234, 3);
-            }
+            uint32x4_t vone = vdupq_n_u32(-1);
+            uint32x4_t vmask_rp_r2 = vextq_u32(vone, vmask_rp, 2);
+
+            din0_1234 = vbslq_f32(vmask_rp_r2, din0_1234, vzero);
+            din1_1234 = vbslq_f32(vmask_rp_r2, din1_1234, vzero);
 
             float32x4_t din0_5678 = vld1q_f32(din0_ptr + 4);
             float32x4_t din1_5678 = vld1q_f32(din1_ptr + 4);
@@ -1784,13 +1782,10 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
             sum0 = vmulq_f32(din0_1234, wr1);
             sum0 = vmlaq_f32(sum0, din1_1234, wr2);
 
-            if(vgetq_lane_u32(mask_rp, 2) == 0){
-                din0_5678 = vcombine_f32(vget_low_f32(vzero), vget_high_f32(din0_5678));
-                din1_5678 = vcombine_f32(vget_low_f32(vzero), vget_high_f32(din1_5678));
-            }else if(vgetq_lane_u32(mask_rp, 3) == 0){
-                din0_5678 = vsetq_lane_f32(0.f, din0_5678, 1);
-                din1_5678 = vsetq_lane_f32(0.f, din1_5678, 1);
-            }
+            uint32x4_t vmask_rp_l2 = vextq_u32(vmask_rp, vone, 2);
+            din0_5678 = vbslq_f32(vmask_rp_l2, din0_5678, vzero);
+            din1_5678 = vbslq_f32(vmask_rp_l2, din1_5678, vzero);
+        
             float32x4_t din0_3456 = vextq_f32(din0_1234, din0_5678, 2);
             float32x4_t din1_3456 = vextq_f32(din1_1234, din1_5678, 2);
 
@@ -1805,11 +1800,7 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
 
             vsum = vadd_f32(vsum, vget_low_f32(wbias));
 
-            if(vgetq_lane_u32(mask_w, 0) == 0){//00
-                //null
-            }else if(vgetq_lane_u32(mask_w, 1) == 0){//10
-                vsum = vset_lane_f32(vget_lane_f32(vdata, 1), vsum, 1);
-            }
+            vsum = vbsl_f32(vget_low_u32(mask_w), vsum, vdata);
 
             vst1_f32(doutr0_ptr, vsum);
 #else
@@ -1905,16 +1896,13 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
                 din0_1234 = vld1q_f32(din0_ptr);
                 din1_1234 = vld1q_f32(din1_ptr);
                 din2_1234 = vld1q_f32(din2_ptr);
+                
+                vmask_rp_r2 = vextq_u32(vone, vmask_rp, 2);
 
-                if(vgetq_lane_u32(mask_rp, 0) == 0){
-                    din0_1234 = vcombine_f32(vget_low_f32(din0_1234), vget_low_f32(vzero));
-                    din1_1234 = vcombine_f32(vget_low_f32(din1_1234), vget_low_f32(vzero));
-                    din2_1234 = vcombine_f32(vget_low_f32(din2_1234), vget_low_f32(vzero));
-                }else if(vgetq_lane_u32(mask_rp, 1) == 0){
-                    din0_1234 = vsetq_lane_f32(0.f, din0_1234, 3);
-                    din1_1234 = vsetq_lane_f32(0.f, din1_1234, 3);
-                    din2_1234 = vsetq_lane_f32(0.f, din2_1234, 3);
-                }
+                din0_1234 = vbslq_f32(vmask_rp_r2, din0_1234, vzero);
+                din1_1234 = vbslq_f32(vmask_rp_r2, din1_1234, vzero);
+                din2_1234 = vbslq_f32(vmask_rp_r2, din2_1234, vzero);
+
                 din0_5678 = vld1q_f32(din0_ptr + 4);
                 din1_5678 = vld1q_f32(din1_ptr + 4);
                 float32x4_t din2_5678 = vld1q_f32(din2_ptr + 4);
@@ -1923,15 +1911,11 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
                 sum0 = vmlaq_f32(sum0, din1_1234, wr1);
                 sum0 = vmlaq_f32(sum0, din2_1234, wr2);
 
-                if(vgetq_lane_u32(mask_rp, 2) == 0){
-                    din0_5678 = vcombine_f32(vget_low_f32(vzero), vget_high_f32(din0_5678));
-                    din1_5678 = vcombine_f32(vget_low_f32(vzero), vget_high_f32(din1_5678));
-                    din2_5678 = vcombine_f32(vget_low_f32(vzero), vget_high_f32(din2_5678));
-                }else if(vgetq_lane_u32(mask_rp, 3) == 0){
-                    din0_5678 = vsetq_lane_f32(0.f, din0_5678, 1);
-                    din1_5678 = vsetq_lane_f32(0.f, din1_5678, 1);
-                    din2_5678 = vsetq_lane_f32(0.f, din2_5678, 1);
-                }
+                vmask_rp_l2 = vextq_u32(vmask_rp, vone, 2);
+                din0_5678 = vbslq_f32(vmask_rp_l2, din0_5678, vzero);
+                din1_5678 = vbslq_f32(vmask_rp_l2, din1_5678, vzero);
+                din2_5678 = vbslq_f32(vmask_rp_l2, din2_5678, vzero);
+          
                 din0_3456 = vextq_f32(din0_1234, din0_5678, 2);
                 din1_3456 = vextq_f32(din1_1234, din1_5678, 2);
                 float32x4_t din2_3456 = vextq_f32(din2_1234, din2_5678, 2);
@@ -1948,12 +1932,8 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
 
                 vsum = vadd_f32(vsum, vget_low_f32(wbias));
 
-                if(vgetq_lane_u32(mask_w, 0) == 0){//00
-                    //null
-                }else if(vgetq_lane_u32(mask_w, 1) == 0){//10
-                 vsum = vset_lane_f32(vget_lane_f32(vdata, 1), vsum, 1);
-                }
-
+                vsum = vbsl_f32(vget_low_u32(mask_w), vsum, vdata);
+            
                 vst1_f32(doutr0_ptr, vsum);
 
 #else
@@ -2035,26 +2015,21 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
                 din0_1234 = vld1q_f32(din0_ptr);
                 din1_1234 = vld1q_f32(din1_ptr);
 
-                if(vgetq_lane_u32(mask_rp, 0) == 0){
-                    din0_1234 = vcombine_f32(vget_low_f32(din0_1234), vget_low_f32(vzero));
-                    din1_1234 = vcombine_f32(vget_low_f32(din1_1234), vget_low_f32(vzero));
-                }else if(vgetq_lane_u32(mask_rp, 1) == 0){
-                    din0_1234 = vsetq_lane_f32(0.f, din0_1234, 3);
-                    din1_1234 = vsetq_lane_f32(0.f, din1_1234, 3);
-                }
+                vmask_rp_r2 = vextq_u32(vone, vmask_rp, 2);
+
+                din0_1234 = vbslq_f32(vmask_rp_r2, din0_1234, vzero);
+                din1_1234 = vbslq_f32(vmask_rp_r2, din1_1234, vzero);
+                
                 din0_5678 = vld1q_f32(din0_ptr + 4);
                 din1_5678 = vld1q_f32(din1_ptr + 4);
 
                 sum0 = vmulq_f32(din0_1234, wr0);
                 sum0 = vmlaq_f32(sum0, din1_1234, wr1);
 
-                if(vgetq_lane_u32(mask_rp, 2) == 0){
-                    din0_5678 = vcombine_f32(vget_low_f32(vzero), vget_high_f32(din0_5678));
-                    din1_5678 = vcombine_f32(vget_low_f32(vzero), vget_high_f32(din1_5678));
-                }else if(vgetq_lane_u32(mask_rp, 3) == 0){
-                    din0_5678 = vsetq_lane_f32(0.f, din0_5678, 1);
-                    din1_5678 = vsetq_lane_f32(0.f, din1_5678, 1);
-                }
+                vmask_rp_l2 = vextq_u32(vmask_rp, vone, 2);
+                din0_5678 = vbslq_f32(vmask_rp_l2, din0_5678, vzero);
+                din1_5678 = vbslq_f32(vmask_rp_l2, din1_5678, vzero);
+                
                 din0_3456 = vextq_f32(din0_1234, din0_5678, 2);
                 din1_3456 = vextq_f32(din1_1234, din1_5678, 2);
 
@@ -2069,11 +2044,7 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
 
                 vsum = vadd_f32(vsum, vget_low_f32(wbias));
 
-                if(vgetq_lane_u32(mask_w, 0) == 0){//00
-                    //null
-                }else if(vgetq_lane_u32(mask_w, 1) == 0){//10
-                 vsum = vset_lane_f32(vget_lane_f32(vdata, 1), vsum, 1);
-                }
+                vsum = vbsl_f32(vget_low_u32(mask_w), vsum, vdata);
 
                 vst1_f32(doutr0_ptr, vsum);
 
@@ -4143,7 +4114,7 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
             right_pad_idx[2] = 1;
         }
     }
-    uint32x4_t mask_rp = vcgtq_s32(vld1q_s32(right_pad_idx), vdupq_n_s32(0));
+    uint32x4_t vmask_rp = vcgtq_s32(vld1q_s32(right_pad_idx), vdupq_n_s32(0));
     uint32x4_t mask_w = vcgtq_s32(vld1q_s32(right_w_idx), vdupq_n_s32(size_right_remain));
 
     size_right_remain *= sizeof(float);
@@ -4209,6 +4180,7 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
             float32x2_t vsum = vpadd_f32(vsum0, vsum1);
 
             vsum = vadd_f32(vsum, vget_low_f32(wbias));
+
             vsum = vmax_f32(vsum, vget_low_f32(vzero));
 
             vst1_f32(doutr0_ptr, vsum);
@@ -4237,6 +4209,7 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
                 vsum = vpadd_f32(vsum0, vsum1);
 
                 vsum = vadd_f32(vsum, vget_low_f32(wbias));
+
                 vsum = vmax_f32(vsum, vget_low_f32(vzero));
 
                 vst1_f32(doutr0_ptr, vsum);
@@ -4249,13 +4222,11 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
             din0_1234 = vld1q_f32(din0_ptr);
             din1_1234 = vld1q_f32(din1_ptr);
 
-            if(vgetq_lane_u32(mask_rp, 0) == 0){
-                din0_1234 = vcombine_f32(vget_low_f32(din0_1234), vget_low_f32(vzero));
-                din1_1234 = vcombine_f32(vget_low_f32(din1_1234), vget_low_f32(vzero));
-            }else if(vgetq_lane_u32(mask_rp, 1) == 0){
-                din0_1234 = vsetq_lane_f32(0.f, din0_1234, 3);
-                din1_1234 = vsetq_lane_f32(0.f, din1_1234, 3);
-            }
+            uint32x4_t vone = vdupq_n_u32(-1);
+            uint32x4_t vmask_rp_r2 = vextq_u32(vone, vmask_rp, 2);
+
+            din0_1234 = vbslq_f32(vmask_rp_r2, din0_1234, vzero);
+            din1_1234 = vbslq_f32(vmask_rp_r2, din1_1234, vzero);
 
             float32x4_t din0_5678 = vld1q_f32(din0_ptr + 4);
             float32x4_t din1_5678 = vld1q_f32(din1_ptr + 4);
@@ -4263,13 +4234,10 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
             sum0 = vmulq_f32(din0_1234, wr1);
             sum0 = vmlaq_f32(sum0, din1_1234, wr2);
 
-            if(vgetq_lane_u32(mask_rp, 2) == 0){
-                din0_5678 = vcombine_f32(vget_low_f32(vzero), vget_high_f32(din0_5678));
-                din1_5678 = vcombine_f32(vget_low_f32(vzero), vget_high_f32(din1_5678));
-            }else if(vgetq_lane_u32(mask_rp, 3) == 0){
-                din0_5678 = vsetq_lane_f32(0.f, din0_5678, 1);
-                din1_5678 = vsetq_lane_f32(0.f, din1_5678, 1);
-            }
+            uint32x4_t vmask_rp_l2 = vextq_u32(vmask_rp, vone, 2);
+            din0_5678 = vbslq_f32(vmask_rp_l2, din0_5678, vzero);
+            din1_5678 = vbslq_f32(vmask_rp_l2, din1_5678, vzero);
+        
             float32x4_t din0_3456 = vextq_f32(din0_1234, din0_5678, 2);
             float32x4_t din1_3456 = vextq_f32(din1_1234, din1_5678, 2);
 
@@ -4286,11 +4254,7 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
 
             vsum = vmax_f32(vsum, vget_low_f32(vzero));
 
-            if(vgetq_lane_u32(mask_w, 0) == 0){//00
-                //null
-            }else if(vgetq_lane_u32(mask_w, 1) == 0){//10
-                vsum = vset_lane_f32(vget_lane_f32(vdata, 1), vsum, 1);
-            }
+            vsum = vbsl_f32(vget_low_u32(mask_w), vsum, vdata);
 
             vst1_f32(doutr0_ptr, vsum);
 #else
@@ -4338,7 +4302,6 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
 
                 vsum = vadd_f32(vsum, vget_low_f32(wbias));
 
-
                 vsum = vmax_f32(vsum, vget_low_f32(vzero));
 
                 vst1_f32(doutr0_ptr, vsum);
@@ -4378,7 +4341,6 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
 
                     vsum = vadd_f32(vsum, vget_low_f32(wbias));
 
-
                     vsum = vmax_f32(vsum, vget_low_f32(vzero));
 
                     vst1_f32(doutr0_ptr, vsum);
@@ -4392,16 +4354,13 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
                 din0_1234 = vld1q_f32(din0_ptr);
                 din1_1234 = vld1q_f32(din1_ptr);
                 din2_1234 = vld1q_f32(din2_ptr);
+                
+                vmask_rp_r2 = vextq_u32(vone, vmask_rp, 2);
 
-                if(vgetq_lane_u32(mask_rp, 0) == 0){
-                    din0_1234 = vcombine_f32(vget_low_f32(din0_1234), vget_low_f32(vzero));
-                    din1_1234 = vcombine_f32(vget_low_f32(din1_1234), vget_low_f32(vzero));
-                    din2_1234 = vcombine_f32(vget_low_f32(din2_1234), vget_low_f32(vzero));
-                }else if(vgetq_lane_u32(mask_rp, 1) == 0){
-                    din0_1234 = vsetq_lane_f32(0.f, din0_1234, 3);
-                    din1_1234 = vsetq_lane_f32(0.f, din1_1234, 3);
-                    din2_1234 = vsetq_lane_f32(0.f, din2_1234, 3);
-                }
+                din0_1234 = vbslq_f32(vmask_rp_r2, din0_1234, vzero);
+                din1_1234 = vbslq_f32(vmask_rp_r2, din1_1234, vzero);
+                din2_1234 = vbslq_f32(vmask_rp_r2, din2_1234, vzero);
+
                 din0_5678 = vld1q_f32(din0_ptr + 4);
                 din1_5678 = vld1q_f32(din1_ptr + 4);
                 float32x4_t din2_5678 = vld1q_f32(din2_ptr + 4);
@@ -4410,15 +4369,11 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
                 sum0 = vmlaq_f32(sum0, din1_1234, wr1);
                 sum0 = vmlaq_f32(sum0, din2_1234, wr2);
 
-                if(vgetq_lane_u32(mask_rp, 2) == 0){
-                    din0_5678 = vcombine_f32(vget_low_f32(vzero), vget_high_f32(din0_5678));
-                    din1_5678 = vcombine_f32(vget_low_f32(vzero), vget_high_f32(din1_5678));
-                    din2_5678 = vcombine_f32(vget_low_f32(vzero), vget_high_f32(din2_5678));
-                }else if(vgetq_lane_u32(mask_rp, 3) == 0){
-                    din0_5678 = vsetq_lane_f32(0.f, din0_5678, 1);
-                    din1_5678 = vsetq_lane_f32(0.f, din1_5678, 1);
-                    din2_5678 = vsetq_lane_f32(0.f, din2_5678, 1);
-                }
+                vmask_rp_l2 = vextq_u32(vmask_rp, vone, 2);
+                din0_5678 = vbslq_f32(vmask_rp_l2, din0_5678, vzero);
+                din1_5678 = vbslq_f32(vmask_rp_l2, din1_5678, vzero);
+                din2_5678 = vbslq_f32(vmask_rp_l2, din2_5678, vzero);
+          
                 din0_3456 = vextq_f32(din0_1234, din0_5678, 2);
                 din1_3456 = vextq_f32(din1_1234, din1_5678, 2);
                 float32x4_t din2_3456 = vextq_f32(din2_1234, din2_5678, 2);
@@ -4435,15 +4390,10 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
 
                 vsum = vadd_f32(vsum, vget_low_f32(wbias));
 
-
                 vsum = vmax_f32(vsum, vget_low_f32(vzero));
 
-                if(vgetq_lane_u32(mask_w, 0) == 0){//00
-                    //null
-                }else if(vgetq_lane_u32(mask_w, 1) == 0){//10
-                 vsum = vset_lane_f32(vget_lane_f32(vdata, 1), vsum, 1);
-                }
-
+                vsum = vbsl_f32(vget_low_u32(mask_w), vsum, vdata);
+            
                 vst1_f32(doutr0_ptr, vsum);
 
 #else
@@ -4485,7 +4435,6 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
 
                 vsum = vadd_f32(vsum, vget_low_f32(wbias));
 
-
                 vsum = vmax_f32(vsum, vget_low_f32(vzero));
 
                 vst1_f32(doutr0_ptr, vsum);
@@ -4518,7 +4467,6 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
 
                     vsum = vadd_f32(vsum, vget_low_f32(wbias));
 
-
                     vsum = vmax_f32(vsum, vget_low_f32(vzero));
 
                     vst1_f32(doutr0_ptr, vsum);
@@ -4531,26 +4479,21 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
                 din0_1234 = vld1q_f32(din0_ptr);
                 din1_1234 = vld1q_f32(din1_ptr);
 
-                if(vgetq_lane_u32(mask_rp, 0) == 0){
-                    din0_1234 = vcombine_f32(vget_low_f32(din0_1234), vget_low_f32(vzero));
-                    din1_1234 = vcombine_f32(vget_low_f32(din1_1234), vget_low_f32(vzero));
-                }else if(vgetq_lane_u32(mask_rp, 1) == 0){
-                    din0_1234 = vsetq_lane_f32(0.f, din0_1234, 3);
-                    din1_1234 = vsetq_lane_f32(0.f, din1_1234, 3);
-                }
+                vmask_rp_r2 = vextq_u32(vone, vmask_rp, 2);
+
+                din0_1234 = vbslq_f32(vmask_rp_r2, din0_1234, vzero);
+                din1_1234 = vbslq_f32(vmask_rp_r2, din1_1234, vzero);
+                
                 din0_5678 = vld1q_f32(din0_ptr + 4);
                 din1_5678 = vld1q_f32(din1_ptr + 4);
 
                 sum0 = vmulq_f32(din0_1234, wr0);
                 sum0 = vmlaq_f32(sum0, din1_1234, wr1);
 
-                if(vgetq_lane_u32(mask_rp, 2) == 0){
-                    din0_5678 = vcombine_f32(vget_low_f32(vzero), vget_high_f32(din0_5678));
-                    din1_5678 = vcombine_f32(vget_low_f32(vzero), vget_high_f32(din1_5678));
-                }else if(vgetq_lane_u32(mask_rp, 3) == 0){
-                    din0_5678 = vsetq_lane_f32(0.f, din0_5678, 1);
-                    din1_5678 = vsetq_lane_f32(0.f, din1_5678, 1);
-                }
+                vmask_rp_l2 = vextq_u32(vmask_rp, vone, 2);
+                din0_5678 = vbslq_f32(vmask_rp_l2, din0_5678, vzero);
+                din1_5678 = vbslq_f32(vmask_rp_l2, din1_5678, vzero);
+                
                 din0_3456 = vextq_f32(din0_1234, din0_5678, 2);
                 din1_3456 = vextq_f32(din1_1234, din1_5678, 2);
 
@@ -4565,14 +4508,9 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
 
                 vsum = vadd_f32(vsum, vget_low_f32(wbias));
 
-
                 vsum = vmax_f32(vsum, vget_low_f32(vzero));
 
-                if(vgetq_lane_u32(mask_w, 0) == 0){//00
-                    //null
-                }else if(vgetq_lane_u32(mask_w, 1) == 0){//10
-                 vsum = vset_lane_f32(vget_lane_f32(vdata, 1), vsum, 1);
-                }
+                vsum = vbsl_f32(vget_low_u32(mask_w), vsum, vdata);
 
                 vst1_f32(doutr0_ptr, vsum);
 
