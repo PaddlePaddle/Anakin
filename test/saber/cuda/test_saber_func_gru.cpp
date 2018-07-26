@@ -85,7 +85,7 @@ void test_saber_gru(int sequence_size = 2, int batch_size = 1, int word_size = 2
 
 
 #ifdef GRUOFFSET
-    std::vector<int> offsets = {0,12,40,90,100,101};
+    std::vector<int> offsets = {0,30};
     bool is_reverse = true;
     batch_size = offsets.size() - 1;
     Shape shape_ux(1, 1, offsets[offsets.size() - 1], hidden_size * 3);
