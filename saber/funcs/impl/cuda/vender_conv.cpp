@@ -225,9 +225,9 @@ SaberStatus convert_weights(Tensor<X86>& out_tensor,
                 in_weight_data[in_offset + 3 * in_stride[1]] / vector_weight_scale[n]));
     }
     out_tensor.set_scale(vector_weight_scale);
-    for (auto i : vector_weight_scale) {
-        LOG(INFO) << i;
-    }
+//    for (auto i : vector_weight_scale) {
+//        LOG(INFO) << i;
+//    }
     return SaberSuccess;
 }
 
@@ -340,20 +340,24 @@ SaberStatus VenderConv2D<NV, AK_INT8>::\
     use_int8 &= ((outputs[0]->channel() % 4) == 0);
     if (!use_int8) {
         return SaberInvalidValue;
+    } else {
+        // prepare int8 memory
+        Tensor<X86> weights_fp32_host;
+        Tensor<X86> weights_int8_host;
+        weights_fp32_host.re_alloc(param.weight()->valid_shape(), AK_FLOAT);
+        weights_int8_host.re_alloc(param.weight()->valid_shape(), AK_INT8);
+        int8_weights.re_alloc(param.weight()->valid_shape(), AK_INT8);
+        weights_int8_host.set_layout(Layout_NCHW_C4);
+        int8_weights.set_layout(Layout_NCHW_C4);
+        weights_fp32_host.copy_from(*param.weight());
+        convert_weights(weights_int8_host, weights_fp32_host, ctx);
+        int8_weights.copy_from(weights_int8_host);
+        int8_weights.set_scale(weights_int8_host.get_scale());
+
+        cudaMalloc(&weights_scale, sizeof(float) * int8_weights.get_scale().size());
+        cudaMemcpy(weights_scale, &(int8_weights.get_scale()[0]), sizeof(float) * int8_weights.get_scale().size(),
+                   cudaMemcpyHostToDevice);
     }
-
-    Tensor<X86> weights_fp32_host;
-    Tensor<X86> weights_int8_host;
-    weights_fp32_host.re_alloc(param.weight()->valid_shape(), AK_FLOAT);
-    weights_int8_host.re_alloc(param.weight()->valid_shape(), AK_INT8);
-    int8_weights.re_alloc(param.weight()->valid_shape(), AK_INT8);
-    weights_int8_host.set_layout(Layout_NCHW_C4);
-    int8_weights.set_layout(Layout_NCHW_C4);
-    weights_fp32_host.copy_from(*param.weight());
-    convert_weights(weights_int8_host, weights_fp32_host, ctx);
-
-    int8_weights.copy_from(weights_int8_host);
-
     // ---- init cudnn resources ----
     _workspaceSizeInBytes = 0;
     _workspaceData = NULL;
@@ -392,10 +396,16 @@ SaberStatus VenderConv2D<NV, AK_INT8>::dispatch(
         std::vector<Tensor<NV>*>& outputs,
         ConvParam<NV>& param) {
 
-    float in_scale = 2.f;
     const void* in_data;
     void* out_data;
+    float in_scale = 0.f;
+
     if (inputs[0]->get_dtype() == AK_FLOAT) {
+        if (inputs[0]->get_scale().size() == 1) {
+            in_scale = inputs[0]->get_scale()[0];
+        } else {
+            LOG(FATAL) << "scale now support static calibrate only!!";
+        }
         int8_input.re_alloc(inputs[0]->valid_shape(), AK_INT8);
         int8_input.set_layout(Layout_NCHW_C4);
         conv_calibrate_fp32_int8(int8_input, *inputs[0], in_scale, *(this->_ctx));
@@ -414,7 +424,13 @@ SaberStatus VenderConv2D<NV, AK_INT8>::dispatch(
                                         _conv_descs, _fwd_algo, _workspace, _workspace_fwd_sizes,
                                         cudnn::cudnnTypeWrapper<float>::kZero(),
                                         _output_descs, out_data));
-    
+    if (outputs[0]->get_dtype() == AK_FLOAT) {
+        conv_calibrate_int32_fp32(
+                *outputs[0], *outputs[0], in_scale, weights_scale, *_ctx);
+    } else if (outputs[0]->get_dtype() == AK_INT8) {
+
+    }
+
     if (param.bias()-> size() > 0) {
         // add up bias.
         const void* bias_data = (const void*)param.bias()->data();

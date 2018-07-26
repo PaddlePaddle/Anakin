@@ -35,7 +35,6 @@ void transform_nchw_2_c4(char* out_data, const float* in_data,
     if (gid < count) {
 
         char4 write;
-
         load0 = __float2int_rn(__ldg(&in_data[in_offset]) * scale);
         write.x = static_cast<char>(load0);
 
@@ -85,7 +84,7 @@ __global__ void transform_nchw_2_nchw(float * out_data,
                                       int in_n_stride, int in_c_stride, int in_h_stride, int in_w_stride,
                                       int out_n, int out_c, int out_h, int out_w,
                                       int out_n_stride, int out_c_stride, int out_h_stride, int out_w_stride,
-                                      float *scale) {
+                                      float *scale, float input_scale) {
     CUDA_KERNEL_LOOP(tid, count){
         int read_w =  tid % in_w;
         int read_h = (tid / (in_w)) % in_h;
@@ -109,13 +108,13 @@ __global__ void transform_nchw_2_nchw(float * out_data,
 
         float in_var = in_data[in_idx];
         float in_scale = scale[read_c];
-        out_data[out_idx] = in_var * in_scale;
+        out_data[out_idx] = in_var * in_scale * input_scale;
     }
 }
 
 SaberStatus conv_calibrate_int32_fp32(
         Tensor<NV> &out_tensor, const Tensor<NV> &in_tensor,
-        float* weight_scale, Context<NV> ctx) {
+        float in_scale, float* weight_scale, Context<NV> ctx) {
 
     Shape in_shape = in_tensor.valid_shape();
     Shape out_shape = out_tensor.valid_shape();
@@ -136,7 +135,7 @@ SaberStatus conv_calibrate_int32_fp32(
                     stride_in[0], stride_in[1], stride_in[2], stride_in[3],
                     out_shape[0], out_shape[1], out_shape[2], out_shape[3],
                     stride_out[0], stride_out[1], stride_out[2], stride_out[3],
-                    weight_scale);
+                    weight_scale, in_scale);
 
     return SaberSuccess;
 }

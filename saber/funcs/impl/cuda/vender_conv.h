@@ -75,7 +75,7 @@ public:
         if (_output_nchw_descs != NULL) {
             CUDNN_CHECK(cudnnDestroyTensorDescriptor(_output_nchw_descs));
         }
-        delete weights_scale;
+        cudaFree(weights_scale);
     }
 
     /**
