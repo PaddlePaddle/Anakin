@@ -5,7 +5,7 @@ ANAKIN_LITE_ROOT="$( cd "$(dirname "$0")" ; pwd -P)"
 echo "-- Anakin lite root dir is: $ANAKIN_LITE_ROOT"
 
 # build the target into build_android.
-BUILD_ROOT=$ANAKIN_LITE_ROOT/build-ios
+BUILD_ROOT=$ANAKIN_LITE_ROOT/build-ios-armv7
 
 #if [ -d $BUILD_ROOT ];then
 #	rm -rf $BUILD_ROOT
@@ -22,6 +22,7 @@ cmake .. \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_TOOLCHAIN_FILE=../../../cmake/ios/ios.toolchain.cmake \
     -DIOS_PLATFORM=iPhoneOS \
+    -DUSE_ARMV8=NO \
     -DCMAKE_OSX_ARCHITECTURES=armv7 \
 	-DUSE_IOS=YES \
 	-DUSE_ANDROID=NO \

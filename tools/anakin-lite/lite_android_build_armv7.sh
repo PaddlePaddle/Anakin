@@ -35,7 +35,7 @@ cmake .. \
     -DCMAKE_TOOLCHAIN_FILE=../../../cmake/android/android.toolchain.cmake \
     -DANDROID_NDK=$ANDROID_NDK \
     -DCMAKE_BUILD_TYPE=Release \
-    -DANDROID_ABI="armeabi-v7a with NEON" \
+    -DUSE_ARMV8=NO \
 	-DANDROID_NATIVE_API_LEVEL=21 \
 	-DUSE_ANDROID=YES \
 	-DTARGET_IOS=NO \

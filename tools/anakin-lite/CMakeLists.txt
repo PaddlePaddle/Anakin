@@ -4,7 +4,7 @@
 
 # options
 option(USE_ARM_PLACE "Select the build mode for ARM place." YES)
-option(USE_ARMV8 "build armv8" ON)
+option(USE_ARMV8 "build armv8" NO)
 option(USE_ANDROID "using android place." YES)
 option(USE_IOS "using android place." NO)
 option(TARGET_IOS "using ios" NO)

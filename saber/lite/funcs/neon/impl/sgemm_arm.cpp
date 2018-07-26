@@ -204,7 +204,6 @@ void Sgemm::operator()(const float *A, const int lda, \
                 if (flag_relu && (index == _loop_count)) {
                     if ((k0 > 0) || flag_beta) {
                         merge_float_alpha1_beta1_relu(C, cpan1, ldc, y, ymax, x0, xmax);
-                        //merge_float_basic_relu(C, cpan1, ldc, y, ymax, x0, xmax, alpha, (k0 == 0 ? beta : 1.f));
                     } else {
                         merge_float_basic_relu(C, cpan1, ldc, y, ymax, x0, xmax, alpha, (k0 == 0 ? beta : 1.f));
                     }
@@ -2028,8 +2027,8 @@ void merge_float_basic(float *out, const float *in, const int ldout, const int y
                     [outptr6] "+r" (outptr6), [outptr7] "+r" (outptr7), \
                     [inptr] "+r" (inptr)
                 : [av] "w" (av), [bv] "w" (bv)
-                : "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q16", "q17", \
-                    "q18", "q19", "q20", "q21"
+                : "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v16", "v17", \
+                    "v18", "v19", "v20", "v21"
                 );
             }
         }
@@ -2386,8 +2385,8 @@ void merge_float_basic_relu(float *out, const float *in, const int ldout, const 
                     [outptr6] "+r" (outptr6), [outptr7] "+r" (outptr7), \
                     [inptr] "+r" (inptr)
                 : [av] "w" (av), [bv] "w" (bv), [vzero] "w" (vzero)
-                : "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q16", "q17", \
-                    "q18", "q19", "q20", "q21"
+                : "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v16", "v17", \
+                    "v18", "v19", "v20", "v21"
                 );
             }
         }
@@ -2700,8 +2699,8 @@ void merge_float_alpha1_beta1(float *out, const float *in, const int ldout, cons
                     [outptr6] "+r" (outptr6), [outptr7] "+r" (outptr7), \
                     [inptr] "+r" (inptr)
                 :
-                : "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q16", "q17", \
-                    "q18", "q19", "q20", "q21"
+                : "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v16", "v17", \
+                    "v18", "v19", "v20", "v21"
                 );
             }
         }
@@ -3025,8 +3024,8 @@ void merge_float_alpha1_beta1_relu(float *out, const float *in, const int ldout,
                     [outptr6] "+r" (outptr6), [outptr7] "+r" (outptr7), \
                     [inptr] "+r" (inptr)
                 : [vzero] "w" (vzero)
-                : "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q16", "q17", \
-                    "q18", "q19", "q20", "q21"
+                : "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v16", "v17", \
+                    "v18", "v19", "v20", "v21"
                 );
             }
         }
