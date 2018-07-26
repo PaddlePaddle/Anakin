@@ -188,7 +188,7 @@ void Sgemm::operator()(const float *A, const int lda, \
             }
             int bblocks = (xmax - x0 + OUT_WIDTH - 1) / OUT_WIDTH;
             _load_b(b_panel, B, ldb, k0, kmax, x0, xmax);
-#pragma omp parallel for num_threads(_thread_num)
+#pragma omp parallel for
             for (unsigned int y = 0; y < _M; y += OUT_HEIGHT) {
                 unsigned int ymax = y + OUT_HEIGHT;
                 if (ymax > _M) {
@@ -886,14 +886,18 @@ void sgemm_impl(const float *Apanel, const float *Bpanel, float *Cpanel, int abl
 void load_apanel_no_trans(float* out, const float* in, const int ldin, const int m0, \
     const int mmax, const int k0, const int kmax) {
 
-    uint32_t *outptr = reinterpret_cast<uint32_t *>(out);
+    uint32_t *dout = reinterpret_cast<uint32_t *>(out);
     const uint32_t *inptr = reinterpret_cast<const uint32_t *>(in);
+    int stride = (kmax - k0) * 8;
 
 #ifdef __aarch64__
     uint32_t zerobuff[8] = {0, 0, 0, 0, 0, 0, 0, 0};
     //! data A is not transposed, transpose A to k * 8
+    //uint32_t* outptr = dout;
 #pragma omp parallel for
     for (int y = m0; y < mmax; y += 8) {
+        uint32_t* outptr = dout + stride * (y - m0) / 8;
+
         const uint32_t *inptr0 = inptr + y * ldin + k0;
         const uint32_t *inptr1 = inptr0 + ldin;
         const uint32_t *inptr2 = inptr1 + ldin;
@@ -1039,6 +1043,7 @@ void load_apanel_no_trans(float* out, const float* in, const int ldin, const int
     }
 #else //__aarch64__
 
+    uint32_t* outptr = dout;
     uint32_t zerobuff[8] = {0, 0, 0, 0, 0, 0, 0, 0};
     //! data A is not transposed, transpose A to k * 6
     for (int y = m0; y < mmax; y += 6) {
