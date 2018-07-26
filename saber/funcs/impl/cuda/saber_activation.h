@@ -29,7 +29,7 @@ class SaberActivation<NV, OpDtype> :
         ActivationParam<NV> > {
 public:
     typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
-    SaberActivation() {}
+    SaberActivation() = default;
     ~SaberActivation() {}
 
     virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
@@ -49,8 +49,6 @@ public:
                           std::vector<Tensor<NV>*>& outputs,
                           ActivationParam<NV>& param);
 };
-
-//template class SaberActivation<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
 
 }
 

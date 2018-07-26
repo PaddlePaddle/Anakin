@@ -27,28 +27,7 @@ namespace anakin{
 namespace saber {
 
 template <typename TargetType>
-struct PreluParam {
-    PreluParam() = default;
-    PreluParam(bool is_channel_shared, Tensor<TargetType>* input_slope) {
-        channel_shared = is_channel_shared;
-        slope = input_slope;
-    }
-    PreluParam(const PreluParam<TargetType>& right) {
-        channel_shared = right.channel_shared;
-        slope = right.slope;
-    }
-    PreluParam<TargetType>& operator=(const PreluParam<TargetType>& right) {
-        this->channel_shared = right.channel_shared;
-        this->slope = right.slope;
-        return *this;
-    }
-    bool operator==(const PreluParam<TargetType>& right) {
-        bool flag = this->channel_shared == right.channel_shared;
-        return flag && (this->slope == right.slope);
-    }
-    bool channel_shared{false};
-    Tensor<TargetType>* slope{nullptr};
-};
+struct PreluParam;
 
 template <typename TargetType>
 struct ActivationParam {
@@ -257,4 +236,30 @@ struct NormalizeParam {
     
 }//namespace saber
 }//namespace anakin
+struct PreluParam {
+    PreluParam() = default;
+    PreluParam(bool is_channel_shared, Tensor<TargetType>* input_slope) {
+        channel_shared = is_channel_shared;
+        slope = input_slope;
+    }
+    PreluParam(const PreluParam<TargetType>& right) {
+        channel_shared = right.channel_shared;
+        slope = right.slope;
+    }
+    PreluParam<TargetType>& operator=(const PreluParam<TargetType>& right) {
+        this->channel_shared = right.channel_shared;
+        this->slope = right.slope;
+        return *this;
+    }
+    bool operator==(const PreluParam<TargetType>& right) {
+        bool flag = this->channel_shared == right.channel_shared;
+        return flag && (this->slope == right.slope);
+    }
+    bool channel_shared{false};
+    Tensor<TargetType>* slope{nullptr};
+};
+
+}
+}
+>>>>>>> upstream/dev_v2
 #endif //SABER_FUNCS_PARAM_H
