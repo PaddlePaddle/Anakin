@@ -500,6 +500,7 @@ TEST(TestSaberFunc, test_saber_conv_op_func) {
         }
         int pad_h = 1;
         int pad_w = 1;
+#ifdef USE_CUDA
         test_conv_ab_test<NV, NVHX86>(group, input_num, in_channels,
                                     height, width, height2, width2, out_channels, kernel_h,
                                     kernel_w, 1, 1, 1, 1,
@@ -510,6 +511,7 @@ TEST(TestSaberFunc, test_saber_conv_op_func) {
                                           kernel_w, 1, 1, 1, 1,
                                           pad_h, pad_w, bias_term, SPECIFY, SABER_IMPL);
         }
+#endif
 //        if (test_conv_results<NV, NVHX86>(1, input_num, in_channels,
 //                                    height, width, out_channels, kernel_h,
 //                                    kernel_w, 1, 1, 1, 1,

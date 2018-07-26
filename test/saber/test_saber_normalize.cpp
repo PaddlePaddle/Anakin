@@ -132,6 +132,7 @@ template <typename dtype,typename TargetType_D,typename TargetType_H>
 
 
 TEST(TestSaberFunc, test_func_normalize) {
+#ifdef USE_CUDA
         //Init the test_base
         TestSaberBase<NV,NVHX86,AK_FLOAT,Normalize,
         NormalizeParam> testbase;
@@ -172,6 +173,7 @@ TEST(TestSaberFunc, test_func_normalize) {
                                     //testbase.set_rand_limit(255,255);
                                     testbase.set_input_shape(Shape({num_in,ch_in,h_in,w_in}));//add some input shape:q:q
                                     testbase.run_test(norm_cpu_nchw<float,NV,NVHX86>);//run test
+
                                     
                                 }
                             }
@@ -181,7 +183,7 @@ TEST(TestSaberFunc, test_func_normalize) {
             }
             
         }
-        
+#endif
 }
 
 
