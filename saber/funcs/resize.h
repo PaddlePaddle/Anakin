@@ -104,7 +104,6 @@ public:
             default: 
                 return SaberUnImplError; 
         } 
-        return SaberSuccess;
     };
 
 private:
