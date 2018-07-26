@@ -233,9 +233,8 @@ struct NormalizeParam {
     Tensor<TargetType>* scale{nullptr};
     float eps{1e-6f};
 };
-    
-}//namespace saber
-}//namespace anakin
+  
+template <typename TargetType>
 struct PreluParam {
     PreluParam() = default;
     PreluParam(bool is_channel_shared, Tensor<TargetType>* input_slope) {
@@ -261,5 +260,4 @@ struct PreluParam {
 
 }
 }
->>>>>>> upstream/dev_v2
 #endif //SABER_FUNCS_PARAM_H
