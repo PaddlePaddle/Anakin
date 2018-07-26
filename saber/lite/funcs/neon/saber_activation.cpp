@@ -1,5 +1,5 @@
 #include "saber/lite/funcs/saber_activation.h"
-#include "saber/funcs/impl/arm/impl/neon_mathfun.h"
+#include "saber/lite/funcs/neon/impl/neon_mathfun.h"
 namespace anakin{
 
 namespace saber{
