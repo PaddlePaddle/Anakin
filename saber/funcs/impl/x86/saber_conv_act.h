@@ -16,11 +16,7 @@
 #define ANAKIN_SABER_FUNCS_IMPL_X86_SABER_CONV_ACT_H
 
 #include "saber/funcs/impl/impl_conv_act.h"
-#include "saber/funcs/impl/x86/jit_call_conf.h"
-#include "saber/funcs/impl/x86/jit_uni_dw_convolution.h"
-#include "saber/funcs/impl/x86/jit_avx512_conv1x1_act.h"
-#include "saber/funcs/impl/x86/jit_avx512_conv_act.h"
-#include "saber/funcs/impl/x86/jit_avx2_conv_act.h"
+
 
 namespace anakin {
 namespace saber {
@@ -70,6 +66,7 @@ public:
 
 private:
     Impl_t* impl;
+    OpTensor _im2col_workspace;
 };
 }
 }

@@ -392,6 +392,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
 #define RECORD_INNER
 #if defined(RECORD_INNER) && defined(USE_X86_PLACE)
 	    record_tensor_to_file(*out,("record_"+executer.name).c_str());
+	    if(executer.name=="")
 #endif
         LOG(INFO) <<executer.name <<" d_tensor_out_p :" <<out->data();
 #ifdef USE_X86_PLACE

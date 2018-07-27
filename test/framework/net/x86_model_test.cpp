@@ -12,7 +12,10 @@
 #include "framework/operators/ops.h"
 
 #ifdef USE_X86_PLACE
-
+#include <mkl_service.h>
+#ifdef USE_OPENMP
+#include "omp.h"
+#endif
 using Target = X86;
 using Target_H = X86;
 
@@ -28,8 +31,8 @@ DEFINE_int32(epoch, 1000, "time statistic epoch");
 std::string FLAGS_model_dir;
 std::string FLAGS_model_file;
 int FLAGS_num = 1;
-int FLAGS_warmup_iter = 0;
-int FLAGS_epoch = 1;
+int FLAGS_warmup_iter = 1;
+int FLAGS_epoch = 2000;
 #endif
 
 void getModels(std::string path, std::vector<std::string>& files) {
@@ -51,6 +54,11 @@ void getModels(std::string path, std::vector<std::string>& files) {
     closedir(dir);
 }
 TEST(NetTest, net_execute_base_test) {
+#ifdef USE_OPENMP
+    omp_set_dynamic(0);
+    omp_set_num_threads(1);
+#endif
+    mkl_set_num_threads(1);
     std::vector<std::string> models;
     if (FLAGS_model_file == "") {
         getModels(FLAGS_model_dir, models);
@@ -128,7 +136,7 @@ TEST(NetTest, net_execute_base_test) {
 
             net_executer.prediction();
 
-#define LOG_OUTPUT
+//#define LOG_OUTPUT
 #ifdef LOG_OUTPUT
             std::vector<Tensor4d<Target, AK_FLOAT>*> vout;
             for (auto& it : vout_name) {
@@ -186,8 +194,7 @@ TEST(NetTest, net_execute_base_test) {
         size_t end = (*iter).find(".anakin.bin");
         size_t start = FLAGS_model_dir.length();
         std::string model_name = (*iter).substr(start, end-start);
-
-                LOG(INFO) << model_name << " batch_size " << FLAGS_num << " average time "<< my_time.get_average_ms() / FLAGS_epoch << " ms";
+        LOG(INFO) << model_name << " batch_size " << FLAGS_num << " average time "<< my_time.get_average_ms() / FLAGS_epoch << " ms";
 
         auto status1 = graph.save("map.anakin.bin");
     }
