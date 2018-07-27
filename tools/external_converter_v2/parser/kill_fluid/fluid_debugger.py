@@ -40,7 +40,7 @@ class Fluid_debugger:
 		for var_name in var_names_list:
 			var_to_print = block.var(var_name)
 			out_to_print = block.create_var(
-				name=var_name+'.tmp.print'
+				name=var_name+'.tmp.print',
 				dtype="float32",
 				persistable=True,
 				stop_gradient=False)
