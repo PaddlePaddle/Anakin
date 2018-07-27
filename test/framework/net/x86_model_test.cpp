@@ -136,7 +136,7 @@ TEST(NetTest, net_execute_base_test) {
 
             net_executer.prediction();
 
-//#define LOG_OUTPUT
+#define LOG_OUTPUT
 #ifdef LOG_OUTPUT
             std::vector<Tensor4d<Target, AK_FLOAT>*> vout;
             for (auto& it : vout_name) {
