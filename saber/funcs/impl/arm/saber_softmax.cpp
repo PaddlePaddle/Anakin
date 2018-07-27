@@ -124,7 +124,7 @@ void softmax_inner1(const float* din, float* dout, \
     }
 }
 
-//! for inner size == 1
+//! for inner size == 1 aixs_size < 4
 void softmax_inner1_s(const float* din, float* dout, \
     const int outer_size, const int axis_size) {
 #pragma omp parallel for
