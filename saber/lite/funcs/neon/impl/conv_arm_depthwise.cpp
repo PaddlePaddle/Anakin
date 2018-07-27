@@ -127,7 +127,7 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
     //! pad is done implicit
     const float zero[8] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
     //! for 4x6 convolution window
-    const int right_pad_idx[4] = {3, 2, 1, 0};
+    const unsigned int right_pad_idx[4] = {3, 2, 1, 0};
 
     int size_in_channel = w_in * h_in;
     int size_out_channel = w_out * h_out;
@@ -2528,7 +2528,7 @@ void conv_depthwise_3x3s1p1_bias_relu(float* dout, const float* din, \
     //! pad is done implicit
     const float zero[8] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
     //! for 4x6 convolution window
-    const int right_pad_idx[4] = {3, 2, 1, 0};
+    const unsigned int right_pad_idx[4] = {3, 2, 1, 0};
 
     int size_in_channel = w_in * h_in;
     int size_out_channel = w_out * h_out;
