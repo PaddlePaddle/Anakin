@@ -1666,8 +1666,10 @@ struct PriorBoxParam {
         is_flip = flip;
         is_clip = clip;
         min_size = min_in;
+        //add 
         fixed_size = fixed_in;
         density_size = density_in;
+
         img_w = image_width;
         img_h = image_height;
         step_w = step_width;
@@ -1698,6 +1700,7 @@ struct PriorBoxParam {
        // if (fixed_ratio_in.size() > 0) {
          //   CHECK_EQ(0, aspect_in.size()) <<"can not provide fixed_ratio and aspect_ratio simultaneously.";
          //}
+        //add
          fixed_ratio.clear();
 
          for (int i = 0; i < fixed_ratio_in.size(); i++){

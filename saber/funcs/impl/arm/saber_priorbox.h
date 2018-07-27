@@ -92,6 +92,7 @@ public:
                 float box_height;
                  //LOG(INFO) << " ****** center_x = " << center_x << ", center_y = " << center_y << " ******";
             if(param.fixed_size.size() > 0){
+                //add
                 for (int s = 0; s < param.fixed_size.size(); ++s) {
                     int fixed_size_ = param.fixed_size[s];
                     int com_idx = 0;

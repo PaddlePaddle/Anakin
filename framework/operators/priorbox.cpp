@@ -18,7 +18,7 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 Status PriorBoxHelper<Ttype, Dtype, Ptype>::InitParam() {
     DLOG(WARNING) << "Parsing PriorBox op parameter.";
     auto min_size_ = GET_PARAMETER(PTuple<float>, min_size);
-    //add
+    //add new parameter
     auto fixed_size_ = GET_PARAMETER(PTuple<float>, fixed_size);
     auto fixed_ratio_ = GET_PARAMETER(PTuple<float>, fixed_ratio);
     auto density_size_ = GET_PARAMETER(PTuple<float>, density_size);
