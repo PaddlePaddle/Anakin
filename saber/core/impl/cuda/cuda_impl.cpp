@@ -200,23 +200,23 @@ void NV_API::destroy_stream(stream_t& stream) {
 }
 
 void NV_API::destroy_event(event_t& event) {
-    cudaEventDestroy(event);
+    CUDA_CHECK(cudaEventDestroy(event));
 }
 
 void NV_API::record_event(event_t& event, stream_t stream) {
-    cudaEventRecord(event, stream);
+    CUDA_CHECK(cudaEventRecord(event, stream));
 }
 
 void NV_API::query_event(event_t& event) {
-    cudaEventQuery(event);
+    CUDA_CHECK(cudaEventQuery(event));
 }
 
 void NV_API::sync_event(event_t& event) {
-    cudaEventSynchronize(event);
+    CUDA_CHECK(cudaEventSynchronize(event));
 }
 
 void NV_API::sync_stream(event_t& event, stream_t& stream) {
-    cudaStreamWaitEvent(stream, event, 0);
+    CUDA_CHECK(cudaStreamWaitEvent(stream, event, 0));
 }
         
 void NV_API::sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
