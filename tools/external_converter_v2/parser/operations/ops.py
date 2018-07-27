@@ -53,7 +53,8 @@ OpsRegister.Register("Softmax").set_attr(axis=int())
 #			  TanH, 
 #			  Sigmoid, 
 # 		  }
-OpsRegister.Register("Activation").set_attr(type="")
+OpsRegister.Register("Activation").set_attr(type="",
+                                            cliprelu_num=int())
 # Leaky version of a Rectified Linear Unit ( alpha != 0 ).
 # 	f(x) = alpha * x  	 : x < 0
 # 	f(x) = 		   x  	 : x >= 0

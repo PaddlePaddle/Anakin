@@ -1051,6 +1051,14 @@ def Parser_normalize(args):
     OpsRegister()["Normalize"].p = 2
 
 
+@ParserFeedDecorator("Activation")
+def Parser_relu6(args):
+    layer = args[1]
+    relu6_param = layer.relu6_param
+    OpsRegister()["Activation"].type = "ClippedRelu"
+    OpsRegister()["Activation"].cliprelu_num = 6
+
+
 # caffe layer parameter parser map
 CAFFE_LAYER_PARSER = {
                 "Split": OpsParam().set_parser(Parser_split),
@@ -1114,5 +1122,6 @@ CAFFE_LAYER_PARSER = {
                 "PriorBox": OpsParam().set_parser(Parser_priorbox), # vis add
                 "DetectionOutput": OpsParam().set_parser(Parser_detectionoutput), # vis add
                 "ArgMax": OpsParam().set_parser(Parser_argmax),
-                "Normalize": OpsParam().set_parser(Parser_normalize)
+                "Normalize": OpsParam().set_parser(Parser_normalize),
+                "ReLU6": OpsParam().set_parser(Parser_relu6)
                 }
