@@ -43,7 +43,8 @@ macro(anakin_find_opencv)
 	if(USE_ARM_PLACE AND TARGET_ANDROID)
 		include_directories(${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/sdk/native/jni/include/)
 		LINK_DIRECTORIES(${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/sdk/native/libs/armeabi-v7a/)
-
+		include_directories(${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/include/)
+		LINK_DIRECTORIES(${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/lib)
 	else()
 
 		if(BUILD_SHARED) # temporary not support static link opencv.
