@@ -27,17 +27,17 @@ namespace anakin {
 namespace ops {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
-class ConvBatchnormScaleHelper;
+class ConvBatchnormHelper;
 
 /// pooling op
 /**
- * \brief ConvBatchnormScaleHelper implementation class
+ * \brief ConvBatchnormHelper implementation class
  * public inherit Operator
  */
 template<typename Ttype, DataType Dtype, Precision Ptype>
-class ConvBatchnormScale : public Operator<Ttype, Dtype, Ptype> {
+class ConvBatchnorm : public Operator<Ttype, Dtype, Ptype> {
 public:
-    ConvBatchnormScale() {}
+    ConvBatchnorm() {}
 
     /// forward impl
     virtual void operator() (OpContext<Ttype> &ctx, 
@@ -47,26 +47,26 @@ public:
                    <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info()<<">";
     }
 
-    friend class ConvBatchnormScaleHelper<Ttype, Dtype, Ptype>;
+    friend class ConvBatchnormHelper<Ttype, Dtype, Ptype>;
 };
 
 /**
- * \brief ConvBatchnormScale helper class to implement it
+ * \brief ConvBatchnorm helper class to implement it
  * public inherit OperatorHelper
- * including init resource and shape size in ConvBatchnormScaleHelper context
+ * including init resource and shape size in ConvBatchnormHelper context
  */
 template<typename Ttype, DataType Dtype, Precision Ptype>
-class ConvBatchnormScaleHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
+class ConvBatchnormHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
-    ConvBatchnormScaleHelper()=default;
+    ConvBatchnormHelper()=default;
 
-    ~ConvBatchnormScaleHelper() {}
+    ~ConvBatchnormHelper() {}
 
     Status InitParam() override;
 
     /**
     * \brief initial all the resource needed by pooling
-    * \param ctx stand for ConvBatchnormScale operation context
+    * \param ctx stand for ConvBatchnorm operation context
     * \param ins stand for input tensor vector
     * \param outs stand for output tensor vector
     * \return status
@@ -85,9 +85,9 @@ public:
                       std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
 
 public:
-    ///< _param_conv_batchnorm_scale stand for ConvBatchnormScale parameter
+    ///< _param_conv_batchnorm_scale stand for ConvBatchnorm parameter
     saber::ConvActiveParam<Tensor4d<Ttype, Dtype>>  _param_conv_batchnorm_scale;
-    ///< _funcs_conv stand for ConvBatchnormScale function 
+    ///< _funcs_conv stand for ConvBatchnorm function
     saber::ConvAct<Ttype, Dtype> _funcs_conv_batchnorm_scale;
 };
 

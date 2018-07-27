@@ -1,24 +1,24 @@
-#include "framework/operators/fusion_ops/conv_batchnorm_scale.h"
+#include "framework/operators/fusion_ops/conv_batchnorm.h"
 
 namespace anakin {
 
 namespace ops {
 
-#define INSTANCE_CONVBATCHNORMSCALE(Ttype, Dtype, Ptype) \
+#define INSTANCE_CONVBATCHNORM(Ttype, Dtype, Ptype) \
 template<> \
-void ConvBatchnormScale<Ttype, Dtype, Ptype>::operator()(\
+void ConvBatchnorm<Ttype, Dtype, Ptype>::operator()(\
     OpContext<Ttype>& ctx,\
     const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,\
     std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {\
-    auto* impl = static_cast<ConvBatchnormScaleHelper<Ttype, Dtype, Ptype>*>(this->_helper);\
-    auto& param = static_cast<ConvBatchnormScaleHelper<Ttype, Dtype, Ptype>*>\
+    auto* impl = static_cast<ConvBatchnormHelper<Ttype, Dtype, Ptype>*>(this->_helper);\
+    auto& param = static_cast<ConvBatchnormHelper<Ttype, Dtype, Ptype>*>\
                   (this->_helper)->_param_conv_batchnorm_scale;\
     SABER_CHECK(impl->_funcs_conv_batchnorm_scale(ins, outs, param, ctx));\
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
-Status ConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing ConvBatchnormScale op parameter.";
+Status ConvBatchnormHelper<Ttype, Dtype, Ptype>::InitParam() {
+    LOG(WARNING) << "Parsing ConvBatchnorm op parameter.";
     saber::ConvParam<Tensor4d<Ttype, Dtype>> _conv_param;
 
     // get conv param
@@ -64,22 +64,22 @@ Status ConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::InitParam() {
                                         batch_norm_weight_2_vector,
                                         batch_norm_weight_3_vector[0],
                                         momentum, epsilon);
-    // get scale param
-    auto scale_num_axes = GET_PARAMETER(int, scale_0_num_axes);
-    auto scale_bias_term = GET_PARAMETER(bool, scale_0_bias_term);
-    auto scale_axis = GET_PARAMETER(int, scale_0_axis);
-    auto scale_weight_1 = GET_PARAMETER(pblock_type, scale_0_weight_1);
-    auto scale_weight_1_vector = scale_weight_1.vector();
-    auto scale_weight_2 = GET_PARAMETER(pblock_type, scale_0_weight_2);
-    auto  scale_weight_2_vector = scale_weight_2.vector();
-    saber::ScaleParam<Tensor4d<Ttype, Dtype>> scale_param(scale_weight_1_vector,  scale_weight_2_vector,
-                                           scale_bias_term, scale_axis, scale_num_axes);
+//    // get scale param
+//    auto scale_num_axes = GET_PARAMETER(int, scale_0_num_axes);
+//    auto scale_bias_term = GET_PARAMETER(bool, scale_0_bias_term);
+//    auto scale_axis = GET_PARAMETER(int, scale_0_axis);
+//    auto scale_weight_1 = GET_PARAMETER(pblock_type, scale_0_weight_1);
+//    auto scale_weight_1_vector = scale_weight_1.vector();
+//    auto scale_weight_2 = GET_PARAMETER(pblock_type, scale_0_weight_2);
+//    auto  scale_weight_2_vector = scale_weight_2.vector();
+//    saber::ScaleParam<Tensor4d<Ttype, Dtype>> scale_param(scale_weight_1_vector,  scale_weight_2_vector,
+//                                           scale_bias_term, scale_axis, scale_num_axes);
 
     // get relu param
     /*auto alpha = GET_PARAMETER(float, relu_0_alpha);
     ActivationParam<Tensor4d<Ttype, Dtype>> active_param(Active_relu);//, alpha); // TEMP */
 
-	ConvActiveParam<Tensor4d<Ttype, Dtype>> conv_act_param(_conv_param, batchnorm_param, scale_param); 
+	ConvActiveParam<Tensor4d<Ttype, Dtype>> conv_act_param(_conv_param, batchnorm_param);
 	_param_conv_batchnorm_scale = conv_act_param;
 
 	
@@ -87,7 +87,7 @@ Status ConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::InitParam() {
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
-Status ConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
+Status ConvBatchnormHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
         const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
         std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
     SABER_CHECK(_funcs_conv_batchnorm_scale.init(ins, outs, \
@@ -96,7 +96,7 @@ Status ConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
-Status ConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::InferShape(const
+Status ConvBatchnormHelper<Ttype, Dtype, Ptype>::InferShape(const
         std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
         std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
     SABER_CHECK(_funcs_conv_batchnorm_scale.compute_output_shape(ins, outs, \
@@ -105,21 +105,21 @@ Status ConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::InferShape(const
 }
 
 #ifdef USE_ARM_PLACE
-INSTANCE_CONVBATCHNORMSCALE(ARM, AK_FLOAT, Precision::FP32);
-template class ConvBatchnormScaleHelper<ARM, AK_FLOAT, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScale, ConvBatchnormScaleHelper, ARM, AK_FLOAT, Precision::FP32);
+INSTANCE_CONVBATCHNORM(ARM, AK_FLOAT, Precision::FP32);
+template class ConvBatchnormHelper<ARM, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(ConvBatchnorm, ConvBatchnormHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
 
 #ifdef USE_CUDA
-INSTANCE_CONVBATCHNORMSCALE(NV, AK_FLOAT, Precision::FP32);
+INSTANCE_CONVBATCHNORM(NV, AK_FLOAT, Precision::FP32);
 template<>
-Status ConvBatchnormScaleHelper<NV, AK_FLOAT, Precision::FP32>::Init(OpContext<NV>& ctx, \
+Status ConvBatchnormHelper<NV, AK_FLOAT, Precision::FP32>::Init(OpContext<NV>& ctx, \
     const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins, \
     std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
     _funcs_conv_batchnorm_scale.init(ins, outs, _param_conv_batchnorm_scale, SPECIFY, VENDER_IMPL, ctx);
     return Status::OK();
 }
-ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScale, ConvBatchnormScaleHelper, NV, AK_FLOAT,
+ANAKIN_REGISTER_OP_HELPER(ConvBatchnorm, ConvBatchnormHelper, NV, AK_FLOAT,
                           Precision::FP32);
 #endif
 #if defined(BUILD_LITE)
@@ -131,8 +131,8 @@ ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScale, ConvBatchnormScaleHelper, X86, AK_
 
 
 //! register op
-ANAKIN_REGISTER_OP(ConvBatchnormScale)
-.Doc("ConvBatchnormScale fusion operator")
+ANAKIN_REGISTER_OP(ConvBatchnorm)
+.Doc("ConvBatchnorm fusion operator")
 #ifdef USE_CUDA
 .__alias__<NV, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale")
 #endif
@@ -153,9 +153,6 @@ ANAKIN_REGISTER_OP(ConvBatchnormScale)
                 .Args<int>("filter_num", "filter(kernel) number of weights")
                 .Args<PTuple<int>>("kernel_size", "kernel size of kernel (x, y)")
                 .Args<int>("axis", "axis of conv")
-                .Args<int>("scale_0_num_axes", " num axes for scale")
-                .Args<bool>("scale_0_bias_term", "whether scale has bias")
-                .Args<int>("scale_0_axis", "axis for scale")
                 .Args<float>("batchnorm_0_epsilon", "epsilon for batchnorm")
                 .Args<float>("batchnorm_0_momentum", "momentum for batchnorm");
 
