@@ -1056,7 +1056,7 @@ def Parser_relu6(args):
     layer = args[1]
     relu6_param = layer.relu6_param
     OpsRegister()["Activation"].type = "ClippedRelu"
-    OpsRegister()["Activation"].cliprelu_num = 6
+    OpsRegister()["Activation"].clip_relu_num = 6
 
 
 # caffe layer parameter parser map
