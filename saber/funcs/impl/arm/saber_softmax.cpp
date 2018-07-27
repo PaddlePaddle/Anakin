@@ -90,8 +90,14 @@ void softmax_inner1(const float* din, float* dout, \
             din_sum_ptr += 4;
             dout_sum_ptr += 4;
         }
-        float32x2_t vhsum = vadd_f32(vget_high_f32(vsum), vget_low_f32(vsum));
-        float sum_data = vget_lane_f32(vhsum, 0) + vget_lane_f32(vhsum, 1);
+
+        float sum_data = 0.f;
+        if(axis_size >= 4){ 
+            float32x2_t vhsum = vadd_f32(vget_high_f32(vsum), vget_low_f32(vsum));
+            sum_data = vget_lane_f32(vhsum, 0) + vget_lane_f32(vhsum, 1);
+        }else{
+            j = 0;
+        }
 
         for (j = 4 * j; j < axis_size; ++j) {
             dout_sum_ptr[0] = expf(din_sum_ptr[0] - max_data);
@@ -118,6 +124,35 @@ void softmax_inner1(const float* din, float* dout, \
     }
 }
 
+//! for inner size == 1
+void softmax_inner1_s(const float* din, float* dout, \
+    const int outer_size, const int axis_size) {
+#pragma omp parallel for
+    for (int i = 0; i < outer_size; ++i) {
+        const float* din_ptr = din + i * axis_size;
+        float* dout_ptr = dout + i * axis_size;
+        //! get max
+        float max_data = din_ptr[0];
+        for (int j =1; j < axis_size; ++j) {
+            max_data = std::max(max_data, din_ptr[j]);
+        }
+        //printf("max data: %.2f\n", max_data);
+
+        //! sub, exp and sum
+        float sum_data = 0.f;
+        for (int j = 0; j < axis_size; ++j) {
+            dout_ptr[j] = expf(din_ptr[j] - max_data);
+            sum_data += dout_ptr[j];
+        }
+        //printf("sum data: %.2f\n", sum_data);
+
+        float sum_inv = 1.f / sum_data;
+        for (int j = 0; j < axis_size; ++j) {
+            dout_ptr[j] *= sum_inv;
+        }
+    }
+}
+
 template <DataType OpDtype,
         DataType inDtype,
         DataType outDtype,
@@ -137,7 +172,12 @@ LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(\
 
     if (this->_inner_num == 1) {
         //LOG(INFO) << "softmax inner1 axis size: " << _axis_size;
-        softmax_inner1(din, dout, _outer_num, _axis_size);
+        if(_axis_size >= 4){
+            softmax_inner1(din, dout, _outer_num, _axis_size);
+        }else{
+            softmax_inner1_s(din, dout, _outer_num, _axis_size);
+        }
+        
     } else {
         int compute_size = inputs[0]->valid_size() / _axis_size;
         //LOG(INFO) << "softmax compute size: " << compute_size;
