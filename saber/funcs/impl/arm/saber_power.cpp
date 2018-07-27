@@ -1,3 +1,4 @@
+#include <arm_neon.h>
 #include "saber/funcs/impl/arm/saber_power.h"
 
 #ifdef USE_ARM_PLACE
@@ -19,6 +20,9 @@ namespace saber {
     PowerParam<OpTensor> &param, Context<ARM> &ctx) {
 
     this->_ctx = &ctx;
+    if (fabsf(param.power - 1.f) < 1e-6f) {
+        _do_power = false;
+    }
     return SaberSuccess;
 }
     template <DataType OpDtype ,
@@ -34,6 +38,9 @@ namespace saber {
         PowerParam<OpTensor> &param, Context<ARM> &ctx) {
     
         this->_ctx = &ctx;
+        if (fabsf(param.power - 1.f) < 1e-6f) {
+            _do_power = false;
+        }
         return SaberSuccess;
     }
 
@@ -47,24 +54,63 @@ namespace saber {
     LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(\
     const std::vector<DataTensor_in *>& inputs,
     std::vector<DataTensor_out *>& outputs, PowerParam<OpTensor> &param) {
-        
-    float scale=param.scale;
-    float shift=param.shift;
-    float power=param.power;
-    float* ptr_out = outputs[0]->mutable_data();
-    const float* ptr_in = inputs[0]->data();
-    int size = inputs[0]->valid_size();
-    int threads=1;
-    this->_ctx->get_mode(threads);
-    int nums_per_thread = size / threads;
-    int remain = size - threads * nums_per_thread;
-    int neon_loop_cnt = nums_per_thread >> 4;
-    int neon_loop_remain = nums_per_thread - (neon_loop_cnt << 4);
-    int neon_loop_cnt_dim4 = nums_per_thread >> 2;
-    int neon_loop_remain_dim4 = nums_per_thread - (neon_loop_cnt_dim4 << 2);
-    float32x4_t vscale = vdupq_n_f32(scale);
-    float32x4_t vshift=vdupq_n_f32(shift);
-    float32x4_t vpower=vdupq_n_f32(power);
+
+        //LOG(ERROR) << "power layer, scale: " << param.scale << ", power" << param.power << ", shift: " << param.shift;
+
+
+        float scale=param.scale;
+        float shift=param.shift;
+        float power=param.power;
+        float* ptr_out = outputs[0]->mutable_data();
+        const float* ptr_in = inputs[0]->data();
+        int size = inputs[0]->valid_size();
+        int threads=1;
+        this->_ctx->get_mode(threads);
+
+        //LOG(ERROR) << "power threads:" << threads;
+
+        int nums_per_thread = size / threads;
+        int remain = size - threads * nums_per_thread;
+        int neon_loop_cnt = nums_per_thread >> 4;
+        int neon_loop_remain = nums_per_thread - (neon_loop_cnt << 4);
+        int neon_loop_cnt_dim4 = nums_per_thread >> 2;
+        int neon_loop_remain_dim4 = nums_per_thread - (neon_loop_cnt_dim4 << 2);
+        float32x4_t vscale = vdupq_n_f32(scale);
+        float32x4_t vshift=vdupq_n_f32(shift);
+        float32x4_t vpower=vdupq_n_f32(power);
+
+        if (!_do_power) {
+            const float* din = ptr_in;
+            float* dout = ptr_out;
+            int i = 0;
+            for (i = 0; i < size - 15; i += 16) {
+                float32x4_t vin1 = vld1q_f32(din);
+                float32x4_t vin2 = vld1q_f32(din + 4);
+                float32x4_t vin3 = vld1q_f32(din + 8);
+                float32x4_t vin4 = vld1q_f32(din + 12);
+
+                float32x4_t vout1 = vmlaq_f32(vshift, vscale, vin1);
+                float32x4_t vout2 = vmlaq_f32(vshift, vscale, vin2);
+                float32x4_t vout3 = vmlaq_f32(vshift, vscale, vin3);
+                float32x4_t vout4 = vmlaq_f32(vshift, vscale, vin4);
+
+                vst1q_f32(dout, vout1);
+                vst1q_f32(dout + 4, vout2);
+                vst1q_f32(dout + 8, vout3);
+                vst1q_f32(dout + 12, vout4);
+
+                din += 16;
+                dout += 16;
+            }
+
+            for (; i < size; ++i) {
+                ptr_out[i] = shift + scale * ptr_in[i];
+            }
+
+            return SaberSuccess;
+        }
+
+
 #pragma omp parallel for
     for (int i = 0; i < threads; ++i) {
         const float* ptr_in_thread = ptr_in + i * nums_per_thread;

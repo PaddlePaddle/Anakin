@@ -60,6 +60,9 @@ public:
                           std::vector<DataTensor_out*>& outputs,
                           PowerParam<OpTensor>& param)  override;
 
+private:
+    bool _do_power{true};
+
 };
 
 

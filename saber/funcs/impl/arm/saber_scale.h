@@ -59,8 +59,8 @@ public:
                         std::vector<DataTensor_out*>& outputs,
                         ScaleParam<OpTensor> &param, Context<ARM> &ctx) override {
 
-        int _inner_dim = inputs[0]->count(_axis + _num_axes, inputs[0]->shape().dims());
-        int _scale_dim = inputs[0]->count(_axis, _axis + _num_axes);
+        _inner_dim = inputs[0]->count(param.axis + param.num_axes, inputs[0]->shape().dims());
+        _scale_dim = inputs[0]->count(param.axis, param.axis + param.num_axes);
         if (inputs.size() == 1) {
             CHECK_EQ(_scale_dim, param.scale_w.size()) << "scale dim not valid";
         }
@@ -74,31 +74,44 @@ public:
         return SaberSuccess;
     }
 
-void scale_compute_kernel(float* din, float* dout, int num, int ch, int w, int h, float* scale_data, float* bias_data){
+void scale_compute_kernel(const float* din, float* dout, int num, int ch, int w, int h, float* scale_data, float* bias_data){
     int size = w * h;
-    int cnt = size >> 2;
-    int remain = size % 4;
-    for(int i = 0; i < num; i++){
-#pragma omp parallel for
-        float* din_ptr  = din + i * ch * size;
+    int cnt = size >> 4;
+    int remain = size % 16;
+    for(int i = 0; i < num; i++) {
+        const float* din_ptr  = din + i * ch * size;
         float* dout_ptr = dout + i * ch * size;
-        float* scale_ptr = scale_data + i * ch;
+        float* scale_ptr = scale_data;
        // float* bias_ptr = bias_data + i * ch;
+#pragma omp parallel for
         for(int c = 0; c < ch; c++){
-            float* din_ch_ptr = din_ptr + c * size;
+            const float* din_ch_ptr = din_ptr + c * size;
             float* dout_ch_ptr = dout_ptr + c * size;
-            float32x4_t vscale = vdupq_f32(scale_ptr[0]);
-            float bias = bias_data == NULL ? 0.f : *(bias_data + i * ch);
+            float32x4_t vscale = vdupq_n_f32(scale_ptr[c]);
+            float bias = bias_data == NULL ? 0.f : bias_data[c];
+            float32x4_t vbias = vdupq_n_f32(bias);
             for(int j = 0; j < cnt; j++){
+
                 float32x4_t din0 = vld1q_f32(din_ch_ptr);
-                float32x4_t vsum = vdupq_f32(bias);
-                vsum = vmlaq_f32(vsum, din0, vscale);
-                vst1q_f32(dout_ch_ptr, vsum);
-                dout_ch_ptr += 4;
-                din_ch_ptr += 4;
+                float32x4_t din1 = vld1q_f32(din_ch_ptr + 4);
+                float32x4_t din2 = vld1q_f32(din_ch_ptr + 8);
+                float32x4_t din3 = vld1q_f32(din_ch_ptr + 12);
+
+                float32x4_t vsum1 = vmlaq_f32(vbias, din0, vscale);
+                float32x4_t vsum2 = vmlaq_f32(vbias, din1, vscale);
+                float32x4_t vsum3 = vmlaq_f32(vbias, din2, vscale);
+                float32x4_t vsum4 = vmlaq_f32(vbias, din3, vscale);
+
+                vst1q_f32(dout_ch_ptr, vsum1);
+                vst1q_f32(dout_ch_ptr + 4, vsum2);
+                vst1q_f32(dout_ch_ptr + 8, vsum3);
+                vst1q_f32(dout_ch_ptr + 12, vsum4);
+
+                dout_ch_ptr += 16;
+                din_ch_ptr += 16;
             }
             for(int j = 0; j < remain; j++){
-                *dout_ch_ptr = *din_ch_ptr * scale + bias;
+                *dout_ch_ptr = *din_ch_ptr * scale_ptr[c] + bias;
                 dout_ch_ptr++;
                 din_ch_ptr++;
             }
@@ -106,22 +119,22 @@ void scale_compute_kernel(float* din, float* dout, int num, int ch, int w, int h
     }
 
 }
-void scale_global_compute_kernel(float* din, float* dout, int num, int ch, int w, int h, float scale, float bias){
+void scale_global_compute_kernel(const float* din, float* dout, int num, int ch, int w, int h, float scale, float bias){
     int size = w * h;
     int cnt = size >> 2;
     int remain = size % 4;
-    float32x4_t vscale = vdupq_f32(scale);
+    float32x4_t vscale = vdupq_n_f32(scale);
     //float32x4_t vbias = vdupq_f32(bias);
     for(int i = 0; i < num; i++){
-#pragma omp parallel for
-        float* din_ptr  = din + i * ch * size;
+        const float* din_ptr  = din + i * ch * size;
         float* dout_ptr = dout + i * ch * size;
+#pragma omp parallel for
         for(int c = 0; c < ch; c++){
-            float* din_ch_ptr = din_ptr + c * size;
+            const float* din_ch_ptr = din_ptr + c * size;
             float* dout_ch_ptr = dout_ptr + c * size;
             for(int j = 0; j < cnt; j++){
                 float32x4_t din0 = vld1q_f32(din_ch_ptr);
-                float32x4_t vsum = vdupq_f32(bias);
+                float32x4_t vsum = vdupq_n_f32(bias);
                 vsum = vmlaq_f32(vsum, din0, vscale);
                 vst1q_f32(dout_ch_ptr, vsum);
                 dout_ch_ptr += 4;
@@ -140,6 +153,17 @@ void scale_global_compute_kernel(float* din, float* dout, int num, int ch, int w
                           std::vector<DataTensor_out*>& outputs,
                           ScaleParam<OpTensor> &param) override {
 
+//        LOG(ERROR) << "scale param, axis=" << param.axis << ", " << param.bias_term << ", num_axis: " << param.num_axes << ", bias term:" << param.bias_term;
+//        LOG(ERROR) << "scale_w:";
+//        for (int i = 0; i < param.scale_w.size(); ++i) {
+//            printf("%.2f ", param.scale_w[i]);
+//        }
+//        printf("\n");
+//                LOG(ERROR) << "scale_b:";
+//        for (int i = 0; i < param.scale_b.size(); ++i) {
+//            printf("%.2f ", param.scale_b[i]);
+//        }
+//        printf("\n");
 
         int num = inputs[0]->num();
         int ch_in = inputs[0]->channel();
@@ -161,7 +185,9 @@ void scale_global_compute_kernel(float* din, float* dout, int num, int ch, int w
         }
         return SaberSuccess;
     }
-
+private:
+    int _scale_dim;
+    int _inner_dim;
 };
 
 } //namespace saber
