@@ -62,10 +62,6 @@ public:
         SABER_CHECK(_output_arm.reshape(outputs[0]->valid_shape()));
         float* output_host = _output_arm.mutable_data();
 
-        float* min_buf = (float*)fast_malloc(sizeof(float) * 4);
-        float* max_buf = (float*)fast_malloc(sizeof(float) * 4);
-        float* com_buf = (float*)fast_malloc(sizeof(float) * param.aspect_ratio.size() * 4);
-
         const int width = inputs[0]->width();
         const int height = inputs[0]->height();
         int img_width = param.img_w;
@@ -81,16 +77,157 @@ public:
             step_w = static_cast<float>(img_width) / width;
             step_h = static_cast<float>(img_height) / height;
         }
-        float offset = param.offset;
 
+       
+        float offset = param.offset;
+        int step_average = static_cast<int>((step_w + step_h) * 0.5); //add
         int channel_size = height * width * param.prior_num * 4;
         int idx = 0;
+        float* out_data = output_host;
         for (int h = 0; h < height; ++h) {
             for (int w = 0; w < width; ++w) {
                 float center_x = (w + offset) * step_w;
                 float center_y = (h + offset) * step_h;
                 float box_width;
                 float box_height;
+                 //LOG(INFO) << " ****** center_x = " << center_x << ", center_y = " << center_y << " ******";
+            if(param.fixed_size.size() > 0){
+                for (int s = 0; s < param.fixed_size.size(); ++s) {
+                    int fixed_size_ = param.fixed_size[s];
+                    int com_idx = 0;
+                    box_width = fixed_size_;
+                    box_height = fixed_size_;
+
+                    if (param.fixed_ratio.size() > 0){
+                        for (int r = 0; r < param.fixed_ratio.size(); ++r) {
+                            float ar = param.fixed_ratio[r];
+                            int density_ = param.density_size[s];
+                            //int shift = fixed_sizes_[s] / density_; 
+                            int shift = step_average / density_;
+                            float box_width_ratio =  param.fixed_size[s] * sqrt(ar);
+                            float box_height_ratio =  param.fixed_size[s] / sqrt(ar);
+
+                            for (int p = 0 ; p < density_ ; ++p) {
+                                for (int c = 0 ; c < density_ ; ++c) {
+                                    // liu@20171207 changed to fix density bugs at anchor = 64
+                                    float center_x_temp = center_x - step_average / 2 + 
+                                    shift / 2. + c * shift;
+                                    float center_y_temp = center_y - step_average / 2 + 
+                                    shift / 2. + p * shift;
+                                    //float center_x_temp = center_x - fixed_size_ / 2 + shift/2. + c*shift;
+                                    //float center_y_temp = center_y - fixed_size_ / 2 + shift/2. + r*shift;
+                                    //LOG(INFO) << " dense_center_x = " << center_x_temp << ", dense_center_y = " << center_y_temp;
+                                    // xmin
+                                    out_data[idx++] = (center_x_temp - box_width_ratio / 2.) 
+                                                        / img_width >= 0 ?
+                                                  (center_x_temp - box_width_ratio / 2.) 
+                                                        / img_width : 0 ;
+                                    // ymin
+                                    out_data[idx++] = (center_y_temp - box_height_ratio / 2.) 
+                                                        / img_height >= 0 ?
+                                                  (center_y_temp - box_height_ratio / 2.) 
+                                                        / img_height : 0;
+                                    // xmax
+                                    out_data[idx++] = (center_x_temp + box_width_ratio / 2.) 
+                                                        / img_width <= 1 ?
+                                                  (center_x_temp + box_width_ratio / 2.) 
+                                                        / img_width : 1;
+                                    // ymax
+                                    out_data[idx++] = (center_y_temp + box_height_ratio / 2.) 
+                                                        / img_height <= 1 ?
+                                                  (center_y_temp + box_height_ratio / 2.) 
+                                                        / img_height : 1;
+                                }
+                            }
+                        }
+                    } else {
+                    //this code for density anchor box
+                        if (param.density_size.size() > 0) {
+                            CHECK_EQ(param.fixed_size.size(), param.density_size.size());
+                            int density_ = param.density_size[s];
+                            int shift = param.fixed_size[s] / density_;
+
+                            for (int r = 0 ; r < density_ ; ++r) {
+                                for (int c = 0 ; c < density_ ; ++c) {
+                                    float center_x_temp = center_x - fixed_size_ / 2 
+                                    + shift / 2. + c * shift;
+                                    float center_y_temp = center_y - fixed_size_ / 2 
+                                    + shift / 2. + r * shift;
+                                    // xmin
+                                    out_data[idx++] = (center_x_temp - box_width / 2.) 
+                                                        / img_width >= 0 ?
+                                                  (center_x_temp - box_width / 2.) 
+                                                        / img_width : 0 ;
+                                    // ymin
+                                    out_data[idx++] = (center_y_temp - box_height / 2.) 
+                                                        / img_height >= 0 ?
+                                                  (center_y_temp - box_height / 2.) 
+                                                        / img_height : 0;
+                                    // xmax
+                                    out_data[idx++] = (center_x_temp + box_width / 2.) 
+                                                        / img_width <= 1 ?
+                                                  (center_x_temp + box_width / 2.) 
+                                                        / img_width : 1;
+                                    // ymax
+                                    out_data[idx++] = (center_y_temp + box_height / 2.) 
+                                                        / img_height <= 1 ?
+                                                  (center_y_temp + box_height / 2.) 
+                                                        / img_height : 1;
+                                }
+                            }
+                        }
+
+                        //rest of priors :will never come here!!!
+                        for (int r = 0; r < param.aspect_ratio.size(); ++r) {
+                            float ar = param.aspect_ratio[r];
+
+                            if (fabs(ar - 1.) < 1e-6) {
+                                //LOG(INFO) << "returning for aspect == 1";
+                                continue;
+                            }
+
+                            int density_ = param.density_size[s];
+                            int shift = param.fixed_size[s] / density_;
+                            float box_width_ratio = param.fixed_size[s] * sqrt(ar);
+                            float box_height_ratio = param.fixed_size[s] / sqrt(ar);
+
+                            for (int p = 0 ; p < density_ ; ++p) {
+                                for (int c = 0 ; c < density_ ; ++c) {
+                                    float center_x_temp = center_x - fixed_size_ / 2 
+                                    + shift / 2. + c * shift;
+                                    float center_y_temp = center_y - fixed_size_ / 2 
+                                    + shift / 2. + p * shift;
+                                    // xmin
+                                    out_data[idx++] = (center_x_temp - box_width_ratio / 2.) 
+                                                        / img_width >= 0 ?
+                                                  (center_x_temp - box_width_ratio / 2.) 
+                                                        / img_width : 0 ;
+                                    // ymin
+                                    out_data[idx++] = (center_y_temp - box_height_ratio / 2.) 
+                                                        / img_height >= 0 ?
+                                                  (center_y_temp - box_height_ratio / 2.) 
+                                                        / img_height : 0;
+                                    // xmax
+                                    out_data[idx++] = (center_x_temp + box_width_ratio / 2.) 
+                                                        / img_width <= 1 ?
+                                                  (center_x_temp + box_width_ratio / 2.) 
+                                                        / img_width : 1;
+                                    // ymax
+                                    out_data[idx++] = (center_y_temp + box_height_ratio / 2.)
+                                                        / img_height <= 1 ?
+                                                  (center_y_temp + box_height_ratio / 2.) 
+                                                        / img_height : 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }else{
+                float* min_buf = (float*)fast_malloc(sizeof(float) * 4);
+                float* max_buf = (float*)fast_malloc(sizeof(float) * 4);
+                float* com_buf = (float*)fast_malloc(sizeof(float) * param.aspect_ratio.size() * 4);
+
+                // LOG(INFO) << "the number of min_size is " << min_sizes_.size();
                 for (int s = 0; s < param.min_size.size(); ++s) {
                     int min_idx = 0;
                     int max_idx = 0;
@@ -151,14 +288,15 @@ public:
                             memcpy(output_host + idx, com_buf, sizeof(float) * com_idx);
                             idx += com_idx;
                         }
-                    }
+                    }  
                 }
+                fast_free(min_buf);
+                fast_free(max_buf);
+                fast_free(com_buf);
+            }
             }
         }
 
-        fast_free(min_buf);
-        fast_free(max_buf);
-        fast_free(com_buf);
 
         //! clip the prior's coordidate such that it is within [0, 1]
         if (param.is_clip) {
