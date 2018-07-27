@@ -28,6 +28,7 @@
 #endif
 #ifdef USE_ARM_PLACE
 //todo
+#include "saber/funcs/impl/arm/saber_power.h"
 #include "saber/funcs/impl/impl_power.h"
 #endif
 namespace anakin {
