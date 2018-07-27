@@ -363,6 +363,9 @@ void Context::set_run_mode(PowerMode mode, int threads) {
                     _act_ids.push_back(small_cores[i - big_core_size]);
                 }
             }
+            if (_act_ids.size() == 0) {
+                _act_ids.push_back(0);
+            }
             break;
         case SABER_POWER_HIGH:
             _act_ids.clear();
@@ -388,6 +391,9 @@ void Context::set_run_mode(PowerMode mode, int threads) {
                 }
 
             }
+            if (_act_ids.size() == 0) {
+                _act_ids.push_back(0);
+            }
             break;
         case SABER_POWER_LOW:
             _act_ids.clear();
@@ -412,6 +418,9 @@ void Context::set_run_mode(PowerMode mode, int threads) {
                     }
                 }
 
+            }
+            if (_act_ids.size() == 0) {
+                _act_ids.push_back(0);
             }
             break;
     }
