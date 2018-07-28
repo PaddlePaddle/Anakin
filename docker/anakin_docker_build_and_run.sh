@@ -56,7 +56,7 @@ building_and_run_nvidia_gpu_docker() {
 	if [ ! $MODE = "Run" ]; then
 		echo "Building nvidia docker ... [ docker_image_name: anakin image_tag: $tag ]"	
 		sudo docker build --network=host -t anakin:$tag"-base" . -f $DockerfilePath
-        sudo docker run --network=host -it anakin:$tag"-base"  Anakin/tools/gpu_build.sh
+        sudo docker run --network=host -it anakin:$tag"-base"  Anakin/tools/nv_gpu_build.sh
         container_id=$(sudo docker ps -l | sed -n 2p | awk '{print $1}')
         sudo docker commit $container_id anakin:$tag
 	else
@@ -101,9 +101,19 @@ building_and_run_x86_docker() {
 
 # building docker for arm
 building_and_arm_docker() { 
-	echo "not support yet, Press any key to continue ..."
-	read
-	exit 1
+	if [ ! $# -eq 2 ]; then
+		exit 1
+	fi
+	DockerfilePath=$1
+	MODE=$2
+	tag="$(echo $DockerfilePath | awk -F/ '{print tolower($(NF-3) "_" $(NF-1))}')"
+	if [ ! $MODE = "Run" ]; then
+		echo "Building ARM docker ... [ docker_image_name: anakin image_tag: $tag ]"	
+		sudo docker build --network=host -t anakin:$tag . -f $DockerfilePath
+	else
+		echo "Running ARM docker ... [ docker_image_name: anakin image_tag: $tag ]" 
+		sudo docker run -it anakin:$tag /bin/bash
+	fi
 }
 
 # dispatch user args to target docker path
