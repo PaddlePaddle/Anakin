@@ -7,7 +7,7 @@
 #include "core/common.h"
 #include "core/tensor.h"
 #include "cuda.h"
-#include "saber_util.h"
+#include "funcs_utils.h"
 
 namespace anakin {
 

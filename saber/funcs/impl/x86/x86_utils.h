@@ -18,7 +18,7 @@
 #include <assert.h>
 
 #include "saber/core/common.h"
-#include "saber_util.h"
+#include "saber/funcs/funcs_utils.h"
 
 namespace anakin {
 namespace saber {
@@ -254,14 +254,6 @@ private:
     bool _is_bi;
 
 };
-
-inline int round_up(int k, int c) {
-    return ((k + c - 1) / c) * c;
-}
-
-inline int div_up(int k, int c) {
-    return (k + c - 1) / c;
-}
 
 template<bool expr, class T = void> struct enable_if {};
 template<class T> struct enable_if<true, T> {

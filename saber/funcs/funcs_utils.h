@@ -23,6 +23,34 @@
 namespace anakin{
 namespace saber{
 
+namespace utils {
+
+    template<typename opTensor>
+    static inline void try_expand_tensor(opTensor& x, Shape shape) {
+        if (x.valid_size() < shape.count()) {
+            x.re_alloc(shape, x.get_dtype());
+        }
+    }
+
+    template<typename opTensor>
+    static inline void try_expand_tensor(opTensor& x, int size) {
+        if (x.valid_size() < size) {
+            Shape shape({1, 1, 1, size}, Layout_NCHW);
+            try_expand_tensor(x, shape);
+        }
+    }
+
+    inline int round_up(int k, int c) {
+        return ((k + c - 1) / c) * c;
+    }
+
+    inline int div_up(int k, int c) {
+        return (k + c - 1) / c;
+    }
+
+}
+
+
 template <typename Dtype>
 
 void transpose_inplace(float* output, const float* input, const int num,
