@@ -96,7 +96,7 @@ Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path) {
     auto it_in = graph_proto.edges_in().begin();
 
     for (; it_in != graph_proto.edges_in().end(); ++it_in) {
-        LOG(WARNING) << " Parsing in edges of node : " << it_in->first;
+        DLOG(WARNING) << " Parsing in edges of node : " << it_in->first;
         auto& key = it_in->first;
         auto& second = it_in->second;
 
