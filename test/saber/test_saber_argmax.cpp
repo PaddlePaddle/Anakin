@@ -355,8 +355,7 @@ int main(int argc, const char** argv) {
     if(argc >= 9) {
         if (argc < 12) {
             LOG(ERROR) << "usage: ./" << argv[0] << "test_iter " << \
-                " compare_result get_time top_k flag_relu num ch_in h_in w_in ch_out group" << \
-                " kernel pad stride dila";
+                " compare_result get_time top_k has_axis axis out_max_val num ch_in h_in w_in";
             return 0;
         }
         num_in = atoi(argv[8]);
