@@ -83,7 +83,7 @@ public:
             weight_host.re_alloc(param.weight()->shape(), param.weight()->get_dtype());
             weight_host.copy_from(*(param.weight()));
             const OpDataType *weight_data = weight_host.data();
-            trans_weights_host.re_alloc(param.weight()->shape(), param.weight()->get_dtype());
+            trans_weights_host.re_alloc(param.weight()->valid_shape(), param.weight()->get_dtype());
             OpDataType* _host_work_space = trans_weights_host.mutable_data();
 
             transpose_filter_KCRS_2_CRSK(weight_data, _host_work_space, \
@@ -92,7 +92,7 @@ public:
                                          param.weight()->height(), \
                                          param.weight()->width());
 
-            param.mutable_weight()->re_alloc(param.weight()->shape(), param.weight()->get_dtype());
+            param.mutable_weight()->re_alloc(param.weight()->valid_shape(), param.weight()->get_dtype());
             param.mutable_weight()->copy_from(trans_weights_host);
         }
         cudaDeviceSynchronize();

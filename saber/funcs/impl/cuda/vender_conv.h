@@ -108,6 +108,9 @@ private:
     cudnnFilterDescriptor_t _filter_desc;
     cudnnConvolutionDescriptor_t _conv_descs;
 
+    // activation descriptor
+    cudnnActivationDescriptor_t _active_descs;
+
     size_t _workspace_fwd_sizes;
     size_t _workspaceSizeInBytes;  // size of underlying storage
     void *_workspaceData;  // underlying storage

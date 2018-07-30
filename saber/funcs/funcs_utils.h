@@ -20,11 +20,34 @@
 #include <map>
 #include "saber/core/tensor.h"
 #include "saber/core/tensor_op.h"
+#include "saber/saber_funcs_param.h"
+
 namespace anakin{
 namespace saber{
 
-template <typename Dtype>
+template <typename TargetType>
+Shape conv_compute_shape(const Shape input_shape, ConvParam<TargetType> &param) {
+    Shape output_shape = (input_shape);
+    CHECK_GE(input_shape.size(), 4) << "using reshape2d to reshape a 1d conv?";
 
+    output_shape.set_num(input_shape.num()); // N
+    output_shape.set_channel(param.weight()->num()); // K
+
+    int input_dim = input_shape.height(); // P
+    int kernel_exten = param.dilation_h * (param.weight()->height() - 1) + 1;
+    int output_height = (input_dim + 2 * param.pad_h - kernel_exten)
+                     / param.stride_h + 1;
+    output_shape.set_height(output_height);
+
+    input_dim = input_shape.width(); // Q
+    kernel_exten = param.dilation_w * (param.weight()->width() - 1) + 1;
+    int output_width = (input_dim + 2 * param.pad_w - kernel_exten)
+                 / param.stride_w + 1;
+    output_shape.set_width(output_width);
+    return output_shape;
+}
+
+template <typename Dtype>
 void transpose_inplace(float* output, const float* input, const int num,
                        const int channel,
                        const int height, const int width) {
@@ -51,8 +74,6 @@ void extract_matrix_from_matrix_in_leddim(const Dtype* input,
         }
     }
 }
-
-
 
 template <typename Dtype>
 void merge_matrix_to_matrix_in_leddim(const Dtype* input,
