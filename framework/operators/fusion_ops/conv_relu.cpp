@@ -119,6 +119,13 @@ ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, ARM, AK_FLOAT, Precision::FP
 #endif
 
 
+#ifdef USE_X86_PLACE
+INSTANCE_CONVRELU(X86, AK_FLOAT, Precision::FP32);
+template class ConvReluHelper<X86, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, X86, AK_FLOAT, Precision::FP32);
+#endif
+
+
 //! register op
 ANAKIN_REGISTER_OP(ConvRelu)
 .Doc("ConvRelu operator")
@@ -127,6 +134,9 @@ ANAKIN_REGISTER_OP(ConvRelu)
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("power")
+#endif
+#ifdef USE_X86_PLACE
+.__alias__<X86, AK_FLOAT, Precision::FP32>("power")
 #endif
 #if defined(BUILD_LITE)
 .__alias__<X86, AK_FLOAT, Precision::FP32>("power")
