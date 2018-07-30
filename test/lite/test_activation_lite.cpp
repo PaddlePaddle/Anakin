@@ -3,7 +3,12 @@
 
 using namespace anakin::saber;
 using namespace anakin::saber::lite;
+int test_iter = 10;
 
+int w_in = 9;
+int h_in = 9;
+int ch_in = 9;
+int num_in = 9;
 int cluster = 0;
 int threads = 4;
 ActiveType active_type=Active_relu;
@@ -11,7 +16,7 @@ typedef Tensor<CPU, AK_FLOAT> TensorHf4;
 
 #define COMPARE_RESULT 1
 
-void activation_basic(TensorHf4& tin,ActiveType active_type,TensorHf4& tout) {
+void activation_basic(TensorHf4& tin,ActiveType active_type,TensorHf4& tout,bool shared =false , float* slopes =nullptr) {
     switch (active_type) {
         case Active_relu:
             for (int i = 0; i < tin.size(); ++i) {
@@ -26,6 +31,21 @@ void activation_basic(TensorHf4& tin,ActiveType active_type,TensorHf4& tout) {
         case Active_sigmoid:
             for (int i = 0; i < tin.size(); ++i) {
                 tout.mutable_data()[i] = 1/(1+exp(-tin.data()[i]));
+            }
+            break;
+        case Active_prelu:
+            for (int i = 0; i < num_in; ++i) {
+                for (int j=0; j<ch_in; ++j) {
+                    float slope = shared ? slopes[0] : slopes[j];
+                    for(int k=0;k<w_in*h_in;++k){
+                        int offset=i*ch_in*w_in*h_in+j*w_in*h_in+k;
+                        if(tin.data()[offset]<0.f){
+                            tout.mutable_data()[offset] = tin.data()[offset]*slope;
+                        }else{
+                            tout.mutable_data()[offset] = tin.data()[offset];
+                        }
+                    }
+                }
             }
             break;
         default:
@@ -48,12 +68,7 @@ TEST(TestSaberLite, test_func_activation_arm) {
 #endif
     }
 
-    int test_iter = 10;
-
-    int w_in = 5;
-    int h_in = 5;
-    int ch_in = 5;
-    int num_in = 5;
+   
 
     Shape shape_in(num_in, ch_in, h_in, w_in);
     Shape shape_out = shape_in;
@@ -69,14 +84,18 @@ TEST(TestSaberLite, test_func_activation_arm) {
     TensorHf4 tout;
     TensorHf4 tout_basic(shape_out);
     vin.push_back(&thin);
-
+    SaberActivation activation_lite;
+    float slopes[ch_in];
+    for (int i=0; i<ch_in; ++i) {
+        slopes[i]=0.1f*i;
+    }
 #if COMPARE_RESULT
-    activation_basic(thin, active_type, tout_basic);
+    activation_basic(thin, active_type, tout_basic,true,slopes);
     //print_tensor_host(tout_basic);
 #endif
     
-    SaberActivation activation_lite;
-    ActivationParam param(active_type, 0.f, 1.0f);
+    
+    ActivationParam param(active_type, 0.f, 1.0f,true,slopes);
     activation_lite.load_param(&param);
 
     vout.push_back(&tout);
@@ -107,8 +126,6 @@ TEST(TestSaberLite, test_func_activation_arm) {
     }
 
     printf("saber activation total time : %.4f, avg time : %.4f\n", to, to / test_iter, min_time);
-    //print_tensor_host(*vout[0]);
-
 #if COMPARE_RESULT
     double max_ratio = 0;
     double max_diff = 0;
@@ -138,6 +155,8 @@ int main(int argc, const char** argv){
             active_type= Active_tanh;
         else if(strcmp(argv[3],"sigmoid")==0)
             active_type= Active_sigmoid;
+        else if(strcmp(argv[3],"prelu")==0)
+            active_type= Active_prelu;
         else
             active_type=Active_unknow;
     }
