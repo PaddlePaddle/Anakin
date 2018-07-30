@@ -31,7 +31,7 @@ public:
         static Devs* _g_env = new Devs();
         return *_g_env;
     }
-    static void env_init(int max_stream = 4){
+    static void env_init(int max_stream = 1){
         Devs& devs = cur_env();
         if (devs.size() > 0){
             return;
