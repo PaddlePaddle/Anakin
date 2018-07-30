@@ -20,12 +20,14 @@ REGISTER_GRAPH_FUSION_PATTERN(ConvRelu)
 .AddConnect("conv_0", "relu_0")
 .CreatePattern([](VGraph* graph) {});
 
+/*
 REGISTER_GRAPH_FUSION_PATTERN(PermutePower)
 .Type(IN_ORDER)
 .AddOpNode("permute_0",  "Permute")
 .AddOpNode("power_0", "Power")
 .AddConnect("permute_0", "power_0")
 .CreatePattern([](VGraph* graph) {});
+*/
 
 REGISTER_GRAPH_FUSION_PATTERN(ConvReluPool)
 .Type(IN_ORDER)

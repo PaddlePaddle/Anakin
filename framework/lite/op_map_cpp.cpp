@@ -89,6 +89,80 @@ std::string ParserConvolution(graph::AttrInfo& attr,
 	return code_w.get_code_string();
 }
 
+// SaberDeconv2D
+std::string ParserDeconvolution(graph::AttrInfo& attr,
+                              std::string& code_name,
+                              std::string& op_class_name, 
+                              std::string& node_name, 
+                              std::string& weights_ptr_name, 
+                              WeightsWritter& writter) {
+    // parsing parameter
+    auto group = get_attr<int>("group", attr);
+    auto bias_term = get_attr<bool>("bias_term", attr);
+    auto padding = get_attr<PTuple<int>>("padding", attr);
+    auto strides = get_attr<PTuple<int>>("strides", attr);
+    auto dilation_rate = get_attr<PTuple<int>>("dilation_rate", attr);
+    auto filter_num = get_attr<int>("filter_num", attr);
+    auto kernel_size = get_attr<PTuple<int>>("kernel_size", attr);
+    auto axis = get_attr<int>("axis", attr);
+
+    auto weights = get_attr<PBlock<float, X86>>("weight_1", attr);
+    auto weights_shape = weights.shape();
+    int weights_size = weights_shape.count();//weights_shape[2]*weights_shape[3];
+    int num_output = filter_num;//*weights_shape[1];
+
+    writter.register_weights(node_name, weights);
+    LOG(INFO) << node_name << " write weights: " << weights.count();
+    if(bias_term) {
+        auto bias = get_attr<PBlock<float, X86>>("weight_2", attr);
+        writter.register_weights(node_name, bias);
+        LOG(INFO) << node_name << " write bias: " << bias.count();
+    }
+
+    auto offset_info = writter.get_weights_by_name(node_name);
+
+    // gen cpp code
+    CodeWritter code_w;
+    code_w.feed("ParamBase* %s_param = new Deconv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(),
+                weights_size,
+                num_output,
+                group,
+                kernel_size[1],
+                kernel_size[0],
+                strides[1],
+                strides[0],
+                padding[1],
+                padding[0],
+                dilation_rate[1],
+                dilation_rate[0],
+                bias_term ? "true":"false",
+                weights_ptr_name.c_str(),
+                offset_info.weights[0].offset,
+                weights_ptr_name.c_str(),
+                bias_term ? offset_info.weights[1].offset : 0);
+
+    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+
+    code_w.feed("//    %s.load_param(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(),
+                                           weights_size,
+                                           num_output,
+                                           group,
+                                           kernel_size[1],
+                                           kernel_size[0],
+                                           strides[1],
+                                           strides[0],
+                                           padding[1],
+                                           padding[0],
+                                           dilation_rate[1],
+                                           dilation_rate[0],
+                                           bias_term ? "true":"false",
+                                           weights_ptr_name.c_str(),
+                                           offset_info.weights[0].offset,
+                                           weights_ptr_name.c_str(),
+                                           bias_term ? offset_info.weights[1].offset : 0);
+    return code_w.get_code_string();
+}
+
 // ParserConvolutionRelu
 std::string ParserConvolutionRelu(graph::AttrInfo& attr,
                                   std::string& code_name,
@@ -1125,6 +1199,7 @@ std::string ParserSplit(graph::AttrInfo& attr,
 std::unordered_map<std::string, OpParser> OPERATION_MAP({
 	{"Input", {"Input", not_impl_yet} },
 	{"Convolution", {"SaberConv2D", ParserConvolution} }, // done
+    {"Deconvolution", {"SaberDeconv2D", ParserDeconvolution}}, //done
 	{"Activation", {"SaberActivation", ParserActivation} }, // done
     {"ReLU", {"SaberActivation",ParserRelu}}, // done
 	{"ConvRelu", {"SaberConvAct2D", ParserConvolutionRelu} },  // done

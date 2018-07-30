@@ -18,6 +18,8 @@ SaberConv2DAct<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::~SaberConv2
     if(_act_op) {
         delete _act_op;
     }
+
+    printf("~SaberConvAct2D\n");
 }
 
 template <>
