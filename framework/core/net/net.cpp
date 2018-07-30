@@ -28,7 +28,16 @@ double tensor_average(Tensor4dPtr<Ttype, Dtype>& out_tensor_p) {
     }
     return sum/out_tensor_p->valid_size();
 }
-
+template <>
+double tensor_average<X86,AK_FLOAT>(Tensor4dPtr<X86,AK_FLOAT>& out_tensor_p) {
+    double sum = 0.0f;
+    CHECK_NOTNULL(out_tensor_p)<<"out_tensor_p can not be null";
+    const float* hptr = out_tensor_p->data();
+    for (int i=0; i<out_tensor_p->valid_size(); i++) {
+        sum += hptr[i];
+    }
+    return sum/out_tensor_p->valid_size();
+}
 template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
 Net<Ttype, Dtype, Ptype, RunType>::Net(bool need_summary) {
     _graph_p = new graph::Graph<Ttype, Dtype, Ptype>();
@@ -180,36 +189,39 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
 #endif
 
         // create operations
-#if defined(USE_CUDA)
-       	if (node_ptr->get_op_name() == "ConvBatchnormScale" || node_ptr->get_op_name() == "ConvBatchnormScaleRelu" || node_ptr->get_op_name() == "ConvRelu" || node_ptr->get_op_name() == "Convolution") {
-        	std::string group = "group";
-        	auto group_val =  node_ptr->template get_attr<int>(group);
-			using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
-			std::string weight_name = "weight_1";
-			auto weights = node_ptr->template get_attr<pblock_type>(weight_name);
-			//int c = weights.d_tensor().channel();
-			
-        	if ((group_val == 1)) {
-            	node_ptr->set_op(OpFactory<Ttype, Dtype, Ptype>::Global()["Sass"+node_ptr->get_op_name()]);
-            	node_ptr->get_op_name() = "Sass" + node_ptr->get_op_name();
-        	} else {
-            	LOG(ERROR) << "node_ptr->get_op_name()  sass not support yet.";
-            	auto* op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
-            	node_ptr->set_op(op_pointer);
-        	}
-        } else {
-            auto* op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
+
+        if(std::is_same<Ttype,NV>::value) {
+            if (node_ptr->get_op_name() == "ConvBatchnormScale" ||
+                node_ptr->get_op_name() == "ConvBatchnormScaleRelu" || node_ptr->get_op_name() == "ConvRelu" ||
+                node_ptr->get_op_name() == "Convolution") {
+                std::string group = "group";
+                auto group_val = node_ptr->template get_attr<int>(group);
+                using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
+                std::string weight_name = "weight_1";
+                auto weights = node_ptr->template get_attr<pblock_type>(weight_name);
+                //int c = weights.d_tensor().channel();
+
+                if ((group_val == 1)) {
+                    node_ptr->set_op(OpFactory<Ttype, Dtype, Ptype>::Global()["Sass" + node_ptr->get_op_name()]);
+                    node_ptr->get_op_name() = "Sass" + node_ptr->get_op_name();
+                } else {
+                            LOG(ERROR) << "node_ptr->get_op_name()  sass not support yet.";
+                    auto *op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
+                    node_ptr->set_op(op_pointer);
+                }
+            } else {
+                auto *op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
+                node_ptr->set_op(op_pointer);
+            }
+        }
+        else {
+            auto *op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
+            if (op_pointer == nullptr) {
+                CHECK(false)<< node_name << ", type " << node_ptr->get_op_name() << " is null";
+                        LOG(FATAL) << node_name << ", type " << node_ptr->get_op_name() << " is null";
+            }
             node_ptr->set_op(op_pointer);
         }
-#else
-        auto* op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
-        if (op_pointer == nullptr) {
-            LOG(FATAL) << node_name << ", type " << node_ptr->get_op_name() << " is null";
-        }
-        node_ptr->set_op(op_pointer);
-        //LOG(ERROR) << "set op";
-		op_pointer = nullptr;
-#endif
         // bind parameter structure
         static_cast<Operator<Ttype, Dtype, Ptype>*>(node_ptr->Op())->_helper->BindParam(node_ptr);
         // parsing parameter
@@ -376,11 +388,16 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
 	        LOG(INFO)<<offset[i]<<",";
 	    }
 	    LOG(INFO)<<"  end print offset of "<<executer.name;
+#define RECORD_INNER
+#if defined(RECORD_INNER) && defined(USE_X86_PLACE)
+	    record_tensor_to_file(*out,("record_"+executer.name).c_str());
+	    if(executer.name=="")
+#endif
         LOG(INFO) <<executer.name <<" d_tensor_out_p :" <<out->data();
 #ifdef USE_X86_PLACE
-        for (int i = 0; i < 10; ++i) {
-            std::cout << out->data()[i]<<" ";
-        }
+//        for (int i = 0; i < 10; ++i) {
+//            std::cout << out->data()[i]<<" ";
+//        }
 #endif
 	    LOG(ERROR) << "    |---out avg " << tensor_average(out);
 	}
