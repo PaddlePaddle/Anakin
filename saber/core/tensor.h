@@ -177,6 +177,9 @@ public:
         _valid_shape.set_layout(layout, data);
         return SaberSuccess;
     }
+    LayoutType get_layout() const {
+        return _shape.get_layout();
+    }
 
     /**
      *  \brief only change the shape and valid shape, do nothing to memory
@@ -366,7 +369,7 @@ public:
      * \brief get sequence offset, lot tensor
      * @return
      */
-    std::vector<int> get_seq_offset() const {
+    std::vector<std::vector<int>> get_seq_offset() const {
         return _seq_offset;
     }
 
@@ -375,7 +378,7 @@ public:
      * @param seq_offset
      * @return
      */
-    SaberStatus set_seq_offset(std::vector<int> seq_offset) {
+    SaberStatus set_seq_offset(std::vector<std::vector<int>> seq_offset) {
         _seq_offset = seq_offset;
         return SaberSuccess;
     }
@@ -413,7 +416,17 @@ public:
      */
     int num_index() const {
         return _valid_shape.num_index();
-    };
+    }
+
+    /**
+     *  \brief set number to valid shape.
+     */
+    void set_num(int num) {
+        _valid_shape.set_num(num);
+        if (_shape.count() < _valid_shape.count()) {
+            _shape = _valid_shape;
+        }
+    }
 
     /**
      *  \brief Return channel.
@@ -428,6 +441,16 @@ public:
      */
     int channel_index() const {
         return _valid_shape.channel_index();
+    }
+
+    /**
+     *  \brief set channel to valid shape.
+     */
+    void set_channel(int channel) {
+        _valid_shape.set_channel(channel);
+        if (_shape.count() < _valid_shape.count()) {
+            _shape = _valid_shape;
+        }
     }
 
     /**
@@ -447,6 +470,16 @@ public:
     }
 
     /**
+     *  \brief set height to valid shape.
+     */
+    void set_height(int h) {
+        _valid_shape.set_height(h);
+        if (_shape.count() < _valid_shape.count()) {
+            _shape = _valid_shape;
+        }
+    }
+
+    /**
      *  \brief Return width.
      *  \return
      */
@@ -460,6 +493,16 @@ public:
      */
     int width_index() const {
         return _valid_shape.width_index();
+    }
+
+    /**
+     *  \brief set width to valid shape.
+     */
+    void set_width(int w) {
+        _valid_shape.set_width(w);
+        if (_shape.count() < _valid_shape.count()) {
+            _shape = _valid_shape;
+        }
     }
 
     /**
@@ -935,7 +978,7 @@ private:
     bool _is_shared{false};
 
     //! lot tensor
-    std::vector<int> _seq_offset;
+    std::vector<std::vector<int>> _seq_offset;
 
     /// Get data real start index.
     int start_index() const {

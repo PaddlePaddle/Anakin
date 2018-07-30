@@ -1,18 +1,18 @@
-#include "core/context.h"
-#include "funcs/activation.h"
+#include "saber/core/context.h"
+#include "saber/core/tensor_op.h"
+#include "saber/funcs/activation.h"
+#include "saber/saber_types.h"
 #include "test_saber_func.h"
-#include "tensor_op.h"
-#include "saber_types.h"
 #include <vector>
 
 using namespace anakin::saber;
 
-template <typename targetType, typename targetType_H>
+template <typename TargetType, typename TargetType_H>
 void test_activation(Shape input_big_shape, Shape input_shape,
-                     ActivationParam<targetType> param, Shape offset, bool is_share_from) {
-    typedef Tensor<targetType_H> TensorH;
-    typedef Tensor<targetType> TensorD;
-    Context<targetType> ctx(0, 1, 1);
+                     ActivationParam<TargetType> param, Shape offset, bool is_share_from) {
+    typedef Tensor<TargetType_H> TensorH;
+    typedef Tensor<TargetType> TensorD;
+    Context<TargetType> ctx(0, 1, 1);
 
     TensorD big_input;
     TensorD small_input;
@@ -45,7 +45,7 @@ void test_activation(Shape input_big_shape, Shape input_shape,
     inputs.push_back(&small_input);
     outputs.push_back(&small_output);
 
-    Activation<targetType, AK_FLOAT> act;
+    Activation<TargetType, AK_FLOAT> act;
 
     act.compute_output_shape(inputs, outputs, param);
     // init assume output tensor has been reshpaed by user.
@@ -59,17 +59,17 @@ void test_activation(Shape input_big_shape, Shape input_shape,
     if (param.prelu_param.slope) {
         print_tensor((*param.prelu_param.slope));
     }
+    Tensor<TargetType>::API::device_sync();
 #ifdef USE_CUDA
-    cudaDeviceSynchronize();
     CUDA_POST_KERNEL_CHECK;
 #endif
 }
 
-template <typename targetType, typename targetType_H>
+template <typename TargetType, typename TargetType_H>
 void test_accuracy(int num, int channel, int height, int width) {
 
-    typedef Tensor<targetType_H> TensorH;
-    typedef Tensor<targetType> TensorD;
+    typedef Tensor<TargetType_H> TensorH;
+    typedef Tensor<TargetType> TensorD;
 
     Shape input_shape({num, channel, height, width}, Layout_NCHW);
     Shape input_big_shape({num, channel, height+1, width+1}, Layout_NCHW);
@@ -79,26 +79,26 @@ void test_accuracy(int num, int channel, int height, int width) {
     Shape slope_shape_1({1, 1, 1, 1}, Layout_NCHW);
     TensorD prelu_slope_0;
     prelu_slope_0.reshape(slope_shape_0);
-    PreluParam<targetType> prelu_0(false, &prelu_slope_0);
+    PreluParam<TargetType> prelu_0(false, &prelu_slope_0);
 
     TensorD prelu_slope_1;
     prelu_slope_1.reshape(slope_shape_1);
-    PreluParam<targetType> prelu_1(true, &prelu_slope_1);
+    PreluParam<TargetType> prelu_1(true, &prelu_slope_1);
     fill_tensor_rand(prelu_slope_0, 0, 1);
     fill_tensor_rand(prelu_slope_1, 0, 1);
 
-    ActivationParam<targetType> param_elu(Active_elu, 0.1f, 0.1f);
-    ActivationParam<targetType> param_relu(Active_relu, 0.0f, 0.0f);
-    ActivationParam<targetType> param_sigmoid(Active_sigmoid, 0.1f, 0.1f);
-    ActivationParam<targetType> param_tanh(Active_tanh, 0.1f, 0.1f);
-    ActivationParam<targetType> param_prelu_0(Active_prelu, 0.f, 0.f, prelu_0);
-    ActivationParam<targetType> param_prelu_1(Active_prelu, 0.f, 0.f, prelu_1);
+    ActivationParam<TargetType> param_elu(Active_elu, 0.1f, 0.1f);
+    ActivationParam<TargetType> param_relu(Active_relu, 0.0f, 0.0f);
+    ActivationParam<TargetType> param_sigmoid(Active_sigmoid, 0.1f, 0.1f);
+    ActivationParam<TargetType> param_tanh(Active_tanh, 0.1f, 0.1f);
+    ActivationParam<TargetType> param_prelu_0(Active_prelu, 0.f, 0.f, prelu_0);
+    ActivationParam<TargetType> param_prelu_1(Active_prelu, 0.f, 0.f, prelu_1);
 
-    for (ActivationParam<targetType> param : {param_elu, param_relu, param_sigmoid, param_tanh, param_prelu_0, param_prelu_1}) {
+    for (ActivationParam<TargetType> param : {param_elu, param_relu, param_sigmoid, param_tanh, param_prelu_0, param_prelu_1}) {
         //for (ActivationParam<TensorD> param : {param_sigmoid}) {
         for (auto share_from : {false, true}) {
             for (auto offset: {offset_0, offset_1}) {
-                test_activation<targetType, targetType_H>(input_big_shape,
+                test_activation<TargetType, TargetType_H>(input_big_shape,
                                 input_shape, param, offset, share_from);
             }
         }

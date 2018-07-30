@@ -44,30 +44,32 @@ void argmax_nv_basic(Tensor<NVHX86>& tensor_in, Tensor<NVHX86>& tensor_out, Argm
     if (has_ax){//nchw
         auto shape = tensor_in.valid_shape();
         int stride = shape.count(ax+1, shape.dims());
-        LOG(INFO) << "stride: "<<stride;
+        int out_stride = shape.count(1, ax);
+        int out_ss = tensor_out.valid_shape().count(ax, shape.dims());
+        int in_ss = shape.count(ax, shape.dims());
+       // LOG(INFO) << "stride: "<<stride << ", out_stride: " << out_stride;
         int size = shape[axis];
         if(size < top){
             LOG(INFO) << "input data size less than topk";
             return; 
         }
-        for (int n = 0; n < num; n++){
-            const float* din_ch = din + n * in_channel;
-            std::vector< std::pair<float, int> > vec;
-            vec.resize(size);
-            for (int i = 0; i < size; i++){
-                vec[i] = std::make_pair(din_ch[i*stride], i);
-            }
-            //sort
-            std::partial_sort(vec.begin(), vec.begin() + top, vec.end(), std::greater< std::pair<float, int> >());
-            //out
-            float* dout_ch = dout + n * out_channel;
-            for (int i = 0; i < top; i++){
-                int ch_in = vec[i].second;
-                float* dout_ch_in = dout_ch + i * stride;
-              //  LOG(INFO) << "chin: "<<ch_in << "max: " << vec[i].first;
-                float* din_ptr = din_ch + ch_in * stride;
-                for (int j = 0; j < stride; j++){
-                    dout_ch_in[j] = din_ptr[j];
+        for (int n = 0; n < num * out_stride; n++){
+            for(int k = 0; k < stride; k ++){
+                const float* din_ch = din + n * in_ss + k;
+                std::vector< std::pair<float, int> > vec;
+                vec.resize(size);
+                for (int i = 0; i < size; i++){
+                    vec[i] = std::make_pair(din_ch[i*stride], i);
+                }
+                 //sort
+                std::partial_sort(vec.begin(), vec.begin() + top, vec.end(), std::greater< std::pair<float, int> >());
+                //out
+                float* dout_ch = dout + n * out_ss + k;
+                for(int i = 0; i < top ;i ++){
+                    if(out_max)
+                        dout_ch[i*stride] = vec[i].first;
+                    else
+                        dout_ch[i*stride] = vec[i].second;
                 }
             }
         }
@@ -109,7 +111,7 @@ void argmax_nv_basic(Tensor<NVHX86>& tensor_in, Tensor<NVHX86>& tensor_out, Argm
                 //out
                 float* dout_data = dout + n * out_channel;
                 for (int i = 0; i < top; i++){
-                    dout_data[i] = vec[i].first;
+                    dout_data[i] = vec[i].second;
                 }
             }
         }
@@ -184,7 +186,7 @@ void test_argmax(Shape input_big_shape, Shape input_shape,
     LOG(INFO) << "wout: " << outputs[0]->width();
 
 
-    LOG(INFO) << "run argmax  cuda for precision comparation";
+    LOG(INFO) << "run argmax cuda for precision comparation";
     LOG(INFO) << "init";
     // init assume output tensor has been reshpaed by user.
     argmax.init(inputs, outputs, param, SPECIFY, SABER_IMPL, ctx);
@@ -220,8 +222,8 @@ void test_argmax(Shape input_big_shape, Shape input_shape,
         TensorH tin_saber(inputs[0]->valid_shape());
         tin_saber.copy_from(*inputs[0]);
 
-        LOG(INFO) << "tin";
-        print_tensor(tin_saber);
+      //  LOG(INFO) << "tin";
+       // print_tensor(tin_saber);
 
         //ArgmaxParam<NVHX86> argmax_param(param);
        // size_t workspace_size = sizeof(float) * num * chin * (hin + 2 * pad) * (win + 2 * pad);
@@ -235,16 +237,16 @@ void test_argmax(Shape input_big_shape, Shape input_shape,
         LOG(INFO) << "argmax basic aveage time " << my_time.get_average_ms() / test_iter;
 
         //fast_free(work_space_data);
-        LOG(INFO) << "basic";
-        print_tensor(tout_basic);
+        //LOG(INFO) << "basic";
+        //print_tensor(tout_basic);
 
         double max_ratio = 0;
         double max_diff = 0;
 
         TensorH tout_saber(outputs[0]->valid_shape());
         tout_saber.copy_from(*outputs[0]);
-        LOG(INFO) << "saber";
-        print_tensor(tout_saber);
+      //  LOG(INFO) << "saber";
+       // print_tensor(tout_saber);
 
         TensorH tdiff(tout_basic.valid_shape());
 
@@ -258,8 +260,8 @@ void test_argmax(Shape input_big_shape, Shape input_shape,
         const Dtype* dout = (const Dtype*)tout_saber.data();
         Dtype* diff = (Dtype*)tdiff.mutable_data();
         int size = tout_basic.valid_size();
-        LOG(INFO) << "diff";
-        tensor_diff(din, dout, diff, size);
+     //   LOG(INFO) << "diff";
+      //  tensor_diff(din, dout, diff, size);
         //print_tensor_host(tdiff);
         tensor_cmp_host((const Dtype*)tout_basic.data(), (const Dtype*)tout_saber.data(), tout_basic.valid_size(), max_ratio, max_diff);
         LOG(INFO) << "compare result, max diff: " << max_diff << ", max ratio: " << max_ratio;
@@ -292,7 +294,7 @@ void test_accuracy(int num, int channel, int height, int width, \
 
     for (ArgmaxParam<TargetD> param : {argmax_param}) {
         //for (ActivationParam<TensorD> param : {param_sigmoid}) {
-        for (auto share_from : {false, true}) {
+        for (auto share_from : {true, true}) {
             for (auto offset: {offset_0, offset_1}) {
                 test_argmax<TargetD, TargetH, OpType>(input_big_shape,
                                 input_shape, param, offset, share_from);

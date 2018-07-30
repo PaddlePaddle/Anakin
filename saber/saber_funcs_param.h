@@ -114,16 +114,16 @@ struct PreluParam {
     Tensor<TargetType>* slope{nullptr};
 };
 
-template <typename opTensor>
+template <typename TargetType>
 struct ActivationParam {
     ActivationParam()
             : active(Active_unknow)
             , negative_slope(float(-1))
             , coef(float(-1))
-            , prelu_param(PreluParam<opTensor>(false, nullptr)) {}
+            , prelu_param(PreluParam<TargetType>(false, nullptr)) {}
     ActivationParam(ActiveType act, float n_slope = float(0),
                     float co = float(1),
-                    PreluParam<opTensor> prelu = PreluParam<opTensor>(false, nullptr))
+                    PreluParam<TargetType> prelu = PreluParam<TargetType>(false, nullptr))
             : active(act)
             , negative_slope(n_slope)
             , coef(co)
@@ -156,7 +156,100 @@ struct ActivationParam {
     ActiveType active;
     float negative_slope;
     float coef;
-    PreluParam<opTensor> prelu_param;
+    PreluParam<TargetType> prelu_param;
+};
+
+template <typename TargetType>
+struct ConvParam {
+
+    ConvParam()
+            : group(-1), pad_h(-1), pad_w(-1),
+              stride_h(-1), stride_w(-1),
+              dilation_h(-1), dilation_w(-1),
+              weight_tensor(NULL), bias_tensor(NULL), alpha(1.0), beta(0.0) {}
+
+    ConvParam(int group_in, int pad_h_in, int pad_w_in,
+              int stride_h_in, int stride_w_in, int dilation_h_, int dilation_w_,
+              Tensor<TargetType>* weight, Tensor<TargetType>* bias,
+              float alpha_in = 1.0, float beta_in = 0.0)
+            : group(group_in), pad_h(pad_h_in), pad_w(pad_w_in)
+            , stride_h(stride_h_in), stride_w(stride_w_in)
+            , dilation_h(dilation_h_), dilation_w(dilation_w_)
+            , weight_tensor(weight), bias_tensor(bias)
+            , alpha(alpha_in), beta(beta_in)
+    {}
+
+    ConvParam(const ConvParam &right)
+            : group(right.group), pad_h(right.pad_h)
+            , pad_w(right.pad_w), stride_h(right.stride_h)
+            , stride_w(right.stride_w), dilation_h(right.dilation_h)
+            , dilation_w(right.dilation_w)
+            , weight_tensor(right.weight_tensor)
+            , bias_tensor(right.bias_tensor)
+            , alpha(right.alpha)
+            , beta(right.beta)
+    {}
+
+    ConvParam &operator=(const ConvParam &right) {
+        group = right.group;
+        pad_h = right.pad_h;
+        pad_w = right.pad_w;
+        stride_h = right.stride_h;
+        stride_w = right.stride_w;
+        dilation_h = right.dilation_h;
+        dilation_w = right.dilation_w;
+        weight_tensor = right.weight_tensor;
+        bias_tensor = right.bias_tensor;
+        alpha = right.alpha;
+        beta = right.beta;
+        return *this;
+    }
+
+    bool operator==(const ConvParam &right) {
+        bool comp_eq = true;
+        comp_eq &= (group == right.group);
+        comp_eq &= (pad_h == right.pad_h);
+        comp_eq &= (pad_w == right.pad_w);
+        comp_eq &= (stride_h == right.stride_h);
+        comp_eq &= (stride_w == right.stride_w);
+        comp_eq &= (dilation_h == right.dilation_h);
+        comp_eq &= (dilation_w == right.dilation_w);
+        comp_eq &= (weight_tensor == right.weight_tensor);
+        comp_eq &= (bias_tensor == right.bias_tensor);
+        comp_eq &= (alpha == right.alpha);
+        comp_eq &= (beta == right.beta);
+        return comp_eq;
+    }
+
+    inline const Tensor<TargetType>* weight() {
+        return weight_tensor;
+    }
+
+    inline const Tensor<TargetType>* bias() {
+        return bias_tensor;
+    }
+
+    inline Tensor<TargetType>* mutable_weight() {
+        return weight_tensor;
+    }
+
+    inline Tensor<TargetType>* mutable_bias() {
+        return bias_tensor;
+    }
+
+    int group;
+    int pad_h;
+    int pad_w;
+    int stride_h;
+    int stride_w;
+    int dilation_h;
+    int dilation_w;
+    float alpha;
+    float beta;
+
+private:
+    Tensor<TargetType>* weight_tensor;
+    Tensor<TargetType>* bias_tensor;
 };
 
 }
