@@ -80,6 +80,15 @@ struct ArgmaxParam {
     int axis{3};
 };
 
+template <typename TargetType>
+struct AxpyParam {
+    AxpyParam() = default;
+    AxpyParam(const AxpyParam<TargetType>& right) { }
+    AxpyParam& operator=(const AxpyParam<TargetType>& right){ return *this;}
+    bool operator==(const AxpyParam<TargetType>& right){
+        return true;
+    }
+};
 
 template <typename TargetType>
 struct PreluParam {
