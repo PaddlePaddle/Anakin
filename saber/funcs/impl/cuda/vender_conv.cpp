@@ -167,16 +167,16 @@ SaberStatus convert_weights(Tensor<X86>& out_tensor,
                             Context<NV> ctx) {
 
     int input_channel = in_tensor.channel();
-    int output_channel = out_tensor.valid_shape()[1];
+    int output_channel = out_tensor.num();
     std::vector<float> vector_weight_scale;
-    vector_weight_scale.resize(input_channel);
+    vector_weight_scale.resize(output_channel);
 
     int weight_inner_dim = in_tensor.channel()
                            * in_tensor.height()
                            * in_tensor.width();
     const float* in_weight_data = in_tensor.data();
 
-    for (int c = 0; c < input_channel; ++c) {
+    for (int c = 0; c < output_channel; ++c) {
         float max_val = -1.f;
 
         for (int i = 0; i < weight_inner_dim; ++i) {
@@ -190,7 +190,7 @@ SaberStatus convert_weights(Tensor<X86>& out_tensor,
     }
 
     int o_num = out_tensor.num();
-    int o_channel = output_channel;
+    int o_channel = out_tensor.valid_shape()[1];
     int o_height = out_tensor.height();
     int o_width = out_tensor.width();
 
