@@ -87,7 +87,7 @@ void test_conv_results(int group,
 
     check_host.re_alloc(output_host.valid_shape(), AK_FLOAT);
 
-    conv_basic_check<NVHX86>(input_host, check_host,
+    conv_basic_check<TargetType_H>(input_host, check_host,
                              (const float*)weights_host.data(), (const float*)bias_host.data(),
                              group, kernel_w, kernel_h, stride_w, stride_h,
                              dilation_w, dilation_h, pad_w, pad_h, bias_term, false);
@@ -104,6 +104,7 @@ void test_conv_results(int group,
 }
 
 TEST(TestSaberFunc, test_saber_conv_results) {
+#ifdef USE_CUDA
     int group = 4;
     int input_num = 1;
     int in_channels = 4;
@@ -127,6 +128,7 @@ TEST(TestSaberFunc, test_saber_conv_results) {
             out_channels, kernel_h, kernel_w,
             stride_h, stride_w, dilation_h, dilation_w,
             pad_h, pad_w, bias_term);
+#endif
 }
 
 TEST(TestSaberFunc, test_saber_conv_speed) {
