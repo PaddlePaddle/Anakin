@@ -3,9 +3,6 @@
 #include <stdlib.h>
 #include <vector>
 
-#include "mkl_cblas.h"
-#include "mkl_vml_functions.h"
-
 #include "saber/core/context.h"
 #include "saber/funcs/lstm.h"
 #include "saber/funcs/impl/x86/x86_utils.h"
@@ -77,17 +74,18 @@ inline typename ACTIVATION<Dtype>::Act Activate(ActiveType type){
 }
 
 
-static void gemm(const bool TransA, const bool TransB, int m, int n, int k, const float alpha,
-                 const float* a, const float* b, const float beta, float* c) {
-    //    cout << "(" << m << "," << n << "," << k << ")" << endl;
-    int lda = (!TransA/* == CblasNoTrans*/) ? k : m;
-    int ldb = (!TransB/* == CblasNoTrans*/) ? n : k;
-    CBLAS_TRANSPOSE cuTransA =
-            (!TransA/* == CblasNoTrans*/) ? CblasNoTrans : CblasTrans;
-    CBLAS_TRANSPOSE cuTransB =
-            (!TransB/* == CblasNoTrans*/) ? CblasNoTrans : CblasTrans;
-    cblas_sgemm(CblasRowMajor, cuTransA, cuTransB, m, n, k, alpha, a, k, b, n, beta, c, n);
-};
+template<typename Dtype>
+static void gemm_naive(int m,int n,int k,const float alpha,const Dtype * a, const Dtype*b ,const float beta,Dtype *c){
+    for(int i=0;i<m;i++){
+        for(int j=0;j<n;j++){
+            Dtype acc=0;
+            for(int inner=0;inner<k;inner++){
+                acc+=alpha*a[i*k+inner]*b[inner*n+j];
+            }
+            c[i*n+j]=acc+beta*c[i*n+j];
+        }
+    }
+}
 
 template <typename Dtype>
 void compute_ref_lstm_one_word(const Dtype* wx_i,const Dtype* wx_f,const Dtype* wx_c,const Dtype* wx_o,Dtype* h_new,const Dtype* cell_old,Dtype* cell_new,
@@ -163,7 +161,7 @@ void compute_ref_lstm_fwd_me(std::vector<Tensor4f*> &src, std::vector<Tensor4f*>
     Dtype *wx= vec_wx.data();
     std::vector<int> seq_offset = input_tensor->get_seq_offset()[input_tensor->get_seq_offset().size()-1];
 
-    gemm(false, false,seq_sum,4*hidden_size,word_size,1,x,weights,0,wx);
+    gemm_naive(seq_sum,4*hidden_size,word_size,1,x,weights,0,wx);
     for(int seq_id=0;seq_id<seq_offset.size()-1;seq_id++){
         int seq_start=seq_offset[seq_id];
         int seq_end=seq_offset[seq_id+1];
@@ -174,11 +172,11 @@ void compute_ref_lstm_fwd_me(std::vector<Tensor4f*> &src, std::vector<Tensor4f*>
                 if (word_id == seq_end-1) {
                     cell_old = c + word_id * hidden_size;
 //                    LOG(INFO) << "word = " << word_id << ",seq sum = " << seq_sum<<",cell[]="<<word_id * hidden_size<<","<<seq_sum*hidden_size<<","<<c[4];
-                    gemm(false, false, 1, 4 * hidden_size, hidden_size, 1, init_hidden, weights_h, 1,
+                    gemm_naive(1, 4 * hidden_size, hidden_size, 1, init_hidden, weights_h, 1,
                          wx + word_id * 4 * hidden_size);
                 } else {
                     cell_old = c + (word_id + 1) * hidden_size;
-                    gemm(false, false, 1, 4 * hidden_size, hidden_size, 1, h + (word_id + 1) * hidden_size, weights_h,
+                    gemm_naive(1, 4 * hidden_size, hidden_size, 1, h + (word_id + 1) * hidden_size, weights_h,
                          1, wx + word_id * 4 * hidden_size);
                 }
                 const Dtype *wx_i = wx + word_id * 4 * hidden_size + 0 * hidden_size;
@@ -201,11 +199,11 @@ void compute_ref_lstm_fwd_me(std::vector<Tensor4f*> &src, std::vector<Tensor4f*>
                 Dtype *cell_old = nullptr;
                 if (word_id == seq_start) {
                     cell_old = c + word_id * hidden_size;
-                    gemm(false, false, 1, 4 * hidden_size, hidden_size, 1, init_hidden, weights_h, 1,
+                    gemm_naive(1, 4 * hidden_size, hidden_size, 1, init_hidden, weights_h, 1,
                          wx + word_id * 4 * hidden_size);
                 } else {
                     cell_old = c + (word_id - 1) * hidden_size;
-                    gemm(false, false, 1, 4 * hidden_size, hidden_size, 1, h + (word_id - 1) * hidden_size, weights_h,
+                    gemm_naive(1, 4 * hidden_size, hidden_size, 1, h + (word_id - 1) * hidden_size, weights_h,
                          1, wx + word_id * 4 * hidden_size);
                 }
                 const Dtype *wx_i = wx + word_id * 4 * hidden_size + 0 * hidden_size;
