@@ -30,47 +30,13 @@ class SaberConv2D<NV, OpDtype> : public ImplBase<
         NV, OpDtype, ConvParam<NV> > {
 public:
     typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
-    typedef typename DataTrait<NV, OpDtype>::Dtype InDataType;
-    typedef typename DataTrait<NV, OpDtype>::Dtype OutDataType;
 
     SaberConv2D() = default;
     ~SaberConv2D() {}
 
     virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
                              std::vector<Tensor<NV> *>& outputs,
-                             ConvParam<NV>& param, Context<NV> &ctx) {
-        this->_ctx = &ctx;
-
-        if (param.stride_h == 1 &&
-            param.stride_w == 1 &&
-            param.weight()->height() == 3 &&
-            param.weight()->width() == 3 && param.group == 1) {
-            dispatch_func = winograd_conv<OutDataType, OpDataType>;
-        } else if (param.group == 1) {
-            const int K = param.weight()->num();
-            if (K % 4 == 0) {
-                if (param.bias()->size() > 0) {
-                    dispatch_func = direct_conv_bias_Kdivis4<OutDataType, OpDataType>;
-                } else {
-                    dispatch_func = direct_conv_Kdivis4<OutDataType, OpDataType>;
-                }
-            } else {
-                if (param.bias()->size() > 0) {
-                    dispatch_func = direct_conv_bias_Kindiv4<OutDataType, OpDataType>;
-                } else {
-                    dispatch_func = direct_conv_Kindiv4<OutDataType, OpDataType>;
-                }
-            }
-        } else {
-            return SaberUnImplError;
-        }
-
-        _kernel_height = param.weight()->height();
-        _kernel_width = param.weight()->width();
-        trans_weights(inputs, outputs, param, ctx);
-        cudaDeviceSynchronize();
-        return create(inputs, outputs, param, ctx);
-    }
+                             ConvParam<NV>& param, Context<NV> &ctx);
 
     virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
                                std::vector<Tensor<NV> *>& outputs,
@@ -80,47 +46,7 @@ public:
 
     virtual SaberStatus dispatch(const std::vector<Tensor<NV>*>& inputs,
                                  std::vector<Tensor<NV>*>& outputs,
-                                 ConvParam<NV>& param) {
-        //err code?
-        Shape shape_in = inputs[0]->valid_shape();
-        Shape shape_out = outputs[0]->valid_shape();
-        const OutDataType* bias_data = nullptr;
-        if (param.bias()->size() > 0) {
-            bias_data = param.bias()->data();
-        }
-
-        dispatch_func(inputs[0]->data(), outputs[0]->mutable_data(),
-                      param.weight()->data(),
-                      bias_data,
-                      inputs[0]->num(),
-                      inputs[0]->channel(),
-                      inputs[0]->height(),
-                      inputs[0]->width(),
-                      outputs[0]->channel(),
-                      outputs[0]->height(),
-                      outputs[0]->width(),
-                      shape_in[1],
-                      shape_in[2],
-                      shape_in[3],
-                      shape_out[1],
-                      shape_out[2],
-                      shape_out[3],
-                      _kernel_height,
-                      _kernel_width,
-                      param.pad_h,
-                      param.pad_w,
-                      param.stride_h,
-                      param.stride_w,
-                      param.dilation_h,
-                      param.dilation_w,
-                      param.group,
-                      param.alpha,
-                      param.beta,
-                      this->_ctx->get_compute_stream());
-
-        CUDA_CHECK(cudaGetLastError());
-        return SaberSuccess;
-    }
+                                 ConvParam<NV>& param);
 
     void trans_weights(const std::vector<Tensor<NV> *>& inputs,
                        std::vector<Tensor<NV> *>& outputs,
@@ -176,10 +102,10 @@ private:
 
     int _kernel_height;
     int _kernel_width;
-    std::function<void(const InDataType*,
-                       OutDataType*,
+    std::function<void(const float*,
+                       float*,
                        const OpDataType*,
-                       const OutDataType*,
+                       const float*,
                        int,
                        int,
                        int,
@@ -206,7 +132,6 @@ private:
                        float,
                        cudaStream_t)> dispatch_func;
 };
-template class SaberConv2D<NV, AK_FLOAT>;
 }
 
 }

@@ -251,9 +251,9 @@ namespace saber{
             //LOG(INFO)<<"init fini";
             
             std::vector<std::string> runtype{"STATIC","RUNTIME","SPECIFY"};
-            std::vector<std::string> impltype{"SABER"," VENDER"};
+            std::vector<std::string> impltype{"VENDER","SABER"};
             for(auto strate:{SPECIFY,RUNTIME,STATIC}){
-                for(auto implenum:{SABER_IMPL,SABER_IMPL}){
+                for(auto implenum:{VENDER_IMPL,SABER_IMPL}){
                     LOG(INFO)<<"TESTING: strategy:"<<runtype[strate-1]<<",impltype:"<<impltype[(int)implenum];
                     get_op_result(strate,implenum);
                     get_cpu_result(CpuFunc);
