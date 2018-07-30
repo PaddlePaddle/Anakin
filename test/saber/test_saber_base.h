@@ -178,29 +178,33 @@ namespace saber{
                 }
             }
         }
-        void get_op_result(SaberImplStrategy strategy,ImplEnum implenum,int param_index=0){
+        SaberStatus get_op_result(SaberImplStrategy strategy,ImplEnum implenum,int param_index=0){
             CHECK_GE(param_index,0)<<"param index must be positive";
             CHECK_LT(param_index,_params.size())<<"param index out of range";
             
             Context<TargetType_D> ctx(0,1,1);
+	    SaberStatus status;
             for(int input_index=0;input_index<_inputs_dev.size();++input_index){
                     _baseOp.init(_inputs_dev[input_index],_outputs_dev[input_index],
                              _params[param_index],strategy,implenum,ctx);
                 for(int iter=0;iter<100;++iter){
-                    _baseOp(_inputs_dev[input_index],_outputs_dev[input_index],
+                   status= _baseOp(_inputs_dev[input_index],_outputs_dev[input_index],
                         _params[param_index],ctx);
+		   if(status==SaberUnImplError)
+			return status;
                     //cudaDeviceSynchronize();
                     typename TensorD::API::stream_t stream=ctx.get_compute_stream();
                     //always 0？
                     _outputs_dev[input_index][0]->record_event(stream);
                     _outputs_dev[input_index][0]->sync();//
+		    
                 }
-                
                 for(int j=0;j<_op_input_num;++j){
                     _outputs_hd[input_index][j]->copy_from(*_outputs_dev[input_index][j]);
                 }
                 //print_tensor(*_outputs_hd[0][0]);
             }
+	    return status;
             
         }
         virtual void get_cpu_result(CpuFunc_t CpuFunc,int param_index=0){
@@ -255,7 +259,10 @@ namespace saber{
             for(auto strate:{SPECIFY,RUNTIME,STATIC}){
                 for(auto implenum:{VENDER_IMPL,SABER_IMPL}){
                     LOG(INFO)<<"TESTING: strategy:"<<runtype[strate-1]<<",impltype:"<<impltype[(int)implenum];
-                    get_op_result(strate,implenum);
+                    if(get_op_result(strate,implenum)==SaberUnImplError){
+			LOG(INFO)<<"Unimpl!!";
+			continue;
+		    }
                     get_cpu_result(CpuFunc);
                     result_check_accuracy(succ_ratio);
                 }
