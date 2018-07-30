@@ -3,8 +3,6 @@
 #include <stdlib.h>
 #include <vector>
 
-#include "mkl_cblas.h"
-
 #include "saber/core/context.h"
 #include "saber/funcs/gru.h"
 #include "saber/funcs/impl/x86/x86_utils.h"
@@ -75,17 +73,18 @@ inline typename ACTIVATION<Dtype>::Act Activate(ActiveType type){
     return vec[type];
 }
 
-static void gemm(const bool TransA, const bool TransB, int m, int n, int k, const float alpha,
-                 const float* a, const float* b, const float beta, float* c) {
-    //    cout << "(" << m << "," << n << "," << k << ")" << endl;
-    int lda = (!TransA/* == CblasNoTrans*/) ? k : m;
-    int ldb = (!TransB/* == CblasNoTrans*/) ? n : k;
-    CBLAS_TRANSPOSE cuTransA =
-            (!TransA/* == CblasNoTrans*/) ? CblasNoTrans : CblasTrans;
-    CBLAS_TRANSPOSE cuTransB =
-            (!TransB/* == CblasNoTrans*/) ? CblasNoTrans : CblasTrans;
-    cblas_sgemm(CblasRowMajor, cuTransA, cuTransB, m, n, k, alpha, a, k, b, n, beta, c, n);
-};
+template<typename Dtype>
+static void gemm_naive(int m,int n,int k,const float alpha,const Dtype * a, const Dtype*b ,const float beta,Dtype *c){
+    for(int i=0;i<m;i++){
+        for(int j=0;j<n;j++){
+            Dtype acc=0;
+            for(int inner=0;inner<k;inner++){
+                acc+=alpha*a[i*k+inner]*b[inner*n+j];
+            }
+            c[i*n+j]=acc+beta*c[i*n+j];
+        }
+    }
+}
 
 
 template <typename Tensor4f,typename TargetType>
@@ -140,10 +139,9 @@ void compute_ref_gru_fwd_me(std::vector<Tensor4f*> &inputs, std::vector<Tensor4f
     OpDataType* temp_wh = (OpDataType*)temp_wh_t.mutable_data();
     OpDataType* temp_whr =(OpDataType*)temp_whr_t.mutable_data();
 
-    //    LOG(INFO) << "gemm b" << inputs[0]->valid_shape().count() << "," <<
-    //              _weights_i2h.valid_shape().count() << "," << _temp_wx.valid_shape().count();
+
     //wx
-    gemm(false, false, seqsum, 3 * hidden_size, word_size, 1.f, x, weight_w, 0.f, temp_wx);
+    gemm_naive(seqsum, 3 * hidden_size, word_size, 1.f, x, weight_w, 0.f, temp_wx);
 
     int o_offset = 0;
     int r_offset = 1;
@@ -175,7 +173,7 @@ void compute_ref_gru_fwd_me(std::vector<Tensor4f*> &inputs, std::vector<Tensor4f
                 hin = out + last_seq_id * hidden_size;
             }
 
-            gemm(false, false, 1, 2 * hidden_size, hidden_size, 1.0, hin,
+            gemm_naive(1, 2 * hidden_size, hidden_size, 1.0, hin,
                  weight_h + hidden_size * hidden_size,
                  0.f, temp_wh);
 
@@ -200,7 +198,7 @@ void compute_ref_gru_fwd_me(std::vector<Tensor4f*> &inputs, std::vector<Tensor4f
                 hout[frame_id] = r * hin[frame_id];
             }
 
-            gemm(false, false, 1, hidden_size, hidden_size, 1.0, hout, w_o, 0.f, temp_whr);
+            gemm_naive(1, hidden_size, hidden_size, 1.0, hout, w_o, 0.f, temp_whr);
 
             //#pragma simd
             for (int frame_id = 0; frame_id < hidden_size; ++frame_id) {
