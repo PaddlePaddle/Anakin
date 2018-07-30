@@ -193,7 +193,8 @@ void pooling_global(const float* din, float* dout, \
             for (int c = 0; c < chout; ++c) {
                 const float* data_in_channel = data_in_batch + c * size_channel_in;
                 int i = 0;
-                float32x4_t vmax = vdupq_n_f32(std::numeric_limits<float>::min());
+                float minval=std::numeric_limits<float>::lowest();
+                float32x4_t vmax = vdupq_n_f32(minval);
 #ifdef __aarch64__
                 for(; i < cnt; i++) {
                     float32x4_t vdin1 = vld1q_f32(data_in_channel);
