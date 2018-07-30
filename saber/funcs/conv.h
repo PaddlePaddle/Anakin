@@ -19,7 +19,7 @@
 #include "saber/funcs/impl/impl_base.h"
 
 #ifdef NVIDIA_GPU
-//#include "saber/funcs/impl/cuda/saber_conv.h"
+#include "saber/funcs/impl/cuda/saber_conv.h"
 #include "saber/funcs/impl/cuda/vender_conv.h"
 #endif
 
@@ -61,7 +61,7 @@ public:
                                              Output_v &output, Param_t &param) override {
 
         Shape output_shape = (input[0]->valid_shape());
-                CHECK_EQ(input[0]->shape().size(), 4) << "using reshape2d to reshape a 1d conv?";
+        CHECK_GE(input[0]->shape().size(), 4) << "using reshape2d to reshape a 1d conv?";
 
         // append the $n and $c/$k, output: N * K * P * Q
         int num_idx = input[0]->num_index();
@@ -93,7 +93,7 @@ public:
                      / param.stride_w + 1;
 
         output_shape[width_idx] = output_dim;
-
+        output_shape.set_layout(Layout_NCHW);
         return output[0]->set_shape(output_shape);
     }
 
