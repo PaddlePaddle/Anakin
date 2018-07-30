@@ -595,8 +595,8 @@ struct c_compatible {
 inline void yield_thread() { }
 
 // reorder weight layout from NCHW(oc, ic, kh, kw) to OIhw16i16o
-inline void weight_reorder_OIhw16i16o(Tensor<X86, AK_FLOAT, NCHW>& input,
-                                      Tensor<X86, AK_FLOAT, NCHW>& output) {
+inline void weight_reorder_OIhw16i16o(Tensor<X86>& input,
+                                      Tensor<X86>& output) {
     Shape shape = input.valid_shape();
     int oc_value = shape[0], ic_value = shape[1], kh_value = shape[2], kw_value = shape[3];
     #pragma omp parallel for collapse(6) schedule(static)
@@ -615,7 +615,7 @@ inline void weight_reorder_OIhw16i16o(Tensor<X86, AK_FLOAT, NCHW>& input,
                                              kh * kw_value * 16 * 16 +
                                              kw * 16 * 16 + ic * 16 + oc;
 
-                            *(output.mutable_data() + output_idx) = *(input.data() + input_idx);
+                            *(static_cast<float*>(output.mutable_data()) + output_idx) = *(static_cast<float*>(input.data()) + input_idx);
                         }
                     }
                 }
@@ -625,8 +625,8 @@ inline void weight_reorder_OIhw16i16o(Tensor<X86, AK_FLOAT, NCHW>& input,
 }
 
 // reorder weight layout from NCHW(oc, ic, kh, kw) to OIhwi16o
-inline void weight_reorder_OIhwi16o(Tensor<X86, AK_FLOAT, NCHW>& input,
-                                    Tensor<X86, AK_FLOAT, NCHW>& output) {
+inline void weight_reorder_OIhwi16o(Tensor<X86>& input,
+                                    Tensor<X86>& output) {
     Shape shape = input.shape();
     #pragma omp parallel for collapse(5) schedule(static)
 
@@ -643,7 +643,7 @@ inline void weight_reorder_OIhwi16o(Tensor<X86, AK_FLOAT, NCHW>& input,
                                          kw * shape[1] * 16 +
                                          ic * 16 + oc;
 
-                        *(output.mutable_data() + output_idx) = *(input.data() + input_idx);
+                        *(static_cast<float*>(output.mutable_data()) + output_idx) = *(static_cast<float*>(input.data()) + input_idx);
                     }
                 }
             }
@@ -653,8 +653,8 @@ inline void weight_reorder_OIhwi16o(Tensor<X86, AK_FLOAT, NCHW>& input,
 
 
 // reorder weight layout from NCHW(oc, ic, kh, kw) to OIhwi8o
-inline void weight_reorder_OIhwi8o(Tensor<X86, AK_FLOAT, NCHW>& input,
-                                   Tensor<X86, AK_FLOAT, NCHW>& output) {
+inline void weight_reorder_OIhwi8o(Tensor<X86>& input,
+                                   Tensor<X86>& output) {
     Shape shape = input.shape();
 
     #pragma omp parallel for collapse(5) schedule(static)
@@ -672,7 +672,7 @@ inline void weight_reorder_OIhwi8o(Tensor<X86, AK_FLOAT, NCHW>& input,
                                          kw * shape[1] * 8 +
                                          ic * 8 + oc;
 
-                        *(output.mutable_data() + output_idx) = *(input.data() + input_idx);
+                        *(static_cast<float*>(output.mutable_data()) + output_idx) = *(static_cast<float*>(input.data()) + input_idx);
                     }
                 }
             }
@@ -681,8 +681,8 @@ inline void weight_reorder_OIhwi8o(Tensor<X86, AK_FLOAT, NCHW>& input,
 }
 
 // reorder weight layout from NCHW to Goihw16g
-static void weight_reorder_Goihw16g(Tensor<X86, AK_FLOAT, NCHW>& input,
-                                    Tensor<X86, AK_FLOAT, NCHW>& output) {
+static void weight_reorder_Goihw16g(Tensor<X86>& input,
+                                    Tensor<X86>& output) {
     Shape shape = input.shape();
     int g_value = shape[0], oc_value = shape[1], ic_value = shape[1], kh_value = shape[2],
         kw_value = shape[3];
@@ -703,7 +703,7 @@ static void weight_reorder_Goihw16g(Tensor<X86, AK_FLOAT, NCHW>& input,
                                              ic_idx * kh_value * kw_value * 16 +
                                              kh * kw_value * 16 + kw * 16 + g;
 
-                            *(output.mutable_data() + output_idx) = *(input.data() + input_idx);
+                            *(static_cast<float*>(output.mutable_data()) + output_idx) = *(static_cast<float*>(input.data()) + input_idx);
                         }
                     }
                 }

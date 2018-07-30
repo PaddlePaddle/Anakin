@@ -286,6 +286,12 @@ typedef enum {
     PRIOR_COM = 2
 } PriorType;
 
+typedef enum {
+    RANDOM=0,
+    CUSTOM,
+    SPECIAL
+} TestDataType;
+
 } //namespace saber
 
 } //namespace anakin
