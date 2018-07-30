@@ -810,9 +810,9 @@ std::string ParserActivation(graph::AttrInfo& attr,
 		act_type = "Active_tanh";
 	} else if (type == "Sigmoid") { 
 		act_type = "Active_sigmoid";
-        else if (type == "ReLU") {
+    }else if (type == "ReLU") {
             act_type = "Active_relu";
-            else if (type == "PReLU") {
+    }  else if (type == "PReLU") {
                 act_type = "Active_prelu";
 	} else { 
 		LOG(FATAL) << "Other Activation type" << type << " unknown."; 
