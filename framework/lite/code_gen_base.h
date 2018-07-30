@@ -71,7 +71,7 @@ public:
 	/**
 	 * \brief generate all source files
 	 */
-	virtual void gen_files() = 0;
+	virtual void gen_files(const bool debug_mode) = 0;
 
 
 private:

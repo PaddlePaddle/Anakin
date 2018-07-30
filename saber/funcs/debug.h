@@ -21,6 +21,26 @@ namespace anakin {
 namespace saber {
 
 #if defined(USE_X86_PLACE) || defined(USE_CUDA)
+
+template <typename TTensor>
+void record_tensor_to_file(TTensor& dev_tensor,const char* locate){
+    Tensor <X86, AK_FLOAT, NCHW> host_temp;
+    host_temp.re_alloc(dev_tensor.valid_shape());
+    host_temp.copy_from(dev_tensor);
+    FILE* fp = fopen(locate, "w+");
+
+    if (fp == 0) {
+        CHECK(false) << "file open failed " << locate;
+
+    } else {
+        for (int i = 0; i < host_temp.valid_size(); ++i) {
+            fprintf(fp, "[%d] %g \n", i, (host_temp.data()[i]));
+        }
+
+        fclose(fp);
+        LOG(INFO) << "!!! write success: " << locate;
+    }
+}
 static void write_tensorfile(Tensor <X86, AK_FLOAT, NCHW> tensor, const char* locate) {
     typedef typename Tensor<X86, AK_FLOAT, NCHW>::Dtype Dtype;
     LOG(INFO) << "host tensor data:" << tensor.size();
@@ -138,6 +158,7 @@ static void readTensorData(Tensor<X86, AK_FLOAT, NCHW> tensor, const char* locat
 
     if (fp == 0) {
         LOG(ERROR) << "file open failed " << locate;
+        exit(0);
 
     } else {
         LOG(INFO) << "file open success [" << locate << " ],read " << tensor.valid_shape().count();

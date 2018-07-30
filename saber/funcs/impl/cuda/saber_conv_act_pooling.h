@@ -110,6 +110,7 @@ public:
             trans_weights(inputs, outputs, param, *(this->_ctx));
             _transed_weights = true;
         }
+        cudaDeviceSynchronize();
         Shape shape_in = inputs[0]->valid_shape();
         Shape shape_out = outputs[0]->valid_shape();
         const InDataType* bias_data = nullptr;
@@ -145,7 +146,6 @@ public:
                 param.conv_param.alpha,
                 param.conv_param.beta,
                 this->_ctx->get_compute_stream());
-
         CUDA_CHECK(cudaGetLastError());
         return SaberSuccess;
     }

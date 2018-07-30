@@ -76,7 +76,7 @@ template class PriorBoxHelper<ARM, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(PriorBox, PriorBoxHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
 
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 INSTANCE_PRIORBOX(X86, AK_FLOAT, Precision::FP32);
 template class PriorBoxHelper<X86, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(PriorBox, PriorBoxHelper, X86, AK_FLOAT, Precision::FP32);
@@ -91,7 +91,7 @@ ANAKIN_REGISTER_OP(PriorBox)
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("priorbox")
 #endif
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 .__alias__<X86, AK_FLOAT, Precision::FP32>("priorbox")
 #endif
 .num_in(1)

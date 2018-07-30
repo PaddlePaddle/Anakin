@@ -223,6 +223,8 @@ template class CodeGenBase<ARM, AK_FLOAT, Precision::FP16>;
 template class CodeGenBase<ARM, AK_FLOAT, Precision::INT8>;
 #endif
 
+template class CodeGenBase<X86, AK_FLOAT, Precision::FP32>;
+
 } /* namespace lite */
 
 } /* namespace anakin */

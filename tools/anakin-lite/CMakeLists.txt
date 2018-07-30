@@ -1,7 +1,7 @@
 # ----------------------------------------------------------------------------
 # Copyright (c) 2016 Baidu.com, Inc. All Rights Reserved
 # ----------------------------------------------------------------------------
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 2.8)
 project(ANAKIN-lite C CXX)
 
 include(../../cmake/msg_color.cmake)
@@ -13,10 +13,12 @@ anakin_option(USE_ARM_PLACE "Select the build mode for ARM place." YES)
 anakin_option(USE_ANDROID "using android place." YES)
 anakin_option(USE_IOS "using android place." NO if NOT USE_ANDROID)
 
-anakin_option(USE_OMP "using openmp for lite." YES)
+anakin_option(USE_OPENMP "using openmp for lite." YES)
 anakin_option(USE_LOGGER "using local logger" YES)
 
 anakin_option(ENABLE_DEBUG "Enable DEBUG(default) mode." NO)
+
+anakin_option(BUILD_LITE_UNIT_TEST "build unit test for lite." NO)
 
 configure_file ( 
 	"../../cmake/config/anakin_config.h.in" 
@@ -48,7 +50,7 @@ anakin_add_compile_option(-Wformat)
 anakin_add_compile_option(-Wmissing-declarations)
 anakin_add_compile_option(-Winit-self)
 anakin_add_compile_option(-Wpointer-arith)
-anakin_add_compile_option(-Wshadow)
+anakin_add_compile_option(-Wno-shadow)
 anakin_add_compile_option(-fpermissive)
 anakin_add_compile_option(-Wsign-promo)
 anakin_add_compile_option(-fdiagnostics-show-option) 
@@ -60,6 +62,8 @@ anakin_add_compile_option(-Wno-comment)
 anakin_add_compile_option(-Wno-sign-compare) 
 anakin_add_compile_option(-Wno-ignored-qualifiers) 
 anakin_add_compile_option(-Wno-enum-compare)
+anakin_add_compile_option(-Wno-unused-parameter)
+anakin_add_compile_option(-Wno-unused-function)
 
 if(ENABLE_DEBUG)
 	set(CMAKE_BUILD_TYPE Debug FORCE)
@@ -91,7 +95,7 @@ message(STATUS "cmake flags: ${CMAKE_CXX_FLAGS}")
 if(USE_IOS)
 endif()
 
-if(USE_OMP) 
+if(USE_OPENMP)
 	find_package(OpenMP REQUIRED) 
 	if(OPENMP_FOUND OR OpenMP_CXX_FOUND) 
 		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}") 
@@ -109,15 +113,21 @@ endif()
 set(anakin_lite_lib_so "anakin_lite")
 set(anakin_lite_lib_static "anakin_lite_static")
 
-set(ANAKIN_LITE_ROOT ${PROJECT_SOURCE_DIR})
+set(ANAKIN_LITE_SABER ${CMAKE_CURRENT_SOURCE_DIR}/../../saber/lite)
+set(UNIT_TEST_LITE ${CMAKE_CURRENT_SOURCE_DIR}/../../test/lite)
 
-anakin_fetch_include_recursively(${ANAKIN_LITE_ROOT})
+anakin_fetch_include_recursively(${ANAKIN_LITE_SABER})
+include_directories(${ANAKIN_LITE_SABER}/../)
+include_directories(${ANAKIN_LITE_SABER}/../../)
+include_directories(${PROJECT_BINARY_DIR}/)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/)
 
-anakin_fetch_files_with_suffix(${ANAKIN_LITE_ROOT}/ "cpp" ANAKIN_LITE_SRC)
-anakin_fetch_files_with_suffix(${ANAKIN_LITE_ROOT}/saber/lite/core "cpp" ANAKIN_SABER_ARM_LITE_SRC)
-anakin_fetch_files_with_suffix(${ANAKIN_LITE_ROOT}/saber/lite/funcs "cpp" ANAKIN_SABER_ARM_LITE_SRC)
-anakin_fetch_files_with_suffix(${ANAKIN_LITE_ROOT}/saber/lite/funcs/neon "cpp" ANAKIN_SABER_ARM_LITE_SRC)
-anakin_fetch_files_with_suffix(${ANAKIN_LITE_ROOT}/saber/lite/funcs/neon/impl "cpp" ANAKIN_SABER_ARM_LITE_SRC)
+anakin_fetch_files_with_suffix(${CMAKE_CURRENT_SOURCE_DIR}/ "cpp" ANAKIN_LITE_SRC)
+anakin_fetch_files_with_suffix(${ANAKIN_LITE_SABER}/core "cpp" ANAKIN_SABER_ARM_LITE_SRC)
+anakin_fetch_files_with_suffix(${ANAKIN_LITE_SABER}/funcs "cpp" ANAKIN_SABER_ARM_LITE_SRC)
+anakin_fetch_files_with_suffix(${ANAKIN_LITE_SABER}/funcs/neon "cpp" ANAKIN_SABER_ARM_LITE_SRC)
+anakin_fetch_files_with_suffix(${ANAKIN_LITE_SABER}/funcs/neon/impl "cpp" ANAKIN_SABER_ARM_LITE_SRC)
+anakin_fetch_files_with_suffix(${UNIT_TEST_LITE} "cpp" UNIT_TEST_LITE_SRC)
 
 add_library(ANAKIN_LITE_OBJS OBJECT ${ANAKIN_LITE_SRC} ${ANAKIN_SABER_ARM_LITE_SRC})
 
@@ -129,9 +139,42 @@ add_library(${anakin_lite_lib_static} STATIC $<TARGET_OBJECTS:ANAKIN_LITE_OBJS>)
 set_target_properties(${anakin_lite_lib_static} PROPERTIES 
 					  ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/output/)
 
-install(DIRECTORY ${ANAKIN_LITE_ROOT}/saber  ${ANAKIN_LITE_ROOT}/utils
-		DESTINATION ${PROJECT_SOURCE_DIR}/output/
+if(BUILD_LITE_UNIT_TEST)
+	# build test cases
+	foreach(SRC_NAME ${UNIT_TEST_LITE_SRC})
+		#unpack the dir "/"
+		string(REPLACE "/" ";" SEXY_LIST ${SRC_NAME})
+		list(GET SEXY_LIST -1 TEST_CASE_NAME)
+		#get the file name without suffix
+		string(REPLACE "." ";" SEXY_LIST ${TEST_CASE_NAME})
+		list(GET SEXY_LIST 0 TEST_CASE_NAME)
+		add_executable(${TEST_CASE_NAME}  ${SRC_NAME})
+		if(NO)#BUILD_SHARED)
+			target_link_libraries(${TEST_CASE_NAME} ${anakin_lite_lib_so})
+		else()
+			target_link_libraries(${TEST_CASE_NAME} ${anakin_lite_lib_static})
+		endif()
+		#	if(USE_ARM_PLACE)
+		#		target_link_libraries(${TEST_CASE_NAME} ${log-lib})
+		#	endif()
+		set_target_properties(${TEST_CASE_NAME} PROPERTIES
+				RUNTIME_OUTPUT_DIRECTORY
+				${PROJECT_SOURCE_DIR}/output/unit_test)
+	endforeach()
+endif()
+
+FILE(GLOB MODEL_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
+
+install(DIRECTORY ${ANAKIN_LITE_SABER}/../../saber/lite
+		DESTINATION ${PROJECT_SOURCE_DIR}/output/include/saber/lite
 		FILES_MATCHING
-		PATTERN "*.bin"
-		PATTERN "*.h"
-		PATTERN "*.inl")
+		PATTERN "*.h")
+install(FILES ${ANAKIN_LITE_SABER}/../../saber/saber_types.h
+        DESTINATION ${PROJECT_SOURCE_DIR}/output/include/saber)
+install(FILES ${MODEL_HEADER}
+        DESTINATION ${PROJECT_SOURCE_DIR}/output/include)
+install(FILES ${PROJECT_BINARY_DIR}/anakin_config.h
+        DESTINATION ${PROJECT_SOURCE_DIR}/output/include)
+install(TARGETS ${anakin_lite_lib_so} ${anakin_lite_lib_static}
+		LIBRARY DESTINATION ${PROJECT_SOURCE_DIR}/output/lib
+		ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/output/lib)

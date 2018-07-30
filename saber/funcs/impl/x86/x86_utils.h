@@ -19,8 +19,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-
+#include "core/common.h"
 #include "saber/core/tensor.h"
+#include "mkl_cblas.h"
+
 
 namespace anakin {
 namespace saber {
@@ -43,35 +45,39 @@ namespace utils {
  * (since there is no any c++-rt dependent stuff, ideally...). */
 
 /* SFINAE helper -- analogue to std::enable_if */
-class VectorPrint{
+class VectorPrint {
 public:
     template <typename Dtype>
-    static void print_float(Dtype *target){
-        float* f=(float*)target;
+    static void print_float(Dtype* target) {
+        float* f = (float*)target;
         printf("size = %d\n", sizeof(Dtype));
-        for(int i=0;i<sizeof(Dtype)/ sizeof(float);i++){
-            printf(" %f ,",f[i]);
+
+        for (int i = 0; i < sizeof(Dtype) / sizeof(float); i++) {
+            printf(" %f ,", f[i]);
         }
+
         printf("\n");
     }
 };
 
-class AlignedUtils{
+class AlignedUtils {
 public:
     template <typename Dtype>
-    void aligned_last_dim(const Dtype* input,Dtype* output,int input_size, int ori_last_dim,int aligned_dim){
-        for(int i=0;i<input_size;i++){
-            int row=i/ori_last_dim;
-            int col=i%ori_last_dim;
-            output[row*aligned_dim+col]=input[i];
+    void aligned_last_dim(const Dtype* input, Dtype* output, int input_size, int ori_last_dim,
+                          int aligned_dim) {
+        for (int i = 0; i < input_size; i++) {
+            int row = i / ori_last_dim;
+            int col = i % ori_last_dim;
+            output[row * aligned_dim + col] = input[i];
         }
     }
     template <typename Dtype>
-    void unaligned_last_dim(const Dtype* input,Dtype* output,int output_size, int ori_last_dim,int aligned_dim){
-        for(int i=0;i<output_size;i++){
-            int row=i/ori_last_dim;
-            int col=i%ori_last_dim;
-            output[i]=input[row*aligned_dim+col];
+    void unaligned_last_dim(const Dtype* input, Dtype* output, int output_size, int ori_last_dim,
+                            int aligned_dim) {
+        for (int i = 0; i < output_size; i++) {
+            int row = i / ori_last_dim;
+            int col = i % ori_last_dim;
+            output[i] = input[row * aligned_dim + col];
         }
     }
 
@@ -79,9 +85,9 @@ public:
 
 class SeqSortedseqTranseUtil {
 public:
-    SeqSortedseqTranseUtil(bool is_reverse=false,bool is_bi=false)
-            :_is_reverse(is_reverse),
-            _is_bi(is_bi){};
+    SeqSortedseqTranseUtil(bool is_reverse = false, bool is_bi = false)
+        : _is_reverse(is_reverse),
+          _is_bi(is_bi) {};
     void print_vec(int* in, int size, const char* perfix) {
         for (int i = 0; i < size; i++) {
             printf("[%s] %d = %d\n", perfix, i, in[i]);
@@ -144,7 +150,8 @@ public:
         }
     }
     template <typename Dtype>
-    void sorted_seq_2_seq(const Dtype* input, Dtype* output, int hidden_size,int alligned_hidden_size) {
+    void sorted_seq_2_seq(const Dtype* input, Dtype* output, int hidden_size,
+                          int alligned_hidden_size) {
         int word_sum = _map_vec.size();
 
         for (int ori_word_id = 0; ori_word_id < word_sum; ori_word_id++) {
@@ -159,13 +166,13 @@ public:
             }
         }
     }
-/**
- * return whether need to transform
- * @param offset_vec
- * @param emit_offset_vec
- * @param emit_length
- * @return
- */
+    /**
+     * return whether need to transform
+     * @param offset_vec
+     * @param emit_offset_vec
+     * @param emit_length
+     * @return
+     */
     bool get_sorted_map(std::vector<int>& offset_vec,
                         std::vector<int>& emit_offset_vec, int& emit_length) {
         int batch_size = offset_vec.size() - 1;
@@ -175,9 +182,12 @@ public:
 
         if (batch_size == 1) {
             emit_length = offset_vec[1] - offset_vec[0];
-            emit_offset_vec.resize(emit_length+1);
-            for(int i=0;i<=emit_length;i++)
-                emit_offset_vec[i]=i;
+            emit_offset_vec.resize(emit_length + 1);
+
+            for (int i = 0; i <= emit_length; i++) {
+                emit_offset_vec[i] = i;
+            }
+
             return false;
         }
 
@@ -194,7 +204,7 @@ public:
 
         if (max_len == 1) {
             emit_offset_vec.push_back(0);
-            emit_offset_vec.push_back(emit_length*batch_size);
+            emit_offset_vec.push_back(emit_length * batch_size);
             return false;
         }
 
@@ -206,7 +216,8 @@ public:
         _map_vec.resize(word_sum);
 
         int target_word_id = 0;
-        std::vector<int> length_vec_cnt=length_vec;
+        std::vector<int> length_vec_cnt = length_vec;
+
         for (int word_id_in_seq = 0; word_id_in_seq < max_len; word_id_in_seq++) {
             emit_offset_vec[word_id_in_seq] = target_word_id;
 
@@ -214,13 +225,15 @@ public:
                 int old_batch_id = _length_index[batch_id];
 
                 if (length_vec_cnt[old_batch_id] > 0) {
-                    int inner_word_id_in_seq=word_id_in_seq;
-                    if(_is_reverse){
-                        inner_word_id_in_seq=length_vec[old_batch_id]-1-word_id_in_seq;
+                    int inner_word_id_in_seq = word_id_in_seq;
+
+                    if (_is_reverse) {
+                        inner_word_id_in_seq = length_vec[old_batch_id] - 1 - word_id_in_seq;
                     }
+
                     int old_word_id = offset_vec[old_batch_id] + inner_word_id_in_seq;
                     _map_vec[old_word_id] = target_word_id;
-//                    printf("map %d -> %d\n",old_word_id,target_word_id);
+                    //                    printf("map %d -> %d\n",old_word_id,target_word_id);
                     length_vec_cnt[old_batch_id]--;
                     target_word_id++;
                 } else {
@@ -246,7 +259,7 @@ private:
 };
 
 inline int round_up(int k, int c) {
-    return  k+(c-k%c);
+    return ((k + c - 1) / c) * c;
 }
 
 inline int div_up(int k, int c) {
@@ -737,10 +750,207 @@ inline size_t datatype_size(DataType data_type) {
     return 0;
 }
 
+
+template<typename DataTensor_in, typename DataTensor_out>
+inline void  conv_basic_x86(DataTensor_in& tensor_out, DataTensor_out& tensor_in,
+                            const float* weights, const float* bias, int group,
+                            int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h,
+                            int pad_w, int pad_h, bool flag_bias, bool flag_relu) {
+
+    auto src_data = reinterpret_cast<const float*>(tensor_in.data());
+    auto dst_data_ref = reinterpret_cast<float*>(tensor_out.mutable_data());
+    auto weights_data = weights;
+    bool with_bias = flag_bias;
+    auto bias_data = bias;
+
+    int in_num = tensor_out.num();
+    int out_channels = tensor_out.channel();
+    int out_h = tensor_out.height();
+    int out_w = tensor_out.width();
+
+    int in_channel = tensor_in.channel();
+    int in_h = tensor_in.height();
+    int in_w = tensor_in.width();
+    int out_c_group = out_channels / group;
+    int in_c_group = in_channel / group;
+
+    for (int n = 0; n < in_num; ++n) {
+        for (int g = 0; g < group; ++g) {
+            for (int oc = 0; oc < out_c_group; ++oc) {
+                for (int oh = 0; oh < out_h; ++oh) {
+                    for (int ow = 0; ow < out_w; ++ow) {
+                        int out_idx = n * group * out_c_group * out_h * out_w + g * out_c_group * out_h * out_w
+                                      + oc * out_h * out_w + oh * out_w + ow;
+                        dst_data_ref[out_idx] = with_bias ? (float)(bias_data[g * out_c_group + oc]) : 0.f;
+
+                        for (int ic = 0; ic < in_c_group; ++ic) {
+                            for (int kh = 0; kh < kernel_h; ++kh) {
+                                for (int kw = 0; kw < kernel_w; ++kw) {
+                                    int iw = ow * stride_w - pad_w + kw * (dila_w);
+                                    int ih = oh * stride_h - pad_h + kh * (dila_h);
+
+                                    if (iw < 0 || iw >= in_w) {
+                                        continue;
+                                    }
+
+                                    if (ih < 0 || ih >= in_h) {
+                                        continue;
+                                    }
+
+                                    int iidx = n * in_channel * in_h * in_w
+                                               + g * in_c_group * in_h * in_w
+                                               + ic * in_h * in_w
+                                               + ih * in_w
+                                               + iw;
+                                    int widx = g * out_c_group * in_c_group * kernel_h * kernel_w
+                                               + oc * in_c_group * kernel_h * kernel_w
+                                               + ic * kernel_h * kernel_w
+                                               + kh * kernel_w
+                                               + kw;
+
+                                    dst_data_ref[out_idx]
+                                    += src_data[iidx]
+                                       * weights_data[widx];
+                                }
+                            }
+                        }
+
+                        if (flag_relu) {
+                            dst_data_ref[out_idx] = dst_data_ref[out_idx] > 0.f ? dst_data_ref[out_idx] : 0.f;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+static inline bool is_a_ge_zero_and_a_lt_b(int a, int b) {
+    return static_cast<unsigned>(a) < static_cast<unsigned>(b);
+}
+
+template <typename Dtype>
+static void im2col_cpu(const Dtype* data_im, const int channels,
+                       const int height, const int width, const int kernel_h, const int kernel_w,
+                       const int pad_h, const int pad_w,
+                       const int stride_h, const int stride_w,
+                       const int dilation_h, const int dilation_w,
+                       Dtype* data_col) {
+    const int output_h = (height + 2 * pad_h -
+                          (dilation_h * (kernel_h - 1) + 1)) / stride_h + 1;
+    const int output_w = (width + 2 * pad_w -
+                          (dilation_w * (kernel_w - 1) + 1)) / stride_w + 1;
+    const int channel_size = height * width;
+
+    for (int channel = channels; channel--; data_im += channel_size) {
+        for (int kernel_row = 0; kernel_row < kernel_h; kernel_row++) {
+            for (int kernel_col = 0; kernel_col < kernel_w; kernel_col++) {
+                int input_row = -pad_h + kernel_row * dilation_h;
+
+                for (int output_rows = output_h; output_rows; output_rows--) {
+                    if (!is_a_ge_zero_and_a_lt_b(input_row, height)) {
+                        for (int output_cols = output_w; output_cols; output_cols--) {
+                            *(data_col++) = 0;
+                        }
+                    } else {
+                        int input_col = -pad_w + kernel_col * dilation_w;
+
+                        for (int output_col = output_w; output_col; output_col--) {
+                            if (is_a_ge_zero_and_a_lt_b(input_col, width)) {
+                                *(data_col++) = data_im[input_row * width + input_col];
+                            } else {
+                                *(data_col++) = 0;
+                            }
+
+                            input_col += stride_w;
+                        }
+                    }
+
+                    input_row += stride_h;
+                }
+            }
+        }
+    }
+}
+
+inline void mkl_gemm(const bool TransA, const bool TransB, int m, int n, int k, const float alpha,
+                 const float* a, const float* b, const float beta, float* c) {
+    //    cout << "(" << m << "," << n << "," << k << ")" << endl;
+    int lda = (!TransA/* == CblasNoTrans*/) ? k : m;
+    int ldb = (!TransB/* == CblasNoTrans*/) ? n : k;
+    CBLAS_TRANSPOSE cuTransA =
+            (!TransA/* == CblasNoTrans*/) ? CblasNoTrans : CblasTrans;
+    CBLAS_TRANSPOSE cuTransB =
+            (!TransB/* == CblasNoTrans*/) ? CblasNoTrans : CblasTrans;
+    cblas_sgemm(CblasRowMajor, cuTransA, cuTransB, m, n, k, alpha, a, k, b, n, beta, c, n);
+};
+
+template<typename DataTensor_in, typename DataTensor_out,typename DataTensor_op>
+inline void im2col_conv_cpu(DataTensor_in& tensor_out, DataTensor_out& tensor_in,DataTensor_op& tensor_temp,
+                        const float* weights, const float* bias, int group,
+                        int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h,
+                        int pad_w, int pad_h, bool flag_bias, bool flag_relu ) {
+    int in_c = tensor_in.channel();
+    int in_h = tensor_in.height();
+    int in_w = tensor_in.width();
+    int out_c = tensor_out.channel();
+    int out_h = tensor_out.height();
+    int out_w = tensor_out.width();
+
+    int slice_size=in_c*kernel_h*kernel_w * out_h*out_w;
+    int batch_size=tensor_in.num();
+    tensor_temp.try_expand_size(batch_size * slice_size);
+
+    for(int i=0;i<batch_size;i++){
+        im2col_cpu(tensor_in.data()+i*(in_c*in_h,in_w),in_c,in_h,in_w,kernel_h,kernel_w,pad_h,pad_w,stride_h,stride_w,dila_h,dila_w,tensor_temp.mutable_data()+i*slice_size);
+    }
+
+    mkl_gemm(false,false,batch_size*out_c,out_h*out_w,in_c*kernel_h*kernel_w,1.f,weights,tensor_temp.data(),0,tensor_out.mutable_data());
+
+    if(flag_bias&& !flag_relu){
+        float *output=tensor_out.mutable_data();
+        int id=0;
+        for(int i=0;i<batch_size;i++){
+            for(int oc=0;oc<out_c;++oc) {
+                for (int inner_id = 0; inner_id < out_h*out_w; ++inner_id,++id) {
+                    output[id]+=bias[oc];
+                }
+            }
+        }
+    }else if(!flag_bias&&flag_relu){
+        float *output=tensor_out.mutable_data();
+        int id=0;
+        for(int i=0;i<batch_size;i++){
+            for(int oc=0;oc<out_c;++oc) {
+                for (int inner_id = 0; inner_id < out_h*out_w; ++inner_id,++id) {
+                    if(output[id]<0){
+                        output[id]=0;
+                    }
+                }
+            }
+        }
+    }else if(flag_bias&&flag_relu){
+        float *output=tensor_out.mutable_data();
+        int id=0;
+        for(int i=0;i<batch_size;i++){
+            for(int oc=0;oc<out_c;++oc) {
+                for (int inner_id = 0; inner_id < out_h*out_w; ++inner_id,++id) {
+                    float temp=output[id];
+                    temp+=bias[oc];
+                    if(temp<0){
+                        temp=0;
+                    }
+                    output[id]=temp;
+                }
+            }
+        }
+    }
+}
+
 } // namespace saber
 } // namespace anakin
 
-#if defined(_OPENMP)
+#ifdef USE_OPENMP
 #include <omp.h>
 #else
 inline int omp_get_max_threads() {

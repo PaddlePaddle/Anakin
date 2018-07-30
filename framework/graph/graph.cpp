@@ -133,7 +133,7 @@ Status Graph<Ttype, Dtype, Ptype>::Optimize() EXCLUSIVE_LOCKS_REQUIRED(_mut) {
 			_nodes_exec_order = scheduler.get_exec_node_in_order();
 
 
-#if 0
+#if 1
             // get node exec in order
             _nodes_exec_order = scheduler.get_exec_node_in_order();
 #else		// enable conv+eltwise fusion
@@ -405,7 +405,7 @@ template class Graph<NV, AK_FLOAT, Precision::FP16>;
 template class Graph<NV, AK_FLOAT, Precision::INT8>;
 #endif
 
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 template class Graph<X86, AK_FLOAT, Precision::FP32>;
 template class Graph<X86, AK_FLOAT, Precision::FP16>;
 template class Graph<X86, AK_FLOAT, Precision::INT8>;
@@ -421,7 +421,7 @@ template class Graph<ARM, AK_FLOAT, Precision::FP16>;
 #ifdef ANAKIN_TYPE_INT8
 template class Graph<ARM, AK_FLOAT, Precision::INT8>;
 #endif
-#endif
+#endif //USE_ARM_PLACE
 
 } /* namespace graph */
 

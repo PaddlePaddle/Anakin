@@ -45,7 +45,7 @@ template class FlattenHelper<NV, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Flatten, FlattenHelper, NV, AK_FLOAT, Precision::FP32);
 #endif
 
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 INSTANCE_FLATTEN(X86, AK_FLOAT, Precision::FP32);
 template class FlattenHelper<X86, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Flatten, FlattenHelper, X86, AK_FLOAT, Precision::FP32);
@@ -66,7 +66,7 @@ ANAKIN_REGISTER_OP(Flatten)
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("flatten")
 #endif
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 .__alias__<X86, AK_FLOAT, Precision::FP32>("flatten")
 #endif
 .num_in(1)

@@ -9,18 +9,7 @@ namespace anakin {
 
 namespace saber {
 
-//inline
-static void gemm(const bool TransA, const bool TransB, int m, int n, int k, const float alpha,
-                 const float* a, const float* b, const float beta, float* c) {
-    //    cout << "(" << m << "," << n << "," << k << ")" << endl;
-    int lda = (!TransA/* == CblasNoTrans*/) ? k : m;
-    int ldb = (!TransB/* == CblasNoTrans*/) ? n : k;
-    CBLAS_TRANSPOSE cuTransA =
-        (!TransA/* == CblasNoTrans*/) ? CblasNoTrans : CblasTrans;
-    CBLAS_TRANSPOSE cuTransB =
-        (!TransB/* == CblasNoTrans*/) ? CblasNoTrans : CblasTrans;
-    cblas_sgemm(CblasRowMajor, cuTransA, cuTransB, m, n, k, alpha, a, k, b, n, beta, c, n);
-};
+
 
 template<>
 template <typename BIT>
@@ -111,7 +100,7 @@ SaberStatus SaberLstm<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
     DataType_out *temp_wh = _temp_wh.mutable_data();
     DataType_out *temp_wx = _temp_wx.mutable_data();
 
-    gemm(false, false, seqsum, 4 * _aligned_hidden_size, _word_size, 1.f, inner_x, weight_w, 0.f,
+    mkl_gemm(false, false, seqsum, 4 * _aligned_hidden_size, _word_size, 1.f, inner_x, weight_w, 0.f,
          temp_wx);
 
     const int i_offset = 0;
@@ -123,7 +112,7 @@ SaberStatus SaberLstm<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
     const BIT *b_c = (BIT *) (bias + c_offset * _aligned_hidden_size);
     const BIT *b_o = (BIT *) (bias + o_offset * _aligned_hidden_size);
 
-            DLOG(INFO)<<"wordsum = "<<word_sum<<",emit length = "<<emit_offset_vec.size();
+     DLOG(INFO)<<"wordsum = "<<word_sum<<",emit length = "<<emit_offset_vec.size();
     for (int word_id = 0; word_id < emit_length; word_id++) {
         int real_word_id = word_id;
         int last_word_id = word_id - 1;
@@ -173,7 +162,7 @@ SaberStatus SaberLstm<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
         hout = emit_offset_vec[real_word_id] * _aligned_hidden_size + inner_h_out;
 
         //wh
-        gemm(false, false, emit_word_length, 4 * _aligned_hidden_size, _aligned_hidden_size, 1.0, hin,
+        mkl_gemm(false, false, emit_word_length, 4 * _aligned_hidden_size, _aligned_hidden_size, 1.0, hin,
              weight_h,
              0.f, temp_wh);
 
@@ -310,7 +299,7 @@ avx_dispatch_without_peephole(const std::vector<DataTensor_in*>& inputs,
     DataType_out *temp_wh = _temp_wh.mutable_data();
     DataType_out *temp_wx = _temp_wx.mutable_data();
 
-    gemm(false, false, seqsum, 4 * _aligned_hidden_size, _word_size, 1.f, inner_x, weight_w, 0.f,
+    mkl_gemm(false, false, seqsum, 4 * _aligned_hidden_size, _word_size, 1.f, inner_x, weight_w, 0.f,
          temp_wx);
 
     const int i_offset = 0;
@@ -371,7 +360,7 @@ avx_dispatch_without_peephole(const std::vector<DataTensor_in*>& inputs,
         hout = emit_offset_vec[real_word_id] * _aligned_hidden_size + inner_h_out;
 
         //wh
-        gemm(false, false, emit_word_length, 4 * _aligned_hidden_size, _aligned_hidden_size, 1.0, hin,
+        mkl_gemm(false, false, emit_word_length, 4 * _aligned_hidden_size, _aligned_hidden_size, 1.0, hin,
              weight_h,
              0.f, temp_wh);
 
@@ -424,6 +413,7 @@ SaberStatus SaberLstm<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
     CHECK_EQ(inputs.size(),1)<<"only support input size = 1";
     CHECK_EQ(outputs.size(),1)<<"only support outputs size = 1";
     CHECK_EQ(param.init_hidden()==nullptr, true )<<"only support param.init_hidden() == nullptr";
+    CHECK_EQ(param.num_layers,1)<<"only support param.num_layers==1";
     if(param.with_peephole){
         avx_dispatch_with_peephole<SABER_X86_TYPE>(inputs,outputs,param);
     }else{

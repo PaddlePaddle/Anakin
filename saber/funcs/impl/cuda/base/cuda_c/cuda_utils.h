@@ -56,14 +56,11 @@ public:
     template <typename Dtype>
     void seq_2_sorted_seq(const Dtype*  input, Dtype* output, int word_size, cudaStream_t stream) {
         int seq_sum = _map_vec.size();
-//        print_vec(_map_vec.data(),_map_vec.size(),"map_vec");
         trans_map2out_cfunc(input, output, word_size, seq_sum, stream, _dev_map_vec);
     }
     template <typename Dtype>
     void hidden_2_sorted_hidden(const Dtype*  input, Dtype* output, int hidden_size) {
-        //        _map_vec.resize(word_sum);
         int batch_size = _length_index.size();
-        //        std::cout << "word_sum = " << word_sum << std::endl;
 
         for (int ori_word_id = 0; ori_word_id < batch_size; ++ori_word_id) {
             //can param
@@ -72,7 +69,6 @@ public:
             int maped_start = maped_id * hidden_size;
 
             for (int word_vec_offset = 0; word_vec_offset < hidden_size; ++word_vec_offset) {
-                //                std::cout<<maped_start + word_vec_offset<<" --> "<<word_start + word_vec_offset<<" , = "<<input[maped_start + word_vec_offset]<<std::endl;
 
                 output[word_start + word_vec_offset] = input[maped_start + word_vec_offset];
 
@@ -178,7 +174,6 @@ private:
     std::vector<int> _length_index;
     std::vector<int> _emit_offset_vec;
     std::vector<int> _map_vec;
-    
 
     int* _dev_map_vec;
     int _dev_map_vec_length;

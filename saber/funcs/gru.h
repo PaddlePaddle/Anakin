@@ -18,6 +18,7 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+#include "saber/funcs/impl/impl_gru.h"
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_gru.h"
 #include "saber/funcs/impl/cuda/vender_gru.h"

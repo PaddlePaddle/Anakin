@@ -89,7 +89,7 @@ Status ActivationHelper<NV, AK_FLOAT, Precision::FP32>::Init(OpContext<NV>& ctx,
 ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, NV, AK_FLOAT, Precision::FP32);
 #endif
 
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 INSTANCE_ACTIVATION(X86, AK_FLOAT, Precision::FP32);
 INSTANCE_ACTIVATION(X86, AK_FLOAT, Precision::FP16);
 INSTANCE_ACTIVATION(X86, AK_FLOAT, Precision::INT8);
@@ -112,7 +112,7 @@ ANAKIN_REGISTER_OP(Activation)
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("activation")
 #endif
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 .__alias__<X86, AK_FLOAT, Precision::FP32>("activation")
 #endif
 .num_in(1)

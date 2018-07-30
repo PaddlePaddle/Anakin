@@ -708,50 +708,65 @@ void permute_conf(const float* conf_data, const int num,
     }
 }
 
-SaberDetectionOutput::SaberDetectionOutput(bool share_loc,
-                                           bool variance_encode,
-                                           int class_num,
-                                           int background_id,
-                                           int keep_topk,
-                                           CodeType type,
-                                           float conf_thresh,
-                                           int nms_topk,
-                                           float nms_thresh,
-                                           float nms_eta) {
-    LITE_CHECK(load_param(share_loc, variance_encode, class_num, background_id, \
-        keep_topk, type, conf_thresh, nms_topk, nms_thresh, nms_eta));
+//SaberDetectionOutput::SaberDetectionOutput(bool share_loc,
+//                                           bool variance_encode,
+//                                           int class_num,
+//                                           int background_id,
+//                                           int keep_topk,
+//                                           CodeType type,
+//                                           float conf_thresh,
+//                                           int nms_topk,
+//                                           float nms_thresh,
+//                                           float nms_eta) {
+//    LITE_CHECK(load_param(share_loc, variance_encode, class_num, background_id, \
+//        keep_topk, type, conf_thresh, nms_topk, nms_thresh, nms_eta));
+//}
+
+SaberDetectionOutput::SaberDetectionOutput(const ParamBase *param) {
+    _param = (const DetectionOutputParam*)param;
+    this->_flag_param = true;
 }
 
-SaberStatus SaberDetectionOutput::load_param(bool share_loc,
-                                             bool variance_encode,
-                                             int class_num,
-                                             int background_id,
-                                             int keep_topk,
-                                             CodeType type,
-                                             float conf_thresh,
-                                             int nms_topk,
-                                             float nms_thresh,
-                                             float nms_eta) {
-    _share_loacation = share_loc;
-    _variance_encode_in_target = variance_encode;
-    _class_num = class_num;
-    _background_id = background_id;
-    _keep_top_k = keep_topk;
-    _type = type;
-    _conf_thresh = conf_thresh;
-    _nms_top_k = nms_topk;
-    _nms_thresh = nms_thresh;
-    _nms_eta = nms_eta;
+SaberStatus SaberDetectionOutput::load_param(const ParamBase *param) {
+    _param = (const DetectionOutputParam*)param;
+    this->_flag_param = true;
     return SaberSuccess;
 }
 
+//SaberStatus SaberDetectionOutput::load_param(bool share_loc,
+//                                             bool variance_encode,
+//                                             int class_num,
+//                                             int background_id,
+//                                             int keep_topk,
+//                                             CodeType type,
+//                                             float conf_thresh,
+//                                             int nms_topk,
+//                                             float nms_thresh,
+//                                             float nms_eta) {
+//    _share_loacation = share_loc;
+//    _variance_encode_in_target = variance_encode;
+//    _class_num = class_num;
+//    _background_id = background_id;
+//    _keep_top_k = keep_topk;
+//    _type = type;
+//    _conf_thresh = conf_thresh;
+//    _nms_top_k = nms_topk;
+//    _nms_thresh = nms_thresh;
+//    _nms_eta = nms_eta;
+//    return SaberSuccess;
+//}
+
 SaberStatus SaberDetectionOutput::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                                        std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
+    if (!this->_flag_param) {
+        printf("load detection_output param first\n");
+        return SaberNotInitialized;
+    }
     //! output tensor's dims = 2
     Shape shape_out;
     shape_out.resize(2);
     //CHECK_EQ(shape_out.dims(), 4) << "only support 4d layout";
-    shape_out[0] = inputs[0]->num() * _keep_top_k;
+    shape_out[0] = inputs[0]->num() * _param->_keep_top_k;
     shape_out[1] = 7;
 
     return outputs[0]->set_shape(shape_out);
@@ -759,7 +774,13 @@ SaberStatus SaberDetectionOutput::compute_output_shape(const std::vector<Tensor<
 
 SaberStatus SaberDetectionOutput::init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
                       std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx) {
-    _ctx = ctx;
+
+    if (!this->_flag_param) {
+        printf("load detection_output param first\n");
+        return SaberNotInitialized;
+    }
+
+    this->_ctx = &ctx;
 
 //! inputs[0]: location map, dims = 2 {N, boxes * 4}
 //! inputs[1]: confidence map, dims = 2 {N, boxes * classes}
@@ -776,10 +797,10 @@ SaberStatus SaberDetectionOutput::init(const std::vector<Tensor<CPU, AK_FLOAT>*>
     int num = inputs[0]->num();
     _num_priors = size_prior / 8;
 
-    if (_class_num == 0) {
+    if (_param->_class_num == 0) {
         _class_num = size_conf / (num * _num_priors);
     }
-    if (_share_loacation) {
+    if (_param->_share_location) {
         _num_loc_classes = 1;
     } else {
         _num_loc_classes = _class_num;
@@ -789,6 +810,8 @@ SaberStatus SaberDetectionOutput::init(const std::vector<Tensor<CPU, AK_FLOAT>*>
     _bbox_preds.reshape(sh_loc);
     _conf_permute.reshape(sh_conf);
 
+    this->_flag_init = true;
+
     return SaberSuccess;
 }
 
@@ -797,6 +820,11 @@ SaberStatus SaberDetectionOutput::init(const std::vector<Tensor<CPU, AK_FLOAT>*>
 SaberStatus SaberDetectionOutput::dispatch(
         const std::vector<Tensor<CPU, AK_FLOAT> *>& inputs,
         std::vector<Tensor<CPU, AK_FLOAT> *>& outputs) {
+
+    if (!this->_flag_init) {
+        printf("init detection_output first\n");
+        return SaberNotInitialized;
+    }
 
     Tensor<CPU, AK_FLOAT>* t_loc = inputs[0];
     Tensor<CPU, AK_FLOAT>* t_conf = inputs[1];
@@ -810,15 +838,15 @@ SaberStatus SaberDetectionOutput::dispatch(
 
     float* bbox_data = _bbox_preds.mutable_data();
 
-    if (!_share_loacation) {
+    if (!_param->_share_location) {
         return SaberUnImplError;
     }
 
     //! Decode predictions.
     //! Retrieve all decoded location predictions.
-    decode_bboxes(num, loc_data, prior_data, _type, _variance_encode_in_target, \
-        _num_priors, _share_loacation, _num_loc_classes, \
-        _background_id, bbox_data);
+    decode_bboxes(num, loc_data, prior_data, _param->_code_type, _param->_variance_encode_in_target, \
+        _num_priors, _param->_share_location, _num_loc_classes, \
+        _param->_background_id, bbox_data);
 
     //! Retrieve all confidences, permute to classes * boxes_size
     float* conf_permute_data = _conf_permute.mutable_data();
@@ -826,8 +854,8 @@ SaberStatus SaberDetectionOutput::dispatch(
 
     std::vector<float> result;
 
-    nms_detect(bbox_data, conf_permute_data, result, num, _class_num, _num_priors, _background_id, \
-        _keep_top_k, _nms_top_k, _conf_thresh, _nms_thresh, _nms_eta, _share_loacation);
+    nms_detect(bbox_data, conf_permute_data, result, num, _class_num, _num_priors, _param->_background_id, \
+        _param->_keep_top_k, _param->_nms_top_k, _param->_conf_thresh, _param->_nms_thresh, _param->_nms_eta, _param->_share_location);
 
     if(result.size() == 0) {
         result.resize(7);

@@ -91,7 +91,7 @@ Status SassConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::InitParam() {
     //ActivationParam<Tensor4d<Ttype, Dtype>> active_param(Active_relu);//, alpha); // TEMP
 
 	// check if conv has eltwise_relu op attr
-	if(check_attr("merge_type")) {
+	if(this->check_attr("merge_type")) {
 		LOG(ERROR) << "detect eltwise relu!!!!!!!! ";
 		auto type = GET_PARAMETER(std::string, merge_type);
     	auto alpha = GET_PARAMETER(float, merge_relu_0_alpha);

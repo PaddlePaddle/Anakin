@@ -2,26 +2,16 @@
 
 #include "saber/funcs/impl/x86/saber_gru.h"
 #include "saber/core/tensor_op.h"
-#include "mkl_cblas.h"
+
 #include <immintrin.h>
 #include "sys/time.h"
+#include "x86_utils.h"
 
 namespace anakin {
 
 namespace saber {
 
-//inline
-static void gemm(const bool TransA, const bool TransB, int m, int n, int k, const float alpha,
-                 const float* a, const float* b, const float beta, float* c) {
-    //    cout << "(" << m << "," << n << "," << k << ")" << endl;
-    int lda = (!TransA/* == CblasNoTrans*/) ? k : m;
-    int ldb = (!TransB/* == CblasNoTrans*/) ? n : k;
-    CBLAS_TRANSPOSE cuTransA =
-        (!TransA/* == CblasNoTrans*/) ? CblasNoTrans : CblasTrans;
-    CBLAS_TRANSPOSE cuTransB =
-        (!TransB/* == CblasNoTrans*/) ? CblasNoTrans : CblasTrans;
-    cblas_sgemm(CblasRowMajor, cuTransA, cuTransB, m, n, k, alpha, a, k, b, n, beta, c, n);
-};
+
 
 //template <typename Dtype>
 ////class ActivationArray{
@@ -92,7 +82,7 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::naiv_
     //    LOG(INFO) << "gemm b" << inputs[0]->valid_shape().count() << "," <<
     //              _weights_i2h.valid_shape().count() << "," << _temp_wx.valid_shape().count();
     //wx
-    gemm(false, false, seqsum, 3 * _hidden_size, _word_size, 1.f, x, weight_w, 0.f, temp_wx);
+    mkl_gemm(false, false, seqsum, 3 * _hidden_size, _word_size, 1.f, x, weight_w, 0.f, temp_wx);
 
     int o_offset = 0;
     int r_offset = 1;
@@ -125,7 +115,7 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::naiv_
                 hin = out + last_seq_id * _hidden_size;
             }
 
-            gemm(false, false, 1, 2 * _hidden_size, _hidden_size, 1.0, hin,
+            mkl_gemm(false, false, 1, 2 * _hidden_size, _hidden_size, 1.0, hin,
                  weight_h + _hidden_size * _hidden_size,
                  0.f, temp_wh);
 
@@ -151,7 +141,7 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::naiv_
             }
 
 
-            gemm(false, false, 1, _hidden_size, _hidden_size, 1.0, hout, w_o, 0.f, temp_whr);
+            mkl_gemm(false, false, 1, _hidden_size, _hidden_size, 1.0, hout, w_o, 0.f, temp_whr);
 
             //#pragma simd
             for (int frame_id = 0; frame_id < _hidden_size; ++frame_id) {
@@ -246,7 +236,7 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::batch
 
     }
 
-    gemm(false, false, word_sum, 3 * _hidden_size, _word_size, 1.f, inner_x, weight_w, 0.f,
+    mkl_gemm(false, false, word_sum, 3 * _hidden_size, _word_size, 1.f, inner_x, weight_w, 0.f,
          temp_wx);
 
     int o_offset = 0;
@@ -270,7 +260,7 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::batch
 
         float* hout = emit_offset_vec[word_id] * _hidden_size + inner_h_out;
 
-        gemm(false, false, emit_word_length, 2 * _hidden_size, _hidden_size, 1.0, hin,
+        mkl_gemm(false, false, emit_word_length, 2 * _hidden_size, _hidden_size, 1.0, hin,
              weight_h + _hidden_size * _hidden_size,
              0.f, temp_wh);
 
@@ -296,7 +286,7 @@ SaberStatus SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::batch
             }
         }
 
-        gemm(false, false, emit_word_length, _hidden_size, _hidden_size, 1.0, hout, w_o, 0.f,
+        mkl_gemm(false, false, emit_word_length, _hidden_size, _hidden_size, 1.0, hout, w_o, 0.f,
              temp_whr);
 
         for (int emit_word_id = emit_word_id_start; emit_word_id < emit_word_id_end; emit_word_id++) {
@@ -377,7 +367,7 @@ naiv_256(const std::vector<DataTensor_in*>& inputs,
     OutDataType* temp_whr = _temp_whr.mutable_data();
     /////////////////////////////////////////////////
     //wx
-    gemm(false, false, seqsum, 3 * _hidden_size, _word_size, 1.f, x, weight_w, 0.f, temp_wx);
+    mkl_gemm(false, false, seqsum, 3 * _hidden_size, _word_size, 1.f, x, weight_w, 0.f, temp_wx);
     //    for(float i :_temp_WX){
     //        cout<<" "<<i;
     //    }
@@ -415,7 +405,7 @@ naiv_256(const std::vector<DataTensor_in*>& inputs,
             }
 
             //wh
-            gemm(false, false, 1, 2 * _hidden_size, _hidden_size, 1.0, hin,
+            mkl_gemm(false, false, 1, 2 * _hidden_size, _hidden_size, 1.0, hin,
                  weight_h + _hidden_size * _hidden_size,
                  0.f, temp_wh);
 
@@ -445,7 +435,7 @@ naiv_256(const std::vector<DataTensor_in*>& inputs,
             }
 
             //        cout << "hout = " << hout[0] << endl;
-            gemm(false, false, 1, _hidden_size, _hidden_size, 1.0, hout, weight_h, 0.f, temp_whr);
+            mkl_gemm(false, false, 1, _hidden_size, _hidden_size, 1.0, hout, weight_h, 0.f, temp_whr);
 
             __m256* temp_wrh_256 = (__m256*) temp_whr;
 
@@ -519,7 +509,7 @@ naiv_256_s_aligned(const std::vector<DataTensor_in*>& inputs,
     OutDataType* temp_whr = _temp_whr.mutable_data();
     /////////////////////////////////////////////////
     //wx
-    gemm(false, false, seqsum, 3 * _aligned_hidden_size, _word_size, 1.f, x, weight_w, 0.f, temp_wx);
+    mkl_gemm(false, false, seqsum, 3 * _aligned_hidden_size, _word_size, 1.f, x, weight_w, 0.f, temp_wx);
     //    for(float i :_temp_WX){
     //        cout<<" "<<i;
     //    }
@@ -556,7 +546,7 @@ naiv_256_s_aligned(const std::vector<DataTensor_in*>& inputs,
             }
 
             //wh
-            gemm(false, false, 1, 2 * _aligned_hidden_size, _hidden_size, 1.0, hin,
+            mkl_gemm(false, false, 1, 2 * _aligned_hidden_size, _hidden_size, 1.0, hin,
                  weight_h + _hidden_size * _aligned_hidden_size,
                  0.f, temp_wh);
 
@@ -587,7 +577,7 @@ naiv_256_s_aligned(const std::vector<DataTensor_in*>& inputs,
             }
 
             //        cout << "hout = " << hout[0] << endl;
-            gemm(false, false, 1, _aligned_hidden_size, _hidden_size, 1.0, hout, weight_h, 0.f, temp_whr);
+            mkl_gemm(false, false, 1, _aligned_hidden_size, _hidden_size, 1.0, hout, weight_h, 0.f, temp_whr);
 
             __m256* temp_wrh_256 = (__m256*) temp_whr;
 
@@ -689,7 +679,7 @@ batch_256_s_aligned(const std::vector<DataTensor_in*>& inputs,
     OutDataType* temp_whr = _temp_whr.mutable_data();
     /////////////////////////////////////////////////
     //wx
-    gemm(false, false, seqsum, 3 * _aligned_hidden_size, _word_size, 1.f, inner_x, weight_w, 0.f,
+    mkl_gemm(false, false, seqsum, 3 * _aligned_hidden_size, _word_size, 1.f, inner_x, weight_w, 0.f,
          temp_wx);
 
     int o_offset = 0;
@@ -728,7 +718,7 @@ batch_256_s_aligned(const std::vector<DataTensor_in*>& inputs,
         hout = emit_offset_vec[real_word_id] * _aligned_hidden_size + inner_h_out;
 
         //wh
-        gemm(false, false, emit_word_length, 2 * _aligned_hidden_size, _aligned_hidden_size, 1.0, hin,
+        mkl_gemm(false, false, emit_word_length, 2 * _aligned_hidden_size, _aligned_hidden_size, 1.0, hin,
              weight_h + _hidden_size * _aligned_hidden_size,
              0.f, temp_wh);
 
@@ -757,7 +747,7 @@ batch_256_s_aligned(const std::vector<DataTensor_in*>& inputs,
         }
 
         //        cout << "hout = " << hout[0] << endl;
-        gemm(false, false, emit_word_length, _aligned_hidden_size, _aligned_hidden_size, 1.0, hout,
+        mkl_gemm(false, false, emit_word_length, _aligned_hidden_size, _aligned_hidden_size, 1.0, hout,
              weight_h, 0.f, temp_whr);
 
 
@@ -871,7 +861,7 @@ SaberStatus batch_256_s_aligned_template(std::vector<int> &offset_vec,const OpDa
     OpDataType* temp_whr = _temp_whr.mutable_data();
     /////////////////////////////////////////////////
     //wx
-    gemm(false, false, seqsum, 3 * _aligned_hidden_size, _word_size, 1.f, inner_x, weight_w, 0.f,
+    mkl_gemm(false, false, seqsum, 3 * _aligned_hidden_size, _word_size, 1.f, inner_x, weight_w, 0.f,
          temp_wx);
 
     int o_offset = 0;
@@ -909,7 +899,7 @@ SaberStatus batch_256_s_aligned_template(std::vector<int> &offset_vec,const OpDa
         float* hout = nullptr;
         hout = emit_offset_vec[real_word_id] * _aligned_hidden_size + inner_h_out;
 
-        gemm(false, false, emit_word_length, 2 * _aligned_hidden_size, _aligned_hidden_size, 1.0, hin,
+        mkl_gemm(false, false, emit_word_length, 2 * _aligned_hidden_size, _aligned_hidden_size, 1.0, hin,
              weight_h + _hidden_size * _aligned_hidden_size,
              0.f, temp_wh);
 
@@ -938,7 +928,7 @@ SaberStatus batch_256_s_aligned_template(std::vector<int> &offset_vec,const OpDa
         }
 
         //        cout << "hout = " << hout[0] << endl;
-        gemm(false, false, emit_word_length, _aligned_hidden_size, _aligned_hidden_size, 1.0, hout,
+        mkl_gemm(false, false, emit_word_length, _aligned_hidden_size, _aligned_hidden_size, 1.0, hout,
              weight_h, 0.f, temp_whr);
 
 
@@ -1041,7 +1031,7 @@ batch_s_aligned(const std::vector<DataTensor_in*>& inputs,
     bool transform = transe_util.get_sorted_map(offset_vec, emit_offset_vec, emit_length);
 
     float* inner_h_out = out;
-    float* inner_x = x;
+    float* inner_x = const_cast<float*>(x);
     const float* inner_h_init = h_init;
 
     for (int i = 0; i < offset_vec.size() - 1; ++i) {
@@ -1081,7 +1071,7 @@ batch_s_aligned(const std::vector<DataTensor_in*>& inputs,
     double t1, t2;
     t1 = fmsecond();
 #endif
-    gemm(false, false, seqsum, 3 * _aligned_hidden_size, _word_size, 1.f, inner_x, weight_w, 0.f,
+    mkl_gemm(false, false, seqsum, 3 * _aligned_hidden_size, _word_size, 1.f, inner_x, weight_w, 0.f,
          temp_wx);
 #ifdef GRU_TIMER
     t2 = fmsecond();
@@ -1122,7 +1112,7 @@ batch_s_aligned(const std::vector<DataTensor_in*>& inputs,
         hout = emit_offset_vec[real_word_id] * _aligned_hidden_size + inner_h_out;
 
         //wh
-        gemm(false, false, emit_word_length, 2 * _aligned_hidden_size, _aligned_hidden_size, 1.0, hin,
+        mkl_gemm(false, false, emit_word_length, 2 * _aligned_hidden_size, _aligned_hidden_size, 1.0, hin,
              weight_h + _hidden_size * _aligned_hidden_size,
              0.f, temp_wh);
 
@@ -1151,7 +1141,7 @@ batch_s_aligned(const std::vector<DataTensor_in*>& inputs,
 
         }
 
-        gemm(false, false, emit_word_length, _aligned_hidden_size, _aligned_hidden_size, 1.0, hout,
+        mkl_gemm(false, false, emit_word_length, _aligned_hidden_size, _aligned_hidden_size, 1.0, hout,
              weight_h, 0.f, temp_whr);
 
 //#pragma omp parallel for
@@ -1270,7 +1260,7 @@ batch_s_aligned##BIT##GATACT##OUTACT(const std::vector<DataTensor_in*>& inputs,\
     OutDataType* temp_wx = _temp_wx.mutable_data();\
     OutDataType* temp_whr = _temp_whr.mutable_data();\
 \
-    gemm(false, false, seqsum, 3 * _aligned_hidden_size, _word_size, 1.f, inner_x, weight_w, 0.f,\
+    mkl_gemm(false, false, seqsum, 3 * _aligned_hidden_size, _word_size, 1.f, inner_x, weight_w, 0.f,\
          temp_wx);\
 \
     int o_offset = 0;\
@@ -1309,7 +1299,7 @@ batch_s_aligned##BIT##GATACT##OUTACT(const std::vector<DataTensor_in*>& inputs,\
         hout=emit_offset_vec[real_word_id] * _aligned_hidden_size + inner_h_out;\
 \
 \
-        gemm(false, false, emit_word_length, 2 * _aligned_hidden_size, _aligned_hidden_size, 1.0, hin,\
+        mkl_gemm(false, false, emit_word_length, 2 * _aligned_hidden_size, _aligned_hidden_size, 1.0, hin,\
              weight_h + _hidden_size * _aligned_hidden_size,\
              0.f, temp_wh);\
 \
@@ -1338,7 +1328,7 @@ batch_s_aligned##BIT##GATACT##OUTACT(const std::vector<DataTensor_in*>& inputs,\
         }\
 \
 \
-        gemm(false, false, emit_word_length, _aligned_hidden_size, _aligned_hidden_size, 1.0, hout,\
+        mkl_gemm(false, false, emit_word_length, _aligned_hidden_size, _aligned_hidden_size, 1.0, hout,\
              weight_h, 0.f, temp_whr);\
 \
 \
