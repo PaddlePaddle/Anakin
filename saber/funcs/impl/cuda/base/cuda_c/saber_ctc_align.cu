@@ -44,7 +44,7 @@ SaberStatus SaberCtcAlign<NV, OpDtype, inDtype, outDtype,\
 
     const InDataType* in_data = inputs[0]->data();
     OutDataType* out_data = outputs[0]->mutable_data();
-    cudaStream_t cuda_stream = this->_ctx.get_compute_stream();
+    cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
     int count = outputs[0]->valid_size();
     int out_n = outputs[0]->num();
     int* in_offset = _in_offset.mutable_data();
@@ -57,6 +57,7 @@ SaberStatus SaberCtcAlign<NV, OpDtype, inDtype, outDtype,\
                     out_data, out_offset, in_data, \
                     in_offset, seq_num, param.blank, param.merge_repeated,
                     1);
+
         std::vector<int> seq_offset;
         seq_offset.resize((inputs[0]->get_seq_offset()).size());
         cudaMemcpyAsync(&seq_offset[0], out_offset, sizeof(int) * (seq_num + 1), cudaMemcpyDeviceToHost, cuda_stream);

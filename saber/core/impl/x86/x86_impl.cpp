@@ -4,7 +4,7 @@
 namespace anakin{
 
 namespace saber{
-using namespace anakin::saber;
+
 //! target wrapper
 template struct TargetWrapper<X86, __host_target>;
 

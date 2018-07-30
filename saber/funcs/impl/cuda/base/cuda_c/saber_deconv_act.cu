@@ -1,5 +1,5 @@
 #include "saber/funcs/impl/cuda/saber_deconv_act.h"
-#include "saber/funcs/impl/cuda/base/cuda_c/ker_deconv.h"
+#include "saber/funcs/impl/cuda/base/sass_funcs.h"
 
 namespace anakin{
 
@@ -138,7 +138,7 @@ SaberStatus SaberDeconv2DAct<NV, OpDtype, inDtype, outDtype,\
     LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(const std::vector<DataTensor_in *>& inputs,
     std::vector<DataTensor_out *>& outputs,
     ConvActiveParam<OpTensor>& param) {
-    cudaStream_t stream = this->_ctx.get_compute_stream();
+    cudaStream_t stream = this->_ctx->get_compute_stream();
     //! inputs only has one tensor
 
     const InDataType* din = inputs[0]->data();
@@ -168,7 +168,7 @@ SaberStatus SaberDeconv2DAct<NV, OpDtype, inDtype, outDtype,\
     if (_use_k4_s2_p1) {
         const InDataType * bias_data = (param.conv_param.bias()->valid_size() > 0) ?
                                   param.conv_param.bias()->data() : NULL;
-        const OpDataType *weights_data = new_weights_dev.data();
+        const OpDataType *weights_data = param.conv_param.weight()->data();
         ker_deconv_implicit_gemm_k4_s2_p1_32x32_relu(dout, din,
                                                 weights_data, bias_data,
                                                 num,

@@ -47,7 +47,7 @@ class PriorBoxHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     PriorBoxHelper()=default;
 
-    ~PriorBoxHelper();
+    ~PriorBoxHelper() {}
 
     Status InitParam() override;
 
@@ -64,8 +64,6 @@ public:
     saber::PriorBoxParam<Tensor4d<Ttype, Dtype>> _param_priorbox;
     saber::PriorBox<Ttype, Dtype> _funcs_priorbox;
 };
-
-
 
 } /* namespace ops */
 

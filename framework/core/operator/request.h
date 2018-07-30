@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ namespace anakin {
 template<EnumReqType ReqT>
 struct EnumReqTyptify {
     typedef void type;
-    const std::string info = type_id<type>::type_info();
+    const std::string info;// = type_id<type>::type_info();
 };
 
 /// OFFSET map to tensor type.

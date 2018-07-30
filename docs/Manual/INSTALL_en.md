@@ -76,8 +76,10 @@ Coming soon..
 
 ### <span id = '0003'> Installing on ARM </span> ###
 
-Coming soon..
+Please refer to [run on arm](run_on_arm_en.md)
 
 ### <span id = '0004'> Verifying installation </span> ###
+
+If build successfully, the libs will be in the directory `output/`, and you can run unit test in `output/unit_test` to verify your installation.
 
 

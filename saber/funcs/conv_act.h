@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 #include "saber/funcs/funcs_utils.h"
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
-
+#include "saber/funcs/impl/impl_conv_act.h"
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_conv_act.h"
 #include "saber/funcs/impl/cuda/vender_conv_act.h"
@@ -26,7 +26,11 @@
 
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_conv_act.h"
-#endif   
+#endif
+
+#ifdef USE_ARM_PLACE
+#include "saber/funcs/impl/arm/saber_conv_act.h"
+#endif
 
 namespace anakin {
 namespace saber {
