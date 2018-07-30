@@ -25,6 +25,7 @@
 #endif
 
 #ifdef USE_X86_PLACE
+#include "saber/funcs/impl/x86/saber_sequence_expand.h"
 //#include "saber/funcs/impl/x86/saber_activation.h"
 #endif
 
@@ -72,25 +73,30 @@ public:
                                              Output_v &output, Param_t &param) override {
 
         Shape output_shape = input[0]->valid_shape();
-        CHECK_EQ(input.size() == 2) << "sequence expand need two input but " << input.size << "is provided";
+        CHECK_EQ(input.size(), 2) << "sequence expand need two input but " << input.size() << "is provided";
         Shape in_shape = input[0]->valid_shape();
         auto input_seq_offset = input[0]->get_seq_offset();
         auto ref_seq_offset = input[1]->get_seq_offset();
         if (input_seq_offset.size() == 0) {
-            out_shape = in_shape;
-            out_shape[0] = input_seq_offset[input_seq_offset.size() - 1];
-            output[0]->set_seq_offset(ref_seq_offset);
+            output_shape = in_shape;
+            if (ref_seq_offset.size() > 0) {
+                output_shape[0] = ref_seq_offset[ref_seq_offset.size() - 1];
+                output[0]->set_seq_offset(ref_seq_offset);
+            }
             
         } else {
             CHECK_EQ(input_seq_offset.size(), ref_seq_offset.size()) <<"input and ref sequence offset must have the same size";
             int cum = 0;
             std::vector<int> off;
             off.push_back(cum);
-            for (int i = 1; i <= ref_seq_offset.size(); i++) {
-                cum += (ref_seq_offset[i] - ref_seq_offset[i - 1]) * (input_seq_offset[i] - input_seq_offset[i - 1]);
-                off.push_back(cum);
+            for (int i = 0; i < ref_seq_offset.size() - 1; i++) {
+                int cur_len = input_seq_offset[i + 1] - input_seq_offset[i];
+                for (int j = ref_seq_offset[i]; j < ref_seq_offset[i+1]; j++) {
+                    off.push_back(cur_len);
+                    cum += cur_len;
+                }
             }
-            out_shape[0] = cum;
+            output_shape[0] = cum;
             output[0]->set_seq_offset(off);
             
         }

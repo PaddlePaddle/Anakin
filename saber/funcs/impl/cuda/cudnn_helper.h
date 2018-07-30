@@ -101,6 +101,25 @@ public:
                     stride.data()));
         }
     }
+    TensorDescriptors(
+            std::vector<int>& batch_vec,
+            const std::vector<int>& dim,
+            const std::vector<int>& stride) {
+        descs_.resize(batch_vec.size() - 1);
+        CHECK_EQ(dim.size(), stride.size());
+        for (auto i = 0; i < batch_vec.size() - 1; ++i) {
+            CUDNN_CHECK(cudnnCreateTensorDescriptor(&descs_[i]));
+            std::vector<int> cur_dim = dim;
+            cur_dim[0] = batch_vec[i+1] - batch_vec[i];
+            CUDNN_CHECK(cudnnSetTensorNdDescriptor(
+                    descs_[i],
+                    cudnnTypeWrapper<T>::type,
+                    cur_dim.size(),
+                    cur_dim.data(),
+                    stride.data()));
+        }
+    }
+    
     ~TensorDescriptors() {
         for (auto desc : descs_) {
             CUDNN_CHECK(cudnnDestroyTensorDescriptor(desc));

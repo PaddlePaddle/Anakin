@@ -65,6 +65,8 @@ public:
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                           std::vector<DataTensor_out*>& outputs,
                           SequenceExpandParam<OpTensor>& param);
+private:
+    Tensor<NV, AK_INT32, NCHW> _seq_id_map;
 
 };
 

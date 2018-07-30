@@ -24,7 +24,7 @@
 #endif
 
 #ifdef USE_X86_PLACE
-//#include "saber/funcs/impl/x86/saber_attension_lstm.h"
+#include "saber/funcs/impl/x86/saber_attension_lstm.h"
 //#include "saber/funcs/impl/x86/vender_attension_lstm.h"
 #endif
 #ifdef USE_ARM_PLACE

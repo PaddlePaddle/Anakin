@@ -45,6 +45,10 @@ public:
 
     SaberAttensionLstm() {}
     ~SaberAttensionLstm() {
+        for (int i = 0; i < _attn_outs.size(); i++) {
+            delete _attn_outs[i];
+            _attn_outs[i] = nullptr;
+        }
     }
 
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs, \
@@ -52,6 +56,11 @@ public:
                              AttensionLstmParam <OpTensor>& attension_lstm_param, Context<NV>& ctx) {
 
         this->_ctx = &ctx;
+        auto cuda_stream = ctx.get_compute_stream();
+
+        CUBLAS_CHECK(cublasCreate(&_handle));
+        CUBLAS_CHECK(cublasSetStream(_handle, cuda_stream));
+
         auto lstm_param = attension_lstm_param.lstm_param;
         _hidden_size = lstm_param.bias()->valid_size() / 4 / lstm_param.num_layers;
         int weights_h2h_size = _hidden_size * _hidden_size * 4 * (2 * lstm_param.num_layers - 1);
@@ -61,7 +70,7 @@ public:
         _attn_outs.resize(fc_vec.size());
         _max_seq_len = 100;
         for (int i = 0; i < fc_vec.size(); i++) {
-           Shape shape = {inputs[0]->num(), fc_vec[i]->num_output, 1, 1};
+           Shape shape = {inputs[0]->num(), fc_vec[i].num_output, 1, 1};
            _attn_outs[i] = new DataTensor_out(shape);
         }
 
@@ -101,6 +110,7 @@ private:
     DataTensor_out _cell_out;
     DataTensor_out _lstm_out;
     int _max_seq_len;
+    cublasHandle_t _handle;
 
     std::function<void(const int, const int, const int,
                        const float, const float*, const float,
