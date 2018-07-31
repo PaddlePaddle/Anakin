@@ -15,6 +15,7 @@
 #define ANAKIN_SABER_LITE_FUNCS_SABER_CONV_ACT_H
 
 #include "saber/lite/funcs/saber_conv.h"
+#include "saber/lite/funcs/saber_activation.h"
 #ifdef USE_ARM_PLACE
 
 namespace anakin{
@@ -109,9 +110,9 @@ public:
         this->_flag_init = true;
 
         _conv_op->init(inputs, outputs, ctx);
-        if (param->has_active) {
-            if (param->activation_param.active == Active_relu) {
-                _conv_op->set_activation(param->has_active);
+        if (_param->_flag_act) {
+            if (_param->_act_type == Active_relu) {
+                _conv_op->set_activation(_param->_flag_act);
              } else {
                 if (_act_op == nullptr) {
                     _act_op = new SaberActivation;
