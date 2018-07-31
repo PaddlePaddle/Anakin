@@ -120,8 +120,6 @@ public:
         CUDNN_CHECK(cudnnCreate(&_handle));
         CUDNN_CHECK(cudnnSetStream(_handle, cuda_stream));
 
-
-
         // ---- create cudnn Descs ----
         CUDNN_CHECK(cudnnCreateDropoutDescriptor(&_dropout_desc));
         CUDNN_CHECK(cudnnCreateRNNDescriptor(&_rnn_desc));
@@ -138,11 +136,45 @@ public:
                            NULL,
                            0,
                            0);
+       //_dropout_desc = NULL;
        _hidden_size = lstm_param.bias()->valid_size() / 4 / lstm_param.num_layers;
-       int weights_h2h_size = _hidden_size * _hidden_size * 4 * (2 * lstm_param.num_layers - 1);
+       int weights_h2h_size = _hidden_size * _hidden_size * 4 * lstm_param.num_layers;
        int weights_i2h_size = lstm_param.weight()->valid_size() - weights_h2h_size;
        _word_size = weights_i2h_size / (4 * _hidden_size);
+       
+       cudnn::setRNNDesc<DataDtype>(&_rnn_desc, _handle, _hidden_size,
+                                     lstm_param.num_layers, _dropout_desc, lstm_param.num_direction, CUDNN_LSTM);
+       _x_desc.reset(new cudnn::TensorDescriptors<DataDtype>(
+                        1,
+       {1/*batch_size*/, _word_size, 1},
+       {_word_size, 1, 1}));
+        size_t  weights_size = 0;
+        CUDNN_CHECK(cudnnGetRNNParamsSize(
+                        _handle,
+                        _rnn_desc,
+                        _x_desc->descs()[0],
+                        & weights_size,
+                        cudnn::cudnnTypeWrapper<DataDtype>::type));
 
+        const int dims[] = {
+            static_cast<int>( weights_size / sizeof(Op_dtype)),
+            1,
+            1
+        };
+        CUDNN_CHECK(cudnnSetFilterNdDescriptor(
+                        _w_desc, cudnn::cudnnTypeWrapper<Op_dtype >::type, CUDNN_TENSOR_NCHW, 3, dims));
+        /**
+         * in_weights is tensor of char not the opdata
+         */
+        Shape weight_tensor_shape(1, 1, 1,  weights_size / sizeof(Op_dtype));
+        _inner_weight.reshape(weight_tensor_shape);
+        int sum_size_of_w = get_lstm_params_region(lstm_param);
+        CHECK_EQ(sum_size_of_w,  weights_size) << "Compute param sum length must equal to that api get." ;
+        set_lstm_params_region(lstm_param, _word_size);
+        
+
+       SeqSortedseqTranseUtil seq_utils(lstm_param.is_reverse, lstm_param.num_direction == 2 ? true : false);
+       _seq_utils = seq_utils;
         return create(inputs, outputs, lstm_param, ctx);
     }
 

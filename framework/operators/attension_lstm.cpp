@@ -79,7 +79,7 @@ template<>
 Status AttensionLstmHelper<NV, AK_FLOAT, Precision::FP32>::Init(OpContext<NV>& ctx,
         const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
         std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    SABER_CHECK(_funcs_attension_lstm.init(ins, outs, _param_attension_lstm, STATIC, VENDER_IMPL, ctx));
+    SABER_CHECK(_funcs_attension_lstm.init(ins, outs, _param_attension_lstm, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }
 ANAKIN_REGISTER_OP_HELPER(AttensionLstm, AttensionLstmHelper, NV, AK_FLOAT, Precision::FP32);

@@ -148,7 +148,7 @@ void test_saber_lstm(int sequence_size = 2, int batch_size = 1, int word_size = 
         h_output_vec[0]->sync();
     }
     t2.end(ctx_x86);
-    LOG(INFO) << "!!x86 lstm :" << test_iter << "cudnn test, total time: "
+    LOG(INFO) << "!!x86 lstm :" << test_iter << "x86 lstm test, total time: "
              << t2.get_average_ms();
 #endif
 

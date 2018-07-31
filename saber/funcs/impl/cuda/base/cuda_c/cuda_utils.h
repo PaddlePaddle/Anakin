@@ -42,6 +42,7 @@ public:
    std::vector<int>& get_emit_offset_vec() {return _emit_offset_vec;}
    std::vector<int>& get_map_vec() {return _map_vec;}
    int* get_dev_map_vec() {return _dev_map_vec;}
+   int get_emit_length() {return _emit_length;}
 
     void print_vec(const float* in, int size, const char* perfix) {
         for (int i = 0; i < size; i++) {
@@ -84,7 +85,7 @@ public:
     bool get_sorted_map(std::vector<int>& offset_vec, cudaStream_t stream_id) {
         int batch_size = offset_vec.size() - 1;
         int word_sum = offset_vec[offset_vec.size() - 1];
-        std::vector<int>length_vec(batch_size);
+        std::vector<int> length_vec(batch_size);
         _length_index.resize(batch_size);
         int emit_length = 0;
 
@@ -165,6 +166,7 @@ public:
                                    cudaMemcpyHostToDevice, stream_id));
 
         _emit_offset_vec[max_len] = word_sum;
+        _emit_length = emit_length;
         return true;
     }
 
@@ -174,6 +176,7 @@ private:
     std::vector<int> _length_index;
     std::vector<int> _emit_offset_vec;
     std::vector<int> _map_vec;
+    int _emit_length;
 
     int* _dev_map_vec;
     int _dev_map_vec_length;

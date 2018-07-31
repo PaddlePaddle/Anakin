@@ -71,13 +71,12 @@ public:
         if (!(&ctx == this->_ctx)) {
             this->_ctx = &ctx;
         }
-
         int batch_size = inputs[0]->get_seq_offset().size() - 1;
-        CHECK_GE(batch_size,1)<<"batchsize must >= 1";
-
-        int sequence = inputs[0]->num();
-        _gemm_wx = saber_find_fast_sass_gemm(false, false, sequence, 4 * _hidden_size,_word_size);
-        _gemm_wh = saber_find_fast_sass_gemm(false, false, batch_size, 4 * _hidden_size, _hidden_size);
+        if (batch_size > 0) {
+            int sequence = inputs[0]->num();
+            _gemm_wx = saber_find_fast_sass_gemm(false, false, sequence, 4 * _hidden_size, _word_size);
+            _gemm_wh = saber_find_fast_sass_gemm(false, false, batch_size, 4 * _hidden_size, _hidden_size);
+        }
         return SaberSuccess;
     }
 

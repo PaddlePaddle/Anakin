@@ -136,7 +136,7 @@ template <typename Dtype>
 __global__ void lstm_result_to_sequence(const Dtype * in_data, const int* seq_id_map, const int* offset, const int seq_num,
                 const int word_num, const int hidden_size, Dtype* out_data) {
     int tid = threadIdx.x + blockIdx.x * blockDim.x;
-    if (tid > hidden_size * word_num) {
+    if (tid >= hidden_size * word_num) {
         return;
     }
     int dim_id = tid % hidden_size;
@@ -190,7 +190,6 @@ template<>
     int N_0 = attn_param.fc_vec[0].num_output;
     int K_0 = input->valid_size() / input->num();
     Shape first_fc_out_0_shape = {M_0, N_0, 1, 1};
-    DataTensor_out _first_fc_out_0;
     _first_fc_out_0.reshape(first_fc_out_0_shape);
     auto data_in = input->data();
     auto data_out = _first_fc_out_0.mutable_data();
@@ -212,9 +211,9 @@ template<>
     /*for other fc*/
     for (int word_id = 0; word_id < max_len; word_id++) {
         _attn_outs[0]->reshape(first_fc_out_0_shape);
-        if (word_id > 1) {
-            break;
-        }
+        //if (word_id > 1) {
+        //    break;
+        //}
         
         if (word_id > 0) {
             Shape h_shape = {seq_num,  N_0, 1, 1};
@@ -270,13 +269,13 @@ template<>
 
         sequence_pool<<<CUDA_GET_BLOCKS(seq_num * dim), CUDA_NUM_THREADS, 0, stream>>>(input->data(), _softmax_out.data(), _dev_offset.data(), seq_num, inputs[0]->num(), dim, _pool_out.mutable_data());
         /*data after pool need be sorted or append*/
-        cudaDeviceSynchronize();
-        record_dev_tensorfile<NV>(_pool_out.mutable_data(), _pool_out.valid_size(), "./sequence_pool_out_cu.txt");
-        record_dev_tensorfile<NV>(_softmax_out.mutable_data(), _softmax_out.valid_size(), "./softmax_out_cu.txt");
-        record_dev_tensorfile<NV>(_attn_outs[0]->mutable_data(), _attn_outs[0]->valid_size(), "./attn_fc_0_cu.txt");
-        record_dev_tensorfile<NV>(_attn_outs[1]->mutable_data(), _attn_outs[1]->valid_size(), "./attn_fc_1_cu.txt");
-        record_dev_tensorfile<NV>(_first_fc_out_1.mutable_data(), _first_fc_out_1.valid_size(), "./first_fc_1_cu.txt");
-        record_dev_tensorfile<NV>(attn_param.fc_vec[0].weights->data() + 30, /*attn_param.fc_vec[0]->weights->valid_size()*/ 15, "./fc_0_weight.txt");
+        //cudaDeviceSynchronize();
+        //record_dev_tensorfile<NV>(_pool_out.mutable_data(), _pool_out.valid_size(), "./sequence_pool_out_cu.txt");
+        //record_dev_tensorfile<NV>(_softmax_out.mutable_data(), _softmax_out.valid_size(), "./softmax_out_cu.txt");
+        //record_dev_tensorfile<NV>(_attn_outs[0]->mutable_data(), _attn_outs[0]->valid_size(), "./attn_fc_0_cu.txt");
+        //record_dev_tensorfile<NV>(_attn_outs[1]->mutable_data(), _attn_outs[1]->valid_size(), "./attn_fc_1_cu.txt");
+        //record_dev_tensorfile<NV>(_first_fc_out_1.mutable_data(), _first_fc_out_1.valid_size(), "./first_fc_1_cu.txt");
+        //record_dev_tensorfile<NV>(attn_param.fc_vec[0].weights->data() + 30, /*attn_param.fc_vec[0]->weights->valid_size()*/ 15, "./fc_0_weight.txt");
         
         
         auto  x_data = _pool_out.data();
@@ -293,13 +292,17 @@ template<>
         
         lstm_bias_and_act<<<CUDA_GET_BLOCKS(seq_num * hidden_size), CUDA_NUM_THREADS, 0, stream>>>(_hidden_out.data(), _bias_data, _lstm_out.mutable_data() + word_id * seq_num * hidden_size, cell_data, seq_num, hidden_size); 
     }
+    CUDA_CHECK(cudaDeviceSynchronize());
+    CUDA_CHECK(cudaPeekAtLastError());
     lstm_result_to_sequence<<<CUDA_GET_BLOCKS(word_num * hidden_size), CUDA_NUM_THREADS, 0, stream>>>(_lstm_out.mutable_data(), _dev_seq_id_map.data(), 
         _dev_offset.data(), seq_num, word_num, hidden_size, outputs[0]->mutable_data());
 
     outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
-    cudaDeviceSynchronize();
-    record_dev_tensorfile<NV>(outputs[0]->data(), outputs[0]->valid_size(), "./final_out.txt");
-    record_dev_tensorfile<NV>(_lstm_out.mutable_data(), _lstm_out.valid_size(), "./lstm_out.txt");
+    CUDA_CHECK(cudaDeviceSynchronize());
+    CUDA_CHECK(cudaPeekAtLastError());
+    //cudaDeviceSynchronize();
+    //record_dev_tensorfile<NV>(outputs[0]->data(), outputs[0]->valid_size(), "./final_out.txt");
+    //record_dev_tensorfile<NV>(_lstm_out.mutable_data(), _lstm_out.valid_size(), "./lstm_out.txt");
     return SaberSuccess;
 }
 

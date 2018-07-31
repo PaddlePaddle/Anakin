@@ -80,7 +80,11 @@ Status LstmHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype> &ctx,
                                                 const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
                                                 std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
     DLOG(INFO)<<"inti lstm in op.cpp";
+    #ifdef USE_CUDA
+    SABER_CHECK(_funcs_lstm.init(ins, outs, _param_lstm, SPECIFY, VENDER_IMPL, ctx));
+    #else
     SABER_CHECK(_funcs_lstm.init(ins, outs, _param_lstm, SPECIFY, SABER_IMPL, ctx));
+    #endif
     return Status::OK();
 }
 

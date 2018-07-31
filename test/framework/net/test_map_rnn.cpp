@@ -31,6 +31,7 @@ DEFINE_string(model_file, "", "model file");
 DEFINE_int32(num, 1, "batchSize");
 DEFINE_int32(warmup_iter, 10, "warm up iterations");
 DEFINE_int32(epoch, 1000, "time statistic epoch");
+DEFINE_int32(batch_size, 1, "seq num");
 #else
 std::string FLAGS_model_dir;
 std::string FLAGS_model_file;
@@ -237,6 +238,9 @@ TEST(NetTest, net_execute_base_test) {
             h_tensor_in_1->copy_from(h_tensor_1);       
             h_tensor_in_2->copy_from(h_tensor_2);       
             LOG(WARNING) << "EXECUTER !!!!!!!! ";
+#ifdef USE_CUDA
+            cudaDeviceSynchronize();
+#endif
             for (int i = 0; i < FLAGS_warmup_iter; i++) {
                 net_executer.prediction();
                 //cudaDeviceSynchronize();
@@ -271,19 +275,45 @@ TEST(NetTest, net_execute_base_test) {
                h_tensor_in_1->reshape(Shape(week_fea.size(), 10, 1, 1));
                h_tensor_in_2->reshape(Shape(time_fea.size(), 10, 1, 1));
                h_tensor_in_0->set_seq_offset(seq_offset);
+#ifdef USE_CUDA
+               Tensor4d<Target_H, AK_FLOAT> h_tensor_0;
+               Tensor4d<Target_H, AK_FLOAT> h_tensor_1;
+               Tensor4d<Target_H, AK_FLOAT> h_tensor_2;
+               h_tensor_0.reshape(h_tensor_in_0->valid_shape());
+               h_tensor_1.reshape(h_tensor_in_1->valid_shape());
+               h_tensor_2.reshape(h_tensor_in_2->valid_shape());
+               for (int i = 0; i < fea.size(); i++) {
+                   memcpy(h_tensor_0.mutable_data() + i * 38, &fea[i][0], sizeof(float)*38);
+               }
+               for (int i = 0; i < week_fea.size(); i++) {
+                   memcpy(h_tensor_1.mutable_data() + i * 10, &week_fea[i][0], sizeof(float)*10);
+               }
+               for (int i = 0; i < time_fea.size(); i++) {
+                   memcpy(h_tensor_2.mutable_data() + i * 10, &time_fea[i][0], sizeof(float)*10);
+               }
+               h_tensor_in_0->copy_from(h_tensor_0);       
+               h_tensor_in_1->copy_from(h_tensor_1);       
+               h_tensor_in_2->copy_from(h_tensor_2);       
+#else
                for (int i = 0; i < fea.size(); i++) {
                    memcpy(h_tensor_in_0->mutable_data() + i * 38, &fea[i][0], sizeof(float)*38);
                }
                for (int i = 0; i < week_fea.size(); i++) {
-                   memcpy(h_tensor_in_1->mutable_data() + i * 10, &week_fea[i][0], sizeof(float)*10);
+                   memcpy(h_tensor__in_1->mutable_data() + i * 10, &week_fea[i][0], sizeof(float)*10);
                }
                for (int i = 0; i < time_fea.size(); i++) {
                    memcpy(h_tensor_in_2->mutable_data() + i * 10, &time_fea[i][0], sizeof(float)*10);
                }
+#endif
+                   
                 net_executer.prediction();
-                //cudaDeviceSynchronize();
+                #ifdef USE_CUDA
+                cudaDeviceSynchronize();
                 auto out = net_executer.get_out("final_output.tmp_1_gout");
-                //print_tensor_host(*out);
+                //print_tensor_device(*out);
+                
+                cudaDeviceSynchronize();
+                #endif
                 break;
            }
            my_time.end(ctx);

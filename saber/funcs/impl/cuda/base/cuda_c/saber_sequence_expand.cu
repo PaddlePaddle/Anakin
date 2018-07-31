@@ -31,7 +31,6 @@ SaberStatus SaberSequenceExpand<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, \
     const InDataType *in_data = (const InDataType*)inputs[0]->data();
     OutDataType *out_data = (OutDataType*)outputs[0]->mutable_data();
 
-    const int count = inputs[0]->valid_size();
     cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
     auto ref_seq_offset = inputs[1]->get_seq_offset();
     auto cur_seq_offset = inputs[0]->get_seq_offset();
@@ -55,6 +54,7 @@ SaberStatus SaberSequenceExpand<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, \
      _seq_id_map.reshape(Shape(id_map.size(), 1, 1, 1));
      cudaMemcpyAsync(_seq_id_map.mutable_data(), &id_map[0], sizeof(int) * id_map.size(), cudaMemcpyHostToDevice, cuda_stream);
 
+    const int count = outputs[0]->valid_size();
      ker_sequence_expand<InDataType>
              <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(
              out_data, in_data, _seq_id_map.data(), count, inputs[0]->valid_size() / in_shape[0]);

@@ -90,7 +90,7 @@ public:
             const std::vector<int>& dim,
             const std::vector<int>& stride) {
         descs_.resize(n);
-                CHECK_EQ(dim.size(), stride.size());
+        CHECK_EQ(dim.size(), stride.size());
         for (auto i = 0; i < n; ++i) {
             CUDNN_CHECK(cudnnCreateTensorDescriptor(&descs_[i]));
             CUDNN_CHECK(cudnnSetTensorNdDescriptor(

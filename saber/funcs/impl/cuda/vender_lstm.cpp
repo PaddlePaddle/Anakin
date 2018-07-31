@@ -11,33 +11,35 @@ set_lstm_params_region(LstmParam<OpTensor>& param, int word_size) {
     if (param.with_peephole) {
         hidden_size = param.bias()->valid_size() / 7;
     }
-    int bias_size = param.bias() != nullptr ? 1 : 0;
-    int weight_size_per_layer = 4 * hidden_size * (word_size + hidden_size + bias_size);
+    int bias_size_per_layer = 4 * hidden_size;
+    int weight_size_per_layer = 4 * hidden_size * (word_size + hidden_size);
     int wx_stride = word_size * hidden_size;
     int wh_stride = hidden_size * hidden_size;
+    cudaStream_t cuda_stream;
+    cuda_stream = this->_ctx->get_compute_stream();
     for (int layer_id = 0; layer_id < param.num_layers; layer_id++) {
         const Op_dtype* w_ptr = param.weight()->data() + layer_id * weight_size_per_layer;
-        const Op_dtype* w_xc = w_ptr;                
-        const Op_dtype* w_xi = w_ptr + wx_stride;     
-        const Op_dtype* w_xf = w_ptr + 2 * wx_stride; 
+        const Op_dtype* w_xi = w_ptr;                
+        const Op_dtype* w_xf = w_ptr + wx_stride;     
+        const Op_dtype* w_xc = w_ptr + 2 * wx_stride; 
         const Op_dtype* w_xo = w_ptr + 3 * wx_stride; 
 
         const Op_dtype* w_ptr_inner  = w_ptr + 4 * wx_stride;
-        const Op_dtype* w_hc = w_ptr_inner;                 
-        const Op_dtype* w_hi = w_ptr_inner + 1 * wh_stride; 
-        const Op_dtype* w_hf = w_ptr_inner + 2 * wh_stride; 
+        const Op_dtype* w_hi = w_ptr_inner;                 
+        const Op_dtype* w_hf = w_ptr_inner + 1 * wh_stride; 
+        const Op_dtype* w_hc = w_ptr_inner + 2 * wh_stride; 
         const Op_dtype* w_ho = w_ptr_inner + 3 * wh_stride; 
 
-        const Op_dtype* b_c = nullptr;
         const Op_dtype* b_i = nullptr;
         const Op_dtype* b_f = nullptr;
+        const Op_dtype* b_c = nullptr;
         const Op_dtype* b_o = nullptr;
 
         if (param.bias() != nullptr) {
-            b_c = param.bias()->data();
-            b_i = b_c + hidden_size;
+            b_i = param.bias()->data() + layer_id * bias_size_per_layer;
             b_f = b_i + hidden_size;
-            b_o = b_f + hidden_size;
+            b_c = b_f + hidden_size;
+            b_o = b_c + hidden_size;
         }
 
         const Op_dtype* cudnnW[] = {w_xi, w_xf, w_xc, w_xo, w_hi, w_hf, w_hc, w_ho}; 
@@ -45,19 +47,19 @@ set_lstm_params_region(LstmParam<OpTensor>& param, int word_size) {
 
         for (int i = 0; i < _cudnn_lstm_weights_layernum; i++) {
             ParamsRegion& region = _inner_weight_region[i];
-            CUDA_CHECK(cudaMemcpy((void*)(region._offset), (void*)cudnnW[i],
+            CUDA_CHECK(cudaMemcpyAsync((void*)(region._offset), (void*)cudnnW[i],
                                   region._size,
-                                  cudaMemcpyDeviceToDevice));
+                                  cudaMemcpyDeviceToDevice, cuda_stream));
         }
 
         for (int i = 0; i < _cudnn_lstm_weights_layernum; i++) {
             ParamsRegion& region_b = _inner_bias_region[i];
             if (cudnnB[i] != nullptr) {
-                CUDA_CHECK(cudaMemcpy((void*)(region_b._offset), (void*)cudnnB[i],
+                CUDA_CHECK(cudaMemcpyAsync((void*)(region_b._offset), (void*)cudnnB[i],
                                       region_b._size,
-                                      cudaMemcpyDeviceToDevice));
+                                      cudaMemcpyDeviceToDevice, cuda_stream));
             } else {
-                CUDA_CHECK(cudaMemset((void*)(region_b._offset), 0, region_b._size));
+                CUDA_CHECK(cudaMemsetAsync((void*)(region_b._offset), 0, region_b._size, cuda_stream));
             }
         }
     }
@@ -73,7 +75,8 @@ get_lstm_params_region(LstmParam<OpTensor>& param) {
      * lstm in rnn has 8 bias layer
      */
     int region_count_of_layer = _cudnn_lstm_weights_layernum;
-    //    LOG(INFO) << "numLayers= " << param.numLayers << ",region_count_of_layer=" << region_count_of_layer;
+    _inner_weight_region.clear();
+    _inner_bias_region.clear();
 
     for (int layer = 0; layer < param.num_layers; layer++) {
         for (int region = 0; region < region_count_of_layer; region++) {
@@ -113,7 +116,6 @@ get_lstm_params_region(LstmParam<OpTensor>& param) {
                                                        &nbDims,
                                                        dims));                         /* filterDimA[] */
                 size_t size = dims[0] * dims[1] * dims[2] * sizeof(Op_dtype);
-                //                        LOG(INFO) << "size add  "<<size<<",layer"<<layer<<",region"<<region<<"trigger"<<trigger;
                 sum_size_of_weights_and_bias += size;
                 auto regionp = ParamsRegion{offset, size};
 
@@ -161,9 +163,6 @@ create(const std::vector<DataTensor*>& inputs,
     size_t state_size;
     auto offset_after_sort = _seq_utils.get_emit_offset_vec();
 
-    cudnn::setRNNDesc<DataDtype>(&_rnn_desc, _handle, _hidden_size,
-                                 lstm_param.num_layers, _dropout_desc, lstm_param.num_direction, CUDNN_LSTM);
-
     _x_desc.reset(new cudnn::TensorDescriptors<DataDtype>(
                      offset_after_sort,
     {batch_size, _word_size, 1},
@@ -174,10 +173,10 @@ create(const std::vector<DataTensor*>& inputs,
     {batch_size, _hidden_size * lstm_param.num_direction, 1},
     {_hidden_size  * lstm_param.num_direction, 1, 1}));
 
-    Shape in_dim = inputs[0]->shape();
+    Shape in_dim = inputs[0]->valid_shape();
     Shape in_stride = inputs[0]->get_stride();
 
-    Shape out_dim = outputs[0]->shape();
+    Shape out_dim = outputs[0]->valid_shape();
     Shape out_stride = outputs[0]->get_stride();
 
     int dim[] = {lstm_param.num_layers * lstm_param.num_direction, batch_size, _hidden_size};
@@ -191,32 +190,6 @@ create(const std::vector<DataTensor*>& inputs,
                                        3, dim, stride);
     cudnn::setTensorNdDesc<DataDtype >(&_cy_desc,
                                        3, dim, stride);
-
-    size_t  weights_size = 0;
-    CUDNN_CHECK(cudnnGetRNNParamsSize(
-                    _handle,
-                    _rnn_desc,
-                    _x_desc->descs()[0],
-                    & weights_size,
-                    cudnn::cudnnTypeWrapper<DataDtype>::type));
-
-    const int dims[] = {
-        static_cast<int>( weights_size / sizeof(Op_dtype)),
-        1,
-        1
-    };
-    CUDNN_CHECK(cudnnSetFilterNdDescriptor(
-                    _w_desc, cudnn::cudnnTypeWrapper<Op_dtype >::type, CUDNN_TENSOR_NCHW, 3, dims));
-    /**
-     * in_weights is tensor of char not the opdata
-     */
-    Shape weight_tensor_shape(1, 1, 1,  weights_size / sizeof(Op_dtype));
-    _inner_weight.re_alloc(weight_tensor_shape);
-
-    int sum_size_of_w = get_lstm_params_region(lstm_param);
-    CHECK_EQ(sum_size_of_w,  weights_size) << "Compute param sum length must equal to that api get." ;
-    set_lstm_params_region(lstm_param, _word_size);
-
     CUDNN_CHECK(cudnnGetRNNWorkspaceSize(
                     _handle,
                     _rnn_desc,
@@ -224,7 +197,7 @@ create(const std::vector<DataTensor*>& inputs,
                     _x_desc->descs(),
                     &_workspace_size_in_bytes));
 
-    _workspace_tensor.re_alloc(Shape(1, 1, 1, _workspace_size_in_bytes));
+    _workspace_tensor.reshape(Shape(1, 1, 1, _workspace_size_in_bytes));
     return SaberSuccess;
 }
 template<>
@@ -233,6 +206,7 @@ dispatch(const std::vector<DataTensor*>& inputs,
         std::vector<OutDataTensor*>& outputs,
         LstmParam<OpTensor>& param) {
     CHECK_GE(inputs.size(), 1) << "lstm input vec size must >=1";
+    outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
     int input_channel = inputs[0]->channel();
     const DataDtype* in_data = inputs[0]->data();
     DataDtype* out_data = outputs[0]->mutable_data();
@@ -269,7 +243,6 @@ dispatch(const std::vector<DataTensor*>& inputs,
                                              _workspace_tensor.mutable_data(),
                                              _workspace_size_in_bytes));
         _seq_utils.sorted_seq_2_seq(temp_out_data, out_data, _hidden_size, this->_ctx->get_compute_stream());
-        outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
 
     } else {
         CUDNN_CHECK(cudnnRNNForwardInference(_handle,
