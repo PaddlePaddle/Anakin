@@ -233,6 +233,59 @@ private:
     Tensor<TargetType>* weight_tensor;
 };
 
+template <typename TargetType>
+struct FcParam {
+    FcParam() = default;
+
+    FcParam(Tensor<TargetType>* input_weight, int output_num, int in_axis = 1,
+            bool trans = false) {
+
+        num_output = output_num;
+        weights = input_weight;
+        bias = nullptr;
+        axis = in_axis;
+        is_transpose_weights = trans;
+    }
+    FcParam(Tensor<TargetType>* input_weight, Tensor<TargetType>* input_bias, int output_num,
+            int in_axis = 1, bool trans = false) {
+
+        num_output = output_num;
+        weights = input_weight;
+        bias = input_bias;
+        axis = in_axis;
+        is_transpose_weights = trans;
+    }
+
+    FcParam(const FcParam &right) {
+        weights = right.weights;
+        bias = right.bias;
+        num_output = right.num_output;
+        axis = right.axis;
+        is_transpose_weights = right.is_transpose_weights;
+    }
+
+    FcParam& operator=(const FcParam &right) {
+        this->weights = right.weights;
+        this->bias = right.bias;
+        this->num_output = right.num_output;
+        this->axis = right.axis;
+        this->is_transpose_weights = right.is_transpose_weights;
+        return *this;
+    }
+
+    bool operator==(const FcParam &right) {
+        bool flag = this->is_transpose_weights == right.is_transpose_weights;
+        flag = flag && (this->num_output == right.num_output) && (this->axis == right.axis);
+        return flag && (this->weights == right.weights) && (this->bias == right.bias);
+    }
+
+    bool is_transpose_weights{false};
+    int num_output;
+    int axis{1};
+    Tensor<TargetType>* weights{nullptr};
+    Tensor<TargetType>* bias{nullptr};
+};
+
 }
 }
 #endif //SABER_FUNCS_PARAM_H
