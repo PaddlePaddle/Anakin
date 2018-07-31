@@ -14,12 +14,14 @@ SaberConv2DAct<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::SaberConv2D
 
 template <>
 SaberConv2DAct<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::~SaberConv2DAct() {
+
+    //printf("flag_relu: %d \n", this->_param->has_active);
+  //  printf("~SaberConvAct2D start\n");
     delete _conv_op;
     if(_act_op) {
         delete _act_op;
     }
-
-    printf("~SaberConvAct2D\n");
+  //  printf("~SaberConvAct2D end\n");
 }
 
 template <>

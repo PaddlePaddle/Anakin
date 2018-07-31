@@ -96,14 +96,14 @@ SaberDeconv2D::SaberDeconv2D() {
 }
 
 SaberDeconv2D::SaberDeconv2D(const ParamBase* param) {
-    _param = (DeConv2DParam*)param;
+    _param = (Conv2DParam*)param;
     this->_flag_param = true;
 }
 
 SaberDeconv2D::~SaberDeconv2D() {}
 
 SaberStatus SaberDeconv2D::load_param(const ParamBase *param) {
-    _param = (DeConv2DParam*)(param);
+    _param = (Conv2DParam*)(param);
     this->_flag_param = true;
     return SaberSuccess;
 }
@@ -168,11 +168,12 @@ SaberStatus SaberDeconv2D::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inpu
     l1_cache = l1_cache > 0? l1_cache : 31000;
     //! if L2 cache size is not provided, set to 2M
     l2_cache = l2_cache > 0? l2_cache : 2000000;
-
-    if (chin != chout || conv_param.group != chin) {
-        CHECK_EQ(chin % conv_param.group, 0) << "input channel or group size error";
-        CHECK_EQ(chout % conv_param.group, 0) << "output channel or group size error";
+/*
+    if (chin != chout || _param->group != chin) {
+        CHECK_EQ(chin % _param->group, 0) << "input channel or group size error";
+        CHECK_EQ(chout % _param->group, 0) << "output channel or group size error";
     }
+    */
     //! deconv weights layout: chin * chout * kh * kw
     _m = chout * _param->_kw * _param->_kh / _param->_group;
     _n = hin * win;
@@ -236,7 +237,7 @@ SaberStatus SaberDeconv2D::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &
             const float* weights_group = weights + g * group_size_weights;
             float* coldata_group = col_data + g * group_size_coldata;
 
-            if (conv_param.bias()->valid_size() == 0) {
+            if (_param->_bias == NULL) {
                 _gemmer(weights_group, _m, din_group, _n, coldata_group, _n, 1.f, 0.f, _flag_relu);
             }else{
                 _gemmer(weights_group, _m, din_group, _n, coldata_group, _n, 1.f, 0.f, false);
@@ -250,9 +251,9 @@ SaberStatus SaberDeconv2D::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &
         }
 
         //! add bias
-        if (conv_param.bias()->valid_size() > 0) {
+        if (_param->_bias != NULL) {
             //fill_bias(dout_batch, _param->_bias, chout, wout * hout);
-            fill_bias_relu(dout_batch, conv_param.bias()->data(), chout, wout * hout, _flag_relu);
+            fill_bias_relu(dout_batch, _param->_bias, chout, wout * hout, _flag_relu);
         }
 
     }
