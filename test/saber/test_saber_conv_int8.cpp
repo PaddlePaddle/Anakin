@@ -42,9 +42,9 @@ int test_conv_results(int group,
     Tensor<TargetType_H> input_host;
     input_dev.re_alloc(input_s, AK_FLOAT);
     input_host.re_alloc(input_s, AK_FLOAT);
-    fill_tensor_rand(input_dev, -10.0f, 10.0f);
+    fill_tensor_rand(input_dev, 0.0f, 10.0f);
     input_host.copy_from(input_dev);
-    input_dev.set_scale({21.f / 128});
+    input_dev.set_scale({10.1f / 128});
 //    LOG(INFO) << input_dev.get_scale()[0];
 
     // init weights Tensor
@@ -52,7 +52,7 @@ int test_conv_results(int group,
     Tensor<TargetType_H> weights_host;
     weights_dev.re_alloc(weights_s, AK_FLOAT);
     weights_host.re_alloc(weights_s, AK_FLOAT);
-    fill_tensor_rand(weights_dev, -10.0f, 10.0f);
+    fill_tensor_rand(weights_dev, 0.0f, 10.0f);
     weights_host.copy_from(weights_dev);
 
     Tensor<TargetType> bias_dev;
@@ -68,11 +68,11 @@ int test_conv_results(int group,
     Tensor<TargetType_H> check_host;
 
     Context<TargetType> ctx1(0, 1, 1);
-    ActivationParam<TargetType> act_param(Active_relu);
+//    ActivationParam<TargetType> act_param(Active_relu);
     ConvParam<TargetType> param(group, pad_h, pad_w,
                                 stride_h, stride_w,
                                 dilation_h, dilation_w,
-                                &weights_dev, &bias_dev, act_param);
+                                &weights_dev, &bias_dev);
     Conv<TargetType, AK_INT8> conv;
     std::vector<Tensor<TargetType>* > input_v;
     std::vector<Tensor<TargetType>* > output_v;
@@ -147,8 +147,8 @@ TEST(TestSaberFunc, test_saber_conv_int8_results) {
     std::vector<int> in_channels_v{4, 8};
     std::vector<int> out_channels_v{4, 8, 12};
 //    std::vector<int> group_v{1, 2, 32};
-    std::vector<int> in_h_v{17, 32};
-    std::vector<int> in_w_v{20, 32};
+    std::vector<int> in_h_v{4, 6};
+    std::vector<int> in_w_v{4, 6};
     std::vector<int> input_num_v{1, 3};
     std::vector<bool> bias_term_v{true, false};
 #ifdef USE_CUDA

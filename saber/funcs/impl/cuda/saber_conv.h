@@ -19,6 +19,7 @@
 #include <vector>
 #include "saber/funcs/impl/impl_conv.h"
 #include "saber/funcs/impl/cuda/base/sass_funcs.h"
+#include "saber/funcs/impl/cuda/saber_activation.h"
 #include "saber/funcs/funcs_utils.h"
 
 namespace anakin{
@@ -32,7 +33,9 @@ public:
     typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
 
     SaberConv2D() = default;
-    ~SaberConv2D() {}
+    ~SaberConv2D() {
+        delete _saber_act;
+    }
 
     virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
                              std::vector<Tensor<NV> *>& outputs,
@@ -99,7 +102,8 @@ public:
     }
 
 private:
-
+    bool _with_saber_act{false};
+    SaberActivation<NV, OpDtype> *_saber_act{nullptr};
     int _kernel_height;
     int _kernel_width;
     std::function<void(const float*,

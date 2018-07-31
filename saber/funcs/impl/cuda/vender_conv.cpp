@@ -59,7 +59,7 @@ SaberStatus VenderConv2D<NV, AK_FLOAT>::\
     cudnn::setConvolutionNdDesc<OpDataType >(&_conv_descs,
                                              inputs[0]->dims() - 2, pad_a,
                                              filter_stride_a, dilation_a);
-    if(param.activation_param.has_active) {
+    if(param.activation_param.has_active && param.activation_param.active == Active_relu) {
         cudnn::set_activation_des<OpDataType>(&_active_descs, param.activation_param.active);
     }
     // true: use tensor core
@@ -126,14 +126,21 @@ SaberStatus VenderConv2D<NV, AK_FLOAT>::\
     cudnn::createConvolutionDesc<OpDataType>(&_conv_descs);
 
     if (param.activation_param.has_active) {
-        cudnn::create_activation_des<OpDataType>(&_active_descs);
+        if (param.activation_param.active == Active_relu) {
+            cudnn::create_activation_des<OpDataType>(&_active_descs);
+        } else {
+            _with_saber_act = true;
+        }
     }
     if (param.bias()->size() > 0) {
         cudnn::createTensorDesc<OpDataType>(&_bias_desc);
     }
     cudnnCreateTensorDescriptor(&_input_nchw_descs);
     cudnnCreateTensorDescriptor(&_output_nchw_descs);
-
+    if (_with_saber_act) {
+        _saber_act = new SaberActivation<NV, AK_FLOAT>;
+        _saber_act->init(outputs, outputs, param.activation_param, ctx);
+    }
     return create(inputs, outputs, param, ctx);
 }
 
@@ -147,7 +154,7 @@ SaberStatus VenderConv2D<NV, AK_FLOAT>::dispatch(
     float* out_data = (float*)outputs[0]->mutable_data();
     const float* weight_data = (const float*) param.weight()->data();
 
-    if (param.activation_param.has_active) {
+    if (param.activation_param.has_active && param.activation_param.active == Active_relu) {
         if (param.bias()->size() > 0) {
             const float * bias_data = (const float*)param.bias()->data();
             CUDNN_CHECK(cudnnConvolutionBiasActivationForward(_handle,
@@ -192,6 +199,9 @@ SaberStatus VenderConv2D<NV, AK_FLOAT>::dispatch(
                                        cudnn::cudnnTypeWrapper<float>::kOne(),
                                        _output_descs, out_data));
         }
+    }
+    if (_with_saber_act) {
+        _saber_act->dispatch(outputs, outputs, param.activation_param);
     }
     return SaberSuccess;
 }
@@ -306,6 +316,9 @@ SaberStatus VenderConv2D<NV, AK_INT8>::\
     bool use_int8 = true;
     use_int8 &= ((inputs[0]->channel() % 4) == 0);
     use_int8 &= ((outputs[0]->channel() % 4) == 0);
+    // INT8 only support Active relu
+    use_int8 &= ((!param.activation_param.has_active)
+                 || (param.activation_param.active == Active_relu));
 
     if (!use_int8) {
         return SaberInvalidValue;

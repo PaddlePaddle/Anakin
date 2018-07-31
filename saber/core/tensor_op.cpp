@@ -169,6 +169,7 @@ void tensor_cmp_host(const Dtype* src1, const Dtype* src2, \
         if (max_diff < diff) {
             max_diff = diff;
             max_ratio = fabs(2.0 * max_diff / (src1[i] + src2[i] + eps));
+            //LOG(INFO) << "compare two src1: "<< src1[i] << " src2: "<< src2[i] << "i = "<< i << " max_ratio: " << max_ratio ;
         }
     }
 }

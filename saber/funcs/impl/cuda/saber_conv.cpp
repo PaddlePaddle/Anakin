@@ -15,19 +15,40 @@ SaberStatus SaberConv2D<NV, AK_FLOAT>::\
         param.stride_w == 1 &&
         param.weight()->height() == 3 &&
         param.weight()->width() == 3 && param.group == 1) {
-        dispatch_func = winograd_conv<float, OpDataType>;
+        if (param.activation_param.has_active) {
+            if (param.activation_param.active == Active_relu) {
+                dispatch_func = winograd_conv_relu<float, OpDataType>;
+            } else {
+                _with_saber_act = true;
+                dispatch_func = winograd_conv<float, OpDataType>;
+            }
+        } else {
+            dispatch_func = winograd_conv<float, OpDataType>;
+        }
     } else if (param.group == 1) {
         const int K = param.weight()->num();
         if (K % 4 == 0) {
-            if (param.bias()->size() > 0) {
+            if (param.bias()->size() > 0 && !param.activation_param.has_active) {
                 dispatch_func = direct_conv_bias_Kdivis4<float, OpDataType>;
+            } else if (param.bias()->valid_size() > 0 && param.activation_param.active == Active_relu) {
+                dispatch_func = direct_conv_bias_relu_Kdivis4<float, OpDataType>;
             } else {
+                if (param.activation_param.has_active) {
+                    // NOT SUPPORT conv relu fusion
+                    _with_saber_act = true;
+                }
                 dispatch_func = direct_conv_Kdivis4<float, OpDataType>;
             }
         } else {
-            if (param.bias()->size() > 0) {
+            if (param.bias()->size() > 0 && !param.activation_param.has_active) {
                 dispatch_func = direct_conv_bias_Kindiv4<float, OpDataType>;
+            } else if (param.bias()->valid_size() > 0 && param.activation_param.active == Active_relu) {
+                dispatch_func = direct_conv_bias_relu_Kindiv4<float, OpDataType>;
             } else {
+                if (param.activation_param.has_active) {
+                    // NOT SUPPORT conv relu fusion
+                    _with_saber_act = true;
+                }
                 dispatch_func = direct_conv_Kindiv4<float, OpDataType>;
             }
         }
@@ -39,6 +60,10 @@ SaberStatus SaberConv2D<NV, AK_FLOAT>::\
     _kernel_width = param.weight()->width();
     trans_weights(inputs, outputs, param, ctx);
     cudaDeviceSynchronize();
+    if (_with_saber_act) {
+        _saber_act = new SaberActivation<NV, AK_FLOAT>;
+        _saber_act->init(outputs, outputs, param.activation_param, ctx);
+    }
     return create(inputs, outputs, param, ctx);
 }
 
@@ -85,6 +110,9 @@ SaberStatus SaberConv2D<NV, AK_FLOAT>::\
                   param.beta,
                   this->_ctx->get_compute_stream());
 
+    if (_with_saber_act) {
+        _saber_act->dispatch(outputs, outputs, param.activation_param);
+    }
     CUDA_CHECK(cudaGetLastError());
     return SaberSuccess;
 }

@@ -17,6 +17,7 @@
 #define ANAKIN_SABER_FUNCS_IMPL_CUDA_CUDNN_CONV2D_H
 
 #include "saber/funcs/impl/impl_conv.h"
+#include "saber/funcs/impl/cuda/saber_activation.h"
 #include <cudnn.h>
 
 namespace anakin{
@@ -80,6 +81,7 @@ public:
             CUDNN_CHECK(cudnnDestroyTensorDescriptor(_output_nchw_descs));
         }
         cudaFree(weights_scale);
+        delete _saber_act;
     }
 
     /**
@@ -127,6 +129,8 @@ private:
     cudnnTensorDescriptor_t _input_nchw_descs;
     cudnnTensorDescriptor_t _output_nchw_descs;
 
+    bool _with_saber_act{false};
+    SaberActivation<NV, OpDtype> *_saber_act{nullptr};
     float* weights_scale;
     Tensor<NV> int8_weights;
     Tensor<NV> int8_input;
