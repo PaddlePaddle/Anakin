@@ -146,6 +146,13 @@ ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScaleRelu, ConvBatchnormScaleReluHelper, 
                                   Precision::FP32);
 #endif
 
+#ifdef USE_X86_PLACE
+INSTANCE_CONVBATCHNORMSCALERELU(X86, AK_FLOAT, Precision::FP32);
+template class ConvBatchnormScaleReluHelper<X86, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScaleRelu, ConvBatchnormScaleReluHelper, X86, AK_FLOAT,
+                                  Precision::FP32);
+#endif
+
 //! register op
 ANAKIN_REGISTER_OP(ConvBatchnormScaleRelu)
 .Doc("ConvBatchnormScaleRelu fusion operator")
@@ -155,7 +162,9 @@ ANAKIN_REGISTER_OP(ConvBatchnormScaleRelu)
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale_relu")
 #endif
-
+#ifdef USE_X86_PLACE
+.__alias__<X86, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale_relu")
+#endif
 .num_in(1)
 .num_out(1)
 .Args<int>("group", " group of conv ")

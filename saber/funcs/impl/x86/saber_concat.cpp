@@ -51,7 +51,7 @@ LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(\
         }
         offset_concat_axis += in_concat_axis;
     }
-    CHECK_GE(inputs[0]->get_seq_offset().size(), 2);
+//    CHECK_GE(inputs[0]->get_seq_offset().size(), 2);
     outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
     return SaberSuccess;
 }
