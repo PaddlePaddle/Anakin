@@ -527,6 +527,12 @@ TEST(TestSaberFunc, test_saber_conv_op_func) {
                                           pad_h, pad_w, bias_term, SPECIFY, SABER_IMPL);
         }
 #endif
+//        if (test_conv_results<NV, NVHX86>(1, input_num, in_channels,
+//                                    height, width, out_channels, kernel_h,
+//                                    kernel_w, 1, 1, 1, 1,
+//                                    pad_h, pad_w, bias_term, RUNTIME, SABER_IMPL) != 0) {
+//                                        LOG(INFO) << " runtime results error!";
+//                                    }
     }
 }
 
