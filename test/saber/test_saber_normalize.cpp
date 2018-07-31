@@ -101,9 +101,9 @@ void norm_cpu_nchw(const std::vector<Tensor<TargetType_H>*>& input,std::vector<T
                     //LOG(INFO)<<"norm:"<<norm;
                     
                     if (p == 1) {
-                        norm += fabsf(src_pixel[l * channel_in_size]);
+                        norm =1.f / (norm + eps);
                     } else {
-                        norm += src_pixel[l * channel_in_size] * src_pixel[l * channel_in_size];
+                        norm =1.f / sqrtf(norm+eps);
                     }
                     for (int l = 0; l < c; ++l) {
                         if (has_scale) {
@@ -122,20 +122,12 @@ void norm_cpu_nchw(const std::vector<Tensor<TargetType_H>*>& input,std::vector<T
                             //LOG(INFO)<<"norm_dd:"<<norm;
                             
                         }
-                    } else {
-                        dst_pixel[l * channel_in_size] = \
-                        src_pixel[l * channel_in_size] * norm;
-                        //LOG(INFO)<<"dst:"<<dst_pixel[l * channel_in_size];
-                        //LOG(INFO)<<"src:"<<src_pixel[l * channel_in_size];
-                        //LOG(INFO)<<"norm_dd:"<<norm;
-                        
                     }
                 }
             }
          }
     }
  }
-}
 
 
 TEST(TestSaberFunc, test_func_normalize) {

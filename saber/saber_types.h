@@ -292,12 +292,6 @@ typedef enum{
     CUSTOM
 } TestDataType;
 
-typedef enum {
-    RANDOM=0,
-    CUSTOM,
-    SPECIAL
-} TestDataType;
-
 } //namespace saber
 
 } //namespace anakin
