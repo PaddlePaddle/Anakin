@@ -84,7 +84,7 @@ int test_conv_results(int group,
     double max_diff = 0.0;
     tensor_cmp_host((const float*)output_host.data(), (const float*)check_host.data(),
                     check_host.valid_size(), max_ratio, max_diff);
-    if (max_ratio < 1e-5) {
+    if (max_ratio < 1e-4) {
         LOG(INFO) << " PASS!!! max_ratio = " << max_ratio << " max_diff = " << max_diff;
         return 0;
     } else {
@@ -289,7 +289,7 @@ void test_conv_ab_test(int group,
         double max_diff = 0.0;
         tensor_cmp_host((const float *) output_host.data(), (const float *) check_host.data(),
                         check_host.valid_size(), max_ratio, max_diff);
-        if (max_ratio < 1e-5) {
+        if (max_ratio < 1e-4) {
             LOG(INFO) << (i & 0x01) <<" PASS!!! max_ratio = " << max_ratio << " max_diff = " << max_diff;
         } else {
             LOG(FATAL) << " FAIL in ab test!!! max_ratio = " << max_ratio << " max_diff = " << max_diff
