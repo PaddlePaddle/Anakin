@@ -27,28 +27,7 @@ namespace anakin{
 namespace saber {
 
 template <typename TargetType>
-struct PreluParam {
-    PreluParam() = default;
-    PreluParam(bool is_channel_shared, Tensor<TargetType>* input_slope) {
-        channel_shared = is_channel_shared;
-        slope = input_slope;
-    }
-    PreluParam(const PreluParam<TargetType>& right) {
-        channel_shared = right.channel_shared;
-        slope = right.slope;
-    }
-    PreluParam<TargetType>& operator=(const PreluParam<TargetType>& right) {
-        this->channel_shared = right.channel_shared;
-        this->slope = right.slope;
-        return *this;
-    }
-    bool operator==(const PreluParam<TargetType>& right) {
-        bool flag = this->channel_shared == right.channel_shared;
-        return flag && (this->slope == right.slope);
-    }
-    bool channel_shared{false};
-    Tensor<TargetType>* slope{nullptr};
-};
+struct PreluParam;
 
 template <typename TargetType>
 struct ActivationParam {
@@ -323,42 +302,31 @@ template <typename TargetType>
         bool global_pooling;
         bool cmp_out_shape_floor_as_conv;
 };
-    
-template <typename type>
-struct ReshapeParam {
-        ReshapeParam() = default;
-        explicit ReshapeParam(std::vector<int> shape_param_in){
-            int count = 0;
-            for (int i = 0; i < shape_param_in.size(); ++i) {
-                if (shape_param_in[i] == -1){
-                    count ++;
-                }
-            }
-            CHECK_LE(count, 1) << "shape parameter contains multiple -1 dims";
-            shape_params = shape_param_in;
-        }
-        ReshapeParam(const ReshapeParam<type> &right) {
-            shape_params = right.shape_params;
-        }
-        ReshapeParam<type> &operator=(const ReshapeParam<type> &right) {
-            shape_params = right.shape_params;
-            return *this;
-        }
-        bool operator==(const ReshapeParam &right) {
-            bool comp_eq = shape_params.size() == right.shape_params.size();
-            for (int i = 0; i < shape_params.size(); ++i) {
-                if (!comp_eq){
-                    return false;
-                }
-                comp_eq = shape_params[i] == right.shape_params[i];
-            }
-            return true;
-        }
-        std::vector<int> shape_params;
-        
+  
+template <typename TargetType>
+struct PreluParam {
+    PreluParam() = default;
+    PreluParam(bool is_channel_shared, Tensor<TargetType>* input_slope) {
+        channel_shared = is_channel_shared;
+        slope = input_slope;
+    }
+    PreluParam(const PreluParam<TargetType>& right) {
+        channel_shared = right.channel_shared;
+        slope = right.slope;
+    }
+    PreluParam<TargetType>& operator=(const PreluParam<TargetType>& right) {
+        this->channel_shared = right.channel_shared;
+        this->slope = right.slope;
+        return *this;
+    }
+    bool operator==(const PreluParam<TargetType>& right) {
+        bool flag = this->channel_shared == right.channel_shared;
+        return flag && (this->slope == right.slope);
+    }
+    bool channel_shared{false};
+    Tensor<TargetType>* slope{nullptr};
 };
 
-    
-}//namespace saber
-}//namespace anakin
+}
+}
 #endif //SABER_FUNCS_PARAM_H
