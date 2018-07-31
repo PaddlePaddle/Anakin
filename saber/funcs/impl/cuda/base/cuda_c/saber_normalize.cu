@@ -9,12 +9,11 @@ template <typename Dtype, bool has_scale, bool shared>
 __global__ void normalize_kernel_no_across_spatial(const int size_in_channel, const int n,const int channels, \
     const Dtype* scale, const Dtype* bottom_data, Dtype* top_data, const float eps, const int p){
 
-    int threads_num=size_in_channel*n;
-    CUDA_KERNEL_LOOP(index, threads_num){
+    CUDA_KERNEL_LOOP(index, size_in_channel){
         float sqr_sum = 0.f;
-        int n=index/size_in_channel;
+        int num_index=index/size_in_channel;
         int index_in_channel=index%size_in_channel;
-        int data_index=n*channels*size_in_channel+index_in_channel;
+        int data_index=num_index*channels*size_in_channel+index_in_channel;
         for (int i = 0; i < channels; ++i) {
             if (p == 1) {
                 sqr_sum += fabsf(bottom_data[data_index + i * size_in_channel]);
@@ -239,19 +238,20 @@ SaberStatus SaberNormalize<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
         int size_in_channel = inputs[0]->width() * inputs[0]->height();
         int channel = inputs[0]->channel();
         int num=inputs[0]->num();
+	int thread_num=size_in_channel*num;
         if (param.has_scale) {
             if (param.channel_shared) {
                 normalize_kernel_no_across_spatial<float, true, true> \
-                    <<<CUDA_GET_BLOCKS(size_in_channel), CUDA_NUM_THREADS, 0, stream>>>\
+                    <<<CUDA_GET_BLOCKS(thread_num), CUDA_NUM_THREADS, 0, stream>>>\
                     (size_in_channel, num,channel, param.scale->data(), src, dst, param.eps, param.p);
             } else {
                 normalize_kernel_no_across_spatial<float, true, false> \
-                    <<<CUDA_GET_BLOCKS(size_in_channel), CUDA_NUM_THREADS, 0, stream>>>\
+                    <<<CUDA_GET_BLOCKS(thread_num), CUDA_NUM_THREADS, 0, stream>>>\
                     (size_in_channel, num,channel, param.scale->data(), src, dst, param.eps, param.p);
             }
         } else {
             normalize_kernel_no_across_spatial<float, false, false> \
-                <<<CUDA_GET_BLOCKS(size_in_channel), CUDA_NUM_THREADS, 0, stream>>>\
+                <<<CUDA_GET_BLOCKS(thread_num), CUDA_NUM_THREADS, 0, stream>>>\
                 (size_in_channel, num,channel, nullptr, src, dst, param.eps, param.p);
         }
     } else {
