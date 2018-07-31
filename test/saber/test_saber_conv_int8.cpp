@@ -52,7 +52,7 @@ int test_conv_results(int group,
     Tensor<TargetType_H> weights_host;
     weights_dev.re_alloc(weights_s, AK_FLOAT);
     weights_host.re_alloc(weights_s, AK_FLOAT);
-    fill_tensor_rand(weights_dev, 0.0f, 10.0f);
+    fill_tensor_rand(weights_dev, -10.0f, 10.0f);
     weights_host.copy_from(weights_dev);
 
     Tensor<TargetType> bias_dev;
