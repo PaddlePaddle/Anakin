@@ -17,7 +17,7 @@ using Target_H = ARM;
 //#define USE_DIEPSE
 
 // vgg16
-std::string model_path = "/home/cuichaowen/b_k/facebox/facebox.anakin.bin";
+std::string model_path = "../benchmark/CNN/models/vgg16.anakin.bin";
 
 #ifdef USE_CUDA
 #if 1
@@ -47,7 +47,7 @@ TEST(NetTest, net_execute_base_test) {
     // constructs the executer net
 	//{ // inner scope
 #ifdef USE_DIEPSE
-    /Net<NV, AK_FLOAT, Precision::FP32, OpRunType::SYNC> net_executer(*graph, true);
+    Net<NV, AK_FLOAT, Precision::FP32, OpRunType::SYNC> net_executer(*graph, true);
 #else
     Net<NV, AK_FLOAT, Precision::FP32> net_executer(*graph, true);
 #endif
