@@ -26,6 +26,13 @@ namespace anakin{
 
 namespace saber{
 
+template <typename dtype, bool bias_flag, bool relu_flag>
+SaberStatus saber_depthwise_conv_act(const dtype* input, dtype* output, \
+    int num, int cin, int hin, int win, int hout, int wout, \
+    int kw, int kh, int stride_w, int stride_h, \
+    int pad_h, int pad_w, const dtype* weights, const dtype* bias, \
+    cudaStream_t stream);
+
 template <DataType OpDtype>
 class SaberConv2D<NV, OpDtype> : public ImplBase<
         NV, OpDtype, ConvParam<NV> > {
@@ -135,6 +142,12 @@ private:
                        float,
                        float,
                        cudaStream_t)> dispatch_func;
+
+    std::function<void(const float*, float* ,
+                       int, int, int, int, int, int,
+                       int, int, int, int,
+                       int, int, const float*, const float*,
+                       cudaStream_t)> depthwise_func;
 };
 }
 
