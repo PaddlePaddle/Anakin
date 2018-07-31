@@ -94,14 +94,14 @@ struct ConvParam {
     ConvParam(int group_in, int pad_h_in, int pad_w_in,
               int stride_h_in, int stride_w_in, int dilation_h_, int dilation_w_,
               Tensor<TargetType>* weight, Tensor<TargetType>* bias,
-              float alpha_in = 1.0, float beta_in = 0.0,
-              ActivationParam<TargetType> activation_param_in = ActivationParam<TargetType>())
+              ActivationParam<TargetType> activation_param_in = ActivationParam<TargetType>(),
+              float alpha_in = 1.0, float beta_in = 0.0)
             : group(group_in), pad_h(pad_h_in), pad_w(pad_w_in)
             , stride_h(stride_h_in), stride_w(stride_w_in)
             , dilation_h(dilation_h_), dilation_w(dilation_w_)
             , weight_tensor(weight), bias_tensor(bias)
-            , alpha(alpha_in), beta(beta_in)
             , activation_param(activation_param_in)
+            , alpha(alpha_in), beta(beta_in)
     {}
 
     ConvParam(const ConvParam &right)
