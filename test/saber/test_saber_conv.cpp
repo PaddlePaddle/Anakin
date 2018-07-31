@@ -477,7 +477,7 @@ TEST(TestSaberFunc, test_saber_conv_speed) {
 
 TEST(TestSaberFunc, test_saber_conv_op_func) {
     std::vector<int> kernel_h_v{1, 3};
-    std::vector<int> kernel_w_v{1, 3};
+    std::vector<int> kernel_w_v{3, 1};
     std::vector<int> in_channels_v{5, 16};
     std::vector<int> out_channels_v{7, 16};
     std::vector<int> in_h_v{117, 224};
@@ -487,20 +487,19 @@ TEST(TestSaberFunc, test_saber_conv_op_func) {
     std::vector<int> in_h2_v{48, 67};
     std::vector<int> in_w2_v{74, 35};
     std::vector<int> group_v{1};
-#pragma omp parallel for num_threads(4) collapse(2) schedule(dynamic)
-    for (int input_num_i = 0; input_num_i < input_num_v.size(); input_num_i++)
-    for (int out_channels_i = 0; out_channels_i < out_channels_v.size(); out_channels_i++)
-    for (auto in_channels : in_channels_v)
+#pragma omp parallel for num_threads(2) schedule(static)
+    for (int bias_term_i = 0; bias_term_i < bias_term_v.size(); bias_term_i++)
     for (auto kernel_h : kernel_h_v)
     for (auto kernel_w : kernel_w_v)
+    for (auto input_num : input_num_v)
+    for (auto out_channels : out_channels_v)
+    for (auto in_channels : in_channels_v)
     for (auto height : in_h_v)
     for (auto width : in_w_v)
     for (auto height2 : in_h2_v)
     for (auto width2 : in_w2_v)
-    for (auto bias_term : bias_term_v)
     for (auto group : group_v) {
-        int input_num = input_num_v[input_num_i];
-        int out_channels = out_channels_v[out_channels_i];
+        bool bias_term = bias_term_v[bias_term_i];
         if (in_channels % group != 0) {
             continue;
         }
