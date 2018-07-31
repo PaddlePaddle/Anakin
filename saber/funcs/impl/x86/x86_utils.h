@@ -899,13 +899,12 @@ inline void im2col_conv_cpu(DataTensor_in& tensor_out, DataTensor_out& tensor_in
 
     int slice_size=in_c*kernel_h*kernel_w * out_h*out_w;
     int batch_size=tensor_in.num();
-    tensor_temp.try_expand_size(batch_size * slice_size);
+    tensor_temp.try_expand_size(slice_size);
 
     for(int i=0;i<batch_size;i++){
-        im2col_cpu(tensor_in.data()+i*(in_c*in_h,in_w),in_c,in_h,in_w,kernel_h,kernel_w,pad_h,pad_w,stride_h,stride_w,dila_h,dila_w,tensor_temp.mutable_data()+i*slice_size);
+        im2col_cpu(tensor_in.data()+i*(in_c*in_h*in_w),in_c,in_h,in_w,kernel_h,kernel_w,pad_h,pad_w,stride_h,stride_w,dila_h,dila_w,tensor_temp.mutable_data());
+        mkl_gemm(false,false,out_c,out_h*out_w,in_c*kernel_h*kernel_w,1.f,weights,tensor_temp.data(),0,tensor_out.mutable_data()+i*out_c*out_h*out_w);
     }
-
-    mkl_gemm(false,false,batch_size*out_c,out_h*out_w,in_c*kernel_h*kernel_w,1.f,weights,tensor_temp.data(),0,tensor_out.mutable_data());
 
     if(flag_bias&& !flag_relu){
         float *output=tensor_out.mutable_data();
