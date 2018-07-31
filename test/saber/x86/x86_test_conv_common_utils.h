@@ -50,8 +50,8 @@ void compute_ref_conv_relu_fwd(
     int dilh_ = conv_param -> dilation_w;
 
     dtype negative_slope = act_param -> negative_slope;
-    
-#pragma omp parallel for collapse(4) schedule(static)
+
+//#pragma omp parallel for collapse(4) schedule(static)
     for (int n = 0; n < mb_; ++n) {
         for (int oc = 0; oc < oc_; ++oc) {
             for (int oh = 0; oh < oh_; ++oh) {
@@ -64,8 +64,8 @@ void compute_ref_conv_relu_fwd(
                      for (int ic = 0; ic < ic_; ++ic){
                          for (int kh = 0; kh < kh_; ++kh) {
                              for (int kw = 0; kw < kw_; ++kw) {
-                                 int iw = ow * strw_ - padw_ + kw * (1 + dilw_);
-                                 int ih = oh * strh_ - padh_ + kh * (1 + dilh_);
+                                 int iw = ow * strw_ - padw_ + kw * ( dilw_);
+                                 int ih = oh * strh_ - padh_ + kh * ( dilh_);
                                  if (iw < 0 || iw >= iw_) continue;
                                  if (ih < 0 || ih >= ih_) continue;
 
