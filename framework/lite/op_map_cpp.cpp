@@ -123,7 +123,7 @@ std::string ParserDeconvolution(graph::AttrInfo& attr,
 
     // gen cpp code
     CodeWritter code_w;
-    code_w.feed("ParamBase* %s_param = new Deconv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(),
+    code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(),
                 weights_size,
                 num_output,
                 group,
@@ -880,21 +880,65 @@ std::string ParserActivation(graph::AttrInfo& attr,
 
 	std::string act_type("Active_unknow");
 
+  // gen cpp code
+  CodeWritter code_w;
+
 	if (type == "TanH") { 
 		act_type = "Active_tanh";
+    code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
+                node_name.c_str(),
+                act_type.c_str());
+    code_w.feed("//  %s.load_param(%s);\n", node_name.c_str(),
+                act_type.c_str());
 	} else if (type == "Sigmoid") { 
 		act_type = "Active_sigmoid";
+    code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
+                node_name.c_str(),
+                act_type.c_str());
+
+    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    code_w.feed("//  %s.load_param(%s);\n", node_name.c_str(),
+                act_type.c_str());
     }else if (type == "ReLU") {
             act_type = "Active_relu";
+            code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
+                node_name.c_str(),
+                act_type.c_str());
+
+            code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+            code_w.feed("//  %s.load_param(%s);\n", node_name.c_str(),
+                act_type.c_str());
     }  else if (type == "PReLU") {
                 act_type = "Active_prelu";
+                auto prelu_channel_shared = get_attr<bool>("channel_shared", attr);
+                // auto prelu_weights = get_attr<bool>("weights", attr);
+                auto prelu_weights = get_attr<PBlock<float, X86>>("weight_1", attr);
+
+                writter.register_weights(node_name, prelu_weights);
+                LOG(INFO) << node_name << " write weights: " << prelu_weights.count();
+
+                auto offset_info = writter.get_weights_by_name(node_name);
+
+                code_w.feed("ParamBase* %s_param = new ActivationParam(%s, %f, %f, %s, %s+%d);\n",
+                node_name.c_str(),
+                act_type.c_str(),
+                0.f,
+                0.f,
+                prelu_channel_shared ? "true" : "false",
+                weights_ptr_name.c_str(),
+                offset_info.weights[0].offset);
+
+
+                code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+
+                code_w.feed("//  %s.load_param(%s, %s, %s+%d);\n", node_name.c_str(),
+                act_type.c_str(),
+                prelu_channel_shared ? "true" : "false",
+                weights_ptr_name.c_str(),
+                offset_info.weights[0].offset);
 	} else { 
 		LOG(FATAL) << "Other Activation type" << type << " unknown."; 
 	}	
-
-	// gen cpp code
-	CodeWritter code_w;
-	code_w.feed("%s.load_param(%s);\n", node_name.c_str(), act_type.c_str());
 	return code_w.get_code_string();
 }
 
@@ -1008,11 +1052,22 @@ std::string ParserPooling(graph::AttrInfo& attr,
     auto pool_size = get_attr<PTuple<int>>("pool_size", attr);
     auto pool_method = get_attr<std::string>("method", attr);	
 
+    PoolingType pool_type;
+    std::string str_pool_method;
+    if (pool_method == "MAX") {
+        pool_type = Pooling_max;
+        str_pool_method = "Pooling_max";
+    }
+    if (pool_method == "AVG") {
+        pool_type = Pooling_average_include_padding;
+        str_pool_method = "Pooling_average_include_padding";
+    }
+
 	// gen cpp code
     CodeWritter code_w;
     code_w.feed("ParamBase* %s_param = new PoolParam(%s,%s,%d,%d,%d,%d,%d,%d);\n",
                 node_name.c_str(),
-                pool_method.c_str(),
+                str_pool_method.c_str(),
                 global_pooling ? "true" : "false",
                 pool_size[1],
                 pool_size[0],

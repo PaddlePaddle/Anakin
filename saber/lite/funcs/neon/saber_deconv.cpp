@@ -168,12 +168,11 @@ SaberStatus SaberDeconv2D::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inpu
     l1_cache = l1_cache > 0? l1_cache : 31000;
     //! if L2 cache size is not provided, set to 2M
     l2_cache = l2_cache > 0? l2_cache : 2000000;
-/*
-    if (chin != chout || _param->group != chin) {
-        CHECK_EQ(chin % _param->group, 0) << "input channel or group size error";
-        CHECK_EQ(chout % _param->group, 0) << "output channel or group size error";
+
+    if (chin != chout || _param->_group != chin) {
+        LCHECK_EQ(chin % _param->_group, 0, "input channel or group size error");
+        LCHECK_EQ(chout % _param->_group, 0, "output channel or group size error");
     }
-    */
     //! deconv weights layout: chin * chout * kh * kw
     _m = chout * _param->_kw * _param->_kh / _param->_group;
     _n = hin * win;
