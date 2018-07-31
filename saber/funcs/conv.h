@@ -25,7 +25,7 @@
 #endif
 
 #ifdef USE_X86_PLACE
-#include "saber/funcs/impl/impl_conv.h"
+#include "saber/funcs/impl/x86/saber_conv.h"
 #endif
 
 #ifdef USE_ARM_PLACE

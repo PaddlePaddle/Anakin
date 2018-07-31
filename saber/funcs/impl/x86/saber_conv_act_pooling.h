@@ -59,6 +59,9 @@ public:
         }
         std::for_each(this->buf.begin(), this->buf.end(),
                       [&](DataTensor_out *t) {
+                            if(t==&_temp_tensor){
+                                return;
+                            }
                           delete t;
                           t = nullptr;
                       });
@@ -82,6 +85,7 @@ private:
     Conv_impl_t *c_impl = nullptr;
     Pooling_impl_t *p_impl = nullptr;
     std::vector<DataTensor_out *> buf;
+    DataTensor_out _temp_tensor;
 };
 
 }
