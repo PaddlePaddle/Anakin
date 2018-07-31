@@ -28,7 +28,7 @@ PermutePowerHelper<Ttype, Dtype, Ptype>::~PermutePowerHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status PermutePowerHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing PermutePower op parameter.";
+    DLOG(WARNING) << "Parsing PermutePower op parameter.";
     auto dims = GET_PARAMETER(PTuple<int>, dims);
     auto scale = GET_PARAMETER(float, power_0_scale);
     auto shift = GET_PARAMETER(float, power_0_shift);

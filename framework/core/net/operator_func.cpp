@@ -12,13 +12,32 @@ void OperatorFunc<Ttype, Dtype, Ptype>::infer_shape() {
     op->_helper->InferShape(ins, outs);
 }
 
+#ifdef USE_CUDA
 template class OperatorFunc<NV, AK_FLOAT, Precision::FP32>;
 template class OperatorFunc<NV, AK_FLOAT, Precision::FP16>;
 template class OperatorFunc<NV, AK_FLOAT, Precision::INT8>;
+#endif
 
+#ifdef USE_X86_PLACE
+template class OperatorFunc<X86, AK_FLOAT, Precision::FP32>;
+template class OperatorFunc<X86, AK_FLOAT, Precision::FP16>;
+template class OperatorFunc<X86, AK_FLOAT, Precision::INT8>;
+#endif
+
+#ifdef USE_ARM_PLACE
+#ifdef ANAKIN_TYPE_FP32
 template class OperatorFunc<ARM, AK_FLOAT, Precision::FP32>;
+#endif
+
+#ifdef ANAKIN_TYPE_FP16
 template class OperatorFunc<ARM, AK_FLOAT, Precision::FP16>;
+#endif
+
+#ifdef ANAKIN_TYPE_INT8
 template class OperatorFunc<ARM, AK_FLOAT, Precision::INT8>;
+#endif
+
+#endif
 
 } /* namespace */
 

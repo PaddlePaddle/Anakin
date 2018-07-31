@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -114,8 +114,24 @@ ANAKIN_TO_TYPE_ID(PTuple<unsigned int>, anakin_tuple_unsigned_int)
 ANAKIN_TO_TYPE_ID(PTuple<long>, anakin_tuple_long)
 ANAKIN_TO_TYPE_ID(PTuple<bool>, anakin_tuple_bool)
 
-ANAKIN_TO_TYPE_ID(PBlock<float>, anakin_block_float)
 ANAKIN_TO_TYPE_ID(Enum, anakin_tuple_enum)
+
+
+#define ANAKIN_PBLOCK_TO_TYPE_ID(type, target, type_id) \
+	using type##target = PBlock<type, target>;	\
+	ANAKIN_TO_TYPE_ID(type##target, type_id)
+
+#ifdef USE_CUDA
+	ANAKIN_PBLOCK_TO_TYPE_ID(float, NV, anakin_block_float)
+#endif
+
+#ifdef USE_X86_PLACE
+	ANAKIN_PBLOCK_TO_TYPE_ID(float, X86, anakin_block_float)
+#endif
+
+#ifdef USE_ARM_PLACE
+	ANAKIN_PBLOCK_TO_TYPE_ID(float, ARM, anakin_block_float)
+#endif
 
 template<typename T>
 struct type_id {

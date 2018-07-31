@@ -3,28 +3,63 @@
 
 ## Requirement
 
-> 1. You should install docker in you local os.
-> 2. Please use [nvidia-docker](https://github.com/NVIDIA/nvidia-docker)  run all GPU docker images.
-
++ You should install docker in you local os.
++ Please use [nvidia-docker2](https://github.com/NVIDIA/nvidia-docker/wiki/Installation-(version-2.0))  build and run all `NVIDIA GPU` docker images.
 
 ## Usage
 
-### GPU Docker
-#### Build Image
+You are recommended to use `anakin_docker_build_and_run.sh` script to build and run anakin docker.
+
 ```bash
-$docker build --network=host -t your_docker_image_name:tag_info /path/to/Dockerfile -f Dockerfile
+Usage: anakin_docker_build_and_run.sh -p <place> -o <os> -m <Optional>
+
+Options:
+
+   -p     Hardware Place where docker will running [ NVIDIA-GPU / AMD_GPU / X86-ONLY / ARM ]
+   -o     Operating system docker will reside on [ Centos / Ubuntu ]
+   -m     Script exe mode [ Build / Run / All] default mode is build and run
+```
+
+### GPU Docker
+
+#### Build Image
+
+```bash
+$/usr/bash anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Build
+or
+$chmod +x ./anakin_docker_build_and_run.sh
+$./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Build
 ```
 
 #### Run docker
 ```bash
-$systemctl start nvidia-docker
-$nvidia-docker run --network=host -it your_docker_image_name:tag_info /bin/bash
+$/usr/bash anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
+or
+$chmod +x ./anakin_docker_build_and_run.sh
+$./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
+```
+When running docker successfully, you can find Anakin source code at /Anakin directory.
+
+### X86 Docker
+#### Build Image
+
+```bash
+$/usr/bash anakin_docker_build_and_run.sh  -p X86-ONLY -o Centos -m Build
+or
+$chmod +x ./anakin_docker_build_and_run.sh
+$./anakin_docker_build_and_run.sh  -p X86-ONLY -o Centos -m Build
 ```
 
-### CPU Docker
+#### Run docker
 
-> Not support yet
+```bash
+$/usr/bash anakin_docker_build_and_run.sh  -p X86-ONLY -o Centos -m Run
+or
+$chmod +x ./anakin_docker_build_and_run.sh
+$./anakin_docker_build_and_run.sh  -p X86-ONLY -o Centos -m Run
+```
+When running docker successfully, you can find Anakin source code at /Anakin directory.
 
-### ARM Docer
+### ARM Docker
 
 > Not support yet

@@ -26,13 +26,14 @@ NormalizeHelper<Ttype, Dtype, Ptype>::~NormalizeHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status NormalizeHelper<Ttype, Dtype, Ptype>::InitParam() {
-    //LOG(WARNING) << "Parsing Normalize op parameter.";
+    //DLOG(WARNING) << "Parsing Normalize op parameter.";
     auto is_across_spatial = GET_PARAMETER(bool, is_across_spatial);
     auto is_shared_channel = GET_PARAMETER(bool, is_shared_channel);
     auto eps = GET_PARAMETER(float, eps);
     auto p = GET_PARAMETER(int, p);
 
-    auto input_scale = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type>, weight_1);
+	using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
+    auto input_scale = GET_PARAMETER(pblock_type, weight_1);
 
     saber::NormalizeParam<Tensor4d<Ttype, Dtype>> normalize_param(is_across_spatial, is_shared_channel, \
         &(input_scale.d_tensor()), eps, p);

@@ -6,33 +6,11 @@
 #include "funcs/transpose.h"
 #include "saber_types.h"
 #include "saber/funcs/timer.h"
+#include "saber/funcs/debug.h"
 #include "stdio.h"
 
 using namespace anakin::saber;
 
-static void write_tensorfile(Tensor <X86, AK_FLOAT, NCHW> tensor, const char* locate) {
-    typedef typename Tensor<X86, AK_FLOAT, NCHW>::Dtype Dtype;
-    LOG(INFO) << "host tensor data:" << tensor.size();
-    FILE* fp = fopen(locate, "w+");
-
-    if (fp == 0) {
-        LOG(ERROR) << "file open failed " << locate;
-
-    } else {
-        const Dtype* data_ptr = static_cast<const Dtype*>(tensor.data());
-        int size = tensor.size();
-
-        for (int i = 0; i < size; ++i) {
-            fprintf(fp, "%8.0f ", static_cast<float>(data_ptr[i]));
-
-            if ((i + 1) % tensor.width() == 0) {
-                fprintf(fp, "\n");
-            }
-        }
-
-        fclose(fp);
-    }
-}
 
 static void compute_transpose_gold(float* gold, const float* idata, const int num,
                                    const int channel,

@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -54,8 +54,11 @@ inline const char* saber_get_error_string(SaberStatus error_code){
             return "ANAKIN_SABER_STATUS_OUT_OF_MEMORY";
         case SaberUnImplError:
             return "ANAKIN_SABER_STATUS_UNIMPL_ERROR";
+        case SaberWrongDevice:
+            return "ANAKIN_SABER_STATUS_WRONG_DEVICE";
+        default:
+            return "ANAKIN SABER UNKOWN ERRORS";
     }
-    return "ANAKIN SABER UNKOWN ERRORS";
 }
 
 template <bool If, typename ThenType, typename ElseType>
@@ -141,8 +144,11 @@ const char* cudnn_get_errorstring(cudnnStatus_t status);
 
 
 #ifdef USE_ARM_PLACE
-
-#endif
+#ifdef USE_OPENMP
+#include <omp.h>
+#include <arm_neon.h>
+#endif //openmp
+#endif //ARM
 
 #endif //ANAKIN_SABER_CORE_COMMON_H
 

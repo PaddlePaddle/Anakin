@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -175,12 +175,12 @@ ValueType any_cast(any& operand) {
 
 template<typename ValueType>
 ValueType any_cast(const any* operand) {
-    return any_cast<ValueType>(const_cast<any *>(operand));
+    return any_cast<ValueType>(operand);
 }
 
 template<typename ValueType>
 ValueType any_cast(const any& operand) {
-    return any_cast<ValueType>(const_cast<any>(operand));
+    return any_cast<ValueType>(operand);
 }
 
 } /* namespace anakin */

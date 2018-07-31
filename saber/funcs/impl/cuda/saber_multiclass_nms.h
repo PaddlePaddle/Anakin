@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ public:
                             std::vector<DataTensor_out *>& outputs,
                             MultiClassNMSParam<OpTensor>& param, Context<NV>& ctx) {
         // get context
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         return create(inputs, outputs, param, ctx);
     }
 
@@ -78,6 +78,15 @@ public:
         CHECK_EQ(sh_conf[2], sh_bbox[1]) << \
             "Number of bboxes must match the number of scores per class.";
 
+        if (_conf_cpu_data != nullptr) {
+            fast_free(_conf_cpu_data);
+            _conf_cpu_data = nullptr;
+        }
+
+        if (_bbox_cpu_data != nullptr) {
+            fast_free(_bbox_cpu_data);
+            _bbox_cpu_data = nullptr;
+        }
         _conf_cpu_data = (InDataType*)fast_malloc(sizeof(InDataType) * sh_conf.count());
         _bbox_cpu_data = (InDataType*)fast_malloc(sizeof(InDataType) * sh_bbox.count());
 
@@ -87,7 +96,6 @@ public:
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                           std::vector<DataTensor_out*>& outputs,
                           MultiClassNMSParam<OpTensor>& param);
-
 
 private:
     int _num_priors;

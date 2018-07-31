@@ -1,6 +1,7 @@
 #include "framework/graph/graph.h"
 #include "framework/model_parser/parser/parser.h"
 #include "framework/graph/llvm/scheduler.h"
+#include "framework/graph/llvm/optimizer/conv_elewise_fusion_scheduler.h"
 #include "framework/graph/llvm/optimizer/parall_scheduler.h"
 #include "framework/graph/llvm/optimizer/memory_scheduler.h"
 #include "framework/graph/llvm/fusion/graph_pattern.h"
@@ -9,6 +10,23 @@
 namespace anakin {
 
 namespace graph {
+
+template<typename Ttype, DataType Dtype, Precision Ptype>
+Status Graph<Ttype, Dtype, Ptype>::load(std::istream* instream) EXCLUSIVE_LOCKS_REQUIRED(_mut) {
+    std::unique_lock<std::mutex> lock(this->_mut);
+    Status ret = Status::OK();
+    if(instream != nullptr) {
+        this->Clean();
+        LOG(ERROR) << "load model from istream";
+        ret = parser::load<Ttype, Dtype>(this, instream);
+        _model_path = "parser from istream";
+    } else {
+        LOG(ERROR) << "input stream is empty";
+        return Status::FAIL();
+    }
+
+    return ret;
+}
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status Graph<Ttype, Dtype, Ptype>::load(std::string model_path) EXCLUSIVE_LOCKS_REQUIRED(_mut) {
@@ -106,7 +124,7 @@ Status Graph<Ttype, Dtype, Ptype>::Optimize() EXCLUSIVE_LOCKS_REQUIRED(_mut) {
         //! decide wheter the vgraph is optimized
         auto is_optimized = statistics.get_info<IS_OPTIMIZED>();
 
-        if (is_optimized && _registed_outs.size() == 0) {
+        if (is_optimized && (_registed_outs.size() == 0)) {
             // schedule for exec order
             Scheduler scheduler;
             scheduler.RegIOResource(_vgraph);
@@ -129,10 +147,21 @@ Status Graph<Ttype, Dtype, Ptype>::Optimize() EXCLUSIVE_LOCKS_REQUIRED(_mut) {
             scheduler.RegIOResource(_vgraph);
             scheduler.Run();
 
+			_nodes_exec_order = scheduler.get_exec_node_in_order();
+
+
+#if 1
             // get node exec in order
             _nodes_exec_order = scheduler.get_exec_node_in_order();
-
+#else		// enable conv+eltwise fusion
             // optimization
+			ConvElsFusionScheduler conv_eltwise_fusion_scheduler;
+			conv_eltwise_fusion_scheduler.RegIOResource(_vgraph);
+			conv_eltwise_fusion_scheduler.Run();
+			// get node exec in order
+			//_nodes_exec_order = conv_eltwise_fusion_scheduler.get_exec_node_in_order();
+#endif
+			// optimization again
             MemoryScheduler mem_scheduler;
             mem_scheduler.RegIOResource(_vgraph);
             mem_scheduler.Run();
@@ -140,12 +169,10 @@ Status Graph<Ttype, Dtype, Ptype>::Optimize() EXCLUSIVE_LOCKS_REQUIRED(_mut) {
             para_scheduler.RegIOResource(_vgraph);
             para_scheduler.Run();
 
-            LOG(INFO) << "input_0 name: " << (*_vgraph)["input_0"].name << " input_0 lane: " <<  (*_vgraph)["input_0"].lane << " wait: " << (*_vgraph)["input_0"].need_wait;
-
             // set info for graph
             statistics.set_info<IS_OPTIMIZED>(true);
-            DLOG(INFO) << " model size : " << graph::GraphGlobalMem::Global().get_sum_mbyte() << " mb ";
-            statistics.set_info<MODEL_MEM>(graph::GraphGlobalMem::Global().get_sum_mbyte());
+            DLOG(INFO) << " model size : " << graph::GraphGlobalMem<Ttype>::Global().get_sum_mbyte() << " mb ";
+            statistics.set_info<MODEL_MEM>(graph::GraphGlobalMem<Ttype>::Global().get_sum_mbyte());
 
             DLOG(WARNING) << "Restore graph from virtual graph of ... ";
             restore_from_vgraph(_vgraph);
@@ -288,6 +315,11 @@ Status Graph<Ttype, Dtype, Ptype>::restore_from_vgraph(VGraph* vgraph) {
                     this->_pattern_name_merges[target_node.name].push_back(target_node.mergeNodeNames[i]);
                 }
             }
+			if(target_node.idx_keep_in_merge_nodes.size()) {
+				for(auto& idx : target_node.idx_keep_in_merge_nodes) {
+					this->_node_merges_keep[target_node.name].push_back(idx);
+				}
+			}
 
             auto& need_wait = node_p->need_wait();
             need_wait = target_node.need_wait;
@@ -315,7 +347,14 @@ Status Graph<Ttype, Dtype, Ptype>::restore_from_vgraph(VGraph* vgraph) {
                 auto& tmp_node_p = this->operator[](this->_node_merges[target_node_name][i]);
                 (*node_p).Merge(*tmp_node_p,
                                 this->_pattern_name_merges[target_node_name][i]); // add the merge node's attr
-                this->remove(this->_node_merges[target_node_name][i]); // remove merge node which is useless
+
+				// detect if the i-th node in _node_merges should be saved in Graph
+				auto ret = std::find(this->_node_merges_keep[target_node_name].begin(), 
+									 this->_node_merges_keep[target_node_name].end(), 
+									 i);
+				if(ret == this->_node_merges_keep[target_node_name].end()) {
+                	this->remove(this->_node_merges[target_node_name][i]); // remove merge node which is useless
+				}
             }
         }
 
@@ -356,6 +395,11 @@ Status Graph<Ttype, Dtype, Ptype>::CopyFrom(Graph<Ttype, Dtype, Ptype>& graph) {
     graph.Scanner->BFS(shallow_copy_edge);
     // get node execution order
     _nodes_exec_order = graph.get_nodes_in_order();
+	// get graph inputs and outputs
+	 _ins = graph._ins;	
+	 _outs = graph._outs;
+	// get statistic
+	statistics = graph.statistics;
     return Status::OK();
 }
 
@@ -367,18 +411,34 @@ Status Graph<Ttype, Dtype, Ptype>::Clean() {
     delete _vgraph;
     _vgraph = nullptr;
     // clenn all weights
-    graph::GraphGlobalMem::Global().clean_all();
+    graph::GraphGlobalMem<Ttype>::Global().clean_all();
 
     return Status::OK();
 }
 
+#ifdef USE_CUDA
 template class Graph<NV, AK_FLOAT, Precision::FP32>;
 template class Graph<NV, AK_FLOAT, Precision::FP16>;
 template class Graph<NV, AK_FLOAT, Precision::INT8>;
+#endif
 
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
+template class Graph<X86, AK_FLOAT, Precision::FP32>;
+template class Graph<X86, AK_FLOAT, Precision::FP16>;
+template class Graph<X86, AK_FLOAT, Precision::INT8>;
+#endif
+
+#ifdef USE_ARM_PLACE
+#ifdef ANAKIN_TYPE_FP32
 template class Graph<ARM, AK_FLOAT, Precision::FP32>;
+#endif
+#ifdef ANAKIN_TYPE_FP16
 template class Graph<ARM, AK_FLOAT, Precision::FP16>;
+#endif
+#ifdef ANAKIN_TYPE_INT8
 template class Graph<ARM, AK_FLOAT, Precision::INT8>;
+#endif
+#endif //USE_ARM_PLACE
 
 } /* namespace graph */
 

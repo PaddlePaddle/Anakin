@@ -269,10 +269,40 @@ static int set_sched_affinity(const std::vector<int>& cpuids)
     return 0;
 }
 
+void SetThreadAffinity(cpu_set_t mask) {
+#if defined(__ANDROID__)
+    pid_t pid = gettid();
+#else
+    pid_t pid = syscall(SYS_gettid);
+#endif
+    int err = sched_setaffinity(pid, sizeof(mask), &mask);
+    if (err != 0) {
+        LOG(ERROR) << "set affinity error: " << strerror(errno);
+    }
+}
+
 static int set_cpu_affinity(const std::vector<int>& cpuids){
 #ifdef USE_OPENMP
     int num_threads = cpuids.size();
+    //omp_set_dynamic(0);
     omp_set_num_threads(num_threads);
+
+#if 0
+    // compute mask
+    cpu_set_t mask;
+    CPU_ZERO(&mask);
+    for (auto cpu_id : cpuids) {
+        CPU_SET(cpu_id, &mask);
+    }
+
+    #pragma omp parallel for
+    for (int i = 0; i < num_threads; ++i) {
+        SetThreadAffinity(mask);
+        LOG(INFO) << "Set affinity for OpenMP thread " << omp_get_thread_num()
+            << "/" << omp_get_num_threads();
+    }
+
+#else
     std::vector<int> ssarets(num_threads, 0);
 #pragma omp parallel for
     for (int i = 0; i < num_threads; i++)
@@ -287,6 +317,7 @@ static int set_cpu_affinity(const std::vector<int>& cpuids){
             return -1;
         }
     }
+#endif
 #else
     std::vector<int> cpuid1;
     cpuid1.push_back(cpuids[0]);
@@ -297,6 +328,7 @@ static int set_cpu_affinity(const std::vector<int>& cpuids){
             return -1;
         }
 #endif
+    return 0;
 }
 
 #endif //PLATFORN_ANDROID

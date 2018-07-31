@@ -21,7 +21,7 @@ SaberStatus SaberEltwiseActive<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCH
     float * out_data = outputs[0]->mutable_data();
     const float *in_data_a = inputs[0]->data();
     const float *in_data_b = inputs[1]->data();
-    cudaStream_t cuda_stream = this->_ctx.get_compute_stream();
+    cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
     switch(param.eltwise_param.operation){
         case Eltwise_prod:
             LOG(FATAL)<<"NOT IMPLEMENT yet!!";

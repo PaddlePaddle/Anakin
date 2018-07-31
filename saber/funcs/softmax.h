@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+#include "saber/funcs/impl/impl_softmax.h"
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_softmax.h"
 #include "saber/funcs/impl/cuda/vender_softmax.h"
@@ -26,7 +27,9 @@
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_softmax.h"
 #endif
-
+#ifdef USE_ARM_PLACE
+#include "saber/funcs/impl/arm/saber_softmax.h"
+#endif
 namespace anakin{
 
 namespace saber{
@@ -65,7 +68,7 @@ public:
 
     virtual SaberStatus compute_output_shape(const Input_v& input,\
      Output_v &output, Param_t& param) override {
-
+        output[0]->set_seq_offset(input[0]->get_seq_offset());
         //! "input" only has one input tensor
         return output[0]->set_shape(input[0]->valid_shape());
     }
@@ -88,7 +91,12 @@ public:
 private:
 
     virtual void pick_best_static() override {
-        this->_best_impl = this->_impl[0];
+	//! saber softmax is better when axis is in outer dims
+        if (this->_param.axis > 1) {
+            this->_best_impl = this->_impl[1];
+        } else {
+            this->_best_impl = this->_impl[0];
+        }
     }
 
     virtual void pick_best_specify(ImplEnum implenum) override {
