@@ -102,7 +102,7 @@ std::string ParserPower(graph::AttrInfo& attr,
         
         // gen cpp code
         CodeWritter code_w;
-        code_w.feed("ParamBase* %s_param = new PowerParam(%d,%d,%d);\n",code_name.c_str(),scale,shift,power);
+        code_w.feed("ParamBase* %s_param = new PowerParam(%f,%f,%f);\n",node_name.c_str(),scale,shift,power);
         code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
         code_w.feed("//    %s.load_param(%d,%d,%d);\n", node_name.c_str(),scale,shift,power);
         return code_w.get_code_string();
@@ -486,6 +486,111 @@ std::string ParserConvBatchnormScale(graph::AttrInfo& attr,
                                            offset_info.weights[1].offset);
 	return code_w.get_code_string();
 }
+
+    //conv batchnorm
+    std::string ParserConvBatchnorm(graph::AttrInfo& attr,
+                                         std::string& code_name,
+                                         std::string& op_class_name,
+                                         std::string& node_name,
+                                         std::string& weights_ptr_name,
+                                         WeightsWritter& writter) {
+        // parsing parameter
+        auto group = get_attr<int>("group", attr);
+        auto bias_term = get_attr<bool>("bias_term", attr);
+        auto padding = get_attr<PTuple<int>>("padding", attr);
+        auto strides = get_attr<PTuple<int>>("strides", attr);
+        auto dilation_rate = get_attr<PTuple<int>>("dilation_rate", attr);
+        auto filter_num = get_attr<int>("filter_num", attr);
+        auto kernel_size = get_attr<PTuple<int>>("kernel_size", attr);
+        auto axis = get_attr<int>("axis", attr);
+
+        auto weights = get_attr<PBlock<float, X86>>("weight_1", attr);
+        auto weights_shape = weights.shape();
+        int weights_size = weights_shape.count();//weights_shape[2]*weights_shape[3];
+        int num_output = weights_shape[0];//*weights_shape[1];
+
+        // get batchnorm param
+        auto epsilon = get_attr<float>("batchnorm_0_epsilon", attr);
+        auto momentum = get_attr<float>("batchnorm_0_momentum", attr);
+        auto batch_norm_weight_1 = get_attr<PBlock<float, X86>>("batchnorm_0_weight_1", attr);
+        auto batch_norm_weight_1_vector = batch_norm_weight_1.vector();
+        auto batch_norm_weight_2 = get_attr<PBlock<float, X86>>("batchnorm_0_weight_2", attr);
+        auto batch_norm_weight_2_vector = batch_norm_weight_2.vector();
+        auto batch_norm_weight_3 = get_attr<PBlock<float, X86>>("batchnorm_0_weight_3", attr);
+        auto batch_norm_weight_3_vector = batch_norm_weight_3.vector();
+
+        if(bias_term) {
+            auto bias = get_attr<PBlock<float, X86>>("weight_2", attr);
+            update_weights(weights, bias,
+                           weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+                           bias_term,
+                           batch_norm_weight_3_vector[0], epsilon,
+                           batch_norm_weight_1_vector,
+                           batch_norm_weight_2_vector);
+
+
+            writter.register_weights(node_name, weights);
+                    LOG(INFO) << node_name << " write weights: " << weights.count();
+            writter.register_weights(node_name, bias);
+                    LOG(INFO) << node_name << " write bias: " << bias.count();
+        } else {
+            auto bias = PBlock<float, X86>();
+            update_weights(weights, bias,
+                           weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+                           false,
+                           batch_norm_weight_3_vector[0], epsilon,
+                           batch_norm_weight_1_vector,
+                           batch_norm_weight_2_vector);
+
+            writter.register_weights(node_name, weights);
+                    LOG(INFO) << node_name << " write weights: " << weights.count();
+            writter.register_weights(node_name, bias);
+                    LOG(INFO) << node_name << " write bias: " << bias.count();
+        }
+
+        auto offset_info = writter.get_weights_by_name(node_name);
+
+        // gen cpp code
+        CodeWritter code_w;
+
+        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(), \
+                weights_size,
+                    num_output,
+                    group,
+                    kernel_size[1],
+                    kernel_size[0],
+                    strides[1],
+                    strides[0],
+                    padding[1],
+                    padding[0],
+                    dilation_rate[1],
+                    dilation_rate[0],
+                    bias_term ? "true":"false",
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[0].offset,
+                    weights_ptr_name.c_str(),
+                    bias_term ? offset_info.weights[1].offset : 0);
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+
+        code_w.feed("//    %s.load_param(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(),
+                    weights_size,
+                    num_output,
+                    group,
+                    kernel_size[1],
+                    kernel_size[0],
+                    strides[1],
+                    strides[0],
+                    padding[1],
+                    padding[0],
+                    dilation_rate[1],
+                    dilation_rate[0],
+                    "true",
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[0].offset,
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[1].offset);
+        return code_w.get_code_string();
+    }
 
 // SaberConvBatchnormScaleRelu
 std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
@@ -1375,6 +1480,7 @@ std::unordered_map<std::string, OpParser> OPERATION_MAP({
 	{"ConvBatchnormScaleRelu", {"SaberConvAct2D", ParserConvBatchnormScaleRelu}}, // done have question ??
 	{"ConvBatchnormScaleReluPool", {"SaberConvActPooling2D", ParserConvBatchnormScaleReluPool}}, // done have question ??
 	{"ConvBatchnormScale", {"SaberConv2D", ParserConvBatchnormScale}}, //done
+	{"ConvBatchnorm", {"SaberConv2D", ParserConvBatchnorm}}, //done
 	{"Concat", {"SaberConcat", ParserConcat} },  // done
 	{"DetectionOutput", {"SaberDetectionOutput", ParserDectionOutput} }, // done 
 	{"Eltwise", {"SaberEltwise", ParserEltwise} }, //done
