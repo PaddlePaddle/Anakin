@@ -655,6 +655,10 @@ struct ScaleParam : public ParamBase {
     std::vector<float> scale_b;
 };
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 70db7eb50c6aa11b446ba537d5b3621d7f06dfd1
 } //namespace lite
 
 } //namespace saber
