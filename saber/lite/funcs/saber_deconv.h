@@ -53,7 +53,7 @@ public:
     }
 
 private:
-    const DeConv2DParam* _param;
+    const Conv2DParam* _param;
     Sgemm _gemmer;
     bool _flag_relu{false};
     int _m;

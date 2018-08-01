@@ -123,9 +123,9 @@ ANAKIN_REGISTER_OP_HELPER(ConvBatchnorm, ConvBatchnormHelper, NV, AK_FLOAT,
                           Precision::FP32);
 #endif
 #if defined(BUILD_LITE)
-INSTANCE_CONVBATCHNORMSCALE(X86, AK_FLOAT, Precision::FP32);
-template class ConvBatchnormScaleHelper<X86, AK_FLOAT, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScale, ConvBatchnormScaleHelper, X86, AK_FLOAT,
+INSTANCE_CONVBATCHNORM(X86, AK_FLOAT, Precision::FP32);
+template class ConvBatchnormHelper<X86, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(ConvBatchnorm, ConvBatchnormHelper, X86, AK_FLOAT,
                           Precision::FP32);
 #endif
 
