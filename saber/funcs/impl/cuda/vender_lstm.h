@@ -13,8 +13,8 @@
    limitations under the License.
 */
 
-#ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_CUDNN_LSTM_H
-#define ANAKIN_SABER_FUNCS_IMPL_CUDA_CUDNN_LSTM_H
+#ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_VENDER_LSTM_H
+#define ANAKIN_SABER_FUNCS_IMPL_CUDA_VENDER_LSTM_H
 
 #include "saber/funcs/impl/impl_lstm.h"
 #include "saber/funcs/impl/cuda/cudnn_helper.h"
@@ -130,12 +130,12 @@ public:
         cudnn::createTensorDesc<DataDtype>(&_cy_desc);
 
         cudnn::createFilterDesc<Op_dtype>(&_w_desc);
-        cudnnSetDropoutDescriptor(_dropout_desc,
-                           _handle,
-                           lstm_param.dropout_param,
-                           NULL,
-                           0,
-                           0);
+        //cudnnSetDropoutDescriptor(_dropout_desc,
+        //                   _handle,
+        //                   lstm_param.dropout_param,
+        //                   NULL,
+        //                   0,
+        //                   0);
        //_dropout_desc = NULL;
        _hidden_size = lstm_param.bias()->valid_size() / 4 / lstm_param.num_layers;
        int weights_h2h_size = _hidden_size * _hidden_size * 4 * lstm_param.num_layers;

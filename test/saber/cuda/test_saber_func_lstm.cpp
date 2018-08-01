@@ -17,15 +17,16 @@
 using namespace anakin::saber;
 cublasHandle_t  cublas_handle;
 
-void test_saber_lstm(int sequence_size = 2, int batch_size = 1, int word_size = 256,
-                    int hidden_size = 256) {
+void test_saber_lstm(int sequence_size = 2, int batch_size = 1, int word_size = 1,
+                    int hidden_size = 1) {
 
     Context<NV> ctx_dev(0, 0, 0);
     Context<X86> ctx_x86(0, 0, 0);
     typedef Tensor<NV, AK_FLOAT, NCHW> TensorDf4;
     typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
 
-    std::vector<int> offsets = {0, 20,40, 65, 82, 101};
+    //std::vector<int> offsets = {0, 20,40, 65, 82, 101};
+    std::vector<int> offsets = {0, 1};
     bool is_reverse = true;
     batch_size = offsets.size() - 1;
     Shape input_shape(offsets[offsets.size() - 1], word_size, 1, 1);
@@ -52,9 +53,12 @@ void test_saber_lstm(int sequence_size = 2, int batch_size = 1, int word_size = 
     dev_weight.re_alloc(weight_shape);
     dev_bias.re_alloc(bias_shape);
 
-    fill_tensor_host_rand(host_input);
-    fill_tensor_host_rand(host_weight);
-    fill_tensor_host_rand(host_bias);
+    //fill_tensor_host_rand(host_input, -1, 1);
+    //fill_tensor_host_rand(host_weight, -1, 1);
+    //fill_tensor_host_rand(host_bias, -1, 1);
+    fill_tensor_host_const(host_input, 1);
+    fill_tensor_host_const(host_weight, 1);
+    fill_tensor_host_const(host_bias, -0.5);
     host_input.set_seq_offset(offsets);
     dev_input.set_seq_offset(offsets);
 
@@ -99,7 +103,7 @@ void test_saber_lstm(int sequence_size = 2, int batch_size = 1, int word_size = 
     host_output_cudnn.copy_from(*dev_output_vec[0]);
     
 
-    int test_iter = 100;
+    int test_iter = 0;
     SaberTimer<NV> t1;
     t1.start(ctx_dev);
     for (int i = 0; i < test_iter; ++i) {
@@ -122,7 +126,7 @@ void test_saber_lstm(int sequence_size = 2, int batch_size = 1, int word_size = 
                                     false,
                                     false,
                                     false,
-                                    1.f,
+                                    0.f,
                                     1,
                                     1);
     x86_lstm.compute_output_shape(h_input_vec, h_output_vec, h_lstm_param);

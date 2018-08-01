@@ -1,5 +1,7 @@
 #include "saber/funcs/impl/cuda/vender_lstm.h"
 #include "cuda_fp16.h"
+#include "saber/funcs/debug.h"
+#include "saber/core/tensor_op.h"
 
 namespace anakin {
 namespace saber {
@@ -13,8 +15,8 @@ set_lstm_params_region(LstmParam<OpTensor>& param, int word_size) {
     }
     int bias_size_per_layer = 4 * hidden_size;
     int weight_size_per_layer = 4 * hidden_size * (word_size + hidden_size);
-    int wx_stride = word_size * hidden_size;
-    int wh_stride = hidden_size * hidden_size;
+    int wx_stride = hidden_size;
+    int wh_stride = hidden_size;
     cudaStream_t cuda_stream;
     cuda_stream = this->_ctx->get_compute_stream();
     for (int layer_id = 0; layer_id < param.num_layers; layer_id++) {
@@ -24,7 +26,7 @@ set_lstm_params_region(LstmParam<OpTensor>& param, int word_size) {
         const Op_dtype* w_xc = w_ptr + 2 * wx_stride; 
         const Op_dtype* w_xo = w_ptr + 3 * wx_stride; 
 
-        const Op_dtype* w_ptr_inner  = w_ptr + 4 * wx_stride;
+        const Op_dtype* w_ptr_inner  = w_ptr + 4 * wx_stride * word_size;
         const Op_dtype* w_hi = w_ptr_inner;                 
         const Op_dtype* w_hf = w_ptr_inner + 1 * wh_stride; 
         const Op_dtype* w_hc = w_ptr_inner + 2 * wh_stride; 
@@ -47,9 +49,8 @@ set_lstm_params_region(LstmParam<OpTensor>& param, int word_size) {
 
         for (int i = 0; i < _cudnn_lstm_weights_layernum; i++) {
             ParamsRegion& region = _inner_weight_region[i];
-            CUDA_CHECK(cudaMemcpyAsync((void*)(region._offset), (void*)cudnnW[i],
-                                  region._size,
-                                  cudaMemcpyDeviceToDevice, cuda_stream));
+            //get_sub_tensor(cudnnW[i], (Op_dtype*) region._offset, region._size/hidden_size/4, hidden_size, 4*hidden_size, cuda_stream);
+            get_sub_tensor<Op_dtype>(cudnnW[i], (Op_dtype*) region._offset, region._size/hidden_size/4, hidden_size, 4*hidden_size);
         }
 
         for (int i = 0; i < _cudnn_lstm_weights_layernum; i++) {
@@ -62,7 +63,18 @@ set_lstm_params_region(LstmParam<OpTensor>& param, int word_size) {
                 CUDA_CHECK(cudaMemsetAsync((void*)(region_b._offset), 0, region_b._size, cuda_stream));
             }
         }
+        cudaDeviceSynchronize();
     }
+    int region_id = 0;
+    for (auto region : _inner_weight_region) {
+        char buf[100];
+        sprintf(buf, "./lstm_%d.txt", region_id);
+        record_dev_tensorfile<NV>((Op_dtype*)region._offset, region._size/4, buf);
+        region_id++;
+    }
+    cudaDeviceSynchronize();
+    record_dev_tensorfile<NV>(param.weight()->data(), param.weight()->valid_size(), "lstm_param_weight.txt");
+    cudaDeviceSynchronize();
 }
 
 template <>
