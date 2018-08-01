@@ -55,7 +55,8 @@ void transform_nchw_2_c4(char* out_data, const float* in_data,
     }
 }
 
-SaberStatus conv_calibrate_fp32_int8_c4(Tensor<NV> &out_tensor,
+template<>
+SaberStatus conv_calibrate_fp32_int8_c4<NV>(Tensor<NV> &out_tensor,
         const Tensor<NV> &in_tensor, float in_scale, Context<NV> ctx) {
 
     const float * in_data = (const float*)in_tensor.data();
@@ -112,7 +113,8 @@ __global__ void transform_nchw_2_nchw(float * out_data,
     }
 }
 
-SaberStatus conv_calibrate_int32_fp32(
+template<>
+SaberStatus conv_calibrate_int32_fp32<NV>(
         Tensor<NV> &out_tensor, const Tensor<NV> &in_tensor,
         float in_scale, float* weight_scale, Context<NV> ctx) {
 
@@ -182,7 +184,8 @@ void int8nchwc4_fp32nchw(float* out_data, const char* in_data,
     }
 }
 
-SaberStatus conv_calibrate_int8_c4_fp32(
+template<>
+SaberStatus conv_calibrate_int8_c4_fp32<NV>(
         Tensor<NV> &out_tensor,
         const Tensor<NV> &in_tensor,
         float* weight_scale,

@@ -1,6 +1,6 @@
 
 #include "saber/funcs/impl/cuda/saber_conv.h"
-
+#include "saber/funcs/calibrate.h"
 namespace anakin {
 namespace saber {
 
