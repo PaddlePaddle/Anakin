@@ -1,16 +1,22 @@
 # ----------------------------------------------------------------------------
 # Copyright (c) 2016 Baidu.com, Inc. All Rights Reserved
 # ----------------------------------------------------------------------------
+cmake_minimum_required(VERSION 2.8)
+project(anakin_lite C CXX)
+
+include(../../cmake/msg_color.cmake)
+include(../../cmake/utils.cmake)
 
 # options
-option(USE_ARM_PLACE "Select the build mode for ARM place." YES)
-option(USE_ARMV8 "build armv8" NO)
-option(USE_ANDROID "using android place." YES)
-option(USE_IOS "using android place." NO)
-option(TARGET_IOS "using ios" NO)
-option(USE_OPENMP "using openmp for lite." YES)
-option(ENABLE_DEBUG "Enable DEBUG(default) mode." NO)
-option(BUILD_LITE_UNIT_TEST "build unit test for lite." YES)
+anakin_option(USE_ARM_PLACE "Select the build mode for ARM place." YES)
+anakin_option(USE_ARMV8 "build armv8" NO)
+anakin_option(USE_ANDROID "using android place." YES)
+anakin_option(USE_IOS "using android place." NO if NOT USE_ANDROID)
+anakin_option(TARGET_IOS "using ios" NO)
+
+anakin_option(USE_OPENMP "using openmp for lite." YES)
+anakin_option(ENABLE_DEBUG "Enable DEBUG(default) mode." NO)
+anakin_option(BUILD_LITE_UNIT_TEST "build unit test for lite." NO)
 
 if (USE_ARMV8)
 	set(ANDROID_ABI "arm64-v8a")
@@ -18,84 +24,79 @@ else()
 	set(ANDROID_ABI "armeabi-v7a with NEON")
 endif()
 
-if(CMAKE_TOOLCHAIN_FILE)
-	set(LIBRARY_OUTPUT_PATH_ROOT ${CMAKE_BINARY_DIR} CACHE PATH "root for library output, set this to change where android libs are compiled to")
-	# get absolute path, but get_filename_component ABSOLUTE only refer with source dir, so find_file here :(
-	get_filename_component(CMAKE_TOOLCHAIN_FILE_NAME ${CMAKE_TOOLCHAIN_FILE} NAME)
-	find_file(CMAKE_TOOLCHAIN_FILE ${CMAKE_TOOLCHAIN_FILE_NAME} PATHS ${CMAKE_SOURCE_DIR} NO_DEFAULT_PATH)
-	message(STATUS "CMAKE_TOOLCHAIN_FILE = ${CMAKE_TOOLCHAIN_FILE}")
-endif()
-
-if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-	set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "Installation Directory")
-endif()
-message(STATUS "CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
-
-cmake_minimum_required(VERSION 2.8)
-project(ANAKIN-lite C CXX)
-
-configure_file ( 
-	"../../cmake/config/anakin_config.h.in" 
-	"${PROJECT_BINARY_DIR}/anakin_config.h"
+configure_file (
+		"../../cmake/config/anakin_config.h.in"
+		"${PROJECT_BINARY_DIR}/anakin_config.h"
 )
+
+# add compile flags
+anakin_add_compile_option(-std=c++11)
+anakin_add_compile_option(-fPIC)
+anakin_add_compile_option(-ldl)
+anakin_add_compile_option(-fvisibility=hidden)
+anakin_add_compile_option(-fvisibility-inlines-hidden)
+anakin_add_compile_option(-ffunction-sections)
+anakin_add_compile_option(-fdata-sections)
+anakin_add_compile_option(-s)
+#anakin_add_compile_option(-fstrict-aliasing)
+
+#set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--fix-cortex-a8 -Wl,--no-undefined -Wl,--gc-sections -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now ${CMAKE_SHARED_LINKER_FLAGS}")
+#set(CMAKE_MODULE_LINKER_FLAGS "-Wl,--fix-cortex-a8 -Wl,--no-undefined -Wl,--gc-sections -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now ${CMAKE_MODULE_LINKER_FLAGS}")
+#set(CMAKE_EXE_LINKER_FLAGS    "-Wl,--fix-cortex-a8 -Wl,--no-undefined -Wl,--gc-sections -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now ${CMAKE_EXE_LINKER_FLAGS}")
+
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--gc-sections -Wl,--icf=safe")
+set(MAKE_STATIC_LINKER_FLAGS "${MAKE_STATIC_LINKER_FLAGS} -Wl,--gc-sections -Wl,--icf=safe")
+
+anakin_add_compile_option(-W)
+anakin_add_compile_option(-Wall)
+anakin_add_compile_option(-Wno-unused-variable) # no unused-variable
+anakin_add_compile_option(-Wformat)
+anakin_add_compile_option(-Wmissing-declarations)
+anakin_add_compile_option(-Winit-self)
+anakin_add_compile_option(-Wpointer-arith)
+anakin_add_compile_option(-Wno-shadow)
+anakin_add_compile_option(-fpermissive)
+anakin_add_compile_option(-Wsign-promo)
+anakin_add_compile_option(-fdiagnostics-show-option)
+anakin_add_compile_option(-Wno-undef)
+anakin_add_compile_option(-Wno-narrowing)
+anakin_add_compile_option(-Wno-unknown-pragmas)
+anakin_add_compile_option(-Wno-delete-non-virtual-dtor)
+anakin_add_compile_option(-Wno-comment)
+anakin_add_compile_option(-Wno-sign-compare)
+anakin_add_compile_option(-Wno-ignored-qualifiers)
+anakin_add_compile_option(-Wno-enum-compare)
+anakin_add_compile_option(-Wno-unused-parameter)
+anakin_add_compile_option(-Wno-unused-function)
 
 if(ENABLE_DEBUG)
 	set(CMAKE_BUILD_TYPE Debug FORCE)
 else()
 	set(CMAKE_BUILD_TYPE Release FORCE)
-	add_definitions(-Ofast)
-	add_definitions(-ffast-math)
 endif()
 
-set(anakin_lite_lib_so "anakin_lite")
-set(anakin_lite_lib_static "anakin_lite_static")
-
-# disable shared library on xcode ios
-if(USE_IOS)
-	set_property(GLOBAL PROPERTY TARGET_SUPPORTS_SHARED_LIBS FALSE)
+if(CMAKE_BUILD_TYPE MATCHES Debug)
+	anakin_add_compile_option(-O0)
+	anakin_add_compile_option(-g)
+else()
+	anakin_add_compile_option(-Os)
+	anakin_add_compile_option(-DNDEBUG)
 endif()
-add_definitions(-std=c++11)
-add_definitions(-fPIC)
-add_definitions(-fvisibility=hidden)
-add_definitions(-fvisibility-inlines-hidden)
-if (USE_ANDROID)
-	add_definitions(-ffunction-sections)
-	add_definitions(-fdata-sections)
-	add_definitions(-ldl)
-	add_definitions(-s)
-endif()
-#anakin_add_compile_option(-fstrict-aliasing)
-add_definitions(-W)
-add_definitions(-Wall)
-add_definitions(-Wno-unused-variable) # no unused-variable
-add_definitions(-Wformat)
-add_definitions(-Wmissing-declarations)
-add_definitions(-Winit-self)
-add_definitions(-Wpointer-arith)
-add_definitions(-Wno-shadow)
-add_definitions(-fpermissive)
-add_definitions(-Wsign-promo)
-add_definitions(-fdiagnostics-show-option)
-add_definitions(-Wno-undef)
-add_definitions(-Wno-narrowing)
-add_definitions(-Wno-unknown-pragmas)
-add_definitions(-Wno-delete-non-virtual-dtor)
-add_definitions(-Wno-comment)
-add_definitions(-Wno-sign-compare)
-add_definitions(-Wno-ignored-qualifiers)
-add_definitions(-Wno-enum-compare)
-add_definitions(-Wno-unused-parameter)
-add_definitions(-Wno-unused-function)
 
 if(USE_ANDROID)
-	add_definitions(-pie)
-	if(USE_ARMV8)
-	else()
-		add_definitions(-mfloat-abi=softfp)
-		add_definitions(-mfpu=neon)
-	endif()
-	add_definitions(-ffast-math)
-	add_definitions(-lc)
+	anakin_add_compile_option(-pie)
+	anakin_add_compile_option(-mfloat-abi=softfp)
+	anakin_add_compile_option(-mfpu=neon)
+	anakin_add_compile_option(-ffast-math)
+	anakin_add_compile_option(-lc)
+	set(ANAKIN_EXTRA_CXX_FLAGS "${ANAKIN_EXTRA_CXX_FLAGS} ${ANDROID_CXX_FLAGS}")
+endif()
+
+set(CMAKE_CXX_FLAGS  ${ANAKIN_EXTRA_CXX_FLAGS})
+
+message(STATUS "cmake flags: ${CMAKE_CXX_FLAGS}")
+
+if(USE_IOS)
 endif()
 
 if(USE_OPENMP)
@@ -113,44 +114,36 @@ if(USE_OPENMP)
 	endif()
 endif()
 
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -fno-exceptions")
-
-set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--gc-sections")# -Wl,--icf=safe")
-set(MAKE_STATIC_LINKER_FLAGS "${MAKE_STATIC_LINKER_FLAGS} -Wl,--gc-sections")# -Wl,--icf=safe")
+set(anakin_lite_lib_so "anakin_lite")
+set(anakin_lite_lib_static "anakin_lite_static")
 
 set(ANAKIN_LITE_SABER ${CMAKE_CURRENT_SOURCE_DIR}/../../saber/lite)
 set(UNIT_TEST_LITE ${CMAKE_CURRENT_SOURCE_DIR}/../../test/lite)
 
+anakin_fetch_include_recursively(${ANAKIN_LITE_SABER})
 include_directories(${ANAKIN_LITE_SABER}/../)
 include_directories(${ANAKIN_LITE_SABER}/../../)
 include_directories(${PROJECT_BINARY_DIR}/)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/)
 
-FILE(GLOB BUILD_SRC_FILES1 "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
-FILE(GLOB BUILD_SRC_FILES2 "${ANAKIN_LITE_SABER}/core/*.cpp")
-FILE(GLOB BUILD_SRC_FILES3 "${ANAKIN_LITE_SABER}/funcs/*.cpp")
-FILE(GLOB BUILD_SRC_FILES4 "${ANAKIN_LITE_SABER}/funcs/neon/*.cpp")
-FILE(GLOB BUILD_SRC_FILES5 "${ANAKIN_LITE_SABER}/funcs/neon/impl/*.cpp")
-if(USE_ANDROID)
-	FILE(GLOB UNIT_TEST_LITE_SRC "${UNIT_TEST_LITE}/*.cpp")
-elseif(USE_IOS)
-	FILE(GLOB UNIT_TEST_LITE_SRC "${UNIT_TEST_LITE}/test_lite_model_ios.cpp")
-endif()
+anakin_fetch_files_with_suffix(${CMAKE_CURRENT_SOURCE_DIR}/ "cpp" ANAKIN_LITE_SRC)
+anakin_fetch_files_with_suffix(${ANAKIN_LITE_SABER}/core "cpp" ANAKIN_SABER_ARM_LITE_SRC)
+anakin_fetch_files_with_suffix(${ANAKIN_LITE_SABER}/funcs "cpp" ANAKIN_SABER_ARM_LITE_SRC)
+anakin_fetch_files_with_suffix(${ANAKIN_LITE_SABER}/funcs/neon "cpp" ANAKIN_SABER_ARM_LITE_SRC)
+anakin_fetch_files_with_suffix(${ANAKIN_LITE_SABER}/funcs/neon/impl "cpp" ANAKIN_SABER_ARM_LITE_SRC)
+anakin_fetch_files_with_suffix(${UNIT_TEST_LITE} "cpp" UNIT_TEST_LITE_SRC)
 
-add_library(ANAKIN_LITE_OBJS OBJECT ${BUILD_SRC_FILES1} ${BUILD_SRC_FILES2} ${BUILD_SRC_FILES3} ${BUILD_SRC_FILES4} ${BUILD_SRC_FILES5})
+add_library(ANAKIN_LITE_OBJS OBJECT ${ANAKIN_LITE_SRC} ${ANAKIN_SABER_ARM_LITE_SRC})
 
-if(USE_ANDROID)
-	add_library(${anakin_lite_lib_so} SHARED $<TARGET_OBJECTS:ANAKIN_LITE_OBJS>)
-	set_target_properties(${anakin_lite_lib_so} PROPERTIES
-					  LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/output/)
-endif()
+add_library(${anakin_lite_lib_so} SHARED $<TARGET_OBJECTS:ANAKIN_LITE_OBJS>)
+set_target_properties(${anakin_lite_lib_so} PROPERTIES
+		LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/output/)
+
 add_library(${anakin_lite_lib_static} STATIC $<TARGET_OBJECTS:ANAKIN_LITE_OBJS>)
-set_target_properties(${anakin_lite_lib_static} PROPERTIES 
-					  ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/output/)
+set_target_properties(${anakin_lite_lib_static} PROPERTIES
+		ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/output/)
 
 if(BUILD_LITE_UNIT_TEST)
-	add_definitions(-fexceptions)
 	# build test cases
 	foreach(SRC_NAME ${UNIT_TEST_LITE_SRC})
 		#unpack the dir "/"
@@ -177,20 +170,15 @@ endif()
 FILE(GLOB MODEL_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 
 install(DIRECTORY ${ANAKIN_LITE_SABER}/../../saber/lite
-		DESTINATION ${PROJECT_SOURCE_DIR}/output/include/saber
+		DESTINATION ${PROJECT_SOURCE_DIR}/output/include/saber/lite
 		FILES_MATCHING
 		PATTERN "*.h")
 install(FILES ${ANAKIN_LITE_SABER}/../../saber/saber_types.h
-        DESTINATION ${PROJECT_SOURCE_DIR}/output/include/saber)
+		DESTINATION ${PROJECT_SOURCE_DIR}/output/include/saber)
 install(FILES ${MODEL_HEADER}
-        DESTINATION ${PROJECT_SOURCE_DIR}/output/include)
+		DESTINATION ${PROJECT_SOURCE_DIR}/output/include)
 install(FILES ${PROJECT_BINARY_DIR}/anakin_config.h
-        DESTINATION ${PROJECT_SOURCE_DIR}/output/include)
-if(USE_ANDROID)
-	install(TARGETS ${anakin_lite_lib_static} ${anakin_lite_lib_so}
-		ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/output/lib
-		LIBRARY DESTINATION ${PROJECT_SOURCE_DIR}/output/lib)
-else()
-	install(TARGETS ${anakin_lite_lib_static}
-			ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/output/lib)
-endif()
+		DESTINATION ${PROJECT_SOURCE_DIR}/output/include)
+install(TARGETS ${anakin_lite_lib_so} ${anakin_lite_lib_static}
+		LIBRARY DESTINATION ${PROJECT_SOURCE_DIR}/output/lib
+		ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/output/lib)

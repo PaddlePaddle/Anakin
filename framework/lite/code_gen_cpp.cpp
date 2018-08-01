@@ -414,7 +414,7 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_head_api_impl() {
 				_code.feed("    %s", str.c_str());
 			}
 		} else {
-			LOG(WARNING) << "Target op type : " << this->_graph_node_map[node_name].op_name << " not support";
+			LOG(FATAL) << "Target op type : " << this->_graph_node_map[node_name].op_name << " not support";
 		}
 	}
     _code.feed("    %s_gen_ops();\n", _code_name.c_str());
