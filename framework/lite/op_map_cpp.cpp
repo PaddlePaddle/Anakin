@@ -102,9 +102,9 @@ std::string ParserPower(graph::AttrInfo& attr,
         
         // gen cpp code
         CodeWritter code_w;
-        code_w.feed("ParamBase* %s_param = new PowerParam(%d,%d,%d);\n",code_name.c_str(),scale,shift,power);
+        code_w.feed("ParamBase* %s_param = new PowerParam(%f,%f,%f);\n", node_name.c_str(),scale,shift,power);
         code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
-        code_w.feed("//    %s.load_param(%d,%d,%d);\n", node_name.c_str(),scale,shift,power);
+        code_w.feed("//    %s.load_param(%f,%f,%f);\n", node_name.c_str(),scale,shift,power);
         return code_w.get_code_string();
     }
 // SaberDeconv2D
@@ -1345,7 +1345,7 @@ std::string ParserSoftmax(graph::AttrInfo& attr,
 	return code_w.get_code_string();
 }
 
-// SaberSoftmax
+// SaberSplit
 std::string ParserSplit(graph::AttrInfo& attr,
                           std::string& code_name,
                           std::string& op_class_name,
@@ -1358,6 +1358,24 @@ std::string ParserSplit(graph::AttrInfo& attr,
     CodeWritter code_w;
 
     code_w.feed("ParamBase* %s_param = new SplitParam;\n",
+                node_name.c_str());
+    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    return code_w.get_code_string();
+}
+
+// SaberFlatten
+std::string ParserFlattern(graph::AttrInfo& attr,
+                          std::string& code_name,
+                          std::string& op_class_name,
+                          std::string& node_name,
+                          std::string& weights_ptr_name,
+                          WeightsWritter& writter) {
+    // parsing parameter
+    // no param
+    // gen cpp code
+    CodeWritter code_w;
+
+    code_w.feed("ParamBase* %s_param = new FlatternParam;\n",
                 node_name.c_str());
     code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
     return code_w.get_code_string();
@@ -1387,6 +1405,7 @@ std::unordered_map<std::string, OpParser> OPERATION_MAP({
 	{"Power", {"SaberPower", ParserPower} }, // done
 	{"Scale", {"SaberScale", ParserScale} }, // done
 	{"Slice", {"SaberSlice", ParserSlice} }, // done
+  {"Flattern", {"SaberFlatten", ParserFlattern}}, //done
 	{"Softmax", {"SaberSoftmax", ParserSoftmax}}, //done
 	{"Split", {"SaberSplit", ParserSplit}} // done
 });
