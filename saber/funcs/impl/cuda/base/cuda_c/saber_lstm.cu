@@ -221,7 +221,7 @@ SaberLstm<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispatch_batch(
     const OpDataType* w_cf = weight_peephole + 1 * _hidden_size;
     const OpDataType* w_co = weight_peephole + 2 * _hidden_size;
 
-    DLOG(INFO) << "seq_sum = " << seq_sum << ",emit length = " << emit_offset_vec.size();
+//    DLOG(INFO) << "seq_sum = " << seq_sum << ",emit length = " << emit_offset_vec.size();
 
     for (int word_id = 0; word_id < emit_length; word_id++) {
         int real_word_id = word_id;
@@ -309,7 +309,7 @@ SaberLstm<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispatch(
     LstmParam < OpTensor >& param) {
     CHECK_EQ(inputs.size(),1)<<"only support input size = 1";
     CHECK_EQ(outputs.size(),1)<<"only support outputs size = 1";
-    CHECK_EQ(param.init_hidden()==nullptr, true )<<"only support param.init_hidden() == nullptr";
+    CHECK(param.init_hidden()==nullptr)<<"only support param.init_hidden() == nullptr";
     CHECK_EQ(param.num_layers,1)<<"only support param.num_layers==1";
     return dispatch_batch(inputs, outputs, param);
 
