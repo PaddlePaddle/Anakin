@@ -8,6 +8,21 @@
 
 using namespace anakin::saber;
 
+template <typename dtype>
+int count_diff(const dtype* src1, const dtype* src2, int size, double max_ratio) {
+    if (max_ratio <= 0) {
+        max_ratio = 0.1;
+    }
+    int count = 0;
+    for (int i = 0; i < size; ++i) {
+        double ratio = fabs(src1[i] - src2[i]) / fabs(src1[i] + src2[i] + 1e-12);
+        if (ratio > max_ratio) {
+            ++count;
+        }
+    }
+    return count;
+}
+
 template<typename TargetType, typename TargetType_H>
 int test_conv_results(int group,
                       int input_num, int in_channels, int height, int width,
@@ -42,7 +57,7 @@ int test_conv_results(int group,
     Tensor<TargetType_H> input_host;
     input_dev.re_alloc(input_s, AK_FLOAT);
     input_host.re_alloc(input_s, AK_FLOAT);
-    fill_tensor_rand(input_dev, 0.0f, 10.0f);
+    fill_tensor_rand(input_dev, -10.0f, 10.0f);
     input_host.copy_from(input_dev);
     input_dev.set_scale({10.1f / 128});
 //    LOG(INFO) << input_dev.get_scale()[0];
@@ -98,17 +113,20 @@ int test_conv_results(int group,
                                    dilation_w, dilation_h, pad_w, pad_h, bias_term,
                                    param.activation_param.has_active);
 //    print_tensor_valid(check_host);
-    double max_ratio = 0.0;
-    double max_diff = 0.0;
-    tensor_cmp_host((const float*)output_host.data(), (const float*)check_host.data(),
-                    check_host.valid_size(), max_ratio, max_diff);
-    if (max_ratio < 1.5e-1) {
-        LOG(INFO) << " PASS!!! max_ratio = " << max_ratio << " max_diff = " << max_diff;
+    //double max_ratio = 0.0;
+    //double max_diff = 0.0;
+    //tensor_cmp_host((const float*)output_host.data(), (const float*)check_host.data(),
+    //                check_host.valid_size(), max_ratio, max_diff);
+    int count = count_diff((const float*)output_host.data(), (const float*)check_host.data(), check_host.valid_size(), 2e-1);
+    if ((double)count / output_host.valid_size() < 0.02) {
+        //LOG(INFO) << " PASS!!! max_ratio = " << max_ratio << " max_diff = " << max_diff;
+        LOG(INFO) << "PASS!!! count = " << count;
         return 0;
     } else {
         print_tensor_valid(output_host);
         print_tensor_valid(check_host);
-        LOG(FATAL) << "FAIL!!! max_ratio = " << max_ratio << " max_diff = " << max_diff
+        //LOG(FATAL) << "FAIL!!! max_ratio = " << max_ratio << " max_diff = " << max_diff
+        LOG(FATAL) << "FAIL!!! count = " << count
                << " conv param: "
                << " input_num = " << input_num
                << " in_channels = " << in_channels
@@ -144,11 +162,11 @@ TEST(TestSaberFunc, test_saber_conv_int8_results) {
     std::vector<int> stride_w_v{1, 2};
     std::vector<int> dilation_h_v{1};
     std::vector<int> dilation_w_v{1};
-    std::vector<int> in_channels_v{4, 8};
-    std::vector<int> out_channels_v{4, 8, 12};
+    std::vector<int> in_channels_v{ 4};
+    std::vector<int> out_channels_v{4, 8};
 //    std::vector<int> group_v{1, 2, 32};
-    std::vector<int> in_h_v{4, 6};
-    std::vector<int> in_w_v{4, 6};
+    std::vector<int> in_h_v{24, 36};
+    std::vector<int> in_w_v{24, 36};
     std::vector<int> input_num_v{1, 3};
     std::vector<bool> bias_term_v{true, false};
 #ifdef USE_CUDA
