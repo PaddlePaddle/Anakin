@@ -299,7 +299,7 @@ TEST(NetTest, net_execute_base_test) {
                    memcpy(h_tensor_in_0->mutable_data() + i * 38, &fea[i][0], sizeof(float)*38);
                }
                for (int i = 0; i < week_fea.size(); i++) {
-                   memcpy(h_tensor__in_1->mutable_data() + i * 10, &week_fea[i][0], sizeof(float)*10);
+                   memcpy(h_tensor_in_1->mutable_data() + i * 10, &week_fea[i][0], sizeof(float)*10);
                }
                for (int i = 0; i < time_fea.size(); i++) {
                    memcpy(h_tensor_in_2->mutable_data() + i * 10, &time_fea[i][0], sizeof(float)*10);
