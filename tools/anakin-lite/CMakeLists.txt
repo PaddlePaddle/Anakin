@@ -51,7 +51,9 @@ set(anakin_lite_lib_so "anakin_lite")
 set(anakin_lite_lib_static "anakin_lite_static")
 
 # disable shared library on xcode ios
+if(USE_IOS)
 set_property(GLOBAL PROPERTY TARGET_SUPPORTS_SHARED_LIBS FALSE)
+endif()
 add_definitions(-std=c++11)
 add_definitions(-Wall -Wextra -Wno-unused-function)
 add_definitions(-fPIC)
