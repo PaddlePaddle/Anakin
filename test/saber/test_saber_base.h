@@ -68,36 +68,31 @@ public:
         std :: vector<TensorH*> in_h;
         std :: vector<TensorD*> out_d;
         std :: vector<TensorH*> out_h;
-        std :: vector<TensorH*> in_hd;
+        std :: vector<TensorH*> out_hd;
         
         for(int i = 0; i < _op_input_num; ++i){
             TensorD *d_id = new TensorD(new_shape);
             TensorH *d_ih = new TensorH(new_shape);
             TensorD *d_od = new TensorD(new_shape);
             TensorH *d_oh = new TensorH(new_shape);
-            TensorH *d_ihd = new TensorH(new_shape);
+            TensorH *d_ohd = new TensorH(new_shape);
             in_d.push_back(d_id);
             in_h.push_back(d_ih);
             out_d.push_back(d_od);
             out_h.push_back(d_oh);
-            in_hd.push_back(d_ihd);
+            out_hd.push_back(d_ohd);
         }
         _inputs_dev.push_back(in_d);
         _inputs_host.push_back(in_h);
         _outputs_dev.push_back(out_d);
         _outputs_host.push_back(out_h);
-        _outputs_hd.push_back(in_hd);
+        _outputs_hd.push_back(out_hd);
         _input_shapes.push_back(new_shape);
         
         
     }
     void set_input_shape (Shape new_shape, TestDataType type = RANDOM, double value = 1){
-        clear_vv<TensorD>(_inputs_dev);
-        clear_vv<TensorD>(_outputs_dev);
-        clear_vv<TensorH>(_inputs_host);
-        clear_vv<TensorH>(_outputs_host);
-        clear_vv<TensorH>(_outputs_hd);
-        _input_shapes.clear();
+        clear_datas();
         
         add_inputs_shape(new_shape);
         _input_type = type;
@@ -181,6 +176,15 @@ public:
             }
         }
         data_vec.clear();
+    }
+    void clear_datas()
+    {
+        clear_vv<TensorD>(_inputs_dev);
+        clear_vv<TensorD>(_outputs_dev);
+        clear_vv<TensorH>(_inputs_host);
+        clear_vv<TensorH>(_outputs_host);
+        clear_vv<TensorH>(_outputs_hd);
+        _input_shapes.clear();
     }
     SaberStatus get_op_result (SaberImplStrategy strategy, ImplEnum implenum, int param_index = 0){
         CHECK_GE(param_index, 0) << "param index must be positive";
