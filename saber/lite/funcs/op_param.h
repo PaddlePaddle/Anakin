@@ -612,6 +612,15 @@ struct SplitParam : public ParamBase {
     SplitParam&operator=(const SplitParam& param) { return *this; }
 };
 
+struct FlattenParam : public ParamBase {
+    FlattenParam() = default;
+    FlattenParam(const FlattenParam& right) {}
+    FlattenParam& operator=(const FlattenParam& right){ return *this;}
+    bool operator==(const FlattenParam& right){
+        return true;
+    }
+};
+
 struct ScaleParam : public ParamBase {
     ScaleParam()
             : _axis(1), _num_axes(1)
