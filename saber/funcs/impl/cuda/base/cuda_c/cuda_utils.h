@@ -38,6 +38,11 @@ public:
             CUDA_CHECK(cudaFree(_dev_map_vec));
         }
     };
+   std::vector<int>& get_length_index() {return _length_index;}
+   std::vector<int>& get_emit_offset_vec() {return _emit_offset_vec;}
+   std::vector<int>& get_map_vec() {return _map_vec;}
+   int* get_dev_map_vec() {return _dev_map_vec;}
+   int get_emit_length() {return _emit_length;}
 
     void print_vec(const float* in, int size, const char* perfix) {
         for (int i = 0; i < size; i++) {
@@ -52,14 +57,11 @@ public:
     template <typename Dtype>
     void seq_2_sorted_seq(const Dtype*  input, Dtype* output, int word_size, cudaStream_t stream) {
         int seq_sum = _map_vec.size();
-//        print_vec(_map_vec.data(),_map_vec.size(),"map_vec");
         trans_map2out_cfunc(input, output, word_size, seq_sum, stream, _dev_map_vec);
     }
     template <typename Dtype>
     void hidden_2_sorted_hidden(const Dtype*  input, Dtype* output, int hidden_size) {
-        //        _map_vec.resize(word_sum);
         int batch_size = _length_index.size();
-        //        std::cout << "word_sum = " << word_sum << std::endl;
 
         for (int ori_word_id = 0; ori_word_id < batch_size; ++ori_word_id) {
             //can param
@@ -68,7 +70,6 @@ public:
             int maped_start = maped_id * hidden_size;
 
             for (int word_vec_offset = 0; word_vec_offset < hidden_size; ++word_vec_offset) {
-                //                std::cout<<maped_start + word_vec_offset<<" --> "<<word_start + word_vec_offset<<" , = "<<input[maped_start + word_vec_offset]<<std::endl;
 
                 output[word_start + word_vec_offset] = input[maped_start + word_vec_offset];
 
@@ -81,19 +82,19 @@ public:
         trans_map2in_cfunc(input, output, hidden_size, seq_sum, stream, _dev_map_vec);
     }
 
-    bool get_sorted_map(std::vector<int>& offset_vec,
-                        std::vector<int>& emit_offset_vec, int& emit_length, cudaStream_t stream_id) {
+    bool get_sorted_map(std::vector<int>& offset_vec, cudaStream_t stream_id) {
         int batch_size = offset_vec.size() - 1;
         int word_sum = offset_vec[offset_vec.size() - 1];
-        std::vector<int>length_vec(batch_size);
+        std::vector<int> length_vec(batch_size);
         _length_index.resize(batch_size);
+        int emit_length = 0;
 
         if (batch_size == 1) {
             emit_length = offset_vec[1] - offset_vec[0];
-            emit_offset_vec.resize(emit_length + 1);
+            _emit_offset_vec.resize(emit_length + 1);
 
             for (int i = 0; i <= emit_length; i++) {
-                emit_offset_vec[i] = i;
+                _emit_offset_vec[i] = i;
             }
 
             return false;
@@ -111,8 +112,8 @@ public:
         emit_length = max_len;
 
         if (max_len == 1) {
-            emit_offset_vec.push_back(0);
-            emit_offset_vec.push_back(emit_length * batch_size);
+            _emit_offset_vec.push_back(0);
+            _emit_offset_vec.push_back(emit_length * batch_size);
             return false;
         }
 
@@ -120,7 +121,7 @@ public:
             return length_vec[i1] > length_vec[i2];
         });
 
-        emit_offset_vec.resize(max_len + 1);
+        _emit_offset_vec.resize(max_len + 1);
         _map_vec.resize(word_sum);
 
         if (word_sum > _dev_map_vec_length) {
@@ -136,7 +137,7 @@ public:
         std::vector<int> length_vec_cnt = length_vec;
 
         for (int word_id_in_seq = 0; word_id_in_seq < max_len; word_id_in_seq++) {
-            emit_offset_vec[word_id_in_seq] = target_word_id;
+            _emit_offset_vec[word_id_in_seq] = target_word_id;
 
             for (int batch_id = 0; batch_id < batch_size; batch_id++) {
                 int old_batch_id = _length_index[batch_id];
@@ -164,7 +165,8 @@ public:
         CUDA_CHECK(cudaMemcpyAsync(_dev_map_vec, _map_vec.data(), sizeof(int)*word_sum,
                                    cudaMemcpyHostToDevice, stream_id));
 
-        emit_offset_vec[max_len] = word_sum;
+        _emit_offset_vec[max_len] = word_sum;
+        _emit_length = emit_length;
         return true;
     }
 
@@ -172,7 +174,9 @@ private:
 
 
     std::vector<int> _length_index;
+    std::vector<int> _emit_offset_vec;
     std::vector<int> _map_vec;
+    int _emit_length;
 
     int* _dev_map_vec;
     int _dev_map_vec_length;
@@ -181,6 +185,8 @@ private:
 
 };
 
+template <typename Dtype>
+extern void  get_sub_tensor(const Dtype* in, Dtype* out, int h, int w, int stride_w, cudaStream_t stream);
 }
 }
 #endif //SABER_FUNCS_IMPL_CUDA_BASE_CUDA_C_CUDA_UTILS_H
