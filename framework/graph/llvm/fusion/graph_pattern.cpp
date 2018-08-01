@@ -90,8 +90,7 @@ std::unordered_map<Fusion, std::function<int(VGraph*, Pattern*)>, FusionHash> Fu
                     return 0; // continue searching
                 }
             };
-            //vgraph->Scanner->BFS(search_vgraph, pattern);
-            vgraph->Scanner->DFS(search_vgraph, pattern);
+            vgraph->Scanner->BFS(search_vgraph, pattern);
             return 0;
         }
     },
