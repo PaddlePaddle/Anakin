@@ -999,8 +999,12 @@ def Parser_priorbox(args):
     OpsRegister()["PriorBox"].variance = list(prior_box_param.variance)
     OpsRegister()["PriorBox"].img_h = prior_box_param.img_h
     OpsRegister()["PriorBox"].img_w = prior_box_param.img_w
-    OpsRegister()["PriorBox"].step_h = prior_box_param.step_h
-    OpsRegister()["PriorBox"].step_w = prior_box_param.step_w
+    if pooling_param.HasField('step_h') and pooling_param.HasField('step_w'):
+        OpsRegister()["PriorBox"].step_h = prior_box_param.step_h
+        OpsRegister()["PriorBox"].step_w = prior_box_param.step_w
+    elif pooling_param.HasField('step'):
+        OpsRegister()["PriorBox"].step_h = prior_box_param.step
+        OpsRegister()["PriorBox"].step_w = prior_box_param.step
     OpsRegister()["PriorBox"].offset = prior_box_param.offset
     OpsRegister()["PriorBox"].order = ['MIN', 'MAX', 'COM']
 
