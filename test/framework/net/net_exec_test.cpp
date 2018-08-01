@@ -179,11 +179,11 @@ TEST(NetTest, net_execute_base_test) {
  	//auto tensor_out_0_p = net_executer.get_out("elementwise_add_0.tmp_0_out");
 	//auto tensor_out_0_p = net_executer.get_out("prob_out");
 
-	auto tensor_out_0_p = net_executer.get_out("detection_output_0.tmp_0_out");
+	//auto tensor_out_0_p = net_executer.get_out("detection_output_0.tmp_0_out");
 
     // get out result
     //LOG(WARNING)<< "result avg: " << tensor_average(tensor_out_0_p);
-	test_print(tensor_out_0_p);
+	//test_print(tensor_out_0_p);
 
 
     // save the optimized model to disk.
