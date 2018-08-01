@@ -27,7 +27,7 @@ void test_saber_lstm(int sequence_size = 2, int batch_size = 1, int word_size = 
 
     //std::vector<int> offsets = {0, 20,40, 65, 82, 101};
     std::vector<int> offsets = {0, 3};
-    bool is_reverse = true;
+    bool is_reverse = false;
     batch_size = offsets.size() - 1;
     Shape input_shape(offsets[offsets.size() - 1], word_size, 1, 1);
     Shape output_shape(offsets[offsets.size() - 1], hidden_size, 1, 1);
