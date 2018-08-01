@@ -33,7 +33,7 @@ namespace lite{
       _inner_dim = inputs[0]->count(_param->_axis + _param->_num_axes, inputs[0]->shape().dims());
       _scale_dim = inputs[0]->count(_param->_axis, _param->_axis + _param->_num_axes);
       if (inputs.size() == 1) {
-          LCHECK_EQ(_scale_dim, _param->_scale_w.size(), "scale dim not valid");
+        //  LCHECK_EQ(_scale_dim, _param->_scale_w.size(), "scale dim not valid");
       }
       const int count = inputs[0]->valid_size();
 
@@ -46,7 +46,7 @@ namespace lite{
     }
 
     void scale_compute_kernel(const float* din, float* dout, int num, int ch, int w, int h, \
-        const float* scale_data, const float* bias_data){
+     bool bias_flag, const float* scale_data, const float* bias_data){
     int size = w * h;
     int cnt = size >> 4;
     int remain = size % 16;
@@ -60,7 +60,7 @@ namespace lite{
             const float* din_ch_ptr = din_ptr + c * size;
             float* dout_ch_ptr = dout_ptr + c * size;
             float32x4_t vscale = vdupq_n_f32(scale_ptr[c]);
-            float bias = bias_data == NULL ? 0.f : bias_data[c];
+            float bias = bias_flag ? bias_data[c] : 0.f;
             float32x4_t vbias = vdupq_n_f32(bias);
             for(int j = 0; j < cnt; j++){
 
@@ -131,14 +131,15 @@ void scale_global_compute_kernel(const float* din, float* dout, int num, int ch,
       const float* din_ptr = inputs[0]->data();
       float* dout_ptr = outputs[0]->mutable_data();
       if (_scale_dim > 1 || inputs.size() > 1) {
-          const float* scale_data = inputs.size() > 1 ? inputs[1]->data() : &_param->_scale_w[0];
-          const float* bias_data = _param->_bias_term ? &_param->_scale_b[0] : NULL;
-          scale_compute_kernel(din_ptr, dout_ptr, num, ch_in, w_in, h_in, scale_data, bias_data);
+         const float* scale_data = inputs.size() > 1 ? inputs[1]->data() : _param->_scale_w;
+         const float* bias_data = _param->_bias_term ? _param->_scale_b : nullptr;
+         bool bias_flag = _param->_bias_term;
+         scale_compute_kernel(din_ptr, dout_ptr, num, ch_in, w_in, h_in, bias_flag, scale_data, bias_data);
         } else {
-            float scale = _param->_scale_w[0];
+            float scale = *(_param->_scale_w);
             float bias = 0;
             if (_param->_bias_term) {
-                bias = _param->_scale_b[0];
+                bias = *(_param->_scale_b);
             }
            scale_global_compute_kernel(din_ptr, dout_ptr, num, ch_in, w_in, h_in, scale, bias);
         }

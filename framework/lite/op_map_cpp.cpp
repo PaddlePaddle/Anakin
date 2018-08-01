@@ -973,7 +973,15 @@ std::string ParserRelu(graph::AttrInfo& attr,
 
 	// gen cpp code
 	CodeWritter code_w;
-	code_w.feed("%s.load_param(%s,%f);\n", node_name.c_str(), act_type.c_str(),alpha);
+  code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
+                node_name.c_str(),
+                act_type.c_str());
+
+  code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+  //code_w.feed("//  %s.load_param(%s);\n", node_name.c_str(),
+                //act_type.c_str());
+
+	code_w.feed("// %s.load_param(%s,%f);\n", node_name.c_str(), act_type.c_str(),alpha);
 	return code_w.get_code_string();
 }
 
@@ -1150,6 +1158,33 @@ std::string ParserPriorBox(graph::AttrInfo& attr,
 	auto step_h    = get_attr<float>("step_h", attr); 
 	auto step_w    = get_attr<float>("step_w", attr); 
 	auto offset    = get_attr<float>("offset", attr);
+  auto order     = get_attr<PTuple<std::string>>("order", attr);
+
+  std::vector<PriorType> order_;
+
+  for (int i = 0; i < order.size(); i++) {
+      if (order[i] == "MIN") {
+          order_.push_back(PRIOR_MIN);
+      } else if (order[i] == "MAX") {
+          order_.push_back(PRIOR_MAX);
+      } else if (order[i] == "COM") {
+          order_.push_back(PRIOR_COM);
+      }
+  }
+
+  auto gen_vec_code_0 = [](PTuple<PriorType> ptuple) -> std::string {
+    CodeWritter dims_vec_code;
+    dims_vec_code<<"{";
+    for(int i=0; i<ptuple.size()-1; i++) {
+      dims_vec_code<<ptuple.vector()[i]<<",";
+    }
+    if(ptuple.size() > 0) {
+      dims_vec_code<<ptuple.vector()[ptuple.size()-1] << "}";
+    } else {
+      dims_vec_code<< "}";
+    }
+    return dims_vec_code.get_code_string();
+  };
 
 	auto gen_vec_code = [](PTuple<float> ptuple) -> std::string {
 		CodeWritter dims_vec_code;
@@ -1165,25 +1200,27 @@ std::string ParserPriorBox(graph::AttrInfo& attr,
 		return dims_vec_code.get_code_string();
 	};
 
+
 	// gen cpp code
 	CodeWritter code_w;
 
-    code_w.feed("ParamBase* %s_param = new PriorBoxParam(%s,%s,%s,%s,%s,%s,%d,%d,%f,%f,%f);\n",
+    code_w.feed("ParamBase* %s_param = new PriorBoxParam(%s,%s,%s,%s,%s,%s,%d,%d,%f,%f,%f, %s);\n",
                 node_name.c_str(),
                 gen_vec_code(min_size).c_str(),
                 gen_vec_code(max_size).c_str(),
                 gen_vec_code(as_ratio).c_str(),
                 gen_vec_code(var).c_str(),
-                flip_flag ? "ture":"false",
+                flip_flag ? "true":"false",
                 clip_flag ? "true":"false",
                 image_w,
                 image_h,
                 step_w,
                 step_h,
-                offset);
+                offset,
+                gen_vec_code_0(order_).c_str());
     code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
 
-	code_w.feed("//    %s.load_param(%s,%s,%s,%s,%s,%s,%d,%d,%f,%f,%f);\n", node_name.c_str(),
+	code_w.feed("//    %s.load_param(%s,%s,%s,%s,%s,%s,%d,%d,%f,%f,%f, %s);\n", node_name.c_str(),
                 gen_vec_code(min_size).c_str(),
                 gen_vec_code(max_size).c_str(),
                 gen_vec_code(as_ratio).c_str(),
@@ -1194,7 +1231,8 @@ std::string ParserPriorBox(graph::AttrInfo& attr,
                 image_h,
                 step_w,
                 step_h,
-                offset);
+                offset,
+                gen_vec_code_0(order_).c_str());
 	return code_w.get_code_string();
 }
 
@@ -1259,7 +1297,7 @@ std::string ParserScale(graph::AttrInfo& attr,
 
   // gen cpp code
     CodeWritter code_w;
-    code_w.feed("ParamBase* %s_param = new ScaleParam(%s+%d, %s+%d, %s, %d, %d, %d);\n",
+    code_w.feed("ParamBase* %s_param = new ScaleParam(%s+%d, %s+%d, %s, %d, %d);\n",
                     node_name.c_str(),
                     weights_ptr_name.c_str(),
                     offset_info.weights[0].offset,
@@ -1271,7 +1309,7 @@ std::string ParserScale(graph::AttrInfo& attr,
 
     code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
 
-    code_w.feed("//    %s.load_param(%s+%d, %s+%d, %s, %d, %d, %d);\n", 
+    code_w.feed("//    %s.load_param(%s+%d, %s+%d, %s, %d, %d);\n", 
                   node_name.c_str(),
                   weights_ptr_name.c_str(),
                   offset_info.weights[0].offset,
@@ -1329,27 +1367,28 @@ std::string ParserSplit(graph::AttrInfo& attr,
 std::unordered_map<std::string, OpParser> OPERATION_MAP({
 	{"Input", {"Input", not_impl_yet} },
 	{"Convolution", {"SaberConv2D", ParserConvolution} }, // done
-    {"Deconvolution", {"SaberDeconv2D", ParserDeconvolution}}, //done
+	{"Deconvolution", {"SaberDeconv2D", ParserDeconvolution}}, //done
 	{"Activation", {"SaberActivation", ParserActivation} }, // done
-    {"ReLU", {"SaberActivation",ParserRelu}}, // done
+	{"ReLU", {"SaberActivation",ParserRelu}}, // done
 	{"ConvRelu", {"SaberConvAct2D", ParserConvolutionRelu} },  // done
-    {"ConvReluPool", {"SaberConvActPooling2D", ParserConvolutionReluPool} },  // done
+	{"ConvReluPool", {"SaberConvActPooling2D", ParserConvolutionReluPool} },  // done
 	{"ConvBatchnormScaleRelu", {"SaberConvAct2D", ParserConvBatchnormScaleRelu}}, // done have question ??
-    {"ConvBatchnormScaleReluPool", {"SaberConvActPooling2D", ParserConvBatchnormScaleReluPool}}, // done have question ??
+	{"ConvBatchnormScaleReluPool", {"SaberConvActPooling2D", ParserConvBatchnormScaleReluPool}}, // done have question ??
 	{"ConvBatchnormScale", {"SaberConv2D", ParserConvBatchnormScale}}, //done
 	{"Concat", {"SaberConcat", ParserConcat} },  // done
-	{"DetectionOutput", {"SaberDectionOutput", ParserDectionOutput} }, // done 
+	{"DetectionOutput", {"SaberDetectionOutput", ParserDectionOutput} }, // done 
 	{"Eltwise", {"SaberEltwise", ParserEltwise} }, //done
 	{"Eltwise", {"SaberEltwiseRelu", not_impl_yet}}, // not impl ??
 	{"Dense", {"SaberFc", ParserFc} }, // done
 	{"Permute", {"SaberPermute", ParserPermute} }, // done
 	{"Pooling", {"SaberPooling", ParserPooling} }, // done
-	{"ReLU", {"SaberPrelu", ParserPrelu} }, // done
+	{"PReLU", {"SaberPrelu", ParserPrelu} }, // done
 	{"PriorBox", {"SaberPriorBox", ParserPriorBox} }, // done
-  {"Scale", {"SaberScale", ParserScale} }, // done
+	{"Power", {"SaberPower", ParserPower} }, // done
+	{"Scale", {"SaberScale", ParserScale} }, // done
 	{"Slice", {"SaberSlice", ParserSlice} }, // done
 	{"Softmax", {"SaberSoftmax", ParserSoftmax}}, //done
-    {"Split", {"SaberSplit", ParserSplit}} // done
+	{"Split", {"SaberSplit", ParserSplit}} // done
 });
 
 } /* namespace lite */
