@@ -185,11 +185,8 @@ private:
 
 };
 
-//template <typename Dtype>
-//extern void  get_sub_tensor(const Dtype* in, Dtype* out, int h, int w, int stride_w, cudaStream_t stream);
 template <typename Dtype>
-extern void  get_sub_tensor(const Dtype* in, Dtype* out, int h, int w, int stride_w);
-
+extern void  get_sub_tensor(const Dtype* in, Dtype* out, int h, int w, int stride_w, cudaStream_t stream);
 }
 }
 #endif //SABER_FUNCS_IMPL_CUDA_BASE_CUDA_C_CUDA_UTILS_H

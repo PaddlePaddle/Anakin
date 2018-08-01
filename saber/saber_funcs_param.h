@@ -1,6 +1,4 @@
 /* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
-    int hidden_size = lstm_param.with_peephole ? lstm_param.bias()->valid_size() / 7 : lstm_param.bias()->valid_size() / 4;
-
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at

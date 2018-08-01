@@ -17,8 +17,8 @@
 using namespace anakin::saber;
 cublasHandle_t  cublas_handle;
 
-void test_saber_lstm(int sequence_size = 2, int batch_size = 1, int word_size = 1,
-                    int hidden_size = 1) {
+void test_saber_lstm(int sequence_size = 2, int batch_size = 1, int word_size = 4,
+                    int hidden_size = 4) {
 
     Context<NV> ctx_dev(0, 0, 0);
     Context<X86> ctx_x86(0, 0, 0);
@@ -26,7 +26,7 @@ void test_saber_lstm(int sequence_size = 2, int batch_size = 1, int word_size = 
     typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
 
     //std::vector<int> offsets = {0, 20,40, 65, 82, 101};
-    std::vector<int> offsets = {0, 1};
+    std::vector<int> offsets = {0, 3};
     bool is_reverse = true;
     batch_size = offsets.size() - 1;
     Shape input_shape(offsets[offsets.size() - 1], word_size, 1, 1);
@@ -54,11 +54,11 @@ void test_saber_lstm(int sequence_size = 2, int batch_size = 1, int word_size = 
     dev_bias.re_alloc(bias_shape);
 
     //fill_tensor_host_rand(host_input, -1, 1);
-    //fill_tensor_host_rand(host_weight, -1, 1);
+    fill_tensor_host_rand(host_weight, -1, 1);
     //fill_tensor_host_rand(host_bias, -1, 1);
     fill_tensor_host_const(host_input, 1);
-    fill_tensor_host_const(host_weight, 1);
-    fill_tensor_host_const(host_bias, -0.5);
+    //fill_tensor_host_const(host_weight, 1);
+    fill_tensor_host_const(host_bias, 0.5);
     host_input.set_seq_offset(offsets);
     dev_input.set_seq_offset(offsets);
 
@@ -86,7 +86,7 @@ void test_saber_lstm(int sequence_size = 2, int batch_size = 1, int word_size = 
                                     Active_tanh,
                                     false,
                                     false,
-                                    false,
+                                    is_reverse,
                                     0.f,
                                     1,
                                     1);
@@ -125,7 +125,7 @@ void test_saber_lstm(int sequence_size = 2, int batch_size = 1, int word_size = 
                                     Active_tanh,
                                     false,
                                     false,
-                                    false,
+                                    is_reverse,
                                     0.f,
                                     1,
                                     1);
