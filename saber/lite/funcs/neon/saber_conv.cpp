@@ -189,7 +189,7 @@ SaberStatus SaberConv2D::init(\
             const int k_wino = chin;
 
             //LOG(INFO) << "threads " << threads << ", m " << m_wino << ", n " << n_wino << ", k " << k_wino;
-            _gemmer.init(l1_cache, l2_cache, m_wino, n_wino, k_wino, false, false, threads);
+            _gemmer.init(l1_cache, l2_cache, m_wino, n_wino, k_wino, false, false, threads, this->_ctx->get_work_space());
             _impl = conv_arm_winograd3x3;
             _is_trans_weights = true;
             printf("USE WINOGRAD, num=%d, channel=%d, height=%d, width=%d, group=%d, kernel=%d, stride=%d, dila=%d, pad=%d\n", \
@@ -215,7 +215,7 @@ SaberStatus SaberConv2D::init(\
         _workspace_data.reshape(Shape(_workspace_fwd_sizes));
     }
 
-    _gemmer.init(l1_cache, l2_cache, m, n, k, false, false, threads);
+    _gemmer.init(l1_cache, l2_cache, m, n, k, false, false, threads, this->_ctx->get_work_space());
     printf("USE GEMM, num=%d, channel=%d, height=%d, width=%d, group=%d, kernel=%d, stride=%d, dila=%d, pad=%d\n", \
             num, chin, hin, win, _param->_group, _param->_kw, _param->_stride_w, _param->_dila_w, _param->_pad_w);
     this->_flag_init = true;

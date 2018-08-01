@@ -313,6 +313,8 @@ void Context::set_cache(size_t l1size, size_t l2size, size_t l3size) {
     dev._L1_cache = l1size;
     dev._L2_cache = l2size;
     dev._L3_cache = l3size;
+    int temp_mem_size = 2 * (l1size + l2size);
+    _work_space.reshape(Shape(temp_mem_size));
 }
 
 //template <>
@@ -330,6 +332,14 @@ PowerMode Context::get_mode(int& threads) {
 Context::Context(const Context& ctx){
     _mode = ctx._mode;
     _act_ids = ctx._act_ids;
+    _work_space = ctx._work_space;
+}
+
+Context& Context::operator=(const Context &ctx) {
+    _mode = ctx._mode;
+    _act_ids = ctx._act_ids;
+    _work_space = ctx._work_space;
+    return *this;
 }
 
 void Context::bind_dev() {
@@ -429,11 +439,16 @@ void Context::set_run_mode(PowerMode mode, int threads) {
     for (int j = 0; j < _act_ids.size(); ++j) {
         printf("|----active id: %d\n", _act_ids[j]);
     }
+
+    //! alloc memory for sgemm in this context
+
+    int temp_mem_size = 2 * (Env::cur_env()._L1_cache + Env::cur_env()._L2_cache);
+    _work_space.reshape(Shape(temp_mem_size));
     bind_dev();
 }
 
 void* Context::get_work_space() {
-    return _work_space;
+    return (void*)_work_space.mutable_data();
 }
 
 #if 0
