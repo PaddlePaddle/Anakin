@@ -42,6 +42,7 @@ if(USE_GPU_PLACE)
     else()
         anakin_fetch_files_with_suffix(${ANAKIN_SABER}/core/impl/amd "cpp" ANAKIN_SABER_BASE_SRC)
         anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/amd "cpp" ANAKIN_SABER_BASE_SRC)
+        anakin_fetch_files_with_suffix(${ANAKIN_SABER}/core/impl/amd/utils "cpp" ANAKIN_SABER_BASE_SRC)
     endif()
 endif()
 
