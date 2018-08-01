@@ -30,10 +30,13 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_header_start() {
     _code<<"#include <saber/lite/funcs/saber_permute.h>\n";
     _code<<"#include <saber/lite/funcs/saber_prelu.h>\n";
     _code<<"#include <saber/lite/funcs/saber_priorbox.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_scale.h>\n";
     _code<<"#include <saber/lite/funcs/saber_slice.h>\n";
     _code<<"#include <saber/lite/funcs/timer_lite.h>\n";
     _code<<"#include <saber/lite/funcs/saber_conv.h>\n";
     _code<<"#include <saber/lite/funcs/saber_conv_act.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_deconv.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_deconv_act.h>\n";
 	_code<<"#include <saber/lite/funcs/saber_conv_act_pooling.h>\n";
     _code<<"#include <saber/lite/funcs/saber_fc.h>\n";
     _code<<"#include <saber/lite/funcs/saber_pooling.h>\n";
