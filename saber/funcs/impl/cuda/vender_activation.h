@@ -13,8 +13,8 @@
    limitations under the License. 
 */
 
-#ifndef ANAKIN_SABER_FUNCS_CUDNN_CONV2D_H
-#define ANAKIN_SABER_FUNCS_CUDNN_CONV2D_H
+#ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_VENDER_ACTIVATION_H
+#define ANAKIN_SABER_FUNCS_IMPL_CUDA_VENDER_ACTIVATION_H
 #include "saber/funcs/impl/impl_activation.h"
 #include "saber/funcs/impl/cuda/cudnn_helper.h"
 namespace anakin {
@@ -141,4 +141,4 @@ template class VenderActivation<NV, AK_FLOAT>;
 }
 }
 
-#endif //ANAKIN_SABER_FUNCS_CUDNN_CONV2D_H
+#endif //ANAKIN_SABER_FUNCS_VENDER_ACTIVATION_H

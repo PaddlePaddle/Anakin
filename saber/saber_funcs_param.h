@@ -27,28 +27,7 @@ namespace anakin{
 namespace saber {
 
 template <typename TargetType>
-struct PreluParam {
-    PreluParam() = default;
-    PreluParam(bool is_channel_shared, Tensor<TargetType>* input_slope) {
-        channel_shared = is_channel_shared;
-        slope = input_slope;
-    }
-    PreluParam(const PreluParam<TargetType>& right) {
-        channel_shared = right.channel_shared;
-        slope = right.slope;
-    }
-    PreluParam<TargetType>& operator=(const PreluParam<TargetType>& right) {
-        this->channel_shared = right.channel_shared;
-        this->slope = right.slope;
-        return *this;
-    }
-    bool operator==(const PreluParam<TargetType>& right) {
-        bool flag = this->channel_shared == right.channel_shared;
-        return flag && (this->slope == right.slope);
-    }
-    bool channel_shared{false};
-    Tensor<TargetType>* slope{nullptr};
-};
+struct PreluParam;
 
 template <typename TargetType>
 struct ActivationParam {
@@ -186,6 +165,97 @@ struct ConvParam {
 private:
     Tensor<TargetType>* weight_tensor;
     Tensor<TargetType>* bias_tensor;
+
+};
+
+template <typename TargetType>
+struct NormalizeParam {
+    NormalizeParam() = default;
+    
+    NormalizeParam(bool is_across_spatial, float eps_in = 1e-6f, int pin = 2) {
+        across_spatial = is_across_spatial;
+        p = pin;
+        has_scale = false;
+        scale = nullptr;
+        eps = eps_in;
+        CHECK_EQ(p == 2 || p == 1, true) << "only support L1 and L2 norm";
+    }
+    NormalizeParam(bool is_across_spatial, bool is_shared_channel, \
+                   Tensor<TargetType>* input_scale, float eps_in = 1e-6f, int pin = 2) {
+        
+        across_spatial = is_across_spatial;
+        channel_shared = is_shared_channel;
+        p = pin;
+        has_scale = true;
+        scale = input_scale;
+        eps = eps_in;
+        CHECK_EQ(p == 2 || p == 1, true) << "only support L1 and L2 norm";
+    }
+    
+    NormalizeParam(const NormalizeParam<TargetType>& right) {
+        channel_shared = right.channel_shared;
+        across_spatial = right.across_spatial;
+        p = right.p;
+        has_scale = right.has_scale;
+        scale = right.scale;
+        eps = right.eps;
+    }
+
+    NormalizeParam<TargetType>& operator=(const NormalizeParam<TargetType>& right) {
+        this->channel_shared = right.channel_shared;
+        this->across_spatial = right.across_spatial;
+        this->scale = right.scale;
+        this->p = right.p;
+        this->has_scale = right.has_scale;
+        this->eps = right.eps;
+        return *this;
+    }
+    
+    bool operator==(const NormalizeParam<TargetType>& right) {
+        bool flag = this->across_spatial == right.across_spatial;
+        flag = flag && (this->channel_shared == right.channel_shared);
+        flag = flag && (this->has_scale == right.has_scale);
+        flag = flag && (this->p == right.p);
+        flag = flag && (fabsf(this->eps - right.eps) < 1e-7f);
+        return flag && (this->scale == right.scale);
+    }
+    
+    //! p = 1, L1 normalize, p = 2, L2 normalize
+    int  p{2};
+    //! whether normalize is across the spatial
+    //! if not across spatial, do normalize across channel
+    bool across_spatial{true};
+    //! has_scale = true, result is multiplied by scale
+    bool has_scale{false};
+    //! if channel_shared = true, use one scale data
+    bool channel_shared{false};
+    //! scale tensor if has one
+    Tensor<TargetType>* scale{nullptr};
+    float eps{1e-6f};
+};
+  
+template <typename TargetType>
+struct PreluParam {
+    PreluParam() = default;
+    PreluParam(bool is_channel_shared, Tensor<TargetType>* input_slope) {
+        channel_shared = is_channel_shared;
+        slope = input_slope;
+    }
+    PreluParam(const PreluParam<TargetType>& right) {
+        channel_shared = right.channel_shared;
+        slope = right.slope;
+    }
+    PreluParam<TargetType>& operator=(const PreluParam<TargetType>& right) {
+        this->channel_shared = right.channel_shared;
+        this->slope = right.slope;
+        return *this;
+    }
+    bool operator==(const PreluParam<TargetType>& right) {
+        bool flag = this->channel_shared == right.channel_shared;
+        return flag && (this->slope == right.slope);
+    }
+    bool channel_shared{false};
+    Tensor<TargetType>* slope{nullptr};
 };
 
 }
