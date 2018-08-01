@@ -49,8 +49,7 @@ set_lstm_params_region(LstmParam<OpTensor>& param, int word_size) {
 
         for (int i = 0; i < _cudnn_lstm_weights_layernum; i++) {
             ParamsRegion& region = _inner_weight_region[i];
-            //get_sub_tensor(cudnnW[i], (Op_dtype*) region._offset, region._size/hidden_size/4, hidden_size, 4*hidden_size, cuda_stream);
-            get_sub_tensor<Op_dtype>(cudnnW[i], (Op_dtype*) region._offset, region._size/hidden_size/4, hidden_size, 4*hidden_size);
+            get_sub_tensor<Op_dtype>(cudnnW[i], (Op_dtype*) region._offset, region._size/(sizeof(Op_dtype) * hidden_size), hidden_size, 4*hidden_size, cuda_stream);
         }
 
         for (int i = 0; i < _cudnn_lstm_weights_layernum; i++) {
@@ -63,18 +62,7 @@ set_lstm_params_region(LstmParam<OpTensor>& param, int word_size) {
                 CUDA_CHECK(cudaMemsetAsync((void*)(region_b._offset), 0, region_b._size, cuda_stream));
             }
         }
-        cudaDeviceSynchronize();
     }
-    int region_id = 0;
-    for (auto region : _inner_weight_region) {
-        char buf[100];
-        sprintf(buf, "./lstm_%d.txt", region_id);
-        record_dev_tensorfile<NV>((Op_dtype*)region._offset, region._size/4, buf);
-        region_id++;
-    }
-    cudaDeviceSynchronize();
-    record_dev_tensorfile<NV>(param.weight()->data(), param.weight()->valid_size(), "lstm_param_weight.txt");
-    cudaDeviceSynchronize();
 }
 
 template <>
@@ -183,7 +171,7 @@ create(const std::vector<DataTensor*>& inputs,
     _y_desc.reset(new cudnn::TensorDescriptors<DataDtype>(
                      offset_after_sort,
     {batch_size, _hidden_size * lstm_param.num_direction, 1},
-    {_hidden_size  * lstm_param.num_direction, 1, 1}));
+    {_hiden_size  * lstm_param.num_direction, 1, 1}));
 
     Shape in_dim = inputs[0]->valid_shape();
     Shape in_stride = inputs[0]->get_stride();
@@ -227,7 +215,7 @@ dispatch(const std::vector<DataTensor*>& inputs,
     if (inputs.size() == 2) {
         in_hidden_data = inputs[1]->data();
     }
-    bool isHW2Seq = inputs[0]->get_seq_offset().size() > 2;
+    bool isHW2Seq = inputs[0]->get_seq_offset().size() > 2 || param.is_reverse;
 
     if (isHW2Seq) {
         _temp_tensor_in.reshape(inputs[0]->valid_shape());
