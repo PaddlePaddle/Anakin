@@ -112,8 +112,9 @@ public:
         emit_length = max_len;
 
         if (max_len == 1) {
-            _emit_offset_vec.push_back(0);
-            _emit_offset_vec.push_back(emit_length * batch_size);
+            _emit_offset_vec.resize(2);
+            _emit_offset_vec[0] = 0;
+            _emit_offset_vec[1] = emit_length * batch_size;
             return false;
         }
 
