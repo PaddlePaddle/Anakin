@@ -19,6 +19,7 @@ static inline __device__ Dtype
 InValidAct(Dtype
            a) {
     printf("invalid act\n");
+    return static_cast<Dtype>(0);
 }
 
 template<typename Dtype>
@@ -65,29 +66,17 @@ Tanh_fluid(const Dtype a) {
     return (2.0 / (1.0 + expf(tmp))) - 1.0;
 }
 
-static __device__ float (*act_funcs_cu[])(float) = {&InValidAct<float>, &Sigmoid < float >, &Relu < float >,
-                                                    &Tanh < float >,
-                                                    &InValidAct<float>, &InValidAct<float>,
-                                                    &Identity < float >, &Sigmoid_fluid < float >,
-                                                    &Tanh_fluid < float >
-                                                   };
-
-static inline __device__ float  activate_cuda_float(float x, ActiveType type_id) {
-    return act_funcs_cu[type_id](x);
-}
-
 template<typename Dtype>
 struct ACTIVATION {
     typedef  Dtype(*Act)(const Dtype);
 };
 
 template<typename Dtype>
-inline typename ACTIVATION<Dtype>::Act Activate_inner(ActiveType type) {
-    static  typename ACTIVATION<Dtype>::Act vec[9] = {&InValidAct<Dtype>, &Sigmoid < Dtype >, &Relu < Dtype >,
+__device__ inline typename ACTIVATION<Dtype>::Act Activate_inner(ActiveType type) {
+    static  typename ACTIVATION<Dtype>::Act vec[7] = {&InValidAct<Dtype>, &Sigmoid < Dtype >, &Relu < Dtype >,
                                                      &Tanh < Dtype >,
                                                      &InValidAct<Dtype>, &InValidAct<Dtype>,
-                                                     &Identity < Dtype >, &Sigmoid_fluid < Dtype >,
-                                                     &Tanh_fluid < Dtype >
+                                                     &Identity < Dtype >
                                                     };
     return vec[type];
 }

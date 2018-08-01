@@ -10,7 +10,6 @@
 #include "debug.h"
 
 #include "test_saber_func.h"
-#include "test_util.h"
 
 using namespace anakin::saber;
 using namespace std;
@@ -41,25 +40,6 @@ static Dtype Identity(const Dtype a) {
     return a;
 }
 
-#define SIGMOID_THRESHOLD_MIN -40.0
-#define SIGMOID_THRESHOLD_MAX 13.0
-#define EXP_MAX_INPUT 40.0
-
-template <typename Dtype>
-static Dtype Sigmoid_fluid(const Dtype a) {
-    const Dtype min = SIGMOID_THRESHOLD_MIN;
-    const Dtype max = SIGMOID_THRESHOLD_MAX;
-    Dtype tmp = (a < min) ? min : ((a > max) ? max : a);
-    return static_cast<Dtype>(1.0) / (static_cast<Dtype>(1.0) + exp(-tmp));
-}
-
-template <typename Dtype>
-static Dtype Tanh_fluid(const Dtype a) {
-    Dtype tmp = -2.0 * a;
-    tmp = (tmp > EXP_MAX_INPUT) ? EXP_MAX_INPUT : tmp;
-    return (2.0 / (1.0 + exp(tmp))) - 1.0;
-}
-
 template <typename Dtype>
 struct ACTIVATION{
     typedef Dtype(*Act)(const Dtype);
@@ -67,9 +47,8 @@ struct ACTIVATION{
 
 template <typename Dtype>
 inline typename ACTIVATION<Dtype>::Act Activate(ActiveType type){
-    static  typename ACTIVATION<Dtype>::Act vec[9]={&InValidAct<Dtype>, &Sigmoid<Dtype>, &Relu<Dtype>, &Tanh<Dtype>,
-                                                    &InValidAct<Dtype>,& InValidAct<Dtype>, &Identity<Dtype>, &Sigmoid_fluid<Dtype>,
-                                                    &Tanh_fluid<Dtype>};
+    static  typename ACTIVATION<Dtype>::Act vec[7]={&InValidAct<Dtype>, &Sigmoid<Dtype>, &Relu<Dtype>, &Tanh<Dtype>,
+                                                    &InValidAct<Dtype>,& InValidAct<Dtype>, &Identity<Dtype>};
     return vec[type];
 }
 
@@ -357,10 +336,11 @@ TEST(TestSaberFunc, test_func_lstm_nv) {
     lstm_ut<NVHX86,NV>(222,333,{0,1,3,5,10},false, true,Active_sigmoid,Active_tanh,Active_tanh,100,SABER_IMPL);
     lstm_ut<NVHX86,NV>(222,333,{0,1,3,5,10},true, false,Active_sigmoid,Active_tanh,Active_tanh,100,SABER_IMPL);
     lstm_ut<NVHX86,NV>(222,333,{0,1,3,5,10},true, true,Active_sigmoid,Active_tanh,Active_tanh,100,SABER_IMPL);
-    lstm_ut<NVHX86,NV>(222,333,{0,10},false, true,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
-    lstm_ut<NVHX86,NV>(222,333,{0,10},false, false,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
-    lstm_ut<NVHX86,NV>(222,333,{0,10},true, true,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
-    lstm_ut<NVHX86,NV>(222,333,{0,10},true, false,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
+    lstm_ut<NVHX86,NV>(222,333,{0,1,3,5,10},true, true,Active_sigmoid,Active_sigmoid,Active_sigmoid,1000,SABER_IMPL);
+    lstm_ut<NVHX86,NV>(222,666,{0,10},false, true,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
+    lstm_ut<NVHX86,NV>(222,666,{0,10},false, false,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
+    lstm_ut<NVHX86,NV>(222,666,{0,10},true, true,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
+    lstm_ut<NVHX86,NV>(222,666,{0,10},true, false,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
 
 //    lstm_ut<NVHX86,NV>(222,333,{0,1,3,5,10},false, false,Active_sigmoid,Active_tanh,Active_tanh,100,VENDER_IMPL);
 //    lstm_ut<NVHX86,NV>(222,333,{0,1,3,5,10},false, true,Active_sigmoid,Active_tanh,Active_tanh,100,VENDER_IMPL);
@@ -370,12 +350,12 @@ TEST(TestSaberFunc, test_func_lstm_nv) {
 //    lstm_ut<NVHX86,NV>(222,333,{0,10},false, false,Active_sigmoid,Active_tanh,Active_tanh,0,VENDER_IMPL);
 //    lstm_ut<NVHX86,NV>(222,333,{0,10},true, true,Active_sigmoid,Active_tanh,Active_tanh,0,VENDER_IMPL);
 //    lstm_ut<NVHX86,NV>(222,333,{0,10},true, false,Active_sigmoid,Active_tanh,Active_tanh,0,VENDER_IMPL);
+
 }
 
 #endif
 int main(int argc, const char** argv) {
     logger::init(argv[0]);
-    printf("%f",Activate<float >(Active_sigmoid)(1.f));
     InitTest();
     RUN_ALL_TESTS(argv[0]);
     return 0;

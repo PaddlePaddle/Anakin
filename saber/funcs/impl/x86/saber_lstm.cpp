@@ -4,9 +4,6 @@
 #include "mkl_cblas.h"
 
 
-
-
-
 namespace anakin {
 
 namespace saber {

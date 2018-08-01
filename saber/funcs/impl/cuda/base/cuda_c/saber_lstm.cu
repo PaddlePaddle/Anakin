@@ -8,63 +8,74 @@ namespace saber {
 template <typename Dtype>
 __global__ void cal_lstm_kernel_batch_with_peephole_anyactivate(
         const Dtype* w_x,  const Dtype* b_i, const Dtype* b_f, const Dtype* b_c, const Dtype* b_o,
-        const Dtype* w_ci, const Dtype* w_cf, const Dtype* w_co, Dtype* cell,const int hidden_size, const int word_start_id,
-        const ActiveType gate_activity, const ActiveType cell_activity,const ActiveType candidate_activity,Dtype* output,
-        const int i_offset = 0, const int f_offset = 1, const int c_offset = 2,const int o_offset = 3) {
+        const Dtype* w_ci, const Dtype* w_cf, const Dtype* w_co, Dtype* cell,const int hidden_size,
+        const int aligned_hidden_size,const int batch_size,const int word_start_id,
+        const ActiveType gate_activity, const ActiveType cell_activity,const ActiveType candidate_activity,Dtype* output
+        ) {
 
-    const int batch_id = blockIdx.x;
-    const int tid = threadIdx.x;
-    if (tid < hidden_size) {
+    const int thread_id = blockIdx.x*blockDim.x+threadIdx.x;
+    const int batch_id = thread_id/aligned_hidden_size;
+    const int tid=thread_id%aligned_hidden_size;
+    if (tid < hidden_size && batch_id<batch_size) {
+        Dtype(*gat_act)(const Dtype)=Activate_inner<Dtype>(gate_activity);
+        Dtype(*cell_act)(const Dtype)=Activate_inner<Dtype>(cell_activity);
+        Dtype(*candi_act)(const Dtype)=Activate_inner<Dtype>(candidate_activity);
 
         const int emit_wx_offset = (word_start_id + batch_id) * hidden_size * 4;
-        const Dtype* w_x_i = w_x + i_offset * hidden_size + emit_wx_offset;
-        const Dtype* w_x_f = w_x + f_offset * hidden_size + emit_wx_offset;
-        const Dtype* w_x_c = w_x + c_offset * hidden_size + emit_wx_offset;
-        const Dtype* w_x_o = w_x + o_offset * hidden_size + emit_wx_offset;
+        const Dtype* w_x_i = w_x  + emit_wx_offset;
+        const Dtype* w_x_f = w_x_i + hidden_size ;
+        const Dtype* w_x_c = w_x_f + hidden_size;
+        const Dtype* w_x_o = w_x_c + hidden_size;
+
 
         Dtype* gate_h_p = output + batch_id * hidden_size;
         Dtype* gate_c_p = cell + batch_id * hidden_size;
 
         const Dtype c_1 = gate_c_p[tid];
-        const Dtype gate_i = activate_cuda_float(w_x_i[tid] + b_i[tid] + w_ci[tid] * c_1,gate_activity);
-        const Dtype gate_f = activate_cuda_float(w_x_f[tid] + b_f[tid] + w_cf[tid] * c_1,gate_activity);
+        const Dtype gate_i = gat_act(w_x_i[tid] + b_i[tid] + w_ci[tid] * c_1);
+        const Dtype gate_f = gat_act(w_x_f[tid] + b_f[tid] + w_cf[tid] * c_1);
 
-        const Dtype gate_c_s = activate_cuda_float(w_x_c[tid]  + b_c[tid],cell_activity);
+        const Dtype gate_c_s = cell_act(w_x_c[tid]  + b_c[tid]);
         const Dtype gate_c = gate_f * c_1 + gate_i * gate_c_s;
-        const Dtype gate_o = activate_cuda_float(w_x_o[tid] + b_o[tid] + gate_c * w_co[tid],gate_activity);
+        const Dtype gate_o = gat_act(w_x_o[tid] + b_o[tid] + gate_c * w_co[tid]);
         gate_c_p[tid] = gate_c;
-        gate_h_p[tid] = gate_o * activate_cuda_float(gate_c,candidate_activity);
+        gate_h_p[tid] = gate_o * candi_act(gate_c);
     }
 }
 
 template <typename Dtype>
 __global__ void cal_lstm_kernel_batch_without_peephole_anyactivate(
         const Dtype* w_x,const Dtype* b_i, const Dtype* b_f, const Dtype* b_c, const Dtype* b_o, Dtype* cell,
-        const int hidden_size, const int word_start_id, const ActiveType gate_activity,const ActiveType cell_activity,const ActiveType candidate_activity,
-        Dtype* output, const int i_offset = 0,const int f_offset = 1, const int c_offset = 2,const int o_offset = 3) {
+        const int hidden_size, const int aligned_hidden_size,const int batch_size,const int word_start_id, const ActiveType gate_activity,const ActiveType cell_activity,const ActiveType candidate_activity,
+        Dtype* output) {
 
-    const int batch_id = blockIdx.x;
-    const int tid = threadIdx.x;
-    if (tid < hidden_size) {
+    const int thread_id = blockIdx.x*blockDim.x+threadIdx.x;
+    const int batch_id = thread_id/aligned_hidden_size;
+    const int tid=thread_id%aligned_hidden_size;
+    if (tid < hidden_size && batch_id<batch_size) {
+        Dtype(*gat_act)(const Dtype)=Activate_inner<Dtype>(gate_activity);
+        Dtype(*cell_act)(const Dtype)=Activate_inner<Dtype>(cell_activity);
+        Dtype(*candi_act)(const Dtype)=Activate_inner<Dtype>(candidate_activity);
 
         const int emit_wx_offset = (word_start_id + batch_id) * hidden_size * 4;
-        const Dtype* w_x_i = w_x + i_offset * hidden_size + emit_wx_offset;
-        const Dtype* w_x_f = w_x + f_offset * hidden_size + emit_wx_offset;
-        const Dtype* w_x_c = w_x + c_offset * hidden_size + emit_wx_offset;
-        const Dtype* w_x_o = w_x + o_offset * hidden_size + emit_wx_offset;
+        const Dtype* w_x_i = w_x + emit_wx_offset;
+        const Dtype* w_x_f = w_x_i + hidden_size ;
+        const Dtype* w_x_c = w_x_f + hidden_size;
+        const Dtype* w_x_o = w_x_c + hidden_size;
+
 
         Dtype* gate_h_p = output + batch_id * hidden_size;
         Dtype* gate_c_p = cell + batch_id * hidden_size;
 
         const Dtype c_1 = gate_c_p[tid];
-        const Dtype gate_i = activate_cuda_float(w_x_i[tid]  + b_i[tid],gate_activity);
-        const Dtype gate_f = activate_cuda_float(w_x_f[tid]  + b_f[tid],gate_activity);
+        const Dtype gate_i = gat_act(w_x_i[tid]  + b_i[tid]);
+        const Dtype gate_f = gat_act(w_x_f[tid]  + b_f[tid]);
 
-        const Dtype gate_c_s = activate_cuda_float(w_x_c[tid]  + b_c[tid],cell_activity);
+        const Dtype gate_c_s = cell_act(w_x_c[tid]  + b_c[tid]);
         const Dtype gate_c = gate_f * c_1 + gate_i * gate_c_s;
-        const Dtype gate_o = activate_cuda_float(w_x_o[tid]  + b_o[tid],gate_activity);
+        const Dtype gate_o = gat_act(w_x_o[tid]  + b_o[tid]);
         gate_c_p[tid] = gate_c;
-        gate_h_p[tid] = gate_o * activate_cuda_float(gate_c,candidate_activity);
+        gate_h_p[tid] = gate_o * candi_act(gate_c);
 //        printf("tid = %d, f = %f, i = %f, o = %f, hout = %f, w_x_i = %f, c_i = %f,c_out = %f, batch_id = %d\n",tid,gate_f,gate_i,gate_o,gate_h_p[tid],w_x_i[tid],c_1,gate_c,batch_id);
     }
 }
@@ -73,51 +84,54 @@ __global__ void cal_lstm_kernel_batch_without_peephole_anyactivate(
 template <typename Dtype>
 __global__ void cal_lstm_kernel_batch_with_peephole(
         const Dtype* w_x,  const Dtype* b_i, const Dtype* b_f, const Dtype* b_c, const Dtype* b_o,
-        const Dtype* w_ci, const Dtype* w_cf, const Dtype* w_co, Dtype* cell,const int hidden_size, const int word_start_id,
-        Dtype* output, const int i_offset = 0, const int f_offset = 1, const int c_offset = 2,const int o_offset = 3) {
+        const Dtype* w_ci, const Dtype* w_cf, const Dtype* w_co, Dtype* cell,const int hidden_size,
+        const int aligned_hidden_size,const int batch_size, const int word_start_id,
+        Dtype* output) {
 
-    const int batch_id = blockIdx.x;
-    const int tid = threadIdx.x;
-    if (tid < hidden_size) {
+
+    const int thread_id = blockIdx.x*blockDim.x+threadIdx.x;
+    const int batch_id = thread_id/aligned_hidden_size;
+    const int tid=thread_id%aligned_hidden_size;
+    if (tid < hidden_size && batch_id<batch_size) {
 
         const int emit_wx_offset = (word_start_id + batch_id) * hidden_size * 4;
-        const Dtype* w_x_i = w_x + i_offset * hidden_size + emit_wx_offset;
-        const Dtype* w_x_f = w_x + f_offset * hidden_size + emit_wx_offset;
-        const Dtype* w_x_c = w_x + c_offset * hidden_size + emit_wx_offset;
-        const Dtype* w_x_o = w_x + o_offset * hidden_size + emit_wx_offset;
+        const Dtype* w_x_i = w_x + emit_wx_offset;
+        const Dtype* w_x_f = w_x_i + hidden_size ;
+        const Dtype* w_x_c = w_x_f + hidden_size;
+        const Dtype* w_x_o = w_x_c + hidden_size;
 
         Dtype* gate_h_p = output + batch_id * hidden_size;
         Dtype* gate_c_p = cell + batch_id * hidden_size;
 
         const Dtype c_1 = gate_c_p[tid];
-        const Dtype gate_i = Sigmoid_fluid(w_x_i[tid] + b_i[tid] + w_ci[tid] * c_1);
-        const Dtype gate_f = Sigmoid_fluid(w_x_f[tid] + b_f[tid] + w_cf[tid] * c_1);
+        const Dtype gate_i = Sigmoid(w_x_i[tid] + b_i[tid] + w_ci[tid] * c_1);
+        const Dtype gate_f = Sigmoid(w_x_f[tid] + b_f[tid] + w_cf[tid] * c_1);
 
-        const Dtype gate_c_s = Tanh_fluid(w_x_c[tid]  + b_c[tid]);
+        const Dtype gate_c_s = Tanh(w_x_c[tid]  + b_c[tid]);
         const Dtype gate_c = gate_f * c_1 + gate_i * gate_c_s;
-        const Dtype gate_o = Sigmoid_fluid(w_x_o[tid] + b_o[tid] + gate_c * w_co[tid]);
+        const Dtype gate_o = Sigmoid(w_x_o[tid] + b_o[tid] + gate_c * w_co[tid]);
         gate_c_p[tid] = gate_c;
-        gate_h_p[tid] = gate_o * Tanh_fluid(gate_c);
+        gate_h_p[tid] = gate_o * Tanh(gate_c);
         //        printf("tid = %d, f = %f, i = %f, o = %f, hout = %f, w_x_i = %f, c_i = %f,c_out = %f, batch_id = %d\n",tid,gate_f,gate_i,gate_o,gate_h_p[tid],w_x_i[tid],c_1,gate_c,batch_id);
     }
 }
 
+
 template <typename Dtype>
 __global__ void cal_lstm_kernel_batch_without_peephole(
         const Dtype* w_x,const Dtype* b_i, const Dtype* b_f, const Dtype* b_c, const Dtype* b_o, Dtype* cell,
-        const int hidden_size, const int word_start_id, Dtype* output, const int i_offset = 0,
-        const int f_offset = 1, const int c_offset = 2,const int o_offset = 3) {
+        const int hidden_size, const int aligned_hidden_size,const int batch_size,const int word_start_id, Dtype* output) {
 
-    const int batch_id = blockIdx.x;
-    const int tid = threadIdx.x;
-    if (tid < hidden_size) {
+    const int thread_id = blockIdx.x*blockDim.x+threadIdx.x;
+    const int batch_id = thread_id/aligned_hidden_size;
+    const int tid=thread_id%aligned_hidden_size;
+    if (tid < hidden_size && batch_id<batch_size) {
 
         const int emit_wx_offset = (word_start_id + batch_id) * hidden_size * 4;
-        const Dtype* w_x_i = w_x + i_offset * hidden_size + emit_wx_offset;
-        const Dtype* w_x_f = w_x + f_offset * hidden_size + emit_wx_offset;
-        const Dtype* w_x_c = w_x + c_offset * hidden_size + emit_wx_offset;
-        const Dtype* w_x_o = w_x + o_offset * hidden_size + emit_wx_offset;
-
+        const Dtype* w_x_i = w_x + emit_wx_offset;
+        const Dtype* w_x_f = w_x_i + hidden_size ;
+        const Dtype* w_x_c = w_x_f + hidden_size;
+        const Dtype* w_x_o = w_x_c + hidden_size;
 
         Dtype* gate_h_p = output + batch_id * hidden_size;
         Dtype* gate_c_p = cell + batch_id * hidden_size;
@@ -152,7 +166,6 @@ SaberLstm<NV, AK_FLOAT>::dispatch_batch(
     const OpDataType *bias = (const OpDataType *)param.bias()->data();
     const OpDataType *weight_peephole = (const OpDataType *)(param.bias()->data())+4*_hidden_size;
     const OpDataType* h_init = nullptr;
-    const OpDataType* cell_init = nullptr;
     const OpDataType* inner_x = (const OpDataType *)inputs[0]->data();
     OpDataType* inner_h_out = (OpDataType *)outputs[0]->mutable_data();
     OpDataType* inner_cell = nullptr;
@@ -163,7 +176,6 @@ SaberLstm<NV, AK_FLOAT>::dispatch_batch(
     try_expand_tensor(_temp_map_dev,seq_sum);
     bool transform = _seq_util.get_sorted_map(offset_vec, emit_offset_vec, emit_length,
                      _ctx->get_compute_stream());
-    bool is_reverse = param.is_reverse;
 
     if (inputs.size() > 1) {
         h_init = (const OpDataType *)inputs[1]->data();
@@ -219,9 +231,15 @@ SaberLstm<NV, AK_FLOAT>::dispatch_batch(
     const OpDataType* b_f =  bias + f_offset * _hidden_size;
     const OpDataType* b_c =  bias + c_offset * _hidden_size;
     const OpDataType* b_o =  bias + o_offset * _hidden_size;
-    const OpDataType* w_ci = weight_peephole + 0 * _hidden_size;
-    const OpDataType* w_cf = weight_peephole + 1 * _hidden_size;
-    const OpDataType* w_co = weight_peephole + 2 * _hidden_size;
+    const OpDataType* w_ci = nullptr;
+    const OpDataType* w_cf =nullptr;
+    const OpDataType* w_co =nullptr;
+    if(param.with_peephole){
+        w_ci = weight_peephole + 0 * _hidden_size;
+        w_cf = weight_peephole + 1 * _hidden_size;
+        w_co = weight_peephole + 2 * _hidden_size;
+    }
+
 
     for (int word_id = 0; word_id < emit_length; word_id++) {
         int real_word_id = word_id;
@@ -254,30 +272,33 @@ SaberLstm<NV, AK_FLOAT>::dispatch_batch(
                  temp_wx+emit_word_id_start*4*_hidden_size, _ctx->get_compute_stream());
 
 
-        CHECK_LE(_hidden_size, 1024) << "now not support hidden size > 1024 for paddle formula";
-        int frame_per_block = _hidden_size <= 1024 ? _hidden_size : 1024;
 
-        if (param.gate_activity == Active_sigmoid_fluid && param.cell_activity == Active_tanh_fluid
-                && param.candidate_activity == Active_tanh_fluid) {
+        const int block_dim=512;
+        const int grid_dim=round_up(emit_word_length*_aligned_hidden_size,block_dim);
+
+
+        if (param.gate_activity == Active_sigmoid && param.cell_activity == Active_tanh
+                && param.candidate_activity == Active_tanh) {
             if (param.with_peephole) {
-                cal_lstm_kernel_batch_with_peephole << < emit_word_length, frame_per_block, 0
+
+                cal_lstm_kernel_batch_with_peephole << <grid_dim, block_dim , 0
                                                     , _ctx->get_compute_stream() >> >
-                                                    (temp_wx, b_i,b_f,b_c,b_o, w_ci,w_cf,w_co, inner_cell, _hidden_size, emit_word_id_start, hout);
+                                                    (temp_wx, b_i,b_f,b_c,b_o, w_ci,w_cf,w_co, inner_cell, _hidden_size,_aligned_hidden_size,emit_word_length, emit_word_id_start, hout);
             } else {
-                cal_lstm_kernel_batch_without_peephole << < emit_word_length, frame_per_block, 0
+                cal_lstm_kernel_batch_without_peephole << < grid_dim, block_dim , 0
                                                        , _ctx->get_compute_stream() >> >
-                                                       (temp_wx, b_i,b_f,b_c,b_o, inner_cell, _hidden_size, emit_word_id_start, hout);
+                                                       (temp_wx, b_i,b_f,b_c,b_o, inner_cell, _hidden_size, _aligned_hidden_size,emit_word_length,emit_word_id_start, hout);
             }
         } else {
             if (param.with_peephole) {
-                cal_lstm_kernel_batch_with_peephole_anyactivate << < emit_word_length, frame_per_block, 0
+                cal_lstm_kernel_batch_with_peephole_anyactivate << < grid_dim, block_dim , 0
                         , _ctx->get_compute_stream() >> >
-                          (temp_wx, b_i, b_f, b_c, b_o, w_ci, w_cf, w_co, inner_cell, _hidden_size, emit_word_id_start, param.gate_activity,
+                          (temp_wx, b_i, b_f, b_c, b_o, w_ci, w_cf, w_co, inner_cell, _hidden_size, _aligned_hidden_size,emit_word_length,emit_word_id_start, param.gate_activity,
                                   param.cell_activity, param.candidate_activity, hout);
             } else{
-                cal_lstm_kernel_batch_without_peephole_anyactivate << < emit_word_length, frame_per_block, 0
+                cal_lstm_kernel_batch_without_peephole_anyactivate << < grid_dim, block_dim , 0
                         , _ctx->get_compute_stream() >> >
-                          (temp_wx, b_i, b_f, b_c, b_o, inner_cell, _hidden_size, emit_word_id_start, param.gate_activity,
+                          (temp_wx, b_i, b_f, b_c, b_o, inner_cell, _hidden_size,_aligned_hidden_size,emit_word_length, emit_word_id_start, param.gate_activity,
                                   param.cell_activity, param.candidate_activity, hout);
             }
         }
@@ -291,7 +312,7 @@ SaberLstm<NV, AK_FLOAT>::dispatch_batch(
     return SaberSuccess;
 
 };
-
+//TODO:complate dispatch_once
 template<>
 SaberStatus
 SaberLstm<NV, AK_FLOAT>::dispatch_once(
