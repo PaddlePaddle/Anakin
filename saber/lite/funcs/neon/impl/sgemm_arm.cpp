@@ -8,8 +8,6 @@ namespace saber{
 
 namespace lite{
 
-using namespace anakin::saber::lite;
-
 #ifdef __aarch64__
 const int A_INTERLEAVE = 8;
 const int B_INTERLEAVE = 12;
@@ -63,14 +61,14 @@ void merge_float_alpha1_beta1_relu(float *out, const float *in, const int ldout,
 Sgemm::Sgemm() {}
 
 Sgemm::~Sgemm() {
-    if (_work_space_ptr != nullptr) {
+    if (_has_mem) {
         fast_free(_work_space_ptr);
         _work_space_ptr = nullptr;
     }
 }
 
-void Sgemm::init(unsigned int L1_cache, unsigned int L2_cache, unsigned int M, unsigned int N, \
-    unsigned int K, bool trA, bool trB, int thread_num) {
+SaberStatus Sgemm::init(unsigned int L1_cache, unsigned int L2_cache, unsigned int M, unsigned int N, \
+    unsigned int K, bool trA, bool trB, int thread_num, void* work_space) {
 
     _M = M;
     _NN = N;
@@ -138,7 +136,13 @@ void Sgemm::init(unsigned int L1_cache, unsigned int L2_cache, unsigned int M, u
 
     _work_size = _a_worksize + _b_worksize + _cblock_size * sizeof(float) * _thread_num;
 
-    _work_space_ptr = fast_malloc(_work_size + GEMM_ALIGN);
+    if (work_space) {
+        _has_mem = false;
+        _work_space_ptr = work_space;
+    } else {
+        _has_mem = true;
+        _work_space_ptr = fast_malloc(_work_size + GEMM_ALIGN);
+    }
     _align_ptr = _work_space_ptr;
     size_t size_gemm_align = _work_size + GEMM_ALIGN - 1;
     if (mem_align(GEMM_ALIGN, _work_size, _align_ptr, \
@@ -147,14 +151,18 @@ void Sgemm::init(unsigned int L1_cache, unsigned int L2_cache, unsigned int M, u
     }
     _loop_count = (_K - 1) / _k_block;
     _init_flag = true;
+    return SaberSuccess;
 }
 
-void Sgemm::operator()(const float *A, const int lda, \
+SaberStatus Sgemm::operator()(const float *A, const int lda, \
     const float *B, const int ldb, \
     float *C, const int ldc, \
     const float alpha, const float beta, bool flag_relu) {
 
-    LCHECK_EQ(_init_flag, true, "gemm is not init");
+    //LCHECK_EQ(_init_flag, true, "gemm is not init");
+    if (!_init_flag) {
+        return SaberNotInitialized;
+    }
 
     bool flag_beta = (fabsf(beta - 1.f) < 1e-6f);
     bool flag_alpha = (fabsf(alpha -1.f) < 1e-6f);
@@ -218,6 +226,7 @@ void Sgemm::operator()(const float *A, const int lda, \
         }
         index++;
     }
+    return SaberSuccess;
 }
 
 #ifdef __aarch64__

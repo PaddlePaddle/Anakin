@@ -131,7 +131,7 @@ public:
         }
         SaberStatus state = _conv_op->dispatch(inputs, outputs);
         if (_act_op) {
-            state &= _act_op->dispatch(outputs, outputs);
+            state = (SaberStatus)(state & _act_op->dispatch(outputs, outputs));
         }
         return state; //_conv_func->dispatch(inputs, outputs);
     }

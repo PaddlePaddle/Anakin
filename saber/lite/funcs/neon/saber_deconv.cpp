@@ -180,7 +180,7 @@ SaberStatus SaberDeconv2D::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inpu
 
     _workspace_data.reshape(_param->_group * _m * _n * sizeof(float));
 
-    _gemmer.init(l1_cache, l2_cache, _m, _n, _k, true, false, threads);
+    _gemmer.init(l1_cache, l2_cache, _m, _n, _k, true, false, threads, this->_ctx->get_work_space());
 
     printf("Deconv: USE GEMM, numout=%d, chin=%d, kernel=%d, stride=%d, pad=%d, group=%d, win=%d, hin=%d\n", \
             chout, chin, _param->_kw, _param->_stride_w, _param->_pad_w, _param->_group, win, hin);
