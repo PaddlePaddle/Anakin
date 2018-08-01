@@ -597,6 +597,12 @@ inline void yield_thread() { }
 // reorder weight layout from NCHW(oc, ic, kh, kw) to OIhw16i16o
 inline void weight_reorder_OIhw16i16o(Tensor<X86>& input,
                                       Tensor<X86>& output) {
+    if (std::is_same<input.get_dtype(), AK_FLOAT> :: value){
+        LOG(FATAL)<<"only support float type";
+    }
+    if (std::is_same<output.get_dtype(), AK_FLOAT> :: value){
+        LOG(FATAL)<<"only support float type";
+    }
     Shape shape = input.valid_shape();
     int oc_value = shape[0], ic_value = shape[1], kh_value = shape[2], kw_value = shape[3];
     #pragma omp parallel for collapse(6) schedule(static)
@@ -627,6 +633,13 @@ inline void weight_reorder_OIhw16i16o(Tensor<X86>& input,
 // reorder weight layout from NCHW(oc, ic, kh, kw) to OIhwi16o
 inline void weight_reorder_OIhwi16o(Tensor<X86>& input,
                                     Tensor<X86>& output) {
+    
+    if (std::is_same<input.get_dtype(), AK_FLOAT> :: value){
+        LOG(FATAL)<<"only support float type";
+    }
+    if (std::is_same<output.get_dtype(), AK_FLOAT> :: value){
+        LOG(FATAL)<<"only support float type";
+    }
     Shape shape = input.shape();
     #pragma omp parallel for collapse(5) schedule(static)
 
@@ -656,6 +669,13 @@ inline void weight_reorder_OIhwi16o(Tensor<X86>& input,
 inline void weight_reorder_OIhwi8o(Tensor<X86>& input,
                                    Tensor<X86>& output) {
     Shape shape = input.shape();
+    
+    if (std::is_same<input.get_dtype(), AK_FLOAT> :: value){
+        LOG(FATAL)<<"only support float type";
+    }
+    if (std::is_same<output.get_dtype(), AK_FLOAT> :: value){
+        LOG(FATAL)<<"only support float type";
+    }
 
     #pragma omp parallel for collapse(5) schedule(static)
 
@@ -683,6 +703,13 @@ inline void weight_reorder_OIhwi8o(Tensor<X86>& input,
 // reorder weight layout from NCHW to Goihw16g
 static void weight_reorder_Goihw16g(Tensor<X86>& input,
                                     Tensor<X86>& output) {
+    
+    if (std::is_same<input.get_dtype(), AK_FLOAT> :: value){
+        LOG(FATAL)<<"only support float type";
+    }
+    if (std::is_same<output.get_dtype(), AK_FLOAT> :: value){
+        LOG(FATAL)<<"only support float type";
+    }
     Shape shape = input.shape();
     int g_value = shape[0], oc_value = shape[1], ic_value = shape[1], kh_value = shape[2],
         kw_value = shape[3];

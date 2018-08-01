@@ -16,8 +16,9 @@
 #ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_POOLING_H
 #define ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_POOLING_H
 
-#include "anakin_config.h"
 #include <vector>
+
+#include "anakin_config.h"
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/core/tensor.h"
 #include "saber/core/context.h"
@@ -35,11 +36,6 @@ class SaberPooling<NV, OpDtype>:\
 public:
     typedef Tensor<NV> DataTensor_in;
     typedef Tensor<NV> DataTensor_out;
-    //typedef Tensor<NV> OpTensor;
-
-    //typedef typename DataTensor_in::Dtype InDataType;
-    //typedef typename DataTensor_out::Dtype OutDataType;
-    //typedef typename OpTensor::Dtype OpDataType;
 
     SaberPooling()
     {}
@@ -51,7 +47,6 @@ public:
                              PoolingParam<NV> &param,
                              Context<NV> &ctx) override {
 
-        //std::cout<<"SaberPooling init!!"<<std::endl;
         return SaberSuccess;
 
     }
@@ -61,7 +56,6 @@ public:
                              PoolingParam<NV> &param,
                              Context<NV> &ctx) override {
 
-        //std::cout<<"SaberPooling create!!"<<std::endl;
         return SaberSuccess;
 
     }
@@ -71,7 +65,6 @@ public:
                              std::vector<DataTensor_out*>& outputs,
                              PoolingParam<NV> &param) {
 
-        //std::cout<<"Saber Dispatch!!!!!!"<<std::endl;
         return SaberSuccess;
     }
 

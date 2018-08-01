@@ -16,9 +16,6 @@ SaberStatus SaberPooling<X86, OpDtype>::init(
         PoolingParam<X86> &param, Context<X86> &ctx)
 {
 
-    //typedef typename DataTensor_in::Dtype DataType_in;
-    //typedef typename DataTensor_out::Dtype DataType_out;
-    //typedef typename OpTensor::Dtype DataType_op;
     this->_ctx = &ctx;
 
     return create(inputs, outputs, param, ctx);
@@ -45,9 +42,6 @@ SaberStatus SaberPooling<X86, OpDtype>
                   std::vector<DataTensor_out*>& outputs,
                   PoolingParam<X86> &param)
 {
-    //typedef typename DataTensor_in::Dtype DataType_in;
-    //typedef typename DataTensor_out::Dtype DataType_out;
-    //typedef typename OpTensor::Dtype DataType_op;
 
     return SaberSuccess;
       
