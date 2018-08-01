@@ -21,7 +21,9 @@ Options:
 ```
 
 ### GPU Docker
+
 #### Build Image
+
 ```bash
 $/usr/bash anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Build
 or
@@ -36,11 +38,28 @@ or
 $chmod +x ./anakin_docker_build_and_run.sh
 $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
 ```
+When running docker successfully, you can find Anakin source code at /Anakin directory.
 
 ### X86 Docker
+#### Build Image
 
-> Not support yet
+```bash
+$/usr/bash anakin_docker_build_and_run.sh  -p X86-ONLY -o Centos -m Build
+or
+$chmod +x ./anakin_docker_build_and_run.sh
+$./anakin_docker_build_and_run.sh  -p X86-ONLY -o Centos -m Build
+```
 
-### ARM Docer
+#### Run docker
+
+```bash
+$/usr/bash anakin_docker_build_and_run.sh  -p X86-ONLY -o Centos -m Run
+or
+$chmod +x ./anakin_docker_build_and_run.sh
+$./anakin_docker_build_and_run.sh  -p X86-ONLY -o Centos -m Run
+```
+When running docker successfully, you can find Anakin source code at /Anakin directory.
+
+### ARM Docker
 
 > Not support yet

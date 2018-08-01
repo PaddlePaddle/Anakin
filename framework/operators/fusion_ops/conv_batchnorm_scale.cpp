@@ -110,6 +110,12 @@ template class ConvBatchnormScaleHelper<ARM, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScale, ConvBatchnormScaleHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
 
+#ifdef USE_X86_PLACE
+INSTANCE_CONVBATCHNORMSCALE(X86, AK_FLOAT, Precision::FP32);
+template class ConvBatchnormScaleHelper<X86, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScale, ConvBatchnormScaleHelper, X86, AK_FLOAT, Precision::FP32);
+#endif
+
 #ifdef USE_CUDA
 INSTANCE_CONVBATCHNORMSCALE(NV, AK_FLOAT, Precision::FP32);
 template<>
@@ -139,7 +145,9 @@ ANAKIN_REGISTER_OP(ConvBatchnormScale)
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale")
 #endif
-
+#ifdef USE_X86_PLACE
+.__alias__<X86, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale")
+#endif
 #if defined(BUILD_LITE)
 .__alias__<X86, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale")
 #endif

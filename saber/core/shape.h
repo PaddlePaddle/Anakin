@@ -121,6 +121,21 @@ public:
         return true;
     }
 
+    Shape(const Shape& right) {
+        this->clear();
+        for (int i = 0; i < right.size(); ++i) {
+            this->push_back(right[i]);
+        }
+    }
+
+    Shape &operator=(const Shape& right) {
+        this->clear();
+        for (int i = 0; i < right.size(); ++i) {
+            this->push_back(right[i]);
+        }
+        return *this;
+    }
+
     static Shape zero(int dims){
         Shape sh;
         for (int i = 0; i < dims; ++i) {
