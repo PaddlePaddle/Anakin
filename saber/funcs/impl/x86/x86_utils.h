@@ -896,7 +896,7 @@ inline void im2col_conv_cpu(DataTensor_in& tensor_out, DataTensor_out& tensor_in
     int out_c = tensor_out.channel();
     int out_h = tensor_out.height();
     int out_w = tensor_out.width();
-
+    CHECK_EQ(group,1)<<"only support group == 1";
     int slice_size=in_c*kernel_h*kernel_w * out_h*out_w;
     int batch_size=tensor_in.num();
     tensor_temp.try_expand_size(slice_size);
