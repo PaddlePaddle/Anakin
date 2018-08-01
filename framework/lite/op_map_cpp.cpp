@@ -1367,13 +1367,13 @@ std::string ParserSplit(graph::AttrInfo& attr,
 std::unordered_map<std::string, OpParser> OPERATION_MAP({
 	{"Input", {"Input", not_impl_yet} },
 	{"Convolution", {"SaberConv2D", ParserConvolution} }, // done
-    {"Deconvolution", {"SaberDeconv2D", ParserDeconvolution}}, //done
+	{"Deconvolution", {"SaberDeconv2D", ParserDeconvolution}}, //done
 	{"Activation", {"SaberActivation", ParserActivation} }, // done
-    {"ReLU", {"SaberActivation",ParserRelu}}, // done
+	{"ReLU", {"SaberActivation",ParserRelu}}, // done
 	{"ConvRelu", {"SaberConvAct2D", ParserConvolutionRelu} },  // done
-    {"ConvReluPool", {"SaberConvActPooling2D", ParserConvolutionReluPool} },  // done
+	{"ConvReluPool", {"SaberConvActPooling2D", ParserConvolutionReluPool} },  // done
 	{"ConvBatchnormScaleRelu", {"SaberConvAct2D", ParserConvBatchnormScaleRelu}}, // done have question ??
-    {"ConvBatchnormScaleReluPool", {"SaberConvActPooling2D", ParserConvBatchnormScaleReluPool}}, // done have question ??
+	{"ConvBatchnormScaleReluPool", {"SaberConvActPooling2D", ParserConvBatchnormScaleReluPool}}, // done have question ??
 	{"ConvBatchnormScale", {"SaberConv2D", ParserConvBatchnormScale}}, //done
 	{"Concat", {"SaberConcat", ParserConcat} },  // done
 	{"DetectionOutput", {"SaberDetectionOutput", ParserDectionOutput} }, // done 
@@ -1384,10 +1384,11 @@ std::unordered_map<std::string, OpParser> OPERATION_MAP({
 	{"Pooling", {"SaberPooling", ParserPooling} }, // done
 	{"PReLU", {"SaberPrelu", ParserPrelu} }, // done
 	{"PriorBox", {"SaberPriorBox", ParserPriorBox} }, // done
-  {"Scale", {"SaberScale", ParserScale} }, // done
+	{"Power", {"SaberPower", ParserPower} }, // done
+	{"Scale", {"SaberScale", ParserScale} }, // done
 	{"Slice", {"SaberSlice", ParserSlice} }, // done
 	{"Softmax", {"SaberSoftmax", ParserSoftmax}}, //done
-    {"Split", {"SaberSplit", ParserSplit}} // done
+	{"Split", {"SaberSplit", ParserSplit}} // done
 });
 
 } /* namespace lite */
