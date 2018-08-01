@@ -25,7 +25,7 @@ CtcAlignHelper<Ttype, Dtype, Ptype>::~CtcAlignHelper() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status CtcAlignHelper<Ttype, Dtype, Ptype>::InitParam() {
-    LOG(WARNING) << "Parsing CtcAlign op parameter.";
+    DLOG(WARNING) << "Parsing CtcAlign op parameter.";
     auto merge_repeated = GET_PARAMETER(bool, merge_repeated);
     auto blank = GET_PARAMETER(int, blank);
 

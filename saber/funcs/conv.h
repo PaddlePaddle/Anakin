@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -24,41 +24,35 @@
 #endif
 
 #ifdef USE_X86_PLACE
-//#include "saber/funcs/impl/x86/saber_activation.h"
+#include "saber/funcs/impl/impl_conv.h"
 #endif
 
+#ifdef USE_ARM_PLACE
+//#include "saber/funcs/impl/arm/saber_conv.h"
+#endif
 namespace anakin {
 namespace saber {
 
 template<typename TargetType,
-        DataType OpDtype,
-        DataType inDtype = AK_FLOAT,
-        DataType outDtype = AK_FLOAT,
-        typename LayOutType_op = NCHW,
-        typename LayOutType_in = NCHW,
-        typename LayOutType_out = NCHW
->
+        DataType OpDtype>
 class Conv : public BaseFunc<
-        Tensor<TargetType, inDtype, LayOutType_in>,
-        Tensor<TargetType, outDtype, LayOutType_out>,
-        Tensor<TargetType, OpDtype, LayOutType_op>,
+        TargetType,
+        OpDtype,
         ImplBase,
-        ConvParam
-> {
+        ConvParam> {
 public:
     using BaseFunc<
-            Tensor<TargetType, inDtype, LayOutType_in>,
-            Tensor<TargetType, outDtype, LayOutType_out>,
-            Tensor<TargetType, OpDtype, LayOutType_op>,
+            TargetType,
+            OpDtype,
             ImplBase,
             ConvParam>::BaseFunc;
 
     Conv() = default;
 
-    typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
-    typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
-    typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-    typedef ConvParam<OpTensor> Param_t;
+    typedef Tensor<TargetType> InDataTensor;
+    typedef Tensor<TargetType> OutDataTensor;
+    typedef Tensor<TargetType> OpTensor;
+    typedef ConvParam<TargetType> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
@@ -67,7 +61,7 @@ public:
                                              Output_v &output, Param_t &param) override {
 
         Shape output_shape = (input[0]->valid_shape());
-        CHECK_EQ(input[0]->shape().size(), 4) << "using reshape2d to reshape a 1d conv?";
+        CHECK_GE(input[0]->shape().size(), 4) << "using reshape2d to reshape a 1d conv?";
 
         // append the $n and $c/$k, output: N * K * P * Q
         int num_idx = input[0]->num_index();
@@ -78,9 +72,9 @@ public:
         output_shape[num_idx] = input[0]->num(); // N
         output_shape[channel_idx] = param.weight()->num(); // K
 
-        if (std::is_same<LayOutType_in, NCHW_C4>::value) {
+        if (input[0]->get_layout() == Layout_NCHW_C4) {
             output_shape[channel_idx] /= 4;
-            if (std::is_same<LayOutType_out, NCHW>::value && (output_shape.size() == 5)) {
+            if (output[0]->get_layout() == Layout_NCHW) {
                 output_shape[channel_idx] *= 4;
                 output_shape.pop_back();
             }
@@ -99,7 +93,7 @@ public:
                      / param.stride_w + 1;
 
         output_shape[width_idx] = output_dim;
-
+        output_shape.set_layout(Layout_NCHW);
         return output[0]->set_shape(output_shape);
     }
 
@@ -107,14 +101,12 @@ public:
         switch (implenum) {
             case VENDER_IMPL:
                 this->_impl.push_back(new VenderConv2D <TargetType,
-                OpDtype, inDtype, outDtype,
-                LayOutType_op, LayOutType_in, LayOutType_out>);
+                        OpDtype>);
                 return SaberSuccess;
 
             case SABER_IMPL:
                 this->_impl.push_back(new SaberConv2D <TargetType,
-                OpDtype, inDtype, outDtype,
-                LayOutType_op, LayOutType_in, LayOutType_out>);
+                        OpDtype>);
                 return SaberSuccess;
 
             default:

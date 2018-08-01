@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -19,8 +19,51 @@
 #include <iostream>
 #include <map>
 #include "saber/core/tensor.h"
+#include "saber/core/tensor_op.h"
 namespace anakin{
 namespace saber{
+
+template <typename Dtype>
+
+void transpose_inplace(float* output, const float* input, const int num,
+                       const int channel,
+                       const int height, const int width) {
+    for (int n = 0; n < num; ++n) {
+        for (int c = 0; c < channel; ++c) {
+            int offset = n * channel * height * width + c * height * width;
+
+            for (int y = 0; y < height; ++y) {
+                for (int x = 0; x < width; ++x) {
+                    output[(x * height) + y + offset] = input[(y * width) + x + offset];
+                }
+            }
+        }
+    }
+}
+
+template <typename Dtype>
+void extract_matrix_from_matrix_in_leddim(const Dtype* input,
+                Dtype* output,int start_index,int end_index,int stride,int dimsize){
+    for(int i=start_index;i<end_index;i+=stride){
+        int output_height=(i-start_index)/stride;
+        for(int j=0;j<dimsize;j++){
+            output[output_height*dimsize+j]=input[i+j];
+        }
+    }
+}
+
+
+
+template <typename Dtype>
+void merge_matrix_to_matrix_in_leddim(const Dtype* input,
+                                          Dtype* output,int start_index,int end_index,int stride,int dimsize){
+    for(int i=start_index;i<end_index;i+=stride){
+        int input_height=(i-start_index)/stride;
+        for(int j=0;j<dimsize;j++){
+            output[i+j]=input[input_height*dimsize+j];
+        }
+    }
+}
 
 template <typename Dtype>
 void transform_3x3_weight_2_4x4(const Dtype* input, 
@@ -173,33 +216,42 @@ void transpose_filter_KCRS_2_CRSK(const Dtype *input, Dtype *output, \
 }
 
 template < typename Tensor_t, template <typename T> class Param >
-void update_conv_weights(Param<Tensor_t>& param)
-{
-    Tensor<X86, AK_FLOAT, NCHW> new_weight;
-    Tensor<X86, AK_FLOAT, NCHW> new_bias;
-    typedef typename Tensor_t::Dtype dtype;
+void update_conv_weights(Param<Tensor_t>& param) {
+#ifdef USE_ARM_PLACE
+    Tensor<ARM> new_weight;
+    Tensor<ARM> new_bias;
+#elif defined(USE_CUDA)
+    Tensor<NVHX86> new_weight;
+    Tensor<NVHX86> new_bias;
+#else
+    Tensor<X86> new_weight;
+    Tensor<X86> new_bias;
+#endif //USE_ARM_PLACE
+    typedef typename Tensor_t::FDtype Dtype;
+    DataType dtype = param.conv_param.weight()->get_dtype();
+    CHECK_EQ(dtype, AK_FLOAT) << "only support float type weights";
 
     Shape weight_shape = param.conv_param.weight()->shape();
-    new_weight.re_alloc(weight_shape);
+    new_weight.re_alloc(weight_shape, AK_FLOAT);
     new_weight.copy_from(*(param.conv_param.weight()));
     Shape bias_shape;
 
     if (param.conv_param.bias()->size() > 0) {
         bias_shape = param.conv_param.bias()->shape();
-        new_bias.re_alloc(bias_shape);
+        new_bias.re_alloc(bias_shape, AK_FLOAT);
         new_bias.copy_from(*(param.conv_param.bias()));
 
     } else if (param.has_batchnorm) {
         bias_shape = {1, param.batchnorm_param.mean.size(), 1, 1};
-        new_bias.re_alloc(bias_shape);
+        new_bias.re_alloc(bias_shape, AK_FLOAT);
         void* new_bias_data = new_bias.mutable_data();
-        memset(new_bias_data, 0, sizeof(dtype) * new_bias.size());
+        memset(new_bias_data, 0, sizeof(Dtype) * new_bias.size());
 
     } else if (param.has_scale) {
         bias_shape = {1, param.scale_param.scale_w.size(), 1, 1};
-        new_bias.re_alloc(bias_shape);
+        new_bias.re_alloc(bias_shape, AK_FLOAT);
         void* new_bias_data = new_bias.mutable_data();
-        memset(new_bias_data, 0, sizeof(dtype) * new_bias.size());
+        memset(new_bias_data, 0, sizeof(Dtype) * new_bias.size());
     } else {
         return;
     }
@@ -207,15 +259,15 @@ void update_conv_weights(Param<Tensor_t>& param)
     int filter_num = new_weight.num();
     int chw = new_weight.channel();
 
-    dtype* weight_data = new_weight.mutable_data();
-    dtype* bias_data = new_bias.mutable_data();
+    Dtype* weight_data = new_weight.mutable_data();
+    Dtype* bias_data = new_bias.mutable_data();
 
     chw *= new_weight.height();
     chw *= new_weight.width();
 
     for (int i = 0; i < filter_num; ++i) {
-        dtype alpha = 1.f;
-        dtype beta = 0.f;
+        Dtype alpha = 1.f;
+        Dtype beta = 0.f;
 
         if (param.has_batchnorm) {
             float scale_factor = 1.f;
@@ -255,9 +307,122 @@ void update_conv_weights(Param<Tensor_t>& param)
     param.conv_param.mutable_bias()->copy_from(new_bias);
 }
 
+template < typename Tensor_t, template <typename T> class Param >
+void update_deconv_weights(Param<Tensor_t>& param)
+{
+#ifdef USE_ARM_PLACE
+    Tensor<ARM> new_weight;
+    Tensor<ARM> new_bias;
+#elif defined(USE_CUDA)
+    Tensor<NVHX86> new_weight;
+    Tensor<NVHX86> new_bias;
+#else
+    Tensor<X86> new_weight;
+    Tensor<X86> new_bias;
+#endif //USE_ARM_PLACE
+    //typedef typename Tensor_t::FDtype dtype;
+    CHECK_EQ(AK_FLOAT, param.conv_param.weight()->get_dtype()) << "only support float weights";
 
+    Shape weight_shape = param.conv_param.weight()->shape();
+    new_weight.re_alloc(weight_shape, AK_FLOAT);
+    new_weight.copy_from(*(param.conv_param.weight()));
+    Shape bias_shape;
+
+    if (param.conv_param.bias()->size() > 0) {
+        bias_shape = param.conv_param.bias()->shape();
+        new_bias.re_alloc(bias_shape, AK_FLOAT);
+        new_bias.copy_from(*(param.conv_param.bias()));
+
+    } else if (param.has_batchnorm) {
+        bias_shape = {1, param.batchnorm_param.mean.size(), 1, 1};
+        new_bias.re_alloc(bias_shape, AK_FLOAT);
+        void* new_bias_data = new_bias.mutable_data();
+        memset(new_bias_data, 0, sizeof(float) * new_bias.size());
+
+    } else if (param.has_scale) {
+        bias_shape = {1, param.scale_param.scale_w.size(), 1, 1};
+        new_bias.re_alloc(bias_shape, AK_FLOAT);
+        void* new_bias_data = new_bias.mutable_data();
+        memset(new_bias_data, 0, sizeof(float) * new_bias.size());
+    } else {
+        return;
+    }
+    int filter_num = new_weight.num();
+    int channel_num_per_group = new_weight.channel();
+    std::vector<float> scale(new_weight.num(), 0);
+    std::vector<float> shift(new_weight.num(), 0);
+
+    for (int i = 0; i < filter_num; ++i) {
+        float alpha = 1.f;
+        float beta = 0.f;
+
+        if (param.has_batchnorm) {
+            float scale_factor = 1.f;
+            scale_factor = (param.batchnorm_param.scale == 0) ?
+                           1 : 1.f / param.batchnorm_param.scale;
+            float eps = param.batchnorm_param.eps;
+            float variance;
+            float mean;
+            alpha = param.batchnorm_param.variance[i] * scale_factor + eps;
+            alpha = 1.f / sqrtf(alpha);
+            beta = -1.f * (param.batchnorm_param.mean[i] * scale_factor);
+            beta *= alpha;
+        }
+
+        if (param.has_scale) {
+            alpha *= param.scale_param.scale_w[i];
+
+            if (param.scale_param.bias_term) {
+                beta = beta * param.scale_param.scale_w[i]
+                       + param.scale_param.scale_b[i];
+            } else {
+                beta *= param.scale_param.scale_w[i];
+            }
+        }
+        scale[i] = alpha;
+        shift[i] = beta;
+    }
+
+
+    float* weight_data = (float*)new_weight.mutable_data();
+    float* bias_data = (float*)new_bias.mutable_data();
+    // {Ic, Oc/group, K_h, K_w} real shape
+    // {Oc, Ic/group, K_h, K_w} parser return back shape
+    // filter_num = Oc;
+    // channel_num_per_group = Ic/group;
+    // [group, Ic/group, Oc/group, K_h, k_w]
+
+    int hw = new_weight.height() * new_weight.width();
+    int group = param.conv_param.group;
+    int filter_num_per_group = filter_num / group;
+    int id = 0;
+    for (int i = 0; i < group; i++) {
+        for (int j = 0; j < channel_num_per_group; j++) {
+            for (int k = 0; k < filter_num_per_group; k++) {
+                int out_channel_id = i * filter_num_per_group + k;
+                for (int m = 0; m < hw; m++) {
+                    weight_data[id] = weight_data[id]* scale[out_channel_id];
+                    id++;
+                }
+            }
+        }
+    }
+
+    for (int i = 0; i < filter_num; i++) {
+        bias_data[i] *= scale[i];
+        bias_data[i] += shift[i];
+    }
+
+    param.conv_param.mutable_weight()->copy_from(new_weight);
+    Shape new_bias_shape = new_bias.shape();
+    param.conv_param.mutable_bias()->re_alloc(new_bias_shape);
+    param.conv_param.mutable_bias()->copy_from(new_bias);
+}
 
 } // namespace saber
 
 } // namespace anakin
 #endif //SABER_FUNCS_UTILS_H
+
+
+

@@ -4,7 +4,7 @@
 from ..logger import *
 
 
-class OpParam(object):
+class OpsParam(object):
     """
     """
     def __init__(self):
@@ -55,7 +55,7 @@ class OpsRegister(object):
     @staticmethod
     def Register(name):
         if name not in OpsRegister():
-            OpsRegister.instance[name] = OpParam()
+            OpsRegister.instance[name] = OpsParam()
         return OpsRegister.instance[name]
 
     @staticmethod
@@ -82,4 +82,4 @@ class OpsRegister(object):
         """
         if name in self:
             return OpsRegister.instance[name]
-        return OpParam()
+        return OpsParam()

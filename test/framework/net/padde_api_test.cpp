@@ -18,6 +18,7 @@ DEFINE_GLOBAL(int, channel, 8);
 DEFINE_GLOBAL(int, height, 640);
 DEFINE_GLOBAL(int, width, 640);
 DEFINE_GLOBAL(bool, is_input_shape, false);
+#ifdef USE_CUDA
 void getModels(std::string path, std::vector<std::string>& files)
 {
     DIR *dir;
@@ -79,6 +80,8 @@ TEST(NetTest, net_execute_base_test) {
 }
 
 int main(int argc, const char** argv){
+
+    Env<NV>::env_init();
     // initial logger
     LOG(INFO)<<"argc"<<argc;
     if (argc < 1) {
@@ -110,3 +113,10 @@ int main(int argc, const char** argv){
     RUN_ALL_TESTS(argv[0]); 
     return 0;
 }
+
+#else
+int main(int argc, char** argv) {
+        return 0;
+}
+
+#endif
