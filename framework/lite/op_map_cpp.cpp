@@ -88,7 +88,25 @@ std::string ParserConvolution(graph::AttrInfo& attr,
                                            bias_term ? offset_info.weights[1].offset : 0);
 	return code_w.get_code_string();
 }
-
+    // SaberPower
+std::string ParserPower(graph::AttrInfo& attr,
+                            std::string& code_name,
+                            std::string& op_class_name,
+                            std::string& node_name,
+                            std::string& weights_ptr_name,
+                            WeightsWritter& writter) {
+        // parsing parameter
+        auto power = get_attr<float>("power", attr);
+        auto scale = get_attr<float>("scale", attr);
+        auto shift = get_attr<float>("shift", attr);
+        
+        // gen cpp code
+        CodeWritter code_w;
+        code_w.feed("ParamBase* %s_param = new PowerParam(%d,%d,%d);\n",code_name.c_str(),scale,shift,power);
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+        code_w.feed("//    %s.load_param(%d,%d,%d);\n", node_name.c_str(),scale,shift,power);
+        return code_w.get_code_string();
+    }
 // SaberDeconv2D
 std::string ParserDeconvolution(graph::AttrInfo& attr,
                               std::string& code_name,

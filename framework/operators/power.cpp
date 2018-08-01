@@ -3,7 +3,21 @@
 namespace anakin {
 
 namespace ops {
+    
 
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
+    template<>
+    void Power<X86, AK_FLOAT, Precision::FP32>::operator()(
+                                                          OpContext<X86>& ctx,
+                                                          const std::vector<Tensor4dPtr<X86, AK_FLOAT> >& ins,
+                                                          std::vector<Tensor4dPtr<X86, AK_FLOAT> >& outs) {
+        auto* impl =
+        static_cast<PowerHelper<X86, AK_FLOAT, Precision::FP32>*>(this->_helper);
+        auto& param = impl->_param_power;
+        impl->_funcs_power(ins, outs, param, ctx);
+    }
+#endif
+    
 #ifdef USE_CUDA
 template<>
 void Power<NV, AK_FLOAT, Precision::FP32>::operator()(
@@ -62,6 +76,11 @@ Status PowerHelper<Ttype, Dtype, Ptype>::InferShape(const std::vector<Tensor4dPt
     SABER_CHECK(_funcs_power.compute_output_shape(ins, outs, _param_power));
     return Status::OK();
 }
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
+    template class PowerHelper<X86, AK_FLOAT, Precision::FP32>;
+    template class PowerHelper<X86, AK_FLOAT, Precision::FP16>;
+    template class PowerHelper<X86, AK_FLOAT, Precision::INT8>;
+#endif
 
 #ifdef USE_CUDA
 template class PowerHelper<NV, AK_FLOAT, Precision::FP32>;
@@ -76,6 +95,9 @@ template class PowerHelper<ARM, AK_FLOAT, Precision::INT8>;
 #endif
 
 // register helper
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
+    ANAKIN_REGISTER_OP_HELPER(Power, PowerHelper, X86, AK_FLOAT, Precision::FP32);
+#endif
 #ifdef USE_CUDA
 ANAKIN_REGISTER_OP_HELPER(Power, PowerHelper, NV, AK_FLOAT, Precision::FP32);
 #endif
@@ -91,6 +113,9 @@ ANAKIN_REGISTER_OP(Power)
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("power")
+#endif
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
+.__alias__<X86, AK_FLOAT, Precision::FP32>("power")
 #endif
 .num_in(1)
 .num_out(1)

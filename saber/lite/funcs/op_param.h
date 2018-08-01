@@ -59,7 +59,28 @@ struct ActivationParam : public ParamBase {
     bool _prelu_channel_shared{false};
     const float* _prelu_weights{nullptr};
 };
-
+struct PowerParam : public ParamBase {
+        PowerParam(){}
+        PowerParam(float scale,float shift,float power ) {
+            _scale = scale;
+            _shift=shift;
+            _power=power;
+        }
+        PowerParam(const PowerParam& param) : ParamBase(param) {
+            _scale =param._scale;
+            _shift=param._shift;
+            _power=param._power;
+        }
+        PowerParam&operator=(const PowerParam& param) {
+            _scale =param._scale;
+            _shift=param._shift;
+            _power=param._power;
+            return *this;
+        }
+        float _scale;
+        float _shift;
+        float _power;
+    };
 struct Conv2DParam : public ParamBase{
     Conv2DParam(){}
     Conv2DParam(int weighs_size, int num_out, int group, int kw, int kh, \
