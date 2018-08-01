@@ -134,6 +134,8 @@ void CodeGenBase<Ttype, Dtype, Ptype>::change_name(graph::Graph<Ttype, Dtype, Pt
 		// and add_alias is useful only at this place so far.
 		graph.add_alias(name, convert2underline(name, '/'));
 		name = convert2underline(name, '/');
+		graph.add_alias(name, convert2underline(name, '-'));
+		name = convert2underline(name, '-');
 	};
 	graph.Scanner->BFS(change_node_name);
 
@@ -142,6 +144,8 @@ void CodeGenBase<Ttype, Dtype, Ptype>::change_name(graph::Graph<Ttype, Dtype, Pt
 		auto & second = edge.second();
 		first = convert2underline(first, '/');
 		second = convert2underline(second, '/');
+		first = convert2underline(first, '-');
+		second = convert2underline(second, '-');
 	};
 	graph.Scanner->BFS_Edge(change_edge_name);
 }
