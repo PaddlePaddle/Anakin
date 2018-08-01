@@ -38,18 +38,18 @@ std::string ParserConvolution(graph::AttrInfo& attr,
     int num_output = weights_shape[0];//*weights_shape[1];
 
 	writter.register_weights(node_name, weights);
-    LOG(INFO) << node_name << " write weights: " << weights.count();
+  LOG(INFO) << node_name << " write weights: " << weights.count();
 	if(bias_term) {
 		auto bias = get_attr<PBlock<float, X86>>("weight_2", attr);
 		writter.register_weights(node_name, bias);
-        LOG(INFO) << node_name << " write bias: " << bias.count();
+    LOG(INFO) << node_name << " write bias: " << bias.count();
 	}
 
 	auto offset_info = writter.get_weights_by_name(node_name);
 
 	// gen cpp code
 	CodeWritter code_w;
-    code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(),
+  code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(),
                 weights_size,
                 num_output,
                 group,
@@ -983,7 +983,7 @@ std::string ParserFc(graph::AttrInfo& attr,
 	// gen cpp code
 	CodeWritter code_w;
 
-    code_w.feed("ParamBase* %s_param = new FcParam(%d,%d,%s,false,%s+%d,%s+%d);\n",
+    code_w.feed("ParamBase* %s_param = new FcParam(%d,%d,%s,%s+%d,%s+%d,%s);\n",
                 node_name.c_str(),
                 axis,
                 out_dim,
@@ -991,7 +991,8 @@ std::string ParserFc(graph::AttrInfo& attr,
                 weights_ptr_name.c_str(),
                 offset_info.weights[0].offset,
                 weights_ptr_name.c_str(),
-                bias_term ? offset_info.weights[1].offset : 0);
+                bias_term ? offset_info.weights[1].offset : 0,
+                "false");
 
     code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
 
@@ -1214,6 +1215,58 @@ std::string ParserSlice(graph::AttrInfo& attr,
 	return code_w.get_code_string();
 }
 
+// SaberSlice
+std::string ParserScale(graph::AttrInfo& attr,
+                        std::string& code_name,
+            std::string& op_class_name, 
+            std::string& node_name, 
+            std::string& weights_ptr_name, 
+            WeightsWritter& writter) {
+    // parsing parameter 
+    auto num_axes = get_attr<int>("num_axes", attr);
+    auto axis = get_attr<int>("axis", attr);
+    auto bias_term = get_attr<bool>("bias_term", attr);
+    auto weights = get_attr<PBlock<float, X86>>("weight_1", attr);
+
+    writter.register_weights(node_name, weights);
+    LOG(INFO) << node_name << " write weights: " << weights.count();
+    
+    if (bias_term) {
+        auto bias = get_attr<PBlock<float, X86>>("weight_2", attr);
+        writter.register_weights(node_name, bias);
+        LOG(INFO) << node_name << " write bias: " << bias.count();
+      }
+
+      auto offset_info = writter.get_weights_by_name(node_name);
+
+  // gen cpp code
+    CodeWritter code_w;
+    code_w.feed("ParamBase* %s_param = new ScaleParam(%s+%d, %s+%d, %s, %d, %d, %d);\n",
+                    node_name.c_str(),
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[0].offset,
+                    weights_ptr_name.c_str(),
+                    bias_term ? offset_info.weights[1].offset : 0,
+                    bias_term ? "true":"false",
+                    axis,
+                    num_axes);
+
+    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+
+    code_w.feed("//    %s.load_param(%s+%d, %s+%d, %s, %d, %d, %d);\n", 
+                  node_name.c_str(),
+                  weights_ptr_name.c_str(),
+                  offset_info.weights[0].offset,
+                  weights_ptr_name.c_str(),
+                  bias_term ? offset_info.weights[1].offset : 0,
+                  bias_term ? "true":"false",
+                  axis,
+                  num_axes);
+
+  return code_w.get_code_string();
+}
+
+
 // SaberSoftmax
 std::string ParserSoftmax(graph::AttrInfo& attr,
                           std::string& code_name,
@@ -1275,6 +1328,7 @@ std::unordered_map<std::string, OpParser> OPERATION_MAP({
 	{"Pooling", {"SaberPooling", ParserPooling} }, // done
 	{"ReLU", {"SaberPrelu", ParserPrelu} }, // done
 	{"PriorBox", {"SaberPriorBox", ParserPriorBox} }, // done
+  {"Scale", {"SaberScale", ParserScale} }, // done
 	{"Slice", {"SaberSlice", ParserSlice} }, // done
 	{"Softmax", {"SaberSoftmax", ParserSoftmax}}, //done
     {"Split", {"SaberSplit", ParserSplit}} // done
