@@ -62,7 +62,9 @@ public:
 
     /// add in/out arc to graph, if you in/out arc need order
 	virtual void add_in_arc(ArcType& arc);
+	virtual void update_in_arc(ArcType& arc, size_t index_of_in_arc);
     virtual void add_out_arc(ArcType& arc);
+	virtual void uddate_out_arc(ArcType& arc, size_t index_of_out_arc);
 
 	/// remove vertex from graph
 	virtual void remove(VertexNameType vertexName);
