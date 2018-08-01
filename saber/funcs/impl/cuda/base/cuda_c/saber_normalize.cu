@@ -32,10 +32,10 @@ __global__ void normalize_kernel_no_across_spatial(const int size_in_channel, co
             if (has_scale) {
                 if (shared) {
                     top_data[data_index + i * size_in_channel] = \
-                        bottom_data[data_index + i * size_in_channel] * scale[0] * norm
+                        bottom_data[data_index + i * size_in_channel] * scale[0] * norm;
                 } else {
                     top_data[data_index + i * size_in_channel] = \
-                        bottom_data[data_index + i * size_in_channel] * scale[i] * norm；
+                        bottom_data[data_index + i * size_in_channel] * scale[i] * norm;
                 }
             } else {
                 top_data[data_index + i * size_in_channel] = \
