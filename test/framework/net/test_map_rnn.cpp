@@ -314,7 +314,7 @@ TEST(NetTest, net_execute_base_test) {
                 
                 cudaDeviceSynchronize();
                 #endif
-                break;
+                //break;
            }
            my_time.end(ctx);
        }
