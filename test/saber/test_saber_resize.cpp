@@ -2,6 +2,7 @@
 #include "saber/core/context.h"
 #include "saber/funcs/resize.h"
 #include "test_saber_func.h"
+#include "test_saber_base.h"
 #include "saber/core/tensor_op.h"
 #include "saber/saber_types.h"
 #include <vector>
@@ -10,12 +11,20 @@
 
 
 using namespace anakin::saber;
-template<typename dtype>
-static void test_resize(const int wout, const int hout,
-                        const int num,const int channels,
-                        const int win, const int hin,
-                        const float scale_w, const float scale_h,
-                        const dtype* src, dtype* dst){
+
+template <typename dtype,typename TargetType_D,typename TargetType_H>
+void resize_cpu(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tensor<TargetType_H>*>& output,\
+                ResizeParam<TargetType_D>& param){
+    int win = input[0]->width();
+    int hin = input[0]->height();
+    int channels = input[0]->channel();
+    int num = input[0]->num();
+    int wout = output[0]->width();
+    int hout = output[0]->height();
+    dtype scale_h = param.width_scale;
+    dtype scale_w = param.height_scale;
+    const dtype* src = input[0]->data();
+    dtype* dst = output[0]->mutable_data();
     int dst_stride_w = 1, dst_stride_h = wout, dst_stride_c = wout * hout, dst_stride_batch = wout * hout * channels;
     int src_stride_w = 1, src_stride_h = win, src_stride_c = win * hin, src_stride_batch = win * hin * channels;
     for(int n = 0; n < num; ++n){
@@ -47,7 +56,9 @@ static void test_resize(const int wout, const int hout,
     }
    
 }
+/*
 template <typename TargetType, typename TargetType_H>
+template <typename dtype,typename TargetType_D,typename TargetType_H>
 void test_saber_resize_speed_FLOAT(int num_in, int c_in, int h_in, int w_in) {
 
 
@@ -350,7 +361,7 @@ void test_saber_resize_accurancy(int num_in, int c_in, int h_in, int w_in) {
     }
     LOG(INFO) << "PASS!!";
 }
-	
+*/
 
 
 TEST(TestSaberFunc, test_func_resize){
@@ -358,13 +369,19 @@ TEST(TestSaberFunc, test_func_resize){
     int c_in = 4;
     int h_in = 32;
     int w_in = 64;
+    float scale_w = 2.0;
+    float scale_h = 2.0;
 #ifdef USE_CUDA
-    Env<NV>::env_init();
-    Env<NVHX86>::env_init();
-    test_saber_resize_speed_FLOAT<NV, NVHX86>(num_in, c_in, h_in, w_in);
-    test_saber_resize_speed_INT8<NV, NVHX86>(num_in, c_in, h_in, w_in);
-    test_saber_resize_speed_2d<NV, NVHX86>(h_in, w_in);
-    test_saber_resize_accurancy<NV, NVHX86>(num_in, c_in, h_in, w_in);
+    //Init the test_base
+    TestSaberBase<NV,NVHX86,AK_FLOAT,Resize, ResizeParam> testbase;
+    ResizeParam<NV> param(scale_w, scale_h);
+    testbase.set_param(param);
+    testbase.set_input_shape(Shape({num_in, c_in, w_in, h_in}));
+    testbase.run_test(resize_cpu<float, NV, NVHX86>);
+    //test_saber_resize_speed_FLOAT<NV, NVHX86>(num_in, c_in, h_in, w_in);
+    //test_saber_resize_speed_INT8<NV, NVHX86>(num_in, c_in, h_in, w_in);
+    //test_saber_resize_speed_2d<NV, NVHX86>(h_in, w_in);
+    //test_saber_resize_accurancy<NV, NVHX86>(num_in, c_in, h_in, w_in);
 
     
 #endif
