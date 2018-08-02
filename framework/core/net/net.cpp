@@ -7,10 +7,10 @@ namespace anakin {
 
 template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
 Net<Ttype, Dtype, Ptype, RunType>::~Net() {
-	if(_graph_p) {
-		delete _graph_p;
-		_graph_p = nullptr;
-	}
+    if(_graph_p) {
+        delete _graph_p;
+        _graph_p = nullptr;
+    }
 }
 
 template<typename Ttype, DataType Dtype>
@@ -24,11 +24,20 @@ double tensor_average(Tensor4dPtr<Ttype, Dtype>& out_tensor_p) {
     tensorptr.h_tensor().copy_from(*out_tensor_p);
     hptr = tensorptr.h_tensor().data();
     for (int i=0; i<out_tensor_p->valid_size(); i++) {
-		sum += hptr[i];
+        sum += hptr[i];
     }
     return sum/out_tensor_p->valid_size();
 }
-
+template <>
+double tensor_average<X86,AK_FLOAT>(Tensor4dPtr<X86,AK_FLOAT>& out_tensor_p) {
+    double sum = 0.0f;
+    CHECK_NOTNULL(out_tensor_p)<<"out_tensor_p can not be null";
+    const float* hptr = out_tensor_p->data();
+    for (int i=0; i<out_tensor_p->valid_size(); i++) {
+        sum += hptr[i];
+    }
+    return sum/out_tensor_p->valid_size();
+}
 template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
 Net<Ttype, Dtype, Ptype, RunType>::Net(bool need_summary) {
     _graph_p = new graph::Graph<Ttype, Dtype, Ptype>();
@@ -129,8 +138,8 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
     init_env(graph);
     // shallow copy
     _graph_p->CopyFrom(graph);
-	
-	double curr_mem_in_mb_start = MemoryInfo<Ttype>::Global().get_used_mem_in_mb(); 
+    
+    double curr_mem_in_mb_start = MemoryInfo<Ttype>::Global().get_used_mem_in_mb(); 
 
     auto node_names_in_exec_order = graph.get_nodes_in_order();
     // infer basic shape and parsing parameter from graph
@@ -176,42 +185,45 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
 #endif
 
         // create operations
-#if defined(USE_CUDA)
-       	if (node_ptr->get_op_name() == "ConvBatchnormScale" || node_ptr->get_op_name() == "ConvBatchnormScaleRelu" || node_ptr->get_op_name() == "ConvRelu" || node_ptr->get_op_name() == "Convolution")
-        {
-         std::string group = "group";
-         auto group_val =  node_ptr->template get_attr<int>(group);
-         std::string dilation = "dilation_rate";
-         auto dilation_rate_val =  node_ptr->template get_attr<PTuple<int> >(dilation);
-         using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
-         std::string weight_name = "weight_1";
-         auto weights = node_ptr->template get_attr<pblock_type>(weight_name);
-         int k_w = weights.d_tensor().width();
-         int k_h = weights.d_tensor().height();
-         int dil_h = dilation_rate_val.vector()[0];
-         int dil_w = dilation_rate_val.vector()[1];
 
-         if ((group_val == 1) && (k_w == 3 && k_h == 3 && dil_h == 1 && dil_w == 1)) {
-             node_ptr->set_op(OpFactory<Ttype, Dtype, Ptype>::Global()["Sass"+node_ptr->get_op_name()]);
-             node_ptr->get_op_name() = "Sass" + node_ptr->get_op_name();
-         } else {
-             LOG(ERROR) << "node_ptr->get_op_name()  sass not support yet.";
-             auto* op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
-             node_ptr->set_op(op_pointer);
-         }
-        } else {
-            auto* op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
+        if(std::is_same<Ttype,NV>::value) {
+            if (node_ptr->get_op_name() == "ConvBatchnormScale" ||
+                node_ptr->get_op_name() == "ConvBatchnormScaleRelu" || node_ptr->get_op_name() == "ConvRelu" ||
+                node_ptr->get_op_name() == "Convolution") {
+                std::string group = "group";    
+                auto group_val = node_ptr->template get_attr<int>(group);
+                std::string dilation = "dilation_rate";
+                auto dilation_rate_val =  node_ptr->template get_attr<PTuple<int> >(dilation);
+                using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
+                std::string weight_name = "weight_1";
+                auto weights = node_ptr->template get_attr<pblock_type>(weight_name);
+                
+                int k_w = weights.d_tensor().width();
+                int k_h = weights.d_tensor().height();
+                int dil_h = dilation_rate_val.vector()[0];
+                int dil_w = dilation_rate_val.vector()[1];
+
+            if ((group_val == 1) && (k_w == 3 && k_h == 3 && dil_h == 1 && dil_w == 1)) {
+                node_ptr->set_op(OpFactory<Ttype, Dtype, Ptype>::Global()["Sass"+node_ptr->get_op_name()]);
+                node_ptr->get_op_name() = "Sass" + node_ptr->get_op_name();
+            } else {
+                    LOG(ERROR) << "node_ptr->get_op_name()  sass not support yet.";
+                    auto *op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
+                    node_ptr->set_op(op_pointer);
+                }
+            } else {
+                auto *op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
+                node_ptr->set_op(op_pointer);
+            }
+        }
+        else {
+            auto *op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
+            if (op_pointer == nullptr) {
+                CHECK(false)<< node_name << ", type " << node_ptr->get_op_name() << " is null";
+                        LOG(FATAL) << node_name << ", type " << node_ptr->get_op_name() << " is null";
+            }
             node_ptr->set_op(op_pointer);
         }
-#else
-        auto* op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
-        if (op_pointer == nullptr) {
-            LOG(FATAL) << node_name << ", type " << node_ptr->get_op_name() << " is null";
-        }
-        node_ptr->set_op(op_pointer);
-        //LOG(ERROR) << "set op";
-		op_pointer = nullptr;
-#endif
         // bind parameter structure
         static_cast<Operator<Ttype, Dtype, Ptype>*>(node_ptr->Op())->_helper->BindParam(node_ptr);
         // parsing parameter
@@ -279,16 +291,16 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
 #endif
     }
     
-	double curr_mem_in_mb_end = MemoryInfo<Ttype>::Global().get_used_mem_in_mb(); 
-	this->_graph_p->statistics.template set_info<graph::SYSTEM_MEM>(curr_mem_in_mb_end - curr_mem_in_mb_start);
+    double curr_mem_in_mb_end = MemoryInfo<Ttype>::Global().get_used_mem_in_mb(); 
+    this->_graph_p->statistics.template set_info<graph::SYSTEM_MEM>(curr_mem_in_mb_end - curr_mem_in_mb_start);
     // init memory of _graph_p
     init_memory();
-	
-	graph.statistics = _graph_p->statistics; // copy statistic back
-	LOG(INFO) << "Temp mem used:        " << this->_graph_p->statistics.template get_info<graph::TEMP_MEM>() << " MB"; 
-	LOG(INFO) << "Original mem used:    " << this->_graph_p->statistics.template get_info<graph::ORI_TEMP_MEM>() << " MB";
-	LOG(INFO) << "Model mem used:       " << this->_graph_p->statistics.template get_info<graph::MODEL_MEM>() << " MB";
-	LOG(INFO) << "System mem used:      " << this->_graph_p->statistics.template get_info<graph::SYSTEM_MEM>() << " MB";
+    
+    graph.statistics = _graph_p->statistics; // copy statistic back
+    LOG(INFO) << "Temp mem used:        " << this->_graph_p->statistics.template get_info<graph::TEMP_MEM>() << " MB"; 
+    LOG(INFO) << "Original mem used:    " << this->_graph_p->statistics.template get_info<graph::ORI_TEMP_MEM>() << " MB";
+    LOG(INFO) << "Model mem used:       " << this->_graph_p->statistics.template get_info<graph::MODEL_MEM>() << " MB";
+    LOG(INFO) << "System mem used:      " << this->_graph_p->statistics.template get_info<graph::SYSTEM_MEM>() << " MB";
 #ifdef ENABLE_OP_TIMER
     _op_time = std::vector<float>(_exec_funcs.size(), 0.0f);
 #endif
@@ -306,11 +318,11 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
         LOG(WARNING) << " Inspect memory of " << executer.name << " (" << executer.op_name << ") ";
         executer.infer_shape();
     
-	    for (auto out : executer.outs) {
-	        LOG(INFO) << "    |-- out tensor avg " << tensor_average(out);
-	    }
+        for (auto out : executer.outs) {
+            LOG(INFO) << "    |-- out tensor avg " << tensor_average(out);
+        }
 #ifdef USE_CUDA
-	    CUDA_CHECK(cudaDeviceSynchronize());
+        CUDA_CHECK(cudaDeviceSynchronize());
         CUDA_CHECK(cudaPeekAtLastError());
 #endif
     }
@@ -338,15 +350,15 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
                            << " " << in->valid_shape()[1] 
                            << " " << in->valid_shape()[2] 
                            << " " << in->valid_shape()[3] 
-			   << " valid_size: " << in->valid_size() 
-			   << " realsize: " << in->size()
+               << " valid_size: " << in->valid_size() 
+               << " realsize: " << in->size()
                 << " offset_size "<<in->get_seq_offset().size();
         }
 #endif
 #ifdef ENABLE_OP_TIMER
-	Context<Ttype> ctx(0, 0, 0);
-	saber::SaberTimer<Ttype> my_time;
-	my_time.start(ctx);
+    Context<Ttype> ctx(0, 0, 0);
+    saber::SaberTimer<Ttype> my_time;
+    my_time.start(ctx);
 #endif
       if (executer.op_name != "Input") {
           executer.infer_shape();
@@ -362,33 +374,35 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
         executer.outs[i]->record_event(executer.ctx_p->get_compute_stream());
         executer.outs[i]->sync();
     }
-	my_time.end(ctx);
+    my_time.end(ctx);
     _op_time[op_id++] += my_time.get_average_ms();
 #endif
-	//LOG(INFO)<< "op: " << executer.name<<"(" << executer.op_name <<")  ===  infer+launch time "<<my_time.get_average_ms() << " ms";
+    //LOG(INFO)<< "op: " << executer.name<<"(" << executer.op_name <<")  ===  infer+launch time "<<my_time.get_average_ms() << " ms";
 #ifdef ENABLE_DEBUG
 #ifdef USE_CUDA
         CUDA_CHECK(cudaDeviceSynchronize());
         CUDA_CHECK(cudaPeekAtLastError());
 #endif
-	for (auto out : executer.outs) {
-	    std::vector<int> offset=out->get_seq_offset();
-	    LOG(INFO)<<"print offset of "<<executer.name <<",size = "<<offset.size();
-	    for(int i=0;i<offset.size();++i){
-	        LOG(INFO)<<offset[i]<<",";
-	    }
-	    LOG(INFO)<<"  end print offset of "<<executer.name;
-        LOG(INFO) <<executer.name <<" d_tensor_out_p :" <<out->data();
-#ifdef USE_CUDA
-    record_dev_tensorfile<NV>(out->data(), out->valid_size(), (executer.name +".txt").c_str());
-#endif
-#ifdef USE_X86_PLACE
-        for (int i = 0; i < 10; ++i) {
-            std::cout << out->data()[i]<<" ";
+    for (auto out : executer.outs) {
+        std::vector<int> offset=out->get_seq_offset();
+        LOG(INFO)<<"print offset of "<<executer.name <<",size = "<<offset.size();
+        for(int i=0;i<offset.size();++i){
+            LOG(INFO)<<offset[i]<<",";
         }
+        LOG(INFO)<<"  end print offset of "<<executer.name;
+#define RECORD_INNER
+#if defined(RECORD_INNER) && defined(USE_X86_PLACE)
+        record_tensor_to_file(*out,("record_"+executer.name).c_str());
+        if(executer.name=="")
 #endif
-	    LOG(ERROR) << "    |---out avg " << tensor_average(out);
-	}
+        LOG(INFO) <<executer.name <<" d_tensor_out_p :" <<out->data();
+#ifdef USE_X86_PLACE
+//        for (int i = 0; i < 10; ++i) {
+//            std::cout << out->data()[i]<<" ";
+//        }
+#endif
+        LOG(ERROR) << "    |---out avg " << tensor_average(out);
+    }
 
 #ifdef USE_ARM_PLACE
         int idx = 0;
@@ -460,15 +474,15 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
 
 template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
 void Net<Ttype, Dtype, Ptype, RunType>::execute_stop_at_node(std::string node_name) {
-	if(_suspended_point==-1) { 
-		for(int i=0; i<_exec_funcs.size(); i++) {
-			if(_exec_funcs[i].name == node_name) {
-				_suspended_point = i;
-			}
-		}
-	}
-	for(int i=0; i<_suspended_point; i++) {
-		auto& executer = _exec_funcs[i];
+    if(_suspended_point==-1) { 
+        for(int i=0; i<_exec_funcs.size(); i++) {
+            if(_exec_funcs[i].name == node_name) {
+                _suspended_point = i;
+            }
+        }
+    }
+    for(int i=0; i<_suspended_point; i++) {
+        auto& executer = _exec_funcs[i];
         if (RunType == OpRunType::SYNC || executer.need_sync) {
             for(int i = 0; i < executer.ins.size(); i++) {
                 // record
@@ -483,37 +497,37 @@ void Net<Ttype, Dtype, Ptype, RunType>::execute_stop_at_node(std::string node_na
                            << " " << in->valid_shape()[1] 
                            << " " << in->valid_shape()[2] 
                            << " " << in->valid_shape()[3] 
-			   			   << " valid_size: " << in->valid_size() 
-						   << " realsize: " << in->size() 
-						   << " offset_size "<<in->get_seq_offset().size();
+                           << " valid_size: " << in->valid_size() 
+                           << " realsize: " << in->size() 
+                           << " offset_size "<<in->get_seq_offset().size();
         }
-		for (auto out : executer.outs) {
-	        LOG(INFO) << "    |-- out tensor avg " << tensor_average(out);
-	    }
+        for (auto out : executer.outs) {
+            LOG(INFO) << "    |-- out tensor avg " << tensor_average(out);
+        }
 
 #endif 
-		if (executer.op_name != "Input") { 
-			executer.infer_shape(); 
-			executer.launch(); 
-		} 
+        if (executer.op_name != "Input") { 
+            executer.infer_shape(); 
+            executer.launch(); 
+        } 
       
-		for(int i = 0; i < executer.outs.size(); i++) { 
-			executer.outs[i]->record_event(executer.ctx_p->get_compute_stream()); 
-		} 
-	}
+        for(int i = 0; i < executer.outs.size(); i++) { 
+            executer.outs[i]->record_event(executer.ctx_p->get_compute_stream()); 
+        } 
+    }
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
 void Net<Ttype, Dtype, Ptype, RunType>::execute_start_from_node(std::string node_name) {
-	if(_start_point == -1) {
-		for(int i=0; i<_exec_funcs.size(); i++) {
-			if(_exec_funcs[i].name == node_name) {
-				_start_point = i;
-			}
-		}
-	}
-	for(int i=_start_point; i<_exec_funcs.size(); i++) {
-		auto& executer = _exec_funcs[i];
+    if(_start_point == -1) {
+        for(int i=0; i<_exec_funcs.size(); i++) {
+            if(_exec_funcs[i].name == node_name) {
+                _start_point = i;
+            }
+        }
+    }
+    for(int i=_start_point; i<_exec_funcs.size(); i++) {
+        auto& executer = _exec_funcs[i];
         if (RunType == OpRunType::SYNC || executer.need_sync) {
             for(int i = 0; i < executer.ins.size(); i++) {
                 // record
@@ -528,24 +542,24 @@ void Net<Ttype, Dtype, Ptype, RunType>::execute_start_from_node(std::string node
                            << " " << in->valid_shape()[1] 
                            << " " << in->valid_shape()[2] 
                            << " " << in->valid_shape()[3] 
-			   			   << " valid_size: " << in->valid_size() 
-						   << " realsize: " << in->size() 
-						   << " offset_size "<<in->get_seq_offset().size();
+                           << " valid_size: " << in->valid_size() 
+                           << " realsize: " << in->size() 
+                           << " offset_size "<<in->get_seq_offset().size();
         }
-		for (auto out : executer.outs) {
-	        LOG(INFO) << "    |-- out tensor avg " << tensor_average(out);
-	    }
+        for (auto out : executer.outs) {
+            LOG(INFO) << "    |-- out tensor avg " << tensor_average(out);
+        }
 
 #endif 
-		if (executer.op_name != "Input") { 
-			executer.infer_shape(); 
-			executer.launch(); 
-		} 
+        if (executer.op_name != "Input") { 
+            executer.infer_shape(); 
+            executer.launch(); 
+        } 
       
-		for(int i = 0; i < executer.outs.size(); i++) { 
-			executer.outs[i]->record_event(executer.ctx_p->get_compute_stream()); 
-		} 
-	}
+        for(int i = 0; i < executer.outs.size(); i++) { 
+            executer.outs[i]->record_event(executer.ctx_p->get_compute_stream()); 
+        } 
+    }
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
@@ -599,27 +613,27 @@ Status Net<Ttype, Dtype, Ptype, RunType>::init_memory() {
     auto share_memory = [this](graph::Edge<Ttype, Dtype>& edge) {
         if(edge.shared()) {
             auto& edge_name = edge.share_from();
-	    bool continue_search = true;
-	    while(continue_search) {
-            	auto match_edge = [&](graph::Edge<Ttype, Dtype>& inner_edge) {
-            	    if(inner_edge.name() == edge_name) {
-	    	        if(inner_edge.shared()) {
-	    	    	    edge_name = inner_edge.share_from();
-	    	    	    return Status::EXIT(" Continue to find next . ");
-	    	        }
-            	        if (inner_edge.weight()->size() < edge.weight()->valid_size()) {
-            	            auto inner_original_shape = inner_edge.weight()->valid_shape();
-            	            inner_edge.weight()->re_alloc(edge.weight()->valid_shape());
-            	            inner_edge.weight()->set_shape(inner_original_shape, inner_edge.weight()->shape());
-            	        }
-            	        edge.weight()->share_from(*(inner_edge.weight()));
-	    	            continue_search = false;
-            	        return Status::EXIT(" Find the matched target edge. ");
-            	    }
-            	    return Status::OK();
-            	};
-            	this->_graph_p->Scanner->BFS_Edge(match_edge);
-	    }
+        bool continue_search = true;
+        while(continue_search) {
+                auto match_edge = [&](graph::Edge<Ttype, Dtype>& inner_edge) {
+                    if(inner_edge.name() == edge_name) {
+                    if(inner_edge.shared()) {
+                        edge_name = inner_edge.share_from();
+                        return Status::EXIT(" Continue to find next . ");
+                    }
+                        if (inner_edge.weight()->size() < edge.weight()->valid_size()) {
+                            auto inner_original_shape = inner_edge.weight()->valid_shape();
+                            inner_edge.weight()->re_alloc(edge.weight()->valid_shape());
+                            inner_edge.weight()->set_shape(inner_original_shape, inner_edge.weight()->shape());
+                        }
+                        edge.weight()->share_from(*(inner_edge.weight()));
+                        continue_search = false;
+                        return Status::EXIT(" Find the matched target edge. ");
+                    }
+                    return Status::OK();
+                };
+                this->_graph_p->Scanner->BFS_Edge(match_edge);
+        }
         }
     };
     _graph_p->Scanner->BFS_Edge(share_memory);
@@ -636,8 +650,8 @@ Status Net<Ttype, Dtype, Ptype, RunType>::init_memory() {
         };
         this->_graph_p->Scanner->BFS_Edge(analysis_used_of_temp_mem);
 
-		this->_graph_p->statistics.template set_info<graph::TEMP_MEM>(temp_mem_in_mbytes / 1e6);
-		this->_graph_p->statistics.template set_info<graph::ORI_TEMP_MEM>(ori_temp_mem_in_mbytes / 1e6);
+        this->_graph_p->statistics.template set_info<graph::TEMP_MEM>(temp_mem_in_mbytes / 1e6);
+        this->_graph_p->statistics.template set_info<graph::ORI_TEMP_MEM>(ori_temp_mem_in_mbytes / 1e6);
     }
     return Status::OK();
 }
@@ -692,4 +706,3 @@ template class Net<ARM, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
 #endif //arm
 
 } /* namespace anakin */
-
