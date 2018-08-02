@@ -36,12 +36,11 @@ public:
     typedef Tensor<X86> DataTensor_out;
 
     SaberPooling()
-            : kernel_(nullptr)
-    {}
+            : _kernel(nullptr) {}
 
     ~SaberPooling() {
-        if (kernel_ != nullptr) {
-            delete kernel_;
+        if (_kernel != nullptr) {
+            delete _kernel;
         }
     }
 
@@ -64,7 +63,7 @@ public:
                                   std::vector<DataTensor_out*>& outputs,
                                   PoolingParam<X86>& param);
 private:
-    jit_uni_pool_kernel_f32<avx512_common> *kernel_;
+    jit_uni_pool_kernel_f32<avx512_common>* _kernel;
 };
 
 

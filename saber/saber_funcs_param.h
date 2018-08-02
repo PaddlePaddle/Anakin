@@ -235,7 +235,7 @@ struct NormalizeParam {
 };
     
 template <typename TargetType>
-    struct PoolingParam {
+struct PoolingParam {
         PoolingParam() : window_h(-1), window_w(-1)
         , pad_h(-1), pad_w(-1)
         , stride_h(-1), stride_w(-1)

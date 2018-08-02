@@ -10,7 +10,7 @@
 
 using namespace anakin::saber;
 /*CPU function form:
-  void FuncName(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tensor<TargetType_H>*>& output,Param<TargetType_D>& param,Shape shape)
+ void FuncName(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tensor<TargetType_H>*>& output,Param<TargetType_D>& param,Shape shape)
  */
 template <typename dtype,typename TargetType_D,typename TargetType_H>
 void norm_cpu_nchw(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tensor<TargetType_H>*>& output,NormalizeParam<TargetType_D>& param) {
@@ -68,12 +68,12 @@ void norm_cpu_nchw(const std::vector<Tensor<TargetType_H>*>& input,std::vector<T
                         dst_ptr[j] = src_ptr[j] * sum * scale[c_idx];
                     }
                 }
-            } else {
+            } else { //! without scale
                 for (int j = 0; j < compute_size; ++j) {
-                    int c_idx = j / (h * w);
-                    dst_ptr[j] = src_ptr[j] * sum * scale[c_idx];
+                    dst_ptr[j] = src_ptr[j] * sum;
                 }
             }
+            
             src_ptr += compute_size;
             dst_ptr += compute_size;
         }
@@ -101,10 +101,11 @@ void norm_cpu_nchw(const std::vector<Tensor<TargetType_H>*>& input,std::vector<T
                     //LOG(INFO)<<"norm:"<<norm;
                     
                     if (p == 1) {
-                        norm =1.f / (norm + eps);
+                        norm = 1.f / (norm + eps);
                     } else {
-                        norm =1.f / sqrtf(norm+eps);
+                        norm = 1.f / sqrtf(norm+eps);
                     }
+                    
                     for (int l = 0; l < c; ++l) {
                         if (has_scale) {
                             if (channel_shared) {
@@ -125,9 +126,9 @@ void norm_cpu_nchw(const std::vector<Tensor<TargetType_H>*>& input,std::vector<T
                     }
                 }
             }
-         }
+        }
     }
- }
+}
 
 
 TEST(TestSaberFunc, test_func_normalize) {
@@ -186,7 +187,7 @@ TEST(TestSaberFunc, test_func_normalize) {
 }
 
 
-    
+
 int main(int argc, const char** argv) {
     // initial logger
     //logger::init(argv[0]);
@@ -196,4 +197,3 @@ int main(int argc, const char** argv) {
     
     return 0;
 }
-

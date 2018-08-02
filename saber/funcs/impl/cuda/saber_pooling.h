@@ -32,44 +32,40 @@ class SaberPooling<NV, OpDtype>:\
     public ImplBase<
             NV,OpDtype,
             PoolingParam<NV>> {
-
-public:
-    typedef Tensor<NV> DataTensor_in;
-    typedef Tensor<NV> DataTensor_out;
-
-    SaberPooling()
-    {}
-
-    ~SaberPooling() {}
-
-    virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
-                             std::vector<DataTensor_out*>& outputs,
-                             PoolingParam<NV> &param,
-                             Context<NV> &ctx) override {
-
-        return SaberSuccess;
-
-    }
-
-    virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
-                             std::vector<DataTensor_out*>& outputs,
-                             PoolingParam<NV> &param,
-                             Context<NV> &ctx) override {
-
-        return SaberSuccess;
-
-    }
-
-    //call cudnnConvolutionForward here
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
-                             std::vector<DataTensor_out*>& outputs,
-                             PoolingParam<NV> &param) {
-
-        return SaberSuccess;
-    }
-
-private:
-
+        
+    public:
+        typedef Tensor<NV> DataTensor_in;
+        typedef Tensor<NV> DataTensor_out;
+        
+        SaberPooling(){}
+        
+        ~SaberPooling() {}
+        
+        virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
+                                 std::vector<DataTensor_out*>& outputs,
+                                 PoolingParam<NV> &param,
+                                 Context<NV> &ctx) override {
+            
+            return SaberSuccess;
+            
+        }
+        
+        virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
+                                   std::vector<DataTensor_out*>& outputs,
+                                   PoolingParam<NV> &param,
+                                   Context<NV> &ctx) override {
+            
+            return SaberSuccess;
+            
+        }
+        
+        //call cudnnConvolutionForward here
+        virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
+                                     std::vector<DataTensor_out*>& outputs,
+                                     PoolingParam<NV> &param) {
+            
+            return SaberSuccess;
+        }
 };
 
 }
