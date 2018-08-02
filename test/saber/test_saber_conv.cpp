@@ -7,6 +7,8 @@
 #include <vector>
 
 using namespace anakin::saber;
+#define CHECK_RESULT
+//#define CHECK_SPEED
 
 template<typename TargetType, typename TargetType_H>
 int test_conv_results(int group,
@@ -117,8 +119,7 @@ void test_conv_speed(int group,
                      int input_num, int in_channels, int height, int width,
                      int out_channels, int kernel_h, int kernel_w,
                      int stride_h, int stride_w, int dilation_h, int dilation_w,
-                     int pad_h, int pad_w, bool bias_term,
-                     SaberImplStrategy strategy, ImplEnum imp) {
+                     int pad_h, int pad_w, bool bias_term, bool with_relu) {
 
     Shape input_s({input_num, in_channels, height, width}, Layout_NCHW);
     Shape weights_s({out_channels, in_channels, kernel_h, kernel_w}, Layout_NCHW);
@@ -150,53 +151,55 @@ void test_conv_speed(int group,
     }
     Tensor<TargetType> output_dev;
     Tensor<TargetType_H> output_host;
-    Tensor<TargetType_H> check_host;
+    Tensor<TargetType> output_cudnn_dev;
 
     Context<TargetType> ctx1(0, 1, 1);
     ConvParam<TargetType> param(group, pad_h, pad_w,
                                 stride_h, stride_w,
                                 dilation_h, dilation_w,
                                 &weights_dev, &bias_dev);
+    if (with_relu) {
+        ActivationParam<TargetType> act_param(Active_relu);
+        param.activation_param = act_param;
+    }
     Conv<TargetType, AK_FLOAT> conv;
+    Conv<TargetType, AK_FLOAT> conv_cudnn;
     std::vector<Tensor<TargetType>* > input_v;
     std::vector<Tensor<TargetType>* > output_v;
+    std::vector<Tensor<TargetType>* > output_cudnn_v;
     input_v.push_back(&input_dev);
     output_v.push_back(&output_dev);
+    output_cudnn_v.push_back(&output_cudnn_dev);
     conv.compute_output_shape(input_v, output_v, param);
     output_dev.re_alloc(output_dev.valid_shape(), AK_FLOAT);
+    output_cudnn_dev.re_alloc(output_dev.valid_shape(), AK_FLOAT);
 
-    conv.init(input_v, output_v, param, strategy, imp, ctx1);
+    conv.init(input_v, output_v, param, SPECIFY, SABER_IMPL, ctx1);
+    conv_cudnn.init(input_v, output_cudnn_v, param, SPECIFY, VENDER_IMPL, ctx1);
     conv(input_v, output_v, param, ctx1);
+    conv_cudnn(input_v, output_v, param, ctx1);
+    SaberTimer<NV> saber_t1, cudnn_t1;
+
     typename Tensor<TargetType>::API::stream_t stream = ctx1.get_compute_stream();
     output_v[0]->record_event(stream);
     output_v[0]->sync();
-
-    SaberTimer<TargetType> timer;
+    output_cudnn_v[0]->record_event(stream);
+    output_cudnn_v[0]->sync();
     int ts = 100;
     for (int i = 0; i < ts; ++i) {
-        timer.start(ctx1);
+        saber_t1.start(ctx1);
         conv(input_v, output_v, param, ctx1);
         output_v[0]->record_event(stream);
         output_v[0]->sync();
-        timer.end(ctx1);
+        saber_t1.end(ctx1);
+
+        cudnn_t1.start(ctx1);
+        conv_cudnn(input_v, output_v, param, ctx1);
+        output_cudnn_v[0]->record_event(stream);
+        output_cudnn_v[0]->sync();
+        cudnn_t1.end(ctx1);
     }
-    LOG(INFO)  << " conv param: "
-        << " input_num = " << input_num
-        << " in_channels = " << in_channels
-        << " height = " << height
-        << " width = " << width
-        << " group = " << group
-        << " pad_h = " << pad_h
-        << " pad_w = " << pad_w
-        << " stride_h = " << stride_h
-        << " stride_w = " << stride_w
-        << " dilation_h = " << dilation_h
-        << " dilation_w = " << dilation_w
-        << " kernel_h = " << kernel_h
-        << " kernel_w = " << kernel_w
-        << " out_channels = " << out_channels
-        << " impl: " << ((imp == VENDER_IMPL) ? " VENDER " : " SABER")
-        << " average time: "<< timer.get_average_ms()<< " ms";
+    LOG(INFO) << "saber time: "<<saber_t1.get_average_ms()<< " ms cudnn time: "<< cudnn_t1.get_average_ms()<<" ms";
 }
 
 template<typename TargetType, typename TargetType_H>
@@ -315,7 +318,7 @@ void test_conv_ab_test(int group,
         }
     }
 }
-
+#ifdef CHECK_RESULT
 TEST(TestSaberFunc, test_saber_conv_results) {
 #ifdef USE_CUDA
     Env<NV>::env_init();
@@ -402,6 +405,8 @@ TEST(TestSaberFunc, test_saber_conv_results) {
 //#endif
     }
 }
+#endif
+
 #ifdef CHECK_SPEED
 TEST(TestSaberFunc, test_saber_conv_speed) {
 
@@ -420,6 +425,7 @@ TEST(TestSaberFunc, test_saber_conv_speed) {
     std::vector<int> in_w_v{17, 32};
     std::vector<int> input_num_v{1, 3};
     std::vector<bool> bias_term_v{true, false};
+    std::vector<bool> with_relu_v{true, true};
 #ifdef USE_CUDA
     Env<NV>::env_init();
     Env<NVHX86>::env_init();
@@ -442,6 +448,7 @@ TEST(TestSaberFunc, test_saber_conv_speed) {
     for (auto dilation_h : dilation_h_v)
     for (auto dilation_w : dilation_w_v)
     for (auto bias_term : bias_term_v)
+    for (auto with_relu : with_relu_v)
     for (auto group : group_v) {
         if (in_channels % group != 0) {
             continue;
@@ -450,17 +457,13 @@ TEST(TestSaberFunc, test_saber_conv_speed) {
             continue;
         }
 #ifdef USE_CUDA
-        test_conv_speed<NV, NVHX86>(group, input_num, in_channels,
-                                    height, width, out_channels, kernel_h,
-                                    kernel_w, stride_h, stride_w, dilation_h, dilation_w,
-                                    pad_h, pad_w, bias_term, SPECIFY, VENDER_IMPL);
         if (group == 1) {
             if ((kernel_h != 3) || (kernel_w != 3) ||
                 (kernel_h ==3 && kernel_w == 3 && dilation_h == 1 && dilation_w == 1)) {
                 test_conv_speed<NV, NVHX86>(group, input_num, in_channels,
                                     height, width, out_channels, kernel_h,
                                     kernel_w, stride_h, stride_w, dilation_h, dilation_w,
-                                    pad_h, pad_w, bias_term, SPECIFY, SABER_IMPL);
+                                    pad_h, pad_w, bias_term, with_relu);
             }
         }
 #endif
