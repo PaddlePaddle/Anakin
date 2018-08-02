@@ -34,7 +34,7 @@ public:
     typedef typename TargetTypeTraits<TargetType>::target_type target_type;
     typedef TargetWrapper<TargetType> API;
 
-    /**`
+    /**
      *  \brief Default constructor
      */
     Tensor(DataType type = AK_FLOAT) : _valid_shape(), _shape(), _offset() {

@@ -165,13 +165,129 @@ struct ConvParam {
 private:
     Tensor<TargetType>* weight_tensor;
     Tensor<TargetType>* bias_tensor;
+};
+
+template <typename TargetType>
+struct LstmParam{
+    typedef Tensor<TargetType> opTensor;
+    LstmParam() :
+            weight_tensor(nullptr)
+            ,bias_tensor(nullptr)
+            ,init_hidden_tensor(nullptr)
+            ,dropout_param(1.0f)
+            ,num_direction(1)
+            ,num_layers(1)
+            ,is_reverse(false)
+            ,input_activity(Active_unknow)
+            ,gate_activity(Active_sigmoid)
+            ,cell_activity(Active_tanh)
+            ,candidate_activity(Active_tanh)
+            ,with_peephole(true)
+            ,skip_input(false)
+
+    {}
+
+    LstmParam(opTensor* weight_in, opTensor* bias_in,
+              opTensor* hidden_init_in = nullptr,
+              ActiveType input_activity = Active_unknow,
+              ActiveType gate_activity_in = Active_sigmoid,
+              ActiveType cell_activity_in = Active_tanh,
+              ActiveType candidate_activity_in = Active_tanh,
+              bool with_peephole_in = true,
+              bool skip_input_in = false,
+              bool is_reverse_in = false,
+              float dropout_param_in = 1.f,
+              int num_direction_in = 1,
+              int numLayers_in = 1)
+            :
+            weight_tensor(weight_in)
+            ,bias_tensor(bias_in)
+            ,dropout_param(dropout_param_in)
+            ,num_direction(num_direction_in)
+            ,num_layers(numLayers_in)
+            ,is_reverse(is_reverse_in)
+            ,input_activity(input_activity)
+            ,gate_activity(gate_activity_in)
+            ,candidate_activity(candidate_activity_in)
+            ,cell_activity(cell_activity_in)
+            ,init_hidden_tensor(hidden_init_in)
+            ,with_peephole(with_peephole_in)
+            ,skip_input(skip_input_in)
+    {}
+
+
+    LstmParam &operator=(const LstmParam &right) {
+        weight_tensor = right.weight_tensor;
+        dropout_param=right.dropout_param;
+        num_direction=right.num_direction;
+        num_layers=right.num_layers;
+        bias_tensor = right.bias_tensor;
+        input_activity=right.input_activity;
+        gate_activity=right.gate_activity;
+        cell_activity=right.cell_activity;
+        candidate_activity=right.candidate_activity;
+        with_peephole=right.with_peephole;
+        skip_input=right.skip_input;
+        is_reverse=right.is_reverse;
+        init_hidden_tensor=right.init_hidden_tensor;
+        return *this;
+    }
+
+    bool operator==(const LstmParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (weight_tensor == right.weight_tensor);
+        comp_eq = comp_eq && (dropout_param == right.dropout_param);
+        comp_eq = comp_eq && (num_direction == right.num_direction);
+        comp_eq = comp_eq && (num_layers == right.num_layers);
+        comp_eq = comp_eq && (bias_tensor == right.bias_tensor);
+        comp_eq = comp_eq && (input_activity==right.input_activity);
+        comp_eq = comp_eq && (gate_activity==right.gate_activity);
+        comp_eq = comp_eq && (cell_activity==right.cell_activity);
+        comp_eq = comp_eq && (with_peephole==right.with_peephole);
+        comp_eq = comp_eq && (skip_input==right.skip_input);
+        comp_eq = comp_eq && (candidate_activity==right.candidate_activity);
+        comp_eq = comp_eq && (is_reverse=right.is_reverse);
+        comp_eq = comp_eq && (init_hidden_tensor==right.init_hidden_tensor);
+        return comp_eq;
+    }
+
+    inline const opTensor* weight() {
+        return weight_tensor;
+    }
+
+    inline const opTensor* bias() {
+        return bias_tensor;
+    }
+
+    inline const opTensor* init_hidden() {
+        return init_hidden_tensor;
+    }
+
+    int num_direction;
+    float dropout_param;
+    int num_layers;
+    ActiveType input_activity;
+    ActiveType gate_activity;
+    ActiveType cell_activity;
+    ActiveType candidate_activity;
+    bool is_reverse;
+    bool with_peephole;
+    // skip input (X * [Wix, Wfx, Wcx, Wox]) or not;
+    // if true, the input's memory layout should be total_seq_len * (4 * hidden_size),
+    // and you should calc this information in fc layer before;
+    // otherwise the input's memory layout should be total_seq_len * input_size;
+    bool skip_input;
+private:
+    opTensor* weight_tensor;
+    opTensor* bias_tensor;
+    opTensor* init_hidden_tensor;
 
 };
 
 template <typename TargetType>
 struct NormalizeParam {
     NormalizeParam() = default;
-    
+
     NormalizeParam(bool is_across_spatial, float eps_in = 1e-6f, int pin = 2) {
         across_spatial = is_across_spatial;
         p = pin;
@@ -182,7 +298,7 @@ struct NormalizeParam {
     }
     NormalizeParam(bool is_across_spatial, bool is_shared_channel, \
                    Tensor<TargetType>* input_scale, float eps_in = 1e-6f, int pin = 2) {
-        
+
         across_spatial = is_across_spatial;
         channel_shared = is_shared_channel;
         p = pin;
@@ -191,7 +307,7 @@ struct NormalizeParam {
         eps = eps_in;
         CHECK_EQ(p == 2 || p == 1, true) << "only support L1 and L2 norm";
     }
-    
+
     NormalizeParam(const NormalizeParam<TargetType>& right) {
         channel_shared = right.channel_shared;
         across_spatial = right.across_spatial;
@@ -210,7 +326,7 @@ struct NormalizeParam {
         this->eps = right.eps;
         return *this;
     }
-    
+
     bool operator==(const NormalizeParam<TargetType>& right) {
         bool flag = this->across_spatial == right.across_spatial;
         flag = flag && (this->channel_shared == right.channel_shared);
@@ -219,7 +335,7 @@ struct NormalizeParam {
         flag = flag && (fabsf(this->eps - right.eps) < 1e-7f);
         return flag && (this->scale == right.scale);
     }
-    
+
     //! p = 1, L1 normalize, p = 2, L2 normalize
     int  p{2};
     //! whether normalize is across the spatial
@@ -233,7 +349,7 @@ struct NormalizeParam {
     Tensor<TargetType>* scale{nullptr};
     float eps{1e-6f};
 };
-  
+
 template <typename TargetType>
 struct PreluParam {
     PreluParam() = default;
@@ -256,6 +372,169 @@ struct PreluParam {
     }
     bool channel_shared{false};
     Tensor<TargetType>* slope{nullptr};
+};
+
+/**
+ * GRU_Formula,origin for paddle,Cudnn for cudnn,difference is w_h_r and weighted mean
+ * weight for origin is [W_h_o][W_h_r,W_h_z]
+ * weight for cudnn is [W_h_o,W_h_r,W_h_z]
+ */
+
+template <typename TargetType>
+struct GruParam {
+
+    typedef Tensor<TargetType> opTensor;
+
+    GruParam() :
+            weight_tensor(nullptr)
+            ,bias_tensor(nullptr)
+            ,init_hidden_tensor(nullptr)
+            ,dropout_param(1.0f)
+            ,num_direction(1)
+            ,num_layers(1)
+            ,is_reverse(false)
+            ,gate_activity(Active_sigmoid)
+            ,h_activity(Active_tanh)
+            ,formula(GRU_ORIGIN)
+    {}
+    /**
+     *
+     * @param weight i2h,i2h_r,i2h_z,h2h,h2h_r,h2h_z (different from paddlepaddle h2h_z,h2h_r,h2h and i2h* is the fc weights before gru)
+     * @param bias if bias is NULL bias will be zero
+     * @param dropout_param_in default 1.0f
+     * @param num_direction_in 1 or 2 ,output will be channged
+     * @param numLayers_in
+     * @param mode_in
+     */
+    GruParam(opTensor* weight_in, opTensor* bias_in,GruFormula formula_in,
+             ActiveType gate_activity_in=Active_sigmoid, ActiveType h_activity_in=Active_tanh,
+             bool is_reverse_in=false,opTensor* hidden_init_in=nullptr,
+             float dropout_param_in=1.f
+            ,int num_direction_in=1,int numLayers_in=1)
+            :
+            weight_tensor(weight_in)
+            ,bias_tensor(bias_in)
+            ,dropout_param(dropout_param_in)
+            ,num_direction(num_direction_in)
+            ,num_layers(numLayers_in)
+            ,is_reverse(is_reverse_in)
+            ,gate_activity(gate_activity_in)
+            ,h_activity(h_activity_in)
+            ,formula(formula_in)
+            ,init_hidden_tensor(hidden_init_in)
+    {}
+
+
+    GruParam &operator=(const GruParam &right) {
+        weight_tensor = right.weight_tensor;
+        dropout_param=right.dropout_param;
+        num_direction=right.num_direction;
+        num_layers=right.num_layers;
+        bias_tensor = right.bias_tensor;
+        gate_activity=right.gate_activity;
+        h_activity=right.h_activity;
+        is_reverse=right.is_reverse;
+        formula=right.formula;
+        init_hidden_tensor=right.init_hidden_tensor;
+        return *this;
+    }
+
+    bool operator==(const GruParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (weight_tensor == right.weight_tensor);
+        comp_eq = comp_eq && (dropout_param == right.dropout_param);
+        comp_eq = comp_eq && (num_direction == right.num_direction);
+        comp_eq = comp_eq && (num_layers == right.num_layers);
+        comp_eq = comp_eq && (bias_tensor == right.bias_tensor);
+        comp_eq = comp_eq && (gate_activity=right.gate_activity);
+        comp_eq = comp_eq && (h_activity=right.h_activity);
+        comp_eq = comp_eq && (is_reverse=right.is_reverse);
+        comp_eq = comp_eq && (formula=right.formula);
+        comp_eq = comp_eq && (init_hidden_tensor==right.init_hidden_tensor);
+        return comp_eq;
+    }
+
+    inline const opTensor* weight() {
+        return weight_tensor;
+    }
+
+    inline const opTensor* bias() {
+        return bias_tensor;
+    }
+
+    inline const opTensor* init_hidden() {
+        return init_hidden_tensor;
+    }
+
+    int num_direction;
+    float dropout_param;
+    int num_layers;
+    ActiveType gate_activity;
+    ActiveType h_activity;
+    GruFormula formula;
+    bool is_reverse;
+private:
+    opTensor* weight_tensor;
+    opTensor* bias_tensor;
+    opTensor* init_hidden_tensor;
+};
+
+template <typename TargetType>
+struct SequenceConvParam {
+    typedef Tensor<TargetType> opTensor;
+
+    SequenceConvParam()
+            : filter_tensor(nullptr),
+              padding_tensor(nullptr),
+              context_length(1),
+              context_start(0),
+              context_stride(1),
+              padding_trainable(false)
+    {}
+    SequenceConvParam(opTensor* filter_tensor_in,int context_length_in,
+                      int context_start_in=0,int context_stride_in=1,bool padding_trainable_in=false,
+                      opTensor* padding_tensor_in= nullptr)
+            : filter_tensor(filter_tensor_in),
+              padding_tensor(padding_tensor_in),
+              context_length(context_length_in),
+              context_start(context_start_in),
+              context_stride(context_stride_in),
+              padding_trainable(padding_trainable_in)
+    {}
+    SequenceConvParam(const SequenceConvParam &right)
+            : filter_tensor(right.filter_tensor),
+              padding_tensor(right.padding_tensor),
+              context_length(right.context_length),
+              context_start(right.context_start),
+              context_stride(right.context_stride),
+              padding_trainable(right.padding_trainable)
+    {}
+    SequenceConvParam &operator=(const SequenceConvParam &right) {
+        filter_tensor=right.filter_tensor;
+        padding_tensor=right.padding_tensor;
+        context_length=right.context_length;
+        context_start=right.context_start;
+        context_stride=right.context_stride;
+        padding_trainable=right.padding_trainable;
+        return *this;
+    }
+    bool operator==(const SequenceConvParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (filter_tensor=right.filter_tensor);
+        comp_eq = comp_eq && (padding_tensor=right.padding_tensor);
+        comp_eq = comp_eq && (context_length=right.context_length);
+        comp_eq = comp_eq && (context_start=right.context_start);
+        comp_eq = comp_eq && (context_stride=right.context_stride);
+        comp_eq = comp_eq && (padding_trainable=right.padding_trainable);
+        return comp_eq;
+    }
+
+    opTensor *filter_tensor;
+    opTensor *padding_tensor;
+    int context_length;
+    int context_start;
+    int context_stride;
+    bool padding_trainable;
 };
 
 }

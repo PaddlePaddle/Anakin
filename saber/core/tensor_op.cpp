@@ -160,12 +160,11 @@ void tensor_cmp_host(const Dtype* src1, const Dtype* src2, \
                      int size, double& max_ratio, double& max_diff) {
 
     const double eps = 1e-6f;
-    max_diff = fabs(src1[0] - src2[0]);
-    max_ratio = 2.0 * max_diff / (src1[0] + src2[0] + eps);
+    max_diff = 0;
+    max_ratio = 0;
 
-    for (int i = 1; i < size; ++i) {
+    for (int i = 0; i < size; ++i) {
         double diff = fabs(src1[i] - src2[i]);
-
         if (max_diff < diff) {
             max_diff = diff;
             max_ratio = 2.0 * max_diff / (src1[i] + src2[i] + eps);
