@@ -205,9 +205,6 @@ SaberStatus SaberAttensionLstm<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NC
               1.f, inputs[0]->data(), _attn_fc_weights[0]->data(), 
               0.f, _first_fc_out_0.mutable_data());
     for (int word_id = 0; word_id < max_len; word_id++) {
-        if (word_id > 1) {
-            break;
-        }
         _attn_outs[0]->reshape(first_fc_out_0_shape);
         if (word_id > 0) {
             Shape first_fc_out_1_shape = {seq_num, _attn_fc_size[0], 1, 1}; 
@@ -240,32 +237,21 @@ SaberStatus SaberAttensionLstm<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NC
         int fc_num = attn_param.fc_vec.size();
         sequence_softmax(_attn_outs[fc_num - 1]->mutable_data(), seq_offset, _softmax_out.mutable_data());
         sequence_pool(inputs[0]->data(), _softmax_out.data(), seq_offset, inputs[0]->valid_size() / word_num, _pool_out.mutable_data());
-        record_dev_tensorfile(&_pool_out,  "./pool_out_x86.txt");
-        record_dev_tensorfile(&_softmax_out,  "./softmax_out_x86.txt");
-        record_dev_tensorfile(_attn_outs[0],  "./attn_fc_0_x86.txt");
-        record_dev_tensorfile(_attn_outs[1],  "./attn_fc_1_x86.txt");
-        record_dev_tensorfile(&_first_fc_out_0,  "./first_fc_out_0.txt");
-        record_dev_tensorfile(&_first_fc_out_1,  "./first_fc_out_1.txt");
         _hidden_out.reshape(Shape(seq_num, 4*_hidden_size, 1,1));
-        LOG(INFO)<<"hidden_size" << _hidden_size;
+        //LOG(INFO)<<"hidden_size" << _hidden_size;
         gemm(false, false, seq_num, 4 * _hidden_size, _word_size, 
              1.f, _pool_out.data(), _weights_i2h, 0.f, _hidden_out.mutable_data());
         if (word_id > 0) {
             gemm(false, false, seq_num, 4 * _hidden_size, _hidden_size,
                  1.f, _lstm_out.data() + (word_id - 1) * seq_num * _hidden_size, _weights_h2h, 1.f, _hidden_out.mutable_data());
         }
-        record_dev_tensorfile(&_hidden_out,  "./hidden_out_before_act.txt");
         lstm_bias_and_act(_hidden_out.data(), _weights_bias, 
             _lstm_out.mutable_data() + word_id * seq_num * _hidden_size,
             _cell_out.mutable_data(), seq_num, _hidden_size, false);
-        record_dev_tensorfile(&_hidden_out,  "./hidden_out_after_act.txt");
-        record_dev_tensorfile(&_cell_out,  "./hidden_out_after_act.txt");
     }
 
     lstm_result_to_sequence(_lstm_out.data(), _hidden_size, seq_offset, outputs[0]->mutable_data());
     outputs[0]->set_seq_offset(seq_offset);
-    record_dev_tensorfile(outputs[0],  "./final_out_x86.txt");
-    record_dev_tensorfile(&_lstm_out,  "./lstm_out_x86.txt");
     
     return SaberSuccess;
 }

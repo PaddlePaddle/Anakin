@@ -19,7 +19,7 @@ using namespace anakin::saber;
 
 void test_saber_attension_lstm(int sequence_size = 2, int batch_size = 1, int word_size = 30,
                     int hidden_size = 15) {
-
+#if defined(USE_X86_PLACE) && defined(USE_CUDA)
     Context<NV> ctx_dev(0, 0, 0);
     Context<X86> ctx_x86(0, 0, 0);
     typedef Tensor<NV, AK_FLOAT, NCHW> TensorDf4;
@@ -28,7 +28,7 @@ void test_saber_attension_lstm(int sequence_size = 2, int batch_size = 1, int wo
     
     
 
-    std::vector<int> offsets = {0, 3, 7};
+    std::vector<int> offsets = {0, 3};
     bool is_reverse = false;
     batch_size = offsets.size() - 1;
     Shape input_shape(offsets[offsets.size() - 1], word_size, 1, 1);
@@ -206,7 +206,7 @@ void test_saber_attension_lstm(int sequence_size = 2, int batch_size = 1, int wo
 #endif
 
    return;
-
+#endif
 }
 
 TEST(TestSaberFuncNV, test_func_saber_lstm) {
