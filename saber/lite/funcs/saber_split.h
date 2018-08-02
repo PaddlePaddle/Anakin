@@ -66,7 +66,7 @@ public:
     }
 
 private:
-    const SaberSplit* _param;
+    const SplitParam* _param;
 };
 
 } //namespace lite

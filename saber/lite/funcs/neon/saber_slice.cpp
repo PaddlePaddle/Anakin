@@ -91,6 +91,7 @@ SaberStatus SaberSlice::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
     this->_ctx = &ctx;
     _slice_num = inputs[0]->count_valid(0, _param->_axis);
     _slice_size = inputs[0]->count_valid(_param->_axis + 1, inputs[0]->dims());
+    this->_flag_init = true;
     return SaberSuccess;
 }
 

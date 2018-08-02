@@ -42,6 +42,8 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_header_start() {
     _code<<"#include <saber/lite/funcs/saber_fc.h>\n";
     _code<<"#include <saber/lite/funcs/saber_pooling.h>\n";
     _code<<"#include <saber/lite/funcs/saber_split.h>\n";
+	_code<<"#include <saber/lite/funcs/saber_flatten.h>\n";
+	_code<<"#include <saber/lite/funcs/saber_reshape.h>\n";
     _code<<"#include <saber/lite/funcs/saber_softmax.h>\n\n";
 	_code<<"using namespace anakin;\n";
 	_code<<"using namespace anakin::saber;\n";
@@ -234,8 +236,10 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_run_impl(const bool debug_mode) {
     _code.feed("            return false;\n");
     _code.feed("        }\n");
     if (debug_mode) {
-        _code.feed("        double mean_val = tensor_mean(*%s_tensor_outs[i][0]); \n", _code_name.c_str());
-        _code.feed("        printf(\"mean_val in %s ops: %s \\n\", %s_g_ops[i]->get_op_name(), mean_val);\n", "%s", "%.6f", _code_name.c_str());
+        _code.feed("        for(int j = 0; j < %s_tensor_outs[i].size(); j++) {\n", _code_name.c_str());
+        _code.feed("            double mean_val = tensor_mean(*%s_tensor_outs[i][0]); \n", _code_name.c_str());
+        _code.feed("            printf(\"mean_val in %s ops: %s \\n\", %s_g_ops[i]->get_op_name(), mean_val);\n", "%s", "%.6f", _code_name.c_str());
+        _code.feed("        }\n");
     }
     _code << "    }\n";
 

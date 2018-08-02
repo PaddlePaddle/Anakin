@@ -1469,7 +1469,7 @@ std::string ParserSplit(graph::AttrInfo& attr,
 }
 
 // SaberFlatten
-std::string ParserFlattern(graph::AttrInfo& attr,
+std::string ParserFlatten(graph::AttrInfo& attr,
                           std::string& code_name,
                           std::string& op_class_name,
                           std::string& node_name,
@@ -1480,12 +1480,36 @@ std::string ParserFlattern(graph::AttrInfo& attr,
     // gen cpp code
     CodeWritter code_w;
 
-    code_w.feed("ParamBase* %s_param = new FlatternParam;\n",
+    code_w.feed("ParamBase* %s_param = new FlattenParam;\n",
                 node_name.c_str());
     code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
     return code_w.get_code_string();
 }
 
+// Parser reshape
+std::string ParserReshape(graph::AttrInfo& attr,
+                               std::string& code_name,
+                               std::string& op_class_name,
+                               std::string& node_name,
+                               std::string& weights_ptr_name,
+                               WeightsWritter& writter) {
+    // parsing parameter
+    auto dims = get_attr<PTuple<int>>("dims", attr);
+    std::vector<int> vdims = dims.vector();
+
+    CodeWritter reshape_dims_vec_code;
+    reshape_dims_vec_code << "{";
+    for(int i = 0; i < vdims.size() - 1; i++) {
+        reshape_dims_vec_code << vdims[i] << ",";
+    }
+    reshape_dims_vec_code<< "}";
+
+    CodeWritter code_w;
+
+    code_w.feed("ParamBase* %s_param = new ReshapeParam(%s);\n", node_name.c_str(), reshape_dims_vec_code.get_code_string().c_str());
+    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    return code_w.get_code_string();
+}
 
 std::unordered_map<std::string, OpParser> OPERATION_MAP({
 	{"Input", {"Input", not_impl_yet} },
@@ -1511,7 +1535,8 @@ std::unordered_map<std::string, OpParser> OPERATION_MAP({
 	{"Power", {"SaberPower", ParserPower} }, // done
 	{"Scale", {"SaberScale", ParserScale} }, // done
 	{"Slice", {"SaberSlice", ParserSlice} }, // done
-  {"Flattern", {"SaberFlatten", ParserFlattern}}, //done
+    {"Flatten", {"SaberFlatten", ParserFlatten}}, //done
+    {"Reshape", {"SaberReshape", ParserReshape}}, //done
 	{"Softmax", {"SaberSoftmax", ParserSoftmax}}, //done
 	{"Split", {"SaberSplit", ParserSplit}} // done
 });

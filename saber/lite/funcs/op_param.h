@@ -614,11 +614,43 @@ struct SplitParam : public ParamBase {
 
 struct FlattenParam : public ParamBase {
     FlattenParam() = default;
-    FlattenParam(const FlattenParam& right) {}
+    FlattenParam(const FlattenParam& right) : ParamBase(right) {}
     FlattenParam& operator=(const FlattenParam& right){ return *this;}
     bool operator==(const FlattenParam& right){
         return true;
     }
+};
+
+struct ReshapeParam : public ParamBase {
+    ReshapeParam() = default;
+    explicit ReshapeParam(std::vector<int> shape_param_in) {
+        int count = 0;
+        for (int i = 0; i < shape_param_in.size(); ++i) {
+            if (shape_param_in[i] == -1){
+                count ++;
+            }
+        }
+        LCHECK_LE(count, 1, "shape parameter contains multiple -1 dims");
+        _shape_params = shape_param_in;
+    }
+    ReshapeParam(const ReshapeParam& right) : ParamBase(right) {
+        _shape_params = right._shape_params;
+    }
+    ReshapeParam& operator=(const ReshapeParam& right) {
+        _shape_params = right._shape_params;
+        return *this;
+    }
+    bool operator==(const ReshapeParam& right) {
+        bool comp_eq = _shape_params.size() == right._shape_params.size();
+        for (int i = 0; i < _shape_params.size(); ++i) {
+            if (!comp_eq){
+                return false;
+            }
+            comp_eq = _shape_params[i] == right._shape_params[i];
+        }
+        return true;
+    }
+    std::vector<int> _shape_params;
 };
 
 struct ScaleParam : public ParamBase {

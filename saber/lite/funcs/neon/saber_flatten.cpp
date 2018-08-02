@@ -44,6 +44,8 @@ SaberStatus SaberFlatten::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &input
     }
     // get context
     this->_ctx = &ctx;
+    //outputs[0]->share_from(*inputs[0]);
+    this->_flag_init = true;
     return SaberSuccess;
 }
 
@@ -53,7 +55,7 @@ SaberStatus SaberFlatten::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &i
                                  std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
 
     if (!this->_flag_init) {
-        printf("init slice first\n");
+        printf("init flatten first\n");
         return SaberNotInitialized;
     }
     return SaberSuccess;

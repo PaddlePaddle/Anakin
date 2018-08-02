@@ -157,7 +157,8 @@ SaberStatus SaberConv2D::init(\
     //! otherwise use direct conv
 
     if (_param->_kw == 3 && _param->_kh == 3 && _param->_stride_h == 1 && _param->_stride_w == 1 && \
-        _param->_pad_w == 1 && _param->_pad_h == 1 && _param->_dila_w == 1 && _param->_dila_h == 1 && _param->_group == 1) {
+        _param->_pad_w == 1 && _param->_pad_h == 1 && _param->_dila_w == 1 && _param->_dila_h == 1 && _param->_group == 1 && \
+        inputs[0]->width() > 4 && inputs[0]->height() > 4 && outputs[0]->channel() > 1) {
 
         if (chout / (wout * hout) > 1 || chin < 16 || chout < 14) {
             //! use direct

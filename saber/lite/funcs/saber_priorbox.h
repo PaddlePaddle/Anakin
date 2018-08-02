@@ -54,7 +54,6 @@ public:
 private:
     const PriorBoxParam* _param;
     Tensor<CPU, AK_FLOAT> _output_arm;
-    int _num_priors;
 
 //    bool _is_flip;
 //    bool _is_clip;
