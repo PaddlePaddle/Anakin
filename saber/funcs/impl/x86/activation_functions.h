@@ -5,7 +5,9 @@
 #include <string>
 #include "saber/saber_types.h"
 #include "utils/logger/logger.h"
+#ifdef __AVX2__
 #include "saber/funcs/impl/x86/saber_avx2_math.h"
+#endif
 
 namespace anakin {
 namespace saber {
@@ -138,7 +140,7 @@ inline void parallel_activation(size_t len, float *src, float *dst, int index) {
     func(len, src, dst);
 }
 
-#ifdef __AVX__
+#ifdef __AVX2__
 inline __m256 Exp(__m256 a) { return exp256_ps(a); }
 
 inline __m256 Relu(const __m256 a) {
