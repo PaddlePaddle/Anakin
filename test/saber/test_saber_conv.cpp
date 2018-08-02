@@ -402,7 +402,7 @@ TEST(TestSaberFunc, test_saber_conv_results) {
 //#endif
     }
 }
-
+#ifdef CHECK_SPEED
 TEST(TestSaberFunc, test_saber_conv_speed) {
 
     std::vector<int> kernel_h_v{1, 3};
@@ -481,7 +481,9 @@ TEST(TestSaberFunc, test_saber_conv_speed) {
     }
 
 }
+#endif
 
+#ifdef CHECK_FUNC
 TEST(TestSaberFunc, test_saber_conv_op_func) {
     std::vector<int> kernel_h_v{1, 3};
     std::vector<int> kernel_w_v{3, 1};
@@ -535,7 +537,7 @@ TEST(TestSaberFunc, test_saber_conv_op_func) {
 //                                    }
     }
 }
-
+#endif
 int main(int argc, const char** argv) {
     // initial logger
     //logger::init(argv[0]);
