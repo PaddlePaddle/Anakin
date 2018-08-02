@@ -43,11 +43,11 @@ void transpose_inplace(float* output, const float* input, const int num,
 
 template <typename Dtype>
 void extract_matrix_from_matrix_in_leddim(const Dtype* input,
-                Dtype* output,int start_index,int end_index,int stride,int dimsize){
-    for(int i=start_index;i<end_index;i+=stride){
-        int output_height=(i-start_index)/stride;
-        for(int j=0;j<dimsize;j++){
-            output[output_height*dimsize+j]=input[i+j];
+                Dtype* output,int start_index,int end_index,int stride,int dim_size){
+    for (int i = start_index; i < end_index; i += stride){
+        int output_height = (i - start_index) / stride;
+        for(int j = 0; j < dim_size; j++){
+            output[output_height * dim_size + j] = input[i + j];
         }
     }
 }

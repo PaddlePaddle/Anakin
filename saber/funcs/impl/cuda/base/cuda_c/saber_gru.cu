@@ -281,10 +281,10 @@ GruParam <OpTensor>& param) {
     int r_offset = 1;
     int z_offset = 2;
 
-    std::vector<int> emit_offset_vec;
-    int emit_length=0;
     _temp_map_dev.try_expand_size(seq_sum);
-    isHW2Seq=_seq_util.get_sorted_map(offset,emit_offset_vec,emit_length,_ctx->get_compute_stream());
+    isHW2Seq = _seq_util.get_sorted_map(offset, _ctx->get_compute_stream());
+    auto emit_offset_vec = _seq_util.get_emit_offset_vec();
+    auto emit_length = emit_offset_vec.size() - 1;
     if (isHW2Seq) {
         Shape seq_shape(1, 1, seq_sum, _word_size);
         _temp_tensor_in.try_expand_size(seq_shape);
