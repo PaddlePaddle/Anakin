@@ -42,14 +42,14 @@ std::string ParserConvolution(graph::AttrInfo& attr,
 	if(bias_term) {
 		auto bias = get_attr<PBlock<float, X86>>("weight_2", attr);
 		writter.register_weights(node_name, bias);
-    LOG(INFO) << node_name << " write bias: " << bias.count();
+        LOG(INFO) << node_name << " write bias: " << bias.count();
 	}
 
 	auto offset_info = writter.get_weights_by_name(node_name);
 
 	// gen cpp code
 	CodeWritter code_w;
-  code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(),
+    code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(),
                 weights_size,
                 num_output,
                 group,
@@ -69,23 +69,6 @@ std::string ParserConvolution(graph::AttrInfo& attr,
 
     code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
 
-    code_w.feed("//    %s.load_param(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(),
-                                           weights_size,
-                                           num_output,
-                                           group,
-                                           kernel_size[1],
-                                           kernel_size[0],
-                                           strides[1],
-                                           strides[0],
-                                           padding[1],
-                                           padding[0],
-                                           dilation_rate[1],
-                                           dilation_rate[0],
-                                           bias_term ? "true":"false",
-                                           weights_ptr_name.c_str(),
-                                           offset_info.weights[0].offset,
-                                           weights_ptr_name.c_str(),
-                                           bias_term ? offset_info.weights[1].offset : 0);
 	return code_w.get_code_string();
 }
     // SaberPower
@@ -104,7 +87,6 @@ std::string ParserPower(graph::AttrInfo& attr,
         CodeWritter code_w;
         code_w.feed("ParamBase* %s_param = new PowerParam(%f,%f,%f);\n", node_name.c_str(), scale, shift, power);
         code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
-        code_w.feed("//    %s.load_param(%f,%f,%f);\n", node_name.c_str(),scale,shift,power);
         return code_w.get_code_string();
     }
 // SaberDeconv2D
@@ -161,23 +143,6 @@ std::string ParserDeconvolution(graph::AttrInfo& attr,
 
     code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
 
-    code_w.feed("//    %s.load_param(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(),
-                                           weights_size,
-                                           num_output,
-                                           group,
-                                           kernel_size[1],
-                                           kernel_size[0],
-                                           strides[1],
-                                           strides[0],
-                                           padding[1],
-                                           padding[0],
-                                           dilation_rate[1],
-                                           dilation_rate[0],
-                                           bias_term ? "true":"false",
-                                           weights_ptr_name.c_str(),
-                                           offset_info.weights[0].offset,
-                                           weights_ptr_name.c_str(),
-                                           bias_term ? offset_info.weights[1].offset : 0);
     return code_w.get_code_string();
 }
 
@@ -236,24 +201,6 @@ std::string ParserConvolutionRelu(graph::AttrInfo& attr,
                 bias_term ? offset_info.weights[1].offset : 0);
     code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
 
-    code_w.feed("//    %s.load_param(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%s+%d,%s+%d);\n", node_name.c_str(),
-                                           weights_size,
-                                           num_output,
-                                           group,
-                                           kernel_size[1],
-                                           kernel_size[0],
-                                           strides[1],
-                                           strides[0],
-                                           padding[1],
-                                           padding[0],
-                                           dilation_rate[1],
-                                           dilation_rate[0],
-                                           bias_term ? "true":"false",
-										   "true", //set flag_relu true
-                                           weights_ptr_name.c_str(),
-                                           offset_info.weights[0].offset,
-                                           weights_ptr_name.c_str(),
-                                           bias_term ? offset_info.weights[1].offset : 0);
 	return code_w.get_code_string();
 }
 
@@ -338,32 +285,6 @@ std::string ParserConvolutionReluPool(graph::AttrInfo& attr,
                 bias_term ? offset_info.weights[1].offset : 0);
     code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
 
-    code_w.feed("//    %s.load_param(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%s,%s,%d,%d,%d,%d,%d,%d,%s+%d,%s+%d);\n", node_name.c_str(),
-                weights_size,
-                num_output,
-                group,
-                kernel_size[1],
-                kernel_size[0],
-                strides[1],
-                strides[0],
-                padding[1],
-                padding[0],
-                dilation_rate[1],
-                dilation_rate[0],
-                bias_term ? "true":"false",
-                "true", //set flag_relu true
-                str_pool_method.c_str(),
-                global_pooling? "true" : "false",
-                pool_size[1],
-                pool_size[0],
-                pool_strides[1],
-                pool_strides[0],
-                pool_padding[1],
-                pool_padding[0],
-                weights_ptr_name.c_str(),
-                offset_info.weights[0].offset,
-                weights_ptr_name.c_str(),
-                bias_term ? offset_info.weights[1].offset : 0);
     return code_w.get_code_string();
 }
 
@@ -467,23 +388,6 @@ std::string ParserConvBatchnormScale(graph::AttrInfo& attr,
                 bias_term ? offset_info.weights[1].offset : 0);
     code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
 
-    code_w.feed("//    %s.load_param(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(),
-                                           weights_size,
-                                           num_output,
-                                           group,
-                                           kernel_size[1],
-                                           kernel_size[0],
-                                           strides[1],
-                                           strides[0],
-                                           padding[1],
-                                           padding[0],
-                                           dilation_rate[1],
-                                           dilation_rate[0],
-                                           "true",
-                                           weights_ptr_name.c_str(),
-                                           offset_info.weights[0].offset,
-                                           weights_ptr_name.c_str(),
-                                           offset_info.weights[1].offset);
 	return code_w.get_code_string();
 }
 
@@ -571,24 +475,6 @@ std::string ParserConvBatchnormScale(graph::AttrInfo& attr,
                     weights_ptr_name.c_str(),
                     bias_term ? offset_info.weights[1].offset : 0);
         code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
-
-        code_w.feed("//    %s.load_param(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(),
-                    weights_size,
-                    num_output,
-                    group,
-                    kernel_size[1],
-                    kernel_size[0],
-                    strides[1],
-                    strides[0],
-                    padding[1],
-                    padding[0],
-                    dilation_rate[1],
-                    dilation_rate[0],
-                    "true",
-                    weights_ptr_name.c_str(),
-                    offset_info.weights[0].offset,
-                    weights_ptr_name.c_str(),
-                    offset_info.weights[1].offset);
         return code_w.get_code_string();
     }
 
@@ -694,25 +580,6 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
                 offset_info.weights[1].offset);
 
     code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
-
-    code_w.feed("//    %s.load_param(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%s+%d,%s+%d);\n", node_name.c_str(),
-                                           weights_size,
-                                           num_output,
-                                           group,
-                                           kernel_size[1],
-                                           kernel_size[0],
-                                           strides[1],
-                                           strides[0],
-                                           padding[1],
-                                           padding[0],
-                                           dilation_rate[1],
-                                           dilation_rate[0],
-                                           "true", // set bias to true
-                                           "true", //set flag_relu true
-                                           weights_ptr_name.c_str(),
-                                           offset_info.weights[0].offset,
-                                           weights_ptr_name.c_str(),
-                                           offset_info.weights[1].offset);
 
 	return code_w.get_code_string();
 }
@@ -843,34 +710,9 @@ std::string ParserConvBatchnormScaleReluPool(graph::AttrInfo& attr,
                 offset_info.weights[0].offset,
                 weights_ptr_name.c_str(),
                 offset_info.weights[1].offset);
-        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
 
-    code_w.feed("//    %s.load_param(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%d,%s,%d,%d,%d,%d,%d,%d,%s+%d,%s+%d);\n", node_name.c_str(),
-                weights_size,
-                num_output,
-                group,
-                kernel_size[1],
-                kernel_size[0],
-                strides[1],
-                strides[0],
-                padding[1],
-                padding[0],
-                dilation_rate[1],
-                dilation_rate[0],
-                "true", // set bias to true
-                "true", //set flag_relu true
-                (int)pool_type,
-                global_pooling? "true" : "false",
-                pool_size[1],
-                pool_size[0],
-                pool_strides[1],
-                pool_strides[0],
-                pool_padding[1],
-                pool_padding[0],
-                weights_ptr_name.c_str(),
-                offset_info.weights[0].offset,
-                weights_ptr_name.c_str(),
-                offset_info.weights[1].offset);
+    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+
     return code_w.get_code_string();
 }
 
@@ -889,8 +731,6 @@ std::string ParserConcat(graph::AttrInfo& attr,
     code_w.feed("ParamBase* %s_param = new ConcatParam(%d);\n",
                     node_name.c_str(), axis);
     code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
-
-	code_w.feed("//    %s.load_param(%d);\n", node_name.c_str(), axis);
 	return code_w.get_code_string();
 }
 
@@ -930,17 +770,6 @@ std::string ParserDectionOutput(graph::AttrInfo& attr,
                 flag_var_in_target? "true" : "false");
     code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
 
-	code_w.feed("//    %s.load_param(%d,%f,%d,%d,%d,%s,%f,%f,%s,%s);\n", node_name.c_str(),
-                classes_num,
-                conf_thresh,
-                nms_top_k,
-                background_id,
-                keep_top_k,
-                code_type.c_str(),
-                nms_thresh,
-                nms_eta,
-                flag_share_location? "true" : "false",
-                flag_var_in_target? "true" : "false");
 	return code_w.get_code_string();
 }
 
@@ -986,8 +815,6 @@ std::string ParserEltwise(graph::AttrInfo& attr,
 
     code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
 
-	code_w.feed("//    %s.load_param(%s, %s);\n", node_name.c_str(), eltwise_type_str.c_str(),
-											coeff_vec_code.get_code_string().c_str());
 	return code_w.get_code_string();
 }
 
@@ -1006,59 +833,50 @@ std::string ParserActivation(graph::AttrInfo& attr,
   // gen cpp code
   CodeWritter code_w;
 
-	if (type == "TanH") { 
-		act_type = "Active_tanh";
-    code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
-                node_name.c_str(),
-                act_type.c_str());
-    code_w.feed("//  %s.load_param(%s);\n", node_name.c_str(),
-                act_type.c_str());
-	} else if (type == "Sigmoid") { 
-		act_type = "Active_sigmoid";
-    code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
-                node_name.c_str(),
-                act_type.c_str());
+	if (type == "TanH") {
+        act_type = "Active_tanh";
+        code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
+                    node_name.c_str(),
+                    act_type.c_str());
 
-    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
-    code_w.feed("//  %s.load_param(%s);\n", node_name.c_str(),
-                act_type.c_str());
-    }else if (type == "ReLU") {
-            act_type = "Active_relu";
-            code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
-                node_name.c_str(),
-                act_type.c_str());
+	} else if (type == "Sigmoid") {
+        act_type = "Active_sigmoid";
+        code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
+                    node_name.c_str(),
+                    act_type.c_str());
 
-            code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
-            code_w.feed("//  %s.load_param(%s);\n", node_name.c_str(),
-                act_type.c_str());
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+
+    } else if (type == "ReLU") {
+        act_type = "Active_relu";
+        code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
+                    node_name.c_str(),
+                    act_type.c_str());
+
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+
     }  else if (type == "PReLU") {
-                act_type = "Active_prelu";
-                auto prelu_channel_shared = get_attr<bool>("channel_shared", attr);
-                // auto prelu_weights = get_attr<bool>("weights", attr);
-                auto prelu_weights = get_attr<PBlock<float, X86>>("weight_1", attr);
+        act_type = "Active_prelu";
+        auto prelu_channel_shared = get_attr<bool>("channel_shared", attr);
+        // auto prelu_weights = get_attr<bool>("weights", attr);
+        auto prelu_weights = get_attr<PBlock<float, X86>>("weight_1", attr);
 
-                writter.register_weights(node_name, prelu_weights);
+        writter.register_weights(node_name, prelu_weights);
                 LOG(INFO) << node_name << " write weights: " << prelu_weights.count();
 
-                auto offset_info = writter.get_weights_by_name(node_name);
+        auto offset_info = writter.get_weights_by_name(node_name);
 
-                code_w.feed("ParamBase* %s_param = new ActivationParam(%s, %f, %f, %s, %s+%d);\n",
-                node_name.c_str(),
-                act_type.c_str(),
-                0.f,
-                0.f,
-                prelu_channel_shared ? "true" : "false",
-                weights_ptr_name.c_str(),
-                offset_info.weights[0].offset);
+        code_w.feed("ParamBase* %s_param = new ActivationParam(%s, %f, %f, %s, %s+%d);\n",
+                    node_name.c_str(),
+                    act_type.c_str(),
+                    0.f,
+                    0.f,
+                    prelu_channel_shared ? "true" : "false",
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[0].offset);
 
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
 
-                code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
-
-                code_w.feed("//  %s.load_param(%s, %s, %s+%d);\n", node_name.c_str(),
-                act_type.c_str(),
-                prelu_channel_shared ? "true" : "false",
-                weights_ptr_name.c_str(),
-                offset_info.weights[0].offset);
 	} else { 
 		LOG(FATAL) << "Other Activation type" << type << " unknown."; 
 	}	
@@ -1078,15 +896,11 @@ std::string ParserRelu(graph::AttrInfo& attr,
 
 	// gen cpp code
 	CodeWritter code_w;
-  code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
+    code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
                 node_name.c_str(),
                 act_type.c_str());
 
-  code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
-  //code_w.feed("//  %s.load_param(%s);\n", node_name.c_str(),
-                //act_type.c_str());
-
-	code_w.feed("// %s.load_param(%s,%f);\n", node_name.c_str(), act_type.c_str(),alpha);
+    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
 	return code_w.get_code_string();
 }
 
@@ -1126,15 +940,6 @@ std::string ParserFc(graph::AttrInfo& attr,
                 "false");
 
     code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
-
-	code_w.feed("//    %s.load_param(%d,%d,%s,false,%s+%d,%s+%d);\n", node_name.c_str(),
-                axis,
-                out_dim,
-                bias_term ? "true":"false",
-                weights_ptr_name.c_str(),
-                offset_info.weights[0].offset,
-                weights_ptr_name.c_str(),
-                bias_term ? offset_info.weights[1].offset : 0);
 	return code_w.get_code_string();
 }
 
@@ -1166,7 +971,6 @@ std::string ParserPermute(graph::AttrInfo& attr,
                 dims_vec_code.get_code_string().c_str());
     code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
 
-	code_w.feed("//    %s.load_param(%s);\n", node_name.c_str(), dims_vec_code.get_code_string().c_str());
 	return code_w.get_code_string();
 }
 
@@ -1209,15 +1013,6 @@ std::string ParserPooling(graph::AttrInfo& attr,
                 pool_padding[0]);
     code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
 
-	code_w.feed("//    %s.load_param(%s,%s,%d,%d,%d,%d,%d,%d);\n", node_name.c_str(),
-                                                             pool_method.c_str(),
-										                     global_pooling ? "true" : "false",
-											                 pool_size[1],
-											                 pool_size[0],
-											                 pool_strides[1],
-											                 pool_strides[0],
-											                 pool_padding[1],
-											                 pool_padding[0]); 
 	return code_w.get_code_string();
 }
 
@@ -1263,33 +1058,47 @@ std::string ParserPriorBox(graph::AttrInfo& attr,
 	auto step_h    = get_attr<float>("step_h", attr); 
 	auto step_w    = get_attr<float>("step_w", attr); 
 	auto offset    = get_attr<float>("offset", attr);
-  auto order     = get_attr<PTuple<std::string>>("order", attr);
+    auto order     = get_attr<PTuple<std::string>>("order", attr);
 
-  std::vector<PriorType> order_;
+    //std::vector<PriorType> order_;
+    CodeWritter order_string;
+    order_string << "{";
 
-  for (int i = 0; i < order.size(); i++) {
-      if (order[i] == "MIN") {
-          order_.push_back(PRIOR_MIN);
-      } else if (order[i] == "MAX") {
-          order_.push_back(PRIOR_MAX);
-      } else if (order[i] == "COM") {
-          order_.push_back(PRIOR_COM);
-      }
-  }
-
-  auto gen_vec_code_0 = [](PTuple<PriorType> ptuple) -> std::string {
-    CodeWritter dims_vec_code;
-    dims_vec_code<<"{";
-    for(int i=0; i<ptuple.size()-1; i++) {
-      dims_vec_code<<ptuple.vector()[i]<<",";
+    int order_size = order.size();
+    for (int i = 0; i < order_size - 1; i++) {
+        if (order[i] == "MIN") {
+            //order_.push_back(PRIOR_MIN);
+            order_string << "PRIOR_MIN, ";
+        } else if (order[i] == "MAX") {
+            //order_.push_back(PRIOR_MAX);
+            order_string << "PRIOR_MAX, ";
+        } else if (order[i] == "COM") {
+            //order_.push_back(PRIOR_COM);
+            order_string << "PRIOR_COM, ";
+        }
     }
-    if(ptuple.size() > 0) {
-      dims_vec_code<<ptuple.vector()[ptuple.size()-1] << "}";
-    } else {
-      dims_vec_code<< "}";
+    if (order[order_size - 1] == "MIN") {
+        order_string << "PRIOR_MIN";
+    } else if (order[order_size - 1] == "MAX") {
+        order_string << "PRIOR_MAX";
+    } else if (order[order_size - 1] == "COM") {
+        order_string << "PRIOR_COM";
     }
-    return dims_vec_code.get_code_string();
-  };
+    order_string << "}";
+
+    auto gen_vec_code_0 = [](PTuple<PriorType> ptuple) -> std::string {
+        CodeWritter dims_vec_code;
+        dims_vec_code<<"{";
+        for(int i=0; i<ptuple.size()-1; i++) {
+            dims_vec_code<<ptuple.vector()[i]<<",";
+        }
+        if(ptuple.size() > 0) {
+            dims_vec_code<<ptuple.vector()[ptuple.size()-1] << "}";
+        } else {
+            dims_vec_code<< "}";
+        }
+        return dims_vec_code.get_code_string();
+    };
 
 	auto gen_vec_code = [](PTuple<float> ptuple) -> std::string {
 		CodeWritter dims_vec_code;
@@ -1322,22 +1131,9 @@ std::string ParserPriorBox(graph::AttrInfo& attr,
                 step_w,
                 step_h,
                 offset,
-                gen_vec_code_0(order_).c_str());
+                order_string.get_code_string().c_str());
     code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
 
-	code_w.feed("//    %s.load_param(%s,%s,%s,%s,%s,%s,%d,%d,%f,%f,%f, %s);\n", node_name.c_str(),
-                gen_vec_code(min_size).c_str(),
-                gen_vec_code(max_size).c_str(),
-                gen_vec_code(as_ratio).c_str(),
-                gen_vec_code(var).c_str(),
-                flip_flag ? "ture":"false",
-                clip_flag ? "true":"false",
-                image_w,
-                image_h,
-                step_w,
-                step_h,
-                offset,
-                gen_vec_code_0(order_).c_str());
 	return code_w.get_code_string();
 }
 
@@ -1366,13 +1162,11 @@ std::string ParserSlice(graph::AttrInfo& attr,
 
 	// gen cpp code
     CodeWritter code_w;
-        code_w.feed("ParamBase* %s_param = new SliceParam(%d,%s);\n",
+    code_w.feed("ParamBase* %s_param = new SliceParam(%d,%s);\n",
                     node_name.c_str(),
                     axis,
                     slice_point_vec_code.get_code_string().c_str());
     code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
-
-    code_w.feed("//    %s.load_param(%d,%s);\n", node_name.c_str(), axis, slice_point_vec_code.get_code_string().c_str());
 	return code_w.get_code_string();
 }
 
@@ -1414,17 +1208,7 @@ std::string ParserScale(graph::AttrInfo& attr,
 
     code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
 
-    code_w.feed("//    %s.load_param(%s+%d, %s+%d, %s, %d, %d);\n", 
-                  node_name.c_str(),
-                  weights_ptr_name.c_str(),
-                  offset_info.weights[0].offset,
-                  weights_ptr_name.c_str(),
-                  bias_term ? offset_info.weights[1].offset : 0,
-                  bias_term ? "true":"false",
-                  axis,
-                  num_axes);
-
-  return code_w.get_code_string();
+    return code_w.get_code_string();
 }
 
 
@@ -1446,7 +1230,6 @@ std::string ParserSoftmax(graph::AttrInfo& attr,
                     axis);
     code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
 
-	code_w.feed("//    %s.load_param(%d);\n", node_name.c_str(), axis);
 	return code_w.get_code_string();
 }
 

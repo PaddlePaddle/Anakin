@@ -64,9 +64,6 @@ public:
                                  std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override {
         return SaberSuccess;
     }
-
-private:
-    const SplitParam* _param;
 };
 
 } //namespace lite
