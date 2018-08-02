@@ -74,14 +74,11 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
             LOG(FATAL) << node_name << ", type " << node_ptr->get_op_name() << " is null";
         }
         node_ptr->set_op(op_pointer);
-        //LOG(ERROR) << "set op";
         op_pointer = nullptr;
 
         static_cast<Operator<Ttype, Dtype, Ptype>*>(node_ptr->Op())->_helper->BindParam(node_ptr);
-        //LOG(ERROR) << "bind param";
         // parsing parameter
         static_cast<Operator<Ttype, Dtype, Ptype>*>(node_ptr->Op())->_helper->InitParam();
-        //LOG(ERROR) << "init param";
     }
 
     // remove null op node
@@ -121,7 +118,6 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
         op_func.op->_helper->InferShape(op_func.ins, op_func.outs);
         op_func.op->_helper->Init(*(op_func.ctx_p), op_func.ins, op_func.outs);
     }
-    //LOG(ERROR) << "finish create op";
 
     // init memory of _graph_p
     init_memory();
