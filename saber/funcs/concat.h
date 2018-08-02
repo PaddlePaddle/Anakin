@@ -95,6 +95,7 @@ public:
             }
             shape_out[param.axis] += sh[param.axis];
         }
+        output[0]->set_seq_offset(input[0]->get_seq_offset());
         return output[0]->set_shape(shape_out);
     }
 

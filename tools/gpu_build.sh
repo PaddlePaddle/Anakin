@@ -25,7 +25,7 @@ cmake .. \
 	-DENABLE_VERBOSE_MSG=NO \
 	-DDISABLE_ALL_WARNINGS=YES \
 	-DENABLE_NOISY_WARNINGS=NO \
-        -DUSE_OPENMP=NO\
+    -DUSE_OPENMP=NO\
 	-DBUILD_SHARED=YES
 
 # build target lib or unit test.
