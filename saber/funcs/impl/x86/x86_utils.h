@@ -597,10 +597,10 @@ inline void yield_thread() { }
 // reorder weight layout from NCHW(oc, ic, kh, kw) to OIhw16i16o
 inline void weight_reorder_OIhw16i16o(Tensor<X86>& input,
                                       Tensor<X86>& output) {
-    if (std::is_same<input.get_dtype(), AK_FLOAT> :: value){
+    if (!(std::is_same<input.get_dtype(), AK_FLOAT> :: value)){
         LOG(FATAL)<<"only support float type";
     }
-    if (std::is_same<output.get_dtype(), AK_FLOAT> :: value){
+    if (!(std::is_same<output.get_dtype(), AK_FLOAT> :: value)){
         LOG(FATAL)<<"only support float type";
     }
     Shape shape = input.valid_shape();
@@ -634,10 +634,10 @@ inline void weight_reorder_OIhw16i16o(Tensor<X86>& input,
 inline void weight_reorder_OIhwi16o(Tensor<X86>& input,
                                     Tensor<X86>& output) {
     
-    if (std::is_same<input.get_dtype(), AK_FLOAT> :: value){
+    if (!(std::is_same<input.get_dtype(), AK_FLOAT> :: value)){
         LOG(FATAL)<<"only support float type";
     }
-    if (std::is_same<output.get_dtype(), AK_FLOAT> :: value){
+    if (!(std::is_same<output.get_dtype(), AK_FLOAT> :: value)){
         LOG(FATAL)<<"only support float type";
     }
     Shape shape = input.shape();
@@ -670,10 +670,10 @@ inline void weight_reorder_OIhwi8o(Tensor<X86>& input,
                                    Tensor<X86>& output) {
     Shape shape = input.shape();
     
-    if (std::is_same<input.get_dtype(), AK_FLOAT> :: value){
+    if (!(std::is_same<input.get_dtype(), AK_FLOAT> :: value)){
         LOG(FATAL)<<"only support float type";
     }
-    if (std::is_same<output.get_dtype(), AK_FLOAT> :: value){
+    if (!(std::is_same<output.get_dtype(), AK_FLOAT> :: value)){
         LOG(FATAL)<<"only support float type";
     }
 
@@ -704,10 +704,10 @@ inline void weight_reorder_OIhwi8o(Tensor<X86>& input,
 static void weight_reorder_Goihw16g(Tensor<X86>& input,
                                     Tensor<X86>& output) {
     
-    if (std::is_same<input.get_dtype(), AK_FLOAT> :: value){
+    if (!(std::is_same<input.get_dtype(), AK_FLOAT> :: value)){
         LOG(FATAL)<<"only support float type";
     }
-    if (std::is_same<output.get_dtype(), AK_FLOAT> :: value){
+    if (!(std::is_same<output.get_dtype(), AK_FLOAT> :: value)){
         LOG(FATAL)<<"only support float type";
     }
     Shape shape = input.shape();
