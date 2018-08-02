@@ -21,7 +21,7 @@
 #include "saber/funcs/impl/impl_lstm.h"
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_lstm.h"
-//#include "saber/funcs/impl/cuda/vender_lstm.h"
+#include "saber/funcs/impl/cuda/vender_lstm.h"
 #endif
 
 #ifdef USE_X86_PLACE
@@ -94,7 +94,6 @@ public:
                 this->_impl.push_back(new SaberLstm<TargetType, OpDtype, inDtype, outDtype, LayOutType_op, LayOutType_in, LayOutType_out>);
                 return SaberSuccess;
             case VENDER_IMPL:
-                LOG(INFO)<<"init vender";
                 this->_impl.push_back(new VenderLstm<TargetType, OpDtype, inDtype, outDtype, LayOutType_op, LayOutType_in, LayOutType_out>);
                 return SaberSuccess;
             default:

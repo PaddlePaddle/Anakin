@@ -5,14 +5,14 @@
 using namespace anakin::saber;
 typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
 typedef Tensor<NV, AK_FLOAT, NCHW> TensorDf4;
-void py_lstm(int word_size = 222,
-             int hidden_size = 333){
+void py_lstm(int word_size = 38,
+             int hidden_size = 15){
     Context<NV> ctx_dev(0, 1, 1);
-    std::vector<int> offsets = {0, 1,3,9,12,20};
+    std::vector<int> offsets = {0, 3};
     ImplEnum test_mode=SABER_IMPL;
 //    ImplEnum test_mode=VENDER_IMPL;
     bool is_reverse = true;
-    bool with_peephole= true;
+    bool with_peephole= false;
     Shape shape_weight(1, 1, 1,hidden_size*hidden_size*4+hidden_size*word_size*4);
     Shape shape_bias;
     if(with_peephole){
@@ -39,7 +39,7 @@ void py_lstm(int word_size = 222,
 
     host_x.set_seq_offset(offsets);
     dev_x.set_seq_offset(offsets);
-    LstmParam<TensorDf4> param(&dev_weight, &dev_bias,nullptr,Active_unknow,Active_sigmoid,Active_sigmoid,Active_sigmoid,
+    LstmParam<TensorDf4> param(&dev_weight, &dev_bias,nullptr,Active_unknow,Active_sigmoid,Active_tanh,Active_tanh,
                                with_peephole,false,is_reverse);
     Lstm<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW> lstm_op;
 
