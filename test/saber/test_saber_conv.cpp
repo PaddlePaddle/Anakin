@@ -199,7 +199,8 @@ void test_conv_speed(int group,
         output_cudnn_v[0]->sync();
         cudnn_t1.end(ctx1);
     }
-    LOG(INFO) << "saber time: "<<saber_t1.get_average_ms()<< " ms cudnn time: "<< cudnn_t1.get_average_ms()<<" ms";
+    LOG(INFO) << "saber time: "<<saber_t1.get_average_ms()<< " ms cudnn time: "<< cudnn_t1.get_average_ms()<<" ms "
+              << (saber_t1.get_average_ms() < cudnn_t1.get_average_ms() ? " SABER " : " CUDNN ")<< " is faster!!!!";
 }
 
 template<typename TargetType, typename TargetType_H>
