@@ -211,28 +211,15 @@ template<>
     /*for other fc*/
     for (int word_id = 0; word_id < max_len; word_id++) {
         _attn_outs[0]->reshape(first_fc_out_0_shape);
-        //if (word_id > 1) {
-        //    break;
-        //}
         
         if (word_id > 0) {
             Shape h_shape = {seq_num,  N_0, 1, 1};
             _first_fc_out_1.reshape(h_shape);
      
-            //auto kernel_1 = saber_find_fast_sass_gemm(false, !fc_vec[0].is_transpose_weights, seq_num, N_0, hidden_size);
             auto kernel_1 = saber_find_fast_sass_gemm(false, false, seq_num, N_0, hidden_size);
             kernel_1(seq_num, N_0, hidden_size, 1.0f, 
                 _cell_out.data(), 0.f, 
-                fc_vec[0].weights->data() + K_0 * N_0,  _first_fc_out_1.mutable_data(), stream);
-            //cudaDeviceSynchronize();
-            //print_tensor_device(_lstm_out);
-            //print_tensor_device(*(fc_vec[0]->weights));
-            //cudaDeviceSynchronize();
-            //gemm(_handle, false, false, seq_num, N_0, hidden_size, 
-            //    1.0, _lstm_out.data() + (word_id - 1) * seq_num * hidden_size,
-            //    fc_vec[0]->weights->data() + K_0 * N_0, 
-            //    0.f, _first_fc_out_1.mutable_data());
-            //cudaDeviceSynchronize();
+               fc_vec[0].weights->data() + K_0 * N_0,  _first_fc_out_1.mutable_data(), stream);
 
             sequence_bias_relu<<<CUDA_GET_BLOCKS(_attn_outs[0]->valid_size()), CUDA_NUM_THREADS, 0, stream>>>(_first_fc_out_0.data(), _first_fc_out_1.data(), fc_vec[0].bias->data(),
                _dev_seq_id_map.data(), M_0, N_0, _attn_outs[0]->mutable_data());
@@ -252,7 +239,6 @@ template<>
             auto fc_in_data = _attn_outs[i - 1]->data();
             auto fc_out_data = _attn_outs[i]->mutable_data();
 
-            //auto kernel = saber_find_fast_sass_gemm(false, !fc_vec[i].is_transpose_weights, M, N, K);
             auto kernel = saber_find_fast_sass_gemm(false, false, M, N, K);
             kernel(M, N, K, 1.0f, fc_in_data, 0.0f, fc_vec[i].weights->data(), fc_out_data, stream);
             bias_relu<<<CUDA_GET_BLOCKS(_attn_outs[i]->valid_size()), CUDA_NUM_THREADS, 0, stream>>>(fc_out_data, fc_vec[i].bias->data(), _attn_outs[i]->valid_size(), N, fc_out_data);
@@ -268,14 +254,6 @@ template<>
         sequence_softmax<<<CUDA_GET_BLOCKS(seq_num), CUDA_NUM_THREADS, 0, stream>>>(_attn_outs[fc_num - 1]->data(), _dev_offset.data(), seq_num, _softmax_out.mutable_data());
 
         sequence_pool<<<CUDA_GET_BLOCKS(seq_num * dim), CUDA_NUM_THREADS, 0, stream>>>(input->data(), _softmax_out.data(), _dev_offset.data(), seq_num, inputs[0]->num(), dim, _pool_out.mutable_data());
-        /*data after pool need be sorted or append*/
-        //cudaDeviceSynchronize();
-        //record_dev_tensorfile<NV>(_pool_out.mutable_data(), _pool_out.valid_size(), "./sequence_pool_out_cu.txt");
-        //record_dev_tensorfile<NV>(_softmax_out.mutable_data(), _softmax_out.valid_size(), "./softmax_out_cu.txt");
-        //record_dev_tensorfile<NV>(_attn_outs[0]->mutable_data(), _attn_outs[0]->valid_size(), "./attn_fc_0_cu.txt");
-        //record_dev_tensorfile<NV>(_attn_outs[1]->mutable_data(), _attn_outs[1]->valid_size(), "./attn_fc_1_cu.txt");
-        //record_dev_tensorfile<NV>(_first_fc_out_1.mutable_data(), _first_fc_out_1.valid_size(), "./first_fc_1_cu.txt");
-        //record_dev_tensorfile<NV>(attn_param.fc_vec[0].weights->data() + 30, /*attn_param.fc_vec[0]->weights->valid_size()*/ 15, "./fc_0_weight.txt");
         
         
         auto  x_data = _pool_out.data();
@@ -298,11 +276,6 @@ template<>
         _dev_offset.data(), seq_num, word_num, hidden_size, outputs[0]->mutable_data());
 
     outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
-    CUDA_CHECK(cudaDeviceSynchronize());
-    CUDA_CHECK(cudaPeekAtLastError());
-    //cudaDeviceSynchronize();
-    //record_dev_tensorfile<NV>(outputs[0]->data(), outputs[0]->valid_size(), "./final_out.txt");
-    //record_dev_tensorfile<NV>(_lstm_out.mutable_data(), _lstm_out.valid_size(), "./lstm_out.txt");
     return SaberSuccess;
 }
 

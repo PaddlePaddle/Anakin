@@ -19,6 +19,7 @@ cublasHandle_t  cublas_handle;
 
 void test_saber_lstm(int sequence_size = 2, int batch_size = 1, int word_size = 4,
                     int hidden_size = 4) {
+#if defined(USE_CUDA) && defined(USE_X86_PLACE)
 
     Context<NV> ctx_dev(0, 0, 0);
     Context<X86> ctx_x86(0, 0, 0);
@@ -156,8 +157,8 @@ void test_saber_lstm(int sequence_size = 2, int batch_size = 1, int word_size = 
              << t2.get_average_ms();
 #endif
 
+#endif
    return;
-
 }
 
 TEST(TestSaberFuncNV, test_func_saber_lstm) {
