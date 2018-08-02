@@ -127,12 +127,6 @@ SaberStatus SaberDetectionOutput::dispatch(
         _num_priors, this->_param->_share_location, _num_loc_classes, \
         this->_param->_background_id, bbox_data);
 
-    double mean = 0.0;
-    for(int i = 0; i < _bbox_preds.valid_size(); i++) {
-        mean += bbox_data[i];
-    }
-    printf("bbox data: %.6f\n", mean);
-
     //! Retrieve all confidences, permute to classes * boxes_size
     float* conf_permute_data = _conf_permute.mutable_data();
     permute_conf(conf_data, num, _num_priors, _class_num, conf_permute_data);
