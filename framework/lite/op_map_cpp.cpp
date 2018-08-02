@@ -1502,7 +1502,11 @@ std::string ParserReshape(graph::AttrInfo& attr,
     for(int i = 0; i < vdims.size() - 1; i++) {
         reshape_dims_vec_code << vdims[i] << ",";
     }
-    reshape_dims_vec_code<< "}";
+    if (vdims.size() > 0) {
+        reshape_dims_vec_code << vdims[vdims.size() - 1] << "}";
+    } else {
+        reshape_dims_vec_code<< "}";
+    }
 
     CodeWritter code_w;
 
