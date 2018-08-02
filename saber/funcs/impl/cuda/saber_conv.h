@@ -19,11 +19,19 @@
 #include <vector>
 #include "saber/funcs/impl/impl_conv.h"
 #include "saber/funcs/impl/cuda/base/sass_funcs.h"
+#include "saber/funcs/impl/cuda/saber_activation.h"
 #include "saber/funcs/funcs_utils.h"
 
 namespace anakin{
 
 namespace saber{
+
+template <typename dtype, bool bias_flag, bool relu_flag>
+SaberStatus saber_depthwise_conv_act(const dtype* input, dtype* output, \
+    int num, int cin, int hin, int win, int hout, int wout, \
+    int kw, int kh, int stride_w, int stride_h, \
+    int pad_h, int pad_w, const dtype* weights, const dtype* bias, \
+    cudaStream_t stream);
 
 template <DataType OpDtype>
 class SaberConv2D<NV, OpDtype> : public ImplBase<
@@ -32,7 +40,9 @@ public:
     typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
 
     SaberConv2D() = default;
-    ~SaberConv2D() {}
+    ~SaberConv2D() {
+        delete _saber_act;
+    }
 
     virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
                              std::vector<Tensor<NV> *>& outputs,
@@ -83,7 +93,7 @@ public:
             weight_host.re_alloc(param.weight()->shape(), param.weight()->get_dtype());
             weight_host.copy_from(*(param.weight()));
             const OpDataType *weight_data = weight_host.data();
-            trans_weights_host.re_alloc(param.weight()->shape(), param.weight()->get_dtype());
+            trans_weights_host.re_alloc(param.weight()->valid_shape(), param.weight()->get_dtype());
             OpDataType* _host_work_space = trans_weights_host.mutable_data();
 
             transpose_filter_KCRS_2_CRSK(weight_data, _host_work_space, \
@@ -92,14 +102,15 @@ public:
                                          param.weight()->height(), \
                                          param.weight()->width());
 
-            param.mutable_weight()->re_alloc(param.weight()->shape(), param.weight()->get_dtype());
+            param.mutable_weight()->re_alloc(param.weight()->valid_shape(), param.weight()->get_dtype());
             param.mutable_weight()->copy_from(trans_weights_host);
         }
         cudaDeviceSynchronize();
     }
 
 private:
-
+    bool _with_saber_act{false};
+    SaberActivation<NV, OpDtype> *_saber_act{nullptr};
     int _kernel_height;
     int _kernel_width;
     std::function<void(const float*,
@@ -131,6 +142,12 @@ private:
                        float,
                        float,
                        cudaStream_t)> dispatch_func;
+
+    std::function<void(const float*, float* ,
+                       int, int, int, int, int, int,
+                       int, int, int, int,
+                       int, int, const float*, const float*,
+                       cudaStream_t)> depthwise_func;
 };
 }
 

@@ -43,8 +43,7 @@ public:
     typedef std::vector<TensorH*> Input_ht;
     typedef std::vector<TensorH*> Output_ht;
     typedef void (*CpuFunc_t) (const Input_ht&, Output_ht&, Param_t& param);
-    
-    
+
     TestSaberBase (int num = 1) : _op_input_num(num) {
     }
     

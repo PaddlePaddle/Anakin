@@ -59,7 +59,9 @@ SaberStatus VenderConv2D<NV, AK_FLOAT>::\
     cudnn::setConvolutionNdDesc<OpDataType >(&_conv_descs,
                                              inputs[0]->dims() - 2, pad_a,
                                              filter_stride_a, dilation_a);
-
+    if(param.activation_param.has_active && param.activation_param.active == Active_relu) {
+        cudnn::set_activation_des<OpDataType>(&_active_descs, param.activation_param.active);
+    }
     // true: use tensor core
     // false: disable tensor core
     cudnn::set_math_type<OpDataType>(&_conv_descs, _use_tensor_core);
@@ -123,12 +125,22 @@ SaberStatus VenderConv2D<NV, AK_FLOAT>::\
     cudnn::createTensorDesc<OpDataType>(&_output_descs);
     cudnn::createConvolutionDesc<OpDataType>(&_conv_descs);
 
+    if (param.activation_param.has_active) {
+        if (param.activation_param.active == Active_relu) {
+            cudnn::create_activation_des<OpDataType>(&_active_descs);
+        } else {
+            _with_saber_act = true;
+        }
+    }
     if (param.bias()->size() > 0) {
         cudnn::createTensorDesc<OpDataType>(&_bias_desc);
     }
     cudnnCreateTensorDescriptor(&_input_nchw_descs);
     cudnnCreateTensorDescriptor(&_output_nchw_descs);
-
+    if (_with_saber_act) {
+        _saber_act = new SaberActivation<NV, AK_FLOAT>;
+        _saber_act->init(outputs, outputs, param.activation_param, ctx);
+    }
     return create(inputs, outputs, param, ctx);
 }
 
@@ -142,112 +154,55 @@ SaberStatus VenderConv2D<NV, AK_FLOAT>::dispatch(
     float* out_data = (float*)outputs[0]->mutable_data();
     const float* weight_data = (const float*) param.weight()->data();
 
-    CUDNN_CHECK(cudnnConvolutionForward(_handle,
-                                        cudnn::cudnnTypeWrapper<float>::kOne(),
-                                        _input_descs, in_data,
-                                        _filter_desc, weight_data,
-                                        _conv_descs,  _fwd_algo, _workspace, _workspace_fwd_sizes,
-                                        cudnn::cudnnTypeWrapper<float>::kZero(),
-                                        _output_descs, out_data));
+    if (param.activation_param.has_active && param.activation_param.active == Active_relu) {
+        if (param.bias()->size() > 0) {
+            const float * bias_data = (const float*)param.bias()->data();
+            CUDNN_CHECK(cudnnConvolutionBiasActivationForward(_handle,
+                                                              cudnn::cudnnTypeWrapper<float>::kOne(),
+                                                              _input_descs, in_data,
+                                                              _filter_desc, weight_data,
+                                                              _conv_descs, _fwd_algo, _workspace, _workspace_fwd_sizes,
+                                                              cudnn::cudnnTypeWrapper<float>::kZero(),
+                                                              _output_descs, out_data,
+                                                              _bias_desc, bias_data,
+                                                              _active_descs, _output_descs, out_data));
+        } else {
+            CUDNN_CHECK(cudnnConvolutionForward(_handle,
+                                                cudnn::cudnnTypeWrapper<float>::kOne(),
+                                                _input_descs, in_data,
+                                                _filter_desc, weight_data,
+                                                _conv_descs,  _fwd_algo, _workspace, _workspace_fwd_sizes,
+                                                cudnn::cudnnTypeWrapper<float>::kZero(),
+                                                _output_descs, out_data));
 
-    if (param.bias()->size() > 0) {
-        // add up bias.
-        const float* bias_data = (const float*)param.bias()->data();
-        CUDNN_CHECK(cudnnAddTensor(_handle,
-                                   cudnn::cudnnTypeWrapper<float>::kOne(),
-                                   _bias_desc, bias_data,
-                                   cudnn::cudnnTypeWrapper<float>::kOne(),
-                                   _output_descs, out_data));
-    }
-    return SaberSuccess;
-}
-
-SaberStatus convert_weights(Tensor<X86>& out_tensor,
-                            const Tensor<X86>& in_tensor,
-                            Context<NV> ctx) {
-
-    int input_channel = in_tensor.channel();
-    int output_channel = out_tensor.valid_shape()[1];
-    std::vector<float> vector_weight_scale;
-    vector_weight_scale.resize(input_channel);
-
-    int weight_inner_dim = in_tensor.channel()
-                           * in_tensor.height()
-                           * in_tensor.width();
-    const float* in_weight_data = in_tensor.data();
-
-    for (int c = 0; c < input_channel; ++c) {
-        float max_val = -1.f;
-
-        for (int i = 0; i < weight_inner_dim; ++i) {
-            float read_data = fabs(in_weight_data[i]);
-            max_val = (read_data > max_val) ? read_data : max_val;
+            CUDNN_CHECK(cudnnActivationForward(_handle, _active_descs,
+                                               cudnn::cudnnTypeWrapper<float>::kOne(),
+                                               _output_descs, out_data,
+                                               cudnn::cudnnTypeWrapper<float>::kZero(),
+                                               _output_descs, out_data));
         }
+    } else {
+        CUDNN_CHECK(cudnnConvolutionForward(_handle,
+                                            cudnn::cudnnTypeWrapper<float>::kOne(),
+                                            _input_descs, in_data,
+                                            _filter_desc, weight_data,
+                                            _conv_descs, _fwd_algo, _workspace, _workspace_fwd_sizes,
+                                            cudnn::cudnnTypeWrapper<float>::kZero(),
+                                            _output_descs, out_data));
 
-        vector_weight_scale[c] = max_val / 127.f;
-        in_weight_data += weight_inner_dim;
-        //                LOG(INFO)<<"max_val = "<<max_val<<" vector: "<<max_val / 127.f;
+        if (param.bias()->size() > 0) {
+            // add up bias.
+            const float *bias_data = (const float *) param.bias()->data();
+            CUDNN_CHECK(cudnnAddTensor(_handle,
+                                       cudnn::cudnnTypeWrapper<float>::kOne(),
+                                       _bias_desc, bias_data,
+                                       cudnn::cudnnTypeWrapper<float>::kOne(),
+                                       _output_descs, out_data));
+        }
     }
-
-    int o_num = out_tensor.num();
-    int o_channel = output_channel;
-    int o_height = out_tensor.height();
-    int o_width = out_tensor.width();
-
-    int out_n_stride = o_channel * o_height * o_width;
-    int out_c_stride = o_height * o_width;
-    int out_h_stride = o_width;
-
-    Shape in_stride = in_tensor.get_stride();
-    in_weight_data = in_tensor.data();
-    char* out_weight_data = out_tensor.mutable_data();
-
-    for (int idx = 0; idx < o_num * o_channel * o_height * o_width; ++idx) {
-
-        int n = (idx / (out_n_stride)) % o_num;
-        int in_offset = ((idx / (out_n_stride)) % o_num) * in_stride[0]
-                        + ((idx / (out_c_stride)) % o_channel) * (in_stride[1] * 4)
-                        + ((idx / (out_h_stride)) % o_height) * in_stride[2]
-                        + (idx % o_width) * in_stride[3];
-
-        int out_offset = ((idx / (out_n_stride)) % o_num) * out_n_stride
-                         + ((idx / (out_c_stride)) % o_channel) * out_c_stride
-                         + ((idx / (out_h_stride)) % o_height) * out_h_stride
-                         + (idx % o_width);
-
-        out_weight_data[out_offset * 4 + 0] = (char)(round(
-                in_weight_data[in_offset + 0 * in_stride[1]] / vector_weight_scale[n]));
-        out_weight_data[out_offset * 4 + 1] = (char)(round(
-                in_weight_data[in_offset + 1 * in_stride[1]] / vector_weight_scale[n]));
-        out_weight_data[out_offset * 4 + 2] = (char)(round(
-                in_weight_data[in_offset + 2 * in_stride[1]] / vector_weight_scale[n]));
-        out_weight_data[out_offset * 4 + 3] = (char)(round(
-                in_weight_data[in_offset + 3 * in_stride[1]] / vector_weight_scale[n]));
+    if (_with_saber_act) {
+        _saber_act->dispatch(outputs, outputs, param.activation_param);
     }
-    out_tensor.set_scale(vector_weight_scale);
-//    for (auto i : vector_weight_scale) {
-//        LOG(INFO) << i;
-//    }
-    return SaberSuccess;
-}
-
-SaberStatus convert_bias(Tensor<X86>& out_tensor,
-                         const Tensor<X86>& in_tensor,
-                         float in_scale, std::vector<float> vector_weight_scale,
-                         Context<NV> ctx) {
-    unsigned long weight_size = vector_weight_scale.size();
-    unsigned long bias_size = in_tensor.size();
-    CHECK_GT(in_scale, 0);
-    CHECK_GT(weight_size, 0);
-    CHECK_EQ(bias_size, weight_size);
-
-    const float* in_data = in_tensor.data();
-    float* out_data = out_tensor.mutable_data();
-
-    for (int i = 0; i < bias_size; ++i) {
-        out_data[i] = in_data[i] / in_scale / vector_weight_scale[i];
-    }
-
     return SaberSuccess;
 }
 
@@ -315,6 +270,10 @@ SaberStatus VenderConv2D<NV, AK_INT8>::\
                                              2, pad_a,
                                              filter_stride_a, dilation_a);
 
+    if(param.activation_param.has_active) {
+        cudnn::set_activation_des<OpDataType>(&_active_descs, param.activation_param.active);
+    }
+
     // true: use tensor core
     // false: disable tensor core
     cudnn::set_group_count<OpDataType>(&_conv_descs, param.group);
@@ -357,20 +316,23 @@ SaberStatus VenderConv2D<NV, AK_INT8>::\
     bool use_int8 = true;
     use_int8 &= ((inputs[0]->channel() % 4) == 0);
     use_int8 &= ((outputs[0]->channel() % 4) == 0);
+    // INT8 only support Active relu
+    use_int8 &= ((!param.activation_param.has_active)
+                 || (param.activation_param.active == Active_relu));
 
     if (!use_int8) {
         return SaberInvalidValue;
     } else {
         // prepare int8 memory
-        Tensor<X86> weights_fp32_host;
-        Tensor<X86> weights_int8_host;
+        Tensor<NVHX86> weights_fp32_host;
+        Tensor<NVHX86> weights_int8_host;
         weights_fp32_host.re_alloc(param.weight()->valid_shape(), AK_FLOAT);
         weights_int8_host.re_alloc(param.weight()->valid_shape(), AK_INT8);
         int8_weights.re_alloc(param.weight()->valid_shape(), AK_INT8);
         weights_int8_host.set_layout(Layout_NCHW_C4);
         int8_weights.set_layout(Layout_NCHW_C4);
         weights_fp32_host.copy_from(*param.weight());
-        convert_weights(weights_int8_host, weights_fp32_host, ctx);
+        convert_weights_to_nchw_c4_host(weights_int8_host, weights_fp32_host, ctx);
         int8_weights.copy_from(weights_int8_host);
         int8_weights.set_scale(weights_int8_host.get_scale());
 
@@ -399,7 +361,9 @@ SaberStatus VenderConv2D<NV, AK_INT8>::\
     cudnn::createTensorDesc<OpDataType>(&_input_descs);
     cudnn::createTensorDesc<OpDataType>(&_output_descs);
     cudnn::createConvolutionDesc<OpDataType>(&_conv_descs);
-
+    if (param.activation_param.has_active) {
+        cudnn::create_activation_des<OpDataType>(&_active_descs);
+    }
     if (param.bias()->size() > 0) {
         cudnn::createTensorDesc<OpDataType>(&_bias_desc);
         if (use_int8) {
@@ -409,13 +373,13 @@ SaberStatus VenderConv2D<NV, AK_INT8>::\
             } else {
                 LOG(FATAL) << "scale now support static calibrate only!!";
             }
-            Tensor<X86> bias_fp32_host;
-            Tensor<X86> bias_int32_host;
+            Tensor<NVHX86> bias_fp32_host;
+            Tensor<NVHX86> bias_int32_host;
             bias_fp32_host.re_alloc(param.bias()->valid_shape(), AK_FLOAT);
             bias_int32_host.re_alloc(param.bias()->valid_shape(), AK_FLOAT);
             int32_bias.re_alloc(param.bias()->valid_shape(), AK_FLOAT);
             bias_fp32_host.copy_from(*param.bias());
-            convert_bias(bias_int32_host, bias_fp32_host, in_scale, int8_weights.get_scale(), ctx);
+            convert_bias_host(bias_int32_host, bias_fp32_host, in_scale, int8_weights.get_scale(), ctx);
             int32_bias.copy_from(bias_int32_host);
         }
     }
@@ -453,23 +417,50 @@ SaberStatus VenderConv2D<NV, AK_INT8>::dispatch(
     out_data = (void*)outputs[0]->mutable_data();
     const void* weight_data = (const void*) int8_weights.data();
 
-    CUDNN_CHECK(cudnnConvolutionForward(_handle,
-                                        cudnn::cudnnTypeWrapper<float>::kOne(),
-                                        _input_descs, in_data,
-                                        _filter_desc, weight_data,
-                                        _conv_descs, _fwd_algo, _workspace, _workspace_fwd_sizes,
-                                        cudnn::cudnnTypeWrapper<float>::kZero(),
-                                        _output_descs, out_data));
-    if (param.bias()-> size() > 0) {
-        // add up bias.
-        const void* bias_data = (const void*)int32_bias.data();
-        CUDNN_CHECK(cudnnAddTensor(_handle,
-                                   cudnn::cudnnTypeWrapper<float>::kOne(),
-                                   _bias_desc, bias_data,
-                                   cudnn::cudnnTypeWrapper<float>::kOne(),
-                                   _output_descs, out_data));
-    }
+    if (param.activation_param.has_active) {
+        if (param.bias()->valid_size() > 0) {
+            const void *bias_data = (const void *) int32_bias.data();
+            CUDNN_CHECK(cudnnConvolutionBiasActivationForward(
+                    _handle, cudnn::cudnnTypeWrapper<float>::kOne(),
+                    _input_descs, in_data, _filter_desc, weight_data,
+                    _conv_descs, _fwd_algo, _workspace, _workspace_fwd_sizes,
+                    cudnn::cudnnTypeWrapper<float>::kZero(),
+                    _output_descs, out_data,
+                    _bias_desc, bias_data,
+                    _active_descs, _output_descs, out_data));
+        } else {
+            CUDNN_CHECK(cudnnConvolutionForward(_handle,
+                                                cudnn::cudnnTypeWrapper<float>::kOne(),
+                                                _input_descs, in_data,
+                                                _filter_desc, weight_data,
+                                                _conv_descs, _fwd_algo, _workspace, _workspace_fwd_sizes,
+                                                cudnn::cudnnTypeWrapper<float>::kZero(),
+                                                _output_descs, out_data));
 
+            CUDNN_CHECK(cudnnActivationForward(_handle, _active_descs,
+                                               cudnn::cudnnTypeWrapper<float>::kOne(),
+                                               _output_descs, out_data,
+                                               cudnn::cudnnTypeWrapper<float>::kZero(),
+                                               _output_descs, out_data));
+        }
+    } else {
+        CUDNN_CHECK(cudnnConvolutionForward(_handle,
+                                            cudnn::cudnnTypeWrapper<float>::kOne(),
+                                            _input_descs, in_data,
+                                            _filter_desc, weight_data,
+                                            _conv_descs, _fwd_algo, _workspace, _workspace_fwd_sizes,
+                                            cudnn::cudnnTypeWrapper<float>::kZero(),
+                                            _output_descs, out_data));
+        if (param.bias()->size() > 0) {
+            // add up bias.
+            const void *bias_data = (const void *) int32_bias.data();
+            CUDNN_CHECK(cudnnAddTensor(_handle,
+                                       cudnn::cudnnTypeWrapper<float>::kOne(),
+                                       _bias_desc, bias_data,
+                                       cudnn::cudnnTypeWrapper<float>::kOne(),
+                                       _output_descs, out_data));
+        }
+    }
     if (outputs[0]->get_dtype() == AK_FLOAT) {
         conv_calibrate_int32_fp32(
                 *outputs[0], *outputs[0], in_scale, weights_scale, *_ctx);

@@ -8,6 +8,21 @@
 
 using namespace anakin::saber;
 
+template <typename dtype>
+int count_diff(const dtype* src1, const dtype* src2, int size, double max_ratio) {
+    if (max_ratio <= 0) {
+        max_ratio = 0.1;
+    }
+    int count = 0;
+    for (int i = 0; i < size; ++i) {
+        double ratio = fabs(src1[i] - src2[i]) / fabs(src1[i] + src2[i] + 1e-12);
+        if (ratio > max_ratio) {
+            ++count;
+        }
+    }
+    return count;
+}
+
 template<typename TargetType, typename TargetType_H>
 int test_conv_results(int group,
                       int input_num, int in_channels, int height, int width,
@@ -15,6 +30,23 @@ int test_conv_results(int group,
                       int stride_h, int stride_w, int dilation_h, int dilation_w,
                       int pad_h, int pad_w, bool bias_term,
                       SaberImplStrategy strategy, ImplEnum imp) {
+
+    LOG(INFO)<< " conv param: "
+             << " input_num = " << input_num
+             << " in_channels = " << in_channels
+             << " height = " << height
+             << " width = " << width
+             << " group = " << group
+             << " pad_h = " << pad_h
+             << " pad_w = " << pad_w
+             << " stride_h = " << stride_h
+             << " stride_w = " << stride_w
+             << " dilation_h = " << dilation_h
+             << " dilation_w = " << dilation_w
+             << " kernel_h = " << kernel_h
+             << " kernel_w = " << kernel_w
+             << " out_channels = " << out_channels
+             << " bias_term = " << (bias_term ? "true" : "false");
 
     Shape input_s({input_num, in_channels, height, width}, Layout_NCHW);
     Shape weights_s({out_channels, in_channels, kernel_h, kernel_w}, Layout_NCHW);
@@ -25,9 +57,9 @@ int test_conv_results(int group,
     Tensor<TargetType_H> input_host;
     input_dev.re_alloc(input_s, AK_FLOAT);
     input_host.re_alloc(input_s, AK_FLOAT);
-    fill_tensor_rand(input_dev, -2.0f, 2.0f);
+    fill_tensor_rand(input_dev, -10.0f, 10.0f);
     input_host.copy_from(input_dev);
-    input_dev.set_scale({0.1f});
+    input_dev.set_scale({10.1f / 128});
 //    LOG(INFO) << input_dev.get_scale()[0];
 
     // init weights Tensor
@@ -35,7 +67,7 @@ int test_conv_results(int group,
     Tensor<TargetType_H> weights_host;
     weights_dev.re_alloc(weights_s, AK_FLOAT);
     weights_host.re_alloc(weights_s, AK_FLOAT);
-    fill_tensor_rand(weights_dev, -10.0f, 100.0f);
+    fill_tensor_rand(weights_dev, -10.0f, 10.0f);
     weights_host.copy_from(weights_dev);
 
     Tensor<TargetType> bias_dev;
@@ -51,7 +83,7 @@ int test_conv_results(int group,
     Tensor<TargetType_H> check_host;
 
     Context<TargetType> ctx1(0, 1, 1);
-
+//    ActivationParam<TargetType> act_param(Active_relu);
     ConvParam<TargetType> param(group, pad_h, pad_w,
                                 stride_h, stride_w,
                                 dilation_h, dilation_w,
@@ -72,23 +104,29 @@ int test_conv_results(int group,
     output_v[0]->sync();
     output_host.re_alloc(output_dev.valid_shape(), AK_FLOAT);
     output_host.copy_from(output_dev);
-    print_tensor_valid(output_host);
+//    print_tensor_valid(output_host);
     check_host.re_alloc(output_host.valid_shape(), AK_FLOAT);
 
     conv_basic_check<TargetType_H>(input_host, check_host,
                                    (const float*)weights_host.data(), (const float*)bias_host.data(),
                                    group, kernel_w, kernel_h, stride_w, stride_h,
-                                   dilation_w, dilation_h, pad_w, pad_h, bias_term, false);
-    print_tensor_valid(check_host);
-    double max_ratio = 0.0;
-    double max_diff = 0.0;
-    tensor_cmp_host((const float*)output_host.data(), (const float*)check_host.data(),
-                    check_host.valid_size(), max_ratio, max_diff);
-    if (max_ratio < 1e-1) {
-        LOG(INFO) << " PASS!!! max_ratio = " << max_ratio << " max_diff = " << max_diff;
+                                   dilation_w, dilation_h, pad_w, pad_h, bias_term,
+                                   param.activation_param.has_active);
+//    print_tensor_valid(check_host);
+    //double max_ratio = 0.0;
+    //double max_diff = 0.0;
+    //tensor_cmp_host((const float*)output_host.data(), (const float*)check_host.data(),
+    //                check_host.valid_size(), max_ratio, max_diff);
+    int count = count_diff((const float*)output_host.data(), (const float*)check_host.data(), check_host.valid_size(), 2e-1);
+    if ((double)count / output_host.valid_size() < 0.02) {
+        //LOG(INFO) << " PASS!!! max_ratio = " << max_ratio << " max_diff = " << max_diff;
+        LOG(INFO) << "PASS!!! count = " << count;
         return 0;
     } else {
-    LOG(FATAL) << "FAIL!!! max_ratio = " << max_ratio << " max_diff = " << max_diff
+        print_tensor_valid(output_host);
+        print_tensor_valid(check_host);
+        //LOG(FATAL) << "FAIL!!! max_ratio = " << max_ratio << " max_diff = " << max_diff
+        LOG(FATAL) << "FAIL!!! count = " << count
                << " conv param: "
                << " input_num = " << input_num
                << " in_channels = " << in_channels
@@ -116,32 +154,46 @@ TEST(TestSaberFunc, test_saber_conv_int8_results) {
 #ifdef USE_X86_PLACE
     Env<X86>::env_init();
 #endif
-//    std::vector<int> kernel_h_v{1, 3};
-//    std::vector<int> kernel_w_v{1, 3};
-//    std::vector<int> pad_h_v{0, 1};
-//    std::vector<int> pad_w_v{0, 1};
-//    std::vector<int> stride_h_v{1, 2};
-//    std::vector<int> stride_w_v{1, 2};
-//    std::vector<int> dilation_h_v{1, 2};
-//    std::vector<int> dilation_w_v{1, 2};
-//    std::vector<int> in_channels_v{3, 32};
-//    std::vector<int> out_channels_v{32, 57};
+    std::vector<int> kernel_h_v{1, 3};
+    std::vector<int> kernel_w_v{1, 3};
+    std::vector<int> pad_h_v{0, 1};
+    std::vector<int> pad_w_v{0, 1};
+    std::vector<int> stride_h_v{1, 2};
+    std::vector<int> stride_w_v{1, 2};
+    std::vector<int> dilation_h_v{1};
+    std::vector<int> dilation_w_v{1};
+    std::vector<int> in_channels_v{ 4};
+    std::vector<int> out_channels_v{4, 8};
 //    std::vector<int> group_v{1, 2, 32};
-//    std::vector<int> in_h_v{17, 32};
-//    std::vector<int> in_w_v{17, 32};
-//    std::vector<int> input_num_v{1, 3};
-//    std::vector<bool> bias_term_v{true, false};
+    std::vector<int> in_h_v{24, 36};
+    std::vector<int> in_w_v{24, 36};
+    std::vector<int> input_num_v{1, 3};
+    std::vector<bool> bias_term_v{true, false};
 #ifdef USE_CUDA
+    for (auto input_num : input_num_v)
+    for (auto out_channels : out_channels_v)
+    for (auto in_channels : in_channels_v)
+    for (auto kernel_h : kernel_h_v)
+    for (auto kernel_w : kernel_w_v)
+    for (auto height : in_h_v)
+    for (auto width : in_w_v)
+    for (auto stride_h : stride_h_v)
+    for (auto stride_w : stride_w_v)
+    for (auto dilation_h : dilation_h_v)
+    for (auto dilation_w : dilation_w_v)
+    for (auto pad_h : pad_h_v)
+    for (auto pad_w : pad_w_v)
+    for (auto bias_term : bias_term_v)
     test_conv_results<NV, NVHX86>(1,
-                      1,
-                      4,
-                      4,
-                      4,
-                      4,
-                      3,
-                      3,
-                      1, 1, 1, 1,
-                      1, 1, true,
+                      input_num,
+                      in_channels,
+                      height,
+                      width,
+                      out_channels,
+                      kernel_h,
+                      kernel_w,
+                      stride_h, stride_w, dilation_h, dilation_w,
+                      pad_h, pad_w, bias_term,
                       SPECIFY,
                       VENDER_IMPL);
 #endif
