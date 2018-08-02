@@ -1,4 +1,5 @@
 #include <vector>
+#include <limits>
 
 #include "saber/core/context.h"
 #include "test/saber/test_saber_base.h"
@@ -45,21 +46,24 @@ void pooling_cpu_func(const std::vector<Tensor<TargetType_H>*>& input,std::vecto
                         ew=(ew-param.pad_w)>in_w?in_w:ew-param.pad_w;
                     }
                     
-                    dtype result=0;
+                    dtype result;
                     
                     int dst_ind=ind_n*size_out_n+ind_c*size_out_c+ind_h*out_w+ind_w;
                     for(int kh=sh;kh<eh;++kh){
                         for(int kw=sw;kw<ew;++kw){
                             int src_ind=ind_n*size_in_n+ind_c*size_in_c+kh*in_w+kw;
-                            
-                            if(param.pooling_type==Pooling_max){
-                                result=result>=src_ptr[src_ind]?result:src_ptr[src_ind];
-                            }
-                            if(param.pooling_type==Pooling_average_include_padding){
-                                result+=src_ptr[src_ind];
-                            }
-                            if(param.pooling_type==Pooling_average_exclude_padding){
-                                result+=src_ptr[src_ind];
+                            if (kh == sh && kw == sw){
+                                result = src_ptr[src_ind];
+                            } else {
+                                if (param.pooling_type==Pooling_max){
+                                    result=result>=src_ptr[src_ind]?result:src_ptr[src_ind];
+                                }
+                                if (param.pooling_type==Pooling_average_include_padding){
+                                    result+=src_ptr[src_ind];
+                                }
+                                if (param.pooling_type==Pooling_average_exclude_padding){
+                                    result+=src_ptr[src_ind];
+                                }
                             }
                             
                         }
