@@ -54,49 +54,6 @@ public:
         return _pool_func->load_param(&_param->_pool_param);
     }
 
-//    SaberConvActPooling2D(int weights_size, int num_output, int group, int kw, int kh, \
-//        int stride_w, int stride_h, int pad_w, int pad_h, int dila_w, int dila_h, bool flag_bias, \
-//        ActiveType type, bool flag_relu, PoolingType pool_type, bool flag_global, int pool_kw, int pool_kh, \
-//        int pool_stride_w, int pool_stride_h, int pool_pad_w, int pool_pad_h, \
-//        const float* weights, const float* bias) {
-//
-//        _vtensor_tmp.push_back(&_tensor_tmp);
-//
-//        if (flag_relu) {
-//            _flag_relu = true;
-//            LCHECK_EQ(type, Active_relu, "active type must be relu");
-//        } else {
-//            _flag_relu = false;
-//        }
-//        SaberConv2D::set_activation(_flag_relu);
-//        SaberConv2D::load_param(weights_size, num_output, group, kw, kh, stride_w, stride_h, \
-//            pad_w, pad_h, dila_w, dila_h, flag_bias, weights, bias);
-//        SaberPooling::load_param(pool_type, flag_global, pool_kw, pool_kh, \
-//            pool_stride_w, pool_stride_h, pool_pad_w, pool_pad_h);
-//    }
-//
-//    SaberStatus load_param(int weights_size, int num_output, int group, int kw, int kh, \
-//        int stride_w, int stride_h, int pad_w, int pad_h, int dila_w, int dila_h, bool flag_bias, \
-//        ActiveType type, bool flag_relu, PoolingType pool_type, bool flag_global, int pool_kw, int pool_kh, \
-//        int pool_stride_w, int pool_stride_h, int pool_pad_w, int pool_pad_h, \
-//        const float* weights, const float* bias) {
-//
-//        if (flag_relu) {
-//            _flag_relu = true;
-//            LCHECK_EQ(type, Active_relu, "active type must be relu");
-//        } else {
-//            _flag_relu = false;
-//        }
-//        SaberConv2D::set_activation(_flag_relu);
-//        SaberStatus state = SaberConv2D::load_param(weights_size, num_output, group, kw, kh, \
-//            stride_w, stride_h, pad_w, pad_h, dila_w, dila_h, flag_bias, weights, bias);
-//        if (state != SaberSuccess) {
-//            return state;
-//        }
-//        return SaberPooling::load_param(pool_type, flag_global, pool_kw, pool_kh, \
-//            pool_stride_w, pool_stride_h, pool_pad_w, pool_pad_h);
-//    }
-
     ~SaberConvActPooling2D() {
         delete _pool_func;
         delete _conv_act_func;

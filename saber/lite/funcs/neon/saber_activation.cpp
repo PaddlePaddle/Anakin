@@ -6,21 +6,10 @@ namespace saber{
 
 namespace lite{
 
-//SaberActivation::SaberActivation(ActiveType type, float neg_slop) {
-//    _type = type;
-//    _neg_slop = neg_slop;
-//}
-
 SaberActivation::SaberActivation(const ParamBase *param) {
     _param = (ActivationParam*)param;
     this->_flag_param = true;
 }
-
-//SaberStatus SaberActivation::load_param(ActiveType type, float neg_slop) {
-//    _type = type;
-//    _neg_slop = neg_slop;
-//    return SaberSuccess;
-//}
 
 SaberStatus SaberActivation::load_param(const ParamBase *param) {
     _param = (ActivationParam*)param;

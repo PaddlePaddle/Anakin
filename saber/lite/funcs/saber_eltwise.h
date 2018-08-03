@@ -33,10 +33,8 @@ public:
     SaberEltwise() {}
 
     SaberEltwise(const ParamBase* param);
-    //SaberEltwise(EltwiseType type, std::vector<float> coef);
 
     virtual SaberStatus load_param(const ParamBase* param) override;
-    //SaberStatus load_param(EltwiseType type, std::vector<float> coef);
 
     ~SaberEltwise() {}
 
@@ -51,8 +49,6 @@ public:
 
 private:
     const EltwiseParam* _param;
-//    EltwiseType _type;
-//    std::vector<float> _coef;
     eltwise_func _impl{nullptr};
 };
 

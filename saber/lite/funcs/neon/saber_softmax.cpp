@@ -218,7 +218,6 @@ SaberStatus SaberSoftmax::dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& in
         int compute_size = inputs[0]->valid_size() / _axis_size;
         softmax_basic(din, dout, _axis_size, _inner_num, _outer_num, compute_size);
     }
-
     return SaberSuccess;
 }
 
