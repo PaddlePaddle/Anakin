@@ -77,7 +77,7 @@ Status ConvReluHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
         const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
         std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
 
-    SABER_CHECK(_funcs_conv_relu.init(ins, outs, _param_conv_relu, SPECIFY, SABER_IMPL, ctx));
+    SABER_CHECK(_funcs_conv_relu.init(ins, outs, _param_conv_relu, SPECIFY, VENDER_IMPL, ctx));
     return Status::OK();
 }
 
@@ -95,7 +95,12 @@ template <>
 Status ConvReluHelper<NV, AK_FLOAT, Precision::FP32>::Init(OpContext<NV>& ctx, \
         const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins, \
         std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    if (_param_conv_relu.conv_param.group == 1|| (_param_conv_relu.conv_param.group == ins[0]->channel() && \
+    bool use_saber = true;
+    use_saber = use_saber && (_param_conv_relu.conv_param.weight()->height()==3);
+    use_saber = use_saber && (_param_conv_relu.conv_param.weight()->width()==3);
+    use_saber = use_saber && (_param_conv_relu.conv_param.dilation_h == 1);
+    use_saber = use_saber && (_param_conv_relu.conv_param.dilation_w == 1);
+    if (((_param_conv_relu.conv_param.group == 1) && use_saber)|| (_param_conv_relu.conv_param.group == ins[0]->channel() && \
         _param_conv_relu.conv_param.group == outs[0]->channel())) {
         _funcs_conv_relu.init(ins, outs, _param_conv_relu, SPECIFY, SABER_IMPL, ctx);
     } else {
