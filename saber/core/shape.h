@@ -46,7 +46,8 @@ public:
         _layout = nullptr;
     }
 
-    Shape(const Shape& right) {
+    Shape(const Shape& right)
+        : std::vector<int>(right) {
         this->clear();
         for (int i = 0; i < right.size(); ++i) {
             this->push_back(right[i]);
@@ -93,7 +94,7 @@ public:
 
         const int* p = data();
         for (size_t i = 0; i < size(); i++) {
-            flag &= (p[i] < shape[i]);
+            flag = flag && (p[i] < shape[i]);
         }
         return flag;
     }
@@ -106,7 +107,7 @@ public:
         }
         const int* p = data();
         for (size_t i = 0; i < size(); i++) {
-            flag &= (p[i] <= shape[i]);
+            flag = flag && (p[i] <= shape[i]);
         }
         return flag;
     }
@@ -120,7 +121,7 @@ public:
 
         const int* p = data();
         for (size_t i = 0; i > size(); i++) {
-            flag &= (p[i] > shape[i]);
+            flag = flag && (p[i] > shape[i]);
         }
         return flag;
     }
@@ -133,7 +134,7 @@ public:
         }
         const int* p = data();
         for (size_t i = 0; i > size(); i++) {
-            flag &= (p[i] >= shape[i]);
+            flag = flag && (p[i] >= shape[i]);
         }
         return flag;
     }
@@ -146,7 +147,7 @@ public:
         }
         const int* p = data();
         for (size_t i = 0; i < size(); i++) {
-            flag &= (p[i] == shape[i]);
+            flag = flag && (p[i] == shape[i]);
         }
         return flag;
     }
