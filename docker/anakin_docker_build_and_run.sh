@@ -26,22 +26,22 @@ install_nvidia_docker_v2() {
 	distribution=$(source /etc/os-release;echo $ID$VERSION_ID)
 	if [ $ID == 'centos'];then
 		docker volume ls -q -f driver=nvidia-docker | xargs -r -I{} -n1 docker ps -q -a -f volume={} | xargs -r docker rm -f
-		sudo yum remove nvidia-docker
+		yum remove nvidia-docker
 		curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.repo | \
-			  sudo tee /etc/yum.repos.d/nvidia-docker.repo
-		sudo yum install -y nvidia-docker2 --skip-broken
-		sudo pkill -SIGHUP dockerd
+			  tee /etc/yum.repos.d/nvidia-docker.repo
+		yum install -y nvidia-docker2 --skip-broken
+		pkill -SIGHUP dockerd
 	else
 		# default ubuntu
 		# remove nv-doker v1
 		docker volume ls -q -f driver=nvidia-docker | xargs -r -I{} -n1 docker ps -q -a -f volume={} | xargs -r docker rm -f
-		sudo apt-get purge nvidia-docker
-		curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
+		apt-get purge nvidia-docker
+		curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | apt-key add -
 		curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | \
-					sudo tee /etc/apt/sources.list.d/nvidia-docker.list
-		sudo apt-get update
-		sudo apt-get install -y nvidia-docker2
-		sudo pkill -SIGHUP dockerd
+					tee /etc/apt/sources.list.d/nvidia-docker.list
+		apt-get update
+		apt-get install -y nvidia-docker2
+		pkill -SIGHUP dockerd
 	fi
 }
 
@@ -55,13 +55,13 @@ building_and_run_nvidia_gpu_docker() {
 	tag="$(echo $DockerfilePath | awk -F/ '{print tolower($(NF-3) "_" $(NF-1))}')"
 	if [ ! $MODE = "Run" ]; then
 		echo "Building nvidia docker ... [ docker_image_name: anakin image_tag: $tag ]"	
-		sudo docker build --network=host -t anakin:$tag"-base" . -f $DockerfilePath
-        sudo docker run --network=host -it anakin:$tag"-base"  Anakin/tools/gpu_build.sh
-        container_id=$(sudo docker ps -l | sed -n 2p | awk '{print $1}')
-        sudo docker commit $container_id anakin:$tag
+		docker build --network=host -t anakin:$tag"-base" . -f $DockerfilePath
+        docker run --network=host -it anakin:$tag"-base"  Anakin/tools/gpu_build.sh
+        container_id=$(docker ps -l | sed -n 2p | awk '{print $1}')
+        docker commit $container_id anakin:$tag
 	else
 		echo "Running nvidia docker ... [ docker_image_name: anakin image_tag: $tag ]" 
-		sudo docker run --network=host --runtime=nvidia --rm -it anakin:$tag  /bin/bash
+		docker run --network=host --runtime=nvidia --rm -it anakin:$tag  /bin/bash
 	fi
 }
 
@@ -75,10 +75,10 @@ building_and_run_amd_gpu_docker() {
 	tag="$(echo $DockerfilePath | awk -F/ '{print tolower($(NF-3) "_" $(NF-1))}')"
 	if [ ! $MODE = "Run" ]; then
 		echo "Building amd docker ... [ docker_image_name: anakin image_tag: $tag ]"	
-		sudo docker build --network=host -t anakin:$tag . -f $DockerfilePath
+		docker build --network=host -t anakin:$tag . -f $DockerfilePath
 	else
 		echo "Running amd docker ... [ docker_image_name: anakin image_tag: $tag ]" 
-		sudo docker run -it --device=/dev/kfd --device=/dev/dri --group-add video anakin:$tag /bin/bash
+		docker run -it --device=/dev/kfd --device=/dev/dri --group-add video anakin:$tag /bin/bash
 	fi
 }
 
@@ -92,10 +92,10 @@ building_and_run_x86_docker() {
 	tag="$(echo $DockerfilePath | awk -F/ '{print tolower($(NF-3) "_" $(NF-1))}')"
 	if [ ! $MODE = "Run" ]; then
 		echo "Building X86 docker ... [ docker_image_name: anakin image_tag: $tag ]"	
-		sudo docker build --network=host -t anakin:$tag . -f $DockerfilePath
+		docker build --network=host -t anakin:$tag . -f $DockerfilePath
 	else
 		echo "Running X86 docker ... [ docker_image_name: anakin image_tag: $tag ]" 
-		sudo docker run -it anakin:$tag /bin/bash
+		docker run -it anakin:$tag /bin/bash
 	fi
 }
 
@@ -109,10 +109,10 @@ building_and_arm_docker() {
 	tag="$(echo $DockerfilePath | awk -F/ '{print tolower($(NF-3) "_" $(NF-1))}')"
 	if [ ! $MODE = "Run" ]; then
 		echo "Building ARM docker ... [ docker_image_name: anakin image_tag: $tag ]"	
-		sudo docker build --network=host -t anakin:$tag . -f $DockerfilePath
+		docker build --network=host -t anakin:$tag . -f $DockerfilePath
 	else
 		echo "Running ARM docker ... [ docker_image_name: anakin image_tag: $tag ]" 
-		sudo docker run -it anakin:$tag /bin/bash
+		docker run -it anakin:$tag /bin/bash
 	fi
 }
 
