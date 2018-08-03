@@ -18,7 +18,7 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
-#include "saber/funcs/impl/impl_activation.h"
+#include "saber/funcs/impl/impl_sequence_expand.h"
 
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_sequence_expand.h"
