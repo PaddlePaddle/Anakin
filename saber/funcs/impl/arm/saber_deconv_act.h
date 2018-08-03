@@ -11,12 +11,11 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-#ifndef ANAKIN_SABER_FUNCS_ARM_IMPL_SABER_CONV_ACT_H
-#define ANAKIN_SABER_FUNCS_ARM_IMPL_SABER_CONV_ACT_H
+#ifndef ANAKIN_SABER_FUNCS_ARM_IMPL_SABER_DECONV_ACT_H
+#define ANAKIN_SABER_FUNCS_ARM_IMPL_SABER_DECONV_ACT_H
 
-#include "saber/funcs/impl/arm/saber_conv.h"
-#include "saber/funcs/impl/arm/saber_activation.h"
-#include "saber/funcs/impl/impl_conv_act.h"
+#include "saber/funcs/impl/arm/saber_deconv.h"
+#include "saber/funcs/impl/impl_deconv_act.h"
 
 #ifdef USE_ARM_PLACE
 
@@ -30,7 +29,7 @@ template <DataType OpDtype,
         typename LayOutType_op,
         typename LayOutType_in,
         typename LayOutType_out>
-class SaberConv2DAct<ARM, OpDtype, inDtype, outDtype,\
+class SaberDeconv2DAct<ARM, OpDtype, inDtype, outDtype,\
     LayOutType_op, LayOutType_in, LayOutType_out> : \
     public ImplBase<
         Tensor<ARM, inDtype, LayOutType_in>,
@@ -46,9 +45,9 @@ public:
     typedef typename OpTensor::Dtype OpDataType;
 
 
-    SaberConv2DAct();
+    SaberDeconv2DAct();
 
-    ~SaberConv2DAct();
+    ~SaberDeconv2DAct();
 
     virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
                              std::vector<DataTensor_out *>& outputs,
@@ -63,9 +62,7 @@ public:
                                  ConvActiveParam<OpTensor> &param) override;
 
 private:
-    SaberConv2D<ARM,  OpDtype, inDtype, outDtype, LayOutType_op, LayOutType_in, LayOutType_out>* _conv_op{nullptr};
-    SaberActivation<ARM,  OpDtype, inDtype, outDtype, LayOutType_op, LayOutType_in, LayOutType_out>* _act_op{nullptr};
-    //Tensor<ARM, AK_FLOAT, NCHW> tmp_tensor;
+    SaberDeconv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>* _conv_op;
 };
 
 } //namespace saber
@@ -73,4 +70,4 @@ private:
 } //namespace anakin
 #endif // USE_ARM_PLACE
 
-#endif //ANAKIN_SABER_FUNCS_ARM_IMPL_SABER_CONV_ACT_H
+#endif //ANAKIN_SABER_FUNCS_ARM_IMPL_SABER_DECONV_ACT_H

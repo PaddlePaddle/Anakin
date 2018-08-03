@@ -49,20 +49,27 @@ void transpose_mat(const float* din, float* dout, \
                 float* dout1 = dout0 + height;
                 float* dout2 = dout1 + height;
                 float* dout3 = dout2 + height;
-
 #ifdef __aarch64__
                 float32x4_t vr0 = vld1q_f32(din0);
-                    float32x4_t vr1 = vld1q_f32(din1);
-                    float32x4_t vr2 = vld1q_f32(din2);
-                    float32x4_t vr3 = vld1q_f32(din3);
-                    vtrnq_f32(vr0, vr1);
-                    vtrnq_f32(vr2, vr3);
-                    vswp_f32(d1, d4);
-                    vswp_f32(d3, d6);
-                    vst1q_f32(dout0, vr0);
-                    vst1q_f32(dout1, vr1);
-                    vst1q_f32(dout2, vr2);
-                    vst1q_f32(dout3, vr3);
+                float32x4_t vr1 = vld1q_f32(din1);
+                float32x4_t vr2 = vld1q_f32(din2);
+                float32x4_t vr3 = vld1q_f32(din3);
+                float32x4_t re0=vtrn1q_f32(vr0,vr1);
+                float32x4_t re1=vtrn2q_f32(vr0,vr1);
+                float32x4_t re2=vtrn1q_f32(vr2,vr3);
+                float32x4_t re3=vtrn2q_f32(vr2,vr3);
+                vst1_f32(dout0,vget_low_f32(re0));
+                dout0+=2;
+                vst1_f32(dout0,vget_low_f32(re2));
+                vst1_f32(dout1,vget_low_f32(re1));
+                dout1+=2;
+                vst1_f32(dout1,vget_low_f32(re3));
+                vst1_f32(dout2,vget_high_f32(re0));
+                dout2+=2;
+                vst1_f32(dout2,vget_high_f32(re2));
+                vst1_f32(dout3,vget_high_f32(re1));
+                dout3+=2;
+                vst1_f32(dout3,vget_high_f32(re3));
 #else
                 asm(
                 "vld1.32 {d0, d1}, [%[in0]]    \n"
@@ -190,6 +197,12 @@ SaberStatus SaberPermute::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &input
             j++;
         }
     }
+
+    if (inputs[0]->count_valid(axis_diff[0], _num_axes) == 1) {
+        _need_permute = false;
+        return SaberSuccess;
+    }
+
     if (axis_diff.size() == 1) {
         _transpose = true;
         _trans_num = inputs[0]->count_valid(0, std::max(axis_diff[0] - 1, 0));

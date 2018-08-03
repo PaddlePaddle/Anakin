@@ -16,9 +16,19 @@ void Power<NV, AK_FLOAT, Precision::FP32>::operator()(
     impl->_funcs_power(ins, outs, param, ctx);
 }
 #endif
-
 /// TODO ... specialization other type of operator
-
+#ifdef USE_ARM_PLACE
+template<>
+void Power<ARM, AK_FLOAT, Precision::FP32>::operator()(
+    OpContext<ARM>& ctx,
+    const std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& ins,
+    std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& outs) {
+    auto* impl =
+        static_cast<PowerHelper<ARM, AK_FLOAT, Precision::FP32>*>(this->_helper);
+    auto& param = impl->_param_power;
+    impl->_funcs_power(ins, outs, param, ctx);
+}
+#endif
 
 /// set helper
 template<typename Ttype, DataType Dtype, Precision Ptype>

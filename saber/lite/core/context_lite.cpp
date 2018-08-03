@@ -3,7 +3,6 @@
 #ifdef PLATFORM_ANDROID
 #include <sys/syscall.h>
 #include <unistd.h>
-
 #define __NCPUBITS__  (8 * sizeof (unsigned long))
 
 #define __CPU_SET(cpu, cpusetp) \
@@ -11,7 +10,8 @@
 
 #define __CPU_ZERO(cpusetp) \
   memset((cpusetp), 0, sizeof(cpu_set_t))
-#endif //android
+
+#endif //PLATFORM_ANDROID
 
 #if __APPLE__
 #include "TargetConditionals.h"
@@ -19,9 +19,8 @@
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #include <mach/machine.h>
-#define __IOS__
-#endif
-#endif //apple
+#endif //TARGET_OS_IPHONE
+#endif //__APPLE__
 
 namespace anakin{
 
@@ -36,7 +35,6 @@ int arm_get_cpucount() {
     if (!fp) {
         return 1;
     }
-
     int count = 0;
     char line[1024];
     while (!feof(fp)) {
@@ -55,34 +53,33 @@ int arm_get_cpucount() {
     if (count < 1) {
         count = 1;
     }
-
     return count;
-#elif __IOS__
+
+#elif defined(TARGET_IOS)
     int count = 0;
     size_t len = sizeof(count);
     sysctlbyname("hw.ncpu", &count, &len, NULL, 0);
-
     if (count < 1) {
         count = 1;
     }
-
     return count;
 #else
     return 1;
 #endif
 }
 
-int arm_get_meminfo() {
+size_t arm_get_meminfo() {
 #ifdef PLATFORM_ANDROID
-// get cpu count from /proc/cpuinfo
+    // get cpu count from /proc/cpuinfo
     FILE* fp = fopen("/proc/meminfo", "rb");
     if (!fp) {
         return 1;
     }
 
-    int memsize = 0;
+    size_t memsize = 0;
     char line[1024];
-    while (!feof(fp)) {
+    while (!feof(fp))
+    {
         char* s = fgets(line, 1024, fp);
         if (!s) {
             break;
@@ -93,14 +90,16 @@ int arm_get_meminfo() {
     fclose(fp);
 
     return memsize;
-#elif __IOS__
+#elif defined(TARGET_IOS)
     // to be implemented
+    printf("not implemented\n");
     return 0;
 #endif
 }
 
 #ifdef PLATFORM_ANDROID
-int get_max_freq_khz(int cpuid) {
+static int get_max_freq_khz(int cpuid)
+{
     // first try, for all possible cpu
     char path[256];
     snprintf(path, sizeof(path), "/sys/devices/system/cpu/cpufreq/stats/cpu%d/time_in_state",\
@@ -108,13 +107,15 @@ int get_max_freq_khz(int cpuid) {
 
     FILE* fp = fopen(path, "rb");
 
-    if (!fp) {
+    if (!fp)
+    {
         // second try, for online cpu
         snprintf(path, sizeof(path), "/sys/devices/system/cpu/cpu%d/cpufreq/stats/time_in_state",\
          cpuid);
         fp = fopen(path, "rb");
 
-        if (!fp) {
+        if (!fp)
+        {
             // third try, for online cpu
             snprintf(path, sizeof(path), "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq",\
              cpuid);
@@ -134,7 +135,8 @@ int get_max_freq_khz(int cpuid) {
     }
 
     int max_freq_khz = 0;
-    while (!feof(fp)) {
+    while (!feof(fp))
+    {
         int freq_khz = 0;
         int nscan = fscanf(fp, "%d %*d", &freq_khz);
         if (nscan != 1) {
@@ -151,7 +153,7 @@ int get_max_freq_khz(int cpuid) {
     return max_freq_khz;
 }
 
-int sort_cpuid_by_max_frequency(int cpu_count, std::vector<int>& cpuids, \
+int arm_sort_cpuid_by_max_frequency(int cpu_count, std::vector<int>& cpuids, \
            std::vector<int>& cpu_freq, std::vector<int>& cluster_ids) {
     //const int cpu_count = cpuids.size();
 
@@ -164,7 +166,8 @@ int sort_cpuid_by_max_frequency(int cpu_count, std::vector<int>& cpuids, \
     cpu_freq.resize(cpu_count);
     cluster_ids.resize(cpu_count);
 
-    for (int i = 0; i < cpu_count; i++) {
+    for (int i = 0; i < cpu_count; i++)
+    {
         int max_freq_khz = get_max_freq_khz(i);
         //printf("%d max freq = %d khz\n", i, max_freq_khz);
         cpuids[i] = i;
@@ -185,33 +188,14 @@ int sort_cpuid_by_max_frequency(int cpu_count, std::vector<int>& cpuids, \
 
     return 0;
 }
-#endif // __ANDROID__
 
-#ifdef __IOS__
-int sort_cpuid_by_max_frequency(int cpu_count, std::vector<int>& cpuids, \
-       std::vector<int>& cpu_freq, std::vector<int>& cluster_ids){
-    if (cpu_count == 0) {
-        return 0;
-    }
-    cpuids.resize(cpu_count);
-    cpu_freq.resize(cpu_count);
-    cluster_ids.resize(cpu_count);
-    for (int i = 0; i < cpu_count; ++i) {
-        cpuids[i] = i;
-        cpu_freq[i] = 1000;
-        cluster_ids[i] = 0;
-    }
-}
-#endif
-
-#ifdef PLATFORM_ANDROID
 int set_sched_affinity(const std::vector<int>& cpuids) {
     // cpu_set_t definition
     // ref http://stackoverflow.com/questions/16319725/android-set-thread-affinity
 
     typedef struct {
         unsigned long mask_bits[1024 / __NCPUBITS__];
-    } cpu_set_t;
+    }cpu_set_t;
 
     // set affinity for thread
     pid_t pid = gettid();
@@ -224,14 +208,14 @@ int set_sched_affinity(const std::vector<int>& cpuids) {
 
     int syscallret = syscall(__NR_sched_setaffinity, pid, sizeof(mask), &mask);
     if (syscallret) {
-        //LOG(ERROR) << "syscall error " << syscallret;
+        printf("syscall error %d\n", syscallret);
         return -1;
     }
 
     return 0;
 }
 
-int set_cpu_affinity(const std::vector<int>& cpuids){
+int set_cpu_affinity(const std::vector<int>& cpuids) {
 #ifdef USE_OPENMP
     int num_threads = cpuids.size();
     omp_set_num_threads(num_threads);
@@ -242,7 +226,7 @@ int set_cpu_affinity(const std::vector<int>& cpuids){
     }
     for (int i = 0; i < num_threads; i++) {
         if (ssarets[i] != 0) {
-            //LOG(ERROR)<<"set cpu affinity failed, cpuID: " << cpuids[i];
+            printf("set cpu affinity failed, cpuID: %d\n", cpuids[i]);
             return -1;
         }
     }
@@ -251,13 +235,24 @@ int set_cpu_affinity(const std::vector<int>& cpuids){
     cpuid1.push_back(cpuids[0]);
     int ssaret = set_sched_affinity(cpuid1);
         if (ssaret != 0) {
-            //LOG(ERROR)<<"set cpu affinity failed, cpuID: " << cpuids[0];
+            printf("set cpu affinity failed, cpuID: %d\n", cpuids[0]);
             return -1;
         }
 #endif
     return 0;
 }
-#endif //PLATFORN_ANDROID
+#endif //PLATFORM_ANDROID
+
+#ifdef TARGET_IOS
+int set_cpu_affinity(const std::vector<int>& cpuids) {
+#ifdef USE_OPENMP
+    int num_threads = cpuids.size();
+    omp_set_num_threads(num_threads);
+#endif
+    return 0;
+}
+#endif //TARGET_IOS
+
 
 //template <>
 void Env::get_info(DeviceInfo& dev) {
@@ -270,10 +265,10 @@ void Env::get_info(DeviceInfo& dev) {
     dev._max_memory = arm_get_meminfo();
 
     //_max_stream = _info._compute_core_num;
-
+#ifdef PLATFORM_ANDROID
     std::vector<int> max_freq;
 
-    sort_cpuid_by_max_frequency(dev._compute_core_num, dev._core_ids, max_freq, dev._cluster_ids);
+    arm_sort_cpuid_by_max_frequency(dev._compute_core_num, dev._core_ids, max_freq, dev._cluster_ids);
 
     printf("ARM multiprocessors number: %d\n", dev._compute_core_num);
     for (int i = 0; i < dev._compute_core_num; ++i) {
@@ -290,6 +285,9 @@ void Env::get_info(DeviceInfo& dev) {
             dev._max_frequence = max_freq[j];
         }
     }
+#elif defined(TARGET_IOS)
+    printf("ios target, unsupport now\n");
+#endif
 }
 #if 0
 template <>
@@ -365,6 +363,9 @@ void Context::set_run_mode(PowerMode mode, int threads) {
                     _act_ids.push_back(small_cores[i - big_core_size]);
                 }
             }
+            if (_act_ids.size() == 0) {
+                _act_ids.push_back(0);
+            }
             break;
         case SABER_POWER_HIGH:
             _act_ids.clear();
@@ -390,6 +391,9 @@ void Context::set_run_mode(PowerMode mode, int threads) {
                 }
 
             }
+            if (_act_ids.size() == 0) {
+                _act_ids.push_back(0);
+            }
             break;
         case SABER_POWER_LOW:
             _act_ids.clear();
@@ -414,6 +418,9 @@ void Context::set_run_mode(PowerMode mode, int threads) {
                     }
                 }
 
+            }
+            if (_act_ids.size() == 0) {
+                _act_ids.push_back(0);
             }
             break;
     }
@@ -630,6 +637,7 @@ std::vector<int> Context<CPU>::get_act_ids() {
     return _act_ids;
 }
 #endif
+
 } //namespace lite
 
 } //namespace saber
