@@ -35,11 +35,12 @@ set(ANAKIN_ROOT ${PROJECT_SOURCE_DIR})
 include_directories(${ANAKIN_ROOT})
 
 set(ANAKIN_FRAMEWORK ${ANAKIN_ROOT}/framework)
-set(ANAKIN_LITE ${ANAKIN_FRAMEWORK}/lite)
+set(ANAKIN_LITE_FRAMEWORK ${ANAKIN_FRAMEWORK}/lite)
 set(ANAKIN_UTILS ${ANAKIN_ROOT}/utils)
 set(ANAKIN_THIRD_PARTY_PATH ${ANAKIN_ROOT}/third-party)
 set(ANAKIN_MODEL_PARSER ${ANAKIN_FRAMEWORK}/model_parser)
 set(ANAKIN_SABER ${ANAKIN_ROOT}/saber)
+set(ANAKIN_LITE_SABER ${ANAKIN_SABER}/lite)
 set(ANAKIN_UNIT_TEST ${ANAKIN_ROOT}/test)
 set(ANAKIN_EXAMPLES ${ANAKIN_ROOT}/examples)
 
@@ -101,7 +102,7 @@ anakin_option(USE_GLOG "Build Glog components." NO if NOT USE_LOGGER)
 anakin_option(USE_PROTOBUF "Build Google protobuf components." YES)
 anakin_option(USE_OPENCV "Use static opencv libs." NO)
 anakin_option(USE_BOOST "Use static BOOST libs." NO)
-anakin_option(USE_OPENMP "Use Openmp when in android environment." YES if TARGET_ANDROID)
+anakin_option(USE_OPENMP "Use Openmp when in android environment." YES if USE_ARM_PLACE OR USE_X86_PLACE)
 anakin_option(USE_GTEST "Use googletest libs." NO if BUILD_WITH_UNIT_TEST)
 anakin_option(USE_PYTHON "Generate py wrappers." NO)
 anakin_option(USE_OPENCL "Use OpenCL ." NO)
@@ -109,12 +110,11 @@ anakin_option(USE_GFLAGS "Build Google gflags components." NO)
 anakin_option(USE_MKL "Use mkl libs." NO if USE_X86_PLACE)
 anakin_option(USE_MKLML "Use MKLML libs." YES if USE_X86_PLACE)
 anakin_option(USE_XBYAK "Use XBYAK libs." YES if USE_X86_PLACE)
-anakin_option(USE_OPENMP "Use Openmp when in android environment." YES if TARGET_ANDROID)
 
 # build components
 anakin_option(BUILD_WITH_UNIT_TEST "Build anakin unit test components." YES)
 
-anakin_option(BUILD_WITH_LITE "Build anakin lite components." YES if USE_GPU_PLACE)
+anakin_option(BUILD_LITE "Build anakin lite components." NO)
 
 # build examples
 anakin_option(BUILD_EXAMPLES "build detection and classification examples" NO)
@@ -191,8 +191,8 @@ if(BUILD_WITH_UNIT_TEST)
     add_subdirectory(${ANAKIN_UNIT_TEST})
 endif()
 
-if(BUILD_WITH_LITE)
-	add_subdirectory(${ANAKIN_LITE})
+if(BUILD_LITE)
+	add_subdirectory(${ANAKIN_LITE_FRAMEWORK})
 endif()
 
 if (BUILD_EXAMPLES)

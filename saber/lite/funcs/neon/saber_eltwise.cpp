@@ -173,19 +173,36 @@ void eltwise_max(const float* din_a, const float* din_b, float* dout, const int 
     }
 }
 
-SaberEltwise::SaberEltwise(EltwiseType type, std::vector<float> coef) {
-    _type = type;
-    _coef = coef;
+SaberEltwise::SaberEltwise(const ParamBase *param) {
+    _param = (const EltwiseParam*)param;
+    this->_flag_param = true;
 }
 
-SaberStatus SaberEltwise::load_param(EltwiseType type, std::vector<float> coef) {
-    _type = type;
-    _coef = coef;
+SaberStatus SaberEltwise::load_param(const ParamBase *param) {
+    _param = (const EltwiseParam*)param;
+    this->_flag_param = true;
     return SaberSuccess;
 }
 
+//SaberEltwise::SaberEltwise(EltwiseType type, std::vector<float> coef) {
+//    _type = type;
+//    _coef = coef;
+//}
+//
+//SaberStatus SaberEltwise::load_param(EltwiseType type, std::vector<float> coef) {
+//    _type = type;
+//    _coef = coef;
+//    return SaberSuccess;
+//}
+
 SaberStatus SaberEltwise::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                                std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
+
+    if (!this->_flag_param) {
+        printf("load eltwise param first\n");
+        return SaberNotInitialized;
+    }
+
     for (int i = 1; i < inputs.size(); ++i) {
         LCHECK_EQ(inputs[0]->num(), inputs[i]->num(), "input size must be the same");
         LCHECK_EQ(inputs[0]->channel(), inputs[i]->channel(), "input size must be the same");
@@ -202,7 +219,12 @@ SaberStatus SaberEltwise::init(\
     const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
         std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx) {
 
-    _ctx = ctx;
+    if (!this->_flag_param) {
+        printf("load eltwise param first\n");
+        return SaberNotInitialized;
+    }
+
+    this->_ctx = &ctx;
     Shape sh_out_saber = outputs[0]->valid_shape();
     for (int i = 0; i < inputs.size(); i ++){
         Shape sh_in_saber = inputs[i]->valid_shape();
@@ -211,7 +233,7 @@ SaberStatus SaberEltwise::init(\
             return SaberInvalidValue;
         }
     }
-    switch (_type) {
+    switch (_param->_elt_type) {
         case Eltwise_prod:
             _impl = eltwise_prod;
             break;
@@ -225,6 +247,7 @@ SaberStatus SaberEltwise::init(\
             printf("unknown eltwise type!!\n");
             return SaberUnKownError;
     }
+    this->_flag_init = true;
     return SaberSuccess;
 }
 
@@ -233,16 +256,21 @@ SaberStatus SaberEltwise::dispatch(\
     const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) {
 
+    if (!this->_flag_init) {
+        printf("init eltwise first\n");
+        return SaberNotInitialized;
+    }
+
     const float* din_a = inputs[0]->data();
     const float* din_b = inputs[1]->data();
     float* dout = outputs[0]->mutable_data();
 
     int size = outputs[0]->valid_size();
 
-    _impl(din_a, din_b, dout, size, _coef);
+    _impl(din_a, din_b, dout, size, _param->_coef);
     for (int i = 2; i < inputs.size(); ++i) {
         din_a = inputs[i]->data();
-        _impl(din_a, dout, dout, size, _coef);
+        _impl(din_a, dout, dout, size, _param->_coef);
     }
 
     return SaberSuccess;

@@ -5,9 +5,157 @@ namespace anakin{
 
 namespace saber{
 
+/**
+ * \brief neon implementation to add bias and relu
+ * @param tensor
+ * @param bias
+ * @param channel
+ * @param channel_size
+ */
+void fill_bias_relu(float* tensor, const float* bias, int channel, int channel_size, bool flag_relu) {
+
+    float* data = tensor;
+    if(flag_relu){
+        for (int j = 0; j < channel; ++j) {
+            float32x4_t vbias = vdupq_n_f32(bias[j]);
+            float32x4_t vzero = vdupq_n_f32(0.f);
+            int i = 0;
+            for (; i < channel_size - 3; i += 4) {
+                float32x4_t vdata = vld1q_f32(&data[i]);
+                vdata = vaddq_f32(vdata, vbias);
+                float32x4_t vmax = vmaxq_f32(vdata, vzero); 
+                vst1q_f32(data + i, vmax);
+            }
+            for (; i < channel_size; i++) {
+                data[i] += bias[j];
+                data[i] = data[i] > 0 ? data[i] : 0.f;
+            }
+            data += channel_size;
+        }
+    }else{
+        for (int j = 0; j < channel; ++j) {
+            float32x4_t vbias = vdupq_n_f32(bias[j]);
+            int i = 0;
+            for (; i < channel_size - 3; i += 4) {
+                float32x4_t vdata = vld1q_f32(&data[i]);
+                vdata = vaddq_f32(vdata, vbias);
+                vst1q_f32(data + i, vdata);
+            }
+            for (; i < channel_size; i++) {
+                data[i] += bias[j];
+            } 
+            data += channel_size;
+       }
+    }
+}
+
+/**
+ * \brief basic direct deconvolution function
+ */
+void deconv_arm_basic(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FLOAT, NCHW>& tensor_in, \
+    const float* weights, const float* bias, \
+    int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
+    int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space) {
+
+    int w_in = tensor_in.width();
+    int h_in = tensor_in.height();
+    int ch_in = tensor_in.channel();
+    int num_in = tensor_in.num();
+
+    int w_out = tensor_out.width();
+    int h_out = tensor_out.height();
+    int ch_out = tensor_out.channel();
+
+    const int size_kernel = kernel_h * kernel_w;
+
+    int kernel_ext_w = (kernel_w - 1) * dila_w + 1;
+    int kernel_ext_h = (kernel_h - 1) * dila_h + 1;
+
+    const int ch_out_g = ch_out / group;
+    const int ch_in_g = ch_in / group;
+    const int size_in_channel = w_in * h_in;
+    const int size_in_batch = size_in_channel * ch_in;
+    const int size_out_channel = w_out * h_out;
+    const int size_out_batch = size_out_channel * ch_out;
+
+    //printf("extend kernel size: %d, %d\n", kernel_ext_w, kernel_ext_h);
+    const float *data_in = tensor_in.data();
+    float *outptr = tensor_out.mutable_data();
+
+    for (int b = 0; b < num_in; ++b) {
+        float *outptr_batch = outptr + b * size_out_batch;
+        const float* data_in_batch = data_in + b * size_in_batch;
+#pragma omp parallel for collapse(2)
+        for (int g = 0; g < group; ++g) {
+            for (int c = 0; c < ch_out_g; ++c) {
+                const float *inptr_group = data_in_batch + g * ch_in_g * size_in_channel;
+                float *outptr_ch = outptr_batch + (g * ch_out_g + c) * size_out_channel;
+                const float *weight_ch = weights + (g * ch_in_g * ch_out_g + c) * size_kernel;//conv deepwise
+
+                float bias_value = flag_bias? bias[g * ch_out_g + c] : 0.f;
+                fill_bias(outptr_ch, &bias_value, 1, w_out * h_out);
+
+                for (int i = 0; i < h_out; ++i) {
+                    for (int j = 0; j < w_out; ++j) {
+
+                        const float *weight_ch_in = weight_ch;
+/*
+                        int hstart = i * stride_h - pad_h;
+                        int wstart = j * stride_w - pad_w;
+                        int hend = std::min(hstart + kernel_ext_h, h_in);
+                        int wend = std::min(wstart + kernel_ext_w, w_in);
+                        hstart = std::max(hstart, 0);
+                        wstart = std::max(wstart, 0);
+
+                        int khstart = hend < kernel_ext_h? (kernel_ext_h - hend) / dila_h : 0;
+                        int kwstart = wend < kernel_ext_w? (kernel_ext_w - wend) / dila_w : 0;
+                       */
+                       int h = i + pad_h;
+                       int w = j + pad_w;
+                        int hstart = (h < kernel_h) ? 0 : (h - kernel_h) / stride_h + 1;
+                        int hend = h / stride_h + 1 < h_in ? h / stride_h + 1 : h_in;
+                        int wstart = (w < kernel_w) ? 0 : (w - kernel_w) / stride_w + 1;
+                        int wend = w / stride_w + 1 < w_in ? w / stride_w + 1 : w_in;
+
+                        int khstart = (h >= kernel_h) ? ((h - kernel_h) % stride_h) + (kernel_h - stride_h) : h;
+                        int kwstart = (w >= kernel_w) ? ((w - kernel_w) % stride_w) + (kernel_w - stride_w) : w;
+
+                        //printf("channel: %d, index: %d, %d, %d, %d, %d, %d\n", c, hstart, wstart, hend, wend, khstart, kwstart);
+                        const float* inptr_ch = inptr_group + hstart * w_in + wstart;
+
+                        for (int k = 0; k < ch_in_g; ++k) {
+                            const float *weight_ch_in1 = weight_ch_in + k * ch_out_g * size_kernel;
+                            const float* inptr_kernel = inptr_ch;
+                            //int khidx = khstart;
+                            for (int idxh = hstart; idxh < hend; idxh += dila_h) {
+                                const float* inptr_kernel_w = inptr_kernel;
+                               // int kwidx = kwstart;
+                                for (int idxw = wstart; idxw < wend; idxw += dila_w) {
+                                    int khidx = khstart - (idxh - hstart) * stride_h;
+                                    int kwidx = kwstart - (idxw - wstart) * stride_w;
+                                    outptr_ch[j] += weight_ch_in1[khidx * kernel_w + kwidx] * inptr_kernel_w[0];
+                                    inptr_kernel_w += dila_w;
+                                }
+                                inptr_kernel += dila_h * w_in;
+                            }
+                            inptr_ch += size_in_channel;
+                           // weight_ch_in += size_kernel;
+                        }
+                        if (flag_relu) {
+                            outptr_ch[j] = outptr_ch[j] > 0? outptr_ch[j] : 0.f;
+                        }
+                    }
+                    outptr_ch += w_out;
+                }
+            }
+        }
+    }
+}
+
 inline bool is_a_ge_zero_and_a_lt_b(int a, int b) {
     return static_cast<unsigned>(a) < static_cast<unsigned>(b);
 }
+
 template <typename Dtype>
 void col2im(const Dtype* data_col, const int channels,
                 const int height, const int width, const int kernel_h, const int kernel_w,
@@ -63,6 +211,8 @@ SaberStatus SaberDeconv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
     std::vector<DataTensor_out *>& outputs,\
     ConvParam<OpTensor> &conv_param, Context<ARM> &ctx) {
 
+    //LOG(INFO) << "conv create";
+
     this->_ctx = &ctx;
     //printf("conv init \n");
 
@@ -95,8 +245,12 @@ SaberStatus SaberDeconv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
         _bias_term = false;
     }
 
-    CHECK_EQ(chin % conv_param.group, 0) << "input channel or group size error";
-    CHECK_EQ(chout % conv_param.group, 0) << "output channel or group size error";
+//LOG(INFO) << "chin:" << chin << ", chout:" << chout << ", g: " <<conv_param.group;
+    if (chin != chout || conv_param.group != chin) {
+        CHECK_EQ(chin % conv_param.group, 0) << "input channel or group size error";
+        CHECK_EQ(chout % conv_param.group, 0) << "output channel or group size error";
+    }
+    
 
     //! deconv weights layout: chin * chout * kh * kw
     _m = chout * _kw * _kh / conv_param.group;
@@ -116,6 +270,7 @@ SaberStatus SaberDeconv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
     const std::vector<DataTensor_in *>& inputs, \
     std::vector<DataTensor_out *>& outputs, \
     ConvParam<OpTensor> &conv_param, Context<ARM> &ctx) {
+    //LOG(INFO) << " conv create";
     return create(inputs, outputs, conv_param, ctx);
 }
 
@@ -123,6 +278,8 @@ template <>
 SaberStatus SaberDeconv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispatch(\
     const std::vector<DataTensor_in *>& inputs, \
     std::vector<DataTensor_out *>& outputs, ConvParam<OpTensor> &conv_param) {
+
+    // LOG(INFO) << "Deconv start" ;
 
     const float* din = inputs[0]->data();
     float* dout = outputs[0]->mutable_data();
@@ -162,9 +319,19 @@ SaberStatus SaberDeconv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
             const float* din_group = din_batch + g * group_size_in;
             const float* weights_group = weights + g * group_size_weights;
             float* coldata_group = col_data + g * group_size_coldata;
-            _gemmer(weights_group, _m, din_group, _n, coldata_group, _n, 1.f, 0.f, _flag_relu);
+            /*for(int j = 0; j < 8; j++){
+                LOG(INFO) << "i: " << j << "weights: " << weights_group[j];
+                LOG(INFO) << "i: " << j << "data: " << din_group[j];
+            }*/
+            //LOG(INFO) << "Deconv start" ;
+            if (conv_param.bias()->valid_size() == 0) {
+                _gemmer(weights_group, _m, din_group, _n, coldata_group, _n, 1.f, 0.f, _flag_relu);
+            }else{
+                _gemmer(weights_group, _m, din_group, _n, coldata_group, _n, 1.f, 0.f, false);
+            }
+            //_gemmer(weights_group, _m, din_group, _n, coldata_group, _n, 1.f, 0.f, _flag_relu);
         }
-
+        //LOG(INFO) << "Deconv mid" ;
         if (!flag_1x1s1p1) {
             col2im(col_data, chout, hout, wout, _kh, _kw, conv_param.pad_h, conv_param.pad_w, \
                 conv_param.stride_h, conv_param.stride_w, conv_param.dilation_h, conv_param.dilation_w, \
@@ -173,7 +340,9 @@ SaberStatus SaberDeconv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
 
         //! add bias
         if (conv_param.bias()->valid_size() > 0) {
-            fill_bias(dout_batch, conv_param.bias()->data(), chout, wout * hout);
+           // fill_bias(dout_batch, conv_param.bias()->data(), chout, wout * hout);
+            fill_bias_relu(dout_batch, conv_param.bias()->data(), chout, wout * hout, _flag_relu);
+           // LOG(INFO) << "Deconv end" ;
         }
 
     }

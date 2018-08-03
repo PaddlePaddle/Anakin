@@ -132,17 +132,24 @@ ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScaleRelu, ConvBatchnormScaleReluHelper, 
                                   Precision::FP32);
 #endif
 
-//#ifdef USE_X86_PLACE
-//template class ConvBatchnormScaleReluHelper<X86, AK_FLOAT, Precision::FP32>;
-//INSTANCE_CONVBATCHNORMSCALERELU(X86, AK_FLOAT, Precision::FP32);
-//ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScaleRelu, ConvBatchnormScaleReluHelper, X86, AK_FLOAT,
-//                                  Precision::FP32);
-//#endif
+#if defined(BUILD_LITE)
+template class ConvBatchnormScaleReluHelper<X86, AK_FLOAT, Precision::FP32>;
+INSTANCE_CONVBATCHNORMSCALERELU(X86, AK_FLOAT, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScaleRelu, ConvBatchnormScaleReluHelper, X86, AK_FLOAT,
+                                  Precision::FP32);
+#endif
 
 #ifdef USE_ARM_PLACE
 INSTANCE_CONVBATCHNORMSCALERELU(ARM, AK_FLOAT, Precision::FP32);
 template class ConvBatchnormScaleReluHelper<ARM, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScaleRelu, ConvBatchnormScaleReluHelper, ARM, AK_FLOAT,
+                                  Precision::FP32);
+#endif
+
+#ifdef USE_X86_PLACE
+INSTANCE_CONVBATCHNORMSCALERELU(X86, AK_FLOAT, Precision::FP32);
+template class ConvBatchnormScaleReluHelper<X86, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScaleRelu, ConvBatchnormScaleReluHelper, X86, AK_FLOAT,
                                   Precision::FP32);
 #endif
 
@@ -154,6 +161,9 @@ ANAKIN_REGISTER_OP(ConvBatchnormScaleRelu)
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale_relu")
+#endif
+#ifdef USE_X86_PLACE
+.__alias__<X86, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale_relu")
 #endif
 .num_in(1)
 .num_out(1)

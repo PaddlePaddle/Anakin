@@ -15,8 +15,7 @@
 #ifndef ANAKIN_SABER_LITE_FUNCS_SABER_CONCAT_H
 #define ANAKIN_SABER_LITE_FUNCS_SABER_CONCAT_H
 
-#include "saber/lite/core/tensor_lite.h"
-#include "saber/lite/core/context_lite.h"
+#include "saber/lite/funcs/op_base.h"
 
 #ifdef USE_ARM_PLACE
 
@@ -27,26 +26,28 @@ namespace saber{
 namespace lite{
 
 //template <typename Dtype>
-class SaberConcat {
+class SaberConcat : public OpBase {
 public:
     SaberConcat() = default;
-    SaberConcat(int axis);
+    //SaberConcat(int axis);
+    SaberConcat(const ParamBase* param);
     ~SaberConcat() {}
 
-    SaberStatus load_param(int axis);
+    //SaberStatus load_param(int axis);
+    virtual SaberStatus load_param(const ParamBase* param) override;
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 
-    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                      std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx);
+    virtual SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                      std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx) override;
 
-    SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                          std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                          std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 
 private:
-    Context _ctx;
-    int _axis;
+    const ConcatParam* _param;
+    //int _axis;
     int _num_concats;
     int _concat_input_size;
 };

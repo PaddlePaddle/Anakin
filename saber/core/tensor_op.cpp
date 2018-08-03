@@ -1,7 +1,8 @@
 #include "saber/core/tensor_op.h"
 #include "anakin_config.h"
 #include <cstdlib>
-
+#include <math.h>
+#include <random>
 namespace anakin {
 
 namespace saber {
@@ -149,6 +150,12 @@ void print_tensor_host<Tensor<X86, AK_INT8, NCHW_C4>>(Tensor<X86, AK_INT8, NCHW_
     printf("\n");
 }
 #ifdef USE_X86_PLACE
+template <class Tensor_s, class Tensor_d>
+void reorder(Tensor_s& src, Tensor_d& dst){
+    dst.copy_from(src);
+};
+template void reorder<Tensor<X86, AK_FLOAT, NCHW>, Tensor<X86, AK_FLOAT, NCHW>>(Tensor<X86, AK_FLOAT, NCHW>& src, Tensor<X86, AK_FLOAT, NCHW>& dst);
+
 template <>
 void reorder<Tensor<X86, AK_FLOAT, NCHW>, Tensor<X86, AK_FLOAT, NCHW_C16>>(Tensor<X86, AK_FLOAT, NCHW>& src, Tensor<X86, AK_FLOAT, NCHW_C16>& dst) {
     typedef typename Tensor<X86, AK_FLOAT, NCHW_C16>::Dtype Dtype;
@@ -183,6 +190,7 @@ void reorder<Tensor<X86, AK_FLOAT, NCHW>, Tensor<X86, AK_FLOAT, NCHW_C16>>(Tenso
     }
     return;
 }
+
 template <>
 void reorder<Tensor<X86, AK_FLOAT, NCHW_C16>, Tensor<X86, AK_FLOAT, NCHW>>(Tensor<X86, AK_FLOAT, NCHW_C16>& src, Tensor<X86, AK_FLOAT, NCHW>& dst) {
     typedef typename Tensor<X86, AK_FLOAT, NCHW_C16>::Dtype Dtype;
@@ -217,6 +225,7 @@ void reorder<Tensor<X86, AK_FLOAT, NCHW_C16>, Tensor<X86, AK_FLOAT, NCHW>>(Tenso
     }
     return;
 }
+
 template <>
 void reorder<Tensor<X86, AK_FLOAT, NCHW_C8>, Tensor<X86, AK_FLOAT, NCHW>>(Tensor<X86, AK_FLOAT, NCHW_C8>& src, Tensor<X86, AK_FLOAT, NCHW>& dst) {
     typedef typename Tensor<X86, AK_FLOAT, NCHW_C8>::Dtype Dtype;
@@ -251,6 +260,7 @@ void reorder<Tensor<X86, AK_FLOAT, NCHW_C8>, Tensor<X86, AK_FLOAT, NCHW>>(Tensor
     }
     return;
 }
+
 #endif
 
 #ifdef USE_ARM_PLACE

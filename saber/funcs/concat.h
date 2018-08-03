@@ -17,6 +17,7 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+#include "saber/funcs/impl/impl_concat.h"
 
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_concat.h"
@@ -94,6 +95,7 @@ public:
             }
             shape_out[param.axis] += sh[param.axis];
         }
+        output[0]->set_seq_offset(input[0]->get_seq_offset());
         return output[0]->set_shape(shape_out);
     }
 

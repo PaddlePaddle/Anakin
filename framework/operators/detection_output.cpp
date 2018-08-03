@@ -67,7 +67,7 @@ template class DetectionOutputHelper<NV, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(DetectionOutput, DetectionOutputHelper, NV, AK_FLOAT, Precision::FP32);
 #endif
 
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 INSTANCE_DETECTIONOUTPUT(X86, AK_FLOAT, Precision::FP32);
 template class DetectionOutputHelper<X86, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(DetectionOutput, DetectionOutputHelper, X86, AK_FLOAT, Precision::FP32);
@@ -88,7 +88,7 @@ ANAKIN_REGISTER_OP(DetectionOutput)
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("detectionoutput")
 #endif
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 .__alias__<X86, AK_FLOAT, Precision::FP32>("detectionoutput")
 #endif
 .num_in(1)

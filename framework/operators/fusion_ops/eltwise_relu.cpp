@@ -16,7 +16,30 @@ void EltwiseRelu<NV, AK_FLOAT, Precision::FP32>::operator()(
     impl->_funcs_eltwise_relu(ins, outs, param, ctx);
 }
 #endif
-
+#ifdef USE_ARM_PLACE
+template<>
+void EltwiseRelu<ARM, AK_FLOAT, Precision::FP32>::operator()(
+    OpContext<ARM>& ctx,
+    const std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& ins,
+    std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& outs) {
+    auto* impl = static_cast<EltwiseReluHelper<ARM, AK_FLOAT, Precision::FP32>*>(this->_helper);
+    auto& param = static_cast<EltwiseReluHelper<ARM, AK_FLOAT, Precision::FP32>*>
+                  (this->_helper)->_param_eltwise_relu;
+    impl->_funcs_eltwise_relu(ins, outs, param, ctx);
+}
+#endif
+#ifdef USE_X86_PLACE
+template<>
+void EltwiseRelu<X86, AK_FLOAT, Precision::FP32>::operator()(
+    OpContext<X86>& ctx,
+    const std::vector<Tensor4dPtr<X86, AK_FLOAT> >& ins,
+    std::vector<Tensor4dPtr<X86, AK_FLOAT> >& outs) {
+    auto* impl = static_cast<EltwiseReluHelper<X86, AK_FLOAT, Precision::FP32>*>(this->_helper);
+    auto& param = static_cast<EltwiseReluHelper<X86, AK_FLOAT, Precision::FP32>*>
+                  (this->_helper)->_param_eltwise_relu;
+    impl->_funcs_eltwise_relu(ins, outs, param, ctx);
+}
+#endif
 /// TODO ... specialization other type of operator
 
 
@@ -88,6 +111,12 @@ template class EltwiseReluHelper<ARM, AK_FLOAT, Precision::FP16>;
 template class EltwiseReluHelper<ARM, AK_FLOAT, Precision::INT8>;
 #endif
 
+#ifdef USE_X86_PLACE
+template class EltwiseReluHelper<X86, AK_FLOAT, Precision::FP32>;
+template class EltwiseReluHelper<X86, AK_FLOAT, Precision::FP16>;
+template class EltwiseReluHelper<X86, AK_FLOAT, Precision::INT8>;
+#endif
+
 // register helper
 #ifdef USE_CUDA
 ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, NV, AK_FLOAT, Precision::FP32);
@@ -95,6 +124,10 @@ ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, NV, AK_FLOAT, Precisio
 
 #ifdef USE_ARM_PLACE
 ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, ARM, AK_FLOAT, Precision::FP32);
+#endif
+
+#ifdef USE_X86_PLACE
+ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, X86, AK_FLOAT, Precision::FP32);
 #endif
 
 //! register op
@@ -105,6 +138,9 @@ ANAKIN_REGISTER_OP(EltwiseRelu)
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, AK_FLOAT, Precision::FP32>("eltwise")
+#endif
+#ifdef USE_X86_PLACE
+.__alias__<X86, AK_FLOAT, Precision::FP32>("eltwise")
 #endif
 .num_in(1)
 .num_out(1)

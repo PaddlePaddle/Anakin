@@ -14,7 +14,7 @@ help_anakin_docker_run() {
     echo ""
 	echo "Options:"
     echo ""
-	echo " -p Hardware Place where docker will running [ NVIDIA-GPU / AMD_GPU / X86-ONLY / ARM ] "
+	echo " -p Hardware Place where docker will running [ NVIDIA-GPU / AMD-GPU / X86-ONLY / ARM ] "
 	echo " -o Operating system docker will reside on [ Centos / Ubuntu ] "
 	echo " -m Script exe mode [ Build / Run ] default mode is build and run"
 	exit 1
@@ -67,23 +67,53 @@ building_and_run_nvidia_gpu_docker() {
 
 # buiding and running docker for amd gpu
 building_and_run_amd_gpu_docker() {
-	echo "not support yet" 
-	read 
-	exit 1
+	if [ ! $# -eq 2 ]; then
+		exit 1
+	fi
+	DockerfilePath=$1
+	MODE=$2
+	tag="$(echo $DockerfilePath | awk -F/ '{print tolower($(NF-3) "_" $(NF-1))}')"
+	if [ ! $MODE = "Run" ]; then
+		echo "Building amd docker ... [ docker_image_name: anakin image_tag: $tag ]"	
+		sudo docker build --network=host -t anakin:$tag . -f $DockerfilePath
+	else
+		echo "Running amd docker ... [ docker_image_name: anakin image_tag: $tag ]" 
+		sudo docker run -it --device=/dev/kfd --device=/dev/dri --group-add video anakin:$tag /bin/bash
+	fi
 }
 
 # building and running docker for x86
 building_and_run_x86_docker() { 
-	echo "not support yet"
-	read
-	exit 1
+	if [ ! $# -eq 2 ]; then
+		exit 1
+	fi
+	DockerfilePath=$1
+	MODE=$2
+	tag="$(echo $DockerfilePath | awk -F/ '{print tolower($(NF-3) "_" $(NF-1))}')"
+	if [ ! $MODE = "Run" ]; then
+		echo "Building X86 docker ... [ docker_image_name: anakin image_tag: $tag ]"	
+		sudo docker build --network=host -t anakin:$tag . -f $DockerfilePath
+	else
+		echo "Running X86 docker ... [ docker_image_name: anakin image_tag: $tag ]" 
+		sudo docker run -it anakin:$tag /bin/bash
+	fi
 }
 
 # building docker for arm
 building_and_arm_docker() { 
-	echo "not support yet, Press any key to continue ..."
-	read
-	exit 1
+	if [ ! $# -eq 2 ]; then
+		exit 1
+	fi
+	DockerfilePath=$1
+	MODE=$2
+	tag="$(echo $DockerfilePath | awk -F/ '{print tolower($(NF-3) "_" $(NF-1))}')"
+	if [ ! $MODE = "Run" ]; then
+		echo "Building ARM docker ... [ docker_image_name: anakin image_tag: $tag ]"	
+		sudo docker build --network=host -t anakin:$tag . -f $DockerfilePath
+	else
+		echo "Running ARM docker ... [ docker_image_name: anakin image_tag: $tag ]" 
+		sudo docker run -it anakin:$tag /bin/bash
+	fi
 }
 
 # dispatch user args to target docker path
@@ -91,7 +121,7 @@ dispatch_docker_path() {
 	# declare associative map from place to relative path
 	declare -A PLACE2PATH
 	PLACE2PATH["NVIDIA-GPU"]=NVIDIA
-	PLACE2PATH["AMD_GPU"]=AMD
+	PLACE2PATH["AMD-GPU"]=AMD
 	PLACE2PATH["X86-ONLY"]=X86
 	PLACE2PATH["ARM"]=ARM
 	# declare associative map from os to relative path
@@ -155,7 +185,7 @@ dispatch_docker_path $place $os
 
 if [ $place = "NVIDIA-GPU" ]; then
 	building_and_run_nvidia_gpu_docker $SupportDockerFilePath $mode
-elif [ $place = "AMD_GPU" ]; then
+elif [ $place = "AMD-GPU" ]; then
 	building_and_run_amd_gpu_docker $SupportDockerFilePath $mode
 elif [ $place = "X86-ONLY" ]; then
 	building_and_run_x86_docker $SupportDockerFilePath $mode

@@ -162,7 +162,11 @@ void conv_arm_winograd3x3(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, A
                             for (int k = 0; k < 6; ++k) {
                                 int end_col = w * 6 + k;
                                 if (end_col < w_out){
-                                    dout_channel[end_row * w_out + end_col] = out_tmp[j][k];
+                                    if (flag_relu) {
+                                        dout_channel[end_row * w_out + end_col] = out_tmp[j][k] > 0.f? out_tmp[j][k] : 0.f;
+                                    } else {
+                                        dout_channel[end_row * w_out + end_col] = out_tmp[j][k];
+                                    }
                                 }
                             }
                         }

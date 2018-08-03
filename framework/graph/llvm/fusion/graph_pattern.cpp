@@ -4,7 +4,7 @@ namespace anakin {
 
 namespace graph {
 
-const std::unordered_map<Fusion, std::function<int(VGraph*, Pattern*)>, FusionHash> FusionSniffer = {
+std::unordered_map<Fusion, std::function<int(VGraph*, Pattern*)>, FusionHash> FusionSniffer = {
     {
         IN_ORDER,
         [](VGraph * vgraph, Pattern * pattern) -> int {
@@ -53,7 +53,6 @@ const std::unordered_map<Fusion, std::function<int(VGraph*, Pattern*)>, FusionHa
                     // need to replace
                     node_merge.opName = param_pattern->fusion_op_name();
                     // pattern ins and outs in original vgraph
-                    //auto ori_arc_in_its = vgraph->get_in_arc_its(param_node.name);
                     auto ori_arc_out_its = vgraph->get_out_arc_its(vgraph_next_node.name);
                     std::vector<std::string> pattern_tops;
 
@@ -61,29 +60,33 @@ const std::unordered_map<Fusion, std::function<int(VGraph*, Pattern*)>, FusionHa
                         pattern_tops.push_back(out_it->top());
                     }
 
-                    //vgraph->remove(node_merge.name);
+					// update arcs
+					for(int tops_idx=0; tops_idx < pattern_tops.size(); tops_idx++) {
+						Arc<std::string, io> arc(node_merge.name, pattern_tops[tops_idx]);
+					    auto arc_in_its =  vgraph->get_in_arc_its(pattern_tops[tops_idx]);	
+						for(int in_arc_idx = 0; in_arc_idx < arc_in_its.size(); in_arc_idx++) {
+							if(arc_in_its[in_arc_idx]->bottom() == vgraph_next_node.name) {
+								// update in arc of node next pattern
+								vgraph->update_in_arc(arc, in_arc_idx);
+								arc_in_its[in_arc_idx]->weight().name  = arc.name();
+								break;
+							}
+						}
+					}
+
                     for (auto& node_temp : node_merge.mergeNodes) {
                         vgraph->remove(node_temp.name);
                     }
 
+					for(int tops_idx=0; tops_idx < pattern_tops.size(); tops_idx++) {
+						Arc<std::string, io> arc(node_merge.name, pattern_tops[tops_idx]);
+						auto& io_tmp = arc.weight();
+						io_tmp.name = arc.name();
+						vgraph->add_out_arc(arc);
+					}
+
                     node_merge.mergeNodeNames = pattern_node_name_saves;
                     param_node = node_merge;
-                    //vgraph->add_vertex(node_merge.name, node_merge);
-
-                    /*for (auto& in_arc_it : ori_arc_in_its) {
-                        Arc<std::string, io> arc(in_arc_it->bottom(), node_merge.name);
-                        auto& io_tmp = arc.weight();
-                        io_tmp.name = arc.name();
-                        vgraph->add_in_arc(arc); // set io name for future analysis
-                        vgraph->add_out_arc(arc);
-                    }*/
-                    for (auto& top : pattern_tops) {
-                        Arc<std::string, io> arc(node_merge.name, top);
-                        auto& io_tmp = arc.weight();
-                        io_tmp.name = arc.name(); // set io name for future analysis
-                        vgraph->add_out_arc(arc);
-                        vgraph->add_in_arc(arc);
-                    }
 
                     return 0;
                 } else {
