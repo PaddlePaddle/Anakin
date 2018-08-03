@@ -81,7 +81,7 @@ SaberStatus SaberActivation::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *>
                 float* ptr_out_thread = ptr_out + i * nums_per_thread;
                 int cnt = neon_loop_cnt;
 #ifdef __aarch64__
-                for(int num=0;num<neon_loop_cnt;++num){
+                for(int num=1;num<=neon_loop_cnt;++num){
                     float32x4_t vr0 = vld1q_f32(ptr_in_thread);
                     ptr_in_thread+=4;
                     float32x4_t vr1 = vld1q_f32(ptr_in_thread);
@@ -158,7 +158,7 @@ SaberStatus SaberActivation::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *>
                 float32x4_t recip  = vdupq_n_f32(0.0f);
                 const float* ptr_in_thread = ptr_in + i * nums_per_thread;
                 float* ptr_out_thread = ptr_out + i * nums_per_thread;
-                for (int k=0; k<neon_loop_cnt_dim4; ++k ) {
+                for (int k=1; k<=neon_loop_cnt_dim4; ++k ) {
                     exp_vec=exp_ps(vnegq_f32(vld1q_f32(ptr_in_thread)));
                     exp_vec = vaddq_f32(exp_vec, vdupq_n_f32(1.0f));
                     recip = vrecpeq_f32(exp_vec);
@@ -193,7 +193,7 @@ SaberStatus SaberActivation::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *>
                 float32x4_t recip  = vdupq_n_f32(0.0f);
                 const float* ptr_in_thread = ptr_in + i * nums_per_thread;
                 float* ptr_out_thread = ptr_out + i * nums_per_thread;
-                for (int k=0; k<neon_loop_cnt_dim4; ++k ) {
+                for (int k=1; k<=neon_loop_cnt_dim4; ++k ) {
                     exp_plus_vec=exp_ps(vld1q_f32(ptr_in_thread));
                     exp_minus_vec=exp_ps(vnegq_f32(vld1q_f32(ptr_in_thread)));
                     exp_sum_vec=vaddq_f32(exp_plus_vec,exp_minus_vec);
@@ -232,7 +232,7 @@ SaberStatus SaberActivation::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *>
                     int dim4 = csize >> 2;
                     int dim4_remain = csize - (dim4 * 4);
 #ifdef __aarch64__
-                    for (int i=0;i< dim4; ++i){
+                    for (int i=1;i<=dim4; ++i){
                         float32x4_t vr0 = vld1q_f32(data_in_channel);
                         uint32x4_t vmask = vcltq_f32(vr0, vzero);//vr0 <= vzero
                         float32x4_t vout = vmulq_f32(vr0, vslope);//vr0 * vslope
