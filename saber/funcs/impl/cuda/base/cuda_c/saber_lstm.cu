@@ -156,11 +156,10 @@ SaberLstm<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispatch_batch(
     OutDataType* inner_cell = nullptr;
 
 
-    std::vector<int> emit_offset_vec;
-    int emit_length = 0;
     _temp_map_dev.try_expand_size(seq_sum);
-    bool transform = _seq_util.get_sorted_map(offset_vec, emit_offset_vec, emit_length,
-                     _ctx->get_compute_stream());
+    bool transform = _seq_util.get_sorted_map(offset_vec, _ctx->get_compute_stream());
+    auto emit_offset_vec = _seq_util.get_emit_offset_vec();
+    auto emit_length = emit_offset_vec.size() - 1;
     bool is_reverse = param.is_reverse;
 
     if (inputs.size() > 1) {
@@ -201,6 +200,8 @@ SaberLstm<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispatch_batch(
     inner_cell = _temp_cell.mutable_data();
     CUDA_CHECK(cudaMemsetAsync(inner_cell, 0, sizeof(OutDataType)*batch_size * _hidden_size,
                                _ctx->get_compute_stream()));
+    CUDA_CHECK(cudaDeviceSynchronize());
+    CUDA_CHECK(cudaPeekAtLastError());
 
     OutDataType* temp_wh = _temp_wh.mutable_data();
     OutDataType* temp_wx = _temp_wx.mutable_data();
@@ -208,6 +209,8 @@ SaberLstm<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispatch_batch(
     _gemm_wx(seq_sum, 4 * _hidden_size, _word_size, 1.0, inner_x, 0.0, weight_w, temp_wx,
              _ctx->get_compute_stream());
 
+        CUDA_CHECK(cudaDeviceSynchronize());
+        CUDA_CHECK(cudaPeekAtLastError());
 
     const int i_offset = 0;
     const int f_offset = 1;
@@ -217,11 +220,17 @@ SaberLstm<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispatch_batch(
     const OpDataType* b_f =  bias + f_offset * _hidden_size;
     const OpDataType* b_c =  bias + c_offset * _hidden_size;
     const OpDataType* b_o =  bias + o_offset * _hidden_size;
-    const OpDataType* w_ci = weight_peephole + 0 * _hidden_size;
-    const OpDataType* w_cf = weight_peephole + 1 * _hidden_size;
-    const OpDataType* w_co = weight_peephole + 2 * _hidden_size;
+    
+    const OpDataType* w_ci = nullptr; 
+    const OpDataType* w_cf = nullptr; 
+    const OpDataType* w_co = nullptr;
+    if (param.with_peephole) {
+        w_ci = weight_peephole + 0 * _hidden_size;
+        w_cf = weight_peephole + 1 * _hidden_size;
+        w_co = weight_peephole + 2 * _hidden_size;
+    }
 
-    DLOG(INFO) << "seq_sum = " << seq_sum << ",emit length = " << emit_offset_vec.size();
+//    DLOG(INFO) << "seq_sum = " << seq_sum << ",emit length = " << emit_offset_vec.size();
 
     for (int word_id = 0; word_id < emit_length; word_id++) {
         int real_word_id = word_id;
@@ -251,6 +260,8 @@ SaberLstm<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispatch_batch(
         _gemm_wh(emit_word_length, 4 * _hidden_size, _hidden_size, 1.0, hin, 1.f,
                  weight_h,
                  temp_wx+emit_word_id_start*4*_hidden_size, _ctx->get_compute_stream());
+        CUDA_CHECK(cudaDeviceSynchronize());
+        CUDA_CHECK(cudaPeekAtLastError());
 
 
         CHECK_LE(_hidden_size, 1024) << "now not support hidden size > 1024 for paddle formula";
@@ -286,6 +297,8 @@ SaberLstm<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispatch_batch(
         _seq_util.sorted_seq_2_seq(_temp_out.data(), outputs[0]->mutable_data(), _hidden_size,
                                    _ctx->get_compute_stream());
     }
+        CUDA_CHECK(cudaDeviceSynchronize());
+        CUDA_CHECK(cudaPeekAtLastError());
     outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
     return SaberSuccess;
 
@@ -309,7 +322,7 @@ SaberLstm<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispatch(
     LstmParam < OpTensor >& param) {
     CHECK_EQ(inputs.size(),1)<<"only support input size = 1";
     CHECK_EQ(outputs.size(),1)<<"only support outputs size = 1";
-    CHECK_EQ(param.init_hidden()==nullptr, true )<<"only support param.init_hidden() == nullptr";
+    CHECK(param.init_hidden()==nullptr)<<"only support param.init_hidden() == nullptr";
     CHECK_EQ(param.num_layers,1)<<"only support param.num_layers==1";
     return dispatch_batch(inputs, outputs, param);
 

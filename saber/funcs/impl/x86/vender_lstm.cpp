@@ -17,7 +17,7 @@ void VenderLstm<X86, OpDtype, inDtype, outDtype,
                                                                         const ActiveType &gate_act,
                                                                         const ActiveType &cell_act,
                                                                         const ActiveType &cand_act) {
-#ifdef __AVX__
+#ifdef __AVX2__
 #pragma omp parallel for if(this->max_thread_num_ > 1) collapse(2)
     for (int b = 0; b < batch_size; b++) {
         for (int i = 0; i < hidden_size/8; i++) {
