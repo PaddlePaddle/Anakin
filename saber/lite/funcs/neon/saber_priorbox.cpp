@@ -104,17 +104,18 @@ SaberStatus SaberPriorBox::compute_output_shape(const std::vector<Tensor<CPU, AK
         return SaberNotInitialized;
     }
 
-    //! output tensor's dims = 3 (1, 2, 4 * num_priors)
+    //! output tensor's dims = 4 (1, 1, 2, 4 * num_priors)
 
-    Shape shape_out;// = outputs[0]->valid_shape();
-    shape_out.push_back(1);
-    shape_out.push_back(2);
+    Shape shape_out = outputs[0]->valid_shape();
+    shape_out[0] = 1;
+    shape_out[1] = 1;
+    shape_out[2] = 2;
 
     int win1 = inputs[0]->width();
     int hin1 = inputs[0]->height();
 
     int wout = win1 * hin1 * this->_param->_prior_num * 4;
-    shape_out.push_back(wout);
+    shape_out[3] = wout;
 
     return outputs[0]->set_shape(shape_out);
 }

@@ -654,24 +654,37 @@ struct ReshapeParam : public ParamBase {
 };
 
 struct ScaleParam : public ParamBase {
-    ScaleParam()
-            : _axis(1), _num_axes(1)
-            , _bias_term(false)
-    {}
+    ScaleParam() {
+        _axis = 1;
+        _num_axes = 1;
+        _bias_term = false;
+    }
+
     ScaleParam(float* scale_w_in, float* scale_b_in,
-               bool bias_term_in = true, int axis_in = 1, int num_axes_in = 1)
-            : _scale_w(scale_w_in), _scale_b(scale_b_in)
-            , _bias_term(bias_term_in), _axis(axis_in), _num_axes(num_axes_in)
-    {}
+               bool bias_term_in = true, int axis_in = 1, int num_axes_in = 1) {
+        _scale_w = scale_w_in;
+        _scale_b = scale_b_in;
+        _bias_term = bias_term_in;
+        _axis = axis_in;
+        _num_axes = num_axes_in;
+    }
+
     ScaleParam(float*  scale_w_in,
-               bool bias_term_in = false, int axis_in = 1, int num_axes_in = 1)
-            : _scale_w(scale_w_in)
-            , _bias_term(bias_term_in), _axis(axis_in), _num_axes(num_axes_in)
-    {}
-    ScaleParam(const ScaleParam &right)
-            : _scale_w(right._scale_w), _scale_b(right._scale_b)
-            , _bias_term(right._bias_term), _axis(right._axis), _num_axes(right._num_axes)
-    {}
+               bool bias_term_in = false, int axis_in = 1, int num_axes_in = 1) {
+        _scale_w = scale_w_in;
+        _bias_term = bias_term_in;
+        _axis = axis_in;
+        _num_axes = num_axes_in;
+    }
+
+    ScaleParam(const ScaleParam &right) : ParamBase(right) {
+        _scale_w = right._scale_w;
+        _scale_b = right._scale_b;
+        _bias_term = right._bias_term;
+        _axis = right._axis;
+        _num_axes = right._num_axes;
+    }
+
     ScaleParam &operator=(const ScaleParam &right) {
         _scale_w = right._scale_w;
         _scale_b = right._scale_b;

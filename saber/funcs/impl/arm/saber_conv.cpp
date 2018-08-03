@@ -21,7 +21,6 @@ template <>
 SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::~SaberConv2D() {
      //LOG(ERROR) << "release saber conv: kw=" << _kw << ", kh=" << _kh << ", num_out=" << _conv_param.weight()->num() << \
         ", chin=" << _conv_param.weight()->channel();
-    printf("~SaberConv2D\n");
 }
 
 template <>

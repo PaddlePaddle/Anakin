@@ -216,7 +216,7 @@ SaberStatus Sgemm::operator()(const float *A, const int lda, \
                         merge_float_basic_relu(C, cpan1, ldc, y, ymax, x0, xmax, alpha, (k0 == 0 ? beta : 1.f));
                     }
                 } else {
-                    if (flag_alpha && (k0 > 0) || flag_beta) {
+                    if (flag_alpha && ((k0 > 0) || flag_beta)) {
                         merge_float_alpha1_beta1(C, cpan1, ldc, y, ymax, x0, xmax);
                     } else {
                         merge_float_basic(C, cpan1, ldc, y, ymax, x0, xmax, alpha, (k0 == 0 ? beta : 1.f));
@@ -388,7 +388,7 @@ void sgemm_impl(const float *Apanel, const float *Bpanel, float *Cpanel, int abl
                 "4:\n"
 
                 // Branch to alternative tail for odd K
-                "cbnz	%[oddk], 2f\n"
+                "cbnz	%w[oddk], 2f\n"
 
                 // Detached final iteration (even K)
                 "fmla 	v8.4s , %[b0].4s, %[a0].s[0]\n"

@@ -12,23 +12,25 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-#ifndef ANAKIN_SABER_FUNCS_CONCAT_H
-#define ANAKIN_SABER_FUNCS_CONCAT_H
+
+#ifndef ANAKIN_SABER_FUNCS_SEQUENCE_EXPAND_H
+#define ANAKIN_SABER_FUNCS_SEQUENCE_EXPAND_H
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
-#include "saber/funcs/impl/impl_concat.h"
+#include "saber/funcs/impl/impl_activation.h"
 
 #ifdef NVIDIA_GPU
-#include "saber/funcs/impl/cuda/saber_concat.h"
+#include "saber/funcs/impl/cuda/saber_sequence_expand.h"
 #endif
 
 #ifdef USE_X86_PLACE
-#include "saber/funcs/impl/x86/saber_concat.h"
+#include "saber/funcs/impl/x86/saber_sequence_expand.h"
+//#include "saber/funcs/impl/x86/saber_activation.h"
 #endif
 
 #ifdef USE_ARM_PLACE
-#include "saber/funcs/impl/arm/saber_concat.h"
+//#include "saber/funcs/impl/arm/saber_activation.h"
 #endif
 
 namespace anakin {
@@ -42,12 +44,12 @@ template<typename TargetType,
         typename LayOutType_in = NCHW,
         typename LayOutType_out = NCHW
 >
-class Concat : public BaseFunc<
+class SequenceExpand : public BaseFunc<
         Tensor<TargetType, inDtype, LayOutType_in>,
         Tensor<TargetType, outDtype, LayOutType_out>,
         Tensor<TargetType, OpDtype, LayOutType_op>,
         ImplBase,
-        ConcatParam
+        SequenceExpandParam
 > {
 public:
     using BaseFunc<
@@ -55,60 +57,68 @@ public:
             Tensor<TargetType, outDtype, LayOutType_out>,
             Tensor<TargetType, OpDtype, LayOutType_op>,
             ImplBase,
-            ConcatParam>::BaseFunc;
+            SequenceExpandParam>::BaseFunc;
 
-    Concat() = default;
+    SequenceExpand() = default;
 
     typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
     typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
     typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-    typedef ConcatParam<OpTensor> Param_t;
+    typedef SequenceExpandParam<OpTensor> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
 
     virtual SaberStatus compute_output_shape(const Input_v &input,
                                              Output_v &output, Param_t &param) override {
-        unsigned long input_size = input.size();
 
-        Shape_v shapes_in;
-        shapes_in.resize(input_size);
-        //! get input size
-        for (int i = 0; i < input_size; i++){
-            shapes_in[i] = input[i]->valid_shape();
-        }
-
-        Shape shape_out = shapes_in[0];
-
-        //! compute output shape
-        for (int i = 1; i < input_size; ++i) {
-            Shape sh = shapes_in[i];
-            for (int j = 0; j < sh.dims(); ++j) {
-                if (j == param.axis) { continue; }
-                else if (sh[j] != -1) {
-                            CHECK_EQ(shape_out[j], sh[j]) \
-                        << "All inputs must have the same shape, except at concat_axis.";
-                } else {
-                    sh[j] = shape_out[j];
-                    SABER_CHECK(input[i]->set_shape(sh));
+        Shape output_shape = input[0]->valid_shape();
+        CHECK_EQ(input.size(), 2) << "sequence expand need two input but " << input.size() << "is provided";
+        Shape in_shape = input[0]->valid_shape();
+        auto input_seq_offset = input[0]->get_seq_offset();
+        auto ref_seq_offset = input[1]->get_seq_offset();
+        if (input_seq_offset.size() == 0) {
+            output_shape = in_shape;
+            if (ref_seq_offset.size() > 0) {
+                output_shape[0] = ref_seq_offset[ref_seq_offset.size() - 1];
+                output[0]->set_seq_offset(ref_seq_offset);
+            }
+            
+        } else {
+            CHECK_EQ(input_seq_offset.size(), ref_seq_offset.size()) <<"input and ref sequence offset must have the same size";
+            int cum = 0;
+            std::vector<int> off;
+            off.push_back(cum);
+            for (int i = 0; i < ref_seq_offset.size() - 1; i++) {
+                int cur_len = input_seq_offset[i + 1] - input_seq_offset[i];
+                for (int j = ref_seq_offset[i]; j < ref_seq_offset[i+1]; j++) {
+                    off.push_back(cur_len);
+                    cum += cur_len;
                 }
             }
-            shape_out[param.axis] += sh[param.axis];
+            output_shape[0] = cum;
+            output[0]->set_seq_offset(off);
+            
         }
-        output[0]->set_seq_offset(input[0]->get_seq_offset());
-        return output[0]->set_shape(shape_out);
+
+        
+        return output[0]->set_shape(output_shape);
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
             case VENDER_IMPL:
-                this->_impl.push_back(new VenderConcat <TargetType, OpDtype, inDtype, outDtype, 
-							LayOutType_op, LayOutType_in, LayOutType_out>);
-                return SaberSuccess;
+                //this->_impl.push_back(new VenderSequenceExpand <TargetType,
+                //this->_impl.push_back(new VenderSequenceExpand <TargetType,
+                //        OpDtype, inDtype, outDtype,
+                //        LayOutType_op, LayOutType_in, LayOutType_out>);
+                //return SaberSuccess;
+                return SaberUnImplError;
 
             case SABER_IMPL:
-                this->_impl.push_back(new SaberConcat <TargetType, OpDtype, inDtype, outDtype,
-                LayOutType_op, LayOutType_in, LayOutType_out>);
+                this->_impl.push_back(new SaberSequenceExpand <TargetType,
+                        OpDtype, inDtype, outDtype,
+                        LayOutType_op, LayOutType_in, LayOutType_out>);
                 return SaberSuccess;
 
             default:
@@ -119,8 +129,7 @@ public:
 private:
 
     virtual void pick_best_static() override {
-        if (true) // some condition?
-            this->_best_impl = this->_impl[0];
+        this->_best_impl = this->_impl[0];
     }
 
     virtual void pick_best_specify(ImplEnum implenum) override {
@@ -129,8 +138,9 @@ private:
 
 };
 
+
+
 } // namespace saber
 } // namespace anakin
-
 
 #endif
