@@ -49,7 +49,7 @@ public:
                                Context<X86> &ctx) {
         this->_ctx = &ctx;
         this->_param=&param;
-        Shape out_shape;
+        CHECK_EQ(param.shape.size(),4);
         if (param.axis == 1) {
             CHECK_EQ(param.offset.size(), 3);
             _c_off=param.offset[0];
