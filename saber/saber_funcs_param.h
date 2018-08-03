@@ -299,7 +299,127 @@ struct ResizeParam{
     float width_scale{0.0f};
     float height_scale{0.0f};
 };
+template <typename TargetType>
+struct RoiPoolParam {
+    RoiPoolParam() = default;
+    RoiPoolParam(int pooled_height_in, int pooled_width_in, float spatial_scale_in,
+            int height_in, int width_in)
+            : pooled_height(pooled_height_in)
+            , pooled_width(pooled_width_in)
+            , spatial_scale(spatial_scale_in)
+            , height(height_in)
+            , width(width_in)
+    {}
+    RoiPoolParam(int pooled_height_in, int pooled_width_in, float spatial_scale_in)
+            : pooled_height(pooled_height_in)
+            , pooled_width(pooled_width_in)
+            , spatial_scale(spatial_scale_in)
+    {}
+    RoiPoolParam(const RoiPoolParam &right)
+            : pooled_height(right.pooled_height)
+            , pooled_width(right.pooled_width)
+            , spatial_scale(right.spatial_scale)
+            , height(right.height)
+            , width(right.width)
+    {}
+    RoiPoolParam &operator=(const RoiPoolParam &right) {
+        pooled_height = right.pooled_height;
+        pooled_width = right.pooled_width;
+        spatial_scale = right.spatial_scale;
+        height = right.height;
+        width = right.width;
+        return *this;
+    }
+    bool operator==(const RoiPoolParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (pooled_height == right.pooled_height);
+        comp_eq = comp_eq && (pooled_width == right.pooled_width);
+        comp_eq = comp_eq && (spatial_scale == right.spatial_scale);
+        comp_eq = comp_eq && (height == right.height);
+        comp_eq = comp_eq && (width == right.width);
+        return comp_eq;
+    }
+    int pooled_height;
+    int pooled_width;
+    float spatial_scale;
+    int height{1};
+    int width{1};
+};
 
+template <typename TargetType>
+struct ScaleParam {
+    typedef float DataDtype;
+    ScaleParam()
+            : axis(1), num_axes(1)
+            , bias_term(false)
+    {}
+    ScaleParam(std::vector<DataDtype> scale_w_in, std::vector<DataDtype> scale_b_in,
+               bool bias_term_in = true, int axis_in = 1, int num_axes_in = 1)
+            : scale_w(scale_w_in), scale_b(scale_b_in)
+            , bias_term(bias_term_in), axis(axis_in), num_axes(num_axes_in)
+    {}
+    ScaleParam(std::vector<DataDtype> scale_w_in,
+               bool bias_term_in = false, int axis_in = 1, int num_axes_in = 1)
+            : scale_w(scale_w_in)
+            , bias_term(bias_term_in), axis(axis_in), num_axes(num_axes_in)
+    {}
+    ScaleParam(const ScaleParam &right)
+            : scale_w(right.scale_w), scale_b(right.scale_b)
+            , bias_term(right.bias_term), axis(right.axis), num_axes(right.num_axes)
+    {}
+    ScaleParam &operator=(const ScaleParam &right) {
+        scale_w = right.scale_w;
+        scale_b = right.scale_b;
+        bias_term = right.bias_term;
+        axis = right.axis;
+        num_axes = right.num_axes;
+        return *this;
+    }
+    bool operator==(const ScaleParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (scale_w == right.scale_w);
+        comp_eq = comp_eq && (scale_b == right.scale_b);
+        comp_eq = comp_eq && (bias_term == right.bias_term);
+        comp_eq = comp_eq && (axis == right.axis);
+        comp_eq = comp_eq && (num_axes == right.num_axes);
+        return comp_eq;
+    }
+    int axis; // default is 1
+    int num_axes; // default is 1
+    bool bias_term; // default false
+    std::vector<float> scale_w;
+    std::vector<float> scale_b;
+};
+template <typename type>
+struct SliceParam {
+    SliceParam() = default;
+    explicit SliceParam(int axis_in, std::vector<int> slice_points_in){
+        CHECK_GE(axis_in, 0) << "slice axis should >=0, current is " << axis_in;
+        axis = axis_in;
+        slice_points = slice_points_in;
+    }
+    SliceParam(const SliceParam<type> &right) {
+        axis = right.axis;
+        slice_points = right.slice_points;
+    }
+    SliceParam<type> &operator=(const SliceParam<type> &right) {
+        axis = right.axis;
+        slice_points = right.slice_points;
+        return *this;
+    }
+    bool operator==(const SliceParam<type> &right) {
+        bool comp_eq = slice_points.size() == right.slice_points.size();
+        for (int i = 0; i < slice_points.size(); ++i) {
+            if (!comp_eq){
+                return false;
+            }
+            comp_eq = slice_points[i] == right.slice_points[i];
+        }
+        return axis == right.axis;
+    }
+    int axis;
+    std::vector<int> slice_points;
+};
 }
 }
 #endif //SABER_FUNCS_PARAM_H

@@ -75,9 +75,9 @@ __global__ void resize_bilinear_2d_kernel(const int wout, const int hout,
                 dtype br = (w > win || h > hin)? 0 : src[src_indexBR];
 #else
                 dtype tl = src[src_indexTL];
-                dtype tr = w > win? 0 : src[src_indexTR];//w > win? 0 :
-                dtype bl = h > hin? 0 : src[src_indexBL];//h > hin? 0 :
-                dtype br = (w > win || h > hin)? 0 : src[src_indexBR];//(w > win || h > hin)? 0 :
+                dtype tr = w >= win? 0 : src[src_indexTR];//w > win? 0 :
+                dtype bl = h >= hin? 0 : src[src_indexBL];//h > hin? 0 :
+                dtype br = (w >= win || h >= hin)? 0 : src[src_indexBR];//(w > win || h > hin)? 0 :
 #endif
                 dst[dst_index] = static_cast<dtype>(w_00 * tl + w_01 * tr + w_10 * bl + w_11 * br);
                 src_indexBR += src_stride_c;
