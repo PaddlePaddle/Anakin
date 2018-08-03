@@ -8,7 +8,9 @@
 #include "saber_types.h"
 #include "saber/funcs/timer.h"
 #include "saber/funcs/impl/cuda/saber_attension_lstm.h"
+#ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_attension_lstm.h"
+#endif
 #include "saber/funcs/attension_lstm.h"
 #include "stdio.h"
 
@@ -17,7 +19,7 @@ using namespace anakin::saber;
 
 void test_saber_attension_lstm(int sequence_size = 2, int batch_size = 1, int word_size = 30,
                     int hidden_size = 15) {
-
+#if defined(USE_X86_PLACE) && defined(USE_CUDA)
     Context<NV> ctx_dev(0, 0, 0);
     Context<X86> ctx_x86(0, 0, 0);
     typedef Tensor<NV, AK_FLOAT, NCHW> TensorDf4;
@@ -26,7 +28,7 @@ void test_saber_attension_lstm(int sequence_size = 2, int batch_size = 1, int wo
     
     
 
-    std::vector<int> offsets = {0, 3, 7};
+    std::vector<int> offsets = {0, 3};
     bool is_reverse = false;
     batch_size = offsets.size() - 1;
     Shape input_shape(offsets[offsets.size() - 1], word_size, 1, 1);
@@ -153,7 +155,7 @@ void test_saber_attension_lstm(int sequence_size = 2, int batch_size = 1, int wo
     //t1.end(ctx_dev);
     //LOG(INFO) << "!!cudnn lstm :" << test_iter << " cudnn test, total time: "
     //         << t1.get_average_ms()/test_iter;
-#ifdef TEST_X86
+#if defined(TEST_X86)&&defined(USE_X86_PLACE)
     LstmParam<TensorHf4> h_lstm_param(&h_weight,
                                     &h_bias,
                                     nullptr,
@@ -204,7 +206,7 @@ void test_saber_attension_lstm(int sequence_size = 2, int batch_size = 1, int wo
 #endif
 
    return;
-
+#endif
 }
 
 TEST(TestSaberFuncNV, test_func_saber_lstm) {
@@ -222,8 +224,9 @@ TEST(TestSaberFuncNV, test_func_saber_lstm) {
 int main(int argc, const char** argv) {
     // initial logger
     //logger::init(argv[0]);
-//#ifdef TEST_X86
+#if defined(TEST_X86)&&defined(USE_X86_PLACE)
     Env<X86>::env_init();
+#endif
 //#else
     Env<NV>::env_init();
 //#endif

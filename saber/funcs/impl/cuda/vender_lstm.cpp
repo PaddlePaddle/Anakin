@@ -171,7 +171,7 @@ create(const std::vector<DataTensor*>& inputs,
     _y_desc.reset(new cudnn::TensorDescriptors<DataDtype>(
                      offset_after_sort,
     {batch_size, _hidden_size * lstm_param.num_direction, 1},
-    {_hiden_size  * lstm_param.num_direction, 1, 1}));
+    {_hidden_size  * lstm_param.num_direction, 1, 1}));
 
     Shape in_dim = inputs[0]->valid_shape();
     Shape in_stride = inputs[0]->get_stride();

@@ -19,6 +19,7 @@ cublasHandle_t  cublas_handle;
 
 void test_saber_lstm(int sequence_size = 2, int batch_size = 1, int word_size = 4,
                     int hidden_size = 4) {
+#if defined(USE_CUDA) && defined(USE_X86_PLACE)
 
     Context<NV> ctx_dev(0, 0, 0);
     Context<X86> ctx_x86(0, 0, 0);
@@ -114,7 +115,7 @@ void test_saber_lstm(int sequence_size = 2, int batch_size = 1, int word_size = 
     t1.end(ctx_dev);
     LOG(INFO) << "!!cudnn lstm :" << test_iter << " cudnn test, total time: "
              << t1.get_average_ms();
-#ifdef TEST_X86
+#if defined(TEST_X86) &&defined(USE_X86_PLACE)
     Lstm<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW> x86_lstm;
     LstmParam<TensorHf4> h_lstm_param(&host_weight, 
                                     &host_bias, 
@@ -156,8 +157,8 @@ void test_saber_lstm(int sequence_size = 2, int batch_size = 1, int word_size = 
              << t2.get_average_ms();
 #endif
 
+#endif
    return;
-
 }
 
 TEST(TestSaberFuncNV, test_func_saber_lstm) {
@@ -181,9 +182,9 @@ TEST(TestSaberFuncNV, test_func_saber_lstm) {
 int main(int argc, const char** argv) {
     // initial logger
     //logger::init(argv[0]);
-//#ifdef TEST_X86
+#if defined(TEST_X86) &&defined(USE_X86_PLACE)
     Env<X86>::env_init();
-//#else
+#endif
     Env<NV>::env_init();
 //#endif
 
