@@ -32,13 +32,14 @@ SaberStatus SaberEmbedding<NV, OpDtype>::dispatch( \
     std::vector<Tensor<NV>*>& outputs,
 	EmbeddingParam<NV>& param) {
 
-    //const InDataType *in_data = (const InDataType*)inputs[0]->data();
     const OpDataType *op_data = (const OpDataType*)(param.weight()->data());
-    //OutDataType *out_data = (OutDataType*)outputs[0]->mutable_data();
 
     const int count = outputs[0]->valid_size();
     cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
-
+    
+    //outputs: chose corresponding informations of words.
+    //inputs: word_id [Its type maybe float or int]
+    //outputs = weights[inputs[j]].
     if (inputs[0]->get_dtype() == AK_FLOAT) {
         if (outputs[0]->get_dtype() == AK_FLOAT) {
             ker_embedding_fwd<float, OpDataType, float>
@@ -51,16 +52,16 @@ SaberStatus SaberEmbedding<NV, OpDtype>::dispatch( \
             (char*)outputs[0]->mutable_data(), (const float*)inputs[0]->data(), op_data, param.word_num, param.emb_dim, inputs[0]->num(),
             param.padding_idx, outputs[0]->valid_size());
         }
-    } else if (inputs[0]->get_dtype() == AK_INT8) {
+    } else if (inputs[0]->get_dtype() == AK_INT32) {
         if (outputs[0]->get_dtype() == AK_FLOAT) {
-            ker_embedding_fwd<char, OpDataType, float>
+            ker_embedding_fwd<int, OpDataType, float>
             <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(
-            (float*)outputs[0]->mutable_data(), (const char*)inputs[0]->data(), op_data, param.word_num, param.emb_dim, inputs[0]->num(),
+            (float*)outputs[0]->mutable_data(), (const int*)inputs[0]->data(), op_data, param.word_num, param.emb_dim, inputs[0]->num(),
             param.padding_idx, outputs[0]->valid_size());
         } else if (outputs[0]->get_dtype() == AK_INT8) {
-            ker_embedding_fwd<char, OpDataType, char>
+            ker_embedding_fwd<int, OpDataType, char>
             <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(
-            (char*)outputs[0]->mutable_data(), (const char*)inputs[0]->data(), op_data, param.word_num, param.emb_dim, inputs[0]->num(),
+            (char*)outputs[0]->mutable_data(), (const int*)inputs[0]->data(), op_data, param.word_num, param.emb_dim, inputs[0]->num(),
             param.padding_idx, outputs[0]->valid_size());
         }
     }

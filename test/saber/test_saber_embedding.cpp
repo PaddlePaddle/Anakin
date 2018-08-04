@@ -51,6 +51,7 @@ TEST(TestSaberFunc, test_op_embedding) {
     EmbeddingParam<X86> param(word_num, emb_dim, padding_idx, &weight_h);
     testbase.set_param(param);
     
+    //test for nchw
     for(int w_in : {32,64}) {
         for(int h_in : {32, 64}){
             for(int ch_in : {3, 8}){
@@ -61,7 +62,16 @@ TEST(TestSaberFunc, test_op_embedding) {
                 }
             }
         }
-    } 
+    }
+
+    //test for nc
+    for(int ch_in : {3, 8, 16, 64}){
+        for(int num_in:{1, 2, 32, 64}){
+            testbase.set_rand_limit(1, 128);
+            testbase.set_input_shape(Shape({num_in, ch_in}, Layout_HW));
+            testbase.run_test(embedding_cpu_base<float, X86, X86>);//run test
+        }
+    }
 
 #endif 
 
@@ -88,6 +98,7 @@ TEST(TestSaberFunc, test_op_embedding) {
     int w_in = 1; */
     //random interval [1, 128].
     
+    //test for nchw
     for(int w_in : {32,64}) {
         for(int h_in : {32, 64}){
             for(int ch_in : {3, 8}){
@@ -98,7 +109,17 @@ TEST(TestSaberFunc, test_op_embedding) {
                 }
             }
         }
-    } 
+    }
+
+    //test for nc
+    for(int ch_in : {3, 8, 16, 64}){
+        for(int num_in:{1, 2, 32, 64}){
+            testbase.set_rand_limit(1, 128);
+            testbase.set_input_shape(Shape({num_in, ch_in}, Layout_HW));
+            testbase.run_test(embedding_cpu_base<float, NV, NVHX86>);//run test
+        }
+    }
+
 
 #endif
 
