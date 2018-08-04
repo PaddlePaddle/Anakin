@@ -46,7 +46,7 @@ class SaberPooling<NV, OpDtype>:\
                                  PoolingParam<NV> &param,
                                  Context<NV> &ctx) override {
             
-            return SaberSuccess;
+            return SaberUnImplError;
             
         }
         
@@ -55,7 +55,7 @@ class SaberPooling<NV, OpDtype>:\
                                    PoolingParam<NV> &param,
                                    Context<NV> &ctx) override {
             
-            return SaberSuccess;
+            return SaberUnImplError;
             
         }
         
@@ -64,7 +64,7 @@ class SaberPooling<NV, OpDtype>:\
                                      std::vector<DataTensor_out*>& outputs,
                                      PoolingParam<NV> &param) {
             
-            return SaberSuccess;
+            return SaberUnImplError;
         }
 };
 

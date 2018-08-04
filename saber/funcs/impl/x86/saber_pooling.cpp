@@ -43,7 +43,7 @@ SaberStatus SaberPooling<X86, OpDtype>
                   PoolingParam<X86> &param)
 {
 
-    return SaberSuccess;
+    return SaberUnImplError;
       
 }
 
