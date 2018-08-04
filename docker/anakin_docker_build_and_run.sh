@@ -26,22 +26,22 @@ install_nvidia_docker_v2() {
 	distribution=$(source /etc/os-release;echo $ID$VERSION_ID)
 	if [ $ID == 'centos'];then
 		docker volume ls -q -f driver=nvidia-docker | xargs -r -I{} -n1 docker ps -q -a -f volume={} | xargs -r docker rm -f
-		yum remove nvidia-docker
+		sudo yum remove nvidia-docker
 		curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.repo | \
-			  tee /etc/yum.repos.d/nvidia-docker.repo
-		yum install -y nvidia-docker2 --skip-broken
-		pkill -SIGHUP dockerd
+			  sudo tee /etc/yum.repos.d/nvidia-docker.repo
+		sudo yum install -y nvidia-docker2 --skip-broken
+		sudo pkill -SIGHUP dockerd
 	else
 		# default ubuntu
 		# remove nv-doker v1
 		docker volume ls -q -f driver=nvidia-docker | xargs -r -I{} -n1 docker ps -q -a -f volume={} | xargs -r docker rm -f
-		apt-get purge nvidia-docker
-		curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | apt-key add -
+		sudo apt-get purge nvidia-docker
+		curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
 		curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | \
-					tee /etc/apt/sources.list.d/nvidia-docker.list
-		apt-get update
-		apt-get install -y nvidia-docker2
-		pkill -SIGHUP dockerd
+					sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+		sudo apt-get update
+		sudo apt-get install -y nvidia-docker2
+		sudo pkill -SIGHUP dockerd
 	fi
 }
 
