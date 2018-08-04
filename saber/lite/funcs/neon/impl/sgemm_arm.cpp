@@ -1358,35 +1358,42 @@ void load_bpanel_trans(float* out, const float* in, const int ldin, const int k0
             uint32x4_t vr00_1 = vbslq_u32(vmask1, vr00, vzero);
             uint32x4_t vr01_1 = vbslq_u32(vmask2, vr01, vzero);
             uint32x4_t vr02_1 = vbslq_u32(vmask3, vr02, vzero);
-            vst1q_u32(outptr_row_col, vr00_1);
-            vst1q_u32(outptr_row_col + 4, vr01_1);
-            vst1q_u32(outptr_row_col + 8, vr02_1);
 
             uint32x4_t vr20 = vld1q_u32(ptr2);
             uint32x4_t vr21 = vld1q_u32(ptr2 + 4);
             uint32x4_t vr22 = vld1q_u32(ptr2 + 8);
 
+            vst1q_u32(outptr_row_col, vr00_1);
+            vst1q_u32(outptr_row_col + 4, vr01_1);
+            vst1q_u32(outptr_row_col + 8, vr02_1);
+
+
             uint32x4_t vr10_1 = vbslq_u32(vmask1, vr10, vzero);
             uint32x4_t vr11_1 = vbslq_u32(vmask2, vr11, vzero);
             uint32x4_t vr12_1 = vbslq_u32(vmask3, vr12, vzero);
-            vst1q_u32(outptr_row_col + 12, vr10_1);
-            vst1q_u32(outptr_row_col + 16, vr11_1);
-            vst1q_u32(outptr_row_col + 20, vr12_1);
+
 
             uint32x4_t vr30 = vld1q_u32(ptr3);
             uint32x4_t vr31 = vld1q_u32(ptr3 + 4);
             uint32x4_t vr32 = vld1q_u32(ptr3 + 8);
 
+            vst1q_u32(outptr_row_col + 12, vr10_1);
+            vst1q_u32(outptr_row_col + 16, vr11_1);
+            vst1q_u32(outptr_row_col + 20, vr12_1);
+
+
             uint32x4_t vr20_1 = vbslq_u32(vmask1, vr20, vzero);
             uint32x4_t vr21_1 = vbslq_u32(vmask2, vr21, vzero);
             uint32x4_t vr22_1 = vbslq_u32(vmask3, vr22, vzero);
-            vst1q_u32(outptr_row_col + 24, vr20_1);
-            vst1q_u32(outptr_row_col + 28, vr21_1);
-            vst1q_u32(outptr_row_col + 32, vr22_1);
 
             uint32x4_t vr30_1 = vbslq_u32(vmask1, vr30, vzero);
             uint32x4_t vr31_1 = vbslq_u32(vmask2, vr31, vzero);
             uint32x4_t vr32_1 = vbslq_u32(vmask3, vr32, vzero);
+
+            vst1q_u32(outptr_row_col + 24, vr20_1);
+            vst1q_u32(outptr_row_col + 28, vr21_1);
+            vst1q_u32(outptr_row_col + 32, vr22_1);
+
             vst1q_u32(outptr_row_col + 36, vr30_1);
             vst1q_u32(outptr_row_col + 40, vr31_1);
             vst1q_u32(outptr_row_col + 44, vr32_1);
@@ -2036,13 +2043,13 @@ void load_bpanel_no_trans(float* out, const float* in, const int ldin, const int
                     "ZIP1       v20.4s, v16.4s, v17.4s\n"
                     "ZIP1       v21.4s, v18.4s, v19.4s\n"
 
-                    "STP        q20, q21, [%[outptr]], #32\n" // Seventh element
-
                     "ZIP2       v22.4s, v16.4s, v17.4s\n"
                     "ZIP2       v23.4s, v18.4s, v19.4s\n"
 
-                    "ZIP1       v16.4s, v25.4s, v29.4s\n"
-                    "ZIP1       v17.4s, v27.4s, v31.4s\n"
+                    "ZIP2       v16.4s, v25.4s, v29.4s\n"
+                    "ZIP2       v17.4s, v27.4s, v31.4s\n"
+                    "STP        q20, q21, [%[outptr]], #32\n" // Seventh element
+                    
                     "ZIP1       v18.4s, v16.4s, v17.4s\n"
                     "ZIP2       v19.4s, v16.4s, v17.4s\n"
                     "STR       q18, [%[outptr]], #16\n"
