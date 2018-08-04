@@ -13,8 +13,8 @@
    limitations under the License. 
 */
 
-#ifndef ANAKIN_OPERATOR_CONV_BATCHNORM_SCALE_H
-#define ANAKIN_OPERATOR_CONV_BATCHNORM_SCALE_H
+#ifndef ANAKIN_OPERATOR_CONV_BATCHNORM_H
+#define ANAKIN_OPERATOR_CONV_BATCHNORM_H
 
 #include "framework/core/base.h"
 #include "framework/core/data_types.h"
@@ -29,7 +29,6 @@ namespace ops {
 template<typename Ttype, DataType Dtype, Precision Ptype>
 class ConvBatchnormHelper;
 
-/// pooling op
 /**
  * \brief ConvBatchnormHelper implementation class
  * public inherit Operator
@@ -86,13 +85,13 @@ public:
 
 public:
     ///< _param_conv_batchnorm_scale stand for ConvBatchnorm parameter
-    saber::ConvActiveParam<Tensor4d<Ttype, Dtype>>  _param_conv_batchnorm_scale;
+    saber::ConvActiveParam<Tensor4d<Ttype, Dtype>>  _param_conv_batchnorm;
     ///< _funcs_conv stand for ConvBatchnorm function
-    saber::ConvAct<Ttype, Dtype> _funcs_conv_batchnorm_scale;
+    saber::ConvAct<Ttype, Dtype> _funcs_conv_batchnorm;
 };
 
 } /* namespace ops */
 
 } /* namespace anakin */
 
-#endif
+#endif//ANAKIN_OPERATOR_CONV_BATCHNORM_H
