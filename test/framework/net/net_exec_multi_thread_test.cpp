@@ -13,7 +13,8 @@ using Target_H = X86;
 using Target = ARM;
 using Target_H = ARM;
 #endif
-std::string model_path = "../benchmark/CNN/models/vgg16.anakin.bin";
+//std::string model_path = "../benchmark/CNN/models/vgg16.anakin.bin";
+std::string model_path = "/home/public/model_from_fluid/beta/demoprogram.anakin2.bin";
 
 #ifdef USE_CUDA
 #if 0
@@ -111,7 +112,7 @@ TEST(NetTest, nv_net_execute_muti_thread_sync_test) {
 #if 1
 TEST(NetTest, net_execute_muti_thread_async_test) {
     LOG(WARNING) << "Async Runing multi_threads for model: " << model_path;
-    Worker<NV, AK_FLOAT, Precision::FP32>  workers(model_path, 10); 
+    Worker<NV, AK_FLOAT, Precision::FP32>  workers(model_path, 1); 
     //workers.register_inputs({"input_0"});
     //workers.register_outputs({"softmax_out"});    
     //workers.Reshape("input_0", {1, 384, 960, 3});

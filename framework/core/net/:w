@@ -32,8 +32,8 @@ namespace anakin {
 class ThreadPool {
 public:
     ThreadPool(int num_thread):_num_thread(num_thread) {}
-    virtual ~ThreadPool();
-    void launch();
+    virtual ~ThreadPool(){}
+    void launch() {}
 
     /** 
      *  \brief Lanuch the normal function task in sync.
@@ -68,6 +68,6 @@ private:
 
 } /* namespace anakin */
 
-#include "thread_pool.inl"
+//#include "thread_pool.inl"
 
 #endif
