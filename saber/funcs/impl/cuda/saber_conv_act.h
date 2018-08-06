@@ -182,14 +182,14 @@ public:
                     saber_depthwise_conv_act<InDataType, true, true>(inputs[0]->data(), \
                         outputs[0]->mutable_data(), num, chin, hin, win, hout, \
                         wout, _kernel_width, _kernel_height, param.conv_param.stride_w, \
-                        param.conv_param.stride_h, param.conv_param.pad_w, param.conv_param.pad_h,\
+                        param.conv_param.stride_h, param.conv_param.pad_h, param.conv_param.pad_w,\
                         (const OpDataType*)param.conv_param.weight()->data(), bias_data, \
                         this->_ctx->get_compute_stream());
                 } else {
                     saber_depthwise_conv_act<InDataType, true, false>(inputs[0]->data(), \
                         outputs[0]->mutable_data(), num, chin, hin, win, hout, \
                         wout, _kernel_width, _kernel_height, param.conv_param.stride_w, \
-                        param.conv_param.stride_h, param.conv_param.pad_w, param.conv_param.pad_h,\
+                        param.conv_param.stride_h, param.conv_param.pad_h, param.conv_param.pad_w,\
                         (const OpDataType*)param.conv_param.weight()->data(), bias_data, \
                         this->_ctx->get_compute_stream());
                 }
@@ -201,7 +201,7 @@ public:
                         inputs[0]->height(), inputs[0]->width(), outputs[0]->height(), \
                         outputs[0]->width(), _kernel_width, \
                         _kernel_height, param.conv_param.stride_w, \
-                        param.conv_param.stride_h, param.conv_param.pad_w, param.conv_param.pad_h,\
+                        param.conv_param.stride_h, param.conv_param.pad_h, param.conv_param.pad_w,\
                         (const OpDataType*)param.conv_param.weight()->data(), bias_data, \
                         this->_ctx->get_compute_stream());
                 } else {
@@ -210,7 +210,7 @@ public:
                         inputs[0]->height(), inputs[0]->width(), outputs[0]->height(), \
                         outputs[0]->width(), _kernel_width, \
                         _kernel_height, param.conv_param.stride_w, \
-                        param.conv_param.stride_h, param.conv_param.pad_w, param.conv_param.pad_h,\
+                        param.conv_param.stride_h, param.conv_param.pad_h, param.conv_param.pad_w,\
                         (const OpDataType*)param.conv_param.weight()->data(), bias_data, \
                         this->_ctx->get_compute_stream());
                 }
