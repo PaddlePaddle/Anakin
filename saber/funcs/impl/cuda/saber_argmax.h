@@ -39,6 +39,13 @@ public:
                         std::vector<Tensor<NV> *>& outputs,
                         ArgmaxParam<NV>& param, 
                         Context<NV> &ctx) {
+        return create(inputs, outputs, param, ctx);//SaberSuccess;
+    }
+
+    virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
+                        std::vector<Tensor<NV> *>& outputs,
+                        ArgmaxParam<NV>& param, 
+                        Context<NV>& ctx) {
         this->_ctx = &ctx;
         if (!param.has_axis) {
             int inner_dim = inputs[0]->count(1, inputs[0]->dims());
@@ -47,13 +54,6 @@ public:
             _block_max_value.re_alloc(Shape({outer_dim, block_num, 1, 1}, Layout_NCHW), OpDtype);
             _block_max_index.re_alloc(Shape({outer_dim, block_num, 1, 1}, Layout_NCHW), OpDtype);
         }
-        return SaberSuccess;
-    }
-
-    virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
-                        std::vector<Tensor<NV> *>& outputs,
-                        ArgmaxParam<NV>& param, 
-                        Context<NV>& ctx) {
         return SaberSuccess;
     }
 
