@@ -340,6 +340,26 @@ struct PreluParam {
     bool channel_shared{false};
     Tensor<TargetType>* slope{nullptr};
 };
+    
+template <typename TargetType>
+struct PermuteParam {
+    PermuteParam() {}
+    PermuteParam(std::vector<int> order):order(order) {}
+    PermuteParam(const PermuteParam &right): order(right.order) {}
+    PermuteParam &operator=(const PermuteParam &right) {
+        order = right.order;
+        return *this;
+    }
+    bool operator==(const PermuteParam &right) {
+        bool comp_eq = true;
+        comp_eq = order.size() == right.order.size();
+        for (int i = 0; i < order.size(); ++i) {
+            comp_eq = comp_eq && (order[i] == right.order[i]);
+        }
+        return comp_eq;
+    }
+    std::vector<int> order;
+};
 
 }
 }
