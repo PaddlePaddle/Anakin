@@ -3,8 +3,7 @@
 namespace anakin{
 namespace saber {
 
-template <DataType OpDtype>
-SaberStatus SaberCrop<X86, OpDtype>::dispatch(
+SaberStatus SaberCrop<X86, AK_FLOAT>::dispatch(
         const std::vector<Tensor<X86>*>& inputs,
         std::vector<Tensor<X86>*>& outputs,
         CropParam<X86>& param) {
