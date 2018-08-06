@@ -22,7 +22,6 @@ namespace saber{
 namespace lite{
 
 struct DeviceInfo{
-	std::string _device_name;
 	int _max_frequence;
 	int _min_frequence;
 	int _generate_arch;

@@ -96,7 +96,6 @@ void conv_depthwise_3x3(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_
                 conv_depthwise_3x3s2p1_bias_relu(dout, din, weights, bias, flag_bias, \
                 num, ch_in, h_in, w_in, h_out, w_out);
             }else{
-                //LOG(INFO) << "3x3s2_relu: w = " << w_in;
                 conv_depthwise_3x3s2p1_bias_s_relu(dout, din, weights, bias, flag_bias, \
                 num, ch_in, h_in, w_in, h_out, w_out);
             } 
@@ -105,7 +104,6 @@ void conv_depthwise_3x3(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_
                 conv_depthwise_3x3s2p1_bias(dout, din, weights, bias, flag_bias, \
                 num, ch_in, h_in, w_in, h_out, w_out);
             }else{
-               // LOG(INFO) << "3x3s2: w = " << w_in;
                 conv_depthwise_3x3s2p1_bias_s(dout, din, weights, bias, flag_bias, \
                 num, ch_in, h_in, w_in, h_out, w_out);
             }
@@ -2901,9 +2899,6 @@ void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
     const float zero[4] = {0.f, 0.f, 0.f, 0.f};
     const float* ptr_zero = zero;
 
- //  LOG(INFO)<<"vmask_rp: "<< vgetq_lane_u32(vmask_rp, 0) << ", "<<vgetq_lane_u32(vmask_rp, 1) << "," <<vgetq_lane_u32(vmask_rp, 2) <<", "<< vgetq_lane_u32(vmask_rp, 3);
-   LOG(INFO)<<"vmask_w: "<< vgetq_lane_u32(vmask_w, 0) << ", "<<vgetq_lane_u32(vmask_w, 1) << "," <<vgetq_lane_u32(vmask_w, 2) <<", "<< vgetq_lane_u32(vmask_w, 3);
-    
     for (int n = 0; n < num; ++n) {
         const float *din_batch = din + n * ch_in * size_in_channel;
         float *dout_batch = dout + n * ch_in * size_out_channel;
@@ -2942,8 +2937,6 @@ void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
                 din1_ptr = ptr_zero;
             }
 
-            LOG(INFO) << "dr0: "<<dr0 << ", dr1: "<<dr1 << ", dr2: "<< dr2;
-            LOG(INFO) << "doutr0: " << doutr0;
 #ifdef __aarch64__
             // todo
             
@@ -3001,14 +2994,11 @@ void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
 
 #endif //__aarch64__
 
-            LOG(INFO) << "dout:" << doutr0[0];
             dr0 = dr1;
             dr1 = dr2;
             dr2 = dr1 + w_in;
             doutr0 = doutr0 + w_out;
 
-
-            //LOG(INFO) <<"tile_h: " << tile_h;
             //! process mid rows
             for (int j = tile_h - 1; j > 0; j--) {
 #ifdef __aarch64__
@@ -3018,9 +3008,7 @@ void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
                 din1_ptr = dr1;
                 din2_ptr = dr2;
                 doutr0_ptr = doutr0;
-            LOG(INFO) << "j:" << j;
-            LOG(INFO) << "dr0: "<<dr0 << ", dr1: "<<dr1 << ", dr2: "<< dr2;
-            LOG(INFO) << "doutr0: " << doutr0;
+
                 asm volatile(
                  // process  pad
             "pld [%[din0_ptr], #128]                @ preload data\n"
@@ -3088,14 +3076,12 @@ void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
                 dr2 = dr1 + w_in;
                 doutr0 = doutr0 + w_out;
             } // end of process mid rows
-            //LOG(INFO) <<"end loop";
+
             // process bottom pad if needed
             if (size_pad_bottom) {
                 din0_ptr = dr0;
                 din1_ptr = dr1;
 
-               // LOG(INFO) << "dr0: "<<dr0 << ", dr1: "<<dr1 << ", dr2: "<< dr2;
-              //  LOG(INFO) << "doutr0: " << doutr0;
 #ifdef __aarch64__
                 // todo
 #else

@@ -25,13 +25,13 @@ void fill_bias_fc<float>(float* tensor, const float* bias, const int num, const 
 
         if (cnt > 0) {
             asm(
-            ".fill_bias_fc: \n"
-                    "vld1.32 {d0-d1}, [%[ptr_out]]  @ load data\n"
-                    "vld1.32 {d2-d3}, [%[ptr_bias]]!  @ load data\n"
-                    "vadd.f32 q2, q0, q1              @ add bias\n"
-                    "vst1.32  {d4-d5}, [%[ptr_out]]!  @ store result\n"
-                    "subs   %[cnt], #1                @ loop count -1\n"
-                    "bne    .fill_bias_fc             @ jump to main loop\n"
+            "1: \n"
+            "vld1.32 {d0-d1}, [%[ptr_out]]    @ load data\n"
+            "vld1.32 {d2-d3}, [%[ptr_bias]]!  @ load data\n"
+            "vadd.f32 q2, q0, q1              @ add bias\n"
+            "vst1.32  {d4-d5}, [%[ptr_out]]!  @ store result\n"
+            "subs   %[cnt], #1                @ loop count -1\n"
+            "bne    1b                        @ jump to main loop\n"
             :[ptr_out] "+r"(ptr_out), [ptr_bias] "+r"(ptr_bias), \
                     [cnt] "+r"(cnt)
             :
