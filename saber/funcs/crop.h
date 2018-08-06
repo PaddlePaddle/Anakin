@@ -84,10 +84,7 @@ public:
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
             case VENDER_IMPL:
-                this->_impl.push_back(new VenderCrop <TargetType,
-                        OpDtype>);
-                return SaberSuccess;
-
+                return SaberUnImplError
             case SABER_IMPL:
                 this->_impl.push_back(new SaberCrop <TargetType,
                         OpDtype>);
