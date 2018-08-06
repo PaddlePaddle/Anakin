@@ -29,7 +29,6 @@ namespace ops {
 template<typename Ttype, DataType Dtype, Precision Ptype>
 class ConvReluHelper;
 
-/// pooling op
 /**
  * \brief ConvRelu implementation class
  * public inherit Operator

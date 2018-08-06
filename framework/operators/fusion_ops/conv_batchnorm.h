@@ -64,7 +64,7 @@ public:
     Status InitParam() override;
 
     /**
-    * \brief initial all the resource needed by pooling
+    * \brief initial all the resource needed
     * \param ctx stand for ConvBatchnorm operation context
     * \param ins stand for input tensor vector
     * \param outs stand for output tensor vector
