@@ -37,3 +37,6 @@ android_build
 ios_build
 gpu_build
 output
+
+.idea
+.vs_code
