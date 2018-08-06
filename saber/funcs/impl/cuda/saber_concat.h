@@ -58,7 +58,6 @@ private:
     int _num_concats;
     int _concat_input_size;
 };
-//template class SaberConcat<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
 } //namespace saber
 
 } //namespace anakin

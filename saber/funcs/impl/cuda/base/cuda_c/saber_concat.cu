@@ -138,26 +138,6 @@ SaberStatus SaberConcat<NV, AK_FLOAT>::dispatch(const std::vector<Tensor<NV> *>&
     //outputs[0]->record_event(stream);
     return SaberSuccess;
 }
-#if 0
-typedef Tensor<NV, AK_FLOAT, NCHW> Tensor4f_1;
-typedef Tensor<NV, AK_FLOAT, NHWC> Tensor4f_2;
-typedef Tensor<NV, AK_FLOAT, HW> Tensor2f;
-typedef Tensor<NV, AK_INT8, NCHW> Tensor4c_1;
-typedef Tensor<NV, AK_INT8, NHWC> Tensor4c_2;
-typedef Tensor<NV, AK_INT8, HW> Tensor2c;
-template SaberStatus SaberConcat<AK_FLOAT, NCHW>::dispatch(const std::vector<Tensor4f_1 *> inputs, std::vector<Tensor4f_1 *> outputs,
-                                              ConcatParam<Tensor4f_1> &param);
-template SaberStatus SaberConcat<AK_FLOAT, NHWC>::dispatch(const std::vector<Tensor4f_2 *> inputs, std::vector<Tensor4f_2 *> outputs,
-                                              ConcatParam<Tensor4f_2> &param);
-template SaberStatus SaberConcat<AK_FLOAT, HW>::dispatch(const std::vector<Tensor2f *> inputs, std::vector<Tensor2f *> outputs,
-                                              ConcatParam<Tensor2f> &param);
-template SaberStatus SaberConcat<AK_INT8, NCHW>::dispatch(const std::vector<Tensor4c_1 *> inputs, std::vector<Tensor4c_1 *> outputs,
-                                              ConcatParam<Tensor4c_1> &param);
-template SaberStatus SaberConcat<AK_INT8, NHWC>::dispatch(const std::vector<Tensor4c_2 *> inputs, std::vector<Tensor4c_2 *> outputs,
-                                                   ConcatParam<Tensor4c_2> &param);
-template SaberStatus SaberConcat<AK_INT8, HW>::dispatch(const std::vector<Tensor2c *> inputs, std::vector<Tensor2c *> outputs,
-                                                   ConcatParam<Tensor2c> &param);
-#endif
 } //namespace anakin
 
 } //namespace anakin

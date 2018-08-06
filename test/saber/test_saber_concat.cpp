@@ -87,7 +87,8 @@ TEST(TestSaberFunc, test_func_concat) {
             shape_v.push_back(shin2);
             testbase.set_input_shape(shape_v);//add some input shape
             testbase.run_test(concat_nv_basic<float, NV, NVHX86>);//run test
-        }
+           // LOG(INFO) << "NV run end";
+	}
     }
 
 #endif
@@ -111,7 +112,7 @@ TEST(TestSaberFunc, test_func_concat) {
             shape_v.push_back(shin2);
             testbase.set_input_shape(shape_v);//add some input shape
             testbase.run_test(concat_nv_basic<float, X86, X86>);//run test
-            LOG(INFO) << "X86 run end";
+            //LOG(INFO) << "X86 run end";
         }
     }
 #endif

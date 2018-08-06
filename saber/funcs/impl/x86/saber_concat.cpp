@@ -41,7 +41,6 @@ SaberStatus SaberConcat<X86, OpDtype>::dispatch(const std::vector<Tensor<X86>*>&
         }
         offset_concat_axis += in_concat_axis;
     }
-//    CHECK_GE(inputs[0]->get_seq_offset().size(), 2);
     outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
     return SaberSuccess;
 }
