@@ -33,9 +33,8 @@ namespace anakin{
 
 namespace saber{
 
-template <typename TargetType, DataType OpDtype
->
-class Slice : public BaseFunc<TargetType，OpDtype，ImplBase, SliceParam>
+template <typename TargetType, DataType OpDtype>
+class Slice : public BaseFunc<TargetType, OpDtype, ImplBase, SliceParam>
 {
 public:
 
