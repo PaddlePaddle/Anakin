@@ -106,7 +106,7 @@ SaberStatus SaberConv2D<NV, AK_FLOAT>::\
                        inputs[0]->num(), inputs[0]->channel(),
                        inputs[0]->height(), inputs[0]->width(), outputs[0]->height(),
                        outputs[0]->width(), _kernel_width, _kernel_height, param.stride_w,
-                       param.stride_h, param.pad_w, param.pad_h,
+                       param.stride_h, param.pad_h, param.pad_w,
                        (const OpDataType*)param.weight()->data(), (const float*)bias_data,
                        this->_ctx->get_compute_stream());
     } else {

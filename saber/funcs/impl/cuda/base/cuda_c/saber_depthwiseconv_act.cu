@@ -35,8 +35,8 @@ __global__ void depthwise_conv_1d(const int nthreads,
         const Dtype* const weight_slice =
                 weight + c * size_kernel;
 
-        int khstart = hend < kernel_h? kernel_h - hend : 0;
-        int kwstart = wend < kernel_w? kernel_w - wend : 0;
+        int khstart = hend < kernel_h ? kernel_h - hend : 0;
+        int kwstart = wend < kernel_w ? kernel_w - wend : 0;
 
         for (int h = hstart; h < hend; ++h) {
             for (int w = wstart; w < wend; ++w) {
@@ -124,12 +124,12 @@ SaberStatus saber_depthwise_conv_act(const dtype* input, dtype* output, \
 
     if (bias_flag) {
 #ifdef D1
-        depthwise_conv_1d<dtype, true, true><<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, stream>>>(
+        depthwise_conv_1d<dtype, true, relu_flag><<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, stream>>>(
                 count, input, num, cin, hin, win, hout, wout, kh, \
                 kw, stride_h, stride_w, pad_h, pad_w, \
                 output, weights, bias);
 #else
-        depthwise_conv_2d<dtype, true, true><<<grid, block, 0, stream>>>(
+        depthwise_conv_2d<dtype, true, relu_flag><<<grid, block, 0, stream>>>(
                 channel_in_stride, channel_out_stride, kernel_size, \
                 input, num, cin, hin, win, hout, wout, kh, \
                 kw, stride_h, stride_w, pad_h, pad_w, \
@@ -137,12 +137,12 @@ SaberStatus saber_depthwise_conv_act(const dtype* input, dtype* output, \
 #endif
     } else {
 #ifdef D1
-        depthwise_conv_1d<dtype, false, true><<< CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, stream>>> (
+        depthwise_conv_1d<dtype, false, relu_flag><<< CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, stream>>> (
                 count, input, num, cin, hin, win, hout, wout, kh, \
                 kw, stride_h, stride_w, pad_h, \
                 pad_w, output, weights, nullptr);
 #else
-        depthwise_conv_2d<dtype, false, true><<<grid, block, 0, stream>>>(
+        depthwise_conv_2d<dtype, false, relu_flag><<<grid, block, 0, stream>>>(
                 channel_in_stride, channel_out_stride, kernel_size, \
                 input, num, cin, hin, win, hout, wout, kh, \
                 kw, stride_h, stride_w, pad_h, pad_w, \
