@@ -1,9 +1,6 @@
 #include "test_lite.h"
-#include "tensor_op_lite.h"
 #include "saber/lite/funcs/saber_conv.h"
 #include "saber/lite/funcs/neon/impl/conv_arm_impl.h"
-#include "saber/lite/funcs/timer_lite.h"
-#include "saber/lite/core/context_lite.h"
 
 using namespace anakin::saber;
 using namespace anakin::saber::lite;

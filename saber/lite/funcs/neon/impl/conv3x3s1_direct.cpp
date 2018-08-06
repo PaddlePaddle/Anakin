@@ -121,304 +121,6 @@ void conv_3x3s1_direct(const float* din, float* dout, \
                     if (1) {
 #ifdef __aarch64__
                         // todo
-                        int cnt = cnt_col;
-
-                        //float tmp1[4];
-                        //float* ptr1 = tmp1;
-                        //float tmp2[4];
-                        //float* ptr2 = tmp2;
-
-                        asm volatile(
-                        //! process left pad
-                                "prfm     pldl1keep, [%[doutc0r0]]          @ preload data\n"
-                                "prfm     pldl1keep, [%[din0_ptr]]          @ preload data\n"
-                                "prfm     pldl1keep, [%[doutc0r1]]          @ preload data\n"
-                                "prfm     pldl1keep, [%[doutc1r0]]          @ preload data\n"
-                                "prfm     pldl1keep, [%[doutc1r1]]          @ preload data\n"
-                                "ld1      {v13.4s}, [%[doutc0r0]]           @ load dout0r0\n"
-
-                                //! 1st row
-                                "ld1 {v10.4s, v11.2s}, [%[din0_ptr]]!   @ load dout0r0\n"
-                                "ld1 {v14.4s}, [%[doutc0r1]]            @ load dout0r0\n"
-                                "ld1 {v8.4s}, [%[doutc1r0]]             @ load dout0r0\n"
-                                "ld1 {v9.4s}, [%[doutc1r1]]             @ load dout0r0\n"
-
-                                "prfm     pldl1keep, [%[din1_ptr]]      @ preload data\n"
-                                "prfm     pldl1keep, [%[din2_ptr]]      @ preload data\n"
-
-                               // "vext.32  q12, q10, q11, #1             @ shift left r1\n"
-                                "ext v12.16b, v10.16b, v11.16b, #4      @ shift left r1\n"
-                              //  "vmla.f32 q13, q10, %e[wr01][1]         @ mul weight0 11, out0r0\n"
-                                "fmla v13.4s, v10.4s, %v[wr01].s[1]     @ mul weight0 11, out0r0\n"
-                                "fmla v14.4s, v10.4s, %v[wr00].s[1]     @ mul weight0 01, out0r1\n"
-                                "fmla v8.4s, v10.4s, %v[wr11].s[1]     @ mul weight1 11, out1r0\n"
-                                "fmla v9.4s, v10.4s, %v[wr10].s[1]     @ mul weight1 01, out1r1\n"
-
-                                //"vmov.u32 q15, #0                       @ dump zero\n"
-                               // "vext.32  q15, %q[vzero], q10, #3         @ shift right r1\n"
-                                "ext v15.16b, %v[vzero].16b, v10.16b, #12      @ shift right r1\n"
-                                "fmla v13.4s, v12.4s, %v[wr01].s[0]     @ mul weight0 12, out0r0\n"
-                                "fmla v14.4s, v12.4s, %v[wr00].s[0]     @ mul weight0 02, out0r1\n"
-                                "fmla v8.4s, v12.4s, %v[wr11].s[0]     @ mul weight1 12, out1r0\n"
-                                "fmla v9.4s, v12.4s, %v[wr10].s[0]     @ mul weight1 02, out1r1\n"
-
-                               // "vld1.32  {d20-d22}, [%[din1_ptr]]!     @ load din r2\n"
-                                "ld1 {v10.4s, v11.2s}, [%[din1_ptr]]!   @ load din r2\n"
-
-                                "vmla.f32 q13, q15, %e[wr01][0]         @ mul weight0 10, out0r0\n"
-                                "vmla.f32 q14, q15, %e[wr00][0]         @ mul weight0 00, out0r1\n"
-                                "vmla.f32 q8, q15, %e[wr11][0]          @ mul weight1 10, out1r0\n"
-                                "vmla.f32 q9, q15, %e[wr10][0]          @ mul weight1 00, out1r1\n"
-
-                                "sub %[din0_ptr], #12                   @ 1pad + 2 float data overlap\n"
-
-
-                                //! 2nd row
-                                //"pld [%[din1_ptr]]                      @ preload data\n"
-                                "vext.32  q12, q10, q11, #1             @ shift left r2\n"
-                                "vmla.f32 q13, q10, %e[wr02][1]         @ mul weight0 21, out0r0\n"
-                                "vmla.f32 q14, q10, %e[wr01][1]         @ mul weight0 11, out0r1\n"
-                                "vmla.f32 q8, q10, %e[wr12][1]          @ mul weight1 21, out1r0\n"
-                                "vmla.f32 q9, q10, %e[wr11][1]          @ mul weight1 11, out1r1\n"
-
-                                "vext.32  q15, %q[vzero], q10, #3             @ shift right r2\n"
-                                "vmla.f32 q13, q12, %f[wr02][0]         @ mul weight0 22, out0r0\n"
-                                "vmla.f32 q14, q12, %f[wr01][0]         @ mul weight0 12, out0r1\n"
-                                "vmla.f32 q8, q12, %f[wr12][0]          @ mul weight1 22, out1r0\n"
-                                "vmla.f32 q9, q12, %f[wr11][0]          @ mul weight1 12, out1r1\n"
-
-                                "vld1.32  {d20-d22}, [%[din2_ptr]]!     @ load din r3\n"
-
-                                "vmla.f32 q13, q15, %e[wr02][0]         @ mul weight0 20, out0r0\n"
-                                "vmla.f32 q14, q15, %e[wr01][0]         @ mul weight0 10, out0r1\n"
-                                "vmla.f32 q8, q15, %e[wr12][0]          @ mul weight1 20, out1r0\n"
-                                "vmla.f32 q9, q15, %e[wr11][0]          @ mul weight1 10, out1r1\n"
-
-                                //! 3rd row
-                               // "pld [%[din2_ptr]]                      @ preload data\n"
-                                "vext.32  q12, q10, q11, #1             @ shift left r3\n"
-                                "sub %[din1_ptr], #12                   @ 1pad + 2 float data overlap\n"
-                                "vmla.f32 q14, q10, %e[wr02][1]         @ mul weight0 21, out0r1\n"
-                                "vmla.f32 q9, q10, %e[wr12][1]          @ mul weight1 21, out1r1\n"
-
-                                "vext.32  q15, %q[vzero], q10, #3               @ shift right r3\n"
-                                "sub %[din2_ptr], #12                   @ 1pad + 2 float data overlap\n"
-                                "vmla.f32 q14, q12, %f[wr02][0]         @ mul weight0 22, out0r1\n"
-                                "vmla.f32 q9, q12, %f[wr12][0]          @ mul weight1 22, out1r1\n"
-
-                                "pld [%[din0_ptr]]                      @ preload data\n"
-                                "pld [%[din1_ptr]]                      @ preload data\n"
-                                "pld [%[din2_ptr]]                      @ preload data\n"
-                                "vmla.f32 q14, q15, %e[wr02][0]            @ mul weight0 20, out0r1\n"
-                                "vmla.f32 q9, q15, %e[wr12][0]            @ mul weight1 20, out1r1\n"
-
-                                //"sub %[din0_ptr], #12                   @ 1pad + 2 float data overlap\n"
-                               // "sub %[din1_ptr], #12                   @ 1pad + 2 float data overlap\n"
-                                //"sub %[din2_ptr], #12                   @ 1pad + 2 float data overlap\n"
-
-                            //stroe result
-                                "vst1.32  {d26-d27}, [%[doutc0r0]]!    @ store result, add pointer\n"
-                                "vst1.32  {d16-d17}, [%[doutc1r0]]!    @ store result, add pointer\n"
-
-                                "vst1.32  {d28-d29}, [%[doutc0r1]]!    @ store result, add pointer\n"
-                                "vst1.32  {d18-d19}, [%[doutc1r1]]!    @ store result, add pointer\n"
-
-                                "pld [%[doutc0r0]]                     @ preload data\n"
-                                "pld [%[doutc0r1]]                     @ preload data\n"
-                                "pld [%[doutc1r0]]                     @ preload data\n"
-                                "pld [%[doutc1r1]]                     @ preload data\n"
-
-                            //! process mid cols
-                                "cmp %[cnt], #1                         @ check whether has mid cols\n"
-                                "blt  start_top_right                   @ jump to main loop start point\n"
-                                "start_top_mid:                         @ main loop start point\n"
-
-                                "vld1.32  {d20-d22}, [%[din0_ptr]]!      @ load din r1\n"
-                                "vld1.32  {d26-d27}, [%[doutc0r0]]       @ load dout0r0\n"
-                                "vld1.32  {d28-d29}, [%[doutc0r1]]       @ load dout0r1\n"
-                                "vld1.32  {d16-d17}, [%[doutc1r0]]        @ load dout1r0\n"
-                                "vld1.32  {d18-d19}, [%[doutc1r1]]        @ load dout1r1\n"
-
-                                "sub %[din0_ptr], #8                    @ 2 float data overlap with previous data\n"
-
-                                //! 1st row
-                               // "pld [%[din0_ptr]]                       @ preload data\n"
-                                "vext.32  q12, q10, q11, #1                 @ shift left r1\n"
-                                "vmla.f32 q13, q10, %e[wr01][0]           @ mul weight0 10, out0r0\n"
-                                "vmla.f32 q14, q10, %e[wr00][0]           @ mul weight0 00, out0r1\n"
-                                "vmla.f32 q8, q10, %e[wr11][0]           @ mul weight1 10, out1r0\n"
-                                "vmla.f32 q9, q10, %e[wr10][0]           @ mul weight1 00, out1r1\n"
-
-                                "vext.32  q15, q10, q11, #2               @ shift left r1\n"
-                                "vmla.f32 q13, q12, %e[wr01][1]              @ mul weight0 11, out0r0\n"
-                                "vmla.f32 q14, q12, %e[wr00][1]              @ mul weight0 01, out0r1\n"
-                                "vmla.f32 q8, q12, %e[wr11][1]            @ mul weight1 11, out1r0\n"
-                                "vmla.f32 q9, q12, %e[wr10][1]            @ mul weight1 01, out1r1\n"
-
-                                "vld1.32  {d20-d22}, [%[din1_ptr]]!       @ load din r2\n"
-                                "vmla.f32 q13, q15, %f[wr01][0]            @ mul weight0 12, out0r0\n"
-                                "vmla.f32 q14, q15, %f[wr00][0]            @ mul weight0 02, out0r1\n"
-                                "vmla.f32 q8, q15, %f[wr11][0]            @ mul weight1 12, out1r0\n"
-                                "vmla.f32 q9, q15, %f[wr10][0]            @ mul weight1 02, out1r1\n"
-
-                                //! 2nd row
-                               // "vld1.32  {d20-d22}, [%[din1_ptr]]!       @ load din r2\n"
-                               //  "pld [%[din0_ptr]]                     @ preload data\n"
-                                 "sub %[din1_ptr], #8                    @ 2 float data overlap with previous data\n"
-
-                                "vext.32  q12, q10, q11, #1               @ shift left r2\n"
-                                "vmla.f32 q13, q10, %e[wr02][0]           @ mul weight0 20, out0r0\n"
-                                "vmla.f32 q14, q10, %e[wr01][0]           @ mul weight0 10, out0r1\n"
-                                "vmla.f32 q8, q10, %e[wr12][0]           @ mul weight1 20, out1r0\n"
-                                "vmla.f32 q9, q10, %e[wr11][0]           @ mul weight1 10, out1r1\n"
-
-                                "vext.32  q15, q10, q11, #2               @ shift left r2\n"
-                                "vmla.f32 q13, q12, %e[wr02][1]            @ mul weight0 21, out0r0\n"
-                                "vmla.f32 q14, q12, %e[wr01][1]            @ mul weight0 11, out0r1\n"
-                                "vmla.f32 q8, q12, %e[wr12][1]            @ mul weight1 21, out1r0\n"
-                                "vmla.f32 q9, q12, %e[wr11][1]            @ mul weight1 11, out1r1\n"
-
-                                "vld1.32  {d20-d22}, [%[din2_ptr]]!      @ load din r3\n"
-                                "vmla.f32 q13, q15, %f[wr02][0]            @ mul weight0 22, out0r0\n"
-                                "vmla.f32 q14, q15, %f[wr01][0]            @ mul weight0 12, out0r1\n"
-                                "vmla.f32 q8, q15, %f[wr12][0]            @ mul weight1 22, out1r0\n"
-                                "vmla.f32 q9, q15, %f[wr11][0]            @ mul weight1 12, out1r1\n"
-
-                                //! 3rd row
-                               // "pld [%[din1_ptr]]                       @ preload data\n"
-                                "sub %[din2_ptr], #8                      @ 2 float data overlap with previous data\n"
-
-                                "vext.32  q12, q10, q11, #1               @ shift left r3\n"
-                                "vmla.f32 q14, q10, %e[wr02][0]           @ mul weight0 20, out0r1\n"
-                                "vmla.f32 q9, q10, %e[wr12][0]           @ mul weight1 20, out1r1\n"
-
-                                "vext.32  q15, q10, q11, #2               @ shift left r3\n"
-                                "pld [%[din0_ptr]]                       @ preload data\n"
-                                "pld [%[din1_ptr]]                       @ preload data\n"
-                                "vmla.f32 q14, q12, %e[wr02][1]            @ mul weight0 21, out0r1\n"
-                                "vmla.f32 q9, q12, %e[wr12][1]            @ mul weight1 21, out1r1\n"
-
-                                "pld [%[din2_ptr]]                       @ preload data\n"
-                                "vst1.32  {d26-d27}, [%[doutc0r0]]!    @ store result, add pointer\n"
-                                "vst1.32  {d16-d17}, [%[doutc1r0]]!    @ store result, add pointer\n"
-                                "vmla.f32 q14, q15, %f[wr02][0]            @ mul weight0 22, out0r1\n"
-                                "vmla.f32 q9, q15, %f[wr12][0]            @ mul weight1 22, out1r1\n"
-
-                                "vst1.32  {d28-d29}, [%[doutc0r1]]!    @ store result, add pointer\n"
-                                "vst1.32  {d18-d19}, [%[doutc1r1]]!    @ store result, add pointer\n"
-                                "pld [%[doutc0r0]]                @ preload data\n"
-                                "pld [%[doutc0r1]]                @ preload data\n"
-
-                                "pld [%[doutc1r0]]                @ preload data\n"
-                                "pld [%[doutc1r1]]                @ preload data\n"
-
-                              // "sub %[din0_ptr], #8                    @ 2 float data overlap with previous data\n"
-                               // "sub %[din1_ptr], #8                    @ 2 float data overlap with previous data\n"
-                               // "sub %[din2_ptr], #8                    @ 2 float data overlap with previous data\n"
-                                "subs %[cnt], #1                        @ loop count minus 1\n"
-                                "bne    start_top_mid                   @ jump to main loop start point\n"
-
-                            //! process right pad
-                                "start_top_right:                       @ right pad entry\n"
-                                "vld1.32  {d20-d22}, [%[din0_ptr]]!      @ load din r1\n"
-                                "vld1.32  {d26-d27}, [%[doutc0r0]]       @ load dout0r0\n"
-                                "vld1.32  {d28-d29}, [%[doutc0r1]]       @ load dout0r1\n"
-                                "vld1.32  {d16-d17}, [%[doutc1r0]]        @ load dout1r0\n"
-                                "vld1.32  {d18-d19}, [%[doutc1r1]]        @ load dout1r1\n"
-
-                                //! 1st row
-                                "vbif d21, %e[vzero], %e[vmask_rp]             @ bit select, deal with right pad\n"
-                                "vbif d22, %e[vzero], %f[vmask_rp]             @ bit select, deal with right pad\n"
-                                "vext.32  q12, q10, q11, #1                 @ shift left r1\n"
-                                "vmla.f32 q13, q10, %e[wr01][0]           @ mul weight0 10, out0r0\n"
-                                "vmla.f32 q14, q10, %e[wr00][0]           @ mul weight0 00, out0r1\n"
-                                "vmla.f32 q8, q10, %e[wr11][0]           @ mul weight1 10, out1r0\n"
-                                "vmla.f32 q9, q10, %e[wr10][0]           @ mul weight1 00, out1r1\n"
-
-                                "vext.32  q15, q10, q11, #2               @ shift left r1\n"
-                                "vmla.f32 q13, q12, %e[wr01][1]              @ mul weight0 11, out0r0\n"
-                                "vmla.f32 q14, q12, %e[wr00][1]              @ mul weight0 01, out0r1\n"
-                                "vmla.f32 q8, q12, %e[wr11][1]            @ mul weight1 11, out1r0\n"
-                                "vmla.f32 q9, q12, %e[wr10][1]            @ mul weight1 01, out1r1\n"
-
-                                "vld1.32  {d20-d22}, [%[din1_ptr]]!       @ load din r2\n"
-                                "vmla.f32 q13, q15, %f[wr01][0]            @ mul weight0 12, out0r0\n"
-                                "vmla.f32 q14, q15, %f[wr00][0]            @ mul weight0 02, out0r1\n"
-                                "vmla.f32 q8, q15, %f[wr11][0]            @ mul weight1 12, out1r0\n"
-                                "vmla.f32 q9, q15, %f[wr10][0]            @ mul weight1 02, out1r1\n"
-
-                                //! 2nd row
-                                "vbif d21, %e[vzero], %e[vmask_rp]             @ bit select, deal with right pad\n"
-                                "vbif d22, %e[vzero], %f[vmask_rp]             @ bit select, deal with right pad\n"
-                                "vext.32  q12, q10, q11, #1               @ shift left r2\n"
-                                "vmla.f32 q13, q10, %e[wr02][0]           @ mul weight0 20, out0r0\n"
-                                "vmla.f32 q14, q10, %e[wr01][0]           @ mul weight0 10, out0r1\n"
-                                "vmla.f32 q8, q10, %e[wr12][0]           @ mul weight1 20, out1r0\n"
-                                "vmla.f32 q9, q10, %e[wr11][0]           @ mul weight1 10, out1r1\n"
-
-                                "vext.32  q15, q10, q11, #2               @ shift left r2\n"
-                                "vmla.f32 q13, q12, %e[wr02][1]            @ mul weight0 21, out0r0\n"
-                                "vmla.f32 q14, q12, %e[wr01][1]            @ mul weight0 11, out0r1\n"
-                                "vmla.f32 q8, q12, %e[wr12][1]            @ mul weight1 21, out1r0\n"
-                                "vmla.f32 q9, q12, %e[wr11][1]            @ mul weight1 11, out1r1\n"
-
-                                "vld1.32  {d20-d22}, [%[din2_ptr]]!      @ load din r3\n"
-                                "vmla.f32 q13, q15, %f[wr02][0]            @ mul weight0 22, out0r0\n"
-                                "vmla.f32 q14, q15, %f[wr01][0]            @ mul weight0 12, out0r1\n"
-                                "vmla.f32 q8, q15, %f[wr12][0]            @ mul weight1 22, out1r0\n"
-                                "vmla.f32 q9, q15, %f[wr11][0]            @ mul weight1 12, out1r1\n"
-
-                                //! 3rd row
-                                "vbif d21, %e[vzero], %e[vmask_rp]             @ bit select, deal with right pad\n"
-                                "vbif d22, %e[vzero], %f[vmask_rp]             @ bit select, deal with right pad\n"
-                                "vext.32  q12, q10, q11, #1               @ shift left r3\n"
-                                "vmla.f32 q14, q10, %e[wr02][0]           @ mul weight0 20, out0r1\n"
-                                "vmla.f32 q9, q10, %e[wr12][0]           @ mul weight1 20, out1r1\n"
-
-                                "vext.32  q15, q10, q11, #2               @ shift left r3\n"
-
-                                "vmla.f32 q14, q12, %e[wr02][1]            @ mul weight0 21, out0r1\n"
-                                "vmla.f32 q9, q12, %e[wr12][1]            @ mul weight1 21, out1r1\n"
-
-                                "vld1.32  {d20-d21}, [%[doutc0r0]]       @ load dout0r0\n"
-                                "vld1.32  {d22-d23}, [%[doutc0r1]]       @ load dout0r1\n"
-
-                                "vmla.f32 q14, q15, %f[wr02][0]            @ mul weight0 22, out0r1\n"
-                                "vmla.f32 q9, q15, %f[wr12][0]            @ mul weight1 22, out1r1\n"
-
-                                "vmvn.32  q12, %q[vzero]                      @ \n"
-                                "vext.32  q15, q12, %q[vmask_rp], #3    @ shift mask right 1\n"
-                                "vbif q13, q10, q15                      @ bit select\n"
-                                "vbif q14, q11, q15                      @ bit select\n"
-
-                                "vld1.32  {d20-d21}, [%[doutc1r0]]       @ load dout1r0\n"
-                                "vld1.32  {d22-d23}, [%[doutc1r1]]       @ load dout1r1\n"
-
-                                "vst1.32  {d26-d27}, [%[doutc0r0]]!    @ store result, add pointer\n"
-                                "vst1.32  {d28-d29}, [%[doutc0r1]]!    @ store result, add pointer\n"
-
-                                "vbif q8, q10, q15                      @ bit select\n"
-                                "vbif q9, q11, q15                      @ bit select\n"
-                                "sub %[doutc0r0], %[doutc0r0], %[right_pad_sub] @ sub \n"
-                                "sub %[doutc0r1], %[doutc0r1], %[right_pad_sub] @ sub \n"
-
-                                "vst1.32  {d16-d17}, [%[doutc1r0]]!    @ store result, add pointer\n"
-                                "vst1.32  {d18-d19}, [%[doutc1r1]]!    @ store result, add pointer\n"
-
-                                "sub %[doutc1r0], %[doutc1r0], %[right_pad_sub] @ sub \n"
-                                "sub %[doutc1r1], %[doutc1r1], %[right_pad_sub] @ sub \n"
-
-                        :[doutc0r0] "+r"(doutc0r0), [doutc0r1] "+r"(doutc0r1), \
-                            [doutc1r0] "+r" (doutc1r0), [doutc1r1] "+r" (doutc1r1),\
-                            [din0_ptr] "+r"(din0_ptr), [din1_ptr] "+r"(din1_ptr), \
-                            [din2_ptr] "+r"(din2_ptr), [cnt] "+r"(cnt)
-                        :[wr00] "w"(wr00), [wr01] "w"(wr01), [wr02] "w"(wr02), \
-                            [wr10] "w"(wr10), [wr11] "w"(wr11), [wr12] "w"(wr12), \
-                            [vmask_rp] "w" (vmask_rp), [right_pad_sub] "r" (right_pad_sub), \
-                            [vzero] "w" (vzero)
-                        :"q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
-                        );
-
 #else
                         int cnt = cnt_col;
 
@@ -512,13 +214,13 @@ void conv_3x3s1_direct(const float* din, float* dout, \
                                 //"sub %[din2_ptr], #12                   @ 1pad + 2 float data overlap\n"
 
                                 "cmp %[relu], #1                        @ check whether has relu\n"
-                                "blt    store_tl                        @ jump to store without relu\n"
+                                "blt    1f                              @ jump to top left store without relu\n"
                                 "vmax.f32   q13, q13, %q[vzero]         @ relu\n"
                                 "vmax.f32   q14, q14, %q[vzero]         @ relu\n"
                                 "vmax.f32   q8, q8, %q[vzero]           @ relu\n"
                                 "vmax.f32   q9, q9, %q[vzero]           @ relu\n"
 
-                                "store_tl:                              @ store top left result\n"
+                                "1:                              @ store top left result\n"
                                 // stroe tl result
                                 "vst1.32  {d26-d27}, [%[doutc0r0]]!     @ store result, add pointer\n"
                                 "vst1.32  {d16-d17}, [%[doutc1r0]]!     @ store result, add pointer\n"
@@ -533,7 +235,7 @@ void conv_3x3s1_direct(const float* din, float* dout, \
 
                                 //! process mid cols
                                 "cmp %[cnt], #1                         @ check whether has mid cols\n"
-                                "blt  start_top_right                   @ jump to main loop start point\n"
+                                "blt  2f                                @ jump to main loop start point\n"
                                 "start_top_mid:                         @ main loop start point\n"
 
                                 "vld1.32  {d20-d22}, [%[din0_ptr]]!     @ load din r1\n"
@@ -611,13 +313,13 @@ void conv_3x3s1_direct(const float* din, float* dout, \
                                 "vmla.f32 q9, q15, %f[wr12][0]          @ mul weight1 22, out1r1\n"
 
                                 "cmp %[relu], #1                        @ check whether has relu\n"
-                                "blt    store_tm                        @ jump to store without relu\n"
+                                "blt    3f                              @ jump to store without relu\n"
                                 "vmax.f32   q13, q13, %q[vzero]         @ relu\n"
                                 "vmax.f32   q14, q14, %q[vzero]         @ relu\n"
                                 "vmax.f32   q8, q8, %q[vzero]           @ relu\n"
                                 "vmax.f32   q9, q9, %q[vzero]           @ relu\n"
 
-                                "store_tm:                              @ store top mid result\n"
+                                "3:                                     @ store top mid result\n"
                                 // store tm result
                                 "vst1.32  {d26-d27}, [%[doutc0r0]]!     @ store result, add pointer\n"
                                 "vst1.32  {d16-d17}, [%[doutc1r0]]!     @ store result, add pointer\n"
@@ -632,7 +334,7 @@ void conv_3x3s1_direct(const float* din, float* dout, \
                                 "bne    start_top_mid                   @ jump to main loop start point\n"
 
                                 //! process right pad
-                                "start_top_right:                       @ right pad entry\n"
+                                "2:                                     @ right pad entry\n"
                                 "vld1.32  {d20-d22}, [%[din0_ptr]]!     @ load din r1\n"
                                 "vld1.32  {d26-d27}, [%[doutc0r0]]      @ load dout0r0\n"
                                 "vld1.32  {d28-d29}, [%[doutc0r1]]      @ load dout0r1\n"
@@ -700,13 +402,13 @@ void conv_3x3s1_direct(const float* din, float* dout, \
                                 "vmla.f32 q9, q15, %f[wr12][0]          @ mul weight1 22, out1r1\n"
 
                                 "cmp %[relu], #1                        @ check whether has relu\n"
-                                "blt    store_tr                        @ jump to store without relu\n"
+                                "blt    4f                              @ jump to store without relu\n"
                                 "vmax.f32   q13, q13, %q[vzero]         @ relu\n"
                                 "vmax.f32   q14, q14, %q[vzero]         @ relu\n"
                                 "vmax.f32   q8, q8, %q[vzero]           @ relu\n"
                                 "vmax.f32   q9, q9, %q[vzero]           @ relu\n"
 
-                                "store_tr:                              @ store top mid result\n"
+                                "4:                                     @ store top mid result\n"
                                 // store tr result
 
                                 "vmvn.32  q12, %q[vzero]                @ \n"
@@ -868,13 +570,13 @@ void conv_3x3s1_direct(const float* din, float* dout, \
                                 "vmla.f32 q9, q15, %e[wr12][0]          @ mul weight1 20, out1r1\n"
 
                                 "cmp %[relu], #1                        @ check whether has relu\n"
-                                "blt    store_ml                        @ jump to store without relu\n"
+                                "blt    5f                              @ jump to store without relu\n"
                                 "vmax.f32   q13, q13, %q[vzero]         @ relu\n"
                                 "vmax.f32   q8, q8, %q[vzero]           @ relu\n"
                                 "vmax.f32   q14, q14, %q[vzero]         @ relu\n"
                                 "vmax.f32   q9, q9, %q[vzero]           @ relu\n"
 
-                                "store_ml:                              @ store top mid result\n"
+                                "5:                                     @ store top mid result\n"
                                 // store ml result
                                 "pld [%[din3_ptr]]                      @ preload data\n"
                                 "vst1.32  {d26-d27}, [%[doutc0r0]]!     @ store result, add pointer\n"
@@ -888,7 +590,7 @@ void conv_3x3s1_direct(const float* din, float* dout, \
 
                                 //! process mid cols
                                 "cmp %[cnt], #1                         @ check whether has mid cols\n"
-                                "blt  start_mid_right                   @ jump to main loop start point\n"
+                                "blt  6f                                @ jump to main loop start point\n"
                                 "start_mid_mid:                         @ main loop start point\n"
 
                                 "vld1.32  {d20-d22}, [%[din0_ptr]]!     @ load din r0\n"
@@ -975,13 +677,13 @@ void conv_3x3s1_direct(const float* din, float* dout, \
                                 "vmla.f32 q9, q15, %f[wr12][0]          @ mul weight1 22, out1r1\n"
 
                                 "cmp %[relu], #1                        @ check whether has relu\n"
-                                "blt    store_mm                        @ jump to store without relu\n"
+                                "blt    7f                              @ jump to store without relu\n"
                                 "vmax.f32   q13, q13, %q[vzero]         @ relu\n"
                                 "vmax.f32   q8, q8, %q[vzero]           @ relu\n"
                                 "vmax.f32   q14, q14, %q[vzero]         @ relu\n"
                                 "vmax.f32   q9, q9, %q[vzero]           @ relu\n"
 
-                                "store_mm:                              @ store top mid result\n"
+                                "7:                                     @ store top mid result\n"
                                 // store ml result
                                 "pld [%[din3_ptr]]                      @ preload data\n"
                                 "vst1.32  {d26-d27}, [%[doutc0r0]]!     @ store result, add pointer\n"
@@ -997,7 +699,7 @@ void conv_3x3s1_direct(const float* din, float* dout, \
                                 "bne    start_mid_mid                   @ jump to main loop start point\n"
 
                                 //! process right pad
-                                "start_mid_right:                       @ right pad entry\n"
+                                "6:                                     @ right pad entry\n"
 
                                 "vld1.32  {d20-d22}, [%[din0_ptr]]!     @ load din r0\n"
                                 "vld1.32  {d26-d27}, [%[doutc0r0]]      @ load dout0r0\n"
@@ -1080,13 +782,13 @@ void conv_3x3s1_direct(const float* din, float* dout, \
                                 "vmla.f32 q9, q15, %f[wr12][0]          @ mul weight1 22, out1r1\n"
 
                                 "cmp %[relu], #1                        @ check whether has relu\n"
-                                "blt    store_mr                        @ jump to store without relu\n"
+                                "blt    8f                              @ jump to store without relu\n"
                                 "vmax.f32   q13, q13, %q[vzero]         @ relu\n"
                                 "vmax.f32   q8, q8, %q[vzero]           @ relu\n"
                                 "vmax.f32   q14, q14, %q[vzero]         @ relu\n"
                                 "vmax.f32   q9, q9, %q[vzero]           @ relu\n"
 
-                                "store_mr:                              @ store mid right result\n"
+                                "8:                                     @ store mid right result\n"
                                 // store mr result
                                 "vmvn.32  q12, %q[vzero]                @ \n"
                                 "vext.32  q15, q12, %q[vmask_rp], #3    @ shift mask right 1\n"
@@ -1186,11 +888,11 @@ void conv_3x3s1_direct(const float* din, float* dout, \
                                 "vmla.f32 q7, q15, %e[wr11][0]          @ mul weight1 10, out1r0\n"
 
                                 "cmp %[relu], #1                        @ check whether has relu\n"
-                                "blt    store_bl1                       @ jump to store without relu\n"
+                                "blt    9f                              @ jump to store without relu\n"
                                 "vmax.f32   q6, q6, %q[vzero]           @ relu\n"
                                 "vmax.f32   q7, q7, %q[vzero]           @ relu\n"
 
-                                "store_bl1:                             @ store mid right result\n"
+                                "9:                                     @ store mid right result\n"
                                 // store bl1 result
                                 "vst1.32  {d12-d13}, [%[doutc0r0]]!     @ store result, add pointer\n"
                                 "vst1.32  {d14-d15}, [%[doutc1r0]]!     @ store result, add pointer\n"
@@ -1199,8 +901,8 @@ void conv_3x3s1_direct(const float* din, float* dout, \
 
                                 //! process mid cols
                                 "cmp %[cnt], #1                         @ check whether has mid cols\n"
-                                "blt  conv3x3_bot_right                 @ jump to main loop start point\n"
-                                "conv3x3_bot_mid:                       @ main loop start point\n"
+                                "blt  10f                               @ jump to main loop start point\n"
+                                "12:                                    @ main loop start point\n"
 
                                 "vld1.32  {d16-d18}, [%[din0_ptr]]!     @ load din r0\n"
                                 "vld1.32  {d12-d13}, [%[doutc0r0]]      @ load dout0r0\n"
@@ -1238,11 +940,11 @@ void conv_3x3s1_direct(const float* din, float* dout, \
                                 "vmla.f32 q7, q15, %f[wr11][0]          @ mul weight1 12, out1r0\n"
 
                                 "cmp %[relu], #1                        @ check whether has relu\n"
-                                "blt    store_bm1                       @ jump to store without relu\n"
+                                "blt    11f                             @ jump to store without relu\n"
                                 "vmax.f32   q6, q6, %q[vzero]           @ relu\n"
                                 "vmax.f32   q7, q7, %q[vzero]           @ relu\n"
 
-                                "store_bm1:                             @ store mid right result\n"
+                                "11:                                    @ store mid right result\n"
                                 // store bm1 result
 
                                 "vst1.32  {d12-d13}, [%[doutc0r0]]!     @ store result, add pointer\n"
@@ -1251,10 +953,10 @@ void conv_3x3s1_direct(const float* din, float* dout, \
                                 "pld [%[doutc1r0]]                      @ preload data\n"
 
                                 "subs %[cnt], #1                        @ loop count minus 1\n"
-                                "bne    conv3x3_bot_mid                 @ jump to main loop start point\n"
+                                "bne    12b                             @ jump to main loop start point\n"
 
                                 //! process right pad
-                                "conv3x3_bot_right:                     @ right pad entry\n"
+                                "10:                                   @ right pad entry\n"
 
                                 "vld1.32  {d16-d18}, [%[din0_ptr]]!     @ load din r0\n"
                                 "vld1.32  {d20-d22}, [%[din1_ptr]]!     @ load din r1\n"
@@ -1293,11 +995,11 @@ void conv_3x3s1_direct(const float* din, float* dout, \
                                 "vmla.f32 q7, q15, %f[wr11][0]          @ mul weight1 12, out1r0\n"
 
                                 "cmp %[relu], #1                        @ check whether has relu\n"
-                                "blt    store_br1                       @ jump to store without relu\n"
+                                "blt    13f                             @ jump to store without relu\n"
                                 "vmax.f32   q6, q6, %q[vzero]           @ relu\n"
                                 "vmax.f32   q7, q7, %q[vzero]           @ relu\n"
 
-                                "store_br1:                             @ store mid right result\n"
+                                "13:                                    @ store mid right result\n"
                                 // store bl1 result
 
                                 "vmvn.32  q12, %q[vzero]                      @ \n"
@@ -1400,13 +1102,13 @@ void conv_3x3s1_direct(const float* din, float* dout, \
                                 "pld [%[din2_ptr]]                      @ preload data\n"
 
                                 "cmp %[relu], #1                        @ check whether has relu\n"
-                                "blt    store_bl2                       @ jump to store without relu\n"
+                                "blt    14f                             @ jump to store without relu\n"
                                 "vmax.f32   q14, q14, %q[vzero]         @ relu\n"
                                 "vmax.f32   q9, q9, %q[vzero]           @ relu\n"
                                 "vmax.f32   q13, q13, %q[vzero]         @ relu\n"
                                 "vmax.f32   q8, q8, %q[vzero]           @ relu\n"
 
-                                "store_bl2:                             @ store mid right result\n"
+                                "14:                                    @ store mid right result\n"
                                 // store bl2 result
                                 "vst1.32  {d28-d29}, [%[doutc0r1]]!     @ store result, add pointer\n"
                                 "vst1.32  {d18-d19}, [%[doutc1r1]]!     @ store result, add pointer\n"
@@ -1424,7 +1126,7 @@ void conv_3x3s1_direct(const float* din, float* dout, \
 
                                 //! process mid cols
                                 "cmp %[cnt], #1                         @ check whether has mid cols\n"
-                                "blt  conv3x3_bot_right_2                   @ jump to main loop start point\n"
+                                "blt  15f                               @ jump to main loop start point\n"
                                 "conv3x3_bot_mid_2:                         @ main loop start point\n"
 
                                 "vld1.32  {d20-d22}, [%[din0_ptr]]!      @ load din r0\n"
@@ -1493,13 +1195,13 @@ void conv_3x3s1_direct(const float* din, float* dout, \
                                 "pld [%[din2_ptr]]                        @ preload data\n"
 
                                 "cmp %[relu], #1                        @ check whether has relu\n"
-                                "blt    store_bm2                       @ jump to store without relu\n"
+                                "blt    16f                             @ jump to store without relu\n"
                                 "vmax.f32   q14, q14, %q[vzero]         @ relu\n"
                                 "vmax.f32   q9, q9, %q[vzero]           @ relu\n"
                                 "vmax.f32   q13, q13, %q[vzero]         @ relu\n"
                                 "vmax.f32   q8, q8, %q[vzero]           @ relu\n"
 
-                                "store_bm2:                             @ store mid right result\n"
+                                "16:                                    @ store mid right result\n"
                                 // store bl2 result
 
                                 "vst1.32  {d28-d29}, [%[doutc0r1]]!     @ store result, add pointer\n"
@@ -1516,7 +1218,7 @@ void conv_3x3s1_direct(const float* din, float* dout, \
                                 "bne    conv3x3_bot_mid_2                   @ jump to main loop start point\n"
 
                                 //! process right pad
-                                "conv3x3_bot_right_2:                       @ right pad entry\n"
+                                "15:                                    @ right pad entry\n"
 
                                 "vld1.32  {d20-d22}, [%[din0_ptr]]!      @ load din r0\n"
                                 "vld1.32  {d26-d27}, [%[doutc0r0]]       @ load dout0r0\n"
@@ -1583,16 +1285,16 @@ void conv_3x3s1_direct(const float* din, float* dout, \
                                 "vmla.f32 q9, q15, %f[wr11][0]            @ mul weight1 12, out1r1\n"
 
                                 "cmp %[relu], #1                        @ check whether has relu\n"
-                                "blt    store_br2                       @ jump to store without relu\n"
+                                "blt    17f                             @ jump to store without relu\n"
                                 "vmax.f32   q14, q14, %q[vzero]         @ relu\n"
                                 "vmax.f32   q9, q9, %q[vzero]           @ relu\n"
                                 "vmax.f32   q13, q13, %q[vzero]         @ relu\n"
                                 "vmax.f32   q8, q8, %q[vzero]           @ relu\n"
 
-                                "store_br2:                             @ store mid right result\n"
+                                "17:                                    @ store mid right result\n"
                                 // store br2 result
 
-                                "vmvn.32  q12, %q[vzero]                      @ \n"
+                                "vmvn.32  q12, %q[vzero]                @ \n"
                                 "vext.32  q15, q12, %q[vmask_rp], #3    @ shift mask right 1\n"
                                 "vbif q13, q10, q15                     @ bit select\n"
                                 "vbif q8, q11, q15                      @ bit select\n"
