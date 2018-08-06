@@ -29,7 +29,7 @@ template <typename dtype, bool bias_flag, bool relu_flag>
 SaberStatus saber_depthwise_conv_act(const dtype* input, dtype* output, \
     int num, int cin, int hin, int win, int hout, int wout, \
     int kw, int kh, int stride_w, int stride_h, \
-    int pad_h, int pad_w, const dtype* weights, const dtype* bias, \
+    int pad_w, int pad_h, const dtype* weights, const dtype* bias, \
     cudaStream_t stream);
 
 template <DataType OpDtype,
@@ -182,14 +182,14 @@ public:
                     saber_depthwise_conv_act<InDataType, true, true>(inputs[0]->data(), \
                         outputs[0]->mutable_data(), num, chin, hin, win, hout, \
                         wout, _kernel_width, _kernel_height, param.conv_param.stride_w, \
-                        param.conv_param.stride_h, param.conv_param.pad_h, param.conv_param.pad_w,\
+                        param.conv_param.stride_h, param.conv_param.pad_w, param.conv_param.pad_h,\
                         (const OpDataType*)param.conv_param.weight()->data(), bias_data, \
                         this->_ctx->get_compute_stream());
                 } else {
                     saber_depthwise_conv_act<InDataType, true, false>(inputs[0]->data(), \
                         outputs[0]->mutable_data(), num, chin, hin, win, hout, \
                         wout, _kernel_width, _kernel_height, param.conv_param.stride_w, \
-                        param.conv_param.stride_h, param.conv_param.pad_h, param.conv_param.pad_w,\
+                        param.conv_param.stride_h, param.conv_param.pad_w, param.conv_param.pad_h,\
                         (const OpDataType*)param.conv_param.weight()->data(), bias_data, \
                         this->_ctx->get_compute_stream());
                 }
@@ -201,7 +201,7 @@ public:
                         inputs[0]->height(), inputs[0]->width(), outputs[0]->height(), \
                         outputs[0]->width(), _kernel_width, \
                         _kernel_height, param.conv_param.stride_w, \
-                        param.conv_param.stride_h, param.conv_param.pad_h, param.conv_param.pad_w,\
+                        param.conv_param.stride_h, param.conv_param.pad_w, param.conv_param.pad_h,\
                         (const OpDataType*)param.conv_param.weight()->data(), bias_data, \
                         this->_ctx->get_compute_stream());
                 } else {
@@ -210,7 +210,7 @@ public:
                         inputs[0]->height(), inputs[0]->width(), outputs[0]->height(), \
                         outputs[0]->width(), _kernel_width, \
                         _kernel_height, param.conv_param.stride_w, \
-                        param.conv_param.stride_h, param.conv_param.pad_h, param.conv_param.pad_w,\
+                        param.conv_param.stride_h, param.conv_param.pad_w, param.conv_param.pad_h,\
                         (const OpDataType*)param.conv_param.weight()->data(), bias_data, \
                         this->_ctx->get_compute_stream());
                 }
