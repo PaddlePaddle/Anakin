@@ -81,6 +81,16 @@ struct ArgmaxParam {
 };
 
 template <typename TargetType>
+struct AxpyParam {
+    AxpyParam() {}
+    AxpyParam(const AxpyParam<TargetType>& right) { }
+    AxpyParam& operator=(const AxpyParam<TargetType>& right){ return *this;}
+    bool operator==(const AxpyParam<TargetType>& right){
+        return true;
+    }
+};
+
+template <typename TargetType>
 struct PreluParam;
 
 template <typename TargetType>
