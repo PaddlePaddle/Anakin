@@ -11,11 +11,10 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-#ifndef ANAKIN_SABER_LITE_FUNCS_SABER_CONV_ACT_H
-#define ANAKIN_SABER_LITE_FUNCS_SABER_CONV_ACT_H
+#ifndef ANAKIN_SABER_LITE_FUNCS_SABER_DECONV_ACT_H
+#define ANAKIN_SABER_LITE_FUNCS_SABER_DECONV_ACT_H
 
 #include "saber/lite/funcs/saber_deconv.h"
-#ifdef USE_ARM_PLACE
 
 namespace anakin{
 
@@ -130,6 +129,5 @@ private:
 } //namespace saber
 
 } //namespace anakin
-#endif // USE_ARM_PLACE
 
 #endif //ANAKIN_SABER_LITE_FUNCS_SABER_CONV_ACT_H

@@ -27,45 +27,6 @@ SaberStatus SaberConv2D::load_param(const ParamBase *param) {
     return SaberSuccess;
 }
 
-//SaberConv2D::SaberConv2D(int weights_size, int num_output, int group, int kw, int kh, \
-//        int stride_w, int stride_h, int pad_w, int pad_h, int dila_w, int dila_h, \
-//        bool flag_bias, const float* weights, const float* bias) {
-//    _num_output = num_output;
-//    _group = group;
-//    _kw = kw;
-//    _kh = kh;
-//    _stride_w = stride_w;
-//    _stride_h = stride_h;
-//    _pad_w = pad_w;
-//    _pad_h = pad_h;
-//    _dila_w = dila_w;
-//    _dila_h = dila_h;
-//    _bias_term = flag_bias;
-//    _weights = weights;
-//    _bias = bias;
-//    _weights_size = weights_size;
-//}
-
-//SaberStatus SaberConv2D::load_param(int weights_size, int num_output, int group, int kw, int kh, \
-//        int stride_w, int stride_h, int pad_w, int pad_h, int dila_w, int dila_h, \
-//        bool flag_bias, const float* weights, const float* bias) {
-//    _num_output = num_output;
-//    _group = group;
-//    _kw = kw;
-//    _kh = kh;
-//    _stride_w = stride_w;
-//    _stride_h = stride_h;
-//    _pad_w = pad_w;
-//    _pad_h = pad_h;
-//    _dila_w = dila_w;
-//    _dila_h = dila_h;
-//    _bias_term = flag_bias;
-//    _weights = weights;
-//    _bias = bias;
-//    _weights_size = weights_size;
-//    return SaberSuccess;
-//}
-
 SaberStatus SaberConv2D::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                               std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
 

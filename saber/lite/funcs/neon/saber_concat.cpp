@@ -8,15 +8,6 @@ namespace saber{
 
 namespace lite{
 
-//SaberConcat::SaberConcat(int axis) {
-//    _axis = axis;
-//}
-//
-//SaberStatus SaberConcat::load_param(int axis) {
-//    _axis = axis;
-//    return SaberSuccess;
-//}
-
 SaberConcat::SaberConcat(const ParamBase *param) {
     _param = (const ConcatParam*)param;
     this->_flag_param = true;

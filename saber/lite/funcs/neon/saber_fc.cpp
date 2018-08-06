@@ -90,29 +90,6 @@ SaberStatus SaberFc::load_param(const ParamBase *param) {
     return SaberSuccess;
 }
 
-//SaberFc::SaberFc(int axis, int num_output, bool flag_trans, bool flag_bias, \
-//    const float *weights, const float *bias) {
-//
-//    _axis = axis;
-//    _num_output = num_output;
-//    _flag_trans = flag_trans;
-//    _bias_term = flag_bias;
-//    _weights = weights;
-//    _bias = bias;
-//}
-//
-//SaberStatus SaberFc::load_param(int axis, int num_output, bool flag_trans, bool flag_bias, \
-//    const float *weights, const float *bias) {
-//
-//    _axis = axis;
-//    _num_output = num_output;
-//    _flag_trans = flag_trans;
-//    _bias_term = flag_bias;
-//    _weights = weights;
-//    _bias = bias;
-//    return SaberSuccess;
-//}
-
 SaberStatus SaberFc::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                           std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
 

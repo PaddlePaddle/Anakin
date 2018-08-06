@@ -21,33 +21,6 @@ SaberStatus SaberPooling::load_param(const ParamBase *param) {
     return SaberSuccess;
 }
 
-//SaberPooling::SaberPooling(PoolingType type, bool flag_global, int kernel_w, int kernel_h, \
-//    int stride_w, int stride_h, int pad_w, int pad_h) {
-//
-//    _type = type;
-//    _is_global = flag_global;
-//    _kw = kernel_w;
-//    _kh = kernel_h;
-//    _stride_w = stride_w;
-//    _stride_h = stride_h;
-//    _pad_w = pad_w;
-//    _pad_h = pad_h;
-//}
-//
-//SaberStatus SaberPooling::load_param(PoolingType type, bool flag_global, int kernel_w, int kernel_h, \
-//    int stride_w, int stride_h, int pad_w, int pad_h) {
-//
-//    _type = type;
-//    _is_global = flag_global;
-//    _kw = kernel_w;
-//    _kh = kernel_h;
-//    _stride_w = stride_w;
-//    _stride_h = stride_h;
-//    _pad_w = pad_w;
-//    _pad_h = pad_h;
-//    return SaberSuccess;
-//}
-
 SaberStatus SaberPooling::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                                std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
 

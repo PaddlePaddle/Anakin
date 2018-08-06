@@ -184,17 +184,6 @@ SaberStatus SaberEltwise::load_param(const ParamBase *param) {
     return SaberSuccess;
 }
 
-//SaberEltwise::SaberEltwise(EltwiseType type, std::vector<float> coef) {
-//    _type = type;
-//    _coef = coef;
-//}
-//
-//SaberStatus SaberEltwise::load_param(EltwiseType type, std::vector<float> coef) {
-//    _type = type;
-//    _coef = coef;
-//    return SaberSuccess;
-//}
-
 SaberStatus SaberEltwise::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                                std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
 

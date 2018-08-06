@@ -28,8 +28,6 @@ class SaberActivation : public OpBase {
 public:
     SaberActivation() {}
     SaberActivation(const ParamBase* param);
-    //SaberActivation(ActiveType type, float neg_slop = 0.f);
-    //SaberStatus load_param(ActiveType type, float neg_slop = 0.f);
     virtual SaberStatus load_param(const ParamBase* param) override;
 
     ~SaberActivation() {}
@@ -44,8 +42,6 @@ public:
                           std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 private:
     const ActivationParam* _param;
-    //ActiveType _type;
-    //float _neg_slop;
 };
 
 

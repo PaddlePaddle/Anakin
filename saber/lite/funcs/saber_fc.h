@@ -39,12 +39,6 @@ public:
 
     virtual SaberStatus load_param(const ParamBase* param) override;
 
-//    SaberFc(int axis, int num_output, bool flag_trans, bool flag_bias, \
-//        const float* weights, const float* bias);
-//
-//    SaberStatus load_param(int axis, int num_output, bool flag_trans, bool flag_bias, \
-//        const float* weights, const float* bias);
-
     ~SaberFc() {}
 
     virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
@@ -63,12 +57,6 @@ private:
     int _m;
     int _k;
     int _n;
-//    int _axis;
-//    int _num_output;
-//    bool _bias_term{true};
-//    bool _flag_trans{false};
-//    const float* _weights{nullptr};
-//    const float* _bias{nullptr};
 };
 
 } //namespace lite

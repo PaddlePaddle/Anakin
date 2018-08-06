@@ -8,17 +8,6 @@ namespace saber{
 
 namespace lite{
 
-//SaberSlice::SaberSlice(int axis, std::vector<int> slice_points) {
-//    _axis = axis;
-//    _slice_points = slice_points;
-//}
-//
-//SaberStatus SaberSlice::load_param(int axis, std::vector<int> slice_points) {
-//    _axis = axis;
-//    _slice_points = slice_points;
-//    return SaberSuccess;
-//}
-
 SaberSlice::SaberSlice(const ParamBase *param) {
     _param = (const SliceParam*)param;
     _slice_points = _param->_points;

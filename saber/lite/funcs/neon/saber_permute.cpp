@@ -118,15 +118,6 @@ SaberPermute::SaberPermute() {
     _transpose = false;
 }
 
-//SaberPermute::SaberPermute(std::vector<int> orders) {
-//    _order_dims = orders;
-//}
-//
-//SaberStatus SaberPermute::load_param(std::vector<int> orders) {
-//    _order_dims = orders;
-//    return SaberSuccess;
-//}
-
 SaberPermute::SaberPermute(const ParamBase *param) {
     _param = (const PermuteParam*)param;
     this->_flag_param = true;
