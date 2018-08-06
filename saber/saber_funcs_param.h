@@ -81,6 +81,27 @@ struct ActivationParam {
 };
 
 template <typename TargetType>
+struct ConcatParam {
+    ConcatParam() = default;
+    explicit ConcatParam(int axis_in){
+        CHECK_GE(axis_in, 0) << "concat parameter should >= 0, current is " << axis_in;
+        axis = axis_in;
+    }
+    ConcatParam(const ConcatParam<TargetType> &right) {
+        axis = right.axis;
+    }
+    ConcatParam &operator=(const ConcatParam<TargetType> &right) {
+        axis = right.axis;
+        return *this;
+    }
+    bool operator==(const ConcatParam<TargetType> &right) {
+        return axis == right.axis;
+    }
+    int axis;
+};
+
+
+template <typename TargetType>
 struct ConvParam {
 
     ConvParam()
