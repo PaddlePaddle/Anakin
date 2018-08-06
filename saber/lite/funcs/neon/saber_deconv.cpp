@@ -197,6 +197,11 @@ SaberStatus SaberDeconv2D::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &
         return SaberNotInitialized;
     }
 
+#ifdef ENABLE_OP_TIMER
+    this->_timer.clear();
+    this->_timer.start();
+#endif
+
     const float* din = inputs[0]->data();
     float* dout = outputs[0]->mutable_data();
 
@@ -256,8 +261,13 @@ SaberStatus SaberDeconv2D::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &
         }
 
     }
-
-
+#ifdef ENABLE_OP_TIMER
+    this->_timer.end();
+    float ts = this->_timer.get_average_ms();
+    printf("deconv time: %f\n", ts);
+    OpTimer::add_timer("deconvolution", ts);
+    OpTimer::add_timer("total", ts);
+#endif
     return SaberSuccess;
 }
 

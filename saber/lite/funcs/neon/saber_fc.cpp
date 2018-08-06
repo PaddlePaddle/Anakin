@@ -149,6 +149,11 @@ SaberStatus SaberFc::dispatch(\
         return SaberNotInitialized;
     }
 
+#ifdef ENABLE_OP_TIMER
+    this->_timer.clear();
+    this->_timer.start();
+#endif
+
     const float* din = inputs[0]->data();
     float* dout = outputs[0]->mutable_data();
     const float* weights = _param->_weights;
@@ -169,6 +174,15 @@ SaberStatus SaberFc::dispatch(\
             sgemv(false, _n, _k, weights, din, dout);
         }
     }
+
+#ifdef ENABLE_OP_TIMER
+    this->_timer.end();
+    float ts = this->_timer.get_average_ms();
+    printf("fc time: %f\n", ts);
+    OpTimer::add_timer("fc", ts);
+    OpTimer::add_timer("total", ts);
+#endif
+
     return SaberSuccess;
 }
 

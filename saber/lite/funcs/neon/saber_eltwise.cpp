@@ -250,6 +250,11 @@ SaberStatus SaberEltwise::dispatch(\
         return SaberNotInitialized;
     }
 
+#ifdef ENABLE_OP_TIMER
+    this->_timer.clear();
+    this->_timer.start();
+#endif
+
     const float* din_a = inputs[0]->data();
     const float* din_b = inputs[1]->data();
     float* dout = outputs[0]->mutable_data();
@@ -261,6 +266,13 @@ SaberStatus SaberEltwise::dispatch(\
         din_a = inputs[i]->data();
         _impl(din_a, dout, dout, size, _param->_coef);
     }
+#ifdef ENABLE_OP_TIMER
+    this->_timer.end();
+    float ts = this->_timer.get_average_ms();
+    printf("eltwise time: %f\n", ts);
+    OpTimer::add_timer("eltwise", ts);
+    OpTimer::add_timer("total", ts);
+#endif
 
     return SaberSuccess;
 }

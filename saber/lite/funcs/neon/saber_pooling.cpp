@@ -127,6 +127,11 @@ SaberStatus SaberPooling::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &i
         printf("init pool first\n");
         return SaberNotInitialized;
     }
+#ifdef ENABLE_OP_TIMER
+    this->_timer.clear();
+    this->_timer.start();
+#endif
+
     const float* din = inputs[0]->data();
     float* dout = outputs[0]->mutable_data();
     int num = inputs[0]->num();
@@ -142,6 +147,14 @@ SaberStatus SaberPooling::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &i
         _param->_pool_type, _param->_flag_global, _param->_pool_kw, _param->_pool_kh, \
         _param->_pool_stride_w, _param->_pool_stride_h, \
         _param->_pool_pad_w, _param->_pool_pad_h);
+
+#ifdef ENABLE_OP_TIMER
+    this->_timer.end();
+    float ts = this->_timer.get_average_ms();
+    printf("pooling time: %f\n", ts);
+    OpTimer::add_timer("pooling", ts);
+    OpTimer::add_timer("total", ts);
+#endif
     return SaberSuccess;
 }
 

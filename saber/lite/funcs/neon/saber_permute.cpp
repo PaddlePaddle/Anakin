@@ -222,6 +222,11 @@ SaberStatus SaberPermute::dispatch(\
         return SaberNotInitialized;
     }
 
+#ifdef ENABLE_OP_TIMER
+    this->_timer.clear();
+    this->_timer.start();
+#endif
+
     //! only copy the data
     if (!_need_permute) {
         outputs[0]->copy_from(*inputs[0]);
@@ -237,7 +242,13 @@ SaberStatus SaberPermute::dispatch(\
         permute_basic(_count, din, _param->_order.data(), \
         _old_steps.data(), _new_steps.data(), _num_axes, dout);
     }
-
+#ifdef ENABLE_OP_TIMER
+    this->_timer.end();
+    float ts = this->_timer.get_average_ms();
+    printf("permute time: %f\n", ts);
+    OpTimer::add_timer("permute", ts);
+    OpTimer::add_timer("total", ts);
+#endif
     return SaberSuccess;
 }
 

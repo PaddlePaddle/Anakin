@@ -23,6 +23,8 @@ namespace saber{
 
 namespace lite{
 
+typedef void (*act_impl)(const float* din, float* dout, int n, int c, int h, int w, const ActivationParam* _param, int threads);
+
 //template <ARMType ttype, DataType dtype>
 class SaberActivation : public OpBase {
 public:
@@ -42,6 +44,7 @@ public:
                           std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 private:
     const ActivationParam* _param;
+    act_impl _impl;
 };
 
 

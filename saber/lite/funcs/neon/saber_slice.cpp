@@ -94,6 +94,11 @@ SaberStatus SaberSlice::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &inp
         return SaberNotInitialized;
     }
 
+#ifdef ENABLE_OP_TIMER
+    this->_timer.clear();
+    this->_timer.start();
+#endif
+
     int offset_slice_axis = 0;
     const float* din = inputs[0]->data();
     const int in_slice_axis = inputs[0]->valid_shape()[_param->_axis];
@@ -108,6 +113,13 @@ SaberStatus SaberSlice::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &inp
         }
         offset_slice_axis += out_slice_axis;
     }
+#ifdef ENABLE_OP_TIMER
+    this->_timer.end();
+    float ts = this->_timer.get_average_ms();
+    printf("slice time: %f\n", ts);
+    OpTimer::add_timer("slice", ts);
+    OpTimer::add_timer("total", ts);
+#endif
     return SaberSuccess;
 }
 

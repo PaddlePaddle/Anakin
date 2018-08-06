@@ -66,6 +66,9 @@ private:
     size_t _workspace_fwd_sizes{0};
     Tensor<CPU, AK_FLOAT> _workspace_data;
     Tensor<CPU, AK_FLOAT> _weights_trans;
+#ifdef ENABLE_OP_TIMER
+    std::string _conv_type;
+#endif
 };
 
 
