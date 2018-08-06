@@ -420,6 +420,26 @@ struct SliceParam {
     int axis;
     std::vector<int> slice_points;
 };
+
+template <typename type>
+struct SoftmaxParam {
+    SoftmaxParam() = default;
+    explicit SoftmaxParam(int axis_in){
+        CHECK_GE(axis_in, 0) << "input axis index should >= 0, current is " << axis_in;
+        axis = axis_in;
+    }
+    SoftmaxParam(const SoftmaxParam<type>& right){
+        axis = right.axis;
+    }
+    SoftmaxParam<type>& operator=(const SoftmaxParam<type>& right){
+        this->axis = right.axis;
+        return *this;
+    }
+    bool operator==(const SoftmaxParam<type>& right){
+        return axis == right.axis;
+    }
+    int axis;
+};
 }
 }
 #endif //SABER_FUNCS_PARAM_H
