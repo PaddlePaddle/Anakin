@@ -1,5 +1,6 @@
-#include "saber/funcs/impl/cuda/saber_conv_act.h"
-
+//#include "saber/funcs/impl/cuda/saber_conv_act.h"
+#include "saber/saber_types.h"
+#include "saber/core/common.h"
 namespace anakin{
 
 namespace saber{

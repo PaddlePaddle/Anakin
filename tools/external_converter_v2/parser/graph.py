@@ -4,7 +4,6 @@
 
 from utils import *
 from proto import *
-from kill_caffe import *
 from logger import *
 from frontend import RunServerOnGraph
 
@@ -20,6 +19,7 @@ class Graph(object):
         """
         self.save_file_path = config.SavePath + config.ResultName + ".anakin.bin"
         if config.framework == 'CAFFE':
+            from kill_caffe import CaffeParser
             self.parser = CaffeParser(config.framework_config_dict)
         elif config.framework == 'PADDLE':
             pass
@@ -29,6 +29,9 @@ class Graph(object):
             pass
         elif config.framework == 'MXNET':
             pass
+        elif config.framework == 'FLUID':
+            from kill_fluid import FluidParser
+            self.parser = FluidParser(config.framework_config_dict)
         else:
             raise NameError('ERROR: GrapProtoIO not support %s model.' % (config.framework))
         self.graph_io = self.parser()

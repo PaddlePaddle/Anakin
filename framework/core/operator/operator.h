@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -44,7 +44,12 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 class Operator : public OperatorBase {
 public:
     Operator() {}
-    virtual ~Operator() {}
+    virtual ~Operator() {
+		if(_helper) {
+			delete _helper;
+			_helper = nullptr;
+		}
+	}
 
     virtual void operator() (OpContext<Ttype> &ctx, 
                              const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
@@ -78,6 +83,7 @@ public:
      */
     virtual Status InitParam() {
         DLOG(ERROR) << " Target ParserParam not overriden.";
+        return Status::FAIL();
     }
 
     /** 
@@ -87,6 +93,7 @@ public:
                         const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
                         std::vector<Tensor4dPtr<Ttype, Dtype> >& outs){
         DLOG(ERROR) << " Target init not overriden.";
+        return Status::FAIL();
     }
 
     /** 
@@ -95,18 +102,29 @@ public:
     virtual Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
                               std::vector<Tensor4dPtr<Ttype, Dtype> >& outs){
         DLOG(ERROR) << " Target infershape not overriden.";
+        return Status::FAIL();
     }
 
     /** 
      *  \brief Bind parameter pack from graph.
      */
-    void BindParam(graph::NodePtr<Ttype, Dtype, Ptype>& node_p) { _node_p = node_p; }
+    void BindParam(graph::NodePtr<Ttype, Dtype, Ptype>& node_p) { 
+		_node_p = std::make_shared<graph::Node<Ttype, Dtype, Ptype>>(); 
+		*_node_p = *node_p;
+	}
 
     /** 
      *  \brief Get target attr by name.
      */
     template<typename T>
     T get_attr(std::string attr_name) { return _node_p->get_attr<T>(attr_name); }
+
+	/**
+	 *  \brief Judge if op access target attr
+	 */
+	inline bool check_attr(const std::string& attr_name) {
+		return _node_p->inspect_attr(attr_name);
+	}
 
 private:
     ///< Pointer to graph node.
@@ -141,7 +159,7 @@ public:
      *  \brief Create Operator object by op_name.
      */
     virtual Operator<Ttype, Dtype, Ptype>* operator[](const std::string op_name) {
-        Factory<Operator<Ttype, Dtype, Ptype>, OperatorCreator<Ttype, Dtype, Ptype>>::operator[](op_name);
+        return Factory<Operator<Ttype, Dtype, Ptype>, OperatorCreator<Ttype, Dtype, Ptype>>::operator[](op_name);
     }
 
     /** 
@@ -201,15 +219,15 @@ typedef Singleton<OpAttrObjectRegister> OpAttrRegister;
 ///    .set_in(1)
 ///    .set_out(1)
 ///    .Args<int>("axis",  " the axis in input dim index. ")
-///    .Arg<bool>("bias_term", " whether include bias parameter.")
+///    .Args<bool>("bias_term", " whether include bias parameter.")
 ///    .Args<PTuple<float>>("weight", " the weight name.")
 ///    .Args<PTuple<float>>("bias", " the bias name.");       
 #define ANAKIN_REGISTER_OP(OpName) \
-    static AK_ATTRIBUTE_UNUSED OpAttrWarpper& AK_MAKE_UNIQ_OPERATOR_NAME(OpName) = \
-                   OpAttrRegister::Global().Register(#OpName).name(#OpName)                
+    static AK_ATTRIBUTE_UNUSED OpAttrWarpper& AK_MAKE_UNIQ_OPERATOR_NAME(OpName) =  \
+                   OpAttrRegister::Global().Register(#OpName).name(#OpName)
 
 #define ANAKIN_REGISTER_OP_HELPER(OpName, OpHelperName, TargetT, DataT, PrecisionT)                                             \
-    static AK_ATTRIBUTE_UNUSED bool AK_MAKE_UNIQ_OPERATOR_NAME(OpName##_##OpHelperName##TargetT##DataT) =           \
+    static AK_ATTRIBUTE_UNUSED bool AK_MAKE_UNIQ_OPERATOR_NAME(OpName##_##OpHelperName##TargetT##DataT) =                       \
     OpFactory<TargetT, DataT, PrecisionT>::Global().Register(#OpName,                                                           \
                                   []() {                                                                                        \
                                         OpName<TargetT, DataT, PrecisionT>* tmpop = new OpName<TargetT, DataT, PrecisionT>();   \
