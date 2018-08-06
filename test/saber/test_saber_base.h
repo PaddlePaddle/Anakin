@@ -74,9 +74,9 @@ public:
         }
         
         for(int i = 0; i < _op_output_num; ++i){
-            TensorD *d_od = new TensorD(new_shape);
-            TensorH *d_oh = new TensorH(new_shape);
-            TensorH *d_ohd = new TensorH(new_shape);
+            TensorD *d_od = new TensorD();
+            TensorH *d_oh = new TensorH();
+            TensorH *d_ohd = new TensorH();
             out_d.push_back(d_od);
             out_h.push_back(d_oh);
             out_hd.push_back(d_ohd);
@@ -108,9 +108,9 @@ public:
             in_h.push_back(d_ih);
         }
         for(int i = 0; i < _op_output_num; ++i){
-            TensorD *d_od = new TensorD(new_shape_v[i]);
-            TensorH *d_oh = new TensorH(new_shape_v[i]);
-            TensorH *d_ohd = new TensorH(new_shape_v[i]);
+            TensorD *d_od = new TensorD();
+            TensorH *d_oh = new TensorH();
+            TensorH *d_ohd = new TensorH();
             out_d.push_back(d_od);
             out_h.push_back(d_oh);
             out_hd.push_back(d_ohd);
@@ -121,7 +121,6 @@ public:
         _outputs_host.push_back(out_h);
         _outputs_hd.push_back(out_hd);
         _input_shapes.push_back(new_shape_v);
-        
         
     }
     void set_input_shape (Shape new_shape, TestDataType type = RANDOM, double value = 1){
@@ -154,7 +153,6 @@ public:
         int input_size = _inputs_dev.size();
         CHECK_EQ(input_size, _inputs_host.size()) << "dev and host inputs num must be equal";
         if(_input_type == RANDOM){
-            CHECK_EQ(input_size, 1) << "special input num must be 1";
             for(int i=0; i<_inputs_dev.size(); ++i){
                 for(int j=0; j<_op_input_num; ++j){
                     fill_tensor_rand(*_inputs_dev[i][j], minv, maxv);
@@ -162,6 +160,7 @@ public:
                 }
             }
         } else {
+            CHECK_EQ(input_size, 1) << "special input num must be 1";
             for(int i = 0; i < _inputs_dev.size(); ++i){
                 for(int j = 0; j < _op_input_num; ++j){
                     fill_tensor_const(*_inputs_dev[i][j], _special_value);
@@ -256,7 +255,7 @@ public:
         float ts = t.get_average_ms();
         LOG(INFO) << "avg run time:" << ts / _inputs_dev.size() / 100 << "ms";
         for(int input_index = 0; input_index < _inputs_dev.size(); ++input_index){
-            for(int j = 0; j < _op_input_num; ++j){
+            for(int j = 0; j < _op_output_num; ++j){
                 _outputs_hd[input_index][j] -> copy_from(*_outputs_dev[input_index][j]);
             }
         }
@@ -274,14 +273,14 @@ public:
         int check_size = _outputs_host.size();
         std::vector<double> max_diff(check_size, 0);
         std::vector<double> max_ratio(check_size, 0);
-        Shape sh = _inputs_host[0][0] -> shape();
         for(int i = 0; i < _outputs_host.size(); ++i){
+            Shape sh = _inputs_host[i][0] -> shape();
             for(int j = 0; j<_op_output_num; ++j){
                 tensor_cmp_host<float>((const float*)_outputs_hd[i][j] -> data(), (const float*)_outputs_host[i][j] -> data(),
                                        _outputs_hd[i][j] -> valid_size(), max_ratio[i], max_diff[i]);
                 LOG(INFO) << "input_shape:(" << sh.num() << "," << sh.channel() << "," << sh.height() << "," << sh.width() << ")";
                 LOG(INFO) << "max_ratio:" << max_ratio[i];
-                if(max_ratio[i] <= succ_ratio)
+                if(max_ratio[i] <= succ_ratio && (_outputs_hd[i][0]->valid_shape() == _outputs_host[i][0]->valid_shape()))
                     LOG(INFO) << "Test Passed!";
                 else
                     LOG(FATAL) << "Test Failed!!"<< "output:(" << i << "-" << j << ")";
