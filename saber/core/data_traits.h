@@ -16,7 +16,7 @@
 #ifndef ANAKIN_SABER_CORE_DATA_TRAITS_H
 #define ANAKIN_SABER_CORE_DATA_TRAITS_H
 
-#include "saber_types.h"
+#include "saber/saber_types.h"
 
 namespace anakin{
 

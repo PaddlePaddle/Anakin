@@ -28,12 +28,6 @@ int FLAGS_threads = 1;
 int FLAGS_cluster = 0;
 #endif
 
-#define WRITE_RESULT 1
-#if WRITE_RESULT
-#include <fstream>
-FILE *fp = fopen("benchmark_result.txt", "w+");
-#endif
-
 using Target = ARM;
 using Target_H = ARM;
 
