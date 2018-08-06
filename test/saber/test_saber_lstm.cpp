@@ -202,6 +202,7 @@ void compute_ref_lstm_fwd_me(std::vector<Tensor4f*> &src, std::vector<Tensor4f*>
     }
 
 }
+//#define COMPARE_FILE
 template <typename HOST,typename DEVICE>
 void lstm_ut(int word_size = 222,
              int hidden_size = 333,
@@ -233,12 +234,15 @@ void lstm_ut(int word_size = 222,
     TensorDf4 dev_weight(shape_weight);
     TensorDf4 dev_bias(shape_bias);
     TensorDf4 dev_hidden_out(shape_h);
-//    readTensorData(host_weight, "host_w");
-//    readTensorData(host_x, "host_x");
-//    readTensorData(host_bias, "host_b");
-    fill_tensor_rand(host_weight);
-    fill_tensor_rand(host_x);
-    fill_tensor_rand(host_bias);
+#ifdef COMPARE_FILE
+    readTensorData(host_weight, "host_w");
+    readTensorData(host_x, "host_x");
+    readTensorData(host_bias, "host_b");
+#else
+    fill_tensor_rand(host_weight,-1,1);
+    fill_tensor_rand(host_x,-1,1);
+    fill_tensor_rand(host_bias,-1,1);
+#endif
     dev_weight.copy_from(host_weight);
     dev_x.copy_from(host_x);
     dev_bias.copy_from(host_bias);
@@ -277,11 +281,11 @@ void lstm_ut(int word_size = 222,
 
     host_hidden_out.copy_from(dev_hidden_out);
     TensorHf4 compare_g(shape_h);
-
-//    readTensorData(compare_g, "host_correct");
-//    write_tensorfile(host_hidden_out, "host_g.txt");
-//    write_tensorfile(compare_g, "host_correct.txt");
-
+#ifdef COMPARE_FILE
+    readTensorData(compare_g, "host_correct");
+    write_tensorfile(host_hidden_out, "host_g.txt");
+    write_tensorfile(compare_g, "host_correct.txt");
+#else
     std::vector<TensorHf4*> inputs_ref;
     std::vector<TensorHf4*> outputs_ref;
     outputs_ref.push_back(&compare_g);
@@ -289,13 +293,19 @@ void lstm_ut(int word_size = 222,
     LstmParam<HOST> param_ref(&host_weight, &host_bias,nullptr,Active_unknow,gate_activity,cell_activity,candi_activity,
                               with_peephole,false,is_reverse);
     compute_ref_lstm_fwd_me(inputs_ref,outputs_ref,param_ref);
-
+#endif
     double maxdiff = 0;
     double maxratio = 0;
     tensor_cmp_host((const float*)host_hidden_out.data(), (const float*)compare_g.data(), host_hidden_out.valid_size(), maxratio, maxdiff);
-    if (abs(maxratio) <= 0.001||abs(maxdiff)<0.001) {
+    if (abs(maxratio) <= 0.005||abs(maxdiff)<0.005) {
                 LOG(INFO) << "passed  " << maxratio<<","<<maxdiff<<",?="<<abs(maxratio);
     } else {
+        for(int i:offsets){
+            LOG(INFO)<<"offset = "<<i;
+        }
+        LOG(INFO)<<"param = "<<word_size<<","<<hidden_size<<","<<",reverse = "<<is_reverse<<",with_peephole = "<<with_peephole;
+        LOG(INFO)<<"gate_activity = "<<gate_activity<<",cell_activity = "<<cell_activity<<",candi_activity = "<<candi_activity;
+        LOG(INFO)<<"impl = "<<test_mode;
         CHECK(false) << "failed : ratio " << maxratio<<","<<maxdiff;
     }
 
@@ -306,24 +316,21 @@ void lstm_ut(int word_size = 222,
 
 TEST(TestSaberFunc, test_func_lstm_x86) {
     Env<X86>::env_init();
-
-    lstm_ut<X86,X86>(222,333,{0,1,3,5,10},false, false,Active_sigmoid,Active_tanh,Active_tanh,100,SABER_IMPL);
-    lstm_ut<X86,X86>(222,333,{0,1,3,5,10},false, true,Active_sigmoid,Active_tanh,Active_tanh,100,SABER_IMPL);
-    lstm_ut<X86,X86>(222,333,{0,1,3,5,10},true, false,Active_sigmoid,Active_tanh,Active_tanh,100,SABER_IMPL);
-    lstm_ut<X86,X86>(222,333,{0,1,3,5,10},true, true,Active_sigmoid,Active_tanh,Active_tanh,100,SABER_IMPL);
-    lstm_ut<X86,X86>(222,333,{0,10},false, true,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
-    lstm_ut<X86,X86>(222,333,{0,10},false, false,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
-    lstm_ut<X86,X86>(222,333,{0,10},true, true,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
-    lstm_ut<X86,X86>(222,333,{0,10},true, false,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
-
-    lstm_ut<X86,X86>(222,333,{0,1,3,5,10},false, false,Active_sigmoid,Active_tanh,Active_tanh,100,VENDER_IMPL);
-    lstm_ut<X86,X86>(222,333,{0,1,3,5,10},false, true,Active_sigmoid,Active_tanh,Active_tanh,100,VENDER_IMPL);
-    lstm_ut<X86,X86>(222,333,{0,1,3,5,10},true, false,Active_sigmoid,Active_tanh,Active_tanh,100,VENDER_IMPL);
-    lstm_ut<X86,X86>(222,333,{0,1,3,5,10},true, true,Active_sigmoid,Active_tanh,Active_tanh,100,VENDER_IMPL);
-    lstm_ut<X86,X86>(222,333,{0,10},false, true,Active_sigmoid,Active_tanh,Active_tanh,0,VENDER_IMPL);
-    lstm_ut<X86,X86>(222,333,{0,10},false, false,Active_sigmoid,Active_tanh,Active_tanh,0,VENDER_IMPL);
-    lstm_ut<X86,X86>(222,333,{0,10},true, true,Active_sigmoid,Active_tanh,Active_tanh,0,VENDER_IMPL);
-    lstm_ut<X86,X86>(222,333,{0,10},true, false,Active_sigmoid,Active_tanh,Active_tanh,0,VENDER_IMPL);
+#ifdef COMPARE_FILE
+    lstm_ut<X86,X86>(15,333,{0,5}, true, true,Active_tanh,Active_tanh,Active_tanh,0,SABER_IMPL);
+#else
+    for(int word_size:{15,222})
+        for(int hidden_size:{15,333})
+            for(bool reverse:{true,false})
+                for(bool with_peephole:{true,false})
+                    for(ActiveType gate_act:{Active_sigmoid,Active_tanh})
+                        for(ActiveType cell_act:{Active_sigmoid,Active_tanh})
+                            for(ActiveType candi_act:{Active_sigmoid,Active_tanh})
+                                for(ImplEnum impl:{SABER_IMPL}){
+        lstm_ut<X86,X86>(word_size,hidden_size,{0,3,7,12,13},reverse, with_peephole,gate_act,cell_act,candi_act,0,impl);
+        lstm_ut<X86,X86>(word_size,hidden_size,{0,5},reverse, with_peephole,gate_act,cell_act,candi_act,0,impl);
+    }
+#endif
 }
 
 #endif
@@ -333,23 +340,17 @@ TEST(TestSaberFunc, test_func_lstm_x86) {
 TEST(TestSaberFunc, test_func_lstm_nv) {
     Env<NV>::env_init();
 
-    lstm_ut<NVHX86,NV>(222,333,{0,1,3,5,10},false, true,Active_sigmoid,Active_tanh,Active_tanh,100,SABER_IMPL);
-    lstm_ut<NVHX86,NV>(222,333,{0,1,3,5,10},true, false,Active_sigmoid,Active_tanh,Active_tanh,100,SABER_IMPL);
-    lstm_ut<NVHX86,NV>(222,333,{0,1,3,5,10},true, true,Active_sigmoid,Active_tanh,Active_tanh,100,SABER_IMPL);
-    lstm_ut<NVHX86,NV>(222,333,{0,1,3,5,10},true, true,Active_sigmoid,Active_sigmoid,Active_sigmoid,1000,SABER_IMPL);
-    lstm_ut<NVHX86,NV>(222,666,{0,10},false, true,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
-    lstm_ut<NVHX86,NV>(222,666,{0,10},false, false,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
-    lstm_ut<NVHX86,NV>(222,666,{0,10},true, true,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
-    lstm_ut<NVHX86,NV>(222,666,{0,10},true, false,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
-
-//    lstm_ut<NVHX86,NV>(222,333,{0,1,3,5,10},false, false,Active_sigmoid,Active_tanh,Active_tanh,100,VENDER_IMPL);
-//    lstm_ut<NVHX86,NV>(222,333,{0,1,3,5,10},false, true,Active_sigmoid,Active_tanh,Active_tanh,100,VENDER_IMPL);
-//    lstm_ut<NVHX86,NV>(222,333,{0,1,3,5,10},true, false,Active_sigmoid,Active_tanh,Active_tanh,100,VENDER_IMPL);
-//    lstm_ut<NVHX86,NV>(222,333,{0,1,3,5,10},true, true,Active_sigmoid,Active_tanh,Active_tanh,100,VENDER_IMPL);
-//    lstm_ut<NVHX86,NV>(222,333,{0,10},false, true,Active_sigmoid,Active_tanh,Active_tanh,0,VENDER_IMPL);
-//    lstm_ut<NVHX86,NV>(222,333,{0,10},false, false,Active_sigmoid,Active_tanh,Active_tanh,0,VENDER_IMPL);
-//    lstm_ut<NVHX86,NV>(222,333,{0,10},true, true,Active_sigmoid,Active_tanh,Active_tanh,0,VENDER_IMPL);
-//    lstm_ut<NVHX86,NV>(222,333,{0,10},true, false,Active_sigmoid,Active_tanh,Active_tanh,0,VENDER_IMPL);
+    for(int word_size:{15,222})
+        for(int hidden_size:{15,333})
+            for(bool reverse:{true,false})
+                for(bool with_peephole:{true,false})
+                    for(ActiveType gate_act:{Active_sigmoid,Active_tanh})
+                        for(ActiveType cell_act:{Active_sigmoid,Active_tanh})
+                            for(ActiveType candi_act:{Active_sigmoid,Active_tanh})
+                                for(ImplEnum impl:{SABER_IMPL}){
+                                    lstm_ut<NVHX86,NV>(word_size,hidden_size,{0,3,7,12,13},reverse, with_peephole,gate_act,cell_act,candi_act,0,impl);
+                                    lstm_ut<NVHX86,NV>(word_size,hidden_size,{0,5},reverse, with_peephole,gate_act,cell_act,candi_act,0,impl);
+                                }
 
 }
 

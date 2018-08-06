@@ -36,7 +36,43 @@ inline Dtype Identity(const Dtype a) {
     return a;
 }
 
-#ifdef __AVX2__
+#if defined(__SSE4_2__)
+
+#include "saber_sse_math.h"
+template<>
+inline __m128 Relu<__m128>(const __m128 a) {
+    __m128 tmp = _mm_set1_ps(0.0f);
+    return _mm_max_ps(a, tmp);
+}
+
+
+template<>
+inline __m128 Sigmoid<__m128>(const __m128 a) {
+    __m128 tmp = a;
+    tmp = _mm_sub_ps(_mm_set1_ps(0.0f), tmp);
+    tmp = exp128_ps_fma(tmp);
+    tmp = _mm_add_ps(_mm_set1_ps(1.0f), tmp);
+    tmp = _mm_div_ps(_mm_set1_ps(1.0f), tmp);
+    return tmp;
+}
+
+
+template<>
+inline __m128 Tanh<__m128>(const __m128 a) {
+    __m128 tmp = _mm_mul_ps(_mm_set1_ps(-2.0f), a);
+    tmp = exp128_ps_fma(tmp);
+    return _mm_sub_ps(_mm_div_ps(_mm_set1_ps(2.0f),
+                                       _mm_add_ps(_mm_set1_ps(1.0f), tmp)),
+                         _mm_set1_ps(1.0f));
+}
+
+
+#endif
+
+
+
+
+#if defined(__AVX2__)
 #include "saber_avx2_math.h"
 
 template<>
@@ -56,8 +92,6 @@ inline __m256 Sigmoid<__m256>(const __m256 a) {
     return tmp;
 }
 
-
-
 template<>
 inline __m256 Tanh<__m256>(const __m256 a) {
     __m256 tmp = _mm256_mul_ps(_mm256_set1_ps(-2.0f), a);
@@ -69,7 +103,7 @@ inline __m256 Tanh<__m256>(const __m256 a) {
 
 #endif
 
-#ifdef __AVX512F__
+#if defined(__AVX512F__)
 #include "saber_avx512_math.h"
 
 template<>

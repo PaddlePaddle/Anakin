@@ -5,13 +5,17 @@
 #include "saber/funcs/impl/x86/x86_utils.h"
 
 
-#ifdef __AVX512F__
+#if defined(__AVX512F__)
 #define SABER_X86_TYPE __m512
-#elif __AVX2__
+#elif defined(__AVX2__)
 #define SABER_X86_TYPE __m256
+#elif defined(__SSE4_2__)
+#define SABER_X86_TYPE __m128
 #else
 #define SABER_X86_TYPE float
 #endif
+
+//#define SABER_X86_TYPE __m128
 
 namespace anakin {
 namespace saber {

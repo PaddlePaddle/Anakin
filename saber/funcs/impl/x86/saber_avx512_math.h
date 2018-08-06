@@ -21,10 +21,10 @@ static inline __m512 _mm512_expfaster_ps(const __m512 &a) {
     return _mm512_castsi512_ps(_mm512_cvttps_epi32(_mm512_fmadd_ps(C2, a, C1)));
 }
 
-inline __mm512 exp512_ps_fma(const __mm512 x) {
+inline __mm512 exp512_ps_fma(__mm512 x) {
     __m512 tmp = _mm512_setzero_ps(), fx;
     __m512i imm0;
-    __m512 one=_mm256_set1_ps(1.f);
+    __m512 one=_mm512_set1_ps(1.f);
     __m512 _ps512_exp_hi=_mm512_set1_ps(88.3762626647949f);
     __m512 _ps512_exp_lo=_mm512_set1_ps(-88.3762626647949f);
     x = _mm512_min_ps(x, _ps512_exp_hi);
@@ -67,9 +67,9 @@ inline __mm512 exp512_ps_fma(const __mm512 x) {
     imm0 = _mm512_cvttps_epi32(fx);
     // another two AVX2 instructions
     __m512i _pi32_512_0x7f=_mm512_set1_epi32(0x7f);
-    imm0 = avx2_mm512_add_epi32(imm0, _pi32_512_0x7f);
-    imm0 = avx2_mm512_slli_epi32(imm0, 23);
-    __mm512 pow2n = _mm512_castsi512_ps(imm0);
+    imm0 = _mm512_add_epi32(imm0, _pi32_512_0x7f);
+    imm0 = _mm512_slli_epi32(imm0, 23);
+    __m512 pow2n = _mm512_castsi512_ps(imm0);
     y = _mm512_mul_ps(y, pow2n);
     return y;
 }

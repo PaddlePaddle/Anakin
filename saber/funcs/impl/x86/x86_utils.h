@@ -75,6 +75,11 @@ public:
     template <typename Dtype>
     void aligned_last_dim(const Dtype* input, Dtype* output, int input_size, int ori_last_dim,
                           int aligned_dim) {
+        for(int row=0;row<input_size/ori_last_dim;row++){
+            for(int col=ori_last_dim;col<aligned_dim;col++){
+                output[row*aligned_dim+col]= static_cast<Dtype>(0);
+            }
+        }
         for (int i = 0; i < input_size; i++) {
             int row = i / ori_last_dim;
             int col = i % ori_last_dim;
