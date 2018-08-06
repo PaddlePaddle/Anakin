@@ -17,6 +17,7 @@
 #define ANAKIN_SABER_FUNCS_IMPL_CUDA_CUDNN_CONV2D_H
 
 #include "saber/funcs/impl/impl_conv.h"
+#include "saber/funcs/impl/cuda/saber_activation.h"
 #include <cudnn.h>
 
 namespace anakin{
@@ -41,8 +42,9 @@ public:
             , _workspaceSizeInBytes(0)
             , _fwd_algo((cudnnConvolutionFwdAlgo_t)0)
             , _input_nchw_descs(NULL)
-            , _bias_desc(NULL)
             , _output_nchw_descs(NULL)
+            , _active_descs(NULL)
+            , _bias_desc(NULL)
             , weights_scale(NULL)
     {}
 
@@ -56,6 +58,9 @@ public:
         }
         if (_output_descs) {
             CUDNN_CHECK(cudnnDestroyTensorDescriptor(_output_descs));
+        }
+        if (_active_descs) {
+            CUDNN_CHECK(cudnnDestroyActivationDescriptor(_active_descs));
         }
         if (_bias_desc) {
             CUDNN_CHECK(cudnnDestroyTensorDescriptor(_bias_desc));
@@ -76,6 +81,7 @@ public:
             CUDNN_CHECK(cudnnDestroyTensorDescriptor(_output_nchw_descs));
         }
         cudaFree(weights_scale);
+        delete _saber_act;
     }
 
     /**
@@ -108,6 +114,9 @@ private:
     cudnnFilterDescriptor_t _filter_desc;
     cudnnConvolutionDescriptor_t _conv_descs;
 
+    // activation descriptor
+    cudnnActivationDescriptor_t _active_descs;
+
     size_t _workspace_fwd_sizes;
     size_t _workspaceSizeInBytes;  // size of underlying storage
     void *_workspaceData;  // underlying storage
@@ -120,6 +129,8 @@ private:
     cudnnTensorDescriptor_t _input_nchw_descs;
     cudnnTensorDescriptor_t _output_nchw_descs;
 
+    bool _with_saber_act{false};
+    SaberActivation<NV, OpDtype> *_saber_act{nullptr};
     float* weights_scale;
     Tensor<NV> int8_weights;
     Tensor<NV> int8_input;

@@ -99,7 +99,8 @@ struct ActivationParam {
             : active(Active_unknow)
             , negative_slope(float(-1))
             , coef(float(-1))
-            , prelu_param(PreluParam<TargetType>(false, nullptr)) {}
+            , prelu_param(PreluParam<TargetType>(false, nullptr))
+            , has_active(false) {}
     ActivationParam(ActiveType act, float n_slope = float(0),
                     float co = float(1),
                     PreluParam<TargetType> prelu = PreluParam<TargetType>(false, nullptr))
@@ -107,18 +108,21 @@ struct ActivationParam {
             , negative_slope(n_slope)
             , coef(co)
             , prelu_param(prelu)
+            , has_active(true)
     {}
     ActivationParam(const ActivationParam &right)
             : active(right.active)
             , negative_slope(right.negative_slope)
             , coef(right.coef)
             , prelu_param(right.prelu_param)
+            , has_active(right.has_active)
     {}
     ActivationParam &operator=(const ActivationParam &right) {
         active = right.active;
         negative_slope = right.negative_slope;
         coef = right.coef;
         prelu_param = right.prelu_param;
+        has_active = right.has_active;
         return *this;
     }
     bool operator==(const ActivationParam &right) {
@@ -127,6 +131,7 @@ struct ActivationParam {
         comp_eq = comp_eq && (negative_slope == right.negative_slope);
         comp_eq = comp_eq && (coef == right.coef);
         comp_eq = comp_eq && (prelu_param == right.prelu_param);
+        comp_eq = comp_eq && (has_active == right.has_active);
         return comp_eq;
     }
     bool has_negative_slope(){
@@ -135,6 +140,7 @@ struct ActivationParam {
     ActiveType active;
     float negative_slope;
     float coef;
+    bool has_active;
     PreluParam<TargetType> prelu_param;
 };
 
@@ -142,19 +148,23 @@ template <typename TargetType>
 struct ConvParam {
 
     ConvParam()
-            : group(-1), pad_h(-1), pad_w(-1),
-              stride_h(-1), stride_w(-1),
-              dilation_h(-1), dilation_w(-1),
-              weight_tensor(NULL), bias_tensor(NULL), alpha(1.0), beta(0.0) {}
+            : group(-1), pad_h(-1), pad_w(-1)
+            , stride_h(-1), stride_w(-1)
+            , dilation_h(-1), dilation_w(-1)
+            , weight_tensor(NULL), bias_tensor(NULL)
+            , alpha(1.0), beta(0.0)
+            , activation_param(ActivationParam<TargetType>()){}
 
     ConvParam(int group_in, int pad_h_in, int pad_w_in,
               int stride_h_in, int stride_w_in, int dilation_h_, int dilation_w_,
               Tensor<TargetType>* weight, Tensor<TargetType>* bias,
+              ActivationParam<TargetType> activation_param_in = ActivationParam<TargetType>(),
               float alpha_in = 1.0, float beta_in = 0.0)
             : group(group_in), pad_h(pad_h_in), pad_w(pad_w_in)
             , stride_h(stride_h_in), stride_w(stride_w_in)
             , dilation_h(dilation_h_), dilation_w(dilation_w_)
             , weight_tensor(weight), bias_tensor(bias)
+            , activation_param(activation_param_in)
             , alpha(alpha_in), beta(beta_in)
     {}
 
@@ -167,6 +177,7 @@ struct ConvParam {
             , bias_tensor(right.bias_tensor)
             , alpha(right.alpha)
             , beta(right.beta)
+            , activation_param(right.activation_param)
     {}
 
     ConvParam &operator=(const ConvParam &right) {
@@ -181,22 +192,24 @@ struct ConvParam {
         bias_tensor = right.bias_tensor;
         alpha = right.alpha;
         beta = right.beta;
+        activation_param = right.activation_param;
         return *this;
     }
 
     bool operator==(const ConvParam &right) {
         bool comp_eq = true;
-        comp_eq &= (group == right.group);
-        comp_eq &= (pad_h == right.pad_h);
-        comp_eq &= (pad_w == right.pad_w);
-        comp_eq &= (stride_h == right.stride_h);
-        comp_eq &= (stride_w == right.stride_w);
-        comp_eq &= (dilation_h == right.dilation_h);
-        comp_eq &= (dilation_w == right.dilation_w);
-        comp_eq &= (weight_tensor == right.weight_tensor);
-        comp_eq &= (bias_tensor == right.bias_tensor);
-        comp_eq &= (alpha == right.alpha);
-        comp_eq &= (beta == right.beta);
+        comp_eq = comp_eq && (group == right.group);
+        comp_eq = comp_eq && (pad_h == right.pad_h);
+        comp_eq = comp_eq && (pad_w == right.pad_w);
+        comp_eq = comp_eq && (stride_h == right.stride_h);
+        comp_eq = comp_eq && (stride_w == right.stride_w);
+        comp_eq = comp_eq && (dilation_h == right.dilation_h);
+        comp_eq = comp_eq && (dilation_w == right.dilation_w);
+        comp_eq = comp_eq && (weight_tensor == right.weight_tensor);
+        comp_eq = comp_eq && (bias_tensor == right.bias_tensor);
+        comp_eq = comp_eq && (alpha == right.alpha);
+        comp_eq = comp_eq && (beta == right.beta);
+        comp_eq = comp_eq && (activation_param == right.activation_param);
         return comp_eq;
     }
 
@@ -225,12 +238,13 @@ struct ConvParam {
     int dilation_w;
     float alpha;
     float beta;
-
+    ActivationParam<TargetType> activation_param;
 private:
     Tensor<TargetType>* weight_tensor;
     Tensor<TargetType>* bias_tensor;
 
 };
+
 
 template <typename TargetType>
 struct NormalizeParam {
