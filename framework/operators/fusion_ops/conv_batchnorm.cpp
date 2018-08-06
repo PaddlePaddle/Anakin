@@ -100,7 +100,7 @@ template<>
 Status ConvBatchnormHelper<NV, AK_FLOAT, Precision::FP32>::Init(OpContext<NV>& ctx, \
     const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins, \
     std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    _funcs_conv_batchnorm_scale.init(ins, outs, _param_conv_batchnorm_scale, SPECIFY, VENDER_IMPL, ctx);
+    _funcs_conv_batchnorm.init(ins, outs, _param_conv_batchnorm, SPECIFY, VENDER_IMPL, ctx);
     return Status::OK();
 }
 ANAKIN_REGISTER_OP_HELPER(ConvBatchnorm, ConvBatchnormHelper, NV, AK_FLOAT,
