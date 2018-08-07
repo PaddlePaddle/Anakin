@@ -33,6 +33,15 @@ endif()
 
 anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/saber "cpp" ANAKIN_TEST_CASE_SRC)
 
+if(USE_BM)
+    find_library(BMRT bmrt HINTS ${BM_BASE_CODE_ROOT}/lib/app)
+    find_library(BMDNN_DEVICE bmdnn_device HINTS ${BM_BASE_CODE_ROOT}/lib/app)
+    find_library(BMLIB_DEVICE bmlib_device HINTS ${BM_BASE_CODE_ROOT}/lib/app)
+    target_link_libraries(${ANAKIN_SABER_TEMP_COMMMON_LIB} ${BMRT})
+    target_link_libraries(${ANAKIN_SABER_TEMP_COMMMON_LIB} ${BMDNN_DEVICE})
+    target_link_libraries(${ANAKIN_SABER_TEMP_COMMMON_LIB} ${BMLIB_DEVICE})
+endif()
+
 file(REMOVE ${PROJECT_SOURCE_DIR}/output/unit_test/*)
 install(FILES ${PROJECT_BINARY_DIR}/anakin_config.h
         DESTINATION ${PROJECT_SOURCE_DIR}/output/include)
