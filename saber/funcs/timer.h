@@ -20,6 +20,7 @@
 //#include <sys/time.h>
 #include <chrono>
 #include <list>
+#include <limits>
 #include "saber/core/common.h"
 #include "saber/core/context.h"
 
@@ -123,6 +124,14 @@ public:
         float elapse_ms = 0.f;
         CUDA_CHECK(cudaEventElapsedTime(&elapse_ms, _e_start, _e_end));
         ms_time.push_back(elapse_ms);
+    }
+
+    void end_max(Context<NV> &ctx) {
+        cudaStream_t cuda_stream;
+        cuda_stream = ctx.get_compute_stream();
+        CUDA_CHECK(cudaEventRecord(_e_end, cuda_stream));
+        CUDA_CHECK(cudaEventSynchronize(_e_end));
+        ms_time.push_back(99999.f);
     }
 
     float get_average_ms() {

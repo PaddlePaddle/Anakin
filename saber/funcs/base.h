@@ -185,12 +185,21 @@ private:
 
         for(auto iter : _impl) {
             SaberTimer<TargetType> timer;
-            timer.start(ctx);
+            SaberStatus status = SaberUnImplError;
             for(int i = 0; i < _runtime_ts; ++i) {
-                iter->dispatch(input, output, param);
+                timer.start(ctx);
+                status |= iter->dispatch(input, output, param);
+                typename Tensor<TargetType>::API::stream_t stream = ctx.get_compute_stream();
+                for (auto out : output) {
+                    out->record_event(stream);
+                    out->sync();
+                }
+                if (status == SaberSuccess) {
+                    timer.end(ctx);
+                } else {
+                    timer.end_max(ctx);
+                }
             }
-            output[0]->sync();
-            timer.end(ctx);
             times.push_back(timer.get_average_ms());
 
         }
