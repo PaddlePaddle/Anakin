@@ -8,12 +8,11 @@ namespace saber{
 template <typename Dtype, bool has_scale, bool shared>
 __global__ void normalize_kernel_no_across_spatial(const int size_in_channel, const int n,\
 const int channels,const Dtype* scale, const Dtype* bottom_data, Dtype* top_data, const float eps, const int p){
-    int threads_num=size_in_channel*n;
-    CUDA_KERNEL_LOOP(index, threads_num){
+    CUDA_KERNEL_LOOP(index, size_in_channel*n){
         float sqr_sum = 0.f;
-        int n=index/size_in_channel;
+        int num_index=index/size_in_channel;
         int index_in_channel=index%size_in_channel;
-        int data_index=n*channels*size_in_channel+index_in_channel;
+        int data_index=num_index*channels*size_in_channel+index_in_channel;
         for (int i = 0; i < channels; ++i) {
             if (p == 1) {
                 sqr_sum += fabsf(bottom_data[data_index + i * size_in_channel]);
@@ -26,17 +25,17 @@ const int channels,const Dtype* scale, const Dtype* bottom_data, Dtype* top_data
         if (p == 1) {
             norm = 1.f / (sqr_sum + eps);
         } else {
-            norm = 1.f / (sqrtf(sqr_sum+ eps));
+            norm = 1.f / sqrtf(sqr_sum+ eps);
         }
-        Dtype has_scale_norm=scale[0]*norm;
+
         for (int i = 0; i < channels; ++i) {
             if (has_scale) {
                 if (shared) {
                     top_data[data_index + i * size_in_channel] = \
-                        bottom_data[data_index + i * size_in_channel] * has_scale_norm;
+                        bottom_data[data_index + i * size_in_channel] * scale[0]*norm;
                 } else {
                     top_data[data_index + i * size_in_channel] = \
-                        bottom_data[data_index + i * size_in_channel] * has_scale_norm;
+                        bottom_data[data_index + i * size_in_channel] * scale[i]*norm;
                 }
             } else {
                 top_data[data_index + i * size_in_channel] = \
@@ -235,22 +234,23 @@ SaberStatus SaberNormalize<NV, AK_FLOAT>::dispatch(\
     const float* src = static_cast<float*>(inputs[0]->data());
     float* dst = static_cast<float*>(outputs[0]->mutable_data());
     if (!param.across_spatial) {
-        int size_in_channel = inputs[0]->width() * inputs[0]->height();
-        int channel = inputs[0]->channel();
         int num=inputs[0]->num();
+        int size_in_channel = inputs[0]->width() * inputs[0]->height();
+        int thread_num=size_in_channel*num;
+        int channel = inputs[0]->channel();
         if (param.has_scale) {
             if (param.channel_shared) {
                 normalize_kernel_no_across_spatial<float, true, true> \
-                    <<<CUDA_GET_BLOCKS(size_in_channel), CUDA_NUM_THREADS, 0, stream>>>\
+                    <<<CUDA_GET_BLOCKS(thread_num), CUDA_NUM_THREADS, 0, stream>>>\
                     (size_in_channel,num, channel, static_cast<float*>(param.scale->data()), src, dst, param.eps, param.p);
             } else {
                 normalize_kernel_no_across_spatial<float, true, false> \
-                    <<<CUDA_GET_BLOCKS(size_in_channel), CUDA_NUM_THREADS, 0, stream>>>\
+                    <<<CUDA_GET_BLOCKS(thread_num), CUDA_NUM_THREADS, 0, stream>>>\
                     (size_in_channel,num, channel, static_cast<float*>(param.scale->data()), src, dst, param.eps, param.p);
             }
         } else {
             normalize_kernel_no_across_spatial<float, false, false> \
-                <<<CUDA_GET_BLOCKS(size_in_channel), CUDA_NUM_THREADS, 0, stream>>>\
+                <<<CUDA_GET_BLOCKS(thread_num), CUDA_NUM_THREADS, 0, stream>>>\
                 (size_in_channel, num,channel, nullptr, src, dst, param.eps, param.p);
         }
     } else {

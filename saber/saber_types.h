@@ -285,11 +285,11 @@ typedef enum {
     PRIOR_MAX = 1,
     PRIOR_COM = 2
 } PriorType;
-
-typedef enum {
+    
+typedef enum{
     RANDOM=0,
-    CUSTOM,
-    SPECIAL
+    SPECIAL,
+    CUSTOM
 } TestDataType;
 
 } //namespace saber

@@ -10,7 +10,7 @@ __global__ void ker_relu_fwd(Dtype * out_data,
                              int in_n, int in_c, int in_h, int in_w,
                              int in_n_stride, int in_c_stride, int in_h_stride, int in_w_stride,
                              int out_n_stride, int out_c_stride, int out_h_stride, int out_w_stride) {
-    CUDA_KERNEL_LOOP(tid, count){
+    CUDA_KERNEL_LOOP(tid, count) {
         int w =  tid % in_w;
         int h = (tid / (in_w)) % in_h;
         int c = (tid / (in_h * in_w)) % in_c;
@@ -38,7 +38,7 @@ __global__ void ker_sigmoid_fwd(Dtype * out_data,
                                 int in_n_stride, int in_c_stride, int in_h_stride, int in_w_stride,
                                 int out_n_stride, int out_c_stride, int out_h_stride, int out_w_stride) {
 
-    CUDA_KERNEL_LOOP(tid, count){
+    CUDA_KERNEL_LOOP(tid, count) {
         int w =  tid % in_w;
         int h = (tid / (in_w)) % in_h;
         int c = (tid / (in_h * in_w)) % in_c;
@@ -67,7 +67,7 @@ __global__ void ker_tanh_fwd(Dtype * out_data,
                              int in_n_stride, int in_c_stride, int in_h_stride, int in_w_stride,
                              int out_n_stride, int out_c_stride, int out_h_stride, int out_w_stride) {
 
-    CUDA_KERNEL_LOOP(tid, count){
+    CUDA_KERNEL_LOOP(tid, count) {
         int w =  tid % in_w;
         int h = (tid / (in_w)) % in_h;
         int c = (tid / (in_h * in_w)) % in_c;
@@ -95,7 +95,7 @@ __global__ void ker_clipped_relu_fwd(Dtype * out_data,
                                      int in_n, int in_c, int in_h, int in_w,
                                      int in_n_stride, int in_c_stride, int in_h_stride, int in_w_stride,
                                      int out_n_stride, int out_c_stride, int out_h_stride, int out_w_stride) {
-    CUDA_KERNEL_LOOP(tid, count){
+    CUDA_KERNEL_LOOP(tid, count) {
         int w =  tid % in_w;
         int h = (tid / (in_w)) % in_h;
         int c = (tid / (in_h * in_w)) % in_c;
@@ -195,7 +195,7 @@ SaberStatus SaberActivation<NV, AK_FLOAT>::dispatch( \
 
     OpDataType negative_slope = param.negative_slope;
     OpDataType coef = param.coef;
-    switch (param.active){
+    switch (param.active) {
         case Active_relu:
 
             ker_relu_fwd<OpDataType>

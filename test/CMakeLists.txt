@@ -34,6 +34,8 @@ endif()
 anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/saber "cpp" ANAKIN_TEST_CASE_SRC)
 
 file(REMOVE ${PROJECT_SOURCE_DIR}/output/unit_test/*)
+install(FILES ${PROJECT_BINARY_DIR}/anakin_config.h
+        DESTINATION ${PROJECT_SOURCE_DIR}/output/include)
 
 # build test cases
 foreach(SRC_NAME ${ANAKIN_TEST_CASE_SRC})

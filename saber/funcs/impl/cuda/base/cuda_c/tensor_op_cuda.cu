@@ -27,9 +27,9 @@ __global__ void print_device_data(const Dtype* data_ptr, long long size, int wid
 }
 
 template <typename Dtype>
-__global__ void cuda_cvt_data(const float* src, Dtype* dst, Dtype scale, int size) {
+__global__ void cuda_cvt_data(const float* src, Dtype* dst, Dtype vstart, Dtype scale, int size) {
     CUDA_KERNEL_LOOP(index, size) {
-        dst[index] = static_cast<Dtype>(src[index] * scale);
+        dst[index] = static_cast<Dtype>(vstart + src[index] * scale);
     }
 }
 
@@ -47,8 +47,8 @@ void fill_tensor_device_rand_impl(Dtype* data_ptr, long long size,
     CHECK_EQ(curandDestroyGenerator(gen), CURAND_STATUS_SUCCESS);
 
     Dtype scale = std::numeric_limits<Dtype>::max();
-
-    cuda_cvt_data<<<CUDA_GET_BLOCKS(size), CUDA_NUM_THREADS, 0, stream>>>(data_f, data_ptr, scale, size);
+    Dtype z = 0;
+    cuda_cvt_data<<<CUDA_GET_BLOCKS(size), CUDA_NUM_THREADS, 0, stream>>>(data_f, data_ptr, z, scale, size);
     cudaDeviceSynchronize();
     cudaFree(data_f);
 
@@ -69,8 +69,7 @@ void fill_tensor_device_rand_impl2(Dtype* data_ptr, Dtype vstart, \
     CHECK_EQ(curandDestroyGenerator(gen), CURAND_STATUS_SUCCESS);
 
     Dtype scale = vend - vstart;
-
-    cuda_cvt_data<<<CUDA_GET_BLOCKS(size), CUDA_NUM_THREADS, 0, stream>>>(data_f, data_ptr, scale, size);
+    cuda_cvt_data<<<CUDA_GET_BLOCKS(size), CUDA_NUM_THREADS, 0, stream>>>(data_f, data_ptr, vstart, scale, size);
     cudaDeviceSynchronize();
     cudaFree(data_f);
 
