@@ -608,7 +608,7 @@ inline void weight_reorder_OIhw16i16o(Tensor<X86>& input,
     int oc_value = shape[0], ic_value = shape[1], kh_value = shape[2], kw_value = shape[3];
     #pragma omp parallel for collapse(6) schedule(static)
     float* output_ptr = static_cast<float*>(output.mutable_data());
-    float* input_ptr = static_cast<float*>(input.data());
+    const float* input_ptr = static_cast<const float*>(input.data());
     for (int oc_idx = 0; oc_idx < oc_value / 16; ++oc_idx) {
         for (int ic_idx = 0; ic_idx < ic_value / 16; ++ic_idx) {
             for (int kh = 0; kh < kh_value; ++kh) {
@@ -645,7 +645,7 @@ inline void weight_reorder_OIhwi16o(Tensor<X86>& input,
     Shape shape = input.shape();
     #pragma omp parallel for collapse(5) schedule(static)
     float* output_ptr = static_cast<float*>(output.mutable_data());
-    float* input_ptr = static_cast<float*>(input.data());
+    const float* input_ptr = static_cast<const float*>(input.data());
     for (int oc_idx = 0; oc_idx < shape[0] / 16; ++oc_idx) {
         for (int kh = 0; kh < shape[2]; ++kh) {
             for (int kw = 0; kw < shape[3]; ++kw) {
@@ -683,7 +683,7 @@ inline void weight_reorder_OIhwi8o(Tensor<X86>& input,
     #pragma omp parallel for collapse(5) schedule(static)
 
     float* output_ptr = static_cast<float*>(output.mutable_data());
-    float* input_ptr = static_cast<float*>(input.data());
+    const float* input_ptr = static_cast<const float*>(input.data());
     for (int oc_idx = 0; oc_idx < shape[0] / 8; ++oc_idx) {
         for (int kh = 0; kh < shape[2]; ++kh) {
             for (int kw = 0; kw < shape[3]; ++kw) {
@@ -721,7 +721,7 @@ static void weight_reorder_Goihw16g(Tensor<X86>& input,
     #pragma omp parallel for collapse(6) schedule(static)
 
     float* output_ptr = static_cast<float*>(output.mutable_data());
-    float* input_ptr = static_cast<float*>(input.data());
+    const float* input_ptr = static_cast<const float*>(input.data());
     for (int g_idx = 0; g_idx < g_value / 16; ++g_idx) {
         for (int oc_idx = 0; oc_idx < oc_value; ++oc_idx) {
             for (int ic_idx = 0; ic_idx < ic_value; ++ic_idx) {
