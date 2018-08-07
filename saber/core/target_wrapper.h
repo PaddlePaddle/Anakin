@@ -539,17 +539,21 @@ struct TargetWrapper<BM, __device_target> {
     static void sync_stream(event_t event, stream_t stream) {}
     // brief create event, empty function for bitmain target
 
-    static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
+    static void sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
         size_t count, __DtoD);
 
-    static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
+    static void sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
         size_t count, __HtoD);
 
-    static void sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-        size_t count, __DtoH) {};
+    static void sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
+        size_t count, __DtoH);
 
-    static void sync_memcpy_p2p(void* dst, int dst_dev, const void* src, \
-        int src_dev, size_t count);
+    static void sync_memcpy_p2p(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
+        size_t count);
 
     /**
      * \brief device target return currently used device id
