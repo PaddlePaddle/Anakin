@@ -1,4 +1,3 @@
-
 #include "core/context.h"
 #include "funcs/normalize.h"
 #include "test_saber_func.h"
@@ -10,59 +9,9 @@
 
 using namespace anakin::saber;
 /*CPU function form:
-  void FuncName(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tensor<TargetType_H>*>& output,Param<TargetType_D>& param,Shape shape)
+ void FuncName(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tensor<TargetType_H>*>& output,Param<TargetType_D>& param,Shape shape)
  */
 template <typename dtype,typename TargetType_D,typename TargetType_H>
-<<<<<<< HEAD
-    void norm_cpu_nchw(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tensor<TargetType_H>*>& output,NormalizeParam<TargetType_D>& param) {
- 
- int p=param.p;
- bool across_spatial=param.across_spatial;
- bool has_scale=param.has_scale;
- bool channel_shared=param.channel_shared;
- dtype eps=param.eps;
- int n=input[0]->num();
- int c=input[0]->channel();
- int h=input[0]->height();
- int w=input[0]->width();
- Tensor<TargetType_H> th_scale;
- const dtype* scale;
- if(has_scale){
-    th_scale.re_alloc(param.scale->shape(),AK_FLOAT);
-    th_scale.copy_from(*param.scale);
-    scale=static_cast<dtype*>(th_scale.data());
- }
- const dtype* src_ptr = static_cast<dtype*>(input[0]->data());
- dtype* dst_ptr = static_cast<dtype*>(output[0]->mutable_data());
- 
- if (across_spatial) {
-     int compute_size = h * w * c;
-     int outer_size = n * c * h * w / compute_size;
- 
-     for (int i = 0; i < outer_size; ++i) {
-         dtype sum = 0;
- 
-         for (int j = 0; j < compute_size; ++j) {
-             if (p == 1) {
-                sum += fabsf(src_ptr[j]);
-             } else {
-                sum += src_ptr[j] * src_ptr[j];
-            }
-         }
- 
- //LOG(INFO) << "idx: " << i << ", " << "norm: " << sum;
- 
-         if (p == 1) {
-             sum = 1 / (sum + eps);
-         } else {
-             sum = 1 / sqrtf(sum+eps);
-         }
- 
-         if (has_scale) { //! with scale
-            if (channel_shared) { // scale is shared across channel
-                for (int j = 0; j < compute_size; ++j) {
-                dst_ptr[j] = src_ptr[j] * sum * scale[0];
-=======
 void norm_cpu_nchw(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tensor<TargetType_H>*>& output,NormalizeParam<TargetType_D>& param) {
     
     int p=param.p;
@@ -117,12 +66,10 @@ void norm_cpu_nchw(const std::vector<Tensor<TargetType_H>*>& input,std::vector<T
                         int c_idx = j / (h * w);
                         dst_ptr[j] = src_ptr[j] * sum * scale[c_idx];
                     }
->>>>>>> upstream/dev_v2
                 }
-            } else {
+            } else { //! without scale
                 for (int j = 0; j < compute_size; ++j) {
-                    int c_idx = j / (h * w);
-                    dst_ptr[j] = src_ptr[j] * sum * scale[c_idx];
+                    dst_ptr[j] = src_ptr[j] * sum;
                 }
             }
             
@@ -153,9 +100,9 @@ void norm_cpu_nchw(const std::vector<Tensor<TargetType_H>*>& input,std::vector<T
                     //LOG(INFO)<<"norm:"<<norm;
                     
                     if (p == 1) {
-                        norm += fabsf(src_pixel[l * channel_in_size]);
+                        norm = 1.f / (norm + eps);
                     } else {
-                        norm += src_pixel[l * channel_in_size] * src_pixel[l * channel_in_size];
+                        norm = 1.f / sqrtf(norm+eps);
                     }
                     
                     for (int l = 0; l < c; ++l) {
@@ -170,18 +117,16 @@ void norm_cpu_nchw(const std::vector<Tensor<TargetType_H>*>& input,std::vector<T
                         } else {
                             dst_pixel[l * channel_in_size] = \
                             src_pixel[l * channel_in_size] * norm;
+                            //LOG(INFO)<<"dst:"<<dst_pixel[l * channel_in_size];
+                            //LOG(INFO)<<"src:"<<src_pixel[l * channel_in_size];
+                            //LOG(INFO)<<"norm_dd:"<<norm;
                             
                         }
-                    } else {
-                        dst_pixel[l * channel_in_size] = \
-                        src_pixel[l * channel_in_size] * norm;
-                        
                     }
                 }
             }
-         }
+        }
     }
- }
 }
 
 
@@ -241,7 +186,7 @@ TEST(TestSaberFunc, test_func_normalize) {
 }
 
 
-    
+
 int main(int argc, const char** argv) {
     // initial logger
     //logger::init(argv[0]);
@@ -251,4 +196,3 @@ int main(int argc, const char** argv) {
     
     return 0;
 }
-

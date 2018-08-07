@@ -367,11 +367,6 @@ struct PowerParam {
         float scale;
         float shift;
 };
-
-
-    
-}//namespace saber
-}//namespace anakin
   
 template <typename TargetType>
 struct PreluParam {
