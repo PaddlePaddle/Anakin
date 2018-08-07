@@ -1,4 +1,3 @@
-
 #include "core/context.h"
 #include "funcs/normalize.h"
 #include "test_saber_func.h"
@@ -10,7 +9,7 @@
 
 using namespace anakin::saber;
 /*CPU function form:
-  void FuncName(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tensor<TargetType_H>*>& output,Param<TargetType_D>& param,Shape shape)
+ void FuncName(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tensor<TargetType_H>*>& output,Param<TargetType_D>& param,Shape shape)
  */
 template <typename dtype,typename TargetType_D,typename TargetType_H>
 void norm_cpu_nchw(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tensor<TargetType_H>*>& output,NormalizeParam<TargetType_D>& param) {
@@ -68,10 +67,9 @@ void norm_cpu_nchw(const std::vector<Tensor<TargetType_H>*>& input,std::vector<T
                         dst_ptr[j] = src_ptr[j] * sum * scale[c_idx];
                     }
                 }
-            } else {
+            } else { //! without scale
                 for (int j = 0; j < compute_size; ++j) {
-                    int c_idx = j / (h * w);
-                    dst_ptr[j] = src_ptr[j] * sum * scale[c_idx];
+                    dst_ptr[j] = src_ptr[j] * sum;
                 }
             }
             
@@ -102,9 +100,9 @@ void norm_cpu_nchw(const std::vector<Tensor<TargetType_H>*>& input,std::vector<T
                     //LOG(INFO)<<"norm:"<<norm;
                     
                     if (p == 1) {
-                        norm += fabsf(src_pixel[l * channel_in_size]);
+                        norm = 1.f / (norm + eps);
                     } else {
-                        norm += src_pixel[l * channel_in_size] * src_pixel[l * channel_in_size];
+                        norm = 1.f / sqrtf(norm+eps);
                     }
                     
                     for (int l = 0; l < c; ++l) {
@@ -124,19 +122,11 @@ void norm_cpu_nchw(const std::vector<Tensor<TargetType_H>*>& input,std::vector<T
                             //LOG(INFO)<<"norm_dd:"<<norm;
                             
                         }
-                    } else {
-                        dst_pixel[l * channel_in_size] = \
-                        src_pixel[l * channel_in_size] * norm;
-                        //LOG(INFO)<<"dst:"<<dst_pixel[l * channel_in_size];
-                        //LOG(INFO)<<"src:"<<src_pixel[l * channel_in_size];
-                        //LOG(INFO)<<"norm_dd:"<<norm;
-                        
                     }
                 }
             }
-         }
+        }
     }
- }
 }
 
 
@@ -189,7 +179,6 @@ TEST(TestSaberFunc, test_func_normalize) {
                     }
                 }
             }
-        
         }
         
     }
@@ -197,7 +186,7 @@ TEST(TestSaberFunc, test_func_normalize) {
 }
 
 
-    
+
 int main(int argc, const char** argv) {
     // initial logger
     //logger::init(argv[0]);
@@ -207,4 +196,3 @@ int main(int argc, const char** argv) {
     
     return 0;
 }
-

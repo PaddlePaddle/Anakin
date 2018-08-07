@@ -201,6 +201,9 @@ public:
                 _outputs_dev[i][j] -> re_alloc(sh, Dtype);
                 _outputs_host[i][j] -> re_alloc(sh, Dtype);
                 _outputs_hd[i][j] -> re_alloc(sh, Dtype);
+                
+                fill_tensor_const(*_outputs_dev[i][j],0);
+                fill_tensor_const(*_outputs_host[i][j],0);
             }
         }
     }
@@ -244,12 +247,10 @@ public:
                     return status;
                 }
                 typename TensorD :: API :: stream_t stream = ctx.get_compute_stream();
-                //always 0？
                 _outputs_dev[input_index][0] -> record_event(stream);
-                _outputs_dev[input_index][0] -> sync();//
+                _outputs_dev[input_index][0] -> sync();
                 
             }
-            //print_tensor(*_outputs_hd[0][0]);
         }
         t.end(ctx);
         float ts = t.get_average_ms();
@@ -280,11 +281,11 @@ public:
                                        _outputs_hd[i][j] -> valid_size(), max_ratio[i], max_diff[i]);
                 LOG(INFO) << "input_shape:(" << sh.num() << "," << sh.channel() << "," << sh.height() << "," << sh.width() << ")";
                 LOG(INFO) << "max_ratio:" << max_ratio[i];
-                if(max_ratio[i] <= succ_ratio && (_outputs_hd[i][0]->valid_shape() == _outputs_host[i][0]->valid_shape()))
+                if(max_ratio[i] <= succ_ratio && (_outputs_hd[i][0]->valid_shape() == _outputs_host[i][0]->valid_shape())){
                     LOG(INFO) << "Test Passed!";
-                else
+                } else {
                     LOG(FATAL) << "Test Failed!!"<< "output:(" << i << "-" << j << ")";
-                //LOG(ERROR)<<"Test Failed!!";
+                }
             }
         }
     }
@@ -301,8 +302,8 @@ public:
         Env<TargetType_D> :: env_init();
         Env<TargetType_H> :: env_init();
         
-        std :: vector<std :: string> runtype{"STATIC","RUNTIME","SPECIFY"};
-        std :: vector<std :: string> impltype{"VENDER","SABER"};
+        std :: vector<std :: string> runtype{"STATIC", "RUNTIME", "SPECIFY"};
+        std :: vector<std :: string> impltype{"VENDER", "SABER"};
         for(auto strate : {SPECIFY, RUNTIME, STATIC}){
             for(auto implenum : {VENDER_IMPL, SABER_IMPL}){
                 LOG(INFO) << "TESTING: strategy:" << runtype[strate-1] << ",impltype:" << impltype[(int)implenum];

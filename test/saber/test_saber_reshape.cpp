@@ -34,12 +34,11 @@ void reshape_cpu_func(const std::vector<Tensor<TargetType_H>*>& input, std::vect
             out_shape[i] = param_shape[i];
             num_axis *= out_shape[i];
         }
-        CHECK_EQ(infer_count, 1) << "infer axises cannot exceed 1";
-        if (infer_axis >= 0){
-            out_shape[infer_axis] = input[0] -> valid_size() / num_axis;
-        }
     }
-    //output[0] -> copy_from(*input[0]);
+    CHECK_LE(infer_count, 1) << "infer axises cannot exceed 1";
+    if (infer_axis >= 0){
+        out_shape[infer_axis] = input[0] -> valid_size() / num_axis;
+    }
     output[0] -> set_shape(out_shape);
 }
  
@@ -48,13 +47,15 @@ TEST(TestSaberFunc, test_func_reshape) {
     //Init the test_base
     TestSaberBase<NV, NVHX86, AK_FLOAT, Reshape, ReshapeParam> testbase;
     
-    for (int rs0 : {-1, 2}){
-        for (int rs1 : {-1, 4}){
-            for (int rs2 : {-1, 8}){
-                for (int rs3 : {-1, 16}){
+    //test shape contain -1
+    for (int rs0 : {0, -1, 2}){
+        for (int rs1 : {0, -1, 4}){
+            for (int rs2 : {0, -1, 8}){
+                for (int rs3 : {0, -1, 16}){
                     std::vector<int> new_shape{rs0, rs1, rs2, rs3};
                     if (std::count(new_shape.begin(), new_shape.end(), -1) == 1){
                         ReshapeParam<NV> param(new_shape);
+                        LOG(INFO) << "new_shape:"<<rs0<<" "<<rs1<<" "<<rs2<<" "<<rs3;
                         for (int n : {1, 2}){
                             for (int c : {1, 4}){
                                 for (int h: {32, 64}){
