@@ -49,38 +49,6 @@ SaberStatus SaberConcat<NV, AK_FLOAT>::dispatch(const std::vector<Tensor<NV> *>&
 
     int input_size = inputs.size();
 
-    #if 0 //disable share memory
-    //! inputs only has one tensor
-    if (input_size == 1) {
-        outputs[0]->set_shape(outputs[0]->valid_shape(), inputs[0]->shape(), \
-                inputs[0]->offset());
-        outputs[0]->share_from(*inputs[0]);
-        return;
-    }
-
-    //! check whether the output is shared from input tensors
-    bool share_mem = false;
-    Shape offset_min = inputs[0]->offset();
-    const dtype* ptr = inputs[0]->data();
-    for (int i = 1; i < input_size; ++i) {
-        const dtype* ptr2= inputs[i]->data();
-        if (inputs[i]->offset() < offset_min) {
-            offset_min = inputs[i]->offset();
-        }
-        share_mem = (ptr == ptr2);
-        if (!share_mem){
-            break;
-        }
-    }
-    //! input tensors are sharing one tensor
-    if (share_mem){
-        CHECK_LE(outputs[0]->valid_size(), inputs[0]->size()) << "input shared tensors overlap";
-        outputs[0]->set_shape(outputs[0]->valid_shape(), inputs[0]->shape(), offset_min);
-        outputs[0]->share_from(*inputs[0]);
-        return;
-    }
-    #endif // disable share memory
-
     //! get output data, valid shape and stride shape
     OpDataType* out_data = (OpDataType*)outputs[0]->mutable_data();
     int offset_concat_axis = 0;
@@ -123,7 +91,6 @@ SaberStatus SaberConcat<NV, AK_FLOAT>::dispatch(const std::vector<Tensor<NV> *>&
             offset_concat_axis += in_concat_axis;
         }
     } else { //! inputs or outputs memory is not continuous
-#if 1
         Shape offset_out = outputs[0]->offset();
         Tensor<NV>  tsub;
         for (int i = 0; i < input_size; ++i) {
@@ -132,10 +99,7 @@ SaberStatus SaberConcat<NV, AK_FLOAT>::dispatch(const std::vector<Tensor<NV> *>&
             offset_out[param.axis] += in_shape[param.axis];
             tsub.async_copy_from(*inputs[i], stream);
         }
-#endif
     }
-
-    //outputs[0]->record_event(stream);
     return SaberSuccess;
 }
 } //namespace anakin
