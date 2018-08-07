@@ -208,10 +208,6 @@ if(USE_AMD)
     include(cmake/amd.cmake)
 endif()
 
-if(USE_BM)
-    include(cmake/bm.cmake)
-endif()
-
 # gather all the config options to anakin
 include(cmake/gather.cmake)
 
