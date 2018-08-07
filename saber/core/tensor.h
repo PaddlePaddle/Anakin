@@ -758,14 +758,6 @@ public:
         return SaberSuccess;
     }
 
-#ifdef USE_BM
-    template <typename TargetType_t>
-    SaberStatus copy_from(const Tensor<TargetType_t>& tensor) {
-        LOG(WARNING) << "Invalid: copy_from is not allowed for current type.";
-        return SaberInvalidValue;
-    }
-#endif
-
     /**
      * \brief Asynchronously copy entire buffer from source tensor.
      */
