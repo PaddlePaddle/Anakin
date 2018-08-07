@@ -9,6 +9,14 @@ namespace saber
 // FP32 part
 template <>
 SaberStatus VenderConv2D<BM, AK_BM>::\
+    create(const std::vector<Tensor<BM> *>& inputs,
+            std::vector<Tensor<BM> *>& outputs,
+            ConvParam<BM>& param, Context<BM>& ctx)
+{
+}
+
+template <>
+SaberStatus VenderConv2D<BM, AK_BM>::\
     init(const std::vector<Tensor<BM> *> &inputs,
          std::vector<Tensor<BM> *> &outputs,
          ConvParam<BM> &param, Context<BM> &ctx)
@@ -16,14 +24,6 @@ SaberStatus VenderConv2D<BM, AK_BM>::\
 
     _handle = get_bm_handle();
     return create(inputs, outputs, param, ctx);
-}
-
-template <>
-SaberStatus VenderConv2D<BM, AK_BM>::\
-    create(const std::vector<Tensor<BM> *>& inputs,
-            std::vector<Tensor<BM> *>& outputs,
-            ConvParam<BM>& param, Context<BM>& ctx)
-{
 }
 
 template <>
