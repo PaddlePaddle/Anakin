@@ -49,10 +49,10 @@ public:
         Shape output_shape;
         output_shape.resize(param.shape_params.size());
 
-        CHECK_EQ(input[0]->is_continue_mem(), true) << "input tensor must not have roi";
+        CHECK_EQ(input[0] -> is_continue_mem(), true) << "input tensor must not have roi";
 
-        Shape input_shape = input[0]->valid_shape();
-        int valid_size = input[0]->valid_size();
+        Shape input_shape = input[0] -> valid_shape();
+        int valid_size = input[0] -> valid_size();
         int infer_axis = -1;
         int count_axis = 1;
         for (int i = 0; i < param.shape_params.size(); ++i) {
@@ -72,7 +72,7 @@ public:
         if (infer_axis >= 0){
             output_shape[infer_axis] = valid_size / count_axis;
         }
-        return output[0]->set_shape(output_shape);
+        return output[0] -> set_shape(output_shape);
     }
     //Reshape ops do nothing
     virtual SaberStatus init_impl(ImplEnum implenum) override {
@@ -95,14 +95,14 @@ private:
 
     virtual void pick_best_static() override {
         //saber impl
-        this->_best_impl = this->_impl[0];
+        this -> _best_impl = this -> _impl[0];
     }
 
     //virtual void pick_best_runtime(Input_v input, Output_v output, Param_t& param) override {}
 
     virtual void pick_best_specify(ImplEnum implenum) override {
         //saber impl
-        this->_best_impl = this->_impl[0];
+        this -> _best_impl = this -> _impl[0];
     }
 
 };
