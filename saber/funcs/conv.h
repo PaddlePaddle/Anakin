@@ -17,9 +17,11 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+#include "saber/funcs/funcs_utils.h"
+#include "saber/funcs/impl/impl_conv.h"
 
 #ifdef NVIDIA_GPU
-//#include "saber/funcs/impl/cuda/saber_conv.h"
+#include "saber/funcs/impl/cuda/saber_conv.h"
 #include "saber/funcs/impl/cuda/vender_conv.h"
 #endif
 
@@ -59,42 +61,9 @@ public:
 
     virtual SaberStatus compute_output_shape(const Input_v &input,
                                              Output_v &output, Param_t &param) override {
-
-        Shape output_shape = (input[0]->valid_shape());
-                CHECK_EQ(input[0]->shape().size(), 4) << "using reshape2d to reshape a 1d conv?";
-
-        // append the $n and $c/$k, output: N * K * P * Q
-        int num_idx = input[0]->num_index();
-        int channel_idx = input[0]->channel_index();
-        int height_idx = input[0]->height_index();
-        int width_idx = input[0]->width_index();
-
-        output_shape[num_idx] = input[0]->num(); // N
-        output_shape[channel_idx] = param.weight()->num(); // K
-
-        if (input[0]->get_layout() == Layout_NCHW_C4) {
-            output_shape[channel_idx] /= 4;
-            if (output[0]->get_layout() == Layout_NCHW) {
-                output_shape[channel_idx] *= 4;
-                output_shape.pop_back();
-            }
-        }
-
-        int input_dim = input[0]->height(); // P
-        int kernel_exten = param.dilation_h * (param.weight()->height() - 1) + 1;
-        int output_dim = (input_dim + 2 * param.pad_h - kernel_exten)
-                         / param.stride_h + 1;
-
-        output_shape[height_idx] = output_dim;
-
-        input_dim = input[0]->width(); // Q
-        kernel_exten = param.dilation_w * (param.weight()->width() - 1) + 1;
-        output_dim = (input_dim + 2 * param.pad_w - kernel_exten)
-                     / param.stride_w + 1;
-
-        output_shape[width_idx] = output_dim;
-
-        return output[0]->set_shape(output_shape);
+        Shape conv_shape = conv_compute_shape(input[0]->valid_shape(), param);
+        conv_shape.set_layout(Layout_NCHW);
+        return output[0]->set_shape(conv_shape);
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {
