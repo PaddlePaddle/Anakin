@@ -65,7 +65,7 @@ void norm_cpu_nchw(const std::vector<Tensor<TargetType_H>*>& inputs,std::vector<
 }
 
 TEST(TestSaberFunc, test_func_crop) {
-#ifdef USE_CUDA
+#ifdef 0//USE_CUDA
     //Init the test_base
     TestSaberBase<NV,NVHX86,AK_FLOAT,Crop,CropParam> testbase;
     LOG(INFO)<<"ENVEND";
