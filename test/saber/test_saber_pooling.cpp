@@ -86,31 +86,30 @@ void pooling_cpu_func(const std::vector<Tensor<TargetType_H>*>& input,std::vecto
 TEST(TestSaberFunc, test_func_pool)
 {
 #ifdef USE_CUDA
-    TestSaberBase<NV,NVHX86,AK_FLOAT,Pooling,PoolingParam> testbase;
+TestSaberBase<NV,NVHX86,AK_FLOAT,Pooling,PoolingParam> testbase;
     
-    for(int window_h:{2, 4}){
-        for(int window_w:{2, 4}){
-            for(int pad_h:{0, 1}){
-                for(int pad_w:{0, 1}){
-                    for(int pooling_type:{Pooling_max, Pooling_average_include_padding, Pooling_average_exclude_padding}){
-                        for(int stride_h:{1, 2}){
-                            for(int stride_w:{1, 2}){
-                                PoolingParam<NV> param(window_h, window_w, pad_h, pad_w, stride_h, stride_w, pooling_type);
-                                LOG(INFO)<<"win_h:"<<window_h<<"win_w:"<<window_w \
-                                <<"pad_h:"<<pad_h<<"pad_w:"<<pad_w \
-                                <<"stride_h:"<<stride_h<<"stride_w:"<<stride_w \
-                                <<"pooling_type:"<<pooling_type;
-                                
-                                for(int in_n:{1, 2}){
-                                    for(int in_c:{1, 3, 8}){
-                                        for(int in_h:{32, 64}){
-                                            for(int in_w:{32, 64}){
-                                                LOG(INFO)<<"n:"<<in_n<<",in_c:"<<in_c<<",in_h:"<<in_h<<",in_w:"<<in_w;
-                                               testbase.set_param(param);//set param
-                                               testbase.set_input_shape(Shape({in_n,in_c,in_h,in_w}));//add some input shape
-                                               testbase.run_test(pooling_cpu_func<float,NV,NVHX86>);//run test
-                                                
-                                            }
+for(int window_h:{2, 4}){
+    for(int window_w:{2, 4}){
+        for(int pad_h:{0, 1}){
+            for(int pad_w:{0, 1}){
+                for(int pooling_type:{Pooling_max, Pooling_average_include_padding, Pooling_average_exclude_padding}){
+                    for(int stride_h:{1, 2}){
+                        for(int stride_w:{1, 2}){
+                            PoolingParam<NV> param(window_h, window_w, pad_h, pad_w, stride_h, stride_w, pooling_type);
+                            LOG(INFO)<<"win_h:"<<window_h<<"win_w:"<<window_w \
+                            <<"pad_h:"<<pad_h<<"pad_w:"<<pad_w \
+                            <<"stride_h:"<<stride_h<<"stride_w:"<<stride_w \
+                            <<"pooling_type:"<<pooling_type;
+                            
+                            for(int in_n:{1, 2}){
+                                for(int in_c:{1, 3, 8}){
+                                    for(int in_h:{32, 64}){
+                                        for(int in_w:{32, 64}){
+                                            LOG(INFO)<<"n:"<<in_n<<",in_c:"<<in_c<<",in_h:"<<in_h<<",in_w:"<<in_w;
+                                            testbase.set_param(param);//set param
+                                            testbase.set_input_shape(Shape({in_n,in_c,in_h,in_w}));//add some input shape
+                                            testbase.run_test(pooling_cpu_func<float,NV,NVHX86>);//run test
+                                            
                                         }
                                     }
                                 }
@@ -121,6 +120,45 @@ TEST(TestSaberFunc, test_func_pool)
             }
         }
     }
+}
+#endif
+#ifdef USE_X86_PLACE
+TestSaberBase<X86,X86,AK_FLOAT,Pooling,PoolingParam> testbase;
+    
+for(int window_h:{2, 4}){
+    for(int window_w:{2, 4}){
+        for(int pad_h:{0, 1}){
+            for(int pad_w:{0, 1}){
+                for(int pooling_type:{Pooling_max, Pooling_average_include_padding, Pooling_average_exclude_padding}){
+                    for(int stride_h:{1, 2}){
+                        for(int stride_w:{1, 2}){
+                            PoolingParam<X86> param(window_h, window_w, pad_h, pad_w, stride_h, stride_w, pooling_type);
+                            LOG(INFO)<<"win_h:"<<window_h<<"win_w:"<<window_w \
+                            <<"pad_h:"<<pad_h<<"pad_w:"<<pad_w \
+                            <<"stride_h:"<<stride_h<<"stride_w:"<<stride_w \
+                            <<"pooling_type:"<<pooling_type;
+                            
+                            for(int in_n:{1, 2}){
+                                for(int in_c:{1, 3, 8}){
+                                    for(int in_h:{32, 64}){
+                                        for(int in_w:{32, 64}){
+                                            LOG(INFO)<<"n:"<<in_n<<",in_c:"<<in_c<<",in_h:"<<in_h<<",in_w:"<<in_w;
+                                            testbase.set_param(param);//set param
+                                            testbase.set_input_shape(Shape({in_n,in_c,in_h,in_w}));//add some input shape
+                                            testbase.run_test(pooling_cpu_func<float,X86,X86>);//run test
+                                            
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 #endif
 }
 
