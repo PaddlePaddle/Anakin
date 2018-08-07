@@ -32,19 +32,6 @@ SaberStatus SaberSlice<NV, OpDtype>::dispatch(\
 
     int output_size = outputs.size();
 
-#if 0 //! shared buffer
-    outputs[0]->share_sub_buffer(*inputs[0], outputs[0]->valid_shape(), \
-        inputs[0]->offset());
-    for (int i = 1; i < output_size; ++i) {
-        Shape offset = inputs[0]->offset();
-        offset[param.axis] += param.slice_points[i - 1];
-        outputs[i]->share_sub_buffer(*inputs[0], outputs[i]->valid_shape(), offset);
-    }
-
-#endif
-
-#if 1 //! deep copy
-    //! if output only has one tensor, then shared the memory buffer
     if (output_size == 1) {
         outputs[0]->share_from(*inputs[0]);
         return SaberSuccess;
@@ -62,9 +49,7 @@ SaberStatus SaberSlice<NV, OpDtype>::dispatch(\
                 nthreads, in_data, _slice_num, _slice_size,
                         in_slice_axis_size, out_slice_axis_size, offset_slice_axis, out_data);
         offset_slice_axis += out_slice_axis_size;
-        //outputs[i]->record_event(stream);
     }
-#endif
     return SaberSuccess;
 
 }
