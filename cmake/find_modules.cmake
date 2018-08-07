@@ -324,3 +324,18 @@ macro(anakin_find_openmp)
 		message(FATAL_ERROR "Could not found openmp !")
 	endif()
 endmacro()
+
+macro(anakin_find_bm)
+	set(BM_INCLUDE_DIR ${ANAKIN_ROOT}/saber/funcs/impl/bm/base/lib)
+	find_library(BM_LIBRARY NAMES libbmdnn_device.so libbmlib_device.so libbmrt.so
+			PATHS ${BM_INCLUDE_DIR}/app
+			DOC "library path for bm.")
+	if(BM_INCLUDE_DIR AND BM_LIBRARY)
+		set(BM_FOUND TRUE)
+	endif()
+	if(BM_FOUND)
+		message(STATUS "Found bm in ${BM_INCLUDE_DIR}")
+		include_directories(${BM_INCLUDE_DIR})
+		list(APPEND ANAKIN_LINKER_LIBS ${BM_LIBRARY})
+	endif()
+endmacro()

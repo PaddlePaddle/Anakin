@@ -25,9 +25,7 @@ if(USE_CUDA)
 endif()
 
 if(USE_BM)
-    #set other cuda path
-    #set(CUDA_TOOLKIT_ROOT_DIR $ENV{CUDA_PATH})
-    #anakin_find_cuda()
+    anakin_find_bm()
 endif()
 
 # set amd opencl path

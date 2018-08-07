@@ -79,15 +79,6 @@ anakin_option(USE_CUDNN "Use Cudnn libs." YES if USE_CUDA)
 anakin_option(BUILD_CROSS_PLANTFORM "Build anakin lib for any nvidia device plantform." YES if USE_CUDA)
 anakin_option(BUILD_FAT_BIN "Build anakin cuda fat-bin lib for all device plantform" NO if BUILD_CROSS_PLANTFORM)
 
-# compile options for BM place
-#anakin_option(USE_BM "Use Cuda libs." YES if NVIDIA_GPU)
-#anakin_option(USE_CUBLAS "Use Cublas libs." YES if USE_BM)
-#anakin_option(USE_CURAND "Use Curand libs." YES if USE_BM)
-#anakin_option(USE_CUFFT "Use CuFFT libs." YES if USE_BM)
-#anakin_option(USE_CUDNN "Use Cudnn libs." YES if USE_BM)
-#anakin_option(BUILD_CROSS_PLANTFORM "Build anakin lib for any nvidia device plantform." YES if USE_BM)
-
-
 
 # build options for amd.
 anakin_option(USE_AMD "Use AMD ROCm OpenCL" YES if AMD_GPU)
@@ -97,9 +88,6 @@ cmake_minimum_required(VERSION ${MIN_CMAKE_V} FATAL_ERROR)
 if(USE_CUDA)
     # Select gpu target arch for local high performance implement sass code . Now we have checked on sm_61 sm_50 and it works well.
     set(SELECTED_SASS_TARGET_ARCH "61")
-elseif(USE_BM)
-    # Select gpu target arch for local high performance implement sass code . Now we have checked on sm_61 sm_50 and it works well.
-    #set(SELECTED_SASS_TARGET_ARCH "61")
 endif()
 if((NOT BUILD_FAT_BIN) AND (NOT BUILD_CROSS_PLANTFORM) AND USE_CUDA)
     # Select the only nvidia gpu arch you want to be built on
@@ -187,10 +175,6 @@ include(cmake/compiler_options.cmake)
 include(cmake/find_modules.cmake)
 if(USE_CUDA)
     include(cmake/cuda.cmake)
-endif()
-
-if(USE_BM)
-    #include(cmake/cuda.cmake)
 endif()
 
 if(USE_X86_PLACE)
