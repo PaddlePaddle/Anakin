@@ -10,7 +10,7 @@ namespace saber{
 
 template<>
 void fill_tensor_rand<Tensor<BM>>(Tensor<BM>& tensor, \
-    typename Tensor<BM>::API::stream_t stream) {
+    typename Tensor<BM>::API::stream_t stream = NULL) {
 
     float *host_mem_input = new float[tensor.size()];
     for (int i = 0; i < tensor.size(); ++i) {
@@ -60,7 +60,7 @@ void fill_tensor_const(Tensor<BM>& tensor, float value, \
 
 template <>
 void print_tensor<Tensor<BM>>(Tensor<BM>& tensor,  \
-    typename Tensor<BM>::API::stream_t stream) {
+    typename Tensor<BM>::API::stream_t stream = NULL) {
 
     LOG(INFO) << "BM device tensor data:" << tensor.size();
 
