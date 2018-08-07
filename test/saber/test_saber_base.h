@@ -47,11 +47,7 @@ public:
     typedef void (*CpuFunc_t) (const Input_ht&, Output_ht&, Param_t& param);
     
     
-    TestSaberBase (int num = 1) : _op_input_num(num) {
-    }
-    
-    TestSaberBase (Param_t& param, int num = 1) : _op_input_num(num) {
-        _params.push_back(param);
+    TestSaberBase (int in_num = 1, int out_num=1) : _op_input_num(in_num) , _op_output_num(out_num){
     }
     
     void add_param (Param_t& param){
@@ -73,11 +69,14 @@ public:
         for(int i = 0; i < _op_input_num; ++i){
             TensorD *d_id = new TensorD(new_shape);
             TensorH *d_ih = new TensorH(new_shape);
-            TensorD *d_od = new TensorD(new_shape);
-            TensorH *d_oh = new TensorH(new_shape);
-            TensorH *d_ohd = new TensorH(new_shape);
             in_d.push_back(d_id);
             in_h.push_back(d_ih);
+        }
+        
+        for(int i = 0; i < _op_output_num; ++i){
+            TensorD *d_od = new TensorD();
+            TensorH *d_oh = new TensorH();
+            TensorH *d_ohd = new TensorH();
             out_d.push_back(d_od);
             out_h.push_back(d_oh);
             out_hd.push_back(d_ohd);
@@ -87,8 +86,41 @@ public:
         _outputs_dev.push_back(out_d);
         _outputs_host.push_back(out_h);
         _outputs_hd.push_back(out_hd);
-        _input_shapes.push_back(new_shape);
+        _input_shapes.push_back(std::vector<Shape>{new_shape});
         
+        
+    }
+    
+    void add_inputs_shape(std::vector<Shape> new_shape_v){
+        
+        CHECK_GE(new_shape_v.size(), _op_input_num) << "unvaliable shape vector";
+        
+        std :: vector<TensorD*> in_d;
+        std :: vector<TensorH*> in_h;
+        std :: vector<TensorD*> out_d;
+        std :: vector<TensorH*> out_h;
+        std :: vector<TensorH*> out_hd;
+        
+        for(int i = 0; i < _op_input_num; ++i){
+            TensorD *d_id = new TensorD(new_shape_v[i]);
+            TensorH *d_ih = new TensorH(new_shape_v[i]);
+            in_d.push_back(d_id);
+            in_h.push_back(d_ih);
+        }
+        for(int i = 0; i < _op_output_num; ++i){
+            TensorD *d_od = new TensorD();
+            TensorH *d_oh = new TensorH();
+            TensorH *d_ohd = new TensorH();
+            out_d.push_back(d_od);
+            out_h.push_back(d_oh);
+            out_hd.push_back(d_ohd);
+        }
+        _inputs_dev.push_back(in_d);
+        _inputs_host.push_back(in_h);
+        _outputs_dev.push_back(out_d);
+        _outputs_host.push_back(out_h);
+        _outputs_hd.push_back(out_hd);
+        _input_shapes.push_back(new_shape_v);
         
     }
     void set_input_shape (Shape new_shape, TestDataType type = RANDOM, double value = 1){
@@ -98,7 +130,15 @@ public:
         _input_type = type;
         _special_value = value;
     }
+    void set_input_shape (std::vector<Shape> new_shape_v, TestDataType type = RANDOM, double value = 1){
+        clear_datas();
+        
+        add_inputs_shape(new_shape_v);
+        _input_type = type;
+        _special_value = value;
+    }
     void auto_gen_inputs (){
+        CHECK_EQ(_op_input_num, 1) << "only support input_num == 1";
         for(int n : {1, 2}){
             for(int c : {32, 64}){
                 for(int h : {64, 256}){
@@ -113,22 +153,18 @@ public:
         int input_size = _inputs_dev.size();
         CHECK_EQ(input_size, _inputs_host.size()) << "dev and host inputs num must be equal";
         if(_input_type == RANDOM){
-            CHECK_EQ(input_size, 1) << "special input num must be 1";
             for(int i=0; i<_inputs_dev.size(); ++i){
                 for(int j=0; j<_op_input_num; ++j){
                     fill_tensor_rand(*_inputs_dev[i][j], minv, maxv);
                     _inputs_host[i][j] -> copy_from(*_inputs_dev[i][j]);
-                    _outputs_host[i][j] -> copy_from(*_inputs_dev[i][j]);
-                    _outputs_dev[i][j] -> copy_from(*_inputs_dev[i][j]);
                 }
             }
         } else {
+            CHECK_EQ(input_size, 1) << "special input num must be 1";
             for(int i = 0; i < _inputs_dev.size(); ++i){
                 for(int j = 0; j < _op_input_num; ++j){
                     fill_tensor_const(*_inputs_dev[i][j], _special_value);
                     _inputs_host[i][j] -> copy_from(*_inputs_dev[i][j]);
-                    _outputs_host[i][j] -> copy_from(*_inputs_dev[i][j]);
-                    _outputs_dev[i][j] -> copy_from(*_inputs_dev[i][j]);
                 }
             }
         }
@@ -136,8 +172,11 @@ public:
     void add_custom_input (Input_dt& input){
         CHECK_EQ(input.size(), _op_input_num) << "input must equal op_input_num";
         clear_datas();
-        Shape sh=input[0] -> shape();
-        add_inputs_shape(sh);
+        std::vector<Shape> shape_v;
+        for (int i=0; i<_op_input_num; ++i){
+            shape_v.push_back(input[0] -> shape());
+        }
+        add_inputs_shape(shape_v);
         for(int i = 0; i < _op_input_num; ++i)
         {
             _inputs_dev[0][i] -> copy_from(*input[i]);
@@ -157,7 +196,7 @@ public:
                                                       _outputs_dev[i], _params[param_index]));
         }
         for(int i = 0; i < _outputs_dev.size(); ++i){
-            for(int j = 0; j < _op_input_num; ++j){
+            for(int j = 0; j < _op_output_num; ++j){
                 Shape sh = _outputs_dev[i][j] -> valid_shape();
                 _outputs_dev[i][j] -> re_alloc(sh, Dtype);
                 _outputs_host[i][j] -> re_alloc(sh, Dtype);
@@ -216,7 +255,7 @@ public:
         float ts = t.get_average_ms();
         LOG(INFO) << "avg run time:" << ts / _inputs_dev.size() / 100 << "ms";
         for(int input_index = 0; input_index < _inputs_dev.size(); ++input_index){
-            for(int j = 0; j < _op_input_num; ++j){
+            for(int j = 0; j < _op_output_num; ++j){
                 _outputs_hd[input_index][j] -> copy_from(*_outputs_dev[input_index][j]);
             }
         }
@@ -234,17 +273,17 @@ public:
         int check_size = _outputs_host.size();
         std::vector<double> max_diff(check_size, 0);
         std::vector<double> max_ratio(check_size, 0);
-        Shape sh = _inputs_host[0][0] -> shape();
         for(int i = 0; i < _outputs_host.size(); ++i){
-            for(int j = 0; j<_op_input_num; ++j){
+            Shape sh = _inputs_host[i][0] -> shape();
+            for(int j = 0; j<_op_output_num; ++j){
                 tensor_cmp_host<float>((const float*)_outputs_hd[i][j] -> data(), (const float*)_outputs_host[i][j] -> data(),
                                        _outputs_hd[i][j] -> valid_size(), max_ratio[i], max_diff[i]);
                 LOG(INFO) << "input_shape:(" << sh.num() << "," << sh.channel() << "," << sh.height() << "," << sh.width() << ")";
                 LOG(INFO) << "max_ratio:" << max_ratio[i];
-                if(max_ratio[i] <= succ_ratio)
+                if(max_ratio[i] <= succ_ratio && (_outputs_hd[i][0]->valid_shape() == _outputs_host[i][0]->valid_shape()))
                     LOG(INFO) << "Test Passed!";
                 else
-                    LOG(FATAL) << "Test Failed!!";
+                    LOG(FATAL) << "Test Failed!!"<< "output:(" << i << "-" << j << ")";
                 //LOG(ERROR)<<"Test Failed!!";
             }
         }
@@ -280,6 +319,7 @@ public:
     }
 private:
     int _op_input_num;
+    int _op_output_num;
     Op_t _base_op;
     TestDataType _input_type;
     double _special_value;
@@ -290,7 +330,7 @@ private:
     std :: vector<Output_dt> _outputs_dev;
     std :: vector<Output_ht> _outputs_host;
     std :: vector<Output_ht> _outputs_hd;
-    std :: vector<Shape> _input_shapes;
+    std :: vector<std::vector<Shape>> _input_shapes;
     std :: vector<Param_t> _params;
     
 };//testsaberbase
