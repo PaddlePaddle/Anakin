@@ -367,7 +367,26 @@ struct PowerParam {
         float scale;
         float shift;
 };
-  
+template<typename TargetType>
+struct PermutePowerParam {
+    PermutePowerParam() {}
+    PermutePowerParam(PermuteParam<TargetType> permute_param):
+    power_param(power_param), has_power_param(false) {}
+    PermutePowerParam(PermuteParam<TargetType> permute_param, PowerParam<TargetType> power_param):
+    power_param(power_param), permute_param(permute_param), has_power_param(true) {}
+    PermutePowerParam(const PermutePowerParam & right):
+    power_param(right.power_param), permute_param(right.permute_param) {}
+    bool operator==(const PermutePowerParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (power_param == right.power_param);
+        comp_eq = comp_eq && (permute_param == right.permute_param);
+        return comp_eq;
+    }
+    PowerParam<TargetType> power_param;
+    PermuteParam<TargetType> permute_param;
+    bool has_power_param;
+};
+
 template <typename TargetType>
 struct PreluParam {
     PreluParam() = default;
