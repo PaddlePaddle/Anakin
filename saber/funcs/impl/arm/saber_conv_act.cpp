@@ -9,11 +9,15 @@ namespace saber{
 template <>
 SaberConv2DAct<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::SaberConv2DAct() {
     _conv_op = new SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
+    _act_op = nullptr;
 }
 
 template <>
 SaberConv2DAct<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::~SaberConv2DAct() {
     delete _conv_op;
+    if(_act_op) {
+        delete _act_op;
+    }
 }
 
 template <>
@@ -21,7 +25,11 @@ SaberStatus SaberConv2DAct<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>:
     const std::vector<DataTensor_in *>& inputs, \
     std::vector<DataTensor_out *>& outputs, \
     ConvActiveParam<OpTensor> &param, Context<ARM> &ctx) {
-    return _conv_op->create(inputs, outputs, param.conv_param, ctx);
+    SaberStatus state = _conv_op->create(inputs, outputs, param.conv_param, ctx);
+    if (_act_op) {
+        state &= _act_op->create(outputs, outputs, param.activation_param, ctx);
+    }
+    return state;
 }
 
 template <>
@@ -29,12 +37,18 @@ SaberStatus SaberConv2DAct<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>:
     const std::vector<DataTensor_in *>& inputs, \
     std::vector<DataTensor_out *>& outputs, \
     ConvActiveParam<OpTensor> &param, Context<ARM> &ctx) {
-    if (param.has_active) {
-        SABER_CHECK(_conv_op->set_activation(true));
-    } else {
-        SABER_CHECK(_conv_op->set_activation(false));
-    }
+
     _conv_op->init(inputs, outputs, param.conv_param, ctx);
+    if (param.has_active) {
+        if (param.activation_param.active == Active_relu) {
+            _conv_op->set_activation(param.has_active);
+        } else {
+            if (_act_op == nullptr) {
+                _act_op = new SaberActivation<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
+            }
+            _act_op->init(outputs, outputs, param.activation_param, ctx);
+        }
+    }
     return SaberSuccess;
 }
 
@@ -43,7 +57,11 @@ SaberStatus SaberConv2DAct<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>:
     const std::vector<DataTensor_in *>& inputs, \
     std::vector<DataTensor_out *>& outputs, \
     ConvActiveParam<OpTensor> &param) {
-    return _conv_op->dispatch(inputs, outputs, param.conv_param);
+    SaberStatus state = _conv_op->dispatch(inputs, outputs, param.conv_param);
+    if (_act_op) {
+        state &= _act_op->dispatch(outputs, outputs, param.activation_param);
+    }
+    return state;
 }
 
 } //namespace saber

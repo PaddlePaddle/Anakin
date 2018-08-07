@@ -119,7 +119,7 @@ ANAKIN_REGISTER_OP_HELPER(DeconvRelu, DeconvReluHelper, NV, AK_FLOAT, Precision:
 #endif
 
 #ifdef USE_ARM_PLACE
-INSTANCE_CONVRELU(NV, AK_FLOAT, Precision::FP32);
+INSTANCE_CONVRELU(ARM, AK_FLOAT, Precision::FP32);
 template class DeconvReluHelper<ARM, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(DeconvRelu, DeconvReluHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
