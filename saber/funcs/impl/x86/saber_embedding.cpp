@@ -6,7 +6,6 @@
 namespace anakin{
 namespace saber {
 
-//template class SaberEmbedding<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
 
 template <DataType OpDtype>
 SaberStatus SaberEmbedding<X86, OpDtype>::init(

@@ -19,7 +19,6 @@
 
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_embedding.h"
-//#include "saber/funcs/impl/cuda/vender_embedding.h"
 #endif
 
 #ifdef USE_X86_PLACE

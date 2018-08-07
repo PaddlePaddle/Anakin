@@ -48,7 +48,6 @@ public:
                           EmbeddingParam<NV>& param);
 };
 
-//template class SaberEmbedding<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
 
 }
 
