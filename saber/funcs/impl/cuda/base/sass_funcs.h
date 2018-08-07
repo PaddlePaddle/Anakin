@@ -4,14 +4,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <map>
-
+#include "saber/funcs/funcs_utils.h"
 
 void invoke_test();
 
 void invoke_test_2();
 
-namespace anakin{
-namespace saber{
+namespace anakin {
+namespace saber {
+
 //Round a / b to nearest higher integer value
 inline int i_div_up(int a, int b)
 {
@@ -425,9 +426,137 @@ void direct_conv_bias_relu_maxpool2k2s0p_Kindiv4(const DataType* src,
     int group,
     float alpha,
     float beta, 
-    cudaStream_t cuda_stream);   
+    cudaStream_t cuda_stream);
 
+template<int k>
+void scale_to_new_tensor_k4_s2_p1_deconv (Tensor<NV> *weight, int in_channel, int out_channel) {
+    Tensor<X86> new_weights_h;
+    Tensor<X86> temp_weights;
+//    new_weights_dev.reshape(weight->valid_shape());
+    new_weights_h.reshape(weight->valid_shape());
+    temp_weights.reshape(weight->valid_shape());
+
+    temp_weights.copy_from(*weight);
+    int offset = in_channel * out_channel * k;
+    float* trans_w = (float*)new_weights_h.mutable_data();
+    scale_weight_deconv_w4x4<k, true>(trans_w + 0 * offset,
+                                      trans_w + 1 * offset,
+                                      trans_w + 2 * offset,
+                                      trans_w + 3 * offset,
+                                      temp_weights.data(),
+                                      in_channel, out_channel);
+    weight->copy_from(new_weights_h);
 }
+
+void ker_deconv_implicit_gemm_k4_s2_p1_16x64(
+        float* dout, const float *din,
+        const float* weights, const float* bias,
+        int num, int hin, int win, int hout, int wout,
+        int ch_in, int ch_out, cudaStream_t &stream);
+
+void ker_deconv_implicit_gemm_k4_s2_p1_32x32_relu(
+        float* dout, const float *din,
+        const float* weights, const float* bias,
+        int num, int hin, int win, int hout, int wout,
+        int ch_in, int ch_out, cudaStream_t &stream);
+
+__inline__
+bool ifVec(int m, int n, int k,
+           int lda, int ldb, int ldc)
+{
+    bool vec_a = false;
+    bool vec_b = false;
+    bool vec_c = false;
+
+    vec_a = ((lda & 3) == 0) && ((k & 3) == 0);
+    vec_b = ((ldb & 3) == 0) && ((n & 3) == 0);
+    vec_c = ((ldc & 3) == 0) && ((n & 3) == 0);
+
+    return vec_a && vec_b && vec_c;
 }
+
+void ker_gemm_32x32x32_NN_bias_relu(const int M, const int N, const int K,
+                                    const float alpha, const float* A,
+                                    const float beta, const float* B,
+                                    float* C, const float* bias, cudaStream_t cuda_stream);
+
+void ker_gemm_32x32x32_NN_vec_bias_relu(const int M, const int N, const int K,
+                                        const float alpha, const float* A,
+                                        const float beta, const float* B,
+                                        float* C, const float* bias, cudaStream_t cuda_stream);
+
+void ker_gemm_32x32x32_NN_bias(const int M, const int N, const int K,
+                               const float alpha, const float* A,
+                               const float beta, const float* B,
+                               float* C, const float* bias, cudaStream_t cuda_stream);
+
+void ker_gemm_32x32x32_NN_vec_bias(const int M, const int N, const int K,
+                                   const float alpha, const float* A,
+                                   const float beta, const float* B,
+                                   float* C, const float* bias, cudaStream_t cuda_stream);
+
+template <int tile>
+void ker_sgemm_nn(const int M, const int N, const int K,
+                  const int lda, const int ldb, const int ldc,
+                  const float alpha, const float* A,
+                  const float beta, const float* B,
+                  float* C, cudaStream_t cuda_stream);
+template <int tile>
+void ker_sgemm_nt(const int M, const int N, const int K,
+                  const int lda, const int ldb, const int ldc,
+                  const float alpha, const float* A,
+                  const float beta, const float* B,
+                  float* C, cudaStream_t cuda_stream);
+template <int tile>
+void ker_sgemm_tn(const int M, const int N, const int K,
+                  const int lda, const int ldb, const int ldc,
+                  const float alpha, const float* A,
+                  const float beta, const float* B,
+                  float* C, cudaStream_t cuda_stream);
+template <int tile>
+void ker_sgemm_tt(const int M, const int N, const int K,
+                  const int lda, const int ldb, const int ldc,
+                  const float alpha, const float* A,
+                  const float beta, const float* B,
+                  float* C, cudaStream_t cuda_stream);
+template <int tile>
+void ker_sgemm_nn_vec(const int M, const int N, const int K,
+                      const int lda, const int ldb, const int ldc,
+                      const float alpha, const float* A,
+                      const float beta, const float* B,
+                      float* C, cudaStream_t cuda_stream);
+template <int tile>
+void ker_sgemm_nt_vec(const int M, const int N, const int K,
+                      const int lda, const int ldb, const int ldc,
+                      const float alpha, const float* A,
+                      const float beta, const float* B,
+                      float* C, cudaStream_t cuda_stream);
+template <int tile>
+void ker_sgemm_tn_vec(const int M, const int N, const int K,
+                      const int lda, const int ldb, const int ldc,
+                      const float alpha, const float* A,
+                      const float beta, const float* B,
+                      float* C, cudaStream_t cuda_stream);
+template <int tile>
+void ker_sgemm_tt_vec(const int M, const int N, const int K,
+                      const int lda, const int ldb, const int ldc,
+                      const float alpha, const float* A,
+                      const float beta, const float* B,
+                      float* C, cudaStream_t cuda_stream);
+
+template <bool TransA, bool TransB, int tile>
+void ker_sgemm_sass(const int M, const int N, const int K,
+                    const float alpha, const float* A,
+                    const float beta, const float* B,
+                    float* C, cudaStream_t cuda_stream);
+
+std::function<void(const int, const int, const int,
+                   const float, const float*, const float,
+                   const float*, float*, cudaStream_t)>
+saber_find_fast_sass_gemm(const bool TransA, const bool TransB,
+                          const int M, const int N, const int K);
+
+} // namespace saber
+} // namespace anakin
 
 #endif //ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_SASS_FUNCS_H

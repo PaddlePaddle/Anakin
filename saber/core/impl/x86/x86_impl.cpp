@@ -4,7 +4,7 @@
 namespace anakin{
 
 namespace saber{
-using namespace anakin::saber;
+
 //! target wrapper
 template struct TargetWrapper<X86, __host_target>;
 
@@ -12,18 +12,7 @@ template struct TargetWrapper<X86, __host_target>;
 template class Buffer<X86>;
 
 //! X86 Tensor
-template class Tensor<X86, AK_FLOAT, NCHW>;
-template class Tensor<X86, AK_FLOAT, NHWC>;
-template class Tensor<X86, AK_FLOAT, NCHW_C16>;
-template class Tensor<X86, AK_FLOAT, HW>;
-
-template class Tensor<X86, AK_INT8, NCHW>;
-template class Tensor<X86, AK_INT8, NHWC>;
-template class Tensor<X86, AK_INT8, HW>;
-
-template class Tensor<X86, AK_HALF, NCHW>;
-template class Tensor<X86, AK_HALF, NHWC>;
-template class Tensor<X86, AK_HALF, HW>;
+template class Tensor<X86>;
 
 template struct Env<X86>;
 

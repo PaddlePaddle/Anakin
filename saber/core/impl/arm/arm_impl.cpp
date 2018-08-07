@@ -13,18 +13,9 @@ template struct TargetWrapper<ARM, __host_target>;
 template class Buffer<ARM>;
 
 //! ARM Tensor
-template class Tensor<ARM, AK_FLOAT, NCHW>;
-template class Tensor<ARM, AK_FLOAT, NHWC>;
-template class Tensor<ARM, AK_FLOAT, HW>;
+template class Tensor<ARM>;
 
-template class Tensor<ARM, AK_INT8, NCHW>;
-template class Tensor<ARM, AK_INT8, NHWC>;
-template class Tensor<ARM, AK_INT8, HW>;
-
-template class Tensor<ARM, AK_HALF, NCHW>;
-template class Tensor<ARM, AK_HALF, NHWC>;
-template class Tensor<ARM, AK_HALF, HW>;
-
+//! ARM Env
 template class Env<ARM>;
 
 #endif //USE_ARM_PLACE

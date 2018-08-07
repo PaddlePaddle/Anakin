@@ -13,7 +13,7 @@ NodeIO<Ttype, Dtype, Ptype>& NodeIO<Ttype, Dtype, Ptype>::operator>>(const NodeP
     node_p->need_wait() = node_proto.need_wait();
     node_p->lane() = node_proto.lane();
     auto it = node_proto.attr().begin();
-
+    DLOG(INFO)<<"read :"<<node_p->name();
     for (; it != node_proto.attr().end(); ++it) {
         auto& key = it->first;
         auto& value = it->second;
@@ -143,7 +143,7 @@ NodeIO<Ttype, Dtype, Ptype>& NodeIO<Ttype, Dtype, Ptype>::operator>>(const NodeP
                     saber_shape[i] = shape.dim().value()[i];
                 }
 
-                auto* block = graph::GraphGlobalMem::Global().new_block<AK_FLOAT>(saber_shape);
+                auto* block = graph::GraphGlobalMem<Ttype>::Global().template new_block<AK_FLOAT>(saber_shape);
                 // fill data to block
                 float* cpu_data = static_cast<float*>(block->h_tensor().mutable_data());
 
@@ -151,7 +151,7 @@ NodeIO<Ttype, Dtype, Ptype>& NodeIO<Ttype, Dtype, Ptype>::operator>>(const NodeP
                     cpu_data[i] = data.f()[i];
                 }
 
-#ifdef USE_CUDA
+#if defined(USE_CUDA) || defined(USE_AMD) 
                 //! map cpu data to GPU
                 //block->tensor().get_gpu_data();
                 block->d_tensor().set_shape(saber_shape);
@@ -299,7 +299,7 @@ Status NodeIO<Ttype, Dtype, Ptype>::operator<<(GraphProto& graph) {
                 (*node_proto_attr)[key].mutable_cache_list()->set_type(BOOLEN);
                 (*node_proto_attr)[key].mutable_cache_list()->set_size(tuple_bool.size());
             } else if (value.type() == "anakin_block_float") { // default block have float data
-                auto block_float = any_cast<PBlock<float>>(value);
+                auto block_float = any_cast<PBlock<float, Ttype>>(value);
                 float* cpu_data = static_cast<float*>(block_float.h_tensor().mutable_data());
                 auto shape_saber = block_float.shape();
 
@@ -331,13 +331,38 @@ Status NodeIO<Ttype, Dtype, Ptype>::operator<<(GraphProto& graph) {
     return Status::OK();
 }
 
+#ifdef USE_CUDA
 template class NodeIO<NV, AK_FLOAT, Precision::FP32>;
 template class NodeIO<NV, AK_FLOAT, Precision::FP16>;
 template class NodeIO<NV, AK_FLOAT, Precision::INT8>;
+#endif
 
+#ifdef USE_AMD
+template class NodeIO<AMD, AK_FLOAT, Precision::FP32>;
+template class NodeIO<AMD, AK_FLOAT, Precision::FP16>;
+template class NodeIO<AMD, AK_FLOAT, Precision::INT8>;
+#endif
+
+#ifdef USE_X86_PLACE
+template class NodeIO<X86, AK_FLOAT, Precision::FP32>;
+template class NodeIO<X86, AK_FLOAT, Precision::FP16>;
+template class NodeIO<X86, AK_FLOAT, Precision::INT8>;
+#endif
+
+#ifdef USE_ARM_PLACE
+#ifdef ANAKIN_TYPE_FP32
 template class NodeIO<ARM, AK_FLOAT, Precision::FP32>;
+#endif
+
+#ifdef ANAKIN_TYPE_FP16
 template class NodeIO<ARM, AK_FLOAT, Precision::FP16>;
+#endif
+
+#ifdef ANAKIN_TYPE_INT8
 template class NodeIO<ARM, AK_FLOAT, Precision::INT8>;
+#endif
+
+#endif
 
 } /* parser */
 

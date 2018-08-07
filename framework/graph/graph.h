@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -54,6 +54,7 @@ public:
     }
 
     /// get graph name
+    void set_name(std::string name){_name = name;}
     std::string& name() { return _name; }
 
     /// add i/o
@@ -126,7 +127,7 @@ private:
     ///< _vgraph stand for graph. default nullptr
     VGraph* _vgraph{nullptr};
     ///< _name stand for message
-    std::string _name;
+    std::string _name{"default"};
     ///< graph input node name
     std::vector<std::string> _ins; 
     ///< graph output node name     
@@ -135,6 +136,8 @@ private:
     std::vector<std::string> _nodes_exec_order;
     ///< node_merges map: target node map to all its fusion node
     std::unordered_map<std::string, std::vector<std::string> > _node_merges;
+	///< _node_merges_keep map: target node map to all its fusion node that shouldn't be removed
+	std::unordered_map<std::string, std::vector<int> > _node_merges_keep;
 
     ///< _pattern_name_merges map: target node map to all its fusion pattern node
     std::unordered_map<std::string, std::vector<std::string> > _pattern_name_merges;
