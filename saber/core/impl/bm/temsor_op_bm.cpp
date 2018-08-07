@@ -9,7 +9,7 @@ namespace anakin{
 namespace saber{
 
 template<>
-void fill_tensor_rand<Tensor<BM>>(Tensor<BM>& tensor, \
+void fill_tensor_rand<BM>(Tensor<BM>& tensor, \
     typename Tensor<BM>::API::stream_t stream = NULL) {
 
     float *host_mem_input = new float[tensor.size()];
@@ -24,7 +24,7 @@ void fill_tensor_rand<Tensor<BM>>(Tensor<BM>& tensor, \
 }
 
 template<>
-void fill_tensor_rand(Tensor<BM>& tensor, float vstart, \
+void fill_tensor_rand<BM>(Tensor<BM>& tensor, float vstart, \
     float vend, typename Tensor<BM>::API::stream_t stream = NULL){
 
     std::random_device rd;
@@ -44,7 +44,7 @@ void fill_tensor_rand(Tensor<BM>& tensor, float vstart, \
 }
 
 template<>
-void fill_tensor_const(Tensor<BM>& tensor, float value, \
+void fill_tensor_const<BM>(Tensor<BM>& tensor, float value, \
     typename Tensor<BM>::API::stream_t stream = NULL){
 
     float *host_mem_input = new float[tensor.size()];
@@ -59,7 +59,7 @@ void fill_tensor_const(Tensor<BM>& tensor, float value, \
 }
 
 template <>
-void print_tensor<Tensor<BM>>(Tensor<BM>& tensor,  \
+void print_tensor<BM>(Tensor<BM>& tensor,  \
     typename Tensor<BM>::API::stream_t stream = NULL) {
 
     LOG(INFO) << "BM device tensor data:" << tensor.size();
