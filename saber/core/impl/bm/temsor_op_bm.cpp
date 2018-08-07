@@ -17,7 +17,7 @@ void fill_tensor_rand<Tensor<BM>>(Tensor<BM>& tensor, \
         host_mem_input[i] = static_cast<float>(rand());
     }
 
-    bm_device_mem_t* device_data_ptr = tensor.mutable_data();
+    bm_device_mem_t* device_data_ptr = (bm_device_mem_t*) tensor.mutable_data();
     BMDNN_CHECK(bm_memcpy_s2d(get_bm_handle(), *device_data_ptr, bm_mem_from_system(host_mem_input)));
 
     delete [] host_mem_input;
@@ -37,7 +37,7 @@ void fill_tensor_rand(Tensor<BM>& tensor, float vstart, \
         host_mem_input[i] = random_num;
     }
 
-    bm_device_mem_t* device_data_ptr = tensor.mutable_data();
+    bm_device_mem_t* device_data_ptr = (bm_device_mem_t*) tensor.mutable_data();
     BMDNN_CHECK(bm_memcpy_s2d(get_bm_handle(), *device_data_ptr, bm_mem_from_system(host_mem_input)));
 
     delete [] host_mem_input;
@@ -52,7 +52,7 @@ void fill_tensor_const(Tensor<BM>& tensor, float value, \
         host_mem_input[i] = value;
     }
 
-    bm_device_mem_t* device_data_ptr = tensor.mutable_data();
+    bm_device_mem_t* device_data_ptr = (bm_device_mem_t*) tensor.mutable_data();
     BMDNN_CHECK(bm_memcpy_s2d(get_bm_handle(), *device_data_ptr, bm_mem_from_system(host_mem_input)));
 
     delete [] host_mem_input;
@@ -79,7 +79,7 @@ void print_tensor<Tensor<BM>>(Tensor<BM>& tensor,  \
     }*/
 
     float *host_mem = new float[tensor.size()];
-    auto* device_data_ptr = const_cast<bm_device_mem_t *>(tensor.data());
+    auto* device_data_ptr = const_cast<bm_device_mem_t *>((bm_device_mem_t*) tensor.data());
     bm_memcpy_d2s(get_bm_handle(), bm_mem_from_system(host_mem), *device_data_ptr);
 
     for (int i = 0; i < tensor.size(); ++i) {
