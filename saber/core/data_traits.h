@@ -50,13 +50,6 @@ struct DataTraitBase<AMD>{
 };
 #endif
 
-#ifdef USE_BM
-template <>
-struct DataTrait<AK_BM> {
-    typedef bm_device_mem_t dtype;
-};
-#endif
-
 static size_t type_length(DataType type) {
     switch (type){
         case AK_INT8:
@@ -149,6 +142,14 @@ struct DataTrait<Ttype, AK_UINT32> {
     typedef unsigned int Dtype;
     typedef unsigned int* PtrDtype;
 };
+
+#ifdef USE_BM
+template <>
+struct DataTrait<BM, AK_BM> {
+    typedef bm_device_mem_t Dtype;
+    typedef bm_device_mem_t* PtrDtype;
+};
+#endif
 
 #ifdef USE_OPENCL
 struct ClMem{
