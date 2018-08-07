@@ -41,11 +41,6 @@ if(USE_AMD)
     amd_build_cl_file("${CMAKE_SOURCE_DIR}/test/saber/amd" "${PROJECT_SOURCE_DIR}/output/unit_test")
 endif()
 
-if(USE_BM)
-    amd_build_cl_binary_file("${CMAKE_SOURCE_DIR}/saber/funcs/impl/bm/base/lib/app" "${CMAKE_BINARY_DIR}/cl/bm")
-    amd_build_cl_binary_file("${CMAKE_SOURCE_DIR}/saber/funcs/impl/bm/base/lib/app" "${PROJECT_SOURCE_DIR}/output/unit_test")
-endif()
-
 # find opencl
 if(USE_OPENCL)
     #anakin_generate_kernel(${ANAKIN_ROOT})
