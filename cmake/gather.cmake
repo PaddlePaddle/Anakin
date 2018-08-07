@@ -42,8 +42,8 @@ if(USE_AMD)
 endif()
 
 if(USE_BM)
-    amd_build_cl_binary_file("${CMAKE_SOURCE_DIR}/saber/funcs/impl/bm/base/lib/app" "${CMAKE_BINARY_DIR}/cl/bm")
-    amd_build_cl_binary_file("${CMAKE_SOURCE_DIR}/saber/funcs/impl/bm/base/lib/app" "${PROJECT_SOURCE_DIR}/output/unit_test")
+    bm_build_cl_binary_file("${CMAKE_SOURCE_DIR}/saber/funcs/impl/bm/base/lib/app" "${CMAKE_BINARY_DIR}/cl/bm")
+    bm_build_cl_binary_file("${CMAKE_SOURCE_DIR}/saber/funcs/impl/bm/base/lib/app" "${PROJECT_SOURCE_DIR}/output/unit_test")
 endif()
 
 # find opencl
