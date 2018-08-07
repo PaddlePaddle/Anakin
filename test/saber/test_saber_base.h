@@ -183,6 +183,7 @@ namespace saber{
             CHECK_LT(param_index,_params.size())<<"param index out of range";
             
             Context<TargetType_D> ctx(0,1,1);
+            print_tensor(*_outputs_dev[0][0]);
             for(int input_index=0;input_index<_inputs_dev.size();++input_index){
                     _baseOp.init(_inputs_dev[input_index],_outputs_dev[input_index],
                              _params[param_index],strategy,implenum,ctx);
@@ -206,6 +207,7 @@ namespace saber{
         virtual void get_cpu_result(CpuFunc_t CpuFunc,int param_index=0){
             CHECK_EQ(_inputs_dev.size(),_outputs_dev.size())<<"input and output number must be equal";
             CHECK_EQ(_outputs_hd.size(),_outputs_dev.size())<<"input and output number must be equal";
+            
             for(int i=0;i<_inputs_dev.size();++i){
                 CpuFunc(_inputs_host[i],_outputs_host[i],_params[param_index]);//depend on cpu func form?
                 
@@ -226,9 +228,11 @@ namespace saber{
                     LOG(INFO)<<"max_ratio:"<<max_ratio[i];
                     if(max_ratio[i]<=succ_ratio)
                         LOG(INFO)<<"Test Passed!";
-                    else
-                        //LOG(FATAL)<<"Test Failed!!";
-                        LOG(ERROR)<<"Test Failed!!";
+                    else{
+                        print_tensor(*_outputs_host[0][0]);
+                        LOG(FATAL)<<"Test Failed!!";
+                        //LOG(ERROR)<<"Test Failed!!";
+                    }
                 }
                 
             }
