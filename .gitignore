@@ -38,7 +38,4 @@ ios_build
 gpu_build
 output
 
-.idea
-.vs_code
-.idea/workspace.xml
-.vscode/settings.json
+.vscode
