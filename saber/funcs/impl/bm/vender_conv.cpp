@@ -8,7 +8,7 @@ namespace saber
 
 // FP32 part
 template <>
-SaberStatus VenderConv2D<BM, AK_BM>::
+SaberStatus VenderConv2D<BM, AK_BM>::\
     init(const std::vector<Tensor<BM> *> &inputs,
          std::vector<Tensor<BM> *> &outputs,
          ConvParam<BM> &param, Context<BM> &ctx)
@@ -19,18 +19,18 @@ SaberStatus VenderConv2D<BM, AK_BM>::
 }
 
 template <>
-SaberStatus VenderConv2D<BM, AK_BM>::
-    create(const std::vector<Tensor<BM> *> &inputs,
-           std::vector<Tensor<BM> *> &outputs,
-           ConvParam<BM> &param, Context<BM> &ctx)
+SaberStatus VenderConv2D<BM, AK_BM>::\
+    create(const std::vector<Tensor<BM> *>& inputs,
+            std::vector<Tensor<BM> *>& outputs,
+            ConvParam<BM>& param, Context<BM>& ctx)
 {
 }
 
 template <>
 SaberStatus VenderConv2D<BM, AK_BM>::\
-    dispatch(const std::vector<Tensor<BM> *> &inputs,
-                             std::vector<Tensor<BM> *> &outputs,
-                             ConvParam<BM> &param)
+    dispatch(const std::vector<Tensor<BM>*>& inputs,
+                std::vector<Tensor<BM>*>& outputs,
+                ConvParam<BM>& param)
 {
 
     /*const bm_device_mem_t *in_data = (const bm_device_mem_t *)inputs[0]->data();
