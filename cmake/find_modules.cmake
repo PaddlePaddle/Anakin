@@ -266,7 +266,7 @@ macro(anakin_find_xbyak)
 endmacro()
 
 macro(anakin_find_mklml)
-        set(MKLML_ROOT ${ANAKIN_ROOT}/third-party/mklml)
+        set(MKLML_ROOT "${ANAKIN_ROOT}/third-party/mklml" CACHE PATH "MKLML ROOT")
         find_path(MKLML_ROOT_INCLUDE mkl_vsl.h ${MKLML_ROOT}/include)
         if (MKLML_ROOT_INCLUDE)
             set(MKLML_FOUND TRUE)
