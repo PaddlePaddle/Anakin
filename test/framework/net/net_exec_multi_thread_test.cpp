@@ -133,12 +133,12 @@ TEST(NetTest, net_execute_muti_thread_async_test) {
     int epoch = 2000;
 
 	std::thread check([&]() {
-		int iterator = epoch;
+        int iterator = epoch;
     	while(iterator) {
-			LOG(INFO) << "check work queue: " << iterator << "/" << epoch;
+            LOG(INFO) << "check work queue: " << iterator << "/" << epoch;
     	    if(!workers.empty()) {
     	        auto d_tensor_p = workers.async_get_result();//[0];
-				LOG(WARNING) << "worker consume one";
+                LOG(WARNING) << "worker consume one";
     	        // get hte data of d_tensor_p
     	        
     	        iterator--;
@@ -148,7 +148,7 @@ TEST(NetTest, net_execute_muti_thread_async_test) {
 
     // Running 
     for(int i=0; i<epoch; i++) {
-		LOG(ERROR) << "epoch " << i << " / " << epoch;
+        LOG(ERROR) << "epoch " << i << " / " << epoch;
         workers.async_prediction(host_tensor_p_in_list);
     }
 
