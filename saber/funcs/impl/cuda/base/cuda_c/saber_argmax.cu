@@ -35,20 +35,7 @@ __global__ void top1(const Dtype* in_data,
         share_index[index] = -1;
     }
     __syncthreads();
-    #if 0
-    for (int stride = blockDim.x >> 1;
-        stride > 0;
-        stride >>= 1) {
-        if (index < stride) {
-            int index2 = index + stride;
-            if (share_data[index2] > share_data[index]) {
-                 share_data[index] = share_data[index2];
-                 share_index[index] = share_index[index2];
-            }
-        }
-        __syncthreads();
-    }
-    #else
+
     if (blockSize >= 512) {
         if (index < 256) {
             int index2 = index + 256;
@@ -127,7 +114,6 @@ __global__ void top1(const Dtype* in_data,
     }
 
     __syncthreads();
-    #endif
     if (index == 0) {
        if (!out_max_val) {
            out_data[blockIdx.x] = share_index[0];
@@ -159,20 +145,7 @@ __global__ void block_top1(const Dtype* in_data,
     }
     __syncthreads();
 
-    #if 0
-    for (int stride = blockDim.x >> 1;
-        stride > 0;
-        stride >>= 1) {
-        if (index < stride) {
-            int index2 = index + stride;
-            if (share_data[index2] > share_data[index]) {
-                 share_data[index] = share_data[index2];
-                 share_index[index] = share_index[index2];
-            }
-        }
-        __syncthreads();
-    }
-    #else
+   
     if (blockSize >= 512) {
         if (index < 256) {
             int index2 = index + 256;
@@ -251,7 +224,6 @@ __global__ void block_top1(const Dtype* in_data,
     }
 
     __syncthreads();
-    #endif
     if (index == 0) {
        int offset = blockIdx.y * gridDim.x + blockIdx.x;
        out_data[offset] = share_data[0];
@@ -288,20 +260,6 @@ __global__ void top1(const Dtype* in_data,
         share_index[index] = -1;
     }
     __syncthreads();
-    #if 0
-        for (int stride = blockDim.x >> 1;
-            stride > 0;
-            stride >>= 1) {
-            if (index < stride) {
-                int index2 = index + stride;
-                if (share_data[index2] > share_data[index]) {
-                     share_data[index] = share_data[index2];
-                     share_index[index] = share_index[index2];
-                }
-            }
-            __syncthreads();
-        }
-    #else
     if (blockSize >= 512) {
         if (index < 256) {
             int index2 = index + 256;
@@ -380,7 +338,6 @@ __global__ void top1(const Dtype* in_data,
     }
 
     __syncthreads();
-    #endif
     if (index == 0) {
        int block_id = share_index[0];
        if (!out_max_val) {
@@ -656,99 +613,7 @@ __global__ void topk_heap_shared(Dtype *out_data, int n, int inner_dim, const in
         }
         __syncthreads();
     }
-   // if (tid < 32) {
-   //     if (blockSize >= 64) {
-   //          volatile Dtype* cur = cur_tree;
-   //          volatile Dtype* cur_index = cur_tree_index;
-   //          volatile Dtype* next = cur + 32 * top_k;
-   //          volatile Dtype* next_index = cur_index + 32 * top_k;
-   //         for (int i = 0; i < top_k; i++) {
-   //             if (next[i] > cur[0]) {
-   //                 cur[0] = next[i];
-   //                 cur_index[0] = next_index[i];
-   //                 adjust_small_heap_with_index_device(cur, cur_index, 0, top_k);
-   //             }
-   //         }
-   //     }
-   //     if (blockSize >= 32) {
-   //          volatile Dtype* cur = cur_tree;
-   //          volatile Dtype* cur_index = cur_tree_index;
-   //          volatile Dtype* next = cur + 16 * top_k;
-   //          volatile Dtype* next_index = cur_index + 16 * top_k;
-   //         for (int i = 0; i < top_k; i++) {
-   //             if (next[i] > cur[0]) {
-   //                 cur[0] = next[i];
-   //                 cur_index[0] = next_index[i];
-   //                 adjust_small_heap_with_index_device(cur, cur_index, 0, top_k);
-   //             }
-   //         }
-   //     }
-   //     if (blockSize >= 16) {
-   //          volatile Dtype* cur = cur_tree;
-   //          volatile Dtype* cur_index = cur_tree_index;
-   //          volatile Dtype* next = cur + 8 * top_k;
-   //          volatile Dtype* next_index = cur_index + 8 * top_k;
-   //         for (int i = 0; i < top_k; i++) {
-   //             if (next[i] > cur[0]) {
-   //                 cur[0] = next[i];
-   //                 cur_index[0] = next_index[i];
-   //                 adjust_small_heap_with_index_device(cur, cur_index, 0, top_k);
-   //             }
-   //         }
-   //         if (tid < 8) {
-   //             for(int i = 0; i < top_k; i++) {
-   //                 printf("block_id:%d, tid:%d, i:%d, cur_tree:%f, \n", block_id, tid, i, cur[i]);
-   //             }
-   //         }
-   //     }
-   //     if (blockSize >= 8) {
-   //          volatile Dtype* cur = cur_tree;
-   //          volatile Dtype* cur_index = cur_tree_index;
-   //          volatile Dtype* next = cur + 4 * top_k;
-   //          volatile Dtype* next_index = cur_index + 4 * top_k;
-   //         for (int i = 0; i < top_k; i++) {
-   //             if (next[i] > cur[0]) {
-   //                 cur[0] = next[i];
-   //                 cur_index[0] = next_index[i];
-   //                 adjust_small_heap_with_index_device(cur, cur_index, 0, top_k);
-   //                 if (block_id == 0 && tid < 1) {
-   //                     for(int m = 0; m < top_k; m++) {
-   //                         printf("block_id:%d, tid:%d, i:%d, m:%d, cur_tree:%f, next:%f\n", block_id, tid, i, m, cur[m], next[m]);
-   //                     }
-   //                 }
-   //             }
-   //         }
-   //     }
-   //     if (blockSize >= 4) {
-   //          volatile Dtype* cur = cur_tree;
-   //          volatile Dtype* cur_index = cur_tree_index;
-   //          volatile Dtype* next = cur + 2 * top_k;
-   //          volatile Dtype* next_index = cur_index + 2 * top_k;
-   //         for (int i = 0; i < top_k; i++) {
-   //             if (next[i] > cur[0]) {
-   //                 cur[0] = next[i];
-   //                 cur_index[0] = next_index[i];
-   //                 adjust_small_heap_with_index_device(cur, cur_index, 0, top_k);
-   //             }
-   //         }
-   //     }
-   //     if (blockSize >= 2) {
-   //          volatile Dtype* cur = cur_tree;
-   //          volatile Dtype* cur_index = cur_tree_index;
-   //          volatile Dtype* next = cur + 1 * top_k;
-   //          volatile Dtype* next_index = cur_index + 1 * top_k;
-   //         if (tid == 0) {
-   //         for (int i = 0; i < top_k; i++) {
-   //                 printf("block_id:%d, i:%d, cur_val:%f, cur_index:%f, next_val:%f, next_val:%f\n", block_id, i,  cur[i], cur_index[i], next[i], next_index[i]);
-   //             //if (next[i] > cur[0]) {
-   //             //    cur[0] = next[i];
-   //             //    cur_index[0] = next_index[i];
-   //             //    adjust_small_heap_with_index_device(cur, cur_index, 0, top_k);
-   //             //}
-   //         }
-   //         }
-   //     }
-   // }
+   
     if (tid == 0) {
         int stride = out_max_val ? block_id * top_k * 2 : block_id * top_k;
         Dtype* out =  out_data + stride;
