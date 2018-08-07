@@ -34,7 +34,7 @@ void embedding_cpu_base(const std::vector<Tensor<TargetType_H>* > &input, std::v
     }
 }
 
-//EmbeddingParam<TargetType> param(word_num, emb_dim, padding_idx, &weight_d);
+
 TEST(TestSaberFunc, test_op_embedding) {
 
 #ifdef USE_X86_PLACE
@@ -86,24 +86,18 @@ TEST(TestSaberFunc, test_op_embedding) {
     Tensor<NVHX86> weight_h(weights_s);
     Tensor<NV> weight_d(weights_s);
     fill_tensor_rand(weight_h, -0.5, 0.5);
-    weight_d.copy_from(weight_h);  //
+    weight_d.copy_from(weight_h);
 
     EmbeddingParam<NV> param(word_num, emb_dim, padding_idx, &weight_d);
     testbase.set_param(param);
 
-/*
-    int num_in = 100;
-    int ch_in = 1;
-    int h_in = 1;
-    int w_in = 1; */
-    //random interval [1, 128].
-    
+
     //test for nchw
     for(int w_in : {32,64}) {
         for(int h_in : {32, 64}){
             for(int ch_in : {3, 8}){
                 for(int num_in:{1, 2}){
-                    testbase.set_rand_limit(1, 128);
+                    testbase.set_rand_limit(1, 128); //random interval [1, 128].
                     testbase.set_input_shape(Shape({num_in, ch_in, h_in, w_in}));
                     testbase.run_test(embedding_cpu_base<float, NV, NVHX86>);//run test
                 }
