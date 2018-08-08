@@ -144,8 +144,8 @@ Status Graph<Ttype, Dtype, Ptype>::Optimize() EXCLUSIVE_LOCKS_REQUIRED(_mut) {
 	    // get node exec in order
 	    //_nodes_exec_order = conv_eltwise_fusion_scheduler.get_exec_node_in_order();
 #endif
-	    // optimization again
-	    ParallScheduler para_scheduler;
+            // optimization again
+            ParallScheduler para_scheduler;
             para_scheduler.RegIOResource(_vgraph);
             para_scheduler.Run();
 
