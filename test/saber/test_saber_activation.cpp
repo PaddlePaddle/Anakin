@@ -4,120 +4,199 @@
 #include "saber/saber_types.h"
 #include "test_saber_func.h"
 #include <vector>
+#include<cmath>
 
 using namespace anakin::saber;
+int axis_in = 1;
+int num_in = 1;
+int ch_in = 32;
+int h_in = 112;
+int w_in = 112;
+template <typename dtype,typename TargetType_D,typename TargetType_H>
+void activation_basic(const std::vector<Tensor<TargetType_H>*>& inputs, std::vector<Tensor<TargetType_H>*>& outputs, ActivationParam<TargetType_D>& param){
 
-template <typename TargetType, typename TargetType_H>
-void test_activation(Shape input_big_shape, Shape input_shape,
-                     ActivationParam<TargetType> param, Shape offset, bool is_share_from) {
-    typedef Tensor<TargetType_H> TensorH;
-    typedef Tensor<TargetType> TensorD;
-    Context<TargetType> ctx(0, 1, 1);
+    int num = inputs[0]->num();
+    int channel = inputs[0]->channel();
+    int height = inputs[0]->height();
+    int width = inputs[0]->width();
 
-    TensorD big_input;
-    TensorD small_input;
-    TensorD big_output;
-    TensorD small_output;
-
-    big_input.re_alloc(input_big_shape, AK_FLOAT);
-    big_output.re_alloc(input_big_shape, AK_FLOAT);
-    small_input.set_shape(input_shape, input_shape);
-    small_output.set_shape(input_shape, input_shape);
-    TensorH host_big_input(input_big_shape);
-    fill_tensor_rand(host_big_input, -1, 1);
-    big_input.copy_from(host_big_input);
-    //fill_tensor_device_rand(big_input, -1, 1);
-
-    if (is_share_from) {
-        small_input.share_from(big_input);
-        small_output.share_from(big_output);
-    } else {
-        small_input.share_sub_buffer(big_input, input_shape, offset);
-        small_output.share_sub_buffer(big_output, input_shape, offset);
-    }
-
-    TensorD output_dev;
-    // start Reshape & doInfer
-
-    std::vector<TensorD*> inputs;
-    std::vector<TensorD*> outputs;
-
-    inputs.push_back(&small_input);
-    outputs.push_back(&small_output);
-
-    Activation<TargetType, AK_FLOAT> act;
-
-    act.compute_output_shape(inputs, outputs, param);
-    // init assume output tensor has been reshpaed by user.
-    act.init(inputs, outputs, param, SPECIFY, SABER_IMPL, ctx);
-    act(inputs, outputs, param, ctx);
-    typename TensorD::API::stream_t stream = ctx.get_compute_stream();
-    outputs[0]->record_event(stream);
-    outputs[0]->sync();
-    print_tensor(big_output);
-    print_tensor(big_input);
-    if (param.prelu_param.slope) {
-        print_tensor((*param.prelu_param.slope));
-    }
-    Tensor<TargetType>::API::device_sync();
-#ifdef USE_CUDA
-    CUDA_POST_KERNEL_CHECK;
-#endif
-}
-
-template <typename TargetType, typename TargetType_H>
-void test_accuracy(int num, int channel, int height, int width) {
-
-    typedef Tensor<TargetType_H> TensorH;
-    typedef Tensor<TargetType> TensorD;
-
-    Shape input_shape({num, channel, height, width}, Layout_NCHW);
-    Shape input_big_shape({num, channel, height+1, width+1}, Layout_NCHW);
-    Shape offset_0({0, 0, 0, 0}, Layout_NCHW);
-    Shape offset_1({0, 0, 1, 1}, Layout_NCHW);
-    Shape slope_shape_0({1, channel, 1, 1}, Layout_NCHW);
-    Shape slope_shape_1({1, 1, 1, 1}, Layout_NCHW);
-    TensorD prelu_slope_0;
-    prelu_slope_0.reshape(slope_shape_0);
-    PreluParam<TargetType> prelu_0(false, &prelu_slope_0);
-
-    TensorD prelu_slope_1;
-    prelu_slope_1.reshape(slope_shape_1);
-    PreluParam<TargetType> prelu_1(true, &prelu_slope_1);
-    fill_tensor_rand(prelu_slope_0, 0, 1);
-    fill_tensor_rand(prelu_slope_1, 0, 1);
-
-    ActivationParam<TargetType> param_elu(Active_elu, 0.1f, 0.1f);
-    ActivationParam<TargetType> param_relu(Active_relu, 0.0f, 0.0f);
-    ActivationParam<TargetType> param_sigmoid(Active_sigmoid, 0.1f, 0.1f);
-    ActivationParam<TargetType> param_tanh(Active_tanh, 0.1f, 0.1f);
-    ActivationParam<TargetType> param_prelu_0(Active_prelu, 0.f, 0.f, prelu_0);
-    ActivationParam<TargetType> param_prelu_1(Active_prelu, 0.f, 0.f, prelu_1);
-
-    for (ActivationParam<TargetType> param : {param_elu, param_relu, param_sigmoid, param_tanh, param_prelu_0, param_prelu_1}) {
-        //for (ActivationParam<TensorD> param : {param_sigmoid}) {
-        for (auto share_from : {false, true}) {
-            for (auto offset: {offset_0, offset_1}) {
-                test_activation<TargetType, TargetType_H>(input_big_shape,
-                                input_shape, param, offset, share_from);
-            }
+    dtype* dout = (dtype*)outputs[0]->mutable_data();
+    const dtype* din = (const dtype*)inputs[0]->data();
+    size_t count = inputs[0]->valid_size();
+    int size = height * width;
+/*
+    for (int i = 0; i < inputs.size(); i++){
+        const dtype* din = (dtype*)inputs[i]->data();
+        LOG(INFO) << "i: " << i;
+        for(int j = 0; j < inputs[i]->count_valid(0, 4); j++){
+            LOG(INFO) << "j: "<< j << ", data: " << din[j];
         }
+    }
+*/
+    switch (param.active){
+         //x > 0 ? x : 0
+        case Active_relu:
+            for (size_t i = 0; i < count; i++){
+                dout[i] = din[i] > 0 ? din[i] : 0;
+            }
+            break;
+
+        // sigmoid: 1/(exp(-x) + 1)
+        case Active_sigmoid:
+
+           for (size_t i = 0; i < count; i++){
+                dout[i] = 1.0f / (exp(-din[i]) + 1.0f);
+            }
+            break;
+
+        // tanh : (exp(x) - exp(-x)) / (exp(x) + exp(-x))
+        case Active_tanh:
+            for (size_t i = 0; i < count; i++){
+                dout[i] =  tanh(din[i];//((exp(din[i]) - exp(-din[i])) / (exp(din[i]) + exp(-din[i]));
+            }
+            break;
+        
+        // stanh : b * \frac{e^{a * x} - e^{-a * x}}{e^{a * x} + e^{-a * x}}
+        case Active_stanh:
+            for (size_t i = 0; i < count; i++){
+                dtype val = din[i] * param.negative_slope;
+                dout[i] =  param.coef * tanh(val);
+            }
+            break;
+
+        // x > 0 ? x : 0;
+        // x < threshold ? x : threshold
+        case Active_clipped_relu:
+             for (size_t i = 0; i < count; i++){
+                 const dtype threshold = param.coef;
+                dout[i] = din[i] > 0 ? (din[i] < threshold ? din[i] : threshold : 0;
+             }
+            break;
+
+        //elu:  x > 0 ? x : coef * (exp(x) - 1)
+        case Active_elu:
+            for (size_t i = 0; i < count; i++){
+                dout[i] =  din[i] > 0 ? din[i] : param.coef * (exp(din[i]) - 1);
+            }
+            break;
+
+        //prelu: x > 0 ? x : slope[c] * x
+        case Active_prelu:
+            auto prelu_param  = param.prelu_param;
+            for (int n = 0; n < num; n++){
+                const dtpye *in_ptr = din + n * channel * size;
+                dtpye *out_ptr = dout + n * channel * size;
+                for (int c = 0; c < channel; c++){
+                    const dtpye *in_ch_ptr = in_ptr + c * size;
+                    dtpye *out_ch_ptr = out_ptr + c * size;
+                    dtpye *slope_ptr = (dtpye*)prelu_param.slope->data();
+                    dtpye slope = prelu_param.channel_shared ?  slope_ptr[0]: slope_ptr[c];
+                    for (int k = 0; k < size; k++){
+                        out_ch_ptr[k] = in_ch_ptr[k] > 0 ? in_ch_ptr[k] : in_ch_ptr[k] * slope;
+                    }
+                }
+            }
+            break; 
     }
 }
 
 TEST(TestSaberFunc, test_func_activation) {
-    int num = 1;
-    int channel = 2;
-    int height = 5;
-    int width = 4;
+    int num = num_in;
+    int channel = ch_in;
+    int height = h_in;
+    int width = w_in;
+    int axis1 = axis_in;
+   
 #ifdef USE_CUDA
-    Env<NV>::env_init();
-    Env<NVHX86>::env_init();
-    test_accuracy<NV, NVHX86>(num, channel, height, width);
+   //Init the test_base
+    TestSaberBase<NV, NVHX86, AK_FLOAT, Activation, ActivationParam> testbase(1,1);
+    Shape input_shape({num, channel, height, width}, Layout_NCHW);
+    Shape input_shape2({2, 2, 12, 22}, Layout_NCHW);
+
+    for(auto shape: {input_shape, input_shape2}){
+        for(auto act: {1, 2, 3, 4, 5, 9, 10, active}){
+            for(auto neg_slope: {-1, 0.5, 1}){
+                for(auto coef: {-1, 0.5, 1}){
+                    for(auto has: {true, false}){
+                        if(act == 10){
+                            for(auto shared: {true, false}){
+                                Shape slope_shape({1, shape[1], 1, 1}, Layout_NCHW);
+                                Tensor<NV> slope_tensor;
+                                slope_tensor.re_alloc(slope_shape, AK_FLOAT);
+                                fill_tensor_rand(slope_tensot, -1.0, 1.0);
+                                PreluParam<NV> prelu(shares, &slope_tensor);
+                                ActivationParam<NV> param(act, neg_slope, coef, prelu, has_active);
+                                testbase.set_param(param);//set param
+                                testbase.set_input_shape(shape);
+                                testbase.run_test(cactivation_basic<float, NV, NVHX86>);//run test
+                                LOG(INFO) << "NV run end";
+                            }
+                            
+                        }else{
+                            PreluParam<NV> prelu(false, nullptr);
+                            ActivationParam<NV> param(act, neg_slope, coef, prelu, has_active);
+                            testbase.set_param(param);//set param
+                            testbase.set_input_shape(shape);
+                            testbase.run_test(cactivation_basic<float, NV, NVHX86>);//run test
+                            LOG(INFO) << "NV run end";
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 #endif
 #ifdef USE_X86_PLACE
-    Env<X86>::env_init();
-    test_accuracy<X86, X86>(num, channel, height, width);
+    TestSaberBase<X86, X86, AK_FLOAT, Concat, ConcatParam> testbase(2,1);
+    Shape input_shape({num, channel, height, width}, Layout_NCHW);
+    Shape input_shape2({2, 2, 12, 22}, Layout_NCHW);
+
+    for(auto shape: {input_shape, input_shape2}){
+        for(auto axis: {0,1,2,3, axis1}){
+            ConcatParam<X86> param(axis);
+            testbase.set_param(param);//set param
+            //testbase.set_rand_limit(255,255);
+            std::vector<Shape> shape_v;
+            shape_v.push_back(shape);
+            Shape shin = shape;
+            shin[axis] = 2;
+            shape_v.push_back(shin);
+            Shape shin2 = shape;
+            shin2[axis] = 4;
+            shape_v.push_back(shin2);
+            testbase.set_input_shape(shape_v);//add some input shape
+            testbase.run_test(concat_nv_basic<float, X86, X86>);//run test
+            LOG(INFO) << "X86 run end";
+        }
+    }
+#endif
+
+#ifdef USE_ARM_PLACE
+   //Init the test_base
+    TestSaberBase<ARM, ARM, AK_FLOAT, Concat, ConcatParam> testbase(2,1);
+    Shape input_shape({num, channel, height, width}, Layout_NCHW);
+    Shape input_shape2({2, 2, 12, 22}, Layout_NCHW);
+
+    for(auto shape: {input_shape, input_shape2}){
+        for(auto axis: {0,1,2,3, axis1}){
+            ConcatParam<ARM> param(axis);
+            testbase.set_param(param);//set param
+            //testbase.set_rand_limit(255,255);
+            std::vector<Shape> shape_v;
+            shape_v.push_back(shape);
+            Shape shin = shape;
+            shin[axis] = 2;
+            shape_v.push_back(shin);
+            Shape shin2 = shape;
+            shin2[axis] = 4;
+            shape_v.push_back(shin2);
+            testbase.set_input_shape(shape_v);//add some input shape
+            testbase.run_test(concat_nv_basic<float, ARM, ARM>);//run test
+            LOG(INFO) << "ARM run end";
+	}
+    }
+
 #endif
 }
 
