@@ -126,14 +126,6 @@ public:
         ms_time.push_back(elapse_ms);
     }
 
-    void end_max(Context<NV> &ctx) {
-        cudaStream_t cuda_stream;
-        cuda_stream = ctx.get_compute_stream();
-        CUDA_CHECK(cudaEventRecord(_e_end, cuda_stream));
-        CUDA_CHECK(cudaEventSynchronize(_e_end));
-        ms_time.push_back(99999.f);
-    }
-
     float get_average_ms() {
         if (ms_time.size() == 0) {
             return 0.f;

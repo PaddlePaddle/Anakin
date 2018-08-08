@@ -105,7 +105,7 @@ template <typename dtype, bool bias_flag, bool relu_flag>
 SaberStatus saber_depthwise_conv_act(const dtype* input, dtype* output, \
     int num, int cin, int hin, int win, int hout, int wout, \
     int kw, int kh, int stride_w, int stride_h, \
-    int pad_h, int pad_w, const dtype* weights, const dtype* bias, \
+    int pad_w, int pad_h, const dtype* weights, const dtype* bias, \
     cudaStream_t stream) {
 
 #define D1

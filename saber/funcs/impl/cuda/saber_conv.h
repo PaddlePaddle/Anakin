@@ -62,14 +62,14 @@ public:
                        std::vector<Tensor<NV> *>& outputs,
                        ConvParam<NV>& param, Context<NV> &ctx) {
 
-        Tensor<X86> trans_weights_host;
+        Tensor<NVHX86> trans_weights_host;
         if (param.stride_h == 1 &&
             param.stride_w == 1 &&
             param.weight()->height() == 3 &&
             param.weight()->width() == 3 && param.group == 1) {
             //Update weights if need
             Shape weight_shape = param.weight()->shape();
-            Tensor<X86> new_weight;
+            Tensor<NVHX86> new_weight;
             new_weight.re_alloc(weight_shape, param.weight()->get_dtype());
             new_weight.copy_from(*(param.weight()));
             OpDataType *weight_data = new_weight.mutable_data();
@@ -89,7 +89,7 @@ public:
 
         } else if (param.group == 1) {
             int weight_size = (param.weight()->shape()).count();
-            Tensor<X86> weight_host;
+            Tensor<NVHX86> weight_host;
             weight_host.re_alloc(param.weight()->shape(), param.weight()->get_dtype());
             weight_host.copy_from(*(param.weight()));
             const OpDataType *weight_data = weight_host.data();
