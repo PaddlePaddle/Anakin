@@ -86,7 +86,7 @@ void pooling_cpu_func(const std::vector<Tensor<TargetType_H>*>& input,std::vecto
 TEST(TestSaberFunc, test_func_pool)
 {
 #ifdef USE_CUDA
-TestSaberBase<NV,NVHX86,AK_FLOAT,Pooling,PoolingParam> testbase;
+TestSaberBase<NV,NVHX86,AK_FLOAT,Pooling,PoolingParam> testbase_cu;
     
 for(int window_h:{2, 4}){
     for(int window_w:{2, 4}){
@@ -106,9 +106,9 @@ for(int window_h:{2, 4}){
                                     for(int in_h:{32, 64}){
                                         for(int in_w:{32, 64}){
                                             LOG(INFO)<<"n:"<<in_n<<",in_c:"<<in_c<<",in_h:"<<in_h<<",in_w:"<<in_w;
-                                            testbase.set_param(param);//set param
-                                            testbase.set_input_shape(Shape({in_n,in_c,in_h,in_w}));//add some input shape
-                                            testbase.run_test(pooling_cpu_func<float,NV,NVHX86>);//run test
+                                            testbase_cu.set_param(param);//set param
+                                            testbase_cu.set_input_shape(Shape({in_n,in_c,in_h,in_w}));//add some input shape
+                                            testbase_cu.run_test(pooling_cpu_func<float,NV,NVHX86>);//run test
                                             
                                         }
                                     }
@@ -123,7 +123,7 @@ for(int window_h:{2, 4}){
 }
 #endif
 #ifdef USE_X86_PLACE
-TestSaberBase<X86,X86,AK_FLOAT,Pooling,PoolingParam> testbase;
+TestSaberBase<X86,X86,AK_FLOAT,Pooling,PoolingParam> testbase_cpu;
     
 for(int window_h:{2, 4}){
     for(int window_w:{2, 4}){
@@ -143,9 +143,9 @@ for(int window_h:{2, 4}){
                                     for(int in_h:{32, 64}){
                                         for(int in_w:{32, 64}){
                                             LOG(INFO)<<"n:"<<in_n<<",in_c:"<<in_c<<",in_h:"<<in_h<<",in_w:"<<in_w;
-                                            testbase.set_param(param);//set param
-                                            testbase.set_input_shape(Shape({in_n,in_c,in_h,in_w}));//add some input shape
-                                            testbase.run_test(pooling_cpu_func<float,X86,X86>);//run test
+                                            testbase_cpu.set_param(param);//set param
+                                            testbase_cpu.set_input_shape(Shape({in_n,in_c,in_h,in_w}));//add some input shape
+                                            testbase_cpu.run_test(pooling_cpu_func<float,X86,X86>);//run test
                                             
                                         }
                                     }
