@@ -10,7 +10,7 @@
 
 using namespace anakin::saber;
 /*CPU function form:
-  void FuncName(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tensor<TargetType_H>*>& output,Param<TargetType_D>& param,Shape shape)
+ void FuncName(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tensor<TargetType_H>*>& output,Param<TargetType_D>& param,Shape shape)
  */
 template <typename dtype,typename TargetType_D,typename TargetType_H>
 void norm_cpu_nchw(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tensor<TargetType_H>*>& output,NormalizeParam<TargetType_D>& param) {
@@ -187,7 +187,7 @@ TEST(TestSaberFunc, test_func_normalize) {
 }
 
 
-    
+
 int main(int argc, const char** argv) {
     // initial logger
     //logger::init(argv[0]);
@@ -197,4 +197,3 @@ int main(int argc, const char** argv) {
     
     return 0;
 }
-
