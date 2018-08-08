@@ -85,7 +85,7 @@ int test_conv_results(int group,
     double max_diff = 0.0;
     tensor_cmp_host((const float*)output_host.data(), (const float*)check_host.data(),
                     check_host.valid_size(), max_ratio, max_diff);
-    if (max_ratio < 1e-4) {
+    if (max_ratio < 1e-3) {
                 LOG(INFO) << " PASS!!! max_ratio = " << max_ratio << " max_diff = " << max_diff;
         return 0;
     } else {
