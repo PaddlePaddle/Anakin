@@ -29,6 +29,7 @@ namespace saber {
 template <typename TargetType>
 struct PreluParam;
 
+
 template <typename TargetType>
 struct ActivationParam {
     ActivationParam()
@@ -78,6 +79,32 @@ struct ActivationParam {
     float coef;
     bool has_active;
     PreluParam<TargetType> prelu_param;
+};
+
+template <typename TargetType>
+struct CastParam {
+    CastParam() = default;
+    CastParam(int in_type_in, int out_type_in)
+            : in_type(in_type_in)
+            , out_type(out_type_in)
+    {}
+    CastParam(const CastParam &right)
+            : in_type(right.in_type)
+            , out_type(right.out_type)
+    {}
+    CastParam &operator=(const CastParam &right) {
+        in_type = right.in_type;
+        out_type = right.out_type;
+        return *this;
+    }
+    bool operator==(const CastParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (in_type == right.in_type);
+        comp_eq = comp_eq && (out_type == right.out_type);
+        return comp_eq;
+    }
+    int in_type;
+    int out_type;
 };
 
 template <typename TargetType>
