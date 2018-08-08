@@ -8,8 +8,9 @@
 namespace anakin {
 namespace saber {
 
-template<typename Dtype>
-class Gemm<NV, VENDER_IMPL, Dtype> {
+template<typename inDtype,
+        typename outDtype>
+class Gemm<NV, VENDER_IMPL, inDtype, outDtype> {
 
 public:
     Gemm() = default;
@@ -19,8 +20,9 @@ public:
                      const int m, const int n, const int k,
                      Context<NV> ctx);
 
-    SaberStatus dispatch(const Dtype alpha, const Dtype* ptr_a,
-                         const Dtype beta, const Dtype* ptr_b, Dtype* ptr_c);
+    SaberStatus dispatch(const outDtype alpha, const outDtype beta,
+                         const inDtype* a, const inDtype* b,
+                         outDtype* c);
 
 private:
     Context<NV> _ctx;

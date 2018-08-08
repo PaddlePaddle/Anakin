@@ -25,7 +25,8 @@ namespace saber {
 
 template<typename TargetType,
         ImplEnum impl,
-        typename Dtype>
+        typename inDtype,
+        typename outDtype = inDtype>
 class Gemm {
     // Row major gemm
 public:
@@ -40,15 +41,16 @@ public:
         return SaberUnImplError;
     }
 
-    SaberStatus dispatch(const Dtype alpha, const Dtype* a,
-                         const Dtype beta, const Dtype* b,
-                         Dtype* c) {
+    SaberStatus dispatch(const outDtype alpha, const outDtype beta,
+                         const inDtype* a, const inDtype* b,
+                         outDtype* c) {
 
         LOG(INFO) << "UNIMPLEMENT";
         return SaberUnImplError;
     }
 
 private:
+    Context<TargetType> _ctx;
 };
 }
 }
@@ -60,7 +62,6 @@ private:
 
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/vender_gemm.h"
-//#include "saber/funcs/impl/x86/saber_gemm.h"
 #endif
 
 #endif

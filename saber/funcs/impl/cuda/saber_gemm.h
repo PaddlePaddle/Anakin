@@ -7,8 +7,9 @@
 namespace anakin {
 namespace saber {
 
-template<typename Dtype>
-class Gemm<NV, SABER_IMPL, Dtype> {
+template<typename inDtype,
+        typename outDtype>
+class Gemm<NV, SABER_IMPL, inDtype, outDtype> {
 public:
     Gemm() = default;
     ~Gemm() {}
@@ -17,13 +18,9 @@ public:
                      const int m, const int n, const int k,
                      Context<NV> ctx);
 
-    SaberStatus dispatch(const Dtype alpha, const Dtype* ptr_a,
-                         const Dtype beta, const Dtype* ptr_b, Dtype* ptr_c) {
-
-        cudaStream_t cuda_stream = _ctx.get_compute_stream();
-        _kernel(_m, _n, _k, alpha, ptr_a, beta, ptr_b, ptr_c, cuda_stream);
-        return SaberSuccess;
-    }
+    SaberStatus dispatch(const outDtype alpha, const outDtype beta,
+                         const inDtype* a, const inDtype* b,
+                         outDtype* c);
 
 private:
     int _m{-1};

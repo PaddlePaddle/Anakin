@@ -94,8 +94,9 @@ void test_result (int m, int n, int k, bool trans_a, bool trans_b) {
     a_host.copy_from(a_dev);
     b_host.copy_from(b_dev);
 
-    gemm_op.dispatch(alpha, (const float*)a_dev.data(),
-                     beta, (const float*)b_dev.data(),
+    gemm_op.dispatch(alpha, beta,
+                     (const float*)a_dev.data(),
+                     (const float*)b_dev.data(),
                      (float*)c_dev.mutable_data());
     typename Tensor<TargetType>::API::stream_t stream = ctx1.get_compute_stream();
     c_dev.record_event(stream);
@@ -107,7 +108,7 @@ void test_result (int m, int n, int k, bool trans_a, bool trans_b) {
     double max_ratio = 0.f, max_diff = 0.f;
     tensor_cmp_host((const float*)c_check.data(), (const float*)c_host.data(),
                     c_check.valid_size(), max_ratio, max_diff);
-    if (max_ratio < 1e-4){
+    if (max_ratio < 1e-3){
         LOG(INFO) << "PASS!!!! max_ratio = " <<max_ratio << " max_diff: "<< max_diff;
     }else {
         print_tensor_valid(c_check);
@@ -117,7 +118,7 @@ void test_result (int m, int n, int k, bool trans_a, bool trans_b) {
     }
 }
 
-TEST(TestSaberFunc, test_vender_gemm) {
+TEST(TestSaberFunc, test_vender_gemm_float) {
 
     std::vector<int> m_v = {5, 10, 15, 20, 25, 30};
     std::vector<int> n_v = {5, 10, 15, 20, 25, 30};
@@ -130,16 +131,26 @@ TEST(TestSaberFunc, test_vender_gemm) {
     for (auto k : k_v)
     for (auto trans_a : trans_a_v)
     for (auto trans_b : trans_b_v) {
+
+#ifdef USE_CUDA
         test_result<NV, NVHX86, VENDER_IMPL>(m, n, k, trans_a, trans_b);
         test_result<NV, NVHX86, SABER_IMPL>(m, n, k, trans_a, trans_b);
+#endif
+
+#ifdef USE_X86_PLACE
         test_result<X86, X86, VENDER_IMPL>(m, n, k, trans_a, trans_b);
+#endif
     }
 }
 
 int main(int argc, char* argv[]) {
+#ifdef USE_CUDA
     Env<NV>::env_init();
     Env<NVHX86>::env_init();
+#endif
+#ifdef USE_X86_PLACE
     Env<X86>::env_init();
+#endif
     InitTest();
     RUN_ALL_TESTS(argv[0]);
     return 0;
