@@ -1,13 +1,17 @@
-/* Copyright (c) 2016 Anakin Authors All Rights Reserve.
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-   http://www.apache.org/licenses/LICENSE-2.0
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License. */
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ */
 
 #ifndef X86_UTILS_H
 #define X86_UTILS_H
@@ -100,9 +104,9 @@ public:
 
 class SeqSortedseqTranseUtil {
 public:
-    SeqSortedseqTranseUtil(bool is_reverse = false, bool is_bi = false)
-        : _is_reverse(is_reverse),
-          _is_bi(is_bi) {};
+    SeqSortedseqTranseUtil(bool is_reverse=false,bool is_bi=false)
+            :_is_reverse(is_reverse),
+            _is_bi(is_bi){};
     void print_vec(int* in, int size, const char* perfix) {
         for (int i = 0; i < size; i++) {
             printf("[%s] %d = %d\n", perfix, i, in[i]);
@@ -165,8 +169,7 @@ public:
         }
     }
     template <typename Dtype>
-    void sorted_seq_2_seq(const Dtype* input, Dtype* output, int hidden_size,
-                          int alligned_hidden_size) {
+    void sorted_seq_2_seq(const Dtype* input, Dtype* output, int hidden_size,int alligned_hidden_size) {
         int word_sum = _map_vec.size();
 
         for (int ori_word_id = 0; ori_word_id < word_sum; ori_word_id++) {
@@ -181,13 +184,13 @@ public:
             }
         }
     }
-    /**
-     * return whether need to transform
-     * @param offset_vec
-     * @param emit_offset_vec
-     * @param emit_length
-     * @return
-     */
+/**
+ * return whether need to transform
+ * @param offset_vec
+ * @param emit_offset_vec
+ * @param emit_length
+ * @return
+ */
     bool get_sorted_map(std::vector<int>& offset_vec,
                         std::vector<int>& emit_offset_vec, int& emit_length) {
         int batch_size = offset_vec.size() - 1;
@@ -625,11 +628,14 @@ inline void yield_thread() { }
 // reorder weight layout from NCHW(oc, ic, kh, kw) to OIhw16i16o
 inline void weight_reorder_OIhw16i16o(Tensor<X86>& input,
                                       Tensor<X86>& output) {
-    CHECK_EQ(input.get_dtype(),AK_FLOAT)<<"must be float";
+    CHECK_EQ(input.get_dtype(), AK_FLOAT) << "only support float type";
+    CHECK_EQ(output.get_dtype(), AK_FLOAT) << "only support float type";
     Shape shape = input.valid_shape();
     int oc_value = shape[0], ic_value = shape[1], kh_value = shape[2], kw_value = shape[3];
-    #pragma omp parallel for collapse(6) schedule(static)
 
+    float* output_ptr = static_cast<float*>(output.mutable_data());
+    const float* input_ptr = static_cast<const float*>(input.data());
+    #pragma omp parallel for collapse(6) schedule(static)
     for (int oc_idx = 0; oc_idx < oc_value / 16; ++oc_idx) {
         for (int ic_idx = 0; ic_idx < ic_value / 16; ++ic_idx) {
             for (int kh = 0; kh < kh_value; ++kh) {
@@ -644,7 +650,7 @@ inline void weight_reorder_OIhw16i16o(Tensor<X86>& input,
                                              kh * kw_value * 16 * 16 +
                                              kw * 16 * 16 + ic * 16 + oc;
 
-                            *((float*)output.mutable_data() + output_idx) = *((float*)input.data() + input_idx);
+                            *(output_ptr + output_idx) = *(input_ptr + input_idx);
                         }
                     }
                 }
@@ -656,10 +662,14 @@ inline void weight_reorder_OIhw16i16o(Tensor<X86>& input,
 // reorder weight layout from NCHW(oc, ic, kh, kw) to OIhwi16o
 inline void weight_reorder_OIhwi16o(Tensor<X86>& input,
                                     Tensor<X86>& output) {
-    CHECK_EQ(input.get_dtype(),AK_FLOAT)<<"must be float";
-    Shape shape = input.shape();
-    #pragma omp parallel for collapse(5) schedule(static)
 
+    CHECK_EQ(input.get_dtype(), AK_FLOAT) << "only support float type";
+    CHECK_EQ(output.get_dtype(), AK_FLOAT) << "only support float type";
+    Shape shape = input.shape();
+
+    float* output_ptr = static_cast<float*>(output.mutable_data());
+    const float* input_ptr = static_cast<const float*>(input.data());
+    #pragma omp parallel for collapse(5) schedule(static)
     for (int oc_idx = 0; oc_idx < shape[0] / 16; ++oc_idx) {
         for (int kh = 0; kh < shape[2]; ++kh) {
             for (int kw = 0; kw < shape[3]; ++kw) {
@@ -673,7 +683,7 @@ inline void weight_reorder_OIhwi16o(Tensor<X86>& input,
                                          kw * shape[1] * 16 +
                                          ic * 16 + oc;
 
-                        *((float*)output.mutable_data() + output_idx) = *((float*)input.data() + input_idx);
+                        *(output_ptr + output_idx) = *(input_ptr + input_idx);
                     }
                 }
             }
@@ -685,11 +695,14 @@ inline void weight_reorder_OIhwi16o(Tensor<X86>& input,
 // reorder weight layout from NCHW(oc, ic, kh, kw) to OIhwi8o
 inline void weight_reorder_OIhwi8o(Tensor<X86>& input,
                                    Tensor<X86>& output) {
-    CHECK_EQ(input.get_dtype(),AK_FLOAT)<<"must be float";
     Shape shape = input.shape();
 
-    #pragma omp parallel for collapse(5) schedule(static)
+    CHECK_EQ(input.get_dtype(), AK_FLOAT) << "only support float type";
+    CHECK_EQ(output.get_dtype(), AK_FLOAT) << "only support float type";
 
+    float* output_ptr = static_cast<float*>(output.mutable_data());
+    const float* input_ptr = static_cast<const float*>(input.data());
+    #pragma omp parallel for collapse(5) schedule(static)
     for (int oc_idx = 0; oc_idx < shape[0] / 8; ++oc_idx) {
         for (int kh = 0; kh < shape[2]; ++kh) {
             for (int kw = 0; kw < shape[3]; ++kw) {
@@ -703,7 +716,7 @@ inline void weight_reorder_OIhwi8o(Tensor<X86>& input,
                                          kw * shape[1] * 8 +
                                          ic * 8 + oc;
 
-                        *((float*)output.mutable_data() + output_idx) = *((float*)input.data() + input_idx);
+                        *(output_ptr + output_idx) = *(input_ptr + input_idx);
                     }
                 }
             }
@@ -714,12 +727,16 @@ inline void weight_reorder_OIhwi8o(Tensor<X86>& input,
 // reorder weight layout from NCHW to Goihw16g
 static void weight_reorder_Goihw16g(Tensor<X86>& input,
                                     Tensor<X86>& output) {
-    CHECK_EQ(input.get_dtype(),AK_FLOAT)<<"must be float";
+
+    CHECK_EQ(input.get_dtype(), AK_FLOAT) << "only support float type";
+    CHECK_EQ(output.get_dtype(), AK_FLOAT) << "only support float type";
     Shape shape = input.shape();
     int g_value = shape[0], oc_value = shape[1], ic_value = shape[1], kh_value = shape[2],
         kw_value = shape[3];
-    #pragma omp parallel for collapse(6) schedule(static)
 
+    float* output_ptr = static_cast<float*>(output.mutable_data());
+    const float* input_ptr = static_cast<const float*>(input.data());
+    #pragma omp parallel for collapse(6) schedule(static)
     for (int g_idx = 0; g_idx < g_value / 16; ++g_idx) {
         for (int oc_idx = 0; oc_idx < oc_value; ++oc_idx) {
             for (int ic_idx = 0; ic_idx < ic_value; ++ic_idx) {
@@ -735,7 +752,7 @@ static void weight_reorder_Goihw16g(Tensor<X86>& input,
                                              ic_idx * kh_value * kw_value * 16 +
                                              kh * kw_value * 16 + kw * 16 + g;
 
-                            *((float*)output.mutable_data() + output_idx) = *((float*)input.data() + input_idx);
+                            *( output_ptr+ output_idx) = *(input_ptr + input_idx);
                         }
                     }
                 }
