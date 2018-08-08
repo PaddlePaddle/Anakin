@@ -14,7 +14,7 @@ void fill_tensor_rand<BM>(Tensor<BM>& tensor, \
 
     DataType type = tensor.get_dtype();
     switch (type){
-        case AK_BM: 
+        case AK_BM: {
             float *host_mem_input = new float[tensor.size()];
             for (int i = 0; i < tensor.size(); ++i) {
                 host_mem_input[i] = static_cast<float>(rand());
@@ -25,7 +25,7 @@ void fill_tensor_rand<BM>(Tensor<BM>& tensor, \
 
             delete [] host_mem_input;
             break;
-
+        }
         default: LOG(FATAL) << "data type: " << type << " is unsupported now";
     }
 }
@@ -36,7 +36,7 @@ void fill_tensor_rand<BM>(Tensor<BM>& tensor, float vstart, \
 
     DataType type = tensor.get_dtype();
     switch (type){
-        case AK_BM:
+        case AK_BM: {
             std::random_device rd;
             std::mt19937 gen(rd());
             std::uniform_real_distribution<float> dis(0, 1.f);
@@ -52,7 +52,7 @@ void fill_tensor_rand<BM>(Tensor<BM>& tensor, float vstart, \
 
             delete [] host_mem_input;
             break;
-
+        }
         default: LOG(FATAL) << "data type: " << type << " is unsupported now";
     }
 }
@@ -63,7 +63,7 @@ void fill_tensor_const<BM>(Tensor<BM>& tensor, float value, \
 
     DataType type = tensor.get_dtype();
     switch (type){
-        case AK_BM:
+        case AK_BM: {
             float *host_mem_input = new float[tensor.size()];
             for (int i = 0; i < tensor.size(); ++i) {
                 host_mem_input[i] = value;
@@ -74,7 +74,7 @@ void fill_tensor_const<BM>(Tensor<BM>& tensor, float value, \
 
             delete [] host_mem_input;
             break;
-
+        }
         default: LOG(FATAL) << "data type: " << type << " is unsupported now";
     }
 }
@@ -85,7 +85,7 @@ void print_tensor<BM>(Tensor<BM>& tensor,  \
 
     DataType type = tensor.get_dtype();
     switch (type){
-        case AK_BM:   
+        case AK_BM: {
             LOG(INFO) << "BM device tensor data:" << tensor.size();
 
             /*
@@ -117,7 +117,7 @@ void print_tensor<BM>(Tensor<BM>& tensor,  \
 
             delete [] host_mem;
             break;
-            
+        }
         default: LOG(FATAL) << "data type: " << type << " is unsupported now";
     }
 }
