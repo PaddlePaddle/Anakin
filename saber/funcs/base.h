@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -26,25 +26,26 @@ namespace anakin {
 
 namespace saber {
 
-template<typename inTensor, typename outTensor, typename opTensor,
-    template <typename T0, typename T1, typename T2, typename T3> class Impl,
-    template <typename T0> class Param
-    >
+template<typename TargetType,
+        DataType Dtype,
+        template <typename T, DataType D, typename P> class Impl,
+        template <typename T> class Param >
 class BaseFunc {
 public:
-    typedef typename inTensor::targetType_t targetType_t;
-    typedef Param<opTensor> Param_t;
-    typedef Impl<inTensor, outTensor, opTensor, Param_t> Impl_t;
-    typedef std::vector<inTensor*> Input_v;
-    typedef std::vector<outTensor*> Output_v;
+    typedef Param<TargetType> Param_t;
+    typedef Impl<TargetType, Dtype, Param_t> Impl_t;
+    typedef std::vector<Tensor<TargetType>*> Input_v;
+    typedef std::vector<Tensor<TargetType>*> Output_v;
     typedef std::vector<Shape> Shape_v;
 
     BaseFunc() {}
     ~BaseFunc() {
         std::for_each(this->_impl.begin(), this->_impl.end(),
             [&](Impl_t* impl){
-            delete impl;
-            impl = nullptr;
+			if(impl) {
+            	delete impl;
+            	impl = nullptr;
+			}
         });
     }
 
@@ -56,15 +57,17 @@ public:
          Param_t& param) = 0;
     //TODO:create may lead to leak
     virtual SaberStatus reset_output_shape(const Input_v& input, Output_v& output, \
-        Param_t& param, Context<targetType_t> &ctx) {
+        Param_t& param, Context<TargetType> &ctx) {
         compute_output_shape(input, output, param);
         for (int i = 0; i < output.size(); ++i) {
             output[i]->reshape(output[i]->valid_shape());
         }
         for (auto imp : this->_impl) {
-            SaberStatus status = imp->create(input, output, param, ctx);
-            if (status != SaberSuccess) {
-                return status;
+            if (imp) {
+                SaberStatus status = imp->create(input, output, param, ctx);
+                if (status != SaberSuccess) {
+                    return status;
+                }
             }
         }
         return SaberSuccess;
@@ -73,11 +76,18 @@ public:
     virtual SaberStatus init_impl(ImplEnum implenum) = 0;
 
     virtual SaberStatus init(const Input_v& input, Output_v& output, Param_t& param,
-              SaberImplStrategy strategy, ImplEnum implenum, Context<targetType_t > &ctx) {
+              SaberImplStrategy strategy, ImplEnum implenum, Context<TargetType> &ctx) {
 
         this->_param = param;
         this->_last_input_shape = input[0]->valid_shape();
-        this->_strategy = strategy;
+        this->_strategy = strategy; 
+		std::for_each(this->_impl.begin(), this->_impl.end(), 
+				[&](Impl_t* impl){ 
+					delete impl; 
+					impl = nullptr; 
+				}
+		);
+
         this->_impl.clear();
 
         SaberStatus status = SaberSuccess;
@@ -102,10 +112,10 @@ public:
         }
 
         for (auto imp : this->_impl) {
-            SaberStatus status = imp->init(input, output, param, ctx);
-            if (status != SaberSuccess) {
-                return status;
-            }
+            status = SaberStatus(status | imp->init(input, output, param, ctx));
+        }
+        if (status != SaberSuccess) {
+            return status;
         }
 
         this->pick_best(input, output, param, strategy, implenum, ctx);
@@ -114,7 +124,7 @@ public:
     }
 
     virtual SaberStatus operator()(const Input_v& input, Output_v& output, Param_t& param, \
-        Context<targetType_t> &ctx) {
+        Context<TargetType> &ctx) {
 
         if ((_param == param) && (input[0]->valid_shape() == this->_last_input_shape)) {
             return _best_impl->dispatch(input, output, param);
@@ -138,7 +148,7 @@ protected:
 
     void pick_best(const Input_v input, Output_v output, \
         Param_t& param, SaberImplStrategy strategy, ImplEnum implenum, \
-        Context<targetType_t> &ctx) {
+        Context<TargetType> &ctx) {
         switch(_strategy) {
             case STATIC:
                 pick_best_static();
@@ -161,7 +171,7 @@ private:
     virtual void pick_best_static() = 0;
 
     virtual void pick_best_runtime(const Input_v input, Output_v output, Param_t& param, \
-        Context<targetType_t> &ctx) {
+        Context<TargetType> &ctx) {
 
         float time_cost = 99999.f;
         int idx = 0;
@@ -174,7 +184,7 @@ private:
         }
 
         for(auto iter : _impl) {
-            SaberTimer<targetType_t> timer;
+            SaberTimer<TargetType> timer;
             timer.start(ctx);
             for(int i = 0; i < _runtime_ts; ++i) {
                 iter->dispatch(input, output, param);

@@ -4,6 +4,8 @@ namespace anakin {
 
 namespace graph {
 
+/// in straight order
+
 REGISTER_GRAPH_FUSION_PATTERN(DeconvRelu)
 .Type(IN_ORDER)
 .AddOpNode("conv_0",  "Deconvolution")
@@ -73,13 +75,6 @@ REGISTER_GRAPH_FUSION_PATTERN(EltwiseRelu)
 .AddOpNode("relu_0", "ReLU")
 .AddConnect("eltwise_0", "relu_0")
 .CreatePattern([](VGraph* graph) {});
-
-
-/*REGISTER_GRAPH_FUSION_PATTERN(Dense)
-    .Type(IN_PARELLEL)
-    .CreatePattern([](VGraph* graph){
-    })*/
-
 
 } /* namespace graph */
 

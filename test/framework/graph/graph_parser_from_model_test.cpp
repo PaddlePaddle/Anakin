@@ -7,8 +7,7 @@
 using namespace anakin;
 using namespace anakin::graph;
 
-//std::string model_path = "/home/chaowen/anakin_v2/model_v2/google_net/googlenet.anakin.bin";
-std::string model_path = "/home/chaowen/anakin_v2/model_v2/yolo/yolo.anakin.bin";
+std::string model_path = "/path/to/name.anakin.bin";
 
 
 TEST(GraphTest, graph_load_model) {
@@ -22,7 +21,8 @@ TEST(GraphTest, graph_load_model) {
     graph->Optimize();  */
 }
 
-TEST(GraphTest, graph_save_model) {
+#ifdef USE_CUDA
+TEST(GraphTest, nvidia_graph_save_model) {
     Graph<NV, AK_FLOAT, Precision::FP32>* graph = new Graph<NV, AK_FLOAT, Precision::FP32>();
     // load anakin model files.
     LOG(INFO) << "load anakin model file from " << model_path << " ...";
@@ -38,6 +38,45 @@ TEST(GraphTest, graph_save_model) {
     std::string save_model_path = model_path + std::string(".saved");
     Status status = graph->save(save_model_path);
 }
+#endif
+
+#ifdef USE_X86_PLACE
+TEST(GraphTest, x86_graph_save_model) {
+    Graph<X86, AK_FLOAT, Precision::FP32>* graph = new Graph<X86, AK_FLOAT, Precision::FP32>();
+    // load anakin model files.
+    LOG(INFO) << "load anakin model file from " << model_path << " ...";
+    graph->load(model_path);
+
+    // regisiter output tensor
+    //graph->RegistOut("data_perm",  "data_scale");
+
+    //  exec optimization
+    graph->Optimize();
+
+    // save the optimized model to disk.
+    std::string save_model_path = model_path + std::string(".saved");
+    Status status = graph->save(save_model_path);
+}
+#endif
+
+#ifdef USE_ARM_PLACE
+TEST(GraphTest, arm_graph_save_model) {
+    Graph<ARM, AK_FLOAT, Precision::FP32>* graph = new Graph<ARM, AK_FLOAT, Precision::FP32>();
+    // load anakin model files.
+    LOG(INFO) << "load anakin model file from " << model_path << " ...";
+    graph->load(model_path);
+
+    // regisiter output tensor
+    //graph->RegistOut("data_perm",  "data_scale");
+
+    //  exec optimization
+    graph->Optimize();
+
+    // save the optimized model to disk.
+    std::string save_model_path = model_path + std::string(".saved");
+    Status status = graph->save(save_model_path);
+}
+#endif
 
 int main(int argc, const char** argv) {
     // initial logger
