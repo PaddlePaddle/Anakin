@@ -91,7 +91,7 @@ anakin_option(COMPILE_PTX "Returns a list of PTX files generated from src." NO i
 
 
 # common build options
-anakin_option(ENABLE_DEBUG "Enable DEBUG(default) mode." YES)
+anakin_option(ENABLE_DEBUG "Enable DEBUG(default) mode." NO)
 anakin_option(ENABLE_VERBOSE_MSG "Enable verbose=1 : compile msg during make." NO)
 anakin_option(DISABLE_ALL_WARNINGS "Disable all the warning msg during compile." YES)
 anakin_option(ENABLE_NOISY_WARNINGS "Enable noisy warning msg during compile." NO if DISABLE_ALL_WARNINGS)
