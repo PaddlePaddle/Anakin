@@ -25,7 +25,7 @@ if(USE_CUDA)
 endif()
 
 if(USE_BM)
-    anakin_find_bm()
+    #anakin_find_bm()
 endif()
 
 # set amd opencl path
