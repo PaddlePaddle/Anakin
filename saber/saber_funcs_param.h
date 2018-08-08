@@ -16,6 +16,7 @@
 #define ANAKIN_SABER_FUNCS_PARAM_H
 #include "anakin_config.h"
 #include <vector>
+#include <cmath>
 #include <string>
 #include "saber/core/shape.h"
 #include "saber/core/tensor.h"
