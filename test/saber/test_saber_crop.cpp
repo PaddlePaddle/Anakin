@@ -65,30 +65,6 @@ void norm_cpu_nchw(const std::vector<Tensor<TargetType_H>*>& inputs,std::vector<
 }
 
 TEST(TestSaberFunc, test_func_crop) {
-#ifdef 0//USE_CUDA
-    //Init the test_base
-    TestSaberBase<NV,NVHX86,AK_FLOAT,Crop,CropParam> testbase;
-    LOG(INFO)<<"ENVEND";
-    //combine param by yourself
-    std::vector<int> offset = {2, 2};
-    std::vector<int> shape = {1, 3, 4, 5};
-                for(int w_in:{32,64,128,512}){
-                    for(int h_in: {32,64,128,512}){
-                        for(int ch_in:{3,8,16,32}){
-                            for(int num_in:{1,2,32,64}){
-                                //make param
-                                CropParam<NV> param( /*axis_in*/2, /*offset*/offset, /*shape_in*/shape);
-                                //testbase test
-                                testbase.set_param(param);//set param
-                                //testbase.set_rand_limit(255,255);
-                                testbase.set_input_shape(Shape({num_in,ch_in,h_in,w_in}));
-                                testbase.run_test(norm_cpu_nchw<float,NV,NVHX86>);//run test  
-                            }
-                        }
-                    }
-                }
-        
-#endif
 #ifdef USE_X86_PLACE
     //Init the test_base
     TestSaberBase<X86,X86,AK_FLOAT,Crop,CropParam> testbase;
