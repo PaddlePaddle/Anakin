@@ -159,7 +159,6 @@ set(ANAKIN_SABER_DEPENDENCIES) # set saber dependent third-party lib targets
 include(cmake/compiler_options.cmake)
 
 include(cmake/find_modules.cmake)
-include(cmake/external/protobuf.cmake)
 if(USE_CUDA)
     include(cmake/cuda.cmake)
 endif()
