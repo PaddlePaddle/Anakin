@@ -83,7 +83,28 @@ public:
     ~IOBlockResource() {}
 
     void free(std::vector<io>&, VGraph*);
-    inline bool has_free() { return !(_free.empty()); } 
+    inline bool has_free(io& target) { 
+		for (auto it = _free.begin(); it != _free.end();) {
+        	auto& io_tmp = *it;
+			if(target.lane == io_tmp.lane) {
+				return true;
+			}
+			++it;
+    	}
+		return false;
+	} 
+	inline io get_free(io& target) {
+		for (auto it = _free.begin(); it != _free.end();) {
+        	auto& io_tmp = *it;
+			if(target.lane == io_tmp.lane) {
+				it = _free.erase(it);
+				return io_tmp;
+			} else {
+				++it;
+			} 
+    	}
+		return io();
+	} 
     bool is_same_target(io&, io&, VGraph*);
     void push_free(io&, VGraph*);
     void lock(std::vector<io>&);

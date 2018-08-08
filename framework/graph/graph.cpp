@@ -145,12 +145,16 @@ Status Graph<Ttype, Dtype, Ptype>::Optimize() EXCLUSIVE_LOCKS_REQUIRED(_mut) {
 			//_nodes_exec_order = conv_eltwise_fusion_scheduler.get_exec_node_in_order();
 #endif
 			// optimization again
+			ParallScheduler para_scheduler;
+            para_scheduler.RegIOResource(_vgraph);
+            para_scheduler.Run();
+
             MemoryScheduler mem_scheduler;
             mem_scheduler.RegIOResource(_vgraph);
             mem_scheduler.Run();
-            ParallScheduler para_scheduler;
+            /*ParallScheduler para_scheduler;
             para_scheduler.RegIOResource(_vgraph);
-            para_scheduler.Run();
+            para_scheduler.Run();*/
 
             // set info for graph
             statistics.set_info<IS_OPTIMIZED>(true);

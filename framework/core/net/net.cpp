@@ -660,8 +660,7 @@ template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
 Status Net<Ttype, Dtype, Ptype, RunType>::init_env(graph::Graph<Ttype, Dtype, Ptype>& graph) {
     LOG(WARNING) << "Detect and initial " << graph.get_ins().size() << " lanes.";
     // fixme, multi_stream error
-    //Env<Ttype>::env_init(graph.get_ins().size());
-    Env<Ttype>::env_init(1);
+    Env<Ttype>::env_init(graph.get_ins().size());
     LOG(WARNING) << "Current used device id : " << TargetWrapper<Ttype>::get_device_id();
     return Status::OK();
 }
