@@ -72,7 +72,7 @@ public:
         CHECK_EQ(shape_out.dims(), 4) << "only support 4d layout";
         shape_out[0] = 1;
         shape_out[1] = 1;
-        shape_out[2] = param.keep_top_k;
+        shape_out[2] = param.keep_top_k * input[0]->num();
         shape_out[3] = 7;
 
         return output[0]->set_shape(shape_out);
