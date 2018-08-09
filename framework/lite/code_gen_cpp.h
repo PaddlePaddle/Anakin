@@ -34,8 +34,10 @@ public:
 		_cpp_file_name = model_dir + '/' + model_name + ".cpp";
 		_h_file_name = model_dir + '/' + model_name + ".h";
 		_model_file_name = model_dir + '/' + model_name + ".bin";
+		_model_opt_file_name = model_dir + '/' + model_name + ".opt.info";
 		_weights.open(_model_file_name);
-		_code_name = model_name;
+		_opt_param_write.open(_model_opt_file_name);
+ 		_code_name = model_name;
 		_g_weights_ptr_name = _code_name+"_weights_ptr";
 	}
 	~GenCPP()=default;
@@ -52,6 +54,11 @@ private:
 	void gen_header_end();
 	void gen_source_start();
 	void gen_source_end();
+
+	/**
+	 * \brief generator optimized model for lite executer
+	 */
+	void gen_opt_model();
 
 	/**
 	 * \brief generate tensors for edges
@@ -113,10 +120,13 @@ private:
 	std::string _cpp_file_name;
 	std::string _h_file_name;
 	std::string _model_file_name;
+	std::string _model_opt_file_name;
 	std::string _code_name;
 	std::string _g_weights_ptr_name;
 	CodeWritter _code;
+	CodeWritter _opt_param_write;
 	WeightsWritter _weights;
+
 };
 
 } /* namespace lite */

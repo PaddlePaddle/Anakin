@@ -1,5 +1,5 @@
 #include "saber/lite/funcs/saber_softmax.h"
-
+#include "saber/lite/net/saber_factory_lite.h"
 #ifdef USE_ARM_PLACE
 
 #include <cmath>
@@ -223,7 +223,7 @@ SaberStatus SaberSoftmax::dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& in
 #endif
     return SaberSuccess;
 }
-
+REGISTER_LAYER_CLASS(SaberSoftmax);
 } //namespace lite
 
 } //namespace saber

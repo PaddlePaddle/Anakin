@@ -1,7 +1,6 @@
 #include "saber/lite/funcs/saber_fc.h"
-
+#include "saber/lite/net/saber_factory_lite.h"
 #ifdef USE_ARM_PLACE
-
 #include "saber/lite/funcs/neon/impl/sgemv_arm.h"
 
 namespace anakin{
@@ -185,7 +184,7 @@ SaberStatus SaberFc::dispatch(\
 
     return SaberSuccess;
 }
-
+REGISTER_LAYER_CLASS(SaberFc);
 } //namespace lite
 
 } //namespace saber

@@ -1,5 +1,5 @@
 #include "saber/lite/funcs/saber_scale.h"
-
+#include "saber/lite/net/saber_factory_lite.h"
 #ifdef USE_ARM_PLACE
 namespace anakin{
 
@@ -167,7 +167,7 @@ SaberStatus SaberScale::dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inpu
 #endif
     return SaberSuccess;
 }
-
+REGISTER_LAYER_CLASS(SaberScale);
 } //namespace lite
 
 } //namespace saber

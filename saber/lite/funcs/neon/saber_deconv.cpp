@@ -1,6 +1,7 @@
 #include "saber/lite/funcs/saber_deconv.h"
 #ifdef USE_ARM_PLACE
 #include "saber/lite/funcs/neon/impl/conv_arm_impl.h"
+#include "saber/lite/net/saber_factory_lite.h"
 namespace anakin{
 
 namespace saber{
@@ -270,7 +271,7 @@ SaberStatus SaberDeconv2D::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &
 #endif
     return SaberSuccess;
 }
-
+REGISTER_LAYER_CLASS(SaberDeconv2D);
 } //namespace lite
 
 } //namespace saber

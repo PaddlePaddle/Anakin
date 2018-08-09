@@ -1,5 +1,6 @@
 #include "saber/lite/funcs/saber_activation.h"
 #include "saber/lite/funcs/neon/impl/neon_mathfun.h"
+#include "saber/lite/net/saber_factory_lite.h"
 namespace anakin{
 
 namespace saber{
@@ -307,6 +308,8 @@ SaberStatus SaberActivation::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *>
 #endif
     return SaberSuccess;
 }
+
+REGISTER_LAYER_CLASS(SaberActivation);
 
 } //namespace lite
 

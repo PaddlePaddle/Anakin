@@ -419,6 +419,7 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_head_api_impl() {
 		if(this->_graph_node_map[node_name].op_name == "Input" || this->_graph_node_map[node_name].op_name == "Output") {
 			continue;
 		}
+
 		auto& node_info = this->_graph_node_map[node_name];
 		auto& attr_info = this->_graph[node_name]->attr();
 		if(OPERATION_MAP.count(node_info.op_name) > 0) {
@@ -427,7 +428,7 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_head_api_impl() {
                                                               OPERATION_MAP[node_info.op_name].OpClassName,
 															  node_name, 
 															  local_weight_string,
-															  _weights);
+															  _weights, false);
 			if(!str.empty()) {
 				_code.feed("    %s", str.c_str());
 			}
@@ -502,7 +503,109 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_source(const bool debug_mode) {
 	// gen running api impl
 	gen_run_impl(debug_mode);
 	gen_source_end();
-	_code.save();	
+	_code.save();
+    gen_opt_model();
+}
+
+template<typename Ttype, DataType Dtype, Precision Ptype>
+void GenCPP<Ttype, Dtype, Ptype>::gen_opt_model() {
+    //! generate Tensors
+    LOG(INFO) << "gen opt model tensors";
+    _opt_param_write << "Tensor number " << this->_tensor_map.size() << "\n";
+    //! firstly, gen tensor withnot shared
+    for(auto it = this->_tensor_map.begin(); it != this->_tensor_map.end(); ++it) {
+        auto& edge_name = it->first;
+        auto& edge_info = it->second;
+        if(! edge_info.is_shared) {
+            //tensor info format: tensor_name valid_shape real_shape is_shared shared_tensor_name
+            _opt_param_write.feed("%s %d,%d,%d,%d %d,%d,%d,%d %d %s\n",
+                                  edge_name.c_str(),
+                                  edge_info.valid_shape[0],
+                                  edge_info.valid_shape[1],
+                                  edge_info.valid_shape[2],
+                                  edge_info.valid_shape[3],
+                                  edge_info.real_shape[0],
+                                  edge_info.real_shape[1],
+                                  edge_info.real_shape[2],
+                                  edge_info.real_shape[3],
+                                  0,
+                                  "null");
+        }
+    }
+    //! then gen tensor shared memory
+    for(auto it = this->_tensor_map.begin(); it != this->_tensor_map.end(); ++it) {
+        auto& edge_name = it->first;
+        auto& edge_info = it->second;
+        if(edge_info.is_shared) {
+            //tensor info format: tensor_name valid_shape real_shape is_shared shared_tensor_name
+            _opt_param_write.feed("%s %d,%d,%d,%d %d,%d,%d,%d %d %s\n",
+                                  edge_name.c_str(),
+                                  edge_info.valid_shape[0],
+                                  edge_info.valid_shape[1],
+                                  edge_info.valid_shape[2],
+                                  edge_info.valid_shape[3],
+                                  edge_info.valid_shape[0],
+                                  edge_info.valid_shape[1],
+                                  edge_info.valid_shape[2],
+                                  edge_info.valid_shape[3],
+                                  1,
+                                  edge_info.share_from.c_str());
+        }
+    }
+    //! gen inputs and outputs tensor name
+    _opt_param_write << "inputs " << this->_ins.size();
+    for(auto in : this->_ins) {
+        _opt_param_write << " " << in;
+    }
+    _opt_param_write << "\n";
+
+    //! gen outputs and outputs tensor name
+    _opt_param_write << "outputs " << this->_outs.size();
+    for(auto out : this->_outs) {
+        _opt_param_write << " " << out;
+    }
+    _opt_param_write << "\n";
+
+    //! gen ops and params
+    int op_num = this->_exec_node_order.size();
+    for(auto & node_name : this->_exec_node_order) {
+        if (this->_graph_node_map[node_name].op_name == "Input" ||
+            this->_graph_node_map[node_name].op_name == "Output") {
+            op_num--;
+        }
+    }
+    _opt_param_write << "OPS " << op_num << "\n";
+    for(auto & node_name : this->_exec_node_order) {
+        if(this->_graph_node_map[node_name].op_name == "Input" || this->_graph_node_map[node_name].op_name == "Output") {
+            continue;
+        }
+        auto& node_info = this->_graph_node_map[node_name];
+        auto& attr_info = this->_graph[node_name]->attr();
+        if(OPERATION_MAP.count(node_info.op_name) > 0) {
+            LOG(INFO) << "Target op type : " << this->_graph_node_map[node_name].op_name << " parsing ...";
+            _opt_param_write << OPERATION_MAP[node_info.op_name].OpClassName << " " << node_name << " ";
+            _opt_param_write << node_info.ins.size() << " ";
+            for(auto &edge_in : node_info.ins) {
+                _opt_param_write << edge_in << " ";
+            }
+            _opt_param_write << node_info.outs.size() << " ";
+            for(auto &edge_out : node_info.outs) {
+                _opt_param_write << edge_out.c_str() << " ";
+            }
+            std::string local_weighs_string = "null";
+            auto str = OPERATION_MAP[node_info.op_name].parse(attr_info, _code_name,
+                                                              OPERATION_MAP[node_info.op_name].OpClassName,
+                                                              node_name,
+                                                              local_weighs_string,
+                                                              _weights,
+                                                              true);
+            _opt_param_write << str;
+        } else {
+            LOG(FATAL) << "Target op type : " << this->_graph_node_map[node_name].op_name << " not support";
+        }
+    }
+
+    _opt_param_write.save();
 }
 
 #ifdef USE_CUDA

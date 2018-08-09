@@ -10,7 +10,8 @@ std::string not_impl_yet(graph::AttrInfo&,
 						 std::string& op_class_name, 
 						 std::string& node_name, 
 						 std::string& weights_ptr_name, 
-						 WeightsWritter& writter) {
+						 WeightsWritter& writter,
+                         bool gen_param) {
 	LOG(INFO) << "Target "<< op_class_name << "Parsing not impl yet. continue ...";
 	return "";
 }
@@ -21,7 +22,8 @@ std::string ParserConvolution(graph::AttrInfo& attr,
 							  std::string& op_class_name, 
 							  std::string& node_name, 
 							  std::string& weights_ptr_name, 
-							  WeightsWritter& writter) {
+							  WeightsWritter& writter,
+                              bool gen_param) {
 	// parsing parameter
 	auto group = get_attr<int>("group", attr);
 	auto bias_term = get_attr<bool>("bias_term", attr);
@@ -47,27 +49,47 @@ std::string ParserConvolution(graph::AttrInfo& attr,
 
 	auto offset_info = writter.get_weights_by_name(node_name);
 
-	// gen cpp code
-	CodeWritter code_w;
-    code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(),
-                weights_size,
-                num_output,
-                group,
-                kernel_size[1],
-                kernel_size[0],
-                strides[1],
-                strides[0],
-                padding[1],
-                padding[0],
-                dilation_rate[1],
-                dilation_rate[0],
-                bias_term ? "true":"false",
-                weights_ptr_name.c_str(),
-                offset_info.weights[0].offset,
-                weights_ptr_name.c_str(),
-                bias_term ? offset_info.weights[1].offset : 0);
+    CodeWritter code_w;
+    if (gen_param) {
+        // gen cpp code
+        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+                    weights_size,
+                    num_output,
+                    group,
+                    kernel_size[1],
+                    kernel_size[0],
+                    strides[1],
+                    strides[0],
+                    padding[1],
+                    padding[0],
+                    dilation_rate[1],
+                    dilation_rate[0],
+                    bias_term ? 1 : 0,
+                    offset_info.weights[0].offset,
+                    bias_term ? offset_info.weights[1].offset : 0);
+        code_w << "\n";
+    } else {
+        // gen cpp code
+        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(),
+                    weights_size,
+                    num_output,
+                    group,
+                    kernel_size[1],
+                    kernel_size[0],
+                    strides[1],
+                    strides[0],
+                    padding[1],
+                    padding[0],
+                    dilation_rate[1],
+                    dilation_rate[0],
+                    bias_term ? "true":"false",
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[0].offset,
+                    weights_ptr_name.c_str(),
+                    bias_term ? offset_info.weights[1].offset : 0);
 
-    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
 
 	return code_w.get_code_string();
 }
@@ -77,7 +99,8 @@ std::string ParserPower(graph::AttrInfo& attr,
                             std::string& op_class_name,
                             std::string& node_name,
                             std::string& weights_ptr_name,
-                            WeightsWritter& writter) {
+                            WeightsWritter& writter,
+                            bool gen_param) {
         // parsing parameter
         auto power = get_attr<float>("power", attr);
         auto scale = get_attr<float>("scale", attr);
@@ -85,8 +108,14 @@ std::string ParserPower(graph::AttrInfo& attr,
         
         // gen cpp code
         CodeWritter code_w;
-        code_w.feed("ParamBase* %s_param = new PowerParam(%f,%f,%f);\n", node_name.c_str(), scale, shift, power);
-        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+
+        if (gen_param) {
+            code_w.feed("%f,%f,%f", scale, shift, power);
+            code_w << "\n";
+        } else {
+            code_w.feed("ParamBase* %s_param = new PowerParam(%f,%f,%f);\n", node_name.c_str(), scale, shift, power);
+            code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+        }
         return code_w.get_code_string();
     }
 // SaberDeconv2D
@@ -95,7 +124,8 @@ std::string ParserDeconvolution(graph::AttrInfo& attr,
                               std::string& op_class_name, 
                               std::string& node_name, 
                               std::string& weights_ptr_name, 
-                              WeightsWritter& writter) {
+                              WeightsWritter& writter,
+                              bool gen_param) {
     // parsing parameter
     auto group = get_attr<int>("group", attr);
     auto bias_term = get_attr<bool>("bias_term", attr);
@@ -123,25 +153,44 @@ std::string ParserDeconvolution(graph::AttrInfo& attr,
 
     // gen cpp code
     CodeWritter code_w;
-    code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(),
-                weights_size,
-                num_output,
-                group,
-                kernel_size[1],
-                kernel_size[0],
-                strides[1],
-                strides[0],
-                padding[1],
-                padding[0],
-                dilation_rate[1],
-                dilation_rate[0],
-                bias_term ? "true":"false",
-                weights_ptr_name.c_str(),
-                offset_info.weights[0].offset,
-                weights_ptr_name.c_str(),
-                bias_term ? offset_info.weights[1].offset : 0);
+    if (gen_param) {
+        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+                    weights_size,
+                    num_output,
+                    group,
+                    kernel_size[1],
+                    kernel_size[0],
+                    strides[1],
+                    strides[0],
+                    padding[1],
+                    padding[0],
+                    dilation_rate[1],
+                    dilation_rate[0],
+                    bias_term ? 1 : 0,
+                    offset_info.weights[0].offset,
+                    bias_term ? offset_info.weights[1].offset : 0);
+        code_w << "\n";
+    } else {
+        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(),
+                    weights_size,
+                    num_output,
+                    group,
+                    kernel_size[1],
+                    kernel_size[0],
+                    strides[1],
+                    strides[0],
+                    padding[1],
+                    padding[0],
+                    dilation_rate[1],
+                    dilation_rate[0],
+                    bias_term ? "true":"false",
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[0].offset,
+                    weights_ptr_name.c_str(),
+                    bias_term ? offset_info.weights[1].offset : 0);
 
-    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
 
     return code_w.get_code_string();
 }
@@ -152,7 +201,8 @@ std::string ParserConvolutionRelu(graph::AttrInfo& attr,
 								  std::string& op_class_name, 
 								  std::string& node_name, 
 								  std::string& weights_ptr_name, 
-								  WeightsWritter& writter) {
+								  WeightsWritter& writter,
+                                  bool gen_param) {
 	// parsing parameter
 	auto group = get_attr<int>("group", attr);
 	auto bias_term = get_attr<bool>("bias_term", attr);
@@ -180,26 +230,47 @@ std::string ParserConvolutionRelu(graph::AttrInfo& attr,
 
 	// gen cpp code
 	CodeWritter code_w;
-    code_w.feed("ParamBase* %s_param = new ConvAct2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%s+%d,%s+%d);\n",
-                node_name.c_str(),
-                weights_size,
-                num_output,
-                group,
-                kernel_size[1],
-                kernel_size[0],
-                strides[1],
-                strides[0],
-                padding[1],
-                padding[0],
-                dilation_rate[1],
-                dilation_rate[0],
-                bias_term ? "true":"false",
-                "true", //set flag_relu true
-                weights_ptr_name.c_str(),
-                offset_info.weights[0].offset,
-                weights_ptr_name.c_str(),
-                bias_term ? offset_info.weights[1].offset : 0);
-    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    if(gen_param) {
+        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+                    weights_size,
+                    num_output,
+                    group,
+                    kernel_size[1],
+                    kernel_size[0],
+                    strides[1],
+                    strides[0],
+                    padding[1],
+                    padding[0],
+                    dilation_rate[1],
+                    dilation_rate[0],
+                    bias_term ? 1 : 0,
+                    (int)Active_relu,
+                    1, //set flag_relu true
+                    offset_info.weights[0].offset,
+                    bias_term ? offset_info.weights[1].offset : 0);
+        code_w << "\n";
+    } else {
+        code_w.feed("ParamBase* %s_param = new ConvAct2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%s+%d,%s+%d);\n",
+                    node_name.c_str(),
+                    weights_size,
+                    num_output,
+                    group,
+                    kernel_size[1],
+                    kernel_size[0],
+                    strides[1],
+                    strides[0],
+                    padding[1],
+                    padding[0],
+                    dilation_rate[1],
+                    dilation_rate[0],
+                    bias_term ? "true":"false",
+                    "true", //set flag_relu true
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[0].offset,
+                    weights_ptr_name.c_str(),
+                    bias_term ? offset_info.weights[1].offset : 0);
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
 
 	return code_w.get_code_string();
 }
@@ -210,7 +281,8 @@ std::string ParserConvolutionReluPool(graph::AttrInfo& attr,
                                   std::string& op_class_name,
                                   std::string& node_name,
                                   std::string& weights_ptr_name,
-                                  WeightsWritter& writter) {
+                                  WeightsWritter& writter,
+                                  bool gen_param) {
     // parsing parameter
     auto group = get_attr<int>("group", attr);
     auto bias_term = get_attr<bool>("bias_term", attr);
@@ -255,35 +327,63 @@ std::string ParserConvolutionReluPool(graph::AttrInfo& attr,
 
     // gen cpp code
     CodeWritter code_w;
-
-    code_w.feed("ParamBase* %s_param = new ConvActPool2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%s,%s,%d,%d,%d,%d,%d,%d,%s+%d,%s+%d);\n",
-                node_name.c_str(),
-                weights_size,
-                num_output,
-                group,
-                kernel_size[1],
-                kernel_size[0],
-                strides[1],
-                strides[0],
-                padding[1],
-                padding[0],
-                dilation_rate[1],
-                dilation_rate[0],
-                bias_term ? "true":"false",
-                "true", //set flag_relu true
-                str_pool_method.c_str(),
-                global_pooling? "true" : "false",
-                pool_size[1],
-                pool_size[0],
-                pool_strides[1],
-                pool_strides[0],
-                pool_padding[1],
-                pool_padding[0],
-                weights_ptr_name.c_str(),
-                offset_info.weights[0].offset,
-                weights_ptr_name.c_str(),
-                bias_term ? offset_info.weights[1].offset : 0);
-    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    if (gen_param) {
+        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+                    weights_size,
+                    num_output,
+                    group,
+                    kernel_size[1],
+                    kernel_size[0],
+                    strides[1],
+                    strides[0],
+                    padding[1],
+                    padding[0],
+                    dilation_rate[1],
+                    dilation_rate[0],
+                    bias_term ? 1 : 0,
+                    (int)Active_relu,
+                    1, //set flag_relu true
+                    (int)pool_type,
+                    global_pooling? 1 : 0,
+                    pool_size[1],
+                    pool_size[0],
+                    pool_strides[1],
+                    pool_strides[0],
+                    pool_padding[1],
+                    pool_padding[0],
+                    offset_info.weights[0].offset,
+                    bias_term ? offset_info.weights[1].offset : 0);
+        code_w << "\n";
+    } else {
+        code_w.feed("ParamBase* %s_param = new ConvActPool2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%s,%s,%d,%d,%d,%d,%d,%d,%s+%d,%s+%d);\n",
+                    node_name.c_str(),
+                    weights_size,
+                    num_output,
+                    group,
+                    kernel_size[1],
+                    kernel_size[0],
+                    strides[1],
+                    strides[0],
+                    padding[1],
+                    padding[0],
+                    dilation_rate[1],
+                    dilation_rate[0],
+                    bias_term ? "true":"false",
+                    "true", //set flag_relu true
+                    str_pool_method.c_str(),
+                    global_pooling? "true" : "false",
+                    pool_size[1],
+                    pool_size[0],
+                    pool_strides[1],
+                    pool_strides[0],
+                    pool_padding[1],
+                    pool_padding[0],
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[0].offset,
+                    weights_ptr_name.c_str(),
+                    bias_term ? offset_info.weights[1].offset : 0);
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
 
     return code_w.get_code_string();
 }
@@ -294,7 +394,8 @@ std::string ParserConvBatchnorm(graph::AttrInfo& attr,
                                 std::string& op_class_name,
                                 std::string& node_name,
                                 std::string& weights_ptr_name,
-                                WeightsWritter& writter) {
+                                WeightsWritter& writter,
+                                bool gen_param) {
     // parsing parameter
     auto group = get_attr<int>("group", attr);
     auto bias_term = get_attr<bool>("bias_term", attr);
@@ -353,25 +454,43 @@ std::string ParserConvBatchnorm(graph::AttrInfo& attr,
 
     // gen cpp code
     CodeWritter code_w;
-
-    code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(), \
+    if (gen_param) {
+        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+                    weights_size,
+                    num_output,
+                    group,
+                    kernel_size[1],
+                    kernel_size[0],
+                    strides[1],
+                    strides[0],
+                    padding[1],
+                    padding[0],
+                    dilation_rate[1],
+                    dilation_rate[0],
+                    1,//bias term always true
+                    offset_info.weights[0].offset,
+                    offset_info.weights[1].offset); //always has bias
+        code_w << "\n";
+    } else {
+        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(), \
                 weights_size,
-                num_output,
-                group,
-                kernel_size[1],
-                kernel_size[0],
-                strides[1],
-                strides[0],
-                padding[1],
-                padding[0],
-                dilation_rate[1],
-                dilation_rate[0],
-                "true",//bias term always true
-                weights_ptr_name.c_str(),
-                offset_info.weights[0].offset,
-                weights_ptr_name.c_str(),
-                offset_info.weights[1].offset); //always has bias
-    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+                    num_output,
+                    group,
+                    kernel_size[1],
+                    kernel_size[0],
+                    strides[1],
+                    strides[0],
+                    padding[1],
+                    padding[0],
+                    dilation_rate[1],
+                    dilation_rate[0],
+                    "true",//bias term always true
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[0].offset,
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[1].offset); //always has bias
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
     return code_w.get_code_string();
 }
 
@@ -380,7 +499,8 @@ std::string ParserConvBatchnormScale(graph::AttrInfo& attr,
 					                 std::string& op_class_name, 
 					                 std::string& node_name, 
 					                 std::string& weights_ptr_name, 
-    				                 WeightsWritter& writter) {
+    				                 WeightsWritter& writter,
+                                     bool gen_param) {
     // parsing parameter
 	auto group = get_attr<int>("group", attr);
 	auto bias_term = get_attr<bool>("bias_term", attr);
@@ -455,25 +575,43 @@ std::string ParserConvBatchnormScale(graph::AttrInfo& attr,
 
 	// gen cpp code
 	CodeWritter code_w;
-
-    code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(), \
+    if (gen_param) {
+        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+                    weights_size,
+                    num_output,
+                    group,
+                    kernel_size[1],
+                    kernel_size[0],
+                    strides[1],
+                    strides[0],
+                    padding[1],
+                    padding[0],
+                    dilation_rate[1],
+                    dilation_rate[0],
+                    1,//bias term always true
+                    offset_info.weights[0].offset,
+                    offset_info.weights[1].offset); //always has bias
+        code_w << "\n";
+    } else {
+        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(), \
                 weights_size,
-                num_output,
-                group,
-                kernel_size[1],
-                kernel_size[0],
-                strides[1],
-                strides[0],
-                padding[1],
-                padding[0],
-                dilation_rate[1],
-                dilation_rate[0],
-                "true",//bias term always true
-                weights_ptr_name.c_str(),
-                offset_info.weights[0].offset,
-                weights_ptr_name.c_str(),
-                offset_info.weights[1].offset); //always has bias
-    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+                    num_output,
+                    group,
+                    kernel_size[1],
+                    kernel_size[0],
+                    strides[1],
+                    strides[0],
+                    padding[1],
+                    padding[0],
+                    dilation_rate[1],
+                    dilation_rate[0],
+                    "true",//bias term always true
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[0].offset,
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[1].offset); //always has bias
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
 
 	return code_w.get_code_string();
 }
@@ -484,7 +622,8 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
 					                     std::string& op_class_name, 
 					                     std::string& node_name, 
 					                     std::string& weights_ptr_name, 
-    				                     WeightsWritter& writter) {
+    				                     WeightsWritter& writter,
+                                         bool gen_param) {
     // parsing parameter
 	auto group = get_attr<int>("group", attr);
 	auto bias_term = get_attr<bool>("bias_term", attr);
@@ -558,29 +697,48 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
 
 	// gen cpp code
 	CodeWritter code_w;
+    if (gen_param) {
+        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+                    weights_size,
+                    num_output,
+                    group,
+                    kernel_size[1],
+                    kernel_size[0],
+                    strides[1],
+                    strides[0],
+                    padding[1],
+                    padding[0],
+                    dilation_rate[1],
+                    dilation_rate[0],
+                    1, // set bias to true
+                    (int)Active_relu,
+                    1, //set flag_relu true
+                    offset_info.weights[0].offset,
+                    offset_info.weights[1].offset);
+        code_w << "\n";
+    } else {
+        code_w.feed("ParamBase* %s_param = new ConvAct2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%s+%d,%s+%d);\n",
+                    node_name.c_str(),
+                    weights_size,
+                    num_output,
+                    group,
+                    kernel_size[1],
+                    kernel_size[0],
+                    strides[1],
+                    strides[0],
+                    padding[1],
+                    padding[0],
+                    dilation_rate[1],
+                    dilation_rate[0],
+                    "true", // set bias to true
+                    "true", //set flag_relu true
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[0].offset,
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[1].offset);
 
-    code_w.feed("ParamBase* %s_param = new ConvAct2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%s+%d,%s+%d);\n",
-                node_name.c_str(),
-                weights_size,
-                num_output,
-                group,
-                kernel_size[1],
-                kernel_size[0],
-                strides[1],
-                strides[0],
-                padding[1],
-                padding[0],
-                dilation_rate[1],
-                dilation_rate[0],
-                "true", // set bias to true
-                "true", //set flag_relu true
-                weights_ptr_name.c_str(),
-                offset_info.weights[0].offset,
-                weights_ptr_name.c_str(),
-                offset_info.weights[1].offset);
-
-    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
-
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
 	return code_w.get_code_string();
 }
 
@@ -590,7 +748,8 @@ std::string ParserConvBatchnormScaleReluPool(graph::AttrInfo& attr,
                                          std::string& op_class_name,
                                          std::string& node_name,
                                          std::string& weights_ptr_name,
-                                         WeightsWritter& writter) {
+                                         WeightsWritter& writter,
+                                         bool gen_param) {
     // parsing parameter
     auto group = get_attr<int>("group", attr);
     auto bias_term = get_attr<bool>("bias_term", attr);
@@ -682,36 +841,64 @@ std::string ParserConvBatchnormScaleReluPool(graph::AttrInfo& attr,
 
     // gen cpp code
     CodeWritter code_w;
+    if (gen_param) {
+        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+                    weights_size,
+                    num_output,
+                    group,
+                    kernel_size[1],
+                    kernel_size[0],
+                    strides[1],
+                    strides[0],
+                    padding[1],
+                    padding[0],
+                    dilation_rate[1],
+                    dilation_rate[0],
+                    1, // set bias to true
+                    (int)Active_relu,
+                    1, //set flag_relu true
+                    (int)pool_type,
+                    global_pooling? 1 : 0,
+                    pool_size[1],
+                    pool_size[0],
+                    pool_strides[1],
+                    pool_strides[0],
+                    pool_padding[1],
+                    pool_padding[0],
+                    offset_info.weights[0].offset,
+                    offset_info.weights[1].offset);
+        code_w << "\n";
+    } else {
+        code_w.feed("ParamBase* %s_param = new ConvActPool2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%s,%s,%d,%d,%d,%d,%d,%d,%s+%d,%s+%d);\n",
+                    node_name.c_str(),
+                    weights_size,
+                    num_output,
+                    group,
+                    kernel_size[1],
+                    kernel_size[0],
+                    strides[1],
+                    strides[0],
+                    padding[1],
+                    padding[0],
+                    dilation_rate[1],
+                    dilation_rate[0],
+                    "true", // set bias to true
+                    "true", //set flag_relu true
+                    str_pool_method.c_str(),
+                    global_pooling? "true" : "false",
+                    pool_size[1],
+                    pool_size[0],
+                    pool_strides[1],
+                    pool_strides[0],
+                    pool_padding[1],
+                    pool_padding[0],
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[0].offset,
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[1].offset);
 
-    code_w.feed("ParamBase* %s_param = new ConvActPool2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%s,%s,%d,%d,%d,%d,%d,%d,%s+%d,%s+%d);\n",
-                node_name.c_str(),
-                weights_size,
-                num_output,
-                group,
-                kernel_size[1],
-                kernel_size[0],
-                strides[1],
-                strides[0],
-                padding[1],
-                padding[0],
-                dilation_rate[1],
-                dilation_rate[0],
-                "true", // set bias to true
-                "true", //set flag_relu true
-                str_pool_method.c_str(),
-                global_pooling? "true" : "false",
-                pool_size[1],
-                pool_size[0],
-                pool_strides[1],
-                pool_strides[0],
-                pool_padding[1],
-                pool_padding[0],
-                weights_ptr_name.c_str(),
-                offset_info.weights[0].offset,
-                weights_ptr_name.c_str(),
-                offset_info.weights[1].offset);
-
-    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
 
     return code_w.get_code_string();
 }
@@ -722,15 +909,20 @@ std::string ParserConcat(graph::AttrInfo& attr,
 						 std::string& op_class_name, 
 						 std::string& node_name, 
 						 std::string& weights_ptr_name, 
-						 WeightsWritter& writter) {
+						 WeightsWritter& writter,
+                         bool gen_param) {
 	// parsing parameter
 	auto axis = get_attr<int>("axis", attr);
 	// gen cpp code
 	CodeWritter code_w;
-
-    code_w.feed("ParamBase* %s_param = new ConcatParam(%d);\n",
+    if (gen_param) {
+        code_w.feed("%d", axis);
+        code_w << "\n";
+    } else  {
+        code_w.feed("ParamBase* %s_param = new ConcatParam(%d);\n",
                     node_name.c_str(), axis);
-    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
 	return code_w.get_code_string();
 }
 
@@ -740,7 +932,8 @@ std::string ParserDectionOutput(graph::AttrInfo& attr,
 								std::string& op_class_name, 
 								std::string& node_name, 
 								std::string& weights_ptr_name, 
-								WeightsWritter& writter) {
+								WeightsWritter& writter,
+                                bool gen_param) {
 	// parsing parameter
     auto flag_share_location = get_attr<bool>("share_location", attr);
     auto flag_var_in_target  = get_attr<bool>("variance_encode_in_target", attr);
@@ -753,23 +946,46 @@ std::string ParserDectionOutput(graph::AttrInfo& attr,
     auto nms_thresh          = get_attr<float>("nms_thresh", attr);
     auto nms_eta             = get_attr<float>("nms_eta", attr);
 
+    CodeType cd_type;
+    if (code_type == "CORNER") {
+        cd_type = CORNER;
+    } else if (code_type == "CORNER_SIZE") {
+        cd_type = CORNER_SIZE;
+    } else if (code_type == "CENTER_SIZE") {
+        cd_type = CENTER_SIZE;
+    } else {
+        LOG(FATAL) << "unsupport code type in detection output param: " << code_type;
+    }
     // gen cpp code
 	CodeWritter code_w;
-
-    code_w.feed("ParamBase* %s_param = new DetectionOutputParam(%d,%f,%d,%d,%d,%s,%f,%f,%s,%s);\n",
-                node_name.c_str(),
-                classes_num,
-                conf_thresh,
-                nms_top_k,
-                background_id,
-                keep_top_k,
-                code_type.c_str(),
-                nms_thresh,
-                nms_eta,
-                flag_share_location? "true" : "false",
-                flag_var_in_target? "true" : "false");
-    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
-
+    if (gen_param) {
+        code_w.feed("%d,%f,%d,%d,%d,%d,%f,%f,%d,%d",
+                    classes_num,
+                    conf_thresh,
+                    nms_top_k,
+                    background_id,
+                    keep_top_k,
+                    (int)cd_type,
+                    nms_thresh,
+                    nms_eta,
+                    flag_share_location? 1 : 0,
+                    flag_var_in_target? 1 : 0);
+        code_w << "\n";
+    } else {
+        code_w.feed("ParamBase* %s_param = new DetectionOutputParam(%d,%f,%d,%d,%d,%s,%f,%f,%s,%s);\n",
+                    node_name.c_str(),
+                    classes_num,
+                    conf_thresh,
+                    nms_top_k,
+                    background_id,
+                    keep_top_k,
+                    code_type.c_str(),
+                    nms_thresh,
+                    nms_eta,
+                    flag_share_location? "true" : "false",
+                    flag_var_in_target? "true" : "false");
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
 	return code_w.get_code_string();
 }
 
@@ -779,19 +995,23 @@ std::string ParserEltwise(graph::AttrInfo& attr,
 						  std::string& op_class_name, 
 						  std::string& node_name, 
 						  std::string& weights_ptr_name, 
-						  WeightsWritter& writter) {
+						  WeightsWritter& writter,
+                          bool gen_param) {
 	// parsing parameter
     auto type = get_attr<std::string>("type", attr); 
     auto coeff = get_attr<PTuple<float>>("coeff", attr);
 
 	std::string eltwise_type_str("Eltwise_unknow");
-
+    EltwiseType et_type;
 	if (type == "Add") {
         eltwise_type_str = "Eltwise_sum";
+        et_type = Eltwise_sum;
     } else if (type == "Max") {
         eltwise_type_str = "Eltwise_max";
+        et_type = Eltwise_max;
     } else {
         eltwise_type_str = "Eltwise_prod";
+        et_type = Eltwise_prod;
     }
 
 	CodeWritter coeff_vec_code;
@@ -807,14 +1027,21 @@ std::string ParserEltwise(graph::AttrInfo& attr,
 
 	// gen cpp code
 	CodeWritter code_w;
+    if (gen_param) {
+        code_w.feed("%d, %d ", (int)et_type,
+                    coeff.size());
+        for (int i = 0; i < coeff.size(); ++i) {
+            code_w << coeff[i] << " ";
+        }
+        code_w << "\n";
+    } else  {
+        code_w.feed("ParamBase* %s_param = new EltwiseParam(%s, %s);\n",
+                    node_name.c_str(),
+                    eltwise_type_str.c_str(),
+                    coeff_vec_code.get_code_string().c_str());
 
-    code_w.feed("ParamBase* %s_param = new EltwiseParam(%s, %s);\n",
-                node_name.c_str(),
-                eltwise_type_str.c_str(),
-                coeff_vec_code.get_code_string().c_str());
-
-    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
-
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
 	return code_w.get_code_string();
 }
 
@@ -824,36 +1051,53 @@ std::string ParserActivation(graph::AttrInfo& attr,
 							 std::string& op_class_name, 
 							 std::string& node_name, 
 							 std::string& weights_ptr_name, 
-							 WeightsWritter& writter) {
+							 WeightsWritter& writter,
+                             bool gen_param) {
 	// parsing parameter
 	auto type = get_attr<std::string>("type", attr);
 
 	std::string act_type("Active_unknow");
 
-  // gen cpp code
-  CodeWritter code_w;
-
+    //! ActiveType act_type, float neg_slope = 0.f, float coef = 1.f, bool channel_shared = false, const float* weights = nullptr
+    // gen cpp code
+    CodeWritter code_w;
 	if (type == "TanH") {
-        act_type = "Active_tanh";
-        code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
-                    node_name.c_str(),
-                    act_type.c_str());
+        if (gen_param) {
+            code_w << (int)Active_tanh << "," << 0.f << "," << 0.f << "," << 0 << "," << 0;
+            code_w << "\n";
+        } else {
+            act_type = "Active_tanh";
+            code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
+                        node_name.c_str(),
+                        act_type.c_str());
+            code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+        }
 
 	} else if (type == "Sigmoid") {
-        act_type = "Active_sigmoid";
-        code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
-                    node_name.c_str(),
-                    act_type.c_str());
+        if (gen_param) {
+            code_w << (int)Active_sigmoid << "," << 0.f << "," << 0.f << "," << 0 << "," << 0;
+            code_w << "\n";
+        } else {
+            act_type = "Active_sigmoid";
+            code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
+                        node_name.c_str(),
+                        act_type.c_str());
 
-        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+            code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+        }
 
     } else if (type == "ReLU") {
-        act_type = "Active_relu";
-        code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
-                    node_name.c_str(),
-                    act_type.c_str());
+        if (gen_param) {
+            code_w << (int)Active_relu << " " << 0.f << " " << 0.f << " " << 0 << " " << 0;
+            code_w << "\n";
+        } else {
+            act_type = "Active_relu";
+            code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
+                        node_name.c_str(),
+                        act_type.c_str());
 
-        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+            code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+        }
 
     }  else if (type == "PReLU") {
         act_type = "Active_prelu";
@@ -865,17 +1109,22 @@ std::string ParserActivation(graph::AttrInfo& attr,
                 LOG(INFO) << node_name << " write weights: " << prelu_weights.count();
 
         auto offset_info = writter.get_weights_by_name(node_name);
+        if (gen_param) {
+            code_w << (int)Active_prelu << " " << 0.f << " " << 0.f << " " << \
+                (prelu_channel_shared ? 1 : 0) << " " << offset_info.weights[0].offset;
+            code_w << "\n";
+        } else {
+            code_w.feed("ParamBase* %s_param = new ActivationParam(%s, %f, %f, %s, %s+%d);\n",
+                        node_name.c_str(),
+                        act_type.c_str(),
+                        0.f,
+                        0.f,
+                        prelu_channel_shared ? "true" : "false",
+                        weights_ptr_name.c_str(),
+                        offset_info.weights[0].offset);
 
-        code_w.feed("ParamBase* %s_param = new ActivationParam(%s, %f, %f, %s, %s+%d);\n",
-                    node_name.c_str(),
-                    act_type.c_str(),
-                    0.f,
-                    0.f,
-                    prelu_channel_shared ? "true" : "false",
-                    weights_ptr_name.c_str(),
-                    offset_info.weights[0].offset);
-
-        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+            code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+        }
 
 	} else { 
 		LOG(FATAL) << "Other Activation type" << type << " unknown."; 
@@ -888,7 +1137,7 @@ std::string ParserRelu(graph::AttrInfo& attr,
 					   std::string& op_class_name, 
 					   std::string& node_name, 
 					   std::string& weights_ptr_name, 
-					   WeightsWritter& writter) {
+					   WeightsWritter& writter, bool gen_param) {
     // parsing parameter
     auto alpha = get_attr<float>("alpha", attr);
 
@@ -896,11 +1145,17 @@ std::string ParserRelu(graph::AttrInfo& attr,
 
 	// gen cpp code
 	CodeWritter code_w;
-    code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
-                node_name.c_str(),
-                act_type.c_str());
+    if (gen_param) {
+        code_w << (int)Active_relu << " " << 0.f << " " << 0.f << " " << 0 << " " << 0;
+        code_w << "\n";
+    } else {
+        code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
+                    node_name.c_str(),
+                    act_type.c_str());
 
-    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
+
 	return code_w.get_code_string();
 }
 
@@ -910,7 +1165,8 @@ std::string ParserFc(graph::AttrInfo& attr,
 					 std::string& op_class_name, 
 					 std::string& node_name, 
 					 std::string& weights_ptr_name, 
-					 WeightsWritter& writter) {
+					 WeightsWritter& writter,
+                     bool gen_param) {
 	// parsing parameter
     auto axis = get_attr<int>("axis", attr); 
     auto out_dim = get_attr<int>("out_dim", attr); 
@@ -927,19 +1183,29 @@ std::string ParserFc(graph::AttrInfo& attr,
 
 	// gen cpp code
 	CodeWritter code_w;
+    if (gen_param) {
+        code_w.feed("%d,%d,%d,%d,%d,%d",
+                    axis,
+                    out_dim,
+                    bias_term ? 1 : 0,
+                    offset_info.weights[0].offset,
+                    bias_term ? offset_info.weights[1].offset : 0,
+                    0);
+        code_w << "\n";
+    } else {
+        code_w.feed("ParamBase* %s_param = new FcParam(%d,%d,%s,%s+%d,%s+%d,%s);\n",
+                    node_name.c_str(),
+                    axis,
+                    out_dim,
+                    bias_term ? "true":"false",
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[0].offset,
+                    weights_ptr_name.c_str(),
+                    bias_term ? offset_info.weights[1].offset : 0,
+                    "false");
 
-    code_w.feed("ParamBase* %s_param = new FcParam(%d,%d,%s,%s+%d,%s+%d,%s);\n",
-                node_name.c_str(),
-                axis,
-                out_dim,
-                bias_term ? "true":"false",
-                weights_ptr_name.c_str(),
-                offset_info.weights[0].offset,
-                weights_ptr_name.c_str(),
-                bias_term ? offset_info.weights[1].offset : 0,
-                "false");
-
-    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
 	return code_w.get_code_string();
 }
 
@@ -949,7 +1215,8 @@ std::string ParserPermute(graph::AttrInfo& attr,
 						  std::string& op_class_name, 
 						  std::string& node_name, 
 						  std::string& weights_ptr_name, 
-						  WeightsWritter& writter) {
+						  WeightsWritter& writter,
+                          bool gen_param) {
 	// parsing parameter
 	auto dims = get_attr<PTuple<int>>("dims", attr);
 
@@ -966,11 +1233,18 @@ std::string ParserPermute(graph::AttrInfo& attr,
 
 	// gen cpp code
 	CodeWritter code_w;
-    code_w.feed("ParamBase* %s_param = new PermuteParam(%s);\n",
-                node_name.c_str(),
-                dims_vec_code.get_code_string().c_str());
-    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
-
+    if (gen_param) {
+        code_w << dims.size() << " ";
+        for (int i = 0; i < dims.size(); ++i) {
+            code_w << dims[i] << " ";
+        }
+        code_w << "\n";
+    } else {
+        code_w.feed("ParamBase* %s_param = new PermuteParam(%s);\n",
+                    node_name.c_str(),
+                    dims_vec_code.get_code_string().c_str());
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
 	return code_w.get_code_string();
 }
 
@@ -980,7 +1254,8 @@ std::string ParserPooling(graph::AttrInfo& attr,
 						  std::string& op_class_name, 
 						  std::string& node_name, 
 						  std::string& weights_ptr_name, 
-						  WeightsWritter& writter) {
+						  WeightsWritter& writter,
+                          bool gen_param) {
 	// parsing parameter
     auto global_pooling = get_attr<bool>("global_pooling", attr);
     auto pool_padding = get_attr<PTuple<int>>("padding", attr);
@@ -1001,18 +1276,30 @@ std::string ParserPooling(graph::AttrInfo& attr,
 
 	// gen cpp code
     CodeWritter code_w;
-    code_w.feed("ParamBase* %s_param = new PoolParam(%s,%s,%d,%d,%d,%d,%d,%d);\n",
-                node_name.c_str(),
-                str_pool_method.c_str(),
-                global_pooling ? "true" : "false",
-                pool_size[1],
-                pool_size[0],
-                pool_strides[1],
-                pool_strides[0],
-                pool_padding[1],
-                pool_padding[0]);
-    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
-
+    if (gen_param) {
+        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d",
+                    (int)pool_type,
+                    global_pooling ? 1 : 0,
+                    pool_size[1],
+                    pool_size[0],
+                    pool_strides[1],
+                    pool_strides[0],
+                    pool_padding[1],
+                    pool_padding[0]);
+        code_w << "\n";
+    } else {
+        code_w.feed("ParamBase* %s_param = new PoolParam(%s,%s,%d,%d,%d,%d,%d,%d);\n",
+                    node_name.c_str(),
+                    str_pool_method.c_str(),
+                    global_pooling ? "true" : "false",
+                    pool_size[1],
+                    pool_size[0],
+                    pool_strides[1],
+                    pool_strides[0],
+                    pool_padding[1],
+                    pool_padding[0]);
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
 	return code_w.get_code_string();
 }
 
@@ -1022,7 +1309,8 @@ std::string ParserPrelu(graph::AttrInfo& attr,
 						std::string& op_class_name, 
 						std::string& node_name, 
 						std::string& weights_ptr_name, 
-						WeightsWritter& writter) {
+						WeightsWritter& writter,
+                        bool gen_param) {
 	// parsing parameter
 	auto channel_shared = get_attr<bool>("channel_shared", attr);
 
@@ -1032,10 +1320,23 @@ std::string ParserPrelu(graph::AttrInfo& attr,
     auto offset_info = writter.get_weights_by_name(node_name);
 
 	// gen cpp code
-    CodeWritter code_w; 
-	code_w.feed("%s.load_param(%s,%s+%d);\n", node_name.c_str(), channel_shared ? "true":"false",
-                                        weights_ptr_name.c_str(),
-                                        offset_info.weights[0].offset);
+    CodeWritter code_w;
+    if (gen_param) {
+        code_w << (int)Active_prelu << " " << 0.f << " " << 0.f << " " << \
+                (channel_shared ? 1 : 0) << " " << offset_info.weights[0].offset;
+        code_w << "\n";
+    } else {
+        code_w.feed("ParamBase* %s_param = new ActivationParam(%s, %f, %f, %s, %s+%d);\n",
+                        node_name.c_str(),
+                        "Active_prelu",
+                        0.f,
+                        0.f,
+                        channel_shared ? "true" : "false",
+                        weights_ptr_name.c_str(),
+                        offset_info.weights[0].offset);
+
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
 	return code_w.get_code_string();
 }
 
@@ -1045,7 +1346,8 @@ std::string ParserPriorBox(graph::AttrInfo& attr,
 						   std::string& op_class_name, 
 						   std::string& node_name, 
 						   std::string& weights_ptr_name, 
-						   WeightsWritter& writter) {
+						   WeightsWritter& writter,
+                           bool gen_param) {
 	// parsing parameter
     auto min_size  = get_attr<PTuple<float>>("min_size", attr); 
 	auto max_size  = get_attr<PTuple<float>>("max_size", attr); 
@@ -1060,28 +1362,31 @@ std::string ParserPriorBox(graph::AttrInfo& attr,
 	auto offset    = get_attr<float>("offset", attr);
     auto order     = get_attr<PTuple<std::string>>("order", attr);
 
-    //std::vector<PriorType> order_;
+    std::vector<PriorType> order_;
     CodeWritter order_string;
     order_string << "{";
 
     int order_size = order.size();
     for (int i = 0; i < order_size - 1; i++) {
         if (order[i] == "MIN") {
-            //order_.push_back(PRIOR_MIN);
+            order_.push_back(PRIOR_MIN);
             order_string << "PRIOR_MIN, ";
         } else if (order[i] == "MAX") {
-            //order_.push_back(PRIOR_MAX);
+            order_.push_back(PRIOR_MAX);
             order_string << "PRIOR_MAX, ";
         } else if (order[i] == "COM") {
-            //order_.push_back(PRIOR_COM);
+            order_.push_back(PRIOR_COM);
             order_string << "PRIOR_COM, ";
         }
     }
     if (order[order_size - 1] == "MIN") {
+        order_.push_back(PRIOR_MIN);
         order_string << "PRIOR_MIN";
     } else if (order[order_size - 1] == "MAX") {
+        order_.push_back(PRIOR_MAX);
         order_string << "PRIOR_MAX";
     } else if (order[order_size - 1] == "COM") {
+        order_.push_back(PRIOR_COM);
         order_string << "PRIOR_COM";
     }
     order_string << "}";
@@ -1117,22 +1422,54 @@ std::string ParserPriorBox(graph::AttrInfo& attr,
 
 	// gen cpp code
 	CodeWritter code_w;
-
-    code_w.feed("ParamBase* %s_param = new PriorBoxParam(%s,%s,%s,%s,%s,%s,%d,%d,%f,%f,%f, %s);\n",
-                node_name.c_str(),
-                gen_vec_code(min_size).c_str(),
-                gen_vec_code(max_size).c_str(),
-                gen_vec_code(as_ratio).c_str(),
-                gen_vec_code(var).c_str(),
-                flip_flag ? "true":"false",
-                clip_flag ? "true":"false",
-                image_w,
-                image_h,
-                step_w,
-                step_h,
-                offset,
-                order_string.get_code_string().c_str());
-    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    if (gen_param) {
+        code_w << min_size.size() << " ";
+        for (int i = 0; i < min_size.size(); ++i) {
+            code_w << min_size[i] << " ";
+        }
+        code_w << ", " << max_size.size() << " ";
+        for (int i = 0; i < max_size.size(); ++i) {
+            code_w << max_size[i] << " ";
+        }
+        code_w << ", " << as_ratio.size() << " ";
+        for (int i = 0; i < as_ratio.size(); ++i) {
+            code_w << as_ratio[i] << " ";
+        }
+        code_w << ", " << var.size() << " ";
+        for (int i = 0; i < var.size(); ++i) {
+            code_w << var[i] << " ";
+        }
+        code_w.feed(",%d,%d,%d,%d,%f,%f,%f,%d,%d,%d",
+                    gen_vec_code(min_size).c_str(),
+                    gen_vec_code(max_size).c_str(),
+                    gen_vec_code(as_ratio).c_str(),
+                    gen_vec_code(var).c_str(),
+                    flip_flag ? 1 : 0,
+                    clip_flag ? 1 : 0,
+                    image_w,
+                    image_h,
+                    step_w,
+                    step_h,
+                    offset,
+                    (int)order_[0], (int)order_[1], (int)order_[2]);
+        code_w << "\n";
+    } else {
+        code_w.feed("ParamBase* %s_param = new PriorBoxParam(%s,%s,%s,%s,%s,%s,%d,%d,%f,%f,%f,%s);\n",
+                    node_name.c_str(),
+                    gen_vec_code(min_size).c_str(),
+                    gen_vec_code(max_size).c_str(),
+                    gen_vec_code(as_ratio).c_str(),
+                    gen_vec_code(var).c_str(),
+                    flip_flag ? "true":"false",
+                    clip_flag ? "true":"false",
+                    image_w,
+                    image_h,
+                    step_w,
+                    step_h,
+                    offset,
+                    order_string.get_code_string().c_str());
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
 
 	return code_w.get_code_string();
 }
@@ -1143,7 +1480,8 @@ std::string ParserSlice(graph::AttrInfo& attr,
 						std::string& op_class_name, 
 						std::string& node_name, 
 						std::string& weights_ptr_name, 
-						WeightsWritter& writter) {
+						WeightsWritter& writter,
+                        bool gen_param) {
     // parsing parameter 
 	auto slice_dim = get_attr<int>("slice_dim", attr); 
 	auto slice_point = get_attr<PTuple<int>>("slice_point", attr); 
@@ -1162,21 +1500,30 @@ std::string ParserSlice(graph::AttrInfo& attr,
 
 	// gen cpp code
     CodeWritter code_w;
-    code_w.feed("ParamBase* %s_param = new SliceParam(%d,%s);\n",
+    if (gen_param) {
+        code_w << axis << ", " << slice_point.size() << " ";
+        for (int i = 0; i < slice_point.size(); ++i) {
+            code_w << slice_point[i] << " ";
+        }
+        code_w << "\n";
+    } else {
+        code_w.feed("ParamBase* %s_param = new SliceParam(%d,%s);\n",
                     node_name.c_str(),
                     axis,
                     slice_point_vec_code.get_code_string().c_str());
-    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
 	return code_w.get_code_string();
 }
 
 // SaberSlice
 std::string ParserScale(graph::AttrInfo& attr,
                         std::string& code_name,
-            std::string& op_class_name, 
-            std::string& node_name, 
-            std::string& weights_ptr_name, 
-            WeightsWritter& writter) {
+                        std::string& op_class_name,
+                        std::string& node_name,
+                        std::string& weights_ptr_name,
+                        WeightsWritter& writter,
+                        bool gen_param) {
     // parsing parameter 
     auto num_axes = get_attr<int>("num_axes", attr);
     auto axis = get_attr<int>("axis", attr);
@@ -1196,7 +1543,16 @@ std::string ParserScale(graph::AttrInfo& attr,
 
   // gen cpp code
     CodeWritter code_w;
-    code_w.feed("ParamBase* %s_param = new ScaleParam(%s+%d, %s+%d, %s, %d, %d);\n",
+    if (gen_param) {
+        code_w.feed("%d,%d,%d,%d,%d",
+                    offset_info.weights[0].offset,
+                    bias_term ? offset_info.weights[1].offset : 0,
+                    bias_term ? 1 : 0,
+                    axis,
+                    num_axes);
+        code_w << "\n";
+    } else {
+        code_w.feed("ParamBase* %s_param = new ScaleParam(%s+%d, %s+%d, %s, %d, %d);\n",
                     node_name.c_str(),
                     weights_ptr_name.c_str(),
                     offset_info.weights[0].offset,
@@ -1206,8 +1562,8 @@ std::string ParserScale(graph::AttrInfo& attr,
                     axis,
                     num_axes);
 
-    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
-
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
     return code_w.get_code_string();
 }
 
@@ -1218,18 +1574,23 @@ std::string ParserSoftmax(graph::AttrInfo& attr,
 						  std::string& op_class_name, 
 						  std::string& node_name, 
 						  std::string& weights_ptr_name, 
-						  WeightsWritter& writter) {
+						  WeightsWritter& writter,
+                          bool gen_param) {
 	// parsing parameter
     auto axis = get_attr<int>("axis", attr);
 
 	// gen cpp code
     CodeWritter code_w;
 
-    code_w.feed("ParamBase* %s_param = new SoftmaxParam(%d);\n",
+    if (gen_param) {
+        code_w << axis;
+        code_w << "\n";
+    } else {
+        code_w.feed("ParamBase* %s_param = new SoftmaxParam(%d);\n",
                     node_name.c_str(),
                     axis);
-    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
-
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
 	return code_w.get_code_string();
 }
 
@@ -1239,15 +1600,19 @@ std::string ParserSplit(graph::AttrInfo& attr,
                           std::string& op_class_name,
                           std::string& node_name,
                           std::string& weights_ptr_name,
-                          WeightsWritter& writter) {
+                          WeightsWritter& writter,
+                          bool gen_param) {
     // parsing parameter
     // no param
     // gen cpp code
     CodeWritter code_w;
-
-    code_w.feed("ParamBase* %s_param = new SplitParam;\n",
-                node_name.c_str());
-    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    if (gen_param) {
+        code_w << "\n";
+    } else {
+        code_w.feed("ParamBase* %s_param = new SplitParam;\n",
+                    node_name.c_str());
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
     return code_w.get_code_string();
 }
 
@@ -1257,15 +1622,19 @@ std::string ParserFlatten(graph::AttrInfo& attr,
                           std::string& op_class_name,
                           std::string& node_name,
                           std::string& weights_ptr_name,
-                          WeightsWritter& writter) {
+                          WeightsWritter& writter,
+                          bool gen_param) {
     // parsing parameter
     // no param
     // gen cpp code
     CodeWritter code_w;
-
-    code_w.feed("ParamBase* %s_param = new FlattenParam;\n",
-                node_name.c_str());
-    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    if (gen_param) {
+        code_w << "\n";
+    } else {
+        code_w.feed("ParamBase* %s_param = new FlattenParam;\n",
+                    node_name.c_str());
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
     return code_w.get_code_string();
 }
 
@@ -1275,7 +1644,8 @@ std::string ParserReshape(graph::AttrInfo& attr,
                                std::string& op_class_name,
                                std::string& node_name,
                                std::string& weights_ptr_name,
-                               WeightsWritter& writter) {
+                               WeightsWritter& writter,
+                               bool gen_param) {
     // parsing parameter
     auto dims = get_attr<PTuple<int>>("dims", attr);
     std::vector<int> vdims = dims.vector();
@@ -1292,9 +1662,16 @@ std::string ParserReshape(graph::AttrInfo& attr,
     }
 
     CodeWritter code_w;
-
-    code_w.feed("ParamBase* %s_param = new ReshapeParam(%s);\n", node_name.c_str(), reshape_dims_vec_code.get_code_string().c_str());
-    code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    if (gen_param) {
+        code_w << dims.size() << " ";
+        for (int i = 0; i < dims.size(); ++i) {
+            code_w << dims[i] << " ";
+        }
+        code_w << "\n";
+    } else {
+        code_w.feed("ParamBase* %s_param = new ReshapeParam(%s);\n", node_name.c_str(), reshape_dims_vec_code.get_code_string().c_str());
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
     return code_w.get_code_string();
 }
 

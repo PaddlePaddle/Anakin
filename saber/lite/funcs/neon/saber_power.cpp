@@ -1,5 +1,6 @@
 #include "saber/lite/funcs/saber_power.h"
 #include "saber/lite/funcs/neon/impl/neon_mathfun.h"
+#include "saber/lite/net/saber_factory_lite.h"
 #ifdef USE_ARM_PLACE
 
 namespace anakin {
@@ -155,7 +156,7 @@ SaberStatus SaberPower::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &inp
 
     return SaberSuccess;
 }
-
+REGISTER_LAYER_CLASS(SaberPower);
 } //namespace lite
 
 } //namespace saber

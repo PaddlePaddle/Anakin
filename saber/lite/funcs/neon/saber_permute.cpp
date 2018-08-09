@@ -1,5 +1,5 @@
 #include "saber/lite/funcs/saber_permute.h"
-
+#include "saber/lite/net/saber_factory_lite.h"
 #ifdef USE_ARM_PLACE
 
 namespace anakin{
@@ -251,7 +251,7 @@ SaberStatus SaberPermute::dispatch(\
 #endif
     return SaberSuccess;
 }
-
+REGISTER_LAYER_CLASS(SaberPermute);
 } //namespace lite
 
 } //namespace saber
