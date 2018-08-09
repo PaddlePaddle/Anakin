@@ -133,20 +133,20 @@ void test_gemm_int8_result (int m, int n, int k, bool trans_a, bool trans_b) {
         /// input : const float* src
         /// output: char* dst_int8
         ///         float* scale
-        float2char(false, (signed char*)a_dev_int8.mutable_data(),
+        float2char(trans_a, (signed char*)a_dev_int8.mutable_data(),
                        (const float*)a_dev.data(),
                        (float*)a_scale.mutable_data(),
-                       m, k, ctx1);
+                       trans_a?k:m, trans_a?m:k, ctx1);
 
         /// step 2: calibrate matrix a into int8 matrix
         ///         using col direction.
         /// input : const float* src
         /// output: char* dst_int8
         ///         float* scale
-        float2char(true, (signed char*)b_dev_int8.mutable_data(),
+        float2char(!trans_b, (signed char*)b_dev_int8.mutable_data(),
                        (const float*)b_dev.data(),
                        (float*)b_scale.mutable_data(),
-                       k, n, ctx1);
+                       trans_b?n:k, trans_b?k:n, ctx1);
 
         /// step 3: dispatch matrix multiply using int8 gemm
         gemm_vender.dispatch(alpha, beta,
@@ -174,9 +174,9 @@ void test_gemm_int8_result (int m, int n, int k, bool trans_a, bool trans_b) {
                    alpha, beta, trans_a, trans_b);
 
         int counts = count_diff((const float*)c_check.data(), (const float*)c_host.data(),
-                                c_check.valid_size(), 2e-1);
+                                c_check.valid_size(), 1e-1);
 
-        if (((double)counts / (double)c_host.valid_size()) > 0.02) {
+        if (((double)counts / (double)c_host.valid_size()) > 0.05) {
             print_tensor_valid(c_check);
             print_tensor_valid(c_host);
             LOG(FATAL) << "VENDER: FAIL!!!! counts = " <<counts
@@ -201,20 +201,20 @@ void test_gemm_int8_result (int m, int n, int k, bool trans_a, bool trans_b) {
         /// input : const float* src
         /// output: char* dst_int8
         ///         float* scale
-        float2char(false, (signed char*)a_dev_int8.mutable_data(),
-                       (const float*)a_dev.data(),
-                       (float*)a_scale.mutable_data(),
-                       m, k, ctx1);
+        float2char(trans_a, (signed char*)a_dev_int8.mutable_data(),
+                   (const float*)a_dev.data(),
+                   (float*)a_scale.mutable_data(),
+                   trans_a?k:m, trans_a?m:k, ctx1);
 
         /// step 2: calibrate matrix a into int8 matrix
         ///         using col direction.
         /// input : const float* src
         /// output: char* dst_int8
         ///         float* scale
-        float2char(true, (signed char*)b_dev_int8.mutable_data(),
-                       (const float*)b_dev.data(),
-                       (float*)b_scale.mutable_data(),
-                       k, n, ctx1);
+        float2char(!trans_b, (signed char*)b_dev_int8.mutable_data(),
+                   (const float*)b_dev.data(),
+                   (float*)b_scale.mutable_data(),
+                   trans_b?n:k, trans_b?k:n, ctx1);
 
         /// step 3: dispatch matrix multiply using int8 gemm
         gemm_saber.dispatch(alpha, beta,
@@ -242,9 +242,9 @@ void test_gemm_int8_result (int m, int n, int k, bool trans_a, bool trans_b) {
                    alpha, beta, trans_a, trans_b);
 
         int counts = count_diff((const float*)c_check.data(), (const float*)c_host.data(),
-                                c_check.valid_size(), 2e-1);
+                                c_check.valid_size(), 1e-1);
 
-        if (((double)counts / (double)c_host.valid_size()) > 0.02) {
+        if (((double)counts / (double)c_host.valid_size()) > 0.05) {
             print_tensor_valid(c_check);
             print_tensor_valid(c_host);
                     LOG(FATAL) << "VENDER: FAIL!!!! counts = " <<counts
@@ -272,8 +272,8 @@ TEST(TestSaberFunc, test_vender_gemm_float) {
     std::vector<int> m_v = {40, 20, 140, 200, 300};
     std::vector<int> n_v = {10, 20, 140, 200, 300};
     std::vector<int> k_v = {40, 20, 140, 200, 300};
-    std::vector<int> trans_a_v{false};
-    std::vector<int> trans_b_v{false};
+    std::vector<int> trans_a_v{false, true};
+    std::vector<int> trans_b_v{false, true};
 
     for (auto m : m_v)
     for (auto n : n_v)

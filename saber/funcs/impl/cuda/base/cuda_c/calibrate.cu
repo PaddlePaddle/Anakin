@@ -223,7 +223,7 @@ void calibrate_float2char_col(signed char* dst, const float* src,
     const float *data = src + gid;
     for(int idx = 0; idx < height; ++idx){
         if (gid < width) {
-            float temp = fabs(data[idx * width]);
+            float temp = fabsf(data[idx * width]);
             col_max = (col_max >= temp)? col_max : temp;
         }
     }
@@ -253,7 +253,7 @@ void calibrate_float2char_row(signed char* dst, const float* src,
     const float * data = src + width * gid;
     for(int idx = 0; idx < width; ++idx) {
         if(gid < height){
-            float temp = fabs(data[idx]);
+            float temp = fabsf(data[idx]);
             row_max = (row_max >= temp) ? row_max : temp;
         }
     }
