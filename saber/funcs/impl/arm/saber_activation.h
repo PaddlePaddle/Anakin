@@ -24,11 +24,13 @@ namespace saber{
 template <DataType OpDtype>
 class SaberActivation<ARM, OpDtype> : \
     public ImplBase<
-        ARM, OpDtype,
-        ActivationParam<Tensor<ARM> > >
+        ARM,
+        OpDtype,
+        ActivationParam<ARM > >
 {
 public:
-    typedef typename DataTrait<X86, OpDtype>::Dtype OpDataType;
+    typedef typename DataTrait<ARM, OpDtype>::Dtype OpDataType;
+    
 
     SaberActivation()
     {}
@@ -37,18 +39,17 @@ public:
 
     virtual SaberStatus init(const std::vector<Tensor<ARM> *>& inputs,
                             std::vector<Tensor<ARM> *>& outputs,
-                            ActivationParam<ARM>& param, Context<ARM>& ctx){
-                               
+                            ActivationParam<ARM>& param, Context<ARM>& ctx) {
         this->_ctx = &ctx;
-        return create(inputs, outputs, param, ctx);
+        return SaberSuccess;
     }
 
     virtual SaberStatus create(const std::vector<Tensor<ARM> *>& inputs,
                             std::vector<Tensor<ARM> *>& outputs,
-                            ActivationParam<ARM>& param, Context<ARM> &ctx){
-
+                            ActivationParam<ARM>& param, Context<ARM> &ctx) {
         return SaberSuccess;
     }
+    
     virtual SaberStatus dispatch(const std::vector<Tensor<ARM> *>& inputs,
                           std::vector<Tensor<ARM> *>& outputs,
                           ActivationParam<ARM>& param);

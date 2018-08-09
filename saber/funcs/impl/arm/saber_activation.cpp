@@ -31,7 +31,7 @@ SaberStatus SaberActivation<ARM, AK_FLOAT>::dispatch(
     float coef = param.coef;
     float slope = param.negative_slope;
     bool channel_shared = param.prelu_param.channel_shared;
-    float* slopes= (float*)param.prelu_param.slope;
+    float* slopes_ptr = nullptr; 
     switch (param.active){
         //x > 0 ? x :0
         case Active_relu:
@@ -194,7 +194,7 @@ SaberStatus SaberActivation<ARM, AK_FLOAT>::dispatch(
                 }
 #endif
                 for (int j = 0; j < neon_loop_remain; j++) {
-                    ptr_out_thread[0] = ptr_in_thread[0] > 0.f ? ptr_in_thread[0] : 0.f;
+                    ptr_out_thread[0] = ptr_in_thread[0] > 0.f ? (ptr_in_thread[0] > coef ? coef : ptr_in_thread[0])  : 0.f;
                     ptr_in_thread++;
                     ptr_out_thread++;
                 }
@@ -202,7 +202,7 @@ SaberStatus SaberActivation<ARM, AK_FLOAT>::dispatch(
             ptr_out = ptr_out + threads * nums_per_thread;
             ptr_in = ptr_in + threads * nums_per_thread;
             for (int i = 0; i < remain; i++) {
-                ptr_out[0] = ptr_in[0] > 0.f ? ptr_in[0] : 0.f;
+                ptr_out[0] = ptr_in[0] > 0.f ? (ptr_in[0] > coef ? coef : ptr_in[0])  : 0.f;
                 ptr_in++;
                 ptr_out++;
             }
@@ -242,27 +242,31 @@ SaberStatus SaberActivation<ARM, AK_FLOAT>::dispatch(
 
         // tanh : (exp(x) - exp(-x)) / (exp(x) + exp(-x))
         case Active_tanh:
+            //LOG(INFO) << "Active_tanh";
             #pragma omp parallel for
             for (int i = 0; i < threads; ++i) {
-                float32x4_t exp_plus_vec = vdupq_n_f32(0.0f);
-                float32x4_t exp_minus_vec = vdupq_n_f32(0.0f);
-                float32x4_t exp_sum_vec = vdupq_n_f32(0.0f);
-                float32x4_t exp_diff_vec = vdupq_n_f32(0.0f);
-                float32x4_t recip  = vdupq_n_f32(0.0f);
+                float32x4_t vtwo = vdupq_n_f32(2.0f);
+                float32x4_t vone = vdupq_n_f32(1.0f);
                 const float* ptr_in_thread = ptr_in + i * nums_per_thread;
                 float* ptr_out_thread = ptr_out + i * nums_per_thread;
-                for (int j = 0; j < neon_loop_cnt_dim4; j++) {
-                    exp_plus_vec = exp_ps(vld1q_f32(ptr_in_thread));
-                    exp_minus_vec = exp_ps(vnegq_f32(vld1q_f32(ptr_in_thread)));
-                    exp_sum_vec = vaddq_f32(exp_plus_vec,exp_minus_vec);
-                    exp_diff_vec = vsubq_f32(exp_plus_vec,exp_minus_vec);
-                    recip = div_ps(exp_diff_vec,exp_sum_vec);
-                    vst1q_f32(ptr_out_thread, recip);
+                int cnt4 = neon_loop_cnt_dim4;
+                int remain4 = size;
+                cnt4 = cnt4 < 5 ? cnt4 : 0;
+                remain4 = cnt4  == 0 ? remain4 : neon_loop_remain_dim4;
+                for (int j = 0; j < cnt4; j++) {
+                    float32x4_t vdin = vld1q_f32(ptr_in_thread);
+                    float32x4_t vsum = vmulq_f32(vdin, vtwo);
+                    float32x4_t vexp_sum = exp_ps(vsum);
+                    float32x4_t vadd_sum = vaddq_f32(vexp_sum, vone);
+                    float32x4_t vrecip = div_ps(vtwo, vadd_sum);
+                    float32x4_t vout = vsubq_f32(vone, vrecip);
+                    vst1q_f32(ptr_out_thread, vout);
                     ptr_out_thread += 4;
                     ptr_in_thread += 4;
                 }
-                for(int j = 0; j < neon_loop_remain_dim4; j++){
-                    ptr_out_thread[0] = (exp(ptr_in_thread[0]) - exp(-ptr_in_thread[0])) / (exp(ptr_in_thread[0]) + exp(-ptr_in_thread[0]));
+                for(int j = 0; j < remain4; j++){
+                    ptr_out_thread[0] = 1.0 - 2.0 / (1.0 + exp(2.0 * ptr_in_thread[0]));
+                    //(exp(ptr_in_thread[0]) - exp(-ptr_in_thread[0])) / (exp(ptr_in_thread[0]) + exp(-ptr_in_thread[0]));
                     ptr_in_thread++;
                     ptr_out_thread++;
                 }
@@ -270,7 +274,7 @@ SaberStatus SaberActivation<ARM, AK_FLOAT>::dispatch(
             ptr_out = ptr_out + threads * nums_per_thread;
             ptr_in = ptr_in + threads * nums_per_thread;
             for (int j = 0; j < remain; ++j) {
-                ptr_out[0] = (exp(ptr_in[0]) - exp(-ptr_in[0])) / (exp(ptr_in[0]) + exp(-ptr_in[0]));
+                ptr_out[0] = 1.0 - 2.0 / (1.0 + exp(2.0 * ptr_in[0]));//(exp(ptr_in[0]) - exp(-ptr_in[0])) / (exp(ptr_in[0]) + exp(-ptr_in[0]));
                 ptr_in++;
                 ptr_out++;
             }
@@ -280,31 +284,32 @@ SaberStatus SaberActivation<ARM, AK_FLOAT>::dispatch(
         case Active_stanh:
             #pragma omp parallel for
             for (int i = 0; i < threads; ++i) {
-                float32x4_t exp_plus_vec = vdupq_n_f32(0.0f);
-                float32x4_t exp_minus_vec = vdupq_n_f32(0.0f);
-                float32x4_t exp_sum_vec = vdupq_n_f32(0.0f);
-                float32x4_t exp_diff_vec = vdupq_n_f32(0.0f);
-                float32x4_t recip  = vdupq_n_f32(0.0f);
-                float32x4_t vslope = vdupq_n_f32(slope);
                 float32x4_t vcoef = vdupq_n_f32(coef);
+                float32x4_t vslope = vdupq_n_f32(slope);
+                float32x4_t vtwo = vdupq_n_f32(2.0f);
+                float32x4_t vone = vdupq_n_f32(1.0f);
                 const float* ptr_in_thread = ptr_in + i * nums_per_thread;
                 float* ptr_out_thread = ptr_out + i * nums_per_thread;
-                for (int j = 0; j < neon_loop_cnt_dim4; j++) {
+                int cnt4 = neon_loop_cnt_dim4;
+                int remain4 = size;
+                cnt4 = cnt4 < 10 ? cnt4 : 0;
+                remain4 = cnt4  == 0 ? remain4 : neon_loop_remain_dim4;
+                for (int j = 0; j < cnt4; j++) {
                     float32x4_t vdin = vld1q_f32(ptr_in_thread);
-                    float32x4_t vsum = vmulq_f32(vdin, vslope);
-                    exp_plus_vec = exp_ps(vsum);
-                    exp_minus_vec = exp_ps(vnegq_f32(vsum));
-                    exp_sum_vec = vaddq_f32(exp_plus_vec, exp_minus_vec);
-                    exp_diff_vec = vsubq_f32(exp_plus_vec, exp_minus_vec);
-                    recip = div_ps(exp_diff_vec, exp_sum_vec);
-                    float32x4_t vdout = vmulq_f32(recip, vcoef);
-                    vst1q_f32(ptr_out_thread, vdout);
+                    float32x4_t vmul_sum = vmulq_f32(vdin, vslope);
+                    float32x4_t vsum = vmulq_f32(vmul_sum, vtwo);
+                    float32x4_t vexp_sum = exp_ps(vsum);
+                    float32x4_t vadd_sum = vaddq_f32(vexp_sum, vone);
+                    float32x4_t vrecip = div_ps(vtwo, vadd_sum);
+                    float32x4_t vout = vsubq_f32(vone, vrecip);
+                    vout = vmulq_f32(vout, vcoef);
+                    vst1q_f32(ptr_out_thread, vout);
                     ptr_out_thread += 4;
                     ptr_in_thread += 4;
                 }
-                for(int j = 0; j < neon_loop_remain_dim4; j++){
+                for(int j = 0; j < remain4; j++){
                     float din = ptr_in_thread[0] * slope;
-                    ptr_out_thread[0] = coef * (exp(din) - exp(-din)) / (exp(din) + exp(-din));
+                    ptr_out_thread[0] = coef * (1.0 - 2.0 / (1.0 + exp(2.0 * din)));
                     ptr_in_thread++;
                     ptr_out_thread++;
                 }
@@ -313,7 +318,7 @@ SaberStatus SaberActivation<ARM, AK_FLOAT>::dispatch(
             ptr_in = ptr_in + threads * nums_per_thread;
             for (int j = 0; j < remain; ++j) {
                 float din = ptr_in[0] * slope;
-                ptr_out[0] = coef * (exp(din) - exp(-din)) / (exp(din) + exp(-din));
+                ptr_out[0] = coef * (1.0 - 2.0 / (1.0 + exp(2.0 * din)));
                 ptr_in++;
                 ptr_out++;
             }
@@ -321,6 +326,7 @@ SaberStatus SaberActivation<ARM, AK_FLOAT>::dispatch(
         
         //prelu: x > 0 ? x : slope[c] * x
         case Active_prelu:
+            slopes_ptr = (float*)param.prelu_param.slope->data();
             for (int n = 0; n < num; n++){
                 const float* data_in_batch = ptr_in + n * channel * csize;
                 float* data_out_batch = ptr_out + n * channel * csize;
@@ -328,10 +334,9 @@ SaberStatus SaberActivation<ARM, AK_FLOAT>::dispatch(
                 for (int c = 0; c < channel; c++){
                     const float* data_in_channel = data_in_batch + c * csize;
                     float* data_out_channel = data_out_batch + c * csize;
-                    float slope = channel_shared ? slopes[0] : slopes[c];
-                    
+                    float slope_val = channel_shared ? slopes_ptr[0] : slopes_ptr[c];
                     float32x4_t vzero = vdupq_n_f32(0.f);
-                    float32x4_t vslope = vdupq_n_f32(slope);
+                    float32x4_t vslope = vdupq_n_f32(slope_val);
                     int dim4 = csize >> 2;
                     int dim4_remain = csize - (dim4 * 4);
 #ifdef __aarch64__
@@ -345,29 +350,101 @@ SaberStatus SaberActivation<ARM, AK_FLOAT>::dispatch(
                         data_out_channel += 4;
                     }
 #else
+                    int cnt = dim4;
                     if (dim4 > 0){
                         asm volatile(
-                                     "2:                                            @main loop\n"
+                                "2:                                            @main loop\n"
                                      "vld1.f32   {d0-d1}, [%[ptr_in]]!              @load q1\n"
                                      "vclt.f32   q1, q0, %q[vzero]                   @vcle q0 <= vzero\n"
                                      "vmul.f32   q2, q0, %q[vslope]                  @vmul q0 * vslope\n"
                                      "vbit.32    q0, q2, q1                          @vbit q0, q2, q1\n"
                                      "subs       %[cnt], #1                          @subs nn, 1\n"
-                                     "vst1.f32   {d0-d1}, [%[dout]]!                 @store data\n"
-                                     "bne        2                                   @bne nn\n"
-                                     :[ptr_in] "+r" (data_in_channel), [cnt] "+r" (dim4), \
-                                     [dout] "+r" (data_out_channel)
+                                     "vst1.f32   {d0-d1}, [%[ptr_out]]!                 @store data\n"
+                                     "bne        2b                                   @bne nn\n"
+                                     :[ptr_in] "+r" (data_in_channel), [cnt] "+r" (cnt), \
+                                     [ptr_out] "+r" (data_out_channel)
                                      :[vzero] "w" (vzero), [vslope] "w" (vslope)
                                      :"q0", "q1", "q2"
                                      );
                     }
 #endif //__aarch64__
                     for (int i = 0 ; i < dim4_remain ; i++) {
-                        data_out_channel[0] = data_in_channel[0] > 0 ? data_in_channel[0] : data_in_channel[0] * slope;
+                        data_out_channel[0] = data_in_channel[0] > 0 ? data_in_channel[0] : data_in_channel[0] * slope_val;
                         data_in_channel++;
                         data_out_channel++;
                     }
                 }
+            }
+            break;
+        
+        //elu:  x > 0 ? x : coef * (exp(x) - 1)
+        case Active_elu:
+            #pragma omp parallel for
+            for (int i = 0; i < threads; ++i) {
+                const float* ptr_in_thread = ptr_in + i * nums_per_thread;
+                float* ptr_out_thread = ptr_out + i * nums_per_thread;
+                int cnt = neon_loop_cnt;
+                float32x4_t vone = vdupq_n_f32(1.0f);
+                float32x4_t vcoef = vdupq_n_f32(coef);
+                for (int num = 0; num < neon_loop_cnt; num++){
+                    float32x4_t vr0 = vld1q_f32(ptr_in_thread);
+                   // ptr_in_thread+=4;
+                    float32x4_t vr1 = vld1q_f32(ptr_in_thread + 4);
+                   // ptr_in_thread+=4;
+                    float32x4_t vr2 = vld1q_f32(ptr_in_thread + 8);
+                   // ptr_in_thread+=4;
+                    float32x4_t vr3 = vld1q_f32(ptr_in_thread + 12);
+                    //ptr_in_thread+=4;
+                    ptr_in_thread += 16;
+
+                    float32x4_t vsum0 = exp_ps(vr0);
+                    float32x4_t vsum1 = exp_ps(vr1);
+                    float32x4_t vsum2 = exp_ps(vr2);
+                    float32x4_t vsum3 = exp_ps(vr3);
+                    uint32x4_t vmask0 = vcgeq_f32(vr0, vzero);
+                    uint32x4_t vmask1 = vcgeq_f32(vr1, vzero);
+                    uint32x4_t vmask2 = vcgeq_f32(vr2, vzero);
+                    uint32x4_t vmask3 = vcgeq_f32(vr3, vzero);
+                    vsum0 = vsubq_f32(vsum0, vone);
+                    vsum1 = vsubq_f32(vsum1, vone);
+                    vsum2 = vsubq_f32(vsum2, vone);
+                    vsum3 = vsubq_f32(vsum3, vone);
+
+                    vsum0 = vmulq_f32(vsum0, vcoef);
+                    vsum1 = vmulq_f32(vsum1, vcoef);
+                    vsum2 = vmulq_f32(vsum2, vcoef);
+                    vsum3 = vmulq_f32(vsum3, vcoef);
+
+
+                    
+                    float32x4_t vout0 =vbslq_f32(vmask0, vr0, vsum0);
+                    float32x4_t vout1 =vbslq_f32(vmask1,  vr1, vsum1);
+                    float32x4_t vout2 =vbslq_f32(vmask2,  vr2, vsum2);
+                    float32x4_t vout3 =vbslq_f32(vmask3,  vr3, vsum3);
+
+                    vst1q_f32(ptr_out_thread, vout0);
+                    //ptr_out_thread+=4;
+                    vst1q_f32(ptr_out_thread + 4, vout1);
+                   // ptr_out_thread+=4;
+                    vst1q_f32(ptr_out_thread + 8, vout2);
+                   // ptr_out_thread+=4;
+                    vst1q_f32(ptr_out_thread + 12, vout3);
+                    //ptr_out_thread+=4;
+                    ptr_out_thread += 16;
+                }      
+
+                for (int j = 0; j < neon_loop_remain; j++) {
+                    ptr_out_thread[0] = ptr_in_thread[0] > 0.f ? ptr_in_thread[0] : coef * (exp(ptr_in_thread[0]) - 1);
+                    ptr_in_thread++;
+                    ptr_out_thread++;
+                }
+            }
+            ptr_out = ptr_out + threads * nums_per_thread;
+            ptr_in = ptr_in + threads * nums_per_thread;
+            for (int i = 0; i < remain; i++) {
+                ptr_out[0] = ptr_in[0] > 0.f ? ptr_in[0] : coef * (exp(ptr_in[0]) - 1);
+                ptr_in++;
+                ptr_out++;
             }
             break;
         default:
@@ -375,8 +452,6 @@ SaberStatus SaberActivation<ARM, AK_FLOAT>::dispatch(
     }
     return SaberSuccess;
 }
-
-template class SaberActivation<ARM, AK_FLOAT>;
 
 }
 } // namespace anakin

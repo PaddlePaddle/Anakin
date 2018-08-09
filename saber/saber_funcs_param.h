@@ -36,7 +36,9 @@ struct ActivationParam {
             , negative_slope(float(-1))
             , coef(float(-1))
             , prelu_param(PreluParam<TargetType>(false, nullptr))
-            , has_active(false) {}
+            , has_active(false) 
+    {}
+
     ActivationParam(ActiveType act, float n_slope = float(0),
                     float co = float(1),
                     PreluParam<TargetType> prelu = PreluParam<TargetType>(false, nullptr))
@@ -46,6 +48,18 @@ struct ActivationParam {
             , prelu_param(prelu)
             , has_active(true)
     {}
+
+    ActivationParam(ActiveType act, float n_slope,
+                    float co,
+                    PreluParam<TargetType> prelu,
+                    bool has)
+            : active(act)
+            , negative_slope(n_slope)
+            , coef(co)
+            , prelu_param(prelu)
+            , has_active(has)
+    {}
+
     ActivationParam(const ActivationParam &right)
             : active(right.active)
             , negative_slope(right.negative_slope)

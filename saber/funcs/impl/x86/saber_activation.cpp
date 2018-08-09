@@ -39,7 +39,7 @@ SaberStatus SaberActivation<X86, OpDtype>::dispatch(
             OpDataType *output_data = (OpDataType*)outputs[vc]->mutable_data();
 
             for (size_t i = 0; i < len; i++) {
-                *output_data = *input_data > 0 ? input_data : 0;
+                *output_data = *input_data > (OpDataType)0 ? *input_data : (OpDataType)0;
                 input_data++;
                 output_data++;
             }
@@ -89,7 +89,7 @@ SaberStatus SaberActivation<X86, OpDtype>::dispatch(
     // x > 0 ? x : 0;
     // x < threshold ? x : threshold
     if (param.active == Active_clipped_relu) {
-        const DataType_in threshold = param.coef;
+        const OpDataType threshold = param.coef;
         for (size_t i = 0; i < inputs.size(); i++) {
             size_t len = inputs[i]->valid_size();
             const OpDataType *input_data = (OpDataType*)inputs[i]->data();
@@ -121,17 +121,17 @@ SaberStatus SaberActivation<X86, OpDtype>::dispatch(
         for (size_t i = 0; i < inputs.size(); i++) {
             const OpDataType *input_data = (OpDataType*)inputs[i]->data();
             OpDataType *output_data = (OpDataType*)outputs[i]->mutable_data();
-            shape shin = inputs[i]->valid_shape();
+            Shape shin = inputs[i]->valid_shape();
             int num = shin[0];
             int channel = shin[1];
             int size = shin[2] * shin[3];
             for (int n = 0; n < num; n++){
                 const OpDataType *in_ptr = input_data + n * channel * size;
                 OpDataType *out_ptr = output_data + n * channel * size;
+                OpDataType *slope_ptr = (OpDataType*)prelu.slope->data();
                 for (int c = 0; c < channel; c++){
                     const OpDataType *in_ch_ptr = in_ptr + c * size;
                     OpDataType *out_ch_ptr = out_ptr + c * size;
-                    OpDataType *slope_ptr = (OpDataType*)prelu.slope->data();
                     OpDataType slope = prelu.channel_shared ?  slope_ptr[0]: slope_ptr[c];
                     for (int k = 0; k < size; k++){
                         out_ch_ptr[k] = in_ch_ptr[k] > 0 ? in_ch_ptr[k] : in_ch_ptr[k] * slope;
