@@ -103,6 +103,7 @@ inline __m256 Tanh<__m256>(const __m256 a) {
 
 #endif
 
+#if 1
 #if defined(__AVX512F__)
 #include "saber_avx512_math.h"
 
@@ -132,6 +133,7 @@ inline __m512 Tanh<__m512>(const __m512 a) {
                          _mm512_set1_ps(1.0f));
 }
 
+#endif
 #endif
 
 template<typename Dtype>

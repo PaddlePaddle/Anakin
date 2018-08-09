@@ -22,7 +22,7 @@
 #include <assert.h>
 
 #include "saber/core/common.h"
-
+#include "saber/core/tensor.h"
 namespace anakin {
 namespace saber {
 

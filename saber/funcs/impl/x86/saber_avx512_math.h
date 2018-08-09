@@ -21,7 +21,7 @@ static inline __m512 _mm512_expfaster_ps(const __m512 &a) {
     return _mm512_castsi512_ps(_mm512_cvttps_epi32(_mm512_fmadd_ps(C2, a, C1)));
 }
 
-inline __mm512 exp512_ps_fma(__mm512 x) {
+inline __m512 exp512_ps_fma(__m512 x) {
     __m512 tmp = _mm512_setzero_ps(), fx;
     __m512i imm0;
     __m512 one=_mm512_set1_ps(1.f);
@@ -37,8 +37,13 @@ inline __mm512 exp512_ps_fma(__mm512 x) {
 
     tmp = _mm512_floor_ps(fx);
 
-    __m512 mask = _mm512_cmp_ps(tmp, fx, _CMP_GT_OS);
-    mask = _mm512_and_ps(mask, one);
+    //TODO:check _mm512_cmp_ps_mask _mm512_cmp_ps
+    __mmask16 mask_16 = _mm512_cmp_ps_mask(tmp, fx, _CMP_GT_OS);
+    __m512 zero=_mm512_setzero_ps();
+    __m512 mask=_mm512_mask_add_ps(zero,mask_16,zero,one);
+
+//    __m512 mask = _mm512_cmp_ps(tmp, fx, _CMP_GT_OS);
+//    mask = _mm512_and_ps(mask, one);
     fx = _mm512_sub_ps(tmp, mask);
 
     __m512 _ps512_cephes_exp_C1=_mm512_set1_ps(0.693359375f);

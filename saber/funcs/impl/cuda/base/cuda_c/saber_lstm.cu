@@ -253,7 +253,7 @@ SaberLstm<NV, AK_FLOAT>::dispatch_batch(
         int emit_word_id_start = emit_offset_vec[real_word_id];
         int emit_word_id_end = emit_offset_vec[real_word_id + 1];
         int emit_word_length = emit_word_id_end - emit_word_id_start;
-        const float* hin;
+        const OpDataType* hin;
 
         if (word_id == 0) {
             hin = h_init;
@@ -262,7 +262,7 @@ SaberLstm<NV, AK_FLOAT>::dispatch_batch(
         }
 
 //        DLOG(INFO) << "word_id = " << word_id << ",emit_start = " << emit_word_id_start << ",emit_end=" <<emit_word_id_end;
-        float* hout = nullptr;
+        OpDataType* hout = nullptr;
         hout = emit_offset_vec[real_word_id] * _hidden_size + inner_h_out;
 
 

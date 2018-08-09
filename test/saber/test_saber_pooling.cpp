@@ -123,7 +123,7 @@ for(int window_h:{2, 4}){
 }
 #endif
 #ifdef USE_X86_PLACE
-TestSaberBase<X86,X86,AK_FLOAT,Pooling,PoolingParam> testbase;
+TestSaberBase<X86,X86,AK_FLOAT,Pooling,PoolingParam> testbase_x86;
     
 for(int window_h:{2, 4}){
     for(int window_w:{2, 4}){
@@ -143,9 +143,9 @@ for(int window_h:{2, 4}){
                                     for(int in_h:{32, 64}){
                                         for(int in_w:{32, 64}){
                                             LOG(INFO)<<"n:"<<in_n<<",in_c:"<<in_c<<",in_h:"<<in_h<<",in_w:"<<in_w;
-                                            testbase.set_param(param);//set param
-                                            testbase.set_input_shape(Shape({in_n,in_c,in_h,in_w}));//add some input shape
-                                            testbase.run_test(pooling_cpu_func<float,X86,X86>);//run test
+                                            testbase_x86.set_param(param);//set param
+                                            testbase_x86.set_input_shape(Shape({in_n,in_c,in_h,in_w}));//add some input shape
+                                            testbase_x86.run_test(pooling_cpu_func<float,X86,X86>);//run test
                                             
                                         }
                                     }

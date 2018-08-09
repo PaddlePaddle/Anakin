@@ -14,7 +14,7 @@
 
 #include <immintrin.h>
 
-inline __m128 exp128_ps_fma(__m128 x) {
+static inline __m128 exp128_ps_fma(__m128 x) {
     __m128 tmp = _mm_setzero_ps(), fx;
     __m128i imm0;
     __m128 one=_mm_set1_ps(1.f);
