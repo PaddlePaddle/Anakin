@@ -111,6 +111,9 @@ SaberStatus SaberConv2D::init(\
         printf("USE DW, num=%d, channel=%d, height=%d, width=%d, group=%d, kernel=%d, stride=%d, dila=%d, pad=%d\n", \
             num, chin, hin, win, _param->_group, _param->_kw, _param->_stride_w, _param->_dila_w, _param->_pad_w);
         this->_flag_init = true;
+#ifdef ENABLE_OP_TIMER
+       _conv_type = "conv_dw";
+#endif
         return SaberSuccess;
     }
 
@@ -126,6 +129,9 @@ SaberStatus SaberConv2D::init(\
             _impl = conv_3x3s1_direct;
             printf("USE 3x3s1 direct, num=%d, channel=%d, height=%d, width=%d, group=%d, kernel=%d, stride=%d, dila=%d, pad=%d\n", \
                 num, chin, hin, win, _param->_group, _param->_kw, _param->_stride_w, _param->_dila_w, _param->_pad_w);
+#ifdef ENABLE_OP_TIMER
+            _conv_type = "conv3x3_dir";
+#endif
         } else {
             //! use winograd
             _weights_trans.reshape(Shape(8 * 8 * chout * chin * 2));
@@ -156,6 +162,9 @@ SaberStatus SaberConv2D::init(\
             _is_trans_weights = true;
             printf("USE WINOGRAD, num=%d, channel=%d, height=%d, width=%d, group=%d, kernel=%d, stride=%d, dila=%d, pad=%d\n", \
                 num, chin, hin, win, _param->_group, _param->_kw, _param->_stride_w, _param->_dila_w, _param->_pad_w);
+#ifdef ENABLE_OP_TIMER
+            _conv_type = "conv3x3_wino";
+#endif
         }
         this->_flag_init = true;
         return SaberSuccess;
@@ -170,11 +179,20 @@ SaberStatus SaberConv2D::init(\
         //! 1x1s1p0
         _impl = conv1x1s1_gemm;
         _workspace_fwd_sizes = 0;
+#ifdef ENABLE_OP_TIMER
+        _conv_type = "conv1x1";
+#endif
     } else {
         //! otherwise
         _impl = conv_im2col_gemm;
         _workspace_fwd_sizes = k * n;
         _workspace_data.reshape(Shape(_workspace_fwd_sizes));
+#ifdef ENABLE_OP_TIMER
+        std::ostringstream ss;
+        ss << "conv" << _param->_kw << "x" << _param->_kh << "_s" << _param->_stride_w << "_p" \
+            << _param->_pad_w << "_d" << _param->_dila_w << "_g" << _param->_group;
+        _conv_type = ss.str();
+#endif
     }
 
     _gemmer.init(l1_cache, l2_cache, m, n, k, false, false, threads, this->_ctx->get_work_space());
@@ -200,6 +218,11 @@ SaberStatus SaberConv2D::dispatch(\
         return SaberNotInitialized;
     }
 
+#ifdef ENABLE_OP_TIMER
+    this->_timer.clear();
+    this->_timer.start();
+#endif
+
     const float* weight = _param->_weights;
     if (_is_trans_weights) {
         weight = _weights_trans.data();
@@ -219,6 +242,15 @@ SaberStatus SaberConv2D::dispatch(\
             chin, hin, win, weight, bias, _param->_group, _param->_kw, _param->_kh, _param->_stride_w, _param->_stride_h, \
             _param->_dila_w, _param->_dila_h, _param->_pad_w, _param->_pad_h, _param->_bias_term, _flag_relu, _gemmer, \
             (void*)_workspace_data.mutable_data());
+
+#ifdef ENABLE_OP_TIMER
+    this->_timer.end();
+    float ts = this->_timer.get_average_ms();
+    printf("%s conv time: %f\n", _conv_type.c_str(), ts);
+    OpTimer::add_timer("convolution", ts);
+    OpTimer::add_timer("total", ts);
+    OpTimer::add_timer(_conv_type, ts);
+#endif
     return SaberSuccess;
 }
 

@@ -31,7 +31,7 @@ struct ParamBase {
 struct ActivationParam : public ParamBase {
     ActivationParam(){}
     ActivationParam(ActiveType act_type, float neg_slope = 0.f, float coef = 1.f, \
-        bool channel_shared = false, float* weights = nullptr) {
+        bool channel_shared = false, const float* weights = nullptr) {
         _act_type = act_type;
         _neg_slope = neg_slope;
         _coef = coef;
@@ -660,7 +660,7 @@ struct ScaleParam : public ParamBase {
         _bias_term = false;
     }
 
-    ScaleParam(float* scale_w_in, float* scale_b_in,
+    ScaleParam(const float* scale_w_in, const float* scale_b_in,
                bool bias_term_in = true, int axis_in = 1, int num_axes_in = 1) {
         _scale_w = scale_w_in;
         _scale_b = scale_b_in;
@@ -669,7 +669,7 @@ struct ScaleParam : public ParamBase {
         _num_axes = num_axes_in;
     }
 
-    ScaleParam(float*  scale_w_in,
+    ScaleParam(const float*  scale_w_in,
                bool bias_term_in = false, int axis_in = 1, int num_axes_in = 1) {
         _scale_w = scale_w_in;
         _bias_term = bias_term_in;
@@ -705,8 +705,8 @@ struct ScaleParam : public ParamBase {
     int _axis; // default is 1
     int _num_axes; // default is 1
     bool _bias_term; // default false
-    float*  _scale_w;
-    float*  _scale_b;
+    const float*  _scale_w;
+    const float*  _scale_b;
 };
 } //namespace lite
 

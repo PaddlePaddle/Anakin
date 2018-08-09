@@ -104,6 +104,10 @@ SaberStatus SaberDetectionOutput::dispatch(
         printf("init detection_output first\n");
         return SaberNotInitialized;
     }
+#ifdef ENABLE_OP_TIMER
+    this->_timer.clear();
+    this->_timer.start();
+#endif
 
     Tensor<CPU, AK_FLOAT>* t_loc = inputs[0];
     Tensor<CPU, AK_FLOAT>* t_conf = inputs[1];
@@ -149,7 +153,13 @@ SaberStatus SaberDetectionOutput::dispatch(
 
     memcpy(outputs[0]->mutable_data(), result.data(), \
                 result.size() * sizeof(float));
-
+#ifdef ENABLE_OP_TIMER
+    this->_timer.end();
+    float ts = this->_timer.get_average_ms();
+    printf("detection_output time: %f\n", ts);
+    OpTimer::add_timer("detection_optput", ts);
+    OpTimer::add_timer("total", ts);
+#endif
     return SaberSuccess;
 }
 

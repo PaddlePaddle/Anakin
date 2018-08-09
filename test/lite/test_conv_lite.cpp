@@ -191,7 +191,7 @@ void test_arm_conv(std::vector<TensorHf4*>& tin, \
 
 }
 
-#if 0
+#if 1
 TEST(TestSaberLite, test_func_conv3x3s1_arm) {
 
     int num = 1;
@@ -223,7 +223,7 @@ TEST(TestSaberLite, test_func_conv3x3s1_arm) {
     //LOG(WARNING) << "conv3x3s1 not support yet";
 }
 #endif
-#if 0
+#if 1
 TEST(TestSaberLite, test_func_conv3x3s2_arm) {
 
     int num = 1;
@@ -253,7 +253,7 @@ TEST(TestSaberLite, test_func_conv3x3s2_arm) {
     test_arm_conv(tin, chout, kernel, stride, pad, dilation, group, bias_term, threads, cluster);
 }
 #endif
-#if 0
+#if 1
 TEST(TestSaberLite, test_func_conv1x1s1_arm) {
 
     int num = 1;
@@ -283,7 +283,7 @@ TEST(TestSaberLite, test_func_conv1x1s1_arm) {
     test_arm_conv(tin, chout, kernel, stride, pad, dilation, group, bias_term, threads, cluster);
 }
 #endif
-#if 0
+#if 1
 TEST(TestSaberLite, test_func_conv1x1s2_arm) {
 
     int num = 1;
@@ -313,7 +313,7 @@ TEST(TestSaberLite, test_func_conv1x1s2_arm) {
     test_arm_conv(tin, chout, kernel, stride, pad, dilation, group, bias_term, threads, cluster);
 }
 #endif
-#if 0
+#if 1
 TEST(TestSaberLite, test_func_depthwise_conv3x3s1_arm) {
 
     int num = 1;
@@ -343,7 +343,7 @@ TEST(TestSaberLite, test_func_depthwise_conv3x3s1_arm) {
     test_arm_conv(tin, chout, kernel, stride, pad, dilation, group, bias_term, threads, cluster);
 }
 #endif
-#if 0
+#if 1
 TEST(TestSaberLite, test_func_depthwise_conv3x3s2_arm) {
 
     int num = 1;

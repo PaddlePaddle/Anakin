@@ -56,6 +56,11 @@ SaberStatus SaberPower::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &inp
         printf("init power first\n");
         return SaberNotInitialized;
     }
+#ifdef ENABLE_OP_TIMER
+    this->_timer.clear();
+    this->_timer.start();
+#endif
+
     float scale=_param->_scale;
     float shift=_param->_shift;
     float power=_param->_power;
@@ -139,6 +144,15 @@ SaberStatus SaberPower::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &inp
         ptr_in++;
         ptr_out++;
     }
+
+#ifdef ENABLE_OP_TIMER
+    this->_timer.end();
+    float ts = this->_timer.get_average_ms();
+    printf("power time: %f\n", ts);
+    OpTimer::add_timer("power", ts);
+    OpTimer::add_timer("total", ts);
+#endif
+
     return SaberSuccess;
 }
 

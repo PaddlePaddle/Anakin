@@ -29,7 +29,8 @@ cmake .. \
 	-DTARGET_IOS=YES \
     -DUSE_OPENMP=NO \
     -DBUILD_LITE_UNIT_TEST=NO \
-    -DUSE_OPENCV=NO
+    -DUSE_OPENCV=NO \
+    -DENABLE_OP_TIMER=NO
 
 # build target lib or unit test.
 if [ "$(uname)" = 'Darwin' ]; then

@@ -24,6 +24,12 @@
 #include "anakin_config.h"
 #include "saber/saber_types.h"
 
+#ifdef ENABLE_OP_TIMER
+#include <map>
+#include <string>
+#include <sstream>
+#endif
+
 #ifdef USE_ARM_PLACE
 #include <arm_neon.h>
 #ifdef USE_OPENMP
@@ -174,6 +180,52 @@ static void fast_free(void* ptr) {
         free(static_cast<void**>(ptr)[-1]);
     }
 }
+
+#ifdef ENABLE_OP_TIMER
+
+class OpTimer {
+public:
+    static std::map<std::string, float>& timer() {
+        static std::map<std::string, float>* _timer = new std::map<std::string, float>();
+        return *_timer;
+    }
+
+    // Adds a timer type.
+    static void add_timer(const std::string& type, float ts) {
+        std::map<std::string, float>& _timer = timer();
+        if (_timer.count(type) < 1) {
+            _timer[type] = ts;
+        } else {
+            float told = _timer[type];
+            _timer[type] = told + ts;
+        }
+    }
+
+    static float get_timer(const std::string type) {
+        std::map<std::string, float>& _timer = timer();
+        if (_timer.count(type) < 1) {
+            printf("unknow type\n");
+            return 0.f;
+        }
+        return _timer[type];
+    }
+
+    static void print_timer() {
+        std::map<std::string, float>& _timer = timer();
+        float to = get_timer("total");
+        if (to <= 0.f) {
+            to = 1.f;
+        }
+        for (auto& it : _timer) {
+            printf("op: %s, timer: %f, percent: %f%%\n", it.first.c_str(), it.second, 100.f * it.second / to);
+        }
+    }
+
+private:
+    OpTimer() {}
+};
+
+#endif //ENABLE_TIMER
 
 } //namespace lite
 

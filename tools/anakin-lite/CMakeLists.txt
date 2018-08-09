@@ -4,13 +4,15 @@
 
 # options
 option(USE_ARM_PLACE "Select the build mode for ARM place." YES)
-option(USE_ARMV8 "build armv8" NO)
+option(USE_ARMV8 "build armv8" YES)
 option(USE_ANDROID "using android place." YES)
 option(USE_IOS "using android place." NO)
 option(TARGET_IOS "using ios" NO)
 option(USE_OPENMP "using openmp for lite." YES)
 option(ENABLE_DEBUG "Enable DEBUG(default) mode." NO)
 option(BUILD_LITE_UNIT_TEST "build unit test for lite." YES)
+option(USE_OPENCV "use opencv in unit test" NO)
+option(ENABLE_OP_TIMER "get time consumption of each op" NO)
 
 if (USE_ARMV8)
 	set(ANDROID_ABI "arm64-v8a")
@@ -138,10 +140,9 @@ FILE(GLOB BUILD_SRC_FILES2 "${ANAKIN_LITE_SABER}/core/*.cpp")
 FILE(GLOB BUILD_SRC_FILES3 "${ANAKIN_LITE_SABER}/funcs/*.cpp")
 FILE(GLOB BUILD_SRC_FILES4 "${ANAKIN_LITE_SABER}/funcs/neon/*.cpp")
 FILE(GLOB BUILD_SRC_FILES5 "${ANAKIN_LITE_SABER}/funcs/neon/impl/*.cpp")
+
 if(USE_ANDROID)
 	FILE(GLOB UNIT_TEST_LITE_SRC "${UNIT_TEST_LITE}/*.cpp")
-elseif(USE_IOS)
-	FILE(GLOB UNIT_TEST_LITE_SRC "${UNIT_TEST_LITE}/test_lite_model_ios.cpp")
 endif()
 
 add_library(ANAKIN_LITE_OBJS OBJECT ${BUILD_SRC_FILES1} ${BUILD_SRC_FILES2} ${BUILD_SRC_FILES3} ${BUILD_SRC_FILES4} ${BUILD_SRC_FILES5})
@@ -154,6 +155,13 @@ endif()
 add_library(${anakin_lite_lib_static} STATIC $<TARGET_OBJECTS:ANAKIN_LITE_OBJS>)
 set_target_properties(${anakin_lite_lib_static} PROPERTIES 
 					  ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/output/)
+
+if(USE_OPENCV)
+	# set your opencv path here
+	# for android
+	include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../third-party/arm-android/opencv/include/)
+	LINK_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/../../third-party/arm-android/opencv/lib/armeabi-v7a/)
+endif()
 
 if(BUILD_LITE_UNIT_TEST)
 	add_compile_options(-fexceptions)
@@ -170,6 +178,10 @@ if(BUILD_LITE_UNIT_TEST)
 			target_link_libraries(${TEST_CASE_NAME} ${anakin_lite_lib_so})
 		else()
 			target_link_libraries(${TEST_CASE_NAME} ${anakin_lite_lib_static})
+		endif()
+		if(USE_OPENCV)
+			target_link_libraries(${TEST_CASE_NAME} -lopencv_core -lopencv_highgui -lopencv_imgproc
+						-ltbb -llibtiff -llibpng -llibjpeg -llibjasper -lIlmImf -lc -lz -llog -ldl)
 		endif()
 		#	if(USE_ARM_PLACE)
 		#		target_link_libraries(${TEST_CASE_NAME} ${log-lib})

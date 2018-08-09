@@ -15,8 +15,8 @@
 
 #ifndef ANAKIN_SABER_CORE_TENSOR_TRAITS_H
 #define ANAKIN_SABER_CORE_TENSOR_TRAITS_H
-#include "core/buffer.h"
-#include "core/data_traits.h"
+#include "saber/core/buffer.h"
+#include "saber/core/data_traits.h"
 
 namespace anakin{
 

@@ -7,45 +7,50 @@ namespace saber{
 
 namespace lite{
 
-   SaberScale::SaberScale(const ParamBase* param){
-      _param = (const ScaleParam*)param;
-      this->_flag_param = true;
-    }
+SaberScale::SaberScale(const ParamBase* param){
+    _param = (const ScaleParam*)param;
+    this->_flag_param = true;
+}
 
-    SaberStatus SaberScale::load_param(const ParamBase* param){
-      _param = (const ScaleParam*)param;
-      this->_flag_param = true;
-      return SaberSuccess;
-    }
+SaberStatus SaberScale::load_param(const ParamBase* param){
+    _param = (const ScaleParam*)param;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
 
-    SaberStatus SaberScale::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) {
-      if (!this->_flag_param) {
-          printf("load scale param first\n");
-          return SaberNotInitialized;
-      }
-      Shape output_shape = (inputs[0]->valid_shape());
-      return outputs[0]->set_shape(output_shape);
+SaberStatus SaberScale::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                                             std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) {
+    if (!this->_flag_param) {
+        printf("load scale param first\n");
+        return SaberNotInitialized;
     }
+    Shape output_shape = (inputs[0]->valid_shape());
+    return outputs[0]->set_shape(output_shape);
+}
 
-    SaberStatus SaberScale::init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+SaberStatus SaberScale::init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
                              std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx) {
-      _inner_dim = inputs[0]->count(_param->_axis + _param->_num_axes, inputs[0]->shape().dims());
-      _scale_dim = inputs[0]->count(_param->_axis, _param->_axis + _param->_num_axes);
-      if (inputs.size() == 1) {
-        //  LCHECK_EQ(_scale_dim, _param->_scale_w.size(), "scale dim not valid");
-      }
-      const int count = inputs[0]->valid_size();
 
-      if (inputs.size() > 1) {
-          _scale_dim = inputs[1]->valid_size();
-          _inner_dim = count / _scale_dim;
-      }
-
-      return SaberSuccess;
+    if (!this->_flag_param) {
+        printf("load scale param first\n");
+        return SaberNotInitialized;
     }
+    _inner_dim = inputs[0]->count(_param->_axis + _param->_num_axes, inputs[0]->shape().dims());
+    _scale_dim = inputs[0]->count(_param->_axis, _param->_axis + _param->_num_axes);
+    if (inputs.size() == 1) {
+        //  LCHECK_EQ(_scale_dim, _param->_scale_w.size(), "scale dim not valid");
+    }
+    const int count = inputs[0]->valid_size();
 
-    void scale_compute_kernel(const float* din, float* dout, int num, int ch, int w, int h, \
+    if (inputs.size() > 1) {
+        _scale_dim = inputs[1]->valid_size();
+        _inner_dim = count / _scale_dim;
+    }
+    this->_flag_init = true;
+    return SaberSuccess;
+}
+
+void scale_compute_kernel(const float* din, float* dout, int num, int ch, int w, int h, \
      bool bias_flag, const float* scale_data, const float* bias_data){
     int size = w * h;
     int cnt = size >> 4;
@@ -54,7 +59,7 @@ namespace lite{
         const float* din_ptr  = din + i * ch * size;
         float* dout_ptr = dout + i * ch * size;
         const float* scale_ptr = scale_data;
-       // float* bias_ptr = bias_data + i * ch;
+        // float* bias_ptr = bias_data + i * ch;
 #pragma omp parallel for
         for(int c = 0; c < ch; c++){
             const float* din_ch_ptr = din_ptr + c * size;
@@ -122,29 +127,46 @@ void scale_global_compute_kernel(const float* din, float* dout, int num, int ch,
 
 }
 
-    SaberStatus SaberScale::dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+SaberStatus SaberScale::dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
                                  std::vector<Tensor<CPU, AK_FLOAT>*>& outputs){
-      int num = inputs[0]->num();
-      int ch_in = inputs[0]->channel();
-      int w_in = inputs[0]->width();
-      int h_in = inputs[0]->height();
-      const float* din_ptr = inputs[0]->data();
-      float* dout_ptr = outputs[0]->mutable_data();
-      if (_scale_dim > 1 || inputs.size() > 1) {
-         const float* scale_data = inputs.size() > 1 ? inputs[1]->data() : _param->_scale_w;
-         const float* bias_data = _param->_bias_term ? _param->_scale_b : nullptr;
-         bool bias_flag = _param->_bias_term;
-         scale_compute_kernel(din_ptr, dout_ptr, num, ch_in, w_in, h_in, bias_flag, scale_data, bias_data);
-        } else {
-            float scale = *(_param->_scale_w);
-            float bias = 0;
-            if (_param->_bias_term) {
-                bias = *(_param->_scale_b);
-            }
-           scale_global_compute_kernel(din_ptr, dout_ptr, num, ch_in, w_in, h_in, scale, bias);
-        }
-        return SaberSuccess;
+    if (!this->_flag_init) {
+        printf("init op first\n");
+        return SaberNotInitialized;
     }
+
+#ifdef ENABLE_OP_TIMER
+    this->_timer.clear();
+    this->_timer.start();
+#endif
+
+    int num = inputs[0]->num();
+    int ch_in = inputs[0]->channel();
+    int w_in = inputs[0]->width();
+    int h_in = inputs[0]->height();
+    const float* din_ptr = inputs[0]->data();
+    float* dout_ptr = outputs[0]->mutable_data();
+    if (_scale_dim > 1 || inputs.size() > 1) {
+        const float* scale_data = inputs.size() > 1 ? inputs[1]->data() : _param->_scale_w;
+        const float* bias_data = _param->_bias_term ? _param->_scale_b : nullptr;
+        bool bias_flag = _param->_bias_term;
+        scale_compute_kernel(din_ptr, dout_ptr, num, ch_in, w_in, h_in, bias_flag, scale_data, bias_data);
+    } else {
+        float scale = *(_param->_scale_w);
+        float bias = 0;
+        if (_param->_bias_term) {
+            bias = *(_param->_scale_b);
+        }
+        scale_global_compute_kernel(din_ptr, dout_ptr, num, ch_in, w_in, h_in, scale, bias);
+    }
+#ifdef ENABLE_OP_TIMER
+    this->_timer.end();
+    float ts = this->_timer.get_average_ms();
+    printf("scale time: %f\n", ts);
+    OpTimer::add_timer("scale", ts);
+    OpTimer::add_timer("total", ts);
+#endif
+    return SaberSuccess;
+}
 
 } //namespace lite
 
