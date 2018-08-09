@@ -17,8 +17,9 @@ using Target_H = ARM;
 //#define USE_DIEPSE
 
 // vgg16
-//std::string model_path = "../benchmark/CNN/models/vgg16.anakin.bin";
-std::string model_path = "/home/public/model_from_fluid/beta/demoprogram.anakin2.bin";
+// std::string model_path = "../benchmark/CNN/models/vgg16.anakin.bin";
+// std::string model_path = "/home/public/model_from_fluid/beta/demoprogram.anakin2.bin";
+std::string model_path = "/home/cuichaowen/anakin2/public_model/public-caffe-model/mobilenetv12/mobilenet_v2.anakin.bin";
 
 #ifdef USE_CUDA
 #if 1
@@ -54,7 +55,7 @@ TEST(NetTest, net_execute_base_test) {
 #endif
 
     // get in
-    auto d_tensor_in_p = net_executer.get_in("input_0");
+    /*auto d_tensor_in_p = net_executer.get_in("input_0");
     Tensor4d<Target_H, AK_FLOAT> h_tensor_in;
 
     auto valid_shape_in = d_tensor_in_p->valid_shape();
@@ -69,7 +70,7 @@ TEST(NetTest, net_execute_base_test) {
         h_data[i] = 1.0f;
     }
 
-    d_tensor_in_p->copy_from(h_tensor_in);
+    d_tensor_in_p->copy_from(h_tensor_in);*/
 
 #ifdef USE_DIEPSE
     // for diepse model
@@ -106,7 +107,7 @@ TEST(NetTest, net_execute_base_test) {
     d_tensor_in_2_p->copy_from(h_tensor_in_2);
 #endif
 
-    int epoch = 1;
+    int epoch = 10;
     // do inference
     Context<NV> ctx(0, 0, 0);
     saber::SaberTimer<NV> my_time;
@@ -122,7 +123,31 @@ TEST(NetTest, net_execute_base_test) {
     //auto start = std::chrono::system_clock::now();
     for(int i=0; i<epoch; i++) {
 		//DLOG(ERROR) << " epoch(" << i << "/" << epoch << ") ";
+    	// get in
+    	auto d_tensor_in_p = net_executer.get_in("input_0");
+    	Tensor4d<Target_H, AK_FLOAT> h_tensor_in;
+
+    	auto valid_shape_in = d_tensor_in_p->valid_shape();
+    	for (int i=0; i<valid_shape_in.size(); i++) {
+    	    LOG(INFO) << "detect input_0 dims[" << i << "]" << valid_shape_in[i];
+    	}
+
+    	h_tensor_in.re_alloc(valid_shape_in);
+    	float* h_data = h_tensor_in.mutable_data();
+
+    	for (int i=0; i<h_tensor_in.size(); i++) {
+    	    h_data[i] = 1.0f;
+    	}
+
+    	d_tensor_in_p->copy_from(h_tensor_in);
+
+		//cudaStreamSynchronize(0);
+		//cudaDeviceSynchronize();
         net_executer.prediction();
+		//cudaDeviceSynchronize();
+
+		auto tensor_out_0_p = net_executer.get_out("prob_out");
+		test_print(tensor_out_0_p);		
     }
    /* // running part of model
     net_executer.execute_stop_at_node("relu2_2/expand");
@@ -182,10 +207,13 @@ TEST(NetTest, net_execute_base_test) {
 
 	//auto tensor_out_0_p = net_executer.get_out("detection_output_0.tmp_0_out");
 
+	// mobilenet-v2
+	//auto tensor_out_0_p = net_executer.get_out("prob_out");
+
+
     // get out result
     //LOG(WARNING)<< "result avg: " << tensor_average(tensor_out_0_p);
 	//test_print(tensor_out_0_p);
-
 
     // save the optimized model to disk.
     std::string save_model_path = model_path + std::string(".saved");
