@@ -123,9 +123,9 @@ private:
     //! container which holds all tensors
     std::map<std::string, Tensor<CPU, AK_FLOAT>*> _tensors;
     //! op instances
-    std::vector<std::shared_ptr<OpBase>> _ops;
+    std::vector<OpBase*> _ops;
     //! op param instances
-    std::vector<std::shared_ptr<ParamBase>> _op_params;
+    //std::vector<std::shared_ptr<ParamBase>> _op_params;
     //! weights data
     float* _weights{nullptr};
     //! net inputs name

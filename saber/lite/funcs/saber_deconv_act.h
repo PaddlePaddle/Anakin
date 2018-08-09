@@ -28,6 +28,8 @@ public:
 
     SaberDeconvAct2D(const ParamBase* param);
 
+    virtual SaberStatus load_param(FILE* fp, const float* weights) override;
+
     virtual SaberStatus load_param(const ParamBase* param) override;
 
     ~SaberDeconvAct2D();

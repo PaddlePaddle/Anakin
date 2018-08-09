@@ -26,7 +26,7 @@ namespace lite{
 //template <typename Dtype>
 class OpRegistry {
 public:
-    typedef std::shared_ptr<OpBase> (*Creator)();
+    typedef OpBase* (*Creator)();
     typedef std::map<std::string, Creator> CreatorRegistry;
 
     static CreatorRegistry& lite_ops() {
@@ -45,7 +45,7 @@ public:
     }
 
     // Get a layer using  a layer typename, such as "Convolution, Covolution_arm or convolution_cudnn".
-    static std::shared_ptr<OpBase> create_op(const std::string layer_type) {
+    static OpBase* create_op(const std::string layer_type) {
 
         CreatorRegistry& registry = lite_ops();
         LCHECK_EQ(registry.count(layer_type), 1, "Unknown op type");
@@ -91,17 +91,17 @@ private:
 class LayerRegisterer {
 public:
     LayerRegisterer(const std::string op_name,
-                    std::shared_ptr<OpBase> (*creator)()) {
+                    OpBase* (*creator)()) {
         OpRegistry::add_op(op_name, creator);
     }
 };
 
-#define REGISTER_LAYER_CREATOR(op_name, creator)                       \
+#define REGISTER_LAYER_CREATOR(op_name, creator)                    \
   static LayerRegisterer g_creator_f_##op_name(#op_name, creator);
 
-#define REGISTER_LAYER_CLASS(op_name)                                  \
-  std::shared_ptr<OpBase> Creator_##op_name##Layer() {                 \
-    return std::shared_ptr<OpBase>(new op_name);                       \
+#define REGISTER_LAYER_CLASS(op_name)                               \
+  OpBase* Creator_##op_name##Layer() {                              \
+    return new op_name;                                             \
   }                                                                 \
   REGISTER_LAYER_CREATOR(op_name, Creator_##op_name##Layer)
 

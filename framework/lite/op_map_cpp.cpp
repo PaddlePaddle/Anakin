@@ -52,7 +52,7 @@ std::string ParserConvolution(graph::AttrInfo& attr,
     CodeWritter code_w;
     if (gen_param) {
         // gen cpp code
-        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
                     weights_size,
                     num_output,
                     group,
@@ -67,7 +67,6 @@ std::string ParserConvolution(graph::AttrInfo& attr,
                     bias_term ? 1 : 0,
                     offset_info.weights[0].offset,
                     bias_term ? offset_info.weights[1].offset : 0);
-        code_w << "\n";
     } else {
         // gen cpp code
         code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(),
@@ -110,8 +109,7 @@ std::string ParserPower(graph::AttrInfo& attr,
         CodeWritter code_w;
 
         if (gen_param) {
-            code_w.feed("%f,%f,%f", scale, shift, power);
-            code_w << "\n";
+            code_w.feed("%f,%f,%f\n", scale, shift, power);
         } else {
             code_w.feed("ParamBase* %s_param = new PowerParam(%f,%f,%f);\n", node_name.c_str(), scale, shift, power);
             code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
@@ -154,7 +152,7 @@ std::string ParserDeconvolution(graph::AttrInfo& attr,
     // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
                     weights_size,
                     num_output,
                     group,
@@ -169,7 +167,6 @@ std::string ParserDeconvolution(graph::AttrInfo& attr,
                     bias_term ? 1 : 0,
                     offset_info.weights[0].offset,
                     bias_term ? offset_info.weights[1].offset : 0);
-        code_w << "\n";
     } else {
         code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(),
                     weights_size,
@@ -231,7 +228,7 @@ std::string ParserConvolutionRelu(graph::AttrInfo& attr,
 	// gen cpp code
 	CodeWritter code_w;
     if(gen_param) {
-        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
                     weights_size,
                     num_output,
                     group,
@@ -248,7 +245,6 @@ std::string ParserConvolutionRelu(graph::AttrInfo& attr,
                     1, //set flag_relu true
                     offset_info.weights[0].offset,
                     bias_term ? offset_info.weights[1].offset : 0);
-        code_w << "\n";
     } else {
         code_w.feed("ParamBase* %s_param = new ConvAct2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%s+%d,%s+%d);\n",
                     node_name.c_str(),
@@ -328,7 +324,7 @@ std::string ParserConvolutionReluPool(graph::AttrInfo& attr,
     // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
                     weights_size,
                     num_output,
                     group,
@@ -353,7 +349,6 @@ std::string ParserConvolutionReluPool(graph::AttrInfo& attr,
                     pool_padding[0],
                     offset_info.weights[0].offset,
                     bias_term ? offset_info.weights[1].offset : 0);
-        code_w << "\n";
     } else {
         code_w.feed("ParamBase* %s_param = new ConvActPool2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%s,%s,%d,%d,%d,%d,%d,%d,%s+%d,%s+%d);\n",
                     node_name.c_str(),
@@ -455,7 +450,7 @@ std::string ParserConvBatchnorm(graph::AttrInfo& attr,
     // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
                     weights_size,
                     num_output,
                     group,
@@ -470,7 +465,6 @@ std::string ParserConvBatchnorm(graph::AttrInfo& attr,
                     1,//bias term always true
                     offset_info.weights[0].offset,
                     offset_info.weights[1].offset); //always has bias
-        code_w << "\n";
     } else {
         code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(), \
                 weights_size,
@@ -576,7 +570,7 @@ std::string ParserConvBatchnormScale(graph::AttrInfo& attr,
 	// gen cpp code
 	CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
                     weights_size,
                     num_output,
                     group,
@@ -591,7 +585,6 @@ std::string ParserConvBatchnormScale(graph::AttrInfo& attr,
                     1,//bias term always true
                     offset_info.weights[0].offset,
                     offset_info.weights[1].offset); //always has bias
-        code_w << "\n";
     } else {
         code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(), \
                 weights_size,
@@ -698,7 +691,7 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
 	// gen cpp code
 	CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
                     weights_size,
                     num_output,
                     group,
@@ -715,7 +708,6 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
                     1, //set flag_relu true
                     offset_info.weights[0].offset,
                     offset_info.weights[1].offset);
-        code_w << "\n";
     } else {
         code_w.feed("ParamBase* %s_param = new ConvAct2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%s+%d,%s+%d);\n",
                     node_name.c_str(),
@@ -842,7 +834,7 @@ std::string ParserConvBatchnormScaleReluPool(graph::AttrInfo& attr,
     // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
                     weights_size,
                     num_output,
                     group,
@@ -867,7 +859,6 @@ std::string ParserConvBatchnormScaleReluPool(graph::AttrInfo& attr,
                     pool_padding[0],
                     offset_info.weights[0].offset,
                     offset_info.weights[1].offset);
-        code_w << "\n";
     } else {
         code_w.feed("ParamBase* %s_param = new ConvActPool2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%s,%s,%d,%d,%d,%d,%d,%d,%s+%d,%s+%d);\n",
                     node_name.c_str(),
@@ -916,8 +907,7 @@ std::string ParserConcat(graph::AttrInfo& attr,
 	// gen cpp code
 	CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d", axis);
-        code_w << "\n";
+        code_w.feed("%d\n", axis);
     } else  {
         code_w.feed("ParamBase* %s_param = new ConcatParam(%d);\n",
                     node_name.c_str(), axis);
@@ -959,7 +949,7 @@ std::string ParserDectionOutput(graph::AttrInfo& attr,
     // gen cpp code
 	CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d,%f,%d,%d,%d,%d,%f,%f,%d,%d",
+        code_w.feed("%d,%f,%d,%d,%d,%d,%f,%f,%d,%d\n",
                     classes_num,
                     conf_thresh,
                     nms_top_k,
@@ -970,7 +960,6 @@ std::string ParserDectionOutput(graph::AttrInfo& attr,
                     nms_eta,
                     flag_share_location? 1 : 0,
                     flag_var_in_target? 1 : 0);
-        code_w << "\n";
     } else {
         code_w.feed("ParamBase* %s_param = new DetectionOutputParam(%d,%f,%d,%d,%d,%s,%f,%f,%s,%s);\n",
                     node_name.c_str(),
@@ -1184,14 +1173,13 @@ std::string ParserFc(graph::AttrInfo& attr,
 	// gen cpp code
 	CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d,%d,%d,%d,%d,%d",
+        code_w.feed("%d,%d,%d,%d,%d,%d\n",
                     axis,
                     out_dim,
                     bias_term ? 1 : 0,
                     offset_info.weights[0].offset,
                     bias_term ? offset_info.weights[1].offset : 0,
                     0);
-        code_w << "\n";
     } else {
         code_w.feed("ParamBase* %s_param = new FcParam(%d,%d,%s,%s+%d,%s+%d,%s);\n",
                     node_name.c_str(),
@@ -1277,7 +1265,7 @@ std::string ParserPooling(graph::AttrInfo& attr,
 	// gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d",
+        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d\n",
                     (int)pool_type,
                     global_pooling ? 1 : 0,
                     pool_size[1],
@@ -1286,7 +1274,6 @@ std::string ParserPooling(graph::AttrInfo& attr,
                     pool_strides[0],
                     pool_padding[1],
                     pool_padding[0]);
-        code_w << "\n";
     } else {
         code_w.feed("ParamBase* %s_param = new PoolParam(%s,%s,%d,%d,%d,%d,%d,%d);\n",
                     node_name.c_str(),
@@ -1439,11 +1426,7 @@ std::string ParserPriorBox(graph::AttrInfo& attr,
         for (int i = 0; i < var.size(); ++i) {
             code_w << var[i] << " ";
         }
-        code_w.feed(",%d,%d,%d,%d,%f,%f,%f,%d,%d,%d",
-                    gen_vec_code(min_size).c_str(),
-                    gen_vec_code(max_size).c_str(),
-                    gen_vec_code(as_ratio).c_str(),
-                    gen_vec_code(var).c_str(),
+        code_w.feed(",%d,%d,%d,%d,%f,%f,%f,%d,%d,%d\n",
                     flip_flag ? 1 : 0,
                     clip_flag ? 1 : 0,
                     image_w,
@@ -1452,7 +1435,6 @@ std::string ParserPriorBox(graph::AttrInfo& attr,
                     step_h,
                     offset,
                     (int)order_[0], (int)order_[1], (int)order_[2]);
-        code_w << "\n";
     } else {
         code_w.feed("ParamBase* %s_param = new PriorBoxParam(%s,%s,%s,%s,%s,%s,%d,%d,%f,%f,%f,%s);\n",
                     node_name.c_str(),
@@ -1544,13 +1526,12 @@ std::string ParserScale(graph::AttrInfo& attr,
   // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d,%d,%d,%d,%d",
+        code_w.feed("%d,%d,%d,%d,%d\n",
                     offset_info.weights[0].offset,
                     bias_term ? offset_info.weights[1].offset : 0,
                     bias_term ? 1 : 0,
                     axis,
                     num_axes);
-        code_w << "\n";
     } else {
         code_w.feed("ParamBase* %s_param = new ScaleParam(%s+%d, %s+%d, %s, %d, %d);\n",
                     node_name.c_str(),

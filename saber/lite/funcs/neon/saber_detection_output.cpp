@@ -28,12 +28,47 @@ SaberDetectionOutput::SaberDetectionOutput(const ParamBase *param) {
     this->_flag_param = true;
 }
 
+SaberDetectionOutput::~SaberDetectionOutput() {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+    }
+}
+
 SaberStatus SaberDetectionOutput::load_param(const ParamBase *param) {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+        this->_flag_create_param = false;
+    }
     _param = (const DetectionOutputParam*)param;
     this->_flag_param = true;
     return SaberSuccess;
 }
 
+SaberStatus SaberDetectionOutput::load_param(FILE *fp, const float *weights) {
+
+    int class_num;
+    float conf_thresh;
+    int nms_topk;
+    int bg_id;
+    int keep_topk;
+    int cd_type;
+    float nms_thresh;
+    float nms_eta;
+    int share_loc;
+    int encode_in_tar;
+
+    fscanf(fp, "%d,%f,%d,%d,%d,%d,%f,%f,%d,%d\n", &class_num, &conf_thresh, \
+        &nms_topk, &bg_id, &keep_topk, &cd_type, &nms_thresh, &nms_eta, \
+        &share_loc, &encode_in_tar);
+    CodeType type = static_cast<CodeType>(cd_type);
+    _param = new DetectionOutputParam(class_num, conf_thresh, nms_topk, \
+        bg_id, keep_topk, type, nms_thresh, nms_eta, share_loc>0, encode_in_tar>0);
+    this->_flag_create_param = true;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
 
 SaberStatus SaberDetectionOutput::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                                        std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {

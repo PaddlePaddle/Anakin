@@ -19,6 +19,11 @@ SaberStatus SaberFlatten::load_param(const ParamBase *param) {
     return SaberSuccess;
 }
 
+SaberStatus SaberFlatten::load_param(FILE *fp, const float *weights) {
+    fscanf(fp, "\n");
+    return SaberSuccess;
+}
+
 SaberStatus SaberFlatten::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                              std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
     if (!this->_flag_param) {

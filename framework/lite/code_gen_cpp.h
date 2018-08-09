@@ -34,8 +34,10 @@ public:
 		_cpp_file_name = model_dir + '/' + model_name + ".cpp";
 		_h_file_name = model_dir + '/' + model_name + ".h";
 		_model_file_name = model_dir + '/' + model_name + ".bin";
-		_model_opt_file_name = model_dir + '/' + model_name + ".opt.info";
+		_model_opt_file_name = model_dir + '/' + model_name + ".lite.info";
+		_weight_opt_file = model_dir + '/' + model_name + ".lite.bin";
 		_weights.open(_model_file_name);
+		_opt_weights.open(_weight_opt_file);
 		_opt_param_write.open(_model_opt_file_name);
  		_code_name = model_name;
 		_g_weights_ptr_name = _code_name+"_weights_ptr";
@@ -123,9 +125,11 @@ private:
 	std::string _model_opt_file_name;
 	std::string _code_name;
 	std::string _g_weights_ptr_name;
+	std::string _weight_opt_file;
 	CodeWritter _code;
 	CodeWritter _opt_param_write;
 	WeightsWritter _weights;
+	WeightsWritter _opt_weights;
 
 };
 

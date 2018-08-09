@@ -34,6 +34,8 @@ public:
 
     virtual SaberStatus load_param(const ParamBase* param) override;
 
+    virtual SaberStatus load_param(FILE* fp, const float* weights) override;
+
     ~SaberSplit() {}
 
 

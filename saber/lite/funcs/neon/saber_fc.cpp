@@ -83,8 +83,34 @@ SaberFc::SaberFc(const ParamBase *param) {
     this->_flag_param = true;
 }
 
+SaberFc::~SaberFc() {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+    }
+}
+
 SaberStatus SaberFc::load_param(const ParamBase *param) {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+        this->_flag_create_param = false;
+    }
     _param = (const FcParam*)param;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+
+SaberStatus SaberFc::load_param(FILE *fp, const float *weights) {
+    int axis;
+    int num_out;
+    int bias_term;
+    int w_offset;
+    int b_offset;
+    int flag_trans;
+    fscanf(fp, "%d,%d,%d,%d,%d,%d\n", &axis, &num_out, &bias_term, &w_offset, &b_offset, &flag_trans);
+    _param = new FcParam(axis, num_out, bias_term>0, weights + w_offset, weights + b_offset, flag_trans>0);
+    this->_flag_create_param = true;
     this->_flag_param = true;
     return SaberSuccess;
 }

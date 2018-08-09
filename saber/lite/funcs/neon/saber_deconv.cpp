@@ -101,10 +101,58 @@ SaberDeconv2D::SaberDeconv2D(const ParamBase* param) {
     this->_flag_param = true;
 }
 
-SaberDeconv2D::~SaberDeconv2D() {}
+SaberDeconv2D::~SaberDeconv2D() {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+    }
+}
 
 SaberStatus SaberDeconv2D::load_param(const ParamBase *param) {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+        this->_flag_create_param = false;
+    }
     _param = (Conv2DParam*)(param);
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+
+SaberStatus SaberDeconv2D::load_param(FILE *fp, const float *weights) {
+    int weights_size;
+    int num_out;
+    int group;
+    int kw;
+    int kh;
+    int stride_w;
+    int stride_h;
+    int pad_w;
+    int pad_h;
+    int dila_w;
+    int dila_h;
+    int flag_bias;
+    int w_offset;
+    int b_offset;
+    fscanf(fp, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
+           &weights_size,
+           &num_out,
+           &group,
+           &kw,
+           &kh,
+           &stride_w,
+           &stride_h,
+           &pad_w,
+           &pad_h,
+           &dila_w,
+           &dila_h,
+           &flag_bias,
+           &w_offset,
+           &b_offset);
+    _param = new Conv2DParam(weights_size, num_out, group, kw, kh, \
+        stride_w, stride_h, pad_w, pad_h, dila_w, dila_h, flag_bias>0, \
+        weights + w_offset, weights + b_offset);
+    this->_flag_create_param = true;
     this->_flag_param = true;
     return SaberSuccess;
 }

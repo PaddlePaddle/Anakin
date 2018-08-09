@@ -1,13 +1,11 @@
 #include "saber/lite/net/net_lite.h"
+#include "saber/lite/net/saber_factory_lite.h"
 
-namespace anakin{}
+namespace anakin{
 
-namespace saber{}
+namespace saber{
 
-namespace lite{}
-
-using namespace anakin::saber;
-using namespace anakin::saber::lite;
+namespace lite{
 
 //template <typename dtype>
 Net::Net(PowerMode mode, int threads) {
@@ -39,13 +37,29 @@ SaberStatus Net::set_device_cache(size_t l1_cache, size_t l2_cache) {
 
 //template <typename dtype>
 SaberStatus Net::load_model(const char *opt_file, const char *model_file) {
+    FILE *fp_w = fopen(model_file, "rb");
+    if(!fp_w) {
+        printf("load weights failed: %s\n", model_file);
+        return SaberInvalidValue;
+    }
+    fseek(fp_w, 0, SEEK_END);
+    long fsize = ftell(fp_w);
+    fseek(fp_w, 0, SEEK_SET);
+    if(_weights) {
+        delete [] _weights;
+        _weights = nullptr;
+    }
+    _weights = new float[fsize + 1];
+    fread(_weights, fsize, sizeof(float), fp_w);
+    fclose(fp_w);
+
     FILE* fp = fopen(opt_file, "rb");
     if (!fp) {
         printf("open %s failed\n", opt_file);
         return SaberInvalidValue;
     }
     int tensor_size = 0;
-    fscanf(fp, "Tensor number %d\n", &tensor_size);
+    int nscan = fscanf(fp, "Tensor number %d\n", &tensor_size);
     printf("tensor size %d\n", tensor_size);
     //! gen tensors
     for (int i = 0; i < tensor_size; ++i) {
@@ -54,7 +68,7 @@ SaberStatus Net::load_model(const char *opt_file, const char *model_file) {
         int real_shape[4];
         int valid_shape[4];
         int is_shared = 0;
-        int nscan = fscanf(fp, "%256s %d,%d,%d,%d %d,%d,%d,%d %d %256s\n",
+        nscan = fscanf(fp, "%256s %d,%d,%d,%d %d,%d,%d,%d %d %256s\n",
                            tensor_name,
                            &valid_shape[0],
                            &valid_shape[1],
@@ -64,6 +78,7 @@ SaberStatus Net::load_model(const char *opt_file, const char *model_file) {
                            &real_shape[1],
                            &real_shape[2],
                            &real_shape[3],
+                           &is_shared,
                            tensor_shared_name);
         if (nscan != 11) {
             printf("load param error: %s\n", tensor_name);
@@ -74,12 +89,19 @@ SaberStatus Net::load_model(const char *opt_file, const char *model_file) {
             return SaberInvalidValue;
         }
         Tensor<CPU, AK_FLOAT>* tensor = new Tensor<CPU, AK_FLOAT>;
+        Shape vshape(valid_shape[0], valid_shape[1], valid_shape[2], valid_shape[3]);
+        Shape rshape(real_shape[0], real_shape[1], real_shape[2], real_shape[3]);
         if (is_shared > 0) {
-            tensor->set_shape(valid_shape);
-            tensor->share_from(*_tensors[tensor_shared_name]);
+            tensor->set_shape(vshape);
+            auto it = _tensors.find(tensor_shared_name);
+            if (it == _tensors.end()) {
+                printf("could not find tensor: %s\n", tensor_shared_name);
+                return SaberInvalidValue;
+            }
+            tensor->share_from(*it->second);
         } else {
-            tensor->re_alloc(Shape(real_shape));
-            tensor->set_shape(Shape(valid_shape));
+            tensor->re_alloc(rshape);
+            tensor->set_shape(vshape);
         }
         _tensors[tensor_name] = tensor;
         printf("%s vshape: %d,%d,%d,%d, rshape: %d,%d,%d,%d share:%s\n",
@@ -95,8 +117,89 @@ SaberStatus Net::load_model(const char *opt_file, const char *model_file) {
                tensor_shared_name);
     }
 
+    //! get inputs and outputs name
+    int in_num = 0;
+    int out_num = 0;
+    nscan = fscanf(fp, "inputs %d", &in_num);
+    for (int i = 0; i < in_num; ++i) {
+        char in_name[256];
+        nscan = fscanf(fp, " %256s", in_name);
+        _ins.push_back(in_name);
+    }
+    nscan = fscanf(fp, "\n");
+    nscan = fscanf(fp, "outputs %d", &out_num);
+    for (int i = 0; i < out_num; ++i) {
+        char out_name[256];
+        nscan = fscanf(fp, " %256s", out_name);
+        _outs.push_back(out_name);
+    }
+    nscan = fscanf(fp, "\n");
+    printf("inputs: %d\n", _ins.size());
+    for (int i = 0; i < _ins.size(); ++i) {
+        printf("%s\n", _ins[i].c_str());
+    }
+    printf("outputs: %d\n", _outs.size());
+    for (int i = 0; i < _outs.size(); ++i) {
+        printf("%s\n", _outs[i].c_str());
+    }
 
-    return SaberSuccess;
+    //! get ops and params
+    _ops.clear();
+    int ops_num = 0;
+    nscan = fscanf(fp, "OPS %d\n", &ops_num);
+    printf("ops number: %d\n", ops_num);
+    _tensor_ins.resize(ops_num);
+    _tensor_outs.resize(ops_num);
+    _ops.resize(ops_num);
+    for (int i = 0; i < ops_num; ++i) {
+        char op_type[256];
+        char op_name[256];
+        int in_num = 0;
+        int out_num = 0;
+        nscan = fscanf(fp, "%256s %256s %d %d ", op_type, op_name, &in_num, &out_num);
+        if (nscan != 4) {
+            printf("load ops: %s falied: %d\n", op_name, nscan);
+            return SaberInvalidValue;
+        }
+        printf("op type: %s, op_name: %s, ins: %d, outs: %d\n", op_type, op_name, in_num, out_num);
+        std::vector<Tensor<CPU, AK_FLOAT>*> tensor_ins;
+        for (int j = 0; j < in_num; ++j) {
+            char in_name[256];
+            nscan = fscanf(fp, "%256s ", in_name);
+            auto it = _tensors.find(in_name);
+            if (it == _tensors.end()) {
+                printf("tensor name: %s not exits\n", in_name);
+                return SaberInvalidValue;
+            }
+            printf("find ins: %s\n", in_name);
+            tensor_ins.push_back(it->second);
+        }
+        _tensor_ins[i] = tensor_ins;
+        std::vector<Tensor<CPU, AK_FLOAT>*> tensor_outs;
+        for (int j = 0; j < out_num; ++j) {
+            char out_name[256];
+            nscan = fscanf(fp, "%256s ", out_name);
+            auto it = _tensors.find(out_name);
+            if (it == _tensors.end()) {
+                printf("tensor name: %s not exits\n", out_name);
+                return SaberInvalidValue;
+            }
+            printf("find outs: %s\n", out_name);
+            tensor_outs.push_back(it->second);
+        }
+        _tensor_outs[i] = tensor_outs;
+
+        //! create op and load param
+        OpBase* op = OpRegistry::create_op(op_type);
+        op->load_param(fp, _weights);
+        _ops[i] = op;
+    }
+    //! get default input shape
+    _last_input_shapes.resize(_ins.size());
+    for (int i = 0; i < _ins.size(); ++i) {
+        _last_input_shapes[i] = _tensors[_ins[i]]->valid_shape();
+    }
+    return init();
 }
 
 //SaberStatus Net::load_model_from_memory(const void *memory) {
@@ -104,15 +207,43 @@ SaberStatus Net::load_model(const char *opt_file, const char *model_file) {
 //}
 
 SaberStatus Net::prediction() {
+    if (_weights == nullptr) {
+        printf("load model before prediction\n");
+        return SaberNotInitialized;
+    }
+    _ctx->set_run_mode(_mode, _threads);
+    for (int i = 0; i < _ins.size(); ++i) {
+        if (_last_input_shapes[i] == _tensors[_ins[i]]->valid_shape()) {
+            continue;
+        } else {
+            init();
+            break;
+        }
+    }
+    for (int i = 0; i < _ops.size(); ++i) {
+        LCHECK_EQ(_ops[i]->dispatch(_tensor_ins[i], _tensor_outs[i]), SaberSuccess, "run op failed");
+    }
     return SaberSuccess;
 }
 
 SaberStatus Net::init() {
+    for (int i = 0; i < _ops.size(); ++i) {
+        LCHECK_EQ(_ops[i]->compute_output_shape(_tensor_ins[i], _tensor_outs[i]), SaberSuccess, "compute shape failed");
+        LCHECK_EQ(_ops[i]->init(_tensor_ins[i], _tensor_outs[i], *_ctx), SaberSuccess, "init failed");
+    }
     return SaberSuccess;
 }
 
-//} // namespace lite
+std::vector<Tensor<CPU, AK_FLOAT> *> Net::get_input() {
+    std::vector<Tensor<CPU, AK_FLOAT>*> ins;
+    for (int i = 0; i < _ins.size(); ++i) {
 
-//} // namespace saber
+    }
+    return ins;
+}
 
-//} // namespace anakin
+} // namespace lite
+
+} // namespace saber
+
+} // namespace anakin

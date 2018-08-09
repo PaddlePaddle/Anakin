@@ -34,7 +34,9 @@ public:
 
     virtual SaberStatus load_param(const ParamBase* param) override;
 
-    ~SaberReshape() {}
+    virtual SaberStatus load_param(FILE* fp, const float* weights) override;
+
+    ~SaberReshape();
 
 
     virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,

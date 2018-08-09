@@ -123,8 +123,35 @@ SaberPermute::SaberPermute(const ParamBase *param) {
     this->_flag_param = true;
 }
 
+SaberPermute::~SaberPermute() {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+    }
+}
+
 SaberStatus SaberPermute::load_param(const ParamBase *param) {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+        this->_flag_create_param = false;
+    }
     _param = (const PermuteParam*)param;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+
+SaberStatus SaberPermute::load_param(FILE *fp, const float *weights) {
+    int size;
+    std::vector<int> order;
+    fscanf(fp, "%d ", &size);
+    order.resize(size);
+    for (int i = 0; i < size; ++i) {
+        fscanf(fp, "%d ", &order[i]);
+    }
+    fscanf(fp, "\n");
+    _param = new PermuteParam(order);
+    this->_flag_create_param = true;
     this->_flag_param = true;
     return SaberSuccess;
 }
@@ -160,6 +187,7 @@ SaberStatus SaberPermute::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &input
         return SaberNotInitialized;
     }
 
+    this->_flag_init = true;
     this->_ctx = &ctx;
     _num_axes = inputs[0]->dims();
     _count = outputs[0]->valid_size();
@@ -206,8 +234,6 @@ SaberStatus SaberPermute::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &input
         _old_steps = inputs[0]->get_stride();
         printf("permute: transpose=false\n");
     }
-
-    this->_flag_init = true;
 
     return SaberSuccess;
 }

@@ -33,6 +33,7 @@ public:
     virtual ~OpBase(){}
     OpBase(const ParamBase* param) {}
     virtual SaberStatus load_param(const ParamBase* param) = 0;
+    virtual SaberStatus load_param(FILE* fp, const float* weights) = 0;
     virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
                                  std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) = 0;
 
@@ -47,8 +48,9 @@ public:
 protected:
     const char* _op_name;
     Context* _ctx;
-    bool _flag_param;
-    bool _flag_init;
+    bool _flag_param{false};
+    bool _flag_init{false};
+    bool _flag_create_param{false};
 #ifdef ENABLE_OP_TIMER
     SaberTimer _timer;
 #endif

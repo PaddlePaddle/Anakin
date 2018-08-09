@@ -15,9 +15,77 @@ SaberPriorBox::SaberPriorBox(const ParamBase *param) {
 }
 
 SaberStatus SaberPriorBox::load_param(const ParamBase *param) {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+        this->_flag_create_param = false;
+    }
     _param = (const PriorBoxParam*)param;
     this->_flag_param = true;
     return SaberSuccess;
+}
+
+SaberStatus SaberPriorBox::load_param(FILE *fp, const float *weights) {
+    int size_min;
+    int size_max;
+    int size_as;
+    int size_var;
+    std::vector<float> min_size;
+    std::vector<float> max_size;
+    std::vector<float> as;
+    std::vector<float> var;
+    std::vector<int> order;
+    //! min
+    fscanf(fp, "%d ", &size_min);
+    min_size.resize(size_min);
+    for (int i = 0; i < size_min; ++i) {
+        fscanf(fp, "%f ", &min_size[i]);
+    }
+    //! max
+    fscanf(fp, ", %d ", &size_max);
+    max_size.resize(size_max);
+    for (int i = 0; i < size_max; ++i) {
+        fscanf(fp, "%f ", &max_size[i]);
+    }
+    //! as
+    fscanf(fp, ", %d ", &size_as);
+    as.resize(size_as);
+    for (int i = 0; i < size_as; ++i) {
+        fscanf(fp, "%f ", &as[i]);
+    }
+    //! var
+    fscanf(fp, ", %d ", &size_var);
+    var.resize(size_var);
+    for (int i = 0; i < size_var; ++i) {
+        fscanf(fp, "%f ", &var[i]);
+    }
+    //! others
+    int flip_flag;
+    int clip_flag;
+    int img_w;
+    int img_h;
+    float step_w;
+    float step_h;
+    float offset;
+    std::vector<int> type(3);
+    std::vector<PriorType> ptype;
+    fscanf(fp, ",%d,%d,%d,%d,%f,%f,%f,%d,%d,%d\n", &flip_flag, &clip_flag,
+           &img_w, &img_h, &step_w, &step_h, &offset, &type[0], &type[1], &type[2]);
+    ptype[0] = (PriorType)type[0];
+    ptype[1] = (PriorType)type[1];
+    ptype[2] = (PriorType)type[2];
+    _param = new PriorBoxParam(min_size, max_size, as, var, \
+        flip_flag>0, clip_flag>0, img_w, img_h, step_w, step_h, offset, ptype);
+    this->_flag_create_param = true;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+
+SaberPriorBox::~SaberPriorBox() {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+    }
 }
 
 SaberStatus SaberPriorBox::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,

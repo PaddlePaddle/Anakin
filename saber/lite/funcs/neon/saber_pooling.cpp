@@ -15,8 +15,37 @@ SaberPooling::SaberPooling(const ParamBase *param) {
     this->_flag_param = true;
 }
 
+SaberPooling::~SaberPooling() {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+    }
+}
+
 SaberStatus SaberPooling::load_param(const ParamBase *param) {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+        this->_flag_create_param = false;
+    }
     _param = (const PoolParam*)param;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+
+SaberStatus SaberPooling::load_param(FILE *fp, const float *weights) {
+    int type;
+    int g_pool;
+    int kw;
+    int kh;
+    int stride_w;
+    int stride_h;
+    int pad_w;
+    int pad_h;
+    fscanf(fp, "%d,%d,%d,%d,%d,%d,%d,%d\n", &type, &g_pool, &kw, &kh, &stride_w, &stride_h, &pad_w, &pad_h);
+    PoolingType ptype = (PoolingType)type;
+    _param = new PoolParam(ptype, g_pool>0, kw, kh, stride_w, stride_h, pad_w, pad_h);
+    this->_flag_create_param = true;
     this->_flag_param = true;
     return SaberSuccess;
 }

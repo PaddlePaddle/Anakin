@@ -14,11 +14,38 @@ SaberSlice::SaberSlice(const ParamBase *param) {
     this->_flag_param = true;
 }
 
+SaberSlice::~SaberSlice() {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+    }
+}
+
 SaberStatus SaberSlice::load_param(const ParamBase *param) {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+        this->_flag_create_param = false;
+    }
     _param = (const SliceParam*)param;
     _slice_points = _param->_points;
     this->_flag_param = true;
     return SaberSuccess;
+}
+
+SaberStatus SaberSlice::load_param(FILE *fp, const float *weights) {
+    int axis;
+    int size;
+    std::vector<int> points;
+    fscanf(fp, "%d, %d ", &axis, &size);
+    points.resize(size);
+    for (int i = 0; i < size; ++i) {
+        fscanf(fp, "%d ", &points[i]);
+    }
+    fscanf(fp, "\n");
+    _param = new SliceParam(axis, points);
+    this->_flag_create_param = true;
+    this->_flag_param = true;
 }
 
 SaberStatus SaberSlice::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
