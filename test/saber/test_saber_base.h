@@ -124,14 +124,9 @@ public:
         _input_shapes.push_back(new_shape_v);
         
     }
-    void set_input_shape (Shape new_shape, TestDataType type = RANDOM, OpDataType value = 1){
-        clear_datas();
-        
-        add_inputs_shape(new_shape);
-        _input_type = type;
-        _special_value = value;
-    }
+
     void set_input_shape (std::vector<Shape> new_shape_v, TestDataType type = RANDOM, OpDataType value = 1){
+
         clear_datas();
         
         add_inputs_shape(new_shape_v);
@@ -290,6 +285,7 @@ public:
                // LOG(INFO) << "_outputs_host: ";
                // print_tensor(*_outputs_host[i][j]);
                 tensor_cmp_host<OpDataType>((const OpDataType*)_outputs_hd[i][j] -> data(), (const OpDataType*)_outputs_host[i][j] -> data(),
+
                                        _outputs_hd[i][j] -> valid_size(), max_ratio[i], max_diff[i]);
                 LOG(INFO) << "input_shape:(" << sh.num() << "," << sh.channel() << "," << sh.height() << "," << sh.width() << ")";
                 LOG(INFO) << "max_ratio:" << max_ratio[i];
