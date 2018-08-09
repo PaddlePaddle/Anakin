@@ -1,5 +1,6 @@
 #include "saber/lite/funcs/saber_detection_output.h"
 #include "saber/lite/funcs/detection_lite.h"
+#include "saber/lite/net/saber_factory_lite.h"
 namespace anakin{
 
 namespace saber{
@@ -162,7 +163,7 @@ SaberStatus SaberDetectionOutput::dispatch(
 #endif
     return SaberSuccess;
 }
-
+REGISTER_LAYER_CLASS(SaberDetectionOutput);
 } //namespace lite
 
 } //namespace saber

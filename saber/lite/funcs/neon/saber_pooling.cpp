@@ -1,5 +1,5 @@
 #include "saber/lite/funcs/saber_pooling.h"
-
+#include "saber/lite/net/saber_factory_lite.h"
 #ifdef USE_ARM_PLACE
 
 #include "saber/lite/funcs/neon/impl/pooling_arm_impl.h"
@@ -157,7 +157,7 @@ SaberStatus SaberPooling::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &i
 #endif
     return SaberSuccess;
 }
-
+REGISTER_LAYER_CLASS(SaberPooling);
 } //namespace lite
 
 } //namespace saber

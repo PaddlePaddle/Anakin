@@ -1,5 +1,5 @@
 #include "saber/lite/funcs/saber_slice.h"
-
+#include "saber/lite/net/saber_factory_lite.h"
 #ifdef USE_ARM_PLACE
 
 namespace anakin{
@@ -122,7 +122,7 @@ SaberStatus SaberSlice::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &inp
 #endif
     return SaberSuccess;
 }
-
+REGISTER_LAYER_CLASS(SaberSlice);
 } //namespace lite
 
 } //namespace saber

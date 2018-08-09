@@ -21,12 +21,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <cmath>
+#include <map>
+#include <string>
 #include "anakin_config.h"
 #include "saber/saber_types.h"
 
 #ifdef ENABLE_OP_TIMER
-#include <map>
-#include <string>
 #include <sstream>
 #endif
 

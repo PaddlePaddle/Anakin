@@ -1,5 +1,5 @@
 #include "saber/lite/funcs/saber_flatten.h"
-
+#include "saber/lite/net/saber_factory_lite.h"
 #ifdef USE_ARM_PLACE
 
 namespace anakin{
@@ -60,7 +60,7 @@ SaberStatus SaberFlatten::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &i
     }
     return SaberSuccess;
 }
-
+REGISTER_LAYER_CLASS(SaberFlatten);
 } //namespace lite
 
 } //namespace saber

@@ -1,4 +1,5 @@
 #include "saber/lite/funcs/saber_priorbox.h"
+#include "saber/lite/net/saber_factory_lite.h"
 #include <cmath>
 #ifdef USE_ARM_PLACE
 
@@ -165,7 +166,7 @@ SaberStatus SaberPriorBox::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &
             outputs[0]->valid_size() * sizeof(float));
     return SaberSuccess;
 }
-
+REGISTER_LAYER_CLASS(SaberPriorBox);
 } //namespace lite
 
 } //namespace saber

@@ -43,7 +43,8 @@ typedef std::function<std::string(graph::AttrInfo& attr,
 								  std::string& op_class_name, 
 								  std::string& node_name,
 								  std::string& weights_ptr_name,
-								  WeightsWritter& writter)> ParseParamFunctor;
+								  WeightsWritter& writter,
+								  bool gen_param)> ParseParamFunctor;
 /**
  * \brief class OpParser
  */

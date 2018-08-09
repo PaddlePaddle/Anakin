@@ -1,5 +1,5 @@
 #include "saber/lite/funcs/saber_concat.h"
-
+#include "saber/lite/net/saber_factory_lite.h"
 #ifdef USE_ARM_PLACE
 
 namespace anakin{
@@ -113,7 +113,7 @@ SaberStatus SaberConcat::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &in
 #endif
     return SaberSuccess;
 }
-
+REGISTER_LAYER_CLASS(SaberConcat);
 
 } //namespace lite
 
