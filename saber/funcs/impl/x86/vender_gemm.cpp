@@ -37,6 +37,45 @@ SaberStatus Gemm<X86, VENDER_IMPL, float, float>::dispatch(
     return SaberSuccess;
 }
 
+template<>
+SaberStatus Gemv<X86, VENDER_IMPL, float, float>::init(const bool trans, const int m, const int n,
+                                                      const int incx, const int incy,
+                                                      Context<X86> ctx) {
+
+    if (!(ctx == this->_ctx)) {
+        this->_ctx = ctx;
+    }
+
+    _lda = n;
+    CHECK_GT(m, 0);
+    CHECK_GT(n, 0);
+    CHECK_GT(incx, 0);
+    CHECK_GT(incy, 0);
+    _m = m;
+    _n = n;
+    _incx = incx;
+    _incy = incy;
+    _c_trans = trans ? CblasTrans : CblasNoTrans;
+
+    return SaberSuccess;
 }
 
+template<>
+SaberStatus Gemv<X86, VENDER_IMPL, float, float>::dispatch(
+        const float alpha, const float beta,
+        const float* a, const float* b,
+        float* c) {
+
+    CHECK(a != nullptr);
+    CHECK(b != nullptr);
+    CHECK(c != nullptr);
+
+    cblas_sgemv(_layout, _c_trans, _m, _n,
+                alpha, a, _lda, b, _incx, beta, c, _incy);
+
+    return SaberSuccess;
 }
+
+}// namespace saber
+
+}// namespace anakin

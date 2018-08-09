@@ -332,17 +332,17 @@ TEST(TestSaberFunc, test_vender_gemv_float) {
     std::vector<int> trans_v{false, true};
 
     for (auto m : m_v)
-        for (auto n : n_v)
-            for (auto trans : trans_v) {
+    for (auto n : n_v)
+    for (auto trans : trans_v) {
 
 #ifdef USE_CUDA
-                test_gemv_result<NV, NVHX86>(m, n, trans);
+        test_gemv_result<NV, NVHX86>(m, n, trans);
 #endif
 
 #ifdef USE_X86_PLACE
-                test_gemv_result<X86, X86>(m, n, trans);
+        test_gemv_result<X86, X86>(m, n, trans);
 #endif
-            }
+    }
 }
 
 int main(int argc, char* argv[]) {
