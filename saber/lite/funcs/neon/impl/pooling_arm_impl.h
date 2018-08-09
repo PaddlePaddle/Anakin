@@ -1,5 +1,4 @@
 /* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
-
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -49,17 +48,43 @@ void pooling2x2s2_ave(const float* din, float* dout, \
                           PoolingType type, bool global, int kernel_w, int kernel_h, \
                           int stride_w, int stride_h, int pad_w, int pad_h);
 
-void pooling3x3s2_max(const float* din, float* dout, \
+void pooling3x3s1p1_max(const float* din, float* dout, \
                           int num, int chout, int hout, int wout, \
                           int chin, int hin, int win, \
                           PoolingType type, bool global, int kernel_w, int kernel_h, \
                           int stride_w, int stride_h, int pad_w, int pad_h);
 
-void pooling3x3s2_ave(const float* din, float* dout, \
+void pooling3x3s1p1_ave(const float* din, float* dout, \
                           int num, int chout, int hout, int wout, \
                           int chin, int hin, int win, \
                           PoolingType type, bool global, int kernel_w, int kernel_h, \
                           int stride_w, int stride_h, int pad_w, int pad_h);
+
+void pooling3x3s2p1_max(const float* din, float* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          PoolingType type, bool global, int kernel_w, int kernel_h, \
+                          int stride_w, int stride_h, int pad_w, int pad_h);
+
+void pooling3x3s2p0_max(const float* din, float* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          PoolingType type, bool global, int kernel_w, int kernel_h, \
+                          int stride_w, int stride_h, int pad_w, int pad_h);
+
+void pooling3x3s2p1_ave(const float* din, float* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          PoolingType type, bool global, int kernel_w, int kernel_h, \
+                          int stride_w, int stride_h, int pad_w, int pad_h);
+
+
+void pooling3x3s2p0_ave(const float* din, float* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          PoolingType type, bool global, int kernel_w, int kernel_h, \
+                          int stride_w, int stride_h, int pad_w, int pad_h);
+
 
 } //namespace lite
 

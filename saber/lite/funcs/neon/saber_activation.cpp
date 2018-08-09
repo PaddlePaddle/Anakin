@@ -6,44 +6,68 @@ namespace saber{
 
 namespace lite{
 
-SaberActivation::SaberActivation(ActiveType type, float neg_slop) {
-    _type = type;
-    _neg_slop = neg_slop;
+//SaberActivation::SaberActivation(ActiveType type, float neg_slop) {
+//    _type = type;
+//    _neg_slop = neg_slop;
+//}
+
+SaberActivation::SaberActivation(const ParamBase *param) {
+    _param = (ActivationParam*)param;
+    this->_flag_param = true;
 }
 
+//SaberStatus SaberActivation::load_param(ActiveType type, float neg_slop) {
+//    _type = type;
+//    _neg_slop = neg_slop;
+//    return SaberSuccess;
+//}
 
-SaberStatus SaberActivation::load_param(ActiveType type, float neg_slop) {
-    _type = type;
-    _neg_slop = neg_slop;
+SaberStatus SaberActivation::load_param(const ParamBase *param) {
+    _param = (ActivationParam*)param;
+    this->_flag_param = true;
     return SaberSuccess;
 }
 
 SaberStatus SaberActivation::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                                   std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
+    if (!this->_flag_param) {
+        printf("load activation param first\n");
+        return SaberNotInitialized;
+    }
     outputs[0]->set_shape(inputs[0]->valid_shape());
     return SaberSuccess;
 }
 
 SaberStatus SaberActivation::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                   std::vector<Tensor<CPU, AK_FLOAT> *> &outputs, Context &ctx) {
-    _ctx = ctx;
+    if (!this->_flag_param) {
+        printf("load activation param first\n");
+        return SaberNotInitialized;
+    }
+    this->_ctx = &ctx;
+    this->_flag_init = true;
     return SaberSuccess;
 }
 
 SaberStatus SaberActivation::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                       std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
 
+    if (!this->_flag_init) {
+        printf("init activation first\n");
+        return SaberNotInitialized;
+    }
     float* ptr_out = outputs[0]->mutable_data();
     const float* ptr_in = inputs[0]->data();
 
     int size = inputs[0]->valid_size();
-    int threads = _ctx.get_act_ids().size();
+    int threads = 1;
+    this->_ctx->get_mode(threads);
     int nums_per_thread = size / threads;
     int remain = size - threads * nums_per_thread;
     int neon_loop_cnt = nums_per_thread >> 4;
     int neon_loop_remain = nums_per_thread - (neon_loop_cnt << 4);
     float32x4_t vzero = vdupq_n_f32(0.f);
-    switch (_type){
+    switch (_param->_act_type){
         case Active_relu:
             #pragma omp parallel for
             for (int i = 0; i < threads; ++i) {
@@ -51,7 +75,7 @@ SaberStatus SaberActivation::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *>
                 float* ptr_out_thread = ptr_out + i * nums_per_thread;
                 int cnt = neon_loop_cnt;
                 asm volatile (
-                "relu_loop:                                     @ loop header\n"
+                "1:                                     @ loop header\n"
                         "vld1.32  {d0-d1}, [%[din]]!            @ load din 0\n"
                         "vld1.32  {d2-d3}, [%[din]]!            @ load din 0\n"
                         "vld1.32  {d4-d5}, [%[din]]!            @ load din 0\n"
@@ -72,7 +96,7 @@ SaberStatus SaberActivation::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *>
                         "pld [%[din], #384]                     @ preload data\n"
 
                         "subs %[cnt], #1                        @ loop count minus 1\n"
-                        "bne    relu_loop                       @ jump to main loop start point\n"
+                        "bne    1b                              @ jump to main loop start point\n"
                 :[dout] "+r"(ptr_out_thread), [din] "+r"(ptr_in_thread), [cnt] "+r"(cnt)
                 :[vzero] "w" (vzero)
                 :"q0", "q1", "q2", "q3", "q8", "q9", "q10", "q11"

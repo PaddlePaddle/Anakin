@@ -1,484 +1,427 @@
-#include "saber/funcs/impl/x86/saber_lstm.h"
-#include "saber/funcs/impl/x86/activation_functions.h"
-#include "saber/funcs/impl/x86/kernel/jit_generator.h"
 
+#include "saber_types.h"
+#include "saber_lstm.h"
+#include "saber/core/tensor_op.h"
+#include <immintrin.h>
+#include "sys/time.h"
+#include "mkl_cblas.h"
 namespace anakin {
+
 namespace saber {
 
-template <DataType OpDtype,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-void SaberLstm<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::compute_with_avx(LstmMetaValue<DataType_in> value,
-                                                                        int hidden_size, int batch_size,
-                                                                        const ActiveType &gate_act,
-                                                                        const ActiveType &cell_act,
-                                                                        const ActiveType &cand_act) {
-#ifdef __AVX__
-#pragma omp parallel for if(this->max_thread_num_ > 1) collapse(2)
-    for (int b = 0; b < batch_size; b++) {
-        for (int i = 0; i < hidden_size/8; i++) {
-            __m256 r_checkI = _mm256_set1_ps(0.0f);
-            __m256 r_checkF = _mm256_set1_ps(0.0f);
-            __m256 r_checkO = _mm256_set1_ps(0.0f);
-            __m256 prev_state_v = _mm256_set1_ps(0.0f);
-            int batch_offset = b * hidden_size;
-            __m256 *value_ig = reinterpret_cast<__m256 *>(value.gate_value + batch_offset * 4);
-            __m256 *value_fg = reinterpret_cast<__m256 *>(value.gate_value + batch_offset * 4 + hidden_size);
-            __m256 *value_in = reinterpret_cast<__m256 *>(value.gate_value + batch_offset * 4 + hidden_size * 2);
-            __m256 *value_og = reinterpret_cast<__m256 *>(value.gate_value + batch_offset * 4 + hidden_size * 3);
 
-            __m256 *state_active = reinterpret_cast<__m256 *>(value.state_active_value + batch_offset);
-            __m256 *state = reinterpret_cast<__m256 *>(value.state_value + batch_offset);
-            __m256 *output = reinterpret_cast<__m256 *>(value.output_value + batch_offset);
 
-            if (value.prev_state_value) {
-                prev_state_v = (reinterpret_cast<__m256 *>(value.prev_state_value + batch_offset))[i];
-            }
-            if (value.check_ig) {
-                r_checkI = (reinterpret_cast<const __m256 *>(value.check_ig))[i];
-                r_checkF = (reinterpret_cast<const __m256 *>(value.check_fg))[i];
-                r_checkO = (reinterpret_cast<const __m256 *>(value.check_og))[i];
-            }
+template<>
+template <typename BIT>
+SaberStatus SaberLstm<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
+    avx_dispatch_with_peephole(const std::vector<DataTensor_in*>& inputs,
+                         std::vector<DataTensor_out*>& outputs,
+                         LstmParam<OpTensor>& param) {
 
-            value_in[i] = math::avx_activation(value_in[i], cand_act);
-            value_ig[i] = math::avx_activation(_mm256_add_ps(value_ig[i], _mm256_mul_ps(prev_state_v, r_checkI)), gate_act);
-            value_fg[i] = math::avx_activation(_mm256_add_ps(value_fg[i], _mm256_mul_ps(prev_state_v, r_checkF)), gate_act);
-            state[i] = _mm256_add_ps(_mm256_mul_ps(value_in[i],value_ig[i]), _mm256_mul_ps(prev_state_v, value_fg[i]));
-            value_og[i] = math::avx_activation(_mm256_add_ps(value_og[i], _mm256_mul_ps(state[i], r_checkO)), gate_act);
-            state_active[i] = math::avx_activation(state[i], cell_act);
-            output[i] = _mm256_mul_ps(value_og[i], state_active[i]);
+    int loop_div = sizeof(BIT) / sizeof(DataType_out);
+    const DataType_op *weight_h = _aligned_weights_h2h.data();
+    const DataType_op *weight_w = _aligned_weights_i2h.data();
+    const DataType_op *bias = _aligned_weights_bias.data();
+    const DataType_op *weight_peephole = _aligned_weights_peephole.data();
+    BIT (*gate_act)(const BIT) = act_func[param.gate_activity];
+    BIT (*cell_act)(const BIT) = act_func[param.cell_activity];
+    BIT (*candi_act)(const BIT) = act_func[param.candidate_activity];
+
+    std::vector<int> offset_vec = inputs[0]->get_seq_offset();
+    std::vector<int> length_vec(offset_vec.size() - 1);
+    int batch_size = offset_vec.size() - 1;
+    int seqsum = 0;
+    int max_seq_len = 0;
+    bool is_hw2seq = offset_vec.size() > 2;
+    int word_sum = is_hw2seq ? offset_vec[offset_vec.size() - 1] : inputs[0]->channel();
+    utils::AlignedUtils aligned_utils;
+    utils::VectorPrint vector_print;
+    const DataType_out *h_init = nullptr;
+    const DataType_out *cell_init = nullptr;
+
+    const DataType_in *x = inputs[0]->data();
+    DataType_out *out = outputs[0]->mutable_data();
+    bool is_reverse = param.is_reverse;
+
+    if (inputs.size() > 1) {
+        h_init = inputs[1]->data();
+        _aligned_init_hidden.try_expand_size(batch_size * _aligned_hidden_size);
+        aligned_utils.aligned_last_dim(h_init, _aligned_init_hidden.mutable_data(),
+                                       batch_size * _hidden_size, _hidden_size, _aligned_hidden_size);
+        h_init = _aligned_init_hidden.data();
+    } else if (param.init_hidden() != nullptr) {
+        h_init = param.init_hidden()->data();
+        //FIXME:is it correct?
+    } else {
+//        _aligned_init_hidden.try_expand_size(batch_size * _aligned_hidden_size);
+//        _aligned_init_celll.try_expand_size(batch_size * _aligned_hidden_size);
+//        h_init = _aligned_init_hidden.data();
+//        cell_init=_aligned_init_celll.data();
+    }
+
+    std::vector<int> emit_offset_vec;
+    int emit_length = 0;
+    utils::SeqSortedseqTranseUtil transe_util(is_reverse);
+    bool transform = transe_util.get_sorted_map(offset_vec, emit_offset_vec, emit_length);
+
+    DataType_out *inner_h_out = out;
+    DataType_out *inner_cell = nullptr;
+    const DataType_in *inner_x = x;
+    const DataType_out *inner_h_init = h_init;
+    for (int i = 0; i < offset_vec.size() - 1; ++i) {
+        int len = offset_vec[i + 1] - offset_vec[i];
+        length_vec[i] = len;
+        max_seq_len = max_seq_len > len ? max_seq_len : len;
+        seqsum += len;
+    }
+
+    _temp_wx.try_expand_size(seqsum * 4 * _aligned_hidden_size);
+    _temp_wh.try_expand_size(batch_size * 4 * _aligned_hidden_size);
+    _temp_out.try_expand_size(seqsum * _aligned_hidden_size * param.num_direction);
+    _temp_cell.try_expand_size(batch_size * _aligned_hidden_size);
+
+    if (transform) {
+        _temp_x.try_expand_size(seqsum * _word_size);
+        inner_h_out = _temp_out.mutable_data();
+        inner_x = _temp_x.mutable_data();
+        transe_util.seq_2_sorted_seq(x, (DataType_in*)inner_x, _word_size);
+
+        if (inner_h_init != nullptr) {
+            _temp_h_init.try_expand_size(batch_size * _aligned_hidden_size);
+            transe_util.hidden_2_sorted_hidden(inner_h_init, _temp_h_init.mutable_data(), _aligned_hidden_size);
+            inner_h_init = _temp_h_init.data();
         }
+    } else if (_hidden_size != _aligned_hidden_size) {
+        inner_h_out = _temp_out.mutable_data();
     }
-#endif
-}
+    inner_cell = _temp_cell.mutable_data();
+    memset(inner_cell,0,_temp_cell.valid_size()* sizeof(DataType_out));
 
-template <DataType OpDtype,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-void SaberLstm<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::compute(LstmMetaValue<DataType_in> value,
-                                                               int hidden_size, int batch_size,
-                                                               const ActiveType &gate_act,
-                                                               const ActiveType &cell_act,
-                                                               const ActiveType &cand_act) {
-#pragma omp parallel for if(this->max_thread_num_ > 1) collapse(2)
-    for (int b = 0; b < batch_size; b++) {
-        for (int i = 0; i < hidden_size; i++) {
-            DataType_in *value_ig = value.gate_value + b * hidden_size * 4;
-            DataType_in *value_fg = value_ig + hidden_size;
-            DataType_in *value_in = value_ig + hidden_size * 2;
-            DataType_in *value_og = value_ig + hidden_size * 3;
-            DataType_in *state_active = value.state_active_value + b * hidden_size;
-            DataType_in *state = value.state_value + b * hidden_size;
-            DataType_in *output = value.output_value + b * hidden_size;
-            DataType_in prev_state_v = 0;
-            if (value.prev_state_value) {
-                prev_state_v = *(value.prev_state_value + b * hidden_size + i);
-            }
+    DataType_out *temp_wh = _temp_wh.mutable_data();
+    DataType_out *temp_wx = _temp_wx.mutable_data();
 
-            DataType_in r_checkI = value.check_ig ? value.check_ig[i] : 0;
-            DataType_in r_checkF = value.check_fg ? value.check_fg[i] : 0;
-            DataType_in r_checkO = value.check_og ? value.check_og[i] : 0;
+    mkl_gemm(false, false, seqsum, 4 * _aligned_hidden_size, _word_size, 1.f, inner_x, weight_w, 0.f,
+         temp_wx);
 
-            math::activation(1, value_in + i, value_in + i, cand_act);
-            DataType_in tmp = value_ig[i] + prev_state_v * r_checkI;
-            math::activation(1, &tmp, value_ig + i, gate_act);
-            tmp = value_fg[i] + prev_state_v * r_checkF;
-            math::activation(1, &tmp, value_fg + i, gate_act);
-            state[i] = value_in[i] * value_ig[i] + prev_state_v * value_fg[i];
-            tmp = value_og[i] + state[i] * r_checkO;
-            math::activation(1, &tmp, value_og + i, gate_act);
-            math::activation(1, state + i, state_active + i, cell_act);
-            output[i] = value_og[i] * state_active[i];
+    const int i_offset = 0;
+    const int f_offset = 1;
+    const int c_offset = 2;
+    const int o_offset = 3;
+    const BIT *b_i = (BIT *) (bias + i_offset * _aligned_hidden_size);
+    const BIT *b_f = (BIT *) (bias + f_offset * _aligned_hidden_size);
+    const BIT *b_c = (BIT *) (bias + c_offset * _aligned_hidden_size);
+    const BIT *b_o = (BIT *) (bias + o_offset * _aligned_hidden_size);
+
+     DLOG(INFO)<<"wordsum = "<<word_sum<<",emit length = "<<emit_offset_vec.size();
+    for (int word_id = 0; word_id < emit_length; word_id++) {
+        int real_word_id = word_id;
+        int last_word_id = word_id - 1;
+
+        if (param.is_reverse && batch_size == 1) {
+            real_word_id = emit_length - word_id - 1;
+            last_word_id = real_word_id + 1;
         }
-    }
-}
 
-template <DataType OpDtype,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::init(
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        LstmParam<OpTensor> &param, Context<X86> &ctx) {
-    avx2_available_ = jit::mayiuse(jit::avx2);
+        int emit_word_id_start = emit_offset_vec[real_word_id];
+        int emit_word_id_end = emit_offset_vec[real_word_id + 1];
+        int emit_word_length = emit_word_id_end - emit_word_id_start;
+        const float *hin;
 
-    DataTensor_in *input = inputs[0];
+        if (word_id == 0 && inner_h_init == nullptr) {
+            float *hout = nullptr;
+            hout = emit_offset_vec[real_word_id] * _aligned_hidden_size + inner_h_out;
+            for (int emit_word_id = emit_word_id_start; emit_word_id < emit_word_id_end; emit_word_id++) {
+                int emit_wx_offset = emit_word_id * _aligned_hidden_size * 4;
+                const BIT *w_x_i = (BIT *) (temp_wx + i_offset * _aligned_hidden_size + emit_wx_offset);
+                const BIT *w_x_f = (BIT *) (temp_wx + f_offset * _aligned_hidden_size + emit_wx_offset);
+                const BIT *w_x_c = (BIT *) (temp_wx + c_offset * _aligned_hidden_size + emit_wx_offset);
+                const BIT *w_x_o = (BIT *) (temp_wx + o_offset * _aligned_hidden_size + emit_wx_offset);
 
-    const OpTensor *bias = param.bias();
-    int frame_size = input->channel();
-    int hidden_size = outputs[0]->channel();
-
-    // aligned hidden_size with 8 float
-    int aligned_size = 8;
-    this->aligned_hidden_size_ = (hidden_size % aligned_size) ? ((hidden_size / aligned_size) + 1) * aligned_size : hidden_size;
-
-    OpTensor *aligned_weights_data_h = nullptr;
-    if (this->aligned_hidden_size_ != hidden_size) {
-        Shape aligned_w_shape(this->aligned_hidden_size_, this->aligned_hidden_size_ * 4, 1, 1);
-        aligned_weights_data_h = new OpTensor(aligned_w_shape);
-    }
-
-    DataType_op *weights_data = const_cast<DataType_op *>(param.weight()->data());
-    MatrixInfo<DataType_op> *weight_x = nullptr;
-    MatrixInfo<DataType_op> *weight_h = nullptr;
-    MatrixInfo<DataType_op> *weight_h_tmp = nullptr;
-    if (param.skip_input) {
-        // if skip_input is true, the weights just includes [Wih, Wfh, Wch, Wph]
-        weight_h = new MatrixInfo<DataType_op>(weights_data, hidden_size, (hidden_size * 4));
-    }
-    else {
-        // split the weight to two parts: [Wix, Wfx, Wcx, Wox], [Wih, Wfh, Wch, Woh]
-        weight_x = new MatrixInfo<DataType_op>(weights_data, frame_size, (hidden_size * 4));
-        weight_h = new MatrixInfo<DataType_op>((weights_data + frame_size * hidden_size * 4), hidden_size, (hidden_size * 4));
-    }
-
-    if (this->aligned_hidden_size_ != hidden_size) {
-        weight_h_tmp = weight_h;
-        weight_h = new MatrixInfo<DataType_op>(aligned_weights_data_h->mutable_data(), this->aligned_hidden_size_, (this->aligned_hidden_size_ * 4));
-        // do weight align
-        int stride = 0;
-        int diff = this->aligned_hidden_size_ - hidden_size;
-        DataType_op *src = nullptr;
-        DataType_op *dst = nullptr;
-        for (int i = 0; i < this->aligned_hidden_size_; i++) {
-            stride = 4 * (this->aligned_hidden_size_);
-
-            dst = weight_h->buf() + i * stride;
-            if (i >= hidden_size) {
-                memset(dst, 0, stride * sizeof(DataType_op));
-            } else {
-                src = weight_h_tmp->buf() + i * 4 * hidden_size;
-                for (int j = 0; j < 4; j++) {
-                    memcpy(dst + j * this->aligned_hidden_size_,
-                           src + j * hidden_size, hidden_size * sizeof(DataType_op));
-                    memset(dst + j * this->aligned_hidden_size_ + hidden_size,
-                           0, diff * sizeof(DataType_op));
+                const BIT *w_co = (BIT *) (weight_peephole + 2 * _aligned_hidden_size);
+                int emit_id_offset = emit_word_id - emit_word_id_start;
+                BIT *gate_h_p=(BIT*)(hout + emit_id_offset * _aligned_hidden_size);
+                BIT *gate_c_p=(BIT*)(inner_cell+emit_id_offset * _aligned_hidden_size);
+                for (int frame_id = 0; frame_id < _aligned_hidden_size / (sizeof(BIT) / sizeof(DataType_out)); ++frame_id) {
+                    BIT gate_i =gate_act(w_x_i[frame_id]+b_i[frame_id]);
+                    BIT gate_c_s =cell_act(w_x_c[frame_id]+b_c[frame_id]);
+                    BIT gate_c =gate_i *gate_c_s;
+                    BIT gate_o =gate_act(w_x_o[frame_id]+b_o[frame_id]+gate_c*w_co[frame_id]);
+                    gate_c_p[frame_id]=gate_c;
+                    gate_h_p[frame_id]=gate_o*candi_act(gate_c);
                 }
             }
-        }
+            continue;
 
-        delete weight_h_tmp;
-    }
-
-    // clean the packed weight
-    safe_free(&(this->packed_w_x_));
-    safe_free(&(this->packed_w_h_));
-    // pack weights for Wix, Wfx, Wcx, Wox] and [Wih, Wfh, Wch, Woh]
-    if (weight_x) {
-        int m = input->num();
-        this->packed_w_x_ = new mkl_packed_weight<OpDtype, LayOutType_op>(weight_x, m);
-        this->packed_w_x_->pack();
-    }
-    this->packed_w_h_ = new mkl_packed_weight<OpDtype, LayOutType_op>(weight_h);
-    this->packed_w_h_->pack();
-
-    const OpTensor *init_t0 = param.init_hidden();
-    safe_free(&batch_c0_);
-    safe_free(&batch_h0_);
-    // tensor for batched init cell and batched init hidden, they are both with size batch_size * hidden_size
-    if (init_t0) {
-        int batch_size = input->get_seq_offset().size() - 1;
-        Shape batched_state_shape(batch_size, this->aligned_hidden_size_, 1 , 1);
-
-        // create buf in create func, batch_size * hidden_size
-        batch_c0_ = new OpTensor(batched_state_shape);
-
-        // create buf in create func, batch_size * hidden_size
-        batch_h0_ = new OpTensor(batched_state_shape);
-    }
-
-    bool with_peephole = param.with_peephole;
-    if (bias && with_peephole) {
-        const DataType_op *bias_data = bias->data();
-        // shape for Wic, Wfc, Woc
-        Shape weights_c_shape(1, this->aligned_hidden_size_, 1, 1);
-        safe_free(&(this->check_ig_));
-        safe_free(&(this->check_fg_));
-        safe_free(&(this->check_og_));
-        this->check_ig_ = new OpTensor(weights_c_shape);
-        this->check_fg_ = new OpTensor(weights_c_shape);
-        this->check_og_ = new OpTensor(weights_c_shape);
-        memcpy(this->check_ig_->mutable_data(), bias_data + 4 * hidden_size, hidden_size * sizeof(DataType_op));
-        memcpy(this->check_fg_->mutable_data(), bias_data + 5 * hidden_size, hidden_size * sizeof(DataType_op));
-        memcpy(this->check_og_->mutable_data(), bias_data + 6 * hidden_size, hidden_size * sizeof(DataType_op));
-    }
-
-    safe_free(&weight_x);
-    safe_free(&weight_h);
-    safe_free(&aligned_weights_data_h);
-
-    this->_ctx = &ctx;
-    this->max_thread_num_ = omp_get_max_threads();
-
-    return create(inputs, outputs, param, ctx);
-}
-
-template <DataType OpDtype,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::create(
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        LstmParam<OpTensor> &param,
-        Context<X86> &ctx) {
-    DataTensor_in *input = inputs[0];
-    DataTensor_out *hidden_out = outputs[0];
-    int hidden_size = hidden_out->channel();
-
-    // aligned hidden_size with AVX-512
-    int aligned_size = 8;
-    this->aligned_hidden_size_ = (hidden_size % aligned_size) ? ((hidden_size / aligned_size) + 1) * aligned_size : hidden_size;
-    Shape aligned_output_shape(hidden_out->num(), this->aligned_hidden_size_, 1, 1);
-
-    // xx = x * [Wix, Wfx, Wcx, Wox]
-    Shape xx_shape(input->num(), hidden_size * 4, 1, 1);
-    Shape aligned_xx_shape(input->num(), this->aligned_hidden_size_ * 4, 1, 1);
-    // if current size < request size, realloc a buf
-    this->xx_ = request_buf_for_input(this->xx_, xx_shape);
-    this->batch_xx_ = request_buf_for_input(this->batch_xx_, aligned_xx_shape);
-    this->batch_hidden_ = request_buf_for_input(this->batch_hidden_, aligned_output_shape);
-    this->batch_cell_ = request_buf_for_input(this->batch_cell_, aligned_output_shape);
-    this->batch_cell_act_ = request_buf_for_input(this->batch_cell_act_, aligned_output_shape);
-
-    return SaberSuccess;
-}
-
-template <DataType OpDtype,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        LstmParam<OpTensor> &param) {
-    DataTensor_in *input = inputs[0];
-    DataTensor_out *hidden_out = outputs[0];
-    DataTensor_out *cell_out = nullptr;
-    if (outputs.size() >= 2) {
-        cell_out = outputs[1];
-    }
-    const OpTensor *bias = param.bias();
-    const OpTensor *init_t0 = param.init_hidden();
-
-    int hidden_size = hidden_out->channel();
-    int batch_size = input->get_seq_offset().size() - 1;
-    Shape offset(0, 0, 0, 0);
-
-    // init state shape
-    Shape init_state_shape(batch_size, hidden_size, 1 , 1);
-    math::ReorderInitState<OpDtype, LayOutType_op> reorder;
-
-    DataTensor_in *xx = nullptr;
-
-    if (param.skip_input) {
-        // if skip_input is true, the input memory layout should be
-        // total_seq_len * (4 * hidden_size)
-        xx = input;
-    } else {
-        // if skip_input is false, the input memory layout should be
-        // total_seq_len * input_size
-        // xx = x * [Wix, Wfx, Wcx, Wox]
-        Shape xx_shape(input->num(), hidden_size * 4, 1, 1);
-
-        // if current size < request size, realloc a buf for using
-        xx = new DataTensor_in();
-        this->xx_ = request_buf_for_input(this->xx_, xx_shape);
-        xx->share_sub_buffer(*(this->xx_), xx_shape, offset);
-
-        MatrixInfo<DataType_in> src((input->mutable_data()), input->num(), input->channel());
-        MatrixInfo<DataType_in> dst((xx->mutable_data()), xx->num(), xx->channel());
-        packed_w_x_->gemm_compute(src, &dst, 0.0f);
-
-        // input activation
-        int cnt = xx->size();
-        DataType_out *p = xx->mutable_data();
-        switch (param.input_activity) {
-            case Active_stanh:
-            case Active_tanh:
-                math::parallel_activation(cnt, p, p, param.input_activity);
-                break;
-            case Active_unknow:
-                break;
-            default:
-                        LOG(ERROR) << "not supported input activation";
-                return SaberUnImplError;
-        }
-    }
-
-    DataTensor_in batch_xx;
-    Shape aligned_xx_shape(xx->num(), this->aligned_hidden_size_ * 4, 1 , 1);
-    batch_xx.share_sub_buffer(*(this->batch_xx_), aligned_xx_shape, offset);
-
-    DataTensor_out batch_hidden;
-    Shape aligned_output_shape(hidden_out->num(), this->aligned_hidden_size_, 1 , 1);
-    batch_hidden.share_sub_buffer(*(this->batch_hidden_), aligned_output_shape, offset);
-
-    DataTensor_out batch_cell;
-    batch_cell.share_sub_buffer(*(this->batch_cell_), aligned_output_shape, offset);
-
-    DataTensor_out batch_cell_act;
-    batch_cell_act.share_sub_buffer(*(this->batch_cell_act_), aligned_output_shape, offset);
-
-    MatrixInfo<DataType_in> xx_matrix(xx->mutable_data(), xx->num(), xx->channel());
-    MatrixInfo<DataType_in> batch_xx_matrix(batch_xx.mutable_data(), batch_xx.num(), batch_xx.channel());
-    MatrixInfo<DataType_out> batch_hidden_matrix(batch_hidden.mutable_data(), batch_hidden.num(), batch_hidden.channel());
-    MatrixInfo<DataType_out> batch_cell_matrix(batch_cell.mutable_data(), batch_cell.num(), batch_cell.channel());
-    MatrixInfo<DataType_out> batch_cell_act_matrix(batch_cell_act.mutable_data(), batch_cell_act.num(), batch_cell_act.channel());
-
-    // handle bias info
-    if (bias) {
-        // row-wise-add bias to batch_xx, the layout of bias [bi, bf, bc, bo]
-        const DataType_op *bias_data = bias->data();
-        for (int i = 0; i < input->num(); i++) {
-            int row_size = 4 * hidden_size;
-            cblas_saxpby(row_size, 1, bias_data, 1, 1, (xx_matrix.buf() + i * row_size), 1);
-        }
-    }
-
-    // seq to batch meta data
-    std::vector<std::vector<int>> seq_to_batch_meta;
-    seq_to_batch_meta.push_back(input->get_seq_offset());
-
-    // sequence to batch
-    bool is_reverse = param.is_reverse;
-    math::Seq2BatchFunctor<inDtype, LayOutType_in> to_batch;
-    to_batch(xx, &batch_xx, seq_to_batch_meta, true, is_reverse, 4);
-
-    std::vector<int> order(seq_to_batch_meta[2]);
-    LstmMetaValue<DataType_in> lstm_value;
-    bool with_peephole = param.with_peephole;
-    if (bias && with_peephole) {
-        // with peephole enable, [Wic, Wfc, Woc] is at the behind of bias
-        const DataType_op *bias_data = bias->data();
-        lstm_value.check_ig = this->check_ig_->data();
-        lstm_value.check_fg = this->check_fg_->data();
-        lstm_value.check_og = this->check_og_->data();
-    } else {
-        lstm_value.check_ig = nullptr;
-        lstm_value.check_fg = nullptr;
-        lstm_value.check_og = nullptr;
-    }
-    lstm_value.prev_state_value = nullptr;
-    auto gate_act = param.gate_activity;
-    auto cell_act = param.cell_activity;
-    auto cand_act = param.candidate_activity;
-
-    if (init_t0) {
-        // if have init cell info, fill it to lstm value
-        // get init_c0 from init_t0 and reorder it
-        Shape offset(batch_size, 0, 0, 0);
-        OpTensor init_c0;
-        init_c0.share_sub_buffer(*init_t0, init_state_shape, offset);
-        reorder(&init_c0, order, batch_c0_, true);
-
-        lstm_value.prev_state_value = batch_c0_->mutable_data();
-    }
-
-    auto batch_starts = seq_to_batch_meta[0];
-    size_t num_batch = batch_starts.size() - 1;
-    for (size_t n = 0; n < num_batch; n++) {
-        int bstart = batch_starts[n];
-        int bend = batch_starts[n + 1];
-        int cur_batch_size = bend - bstart;
-
-        // xx += Ht-1 * [Wih, Wfh, Wch, Woh] according to batch number
-        MatrixInfo<DataType_in> dst = batch_xx_matrix.subMatrixInfo(bstart, bend);
-        if (n > 0) {
-            // if n > 0, get Ht-1 information from last calc, and convert it to src
-            int pre_h_start = batch_starts[n - 1];
-            int pre_h_end = pre_h_start + cur_batch_size;
-            MatrixInfo<DataType_in> src = batch_hidden_matrix.subMatrixInfo(pre_h_start, pre_h_end);
-            packed_w_h_->gemm_compute(src, &dst);
-        } else if (init_t0) {
-            // if this is the fisrt time calc and the batch_h0_ is not NULL, then using the init hidden value as src
-            // get init_h0 from init_t0 and reorder it
-            Shape offset(0, 0, 0, 0);
-            OpTensor init_h0;
-            init_h0.share_sub_buffer(*init_t0, init_state_shape, offset);
-            reorder(&init_h0, order, batch_h0_, true);
-
-            MatrixInfo<DataType_in> src((batch_h0_->mutable_data()), batch_h0_->num(), batch_h0_->channel());
-            packed_w_h_->gemm_compute(src, &dst);
-        }
-
-        // calc [Wic*Ct-1, Wfc*Ct-1, WocCt] and activation
-        // fill lstm value with the calc result before and the output buf
-        lstm_value.gate_value = dst.buf();
-        lstm_value.output_value = batch_hidden_matrix.subMatrixInfo(bstart, bend).buf();
-        lstm_value.state_value = batch_cell_matrix.subMatrixInfo(bstart, bend).buf();
-        lstm_value.state_active_value = batch_cell_act_matrix.subMatrixInfo(bstart, bend).buf();
-        if (avx2_available_) {
-            compute_with_avx(lstm_value, this->aligned_hidden_size_, cur_batch_size, gate_act, cell_act, cand_act);
+        } else if (word_id == 0) {
+            hin = inner_h_init;
         } else {
-            compute(lstm_value, this->aligned_hidden_size_, cur_batch_size, gate_act, cell_act, cand_act);
+            hin = inner_h_out + emit_offset_vec[last_word_id] * _aligned_hidden_size;
         }
-        lstm_value.prev_state_value = lstm_value.state_value;
+
+        float *hout = nullptr;
+        hout = emit_offset_vec[real_word_id] * _aligned_hidden_size + inner_h_out;
+
+        //wh
+        mkl_gemm(false, false, emit_word_length, 4 * _aligned_hidden_size, _aligned_hidden_size, 1.0, hin,
+             weight_h,
+             0.f, temp_wh);
+
+        for (int emit_word_id = emit_word_id_start; emit_word_id < emit_word_id_end; emit_word_id++) {
+            int emit_wx_offset = emit_word_id * _aligned_hidden_size * 4;
+            const BIT *w_x_i = (BIT *) (temp_wx + i_offset * _aligned_hidden_size + emit_wx_offset);
+            const BIT *w_x_f = (BIT *) (temp_wx + f_offset * _aligned_hidden_size + emit_wx_offset);
+            const BIT *w_x_c = (BIT *) (temp_wx + c_offset * _aligned_hidden_size + emit_wx_offset);
+            const BIT *w_x_o = (BIT *) (temp_wx + o_offset * _aligned_hidden_size + emit_wx_offset);
+
+            int emit_id_offset = emit_word_id - emit_word_id_start;
+            int emit_wh_offset = emit_id_offset * _aligned_hidden_size * 4;
+            const BIT *w_h_i = (BIT *) (temp_wh + i_offset * _aligned_hidden_size + emit_wh_offset);
+            const BIT *w_h_f = (BIT *) (temp_wh + f_offset * _aligned_hidden_size + emit_wh_offset);
+            const BIT *w_h_c = (BIT *) (temp_wh + c_offset * _aligned_hidden_size + emit_wh_offset);
+            const BIT *w_h_o = (BIT *) (temp_wh + o_offset * _aligned_hidden_size + emit_wh_offset);
+
+            const BIT *w_ci = (BIT *) (weight_peephole + 0 * _aligned_hidden_size);
+            const BIT *w_cf = (BIT *) (weight_peephole + 1 * _aligned_hidden_size);
+            const BIT *w_co = (BIT *) (weight_peephole + 2 * _aligned_hidden_size);
+
+            BIT *gate_h_p=(BIT*)(hout + emit_id_offset * _aligned_hidden_size);
+            BIT *gate_c_p=(BIT*)(inner_cell+emit_id_offset * _aligned_hidden_size);
+            for (int frame_id = 0; frame_id < _aligned_hidden_size / (sizeof(BIT) / sizeof(DataType_out)); ++frame_id) {
+                BIT c_1=gate_c_p[frame_id];
+                BIT gate_i =gate_act(w_x_i[frame_id]+w_h_i[frame_id]+b_i[frame_id]+w_ci[frame_id]*c_1);
+                BIT gate_f =gate_act(w_x_f[frame_id]+w_h_f[frame_id]+b_f[frame_id]+w_cf[frame_id]*c_1);
+                BIT gate_c_s =cell_act(w_x_c[frame_id]+w_h_c[frame_id]+b_c[frame_id]);
+                BIT gate_c =gate_f*c_1+gate_i *gate_c_s;
+                BIT gate_o =gate_act(w_x_o[frame_id]+w_h_o[frame_id]+b_o[frame_id]+gate_c*w_co[frame_id]);
+                gate_c_p[frame_id]=gate_c;
+                gate_h_p[frame_id]=gate_o*candi_act(gate_c);
+
+            }
+        }
+
+    }
+    if (transform) {
+        transe_util.sorted_seq_2_seq(inner_h_out, out, _hidden_size, _aligned_hidden_size);
+    } else if (_hidden_size != _aligned_hidden_size) {
+        aligned_utils.unaligned_last_dim(_temp_out.data(), out, seqsum * _hidden_size, _hidden_size,
+                                         _aligned_hidden_size);
     }
 
-    // batch to sequence
-    math::Batch2SeqFunctor<outDtype, LayOutType_out> to_seq;
-    to_seq(&batch_hidden, hidden_out, seq_to_batch_meta);
 
-    if (cell_out) {
-        to_seq(&batch_cell, cell_out, seq_to_batch_meta);
+    return SaberSuccess;
+}
+
+template<>
+template <typename BIT>
+SaberStatus SaberLstm<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
+avx_dispatch_without_peephole(const std::vector<DataTensor_in*>& inputs,
+                           std::vector<DataTensor_out*>& outputs,
+                           LstmParam<OpTensor>& param) {
+    int loop_div = sizeof(BIT) / sizeof(DataType_out);
+    const DataType_op *weight_h = _aligned_weights_h2h.data();
+    const DataType_op *weight_w = _aligned_weights_i2h.data();
+    const DataType_op *bias = _aligned_weights_bias.data();
+    const DataType_op *weight_peephole = _aligned_weights_peephole.data();
+    BIT (*gate_act)(const BIT) = act_func[param.gate_activity];
+    BIT (*cell_act)(const BIT) = act_func[param.cell_activity];
+    BIT (*candi_act)(const BIT) = act_func[param.candidate_activity];
+
+    std::vector<int> offset_vec = inputs[0]->get_seq_offset();
+    std::vector<int> length_vec(offset_vec.size() - 1);
+    int batch_size = offset_vec.size() - 1;
+    int seqsum = 0;
+    int max_seq_len = 0;
+    bool is_hw2seq = offset_vec.size() > 2;
+    int word_sum = is_hw2seq ? offset_vec[offset_vec.size() - 1] : inputs[0]->channel();
+    utils::AlignedUtils aligned_utils;
+    utils::VectorPrint vector_print;
+    const DataType_out *h_init = nullptr;
+    const DataType_out *cell_init = nullptr;
+
+    const DataType_in *x = inputs[0]->data();
+    DataType_out *out = outputs[0]->mutable_data();
+    bool is_reverse = param.is_reverse;
+
+    if (inputs.size() > 1) {
+        h_init = inputs[1]->data();
+        _aligned_init_hidden.try_expand_size(batch_size * _aligned_hidden_size);
+        aligned_utils.aligned_last_dim(h_init, _aligned_init_hidden.mutable_data(),
+                                       batch_size * _hidden_size, _hidden_size, _aligned_hidden_size);
+        h_init = _aligned_init_hidden.data();
+    } else if (param.init_hidden() != nullptr) {
+        h_init = param.init_hidden()->data();
+        //FIXME:is it correct?
+    } else {
+//        _aligned_init_hidden.try_expand_size(batch_size * _aligned_hidden_size);
+//        _aligned_init_celll.try_expand_size(batch_size * _aligned_hidden_size);
+//        h_init = _aligned_init_hidden.data();
+//        cell_init=_aligned_init_celll.data();
     }
 
-    if (!param.skip_input && xx) {
-        delete xx;
-        xx = nullptr;
+    std::vector<int> emit_offset_vec;
+    int emit_length = 0;
+    utils::SeqSortedseqTranseUtil transe_util(is_reverse);
+    bool transform = transe_util.get_sorted_map(offset_vec, emit_offset_vec, emit_length);
+
+    DataType_out *inner_h_out = out;
+    DataType_out *inner_cell = nullptr;
+    const DataType_in *inner_x = x;
+    const DataType_out *inner_h_init = h_init;
+    for (int i = 0; i < offset_vec.size() - 1; ++i) {
+        int len = offset_vec[i + 1] - offset_vec[i];
+        length_vec[i] = len;
+        max_seq_len = max_seq_len > len ? max_seq_len : len;
+        seqsum += len;
+    }
+
+    _temp_wx.try_expand_size(seqsum * 4 * _aligned_hidden_size);
+    _temp_wh.try_expand_size(batch_size * 4 * _aligned_hidden_size);
+    _temp_out.try_expand_size(seqsum * _aligned_hidden_size * param.num_direction);
+    _temp_cell.try_expand_size(batch_size * _aligned_hidden_size);
+
+    if (transform) {
+        _temp_x.try_expand_size(seqsum * _word_size);
+        inner_h_out = _temp_out.mutable_data();
+        inner_x = _temp_x.mutable_data();
+        transe_util.seq_2_sorted_seq(x, (DataType_in*)inner_x, _word_size);
+
+        if (inner_h_init != nullptr) {
+            _temp_h_init.try_expand_size(batch_size * _aligned_hidden_size);
+            transe_util.hidden_2_sorted_hidden(inner_h_init, _temp_h_init.mutable_data(), _aligned_hidden_size);
+            inner_h_init = _temp_h_init.data();
+        }
+    } else if (_hidden_size != _aligned_hidden_size) {
+        inner_h_out = _temp_out.mutable_data();
+    }
+    inner_cell = _temp_cell.mutable_data();
+    memset(inner_cell,0,_temp_cell.valid_size()* sizeof(DataType_out));
+
+    DataType_out *temp_wh = _temp_wh.mutable_data();
+    DataType_out *temp_wx = _temp_wx.mutable_data();
+
+    mkl_gemm(false, false, seqsum, 4 * _aligned_hidden_size, _word_size, 1.f, inner_x, weight_w, 0.f,
+         temp_wx);
+
+    const int i_offset = 0;
+    const int f_offset = 1;
+    const int c_offset = 2;
+    const int o_offset = 3;
+    const BIT *b_i = (BIT *) (bias + i_offset * _aligned_hidden_size);
+    const BIT *b_f = (BIT *) (bias + f_offset * _aligned_hidden_size);
+    const BIT *b_c = (BIT *) (bias + c_offset * _aligned_hidden_size);
+    const BIT *b_o = (BIT *) (bias + o_offset * _aligned_hidden_size);
+
+            DLOG(INFO)<<"wordsum = "<<word_sum<<",emit length = "<<emit_offset_vec.size();
+    for (int word_id = 0; word_id < emit_length; word_id++) {
+        int real_word_id = word_id;
+        int last_word_id = word_id - 1;
+
+        if (param.is_reverse && batch_size == 1) {
+            real_word_id = emit_length - word_id - 1;
+            last_word_id = real_word_id + 1;
+        }
+
+        int emit_word_id_start = emit_offset_vec[real_word_id];
+        int emit_word_id_end = emit_offset_vec[real_word_id + 1];
+        int emit_word_length = emit_word_id_end - emit_word_id_start;
+        const float *hin;
+
+        if (word_id == 0 && inner_h_init == nullptr) {
+            float *hout = nullptr;
+            hout = emit_offset_vec[real_word_id] * _aligned_hidden_size + inner_h_out;
+            for (int emit_word_id = emit_word_id_start; emit_word_id < emit_word_id_end; emit_word_id++) {
+                int emit_wx_offset = emit_word_id * _aligned_hidden_size * 4;
+                const BIT *w_x_i = (BIT *) (temp_wx + i_offset * _aligned_hidden_size + emit_wx_offset);
+                const BIT *w_x_f = (BIT *) (temp_wx + f_offset * _aligned_hidden_size + emit_wx_offset);
+                const BIT *w_x_c = (BIT *) (temp_wx + c_offset * _aligned_hidden_size + emit_wx_offset);
+                const BIT *w_x_o = (BIT *) (temp_wx + o_offset * _aligned_hidden_size + emit_wx_offset);
+
+                int emit_id_offset = emit_word_id - emit_word_id_start;
+                BIT *gate_h_p=(BIT*)(hout + emit_id_offset * _aligned_hidden_size);
+                BIT *gate_c_p=(BIT*)(inner_cell+emit_id_offset * _aligned_hidden_size);
+                for (int frame_id = 0; frame_id < _aligned_hidden_size / (sizeof(BIT) / sizeof(DataType_out)); ++frame_id) {
+                    BIT gate_i =gate_act(w_x_i[frame_id]+b_i[frame_id]);
+                    BIT gate_c_s =cell_act(w_x_c[frame_id]+b_c[frame_id]);
+                    BIT gate_c =gate_i *gate_c_s;
+                    BIT gate_o =gate_act(w_x_o[frame_id]+b_o[frame_id]);
+                    gate_c_p[frame_id]=gate_c;
+                    gate_h_p[frame_id]=gate_o*candi_act(gate_c);
+                }
+            }
+            continue;
+
+        } else if (word_id == 0) {
+            hin = inner_h_init;
+        } else {
+            hin = inner_h_out + emit_offset_vec[last_word_id] * _aligned_hidden_size;
+        }
+
+        float *hout = nullptr;
+        hout = emit_offset_vec[real_word_id] * _aligned_hidden_size + inner_h_out;
+
+        //wh
+        mkl_gemm(false, false, emit_word_length, 4 * _aligned_hidden_size, _aligned_hidden_size, 1.0, hin,
+             weight_h,
+             0.f, temp_wh);
+
+        for (int emit_word_id = emit_word_id_start; emit_word_id < emit_word_id_end; emit_word_id++) {
+            int emit_wx_offset = emit_word_id * _aligned_hidden_size * 4;
+            const BIT *w_x_i = (BIT *) (temp_wx + i_offset * _aligned_hidden_size + emit_wx_offset);
+            const BIT *w_x_f = (BIT *) (temp_wx + f_offset * _aligned_hidden_size + emit_wx_offset);
+            const BIT *w_x_c = (BIT *) (temp_wx + c_offset * _aligned_hidden_size + emit_wx_offset);
+            const BIT *w_x_o = (BIT *) (temp_wx + o_offset * _aligned_hidden_size + emit_wx_offset);
+
+            int emit_id_offset = emit_word_id - emit_word_id_start;
+            int emit_wh_offset = emit_id_offset * _aligned_hidden_size * 4;
+            const BIT *w_h_i = (BIT *) (temp_wh + i_offset * _aligned_hidden_size + emit_wh_offset);
+            const BIT *w_h_f = (BIT *) (temp_wh + f_offset * _aligned_hidden_size + emit_wh_offset);
+            const BIT *w_h_c = (BIT *) (temp_wh + c_offset * _aligned_hidden_size + emit_wh_offset);
+            const BIT *w_h_o = (BIT *) (temp_wh + o_offset * _aligned_hidden_size + emit_wh_offset);
+
+            BIT *gate_h_p=(BIT*)(hout + emit_id_offset * _aligned_hidden_size);
+            BIT *gate_c_p=(BIT*)(inner_cell+emit_id_offset * _aligned_hidden_size);
+            for (int frame_id = 0; frame_id < _aligned_hidden_size / (sizeof(BIT) / sizeof(DataType_out)); ++frame_id) {
+                BIT c_1=gate_c_p[frame_id];
+                BIT gate_i =gate_act(w_x_i[frame_id]+w_h_i[frame_id]+b_i[frame_id]);
+                BIT gate_f =gate_act(w_x_f[frame_id]+w_h_f[frame_id]+b_f[frame_id]);
+                BIT gate_c_s =cell_act(w_x_c[frame_id]+w_h_c[frame_id]+b_c[frame_id]);
+                BIT gate_c =gate_f*c_1+gate_i *gate_c_s;
+                BIT gate_o =gate_act(w_x_o[frame_id]+w_h_o[frame_id]+b_o[frame_id]);
+                gate_c_p[frame_id]=gate_c;
+                gate_h_p[frame_id]=gate_o*candi_act(gate_c);
+
+            }
+        }
+
+    }
+    if (transform) {
+        transe_util.sorted_seq_2_seq(inner_h_out, out, _hidden_size, _aligned_hidden_size);
+    } else if (_hidden_size != _aligned_hidden_size) {
+        aligned_utils.unaligned_last_dim(_temp_out.data(), out, seqsum * _hidden_size, _hidden_size,
+                                         _aligned_hidden_size);
     }
 
     return SaberSuccess;
 }
 
-template <DataType OpDtype,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::init_conf(
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        LstmParam<OpTensor> &param) {
+
+template<>
+SaberStatus SaberLstm<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
+        dispatch(const std::vector<DataTensor_in*>& inputs,
+                     std::vector<DataTensor_out*>& outputs,
+                     LstmParam<OpTensor>& param) {
+    CHECK_EQ(inputs.size(),1)<<"only support input size = 1";
+    CHECK_EQ(outputs.size(),1)<<"only support outputs size = 1";
+    CHECK_EQ(param.init_hidden()==nullptr, true )<<"only support param.init_hidden() == nullptr";
+    CHECK_EQ(param.num_layers,1)<<"only support param.num_layers==1";
+    if(param.with_peephole){
+        avx_dispatch_with_peephole<SABER_X86_TYPE>(inputs,outputs,param);
+    }else{
+        avx_dispatch_without_peephole<SABER_X86_TYPE>(inputs,outputs,param);
+    }
+
     return SaberSuccess;
 }
 
-template <DataType OpDtype,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-SaberStatus SaberLstm<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::check_conf(
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        LstmParam<OpTensor> &param) {
-    return SaberSuccess;
 }
-
-template class SaberLstm<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
-
-} // namespace saber
-} // namespace anakin
+}

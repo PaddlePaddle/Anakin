@@ -17,6 +17,7 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+#include "saber/funcs/impl/impl_detection_output.h"
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_detection_output.h"
 #endif

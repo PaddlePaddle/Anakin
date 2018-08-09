@@ -1,5 +1,4 @@
-/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
-
+/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -15,12 +14,8 @@
 #ifndef ANAKIN_SABER_LITE_FUNCS_SABER_CONV_ACT_H
 #define ANAKIN_SABER_LITE_FUNCS_SABER_CONV_ACT_H
 
-#include "saber/lite/core/tensor_lite.h"
-#include "saber/lite/core/context_lite.h"
-
-#ifdef USE_ARM_PLACE
-
 #include "saber/lite/funcs/saber_conv.h"
+#ifdef USE_ARM_PLACE
 
 namespace anakin{
 
@@ -29,54 +24,95 @@ namespace saber{
 namespace lite{
 
 //template <typename Dtype>
-class SaberConvAct2D {
+class SaberConvAct2D : public OpBase {
 public:
     SaberConvAct2D() {
-        _conv_op = new SaberConv2D;
+        _conv_func = new SaberConv2D;
     }
 
-    SaberConvAct2D(int weights_size, int num_output, int group, int kw, int kh, int stride_w, int stride_h, \
-        int pad_w, int pad_h, int dila_w, int dila_h, bool flag_bias, ActiveType type, \
-        const float* weights, const float* bias) {
-
-        LCHECK_EQ(type, Active_relu, "active type must be relu");
-        _conv_op = new SaberConv2D(weights_size, num_output, group, kw, kh, stride_w, stride_h, \
-            pad_w, pad_h, dila_w, dila_h, flag_bias, weights, bias);
+    SaberConvAct2D(const ParamBase* param) {
+        _conv_func = new SaberConv2D;
+        _param = (const ConvAct2DParam*)param;
+        if (_param->_flag_act) {
+            LCHECK_EQ(_param->_act_type, Active_relu, "active type must be relu");
+        }
+        this->_flag_param = true;
+        _conv_func->load_param(&_param->_conv_param);
     }
 
-    SaberStatus load_param(int weights_size, int num_output, int group, int kw, int kh, int stride_w, int stride_h, \
-        int pad_w, int pad_h, int dila_w, int dila_h, bool flag_bias, ActiveType type, \
-        const float* weights, const float* bias) {
-
-        LCHECK_EQ(type, Active_relu, "active type must be relu");
-        _conv_op->set_activation(true);
-        return _conv_op->load_param(weights_size, num_output, group, kw, kh, stride_w, stride_h, \
-            pad_w, pad_h, dila_w, dila_h, flag_bias, weights, bias);
-
+    virtual SaberStatus load_param(const ParamBase* param) override {
+        _param = (const ConvAct2DParam*)param;
+        this->_flag_param = true;
+        _conv_func->set_activation(_param->_flag_act);
+        return _conv_func->load_param(&_param->_conv_param);
     }
+
+
+//    SaberConvAct2D(int weights_size, int num_output, int group, int kw, int kh, int stride_w, int stride_h, \
+//        int pad_w, int pad_h, int dila_w, int dila_h, bool flag_bias, ActiveType type, bool flag_relu, \
+//        const float* weights, const float* bias) {
+//
+//        if (flag_relu) {
+//            LCHECK_EQ(type, Active_relu, "active type must be relu");
+//            _flag_relu = true;
+//        } else {
+//            _flag_relu = false;
+//        }
+//        SaberConv2D::set_activation(_flag_relu);
+//        SaberConv2D::load_param(weights_size, num_output, group, kw, kh, stride_w, stride_h, \
+//            pad_w, pad_h, dila_w, dila_h, flag_bias, weights, bias);
+//    }
+//
+//    SaberStatus load_param(int weights_size, int num_output, int group, int kw, int kh, int stride_w, int stride_h, \
+//        int pad_w, int pad_h, int dila_w, int dila_h, bool flag_bias, ActiveType type, bool flag_relu, \
+//        const float* weights, const float* bias) {
+//
+//        if (flag_relu) {
+//            LCHECK_EQ(type, Active_relu, "active type must be relu");
+//            _flag_relu = true;
+//        } else {
+//            _flag_relu = false;
+//        }
+//        SaberConv2D::set_activation(_flag_relu);
+//        return SaberConv2D::load_param(weights_size, num_output, group, kw, kh, stride_w, stride_h, \
+//            pad_w, pad_h, dila_w, dila_h, flag_bias, weights, bias);
+//    }
 
     ~SaberConvAct2D() {
-        delete _conv_op;
+        delete _conv_func;
     }
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) {
-        return _conv_op->compute_output_shape(inputs, outputs);
+    virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs)  override{
+        if (!this->_flag_param) {
+            printf("load conv_act param first\n");
+            return SaberNotInitialized;
+        }
+        return _conv_func->compute_output_shape(inputs, outputs);
     }
 
-    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                             std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx) {
-        _conv_op->set_activation(true);
-        return _conv_op->init(inputs, outputs, ctx);
+    virtual SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                             std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx) override{
+        if (!this->_flag_param) {
+            printf("load conv_act param first\n");
+            return SaberNotInitialized;
+        }
+        _conv_func->set_activation(_param->_flag_act);
+        this->_flag_init = true;
+        return _conv_func->init(inputs, outputs, ctx);
     }
 
-    SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *>& inputs,
-                                 std::vector<Tensor<CPU, AK_FLOAT> *>& outputs) {
-        return _conv_op->dispatch(inputs, outputs);
+    virtual SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *>& inputs,
+                                 std::vector<Tensor<CPU, AK_FLOAT> *>& outputs) override{
+        if (!this->_flag_init) {
+            printf("init conv_act first\n");
+            return SaberNotInitialized;
+        }
+        return _conv_func->dispatch(inputs, outputs);
     }
-
 private:
-    SaberConv2D* _conv_op;
+    const ConvAct2DParam* _param;
+    SaberConv2D* _conv_func;
 };
 
 } //namespace lite

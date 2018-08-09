@@ -1,5 +1,4 @@
 /* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
-
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -27,7 +26,7 @@ namespace lite{
 template <ARMType ttype>
 class Buffer{
 public:
-    typedef typename TargetTrait<ttype>::bdtype dtype;
+    typedef typename TargetTrait<ttype>::ptrtype ptrtype;
     /**
      * \brief constructor
      */
@@ -42,7 +41,7 @@ public:
      * @param data
      * @param size
      */
-    Buffer(dtype* data, size_t size);
+    Buffer(ptrtype data, size_t size);
 
     /**
      * \brief assigned function
@@ -82,12 +81,12 @@ public:
     /**
      * \brief return const data pointer
      */
-    const dtype* get_data();
+    const ptrtype get_data();
 
     /**
      * \brief return mutable data pointer
      */
-    dtype* get_data_mutable();
+    ptrtype get_data_mutable();
 
     /**
      * \brief return total size of memory, in bytes
@@ -95,10 +94,9 @@ public:
     size_t get_capacity();
 
 protected:
-    dtype* _data;
+    ptrtype _data;
     bool _own_data;
     size_t _capacity;
-
 };
 
 } //namespace lite

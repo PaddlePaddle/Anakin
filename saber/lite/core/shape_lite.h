@@ -1,5 +1,4 @@
 /* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
-
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -193,7 +192,7 @@ public:
             return 0;
         }
         int sum = 1;
-        for (int i = 0; i < this->size(); i++) {
+        for (int i = start; i < this->size(); i++) {
             sum *= data()[i];
         }
         return sum;

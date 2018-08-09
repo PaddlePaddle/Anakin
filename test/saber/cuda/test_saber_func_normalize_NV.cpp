@@ -184,7 +184,7 @@ SaberStatus test_norm_continue_nchw(int p, bool across_spatial, \
     CHECK_EQ(va_sh == shape_out, true) << "compute output shape error";
 
     LOG(INFO) << "normalize initialization";
-    SABER_CHECK(norm.init(input_dev_4d, output_dev_4d, param, RUNTIME, SABER_IMPL, ctx_dev));
+    SABER_CHECK(norm.init(input_dev_4d, output_dev_4d, param, SPECIFY, SABER_IMPL, ctx_dev));
 
     LOG(INFO) << "normalize compute";
     //! compute result by cpu funcs

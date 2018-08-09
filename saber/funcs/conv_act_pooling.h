@@ -18,6 +18,7 @@
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/funcs/funcs_utils.h"
+#include "saber/funcs/impl/impl_conv_act_pooling.h"
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_conv_act_pooling.h"
 #include "saber/funcs/impl/cuda/vender_conv_act_pooling.h"
@@ -206,14 +207,14 @@ private:
         _use_saber_conv_pooling &= !(this->_param).pooling_param.global_pooling;
         _use_saber_conv_pooling &= (this->_param).pooling_param.pooling_type == Pooling_max;
 
-        if (!_use_saber_conv_pooling) {
-            delete this->_impl[1];
-            this->_impl.erase(this->_impl.end());
-            this->_best_impl = this->_impl[0];
-        } else {
+        if (_use_saber_conv_pooling) {
+            this->_best_impl = this->_impl[1];
             delete this->_impl[0];
-            this->_impl.erase(this->_impl.begin());
+            this->_impl[0] = NULL;
+        } else {
             this->_best_impl = this->_impl[0];
+            delete this->_impl[1];
+            this->_impl[1] = NULL;
         }
     }
 

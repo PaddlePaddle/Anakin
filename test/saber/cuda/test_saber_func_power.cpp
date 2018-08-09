@@ -154,7 +154,7 @@ TEST(TestSaberFuncPowerNV, test_func_constructor) {
                         test_power<TensorDf4>(inputs_big, outputs_big,
                                               inputs, outputs,
                                               input_offset, output_offset,
-                                              input_share, output_share, input_share_sub, output_share_sub,
+                                              false, false, false, false,
                                               param, get_time, ctx);
                     }
                 }

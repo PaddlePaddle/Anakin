@@ -1,5 +1,4 @@
 /* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
-
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -23,7 +22,6 @@ namespace saber{
 namespace lite{
 
 struct DeviceInfo{
-	std::string _device_name;
 	int _max_frequence;
 	int _min_frequence;
 	int _generate_arch;
@@ -106,8 +104,9 @@ public:
     //void set_act_cores(std::vector<int> ids);
     void bind_dev();
     PowerMode get_mode(int& threads);
-    std::vector<int> get_act_ids();
+    //std::vector<int> get_act_ids();
     void set_cache(size_t l1size, size_t l2size, size_t l3size);
+    void* get_work_space();
 private:
 #if 0
     //! current stream to process
@@ -123,6 +122,7 @@ private:
     //! SABER_POWER_FULL stands for using all cores
     PowerMode _mode;
     std::vector<int> _act_ids;
+    void* _work_space;
 };
 
 } //namespace lite

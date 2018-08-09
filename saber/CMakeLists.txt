@@ -15,6 +15,7 @@ set(ANAKIN_SABER_STATIC_RELAY "" )
 
 set(ANAKIN_SABER_BASE_SRC "")
 anakin_fetch_include_recursively(${ANAKIN_SABER})
+anakin_fetch_include_recursively(${ANAKIN_UTILS})
 
 # add ak_base_source files
 anakin_fetch_files_with_suffix(${ANAKIN_SABER}/core "cpp" ANAKIN_SABER_BASE_SRC)
@@ -41,6 +42,10 @@ if(USE_X86_PLACE)
     anakin_fetch_files_with_suffix(${ANAKIN_SABER}/core/impl/x86 "cpp" ANAKIN_SABER_BASE_SRC)
     anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/x86 "cpp" ANAKIN_SABER_BASE_SRC)
     anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/x86/kernel "cpp" ANAKIN_SABER_BASE_SRC)
+endif()
+
+if(BUILD_WITH_LITE)
+    anakin_fetch_files_with_suffix(${ANAKIN_SABER}/core/impl/x86 "cpp" ANAKIN_SABER_BASE_SRC)
 endif()
 
 # compile cpp objs
@@ -78,12 +83,6 @@ if(USE_CUDA)
 				      ${BEGIN_WHOLE_ARCHIVE} 
 				      ${ANAKIN_SABER_SASS_STATIC_LIB} 
 				      ${WHOLE_ARCHIVE_END})	
-endif()
-
-if(USE_ARM_PLACE)
-    FILE(GLOB SRC_LITE "lite/core/*.h" "lite/core/*.cpp" "lite/funcs/*.h" "lite/funcs/*.cpp"
-            "lite/funcs/neon/*.cpp" "lite/funcs/neon/impl/*.cpp" "lite/funcs/neon/impl/*.h")
-    add_library(saber_lite STATIC ${SRC_LITE})
 endif()
 
 # add saber library to static

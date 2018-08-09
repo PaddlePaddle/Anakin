@@ -15,41 +15,37 @@
 #ifndef ANAKIN_SABER_FUNCS_IMPL_X86_SABER_LSTM_H
 #define ANAKIN_SABER_FUNCS_IMPL_X86_SABER_LSTM_H
 
-#include "saber/saber_types.h"
-#include "saber/funcs/impl/impl_base.h"
-#include "saber/saber_funcs_param.h"
-#include "mkl_packed_weight.h"
-#include "sequence2batch.h"
 
 #include "saber/funcs/impl/impl_lstm.h"
+#include "saber/funcs/impl/x86/x86_utils.h"
+
+
+#ifdef __AVX512F__
+#include "saber_avx512_activation.h"
+#define SABER_X86_TYPE __m512
+#elif __AVX2__
+#include "saber_avx2_activation.h"
+#define SABER_X86_TYPE __m256
+#else
+#include "saber_normal_activation.h"
+#define SABER_X86_TYPE float
+#endif
 
 namespace anakin {
 namespace saber {
 
-template <class T>
-struct LstmMetaValue {
-    T *gate_value;
-    T *prev_state_value;
-    T *state_value;
-    T *state_active_value;
-    T *output_value;
-    const T *check_ig;
-    const T *check_fg;
-    const T *check_og;
-};
-
 template <DataType OpDtype,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
+          DataType inDtype,
+          DataType outDtype,
+          typename LayOutType_op,
+          typename LayOutType_in,
+          typename LayOutType_out>
 class SaberLstm<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>: public ImplBase<
-        Tensor<X86, inDtype, LayOutType_in>,
-        Tensor<X86, outDtype, LayOutType_out>,
-        Tensor<X86, OpDtype, LayOutType_op>,
-        LstmParam<Tensor<X86, OpDtype, LayOutType_op> > > {
+          LayOutType_op, LayOutType_in, LayOutType_out>: public ImplBase <
+          Tensor<X86, inDtype, LayOutType_in>,
+          Tensor<X86, outDtype, LayOutType_out>,
+          Tensor<X86, OpDtype, LayOutType_op>,
+          LstmParam<Tensor<X86, OpDtype, LayOutType_op> > > {
 public:
     typedef Tensor<X86, inDtype, LayOutType_in> DataTensor_in;
     typedef Tensor<X86, outDtype, LayOutType_out> DataTensor_out;
@@ -58,125 +54,113 @@ public:
     typedef typename DataTensor_out::Dtype DataType_out;
     typedef typename OpTensor::Dtype DataType_op;
 
-    SaberLstm() :
-            avx2_available_(false), max_thread_num_(1),
-            packed_w_x_(nullptr), packed_w_h_(nullptr),
-            batch_h0_(nullptr), batch_c0_(nullptr), check_ig_(nullptr),
-            check_fg_(nullptr), check_og_(nullptr),
-            xx_(nullptr), batch_xx_(nullptr), batch_hidden_(nullptr),
-            batch_cell_(nullptr), batch_cell_act_(nullptr), aligned_hidden_size_(0) {
-    }
+    SaberLstm():_hidden_size(0){};
 
-    ~SaberLstm() {
-        safe_free(&packed_w_x_);
-        safe_free(&packed_w_h_);
-        safe_free(&batch_h0_);
-        safe_free(&batch_c0_);
-        safe_free(&check_ig_);
-        safe_free(&check_fg_);
-        safe_free(&check_og_);
-        safe_free(&xx_);
-        safe_free(&batch_xx_);
-        safe_free(&batch_hidden_);
-        safe_free(&batch_cell_);
-        safe_free(&batch_cell_act_);
-    }
+    ~SaberLstm() {};
 
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
                              std::vector<DataTensor_out*>& outputs,
-                             LstmParam<OpTensor> &param,
-                             Context<X86> &ctx) override;
+                             LstmParam<OpTensor>& param,
+                             Context<X86>& ctx) {
+        if(param.with_peephole){
+            _hidden_size=param.bias()->valid_size()/7;
+        }else{
+            _hidden_size=param.bias()->valid_size()/4;
+        }
+        _word_size=(param.weight()->valid_size()-_hidden_size*_hidden_size*4)/_hidden_size/4;
+
+        DLOG(INFO)<<"wordsize = "<<_word_size;
+        int weights_i2h_size=4*_hidden_size*_word_size;
+        int weights_h2h_size=4*_hidden_size*_hidden_size;
+        int weights_bias_size=4*_hidden_size;
+        int weights_peephole_size=3*_hidden_size;
+
+        int aligned_byte= sizeof(SABER_X86_TYPE);
+        int c_size=aligned_byte/sizeof(DataType_op);
+
+        _aligned_word_size=utils::round_up(_word_size,c_size);
+        _aligned_hidden_size=utils::round_up(_hidden_size,c_size);
+
+
+        Shape aligned_weights_i2h_shape(1,_word_size,4,_aligned_hidden_size);
+        Shape aligned_weights_h2h_shape(1,_aligned_hidden_size,4,_aligned_hidden_size);
+        Shape aligned_weights_bias_shape(1,1,4,_aligned_hidden_size);
+        _aligned_weights_i2h.try_expand_size(aligned_weights_i2h_shape);
+        _aligned_weights_h2h.try_expand_size(aligned_weights_h2h_shape);
+        _aligned_weights_bias.try_expand_size(aligned_weights_bias_shape);
+
+        utils::AlignedUtils aligned_tool;
+        aligned_tool.aligned_last_dim(param.weight()->data(),_aligned_weights_i2h.mutable_data(),
+                                      weights_i2h_size,_hidden_size,_aligned_hidden_size);
+
+        aligned_tool.aligned_last_dim(param.weight()->data() + weights_i2h_size,_aligned_weights_h2h.mutable_data(),
+                                      weights_h2h_size,_hidden_size,_aligned_hidden_size);
+
+        aligned_tool.aligned_last_dim(param.bias()->data(),_aligned_weights_bias.mutable_data(),
+                                      weights_bias_size,_hidden_size,_aligned_hidden_size);
+//FIXME:init weights tensor
+        if(param.with_peephole){
+            Shape aligned_weights_peephole_shape(1,1,3,_aligned_hidden_size);
+            _aligned_weights_peephole.try_expand_size(aligned_weights_peephole_shape);
+            aligned_tool.aligned_last_dim(param.bias()->data()+weights_bias_size,_aligned_weights_peephole.mutable_data(),
+                                          weights_peephole_size,_hidden_size,_aligned_hidden_size);
+        }
+
+        return SaberSuccess;
+    };
 
     virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
                                std::vector<DataTensor_out*>& outputs,
-                               LstmParam<OpTensor> &param,
-                               Context<X86> &ctx) override;
+                               LstmParam<OpTensor>& param,
+                               Context<X86>& ctx) {return SaberSuccess;};
 
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                                  std::vector<DataTensor_out*>& outputs,
-                                 LstmParam<OpTensor> &param) override;
+                                 LstmParam<OpTensor>& param) ;
 
-    virtual SaberStatus init_conf(
-            const std::vector<DataTensor_in*>& inputs,
-            std::vector<DataTensor_out*>& outputs,
-            LstmParam<OpTensor>& param);
+
 
 private:
-    inline void safe_free(MatrixInfo<DataType_op> **ptr) {
-        if (*ptr) {
-            delete (*ptr);
-            (*ptr) = nullptr;
-        }
-    }
 
-    inline void safe_free(DataTensor_in **ptr) {
-        if (*ptr) {
-            delete (*ptr);
-            (*ptr) = nullptr;
-        }
-    }
+    int _word_size;
+    int _hidden_size;
+    int _aligned_word_size;
+    int _aligned_hidden_size;
 
-    inline void safe_free(mkl_packed_weight<OpDtype, LayOutType_op> **ptr) {
-        if (*ptr) {
-            delete (*ptr);
-            (*ptr) = nullptr;
-        }
-    }
 
-    inline DataTensor_in* request_buf_for_input(DataTensor_in *input, Shape required_shape) {
-        if (input) {
-            int len = 1;
-            if (required_shape.size() == 0) {
-                len = 0;
-            }
-            for (int i = 0; i < required_shape.size(); i++) {
-                len *= required_shape[i];
-            }
-            if (input->size() < len) {
-                input->re_alloc(required_shape);
-            }
-        } else {
-            input = new DataTensor_in(required_shape);
-        }
-        return input;
-    }
+    OpTensor _weights_i2h;
+    OpTensor _weights_h2h;
+    OpTensor _weights_bias;
+    OpTensor _weights_peephole;
+    OpTensor _init_hidden;
 
-    bool avx2_available_;
-    int max_thread_num_;
+    OpTensor _aligned_weights_i2h;
+    OpTensor _aligned_weights_h2h;
+    OpTensor _aligned_weights_bias;
+    OpTensor _aligned_weights_peephole;
 
-    mkl_packed_weight<OpDtype, LayOutType_op> *packed_w_x_;
-    mkl_packed_weight<OpDtype, LayOutType_op> *packed_w_h_;
-    OpTensor *batch_h0_;
-    OpTensor *batch_c0_;
-    OpTensor *check_ig_;
-    OpTensor *check_fg_;
-    OpTensor *check_og_;
-    // buf for storing data after calculating x * [Wix, Wfx, Wcx, Wox]
-    DataTensor_in *xx_;
-    // buf for storing data after xx calculating seq to batch
-    DataTensor_in *batch_xx_;
+    OpTensor _aligned_init_hidden;
 
-    // buf for storing batch tmp data
-    DataTensor_out *batch_hidden_;
-    DataTensor_out *batch_cell_;
-    DataTensor_out *batch_cell_act_;
-    /*aligned with 256bit(8 float)*/
-    size_t aligned_hidden_size_;
+    OpTensor _temp_wx;
+    OpTensor _temp_wh;
+    OpTensor _temp_cell;
 
-    virtual SaberStatus check_conf(const std::vector<DataTensor_in*>& inputs,
-                                   std::vector<DataTensor_out*>& outputs,
-                                   LstmParam<OpTensor>& param);
+    OpTensor _temp_x;
+    OpTensor _temp_out;
+    OpTensor _temp_h_init;
 
-    virtual void compute(LstmMetaValue<DataType_in> value,
-                         int hidden_size, int batch_size,
-                         const ActiveType &gate_act,
-                         const ActiveType &cell_act,
-                         const ActiveType &cand_act);
-    virtual void compute_with_avx(LstmMetaValue<DataType_in> value,
-                                  int hidden_size, int batch_size,
-                                  const ActiveType &gate_act,
-                                  const ActiveType &cell_act,
-                                  const ActiveType &cand_act);
+    template <typename BIT>
+    SaberStatus avx_dispatch_without_peephole(const std::vector<DataTensor_in*>& inputs,
+                                           std::vector<DataTensor_out*>& outputs,
+                                           LstmParam<OpTensor>& param);
+
+    template <typename BIT>
+    SaberStatus avx_dispatch_with_peephole(const std::vector<DataTensor_in*>& inputs,
+                                           std::vector<DataTensor_out*>& outputs,
+                                           LstmParam<OpTensor>& param);
+
+
+
 };
 
 } // namespace saber

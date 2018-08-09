@@ -10,37 +10,52 @@ namespace saber {
 
 namespace lite{
 
-
-
-SaberPooling::SaberPooling(PoolingType type, bool flag_global, int kernel_w, int kernel_h, \
-    int stride_w, int stride_h, int pad_w, int pad_h) {
-
-    _type = type;
-    _is_global = flag_global;
-    _kw = kernel_w;
-    _kh = kernel_h;
-    _stride_w = stride_w;
-    _stride_h = stride_h;
-    _pad_w = pad_w;
-    _pad_h = pad_h;
+SaberPooling::SaberPooling(const ParamBase *param) {
+    _param = (const PoolParam*)param;
+    this->_flag_param = true;
 }
 
-SaberStatus SaberPooling::load_param(PoolingType type, bool flag_global, int kernel_w, int kernel_h, \
-    int stride_w, int stride_h, int pad_w, int pad_h) {
-
-    _type = type;
-    _is_global = flag_global;
-    _kw = kernel_w;
-    _kh = kernel_h;
-    _stride_w = stride_w;
-    _stride_h = stride_h;
-    _pad_w = pad_w;
-    _pad_h = pad_h;
+SaberStatus SaberPooling::load_param(const ParamBase *param) {
+    _param = (const PoolParam*)param;
+    this->_flag_param = true;
     return SaberSuccess;
 }
 
+//SaberPooling::SaberPooling(PoolingType type, bool flag_global, int kernel_w, int kernel_h, \
+//    int stride_w, int stride_h, int pad_w, int pad_h) {
+//
+//    _type = type;
+//    _is_global = flag_global;
+//    _kw = kernel_w;
+//    _kh = kernel_h;
+//    _stride_w = stride_w;
+//    _stride_h = stride_h;
+//    _pad_w = pad_w;
+//    _pad_h = pad_h;
+//}
+//
+//SaberStatus SaberPooling::load_param(PoolingType type, bool flag_global, int kernel_w, int kernel_h, \
+//    int stride_w, int stride_h, int pad_w, int pad_h) {
+//
+//    _type = type;
+//    _is_global = flag_global;
+//    _kw = kernel_w;
+//    _kh = kernel_h;
+//    _stride_w = stride_w;
+//    _stride_h = stride_h;
+//    _pad_w = pad_w;
+//    _pad_h = pad_h;
+//    return SaberSuccess;
+//}
+
 SaberStatus SaberPooling::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                                std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
+
+    if (!this->_flag_param) {
+        printf("load pooling param first\n");
+        return SaberNotInitialized;
+    }
+
     Shape output_shape = inputs[0]->valid_shape();
 
     int in_height = inputs[0]->height();
@@ -48,12 +63,12 @@ SaberStatus SaberPooling::compute_output_shape(const std::vector<Tensor<CPU, AK_
 
     int out_height;
     int out_width;
-    if (_is_global) {
+    if (_param->_flag_global) {
         out_height = 1;
         out_width = 1;
     } else {
-        out_height = (in_height + 2 * _pad_h - _kh + _stride_h - 1) / _stride_h + 1;
-        out_width = (in_width + 2 * _pad_w - _kw + _stride_w - 1) / _stride_w + 1;
+        out_height = (in_height + 2 * _param->_pool_pad_h - _param->_pool_kh + _param->_pool_stride_h - 1) / _param->_pool_stride_h + 1;
+        out_width = (in_width + 2 * _param->_pool_pad_w - _param->_pool_kw + _param->_pool_stride_w - 1) / _param->_pool_stride_w + 1;
     }
 
     output_shape.set_height(out_height);
@@ -65,38 +80,69 @@ SaberStatus SaberPooling::compute_output_shape(const std::vector<Tensor<CPU, AK_
 //template <>
 SaberStatus SaberPooling::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                std::vector<Tensor<CPU, AK_FLOAT> *> &outputs, Context &ctx) {
-    _ctx = ctx;
+    if (!this->_flag_param) {
+        printf("load pooling param first\n");
+        return SaberNotInitialized;
+    }
 
-    if (_is_global) {
+    this->_ctx = &ctx;
+
+    if (_param->_flag_global) {
         _impl = pooling_global;
+        this->_flag_init = true;
         return SaberSuccess;
     }
 
-    if (_kw != _kh || _stride_w != _stride_h \
-        || _stride_w != 2 || _pad_w != _pad_h || _pad_w > 1) {
-        _impl = pooling_basic;
-        return SaberSuccess;
-    }
-
-    if (_kw == 2) {
-        if (_type == Pooling_max) {
+    if (_param->_pool_kw == 2 && _param->_pool_kh == 2 && \
+            _param->_pool_stride_w == 2 && _param->_pool_pad_h == 2 && \
+            _param->_pool_pad_h == 0 && _param->_pool_pad_w == 0) {
+        if (_param->_pool_type == Pooling_max) {
             _impl = pooling2x2s2_max;
         } else {
             _impl = pooling2x2s2_ave;
         }
+        this->_flag_init = true;
         return SaberSuccess;
     }
 
-    if (_kw == 3) {
-        if (_type == Pooling_max) {
-            _impl = pooling3x3s2_max;
-        } else {
-            _impl = pooling3x3s2_ave;
+    if (_param->_pool_kw == 3 && _param->_pool_kh == 3) {
+        if (_param->_pool_stride_h == 1 && _param->_pool_stride_w == 1 && \
+            _param->_pool_pad_h == 1 && _param->_pool_pad_w == 1) {
+            if (_param->_pool_type == Pooling_max) {
+                _impl = pooling3x3s1p1_max;
+            } else {
+                _impl = pooling3x3s1p1_ave;
+            }
+            this->_flag_init = true;
+            return SaberSuccess;
         }
-        return SaberSuccess;
+
+        if (_param->_pool_stride_w == 2 && _param->_pool_stride_h == 2) {
+            if (_param->_pool_pad_w == 0 &&  _param->_pool_pad_h == 0) {
+                if (_param->_pool_type == Pooling_max) {
+                    _impl = pooling3x3s2p0_max;
+                } else {
+                    _impl = pooling3x3s2p0_ave;
+                }
+                this->_flag_init = true;
+                return SaberSuccess;
+            }
+            if (_param->_pool_pad_w == 1 && _param->_pool_pad_h == 1) {
+                if (_param->_pool_type == Pooling_max) {
+                    _impl = pooling3x3s2p1_max;
+                } else {
+                    _impl = pooling3x3s2p1_ave;
+                }
+                this->_flag_init = true;
+                return SaberSuccess;
+            }
+        }
     }
 
     _impl = pooling_basic;
+
+    this->_flag_init = true;
+
     return SaberSuccess;
 }
 
@@ -104,6 +150,10 @@ SaberStatus SaberPooling::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &input
 SaberStatus SaberPooling::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                    std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
 
+    if (!this->_flag_init) {
+        printf("init pool first\n");
+        return SaberNotInitialized;
+    }
     const float* din = inputs[0]->data();
     float* dout = outputs[0]->mutable_data();
     int num = inputs[0]->num();
@@ -116,9 +166,9 @@ SaberStatus SaberPooling::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &i
     int win = inputs[0]->width();
 
     _impl(din, dout, num, chout, hout, wout, chin, hin, win, \
-        _type, _is_global, _kw, _kh, \
-        _stride_w, _stride_h, \
-        _pad_w, _pad_h);
+        _param->_pool_type, _param->_flag_global, _param->_pool_kw, _param->_pool_kh, \
+        _param->_pool_stride_w, _param->_pool_stride_h, \
+        _param->_pool_pad_w, _param->_pool_pad_h);
     return SaberSuccess;
 }
 

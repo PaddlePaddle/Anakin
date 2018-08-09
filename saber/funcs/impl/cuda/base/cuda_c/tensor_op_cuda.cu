@@ -43,6 +43,8 @@ void fill_tensor_device_const(Tensor_t& tensor, \
 };
 
 
+
+
 template <class Tensor_t>
 void fill_tensor_device_rand(Tensor_t& tensor, typename Tensor_t::API::stream_t stream) {
 

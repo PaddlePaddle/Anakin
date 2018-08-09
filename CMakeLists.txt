@@ -19,6 +19,33 @@ include(cmake/utils.cmake)
 include(cmake/statistic.cmake)
 
 # ----------------------------------------------------------------------------
+# section: global anakin version and lib name
+# ----------------------------------------------------------------------------
+# global anakin version 0.1.0
+set(VERSION_MAJOR "0")
+set(VERSION_MINOR "1")
+set(VERSION_PATCH "0")
+set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
+
+# anakin lib name and global directories
+set(anakin_lib_so "anakin")
+set(anakin_lib_static "anakin_static")
+# set root dir of modules
+set(ANAKIN_ROOT ${PROJECT_SOURCE_DIR})
+include_directories(${ANAKIN_ROOT})
+
+set(ANAKIN_FRAMEWORK ${ANAKIN_ROOT}/framework)
+set(ANAKIN_LITE_FRAMEWORK ${ANAKIN_FRAMEWORK}/lite)
+set(ANAKIN_UTILS ${ANAKIN_ROOT}/utils)
+set(ANAKIN_THIRD_PARTY_PATH ${ANAKIN_ROOT}/third-party)
+set(ANAKIN_MODEL_PARSER ${ANAKIN_FRAMEWORK}/model_parser)
+set(ANAKIN_SABER ${ANAKIN_ROOT}/saber)
+set(ANAKIN_LITE_SABER ${ANAKIN_SABER}/lite)
+set(ANAKIN_UNIT_TEST ${ANAKIN_ROOT}/test)
+set(ANAKIN_EXAMPLES ${ANAKIN_ROOT}/examples)
+
+
+# ----------------------------------------------------------------------------
 # section: options for anakin
 # ----------------------------------------------------------------------------
 #anakin data float precision
@@ -69,12 +96,13 @@ anakin_option(ENABLE_VERBOSE_MSG "Enable verbose=1 : compile msg during make." N
 anakin_option(DISABLE_ALL_WARNINGS "Disable all the warning msg during compile." YES)
 anakin_option(ENABLE_NOISY_WARNINGS "Enable noisy warning msg during compile." NO if DISABLE_ALL_WARNINGS)
 
-# using 3rd party libs
-anakin_option(USE_GLOG "Build Glog components." NO)
+# using 3rd party libs 
+anakin_option(USE_LOGGER "Build native logger components." YES)
+anakin_option(USE_GLOG "Build Glog components." NO if NOT USE_LOGGER)
 anakin_option(USE_PROTOBUF "Build Google protobuf components." YES)
 anakin_option(USE_OPENCV "Use static opencv libs." NO)
 anakin_option(USE_BOOST "Use static BOOST libs." NO)
-anakin_option(USE_OPENMP "Use Openmp when in android environment." YES if TARGET_ANDROID)
+anakin_option(USE_OPENMP "Use Openmp when in android environment." YES if USE_ARM_PLACE OR USE_X86_PLACE)
 anakin_option(USE_GTEST "Use googletest libs." NO if BUILD_WITH_UNIT_TEST)
 anakin_option(USE_PYTHON "Generate py wrappers." NO)
 anakin_option(USE_OPENCL "Use OpenCL ." NO)
@@ -82,10 +110,11 @@ anakin_option(USE_GFLAGS "Build Google gflags components." NO)
 anakin_option(USE_MKL "Use mkl libs." NO if USE_X86_PLACE)
 anakin_option(USE_MKLML "Use MKLML libs." YES if USE_X86_PLACE)
 anakin_option(USE_XBYAK "Use XBYAK libs." YES if USE_X86_PLACE)
-anakin_option(USE_OPENMP "Use Openmp when in android environment." YES if TARGET_ANDROID)
 
 # build components
 anakin_option(BUILD_WITH_UNIT_TEST "Build anakin unit test components." YES)
+
+anakin_option(BUILD_LITE "Build anakin lite components." NO)
 
 # build examples
 anakin_option(BUILD_EXAMPLES "build detection and classification examples" NO)
@@ -105,30 +134,10 @@ else()
     set(CMAKE_BUILD_TYPE Release FORCE)
 endif()
 
-# ----------------------------------------------------------------------------
-# section: global anakin version and lib name
-# ----------------------------------------------------------------------------
-# global anakin version 2.0.1
-set(VERSION_MAJOR "2")
-set(VERSION_MINOR "0")
-set(VERSION_PATCH "1")
-set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
-
-# anakin lib name and global directories
-set(anakin_lib_so "anakin")
-set(anakin_lib_static "anakin_static")
-# set root dir of modules
-set(ANAKIN_ROOT ${PROJECT_SOURCE_DIR})
-include_directories(${ANAKIN_ROOT})
-
-set(ANAKIN_FRAMEWORK ${ANAKIN_ROOT}/framework)
-set(ANAKIN_THIRD_PARTY_PATH ${CMAKE_BINARY_DIR}/third-party)
-set(ANAKIN_UTILS ${ANAKIN_ROOT}/utils)
-set(ANAKIN_THIRD_PARTY_PATH ${ANAKIN_ROOT}/third-party)
-set(ANAKIN_MODEL_PARSER ${ANAKIN_FRAMEWORK}/model_parser)
-set(ANAKIN_SABER ${ANAKIN_ROOT}/saber)
-set(ANAKIN_UNIT_TEST ${ANAKIN_ROOT}/test)
-set(ANAKIN_EXAMPLES ${ANAKIN_ROOT}/examples)
+if(USE_LOGGER) 
+	anakin_option(ENABLE_STACKTRACES "If enable local logger with stacktrace." YES if NOT USE_ARM_PLACE)
+	anakin_option(SUPPORT_PTHREADS "If enable local logger with supporting pthreads. " YES)
+endif()
 
 # ----------------------------------------------------------------------------
 # section:configure a header file to pass some of the CMake settings to the source
@@ -180,6 +189,10 @@ add_subdirectory(${ANAKIN_FRAMEWORK})
 
 if(BUILD_WITH_UNIT_TEST)
     add_subdirectory(${ANAKIN_UNIT_TEST})
+endif()
+
+if(BUILD_LITE)
+	add_subdirectory(${ANAKIN_LITE_FRAMEWORK})
 endif()
 
 if (BUILD_EXAMPLES)

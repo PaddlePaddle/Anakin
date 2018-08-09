@@ -48,6 +48,8 @@
 
 #cmakedefine USE_OPENMP
 
+#cmakedefine USE_LOGGER
+
 #cmakedefine USE_GFLAGS
 
 // plantform to use
@@ -64,6 +66,13 @@
 #cmakedefine ENABLE_OP_TIMER
 
 #cmakedefine NVIDIA_GPU
+
+#cmakedefine ENABLE_STACKTRACES
+
+#cmakedefine SUPPORT_PTHREADS
+
+// build arm lite
+#cmakedefine BUILD_LITE
 
 
 #if defined(ANDROID) || defined(__ANDROID__)

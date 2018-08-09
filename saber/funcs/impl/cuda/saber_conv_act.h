@@ -29,7 +29,7 @@ template <typename dtype, bool bias_flag, bool relu_flag>
 SaberStatus saber_depthwise_conv_act(const dtype* input, dtype* output, \
     int num, int cin, int hin, int win, int hout, int wout, \
     int kw, int kh, int stride_w, int stride_h, \
-    int pad_h, int pad_w, const dtype* weights, const dtype* bias, \
+    int pad_w, int pad_h, const dtype* weights, const dtype* bias, \
     cudaStream_t stream);
 
 template <DataType OpDtype,
@@ -80,7 +80,7 @@ public:
         _use_k1s1p0 = _use_k1s1p0 && (param.conv_param.pad_w == 0);
         _use_k1s1p0 = _use_k1s1p0 && (param.conv_param.stride_h == 1);
         _use_k1s1p0 = _use_k1s1p0 && (param.conv_param.stride_w == 1);
-        _use_k1s1p0 = _use_k1s1p0 && (inputs[0]->num() == 1);
+//        _use_k1s1p0 = _use_k1s1p0 && (inputs[0]->num() == 1);
         if (_use_k1s1p0) {
             return SaberSuccess;
         }
@@ -96,21 +96,26 @@ public:
 
             if (param.has_eltwise) {
                 dispatch_func_elt = winograd_conv_eltwise<InDataType, OpDataType>;
-            } else {
+            } else if(param.has_active) {
                 dispatch_func = winograd_conv_relu<InDataType, OpDataType>;
+            } else {
+                dispatch_func = winograd_conv<OutDataType, OpDataType>;
             }
+            
         } else if(param.conv_param.group == 1) {
             const int K = param.conv_param.weight()->num();
             if(K % 4 == 0) {
-                if (param.conv_param.bias()->size() > 0)
-                    dispatch_func = direct_conv_bias_relu_Kdivis4<InDataType, OpDataType>;
-                else
+                if (param.conv_param.bias()->size() > 0){
+                    dispatch_func = param.has_active ?  direct_conv_bias_relu_Kdivis4<InDataType, OpDataType>: direct_conv_bias_Kdivis4<InDataType, OpDataType>;
+                } else {
                     return SaberUnImplError;
+                }
             } else {   // TODO: would merge the bias(with/without) version
-                if (param.conv_param.bias()->size() > 0)
-                    dispatch_func = direct_conv_bias_relu_Kindiv4<InDataType, OpDataType>;
-                else
+                if (param.conv_param.bias()->size() > 0) {
+                    dispatch_func = param.has_active ? direct_conv_bias_relu_Kindiv4<InDataType, OpDataType> : direct_conv_bias_Kindiv4<InDataType, OpDataType>;
+                } else {
                     return SaberUnImplError;
+                }
             }      
         } else {
             return SaberUnImplError;
@@ -141,27 +146,27 @@ public:
         int chout = outputs[0]->channel();
         int wout = outputs[0]->width();
         int hout = outputs[0]->height();
-
-        //LOG(INFO) << "saber conv act";
+        int in_stride = chin * win * hin;
+        int out_stride = chout * wout * hout;
         if (_use_k1s1p0) {
-//            LOG(INFO)<<"using k1s1p0";
             if (param.has_eltwise_act) {
-                if (param.eltwise_param.operation == Eltwise_sum) {
-                    conv_gemm_k1s1p0(outputs[0]->mutable_data(),
+                    conv_gemm_k1s1p0(num, in_stride, out_stride,
+                                     outputs[0]->mutable_data(),
                                      inputs[0]->data(),
                                      param.conv_param.weight()->data(),
                                      chout, chin, hin, win, bias_data,
                                      this->_ctx->get_compute_stream(), 1.f, 1.f, true);
-                }
             } else {
                 if (param.has_active) {
-                    conv_gemm_k1s1p0(outputs[0]->mutable_data(),
+                    conv_gemm_k1s1p0(num, in_stride, out_stride,
+                                     outputs[0]->mutable_data(),
                                      inputs[0]->data(),
                                      param.conv_param.weight()->data(),
                                      chout, chin, hin, win, bias_data,
                                      this->_ctx->get_compute_stream(), 1.f, 0.f, true);
                 } else {
-                    conv_gemm_k1s1p0(outputs[0]->mutable_data(),
+                    conv_gemm_k1s1p0(num, in_stride, out_stride,
+                                     outputs[0]->mutable_data(),
                                      inputs[0]->data(),
                                      param.conv_param.weight()->data(),
                                      chout, chin, hin, win, bias_data,
@@ -238,23 +243,23 @@ public:
                     param.conv_param.weight()->data(), bias_data, num, chin, hin, win, \
                     chout, hout, wout, \
                     shape_in[1],
-                    shape_in[2],
-                    shape_in[3],
-                    shape_out[1],
-                    shape_out[2],
-                    shape_out[3], 
-                    _kernel_height,
-                    _kernel_width,
-                    param.conv_param.pad_h,              
-                    param.conv_param.pad_w,              
-                    param.conv_param.stride_h,              
-                    param.conv_param.stride_w,              
-                    param.conv_param.dilation_h,              
-                    param.conv_param.dilation_w, 
-                    param.conv_param.group, 
-                    param.conv_param.alpha, 
-                    param.conv_param.beta, 
-                    this->_ctx->get_compute_stream());
+                          shape_in[2],
+                          shape_in[3],
+                          shape_out[1],
+                          shape_out[2],
+                          shape_out[3],
+                          _kernel_height,
+                          _kernel_width,
+                          param.conv_param.pad_h,
+                          param.conv_param.pad_w,
+                          param.conv_param.stride_h,
+                          param.conv_param.stride_w,
+                          param.conv_param.dilation_h,
+                          param.conv_param.dilation_w,
+                          param.conv_param.group,
+                          param.conv_param.alpha,
+                          param.conv_param.beta,
+                          this->_ctx->get_compute_stream());
             }
 
         return SaberSuccess;
@@ -384,7 +389,8 @@ private:
       cudaStream_t)> dispatch_func_elt;
 
     bool _use_k1s1p0;
-    void conv_gemm_k1s1p0(float* out, const float* img,
+    void conv_gemm_k1s1p0(int num, int in_stride, int out_stride,
+                          float* out, const float* img,
                           const float* weights, int out_channel,
                           int in_channel, int img_h, int img_w,
                           const float* bias, cudaStream_t cuda_stream,
@@ -396,31 +402,39 @@ private:
         int n = img_h * img_w;
         if (ifVec(m, n, k, k, n, n)) {
             if (relu) {
-                ker_gemm_32x32x32_NN_vec_bias_relu(m, n, k,
-                                                   alpha, weights,
-                                                   beta, img,
-                                                   out, bias,
-                                                   cuda_stream);
+                for (int i = 0; i < num; ++i) {
+                    ker_gemm_32x32x32_NN_vec_bias_relu(m, n, k,
+                                                       alpha, weights,
+                                                       beta, img + i * in_stride,
+                                                       out + i * out_stride, bias,
+                                                       cuda_stream);
+                }
             } else {
-                ker_gemm_32x32x32_NN_vec_bias(m, n, k,
-                                              alpha, weights,
-                                              beta, img,
-                                              out, bias,
-                                              cuda_stream);
+                for (int i = 0; i < num; ++i) {
+                    ker_gemm_32x32x32_NN_vec_bias(m, n, k,
+                                                  alpha, weights,
+                                                  beta, img + i * in_stride,
+                                                  out + i * out_stride, bias,
+                                                  cuda_stream);
+                }
             }
         } else {
             if (relu) {
-                ker_gemm_32x32x32_NN_bias_relu(m, n, k,
-                                               alpha, weights,
-                                               beta, img,
-                                               out, bias,
-                                               cuda_stream);
+                for (int i = 0; i < num; ++i) {
+                    ker_gemm_32x32x32_NN_bias_relu(m, n, k,
+                                                   alpha, weights,
+                                                   beta, img + i * in_stride,
+                                                   out + i * out_stride, bias,
+                                                   cuda_stream);
+                }
             } else {
-                ker_gemm_32x32x32_NN_bias(m, n, k,
-                                          alpha, weights,
-                                          beta, img,
-                                          out, bias,
-                                          cuda_stream);
+                for (int i = 0; i < num; ++i) {
+                    ker_gemm_32x32x32_NN_bias(m, n, k,
+                                              alpha, weights,
+                                              beta, img + i * in_stride,
+                                              out + i * out_stride, bias,
+                                              cuda_stream);
+                }
             }
         }
     }

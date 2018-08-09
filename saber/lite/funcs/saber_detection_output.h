@@ -1,5 +1,4 @@
 /* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
-
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -13,11 +12,10 @@
    limitations under the License. 
 */
 
-#ifndef ANAKIN_SABER_LITE_FUNCS_SABER_ELTWISE_H
-#define ANAKIN_SABER_LITE_FUNCS_SABER_ELTWISE_H
+#ifndef ANAKIN_SABER_LITE_FUNCS_SABER_DETECTION_OUTPUT_H
+#define ANAKIN_SABER_LITE_FUNCS_SABER_DETECTION_OUTPUT_H
 
-#include "saber/lite/core/tensor_lite.h"
-#include "saber/lite/core/context_lite.h"
+#include "saber/lite/funcs/op_base.h"
 
 #ifdef USE_ARM_PLACE
 
@@ -28,54 +26,57 @@ namespace saber{
 namespace lite{
 
 //template <ARMType ttype, DataType dtype>
-class SaberDetectionOutput {
+class SaberDetectionOutput : public OpBase {
 public:
     SaberDetectionOutput(){}
-    SaberDetectionOutput(bool share_loc,
-                         bool variance_encode,
-                         int class_num,
-                         int background_id,
-                         int keep_topk,
-                         CodeType type,
-                         float conf_thresh,
-                         int nms_topk,
-                         float nms_thresh = 0.3f,
-                         float nms_eta = 1.f);
+    SaberDetectionOutput(const ParamBase* param);
+//    SaberDetectionOutput(bool share_loc,
+//                         bool variance_encode,
+//                         int class_num,
+//                         int background_id,
+//                         int keep_topk,
+//                         CodeType type,
+//                         float conf_thresh,
+//                         int nms_topk,
+//                         float nms_thresh = 0.3f,
+//                         float nms_eta = 1.f);
     ~SaberDetectionOutput() {}
 
-    SaberStatus load_param(bool share_loc,
-                           bool variance_encode,
-                           int class_num,
-                           int background_id,
-                           int keep_topk,
-                           CodeType type,
-                           float conf_thresh,
-                           int nms_topk,
-                           float nms_thresh = 0.3f,
-                           float nms_eta = 1.f);
+//    SaberStatus load_param(bool share_loc,
+//                           bool variance_encode,
+//                           int class_num,
+//                           int background_id,
+//                           int keep_topk,
+//                           CodeType type,
+//                           float conf_thresh,
+//                           int nms_topk,
+//                           float nms_thresh = 0.3f,
+//                           float nms_eta = 1.f);
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus load_param(const ParamBase* param) override;
 
-    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
-                      std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx);
+    virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 
-    SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                          std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
+                      std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx) override;
+
+    virtual SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                          std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 
 
 private:
-    Context _ctx;
-    bool _share_loacation{true};
-    bool _variance_encode_in_target{false};
+    const DetectionOutputParam* _param;
+//    bool _share_loacation{true};
+//    bool _variance_encode_in_target{false};
     int _class_num;
-    int _background_id{0};
-    int _keep_top_k{-1};
-    CodeType _type{CENTER_SIZE};
-    float _conf_thresh;
-    int _nms_top_k;
-    float _nms_thresh{0.3f};
-    float _nms_eta{1.f};
+//    int _background_id{0};
+//    int _keep_top_k{-1};
+//    CodeType _type{CENTER_SIZE};
+//    float _conf_thresh;
+//    int _nms_top_k;
+//    float _nms_thresh{0.3f};
+//    float _nms_eta{1.f};
     int _num_loc_classes;
     int _num_priors;
     Tensor<CPU, AK_FLOAT> _bbox_preds;

@@ -1,5 +1,4 @@
 /* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
-
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -16,12 +15,12 @@
 #ifndef ANAKIN_SABER_LITE_CORE_COMMON_H
 #define ANAKIN_SABER_LITE_CORE_COMMON_H
 
-//#include "utils/logger/logger.h"
 #include <memory>
 #include <vector>
 #include <cassert>
 #include <stdlib.h>
 #include <stdio.h>
+#include <cmath>
 #include "anakin_config.h"
 #include "saber/saber_types.h"
 
@@ -127,29 +126,29 @@ enum ARMType{
     DSP = 2
 };
 
-template <ARMType Ttype, DataType Dtype>
+template <ARMType Ttype, DataType dtype>
 struct DataTrait{
-    typedef void dtype;
+    typedef void Dtype;
 };
 
 
 template <ARMType Ttype>
 struct DataTrait<Ttype, AK_FLOAT>{
-    typedef float dtype;
     typedef float Dtype;
+    typedef float dtype;
 };
 
 template <ARMType Ttype>
 struct DataTrait<Ttype, AK_INT8>{
-    typedef char dtype;
     typedef char Dtype;
+    typedef char dtype;
 };
 
 template <ARMType Ttype>
 struct TargetTrait{
     typedef void* stream_t;
     typedef void* event_t;
-    typedef void bdtype;
+    typedef void* ptrtype;
     int get_device_count() { return 1;}
     int get_device_id(){ return 0;}
     void set_device_id(int id){}

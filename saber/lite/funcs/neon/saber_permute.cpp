@@ -111,27 +111,66 @@ SaberPermute::SaberPermute() {
     _transpose = false;
 }
 
-SaberPermute::SaberPermute(std::vector<int> orders) {
-    _order_dims = orders;
+//SaberPermute::SaberPermute(std::vector<int> orders) {
+//    _order_dims = orders;
+//}
+//
+//SaberStatus SaberPermute::load_param(std::vector<int> orders) {
+//    _order_dims = orders;
+//    return SaberSuccess;
+//}
+
+SaberPermute::SaberPermute(const ParamBase *param) {
+    _param = (const PermuteParam*)param;
+    this->_flag_param = true;
 }
 
-SaberStatus SaberPermute::load_param(std::vector<int> orders) {
-    _order_dims = orders;
+SaberStatus SaberPermute::load_param(const ParamBase *param) {
+    _param = (const PermuteParam*)param;
+    this->_flag_param = true;
     return SaberSuccess;
+}
+
+SaberStatus SaberPermute::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
+                                               std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
+    if (!this->_flag_param) {
+        printf("load permute param first\n");
+        return SaberNotInitialized;
+    }
+
+    for (int i = 0; i < inputs.size(); ++i) {
+
+        Shape output_shape = inputs[i]->valid_shape();
+
+        LCHECK_EQ(inputs[i]->valid_shape().size(), _param->_order.size(), "permute order param is not valid");
+
+        //for example: (n, h, w, c)->(n, c, h, w)  by order(0, 3, 1, 2)
+        for (int j = 0; j < _param->_order.size(); j++) {
+            output_shape[j] = inputs[i]->valid_shape()[_param->_order[j]];
+        }
+        outputs[i]->set_shape(output_shape);
+    }
+    return SaberSuccess;
+
 }
 
 //template <typename Dtype>
 SaberStatus SaberPermute::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                std::vector<Tensor<CPU, AK_FLOAT> *> &outputs, Context &ctx) {
-    _ctx = ctx;
+    if (!this->_flag_param) {
+        printf("load permute param first\n");
+        return SaberNotInitialized;
+    }
+
+    this->_ctx = &ctx;
     _num_axes = inputs[0]->dims();
     _count = outputs[0]->valid_size();
 
-    LCHECK_EQ(inputs[0]->dims(), _order_dims.size(), "permute order size is not match to input dims");
+    LCHECK_EQ(inputs[0]->dims(), _param->_order.size(), "permute order size is not match to input dims");
     // set _need_permute
     _need_permute = false;
     for (int i = 0; i < _num_axes; ++i) {
-        if (_order_dims[i] != i) {
+        if (_param->_order[i] != i) {
             _need_permute = true;
             break;
         }
@@ -144,13 +183,19 @@ SaberStatus SaberPermute::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &input
     std::vector<int> axis_diff;
     int j = 0;
     for (int i = 0; i < _num_axes; ++i) {
-        if (_order_dims[j] != i) {
+        if (_param->_order[j] != i) {
             axis_diff.push_back(j);
             //LOG(INFO) << "diff axis: " << _order_dims[j];
         } else {
             j++;
         }
     }
+
+    if (inputs[0]->count_valid(axis_diff[0], _num_axes) == 1) {
+        _need_permute = false;
+        return SaberSuccess;
+    }
+
     if (axis_diff.size() == 1) {
         _transpose = true;
         _trans_num = inputs[0]->count_valid(0, std::max(axis_diff[0] - 1, 0));
@@ -164,6 +209,8 @@ SaberStatus SaberPermute::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &input
         printf("permute: transpose=false\n");
     }
 
+    this->_flag_init = true;
+
     return SaberSuccess;
 }
 
@@ -171,6 +218,11 @@ SaberStatus SaberPermute::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &input
 SaberStatus SaberPermute::dispatch(\
     const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) {
+
+    if (!this->_flag_init) {
+        printf("init permute first\n");
+        return SaberNotInitialized;
+    }
 
     //! only copy the data
     if (!_need_permute) {
@@ -184,7 +236,7 @@ SaberStatus SaberPermute::dispatch(\
     if (_transpose) {
         transpose_mat(din, dout, _trans_num, _trans_w, _trans_h);
     } else {
-        permute_basic(_count, din, _order_dims.data(), \
+        permute_basic(_count, din, _param->_order.data(), \
         _old_steps.data(), _new_steps.data(), _num_axes, dout);
     }
 
