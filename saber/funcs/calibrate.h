@@ -29,13 +29,9 @@ SaberStatus conv_calibrate_int8_c4_fp32(
         Context<TargetType> ctx);
 
 template<typename TargetType>
-void float2char_col(signed char* dst, const float* src,
-                    float *scale, int height, int width,
-                    Context<TargetType> ctx);
-
-template<typename TargetType>
-void float2char_row(signed char* dst, const float* src, float *scale, int height, int width,
-                    Context<TargetType> ctx);
+void float2char(bool col_direct, signed char* dst, const float* src,
+                float *scale, int height, int width,
+                Context<TargetType> ctx);
 
 template<typename TargetType>
 void fix2float(float * dst,

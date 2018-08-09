@@ -100,7 +100,6 @@ void test_gemm_int8_result (int m, int n, int k, bool trans_a, bool trans_b) {
     Shape b_shape({k, n}, Layout_HW);
     Shape c_shape({m, n}, Layout_HW);
 
-
     Tensor<TargetType> a_dev_int8, b_dev_int8;
     Tensor<TargetType> a_scale, b_scale;
     Shape a_scale_shape({m}, Layout_W);
@@ -134,7 +133,7 @@ void test_gemm_int8_result (int m, int n, int k, bool trans_a, bool trans_b) {
         /// input : const float* src
         /// output: char* dst_int8
         ///         float* scale
-        float2char_row((signed char*)a_dev_int8.mutable_data(),
+        float2char(false, (signed char*)a_dev_int8.mutable_data(),
                        (const float*)a_dev.data(),
                        (float*)a_scale.mutable_data(),
                        m, k, ctx1);
@@ -144,7 +143,7 @@ void test_gemm_int8_result (int m, int n, int k, bool trans_a, bool trans_b) {
         /// input : const float* src
         /// output: char* dst_int8
         ///         float* scale
-        float2char_col((signed char*)b_dev_int8.mutable_data(),
+        float2char(true, (signed char*)b_dev_int8.mutable_data(),
                        (const float*)b_dev.data(),
                        (float*)b_scale.mutable_data(),
                        k, n, ctx1);
@@ -195,39 +194,74 @@ void test_gemm_int8_result (int m, int n, int k, bool trans_a, bool trans_b) {
             vender_time.end(ctx1);
         }
     }
-//    if (saber_status == SaberSuccess) {
-//        gemm_saber.dispatch(alpha, beta,
-//                            (const char *) a_dev.data(),
-//                            (const char *) b_dev.data(),
-//                            (float *) c_dev.mutable_data());
-//        typename Tensor<TargetType>::API::stream_t stream = ctx1.get_compute_stream();
-//        c_dev.record_event(stream);
-//        c_dev.sync();
-//        c_host.copy_from(c_dev);
-//        gemm_check(m, n, k, (const char *) a_host.data(), (const char *) b_host.data(),
-//                   (float *) c_check.mutable_data(),
-//                   alpha, beta, trans_a, trans_b);
-//        double max_ratio = 0.f, max_diff = 0.f;
-//        tensor_cmp_host((const float *) c_check.data(), (const float *) c_host.data(),
-//                        c_check.valid_size(), max_ratio, max_diff);
-//        if (max_ratio > 1e-3) {
-//            print_tensor_valid(c_check);
-//            print_tensor_valid(c_host);
-//            LOG(FATAL) << "SABER: FAIL!!!! max_ratio = " <<max_ratio << " max_diff: "<< max_diff
-//                       << "m = "<< m<< " n = "<< n << " k = "<< k;
-//        }
-//        for (int t = 0; t < ts; ++t) {
-//            saber_time.start(ctx1);
-//            gemm_saber.dispatch(alpha, beta,
-//                                (const float *) a_dev.data(),
-//                                (const float *) b_dev.data(),
-//                                (float *) c_dev.mutable_data());
-//            typename Tensor<TargetType>::API::stream_t stream = ctx1.get_compute_stream();
-//            c_dev.record_event(stream);
-//            c_dev.sync();
-//            saber_time.end(ctx1);
-//        }
-//    }
+    if (saber_status == SaberSuccess) {
+
+        /// step 1: calibrate matrix a into int8 matrix
+        ///         using row direction.
+        /// input : const float* src
+        /// output: char* dst_int8
+        ///         float* scale
+        float2char(false, (signed char*)a_dev_int8.mutable_data(),
+                       (const float*)a_dev.data(),
+                       (float*)a_scale.mutable_data(),
+                       m, k, ctx1);
+
+        /// step 2: calibrate matrix a into int8 matrix
+        ///         using col direction.
+        /// input : const float* src
+        /// output: char* dst_int8
+        ///         float* scale
+        float2char(true, (signed char*)b_dev_int8.mutable_data(),
+                       (const float*)b_dev.data(),
+                       (float*)b_scale.mutable_data(),
+                       k, n, ctx1);
+
+        /// step 3: dispatch matrix multiply using int8 gemm
+        gemm_saber.dispatch(alpha, beta,
+                            (const char *) a_dev_int8.data(),
+                            (const char *) b_dev_int8.data(),
+                            (float *) c_dev.mutable_data());
+
+        /// step 4: convert int32 into float32 using fix2float.
+        /// input : float* dst
+        ///         const scaleA(row scale)
+        ///         const scaleB(col scale)
+        /// output: float* dst
+        fix2float((float*)c_dev.mutable_data(),
+                  (const float*)a_scale.data(),
+                  (const float*)b_scale.data(),
+                  alpha, beta, m, n, ctx1);
+
+        typename Tensor<TargetType>::API::stream_t stream = ctx1.get_compute_stream();
+        c_dev.record_event(stream);
+        c_dev.sync();
+
+        c_host.copy_from(c_dev);
+        gemm_check(m, n, k, (const float *) a_host.data(), (const float *) b_host.data(),
+                   (float *) c_check.mutable_data(),
+                   alpha, beta, trans_a, trans_b);
+
+        int counts = count_diff((const float*)c_check.data(), (const float*)c_host.data(),
+                                c_check.valid_size(), 2e-1);
+
+        if (((double)counts / (double)c_host.valid_size()) > 0.02) {
+            print_tensor_valid(c_check);
+            print_tensor_valid(c_host);
+                    LOG(FATAL) << "VENDER: FAIL!!!! counts = " <<counts
+                               << "m = "<< m << " n = "<< n << " k = "<< k;
+        }
+        for (int t = 0; t < ts; ++t) {
+            saber_time.start(ctx1);
+            gemm_saber.dispatch(alpha, beta,
+                                 (const char *) a_dev_int8.data(),
+                                 (const char *) b_dev_int8.data(),
+                                 (float *) c_dev.mutable_data());
+            typename Tensor<TargetType>::API::stream_t stream = ctx1.get_compute_stream();
+            c_dev.record_event(stream);
+            c_dev.sync();
+            saber_time.end(ctx1);
+        }
+    }
     LOG(INFO) << "Vender time: " << (vender_status == SaberSuccess ? vender_time.get_average_ms() : 0)
               << " ms Saber time: " << (saber_status == SaberSuccess ? saber_time.get_average_ms() : 0)
               << " ms";

@@ -296,23 +296,19 @@ __global__ void calibrate_fix2float(float * dst,
 }
 
 template <>
-void float2char_col<NV>(signed char* dst, const float* src,
-                        float *scale, int height, int width, Context<NV> ctx) {
+void float2char<NV>(bool col_direct, signed char* dst, const float* src,
+                    float *scale, int height, int width, Context<NV> ctx) {
     int threads = 32;
     cudaStream_t cuda_stream = ctx.get_compute_stream();
-    calibrate_float2char_col<<<(width/threads)+(((width%threads)==0) ? 0 : 1) , threads, 0, cuda_stream>>>(
-            dst, src, scale, height, width);
+    if (col_direct) {
+        calibrate_float2char_col <<< (width / threads) + (((width % threads) == 0) ? 0 : 1), threads, 0,
+                cuda_stream >>> (
+                        dst, src, scale, height, width);
+    } else {
+        calibrate_float2char_row<<<(height / threads) + (((height % threads)==0) ? 0 : 1), threads, 0, cuda_stream>>>(
+                dst, src, scale, height, width);
+    }
 }
-
-template <>
-void float2char_row<NV>(signed char* dst, const float* src, float *scale, int height, int width,
-                        Context<NV> ctx) {
-    int threads = 32;
-    cudaStream_t cuda_stream = ctx.get_compute_stream();
-    calibrate_float2char_row<<<(height / threads) + (((height % threads)==0) ? 0 : 1), threads, 0, cuda_stream>>>(
-            dst, src, scale, height, width);
-}
-
 template <>
 void fix2float<NV>(float * dst,
                const float *sA, const float *sB,
