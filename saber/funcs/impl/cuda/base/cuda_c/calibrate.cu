@@ -2,6 +2,7 @@
 #include "saber/core/common.h"
 #include "saber/core/tensor.h"
 #include "saber/funcs/calibrate.h"
+#include <cfloat>
 
 namespace anakin {
 namespace saber {
@@ -211,5 +212,115 @@ SaberStatus conv_calibrate_int8_c4_fp32<NV>(
     return SaberSuccess;
 }
 
+#define JUDGESIGN(x) (((x) >= 0) ? +1 : -1)
+
+__global__
+void calibrate_float2char_col(signed char* dst, const float* src,
+                              float * scale, int height, int width) {
+
+    int gid = threadIdx.x + blockIdx.x * blockDim.x;
+    float col_max = 0.0f;
+    const float *data = src + gid;
+    for(int idx = 0; idx < height; ++idx){
+        if (gid < width) {
+            float temp = fabs(data[idx * width]);
+            col_max = (col_max >= temp)? col_max : temp;
+        }
+    }
+    signed char* target = dst + gid;
+    float col_scale = (float)((1 << 7) - 1) / col_max;
+    for(int idx = 0; idx < height; ++idx) {
+        if(gid < width) {
+            float temp = data[idx * width];
+            if(temp >= col_max - FLT_EPSILON) {
+                target[idx * width] = (signed char)((1 << 7) - 1);
+            } else if(temp <= -col_max + FLT_EPSILON) {
+                target[idx * width] = (signed char)(-(1 << 7));
+            } else {
+                target[idx * width] = (signed char)(temp * col_scale + JUDGESIGN(temp) * 0.5);
+            }
+        }
+    }
+    scale[gid] = 1.f / col_scale;
+}
+
+__global__
+void calibrate_float2char_row(signed char* dst, const float* src,
+                                         float * scale, int height, int width) {
+
+    int gid = threadIdx.x + blockIdx.x * blockDim.x;
+    float row_max = 0.0f;
+    const float * data = src + width * gid;
+    for(int idx = 0; idx < width; ++idx) {
+        if(gid < height){
+            float temp = fabs(data[idx]);
+            row_max = (row_max >= temp) ? row_max : temp;
+        }
+    }
+    signed char * target = dst + width * gid;
+    float row_scale = (float)((1 << 7) - 1) / row_max;
+    for(int idx = 0; idx < width; ++idx) {
+        if(gid < height) {
+            float temp = data[idx];
+            if(temp >= row_max - FLT_EPSILON) {
+                target[idx] = (signed char)((1 << 7) - 1);
+            } else if(temp <= -row_max + FLT_EPSILON) {
+                target[idx] = (signed char)(-(1 << 7));
+            } else {
+                target[idx] = (signed char)(temp * row_scale + JUDGESIGN(temp) * 0.5);
+            }
+        }
+    }
+    scale[gid] = 1.f / row_scale;
+}
+
+__global__ void calibrate_fix2float(float * dst,
+                                    const float* sA, const float* sB,
+                                    float alpha, float beta, int height,
+                                    int width, int threads) {
+    int ri = blockIdx.x;
+    int tid = threadIdx.x;
+    int loop = (width / threads) + ((width % threads == 0) ? 0 : 1);
+
+    float rscale = (sA[ri] == 0.0f) ? 1.0f : sA[ri];
+    float * data = dst + width * ri;
+    int idx = 0;
+    for (int i = 0; i < loop; ++i) {
+        if(idx + tid < width){
+            float temp = data[idx + tid];
+            float cscale = (sB[idx + tid] == 0.0f) ? 255.0f : sB[idx + tid];
+            data[idx + tid] = beta  * temp + alpha * temp * rscale * cscale;
+        }
+        idx += threads;
+    }
+}
+
+template <>
+void float2char_col<NV>(signed char* dst, const float* src,
+                        float *scale, int height, int width, Context<NV> ctx) {
+    int threads = 32;
+    cudaStream_t cuda_stream = ctx.get_compute_stream();
+    calibrate_float2char_col<<<(width/threads)+(((width%threads)==0) ? 0 : 1) , threads, 0, cuda_stream>>>(
+            dst, src, scale, height, width);
+}
+
+template <>
+void float2char_row<NV>(signed char* dst, const float* src, float *scale, int height, int width,
+                        Context<NV> ctx) {
+    int threads = 32;
+    cudaStream_t cuda_stream = ctx.get_compute_stream();
+    calibrate_float2char_row<<<(height / threads) + (((height % threads)==0) ? 0 : 1), threads, 0, cuda_stream>>>(
+            dst, src, scale, height, width);
+}
+
+template <>
+void fix2float<NV>(float * dst,
+               const float *sA, const float *sB,
+               const float alpha, const float beta, int height, int width, Context<NV> ctx) {
+    int threads = 256;
+    cudaStream_t cuda_stream = ctx.get_compute_stream();
+    calibrate_fix2float<<<height, threads, 0, cuda_stream>>>(dst, sA, sB, alpha, beta,
+            height, width, threads);
+}
 }
 }

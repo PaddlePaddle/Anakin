@@ -28,6 +28,18 @@ SaberStatus Gemm<NV, SABER_IMPL, float, float>::dispatch(const float alpha, cons
     _kernel(_m, _n, _k, alpha, ptr_a, beta, ptr_b, ptr_c, cuda_stream);
     return SaberSuccess;
 }
+template <>
+SaberStatus Gemm<NV, SABER_IMPL, char, float>::init(const bool trans_a, const bool trans_b,
+                                                     const int m, const int n, const int k,
+                                                     Context<NV> ctx) {
+    return SaberUnImplError;
+}
+template <>
+SaberStatus Gemm<NV, SABER_IMPL, char, float>::dispatch(const float alpha, const float beta,
+                                                         const char* ptr_a, const char* ptr_b, float* ptr_c) {
+
+    return SaberUnImplError;
+}
 
 }
 }

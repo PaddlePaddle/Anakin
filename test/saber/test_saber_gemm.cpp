@@ -66,7 +66,6 @@ void gemm_check(const int m, const int n, const int k,
 
 }
 
-
 template <typename TargetType, typename TargetType_H>
 void test_gemm_result (int m, int n, int k, bool trans_a, bool trans_b) {
 
@@ -133,11 +132,11 @@ void test_gemm_result (int m, int n, int k, bool trans_a, bool trans_b) {
             vender_time.end(ctx1);
         }
     }
-    if (vender_status == SaberSuccess) {
+    if (saber_status == SaberSuccess) {
         gemm_saber.dispatch(alpha, beta,
-                             (const float *) a_dev.data(),
-                             (const float *) b_dev.data(),
-                             (float *) c_dev.mutable_data());
+                            (const float *) a_dev.data(),
+                            (const float *) b_dev.data(),
+                            (float *) c_dev.mutable_data());
         typename Tensor<TargetType>::API::stream_t stream = ctx1.get_compute_stream();
         c_dev.record_event(stream);
         c_dev.sync();
@@ -263,7 +262,7 @@ void test_gemv_result (int m, int n, bool trans) {
             vender_time.end(ctx1);
         }
     }
-    if (vender_status == SaberSuccess) {
+    if (saber_status == SaberSuccess) {
         gemv_saber.dispatch(alpha, beta,
                             (const float *) a_dev.data(),
                             (const float *) b_dev.data(),
@@ -306,8 +305,8 @@ TEST(TestSaberFunc, test_vender_gemm_float) {
     std::vector<int> m_v = {5, 100, 150, 200, 250, 300};
     std::vector<int> n_v = {5, 100, 150, 200, 250, 300};
     std::vector<int> k_v = {5, 100, 150, 200, 250, 300};
-    std::vector<int> trans_a_v{false, true};
-    std::vector<int> trans_b_v{false, true};
+    std::vector<int> trans_a_v{false};
+    std::vector<int> trans_b_v{false};
 
     for (auto m : m_v)
     for (auto n : n_v)

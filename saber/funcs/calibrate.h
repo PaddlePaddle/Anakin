@@ -28,6 +28,21 @@ SaberStatus conv_calibrate_int8_c4_fp32(
         float* weight_scale,
         Context<TargetType> ctx);
 
+template<typename TargetType>
+void float2char_col(signed char* dst, const float* src,
+                    float *scale, int height, int width,
+                    Context<TargetType> ctx);
+
+template<typename TargetType>
+void float2char_row(signed char* dst, const float* src, float *scale, int height, int width,
+                    Context<TargetType> ctx);
+
+template<typename TargetType>
+void fix2float(float * dst,
+               const float *sA, const float *sB,
+               const float alpha, const float beta, int height, int width,
+               Context<TargetType> ctx);
+
 template<typename TargetType, typename TargetType_H>
 SaberStatus convert_weights_to_nchw_c4_host(Tensor<TargetType_H>& out_tensor,
                                             const Tensor<TargetType_H>& in_tensor,
