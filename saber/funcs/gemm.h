@@ -36,22 +36,45 @@ public:
     SaberStatus init(const bool trans_A, const bool trans_B,
                      const int m, const int n, const int k,
                      Context<TargetType> ctx) {
-
-        LOG(INFO) << "UNIMPLEMENT";
         return SaberUnImplError;
     }
 
     SaberStatus dispatch(const outDtype alpha, const outDtype beta,
                          const inDtype* a, const inDtype* b,
                          outDtype* c) {
-
-        LOG(INFO) << "UNIMPLEMENT";
         return SaberUnImplError;
     }
 
 private:
     Context<TargetType> _ctx;
 };
+
+template<typename TargetType,
+        ImplEnum impl,
+        typename inDtype,
+        typename outDtype = inDtype>
+class Gemv {
+    // Row major gemm
+public:
+    Gemv() = default;
+    ~Gemv() {}
+
+    SaberStatus init(const bool trans_A, const int m, const int n,
+                     const int incx, const int incy,
+                     Context<TargetType> ctx) {
+        return SaberUnImplError;
+    }
+
+    SaberStatus dispatch(const outDtype alpha, const outDtype beta,
+                         const inDtype* a, const inDtype* b,
+                         outDtype* c) {
+        return SaberUnImplError;
+    }
+
+private:
+    Context<TargetType> _ctx;
+};
+
 }
 }
 

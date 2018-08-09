@@ -46,5 +46,50 @@ SaberStatus Gemm<NV, VENDER_IMPL, float, float>::dispatch(
     return SaberSuccess;
 }
 
+
+template<>
+SaberStatus Gemv<NV, VENDER_IMPL, float, float>::init(const bool trans, const int m, const int n,
+                                                      const int incx, const int incy,
+                                                      Context<NV> ctx) {
+
+    if (!(ctx == this->_ctx)) {
+        if (_handle != NULL) {
+            CUBLAS_CHECK(cublasDestroy(_handle));
+        }
+        this->_ctx = ctx;
+        cudaStream_t cuda_stream = ctx.get_compute_stream();
+        CUBLAS_CHECK(cublasCreate(&_handle));
+        CUBLAS_CHECK(cublasSetStream(_handle, cuda_stream));
+    }
+
+    _lda = n;
+    CHECK_GT(m, 0);
+    CHECK_GT(n, 0);
+    CHECK_GT(incx, 0);
+    CHECK_GT(incy, 0);
+    _m = m;
+    _n = n;
+    _incx = incx;
+    _incy = incy;
+    _cu_trans = trans ? CUBLAS_OP_N: CUBLAS_OP_T;
+
+    return SaberSuccess;
+}
+
+template<>
+SaberStatus Gemv<NV, VENDER_IMPL, float, float>::dispatch(
+        const float alpha, const float beta,
+        const float* a, const float* b,
+        float* c) {
+
+    CHECK(a != nullptr);
+    CHECK(b != nullptr);
+    CHECK(c != nullptr);
+    CUBLAS_CHECK(cublasSgemv(_handle, _cu_trans, _n, _m,
+                             &alpha, a, _lda, b, _incx, &beta, c, _incy));
+
+    return SaberSuccess;
+}
+
 }
 }

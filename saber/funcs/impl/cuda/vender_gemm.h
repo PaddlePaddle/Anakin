@@ -37,6 +37,33 @@ private:
     int _ldc{-1};
 };
 
+template<typename inDtype,
+        typename outDtype>
+class Gemv<NV, VENDER_IMPL, inDtype, outDtype> {
+
+public:
+    Gemv() = default;
+    ~Gemv() {}
+
+    SaberStatus init(const bool trans, const int m, const int n,
+                     const int incx, const int incy,
+                     Context<NV> ctx);
+
+    SaberStatus dispatch(const outDtype alpha, const outDtype beta,
+                         const inDtype* a, const inDtype* b,
+                         outDtype* c);
+
+private:
+    Context<NV> _ctx;
+    cublasHandle_t _handle{nullptr};
+    cublasOperation_t _cu_trans;
+    int _incx{-1};
+    int _incy{-1};
+    int _m{-1};
+    int _n{-1};
+    int _lda{-1};
+};
+
 }
 }
 
