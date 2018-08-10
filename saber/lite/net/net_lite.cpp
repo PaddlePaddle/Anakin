@@ -243,7 +243,7 @@ SaberStatus Net::prediction() {
     }
     for (int i = 0; i < _ops.size(); ++i) {
         LCHECK_EQ(_ops[i]->dispatch(_tensor_ins[i], _tensor_outs[i]), SaberSuccess, "run op failed");
-#if 1//def ENABLE_DEBUG
+#ifdef ENABLE_DEBUG
         for (int j = 0; j < _tensor_outs[i].size(); ++j) {
             double meanval = tensor_mean(*_tensor_outs[i][j]);
             printf("op: %s, mean: %.6f\n", _ops[i]->get_op_name(), meanval);
