@@ -308,7 +308,8 @@ public:
     void run_test (CpuFunc_t CpuFunc, double succ_ratio=0.00001){
         if(_input_type == SPECIAL){
             fill_inputs(_special_value, _special_value);
-        }if(_input_type == RANDOM){
+        }
+        if(_input_type == RANDOM){
             fill_inputs(_min_value, _max_value);
         }
        // LOG(INFO) << "_input_type" << _input_type;
