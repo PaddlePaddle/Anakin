@@ -88,11 +88,10 @@ void activation_basic(const std::vector<Tensor<TargetType_H>*>& inputs, std::vec
                // LOG(INFO) << "slop_dev: " << shape[0] << ", " << shape[2];  
                 //slop_host->set_shape(shape);
                 slop_host = new Tensor<TargetType_H>(shape);
-               // LOG(INFO) << "slop_dev: " << slop_dev->valid_size();
+                //LOG(INFO) << "slop_dev: " << slop_dev->valid_size();
                 slop_host->copy_from(*slop_dev);
                 //LOG(INFO) << "slop_host: " << slop_host->valid_size();
                 const dtype *slope_ptr = (const dtype*)slop_host->data();
-                
               // const dtype *slope_ptr = (const dtype*)prelu_param.slope->data();
                 for (int c = 0; c < channel; c++){
                     const dtype *in_ch_ptr = in_ptr + c * size;
@@ -102,136 +101,71 @@ void activation_basic(const std::vector<Tensor<TargetType_H>*>& inputs, std::vec
                         out_ch_ptr[k] = in_ch_ptr[k] > 0 ? in_ch_ptr[k] : in_ch_ptr[k] * slope;
                     }
                 }
+                delete slop_host;
             }
             break; 
     }
 }
 
-TEST(TestSaberFunc, test_func_activation) {
+template <DataType Dtype,typename TargetType_D,typename TargetType_H>
+void test_model(){
+
     int num = num_in;
     int channel = ch_in;
     int height = h_in;
     int width = w_in;
-   
-#ifdef USE_CUDA
-   //Init the test_base
-    TestSaberBase<NV, NVHX86, AK_FLOAT, Activation, ActivationParam> testbase(1,1);
+
+    TestSaberBase<TargetType_D, TargetType_H, Dtype, Activation, ActivationParam> testbase(1,1);
     Shape input_shape({num, channel, height, width}, Layout_NCHW);
     Shape input_shape2({2, 2, 12, 22}, Layout_NCHW);
-
+    //test example
     for(auto shape: {input_shape, input_shape2}){
         for(auto act: {1, 2, 3, 4, 5, 9, 10, active}){
-           // LOG(INFO) << "================ active: " << act;
+            LOG(INFO) << "================ active: " << act;
             for(auto neg_slope: {-1.0, 0.5}){
                 for(auto coef: {1.0, 0.5}){
                     for(auto has: {true, false}){
                         if(act == 10){
                             for(auto shared: {true, false}){
                                 Shape slope_shape({1, shape[1], 1, 1}, Layout_NCHW);
-                                Tensor<NV> slope_tensor;
-                                slope_tensor.re_alloc(slope_shape, AK_FLOAT);
+                                Tensor<TargetType_D> slope_tensor;
+                                slope_tensor.re_alloc(slope_shape, Dtype);
                                 fill_tensor_rand(slope_tensor, -1.0, 1.0);
-                                PreluParam<NV> prelu(shared, &slope_tensor);
-                                ActivationParam<NV> param(act, neg_slope, coef, prelu, has);
+                                PreluParam<TargetType_D> prelu(shared, &slope_tensor);
+                                ActivationParam<TargetType_D> param(act, neg_slope, coef, prelu, has);
                                 testbase.set_param(param);//set param
                                 testbase.set_input_shape(shape);
-                                testbase.run_test(activation_basic<float, NV, NVHX86>);//run test
-                                LOG(INFO) << "NV run end";
+                                testbase.run_test(activation_basic<float, TargetType_D, TargetType_H>);//run test
+                               // LOG(INFO) << "NV run end";
                             }
                             
                         }else{
-                            PreluParam<NV> prelu(false, nullptr);
-                            ActivationParam<NV> param(act, neg_slope, coef, prelu, has);
+                            PreluParam<TargetType_D> prelu(false, nullptr);
+                            if(act == 2) neg_slope = 0.f;//relu
+                            ActivationParam<TargetType_D> param(act, neg_slope, coef, prelu, has);
                             //LOG(INFO) << "neg_slope: " << neg_slope << ", coef: " << coef << ", has: " << has;
                             testbase.set_param(param);//set param
                             testbase.set_input_shape(shape);
-                            testbase.run_test(activation_basic<float, NV, NVHX86>);//run test
-                            LOG(INFO) << "NV run end";
+                            testbase.run_test(activation_basic<float, TargetType_D, TargetType_H>);//run test
+                           // LOG(INFO) << "NV run end";
                         }
                     }
                 }
             }
         }
     }
-
+}
+TEST(TestSaberFunc, test_func_activation) {
+   
+#ifdef USE_CUDA
+   //Init the test_base
+   test_model<AK_FLOAT, NV, NVHX86>();
 #endif
 #ifdef USE_X86_PLACE
-    TestSaberBase<X86, X86, AK_FLOAT, Activation, ActivationParam> testbase(1,1);
-    Shape input_shape({num, channel, height, width}, Layout_NCHW);
-    Shape input_shape2({2, 2, 12, 22}, Layout_NCHW);
-
-    for(auto shape: {input_shape, input_shape2}){
-        for(auto act: {1, 2, 3, 4, 5, 9, 10, active}){
-         //    LOG(INFO) << "================ active: " << act;
-             for(auto neg_slope: {-1.0, 0.5}){
-                for(auto coef: {1.0, 0.5}){
-                    for(auto has: {true, false}){
-                        if(act == 10){
-                            for(auto shared: {true, false}){
-                                Shape slope_shape({1, shape[1], 1, 1}, Layout_NCHW);
-                                Tensor<X86> slope_tensor;
-                                slope_tensor.re_alloc(slope_shape, AK_FLOAT);
-                                fill_tensor_rand(slope_tensor, -1.0, 1.0);
-                                PreluParam<X86> prelu(shared, &slope_tensor);
-                                ActivationParam<X86> param(act, neg_slope, coef, prelu, has);
-                                testbase.set_param(param);//set param
-                                testbase.set_input_shape(shape);
-                                testbase.run_test(activation_basic<float, X86, X86>);//run test
-                                LOG(INFO) << "X86 run end";
-                            }
-                            
-                        }else{
-                            PreluParam<X86> prelu(false, nullptr);
-                            ActivationParam<X86> param(act, neg_slope, coef, prelu, has);
-                            testbase.set_param(param);//set param
-                            testbase.set_input_shape(shape);
-                            testbase.run_test(activation_basic<float, X86, X86>);//run test
-                            LOG(INFO) << "X86 run end";
-                        }
-                    }
-                }
-            }
-        }
-    }
+    test_model<AK_FLOAT, X86, X86>();
 #endif
 #ifdef USE_ARM_PLACE
-    TestSaberBase<ARM, ARM, AK_FLOAT, Activation, ActivationParam> testbase(1,1);
-    Shape input_shape({num, channel, height, width}, Layout_NCHW);
-    Shape input_shape2({2, 20, 13, 16}, Layout_NCHW);
-
-    for(auto shape: {input_shape, input_shape2}){
-        for(auto act: {1, 2, 3, 4, 5, 9, 10, active}){
-            LOG(INFO) << "================ active: " << act;
-             for(auto neg_slope: {-1.0, 0.5}){
-                for(auto coef: {1.0, 0.5}){
-                    for(auto has: {true, false}){
-                        if(act == 10){
-                            for(auto shared: {true, false}){
-                                Shape slope_shape({1, shape[1], 1, 1}, Layout_NCHW);
-                                Tensor<ARM> slope_tensor;
-                                slope_tensor.re_alloc(slope_shape, AK_FLOAT);
-                                fill_tensor_rand(slope_tensor, -1.0, 1.0);
-                                PreluParam<ARM> prelu(shared, &slope_tensor);
-                                ActivationParam<ARM> param(act, neg_slope, coef, prelu, has);
-                                testbase.set_param(param);//set param
-                                testbase.set_input_shape(shape);
-                                testbase.run_test(activation_basic<float, ARM, ARM>);//run test
-                                LOG(INFO) << "ARM run end";
-                            }
-                            
-                        }else{
-                            PreluParam<ARM> prelu(false, nullptr);
-                            ActivationParam<ARM> param(act, neg_slope, coef, prelu, has);
-                            testbase.set_param(param);//set param
-                            testbase.set_input_shape(shape);
-                            testbase.run_test(activation_basic<float, ARM, ARM>);//run test
-                            LOG(INFO) << "ARM run end";
-                        }
-                    }
-                }
-            }
-        }
-    }
+    test_model<AK_FLOAT, ARM, ARM>();
 #endif
 }
 

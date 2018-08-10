@@ -27,7 +27,7 @@ __global__ void ker_relu_fwd(Dtype * out_data,
                        + w * out_w_stride;
 
         Dtype in_var = in_data[in_idx];
-        out_data[out_idx] = in_var > Dtype(0) ? in_var : Dtype(0);
+        out_data[out_idx] = in_var > Dtype(0) ? in_var : in_var * neg_slop;
     }
 }
 
@@ -55,7 +55,7 @@ __global__ void ker_sigmoid_fwd(Dtype * out_data,
                         + w * out_w_stride;
 
         Dtype in_var = in_data[in_idx];
-        out_data[out_idx] = Dtype( Dtype(1) / (Dtype(1)+ expf(-in_var)));
+        out_data[out_idx] = Dtype( Dtype(1) / (Dtype(1)+ exp(-in_var)));
 
     }
 }
@@ -84,8 +84,8 @@ __global__ void ker_tanh_fwd(Dtype * out_data,
                         + w * out_w_stride;
 
         Dtype in_var = in_data[in_idx];
-        //(expf(in_var) - expf(-in_var)) / (expf(in_var) + expf(-in_var));
-        out_data[out_idx] = Dtype(1) - (Dtype(2) / (Dtype(1) + expf(in_var * 2))); 
+        //(expf(in_var) - expf(-in_var)) / (expf(in_var) + expf(-in_var));exp
+        out_data[out_idx] = Dtype(1) - (Dtype(2) / (Dtype(1) + exp(in_var * 2))); 
 
     }
 }
@@ -117,7 +117,7 @@ __global__ void ker_stanh_fwd(Dtype * out_data,
         Dtype in_var = in_data[in_idx];
         Dtype var = in_var * slope;
         //output_data[j] = param.coef * tanh(param.negative_slope * input_data[j]);
-        out_data[out_idx] = Dtype( coef * (Dtype(1) - (Dtype(2) / (Dtype(1) + expf(var * 2)))));
+        out_data[out_idx] = Dtype( coef * (Dtype(1) - (Dtype(2) / (Dtype(1) + exp(var * 2)))));
     }
 }
 
@@ -171,7 +171,7 @@ __global__ void ker_elu_fwd(Dtype * out_data,
                         + w * out_w_stride;
 
         Dtype in_var = in_data[in_idx];
-        out_data[out_idx] = in_var > 0 ? in_var : coef * (expf(in_var)-1);
+        out_data[out_idx] = in_var > 0 ? in_var : coef * (exp(in_var)-1);
     }
 }
 
