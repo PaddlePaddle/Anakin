@@ -96,86 +96,14 @@ TEST(TestSaberFunc, test_func_concat) {
 #ifdef USE_CUDA
    //Init the test_base
    test_model<AK_FLOAT, NV, NVHX86>();
-   /*
-    TestSaberBase<NV, NVHX86, AK_FLOAT, Concat, ConcatParam> testbase(2,1);
-    Shape input_shape({num, channel, height, width}, Layout_NCHW);
-    Shape input_shape2({2, 2, 12, 22}, Layout_NCHW);
-
-    for(auto shape: {input_shape, input_shape2}){
-        for(auto axis: {0,1,2,3, axis1}){
-            ConcatParam<NV> param(axis);
-            testbase.set_param(param);//set param
-            //testbase.set_rand_limit(255,255);
-            std::vector<Shape> shape_v;
-            shape_v.push_back(shape);
-            Shape shin = shape;
-            shin[axis] = 2;
-            shape_v.push_back(shin);
-            Shape shin2 = shape;
-            shin2[axis] = 4;
-            shape_v.push_back(shin2);
-            testbase.set_input_shape(shape_v);//add some input shape
-            testbase.run_test(concat_nv_basic<float, NV, NVHX86>);//run test
-            LOG(INFO) << "NV run end";
-	}
-    }
-*/
 #endif
 #ifdef USE_X86_PLACE
 test_model<AK_FLOAT, X86, X86>();
-/*
-    TestSaberBase<X86, X86, AK_FLOAT, Concat, ConcatParam> testbase(2,1);
-    Shape input_shape({num, channel, height, width}, Layout_NCHW);
-    Shape input_shape2({2, 2, 12, 22}, Layout_NCHW);
-
-    for(auto shape: {input_shape, input_shape2}){
-        for(auto axis: {0,1,2,3, axis1}){
-            ConcatParam<X86> param(axis);
-            testbase.set_param(param);//set param
-            //testbase.set_rand_limit(255,255);
-            std::vector<Shape> shape_v;
-            shape_v.push_back(shape);
-            Shape shin = shape;
-            shin[axis] = 2;
-            shape_v.push_back(shin);
-            Shape shin2 = shape;
-            shin2[axis] = 4;
-            shape_v.push_back(shin2);
-            testbase.set_input_shape(shape_v);//add some input shape
-            testbase.run_test(concat_nv_basic<float, X86, X86>);//run test
-            LOG(INFO) << "X86 run end";
-        }
-    }
-    */
 #endif
 
 #ifdef USE_ARM_PLACE
    //Init the test_base
     test_model<AK_FLOAT, ARM, ARM>();
-   /*
-    TestSaberBase<ARM, ARM, AK_FLOAT, Concat, ConcatParam> testbase(2,1);
-    Shape input_shape({num, channel, height, width}, Layout_NCHW);
-    Shape input_shape2({2, 2, 12, 22}, Layout_NCHW);
-
-    for(auto shape: {input_shape, input_shape2}){
-        for(auto axis: {0,1,2,3, axis1}){
-            ConcatParam<ARM> param(axis);
-            testbase.set_param(param);//set param
-            //testbase.set_rand_limit(255,255);
-            std::vector<Shape> shape_v;
-            shape_v.push_back(shape);
-            Shape shin = shape;
-            shin[axis] = 2;
-            shape_v.push_back(shin);
-            Shape shin2 = shape;
-            shin2[axis] = 4;
-            shape_v.push_back(shin2);
-            testbase.set_input_shape(shape_v);//add some input shape
-            testbase.run_test(concat_nv_basic<float, ARM, ARM>);//run test
-            LOG(INFO) << "ARM run end";
-	}
-    }
-*/
 #endif
 }
 
