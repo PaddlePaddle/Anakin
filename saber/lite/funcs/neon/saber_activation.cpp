@@ -19,7 +19,7 @@ void act_relu(const float* din, float* dout, int n, int c, int h, int w, const A
         float* ptr_out_thread = dout + i * nums_per_thread;
         int cnt = neon_loop_cnt;
 #ifdef __aarch64__
-        for(int num=0;num<neon_loop_cnt;++num){
+        for(int num = 0;num < neon_loop_cnt; ++num){
             float32x4_t vr0 = vld1q_f32(ptr_in_thread);
             ptr_in_thread+=4;
             float32x4_t vr1 = vld1q_f32(ptr_in_thread);
@@ -41,7 +41,6 @@ void act_relu(const float* din, float* dout, int n, int c, int h, int w, const A
             vst1q_f32(ptr_out_thread,vr3);
             ptr_out_thread+=4;
         }
-
 #else
         if (cnt > 0) {
                     asm volatile (
@@ -158,7 +157,7 @@ void act_sigmoid(const float* din, float* dout, int n, int c, int h, int w, cons
         float32x4_t recip  = vdupq_n_f32(0.0f);
         const float* ptr_in_thread = din + i * nums_per_thread;
         float* ptr_out_thread = dout + i * nums_per_thread;
-        for (int k=0; k<neon_loop_cnt_dim4; ++k ) {
+        for (int k = 0; k < neon_loop_cnt_dim4; ++k ) {
             exp_vec=exp_ps(vnegq_f32(vld1q_f32(ptr_in_thread)));
             exp_vec = vaddq_f32(exp_vec, vdupq_n_f32(1.0f));
             recip = vrecpeq_f32(exp_vec);
@@ -168,7 +167,7 @@ void act_sigmoid(const float* din, float* dout, int n, int c, int h, int w, cons
             ptr_out_thread+=4;
             ptr_in_thread+=4;
         }
-        for(int j=0;j<neon_loop_remain_dim4;++j){
+        for(int j =0;j < neon_loop_remain_dim4; ++j){
             ptr_out_thread[0] = 1.f / ( 1 + expf(-ptr_in_thread[0]));
             ptr_in_thread++;
             ptr_out_thread++;
@@ -199,7 +198,7 @@ void act_tanh(const float* din, float* dout, int n, int c, int h, int w, const A
         float32x4_t recip  = vdupq_n_f32(0.0f);
         const float* ptr_in_thread = din + i * nums_per_thread;
         float* ptr_out_thread = dout + i * nums_per_thread;
-        for (int k=0; k<neon_loop_cnt_dim4; ++k ) {
+        for (int k = 0; k < neon_loop_cnt_dim4; ++k ) {
             exp_plus_vec=exp_ps(vld1q_f32(ptr_in_thread));
             exp_minus_vec=exp_ps(vnegq_f32(vld1q_f32(ptr_in_thread)));
             exp_sum_vec=vaddq_f32(exp_plus_vec,exp_minus_vec);
@@ -209,7 +208,7 @@ void act_tanh(const float* din, float* dout, int n, int c, int h, int w, const A
             ptr_out_thread+=4;
             ptr_in_thread+=4;
         }
-        for(int j=0;j<neon_loop_remain_dim4;++j){
+        for(int j = 0;j < neon_loop_remain_dim4; ++j){
             ptr_out_thread[0]=(expf(ptr_in_thread[0]) - expf(-ptr_in_thread[0])) / (expf(ptr_in_thread[0]) + expf(-ptr_in_thread[0]));
             ptr_in_thread++;
             ptr_out_thread++;
