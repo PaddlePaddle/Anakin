@@ -71,3 +71,5 @@ if [ ! -d $out_path ];then
 fi
 
 gen_code $mode_name $mode_path $out_path $debug_mode
+
+rm $out_path/*.tmp

@@ -1052,8 +1052,7 @@ std::string ParserActivation(graph::AttrInfo& attr,
     CodeWritter code_w;
 	if (type == "TanH") {
         if (gen_param) {
-            code_w << (int)Active_tanh << "," << 0.f << "," << 0.f << "," << 0 << "," << 0;
-            code_w << "\n";
+            code_w << (int)Active_tanh << "," << 0.f << "," << 0.f << "," << 0 << "," << 0 << "\n";
         } else {
             act_type = "Active_tanh";
             code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
@@ -1064,8 +1063,7 @@ std::string ParserActivation(graph::AttrInfo& attr,
 
 	} else if (type == "Sigmoid") {
         if (gen_param) {
-            code_w << (int)Active_sigmoid << "," << 0.f << "," << 0.f << "," << 0 << "," << 0;
-            code_w << "\n";
+            code_w << (int)Active_sigmoid << "," << 0.f << "," << 0.f << "," << 0 << "," << 0 << "\n";
         } else {
             act_type = "Active_sigmoid";
             code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
@@ -1077,8 +1075,7 @@ std::string ParserActivation(graph::AttrInfo& attr,
 
     } else if (type == "ReLU") {
         if (gen_param) {
-            code_w << (int)Active_relu << " " << 0.f << " " << 0.f << " " << 0 << " " << 0;
-            code_w << "\n";
+            code_w << (int)Active_relu << "," << 0.f << "," << 0.f << "," << 0 << "," << 0 << "\n";
         } else {
             act_type = "Active_relu";
             code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
@@ -1099,9 +1096,8 @@ std::string ParserActivation(graph::AttrInfo& attr,
 
         auto offset_info = writter.get_weights_by_name(node_name);
         if (gen_param) {
-            code_w << (int)Active_prelu << " " << 0.f << " " << 0.f << " " << \
-                (prelu_channel_shared ? 1 : 0) << " " << offset_info.weights[0].offset;
-            code_w << "\n";
+            code_w << (int)Active_prelu << "," << 0.f << "," << 0.f << "," << \
+                (prelu_channel_shared ? 1 : 0) << "," << offset_info.weights[0].offset << "\n";
         } else {
             code_w.feed("ParamBase* %s_param = new ActivationParam(%s, %f, %f, %s, %s+%d);\n",
                         node_name.c_str(),
@@ -1135,8 +1131,7 @@ std::string ParserRelu(graph::AttrInfo& attr,
 	// gen cpp code
 	CodeWritter code_w;
     if (gen_param) {
-        code_w << (int)Active_relu << " " << 0.f << " " << 0.f << " " << 0 << " " << 0;
-        code_w << "\n";
+        code_w << (int)Active_relu << "," << 0.f << "," << 0.f << "," << 0 << "," << 0 << "\n";
     } else {
         code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
                     node_name.c_str(),
@@ -1309,9 +1304,8 @@ std::string ParserPrelu(graph::AttrInfo& attr,
 	// gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w << (int)Active_prelu << " " << 0.f << " " << 0.f << " " << \
-                (channel_shared ? 1 : 0) << " " << offset_info.weights[0].offset;
-        code_w << "\n";
+        code_w << (int)Active_prelu << "," << 0.f << "," << 0.f << "," << \
+                (channel_shared ? 1 : 0) << "," << offset_info.weights[0].offset << "\n";
     } else {
         code_w.feed("ParamBase* %s_param = new ActivationParam(%s, %f, %f, %s, %s+%d);\n",
                         node_name.c_str(),
