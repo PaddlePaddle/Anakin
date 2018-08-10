@@ -505,6 +505,9 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_source(const bool debug_mode) {
 	gen_source_end();
 	_code.save();
     gen_opt_model();
+    if (!_flag_aot) {
+        gen_merge_model();
+    }
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
@@ -610,6 +613,38 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_opt_model() {
     }
 
     _opt_param_write.save();
+}
+
+template<typename Ttype, DataType Dtype, Precision Ptype>
+void GenCPP<Ttype, Dtype, Ptype>::gen_merge_model() {
+    FILE* fp_merge = fopen(_merge_opt_file.c_str(), "wb");
+    FILE* fp_weight = fopen(_model_file_name.c_str(), "rb");
+    FILE* fp_info = fopen(_model_opt_file_name.c_str(), "rb");
+    fseek(fp_weight, 0, SEEK_END);
+    long wsize = ftell(fp_weight);
+    fseek(fp_weight, 0, SEEK_SET);
+    char* wbuffer = new char[wsize + 1];
+    fread(wbuffer, wsize, 1, fp_weight);
+
+    fseek(fp_info, 0, SEEK_END);
+    long isize = ftell(fp_info);
+    fseek(fp_info, 0, SEEK_SET);
+    char* ibuffer = new char[isize + 1];
+    fread(ibuffer, isize, 1, fp_info);
+
+    fprintf(fp_merge, "Wsize %lu\n", wsize);
+    fwrite(wbuffer, wsize, 1, fp_merge);
+
+    fwrite(ibuffer, isize, 1, fp_merge);
+
+    fflush(fp_merge);
+    fclose(fp_merge);
+
+    fclose(fp_weight);
+    fclose(fp_info);
+
+    delete [] wbuffer;
+    delete [] ibuffer;
 }
 
 #ifdef USE_CUDA

@@ -21,6 +21,7 @@ SaberStatus SaberFlatten::load_param(const ParamBase *param) {
 
 SaberStatus SaberFlatten::load_param(FILE *fp, const float *weights) {
     fscanf(fp, "\n");
+    this->_flag_param = true;
     return SaberSuccess;
 }
 

@@ -103,6 +103,12 @@ SaberStatus SaberConv2D::compute_output_shape(const std::vector<Tensor<CPU, AK_F
 
     output_shape.set_width(output_dim);
 
+#ifdef ENABLE_OP_TIMER
+    this->_op_macs = _param->_kw * _param->_kh * \
+        output_shape.num() * output_shape.channel() * output_shape.width() * output_shape.height() * \
+        inputs[0]->channel() / _param->_group;
+#endif
+
     return outputs[0]->set_shape(output_shape);
 }
 
@@ -296,7 +302,7 @@ SaberStatus SaberConv2D::dispatch(\
 #ifdef ENABLE_OP_TIMER
     this->_timer.end();
     float ts = this->_timer.get_average_ms();
-    printf("%s conv time: %f\n", _conv_type.c_str(), ts);
+    printf("%s conv time: %f ms, %f GOPS\n", _conv_type.c_str(), ts, 0.000001 * this->_op_macs / ts);
     OpTimer::add_timer("convolution", ts);
     OpTimer::add_timer("total", ts);
     OpTimer::add_timer(_conv_type, ts);

@@ -47,28 +47,37 @@ SaberStatus Net::set_device_cache(size_t l1_cache, size_t l2_cache) {
 }
 
 //template <typename dtype>
-SaberStatus Net::load_model(const char *opt_file, const char *model_file) {
-    FILE *fp_w = fopen(model_file, "rb");
-    if(!fp_w) {
-        printf("load weights failed: %s\n", model_file);
+SaberStatus Net::load_model(const char *lite_model) {
+//    FILE *fp_w = fopen(model_file, "rb");
+//    if(!fp_w) {
+//        printf("load weights failed: %s\n", model_file);
+//        return SaberInvalidValue;
+//    }
+//    fseek(fp_w, 0, SEEK_END);
+//    long fsize = ftell(fp_w);
+//    fseek(fp_w, 0, SEEK_SET);
+//    if(_weights) {
+//        delete [] _weights;
+//        _weights = nullptr;
+//    }
+//    _weights = static_cast<float*>(fast_malloc(fsize + 1));//new float[fsize + 1];
+//    fread(_weights, fsize, 1, fp_w);
+//    fclose(fp_w);
+
+    FILE* fp = fopen(lite_model, "rb");
+    if (!fp) {
+        printf("open %s failed\n", lite_model);
         return SaberInvalidValue;
     }
-    fseek(fp_w, 0, SEEK_END);
-    long fsize = ftell(fp_w);
-    fseek(fp_w, 0, SEEK_SET);
-    if(_weights) {
+    long wsize;
+    fscanf(fp, "Wsize %lu\n", &wsize);
+    if (_weights) {
         delete [] _weights;
         _weights = nullptr;
     }
-    _weights = static_cast<float*>(fast_malloc(sizeof(float) * (fsize + 1)));//new float[fsize + 1];
-    fread(_weights, fsize, sizeof(float), fp_w);
-    fclose(fp_w);
+    _weights = static_cast<float*>(fast_malloc(wsize + 1));
+    fread(_weights, wsize, 1, fp);
 
-    FILE* fp = fopen(opt_file, "rb");
-    if (!fp) {
-        printf("open %s failed\n", opt_file);
-        return SaberInvalidValue;
-    }
     int tensor_size = 0;
     int nscan = fscanf(fp, "Tensor number %d\n", &tensor_size);
     //printf("tensor size %d\n", tensor_size);
@@ -234,7 +243,7 @@ SaberStatus Net::prediction() {
     }
     for (int i = 0; i < _ops.size(); ++i) {
         LCHECK_EQ(_ops[i]->dispatch(_tensor_ins[i], _tensor_outs[i]), SaberSuccess, "run op failed");
-#ifdef ENABLE_DEBUG
+#if 1//def ENABLE_DEBUG
         for (int j = 0; j < _tensor_outs[i].size(); ++j) {
             double meanval = tensor_mean(*_tensor_outs[i][j]);
             printf("op: %s, mean: %.6f\n", _ops[i]->get_op_name(), meanval);

@@ -41,24 +41,28 @@ SaberStatus SaberPriorBox::load_param(FILE *fp, const float *weights) {
     for (int i = 0; i < size_min; ++i) {
         fscanf(fp, "%f ", &min_size[i]);
     }
+
     //! max
     fscanf(fp, ", %d ", &size_max);
     max_size.resize(size_max);
     for (int i = 0; i < size_max; ++i) {
         fscanf(fp, "%f ", &max_size[i]);
     }
+
     //! as
     fscanf(fp, ", %d ", &size_as);
     as.resize(size_as);
     for (int i = 0; i < size_as; ++i) {
         fscanf(fp, "%f ", &as[i]);
     }
+
     //! var
     fscanf(fp, ", %d ", &size_var);
     var.resize(size_var);
     for (int i = 0; i < size_var; ++i) {
         fscanf(fp, "%f ", &var[i]);
     }
+
     //! others
     int flip_flag;
     int clip_flag;
@@ -68,7 +72,7 @@ SaberStatus SaberPriorBox::load_param(FILE *fp, const float *weights) {
     float step_h;
     float offset;
     std::vector<int> type(3);
-    std::vector<PriorType> ptype;
+    std::vector<PriorType> ptype(3);
     fscanf(fp, ",%d,%d,%d,%d,%f,%f,%f,%d,%d,%d\n", &flip_flag, &clip_flag,
            &img_w, &img_h, &step_w, &step_h, &offset, &type[0], &type[1], &type[2]);
     ptype[0] = (PriorType)type[0];

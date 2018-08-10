@@ -61,7 +61,7 @@ public:
      * @param model_file:   weights file path
      * @return return SaberSuccess if success
      */
-    SaberStatus load_model(const char* opt_file, const char* model_file);
+    SaberStatus load_model(const char* lite_model);
 
     /**
      * \brief load model weights from memory

@@ -53,6 +53,7 @@ protected:
     bool _flag_create_param{false};
 #ifdef ENABLE_OP_TIMER
     SaberTimer _timer;
+    unsigned long long _op_macs{0};
 #endif
 };
 

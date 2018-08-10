@@ -46,6 +46,7 @@ SaberStatus SaberSlice::load_param(FILE *fp, const float *weights) {
     _param = new SliceParam(axis, points);
     this->_flag_create_param = true;
     this->_flag_param = true;
+    return SaberSuccess;
 }
 
 SaberStatus SaberSlice::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
