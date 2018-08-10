@@ -17,7 +17,8 @@ using Target_H = ARM;
 //#define USE_DIEPSE
 
 // vgg16
-std::string model_path = "../benchmark/CNN/models/vgg16.anakin.bin";
+//std::string model_path = "../benchmark/CNN/models/vgg16.anakin.bin";
+std::string model_path = "/home/public/model_from_fluid/beta/demoprogram.anakin2.bin";
 
 #ifdef USE_CUDA
 #if 1

@@ -1,5 +1,5 @@
-#include "core/tensor.h"
-#include "core/env.h"
+#include "saber/core/tensor.h"
+#include "saber/core/env.h"
 #ifdef USE_CUBLAS
 const char* cublas_get_errorstring(cublasStatus_t error) {
     switch (error) {

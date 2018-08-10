@@ -17,7 +17,6 @@ Status Graph<Ttype, Dtype, Ptype>::load(std::istream* instream) EXCLUSIVE_LOCKS_
     Status ret = Status::OK();
     if(instream != nullptr) {
         this->Clean();
-        LOG(ERROR) << "load model from istream";
         ret = parser::load<Ttype, Dtype>(this, instream);
         _model_path = "parser from istream";
     } else {

@@ -1,8 +1,10 @@
 #include "test_lite.h"
 #include "mobilenet.h" //change here according to your own model
+#include <fstream>
 
 using namespace anakin::saber;
 using namespace anakin::saber::lite;
+typedef Tensor<CPU, AK_FLOAT> TensorHf;
 
 std::string model_file_name;
 int FLAGS_num = 1;
@@ -10,8 +12,6 @@ int FLAGS_warmup_iter = 1;
 int FLAGS_epoch = 1;
 int FLAGS_threads = 1;
 int FLAGS_cluster = 0;
-
-typedef Tensor<CPU, AK_FLOAT> TensorHf;
 
 TEST(TestSaberLite, test_lite_model) {
 
@@ -32,32 +32,58 @@ TEST(TestSaberLite, test_lite_model) {
     bool load_flag = mobilenet_load_param(model_file_name.c_str());
     LOG(WARNING) << "load anakin model file from " << model_file_name << " ...";
     CHECK_EQ(load_flag, true) << "load model: " << model_file_name << " failed";
+    LOG(INFO) << "load model: " << model_file_name << " successed";
+
+//! load model from memory
+//    std::fstream fp(model_file_name, std::ios::in | std::ios::binary);
+//    std::stringstream str_str;
+//    str_str << fp.rdbuf();
+//    std::string str(str_str.str());
+//    LOG(INFO) << "get fstream";
+//    const char* w_ptr = str.c_str();
+//    bool load_flag = mobilenet_load_weights(w_ptr);
+//    LOG(WARNING) << "load anakin model file from " << model_file_name << " ...";
+//    CHECK_EQ(load_flag, true) << "load model: " << model_file_name << " failed";
+//    LOG(INFO) << "load model: " << model_file_name << " successed";
 
     //! init net
     //! change here according to your own model
-    mobilenet_init(*ctx1);
-    LOG(INFO) << "INIT";
+    bool init_flag = mobilenet_init(*ctx1);
+    CHECK_EQ(init_flag, true) << "init failed";
+    LOG(INFO) << "init successed";
 
     //! change here according to your own model
-    std::vector<TensorHf*> vtin = mobilenet_get_in();
-    LOG(INFO) << "number of input tensor: " << vtin.size();
-    TensorHf* tin = vtin[0];
-    LOG(INFO) << "input tensor size: ";
-    Shape shin = tin->valid_shape();
-    for (int j = 0; j < tin->dims(); ++j) {
-        LOG(INFO) << "|---: " << shin[j];
+    std::vector<TensorHf*> vtin_mobilenet = mobilenet_get_in();
+    LOG(INFO) << "number of input tensor: " << vtin_mobilenet.size();
+    for (int i = 0; i < vtin_mobilenet.size(); ++i) {
+        TensorHf* tin_mobilenet = vtin_mobilenet[i];
+
+        //!input shape can be changed at each prediction, after reshape input, call xx_init() api;
+        //tin_mobilenet->reshape(Shape(1, 3, 224, 224));
+
+        LOG(INFO) << "input tensor size: ";
+        Shape shin_mobilenet = tin_mobilenet->valid_shape();
+        for (int j = 0; j < tin_mobilenet->dims(); ++j) {
+            LOG(INFO) << "|---: " << shin_mobilenet[j];
+        }
+        //! feed data to input
+        //! feed input image to input tensor
+        fill_tensor_const(*tin_mobilenet, 1.f);
     }
-    //! feed data to input
-    fill_tensor_const(*tin, 1.f);
+
+    //! call init api after reshape input
+    //mobilenet_init(*ctx1);
 
     //! change here according to your own model
-    std::vector<TensorHf*> vtout = mobilenet_get_out();
-    LOG(INFO) << "number of output tensor: " << vtout.size();
-    TensorHf* tout = vtout[0];
-    LOG(INFO) << "output tensor size: ";
-    Shape shout = tout->valid_shape();
-    for (int j = 0; j < tout->dims(); ++j) {
-        LOG(INFO) << "|---: " << shout[j];
+    std::vector<TensorHf*> vtout_mobilenet = mobilenet_get_out();
+    LOG(INFO) << "number of output tensor: " << vtout_mobilenet.size();
+    for (int i = 0; i < vtout_mobilenet.size(); i++) {
+        TensorHf* tout = vtout_mobilenet[i];
+        LOG(INFO) << "output tensor size: ";
+        Shape shout = tout->valid_shape();
+        for (int j = 0; j < tout->dims(); ++j) {
+            LOG(INFO) << "|---: " << shout[j];
+        }
     }
 
     SaberTimer my_time;
@@ -67,14 +93,17 @@ TEST(TestSaberLite, test_lite_model) {
     my_time.start();
     SaberTimer t1;
     for (int i = 0; i < FLAGS_epoch; i++) {
-        fill_tensor_const(*tin, 1.f);
-        printf("input mean val: %.6f\n", tensor_mean(*tin));
+
+        for (int j = 0; j < vtin_mobilenet.size(); ++j) {
+            fill_tensor_const(*vtin_mobilenet[j], 1.f);
+            printf("input mean val: %.6f\n", tensor_mean(*vtin_mobilenet[j]));
+        }
         t1.clear();
         t1.start();
         //! change here according to your own model
         mobilenet_prediction();
         t1.end();
-        double tdiff = t1.get_average_ms();
+        float tdiff = t1.get_average_ms();
         if (tdiff > tmax) {
             tmax = tdiff;
         }
@@ -82,15 +111,30 @@ TEST(TestSaberLite, test_lite_model) {
             tmin = tdiff;
         }
         to += tdiff;
-                LOG(INFO) << "iter: " << i << ", time: " << tdiff << "ms";
+        LOG(INFO) << "mobilenet iter: " << i << ", time: " << tdiff << "ms";
+        for (int i = 0; i < vtout_mobilenet.size(); ++i) {
+            double mean_val = tensor_mean(*vtout_mobilenet[i]);
+            LOG(INFO) << "mobilenet output mean: " << mean_val;
+        }
     }
     my_time.end();
 
     LOG(INFO) << model_file_name << " batch_size " << FLAGS_num << " average time " << to/ FLAGS_epoch << \
             ", min time: " << tmin << "ms, max time: " << tmax << " ms";
 
-    double mean_val = tensor_mean(*tout);
-    LOG(INFO) << "output mean: " << mean_val;
+//    for (int k = 0; k < vtout[0]->valid_size(); ++k) {
+//        printf("%.6f\n", vtout[0]->mutable_data()[k]);
+//    }
+
+    for (int i = 0; i < vtout_mobilenet.size(); ++i) {
+        double mean_val = tensor_mean(*vtout_mobilenet[i]);
+        LOG(INFO) << "mobilenet output mean: " << mean_val;
+    }
+
+
+#ifdef ENABLE_OP_TIMER
+    OpTimer::print_timer();
+#endif //ENABLE_OP_TIMER
 
     //! change here according to your own model
     mobilenet_release_resource();
@@ -117,6 +161,7 @@ int main(int argc, const char** argv){
     if(argc > 1) {
         model_file_name = argv[1];
     }
+
     if(argc > 2) {
         FLAGS_num = atoi(argv[2]);
     }

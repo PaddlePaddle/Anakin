@@ -8,15 +8,6 @@ namespace saber{
 
 namespace lite{
 
-//SaberConcat::SaberConcat(int axis) {
-//    _axis = axis;
-//}
-//
-//SaberStatus SaberConcat::load_param(int axis) {
-//    _axis = axis;
-//    return SaberSuccess;
-//}
-
 SaberConcat::SaberConcat(const ParamBase *param) {
     _param = (const ConcatParam*)param;
     this->_flag_param = true;
@@ -82,6 +73,11 @@ SaberStatus SaberConcat::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &in
         return SaberNotInitialized;
     }
 
+#ifdef ENABLE_OP_TIMER
+    this->_timer.clear();
+    this->_timer.start();
+#endif
+
     int input_size = inputs.size();
 
     //! get output data, valid shape and stride shape
@@ -108,6 +104,13 @@ SaberStatus SaberConcat::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &in
         }
         offset_concat_axis += in_concat_axis;
     }
+#ifdef ENABLE_OP_TIMER
+    this->_timer.end();
+    float ts = this->_timer.get_average_ms();
+    printf("concat time: %f\n", ts);
+    OpTimer::add_timer("concat", ts);
+    OpTimer::add_timer("total", ts);
+#endif
     return SaberSuccess;
 }
 

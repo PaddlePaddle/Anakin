@@ -19,39 +19,38 @@
 #include "saber/lite/funcs/op_base.h"
 
 namespace anakin{
-    
-    namespace saber{
-        
-        namespace lite{
+
+namespace saber{
+
+namespace lite{
 
       
-            class SaberPower:public OpBase {
+class SaberPower:public OpBase {
             
-            public:
+public:
            
-                SaberPower() {};
-                SaberPower(const ParamBase* param);
-                virtual SaberStatus load_param(const ParamBase* param) override;
-                
-           
-                ~SaberPower() {}
-                virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                                         std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
-                
-                virtual SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                         std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context& ctx) override;
-                
-                virtual SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+    SaberPower() {};
+    SaberPower(const ParamBase* param);
+    virtual SaberStatus load_param(const ParamBase* param) override;
+
+    ~SaberPower() {}
+    virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
                                              std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
+                
+    virtual SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                             std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context& ctx) override;
+                
+    virtual SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+                                 std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
               
-        private:
-            const PowerParam* _param;
+private:
+    const PowerParam* _param;
             
-        };
+};
         
-        }
+} //namespace lite
         
-    } //namespace saber
+} //namespace saber
     
 } //namespace anakin
 

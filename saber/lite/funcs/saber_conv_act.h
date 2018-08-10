@@ -52,37 +52,6 @@ public:
         return _conv_op->load_param(&_param->_conv_param);
     }
 
-
-//    SaberConvAct2D(int weights_size, int num_output, int group, int kw, int kh, int stride_w, int stride_h, \
-//        int pad_w, int pad_h, int dila_w, int dila_h, bool flag_bias, ActiveType type, bool flag_relu, \
-//        const float* weights, const float* bias) {
-//
-//        if (flag_relu) {
-//            LCHECK_EQ(type, Active_relu, "active type must be relu");
-//            _flag_relu = true;
-//        } else {
-//            _flag_relu = false;
-//        }
-//        SaberConv2D::set_activation(_flag_relu);
-//        SaberConv2D::load_param(weights_size, num_output, group, kw, kh, stride_w, stride_h, \
-//            pad_w, pad_h, dila_w, dila_h, flag_bias, weights, bias);
-//    }
-//
-//    SaberStatus load_param(int weights_size, int num_output, int group, int kw, int kh, int stride_w, int stride_h, \
-//        int pad_w, int pad_h, int dila_w, int dila_h, bool flag_bias, ActiveType type, bool flag_relu, \
-//        const float* weights, const float* bias) {
-//
-//        if (flag_relu) {
-//            LCHECK_EQ(type, Active_relu, "active type must be relu");
-//            _flag_relu = true;
-//        } else {
-//            _flag_relu = false;
-//        }
-//        SaberConv2D::set_activation(_flag_relu);
-//        return SaberConv2D::load_param(weights_size, num_output, group, kw, kh, stride_w, stride_h, \
-//            pad_w, pad_h, dila_w, dila_h, flag_bias, weights, bias);
-//    }
-
     ~SaberConvAct2D() {
        // delete _conv_func;
         delete _conv_op;

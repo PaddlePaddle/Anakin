@@ -150,15 +150,6 @@ void softmax_inner1_s(const float* din, float* dout, \
     }
 }
 
-//SaberSoftmax::SaberSoftmax(int axis) {
-//    _axis = axis;
-//}
-//
-//SaberStatus SaberSoftmax::load_param(int axis) {
-//    _axis = axis;
-//    return SaberSuccess;
-//}
-
 SaberSoftmax::SaberSoftmax(const ParamBase *param) {
     _param = (const SoftmaxParam*)param;
     this->_flag_param = true;
@@ -205,6 +196,11 @@ SaberStatus SaberSoftmax::dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& in
         return SaberNotInitialized;
     }
 
+#ifdef ENABLE_OP_TIMER
+    this->_timer.clear();
+    this->_timer.start();
+#endif
+
     float* dout = outputs[0]->mutable_data();
     const float* din = (float*)inputs[0]->data();
 
@@ -218,7 +214,13 @@ SaberStatus SaberSoftmax::dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& in
         int compute_size = inputs[0]->valid_size() / _axis_size;
         softmax_basic(din, dout, _axis_size, _inner_num, _outer_num, compute_size);
     }
-
+#ifdef ENABLE_OP_TIMER
+    this->_timer.end();
+    float ts = this->_timer.get_average_ms();
+    printf("softmax time: %f\n", ts);
+    OpTimer::add_timer("softmax", ts);
+    OpTimer::add_timer("total", ts);
+#endif
     return SaberSuccess;
 }
 

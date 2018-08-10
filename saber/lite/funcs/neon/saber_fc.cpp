@@ -90,29 +90,6 @@ SaberStatus SaberFc::load_param(const ParamBase *param) {
     return SaberSuccess;
 }
 
-//SaberFc::SaberFc(int axis, int num_output, bool flag_trans, bool flag_bias, \
-//    const float *weights, const float *bias) {
-//
-//    _axis = axis;
-//    _num_output = num_output;
-//    _flag_trans = flag_trans;
-//    _bias_term = flag_bias;
-//    _weights = weights;
-//    _bias = bias;
-//}
-//
-//SaberStatus SaberFc::load_param(int axis, int num_output, bool flag_trans, bool flag_bias, \
-//    const float *weights, const float *bias) {
-//
-//    _axis = axis;
-//    _num_output = num_output;
-//    _flag_trans = flag_trans;
-//    _bias_term = flag_bias;
-//    _weights = weights;
-//    _bias = bias;
-//    return SaberSuccess;
-//}
-
 SaberStatus SaberFc::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                           std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
 
@@ -172,6 +149,11 @@ SaberStatus SaberFc::dispatch(\
         return SaberNotInitialized;
     }
 
+#ifdef ENABLE_OP_TIMER
+    this->_timer.clear();
+    this->_timer.start();
+#endif
+
     const float* din = inputs[0]->data();
     float* dout = outputs[0]->mutable_data();
     const float* weights = _param->_weights;
@@ -192,6 +174,15 @@ SaberStatus SaberFc::dispatch(\
             sgemv(false, _n, _k, weights, din, dout);
         }
     }
+
+#ifdef ENABLE_OP_TIMER
+    this->_timer.end();
+    float ts = this->_timer.get_average_ms();
+    printf("fc time: %f\n", ts);
+    OpTimer::add_timer("fc", ts);
+    OpTimer::add_timer("total", ts);
+#endif
+
     return SaberSuccess;
 }
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 # This script shows how one can build a anakin for the Android platform using android-tool-chain. 
-export ANDROID_NDK= you ndk path
+export ANDROID_NDK=/Users/lixiaoyang05/android-ndk-r14b
 
 ANAKIN_LITE_ROOT="$( cd "$(dirname "$0")" ; pwd -P)"
 echo "-- Anakin lite root dir is: $ANAKIN_LITE_ROOT"
@@ -42,7 +42,8 @@ cmake .. \
 	-DTARGET_IOS=NO \
     -DUSE_OPENMP=YES \
     -DBUILD_LITE_UNIT_TEST=YES \
-    -DUSE_OPENCV=NO
+    -DUSE_OPENCV=NO \
+    -DENABLE_OP_TIMER=NO
 
 # build target lib or unit test.
 if [ "$(uname)" = 'Darwin' ]; then

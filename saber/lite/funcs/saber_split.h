@@ -36,9 +36,6 @@ public:
     virtual SaberStatus load_param(const ParamBase* param) override {
         return SaberSuccess;
     }
-//    SaberSoftmax(int axis);
-//
-//    SaberStatus load_param(int axis);
 
     ~SaberSplit() {}
 

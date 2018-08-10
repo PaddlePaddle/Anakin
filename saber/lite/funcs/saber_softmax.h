@@ -34,9 +34,6 @@ public:
     SaberSoftmax(const ParamBase* param);
 
     virtual SaberStatus load_param(const ParamBase* param) override;
-//    SaberSoftmax(int axis);
-//
-//    SaberStatus load_param(int axis);
 
     ~SaberSoftmax() {}
 
@@ -55,9 +52,6 @@ private:
     int _axis_size{0};
     int _inner_num{0};
     int _outer_num{0};
-
-    //int _axis;
-
 };
 
 } //namespace lite

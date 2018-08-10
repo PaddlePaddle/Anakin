@@ -78,8 +78,7 @@ size_t arm_get_meminfo() {
 
     size_t memsize = 0;
     char line[1024];
-    while (!feof(fp))
-    {
+    while (!feof(fp)) {
         char* s = fgets(line, 1024, fp);
         if (!s) {
             break;
@@ -107,15 +106,13 @@ static int get_max_freq_khz(int cpuid)
 
     FILE* fp = fopen(path, "rb");
 
-    if (!fp)
-    {
+    if (!fp) {
         // second try, for online cpu
         snprintf(path, sizeof(path), "/sys/devices/system/cpu/cpu%d/cpufreq/stats/time_in_state",\
          cpuid);
         fp = fopen(path, "rb");
 
-        if (!fp)
-        {
+        if (!fp) {
             // third try, for online cpu
             snprintf(path, sizeof(path), "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq",\
              cpuid);
@@ -135,8 +132,7 @@ static int get_max_freq_khz(int cpuid)
     }
 
     int max_freq_khz = 0;
-    while (!feof(fp))
-    {
+    while (!feof(fp)) {
         int freq_khz = 0;
         int nscan = fscanf(fp, "%d %*d", &freq_khz);
         if (nscan != 1) {
@@ -166,8 +162,7 @@ int arm_sort_cpuid_by_max_frequency(int cpu_count, std::vector<int>& cpuids, \
     cpu_freq.resize(cpu_count);
     cluster_ids.resize(cpu_count);
 
-    for (int i = 0; i < cpu_count; i++)
-    {
+    for (int i = 0; i < cpu_count; i++) {
         int max_freq_khz = get_max_freq_khz(i);
         //printf("%d max freq = %d khz\n", i, max_freq_khz);
         cpuids[i] = i;
@@ -195,7 +190,7 @@ int set_sched_affinity(const std::vector<int>& cpuids) {
 
     typedef struct {
         unsigned long mask_bits[1024 / __NCPUBITS__];
-    }cpu_set_t;
+    } cpu_set_t;
 
     // set affinity for thread
     pid_t pid = gettid();
@@ -450,208 +445,6 @@ void Context::set_run_mode(PowerMode mode, int threads) {
 void* Context::get_work_space() {
     return (void*)_work_space.mutable_data();
 }
-
-#if 0
-template <>
-Context<CPU>::Context(int device_id, int data_stream_id, int compute_stream_id) {
-    typename Env<CPU>::Devs& devs = Env<CPU>::cur_env();
-    LCHECK_GT(devs.size(), 0, "Env is not initialized or current target is not exit!");
-    if (device_id >= devs.size()){
-        printf("device index exceeds the number of devices, set to default device(0)!\n");
-        _device_id = 0;
-    } else {
-        _device_id = device_id;
-    }
-    if (data_stream_id >= devs[_device_id]._max_stream) {
-        printf("data stream index exceeds the maximum stream number, set to default stream(0)!\n");
-        data_stream_id = 0;
-    }
-    _stream_data = devs[_device_id]._data_stream[data_stream_id];
-    _data_stream_id = data_stream_id;
-
-    if (compute_stream_id >= devs[_device_id]._max_stream) {
-        printf("compute stream index exceeds the maximum stream number, set to default stream(0)!\n");
-        compute_stream_id = 0;
-    }
-    _stream_compute = devs[_device_id]._compute_stream[compute_stream_id];
-    _compute_stream_id = compute_stream_id;
-    _act_ids = {0};
-    _mode = SABER_POWER_HIGH;
-}
-
-template <>
-Context<CPU>::Context(const Context<CPU>& ctx){
-    _device_id = ctx._device_id;
-    _data_stream_id = ctx._data_stream_id;
-    _compute_stream_id = ctx._compute_stream_id;
-    _stream_compute = ctx._stream_compute;
-    _stream_data = ctx._stream_data;
-    _mode = ctx._mode;
-    _act_ids = ctx._act_ids;
-}
-
-template <>
-Context<CPU>& Context<CPU>::operator=(const Context<CPU>& ctx){
-    this->_device_id = ctx._device_id;
-    this->_data_stream_id = ctx._data_stream_id;
-    this->_compute_stream_id = ctx._compute_stream_id;
-    this->_stream_data = ctx._stream_data;
-    this->_stream_compute = ctx._stream_compute;
-    return *this;
-}
-
-template<>
-bool Context<CPU>::operator==(const Context<CPU> &right) {
-    bool comp_eq = true;
-    comp_eq = comp_eq && (_device_id == right._device_id);
-    comp_eq = comp_eq && (_data_stream_id == right._data_stream_id);
-    comp_eq = comp_eq && (_compute_stream_id == right._compute_stream_id);
-    return comp_eq;
-}
-
-/**
- * \brief get device id of current context
- * @return
- */
-template <>
-int Context<CPU>::get_device_id() {
-    return _device_id;
-}
-
-/**
- * \brief get data process stream
- * @return
- */
-template <>
-typename TargetTrait<CPU>::stream_t Context<CPU>::get_data_stream(){
-    return _stream_data;
-}
-
-/**
- * \brief get compute process stream
- * @return
- */
-template <>
-typename TargetTrait<CPU>::stream_t Context<CPU>::get_compute_stream(){
-    return _stream_compute;
-}
-
-template <>
-void Context<CPU>::bind_dev() {
-    set_cpu_affinity(_act_ids);
-}
-
-template <>
-void Context<CPU>::set_run_mode(PowerMode mode, int threads) {
-    typename Env<CPU>::Devs& devs = Env<CPU>::cur_env();
-    Device<CPU> dev = devs[_device_id];
-    std::vector<int> big_cores;
-    std::vector<int> small_cores;
-    for (int i = 0; i < dev._info._cluster_ids.size(); ++i) {
-        if (dev._info._cluster_ids[i] == 0) {
-            big_cores.push_back(dev._info._core_ids[i]);
-        } else {
-            small_cores.push_back(dev._info._core_ids[i]);
-        }
-    }
-    int big_core_size = big_cores.size();
-    int small_core_size = small_cores.size();
-    if (threads > big_core_size + small_core_size) {
-        threads = big_core_size + small_core_size;
-    }
-    switch (mode) {
-        case SABER_POWER_FULL:
-            _mode = mode;
-            _act_ids.clear();
-            for (int i = 0; i < threads; ++i) {
-                if (i < big_core_size) {
-                    _act_ids.push_back(big_cores[i]);
-                } else {
-                    _act_ids.push_back(small_cores[i - big_core_size]);
-                }
-            }
-            break;
-        case SABER_POWER_HIGH:
-            _act_ids.clear();
-            if (big_core_size > 0) {
-                _mode = SABER_POWER_HIGH;
-                if (threads > big_core_size) {
-                    printf("threads: %d, exceed the big cores size: %d\n", threads, big_core_size);
-                    _act_ids = big_cores;
-                } else {
-                    for (int i = 0; i < threads; ++i) {
-                        _act_ids.push_back(big_cores[i]);
-                    }
-                }
-            } else {
-                _mode = SABER_POWER_LOW;
-                printf("HIGH POWER MODE is not support, switch to small cores\n");
-                if(threads > small_core_size) {
-                    _act_ids = small_cores;
-                } else {
-                    for (int i = 0; i < threads; ++i) {
-                        _act_ids.push_back(small_cores[i]);
-                    }
-                }
-
-            }
-            break;
-        case SABER_POWER_LOW:
-            _act_ids.clear();
-            if (small_core_size > 0) {
-                _mode = SABER_POWER_LOW;
-                if (threads > small_core_size) {
-                    printf("threads: %d, exceed the small cores size: %d\n", threads, small_core_size);
-                    _act_ids = small_cores;
-                } else {
-                    for (int i = 0; i < threads; ++i) {
-                        _act_ids.push_back(small_cores[i]);
-                    }
-                }
-            } else {
-                _mode = SABER_POWER_HIGH;
-                printf("LOW POWER MODE is not support, switch to big cores\n");
-                if(threads > big_core_size) {
-                    _act_ids = big_cores;
-                } else {
-                    for (int i = 0; i < threads; ++i) {
-                        _act_ids.push_back(small_cores[i]);
-                    }
-                }
-
-            }
-            break;
-    }
-
-    bind_dev();
-}
-//
-//void set_act_cores(std::vector<int> ids) {
-//    Device dev = devs[_device_id];
-//    if (ids.size() == 0){
-//        _act_ids.resize(1);
-//        _act_ids[0] = dev._info._core_ids[0];
-//    }else {
-//        _act_ids.clear();
-//        for (int i = 0; i < ids.size(); ++i) {
-//            if (ids[i] < dev._info._core_ids.size()){
-//                _act_ids.push_back(ids[i]);
-//            }
-//        }
-//    }
-//    bind_dev();
-//}
-
-template <>
-PowerMode Context<CPU>::get_mode(int& threads) {
-    threads = _act_ids.size();
-    return _mode;
-}
-template <>
-std::vector<int> Context<CPU>::get_act_ids() {
-    return _act_ids;
-}
-#endif
 
 } //namespace lite
 

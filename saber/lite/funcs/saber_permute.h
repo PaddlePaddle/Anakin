@@ -28,13 +28,10 @@ class SaberPermute : public OpBase {
 public:
     SaberPermute();
 
-    //SaberPermute(std::vector<int> orders);
-
     SaberPermute(const ParamBase* param);
 
     ~SaberPermute() {}
 
-    //SaberStatus load_param(std::vector<int> orders);
     virtual SaberStatus load_param(const ParamBase* param) override;
 
     virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
@@ -56,7 +53,6 @@ private:
     int _trans_num;
     int _trans_w;
     int _trans_h;
-    //std::vector<int> _order_dims;
     std::vector<int> _new_steps;
     std::vector<int> _old_steps;
 
