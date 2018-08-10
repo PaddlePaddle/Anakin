@@ -59,15 +59,44 @@ void concat_nv_basic(const std::vector<Tensor<TargetType_H>*>& inputs, std::vect
     }
 }
 
-TEST(TestSaberFunc, test_func_concat) {
+template <DataType Dtype,typename TargetType_D,typename TargetType_H>
+void test_model(){
+
     int num = num_in;
     int channel = ch_in;
     int height = h_in;
     int width = w_in;
     int axis1 = axis_in;
+    TestSaberBase<TargetType_D, TargetType_H, Dtype, Concat, ConcatParam> testbase(2,1);
+    Shape input_shape({num, channel, height, width}, Layout_NCHW);
+    Shape input_shape2({2, 2, 12, 22}, Layout_NCHW);
+
+    for(auto shape: {input_shape, input_shape2}){
+        for(auto axis: {0,1,2,3, axis1}){
+            ConcatParam<TargetType_D> param(axis);
+            testbase.set_param(param);//set param
+            //testbase.set_rand_limit(255,255);
+            std::vector<Shape> shape_v;
+            shape_v.push_back(shape);
+            Shape shin = shape;
+            shin[axis] = 2;
+            shape_v.push_back(shin);
+            Shape shin2 = shape;
+            shin2[axis] = 4;
+            shape_v.push_back(shin2);
+            testbase.set_input_shape(shape_v);//add some input shape
+            testbase.run_test(concat_nv_basic<float, TargetType_D, TargetType_H>);//run test
+           // LOG(INFO) << "NV run end";
+	    }
+    }
+}
+
+TEST(TestSaberFunc, test_func_concat) {
    
 #ifdef USE_CUDA
    //Init the test_base
+   test_model<AK_FLOAT, NV, NVHX86>();
+   /*
     TestSaberBase<NV, NVHX86, AK_FLOAT, Concat, ConcatParam> testbase(2,1);
     Shape input_shape({num, channel, height, width}, Layout_NCHW);
     Shape input_shape2({2, 2, 12, 22}, Layout_NCHW);
@@ -90,9 +119,11 @@ TEST(TestSaberFunc, test_func_concat) {
             LOG(INFO) << "NV run end";
 	}
     }
-
+*/
 #endif
 #ifdef USE_X86_PLACE
+test_model<AK_FLOAT, X86, X86>();
+/*
     TestSaberBase<X86, X86, AK_FLOAT, Concat, ConcatParam> testbase(2,1);
     Shape input_shape({num, channel, height, width}, Layout_NCHW);
     Shape input_shape2({2, 2, 12, 22}, Layout_NCHW);
@@ -115,10 +146,13 @@ TEST(TestSaberFunc, test_func_concat) {
             LOG(INFO) << "X86 run end";
         }
     }
+    */
 #endif
 
 #ifdef USE_ARM_PLACE
    //Init the test_base
+    test_model<AK_FLOAT, ARM, ARM>();
+   /*
     TestSaberBase<ARM, ARM, AK_FLOAT, Concat, ConcatParam> testbase(2,1);
     Shape input_shape({num, channel, height, width}, Layout_NCHW);
     Shape input_shape2({2, 2, 12, 22}, Layout_NCHW);
@@ -141,7 +175,7 @@ TEST(TestSaberFunc, test_func_concat) {
             LOG(INFO) << "ARM run end";
 	}
     }
-
+*/
 #endif
 }
 

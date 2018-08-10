@@ -65,4 +65,5 @@ private:
 } //namespace saber
 
 } //namespace anakin
+
 #endif //ANAKIN_SABER_FUNCS_IMPL_X86_SABER_CONCAT_H
