@@ -101,8 +101,8 @@ SaberStatus SaberPower<NV, AK_FLOAT>::dispatch(\
         }
     } else {
         const int* i_stride = static_cast<const int*>(_in_steps.data());
-        const int* o_stride = static_cast<int*>(_out_steps.data());
-        const int* valid_shape =static_cast<int*>( _out_valid_shape.data());
+        const int* o_stride = static_cast<const int*>(_out_steps.data());
+        const int* valid_shape =static_cast<const int*>( _out_valid_shape.data());
         if (power == 1) {
             ker_scale_fwd<float>\
                     <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(\

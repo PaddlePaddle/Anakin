@@ -9,17 +9,15 @@
 #include "saber/saber_types.h"
 
 using namespace anakin::saber;
-/*CPU function form:
- void FuncName(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tensor<TargetType_H>*>& output,Param<TargetType_D>& param,Shape shape)
- */
+
 template <typename dtype,typename TargetType_D,typename TargetType_H>
 void power_cpu_func(const std::vector<Tensor<TargetType_H>*>& input, std::vector<Tensor<TargetType_H>*>& output, PowerParam<TargetType_D>& param) {
-    dtype p = param.power;
-    dtype scale = param.scale;
-    dtype shift = param.shift;
+    float p = param.power;
+    float scale = param.scale;
+    float shift = param.shift;
     
-    const dtype* src_ptr = input[0] -> data();
-    dtype* dst_ptr = output[0] -> mutable_data();
+    const dtype* src_ptr = static_cast<const dtype*>(input[0] -> data());
+    dtype* dst_ptr = static_cast<dtype*>(output[0] -> mutable_data());
     
     for (int i=0; i < input[0] -> valid_size(); ++i){
         dst_ptr[i] = pow(src_ptr[i]* scale +shift, p);
