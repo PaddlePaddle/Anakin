@@ -49,7 +49,7 @@ OPTIONS:
             ip: 0.0.0.0
             port: 8888
         OptimizedGraph: 
-            enable: ON
+            enable: OFF
             path: /path/to/anakin_optimized/googlenet.anakin.bin.saved
     LOGGER:
         LogToPath: ./log/
@@ -68,8 +68,8 @@ TARGET:
         ProtoPaths:
             -                                  # Keep it blank.
         Debug: NULL                            # Generally no need to modify.
-        PrototxtPath: /path/to/your/model/     # This line must be modified to the upper path of the model.
-        ModelPath: /path/to/your/model/        # This line must be modified to the upper path of the model.
+        PrototxtPath: /path/to/your/model/     # The upper path of a fluid inference model.
+        ModelPath: /path/to/your/model/        # The upper path of a fluid inference model.
         NetType:                               # Generally no need to modify.
     
     LEGO:
