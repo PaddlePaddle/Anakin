@@ -18,61 +18,76 @@
 
 #include "saber_types.h"
 
-namespace anakin{
+#ifdef USE_BM
+#include "bmlib_runtime.h"
+#include "bmdnn_api.h"
+#include "bmlib_utils.h"
+#endif
+namespace anakin {
 
-namespace saber{
+namespace saber {
 
 template <typename Ttype>
-struct DataTraitLp{
+struct DataTraitLp {
     typedef void* PtrDtype;
 };
 
 template <typename Ttype>
-struct DataTraitBase{
+struct DataTraitBase {
     typedef void* PtrDtype;
 };
 
 #ifdef USE_OPENCL
 template <>
-struct DataTraitLp<AMD>{
+struct DataTraitLp<AMD> {
     typedef cl_mem PtrDtype;
 };
 
 template <>
-struct DataTraitBase<AMD>{
+struct DataTraitBase<AMD> {
     typedef cl_mem PtrDtype;
 };
 #endif
 
 static size_t type_length(DataType type) {
-    switch (type){
-        case AK_INT8:
-            return 1;
-        case AK_UINT8:
-            return 1;
-        case AK_INT16:
-            return 2;
-        case AK_UINT16:
-            return 2;
-        case AK_INT32:
-            return 4;
-        case AK_UINT32:
-            return 4;
-        case AK_INT64:
-            return 8;
-        case AK_HALF:
-            return 2;
-        case AK_FLOAT:
-            return 4;
-        case AK_DOUBLE:
-            return 8;
-        default:
-            return 4;
+    switch (type) {
+    case AK_INT8:
+        return 1;
+
+    case AK_UINT8:
+        return 1;
+
+    case AK_INT16:
+        return 2;
+
+    case AK_UINT16:
+        return 2;
+
+    case AK_INT32:
+        return 4;
+
+    case AK_UINT32:
+        return 4;
+
+    case AK_INT64:
+        return 8;
+
+    case AK_HALF:
+        return 2;
+
+    case AK_FLOAT:
+        return 4;
+
+    case AK_DOUBLE:
+        return 8;
+
+    default:
+        return 4;
     }
 }
 
 template <typename Ttype, DataType datatype>
-struct DataTrait{
+struct DataTrait {
     typedef __invalid_type Dtype;
     typedef __invalid_type PtrDtype;
 };
@@ -137,9 +152,100 @@ struct DataTrait<Ttype, AK_UINT32> {
     typedef unsigned int* PtrDtype;
 };
 
+#ifdef USE_BM
+
+
+struct BM_mem_addr: bm_mem_desc {
+
+    BM_mem_addr() {};
+
+    BM_mem_addr(void* k) {
+        if (k == nullptr) {
+            *this = BM_MEM_NULL;
+        } else {
+            CHECK(false) << "not suport construct not null ptr";
+        }
+    }
+
+
+
+    //    BM_mem_addr& operator=(bm_mem_desc& right) {
+    //        *this = right;
+    //        return *this;
+    //    }
+    //
+    inline bool compare_char_array(const unsigned char* a, const unsigned char* b, int size)const {
+        for (int i = 0; i < size; ++i) {
+            if (a[i] != b[i]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    bool operator==(const bm_mem_desc& right) {
+        return compare_char_array(desc, right.desc, sizeof(desc));
+    }
+    bool operator!=(const bm_mem_desc& right) {
+        return !compare_char_array(desc, right.desc, sizeof(desc));
+    }
+
+    //    bool operator==(const BM_mem_addr& right) {
+    //        return *this == right;
+    //    }
+    //
+    bool operator==(const void* right) {
+        if (right == nullptr) {
+            return *this == BM_MEM_NULL;
+        } else {
+            CHECK(false) << "not suport compare not null BM_mem_addr with nullptr";
+            return false;
+        }
+    }
+
+
+    bool operator!=(const void* right) {
+        return !(*this == right);
+    }
+
+    BM_mem_addr(struct bm_mem_desc init_desc): bm_mem_desc(init_desc) {
+
+        ;
+    }
+
+    BM_mem_addr& operator+(int offset) {
+        if (offset != 0) {
+            unsigned long long target_addr = bm_mem_get_device_addr(*this);
+            bm_mem_set_device_addr(*this, target_addr + offset);
+        }
+
+        return *this;
+    }
+
+    friend std::ostream& operator<<(std::ostream& out, const BM_mem_addr& s) {
+        out << " [print BM_mem_addr] ";
+        return out;
+    }
+
+};
+template <>
+struct DataTraitLp<BM> {
+    typedef BM_mem_addr PtrDtype;
+};
+
+template <>
+struct DataTraitBase<BM> {
+    typedef BM_mem_addr PtrDtype;
+};
+
+
+#endif
+
+
 #ifdef USE_OPENCL
-struct ClMem{
-    ClMem(){
+struct ClMem {
+    ClMem() {
         dmem = nullptr;
         offset = 0;
     }
