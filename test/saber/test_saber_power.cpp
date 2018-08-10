@@ -24,14 +24,16 @@ void power_cpu_func(const std::vector<Tensor<TargetType_H>*>& input, std::vector
     }
 }
 
-TEST(TestSaberFunc, test_func_normalize) {
-#ifdef USE_CUDA
+template <typename TargetType_D, typename TargetType_H, DataType OpDtype>
+void test_power(){
+    
+    typedef typename DataTrait<TargetType_D, OpDtype> :: Dtype dtype;
     //Init the test_base
-    TestSaberBase<NV, NVHX86, AK_FLOAT, Power, PowerParam> testbase;
+    TestSaberBase<TargetType_D, TargetType_H, OpDtype, Power, PowerParam> testbase;
     for (float p : {0, 1, 2}){
         for (float scale : {0.5, 1.0, 2.0}){
             for (float shift : {0, 1, 2}){
-                PowerParam<NV> param(p, scale, shift);
+                PowerParam<TargetType_D> param(p, scale, shift);
                 
                 for (int n : {1, 2}){
                     for (int c : {1, 3}){
@@ -39,7 +41,7 @@ TEST(TestSaberFunc, test_func_normalize) {
                             for (int w : {32, 64}){
                                 testbase.set_param(param);
                                 testbase.set_input_shape(Shape({n, c, h, w}));
-                                testbase.run_test(power_cpu_func<float, NV, NVHX86>);
+                                testbase.run_test(power_cpu_func<dtype, TargetType_D, TargetType_H>);
                             }
                         }
                     }
@@ -47,8 +49,11 @@ TEST(TestSaberFunc, test_func_normalize) {
             }
         }
     }
-    
-    
+}
+
+TEST(TestSaberFunc, test_func_power) {
+#ifdef USE_CUDA
+    test_power<NV, NVHX86, AK_FLOAT>();
 #endif
 }
 
