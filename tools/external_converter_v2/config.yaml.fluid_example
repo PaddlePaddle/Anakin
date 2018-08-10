@@ -46,7 +46,7 @@ OPTIONS:
         LaunchBoard: ON
         Server:
             ip: 0.0.0.0
-            port: 8888
+            port: 8888                        # Need to be modified only when the port is occupied.
         OptimizedGraph: 
             enable: OFF
             path: /
@@ -57,8 +57,8 @@ OPTIONS:
 TARGET:
     FLUID:
         ProtoPaths:
-            - 
-        Debug: NULL
-        PrototxtPath: /home/.../fluid/model/
-        ModelPath: /home/.../fluid/model/
-        NetType:
+            -                                  # Keep it blank.
+        Debug: NULL                            # Generally no need to modify.
+        PrototxtPath: /home/.../fluid/model/   # This line must be modified to the upper path of the model.
+        ModelPath: /home/.../fluid/model/      # This line must be modified to the upper path of the model.
+        NetType:                               # Generally no need to modify.
