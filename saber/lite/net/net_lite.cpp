@@ -71,7 +71,7 @@ SaberStatus Net::load_model(const char *opt_file, const char *model_file) {
     }
     int tensor_size = 0;
     int nscan = fscanf(fp, "Tensor number %d\n", &tensor_size);
-    printf("tensor size %d\n", tensor_size);
+    //printf("tensor size %d\n", tensor_size);
     //! gen tensors
     for (int i = 0; i < tensor_size; ++i) {
         char tensor_name[256];

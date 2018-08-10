@@ -16,11 +16,11 @@ int FLAGS_cluster = 0;
 
 TEST(TestSaberLite, test_lite_model) {
 
-    std::vector<std::string> ops = OpRegistry::LayerTypeList();
-    LOG(ERROR) << "total ops: " << ops.size();
-    for (int i = 0; i < ops.size(); ++i) {
-        LOG(ERROR) << ops[i];
-    }
+//    std::vector<std::string> ops = OpRegistry::LayerTypeList();
+//    LOG(ERROR) << "total ops: " << ops.size();
+//    for (int i = 0; i < ops.size(); ++i) {
+//        LOG(ERROR) << ops[i];
+//    }
 
     //! create net, with power mode and threads
     Net net((PowerMode)FLAGS_cluster, FLAGS_threads);
@@ -97,6 +97,9 @@ TEST(TestSaberLite, test_lite_model) {
     my_time.end();
     LOG(INFO) << info_file << " batch_size " << FLAGS_num << " average time " << to / FLAGS_epoch << \
             ", min time: " << tmin << "ms, max time: " << tmax << " ms";
+#ifdef ENABLE_OP_TIMER
+    OpTimer::print_timer();
+#endif //ENABLE_OP_TIMER
 }
 int main(int argc, const char** argv){
     // initial logger
