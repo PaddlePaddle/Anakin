@@ -160,6 +160,7 @@ SaberStatus SaberPermute::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &input
         return SaberNotInitialized;
     }
 
+    this->_flag_init = true;
     this->_ctx = &ctx;
     _num_axes = inputs[0]->dims();
     _count = outputs[0]->valid_size();
@@ -206,8 +207,6 @@ SaberStatus SaberPermute::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &input
         _old_steps = inputs[0]->get_stride();
         printf("permute: transpose=false\n");
     }
-
-    this->_flag_init = true;
 
     return SaberSuccess;
 }
