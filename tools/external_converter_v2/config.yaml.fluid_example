@@ -1,0 +1,64 @@
+##---------------------------------------------------------------
+##  configuration file of external model convert to anakin 
+##---------------------------------------------------------------
+#
+##---------------------------------------------------------------
+##  Default configuration options
+##  @Param Framework:
+##         The model you need to parser. e.g.:
+##         CAFFE, LEGAO, TENSORFLOW, MXNET, PADDLE, TORCH ...
+##         Now we support CAFFE, LEGAO
+##         next we will support MXNET, TENSORFLOW ...
+##  @Param SavePath:
+##         The path where converted model saved
+##  @Param ResultName
+##         model name in anakin.
+##  @Param LaunchBoard: (OFF/ON)
+##         Whether launch anakin graph board ( you must set the ip and port at the same time if LaunchBoard is ON)
+##  @Param ip
+##         Anakin graph board server ip ( localboard cast ip or real ip)
+##  @Param port
+##         Anakin graph board server port
+##  @Param Analysis: (OFF/ON)
+##         whether allow necessary compute analysis of graph
+##  @Param LogToPath
+##         Path the log saved.
+##  @Param WithColor: (OFF/ON)
+##         colorful log
+##
+##  @Param TARGET::CAFFE ...
+##         You only need to fill in the framework config 
+##         you need to convert
+##  @Param ProtoPaths:
+##         Protobuf define files, maybe a list.
+##  @Param PrototxtPath:
+##         Json define prototxt file path  of you model
+##  @Param ModelPath:
+##         Path of you binary model.
+##
+##--------------------------------------------------------------
+#
+OPTIONS:
+    Framework: FLUID
+    SavePath: ./output
+    ResultName: example
+    Config:
+        LaunchBoard: ON
+        Server:
+            ip: 0.0.0.0
+            port: 8888
+        OptimizedGraph: 
+            enable: OFF
+            path: /
+    LOGGER:
+        LogToPath: ./log/
+        WithColor: ON 
+
+TARGET:
+    FLUID:
+        ProtoPaths:
+            - 
+        Debug: NULL
+        PrototxtPath: /home/.../fluid/model/
+        ModelPath: /home/.../fluid/model/
+        NetType:
