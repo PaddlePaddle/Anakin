@@ -31,6 +31,72 @@ TEST(TestSaberLite, test_lite_model) {
     SaberStatus flag = net.load_model(info_file.c_str(), weights_file.c_str());
     CHECK_EQ(flag, SaberSuccess) << "load model: " << info_file << ", " << weights_file << " failed";
     LOG(INFO) << "load model: " << info_file << ", " << weights_file << " successed";
+
+    std::vector<TensorHf*> vtin = net.get_input();
+    LOG(INFO) << "number of input tensor: " << vtin.size();
+    for (int i = 0; i < vtin.size(); ++i) {
+        TensorHf* tin = vtin[i];
+        //! reshape input before prediction
+        //tin->reshape(Shape(1, 3, 224, 224));
+        LOG(INFO) << "input tensor size: ";
+        Shape shin = tin->valid_shape();
+        for (int j = 0; j < tin->dims(); ++j) {
+            LOG(INFO) << "|---: " << shin[j];
+        }
+        //! feed data to input
+        //! feed input image to input tensor
+        fill_tensor_const(*tin, 1.f);
+    }
+
+    //! change here according to your own model
+    std::vector<TensorHf*> vtout = net.get_output();
+    LOG(INFO) << "number of output tensor: " << vtout.size();
+    for (int i = 0; i < vtout.size(); i++) {
+        TensorHf* tout = vtout[i];
+        LOG(INFO) << "output tensor size: ";
+        Shape shout = tout->valid_shape();
+        for (int j = 0; j < tout->dims(); ++j) {
+            LOG(INFO) << "|---: " << shout[j];
+        }
+    }
+
+    for (int i = 0; i < FLAGS_warmup_iter; ++i) {
+        for (int i = 0; i < vtin.size(); ++i) {
+            fill_tensor_const(*vtin[i], 1.f);
+        }
+        net.prediction();
+    }
+    SaberTimer my_time;
+    double to = 0;
+    double tmin = 1000000;
+    double tmax = 0;
+    my_time.start();
+    SaberTimer t1;
+    for (int i = 0; i < FLAGS_epoch; ++i) {
+        for (int i = 0; i < vtin.size(); ++i) {
+            fill_tensor_const(*vtin[i], 1.f);
+        }
+        t1.clear();
+        t1.start();
+        net.prediction();
+        t1.end();
+        float tdiff = t1.get_average_ms();
+        if (tdiff > tmax) {
+            tmax = tdiff;
+        }
+        if (tdiff < tmin) {
+            tmin = tdiff;
+        }
+        to += tdiff;
+        LOG(INFO) << "iter: " << i << ", time: " << tdiff << "ms";
+        for (int i = 0; i < vtout.size(); ++i) {
+            double mean_val = tensor_mean(*vtout[i]);
+            LOG(INFO) << "output mean: " << mean_val;
+        }
+    }
+    my_time.end();
+    LOG(INFO) << info_file << " batch_size " << FLAGS_num << " average time " << to / FLAGS_epoch << \
+            ", min time: " << tmin << "ms, max time: " << tmax << " ms";
 }
 int main(int argc, const char** argv){
     // initial logger

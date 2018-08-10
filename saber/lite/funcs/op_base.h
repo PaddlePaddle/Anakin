@@ -43,10 +43,10 @@ public:
                                  std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) = 0;
 
     void set_op_name(const char* name){_op_name = name;}
-    const char* get_op_name() { return _op_name;}
+    const char* get_op_name() { return _op_name.c_str();}
 
 protected:
-    const char* _op_name;
+    std::string _op_name;
     Context* _ctx;
     bool _flag_param{false};
     bool _flag_init{false};

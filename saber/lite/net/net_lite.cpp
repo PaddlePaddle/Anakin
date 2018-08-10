@@ -1,6 +1,6 @@
 #include "saber/lite/net/net_lite.h"
 #include "saber/lite/net/saber_factory_lite.h"
-
+#include "saber/lite/core/tensor_op_lite.h"
 namespace anakin{
 
 namespace saber{
@@ -21,6 +21,17 @@ Net::Net(PowerMode mode, int threads) {
 Net::~Net() {
     delete _ctx;
     _ctx = nullptr;
+    if (_weights) {
+        fast_free(_weights);
+        _weights = nullptr;
+    }
+    for (int i = 0; i < _ops.size(); ++i) {
+        delete _ops[i];
+    }
+    for (auto it = _tensors.begin(); it != _tensors.end(); it++) {
+        delete it->second;
+        it->second = nullptr;
+    }
 }
 
 SaberStatus Net::set_run_mode(PowerMode mode, int threads) {
@@ -49,7 +60,7 @@ SaberStatus Net::load_model(const char *opt_file, const char *model_file) {
         delete [] _weights;
         _weights = nullptr;
     }
-    _weights = new float[fsize + 1];
+    _weights = static_cast<float*>(fast_malloc(sizeof(float) * (fsize + 1)));//new float[fsize + 1];
     fread(_weights, fsize, sizeof(float), fp_w);
     fclose(fp_w);
 
@@ -104,17 +115,17 @@ SaberStatus Net::load_model(const char *opt_file, const char *model_file) {
             tensor->set_shape(vshape);
         }
         _tensors[tensor_name] = tensor;
-        printf("%s vshape: %d,%d,%d,%d, rshape: %d,%d,%d,%d share:%s\n",
-               tensor_name,
-               valid_shape[0],
-               valid_shape[1],
-               valid_shape[2],
-               valid_shape[3],
-               real_shape[0],
-               real_shape[1],
-               real_shape[2],
-               real_shape[3],
-               tensor_shared_name);
+//        printf("%s vshape: %d,%d,%d,%d, rshape: %d,%d,%d,%d share:%s\n",
+//               tensor_name,
+//               valid_shape[0],
+//               valid_shape[1],
+//               valid_shape[2],
+//               valid_shape[3],
+//               real_shape[0],
+//               real_shape[1],
+//               real_shape[2],
+//               real_shape[3],
+//               tensor_shared_name);
     }
 
     //! get inputs and outputs name
@@ -134,20 +145,20 @@ SaberStatus Net::load_model(const char *opt_file, const char *model_file) {
         _outs.push_back(out_name);
     }
     nscan = fscanf(fp, "\n");
-    printf("inputs: %d\n", _ins.size());
-    for (int i = 0; i < _ins.size(); ++i) {
-        printf("%s\n", _ins[i].c_str());
-    }
-    printf("outputs: %d\n", _outs.size());
-    for (int i = 0; i < _outs.size(); ++i) {
-        printf("%s\n", _outs[i].c_str());
-    }
+//    printf("inputs: %d\n", _ins.size());
+//    for (int i = 0; i < _ins.size(); ++i) {
+//        printf("%s\n", _ins[i].c_str());
+//    }
+//    printf("outputs: %d\n", _outs.size());
+//    for (int i = 0; i < _outs.size(); ++i) {
+//        printf("%s\n", _outs[i].c_str());
+//    }
 
     //! get ops and params
     _ops.clear();
     int ops_num = 0;
     nscan = fscanf(fp, "OPS %d\n", &ops_num);
-    printf("ops number: %d\n", ops_num);
+    //printf("ops number: %d\n", ops_num);
     _tensor_ins.resize(ops_num);
     _tensor_outs.resize(ops_num);
     _ops.resize(ops_num);
@@ -161,7 +172,7 @@ SaberStatus Net::load_model(const char *opt_file, const char *model_file) {
             printf("load ops: %s falied: %d\n", op_name, nscan);
             return SaberInvalidValue;
         }
-        printf("op type: %s, op_name: %s, ins: %d, outs: %d\n", op_type, op_name, in_num, out_num);
+        //printf("op type: %s, op_name: %s, ins: %d, outs: %d\n", op_type, op_name, in_num, out_num);
         std::vector<Tensor<CPU, AK_FLOAT>*> tensor_ins;
         for (int j = 0; j < in_num; ++j) {
             char in_name[256];
@@ -171,7 +182,7 @@ SaberStatus Net::load_model(const char *opt_file, const char *model_file) {
                 printf("tensor name: %s not exits\n", in_name);
                 return SaberInvalidValue;
             }
-            printf("find ins: %s\n", in_name);
+            //printf("find ins: %s\n", in_name);
             tensor_ins.push_back(it->second);
         }
         _tensor_ins[i] = tensor_ins;
@@ -184,13 +195,14 @@ SaberStatus Net::load_model(const char *opt_file, const char *model_file) {
                 printf("tensor name: %s not exits\n", out_name);
                 return SaberInvalidValue;
             }
-            printf("find outs: %s\n", out_name);
+            //printf("find outs: %s\n", out_name);
             tensor_outs.push_back(it->second);
         }
         _tensor_outs[i] = tensor_outs;
 
         //! create op and load param
         OpBase* op = OpRegistry::create_op(op_type);
+        op->set_op_name(op_name);
         op->load_param(fp, _weights);
         _ops[i] = op;
     }
@@ -222,6 +234,12 @@ SaberStatus Net::prediction() {
     }
     for (int i = 0; i < _ops.size(); ++i) {
         LCHECK_EQ(_ops[i]->dispatch(_tensor_ins[i], _tensor_outs[i]), SaberSuccess, "run op failed");
+#ifdef ENABLE_DEBUG
+        for (int j = 0; j < _tensor_outs[i].size(); ++j) {
+            double meanval = tensor_mean(*_tensor_outs[i][j]);
+            printf("op: %s, mean: %.6f\n", _ops[i]->get_op_name(), meanval);
+        }
+#endif
     }
     return SaberSuccess;
 }
@@ -237,9 +255,33 @@ SaberStatus Net::init() {
 std::vector<Tensor<CPU, AK_FLOAT> *> Net::get_input() {
     std::vector<Tensor<CPU, AK_FLOAT>*> ins;
     for (int i = 0; i < _ins.size(); ++i) {
-
+        ins.push_back(_tensors[_ins[i]]);
     }
     return ins;
+}
+
+Tensor<CPU, AK_FLOAT> * Net::get_input(std::string name) {
+    if (_tensors.find(name) == _tensors.end()) {
+        LCHECK_EQ(true, false, "input is not exits");
+        return nullptr;
+    }
+    return _tensors[name];
+}
+
+std::vector<Tensor<CPU, AK_FLOAT>*> Net::get_output() {
+    std::vector<Tensor<CPU, AK_FLOAT>*> out;
+    for (int i = 0; i < _outs.size(); ++i) {
+        out.push_back(_tensors[_outs[i]]);
+    }
+    return out;
+}
+
+Tensor<CPU, AK_FLOAT> * Net::get_output(std::string name) {
+    if (_tensors.find(name) == _tensors.end()) {
+        LCHECK_EQ(true, false, "output tensor is not exits");
+        return nullptr;
+    }
+    return _tensors[name];
 }
 
 } // namespace lite

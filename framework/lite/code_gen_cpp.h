@@ -33,9 +33,9 @@ public:
 	explicit GenCPP(std::string model_name, std::string model_dir = ".") {
 		_cpp_file_name = model_dir + '/' + model_name + ".cpp";
 		_h_file_name = model_dir + '/' + model_name + ".h";
-		_model_file_name = model_dir + '/' + model_name + ".bin";
+		_model_file_name = model_dir + '/' + model_name + ".lite.bin";
 		_model_opt_file_name = model_dir + '/' + model_name + ".lite.info";
-		_weight_opt_file = model_dir + '/' + model_name + ".lite.bin";
+		_weight_opt_file = model_dir + '/' + model_name + ".tmp";
 		_weights.open(_model_file_name);
 		_opt_weights.open(_weight_opt_file);
 		_opt_param_write.open(_model_opt_file_name);
