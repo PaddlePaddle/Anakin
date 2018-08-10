@@ -1,9 +1,7 @@
 /* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
-
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
-
        http://www.apache.org/licenses/LICENSE-2.0
    
    Unless required by applicable law or agreed to in writing, software
@@ -45,7 +43,6 @@ public:
     typedef std::vector<TensorH*> Input_ht;
     typedef std::vector<TensorH*> Output_ht;
     typedef void (*CpuFunc_t) (const Input_ht&, Output_ht&, Param_t& param);
-    
     
     TestSaberBase (int in_num = 1, int out_num=1) : _op_input_num(in_num) , _op_output_num(out_num){
     }
