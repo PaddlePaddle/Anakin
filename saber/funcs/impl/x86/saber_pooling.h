@@ -1,16 +1,18 @@
-/* Copyright (c) 2016 Anakin Authors All Rights Reserve.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+ 
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+ 
+ http://www.apache.org/licenses/LICENSE-2.0
+ 
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ */
 
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-   http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License. */
 
 #ifndef ANAKIN_SABER_FUNCS_IMPL_X86_SABER_POOLING_H
 #define ANAKIN_SABER_FUNCS_IMPL_X86_SABER_POOLING_H
@@ -36,12 +38,11 @@ public:
     typedef Tensor<X86> DataTensor_out;
 
     SaberPooling()
-            : kernel_(nullptr)
-    {}
+            : _kernel(nullptr) {}
 
     ~SaberPooling() {
-        if (kernel_ != nullptr) {
-            delete kernel_;
+        if (_kernel != nullptr) {
+            delete _kernel;
         }
     }
 
@@ -64,7 +65,7 @@ public:
                                   std::vector<DataTensor_out*>& outputs,
                                   PoolingParam<X86>& param);
 private:
-    jit_uni_pool_kernel_f32<avx512_common> *kernel_;
+    jit_uni_pool_kernel_f32<avx512_common>* _kernel;
 };
 
 
