@@ -9,7 +9,7 @@ Before using Anakin, you must convert your models to Anakin ones. If you don't, 
 ## Requirements
 
 - Python 2.7+
-- Protobuf 3.5+
+- Protobuf 3.1+ (Make sure that Pip Protobuf is consistent with the system Protobuf version.)
 - PaddlePaddle 0.12.0+ (Fluid mode)
 - flask, bson, matplotlib, scikit-image
 - tkinter
