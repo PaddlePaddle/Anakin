@@ -6,8 +6,7 @@ using namespace anakin::saber;
 using namespace anakin::saber::lite;
 typedef Tensor<CPU, AK_FLOAT> TensorHf;
 
-std::string info_file;
-std::string weights_file;
+std::string lite_model;
 int FLAGS_num = 1;
 int FLAGS_warmup_iter = 1;
 int FLAGS_epoch = 1;
@@ -28,9 +27,9 @@ TEST(TestSaberLite, test_lite_model) {
     //net.set_run_mode((PowerMode)FLAGS_cluster, FLAGS_threads);
     //net.set_device_cache(32000, 2000000);
     //! load model
-    SaberStatus flag = net.load_model(info_file.c_str(), weights_file.c_str());
-    CHECK_EQ(flag, SaberSuccess) << "load model: " << info_file << ", " << weights_file << " failed";
-    LOG(INFO) << "load model: " << info_file << ", " << weights_file << " successed";
+    SaberStatus flag = net.load_model(lite_model.c_str());
+    CHECK_EQ(flag, SaberSuccess) << "load model: " << lite_model << " failed";
+    LOG(INFO) << "load model: " << lite_model << " successed";
 
     std::vector<TensorHf*> vtin = net.get_input();
     LOG(INFO) << "number of input tensor: " << vtin.size();
@@ -95,7 +94,7 @@ TEST(TestSaberLite, test_lite_model) {
         }
     }
     my_time.end();
-    LOG(INFO) << info_file << " batch_size " << FLAGS_num << " average time " << to / FLAGS_epoch << \
+    LOG(INFO) << lite_model << " batch_size " << FLAGS_num << " average time " << to / FLAGS_epoch << \
             ", min time: " << tmin << "ms, max time: " << tmax << " ms";
 #ifdef ENABLE_OP_TIMER
     OpTimer::print_timer();
@@ -106,32 +105,30 @@ int main(int argc, const char** argv){
     logger::init(argv[0]);
 
     LOG(INFO)<< "usage:";
-    LOG(INFO)<< argv[0] << " <info_file> <weights_file> <num> <warmup_iter> <epoch>";
-    LOG(INFO)<< "   info_file:      path to model info";
-    LOG(INFO)<< "   weights_file:   path to model weights";
+    LOG(INFO)<< argv[0] << " <lite model> <num> <warmup_iter> <epoch>";
+    LOG(INFO)<< "   lite_model:     path to anakin lite model";
     LOG(INFO)<< "   num:            batchSize default to 1";
     LOG(INFO)<< "   warmup_iter:    warm up iterations default to 10";
     LOG(INFO)<< "   epoch:          time statistic epoch default to 10";
     LOG(INFO)<< "   cluster:        choose which cluster to run, 0: big cores, 1: small cores";
     LOG(INFO)<< "   threads:        set openmp threads";
-    if(argc < 3) {
-        LOG(ERROR) << "You should fill in the variable model_dir and model_file at least.";
+    if(argc < 2) {
+        LOG(ERROR) << "You should fill in the variable lite model at least.";
         return 0;
     }
-    info_file = argv[1];
-    weights_file = argv[2];
+    lite_model = argv[1];
 
+    if(argc > 2) {
+        FLAGS_num = atoi(argv[2]);
+    }
     if(argc > 3) {
-        FLAGS_num = atoi(argv[3]);
+        FLAGS_warmup_iter = atoi(argv[3]);
     }
     if(argc > 4) {
-        FLAGS_warmup_iter = atoi(argv[4]);
+        FLAGS_epoch = atoi(argv[4]);
     }
     if(argc > 5) {
-        FLAGS_epoch = atoi(argv[5]);
-    }
-    if(argc > 6) {
-        FLAGS_cluster = atoi(argv[6]);
+        FLAGS_cluster = atoi(argv[5]);
         if (FLAGS_cluster < 0) {
             FLAGS_cluster = 0;
         }
@@ -139,8 +136,8 @@ int main(int argc, const char** argv){
             FLAGS_cluster = 1;
         }
     }
-    if(argc > 7) {
-        FLAGS_threads = atoi(argv[7]);
+    if(argc > 6) {
+        FLAGS_threads = atoi(argv[6]);
     }
     InitTest();
     RUN_ALL_TESTS(argv[0]); 
