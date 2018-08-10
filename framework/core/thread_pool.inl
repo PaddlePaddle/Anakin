@@ -1,6 +1,6 @@
 
 namespace anakin {
-
+/*
 void ThreadPool::launch() {
     for(size_t i = 0; i<_num_thread; ++i) {
         _workers.emplace_back(
@@ -75,5 +75,5 @@ std::future<typename function_traits<functor>::return_type> ThreadPool::RunAsync
     this->_cv.notify_one();
     return result;
 }
-
+*/
 } /* namespace anakin */
