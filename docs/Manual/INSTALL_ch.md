@@ -1,6 +1,6 @@
 # 安装指南 #
 
-本文档介绍如何源码编译安装 Anakin。开始前，请确认已准备装有 Linux 操作系统的计算机。
+本文档介绍如何源码编译安装 Anakin。开始前，请确认已备有 Linux 操作系统的计算机。
 
 ## 1、环境要求 ##
 
@@ -31,16 +31,16 @@
 
 此外，您还可能需要设置 cmake 的 `CMAKE_PREFIX_PATH` 选项，以告知其 Protobuf 链接库和头文件的路径。
 
-#### Anakin - NVGPU ###
+#### Anakin - NVGPU 的依赖 ###
 
 除了环境要求中列举的部分，Anakin - NVGPU 版本还依赖 [CUDA 8.0 +](https://developer.nvidia.com/cuda-zone) 和 [cuDNN 7.0 +](https://developer.nvidia.com/cudnn)，请您注意版本的匹配。
 
 
-#### Anakin - CPU ###
+#### Anakin - CPU 的依赖 ###
 
 在编译 CPU 版本前，我们建议您升级 GCC-G++ 至 5.4.0 以上，链接的 libm.so 库版本高于 2.17，以发挥更佳性能。
 
-#### Anakin - AMDGPU ###
+#### Anakin - AMDGPU 的依赖 ###
 
 在编译 AMD GPU 版本之前，需要首先安装 [ROCm 驱动程序](https://github.com/RadeonOpenCompute/ROCm/blob/master/README.md)。
 
@@ -75,7 +75,7 @@
 
 #### 2.3.2、离线安装 ###
 
-将 `anakin_third_party.tar.gz` 解压至 Anakin/third_party，并按 `2.1 小节` 的说明安装 Protobuf。
+将 `anakin_third_party.tar.gz` 解压至 Anakin/third_party，并按上一小节的说明安装 Protobuf。
 
 注释 `cmake/external/mkldnn.cmake`、`cmake/external/mklyl.cmake` 和 `cmake/external/xbyak.cmake` 的 `ExternalProject_Add` 语句。
 
