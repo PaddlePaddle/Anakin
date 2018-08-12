@@ -31,16 +31,16 @@
 
 此外，您还可能需要设置 cmake 的 `CMAKE_PREFIX_PATH` 选项，以告知其 Protobuf 链接库和头文件的路径。
 
-#### Anakin - NVGPU 的依赖 ###
+#### Anakin - NVGPU ###
 
 除了环境要求中列举的部分，Anakin - NVGPU 版本还依赖 [CUDA 8.0 +](https://developer.nvidia.com/cuda-zone) 和 [cuDNN 7.0 +](https://developer.nvidia.com/cudnn)，请您注意版本的匹配。
 
 
-#### Anakin - CPU 的依赖 ###
+#### Anakin - CPU ###
 
 在编译 CPU 版本前，我们建议您升级 GCC-G++ 至 5.4.0 以上，链接的 libm.so 库版本高于 2.17，以发挥更佳性能。
 
-#### Anakin - AMDGPU 的依赖 ###
+#### Anakin - AMDGPU ###
 
 在编译 AMD GPU 版本之前，需要首先安装 [ROCm 驱动程序](https://github.com/RadeonOpenCompute/ROCm/blob/master/README.md)。
 
