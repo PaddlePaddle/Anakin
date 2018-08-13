@@ -8,7 +8,7 @@ namespace saber
 
 // FP32 part
 template <>
-SaberStatus VenderConv2D<BM, AK_BM>::\
+SaberStatus VenderConv2D<BM, AK_FLOAT>::\
     create(const std::vector<Tensor<BM> *>& inputs,
             std::vector<Tensor<BM> *>& outputs,
             ConvParam<BM>& param, Context<BM>& ctx)
@@ -16,7 +16,7 @@ SaberStatus VenderConv2D<BM, AK_BM>::\
 }
 
 template <>
-SaberStatus VenderConv2D<BM, AK_BM>::\
+SaberStatus VenderConv2D<BM, AK_FLOAT>::\
     init(const std::vector<Tensor<BM> *> &inputs,
          std::vector<Tensor<BM> *> &outputs,
          ConvParam<BM> &param, Context<BM> &ctx)
@@ -27,7 +27,7 @@ SaberStatus VenderConv2D<BM, AK_BM>::\
 }
 
 template <>
-SaberStatus VenderConv2D<BM, AK_BM>::\
+SaberStatus VenderConv2D<BM, AK_FLOAT>::\
     dispatch(const std::vector<Tensor<BM>*>& inputs,
                 std::vector<Tensor<BM>*>& outputs,
                 ConvParam<BM>& param)
@@ -97,6 +97,6 @@ SaberStatus VenderConv2D<BM, AK_BM>::\
 // INT8 part
 // TODO:
 
-template class VenderConv2D<BM, AK_BM>;
+template class VenderConv2D<BM, AK_FLOAT>;
 } // namespace saber
 } // namespace anakin

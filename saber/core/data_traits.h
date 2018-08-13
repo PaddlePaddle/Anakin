@@ -143,14 +143,6 @@ struct DataTrait<Ttype, AK_UINT32> {
     typedef unsigned int* PtrDtype;
 };
 
-#ifdef USE_BM
-template <>
-struct DataTrait<BM, AK_BM> {
-    typedef bm_device_mem_t Dtype;
-    typedef bm_device_mem_t* PtrDtype;
-};
-#endif
-
 #ifdef USE_OPENCL
 struct ClMem{
     ClMem(){
