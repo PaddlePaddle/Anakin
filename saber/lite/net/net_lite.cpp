@@ -46,29 +46,27 @@ SaberStatus Net::set_device_cache(size_t l1_cache, size_t l2_cache) {
     return SaberSuccess;
 }
 
-//template <typename dtype>
-SaberStatus Net::load_model(const char *lite_model) {
-//    FILE *fp_w = fopen(model_file, "rb");
-//    if(!fp_w) {
-//        printf("load weights failed: %s\n", model_file);
-//        return SaberInvalidValue;
-//    }
-//    fseek(fp_w, 0, SEEK_END);
-//    long fsize = ftell(fp_w);
-//    fseek(fp_w, 0, SEEK_SET);
-//    if(_weights) {
-//        delete [] _weights;
-//        _weights = nullptr;
-//    }
-//    _weights = static_cast<float*>(fast_malloc(fsize + 1));//new float[fsize + 1];
-//    fread(_weights, fsize, 1, fp_w);
-//    fclose(fp_w);
 
+SaberStatus Net::load_model(const char *lite_model) {
     FILE* fp = fopen(lite_model, "rb");
     if (!fp) {
         printf("open %s failed\n", lite_model);
         return SaberInvalidValue;
     }
+    return load_model(fp);
+}
+
+SaberStatus Net::load_model(const void *memory) {
+    if (!memory) {
+        return SaberInvalidValue;
+    }
+    FILE* fp = (FILE*)memory;
+    return load_model(fp);
+}
+
+//template <typename dtype>
+SaberStatus Net::load_model(FILE* fp) {
+
     long wsize;
     fscanf(fp, "Wsize %lu\n", &wsize);
     if (_weights) {
@@ -238,6 +236,9 @@ SaberStatus Net::prediction() {
             continue;
         } else {
             init();
+            for (int j = 0; j < _ins.size(); ++j) {
+                _last_input_shapes[j] = _tensors[_ins[j]]->valid_shape();
+            }
             break;
         }
     }
