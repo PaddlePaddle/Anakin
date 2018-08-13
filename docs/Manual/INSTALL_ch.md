@@ -16,13 +16,18 @@
 
 ### 2.1、准备 ###
 
-首先，请获取源码并安装 Protobuf 3.6.1。
+首先，请获取 Anakin 开发分支的源码。
 
-     tar -zxvf protobuf-cpp-3.1.0.tar.gz
-     cd protobuf-3.1.0
-     ./autogen.sh
-     ./configure
-     make && make install
+    git clone -b developing https://github.com/PaddlePaddle/Anakin.git  
+
+如果您需要安装 Protobuf，请运行下列命令。
+
+    wget https://github.com/google/protobuf/releases/download/v3.1.0/protobuf-cpp-3.1.0.tar.gz  
+    tar -zxvf protobuf-cpp-3.1.0.tar.gz
+    cd protobuf-3.1.0
+    ./autogen.sh
+    ./configure
+    make && make install
 
 注意：上述命令可能需要开发者权限，并覆盖系统原有的 Protobuf。若您需解决多版本共存问题，请在上面的 `./configure` 后使用 `--prefix` 后缀，并在 `$HOME/.bashrc` 修改环境变量，直至可以使用下列命令。
 
@@ -69,7 +74,6 @@
 将 Anakin 源码和 `anakin_third_party.tar.gz` 拷贝到离线环境中。
 
     wget https://github.com/PaddlePaddle/Anakin/archive/developing.zip
-    wget https://github.com/google/protobuf/releases/download/v3.1.0/protobuf-cpp-3.1.0.tar.gz
 
 除 GNU Make 3.81、CMake 2.8.12、GCC-G++ 4.8.2 和上一小节所述不同架构的依赖外，您可能还需要准备 [AutoConf 2.63](https://centos.pkgs.org/6/centos-i386/autoconf-2.63-5.1.el6.noarch.rpm.html)、[AutoMake 1.11](https://centos.pkgs.org/6/centos-i386/automake-1.11.1-4.el6.noarch.rpm.html)、[libtool 2.26](https://centos.pkgs.org/6/centos-x86_64/libtool-2.2.6-15.5.el6.x86_64.rpm.html)。
 
