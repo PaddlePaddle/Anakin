@@ -291,7 +291,9 @@ function(anakin_protos_processing)
 	anakin_fetch_files_with_suffix(${PROTO_SRC_PATH} "proto" PROTO_SRC_FILES)
     anakin_fetch_files_with_suffix(${SERVICE_API_SRC_PATH} "proto" SERVICE_API_PROTO_SRC_FILES)
     anakin_gen_pb(${PROTO_SRC_PATH} ${PROTO_SRC_FILES})
-    anakin_gen_pb(${SERVICE_API_SRC_PATH} ${SERVICE_API_PROTO_SRC_FILES})
+    if(BUILD_RPC)
+        anakin_gen_pb(${SERVICE_API_SRC_PATH} ${SERVICE_API_PROTO_SRC_FILES})
+    endif()
 endfunction()
 
 # ----------------------------------------------------------------------------
