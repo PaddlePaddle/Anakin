@@ -79,7 +79,11 @@ bm_status_t bm_malloc_device_dword(
     bm_handle_t      handle,
     bm_device_mem_t *pmem,
     int              count);
-
+bm_status_t bm_malloc_ctx_dword(
+    bm_handle_t      handle,
+    bm_device_mem_t *pmem,
+    int              count,
+    unsigned long long ctx_addr);
 /*
  * brief malloc host memory in size of byte
 */
@@ -101,7 +105,7 @@ bm_status_t bm_malloc_host(
     bm_host_mem_t   *pmem,
     unsigned int     size);
 
-void bm_free_host(
+bm_status_t bm_free_host(
     bm_handle_t      handle,
     bm_host_mem_t    mem);
 
@@ -148,9 +152,6 @@ bm_status_t bm_memset_device(
 bm_device_mem_t bm_mem_from_system(
     void *              system_addr);
 
-bm_device_mem_t bm_mem_from_device(
-    void *              device_addr);
-	
 /*
 *brief malloc one device memory with the shape of (N,C,H,W), copy the sys_mem to
 device mem if need_copy is true
@@ -186,11 +187,16 @@ unsigned int       bm_mem_get_device_size(struct bm_mem_desc mem);
 void               bm_mem_set_device_size(struct bm_mem_desc & mem, unsigned int size);
 bm_mem_type_t      bm_mem_get_type(struct bm_mem_desc mem);
 
+unsigned long long bm_gmem_arm_reserved_request(bm_handle_t handle);
+void bm_gmem_arm_reserved_release(bm_handle_t handle);
+
 /* 
 * brief Get the handle of bmlib_runtime
 * return : If the handle has been inited, return the handle it self , else init one and return it
 */
-bm_handle_t get_bm_handle();
+
+bm_status_t bm_init(bm_handle_t *handle, bool bmkernel_used);
+void bm_deinit(bm_handle_t handle);
 
 /*
  * Helper functions
@@ -224,6 +230,14 @@ bm_status_t bm_dev_getcount(int* count);
 bm_status_t bm_dev_query(int devid);
 bm_status_t bm_dev_request(bm_handle_t *handle, bool bmkernel_used, int devid);
 void bm_dev_free(bm_handle_t handle);
+
+typedef struct bm_fw_desc {
+	unsigned int *itcm_fw;
+	int itcmfw_size;
+	unsigned int *ddr_fw;
+	int ddrfw_size;
+} bm_fw_desc, *pbm_fw_desc;
+bm_status_t bm_update_firmware(bm_handle_t handle, pbm_fw_desc pfw);
 
 #if defined (__cplusplus)
 }

@@ -41,6 +41,16 @@ typedef TargetWrapper<BM, __device_target> BM_API;
 static bm_handle_t handle;
 static bm_status_t init_handle{bmdnn_init(&handle)};
 
+bm_handle_t BM_API::get_handle() {
+    /*bm_handle_t handle;
+    int ret = 0;
+
+    ret = bm_dev_request(&handle, 0, devid);
+    CHECK_NE(ret, 0) << "request BM device failed: " << devid;
+    */
+    return handle;
+};
+
 void BM_API::get_device_count(int &count) {
     BMDNN_CHECK(bm_dev_getcount(&count));
 }
@@ -56,7 +66,7 @@ int BM_API::get_device_id(){
 }
         
 void BM_API::mem_alloc(void** ptr, size_t n){
-    handle = get_bm_handle();
+    //handle = BM_API::get_handle();
     /* bm_device_mem_t *mem = reinterpret_cast<struct bm_mem_desc *>(*ptr); */
     bm_device_mem_t *mem = new bm_device_mem_t();
     BMDNN_CHECK(bm_malloc_device_byte(handle, mem, n));
@@ -65,7 +75,7 @@ void BM_API::mem_alloc(void** ptr, size_t n){
         
 void BM_API::mem_free(void* ptr){
     if(ptr != nullptr){
-        handle = get_bm_handle();
+        //handle = BM_API::get_handle();
         bm_free_device(handle, *(struct bm_mem_desc*)(ptr));
         delete ptr;
     }
@@ -81,7 +91,7 @@ void BM_API::mem_set(void* ptr, int value, size_t n){
 void BM_API::sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
         const void* src, size_t src_offset, int src_id, \
         size_t count, __DtoD) {
-    handle = get_bm_handle(); 
+    //handle = BM_API::get_handle(); 
     //BMDNN_CHECK(bm_memcpy_d2d(handle, bm_mem_from_device(dst), dst_id, bm_mem_from_device(src), src_id, count));
     BMDNN_CHECK(bm_memcpy_d2d(handle, *(bm_device_mem_t *)(dst), dst_id, *(bm_device_mem_t *)(src), src_id, count));
     LOG(INFO) << "BM sync_memcpy: device to device, finished";
@@ -90,7 +100,7 @@ void BM_API::sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
 void BM_API::sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
         const void* src, size_t src_offset, int src_id, \
         size_t count, __HtoD) {
-    handle = get_bm_handle(); 
+    //handle = BM_API::get_handle(); 
     BMDNN_CHECK(bm_memcpy_s2d(handle, *(bm_device_mem_t *)(dst), bm_mem_from_system(src)));
 
     #ifdef DEBUG
@@ -104,7 +114,7 @@ void BM_API::sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
 void BM_API::sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
         const void* src, size_t src_offset, int src_id, \
         size_t count, __DtoH) {
-    handle = get_bm_handle(); 
+    //handle = BM_API::get_handle(); 
     BMDNN_CHECK(bm_memcpy_d2s(handle, bm_mem_from_system(dst), *(bm_device_mem_t *)(src)));
 
     #ifdef DEBUG

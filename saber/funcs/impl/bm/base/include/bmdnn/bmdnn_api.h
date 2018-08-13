@@ -380,6 +380,7 @@ bm_status_t bmdnn_interp_forward(
     int                 pad_end,
     int                 output_h,
     int                 output_w,
+    int                 platform_sp,
     //output
     bm_device_mem_t  output
     );
@@ -807,6 +808,21 @@ bm_status_t bmdnn_img_scale(
         bm_handle_t handle, bm_device_mem_t dst, bm_device_mem_t src, int n,
         int c, int dh, int sh, int dw, int sw);
 
+bm_status_t bmdnn_bn_forward_inference(
+    bm_handle_t      handle,
+    bm_device_mem_t  input,
+    bm_device_mem_t  output,
+    bm_device_mem_t  mean_ma,
+    bm_device_mem_t  variance_ma,
+    bm_device_mem_t  scale,
+    bm_device_mem_t  bias,
+    bm_device_mem_t  scale_ext,              
+    float            eps,
+    int              input_n,
+    int              input_c,
+    int              input_h,
+    int              input_w
+  );
 #if defined (__cplusplus)
 }
 #endif
