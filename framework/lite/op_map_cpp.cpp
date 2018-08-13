@@ -200,12 +200,16 @@ std::string ParserConvolutionReluPool(graph::AttrInfo& attr,
     auto pool_size = get_attr<PTuple<int>>("pooling_0_pool_size", attr);
     auto pool_method = get_attr<std::string>("pooling_0_method", attr);
 
+    std::string str_pool_method;
+
     PoolingType pool_type;
     if (pool_method == "MAX") {
         pool_type = Pooling_max;
+        str_pool_method = "Pooling_max";
     }
     if (pool_method == "AVG") {
         pool_type = Pooling_average_include_padding;
+        str_pool_method = "Pooling_average_include_padding";
     }
 
     auto offset_info = writter.get_weights_by_name(node_name);
@@ -213,7 +217,7 @@ std::string ParserConvolutionReluPool(graph::AttrInfo& attr,
     // gen cpp code
     CodeWritter code_w;
 
-    code_w.feed("ParamBase* %s_param = new ConvActPool2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%d,%s,%d,%d,%d,%d,%d,%d,%s+%d,%s+%d);\n",
+    code_w.feed("ParamBase* %s_param = new ConvActPool2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%s,%s,%d,%d,%d,%d,%d,%d,%s+%d,%s+%d);\n",
                 node_name.c_str(),
                 weights_size,
                 num_output,
@@ -228,7 +232,7 @@ std::string ParserConvolutionReluPool(graph::AttrInfo& attr,
                 dilation_rate[0],
                 bias_term ? "true":"false",
                 "true", //set flag_relu true
-                (int)pool_type,
+                str_pool_method.c_str(),
                 global_pooling? "true" : "false",
                 pool_size[1],
                 pool_size[0],
@@ -242,7 +246,7 @@ std::string ParserConvolutionReluPool(graph::AttrInfo& attr,
                 bias_term ? offset_info.weights[1].offset : 0);
     code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
 
-    code_w.feed("//    %s.load_param(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%d,%s,%d,%d,%d,%d,%d,%d,%s+%d,%s+%d);\n", node_name.c_str(),
+    code_w.feed("//    %s.load_param(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%s,%s,%d,%d,%d,%d,%d,%d,%s+%d,%s+%d);\n", node_name.c_str(),
                 weights_size,
                 num_output,
                 group,
@@ -256,7 +260,7 @@ std::string ParserConvolutionReluPool(graph::AttrInfo& attr,
                 dilation_rate[0],
                 bias_term ? "true":"false",
                 "true", //set flag_relu true
-                (int)pool_type,
+                str_pool_method.c_str(),
                 global_pooling? "true" : "false",
                 pool_size[1],
                 pool_size[0],
@@ -599,20 +603,23 @@ std::string ParserConvBatchnormScaleReluPool(graph::AttrInfo& attr,
     auto pool_size = get_attr<PTuple<int>>("pooling_0_pool_size", attr);
     auto pool_method = get_attr<std::string>("pooling_0_method", attr);
 
-    PoolingType pool_type;
-    if (pool_method == "MAX") {
-        pool_type = Pooling_max;
-    }
-    if (pool_method == "AVG") {
-        pool_type = Pooling_average_include_padding;
-    }
+	std::string str_pool_method;
+	PoolingType pool_type;
+	if (pool_method == "MAX") {
+		pool_type = Pooling_max;
+		str_pool_method = "Pooling_max";
+	}
+	if (pool_method == "AVG") {
+		pool_type = Pooling_average_include_padding;
+		str_pool_method = "Pooling_average_include_padding";
+	}
 
     auto offset_info = writter.get_weights_by_name(node_name);
 
     // gen cpp code
     CodeWritter code_w;
 
-    code_w.feed("ParamBase* %s_param = new ConvActPool2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%d,%s,%d,%d,%d,%d,%d,%d,%s+%d,%s+%d);\n",
+    code_w.feed("ParamBase* %s_param = new ConvActPool2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%s,%s,%d,%d,%d,%d,%d,%d,%s+%d,%s+%d);\n",
                     node_name.c_str(),
                 weights_size,
                 num_output,
@@ -627,7 +634,7 @@ std::string ParserConvBatchnormScaleReluPool(graph::AttrInfo& attr,
                 dilation_rate[0],
                 "true", // set bias to true
                 "true", //set flag_relu true
-                (int)pool_type,
+                str_pool_method.c_str(),
                 global_pooling? "true" : "false",
                 pool_size[1],
                 pool_size[0],
