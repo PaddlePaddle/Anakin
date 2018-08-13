@@ -88,10 +88,6 @@ public:
             return SaberInvalidValue;
         }
 
-        //CHECK_EQ(inputs[0]->shape() == inputs[0]->valid_shape(), true) << \
-                "cudnn softmax does not support tensor with roi";
-        //CHECK_EQ(outputs[0]->shape() == outputs[0]->valid_shape(), true) << \
-                "cudnn softmax does not support tensor with roi";
 
         Shape shape_in = inputs[0]->valid_shape();
         if (!(ctx == this->_ctx)) {

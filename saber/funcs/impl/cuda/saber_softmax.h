@@ -68,7 +68,7 @@ public:
         cudaGetDeviceProperties(&deviceProp, API::get_device_id());
         size_t sharedmem_size = deviceProp.sharedMemPerBlock;
         _max_dimsize = sharedmem_size / sizeof(OpDataType) / CUDA_NUM_THREADS;
-        //LOG(INFO) << "shared memory size: " << sharedmem_size / 1024 << "Kb";
+
         Shape sh_tmp({1, 1, 1, _outer_num * _inner_num});
         if (_axis_size > _max_dimsize){
             //! re_alloc device memory
