@@ -370,7 +370,7 @@ def Parser_innerproduct(args):
     # parser caffe parameter
     tensors = args[2]
     weight = tensors[0]
-    inner_product_param = layer.inner_product_param	
+    inner_product_param = layer.inner_product_param 
     OpsRegister()["Dense"].axis = inner_product_param.axis # weight().shape.dim.value[2]
     OpsRegister()["Dense"].out_dim = inner_product_param.num_output # weight().shape.dim.value[3]
     OpsRegister()["Dense"].bias_term = inner_product_param.bias_term
@@ -564,7 +564,7 @@ def Parser_input(args):
     OpsRegister()["Input"].input_shape = list(input_param.shape[0].dim)
     #OpsRegister()["Input"].input_num = len(input_param.shape)
     #for shape in input_param.shape:
-    #	OpsRegister()["Input"].input_shape.append(list(shape.dim))
+    #   OpsRegister()["Input"].input_shape.append(list(shape.dim))
 
 
 @ParserFeedDecorator("Permute")
@@ -994,13 +994,23 @@ def Parser_priorbox(args):
     OpsRegister()["PriorBox"].min_size = list(prior_box_param.min_size)
     OpsRegister()["PriorBox"].max_size = list(prior_box_param.max_size)
     OpsRegister()["PriorBox"].aspect_ratio = list(prior_box_param.aspect_ratio)
+    OpsRegister()["PriorBox"].fixed_size = list(prior_box_param.fixed_size)
+    OpsRegister()["PriorBox"].fixed_ratio = list(prior_box_param.fixed_ratio)
+    OpsRegister()["PriorBox"].density = list(prior_box_param.density)
+    OpsRegister()["PriorBox"].aspect_ratio = list(prior_box_param.aspect_ratio)
     OpsRegister()["PriorBox"].is_flip = prior_box_param.flip
     OpsRegister()["PriorBox"].is_clip = prior_box_param.clip
     OpsRegister()["PriorBox"].variance = list(prior_box_param.variance)
     OpsRegister()["PriorBox"].img_h = prior_box_param.img_h
     OpsRegister()["PriorBox"].img_w = prior_box_param.img_w
-    OpsRegister()["PriorBox"].step_h = prior_box_param.step_h
-    OpsRegister()["PriorBox"].step_w = prior_box_param.step_w
+
+    if prior_box_param.HasField('step_h') and pooling_param.HasField('step_w'):
+        OpsRegister()["PriorBox"].step_h = prior_box_param.step_h
+        OpsRegister()["PriorBox"].step_w = prior_box_param.step_w
+    elif prior_box_param.HasField('step'):
+        OpsRegister()["PriorBox"].step_h = prior_box_param.step
+        OpsRegister()["PriorBox"].step_w = prior_box_param.step
+
     OpsRegister()["PriorBox"].offset = prior_box_param.offset
     OpsRegister()["PriorBox"].order = ['MIN', 'MAX', 'COM']
 
@@ -1044,10 +1054,19 @@ def Parser_normalize(args):
     layer = args[1]
     norm_param = layer.norm_param
     scale_filler = norm_param.scale_filler
+    OpsRegister()["Normalize"].begin_norm_axis = -1
     OpsRegister()["Normalize"].is_across_spatial = norm_param.across_spatial
     OpsRegister()["Normalize"].is_shared_channel = norm_param.channel_shared
     OpsRegister()["Normalize"].eps = norm_param.eps
     OpsRegister()["Normalize"].p = 2
+
+
+@ParserFeedDecorator("Activation")
+def Parser_relu6(args):
+    layer = args[1]
+    relu6_param = layer.relu6_param
+    OpsRegister()["Activation"].type = "ClippedRelu"
+    OpsRegister()["Activation"].clip_relu_num = 6
 
 
 # caffe layer parameter parser map
@@ -1113,5 +1132,6 @@ CAFFE_LAYER_PARSER = {
                 "PriorBox": OpsParam().set_parser(Parser_priorbox), # vis add
                 "DetectionOutput": OpsParam().set_parser(Parser_detectionoutput), # vis add
                 "ArgMax": OpsParam().set_parser(Parser_argmax),
-                "Normalize": OpsParam().set_parser(Parser_normalize)
+                "Normalize": OpsParam().set_parser(Parser_normalize),
+                "ReLU6": OpsParam().set_parser(Parser_relu6)
                 }
