@@ -4,10 +4,10 @@
 
 ## 1、环境要求 ##
 
-*  Ubuntu 或 CentOS
+*  CentOS 或 Ubuntu
 *  GNU Make: 3.81 +
 *  CMake: 2.8.12 +
-*  GCC / G++ / C++: 4.8.2 +
+*  GCC / G++ / C++: 4.8 ~ 5.4
 *  Protobuf: 3.1.0 +
 
 ## 2、安装步骤 ##
