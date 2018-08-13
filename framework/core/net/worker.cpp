@@ -90,7 +90,7 @@ void Worker<Ttype, Dtype, Ptype, RunType>::register_interior_edges(std::string b
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
-std::vector<Tensor4dPtr<Ttype, Dtype> > Worker<Ttype, Dtype, Ptype, RunType>::sync_prediction(std::vector<Tensor4dPtr<typename target_host<Ttype>::type, Dtype> >& net_ins_list) {
+std::future<std::vector<Tensor4dPtr<Ttype, Dtype> > > Worker<Ttype, Dtype, Ptype, RunType>::sync_prediction(std::vector<Tensor4dPtr<typename target_host<Ttype>::type, Dtype> >& net_ins_list) {
     auto task = [&](std::vector<Tensor4dPtr<typename target_host<Ttype>::type, Dtype> >& ins) -> std::vector<Tensor4dPtr<Ttype, Dtype> > {
         auto& net = MultiThreadModel<Ttype, Dtype, Ptype, RunType>::Global().get_net(std::this_thread::get_id()); 
         //fill the graph inputs
@@ -124,11 +124,11 @@ std::vector<Tensor4dPtr<Ttype, Dtype> > Worker<Ttype, Dtype, Ptype, RunType>::sy
 
         return ret; 
     };
-    return this->RunSync(task, net_ins_list);
+    return this->RunAsync(task, net_ins_list);
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
-std::vector<Tensor4dPtr<Ttype, Dtype> > Worker<Ttype, Dtype, Ptype, RunType>::sync_prediction_device(std::vector<Tensor4dPtr<Ttype, Dtype> >& net_ins_list) {
+std::future<std::vector<Tensor4dPtr<Ttype, Dtype> > > Worker<Ttype, Dtype, Ptype, RunType>::sync_prediction_device(std::vector<Tensor4dPtr<Ttype, Dtype> >& net_ins_list) {
     auto task = [&](std::vector<Tensor4dPtr<Ttype, Dtype> >& ins) -> std::vector<Tensor4dPtr<Ttype, Dtype> > {
         auto& net = MultiThreadModel<Ttype, Dtype, Ptype, RunType>::Global().get_net(std::this_thread::get_id()); 
         //fill the graph inputs 
@@ -146,7 +146,7 @@ std::vector<Tensor4dPtr<Ttype, Dtype> > Worker<Ttype, Dtype, Ptype, RunType>::sy
 
         return ret; 
     }; 
-    return this->RunSync(task, net_ins_list);
+    return this->RunAsync(task, net_ins_list);
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>

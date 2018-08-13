@@ -16,6 +16,8 @@
 #ifndef ANAKIN_SERVICE_H
 #define ANAKIN_SERVICE_H 
 
+#include <brpc/server.h>
+
 #include "framework/core/net/worker.h"
 #include "framework/core/net/worker.h"
 #include "framework/service/api/service.pb.h"
@@ -24,14 +26,14 @@ namespace anakin {
 
 namespace rpc {
 
-template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType = OpRunType::ASYNC>
+template<typename Ttype, DataType Dtype, Precision Ptype, ServiceRunPattern RunP>
 class AnakinService public: RPCService {
 public: 
     void evaluate(::google::protobuf::RpcController* controller_base, 
                   const RPCRequest* request, 
                   RPCResponse* response, 
                   ::google::protobuf::Closure* done) { 
-        _evaluate(controller_base, request, response, done, EnumToType<RunType>());      
+        _evaluate(controller_base, request, response, done, ServiceRunPatternToType<RunP>());      
     }
 
 public:
@@ -52,18 +54,46 @@ public:
         _worker_map[model_name].register_aux_function(function, std::forward<ParamTypes>(args)...);
     }
 
+public:
+    inline void extract_request(const RPCRequest* request, 
+                                std::vector<Tensor4dPtr<typename target_host<Ttype>::type, Dtype> >);
+    inline void fill_response(RPCResponse* response, std::vector<Tensor4dPtr<Ttype, Dtype> >& outputs);
+
 private:
     inline void _evaluate(::google::protobuf::RpcController* controller_base, 
                           const RPCRequest* request, 
                           RPCResponse* response, 
-                          ::google::protobuf::Closure* done) {
+                          ::google::protobuf::Closure* done,
+                          ServiceRunPatternToType<ServiceRunPattern::SYNC>) {
+        // make sure that done will be invoked
+        brpc::ClosureGuard done_guard(done);
+        brpc::Controller* cntl = static_cast<brpc::Controller*>(controller_base);
+        // receive remote call from client.
+        LOG(INFO) << "Received request[log_id=" << cntl->log_id() << "] from " << cntl->remote_side();
+        if (!cntl->request_attachment().empty()) { 
+            LOG(INFO) << " -- (attached=" << cntl->request_attachment() << ")"; 
+        }
+        std::string model_name = request->model();
+        std::vector<Tensor4dPtr<typename target_host<Ttype>::type, Dtype> > inputs;
+        extract_request(request, inputs);
+        auto ret = _worker_map[model_name].sync_prediction(inputs);
+        fill_response(response, ret.get());
+    }
+
+    inline void _evaluate(::google::protobuf::RpcController* controller_base, 
+                          const RPCRequest* request, 
+                          RPCResponse* response, 
+                          ::google::protobuf::Closure* done,
+                          ServiceRunPatternToType<ServiceRunPattern::ASYNC>) {
         // make sure that done will be invoked
         brpc::ClosureGuard done_guard(done);
         brpc::Controller* cntl = static_cast<brpc::Controller*>(controller_base);
     }
 
+
+
 private:
-    std::unordered_map<std::string, std::shared_ptr<Worker<Ttype, Dtype, Ptype, RunType> > > _worker_map;
+    std::unordered_map<std::string, std::shared_ptr<Worker<Ttype, Dtype, Ptype, OpRunType::ASYNC> > > _worker_map;
 };
 
 } /* namespace rpc */

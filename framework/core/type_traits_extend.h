@@ -157,7 +157,8 @@ struct target_host<saber::NV> {
     typedef saber::NVHX86 type;
 };
 
-
+template<ServiceRunPattern P>
+struct ServiceRunPatternToType{};
 
 } /* namespace anakin */
 

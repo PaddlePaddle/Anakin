@@ -39,6 +39,15 @@ enum class OpRunType : int {
 };
 
 /** 
+ *  \brief service run pattern 
+ */
+enum class ServiceRunPattern: int {
+    SYNC, 
+    ASYNC 
+};
+
+
+/** 
  *  \brief Inner return type used by Status type.
  */
 enum class RetType {

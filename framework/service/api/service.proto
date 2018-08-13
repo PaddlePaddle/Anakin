@@ -1,49 +1,53 @@
 syntax = "proto3";
 
+package anakin.rpc
+
+option cc_generic_services = true;
+
 message Date {
-    optional bytes name = 1;
-    repeated int32 shape;
-    repeated float data;
+    bytes name = 1;
+    repeated int32 shape = 2;
+    repeated float data = 3;
 };
 
 message IO {
-  required bytes input_name = 1;    // input name
-  required Date input_tensor = 2; // input tensor
+  bytes input_name = 1;    // input name
+  Date input_tensor = 2; // input tensor
 };
 
 // RPC request
 message RPCRequest {
-    required bytes model = 1;
+    bytes model = 1;
     repeated IO inputs = 2;
-    optional int64 request_id = 3; // you need to set request ID，then to get async retults by request_id
+    int64 request_id = 3; // you need to set request ID，then to get async retults by request_id
 };
 
 message DeviceStatus {
-    required int32 id = 1;       // device id (represent as device num id)
-    required bytes name = 2;     // device name
-    required int32 temp = 3;     // device temperature Celsius degree
-    required int32 mem_free = 4; // device memory free bytes
-    required int32 mem_used = 5; // device memory used bytes
+    int32 id = 1;       // device id (represent as device num id)
+    bytes name = 2;     // device name
+    int32 temp = 3;     // device temperature Celsius degree
+    int32 mem_free = 4; // device memory free bytes
+    int32 mem_used = 5; // device memory used bytes
     // the number of device current compute running processes
-    optional int32 compute_run_process_num = 6;
+    int32 compute_run_process_num = 6;
 };
 
 // RPC service execution information
 message ExecutionInfo {
     // additional exception message of the execution
-    required bytes message = 1;
+    bytes message = 1;
     // duration of this execution in nano seconds
-    required int32 duration_in_nano_seconds = 2;
+    int32 duration_in_nano_seconds = 2;
     // device status
     DeviceStatus device_status = 3;
 };
 
 // RPC response
 message RPCResponse {
-    required bytes model = 1;         // model name
+    bytes model = 1;         // model name
     repeated IO outputs = 2;         // evaluation output of a batch
-    optional ExecutionInfo info = 3; // the additional information of this execution
-    optional int64 request_id = 4;
+    ExecutionInfo info = 3; // the additional information of this execution
+    int64 request_id = 4;
 };
 
 service RPCService {
