@@ -310,6 +310,19 @@ macro(anakin_find_protobuf)
 	endif()
 endmacro()
 
+macro(anakin_find_baidu_rpc) 
+    set(BAIDU_RPC_ROOT "/usr" CATCH "baidu rpc root dir")
+    find_path(RPC_INCLUDE_DIR server.h PATHS ${BAIDU_RPC_ROOT}/include/brpc/ $ENV{BAIDU_RPC_ROOT}/include/brpc/)
+    find_library(RPC_LIBRARY NAMES libbrpc.so
+                             PATHS ${BAIDU_RPC_ROOT}/lib $ENV{BAIDU_RPC_ROOT}/include/brpc/
+                             DOC "library path for baidu rpc.")
+    if(RPC_INCLUDE_DIR AND RPC_LIBRARY)
+        include_directories(${BAIDU_RPC_ROOT}/include)
+        list(APPEND ANAKIN_LINKER_LIBS ${RPC_LIBRARY})
+    else()
+        message(SEND_ERROR "Could not found baidu-rpc !")
+    endif()
+endmacro()
 
 macro(anakin_find_openmp)
 	find_package(OpenMP REQUIRED)
