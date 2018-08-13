@@ -116,18 +116,26 @@ void test_buffer() {
 
 TEST(TestSaberFunc, test_saber_buffer) {
 #ifdef USE_CUDA
+    LOG(INFO) << "test NV";
     test_buffer<NV, NVHX86, AK_FLOAT>();
     test_buffer<NV, NVHX86, AK_INT8>();
 #endif
 
 #ifdef USE_X86_PLACE
+    LOG(INFO) << "test X86";
     test_buffer<X86, X86, AK_FLOAT>();
     test_buffer<X86, X86, AK_INT8>();
 #endif
 
 #ifdef USE_ARM_PLACE
+    LOG(INFO) << "test ARM";
     test_buffer<ARM, ARM, AK_FLOAT>();
     test_buffer<ARM, ARM, AK_INT8>();
+#endif
+
+#ifdef USE_BM
+    LOG(INFO) << "test BM";
+    test_buffer<BM, X86, AK_FLOAT>();
 #endif
 
 }
