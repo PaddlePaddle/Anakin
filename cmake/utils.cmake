@@ -242,7 +242,7 @@ endfunction()
 function(anakin_gen_pb proto_src_path)
     set(__working_dir ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/PROTO_TEMP/)
     foreach(__proto_file ${ARGN}) 
-        exec_program(protoc  ${__working_dir} ARGS " -I=${proto_src_path} --cpp_out=. ${__proto_file}" 
+        exec_program(${PROTOBUF_PROTOC_EXECUTABLE} ${__working_dir} ARGS " -I=${proto_src_path} --cpp_out=. ${__proto_file}" 
                                               OUTPUT_VARIABLE OUTPUT RETURN_VALUE VALUE)
         if(NOT VALUE)
             anakin_fetch_files_with_suffix(${__working_dir} "h" PROTO_GENERATE_H)
