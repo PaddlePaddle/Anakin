@@ -459,7 +459,7 @@ struct ScaleParam {
     std::vector<float> scale_w;
     std::vector<float> scale_b;
 };
-template <typename type>
+template <typename TargetType>
 struct SliceParam {
     SliceParam() = default;
     explicit SliceParam(int axis_in, std::vector<int> slice_points_in){
@@ -467,16 +467,16 @@ struct SliceParam {
         axis = axis_in;
         slice_points = slice_points_in;
     }
-    SliceParam(const SliceParam<type> &right) {
+    SliceParam(const SliceParam<TargetType> &right) {
         axis = right.axis;
         slice_points = right.slice_points;
     }
-    SliceParam<type> &operator=(const SliceParam<type> &right) {
+    SliceParam<TargetType> &operator=(const SliceParam<TargetType> &right) {
         axis = right.axis;
         slice_points = right.slice_points;
         return *this;
     }
-    bool operator==(const SliceParam<type> &right) {
+    bool operator==(const SliceParam<TargetType> &right) {
         bool comp_eq = slice_points.size() == right.slice_points.size();
         for (int i = 0; i < slice_points.size(); ++i) {
             if (!comp_eq){
@@ -490,21 +490,21 @@ struct SliceParam {
     std::vector<int> slice_points;
 };
 
-template <typename type>
+template <typename TargetType>
 struct SoftmaxParam {
     SoftmaxParam() = default;
     explicit SoftmaxParam(int axis_in){
         CHECK_GE(axis_in, 0) << "input axis index should >= 0, current is " << axis_in;
         axis = axis_in;
     }
-    SoftmaxParam(const SoftmaxParam<type>& right){
+    SoftmaxParam(const SoftmaxParam<TargetType>& right){
         axis = right.axis;
     }
-    SoftmaxParam<type>& operator=(const SoftmaxParam<type>& right){
+    SoftmaxParam<TargetType>& operator=(const SoftmaxParam<TargetType>& right){
         this->axis = right.axis;
         return *this;
     }
-    bool operator==(const SoftmaxParam<type>& right){
+    bool operator==(const SoftmaxParam<TargetType>& right){
         return axis == right.axis;
     }
     int axis;
