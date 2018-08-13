@@ -11,7 +11,6 @@ void Device<BM>::create_stream() {
         typedef TargetWrapper<BM> API;
         typename API::stream_t stream_data;
         typename API::stream_t stream_compute;
-        //cudaStreamNonBlocking
         API::create_stream_with_flag(&stream_data, 1);
         API::create_stream_with_flag(&stream_compute, 1);
         _data_stream.push_back(stream_data);

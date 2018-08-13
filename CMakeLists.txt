@@ -84,6 +84,8 @@ anakin_option(BUILD_FAT_BIN "Build anakin cuda fat-bin lib for all device plantf
 # compile options for BitMain place
 anakin_option(USE_BM "Use BitMain libs." YES if USE_BM_PLACE)
 
+# build options for amd.
+anakin_option(USE_AMD "Use AMD ROCm OpenCL" YES if AMD_GPU)
 
 cmake_minimum_required(VERSION ${MIN_CMAKE_V} FATAL_ERROR)
 
