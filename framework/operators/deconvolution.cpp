@@ -105,6 +105,13 @@ template class DeconvolutionHelper<ARM, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Deconvolution, DeconvolutionHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
 
+#if defined(BUILD_LITE)
+INSTANCE_DECONV(X86, AK_FLOAT, Precision::FP32);
+template class DeconvolutionHelper<X86, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Deconvolution, DeconvolutionHelper, X86, AK_FLOAT,
+                          Precision::FP32);
+#endif
+
 //! register op
 ANAKIN_REGISTER_OP(Deconvolution)
 .Doc("Deconvolution operator")

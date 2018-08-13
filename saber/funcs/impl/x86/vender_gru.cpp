@@ -29,8 +29,11 @@ GruParam<OpTensor>& param, Context<X86>& ctx) {
     int aligned_size = 8;
     aligned_hidden_size_ = (hidden_size_ % aligned_size) ? ((hidden_size_ / aligned_size) + 1) *
                            aligned_size : hidden_size_;
-
+#ifdef __AVX2__
     avx2_available_ = jit::mayiuse(jit::avx2);
+#else
+    avx2_available_ = false;
+#endif
     // LOG(ERROR) << "AVX2 available: " << avx2_available_;
 
     if (param.formula == GRU_ORIGIN) {
@@ -328,6 +331,7 @@ GruParam<OpTensor>& param) {
 
         // compute reset gate output r and rh
         if (avx2_available_) {
+#ifdef __AVX2__
             for (int bat_word_id = bat_word_id_start; bat_word_id < bat_word_id_end; bat_word_id++) {
                 int intra_bat_offset = bat_word_id - bat_word_id_start;
                 __m256* r = (__m256*)(batched_xx_data + bat_word_id * hidden_stride + r_offset *
@@ -340,6 +344,7 @@ GruParam<OpTensor>& param) {
                     hit[i] = r[i] * hit_1[i];
                 }
             }
+#endif
         } else {
             for (int bat_word_id = bat_word_id_start; bat_word_id < bat_word_id_end; bat_word_id++) {
                 int intra_bat_offset = bat_word_id - bat_word_id_start;
@@ -372,6 +377,7 @@ GruParam<OpTensor>& param) {
 
         // compute candidate activation output and h
         if (avx2_available_) {
+#ifdef __AVX2__
             for (int bat_word_id = bat_word_id_start; bat_word_id < bat_word_id_end; bat_word_id++) {
                 int intra_bat_offset = bat_word_id - bat_word_id_start;
                 int h_word_id_offset = bat_word_id * hidden_stride;
@@ -386,6 +392,7 @@ GruParam<OpTensor>& param) {
                     hit[i] = (c[i] - hit_1[i]) * u[i] + hit_1[i];
                 }
             }
+#endif
         } else {
             for (int bat_word_id = bat_word_id_start; bat_word_id < bat_word_id_end; bat_word_id++) {
                 int intra_bat_offset = bat_word_id - bat_word_id_start;

@@ -1,5 +1,5 @@
 #include "saber/lite/funcs/saber_softmax.h"
-
+#include "saber/lite/net/saber_factory_lite.h"
 #ifdef USE_ARM_PLACE
 
 #include <cmath>
@@ -121,22 +121,63 @@ void softmax_inner1(const float* din, float* dout, \
     }
 }
 
-//SaberSoftmax::SaberSoftmax(int axis) {
-//    _axis = axis;
-//}
-//
-//SaberStatus SaberSoftmax::load_param(int axis) {
-//    _axis = axis;
-//    return SaberSuccess;
-//}
+//! for inner size == 1 aixs_size < 4
+void softmax_inner1_s(const float* din, float* dout, \
+    const int outer_size, const int axis_size) {
+#pragma omp parallel for
+    for (int i = 0; i < outer_size; ++i) {
+        const float* din_ptr = din + i * axis_size;
+        float* dout_ptr = dout + i * axis_size;
+        //! get max
+        float max_data = din_ptr[0];
+        for (int j =1; j < axis_size; ++j) {
+            max_data = std::max(max_data, din_ptr[j]);
+        }
+        //printf("max data: %.2f\n", max_data);
+
+        //! sub, exp and sum
+        float sum_data = 0.f;
+        for (int j = 0; j < axis_size; ++j) {
+            dout_ptr[j] = expf(din_ptr[j] - max_data);
+            sum_data += dout_ptr[j];
+        }
+        //printf("sum data: %.2f\n", sum_data);
+
+        float sum_inv = 1.f / sum_data;
+        for (int j = 0; j < axis_size; ++j) {
+            dout_ptr[j] *= sum_inv;
+        }
+    }
+}
 
 SaberSoftmax::SaberSoftmax(const ParamBase *param) {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+        this->_flag_create_param = false;
+    }
     _param = (const SoftmaxParam*)param;
     this->_flag_param = true;
 }
 
+SaberSoftmax::~SaberSoftmax() {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+    }
+}
+
 SaberStatus SaberSoftmax::load_param(const ParamBase *param) {
     _param = (const SoftmaxParam*)param;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+
+SaberStatus SaberSoftmax::load_param(FILE *fp, const float* weights) {
+    int axis;
+    fscanf(fp, "%d\n", &axis);
+    _param = new SoftmaxParam(axis);
+    this->_flag_create_param = true;
     this->_flag_param = true;
     return SaberSuccess;
 }
@@ -176,19 +217,34 @@ SaberStatus SaberSoftmax::dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& in
         return SaberNotInitialized;
     }
 
+#ifdef ENABLE_OP_TIMER
+    this->_timer.clear();
+    this->_timer.start();
+#endif
+
     float* dout = outputs[0]->mutable_data();
     const float* din = (float*)inputs[0]->data();
 
     if (this->_inner_num == 1) {
-        softmax_inner1(din, dout, _outer_num, _axis_size);
+        if(_axis_size >= 4){
+            softmax_inner1(din, dout, _outer_num, _axis_size);
+        }else{
+            softmax_inner1_s(din, dout, _outer_num, _axis_size);
+        }
     } else {
         int compute_size = inputs[0]->valid_size() / _axis_size;
         softmax_basic(din, dout, _axis_size, _inner_num, _outer_num, compute_size);
     }
-
+#ifdef ENABLE_OP_TIMER
+    this->_timer.end();
+    float ts = this->_timer.get_average_ms();
+    printf("softmax time: %f\n", ts);
+    OpTimer::add_timer("softmax", ts);
+    OpTimer::add_timer("total", ts);
+#endif
     return SaberSuccess;
 }
-
+REGISTER_LAYER_CLASS(SaberSoftmax);
 } //namespace lite
 
 } //namespace saber

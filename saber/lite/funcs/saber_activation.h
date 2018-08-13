@@ -23,16 +23,20 @@ namespace saber{
 
 namespace lite{
 
+typedef void (*act_impl)(const float* din, float* dout, int n, int c, int h, int w, const ActivationParam* _param, int threads);
+
 //template <ARMType ttype, DataType dtype>
 class SaberActivation : public OpBase {
 public:
     SaberActivation() {}
+
     SaberActivation(const ParamBase* param);
-    //SaberActivation(ActiveType type, float neg_slop = 0.f);
-    //SaberStatus load_param(ActiveType type, float neg_slop = 0.f);
+
     virtual SaberStatus load_param(const ParamBase* param) override;
 
-    ~SaberActivation() {}
+    virtual SaberStatus load_param(FILE* fp, const float* weights) override;
+
+    ~SaberActivation();
 
     virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
                                      std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
@@ -44,8 +48,7 @@ public:
                           std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 private:
     const ActivationParam* _param;
-    //ActiveType _type;
-    //float _neg_slop;
+    act_impl _impl;
 };
 
 

@@ -1,5 +1,5 @@
 #include "saber/lite/funcs/saber_slice.h"
-
+#include "saber/lite/net/saber_factory_lite.h"
 #ifdef USE_ARM_PLACE
 
 namespace anakin{
@@ -8,26 +8,43 @@ namespace saber{
 
 namespace lite{
 
-//SaberSlice::SaberSlice(int axis, std::vector<int> slice_points) {
-//    _axis = axis;
-//    _slice_points = slice_points;
-//}
-//
-//SaberStatus SaberSlice::load_param(int axis, std::vector<int> slice_points) {
-//    _axis = axis;
-//    _slice_points = slice_points;
-//    return SaberSuccess;
-//}
-
 SaberSlice::SaberSlice(const ParamBase *param) {
     _param = (const SliceParam*)param;
     _slice_points = _param->_points;
     this->_flag_param = true;
 }
 
+SaberSlice::~SaberSlice() {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+    }
+}
+
 SaberStatus SaberSlice::load_param(const ParamBase *param) {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+        this->_flag_create_param = false;
+    }
     _param = (const SliceParam*)param;
     _slice_points = _param->_points;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+
+SaberStatus SaberSlice::load_param(FILE *fp, const float *weights) {
+    int axis;
+    int size;
+    std::vector<int> points;
+    fscanf(fp, "%d, %d ", &axis, &size);
+    points.resize(size);
+    for (int i = 0; i < size; ++i) {
+        fscanf(fp, "%d ", &points[i]);
+    }
+    fscanf(fp, "\n");
+    _param = new SliceParam(axis, points);
+    this->_flag_create_param = true;
     this->_flag_param = true;
     return SaberSuccess;
 }
@@ -91,6 +108,7 @@ SaberStatus SaberSlice::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
     this->_ctx = &ctx;
     _slice_num = inputs[0]->count_valid(0, _param->_axis);
     _slice_size = inputs[0]->count_valid(_param->_axis + 1, inputs[0]->dims());
+    this->_flag_init = true;
     return SaberSuccess;
 }
 
@@ -103,6 +121,11 @@ SaberStatus SaberSlice::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &inp
         printf("init slice first\n");
         return SaberNotInitialized;
     }
+
+#ifdef ENABLE_OP_TIMER
+    this->_timer.clear();
+    this->_timer.start();
+#endif
 
     int offset_slice_axis = 0;
     const float* din = inputs[0]->data();
@@ -118,9 +141,16 @@ SaberStatus SaberSlice::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &inp
         }
         offset_slice_axis += out_slice_axis;
     }
+#ifdef ENABLE_OP_TIMER
+    this->_timer.end();
+    float ts = this->_timer.get_average_ms();
+    printf("slice time: %f\n", ts);
+    OpTimer::add_timer("slice", ts);
+    OpTimer::add_timer("total", ts);
+#endif
     return SaberSuccess;
 }
-
+REGISTER_LAYER_CLASS(SaberSlice);
 } //namespace lite
 
 } //namespace saber

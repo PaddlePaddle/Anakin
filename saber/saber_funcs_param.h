@@ -1,5 +1,4 @@
 /* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
-
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -301,6 +300,37 @@ private:
     opTensor* bias_tensor;
     opTensor* init_hidden_tensor;
 };
+
+
+template <typename opTensor>
+struct LstmUnitParam{
+
+    LstmUnitParam() :
+            forget_bias(0.f)
+    {}
+
+    LstmUnitParam(float forget_bias_in)
+            :
+            forget_bias(forget_bias_in)
+    {}
+
+
+    LstmUnitParam &operator=(const LstmUnitParam &right) {
+        forget_bias = right.forget_bias;
+        return *this;
+    }
+
+    bool operator==(const LstmUnitParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (forget_bias == right.forget_bias);
+        return comp_eq;
+    }
+    float forget_bias;
+private:
+
+};
+
+
 
 template <typename opTensor>
 struct ConvParam {
@@ -1100,6 +1130,18 @@ struct ConvActiveParam {
             , has_eltwise(false)
             , has_eltwise_act(false)
     {}
+
+    ConvActiveParam(ConvParam<opTensor> &conv_param_in
+            , BatchnormParam<opTensor> &batchnorm_param_in)
+            : conv_param(conv_param_in)
+            , batchnorm_param(batchnorm_param_in)
+            , has_batchnorm(true)
+            , has_scale(false)
+            , has_active(false)
+            , has_eltwise(false)
+            , has_eltwise_act(false)
+    {}
+
     ConvActiveParam(ConvParam<opTensor> &conv_param_in
             , ActivationParam<opTensor> &activation_param_in
             , BatchnormParam<opTensor> &batchnorm_param_in
@@ -2790,6 +2832,72 @@ struct LayerNormParam {
 private:
     opTensor* scale;
     opTensor* bias;
+};
+
+template <typename opTensor>
+struct AttensionParam {
+   AttensionParam() {};
+   AttensionParam(std::vector<FcParam<opTensor>>& fc_vec_in) : fc_vec(fc_vec_in) {}
+   AttensionParam(const AttensionParam &right):
+         fc_vec(right.fc_vec) {}
+   AttensionParam&operator=(const AttensionParam &right){
+       fc_vec = right.fc_vec;
+   }
+   bool operator == (const AttensionParam &right) {
+       bool cmp_eq = true;
+       cmp_eq = cmp_eq && fc_vec.size() == right.fc_vec.size();
+       if (cmp_eq == false) {
+           return cmp_eq;
+       }
+       for (int i = 0; i < fc_vec.size(); i++) {
+           cmp_eq = cmp_eq && fc_vec[i] == right.fc_vec[i];
+       }
+       return cmp_eq;
+   }
+   
+public:
+    std::vector<FcParam<opTensor>> fc_vec;
+    //std::vector<int> fc_vec;
+};
+
+template<typename opTensor>
+struct AttensionLstmParam {
+    AttensionLstmParam() {}
+    AttensionLstmParam(AttensionParam<opTensor>& attn_param_in, LstmParam<opTensor>& lstm_param_in):
+        attension_param(attn_param_in), lstm_param(lstm_param_in) {}
+    AttensionLstmParam(const AttensionLstmParam &right):
+        attension_param(right.attension_param),
+        lstm_param(right.lstm_param) {}
+    AttensionLstmParam &operator=(const AttensionLstmParam &right) {
+        attension_param = right.attension_param;
+        lstm_param = right.lstm_param;
+    }
+    bool operator==(const AttensionLstmParam &right) {
+        bool cmp_eq = true;
+        cmp_eq = cmp_eq && attension_param == right.attension_param;
+        cmp_eq = cmp_eq && lstm_param == right.lstm_param;
+        return cmp_eq;
+    }
+public:
+    AttensionParam<opTensor> attension_param;
+    LstmParam<opTensor> lstm_param;
+};
+
+template <typename opTensor>
+struct SequenceExpandParam {
+    SequenceExpandParam():ref_level(0) {}
+    SequenceExpandParam(int ref_level_in):ref_level(ref_level_in) {}
+    SequenceExpandParam(const  SequenceExpandParam &right):
+            ref_level(right.ref_level_in) {}
+    SequenceExpandParam &operator=(const  SequenceExpandParam &right) {
+        ref_level = right.ref_level;
+    }
+    bool operator==(const SequenceExpandParam &right) {
+        return ref_level == right.ref_level;
+    }
+
+public:
+    int ref_level;
 };
 
 }

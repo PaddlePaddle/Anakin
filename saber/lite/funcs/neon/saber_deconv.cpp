@@ -1,11 +1,55 @@
 #include "saber/lite/funcs/saber_deconv.h"
 #ifdef USE_ARM_PLACE
 #include "saber/lite/funcs/neon/impl/conv_arm_impl.h"
+#include "saber/lite/net/saber_factory_lite.h"
 namespace anakin{
 
 namespace saber{
 
 namespace lite{
+
+/**
+ * \brief neon implementation to add bias and relu
+ * @param tensor
+ * @param bias
+ * @param channel
+ * @param channel_size
+ */
+void fill_bias_relu(float* tensor, const float* bias, int channel, int channel_size, bool flag_relu) {
+    float* data = tensor;
+    if(flag_relu){
+        for (int j = 0; j < channel; ++j) {
+            float32x4_t vbias = vdupq_n_f32(bias[j]);
+            float32x4_t vzero = vdupq_n_f32(0.f);
+            int i = 0;
+            for (; i < channel_size - 3; i += 4) {
+                float32x4_t vdata = vld1q_f32(&data[i]);
+                vdata = vaddq_f32(vdata, vbias);
+                float32x4_t vmax = vmaxq_f32(vdata, vzero); 
+                vst1q_f32(data + i, vmax);
+            }
+            for (; i < channel_size; i++) {
+                data[i] += bias[j];
+                data[i] = data[i] > 0 ? data[i] : 0.f;
+            }
+            data += channel_size;
+        }
+    }else{
+        for (int j = 0; j < channel; ++j) {
+            float32x4_t vbias = vdupq_n_f32(bias[j]);
+            int i = 0;
+            for (; i < channel_size - 3; i += 4) {
+                float32x4_t vdata = vld1q_f32(&data[i]);
+                vdata = vaddq_f32(vdata, vbias);
+                vst1q_f32(data + i, vdata);
+            }
+            for (; i < channel_size; i++) {
+                data[i] += bias[j];
+            } 
+            data += channel_size;
+       }
+    }
+}
 
 inline bool is_a_ge_zero_and_a_lt_b(int a, int b) {
     return static_cast<unsigned>(a) < static_cast<unsigned>(b);
@@ -53,14 +97,62 @@ SaberDeconv2D::SaberDeconv2D() {
 }
 
 SaberDeconv2D::SaberDeconv2D(const ParamBase* param) {
-    _param = (DeConv2DParam*)param;
+    _param = (Conv2DParam*)param;
     this->_flag_param = true;
 }
 
-SaberDeconv2D::~SaberDeconv2D() {}
+SaberDeconv2D::~SaberDeconv2D() {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+    }
+}
 
 SaberStatus SaberDeconv2D::load_param(const ParamBase *param) {
-    _param = (DeConv2DParam*)(param);
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+        this->_flag_create_param = false;
+    }
+    _param = (Conv2DParam*)(param);
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+
+SaberStatus SaberDeconv2D::load_param(FILE *fp, const float *weights) {
+    int weights_size;
+    int num_out;
+    int group;
+    int kw;
+    int kh;
+    int stride_w;
+    int stride_h;
+    int pad_w;
+    int pad_h;
+    int dila_w;
+    int dila_h;
+    int flag_bias;
+    int w_offset;
+    int b_offset;
+    fscanf(fp, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
+           &weights_size,
+           &num_out,
+           &group,
+           &kw,
+           &kh,
+           &stride_w,
+           &stride_h,
+           &pad_w,
+           &pad_h,
+           &dila_w,
+           &dila_h,
+           &flag_bias,
+           &w_offset,
+           &b_offset);
+    _param = new Conv2DParam(weights_size, num_out, group, kw, kh, \
+        stride_w, stride_h, pad_w, pad_h, dila_w, dila_h, flag_bias>0, \
+        weights + w_offset, weights + b_offset);
+    this->_flag_create_param = true;
     this->_flag_param = true;
     return SaberSuccess;
 }
@@ -126,9 +218,10 @@ SaberStatus SaberDeconv2D::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inpu
     //! if L2 cache size is not provided, set to 2M
     l2_cache = l2_cache > 0? l2_cache : 2000000;
 
-    LCHECK_EQ(chin % _param->_group, 0, "input channel or group size error");
-    LCHECK_EQ(chout % _param->_group, 0, "output channel or group size error");
-
+    if (chin != chout || _param->_group != chin) {
+        LCHECK_EQ(chin % _param->_group, 0, "input channel or group size error");
+        LCHECK_EQ(chout % _param->_group, 0, "output channel or group size error");
+    }
     //! deconv weights layout: chin * chout * kh * kw
     _m = chout * _param->_kw * _param->_kh / _param->_group;
     _n = hin * win;
@@ -136,7 +229,7 @@ SaberStatus SaberDeconv2D::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inpu
 
     _workspace_data.reshape(_param->_group * _m * _n * sizeof(float));
 
-    _gemmer.init(l1_cache, l2_cache, _m, _n, _k, true, false, threads);
+    _gemmer.init(l1_cache, l2_cache, _m, _n, _k, true, false, threads, this->_ctx->get_work_space());
 
     printf("Deconv: USE GEMM, numout=%d, chin=%d, kernel=%d, stride=%d, pad=%d, group=%d, win=%d, hin=%d\n", \
             chout, chin, _param->_kw, _param->_stride_w, _param->_pad_w, _param->_group, win, hin);
@@ -152,6 +245,11 @@ SaberStatus SaberDeconv2D::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &
         printf("init deconv first\n");
         return SaberNotInitialized;
     }
+
+#ifdef ENABLE_OP_TIMER
+    this->_timer.clear();
+    this->_timer.start();
+#endif
 
     const float* din = inputs[0]->data();
     float* dout = outputs[0]->mutable_data();
@@ -191,7 +289,13 @@ SaberStatus SaberDeconv2D::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &
             const float* din_group = din_batch + g * group_size_in;
             const float* weights_group = weights + g * group_size_weights;
             float* coldata_group = col_data + g * group_size_coldata;
-            _gemmer(weights_group, _m, din_group, _n, coldata_group, _n, 1.f, 0.f, _flag_relu);
+
+            if (_param->_bias == NULL) {
+                _gemmer(weights_group, _m, din_group, _n, coldata_group, _n, 1.f, 0.f, _flag_relu);
+            }else{
+                _gemmer(weights_group, _m, din_group, _n, coldata_group, _n, 1.f, 0.f, false);
+            }
+            //_gemmer(weights_group, _m, din_group, _n, coldata_group, _n, 1.f, 0.f, _flag_relu);
         }
 
         if (!flag_1x1s1p1) {
@@ -200,16 +304,22 @@ SaberStatus SaberDeconv2D::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &
         }
 
         //! add bias
-        if (_param->_bias_term) {
-            fill_bias(dout_batch, _param->_bias, chout, wout * hout);
+        if (_param->_bias != NULL) {
+            //fill_bias(dout_batch, _param->_bias, chout, wout * hout);
+            fill_bias_relu(dout_batch, _param->_bias, chout, wout * hout, _flag_relu);
         }
 
     }
-
-
+#ifdef ENABLE_OP_TIMER
+    this->_timer.end();
+    float ts = this->_timer.get_average_ms();
+    printf("deconv time: %f\n", ts);
+    OpTimer::add_timer("deconvolution", ts);
+    OpTimer::add_timer("total", ts);
+#endif
     return SaberSuccess;
 }
-
+REGISTER_LAYER_CLASS(SaberDeconv2D);
 } //namespace lite
 
 } //namespace saber

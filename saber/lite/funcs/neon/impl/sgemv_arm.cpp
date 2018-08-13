@@ -13,6 +13,10 @@ void sgemv(const bool transA, const int M, const int N, \
     const float* data_in = x;
     const float* weights_ptr = A;
 
+#ifdef __aarch64__
+//todo
+
+#else
     int cnt_loop = N >> 3;
     int tail = N & 7;
     int out_cnt = M >> 2;
@@ -195,6 +199,7 @@ void sgemv(const bool transA, const int M, const int N, \
         :"q0", "q1", "q12", "q13", "q14", "q15"
         );
     }
+#endif //__aarch64__
 }
 
 
@@ -203,6 +208,11 @@ void sgemv_relu(const bool transA, const int M, const int N, \
     float* data_out = y;
     const float* data_in = x;
     const float* weights_ptr = A;
+
+#ifdef __aarch64__
+//todo
+
+#else
 
     int cnt_loop = N >> 3;
     int tail = N & 7;
@@ -394,6 +404,7 @@ void sgemv_relu(const bool transA, const int M, const int N, \
         :"q0", "q1", "q12", "q13", "q14", "q15"
         );
     }
+#endif //__aarch64__
 }
 
 void sgemv_bias(const bool transA, const int M, const int N, \
@@ -401,6 +412,11 @@ void sgemv_bias(const bool transA, const int M, const int N, \
     float* data_out = y;
     const float* data_in = x;
     const float* weights_ptr = A;
+
+#ifdef __aarch64__
+//todo
+
+#else
 
     int cnt_loop = N >> 3;
     int tail = N & 7;
@@ -596,6 +612,8 @@ void sgemv_bias(const bool transA, const int M, const int N, \
         :"q0", "q1", "q12", "q13", "q14", "q15"
         );
     }
+
+#endif //__aarch64__
 }
 
 
@@ -604,6 +622,11 @@ void sgemv_bias_relu(const bool transA, const int M, const int N, \
     float* data_out = y;
     const float* data_in = x;
     const float* weights_ptr = A;
+
+#ifdef __aarch64__
+//todo
+
+#else
 
     int cnt_loop = N >> 3;
     int tail = N & 7;
@@ -804,6 +827,7 @@ void sgemv_bias_relu(const bool transA, const int M, const int N, \
         :"q0", "q1", "q12", "q13", "q14", "q15"
         );
     }
+#endif //__aarch64__
 }
 
 } //lite

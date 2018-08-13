@@ -16,7 +16,6 @@
 #define ANAKIN_SABER_LITE_FUNCS_SABER_SPLIT_H
 
 #include "saber/lite/funcs/op_base.h"
-
 #ifdef USE_ARM_PLACE
 
 namespace anakin{
@@ -33,42 +32,22 @@ public:
 
     SaberSplit(const ParamBase* param) {}
 
-    virtual SaberStatus load_param(const ParamBase* param) override {
-        return SaberSuccess;
-    }
-//    SaberSoftmax(int axis);
-//
-//    SaberStatus load_param(int axis);
+    virtual SaberStatus load_param(const ParamBase* param) override;
+
+    virtual SaberStatus load_param(FILE* fp, const float* weights) override;
 
     ~SaberSplit() {}
 
 
     virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                              std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override {
-        for (int i = 0; i < outputs.size(); ++i) {
-            outputs[i]->set_shape(inputs[0]->valid_shape());
-            outputs[i]->share_from(*inputs[0]);
-        }
-        return SaberSuccess;
-    }
+                              std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 
     virtual SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                               std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx) override {
-        for (int i = 0; i < outputs.size(); ++i) {
-            outputs[i]->share_from(*inputs[0]);
-        }
-        return SaberSuccess;
-    }
+                               std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx) override;
 
     virtual SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                 std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override {
-        return SaberSuccess;
-    }
-
-private:
-    const SaberSplit* _param;
+                                 std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 };
-
 } //namespace lite
 
 } //namespace saber

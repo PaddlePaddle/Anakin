@@ -1,5 +1,5 @@
 #include "saber/lite/funcs/saber_eltwise.h"
-
+#include "saber/lite/net/saber_factory_lite.h"
 #ifdef USE_ARM_PLACE
 namespace anakin{
 
@@ -178,22 +178,41 @@ SaberEltwise::SaberEltwise(const ParamBase *param) {
     this->_flag_param = true;
 }
 
+SaberEltwise::~SaberEltwise() {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+    }
+}
+
 SaberStatus SaberEltwise::load_param(const ParamBase *param) {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+        this->_flag_create_param = false;
+    }
     _param = (const EltwiseParam*)param;
     this->_flag_param = true;
     return SaberSuccess;
 }
 
-//SaberEltwise::SaberEltwise(EltwiseType type, std::vector<float> coef) {
-//    _type = type;
-//    _coef = coef;
-//}
-//
-//SaberStatus SaberEltwise::load_param(EltwiseType type, std::vector<float> coef) {
-//    _type = type;
-//    _coef = coef;
-//    return SaberSuccess;
-//}
+SaberStatus SaberEltwise::load_param(FILE *fp, const float *weights) {
+
+    int type;
+    int size;
+    std::vector<float> coef;
+    fscanf(fp, "%d, %d ", &type, &size);
+    coef.resize(size);
+    for (int i = 0; i < size; ++i) {
+        fscanf(fp, "%f ", &coef[i]);
+    }
+    fscanf(fp, "\n");
+    EltwiseType etype = static_cast<EltwiseType>(type);
+    _param = new EltwiseParam(etype, coef);
+    this->_flag_create_param = true;
+    this->_flag_param  =true;
+    return SaberSuccess;
+}
 
 SaberStatus SaberEltwise::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                                std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
@@ -261,6 +280,11 @@ SaberStatus SaberEltwise::dispatch(\
         return SaberNotInitialized;
     }
 
+#ifdef ENABLE_OP_TIMER
+    this->_timer.clear();
+    this->_timer.start();
+#endif
+
     const float* din_a = inputs[0]->data();
     const float* din_b = inputs[1]->data();
     float* dout = outputs[0]->mutable_data();
@@ -272,10 +296,17 @@ SaberStatus SaberEltwise::dispatch(\
         din_a = inputs[i]->data();
         _impl(din_a, dout, dout, size, _param->_coef);
     }
+#ifdef ENABLE_OP_TIMER
+    this->_timer.end();
+    float ts = this->_timer.get_average_ms();
+    printf("eltwise time: %f\n", ts);
+    OpTimer::add_timer("eltwise", ts);
+    OpTimer::add_timer("total", ts);
+#endif
 
     return SaberSuccess;
 }
-
+REGISTER_LAYER_CLASS(SaberEltwise);
 } //namespace lite
 
 } //namespace saber
