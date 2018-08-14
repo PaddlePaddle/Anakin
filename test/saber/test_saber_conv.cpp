@@ -55,11 +55,11 @@ TEST(TestSaberFunc, test_saber_conv_results_bm) {
             bias_dev.re_alloc(bias_s, AK_FLOAT);
             fill_tensor_rand(bias_dev, -5.0f, 5.0f);
         }
-        ConvParam<BM> param_nv(group, pad_h_w, pad_h_w,
+        ConvParam<BM> param_bm(group, pad_h_w, pad_h_w,
                                stride_h, stride_w,
                                dilation, dilation,
                                &weights_dev, &bias_dev);
-        testbase_bm.set_param(param_nv);//set param
+        testbase_bm.set_param(param_bm);//set param
         testbase_bm.set_input_shape(Shape({input_num,in_channels,height,width},
                                           Layout_NCHW));//add some input shape
         testbase_bm.run_test(conv_cpu_func<float, BM, X86>, 1e-3);//run test

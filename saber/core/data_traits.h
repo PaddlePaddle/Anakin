@@ -157,13 +157,6 @@ struct BM_mem_addr: bm_mem_desc {
         }
     }
 
-
-
-    //    BM_mem_addr& operator=(bm_mem_desc& right) {
-    //        *this = right;
-    //        return *this;
-    //    }
-    //
     inline bool compare_char_array(const unsigned char* a, const unsigned char* b, int size)const {
         for (int i = 0; i < size; ++i) {
             if (a[i] != b[i]) {
@@ -181,10 +174,6 @@ struct BM_mem_addr: bm_mem_desc {
         return !compare_char_array(desc, right.desc, sizeof(desc));
     }
 
-    //    bool operator==(const BM_mem_addr& right) {
-    //        return *this == right;
-    //    }
-    //
     bool operator==(const void* right) {
         if (right == nullptr) {
             return *this == BM_MEM_NULL;
@@ -193,7 +182,6 @@ struct BM_mem_addr: bm_mem_desc {
             return false;
         }
     }
-
 
     bool operator!=(const void* right) {
         return !(*this == right);
@@ -208,13 +196,17 @@ struct BM_mem_addr: bm_mem_desc {
         if (offset != 0) {
             unsigned long long target_addr = bm_mem_get_device_addr(*this);
             bm_mem_set_device_addr(*this, target_addr + offset);
+            DLOG(INFO)<<"offset = "<<offset<<", target_addr = "<<target_addr;
         }
 
         return *this;
     }
 
     friend std::ostream& operator<<(std::ostream& out, const BM_mem_addr& s) {
-        out << " [print BM_mem_addr] ";
+        out << " [print BM_mem_addr] 0x";
+        for(int i=0;i< sizeof(s.desc);i++) {
+            out <<std::hex<< (int)s.desc[i];
+        }
         return out;
     }
 

@@ -94,15 +94,18 @@ void BM_API::mem_set(TPtr ptr, int value, size_t n) {
 void BM_API::sync_memcpy(TPtr dst, size_t dst_offset, int dst_id, \
         const TPtr src, size_t src_offset, int src_id, \
         size_t count, __DtoD) {
+    if(count==0)
+        return;
     handle = get_bm_handle();
     //BMDNN_CHECK(bm_memcpy_d2d(handle, bm_mem_from_device(dst), dst_id, bm_mem_from_device(src), src_id, count));
     BMDNN_CHECK(bm_memcpy_d2d(handle, dst, dst_offset, src, src_offset, count));
-    LOG(INFO) << "BM sync_memcpy: device to device, finished";
 };
 
 void BM_API::sync_memcpy(TPtr dst, size_t dst_offset, int dst_id, \
         const void* src, size_t src_offset, int src_id, \
         size_t count, __HtoD) {
+    if(count==0)
+        return;
     handle = get_bm_handle();
     BMDNN_CHECK(bm_memcpy_s2d(handle, dst+dst_offset, bm_mem_from_system(const_cast<void*>(src)+src_offset)));
 
@@ -113,14 +116,15 @@ void BM_API::sync_memcpy(TPtr dst, size_t dst_offset, int dst_id, \
     }
 
 #endif
-
-    LOG(INFO) << "BM sync_memcpy: host to device, finished";
 };
 
 void BM_API::sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
         const TPtr src, size_t src_offset, int src_id, \
         size_t count, __DtoH) {
+    if(count==0)
+        return;
     handle = get_bm_handle();
+//    LOG(INFO)<<"host ptr = "<<(dst)<<",dst_offset = "<<dst_offset<<", dev ptr = "<<(src)<<",dev offset = "<<src_offset;
     BMDNN_CHECK(bm_memcpy_d2s(handle, bm_mem_from_system(dst+dst_offset), src+src_offset));
 
 #ifdef DEBUG
@@ -131,14 +135,14 @@ void BM_API::sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
 
 #endif
 
-    LOG(INFO) << "BM sync_memcpy: device to host, finished";
 };
 
 void BM_API::sync_memcpy_p2p(TPtr dst, size_t dst_offset, int dst_id, \
         const TPtr src, size_t src_offset, int src_id, \
         size_t count) {
-
-    LOG(INFO) << "BM sync_memcpy_p2p: temporarily no used";
+    if(count==0)
+        return;
+    LOG(FATAL) << "BM sync_memcpy_p2p: temporarily no used";
 };
 
 
