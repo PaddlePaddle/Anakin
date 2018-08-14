@@ -10,11 +10,11 @@ void tensor_constructor() {
     typedef TargetWrapper<TargetH> HAPI;
     typedef TargetWrapper<TargetD> DAPI;
 
-    typedef typename TargetTypeTraits<TargetH>::target_type target_H;
-    typedef typename TargetTypeTraits<TargetD>::target_type target_D;
+    typedef typename TargetTypeTraits<TargetH>::target_category target_H;
+    typedef typename TargetTypeTraits<TargetD>::target_category target_D;
     typedef typename IF<std::is_same<target_D, target_H>::value, __HtoH, __DtoH>::Type then_type;
     typedef typename IF<std::is_same<target_D, target_H>::value, __DtoD, __HtoD>::Type else_type;
-    typedef typename IF<std::is_same<target_D, __host_target>::value, else_type, then_type>::Type flag_type;
+    typedef typename IF<std::is_same<target_D, __host_target>::value, then_type, else_type>::Type flag_type;
     typedef typename IF<std::is_same<target_D, __host_target>::value, HAPI, DAPI>::Type copy_API;
 
     typedef Tensor<TargetH> TensorH;
