@@ -22,6 +22,7 @@
 #include "saber/saber_types.h"
 #include "saber/core/tensor_op.h"
 #include "test/saber/test_saber_func.h"
+#include "saber/core/data_traits.h"
 #include "utils/unit_test/aktest.h"
 #include "utils/logger/logger.h"
 
@@ -36,6 +37,7 @@ namespace saber{
                    template <typename T> class Param>
 class TestSaberBase{
 public:
+    typedef typename DataTrait<TargetType_D, Dtype> :: Dtype dtype;
     typedef Param<TargetType_D> Param_t;
     typedef Op<TargetType_D, Dtype> Op_t;
     typedef Tensor<TargetType_H> TensorH;
@@ -149,7 +151,7 @@ public:
             }
         }
     }
-    void fill_inputs (double minv, double maxv){
+    void fill_inputs (float minv, float maxv){
         int input_size = _inputs_dev.size();
         CHECK_EQ(input_size, _inputs_host.size()) << "dev and host inputs num must be equal";
         if(_input_type == RANDOM){
@@ -174,7 +176,7 @@ public:
         clear_datas();
         std::vector<Shape> shape_v;
         for (int i=0; i<_op_input_num; ++i){
-            shape_v.push_back(input[0] -> shape());
+            shape_v.push_back(input[0] -> valid_shape());
         }
         add_inputs_shape(shape_v);
         for(int i = 0; i < _op_input_num; ++i)
@@ -202,6 +204,7 @@ public:
                 _outputs_host[i][j] -> re_alloc(sh, Dtype);
                 _outputs_hd[i][j] -> re_alloc(sh, Dtype);
                 
+                //init output_dev and output_host to equal
                 fill_tensor_const(*_outputs_dev[i][j],0);
                 fill_tensor_const(*_outputs_host[i][j],0);
             }
@@ -277,7 +280,8 @@ public:
         for(int i = 0; i < _outputs_host.size(); ++i){
             Shape sh = _inputs_host[i][0] -> shape();
             for(int j = 0; j<_op_output_num; ++j){
-                tensor_cmp_host<float>((const float*)_outputs_hd[i][j] -> data(), (const float*)_outputs_host[i][j] -> data(),
+                tensor_cmp_host<dtype>(static_cast<const dtype*>(_outputs_hd[i][j] -> data()),
+                                       static_cast<const dtype*>(_outputs_host[i][j] -> data()),
                                        _outputs_hd[i][j] -> valid_size(), max_ratio[i], max_diff[i]);
                 LOG(INFO) << "input_shape:(" << sh.num() << "," << sh.channel() << "," << sh.height() << "," << sh.width() << ")";
                 LOG(INFO) << "max_ratio:" << max_ratio[i];
@@ -289,7 +293,7 @@ public:
             }
         }
     }
-    void set_rand_limit (double minv, double maxv){
+    void set_rand_limit (float minv, float maxv){
         _max_value = maxv;
         _min_value = minv;
     }
@@ -323,9 +327,9 @@ private:
     int _op_output_num;
     Op_t _base_op;
     TestDataType _input_type;
-    double _special_value;
-    double _max_value{255.0};
-    double _min_value{-255.0};
+    dtype _special_value;
+    float _max_value{255.0};
+    float _min_value{-255.0};
     std :: vector<Input_ht> _inputs_host;
     std :: vector<Input_dt> _inputs_dev;
     std :: vector<Output_dt> _outputs_dev;

@@ -46,7 +46,20 @@ TEST(TestSaberFunc, test_func_reshape) {
 #ifdef USE_CUDA
     //Init the test_base
     TestSaberBase<NV, NVHX86, AK_FLOAT, Reshape, ReshapeParam> testbase;
-    
+    auto param_check = [](std::vector<int> new_shape, std::vector<int> in_shape) -> bool {
+        CHECK_EQ(new_shape.size(), in_shape.size()) << "invalid check";
+        int new_count=1;
+        int in_count=1;
+        for(int i=0; i<new_shape.size(); ++i){
+            if (new_shape[i] > 0){
+                in_count *= in_shape[i];
+                if (new_shape[i] !=-1){
+                    new_count *= new_shape[i];
+                }
+            }
+        }
+        return new_count <= in_count;
+    };
     //test shape contain -1
     for (int rs0 : {0, -1, 2}){
         for (int rs1 : {0, -1, 4}){
@@ -60,9 +73,12 @@ TEST(TestSaberFunc, test_func_reshape) {
                             for (int c : {1, 4}){
                                 for (int h: {32, 64}){
                                     for (int w : {32, 64}){
-                                        testbase.set_param(param);
-                                        testbase.set_input_shape(Shape({n, c, h, w}));
-                                        testbase.run_test(reshape_cpu_func<float, NV, NVHX86>);
+                                        Shape in_shape({n, c, h, w});
+                                        if (param_check(new_shape, in_shape)){
+                                            testbase.set_param(param);
+                                            testbase.set_input_shape(in_shape);
+                                            testbase.run_test(reshape_cpu_func<float, NV, NVHX86>);
+                                        }
                                     }
                                 }
                             }
