@@ -1,18 +1,16 @@
-#include "core/context.h"
-#include "funcs/priorbox.h"
-#include "test_saber_func_test_arm.h"
-#include "tensor_op.h"
+#include "saber/lite/funcs/saber_priorbox.h"
+#include "test_lite.h"
 
 using namespace anakin::saber;
+using namespace anakin::saber::lite;
 
 int cluster = 0;
 int threads = 1;
 
-#define USE_COMPARE
 const bool FLAG_RELU = false;
 
-typedef TargetWrapper<ARM> ARM_API;
-typedef Tensor<ARM, AK_FLOAT, NCHW> TensorHf4;
+typedef Tensor<CPU, AK_FLOAT> TensorHf4;
+
 template <typename Tensor_t>
 void tensor_diff(Tensor_t& t1, Tensor_t& t2, Tensor_t& tdiff) {
 
@@ -30,25 +28,26 @@ void tensor_diff(Tensor_t& t1, Tensor_t& t2, Tensor_t& tdiff) {
     }
 }
 
-void test_arm_priorbox(std::vector<TensorHf4*>& tin, \
+test_arm_priorbox(std::vector<TensorHf4*>& tin, \
     int thread_num, int cluster_id) {
 
-    int test_iter = 100;
     double to = 0;
     double min_time = 1000000;
-    SaberTimer<ARM> t1;
+    SaberTimer t1;
 
-    Context<ARM> ctx1;
-    PowerMode mode = cluster_id == 0? SABER_POWER_HIGH : SABER_POWER_LOW;
-    ctx1.set_run_mode(mode, threads);
-            LOG(INFO) << "test threads activated";
+    Context ctx1;
+    PowerMode mode = SABER_POWER_HIGH;
+    ctx1.set_run_mode(mode, 1);
+    LOG(INFO) << "test threads activated";
 #pragma omp parallel
     {
 #ifdef USE_OPENMP
         int thread = omp_get_num_threads();
-                LOG(INFO) << "number of threads: " << thread;
+        LOG(INFO) << "number of threads: " << thread;
 #endif
     }
+
+    const int test_iter = 100;
 
     TensorHf4 tout_saber;
     std::vector<TensorHf4*> tvout_saber;
@@ -76,16 +75,22 @@ void test_arm_priorbox(std::vector<TensorHf4*>& tin, \
     order.push_back(PRIOR_MAX);
     order.push_back(PRIOR_COM);
 
-   // PriorBoxParam<TensorHf4> param(variance, flip, clip, img_w, img_h, step_w, step_h, offset, order, \
+    SaberPriorBox priorbox_saber;
+
+    //PriorBoxParam param(variance, flip, clip, img_w, img_h, step_w, step_h, offset, order, \
                                     min_size, max_size, aspect_ratio);
-    PriorBoxParam<TensorHf4> param(variance, flip, clip, img_w, img_h, step_w, step_h, offset, order, \
+   PriorBoxParam param(variance, flip, clip, img_w, img_h, step_w, step_h, offset, order, \
                                     std::vector<float>(), std::vector<float>(), std::vector<float>(), \
                                     fixed_size, fixed_ratio, density);
-    PriorBox<ARM, AK_FLOAT> priorbox_saber;
 
-    priorbox_saber.compute_output_shape(tin, tvout_saber, param);
+
+
+    LOG(INFO) << "saber priorbox impl init";
+    priorbox_saber.load_param(&param);
+
+    priorbox_saber.compute_output_shape(tin, tvout_saber);
     Shape sh_out_saber = tvout_saber[0]->valid_shape();
-    Shape shape_out{1, 1, 2, tin[0]->width() * tin[0]->height() * 4 * param.prior_num};
+    Shape shape_out{1, 1, 2, tin[0]->width() * tin[0]->height() * 4 * param._prior_num};
 
     LOG(INFO) << "output shape: " << shape_out[0] << ", " << shape_out[1] << ", " \
         << shape_out[2] << ", " << shape_out[3];
@@ -94,31 +99,29 @@ void test_arm_priorbox(std::vector<TensorHf4*>& tin, \
     //! re_alloc mem for output tensor
     tvout_saber[0]->re_alloc(shape_out);
 
-    LOG(INFO) << "saber priorbox impl init";
-    SABER_CHECK(priorbox_saber.init(tin, tvout_saber, param, SPECIFY, SABER_IMPL, ctx1));
+ //   SABER_CHECK(priorbox_saber.init(tin, tvout_saber, param, SPECIFY, SABER_IMPL, ctx1));
+     LOG(INFO) << "PriorBox initialization";
+    priorbox_saber.init(tin, tvout_saber, ctx1);
 
     //! compute
     LOG(INFO) << "saber priorbox compute";
     to = 0;
+    t1.clear();
+    t1.start();
 
     for (int i = 0; i < test_iter; ++i) {
-        t1.clear();
-        t1.start(ctx1);
-        priorbox_saber(tin, tvout_saber, param, ctx1);
-        tvout_saber[0]->record_event(ctx1.get_compute_stream());
-        tvout_saber[0]->sync();
-        t1.end(ctx1);
-        to += t1.get_average_ms();
-        if (t1.get_average_ms() < min_time) {
-            min_time = t1.get_average_ms();
-        }
+        priorbox_saber.dispatch(tin, tvout_saber);
     }
-    LOG(INFO) << "saber conv running time, ave: " << to / test_iter << ", min time: " << min_time;
-    print_tensor_host(*tvout_saber[0]);
+
+    t1.end();
+    float ts = t1.get_average_ms();
+    printf("total time : %.4f, avg time : %.4f\n", ts, ts / test_iter);
+    print_tensor(*tvout_saber[0]);
 
 }
 
-TEST(TestSaberFuncTest, test_func_priorbox_arm) {
+
+TEST(TestSaberLite, test_func_priorbox_arm) {
 
     int width = 300;
     int height = 300;
@@ -149,7 +152,7 @@ TEST(TestSaberFuncTest, test_func_priorbox_arm) {
 
 int main(int argc, const char** argv){
 
-    Env<ARM>::env_init();
+    Env::env_init();
 
     // initial logger
     //logger::init(argv[0]);

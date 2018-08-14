@@ -18,6 +18,11 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 Status PriorBoxHelper<Ttype, Dtype, Ptype>::InitParam() {
     DLOG(WARNING) << "Parsing PriorBox op parameter.";
     auto min_size_ = GET_PARAMETER(PTuple<float>, min_size);
+    //add new parameter
+    auto fixed_size_ = GET_PARAMETER(PTuple<float>, fixed_size);
+    auto fixed_ratio_ = GET_PARAMETER(PTuple<float>, fixed_ratio);
+    auto density_ = GET_PARAMETER(PTuple<float>, density);
+    //end
     auto max_size_ = GET_PARAMETER(PTuple<float>, max_size);
     auto as_ratio  = GET_PARAMETER(PTuple<float>, aspect_ratio);
     auto flip_flag = GET_PARAMETER(bool, is_flip);
@@ -41,10 +46,25 @@ Status PriorBoxHelper<Ttype, Dtype, Ptype>::InitParam() {
         }
     }
 
-    saber::PriorBoxParam<Tensor4d<Ttype, Dtype>> param_priorbox(min_size_.vector(), max_size_.vector(), \
+    if(min_size_.size() <= 0){//min
+      saber::PriorBoxParam<Tensor4d<Ttype, Dtype>> param_priorbox( var.vector(), flip_flag, clip_flag, \
+                                       image_w, image_h, step_w_, step_h_, offset_, order_, \
+                                       std::vector<float>(), std::vector<float>(), std::vector<float>(), \
+                                       fixed_size_.vector(), fixed_ratio_.vector(), density_.vector());
+       _param_priorbox = param_priorbox;
+    }else{
+      saber::PriorBoxParam<Tensor4d<Ttype, Dtype>> param_priorbox(var.vector(), flip_flag, clip_flag, \
+                                       image_w, image_h, step_w_, step_h_, offset_, order_,  \
+                                       min_size_.vector(), max_size_.vector(), as_ratio.vector(), \
+                                       std::vector<float>(), std::vector<float>(), std::vector<float>());
+       _param_priorbox = param_priorbox;
+    }
+    
+  //  saber::PriorBoxParam<Tensor4d<Ttype, Dtype>> param_priorbox(min_size_.vector(), max_size_.vector(), \
                                        as_ratio.vector(), var.vector(), flip_flag, clip_flag, \
-                                       image_w, image_h, step_w_, step_h_, offset_, order_);
-    _param_priorbox = param_priorbox;
+                                       image_w, image_h, step_w_, step_h_, offset_, order_, \
+                                       fixed_size_.vector(), fixed_ratio_.vector(), density_.vector());
+   // _param_priorbox = param_priorbox;
     return Status::OK();
 }
 
@@ -97,6 +117,9 @@ ANAKIN_REGISTER_OP(PriorBox)
 .num_in(1)
 .num_out(1)
 .Args<PTuple<float>>("min_size", " min_size of bbox ")
+                  .Args<PTuple<float>>("fixed_size", " fixed_size of bbox ")
+                  .Args<PTuple<float>>("fixed_ratio", " fixed_ratio of bbox ")
+                  .Args<PTuple<float>>("density_", " density_ of bbox ")
                   .Args<PTuple<float>>("max_size", " max_size of bbox ")
                   .Args<PTuple<float>>("aspect_ratio", " aspect ratio of bbox ")
                   .Args<bool>("is_flip", "flip flag of bbox")

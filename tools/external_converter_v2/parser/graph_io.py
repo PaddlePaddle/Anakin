@@ -17,7 +17,7 @@ class NodeAttrWrapper(object):
     def __call__(self, data, data_type_str):
         """
         """
-        if data_type_str == type(""):	# type string
+        if data_type_str == type(""):   # type string
             self.value_data.s = data
             self.value_data.type = STR
         elif data_type_str == type(int()): # type int
@@ -67,6 +67,10 @@ class NodeAttrWrapper(object):
                             raise NameError('ERROR: UnSupport Recursive list data type(%s) in list ' % (str(type(list_one[0]))))
                 else:
                     raise NameError('ERROR: UnSupport data type(%s) in list ' % (str(type(data[0]))))
+            else:
+                self.value_data.cache_list.f[:] = data
+                self.value_data.cache_list.type = FLOAT
+                self.value_data.cache_list.size = len(data)
         else:
             raise NameError('ERROR: Unknown data type (%s) in message valueType' % (data_type_str))
         return self.value_data
@@ -81,7 +85,7 @@ class TensorProtoIO(object):
         self.tensor_proto = TensorProto()
 
     def set_data_type(self, data_type):
-        self.tensor_proto.data.type = data_type	
+        self.tensor_proto.data.type = data_type 
 
     def set_shape(self, shape_list):
         """
@@ -166,7 +170,7 @@ class NodeProtoIO(object):
         """
         set tensor data:
                 value_name : var name
-                data	   : real data
+                data       : real data
                 data_type_str : data type desc ("string"
                                                                                 "int"
                                                                                 "float"
