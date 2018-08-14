@@ -70,19 +70,19 @@ TEST(TestSaberFunc, test_saber_conv_results) {
                                &weights_dev, &bias_dev);
 #endif
 #ifdef USE_X86_PLACE
-        Tensor<X86> weights_dev;
-        weights_dev.re_alloc(weights_s, AK_FLOAT);
-        fill_tensor_rand(weights_dev, -5.f, 5.0f);
+        Tensor<X86> weights_x86;
+        weights_x86.re_alloc(weights_s, AK_FLOAT);
+        fill_tensor_rand(weights_x86, -5.f, 5.0f);
 
-        Tensor<X86> bias_dev;
+        Tensor<X86> bias_x86;
         if (bias_term) {
-            bias_dev.re_alloc(bias_s, AK_FLOAT);
-            fill_tensor_rand(bias_dev, -5.0f, 5.0f);
+            bias_x86.re_alloc(bias_s, AK_FLOAT);
+            fill_tensor_rand(bias_x86, -5.0f, 5.0f);
         }
         ConvParam<X86> param_x86(group, pad_h, pad_w,
                                stride_h, stride_w,
                                dilation_h, dilation_w,
-                               &weights_dev, &bias_dev);
+                               &weights_x86, &bias_x86);
 #endif
         for (auto input_num : input_num_v)
         for (auto height : in_h_v)
