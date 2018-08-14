@@ -53,34 +53,24 @@ static size_t type_length(DataType type) {
     switch (type) {
     case AK_INT8:
         return 1;
-
     case AK_UINT8:
         return 1;
-
     case AK_INT16:
         return 2;
-
     case AK_UINT16:
         return 2;
-
     case AK_INT32:
         return 4;
-
     case AK_UINT32:
         return 4;
-
     case AK_INT64:
         return 8;
-
     case AK_HALF:
         return 2;
-
     case AK_FLOAT:
         return 4;
-
     case AK_DOUBLE:
         return 8;
-
     default:
         return 4;
     }
