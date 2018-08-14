@@ -249,7 +249,7 @@ struct NormalizeParam {
 };
     
 template <typename TargetType>
-    struct PoolingParam {
+struct PoolingParam {
         PoolingParam() : window_h(-1), window_w(-1)
         , pad_h(-1), pad_w(-1)
         , stride_h(-1), stride_w(-1)
@@ -317,39 +317,6 @@ template <typename TargetType>
         bool cmp_out_shape_floor_as_conv;
 };
     
-template <typename type>
-struct ReshapeParam {
-        ReshapeParam() = default;
-        explicit ReshapeParam(std::vector<int> shape_param_in){
-            int count = 0;
-            for (int i = 0; i < shape_param_in.size(); ++i) {
-                if (shape_param_in[i] == -1){
-                    count ++;
-                }
-            }
-            CHECK_LE(count, 1) << "shape parameter contains multiple -1 dims";
-            shape_params = shape_param_in;
-        }
-        ReshapeParam(const ReshapeParam<type> &right) {
-            shape_params = right.shape_params;
-        }
-        ReshapeParam<type> &operator=(const ReshapeParam<type> &right) {
-            shape_params = right.shape_params;
-            return *this;
-        }
-        bool operator==(const ReshapeParam &right) {
-            bool comp_eq = shape_params.size() == right.shape_params.size();
-            for (int i = 0; i < shape_params.size(); ++i) {
-                if (!comp_eq){
-                    return false;
-                }
-                comp_eq = shape_params[i] == right.shape_params[i];
-            }
-            return true;
-        }
-        std::vector<int> shape_params;
-        
-};
     
 template <typename TargetType>
 struct PermuteParam {
