@@ -59,9 +59,15 @@ public:
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                                  std::vector<DataTensor_out*>& outputs,
                                  CrfDecodingParam<OpTensor> &param) override;
+
+    void decoding(DataType_in* path, const DataType_in* emission, const DataType_in* transition,
+                  DataType_in* alpha_value, int* track_value, int seq_len, int tag_num);
 private:
     DataTensor_in _alpha;
     Tensor<X86, AK_INT32, NCHW> _track;
+    DataTensor_in _trans;
+    DataTensor_in _emis;
+    int _aligned_tag_num;
 };
 }
 }

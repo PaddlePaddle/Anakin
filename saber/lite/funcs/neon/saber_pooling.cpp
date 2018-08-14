@@ -93,14 +93,9 @@ SaberStatus SaberPooling::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &input
         return SaberSuccess;
     }
 
-    if (_param->_pool_kw != _param->_pool_kh || _param->_pool_stride_w != _param->_pool_stride_h \
-        || _param->_pool_stride_w != 2 || _param->_pool_pad_w != _param->_pool_pad_h || _param->_pool_pad_w > 1) {
-        _impl = pooling_basic;
-        this->_flag_init = true;
-        return SaberSuccess;
-    }
-
-    if (_param->_pool_kw == 2) {
+    if (_param->_pool_kw == 2 && _param->_pool_kh == 2 && \
+            _param->_pool_stride_w == 2 && _param->_pool_pad_h == 2 && \
+            _param->_pool_pad_h == 0 && _param->_pool_pad_w == 0) {
         if (_param->_pool_type == Pooling_max) {
             _impl = pooling2x2s2_max;
         } else {
@@ -110,14 +105,38 @@ SaberStatus SaberPooling::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &input
         return SaberSuccess;
     }
 
-    if (_param->_pool_kw == 3) {
-        if (_param->_pool_type == Pooling_max) {
-            _impl = pooling3x3s2_max;
-        } else {
-            _impl = pooling3x3s2_ave;
+    if (_param->_pool_kw == 3 && _param->_pool_kh == 3) {
+        if (_param->_pool_stride_h == 1 && _param->_pool_stride_w == 1 && \
+            _param->_pool_pad_h == 1 && _param->_pool_pad_w == 1) {
+            if (_param->_pool_type == Pooling_max) {
+                _impl = pooling3x3s1p1_max;
+            } else {
+                _impl = pooling3x3s1p1_ave;
+            }
+            this->_flag_init = true;
+            return SaberSuccess;
         }
-        this->_flag_init = true;
-        return SaberSuccess;
+
+        if (_param->_pool_stride_w == 2 && _param->_pool_stride_h == 2) {
+            if (_param->_pool_pad_w == 0 &&  _param->_pool_pad_h == 0) {
+                if (_param->_pool_type == Pooling_max) {
+                    _impl = pooling3x3s2p0_max;
+                } else {
+                    _impl = pooling3x3s2p0_ave;
+                }
+                this->_flag_init = true;
+                return SaberSuccess;
+            }
+            if (_param->_pool_pad_w == 1 && _param->_pool_pad_h == 1) {
+                if (_param->_pool_type == Pooling_max) {
+                    _impl = pooling3x3s2p1_max;
+                } else {
+                    _impl = pooling3x3s2p1_ave;
+                }
+                this->_flag_init = true;
+                return SaberSuccess;
+            }
+        }
     }
 
     _impl = pooling_basic;
