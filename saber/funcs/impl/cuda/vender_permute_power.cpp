@@ -30,17 +30,21 @@ SaberStatus VenderPermutePower<NV, AK_FLOAT>::\
         int input_width = inputs[0]->width();
         
         bool is_nhwc_to_nchw = param.permute_param.order ==  std::vector<int>({0, 3, 1, 2});
+        bool is_nchw_to_nhwc = param.permute_param.order == std::vector<int>({0, 2, 3, 1});
         if (inputs[0]->shape() == inputs[0]->valid_shape()) {
             if (is_nhwc_to_nchw) {
                 cudnn::setTensor4dDesc<float>(&_input_descs, CUDNN_TENSOR_NHWC,
                                               input_num, input_width, input_channel, input_height);
                 cudnn::setTensor4dDesc<float>(&_output_descs, CUDNN_TENSOR_NCHW,
                                               input_num, input_width, input_channel, input_height);
-            } else {
+            } else if (is_nchw_to_nhwc){
                 cudnn::setTensor4dDesc<float>(&_input_descs, CUDNN_TENSOR_NCHW,
                                               input_num, input_channel, input_height, input_width);
                 cudnn::setTensor4dDesc<float>(&_output_descs, CUDNN_TENSOR_NHWC,
                                               input_num, input_channel, input_height, input_width);
+            } else {
+                //we only support nchw <----> nhwc({0, 3, 1, 2} and {0, 2, 3, 1})
+                return SaberUnImplError;
             }
         } else {
             Shape input_stride = inputs[0]->get_stride();
@@ -72,7 +76,7 @@ SaberStatus VenderPermutePower<NV, AK_FLOAT>::\
                                                 output_stride[height_index],
                                                 output_stride[width_index]
                                                 );
-            } else {
+            } else if (is_nchw_to_nhwc) {
                 cudnn::setTensor4dDescEx<float>(&_input_descs,
                                                 in_num, in_channel, in_height, in_width,
                                                 input_stride[num_index],
@@ -87,6 +91,9 @@ SaberStatus VenderPermutePower<NV, AK_FLOAT>::\
                                                 output_stride[channel_index],
                                                 output_stride[height_index]
                                                 );
+            } else {
+                //we only support nchw <----> nhwc({0, 3, 1, 2} and {0, 2, 3, 1})
+                return SaberUnImplError;
             }
         }
         return SaberSuccess;
@@ -115,7 +122,7 @@ SaberStatus VenderPermutePower<NV, AK_FLOAT>::\
         return create(inputs, outputs, param, ctx);
 }
 
-    //call cudnnConvolutionForward here
+//call cudnnConvolutionForward here
 template <>
 SaberStatus VenderPermutePower<NV, AK_FLOAT>::\
     dispatch(const std::vector<Tensor<NV>*>& inputs,
@@ -126,10 +133,19 @@ SaberStatus VenderPermutePower<NV, AK_FLOAT>::\
         float scale = param.power_param.scale;
         float shift = param.power_param.shift;
         float power = param.power_param.power;
+        
+        bool is_nhwc_to_nchw = param.permute_param.order ==  std::vector<int>({0, 3, 1, 2});
+        bool is_nchw_to_nhwc = param.permute_param.order == std::vector<int>({0, 2, 3, 1});
 
-        if (shift != 0.f || power != 1.f) {
-            LOG(FATAL) << "cudnn permute does not support shift and power";
+        if (shift != 0.f || power != 1.f ) {
+            LOG(ERROR) << "cudnn permute does not support shift and power";
+            return SaberUnImplError;
         } else {
+            //we only support nchw<->nhwc({0, 3, 1, 2} and {0, 2, 3, 1})
+            if (!(is_nhwc_to_nchw || is_nchw_to_nhwc)){
+                LOG(ERROR) << "cudnn permute does not support this layout";
+                return SaberUnImplError;
+            }
             CUDNN_CHECK(cudnnTransformTensor(_handle,
                                              (void*)(&scale),
                                              _input_descs, input_data,
