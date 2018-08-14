@@ -83,10 +83,15 @@ public:
             transform_3x3_weight_2_4x4(weight_data, _host_work_space, param.weight()->num(),
                                        round_out_channel, inputs[0]->channel(), round_in_channel);
             Shape new_weights_shape({weight4x4_size, 1, 1, 1}, param.weight()->get_layout());
-            param.mutable_weight()->re_alloc(new_weights_shape, param.weight()->get_dtype());
-            param.mutable_weight()->copy_from(trans_weights_host);
-            param.mutable_weight()->set_shape(old_shape);
-
+            if (_in_place) {
+                param.mutable_weight()->re_alloc(new_weights_shape, param.weight()->get_dtype());
+                param.mutable_weight()->copy_from(trans_weights_host);
+                param.mutable_weight()->set_shape(old_shape);
+            } else {
+                weight_dev.re_alloc(new_weights_shape, param.weight()->get_dtype());
+                weight_dev.copy_from(trans_weights_host);
+                weight_dev.set_shape(old_shape);
+            }
         } else if (param.group == 1) {
             int weight_size = (param.weight()->shape()).count();
             Tensor<NVHX86> weight_host;
@@ -101,15 +106,22 @@ public:
                                          param.weight()->channel(), \
                                          param.weight()->height(), \
                                          param.weight()->width());
+            if (_in_place) {
+                param.mutable_weight()->re_alloc(param.weight()->valid_shape(), param.weight()->get_dtype());
+                param.mutable_weight()->copy_from(trans_weights_host);
+            } else {
+                weight_dev.re_alloc(param.weight()->valid_shape(), param.weight()->get_dtype());
+                weight_dev.copy_from(trans_weights_host);
+            }
 
-            param.mutable_weight()->re_alloc(param.weight()->valid_shape(), param.weight()->get_dtype());
-            param.mutable_weight()->copy_from(trans_weights_host);
         }
         cudaDeviceSynchronize();
     }
 
 private:
     bool _with_saber_act{false};
+    bool _in_place{false};
+    Tensor<NV> weight_dev;
     SaberActivation<NV, OpDtype> *_saber_act{nullptr};
     int _kernel_height;
     int _kernel_width;
