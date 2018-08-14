@@ -489,6 +489,16 @@ struct SliceParam {
     int axis;
     std::vector<int> slice_points;
 };
+
+template <typename TargetType>
+struct TransposeParam {
+    TransposeParam() = default;
+    TransposeParam(const TransposeParam& right){}
+    TransposeParam& operator=(const TransposeParam& right){}
+    bool operator==(const TransposeParam& right){
+        return true;
+    }
+};
 }
 }
 #endif //SABER_FUNCS_PARAM_H
