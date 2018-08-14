@@ -19,7 +19,7 @@ void reshape_cpu_func(const std::vector<Tensor<TargetType_H>*>& input, std::vect
     Shape param_shape = param.shape_params;
     Shape out_shape;
     out_shape.resize(param_shape.size());
-    int infer_axis = 0;
+    int infer_axis = -1;
     int num_axis = 1;
     int infer_count=0;
     for (int i=0; i < param_shape.size(); ++i){
@@ -60,7 +60,7 @@ TEST(TestSaberFunc, test_func_reshape) {
         }
         return new_count <= in_count;
     };
-    //test shape contain -1
+    //test shape contain -1 and 0
     for (int rs0 : {0, -1, 2}){
         for (int rs1 : {0, -1, 4}){
             for (int rs2 : {0, -1, 8}){
@@ -87,6 +87,23 @@ TEST(TestSaberFunc, test_func_reshape) {
                 }
             }
         }
+    }//for rs0
+    //test shape normal
+    std::vector<Shape> new_shapes;
+    std::vector<Shape> in_shapes;
+    new_shapes.emplace_back(Shape({1, 1, 3, 64}));
+    in_shapes.emplace_back(Shape({1, 3, 4, 16}));
+    new_shapes.emplace_back(Shape({1, 4, 3, 64}));
+    in_shapes.emplace_back(Shape({1, 1, 1, 3*64*4}));
+    new_shapes.emplace_back(Shape({2, 2, 3, 64}));
+    in_shapes.emplace_back(Shape({1, 2, 1, 2*3*64}));
+    new_shapes.emplace_back(Shape({32, 32, 3, 64}));
+    in_shapes.emplace_back(Shape({1, 3, 64, 32*32}));
+    for (int i=0; i<new_shapes.size(); ++i){
+        ReshapeParam<NV> param(new_shapes[i]);
+        testbase.set_param(param);
+        testbase.set_input_shape(in_shapes[i]);
+        testbase.run_test(reshape_cpu_func<float, NV, NVHX86>);
     }
         
 #endif
