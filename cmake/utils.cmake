@@ -245,7 +245,7 @@ function(anakin_protos_processing)
 	
 	anakin_fetch_files_with_suffix(${PROTO_SRC_PATH} "proto" PROTO_SRC_FILES)
 	foreach(__file ${PROTO_SRC_FILES})	
-		exec_program(protoc  ${__working_dir} ARGS " -I=${PROTO_SRC_PATH} --cpp_out=. ${__file}"
+		exec_program(${PROTOBUF_PROTOC_EXECUTABLE} ${__working_dir} ARGS " -I=${PROTO_SRC_PATH} --cpp_out=. ${__file}"
 							OUTPUT_VARIABLE OUTPUT
 							RETURN_VALUE VALUE)
 		if(NOT VALUE)
