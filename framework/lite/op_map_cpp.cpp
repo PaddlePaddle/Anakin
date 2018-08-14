@@ -1331,21 +1331,21 @@ std::string ParserPriorBox(graph::AttrInfo& attr,
                            bool gen_param) {
 	// parsing parameter
     auto min_size  = get_attr<PTuple<float>>("min_size", attr); 
-	auto max_size  = get_attr<PTuple<float>>("max_size", attr); 
-	auto as_ratio  = get_attr<PTuple<float>>("aspect_ratio", attr);
+    auto max_size  = get_attr<PTuple<float>>("max_size", attr); 
+    auto as_ratio  = get_attr<PTuple<float>>("aspect_ratio", attr);
     //add
     auto fixed_size  = get_attr<PTuple<float>>("fixed_size", attr); 
     auto fixed_ratio  = get_attr<PTuple<float>>("fixed_ratio", attr); 
     auto density  = get_attr<PTuple<float>>("density", attr);
 
-	auto flip_flag = get_attr<bool>("is_flip", attr); 
-	auto clip_flag = get_attr<bool>("is_clip", attr); 
-	auto var       = get_attr<PTuple<float>>("variance", attr); 
-	auto image_h   = get_attr<int>("img_h", attr); 
-	auto image_w   = get_attr<int>("img_w", attr); 
-	auto step_h    = get_attr<float>("step_h", attr); 
-	auto step_w    = get_attr<float>("step_w", attr); 
-	auto offset    = get_attr<float>("offset", attr);
+    auto flip_flag = get_attr<bool>("is_flip", attr); 
+    auto clip_flag = get_attr<bool>("is_clip", attr); 
+    auto var       = get_attr<PTuple<float>>("variance", attr); 
+    auto image_h   = get_attr<int>("img_h", attr); 
+    auto image_w   = get_attr<int>("img_w", attr); 
+    auto step_h    = get_attr<float>("step_h", attr);  
+    auto step_w    = get_attr<float>("step_w", attr); 
+    auto offset    = get_attr<float>("offset", attr);
     auto order     = get_attr<PTuple<std::string>>("order", attr);
 
     std::vector<PriorType> order_;
