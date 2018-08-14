@@ -81,6 +81,46 @@ struct ActivationParam {
 };
 
 template <typename TargetType>
+struct CrfDecodingParam {
+    CrfDecodingParam()
+            : weight_tensor(NULL)
+            , tag_num(0)
+    {}
+    CrfDecodingParam(TargetType* weight_tensor_in, int tag_num_in = 0)
+            : weight_tensor(weight_tensor_in) {
+        if (tag_num_in == 0) {
+            tag_num = weight_tensor->channel();
+        } else {
+            tag_num = tag_num_in;
+        }
+    }
+    CrfDecodingParam(const CrfDecodingParam &right)
+            : weight_tensor(right.weight_tensor)
+            , tag_num(right.tag_num)
+    {}
+    CrfDecodingParam &operator=(const CrfDecodingParam &right) {
+        weight_tensor = right.weight_tensor;
+        tag_num = right.tag_num;
+        return *this;
+    }
+    bool operator==(const CrfDecodingParam &right) {
+        bool comp_eq = true;
+        comp_eq &= (weight_tensor == right.weight_tensor);
+        comp_eq &= (tag_num == right.tag_num);
+        return comp_eq;
+    }
+    inline const Tensor<TargetType>* transition_weight() {
+        return weight_tensor;
+    }
+    inline Tensor<TargetType>* mutable_transition_weight() {
+        return weight_tensor;
+    }
+    int tag_num;
+private:
+    Tensor<TargetType> *weight_tensor;
+};
+
+template <typename TargetType>
 struct ConvParam {
 
     ConvParam()
