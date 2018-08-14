@@ -332,10 +332,10 @@ class Fluid_helper:
 		.reshape(1,1,1,3*hidden_size*hidden_size+3*word_size*hidden_size)
 		return tar_i2h_h2h, tar_b
 
-	def lstm_fc_tensor_merge_convert(self, origin_lstm_w, origin_lstm_b, origin_fc_w, origin_fc_b):
+	def lstm_fc_tensor_merge_convert(self, origin_hidden_size, origin_lstm_w, origin_lstm_b, origin_fc_w, origin_fc_b):
 
-		layer_size = int (origin_fc_b.size // 4)
-		input_size = int (origin_fc_w.size // origin_fc_b.size)
+		layer_size = int (origin_hidden_size // 4)
+		input_size = int (origin_fc_w.size // origin_hidden_size)
 		lstm_bias_num = int (origin_lstm_b.size // layer_size)
 		tar_w = np.vstack((np.hstack((origin_fc_w[:, 1 * layer_size : 2 * layer_size],
 									  origin_fc_w[:, 2 * layer_size : 3 * layer_size],
@@ -345,10 +345,18 @@ class Fluid_helper:
 									  origin_lstm_w[:, 2 * layer_size : 3 * layer_size],
 									  origin_lstm_w[:, : 1 * layer_size],
 									  origin_lstm_w[:, 3 * layer_size : ]))))
-		split_fc_bc = origin_fc_b.flatten()[: 1 * layer_size]
-		split_fc_bi = origin_fc_b.flatten()[1 * layer_size : 2 * layer_size]
-		split_fc_bf = origin_fc_b.flatten()[2 * layer_size : 3 * layer_size]
-		split_fc_bo = origin_fc_b.flatten()[3 * layer_size : 4*layer_size]
+
+		if origin_fc_b is not None:
+			split_fc_bc = origin_fc_b.flatten()[: 1 * layer_size]
+			split_fc_bi = origin_fc_b.flatten()[1 * layer_size : 2 * layer_size]
+			split_fc_bf = origin_fc_b.flatten()[2 * layer_size : 3 * layer_size]
+			split_fc_bo = origin_fc_b.flatten()[3 * layer_size : 4 * layer_size]
+		else:
+			split_fc_bc = np.zeros(layer_size)
+			split_fc_bi = np.zeros(layer_size)
+			split_fc_bf = np.zeros(layer_size)
+			split_fc_bo = np.zeros(layer_size)
+
 		split_lstm_bc = origin_lstm_b.flatten()[: 1 * layer_size]
 		split_lstm_bi = origin_lstm_b.flatten()[1 * layer_size: 2 * layer_size]
 		split_lstm_bf = origin_lstm_b.flatten()[2 * layer_size: 3 * layer_size]
@@ -374,7 +382,6 @@ class Fluid_helper:
 							 + split_lstm_wic.flatten().tolist()
 							 + split_lstm_wfc.flatten().tolist()
 							 + split_lstm_woc.flatten().tolist())
-
 		return tar_w.reshape(input_size+ layer_size, 4 * layer_size, 1, 1),\
 			   tar_b.reshape(1, origin_lstm_b.size, 1, 1)
 

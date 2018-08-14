@@ -57,11 +57,17 @@ public:
 
     /**
      * \brief load model weights from modelpath
-     * @param opt_file:     param info path
-     * @param model_file:   weights file path
+     * @param lite_model:     model path
      * @return return SaberSuccess if success
      */
     SaberStatus load_model(const char* lite_model);
+
+    /**
+     * \brief load model weights from memory
+     * @param opt_file:     memory
+     * @return return SaberSuccess if success
+     */
+    SaberStatus load_model(const void* memory);
 
     /**
      * \brief load model weights from memory
@@ -139,6 +145,13 @@ private:
      * @return
      */
     SaberStatus init();
+
+    /**
+     * \brief load model from file
+     * @param memory
+     * @return return SaberSuccess if successed
+     */
+    SaberStatus load_model(FILE* fp);
 };
 
 } //namespace lite
