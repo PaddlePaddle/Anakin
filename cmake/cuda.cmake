@@ -78,7 +78,7 @@ endmacro()
 # ----------------------------------------------------------------------------
 macro(anakin_find_cudnn)
 	set(CUDNN_ROOT "" CACHE PATH "CUDNN root dir.")
-  	find_path(CUDNN_INCLUDE_DIR cudnn.h PATHS ${CUDNN_ROOT} 
+  	find_path(CUDNN_INCLUDE_DIR cudnn.h PATHS ${CUDNN_ROOT} ${CUDNN_ROOT}/include
 						  $ENV{CUDNN_ROOT} 
 						  $ENV{CUDNN_ROOT}/include
 						  ${ANAKIN_ROOT}/third-party/cudnn/include NO_DEFAULT_PATH)
