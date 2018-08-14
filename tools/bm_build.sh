@@ -13,6 +13,7 @@ echo "-- Build anakin TPU(BitMain) into: $BUILD_ROOT"
 echo "-- Building anakin ..."
 cd $BUILD_ROOT
 
+
 cmake .. \
     -DCMAKE_BUILD_TYPE=Release \
 	-DUSE_ARM_PLACE=NO \
