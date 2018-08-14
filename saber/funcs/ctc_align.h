@@ -45,7 +45,7 @@ public:
     typedef Tensor<TargetType> InDataTensor;
     typedef Tensor<TargetType> OutDataTensor;
     typedef Tensor<TargetType> OpTensor;
-    typedef CtcAlignParam<OpTensor> Param_t;
+    typedef CtcAlignParam<TargetType> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
