@@ -310,7 +310,7 @@ class FluidParser:
 				cache.pop()
 		return results
 
-	def _CropGraph(self, ins_of_graph, outs_of_graph, helper):
+	def _CropGraph(self, ins_of_subgraph, outs_of_subgraph, helper, need_io = True):
 		def all_nodes():
 			all_nodes = []
 			for main_node in self.ins.keys():
@@ -318,7 +318,7 @@ class FluidParser:
 			for main_node in self.outs.keys():
 				all_nodes.extend(self.outs[main_node].all_targets())
 			return list(set(all_nodes))
-		stayed_nodes = self._Subgraph(ins_of_graph, outs_of_graph)
+		stayed_nodes = self._Subgraph(ins_of_subgraph, outs_of_subgraph)
 		all_nodes = all_nodes()
 		extra_nodes = difference(all_nodes, stayed_nodes)
 		for node_name in extra_nodes:
@@ -328,19 +328,26 @@ class FluidParser:
 				self.graphIO.rm_in(node_name)
 			if node_name in self.graphIO.outs():
 				self.graphIO.rm_out(node_name)
-		for node_name in outs_of_graph:
-			if node_name not in self.graphIO.outs():
-				out_node_name = node_name + '_crop_out'
-				self.ins[out_node_name] = Fluid_edger('_In', node_name)
-				self.outs[node_name] = Fluid_edger('_Out', out_node_name)
-				self.graphIO.add_out_fluid(out_node_name, node_name)
-		for node_name in ins_of_graph:
-			if node_name not in self.graphIO.ins():
-				in_node_name = node_name + '_crop_in'
-				private_data = {'input_shape': [-1, -1, -1, -1]}
-				self.ins[node_name] = Fluid_edger('_In', in_node_name)
-				self.outs[in_node_name] = Fluid_edger('_Out', node_name)
-				self._AddProtoNode(in_node_name, None, helper, private_data, 'feed')
+		for node_name in ins_of_subgraph:
+			if node_name in self.ins:
+				self.ins[node_name].clear()
+		for node_name in outs_of_subgraph:
+			if node_name in self.outs:
+				self.outs[node_name].clear()
+		if need_io is True:
+			for node_name in outs_of_subgraph:
+				if node_name not in self.graphIO.outs():
+					out_node_name = node_name + '_crop_out'
+					self.ins[out_node_name] = Fluid_edger('_In', node_name)
+					self.outs[node_name] = Fluid_edger('_Out', out_node_name)
+					self.graphIO.add_out_fluid(out_node_name, node_name)
+			for node_name in ins_of_subgraph:
+				if node_name not in self.graphIO.ins():
+					in_node_name = node_name + '_crop_in'
+					private_data = {'input_shape': [-1, -1, -1, -1]}
+					self.ins[node_name] = Fluid_edger('_In', in_node_name)
+					self.outs[in_node_name] = Fluid_edger('_Out', node_name)
+					self._AddProtoNode(in_node_name, None, helper, private_data, 'feed')
 
 	def _IntegrateNodes(self, main_op, main_node_name, sec_node_name, helper, private_data):
 		# Merge secondary nodes to the primary node and process the edges.
@@ -387,9 +394,9 @@ class FluidParser:
 					elt_op = self._GetOp(source_ops, input_name)
 					x_of_elt = self.ins[input_name].target('X')
 					has_weights = helper.is_persistable_param(elt_op, 'Y')
-					if x_of_elt.startswith('conv2d') and has_weights:
+					if (x_of_elt.startswith('conv2d') or x_of_elt.startswith('depthwise_conv2d')) and has_weights:
 						discrete_flag = False
-				elif input_name.startswith('conv2d'):
+				elif input_name.startswith('conv2d') or input_name.startswith('depthwise_conv2d'):
 					discrete_flag = False
 				if discrete_flag is True:
 					self._RmProtoNode(main_node_name)
@@ -572,35 +579,47 @@ class FluidParser:
 		for source_op in source_ops:
 			if source_op.type == 'lstm':
 				private_data = {}
-				lstm_flags = [True, False, False]
+				lstm_flags = [False, False]
 				lstm_node_name = self._NameNodeMid(source_op)
 				lstm_op = self._GetOp(source_ops, lstm_node_name)
 				input_list_of_lstm = self.ins[lstm_node_name].targets('Input')
-				if lstm_flags[0] is True and len(input_list_of_lstm) == 1:
+				input_list = []
+				if len(input_list_of_lstm) == 1:
+					in_lstm_node_name = input_list_of_lstm[0]
 					if input_list_of_lstm[0].split('#')[0] == 'elementwise_add':
-						elt_node_name = input_list_of_lstm[0]
-						elt_op = self._GetOp(source_ops, elt_node_name)
+						elt_op = self._GetOp(source_ops, in_lstm_node_name)
 						has_weights = helper.is_persistable_param(elt_op, 'Y')
 						if has_weights is True:
 							private_data['np_flat_fc_bias'] = helper.np_param(elt_op, 'Y')
-							lstm_flags[1] = True
-						input_list_of_elt = self.ins[elt_node_name].targets('X')
-				if lstm_flags[1] is True and len(input_list_of_elt) == 1:
-					if input_list_of_elt[0].split('#')[0] == 'mul':
-						mul_node_name = input_list_of_elt[0]
+							lstm_flags[0] = True
+						input_list = self.ins[in_lstm_node_name].targets('X')
+					elif input_list_of_lstm[0].split('#')[0] == 'mul':
+						private_data['np_flat_fc_bias'] = None
+						input_list = input_list_of_lstm
+						lstm_flags[0] = True
+				if lstm_flags[0] is True and len(input_list) == 1:
+					if input_list[0].split('#')[0] == 'mul':
+						mul_node_name = input_list[0]
 						mul_op = self._GetOp(source_ops, mul_node_name)
 						if helper.var_name_by_param(mul_op, 'Y').startswith('fc'):
 							if helper.attr_data(mul_op, 'x_num_col_dims') == 1:
 								input_list_of_mul = self.ins[mul_node_name].targets('X')
 								input_name_of_mul = input_list_of_mul[0]
-								private_data['np_flat_fc_weight'] = helper.np_param(mul_op, 'Y')
-								lstm_flags[2] = True
+								[w_np, w_sh] = helper.data_with_shape_by_param(mul_op, 'Y', \
+									False, None, 0, False)
+								private_data['np_flat_fc_weight'] = w_np
+								private_data['np_fc_outdim'] = w_sh[3]
+								lstm_flags[1] = True
 							else:
 								raise NameError('ERROR: Axis of LSTM_FC must be 1.')
-				if lstm_flags == [True, True, True]:
+				if lstm_flags == [True, True]:
 					self.outs[input_name_of_mul].mv(mul_node_name, lstm_node_name)
-					self.ins[lstm_node_name].mv(elt_node_name, input_name_of_mul)
-					for node_to_del_name in [mul_node_name, elt_node_name, lstm_node_name]:
+					self.ins[lstm_node_name].mv(in_lstm_node_name, input_name_of_mul)
+					if in_lstm_node_name == mul_node_name:
+						nodes_to_del = [mul_node_name, lstm_node_name]
+					else:
+						nodes_to_del = [mul_node_name, in_lstm_node_name, lstm_node_name]
+					for node_to_del_name in nodes_to_del:
 						self._RmProtoNode(node_to_del_name)
 						if node_to_del_name is not lstm_node_name:
 							self._ClearEdges(node_to_del_name)
@@ -749,26 +768,30 @@ class FluidParser:
 					self._RmProtoNode(bn_node_name)
 					self._AddProtoNode(bn_node_name, source_op, helper, {}, 'disc_bn')
 
-	def _InsertCommonLayer(self,
-						   source_ops,
-						   in_target,
-						   in_param,
-						   out_target,
-						   out_param,
-						   layer_type,
-						   private_data,
-						   helper):
-
-		if in_target in self.ins[out_target].all_targets() and \
-		out_target in self.outs[in_target].all_targets():
-			main_layer = layer_type + '_after_' + in_target
-			self.ins[out_target].mv(in_target, main_layer)
-			self.outs[in_target].mv(out_target, main_layer)
-			self.ins[main_layer] = Fluid_edger(in_param, in_target)
-			self.outs[main_layer] = Fluid_edger(out_param, out_target)
-			self._AddProtoNode(main_layer, None, helper, private_data, layer_type)
+	def _NewCommonLayer(self,
+						source_ops,
+						in_target,
+						in_param,
+						out_target,
+						out_param,
+						layer_type,
+						private_data,
+						helper,
+						insert_mode = True):
+		main_layer = layer_type + '_after_' + in_target
+		if insert_mode is True:
+			if in_target in self.ins[out_target].all_targets() and \
+			out_target in self.outs[in_target].all_targets():
+				self.ins[out_target].mv(in_target, main_layer)
+				self.outs[in_target].mv(out_target, main_layer)
+			else:
+				raise NameError('ERROR: Usage of InsertCommonLayer has not supported.')
 		else:
-			raise NameError('ERROR: Usage of InsertCommonLayer has not supported.')
+			self.ins[out_target].add(in_param + '_insert', main_layer)
+			self.outs[in_target].add(out_param + '_insert', main_layer)
+		self.ins[main_layer] = Fluid_edger(in_param, in_target)
+		self.outs[main_layer] = Fluid_edger(out_param, out_target)
+		self._AddProtoNode(main_layer, None, helper, private_data, layer_type)
 
 	def _ParseNetwork(self, source_ops, helper):
 		self._ParseBase(source_ops, helper)
