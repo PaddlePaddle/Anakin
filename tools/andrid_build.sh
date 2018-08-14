@@ -21,9 +21,9 @@ fi
 # build the target into build_android.
 BUILD_ROOT=$ANAKIN_ROOT/android_build
 
-#if [ -d $BUILD_ROOT ];then
-#	rm -rf $BUILD_ROOT
-#fi
+if [ -d $BUILD_ROOT ];then
+	rm -rf $BUILD_ROOT
+fi
 
 mkdir -p $BUILD_ROOT
 echo "-- Build anakin Android into: $BUILD_ROOT"
