@@ -247,6 +247,75 @@ struct NormalizeParam {
     Tensor<TargetType>* scale{nullptr};
     float eps{1e-6f};
 };
+    
+template <typename TargetType>
+struct PoolingParam {
+        PoolingParam() : window_h(-1), window_w(-1)
+        , pad_h(-1), pad_w(-1)
+        , stride_h(-1), stride_w(-1)
+        , pooling_type(Pooling_unknow)
+        , global_pooling(false)
+        , cmp_out_shape_floor_as_conv(false)
+        {}
+        PoolingParam(int window_h_in, int window_w_in, int pad_h_in
+                     , int pad_w_in, int stride_h_in, int stride_w_in, PoolingType type
+                     , bool global_pooling_in = false, bool cmp_out_shape_floor_as_conv_in = false)
+        : window_h(window_h_in), window_w(window_w_in)
+        , pad_h(pad_h_in), pad_w(pad_w_in)
+        , stride_h(stride_h_in), stride_w(stride_w_in)
+        , pooling_type(type)
+        , global_pooling(global_pooling_in)
+        , cmp_out_shape_floor_as_conv(cmp_out_shape_floor_as_conv_in)
+        {}
+        PoolingParam(const PoolingParam &right)
+        : window_h(right.window_h)
+        , window_w(right.window_w)
+        , pad_h(right.pad_h)
+        , pad_w(right.pad_w)
+        , stride_h(right.stride_h)
+        , stride_w(right.stride_w)
+        , pooling_type(right.pooling_type)
+        , global_pooling(right.global_pooling)
+        , cmp_out_shape_floor_as_conv(right.cmp_out_shape_floor_as_conv)
+        {}
+        PoolingParam &operator=(const PoolingParam &right) {
+            window_h = right.window_h;
+            window_w = right.window_w;
+            pad_h = right.pad_h;
+            pad_w = right.pad_w;
+            stride_h = right.stride_h;
+            stride_w = right.stride_w;
+            pooling_type = right.pooling_type;
+            global_pooling = right.global_pooling;
+            cmp_out_shape_floor_as_conv = right.cmp_out_shape_floor_as_conv;
+            return *this;
+        }
+        bool operator==(const PoolingParam &right) {
+            bool comp_eq = true;
+            comp_eq = comp_eq && (window_h == right.window_h);
+            comp_eq = comp_eq && (window_w == right.window_w);
+            comp_eq = comp_eq && (pad_h == right.pad_h);
+            comp_eq = comp_eq && (pad_w == right.pad_w);
+            comp_eq = comp_eq && (stride_h == right.stride_h);
+            comp_eq = comp_eq && (stride_w == right.stride_w);
+            comp_eq = comp_eq && (pooling_type == right.pooling_type);
+            comp_eq = comp_eq && (global_pooling == right.global_pooling);
+            comp_eq = comp_eq && (cmp_out_shape_floor_as_conv == right.cmp_out_shape_floor_as_conv);
+            return comp_eq;
+        }
+        inline bool pooling_padded() {
+            return (pad_h || pad_w);
+        }
+        int window_h;
+        int window_w;
+        int pad_h;
+        int pad_w;
+        int stride_h;
+        int stride_w;
+        PoolingType pooling_type;
+        bool global_pooling;
+        bool cmp_out_shape_floor_as_conv;
+};
   
 template <typename TargetType>
 struct PreluParam {
@@ -452,75 +521,6 @@ struct ReshapeParam {
     }
     std::vector<int> shape_params;
 };
-    template <typename TargetType>
-    struct PoolingParam {
-        PoolingParam() : window_h(-1), window_w(-1)
-        , pad_h(-1), pad_w(-1)
-        , stride_h(-1), stride_w(-1)
-        , pooling_type(Pooling_unknow)
-        , global_pooling(false)
-        , cmp_out_shape_floor_as_conv(false)
-        {}
-        PoolingParam(int window_h_in, int window_w_in, int pad_h_in
-                     , int pad_w_in, int stride_h_in, int stride_w_in, PoolingType type
-                     , bool global_pooling_in = false, bool cmp_out_shape_floor_as_conv_in = false)
-        : window_h(window_h_in), window_w(window_w_in)
-        , pad_h(pad_h_in), pad_w(pad_w_in)
-        , stride_h(stride_h_in), stride_w(stride_w_in)
-        , pooling_type(type)
-        , global_pooling(global_pooling_in)
-        , cmp_out_shape_floor_as_conv(cmp_out_shape_floor_as_conv_in)
-        {}
-        PoolingParam(const PoolingParam &right)
-        : window_h(right.window_h)
-        , window_w(right.window_w)
-        , pad_h(right.pad_h)
-        , pad_w(right.pad_w)
-        , stride_h(right.stride_h)
-        , stride_w(right.stride_w)
-        , pooling_type(right.pooling_type)
-        , global_pooling(right.global_pooling)
-        , cmp_out_shape_floor_as_conv(right.cmp_out_shape_floor_as_conv)
-        {}
-        PoolingParam &operator=(const PoolingParam &right) {
-            window_h = right.window_h;
-            window_w = right.window_w;
-            pad_h = right.pad_h;
-            pad_w = right.pad_w;
-            stride_h = right.stride_h;
-            stride_w = right.stride_w;
-            pooling_type = right.pooling_type;
-            global_pooling = right.global_pooling;
-            cmp_out_shape_floor_as_conv = right.cmp_out_shape_floor_as_conv;
-            return *this;
-        }
-        bool operator==(const PoolingParam &right) {
-            bool comp_eq = true;
-            comp_eq = comp_eq && (window_h == right.window_h);
-            comp_eq = comp_eq && (window_w == right.window_w);
-            comp_eq = comp_eq && (pad_h == right.pad_h);
-            comp_eq = comp_eq && (pad_w == right.pad_w);
-            comp_eq = comp_eq && (stride_h == right.stride_h);
-            comp_eq = comp_eq && (stride_w == right.stride_w);
-            comp_eq = comp_eq && (pooling_type == right.pooling_type);
-            comp_eq = comp_eq && (global_pooling == right.global_pooling);
-            comp_eq = comp_eq && (cmp_out_shape_floor_as_conv == right.cmp_out_shape_floor_as_conv);
-            return comp_eq;
-        }
-        inline bool pooling_padded() {
-            return (pad_h || pad_w);
-        }
-        int window_h;
-        int window_w;
-        int pad_h;
-        int pad_w;
-        int stride_h;
-        int stride_w;
-        PoolingType pooling_type;
-        bool global_pooling;
-        bool cmp_out_shape_floor_as_conv;
-    };
-
 
 }
 }
