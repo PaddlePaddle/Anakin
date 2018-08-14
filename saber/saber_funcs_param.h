@@ -459,6 +459,63 @@ struct ScaleParam {
     std::vector<float> scale_w;
     std::vector<float> scale_b;
 };
+
+template <typename TargetType>
+struct SequenceConvParam {
+    SequenceConvParam()
+            : filter_tensor(nullptr),
+              padding_tensor(nullptr),
+              context_length(1),
+              context_start(0),
+              context_stride(1),
+              padding_trainable(false)
+    {}
+    SequenceConvParam(Tensor<TargetType>* filter_tensor_in,int context_length_in,
+                      int context_start_in=0,int context_stride_in=1,bool padding_trainable_in=false,
+                      Tensor<TargetType>* padding_tensor_in= nullptr)
+            : filter_tensor(filter_tensor_in),
+              padding_tensor(padding_tensor_in),
+              context_length(context_length_in),
+              context_start(context_start_in),
+              context_stride(context_stride_in),
+              padding_trainable(padding_trainable_in)
+    {}
+    SequenceConvParam(const SequenceConvParam &right)
+            : filter_tensor(right.filter_tensor),
+              padding_tensor(right.padding_tensor),
+              context_length(right.context_length),
+              context_start(right.context_start),
+              context_stride(right.context_stride),
+              padding_trainable(right.padding_trainable)
+    {}
+    SequenceConvParam &operator=(const SequenceConvParam &right) {
+        filter_tensor=right.filter_tensor;
+        padding_tensor=right.padding_tensor;
+        context_length=right.context_length;
+        context_start=right.context_start;
+        context_stride=right.context_stride;
+        padding_trainable=right.padding_trainable;
+        return *this;
+    }
+    bool operator==(const SequenceConvParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (filter_tensor=right.filter_tensor);
+        comp_eq = comp_eq && (padding_tensor=right.padding_tensor);
+        comp_eq = comp_eq && (context_length=right.context_length);
+        comp_eq = comp_eq && (context_start=right.context_start);
+        comp_eq = comp_eq && (context_stride=right.context_stride);
+        comp_eq = comp_eq && (padding_trainable=right.padding_trainable);
+        return comp_eq;
+    }
+
+    Tensor<TargetType> *filter_tensor;
+    Tensor<TargetType> *padding_tensor;
+    int context_length;
+    int context_start;
+    int context_stride;
+    bool padding_trainable;
+};
+
 template <typename type>
 struct SliceParam {
     SliceParam() = default;
