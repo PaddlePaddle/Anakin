@@ -181,7 +181,6 @@ private:
 
 };
 
-
 template <typename TargetType>
 struct NormalizeParam {
     NormalizeParam() = default;
