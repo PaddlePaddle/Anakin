@@ -59,7 +59,7 @@ Status PriorBoxHelper<Ttype, Dtype, Ptype>::InitParam() {
                                        std::vector<float>(), std::vector<float>(), std::vector<float>());
        _param_priorbox = param_priorbox;
     }
-
+    
   //  saber::PriorBoxParam<Tensor4d<Ttype, Dtype>> param_priorbox(min_size_.vector(), max_size_.vector(), \
                                        as_ratio.vector(), var.vector(), flip_flag, clip_flag, \
                                        image_w, image_h, step_w_, step_h_, offset_, order_, \
