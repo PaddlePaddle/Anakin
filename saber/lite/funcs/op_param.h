@@ -466,14 +466,21 @@ struct PermuteParam : public ParamBase {
 
 struct PriorBoxParam : public ParamBase {
     PriorBoxParam(){}
-    PriorBoxParam(std::vector<float> min_in, std::vector<float> max_in, \
-        std::vector<float> aspect_in, std::vector<float> variance_in,
-                  bool flip, bool clip, int image_width, int image_height, \
-        float step_width, float step_height, float offset_in, std::vector<PriorType> order_in) {
+   PriorBoxParam(std::vector<float> variance_in, \
+        bool flip, bool clip, int image_width, int image_height, \
+        float step_width, float step_height, float offset_in, std::vector<PriorType> order_in, \
+        std::vector<float> min_in= std::vector<float>(), std::vector<float> max_in= std::vector<float>(), \
+        std::vector<float> aspect_in= std::vector<float>(),
+        std::vector<float> fixed_in = std::vector<float>(), std::vector<float> fixed_ratio_in = std::vector<float>(), \
+        std::vector<float> density_in = std::vector<float>()) {
 
         _is_flip = flip;
         _is_clip = clip;
         _min_size = min_in;
+        //add 
+        _fixed_size = fixed_in;
+        _density_size = density_in;
+
         _img_w = image_width;
         _img_h = image_height;
         _step_w = step_width;
@@ -497,6 +504,19 @@ struct PriorBoxParam : public ParamBase {
             _variance.push_back(variance_in[3]);
         }
 
+        //add
+        if (_fixed_size.size() > 0){
+            LCHECK_GT(_density_size.size(), 0, "if use fixed_size then you must provide density");
+        }
+
+        //add
+         _fixed_ratio.clear();
+
+         for (int i = 0; i < fixed_ratio_in.size(); i++){
+            _fixed_ratio.push_back(fixed_ratio_in[i]);
+         }
+         //end
+
         for (int i = 0; i < aspect_in.size(); ++i) {
             float ar = aspect_in[i];
             bool already_exist = false;
@@ -513,7 +533,24 @@ struct PriorBoxParam : public ParamBase {
                 }
             }
         }
-        _prior_num = _min_size.size() * _aspect_ratio.size();
+        
+        //add
+        if (_min_size.size() > 0)
+            _prior_num = _min_size.size() * _aspect_ratio.size();
+        if (_fixed_size.size() > 0){
+            _prior_num = _fixed_size.size() * _fixed_ratio.size();
+        }
+
+        if(_density_size.size() > 0){
+            for (int i = 0; i < _density_size.size(); i++){
+                if(_fixed_ratio.size() > 0){
+                    _prior_num += (_fixed_ratio.size() * ((pow(_density_size[i], 2))-1));
+                }else{
+                    _prior_num += ((_fixed_ratio.size() + 1) * ((pow(_density_size[i], 2))-1));
+                }
+            }
+        }
+        //end
         _max_size.clear();
         if (max_in.size() > 0) {
             LCHECK_EQ(max_in.size(), _min_size.size(), "max_size num must = min_size num");
@@ -523,6 +560,7 @@ struct PriorBoxParam : public ParamBase {
                 _prior_num++;
             }
         }
+
     }
     PriorBoxParam(const PriorBoxParam& param) : ParamBase(param) {
         _is_flip = param._is_flip;
@@ -530,6 +568,9 @@ struct PriorBoxParam : public ParamBase {
         _min_size = param._min_size;
         _max_size = param._max_size;
         _aspect_ratio = param._aspect_ratio;
+        _fixed_size = param._fixed_size;
+        _fixed_ratio = param._fixed_ratio;
+        _density_size = param._density_size;
         _variance = param._variance;
         _img_w = param._img_w;
         _img_h = param._img_h;
@@ -545,6 +586,9 @@ struct PriorBoxParam : public ParamBase {
         _min_size = param._min_size;
         _max_size = param._max_size;
         _aspect_ratio = param._aspect_ratio;
+        _fixed_size = param._fixed_size;
+        _fixed_ratio = param._fixed_ratio;
+        _density_size = param._density_size;
         _variance = param._variance;
         _img_w = param._img_w;
         _img_h = param._img_h;
@@ -560,6 +604,9 @@ struct PriorBoxParam : public ParamBase {
     std::vector<float> _min_size;
     std::vector<float> _max_size;
     std::vector<float> _aspect_ratio;
+    std::vector<float> _fixed_size;
+    std::vector<float> _fixed_ratio;
+    std::vector<float> _density_size;
     std::vector<float> _variance;
     int _img_w{0};
     int _img_h{0};

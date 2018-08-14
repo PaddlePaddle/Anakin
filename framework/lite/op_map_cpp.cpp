@@ -1332,7 +1332,12 @@ std::string ParserPriorBox(graph::AttrInfo& attr,
 	// parsing parameter
     auto min_size  = get_attr<PTuple<float>>("min_size", attr); 
 	auto max_size  = get_attr<PTuple<float>>("max_size", attr); 
-	auto as_ratio  = get_attr<PTuple<float>>("aspect_ratio", attr); 
+	auto as_ratio  = get_attr<PTuple<float>>("aspect_ratio", attr);
+    //add
+    auto fixed_size  = get_attr<PTuple<float>>("fixed_size", attr); 
+    auto fixed_ratio  = get_attr<PTuple<float>>("fixed_ratio", attr); 
+    auto density  = get_attr<PTuple<float>>("density", attr);
+
 	auto flip_flag = get_attr<bool>("is_flip", attr); 
 	auto clip_flag = get_attr<bool>("is_clip", attr); 
 	auto var       = get_attr<PTuple<float>>("variance", attr); 
@@ -1360,7 +1365,7 @@ std::string ParserPriorBox(graph::AttrInfo& attr,
             order_string << "PRIOR_COM, ";
         }
     }
-    if (order[order_size - 1] == "MIN") {
+   if (order[order_size - 1] == "MIN") {
         order_.push_back(PRIOR_MIN);
         order_string << "PRIOR_MIN";
     } else if (order[order_size - 1] == "MAX") {
@@ -1370,6 +1375,7 @@ std::string ParserPriorBox(graph::AttrInfo& attr,
         order_.push_back(PRIOR_COM);
         order_string << "PRIOR_COM";
     }
+
     order_string << "}";
 
     auto gen_vec_code_0 = [](PTuple<PriorType> ptuple) -> std::string {
@@ -1404,7 +1410,23 @@ std::string ParserPriorBox(graph::AttrInfo& attr,
 	// gen cpp code
 	CodeWritter code_w;
     if (gen_param) {
-        code_w << min_size.size() << " ";
+       // printf("**************\n");
+        code_w << var.size() << " ";
+        for (int i = 0; i < var.size(); ++i) {
+            code_w << var[i] << " ";
+        }
+        code_w.feed(",%d,%d,%d,%d,%f,%f,%f,%d,%d,%d",
+                    gen_vec_code(var).c_str(),
+                    flip_flag ? 1 : 0,
+                    clip_flag ? 1 : 0,
+                    image_w,
+                    image_h,
+                    step_w,
+                    step_h,
+                    offset,
+                    (int)order_[0], (int)order_[1], (int)order_[2]);
+
+        code_w << ", " << min_size.size() << " ";
         for (int i = 0; i < min_size.size(); ++i) {
             code_w << min_size[i] << " ";
         }
@@ -1416,25 +1438,24 @@ std::string ParserPriorBox(graph::AttrInfo& attr,
         for (int i = 0; i < as_ratio.size(); ++i) {
             code_w << as_ratio[i] << " ";
         }
-        code_w << ", " << var.size() << " ";
-        for (int i = 0; i < var.size(); ++i) {
-            code_w << var[i] << " ";
+        code_w << ", " << fixed_size.size() << " ";
+        for (int i = 0; i < fixed_size.size(); ++i) {
+            code_w << fixed_size[i] << " ";
         }
-        code_w.feed(",%d,%d,%d,%d,%f,%f,%f,%d,%d,%d\n",
-                    flip_flag ? 1 : 0,
-                    clip_flag ? 1 : 0,
-                    image_w,
-                    image_h,
-                    step_w,
-                    step_h,
-                    offset,
-                    (int)order_[0], (int)order_[1], (int)order_[2]);
+        code_w << ", " << fixed_ratio.size() << " ";
+        for (int i = 0; i < fixed_ratio.size(); ++i) {
+            code_w << fixed_ratio[i] << " ";
+        }
+        code_w << ", " << density.size() << " ";
+        for (int i = 0; i < density.size(); ++i) {
+            code_w << density[i] << " ";
+        }
+        
+        code_w << "\n";
     } else {
-        code_w.feed("ParamBase* %s_param = new PriorBoxParam(%s,%s,%s,%s,%s,%s,%d,%d,%f,%f,%f,%s);\n",
+      //  printf("===============\n");
+        code_w.feed("ParamBase* %s_param = new PriorBoxParam(%s,%s,%s,%d,%d,%f,%f,%f,%s,%s,%s,%s,%s,%s,%s);\n",
                     node_name.c_str(),
-                    gen_vec_code(min_size).c_str(),
-                    gen_vec_code(max_size).c_str(),
-                    gen_vec_code(as_ratio).c_str(),
                     gen_vec_code(var).c_str(),
                     flip_flag ? "true":"false",
                     clip_flag ? "true":"false",
@@ -1443,7 +1464,14 @@ std::string ParserPriorBox(graph::AttrInfo& attr,
                     step_w,
                     step_h,
                     offset,
-                    order_string.get_code_string().c_str());
+                    order_string.get_code_string().c_str(),
+                    gen_vec_code(min_size).c_str(),
+                    gen_vec_code(max_size).c_str(),
+                    gen_vec_code(as_ratio).c_str(),
+                    gen_vec_code(fixed_size).c_str(),
+                    gen_vec_code(fixed_ratio).c_str(),
+                    gen_vec_code(density).c_str());
+
         code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
     }
 

@@ -1699,130 +1699,7 @@ template <typename opTensor>
 struct PriorBoxParam {
 
     PriorBoxParam(){}
-/*
-    PriorBoxParam(std::vector<float> min_in, std::vector<float> max_in, \
-        std::vector<float> aspect_in, std::vector<float> variance_in, \
-        bool flip, bool clip, int image_width, int image_height, \
-        float step_width, float step_height, float offset_in, std::vector<PriorType> order_in) {
-        is_flip = flip;
-        is_clip = clip;
-        min_size = min_in;
-        img_w = image_width;
-        img_h = image_height;
-        step_w = step_width;
-        step_h = step_height;
-        offset = offset_in;
-        order = order_in;
-        aspect_ratio.clear();
-        aspect_ratio.push_back(1.f);
 
-        variance.clear();
-        if (variance_in.size() == 1) {
-            variance.push_back(variance_in[0]);
-            variance.push_back(variance_in[0]);
-            variance.push_back(variance_in[0]);
-            variance.push_back(variance_in[0]);
-        } else {
-            CHECK_EQ(variance_in.size(), 4) << "variance size must = 1 or = 4";
-            variance.push_back(variance_in[0]);
-            variance.push_back(variance_in[1]);
-            variance.push_back(variance_in[2]);
-            variance.push_back(variance_in[3]);
-        }
-
-        for (int i = 0; i < aspect_in.size(); ++i) {
-            float ar = aspect_in[i];
-            bool already_exist = false;
-            for (int j = 0; j < aspect_ratio.size(); ++j) {
-                if (fabs(ar - aspect_ratio[j]) < 1e-6) {
-                    already_exist = true;
-                    break;
-                }
-            }
-            if (!already_exist) {
-                aspect_ratio.push_back(ar);
-                if (is_flip) {
-                    aspect_ratio.push_back(1.f/ar);
-                }
-            }
-        }
-        prior_num = min_size.size() * aspect_ratio.size();
-        max_size.clear();
-        if (max_in.size() > 0) {
-            CHECK_EQ(max_in.size(), min_size.size()) << "max_size num must = min_size num";
-            for (int i = 0; i < max_in.size(); ++i) {
-                CHECK_GT(max_in[i], min_size[i]) << "max_size val must > min_size val";
-                max_size.push_back(max_in[i]);
-                prior_num++;
-            }
-        }
-    }
-
-    PriorBoxParam(std::vector<float> variance_in, \
-        bool flip, bool clip, int image_width, int image_height, \
-        float step_width, float step_height, float offset_in, std::vector<PriorType> order_in, \
-        std::vector<float> fixed_in, std::vector<float> fixed_ratio_in, \
-        std::vector<float> density_in) {
-        is_flip = flip;
-        is_clip = clip;
-        //add 
-        fixed_size = fixed_in;
-        density_size = density_in;
-
-        img_w = image_width;
-        img_h = image_height;
-        step_w = step_width;
-        step_h = step_height;
-        offset = offset_in;
-        order = order_in;
-        aspect_ratio.clear();
-        aspect_ratio.push_back(1.f);
-
-        variance.clear();
-        if (variance_in.size() == 1) {
-            variance.push_back(variance_in[0]);
-            variance.push_back(variance_in[0]);
-            variance.push_back(variance_in[0]);
-            variance.push_back(variance_in[0]);
-        } else {
-            CHECK_EQ(variance_in.size(), 4) << "variance size must = 1 or = 4";
-            variance.push_back(variance_in[0]);
-            variance.push_back(variance_in[1]);
-            variance.push_back(variance_in[2]);
-            variance.push_back(variance_in[3]);
-        }
-
-        //add
-        if (fixed_size.size() > 0){
-            CHECK_GT(density_size.size(), 0) << "if use fixed_size then you must provide density";
-        }
-       // if (fixed_ratio_in.size() > 0) {
-         //   CHECK_EQ(0, aspect_in.size()) <<"can not provide fixed_ratio and aspect_ratio simultaneously.";
-         //}
-        //add
-         fixed_ratio.clear();
-
-         for (int i = 0; i < fixed_ratio_in.size(); i++){
-            fixed_ratio.push_back(fixed_ratio_in[i]);
-         }
-         //end
-        //add
-        if (fixed_size.size() > 0){
-            prior_num = fixed_size.size() * aspect_ratio.size();
-        }
-
-        if(density_size.size() > 0){
-            for (int i = 0; i < density_size.size(); i++){
-                if(fixed_ratio.size() > 0){
-                    prior_num += (fixed_ratio.size() * ((pow(density_size[i], 2))-1));
-                }else{
-                    prior_num += ((fixed_ratio.size() + 1) * ((pow(density_size[i], 2))-1));
-                }
-            }
-        }
-        //end
-    }
-*/
     PriorBoxParam(std::vector<float> variance_in, \
         bool flip, bool clip, int image_width, int image_height, \
         float step_width, float step_height, float offset_in, std::vector<PriorType> order_in, \
@@ -1896,7 +1773,7 @@ struct PriorBoxParam {
         if (min_size.size() > 0)
             prior_num = min_size.size() * aspect_ratio.size();
         if (fixed_size.size() > 0){
-            prior_num = fixed_size.size() * aspect_ratio.size();
+            prior_num = fixed_size.size() * fixed_ratio.size();
         }
 
         if(density_size.size() > 0){
@@ -1909,8 +1786,8 @@ struct PriorBoxParam {
             }
         }
         //end
-        LOG(INFO) << "min_size: " << min_size.size() << "max_size: " << max_in.size();
-        LOG(INFO) << "fixed_size: " << fixed_size.size();
+       // LOG(INFO) << "min_size: " << min_size.size() << "max_size: " << max_in.size();
+        //LOG(INFO) << "fixed_size: " << fixed_size.size();
         max_size.clear();
         if (max_in.size() > 0) {
             CHECK_EQ(max_in.size(), min_size.size()) << "max_size num must = min_size num";
