@@ -489,6 +489,34 @@ struct SliceParam {
     int axis;
     std::vector<int> slice_points;
 };
+
+template <typename TargetType>
+struct SPPParam {
+    SPPParam() = default;
+    SPPParam(int pyramid_height_in, PoolingType pool_type_in)
+            : pyramid_height(pyramid_height_in)
+            , pool_type(pool_type_in)
+    {}
+    SPPParam(const SPPParam &right)
+            : pyramid_height(right.pyramid_height)
+            , pool_type(right.pool_type)
+    {}
+    SPPParam &operator=(const SPPParam &right) {
+        pyramid_height = right.pyramid_height;
+        pool_type = right.pool_type;
+        return *this;
+    }
+    bool operator==(const SPPParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (pyramid_height == right.pyramid_height);
+        comp_eq = comp_eq && (pool_type == right.pool_type);
+        return comp_eq;
+    }
+
+    int pyramid_height;
+    PoolingType pool_type;
+};
+
 }
 }
 #endif //SABER_FUNCS_PARAM_H
