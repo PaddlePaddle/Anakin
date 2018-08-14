@@ -3,7 +3,7 @@
 
 #include "saber/core/context.h"
 #include "test/saber/test_saber_base.h"
-#include "test_saber_func.h"
+#include "test/saber/test_saber_func.h"
 #include "saber/core/tensor_op.h"
 #include "saber/saber_types.h"
 #include "saber/funcs/permute.h"
@@ -13,8 +13,8 @@ using namespace anakin::saber;
 template<typename dtype,typename TargetType_D,typename TargetType_H>
 void permute_cpu_func(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tensor<TargetType_H>*>& output,PermuteParam<TargetType_D>& param)
 {
-    dtype* src_ptr = static_cast<float*>(input[0] -> data());
-    dtype* dst_ptr = static_cast<float*>(output[0] -> mutable_data());
+    const dtype* src_ptr = static_cast<const dtype*>(input[0] -> data());
+    dtype* dst_ptr = static_cast<dtype*>(output[0] -> mutable_data());
     std::vector<int> orders = param.order;
     int out_size = output[0] -> valid_size();
     int num_axes = input[0] -> valid_shape().size();
@@ -38,24 +38,24 @@ void permute_cpu_func(const std::vector<Tensor<TargetType_H>*>& input,std::vecto
     }
 }
 
-TEST(TestSaberFunc, test_func_permute)
-{
-#ifdef USE_CUDA
-    TestSaberBase<NV, NVHX86, AK_FLOAT, Permute, PermuteParam> testbase;
+template <typename TargetType_D, typename TargetType_H, DataType OpDtype>
+void test_permute(){
+    typedef typename DataTrait<TargetType_H, OpDtype> :: Dtype dtype;
+    TestSaberBase<TargetType_D, TargetType_H, OpDtype, Permute, PermuteParam> testbase;
     for (int s0 : {0, 1, 2, 3}){
         for (int s1 : {0, 1, 2, 3}){
             for (int s2: {0, 1, 2, 3}){
                 for (int s3: {0, 1, 2, 3}){
                     if (s0 != s1 && s0 != s2 && s0 != s3 && s1 != s2 && s1 != s3 && s2 != s3){
                         LOG(INFO)<<"("<<s0<<","<<s1<<","<<s2<<","<<s3<<")";
-                        PermuteParam<NV> param({s0, s1, s2, s3});
+                        PermuteParam<TargetType_D> param({s0, s1, s2, s3});
                         for (int n : {1, 2}){
                             for (int c : {1, 3}){
                                 for (int h : {32, 64}){
                                     for (int w: {32, 64}){
                                         testbase.set_param(param);
                                         testbase.set_input_shape(Shape({n, c, h, w}));
-                                        testbase.run_test(permute_cpu_func<float, NV, NVHX86>);
+                                        testbase.run_test(permute_cpu_func<dtype, TargetType_D, TargetType_H>);
                                     }
                                 }
                             }
@@ -65,6 +65,12 @@ TEST(TestSaberFunc, test_func_permute)
             }
         }
     }
+}
+
+TEST(TestSaberFunc, test_func_permute)
+{
+#ifdef USE_CUDA
+    test_permute<NV, NVHX86, AK_FLOAT>();
 #endif
 }
 

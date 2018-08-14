@@ -161,13 +161,13 @@ SaberStatus SaberPermute<NV, AK_FLOAT>::dispatch(\
     PermuteParam<NV>& param) {
 
     cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
-    const float * in_data =static_cast<float*>(inputs[0]->data());
-    float * out_data = static_cast<float*>(outputs[0]->mutable_data());
+    const float* in_data =static_cast<const float*>(inputs[0]->data());
+    float* out_data = static_cast<float*>(outputs[0]->mutable_data());
     int count = outputs[0]->valid_size();
-    const int * permute_order = static_cast<int*>(_permute_order.data());
-    const int * new_steps = static_cast<int*>(_out_steps.data());
-    const int * old_steps = static_cast<int*>(_in_steps.data());
-    const int * out_valid_shape = static_cast<int*>(_out_valid_shape.data());
+    const int* permute_order = static_cast<const int*>(_permute_order.data());
+    const int* new_steps = static_cast<const int*>(_out_steps.data());
+    const int* old_steps = static_cast<const int*>(_in_steps.data());
+    const int* out_valid_shape = static_cast<const int*>(_out_valid_shape.data());
     std::vector<int> permute_order_nhwc_to_nchw = {0, 3, 1, 2};
     PermuteParam<NV> param_nhwc_to_nchw(permute_order_nhwc_to_nchw);
     std::vector<int> permute_order_nchw_to_nhwc = {0, 2, 3, 1};
