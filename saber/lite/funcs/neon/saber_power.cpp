@@ -15,11 +15,33 @@ SaberPower::SaberPower(const ParamBase *param) {
 }
 
 SaberStatus SaberPower::load_param(const ParamBase *param) {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+        this->_flag_create_param = false;
+    }
     _param = (const PowerParam*)param;
     this->_flag_param = true;
     return SaberSuccess;
 }
 
+SaberPower::~SaberPower() {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+    }
+}
+
+SaberStatus SaberPower::load_param(FILE *fp, const float *weights) {
+    float scale;
+    float shift;
+    float power;
+    fscanf(fp, "%f,%f,%f\n", &scale, &shift, &power);
+    _param = new PowerParam(scale, shift, power);
+    this->_flag_create_param = true;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
 
 SaberStatus SaberPower::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                                std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {

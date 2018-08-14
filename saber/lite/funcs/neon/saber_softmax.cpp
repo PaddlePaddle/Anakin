@@ -151,12 +151,33 @@ void softmax_inner1_s(const float* din, float* dout, \
 }
 
 SaberSoftmax::SaberSoftmax(const ParamBase *param) {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+        this->_flag_create_param = false;
+    }
     _param = (const SoftmaxParam*)param;
     this->_flag_param = true;
 }
 
+SaberSoftmax::~SaberSoftmax() {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+    }
+}
+
 SaberStatus SaberSoftmax::load_param(const ParamBase *param) {
     _param = (const SoftmaxParam*)param;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+
+SaberStatus SaberSoftmax::load_param(FILE *fp, const float* weights) {
+    int axis;
+    fscanf(fp, "%d\n", &axis);
+    _param = new SoftmaxParam(axis);
+    this->_flag_create_param = true;
     this->_flag_param = true;
     return SaberSuccess;
 }

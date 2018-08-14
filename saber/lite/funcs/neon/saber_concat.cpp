@@ -13,8 +13,29 @@ SaberConcat::SaberConcat(const ParamBase *param) {
     this->_flag_param = true;
 }
 
+SaberConcat::~SaberConcat() {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+    }
+}
+
 SaberStatus SaberConcat::load_param(const ParamBase *param) {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+        this->_flag_create_param = false;
+    }
     _param = (const ConcatParam*)param;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+
+SaberStatus SaberConcat::load_param(FILE *fp, const float *weights) {
+    int axis;
+    fscanf(fp, "%d\n", &axis);
+    _param = new ConcatParam(axis);
+    this->_flag_create_param = true;
     this->_flag_param = true;
     return SaberSuccess;
 }

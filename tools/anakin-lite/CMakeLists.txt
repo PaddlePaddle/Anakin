@@ -140,12 +140,15 @@ FILE(GLOB BUILD_SRC_FILES2 "${ANAKIN_LITE_SABER}/core/*.cpp")
 FILE(GLOB BUILD_SRC_FILES3 "${ANAKIN_LITE_SABER}/funcs/*.cpp")
 FILE(GLOB BUILD_SRC_FILES4 "${ANAKIN_LITE_SABER}/funcs/neon/*.cpp")
 FILE(GLOB BUILD_SRC_FILES5 "${ANAKIN_LITE_SABER}/funcs/neon/impl/*.cpp")
+FILE(GLOB BUILD_SRC_FILES6 "${ANAKIN_LITE_SABER}/net/*.cpp")
+FILE(GLOB HEADER_NET "${ANAKIN_LITE_SABER}/net/*.h")
 
 if(USE_ANDROID)
 	FILE(GLOB UNIT_TEST_LITE_SRC "${UNIT_TEST_LITE}/*.cpp")
 endif()
 
-add_library(ANAKIN_LITE_OBJS OBJECT ${BUILD_SRC_FILES1} ${BUILD_SRC_FILES2} ${BUILD_SRC_FILES3} ${BUILD_SRC_FILES4} ${BUILD_SRC_FILES5})
+add_library(ANAKIN_LITE_OBJS OBJECT ${BUILD_SRC_FILES1} ${BUILD_SRC_FILES2} ${BUILD_SRC_FILES3} ${BUILD_SRC_FILES4} ${BUILD_SRC_FILES5}
+		${BUILD_SRC_FILES6} ${HEADER_NET})
 
 if(USE_ANDROID)
 	add_library(${anakin_lite_lib_so} SHARED $<TARGET_OBJECTS:ANAKIN_LITE_OBJS>)
@@ -177,7 +180,7 @@ if(BUILD_LITE_UNIT_TEST)
 		if(NO)#BUILD_SHARED)
 			target_link_libraries(${TEST_CASE_NAME} ${anakin_lite_lib_so})
 		else()
-			target_link_libraries(${TEST_CASE_NAME} ${anakin_lite_lib_static})
+			target_link_libraries(${TEST_CASE_NAME} -Wl,--whole-archive ${anakin_lite_lib_static} -Wl,--no-whole-archive)
 		endif()
 		if(USE_OPENCV)
 			target_link_libraries(${TEST_CASE_NAME} -lopencv_core -lopencv_highgui -lopencv_imgproc

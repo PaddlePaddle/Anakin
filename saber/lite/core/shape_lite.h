@@ -168,7 +168,7 @@ public:
         }
         const int* p = data();
         for (size_t i = 0; i < size(); i++) {
-            flag &= (p[i] == shape[i]);
+            flag = flag && (p[i] == shape[i]);
         }
         return flag;
     }

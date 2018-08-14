@@ -30,15 +30,37 @@ namespace lite {
 template<typename Ttype, DataType Dtype, Precision Ptype>
 class GenCPP : public CodeGenBase<Ttype, Dtype, Ptype> {
 public:
-	explicit GenCPP(std::string model_name, std::string model_dir = ".") {
-		_cpp_file_name = model_dir + '/' + model_name + ".cpp";
-		_h_file_name = model_dir + '/' + model_name + ".h";
-		_model_file_name = model_dir + '/' + model_name + ".bin";
-		_model_opt_file_name = model_dir + '/' + model_name + ".opt.info";
-		_weights.open(_model_file_name);
-		_opt_param_write.open(_model_opt_file_name);
- 		_code_name = model_name;
-		_g_weights_ptr_name = _code_name+"_weights_ptr";
+	explicit GenCPP(std::string model_name, std::string model_dir, bool flag_aot) {
+        _flag_aot = flag_aot;
+        if (!flag_aot) {
+            _cpp_file_name = model_dir + '/' + model_name + ".cpp.tmp";
+            _h_file_name = model_dir + '/' + model_name + ".h.tmp";
+            _model_file_name = model_dir + '/' + model_name + ".lite.w";
+            _model_opt_file_name = model_dir + '/' + model_name + ".lite.info";
+            _weight_opt_file = model_dir + '/' + model_name + ".tmp";
+            _weights.open(_model_file_name);
+            _opt_weights.open(_weight_opt_file);
+            _opt_param_write.open(_model_opt_file_name);
+            _code_name = model_name;
+            _g_weights_ptr_name = _code_name+"_weights_ptr";
+            _merge_opt_file = model_dir + '/' + model_name + ".lite.bin";
+        } else {
+
+            _cpp_file_name = model_dir + '/' + model_name + ".cpp";
+            _h_file_name = model_dir + '/' + model_name + ".h";
+            _model_file_name = model_dir + '/' + model_name + ".bin";
+            _model_opt_file_name = model_dir + '/' + model_name + ".lite.tmp";
+            _weight_opt_file = model_dir + '/' + model_name + ".tmp";
+
+            _weights.open(_model_file_name);
+            _opt_weights.open(_weight_opt_file);
+            _opt_param_write.open(_model_opt_file_name);
+            _code_name = model_name;
+            _g_weights_ptr_name = _code_name+"_weights_ptr";
+
+            _merge_opt_file = model_dir + '/' + model_name + ".merge.tmp";
+        }
+
 	}
 	~GenCPP()=default;
 
@@ -59,6 +81,11 @@ private:
 	 * \brief generator optimized model for lite executer
 	 */
 	void gen_opt_model();
+
+    /**
+     * \brief merge info and weights to one file
+     */
+    void gen_merge_model();
 
 	/**
 	 * \brief generate tensors for edges
@@ -123,10 +150,15 @@ private:
 	std::string _model_opt_file_name;
 	std::string _code_name;
 	std::string _g_weights_ptr_name;
+	std::string _weight_opt_file;
+    std::string _merge_opt_file;
+
 	CodeWritter _code;
 	CodeWritter _opt_param_write;
 	WeightsWritter _weights;
+	WeightsWritter _opt_weights;
 
+    bool _flag_aot{true};
 };
 
 } /* namespace lite */

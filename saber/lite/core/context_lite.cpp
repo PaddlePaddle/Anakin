@@ -31,6 +31,7 @@ namespace lite{
 int arm_get_cpucount() {
 #ifdef PLATFORM_ANDROID
     // get cpu count from /proc/cpuinfo
+#if 0 //read from /proc/cpuinfo
     FILE* fp = fopen("/proc/cpuinfo", "rb");
     if (!fp) {
         return 1;
@@ -54,6 +55,24 @@ int arm_get_cpucount() {
         count = 1;
     }
     return count;
+#else
+    int max_cpu_count = 20;
+    int count = 0;
+    for (int i = 0; i < max_cpu_count; ++i) {
+        char path[256];
+        snprintf(path, sizeof(path), "/sys/devices/system/cpu/cpu%d/uevent", i);
+        FILE* fp = fopen(path, "rb");
+        if (!fp) {
+            break;
+        }
+        count++;
+    }
+    if (count < 1) {
+        count = 1;
+    }
+    printf("cpu count: %d\n", count);
+    return count;
+#endif
 
 #elif defined(TARGET_IOS)
     int count = 0;
@@ -429,11 +448,11 @@ void Context::set_run_mode(PowerMode mode, int threads) {
             }
             break;
     }
-    printf("run mode: %d\n", _mode);
-    printf("thread num: %lu\n", _act_ids.size());
-    for (int j = 0; j < _act_ids.size(); ++j) {
-        printf("|----active id: %d\n", _act_ids[j]);
-    }
+//    printf("run mode: %d\n", _mode);
+//    printf("thread num: %lu\n", _act_ids.size());
+//    for (int j = 0; j < _act_ids.size(); ++j) {
+//        printf("|----active id: %d\n", _act_ids[j]);
+//    }
 
     //! alloc memory for sgemm in this context
 

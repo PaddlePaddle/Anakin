@@ -12,7 +12,34 @@ SaberReshape::SaberReshape(const ParamBase *param) {
 }
 
 SaberStatus SaberReshape::load_param(const ParamBase *param) {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+        this->_flag_create_param = false;
+    }
     _param = (ReshapeParam*)param;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+
+SaberReshape::~SaberReshape() {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+    }
+}
+
+SaberStatus SaberReshape::load_param(FILE *fp, const float *weights) {
+    int size;
+    std::vector<int> shape;
+    fscanf(fp, "%d ", &size);
+    shape.resize(size);
+    for (int i = 0; i < size; ++i) {
+        fscanf(fp, "%d ", &shape[i]);
+    }
+    fscanf(fp, "\n");
+    _param = new ReshapeParam(shape);
+    this->_flag_create_param = true;
     this->_flag_param = true;
     return SaberSuccess;
 }

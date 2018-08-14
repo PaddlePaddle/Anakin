@@ -230,8 +230,34 @@ SaberActivation::SaberActivation(const ParamBase *param) {
     this->_flag_param = true;
 }
 
+SaberActivation::~SaberActivation() {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+    }
+}
+
 SaberStatus SaberActivation::load_param(const ParamBase *param) {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+        this->_flag_create_param = false;
+    }
     _param = (ActivationParam*)param;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+
+SaberStatus SaberActivation::load_param(FILE *fp, const float *weights) {
+    int type;
+    float neg_slop;
+    float coef;
+    int channel_share;
+    int w_offset;
+    fscanf(fp, "%d,%f,%f,%d,%d\n", &type, &neg_slop, &coef, &channel_share, &w_offset);
+    ActiveType atype = static_cast<ActiveType>(type);
+    _param = new ActivationParam(atype, neg_slop, coef, channel_share>0, weights + w_offset);
+    this->_flag_create_param = true;
     this->_flag_param = true;
     return SaberSuccess;
 }

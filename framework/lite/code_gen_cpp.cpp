@@ -505,6 +505,9 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_source(const bool debug_mode) {
 	gen_source_end();
 	_code.save();
     gen_opt_model();
+    if (!_flag_aot) {
+        gen_merge_model();
+    }
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
@@ -555,14 +558,18 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_opt_model() {
     //! gen inputs and outputs tensor name
     _opt_param_write << "inputs " << this->_ins.size();
     for(auto in : this->_ins) {
-        _opt_param_write << " " << in;
+        auto node_info = this->_graph_node_map[in];
+        auto edge_info = this->_tensor_map[node_info.outs[0]];
+        _opt_param_write << " " << edge_info.name;
     }
     _opt_param_write << "\n";
 
     //! gen outputs and outputs tensor name
     _opt_param_write << "outputs " << this->_outs.size();
     for(auto out : this->_outs) {
-        _opt_param_write << " " << out;
+        auto node_info = this->_graph_node_map[out];
+        auto edge_info = this->_tensor_map[node_info.ins[0]];
+        _opt_param_write << " " << edge_info.name;
     }
     _opt_param_write << "\n";
 
@@ -585,10 +592,10 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_opt_model() {
             LOG(INFO) << "Target op type : " << this->_graph_node_map[node_name].op_name << " parsing ...";
             _opt_param_write << OPERATION_MAP[node_info.op_name].OpClassName << " " << node_name << " ";
             _opt_param_write << node_info.ins.size() << " ";
+            _opt_param_write << node_info.outs.size() << " ";
             for(auto &edge_in : node_info.ins) {
                 _opt_param_write << edge_in << " ";
             }
-            _opt_param_write << node_info.outs.size() << " ";
             for(auto &edge_out : node_info.outs) {
                 _opt_param_write << edge_out.c_str() << " ";
             }
@@ -597,7 +604,7 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_opt_model() {
                                                               OPERATION_MAP[node_info.op_name].OpClassName,
                                                               node_name,
                                                               local_weighs_string,
-                                                              _weights,
+                                                              _opt_weights,
                                                               true);
             _opt_param_write << str;
         } else {
@@ -606,6 +613,38 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_opt_model() {
     }
 
     _opt_param_write.save();
+}
+
+template<typename Ttype, DataType Dtype, Precision Ptype>
+void GenCPP<Ttype, Dtype, Ptype>::gen_merge_model() {
+    FILE* fp_merge = fopen(_merge_opt_file.c_str(), "wb");
+    FILE* fp_weight = fopen(_model_file_name.c_str(), "rb");
+    FILE* fp_info = fopen(_model_opt_file_name.c_str(), "rb");
+    fseek(fp_weight, 0, SEEK_END);
+    long wsize = ftell(fp_weight);
+    fseek(fp_weight, 0, SEEK_SET);
+    char* wbuffer = new char[wsize + 1];
+    fread(wbuffer, wsize, 1, fp_weight);
+
+    fseek(fp_info, 0, SEEK_END);
+    long isize = ftell(fp_info);
+    fseek(fp_info, 0, SEEK_SET);
+    char* ibuffer = new char[isize + 1];
+    fread(ibuffer, isize, 1, fp_info);
+
+    fprintf(fp_merge, "Wsize %lu\n", wsize);
+    fwrite(wbuffer, wsize, 1, fp_merge);
+
+    fwrite(ibuffer, isize, 1, fp_merge);
+
+    fflush(fp_merge);
+    fclose(fp_merge);
+
+    fclose(fp_weight);
+    fclose(fp_info);
+
+    delete [] wbuffer;
+    delete [] ibuffer;
 }
 
 #ifdef USE_CUDA

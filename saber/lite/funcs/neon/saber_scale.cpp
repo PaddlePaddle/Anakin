@@ -12,8 +12,33 @@ SaberScale::SaberScale(const ParamBase* param){
     this->_flag_param = true;
 }
 
+SaberScale::~SaberScale() {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+    }
+}
+
 SaberStatus SaberScale::load_param(const ParamBase* param){
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+        this->_flag_create_param = false;
+    }
     _param = (const ScaleParam*)param;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+
+SaberStatus SaberScale::load_param(FILE *fp, const float *weights) {
+    int w_offset;
+    int b_offset;
+    int bias_term;
+    int axis;
+    int num_axis;
+    fscanf(fp, "%d,%d,%d,%d,%d\n", &w_offset, &b_offset, &bias_term, &axis, &num_axis);
+    _param = new ScaleParam(weights + w_offset, weights + b_offset, bias_term>0, axis, num_axis);
+    this->_flag_create_param = true;
     this->_flag_param = true;
     return SaberSuccess;
 }

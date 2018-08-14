@@ -21,8 +21,58 @@ SaberConv2D::SaberConv2D(const ParamBase *param) {
     this->_flag_param = true;
 }
 
+SaberConv2D::~SaberConv2D() {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+    }
+}
+
 SaberStatus SaberConv2D::load_param(const ParamBase *param) {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+        this->_flag_create_param = false;
+    }
     _param = (const Conv2DParam*)param;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+
+SaberStatus SaberConv2D::load_param(FILE *fp, const float* weights) {
+    int weights_size;
+    int num_out;
+    int group;
+    int kw;
+    int kh;
+    int stride_w;
+    int stride_h;
+    int pad_w;
+    int pad_h;
+    int dila_w;
+    int dila_h;
+    int flag_bias;
+    int w_offset;
+    int b_offset;
+    fscanf(fp, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
+           &weights_size,
+           &num_out,
+           &group,
+           &kw,
+           &kh,
+           &stride_w,
+           &stride_h,
+           &pad_w,
+           &pad_h,
+           &dila_w,
+           &dila_h,
+           &flag_bias,
+           &w_offset,
+           &b_offset);
+    _param = new Conv2DParam(weights_size, num_out, group, kw, kh, \
+        stride_w, stride_h, pad_w, pad_h, dila_w, dila_h, flag_bias>0, \
+        weights + w_offset, weights + b_offset);
+    this->_flag_create_param = true;
     this->_flag_param = true;
     return SaberSuccess;
 }
@@ -52,6 +102,12 @@ SaberStatus SaberConv2D::compute_output_shape(const std::vector<Tensor<CPU, AK_F
     output_dim = (input_dim + 2 * _param->_pad_w - kernel_exten) / _param->_stride_w + 1;
 
     output_shape.set_width(output_dim);
+
+#ifdef ENABLE_OP_TIMER
+    this->_op_macs = _param->_kw * _param->_kh * \
+        output_shape.num() * output_shape.channel() * output_shape.width() * output_shape.height() * \
+        inputs[0]->channel() / _param->_group;
+#endif
 
     return outputs[0]->set_shape(output_shape);
 }
@@ -246,7 +302,7 @@ SaberStatus SaberConv2D::dispatch(\
 #ifdef ENABLE_OP_TIMER
     this->_timer.end();
     float ts = this->_timer.get_average_ms();
-    printf("%s conv time: %f\n", _conv_type.c_str(), ts);
+    printf("%s conv time: %f ms, %f GOPS\n", _conv_type.c_str(), ts, 0.000001 * this->_op_macs / ts);
     OpTimer::add_timer("convolution", ts);
     OpTimer::add_timer("total", ts);
     OpTimer::add_timer(_conv_type, ts);

@@ -57,11 +57,17 @@ public:
 
     /**
      * \brief load model weights from modelpath
-     * @param opt_file:     param info path
-     * @param model_file:   weights file path
+     * @param lite_model:     model path
      * @return return SaberSuccess if success
      */
-    SaberStatus load_model(const char* opt_file, const char* model_file);
+    SaberStatus load_model(const char* lite_model);
+
+    /**
+     * \brief load model weights from memory
+     * @param opt_file:     memory
+     * @return return SaberSuccess if success
+     */
+    SaberStatus load_model(const void* memory);
 
     /**
      * \brief load model weights from memory
@@ -123,9 +129,9 @@ private:
     //! container which holds all tensors
     std::map<std::string, Tensor<CPU, AK_FLOAT>*> _tensors;
     //! op instances
-    std::vector<std::shared_ptr<OpBase>> _ops;
+    std::vector<OpBase*> _ops;
     //! op param instances
-    std::vector<std::shared_ptr<ParamBase>> _op_params;
+    //std::vector<std::shared_ptr<ParamBase>> _op_params;
     //! weights data
     float* _weights{nullptr};
     //! net inputs name
@@ -139,6 +145,13 @@ private:
      * @return
      */
     SaberStatus init();
+
+    /**
+     * \brief load model from file
+     * @param memory
+     * @return return SaberSuccess if successed
+     */
+    SaberStatus load_model(FILE* fp);
 };
 
 } //namespace lite

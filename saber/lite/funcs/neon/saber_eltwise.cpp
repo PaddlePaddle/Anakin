@@ -178,9 +178,39 @@ SaberEltwise::SaberEltwise(const ParamBase *param) {
     this->_flag_param = true;
 }
 
+SaberEltwise::~SaberEltwise() {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+    }
+}
+
 SaberStatus SaberEltwise::load_param(const ParamBase *param) {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+        this->_flag_create_param = false;
+    }
     _param = (const EltwiseParam*)param;
     this->_flag_param = true;
+    return SaberSuccess;
+}
+
+SaberStatus SaberEltwise::load_param(FILE *fp, const float *weights) {
+
+    int type;
+    int size;
+    std::vector<float> coef;
+    fscanf(fp, "%d, %d ", &type, &size);
+    coef.resize(size);
+    for (int i = 0; i < size; ++i) {
+        fscanf(fp, "%f ", &coef[i]);
+    }
+    fscanf(fp, "\n");
+    EltwiseType etype = static_cast<EltwiseType>(type);
+    _param = new EltwiseParam(etype, coef);
+    this->_flag_create_param = true;
+    this->_flag_param  =true;
     return SaberSuccess;
 }
 

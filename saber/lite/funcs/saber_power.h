@@ -30,10 +30,15 @@ class SaberPower:public OpBase {
 public:
            
     SaberPower() {};
+
     SaberPower(const ParamBase* param);
+
     virtual SaberStatus load_param(const ParamBase* param) override;
 
-    ~SaberPower() {}
+    virtual SaberStatus load_param(FILE* fp, const float* weights) override;
+
+    ~SaberPower();
+
     virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
                                              std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
                 

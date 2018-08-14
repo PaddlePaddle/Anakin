@@ -123,8 +123,35 @@ SaberPermute::SaberPermute(const ParamBase *param) {
     this->_flag_param = true;
 }
 
+SaberPermute::~SaberPermute() {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+    }
+}
+
 SaberStatus SaberPermute::load_param(const ParamBase *param) {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+        this->_flag_create_param = false;
+    }
     _param = (const PermuteParam*)param;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+
+SaberStatus SaberPermute::load_param(FILE *fp, const float *weights) {
+    int size;
+    std::vector<int> order;
+    fscanf(fp, "%d ", &size);
+    order.resize(size);
+    for (int i = 0; i < size; ++i) {
+        fscanf(fp, "%d ", &order[i]);
+    }
+    fscanf(fp, "\n");
+    _param = new PermuteParam(order);
+    this->_flag_create_param = true;
     this->_flag_param = true;
     return SaberSuccess;
 }
