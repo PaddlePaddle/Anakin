@@ -37,14 +37,16 @@ void embedding_cpu_base(const std::vector<Tensor<TargetType_H>* > &input, std::v
 
 TEST(TestSaberFunc, test_op_embedding) {
 
-#ifdef USE_X86_PLACE
-    TestSaberBase<X86, X86, AK_FLOAT, Embedding, EmbeddingParam> testbase;
 
     //set param.
     int word_num = 128;
     int emb_dim = 10;
     int padding_idx = -1;
+
     Shape weights_s({1, 1, word_num, emb_dim});
+
+#ifdef USE_X86_PLACE
+    TestSaberBase<X86, X86, AK_FLOAT, Embedding, EmbeddingParam> testbase;
     Tensor<X86> weight_h(weights_s);
     fill_tensor_rand(weight_h, -0.5, 0.5);
 
@@ -76,20 +78,14 @@ TEST(TestSaberFunc, test_op_embedding) {
 #endif 
 
 #ifdef USE_CUDA
-    TestSaberBase<NV, NVHX86, AK_FLOAT, Embedding, EmbeddingParam> testbase;
+    TestSaberBase<NV, NVHX86, AK_FLOAT, Embedding, EmbeddingParam> testbase0;
+    Tensor<NVHX86> weight_h0(weights_s);
+    Tensor<NV> weight_d0(weights_s);
+    fill_tensor_rand(weight_h0, -0.5, 0.5);
+    weight_d0.copy_from(weight_h0);
 
-    //set param.
-    int word_num = 128;
-    int emb_dim = 10;
-    int padding_idx = -1;
-    Shape weights_s({1, 1, word_num, emb_dim});
-    Tensor<NVHX86> weight_h(weights_s);
-    Tensor<NV> weight_d(weights_s);
-    fill_tensor_rand(weight_h, -0.5, 0.5);
-    weight_d.copy_from(weight_h);
-
-    EmbeddingParam<NV> param(word_num, emb_dim, padding_idx, &weight_d);
-    testbase.set_param(param);
+    EmbeddingParam<NV> param0(word_num, emb_dim, padding_idx, &weight_d0);
+    testbase0.set_param(param0);
 
 
     //test for nchw
@@ -97,9 +93,9 @@ TEST(TestSaberFunc, test_op_embedding) {
         for(int h_in : {32, 64}){
             for(int ch_in : {3, 8}){
                 for(int num_in:{1, 2}){
-                    testbase.set_rand_limit(1, 128); //random interval [1, 128].
-                    testbase.set_input_shape(Shape({num_in, ch_in, h_in, w_in}));
-                    testbase.run_test(embedding_cpu_base<float, NV, NVHX86>);//run test
+                    testbase0.set_rand_limit(1, 128); //random interval [1, 128].
+                    testbase0.set_input_shape(Shape({num_in, ch_in, h_in, w_in}));
+                    testbase0.run_test(embedding_cpu_base<float, NV, NVHX86>);//run test
                 }
             }
         }
@@ -108,12 +104,11 @@ TEST(TestSaberFunc, test_op_embedding) {
     //test for nc
     for(int ch_in : {3, 8, 16, 64}){
         for(int num_in:{1, 2, 32, 64}){
-            testbase.set_rand_limit(1, 128);
-            testbase.set_input_shape(Shape({num_in, ch_in}, Layout_HW));
-            testbase.run_test(embedding_cpu_base<float, NV, NVHX86>);//run test
+            testbase0.set_rand_limit(1, 128);
+            testbase0.set_input_shape(Shape({num_in, ch_in}, Layout_HW));
+            testbase0.run_test(embedding_cpu_base<float, NV, NVHX86>);//run test
         }
     }
-
 
 #endif
 
