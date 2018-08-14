@@ -98,7 +98,7 @@ SaberStatus SaberConv2D<NV, AK_FLOAT>::\
     Shape shape_out = outputs[0]->valid_shape();
     const float* bias_data = nullptr;
     if (param.bias()->size() > 0) {
-        bias_data = param.bias()->data();
+        bias_data = (const float*)param.bias()->data();
     }
     if (param.group == inputs[0]->channel() && param.group == outputs[0]->channel()) {
         depthwise_func((const float*)inputs[0]->data(),
@@ -110,9 +110,15 @@ SaberStatus SaberConv2D<NV, AK_FLOAT>::\
                        (const OpDataType*)param.weight()->data(), (const float*)bias_data,
                        this->_ctx->get_compute_stream());
     } else {
+        const float* weight_ptr = nullptr;
+        if (_in_place) {
+            weight_ptr = (const float *) param.weight()->data();
+        } else {
+            weight_ptr = (const float *) weight_dev.data();
+        }
         dispatch_func((const float *) inputs[0]->data(),
                       (float *) outputs[0]->mutable_data(),
-                      (const float *) param.weight()->data(),
+                      weight_ptr,
                       bias_data,
                       inputs[0]->num(),
                       inputs[0]->channel(),

@@ -16,8 +16,12 @@
 #ifndef ANAKIN_CONV_FUNC_HELPER_H
 #define ANAKIN_CONV_FUNC_HELPER_H
 
-#include "omp.h"
+#include "saber/core/context.h"
 #include "saber/core/tensor.h"
+#include "saber/saber_funcs_param.h"
+#include "saber/funcs/conv.h"
+#include "saber/saber_types.h"
+#include <vector>
 
 namespace anakin {
 namespace saber {
@@ -89,6 +93,44 @@ void conv_basic_check(Tensor<targetType> &tensor_in,Tensor<targetType> &tensor_o
             }
         }
     }
+}
+
+template<typename dtype,typename TargetType_D,typename TargetType_H>
+void conv_cpu_func(const std::vector<Tensor<TargetType_H>*>& input,
+                    std::vector<Tensor<TargetType_H>*>& output,
+                    ConvParam<TargetType_D>& param) {
+    int group = param.group;
+    int input_num = input[0]->num();
+    int input_channel = input[0]->channel();
+    int input_height = input[0]->height();
+    int input_width = input[0]->width();
+    int output_channel = output[0]->channel();
+    int output_height = output[0]->height();
+    int output_width = output[0]->width();
+    int stride_h = param.stride_h;
+    int stride_w = param.stride_w;
+    int dilation_h = param.dilation_h;
+    int dilation_w = param.dilation_w;
+    int pad_h = param.pad_h;
+    int pad_w = param.pad_w;
+    int kernel_h = param.weight()->height();
+    int kernel_w = param.weight()->width();
+    bool bias_term = param.bias()->valid_size() > 0;
+    bool with_relu = param.activation_param.has_active;
+
+    Tensor<TargetType_H> weights_host;
+    Tensor<TargetType_H> bias_host;
+    weights_host.re_alloc(param.weight()->valid_shape(), AK_FLOAT);
+    weights_host.copy_from(*(param.weight()));
+    bias_host.re_alloc(param.bias()->valid_shape(), AK_FLOAT);
+    bias_host.copy_from(*(param.bias()));
+
+    const dtype* bias_ptr = bias_term ? (const float*)bias_host.data() : nullptr;
+    conv_basic_check<TargetType_H>(*input[0], *output[0],
+    (const dtype*)weights_host.data(), bias_ptr,
+            group, kernel_w, kernel_h, stride_w, stride_h,
+            dilation_w, dilation_h, pad_w, pad_h, bias_term,
+            with_relu);
 }
 }
 }
