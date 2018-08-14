@@ -994,35 +994,6 @@ private:
     }
 };
 
-#ifdef USE_BM
-#ifndef BM_TENSOR_COPY
-#define BM_TENSOR_COPY
-template<>
-template<> inline
-SaberStatus Tensor<BM>::copy_from<X86>(const Tensor<X86>& tensor) {
-    LOG(INFO) << "BM copy_from X86";
-    CHECK_EQ(valid_size(), tensor.valid_size()) << "sizes of two valid shapes must be the same";
-    CHECK_EQ(tensor.get_dtype(), AK_FLOAT) << "host data type should be AK_FLOAT";
-
-    bm_device_mem_t* device_data_ptr = (bm_device_mem_t*) mutable_data();
-    BMDNN_CHECK(bm_memcpy_s2d(Tensor<BM>::API::get_handle(), *device_data_ptr, bm_mem_from_system(const_cast<float *>((float*) tensor.data()))));
-    return SaberSuccess;
-}
-
-template<>
-template<> inline
-SaberStatus Tensor<X86>::copy_from<BM>(const Tensor<BM>& tensor) {
-    LOG(INFO) << "X86 copy_from BM";
-    CHECK_EQ(valid_size(), tensor.valid_size()) << "sizes of two valid shapes must be the same";
-    CHECK_EQ(_dtype, AK_FLOAT) << "host data type should be AK_FLOAT";
-
-    auto* device_data_ptr = const_cast<bm_device_mem_t *>((bm_device_mem_t*) tensor.data());
-    BMDNN_CHECK(bm_memcpy_d2s(Tensor<BM>::API::get_handle(), bm_mem_from_system((float*) mutable_data()), *device_data_ptr));
-    return SaberSuccess;
-}
-#endif
-#endif
-
 } //namespace saber
 
 } //namespace anakin
