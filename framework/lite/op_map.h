@@ -37,6 +37,16 @@ inline T get_attr(std::string attr_name, graph::AttrInfo& attrs) {
 	return any_cast<T>(attrs.parameter[attr_name]); 
 }
 
+inline SaberStatus find_attr(std::string attr_name, graph::AttrInfo& attrs) {
+	const auto& it_end = attrs.parameter.end();
+	auto it_find = attrs.parameter.find(attr_name);
+	if(it_find == it_end) {
+		LOG(ERROR) << "Target attr name(" << attr_name << ") not found.";
+		return SaberUnImplError;
+	}
+	return SaberSuccess;
+}
+
 /// function type for parser
 typedef std::function<std::string(graph::AttrInfo& attr,
                                   std::string& code_name,

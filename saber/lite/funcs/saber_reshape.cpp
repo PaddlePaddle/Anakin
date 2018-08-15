@@ -29,6 +29,20 @@ SaberReshape::~SaberReshape() {
     }
 }
 
+SaberStatus SaberReshape::load_param(std::istream &stream, const float *weights) {
+    int size;
+    std::vector<int> shape;
+    stream >> size;
+    shape.resize(size);
+    for (int i = 0; i < size; ++i) {
+        stream >> shape[i];
+    }
+    _param = new ReshapeParam(shape);
+    this->_flag_create_param = true;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+#if 0
 SaberStatus SaberReshape::load_param(FILE *fp, const float *weights) {
     int size;
     std::vector<int> shape;
@@ -43,7 +57,7 @@ SaberStatus SaberReshape::load_param(FILE *fp, const float *weights) {
     this->_flag_param = true;
     return SaberSuccess;
 }
-
+#endif
 SaberStatus SaberReshape::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                                std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
     if (!this->_flag_param) {

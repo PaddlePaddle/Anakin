@@ -1,6 +1,5 @@
 #include "test_lite.h"
 #include "saber/lite/net/net_lite.h"
-#include "saber/lite/net/saber_factory_lite.h"
 
 using namespace anakin::saber;
 using namespace anakin::saber::lite;
@@ -21,10 +20,34 @@ TEST(TestSaberLite, test_lite_model) {
     //! you can also set net param according to your device
     //net.set_run_mode((PowerMode)FLAGS_cluster, FLAGS_threads);
     //net.set_device_cache(32000, 2000000);
-    //! load model
-    SaberStatus flag = net.load_model(lite_info.c_str(), lite_weights.c_str());
+
+    //! load model from memory
+    std::fstream fp_info(lite_info, std::ios::in | std::ios::binary);
+    std::fstream fp_w(lite_weights, std::ios::in | std::ios::binary);
+
+    fp_w.seekg (0, std::ios::end);
+    long long len_w = fp_w.tellg();
+    fp_w.seekg (0, std::ios::beg);
+
+    fp_info.seekg (0, std::ios::end);
+    long long len_info = fp_info.tellg();
+    fp_info.seekg (0, std::ios::beg);
+
+
+    char* w_ptr = static_cast<char*>(fast_malloc(len_w));
+    char* info_ptr = static_cast<char*>(fast_malloc(len_info));
+
+    fp_w.read(w_ptr, len_w);
+    fp_info.read(info_ptr, len_info);
+
+    //SaberStatus flag = net.load_model(lite_info.c_str(), lite_weights.c_str());
+    SaberStatus flag = net.load_model(info_ptr, len_info, w_ptr, len_w);
+
     CHECK_EQ(flag, SaberSuccess) << "load model: " << lite_info << ", " << lite_weights << " failed";
     LOG(INFO) << "load model: " << lite_info << ", " << lite_weights << " successed";
+
+    fast_free(w_ptr);
+    fast_free(info_ptr);
 
     std::vector<TensorHf*> vtin = net.get_input();
     LOG(INFO) << "number of input tensor: " << vtin.size();

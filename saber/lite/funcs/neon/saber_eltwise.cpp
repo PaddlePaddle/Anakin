@@ -196,12 +196,29 @@ SaberStatus SaberEltwise::load_param(const ParamBase *param) {
     return SaberSuccess;
 }
 
+SaberStatus SaberEltwise::load_param(std::istream &stream, const float *weights) {
+    int type;
+    int size;
+    std::vector<float> coef;
+
+    stream >> type >> size;
+    coef.resize(size);
+    for (int i = 0; i < size; ++i) {
+        stream >> coef[i];
+    }
+    EltwiseType etype = static_cast<EltwiseType>(type);
+    _param = new EltwiseParam(etype, coef);
+    this->_flag_create_param = true;
+    this->_flag_param  =true;
+    return SaberSuccess;
+}
+#if 0
 SaberStatus SaberEltwise::load_param(FILE *fp, const float *weights) {
 
     int type;
     int size;
     std::vector<float> coef;
-    fscanf(fp, "%d, %d ", &type, &size);
+    fscanf(fp, "%d %d ", &type, &size);
     coef.resize(size);
     for (int i = 0; i < size; ++i) {
         fscanf(fp, "%f ", &coef[i]);
@@ -213,7 +230,7 @@ SaberStatus SaberEltwise::load_param(FILE *fp, const float *weights) {
     this->_flag_param  =true;
     return SaberSuccess;
 }
-
+#endif
 SaberStatus SaberEltwise::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                                std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
 

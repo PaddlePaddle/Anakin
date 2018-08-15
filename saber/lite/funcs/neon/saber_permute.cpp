@@ -141,6 +141,20 @@ SaberStatus SaberPermute::load_param(const ParamBase *param) {
     return SaberSuccess;
 }
 
+SaberStatus SaberPermute::load_param(std::istream &stream, const float *weights) {
+    int size;
+    std::vector<int> order;
+    stream >> size;
+    order.resize(size);
+    for (int i = 0; i < size; ++i) {
+        stream >> order[i];
+    }
+    _param = new PermuteParam(order);
+    this->_flag_create_param = true;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+#if 0
 SaberStatus SaberPermute::load_param(FILE *fp, const float *weights) {
     int size;
     std::vector<int> order;
@@ -155,7 +169,7 @@ SaberStatus SaberPermute::load_param(FILE *fp, const float *weights) {
     this->_flag_param = true;
     return SaberSuccess;
 }
-
+#endif
 SaberStatus SaberPermute::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                                std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
     if (!this->_flag_param) {

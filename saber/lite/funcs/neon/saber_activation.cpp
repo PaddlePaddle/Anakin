@@ -248,20 +248,34 @@ SaberStatus SaberActivation::load_param(const ParamBase *param) {
     return SaberSuccess;
 }
 
+SaberStatus SaberActivation::load_param(std::istream &stream, const float *weights) {
+    int type;
+    float neg_slop;
+    float coef;
+    int channel_share;
+    int w_offset;
+    stream >> type >> neg_slop >> coef >> channel_share >> w_offset;
+    ActiveType atype = static_cast<ActiveType>(type);
+    _param = new ActivationParam(atype, neg_slop, coef, channel_share > 0, weights + w_offset);
+    this->_flag_create_param = true;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+#if 0
 SaberStatus SaberActivation::load_param(FILE *fp, const float *weights) {
     int type;
     float neg_slop;
     float coef;
     int channel_share;
     int w_offset;
-    fscanf(fp, "%d,%f,%f,%d,%d\n", &type, &neg_slop, &coef, &channel_share, &w_offset);
+    fscanf(fp, "%d %f %f %d %d\n", &type, &neg_slop, &coef, &channel_share, &w_offset);
     ActiveType atype = static_cast<ActiveType>(type);
-    _param = new ActivationParam(atype, neg_slop, coef, channel_share>0, weights + w_offset);
+    _param = new ActivationParam(atype, neg_slop, coef, channel_share > 0, weights + w_offset);
     this->_flag_create_param = true;
     this->_flag_param = true;
     return SaberSuccess;
 }
-
+#endif
 SaberStatus SaberActivation::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                                   std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
     if (!this->_flag_param) {

@@ -25,6 +25,98 @@ SaberStatus SaberPriorBox::load_param(const ParamBase *param) {
     return SaberSuccess;
 }
 
+SaberStatus SaberPriorBox::load_param(std::istream &stream, const float *weights) {
+    int size_min;
+    int size_max;
+    int size_as;
+    //add
+    int size_fixed;
+    int size_ratio;
+    int size_density;
+    int size_var;
+    std::vector<float> min_size;
+    std::vector<float> max_size;
+    std::vector<float> as;
+    //add
+    std::vector<float> fixed_size;
+    std::vector<float> fixed_ratio;
+    std::vector<float> density;
+
+    std::vector<float> var;
+    std::vector<int> order;
+
+    //! others
+    int flip_flag;
+    int clip_flag;
+    int img_w;
+    int img_h;
+    float step_w;
+    float step_h;
+    float offset;
+    //! var
+    stream >> size_var;
+    var.resize(size_var);
+    for (int i = 0; i < size_var; ++i) {
+        stream >> var[i];
+    }
+    std::vector<int> type(3);
+    std::vector<PriorType> ptype(3);
+    stream >> flip_flag >> clip_flag >> img_w >> img_h >> step_w >> step_h >> offset >> \
+        type[0] >> type[1] >> type[2];
+    ptype[0] = (PriorType)type[0];
+    ptype[1] = (PriorType)type[1];
+    ptype[2] = (PriorType)type[2];
+
+    //! min
+    stream >> size_min;
+    min_size.resize(size_min);
+    for (int i = 0; i < size_min; ++i) {
+        stream >> min_size[i];
+    }
+
+    //! max
+    stream >> size_max;
+    max_size.resize(size_max);
+    for (int i = 0; i < size_max; ++i) {
+        stream >> max_size[i];
+    }
+
+    //! as
+    stream >> size_as;
+    as.resize(size_as);
+    for (int i = 0; i < size_as; ++i) {
+        stream >> as[i];
+    }
+
+    //! fixed
+    stream >> size_fixed;
+    fixed_size.resize(size_fixed);
+    for (int i = 0; i < size_fixed; ++i) {
+        stream >> fixed_size[i];
+    }
+
+    //! fixed_ratio
+    stream >> size_ratio;
+    fixed_ratio.resize(size_ratio);
+    for (int i = 0; i < size_ratio; ++i) {
+        stream >> fixed_ratio[i];
+    }
+
+    //! density
+    stream >> size_density;
+    density.resize(size_density);
+    for (int i = 0; i < size_density; ++i) {
+        stream >> density[i];
+    }
+    _param = new PriorBoxParam(var, \
+        flip_flag>0, clip_flag>0, img_w, img_h, step_w, step_h, offset, ptype, \
+        min_size, max_size, as, \
+        fixed_size, fixed_ratio, density);
+    this->_flag_create_param = true;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+#if 0
 SaberStatus SaberPriorBox::load_param(FILE *fp, const float *weights) {
     int size_min;
     int size_max;
@@ -63,49 +155,49 @@ SaberStatus SaberPriorBox::load_param(FILE *fp, const float *weights) {
 
     std::vector<int> type(3);
     std::vector<PriorType> ptype(3);
-    fscanf(fp, ",%d,%d,%d,%d,%f,%f,%f,%d,%d,%d", &flip_flag, &clip_flag,
+    fscanf(fp, "%d %d %d %d %f %f %f %d %d %d ", &flip_flag, &clip_flag,
            &img_w, &img_h, &step_w, &step_h, &offset, &type[0], &type[1], &type[2]);
     ptype[0] = (PriorType)type[0];
     ptype[1] = (PriorType)type[1];
     ptype[2] = (PriorType)type[2];
 
     //! min
-    fscanf(fp, ", %d ", &size_min);
+    fscanf(fp, "%d ", &size_min);
     min_size.resize(size_min);
     for (int i = 0; i < size_min; ++i) {
         fscanf(fp, "%f ", &min_size[i]);
     }
 
     //! max
-    fscanf(fp, ", %d ", &size_max);
+    fscanf(fp, "%d ", &size_max);
     max_size.resize(size_max);
     for (int i = 0; i < size_max; ++i) {
         fscanf(fp, "%f ", &max_size[i]);
     }
 
     //! as
-    fscanf(fp, ", %d ", &size_as);
+    fscanf(fp, "%d ", &size_as);
     as.resize(size_as);
     for (int i = 0; i < size_as; ++i) {
         fscanf(fp, "%f ", &as[i]);
     }
 
     //! fixed
-    fscanf(fp, ", %d ", &size_fixed);
+    fscanf(fp, "%d ", &size_fixed);
     fixed_size.resize(size_fixed);
     for (int i = 0; i < size_fixed; ++i) {
         fscanf(fp, "%f ", &fixed_size[i]);
     }
 
     //! fixed_ratio
-    fscanf(fp, ", %d ", &size_ratio);
+    fscanf(fp, "%d ", &size_ratio);
     fixed_ratio.resize(size_ratio);
     for (int i = 0; i < size_ratio; ++i) {
         fscanf(fp, "%f ", &fixed_ratio[i]);
     }
 
     //! density
-    fscanf(fp, ", %d ", &size_density);
+    fscanf(fp, "%d ", &size_density);
     density.resize(size_density);
     for (int i = 0; i < size_density; ++i) {
         fscanf(fp, "%f ", &density[i]);
@@ -119,7 +211,7 @@ SaberStatus SaberPriorBox::load_param(FILE *fp, const float *weights) {
     this->_flag_param = true;
     return SaberSuccess;
 }
-
+#endif
 SaberPriorBox::~SaberPriorBox() {
     if (this->_flag_create_param) {
         delete _param;
