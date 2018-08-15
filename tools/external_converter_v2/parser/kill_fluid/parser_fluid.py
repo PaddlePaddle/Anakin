@@ -38,6 +38,8 @@ class FluidParser:
 		#new_name = op.type + '_' + bytes(op.idx)
 		new_name = op.type + '#' + bytes(op.idx) + '(' + arg_name + ')'
 		return new_name
+
+        def _NameNodeIn(self, in_name):
 		new_name = 'input_' + bytes(self.graph_ins.index(in_name))
 		return new_name
 
