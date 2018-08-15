@@ -790,7 +790,7 @@ SaberStatus SaberArgmax<NV, OpDtype, inDtype, outDtype,\
     OutDataType * out_data = outputs[0]->mutable_data();
     int outer_dim = inputs[0]->count_valid(0, param.axis);
     if (param.has_axis) {
-        int count = inputs[0]->count_vaild(0, inputs[0]->dims());
+        int count = inputs[0]->count_valid(0, inputs[0]->dims());
         int dim = inputs[0]->shape()[param.axis];
         int inner_dim = inputs[0]->count_valid(param.axis + 1, inputs[0]->dims());
         int total_threads = count / dim;
