@@ -7,8 +7,8 @@ from op_io import *
 ############################# IO define ##############################
 # graph may has mult-inputs, so graph will have multi-input
 OpsRegister.Register("Input").set_attr(input_shape=list(),
-                                       alias="-",
-                                       data_type="-")
+                                       alias="NULL",
+                                       data_type="NULL")
 
 # graph out , only hold place for edge
 OpsRegister.Register("Output").set_attr()
