@@ -6,6 +6,7 @@ from utils import *
 from proto import *
 from logger import *
 from frontend import RunServerOnGraph
+from prettytable import PrettyTable
 
 
 class Graph(object):
@@ -41,19 +42,19 @@ class Graph(object):
         """
         Get input list of GraphProto (node name string list).
         """
-        pass
+        return self.graph_io.ins()
 
     def get_out(self):
         """
         Get output list of GraphProto (node name string list).
         """
-        pass
+        return self.graph_io.outs()
 
     def get_node_by_name(self):
         """
         Get the node according to it's name string.
         """
-        pass
+        return self.graph_io.find_node_proto(node_name)
 
     def get_nodes(self):
         """
@@ -101,3 +102,26 @@ class Graph(object):
         if not os.path.exists(os.path.dirname(self.save_file_path)):
             os.makedirs(os.path.dirname(self.save_file_path))
         self.graph_io.serialization(self.save_file_path)
+
+    def info_table(self):
+        tables = list()
+        in_table = PrettyTable(["Input Name", "Shape", "Alias", "Data Type"])
+        out_table = PrettyTable(["Output Name"])
+
+        def ins_attr():
+            ins = list()
+            for graph_in in self.ins():
+                attr = dict()
+                proto = self.get_node_by_name(graph_in)
+                attr['name'] = graph_in
+                attr['shape'] = proto.attr['input_shape'].cache_list.i
+                ins.append(attr)
+            return ins
+
+        for attr in ins_attr():
+            in_table.add_row([attr['name'], attr['shape'], '', ''])
+        for out_name in self.outs():
+            out_table.add_row([out_name])
+
+        print in_table
+        print out_table
