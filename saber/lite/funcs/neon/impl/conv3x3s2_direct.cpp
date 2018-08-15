@@ -1515,7 +1515,7 @@ void conv_3x3s2_direct(const float* din, float* dout, \
     int do_right_pad = 1;
     unsigned int size_pad_right = w_loop * 4/*neon simd length*/ * 2 /*stride = 2*/ - w_in;//could be 0~7
     unsigned int right_pad_save = 4 -(w_loop * 4 - w_out);
-    int right_pad_sub = (w_loop * 4 - w_out) * sizeof(float);
+    //int right_pad_sub = (w_loop * 4 - w_out) * sizeof(float);
     if (size_pad_right == 0 && right_pad_save == 4) {
         cnt_col = w_loop - 1;
         do_right_pad = 0;
@@ -1933,14 +1933,7 @@ void conv_3x3s2_direct(const float* din, float* dout, \
                                 "vst1.32  {d22-d23}, [%[doutc0r1]]!     @ store result, add pointer\n"
                                 "vst1.32  {d24-d25}, [%[doutc1r0]]!     @ store result, add pointer\n"
                                 "vst1.32  {d26-d27}, [%[doutc1r1]]!     @ store result, add pointer\n"
-
-                                "sub %[doutc1r0], %[doutc1r0], %[right_pad_sub] @ sub \n"
-                                "sub %[doutc1r1], %[doutc1r1], %[right_pad_sub] @ sub \n"
-                                "sub %[doutc0r0], %[doutc0r0], %[right_pad_sub] @ sub \n"
-                                "sub %[doutc0r1], %[doutc0r1], %[right_pad_sub] @ sub \n"
-
                                 "5:                                     @ top row ending\n"
-
                         :[doutc0r0] "+r"(doutc0r0), [doutc0r1] "+r"(doutc0r1), \
                             [doutc1r0] "+r" (doutc1r0), [doutc1r1] "+r" (doutc1r1),\
                             [din0_ptr] "+r"(din0_ptr), [din1_ptr] "+r"(din1_ptr), \
@@ -1948,16 +1941,11 @@ void conv_3x3s2_direct(const float* din, float* dout, \
                         :[wr00] "w"(wr00), [wr01] "w"(wr01), [wr02] "w"(wr02), \
                             [wr10] "w"(wr10), [wr11] "w"(wr11), [wr12] "w"(wr12), \
                             [right_pad_save_mask] "r" (right_pad_save_mask), \
-                            [right_pad_sub] "r" (right_pad_sub), \
                             [do_right_pad] "r" (do_right_pad), [relu] "r" (relu)
                         :"q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
                         );
                     }
                     //! after process, increase pointer
-                    doutc0r0 += w_out;
-                    doutc0r1 = doutc0r0 + w_out;
-                    doutc1r0 += w_out;
-                    doutc1r1 = doutc1r0 + w_out;
 
                     dr0 = dr3;
                     dr1 = dr4;
@@ -1978,410 +1966,403 @@ void conv_3x3s2_direct(const float* din, float* dout, \
                     din2_ptr = dr2;
                     din3_ptr = dr3;
                     din4_ptr = dr4;
-                    {
-                        int cnt = cnt_col;
-                        asm volatile(
-                        //! process left pad
-                        "vmov.u32 q15, #0                       @ dump zero\n"
-                                "pld [%[din0_ptr]]                      @ preload data\n"//inr0
-                                "pld [%[din1_ptr]]                      @ preload data\n"//inr1
-                                "pld [%[din2_ptr]]                      @ preload data\n"//inr2
-                                "pld [%[din3_ptr]]                      @ preload data\n"//inr3
-                                "pld [%[din4_ptr]]                      @ preload data\n"//inr4
-                                "pld [%[doutc0r0]]                      @ preload data\n" //outc0r0
-                                "pld [%[doutc0r1]]                      @ preload data\n"//outc0r1
-                                "pld [%[doutc1r0]]                      @ preload data\n"//outc1r0
-                                "pld [%[doutc1r1]]                      @ preload data\n"//outc1r1
-
-                                //! row0/3
-                                "vld2.32  {d12-d15}, [%[din0_ptr]]!     @ load input r00, r01\n" //interleave load, q6->rx0, q7->rx1
-                                "vld1.32  {d20-d21}, [%[doutc0r0]]      @ load dout0r0\n" //q10->outc0r0
-                                "vld1.32  {d24-d25}, [%[doutc1r0]]      @ load dout1r0\n" //q12->outc1r0
-
-                                "vld2.32  {d16-d19}, [%[din3_ptr]]!     @ load input r20, r21\n" //interleave load, q8->rx2, q9->rx2
-                                "vld1.32  {d22-d23}, [%[doutc0r1]]      @ load dout0r1\n" //q11->outc0r1
-                                "vld1.32  {d26-d27}, [%[doutc1r1]]      @ load dout1r1\n" //q13->outc1r1
-
-                                "vmla.f32 q10, q6,   %e[wr00][1]        @ mul weight0, 01, out0r0\n"
-                                "vmla.f32 q12, q6,   %e[wr10][1]        @ mul weight1, 01, out1r0\n"
-                                "vmla.f32 q11, q8,   %e[wr01][1]        @ mul weight0, 01, out0r1\n"
-                                "vmla.f32 q13, q8,   %e[wr11][1]        @ mul weight1, 01, out1r1\n"
-
-                                "vmla.f32 q10, q7,   %f[wr00][0]        @ mul weight0, 02, out0r0\n"
-                                "vmla.f32 q12, q7,   %f[wr10][0]        @ mul weight1, 02, out1r0\n"
-                                "vmla.f32 q11, q9,   %f[wr01][0]        @ mul weight0, 02, out0r1\n"
-                                "vmla.f32 q13, q9,   %f[wr11][0]        @ mul weight1, 02, out1r1\n"
-
-                                // shift right 1, r0
-                                "vext.32  q14, q15, q7,  #3             @ shift right r0\n"
-                                // load row1
-                                "vld2.32  {d12-d15}, [%[din1_ptr]]!     @ load input r10, r11\n" //interleave load, q6->rx0, q7->rx1
-                                "sub %[din0_ptr], #4                    @ r0 address -4, overlay 1 float\n"
-
-                                "vmla.f32 q10, q14,  %e[wr00][0]        @ mul weight0, 00, out0r0\n"
-                                "vmla.f32 q12, q14,  %e[wr10][0]        @ mul weight1, 00, out1r0\n"
-
-                                // shift right 1, r3
-                                "vext.32  q14, q15, q9,  #3             @ shift right r2\n"
-                                // load row4
-                                "vld2.32  {d16-d19}, [%[din4_ptr]]!     @ load input r30, r31\n" //interleave load, q6->rx0, q7->rx1
-                                "sub %[din3_ptr], #4                    @ r2 address -4, overlay 1 float\n"
-
-                                "vmla.f32 q11, q14,  %e[wr01][0]        @ mul weight0, 00, out0r1\n"
-                                "vmla.f32 q13, q14,  %e[wr11][0]        @ mul weight1, 00, out1r1\n"
-
-                                //! row1/4
-                                "vmla.f32 q10, q6,   %e[wr01][1]        @ mul weight0, 01, out0r0\n"
-                                "vmla.f32 q12, q6,   %e[wr11][1]        @ mul weight1, 01, out1r0\n"
-                                "vmla.f32 q11, q8,   %e[wr02][1]        @ mul weight0, 01, out0r1\n"
-                                "vmla.f32 q13, q8,   %e[wr12][1]        @ mul weight1, 01, out1r1\n"
-
-                                "vmla.f32 q10, q7,   %f[wr01][0]        @ mul weight0, 02, out0r0\n"
-                                "vmla.f32 q12, q7,   %f[wr11][0]        @ mul weight1, 02, out1r0\n"
-                                "vmla.f32 q11, q9,   %f[wr02][0]        @ mul weight0, 02, out0r1\n"
-                                "vmla.f32 q13, q9,   %f[wr12][0]        @ mul weight1, 02, out1r1\n"
-
-                                // shift right 1, r1
-                                "vext.32  q14, q15, q7,  #3             @ shift right r1\n"
-                                // load row2
-                                "vld2.32  {d12-d15}, [%[din2_ptr]]!     @ load input r10, r11\n" //interleave load, q6->rx0, q7->rx1
-                                "sub %[din1_ptr], #4                    @ r0 address -4, overlay 1 float\n"
-
-                                "vmla.f32 q10, q14,  %e[wr01][0]        @ mul weight0, 00, out0r0\n"
-                                "vmla.f32 q12, q14,  %e[wr11][0]        @ mul weight1, 00, out1r0\n"
-
-                                // shift right 1, r4
-                                "vext.32  q14, q15, q9,  #3             @ shift right r4\n"
-                                "sub %[din4_ptr], #4                    @ r2 address -4, overlay 1 float\n"
-
-                                "vmla.f32 q11, q14,  %e[wr02][0]        @ mul weight0, 00, out0r1\n"
-                                "vmla.f32 q13, q14,  %e[wr12][0]        @ mul weight1, 00, out1r1\n"
-
-                                //! row2
-                                "vmla.f32 q10, q6,   %e[wr02][1]        @ mul weight0, 01, out0r0\n"
-                                "vmla.f32 q12, q6,   %e[wr12][1]        @ mul weight1, 01, out1r0\n"
-                                "vmla.f32 q11, q6,   %e[wr00][1]        @ mul weight0, 01, out0r1\n"
-                                "vmla.f32 q13, q6,   %e[wr10][1]        @ mul weight1, 01, out1r1\n"
-
-                                "sub %[din2_ptr], #4                    @ r1 address -4, overlay 1 float\n"
-
-                                "vmla.f32 q10, q7,   %f[wr02][0]        @ mul weight0, 02, out0r0\n"
-                                "vmla.f32 q12, q7,   %f[wr12][0]        @ mul weight1, 02, out1r0\n"
-                                "vmla.f32 q11, q7,   %f[wr00][0]        @ mul weight0, 02, out0r1\n"
-                                "vmla.f32 q13, q7,   %f[wr10][0]        @ mul weight1, 02, out1r1\n"
-
-                                // shift right 1, r2
-                                "vext.32  q14, q15, q7,  #3             @ shift right r2\n"
-                                "vmla.f32 q10, q14,  %e[wr02][0]        @ mul weight0, 00, out0r0\n"
-                                "vmla.f32 q12, q14,  %e[wr12][0]        @ mul weight1, 00, out1r0\n"
-                                "vmla.f32 q11, q14,  %e[wr00][0]        @ mul weight0, 00, out0r1\n"
-                                "vmla.f32 q13, q14,  %e[wr10][0]        @ mul weight1, 00, out1r1\n"
-
-
-                                "pld [%[din0_ptr]]                      @ preload data\n"//inr0
-                                "pld [%[din1_ptr]]                      @ preload data\n"//inr1
-                                "pld [%[din2_ptr]]                      @ preload data\n"//inr2
-                                "pld [%[din3_ptr]]                      @ preload data\n"//inr3
-                                "pld [%[din4_ptr]]                      @ preload data\n"//inr3
-
-                                "cmp %[relu], #1                        @ check whether has relu\n"
-                                "blt    1f                              @ jump to top left store without relu\n"
-                                "vmax.f32   q10,  q10, q15              @ relu\n"
-                                "vmax.f32   q11,  q11, q15              @ relu\n"
-                                "vmax.f32   q12,  q12, q15              @ relu\n"
-                                "vmax.f32   q13,  q13, q15              @ relu\n"
-
-                                "1:                                     @ store top left result\n"
-                                // stroe tl result
-                                "vst1.32  {d20-d21}, [%[doutc0r0]]!     @ store result, add pointer\n"
-                                "vst1.32  {d22-d23}, [%[doutc0r1]]!     @ store result, add pointer\n"
-
-                                "vst1.32  {d24-d25}, [%[doutc1r0]]!     @ store result, add pointer\n"
-                                "vst1.32  {d26-d27}, [%[doutc1r1]]!     @ store result, add pointer\n"
-
-                                "pld [%[doutc0r0]]                      @ preload data\n"
-                                "pld [%[doutc0r1]]                      @ preload data\n"
-                                "pld [%[doutc1r0]]                      @ preload data\n"
-                                "pld [%[doutc1r1]]                      @ preload data\n"
-
-                                //! process mid cols
-                                "cmp %[cnt], #1                         @ check whether has mid cols\n"
-                                "blt  2f                                @ jump to main loop start point\n"
-                                "start_mid_mid:                         @ main loop in mid rows\n"
-
-                                //! row0/3
-                                "vld2.32  {d12-d15}, [%[din0_ptr]]!     @ load input r00, r01\n" //interleave load, q6->rx0, q7->rx1
-                                "vld1.32  {d20-d21}, [%[doutc0r0]]      @ load dout0r0\n" //q10->outc0r0
-                                "vld1.32  {d24-d25}, [%[doutc1r0]]      @ load dout1r0\n" //q12->outc1r0
-
-                                "vld2.32  {d16-d19}, [%[din3_ptr]]!     @ load input r20, r21\n" //interleave load, q8->rx2, q9->rx2
-                                "vld1.32  {d22-d23}, [%[doutc0r1]]      @ load dout0r1\n" //q11->outc0r1
-                                "vld1.32  {d26-d27}, [%[doutc1r1]]      @ load dout1r1\n" //q13->outc1r1
-
-                                "vmla.f32 q10, q7,   %e[wr00][1]        @ mul weight0, 01, out0r0\n"
-                                "vmla.f32 q12, q7,   %e[wr10][1]        @ mul weight1, 01, out1r0\n"
-                                "vmla.f32 q11, q9,   %e[wr01][1]        @ mul weight0, 01, out0r1\n"
-                                "vmla.f32 q13, q9,   %e[wr11][1]        @ mul weight1, 01, out1r1\n"
-
-                                "vld1.32  {d14},    [%[din0_ptr]]       @ load the 8th element, r00\n"
-                                "vld1.32  {d18},    [%[din3_ptr]]       @ load the 8th element, r30\n"
-
-                                "vmla.f32 q10, q6,   %e[wr00][0]        @ mul weight0, 00, out0r0\n"
-                                "vmla.f32 q12, q6,   %e[wr10][0]        @ mul weight1, 00, out1r0\n"
-                                "vmla.f32 q11, q8,   %e[wr01][0]        @ mul weight0, 00, out0r1\n"
-                                "vmla.f32 q13, q8,   %e[wr11][0]        @ mul weight1, 00, out1r1\n"
-
-                                // shift left 1, r0
-                                "vext.32  q14, q6,  q7,  #1             @ shift left r0\n"
-                                // load row1
-                                "vld2.32  {d12-d15}, [%[din1_ptr]]!     @ load input r10, r11\n" //interleave load, q6->rx0, q7->rx1
-
-                                "vmla.f32 q10, q14,  %f[wr00][0]        @ mul weight0, 02, out0r0\n"
-                                "vmla.f32 q12, q14,  %f[wr10][0]        @ mul weight1, 02, out1r0\n"
-
-                                // shift left 1, r3
-                                "vext.32  q14, q8,  q9,  #1             @ shift left r3\n"
-                                // load row4
-                                "vld2.32  {d16-d19}, [%[din4_ptr]]!     @ load input r30, r31\n" //interleave load, q6->rx0, q7->rx1
-
-                                "vmla.f32 q11, q14,  %f[wr01][0]        @ mul weight0, 02, out0r1\n"
-                                "vmla.f32 q13, q14,  %f[wr11][0]        @ mul weight1, 02, out1r1\n"
-
-                                "pld [%[din0_ptr]]                      @ preload data\n"//inr0
-                                "pld [%[din3_ptr]]                      @ preload data\n"//inr3
-
-                                //! row1/4
-                                "vmla.f32 q10, q7,   %e[wr01][1]        @ mul weight0, 01, out0r0\n"
-                                "vmla.f32 q12, q7,   %e[wr11][1]        @ mul weight1, 01, out1r0\n"
-                                "vmla.f32 q11, q9,   %e[wr02][1]        @ mul weight0, 01, out0r1\n"
-                                "vmla.f32 q13, q9,   %e[wr12][1]        @ mul weight1, 01, out1r1\n"
-
-                                "vld1.32  {d14},    [%[din1_ptr]]       @ load the 8th element, r10\n"
-                                "vld1.32  {d18},    [%[din4_ptr]]       @ load the 8th element, r40\n"
-
-                                "vmla.f32 q10, q6,   %e[wr01][0]        @ mul weight0, 00, out0r0\n"
-                                "vmla.f32 q12, q6,   %e[wr11][0]        @ mul weight1, 00, out1r0\n"
-                                "vmla.f32 q11, q8,   %e[wr02][0]        @ mul weight0, 00, out0r1\n"
-                                "vmla.f32 q13, q8,   %e[wr12][0]        @ mul weight1, 00, out1r1\n"
-
-                                // shift left 1, r1
-                                "vext.32  q14, q6,  q7,  #1             @ shift left r0\n"
-                                // load row2
-                                "vld2.32  {d12-d15}, [%[din2_ptr]]!     @ load input r10, r11\n" //interleave load, q6->rx0, q7->rx1
-
-                                "vmla.f32 q10, q14,  %f[wr01][0]        @ mul weight0, 02, out0r0\n"
-                                "vmla.f32 q12, q14,  %f[wr11][0]        @ mul weight1, 02, out1r0\n"
-
-                                // shift left 1, r4
-                                "vext.32  q14, q8,  q9,  #1             @ shift left r3\n"
-                                "vmla.f32 q11, q14,  %f[wr02][0]        @ mul weight0, 02, out0r1\n"
-                                "vmla.f32 q13, q14,  %f[wr12][0]        @ mul weight1, 02, out1r1\n"
-
-                                "pld [%[din1_ptr]]                      @ preload data\n"//inr0
-                                "pld [%[din4_ptr]]                      @ preload data\n"//inr3
-
-                                //! row2
-                                "vmla.f32 q10, q7,   %e[wr02][1]        @ mul weight0, 01, out0r0\n"
-                                "vmla.f32 q12, q7,   %e[wr12][1]        @ mul weight1, 01, out1r0\n"
-                                "vmla.f32 q11, q7,   %e[wr00][1]        @ mul weight0, 01, out0r1\n"
-                                "vmla.f32 q13, q7,   %e[wr10][1]        @ mul weight1, 01, out1r1\n"
-
-                                "vld1.32  {d14},    [%[din2_ptr]]       @ load the 8th element, r00\n"
-
-                                "vmla.f32 q10, q6,   %e[wr02][0]        @ mul weight0, 00, out0r0\n"
-                                "vmla.f32 q12, q6,   %e[wr12][0]        @ mul weight1, 00, out1r0\n"
-                                "vmla.f32 q11, q6,   %e[wr00][0]        @ mul weight0, 00, out0r1\n"
-                                "vmla.f32 q13, q6,   %e[wr10][0]        @ mul weight1, 00, out1r1\n"
-
-                                // shift left 1, r12
-                                "vext.32  q14, q6,  q7,  #1             @ shift left r2\n"
-                                "vmla.f32 q10, q14,  %f[wr02][0]        @ mul weight0, 02, out0r0\n"
-                                "vmla.f32 q12, q14,  %f[wr12][0]        @ mul weight1, 02, out1r0\n"
-                                "vmla.f32 q11, q14,  %f[wr00][0]        @ mul weight0, 02, out0r1\n"
-                                "vmla.f32 q13, q14,  %f[wr10][0]        @ mul weight1, 02, out1r1\n"
-
-                                "pld [%[din2_ptr]]                      @ preload data\n"//inr2
-
-                                "cmp %[relu], #1                        @ check whether has relu\n"
-                                "blt    3f                              @ jump to top left store without relu\n"
-                                "vmax.f32   q10,  q10, q15              @ relu\n"
-                                "vmax.f32   q11,  q11, q15              @ relu\n"
-                                "vmax.f32   q12,  q12, q15              @ relu\n"
-                                "vmax.f32   q13,  q13, q15              @ relu\n"
-
-                                "3:                                     @ store top mid result\n"
-                                // store tm result
-                                "vst1.32  {d20-d21}, [%[doutc0r0]]!     @ store result, add pointer\n"
-                                "vst1.32  {d22-d23}, [%[doutc0r1]]!     @ store result, add pointer\n"
-
-                                "vst1.32  {d24-d25}, [%[doutc1r0]]!     @ store result, add pointer\n"
-                                "vst1.32  {d26-d27}, [%[doutc1r1]]!     @ store result, add pointer\n"
-
-                                "subs %[cnt], #1                        @ loop count minus 1\n"
-                                "bne    start_mid_mid                   @ jump to main loop start point\n"
-
-                                //! process right pad
-                                "2:                                     @ right pad entry\n"
-                                // check do_right_pad, if 0, jump to end
-                                "cmp %[do_right_pad], #1                @ check whether has mid cols\n"
-                                "blt  5f                                @ jump to main loop start point\n"
-
-                                // load pad mask
-                                "vld1.32  {d16-d19}, [%[right_pad_save_mask]]! @ load pad index\n" //q8, q9 //load 8 uint32
-                                // load row0
-                                "vld2.32  {d12-d15}, [%[din0_ptr]]!     @ load input r00, r01\n" //interleave load, q6->rx0, q7->rx1
-
-                                // load output
-                                "vld1.32  {d20-d21}, [%[doutc0r0]]      @ load dout0r0\n" //q10->outc0r0
-                                "vld1.32  {d22-d23}, [%[doutc0r1]]      @ load dout0r1\n" //q11->outc0r1
-                                "vld1.32  {d24-d25}, [%[doutc1r0]]      @ load dout1r0\n" //q12->outc1r0
-                                "vld1.32  {d26-d27}, [%[doutc1r1]]      @ load dout1r1\n" //q13->outc1r1
-
-                                // row0,  deal with right pad
-                                "vbif q6, q15, q8                       @ bit select, deal with right pad\n"
-                                "vbif q7, q15, q9                       @ bit select, deal with right pad\n"
-                                // shift left 1
-                                "vext.32  q14, q6,  q15, #1             @ shift left r0\n"
-
-                                "vmla.f32 q10, q7,   %e[wr00][1]        @ mul weight0, 01, out0r0\n"
-                                "vmla.f32 q12, q7,   %e[wr10][1]        @ mul weight1, 01, out1r0\n"
-
-                                "vmla.f32 q10, q6,   %e[wr00][0]        @ mul weight0, 00, out0r0\n"
-                                "vmla.f32 q12, q6,   %e[wr10][0]        @ mul weight1, 00, out1r0\n"
-
-                                // load row1
-                                "vld2.32  {d12-d15}, [%[din1_ptr]]!     @ load input r10, r11\n" //interleave load, q6->rx0, q7->rx1
-
-                                "vmla.f32 q10, q14,  %f[wr00][0]        @ mul weight0, 02, out0r0\n"
-                                "vmla.f32 q12, q14,  %f[wr10][0]        @ mul weight1, 02, out1r0\n"
-
-                                // row1,  deal with right pad
-                                "vbif q6, q15, q8                       @ bit select, deal with right pad\n"
-                                "vbif q7, q15, q9                       @ bit select, deal with right pad\n"
-                                // shift left 1, r1
-                                "vext.32  q14, q6,  q15, #1             @ shift left r0\n"
-
-                                "vmla.f32 q10, q7,   %e[wr01][1]        @ mul weight0, 01, out0r0\n"
-                                "vmla.f32 q12, q7,   %e[wr11][1]        @ mul weight1, 01, out1r0\n"
-
-                                "vmla.f32 q10, q6,   %e[wr01][0]        @ mul weight0, 00, out0r0\n"
-                                "vmla.f32 q12, q6,   %e[wr11][0]        @ mul weight1, 00, out1r0\n"
-
-                                // load row2
-                                "vld2.32  {d12-d15}, [%[din2_ptr]]!     @ load input r10, r11\n" //interleave load, q6->rx0, q7->rx1
-
-                                "vmla.f32 q10, q14,  %f[wr01][0]        @ mul weight0, 02, out0r0\n"
-                                "vmla.f32 q12, q14,  %f[wr11][0]        @ mul weight1, 02, out1r0\n"
-
-                                // row2, deal with right pad
-                                "vbif q6, q15, q8                       @ bit select, deal with right pad\n"
-                                "vbif q7, q15, q9                       @ bit select, deal with right pad\n"
-                                // shift left 1
-                                "vext.32  q14, q6, q15, #1              @ shift left r1\n"
-                                //! row2
-                                "vmla.f32 q10, q7,   %e[wr02][1]        @ mul weight0, 01, out0r0\n"
-                                "vmla.f32 q12, q7,   %e[wr12][1]        @ mul weight1, 01, out0r0\n"
-                                "vmla.f32 q11, q7,   %e[wr00][1]        @ mul weight0, 01, out0r1\n"
-                                "vmla.f32 q13, q7,   %e[wr10][1]        @ mul weight1, 01, out1r1\n"
-
-                                "vmla.f32 q10, q6,   %e[wr02][0]        @ mul weight0, 00, out0r0\n"
-                                "vmla.f32 q12, q6,   %e[wr12][0]        @ mul weight1, 00, out0r0\n"
-                                "vmla.f32 q11, q6,   %e[wr00][0]        @ mul weight0, 00, out0r1\n"
-                                "vmla.f32 q13, q6,   %e[wr10][0]        @ mul weight1, 00, out1r1\n"
-
-                                // load row3
-                                "vld2.32  {d12-d15}, [%[din3_ptr]]!     @ load input r20, r21\n" //interleave load, q6->rx0, q7->rx1
-
-                                "vmla.f32 q10, q14,  %f[wr02][0]        @ mul weight0, 02, out0r0\n"
-                                "vmla.f32 q12, q14,  %f[wr12][0]        @ mul weight1, 02, out0r0\n"
-                                "vmla.f32 q11, q14,  %f[wr00][0]        @ mul weight0, 02, out0r1\n"
-                                "vmla.f32 q13, q14,  %f[wr10][0]        @ mul weight1, 02, out1r1\n"
-
-                                // row3, deal with right pad
-                                "vbif q6, q15, q8                       @ bit select, deal with right pad\n"
-                                "vbif q7, q15, q9                       @ bit select, deal with right pad\n"
-                                // shift left 1
-                                "vext.32  q14, q6,  q15, #1             @ shift left r2\n"
-
-                                //! row3
-                                "vmla.f32 q11, q7,   %e[wr01][1]        @ mul weight0, 01, out0r1\n"
-                                "vmla.f32 q13, q7,   %e[wr11][1]        @ mul weight1, 01, out1r1\n"
-
-                                "vmla.f32 q11, q6,   %e[wr01][0]        @ mul weight0, 00, out0r1\n"
-                                "vmla.f32 q13, q6,   %e[wr11][0]        @ mul weight1, 00, out1r1\n"
-
-                                // load row4
-                                "vld2.32  {d12-d15}, [%[din4_ptr]]!     @ load input r40, r41\n" //interleave load, q6->rx0, q7->rx1
-
-                                "vmla.f32 q11, q14,  %f[wr01][0]        @ mul weight0, 02, out0r1\n"
-                                "vmla.f32 q13, q14,  %f[wr11][0]        @ mul weight1, 02, out1r1\n"
-
-                                // row4, deal with right pad
-                                "vbif q6, q15, q8                       @ bit select, deal with right pad\n"
-                                "vbif q7, q15, q9                       @ bit select, deal with right pad\n"
-                                // shift left 1, r4
-                                "vext.32  q14, q6,  q15, #1             @ shift left r2\n"
-
-                                //! row4
-                                "vmla.f32 q11, q7,   %e[wr02][1]        @ mul weight0, 01, out0r1\n"
-                                "vmla.f32 q13, q7,   %e[wr12][1]        @ mul weight1, 01, out1r1\n"
-
-                                "vmla.f32 q11, q6,   %e[wr02][0]        @ mul weight0, 00, out0r1\n"
-                                "vmla.f32 q13, q6,   %e[wr12][0]        @ mul weight1, 00, out1r1\n"
-
-                                "vld1.32  {d12-d13}, [%[doutc0r0]]      @ load dout0r0\n" //q6->outc0r0
-                                "vld1.32  {d14-d15}, [%[doutc0r1]]      @ load dout0r1\n" //q7->outc0r1
-                                "vld1.32  {d16-d17}, [%[doutc1r0]]      @ load dout1r0\n" //q8->outc1r0
-                                "vld1.32  {d18-d19}, [%[doutc1r1]]      @ load dout1r1\n" //q9->outc1r1
-
-                                "vmla.f32 q11, q14,  %f[wr02][0]        @ mul weight0, 02, out0r1\n"
-                                "vmla.f32 q13, q14,  %f[wr12][0]        @ mul weight1, 02, out1r1\n"
-
-                                "cmp %[relu], #1                        @ check whether has relu\n"
-                                "blt    4f                              @ jump to top left store without relu\n"
-                                "vmax.f32   q10,  q10, q15              @ relu\n"
-                                "vmax.f32   q11,  q11, q15              @ relu\n"
-                                "vmax.f32   q12,  q12, q15              @ relu\n"
-                                "vmax.f32   q13,  q13, q15              @ relu\n"
-
-                                "4:                                     @ store top mid result\n"
-                                // store tr result
-                                "vld1.32  {d28-d29}, [%[right_pad_save_mask]]  @ load save mask\n" //q14->save mask
-
-                                "vbif q10, q6, q14                      @ bit select\n"
-                                "vbif q11, q7, q14                      @ bit select\n"
-                                "vbif q12, q8, q14                      @ bit select\n"
-                                "vbif q13, q9, q14                      @ bit select\n"
-
-                                "vst1.32  {d20-d21}, [%[doutc0r0]]!     @ store result, add pointer\n"
-                                "vst1.32  {d22-d23}, [%[doutc0r1]]!     @ store result, add pointer\n"
-                                "vst1.32  {d24-d25}, [%[doutc1r0]]!     @ store result, add pointer\n"
-                                "vst1.32  {d26-d27}, [%[doutc1r1]]!     @ store result, add pointer\n"
-
-                                "sub %[doutc1r0], %[doutc1r0], %[right_pad_sub] @ sub \n"
-                                "sub %[doutc1r1], %[doutc1r1], %[right_pad_sub] @ sub \n"
-                                "sub %[doutc0r0], %[doutc0r0], %[right_pad_sub] @ sub \n"
-                                "sub %[doutc0r1], %[doutc0r1], %[right_pad_sub] @ sub \n"
-
-                                "5:                                     @ mid rows ending\n"
-
-                        :[doutc0r0] "+r"(doutc0r0), [doutc0r1] "+r"(doutc0r1), \
+
+                    doutc0r0 = dout_c0 + 2 * h * w_out;
+                    doutc0r1 = doutc0r0 + w_out;
+                    doutc1r0 = dout_c1 + 2 * h * w_out;
+                    doutc1r1 = doutc1r0 + w_out;
+
+                    int cnt = cnt_col;
+                    asm volatile(
+                    "vmov.u32 q15, #0                       @ dump zero\n"
+                            "pld [%[din0_ptr]]                      @ preload data\n"//inr0
+                            "pld [%[din1_ptr]]                      @ preload data\n"//inr1
+                            "pld [%[din2_ptr]]                      @ preload data\n"//inr2
+                            "pld [%[din3_ptr]]                      @ preload data\n"//inr3
+                            "pld [%[din4_ptr]]                      @ preload data\n"//inr4
+                            "pld [%[doutc0r0]]                      @ preload data\n" //outc0r0
+                            "pld [%[doutc0r1]]                      @ preload data\n"//outc0r1
+                            "pld [%[doutc1r0]]                      @ preload data\n"//outc1r0
+                            "pld [%[doutc1r1]]                      @ preload data\n"//outc1r1
+
+                            //! process left pad
+                            //! row0/3
+                            "vld2.32  {d12-d15}, [%[din0_ptr]]!     @ load input r00, r01\n" //interleave load, q6->rx0, q7->rx1
+                            "vld1.32  {d20-d21}, [%[doutc0r0]]      @ load dout0r0\n" //q10->outc0r0
+                            "vld1.32  {d24-d25}, [%[doutc1r0]]      @ load dout1r0\n" //q12->outc1r0
+
+                            "vld2.32  {d16-d19}, [%[din3_ptr]]!     @ load input r20, r21\n" //interleave load, q8->rx2, q9->rx2
+                            "vld1.32  {d22-d23}, [%[doutc0r1]]      @ load dout0r1\n" //q11->outc0r1
+                            "vld1.32  {d26-d27}, [%[doutc1r1]]      @ load dout1r1\n" //q13->outc1r1
+
+                            "vmla.f32 q10, q6,   %e[wr00][1]        @ mul weight0, 01, out0r0\n"
+                            "vmla.f32 q12, q6,   %e[wr10][1]        @ mul weight1, 01, out1r0\n"
+                            "vmla.f32 q11, q8,   %e[wr01][1]        @ mul weight0, 01, out0r1\n"
+                            "vmla.f32 q13, q8,   %e[wr11][1]        @ mul weight1, 01, out1r1\n"
+
+                            "vmla.f32 q10, q7,   %f[wr00][0]        @ mul weight0, 02, out0r0\n"
+                            "vmla.f32 q12, q7,   %f[wr10][0]        @ mul weight1, 02, out1r0\n"
+                            "vmla.f32 q11, q9,   %f[wr01][0]        @ mul weight0, 02, out0r1\n"
+                            "vmla.f32 q13, q9,   %f[wr11][0]        @ mul weight1, 02, out1r1\n"
+
+                            // shift right 1, r0
+                            "vext.32  q14, q15, q7,  #3             @ shift right r0\n"
+                            // load row1
+                            "vld2.32  {d12-d15}, [%[din1_ptr]]!     @ load input r10, r11\n" //interleave load, q6->rx0, q7->rx1
+                            "sub %[din0_ptr], #4                    @ r0 address -4, overlay 1 float\n"
+
+                            "vmla.f32 q10, q14,  %e[wr00][0]        @ mul weight0, 00, out0r0\n"
+                            "vmla.f32 q12, q14,  %e[wr10][0]        @ mul weight1, 00, out1r0\n"
+
+                            // shift right 1, r3
+                            "vext.32  q14, q15, q9,  #3             @ shift right r2\n"
+                            // load row4
+                            "vld2.32  {d16-d19}, [%[din4_ptr]]!     @ load input r30, r31\n" //interleave load, q6->rx0, q7->rx1
+                            "sub %[din3_ptr], #4                    @ r2 address -4, overlay 1 float\n"
+
+                            "vmla.f32 q11, q14,  %e[wr01][0]        @ mul weight0, 00, out0r1\n"
+                            "vmla.f32 q13, q14,  %e[wr11][0]        @ mul weight1, 00, out1r1\n"
+
+                            //! row1/4
+                            "vmla.f32 q10, q6,   %e[wr01][1]        @ mul weight0, 01, out0r0\n"
+                            "vmla.f32 q12, q6,   %e[wr11][1]        @ mul weight1, 01, out1r0\n"
+                            "vmla.f32 q11, q8,   %e[wr02][1]        @ mul weight0, 01, out0r1\n"
+                            "vmla.f32 q13, q8,   %e[wr12][1]        @ mul weight1, 01, out1r1\n"
+
+                            "vmla.f32 q10, q7,   %f[wr01][0]        @ mul weight0, 02, out0r0\n"
+                            "vmla.f32 q12, q7,   %f[wr11][0]        @ mul weight1, 02, out1r0\n"
+                            "vmla.f32 q11, q9,   %f[wr02][0]        @ mul weight0, 02, out0r1\n"
+                            "vmla.f32 q13, q9,   %f[wr12][0]        @ mul weight1, 02, out1r1\n"
+
+                            // shift right 1, r1
+                            "vext.32  q14, q15, q7,  #3             @ shift right r1\n"
+                            // load row2
+                            "vld2.32  {d12-d15}, [%[din2_ptr]]!     @ load input r10, r11\n" //interleave load, q6->rx0, q7->rx1
+                            "sub %[din1_ptr], #4                    @ r0 address -4, overlay 1 float\n"
+
+                            "vmla.f32 q10, q14,  %e[wr01][0]        @ mul weight0, 00, out0r0\n"
+                            "vmla.f32 q12, q14,  %e[wr11][0]        @ mul weight1, 00, out1r0\n"
+
+                            // shift right 1, r4
+                            "vext.32  q14, q15, q9,  #3             @ shift right r4\n"
+                            "sub %[din4_ptr], #4                    @ r2 address -4, overlay 1 float\n"
+
+                            "vmla.f32 q11, q14,  %e[wr02][0]        @ mul weight0, 00, out0r1\n"
+                            "vmla.f32 q13, q14,  %e[wr12][0]        @ mul weight1, 00, out1r1\n"
+
+                            //! row2
+                            "vmla.f32 q10, q6,   %e[wr02][1]        @ mul weight0, 01, out0r0\n"
+                            "vmla.f32 q12, q6,   %e[wr12][1]        @ mul weight1, 01, out1r0\n"
+                            "vmla.f32 q11, q6,   %e[wr00][1]        @ mul weight0, 01, out0r1\n"
+                            "vmla.f32 q13, q6,   %e[wr10][1]        @ mul weight1, 01, out1r1\n"
+
+                            "sub %[din2_ptr], #4                    @ r1 address -4, overlay 1 float\n"
+
+                            "vmla.f32 q10, q7,   %f[wr02][0]        @ mul weight0, 02, out0r0\n"
+                            "vmla.f32 q12, q7,   %f[wr12][0]        @ mul weight1, 02, out1r0\n"
+                            "vmla.f32 q11, q7,   %f[wr00][0]        @ mul weight0, 02, out0r1\n"
+                            "vmla.f32 q13, q7,   %f[wr10][0]        @ mul weight1, 02, out1r1\n"
+
+                            // shift right 1, r2
+                            "vext.32  q14, q15, q7,  #3             @ shift right r2\n"
+                            "vmla.f32 q10, q14,  %e[wr02][0]        @ mul weight0, 00, out0r0\n"
+                            "vmla.f32 q12, q14,  %e[wr12][0]        @ mul weight1, 00, out1r0\n"
+                            "vmla.f32 q11, q14,  %e[wr00][0]        @ mul weight0, 00, out0r1\n"
+                            "vmla.f32 q13, q14,  %e[wr10][0]        @ mul weight1, 00, out1r1\n"
+
+
+                            "pld [%[din0_ptr]]                      @ preload data\n"//inr0
+                            "pld [%[din1_ptr]]                      @ preload data\n"//inr1
+                            "pld [%[din2_ptr]]                      @ preload data\n"//inr2
+                            "pld [%[din3_ptr]]                      @ preload data\n"//inr3
+                            "pld [%[din4_ptr]]                      @ preload data\n"//inr3
+
+                            "cmp %[relu], #1                        @ check whether has relu\n"
+                            "blt    1f                              @ jump to top left store without relu\n"
+                            "vmax.f32   q10,  q10, q15              @ relu\n"
+                            "vmax.f32   q11,  q11, q15              @ relu\n"
+                            "vmax.f32   q12,  q12, q15              @ relu\n"
+                            "vmax.f32   q13,  q13, q15              @ relu\n"
+
+                            "1:                                     @ store top left result\n"
+                            // stroe tl result
+                            "vst1.32  {d20-d21}, [%[doutc0r0]]!     @ store result, add pointer\n"
+                            "vst1.32  {d22-d23}, [%[doutc0r1]]!     @ store result, add pointer\n"
+
+                            "vst1.32  {d24-d25}, [%[doutc1r0]]!     @ store result, add pointer\n"
+                            "vst1.32  {d26-d27}, [%[doutc1r1]]!     @ store result, add pointer\n"
+
+                            "pld [%[doutc0r0]]                      @ preload data\n"
+                            "pld [%[doutc0r1]]                      @ preload data\n"
+                            "pld [%[doutc1r0]]                      @ preload data\n"
+                            "pld [%[doutc1r1]]                      @ preload data\n"
+
+                            //! process mid cols
+                            "cmp %[cnt], #1                         @ check whether has mid cols\n"
+                            "blt  2f                                @ jump to main loop start point\n"
+                            "start_mid_mid:                         @ main loop in mid rows\n"
+
+                            //! row0/3
+                            "vld2.32  {d12-d15}, [%[din0_ptr]]!     @ load input r00, r01\n" //interleave load, q6->rx0, q7->rx1
+                            "vld1.32  {d20-d21}, [%[doutc0r0]]      @ load dout0r0\n" //q10->outc0r0
+                            "vld1.32  {d24-d25}, [%[doutc1r0]]      @ load dout1r0\n" //q12->outc1r0
+
+                            "vld2.32  {d16-d19}, [%[din3_ptr]]!     @ load input r20, r21\n" //interleave load, q8->rx2, q9->rx2
+                            "vld1.32  {d22-d23}, [%[doutc0r1]]      @ load dout0r1\n" //q11->outc0r1
+                            "vld1.32  {d26-d27}, [%[doutc1r1]]      @ load dout1r1\n" //q13->outc1r1
+
+                            "vmla.f32 q10, q7,   %e[wr00][1]        @ mul weight0, 01, out0r0\n"
+                            "vmla.f32 q12, q7,   %e[wr10][1]        @ mul weight1, 01, out1r0\n"
+                            "vmla.f32 q11, q9,   %e[wr01][1]        @ mul weight0, 01, out0r1\n"
+                            "vmla.f32 q13, q9,   %e[wr11][1]        @ mul weight1, 01, out1r1\n"
+
+                            "vld1.32  {d14},    [%[din0_ptr]]       @ load the 8th element, r00\n"
+                            "vld1.32  {d18},    [%[din3_ptr]]       @ load the 8th element, r30\n"
+
+                            "vmla.f32 q10, q6,   %e[wr00][0]        @ mul weight0, 00, out0r0\n"
+                            "vmla.f32 q12, q6,   %e[wr10][0]        @ mul weight1, 00, out1r0\n"
+                            "vmla.f32 q11, q8,   %e[wr01][0]        @ mul weight0, 00, out0r1\n"
+                            "vmla.f32 q13, q8,   %e[wr11][0]        @ mul weight1, 00, out1r1\n"
+
+                            // shift left 1, r0
+                            "vext.32  q14, q6,  q7,  #1             @ shift left r0\n"
+                            // load row1
+                            "vld2.32  {d12-d15}, [%[din1_ptr]]!     @ load input r10, r11\n" //interleave load, q6->rx0, q7->rx1
+
+                            "vmla.f32 q10, q14,  %f[wr00][0]        @ mul weight0, 02, out0r0\n"
+                            "vmla.f32 q12, q14,  %f[wr10][0]        @ mul weight1, 02, out1r0\n"
+
+                            // shift left 1, r3
+                            "vext.32  q14, q8,  q9,  #1             @ shift left r3\n"
+                            // load row4
+                            "vld2.32  {d16-d19}, [%[din4_ptr]]!     @ load input r30, r31\n" //interleave load, q6->rx0, q7->rx1
+
+                            "vmla.f32 q11, q14,  %f[wr01][0]        @ mul weight0, 02, out0r1\n"
+                            "vmla.f32 q13, q14,  %f[wr11][0]        @ mul weight1, 02, out1r1\n"
+
+                            "pld [%[din0_ptr]]                      @ preload data\n"//inr0
+                            "pld [%[din3_ptr]]                      @ preload data\n"//inr3
+
+                            //! row1/4
+                            "vmla.f32 q10, q7,   %e[wr01][1]        @ mul weight0, 01, out0r0\n"
+                            "vmla.f32 q12, q7,   %e[wr11][1]        @ mul weight1, 01, out1r0\n"
+                            "vmla.f32 q11, q9,   %e[wr02][1]        @ mul weight0, 01, out0r1\n"
+                            "vmla.f32 q13, q9,   %e[wr12][1]        @ mul weight1, 01, out1r1\n"
+
+                            "vld1.32  {d14},    [%[din1_ptr]]       @ load the 8th element, r10\n"
+                            "vld1.32  {d18},    [%[din4_ptr]]       @ load the 8th element, r40\n"
+
+                            "vmla.f32 q10, q6,   %e[wr01][0]        @ mul weight0, 00, out0r0\n"
+                            "vmla.f32 q12, q6,   %e[wr11][0]        @ mul weight1, 00, out1r0\n"
+                            "vmla.f32 q11, q8,   %e[wr02][0]        @ mul weight0, 00, out0r1\n"
+                            "vmla.f32 q13, q8,   %e[wr12][0]        @ mul weight1, 00, out1r1\n"
+
+                            // shift left 1, r1
+                            "vext.32  q14, q6,  q7,  #1             @ shift left r0\n"
+                            // load row2
+                            "vld2.32  {d12-d15}, [%[din2_ptr]]!     @ load input r10, r11\n" //interleave load, q6->rx0, q7->rx1
+
+                            "vmla.f32 q10, q14,  %f[wr01][0]        @ mul weight0, 02, out0r0\n"
+                            "vmla.f32 q12, q14,  %f[wr11][0]        @ mul weight1, 02, out1r0\n"
+
+                            // shift left 1, r4
+                            "vext.32  q14, q8,  q9,  #1             @ shift left r3\n"
+                            "vmla.f32 q11, q14,  %f[wr02][0]        @ mul weight0, 02, out0r1\n"
+                            "vmla.f32 q13, q14,  %f[wr12][0]        @ mul weight1, 02, out1r1\n"
+
+                            "pld [%[din1_ptr]]                      @ preload data\n"//inr0
+                            "pld [%[din4_ptr]]                      @ preload data\n"//inr3
+
+                            //! row2
+                            "vmla.f32 q10, q7,   %e[wr02][1]        @ mul weight0, 01, out0r0\n"
+                            "vmla.f32 q12, q7,   %e[wr12][1]        @ mul weight1, 01, out1r0\n"
+                            "vmla.f32 q11, q7,   %e[wr00][1]        @ mul weight0, 01, out0r1\n"
+                            "vmla.f32 q13, q7,   %e[wr10][1]        @ mul weight1, 01, out1r1\n"
+
+                            "vld1.32  {d14},    [%[din2_ptr]]       @ load the 8th element, r00\n"
+
+                            "vmla.f32 q10, q6,   %e[wr02][0]        @ mul weight0, 00, out0r0\n"
+                            "vmla.f32 q12, q6,   %e[wr12][0]        @ mul weight1, 00, out1r0\n"
+                            "vmla.f32 q11, q6,   %e[wr00][0]        @ mul weight0, 00, out0r1\n"
+                            "vmla.f32 q13, q6,   %e[wr10][0]        @ mul weight1, 00, out1r1\n"
+
+                            // shift left 1, r12
+                            "vext.32  q14, q6,  q7,  #1             @ shift left r2\n"
+                            "vmla.f32 q10, q14,  %f[wr02][0]        @ mul weight0, 02, out0r0\n"
+                            "vmla.f32 q12, q14,  %f[wr12][0]        @ mul weight1, 02, out1r0\n"
+                            "vmla.f32 q11, q14,  %f[wr00][0]        @ mul weight0, 02, out0r1\n"
+                            "vmla.f32 q13, q14,  %f[wr10][0]        @ mul weight1, 02, out1r1\n"
+
+                            "pld [%[din2_ptr]]                      @ preload data\n"//inr2
+
+                            "cmp %[relu], #1                        @ check whether has relu\n"
+                            "blt    3f                              @ jump to top left store without relu\n"
+                            "vmax.f32   q10,  q10, q15              @ relu\n"
+                            "vmax.f32   q11,  q11, q15              @ relu\n"
+                            "vmax.f32   q12,  q12, q15              @ relu\n"
+                            "vmax.f32   q13,  q13, q15              @ relu\n"
+
+                            "3:                                     @ store top mid result\n"
+                            // store tm result
+                            "vst1.32  {d20-d21}, [%[doutc0r0]]!     @ store result, add pointer\n"
+                            "vst1.32  {d22-d23}, [%[doutc0r1]]!     @ store result, add pointer\n"
+
+                            "vst1.32  {d24-d25}, [%[doutc1r0]]!     @ store result, add pointer\n"
+                            "vst1.32  {d26-d27}, [%[doutc1r1]]!     @ store result, add pointer\n"
+
+                            "subs %[cnt], #1                        @ loop count minus 1\n"
+                            "bne    start_mid_mid                   @ jump to main loop start point\n"
+
+                            //! process right pad
+                            "2:                                     @ right pad entry\n"
+                            // check do_right_pad, if 0, jump to end
+                            "cmp %[do_right_pad], #1                @ check whether has mid cols\n"
+                            "blt  5f                                @ jump to main loop start point\n"
+
+                            // load pad mask
+                            "vld1.32  {d16-d19}, [%[right_pad_save_mask]]! @ load pad index\n" //q8, q9 //load 8 uint32
+                            // load row0
+                            "vld2.32  {d12-d15}, [%[din0_ptr]]!     @ load input r00, r01\n" //interleave load, q6->rx0, q7->rx1
+
+                            // load output
+                            "vld1.32  {d20-d21}, [%[doutc0r0]]      @ load dout0r0\n" //q10->outc0r0
+                            "vld1.32  {d22-d23}, [%[doutc0r1]]      @ load dout0r1\n" //q11->outc0r1
+                            "vld1.32  {d24-d25}, [%[doutc1r0]]      @ load dout1r0\n" //q12->outc1r0
+                            "vld1.32  {d26-d27}, [%[doutc1r1]]      @ load dout1r1\n" //q13->outc1r1
+
+                            // row0,  deal with right pad
+                            "vbif q6, q15, q8                       @ bit select, deal with right pad\n"
+                            "vbif q7, q15, q9                       @ bit select, deal with right pad\n"
+                            // shift left 1
+                            "vext.32  q14, q6,  q15, #1             @ shift left r0\n"
+
+                            "vmla.f32 q10, q7,   %e[wr00][1]        @ mul weight0, 01, out0r0\n"
+                            "vmla.f32 q12, q7,   %e[wr10][1]        @ mul weight1, 01, out1r0\n"
+
+                            "vmla.f32 q10, q6,   %e[wr00][0]        @ mul weight0, 00, out0r0\n"
+                            "vmla.f32 q12, q6,   %e[wr10][0]        @ mul weight1, 00, out1r0\n"
+
+                            // load row1
+                            "vld2.32  {d12-d15}, [%[din1_ptr]]!     @ load input r10, r11\n" //interleave load, q6->rx0, q7->rx1
+
+                            "vmla.f32 q10, q14,  %f[wr00][0]        @ mul weight0, 02, out0r0\n"
+                            "vmla.f32 q12, q14,  %f[wr10][0]        @ mul weight1, 02, out1r0\n"
+
+                            // row1,  deal with right pad
+                            "vbif q6, q15, q8                       @ bit select, deal with right pad\n"
+                            "vbif q7, q15, q9                       @ bit select, deal with right pad\n"
+                            // shift left 1, r1
+                            "vext.32  q14, q6,  q15, #1             @ shift left r0\n"
+
+                            "vmla.f32 q10, q7,   %e[wr01][1]        @ mul weight0, 01, out0r0\n"
+                            "vmla.f32 q12, q7,   %e[wr11][1]        @ mul weight1, 01, out1r0\n"
+
+                            "vmla.f32 q10, q6,   %e[wr01][0]        @ mul weight0, 00, out0r0\n"
+                            "vmla.f32 q12, q6,   %e[wr11][0]        @ mul weight1, 00, out1r0\n"
+
+                            // load row2
+                            "vld2.32  {d12-d15}, [%[din2_ptr]]!     @ load input r10, r11\n" //interleave load, q6->rx0, q7->rx1
+
+                            "vmla.f32 q10, q14,  %f[wr01][0]        @ mul weight0, 02, out0r0\n"
+                            "vmla.f32 q12, q14,  %f[wr11][0]        @ mul weight1, 02, out1r0\n"
+
+                            // row2, deal with right pad
+                            "vbif q6, q15, q8                       @ bit select, deal with right pad\n"
+                            "vbif q7, q15, q9                       @ bit select, deal with right pad\n"
+                            // shift left 1
+                            "vext.32  q14, q6, q15, #1              @ shift left r1\n"
+                            //! row2
+                            "vmla.f32 q10, q7,   %e[wr02][1]        @ mul weight0, 01, out0r0\n"
+                            "vmla.f32 q12, q7,   %e[wr12][1]        @ mul weight1, 01, out0r0\n"
+                            "vmla.f32 q11, q7,   %e[wr00][1]        @ mul weight0, 01, out0r1\n"
+                            "vmla.f32 q13, q7,   %e[wr10][1]        @ mul weight1, 01, out1r1\n"
+
+                            "vmla.f32 q10, q6,   %e[wr02][0]        @ mul weight0, 00, out0r0\n"
+                            "vmla.f32 q12, q6,   %e[wr12][0]        @ mul weight1, 00, out0r0\n"
+                            "vmla.f32 q11, q6,   %e[wr00][0]        @ mul weight0, 00, out0r1\n"
+                            "vmla.f32 q13, q6,   %e[wr10][0]        @ mul weight1, 00, out1r1\n"
+
+                            // load row3
+                            "vld2.32  {d12-d15}, [%[din3_ptr]]!     @ load input r20, r21\n" //interleave load, q6->rx0, q7->rx1
+
+                            "vmla.f32 q10, q14,  %f[wr02][0]        @ mul weight0, 02, out0r0\n"
+                            "vmla.f32 q12, q14,  %f[wr12][0]        @ mul weight1, 02, out0r0\n"
+                            "vmla.f32 q11, q14,  %f[wr00][0]        @ mul weight0, 02, out0r1\n"
+                            "vmla.f32 q13, q14,  %f[wr10][0]        @ mul weight1, 02, out1r1\n"
+
+                            // row3, deal with right pad
+                            "vbif q6, q15, q8                       @ bit select, deal with right pad\n"
+                            "vbif q7, q15, q9                       @ bit select, deal with right pad\n"
+                            // shift left 1
+                            "vext.32  q14, q6,  q15, #1             @ shift left r2\n"
+
+                            //! row3
+                            "vmla.f32 q11, q7,   %e[wr01][1]        @ mul weight0, 01, out0r1\n"
+                            "vmla.f32 q13, q7,   %e[wr11][1]        @ mul weight1, 01, out1r1\n"
+
+                            "vmla.f32 q11, q6,   %e[wr01][0]        @ mul weight0, 00, out0r1\n"
+                            "vmla.f32 q13, q6,   %e[wr11][0]        @ mul weight1, 00, out1r1\n"
+
+                            // load row4
+                            "vld2.32  {d12-d15}, [%[din4_ptr]]!     @ load input r40, r41\n" //interleave load, q6->rx0, q7->rx1
+
+                            "vmla.f32 q11, q14,  %f[wr01][0]        @ mul weight0, 02, out0r1\n"
+                            "vmla.f32 q13, q14,  %f[wr11][0]        @ mul weight1, 02, out1r1\n"
+
+                            // row4, deal with right pad
+                            "vbif q6, q15, q8                       @ bit select, deal with right pad\n"
+                            "vbif q7, q15, q9                       @ bit select, deal with right pad\n"
+                            // shift left 1, r4
+                            "vext.32  q14, q6,  q15, #1             @ shift left r2\n"
+
+                            //! row4
+                            "vmla.f32 q11, q7,   %e[wr02][1]        @ mul weight0, 01, out0r1\n"
+                            "vmla.f32 q13, q7,   %e[wr12][1]        @ mul weight1, 01, out1r1\n"
+
+                            "vmla.f32 q11, q6,   %e[wr02][0]        @ mul weight0, 00, out0r1\n"
+                            "vmla.f32 q13, q6,   %e[wr12][0]        @ mul weight1, 00, out1r1\n"
+
+                            "vld1.32  {d12-d13}, [%[doutc0r0]]      @ load dout0r0\n" //q6->outc0r0
+                            "vld1.32  {d14-d15}, [%[doutc0r1]]      @ load dout0r1\n" //q7->outc0r1
+                            "vld1.32  {d16-d17}, [%[doutc1r0]]      @ load dout1r0\n" //q8->outc1r0
+                            "vld1.32  {d18-d19}, [%[doutc1r1]]      @ load dout1r1\n" //q9->outc1r1
+
+                            "vmla.f32 q11, q14,  %f[wr02][0]        @ mul weight0, 02, out0r1\n"
+                            "vmla.f32 q13, q14,  %f[wr12][0]        @ mul weight1, 02, out1r1\n"
+
+                            "cmp %[relu], #1                        @ check whether has relu\n"
+                            "blt    4f                              @ jump to top left store without relu\n"
+                            "vmax.f32   q10,  q10, q15              @ relu\n"
+                            "vmax.f32   q11,  q11, q15              @ relu\n"
+                            "vmax.f32   q12,  q12, q15              @ relu\n"
+                            "vmax.f32   q13,  q13, q15              @ relu\n"
+
+                            "4:                                     @ store top mid result\n"
+                            // store tr result
+                            "vld1.32  {d28-d29}, [%[right_pad_save_mask]]  @ load save mask\n" //q14->save mask
+
+                            "vbif q10, q6, q14                      @ bit select\n"
+                            "vbif q11, q7, q14                      @ bit select\n"
+                            "vbif q12, q8, q14                      @ bit select\n"
+                            "vbif q13, q9, q14                      @ bit select\n"
+
+                            "vst1.32  {d20-d21}, [%[doutc0r0]]!     @ store result, add pointer\n"
+                            "vst1.32  {d22-d23}, [%[doutc0r1]]!     @ store result, add pointer\n"
+                            "vst1.32  {d24-d25}, [%[doutc1r0]]!     @ store result, add pointer\n"
+                            "vst1.32  {d26-d27}, [%[doutc1r1]]!     @ store result, add pointer\n"
+
+                            "5:                                     @ mid rows ending\n"
+                    :[doutc0r0] "+r"(doutc0r0), [doutc0r1] "+r"(doutc0r1), \
                             [doutc1r0] "+r" (doutc1r0), [doutc1r1] "+r" (doutc1r1),\
                             [din0_ptr] "+r"(din0_ptr), [din1_ptr] "+r"(din1_ptr), \
                             [din2_ptr] "+r"(din2_ptr), [din3_ptr] "+r"(din3_ptr), \
                             [din4_ptr] "+r"(din4_ptr), [cnt] "+r"(cnt)
-                        :[wr00] "w"(wr00), [wr01] "w"(wr01), [wr02] "w"(wr02), \
+                    :[wr00] "w"(wr00), [wr01] "w"(wr01), [wr02] "w"(wr02), \
                             [wr10] "w"(wr10), [wr11] "w"(wr11), [wr12] "w"(wr12), \
-                            [right_pad_sub] "r" (right_pad_sub), \
                             [right_pad_save_mask] "r" (right_pad_save_mask), \
                             [do_right_pad] "r" (do_right_pad), [relu] "r" (relu)
-                        :"q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
-                        );
-                    }
-                    doutc0r0 += w_out;
-                    doutc0r1 = doutc0r0 + w_out;
-                    doutc1r0 += w_out;
-                    doutc1r1 = doutc1r0 + w_out;
+                    :"q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
+                    );
 
                     dr0 = dr4;
                     dr1 = dr0 + win;
@@ -2397,6 +2378,12 @@ void conv_3x3s2_direct(const float* din, float* dout, \
                     din1_ptr = dr1;
                     din2_ptr = dr2;
                     din3_ptr = dr3;
+
+                    doutc0r0 = dout_c0 + 2 * h * w_out;
+                    doutc0r1 = doutc0r0 + w_out;
+                    doutc1r0 = dout_c1 + 2 * h * w_out;
+                    doutc1r1 = doutc1r0 + w_out;
+
                     int cnt = cnt_col;
                     asm volatile(
                     //! process left pad
@@ -2728,12 +2715,7 @@ void conv_3x3s2_direct(const float* din, float* dout, \
                             "vst1.32  {d24-d25}, [%[doutc1r0]]!     @ store result, add pointer\n"
                             "vst1.32  {d26-d27}, [%[doutc1r1]]!     @ store result, add pointer\n"
 
-                            "sub %[doutc1r0], %[doutc1r0], %[right_pad_sub] @ sub \n"
-                            "sub %[doutc1r1], %[doutc1r1], %[right_pad_sub] @ sub \n"
-                            "sub %[doutc0r0], %[doutc0r0], %[right_pad_sub] @ sub \n"
-                            "sub %[doutc0r1], %[doutc0r1], %[right_pad_sub] @ sub \n"
                             "5:                                     @ bot row ending\n"
-
                     :[doutc0r0] "+r"(doutc0r0), [doutc0r1] "+r"(doutc0r1), \
                                 [doutc1r0] "+r" (doutc1r0), [doutc1r1] "+r" (doutc1r1),\
                                 [din0_ptr] "+r"(din0_ptr), [din1_ptr] "+r"(din1_ptr), \
@@ -2742,7 +2724,6 @@ void conv_3x3s2_direct(const float* din, float* dout, \
                     :[wr00] "w"(wr00), [wr01] "w"(wr01), [wr02] "w"(wr02), \
                                 [wr10] "w"(wr10), [wr11] "w"(wr11), [wr12] "w"(wr12), \
                                 [relu] "r" (relu), [do_right_pad] "r" (do_right_pad), \
-                                [right_pad_sub] "r" (right_pad_sub), \
                                 [right_pad_save_mask] "r" (right_pad_save_mask)
 
                     :"q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
@@ -2756,6 +2737,10 @@ void conv_3x3s2_direct(const float* din, float* dout, \
                     } else {
                         din2_ptr = dr2;
                     }
+
+                    doutc0r0 = dout_c0 + 2 * h * w_out;
+                    doutc1r0 = dout_c1 + 2 * h * w_out;
+
                     int cnt = cnt_col;
                     asm volatile(
                     //! process left pad
@@ -3012,7 +2997,7 @@ void conv_3x3s2_direct(const float* din, float* dout, \
                     :[wr00] "w"(wr00), [wr01] "w"(wr01), [wr02] "w"(wr02), \
                                 [wr10] "w"(wr10), [wr11] "w"(wr11), [wr12] "w"(wr12), \
                                 [relu] "r" (relu), [do_right_pad] "r" (do_right_pad), \
-                                [right_pad_sub] "r" (right_pad_sub), [bot_pad] "r" (pad_bot_size), \
+                                [bot_pad] "r" (pad_bot_size), \
                                 [right_pad_save_mask] "r" (right_pad_save_mask)
                     :"q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
                     );
