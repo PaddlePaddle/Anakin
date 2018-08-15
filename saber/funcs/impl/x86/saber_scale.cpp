@@ -66,9 +66,9 @@ SaberStatus SaberScale<X86, OpDtype, inDtype, outDtype,
     int axis = (param.num_axes == 0) ? 0 : param.axis;
     int num_axes = param.num_axes >=0 ? param.num_axes : inputs[0]->shape().dims() - axis;
     CHECK_LE(axis + num_axes, inputs[0]->shape().dims());
-    int outer_dim = inputs[0]->count(0, axis);
-    int inner_dim = inputs[0]->count(axis + num_axes, inputs[0]->shape().dims());
-    int scale_dim = inputs[0]->count(axis, axis + num_axes);
+    int outer_dim = inputs[0]->count_valid(0, axis);
+    int inner_dim = inputs[0]->count_valid(axis + num_axes, inputs[0]->shape().dims());
+    int scale_dim = inputs[0]->count_vaild(axis, axis + num_axes);
     if (inputs.size() > 1) {
         CHECK_EQ(scale_dim, inputs[1]->valid_size()) << "scale dim not valid";
     } else {
