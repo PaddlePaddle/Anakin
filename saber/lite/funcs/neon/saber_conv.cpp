@@ -186,7 +186,9 @@ SaberStatus SaberConv2D::init(\
 #endif
         return SaberSuccess;
     }
-#if 0 //armv8 conv3x3s2 is not support now
+#if __aarch64__ //armv8 conv3x3s2 is not support now
+
+#else
     //! 3x3s2p1, direct
     if (_param->_kw == 3 && _param->_kh == 3 && _param->_stride_h == 2 && _param->_stride_w == 2 && \
         _param->_pad_w == 1 && _param->_pad_h == 1 && _param->_dila_w == 1 && _param->_dila_h == 1 && _param->_group == 1 && \
