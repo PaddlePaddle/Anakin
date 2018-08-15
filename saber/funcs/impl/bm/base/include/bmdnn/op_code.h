@@ -49,6 +49,8 @@ typedef struct tensor_4d_t {
 #define SHARE_REG_MESSAGE_RP            1
 #define SHARE_REG_MESSAGE_IRQSTATUS     2
 #define SHARE_REG_CDMA_IRQSTATUS    3 
+#define SHARE_REG_MSGIRQ_NUM_LO     4
+#define SHARE_REG_MSGIRQ_NUM_HI     5
 
 #define SHAREMEM_MSG_FIXED_OFFSET  (8192)
 #define SHAREMEM_SIZE_BIT  8

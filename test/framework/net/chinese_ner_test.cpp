@@ -17,6 +17,21 @@
 DEFINE_GLOBAL(std::string, model_dir, "");
 DEFINE_GLOBAL(std::string, input_file, "");
 
+
+#if defined(USE_CUDA)
+using Target = NV;
+using Target_H = X86;
+#elif defined(USE_X86_PLACE)
+using Target = X86;
+using Target_H = X86;
+#elif defined(USE_ARM_PLACE)
+using Target = ARM;
+using Target_H = ARM;
+#elif defined(USE_AMD)
+using Target = AMD;
+using Target_H = X86;
+#endif
+
 //#define WITH_MENTION
 
 void getModels(std::string path, std::vector<std::string>& files) {
@@ -194,6 +209,7 @@ TEST(NetTest, chinese_ner_executor) {
 #endif
 
 int main(int argc, const char** argv) {
+    Env<Target>::env_init();
     // initial logger
     LOG(INFO) << "argc " << argc;
 

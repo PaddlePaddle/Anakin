@@ -40,6 +40,7 @@ typedef struct device_mem_info {
     int coeff_count;
     int groups;
     unsigned long long address;
+    unsigned long size;
 } DEVICE_MEM_INFO;
 
 //info for compute output tensor

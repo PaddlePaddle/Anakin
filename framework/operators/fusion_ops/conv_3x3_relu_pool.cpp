@@ -23,6 +23,24 @@ void SassConvReluPool<NV, AK_FLOAT, Precision::FP32>::operator() (
 }
 #endif
 
+#ifdef USE_AMD
+template<>
+void SassConvReluPool<AMD, AK_FLOAT, Precision::FP32>::operator() (
+	OpContext<AMD> &ctx, 
+	const std::vector<Tensor4dPtr<AMD, AK_FLOAT> >& ins, 
+	std::vector<Tensor4dPtr<AMD, AK_FLOAT> >& outs) {
+    /*LOG(ERROR) << " compute of SassConvReluPool ";
+    float * h_data = new float[outs[0]->size()];//valid_size()];
+    LOG(ERROR) << " outs[0]->valid_size() : " << outs[0]->size();
+    cudaMemcpy(h_data, outs[0]->mutable_data(), outs[0]->size()*sizeof(float), cudaMemcpyDeviceToHost);
+    cudaDeviceSynchronize();
+    CUDA_CHECK(cudaPeekAtLastError()); 
+    LOG(ERROR) << "over "; */
+    auto* impl = static_cast<SassConvReluPoolHelper<AMD, AK_FLOAT, Precision::FP32>*>(this->_helper);
+    auto& param = static_cast<SassConvReluPoolHelper<AMD, AK_FLOAT, Precision::FP32>*>(this->_helper)->_param_conv_relu_pooling;
+    impl->_funcs_conv_relu_pooling(ins, outs, param, ctx);
+}
+#endif
 /// TODO ... specialization other type of operator
 
 
@@ -95,8 +113,7 @@ Status SassConvReluPoolHelper<Ttype, Dtype, Ptype>::InitParam() {
         LOG(FATAL) << " SassConvReluPool fusion op doesn't support : " << pool_method << " pooling.";
     }
 
-    ConvActivePoolingParam<Tensor4d<Ttype, Dtype>> conv_act_pooling_param(_conv_param,
-									  active_param,
+    ConvActivePoolingParam<Tensor4d<Ttype, Dtype>> conv_act_pooling_param(_conv_param, active_param,
                                                                           _pooling_param);
     _param_conv_relu_pooling = conv_act_pooling_param;
     return Status::OK();
@@ -129,6 +146,12 @@ template class SassConvReluPoolHelper<ARM, AK_FLOAT, Precision::FP16>;
 template class SassConvReluPoolHelper<ARM, AK_FLOAT, Precision::INT8>;
 #endif
 
+#ifdef USE_AMD
+template class SassConvReluPoolHelper<AMD, AK_FLOAT, Precision::FP32>;
+template class SassConvReluPoolHelper<AMD, AK_FLOAT, Precision::FP16>;
+template class SassConvReluPoolHelper<AMD, AK_FLOAT, Precision::INT8>;
+#endif
+
 // register helper 
 #ifdef USE_CUDA
 ANAKIN_REGISTER_OP_HELPER(SassConvReluPool, SassConvReluPoolHelper, NV, AK_FLOAT, Precision::FP32);
@@ -136,6 +159,10 @@ ANAKIN_REGISTER_OP_HELPER(SassConvReluPool, SassConvReluPoolHelper, NV, AK_FLOAT
 
 #ifdef USE_ARM_PLACE
 ANAKIN_REGISTER_OP_HELPER(SassConvReluPool, SassConvReluPoolHelper, ARM, AK_FLOAT, Precision::FP32);
+#endif
+
+#ifdef USE_AMD
+ANAKIN_REGISTER_OP_HELPER(SassConvReluPool, SassConvReluPoolHelper, AMD, AK_FLOAT, Precision::FP32);
 #endif
 
 //! register op
@@ -146,6 +173,9 @@ ANAKIN_REGISTER_OP(SassConvReluPool)
 #endif
 #ifdef USE_ARM_PLACE
     .__alias__<ARM, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale_relu_pooling")
+#endif
+#ifdef USE_AMD
+    .__alias__<AMD, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale_relu_pooling")
 #endif
     .num_in(1)
     .num_out(1)

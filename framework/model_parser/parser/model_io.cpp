@@ -13,7 +13,7 @@ NodeIO<Ttype, Dtype, Ptype>& NodeIO<Ttype, Dtype, Ptype>::operator>>(const NodeP
     node_p->need_wait() = node_proto.need_wait();
     node_p->lane() = node_proto.lane();
     auto it = node_proto.attr().begin();
-
+    DLOG(INFO)<<"read :"<<node_p->name();
     for (; it != node_proto.attr().end(); ++it) {
         auto& key = it->first;
         auto& value = it->second;
@@ -151,7 +151,7 @@ NodeIO<Ttype, Dtype, Ptype>& NodeIO<Ttype, Dtype, Ptype>::operator>>(const NodeP
                     cpu_data[i] = data.f()[i];
                 }
 
-#ifdef USE_CUDA
+#if defined(USE_CUDA) || defined(USE_AMD) 
                 //! map cpu data to GPU
                 //block->tensor().get_gpu_data();
                 block->d_tensor().set_shape(saber_shape);
@@ -337,6 +337,12 @@ template class NodeIO<NV, AK_FLOAT, Precision::FP16>;
 template class NodeIO<NV, AK_FLOAT, Precision::INT8>;
 #endif
 
+#ifdef USE_AMD
+template class NodeIO<AMD, AK_FLOAT, Precision::FP32>;
+template class NodeIO<AMD, AK_FLOAT, Precision::FP16>;
+template class NodeIO<AMD, AK_FLOAT, Precision::INT8>;
+#endif
+
 #ifdef USE_X86_PLACE
 template class NodeIO<X86, AK_FLOAT, Precision::FP32>;
 template class NodeIO<X86, AK_FLOAT, Precision::FP16>;
@@ -344,9 +350,18 @@ template class NodeIO<X86, AK_FLOAT, Precision::INT8>;
 #endif
 
 #ifdef USE_ARM_PLACE
+#ifdef ANAKIN_TYPE_FP32
 template class NodeIO<ARM, AK_FLOAT, Precision::FP32>;
+#endif
+
+#ifdef ANAKIN_TYPE_FP16
 template class NodeIO<ARM, AK_FLOAT, Precision::FP16>;
+#endif
+
+#ifdef ANAKIN_TYPE_INT8
 template class NodeIO<ARM, AK_FLOAT, Precision::INT8>;
+#endif
+
 #endif
 
 } /* parser */

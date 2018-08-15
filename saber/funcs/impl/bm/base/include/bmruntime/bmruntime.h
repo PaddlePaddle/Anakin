@@ -146,6 +146,7 @@ class bmruntime {
     //previous value or state
     int pre_net_num;
     int pre_m_device_mem_info_vec_size;  
+    int pre_m_device_mem_vec_size;  
 
     //append mem offset when appending another framework's context.
     vector<u64> apd_ctx_mem_offset;

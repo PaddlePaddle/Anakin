@@ -1,10 +1,6 @@
 #include "core/tensor.h"
 #include "env.h"
 
-#include "bmlib_runtime.h"
-#include "bmdnn_api.h"
-#include "bmlib_utils.h"
-
 #ifdef USE_BM
 const char* bmdnn_get_errorstring(bm_status_t error) {
     switch (error) {
@@ -41,6 +37,16 @@ typedef TargetWrapper<BM, __device_target> BM_API;
 static bm_handle_t handle;
 static bm_status_t init_handle{bmdnn_init(&handle)};
 
+bm_handle_t BM_API::get_handle() {
+    /*bm_handle_t handle;
+    int ret = 0;
+
+    ret = bm_dev_request(&handle, 0, devid);
+    CHECK_NE(ret, 0) << "request BM device failed: " << devid;
+    */
+    return handle;
+};
+
 void BM_API::get_device_count(int &count) {
     BMDNN_CHECK(bm_dev_getcount(&count));
 }
@@ -56,7 +62,7 @@ int BM_API::get_device_id(){
 }
         
 void BM_API::mem_alloc(void** ptr, size_t n){
-    handle = get_bm_handle();
+    //handle = BM_API::get_handle();
     /* bm_device_mem_t *mem = reinterpret_cast<struct bm_mem_desc *>(*ptr); */
     bm_device_mem_t *mem = new bm_device_mem_t();
     BMDNN_CHECK(bm_malloc_device_byte(handle, mem, n));
@@ -65,7 +71,7 @@ void BM_API::mem_alloc(void** ptr, size_t n){
         
 void BM_API::mem_free(void* ptr){
     if(ptr != nullptr){
-        handle = get_bm_handle();
+        //handle = BM_API::get_handle();
         bm_free_device(handle, *(struct bm_mem_desc*)(ptr));
         delete ptr;
     }
@@ -78,56 +84,80 @@ void BM_API::mem_set(void* ptr, int value, size_t n){
     //BMDNN_CHECK(bm_memset_device(handle, value, *pmem));
 }
 
-void BM_API::sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-    size_t count, __DtoD) {
-    handle = get_bm_handle(); 
+void BM_API::sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
+        size_t count, __DtoD) {
+    //handle = BM_API::get_handle(); 
     //BMDNN_CHECK(bm_memcpy_d2d(handle, bm_mem_from_device(dst), dst_id, bm_mem_from_device(src), src_id, count));
     BMDNN_CHECK(bm_memcpy_d2d(handle, *(bm_device_mem_t *)(dst), dst_id, *(bm_device_mem_t *)(src), src_id, count));
     LOG(INFO) << "BM sync_memcpy: device to device, finished";
 };
 
-void BM_API::sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-    size_t count, __HtoD) {
-    handle = get_bm_handle(); 
+void BM_API::sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
+        size_t count, __HtoD) {
+    //handle = BM_API::get_handle(); 
     BMDNN_CHECK(bm_memcpy_s2d(handle, *(bm_device_mem_t *)(dst), bm_mem_from_system(src)));
-
-    #ifdef DEBUG
-    for(int i=0; i<10; i++)
-	    LOG(INFO) << "HtoD src: " << *((float *)(src)+i);
-    #endif
-    
     LOG(INFO) << "BM sync_memcpy: host to device, finished";
 };
 
-void BM_API::sync_memcpy(void* dst, int dst_id, const void* src, int src_id, \
-    size_t count, __DtoH) {
-    handle = get_bm_handle(); 
+void BM_API::sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
+        size_t count, __DtoH) {
+    //handle = BM_API::get_handle(); 
     BMDNN_CHECK(bm_memcpy_d2s(handle, bm_mem_from_system(dst), *(bm_device_mem_t *)(src)));
-
-    #ifdef DEBUG
-    for(int i=0; i<10; i++)
-        LOG(INFO) << "DtoH dst: " << *((float *)(dst)+i);
-    #endif
-
     LOG(INFO) << "BM sync_memcpy: device to host, finished";
 };
 
-void BM_API::sync_memcpy_p2p(void* dst, int dst_dev, const void* src, \
-    int src_dev, size_t count) { 
-
-    LOG(INFO) << "BM sync_memcpy_p2p: temporarily no used";
+void BM_API::async_memcpy(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
+        size_t count, stream_t stream, __HtoD) {
+    LOG(WARNING) << "BM async_memcpy: currently using sync method";
+    sync_memcpy(dst, dst_offset, dst_id, src, src_offset, src_id, count, __HtoD());
 };
 
+void BM_API::async_memcpy(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
+        size_t count, stream_t stream, __DtoH) {
+    LOG(WARNING) << "BM async_memcpy: currently using sync method";
+    sync_memcpy(dst, dst_offset, dst_id, src, src_offset, src_id, count, __DtoH());
+};
 
-//! target wrapper
+void BM_API::async_memcpy(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
+        size_t count, stream_t stream, __DtoD) {
+    LOG(WARNING) << "BM async_memcpy: currently using sync method";
+    sync_memcpy(dst, dst_offset, dst_id, src, src_offset, src_id, count, __DtoD());
+};
+
+void BM_API::sync_memcpy_p2p(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
+        size_t count) { 
+
+    LOG(ERROR) << "BM sync_memcpy_p2p: temporarily no used";
+};
+
+void BM_API::async_memcpy_p2p(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
+        size_t count, stream_t stream) {
+
+    LOG(ERROR) << "BM async_memcpy_p2p: temporarily no used";
+};
+
+void BM_API::device_sync() {
+    LOG(ERROR) << "BM device_sync: temporarily no used";
+};
+
+//! BM TargetWrapper
 template struct TargetWrapper<BM, __device_target>;
 
 //! BM Buffer
 template class Buffer<BM>;
 
 //! BM Tensor
-INSTANTIATE_TENSOR(BM, AK_BM, NCHW);
+template class Tensor<BM>;
 
+//! BM Env
 template struct Env<BM>;
 
 #endif //USE_BM

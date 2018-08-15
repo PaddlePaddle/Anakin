@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -46,7 +46,6 @@ SABER_TO_BASE_TYPE(AK_UINT16, uint16_t);
 SABER_TO_BASE_TYPE(AK_UINT32, uint32_t);
 SABER_TO_BASE_TYPE(AK_BOOL, bool);
 SABER_TO_BASE_TYPE(AK_STRING, std::string);
-SABER_TO_BASE_TYPE(AK_BM, bm_device_mem_t);
 
 template<typename T>
 struct DataTypeRecover {
@@ -71,7 +70,6 @@ BASE_TYPE_TO_SABER(uint8_t, AK_UINT8);
 BASE_TYPE_TO_SABER(uint32_t, AK_UINT32);
 BASE_TYPE_TO_SABER(bool, AK_BOOL);
 BASE_TYPE_TO_SABER(std::string, AK_STRING);
-BASE_TYPE_TO_SABER(bm_device_mem_t, AK_BM);
 
 template<typename T>
 struct TypeWarpper {

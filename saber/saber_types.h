@@ -1,16 +1,17 @@
-/* Copyright (c) 2016 Anakin Authors All Rights Reserve.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+       http://www.apache.org/licenses/LICENSE-2.0
 
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License. */
+   limitations under the License.
+*/
 
 #ifndef ANAKIN_SABER_CORE_TYPES_H
 #define ANAKIN_SABER_CORE_TYPES_H
@@ -32,7 +33,9 @@ enum TargetTypeEnum {
     eX86 = 4,
     eNVHX86 = 5,
     eNVHARM = 6,
-    eBM = 7
+    eBM = 7,
+    eARMGPU = 8,
+    eARMDSP
 };
 
 template <TargetTypeEnum T>
@@ -40,6 +43,7 @@ struct TargetType {};
 // NV device without pinned memory
 typedef TargetType<eNV> NV;
 typedef TargetType<eARM> ARM;
+typedef TargetType<eARMGPU> ARMGPU;
 typedef TargetType<eAMD> AMD;
 typedef TargetType<eX86> X86;
 // NV device with pinned memory
@@ -50,25 +54,104 @@ typedef TargetType<eBM> BM;
 // invalid target type, for target has only one memory block
 typedef TargetType<eINVALID> INVLD;
 
+enum LayoutType {
+    Layout_invalid = 0,
+    Layout_W = 1,
+    Layout_HW = 2,
+    Layout_WH = 3,
+    Layout_NW = 4,
+    Layout_NHW = 5,
+    Layout_NCHW = 6,
+    Layout_NHWC = 7,
+    Layout_NCHW_C4 = 8,
+    Layout_NCHW_C8 = 9,
+    Layout_NCHW_C16 = 10
+};
+
 //! target_type struct
-struct W{};
-struct HW{};
-struct WH{};
-struct NW{};
-struct NHW{};
-struct NCHW{};
-struct NHWC{};
-struct NCHW_C4{};
-struct NCHW_C8{};
-struct NCHW_C16{};
-struct OIHW16I16O {};
-struct GOIHW16I16O {};
-//!target_category struct
-struct _5D{};
-struct _4D{};
-struct _3D{};
-struct _2D{};
-struct _1D{};
+struct Layout {
+    virtual int num_index() {return -1;}
+    virtual int channel_index() {return -1;}
+    virtual int height_index() {return -1;}
+    virtual int width_index() {return -1;}
+    virtual int depth_index() {return -1;}
+    virtual int inner_c() {return -1;}
+    virtual int dims() {return -1;}
+    virtual LayoutType type() {return Layout_invalid;}
+};
+struct W : public Layout {
+    int width_index() {return 0;}
+    int dims() {return 1;}
+    LayoutType type() {return Layout_W;}
+};
+struct HW : public Layout {
+    int height_index() {return 0;}
+    int width_index() {return 1;}
+    int dims() {return 2;}
+    LayoutType type() {return Layout_HW;}
+};
+struct WH : public Layout {
+    int height_index() {return 1;}
+    int width_index() {return 0;}
+    int dims() {return 2;}
+    LayoutType type() {return Layout_WH;}
+};
+struct NW : public Layout {
+    int num_index() {return 0;}
+    int width_index() {return 1;}
+    int dims() {return 2;}
+    LayoutType type() {return Layout_NW;}
+};
+struct NHW : public Layout {
+    int num_index() {return 0;}
+    int height_index() {return 1;}
+    int width_index() {return 2;}
+    int dims() {return 3;}
+    LayoutType type() {return Layout_NHW;}
+};
+struct NCHW : public Layout {
+    int num_index() {return 0;}
+    int channel_index() {return 1;}
+    int height_index() {return 2;}
+    int width_index() {return 3;}
+    int dims() {return 4;}
+    LayoutType type() {return Layout_NCHW;}
+};
+struct NHWC : public Layout {
+    int num_index() {return 0;}
+    int height_index() {return 1;}
+    int width_index() {return 2;}
+    int channel_index() {return 3;}
+    int dims() {return 4;}
+    LayoutType type() {return Layout_NHWC;}
+};
+struct NCHW_C4 : public Layout {
+    int num_index() {return 0;}
+    int channel_index() {return 1;}
+    int height_index() {return 2;}
+    int width_index() {return 3;}
+    int inner_c() {return 4;}
+    int dims() {return 5;}
+    LayoutType type() {return Layout_NCHW_C4;}
+};
+struct NCHW_C8 : public Layout {
+    int num_index() {return 0;}
+    int channel_index() {return 1;}
+    int height_index() {return 2;}
+    int width_index() {return 3;}
+    int inner_c() {return 8;}
+    int dims() {return 5;}
+    LayoutType type() {return Layout_NCHW_C8;}
+};
+struct NCHW_C16 : public Layout {
+    int num_index() {return 0;}
+    int channel_index() {return 1;}
+    int height_index() {return 2;}
+    int width_index() {return 3;}
+    int inner_c() {return 16;}
+    int dims() {return 5;}
+    LayoutType type() {return Layout_NCHW_C16;}
+};
 
 enum DataType {
     AK_INVALID      =       -1,
@@ -85,8 +168,7 @@ enum DataType {
     AK_STRING       =       10,
     AK_BOOL         =       11,
     AK_SHAPE        =       12,
-    AK_TENSOR       =       13,
-    AK_BM           =       14
+    AK_TENSOR       =       13
 };
 
 typedef enum {
@@ -108,16 +190,54 @@ typedef enum{
     UNKNOWN = 4
 }SaberImplStrategy;
 
+
+//should design this one for pick_best_specify()
+enum ImplEnum{
+    VENDER_IMPL = 0,
+    SABER_IMPL
+};
+
+enum SequencePoolType{
+    Sequence_pool_unknow = 0,
+    Sequence_pool_average,
+    Sequence_pool_sum,
+    Sequence_pool_sqrt,
+    Sequence_pool_last,
+    Sequence_pool_first,
+    Sequence_pool_max
+};
+
+template <typename opTensor>
+struct TransposeParam {
+    TransposeParam() = default;
+    TransposeParam(const TransposeParam& right){}
+    TransposeParam& operator=(const TransposeParam& right){}
+    bool operator==(const TransposeParam& right){
+        return true;
+    }
+};
+/**
+ * GRU_Formula,origin for paddle,Cudnn for cudnn,difference is w_h_r and weighted mean
+ * weight for origin is [W_h_o][W_h_r,W_h_z]
+ * weight for cudnn is [W_h_o,W_h_r,W_h_z]
+ */
+enum GruFormula {
+    GRU_ORIGIN = 0,
+    GRU_CUDNN
+};
+
 typedef enum{
     Active_unknow = 0,
     Active_sigmoid = 1,
     Active_relu = 2,
     Active_tanh = 3,
     Active_clipped_relu = 4,
-    Active_elu=5,
-    Active_identity=6,
-    Active_sigmoid_fluid=7,
-    Active_tanh_fluid=8
+    Active_elu = 5,
+    Active_identity = 6,
+    Active_sigmoid_fluid = 7,
+    Active_tanh_fluid = 8,
+    Active_stanh = 9,
+    Active_prelu = 10
 
 } ActiveType;
 
@@ -153,29 +273,6 @@ enum CodeType {
 };
 
 typedef enum {
-    ATRS_NormType_NONE = 0,
-    ATRS_NormType_WIDTH = 1,
-    ATRS_NormType_HEIGHT = 2,
-    ATRS_NormType_WIDTH_LOG = 3,
-    ATRS_NormType_HEIGHT_LOG = 4,
-} ATRS_NormType;
-
-typedef enum {
-    DetectionOutputSSD_HEIGHT_AND_WIDTH = 0,
-    DetectionOutputSSD_HEIGHT_OR_WIDTH = 1
-} DetectionOutputSSD_MIN_SIZE_MODE;
-
-typedef enum {
-    ProposalImgScaleToCamCoords_NormType_HEIGHT = 0,
-    ProposalImgScaleToCamCoords_NormType_HEIGHT_LOG = 1
-} ProposalImgScaleToCamCoords_NormType;
-
-typedef enum {
-    ProposalImgScaleToCamCoords_OrienType_PI = 0,
-    ProposalImgScaleToCamCoords_OrienType_PI2 = 1
-} ProposalImgScaleToCamCoords_OrienType;
-
-typedef enum {
     SABER_POWER_HIGH = 0,
     SABER_POWER_LOW  = 1,
     SABER_POWER_FULL = 2
@@ -185,6 +282,18 @@ typedef enum {
     BORDER_CONSTANT = 0,
     BORDER_REPLICATE
 } BorderType;
+
+typedef enum {
+    PRIOR_MIN = 0,
+    PRIOR_MAX = 1,
+    PRIOR_COM = 2
+} PriorType;
+
+typedef enum{
+    RANDOM=0,
+    SPECIAL,
+    CUSTOM
+} TestDataType;
 
 } //namespace saber
 

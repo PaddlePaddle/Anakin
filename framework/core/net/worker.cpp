@@ -41,6 +41,7 @@ struct NetGraphWrapper {
             return _thread_to_net[id];
         }
         LOG(FATAL) << " target key(thread_id) not found in NetGraphWrapper";
+        return _thread_to_net[id];
     }
     
 private:
@@ -92,14 +93,17 @@ template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
 std::vector<Tensor4dPtr<Ttype, Dtype> > Worker<Ttype, Dtype, Ptype, RunType>::sync_prediction(std::vector<Tensor4dPtr<typename target_host<Ttype>::type, Dtype> >& net_ins_list) {
     auto task = [&](std::vector<Tensor4dPtr<typename target_host<Ttype>::type, Dtype> >& ins) -> std::vector<Tensor4dPtr<Ttype, Dtype> > {
         auto& net = MultiThreadModel<Ttype, Dtype, Ptype, RunType>::Global().get_net(std::this_thread::get_id()); 
-        //fill the graph inputs 
+        //fill the graph inputs
+
         for(int i = 0; i < _inputs_in_order.size(); i++) { 
-            auto d_tensor_in_p = net.get_in(_inputs_in_order[i]); 
-            d_tensor_in_p->copy_from(*ins[i]); 
+            auto d_tensor_in_p = net.get_in(_inputs_in_order[i]);
+            d_tensor_in_p->reshape(ins[i]->valid_shape());
+            d_tensor_in_p->copy_from(*ins[i]);
+            d_tensor_in_p->set_seq_offset(ins[i]->get_seq_offset());
         } 
 #ifdef ENABLE_OP_TIMER
-        Context<NV> ctx(0, 0, 0); 
-        saber::SaberTimer<NV> my_time;
+        Context<Ttype> ctx(0, 0, 0); 
+        saber::SaberTimer<Ttype> my_time;
         my_time.start(ctx);
 #endif
         net.prediction(); 
@@ -119,7 +123,7 @@ std::vector<Tensor4dPtr<Ttype, Dtype> > Worker<Ttype, Dtype, Ptype, RunType>::sy
         }
 
         return ret; 
-    }; 
+    };
     return this->RunSync(task, net_ins_list);
 }
 
@@ -153,7 +157,9 @@ void Worker<Ttype, Dtype, Ptype, RunType>::async_prediction(std::vector<Tensor4d
             //fill the graph inputs
             for(int i = 0; i < _inputs_in_order.size(); i++) {
                 auto d_tensor_in_p = net.get_in(_inputs_in_order[i]);
+                d_tensor_in_p->reshape(ins[i]->valid_shape());
                 d_tensor_in_p->copy_from(*ins[i]);
+                d_tensor_in_p->set_seq_offset(ins[i]->get_seq_offset());
             }
 
             net.prediction();
@@ -210,15 +216,34 @@ template class Worker<X86, AK_FLOAT, Precision::FP16, OpRunType::SYNC>;
 template class Worker<X86, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
 #endif
 
-#ifdef USE_ARM_PLACE
-template class Worker<ARM, AK_FLOAT, Precision::FP32, OpRunType::ASYNC>;
-template class Worker<ARM, AK_FLOAT, Precision::FP16, OpRunType::ASYNC>;
-template class Worker<ARM, AK_FLOAT, Precision::INT8, OpRunType::ASYNC>;
+#ifdef USE_AMD
+template class Worker<AMD, AK_FLOAT, Precision::FP32, OpRunType::ASYNC>;
+template class Worker<AMD, AK_FLOAT, Precision::FP16, OpRunType::ASYNC>;
+template class Worker<AMD, AK_FLOAT, Precision::INT8, OpRunType::ASYNC>;
 
+template class Worker<AMD, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
+template class Worker<AMD, AK_FLOAT, Precision::FP16, OpRunType::SYNC>;
+template class Worker<AMD, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
+#endif
+
+#ifdef USE_ARM_PLACE
+
+#ifdef ANAKIN_TYPE_FP32
+template class Worker<ARM, AK_FLOAT, Precision::FP32, OpRunType::ASYNC>;
 template class Worker<ARM, AK_FLOAT, Precision::FP32, OpRunType::SYNC>;
+#endif
+
+#ifdef ANAKIN_TYPE_FP16
+template class Worker<ARM, AK_FLOAT, Precision::FP16, OpRunType::ASYNC>;
 template class Worker<ARM, AK_FLOAT, Precision::FP16, OpRunType::SYNC>;
+#endif
+
+#ifdef ANAKIN_TYPE_INT8
+template class Worker<ARM, AK_FLOAT, Precision::INT8, OpRunType::ASYNC>;
 template class Worker<ARM, AK_FLOAT, Precision::INT8, OpRunType::SYNC>;
 #endif
+
+#endif //arm
 
 } /* namespace */
 

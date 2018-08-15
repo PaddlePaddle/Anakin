@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 // define an operation of anain.
-message OpProto {
+message OpsProto {
     // operator name.
     string name = 1;
 

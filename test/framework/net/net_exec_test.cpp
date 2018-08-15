@@ -3,34 +3,24 @@
 #include "saber/funcs/timer.h"
 #include <chrono>
 
+#if defined(USE_CUDA)
+using Target = NV;
+using Target_H = X86;
+#elif defined(USE_X86_PLACE)
+using Target = X86;
+using Target_H = X86;
+#elif defined(USE_ARM_PLACE)
+using Target = ARM;
+using Target_H = ARM;
+#elif defined(USE_AMD)
+using Target = AMD;
+using Target_H = X86;
+#endif
+
 //#define USE_DIEPSE
 
-//std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/diepsie_light_head.anakin.bin";
-
-//std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/diepsie_light_head_base.anakin.bin";
-
-
-//std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/densebox.anakin.bin";
-
-//std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/cnn_seg.anakin.bin";
-
-//std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/yolo_camera_detector.anakin.bin";
-
-//std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/yolo_lane_v2.anakin.bin";
-
-// alignment of face
-//std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/net_deploy_stageI.anakin.bin";
-
-//std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/net_deploy_stageII.anakin.bin";
-
-// residual 7 patch of face
-//std::string model_path = "/home/chaowen/anakin_v2/model_v2/anakin-models/adu/anakin_models/diepsie_light_head/residual_net_7patch_3hc.anakin.bin";
-
-// resnet 50
-//std::string model_path = "/home/cuichaowen/anakin2/anakin2/benchmark/CNN/mobilenet_v2.anakin.bin";
-
 // vgg16
-std::string model_path = "/home/cuichaowen/anakin2/anakin2/benchmark/CNN/models/vgg16.anakin.bin";
+std::string model_path = "../benchmark/CNN/models/vgg16.anakin.bin";
 
 #ifdef USE_CUDA
 #if 1
@@ -45,18 +35,20 @@ TEST(NetTest, net_execute_base_test) {
 
     // reshape the input_0 's shape for graph model
     //graph->Reshape("input_0", {1, 8, 640, 640});
+	//graph->ResetBatchSize("input_0", 2);
 
     // register all tensor inside graph
-    //graph->RegistAllOut();
-	
+    // graph->RegistAllOut();
+
     // register edge
     // graph->RegistOut("conv2_2/expand/scale", "relu2_2/expand");
+	// graph->RegistOut("relu#3(conv2d_0)","pool2d#4(pool2d_0)");
 
     //anakin graph optimization
     graph->Optimize();
 
     // constructs the executer net
-	{ // inner scope
+	//{ // inner scope
 #ifdef USE_DIEPSE
     Net<NV, AK_FLOAT, Precision::FP32, OpRunType::SYNC> net_executer(*graph, true);
 #else
@@ -65,7 +57,7 @@ TEST(NetTest, net_execute_base_test) {
 
     // get in
     auto d_tensor_in_p = net_executer.get_in("input_0");
-    Tensor4d<X86, AK_FLOAT> h_tensor_in;
+    Tensor4d<Target_H, AK_FLOAT> h_tensor_in;
 
     auto valid_shape_in = d_tensor_in_p->valid_shape();
     for (int i=0; i<valid_shape_in.size(); i++) {
@@ -146,7 +138,7 @@ TEST(NetTest, net_execute_base_test) {
 #ifdef USE_CUDA
 	cudaDeviceSynchronize();
 #endif
-    
+
     for (int i = 0; i < 3; i++) {
     	net_executer.execute_start_from_node("relu2_2/expand");
     }
@@ -163,11 +155,12 @@ TEST(NetTest, net_execute_base_test) {
     my_time.end(ctx);
     LOG(INFO)<<"aveage time "<<my_time.get_average_ms()/epoch << " ms";
 
-	} // inner scope over
+	//} // inner scope over
 
 	LOG(ERROR) << "inner net exe over !";
 
     //auto& tensor_out_inner_p = net_executer.get_tensor_from_edge("data_perm", "conv1");
+	
 
     // get out yolo_v2
     /*auto tensor_out_0_p = net_executer.get_out("loc_pred_out");
@@ -184,16 +177,24 @@ TEST(NetTest, net_execute_base_test) {
 	auto tensor_out_4_p = net_executer.get_out("class_score_out");
 	auto tensor_out_5_p = net_executer.get_out("heading_pt_out");
 	auto tensor_out_6_p = net_executer.get_out("height_pt_out");*/
+
+	// restnet 101
+ 	//auto tensor_out_0_p = net_executer.get_out("elementwise_add_0.tmp_0_out");
+	auto tensor_out_0_p = net_executer.get_out("prob_out");
+
+	//auto tensor_out_0_p = net_executer.get_out("detection_output_0.tmp_0_out");
+
     // get out result
-    //test_print<NV>(tensor_out_4_p);
+    //LOG(WARNING)<< "result avg: " << tensor_average(tensor_out_0_p);
+	test_print(tensor_out_0_p);
 
 
     // save the optimized model to disk.
-    /*std::string save_model_path = model_path + std::string(".saved");
+    std::string save_model_path = model_path + std::string(".saved");
     status = graph->save(save_model_path);
     if (!status ) { 
         LOG(FATAL) << " [ERROR] " << status.info(); 
-    }*/
+    }
 }
 #endif 
 #endif
@@ -265,6 +266,8 @@ TEST(NetTest, net_execute_reconstruction_test) {
 #endif
 
 int main(int argc, const char** argv){
+
+	Env<Target>::env_init();
     // initial logger
     logger::init(argv[0]);
 	InitTest();

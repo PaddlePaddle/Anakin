@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -22,6 +22,17 @@ namespace anakin{
 namespace saber{
 
 DEFINE_OP_CLASS(Activation, ActivationParam);
+//template <typename TargetType, \
+//    DataType OpDtype = AK_FLOAT,> \
+//class SaberActivation : public ImplBase<TargetType, OpDtype, ActivationParam <TargetType> > {}; \
+//\
+//template <typename TargetType, \
+//    DataType OpDtype = AK_FLOAT,> \
+//class VenderActivation : public ImplBase< \
+//    TargetType, OpDtype,\
+//    ActivationParam <TargetType> > {};
+
+
 
 }
 }
