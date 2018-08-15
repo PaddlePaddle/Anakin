@@ -30,7 +30,7 @@
 #endif
 
 #ifdef USE_BM
-#include "saber/funcs/impl/bm/vender_conv.h"
+//#include "saber/funcs/impl/bm/vender_conv.h"
 #endif
 
 #ifdef USE_ARM_PLACE
