@@ -115,11 +115,13 @@ class Graph(object):
                 proto = self.get_node_by_name(graph_in)
                 attr['name'] = graph_in
                 attr['shape'] = proto.attr['input_shape'].cache_list.i
+                attr['type'] = proto.attr['data_type'].s
+                attr['alias'] = proto.attr['alias'].s
                 ins.append(attr)
             return ins
 
         for attr in ins_attr():
-            in_table.add_row([attr['name'], attr['shape'], '', ''])
+            in_table.add_row([attr['name'], attr['shape'], attr['alias'], attr['type']])
         for out_name in self.outs():
             out_table.add_row([out_name])
 
