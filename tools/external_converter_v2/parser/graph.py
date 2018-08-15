@@ -38,19 +38,19 @@ class Graph(object):
         self.graph_io = self.parser()
         self.config = config
 
-    def get_in(self):
+    def ins(self):
         """
         Get input list of GraphProto (node name string list).
         """
         return self.graph_io.ins()
 
-    def get_out(self):
+    def outs(self):
         """
         Get output list of GraphProto (node name string list).
         """
         return self.graph_io.outs()
 
-    def get_node_by_name(self):
+    def get_node_by_name(self, node_name):
         """
         Get the node according to it's name string.
         """
