@@ -31,6 +31,15 @@ SaberStatus SaberConcat::load_param(const ParamBase *param) {
     return SaberSuccess;
 }
 
+SaberStatus SaberConcat::load_param(std::istream &stream, const float *weights) {
+    int axis;
+    stream >> axis;
+    _param = new ConcatParam(axis);
+    this->_flag_create_param = true;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+#if 0
 SaberStatus SaberConcat::load_param(FILE *fp, const float *weights) {
     int axis;
     fscanf(fp, "%d\n", &axis);
@@ -39,7 +48,7 @@ SaberStatus SaberConcat::load_param(FILE *fp, const float *weights) {
     this->_flag_param = true;
     return SaberSuccess;
 }
-
+#endif
 SaberStatus SaberConcat::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                               std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
 

@@ -1,6 +1,5 @@
 #include "test_lite.h"
 #include "saber/lite/net/net_lite.h"
-#include "saber/lite/net/saber_factory_lite.h"
 
 using namespace anakin::saber;
 using namespace anakin::saber::lite;
@@ -15,21 +14,30 @@ int FLAGS_cluster = 0;
 
 TEST(TestSaberLite, test_lite_model) {
 
-//    std::vector<std::string> ops = OpRegistry::LayerTypeList();
-//    LOG(ERROR) << "total ops: " << ops.size();
-//    for (int i = 0; i < ops.size(); ++i) {
-//        LOG(ERROR) << ops[i];
-//    }
-
     //! create net, with power mode and threads
     Net net((PowerMode)FLAGS_cluster, FLAGS_threads);
     //! you can also set net param according to your device
     //net.set_run_mode((PowerMode)FLAGS_cluster, FLAGS_threads);
     //net.set_device_cache(32000, 2000000);
-    //! load model
-    SaberStatus flag = net.load_model(lite_model.c_str());
+
+    //! load model from memory
+    std::fstream fp_merge(lite_model, std::ios::in | std::ios::binary);
+
+    fp_merge.seekg (0, std::ios::end);
+    long long len_merge = fp_merge.tellg();
+    fp_merge.seekg (0, std::ios::beg);
+
+    char* merge_ptr = static_cast<char*>(fast_malloc(len_merge));
+
+    fp_merge.read(merge_ptr, len_merge);
+
+    //SaberStatus flag = net.load_model(lite_info.c_str(), lite_weights.c_str());
+    SaberStatus flag = net.load_model(merge_ptr, len_merge);
+
     CHECK_EQ(flag, SaberSuccess) << "load model: " << lite_model << " failed";
     LOG(INFO) << "load model: " << lite_model << " successed";
+
+    fast_free(fp_merge);
 
     std::vector<TensorHf*> vtin = net.get_input();
     LOG(INFO) << "number of input tensor: " << vtin.size();
@@ -94,7 +102,7 @@ TEST(TestSaberLite, test_lite_model) {
         }
     }
     my_time.end();
-    LOG(INFO) << lite_model << " batch_size " << FLAGS_num << " average time " << to / FLAGS_epoch << \
+    LOG(INFO) << lite_model << ", batch_size " << FLAGS_num << " average time " << to / FLAGS_epoch << \
             ", min time: " << tmin << "ms, max time: " << tmax << " ms";
 #ifdef ENABLE_OP_TIMER
     OpTimer::print_timer();
@@ -113,7 +121,7 @@ int main(int argc, const char** argv){
     LOG(INFO)<< "   cluster:        choose which cluster to run, 0: big cores, 1: small cores";
     LOG(INFO)<< "   threads:        set openmp threads";
     if(argc < 2) {
-        LOG(ERROR) << "You should fill in the variable lite model at least.";
+        LOG(ERROR) << "You should fill in the variable lite model and lite weights at least.";
         return 0;
     }
     lite_model = argv[1];

@@ -173,6 +173,15 @@ SaberStatus SaberSoftmax::load_param(const ParamBase *param) {
     return SaberSuccess;
 }
 
+SaberStatus SaberSoftmax::load_param(std::istream &stream, const float *weights) {
+    int axis;
+    stream >> axis;
+    _param = new SoftmaxParam(axis);
+    this->_flag_create_param = true;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+#if 0
 SaberStatus SaberSoftmax::load_param(FILE *fp, const float* weights) {
     int axis;
     fscanf(fp, "%d\n", &axis);
@@ -181,7 +190,7 @@ SaberStatus SaberSoftmax::load_param(FILE *fp, const float* weights) {
     this->_flag_param = true;
     return SaberSuccess;
 }
-
+#endif
 SaberStatus SaberSoftmax::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                                std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
     if (!this->_flag_param) {

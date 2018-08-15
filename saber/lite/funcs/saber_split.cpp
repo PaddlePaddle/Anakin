@@ -10,11 +10,15 @@ SaberStatus SaberSplit::load_param(const ParamBase *param) {
     return SaberSuccess;
 }
 
+SaberStatus SaberSplit::load_param(std::istream &stream, const float *weights) {
+    return SaberSuccess;
+}
+#if 0
 SaberStatus SaberSplit::load_param(FILE *fp, const float* weights) {
     fscanf(fp, "\n");
     return SaberSuccess;
 }
-
+#endif
 SaberStatus SaberSplit::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                              std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
     for (int i = 0; i < outputs.size(); ++i) {

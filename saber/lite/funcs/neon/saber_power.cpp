@@ -32,6 +32,17 @@ SaberPower::~SaberPower() {
     }
 }
 
+SaberStatus SaberPower::load_param(std::istream &stream, const float *weights) {
+    float scale;
+    float shift;
+    float power;
+    stream >> scale >> shift >> power;
+    _param = new PowerParam(scale, shift, power);
+    this->_flag_create_param = true;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+#if 0
 SaberStatus SaberPower::load_param(FILE *fp, const float *weights) {
     float scale;
     float shift;
@@ -42,7 +53,7 @@ SaberStatus SaberPower::load_param(FILE *fp, const float *weights) {
     this->_flag_param = true;
     return SaberSuccess;
 }
-
+#endif
 SaberStatus SaberPower::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                                std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
 

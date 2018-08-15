@@ -19,9 +19,18 @@ Status PriorBoxHelper<Ttype, Dtype, Ptype>::InitParam() {
     DLOG(WARNING) << "Parsing PriorBox op parameter.";
     auto min_size_ = GET_PARAMETER(PTuple<float>, min_size);
     //add new parameter
-    auto fixed_size_ = GET_PARAMETER(PTuple<float>, fixed_size);
-    auto fixed_ratio_ = GET_PARAMETER(PTuple<float>, fixed_ratio);
-    auto density_ = GET_PARAMETER(PTuple<float>, density);
+    PTuple<float> fixed_size_;
+    if (FIND_PARAMETER(fixed_size)) {
+        fixed_size_ = GET_PARAMETER(PTuple<float>, fixed_size);
+    }
+    PTuple<float> fixed_ratio_;
+    if (FIND_PARAMETER(fixed_ratio)) {
+        fixed_ratio_ = GET_PARAMETER(PTuple<float>, fixed_ratio);;
+    }
+    PTuple<float> density_;
+    if (FIND_PARAMETER(density)) {
+        auto density_ = GET_PARAMETER(PTuple<float>, density);
+    }
     //end
     auto max_size_ = GET_PARAMETER(PTuple<float>, max_size);
     auto as_ratio  = GET_PARAMETER(PTuple<float>, aspect_ratio);

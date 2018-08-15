@@ -52,7 +52,7 @@ std::string ParserConvolution(graph::AttrInfo& attr,
     CodeWritter code_w;
     if (gen_param) {
         // gen cpp code
-        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
+        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
                     weights_size,
                     num_output,
                     group,
@@ -109,7 +109,7 @@ std::string ParserPower(graph::AttrInfo& attr,
         CodeWritter code_w;
 
         if (gen_param) {
-            code_w.feed("%f,%f,%f\n", scale, shift, power);
+            code_w.feed("%f %f %f\n", scale, shift, power);
         } else {
             code_w.feed("ParamBase* %s_param = new PowerParam(%f,%f,%f);\n", node_name.c_str(), scale, shift, power);
             code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
@@ -152,7 +152,7 @@ std::string ParserDeconvolution(graph::AttrInfo& attr,
     // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
+        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
                     weights_size,
                     num_output,
                     group,
@@ -228,7 +228,7 @@ std::string ParserConvolutionRelu(graph::AttrInfo& attr,
 	// gen cpp code
 	CodeWritter code_w;
     if(gen_param) {
-        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
+        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
                     weights_size,
                     num_output,
                     group,
@@ -324,7 +324,7 @@ std::string ParserConvolutionReluPool(graph::AttrInfo& attr,
     // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
+        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
                     weights_size,
                     num_output,
                     group,
@@ -450,7 +450,7 @@ std::string ParserConvBatchnorm(graph::AttrInfo& attr,
     // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
+        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
                     weights_size,
                     num_output,
                     group,
@@ -570,7 +570,7 @@ std::string ParserConvBatchnormScale(graph::AttrInfo& attr,
 	// gen cpp code
 	CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
+        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
                     weights_size,
                     num_output,
                     group,
@@ -691,7 +691,7 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
 	// gen cpp code
 	CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
+        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
                     weights_size,
                     num_output,
                     group,
@@ -834,7 +834,7 @@ std::string ParserConvBatchnormScaleReluPool(graph::AttrInfo& attr,
     // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
+        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
                     weights_size,
                     num_output,
                     group,
@@ -949,7 +949,7 @@ std::string ParserDectionOutput(graph::AttrInfo& attr,
     // gen cpp code
 	CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d,%f,%d,%d,%d,%d,%f,%f,%d,%d\n",
+        code_w.feed("%d %f %d %d %d %d %f %f %d %d\n",
                     classes_num,
                     conf_thresh,
                     nms_top_k,
@@ -1017,7 +1017,7 @@ std::string ParserEltwise(graph::AttrInfo& attr,
 	// gen cpp code
 	CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d, %d ", (int)et_type,
+        code_w.feed("%d %d ", (int)et_type,
                     coeff.size());
         for (int i = 0; i < coeff.size(); ++i) {
             code_w << coeff[i] << " ";
@@ -1052,7 +1052,7 @@ std::string ParserActivation(graph::AttrInfo& attr,
     CodeWritter code_w;
 	if (type == "TanH") {
         if (gen_param) {
-            code_w << (int)Active_tanh << "," << 0.f << "," << 0.f << "," << 0 << "," << 0 << "\n";
+            code_w << (int)Active_tanh << " " << 0.f << " " << 0.f << " " << 0 << " " << 0 << "\n";
         } else {
             act_type = "Active_tanh";
             code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
@@ -1063,7 +1063,7 @@ std::string ParserActivation(graph::AttrInfo& attr,
 
 	} else if (type == "Sigmoid") {
         if (gen_param) {
-            code_w << (int)Active_sigmoid << "," << 0.f << "," << 0.f << "," << 0 << "," << 0 << "\n";
+            code_w << (int)Active_sigmoid << " " << 0.f << " " << 0.f << " " << 0 << " " << 0 << "\n";
         } else {
             act_type = "Active_sigmoid";
             code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
@@ -1075,7 +1075,7 @@ std::string ParserActivation(graph::AttrInfo& attr,
 
     } else if (type == "ReLU") {
         if (gen_param) {
-            code_w << (int)Active_relu << "," << 0.f << "," << 0.f << "," << 0 << "," << 0 << "\n";
+            code_w << (int)Active_relu << " " << 0.f << " " << 0.f << " " << 0 << " " << 0 << "\n";
         } else {
             act_type = "Active_relu";
             code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
@@ -1096,8 +1096,8 @@ std::string ParserActivation(graph::AttrInfo& attr,
 
         auto offset_info = writter.get_weights_by_name(node_name);
         if (gen_param) {
-            code_w << (int)Active_prelu << "," << 0.f << "," << 0.f << "," << \
-                (prelu_channel_shared ? 1 : 0) << "," << offset_info.weights[0].offset << "\n";
+            code_w << (int)Active_prelu << " " << 0.f << " " << 0.f << " " << \
+                (prelu_channel_shared ? 1 : 0) << " " << offset_info.weights[0].offset << "\n";
         } else {
             code_w.feed("ParamBase* %s_param = new ActivationParam(%s, %f, %f, %s, %s+%d);\n",
                         node_name.c_str(),
@@ -1131,7 +1131,7 @@ std::string ParserRelu(graph::AttrInfo& attr,
 	// gen cpp code
 	CodeWritter code_w;
     if (gen_param) {
-        code_w << (int)Active_relu << "," << 0.f << "," << 0.f << "," << 0 << "," << 0 << "\n";
+        code_w << (int)Active_relu << " " << 0.f << " " << 0.f << " " << 0 << " " << 0 << "\n";
     } else {
         code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
                     node_name.c_str(),
@@ -1168,7 +1168,7 @@ std::string ParserFc(graph::AttrInfo& attr,
 	// gen cpp code
 	CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d,%d,%d,%d,%d,%d\n",
+        code_w.feed("%d %d %d %d %d %d\n",
                     axis,
                     out_dim,
                     bias_term ? 1 : 0,
@@ -1260,7 +1260,7 @@ std::string ParserPooling(graph::AttrInfo& attr,
 	// gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d,%d,%d,%d,%d,%d,%d,%d\n",
+        code_w.feed("%d %d %d %d %d %d %d %d\n",
                     (int)pool_type,
                     global_pooling ? 1 : 0,
                     pool_size[1],
@@ -1304,8 +1304,8 @@ std::string ParserPrelu(graph::AttrInfo& attr,
 	// gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w << (int)Active_prelu << "," << 0.f << "," << 0.f << "," << \
-                (channel_shared ? 1 : 0) << "," << offset_info.weights[0].offset << "\n";
+        code_w << (int)Active_prelu << " " << 0.f << " " << 0.f << " " << \
+                (channel_shared ? 1 : 0) << " " << offset_info.weights[0].offset << "\n";
     } else {
         code_w.feed("ParamBase* %s_param = new ActivationParam(%s, %f, %f, %s, %s+%d);\n",
                         node_name.c_str(),
@@ -1334,9 +1334,22 @@ std::string ParserPriorBox(graph::AttrInfo& attr,
     auto max_size  = get_attr<PTuple<float>>("max_size", attr); 
     auto as_ratio  = get_attr<PTuple<float>>("aspect_ratio", attr);
     //add
-    auto fixed_size  = get_attr<PTuple<float>>("fixed_size", attr); 
-    auto fixed_ratio  = get_attr<PTuple<float>>("fixed_ratio", attr); 
-    auto density  = get_attr<PTuple<float>>("density", attr);
+    std::vector<float> fixed_size, fixed_ratio, density;
+    if (find_attr("fixed_size", attr) == SaberSuccess) {
+        LOG(ERROR) << "not exit";
+        auto fix_size  = get_attr<PTuple<float>>("fixed_size", attr);
+        fixed_size = fix_size.vector();
+    }
+
+    if (find_attr("fixed_ratio", attr) == SaberSuccess) {
+        auto fix_ratio  = get_attr<PTuple<float>>("fixed_ratio", attr);
+        fixed_ratio = fix_ratio.vector();
+    }
+
+    if (find_attr("density", attr) == SaberSuccess) {
+        auto den = get_attr<PTuple<float>>("density", attr);
+        density = den.vector();
+    }
 
     auto flip_flag = get_attr<bool>("is_flip", attr); 
     auto clip_flag = get_attr<bool>("is_clip", attr); 
@@ -1415,8 +1428,7 @@ std::string ParserPriorBox(graph::AttrInfo& attr,
         for (int i = 0; i < var.size(); ++i) {
             code_w << var[i] << " ";
         }
-        code_w.feed(",%d,%d,%d,%d,%f,%f,%f,%d,%d,%d",
-                    gen_vec_code(var).c_str(),
+        code_w.feed("%d %d %d %d %f %f %f %d %d %d ",
                     flip_flag ? 1 : 0,
                     clip_flag ? 1 : 0,
                     image_w,
@@ -1426,31 +1438,30 @@ std::string ParserPriorBox(graph::AttrInfo& attr,
                     offset,
                     (int)order_[0], (int)order_[1], (int)order_[2]);
 
-        code_w << ", " << min_size.size() << " ";
+        code_w << min_size.size() << " ";
         for (int i = 0; i < min_size.size(); ++i) {
             code_w << min_size[i] << " ";
         }
-        code_w << ", " << max_size.size() << " ";
+        code_w << max_size.size() << " ";
         for (int i = 0; i < max_size.size(); ++i) {
             code_w << max_size[i] << " ";
         }
-        code_w << ", " << as_ratio.size() << " ";
+        code_w << as_ratio.size() << " ";
         for (int i = 0; i < as_ratio.size(); ++i) {
             code_w << as_ratio[i] << " ";
         }
-        code_w << ", " << fixed_size.size() << " ";
+        code_w << fixed_size.size() << " ";
         for (int i = 0; i < fixed_size.size(); ++i) {
             code_w << fixed_size[i] << " ";
         }
-        code_w << ", " << fixed_ratio.size() << " ";
+        code_w << fixed_ratio.size() << " ";
         for (int i = 0; i < fixed_ratio.size(); ++i) {
             code_w << fixed_ratio[i] << " ";
         }
-        code_w << ", " << density.size() << " ";
+        code_w << density.size() << " ";
         for (int i = 0; i < density.size(); ++i) {
             code_w << density[i] << " ";
         }
-        
         code_w << "\n";
     } else {
       //  printf("===============\n");
@@ -1505,7 +1516,7 @@ std::string ParserSlice(graph::AttrInfo& attr,
 	// gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w << axis << ", " << slice_point.size() << " ";
+        code_w << axis << " " << slice_point.size() << " ";
         for (int i = 0; i < slice_point.size(); ++i) {
             code_w << slice_point[i] << " ";
         }
@@ -1548,7 +1559,7 @@ std::string ParserScale(graph::AttrInfo& attr,
   // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d,%d,%d,%d,%d\n",
+        code_w.feed("%d %d %d %d %d\n",
                     offset_info.weights[0].offset,
                     bias_term ? offset_info.weights[1].offset : 0,
                     bias_term ? 1 : 0,

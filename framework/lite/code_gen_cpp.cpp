@@ -514,25 +514,23 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 void GenCPP<Ttype, Dtype, Ptype>::gen_opt_model() {
     //! generate Tensors
     LOG(INFO) << "gen opt model tensors";
-    _opt_param_write << "Tensor number " << this->_tensor_map.size() << "\n";
+    _opt_param_write << "Tensor_number " << this->_tensor_map.size() << "\n";
     //! firstly, gen tensor withnot shared
     for(auto it = this->_tensor_map.begin(); it != this->_tensor_map.end(); ++it) {
         auto& edge_name = it->first;
         auto& edge_info = it->second;
         if(! edge_info.is_shared) {
             //tensor info format: tensor_name valid_shape real_shape is_shared shared_tensor_name
-            _opt_param_write.feed("%s %d,%d,%d,%d %d,%d,%d,%d %d %s\n",
-                                  edge_name.c_str(),
-                                  edge_info.valid_shape[0],
-                                  edge_info.valid_shape[1],
-                                  edge_info.valid_shape[2],
-                                  edge_info.valid_shape[3],
-                                  edge_info.real_shape[0],
-                                  edge_info.real_shape[1],
-                                  edge_info.real_shape[2],
-                                  edge_info.real_shape[3],
-                                  0,
-                                  "null");
+            _opt_param_write << edge_name << " ";
+            _opt_param_write << edge_info.valid_shape.size() << " ";
+            for (int i = 0; i < edge_info.valid_shape.size(); ++i) {
+                _opt_param_write << edge_info.valid_shape[i] << " ";
+            }
+            _opt_param_write << edge_info.real_shape.size() << " ";
+            for (int i = 0; i < edge_info.real_shape.size(); ++i) {
+                _opt_param_write << edge_info.real_shape[i] << " ";
+            }
+            _opt_param_write << 0 << " " << "null" << "\n";
         }
     }
     //! then gen tensor shared memory
@@ -541,18 +539,17 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_opt_model() {
         auto& edge_info = it->second;
         if(edge_info.is_shared) {
             //tensor info format: tensor_name valid_shape real_shape is_shared shared_tensor_name
-            _opt_param_write.feed("%s %d,%d,%d,%d %d,%d,%d,%d %d %s\n",
-                                  edge_name.c_str(),
-                                  edge_info.valid_shape[0],
-                                  edge_info.valid_shape[1],
-                                  edge_info.valid_shape[2],
-                                  edge_info.valid_shape[3],
-                                  edge_info.valid_shape[0],
-                                  edge_info.valid_shape[1],
-                                  edge_info.valid_shape[2],
-                                  edge_info.valid_shape[3],
-                                  1,
-                                  edge_info.share_from.c_str());
+
+            _opt_param_write << edge_name << " ";
+            _opt_param_write << edge_info.valid_shape.size() << " ";
+            for (int i = 0; i < edge_info.valid_shape.size(); ++i) {
+                _opt_param_write << edge_info.valid_shape[i] << " ";
+            }
+            _opt_param_write << edge_info.valid_shape.size() << " ";
+            for (int i = 0; i < edge_info.valid_shape.size(); ++i) {
+                _opt_param_write << edge_info.valid_shape[i] << " ";
+            }
+            _opt_param_write << 1 << " " << edge_info.share_from << "\n";
         }
     }
     //! gen inputs and outputs tensor name

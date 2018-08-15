@@ -186,7 +186,6 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
             //! deal with top pad
             int h = 0;
             //! process
-#ifdef __aarch64__
             // todo
             //printf("din0: %x, din1: %x, din2: %x \n", din0_ptr, din1_ptr, din2_ptr);
             float *doutr0_ptr = doutr0;
@@ -427,11 +426,6 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
            // printf("dout0: %x, dout1: %x \n", doutr0_ptr, doutr1_ptr);
             //printf("vdata0: %f, %f, %f, %f \n", vgetq_lane_f32(vdata0, 0), vgetq_lane_f32(vdata0, 1), vgetq_lane_f32(vdata0, 2), vgetq_lane_f32(vdata0, 3));
            //printf("vdata1: %f, %f, %f, %f \n", vgetq_lane_f32(vdata1, 0), vgetq_lane_f32(vdata1, 1), vgetq_lane_f32(vdata1, 2), vgetq_lane_f32(vdata1, 3));
-
-
-#else
-
-#endif //__aarch64__
 
             //! after process, increase pointer
             doutr0 = doutr1 + w_out;
@@ -697,8 +691,6 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
                 din2_ptr = dr2;
             }
 
-#ifdef __aarch64__
-            // todo
             //left
             din0 = vld1q_f32(din0_ptr);
             din1 = vld1q_f32(din1_ptr);
@@ -900,10 +892,6 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
            // printf("vdata0: %f, %f, %f, %f \n", vgetq_lane_f32(vdata0, 0), vgetq_lane_f32(vdata0, 1), vgetq_lane_f32(vdata0, 2), vgetq_lane_f32(vdata0, 3));
             //printf("vdata1: %f, %f, %f, %f \n", vgetq_lane_f32(vdata1, 0), vgetq_lane_f32(vdata1, 1), vgetq_lane_f32(vdata1, 2), vgetq_lane_f32(vdata1, 3));
 
-
-#else
-
-#endif
             //! end of processing bottom pad
         } // end of processing channels
     } // end of processing batchs
@@ -979,9 +967,6 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
             //! deal with top pad
             int h = 0;
             //! process
-#ifdef __aarch64__
-            // todo
-#else
             int cnt = cnt_col;
             asm volatile(
             //! process left pad
@@ -1004,13 +989,13 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
                     "vext.32  q8, q12, q13, #1              @ shift left r2\n"
                     "vmla.f32 q5, q14, %e[wr2][1]           @ mul weight 20, outr1\n"
 
-                    "vmla.f32 q5, q6, %f[wr0][0]            @ mul weight 01, outr1\n"
                     "vmla.f32 q4, q6, %f[wr1][0]            @ mul weight 11, outr0\n"
+                    "vmla.f32 q5, q6, %f[wr0][0]            @ mul weight 01, outr1\n"
 
                     "vext.32  q9, q14, q15, #1              @ shift left r3\n"
                     "vmov.u32 d31, #0 @ zero\n"
-                    "vmla.f32 q5, q8,  %f[wr1][0]           @ mul weight 11, outr1\n"
                     "vmla.f32 q4, q8,  %f[wr2][0]           @ mul weight 21, outr0\n"
+                    "vmla.f32 q5, q8,  %f[wr1][0]           @ mul weight 11, outr1\n"
  
                     "vext.32  d12, d31, d20, #1             @ shift right r1\n"
                     "vext.32  d13, d20, d21, #1             @ shift right r1\n"
@@ -1018,8 +1003,8 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
 
                     "vext.32  d16, d31, d24, #1             @ shift right r0\n"
                     "vext.32  d17, d24, d25, #1             @ shift right r0\n"
-                    "vmla.f32 q5, q6, %e[wr0][0]            @ mul weight 02, outr1\n"
                     "vmla.f32 q4, q6, %e[wr1][0]            @ mul weight 12, outr0\n"
+                    "vmla.f32 q5, q6, %e[wr0][0]            @ mul weight 02, outr1\n"
 
                     "vext.32  d18, d31, d28, #1             @ shift right r0\n"
                     "vext.32  d19, d28, d29, #1             @ shift right r0\n"
@@ -1049,8 +1034,8 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
                     "blt  1f                                @ jump to main loop start point\n"
                     "1:                                     @ main loop start point\n"
                    // "pld [%[din0_ptr], #192]                @ preload data\n"
-                    "vld1.32  {d24-d26}, [%[din1_ptr]]!     @ load din r2\n"
                     "vld1.32  {d20-d22}, [%[din0_ptr]]!     @ load din r1\n"
+                    "vld1.32  {d24-d26}, [%[din1_ptr]]!     @ load din r2\n"
                     "vld1.32  {d28-d30}, [%[din2_ptr]]!     @ load din r3\n"
 
                     "vmul.f32 q5, q10, %e[wr0][0]           @ mul weight 00, outr1\n"
@@ -1066,8 +1051,8 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
                     "vmla.f32 q5, q14, %e[wr2][0]           @ mul weight 20, outr1\n"
 
                     "vext.32  q9, q14, q15, #1              @ shift left r3\n"
-                    "vmla.f32 q5, q6, %e[wr0][1]            @ mul weight 01, outr1\n"
                     "vmla.f32 q4, q6, %e[wr1][1]            @ mul weight 11, outr0\n" 
+                    "vmla.f32 q5, q6, %e[wr0][1]            @ mul weight 01, outr1\n"
 
                     "vext.32  q6, q10, q11, #2              @ shift left r1\n"
                     "vmla.f32 q5, q8,  %e[wr1][1]           @ mul weight 11, outr1\n"
@@ -1077,16 +1062,16 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
                     "vmla.f32 q5, q9,  %e[wr2][1]           @ mul weight 21, outr1\n"
 
                     "vext.32  q9, q14, q15, #2              @ shift right r3\n"
-                    "vmla.f32 q5, q6, %f[wr0][0]            @ mul weight 02, outr1\n"
                     "vmla.f32 q4, q6, %f[wr1][0]            @ mul weight 12, outr0\n"
+                    "vmla.f32 q5, q6, %f[wr0][0]            @ mul weight 02, outr1\n"
 
-                    "vmla.f32 q5, q8,  %f[wr1][0]           @ mul weight 12, outr1\n"
                     "vmla.f32 q4, q8,  %f[wr2][0]           @ mul weight 22, outr0\n"
-
-                    "vmla.f32 q5, q9,  %f[wr2][0]           @ mul weight 22, outr1\n"
+                    "vmla.f32 q5, q8,  %f[wr1][0]           @ mul weight 12, outr1\n"
 
                     "sub %[din0_ptr], #8                    @ 2 float data overlap with previous data\n"
                     "sub %[din1_ptr], #8                    @ 2 float data overlap with previous data\n"
+                    "vmla.f32 q5, q9,  %f[wr2][0]           @ mul weight 22, outr1\n"
+
                     "sub %[din2_ptr], #8                    @ 2 float data overlap with previous data\n"
 
                     "vadd.f32 q8, q4, %q[bias]              @ add bias \n"
@@ -1106,13 +1091,17 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
                     "1:                                     @ right pad entry\n"
                     "vmov.u32  d31, #0                      @ zero buf\n"
                    // "pld [%[din0_ptr], #192]                @ preload data\n"
-                    "vld1.32  {d20-d22}, [%[din0_ptr]]!     @ load din r1\n"
-                    "vld1.32  {d24-d26}, [%[din1_ptr]]!     @ load din r2\n"
-                    "vld1.32  {d28-d30}, [%[din2_ptr]]!     @ load din r3\n"
+                    "vld1.32  {d20-d21}, [%[din0_ptr]]!     @ load din r1\n"
+                    "vld1.32  {d24-d25}, [%[din1_ptr]]!     @ load din r2\n"
+                    "vld1.32  {d28-d29}, [%[din2_ptr]]!     @ load din r3\n"
 
                     "vbif d21, d31, %e[mask]                @ bit select, deal with right pad\n"
                     "vbif d25, d31, %e[mask]                @ bit select, deal with right pad\n"
                     "vbif d29, d31, %e[mask]                @ bit select, deal with right pad\n"
+
+                    "vld1.32  {d22}, [%[din0_ptr]]!     @ load din r3\n"
+                    "vld1.32  {d26}, [%[din1_ptr]]!     @ load din r3\n"
+                    "vld1.32  {d30}, [%[din2_ptr]]!     @ load din r3\n"
 
                     "vmul.f32 q5, q10, %e[wr0][0]           @ mul weight 00, outr1\n"
                     "vmul.f32 q4, q10, %e[wr1][0]           @ mul weight 10, outr0\n"
@@ -1178,8 +1167,6 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
                         "q10", "q11", "q12", "q13", "q14", "q15"
             );
 
-#endif //__aarch64__
-
             //! after process, increase pointer
             doutr0 += w_out;
             doutr1 = doutr0 + w_out;
@@ -1197,9 +1184,6 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
                 din2_ptr = dr2;
                 din3_ptr = dr3;
 
-#ifdef __aarch64__
-                // todo
-#else
                 cnt = cnt_col;
                 asm volatile(
                 //! process left pad
@@ -1244,33 +1228,32 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
 
                         "vext.32  d12, d31, d16, #1     @ shift right r0\n"
                         "vext.32  d13, d16, d17, #1     @ shift right r0\n"
+                        "vext.32  d16, d31, d20, #1     @ shift right r1\n"
+                        "vext.32  d17, d20, d21, #1     @ shift right r1\n"
                         "vmla.f32 q4, q6, %e[wr0][0]  @mul weight 02, outr0\n"
 
                         
-                        "vext.32  d12, d31, d20, #1     @ shift right r1\n"
-                        "vext.32  d13, d20, d21, #1     @ shift right r1\n"
-                        "vmla.f32 q5, q6, %e[wr0][0]  @mul weight 02, outr1\n"
-                        "vmla.f32 q4, q6, %e[wr1][0]  @mul weight 12, outr0\n"
-                        
                         "vext.32  d12, d31, d24, #1     @ shift right r0\n"
                         "vext.32  d13, d24, d25, #1     @ shift right r0\n"
-                       
+                        "vmla.f32 q5, q8, %e[wr0][0]  @mul weight 02, outr1\n"
+                        "vmla.f32 q4, q8, %e[wr1][0]  @mul weight 12, outr0\n"
+                        
+                        "vext.32  d16, d31, d28, #1     @ shift right r0\n"
+                        "vext.32  d17, d28, d29, #1     @ shift right r0\n"
                         "vmla.f32 q5, q6,  %e[wr1][0] @mul weight 12, outr1\n"
                         "vmla.f32 q4, q6,  %e[wr2][0] @mul weight 22, outr0\n"
 
-                        "vext.32  d12, d31, d28, #1     @ shift right r0\n"
-                        "vext.32  d13, d28, d29, #1     @ shift right r0\n"
                         "sub %[din0_ptr], #12 @ 1pad + 2 float data overlap\n"
                         "sub %[din1_ptr], #12 @ 1pad + 2 float data overlap\n"
-                        "vmla.f32 q5, q6,  %e[wr2][0] @mul weight 22, outr1\n"
+                        "vmla.f32 q5, q8,  %e[wr2][0] @mul weight 22, outr1\n"
 
+                        "vadd.f32 q9, q4, %q[bias] @ add bias \n"
                         "sub %[din2_ptr], #12 @ 1pad + 2 float data overlap\n"
                         "sub %[din3_ptr], #12 @ 1pad + 2 float data overlap\n"
-                        "vadd.f32 q8, q4, %q[bias] @ add bias \n"
-                        "vadd.f32 q9, q5, %q[bias] @ add bias \n"
+                        "vadd.f32 q8, q5, %q[bias] @ add bias \n"
 
-                        "vst1.32  {d16-d17},   [%[dout_ptr1]]!  @ store result, add pointer\n"
-                        "vst1.32  {d18-d19}, [%[dout_ptr2]]!  @ store result, add pointer\n"
+                        "vst1.32  {d18-d19},   [%[dout_ptr1]]!  @ store result, add pointer\n"
+                        "vst1.32  {d16-d17}, [%[dout_ptr2]]!  @ store result, add pointer\n"
 
                         //! process mid cols
                         "cmp %[cnt], #1                             @ check whether has mid cols\n"
@@ -1312,28 +1295,28 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
                         "vmla.f32 q5, q6,  %e[wr2][1]   @ mul weight 21, outr1\n"
 
                         "vext.32  q6, q8, q9, #2        @ shift left r0\n"
+                        "vext.32  q8, q10, q11, #2      @ shift left r1\n"
                         "vmla.f32 q4, q6, %f[wr0][0]    @ mul weight 02, outr0\n"
 
-                        "vext.32  q6, q10, q11, #2      @ shift left r1\n"
-                        "vmla.f32 q5, q6, %f[wr0][0]    @ mul weight 02, outr1\n"
-                        "vmla.f32 q4, q6, %f[wr1][0]    @ mul weight 12, outr0\n"
-
                         "vext.32  q6, q12, q13, #2      @ shift left r2\n"
+                        "vmla.f32 q5, q8, %f[wr0][0]    @ mul weight 02, outr1\n"
+                        "vmla.f32 q4, q8, %f[wr1][0]    @ mul weight 12, outr0\n"
+
+                        "vext.32  q8, q14, q15, #2  @ shift right r3\n"
                         "vmla.f32 q5, q6,  %f[wr1][0] @mul weight 12, outr1\n"
                         "vmla.f32 q4, q6,  %f[wr2][0] @mul weight 22, outr0\n"
 
-                        "vext.32  q6, q14, q15, #2  @ shift right r3\n"
                         "sub %[din0_ptr], #8 @ 2 float data overlap with previous data\n"
                         "sub %[din1_ptr], #8 @ 2 float data overlap with previous data\n"
-                        "vmla.f32 q5, q6,  %f[wr2][0] @mul weight 22, outr1\n"
+                        "vmla.f32 q5, q8,  %f[wr2][0] @mul weight 22, outr1\n"
 
+                        "vadd.f32 q9, q4, %q[bias] @ add bias \n"
                         "sub %[din2_ptr], #8 @ 2 float data overlap with previous data\n"
                         "sub %[din3_ptr], #8 @ 2 float data overlap with previous data\n"
-                        "vadd.f32 q8, q4, %q[bias] @ add bias \n"
-                        "vadd.f32 q9, q5, %q[bias] @ add bias \n"
+                        "vadd.f32 q8, q5, %q[bias] @ add bias \n"
 
-                        "vst1.32  {d16-d17},   [%[dout_ptr1]]!  @ store result, add pointer\n"
-                        "vst1.32  {d18-d19}, [%[dout_ptr2]]!  @ store result, add pointer\n"
+                        "vst1.32  {d18-d19},   [%[dout_ptr1]]!  @ store result, add pointer\n"
+                        "vst1.32  {d16-d17}, [%[dout_ptr2]]!  @ store result, add pointer\n"
 
                        
                         "subs %[cnt], #1 @ loop count minus 1\n"
@@ -1342,13 +1325,16 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
                         //! process right pad
                         "3:                                    @ right pad entry\n"
                         "vmov.u32  d31, #0                     @ zero buf\n"
-                        "vld1.32  {d16-d18}, [%[din0_ptr]]!    @ load din r0\n"
-                        "vld1.32  {d20-d22}, [%[din1_ptr]]!    @ load din r1\n"
-                        "vld1.32  {d24-d26}, [%[din2_ptr]]!    @ load din r2\n"
-                        "vld1.32  {d28-d30}, [%[din3_ptr]]!    @ load din r3\n"
+                        "vld1.32  {d16-d17}, [%[din0_ptr]]!    @ load din r0\n"
+                        "vld1.32  {d20-d21}, [%[din1_ptr]]!    @ load din r1\n"
+                        "vld1.32  {d24-d25}, [%[din2_ptr]]!    @ load din r2\n"
+                        "vld1.32  {d28-d29}, [%[din3_ptr]]!    @ load din r3\n"
 
+                        "vld1.32  {d18}, [%[din0_ptr]]!    @ load din r3\n"
+                        "vld1.32  {d22}, [%[din1_ptr]]!    @ load din r3\n"
                         "vbif d17, d31, %e[mask]               @ bit select, deal with right pad\n"
                         "vbif d21, d31, %e[mask]               @ bit select, deal with right pad\n"
+                        
                         "vbif d25, d31, %e[mask]               @ bit select, deal with right pad\n"
                         "vbif d29, d31, %e[mask]               @ bit select, deal with right pad\n"
 
@@ -1360,20 +1346,21 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
                         "vmla.f32 q4, q10, %e[wr1][0]          @ mul weight 10, outr0\n"
 
                         "vext.32  q6, q8, q9, #1               @ shift left r0\n"
-                        "vbif  d26, d31, %f[mask]               @ bit select, deal with right pad\n"
                         "vmla.f32 q5, q12, %e[wr1][0]          @ mul weight 10, outr1\n"
                         "vmla.f32 q4, q12, %e[wr2][0]          @ mul weight 20, outr0\n"
 
+                        "vld1.32  {d26}, [%[din2_ptr]]!    @ load din r3\n"
+                        "vld1.32  {d30}, [%[din3_ptr]]!    @ load din r3\n"
                         "vmla.f32 q5, q14, %e[wr2][0]          @ mul weight 20, outr1\n"
-
                         "vmla.f32 q4, q6, %e[wr0][1]           @ mul weight 01, outr0\n"
 
                         "vext.32  q6, q10, q11, #1             @ shift left r1\n"
-                        "vbif  d30, d31, %f[mask] @ bit select, deal with right pad\n"
+                        "vbif  d26, d31, %f[mask]               @ bit select, deal with right pad\n"
                         "vmla.f32 q5, q6, %e[wr0][1]           @ mul weight 01, outr1\n"
                         "vmla.f32 q4, q6, %e[wr1][1]           @ mul weight 11, outr0\n"
 
                         "vext.32  q6, q12, q13, #1  @ shift left r2\n"
+                        "vbif  d30, d31, %f[mask] @ bit select, deal with right pad\n"
                         "vmla.f32 q5, q6,  %e[wr1][1] @mul weight 11, outr1\n"
                         "vmla.f32 q4, q6,  %e[wr2][1] @mul weight 21, outr0\n"
 
@@ -1381,34 +1368,34 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
                         "vmla.f32 q5, q6,  %e[wr2][1] @mul weight 21, outr1\n"
 
                         "vext.32  q6, q8, q9, #2     @ shift left r0\n"
+                        "vext.32  q8, q10, q11, #2   @ shift left r1\n"
                         "vmla.f32 q4, q6, %f[wr0][0]  @mul weight 02, outr0\n"
-
-                        "vext.32  q6, q10, q11, #2   @ shift left r1\n"
-                        "vmla.f32 q5, q6, %f[wr0][0]  @mul weight 02, outr1\n"
-                        "vmla.f32 q4, q6, %f[wr1][0]  @mul weight 12, outr0\n"
 
                         "vext.32  q6, q12, q13, #2  @ shift left r2\n"
                         "pld [%[dout_ptr1], #128]         @ preload data\n"
+                        "vmla.f32 q5, q8, %f[wr0][0]  @mul weight 02, outr1\n"
+                        "vmla.f32 q4, q8, %f[wr1][0]  @mul weight 12, outr0\n"
+
+                        "vext.32  q8, q14, q15, #2  @ shift right r3\n"
+                        "vld1.32  {d20-d21}, [%[dout_ptr1]]    @ load dout r0\n"
                         "vmla.f32 q5, q6,  %f[wr1][0] @mul weight 12, outr1\n"
                         "vmla.f32 q4, q6,  %f[wr2][0] @mul weight 22, outr0\n"
 
-                        "vext.32  q6, q14, q15, #2  @ shift right r3\n"
-                        "vld1.32  {d20-d21}, [%[dout_ptr1]]    @ load dout r0\n"
                         "vmvn.32  d22, d31 @ \n"
                         "vmvn.32  d23, d31 @ \n"
-                        "vmla.f32 q5, q6,  %f[wr2][0] @mul weight 22, outr1\n"
+                        "vmla.f32 q5, q8,  %f[wr2][0] @mul weight 22, outr1\n"
 
                         "vext.32  q12, q11, %q[mask], #3                @ shift mask right 1\n"
-                        "vadd.f32 q8, q4, %q[bias] @ add bias \n"
-                        "vadd.f32 q9, q5, %q[bias] @ add bias \n"
+                        "vadd.f32 q9, q4, %q[bias] @ add bias \n"
+                        "vadd.f32 q8, q5, %q[bias] @ add bias \n"
                         
-                        "vbif q8, q10, q12                              @ bit select\n"
+                        "vbif q9, q10, q12                              @ bit select\n"
 
-                        "vst1.32  {d18-d19}, [%[dout_ptr2]]!            @ store result, add pointer\n"
-                        "vst1.32  {d16-d17}, [%[dout_ptr1]]!            @ store result, add pointer\n"
+                        "vst1.32  {d16-d17}, [%[dout_ptr2]]!            @ store result, add pointer\n"
+                        "vst1.32  {d18-d19}, [%[dout_ptr1]]!            @ store result, add pointer\n"
 
-                        "sub %[dout_ptr1], %[dout_ptr1], %[pad_right]   @ sub \n"
                         "sub %[dout_ptr2], %[dout_ptr2], %[pad_right]   @ sub \n"
+                        "sub %[dout_ptr1], %[dout_ptr1], %[pad_right]   @ sub \n"
 
                 :[dout_ptr1] "+r"(doutr0), [dout_ptr2] "+r"(doutr1), \
                             [din0_ptr] "+r"(din0_ptr), [din1_ptr] "+r"(din1_ptr), \
@@ -1419,8 +1406,6 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
                 :"q4", "q5", "q6", "q8", "q9", \
                         "q10", "q11", "q12", "q13", "q14", "q15"
                 );
-#endif //__aarch64__
-
                 doutr0 += w_out;
                 doutr1 = doutr0 + w_out;
                 dr0 = dr2;
@@ -1437,9 +1422,7 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
             } else {
                 din2_ptr = dr2;
             }
-#ifdef __aarch64__
-            // todo
-#else
+
             cnt = cnt_col;
             asm volatile(
             // process left pad
@@ -1466,39 +1449,42 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
                     "vmla.f32 q4, q6, %f[wr0][0]            @ mul weight 01, outr0\n"
 
                     "vext.32  q6, q10, q11, #1              @ shift left r1\n"
+                    "vmov.u32 d31, #0 @ zero\n"
                     "vmla.f32 q5, q6, %f[wr0][0]            @ mul weight 01, outr1\n"
                     "vmla.f32 q4, q6, %f[wr1][0]            @ mul weight 11, outr0\n"
 
-                    "vmov.u32 d31, #0 @ zero\n"
+                    
                     "vext.32  q6, q12, q13, #1              @ shift left r2\n"
                     "vmla.f32 q5, q6,  %f[wr1][0]           @ mul weight 11, outr1\n"
                     "vmla.f32 q4, q6,  %f[wr2][0]           @ mul weight 21, outr0\n"
           
                     "vext.32  d12, d31, d16, #1             @ shift right r0\n"
                     "vext.32  d13, d16, d17, #1             @ shift right r0\n"
-                    "vmla.f32 q4, q6, %e[wr0][0]            @ mul weight 02, outr0\n"
 
-                    "vext.32  d12, d31, d20, #1             @ shift right r1\n"
-                    "vext.32  d13, d20, d21, #1             @ shift right r1\n"
-                    "vmla.f32 q5, q6, %e[wr0][0]            @ mul weight 02, outr1\n"
-                    "vmla.f32 q4, q6, %e[wr1][0]            @ mul weight 12, outr0\n"
+                    "vext.32  d16, d31, d20, #1             @ shift right r1\n"
+                    "vext.32  d17, d20, d21, #1             @ shift right r1\n"
+                    "vmla.f32 q4, q6, %e[wr0][0]            @ mul weight 02, outr0\n"
 
                     "vext.32  d12, d31, d24, #1             @ shift right r2\n"
                     "vext.32  d13, d24, d25, #1             @ shift right r2\n"
+                    "vmla.f32 q5, q8, %e[wr0][0]            @ mul weight 02, outr1\n"
+                    "vmla.f32 q4, q8, %e[wr1][0]            @ mul weight 12, outr0\n"
+
                     "sub %[din0_ptr], #12                   @ 1pad + 2 data overlap\n"
                     "sub %[din1_ptr], #12                   @ 1pad + 2 data overlap\n"
                     "vmla.f32 q5, q6,  %e[wr1][0]           @ mul weight 12, outr1\n"
                     "vmla.f32 q4, q6,  %e[wr2][0]           @ mul weight 22, outr0\n"
 
-                    "vadd.f32 q8, q4, %q[bias]              @ add bias \n"
                     "vadd.f32 q9, q5, %q[bias]              @ add bias \n"
+                    "vadd.f32 q8, q4, %q[bias]              @ add bias \n"
 
-                    "vst1.32  {d16-d17},   [%[dout_ptr1]]!  @ store result, add pointer\n"
                     
                     "cmp %[bot_pad],  #2                    @ check if bottom pad is 2\n"
+                    "vst1.32  {d16-d17},   [%[dout_ptr1]]!  @ store result, add pointer\n"
                     "beq    1f                              @ jump to next block\n"
                     "add %[din2_ptr], #12                   @ 1pad + 2 data overlap\n"
                     "vst1.32  {d18-d19}, [%[dout_ptr2]]!    @ store result, add pointer\n"
+
 
                     // process mid cols
                     "1:                                     @  header of bottom process\n"
@@ -1532,25 +1518,26 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
                     "vmla.f32 q4, q6,  %e[wr2][1]           @ mul weight 21, outr0\n"
 
                     "vext.32  q6, q8, q9, #2                @ shift left r0\n"
+                    "vext.32  q8, q10, q11, #2              @ shift left r1\n"
                     "vmla.f32 q4, q6, %f[wr0][0]            @ mul weight 02, outr0\n"
 
-                    "vext.32  q6, q10, q11, #2              @ shift left r1\n"
-                    "vmla.f32 q5, q6, %f[wr0][0]            @ mul weight 02, outr1\n"
-                    "vmla.f32 q4, q6, %f[wr1][0]            @ mul weight 12, outr0\n"
-                    
                     "vext.32  q6, q12, q13, #2              @ shift left r2\n"
+                    "vmla.f32 q5, q8, %f[wr0][0]            @ mul weight 02, outr1\n"
+                    "vmla.f32 q4, q8, %f[wr1][0]            @ mul weight 12, outr0\n"
+                    
                     "sub %[din0_ptr], #8                    @ 2 float data overlap with previous data\n"
                     "sub %[din1_ptr], #8                    @ 2 float data overlap with previous data\n"
 
                     "vmla.f32 q5, q6,  %f[wr1][0]           @ mul weight 12, outr1\n"
                     "vmla.f32 q4, q6,  %f[wr2][0]           @ mul weight 22, outr0\n"
 
-                    "vadd.f32 q8, q4, %q[bias]              @ add bias \n"
                     "vadd.f32 q9, q5, %q[bias]              @ add bias \n"
+                    "vadd.f32 q8, q4, %q[bias]              @ add bias \n"
 
-                    "vst1.32  {d16-d17},   [%[dout_ptr1]]!  @ store result, add pointer\n"
                   
                     "cmp %[bot_pad],  #2                    @ check if bottom pad is 2\n"
+                    "vst1.32  {d16-d17},   [%[dout_ptr1]]!  @ store result, add pointer\n"
+
                     "beq    3f                              @ jump to check point\n"
                     "add %[din2_ptr], #16                   @ point to 4 data ahead\n"
                     "vst1.32  {d18-d19}, [%[dout_ptr2]]!    @ store result, add pointer\n"
@@ -1562,13 +1549,16 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
                     // process right pad
                     "4:                                     @ right pad process\n"
                     "vmov.u32  d31, #0                      @ zero buf\n"
-                    "vld1.32  {d16-d18}, [%[din0_ptr]]!     @ load din r0\n"
-                    "vld1.32  {d20-d22}, [%[din1_ptr]]!     @ load din r1\n"
+                    "vld1.32  {d16-d17}, [%[din0_ptr]]!     @ load din r0\n"
+                    "vld1.32  {d20-d21}, [%[din1_ptr]]!     @ load din r1\n"
                     "vld1.32  {d24-d26}, [%[din2_ptr]]      @ load din r2\n"
 
                     "vbif d17, d31, %e[mask]                @ bit select, deal with right pad\n"
                     "vbif d21, d31, %e[mask]                @ bit select, deal with right pad\n"
                     "vbif d25, d31, %e[mask]                @ bit select, deal with right pad\n"
+
+                    "vld1.32  {d18}, [%[din0_ptr]]!     @ load din r0\n"
+                    "vld1.32  {d22}, [%[din1_ptr]]!     @ load din r1\n"
 
                     "vmul.f32 q4, q8, %e[wr0][0]            @ mul weight 00, outr0\n"
 
@@ -1593,36 +1583,35 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
                     "vmla.f32 q4, q6,  %e[wr2][1]           @ mul weight 21, outr0\n"
 
                     "vext.32  q6, q8, q9, #2                @ shift left r0\n"
+                    "vext.32  q8, q10, q11, #2              @ shift left r1\n"
                     "vmla.f32 q4, q6, %f[wr0][0]            @ mul weight 02, outr0\n"
 
-                    "vext.32  q6, q10, q11, #2              @ shift left r1\n"
-                    "pld [%[dout_ptr1], #128]               @ preload data\n"
-                    "vmla.f32 q5, q6, %f[wr0][0]            @ mul weight 02, outr1\n"
-                    "vmla.f32 q4, q6, %f[wr1][0]            @ mul weight 12, outr0\n"
-
                     "vext.32  q6, q12, q13, #2              @ shift left r2\n"
+                    "pld [%[dout_ptr1], #128]               @ preload data\n"
+                    "vmla.f32 q5, q8, %f[wr0][0]            @ mul weight 02, outr1\n"
+                    "vmla.f32 q4, q8, %f[wr1][0]            @ mul weight 12, outr0\n"
+
                     "pld [%[dout_ptr2], #128]               @ preload data\n"
+                    "vld1.32  {d20-d21}, [%[dout_ptr1]]     @ load dout r0\n"
                     "vmla.f32 q5, q6,  %f[wr1][0]           @ mul weight 12, outr1\n"
                     "vmla.f32 q4, q6,  %f[wr2][0]           @ mul weight 22, outr0\n"
                     
-                    "vmvn.32  d24, d31                      @ \n"
-                    "vmvn.32  d25, d31                      @ \n"
-                    "vadd.f32 q8, q4, %q[bias]              @ add bias \n"
-                    "vadd.f32 q9, q5, %q[bias]              @ add bias \n"
-
-                    "vld1.32  {d20-d21}, [%[dout_ptr1]]     @ load dout r0\n"
                     "vld1.32  {d22-d23}, [%[dout_ptr2]]     @ load dout r1\n"
 
+                    "vmvn.32  d24, d31                      @ \n"
+                    "vmvn.32  d25, d31                      @ \n"
+                    "vadd.f32 q9, q5, %q[bias]              @ add bias \n"
+                    "vadd.f32 q8, q4, %q[bias]              @ add bias \n"
                 
                     "vext.32  q13, q12, %q[mask], #3        @ shift mask right 1\n"
-                    "vbif q8, q10, q13                      @ bit select\n"
                     "vbif q9, q11, q13                      @ bit select\n"
-
-                    "vst1.32  {d16-d17}, [%[dout_ptr1]]!    @ store result, add pointer\n"
+                    "vbif q8, q10, q13                      @ bit select\n"
 
                     "cmp %[bot_pad],  #2                    @ check if bottom pad is 2\n"
+                    "vst1.32  {d16-d17}, [%[dout_ptr1]]!    @ store result, add pointer\n"
                     "beq    5f                              @ jump to end point\n"
                     "vst1.32  {d18-d19}, [%[dout_ptr2]]!    @ store result, add pointer\n"
+
                     "5:                                     @ end\n"
 
             :[dout_ptr1] "+r"(doutr0), [dout_ptr2] "+r"(doutr1), \
@@ -1635,7 +1624,6 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
             :"q4", "q5", "q6", "q8", "q9", \
                         "q10", "q11", "q12", "q13", "q14", "q15"
             );
-#endif //__aarch64__
             //! end of processing bottom pad
         } // end of processing channels
     } // end of processing batchs
@@ -1707,7 +1695,6 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
             float *doutr0 = dout_channel;
 
             //! top pad
-#ifdef __aarch64__
             float32x4_t vzero= vdupq_n_f32(0.f);
             // todo
             float *doutr0_ptr = doutr0;
@@ -1803,9 +1790,6 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
             vsum = vbsl_f32(vget_low_u32(mask_w), vsum, vdata);
 
             vst1_f32(doutr0_ptr, vsum);
-#else
-            
-#endif //__aarch64__
 
             dr0 = dr1;
             dr1 = dr2;
@@ -1814,7 +1798,6 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
 
             //! process mid rows
             for (int j = h_out - size_pad_bottom - 1; j > 0; j--) {
-#ifdef __aarch64__
                 // todo
                 din0_ptr = dr0;
                 din1_ptr = dr1;
@@ -1936,10 +1919,6 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
             
                 vst1_f32(doutr0_ptr, vsum);
 
-#else
-
-#endif //__aarch64__
-
                 dr0 = dr2;
                 dr1 = dr0 + w_in;
                 dr2 = dr1 + w_in;
@@ -1951,7 +1930,7 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
                 din0_ptr = dr0;
                 din1_ptr = dr1;
                 doutr0_ptr = doutr0;
-#ifdef __aarch64__
+
                 // todo
                 din0_1234 = vld1q_f32(din0_ptr);
                 din1_1234 = vld1q_f32(din1_ptr);
@@ -2048,15 +2027,14 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
 
                 vst1_f32(doutr0_ptr, vsum);
 
-#else
-
-#endif //__aarch64__
             } // end of process bottom pad
 
         }
     }
 }
+
 #else
+
 void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
     const float* weights, const float* bias, bool flag_bias, \
     const int num, const int ch_in, const int h_in, const int w_in, \
@@ -2118,32 +2096,27 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
             float *doutr0 = dout_channel;
 
             //! top pad
-#ifdef __aarch64__
-            // todo
-#else
             int cnt = cnt_col;
             asm volatile(
             // process left pad
             "pld [%[din0_ptr], #128]                @ preload data\n"
                     "pld [%[din1_ptr], #128]                @ preload data\n"
-                    "vmov.u32 q11, #0                       @ for left pad\n"
                     "vld1.32  {d20-d21}, [%[din0_ptr]]!     @ load din r1\n"
-                    "vext.32 q7, q11, q10, #3               @ shift right 1 data\n"
-                    "vmul.f32 q8, q7, %q[wr1]               @ mul weight 1, out0\n"
-
-                    "vext.32  q7, q10, q11, #1              @ shift left r1\n"
-                    "vmul.f32 q9, q7, %q[wr1]               @ mul weight 1, out1\n"
-
                     "vld1.32  {d24-d25}, [%[din1_ptr]]!     @ load din r2\n"
+                    "vmov.u32 q11, #0                       @ for left pad\n"
+
+                    "vext.32 q7, q11, q10, #3               @ shift right 1 data\n"
+                    "vext.32  q14, q10, q11, #1              @ shift left r1\n"
+                    "vmul.f32 q8, q7, %q[wr1]               @ mul weight 1, out0\n"
+                    "vmul.f32 q9, q14, %q[wr1]               @ mul weight 1, out1\n"
+
                     "vext.32 q7, q11, q12, #3               @ shift right 1 data\n"
+                    "vext.32  q14, q12, q11, #1              @ shift left r2\n"
                     "vmla.f32 q8, q7, %q[wr2]               @ mul weight 2, out0\n"
-
-                    "pld [%[din0_ptr], #192]                @ preload data\n"
-
-                    "vext.32  q7, q12, q11, #1              @ shift left r2\n"
-                    "vmla.f32 q9, q7,  %q[wr2]              @ mul weight 2, out1\n"
+                    "vmla.f32 q9, q14,  %q[wr2]              @ mul weight 2, out1\n"
 
                     "pld [%[din1_ptr], #192]                @ preload data\n"
+                    "pld [%[din0_ptr], #192]                @ preload data\n"
 
                     "vpadd.f32 d22, d16, d17                @ pair add of out0 \n"
                     "vpadd.f32 d23, d18, d19                @ pair add of out1 \n"
@@ -2151,10 +2124,9 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
 
                     "vadd.f32  d17, d16, %e[bias]           @ add bias \n"
 
-                    "vst1.32  {d17},   [%[dout_ptr1]]!      @ store result, add pointer\n"
-
                     "sub %[din0_ptr], #4                    @ 1pad + 2 float data overlap\n"
                     "sub %[din1_ptr], #4                    @ 1pad + 2 float data overlap\n"
+                    "vst1.32  {d17},   [%[dout_ptr1]]!      @ store result, add pointer\n"
 
                     // process mid cols
                     "cmp %[cnt], #1                         @ check whether has mid loop\n"
@@ -2162,20 +2134,20 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
                     "1:                                     @ main loop start point\n"
 
                     "vld1.32  {d20-d22}, [%[din0_ptr]]!     @ load din r1\n"
-                    "vmul.f32 q8, q10, %q[wr1]              @ mul weight 1, out0\n"
-
-                    "vext.32  q7, q10, q11, #2              @ shift left r1\n"
-                    "vmul.f32 q9, q7, %q[wr1]               @ mul weight 1, outr1\n"
-
                     "vld1.32  {d24-d26}, [%[din1_ptr]]!     @ load din r2\n"
-                    "vmla.f32 q8, q12, %q[wr2]              @ mul weight 2, outr0\n"
 
                     "pld [%[din0_ptr], #192]                @ preload data\n"
-
-                    "vext.32  q7, q12, q13, #2              @ shift left r2\n"
-                    "vmla.f32 q9, q7, %q[wr2]               @ mul weight 2, outr1\n"
-
                     "pld [%[din1_ptr], #192]                @ preload data\n"
+
+                    "vext.32  q7, q10, q11, #2              @ shift left r1\n"
+                    "vext.32  q14, q12, q13, #2              @ shift left r2\n"
+
+                    "vmul.f32 q8, q10, %q[wr1]              @ mul weight 1, out0\n"
+                    "vmul.f32 q9, q7, %q[wr1]               @ mul weight 1, outr1\n"
+
+                    "vmla.f32 q8, q12, %q[wr2]              @ mul weight 2, outr0\n"
+                    "vmla.f32 q9, q14, %q[wr2]               @ mul weight 2, outr1\n"
+
 
                     "vpadd.f32 d22, d16, d17                @ pair add of out0 \n"
                     "vpadd.f32 d23, d18, d19                @ pair add of out1 \n"
@@ -2183,40 +2155,41 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
 
                     "vadd.f32  d17, d16, %e[bias]           @ add bias \n"
 
-                    "vst1.32  {d17},   [%[dout_ptr1]]!      @ store result, add pointer\n"
-
                     "sub %[din0_ptr], #8                    @ 1 float data overlap and 1 redundant\n"
                     "sub %[din1_ptr], #8                    @ 1 float data overlap and 1 redundant\n"
+                    "vst1.32  {d17},   [%[dout_ptr1]]!      @ store result, add pointer\n"
 
                     "subs %[cnt], #1                        @ loop count minus 1\n"
                     "bne    1b                              @ jump to main loop start point\n"
 
                     //! process right pad
                     "2:                                     @ right pad entry\n"
+
+                    "vld1.32  {d20-d21}, [%[din0_ptr]]!     @ load din r1\n"
+                    "vld1.32  {d24-d25}, [%[din1_ptr]]!     @ load din r2\n"
+                    "vld1.32  {d22}, [%[din0_ptr]]!     @ load din r1\n"
+                    "vld1.32  {d26}, [%[din1_ptr]]!     @ load din r1\n"
+
                     "vmov.u32  d31, #0                      @ zero buf\n"
+
+                    "vbif d21, d31, %e[mask_din]            @ bit select, deal with right pad\n"
+                    "vbif d22, d31, %f[mask_din]            @ bit select, deal with right pad\n"
+
+                    "vmul.f32 q8, q10, %q[wr1]              @ mul weight 1, out0\n"
+                    "vext.32  q7, q10, q11, #2              @ shift left r1\n"
+
                     "pld [%[din0_ptr], #192]                @ preload data\n"
                     "pld [%[din1_ptr], #192]                @ preload data\n"
+                    "vbif d25, d31, %e[mask_din]            @ bit select, deal with right pad\n"
+                    "vbif d26, d31, %f[mask_din]            @ bit select, deal with right pad\n"
 
-                    "vld1.32  {d20-d22}, [%[din0_ptr]]!     @ load din r1\n"
-                    "vbif d21, d31, %e[mask_din]            @ bit select, deal with right pad\n"
-                    "vmul.f32 q8, q10, %q[wr1]              @ mul weight 1, out0\n"
-
-                    "pld [%[din0_ptr], #192]                @ preload data\n"
-
-                    "vbif d22, d31, %f[mask_din]            @ bit select, deal with right pad\n"
-                    "vext.32  q7, q10, q11, #2              @ shift left r1\n"
                     "vmul.f32 q9, q7, %q[wr1]               @ mul weight 1, out1\n"
 
-                    "pld [%[din1_ptr], #192]                @ preload data\n"
+                    "vext.32  q14, q12, q13, #2              @ shift left r1\n"
                     "pld [%[dout_ptr1], #64]                @ preload data\n"
 
-                    "vld1.32  {d24-d26}, [%[din1_ptr]]!     @ load din r2\n"
-                    "vbif d25, d31, %e[mask_din]            @ bit select, deal with right pad\n"
                     "vmla.f32 q8, q12, %q[wr2]              @ mul weight 2, outr0\n"
-
-                    "vbif d26, d31, %f[mask_din]            @ bit select, deal with right pad\n"
-                    "vext.32  q7, q12, q13, #2              @ shift left r1\n"
-                    "vmla.f32 q9, q7, %q[wr2]               @ mul weight 2, outr1\n"
+                    "vmla.f32 q9, q14, %q[wr2]               @ mul weight 2, outr1\n"
 
                     "vld1.32  {d20}, [%[dout_ptr1]]         @ load dout\n"
                     "vpadd.f32 d22, d16, d17                @ pair add of out0 \n"
@@ -2240,17 +2213,12 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
             :"q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
             );
 
-#endif //__aarch64__
-
             dr0 = dr1;
             dr1 = dr2;
             dr2 = dr1 + w_in;
 
             //! process mid rows
             for (int j = h_out - size_pad_bottom - 1; j > 0; j--) {
-#ifdef __aarch64__
-                // todo
-#else
 
                 din0_ptr = dr0;
                 din1_ptr = dr1;
@@ -2263,33 +2231,28 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
                         "pld [%[din1_ptr], #128]                @ preload data\n"
                         "pld [%[din2_ptr], #128]                @ preload data\n"
 
-                        "vmov.u32 q11, #0                       @ for left pad\n"
                         "vld1.32  {d20-d21}, [%[din0_ptr]]!     @ load din r0\n"
-                        "vext.32 q7, q11, q10, #3               @ shift right 1 data\n"
-                        "vmul.f32 q8, q7, %q[wr0]               @ mul weight 00, outr0\n"
-
-                        "vext.32  q7, q10, q11, #1              @ shift left r0\n"
-                        "vmul.f32 q9, q7, %q[wr0]               @ mul weight 00, outr1\n"
-
+                        "vmov.u32 q11, #0                       @ for left pad\n"
                         "vld1.32  {d24-d25}, [%[din1_ptr]]!     @ load din r1\n"
-                        "vext.32 q7, q11, q12, #3               @ shift right 1 data\n"
-                        "vmla.f32 q8, q7, %q[wr1]               @ mul weight 10, outr0\n"
-
-                        "pld [%[din0_ptr], #128]                @ preload data\n"
-
-                        "vext.32  q7, q12, q11, #1              @ shift left r1\n"
-                        "vmla.f32 q9, q7,  %q[wr1]              @ mul weight 10, outr1\n"
-
-                        "pld [%[din1_ptr], #128]                @ preload data\n"
-
                         "vld1.32  {d28-d29}, [%[din2_ptr]]!     @ load din r2\n"
+
+                        "vext.32 q7, q11, q10, #3               @ shift right 1 data\n"
+                        "vext.32  q13, q10, q11, #1              @ shift left r0\n"
+                        "pld [%[din0_ptr], #128]                @ preload data\n"
+                        "vmul.f32 q8, q7, %q[wr0]               @ mul weight 00, outr0\n"
+                        "vmul.f32 q9, q13, %q[wr0]               @ mul weight 00, outr1\n"
+
+                        "vext.32 q7, q11, q12, #3               @ shift right 1 data\n"
+                        "vext.32  q13, q12, q11, #1              @ shift left r1\n"
+                        "pld [%[din1_ptr], #128]                @ preload data\n"
+                        "vmla.f32 q8, q7, %q[wr1]               @ mul weight 10, outr0\n"
+                        "vmla.f32 q9, q13,  %q[wr1]              @ mul weight 10, outr1\n"
+
                         "vext.32 q7, q11, q14, #3               @ shift right 1 data\n"
-                        "vmla.f32 q8, q7, %q[wr2]               @ mul weight 20, outr0\n"
-
+                        "vext.32  q13, q14, q11, #1              @ shift left r2\n"
                         "pld [%[din2_ptr], #128]                @ preload data\n"
-
-                        "vext.32  q7, q14, q11, #1              @ shift left r2\n"
-                        "vmla.f32 q9, q7,  %q[wr2]              @ mul weight 20, outr1\n"
+                        "vmla.f32 q8, q7, %q[wr2]               @ mul weight 20, outr0\n"
+                        "vmla.f32 q9, q13,  %q[wr2]              @ mul weight 20, outr1\n"
 
                         "vpadd.f32 d22, d16, d17                @ pair add of out0 \n"
                         "vpadd.f32 d23, d18, d19                @ pair add of out1 \n"
@@ -2297,37 +2260,34 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
 
                         "vadd.f32  d17, d16, %e[bias]  @ add bias \n"
 
-                        "vst1.32  {d17},   [%[dout_ptr1]]!      @ store result, add pointer\n"
-
                         "sub %[din0_ptr], #4                    @ 1pad + 2 float data overlap\n"
                         "sub %[din1_ptr], #4                    @ 1pad + 2 float data overlap\n"
                         "sub %[din2_ptr], #4                    @ 1pad + 2 float data overlap\n"
+                        "vst1.32  {d17},   [%[dout_ptr1]]!      @ store result, add pointer\n"
+
 
                         // process mid cols
                         "cmp %[cnt], #1                         @ check whether has mid loop\n"
                         "blt  1f                                @ jump to rightpad\n"
                         "1:                                     @ main loop start point\n"
                         "vld1.32  {d20-d22}, [%[din0_ptr]]!     @ load din r0\n"
-                        "vmul.f32 q8, q10, %q[wr0]              @ mul weight 00, outr0\n"
+                        "vld1.32  {d24-d26}, [%[din1_ptr]]!     @ load din r1\n"
+                        "vld1.32  {d28-d30}, [%[din2_ptr]]!    @ load din r2\n"
+
                         "vext.32  q7, q10, q11, #2              @ shift left r1\n"
+                        "vext.32  q11, q12, q13, #2              @ shift left r2\n"
+                        "vmul.f32 q8, q10, %q[wr0]              @ mul weight 00, outr0\n"
                         "vmul.f32 q9, q7, %q[wr0]               @ mul weight 00, outr1\n"
 
-                        "vld1.32  {d24-d26}, [%[din1_ptr]]!     @ load din r1\n"
-                        "vmla.f32 q8, q12, %q[wr1]              @ mul weight 10, outr0\n"
-                        "vext.32  q7, q12, q13, #2              @ shift left r2\n"
-                        "vmla.f32 q9, q7, %q[wr1]               @ mul weight 10, outr1\n"
-
+                        "vext.32  q7, q14, q15, #2      @ shift left r2\n"
                         "pld [%[din0_ptr], #128]                @ preload data\n"
-
-                        "vld1.32  {d28-d30}, [%[din2_ptr]]!    @ load din r2\n"
-                        "vmla.f32 q8, q14, %q[wr2]  @mul weight 10, outr0\n"
+                        "vmla.f32 q8, q12, %q[wr1]              @ mul weight 10, outr0\n"
+                        "vmla.f32 q9, q11, %q[wr1]               @ mul weight 10, outr1\n"
 
                         "pld [%[din1_ptr], #128]                @ preload data\n"
-
-                        "vext.32  q7, q14, q15, #2      @ shift left r2\n"
-                        "vmla.f32 q9, q7, %q[wr2]  @mul weight 10, outr1\n"
-
                         "pld [%[din2_ptr], #128]                @ preload data\n"
+                        "vmla.f32 q8, q14, %q[wr2]  @mul weight 10, outr0\n"
+                        "vmla.f32 q9, q7, %q[wr2]  @mul weight 10, outr1\n"
 
                         "vpadd.f32 d22, d16, d17  @ pair add of out0 \n"
                         "vpadd.f32 d23, d18, d19 @ pair add of out1 \n"
@@ -2335,39 +2295,39 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
 
                         "vadd.f32  d17, d16, %e[bias]  @ add bias \n"
 
-                        "vst1.32  {d17},   [%[dout_ptr1]]!  @ store result, add pointer\n"
-
                         "sub %[din0_ptr], #8 @ 2 float data overlap with previous data\n"
                         "sub %[din1_ptr], #8 @ 2 float data overlap with previous data\n"
                         "sub %[din2_ptr], #8 @ 2 float data overlap with previous data\n"
+                        "vst1.32  {d17},   [%[dout_ptr1]]!  @ store result, add pointer\n"
 
                         "subs %[cnt], #1 @ loop count minus 1\n"
                         "bne    1b                          @ jump to main loop start point\n"
 
                         // process right pad
                         "1:                                 @ right pad entry\n"
-                        "vmov.u32  d31, #0                  @ zero buf\n"
                         "vld1.32  {d20-d22}, [%[din0_ptr]]!    @ load din r1\n"
+                        "vmov.u32  d31, #0                  @ zero buf\n"
+                        "vld1.32  {d24-d26}, [%[din1_ptr]]!    @ load din r1\n"
+                        "vld1.32  {d28-d30}, [%[din2_ptr]]!    @ load din r1\n"
+
                         "vbif d21, d31, %e[mask_din] @ bit select, deal with right pad\n"
-                        "vmul.f32 q8, q10, %q[wr0]  @mul weight 00, outr0\n"
                         "vbif d22, d31, %f[mask_din] @ bit select, deal with right pad\n"
+
                         "vext.32  q7, q10, q11, #2      @ shift left r0\n"
+                        "vbif d25, d31, %e[mask_din] @ bit select, deal with right pad\n"
+                        "vbif d26, d31, %f[mask_din] @ bit select, deal with right pad\n"
+                        "vmul.f32 q8, q10, %q[wr0]  @mul weight 00, outr0\n"
                         "vmul.f32 q9, q7, %q[wr0]  @mul weight 00, outr1\n"
 
-                        "vld1.32  {d24-d26}, [%[din1_ptr]]!    @ load din r1\n"
-                        "vbif d25, d31, %e[mask_din] @ bit select, deal with right pad\n"
-                        "vmla.f32 q8, q12, %q[wr1]  @mul weight 10, outr0\n"
-                        "vbif d26, d31, %f[mask_din] @ bit select, deal with right pad\n"
                         "vext.32  q7, q12, q13, #2      @ shift left r1\n"
+                        "vbif d29, d31, %e[mask_din] @ bit select, deal with right pad\n"
+                        "vbif d30, d31, %f[mask_din] @ bit select, deal with right pad\n"
+                        "vmla.f32 q8, q12, %q[wr1]  @mul weight 10, outr0\n"
                         "vmla.f32 q9, q7, %q[wr1]  @mul weight 10, outr1\n"
 
                         "pld [%[dout_ptr1], #64]         @ preload ouput data\n"
-
-                        "vld1.32  {d28-d30}, [%[din2_ptr]]!    @ load din r1\n"
-                        "vbif d29, d31, %e[mask_din] @ bit select, deal with right pad\n"
-                        "vmla.f32 q8, q14, %q[wr2]  @mul weight 20, outr0\n"
-                        "vbif d30, d31, %f[mask_din] @ bit select, deal with right pad\n"
                         "vext.32  q7, q14, q15, #2      @ shift left r2\n"
+                        "vmla.f32 q8, q14, %q[wr2]  @mul weight 20, outr0\n"
                         "vmla.f32 q9, q7, %q[wr2]  @mul weight 20, outr1\n"
 
                         "vld1.32  {d20}, [%[dout_ptr1]]    @ load dout\n"
@@ -2393,8 +2353,6 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
                 :"q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
                 );
 
-#endif //__aarch64__
-
                 dr0 = dr2;
                 dr1 = dr0 + w_in;
                 dr2 = dr1 + w_in;
@@ -2404,27 +2362,26 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
             if (size_pad_bottom) {
                 din0_ptr = dr0;
                 din1_ptr = dr1;
-#ifdef __aarch64__
-                // todo
-#else
+
                 cnt = cnt_col;
                 asm volatile(
                 // process left pad
                 "pld [%[din0_ptr], #128]               @ preload data\n"
                         "pld [%[din1_ptr], #128]               @ preload data\n"
 
-                        "vmov.u32 q11, #0 @ for left pad\n"
                         "vld1.32  {d20-d21}, [%[din0_ptr]]!    @ load din r0\n"
-                        "vext.32 q7, q11, q10, #3 @ shift right 1 data\n"
-                        "vmul.f32 q8, q7, %q[wr0]  @mul weight 00, outr0\n"
-                        "vext.32  q7, q10, q11, #1   @ shift left r0\n"
-                        "vmul.f32 q9, q7, %q[wr0]    @mul weight 00, outr1\n"
-
+                        "vmov.u32 q11, #0 @ for left pad\n"
                         "vld1.32  {d24-d25}, [%[din1_ptr]]!    @ load din r1\n"
+
+                        "vext.32 q7, q11, q10, #3 @ shift right 1 data\n"
+                        "vext.32  q13, q10, q11, #1   @ shift left r0\n"
+                        "vmul.f32 q8, q7, %q[wr0]  @mul weight 00, outr0\n"
+                        "vmul.f32 q9, q13, %q[wr0]    @mul weight 00, outr1\n"
+
                         "vext.32 q7, q11, q12, #3 @ shift right 1 data\n"
+                        "vext.32  q13, q12, q11, #1   @ shift left r1\n"
                         "vmla.f32 q8, q7, %q[wr1]   @mul weight 10, outr0\n"
-                        "vext.32  q7, q12, q11, #1   @ shift left r1\n"
-                        "vmla.f32 q9, q7,  %q[wr1]   @mul weight 10, outr1\n"
+                        "vmla.f32 q9, q13,  %q[wr1]   @mul weight 10, outr1\n"
 
                         "vpadd.f32 d22, d16, d17  @ pair add of out0 \n"
                         "vpadd.f32 d23, d18, d19  @ pair add of out1 \n"
@@ -2432,10 +2389,9 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
 
                         "vadd.f32  d17, d16, %e[bias]  @ add bias \n"
 
-                        "vst1.32  {d17},   [%[dout_ptr1]]!  @ store result, add pointer\n"
-
                         "sub %[din0_ptr], #4 @ 1pad + 2 float data overlap\n"
                         "sub %[din1_ptr], #4 @ 1pad + 2 float data overlap\n"
+                        "vst1.32  {d17},   [%[dout_ptr1]]!  @ store result, add pointer\n"
 
                         // process mid cols
                         "cmp %[cnt], #1                             @ check whether has mid loop\n"
@@ -2444,13 +2400,14 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
                         "pld [%[din0_ptr], #192]               @ preload data\n"
                         "pld [%[din1_ptr], #192]               @ preload data\n"
                         "vld1.32  {d20-d22}, [%[din0_ptr]]!    @ load din r0\n"
-                        "vmul.f32 q8, q10, %q[wr0]      @mul weight 00, outr0\n"
+                        "vld1.32  {d24-d26}, [%[din1_ptr]]!    @ load din r1\n"
+
                         "vext.32  q7, q10, q11, #2      @ shift left r1\n"
+                        "vmul.f32 q8, q10, %q[wr0]      @mul weight 00, outr0\n"
                         "vmul.f32 q9, q7, %q[wr0]  @mul weight 00, outr1\n"
 
-                        "vld1.32  {d24-d26}, [%[din1_ptr]]!    @ load din r1\n"
-                        "vmla.f32 q8, q12, %q[wr1]  @mul weight 10, outr0\n"
                         "vext.32  q7, q12, q13, #2      @ shift left r2\n"
+                        "vmla.f32 q8, q12, %q[wr1]  @mul weight 10, outr0\n"
                         "vmla.f32 q9, q7, %q[wr1]  @mul weight 10, outr1\n"
 
                         "vpadd.f32 d22, d16, d17  @ pair add of out0 \n"
@@ -2459,34 +2416,38 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
 
                         "vadd.f32  d17, d16, %e[bias]  @ add bias \n"
 
-                        "vst1.32  {d17},   [%[dout_ptr1]]!  @ store result, add pointer\n"
-
                         "sub %[din0_ptr], #8 @ 2 float data overlap with previous data\n"
                         "sub %[din1_ptr], #8 @ 2 float data overlap with previous data\n"
+
+                        "vst1.32  {d17},   [%[dout_ptr1]]!  @ store result, add pointer\n"
 
                         "subs %[cnt], #1 @ loop count minus 1\n"
                         "bne    1b @ jump to main loop start point\n"
 
                         // process right pad
                         "2:             @ right pad entry\n"
-                        "vmov.u32  d31, #0 @ zero buf\n"
                         "pld [%[din0_ptr], #192]               @ preload data\n"
                         "pld [%[din1_ptr], #192]               @ preload data\n"
-                        "vld1.32  {d20-d22}, [%[din0_ptr]]!    @ load din r1\n"
+                        "vld1.32  {d20-d21}, [%[din0_ptr]]!    @ load din r1\n"
+                        "vld1.32  {d22}, [%[din0_ptr]]!    @ load din r1\n"
+                        "vmov.u32  d31, #0 @ zero buf\n"
+                        "vld1.32  {d24-d25}, [%[din1_ptr]]!    @ load din r1\n"
+                        "vld1.32  {d26}, [%[din1_ptr]]!    @ load din r1\n"
+
                         "vbif d21, d31, %e[mask_din] @ bit select, deal with right pad\n"
-                        "vmul.f32 q8, q10, %q[wr0]  @mul weight 00, outr0\n"
                         "vbif d22, d31, %f[mask_din] @ bit select, deal with right pad\n"
+
                         "vext.32  q7, q10, q11, #2      @ shift left r0\n"
+                        "vmul.f32 q8, q10, %q[wr0]  @mul weight 00, outr0\n"
                         "vmul.f32 q9, q7, %q[wr0]  @mul weight 00, outr1\n"
 
-                        "vld1.32  {d24-d26}, [%[din1_ptr]]!    @ load din r1\n"
                         "vbif d25, d31, %e[mask_din] @ bit select, deal with right pad\n"
+                        "vbif d26, d31, %f[mask_din] @ bit select, deal with right pad\n"
 
                         "pld [%[dout_ptr1], #64]         @ preload data\n"
 
-                        "vmla.f32 q8, q12, %q[wr1]  @mul weight 10, outr0\n"
-                        "vbif d26, d31, %f[mask_din] @ bit select, deal with right pad\n"
                         "vext.32  q7, q12, q13, #2      @ shift left r1\n"
+                        "vmla.f32 q8, q12, %q[wr1]  @mul weight 10, outr0\n"
                         "vmla.f32 q9, q7, %q[wr1]  @mul weight 10, outr1\n"
 
                         "vld1.32  {d20}, [%[dout_ptr1]]    @ load dout\n"
@@ -2511,7 +2472,6 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
                 :"q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
                 );
 
-#endif //__aarch64__
             } // end of process bottom pad
 
         }
@@ -2587,8 +2547,6 @@ void conv_depthwise_3x3s1p1_bias_relu(float* dout, const float* din, \
             //! deal with top pad
             int h = 0;
             //! process
-#ifdef __aarch64__
-            // todo
             //printf("din0: %x, din1: %x, din2: %x \n", din0_ptr, din1_ptr, din2_ptr);
             float *doutr0_ptr = doutr0;
             float *doutr1_ptr = doutr1;
@@ -2838,10 +2796,6 @@ void conv_depthwise_3x3s1p1_bias_relu(float* dout, const float* din, \
             //printf("vdata0: %f, %f, %f, %f \n", vgetq_lane_f32(vdata0, 0), vgetq_lane_f32(vdata0, 1), vgetq_lane_f32(vdata0, 2), vgetq_lane_f32(vdata0, 3));
            //printf("vdata1: %f, %f, %f, %f \n", vgetq_lane_f32(vdata1, 0), vgetq_lane_f32(vdata1, 1), vgetq_lane_f32(vdata1, 2), vgetq_lane_f32(vdata1, 3));
 
-
-#else
-
-#endif //__aarch64__
 
             //! after process, increase pointer
             doutr0 = doutr1 + w_out;
@@ -3116,7 +3070,6 @@ void conv_depthwise_3x3s1p1_bias_relu(float* dout, const float* din, \
                 din2_ptr = dr2;
             }
 
-#ifdef __aarch64__
             // todo
             //left
             din0 = vld1q_f32(din0_ptr);
@@ -3326,15 +3279,13 @@ void conv_depthwise_3x3s1p1_bias_relu(float* dout, const float* din, \
            // printf("vdata0: %f, %f, %f, %f \n", vgetq_lane_f32(vdata0, 0), vgetq_lane_f32(vdata0, 1), vgetq_lane_f32(vdata0, 2), vgetq_lane_f32(vdata0, 3));
             //printf("vdata1: %f, %f, %f, %f \n", vgetq_lane_f32(vdata1, 0), vgetq_lane_f32(vdata1, 1), vgetq_lane_f32(vdata1, 2), vgetq_lane_f32(vdata1, 3));
 
-
-#else
-
-#endif
             //! end of processing bottom pad
         } // end of processing channels
     } // end of processing batchs
 }
+
 #else
+
 void conv_depthwise_3x3s1p1_bias_relu(float* dout, const float* din, \
     const float* weights, const float* bias, bool flag_bias, \
     const int num, const int ch_in, const int h_in, const int w_in, \
@@ -3397,9 +3348,7 @@ void conv_depthwise_3x3s1p1_bias_relu(float* dout, const float* din, \
             int h = 0;
             //! deal with top pad
             //! process
-#ifdef __aarch64__
-            // todo
-#else
+
             int cnt = cnt_col;
             asm volatile(
             //! process left pad
@@ -3407,51 +3356,51 @@ void conv_depthwise_3x3s1p1_bias_relu(float* dout, const float* din, \
                     "pld [%[din1_ptr], #192]                @ preload data\n"
                     "pld [%[din2_ptr], #192]                @ preload data\n"
 
-                    "vld1.32  {d20-d22}, [%[din0_ptr]]!     @ load din r1\n"
+                    "vld1.32  {d20-d21}, [%[din0_ptr]]!     @ load din r1\n"
+                    "vld1.32  {d24-d25}, [%[din1_ptr]]!     @ load din r2\n"
+                    "vld1.32  {d28-d29}, [%[din2_ptr]]!     @ load din r3\n"
+
+                    "vld1.32  {d22}, [%[din0_ptr]]!     @ load din r1\n"
                     "vmul.f32 q5, q10, %e[wr0][1]           @ mul weight 00, outr1\n"
                     "vmul.f32 q4, q10, %e[wr1][1]           @ mul weight 10, outr0\n"
 
-
-                    "vld1.32  {d24-d26}, [%[din1_ptr]]!     @ load din r2\n"
+                    "vld1.32  {d26}, [%[din1_ptr]]!     @ load din r1\n"
+                    "vld1.32  {d30}, [%[din2_ptr]]!     @ load din r1\n"
                     "vmla.f32 q5, q12, %e[wr1][1]           @ mul weight 10, outr1\n"
                     "vmla.f32 q4, q12, %e[wr2][1]           @ mul weight 20, outr0\n"
 
-
-                    "vld1.32  {d28-d30}, [%[din2_ptr]]!     @ load din r3\n"
+                    "vext.32  q6, q10, q11, #1              @ shift left r1\n"
+                    "pld [%[din0_ptr], #192]                @ preload data\n"
                     "vmla.f32 q5, q14, %e[wr2][1]           @ mul weight 20, outr1\n"
 
-                    "vext.32  q6, q10, q11, #1              @ shift left r1\n"
+                    "vext.32  q8, q12, q13, #1              @ shift left r2\n"
+                    "pld [%[din1_ptr], #192]                @ preload data\n"
                     "vmla.f32 q5, q6, %f[wr0][0]            @ mul weight 01, outr1\n"
                     "vmla.f32 q4, q6, %f[wr1][0]            @ mul weight 11, outr0\n"
 
-                    "vext.32  q6, q12, q13, #1              @ shift left r2\n"
-                    "vmla.f32 q5, q6,  %f[wr1][0]           @ mul weight 11, outr1\n"
-                    "vmla.f32 q4, q6,  %f[wr2][0]           @ mul weight 21, outr0\n"
-
                     "vext.32  q6, q14, q15, #1              @ shift left r3\n"
-                    "vmla.f32 q5, q6,  %f[wr2][0]           @ mul weight 21, outr1\n"
+                    "pld [%[din2_ptr], #192]                @ preload data\n"
+                    "vmla.f32 q5, q8,  %f[wr1][0]           @ mul weight 11, outr1\n"
+                    "vmla.f32 q4, q8,  %f[wr2][0]           @ mul weight 21, outr0\n"
 
                     "vmov.u32 d31, #0 @ zero\n"
+                    "vext.32  d16, d31, d20, #1             @ shift right r1\n"
+                    "vext.32  d17, d20, d21, #1             @ shift right r1\n"
+                    "vmla.f32 q5, q6,  %f[wr2][0]           @ mul weight 21, outr1\n"
 
-                    "vext.32  d12, d31, d20, #1             @ shift right r1\n"
-                    "vext.32  d13, d20, d21, #1             @ shift right r1\n"
-                    "vmla.f32 q5, q6, %e[wr0][0]            @ mul weight 02, outr1\n"
-                    "vmla.f32 q4, q6, %e[wr1][0]            @ mul weight 12, outr0\n"
-
-                    "pld [%[din0_ptr], #192]                @ preload data\n"
 
                     "vext.32  d12, d31, d24, #1             @ shift right r0\n"
                     "vext.32  d13, d24, d25, #1             @ shift right r0\n"
+                    "vmla.f32 q5, q8, %e[wr0][0]            @ mul weight 02, outr1\n"
+                    "vmla.f32 q4, q8, %e[wr1][0]            @ mul weight 12, outr0\n"
+
+
+                    "vext.32  d16, d31, d28, #1             @ shift right r0\n"
+                    "vext.32  d17, d28, d29, #1             @ shift right r0\n"
                     "vmla.f32 q5, q6,  %e[wr1][0]           @ mul weight 12, outr1\n"
                     "vmla.f32 q4, q6,  %e[wr2][0]           @ mul weight 22, outr0\n"
 
-                    "pld [%[din1_ptr], #192]                @ preload data\n"
-
-                    "vext.32  d12, d31, d28, #1             @ shift right r0\n"
-                    "vext.32  d13, d28, d29, #1             @ shift right r0\n"
-                    "vmla.f32 q5, q6,  %e[wr2][0]           @ mul weight 22, outr1\n"
-
-                    "pld [%[din2_ptr], #192]                @ preload data\n"
+                    "vmla.f32 q5, q8,  %e[wr2][0]           @ mul weight 22, outr1\n"
 
                     "vadd.f32 q8, q4, %q[bias]              @ add bias \n"
                     "vadd.f32 q9, q5, %q[bias]              @ add bias \n"
@@ -3459,55 +3408,57 @@ void conv_depthwise_3x3s1p1_bias_relu(float* dout, const float* din, \
                     "vmov.u32 q4, #0                        @ dump zero to q4 for relu\n"
                     "vmax.f32 q8, q8, q4                    @ relu\n"
                     "vmax.f32 q9, q9, q4                    @ relu\n"
-                    "vst1.32  {d16-d17}, [%[dout_ptr1]]!    @ store result, add pointer\n"
-                    "vst1.32  {d18-d19}, [%[dout_ptr2]]!    @ store result, add pointer\n"
 
                     "sub %[din0_ptr], #12                   @ 1pad + 2 float data overlap\n"
                     "sub %[din1_ptr], #12                   @ 1pad + 2 float data overlap\n"
                     "sub %[din2_ptr], #12                   @ 1pad + 2 float data overlap\n"
+                    "vst1.32  {d16-d17}, [%[dout_ptr1]]!    @ store result, add pointer\n"
+                    "vst1.32  {d18-d19}, [%[dout_ptr2]]!    @ store result, add pointer\n"
 
                     //! process mid cols
                     "cmp %[cnt], #1                         @ check whether has mid cols\n"
                     "blt  2f                                @ jump to right pad\n"
                     "1:                                     @ main loop start point\n"
-                    "vld1.32  {d20-d22}, [%[din0_ptr]]!     @ load din r1\n"
+                    "vld1.32  {d20-d21}, [%[din0_ptr]]!     @ load din r1\n"
+                    "vld1.32  {d24-d25}, [%[din1_ptr]]!     @ load din r2\n"
+                    "vld1.32  {d28-d29}, [%[din2_ptr]]!     @ load din r3\n"
+
+                    "vld1.32  {d22}, [%[din0_ptr]]!     @ load din r1\n"
                     "vmul.f32 q5, q10, %e[wr0][0]           @ mul weight 00, outr1\n"
                     "vmul.f32 q4, q10, %e[wr1][0]           @ mul weight 10, outr0\n"
 
-                    "vld1.32  {d24-d26}, [%[din1_ptr]]!     @ load din r2\n"
+                    "vld1.32  {d26}, [%[din1_ptr]]!     @ load din r1\n"
+                    "vld1.32  {d30}, [%[din2_ptr]]!     @ load din r1\n"
                     "vmla.f32 q5, q12, %e[wr1][0]           @ mul weight 10, outr1\n"
                     "vmla.f32 q4, q12, %e[wr2][0]           @ mul weight 20, outr0\n"
 
-                    "vld1.32  {d28-d30}, [%[din2_ptr]]!     @ load din r3\n"
+                    "vext.32  q6, q10, q11, #1              @ shift left r1\n"
+                    "pld [%[din0_ptr], #192]                @ preload data\n"
                     "vmla.f32 q5, q14, %e[wr2][0]           @ mul weight 20, outr1\n"
 
-                    "vext.32  q6, q10, q11, #1              @ shift left r1\n"
+                    "vext.32  q8, q12, q13, #1              @ shift left r2\n"
+                    "pld [%[din1_ptr], #192]                @ preload data\n"
                     "vmla.f32 q5, q6, %e[wr0][1]            @ mul weight 01, outr1\n"
                     "vmla.f32 q4, q6, %e[wr1][1]            @ mul weight 11, outr0\n"
 
-                    "vext.32  q6, q12, q13, #1              @ shift left r2\n"
-                    "vmla.f32 q5, q6,  %e[wr1][1]           @ mul weight 11, outr1\n"
-                    "vmla.f32 q4, q6,  %e[wr2][1]           @ mul weight 21, outr0\n"
-
                     "vext.32  q6, q14, q15, #1              @ shift left r3\n"
+                    "pld [%[din2_ptr], #192]                @ preload data\n"
+                    "vmla.f32 q5, q8,  %e[wr1][1]           @ mul weight 11, outr1\n"
+                    "vmla.f32 q4, q8,  %e[wr2][1]           @ mul weight 21, outr0\n"
+
+                    "vext.32  q8, q10, q11, #2              @ shift left r1\n"
                     "vmla.f32 q5, q6,  %e[wr2][1]           @ mul weight 21, outr1\n"
 
-                    "vext.32  q6, q10, q11, #2              @ shift left r1\n"
-                    "vmla.f32 q5, q6, %f[wr0][0]            @ mul weight 02, outr1\n"
-                    "vmla.f32 q4, q6, %f[wr1][0]            @ mul weight 12, outr0\n"
-
-                    "pld [%[din0_ptr], #192]                @ preload data\n"
-
                     "vext.32  q6, q12, q13, #2              @ shift left r2\n"
+                    "vmla.f32 q5, q8, %f[wr0][0]            @ mul weight 02, outr1\n"
+                    "vmla.f32 q4, q8, %f[wr1][0]            @ mul weight 12, outr0\n"
+
+
+                    "vext.32  q8, q14, q15, #2              @ shift right r3\n"
                     "vmla.f32 q5, q6,  %f[wr1][0]           @ mul weight 12, outr1\n"
                     "vmla.f32 q4, q6,  %f[wr2][0]           @ mul weight 22, outr0\n"
 
-                    "pld [%[din1_ptr], #192]                @ preload data\n"
-
-                    "vext.32  q6, q14, q15, #2              @ shift right r3\n"
-                    "vmla.f32 q5, q6,  %f[wr2][0]           @ mul weight 22, outr1\n"
-
-                    "pld [%[din2_ptr], #192]                @ preload data\n"
+                    "vmla.f32 q5, q8,  %f[wr2][0]           @ mul weight 22, outr1\n"
 
                     "vadd.f32 q8, q4, %q[bias]              @ add bias \n"
                     "vadd.f32 q9, q5, %q[bias]              @ add bias \n"
@@ -3516,77 +3467,85 @@ void conv_depthwise_3x3s1p1_bias_relu(float* dout, const float* din, \
                     "vmax.f32 q8, q8, q4                    @ relu\n"
                     "vmax.f32 q9, q9, q4                    @ relu\n"
 
-                    "vst1.32  {d16-d17}, [%[dout_ptr1]]!    @ store result, add pointer\n"
-                    "vst1.32  {d18-d19}, [%[dout_ptr2]]!    @ store result, add pointer\n"
-
                     "sub %[din0_ptr], #8                    @ 2 float data overlap with previous data\n"
                     "sub %[din1_ptr], #8                    @ 2 float data overlap with previous data\n"
                     "sub %[din2_ptr], #8                    @ 2 float data overlap with previous data\n"
+                    "vst1.32  {d16-d17}, [%[dout_ptr1]]!    @ store result, add pointer\n"
+                    "vst1.32  {d18-d19}, [%[dout_ptr2]]!    @ store result, add pointer\n"
+
                     "subs %[cnt], #1                        @ loop count minus 1\n"
                     "bne    1b                              @ jump to main loop start point\n"
 
                     //! process right pad
                     "2:                                     @ right pad entry\n"
                     "vmov.u32  d31, #0                      @ zero buf\n"
-                    "vld1.32  {d20-d22}, [%[din0_ptr]]!     @ load din r1\n"
+                    "vld1.32  {d20-d21}, [%[din0_ptr]]!     @ load din r1\n"
+                    "vld1.32  {d24-d25}, [%[din1_ptr]]!     @ load din r2\n"
+                    "vld1.32  {d28-d29}, [%[din2_ptr]]!     @ load din r3\n"
+
+                    "vld1.32  {d22}, [%[din0_ptr]]!     @ load din r1\n"
+                    "vld1.32  {d26}, [%[din1_ptr]]!     @ load din r1\n"
+
                     "vbif d21, d31, %e[mask]                @ bit select, deal with right pad\n"
+                    "vbif d25, d31, %e[mask]                @ bit select, deal with right pad\n"
+                    "vbif d29, d31, %e[mask]                @ bit select, deal with right pad\n"
+                    
+                    "vld1.32  {d30}, [%[din2_ptr]]!     @ load din r1\n"
+
+                    "vbif  d22, d31, %f[mask]               @ bit select, deal with right pad\n"
                     "vmul.f32 q5, q10, %e[wr0][0]           @ mul weight 00, outr1\n"
                     "vmul.f32 q4, q10, %e[wr1][0]           @ mul weight 10, outr0\n"
 
-                    "vld1.32  {d24-d26}, [%[din1_ptr]]!     @ load din r2\n"
-                    "vbif d25, d31, %e[mask]                @ bit select, deal with right pad\n"
+                    "vext.32  q6, q10, q11, #1              @ shift left r1\n"
+                    "vbif  d26, d31, %f[mask]               @ bit select, deal with right pad\n"
                     "vmla.f32 q5, q12, %e[wr1][0]           @ mul weight 10, outr1\n"
                     "vmla.f32 q4, q12, %e[wr2][0]           @ mul weight 20, outr0\n"
 
-                    "vld1.32  {d28-d30}, [%[din2_ptr]]!     @ load din r3\n"
-                    "vbif d29, d31, %e[mask]                @ bit select, deal with right pad\n"
+                    "vext.32  q8, q12, q13, #1              @ shift left r2\n"
+                    "vbif  d30, d31, %f[mask]               @ bit select, deal with right pad\n"
                     "vmla.f32 q5, q14, %e[wr2][0]           @ mul weight 20, outr1\n"
-
-                    "vbif  d22, d31, %f[mask]               @ bit select, deal with right pad\n"
-                    "vext.32  q6, q10, q11, #1              @ shift left r1\n"
+                    
+                    "pld [%[din0_ptr], #192]                @ preload data\n"
                     "vmla.f32 q5, q6, %e[wr0][1]            @ mul weight 01, outr1\n"
                     "vmla.f32 q4, q6, %e[wr1][1]            @ mul weight 11, outr0\n"
 
-                    "vbif  d26, d31, %f[mask]               @ bit select, deal with right pad\n"
-                    "vext.32  q6, q12, q13, #1              @ shift left r2\n"
-                    "vmla.f32 q5, q6,  %e[wr1][1]           @ mul weight 11, outr1\n"
-                    "vmla.f32 q4, q6,  %e[wr2][1]           @ mul weight 21, outr0\n"
-
-                    "vbif  d30, d31, %f[mask]               @ bit select, deal with right pad\n"
                     "vext.32  q6, q14, q15, #1              @ shift left r3\n"
+                    "pld [%[din1_ptr], #192]                @ preload data\n"
+                    "vmla.f32 q5, q8,  %e[wr1][1]           @ mul weight 11, outr1\n"
+                    "vmla.f32 q4, q8,  %e[wr2][1]           @ mul weight 21, outr0\n"
+
+                    "vext.32  q8, q10, q11, #2              @ shift left r1\n"
                     "vmla.f32 q5, q6,  %e[wr2][1]           @ mul weight 21, outr1\n"
 
-                    "vext.32  q6, q10, q11, #2              @ shift left r1\n"
-                    "vmla.f32 q5, q6, %f[wr0][0]            @ mul weight 02, outr1\n"
-                    "vmla.f32 q4, q6, %f[wr1][0]            @ mul weight 12, outr0\n"
-
                     "vext.32  q6, q12, q13, #2              @ shift left r2\n"
+                    "pld [%[din2_ptr], #192]                @ preload data\n"
+                    "vmla.f32 q5, q8, %f[wr0][0]            @ mul weight 02, outr1\n"
+                    "vmla.f32 q4, q8, %f[wr1][0]            @ mul weight 12, outr0\n"
+
+                    "vext.32  q8, q14, q15, #2              @ shift right r3\n"
                     "vmla.f32 q5, q6,  %f[wr1][0]           @ mul weight 12, outr1\n"
                     "vmla.f32 q4, q6,  %f[wr2][0]           @ mul weight 22, outr0\n"
 
-                    "vext.32  q6, q14, q15, #2              @ shift right r3\n"
-                    "vmla.f32 q5, q6,  %f[wr2][0]           @ mul weight 22, outr1\n"
+                    "vmvn.32  d24, d31                      @ \n"
+                    "vmvn.32  d25, d31                      @ \n"
+                    "vmla.f32 q5, q8,  %f[wr2][0]           @ mul weight 22, outr1\n"
 
+                    "pld [%[dout_ptr1], #128]               @ preload data\n"
                     "vadd.f32 q8, q4, %q[bias]              @ add bias \n"
                     "vadd.f32 q9, q5, %q[bias]              @ add bias \n"
 
+                    "vld1.32  {d20-d21}, [%[dout_ptr1]]     @ load dout r0\n"
                     "vmov.u32 q4, #0                        @ dump zero to q4 for relu\n"
                     "vmax.f32 q8, q8, q4                    @ relu\n"
                     "vmax.f32 q9, q9, q4                    @ relu\n"
 
-                    "pld [%[dout_ptr1], #128]               @ preload data\n"
-                    "vld1.32  {d20-d21}, [%[dout_ptr1]]     @ load dout r0\n"
-
-                    "vmvn.32  d24, d31                      @ \n"
-                    "vmvn.32  d25, d31                      @ \n"
                     "vext.32  q13, q12, %q[mask], #3        @ shift mask right 1\n"
                     "vbif q8, q10, q13                      @ bit select\n"
 
-                    "vst1.32  {d16-d17}, [%[dout_ptr1]]!    @ store result, add pointer\n"
-                    "vst1.32  {d18-d19}, [%[dout_ptr2]]!    @ store result, add pointer\n"
-
                     "sub %[dout_ptr1], %[dout_ptr1], %[pad_right] @ sub \n"
                     "sub %[dout_ptr2], %[dout_ptr2], %[pad_right] @ sub \n"
+                    "vst1.32  {d18-d19}, [%[dout_ptr2]]!    @ store result, add pointer\n"
+                    "vst1.32  {d16-d17}, [%[dout_ptr1]]!    @ store result, add pointer\n"
 
             :[dout_ptr1] "+r"(doutr0), [dout_ptr2] "+r"(doutr1), \
                  [din0_ptr] "+r"(din0_ptr), [din1_ptr] "+r"(din1_ptr), \
@@ -3598,7 +3557,6 @@ void conv_depthwise_3x3s1p1_bias_relu(float* dout, const float* din, \
                         "q10", "q11", "q12", "q13", "q14", "q15"
             );
 
-#endif //__aarch64__
 
             //! after process, increase pointer
             doutr0 += w_out;
@@ -3617,9 +3575,6 @@ void conv_depthwise_3x3s1p1_bias_relu(float* dout, const float* din, \
                 din2_ptr = dr2;
                 din3_ptr = dr3;
 
-#ifdef __aarch64__
-                // todo
-#else
                 cnt = cnt_col;
                 asm volatile(
                 //! process left pad
@@ -3628,21 +3583,27 @@ void conv_depthwise_3x3s1p1_bias_relu(float* dout, const float* din, \
                         "pld [%[din2_ptr], #192]               @ preload data\n"
                         "pld [%[din3_ptr], #192]               @ preload data\n"
 
-                        "vld1.32  {d16-d18}, [%[din0_ptr]]!    @ load din r0\n"
+                        "vld1.32  {d16-d17}, [%[din0_ptr]]!    @ load din r0\n"
+                        "vld1.32  {d20-d21}, [%[din1_ptr]]!    @ load din r1\n"
+                        "vld1.32  {d24-d25}, [%[din2_ptr]]!    @ load din r2\n"
+                        "vld1.32  {d28-d29}, [%[din3_ptr]]!    @ load din r3\n"
+
+                        "vld1.32  {d18}, [%[din0_ptr]]!    @ load din r0\n"
+
                         "vmul.f32 q4, q8, %e[wr0][1]   @mul weight 00, outr0\n"
 
-                        "vld1.32  {d20-d22}, [%[din1_ptr]]!    @ load din r1\n"
+                        "vld1.32  {d22}, [%[din1_ptr]]!    @ load din r0\n"
+                        "vld1.32  {d26}, [%[din2_ptr]]!    @ load din r0\n"
                         "vmul.f32 q5, q10, %e[wr0][1]  @mul weight 00, outr1\n"
                         "vmla.f32 q4, q10, %e[wr1][1]  @mul weight 10, outr0\n"
 
-                        "vld1.32  {d24-d26}, [%[din2_ptr]]!    @ load din r2\n"
+                        "vext.32  q6, q8, q9, #1     @ shift left r0\n"
+                        "vld1.32  {d30}, [%[din3_ptr]]!    @ load din r0\n"
                         "vmla.f32 q5, q12, %e[wr1][1]  @mul weight 10, outr1\n"
                         "vmla.f32 q4, q12, %e[wr2][1]  @mul weight 20, outr0\n"
 
-                        "vld1.32  {d28-d30}, [%[din3_ptr]]!    @ load din r3\n"
                         "vmla.f32 q5, q14, %e[wr2][1]  @mul weight 20, outr1\n"
 
-                        "vext.32  q6, q8, q9, #1     @ shift left r0\n"
                         "vmla.f32 q4, q6, %f[wr0][0]  @mul weight 01, outr0\n"
 
                         "vext.32  q6, q10, q11, #1   @ shift left r1\n"
@@ -3654,195 +3615,211 @@ void conv_depthwise_3x3s1p1_bias_relu(float* dout, const float* din, \
                         "vmla.f32 q4, q6,  %f[wr2][0] @mul weight 21, outr0\n"
 
                         "vext.32  q6, q14, q15, #1  @ shift left r3\n"
+                        "vmov.u32 d31, #0 @ zero\n"
                         "vmla.f32 q5, q6,  %f[wr2][0] @mul weight 21, outr1\n"
 
-                        "vmov.u32 d31, #0 @ zero\n"
                         "vext.32  d12, d31, d16, #1     @ shift right r0\n"
                         "vext.32  d13, d16, d17, #1     @ shift right r0\n"
                         "vmla.f32 q4, q6, %e[wr0][0]  @mul weight 02, outr0\n"
 
-                        "pld [%[din0_ptr], #192]               @ preload data\n"
-
                         "vext.32  d12, d31, d20, #1     @ shift right r1\n"
                         "vext.32  d13, d20, d21, #1     @ shift right r1\n"
+                        "pld [%[din0_ptr], #192]               @ preload data\n"
+
                         "vmla.f32 q5, q6, %e[wr0][0]  @mul weight 02, outr1\n"
                         "vmla.f32 q4, q6, %e[wr1][0]  @mul weight 12, outr0\n"
 
-                        "pld [%[din1_ptr], #192]               @ preload data\n"
-
                         "vext.32  d12, d31, d24, #1     @ shift right r0\n"
                         "vext.32  d13, d24, d25, #1     @ shift right r0\n"
+                        "pld [%[din1_ptr], #192]               @ preload data\n"
+
                         "vmla.f32 q5, q6,  %e[wr1][0] @mul weight 12, outr1\n"
                         "vmla.f32 q4, q6,  %e[wr2][0] @mul weight 22, outr0\n"
 
-                        "pld [%[din2_ptr], #192]               @ preload data\n"
-
                         "vext.32  d12, d31, d28, #1     @ shift right r0\n"
                         "vext.32  d13, d28, d29, #1     @ shift right r0\n"
+                        "pld [%[din2_ptr], #192]               @ preload data\n"
+
                         "vmla.f32 q5, q6,  %e[wr2][0] @mul weight 22, outr1\n"
 
                         "pld [%[din3_ptr], #192]               @ preload data\n"
 
                         "vadd.f32 q8, q4, %q[bias] @ add bias \n"
                         "vadd.f32 q9, q5, %q[bias] @ add bias \n"
-
                         "vmov.u32 q4, #0                        @ dump zero to q4 for relu\n"
-                        "vmax.f32 q8, q8, q4                    @ relu\n"
-                        "vmax.f32 q9, q9, q4                    @ relu\n"
-
-                        "vst1.32  {d16-d17},   [%[dout_ptr1]]!  @ store result, add pointer\n"
-                        "vst1.32  {d18-d19},   [%[dout_ptr2]]!  @ store result, add pointer\n"
 
                         "sub %[din0_ptr], #12 @ 1pad + 2 float data overlap\n"
                         "sub %[din1_ptr], #12 @ 1pad + 2 float data overlap\n"
+
+                        "vmax.f32 q8, q8, q4                    @ relu\n"
+                        "vmax.f32 q9, q9, q4                    @ relu\n"
+
                         "sub %[din2_ptr], #12 @ 1pad + 2 float data overlap\n"
                         "sub %[din3_ptr], #12 @ 1pad + 2 float data overlap\n"
+
+                        "vst1.32  {d16-d17},   [%[dout_ptr1]]!  @ store result, add pointer\n"
+                        "vst1.32  {d18-d19},   [%[dout_ptr2]]!  @ store result, add pointer\n"
 
                         //! process mid cols
                         "cmp %[cnt], #1                             @ check whether has mid cols\n"
                         "blt  4f                                @ jump to right pad\n"
                         "3:                                     @ main loop start point\n"
-                        "vld1.32  {d16-d18}, [%[din0_ptr]]!    @ load din r0\n"
-                        "vmul.f32 q4, q8, %e[wr0][0]    @ mul weight 00, outr0\n"
+                        "vld1.32  {d16-d17}, [%[din0_ptr]]!    @ load din r0\n"
+                        "vld1.32  {d20-d21}, [%[din1_ptr]]!    @ load din r1\n"
+                        "vld1.32  {d24-d25}, [%[din2_ptr]]!    @ load din r2\n"
+                        "vld1.32  {d28-d29}, [%[din3_ptr]]!    @ load din r3\n"
 
-                        "vld1.32  {d20-d22}, [%[din1_ptr]]!    @ load din r1\n"
+                        "vld1.32  {d18}, [%[din0_ptr]]!    @ load din r0\n"
+
+                        "vmul.f32 q4, q8, %e[wr0][0]    @ mul weight 00, outr0\n"
+                         
+                        "vld1.32  {d22}, [%[din1_ptr]]!    @ load din r0\n"
                         "vmul.f32 q5, q10, %e[wr0][0]   @ mul weight 00, outr1\n"
                         "vmla.f32 q4, q10, %e[wr1][0]   @ mul weight 10, outr0\n"
 
-                        "vld1.32  {d24-d26}, [%[din2_ptr]]!    @ load din r2\n"
+                        "vld1.32  {d26}, [%[din2_ptr]]!    @ load din r0\n"
+                        "vld1.32  {d30}, [%[din3_ptr]]!    @ load din r0\n"
+                        "vext.32  q6, q8, q9, #1        @ shift left r0\n"
                         "vmla.f32 q5, q12, %e[wr1][0]   @ mul weight 10, outr1\n"
                         "vmla.f32 q4, q12, %e[wr2][0]   @ mul weight 20, outr0\n"
 
-                        "vld1.32  {d28-d30}, [%[din3_ptr]]!    @ load din r3\n"
+                        "pld [%[din0_ptr], #192]               @ preload data\n"
                         "vmla.f32 q5, q14, %e[wr2][0]   @ mul weight 20, outr1\n"
 
-                        "vext.32  q6, q8, q9, #1        @ shift left r0\n"
                         "vmla.f32 q4, q6, %e[wr0][1]    @ mul weight 01, outr0\n"
 
                         "vext.32  q6, q10, q11, #1      @ shift left r1\n"
+                        "pld [%[din1_ptr], #192]               @ preload data\n"
                         "vmla.f32 q5, q6, %e[wr0][1]    @ mul weight 01, outr1\n"
                         "vmla.f32 q4, q6, %e[wr1][1]    @ mul weight 11, outr0\n"
 
                         "vext.32  q6, q12, q13, #1      @ shift left r2\n"
+                        "pld [%[din2_ptr], #192]               @ preload data\n"
                         "vmla.f32 q5, q6,  %e[wr1][1]   @ mul weight 11, outr1\n"
                         "vmla.f32 q4, q6,  %e[wr2][1]   @ mul weight 21, outr0\n"
 
                         "vext.32  q6, q14, q15, #1      @ shift left r3\n"
+                        "pld [%[din3_ptr], #192]               @ preload data\n"
                         "vmla.f32 q5, q6,  %e[wr2][1]   @ mul weight 21, outr1\n"
 
                         "vext.32  q6, q8, q9, #2        @ shift left r0\n"
+                        "vext.32  q8, q10, q11, #2      @ shift left r1\n"
                         "vmla.f32 q4, q6, %f[wr0][0]    @ mul weight 02, outr0\n"
 
-                        "pld [%[din0_ptr], #192]               @ preload data\n"
-
-                        "vext.32  q6, q10, q11, #2      @ shift left r1\n"
-                        "vmla.f32 q5, q6, %f[wr0][0]    @ mul weight 02, outr1\n"
-                        "vmla.f32 q4, q6, %f[wr1][0]    @ mul weight 12, outr0\n"
-
-                        "pld [%[din1_ptr], #192]               @ preload data\n"
-
                         "vext.32  q6, q12, q13, #2      @ shift left r2\n"
+                        "vmla.f32 q5, q8, %f[wr0][0]    @ mul weight 02, outr1\n"
+                        "vmla.f32 q4, q8, %f[wr1][0]    @ mul weight 12, outr0\n"
+
+                        "vext.32  q8, q14, q15, #2  @ shift right r3\n"
                         "vmla.f32 q5, q6,  %f[wr1][0] @mul weight 12, outr1\n"
                         "vmla.f32 q4, q6,  %f[wr2][0] @mul weight 22, outr0\n"
 
-                        "pld [%[din2_ptr], #192]               @ preload data\n"
-
-                        "vext.32  q6, q14, q15, #2  @ shift right r3\n"
-                        "vmla.f32 q5, q6,  %f[wr2][0] @mul weight 22, outr1\n"
-
-                        "pld [%[din3_ptr], #192]               @ preload data\n"
+                        "vmla.f32 q5, q8,  %f[wr2][0] @mul weight 22, outr1\n"
 
                         "vadd.f32 q8, q4, %q[bias] @ add bias \n"
                         "vadd.f32 q9, q5, %q[bias] @ add bias \n"
 
                         "vmov.u32 q4, #0                        @ dump zero to q4 for relu\n"
+                        "sub %[din0_ptr], #8 @ 2 float data overlap with previous data\n"
+                        "sub %[din1_ptr], #8 @ 2 float data overlap with previous data\n"
+
                         "vmax.f32 q8, q8, q4                    @ relu\n"
                         "vmax.f32 q9, q9, q4                    @ relu\n"
+
+                        "sub %[din2_ptr], #8 @ 2 float data overlap with previous data\n"
+                        "sub %[din3_ptr], #8 @ 2 float data overlap with previous data\n"
 
                         "vst1.32  {d16-d17},   [%[dout_ptr1]]!  @ store result, add pointer\n"
                         "vst1.32  {d18-d19},   [%[dout_ptr2]]!  @ store result, add pointer\n"
 
-                        "sub %[din0_ptr], #8 @ 2 float data overlap with previous data\n"
-                        "sub %[din1_ptr], #8 @ 2 float data overlap with previous data\n"
-                        "sub %[din2_ptr], #8 @ 2 float data overlap with previous data\n"
-                        "sub %[din3_ptr], #8 @ 2 float data overlap with previous data\n"
                         "subs %[cnt], #1 @ loop count minus 1\n"
                         "bne    3b                             @ jump to main loop start point\n"
 
                         //! process right pad
                         "4:                                    @ right pad entry\n"
                         "vmov.u32  d31, #0                     @ zero buf\n"
-                        "vld1.32  {d16-d18}, [%[din0_ptr]]!    @ load din r0\n"
+                        "vld1.32  {d16-d17}, [%[din0_ptr]]!    @ load din r0\n"
+                        "vld1.32  {d20-d21}, [%[din1_ptr]]!    @ load din r1\n"
+                        "vld1.32  {d24-d25}, [%[din2_ptr]]!    @ load din r2\n"
+                        "vld1.32  {d28-d29}, [%[din3_ptr]]!    @ load din r3\n"
+
                         "vbif d17, d31, %e[mask]               @ bit select, deal with right pad\n"
+                        "vbif d21, d31, %e[mask]               @ bit select, deal with right pad\n"
+
+                        "vld1.32  {d18}, [%[din0_ptr]]!    @ load din r0\n"
+                        "vld1.32  {d22}, [%[din1_ptr]]!    @ load din r0\n"
+
                         "vmul.f32 q4, q8, %e[wr0][0]           @ mul weight 00, outr0\n"
 
-                        "vld1.32  {d20-d22}, [%[din1_ptr]]!    @ load din r1\n"
-                        "vbif d21, d31, %e[mask]               @ bit select, deal with right pad\n"
+                        "vbif d25, d31, %e[mask]               @ bit select, deal with right pad\n"
+                        "vbif d29, d31, %e[mask]               @ bit select, deal with right pad\n"
                         "vmul.f32 q5, q10, %e[wr0][0]          @ mul weight 00, outr1\n"
                         "vmla.f32 q4, q10, %e[wr1][0]          @ mul weight 10, outr0\n"
 
-                        "vld1.32  {d24-d26}, [%[din2_ptr]]!    @ load din r2\n"
-                        "vbif d25, d31, %e[mask]               @ bit select, deal with right pad\n"
+                        "vld1.32  {d26}, [%[din2_ptr]]!    @ load din r0\n"
+                        "vld1.32  {d30}, [%[din3_ptr]]!    @ load din r0\n"
                         "vmla.f32 q5, q12, %e[wr1][0]          @ mul weight 10, outr1\n"
                         "vmla.f32 q4, q12, %e[wr2][0]          @ mul weight 20, outr0\n"
 
-                        "vld1.32  {d28-d30}, [%[din3_ptr]]!    @ load din r3\n"
-                        "vbif d29, d31, %e[mask]               @ bit select, deal with right pad\n"
+                        "vbif  d18, d31, %f[mask]              @ bit select, deal with right pad\n"
+                        "vbif  d22, d31, %f[mask]              @ bit select, deal with right pad\n"
                         "vmla.f32 q5, q14, %e[wr2][0]          @ mul weight 20, outr1\n"
 
-                        "vbif  d18, d31, %f[mask]              @ bit select, deal with right pad\n"
                         "vext.32  q6, q8, q9, #1               @ shift left r0\n"
+                        "vbif  d26, d31, %f[mask] @ bit select, deal with right pad\n"
+                        "vbif  d30, d31, %f[mask] @ bit select, deal with right pad\n"
                         "vmla.f32 q4, q6, %e[wr0][1]           @ mul weight 01, outr0\n"
 
-                        "vbif  d22, d31, %f[mask]              @ bit select, deal with right pad\n"
                         "vext.32  q6, q10, q11, #1             @ shift left r1\n"
+                        "pld [%[din0_ptr], #192]         @ preload data\n"
                         "vmla.f32 q5, q6, %e[wr0][1]           @ mul weight 01, outr1\n"
                         "vmla.f32 q4, q6, %e[wr1][1]           @ mul weight 11, outr0\n"
 
-                        "vbif  d26, d31, %f[mask] @ bit select, deal with right pad\n"
                         "vext.32  q6, q12, q13, #1  @ shift left r2\n"
+                        "pld [%[din1_ptr], #192]         @ preload data\n"
                         "vmla.f32 q5, q6,  %e[wr1][1] @mul weight 11, outr1\n"
                         "vmla.f32 q4, q6,  %e[wr2][1] @mul weight 21, outr0\n"
 
-                        "vbif  d30, d31, %f[mask] @ bit select, deal with right pad\n"
                         "vext.32  q6, q14, q15, #1  @ shift left r3\n"
+                        "pld [%[din2_ptr], #192]         @ preload data\n"
                         "vmla.f32 q5, q6,  %e[wr2][1] @mul weight 21, outr1\n"
 
                         "vext.32  q6, q8, q9, #2     @ shift left r0\n"
+                        "vext.32  q8, q10, q11, #2   @ shift left r1\n"
+                        "pld [%[din3_ptr], #192]         @ preload data\n"
                         "vmla.f32 q4, q6, %f[wr0][0]  @mul weight 02, outr0\n"
 
-                        "vext.32  q6, q10, q11, #2   @ shift left r1\n"
-                        "vmla.f32 q5, q6, %f[wr0][0]  @mul weight 02, outr1\n"
-                        "vmla.f32 q4, q6, %f[wr1][0]  @mul weight 12, outr0\n"
-
                         "vext.32  q6, q12, q13, #2  @ shift left r2\n"
+                        "vmla.f32 q5, q8, %f[wr0][0]  @mul weight 02, outr1\n"
+                        "vmla.f32 q4, q8, %f[wr1][0]  @mul weight 12, outr0\n"
+
+                        "vext.32  q8, q14, q15, #2  @ shift right r3\n"
                         "vmla.f32 q5, q6,  %f[wr1][0] @mul weight 12, outr1\n"
                         "vmla.f32 q4, q6,  %f[wr2][0] @mul weight 22, outr0\n"
 
-                        "vext.32  q6, q14, q15, #2  @ shift right r3\n"
-                        "vmla.f32 q5, q6,  %f[wr2][0] @mul weight 22, outr1\n"
-
                         "pld [%[dout_ptr1], #128]         @ preload data\n"
+                        "vmla.f32 q5, q8,  %f[wr2][0] @mul weight 22, outr1\n"
 
+                        "vmvn.32  d22, d31 @ \n"
+                        "vmvn.32  d23, d31 @ \n"
                         "vadd.f32 q8, q4, %q[bias] @ add bias \n"
                         "vadd.f32 q9, q5, %q[bias] @ add bias \n"
 
                         "vmov.u32 q4, #0                        @ dump zero to q4 for relu\n"
+
+                        "vld1.32  {d20-d21}, [%[dout_ptr1]]    @ load dout r0\n"
+                        "vext.32  q12, q11, %q[mask], #3 @ shift mask right 1\n"
+
                         "vmax.f32 q8, q8, q4                    @ relu\n"
                         "vmax.f32 q9, q9, q4                    @ relu\n"
 
-                        "vld1.32  {d20-d21}, [%[dout_ptr1]]    @ load dout r0\n"
-
-                        "vmvn.32  d22, d31 @ \n"
-                        "vmvn.32  d23, d31 @ \n"
-                        "vext.32  q12, q11, %q[mask], #3 @ shift mask right 1\n"
                         "vbif q8, q10, q12 @ bit select\n"
 
-                        "vst1.32  {d16-d17}, [%[dout_ptr1]]!  @ store result, add pointer\n"
                         "vst1.32  {d18-d19}, [%[dout_ptr2]]!  @ store result, add pointer\n"
+                        "vst1.32  {d16-d17}, [%[dout_ptr1]]!  @ store result, add pointer\n"
 
-                        "sub %[dout_ptr1], %[dout_ptr1], %[pad_right] @ sub \n"
                         "sub %[dout_ptr2], %[dout_ptr2], %[pad_right] @ sub \n"
+                        "sub %[dout_ptr1], %[dout_ptr1], %[pad_right] @ sub \n"
 
                 :[dout_ptr1] "+r"(doutr0), [dout_ptr2] "+r"(doutr1), \
                     [din0_ptr] "+r"(din0_ptr), [din1_ptr] "+r"(din1_ptr), \
@@ -3853,7 +3830,6 @@ void conv_depthwise_3x3s1p1_bias_relu(float* dout, const float* din, \
                 :"q4", "q5", "q6", "q8", "q9", \
                     "q10", "q11", "q12", "q13", "q14", "q15"
                 );
-#endif //__aarch64__
 
                 doutr0 += w_out;
                 doutr1 = doutr0 + w_out;
@@ -3872,9 +3848,7 @@ void conv_depthwise_3x3s1p1_bias_relu(float* dout, const float* din, \
                 din2_ptr = dr2;
             }
             //! process
-#ifdef __aarch64__
-            // todo
-#else
+
             cnt = cnt_col;
             asm volatile(
             //! process left pad
@@ -3882,49 +3856,50 @@ void conv_depthwise_3x3s1p1_bias_relu(float* dout, const float* din, \
                     "pld [%[din1_ptr], #192]                @ preload data\n"
                     "pld [%[din2_ptr], #192]                @ preload data\n"
 
-                    "vld1.32  {d16-d18}, [%[din0_ptr]]!     @ load din r0\n"
+                    "vld1.32  {d16-d17}, [%[din0_ptr]]!     @ load din r0\n"
+                    "vld1.32  {d20-d21}, [%[din1_ptr]]!     @ load din r1\n"
+                    "vld1.32  {d24-d26}, [%[din2_ptr]]      @ load din r2\n"
+
+                    "vld1.32  {d18}, [%[din0_ptr]]!     @ load din r0\n"
+                    "vld1.32  {d22}, [%[din1_ptr]]!     @ load din r0\n"
+                   
                     "vmul.f32 q4, q8, %e[wr0][1]            @ mul weight 00, outr0\n"
 
-
-                    "vld1.32  {d20-d22}, [%[din1_ptr]]!     @ load din r1\n"
+                    //"vld1.32  {d26}, [%[din2_ptr]]!     @ load din r0\n"
                     "vmul.f32 q5, q10, %e[wr0][1]           @ mul weight 00, outr1\n"
                     "vmla.f32 q4, q10, %e[wr1][1]           @ mul weight 10, outr0\n"
-
-                    "vld1.32  {d24-d26}, [%[din2_ptr]]      @ load din r2\n"
+                    
+                    "vext.32  q6, q8, q9, #1                @ shift left r0\n"
+                    "pld [%[din0_ptr], #192]                @ preload data\n"
                     "vmla.f32 q5, q12, %e[wr1][1]           @ mul weight 10, outr1\n"
                     "vmla.f32 q4, q12, %e[wr2][1]           @ mul weight 20, outr0\n"
 
-                    "vext.32  q6, q8, q9, #1                @ shift left r0\n"
+                    "vext.32  q14, q10, q11, #1              @ shift left r1\n"
+                    "pld [%[din1_ptr], #192]                @ preload data\n"
                     "vmla.f32 q4, q6, %f[wr0][0]            @ mul weight 01, outr0\n"
 
-                    "vext.32  q6, q10, q11, #1              @ shift left r1\n"
-                    "vmla.f32 q5, q6, %f[wr0][0]            @ mul weight 01, outr1\n"
-                    "vmla.f32 q4, q6, %f[wr1][0]            @ mul weight 11, outr0\n"
-
                     "vext.32  q6, q12, q13, #1              @ shift left r2\n"
+                    "vmov.u32 d31, #0 @ zero\n"
+                    "vmla.f32 q5, q14, %f[wr0][0]            @ mul weight 01, outr1\n"
+                    "vmla.f32 q4, q14, %f[wr1][0]            @ mul weight 11, outr0\n"
+
+                    "vext.32  d28, d31, d16, #1             @ shift right r0\n"
+                    "vext.32  d29, d16, d17, #1             @ shift right r0\n"
                     "vmla.f32 q5, q6,  %f[wr1][0]           @ mul weight 11, outr1\n"
                     "vmla.f32 q4, q6,  %f[wr2][0]           @ mul weight 21, outr0\n"
 
-                    "vmov.u32 d31, #0 @ zero\n"
-                    "vext.32  d12, d31, d16, #1             @ shift right r0\n"
-                    "vext.32  d13, d16, d17, #1             @ shift right r0\n"
-                    "vmla.f32 q4, q6, %e[wr0][0]            @ mul weight 02, outr0\n"
-
-                    "pld [%[din0_ptr], #192]                @ preload data\n"
-
                     "vext.32  d12, d31, d20, #1             @ shift right r1\n"
                     "vext.32  d13, d20, d21, #1             @ shift right r1\n"
+                    "vmla.f32 q4, q14, %e[wr0][0]            @ mul weight 02, outr0\n"
+
+                    "vext.32  d28, d31, d24, #1             @ shift right r2\n"
+                    "vext.32  d29, d24, d25, #1             @ shift right r2\n"
                     "vmla.f32 q5, q6, %e[wr0][0]            @ mul weight 02, outr1\n"
                     "vmla.f32 q4, q6, %e[wr1][0]            @ mul weight 12, outr0\n"
 
-                    "pld [%[din1_ptr], #192]                @ preload data\n"
-
-                    "vext.32  d12, d31, d24, #1             @ shift right r2\n"
-                    "vext.32  d13, d24, d25, #1             @ shift right r2\n"
-                    "vmla.f32 q5, q6,  %e[wr1][0]           @ mul weight 12, outr1\n"
-                    "vmla.f32 q4, q6,  %e[wr2][0]           @ mul weight 22, outr0\n"
-
                     "pld [%[din2_ptr], #192]                @ preload data\n"
+                    "vmla.f32 q5, q14,  %e[wr1][0]           @ mul weight 12, outr1\n"
+                    "vmla.f32 q4, q14,  %e[wr2][0]           @ mul weight 22, outr0\n"
 
                     "vadd.f32 q8, q4, %q[bias]              @ add bias \n"
                     "vadd.f32 q9, q5, %q[bias]              @ add bias \n"
@@ -3933,57 +3908,62 @@ void conv_depthwise_3x3s1p1_bias_relu(float* dout, const float* din, \
                     "vmax.f32 q8, q8, q4                    @ relu\n"
                     "vmax.f32 q9, q9, q4                    @ relu\n"
 
-                    "vst1.32  {d16-d17},   [%[dout_ptr1]]!  @ store result, add pointer\n"
                     "sub %[din0_ptr], #12                   @ 1pad + 2 data overlap\n"
                     "sub %[din1_ptr], #12                   @ 1pad + 2 data overlap\n"
+
+                    "vst1.32  {d16-d17},   [%[dout_ptr1]]!  @ store result, add pointer\n"
                     "cmp %[bot_pad],  #2                    @ check if bottom pad is 2\n"
                     "beq    5f                              @ jump to next block\n"
-                    "vst1.32  {d18-d19}, [%[dout_ptr2]]!    @ store result, add pointer\n"
                     "add %[din2_ptr], #12                   @ 1pad + 2 data overlap\n"
+                    "vst1.32  {d18-d19}, [%[dout_ptr2]]!    @ store result, add pointer\n"
 
                     // process mid cols
                     "5:                                     @ header of bottom process\n"
                     "cmp %[cnt], #1                         @ check whether has mid cols\n"
                     "blt  8f                                @ jump to right pad\n"
                     "6:                                     @ main loop start point\n"
-                    "vld1.32  {d16-d18}, [%[din0_ptr]]!     @ load din r0\n"
-                    "vmul.f32 q4, q8, %e[wr0][0]            @ mul weight 00, outr0\n"
+                    "vld1.32  {d16-d17}, [%[din0_ptr]]!     @ load din r0\n"
+                    "vld1.32  {d20-d21}, [%[din1_ptr]]!     @ load din r1\n"
+                    "vld1.32  {d24-d26}, [%[din2_ptr]]      @ load din r2\n"
 
-                    "vld1.32  {d20-d22}, [%[din1_ptr]]!     @ load din r1\n"
+                    "vld1.32  {d18}, [%[din0_ptr]]!     @ load din r0\n"
+                    "vld1.32  {d22}, [%[din1_ptr]]!     @ load din r0\n"
+
+                    "vmul.f32 q4, q8, %e[wr0][0]            @ mul weight 00, outr0\n"
+                    
+                   // "vld1.32  {d26}, [%[din2_ptr]]!     @ load din r0\n"
                     "vmul.f32 q5, q10, %e[wr0][0]           @ mul weight 00, outr1\n"
                     "vmla.f32 q4, q10, %e[wr1][0]           @ mul weight 10, outr0\n"
 
-                    "vld1.32  {d24-d26}, [%[din2_ptr]]      @ load din r2\n"
+                    "vext.32  q6, q8, q9, #1                @ shift left r0\n"
+                    "pld [%[din0_ptr], #192]                @ preload data\n"
                     "vmla.f32 q5, q12, %e[wr1][0]           @ mul weight 10, outr1\n"
                     "vmla.f32 q4, q12, %e[wr2][0]           @ mul weight 20, outr0\n"
 
-                    "vext.32  q6, q8, q9, #1                @ shift left r0\n"
+                    "vext.32  q14, q10, q11, #1              @ shift left r1\n"
+                    "pld [%[din1_ptr], #192]                @ preload data\n"
                     "vmla.f32 q4, q6, %e[wr0][1]            @ mul weight 01, outr0\n"
 
-                    "vext.32  q6, q10, q11, #1              @ shift left r1\n"
-                    "vmla.f32 q5, q6, %e[wr0][1]            @ mul weight 01, outr1\n"
-                    "vmla.f32 q4, q6, %e[wr1][1]            @ mul weight 11, outr0\n"
-
                     "vext.32  q6, q12, q13, #1              @ shift left r2\n"
+                    "pld [%[din2_ptr], #192]                @ preload data\n"
+                    "vmla.f32 q5, q14, %e[wr0][1]            @ mul weight 01, outr1\n"
+                    "vmla.f32 q4, q14, %e[wr1][1]            @ mul weight 11, outr0\n"
+
+                    "vext.32  q14, q8, q9, #2                @ shift left r0\n"
                     "vmla.f32 q5, q6,  %e[wr1][1]           @ mul weight 11, outr1\n"
                     "vmla.f32 q4, q6,  %e[wr2][1]           @ mul weight 21, outr0\n"
 
-                    "vext.32  q6, q8, q9, #2                @ shift left r0\n"
-                    "vmla.f32 q4, q6, %f[wr0][0]            @ mul weight 02, outr0\n"
-
-                    "pld [%[din0_ptr], #192]                @ preload data\n"
-
                     "vext.32  q6, q10, q11, #2              @ shift left r1\n"
+                    "vmla.f32 q4, q14, %f[wr0][0]            @ mul weight 02, outr0\n"
+
+
+                    "vext.32  q14, q12, q13, #2              @ shift left r2\n"
                     "vmla.f32 q5, q6, %f[wr0][0]            @ mul weight 02, outr1\n"
                     "vmla.f32 q4, q6, %f[wr1][0]            @ mul weight 12, outr0\n"
 
-                    "pld [%[din1_ptr], #192]                @ preload data\n"
 
-                    "vext.32  q6, q12, q13, #2              @ shift left r2\n"
-                    "vmla.f32 q5, q6,  %f[wr1][0]           @ mul weight 12, outr1\n"
-                    "vmla.f32 q4, q6,  %f[wr2][0]           @ mul weight 22, outr0\n"
-
-                    "pld [%[din2_ptr], #192]                @ preload data\n"
+                    "vmla.f32 q5, q14,  %f[wr1][0]           @ mul weight 12, outr1\n"
+                    "vmla.f32 q4, q14,  %f[wr2][0]           @ mul weight 22, outr0\n"
 
                     "vadd.f32 q8, q4, %q[bias]              @ add bias \n"
                     "vadd.f32 q9, q5, %q[bias]              @ add bias \n"
@@ -3992,14 +3972,14 @@ void conv_depthwise_3x3s1p1_bias_relu(float* dout, const float* din, \
                     "vmax.f32 q8, q8, q4                    @ relu\n"
                     "vmax.f32 q9, q9, q4                    @ relu\n"
 
-                    "vst1.32  {d16-d17},   [%[dout_ptr1]]!  @ store result, add pointer\n"
                     "sub %[din0_ptr], #8                    @ 2 float data overlap with previous data\n"
                     "sub %[din1_ptr], #8                    @ 2 float data overlap with previous data\n"
+                    "vst1.32  {d16-d17},   [%[dout_ptr1]]!  @ store result, add pointer\n"
 
                     "cmp %[bot_pad],  #2                    @ check if bottom pad is 2\n"
                     "beq    7f                              @ jump to check point\n"
-                    "vst1.32  {d18-d19}, [%[dout_ptr2]]!    @ store result, add pointer\n"
                     "add %[din2_ptr], #16                   @ point to 4 data ahead\n"
+                    "vst1.32  {d18-d19}, [%[dout_ptr2]]!    @ store result, add pointer\n"
 
                     "7:                                     @ check point\n"
                     "subs %[cnt], #1                        @ loop count minus 1\n"
@@ -4008,63 +3988,66 @@ void conv_depthwise_3x3s1p1_bias_relu(float* dout, const float* din, \
                     // process right pad
                     "8:                                     @ right pad process\n"
                     "vmov.u32  d31, #0                      @ zero buf\n"
-                    "vld1.32  {d16-d18}, [%[din0_ptr]]!     @ load din r0\n"
+                    "vld1.32  {d16-d17}, [%[din0_ptr]]!     @ load din r0\n"
+                    "vld1.32  {d20-d21}, [%[din1_ptr]]!     @ load din r1\n"
+                    "vld1.32  {d24-d26}, [%[din2_ptr]]      @ load din r2\n"
+
                     "vbif d17, d31, %e[mask]                @ bit select, deal with right pad\n"
+                    "vbif d21, d31, %e[mask]                @ bit select, deal with right pad\n"
+                    "vbif d25, d31, %e[mask]                @ bit select, deal with right pad\n"
+
+                    "vld1.32  {d18}, [%[din0_ptr]]!     @ load din r0\n"
+                    "vld1.32  {d22}, [%[din1_ptr]]!     @ load din r1\n"
+
                     "vmul.f32 q4, q8, %e[wr0][0]            @ mul weight 00, outr0\n"
 
-                    "vld1.32  {d20-d22}, [%[din1_ptr]]!     @ load din r1\n"
-                    "vbif d21, d31, %e[mask]                @ bit select, deal with right pad\n"
+                    "vbif  d18, d31, %f[mask]               @ bit select, deal with right pad\n"
+                    "vbif  d22, d31, %f[mask]               @ bit select, deal with right pad\n"
                     "vmul.f32 q5, q10, %e[wr0][0]           @ mul weight 00, outr1\n"
                     "vmla.f32 q4, q10, %e[wr1][0]           @ mul weight 10, outr0\n"
 
-                    "vld1.32  {d24-d26}, [%[din2_ptr]]      @ load din r2\n"
-                    "vbif d25, d31, %e[mask]                @ bit select, deal with right pad\n"
+                    "vext.32  q6, q8, q9, #1                @ shift left r0\n"
+                    "vbif  d26, d31, %f[mask]               @ bit select, deal with right pad\n"
                     "vmla.f32 q5, q12, %e[wr1][0]           @ mul weight 10, outr1\n"
                     "vmla.f32 q4, q12, %e[wr2][0]           @ mul weight 20, outr0\n"
 
-                    "vbif  d18, d31, %f[mask]               @ bit select, deal with right pad\n"
-                    "vext.32  q6, q8, q9, #1                @ shift left r0\n"
+                    "vext.32  q14, q10, q11, #1              @ shift left r1\n"
                     "vmla.f32 q4, q6, %e[wr0][1]            @ mul weight 01, outr0\n"
 
-                    "vbif  d22, d31, %f[mask]               @ bit select, deal with right pad\n"
-                    "vext.32  q6, q10, q11, #1              @ shift left r1\n"
-                    "vmla.f32 q5, q6, %e[wr0][1]            @ mul weight 01, outr1\n"
-                    "vmla.f32 q4, q6, %e[wr1][1]            @ mul weight 11, outr0\n"
-
-                    "vbif  d26, d31, %f[mask]               @ bit select, deal with right pad\n"
                     "vext.32  q6, q12, q13, #1              @ shift left r2\n"
+                    "vmla.f32 q5, q14, %e[wr0][1]            @ mul weight 01, outr1\n"
+                    "vmla.f32 q4, q14, %e[wr1][1]            @ mul weight 11, outr0\n"
+
+                    "vext.32  q14, q8, q9, #2                @ shift left r0\n"
                     "vmla.f32 q5, q6,  %e[wr1][1]           @ mul weight 11, outr1\n"
                     "vmla.f32 q4, q6,  %e[wr2][1]           @ mul weight 21, outr0\n"
 
-                    "vext.32  q6, q8, q9, #2                @ shift left r0\n"
-                    "vmla.f32 q4, q6, %f[wr0][0]            @ mul weight 02, outr0\n"
-
                     "vext.32  q6, q10, q11, #2              @ shift left r1\n"
+                    "vmla.f32 q4, q14, %f[wr0][0]            @ mul weight 02, outr0\n"
+
+                    "vext.32  q14, q12, q13, #2              @ shift left r2\n"
                     "vmla.f32 q5, q6, %f[wr0][0]            @ mul weight 02, outr1\n"
                     "vmla.f32 q4, q6, %f[wr1][0]            @ mul weight 12, outr0\n"
 
                     "pld [%[dout_ptr1], #128]               @ preload data\n"
-
-                    "vext.32  q6, q12, q13, #2              @ shift left r2\n"
-                    "vmla.f32 q5, q6,  %f[wr1][0]           @ mul weight 12, outr1\n"
-                    "vmla.f32 q4, q6,  %f[wr2][0]           @ mul weight 22, outr0\n"
-
                     "pld [%[dout_ptr2], #128]               @ preload data\n"
 
-                    "vadd.f32 q8, q4, %q[bias] @ add bias \n"
-                    "vadd.f32 q9, q5, %q[bias] @ add bias \n"
-
-                    "vmov.u32 q4, #0                        @ dump zero to q4 for relu\n"
-                    "vmax.f32 q8, q8, q4                    @ relu\n"
-                    "vmax.f32 q9, q9, q4                    @ relu\n"
-
+                    "vmla.f32 q5, q14,  %f[wr1][0]           @ mul weight 12, outr1\n"
+                    "vmla.f32 q4, q14,  %f[wr2][0]           @ mul weight 22, outr0\n"
 
                     "vld1.32  {d20-d21}, [%[dout_ptr1]]     @ load dout r0\n"
                     "vld1.32  {d22-d23}, [%[dout_ptr2]]     @ load dout r1\n"
 
                     "vmvn.32  d24, d31                      @ \n"
                     "vmvn.32  d25, d31                      @ \n"
+                    "vadd.f32 q8, q4, %q[bias] @ add bias \n"
+                    "vadd.f32 q9, q5, %q[bias] @ add bias \n"
+
+                    "vmov.u32 q4, #0                        @ dump zero to q4 for relu\n"
                     "vext.32  q13, q12, %q[mask], #3        @ shift mask right 1\n"
+                    "vmax.f32 q8, q8, q4                    @ relu\n"
+                    "vmax.f32 q9, q9, q4                    @ relu\n"
+
                     "vbif q8, q10, q13                      @ bit select\n"
                     "vbif q9, q11, q13                      @ bit select\n"
 
@@ -4084,7 +4067,7 @@ void conv_depthwise_3x3s1p1_bias_relu(float* dout, const float* din, \
             :"q4", "q5", "q6", "q8", "q9", \
                 "q10", "q11", "q12", "q13", "q14", "q15"
             );
-#endif //__aarch64__
+
             //! end of processing bottom pad
         } // end of processing channels
     } // end of processing batchs
@@ -4155,7 +4138,6 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
             float *doutr0 = dout_channel;
 
             //! top pad
-#ifdef __aarch64__
             float32x4_t vzero= vdupq_n_f32(0.f);
             // todo
             float *doutr0_ptr = doutr0;
@@ -4257,9 +4239,7 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
             vsum = vbsl_f32(vget_low_u32(mask_w), vsum, vdata);
 
             vst1_f32(doutr0_ptr, vsum);
-#else
-            
-#endif //__aarch64__
+
 
             dr0 = dr1;
             dr1 = dr2;
@@ -4268,7 +4248,6 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
 
             //! process mid rows
             for (int j = h_out - size_pad_bottom - 1; j > 0; j--) {
-#ifdef __aarch64__
                 // todo
                 din0_ptr = dr0;
                 din1_ptr = dr1;
@@ -4396,9 +4375,6 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
             
                 vst1_f32(doutr0_ptr, vsum);
 
-#else
-
-#endif //__aarch64__
 
                 dr0 = dr2;
                 dr1 = dr0 + w_in;
@@ -4411,7 +4387,6 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
                 din0_ptr = dr0;
                 din1_ptr = dr1;
                 doutr0_ptr = doutr0;
-#ifdef __aarch64__
                 // todo
                 din0_1234 = vld1q_f32(din0_ptr);
                 din1_1234 = vld1q_f32(din1_ptr);
@@ -4514,15 +4489,14 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
 
                 vst1_f32(doutr0_ptr, vsum);
 
-#else
-
-#endif //__aarch64__
             } // end of process bottom pad
 
         }
     }
 }
+
 #else
+
 void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
     const float* weights, const float* bias, bool flag_bias, \
     const int num, const int ch_in, const int h_in, const int w_in, \
@@ -4589,10 +4563,6 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
             float32x4_t vzero = vdupq_n_f32(0.f);
 
             //! top pad
-
-#ifdef __aarch64__
-            // todo
-#else
             int cnt = cnt_col;
             asm volatile(
             // process left pad
@@ -4600,18 +4570,19 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
                     "pld [%[din1_ptr], #128]                @ preload data\n"
                     "vmov.u32 q11, #0                       @ for left pad\n"
                     "vld1.32  {d20-d21}, [%[din0_ptr]]!     @ load din r1\n"
+                    "vld1.32  {d24-d25}, [%[din1_ptr]]!     @ load din r2\n"
+
                     "vext.32 q7, q11, q10, #3               @ shift right 1 data\n"
+                    "vext.32  q14, q10, q11, #1              @ shift left r1\n"
                     "vmul.f32 q8, q7, %q[wr1]               @ mul weight 1, out0\n"
 
-                    "vext.32  q7, q10, q11, #1              @ shift left r1\n"
-                    "vmul.f32 q9, q7, %q[wr1]               @ mul weight 1, out1\n"
-
-                    "vld1.32  {d24-d25}, [%[din1_ptr]]!     @ load din r2\n"
                     "vext.32 q7, q11, q12, #3               @ shift right 1 data\n"
+                    "vmul.f32 q9, q14, %q[wr1]               @ mul weight 1, out1\n"
+
+                    "vext.32  q14, q12, q11, #1              @ shift left r2\n"
                     "vmla.f32 q8, q7, %q[wr2]               @ mul weight 2, out0\n"
 
-                    "vext.32  q7, q12, q11, #1              @ shift left r2\n"
-                    "vmla.f32 q9, q7,  %q[wr2]              @ mul weight 2, out1\n"
+                    "vmla.f32 q9, q14,  %q[wr2]              @ mul weight 2, out1\n"
 
                     "vpadd.f32 d22, d16, d17                @ pair add of out0 \n"
                     "vpadd.f32 d23, d18, d19                @ pair add of out1 \n"
@@ -4620,10 +4591,10 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
                     "vadd.f32  d17, d16, %e[bias]           @ add bias \n"
                     "vmax.f32  d17, d17, %e[vzero]          @ relu\n"
 
-                    "vst1.32  {d17},   [%[dout_ptr1]]!      @ store result, add pointer\n"
-
                     "sub %[din0_ptr], #4                    @ 1pad + 2 float data overlap\n"
                     "sub %[din1_ptr], #4                    @ 1pad + 2 float data overlap\n"
+
+                    "vst1.32  {d17},   [%[dout_ptr1]]!      @ store result, add pointer\n"
 
                     // process mid cols
                     "cmp %[cnt], #1                         @ check whether has mid loop\n"
@@ -4631,17 +4602,18 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
                     "1:                                     @ main loop start point\n"
                     "pld [%[din0_ptr], #192]                @ preload data\n"
                     "pld [%[din1_ptr], #192]                @ preload data\n"
-                    "vld1.32  {d20-d22}, [%[din0_ptr]]!     @ load din r1\n"
-                    "vmul.f32 q8, q10, %q[wr1]              @ mul weight 1, out0\n"
+                    "vld1.32  {d20-d21}, [%[din0_ptr]]!     @ load din r1\n"
+                    "vld1.32  {d22}, [%[din0_ptr]]!     @ load din r1\n"
+                    "vld1.32  {d24-d25}, [%[din1_ptr]]!     @ load din r2\n"
+                    "vld1.32  {d26}, [%[din1_ptr]]!     @ load din r2\n"
 
                     "vext.32  q7, q10, q11, #2              @ shift left r1\n"
+                    "vext.32  q14, q12, q13, #2              @ shift left r2\n"
+                    "vmul.f32 q8, q10, %q[wr1]              @ mul weight 1, out0\n"
                     "vmul.f32 q9, q7, %q[wr1]               @ mul weight 1, outr1\n"
 
-                    "vld1.32  {d24-d26}, [%[din1_ptr]]!     @ load din r2\n"
                     "vmla.f32 q8, q12, %q[wr2]              @ mul weight 2, outr0\n"
-
-                    "vext.32  q7, q12, q13, #2              @ shift left r2\n"
-                    "vmla.f32 q9, q7, %q[wr2]               @ mul weight 2, outr1\n"
+                    "vmla.f32 q9, q14, %q[wr2]               @ mul weight 2, outr1\n"
 
                     "vpadd.f32 d22, d16, d17                @ pair add of out0 \n"
                     "vpadd.f32 d23, d18, d19                @ pair add of out1 \n"
@@ -4650,10 +4622,9 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
                     "vadd.f32  d17, d16, %e[bias]           @ add bias \n"
                     "vmax.f32  d17, d17, %e[vzero]          @ relu\n"
 
-                    "vst1.32  {d17},   [%[dout_ptr1]]!      @ store result, add pointer\n"
-
                     "sub %[din0_ptr], #8                    @ 1 float data overlap and 1 redundant\n"
                     "sub %[din1_ptr], #8                    @ 1 float data overlap and 1 redundant\n"
+                    "vst1.32  {d17},   [%[dout_ptr1]]!      @ store result, add pointer\n"
 
                     "subs %[cnt], #1                        @ loop count minus 1\n"
                     "bne    1b                              @ jump to main loop start point\n"
@@ -4664,22 +4635,24 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
                     "pld [%[din0_ptr], #192]                @ preload data\n"
                     "pld [%[din1_ptr], #192]                @ preload data\n"
 
-                    "vld1.32  {d20-d22}, [%[din0_ptr]]!     @ load din r1\n"
-                    "vbif d21, d31, %e[mask_din]            @ bit select, deal with right pad\n"
-                    "vmul.f32 q8, q10, %q[wr1]              @ mul weight 1, out0\n"
+                    "vld1.32  {d20-d21}, [%[din0_ptr]]!     @ load din r1\n"
+                    "vld1.32  {d24-d25}, [%[din1_ptr]]!     @ load din r2\n"
+                    "vld1.32  {d22}, [%[din0_ptr]]!     @ load din r1\n"
+                    "vld1.32  {d26}, [%[din1_ptr]]!     @ load din r2\n"
 
+                    "vbif d21, d31, %e[mask_din]            @ bit select, deal with right pad\n"
                     "vbif d22, d31, %f[mask_din]            @ bit select, deal with right pad\n"
+                    "vbif d25, d31, %e[mask_din]            @ bit select, deal with right pad\n"
+                    "vbif d26, d31, %f[mask_din]            @ bit select, deal with right pad\n"
+
                     "vext.32  q7, q10, q11, #2              @ shift left r1\n"
+                    "vext.32  q14, q12, q13, #2              @ shift left r1\n"
+                    "vmul.f32 q8, q10, %q[wr1]              @ mul weight 1, out0\n"
                     "vmul.f32 q9, q7, %q[wr1]               @ mul weight 1, out1\n"
 
                     "pld [%[dout_ptr1], #64]                @ preload data\n"
-                    "vld1.32  {d24-d26}, [%[din1_ptr]]!     @ load din r2\n"
-                    "vbif d25, d31, %e[mask_din]            @ bit select, deal with right pad\n"
                     "vmla.f32 q8, q12, %q[wr2]              @ mul weight 2, outr0\n"
-
-                    "vbif d26, d31, %f[mask_din]            @ bit select, deal with right pad\n"
-                    "vext.32  q7, q12, q13, #2              @ shift left r1\n"
-                    "vmla.f32 q9, q7, %q[wr2]               @ mul weight 2, outr1\n"
+                    "vmla.f32 q9, q14, %q[wr2]               @ mul weight 2, outr1\n"
 
                     "vld1.32  {d20}, [%[dout_ptr1]]         @ load dout\n"
                     "vpadd.f32 d22, d16, d17                @ pair add of out0 \n"
@@ -4703,8 +4676,6 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
             :"q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
             );
 
-#endif //__aarch64__
-
             dr0 = dr1;
             dr1 = dr2;
             dr2 = dr1 + w_in;
@@ -4712,9 +4683,7 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
 
             //! process mid rows
             for (int j = h_out - size_pad_bottom - 1; j > 0; j--) {
-#ifdef __aarch64__
-                // todo
-#else
+
                 din0_ptr = dr0;
                 din1_ptr = dr1;
                 din2_ptr = dr2;
@@ -4728,25 +4697,23 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
 
                         "vmov.u32 q11, #0                       @ for left pad\n"
                         "vld1.32  {d20-d21}, [%[din0_ptr]]!     @ load din r0\n"
-                        "vext.32 q7, q11, q10, #3               @ shift right 1 data\n"
-                        "vmul.f32 q8, q7, %q[wr0]               @ mul weight 00, outr0\n"
-
-                        "vext.32  q7, q10, q11, #1              @ shift left r0\n"
-                        "vmul.f32 q9, q7, %q[wr0]               @ mul weight 00, outr1\n"
-
                         "vld1.32  {d24-d25}, [%[din1_ptr]]!     @ load din r1\n"
-                        "vext.32 q7, q11, q12, #3               @ shift right 1 data\n"
-                        "vmla.f32 q8, q7, %q[wr1]               @ mul weight 10, outr0\n"
-
-                        "vext.32  q7, q12, q11, #1              @ shift left r1\n"
-                        "vmla.f32 q9, q7,  %q[wr1]              @ mul weight 10, outr1\n"
-
                         "vld1.32  {d28-d29}, [%[din2_ptr]]!     @ load din r2\n"
-                        "vext.32 q7, q11, q14, #3               @ shift right 1 data\n"
-                        "vmla.f32 q8, q7, %q[wr2]               @ mul weight 20, outr0\n"
 
-                        "vext.32  q7, q14, q11, #1              @ shift left r2\n"
-                        "vmla.f32 q9, q7,  %q[wr2]              @ mul weight 20, outr1\n"
+                        "vext.32 q7, q11, q10, #3               @ shift right 1 data\n"
+                        "vext.32  q13, q10, q11, #1              @ shift left r0\n"
+                        "vmul.f32 q8, q7, %q[wr0]               @ mul weight 00, outr0\n"
+                        "vmul.f32 q9, q13, %q[wr0]               @ mul weight 00, outr1\n"
+
+                        "vext.32 q7, q11, q12, #3               @ shift right 1 data\n"
+                        "vext.32  q13, q12, q11, #1              @ shift left r1\n"
+                        "vmla.f32 q8, q7, %q[wr1]               @ mul weight 10, outr0\n"
+                        "vmla.f32 q9, q13,  %q[wr1]              @ mul weight 10, outr1\n"
+
+                        "vext.32 q7, q11, q14, #3               @ shift right 1 data\n"
+                        "vext.32  q13, q14, q11, #1              @ shift left r2\n"
+                        "vmla.f32 q8, q7, %q[wr2]               @ mul weight 20, outr0\n"
+                        "vmla.f32 q9, q13,  %q[wr2]              @ mul weight 20, outr1\n"
 
                         "vpadd.f32 d22, d16, d17                @ pair add of out0 \n"
                         "vpadd.f32 d23, d18, d19                @ pair add of out1 \n"
@@ -4755,11 +4722,11 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
                         "vadd.f32  d17, d16, %e[bias]  @ add bias \n"
                         "vmax.f32  d17, d17, %e[vzero]          @ relu\n"
 
-                        "vst1.32  {d17},   [%[dout_ptr1]]!      @ store result, add pointer\n"
-
                         "sub %[din0_ptr], #4                    @ 1pad + 2 float data overlap\n"
                         "sub %[din1_ptr], #4                    @ 1pad + 2 float data overlap\n"
                         "sub %[din2_ptr], #4                    @ 1pad + 2 float data overlap\n"
+
+                        "vst1.32  {d17},   [%[dout_ptr1]]!      @ store result, add pointer\n"
 
                         // process mid cols
                         "cmp %[cnt], #1                         @ check whether has mid loop\n"
@@ -4768,19 +4735,23 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
                         "pld [%[din0_ptr], #192]                @ preload data\n"
                         "pld [%[din1_ptr], #192]                @ preload data\n"
                         "pld [%[din2_ptr], #192]                @ preload data\n"
-                        "vld1.32  {d20-d22}, [%[din0_ptr]]!     @ load din r0\n"
-                        "vmul.f32 q8, q10, %q[wr0]              @ mul weight 00, outr0\n"
+                        "vld1.32  {d20-d21}, [%[din0_ptr]]!     @ load din r0\n"
+                        "vld1.32  {d22}, [%[din0_ptr]]!     @ load din r0\n"
+                        "vld1.32  {d24-d25}, [%[din1_ptr]]!     @ load din r1\n"
+                        "vld1.32  {d26}, [%[din1_ptr]]!     @ load din r0\n"
+                        "vld1.32  {d28-d29}, [%[din2_ptr]]!     @ load din r2\n"
+                        "vld1.32  {d30}, [%[din2_ptr]]!     @ load din r0\n"
+
                         "vext.32  q7, q10, q11, #2              @ shift left r1\n"
+                        "vext.32  q11, q12, q13, #2              @ shift left r2\n"
+                        "vmul.f32 q8, q10, %q[wr0]              @ mul weight 00, outr0\n"
                         "vmul.f32 q9, q7, %q[wr0]               @ mul weight 00, outr1\n"
 
-                        "vld1.32  {d24-d26}, [%[din1_ptr]]!     @ load din r1\n"
-                        "vmla.f32 q8, q12, %q[wr1]              @ mul weight 10, outr0\n"
-                        "vext.32  q7, q12, q13, #2              @ shift left r2\n"
-                        "vmla.f32 q9, q7, %q[wr1]               @ mul weight 10, outr1\n"
-
-                        "vld1.32  {d28-d30}, [%[din2_ptr]]!    @ load din r2\n"
-                        "vmla.f32 q8, q14, %q[wr2]  @mul weight 10, outr0\n"
                         "vext.32  q7, q14, q15, #2      @ shift left r2\n"
+                        "vmla.f32 q8, q12, %q[wr1]              @ mul weight 10, outr0\n"
+                        "vmla.f32 q9, q11, %q[wr1]               @ mul weight 10, outr1\n"
+
+                        "vmla.f32 q8, q14, %q[wr2]  @mul weight 10, outr0\n"
                         "vmla.f32 q9, q7, %q[wr2]  @mul weight 10, outr1\n"
 
                         "vpadd.f32 d22, d16, d17  @ pair add of out0 \n"
@@ -4790,11 +4761,10 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
                         "vadd.f32  d17, d16, %e[bias]  @ add bias \n"
                         "vmax.f32  d17, d17, %e[vzero]          @ relu\n"
 
-                        "vst1.32  {d17},   [%[dout_ptr1]]!  @ store result, add pointer\n"
-
                         "sub %[din0_ptr], #8 @ 2 float data overlap with previous data\n"
                         "sub %[din1_ptr], #8 @ 2 float data overlap with previous data\n"
                         "sub %[din2_ptr], #8 @ 2 float data overlap with previous data\n"
+                        "vst1.32  {d17},   [%[dout_ptr1]]!  @ store result, add pointer\n"
 
                         "subs %[cnt], #1 @ loop count minus 1\n"
                         "bne    3b                              @ jump to main loop start point\n"
@@ -4804,30 +4774,36 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
                         "vmov.u32  d31, #0 @ zero buf\n"
                         "pld [%[din0_ptr], #192]               @ preload data\n"
                         "pld [%[din1_ptr], #192]               @ preload data\n"
-                        "vld1.32  {d20-d22}, [%[din0_ptr]]!    @ load din r1\n"
+
+                        "vld1.32  {d20-d21}, [%[din0_ptr]]!     @ load din r0\n"
+                        "vld1.32  {d24-d25}, [%[din1_ptr]]!     @ load din r1\n"
+                        "vld1.32  {d28-d29}, [%[din2_ptr]]!     @ load din r2\n"
+                        "vld1.32  {d22}, [%[din0_ptr]]!     @ load din r0\n"
+                        "vld1.32  {d26}, [%[din1_ptr]]!     @ load din r0\n"
+                        "vld1.32  {d30}, [%[din2_ptr]]!     @ load din r0\n"
+
                         "vbif d21, d31, %e[mask_din] @ bit select, deal with right pad\n"
-                        "vmul.f32 q8, q10, %q[wr0]  @mul weight 00, outr0\n"
                         "vbif d22, d31, %f[mask_din] @ bit select, deal with right pad\n"
+
+                        "vbif d25, d31, %e[mask_din] @ bit select, deal with right pad\n"
+                        "vbif d26, d31, %f[mask_din] @ bit select, deal with right pad\n"
+
+                        "vbif d29, d31, %e[mask_din] @ bit select, deal with right pad\n"
+                        "vbif d30, d31, %f[mask_din] @ bit select, deal with right pad\n"
+
                         "vext.32  q7, q10, q11, #2      @ shift left r0\n"
+                        "vext.32  q11, q12, q13, #2      @ shift left r1\n"
+                        "vmul.f32 q8, q10, %q[wr0]  @mul weight 00, outr0\n"
                         "vmul.f32 q9, q7, %q[wr0]  @mul weight 00, outr1\n"
 
-                        "vld1.32  {d24-d26}, [%[din1_ptr]]!    @ load din r1\n"
-                        "vbif d25, d31, %e[mask_din] @ bit select, deal with right pad\n"
-                        "vmla.f32 q8, q12, %q[wr1]  @mul weight 10, outr0\n"
-                        "vbif d26, d31, %f[mask_din] @ bit select, deal with right pad\n"
-                        "vext.32  q7, q12, q13, #2      @ shift left r1\n"
-                        "vmla.f32 q9, q7, %q[wr1]  @mul weight 10, outr1\n"
-
-                        "pld [%[dout_ptr1], #64]         @ preload ouput data\n"
-
-                        "vld1.32  {d28-d30}, [%[din2_ptr]]!    @ load din r1\n"
-                        "vbif d29, d31, %e[mask_din] @ bit select, deal with right pad\n"
-                        "vmla.f32 q8, q14, %q[wr2]  @mul weight 20, outr0\n"
-                        "vbif d30, d31, %f[mask_din] @ bit select, deal with right pad\n"
                         "vext.32  q7, q14, q15, #2      @ shift left r2\n"
-                        "vmla.f32 q9, q7, %q[wr2]  @mul weight 20, outr1\n"
+                        "pld [%[dout_ptr1], #64]         @ preload ouput data\n"
+                        "vmla.f32 q8, q12, %q[wr1]  @mul weight 10, outr0\n"
+                        "vmla.f32 q9, q11, %q[wr1]  @mul weight 10, outr1\n"
 
                         "vld1.32  {d20}, [%[dout_ptr1]]    @ load dout\n"
+                        "vmla.f32 q8, q14, %q[wr2]  @mul weight 20, outr0\n"
+                        "vmla.f32 q9, q7, %q[wr2]  @mul weight 20, outr1\n"
 
                         "vpadd.f32 d22, d16, d17  @ pair add of out0 \n"
                         "vpadd.f32 d23, d18, d19 @ pair add of out1 \n"
@@ -4852,7 +4828,6 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
                 :"q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
                 );
 
-#endif //__aarch64__
 
                 dr0 = dr2;
                 dr1 = dr0 + w_in;
@@ -4863,9 +4838,7 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
             if (size_pad_bottom) {
                 din0_ptr = dr0;
                 din1_ptr = dr1;
-#ifdef __aarch64__
-                // todo
-#else
+
                 cnt = cnt_col;
                 asm volatile(
                 // process left pad
@@ -4877,14 +4850,14 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
                         "vld1.32  {d24-d25}, [%[din1_ptr]]!     @ load din r1\n"
 
                         "vext.32 q7, q11, q10, #3               @ shift right 1 data\n"
+                        "vext.32  q14, q10, q11, #1              @ shift left r0\n"
                         "vmul.f32 q8, q7, %q[wr0]               @ mul weight 00, outr0\n"
-                        "vext.32  q7, q10, q11, #1              @ shift left r0\n"
-                        "vmul.f32 q9, q7, %q[wr0]               @ mul weight 00, outr1\n"
+                        "vmul.f32 q9, q14, %q[wr0]               @ mul weight 00, outr1\n"
 
                         "vext.32 q7, q11, q12, #3               @ shift right 1 data\n"
+                        "vext.32  q14, q12, q11, #1              @ shift left r1\n"
                         "vmla.f32 q8, q7, %q[wr1]               @ mul weight 10, outr0\n"
-                        "vext.32  q7, q12, q11, #1              @ shift left r1\n"
-                        "vmla.f32 q9, q7,  %q[wr1]              @ mul weight 10, outr1\n"
+                        "vmla.f32 q9, q14,  %q[wr1]              @ mul weight 10, outr1\n"
 
                         "vpadd.f32 d22, d16, d17                @ pair add of out0 \n"
                         "vpadd.f32 d23, d18, d19                @ pair add of out1 \n"
@@ -4893,10 +4866,9 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
                         "vadd.f32  d17, d16, %e[bias]           @ add bias \n"
                         "vmax.f32  d17, d17, %e[vzero]          @ relu\n"
 
-                        "vst1.32  {d17},   [%[dout_ptr1]]!      @ store result, add pointer\n"
-
                         "sub %[din0_ptr], #4                    @ 1pad + 2 float data overlap\n"
                         "sub %[din1_ptr], #4                    @ 1pad + 2 float data overlap\n"
+                        "vst1.32  {d17},   [%[dout_ptr1]]!      @ store result, add pointer\n"
 
                         // process mid cols
                         "cmp %[cnt], #1                         @ check whether has mid loop\n"
@@ -4905,14 +4877,15 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
                         "pld [%[din0_ptr], #192]                @ preload data\n"
                         "pld [%[din1_ptr], #192]                @ preload data\n"
                         "vld1.32  {d20-d22}, [%[din0_ptr]]!     @ load din r0\n"
-                        "vmul.f32 q8, q10, %q[wr0]              @ mul weight 00, outr0\n"
+                        "vld1.32  {d24-d26}, [%[din1_ptr]]!     @ load din r1\n"
+
                         "vext.32  q7, q10, q11, #2              @ shift left r1\n"
+                        "vext.32  q14, q12, q13, #2              @ shift left r2\n"
+                        "vmul.f32 q8, q10, %q[wr0]              @ mul weight 00, outr0\n"
                         "vmul.f32 q9, q7, %q[wr0]               @ mul weight 00, outr1\n"
 
-                        "vld1.32  {d24-d26}, [%[din1_ptr]]!     @ load din r1\n"
                         "vmla.f32 q8, q12, %q[wr1]              @ mul weight 10, outr0\n"
-                        "vext.32  q7, q12, q13, #2              @ shift left r2\n"
-                        "vmla.f32 q9, q7, %q[wr1]               @ mul weight 10, outr1\n"
+                        "vmla.f32 q9, q14, %q[wr1]               @ mul weight 10, outr1\n"
 
                         "vpadd.f32 d22, d16, d17                @ pair add of out0 \n"
                         "vpadd.f32 d23, d18, d19                @ pair add of out1 \n"
@@ -4921,10 +4894,9 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
                         "vadd.f32  d17, d16, %e[bias]           @ add bias \n"
                         "vmax.f32  d17, d17, %e[vzero]          @ relu\n"
 
-                        "vst1.32  {d17},   [%[dout_ptr1]]!      @ store result, add pointer\n"
-
                         "sub %[din0_ptr], #8                    @ 2 float data overlap with previous data\n"
                         "sub %[din1_ptr], #8                    @ 2 float data overlap with previous data\n"
+                        "vst1.32  {d17},   [%[dout_ptr1]]!      @ store result, add pointer\n"
 
                         "subs %[cnt], #1                        @ loop count minus 1\n"
                         "bne    1b                              @ jump to main loop start point\n"
@@ -4935,21 +4907,25 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
                         "pld [%[din0_ptr], #192]                @ preload data\n"
                         "pld [%[din1_ptr], #192]                @ preload data\n"
                         "vld1.32  {d20-d22}, [%[din0_ptr]]!     @ load din r1\n"
+                        "vld1.32  {d24-d26}, [%[din1_ptr]]!     @ load din r1\n"
+
                         "vbif d21, d31, %e[mask_din]            @ bit select, deal with right pad\n"
-                        "vmul.f32 q8, q10, %q[wr0]              @ mul weight 00, outr0\n"
                         "vbif d22, d31, %f[mask_din]            @ bit select, deal with right pad\n"
+
+                        "vbif d25, d31, %e[mask_din]            @ bit select, deal with right pad\n"
+                        "vbif d26, d31, %f[mask_din]            @ bit select, deal with right pad\n"
+
                         "vext.32  q7, q10, q11, #2              @ shift left r0\n"
+                        "vext.32  q14, q12, q13, #2              @ shift left r1\n"
+
+                        "vmul.f32 q8, q10, %q[wr0]              @ mul weight 00, outr0\n"
                         "vmul.f32 q9, q7, %q[wr0]               @ mul weight 00, outr1\n"
 
-                        "vld1.32  {d24-d26}, [%[din1_ptr]]!     @ load din r1\n"
-                        "vbif d25, d31, %e[mask_din]            @ bit select, deal with right pad\n"
 
                         "pld [%[dout_ptr1], #64]                @ preload data\n"
 
                         "vmla.f32 q8, q12, %q[wr1]              @ mul weight 10, outr0\n"
-                        "vbif d26, d31, %f[mask_din]            @ bit select, deal with right pad\n"
-                        "vext.32  q7, q12, q13, #2              @ shift left r1\n"
-                        "vmla.f32 q9, q7, %q[wr1]               @ mul weight 10, outr1\n"
+                        "vmla.f32 q9, q14, %q[wr1]               @ mul weight 10, outr1\n"
 
                         "vld1.32  {d20}, [%[dout_ptr1]]         @ load dout\n"
 
@@ -4974,7 +4950,7 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
                     [pad_right] "r" (size_right_remain)
                 :"q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
                 );
-#endif //__aarch64__
+
             } //! end of process bottom pad
         }
     }
@@ -5052,7 +5028,6 @@ void conv_depthwise_3x3s1p1_bias_s(float* dout, const float* din, \
             //! deal with top pad
             int h = 0;
             //! process
-#ifdef __aarch64__
             float32x4_t vzero = vdupq_n_f32(0.f);
             // todo
             float32x4_t din0_1234 = vld1q_f32(din0_ptr);
@@ -5197,8 +5172,6 @@ void conv_depthwise_3x3s1p1_bias_s(float* dout, const float* din, \
             if(!flag_hin1){//h > 1
                 vst1q_f32(doutr1, dout1_1234);//sum0
             }
-
-#endif //__aarch64__
 
             //! after process, increase pointer
             doutr0 = doutr1 + w_out;
@@ -5509,7 +5482,9 @@ void conv_depthwise_3x3s1p1_bias_s(float* dout, const float* din, \
         } // end of processing channels
     } // end of processing batchs
 }
+
 #else
+
 void conv_depthwise_3x3s1p1_bias_s(float* dout, const float* din, \
     const float* weights, const float* bias, bool flag_bias, \
     const int num, const int ch_in, const int h_in, const int w_in, \
@@ -5583,9 +5558,7 @@ void conv_depthwise_3x3s1p1_bias_s(float* dout, const float* din, \
             //! deal with top pad
             int h = 0;
             //! process
-#ifdef __aarch64__
-            // todo
-#else
+
             asm volatile(
             //! process left right
             "pld [%[din0_ptr]]                @ preload data\n"
@@ -5599,40 +5572,42 @@ void conv_depthwise_3x3s1p1_bias_s(float* dout, const float* din, \
                     "vld1.32  {d24-d25}, [%[din2_ptr]]!     @ load din r3, q12\n"
 
                     "vbif q10, q15, %q[mask]                @ bit select, deal with right pad\n"
+                    "vbif q11, q15, %q[mask]                @ bit select, deal with right pad\n"
+                    "vbif q12, q15, %q[mask]                @ bit select, deal with right pad\n"
+
                     "vmul.f32 q4, q10, %e[wr1][1]           @ mul weight 10, outr0\n"
                     "vmul.f32 q5, q10, %e[wr0][1]           @ mul weight 00, outr1\n"
 
-                    "vbif q11, q15, %q[mask]                @ bit select, deal with right pad\n"
+                    "vext.32  q6, q10, q15, #1              @ shift left r1\n"
                     "vmla.f32 q4, q11, %e[wr2][1]           @ mul weight 20, outr0\n"
                     "vmla.f32 q5, q11, %e[wr1][1]           @ mul weight 10, outr1\n"
 
-                    "vbif q12, q15, %q[mask]                @ bit select, deal with right pad\n"
                     "vmla.f32 q5, q12, %e[wr2][1]           @ mul weight 20, outr1\n"
 
-                    "vext.32  q6, q10, q15, #1              @ shift left r1\n"
+                    "vext.32  q8, q11, q15, #1              @ shift left r2\n"
                     "vmla.f32 q4, q6, %f[wr1][0]            @ mul weight 11, outr0\n"
                     "vmla.f32 q5, q6, %f[wr0][0]            @ mul weight 01, outr1\n"
 
-                    "vext.32  q6, q11, q15, #1              @ shift left r2\n"
-                    "vmla.f32 q4, q6,  %f[wr2][0]           @ mul weight 21, outr0\n"
-                    "vmla.f32 q5, q6,  %f[wr1][0]           @ mul weight 11, outr1\n"
-
                     "vext.32  q6, q12, q15, #1              @ shift left r3\n"
+                    "vmla.f32 q4, q8,  %f[wr2][0]           @ mul weight 21, outr0\n"
+                    "vmla.f32 q5, q8,  %f[wr1][0]           @ mul weight 11, outr1\n"
+
+                    "vext.32  q8, q15, q10, #3              @ shift right r1\n"
                     "vmla.f32 q5, q6,  %f[wr2][0]           @ mul weight 21, outr1\n"
 
-                    "vext.32  q6, q15, q10, #3              @ shift right r1\n"
-                    "vmla.f32 q4, q6, %e[wr1][0]            @ mul weight 12, outr0\n"
-                    "vmla.f32 q5, q6, %e[wr0][0]            @ mul weight 02, outr1\n"
-
                     "vext.32  q6, q15, q11, #3              @ shift right r2\n"
+                    "pld [%[dout_ptr1]]                @ preload data\n"
+                    "vmla.f32 q4, q8, %e[wr1][0]            @ mul weight 12, outr0\n"
+                    "vmla.f32 q5, q8, %e[wr0][0]            @ mul weight 02, outr1\n"
+
+                    "vext.32  q8, q15, q12, #3              @ shift right r3\n"
+                    "pld [%[dout_ptr2]]                @ preload data\n"
                     "vmla.f32 q4, q6,  %e[wr2][0]           @ mul weight 22, outr0\n"
                     "vmla.f32 q5, q6,  %e[wr1][0]           @ mul weight 12, outr1\n"
 
-                    "vext.32  q6, q15, q12, #3              @ shift right r3\n"
-                    "vmla.f32 q5, q6,  %e[wr2][0]           @ mul weight 22, outr1\n"
-
                     "vld1.32  {d20-d21}, [%[dout_ptr1]]     @ load dout r0\n"
                     "vld1.32  {d22-d23}, [%[dout_ptr2]]     @ load dout r1\n"
+                    "vmla.f32 q5, q8,  %e[wr2][0]           @ mul weight 22, outr1\n"
 
                     "vadd.f32 q8, q4, %q[bias]              @ add bias \n"
                     "vadd.f32 q9, q5, %q[bias]              @ add bias \n"
@@ -5640,19 +5615,20 @@ void conv_depthwise_3x3s1p1_bias_s(float* dout, const float* din, \
                     "vbif q8, q10, %q[mask]                 @ bit select\n"
                     "vbif q9, q11, %q[mask]                 @ bit select\n"
 
+                    "sub %[din0_ptr], %[din0_ptr],   %[pad_right] @ sub \n"
+                    "sub %[din1_ptr], %[din1_ptr],   %[pad_right] @ sub \n"
+                    "sub %[din2_ptr], %[din2_ptr],   %[pad_right] @ sub \n"
+
                     "vst1.32  {d16-d17}, [%[dout_ptr1]]!    @ store result, add pointer\n"
 
                     "cmp %[flag1],  #1                      @ check if hin = 1\n"
                     "beq    1f                              @ jump to next block\n"
                     "vst1.32  {d18-d19}, [%[dout_ptr2]]!    @ store result, add pointer\n"
+                    "sub %[dout_ptr2], %[dout_ptr2], %[pad_right] @ sub \n"
                     "1:                                     @ end top\n"
 
                     "sub %[dout_ptr1], %[dout_ptr1], %[pad_right] @ sub \n"
-                    "sub %[dout_ptr2], %[dout_ptr2], %[pad_right] @ sub \n"
 
-                    "sub %[din0_ptr], %[din0_ptr],   %[pad_right] @ sub \n"
-                    "sub %[din1_ptr], %[din1_ptr],   %[pad_right] @ sub \n"
-                    "sub %[din2_ptr], %[din2_ptr],   %[pad_right] @ sub \n"
 
             :[dout_ptr1] "+r"(doutr0), [dout_ptr2] "+r"(doutr1), \
                             [din0_ptr] "+r"(din0_ptr), [din1_ptr] "+r"(din1_ptr), \
@@ -5662,8 +5638,6 @@ void conv_depthwise_3x3s1p1_bias_s(float* dout, const float* din, \
             :"q4", "q5", "q6", "q8", "q9", \
                         "q10", "q11", "q12", "q13", "q14", "q15"
             );
-
-#endif //__aarch64__
 
             //! after process, increase pointer
             doutr0 += w_out;
@@ -5682,9 +5656,6 @@ void conv_depthwise_3x3s1p1_bias_s(float* dout, const float* din, \
                 din2_ptr = dr2;
                 din3_ptr = dr3;
 
-#ifdef __aarch64__
-                // todo
-#else
                 asm volatile(
                 //! process left pad
                 "pld [%[din0_ptr]]               @ preload data\n"
@@ -5700,66 +5671,69 @@ void conv_depthwise_3x3s1p1_bias_s(float* dout, const float* din, \
                         "vld1.32  {d22-d23}, [%[din3_ptr]]!    @ load din r3, q11\n"
 
                         "vbif q8, q15, %q[mask]                @ bit select, deal with right pad\n"
+                        "vbif q9, q15, %q[mask]                @ bit select, deal with right pad\n"
+                        "vbif q10, q15, %q[mask]                @ bit select, deal with right pad\n"
+                        "vbif q11, q15, %q[mask]                @ bit select, deal with right pad\n"
+
                         "vmul.f32 q4, q8, %e[wr0][1]   @mul weight 00, outr0\n"
 
-                        "vbif q9, q15, %q[mask]                @ bit select, deal with right pad\n"
                         "vmul.f32 q5, q9, %e[wr0][1]  @mul weight 00, outr1\n"
                         "vmla.f32 q4, q9, %e[wr1][1]  @mul weight 10, outr0\n"
 
-                        "vbif q10, q15, %q[mask]                @ bit select, deal with right pad\n"
+                        "vext.32  q6, q8, q15, #1     @ shift left r0\n"
                         "vmla.f32 q5, q10, %e[wr1][1]  @mul weight 10, outr1\n"
                         "vmla.f32 q4, q10, %e[wr2][1]  @mul weight 20, outr0\n"
 
-                        "vbif q11, q15, %q[mask]                @ bit select, deal with right pad\n"
+                        "vext.32  q14, q9, q15, #1   @ shift left r1\n"
                         "vmla.f32 q5, q11, %e[wr2][1]  @mul weight 20, outr1\n"
 
-                        "vext.32  q6, q8, q15, #1     @ shift left r0\n"
+                        "vext.32  q13, q10, q15, #1  @ shift left r2\n"
                         "vmla.f32 q4, q6, %f[wr0][0]  @mul weight 01, outr0\n"
 
-                        "vext.32  q6, q9, q15, #1   @ shift left r1\n"
-                        "vmla.f32 q5, q6, %f[wr0][0]  @mul weight 01, outr1\n"
-                        "vmla.f32 q4, q6, %f[wr1][0]  @mul weight 11, outr0\n"
-
-                        "vext.32  q6, q10, q15, #1  @ shift left r2\n"
-                        "vmla.f32 q5, q6,  %f[wr1][0] @mul weight 11, outr1\n"
-                        "vmla.f32 q4, q6,  %f[wr2][0] @mul weight 21, outr0\n"
-
                         "vext.32  q6, q11, q15, #1  @ shift left r3\n"
+                        "vmla.f32 q5, q14, %f[wr0][0]  @mul weight 01, outr1\n"
+                        "vmla.f32 q4, q14, %f[wr1][0]  @mul weight 11, outr0\n"
+
+                        "vext.32  q14, q15, q8, #3              @ shift right r0\n"
+                        "vmla.f32 q5, q13,  %f[wr1][0] @mul weight 11, outr1\n"
+                        "vmla.f32 q4, q13,  %f[wr2][0] @mul weight 21, outr0\n"
+
+                        "vext.32  q13, q15, q9, #3              @ shift right r1\n"
                         "vmla.f32 q5, q6,  %f[wr2][0] @mul weight 21, outr1\n"
 
-                        "vext.32  q6, q15, q8, #3              @ shift right r0\n"
-                        "vmla.f32 q4, q6, %e[wr0][0]  @mul weight 02, outr0\n"
-
-                        "vext.32  q6, q15, q9, #3              @ shift right r1\n"
-                        "vmla.f32 q5, q6, %e[wr0][0]  @mul weight 02, outr1\n"
-                        "vmla.f32 q4, q6, %e[wr1][0]  @mul weight 12, outr0\n"
-
                         "vext.32  q6, q15, q10, #3              @ shift right r2\n"
+                        "vmla.f32 q4, q14, %e[wr0][0]  @mul weight 02, outr0\n"
+
+                        "vext.32  q14, q15, q11, #3              @ shift right r3\n"
+                        "vmla.f32 q5, q13, %e[wr0][0]  @mul weight 02, outr1\n"
+                        "vmla.f32 q4, q13, %e[wr1][0]  @mul weight 12, outr0\n"
+                        
+                        "pld [%[dout_ptr1]]                @ preload data\n"
+                        "pld [%[dout_ptr2]]                @ preload data\n"
                         "vmla.f32 q5, q6,  %e[wr1][0] @mul weight 12, outr1\n"
                         "vmla.f32 q4, q6,  %e[wr2][0] @mul weight 22, outr0\n"
 
-                        "vext.32  q6, q15, q11, #3              @ shift right r3\n"
-                        "vmla.f32 q5, q6,  %e[wr2][0] @mul weight 22, outr1\n"
-
                         "vld1.32  {d20-d21}, [%[dout_ptr1]]     @ load dout r0\n"
                         "vld1.32  {d22-d23}, [%[dout_ptr2]]     @ load dout r1\n"
+                        "vmla.f32 q5, q14,  %e[wr2][0] @mul weight 22, outr1\n"
 
                         "vadd.f32 q8, q4, %q[bias] @ add bias \n"
                         "vadd.f32 q9, q5, %q[bias] @ add bias \n"
 
+                        "sub %[din0_ptr], %[din0_ptr],   %[pad_right] @ sub \n"
+                        "sub %[din1_ptr], %[din1_ptr],   %[pad_right] @ sub \n"
+
                         "vbif q8, q10, %q[mask]                 @ bit select\n"
                         "vbif q9, q11, %q[mask]                 @ bit select\n"
 
+                        "sub %[din2_ptr], %[din2_ptr],   %[pad_right] @ sub \n"
+                        "sub %[din3_ptr], %[din3_ptr],   %[pad_right] @ sub \n"
                         "vst1.32  {d16-d17}, [%[dout_ptr1]]!    @ store result, add pointer\n"
                         "vst1.32  {d18-d19}, [%[dout_ptr2]]!    @ store result, add pointer\n"
 
                         "sub %[dout_ptr1], %[dout_ptr1], %[pad_right] @ sub \n"
                         "sub %[dout_ptr2], %[dout_ptr2], %[pad_right] @ sub \n"
 
-                        "sub %[din0_ptr], %[din0_ptr],   %[pad_right] @ sub \n"
-                        "sub %[din1_ptr], %[din1_ptr],   %[pad_right] @ sub \n"
-                        "sub %[din2_ptr], %[din2_ptr],   %[pad_right] @ sub \n"
-                        "sub %[din3_ptr], %[din3_ptr],   %[pad_right] @ sub \n"
 
                 :[dout_ptr1] "+r"(doutr0), [dout_ptr2] "+r"(doutr1), \
                             [din0_ptr] "+r"(din0_ptr), [din1_ptr] "+r"(din1_ptr), \
@@ -5770,7 +5744,6 @@ void conv_depthwise_3x3s1p1_bias_s(float* dout, const float* din, \
                 :"q4", "q5", "q6", "q8", "q9", \
                         "q10", "q11", "q12", "q13", "q14", "q15"
                 );
-#endif //__aarch64__
 
                 doutr0 += w_out;
                 doutr1 = doutr0 + w_out;
@@ -5789,9 +5762,7 @@ void conv_depthwise_3x3s1p1_bias_s(float* dout, const float* din, \
                 } else {
                     din2_ptr = dr2;
                 }
-#ifdef __aarch64__
-                // todo
-#else
+
                 asm volatile(
                 // process left pad
                 "pld [%[din0_ptr]]                        @ preload data\n"
@@ -5805,52 +5776,54 @@ void conv_depthwise_3x3s1p1_bias_s(float* dout, const float* din, \
                         "vld1.32  {d20-d21}, [%[din2_ptr]]      @ load din r2, q10\n"
 
                         "vbif q8, q15, %q[mask]                @ bit select, deal with right pad\n"
+                        "vbif q9, q15, %q[mask]                @ bit select, deal with right pad\n"
+                        "vbif q10, q15, %q[mask]                @ bit select, deal with right pad\n"
+
                         "vmul.f32 q4, q8, %e[wr0][1]            @ mul weight 00, outr0\n"
 
-                        "vbif q9, q15, %q[mask]                @ bit select, deal with right pad\n"
+                        "vext.32  q6, q8, q15, #1               @ shift left r0\n"
                         "vmla.f32 q4, q9, %e[wr1][1]           @ mul weight 10, outr0\n"
                         "vmul.f32 q5, q9, %e[wr0][1]           @ mul weight 00, outr1\n"
 
-                        "vbif q10, q15, %q[mask]                @ bit select, deal with right pad\n"
+                        "vext.32  q13, q9, q15, #1               @ shift left r1\n"
                         "vmla.f32 q4, q10, %e[wr2][1]           @ mul weight 20, outr0\n"
                         "vmla.f32 q5, q10, %e[wr1][1]           @ mul weight 10, outr1\n"
 
-                        "vext.32  q6, q8, q15, #1               @ shift left r0\n"
+                        "vext.32  q14, q10, q15, #1              @ shift left r2\n"
                         "vmla.f32 q4, q6, %f[wr0][0]            @ mul weight 01, outr0\n"
 
-                        "vext.32  q6, q9, q15, #1               @ shift left r1\n"
-                        "vmla.f32 q5, q6, %f[wr0][0]            @ mul weight 01, outr1\n"
-                        "vmla.f32 q4, q6, %f[wr1][0]            @ mul weight 11, outr0\n"
-
-                        "vext.32  q6, q10, q15, #1              @ shift left r2\n"
-                        "vmla.f32 q5, q6,  %f[wr1][0]           @ mul weight 11, outr1\n"
-                        "vmla.f32 q4, q6,  %f[wr2][0]           @ mul weight 21, outr0\n"
-
                         "vext.32  q6, q15, q8, #3               @ shift right r0\n"
+                        "vmla.f32 q5, q13, %f[wr0][0]            @ mul weight 01, outr1\n"
+                        "vmla.f32 q4, q13, %f[wr1][0]            @ mul weight 11, outr0\n"
+
+                        "vext.32  q13, q15, q9, #3               @ shift right r1\n"
+                        "vmla.f32 q5, q14,  %f[wr1][0]           @ mul weight 11, outr1\n"
+                        "vmla.f32 q4, q14,  %f[wr2][0]           @ mul weight 21, outr0\n"
+
+                        "vext.32  q14, q15, q10, #3              @ shift right r2\n"
                         "vmla.f32 q4, q6, %e[wr0][0]            @ mul weight 02, outr0\n"
-
-                        "vext.32  q6, q15, q9, #3               @ shift right r1\n"
-                        "vmla.f32 q4, q6, %e[wr1][0]            @ mul weight 12, outr0\n"
-                        "vmla.f32 q5, q6, %e[wr0][0]            @ mul weight 02, outr1\n"
-
-                        "vext.32  q6, q15, q10, #3              @ shift right r2\n"
-                        "vmla.f32 q4, q6,  %e[wr2][0]           @ mul weight 22, outr0\n"
-                        "vmla.f32 q5, q6,  %e[wr1][0]           @ mul weight 12, outr1\n"
-
+                        
+                        "pld [%[dout_ptr1]]                @ preload data\n"
+                        "pld [%[dout_ptr2]]                @ preload data\n"
+                        "vmla.f32 q4, q13, %e[wr1][0]            @ mul weight 12, outr0\n"
+                        "vmla.f32 q5, q13, %e[wr0][0]            @ mul weight 02, outr1\n"
+                        
                         "vld1.32  {d20-d21}, [%[dout_ptr1]]     @ load dout r0\n"
+                        "vld1.32  {d22-d23}, [%[dout_ptr2]]     @ load dout r1\n"
+                        "vmla.f32 q4, q14,  %e[wr2][0]           @ mul weight 22, outr0\n"
+                        "vmla.f32 q5, q14,  %e[wr1][0]           @ mul weight 12, outr1\n"
 
                         "vadd.f32 q8, q4, %q[bias]              @ add bias \n"
                         "vadd.f32 q9, q5, %q[bias]              @ add bias \n"
 
                         "vbif q8, q10, %q[mask]                 @ bit select\n"
+                        "vbif q9, q11, %q[mask]                 @ bit select\n"
 
-                        "vst1.32  {d16-d17},   [%[dout_ptr1]]!  @ store result, add pointer\n"
                         "cmp %[bot_pad],  #2                    @ check if bottom pad is 2\n"
                         "beq    1f                              @ jump to next block\n"
-                        "vld1.32  {d22-d23}, [%[dout_ptr2]]     @ load dout r1\n"
-                        "vbif q9, q11, %q[mask]                 @ bit select\n"
                         "vst1.32  {d18-d19}, [%[dout_ptr2]]!    @ store result, add pointer\n"
-                        "1:                                     @\n"
+                        "1:                                     @\n"  
+                        "vst1.32  {d16-d17},   [%[dout_ptr1]]!  @ store result, add pointer\n"
 
                 :[dout_ptr1] "+r"(doutr0), [dout_ptr2] "+r"(doutr1), \
                             [din0_ptr] "+r"(din0_ptr), [din1_ptr] "+r"(din1_ptr), \
@@ -5862,7 +5835,7 @@ void conv_depthwise_3x3s1p1_bias_s(float* dout, const float* din, \
                 :"q4", "q5", "q6", "q8", "q9", \
                         "q10", "q11", "q12", "q13", "q14", "q15"
                 );
-#endif //__aarch64__
+
             }
             //! end of processing bottom pad
         } // end of processing channels
@@ -5934,7 +5907,7 @@ void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
             if(h_in == 1){
                 din1_ptr = ptr_zero;
             }
-#ifdef __aarch64__
+
             float32x4_t vzero = vdupq_n_f32(0.f);
             // todo
             float32x4_t din0_1234 = vld1q_f32(din0_ptr);
@@ -5987,9 +5960,6 @@ void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
             }
 
             vst1_f32(doutr0_ptr, sum);
-#else
-            
-#endif //__aarch64__
 
             dr0 = dr1;
             dr1 = dr2;
@@ -5998,7 +5968,6 @@ void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
 
             //! process mid rows
             for (int j = tile_h - 1; j > 0; j--) {
-#ifdef __aarch64__
             // todo
                 din0_ptr = dr0;
                 din1_ptr = dr1;
@@ -6071,9 +6040,6 @@ void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
                 }
 
                 vst1_f32(doutr0_ptr, sum);
-#else
-
-#endif //__aarch64__
 
                 dr0 = dr2;
                 dr1 = dr0 + w_in;
@@ -6086,7 +6052,7 @@ void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
                 din0_ptr = dr0;
                 din1_ptr = dr1;
                 doutr0_ptr = doutr0;
-#ifdef __aarch64__
+
                 // todo
                 din0_1234 = vld1q_f32(din0_ptr);
                 din1_1234 = vld1q_f32(din1_ptr);
@@ -6138,9 +6104,7 @@ void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
                 }
 
                 vst1_f32(doutr0_ptr, sum);
-#else
-                
-#endif //__aarch64__
+
             } // end of process bottom pad
         }
     }
@@ -6208,10 +6172,6 @@ void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
                 din1_ptr = ptr_zero;
             }
 
-#ifdef __aarch64__
-            // todo
-
-#else
             asm volatile(
             // process  pad
             "pld [%[din0_ptr], #128]                @ preload data\n"
@@ -6224,24 +6184,23 @@ void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
                     "vbif q10, q15, %q[mask_din]            @ bit select, deal with right pad\n"
                     "vbif q12, q15, %q[mask_din]            @ bit select, deal with right pad\n"
 
-
-                    "vmul.f32 q8, q10, %e[wr1][1]           @ mul weight 11, 1234\n"
                     "vext.32 q6, q15, q10, #3              @ shift right 1, 0123\n"
                     "vext.32 q7, q15, q12, #3              @ shift right 1, 0123\n"
-
+                    "vmul.f32 q8, q10, %e[wr1][1]           @ mul weight 11, 1234\n"
                     "vmul.f32 q9, q12, %e[wr2][1]           @ mul weight 21, 1234\n"
+
                     "vext.32 q10, q10, q15, #1              @ shift left 1, 2340\n"
                     "vext.32 q12, q12, q15, #1              @ shift left 1, 2340\n"
 
                     "vmla.f32 q8, q6, %e[wr1][0]           @ mla weight 10, 0123\n"
                     "vmla.f32 q9, q7, %e[wr2][0]           @ mla weight 20, 0123\n"
-
+                    
+                    "pld [%[dout_ptr0]]                     @ preload data\n"
                     "vmla.f32 q8, q10, %f[wr1][0]           @ mla weight 12, 2340\n"
                     "vmla.f32 q9, q12, %f[wr2][0]           @ mla weight 22, 2340\n"
 
-                    "vadd.f32 q6, q8, q9                    @ add \n"
-
                     "vld1.32  {d20}, [%[dout_ptr0]]         @ load dout\n"
+                    "vadd.f32 q6, q8, q9                    @ add \n"
 
                     "vmov.f32  s25, s26                     @mov \n"
 
@@ -6251,7 +6210,6 @@ void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
                     "vbif d12, d20, %e[mask_w]              @ bit select\n"
 
                     //"vst1.32  {d17},   [%[tmp_ptr]] \n"
-
                     "vst1.32  {d12}, [%[dout_ptr0]]!        @ store result, add pointer\n"
             // "sub %[dout_ptr0], %[dout_ptr0], %[pad_right] @ sub \n"
 
@@ -6263,8 +6221,6 @@ void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
             :"q6", "q7", "q8", "q10", "q12", "q15"
             );
 
-#endif //__aarch64__
-
             dr0 = dr1;
             dr1 = dr2;
             dr2 = dr1 + w_in;
@@ -6272,9 +6228,7 @@ void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
 
             //! process mid rows
             for (int j = tile_h - 1; j > 0; j--) {
-#ifdef __aarch64__
-                // todo
-#else
+
                 din0_ptr = dr0;
                 din1_ptr = dr1;
                 din2_ptr = dr2;
@@ -6296,24 +6250,23 @@ void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
                         "vbif q14, q15, %q[mask_din]            @ bit select, deal with right pad\n"
 
 
-                        "vmul.f32 q9, q10, %e[wr0][1]           @ mul weight 01, 1234\n"
                         "vext.f32 q6, q15, q10, #3              @ shift right 1, 0123\n"
-
-                        "vmul.f32 q11, q12, %e[wr1][1]           @ mul weight 11, 1234\n"
                         "vext.f32 q7, q15, q12, #3              @ shift right 1, 0123\n"
-
-                        "vmul.f32 q13, q14, %e[wr2][1]           @ mul weight 21, 1234\n"
                         "vext.f32 q8, q15, q14, #3              @ shift right 1, 0123\n"
 
-                        "vmla.f32 q9, q6, %e[wr0][0]           @ mul weight 00, 0123\n"
+                        "vmul.f32 q9, q10, %e[wr0][1]           @ mul weight 01, 1234\n"
+                        "vmul.f32 q11, q12, %e[wr1][1]           @ mul weight 11, 1234\n"
+                        "vmul.f32 q13, q14, %e[wr2][1]           @ mul weight 21, 1234\n"
+
                         "vext.f32 q10, q10, q15, #1              @ shift left 1, 2340\n"
-
-                        "vmla.f32 q11, q7, %e[wr1][0]           @ mul weight 10, 0123\n"
                         "vext.f32 q12, q12, q15, #1              @ shift left 1, 2340\n"
-
-                        "vmla.f32 q13, q8, %e[wr2][0]           @ mul weight 20, 0123\n"
                         "vext.f32 q14, q14, q15, #1              @ shift left 1, 2340\n"
 
+                        "vmla.f32 q9, q6, %e[wr0][0]           @ mul weight 00, 0123\n"
+                        "vmla.f32 q11, q7, %e[wr1][0]           @ mul weight 10, 0123\n"
+                        "vmla.f32 q13, q8, %e[wr2][0]           @ mul weight 20, 0123\n"
+
+                        "pld [%[dout_ptr0]]                    @ preload data\n"
                         "vmla.f32 q9, q10, %f[wr0][0]           @ mul weight 12, 2340\n"
                         "vmla.f32 q11, q12, %f[wr1][0]           @ mul weight 22, 2340\n"
                         "vmla.f32 q13, q14, %f[wr2][0]           @ mul weight 22, 2340\n"
@@ -6325,10 +6278,7 @@ void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
                         "vmov.f32  s25, s26                     @ mov \n"
                         "vadd.f32  d12, d12, %e[bias]           @ add bias \n"
 
-                        //"vst1.32  {d17},   [%[tmp_ptr]]! \n"
                         "vbif d12, d20, %e[mask_w]              @ bit select\n"
-
-                        //"vst1.32  {d17},   [%[tmp_ptr]] \n"
 
                         "vst1.32  {d12}, [%[dout_ptr0]]!        @ store result, add pointer\n"
 
@@ -6340,7 +6290,6 @@ void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
                 :"q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
                 );
 
-#endif //__aarch64__
 
                 dr0 = dr2;
                 dr1 = dr0 + w_in;
@@ -6352,9 +6301,6 @@ void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
                 din0_ptr = dr0;
                 din1_ptr = dr1;
 
-#ifdef __aarch64__
-                // todo
-#else
                 asm volatile(
                 // process  pad
                 "pld [%[din0_ptr], #128]                @ preload data\n"
@@ -6368,30 +6314,30 @@ void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
                         "vbif q12, q15, %q[mask_din]            @ bit select, deal with right pad\n"
 
 
-                        "vmul.f32 q8, q10, %e[wr1][1]           @ mul weight 11, 1234\n"
                         "vext.f32 q6, q15, q10, #3              @ shift right 1, 0123\n"
                         "vext.f32 q7, q15, q12, #3              @ shift right 1, 0123\n"
 
+                        "vmul.f32 q8, q10, %e[wr1][1]           @ mul weight 11, 1234\n"
                         "vmul.f32 q9, q12, %e[wr2][1]           @ mul weight 21, 1234\n"
+
                         "vext.f32 q10, q10, q15, #1              @ shift left 1, 2340\n"
                         "vext.f32 q12, q12, q15, #1              @ shift left 1, 2340\n"
 
                         "vmla.f32 q8, q6, %e[wr1][0]           @ mul weight 10, 0123\n"
                         "vmla.f32 q9, q7, %e[wr2][0]           @ mul weight 20, 0123\n"
-
+                        
+                        "pld [%[dout_ptr0]]                    @ preload data\n"
                         "vmla.f32 q8, q10, %f[wr1][0]           @ mul weight 12, 2340\n"
                         "vmla.f32 q9, q12, %f[wr2][0]           @ mul weight 22, 2340\n"
 
-                        "vadd.f32 q6, q8, q9                    @ add \n"
                         "vld1.32  {d20}, [%[dout_ptr0]]         @ load dout\n"
+                        "vadd.f32 q6, q8, q9                    @ add \n"
 
                         "vmov.f32  s25, s26                     @ mov \n"
                         "vadd.f32  d12, d12, %e[bias]           @ add bias \n"
 
                         //"vst1.32  {d17},   [%[tmp_ptr]]! \n"
                         "vbif d12, d20, %e[mask_w]              @ bit select\n"
-
-                        //"vst1.32  {d17},   [%[tmp_ptr]] \n"
 
                         "vst1.32  {d12}, [%[dout_ptr0]]!        @ store result, add pointer\n"
 
@@ -6402,7 +6348,6 @@ void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
                     //[pad_right] "r" (size_right_remain)
                 :"q6", "q7", "q8", "q10", "q12", "q15"
                 );
-#endif //__aarch64__
             } // end of process bottom pad
         }
     }
@@ -6480,7 +6425,6 @@ void conv_depthwise_3x3s1p1_bias_s_relu(float* dout, const float* din, \
             //! deal with top pad
             int h = 0;
             //! process
-#ifdef __aarch64__
             float32x4_t vzero = vdupq_n_f32(0.f);
             // todo
             float32x4_t din0_1234 = vld1q_f32(din0_ptr);
@@ -6611,8 +6555,6 @@ void conv_depthwise_3x3s1p1_bias_s_relu(float* dout, const float* din, \
             if(!flag_hin1){//h > 1
                 vst1q_f32(doutr1, dout1_1234);//sum0
             }
-
-#endif //__aarch64__
 
             //! after process, increase pointer
             doutr0 = doutr1 + w_out;
@@ -6929,7 +6871,9 @@ void conv_depthwise_3x3s1p1_bias_s_relu(float* dout, const float* din, \
         } // end of processing channels
     } // end of processing batchs
 }
+
 #else
+
 void conv_depthwise_3x3s1p1_bias_s_relu(float* dout, const float* din, \
     const float* weights, const float* bias, bool flag_bias, \
     const int num, const int ch_in, const int h_in, const int w_in, \
@@ -7003,9 +6947,6 @@ void conv_depthwise_3x3s1p1_bias_s_relu(float* dout, const float* din, \
             //! deal with top pad
             int h = 0;
             //! process
-#ifdef __aarch64__
-            // todo
-#else
             asm volatile(
             //! process left right
             "pld [%[din0_ptr]]                @ preload data\n"
@@ -7019,37 +6960,40 @@ void conv_depthwise_3x3s1p1_bias_s_relu(float* dout, const float* din, \
                     "vld1.32  {d24-d25}, [%[din2_ptr]]!     @ load din r3, q12\n"
 
                     "vbif q10, q15, %q[mask]                @ bit select, deal with right pad\n"
+                    "vbif q11, q15, %q[mask]                @ bit select, deal with right pad\n"
+                    "vbif q12, q15, %q[mask]                @ bit select, deal with right pad\n"
+
                     "vmul.f32 q4, q10, %e[wr1][1]           @ mul weight 10, outr0\n"
                     "vmul.f32 q5, q10, %e[wr0][1]           @ mul weight 00, outr1\n"
 
-                    "vbif q11, q15, %q[mask]                @ bit select, deal with right pad\n"
+                    "vext.32  q6, q10, q15, #1              @ shift left r1\n"
                     "vmla.f32 q4, q11, %e[wr2][1]           @ mul weight 20, outr0\n"
                     "vmla.f32 q5, q11, %e[wr1][1]           @ mul weight 10, outr1\n"
 
-                    "vbif q12, q15, %q[mask]                @ bit select, deal with right pad\n"
+                    "vext.32  q13, q11, q15, #1              @ shift left r2\n"
                     "vmla.f32 q5, q12, %e[wr2][1]           @ mul weight 20, outr1\n"
 
-                    "vext.32  q6, q10, q15, #1              @ shift left r1\n"
+                    "vext.32  q14, q12, q15, #1              @ shift left r3\n"
                     "vmla.f32 q4, q6, %f[wr1][0]            @ mul weight 11, outr0\n"
                     "vmla.f32 q5, q6, %f[wr0][0]            @ mul weight 01, outr1\n"
 
-                    "vext.32  q6, q11, q15, #1              @ shift left r2\n"
-                    "vmla.f32 q4, q6,  %f[wr2][0]           @ mul weight 21, outr0\n"
-                    "vmla.f32 q5, q6,  %f[wr1][0]           @ mul weight 11, outr1\n"
-
-                    "vext.32  q6, q12, q15, #1              @ shift left r3\n"
-                    "vmla.f32 q5, q6,  %f[wr2][0]           @ mul weight 21, outr1\n"
-
                     "vext.32  q6, q15, q10, #3              @ shift right r1\n"
+                    "vmla.f32 q4, q13,  %f[wr2][0]           @ mul weight 21, outr0\n"
+                    "vmla.f32 q5, q13,  %f[wr1][0]           @ mul weight 11, outr1\n"
+
+                    "vext.32  q13, q15, q11, #3              @ shift right r2\n"
+                    "vmla.f32 q5, q14,  %f[wr2][0]           @ mul weight 21, outr1\n"
+
+                    "vext.32  q14, q15, q12, #3              @ shift right r3\n"
                     "vmla.f32 q4, q6, %e[wr1][0]            @ mul weight 12, outr0\n"
                     "vmla.f32 q5, q6, %e[wr0][0]            @ mul weight 02, outr1\n"
+                    
+                    "pld [%[dout_ptr1]]                @ preload data\n"
+                    "vmla.f32 q4, q13,  %e[wr2][0]           @ mul weight 22, outr0\n"
+                    "vmla.f32 q5, q13,  %e[wr1][0]           @ mul weight 12, outr1\n"
 
-                    "vext.32  q6, q15, q11, #3              @ shift right r2\n"
-                    "vmla.f32 q4, q6,  %e[wr2][0]           @ mul weight 22, outr0\n"
-                    "vmla.f32 q5, q6,  %e[wr1][0]           @ mul weight 12, outr1\n"
-
-                    "vext.32  q6, q15, q12, #3              @ shift right r3\n"
-                    "vmla.f32 q5, q6,  %e[wr2][0]           @ mul weight 22, outr1\n"
+                    "pld [%[dout_ptr2]]                @ preload data\n"
+                    "vmla.f32 q5, q14,  %e[wr2][0]           @ mul weight 22, outr1\n"
 
                     "vld1.32  {d20-d21}, [%[dout_ptr1]]     @ load dout r0\n"
                     "vld1.32  {d22-d23}, [%[dout_ptr2]]     @ load dout r1\n"
@@ -7063,19 +7007,19 @@ void conv_depthwise_3x3s1p1_bias_s_relu(float* dout, const float* din, \
                     "vbif q8, q10, %q[mask]                 @ bit select\n"
                     "vbif q9, q11, %q[mask]                 @ bit select\n"
 
+                    "sub %[din0_ptr], %[din0_ptr],   %[pad_right] @ sub \n"
+                    "sub %[din1_ptr], %[din1_ptr],   %[pad_right] @ sub \n"
+                    "sub %[din2_ptr], %[din2_ptr],   %[pad_right] @ sub \n"
+
                     "vst1.32  {d16-d17}, [%[dout_ptr1]]!    @ store result, add pointer\n"
 
                     "cmp %[flag1],  #1                      @ check if hin = 1\n"
                     "beq    1f                              @ jump to next block\n"
                     "vst1.32  {d18-d19}, [%[dout_ptr2]]!    @ store result, add pointer\n"
-                    "1:                                     @ end top\n"
-
-                    "sub %[dout_ptr1], %[dout_ptr1], %[pad_right] @ sub \n"
                     "sub %[dout_ptr2], %[dout_ptr2], %[pad_right] @ sub \n"
+                    "1:                                     @ end top\n"
+                    "sub %[dout_ptr1], %[dout_ptr1], %[pad_right] @ sub \n"
 
-                    "sub %[din0_ptr], %[din0_ptr],   %[pad_right] @ sub \n"
-                    "sub %[din1_ptr], %[din1_ptr],   %[pad_right] @ sub \n"
-                    "sub %[din2_ptr], %[din2_ptr],   %[pad_right] @ sub \n"
 
             :[dout_ptr1] "+r"(doutr0), [dout_ptr2] "+r"(doutr1), \
                             [din0_ptr] "+r"(din0_ptr), [din1_ptr] "+r"(din1_ptr), \
@@ -7085,8 +7029,6 @@ void conv_depthwise_3x3s1p1_bias_s_relu(float* dout, const float* din, \
             :"q4", "q5", "q6", "q8", "q9", \
                         "q10", "q11", "q12", "q13", "q14", "q15"
             );
-
-#endif //__aarch64__
 
             //! after process, increase pointer
             doutr0 += w_out;
@@ -7105,9 +7047,6 @@ void conv_depthwise_3x3s1p1_bias_s_relu(float* dout, const float* din, \
                 din2_ptr = dr2;
                 din3_ptr = dr3;
 
-#ifdef __aarch64__
-                // todo
-#else
                 asm volatile(
                 //! process left pad
                 "pld [%[din0_ptr]]               @ preload data\n"
@@ -7123,46 +7062,49 @@ void conv_depthwise_3x3s1p1_bias_s_relu(float* dout, const float* din, \
                         "vld1.32  {d22-d23}, [%[din3_ptr]]!    @ load din r3, q11\n"
 
                         "vbif q8, q15, %q[mask]                @ bit select, deal with right pad\n"
+                        "vbif q9, q15, %q[mask]                @ bit select, deal with right pad\n"
+                        "vbif q10, q15, %q[mask]                @ bit select, deal with right pad\n"
+                        "vbif q11, q15, %q[mask]                @ bit select, deal with right pad\n"
+
                         "vmul.f32 q4, q8, %e[wr0][1]   @mul weight 00, outr0\n"
 
-                        "vbif q9, q15, %q[mask]                @ bit select, deal with right pad\n"
+                        "vext.32  q6, q8, q15, #1     @ shift left r0\n"
                         "vmul.f32 q5, q9, %e[wr0][1]  @mul weight 00, outr1\n"
                         "vmla.f32 q4, q9, %e[wr1][1]  @mul weight 10, outr0\n"
 
-                        "vbif q10, q15, %q[mask]                @ bit select, deal with right pad\n"
+                        "vext.32  q13, q9, q15, #1   @ shift left r1\n"
                         "vmla.f32 q5, q10, %e[wr1][1]  @mul weight 10, outr1\n"
                         "vmla.f32 q4, q10, %e[wr2][1]  @mul weight 20, outr0\n"
 
-                        "vbif q11, q15, %q[mask]                @ bit select, deal with right pad\n"
+                        "vext.32  q14, q10, q15, #1  @ shift left r2\n"
                         "vmla.f32 q5, q11, %e[wr2][1]  @mul weight 20, outr1\n"
 
-                        "vext.32  q6, q8, q15, #1     @ shift left r0\n"
                         "vmla.f32 q4, q6, %f[wr0][0]  @mul weight 01, outr0\n"
 
-                        "vext.32  q6, q9, q15, #1   @ shift left r1\n"
-                        "vmla.f32 q5, q6, %f[wr0][0]  @mul weight 01, outr1\n"
-                        "vmla.f32 q4, q6, %f[wr1][0]  @mul weight 11, outr0\n"
-
-                        "vext.32  q6, q10, q15, #1  @ shift left r2\n"
-                        "vmla.f32 q5, q6,  %f[wr1][0] @mul weight 11, outr1\n"
-                        "vmla.f32 q4, q6,  %f[wr2][0] @mul weight 21, outr0\n"
-
                         "vext.32  q6, q11, q15, #1  @ shift left r3\n"
+                        "vmla.f32 q5, q13, %f[wr0][0]  @mul weight 01, outr1\n"
+                        "vmla.f32 q4, q13, %f[wr1][0]  @mul weight 11, outr0\n"
+
+                        "vext.32  q13, q15, q8, #3              @ shift right r0\n"
+                        "vmla.f32 q5, q14,  %f[wr1][0] @mul weight 11, outr1\n"
+                        "vmla.f32 q4, q14,  %f[wr2][0] @mul weight 21, outr0\n"
+
+                        "vext.32  q14, q15, q9, #3              @ shift right r1\n"
                         "vmla.f32 q5, q6,  %f[wr2][0] @mul weight 21, outr1\n"
 
-                        "vext.32  q6, q15, q8, #3              @ shift right r0\n"
-                        "vmla.f32 q4, q6, %e[wr0][0]  @mul weight 02, outr0\n"
-
-                        "vext.32  q6, q15, q9, #3              @ shift right r1\n"
-                        "vmla.f32 q5, q6, %e[wr0][0]  @mul weight 02, outr1\n"
-                        "vmla.f32 q4, q6, %e[wr1][0]  @mul weight 12, outr0\n"
-
                         "vext.32  q6, q15, q10, #3              @ shift right r2\n"
+                        "vmla.f32 q4, q13, %e[wr0][0]  @mul weight 02, outr0\n"
+
+                        "vext.32  q13, q15, q11, #3              @ shift right r3\n"
+                        "vmla.f32 q5, q14, %e[wr0][0]  @mul weight 02, outr1\n"
+                        "vmla.f32 q4, q14, %e[wr1][0]  @mul weight 12, outr0\n"
+                        
+                        "pld [%[dout_ptr1]]               @ preload data\n"
                         "vmla.f32 q5, q6,  %e[wr1][0] @mul weight 12, outr1\n"
                         "vmla.f32 q4, q6,  %e[wr2][0] @mul weight 22, outr0\n"
-
-                        "vext.32  q6, q15, q11, #3              @ shift right r3\n"
-                        "vmla.f32 q5, q6,  %e[wr2][0] @mul weight 22, outr1\n"
+                        
+                        "pld [%[dout_ptr2]]               @ preload data\n"
+                        "vmla.f32 q5, q13,  %e[wr2][0] @mul weight 22, outr1\n"
 
                         "vld1.32  {d20-d21}, [%[dout_ptr1]]     @ load dout r0\n"
                         "vld1.32  {d22-d23}, [%[dout_ptr2]]     @ load dout r1\n"
@@ -7170,11 +7112,16 @@ void conv_depthwise_3x3s1p1_bias_s_relu(float* dout, const float* din, \
                         "vadd.f32 q8, q4, %q[bias] @ add bias \n"
                         "vadd.f32 q9, q5, %q[bias] @ add bias \n"
 
+                        "sub %[din0_ptr], %[din0_ptr],   %[pad_right] @ sub \n"
                         "vmax.f32 q8, q15             @ relu \n"
                         "vmax.f32 q9, q15             @ relu \n"
 
                         "vbif q8, q10, %q[mask]                 @ bit select\n"
                         "vbif q9, q11, %q[mask]                 @ bit select\n"
+
+                        "sub %[din1_ptr], %[din1_ptr],   %[pad_right] @ sub \n"
+                        "sub %[din2_ptr], %[din2_ptr],   %[pad_right] @ sub \n"
+                        "sub %[din3_ptr], %[din3_ptr],   %[pad_right] @ sub \n"
 
                         "vst1.32  {d16-d17}, [%[dout_ptr1]]!    @ store result, add pointer\n"
                         "vst1.32  {d18-d19}, [%[dout_ptr2]]!    @ store result, add pointer\n"
@@ -7182,10 +7129,6 @@ void conv_depthwise_3x3s1p1_bias_s_relu(float* dout, const float* din, \
                         "sub %[dout_ptr1], %[dout_ptr1], %[pad_right] @ sub \n"
                         "sub %[dout_ptr2], %[dout_ptr2], %[pad_right] @ sub \n"
 
-                        "sub %[din0_ptr], %[din0_ptr],   %[pad_right] @ sub \n"
-                        "sub %[din1_ptr], %[din1_ptr],   %[pad_right] @ sub \n"
-                        "sub %[din2_ptr], %[din2_ptr],   %[pad_right] @ sub \n"
-                        "sub %[din3_ptr], %[din3_ptr],   %[pad_right] @ sub \n"
 
                 :[dout_ptr1] "+r"(doutr0), [dout_ptr2] "+r"(doutr1), \
                             [din0_ptr] "+r"(din0_ptr), [din1_ptr] "+r"(din1_ptr), \
@@ -7196,7 +7139,6 @@ void conv_depthwise_3x3s1p1_bias_s_relu(float* dout, const float* din, \
                 :"q4", "q5", "q6", "q8", "q9", \
                         "q10", "q11", "q12", "q13", "q14", "q15"
                 );
-#endif //__aarch64__
 
                 doutr0 += w_out;
                 doutr1 = doutr0 + w_out;
@@ -7215,9 +7157,6 @@ void conv_depthwise_3x3s1p1_bias_s_relu(float* dout, const float* din, \
                 } else {
                     din2_ptr = dr2;
                 }
-#ifdef __aarch64__
-                // todo
-#else
                 asm volatile(
                 // process left pad
                 "pld [%[din0_ptr]]                        @ preload data\n"
@@ -7231,39 +7170,43 @@ void conv_depthwise_3x3s1p1_bias_s_relu(float* dout, const float* din, \
                         "vld1.32  {d20-d21}, [%[din2_ptr]]      @ load din r2, q10\n"
 
                         "vbif q8, q15, %q[mask]                @ bit select, deal with right pad\n"
+                        "vbif q9, q15, %q[mask]                @ bit select, deal with right pad\n"
+                        "vbif q10, q15, %q[mask]                @ bit select, deal with right pad\n"
+
                         "vmul.f32 q4, q8, %e[wr0][1]            @ mul weight 00, outr0\n"
 
-                        "vbif q9, q15, %q[mask]                @ bit select, deal with right pad\n"
+                        "vext.32  q6, q8, q15, #1               @ shift left r0\n"
                         "vmla.f32 q4, q9, %e[wr1][1]           @ mul weight 10, outr0\n"
                         "vmul.f32 q5, q9, %e[wr0][1]           @ mul weight 00, outr1\n"
 
-                        "vbif q10, q15, %q[mask]                @ bit select, deal with right pad\n"
+                        "vext.32  q13, q9, q15, #1               @ shift left r1\n"
                         "vmla.f32 q4, q10, %e[wr2][1]           @ mul weight 20, outr0\n"
                         "vmla.f32 q5, q10, %e[wr1][1]           @ mul weight 10, outr1\n"
 
-                        "vext.32  q6, q8, q15, #1               @ shift left r0\n"
+                        "vext.32  q14, q10, q15, #1              @ shift left r2\n"
                         "vmla.f32 q4, q6, %f[wr0][0]            @ mul weight 01, outr0\n"
 
-                        "vext.32  q6, q9, q15, #1               @ shift left r1\n"
-                        "vmla.f32 q5, q6, %f[wr0][0]            @ mul weight 01, outr1\n"
-                        "vmla.f32 q4, q6, %f[wr1][0]            @ mul weight 11, outr0\n"
-
-                        "vext.32  q6, q10, q15, #1              @ shift left r2\n"
-                        "vmla.f32 q5, q6,  %f[wr1][0]           @ mul weight 11, outr1\n"
-                        "vmla.f32 q4, q6,  %f[wr2][0]           @ mul weight 21, outr0\n"
-
                         "vext.32  q6, q15, q8, #3               @ shift right r0\n"
+                        "vmla.f32 q5, q13, %f[wr0][0]            @ mul weight 01, outr1\n"
+                        "vmla.f32 q4, q13, %f[wr1][0]            @ mul weight 11, outr0\n"
+
+                        "vext.32  q13, q15, q9, #3               @ shift right r1\n"
+                        "vmla.f32 q5, q14,  %f[wr1][0]           @ mul weight 11, outr1\n"
+                        "vmla.f32 q4, q14,  %f[wr2][0]           @ mul weight 21, outr0\n"
+
+                        "vext.32  q14, q15, q10, #3              @ shift right r2\n"
                         "vmla.f32 q4, q6, %e[wr0][0]            @ mul weight 02, outr0\n"
-
-                        "vext.32  q6, q15, q9, #3               @ shift right r1\n"
-                        "vmla.f32 q4, q6, %e[wr1][0]            @ mul weight 12, outr0\n"
-                        "vmla.f32 q5, q6, %e[wr0][0]            @ mul weight 02, outr1\n"
-
-                        "vext.32  q6, q15, q10, #3              @ shift right r2\n"
-                        "vmla.f32 q4, q6,  %e[wr2][0]           @ mul weight 22, outr0\n"
-                        "vmla.f32 q5, q6,  %e[wr1][0]           @ mul weight 12, outr1\n"
+                        
+                        "pld [%[dout_ptr1]]                        @ preload data\n"
+                        "vmla.f32 q4, q13, %e[wr1][0]            @ mul weight 12, outr0\n"
+                        "vmla.f32 q5, q13, %e[wr0][0]            @ mul weight 02, outr1\n"
+                        
+                        "pld [%[dout_ptr2]]                        @ preload data\n"
+                        "vmla.f32 q4, q14,  %e[wr2][0]           @ mul weight 22, outr0\n"
+                        "vmla.f32 q5, q14,  %e[wr1][0]           @ mul weight 12, outr1\n"
 
                         "vld1.32  {d20-d21}, [%[dout_ptr1]]     @ load dout r0\n"
+                        "vld1.32  {d22-d23}, [%[dout_ptr2]]     @ load dout r1\n"
 
                         "vadd.f32 q8, q4, %q[bias]              @ add bias \n"
                         "vadd.f32 q9, q5, %q[bias]              @ add bias \n"
@@ -7272,12 +7215,11 @@ void conv_depthwise_3x3s1p1_bias_s_relu(float* dout, const float* din, \
                         "vmax.f32 q9, q15                       @ relu \n"
 
                         "vbif q8, q10, %q[mask]                 @ bit select\n"
+                        "vbif q9, q11, %q[mask]                 @ bit select\n"
 
                         "vst1.32  {d16-d17},   [%[dout_ptr1]]!  @ store result, add pointer\n"
                         "cmp %[bot_pad],  #2                    @ check if bottom pad is 2\n"
                         "beq    1f                              @ jump to next block\n"
-                        "vld1.32  {d22-d23}, [%[dout_ptr2]]     @ load dout r1\n"
-                        "vbif q9, q11, %q[mask]                 @ bit select\n"
                         "vst1.32  {d18-d19}, [%[dout_ptr2]]!    @ store result, add pointer\n"
                         "1:                                     @\n"
 
@@ -7291,7 +7233,6 @@ void conv_depthwise_3x3s1p1_bias_s_relu(float* dout, const float* din, \
                 :"q4", "q5", "q6", "q8", "q9", \
                         "q10", "q11", "q12", "q13", "q14", "q15"
                 );
-#endif //__aarch64__
             }
             //! end of processing bottom pad
         } // end of processing channels
@@ -7364,7 +7305,6 @@ void conv_depthwise_3x3s2p1_bias_s_relu(float* dout, const float* din, \
             if(h_in == 1){
                 din1_ptr = ptr_zero;
             }
-#ifdef __aarch64__
             float32x4_t vzero = vdupq_n_f32(0.f);
             // todo
             float32x4_t din0_1234 = vld1q_f32(din0_ptr);
@@ -7418,9 +7358,6 @@ void conv_depthwise_3x3s2p1_bias_s_relu(float* dout, const float* din, \
             }
 
             vst1_f32(doutr0_ptr, sum);
-#else
-            
-#endif //__aarch64__
 
             dr0 = dr1;
             dr1 = dr2;
@@ -7429,7 +7366,6 @@ void conv_depthwise_3x3s2p1_bias_s_relu(float* dout, const float* din, \
 
             //! process mid rows
             for (int j = tile_h - 1; j > 0; j--) {
-#ifdef __aarch64__
             // todo
                 din0_ptr = dr0;
                 din1_ptr = dr1;
@@ -7504,9 +7440,6 @@ void conv_depthwise_3x3s2p1_bias_s_relu(float* dout, const float* din, \
                 }
 
                 vst1_f32(doutr0_ptr, sum);
-#else
-
-#endif //__aarch64__
 
                 dr0 = dr2;
                 dr1 = dr0 + w_in;
@@ -7519,7 +7452,7 @@ void conv_depthwise_3x3s2p1_bias_s_relu(float* dout, const float* din, \
                 din0_ptr = dr0;
                 din1_ptr = dr1;
                 doutr0_ptr = doutr0;
-#ifdef __aarch64__
+
                 // todo
                 din0_1234 = vld1q_f32(din0_ptr);
                 din1_1234 = vld1q_f32(din1_ptr);
@@ -7573,9 +7506,7 @@ void conv_depthwise_3x3s2p1_bias_s_relu(float* dout, const float* din, \
                 }
 
                 vst1_f32(doutr0_ptr, sum);
-#else
-                
-#endif //__aarch64__
+
             } // end of process bottom pad
         }
     }
@@ -7642,10 +7573,7 @@ void conv_depthwise_3x3s2p1_bias_s_relu(float* dout, const float* din, \
             if(h_in == 1){
                 din1_ptr = ptr_zero;
             }
-#ifdef __aarch64__
-            // todo
 
-#else
             asm volatile(
             // process  pad
             "pld [%[din0_ptr], #128]                @ preload data\n"
@@ -7658,23 +7586,24 @@ void conv_depthwise_3x3s2p1_bias_s_relu(float* dout, const float* din, \
                     "vbif q10, q15, %q[mask_din]            @ bit select, deal with right pad\n"
                     "vbif q12, q15, %q[mask_din]            @ bit select, deal with right pad\n"
 
-
-                    "vmul.f32 q8, q10, %e[wr1][1]           @ mul weight 11, 1234\n"
                     "vext.f32 q6, q15, q10, #3              @ shift right 1, 0123\n"
                     "vext.f32 q7, q15, q12, #3              @ shift right 1, 0123\n"
 
+                    "vmul.f32 q8, q10, %e[wr1][1]           @ mul weight 11, 1234\n"
                     "vmul.f32 q9, q12, %e[wr2][1]           @ mul weight 21, 1234\n"
+
                     "vext.f32 q10, q10, q15, #1              @ shift left 1, 2340\n"
                     "vext.f32 q12, q12, q15, #1              @ shift left 1, 2340\n"
 
                     "vmla.f32 q8, q6, %e[wr1][0]           @ mul weight 10, 0123\n"
                     "vmla.f32 q9, q7, %e[wr2][0]           @ mul weight 20, 0123\n"
 
+                    "pld [%[dout_ptr0]]                @ preload data\n"
                     "vmla.f32 q8, q10, %f[wr1][0]           @ mul weight 12, 2340\n"
                     "vmla.f32 q9, q12, %f[wr2][0]           @ mul weight 22, 2340\n"
 
-                    "vadd.f32 q6, q8, q9                    @ add \n"
                     "vld1.32  {d20}, [%[dout_ptr0]]         @ load dout\n"
+                    "vadd.f32 q6, q8, q9                    @ add \n"
 
                     "vmov.f32  s25, s26                     @ mov \n"
                     "vadd.f32  d12, d12, %e[bias]           @ add bias \n"
@@ -7696,8 +7625,6 @@ void conv_depthwise_3x3s2p1_bias_s_relu(float* dout, const float* din, \
             :"q6", "q7", "q8", "q10", "q12", "q15"
             );
 
-#endif //__aarch64__
-
             dr0 = dr1;
             dr1 = dr2;
             dr2 = dr1 + w_in;
@@ -7705,9 +7632,7 @@ void conv_depthwise_3x3s2p1_bias_s_relu(float* dout, const float* din, \
 
             //! process mid rows
             for (int j = tile_h - 1; j > 0; j--) {
-#ifdef __aarch64__
-                // todo
-#else
+
                 din0_ptr = dr0;
                 din1_ptr = dr1;
                 din2_ptr = dr2;
@@ -7723,29 +7648,29 @@ void conv_depthwise_3x3s2p1_bias_s_relu(float* dout, const float* din, \
                         "vld1.32  {d20-d21}, [%[din0_ptr]]!     @ load din r0 1234\n"
                         "vld1.32  {d24-d25}, [%[din1_ptr]]!     @ load din r1 1234\n"
                         "vld1.32  {d28-d29}, [%[din2_ptr]]!     @ load din r1 1234\n"
+
                         "vbif q10, q15, %q[mask_din]            @ bit select, deal with right pad\n"
                         "vbif q12, q15, %q[mask_din]            @ bit select, deal with right pad\n"
                         "vbif q14, q15, %q[mask_din]            @ bit select, deal with right pad\n"
 
 
-                        "vmul.f32 q9, q10, %e[wr0][1]           @ mul weight 01, 1234\n"
                         "vext.f32 q6, q15, q10, #3              @ shift right 1, 0123\n"
-
-                        "vmul.f32 q11, q12, %e[wr1][1]           @ mul weight 11, 1234\n"
                         "vext.f32 q7, q15, q12, #3              @ shift right 1, 0123\n"
-
-                        "vmul.f32 q13, q14, %e[wr2][1]           @ mul weight 21, 1234\n"
                         "vext.f32 q8, q15, q14, #3              @ shift right 1, 0123\n"
 
-                        "vmla.f32 q9, q6, %e[wr0][0]           @ mul weight 00, 0123\n"
+                        "vmul.f32 q9, q10, %e[wr0][1]           @ mul weight 01, 1234\n"
+                        "vmul.f32 q11, q12, %e[wr1][1]           @ mul weight 11, 1234\n"
+                        "vmul.f32 q13, q14, %e[wr2][1]           @ mul weight 21, 1234\n"
+
                         "vext.f32 q10, q10, q15, #1              @ shift left 1, 2340\n"
-
-                        "vmla.f32 q11, q7, %e[wr1][0]           @ mul weight 10, 0123\n"
                         "vext.f32 q12, q12, q15, #1              @ shift left 1, 2340\n"
-
-                        "vmla.f32 q13, q8, %e[wr2][0]           @ mul weight 20, 0123\n"
                         "vext.f32 q14, q14, q15, #1              @ shift left 1, 2340\n"
 
+                        "vmla.f32 q9, q6, %e[wr0][0]           @ mul weight 00, 0123\n"
+                        "vmla.f32 q11, q7, %e[wr1][0]           @ mul weight 10, 0123\n"
+                        "vmla.f32 q13, q8, %e[wr2][0]           @ mul weight 20, 0123\n"
+
+                        "pld [%[dout_ptr0]]                     @ preload data\n"
                         "vmla.f32 q9, q10, %f[wr0][0]           @ mul weight 12, 2340\n"
                         "vmla.f32 q11, q12, %f[wr1][0]           @ mul weight 22, 2340\n"
                         "vmla.f32 q13, q14, %f[wr2][0]           @ mul weight 22, 2340\n"
@@ -7774,8 +7699,6 @@ void conv_depthwise_3x3s2p1_bias_s_relu(float* dout, const float* din, \
                 :"q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
                 );
 
-#endif //__aarch64__
-
                 dr0 = dr2;
                 dr1 = dr0 + w_in;
                 dr2 = dr1 + w_in;
@@ -7786,9 +7709,7 @@ void conv_depthwise_3x3s2p1_bias_s_relu(float* dout, const float* din, \
             if (size_pad_bottom) {
                 din0_ptr = dr0;
                 din1_ptr = dr1;
-#ifdef __aarch64__
-                // todo
-#else
+
                 asm volatile(
                 // process  pad
                 "pld [%[din0_ptr], #128]                @ preload data\n"
@@ -7801,23 +7722,24 @@ void conv_depthwise_3x3s2p1_bias_s_relu(float* dout, const float* din, \
                         "vbif q10, q15, %q[mask_din]            @ bit select, deal with right pad\n"
                         "vbif q12, q15, %q[mask_din]            @ bit select, deal with right pad\n"
 
-
-                        "vmul.f32 q8, q10, %e[wr1][1]           @ mul weight 11, 1234\n"
                         "vext.f32 q6, q15, q10, #3              @ shift right 1, 0123\n"
                         "vext.f32 q7, q15, q12, #3              @ shift right 1, 0123\n"
 
+                        "vmul.f32 q8, q10, %e[wr1][1]           @ mul weight 11, 1234\n"
                         "vmul.f32 q9, q12, %e[wr2][1]           @ mul weight 21, 1234\n"
+
                         "vext.f32 q10, q10, q15, #1              @ shift left 1, 2340\n"
                         "vext.f32 q12, q12, q15, #1              @ shift left 1, 2340\n"
 
                         "vmla.f32 q8, q6, %e[wr1][0]           @ mul weight 10, 0123\n"
                         "vmla.f32 q9, q7, %e[wr2][0]           @ mul weight 20, 0123\n"
 
+                        "pld [%[dout_ptr0], #128]                @ preload data\n"
                         "vmla.f32 q8, q10, %f[wr1][0]           @ mul weight 12, 2340\n"
                         "vmla.f32 q9, q12, %f[wr2][0]           @ mul weight 22, 2340\n"
 
-                        "vadd.f32 q6, q8, q9                    @ add \n"
                         "vld1.32  {d20}, [%[dout_ptr0]]         @ load dout\n"
+                        "vadd.f32 q6, q8, q9                    @ add \n"
 
                         "vmov.f32  s25, s26                     @ mov \n"
                         "vadd.f32  d12, d12, %e[bias]           @ add bias \n"
@@ -7838,7 +7760,7 @@ void conv_depthwise_3x3s2p1_bias_s_relu(float* dout, const float* din, \
                     //[pad_right] "r" (size_right_remain)
                 :"q6", "q7", "q8", "q10", "q12", "q15"
                 );
-#endif //__aarch64__
+
             } // end of process bottom pad
         }
     }

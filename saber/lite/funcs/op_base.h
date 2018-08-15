@@ -33,7 +33,8 @@ public:
     virtual ~OpBase(){}
     OpBase(const ParamBase* param) {}
     virtual SaberStatus load_param(const ParamBase* param) = 0;
-    virtual SaberStatus load_param(FILE* fp, const float* weights) = 0;
+    //virtual SaberStatus load_param(FILE* fp, const float* weights) = 0;
+    virtual SaberStatus load_param(std::istream& stream, const float* weights) = 0;
     virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
                                  std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) = 0;
 

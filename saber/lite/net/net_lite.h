@@ -56,25 +56,33 @@ public:
     SaberStatus set_device_cache(size_t l1_cache, size_t l2_cache);
 
     /**
-     * \brief load model weights from modelpath
-     * @param lite_model:     model path
+     * \brief load model from modelpath
+     * @param lite_model_path:  merged lite model path
      * @return return SaberSuccess if success
      */
-    SaberStatus load_model(const char* lite_model);
+    SaberStatus load_model(const char* lite_model_path);
 
     /**
-     * \brief load model weights from memory
-     * @param opt_file:     memory
+     * \brief load model info and  weights separately from modelpath
+     * @param info_path: lite model info path
+     * @param weights_path: lite model weights path
      * @return return SaberSuccess if success
      */
-    SaberStatus load_model(const void* memory);
+    SaberStatus load_model(const char* info_path, const char* weights_path);
 
     /**
-     * \brief load model weights from memory
-     * @param modelpath     input weights file
-     * @return              return SaberSuccess if successed
+     * \brief load merged model weights from memory
+     * @param merged_memory:  model from memory
+     * @return return SaberSuccess if success
      */
-    //SaberStatus load_model_from_memory(const void* memory);
+    SaberStatus load_model(const void* merged_memory, size_t mem_size);
+
+    /**
+     * \brief load model info and  weights separately from memory
+     * @param merged_memory:  model from memory
+     * @return return SaberSuccess if success
+     */
+    SaberStatus load_model(const void* info_memory, size_t info_size, const void* weights_memory, size_t weights_size);
 
     /**
      * \brief unload network structure and weight data
@@ -147,11 +155,13 @@ private:
     SaberStatus init();
 
     /**
-     * \brief load model from file
+     * \brief load model info from file
      * @param memory
      * @return return SaberSuccess if successed
      */
-    SaberStatus load_model(FILE* fp);
+    SaberStatus load_model_info(std::istream& stream);
+    SaberStatus load_model_weights(std::istream& stream, size_t size);
+    //SaberStatus load_model(FILE* fp);
 };
 
 } //namespace lite

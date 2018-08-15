@@ -1,6 +1,6 @@
 #include "saber/lite/net/net_lite.h"
-#include "saber/lite/net/saber_factory_lite.h"
 #include "saber/lite/core/tensor_op_lite.h"
+#include <fstream>
 namespace anakin{
 
 namespace saber{
@@ -46,22 +46,276 @@ SaberStatus Net::set_device_cache(size_t l1_cache, size_t l2_cache) {
     return SaberSuccess;
 }
 
-
-SaberStatus Net::load_model(const char *lite_model) {
-    FILE* fp = fopen(lite_model, "rb");
-    if (!fp) {
-        printf("open %s failed\n", lite_model);
-        return SaberInvalidValue;
+SaberStatus Net::load_model_weights(std::istream &stream, size_t size) {
+    if (_weights) {
+        fast_free(_weights);
+        _weights = nullptr;
     }
-    return load_model(fp);
+    _weights = static_cast<float*>(fast_malloc(size));
+    stream.read((char*)_weights, size);
+    return SaberSuccess;
 }
 
-SaberStatus Net::load_model(const void *memory) {
-    if (!memory) {
+SaberStatus Net::load_model_info(std::istream &stream) {
+    std::string strtmp;
+    int tensor_size;
+    stream >> strtmp >> tensor_size;
+    //printf("tensor size %d\n", tensor_size);
+
+    for (int i = 0; i < tensor_size; ++i) {
+        std::vector<int> val_sh;
+        std::vector<int> real_sh;
+        int is_shared = 0;
+        int val_size;
+        int real_size;
+        std::string tensor_name, shared_name;
+
+        stream >> tensor_name >> val_size;
+        val_sh.resize(val_size);
+        for (int j = 0; j < val_size; ++j) {
+            stream >> val_sh[j];
+        }
+        stream >> real_size;
+        real_sh.resize(real_size);
+        for (int j = 0; j < real_size; ++j) {
+            stream >> real_sh[j];
+        }
+        stream >> is_shared >> shared_name;
+
+        if(_tensors.find(tensor_name) != _tensors.end()) {
+            printf("tensor is already registered: %s\n", tensor_name.c_str());
+            return SaberInvalidValue;
+        }
+        Tensor<CPU, AK_FLOAT>* tensor = new Tensor<CPU, AK_FLOAT>;
+        Shape vshape = val_sh;
+        Shape rshape = real_sh;
+        if (is_shared > 0) {
+            tensor->set_shape(vshape);
+            auto it = _tensors.find(shared_name);
+            if (it == _tensors.end()) {
+                printf("could not find tensor: %s\n", shared_name.c_str());
+                return SaberInvalidValue;
+            }
+            tensor->share_from(*it->second);
+        } else {
+            tensor->re_alloc(rshape);
+            tensor->set_shape(vshape);
+        }
+        _tensors[tensor_name] = tensor;
+//        printf("%s vshape: %d,%d,%d,%d, rshape: %d,%d,%d,%d share:%s\n",
+//               tensor_name.c_str(),
+//               val_sh[0],
+//               val_sh[1],
+//               val_sh[2],
+//               val_sh[3],
+//               real_sh[0],
+//               real_sh[1],
+//               real_sh[2],
+//               real_sh[3],
+//               shared_name.c_str());
+    }
+
+    //! get inputs and outputs name
+    int in_num = 0;
+    int out_num = 0;
+    stream >> strtmp >> in_num;
+    for (int i = 0; i < in_num; ++i) {
+        std::string in_name;
+        stream >> in_name;
+        _ins.push_back(in_name);
+    }
+    stream >> strtmp >> out_num;
+    for (int i = 0; i < out_num; ++i) {
+        std::string out_name;
+        stream >> out_name;
+        _outs.push_back(out_name);
+    }
+//    printf("inputs: %d\n", _ins.size());
+//    for (int i = 0; i < _ins.size(); ++i) {
+//        printf("%s\n", _ins[i].c_str());
+//    }
+//    printf("outputs: %d\n", _outs.size());
+//    for (int i = 0; i < _outs.size(); ++i) {
+//        printf("%s\n", _outs[i].c_str());
+//    }
+
+    //! get ops and params
+    _ops.clear();
+    int ops_num = 0;
+    stream >> strtmp >> ops_num;
+    //printf("ops number: %d\n", ops_num);
+
+    _tensor_ins.resize(ops_num);
+    _tensor_outs.resize(ops_num);
+    _ops.resize(ops_num);
+
+    for (int i = 0; i < ops_num; ++i) {
+        std::string op_type, op_name;
+        int in_num = 0;
+        int out_num = 0;
+        stream >> op_type >> op_name >> in_num >> out_num;
+        //printf("op type: %s, op_name: %s, ins: %d, outs: %d\n", op_type.c_str(), op_name.c_str(), in_num, out_num);
+        std::vector<Tensor<CPU, AK_FLOAT>*> tensor_ins;
+        for (int j = 0; j < in_num; ++j) {
+            std::string in_tensor_name;
+            stream >> in_tensor_name;
+            auto it = _tensors.find(in_tensor_name);
+            if (it == _tensors.end()) {
+                printf("tensor name: %s not exits\n", in_tensor_name.c_str());
+                return SaberInvalidValue;
+            }
+            //printf("find ins: %s\n", in_tensor_name.c_str());
+            tensor_ins.push_back(it->second);
+        }
+        _tensor_ins[i] = tensor_ins;
+        std::vector<Tensor<CPU, AK_FLOAT>*> tensor_outs;
+        for (int j = 0; j < out_num; ++j) {
+            std::string out_tensor_name;
+            stream >> out_tensor_name;
+            auto it = _tensors.find(out_tensor_name);
+            if (it == _tensors.end()) {
+                printf("tensor name: %s not exits\n", out_tensor_name.c_str());
+                return SaberInvalidValue;
+            }
+            //printf("find outs: %s\n", out_tensor_name.c_str());
+            tensor_outs.push_back(it->second);
+        }
+        _tensor_outs[i] = tensor_outs;
+
+        //! create op and load param
+        OpBase* op = OpRegistry::create_op(op_type);
+        op->set_op_name(op_name.c_str());
+        op->load_param(stream, _weights);
+        _ops[i] = op;
+    }
+
+    return SaberSuccess;
+}
+
+SaberStatus Net::load_model(const char *info_path, const char *weights_path) {
+    std::fstream fp_w(weights_path, std::ios::in | std::ios::binary);
+    // get length of weights:
+    fp_w.seekg (0, std::ios::end);
+    long long length = fp_w.tellg();
+    fp_w.seekg (0, std::ios::beg);
+    SaberStatus flag = load_model_weights(fp_w, length);
+    if (!flag) {
+        printf("load weights faild: %s\n", weights_path);
         return SaberInvalidValue;
     }
-    FILE* fp = (FILE*)memory;
-    return load_model(fp);
+    fp_w.close();
+
+    std::fstream fp_info(info_path, std::ios::in | std::ios::binary);
+
+    flag = load_model_info(fp_info);
+    if (!flag) {
+        printf("load info faild: %s\n", info_path);
+        return SaberInvalidValue;
+    }
+    fp_info.close();
+    //! get default input shape
+    _last_input_shapes.resize(_ins.size());
+    for (int i = 0; i < _ins.size(); ++i) {
+        _last_input_shapes[i] = _tensors[_ins[i]]->valid_shape();
+    }
+    return init();
+}
+
+SaberStatus Net::load_model(const char *lite_model_path) {
+
+    std::fstream fp_merge(lite_model_path, std::ios::in | std::ios::binary);
+    std::string strtmp;
+    size_t weights_size;
+    fp_merge >> strtmp >> weights_size;
+    //printf("weights: %s, size : %lu\n", strtmp.c_str(), weights_size);
+    //! get rid of \n
+    fp_merge.seekg(1, std::ios::cur);
+
+    //! load weights
+    SaberStatus flag = load_model_weights(fp_merge, weights_size);
+    if (!flag) {
+        printf("load weights faild: %s\n", lite_model_path);
+        return SaberInvalidValue;
+    }
+    //! load model
+    flag = load_model_info(fp_merge);
+    if (!flag) {
+        printf("load info faild: %s\n", lite_model_path);
+        return SaberInvalidValue;
+    }
+    fp_merge.close();
+    //! get default input shape
+    _last_input_shapes.resize(_ins.size());
+    for (int i = 0; i < _ins.size(); ++i) {
+        _last_input_shapes[i] = _tensors[_ins[i]]->valid_shape();
+    }
+    return init();
+}
+
+SaberStatus Net::load_model(const void *info_memory, size_t info_size,
+                            const void *weights_memory, size_t weights_size) {
+    std::string str_w(static_cast<const char*>(weights_memory), weights_size);
+    std::istringstream w_stream(str_w);
+    SaberStatus flag = load_model_weights(w_stream, weights_size);
+    if (!flag) {
+        printf("load model weights faild\n");
+        return SaberInvalidValue;
+    }
+
+    std::string str_info(static_cast<const char*>(info_memory), info_size);
+    std::istringstream info_stream(str_info);
+    flag = load_model_info(info_stream);
+    if (!flag) {
+        printf("load model info faild\n");
+        return SaberInvalidValue;
+    }
+    //! get default input shape
+    _last_input_shapes.resize(_ins.size());
+    for (int i = 0; i < _ins.size(); ++i) {
+        _last_input_shapes[i] = _tensors[_ins[i]]->valid_shape();
+    }
+    return init();
+}
+
+SaberStatus Net::load_model(const void *merged_memory, size_t mem_size) {
+    std::string casted_memory(static_cast<const char*>(merged_memory), mem_size);
+    std::istringstream stream(casted_memory);
+    std::string strtmp;
+    size_t weights_size;
+    stream >> strtmp >> weights_size;
+    //printf("weights: %s, size : %lu\n", strtmp.c_str(), weights_size);
+    //! get rid of \n
+    stream.seekg(1, std::ios::cur);
+
+    //! load weights
+    SaberStatus flag = load_model_weights(stream, weights_size);
+    if (!flag) {
+        printf("load merged model weights faild\n");
+        return SaberInvalidValue;
+    }
+    //! load model
+    flag = load_model_info(stream);
+    if (!flag) {
+        printf("load merged model info faild\n");
+        return SaberInvalidValue;
+    }
+
+    //! get default input shape
+    _last_input_shapes.resize(_ins.size());
+    for (int i = 0; i < _ins.size(); ++i) {
+        _last_input_shapes[i] = _tensors[_ins[i]]->valid_shape();
+    }
+    return init();
+}
+
+#if 0
+SaberStatus Net::load_model(const char* model_path) {
+//    FILE* fp = fopen(lite_model_path, "rb");
+//    if (!fp) {
+//        printf("open %s failed\n", lite_model_path);
+//        return SaberInvalidValue;
+//    }
+//    return load_model(fp);
 }
 
 //template <typename dtype>
@@ -220,10 +474,7 @@ SaberStatus Net::load_model(FILE* fp) {
     }
     return init();
 }
-
-//SaberStatus Net::load_model_from_memory(const void *memory) {
-//    return SaberUnImplError;
-//}
+#endif
 
 SaberStatus Net::prediction() {
     if (_weights == nullptr) {

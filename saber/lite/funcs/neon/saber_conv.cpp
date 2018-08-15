@@ -39,6 +39,32 @@ SaberStatus SaberConv2D::load_param(const ParamBase *param) {
     return SaberSuccess;
 }
 
+SaberStatus SaberConv2D::load_param(std::istream &stream, const float *weights) {
+    int weights_size;
+    int num_out;
+    int group;
+    int kw;
+    int kh;
+    int stride_w;
+    int stride_h;
+    int pad_w;
+    int pad_h;
+    int dila_w;
+    int dila_h;
+    int flag_bias;
+    int w_offset;
+    int b_offset;
+
+    stream >> weights_size >> num_out >> group >> kw >> kh >> stride_w >> stride_h >> \
+        pad_w >> pad_h >> dila_w >> dila_h >> flag_bias >> w_offset >> b_offset;
+    _param = new Conv2DParam(weights_size, num_out, group, kw, kh, \
+        stride_w, stride_h, pad_w, pad_h, dila_w, dila_h, flag_bias>0, \
+        weights + w_offset, weights + b_offset);
+    this->_flag_create_param = true;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+#if 0
 SaberStatus SaberConv2D::load_param(FILE *fp, const float* weights) {
     int weights_size;
     int num_out;
@@ -54,7 +80,7 @@ SaberStatus SaberConv2D::load_param(FILE *fp, const float* weights) {
     int flag_bias;
     int w_offset;
     int b_offset;
-    fscanf(fp, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
+    fscanf(fp, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
            &weights_size,
            &num_out,
            &group,
@@ -76,7 +102,7 @@ SaberStatus SaberConv2D::load_param(FILE *fp, const float* weights) {
     this->_flag_param = true;
     return SaberSuccess;
 }
-
+#endif
 SaberStatus SaberConv2D::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                               std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
 
@@ -148,18 +174,6 @@ SaberStatus SaberConv2D::init(\
     LCHECK_EQ(chin % _param->_group, 0, "input channel or group size error");
     LCHECK_EQ(chout % _param->_group, 0, "output channel or group size error");
 
-//    if (_param->_dila_h == 1 && _param->_dila_w == 1 \
-//        && _param->_stride_h == _param->_stride_w && _param->_group == 1 \
-//        && _param->_stride_w == 1 && _param->_kw == _param->_kh && _param->_kw == 7 \
-//        && _param->_pad_w == _param->_pad_h && _param->_pad_w == 3) {
-//        //! 7x7 conv
-//        _impl = conv_7x7s1_direct;
-//        printf("USE 7x7s1 direct, num=%d, channel=%d, height=%d, width=%d, group=%d, kernel=%d, stride=%d, dila=%d, pad=%d\n", \
-//            num, chin, hin, win, _param->_group, _param->_kw, _param->_stride_w, _param->_dila_w, _param->_pad_w);
-//        this->_flag_init = true;
-//        return SaberSuccess;
-//    }
-
     //! depthwise conv, 3x3s1 or 3x3s2, pad must = 1
     if (_param->_group == chin && chin == chout && _param->_kw == 3 && _param->_kh == 3 && \
             _param->_pad_w == 1 && _param->_pad_h == 1 && _param->_dila_w == 1 && _param->_dila_h == 1) {
@@ -172,10 +186,23 @@ SaberStatus SaberConv2D::init(\
 #endif
         return SaberSuccess;
     }
-
+#if 0 //armv8 conv3x3s2 is not support now
+    //! 3x3s2p1, direct
+    if (_param->_kw == 3 && _param->_kh == 3 && _param->_stride_h == 2 && _param->_stride_w == 2 && \
+        _param->_pad_w == 1 && _param->_pad_h == 1 && _param->_dila_w == 1 && _param->_dila_h == 1 && _param->_group == 1 && \
+        inputs[0]->width() > 7 && inputs[0]->height() > 7 && outputs[0]->channel() > 1) {
+        _impl = conv_3x3s2_direct;
+        this->_flag_init = true;
+        printf("USE 3x3s2 direct, num=%d, channel=%d, height=%d, width=%d, group=%d, kernel=%d, stride=%d, dila=%d, pad=%d\n", \
+            num, chin, hin, win, _param->_group, _param->_kw, _param->_stride_w, _param->_dila_w, _param->_pad_w);
+#ifdef ENABLE_OP_TIMER
+        _conv_type = "conv3x3s2";
+#endif
+        return SaberSuccess;
+    }
+#endif
     //! 3x3s1, when channel size or image size is large enough, use winograd
     //! otherwise use direct conv
-
     if (_param->_kw == 3 && _param->_kh == 3 && _param->_stride_h == 1 && _param->_stride_w == 1 && \
         _param->_pad_w == 1 && _param->_pad_h == 1 && _param->_dila_w == 1 && _param->_dila_h == 1 && _param->_group == 1 && \
         inputs[0]->width() > 4 && inputs[0]->height() > 4 && outputs[0]->channel() > 1) {
