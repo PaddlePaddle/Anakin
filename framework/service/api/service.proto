@@ -1,18 +1,16 @@
 syntax = "proto3";
 
-package anakin.rpc
+package anakin.rpc;
 
 option cc_generic_services = true;
 
-message Date {
-    bytes name = 1;
-    repeated int32 shape = 2;
-    repeated float data = 3;
+message Data {
+    repeated int32 shape = 1;
+    repeated float data = 2;
 };
 
 message IO {
-  bytes input_name = 1;    // input name
-  Date input_tensor = 2; // input tensor
+  Data tensor = 1; // input tensor
 };
 
 // RPC request
@@ -28,14 +26,12 @@ message DeviceStatus {
     int32 temp = 3;     // device temperature Celsius degree
     int32 mem_free = 4; // device memory free bytes
     int32 mem_used = 5; // device memory used bytes
-    // the number of device current compute running processes
-    int32 compute_run_process_num = 6;
 };
 
 // RPC service execution information
 message ExecutionInfo {
     // additional exception message of the execution
-    bytes message = 1;
+    bytes msg = 1;
     // duration of this execution in nano seconds
     int32 duration_in_nano_seconds = 2;
     // device status

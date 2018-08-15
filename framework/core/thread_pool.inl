@@ -1,7 +1,7 @@
 
 namespace anakin {
 
-void ThreadPool::launch() {
+inline void ThreadPool::launch() {
     for(size_t i = 0; i<_num_thread; ++i) {
         _workers.emplace_back(
             [i ,this]() {
@@ -29,16 +29,16 @@ void ThreadPool::launch() {
     }
 }
 
-void ThreadPool::stop() {
+inline void ThreadPool::stop() {
     std::unique_lock<std::mutex> lock(this->_mut);
     _stop = true;
 }
 
-void ThreadPool::init() {}
+inline void ThreadPool::init() {}
 
-void ThreadPool::auxiliary_funcs() {}
+inline void ThreadPool::auxiliary_funcs() {}
 
-ThreadPool::~ThreadPool() {
+inline ThreadPool::~ThreadPool() {
     stop();
     this->_cv.notify_all();
     for(auto & worker: _workers){ 
@@ -47,7 +47,7 @@ ThreadPool::~ThreadPool() {
 }
 
 template<typename functor, typename ...ParamTypes>
-typename function_traits<functor>::return_type ThreadPool::RunSync(functor function, ParamTypes ...args) 
+inline typename function_traits<functor>::return_type ThreadPool::RunSync(functor function, ParamTypes ...args) 
                     EXCLUSIVE_LOCKS_REQUIRED(_mut) { 
     auto task = std::make_shared<std::packaged_task<typename function_traits<functor>::return_type(void)> >( \
             std::bind(function, std::forward<ParamTypes>(args)...)
@@ -62,7 +62,7 @@ typename function_traits<functor>::return_type ThreadPool::RunSync(functor funct
 }
 
 template<typename functor, typename ...ParamTypes>
-std::future<typename function_traits<functor>::return_type> ThreadPool::RunAsync(functor function, ParamTypes ...args) 
+inline std::future<typename function_traits<functor>::return_type> ThreadPool::RunAsync(functor function, ParamTypes ...args) 
                     EXCLUSIVE_LOCKS_REQUIRED(_mut) { 
     auto task = std::make_shared<std::packaged_task<typename function_traits<functor>::return_type(void)> >( \
             std::bind(function, std::forward<ParamTypes>(args)...)

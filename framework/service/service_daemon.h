@@ -32,6 +32,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <functional>
+#include <vector>
 
 #include "framework/service/anakin_service.h"
 
@@ -45,11 +46,13 @@ public:
     ~ServiceDaemon() {}
 
     void operator()(std::function<int(int,int)> server_start, 
-                    vector<int> device_list, 
+                    std::vector<int> device_list, 
                     int server_port);
 
 private:
-    bool check_port_occupied();
+    bool check_port_occupied(int port);
+
+    bool check_process_exist(pid_t pid);
 
 private:
 };

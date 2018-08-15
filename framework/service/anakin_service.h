@@ -18,7 +18,7 @@
 
 #include <brpc/server.h>
 
-#include "framework/core/net/worker.h"
+#include "framework/service/monitor.h"
 #include "framework/core/net/worker.h"
 #include "framework/service/api/service.pb.h"
 
@@ -26,8 +26,8 @@ namespace anakin {
 
 namespace rpc {
 
-template<typename Ttype, DataType Dtype, Precision Ptype, ServiceRunPattern RunP>
-class AnakinService public: RPCService {
+template<typename Ttype, DataType Dtype, Precision Ptype, ServiceRunPattern RunP = ServiceRunPattern::SYNC>
+class AnakinService : public RPCService {
 public: 
     void evaluate(::google::protobuf::RpcController* controller_base, 
                   const RPCRequest* request, 
@@ -54,10 +54,17 @@ public:
         _worker_map[model_name].register_aux_function(function, std::forward<ParamTypes>(args)...);
     }
 
-public:
+    template<Info ...infos>
+    void create_monitor(int interval_time_in_sec) {
+        _monitor.create_instance<infos...>(_dev_id, interval_time_in_sec);
+    }
+
+private:
     inline void extract_request(const RPCRequest* request, 
-                                std::vector<Tensor4dPtr<typename target_host<Ttype>::type, Dtype> >);
-    inline void fill_response(RPCResponse* response, std::vector<Tensor4dPtr<Ttype, Dtype> >& outputs);
+                                std::vector<Tensor4dPtr<typename target_host<Ttype>::type, Dtype> >& inputs);
+    inline void fill_response_data(int request_id, std::string model_name, 
+                                   RPCResponse* response, std::vector<Tensor4dPtr<Ttype, Dtype> >& outputs);
+    inline void fill_response_exec_info(RPCResponse* response);
 
 private:
     inline void _evaluate(::google::protobuf::RpcController* controller_base, 
@@ -74,10 +81,13 @@ private:
             LOG(INFO) << " -- (attached=" << cntl->request_attachment() << ")"; 
         }
         std::string model_name = request->model();
+        int request_id = request->request_id();
         std::vector<Tensor4dPtr<typename target_host<Ttype>::type, Dtype> > inputs;
         extract_request(request, inputs);
-        auto ret = _worker_map[model_name].sync_prediction(inputs);
-        fill_response(response, ret.get());
+        auto ret = _worker_map[model_name]->sync_prediction(inputs);
+        auto results = ret.get();
+        fill_response_data(request_id, model_name, response, results);
+        fill_response_exec_info(response);
     }
 
     inline void _evaluate(::google::protobuf::RpcController* controller_base, 
@@ -94,6 +104,8 @@ private:
 
 private:
     std::unordered_map<std::string, std::shared_ptr<Worker<Ttype, Dtype, Ptype, OpRunType::ASYNC> > > _worker_map;
+    Monitor _monitor;
+    int _dev_id;
 };
 
 } /* namespace rpc */

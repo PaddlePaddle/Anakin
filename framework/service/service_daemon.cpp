@@ -4,7 +4,9 @@ namespace anakin {
 
 namespace rpc {
 
-void ServiceDaemon::operator()(std::function<int(int,int)> server_start, vector<int> device_list, int server_port) { 
+void ServiceDaemon::operator()(std::function<int(int,int)> server_start, 
+                               std::vector<int> device_list, 
+                               int server_port) { 
     // Our process ID and Session ID
     pid_t pid, sid;
         
@@ -21,7 +23,7 @@ void ServiceDaemon::operator()(std::function<int(int,int)> server_start, vector<
     // Change the file mode mask, so we can use the files created by daemon.
     umask(0);
             
-    // Create a new SID for the child process  
+    // Create a new SID(a new session) for the child process  
     sid = setsid();
     if (sid < 0) { 
         // Log the failure 
@@ -34,15 +36,15 @@ void ServiceDaemon::operator()(std::function<int(int,int)> server_start, vector<
     }
     
     // Close out the standard file descriptors
-    //close(STDIN_FILENO); // 0
-    //close(STDOUT_FILENO); // 1
-    //close(STDERR_FILENO); // 2
+    close(STDIN_FILENO); // 0
+    close(STDOUT_FILENO); // 1
+    close(STDERR_FILENO); // 2
     
     // Daemon-specific initialization goes here */
     pid_t *pid_news = new pid_t[device_list.size()];
     for(;;) { 
         for(auto dev_id : device_list) { 
-            if(!check_port_occupied(server_port)) { 
+            if(!check_port_occupied(server_port) || !check_process_exist(pid_news[dev_id])) { 
                 // reaped zombie process
                 if(pid_news[dev_id]) waitpid(pid_news[dev_id], NULL, 0);
 
@@ -62,7 +64,7 @@ void ServiceDaemon::operator()(std::function<int(int,int)> server_start, vector<
     exit(EXIT_SUCCESS);
 }
 
-bool ServiceDaemon::check_port_occupied() { 
+bool ServiceDaemon::check_port_occupied(int port) { 
     struct sockaddr_in client;         
     int sk;   
 
@@ -81,6 +83,14 @@ bool ServiceDaemon::check_port_occupied() {
     }
 }
 
+bool ServiceDaemon::check_process_exist(pid_t pid) {
+    if(kill(pid, 0) == -1) {
+        return false;
+    } else {
+        // process still exists
+        return true;
+    }
+}
 
 } /* namespace rpc */
 

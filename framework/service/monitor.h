@@ -16,58 +16,58 @@
 #ifndef ANAKIN_MONITOR_H
 #define ANAKIN_MONITOR_H 
 
-#include <unistd.h>
-#include <iostream>
-#include <thread>
-#include <vector>
-#include <functional>
-#include <mutex> 
-#include <chrono>
-
-#include <nvml.h>
-#include <cuda.h>
-#include <cuda_runtime.h>
-#include <driver_types.h>  // cuda driver types
+#include "framework/service/device_info.h"
 
 namespace anakin {
 
 namespace rpc {
 
-/*struct DevInfo{
-    DevInfo() {}
-    // all of those funcs must be thread safety
-    void fill_id(int id) {
-        std::unique_lock<std::mutex> lock(this->mut);
-        dev_id = id;    
-    }
-    void set_temp(int);
-    void set_g_mem_free(size_t);
-    void set_g_mem_used(size_t);
-    void set_name(const char*);
-    void set_compute_run_proc_num(int);
+/// monitor thread pool
+class Monitor {
+public:
+    Monitor(){}
+    ~Monitor(){}
 
-    // 
-    int get_id() { return dev_id; }
-    int get_temp() { return temp; }
-    size_t get_g_mem_free() { return g_mem_free; }
-    size_t get_g_mem_used() { return g_mem_used; }
-    std::string get_name() { return dev_name; }
-    int get_compute_run_proc() { return compute_run_proc_num; }
+    template<Info ...infos>
+    void create_instance(int dev_id, int interval_time_in_sec) {
+        _id = dev_id;
+        _monitor_thread = new std::thread([this](int dev_id, int time) {
+            DevInfo<infos...> dev_info_pack;
+            std::chrono::time_point<sys_clock> start = sys_clock::now(); 
+            for(;;) {
+                double elapsed_time_ms =\
+                        std::chrono::duration_cast<std::chrono::milliseconds>(sys_clock::now()-start).count();
+                if(elapsed_time_ms  > time * 1000) {
+                    start = sys_clock::now();
+                    dev_info_pack.inquiry(dev_id);
+                    _name = dev_info_pack.template get<DEV_NAME>();
+                    _temp = dev_info_pack.template get<DEV_TMP>();
+                    _mem_free = dev_info_pack.template get<DEV_MEM_FREE>();
+                    _mem_used = dev_info_pack.template get<DEV_MEM_USED>();
+                }
+            }
+        }, dev_id, interval_time_in_sec);
+    }
+
+    int get_id() { return _id; } 
+
+    std::string get_name() { return _name; }
+
+    float get_temp() { return _temp; }
+
+    float get_mem_free() { return _mem_free; }
+
+    float get_mem_used() { return _mem_used; }
 
 private:
-    // resource infomation
-    int              dev_id{-1}; // device id current reside
-    int                temp{-1}; // device temperature  
-    size_t       g_mem_free{-1}; // global memory free (bytes)
-    size_t       g_mem_used{-1}; // global memory used (bytes)
-    int compute_run_proc_num{0}; // compute running process num on device
-    std::string        dev_name; // device name
-    std::mutex mut;
-};
-
-
-class Monitor {
-}; */
+    typedef std::chrono::system_clock sys_clock;
+    int _id{-1};   // device id (represent as device num id)
+    std::string _name{"unknown"};     // device name
+    float _temp{-1000};     // device temperature Celsius degree
+    float _mem_free{-1}; // device memory free bytes
+    float _mem_used{-1};
+    std::thread* _monitor_thread;
+}; 
 
 } /* namespace rpc */
 
