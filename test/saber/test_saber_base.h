@@ -331,7 +331,7 @@ private:
     std :: vector<Param_t> _params;
     
 };//testsaberbase
-        
+    
 }//namespace saber
 }//namespace anakin
 
