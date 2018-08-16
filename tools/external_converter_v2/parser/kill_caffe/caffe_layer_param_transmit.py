@@ -1010,8 +1010,12 @@ def Parser_priorbox(args):
     OpsRegister()["PriorBox"].variance = list(prior_box_param.variance)
     OpsRegister()["PriorBox"].img_h = prior_box_param.img_h
     OpsRegister()["PriorBox"].img_w = prior_box_param.img_w
-    OpsRegister()["PriorBox"].step_h = prior_box_param.step_h
-    OpsRegister()["PriorBox"].step_w = prior_box_param.step_w
+    if prior_box_param.HasField('step_h') and pooling_param.HasField('step_w'):
+        OpsRegister()["PriorBox"].step_h = prior_box_param.step_h
+        OpsRegister()["PriorBox"].step_w = prior_box_param.step_w
+    elif prior_box_param.HasField('step'):
+        OpsRegister()["PriorBox"].step_h = prior_box_param.step
+        OpsRegister()["PriorBox"].step_w = prior_box_param.step
     OpsRegister()["PriorBox"].offset = prior_box_param.offset
     OpsRegister()["PriorBox"].order = ['MIN', 'MAX', 'COM']
 
@@ -1055,10 +1059,19 @@ def Parser_normalize(args):
     layer = args[1]
     norm_param = layer.norm_param
     scale_filler = norm_param.scale_filler
+    OpsRegister()["Normalize"].begin_norm_axis = -1
     OpsRegister()["Normalize"].is_across_spatial = norm_param.across_spatial
     OpsRegister()["Normalize"].is_shared_channel = norm_param.channel_shared
     OpsRegister()["Normalize"].eps = norm_param.eps
     OpsRegister()["Normalize"].p = 2
+
+
+@ParserFeedDecorator("Activation")
+def Parser_relu6(args):
+    layer = args[1]
+    relu6_param = layer.relu6_param
+    OpsRegister()["Activation"].type = "ClippedRelu"
+    OpsRegister()["Activation"].clip_relu_num = 6
 
 
 # caffe layer parameter parser map
@@ -1125,5 +1138,7 @@ CAFFE_LAYER_PARSER = {
                 "DetectionOutput": OpsParam().set_parser(Parser_detectionoutput), # vis add
                 "ArgMax": OpsParam().set_parser(Parser_argmax),
                 "Normalize": OpsParam().set_parser(Parser_normalize),
-                "Resize": OpsParam().set_parser(Parser_resize)
+                "Resize": OpsParam().set_parser(Parser_resize)，
+                "ReLU6": OpsParam().set_parser(Parser_relu6)
+
                 }

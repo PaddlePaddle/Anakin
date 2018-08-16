@@ -6,7 +6,9 @@ from op_io import *
 
 ############################# IO define ##############################
 # graph may has mult-inputs, so graph will have multi-input
-OpsRegister.Register("Input").set_attr(input_shape=list())
+OpsRegister.Register("Input").set_attr(input_shape=list(),
+                                       alias="NULL",
+                                       data_type="NULL")
 
 # graph out , only hold place for edge
 OpsRegister.Register("Output").set_attr()
@@ -53,7 +55,8 @@ OpsRegister.Register("Softmax").set_attr(axis=int())
 #			  TanH, 
 #			  Sigmoid, 
 # 		  }
-OpsRegister.Register("Activation").set_attr(type="")
+OpsRegister.Register("Activation").set_attr(type="",
+                                            clip_relu_num=int())
 # Leaky version of a Rectified Linear Unit ( alpha != 0 ).
 # 	f(x) = alpha * x  	 : x < 0
 # 	f(x) = 		   x  	 : x >= 0
@@ -348,5 +351,14 @@ OpsRegister.Register("LayerNorm").set_attr(is_across_spatial=bool(),
                                            begin_norm_axis=int(),
                                            eps=float())
 
+
 OpsRegister.Register("Resize").set_attr(height_scale=float(),
                                         width_scale=float())
+
+
+OpsRegister.Register("Normalize").set_attr(begin_norm_axis=int(),
+                                           is_across_spatial=bool(),
+                                           is_shared_channel=bool(),
+                                           eps=float(),
+                                           p=int())
+

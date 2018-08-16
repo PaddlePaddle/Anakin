@@ -24,7 +24,9 @@ def NotNeededInInference(args):
 def Parser_feed(args):
 	private_data = args[4]
 	input_shape = private_data['input_shape']
+        alias = private_data['alias']
 	OpsRegister()["Input"].input_shape = input_shape
+        OpsRegister()["Input"].alias = alias
 
 @ParserFeedDecorator("Convolution")
 def Parser_conv2d(args):
@@ -318,10 +320,11 @@ def Parser_lstm(args):
 	if bool(private_data) is True:
 		np_fc_bias = private_data['np_flat_fc_bias']
 		np_fc_weight = private_data['np_flat_fc_weight']
+		np_fc_outdim = private_data['np_fc_outdim']
 		np_lstm_bias = helper.np_param(op, 'Bias')
 		np_lstm_weight = helper.np_param(op, 'Weight')
-		np_tensors = helper.lstm_fc_tensor_merge_convert(np_lstm_weight, np_lstm_bias, \
-			np_fc_weight, np_fc_bias)
+		np_tensors = helper.lstm_fc_tensor_merge_convert(np_fc_outdim, np_lstm_weight, \
+			np_lstm_bias, np_fc_weight, np_fc_bias)
 		np_weight = np_tensors[0]
 		np_bias = np_tensors[1]
 		np_weight_shape = map(int, [1]*(4-len(np_weight.shape)) + list(np_weight.shape))
@@ -333,7 +336,6 @@ def Parser_lstm(args):
 	else:
 		OpsRegister()["LSTM"].weight_1 = helper.param_tensor(op, 'Weight')
 		OpsRegister()["LSTM"].weight_2 = helper.create_tensor([0], [-1], FLOAT)
-
 
 
 ############### RNN ###############

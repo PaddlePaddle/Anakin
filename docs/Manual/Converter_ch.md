@@ -13,10 +13,11 @@ Anakin 模型转换器输入支持 Caffe 和 Fluid 两种格式的预测模型�
 
 ## 系统要求
 
-- python 2.7+
-- pyyaml
-- flask
-- protobuf 3.5+
+- Python 2.7+
+- Protobuf 3.1+（务必注意 Python 与系统环境 Protobuf 版本一致）
+- PaddlePaddle 0.12.0+ (Fluid 模式下)
+- flask, bson, matplotlib, scikit-image
+- tkinter
 
 
 ## 用法
@@ -38,7 +39,7 @@ OPTIONS:
         Server:
             ip: 0.0.0.0
             port: 8888     # 从一个可用端口访问预览页面
-        OptimizedGraph:    # 当您使用了 Anakin 框架的 Optimized 功能时，才应该打开此项
+        OptimizedGraph:    # 仅当您执行完预测并使用 Optimized 功能时，才应打开此项
             enable: OFF
             path: /path/to/anakin_optimized_anakin_model/googlenet.anakin.bin.saved
     LOGGER:
@@ -60,7 +61,7 @@ TARGET:
             - /
         PrototxtPath: /path/to/fluid/inference_model
         ModelPath: /path/to/fluid/inference_model
-	# ...
+    # ...
 ```
 
 ### 3、转换

@@ -53,7 +53,7 @@ void sgemv(const bool transA, const int M, const int N, \
                     "pld [%[w2], #128]              @ preload cache line, weights r2\n"
                     "pld [%[w3], #128]              @ preload cache line, weights r3\n"
 
-                    "sgemv_loop:                    @ main loop\n"
+                    "1:                             @ main loop\n"
                     "vld1.32 {d8-d11}, [%[in]]!     @ load input, q4, q5\n"
                     //"pld [%[in]]                    @ preload cache line, in\n"
                     //"pld [%[in], #128]              @ preload cache line, in\n"
@@ -86,11 +86,11 @@ void sgemv(const bool transA, const int M, const int N, \
 
                     // check loop end
                     "subs %[cnt], #1                @ sub loop count \n"
-                    "bne sgemv_loop                 @ jump to main loop\n"
+                    "bne 1b                         @ jump to main loop\n"
 
                     // check tails
                     "cmp %[tail], #1                @ check whether has mid cols\n"
-                    "blt  sgemv_end                 @ jump to end\n"
+                    "blt  2f                        @ jump to end\n"
 
                     // process tail
                     "vld1.32 {d8-d11}, [%[in]]!     @ load input, q4, q5\n"
@@ -115,7 +115,7 @@ void sgemv(const bool transA, const int M, const int N, \
                     "vmla.f32 q3, q5, q13           @ mul add\n"
 
                     // pair add to final result
-                    "sgemv_end:                     @ end processing\n"
+                    "2:                             @ end processing\n"
                     "vpadd.f32 d8, d0, d1           @ pair add, first step\n"
                     "vpadd.f32 d9, d2, d3           @ pair add, first step\n"
                     "vpadd.f32 d10, d4, d5          @ pair add, first step\n"
@@ -150,7 +150,7 @@ void sgemv(const bool transA, const int M, const int N, \
                 "pld [%[in], #128]                  @ preload cache line, input\n"
                 "pld [%[w0], #128]                  @ preload cache line, weights r0\n"
 
-                "sgemv_loop2:                       @ main loop\n"
+                "1:                                 @ main loop\n"
                 "vld1.32 {d24-d25}, [%[in]]!        @ load input, q12,q13\n"
                 "vld1.32 {d28-d29}, [%[w0]]!        @ load weights r0, q14\n"
 
@@ -166,11 +166,11 @@ void sgemv(const bool transA, const int M, const int N, \
 
                 "vmla.f32 q0, q13, q15              @ mul add\n"
                 "subs %[cnt] , #1                   @ sub loop count \n"
-                "bne sgemv_loop2                    @ jump to main loop\n"
+                "bne 1b                             @ jump to main loop\n"
 
                 // check tails
                 "cmp %[tail], #1                    @ check whether has mid cols\n"
-                "blt  sgemv_end2                    @ jump to end\n"
+                "blt  2f                            @ jump to end\n"
 
                 // process tail
                 "vld1.32 {d24-d27}, [%[in]]!        @ load input, q12,q13\n"
@@ -185,7 +185,7 @@ void sgemv(const bool transA, const int M, const int N, \
                 "vmla.f32 q0, q13, q15              @ mul add\n"
 
                 // pair add to final result
-                "sgemv_end2:                        @ end processing\n"
+                "2:                                 @ end processing\n"
                 "vpadd.f32 d2, d0, d1               @ pair add, first step\n"
                 "vpadd.f32 d3, d2, d2               @ pair add, final step\n"
                 "vst1.32 {d3[0]}, [%[out]]          @ save result\n"
@@ -244,7 +244,7 @@ void sgemv_relu(const bool transA, const int M, const int N, \
                     "pld [%[w2], #128]              @ preload cache line, weights r2\n"
                     "pld [%[w3], #128]              @ preload cache line, weights r3\n"
 
-                    "sgemv_relu_loop:               @ main loop\n"
+                    "1:                             @ main loop\n"
                     "vld1.32 {d8-d11}, [%[in]]!     @ load input, q4, q5\n"
                     //"pld [%[in]]                    @ preload cache line, in\n"
                     //"pld [%[in], #128]              @ preload cache line, in\n"
@@ -277,11 +277,11 @@ void sgemv_relu(const bool transA, const int M, const int N, \
 
                     // check loop end
                     "subs %[cnt], #1                @ sub loop count \n"
-                    "bne sgemv_relu_loop            @ jump to main loop\n"
+                    "bne 1b                         @ jump to main loop\n"
 
                     // check tails
                     "cmp %[tail], #1                @ check whether has mid cols\n"
-                    "blt  sgemv_relu_end            @ jump to end\n"
+                    "blt  2f                        @ jump to end\n"
 
                     // process tail
                     "vld1.32 {d8-d11}, [%[in]]!     @ load input, q4, q5\n"
@@ -306,7 +306,7 @@ void sgemv_relu(const bool transA, const int M, const int N, \
                     "vmla.f32 q3, q5, q13           @ mul add\n"
 
                     // pair add to final result
-                    "sgemv_relu_end:                @ end processing\n"
+                    "2:                             @ end processing\n"
                     "vpadd.f32 d8, d0, d1           @ pair add, first step\n"
                     "vpadd.f32 d9, d2, d3           @ pair add, first step\n"
                     "vpadd.f32 d10, d4, d5          @ pair add, first step\n"
@@ -344,7 +344,7 @@ void sgemv_relu(const bool transA, const int M, const int N, \
                 "pld [%[in], #128]                  @ preload cache line, input\n"
                 "pld [%[w0], #128]                  @ preload cache line, weights r0\n"
 
-                "sgemv_relu_loop2:                  @ main loop\n"
+                "1:                                 @ main loop\n"
                 "vld1.32 {d24-d25}, [%[in]]!        @ load input, q12,q13\n"
                 "vld1.32 {d28-d29}, [%[w0]]!        @ load weights r0, q14\n"
 
@@ -360,11 +360,11 @@ void sgemv_relu(const bool transA, const int M, const int N, \
 
                 "vmla.f32 q0, q13, q15              @ mul add\n"
                 "subs %[cnt] , #1                   @ sub loop count \n"
-                "bne sgemv_relu_loop2               @ jump to main loop\n"
+                "bne 1b                             @ jump to main loop\n"
 
                 // check tails
                 "cmp %[tail], #1                    @ check whether has mid cols\n"
-                "blt  sgemv_relu_end2               @ jump to end\n"
+                "blt  2f                            @ jump to end\n"
 
                 // process tail
                 "vld1.32 {d24-d27}, [%[in]]!        @ load input, q12,q13\n"
@@ -379,7 +379,7 @@ void sgemv_relu(const bool transA, const int M, const int N, \
                 "vmla.f32 q0, q13, q15              @ mul add\n"
 
                 // pair add to final result
-                "sgemv_relu_end2:                   @ end processing\n"
+                "2:                                 @ end processing\n"
                 "vpadd.f32 d2, d0, d1               @ pair add, first step\n"
                 "vpadd.f32 d3, d2, d2               @ pair add, final step\n"
 
@@ -444,7 +444,7 @@ void sgemv_bias(const bool transA, const int M, const int N, \
                     "pld [%[w2], #128]              @ preload cache line, weights r2\n"
                     "pld [%[w3], #128]              @ preload cache line, weights r3\n"
 
-                    "sgemv_bias_loop:               @ main loop\n"
+                    "1:                             @ main loop\n"
                     "vld1.32 {d8-d11}, [%[in]]!     @ load input, q4, q5\n"
                     //"pld [%[in]]                    @ preload cache line, in\n"
                     //"pld [%[in], #128]              @ preload cache line, in\n"
@@ -477,11 +477,11 @@ void sgemv_bias(const bool transA, const int M, const int N, \
 
                     // check loop end
                     "subs %[cnt], #1                @ sub loop count \n"
-                    "bne sgemv_bias_loop            @ jump to main loop\n"
+                    "bne 1b                         @ jump to main loop\n"
 
                     // check tails
                     "cmp %[tail], #1                @ check whether has mid cols\n"
-                    "blt  sgemv_bias_end            @ jump to end\n"
+                    "blt  2f                        @ jump to end\n"
 
                     // process tail
                     "vld1.32 {d8-d11}, [%[in]]!     @ load input, q4, q5\n"
@@ -506,7 +506,7 @@ void sgemv_bias(const bool transA, const int M, const int N, \
                     "vmla.f32 q3, q5, q13           @ mul add\n"
 
                     // pair add to final result
-                    "sgemv_bias_end:                @ end processing\n"
+                    "2:                             @ end processing\n"
                     "vld1.32 {d12-d13}, [%[bias]]   @ load weights r0, q6,q7\n"
                     "vpadd.f32 d8, d0, d1           @ pair add, first step\n"
                     "vpadd.f32 d9, d2, d3           @ pair add, first step\n"
@@ -546,7 +546,7 @@ void sgemv_bias(const bool transA, const int M, const int N, \
                 "pld [%[in], #128]                  @ preload cache line, input\n"
                 "pld [%[w0], #128]                  @ preload cache line, weights r0\n"
 
-                "sgemv_bias_loop2:                  @ main loop\n"
+                "1:                                 @ main loop\n"
                 "vld1.32 {d24-d25}, [%[in]]!        @ load input, q12,q13\n"
                 "vld1.32 {d28-d29}, [%[w0]]!        @ load weights r0, q14\n"
 
@@ -562,11 +562,11 @@ void sgemv_bias(const bool transA, const int M, const int N, \
 
                 "vmla.f32 q0, q13, q15              @ mul add\n"
                 "subs %[cnt] , #1                   @ sub loop count \n"
-                "bne sgemv_bias_loop2               @ jump to main loop\n"
+                "bne 1b                             @ jump to main loop\n"
 
                 // check tails
                 "cmp %[tail], #1                    @ check whether has mid cols\n"
-                "blt  sgemv_bias_end2               @ jump to end\n"
+                "blt  2f                            @ jump to end\n"
 
                 // process tail
                 "vld1.32 {d24-d27}, [%[in]]!        @ load input, q12,q13\n"
@@ -581,7 +581,7 @@ void sgemv_bias(const bool transA, const int M, const int N, \
                 "vmla.f32 q0, q13, q15              @ mul add\n"
 
                 // pair add to final result
-                "sgemv_bias_end2:                   @ end processing\n"
+                "2:                                 @ end processing\n"
                 "vpadd.f32 d2, d0, d1               @ pair add, first step\n"
                 "vpadd.f32 d3, d2, d2               @ pair add, final step\n"
 
@@ -647,7 +647,7 @@ void sgemv_bias_relu(const bool transA, const int M, const int N, \
                     "pld [%[w2], #128]              @ preload cache line, weights r2\n"
                     "pld [%[w3], #128]              @ preload cache line, weights r3\n"
 
-                    "sgemv_bias_relu_loop:          @ main loop\n"
+                    "1:                             @ main loop\n"
                     "vld1.32 {d8-d11}, [%[in]]!     @ load input, q4, q5\n"
                     //"pld [%[in]]                    @ preload cache line, in\n"
                     //"pld [%[in], #128]              @ preload cache line, in\n"
@@ -680,11 +680,11 @@ void sgemv_bias_relu(const bool transA, const int M, const int N, \
 
                     // check loop end
                     "subs %[cnt], #1                @ sub loop count \n"
-                    "bne sgemv_bias_relu_loop       @ jump to main loop\n"
+                    "bne 1b                         @ jump to main loop\n"
 
                     // check tails
                     "cmp %[tail], #1                @ check whether has mid cols\n"
-                    "blt  sgemv_bias_relu_end       @ jump to end\n"
+                    "blt  2f                        @ jump to end\n"
 
                     // process tail
                     "vld1.32 {d8-d11}, [%[in]]!     @ load input, q4, q5\n"
@@ -709,7 +709,7 @@ void sgemv_bias_relu(const bool transA, const int M, const int N, \
                     "vmla.f32 q3, q5, q13           @ mul add\n"
 
                     // pair add to final result
-                    "sgemv_bias_relu_end:           @ end processing\n"
+                    "2:                             @ end processing\n"
                     "vld1.32 {d12-d13}, [%[bias]]   @ load weights r0, q6,q7\n"
                     "vpadd.f32 d8, d0, d1           @ pair add, first step\n"
                     "vpadd.f32 d9, d2, d3           @ pair add, first step\n"
@@ -751,7 +751,7 @@ void sgemv_bias_relu(const bool transA, const int M, const int N, \
                 "pld [%[in], #128]                  @ preload cache line, input\n"
                 "pld [%[w0], #128]                  @ preload cache line, weights r0\n"
 
-                "sgemv_bias_relu_loop2:             @ main loop\n"
+                "1:                                 @ main loop\n"
                 "vld1.32 {d24-d25}, [%[in]]!        @ load input, q12,q13\n"
                 "vld1.32 {d28-d29}, [%[w0]]!        @ load weights r0, q14\n"
 
@@ -767,11 +767,11 @@ void sgemv_bias_relu(const bool transA, const int M, const int N, \
 
                 "vmla.f32 q0, q13, q15              @ mul add\n"
                 "subs %[cnt] , #1                   @ sub loop count \n"
-                "bne sgemv_bias_relu_loop2          @ jump to main loop\n"
+                "bne 1b                             @ jump to main loop\n"
 
                 // check tails
                 "cmp %[tail], #1                    @ check whether has mid cols\n"
-                "blt  sgemv_bias_relu_end2          @ jump to end\n"
+                "blt  2f                            @ jump to end\n"
 
                 // process tail
                 "vld1.32 {d24-d27}, [%[in]]!        @ load input, q12,q13\n"
@@ -786,7 +786,7 @@ void sgemv_bias_relu(const bool transA, const int M, const int N, \
                 "vmla.f32 q0, q13, q15              @ mul add\n"
 
                 // pair add to final result
-                "sgemv_bias_relu_end2:              @ end processing\n"
+                "2:                                 @ end processing\n"
                 "vpadd.f32 d2, d0, d1               @ pair add, first step\n"
                 "vpadd.f32 d3, d2, d2               @ pair add, final step\n"
 
