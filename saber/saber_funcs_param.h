@@ -337,6 +337,22 @@ struct PoolingParam {
         bool global_pooling;
         bool cmp_out_shape_floor_as_conv;
 };
+template<typename TargetType>
+struct PowerParam {
+        PowerParam() {}
+        PowerParam(float power, float scale, float shift) : power(power), scale(scale), shift(shift) {}
+        PowerParam(const PowerParam &right) : power(right.power), scale(right.scale), shift(right.shift) {}
+        bool operator==(const PowerParam &right) {
+            bool comp_eq = true;
+            comp_eq = comp_eq && (power == right.power);
+            comp_eq = comp_eq && (scale == right.scale);
+            comp_eq = comp_eq && (shift == right.shift);
+            return comp_eq;
+        }
+        float power;
+        float scale;
+        float shift;
+};
   
 template <typename TargetType>
 struct PreluParam {
