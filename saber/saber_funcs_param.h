@@ -81,6 +81,37 @@ struct ActivationParam {
 };
 
 template <typename TargetType>
+struct CropParam {
+    CropParam() = default;
+    CropParam(int axis_in, std::vector<int> offset_in, std::vector<int> shape_in)
+            : axis(axis_in)
+            , offset(offset_in)
+            , shape(shape_in)
+    {}
+    CropParam(const CropParam &right)
+            : axis(right.axis)
+            , offset(right.offset)
+            , shape(right.shape)
+    {}
+    CropParam &operator=(const CropParam &right) {
+        axis = right.axis;
+        offset = right.offset;
+        shape = right.shape;
+        return *this;
+    }
+    bool operator==(const CropParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (axis == right.axis);
+        comp_eq = comp_eq && (offset == right.offset);
+        comp_eq = comp_eq && (shape == right.shape);
+        return comp_eq;
+    }
+    int axis = 1;
+    std::vector<int>  offset;
+    std::vector<int>  shape;
+};
+
+template <typename TargetType>
 struct ConvParam {
 
     ConvParam()
