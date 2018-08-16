@@ -327,7 +327,7 @@ endmacro()
 
 macro(anakin_find_bmlib)
 	if(USE_BM)
-		find_path(BM_ROOT include/bmdnn/bmdnn_api.h ${CMAKE_SOURCE_DIR}/third-party/bm_lib/ $ENV{BM_ROOT}/)
+		find_path(BM_ROOT include/bmdnn/bmdnn_api.h ${CMAKE_SOURCE_DIR}/saber/funcs/impl/bm/base/ $ENV{BM_ROOT}/)
 		find_path(BM_ROOT_INCLUDE_DNN bmdnn_api.h ${BM_ROOT}/include/bmdnn)
 		find_path(BM_ROOT_INCLUDE_RT bmruntime.h ${BM_ROOT}/include/bmruntime)
 		find_path(BM_ROOT_INCLUDE_LIB bmlib_runtime.h ${BM_ROOT}/include/bmlib)
