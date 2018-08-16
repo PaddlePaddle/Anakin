@@ -58,13 +58,12 @@ SaberStatus SaberCrfDecoding<X86, OpDtype>::create(
 #else
     _alpha.re_alloc(inputs[0]->valid_shape(), OpDtype);
 #endif
-
     return SaberSuccess;
 }
 
 template<typename Dtype>
 void decoding(Dtype* path, const Dtype* emission, const Dtype* transition,
-                        Dtype* alpha_value, int* track_value, int _aligned_tag_num, int seq_len, int tag_num) {
+                        Dtype* alpha_value, int* track_value, int aligned_tag_num, int seq_len, int tag_num) {
 #ifdef __AVX2__
     const Dtype* x = emission;
     const Dtype* w = transition;
@@ -74,23 +73,23 @@ void decoding(Dtype* path, const Dtype* emission, const Dtype* transition,
         __m256 *ww = (__m256*)w;
         __m256 *xx = (__m256*)x;
         __m256 *aa = (__m256*)alpha_value;
-        for (int i = 0; i < _aligned_tag_num / 8; ++i) {
+        for (int i = 0; i < aligned_tag_num / 8; ++i) {
             aa[i] = ww[i] + xx[i];
         }
     }
 
-    int tail = ((_aligned_tag_num == tag_num) ? 8 : tag_num % 8); 
+    int tail = ((aligned_tag_num == tag_num) ? 8 : tag_num % 8); 
 
     for (int k = 1; k < seq_len; ++k) {
         for (int i = 0; i < tag_num; ++i) {
             Dtype max_score = -std::numeric_limits<Dtype>::max();
             int max_j = 0;
 
-            __m256 *aa = (__m256*)(alpha_value + (k - 1) * _aligned_tag_num);
-            __m256 *ww = (__m256*)(w + (i + state_trans_base_idx) * _aligned_tag_num);
+            __m256 *aa = (__m256*)(alpha_value + (k - 1) * aligned_tag_num);
+            __m256 *ww = (__m256*)(w + (i + state_trans_base_idx) * aligned_tag_num);
             __m256 score_v;
             Dtype *score = (Dtype*)(&score_v);
-            for (size_t j = 0; j < _aligned_tag_num / 8 - 1; ++j) {
+            for (size_t j = 0; j < aligned_tag_num / 8 - 1; ++j) {
                 score_v = aa[j] + ww[j];
                 for (int m = 0; m < 8; m++) {
                     if (score[m] > max_score) {
@@ -99,7 +98,7 @@ void decoding(Dtype* path, const Dtype* emission, const Dtype* transition,
                     }
                 }
             }
-            int tail_idx = _aligned_tag_num / 8 - 1;
+            int tail_idx = aligned_tag_num / 8 - 1;
             score_v = aa[tail_idx] + ww[tail_idx];
             for (int m = 0; m < tail; m++) {
                 if (score[m] > max_score) {
@@ -108,18 +107,18 @@ void decoding(Dtype* path, const Dtype* emission, const Dtype* transition,
                 }
             }
 
-            alpha_value[k * _aligned_tag_num + i] = max_score + x[k * _aligned_tag_num + i];
+            alpha_value[k * aligned_tag_num + i] = max_score + x[k * aligned_tag_num + i];
             track_value[k * tag_num + i] = max_j;
         }
     }
 
     Dtype max_score = -std::numeric_limits<Dtype>::max();
     int max_i = 0;
-    __m256* aa = (__m256*)(alpha_value + (seq_len - 1) * _aligned_tag_num);
-    __m256* ww = (__m256*)(w + _aligned_tag_num);
+    __m256* aa = (__m256*)(alpha_value + (seq_len - 1) * aligned_tag_num);
+    __m256* ww = (__m256*)(w + aligned_tag_num);
     __m256 score_v;
     Dtype *score = (Dtype*)(&score_v);
-    for (size_t i = 0; i < _aligned_tag_num / 8 - 1; ++i) {
+    for (size_t i = 0; i < aligned_tag_num / 8 - 1; ++i) {
         score_v = aa[i] + ww[i];
         for (int m = 0; m < 8; m++) {
             if (score[m] > max_score) {
@@ -128,7 +127,7 @@ void decoding(Dtype* path, const Dtype* emission, const Dtype* transition,
             }
         }
     }
-    int tail_idx = _aligned_tag_num / 8 - 1;
+    int tail_idx = aligned_tag_num / 8 - 1;
     score_v = aa[tail_idx] + ww[tail_idx];
     for (int m = 0; m < tail; m++) {
         if (score[m] > max_score) {
@@ -191,9 +190,8 @@ SaberStatus SaberCrfDecoding<X86, OpDtype>::dispatch(
     const OpDataType *emission_ptr = (const OpDataType*)inputs[0]->data();
     int tag_num = inputs[0]->channel();
     const OpDataType *transition_ptr = (const OpDataType*)param.transition_weight()->data();
-    int slice_size = inputs[0]->channel()
-                     * inputs[0]->height()
-                     * inputs[0]->width();
+    int slice_size = inputs[0]->channel() * inputs[0]->height() * inputs[0]->width();
+   
 #ifdef __AVX2__
     if (tag_num % 8) {
         transition_ptr = (OpDataType*)_trans.data();
@@ -213,16 +211,16 @@ SaberStatus SaberCrfDecoding<X86, OpDtype>::dispatch(
     }
 #endif
     OpDataType *decoded_path = (OpDataType*) outputs[0]->mutable_data();
-
     int seq_num = seq_offset[0].size() - 1;
     int nthreads = omp_get_max_threads();
+
     if (nthreads > seq_num) {
         nthreads = seq_num;
     }
-
     #pragma omp parallel for num_threads(nthreads) if(seq_num > 1)
     for (int i = 0; i < seq_num; ++i) {
         int seq_len = seq_offset[0][i+1] - seq_offset[0][i];
+       // LOG(INFO) << "slice_size: " << slice_size << ", seq_num: " << seq_num << ", seq_len: " << seq_len;
         decoding<OpDataType>(decoded_path, emission_ptr, transition_ptr,
                  (OpDataType*)_alpha.mutable_data(), (int*)_track.mutable_data(),
                  _aligned_tag_num, seq_len, tag_num);
@@ -230,6 +228,7 @@ SaberStatus SaberCrfDecoding<X86, OpDtype>::dispatch(
         decoded_path += seq_len;
         emission_ptr += slice_size * seq_len;
     }
+    //LOG(INFO) << "dispatch success ";
     return SaberSuccess;
 }
 

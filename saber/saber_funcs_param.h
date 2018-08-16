@@ -86,7 +86,7 @@ struct CrfDecodingParam {
             : weight_tensor(NULL)
             , tag_num(0)
     {}
-    CrfDecodingParam(TargetType* weight_tensor_in, int tag_num_in = 0)
+    CrfDecodingParam(Tensor<TargetType> * weight_tensor_in, int tag_num_in = 0)
             : weight_tensor(weight_tensor_in) {
         if (tag_num_in == 0) {
             tag_num = weight_tensor->channel();

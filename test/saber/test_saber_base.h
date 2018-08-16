@@ -181,6 +181,10 @@ public:
         {
             _inputs_dev[0][i] -> copy_from(*input[i]);
             _inputs_host[0][i] -> copy_from(*input[i]);
+            if(input[i]->get_seq_offset().size() > 0){
+                 _inputs_dev[0][i] -> set_seq_offset(input[i]->get_seq_offset());
+                _inputs_host[0][i] -> set_seq_offset(input[i]->get_seq_offset());
+            }
         }
         _input_type = CUSTOM;
         
@@ -276,6 +280,10 @@ public:
         for(int i = 0; i < _outputs_host.size(); ++i){
             Shape sh = _inputs_host[i][0] -> shape();
             for(int j = 0; j<_op_output_num; ++j){
+                //LOG(INFO) << "_outputs_hd: ";
+                //print_tensor(*_outputs_hd[i][j]);
+                //LOG(INFO) << "_outputs_host: ";
+                //print_tensor(*_outputs_host[i][j]);
                 tensor_cmp_host<float>((const float*)_outputs_hd[i][j] -> data(), (const float*)_outputs_host[i][j] -> data(),
                                        _outputs_hd[i][j] -> valid_size(), max_ratio[i], max_diff[i]);
                 LOG(INFO) << "input_shape:(" << sh.num() << "," << sh.channel() << "," << sh.height() << "," << sh.width() << ")";
