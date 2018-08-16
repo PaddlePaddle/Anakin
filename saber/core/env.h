@@ -39,7 +39,7 @@ public:
         int count = 0;
         API::get_device_count(count);
         if (count == 0) {
-            LOG(WARNING) << "no device found!";
+            CHECK(false) << "no device found!";
         } else {
             LOG(INFO) << "found " << count << " device(s)";
         }
@@ -49,6 +49,7 @@ public:
             devs.push_back(Device<TargetType>(max_stream));
         }
         API::set_device(cur_id);
+        LOG(INFO)<<"dev size = "<<devs.size();
     }
 private:
     Env(){}

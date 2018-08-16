@@ -42,6 +42,7 @@ public:
     typedef std::vector<TensorD*> Output_dt;
     typedef std::vector<TensorH*> Input_ht;
     typedef std::vector<TensorH*> Output_ht;
+    typedef typename DataTrait<TargetType_H, Dtype>::Dtype OpDataType;
     typedef void (*CpuFunc_t) (const Input_ht&, Output_ht&, Param_t& param);
     
     TestSaberBase (int in_num = 1, int out_num=1) : _op_input_num(in_num) , _op_output_num(out_num){
@@ -120,14 +121,14 @@ public:
         _input_shapes.push_back(new_shape_v);
         
     }
-    void set_input_shape (Shape new_shape, TestDataType type = RANDOM, double value = 1){
+    void set_input_shape (Shape new_shape, TestDataType type = RANDOM, OpDataType value = 1){
         clear_datas();
         
         add_inputs_shape(new_shape);
         _input_type = type;
         _special_value = value;
     }
-    void set_input_shape (std::vector<Shape> new_shape_v, TestDataType type = RANDOM, double value = 1){
+    void set_input_shape (std::vector<Shape> new_shape_v, TestDataType type = RANDOM, OpDataType value = 1){
         clear_datas();
         
         add_inputs_shape(new_shape_v);
@@ -146,7 +147,7 @@ public:
             }
         }
     }
-    void fill_inputs (double minv, double maxv){
+    void fill_inputs (float minv, float maxv){
         int input_size = _inputs_dev.size();
         CHECK_EQ(input_size, _inputs_host.size()) << "dev and host inputs num must be equal";
         if(_input_type == RANDOM){
@@ -176,6 +177,10 @@ public:
         add_inputs_shape(shape_v);
         for(int i = 0; i < _op_input_num; ++i)
         {
+            SaberStatus status = _inputs_dev[0][i]->set_dtype(input[i]->get_dtype());
+            status &= _inputs_host[0][i]->set_dtype(input[i]->get_dtype());
+            if(!status)
+                LOG(INFO) << "ERROR";
             _inputs_dev[0][i] -> copy_from(*input[i]);
             _inputs_host[0][i] -> copy_from(*input[i]);
         }
@@ -198,6 +203,10 @@ public:
                 _outputs_dev[i][j] -> re_alloc(sh, Dtype);
                 _outputs_host[i][j] -> re_alloc(sh, Dtype);
                 _outputs_hd[i][j] -> re_alloc(sh, Dtype);
+
+                fill_tensor_const(*_outputs_dev[i][j],0);
+                fill_tensor_const(*_outputs_host[i][j],0);
+
             }
         }
     }
@@ -259,8 +268,8 @@ public:
         return status;
     }
     void get_cpu_result (CpuFunc_t CpuFunc, int param_index=0){
-        CHECK_EQ(_inputs_dev.size(), _outputs_dev.size()) << "input and output number must be equal";
-        CHECK_EQ(_outputs_hd.size(),_outputs_dev.size()) << "input and output number must be equal";
+        CHECK_EQ(_inputs_host.size(), _outputs_dev.size()) << "input and output number must be equal";
+        CHECK_EQ(_outputs_host.size(),_outputs_dev.size()) << "input and output number must be equal";
         for(int i = 0; i < _inputs_dev.size(); ++i){
             CpuFunc(_inputs_host[i], _outputs_host[i], _params[param_index]);
         }
@@ -273,7 +282,11 @@ public:
         for(int i = 0; i < _outputs_host.size(); ++i){
             Shape sh = _inputs_host[i][0] -> shape();
             for(int j = 0; j<_op_output_num; ++j){
-                tensor_cmp_host<float>((const float*)_outputs_hd[i][j] -> data(), (const float*)_outputs_host[i][j] -> data(),
+             //   LOG(INFO) << "_outputs_hd: ";
+              //  print_tensor(*_outputs_hd[i][j]);
+               // LOG(INFO) << "_outputs_host: ";
+               // print_tensor(*_outputs_host[i][j]);
+                tensor_cmp_host<OpDataType>((const OpDataType*)_outputs_hd[i][j] -> data(), (const OpDataType*)_outputs_host[i][j] -> data(),
                                        _outputs_hd[i][j] -> valid_size(), max_ratio[i], max_diff[i]);
                 LOG(INFO) << "input_shape:(" << sh.num() << "," << sh.channel() << "," << sh.height() << "," << sh.width() << ")";
                 LOG(INFO) << "max_ratio:" << max_ratio[i];
@@ -285,15 +298,18 @@ public:
             }
         }
     }
-    void set_rand_limit (double minv, double maxv){
+    void set_rand_limit (float minv, float maxv){
         _max_value = maxv;
         _min_value = minv;
     }
     void run_test (CpuFunc_t CpuFunc, double succ_ratio=0.00001){
-        if(_input_type == SPECIAL)
+        if(_input_type == SPECIAL){
             fill_inputs(_special_value, _special_value);
-        if(_input_type == RANDOM)
+        }
+        if(_input_type == RANDOM){
             fill_inputs(_min_value, _max_value);
+        }
+       // LOG(INFO) << "_input_type" << _input_type;
         compute_outputs_shape();
         Env<TargetType_D> :: env_init();
         Env<TargetType_H> :: env_init();
@@ -319,9 +335,9 @@ private:
     int _op_output_num;
     Op_t _base_op;
     TestDataType _input_type;
-    double _special_value;
-    double _max_value{255.0};
-    double _min_value{-255.0};
+    OpDataType _special_value;
+    float _max_value{255.0};
+    float _min_value{-255.0};
     std :: vector<Input_ht> _inputs_host;
     std :: vector<Input_dt> _inputs_dev;
     std :: vector<Output_dt> _outputs_dev;
