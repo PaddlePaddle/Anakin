@@ -16,6 +16,7 @@
 #ifndef ANAKIN_SABER_CORE_TYPES_H
 #define ANAKIN_SABER_CORE_TYPES_H
 
+#include "anakin_config.h"
 namespace anakin{
 
 namespace saber{
@@ -34,13 +35,15 @@ enum TargetTypeEnum {
     eNVHX86 = 5,
     eNVHARM = 6,
     eARMGPU = 7,
-    eARMDSP
+    eARMDSP =8,
+    eBM = 9
 };
 
 template <TargetTypeEnum T>
 struct TargetType {};
 // NV device without pinned memory
 typedef TargetType<eNV> NV;
+typedef TargetType<eBM> BM;
 typedef TargetType<eARM> ARM;
 typedef TargetType<eARMGPU> ARMGPU;
 typedef TargetType<eAMD> AMD;
