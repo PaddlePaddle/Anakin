@@ -18,13 +18,6 @@
 
 #include "core/env.h"
 #include "saber/saber_types.h"
-#include <type_traits>
-
-#ifdef USE_BM
-#include "bmlib_runtime.h"
-#include "bmdnn_api.h"
-#include "bmlib_utils.h"
-#endif
 
 namespace anakin{
 
