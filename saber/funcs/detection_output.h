@@ -12,73 +12,65 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-#ifndef ANAKIN_SABER_FUNCS_CONV_H
-#define ANAKIN_SABER_FUNCS_CONV_H
+#ifndef ANAKIN_SABER_FUNCS_DETECTION_OUTPUT_H
+#define ANAKIN_SABER_FUNCS_DETECTION_OUTPUT_H
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
-#include "saber/funcs/funcs_utils.h"
-#include "saber/funcs/impl/impl_conv.h"
+#include "saber/funcs/impl/impl_detection_output.h"
 
 #ifdef NVIDIA_GPU
-#include "saber/funcs/impl/cuda/saber_conv.h"
-#include "saber/funcs/impl/cuda/vender_conv.h"
+//#include "saber/funcs/impl/cuda/saber_detection_output.h"
 #endif
 
-#ifdef USE_X86_PLACE
-#include "saber/funcs/impl/impl_conv.h"
-#endif
-
-#ifdef USE_ARM_PLACE
-//#include "saber/funcs/impl/arm/saber_conv.h"
-#endif
-
-#ifdef USE_BM
-#include "saber/funcs/impl/bm/vender_conv.h"
-#endif
 namespace anakin {
 namespace saber {
 
 template<typename TargetType,
         DataType OpDtype>
-class Conv : public BaseFunc<
+class DetectionOutput : public BaseFunc<
         TargetType,
         OpDtype,
         ImplBase,
-        ConvParam> {
+        DetectionOutputParam> {
 public:
     using BaseFunc<
             TargetType,
             OpDtype,
             ImplBase,
-            ConvParam>::BaseFunc;
+            DetectionOutputParam>::BaseFunc;
 
-    Conv() = default;
+    DetectionOutput() = default;
 
     typedef Tensor<TargetType> InDataTensor;
     typedef Tensor<TargetType> OutDataTensor;
     typedef Tensor<TargetType> OpTensor;
-    typedef ConvParam<TargetType> Param_t;
+    typedef DetectionOutputParam<TargetType> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
 
-    virtual SaberStatus compute_output_shape(const Input_v &input,
-                                             Output_v &output, Param_t &param) override {
-        Shape conv_shape = conv_compute_shape(input[0]->valid_shape(), param);
-        conv_shape.set_layout(Layout_NCHW);
-        return output[0]->set_shape(conv_shape);
+    virtual SaberStatus compute_output_shape(const Input_v &input, \
+        Output_v &output, Param_t &param) override {
+        Shape shape_out = output[0]->valid_shape();
+        CHECK_EQ(shape_out.dims(), 4) << "only support 4d layout";
+        shape_out[0] = 1;
+        shape_out[1] = 1;
+        shape_out[2] = param.keep_top_k;
+        shape_out[3] = 7;
+
+        return output[0]->set_shape(shape_out);
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
             case VENDER_IMPL:
-                this->_impl.push_back(new VenderConv2D <TargetType,
+                this->_impl.push_back(new VenderDetectionOutput <TargetType,
                         OpDtype>);
                 return SaberSuccess;
 
             case SABER_IMPL:
-                this->_impl.push_back(new SaberConv2D <TargetType,
+                this->_impl.push_back(new SaberDetectionOutput <TargetType,
                         OpDtype>);
                 return SaberSuccess;
 

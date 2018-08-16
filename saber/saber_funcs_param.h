@@ -178,9 +178,95 @@ struct ConvParam {
 private:
     Tensor<TargetType>* weight_tensor;
     Tensor<TargetType>* bias_tensor;
-
 };
 
+template<typename TargetType>
+struct DetectionOutputParam {
+
+    DetectionOutputParam() = default;
+
+    DetectionOutputParam(int classes, int bg_id, int keep_topk, int nms_topk, float nms_threshold, \
+        float confidence_threshold, bool share_loc = true, bool variance_in_target = false, \
+        int codetype = 1, float eta = 1.f) {
+        class_num = classes;
+        background_id = bg_id;
+        keep_top_k = keep_topk;
+        nms_top_k = nms_topk;
+        nms_thresh = nms_threshold;
+        conf_thresh = confidence_threshold;
+        share_location = share_loc;
+        variance_encode_in_target = variance_in_target;
+        type = (CodeType) codetype;
+        nms_eta = eta;
+    }
+
+    void init(int classes, int bg_id, int keep_topk, int nms_topk, float nms_threshold, \
+        float confidence_threshold, bool share_loc = true, bool variance_in_target = false, \
+        int codetype = 1, float eta = 1.f) {
+        class_num = classes;
+        background_id = bg_id;
+        keep_top_k = keep_topk;
+        nms_top_k = nms_topk;
+        nms_thresh = nms_threshold;
+        conf_thresh = confidence_threshold;
+        share_location = share_loc;
+        variance_encode_in_target = variance_in_target;
+        type = (CodeType) codetype;
+        nms_eta = eta;
+    }
+
+    DetectionOutputParam(const DetectionOutputParam<TargetType> &right) {
+        class_num = right.class_num;
+        background_id = right.background_id;
+        keep_top_k = right.keep_top_k;
+        nms_top_k = right.nms_top_k;
+        nms_thresh = right.nms_thresh;
+        conf_thresh = right.conf_thresh;
+        share_location = right.share_location;
+        variance_encode_in_target = right.variance_encode_in_target;
+        type = right.type;
+        nms_eta = right.nms_eta;
+    }
+
+    DetectionOutputParam<TargetType> &operator=(const DetectionOutputParam<TargetType> &right) {
+        this->class_num = right.class_num;
+        this->background_id = right.background_id;
+        this->keep_top_k = right.keep_top_k;
+        this->nms_top_k = right.nms_top_k;
+        this->nms_thresh = right.nms_thresh;
+        this->conf_thresh = right.conf_thresh;
+        this->share_location = right.share_location;
+        this->variance_encode_in_target = right.variance_encode_in_target;
+        this->type = right.type;
+        this->nms_eta = right.nms_eta;
+        return *this;
+    }
+
+    bool operator==(const DetectionOutputParam<TargetType> &right) {
+        bool flag = class_num == right.class_num;
+        flag = flag && (background_id == right.background_id);
+        flag = flag && (keep_top_k == right.keep_top_k);
+        flag = flag && (nms_top_k == right.nms_top_k);
+        flag = flag && (nms_thresh == right.nms_thresh);
+        flag = flag && (conf_thresh == right.conf_thresh);
+        flag = flag && (share_location == right.share_location);
+        flag = flag && (variance_encode_in_target == right.variance_encode_in_target);
+        flag = flag && (type == right.type);
+        flag = flag && (nms_eta == right.nms_eta);
+        return flag;
+    }
+
+    bool share_location{true};
+    bool variance_encode_in_target{false};
+    int class_num;
+    int background_id{0};
+    int keep_top_k{-1};
+    CodeType type{CORNER};
+    float conf_thresh;
+    int nms_top_k;
+    float nms_thresh{0.3f};
+    float nms_eta{1.f};
+};
 
 template <typename TargetType>
 struct NormalizeParam {
@@ -346,6 +432,22 @@ struct PoolingParam {
         PoolingType pooling_type;
         bool global_pooling;
         bool cmp_out_shape_floor_as_conv;
+};
+template<typename TargetType>
+struct PowerParam {
+        PowerParam() {}
+        PowerParam(float power, float scale, float shift) : power(power), scale(scale), shift(shift) {}
+        PowerParam(const PowerParam &right) : power(right.power), scale(right.scale), shift(right.shift) {}
+        bool operator==(const PowerParam &right) {
+            bool comp_eq = true;
+            comp_eq = comp_eq && (power == right.power);
+            comp_eq = comp_eq && (scale == right.scale);
+            comp_eq = comp_eq && (shift == right.shift);
+            return comp_eq;
+        }
+        float power;
+        float scale;
+        float shift;
 };
   
 template <typename TargetType>
