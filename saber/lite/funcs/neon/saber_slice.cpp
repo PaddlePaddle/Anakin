@@ -43,6 +43,7 @@ SaberStatus SaberSlice::load_param(std::istream &stream, const float *weights) {
         stream >> points[i];
     }
     _param = new SliceParam(axis, points);
+    _slice_points = _param->_points;
     this->_flag_create_param = true;
     this->_flag_param = true;
     return SaberSuccess;
@@ -78,6 +79,7 @@ SaberStatus SaberSlice::compute_output_shape(const std::vector<Tensor<CPU, AK_FL
     int slice_points_size = _slice_points.size();
     int axis_size = shape_in[_param->_axis];
 
+    //printf("top_size: %d, slice_points_size: %d \n", top_size, slice_points_size);
     LCHECK_EQ(top_size > 0 || slice_points_size > 0, true, "output shapes number is 0 and slice points size is 0");
 
     if (slice_points_size > 0) {

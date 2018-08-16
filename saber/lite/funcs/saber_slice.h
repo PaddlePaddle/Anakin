@@ -54,7 +54,6 @@ private:
     const SliceParam* _param;
     int _slice_num;
     int _slice_size;
-
     std::vector<int> _slice_points;
 };
 
