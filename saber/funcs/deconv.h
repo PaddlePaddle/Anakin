@@ -12,36 +12,25 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-#ifndef ANAKIN_SABER_FUNCS_CONV_H
-#define ANAKIN_SABER_FUNCS_CONV_H
+#ifndef ANAKIN_SABER_FUNCS_DECONV_H
+#define ANAKIN_SABER_FUNCS_DECONV_H
 
 #include "saber/funcs/base.h"
-#include "saber/funcs/impl/impl_base.h"
 #include "saber/funcs/funcs_utils.h"
-#include "saber/funcs/impl/impl_conv.h"
+#include "saber/funcs/impl/impl_base.h"
+#include "saber/funcs/impl/impl_deconv.h"
 
 #ifdef NVIDIA_GPU
-#include "saber/funcs/impl/cuda/saber_conv.h"
-#include "saber/funcs/impl/cuda/vender_conv.h"
+//#include "saber/funcs/impl/cuda/saber_deconv.h"
+//#include "saber/funcs/impl/cuda/vender_deconv.h"
 #endif
 
-#ifdef USE_X86_PLACE
-#include "saber/funcs/impl/impl_conv.h"
-#endif
-
-#ifdef USE_ARM_PLACE
-//#include "saber/funcs/impl/arm/saber_conv.h"
-#endif
-
-#ifdef USE_BM
-#include "saber/funcs/impl/bm/vender_conv.h"
-#endif
 namespace anakin {
 namespace saber {
 
 template<typename TargetType,
         DataType OpDtype>
-class Conv : public BaseFunc<
+class Deconv : public BaseFunc<
         TargetType,
         OpDtype,
         ImplBase,
@@ -53,7 +42,7 @@ public:
             ImplBase,
             ConvParam>::BaseFunc;
 
-    Conv() = default;
+    Deconv() = default;
 
     typedef Tensor<TargetType> InDataTensor;
     typedef Tensor<TargetType> OutDataTensor;
@@ -63,22 +52,23 @@ public:
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
 
-    virtual SaberStatus compute_output_shape(const Input_v &input,
-                                             Output_v &output, Param_t &param) override {
-        Shape conv_shape = conv_compute_shape(input[0]->valid_shape(), param);
-        conv_shape.set_layout(Layout_NCHW);
-        return output[0]->set_shape(conv_shape);
+    virtual SaberStatus compute_output_shape(const Input_v &input, \
+        Output_v &output, Param_t &param) override {
+
+        Shape deconv_shape = deconv_compute_shape(input[0]->valid_shape(), param);
+        deconv_shape.set_layout(Layout_NCHW);
+        return output[0]->set_shape(deconv_shape);
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
             case VENDER_IMPL:
-                this->_impl.push_back(new VenderConv2D <TargetType,
+                this->_impl.push_back(new VenderDeconv2D <TargetType,
                         OpDtype>);
                 return SaberSuccess;
 
             case SABER_IMPL:
-                this->_impl.push_back(new SaberConv2D <TargetType,
+                this->_impl.push_back(new SaberDeconv2D <TargetType,
                         OpDtype>);
                 return SaberSuccess;
 
