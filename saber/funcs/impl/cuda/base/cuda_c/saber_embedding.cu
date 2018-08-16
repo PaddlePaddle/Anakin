@@ -32,6 +32,7 @@ SaberStatus SaberEmbedding<NV, OpDtype>::dispatch( \
     std::vector<Tensor<NV>*>& outputs,
 	EmbeddingParam<NV>& param) {
 
+    CHECK_EQ(inputs[0]->get_dtype(), AK_FLOAT) <<" Embedding only support float inputs.";
     const OpDataType *op_data = (const OpDataType*)(param.weight()->data());
 
     const int count = outputs[0]->valid_size();
@@ -40,31 +41,13 @@ SaberStatus SaberEmbedding<NV, OpDtype>::dispatch( \
     //outputs: chose corresponding informations of words.
     //inputs: word_id [Its type maybe float or int]
     //outputs = weights[inputs[j]].
-    if (inputs[0]->get_dtype() == AK_FLOAT) {
-        if (outputs[0]->get_dtype() == AK_FLOAT) {
-            ker_embedding_fwd<float, OpDataType, float>
-            <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(
-            (float*)outputs[0]->mutable_data(), (const float*)inputs[0]->data(), op_data, param.word_num, param.emb_dim, inputs[0]->num(),
-            param.padding_idx, outputs[0]->valid_size());
-        } else if (outputs[0]->get_dtype() == AK_INT8) {
-            ker_embedding_fwd<float, OpDataType, char>
-            <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(
-            (char*)outputs[0]->mutable_data(), (const float*)inputs[0]->data(), op_data, param.word_num, param.emb_dim, inputs[0]->num(),
-            param.padding_idx, outputs[0]->valid_size());
-        }
-    } else if (inputs[0]->get_dtype() == AK_INT32) {
-        if (outputs[0]->get_dtype() == AK_FLOAT) {
-            ker_embedding_fwd<int, OpDataType, float>
-            <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(
-            (float*)outputs[0]->mutable_data(), (const int*)inputs[0]->data(), op_data, param.word_num, param.emb_dim, inputs[0]->num(),
-            param.padding_idx, outputs[0]->valid_size());
-        } else if (outputs[0]->get_dtype() == AK_INT8) {
-            ker_embedding_fwd<int, OpDataType, char>
-            <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(
-            (char*)outputs[0]->mutable_data(), (const int*)inputs[0]->data(), op_data, param.word_num, param.emb_dim, inputs[0]->num(),
-            param.padding_idx, outputs[0]->valid_size());
-        }
-    }
+    ker_embedding_fwd<float, OpDataType, OpDataType>
+    <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(
+                (OpDataType*)outputs[0]->mutable_data(), 
+                (const float*)inputs[0]->data(), op_data, 
+                param.word_num, param.emb_dim, inputs[0]->num(),
+                param.padding_idx, outputs[0]->valid_size());
+    
     outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
     CUDA_POST_KERNEL_CHECK;
     return SaberSuccess;
