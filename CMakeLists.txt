@@ -57,6 +57,8 @@ anakin_option(ANAKIN_TYPE_INT8 "define the INT8 for data precision." NO)
 anakin_option(USE_GPU_PLACE "Select the build mode for GPU place." YES)
 anakin_option(USE_X86_PLACE "Select the build mode for X86 place." YES)
 anakin_option(USE_ARM_PLACE "Select the build mode for ARM place." NO)
+anakin_option(USE_BM_PLACE "Select the build mode for BM place." NO)
+
 
 #select platform
 anakin_option(USE_NV_GPU "build for nvidia gpu" YES)
@@ -78,6 +80,9 @@ anakin_option(USE_CUFFT "Use CuFFT libs." YES if USE_CUDA)
 anakin_option(USE_CUDNN "Use Cudnn libs." YES if USE_CUDA)
 anakin_option(BUILD_CROSS_PLANTFORM "Build anakin lib for any nvidia device plantform." YES if USE_CUDA)
 anakin_option(BUILD_FAT_BIN "Build anakin cuda fat-bin lib for all device plantform" NO if BUILD_CROSS_PLANTFORM)
+
+# compile options for BitMain place
+anakin_option(USE_BM "Use BitMain libs." YES if USE_BM_PLACE)
 
 # build options for amd.
 anakin_option(USE_AMD "Use AMD ROCm OpenCL" YES if AMD_GPU)

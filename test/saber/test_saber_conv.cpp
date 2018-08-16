@@ -8,6 +8,67 @@
 #include <vector>
 
 using namespace anakin::saber;
+#define CHECK_RESULT
+//#define CHECK_SPEED
+
+#ifdef USE_BM
+TEST(TestSaberFunc, test_saber_conv_results_bm) {
+    Env<BM>::env_init();
+    Env<X86>::env_init();
+    TestSaberBase<BM,X86,AK_FLOAT,Conv,ConvParam> testbase_bm;
+    std::vector<int> kernel{1, 3};
+    std::vector<int> pad{0, 1};
+    std::vector<int> stride_h_v{1};
+    std::vector<int> dilation_h_w{1, 2};
+    std::vector<int> in_channels_v{1, 2};
+    std::vector<int> out_channels_v{1, 2};
+    std::vector<int> group_v{1};
+    std::vector<int> in_h_v{6};
+    std::vector<int> in_w_v{6};
+    std::vector<int> input_num_v{2, 1};
+    std::vector<bool> bias_term_v{true, false};
+    std::vector<bool> with_relu_v{false};
+
+    for (int input_num :{1,2})
+    for (int out_channels :{1,2,5})
+    for (int in_channels :{1,2,5})
+    for (auto kernel_h_w : kernel)
+    for (auto pad_h_w : pad)
+    for (auto stride_h : stride_h_v)
+    for (auto stride_w : stride_h_v)
+    for (auto height : in_h_v)
+    for (auto width : in_w_v)
+    for (auto dilation : dilation_h_w)
+    for (auto bias_term : bias_term_v)
+    for (auto with_relu : with_relu_v)
+    for (auto group : group_v) {
+        LOG(INFO)<<"info :"<<input_num<<","<< in_channels<<","<<
+        height<<","<< width<<","<< out_channels<<","<< kernel_h_w<<","<<
+        kernel_h_w<<","<< stride_h<<","<< stride_w<<","<< dilation<<","<< dilation<<","<<
+        pad_h_w<<","<< pad_h_w<<","<< bias_term;
+        Shape weights_s({out_channels, in_channels, kernel_h_w, kernel_h_w}, Layout_NCHW);
+        Shape bias_s({1, out_channels, 1, 1}, Layout_NCHW);
+        Tensor<BM> weights_dev;
+        Tensor<BM> bias_dev;
+
+        weights_dev.re_alloc(weights_s, AK_FLOAT);
+        fill_tensor_rand(weights_dev, -5.f, 5.0f);
+        if (bias_term) {
+            bias_dev.re_alloc(bias_s, AK_FLOAT);
+            fill_tensor_rand(bias_dev, -5.0f, 5.0f);
+        }
+        ConvParam<BM> param_bm(group, pad_h_w, pad_h_w,
+                               stride_h, stride_w,
+                               dilation, dilation,
+                               &weights_dev, &bias_dev);
+        testbase_bm.set_param(param_bm);//set param
+        testbase_bm.set_input_shape(Shape({input_num,in_channels,height,width},
+                                          Layout_NCHW));//add some input shape
+        testbase_bm.run_test(conv_cpu_func<float, BM, X86>, 1e-3);//run test
+
+    }
+}
+#endif
 
 TEST(TestSaberFunc, test_saber_conv_results) {
 #ifdef USE_CUDA
@@ -88,6 +149,7 @@ TEST(TestSaberFunc, test_saber_conv_results) {
         for (auto height : in_h_v)
         for (auto width : in_w_v) {
 #ifdef USE_CUDA
+
             testbase_nv.set_param(param_nv);//set param
             testbase_nv.set_input_shape(Shape({input_num,in_channels,height,width},
                                               Layout_NCHW));//add some input shape
