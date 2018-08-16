@@ -41,7 +41,6 @@ public:
             int dev_count = 0;
             TargetWrapper<BM>::get_device_count(dev_count);
             CHECK_GE(dev_count, 1) << "Env is not initialized or current target is not exit!";
-
             _bm_handle = TargetWrapper<BM>::get_handle();
             return;
         }
