@@ -29,6 +29,7 @@ namespace saber {
 template <typename TargetType>
 struct PreluParam;
 
+
 template <typename TargetType>
 struct ActivationParam {
     ActivationParam()
@@ -78,6 +79,32 @@ struct ActivationParam {
     float coef;
     bool has_active;
     PreluParam<TargetType> prelu_param;
+};
+
+template <typename TargetType>
+struct CastParam {
+    CastParam() = default;
+    CastParam(int in_type_in, int out_type_in)
+            : in_type(in_type_in)
+            , out_type(out_type_in)
+    {}
+    CastParam(const CastParam &right)
+            : in_type(right.in_type)
+            , out_type(right.out_type)
+    {}
+    CastParam &operator=(const CastParam &right) {
+        in_type = right.in_type;
+        out_type = right.out_type;
+        return *this;
+    }
+    bool operator==(const CastParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (in_type == right.in_type);
+        comp_eq = comp_eq && (out_type == right.out_type);
+        return comp_eq;
+    }
+    int in_type;
+    int out_type;
 };
 
 template <typename TargetType>
@@ -178,7 +205,6 @@ struct ConvParam {
 private:
     Tensor<TargetType>* weight_tensor;
     Tensor<TargetType>* bias_tensor;
-
 };
 
 template <typename TargetType>
@@ -205,6 +231,95 @@ struct CtcAlignParam {
     }
     int blank;
     bool merge_repeated;
+};
+  
+template<typename TargetType>
+struct DetectionOutputParam {
+
+    DetectionOutputParam() = default;
+
+    DetectionOutputParam(int classes, int bg_id, int keep_topk, int nms_topk, float nms_threshold, \
+        float confidence_threshold, bool share_loc = true, bool variance_in_target = false, \
+        int codetype = 1, float eta = 1.f) {
+        class_num = classes;
+        background_id = bg_id;
+        keep_top_k = keep_topk;
+        nms_top_k = nms_topk;
+        nms_thresh = nms_threshold;
+        conf_thresh = confidence_threshold;
+        share_location = share_loc;
+        variance_encode_in_target = variance_in_target;
+        type = (CodeType) codetype;
+        nms_eta = eta;
+    }
+
+    void init(int classes, int bg_id, int keep_topk, int nms_topk, float nms_threshold, \
+        float confidence_threshold, bool share_loc = true, bool variance_in_target = false, \
+        int codetype = 1, float eta = 1.f) {
+        class_num = classes;
+        background_id = bg_id;
+        keep_top_k = keep_topk;
+        nms_top_k = nms_topk;
+        nms_thresh = nms_threshold;
+        conf_thresh = confidence_threshold;
+        share_location = share_loc;
+        variance_encode_in_target = variance_in_target;
+        type = (CodeType) codetype;
+        nms_eta = eta;
+    }
+
+    DetectionOutputParam(const DetectionOutputParam<TargetType> &right) {
+        class_num = right.class_num;
+        background_id = right.background_id;
+        keep_top_k = right.keep_top_k;
+        nms_top_k = right.nms_top_k;
+        nms_thresh = right.nms_thresh;
+        conf_thresh = right.conf_thresh;
+        share_location = right.share_location;
+        variance_encode_in_target = right.variance_encode_in_target;
+        type = right.type;
+        nms_eta = right.nms_eta;
+    }
+
+    DetectionOutputParam<TargetType> &operator=(const DetectionOutputParam<TargetType> &right) {
+        this->class_num = right.class_num;
+        this->background_id = right.background_id;
+        this->keep_top_k = right.keep_top_k;
+        this->nms_top_k = right.nms_top_k;
+        this->nms_thresh = right.nms_thresh;
+        this->conf_thresh = right.conf_thresh;
+        this->share_location = right.share_location;
+        this->variance_encode_in_target = right.variance_encode_in_target;
+        this->type = right.type;
+        this->nms_eta = right.nms_eta;
+        return *this;
+    }
+
+    bool operator==(const DetectionOutputParam<TargetType> &right) {
+        bool flag = class_num == right.class_num;
+        flag = flag && (background_id == right.background_id);
+        flag = flag && (keep_top_k == right.keep_top_k);
+        flag = flag && (nms_top_k == right.nms_top_k);
+        flag = flag && (nms_thresh == right.nms_thresh);
+        flag = flag && (conf_thresh == right.conf_thresh);
+        flag = flag && (share_location == right.share_location);
+        flag = flag && (variance_encode_in_target == right.variance_encode_in_target);
+        flag = flag && (type == right.type);
+        flag = flag && (nms_eta == right.nms_eta);
+        return flag;
+    }
+
+    bool share_location{true};
+    bool variance_encode_in_target{false};
+    int class_num;
+    int background_id{0};
+    int keep_top_k{-1};
+    CodeType type{CORNER};
+    float conf_thresh;
+    int nms_top_k;
+    float nms_thresh{0.3f};
+    float nms_eta{1.f};
+
 };
 
 template <typename TargetType>
@@ -272,7 +387,38 @@ struct NormalizeParam {
     Tensor<TargetType>* scale{nullptr};
     float eps{1e-6f};
 };
-    
+
+template <typename TargetType>
+struct PadParam {
+    PadParam() = default;
+    PadParam(std::vector<int> pad_c_in, std::vector<int> pad_h_in, std::vector<int> pad_w_in)
+            : pad_c(pad_c_in)
+            , pad_h(pad_h_in)
+            , pad_w(pad_w_in)
+    {}
+    PadParam(const PadParam &right)
+            : pad_c(right.pad_c)
+            , pad_h(right.pad_h)
+            , pad_w(right.pad_w)
+    {}
+    PadParam &operator=(const PadParam &right) {
+        pad_c = right.pad_c;
+        pad_h = right.pad_h;
+        pad_w = right.pad_w;
+        return *this;
+    }
+    bool operator==(const PadParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (pad_c == right.pad_c);
+        comp_eq = comp_eq && (pad_h == right.pad_h);
+        comp_eq = comp_eq && (pad_w == right.pad_w);
+        return comp_eq;
+    }
+    std::vector<int>  pad_c;
+    std::vector<int>  pad_h;
+    std::vector<int>  pad_w;
+};
+
 template <typename TargetType>
 struct PoolingParam {
         PoolingParam() : window_h(-1), window_w(-1)
@@ -500,6 +646,30 @@ struct ScaleParam {
     std::vector<float> scale_w;
     std::vector<float> scale_b;
 };
+
+template <typename TargetType>
+struct SequencePoolParam {
+    SequencePoolParam()
+            : sequence_pool_type(Sequence_pool_unknow)
+    {}
+    SequencePoolParam(SequencePoolType sequence_pool_type_in)
+            : sequence_pool_type(sequence_pool_type_in)
+    {}
+    SequencePoolParam(const SequencePoolParam &right)
+            : sequence_pool_type(right.sequence_pool_type)
+    {}
+    SequencePoolParam &operator=(const SequencePoolParam &right) {
+        sequence_pool_type = right.sequence_pool_type;
+        return *this;
+    }
+    bool operator==(const SequencePoolParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (sequence_pool_type == right.sequence_pool_type);
+        return comp_eq;
+    }
+    SequencePoolType sequence_pool_type;
+};
+
 template <typename type>
 struct SliceParam {
     SliceParam() = default;
@@ -529,6 +699,16 @@ struct SliceParam {
     }
     int axis;
     std::vector<int> slice_points;
+};
+
+template <typename TargetType>
+struct TransposeParam {
+    TransposeParam() = default;
+    TransposeParam(const TransposeParam& right){}
+    TransposeParam& operator=(const TransposeParam& right){}
+    bool operator==(const TransposeParam& right){
+        return true;
+    }
 };
 }
 }
