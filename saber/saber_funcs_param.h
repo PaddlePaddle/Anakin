@@ -592,6 +592,30 @@ struct ScaleParam {
     std::vector<float> scale_w;
     std::vector<float> scale_b;
 };
+
+template <typename TargetType>
+struct SequencePoolParam {
+    SequencePoolParam()
+            : sequence_pool_type(Sequence_pool_unknow)
+    {}
+    SequencePoolParam(SequencePoolType sequence_pool_type_in)
+            : sequence_pool_type(sequence_pool_type_in)
+    {}
+    SequencePoolParam(const SequencePoolParam &right)
+            : sequence_pool_type(right.sequence_pool_type)
+    {}
+    SequencePoolParam &operator=(const SequencePoolParam &right) {
+        sequence_pool_type = right.sequence_pool_type;
+        return *this;
+    }
+    bool operator==(const SequencePoolParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (sequence_pool_type == right.sequence_pool_type);
+        return comp_eq;
+    }
+    SequencePoolType sequence_pool_type;
+};
+
 template <typename type>
 struct SliceParam {
     SliceParam() = default;
