@@ -212,7 +212,7 @@ SaberStatus SaberDetectionOutput::dispatch(
 #ifdef ENABLE_OP_TIMER
     this->_timer.end();
     float ts = this->_timer.get_average_ms();
-    printf("detection_output time: %f\n", ts);
+    printf("detection_output %s: time: %f\n", this->_op_name.c_str(), ts);
     OpTimer::add_timer("detection_optput", ts);
     OpTimer::add_timer("total", ts);
 #endif

@@ -159,7 +159,7 @@ SaberStatus SaberSlice::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &inp
 #ifdef ENABLE_OP_TIMER
     this->_timer.end();
     float ts = this->_timer.get_average_ms();
-    printf("slice time: %f\n", ts);
+    printf("slice time %s: %f\n", this->_op_name.c_str(), ts);
     OpTimer::add_timer("slice", ts);
     OpTimer::add_timer("total", ts);
 #endif

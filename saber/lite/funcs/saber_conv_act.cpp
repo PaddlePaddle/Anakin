@@ -147,6 +147,9 @@ SaberStatus SaberConvAct2D::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inp
             _act_op->init(outputs, outputs, ctx);
         }
     }
+#if defined(ENABLE_OP_TIMER) || defined(ENABLE_DEBUG)
+    _conv_op->set_op_name(this->get_op_name());
+#endif
     return SaberSuccess; //_conv_func->init(inputs, outputs, ctx);
 }
 

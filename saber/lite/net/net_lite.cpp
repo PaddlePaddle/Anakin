@@ -184,7 +184,9 @@ SaberStatus Net::load_model_info(std::istream &stream) {
 
         //! create op and load param
         OpBase* op = OpRegistry::create_op(op_type);
+#if defined(ENABLE_OP_TIMER) || defined(ENABLE_DEBUG)
         op->set_op_name(op_name.c_str());
+#endif
         op->load_param(stream, _weights);
         _ops[i] = op;
     }
@@ -495,7 +497,7 @@ SaberStatus Net::prediction() {
     }
     for (int i = 0; i < _ops.size(); ++i) {
         LCHECK_EQ(_ops[i]->dispatch(_tensor_ins[i], _tensor_outs[i]), SaberSuccess, "run op failed");
-#ifdef ENABLE_DEBUG
+#if 1//def ENABLE_DEBUG
         for (int j = 0; j < _tensor_outs[i].size(); ++j) {
             double meanval = tensor_mean(*_tensor_outs[i][j]);
             printf("op: %s, mean: %.6f\n", _ops[i]->get_op_name(), meanval);

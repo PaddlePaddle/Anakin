@@ -316,7 +316,7 @@ SaberStatus SaberEltwise::dispatch(\
 #ifdef ENABLE_OP_TIMER
     this->_timer.end();
     float ts = this->_timer.get_average_ms();
-    printf("eltwise time: %f\n", ts);
+    printf("eltwise : %s: time: %f\n", this->_op_name.c_str(), ts);
     OpTimer::add_timer("eltwise", ts);
     OpTimer::add_timer("total", ts);
 #endif

@@ -331,7 +331,7 @@ SaberStatus SaberConv2D::dispatch(\
 #ifdef ENABLE_OP_TIMER
     this->_timer.end();
     float ts = this->_timer.get_average_ms();
-    printf("%s conv time: %f ms, %f GOPS\n", _conv_type.c_str(), ts, 0.000001 * this->_op_macs / ts);
+    printf("type: %s, name: %s, conv time: %f ms, %f GOPs, %f GOPS\n", _conv_type.c_str(), this->get_op_name(), ts, 1e-9f * this->_op_macs, 0.000001 * this->_op_macs / ts);
     OpTimer::add_timer("convolution", ts);
     OpTimer::add_timer("total", ts);
     OpTimer::add_timer(_conv_type, ts);

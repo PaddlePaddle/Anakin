@@ -345,7 +345,7 @@ SaberStatus SaberDeconv2D::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &
 #ifdef ENABLE_OP_TIMER
     this->_timer.end();
     float ts = this->_timer.get_average_ms();
-    printf("deconv time: %f ms, %f GOPS\n", ts, 0.000001 * this->_op_macs / ts);
+    printf("deconv %s: time: %f ms, %f GOPs, %f GOPS\n", this->_op_name.c_str(), ts, 1e-9f * this->_op_macs, 0.000001 * this->_op_macs / ts);
     OpTimer::add_timer("deconvolution", ts);
     OpTimer::add_timer("total", ts);
 #endif

@@ -138,6 +138,9 @@ SaberStatus SaberDeconvAct2D::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &i
     // LOG(INFO) << "Deconv act";
     //_conv_func->set_activation(_param->_flag_act);
     this->_flag_init = true;
+#if defined(ENABLE_OP_TIMER) || defined(ENABLE_DEBUG)
+    _conv_func->set_op_name(this->get_op_name());
+#endif
     return _conv_func->init(inputs, outputs, ctx);
 }
 

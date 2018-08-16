@@ -342,7 +342,7 @@ SaberStatus SaberActivation::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *>
 #ifdef ENABLE_OP_TIMER
     this->_timer.end();
     float ts = this->_timer.get_average_ms();
-    printf("activation: %d, time: %f\n", (int)this->_param->_act_type, ts);
+    printf("activation %s: %d, time: %f\n", this->_op_name.c_str(), (int)this->_param->_act_type, ts);
     OpTimer::add_timer("activation", ts);
     OpTimer::add_timer("total", ts);
 #endif

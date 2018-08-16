@@ -146,8 +146,6 @@ private:
     std::vector<std::string> _ins;
     //! net outputs name
     std::vector<std::string> _outs;
-    //! load flag
-    bool _loaded{false};
     /**
      * \brief initialized the net after load model, or inputs shapes have been changed
      * @return
