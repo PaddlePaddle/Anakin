@@ -441,18 +441,16 @@ struct TargetWrapper<BM, __device_target> {
         const TPtr src, size_t src_offset, int src_id, \
         size_t count);
 
-
     /**
      * \brief device target return currently used device id
      * @return          currently activated device id
      */
     static int get_device_id();
     static void device_sync(){};
-//    static bm_handle_t get_handler();
+    static bm_handle_t get_handle();
 
-//    bm_handle_t handle;
 };
-#endif
+#endif //USE_BM
 
 #ifdef USE_AMD
 
@@ -571,87 +569,6 @@ struct TargetWrapper<AMD, __device_target> {
 };
 
 #endif //USE_AMD
-
-#ifdef USE_BM
-        /**
- * \brief for Bitmain sophon device target only, device target is BM tpu
- * use bitmain api to manage memory
- * support device to device, device to host, host to device memcpy
-*/
-template <>
-struct TargetWrapper<BM, __device_target> {
-    typedef void* event_t;
-    typedef void* stream_t;
-
-    static void get_device_count(int& count);
-
-    static void set_device(int id);
-
-    //We should add strategy to avoid malloc directly
-    static void mem_alloc(void** ptr, size_t n);
-
-    //template <typename void>
-    static void mem_free(void * ptr);
-    
-    //template <typename void>
-    static void mem_set(void* ptr, int value, size_t n);
-
-    // brief create event, empty function for bitmain target
-    static void create_event(event_t event, bool flag = false) {}
-    static void destroy_event(event_t event) {}
-    static void create_stream(stream_t stream) {}
-    static void create_stream_with_flag(stream_t stream, unsigned int flag) {}
-    static void create_stream_with_priority(stream_t stream, unsigned int flag, int priority) {}
-    static void destroy_stream(stream_t stream) {}
-    static void record_event(event_t event, stream_t stream) {}
-    static void query_event(event_t event) {}
-    static void sync_event(event_t event) {}
-    static void sync_stream(event_t event, stream_t stream) {}
-    // brief create event, empty function for bitmain target
-
-    static void sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
-        const void* src, size_t src_offset, int src_id, \
-        size_t count, __DtoD);
-
-    static void sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
-        const void* src, size_t src_offset, int src_id, \
-        size_t count, __HtoD);
-
-    static void sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
-        const void* src, size_t src_offset, int src_id, \
-        size_t count, __DtoH);
-
-    static void sync_memcpy_p2p(void* dst, size_t dst_offset, int dst_id, \
-        const void* src, size_t src_offset, int src_id, \
-        size_t count);
-
-    static void async_memcpy(void* dst, size_t dst_offset, int dst_id, \
-        const void* src, size_t src_offset, int src_id, \
-        size_t count, stream_t stream, __HtoD);
-
-    static void async_memcpy(void* dst, size_t dst_offset, int dst_id, \
-        const void* src, size_t src_offset, int src_id, \
-        size_t count, stream_t stream, __DtoH);
-
-    static void async_memcpy(void* dst, size_t dst_offset, int dst_id, \
-        const void* src, size_t src_offset, int src_id, \
-        size_t count, stream_t stream, __DtoD);
-
-    static void async_memcpy_p2p(void* dst, size_t dst_offset, int dst_id, \
-        const void* src, size_t src_offset, int src_id, \
-        size_t count, stream_t stream);
-
-    /**
-     * \brief device target return currently used device id
-     * @return          currently activated device id
-     */
-    static int get_device_id();
-    static void device_sync();
-
-    static bm_handle_t get_handle();
-};
-
-#endif //USE_BM
 
 } //namespace saber
 

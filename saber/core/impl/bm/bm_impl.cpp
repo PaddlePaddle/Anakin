@@ -3,11 +3,6 @@
 #include "core/data_traits.h"
 #include "env.h"
 
-
-#include "bmlib_runtime.h"
-#include "bmdnn_api.h"
-#include "bmlib_utils.h"
-
 const char* bmdnn_get_errorstring(bm_status_t error) {
     switch (error) {
     case BM_SUCCESS:
@@ -45,7 +40,7 @@ namespace saber {
 
 
 
-typedef  TargetWrapper<BM, __device_target>BM_API;
+typedef TargetWrapper<BM, __device_target> BM_API;
 
 
 // Init handle only once in the lifetime
@@ -72,7 +67,6 @@ int BM_API::get_device_id() {
 }
 
 void BM_API::mem_alloc(TPtr* ptr, size_t n) {
-    handle = get_bm_handle();
     /* bm_device_mem_t *mem = reinterpret_cast<struct bm_mem_desc *>(*ptr); */
     //    bm_device_mem_t *mem = new bm_device_mem_t();
     bm_device_mem_t mem;
@@ -82,7 +76,6 @@ void BM_API::mem_alloc(TPtr* ptr, size_t n) {
 
 void BM_API::mem_free(TPtr ptr) {
     if ((ptr != BM_MEM_NULL)) {
-        handle = get_bm_handle();
         bm_free_device(handle, ptr);
         //        delete ptr;
     }
@@ -100,7 +93,6 @@ void BM_API::sync_memcpy(TPtr dst, size_t dst_offset, int dst_id, \
         size_t count, __DtoD) {
     if(count==0)
         return;
-    handle = get_bm_handle();
     //BMDNN_CHECK(bm_memcpy_d2d(handle, bm_mem_from_device(dst), dst_id, bm_mem_from_device(src), src_id, count));
     BMDNN_CHECK(bm_memcpy_d2d(handle, dst, dst_offset, src, src_offset, count));
 };
@@ -110,7 +102,6 @@ void BM_API::sync_memcpy(TPtr dst, size_t dst_offset, int dst_id, \
         size_t count, __HtoD) {
     if(count==0)
         return;
-    handle = get_bm_handle();
     BMDNN_CHECK(bm_memcpy_s2d(handle, dst+dst_offset, bm_mem_from_system(const_cast<void*>(src)+src_offset)));
 
 #ifdef DEBUG
@@ -127,7 +118,6 @@ void BM_API::sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
         size_t count, __DtoH) {
     if(count==0)
         return;
-    handle = get_bm_handle();
 //    LOG(INFO)<<"host ptr = "<<(dst)<<",dst_offset = "<<dst_offset<<", dev ptr = "<<(src)<<",dev offset = "<<src_offset;
     BMDNN_CHECK(bm_memcpy_d2s(handle, bm_mem_from_system(dst+dst_offset), src+src_offset));
 
@@ -147,17 +137,6 @@ void BM_API::sync_memcpy_p2p(TPtr dst, size_t dst_offset, int dst_id, \
     if(count==0)
         return;
     LOG(FATAL) << "BM sync_memcpy_p2p: temporarily no used";
-};
-
-void BM_API::async_memcpy_p2p(void* dst, size_t dst_offset, int dst_id, \
-        const void* src, size_t src_offset, int src_id, \
-        size_t count, stream_t stream) {
-
-    LOG(FATAL) << "BM async_memcpy_p2p: temporarily no used";
-};
-
-void BM_API::device_sync() {
-    LOG(FATAL) << "BM device_sync: temporarily no used";
 };
 
 //! BM TargetWrapper
