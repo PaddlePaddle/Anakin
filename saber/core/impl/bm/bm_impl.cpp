@@ -53,7 +53,6 @@ bm_handle_t BM_API::get_handle() {
 
 void BM_API::get_device_count(int& count) {
     BMDNN_CHECK(bm_dev_getcount(&count));
-    CHECK_GE(count,1)<<"can`t find device, please check driver and card";
 }
 
 void BM_API::set_device(int id) {
