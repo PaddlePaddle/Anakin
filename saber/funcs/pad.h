@@ -13,76 +13,73 @@
    limitations under the License. 
 */
 
-#ifndef ANAKIN_SABER_FUNCS_NORMALIZE_H
-#define ANAKIN_SABER_FUNCS_NORMALIZE_H
+#ifndef ANAKIN_SABER_FUNCS_PAD_H
+#define ANAKIN_SABER_FUNCS_PAD_H
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
-
-#include "saber/funcs/impl/impl_normalize.h"
+#include "saber/funcs/impl/impl_pad.h"
 #ifdef NVIDIA_GPU
-#include "saber/funcs/impl/cuda/saber_normalize.h"
+//#include "saber/funcs/impl/cuda/saber_pad.h"
 #endif
 
-#ifdef USE_X86_PLACE
-#include "saber/funcs/impl/impl_normalize.h"
-#endif
-
-/*
-#ifdef USE_AMD
-#include "saber/funcs/impl/impl_normalize.h"
-*/
-
-#ifdef USE_ARM_PLACE
-//todo
-#include "saber/funcs/impl/impl_normalize.h"
-#endif
-namespace anakin{
-
-namespace saber{
+namespace anakin {
+namespace saber {
 
 template<typename TargetType,
-        DataType OpDtype>
-class Normalize : public BaseFunc<
+        DataType OpDtype
+>
+class Pad : public BaseFunc<
         TargetType,
         OpDtype,
         ImplBase,
-        NormalizeParam> {
+        PadParam
+> {
 public:
     using BaseFunc<
             TargetType,
             OpDtype,
             ImplBase,
-            NormalizeParam>::BaseFunc;
+            PadParam>::BaseFunc;
 
-    Normalize() = default;
-    
+    Pad() = default;
+
     typedef Tensor<TargetType> InDataTensor;
     typedef Tensor<TargetType> OutDataTensor;
     typedef Tensor<TargetType> OpTensor;
-    typedef NormalizeParam<TargetType> Param_t;
+    typedef PadParam<TargetType> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
 
-            
     virtual SaberStatus compute_output_shape(const Input_v& input, Output_v& output, \
         Param_t& param) override {
-
-        //! support inplace computation, output shape = input shape
+        SaberStatus status;
+        CHECK_EQ(2, param.pad_c.size());
+        CHECK_EQ(2, param.pad_h.size());
+        CHECK_EQ(2, param.pad_w.size());
         Shape output_shape = input[0]->valid_shape();
+        int c_id = input[0]->channel_index();
+        int h_id = input[0]->height_index();
+        int w_id = input[0]->width_index();
+        output_shape[c_id] += param.pad_c[0] + param.pad_c[1];
+        output_shape[h_id] += param.pad_h[0] + param.pad_h[1];
+        output_shape[w_id] += param.pad_w[0] + param.pad_w[1];
         output[0]->set_shape(output_shape);
+
         return SaberSuccess;
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
             case VENDER_IMPL:
-                this->_impl.push_back(new VenderNormalize <TargetType, OpDtype>);
+                this->_impl.push_back(new VenderPad <TargetType,
+                        OpDtype>);
                 return SaberSuccess;
 
             case SABER_IMPL:
-                this->_impl.push_back(new SaberNormalize <TargetType, OpDtype>);
+                this->_impl.push_back(new SaberPad <TargetType,
+                        OpDtype>);
                 return SaberSuccess;
 
             default:
@@ -90,22 +87,23 @@ public:
         }
     }
 
-
 private:
 
     virtual void pick_best_static() override {
-        //! Normalize only has saber implementations
-        this->_best_impl = this->_impl[0];
+        if (true) // some condition?
+            this->_best_impl = this->_impl[0];
     }
+
+    //virtual void pick_best_runtime(Input_v input, Output_v output, Param_t& param) override {}
+
     virtual void pick_best_specify(ImplEnum implenum) override {
-        //! Normalize only has saber implementation
         this->_best_impl = this->_impl[0];
     }
 
 };
 
-} //namespace saber
+}
 
-} //namespace anakin
+}
 
-#endif //ANAKIN_SABER_FUNCS_NORMALIZE_H
+#endif //ANAKIN_SABER_FUNCS_PAD_H
