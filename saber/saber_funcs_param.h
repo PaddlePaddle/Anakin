@@ -674,6 +674,7 @@ struct SliceParam {
     std::vector<int> slice_points;
 };
 
+template <typename TargetType>
 struct TransposeParam {
     TransposeParam() = default;
     TransposeParam(const TransposeParam& right){}
