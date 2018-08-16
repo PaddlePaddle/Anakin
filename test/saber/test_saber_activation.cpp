@@ -33,7 +33,6 @@ void activation_basic(const std::vector<Tensor<TargetType_H>*>& inputs, std::vec
                 dout[i] = din[i] > 0 ? din[i] : 0;
             }
             break;
-
         // sigmoid: 1/(exp(-x) + 1)
         case Active_sigmoid:
 
@@ -41,7 +40,6 @@ void activation_basic(const std::vector<Tensor<TargetType_H>*>& inputs, std::vec
                 dout[i] = 1.0f / (exp(-din[i]) + 1.0f);
             }
             break;
-
         // tanh : (exp(x) - exp(-x)) / (exp(x) + exp(-x))
         case Active_tanh:
             for (size_t i = 0; i < count; i++){
@@ -117,6 +115,7 @@ void test_model(){
 
     TestSaberBase<TargetType_D, TargetType_H, Dtype, Activation, ActivationParam> testbase(1,1);
     Shape input_shape({num, channel, height, width}, Layout_NCHW);
+    
     Shape input_shape2({2, 2, 12, 22}, Layout_NCHW);
     //test example
     for(auto shape: {input_shape, input_shape2}){
@@ -166,6 +165,10 @@ TEST(TestSaberFunc, test_func_activation) {
 #endif
 #ifdef USE_ARM_PLACE
     test_model<AK_FLOAT, ARM, ARM>();
+#endif
+#ifdef USE_BM
+    Env<BM>::env_init();
+    test_accuracy<BM, X86>(num, channel, height, width,VENDER_IMPL);
 #endif
 }
 
