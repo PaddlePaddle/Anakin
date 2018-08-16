@@ -333,7 +333,38 @@ struct NormalizeParam {
     Tensor<TargetType>* scale{nullptr};
     float eps{1e-6f};
 };
-    
+
+template <typename TargetType>
+struct PadParam {
+    PadParam() = default;
+    PadParam(std::vector<int> pad_c_in, std::vector<int> pad_h_in, std::vector<int> pad_w_in)
+            : pad_c(pad_c_in)
+            , pad_h(pad_h_in)
+            , pad_w(pad_w_in)
+    {}
+    PadParam(const PadParam &right)
+            : pad_c(right.pad_c)
+            , pad_h(right.pad_h)
+            , pad_w(right.pad_w)
+    {}
+    PadParam &operator=(const PadParam &right) {
+        pad_c = right.pad_c;
+        pad_h = right.pad_h;
+        pad_w = right.pad_w;
+        return *this;
+    }
+    bool operator==(const PadParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (pad_c == right.pad_c);
+        comp_eq = comp_eq && (pad_h == right.pad_h);
+        comp_eq = comp_eq && (pad_w == right.pad_w);
+        return comp_eq;
+    }
+    std::vector<int>  pad_c;
+    std::vector<int>  pad_h;
+    std::vector<int>  pad_w;
+};
+
 template <typename TargetType>
 struct PoolingParam {
         PoolingParam() : window_h(-1), window_w(-1)
