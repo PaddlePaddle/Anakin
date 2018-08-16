@@ -266,6 +266,8 @@ FILL_TENSOR_HOST(ARM)
 
 template void tensor_cmp_host<float>(const float* src1, const float* src2, \
                                      int size, double& max_ratio, double& max_diff);
+template void tensor_cmp_host<int>(const int* src1, const int* src2, \
+                                     int size, double& max_ratio, double& max_diff);
 template void tensor_cmp_host<char>(const char* src1, const char* src2, int size, \
                                     double& max_ratio, double& max_diff);
 
