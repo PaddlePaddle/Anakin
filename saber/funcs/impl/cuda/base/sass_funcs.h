@@ -336,7 +336,7 @@ void direct_conv_bias_relu_Kdivis4(const DataType* src,
 
 template <typename DataType, typename OpType>
 void direct_conv_bias_relu_Kindiv4(const DataType* src,
-    DataType* dst, 
+    DataType* dst,
     const OpType* weight,
     const DataType* bias,
     int img_num,
