@@ -67,6 +67,10 @@ class NodeAttrWrapper(object):
                             raise NameError('ERROR: UnSupport Recursive list data type(%s) in list ' % (str(type(list_one[0]))))
                 else:
                     raise NameError('ERROR: UnSupport data type(%s) in list ' % (str(type(data[0]))))
+            else:
+                self.value_data.cache_list.f[:] = data
+                self.value_data.cache_list.type = FLOAT
+                self.value_data.cache_list.size = len(data)
         else:
             raise NameError('ERROR: Unknown data type (%s) in message valueType' % (data_type_str))
         return self.value_data
