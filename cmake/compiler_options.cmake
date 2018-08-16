@@ -62,6 +62,7 @@ if(CMAKE_BUILD_TYPE MATCHES Debug)
 	anakin_add_compile_option(-gdwarf-2) # for old version gcc and gdb. see: http://stackoverflow.com/a/15051109/673852 
 else()
 	anakin_add_compile_option(-O3)
+#	anakin_add_compile_option(-g)
 	anakin_add_compile_option(-DNDEBUG)
 endif()
 
