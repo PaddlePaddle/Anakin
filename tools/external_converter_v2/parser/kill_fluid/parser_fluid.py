@@ -39,7 +39,7 @@ class FluidParser:
 		new_name = op.type + '#' + bytes(op.idx) + '(' + arg_name + ')'
 		return new_name
 
-	def _NameNodeIn(self, in_name):
+        def _NameNodeIn(self, in_name):
 		new_name = 'input_' + bytes(self.graph_ins.index(in_name))
 		return new_name
 
@@ -188,7 +188,6 @@ class FluidParser:
 								if tmp_op.type == 'fetch':
 									if arg not in debug_fetch_list:
 										arg_node_name = self._NameNodeOut(arg)
-										logger(verbose.WARNING).feed("output of graph: ", arg_node_name)
 										if arg not in self.graph_outs:
 											self.graph_outs.append(arg)
 											self.graphIO.add_out_fluid(arg_node_name, main_node_name)
@@ -252,6 +251,7 @@ class FluidParser:
 					if input_node_name in reshape_dict.keys():
 						shape = reshape_dict[input_node_name]
 					private_data['input_shape'] = shape
+                                        private_data['alias'] = arg
 					self.outs[input_node_name] = out_edges
 					self._AddProtoNode(input_node_name, source_op, helper, private_data)
 

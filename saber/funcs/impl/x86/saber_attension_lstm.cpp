@@ -6,6 +6,7 @@
 #include "sys/time.h"
 #include "mkl_cblas.h"
 #include "saber/funcs/debug.h"
+#include <cmath>
 namespace anakin {
 
 namespace saber {
