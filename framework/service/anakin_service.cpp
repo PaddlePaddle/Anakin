@@ -7,6 +7,7 @@ namespace rpc {
 template<typename Ttype, DataType Dtype, Precision Ptype, ServiceRunPattern RunP>
 void AnakinService<Ttype, Dtype, Ptype, RunP>::set_device_id(int dev_id) { 
     _dev_id = dev_id;
+    saber::TargetWrapper<Ttype>::set_device(_dev_id);
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype, ServiceRunPattern RunP>
@@ -15,6 +16,14 @@ void AnakinService<Ttype, Dtype, Ptype, RunP>::initial(std::string model_name,
                                                        int thread_num) { 
     _worker_map[model_name] = std::make_shared<Worker<Ttype, Dtype, Ptype, OpRunType::ASYNC> >(model_path, 
                                                                                                thread_num); 
+}
+
+template<typename Ttype, DataType Dtype, Precision Ptype, ServiceRunPattern RunP>
+void AnakinService<Ttype, Dtype, Ptype, RunP>::launch() {
+    for(auto it = _worker_map.begin(); it != _worker_map.end();) {
+        it->second->launch();
+        it++;
+    }
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype, ServiceRunPattern RunP>
@@ -46,18 +55,26 @@ void AnakinService<Ttype, Dtype, Ptype, RunP>::register_interior_edges(std::stri
 template<typename Ttype, DataType Dtype, Precision Ptype, ServiceRunPattern RunP>
 inline void AnakinService<Ttype, Dtype, Ptype, RunP>::extract_request(
                         const RPCRequest* request, 
-                        std::vector<Tensor4dPtr<typename target_host<Ttype>::type, Dtype> >& inputs) {
+                        std::vector<Tensor4d<typename target_host<Ttype>::type, Dtype> >& inputs) {
     for(int i = 0; i < request->inputs_size(); i++) {
+        LOG(INFO) << "Get " << i << "input";
         auto& io = request->inputs(i);
         auto& data = io.tensor();
         auto& shape = data.shape();
         saber::Shape tensor_shape{shape[0],shape[1],shape[2],shape[3]};
-        Tensor4dPtr<typename target_host<Ttype>::type, Dtype> h_tensor_p = 
-                new Tensor4d<typename target_host<Ttype>::type, Dtype>();
-        h_tensor_p->re_alloc(tensor_shape);
-        auto* h_data = h_tensor_p->mutable_data();
+        Tensor4d<typename target_host<Ttype>::type, Dtype> h_tensor;
+        h_tensor.re_alloc(tensor_shape);
+        auto* h_data = h_tensor.mutable_data();
+        DLOG(INFO) <<"Check shape: " << shape[0] << " " << shape[1] << " " << shape[2] << " " <<shape[3];
+        DLOG(INFO) << "h_data: " << h_data << "data_p: " << data.data().data();
+        for(int j=0; j<10;j++) {
+            LOG(INFO) << "  \\__ request data[" << j << "]: " <<data.data(j);
+        }
         memcpy(h_data, data.data().data(), shape[0]*shape[1]*shape[2]*shape[3]*sizeof(Dtype));
-        inputs.push_back(h_tensor_p);
+        for(int j=0; j<10;j++) {
+            LOG(WARNING) << "  \\__ copy to inputs data[" << j << "]: " << h_data[j];
+        }
+        inputs.push_back(h_tensor);
     }
 }
 
@@ -66,16 +83,15 @@ inline void AnakinService<Ttype, Dtype, Ptype, RunP>::fill_response_data(
                         int request_id,
                         std::string model_name,
                         RPCResponse* response, 
-                        std::vector<Tensor4dPtr<Ttype, Dtype> >& outputs) {
+                        std::vector<Tensor4d<typename target_host<Ttype>::type, Dtype> >& outputs) {
     response->set_model(model_name);
     response->set_request_id(request_id);
-    for(auto& d_out_p : outputs) {
+    int count =0;
+    for(auto& h_out : outputs) {
+        LOG(INFO) << "Get " << count << " output";
+        count++;
         // copy to host
-        auto shape = d_out_p->valid_shape();
-        Tensor4dPtr<typename target_host<Ttype>::type, Dtype> h_tensor_p = 
-                new Tensor4d<typename target_host<Ttype>::type, Dtype>();
-        h_tensor_p->re_alloc(shape);
-        h_tensor_p->copy_from(*d_out_p);
+        auto shape = h_out.valid_shape();
         // fill response
         IO* output = response->add_outputs();
         Data* data = output->mutable_tensor();
@@ -84,9 +100,10 @@ inline void AnakinService<Ttype, Dtype, Ptype, RunP>::fill_response_data(
         data->add_shape(shape[2]); 
         data->add_shape(shape[3]);
         data->mutable_data()->Reserve(shape[0]*shape[1]*shape[2]*shape[3]);
-        memcpy(data->mutable_data()->mutable_data(), 
-               h_tensor_p->mutable_data(), 
-               shape[0]*shape[1]*shape[2]*shape[3]*sizeof(float));
+        for(int j=0; j<shape[0]*shape[1]*shape[2]*shape[3]; j++) {
+            data->add_data(h_out.mutable_data()[j]);
+        }
+        LOG(INFO) << " output size: " <<data->data_size();
     }
 }
 

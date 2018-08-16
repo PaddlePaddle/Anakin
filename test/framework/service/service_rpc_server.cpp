@@ -1,5 +1,5 @@
 #include <string>
-#include "net_test.h"
+#include "service_test.h"
 #include "saber/funcs/timer.h"
 #include <chrono>
 
@@ -15,8 +15,9 @@ using Target_H = ARM;
 #endif
 
 std::string mobilenet_v2_model_path = "/home/cuichaowen/anakin2/public_model/public-caffe-model/mobilenetv12/mobilenet_v2.anakin.bin";
+int batchsize = 1;
 
-int service_start(int port，int dev_id) {
+int service_start(int port, int dev_id) {
     // create one server
     brpc::Server server;
 
@@ -26,12 +27,17 @@ int service_start(int port，int dev_id) {
     rpc_service.set_device_id(dev_id); 
 
     // initialize config for mobilenet v2
-    rpc_service.initial("mobilenet_v2", model_path, 3);
+    rpc_service.initial("mobilenet_v2", mobilenet_v2_model_path, 3);
     rpc_service.register_inputs("mobilenet_v2", {"input_0"});
+    rpc_service.Reshape("mobilenet_v2", "input_0", {batchsize, 3, 224, 224});
     rpc_service.register_outputs("mobilenet_v2", {"prob_out"});
 
     // create moniter for this service
     rpc_service.create_monitor<DEV_ID, DEV_NAME, DEV_TMP, DEV_MEM_FREE, DEV_MEM_USED>(30); // span 30 second
+
+    
+    // launch rpc service
+    rpc_service.launch();
 
     // add service to server
     if (server.AddService(&rpc_service, brpc::SERVER_DOESNT_OWN_SERVICE) != 0) { 
@@ -47,6 +53,7 @@ int service_start(int port，int dev_id) {
     options.num_threads = 10; 
     // Max concurrency request of server
     options.max_concurrency = 300; 
+
     if (server.Start(port, &options) != 0) { 
         LOG(ERROR) << "Fail to start Server on port "<< port << " device id " << dev_id; 
         return -1; 

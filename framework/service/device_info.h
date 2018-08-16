@@ -33,7 +33,7 @@
 #include <driver_types.h>  // cuda driver types
 #endif
 
-#include "logger/logger.h"
+#include "utils/logger/logger.h"
 #include "saber/saber_types.h"
 
 namespace anakin {
@@ -109,14 +109,14 @@ private:
 
 template<typename Ttype>
 struct Inquiry {
-    ~Inquiry();
+    ~Inquiry() {}
 
-    void init(int dev_id = 0);
+    void init(int dev_id = 0) {}
 
     template<Info I>
     typename InfoTraits<I>::data_type get() {
         LOG(WARNING) << "Target not support! ";
-        return InfoTraits<I>::data_type();
+        return typename InfoTraits<I>::data_type();
     }
 private:
     int _dev_id;
@@ -137,7 +137,7 @@ class DevInfo : public InfoStruct<infos>... {
 public:
     template<Info I>
     void set(typename InfoTraits<I>::data_type value) {
-        std::unique_lock<std::mutex> lock(this->mut);
+        std::unique_lock<std::mutex> lock(this->_mut);
         if(HasTarget<I, infos...>::value) {
             LOG(FATAL)<<" DevInfo parameter pack doesn't have target info type " << I;
         }

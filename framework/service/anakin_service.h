@@ -37,17 +37,19 @@ public:
     }
 
 public:
-    inline void set_device_id(int dev_id);
+    void set_device_id(int dev_id);
 
-    inline void initial(std::string model_name, std::string model_path, int thread_num);
+    void initial(std::string model_name, std::string model_path, int thread_num);
 
-    inline void Reshape(std::string model_name, std::string in_name, std::vector<int> in_shape);
+    void launch();
 
-    inline void register_inputs(std::string model_name, std::vector<std::string> in_names);
+    void Reshape(std::string model_name, std::string in_name, std::vector<int> in_shape);
 
-    inline void register_outputs(std::string model_name, std::vector<std::string>);
+    void register_inputs(std::string model_name, std::vector<std::string> in_names);
 
-    inline void register_interior_edges(std::string model_name, std::string edge_start, std::string edge_end);
+    void register_outputs(std::string model_name, std::vector<std::string>);
+
+    void register_interior_edges(std::string model_name, std::string edge_start, std::string edge_end);
 
     template<typename functor, typename ...ParamTypes> 
     void register_aux_function(std::string model_name, functor function, ParamTypes ...args) {
@@ -56,18 +58,19 @@ public:
 
     template<Info ...infos>
     void create_monitor(int interval_time_in_sec) {
-        _monitor.create_instance<infos...>(_dev_id, interval_time_in_sec);
+        _monitor.template create_instance<infos...>(_dev_id, interval_time_in_sec);
     }
 
 private:
-    inline void extract_request(const RPCRequest* request, 
-                                std::vector<Tensor4dPtr<typename target_host<Ttype>::type, Dtype> >& inputs);
-    inline void fill_response_data(int request_id, std::string model_name, 
-                                   RPCResponse* response, std::vector<Tensor4dPtr<Ttype, Dtype> >& outputs);
-    inline void fill_response_exec_info(RPCResponse* response);
+    void extract_request(const RPCRequest* request, 
+                         std::vector<Tensor4d<typename target_host<Ttype>::type, Dtype> >& inputs);
+    void fill_response_data(int request_id, std::string model_name, 
+                            RPCResponse* response, 
+                            std::vector<Tensor4d<typename target_host<Ttype>::type, Dtype> >& outputs);
+    void fill_response_exec_info(RPCResponse* response);
 
 private:
-    inline void _evaluate(::google::protobuf::RpcController* controller_base, 
+    void _evaluate(::google::protobuf::RpcController* controller_base, 
                           const RPCRequest* request, 
                           RPCResponse* response, 
                           ::google::protobuf::Closure* done,
@@ -78,19 +81,21 @@ private:
         // receive remote call from client.
         LOG(INFO) << "Received request[log_id=" << cntl->log_id() << "] from " << cntl->remote_side();
         if (!cntl->request_attachment().empty()) { 
-            LOG(INFO) << " -- (attached=" << cntl->request_attachment() << ")"; 
+            LOG(INFO) << " |-- (attached=" << cntl->request_attachment() << ")"; 
         }
         std::string model_name = request->model();
         int request_id = request->request_id();
-        std::vector<Tensor4dPtr<typename target_host<Ttype>::type, Dtype> > inputs;
+        LOG(INFO) <<" |-- Get model: "<<model_name << " id: " << request_id; 
+        std::vector<Tensor4d<typename target_host<Ttype>::type, Dtype> > inputs;
         extract_request(request, inputs);
         auto ret = _worker_map[model_name]->sync_prediction(inputs);
         auto results = ret.get();
+        LOG(ERROR) << "do infer over! thread id: " << std::this_thread::get_id();
         fill_response_data(request_id, model_name, response, results);
         fill_response_exec_info(response);
     }
 
-    inline void _evaluate(::google::protobuf::RpcController* controller_base, 
+    void _evaluate(::google::protobuf::RpcController* controller_base, 
                           const RPCRequest* request, 
                           RPCResponse* response, 
                           ::google::protobuf::Closure* done,
@@ -104,7 +109,7 @@ private:
 
 private:
     std::unordered_map<std::string, std::shared_ptr<Worker<Ttype, Dtype, Ptype, OpRunType::ASYNC> > > _worker_map;
-    Monitor _monitor;
+    Monitor<Ttype> _monitor;
     int _dev_id;
 };
 

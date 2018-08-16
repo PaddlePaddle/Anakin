@@ -20,7 +20,7 @@ inline void ThreadPool::launch() {
                         task = std::move(this->_tasks.front()); 
                         this->_tasks.pop();
                     }
-                    DLOG(INFO) << " Thread (" << i <<") processing";
+                    LOG(WARNING) << " Thread (" << i <<") processing thread_id: " << std::this_thread::get_id();
                     auxiliary_funcs();
                     task();
                 }
@@ -55,7 +55,7 @@ inline typename function_traits<functor>::return_type ThreadPool::RunSync(functo
     std::future<typename function_traits<functor>::return_type> result = task->get_future(); 
     { 
         std::unique_lock<std::mutex> lock(this->_mut);
-        this->_tasks.emplace( [&]() { (*task)(); } );
+        this->_tasks.emplace( [=]() { (*task)(); } );
     }
     this->_cv.notify_one();
     return result.get();

@@ -51,7 +51,6 @@ endif()
 
 if(BUILD_RPC)
     anakin_find_baidu_rpc()
-    anakin_find_google_flags()
 endif()
 
 if (USE_GFLAGS)

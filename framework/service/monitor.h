@@ -23,6 +23,7 @@ namespace anakin {
 namespace rpc {
 
 /// monitor thread pool
+template<typename Ttype>
 class Monitor {
 public:
     Monitor(){}
@@ -39,7 +40,7 @@ public:
                         std::chrono::duration_cast<std::chrono::milliseconds>(sys_clock::now()-start).count();
                 if(elapsed_time_ms  > time * 1000) {
                     start = sys_clock::now();
-                    dev_info_pack.inquiry(dev_id);
+                    dev_info_pack.template inquiry<Ttype>(dev_id);
                     _name = dev_info_pack.template get<DEV_NAME>();
                     _temp = dev_info_pack.template get<DEV_TMP>();
                     _mem_free = dev_info_pack.template get<DEV_MEM_FREE>();

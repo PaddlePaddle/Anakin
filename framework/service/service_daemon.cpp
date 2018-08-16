@@ -36,15 +36,16 @@ void ServiceDaemon::operator()(std::function<int(int,int)> server_start,
     }
     
     // Close out the standard file descriptors
-    close(STDIN_FILENO); // 0
-    close(STDOUT_FILENO); // 1
-    close(STDERR_FILENO); // 2
+    //close(STDIN_FILENO); // 0
+    //close(STDOUT_FILENO); // 1
+    //close(STDERR_FILENO); // 2
     
     // Daemon-specific initialization goes here */
     pid_t *pid_news = new pid_t[device_list.size()];
     for(;;) { 
         for(auto dev_id : device_list) { 
             if(!check_port_occupied(server_port) || !check_process_exist(pid_news[dev_id])) { 
+                LOG(WARNING) <<" Create daemon process on device : " << dev_id;
                 // reaped zombie process
                 if(pid_news[dev_id]) waitpid(pid_news[dev_id], NULL, 0);
 

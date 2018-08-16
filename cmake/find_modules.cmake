@@ -237,14 +237,14 @@ endmacro()
 
 macro(anakin_find_google_flags)
     set(GFLAGS_ROOT_DIR "/usr/include" CACHE PATH "gflags path")
-    find_path(GFLAGS_INCLUDE_DIR gflags/gflags.h PATHS ${GFLAGS_ROOT_DIR})
+    find_path(GFLAGS_INCLUDE_DIRS gflags/gflags.h PATHS ${GFLAGS_ROOT_DIR})
 
-    find_library(GFLAGS_LIBRARY NAMES libgflags.so
+    find_library(GFLAGS_LIBRARIES NAMES libgflags.so
                                 PATHS ${GFLAGS_ROOT_DIR}/../lib64
                                 DOC "library path for gflags.")
-    if(GFLAGS_INCLUDE_DIR AND GFLAGS_LIBRARY)
-        include_directories(SYSTEM ${GFLAGS_INCLUDE_DIR})
-        list(APPEND ANAKIN_DEMO_LIBRARIES ${GFLAGS_LIBRARY})
+    if(GFLAGS_INCLUDE_DIRS AND GFLAGS_LIBRARIES)
+        include_directories(SYSTEM ${GFLAGS_INCLUDE_DIRS})
+        list(APPEND ANAKIN_DEMO_LIBRARIES ${GFLAGS_LIBRARIES})
     else()
         message(SEND_ERROR "Could not found gflags !")
     endif()
@@ -328,7 +328,7 @@ macro(anakin_find_protobuf)
 endmacro()
 
 macro(anakin_find_baidu_rpc)
-    set(BAIDU_RPC_ROOT "/usr/local/" CACHE "baidu rpc root dir")
+    set(BAIDU_RPC_ROOT "/usr/local/" CACHE PATH "baidu rpc root dir")
     find_path(RPC_INCLUDE_DIR server.h PATHS ${BAIDU_RPC_ROOT}/include/brpc/ $ENV{BAIDU_RPC_ROOT}/include/brpc/)
     find_library(RPC_LIBRARY NAMES libbrpc.so
                              PATHS ${BAIDU_RPC_ROOT}/lib $ENV{BAIDU_RPC_ROOT}/include/brpc/

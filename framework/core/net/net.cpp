@@ -145,10 +145,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
     // infer basic shape and parsing parameter from graph
     for (auto& node_name : node_names_in_exec_order) {
         auto node_ptr = (*_graph_p)[node_name];
-        //LOG(ERROR) << "get node " << node_name << ", op type " << node_ptr->get_op_name();
-        /*if (node_ptr->get_op_name() == "Output") {
-            continue;
-        }*/
+
 #ifdef ENABLE_OP_TIMER
         if (std::string::npos != (node_ptr->get_op_name()).find("Conv") 
                 || std::string::npos != (node_ptr->get_op_name()).find("Deconv")) {
