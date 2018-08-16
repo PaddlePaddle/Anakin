@@ -52,6 +52,10 @@ typedef  TargetWrapper<BM, __device_target>BM_API;
 static bm_handle_t handle;
 static bm_status_t init_handle{bmdnn_init(&handle)};
 
+bm_handle_t BM_API::get_handle() {
+    return handle;
+};
+
 void BM_API::get_device_count(int& count) {
     BMDNN_CHECK(bm_dev_getcount(&count));
     CHECK_GE(count,1)<<"can`t find device, please check driver and card";
@@ -145,7 +149,19 @@ void BM_API::sync_memcpy_p2p(TPtr dst, size_t dst_offset, int dst_id, \
     LOG(FATAL) << "BM sync_memcpy_p2p: temporarily no used";
 };
 
+void BM_API::async_memcpy_p2p(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
+        size_t count, stream_t stream) {
 
+    LOG(FATAL) << "BM async_memcpy_p2p: temporarily no used";
+};
+
+void BM_API::device_sync() {
+    LOG(FATAL) << "BM device_sync: temporarily no used";
+};
+
+//! BM TargetWrapper
+template struct TargetWrapper<BM, __device_target>;
 
 //! BM Buffer
 template class Buffer<BM>;

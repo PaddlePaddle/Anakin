@@ -57,6 +57,13 @@ TEST(TestSaberFuncTest, test_arm_context) {
 }
 #endif //USE_ARM_PLACE
 
+#ifdef USE_BM
+TEST(TestSaberFunc, test_BM_context) {
+    Context<BM> ctx;
+    CHECK_NOTNULL(ctx.get_handle()) << "Failed to get BM handle";
+}
+#endif //USE_BM
+
 int main(int argc, const char** argv) {
     // initial logger
     logger::init(argv[0]);
