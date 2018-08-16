@@ -4,6 +4,11 @@
 
 #include "saber_types.h"
 
+
+#include "saber_avx512_math.h"
+#include "saber_avx2_math.h"
+#include "saber_sse_math.h"
+
 namespace anakin {
 
 namespace saber {
@@ -38,7 +43,7 @@ inline Dtype Identity(const Dtype a) {
 
 #if defined(__SSE4_2__)
 
-#include "saber_sse_math.h"
+
 template<>
 inline __m128 Relu<__m128>(const __m128 a) {
     __m128 tmp = _mm_set1_ps(0.0f);
@@ -62,8 +67,8 @@ inline __m128 Tanh<__m128>(const __m128 a) {
     __m128 tmp = _mm_mul_ps(_mm_set1_ps(-2.0f), a);
     tmp = exp128_ps_fma(tmp);
     return _mm_sub_ps(_mm_div_ps(_mm_set1_ps(2.0f),
-                                       _mm_add_ps(_mm_set1_ps(1.0f), tmp)),
-                         _mm_set1_ps(1.0f));
+                                 _mm_add_ps(_mm_set1_ps(1.0f), tmp)),
+                      _mm_set1_ps(1.0f));
 }
 
 
@@ -73,7 +78,7 @@ inline __m128 Tanh<__m128>(const __m128 a) {
 
 
 #if defined(__AVX2__)
-#include "saber_avx2_math.h"
+
 
 template<>
 inline __m256 Relu<__m256>(const __m256 a) {
@@ -103,9 +108,9 @@ inline __m256 Tanh<__m256>(const __m256 a) {
 
 #endif
 
-#if 1
+
 #if defined(__AVX512F__)
-#include "saber_avx512_math.h"
+
 
 template<>
 inline __m512 Relu<__m512>(const __m512 a) {
@@ -134,7 +139,7 @@ inline __m512 Tanh<__m512>(const __m512 a) {
 }
 
 #endif
-#endif
+
 
 template<typename Dtype>
 struct ACTIVATION {
