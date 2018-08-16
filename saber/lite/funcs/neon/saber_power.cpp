@@ -113,8 +113,7 @@ SaberStatus SaberPower::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &inp
     float* ptr_out = outputs[0]->mutable_data();
     const float* ptr_in = inputs[0]->data();
     int size = inputs[0]->valid_size();
-    int threads = 1;
-    this->_ctx->get_mode(threads);
+    int threads = this->_ctx->get_threads();
     int nums_per_thread = size / threads;
     int remain = size - threads * nums_per_thread;
     int neon_loop_cnt = nums_per_thread >> 4;

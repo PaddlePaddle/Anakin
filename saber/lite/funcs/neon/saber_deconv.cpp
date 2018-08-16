@@ -229,8 +229,7 @@ SaberStatus SaberDeconv2D::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inpu
     this->_ctx = &ctx;
     //printf("conv init \n");
 
-    int threads = 1;
-    this->_ctx->get_mode(threads);
+    int threads = this->_ctx->get_threads();
 
     Shape shape_in = inputs[0]->valid_shape();
     Shape shape_out = outputs[0]->valid_shape();

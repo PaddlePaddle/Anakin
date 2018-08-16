@@ -334,8 +334,7 @@ SaberStatus SaberActivation::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *>
     int width = inputs[0]->width();
     float* ptr_out = outputs[0]->mutable_data();
     const float* ptr_in = inputs[0]->data();
-    int threads = 1;
-    this->_ctx->get_mode(threads);
+    int threads = this->_ctx->get_threads();
 
     _impl(ptr_in, ptr_out, num, channel, height, width, this->_param, threads);
 

@@ -70,7 +70,6 @@ int arm_get_cpucount() {
     if (count < 1) {
         count = 1;
     }
-    printf("cpu count: %d\n", count);
     return count;
 #endif
 
@@ -338,9 +337,12 @@ Context::Context() {
     _mode = SABER_POWER_HIGH;
 }
 
-PowerMode Context::get_mode(int& threads) {
-    threads = _act_ids.size();
+PowerMode Context::get_mode() {
     return _mode;
+}
+
+int Context::get_threads() {
+    return _act_ids.size();
 }
 
 Context::Context(const Context& ctx){
@@ -361,6 +363,7 @@ void Context::bind_dev() {
 }
 
 void Context::set_run_mode(PowerMode mode, int threads) {
+#ifdef USE_OPENMP
     DeviceInfo& dev = Env::cur_env();
     std::vector<int> big_cores;
     std::vector<int> small_cores;
@@ -447,18 +450,33 @@ void Context::set_run_mode(PowerMode mode, int threads) {
                 _act_ids.push_back(0);
             }
             break;
+        case SABER_POWER_NO_BIND:
+            _mode = SABER_POWER_NO_BIND;
+            _act_ids.clear();
+            if (threads > dev._core_ids.size()) {
+                _act_ids.resize(dev._core_ids.size());
+            } else {
+                _act_ids.resize(threads);
+            }
+            break;
     }
 //    printf("run mode: %d\n", _mode);
 //    printf("thread num: %lu\n", _act_ids.size());
 //    for (int j = 0; j < _act_ids.size(); ++j) {
 //        printf("|----active id: %d\n", _act_ids[j]);
 //    }
-
+    if (_mode == SABER_POWER_NO_BIND) {
+        int threads = _act_ids.size();
+        omp_set_num_threads(threads);
+    } else {
+        bind_dev();
+    }
+#else
+    _act_ids = {0};
+#endif
     //! alloc memory for sgemm in this context
-
     int temp_mem_size = 2 * (Env::cur_env()._L1_cache + Env::cur_env()._L2_cache);
     _work_space.reshape(Shape(temp_mem_size));
-    bind_dev();
 }
 
 void* Context::get_work_space() {
