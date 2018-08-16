@@ -9,7 +9,7 @@ using namespace anakin::saber;
 
 template <typename TargetType, typename TargetType_H>
 void test_activation(Shape input_big_shape, Shape input_shape,
-                     ActivationParam<TargetType> param, Shape offset, bool is_share_from) {
+                     ActivationParam<TargetType> param, Shape offset, bool is_share_from,ImplEnum impl_num=SABER_IMPL) {
     typedef Tensor<TargetType_H> TensorH;
     typedef Tensor<TargetType> TensorD;
     Context<TargetType> ctx(0, 1, 1);
@@ -49,7 +49,7 @@ void test_activation(Shape input_big_shape, Shape input_shape,
 
     act.compute_output_shape(inputs, outputs, param);
     // init assume output tensor has been reshpaed by user.
-    act.init(inputs, outputs, param, SPECIFY, SABER_IMPL, ctx);
+    act.init(inputs, outputs, param, SPECIFY, impl_num, ctx);
     act(inputs, outputs, param, ctx);
     typename TensorD::API::stream_t stream = ctx.get_compute_stream();
     outputs[0]->record_event(stream);
@@ -66,7 +66,7 @@ void test_activation(Shape input_big_shape, Shape input_shape,
 }
 
 template <typename TargetType, typename TargetType_H>
-void test_accuracy(int num, int channel, int height, int width) {
+void test_accuracy(int num, int channel, int height, int width,ImplEnum impl_num=SABER_IMPL) {
 
     typedef Tensor<TargetType_H> TensorH;
     typedef Tensor<TargetType> TensorD;
@@ -99,7 +99,7 @@ void test_accuracy(int num, int channel, int height, int width) {
         for (auto share_from : {false, true}) {
             for (auto offset: {offset_0, offset_1}) {
                 test_activation<TargetType, TargetType_H>(input_big_shape,
-                                input_shape, param, offset, share_from);
+                                input_shape, param, offset, share_from,impl_num);
             }
         }
     }
@@ -118,6 +118,10 @@ TEST(TestSaberFunc, test_func_activation) {
 #ifdef USE_X86_PLACE
     Env<X86>::env_init();
     test_accuracy<X86, X86>(num, channel, height, width);
+#endif
+#ifdef USE_BM
+    Env<BM>::env_init();
+    test_accuracy<BM, X86>(num, channel, height, width,VENDER_IMPL);
 #endif
 }
 
