@@ -119,7 +119,3590 @@ void conv_depthwise_3x3(const float* din, float* dout, \
  * \brief depthwise convolution, kernel size 3x3, stride 1, pad 1, with bias, width > 4
  */
 #ifdef __aarch64__
+
+template <typename Dtype>
+inline void prefetch(const Dtype *din) {
+    asm volatile(
+    "PRFM PLDL1KEEP, [%[din]] \n"
+    :
+    : [din] "r"(din)
+    : "memory");
+}
+void conv_depthwise_3x3s1p1_bias_1(float* dout, const float* din, \
+    const float* weights, const float* bias, bool flag_bias, \
+    const int num, const int ch_in, const int h_in, const int w_in, \
+    const int h_out, const int w_out);
+
+void conv_depthwise_3x3s1p1_bias_2(float* dout, const float* din, \
+    const float* weights, const float* bias, bool flag_bias, \
+    const int num, const int ch_in, const int h_in, const int w_in, \
+    const int h_out, const int w_out) {
+    //2channel
+    //! pad is done implicit
+    const float zero[8] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
+    //! for 4x6 convolution window
+    const unsigned int right_pad_idx[8] = {5, 4, 3, 2, 1, 0, 0, 0};
+
+
+    int size_in_channel = w_in * h_in;
+    int size_out_channel = w_out * h_out;
+    int w_stride = 9;
+
+    int tile_w = (w_in + 3) >> 2;
+    int tile_h = (h_in + 1) >> 1;
+    int cnt_col = tile_w - 2;
+
+    unsigned int size_pad_right = (unsigned int)(1 + (tile_w << 2) - w_in);
+    int size_pad_bottom = 1 + (tile_h << 1) - h_in;
+
+    int cremain = ch_in - ((ch_in >> 1) << 1);
+
+    uint32x4_t vmask_rp1 = vcgeq_u32(vld1q_u32(right_pad_idx), vdupq_n_u32(size_pad_right));
+    uint32x4_t vmask_rp2 = vcgeq_u32(vld1q_u32(right_pad_idx + 4), vdupq_n_u32(size_pad_right));
+    uint32x4_t vmask_result = vcgtq_u32(vld1q_u32(right_pad_idx), vdupq_n_u32(size_pad_right));
+
+     for (int n = 0; n < num; ++n) {
+        const float *din_batch = din + n * ch_in * size_in_channel;
+        float *dout_batch = dout + n * ch_in * size_out_channel;
+#pragma omp parallel for
+        for (int c = 0; c < ch_in - 2; c += 2) {
+            float* dout_c0 = dout_batch + c * size_out_channel;
+            float* dout_c1 = dout_c0 + size_out_channel;
+
+            const float* dinc0 = din_batch + c * size_in_channel;
+            const float* dinc1 = dinc0 + size_in_channel;
+
+            if (flag_bias) {
+                fill_bias(dout_c0, &bias[c], 1, size_out_channel);
+                fill_bias(dout_c1, &bias[c + 1], 1, size_out_channel);
+            } else {
+                fill_bias(dout_c0, zero, 1, size_out_channel);
+                fill_bias(dout_c1, zero, 1, size_out_channel);
+            }
+
+            const float* wcin0 = weights + c * w_stride;
+            const float* wcin1 = wcin0 + w_stride;
+
+            float32x4_t wrc0_00 = vld1q_f32(wcin0);
+            float32x4_t wrc0_01 = vld1q_f32(wcin0 + 3);
+            float32x4_t wrc0_02 = vld1q_f32(wcin0 + 6);
+
+            float32x4_t wrc1_00 = vld1q_f32(wcin1);
+            float32x4_t wrc1_01 = vld1q_f32(wcin1 + 3);
+            float32x4_t wrc1_02 = vld1q_f32(wcin1 + 6);
+
+            float *doutc0r0 = dout_c0;
+            float *doutc0r1 = doutc0r0 + w_out;
+
+            float *doutc1r0 = dout_c1;
+            float *doutc1r1 = doutc1r0 + w_out;
+
+            const float *drc0r0 = dinc0;
+            const float *drc0r1 = drc0r0 + w_in;
+            const float *drc0r2 = drc0r1 + w_in;
+            const float *drc0r3 = drc0r2 + w_in;
+
+            const float *dinc0r0_ptr = drc0r0;
+            const float *dinc0r1_ptr = drc0r1;
+            const float *dinc0r2_ptr = drc0r2;
+            const float *dinc0r3_ptr = drc0r3;
+
+            const float *drc1r0 = dinc1;
+            const float *drc1r1 = drc1r0 + w_in;
+            const float *drc1r2 = drc1r1 + w_in;
+            const float *drc1r3 = drc1r2 + w_in;
+
+            const float *dinc1r0_ptr = drc1r0;
+            const float *dinc1r1_ptr = drc1r1;
+            const float *dinc1r2_ptr = drc1r2;
+            const float *dinc1r3_ptr = drc1r3;
+
+            //prefetch input
+            prefetch(doutc0r0);
+            prefetch(doutc0r1);
+            prefetch(doutc1r0);
+            prefetch(doutc1r0);
+
+            prefetch(dinc0r0_ptr);
+            prefetch(dinc0r1_ptr);
+            prefetch(dinc0r2_ptr);
+
+            prefetch(dinc1r0_ptr);
+            prefetch(dinc1r1_ptr);
+            prefetch(dinc1r2_ptr);
+
+            float* ptr_zero = const_cast<float*>(zero);
+            float32x4_t vzero = vdupq_n_f32(0.f);
+
+            //top
+            int h = 0;
+            if(1){
+                float32x4_t vout_c0r0 = vld1q_f32(doutc0r0);
+                float32x4_t vout_c0r1 = vld1q_f32(doutc0r1);
+
+                float32x4_t vout_c1r0 = vld1q_f32(doutc1r0);
+                float32x4_t vout_c1r1 = vld1q_f32(doutc1r1);
+
+                //din data
+                float32x4_t vin_c0r0 = vld1q_f32(dinc0r0_ptr);
+                float32x4_t vin_c0r0_1 = vld1q_f32(dinc0r0_ptr + 4);
+                float32x4_t vin_c0r1 = vld1q_f32(dinc0r1_ptr);
+                float32x4_t vin_c0r1_1 = vld1q_f32(dinc0r1_ptr + 4);
+                float32x4_t vin_c0r2 = vld1q_f32(dinc0r2_ptr);
+                float32x4_t vin_c0r2_1 = vld1q_f32(dinc0r2_ptr + 4);
+
+                float32x4_t vin_c1r0 = vld1q_f32(dinc1r0_ptr);
+                float32x4_t vin_c1r0_1 = vld1q_f32(dinc1r0_ptr + 4);
+                float32x4_t vin_c1r1 = vld1q_f32(dinc1r1_ptr);
+                float32x4_t vin_c1r1_1 = vld1q_f32(dinc1r1_ptr + 4);
+                float32x4_t vin_c1r2 = vld1q_f32(dinc1r2_ptr);
+                float32x4_t vin_c1r2_1 = vld1q_f32(dinc1r2_ptr + 4);
+
+                //r0 1234
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vin_c0r0, wrc0_01, 1);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vin_c0r0, wrc0_00, 1);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vin_c1r0, wrc1_01, 1);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vin_c1r0, wrc1_00, 1);
+
+                //r1
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vin_c0r1, wrc0_02, 1);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vin_c0r1, wrc0_01, 1);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vin_c1r1, wrc1_02, 1);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vin_c1r1, wrc1_01, 1);
+
+                //r2
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vin_c0r2, wrc0_02, 1);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vin_c1r2, wrc1_02, 1);
+
+                // r0, r1, r2 shift left 2345
+                float32x4_t vtmp01 = vextq_f32(vin_c0r0, vin_c0r0_1, 1);
+                float32x4_t vtmp02 = vextq_f32(vin_c0r1, vin_c0r1_1, 1);
+                float32x4_t vtmp03 = vextq_f32(vin_c0r2, vin_c0r2_1, 1);
+
+                float32x4_t vtmp11 = vextq_f32(vin_c1r0, vin_c1r0_1, 1);
+                float32x4_t vtmp12 = vextq_f32(vin_c1r1, vin_c1r1_1, 1);
+                float32x4_t vtmp13 = vextq_f32(vin_c1r2, vin_c1r2_1, 1);
+
+                dinc0r0_ptr += 3;
+                prefetch(dinc0r0_ptr);
+                dinc1r0_ptr += 3;
+                prefetch(dinc1r0_ptr);
+                //r0
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp01, wrc0_01, 2);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp01, wrc0_00, 2);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp11, wrc1_01, 2);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp11, wrc1_00, 2);
+
+                //r1
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp02, wrc0_02, 2);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp02, wrc0_01, 2);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp12, wrc1_02, 2);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp12, wrc1_01, 2);
+
+                //r2
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp03, wrc0_02, 2);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp13, wrc1_02, 2);
+
+                // r0, r1, r2 shift right 0123
+                vtmp01 = vextq_f32(vzero, vin_c0r0, 3);
+                vtmp02 = vextq_f32(vzero, vin_c0r1, 3);
+                vtmp03 = vextq_f32(vzero, vin_c0r2, 3);
+
+                vtmp11 = vextq_f32(vzero, vin_c1r0, 3);
+                vtmp12 = vextq_f32(vzero, vin_c1r1, 3);
+                vtmp13 = vextq_f32(vzero, vin_c1r2, 3);
+
+                dinc0r1_ptr += 3;
+                prefetch(dinc0r1_ptr);
+                dinc1r1_ptr += 3;
+                prefetch(dinc1r1_ptr);
+
+                //r0
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp01, wrc0_01, 0);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp01, wrc0_00, 0);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp11, wrc1_01, 0);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp11, wrc1_00, 0);
+
+                //r1
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp02, wrc0_02, 0);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp02, wrc0_01, 0);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp12, wrc1_02, 0);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp12, wrc1_01, 0);
+
+                //r2
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp03, wrc0_02, 0);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp13, wrc1_02, 0);
+
+                dinc0r2_ptr += 3;
+                prefetch(dinc0r2_ptr);
+                dinc1r2_ptr += 3;
+                prefetch(dinc1r2_ptr);
+
+                vst1q_f32(doutc0r0, vout_c0r0);
+                vst1q_f32(doutc0r1, vout_c0r1);
+                vst1q_f32(doutc1r0, vout_c1r0);
+                vst1q_f32(doutc1r1, vout_c1r1);
+
+                doutc0r0 += 4;
+                doutc0r1 += 4;
+                doutc1r0 += 4;
+                doutc1r1 += 4;
+
+                //mid col
+                for (int j = 0; j < cnt_col; ++j) {
+                    vout_c0r0 = vld1q_f32(doutc0r0);
+                    vout_c0r1 = vld1q_f32(doutc0r1);
+                    vout_c1r0 = vld1q_f32(doutc1r0);
+                    vout_c1r1 = vld1q_f32(doutc1r1);
+
+                    vin_c0r0 = vld1q_f32(dinc0r0_ptr);
+                    vin_c0r0_1 = vld1q_f32(dinc0r0_ptr + 4);
+                    vin_c0r1 = vld1q_f32(dinc0r1_ptr);
+                    vin_c0r1_1 = vld1q_f32(dinc0r1_ptr + 4);
+                    vin_c0r2 = vld1q_f32(dinc0r2_ptr);
+                    vin_c0r2_1 = vld1q_f32(dinc0r2_ptr + 4);
+
+                    vin_c1r0 = vld1q_f32(dinc1r0_ptr);
+                    vin_c1r0_1 = vld1q_f32(dinc1r0_ptr + 4);
+                    vin_c1r1 = vld1q_f32(dinc1r1_ptr);
+                    vin_c1r1_1 = vld1q_f32(dinc1r1_ptr + 4);
+                    vin_c1r2 = vld1q_f32(dinc1r2_ptr);
+                    vin_c1r2_1 = vld1q_f32(dinc1r2_ptr + 4);
+
+                    //r0 1234
+                    vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vin_c0r0, wrc0_01, 0);
+                    vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vin_c0r0, wrc0_00, 0);
+                    vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vin_c1r0, wrc1_01, 0);
+                    vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vin_c1r0, wrc1_00, 0);
+
+                    //r1
+                    vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vin_c0r1, wrc0_02, 0);
+                    vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vin_c0r1, wrc0_01, 0);
+                    vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vin_c1r1, wrc1_02, 0);
+                    vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vin_c1r1, wrc1_01, 0);
+
+                    //r2
+                    vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vin_c0r2, wrc0_02, 0);
+                    vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vin_c1r2, wrc1_02, 0);
+
+                    // r0, r1, r2 shift left 2345
+                    vtmp01 = vextq_f32(vin_c0r0, vin_c0r0_1, 1);
+                    vtmp02 = vextq_f32(vin_c0r1, vin_c0r1_1, 1);
+                    vtmp03 = vextq_f32(vin_c0r2, vin_c0r2_1, 1);
+
+                    vtmp11 = vextq_f32(vin_c1r0, vin_c1r0_1, 1);
+                    vtmp12 = vextq_f32(vin_c1r1, vin_c1r1_1, 1);
+                    vtmp13 = vextq_f32(vin_c1r2, vin_c1r2_1, 1);
+
+                    dinc0r0_ptr += 4;
+                    prefetch(dinc0r0_ptr);
+                    dinc1r0_ptr += 4;
+                    prefetch(dinc1r0_ptr);
+                
+                    //r0
+                    vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp01, wrc0_01, 1);
+                    vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp01, wrc0_00, 1);
+                    vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp11, wrc1_01, 1);
+                    vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp11, wrc1_00, 1);
+
+                    //r1
+                    vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp02, wrc0_02, 1);
+                    vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp02, wrc0_01, 1);
+                    vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp12, wrc1_02, 1);
+                    vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp12, wrc1_01, 1);
+
+                    //r2
+                    vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp03, wrc0_02, 1);
+                    vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp13, wrc1_02, 1);
+
+                    // r0, r1, r2 shift right 3456
+                    vtmp01 = vextq_f32(vin_c0r0, vin_c0r0_1, 2);
+                    vtmp02 = vextq_f32(vin_c0r1, vin_c0r1_1, 2);
+                    vtmp03 = vextq_f32(vin_c0r2, vin_c0r2_1, 2);
+
+                    vtmp11 = vextq_f32(vin_c1r0, vin_c1r0_1, 2);
+                    vtmp12 = vextq_f32(vin_c1r1, vin_c1r1_1, 2);
+                    vtmp13 = vextq_f32(vin_c1r2, vin_c1r2_1, 2);
+
+                    dinc0r1_ptr += 4;
+                    prefetch(dinc0r1_ptr);
+                    dinc1r1_ptr += 4;
+                    prefetch(dinc1r1_ptr);
+
+                    //r0
+                    vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp01, wrc0_01, 2);
+                    vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp01, wrc0_00, 2);
+                    vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp11, wrc1_01, 2);
+                    vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp11, wrc1_00, 2);
+
+                    //r1
+                    vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp02, wrc0_02, 2);
+                    vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp02, wrc0_01, 2);
+                    vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp12, wrc1_02, 2);
+                    vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp12, wrc1_01, 2);
+
+                    //r2
+                    vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp03, wrc0_02, 2);
+                    vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp13, wrc1_02, 2);
+
+                    dinc0r2_ptr += 4;
+                    prefetch(dinc0r2_ptr);
+                    dinc1r2_ptr += 4;
+                    prefetch(dinc1r2_ptr);
+
+                    vst1q_f32(doutc0r0, vout_c0r0);
+                    vst1q_f32(doutc0r1, vout_c0r1);
+                    vst1q_f32(doutc1r0, vout_c1r0);
+                    vst1q_f32(doutc1r1, vout_c1r1);
+
+                    doutc0r0 += 4;
+                    doutc0r1 += 4;
+                    doutc1r0 += 4;
+                    doutc1r1 += 4;
+
+                }
+                //right
+                vout_c0r0 = vld1q_f32(doutc0r0);
+                vout_c0r1 = vld1q_f32(doutc0r1);
+
+                vout_c1r0 = vld1q_f32(doutc1r0);
+                vout_c1r0 = vld1q_f32(doutc1r1);
+
+                //din data
+                vin_c0r0 = vld1q_f32(dinc0r0_ptr);
+                vin_c0r0_1 = vld1q_f32(dinc0r0_ptr + 4);
+                vin_c0r1 = vld1q_f32(dinc0r1_ptr);
+                vin_c0r1_1 = vld1q_f32(dinc0r1_ptr + 4);
+                vin_c0r2 = vld1q_f32(dinc0r2_ptr);
+                vin_c0r2_1 = vld1q_f32(dinc0r2_ptr + 4);
+
+                vin_c1r0 = vld1q_f32(dinc1r0_ptr);
+                vin_c1r0_1 = vld1q_f32(dinc1r0_ptr + 4);
+                vin_c1r1 = vld1q_f32(dinc1r1_ptr);
+                vin_c1r1_1 = vld1q_f32(dinc1r1_ptr + 4);
+                vin_c1r2 = vld1q_f32(dinc1r2_ptr);
+                vin_c1r2_1 = vld1q_f32(dinc1r2_ptr + 4);
+
+                vin_c0r0 = vbslq_f32(vmask_rp1, vin_c0r0, vzero);
+                vin_c0r0_1 = vbslq_f32(vmask_rp2, vin_c0r0_1, vzero);
+                vin_c0r1 = vbslq_f32(vmask_rp1, vin_c0r1, vzero);
+                vin_c0r1_1 = vbslq_f32(vmask_rp2, vin_c0r1_1, vzero);
+                vin_c0r2 = vbslq_f32(vmask_rp1, vin_c0r2, vzero);
+                vin_c0r2_1 = vbslq_f32(vmask_rp2, vin_c0r2_1, vzero);
+
+                vin_c1r0 = vbslq_f32(vmask_rp1, vin_c1r0, vzero);
+                vin_c1r0_1 = vbslq_f32(vmask_rp2, vin_c1r0_1, vzero);
+                vin_c1r1 = vbslq_f32(vmask_rp1, vin_c1r1, vzero);
+                vin_c1r1_1 = vbslq_f32(vmask_rp2, vin_c1r1_1, vzero);
+                vin_c1r2 = vbslq_f32(vmask_rp1, vin_c1r2, vzero);
+                vin_c1r2_1 = vbslq_f32(vmask_rp2, vin_c1r2_1, vzero);
+
+                //r0 1234
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vin_c0r0, wrc0_01, 0);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vin_c0r0, wrc0_00, 0);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vin_c1r0, wrc1_01, 0);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vin_c1r0, wrc1_00, 0);
+
+                //r1
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vin_c0r1, wrc0_02, 0);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vin_c0r1, wrc0_01, 0);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vin_c1r1, wrc1_02, 0);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vin_c1r1, wrc1_01, 0);
+
+                //r2
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vin_c0r2, wrc0_02, 0);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vin_c1r2, wrc1_02, 0);
+
+                // r0, r1, r2 shift left 2345
+                vtmp01 = vextq_f32(vin_c0r0, vin_c0r0_1, 1);
+                vtmp02 = vextq_f32(vin_c0r1, vin_c0r1_1, 1);
+                vtmp03 = vextq_f32(vin_c0r2, vin_c0r2_1, 1);
+
+                vtmp11 = vextq_f32(vin_c1r0, vin_c1r0_1, 1);
+                vtmp12 = vextq_f32(vin_c1r1, vin_c1r1_1, 1);
+                vtmp13 = vextq_f32(vin_c1r2, vin_c1r2_1, 1);
+                
+                //r0
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp01, wrc0_01, 1);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp01, wrc0_00, 1);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp11, wrc1_01, 1);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp11, wrc1_00, 1);
+
+                //r1
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp02, wrc0_02, 1);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp02, wrc0_01, 1);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp12, wrc1_02, 1);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp12, wrc1_01, 1);
+
+                //r2
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp03, wrc0_02, 1);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp13, wrc1_02, 1);
+
+                // r0, r1, r2 shift right 3456
+                vtmp01 = vextq_f32(vin_c0r0, vin_c0r0_1, 2);
+                vtmp02 = vextq_f32(vin_c0r1, vin_c0r1_1, 2);
+                vtmp03 = vextq_f32(vin_c0r2, vin_c0r2_1, 2);
+
+                vtmp11 = vextq_f32(vin_c1r0, vin_c1r0_1, 2);
+                vtmp12 = vextq_f32(vin_c1r1, vin_c1r1_1, 2);
+                vtmp13 = vextq_f32(vin_c1r2, vin_c1r2_1, 2);
+
+
+                //r0
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp01, wrc0_01, 2);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp01, wrc0_00, 2);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp11, wrc1_01, 2);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp11, wrc1_00, 2);
+
+                //r1
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp02, wrc0_02, 2);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp02, wrc0_01, 2);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp12, wrc1_02, 2);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp12, wrc1_01, 2);
+
+                vin_c0r0 = vld1q_f32(doutc0r0);
+                vin_c0r1 = vld1q_f32(doutc0r1);
+                vin_c1r0 = vld1q_f32(doutc1r0);
+                vin_c1r1 = vld1q_f32(doutc1r1);
+
+                //r2
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp03, wrc0_02, 2);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp13, wrc1_02, 2);
+
+                vout_c0r0 = vbslq_f32(vmask_result, vout_c0r0, vin_c0r0);
+                vout_c0r1 = vbslq_f32(vmask_result, vout_c0r1, vin_c0r1);
+                vout_c1r0 = vbslq_f32(vmask_result, vout_c1r0, vin_c1r0);
+                vout_c1r1 = vbslq_f32(vmask_result, vout_c1r1, vin_c1r1);
+
+                vst1q_f32(doutc0r0, vout_c0r0);
+                vst1q_f32(doutc0r1, vout_c0r1);
+                vst1q_f32(doutc1r0, vout_c1r0);
+                vst1q_f32(doutc1r1, vout_c1r1);
+
+                drc0r0 = drc0r1;
+                drc0r1 = drc0r2;
+                drc0r2 = drc0r3;
+                drc0r3 = drc0r2 + w_in;
+
+                drc1r0 = drc1r1;
+                drc1r1 = drc1r2;
+                drc1r2 = drc1r3;
+                drc1r3 = drc1r2 + w_in;
+            }
+            //mid
+            for (h = 1; h < tile_h - 1; h++) {
+
+                doutc0r0 = dout_c0 + 2 * h * w_out;
+                doutc0r1 = doutc0r0 + w_out;
+                doutc1r0 = dout_c1 + 2 * h * w_out;
+                doutc1r1 = doutc1r0 + w_out;
+
+                dinc0r0_ptr = drc0r0;
+                dinc0r1_ptr = drc0r1;
+                dinc0r2_ptr = drc0r2;
+                dinc0r3_ptr = drc0r3;
+
+                dinc1r0_ptr = drc1r0;
+                dinc1r1_ptr = drc1r1;
+                dinc1r2_ptr = drc1r2;
+                dinc1r3_ptr = drc1r3;
+
+                prefetch(doutc0r0);
+                prefetch(doutc0r1);
+                prefetch(doutc1r0);
+                prefetch(doutc1r0);
+
+                prefetch(dinc0r0_ptr);
+                prefetch(dinc0r1_ptr);
+                prefetch(dinc0r2_ptr);
+                prefetch(dinc0r3_ptr);
+
+                prefetch(dinc1r0_ptr);
+                prefetch(dinc1r1_ptr);
+                prefetch(dinc1r2_ptr);
+                prefetch(dinc1r3_ptr);
+
+
+                float32x4_t vout_c0r0 = vld1q_f32(doutc0r0);
+                float32x4_t vout_c0r1 = vld1q_f32(doutc0r1);
+
+                float32x4_t vout_c1r0 = vld1q_f32(doutc1r0);
+                float32x4_t vout_c1r1 = vld1q_f32(doutc1r1);
+
+                //din data
+                float32x4_t vin_c0r0 = vld1q_f32(dinc0r0_ptr);
+                float32x4_t vin_c0r0_1 = vld1q_f32(dinc0r0_ptr + 4);
+                float32x4_t vin_c0r1 = vld1q_f32(dinc0r1_ptr);
+                float32x4_t vin_c0r1_1 = vld1q_f32(dinc0r1_ptr + 4);
+                float32x4_t vin_c0r2 = vld1q_f32(dinc0r2_ptr);
+                float32x4_t vin_c0r2_1 = vld1q_f32(dinc0r2_ptr + 4);
+                float32x4_t vin_c0r3 = vld1q_f32(dinc0r3_ptr);
+                float32x4_t vin_c0r3_1 = vld1q_f32(dinc0r3_ptr + 4);
+
+
+                float32x4_t vin_c1r0 = vld1q_f32(dinc1r0_ptr);
+                float32x4_t vin_c1r0_1 = vld1q_f32(dinc1r0_ptr + 4);
+                float32x4_t vin_c1r1 = vld1q_f32(dinc1r1_ptr);
+                float32x4_t vin_c1r1_1 = vld1q_f32(dinc1r1_ptr + 4);
+                float32x4_t vin_c1r2 = vld1q_f32(dinc1r2_ptr);
+                float32x4_t vin_c1r2_1 = vld1q_f32(dinc1r2_ptr + 4);
+                float32x4_t vin_c1r3 = vld1q_f32(dinc1r3_ptr);
+                float32x4_t vin_c1r3_1 = vld1q_f32(dinc1r3_ptr + 4);
+
+                //r0 1234
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vin_c0r0, wrc0_00, 1);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vin_c1r0, wrc1_00, 1);
+
+                //r1
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vin_c0r1, wrc0_01, 1);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vin_c0r1, wrc0_00, 1);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vin_c1r1, wrc1_01, 1);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vin_c1r1, wrc1_00, 1);
+
+                //r2
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vin_c0r2, wrc0_02, 1);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vin_c0r2, wrc0_01, 1);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vin_c1r2, wrc1_02, 1);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vin_c1r2, wrc1_01, 1);
+
+                //r3
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vin_c0r3, wrc0_02, 1);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vin_c1r3, wrc1_02, 1);
+
+                // r0, r1, r2 shift left 2345
+                float32x4_t vtmp00 = vextq_f32(vin_c0r0, vin_c0r0_1, 1);
+                float32x4_t vtmp01 = vextq_f32(vin_c0r1, vin_c0r1_1, 1);
+                float32x4_t vtmp02 = vextq_f32(vin_c0r2, vin_c0r2_1, 1);
+                float32x4_t vtmp03 = vextq_f32(vin_c0r3, vin_c0r3_1, 1);
+
+                float32x4_t vtmp10 = vextq_f32(vin_c1r0, vin_c1r0_1, 1);
+                float32x4_t vtmp11 = vextq_f32(vin_c1r1, vin_c1r1_1, 1);
+                float32x4_t vtmp12 = vextq_f32(vin_c1r2, vin_c1r2_1, 1);
+                float32x4_t vtmp13 = vextq_f32(vin_c1r3, vin_c1r3_1, 1);
+
+                dinc0r0_ptr += 3;
+                prefetch(dinc0r0_ptr);
+                dinc1r0_ptr += 3;
+                prefetch(dinc1r0_ptr);
+                //r0
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp00, wrc0_00, 2);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp10, wrc1_00, 2);
+
+                //r1
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp01, wrc0_01, 2);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp01, wrc0_00, 2);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp11, wrc1_01, 2);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp11, wrc1_00, 2);
+
+                //r2
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp02, wrc0_02, 2);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp02, wrc0_01, 2);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp12, wrc1_02, 2);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp12, wrc1_01, 2);
+
+                //r3
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp03, wrc0_02, 2);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp13, wrc1_02, 2);
+
+                // r0, r1, r2 shift right 0123
+                vtmp00 = vextq_f32(vzero, vin_c0r0, 3);
+                vtmp01 = vextq_f32(vzero, vin_c0r1, 3);
+                vtmp02 = vextq_f32(vzero, vin_c0r2, 3);
+                vtmp03 = vextq_f32(vzero, vin_c0r3, 3);
+
+                vtmp10 = vextq_f32(vzero, vin_c1r0, 3);
+                vtmp11 = vextq_f32(vzero, vin_c1r1, 3);
+                vtmp12 = vextq_f32(vzero, vin_c1r2, 3);
+                vtmp13 = vextq_f32(vzero, vin_c1r3, 3);
+
+                dinc0r1_ptr += 3;
+                prefetch(dinc0r1_ptr);
+                dinc1r1_ptr += 3;
+                prefetch(dinc1r1_ptr);
+
+                //r0
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp00, wrc0_00, 0);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp10, wrc1_00, 0);
+
+                //r1
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp01, wrc0_01, 0);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp01, wrc0_00, 0);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp11, wrc1_01, 0);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp11, wrc1_00, 0);
+
+                //r2
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp02, wrc0_02, 0);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp02, wrc0_01, 0);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp12, wrc1_02, 0);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp12, wrc1_01, 0);
+
+                //r3
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp03, wrc0_02, 0);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp13, wrc1_02, 0);
+
+                dinc0r2_ptr += 3;
+                prefetch(dinc0r2_ptr);
+                dinc1r2_ptr += 3;
+                prefetch(dinc1r2_ptr);
+
+                dinc0r3_ptr += 3;
+                prefetch(dinc0r3_ptr);
+                dinc1r3_ptr += 3;
+                prefetch(dinc1r3_ptr);
+
+                vst1q_f32(doutc0r0, vout_c0r0);
+                vst1q_f32(doutc0r1, vout_c0r1);
+                vst1q_f32(doutc1r0, vout_c1r0);
+                vst1q_f32(doutc1r1, vout_c1r1);
+
+                doutc0r0 += 4;
+                doutc0r1 += 4;
+                doutc1r0 += 4;
+                doutc1r1 += 4;
+
+                //mid col
+                for (int j = 0; j < cnt_col; ++j) {
+                    vout_c0r0 = vld1q_f32(doutc0r0);
+                    vout_c0r1 = vld1q_f32(doutc0r1);
+                    vout_c1r0 = vld1q_f32(doutc1r0);
+                    vout_c1r1 = vld1q_f32(doutc1r1);
+
+                    vin_c0r0 = vld1q_f32(dinc0r0_ptr);
+                    vin_c0r0_1 = vld1q_f32(dinc0r0_ptr + 4);
+                    vin_c0r1 = vld1q_f32(dinc0r1_ptr);
+                    vin_c0r1_1 = vld1q_f32(dinc0r1_ptr + 4);
+                    vin_c0r2 = vld1q_f32(dinc0r2_ptr);
+                    vin_c0r2_1 = vld1q_f32(dinc0r2_ptr + 4);
+                    vin_c0r3 = vld1q_f32(dinc0r3_ptr);
+                    vin_c0r3_1 = vld1q_f32(dinc0r3_ptr + 4);
+
+                    vin_c1r0 = vld1q_f32(dinc1r0_ptr);
+                    vin_c1r0_1 = vld1q_f32(dinc1r0_ptr + 4);
+                    vin_c1r1 = vld1q_f32(dinc1r1_ptr);
+                    vin_c1r1_1 = vld1q_f32(dinc1r1_ptr + 4);
+                    vin_c1r2 = vld1q_f32(dinc1r2_ptr);
+                    vin_c1r2_1 = vld1q_f32(dinc1r2_ptr + 4);
+                    vin_c1r3 = vld1q_f32(dinc1r3_ptr);
+                    vin_c1r3_1 = vld1q_f32(dinc1r3_ptr + 4);
+
+                    //r0 1234
+                    vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vin_c0r0, wrc0_00, 0);
+                    vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vin_c1r0, wrc1_00, 0);
+
+                    //r1
+                    vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vin_c0r1, wrc0_01, 0);
+                    vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vin_c0r1, wrc0_00, 0);
+                    vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vin_c1r1, wrc1_01, 0);
+                    vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vin_c1r1, wrc1_00, 0);
+
+                    //r2
+                    vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vin_c0r2, wrc0_02, 0);
+                    vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vin_c0r2, wrc0_01, 0);
+                    vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vin_c1r2, wrc1_02, 0);
+                    vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vin_c1r2, wrc1_01, 0);
+
+                    //r2
+                    vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vin_c0r3, wrc0_02, 0);
+                    vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vin_c1r3, wrc1_02, 0);
+
+                    // r0, r1, r2 shift left 2345
+                    vtmp00 = vextq_f32(vin_c0r0, vin_c0r0_1, 1);
+                    vtmp01 = vextq_f32(vin_c0r1, vin_c0r1_1, 1);
+                    vtmp02 = vextq_f32(vin_c0r2, vin_c0r2_1, 1);
+                    vtmp03 = vextq_f32(vin_c0r3, vin_c0r3_1, 1);
+
+                    vtmp10 = vextq_f32(vin_c1r0, vin_c1r0_1, 1);
+                    vtmp11 = vextq_f32(vin_c1r1, vin_c1r1_1, 1);
+                    vtmp12 = vextq_f32(vin_c1r2, vin_c1r2_1, 1);
+                    vtmp13 = vextq_f32(vin_c1r3, vin_c1r3_1, 1);
+
+                    dinc0r0_ptr += 4;
+                    prefetch(dinc0r0_ptr);
+                    dinc1r0_ptr += 4;
+                    prefetch(dinc1r0_ptr);
+                
+                    //r0
+                    vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp00, wrc0_00, 1);
+                    vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp10, wrc1_00, 1);
+
+                    //r1
+                    vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp01, wrc0_01, 1);
+                    vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp01, wrc0_00, 1);
+                    vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp11, wrc1_01, 1);
+                    vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp11, wrc1_00, 1);
+
+                    //r1
+                    vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp02, wrc0_02, 1);
+                    vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp02, wrc0_01, 1);
+                    vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp12, wrc1_02, 1);
+                    vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp12, wrc1_01, 1);
+
+                    //r2
+                    vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp03, wrc0_02, 1);
+                    vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp13, wrc1_02, 1);
+
+                    // r0, r1, r2 shift right 3456
+                    vtmp00 = vextq_f32(vin_c0r0, vin_c0r0_1, 2);
+                    vtmp01 = vextq_f32(vin_c0r1, vin_c0r1_1, 2);
+                    vtmp02 = vextq_f32(vin_c0r2, vin_c0r2_1, 2);
+                    vtmp03 = vextq_f32(vin_c0r3, vin_c0r3_1, 2);
+
+                    vtmp10 = vextq_f32(vin_c1r0, vin_c1r0_1, 2);
+                    vtmp11 = vextq_f32(vin_c1r1, vin_c1r1_1, 2);
+                    vtmp12 = vextq_f32(vin_c1r2, vin_c1r2_1, 2);
+                    vtmp13 = vextq_f32(vin_c1r3, vin_c1r3_1, 2);
+
+                    dinc0r1_ptr += 4;
+                    prefetch(dinc0r1_ptr);
+                    dinc1r1_ptr += 4;
+                    prefetch(dinc1r1_ptr);
+
+                    //r0
+                    vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp00, wrc0_00, 2);
+                    vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp10, wrc1_00, 2);
+
+                    //r1
+                    vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp01, wrc0_01, 2);
+                    vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp01, wrc0_00, 2);
+                    vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp11, wrc1_01, 2);
+                    vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp11, wrc1_00, 2);
+
+                    //r2
+                    vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp02, wrc0_02, 2);
+                    vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp02, wrc0_01, 2);
+                    vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp12, wrc1_02, 2);
+                    vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp12, wrc1_01, 2);
+
+                    //r2
+                    vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp03, wrc0_02, 2);
+                    vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp13, wrc1_02, 2);
+
+                    dinc0r2_ptr += 4;
+                    prefetch(dinc0r2_ptr);
+                    dinc1r2_ptr += 4;
+                    prefetch(dinc1r2_ptr);
+
+                    dinc0r3_ptr += 4;
+                    prefetch(dinc0r3_ptr);
+                    dinc1r3_ptr += 4;
+                    prefetch(dinc1r3_ptr);
+
+                    vst1q_f32(doutc0r0, vout_c0r0);
+                    vst1q_f32(doutc0r1, vout_c0r1);
+                    vst1q_f32(doutc1r0, vout_c1r0);
+                    vst1q_f32(doutc1r1, vout_c1r1);
+
+                    doutc0r0 += 4;
+                    doutc0r1 += 4;
+                    doutc1r0 += 4;
+                    doutc1r1 += 4;
+
+                }
+                //right
+                vout_c0r0 = vld1q_f32(doutc0r0);
+                vout_c0r1 = vld1q_f32(doutc0r1);
+
+                vout_c1r0 = vld1q_f32(doutc1r0);
+                vout_c1r0 = vld1q_f32(doutc1r1);
+
+                //din data
+                vin_c0r0 = vld1q_f32(dinc0r0_ptr);
+                vin_c0r0_1 = vld1q_f32(dinc0r0_ptr + 4);
+                vin_c0r1 = vld1q_f32(dinc0r1_ptr);
+                vin_c0r1_1 = vld1q_f32(dinc0r1_ptr + 4);
+                vin_c0r2 = vld1q_f32(dinc0r2_ptr);
+                vin_c0r2_1 = vld1q_f32(dinc0r2_ptr + 4);
+                vin_c0r3 = vld1q_f32(dinc0r3_ptr);
+                vin_c0r3_1 = vld1q_f32(dinc0r3_ptr + 4);
+
+                vin_c1r0 = vld1q_f32(dinc1r0_ptr);
+                vin_c1r0_1 = vld1q_f32(dinc1r0_ptr + 4);
+                vin_c1r1 = vld1q_f32(dinc1r1_ptr);
+                vin_c1r1_1 = vld1q_f32(dinc1r1_ptr + 4);
+                vin_c1r2 = vld1q_f32(dinc1r2_ptr);
+                vin_c1r2_1 = vld1q_f32(dinc1r2_ptr + 4);
+                vin_c1r3 = vld1q_f32(dinc1r3_ptr);
+                vin_c1r3_1 = vld1q_f32(dinc1r3_ptr + 4);
+
+                vin_c0r0 = vbslq_f32(vmask_rp1, vin_c0r0, vzero);
+                vin_c0r0_1 = vbslq_f32(vmask_rp2, vin_c0r0_1, vzero);
+                vin_c0r1 = vbslq_f32(vmask_rp1, vin_c0r1, vzero);
+                vin_c0r1_1 = vbslq_f32(vmask_rp2, vin_c0r1_1, vzero);
+                vin_c0r2 = vbslq_f32(vmask_rp1, vin_c0r2, vzero);
+                vin_c0r2_1 = vbslq_f32(vmask_rp2, vin_c0r2_1, vzero);
+                vin_c0r3 = vbslq_f32(vmask_rp1, vin_c0r3, vzero);
+                vin_c0r3_1 = vbslq_f32(vmask_rp2, vin_c0r3_1, vzero);
+
+                vin_c1r0 = vbslq_f32(vmask_rp1, vin_c1r0, vzero);
+                vin_c1r0_1 = vbslq_f32(vmask_rp2, vin_c1r0_1, vzero);
+                vin_c1r1 = vbslq_f32(vmask_rp1, vin_c1r1, vzero);
+                vin_c1r1_1 = vbslq_f32(vmask_rp2, vin_c1r1_1, vzero);
+                vin_c1r2 = vbslq_f32(vmask_rp1, vin_c1r2, vzero);
+                vin_c1r2_1 = vbslq_f32(vmask_rp2, vin_c1r2_1, vzero);
+                vin_c1r3 = vbslq_f32(vmask_rp1, vin_c1r3, vzero);
+                vin_c1r3_1 = vbslq_f32(vmask_rp2, vin_c1r3_1, vzero);
+
+                //r0 1234
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vin_c0r0, wrc0_00, 0);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vin_c1r0, wrc1_00, 0);
+
+                //r1
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vin_c0r1, wrc0_01, 0);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vin_c0r1, wrc0_00, 0);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vin_c1r1, wrc1_01, 0);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vin_c1r1, wrc1_00, 0);
+
+                //r2
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vin_c0r2, wrc0_02, 0);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vin_c0r2, wrc0_01, 0);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vin_c1r2, wrc1_02, 0);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vin_c1r2, wrc1_01, 0);
+
+                //r3
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vin_c0r3, wrc0_02, 0);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vin_c1r3, wrc1_02, 0);
+
+                // r0, r1, r2 shift left 2345
+                vtmp00 = vextq_f32(vin_c0r0, vin_c0r0_1, 1);
+                vtmp01 = vextq_f32(vin_c0r1, vin_c0r1_1, 1);
+                vtmp02 = vextq_f32(vin_c0r2, vin_c0r2_1, 1);
+                vtmp03 = vextq_f32(vin_c0r3, vin_c0r3_1, 1);
+
+                vtmp10 = vextq_f32(vin_c1r0, vin_c1r0_1, 1);
+                vtmp11 = vextq_f32(vin_c1r1, vin_c1r1_1, 1);
+                vtmp12 = vextq_f32(vin_c1r2, vin_c1r2_1, 1);
+                vtmp13 = vextq_f32(vin_c1r3, vin_c1r3_1, 1);
+                
+                //r0
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp00, wrc0_00, 1);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp10, wrc1_00, 1);
+
+                //r1
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp01, wrc0_01, 1);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp01, wrc0_00, 1);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp11, wrc1_01, 1);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp11, wrc1_00, 1);
+
+                //r2
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp02, wrc0_02, 1);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp02, wrc0_01, 1);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp12, wrc1_02, 1);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp12, wrc1_01, 1);
+
+                //r2
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp03, wrc0_02, 1);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp13, wrc1_02, 1);
+
+                // r0, r1, r2 shift right 3456
+                vtmp00 = vextq_f32(vin_c0r0, vin_c0r0_1, 2);
+                vtmp01 = vextq_f32(vin_c0r1, vin_c0r1_1, 2);
+                vtmp02 = vextq_f32(vin_c0r2, vin_c0r2_1, 2);
+                vtmp03 = vextq_f32(vin_c0r3, vin_c0r3_1, 2);
+
+                vtmp10 = vextq_f32(vin_c1r0, vin_c1r0_1, 2);
+                vtmp11 = vextq_f32(vin_c1r1, vin_c1r1_1, 2);
+                vtmp12 = vextq_f32(vin_c1r2, vin_c1r2_1, 2);
+                vtmp13 = vextq_f32(vin_c1r3, vin_c1r3_1, 2);
+
+                //r0
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp00, wrc0_00, 2);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp10, wrc1_00, 2);
+
+                //r1
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp01, wrc0_01, 2);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp01, wrc0_00, 2);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp11, wrc1_01, 2);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp11, wrc1_00, 2);
+
+                //r2
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp02, wrc0_02, 2);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp02, wrc0_01, 2);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp12, wrc1_02, 2);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp12, wrc1_01, 2);
+
+                vin_c0r0 = vld1q_f32(doutc0r0);
+                vin_c0r1 = vld1q_f32(doutc0r1);
+                vin_c1r0 = vld1q_f32(doutc1r0);
+                vin_c1r1 = vld1q_f32(doutc1r1);
+                //r3
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp03, wrc0_02, 2);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp13, wrc1_02, 2);
+
+                vout_c0r0 = vbslq_f32(vmask_result, vout_c0r0, vin_c0r0);
+                vout_c0r1 = vbslq_f32(vmask_result, vout_c0r1, vin_c0r1);
+                vout_c1r0 = vbslq_f32(vmask_result, vout_c1r0, vin_c1r0);
+                vout_c1r1 = vbslq_f32(vmask_result, vout_c1r1, vin_c1r1);
+
+                vst1q_f32(doutc0r0, vout_c0r0);
+                vst1q_f32(doutc0r1, vout_c0r1);
+                vst1q_f32(doutc1r0, vout_c1r0);
+                vst1q_f32(doutc1r1, vout_c1r1);
+
+                drc0r0 = drc0r2;
+                drc0r1 = drc0r3;
+                drc0r2 = drc0r1 + w_in;
+                drc0r3 = drc0r2 + w_in;
+
+                drc1r0 = drc1r2;
+                drc1r1 = drc1r3;
+                drc1r2 = drc1r1 + w_in;
+                drc1r3 = drc1r2 + w_in;
+
+            }
+            //bottom
+            if(1){
+                dinc0r0_ptr = drc0r0;
+                dinc0r1_ptr = drc0r1;
+                dinc1r0_ptr = drc1r0;
+                dinc1r1_ptr = drc1r1;
+                if (size_pad_bottom == 1) {
+                    dinc0r2_ptr = drc0r2;
+                    dinc1r2_ptr = drc1r2;
+                } else {
+                    dinc0r2_ptr = ptr_zero;
+                    dinc1r2_ptr = ptr_zero;
+                }
+                doutc0r0 = dout_c0 + 2 * h * w_out;
+                doutc0r1 = doutc0r0 + w_out;
+                doutc1r0 = dout_c1 + 2 * h * w_out;
+                doutc1r1 = doutc1r0 + w_out;
+
+                prefetch(dinc0r0_ptr);
+                prefetch(dinc0r1_ptr);
+                prefetch(dinc0r2_ptr);
+
+                prefetch(dinc1r0_ptr);
+                prefetch(dinc1r1_ptr);
+                prefetch(dinc1r2_ptr);
+
+                float32x4_t vout_c0r0 = vld1q_f32(doutc0r0);
+                float32x4_t vout_c0r1 = vld1q_f32(doutc0r1);
+
+                float32x4_t vout_c1r0 = vld1q_f32(doutc1r0);
+                float32x4_t vout_c1r1 = vld1q_f32(doutc1r1);
+
+                //din data
+                float32x4_t vin_c0r0 = vld1q_f32(dinc0r0_ptr);
+                float32x4_t vin_c0r0_1 = vld1q_f32(dinc0r0_ptr + 4);
+                float32x4_t vin_c0r1 = vld1q_f32(dinc0r1_ptr);
+                float32x4_t vin_c0r1_1 = vld1q_f32(dinc0r1_ptr + 4);
+                float32x4_t vin_c0r2 = vld1q_f32(dinc0r2_ptr);
+                float32x4_t vin_c0r2_1 = vld1q_f32(dinc0r2_ptr + 4);
+
+                float32x4_t vin_c1r0 = vld1q_f32(dinc1r0_ptr);
+                float32x4_t vin_c1r0_1 = vld1q_f32(dinc1r0_ptr + 4);
+                float32x4_t vin_c1r1 = vld1q_f32(dinc1r1_ptr);
+                float32x4_t vin_c1r1_1 = vld1q_f32(dinc1r1_ptr + 4);
+                float32x4_t vin_c1r2 = vld1q_f32(dinc1r2_ptr);
+                float32x4_t vin_c1r2_1 = vld1q_f32(dinc1r2_ptr + 4);
+
+                //r0 1234
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vin_c0r0, wrc0_00, 1);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vin_c1r0, wrc1_00, 1);
+
+                //r1
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vin_c0r1, wrc0_01, 1);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vin_c0r1, wrc0_00, 1);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vin_c1r1, wrc1_01, 1);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vin_c1r1, wrc1_00, 1);
+
+                //r2
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vin_c0r2, wrc0_02, 1);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vin_c0r2, wrc0_01, 1);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vin_c1r2, wrc1_02, 1);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vin_c1r2, wrc1_01, 1);
+
+                // r0, r1, r2 shift left 2345
+                float32x4_t vtmp00 = vextq_f32(vin_c0r0, vin_c0r0_1, 1);
+                float32x4_t vtmp01 = vextq_f32(vin_c0r1, vin_c0r1_1, 1);
+                float32x4_t vtmp02 = vextq_f32(vin_c0r2, vin_c0r2_1, 1);
+
+                float32x4_t vtmp10 = vextq_f32(vin_c1r0, vin_c1r0_1, 1);
+                float32x4_t vtmp11 = vextq_f32(vin_c1r1, vin_c1r1_1, 1);
+                float32x4_t vtmp12 = vextq_f32(vin_c1r2, vin_c1r2_1, 1);
+
+                dinc0r0_ptr += 3;
+                prefetch(dinc0r0_ptr);
+                dinc1r0_ptr += 3;
+                prefetch(dinc1r0_ptr);
+                //r0
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp00, wrc0_00, 2);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp10, wrc1_00, 2);
+
+                //r1
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp01, wrc0_01, 2);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp01, wrc0_00, 2);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp11, wrc1_01, 2);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp11, wrc1_00, 2);
+
+                //r2
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp02, wrc0_02, 2);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp02, wrc0_01, 2);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp12, wrc1_02, 2);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp12, wrc1_01, 2);
+
+                // r0, r1, r2 shift right 0123
+                vtmp00 = vextq_f32(vzero, vin_c0r0, 3);
+                vtmp01 = vextq_f32(vzero, vin_c0r1, 3);
+                vtmp02 = vextq_f32(vzero, vin_c0r2, 3);
+
+                vtmp10 = vextq_f32(vzero, vin_c1r0, 3);
+                vtmp11 = vextq_f32(vzero, vin_c1r1, 3);
+                vtmp12 = vextq_f32(vzero, vin_c1r2, 3);
+
+                dinc0r1_ptr += 3;
+                prefetch(dinc0r1_ptr);
+                dinc1r1_ptr += 3;
+                prefetch(dinc1r1_ptr);
+
+                //r0
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp00, wrc0_00, 0);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp10, wrc1_00, 0);
+
+                //r1
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp01, wrc0_01, 0);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp01, wrc0_00, 0);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp11, wrc1_01, 0);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp11, wrc1_00, 0);
+
+                //r2
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp02, wrc0_02, 0);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp02, wrc0_01, 0);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp12, wrc1_02, 0);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp12, wrc1_01, 0);
+
+                dinc0r2_ptr += 3;
+                prefetch(dinc0r2_ptr);
+                dinc1r2_ptr += 3;
+                prefetch(dinc1r2_ptr);
+
+                vst1q_f32(doutc0r0, vout_c0r0);
+                vst1q_f32(doutc0r1, vout_c0r1);
+                vst1q_f32(doutc1r0, vout_c1r0);
+                vst1q_f32(doutc1r1, vout_c1r1);
+
+                doutc0r0 += 4;
+                doutc0r1 += 4;
+                doutc1r0 += 4;
+                doutc1r1 += 4;
+
+                //mid col
+                for (int j = 0; j < cnt_col; ++j) {
+
+                    vin_c0r0 = vld1q_f32(dinc0r0_ptr);
+                    vin_c0r0_1 = vld1q_f32(dinc0r0_ptr + 4);
+                    vin_c0r1 = vld1q_f32(dinc0r1_ptr);
+                    vin_c0r1_1 = vld1q_f32(dinc0r1_ptr + 4);
+                    vin_c0r2 = vld1q_f32(dinc0r2_ptr);
+                    vin_c0r2_1 = vld1q_f32(dinc0r2_ptr + 4);
+
+
+                    vout_c0r0 = vld1q_f32(doutc0r0);
+                    vout_c0r1 = vld1q_f32(doutc0r1);
+                    vout_c1r0 = vld1q_f32(doutc1r0);
+                    vout_c1r1 = vld1q_f32(doutc1r1);
+
+                    vin_c1r0 = vld1q_f32(dinc1r0_ptr);
+                    vin_c1r0_1 = vld1q_f32(dinc1r0_ptr + 4);
+                    vin_c1r1 = vld1q_f32(dinc1r1_ptr);
+                    vin_c1r1_1 = vld1q_f32(dinc1r1_ptr + 4);
+                    vin_c1r2 = vld1q_f32(dinc1r2_ptr);
+                    vin_c1r2_1 = vld1q_f32(dinc1r2_ptr + 4);
+
+                    //r0 1234
+                    vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vin_c0r0, wrc0_00, 0);
+                    vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vin_c1r0, wrc1_00, 0);
+
+                    //r1
+                    vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vin_c0r1, wrc0_01, 0);
+                    vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vin_c0r1, wrc0_00, 0);
+                    vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vin_c1r1, wrc1_01, 0);
+                    vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vin_c1r1, wrc1_00, 0);
+
+                     //r2
+                    vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vin_c0r2, wrc0_02, 0);
+                    vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vin_c0r2, wrc0_01, 0);
+                    vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vin_c1r2, wrc1_02, 0);
+                    vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vin_c1r2, wrc1_01, 0);
+
+
+                    // r0, r1, r2 shift left 2345
+                    vtmp00 = vextq_f32(vin_c0r0, vin_c0r0_1, 1);
+                    vtmp01 = vextq_f32(vin_c0r1, vin_c0r1_1, 1);
+                    vtmp02 = vextq_f32(vin_c0r2, vin_c0r2_1, 1);
+
+                    vtmp10 = vextq_f32(vin_c1r0, vin_c1r0_1, 1);
+                    vtmp11 = vextq_f32(vin_c1r1, vin_c1r1_1, 1);
+                    vtmp12 = vextq_f32(vin_c1r2, vin_c1r2_1, 1);
+
+                    dinc0r0_ptr += 4;
+                    prefetch(dinc0r0_ptr);
+                    dinc1r0_ptr += 4;
+                    prefetch(dinc1r0_ptr);
+                
+                    //r0
+                    vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp00, wrc0_00, 1);
+                    vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp10, wrc1_00, 1);
+
+                    //r1
+                    vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp01, wrc0_01, 1);
+                    vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp01, wrc0_00, 1);
+                    vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp11, wrc1_01, 1);
+                    vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp11, wrc1_00, 1);
+
+                    //r2
+                    vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp02, wrc0_02, 1);
+                    vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp02, wrc0_01, 1);
+                    vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp12, wrc1_02, 1);
+                    vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp12, wrc1_01, 1);
+
+                    // r0, r1, r2 shift right 3456
+                    vtmp00 = vextq_f32(vin_c0r0, vin_c0r0_1, 2);
+                    vtmp01 = vextq_f32(vin_c0r1, vin_c0r1_1, 2);
+                    vtmp02 = vextq_f32(vin_c0r2, vin_c0r2_1, 2);
+
+                    vtmp10 = vextq_f32(vin_c1r0, vin_c1r0_1, 2);
+                    vtmp11 = vextq_f32(vin_c1r1, vin_c1r1_1, 2);
+                    vtmp12 = vextq_f32(vin_c1r2, vin_c1r2_1, 2);
+
+                    dinc0r1_ptr += 4;
+                    prefetch(dinc0r1_ptr);
+                    dinc1r1_ptr += 4;
+                    prefetch(dinc1r1_ptr);
+
+                    //r0
+                    vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp00, wrc0_00, 2);
+                    vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp10, wrc1_00, 2);
+
+                    //r1
+                    vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp01, wrc0_01, 2);
+                    vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp01, wrc0_00, 2);
+                    vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp11, wrc1_01, 2);
+                    vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp11, wrc1_00, 2);
+
+                    //r2
+                    vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp02, wrc0_02, 2);
+                    vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp02, wrc0_01, 2);
+                    vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp12, wrc1_02, 2);
+                    vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp12, wrc1_01, 2);
+
+                    dinc0r2_ptr += 4;
+                    prefetch(dinc0r2_ptr);
+                    dinc1r2_ptr += 4;
+                    prefetch(dinc1r2_ptr);
+
+                    vst1q_f32(doutc0r0, vout_c0r0);
+                    vst1q_f32(doutc0r1, vout_c0r1);
+                    vst1q_f32(doutc1r0, vout_c1r0);
+                    vst1q_f32(doutc1r1, vout_c1r1);
+
+                    doutc0r0 += 4;
+                    doutc0r1 += 4;
+                    doutc1r0 += 4;
+                    doutc1r1 += 4;
+
+                }
+                //right
+                vout_c0r0 = vld1q_f32(doutc0r0);
+                vout_c0r1 = vld1q_f32(doutc0r1);
+
+                vout_c1r0 = vld1q_f32(doutc1r0);
+                vout_c1r0 = vld1q_f32(doutc1r1);
+
+                //din data
+                vin_c0r0 = vld1q_f32(dinc0r0_ptr);
+                vin_c0r0_1 = vld1q_f32(dinc0r0_ptr + 4);
+                vin_c0r1 = vld1q_f32(dinc0r1_ptr);
+                vin_c0r1_1 = vld1q_f32(dinc0r1_ptr + 4);
+                vin_c0r2 = vld1q_f32(dinc0r2_ptr);
+                vin_c0r2_1 = vld1q_f32(dinc0r2_ptr + 4);
+
+                vin_c1r0 = vld1q_f32(dinc1r0_ptr);
+                vin_c1r0_1 = vld1q_f32(dinc1r0_ptr + 4);
+                vin_c1r1 = vld1q_f32(dinc1r1_ptr);
+                vin_c1r1_1 = vld1q_f32(dinc1r1_ptr + 4);
+                vin_c1r2 = vld1q_f32(dinc1r2_ptr);
+                vin_c1r2_1 = vld1q_f32(dinc1r2_ptr + 4);
+
+                vin_c0r0 = vbslq_f32(vmask_rp1, vin_c0r0, vzero);
+                vin_c0r0_1 = vbslq_f32(vmask_rp2, vin_c0r0_1, vzero);
+                vin_c0r1 = vbslq_f32(vmask_rp1, vin_c0r1, vzero);
+                vin_c0r1_1 = vbslq_f32(vmask_rp2, vin_c0r1_1, vzero);
+                vin_c0r2 = vbslq_f32(vmask_rp1, vin_c0r2, vzero);
+                vin_c0r2_1 = vbslq_f32(vmask_rp2, vin_c0r2_1, vzero);
+
+                vin_c1r0 = vbslq_f32(vmask_rp1, vin_c1r0, vzero);
+                vin_c1r0_1 = vbslq_f32(vmask_rp2, vin_c1r0_1, vzero);
+                vin_c1r1 = vbslq_f32(vmask_rp1, vin_c1r1, vzero);
+                vin_c1r1_1 = vbslq_f32(vmask_rp2, vin_c1r1_1, vzero);
+                vin_c1r2 = vbslq_f32(vmask_rp1, vin_c1r2, vzero);
+                vin_c1r2_1 = vbslq_f32(vmask_rp2, vin_c1r2_1, vzero);
+
+                //r0 1234
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vin_c0r0, wrc0_00, 0);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vin_c1r0, wrc1_00, 0);
+
+                //r1
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vin_c0r1, wrc0_01, 0);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vin_c0r1, wrc0_00, 0);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vin_c1r1, wrc1_01, 0);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vin_c1r1, wrc1_00, 0);
+
+                //r2
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vin_c0r2, wrc0_02, 0);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vin_c0r2, wrc0_01, 0);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vin_c1r2, wrc1_02, 0);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vin_c1r2, wrc1_01, 0);
+
+                // r0, r1, r2 shift left 2345
+                vtmp00 = vextq_f32(vin_c0r0, vin_c0r0_1, 1);
+                vtmp01 = vextq_f32(vin_c0r1, vin_c0r1_1, 1);
+                vtmp02 = vextq_f32(vin_c0r2, vin_c0r2_1, 1);
+
+                vtmp10 = vextq_f32(vin_c1r0, vin_c1r0_1, 1);
+                vtmp11 = vextq_f32(vin_c1r1, vin_c1r1_1, 1);
+                vtmp12 = vextq_f32(vin_c1r2, vin_c1r2_1, 1);
+                
+                //r0
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp00, wrc0_00, 1);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp10, wrc1_00, 1);
+
+                //r1
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp01, wrc0_01, 1);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp01, wrc0_00, 1);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp11, wrc1_01, 1);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp11, wrc1_00, 1);
+
+                //r2
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp02, wrc0_02, 1);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp02, wrc0_01, 1);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp12, wrc1_02, 1);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp12, wrc1_01, 1);
+
+                // r0, r1, r2 shift right 3456
+                vtmp00 = vextq_f32(vin_c0r0, vin_c0r0_1, 2);
+                vtmp01 = vextq_f32(vin_c0r1, vin_c0r1_1, 2);
+                vtmp02 = vextq_f32(vin_c0r2, vin_c0r2_1, 2);
+
+                vtmp10 = vextq_f32(vin_c1r0, vin_c1r0_1, 2);
+                vtmp11 = vextq_f32(vin_c1r1, vin_c1r1_1, 2);
+                vtmp12 = vextq_f32(vin_c1r2, vin_c1r2_1, 2);
+
+                //r0
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp00, wrc0_00, 2);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp10, wrc1_00, 2);
+
+                //r1
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp01, wrc0_01, 2);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp01, wrc0_00, 2);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp11, wrc1_01, 2);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp11, wrc1_00, 2);
+
+                vin_c0r0 = vld1q_f32(doutc0r0);
+                vin_c0r1 = vld1q_f32(doutc0r1);
+                vin_c1r0 = vld1q_f32(doutc1r0);
+                vin_c1r1 = vld1q_f32(doutc1r1);
+
+                //r2
+                vout_c0r0 = vmlaq_laneq_f32(vout_c0r0, vtmp02, wrc0_02, 2);
+                vout_c0r1 = vmlaq_laneq_f32(vout_c0r1, vtmp02, wrc0_01, 2);
+                vout_c1r0 = vmlaq_laneq_f32(vout_c1r0, vtmp12, wrc1_02, 2);
+                vout_c1r1 = vmlaq_laneq_f32(vout_c1r1, vtmp12, wrc1_01, 2);
+
+                vout_c0r0 = vbslq_f32(vmask_result, vout_c0r0, vin_c0r0);
+                vout_c0r1 = vbslq_f32(vmask_result, vout_c0r1, vin_c0r1);
+                vout_c1r0 = vbslq_f32(vmask_result, vout_c1r0, vin_c1r0);
+                vout_c1r1 = vbslq_f32(vmask_result, vout_c1r1, vin_c1r1);
+
+
+                vst1q_f32(doutc0r0, vout_c0r0);
+                vst1q_f32(doutc0r1, vout_c0r1);
+                vst1q_f32(doutc1r0, vout_c1r0);
+                vst1q_f32(doutc1r1, vout_c1r1);
+
+                drc0r0 = drc0r1;
+                drc0r1 = drc0r2;
+                drc0r2 = drc0r3;
+                drc0r3 = drc0r2 + w_in;
+
+                drc1r0 = drc1r1;
+                drc1r1 = drc1r2;
+                drc1r2 = drc1r3;
+                drc1r3 = drc1r2 + w_in;
+
+            }
+        }
+        if (cremain  > 0){
+            float* dout_ptr = dout_batch + (ch_in - cremain) * size_out_channel;
+            float* din_ptr = din_batch + (ch_in - cremain) * size_out_channel;
+            const float* wei_ptr = weights + (ch_in - cremain) * size_out_channel;
+            const float* bias_ptr = bias + (ch_in - cremain) * w_stride;
+
+            conv_depthwise_3x3s1p1_bias_1(dout_ptr, din_ptr, wei_ptr, bias_ptr, flag_bias, 1, \
+                ch_in, h_in, w_in, h_out, w_out);
+        }
+    }
+
+}
 void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
+    const float* weights, const float* bias, bool flag_bias, \
+    const int num, const int ch_in, const int h_in, const int w_in, \
+    const int h_out, const int w_out) {
+    //2channel
+    //! pad is done implicit
+    const float zero[8] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
+    //! for 4x6 convolution window
+    const unsigned int right_pad_idx[8] = {5, 4, 3, 2, 1, 0, 0, 0};
+
+    //printf("conv3x3_dw start \n");
+
+    int size_in_channel = w_in * h_in;
+    int size_out_channel = w_out * h_out;
+    int w_stride = 9;
+
+    int tile_w = (w_in + 3) >> 2;
+    int tile_h = (h_in + 3) >> 2;
+    int cnt_col = tile_w - 2;
+
+    unsigned int size_pad_right = (unsigned int)(1 + (tile_w << 2) - w_in);
+    int size_pad_bottom = (unsigned int)(1 + (tile_h << 2) - h_in);
+
+    uint32x4_t vmask_rp1 = vcgeq_u32(vld1q_u32(right_pad_idx), vdupq_n_u32(size_pad_right));
+    uint32x4_t vmask_rp2 = vcgeq_u32(vld1q_u32(right_pad_idx + 4), vdupq_n_u32(size_pad_right));
+    uint32x4_t vmask_result = vcgtq_u32(vld1q_u32(right_pad_idx), vdupq_n_u32(size_pad_right));
+
+     for (int n = 0; n < num; ++n) {
+        const float *din_batch = din + n * ch_in * size_in_channel;
+        float *dout_batch = dout + n * ch_in * size_out_channel;
+#pragma omp parallel for
+        for (int c = 0; c < ch_in; c ++) {
+            float* dout_ptr = dout_batch + c * size_out_channel;
+
+            const float* din_ch_ptr = din_batch + c * size_in_channel;
+/*
+            if (flag_bias) {
+                fill_bias(dout_ptr, &bias[c], 1, size_out_channel);
+            } else {
+                fill_bias(dout_ptr, zero, 1, size_out_channel);
+            }
+*/
+            //float32x4_t wbias;
+            float bias_val = flag_bias ? bias[c] : 0.f;
+            /*if (flag_bias) {
+                wbias  = vdupq_n_f32(bias[c]);
+            } else {
+                wbias = vdupq_n_f32(0.f);
+            }
+            */
+            const float* wei_ptr = weights + c * w_stride;
+
+            float32x4_t wr0 = vld1q_f32(wei_ptr);
+            float32x4_t wr1 = vld1q_f32(wei_ptr + 3);
+            float32x4_t wr2 = vld1q_f32(wei_ptr + 6);
+
+            float *doutr0 = dout_ptr;
+            float *doutr1 = doutr0 + w_out;
+            float *doutr2 = doutr1 + w_out;
+            float *doutr3 = doutr2 + w_out;
+
+            const float *dr0 = din_ch_ptr;
+            const float *dr1 = dr0 + w_in;
+            const float *dr2 = dr1 + w_in;
+            const float *dr3 = dr2 + w_in;
+            const float *dr4 = dr3 + w_in;
+            const float *dr5 = dr4 + w_in;
+
+            const float *din_ptr0 = dr0;
+            const float *din_ptr1 = dr1;
+            const float *din_ptr2 = dr2;
+            const float *din_ptr3 = dr3;
+            const float *din_ptr4 = dr4;
+            const float *din_ptr5 = dr5;
+
+            //prefetch input
+            prefetch(doutr0);
+            prefetch(doutr1);
+            prefetch(doutr2);
+            prefetch(doutr3);
+
+            prefetch(din_ptr0);
+            prefetch(din_ptr1);
+            prefetch(din_ptr2);
+            prefetch(din_ptr3);
+            prefetch(din_ptr4);
+            prefetch(din_ptr5);
+
+            float* ptr_zero = const_cast<float*>(zero);
+            float32x4_t vzero = vdupq_n_f32(0.f);
+
+            //top
+            int h = 0;
+            if(1){
+                float32x4_t voutr0 = vdupq_n_f32(bias_val); //vld1q_f32(doutr0);
+                float32x4_t voutr1 = vdupq_n_f32(bias_val); //vld1q_f32(doutr1);
+                float32x4_t voutr2 = vdupq_n_f32(bias_val); //vld1q_f32(doutr2);
+                float32x4_t voutr3 = vdupq_n_f32(bias_val); //vld1q_f32(doutr3);
+
+                //din data
+                float32x4_t vinr0 = vld1q_f32(din_ptr0);
+                float32x4_t vinr0_1 = vld1q_f32(din_ptr0 + 4);
+                float32x4_t vinr1 = vld1q_f32(din_ptr1);
+                float32x4_t vinr1_1 = vld1q_f32(din_ptr1 + 4);
+                float32x4_t vinr2 = vld1q_f32(din_ptr2);
+                float32x4_t vinr2_1 = vld1q_f32(din_ptr2 + 4);
+
+                //r0 1234
+                voutr0 = vmlaq_laneq_f32(voutr0, vinr0, wr1, 1);
+                voutr1 = vmlaq_laneq_f32(voutr1, vinr0, wr0, 1);
+
+                float32x4_t vinr3 = vld1q_f32(din_ptr3);
+                float32x4_t vinr3_1 = vld1q_f32(din_ptr3 + 4);
+                float32x4_t vinr4 = vld1q_f32(din_ptr4);
+                float32x4_t vinr4_1 = vld1q_f32(din_ptr4 + 4);
+
+                //r1
+                voutr0 = vmlaq_laneq_f32(voutr0, vinr1, wr2, 1);
+                voutr1 = vmlaq_laneq_f32(voutr1, vinr1, wr1, 1);
+                voutr2 = vmlaq_laneq_f32(voutr2, vinr1, wr0, 1);
+
+              //  float32x4_t vinr5 = vld1q_f32(din_ptr5);
+              //  float32x4_t vinr5_1 = vld1q_f32(din_ptr5 + 4);
+
+                //r2
+                voutr3 = vmlaq_laneq_f32(voutr3, vinr2, wr0, 1);
+                voutr1 = vmlaq_laneq_f32(voutr1, vinr2, wr2, 1);
+                voutr2 = vmlaq_laneq_f32(voutr2, vinr2, wr1, 1);
+
+                // r0, r1, r2 shift left 2345
+                float32x4_t vtmp0 = vextq_f32(vinr0, vinr0_1, 1);
+                float32x4_t vtmp1 = vextq_f32(vinr1, vinr1_1, 1);
+                float32x4_t vtmp2 = vextq_f32(vinr2, vinr2_1, 1);
+
+                //r3
+                voutr3 = vmlaq_laneq_f32(voutr3, vinr3, wr1, 1);
+                voutr2 = vmlaq_laneq_f32(voutr2, vinr3, wr2, 1);
+
+                float32x4_t vtmp3 = vextq_f32(vinr3, vinr3_1, 1);
+                float32x4_t vtmp4 = vextq_f32(vinr4, vinr4_1, 1);
+                float32x4_t vtmp5 = vextq_f32(vinr5, vinr5_1, 1);
+
+                //r4
+                voutr3 = vmlaq_laneq_f32(voutr3, vinr4, wr2, 1);
+
+                //r0
+                voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr1, 2);
+                voutr1 = vmlaq_laneq_f32(voutr1, vtmp0, wr0, 2);
+
+                din_ptr0 += 3;
+                prefetch(din_ptr0);
+
+                //r1
+                voutr2 = vmlaq_laneq_f32(voutr2, vtmp1, wr0, 2);
+                voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr2, 2);
+                voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr1, 2);
+
+                // r0, r1, r2 shift right 0123
+                vtmp0 = vextq_f32(vzero, vinr0, 3);
+                vtmp1 = vextq_f32(vzero, vinr1, 3);
+
+                //r2
+                voutr3 = vmlaq_laneq_f32(voutr3, vtmp2, wr0, 2);
+                voutr2 = vmlaq_laneq_f32(voutr2, vtmp2, wr1, 2);
+                voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr2, 2);
+
+                din_ptr1 += 3;
+                prefetch(din_ptr1);
+
+                //r3
+                voutr3 = vmlaq_laneq_f32(voutr3, vtmp3, wr1, 2);
+                voutr2 = vmlaq_laneq_f32(voutr2, vtmp3, wr2, 2);
+
+                vtmp2 = vextq_f32(vzero, vinr2, 3);
+                vtmp3 = vextq_f32(vzero, vinr3, 3);
+
+                //r4
+                voutr3 = vmlaq_laneq_f32(voutr3, vtmp4, wr2, 2);
+
+                vtmp4 = vextq_f32(vzero, vinr4, 3);
+                vtmp5 = vextq_f32(vzero, vinr5, 3);
+
+                 //r0
+                voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr1, 0);
+                voutr1 = vmlaq_laneq_f32(voutr1, vtmp0, wr0, 0);
+
+                din_ptr2 += 3;
+                prefetch(din_ptr2);
+                //r1
+                voutr2 = vmlaq_laneq_f32(voutr2, vtmp1, wr0, 0);
+                voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr2, 0);
+                voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr1, 0);
+
+                din_ptr3 += 3;
+                prefetch(din_ptr3);
+                //r2
+                voutr3 = vmlaq_laneq_f32(voutr3, vtmp2, wr0, 0);
+                voutr2 = vmlaq_laneq_f32(voutr2, vtmp2, wr1, 0);
+                voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr2, 0);
+               
+                din_ptr4 += 3;
+                prefetch(din_ptr4);
+                //r3
+                voutr3 = vmlaq_laneq_f32(voutr3, vtmp3, wr1, 0);
+                voutr2 = vmlaq_laneq_f32(voutr2, vtmp3, wr2, 0);
+
+              //  din_ptr5 += 3;
+              //  prefetch(din_ptr5);
+
+                //r4
+                voutr3 = vmlaq_laneq_f32(voutr3, vtmp4, wr2, 0);
+
+                vst1q_f32(doutr0, voutr0);
+                vst1q_f32(doutr1, voutr1);
+                vst1q_f32(doutr2, voutr2);
+                vst1q_f32(doutr3, voutr3);
+
+                doutr0 += 4;
+                doutr1 += 4;
+                doutr2 += 4;
+                doutr3 += 4;
+
+                //mid col
+                for (int j = 0; j < cnt_col; ++j) {
+                    voutr0 = vdupq_n_f32(bias_val); //vld1q_f32(doutr0);
+                    voutr1 = vdupq_n_f32(bias_val); //vld1q_f32(doutr1);
+                    voutr2 = vdupq_n_f32(bias_val); //vld1q_f32(doutr2);
+                    voutr3 = vdupq_n_f32(bias_val); //vld1q_f32(doutr3);
+
+                   //din data
+                    vinr0 = vld1q_f32(din_ptr0);
+                    vinr0_1 = vld1q_f32(din_ptr0 + 4);
+                    vinr1 = vld1q_f32(din_ptr1);
+                    vinr1_1 = vld1q_f32(din_ptr1 + 4);
+                    vinr2 = vld1q_f32(din_ptr2);
+                    vinr2_1 = vld1q_f32(din_ptr2 + 4);
+
+                    //r0 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr0, wr1, 0);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vinr0, wr0, 0);
+
+                    vinr3 = vld1q_f32(din_ptr3);
+                    vinr3_1 = vld1q_f32(din_ptr3 + 4);
+                    vinr4 = vld1q_f32(din_ptr4);
+                    vinr4_1 = vld1q_f32(din_ptr4 + 4);
+
+                    //r1 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr1, wr2, 0);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vinr1, wr1, 0);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vinr1, wr0, 0);
+
+                   // vinr5 = vld1q_f32(din_ptr5);
+                    //vinr5_1 = vld1q_f32(din_ptr5 + 4);
+
+                    // r0, r1, r2 shift left 2345
+                    vtmp0 = vextq_f32(vinr0, vinr0_1, 1);
+                    vtmp1 = vextq_f32(vinr1, vinr1_1, 1);
+                    vtmp2 = vextq_f32(vinr2, vinr2_1, 1);
+
+                    //r2 1234
+                    voutr1 = vmlaq_laneq_f32(voutr1, vinr2, wr2, 0);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vinr2, wr1, 0);
+                    voutr3 = vmlaq_laneq_f32(voutr3, vinr2, wr0, 0);
+
+                    vtmp3 = vextq_f32(vinr3, vinr3_1, 1);
+                    vtmp4 = vextq_f32(vinr4, vinr4_1, 1);
+                    vtmp5 = vextq_f32(vinr5, vinr5_1, 1);
+
+                    //r3 1234
+                    voutr2 = vmlaq_laneq_f32(voutr2, vinr3, wr2, 0);
+                    voutr3 = vmlaq_laneq_f32(voutr3, vinr3, wr1, 0);
+
+                     //r0 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr1, 1);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp0, wr0, 1);
+
+                    //r4 1234
+                    voutr3 = vmlaq_laneq_f32(voutr3, vinr4, wr2, 0);
+                
+
+                    din_ptr0 += 4;
+                    prefetch(din_ptr0);
+                    //r1 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr2, 1);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr1, 1);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp1, wr0, 1);
+
+                    din_ptr1 += 4;
+                    prefetch(din_ptr1);
+                    //r2 1234
+                    voutr3 = vmlaq_laneq_f32(voutr3, vtmp2, wr0, 1);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr2, 1);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp2, wr1, 1);
+
+                     // r0, r1, r2 shift left 3456
+                    vtmp0 = vextq_f32(vinr0, vinr0_1, 2);
+                    vtmp1 = vextq_f32(vinr1, vinr1_1, 2);
+                    vtmp2 = vextq_f32(vinr2, vinr2_1, 2);
+
+                    //r3 1234
+                    voutr3 = vmlaq_laneq_f32(voutr3, vtmp3, wr1, 1);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp3, wr2, 1);
+                    
+                    din_ptr2 += 4;
+                    prefetch(din_ptr2);
+
+                    ///r0 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr1, 2);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp0, wr0, 2);
+                    //r4 1234
+                    voutr3 = vmlaq_laneq_f32(voutr3, vtmp4, wr2, 1);
+
+                    vtmp3 = vextq_f32(vinr3, vinr3_1, 2);
+                    vtmp4 = vextq_f32(vinr4, vinr4_1, 2);
+                    vtmp5 = vextq_f32(vinr5, vinr5_1, 2);
+
+
+                    //r1 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr2, 2);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr1, 2);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp1, wr0, 2);
+                    
+                    din_ptr3 += 4;
+                    prefetch(din_ptr3);
+                    //r2 1234
+                    voutr3 = vmlaq_laneq_f32(voutr3, vtmp2, wr0, 2);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr2, 2);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp2, wr1, 2);
+                   
+                    din_ptr4 += 4;
+                    prefetch(din_ptr4);
+                    //r3 1234
+                    voutr3 = vmlaq_laneq_f32(voutr3, vtmp3, wr1, 2);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp3, wr2, 2);
+
+                   // din_ptr5 += 4;
+                   // prefetch(din_ptr5);
+                    //r4 1234
+                    voutr3 = vmlaq_laneq_f32(voutr3, vtmp4, wr2, 2);
+
+                    vst1q_f32(doutr0, voutr0);
+                    vst1q_f32(doutr1, voutr1);
+                    vst1q_f32(doutr2, voutr2);
+                    vst1q_f32(doutr3, voutr3);
+
+                    doutr0 += 4;
+                    doutr1 += 4;
+                    doutr2 += 4;
+                    doutr3 += 4;
+
+                }
+                //right
+                voutr0 = vld1q_f32(doutr0);
+                voutr1 = vld1q_f32(doutr1);
+                voutr2 = vld1q_f32(doutr2);
+                voutr3 = vld1q_f32(doutr3);
+
+                //din data
+                vinr0 = vld1q_f32(din_ptr0);
+                vinr0_1 = vld1q_f32(din_ptr0 + 4);
+                vinr1 = vld1q_f32(din_ptr1);
+                vinr1_1 = vld1q_f32(din_ptr1 + 4);
+                vinr2 = vld1q_f32(din_ptr2);
+                vinr2_1 = vld1q_f32(din_ptr2 + 4);
+
+                vinr3 = vld1q_f32(din_ptr3);
+                vinr3_1 = vld1q_f32(din_ptr3 + 4);
+                vinr4 = vld1q_f32(din_ptr4);
+                vinr4_1 = vld1q_f32(din_ptr4 + 4);
+                vinr5 = vld1q_f32(din_ptr5);
+                vinr5_1 = vld1q_f32(din_ptr5 + 4);
+
+                vinr0 = vbslq_f32(vmask_rp1, vinr0, vzero);
+                vinr0_1 = vbslq_f32(vmask_rp2, vinr0_1, vzero);
+
+                vinr1 = vbslq_f32(vmask_rp1, vinr1, vzero);
+                vinr1_1 = vbslq_f32(vmask_rp2, vinr1_1, vzero);
+
+                vinr2 = vbslq_f32(vmask_rp1, vinr2, vzero);
+                vinr2_1 = vbslq_f32(vmask_rp2, vinr2_1, vzero);
+
+                vinr3 = vbslq_f32(vmask_rp1, vinr3, vzero);
+                vinr3_1 = vbslq_f32(vmask_rp2, vinr3_1, vzero);
+
+                vinr4 = vbslq_f32(vmask_rp1, vinr4, vzero);
+                vinr4_1 = vbslq_f32(vmask_rp2, vinr4_1, vzero);
+                    
+                vinr5 = vbslq_f32(vmask_rp1, vinr5, vzero);
+                vinr5_1 = vbslq_f32(vmask_rp2, vinr5_1, vzero);
+
+                //r0 1234
+                voutr0 = vmlaq_laneq_f32(voutr0, vinr0, wr1, 0);
+                voutr1 = vmlaq_laneq_f32(voutr1, vinr0, wr0, 0);
+
+                //r1 1234
+                voutr0 = vmlaq_laneq_f32(voutr0, vinr1, wr2, 0);
+                voutr1 = vmlaq_laneq_f32(voutr1, vinr1, wr1, 0);
+                voutr2 = vmlaq_laneq_f32(voutr2, vinr1, wr0, 0);
+
+                //r2 1234
+                voutr1 = vmlaq_laneq_f32(voutr1, vinr2, wr2, 0);
+                voutr2 = vmlaq_laneq_f32(voutr2, vinr2, wr1, 0);
+                voutr3 = vmlaq_laneq_f32(voutr3, vinr2, wr0, 0);
+
+                //r3 1234
+                voutr2 = vmlaq_laneq_f32(voutr2, vinr3, wr2, 0);
+                voutr3 = vmlaq_laneq_f32(voutr3, vinr3, wr1, 0);
+
+                //r4 1234
+                voutr3 = vmlaq_laneq_f32(voutr3, vinr4, wr2, 0);
+                    
+                 // r0, r1, r2 shift left 2345
+                vtmp0 = vextq_f32(vinr0, vinr0_1, 1);
+                vtmp1 = vextq_f32(vinr1, vinr1_1, 1);
+                vtmp2 = vextq_f32(vinr2, vinr2_1, 1);
+
+                vtmp3 = vextq_f32(vinr3, vinr3_1, 1);
+                vtmp4 = vextq_f32(vinr4, vinr4_1, 1);
+                vtmp5 = vextq_f32(vinr5, vinr5_1, 1);
+                
+                //r0 1234
+                voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr1, 1);
+                voutr1 = vmlaq_laneq_f32(voutr1, vtmp0, wr0, 1);
+                    
+                //r1 1234
+                voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr2, 1);
+                voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr1, 1);
+                voutr2 = vmlaq_laneq_f32(voutr2, vtmp1, wr0, 1);
+
+                //r2 1234
+                voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr2, 1);
+                voutr2 = vmlaq_laneq_f32(voutr2, vtmp2, wr1, 1);
+                voutr3 = vmlaq_laneq_f32(voutr3, vtmp2, wr0, 1);
+
+                //r3 1234
+                voutr2 = vmlaq_laneq_f32(voutr2, vtmp3, wr2, 1);
+                voutr3 = vmlaq_laneq_f32(voutr3, vtmp3, wr1, 1);
+             
+             
+                //r4 1234
+                voutr3 = vmlaq_laneq_f32(voutr3, vtmp4, wr2, 1);
+
+                // r0, r1, r2 shift left 3456
+                vtmp0 = vextq_f32(vinr0, vinr0_1, 2);
+                vtmp1 = vextq_f32(vinr1, vinr1_1, 2);
+                vtmp2 = vextq_f32(vinr2, vinr2_1, 2);
+
+                vtmp3 = vextq_f32(vinr3, vinr3_1, 2);
+                vtmp4 = vextq_f32(vinr4, vinr4_1, 2);
+                vtmp5 = vextq_f32(vinr5, vinr5_1, 2);
+
+
+                ///r0 1234
+                voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr1, 2);
+                voutr1 = vmlaq_laneq_f32(voutr1, vtmp0, wr0, 2);
+
+                
+                //r1 1234
+                voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr2, 2); 
+                voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr1, 2);
+                voutr2 = vmlaq_laneq_f32(voutr2, vtmp1, wr0, 2);
+
+                
+                //r2 1234
+                voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr2, 2);
+                voutr2 = vmlaq_laneq_f32(voutr2, vtmp2, wr1, 2);
+                voutr3 = vmlaq_laneq_f32(voutr3, vtmp2, wr0, 2);
+
+                vinr0 = vld1q_f32(doutr0);
+                vinr1 = vld1q_f32(doutr1);
+                vinr2 = vld1q_f32(doutr2);
+                vinr3 = vld1q_f32(doutr3);
+                //r3 1234
+                voutr2 = vmlaq_laneq_f32(voutr2, vtmp3, wr2, 2);
+                voutr3 = vmlaq_laneq_f32(voutr3, vtmp3, wr1, 2);
+
+                
+                //r4 1234
+                voutr3 = vmlaq_laneq_f32(voutr3, vtmp4, wr2, 2);
+
+                voutr0 = vbslq_f32(vmask_result, voutr0, vinr0);
+                voutr1 = vbslq_f32(vmask_result, voutr1, vinr1);
+                voutr2 = vbslq_f32(vmask_result, voutr2, vinr2);
+                voutr3 = vbslq_f32(vmask_result, voutr3, vinr3);
+
+
+                vst1q_f32(doutr0, voutr0);
+                vst1q_f32(doutr1, voutr1);
+                vst1q_f32(doutr2, voutr2);
+                vst1q_f32(doutr3, voutr3);
+
+                dr0 = dr3;
+                dr1 = dr4;
+                dr2 = dr5;
+                dr3 = dr2 + w_in;
+                dr4 = dr3 + w_in;
+                dr5 = dr4 + w_in;
+                dout_ptr = dout_ptr + 4 * w_out;
+            }
+            //mid
+            for (h = 0; h < tile_h - 2; h++) {
+
+                doutr0 = dout_ptr;
+                doutr1 = doutr0 + w_out;
+                doutr2 = doutr1 + w_out;
+                doutr3 = doutr2 + w_out;
+
+                din_ptr0 = dr0;
+                din_ptr1 = dr1;
+                din_ptr2 = dr2;
+                din_ptr3 = dr3;
+                din_ptr4 = dr4;
+                din_ptr5 = dr5;
+
+
+                prefetch(doutr0);
+                prefetch(doutr1);
+                prefetch(doutr2);
+                prefetch(doutr3);
+
+                prefetch(din_ptr0);
+                prefetch(din_ptr1);
+                prefetch(din_ptr2);
+                prefetch(din_ptr3);
+
+                prefetch(din_ptr4);
+                prefetch(din_ptr5);
+                
+                float32x4_t voutr0 = vld1q_f32(doutr0);
+                float32x4_t voutr1 = vld1q_f32(doutr1);
+                float32x4_t voutr2 = vld1q_f32(doutr2);
+                float32x4_t voutr3 = vld1q_f32(doutr3);
+
+                //din data
+                float32x4_t vinr0 = vld1q_f32(din_ptr0);
+                float32x4_t vinr0_1 = vld1q_f32(din_ptr0 + 4);
+                float32x4_t vinr1 = vld1q_f32(din_ptr1);
+                float32x4_t vinr1_1 = vld1q_f32(din_ptr1 + 4);
+                float32x4_t vinr2 = vld1q_f32(din_ptr2);
+                float32x4_t vinr2_1 = vld1q_f32(din_ptr2 + 4);
+
+                float32x4_t vinr3 = vld1q_f32(din_ptr3);
+                float32x4_t vinr3_1 = vld1q_f32(din_ptr3 + 4);
+                float32x4_t vinr4 = vld1q_f32(din_ptr4);
+                float32x4_t vinr4_1 = vld1q_f32(din_ptr4 + 4);
+                float32x4_t vinr5 = vld1q_f32(din_ptr5);
+                float32x4_t vinr5_1 = vld1q_f32(din_ptr5 + 4);
+
+
+                //r0 1234
+                voutr0 = vmlaq_laneq_f32(voutr0, vinr0, wr0, 1);
+
+                //r1
+                voutr0 = vmlaq_laneq_f32(voutr0, vinr1, wr1, 1);
+                voutr1 = vmlaq_laneq_f32(voutr1, vinr1, wr0, 1);
+
+                //r2
+                voutr0 = vmlaq_laneq_f32(voutr0, vinr2, wr2, 1);
+                voutr1 = vmlaq_laneq_f32(voutr1, vinr2, wr1, 1);
+                voutr2 = vmlaq_laneq_f32(voutr2, vinr2, wr0, 1);
+
+                //r3
+                voutr1 = vmlaq_laneq_f32(voutr1, vinr3, wr2, 1);
+                voutr2 = vmlaq_laneq_f32(voutr2, vinr3, wr1, 1);
+                voutr3 = vmlaq_laneq_f32(voutr3, vinr3, wr0, 1);
+
+                //r4
+                voutr2 = vmlaq_laneq_f32(voutr2, vinr4, wr2, 1);
+                voutr3 = vmlaq_laneq_f32(voutr3, vinr4, wr1, 1);
+
+                //r5
+                voutr3 = vmlaq_laneq_f32(voutr3, vinr5, wr2, 1);
+
+                // r0, r1, r2 shift left 2345
+                float32x4_t vtmp0 = vextq_f32(vinr0, vinr0_1, 1);
+                float32x4_t vtmp1 = vextq_f32(vinr1, vinr1_1, 1);
+                float32x4_t vtmp2 = vextq_f32(vinr2, vinr2_1, 1);
+                float32x4_t vtmp3 = vextq_f32(vinr3, vinr3_1, 1);
+                float32x4_t vtmp4 = vextq_f32(vinr4, vinr4_1, 1);
+                float32x4_t vtmp5 = vextq_f32(vinr5, vinr5_1, 1);
+
+
+                //r0
+                voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 2);
+
+                //r1
+                voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 2);
+                voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr0, 2);
+
+                //r2
+                voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 2);
+                voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr1, 2);
+                voutr2 = vmlaq_laneq_f32(voutr2, vtmp2, wr0, 2);
+
+                din_ptr0 += 3;
+                prefetch(din_ptr0);
+                //r3
+                voutr1 = vmlaq_laneq_f32(voutr1, vtmp3, wr2, 2);
+                voutr2 = vmlaq_laneq_f32(voutr2, vtmp3, wr1, 2);
+                voutr3 = vmlaq_laneq_f32(voutr3, vtmp3, wr0, 2);
+
+                din_ptr1 += 3;
+                prefetch(din_ptr1);
+                //r4
+                voutr2 = vmlaq_laneq_f32(voutr2, vtmp4, wr2, 2);
+                voutr3 = vmlaq_laneq_f32(voutr3, vtmp4, wr1, 2);
+
+                //r5
+                voutr3 = vmlaq_laneq_f32(voutr3, vtmp5, wr2, 2);
+
+                // r0, r1, r2 shift right 0123
+                vtmp0 = vextq_f32(vzero, vinr0, 3);
+                vtmp1 = vextq_f32(vzero, vinr1, 3);
+                vtmp2 = vextq_f32(vzero, vinr2, 3);
+                vtmp3 = vextq_f32(vzero, vinr3, 3);
+                vtmp4 = vextq_f32(vzero, vinr4, 3);
+                vtmp5 = vextq_f32(vzero, vinr5, 3);
+
+                 //r0
+                voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 0);
+
+                din_ptr2 += 3;
+                prefetch(din_ptr2);
+                //r1
+                voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 0);
+                voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr0, 0);
+
+                din_ptr3 += 3;
+                prefetch(din_ptr3);
+                //r2
+                voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 0);
+                voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr1, 0);
+                voutr2 = vmlaq_laneq_f32(voutr2, vtmp2, wr0, 0);
+               
+                din_ptr4 += 3;
+                prefetch(din_ptr4);
+                //r3
+                voutr1 = vmlaq_laneq_f32(voutr1, vtmp3, wr2, 0);
+                voutr2 = vmlaq_laneq_f32(voutr2, vtmp3, wr1, 0);
+                voutr3 = vmlaq_laneq_f32(voutr3, vtmp3, wr0, 0);
+
+                //r4
+                voutr2 = vmlaq_laneq_f32(voutr2, vtmp4, wr2, 0);
+                voutr3 = vmlaq_laneq_f32(voutr3, vtmp4, wr1, 0);
+
+                //r5
+                voutr3 = vmlaq_laneq_f32(voutr3, vtmp5, wr2, 0);
+
+               
+                din_ptr5 += 3;
+                prefetch(din_ptr5);
+
+                vst1q_f32(doutr0, voutr0);
+                vst1q_f32(doutr1, voutr1);
+                vst1q_f32(doutr2, voutr2);
+                vst1q_f32(doutr3, voutr3);
+
+                doutr0 += 4;
+                doutr1 += 4;
+                doutr2 += 4;
+                doutr3 += 4;
+
+                //mid col
+                for (int j = 0; j < cnt_col; ++j) {
+                    voutr0 = vld1q_f32(doutr0);
+                    voutr1 = vld1q_f32(doutr1);
+                    voutr2 = vld1q_f32(doutr2);
+                    voutr3 = vld1q_f32(doutr3);
+
+                   //din data
+                    vinr0 = vld1q_f32(din_ptr0);
+                    vinr0_1 = vld1q_f32(din_ptr0 + 4);
+                    vinr1 = vld1q_f32(din_ptr1);
+                    vinr1_1 = vld1q_f32(din_ptr1 + 4);
+                    vinr2 = vld1q_f32(din_ptr2);
+                    vinr2_1 = vld1q_f32(din_ptr2 + 4);
+
+                    vinr3 = vld1q_f32(din_ptr3);
+                    vinr3_1 = vld1q_f32(din_ptr3 + 4);
+                    vinr4 = vld1q_f32(din_ptr4);
+                    vinr4_1 = vld1q_f32(din_ptr4 + 4);
+                    vinr5 = vld1q_f32(din_ptr5);
+                    vinr5_1 = vld1q_f32(din_ptr5 + 4);
+
+
+                    //r0 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr0, wr0, 0);
+
+                    //r1 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr1, wr1, 0);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vinr1, wr0, 0);
+
+                    //r2 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr2, wr2, 0);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vinr2, wr1, 0);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vinr2, wr0, 0);
+
+                    //r3 1234
+                    voutr1 = vmlaq_laneq_f32(voutr1, vinr3, wr2, 0);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vinr3, wr1, 0);
+                    voutr3 = vmlaq_laneq_f32(voutr3, vinr3, wr0, 0);
+
+                    //r4 1234
+                    voutr2 = vmlaq_laneq_f32(voutr2, vinr4, wr2, 0);
+                    voutr3 = vmlaq_laneq_f32(voutr3, vinr4, wr1, 0);
+
+                    //r5 1234
+                    voutr3 = vmlaq_laneq_f32(voutr3, vinr5, wr2, 0);
+                    
+                    // r0, r1, r2 shift left 2345
+                    vtmp0 = vextq_f32(vinr0, vinr0_1, 1);
+                    vtmp1 = vextq_f32(vinr1, vinr1_1, 1);
+                    vtmp2 = vextq_f32(vinr2, vinr2_1, 1);
+
+                    vtmp3 = vextq_f32(vinr3, vinr3_1, 1);
+                    vtmp4 = vextq_f32(vinr4, vinr4_1, 1);
+                    vtmp5 = vextq_f32(vinr5, vinr5_1, 1);
+
+                
+                     //r0 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 1);
+
+                    //r1 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 1);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr0, 1);
+
+                    //r2 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 1);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr1, 1);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp2, wr0, 1);
+
+                    //r3 1234
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp3, wr2, 1);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp3, wr1, 1);
+                    voutr3 = vmlaq_laneq_f32(voutr3, vtmp3, wr0, 1);
+                    
+                    din_ptr0 += 4;
+                    prefetch(din_ptr0);
+                    //r4 1234
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp4, wr2, 1);
+                    voutr3 = vmlaq_laneq_f32(voutr3, vtmp4, wr1, 1);
+
+                    //r5 1234
+                    voutr3 = vmlaq_laneq_f32(voutr3, vtmp5, wr2, 1);
+
+                     // r0, r1, r2 shift left 3456
+                    vtmp0 = vextq_f32(vinr0, vinr0_1, 2);
+                    vtmp1 = vextq_f32(vinr1, vinr1_1, 2);
+                    vtmp2 = vextq_f32(vinr2, vinr2_1, 2);
+
+                    vtmp3 = vextq_f32(vinr3, vinr3_1, 2);
+                    vtmp4 = vextq_f32(vinr4, vinr4_1, 2);
+                    vtmp5 = vextq_f32(vinr5, vinr5_1, 2);
+
+
+                    ///r0 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 2);
+
+                    din_ptr1 += 4;
+                    prefetch(din_ptr1);
+                    //r1 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 2);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr0, 2);
+
+                    din_ptr2 += 4;
+                    prefetch(din_ptr2);
+                    //r2 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 2);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr1, 2);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp2, wr0, 2);
+
+                    din_ptr3 += 4;
+                    prefetch(din_ptr3);
+                    //r3 1234
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp3, wr2, 2);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp3, wr1, 2);
+                    voutr3 = vmlaq_laneq_f32(voutr3, vtmp3, wr0, 2);
+
+                    din_ptr4 += 4;
+                    prefetch(din_ptr4);
+                    //r4 1234
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp4, wr2, 2);
+                    voutr3 = vmlaq_laneq_f32(voutr3, vtmp4, wr1, 2);
+
+                    //r5 1234
+                    voutr3 = vmlaq_laneq_f32(voutr3, vtmp5, wr2, 2);
+
+                    
+                    din_ptr5 += 4;
+                    prefetch(din_ptr5);
+
+                    vst1q_f32(doutr0, voutr0);
+                    vst1q_f32(doutr1, voutr1);
+                    vst1q_f32(doutr2, voutr2);
+                    vst1q_f32(doutr3, voutr3);
+
+                    doutr0 += 4;
+                    doutr1 += 4;
+                    doutr2 += 4;
+                    doutr3 += 4;
+
+                }
+                //right
+                voutr0 = vld1q_f32(doutr0);
+                voutr1 = vld1q_f32(doutr1);
+                voutr2 = vld1q_f32(doutr2);
+                voutr3 = vld1q_f32(doutr3);
+
+                //din data
+                vinr0 = vld1q_f32(din_ptr0);
+                vinr0_1 = vld1q_f32(din_ptr0 + 4);
+                vinr1 = vld1q_f32(din_ptr1);
+                vinr1_1 = vld1q_f32(din_ptr1 + 4);
+                vinr2 = vld1q_f32(din_ptr2);
+                vinr2_1 = vld1q_f32(din_ptr2 + 4);
+
+                vinr3 = vld1q_f32(din_ptr3);
+                vinr3_1 = vld1q_f32(din_ptr3 + 4);
+                vinr4 = vld1q_f32(din_ptr4);
+                vinr4_1 = vld1q_f32(din_ptr4 + 4);
+                vinr5 = vld1q_f32(din_ptr5);
+                vinr5_1 = vld1q_f32(din_ptr5 + 4);
+
+                vinr0 = vbslq_f32(vmask_rp1, vinr0, vzero);
+                vinr0_1 = vbslq_f32(vmask_rp2, vinr0_1, vzero);
+
+                vinr1 = vbslq_f32(vmask_rp1, vinr1, vzero);
+                vinr1_1 = vbslq_f32(vmask_rp2, vinr1_1, vzero);
+
+                vinr2 = vbslq_f32(vmask_rp1, vinr2, vzero);
+                vinr2_1 = vbslq_f32(vmask_rp2, vinr2_1, vzero);
+
+                vinr3 = vbslq_f32(vmask_rp1, vinr3, vzero);
+                vinr3_1 = vbslq_f32(vmask_rp2, vinr3_1, vzero);
+
+                vinr4 = vbslq_f32(vmask_rp1, vinr4, vzero);
+                vinr4_1 = vbslq_f32(vmask_rp2, vinr4_1, vzero);
+                    
+                vinr5 = vbslq_f32(vmask_rp1, vinr5, vzero);
+                vinr5_1 = vbslq_f32(vmask_rp2, vinr5_1, vzero);
+
+                //r0 1234
+                voutr0 = vmlaq_laneq_f32(voutr0, vinr0, wr0, 0);
+
+                //r1 1234
+                voutr0 = vmlaq_laneq_f32(voutr0, vinr1, wr1, 0);
+                voutr1 = vmlaq_laneq_f32(voutr1, vinr1, wr0, 0);
+
+                //r2 1234
+                voutr0 = vmlaq_laneq_f32(voutr0, vinr2, wr2, 0);
+                voutr1 = vmlaq_laneq_f32(voutr1, vinr2, wr1, 0);
+                voutr2 = vmlaq_laneq_f32(voutr2, vinr2, wr0, 0);
+
+                //r3 1234
+                voutr1 = vmlaq_laneq_f32(voutr1, vinr3, wr2, 0);
+                voutr2 = vmlaq_laneq_f32(voutr2, vinr3, wr1, 0);
+                voutr3 = vmlaq_laneq_f32(voutr3, vinr3, wr0, 0);
+
+                //r4 1234
+                voutr2 = vmlaq_laneq_f32(voutr2, vinr4, wr2, 0);
+                voutr3 = vmlaq_laneq_f32(voutr3, vinr4, wr1, 0);
+
+                //r5 1234
+                voutr3 = vmlaq_laneq_f32(voutr3, vinr5, wr2, 0);
+                    
+                 // r0, r1, r2 shift left 2345
+                vtmp0 = vextq_f32(vinr0, vinr0_1, 1);
+                vtmp1 = vextq_f32(vinr1, vinr1_1, 1);
+                vtmp2 = vextq_f32(vinr2, vinr2_1, 1);
+
+                vtmp3 = vextq_f32(vinr3, vinr3_1, 1);
+                vtmp4 = vextq_f32(vinr4, vinr4_1, 1);
+                vtmp5 = vextq_f32(vinr5, vinr5_1, 1);
+                
+                //r0 1234
+                voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 1);
+                    
+                //r1 1234
+                voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 1);
+                voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr0, 1);
+
+                //r2 1234
+                voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 1);
+                voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr1, 1);
+                voutr2 = vmlaq_laneq_f32(voutr2, vtmp2, wr0, 1);
+
+                //r3 1234
+                voutr1 = vmlaq_laneq_f32(voutr1, vtmp3, wr2, 1);
+                voutr2 = vmlaq_laneq_f32(voutr2, vtmp3, wr1, 1);
+                voutr3 = vmlaq_laneq_f32(voutr3, vtmp3, wr0, 1);
+             
+             
+                //r4 1234
+                voutr2 = vmlaq_laneq_f32(voutr2, vtmp4, wr2, 1);
+                voutr3 = vmlaq_laneq_f32(voutr3, vtmp4, wr1, 1);
+
+               //r5 1234
+                voutr3 = vmlaq_laneq_f32(voutr3, vtmp5, wr2, 1);
+
+                // r0, r1, r2 shift left 3456
+                vtmp0 = vextq_f32(vinr0, vinr0_1, 2);
+                vtmp1 = vextq_f32(vinr1, vinr1_1, 2);
+                vtmp2 = vextq_f32(vinr2, vinr2_1, 2);
+
+                vtmp3 = vextq_f32(vinr3, vinr3_1, 2);
+                vtmp4 = vextq_f32(vinr4, vinr4_1, 2);
+                vtmp5 = vextq_f32(vinr5, vinr5_1, 2);
+
+
+                ///r0 1234
+                voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 2);
+
+                
+                //r1 1234
+                voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 2); 
+                voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr0, 2);
+
+                
+                //r2 1234
+                voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 2);
+                voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr1, 2);
+                voutr2 = vmlaq_laneq_f32(voutr2, vtmp2, wr0, 2);
+
+                vinr0 = vld1q_f32(doutr0);
+                vinr1 = vld1q_f32(doutr1);
+                vinr2 = vld1q_f32(doutr2);
+                vinr3 = vld1q_f32(doutr3);
+                //r3 1234
+                voutr1 = vmlaq_laneq_f32(voutr1, vtmp3, wr2, 2);
+                voutr2 = vmlaq_laneq_f32(voutr2, vtmp3, wr1, 2);
+                voutr3 = vmlaq_laneq_f32(voutr3, vtmp3, wr0, 2);
+
+                
+                //r4 1234
+                voutr2 = vmlaq_laneq_f32(voutr2, vtmp4, wr2, 2);
+                voutr3 = vmlaq_laneq_f32(voutr3, vtmp4, wr1, 2);
+
+                //r5 1234
+                voutr3 = vmlaq_laneq_f32(voutr3, vtmp5, wr2, 2);
+                
+                voutr0 = vbslq_f32(vmask_result, voutr0, vinr0);
+                voutr1 = vbslq_f32(vmask_result, voutr1, vinr1);
+                voutr2 = vbslq_f32(vmask_result, voutr2, vinr2);
+                voutr3 = vbslq_f32(vmask_result, voutr3, vinr3);
+
+
+                vst1q_f32(doutr0, voutr0);
+                vst1q_f32(doutr1, voutr1);
+                vst1q_f32(doutr2, voutr2);
+                vst1q_f32(doutr3, voutr3);
+
+                dr0 = dr4;
+                dr1 = dr5;
+                dr2 = dr1 + w_in;
+                dr3 = dr2 + w_in;
+                dr4 = dr3 + w_in;
+                dr5 = dr4 + w_in;
+                dout_ptr = dout_ptr + 4 * w_out;
+            }
+            //bottom
+            if(1){
+                din_ptr0 = dr0;
+                din_ptr1 = dr1;
+                doutr0 = dout_ptr;
+                doutr1 = doutr0 + w_out;
+                doutr2 = doutr1 + w_out;
+                doutr3 = doutr2 + w_out;
+
+
+                prefetch(doutr0);
+
+                prefetch(din_ptr0);
+                prefetch(din_ptr1);
+
+                if (size_pad_bottom == 1){//only 4 line
+                    din_ptr2 = dr2;
+                    din_ptr3 = dr3;
+                    din_ptr4 = dr4;
+                    din_ptr5 = ptr_zero;
+                    
+                    prefetch(doutr1);
+                    prefetch(doutr2);
+                    prefetch(doutr3);
+
+                    prefetch(din_ptr2);
+                    prefetch(din_ptr3);
+                    prefetch(din_ptr4);
+                    prefetch(din_ptr5);
+
+                    float32x4_t voutr0 = vld1q_f32(doutr0);
+                    float32x4_t voutr1 = vld1q_f32(doutr1);
+                    float32x4_t voutr2 = vld1q_f32(doutr2);
+                    float32x4_t voutr3 = vld1q_f32(doutr3);
+
+                    //din data
+                    float32x4_t vinr0 = vld1q_f32(din_ptr0);
+                    float32x4_t vinr0_1 = vld1q_f32(din_ptr0 + 4);
+                    float32x4_t vinr1 = vld1q_f32(din_ptr1);
+                    float32x4_t vinr1_1 = vld1q_f32(din_ptr1 + 4);
+                    float32x4_t vinr2 = vld1q_f32(din_ptr2);
+                    float32x4_t vinr2_1 = vld1q_f32(din_ptr2 + 4);
+
+                    float32x4_t vinr3 = vld1q_f32(din_ptr3);
+                    float32x4_t vinr3_1 = vld1q_f32(din_ptr3 + 4);
+                    float32x4_t vinr4 = vld1q_f32(din_ptr4);
+                    float32x4_t vinr4_1 = vld1q_f32(din_ptr4 + 4);
+                    float32x4_t vinr5 = vld1q_f32(din_ptr5);
+                    float32x4_t vinr5_1 = vld1q_f32(din_ptr5 + 4);
+
+                     //r0 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr0, wr0, 1);
+
+                    //r1
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr1, wr1, 1);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vinr1, wr0, 1);
+
+                    //r2
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr2, wr2, 1);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vinr2, wr1, 1);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vinr2, wr0, 1);
+
+                    //r3
+                    voutr1 = vmlaq_laneq_f32(voutr1, vinr3, wr2, 1);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vinr3, wr1, 1);
+                    voutr3 = vmlaq_laneq_f32(voutr3, vinr3, wr0, 1);
+
+                    //r4
+                    voutr2 = vmlaq_laneq_f32(voutr2, vinr4, wr2, 1);
+                    voutr3 = vmlaq_laneq_f32(voutr3, vinr4, wr1, 1);
+
+                    //r5
+                    voutr3 = vmlaq_laneq_f32(voutr3, vinr5, wr2, 1);
+
+                    // r0, r1, r2 shift left 2345
+                    float32x4_t vtmp0 = vextq_f32(vinr0, vinr0_1, 1);
+                    float32x4_t vtmp1 = vextq_f32(vinr1, vinr1_1, 1);
+                    float32x4_t vtmp2 = vextq_f32(vinr2, vinr2_1, 1);
+                    float32x4_t vtmp3 = vextq_f32(vinr3, vinr3_1, 1);
+                    float32x4_t vtmp4 = vextq_f32(vinr4, vinr4_1, 1);
+                    float32x4_t vtmp5 = vextq_f32(vinr5, vinr5_1, 1);
+
+
+                    //r0
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 2);
+
+                    //r1
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 2);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr0, 2);
+
+                    //r2
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 2);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr1, 2);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp2, wr0, 2);
+
+                    din_ptr0 += 3;
+                    prefetch(din_ptr0);
+                    //r3
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp3, wr2, 2);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp3, wr1, 2);
+                    voutr3 = vmlaq_laneq_f32(voutr3, vtmp3, wr0, 2);
+
+                    din_ptr1 += 3;
+                    prefetch(din_ptr1);
+                    //r4
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp4, wr2, 2);
+                    voutr3 = vmlaq_laneq_f32(voutr3, vtmp4, wr1, 2);
+
+                    //r5
+                    voutr3 = vmlaq_laneq_f32(voutr3, vtmp5, wr2, 2);
+
+                    // r0, r1, r2 shift right 0123
+                    vtmp0 = vextq_f32(vzero, vinr0, 3);
+                    vtmp1 = vextq_f32(vzero, vinr1, 3);
+                    vtmp2 = vextq_f32(vzero, vinr2, 3);
+                    vtmp3 = vextq_f32(vzero, vinr3, 3);
+                    vtmp4 = vextq_f32(vzero, vinr4, 3);
+                    vtmp5 = vextq_f32(vzero, vinr5, 3);
+
+                    //r0
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 0);
+
+                    din_ptr2 += 3;
+                    prefetch(din_ptr2);
+                    //r1
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 0);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr0, 0);
+
+                    din_ptr3 += 3;
+                    prefetch(din_ptr3);
+                    //r2
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 0);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr1, 0);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp2, wr0, 0);
+               
+                    din_ptr4 += 3;
+                    prefetch(din_ptr4);
+                    //r3
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp3, wr2, 0);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp3, wr1, 0);
+                    voutr3 = vmlaq_laneq_f32(voutr3, vtmp3, wr0, 0);
+
+                   // din_ptr5 += 3;
+                    prefetch(din_ptr5);
+                    //r4
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp4, wr2, 0);
+                    voutr3 = vmlaq_laneq_f32(voutr3, vtmp4, wr1, 0);
+
+                    //r5
+                    voutr3 = vmlaq_laneq_f32(voutr3, vtmp5, wr2, 0);
+
+
+                    vst1q_f32(doutr0, voutr0);
+                    vst1q_f32(doutr1, voutr1);
+                    vst1q_f32(doutr2, voutr2);
+                    vst1q_f32(doutr3, voutr3);
+
+                    doutr0 += 4;
+                    doutr1 += 4;
+                    doutr2 += 4;
+                    doutr3 += 4;
+
+                    //mid col
+                    for (int j = 0; j < cnt_col; ++j) {
+                        voutr0 = vld1q_f32(doutr0);
+                        voutr1 = vld1q_f32(doutr1);
+                        voutr2 = vld1q_f32(doutr2);
+                        voutr3 = vld1q_f32(doutr3);
+
+                        //din data
+                        vinr0 = vld1q_f32(din_ptr0);
+                        vinr0_1 = vld1q_f32(din_ptr0 + 4);
+                        vinr1 = vld1q_f32(din_ptr1);
+                        vinr1_1 = vld1q_f32(din_ptr1 + 4);
+                        vinr2 = vld1q_f32(din_ptr2);
+                        vinr2_1 = vld1q_f32(din_ptr2 + 4);
+
+                        vinr3 = vld1q_f32(din_ptr3);
+                        vinr3_1 = vld1q_f32(din_ptr3 + 4);
+                        vinr4 = vld1q_f32(din_ptr4);
+                        vinr4_1 = vld1q_f32(din_ptr4 + 4);
+                        vinr5 = vld1q_f32(din_ptr5);
+                        vinr5_1 = vld1q_f32(din_ptr5 + 4);
+
+
+                        //r0 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vinr0, wr0, 0);
+
+                        //r1 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vinr1, wr1, 0);
+                        voutr1 = vmlaq_laneq_f32(voutr1, vinr1, wr0, 0);
+
+                        //r2 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vinr2, wr2, 0);
+                        voutr1 = vmlaq_laneq_f32(voutr1, vinr2, wr1, 0);
+                        voutr2 = vmlaq_laneq_f32(voutr2, vinr2, wr0, 0);
+
+                        //r3 1234
+                        voutr1 = vmlaq_laneq_f32(voutr1, vinr3, wr2, 0);
+                        voutr2 = vmlaq_laneq_f32(voutr2, vinr3, wr1, 0);
+                        voutr3 = vmlaq_laneq_f32(voutr3, vinr3, wr0, 0);
+
+                        //r4 1234
+                        voutr2 = vmlaq_laneq_f32(voutr2, vinr4, wr2, 0);
+                        voutr3 = vmlaq_laneq_f32(voutr3, vinr4, wr1, 0);
+
+                        //r5 1234
+                        voutr3 = vmlaq_laneq_f32(voutr3, vinr5, wr2, 0);
+                    
+                        // r0, r1, r2 shift left 2345
+                        vtmp0 = vextq_f32(vinr0, vinr0_1, 1);
+                        vtmp1 = vextq_f32(vinr1, vinr1_1, 1);
+                        vtmp2 = vextq_f32(vinr2, vinr2_1, 1);
+
+                        vtmp3 = vextq_f32(vinr3, vinr3_1, 1);
+                        vtmp4 = vextq_f32(vinr4, vinr4_1, 1);
+                        vtmp5 = vextq_f32(vinr5, vinr5_1, 1);
+
+                
+                        //r0 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 1);
+
+                        //r1 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 1);
+                        voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr0, 1);
+
+                        //r2 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 1);
+                        voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr1, 1);
+                        voutr2 = vmlaq_laneq_f32(voutr2, vtmp2, wr0, 1);
+
+                        //r3 1234
+                        voutr1 = vmlaq_laneq_f32(voutr1, vtmp3, wr2, 1);
+                        voutr2 = vmlaq_laneq_f32(voutr2, vtmp3, wr1, 1);
+                        voutr3 = vmlaq_laneq_f32(voutr3, vtmp3, wr0, 1);
+                    
+                        din_ptr0 += 4;
+                        prefetch(din_ptr0);
+                        //r4 1234
+                        voutr2 = vmlaq_laneq_f32(voutr2, vtmp4, wr2, 1);
+                        voutr3 = vmlaq_laneq_f32(voutr3, vtmp4, wr1, 1);
+
+                        //r5 1234
+                        voutr3 = vmlaq_laneq_f32(voutr3, vtmp5, wr2, 1);
+
+                        // r0, r1, r2 shift left 3456
+                        vtmp0 = vextq_f32(vinr0, vinr0_1, 2);
+                        vtmp1 = vextq_f32(vinr1, vinr1_1, 2);
+                        vtmp2 = vextq_f32(vinr2, vinr2_1, 2);
+
+                        vtmp3 = vextq_f32(vinr3, vinr3_1, 2);
+                        vtmp4 = vextq_f32(vinr4, vinr4_1, 2);
+                        vtmp5 = vextq_f32(vinr5, vinr5_1, 2);
+
+
+                        ///r0 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 2);
+
+                        din_ptr1 += 4;
+                        prefetch(din_ptr1);
+                        //r1 1234
+                         voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 2);
+                        voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr0, 2);
+
+                        din_ptr2 += 4;
+                        prefetch(din_ptr2);
+                        //r2 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 2);
+                        voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr1, 2);
+                        voutr2 = vmlaq_laneq_f32(voutr2, vtmp2, wr0, 2);
+
+                        din_ptr3 += 4;
+                        prefetch(din_ptr3);
+                        //r3 1234
+                        voutr1 = vmlaq_laneq_f32(voutr1, vtmp3, wr2, 2);
+                        voutr2 = vmlaq_laneq_f32(voutr2, vtmp3, wr1, 2);
+                        voutr3 = vmlaq_laneq_f32(voutr3, vtmp3, wr0, 2);
+
+                        din_ptr4 += 4;
+                        prefetch(din_ptr4);
+                        //r4 1234
+                        voutr2 = vmlaq_laneq_f32(voutr2, vtmp4, wr2, 2);
+                        voutr3 = vmlaq_laneq_f32(voutr3, vtmp4, wr1, 2);
+
+                        //r5 1234
+                        voutr3 = vmlaq_laneq_f32(voutr3, vtmp5, wr2, 2);
+
+                    
+                       // din_ptr5 += 4;
+                        prefetch(din_ptr5);
+
+                        vst1q_f32(doutr0, voutr0);
+                        vst1q_f32(doutr1, voutr1);
+                        vst1q_f32(doutr2, voutr2);
+                        vst1q_f32(doutr3, voutr3);
+
+                        doutr0 += 4;
+                        doutr1 += 4;
+                        doutr2 += 4;
+                        doutr3 += 4;
+
+                    }
+                    //right
+                    voutr0 = vld1q_f32(doutr0);
+                    voutr1 = vld1q_f32(doutr1);
+                    voutr2 = vld1q_f32(doutr2);
+                    voutr3 = vld1q_f32(doutr3);
+
+                    //din data
+                    vinr0 = vld1q_f32(din_ptr0);
+                    vinr0_1 = vld1q_f32(din_ptr0 + 4);
+                    vinr1 = vld1q_f32(din_ptr1);
+                    vinr1_1 = vld1q_f32(din_ptr1 + 4);
+                    vinr2 = vld1q_f32(din_ptr2);
+                    vinr2_1 = vld1q_f32(din_ptr2 + 4);
+
+                    vinr3 = vld1q_f32(din_ptr3);
+                    vinr3_1 = vld1q_f32(din_ptr3 + 4);
+                    vinr4 = vld1q_f32(din_ptr4);
+                    vinr4_1 = vld1q_f32(din_ptr4 + 4);
+                    vinr5 = vld1q_f32(din_ptr5);
+                    vinr5_1 = vld1q_f32(din_ptr5 + 4);
+
+                    vinr0 = vbslq_f32(vmask_rp1, vinr0, vzero);
+                    vinr0_1 = vbslq_f32(vmask_rp2, vinr0_1, vzero);
+
+                    vinr1 = vbslq_f32(vmask_rp1, vinr1, vzero);
+                    vinr1_1 = vbslq_f32(vmask_rp2, vinr1_1, vzero);
+
+                    vinr2 = vbslq_f32(vmask_rp1, vinr2, vzero);
+                    vinr2_1 = vbslq_f32(vmask_rp2, vinr2_1, vzero);
+
+                    vinr3 = vbslq_f32(vmask_rp1, vinr3, vzero);
+                    vinr3_1 = vbslq_f32(vmask_rp2, vinr3_1, vzero);
+
+                    vinr4 = vbslq_f32(vmask_rp1, vinr4, vzero);
+                    vinr4_1 = vbslq_f32(vmask_rp2, vinr4_1, vzero);
+                    
+                    vinr5 = vbslq_f32(vmask_rp1, vinr5, vzero);
+                    vinr5_1 = vbslq_f32(vmask_rp2, vinr5_1, vzero);
+
+                    //r0 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr0, wr0, 0);
+
+                    //r1 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr1, wr1, 0);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vinr1, wr0, 0);
+
+                    //r2 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr2, wr2, 0);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vinr2, wr1, 0);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vinr2, wr0, 0);
+
+                    //r3 1234
+                    voutr1 = vmlaq_laneq_f32(voutr1, vinr3, wr2, 0);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vinr3, wr1, 0);
+                    voutr3 = vmlaq_laneq_f32(voutr3, vinr3, wr0, 0);
+
+                    //r4 1234
+                    voutr2 = vmlaq_laneq_f32(voutr2, vinr4, wr2, 0);
+                    voutr3 = vmlaq_laneq_f32(voutr3, vinr4, wr1, 0);
+
+                     //r5 1234
+                    voutr3 = vmlaq_laneq_f32(voutr3, vinr5, wr2, 0);
+                    
+                     // r0, r1, r2 shift left 2345
+                    vtmp0 = vextq_f32(vinr0, vinr0_1, 1);
+                    vtmp1 = vextq_f32(vinr1, vinr1_1, 1);
+                    vtmp2 = vextq_f32(vinr2, vinr2_1, 1);
+
+                    vtmp3 = vextq_f32(vinr3, vinr3_1, 1);
+                    vtmp4 = vextq_f32(vinr4, vinr4_1, 1);
+                    vtmp5 = vextq_f32(vinr5, vinr5_1, 1);
+                
+                    //r0 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 1);
+                    
+                    //r1 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 1);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr0, 1);
+
+                    //r2 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 1);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr1, 1);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp2, wr0, 1);
+
+                    //r3 1234
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp3, wr2, 1);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp3, wr1, 1);
+                    voutr3 = vmlaq_laneq_f32(voutr3, vtmp3, wr0, 1);
+             
+             
+                    //r4 1234
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp4, wr2, 1);
+                    voutr3 = vmlaq_laneq_f32(voutr3, vtmp4, wr1, 1);
+
+                    //r5 1234
+                    voutr3 = vmlaq_laneq_f32(voutr3, vtmp5, wr2, 1);
+
+                    // r0, r1, r2 shift left 3456
+                    vtmp0 = vextq_f32(vinr0, vinr0_1, 2);
+                    vtmp1 = vextq_f32(vinr1, vinr1_1, 2);
+                    vtmp2 = vextq_f32(vinr2, vinr2_1, 2);
+
+                    vtmp3 = vextq_f32(vinr3, vinr3_1, 2);
+                    vtmp4 = vextq_f32(vinr4, vinr4_1, 2);
+                    vtmp5 = vextq_f32(vinr5, vinr5_1, 2);
+
+
+                    ///r0 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 2);
+
+                
+                    //r1 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 2); 
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr0, 2);
+
+                
+                    //r2 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 2);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr1, 2);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp2, wr0, 2);
+
+                    vinr0 = vld1q_f32(doutr0);
+                    vinr1 = vld1q_f32(doutr1);
+                    vinr2 = vld1q_f32(doutr2);
+                    vinr3 = vld1q_f32(doutr3);
+                    //r3 1234
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp3, wr2, 2);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp3, wr1, 2);
+                    voutr3 = vmlaq_laneq_f32(voutr3, vtmp3, wr0, 2);
+
+                
+                    //r4 1234
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp4, wr2, 2);
+                    voutr3 = vmlaq_laneq_f32(voutr3, vtmp4, wr1, 2);
+
+                    //r5 1234
+                    voutr3 = vmlaq_laneq_f32(voutr3, vtmp5, wr2, 2);
+                
+                    voutr0 = vbslq_f32(vmask_result, voutr0, vinr0);
+                    voutr1 = vbslq_f32(vmask_result, voutr1, vinr1);
+                    voutr2 = vbslq_f32(vmask_result, voutr2, vinr2);
+                    voutr3 = vbslq_f32(vmask_result, voutr3, vinr3);
+
+
+                    vst1q_f32(doutr0, voutr0);
+                    vst1q_f32(doutr1, voutr1);
+                    vst1q_f32(doutr2, voutr2);
+                    vst1q_f32(doutr3, voutr3);
+
+                }
+                if (size_pad_bottom == 2){//only 3 line
+                    din_ptr2 = dr2;
+                    din_ptr3 = dr3;
+                    din_ptr4 = ptr_zero;
+                    
+                    prefetch(doutr1);
+                    prefetch(doutr2);
+
+                    prefetch(din_ptr2);
+                    prefetch(din_ptr3);
+                    prefetch(din_ptr4);
+
+                    float32x4_t voutr0 = vld1q_f32(doutr0);
+                    float32x4_t voutr1 = vld1q_f32(doutr1);
+                    float32x4_t voutr2 = vld1q_f32(doutr2);
+
+                    //din data
+                    float32x4_t vinr0 = vld1q_f32(din_ptr0);
+                    float32x4_t vinr0_1 = vld1q_f32(din_ptr0 + 4);
+                    float32x4_t vinr1 = vld1q_f32(din_ptr1);
+                    float32x4_t vinr1_1 = vld1q_f32(din_ptr1 + 4);
+                    float32x4_t vinr2 = vld1q_f32(din_ptr2);
+                    float32x4_t vinr2_1 = vld1q_f32(din_ptr2 + 4);
+                    float32x4_t vinr3 = vld1q_f32(din_ptr3);
+                    float32x4_t vinr3_1 = vld1q_f32(din_ptr3 + 4);
+                    float32x4_t vinr4 = vld1q_f32(din_ptr4);
+                    float32x4_t vinr4_1 = vld1q_f32(din_ptr4 + 4);
+
+                     //r0 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr0, wr0, 1);
+
+                    //r1
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr1, wr1, 1);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vinr1, wr0, 1);
+
+                    //r2
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr2, wr2, 1);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vinr2, wr1, 1);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vinr2, wr0, 1);
+
+                    //r3
+                    voutr1 = vmlaq_laneq_f32(voutr1, vinr3, wr2, 1);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vinr3, wr1, 1);
+
+                    //r4
+                    voutr2 = vmlaq_laneq_f32(voutr2, vinr4, wr2, 1);
+
+                    // r0, r1, r2 shift left 2345
+                    float32x4_t vtmp0 = vextq_f32(vinr0, vinr0_1, 1);
+                    float32x4_t vtmp1 = vextq_f32(vinr1, vinr1_1, 1);
+                    float32x4_t vtmp2 = vextq_f32(vinr2, vinr2_1, 1);
+                    float32x4_t vtmp3 = vextq_f32(vinr3, vinr3_1, 1);
+                    float32x4_t vtmp4 = vextq_f32(vinr4, vinr4_1, 1);
+
+
+                    //r0
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 2);
+
+                    //r1
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 2);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr0, 2);
+
+                    //r2
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 2);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr1, 2);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp2, wr0, 2);
+
+                    din_ptr0 += 3;
+                    prefetch(din_ptr0);
+                    //r3
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp3, wr2, 2);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp3, wr1, 2);
+
+                    din_ptr1 += 3;
+                    prefetch(din_ptr1);
+                    //r4
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp4, wr2, 2);
+
+                    // r0, r1, r2 shift right 0123
+                    vtmp0 = vextq_f32(vzero, vinr0, 3);
+                    vtmp1 = vextq_f32(vzero, vinr1, 3);
+                    vtmp2 = vextq_f32(vzero, vinr2, 3);
+                    vtmp3 = vextq_f32(vzero, vinr3, 3);
+                    vtmp4 = vextq_f32(vzero, vinr4, 3);
+
+                    //r0
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 0);
+
+                    din_ptr2 += 3;
+                    prefetch(din_ptr2);
+                    //r1
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 0);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr0, 0);
+
+                    din_ptr3 += 3;
+                    prefetch(din_ptr3);
+                    //r2
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 0);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr1, 0);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp2, wr0, 0);
+               
+                   // din_ptr4 += 3;
+                    prefetch(din_ptr4);
+                    //r3
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp3, wr2, 0);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp3, wr1, 0);
+
+                   // din_ptr5 += 3;
+                   // prefetch(din_ptr5);
+                    //r4
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp4, wr2, 0);
+
+
+                    vst1q_f32(doutr0, voutr0);
+                    vst1q_f32(doutr1, voutr1);
+                    vst1q_f32(doutr2, voutr2);
+
+                    doutr0 += 4;
+                    doutr1 += 4;
+                    doutr2 += 4;
+
+                    //mid col
+                    for (int j = 0; j < cnt_col; ++j) {
+                        voutr0 = vld1q_f32(doutr0);
+                        voutr1 = vld1q_f32(doutr1);
+                        voutr2 = vld1q_f32(doutr2);
+
+                        //din data
+                        vinr0 = vld1q_f32(din_ptr0);
+                        vinr0_1 = vld1q_f32(din_ptr0 + 4);
+                        vinr1 = vld1q_f32(din_ptr1);
+                        vinr1_1 = vld1q_f32(din_ptr1 + 4);
+                        vinr2 = vld1q_f32(din_ptr2);
+                        vinr2_1 = vld1q_f32(din_ptr2 + 4);
+
+                        vinr3 = vld1q_f32(din_ptr3);
+                        vinr3_1 = vld1q_f32(din_ptr3 + 4);
+                        vinr4 = vld1q_f32(din_ptr4);
+                        vinr4_1 = vld1q_f32(din_ptr4 + 4);
+
+
+                        //r0 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vinr0, wr0, 0);
+
+                        //r1 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vinr1, wr1, 0);
+                        voutr1 = vmlaq_laneq_f32(voutr1, vinr1, wr0, 0);
+
+                        //r2 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vinr2, wr2, 0);
+                        voutr1 = vmlaq_laneq_f32(voutr1, vinr2, wr1, 0);
+                        voutr2 = vmlaq_laneq_f32(voutr2, vinr2, wr0, 0);
+
+                        //r3 1234
+                        voutr1 = vmlaq_laneq_f32(voutr1, vinr3, wr2, 0);
+                        voutr2 = vmlaq_laneq_f32(voutr2, vinr3, wr1, 0);
+
+                        //r4 1234
+                        voutr2 = vmlaq_laneq_f32(voutr2, vinr4, wr2, 0);
+                    
+                        // r0, r1, r2 shift left 2345
+                        vtmp0 = vextq_f32(vinr0, vinr0_1, 1);
+                        vtmp1 = vextq_f32(vinr1, vinr1_1, 1);
+                        vtmp2 = vextq_f32(vinr2, vinr2_1, 1);
+
+                        vtmp3 = vextq_f32(vinr3, vinr3_1, 1);
+                        vtmp4 = vextq_f32(vinr4, vinr4_1, 1);
+
+                
+                        //r0 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 1);
+
+                        //r1 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 1);
+                        voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr0, 1);
+
+                        //r2 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 1);
+                        voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr1, 1);
+                        voutr2 = vmlaq_laneq_f32(voutr2, vtmp2, wr0, 1);
+
+                        //r3 1234
+                        voutr1 = vmlaq_laneq_f32(voutr1, vtmp3, wr2, 1);
+                        voutr2 = vmlaq_laneq_f32(voutr2, vtmp3, wr1, 1);
+                    
+                        din_ptr0 += 4;
+                        prefetch(din_ptr0);
+                        //r4 1234
+                        voutr2 = vmlaq_laneq_f32(voutr2, vtmp4, wr2, 1);
+
+                        // r0, r1, r2 shift left 3456
+                        vtmp0 = vextq_f32(vinr0, vinr0_1, 2);
+                        vtmp1 = vextq_f32(vinr1, vinr1_1, 2);
+                        vtmp2 = vextq_f32(vinr2, vinr2_1, 2);
+
+                        vtmp3 = vextq_f32(vinr3, vinr3_1, 2);
+                        vtmp4 = vextq_f32(vinr4, vinr4_1, 2);
+
+
+                        ///r0 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 2);
+
+                        din_ptr1 += 4;
+                        prefetch(din_ptr1);
+                        //r1 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 2);
+                        voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr0, 2);
+
+                        din_ptr2 += 4;
+                        prefetch(din_ptr2);
+                        //r2 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 2);
+                        voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr1, 2);
+                        voutr2 = vmlaq_laneq_f32(voutr2, vtmp2, wr0, 2);
+
+                        din_ptr3 += 4;
+                        prefetch(din_ptr3);
+                        //r3 1234
+                        voutr1 = vmlaq_laneq_f32(voutr1, vtmp3, wr2, 2);
+                        voutr2 = vmlaq_laneq_f32(voutr2, vtmp3, wr1, 2);
+
+                       // din_ptr4 += 4;
+                        prefetch(din_ptr4);
+                        //r4 1234
+                        voutr2 = vmlaq_laneq_f32(voutr2, vtmp4, wr2, 2);
+
+                    
+                       // din_ptr5 += 4;
+                       // prefetch(din_ptr5);
+
+                        vst1q_f32(doutr0, voutr0);
+                        vst1q_f32(doutr1, voutr1);
+                        vst1q_f32(doutr2, voutr2);
+
+                        doutr0 += 4;
+                        doutr1 += 4;
+                        doutr2 += 4;
+
+                    }
+                    //right
+                    voutr0 = vld1q_f32(doutr0);
+                    voutr1 = vld1q_f32(doutr1);
+                    voutr2 = vld1q_f32(doutr2);
+
+                    //din data
+                    vinr0 = vld1q_f32(din_ptr0);
+                    vinr0_1 = vld1q_f32(din_ptr0 + 4);
+                    vinr1 = vld1q_f32(din_ptr1);
+                    vinr1_1 = vld1q_f32(din_ptr1 + 4);
+                    vinr2 = vld1q_f32(din_ptr2);
+                    vinr2_1 = vld1q_f32(din_ptr2 + 4);
+
+                    vinr3 = vld1q_f32(din_ptr3);
+                    vinr3_1 = vld1q_f32(din_ptr3 + 4);
+                    vinr4 = vld1q_f32(din_ptr4);
+                    vinr4_1 = vld1q_f32(din_ptr4 + 4);
+
+                    vinr0 = vbslq_f32(vmask_rp1, vinr0, vzero);
+                    vinr0_1 = vbslq_f32(vmask_rp2, vinr0_1, vzero);
+
+                    vinr1 = vbslq_f32(vmask_rp1, vinr1, vzero);
+                    vinr1_1 = vbslq_f32(vmask_rp2, vinr1_1, vzero);
+
+                    vinr2 = vbslq_f32(vmask_rp1, vinr2, vzero);
+                    vinr2_1 = vbslq_f32(vmask_rp2, vinr2_1, vzero);
+
+                    vinr3 = vbslq_f32(vmask_rp1, vinr3, vzero);
+                    vinr3_1 = vbslq_f32(vmask_rp2, vinr3_1, vzero);
+
+                    vinr4 = vbslq_f32(vmask_rp1, vinr4, vzero);
+                    vinr4_1 = vbslq_f32(vmask_rp2, vinr4_1, vzero);
+
+                    //r0 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr0, wr0, 0);
+
+                    //r1 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr1, wr1, 0);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vinr1, wr0, 0);
+
+                    //r2 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr2, wr2, 0);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vinr2, wr1, 0);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vinr2, wr0, 0);
+
+                    //r3 1234
+                    voutr1 = vmlaq_laneq_f32(voutr1, vinr3, wr2, 0);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vinr3, wr1, 0);
+
+                    //r4 1234
+                    voutr2 = vmlaq_laneq_f32(voutr2, vinr4, wr2, 0);
+                    
+                     // r0, r1, r2 shift left 2345
+                    vtmp0 = vextq_f32(vinr0, vinr0_1, 1);
+                    vtmp1 = vextq_f32(vinr1, vinr1_1, 1);
+                    vtmp2 = vextq_f32(vinr2, vinr2_1, 1);
+
+                    vtmp3 = vextq_f32(vinr3, vinr3_1, 1);
+                    vtmp4 = vextq_f32(vinr4, vinr4_1, 1);
+                
+                    //r0 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 1);
+                    
+                    //r1 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 1);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr0, 1);
+
+                    //r2 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 1);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr1, 1);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp2, wr0, 1);
+
+                    //r3 1234
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp3, wr2, 1);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp3, wr1, 1);
+             
+             
+                    //r4 1234
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp4, wr2, 1);
+
+                    // r0, r1, r2 shift left 3456
+                    vtmp0 = vextq_f32(vinr0, vinr0_1, 2);
+                    vtmp1 = vextq_f32(vinr1, vinr1_1, 2);
+                    vtmp2 = vextq_f32(vinr2, vinr2_1, 2);
+
+                    vtmp3 = vextq_f32(vinr3, vinr3_1, 2);
+                    vtmp4 = vextq_f32(vinr4, vinr4_1, 2);
+
+
+                    ///r0 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 2);
+
+                
+                    //r1 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 2); 
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr0, 2);
+
+                
+                    //r2 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 2);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr1, 2);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp2, wr0, 2);
+
+                    vinr0 = vld1q_f32(doutr0);
+                    vinr1 = vld1q_f32(doutr1);
+                    vinr2 = vld1q_f32(doutr2);
+                    //r3 1234
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp3, wr2, 2);
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp3, wr1, 2);
+
+                
+                    //r4 1234
+                    voutr2 = vmlaq_laneq_f32(voutr2, vtmp4, wr2, 2);
+                
+                    voutr0 = vbslq_f32(vmask_result, voutr0, vinr0);
+                    voutr1 = vbslq_f32(vmask_result, voutr1, vinr1);
+                    voutr2 = vbslq_f32(vmask_result, voutr2, vinr2);
+
+
+                    vst1q_f32(doutr0, voutr0);
+                    vst1q_f32(doutr1, voutr1);
+                    vst1q_f32(doutr2, voutr2);
+
+                }
+                if (size_pad_bottom == 3){//only 2 line
+                    din_ptr2 = dr2;
+                    din_ptr3 = ptr_zero;
+                    
+                    prefetch(doutr1);
+
+                    prefetch(din_ptr2);
+
+                    float32x4_t voutr0 = vld1q_f32(doutr0);
+                    float32x4_t voutr1 = vld1q_f32(doutr1);
+
+                    //din data
+                    float32x4_t vinr0 = vld1q_f32(din_ptr0);
+                    float32x4_t vinr0_1 = vld1q_f32(din_ptr0 + 4);
+                    float32x4_t vinr1 = vld1q_f32(din_ptr1);
+                    float32x4_t vinr1_1 = vld1q_f32(din_ptr1 + 4);
+                    float32x4_t vinr2 = vld1q_f32(din_ptr2);
+                    float32x4_t vinr2_1 = vld1q_f32(din_ptr2 + 4);
+                    float32x4_t vinr3 = vld1q_f32(din_ptr3);
+                    float32x4_t vinr3_1 = vld1q_f32(din_ptr3 + 4);
+
+                     //r0 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr0, wr0, 1);
+
+                    //r1
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr1, wr1, 1);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vinr1, wr0, 1);
+
+                    //r2
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr2, wr2, 1);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vinr2, wr1, 1);
+
+                    //r3
+                    voutr1 = vmlaq_laneq_f32(voutr1, vinr3, wr2, 1);
+
+                    // r0, r1, r2 shift left 2345
+                    float32x4_t vtmp0 = vextq_f32(vinr0, vinr0_1, 1);
+                    float32x4_t vtmp1 = vextq_f32(vinr1, vinr1_1, 1);
+                    float32x4_t vtmp2 = vextq_f32(vinr2, vinr2_1, 1);
+                    float32x4_t vtmp3 = vextq_f32(vinr3, vinr3_1, 1);
+
+
+                    //r0
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 2);
+
+                    //r1
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 2);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr0, 2);
+
+                    //r2
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 2);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr1, 2);
+
+                    din_ptr0 += 3;
+                    prefetch(din_ptr0);
+                    //r3
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp3, wr2, 2);
+
+                    // r0, r1, r2 shift right 0123
+                    vtmp0 = vextq_f32(vzero, vinr0, 3);
+                    vtmp1 = vextq_f32(vzero, vinr1, 3);
+                    vtmp2 = vextq_f32(vzero, vinr2, 3);
+                    vtmp3 = vextq_f32(vzero, vinr3, 3);
+
+                    //r0
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 0);
+
+                    din_ptr1 += 3;
+                    prefetch(din_ptr1);
+                    //r1
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 0);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr0, 0);
+
+                    din_ptr2 += 3;
+                    prefetch(din_ptr2);
+                    //r2
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 0);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr1, 0);
+               
+                   // din_ptr4 += 3;
+                    prefetch(din_ptr3);
+                    //r3
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp3, wr2, 0);
+
+
+                    vst1q_f32(doutr0, voutr0);
+                    vst1q_f32(doutr1, voutr1);
+
+                    doutr0 += 4;
+                    doutr1 += 4;
+
+                    //mid col
+                    for (int j = 0; j < cnt_col; ++j) {
+                        voutr0 = vld1q_f32(doutr0);
+                        voutr1 = vld1q_f32(doutr1);
+
+                        //din data
+                        vinr0 = vld1q_f32(din_ptr0);
+                        vinr0_1 = vld1q_f32(din_ptr0 + 4);
+                        vinr1 = vld1q_f32(din_ptr1);
+                        vinr1_1 = vld1q_f32(din_ptr1 + 4);
+                        vinr2 = vld1q_f32(din_ptr2);
+                        vinr2_1 = vld1q_f32(din_ptr2 + 4);
+
+                        vinr3 = vld1q_f32(din_ptr3);
+                        vinr3_1 = vld1q_f32(din_ptr3 + 4);
+
+
+                        //r0 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vinr0, wr0, 0);
+
+                        //r1 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vinr1, wr1, 0);
+                        voutr1 = vmlaq_laneq_f32(voutr1, vinr1, wr0, 0);
+
+                        //r2 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vinr2, wr2, 0);
+                        voutr1 = vmlaq_laneq_f32(voutr1, vinr2, wr1, 0);
+
+                        //r3 1234
+                        voutr1 = vmlaq_laneq_f32(voutr1, vinr3, wr2, 0);
+                    
+                        // r0, r1, r2 shift left 2345
+                        vtmp0 = vextq_f32(vinr0, vinr0_1, 1);
+                        vtmp1 = vextq_f32(vinr1, vinr1_1, 1);
+                        vtmp2 = vextq_f32(vinr2, vinr2_1, 1);
+
+                        vtmp3 = vextq_f32(vinr3, vinr3_1, 1);
+
+                
+                        //r0 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 1);
+
+                        //r1 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 1);
+                        voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr0, 1);
+
+                        //r2 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 1);
+                        voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr1, 1);
+
+                        //r3 1234
+                        voutr1 = vmlaq_laneq_f32(voutr1, vtmp3, wr2, 1);
+                    
+                        din_ptr0 += 4;
+                        prefetch(din_ptr0);
+
+                        // r0, r1, r2 shift left 3456
+                        vtmp0 = vextq_f32(vinr0, vinr0_1, 2);
+                        vtmp1 = vextq_f32(vinr1, vinr1_1, 2);
+                        vtmp2 = vextq_f32(vinr2, vinr2_1, 2);
+
+                        vtmp3 = vextq_f32(vinr3, vinr3_1, 2);
+
+
+                        ///r0 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 2);
+
+                        din_ptr1 += 4;
+                        prefetch(din_ptr1);
+                        //r1 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 2);
+                        voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr0, 2);
+
+                        din_ptr2 += 4;
+                        prefetch(din_ptr2);
+                        //r2 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 2);
+                        voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr1, 2);
+
+                        din_ptr3 += 4;
+                        prefetch(din_ptr3);
+                        //r3 1234
+                        voutr1 = vmlaq_laneq_f32(voutr1, vtmp3, wr2, 2);
+
+                    
+                       // din_ptr5 += 4;
+                       // prefetch(din_ptr5);
+
+                        vst1q_f32(doutr0, voutr0);
+                        vst1q_f32(doutr1, voutr1);
+
+                        doutr0 += 4;
+                        doutr1 += 4;
+
+                    }
+                    //right
+                    voutr0 = vld1q_f32(doutr0);
+                    voutr1 = vld1q_f32(doutr1);
+
+                    //din data
+                    vinr0 = vld1q_f32(din_ptr0);
+                    vinr0_1 = vld1q_f32(din_ptr0 + 4);
+                    vinr1 = vld1q_f32(din_ptr1);
+                    vinr1_1 = vld1q_f32(din_ptr1 + 4);
+                    vinr2 = vld1q_f32(din_ptr2);
+                    vinr2_1 = vld1q_f32(din_ptr2 + 4);
+
+                    vinr3 = vld1q_f32(din_ptr3);
+                    vinr3_1 = vld1q_f32(din_ptr3 + 4);
+
+                    vinr0 = vbslq_f32(vmask_rp1, vinr0, vzero);
+                    vinr0_1 = vbslq_f32(vmask_rp2, vinr0_1, vzero);
+
+                    vinr1 = vbslq_f32(vmask_rp1, vinr1, vzero);
+                    vinr1_1 = vbslq_f32(vmask_rp2, vinr1_1, vzero);
+
+                    vinr2 = vbslq_f32(vmask_rp1, vinr2, vzero);
+                    vinr2_1 = vbslq_f32(vmask_rp2, vinr2_1, vzero);
+
+                    vinr3 = vbslq_f32(vmask_rp1, vinr3, vzero);
+                    vinr3_1 = vbslq_f32(vmask_rp2, vinr3_1, vzero);
+
+                    //r0 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr0, wr0, 0);
+
+                    //r1 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr1, wr1, 0);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vinr1, wr0, 0);
+
+                    //r2 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr2, wr2, 0);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vinr2, wr1, 0);
+                    //r3 1234
+                    voutr1 = vmlaq_laneq_f32(voutr1, vinr3, wr2, 0);
+                    
+                     // r0, r1, r2 shift left 2345
+                    vtmp0 = vextq_f32(vinr0, vinr0_1, 1);
+                    vtmp1 = vextq_f32(vinr1, vinr1_1, 1);
+                    vtmp2 = vextq_f32(vinr2, vinr2_1, 1);
+
+                    vtmp3 = vextq_f32(vinr3, vinr3_1, 1);
+                
+                    //r0 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 1);
+                    
+                    //r1 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 1);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr0, 1);
+
+                    //r2 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 1);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr1, 1);
+
+                    //r3 1234
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp3, wr2, 1);
+
+                    // r0, r1, r2 shift left 3456
+                    vtmp0 = vextq_f32(vinr0, vinr0_1, 2);
+                    vtmp1 = vextq_f32(vinr1, vinr1_1, 2);
+                    vtmp2 = vextq_f32(vinr2, vinr2_1, 2);
+
+                    vtmp3 = vextq_f32(vinr3, vinr3_1, 2);
+
+
+                    ///r0 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 2);
+
+                    //r1 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 2); 
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp1, wr0, 2);
+
+                
+                    //r2 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 2);
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp2, wr1, 2);
+
+                    vinr0 = vld1q_f32(doutr0);
+                    vinr1 = vld1q_f32(doutr1);
+                    //r3 1234
+                    voutr1 = vmlaq_laneq_f32(voutr1, vtmp3, wr2, 2);
+                
+                    voutr0 = vbslq_f32(vmask_result, voutr0, vinr0);
+                    voutr1 = vbslq_f32(vmask_result, voutr1, vinr1);
+
+
+                    vst1q_f32(doutr0, voutr0);
+                    vst1q_f32(doutr1, voutr1);
+
+                }
+                if (size_pad_bottom == 4){//only 1 line
+                    din_ptr2 = ptr_zero;
+
+                    prefetch(din_ptr2);
+
+                    float32x4_t voutr0 = vld1q_f32(doutr0);
+
+                    //din data
+                    float32x4_t vinr0 = vld1q_f32(din_ptr0);
+                    float32x4_t vinr0_1 = vld1q_f32(din_ptr0 + 4);
+                    float32x4_t vinr1 = vld1q_f32(din_ptr1);
+                    float32x4_t vinr1_1 = vld1q_f32(din_ptr1 + 4);
+                    float32x4_t vinr2 = vld1q_f32(din_ptr2);
+                    float32x4_t vinr2_1 = vld1q_f32(din_ptr2 + 4);
+                     //r0 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr0, wr0, 1);
+
+                    //r1
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr1, wr1, 1);
+
+                    //r2
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr2, wr2, 1);
+
+                    // r0, r1, r2 shift left 2345
+                    float32x4_t vtmp0 = vextq_f32(vinr0, vinr0_1, 1);
+                    float32x4_t vtmp1 = vextq_f32(vinr1, vinr1_1, 1);
+                    float32x4_t vtmp2 = vextq_f32(vinr2, vinr2_1, 1);
+
+
+                    //r0
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 2);
+
+                    //r1
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 2);
+
+                    //r2
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 2);
+
+                    din_ptr0 += 3;
+                    prefetch(din_ptr0);
+
+                    // r0, r1, r2 shift right 0123
+                    vtmp0 = vextq_f32(vzero, vinr0, 3);
+                    vtmp1 = vextq_f32(vzero, vinr1, 3);
+                    vtmp2 = vextq_f32(vzero, vinr2, 3);
+
+                    //r0
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 0);
+
+                    din_ptr1 += 3;
+                    prefetch(din_ptr1);
+                    //r1
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 0);
+
+                    din_ptr2 += 3;
+                    prefetch(din_ptr2);
+                    //r2
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 0);
+
+
+                    vst1q_f32(doutr0, voutr0);
+
+                    doutr0 += 4;
+
+                    //mid col
+                    for (int j = 0; j < cnt_col; ++j) {
+                        voutr0 = vld1q_f32(doutr0);
+
+                        //din data
+                        vinr0 = vld1q_f32(din_ptr0);
+                        vinr0_1 = vld1q_f32(din_ptr0 + 4);
+                        vinr1 = vld1q_f32(din_ptr1);
+                        vinr1_1 = vld1q_f32(din_ptr1 + 4);
+                        vinr2 = vld1q_f32(din_ptr2);
+                        vinr2_1 = vld1q_f32(din_ptr2 + 4);
+
+
+                        //r0 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vinr0, wr0, 0);
+
+                        //r1 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vinr1, wr1, 0);
+
+                        //r2 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vinr2, wr2, 0);
+
+                        // r0, r1, r2 shift left 2345
+                        vtmp0 = vextq_f32(vinr0, vinr0_1, 1);
+                        vtmp1 = vextq_f32(vinr1, vinr1_1, 1);
+                        vtmp2 = vextq_f32(vinr2, vinr2_1, 1);
+
+                
+                        //r0 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 1);
+
+                        //r1 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 1);
+
+                        //r2 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 1);
+                    
+                        din_ptr0 += 4;
+                        prefetch(din_ptr0);
+
+                        // r0, r1, r2 shift left 3456
+                        vtmp0 = vextq_f32(vinr0, vinr0_1, 2);
+                        vtmp1 = vextq_f32(vinr1, vinr1_1, 2);
+                        vtmp2 = vextq_f32(vinr2, vinr2_1, 2);
+
+
+                        ///r0 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 2);
+
+                        din_ptr1 += 4;
+                        prefetch(din_ptr1);
+                        //r1 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 2);
+
+                        din_ptr2 += 4;
+                        prefetch(din_ptr2);
+                        //r2 1234
+                        voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 2);
+
+
+                        vst1q_f32(doutr0, voutr0);
+
+                        doutr0 += 4;
+
+                    }
+                    //right
+                    voutr0 = vld1q_f32(doutr0);
+
+                    //din data
+                    vinr0 = vld1q_f32(din_ptr0);
+                    vinr0_1 = vld1q_f32(din_ptr0 + 4);
+                    vinr1 = vld1q_f32(din_ptr1);
+                    vinr1_1 = vld1q_f32(din_ptr1 + 4);
+                    vinr2 = vld1q_f32(din_ptr2);
+                    vinr2_1 = vld1q_f32(din_ptr2 + 4);
+
+                    vinr0 = vbslq_f32(vmask_rp1, vinr0, vzero);
+                    vinr0_1 = vbslq_f32(vmask_rp2, vinr0_1, vzero);
+
+                    vinr1 = vbslq_f32(vmask_rp1, vinr1, vzero);
+                    vinr1_1 = vbslq_f32(vmask_rp2, vinr1_1, vzero);
+
+                    vinr2 = vbslq_f32(vmask_rp1, vinr2, vzero);
+                    vinr2_1 = vbslq_f32(vmask_rp2, vinr2_1, vzero);
+
+                    //r0 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr0, wr0, 0);
+
+                    //r1 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr1, wr1, 0);
+
+                    //r2 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vinr2, wr2, 0);
+                    
+                     // r0, r1, r2 shift left 2345
+                    vtmp0 = vextq_f32(vinr0, vinr0_1, 1);
+                    vtmp1 = vextq_f32(vinr1, vinr1_1, 1);
+                    vtmp2 = vextq_f32(vinr2, vinr2_1, 1);
+                
+                    //r0 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 1);
+                    
+                    //r1 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 1);
+
+                    //r2 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 1);
+
+                    // r0, r1, r2 shift left 3456
+                    vtmp0 = vextq_f32(vinr0, vinr0_1, 2);
+                    vtmp1 = vextq_f32(vinr1, vinr1_1, 2);
+                    vtmp2 = vextq_f32(vinr2, vinr2_1, 2);
+
+                    vinr0 = vld1q_f32(doutr0);
+                    ///r0 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp0, wr0, 2);
+
+                    //r1 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp1, wr1, 2); 
+                
+                    //r2 1234
+                    voutr0 = vmlaq_laneq_f32(voutr0, vtmp2, wr2, 2);
+                    //r3 1234
+                
+                    voutr0 = vbslq_f32(vmask_result, voutr0, vinr0);
+
+                    vst1q_f32(doutr0, voutr0);
+
+                }
+                
+                
+            }
+        }
+        
+    }
+
+}
+
+
+
+void conv_depthwise_3x3s1p1_bias_1(float* dout, const float* din, \
     const float* weights, const float* bias, bool flag_bias, \
     const int num, const int ch_in, const int h_in, const int w_in, \
     const int h_out, const int w_out) {
@@ -1674,15 +5257,17 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
             float32x4_t wr0 = vld1q_f32(weight_ptr);
             float32x4_t wr1 = vld1q_f32(weight_ptr + 3);
             float32x4_t wr2 = vld1q_f32(weight_ptr + 6);
-            wr0 = vsetq_lane_f32(0.f, wr0, 3);
-            wr1 = vsetq_lane_f32(0.f, wr1, 3);
-            wr2 = vsetq_lane_f32(0.f, wr2, 3);
+
             float32x4_t wbias;
             if (flag_bias) {
                 wbias  = vdupq_n_f32(bias[i]);
             } else {
                 wbias = vdupq_n_f32(0.f);
             }
+
+            wr0 = vsetq_lane_f32(0.f, wr0, 3);
+            wr1 = vsetq_lane_f32(0.f, wr1, 3);
+            wr2 = vsetq_lane_f32(0.f, wr2, 3);
 
             const float *dr0 = din_channel;
             const float *dr1 = dr0 + w_in;
@@ -1705,11 +5290,12 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
             float32x4_t din0_0123 = vextq_f32(vzero, din0_1234, 3);
             float32x4_t din1_0123 = vextq_f32(vzero, din1_1234, 3);
 
+            float32x4_t din0_2340 = vextq_f32(din0_1234, vzero, 1);
+            float32x4_t din1_2340 = vextq_f32(din1_1234, vzero, 1);
+
             float32x4_t sum0 = vmulq_f32(din0_0123, wr1);
             sum0 = vmlaq_f32(sum0, din1_0123, wr2);
 
-            float32x4_t din0_2340 = vextq_f32(din0_1234, vzero, 1);
-            float32x4_t din1_2340 = vextq_f32(din1_1234, vzero, 1);
 
             float32x4_t sum1 = vmulq_f32(din0_2340, wr1);
             sum1 = vmlaq_f32(sum1, din1_2340, wr2);
@@ -1731,8 +5317,10 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
             for (;cnt > 0; cnt--){
                 din0_1234 = vld1q_f32(din0_ptr);
                 din1_1234 = vld1q_f32(din1_ptr);
+
                 float32x4_t din0_5678 = vld1q_f32(din0_ptr + 4);
                 float32x4_t din1_5678 = vld1q_f32(din1_ptr + 4);
+
                 float32x4_t din0_3456 = vextq_f32(din0_1234, din0_5678, 2);
                 float32x4_t din1_3456 = vextq_f32(din1_1234, din1_5678, 2);
 
