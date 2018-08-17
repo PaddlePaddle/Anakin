@@ -1,9 +1,7 @@
 /* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
-
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
-
        http://www.apache.org/licenses/LICENSE-2.0
    
    Unless required by applicable law or agreed to in writing, software
@@ -81,7 +79,6 @@ struct ActivationParam {
     PreluParam<TargetType> prelu_param;
 };
 
-template <typename TargetType>
 struct CastParam {
     CastParam() = default;
     CastParam(int in_type_in, int out_type_in)
@@ -107,6 +104,26 @@ struct CastParam {
     int out_type;
 };
 
+template <typename TargetType>
+struct ConcatParam {
+    ConcatParam() = default;
+    explicit ConcatParam(int axis_in){
+        CHECK_GE(axis_in, 0) << "concat parameter should >= 0, current is " << axis_in;
+        axis = axis_in;
+    }
+    ConcatParam(const ConcatParam<TargetType> &right) {
+        axis = right.axis;
+    }
+    ConcatParam &operator=(const ConcatParam<TargetType> &right) {
+        axis = right.axis;
+        return *this;
+    }
+    bool operator==(const ConcatParam<TargetType> &right) {
+        return axis == right.axis;
+    }
+    int axis;
+};
+  
 template <typename TargetType>
 struct ConvParam {
 
@@ -296,6 +313,344 @@ struct DetectionOutputParam {
 };
 
 template <typename TargetType>
+struct EmbeddingParam {
+    EmbeddingParam() = default;
+    EmbeddingParam(int word_num_in, int emb_dim_in, int padding_idx_in,
+            Tensor<TargetType>* weight_tensor_in)
+            : word_num(word_num_in)
+            , emb_dim(emb_dim_in)
+            , padding_idx(padding_idx_in)
+            , weight_tensor(weight_tensor_in)
+    {}
+    EmbeddingParam(const EmbeddingParam &right)
+            : word_num(right.word_num)
+            , emb_dim(right.emb_dim)
+            , padding_idx(right.padding_idx)
+            , weight_tensor(right.weight_tensor)
+    {}
+    EmbeddingParam &operator=(const EmbeddingParam &right) {
+        word_num = right.word_num;
+        emb_dim = right.emb_dim;
+        padding_idx = right.padding_idx;
+        weight_tensor = right.weight_tensor;
+        return *this;
+    }
+    bool operator==(const EmbeddingParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (word_num == right.word_num);
+        comp_eq = comp_eq && (emb_dim == right.emb_dim);
+        comp_eq = comp_eq && (padding_idx == right.padding_idx);
+        comp_eq = comp_eq && (weight_tensor == right.weight_tensor);
+        return comp_eq;
+    }
+    inline const Tensor<TargetType>* weight() {
+        return weight_tensor;
+    }
+
+    inline Tensor<TargetType>* mutable_weight() {
+        return weight_tensor;
+    }
+    int emb_dim;
+    int word_num;
+    int padding_idx;
+private:
+    Tensor<TargetType>* weight_tensor;
+};
+
+template <typename TargetType>
+struct FcParam {
+    FcParam() = default;
+
+    FcParam(Tensor<TargetType>* input_weight, int output_num, int in_axis = 1,
+            bool trans = false) {
+
+        num_output = output_num;
+        weights = input_weight;
+        bias = nullptr;
+        axis = in_axis;
+        is_transpose_weights = trans;
+    }
+    FcParam(Tensor<TargetType>* input_weight, Tensor<TargetType>* input_bias, int output_num,
+            int in_axis = 1, bool trans = false) {
+
+        num_output = output_num;
+        weights = input_weight;
+        bias = input_bias;
+        axis = in_axis;
+        is_transpose_weights = trans;
+    }
+
+    FcParam(const FcParam &right) {
+        weights = right.weights;
+        bias = right.bias;
+        num_output = right.num_output;
+        axis = right.axis;
+        is_transpose_weights = right.is_transpose_weights;
+    }
+
+    FcParam& operator=(const FcParam &right) {
+        this->weights = right.weights;
+        this->bias = right.bias;
+        this->num_output = right.num_output;
+        this->axis = right.axis;
+        this->is_transpose_weights = right.is_transpose_weights;
+        return *this;
+    }
+
+    bool operator==(const FcParam &right) {
+        bool flag = this->is_transpose_weights == right.is_transpose_weights;
+        flag = flag && (this->num_output == right.num_output) && (this->axis == right.axis);
+        return flag && (this->weights == right.weights) && (this->bias == right.bias);
+    }
+
+    bool is_transpose_weights{false};
+    int num_output;
+    int axis{1};
+    Tensor<TargetType>* weights{nullptr};
+    Tensor<TargetType>* bias{nullptr};
+};
+
+template <typename TargetType>
+struct FlattenParam {
+    FlattenParam() = default;
+    FlattenParam(const FlattenParam& right) {}
+    FlattenParam& operator=(const FlattenParam& right){ return *this;}
+    bool operator==(const FlattenParam& right){
+        return true;
+    }
+};
+  
+template <typename TargetType>
+struct Im2SequenceParam {
+    Im2SequenceParam() = default;
+    Im2SequenceParam(int window_h_in,
+                     int window_w_in,
+                     int pad_up_in,
+                     int pad_down_in,
+                     int pad_left_in,
+                     int pad_right_in,
+                     int stride_h_in,
+                     int stride_w_in,
+                     int dilation_h_in,
+                     int dilation_w_in)
+               : window_h(window_h_in)
+                , window_w(window_w_in)
+                , pad_up(pad_up_in)
+                , pad_down(pad_down_in)
+                , pad_left(pad_left_in)
+                , pad_right(pad_right_in)
+                , stride_h(stride_h_in)
+                , stride_w(stride_w_in)
+                , dilation_h(dilation_h_in)
+                , dilation_w(dilation_w_in)
+    {}
+    Im2SequenceParam(const Im2SequenceParam &right)
+                : window_h(right.window_h)
+                , window_w(right.window_w)
+                , pad_up(right.pad_up)
+                , pad_down(right.pad_down)
+                , pad_left(right.pad_left)
+                , pad_right(right.pad_right)
+                , stride_h(right.stride_h)
+                , stride_w(right.stride_w)
+                , dilation_h(right.dilation_h)
+                , dilation_w(right.dilation_w)
+    {}
+    Im2SequenceParam &operator=(const Im2SequenceParam &right) {
+        window_h = right.window_h;
+        window_w = right.window_w;
+        pad_up = right.pad_up;
+        pad_down = right.pad_down;
+        pad_left = right.pad_left;
+        pad_right = right.pad_right;
+        stride_h = right.stride_h;
+        stride_w = right.stride_w;
+        dilation_h = right.dilation_h;
+        dilation_w = right.dilation_w;
+        return *this;
+    }
+    bool operator==(const Im2SequenceParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (window_h == right.window_h);
+        comp_eq = comp_eq && (window_w == right.window_w);
+        comp_eq = comp_eq && (pad_up == right.pad_up);
+        comp_eq = comp_eq && (pad_down == right.pad_down);
+        comp_eq = comp_eq && (pad_left == right.pad_left);
+        comp_eq = comp_eq && (pad_right == right.pad_right);
+        comp_eq = comp_eq && (stride_h == right.stride_h);
+        comp_eq = comp_eq && (stride_w == right.stride_w);
+        comp_eq = comp_eq && (dilation_h == right.dilation_h);
+        comp_eq = comp_eq && (dilation_w == right.dilation_w);
+        return comp_eq;
+    }
+    int window_h;
+    int window_w;
+    int pad_up;
+    int pad_down;
+    int pad_left;
+    int pad_right;
+    int stride_h;
+    int stride_w;
+    int dilation_h;
+    int dilation_w;
+};
+  
+template <typename TargetType>
+struct LayerNormParam {
+    LayerNormParam() = default;
+    LayerNormParam(int axis_in, float eps_in, Tensor<TargetType>* weights_scale, Tensor<TargetType>* weights_bias) {
+        axis = axis_in;
+        eps = eps_in;
+        scale = weights_scale;
+        bias = weights_bias;
+    }
+    LayerNormParam(const LayerNormParam &right) {
+        axis = right.axis;
+        eps = right.eps;
+        scale = right.scale;
+        bias = right.bias;
+    }
+    LayerNormParam &operator=(const LayerNormParam &right) {
+        this->axis = right.axis;
+        this->eps = right.eps;
+        this->scale = right.scale;
+        this->bias = right.bias;
+        return *this;
+    }
+    bool operator==(const LayerNormParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (axis == right.axis);
+        comp_eq = comp_eq && (fabsf(eps - right.eps) < 1e-7f);
+        comp_eq = comp_eq && (scale == scale);
+        comp_eq = comp_eq && (bias == bias);
+        return comp_eq;
+    }
+    inline const Tensor<TargetType>* scale_weights() {
+        return scale;
+    }
+
+    inline Tensor<TargetType>* mutable_scale_weights() {
+        return scale;
+    }
+
+    inline const Tensor<TargetType>* bias_weights() {
+        return bias;
+    }
+
+    inline Tensor<TargetType>* mutable_bias_weights() {
+        return bias;
+    }
+
+    int axis;
+    float eps{1e-5f};
+
+private:
+    Tensor<TargetType>* scale;
+    Tensor<TargetType>* bias;
+};
+
+template <typename TargetType>
+struct LrnParam {
+    LrnParam() = default;
+    LrnParam(int local_size_in, float alpha_in,  float beta_in, float k_in, NormRegion norm_region_in)
+            : local_size(local_size_in)
+            , alpha(alpha_in)
+            , beta(beta_in)
+            , k(k_in)
+            , norm_region(norm_region_in)
+    {}
+    LrnParam(const LrnParam &right)
+            : local_size(right.local_size)
+            , alpha(right.alpha)
+            , beta(right.beta)
+            , k(right.k)
+            , norm_region(right.norm_region)
+    {}
+    LrnParam &operator=(const LrnParam &right) {
+        local_size = right.local_size;
+        alpha = right.alpha;
+        beta = right.beta;
+        k = right.k;
+        norm_region = right.norm_region;
+        return *this;
+    }
+    bool operator==(const LrnParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (local_size == right.local_size);
+        comp_eq = comp_eq && (alpha == right.alpha);
+        comp_eq = comp_eq && (beta == right.beta);
+        comp_eq = comp_eq && (k == right.k);
+        comp_eq = comp_eq && (norm_region == right.norm_region);
+        return comp_eq;
+    }
+    int local_size{5};
+    float alpha{1.};
+    float beta{0.75};
+    float k{1.};
+    NormRegion norm_region{ACROSS_CHANNELS};
+};
+  
+template <typename TargetType>
+struct MatMulParam {
+    MatMulParam():_is_transpose_X(false),_is_transpose_Y(false){}
+    MatMulParam(bool x, bool y):_is_transpose_X(x),_is_transpose_Y(y){}
+    MatMulParam &operator=(const MatMulParam &right)
+    {
+        _is_transpose_X = right._is_transpose_X;
+        _is_transpose_Y = right._is_transpose_Y;
+    }
+    bool operator==(const MatMulParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (_is_transpose_X == right._is_transpose_X);        
+        comp_eq = comp_eq && (_is_transpose_Y == right._is_transpose_Y);
+        return comp_eq;
+    }
+
+    bool _is_transpose_X{false};
+    bool _is_transpose_Y{false};
+    int _m = 0;
+    int _n = 0;
+    int _k = 0;
+    int _b = 0;//batch_size
+
+};
+  
+template <typename TargetType>
+struct MvnParam {
+
+    MvnParam() = default;
+
+    MvnParam(bool normalize_variance_in, bool across_channels_in, float eps_in) {
+        normalize_variance = normalize_variance_in;
+        across_channels = across_channels_in;
+        eps = eps_in;
+    }
+
+    MvnParam(const MvnParam<TargetType>& right) {
+        normalize_variance = right.normalize_variance;
+        across_channels = right.across_channels;
+        eps = right.eps;
+    }
+
+    MvnParam<TargetType>& operator=(const MvnParam<TargetType>& right) {
+        this->normalize_variance = right.normalize_variance;
+        this->across_channels = right.across_channels;
+        this->eps = right.eps;
+        return *this;
+    }
+
+    bool operator==(const MvnParam<TargetType>& right) {
+        bool flag = this->normalize_variance == right.normalize_variance;
+        flag = flag && this->across_channels == right.across_channels;
+        return flag && (this->eps == right.eps);
+    }
+
+    bool normalize_variance{true};
+    bool across_channels{true};
+    float eps{1e-9};
+};
+  
+template <typename TargetType>
 struct NormalizeParam {
     NormalizeParam() = default;
     
@@ -460,6 +815,7 @@ struct PoolingParam {
         bool global_pooling;
         bool cmp_out_shape_floor_as_conv;
 };
+  
 template<typename TargetType>
 struct PowerParam {
         PowerParam() {}
@@ -528,6 +884,7 @@ struct ResizeParam{
     float width_scale{0.0f};
     float height_scale{0.0f};
 };
+  
 template <typename TargetType>
 struct RoiPoolParam {
     RoiPoolParam() = default;
@@ -643,7 +1000,7 @@ struct SequencePoolParam {
     SequencePoolType sequence_pool_type;
 };
 
-template <typename type>
+template <typename TargetType>
 struct SliceParam {
     SliceParam() = default;
     explicit SliceParam(int axis_in, std::vector<int> slice_points_in){
@@ -673,7 +1030,7 @@ struct SliceParam {
     int axis;
     std::vector<int> slice_points;
 };
-
+  
 template <typename TargetType>
 struct TransposeParam {
     TransposeParam() = default;
@@ -683,345 +1040,6 @@ struct TransposeParam {
         return true;
     }
 };
-
-template <typename TargetType>
-struct EmbeddingParam {
-    EmbeddingParam() = default;
-    EmbeddingParam(int word_num_in, int emb_dim_in, int padding_idx_in,
-            Tensor<TargetType>* weight_tensor_in)
-            : word_num(word_num_in)
-            , emb_dim(emb_dim_in)
-            , padding_idx(padding_idx_in)
-            , weight_tensor(weight_tensor_in)
-    {}
-    EmbeddingParam(const EmbeddingParam &right)
-            : word_num(right.word_num)
-            , emb_dim(right.emb_dim)
-            , padding_idx(right.padding_idx)
-            , weight_tensor(right.weight_tensor)
-    {}
-    EmbeddingParam &operator=(const EmbeddingParam &right) {
-        word_num = right.word_num;
-        emb_dim = right.emb_dim;
-        padding_idx = right.padding_idx;
-        weight_tensor = right.weight_tensor;
-        return *this;
-    }
-    bool operator==(const EmbeddingParam &right) {
-        bool comp_eq = true;
-        comp_eq = comp_eq && (word_num == right.word_num);
-        comp_eq = comp_eq && (emb_dim == right.emb_dim);
-        comp_eq = comp_eq && (padding_idx == right.padding_idx);
-        comp_eq = comp_eq && (weight_tensor == right.weight_tensor);
-        return comp_eq;
-    }
-    inline const Tensor<TargetType>* weight() {
-        return weight_tensor;
-    }
-
-    inline Tensor<TargetType>* mutable_weight() {
-        return weight_tensor;
-    }
-    int emb_dim;
-    int word_num;
-    int padding_idx;
-private:
-    Tensor<TargetType>* weight_tensor;
-};
-
-template <typename TargetType>
-struct FcParam {
-    FcParam() = default;
-
-    FcParam(Tensor<TargetType>* input_weight, int output_num, int in_axis = 1,
-            bool trans = false) {
-
-        num_output = output_num;
-        weights = input_weight;
-        bias = nullptr;
-        axis = in_axis;
-        is_transpose_weights = trans;
-    }
-    FcParam(Tensor<TargetType>* input_weight, Tensor<TargetType>* input_bias, int output_num,
-            int in_axis = 1, bool trans = false) {
-
-        num_output = output_num;
-        weights = input_weight;
-        bias = input_bias;
-        axis = in_axis;
-        is_transpose_weights = trans;
-    }
-
-    FcParam(const FcParam &right) {
-        weights = right.weights;
-        bias = right.bias;
-        num_output = right.num_output;
-        axis = right.axis;
-        is_transpose_weights = right.is_transpose_weights;
-    }
-
-    FcParam& operator=(const FcParam &right) {
-        this->weights = right.weights;
-        this->bias = right.bias;
-        this->num_output = right.num_output;
-        this->axis = right.axis;
-        this->is_transpose_weights = right.is_transpose_weights;
-        return *this;
-    }
-
-    bool operator==(const FcParam &right) {
-        bool flag = this->is_transpose_weights == right.is_transpose_weights;
-        flag = flag && (this->num_output == right.num_output) && (this->axis == right.axis);
-        return flag && (this->weights == right.weights) && (this->bias == right.bias);
-    }
-
-    bool is_transpose_weights{false};
-    int num_output;
-    int axis{1};
-    Tensor<TargetType>* weights{nullptr};
-    Tensor<TargetType>* bias{nullptr};
-};
-
-template <typename TargetType>
-struct MatMulParam {
-    MatMulParam():_is_transpose_X(false),_is_transpose_Y(false){}
-    MatMulParam(bool x, bool y):_is_transpose_X(x),_is_transpose_Y(y){}
-    MatMulParam &operator=(const MatMulParam &right)
-    {
-        _is_transpose_X = right._is_transpose_X;
-        _is_transpose_Y = right._is_transpose_Y;
-    }
-    bool operator==(const MatMulParam &right) {
-        bool comp_eq = true;
-        comp_eq = comp_eq && (_is_transpose_X == right._is_transpose_X);        
-        comp_eq = comp_eq && (_is_transpose_Y == right._is_transpose_Y);
-        return comp_eq;
-    }
-
-    bool _is_transpose_X{false};
-    bool _is_transpose_Y{false};
-    int _m = 0;
-    int _n = 0;
-    int _k = 0;
-    int _b = 0;//batch_size
-
-};
-
-template <typename TargetType>
-struct FlattenParam {
-    FlattenParam() = default;
-    FlattenParam(const FlattenParam& right) {}
-    FlattenParam& operator=(const FlattenParam& right){ return *this;}
-    bool operator==(const FlattenParam& right){
-        return true;
-    }
-};
-
-template <typename TargetType>
-struct Im2SequenceParam {
-    Im2SequenceParam() = default;
-    Im2SequenceParam(int window_h_in,
-                     int window_w_in,
-                     int pad_up_in,
-                     int pad_down_in,
-                     int pad_left_in,
-                     int pad_right_in,
-                     int stride_h_in,
-                     int stride_w_in,
-                     int dilation_h_in,
-                     int dilation_w_in)
-               : window_h(window_h_in)
-                , window_w(window_w_in)
-                , pad_up(pad_up_in)
-                , pad_down(pad_down_in)
-                , pad_left(pad_left_in)
-                , pad_right(pad_right_in)
-                , stride_h(stride_h_in)
-                , stride_w(stride_w_in)
-                , dilation_h(dilation_h_in)
-                , dilation_w(dilation_w_in)
-    {}
-    Im2SequenceParam(const Im2SequenceParam &right)
-                : window_h(right.window_h)
-                , window_w(right.window_w)
-                , pad_up(right.pad_up)
-                , pad_down(right.pad_down)
-                , pad_left(right.pad_left)
-                , pad_right(right.pad_right)
-                , stride_h(right.stride_h)
-                , stride_w(right.stride_w)
-                , dilation_h(right.dilation_h)
-                , dilation_w(right.dilation_w)
-    {}
-    Im2SequenceParam &operator=(const Im2SequenceParam &right) {
-        window_h = right.window_h;
-        window_w = right.window_w;
-        pad_up = right.pad_up;
-        pad_down = right.pad_down;
-        pad_left = right.pad_left;
-        pad_right = right.pad_right;
-        stride_h = right.stride_h;
-        stride_w = right.stride_w;
-        dilation_h = right.dilation_h;
-        dilation_w = right.dilation_w;
-        return *this;
-    }
-    bool operator==(const Im2SequenceParam &right) {
-        bool comp_eq = true;
-        comp_eq = comp_eq && (window_h == right.window_h);
-        comp_eq = comp_eq && (window_w == right.window_w);
-        comp_eq = comp_eq && (pad_up == right.pad_up);
-        comp_eq = comp_eq && (pad_down == right.pad_down);
-        comp_eq = comp_eq && (pad_left == right.pad_left);
-        comp_eq = comp_eq && (pad_right == right.pad_right);
-        comp_eq = comp_eq && (stride_h == right.stride_h);
-        comp_eq = comp_eq && (stride_w == right.stride_w);
-        comp_eq = comp_eq && (dilation_h == right.dilation_h);
-        comp_eq = comp_eq && (dilation_w == right.dilation_w);
-        return comp_eq;
-    }
-    int window_h;
-    int window_w;
-    int pad_up;
-    int pad_down;
-    int pad_left;
-    int pad_right;
-    int stride_h;
-    int stride_w;
-    int dilation_h;
-    int dilation_w;
-};
-
-template <typename TargetType>
-struct LayerNormParam {
-    LayerNormParam() = default;
-    LayerNormParam(int axis_in, float eps_in, Tensor<TargetType>* weights_scale, Tensor<TargetType>* weights_bias) {
-        axis = axis_in;
-        eps = eps_in;
-        scale = weights_scale;
-        bias = weights_bias;
-    }
-    LayerNormParam(const LayerNormParam &right) {
-        axis = right.axis;
-        eps = right.eps;
-        scale = right.scale;
-        bias = right.bias;
-    }
-    LayerNormParam &operator=(const LayerNormParam &right) {
-        this->axis = right.axis;
-        this->eps = right.eps;
-        this->scale = right.scale;
-        this->bias = right.bias;
-        return *this;
-    }
-    bool operator==(const LayerNormParam &right) {
-        bool comp_eq = true;
-        comp_eq = comp_eq && (axis == right.axis);
-        comp_eq = comp_eq && (fabsf(eps - right.eps) < 1e-7f);
-        comp_eq = comp_eq && (scale == scale);
-        comp_eq = comp_eq && (bias == bias);
-        return comp_eq;
-    }
-    inline const Tensor<TargetType>* scale_weights() {
-        return scale;
-    }
-
-    inline Tensor<TargetType>* mutable_scale_weights() {
-        return scale;
-    }
-
-    inline const Tensor<TargetType>* bias_weights() {
-        return bias;
-    }
-
-    inline Tensor<TargetType>* mutable_bias_weights() {
-        return bias;
-    }
-
-    int axis;
-    float eps{1e-5f};
-
-private:
-    Tensor<TargetType>* scale;
-    Tensor<TargetType>* bias;
-};
-
-template <typename TargetType>
-struct LrnParam {
-    LrnParam() = default;
-    LrnParam(int local_size_in, float alpha_in,  float beta_in, float k_in, NormRegion norm_region_in)
-            : local_size(local_size_in)
-            , alpha(alpha_in)
-            , beta(beta_in)
-            , k(k_in)
-            , norm_region(norm_region_in)
-    {}
-    LrnParam(const LrnParam &right)
-            : local_size(right.local_size)
-            , alpha(right.alpha)
-            , beta(right.beta)
-            , k(right.k)
-            , norm_region(right.norm_region)
-    {}
-    LrnParam &operator=(const LrnParam &right) {
-        local_size = right.local_size;
-        alpha = right.alpha;
-        beta = right.beta;
-        k = right.k;
-        norm_region = right.norm_region;
-        return *this;
-    }
-    bool operator==(const LrnParam &right) {
-        bool comp_eq = true;
-        comp_eq = comp_eq && (local_size == right.local_size);
-        comp_eq = comp_eq && (alpha == right.alpha);
-        comp_eq = comp_eq && (beta == right.beta);
-        comp_eq = comp_eq && (k == right.k);
-        comp_eq = comp_eq && (norm_region == right.norm_region);
-        return comp_eq;
-    }
-    int local_size{5};
-    float alpha{1.};
-    float beta{0.75};
-    float k{1.};
-    NormRegion norm_region{ACROSS_CHANNELS};
-};
-
-template <typename TargetType>
-struct MvnParam {
-
-    MvnParam() = default;
-
-    MvnParam(bool normalize_variance_in, bool across_channels_in, float eps_in) {
-        normalize_variance = normalize_variance_in;
-        across_channels = across_channels_in;
-        eps = eps_in;
-    }
-
-    MvnParam(const MvnParam<TargetType>& right) {
-        normalize_variance = right.normalize_variance;
-        across_channels = right.across_channels;
-        eps = right.eps;
-    }
-
-    MvnParam<TargetType>& operator=(const MvnParam<TargetType>& right) {
-        this->normalize_variance = right.normalize_variance;
-        this->across_channels = right.across_channels;
-        this->eps = right.eps;
-        return *this;
-    }
-
-    bool operator==(const MvnParam<TargetType>& right) {
-        bool flag = this->normalize_variance == right.normalize_variance;
-        flag = flag && this->across_channels == right.across_channels;
-        return flag && (this->eps == right.eps);
-    }
-
-    bool normalize_variance{true};
-    bool across_channels{true};
-    float eps{1e-9};
-};
-
 
 }
 }
