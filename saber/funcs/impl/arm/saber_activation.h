@@ -30,7 +30,6 @@ class SaberActivation<ARM, OpDtype> : \
 {
 public:
     typedef typename DataTrait<ARM, OpDtype>::Dtype OpDataType;
-    
 
     SaberActivation()
     {}
@@ -53,6 +52,7 @@ public:
     virtual SaberStatus dispatch(const std::vector<Tensor<ARM> *>& inputs,
                           std::vector<Tensor<ARM> *>& outputs,
                           ActivationParam<ARM>& param);
+
 
 };
 
