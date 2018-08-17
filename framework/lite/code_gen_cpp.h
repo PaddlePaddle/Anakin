@@ -35,8 +35,8 @@ public:
         if (!flag_aot) {
             _cpp_file_name = model_dir + '/' + model_name + ".cpp.tmp";
             _h_file_name = model_dir + '/' + model_name + ".h.tmp";
-            _model_file_name = model_dir + '/' + model_name + ".lite.w";
-            _model_opt_file_name = model_dir + '/' + model_name + ".lite.info";
+            _model_file_name = model_dir + '/' + model_name + ".bin";
+            _model_opt_file_name = model_dir + '/' + model_name + ".info";
             _weight_opt_file = model_dir + '/' + model_name + ".tmp";
             _weights.open(_model_file_name);
             _opt_weights.open(_weight_opt_file);

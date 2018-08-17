@@ -119,6 +119,31 @@ SaberStatus SaberDeconv2D::load_param(const ParamBase *param) {
     return SaberSuccess;
 }
 
+SaberStatus SaberDeconv2D::load_param(std::istream &stream, const float *weights) {
+    int weights_size;
+    int num_out;
+    int group;
+    int kw;
+    int kh;
+    int stride_w;
+    int stride_h;
+    int pad_w;
+    int pad_h;
+    int dila_w;
+    int dila_h;
+    int flag_bias;
+    int w_offset;
+    int b_offset;
+    stream >> weights_size >> num_out >> group >> kw >> kh >> stride_w >> stride_h >> \
+           pad_w >> pad_h >> dila_w >> dila_h >> flag_bias >> w_offset >> b_offset;
+    _param = new Conv2DParam(weights_size, num_out, group, kw, kh, \
+        stride_w, stride_h, pad_w, pad_h, dila_w, dila_h, flag_bias>0, \
+        weights + w_offset, weights + b_offset);
+    this->_flag_create_param = true;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+#if 0
 SaberStatus SaberDeconv2D::load_param(FILE *fp, const float *weights) {
     int weights_size;
     int num_out;
@@ -134,7 +159,7 @@ SaberStatus SaberDeconv2D::load_param(FILE *fp, const float *weights) {
     int flag_bias;
     int w_offset;
     int b_offset;
-    fscanf(fp, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
+    fscanf(fp, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
            &weights_size,
            &num_out,
            &group,
@@ -156,7 +181,7 @@ SaberStatus SaberDeconv2D::load_param(FILE *fp, const float *weights) {
     this->_flag_param = true;
     return SaberSuccess;
 }
-
+#endif
 SaberStatus SaberDeconv2D::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                                 std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
     Shape output_shape = (inputs[0]->shape());
@@ -183,6 +208,13 @@ SaberStatus SaberDeconv2D::compute_output_shape(const std::vector<Tensor<CPU, AK
 
     output_shape.set_height(output_dim_h);
     output_shape.set_width(output_dim_w);
+
+#ifdef ENABLE_OP_TIMER
+    this->_op_macs = _param->_kw * _param->_kh * \
+        output_shape.num() * output_shape.channel() * output_shape.width() * output_shape.height() * \
+        inputs[0]->channel() / _param->_group;
+#endif
+
     return outputs[0]->set_shape(output_shape);
 }
 
@@ -197,8 +229,7 @@ SaberStatus SaberDeconv2D::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inpu
     this->_ctx = &ctx;
     //printf("conv init \n");
 
-    int threads = 1;
-    this->_ctx->get_mode(threads);
+    int threads = this->_ctx->get_threads();
 
     Shape shape_in = inputs[0]->valid_shape();
     Shape shape_out = outputs[0]->valid_shape();
@@ -313,7 +344,7 @@ SaberStatus SaberDeconv2D::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &
 #ifdef ENABLE_OP_TIMER
     this->_timer.end();
     float ts = this->_timer.get_average_ms();
-    printf("deconv time: %f\n", ts);
+    printf("deconv %s: time: %f ms, %f GOPs, %f GOPS\n", this->_op_name.c_str(), ts, 1e-9f * this->_op_macs, 0.000001 * this->_op_macs / ts);
     OpTimer::add_timer("deconvolution", ts);
     OpTimer::add_timer("total", ts);
 #endif

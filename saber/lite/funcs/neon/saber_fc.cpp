@@ -101,6 +101,20 @@ SaberStatus SaberFc::load_param(const ParamBase *param) {
     return SaberSuccess;
 }
 
+SaberStatus SaberFc::load_param(std::istream &stream, const float *weights) {
+    int axis;
+    int num_out;
+    int bias_term;
+    int w_offset;
+    int b_offset;
+    int flag_trans;
+    stream >> axis >> num_out >> bias_term >> w_offset >> b_offset >> flag_trans;
+    _param = new FcParam(axis, num_out, bias_term>0, weights + w_offset, weights + b_offset, flag_trans>0);
+    this->_flag_create_param = true;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+#if 0
 SaberStatus SaberFc::load_param(FILE *fp, const float *weights) {
     int axis;
     int num_out;
@@ -108,13 +122,13 @@ SaberStatus SaberFc::load_param(FILE *fp, const float *weights) {
     int w_offset;
     int b_offset;
     int flag_trans;
-    fscanf(fp, "%d,%d,%d,%d,%d,%d\n", &axis, &num_out, &bias_term, &w_offset, &b_offset, &flag_trans);
+    fscanf(fp, "%d %d %d %d %d %d\n", &axis, &num_out, &bias_term, &w_offset, &b_offset, &flag_trans);
     _param = new FcParam(axis, num_out, bias_term>0, weights + w_offset, weights + b_offset, flag_trans>0);
     this->_flag_create_param = true;
     this->_flag_param = true;
     return SaberSuccess;
 }
-
+#endif
 SaberStatus SaberFc::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                           std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
 
@@ -142,8 +156,7 @@ SaberStatus SaberFc::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs, \
     }
 
     this->_ctx = &ctx;
-    int threads = 1;
-    this->_ctx->get_mode(threads);
+    int threads = this->_ctx->get_threads();
 
     _m = inputs[0]->count_valid(0, _param->_axis);
     _k = inputs[0]->count_valid(_param->_axis, inputs[0]->dims());
@@ -203,7 +216,7 @@ SaberStatus SaberFc::dispatch(\
 #ifdef ENABLE_OP_TIMER
     this->_timer.end();
     float ts = this->_timer.get_average_ms();
-    printf("fc time: %f\n", ts);
+    printf("fc %s: time: %f\n", this->_op_name.c_str(), ts);
     OpTimer::add_timer("fc", ts);
     OpTimer::add_timer("total", ts);
 #endif

@@ -81,6 +81,4 @@ rm $out_path/*.tmp
 if [ $aot_mode -lt 1 ]; then
     rm $out_path/*.h
     rm $out_path/*.cpp
-    rm $out_path/*.w
-    rm $out_path/*.info
 fi

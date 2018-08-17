@@ -32,6 +32,17 @@ SaberPower::~SaberPower() {
     }
 }
 
+SaberStatus SaberPower::load_param(std::istream &stream, const float *weights) {
+    float scale;
+    float shift;
+    float power;
+    stream >> scale >> shift >> power;
+    _param = new PowerParam(scale, shift, power);
+    this->_flag_create_param = true;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+#if 0
 SaberStatus SaberPower::load_param(FILE *fp, const float *weights) {
     float scale;
     float shift;
@@ -42,7 +53,7 @@ SaberStatus SaberPower::load_param(FILE *fp, const float *weights) {
     this->_flag_param = true;
     return SaberSuccess;
 }
-
+#endif
 SaberStatus SaberPower::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                                std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
 
@@ -102,8 +113,7 @@ SaberStatus SaberPower::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &inp
     float* ptr_out = outputs[0]->mutable_data();
     const float* ptr_in = inputs[0]->data();
     int size = inputs[0]->valid_size();
-    int threads = 1;
-    this->_ctx->get_mode(threads);
+    int threads = this->_ctx->get_threads();
     int nums_per_thread = size / threads;
     int remain = size - threads * nums_per_thread;
     int neon_loop_cnt = nums_per_thread >> 4;
@@ -171,7 +181,7 @@ SaberStatus SaberPower::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &inp
 #ifdef ENABLE_OP_TIMER
     this->_timer.end();
     float ts = this->_timer.get_average_ms();
-    printf("power time: %f\n", ts);
+    printf("power %s: time: %f\n", this->_op_name.c_str(), ts);
     OpTimer::add_timer("power", ts);
     OpTimer::add_timer("total", ts);
 #endif

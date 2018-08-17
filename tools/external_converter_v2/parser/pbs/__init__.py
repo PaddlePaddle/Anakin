@@ -3,7 +3,7 @@
 # -*- coding: utf-8 -*-
 
 try:
-    from caffe_pb2 import *
+    from caffe_ssd_pb2 import *
 except ImportError:
     raise ImportError(' No module named caffe_pb2 . ')
 

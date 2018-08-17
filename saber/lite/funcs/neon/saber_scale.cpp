@@ -30,19 +30,32 @@ SaberStatus SaberScale::load_param(const ParamBase* param){
     return SaberSuccess;
 }
 
+SaberStatus SaberScale::load_param(std::istream &stream, const float *weights) {
+    int w_offset;
+    int b_offset;
+    int bias_term;
+    int axis;
+    int num_axis;
+    stream >> w_offset >> b_offset >> bias_term >> axis >> num_axis;
+    _param = new ScaleParam(weights + w_offset, weights + b_offset, bias_term>0, axis, num_axis);
+    this->_flag_create_param = true;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+#if 0
 SaberStatus SaberScale::load_param(FILE *fp, const float *weights) {
     int w_offset;
     int b_offset;
     int bias_term;
     int axis;
     int num_axis;
-    fscanf(fp, "%d,%d,%d,%d,%d\n", &w_offset, &b_offset, &bias_term, &axis, &num_axis);
+    fscanf(fp, "%d %d %d %d %d\n", &w_offset, &b_offset, &bias_term, &axis, &num_axis);
     _param = new ScaleParam(weights + w_offset, weights + b_offset, bias_term>0, axis, num_axis);
     this->_flag_create_param = true;
     this->_flag_param = true;
     return SaberSuccess;
 }
-
+#endif
 SaberStatus SaberScale::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
                                              std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) {
     if (!this->_flag_param) {
@@ -186,7 +199,7 @@ SaberStatus SaberScale::dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inpu
 #ifdef ENABLE_OP_TIMER
     this->_timer.end();
     float ts = this->_timer.get_average_ms();
-    printf("scale time: %f\n", ts);
+    printf("scale : %s: time: %f\n", this->_op_name.c_str(), ts);
     OpTimer::add_timer("scale", ts);
     OpTimer::add_timer("total", ts);
 #endif

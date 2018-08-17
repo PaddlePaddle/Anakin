@@ -35,7 +35,9 @@ public:
 
     virtual SaberStatus load_param(const ParamBase* param) override;
 
-    virtual SaberStatus load_param(FILE* fp, const float* weights) override;
+    //virtual SaberStatus load_param(FILE* fp, const float* weights) override;
+
+    virtual SaberStatus load_param(std::istream& stream, const float* weights) override;
 
     ~SaberSlice();
 
@@ -52,7 +54,6 @@ private:
     const SliceParam* _param;
     int _slice_num;
     int _slice_size;
-
     std::vector<int> _slice_points;
 };
 

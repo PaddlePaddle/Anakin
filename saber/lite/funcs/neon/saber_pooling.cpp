@@ -33,6 +33,23 @@ SaberStatus SaberPooling::load_param(const ParamBase *param) {
     return SaberSuccess;
 }
 
+SaberStatus SaberPooling::load_param(std::istream &stream, const float *weights) {
+    int type;
+    int g_pool;
+    int kw;
+    int kh;
+    int stride_w;
+    int stride_h;
+    int pad_w;
+    int pad_h;
+    stream >> type >> g_pool >> kw >> kh >> stride_w >> stride_h >> pad_w >> pad_h;
+    PoolingType ptype = (PoolingType)type;
+    _param = new PoolParam(ptype, g_pool>0, kw, kh, stride_w, stride_h, pad_w, pad_h);
+    this->_flag_create_param = true;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+#if 0
 SaberStatus SaberPooling::load_param(FILE *fp, const float *weights) {
     int type;
     int g_pool;
@@ -42,14 +59,14 @@ SaberStatus SaberPooling::load_param(FILE *fp, const float *weights) {
     int stride_h;
     int pad_w;
     int pad_h;
-    fscanf(fp, "%d,%d,%d,%d,%d,%d,%d,%d\n", &type, &g_pool, &kw, &kh, &stride_w, &stride_h, &pad_w, &pad_h);
+    fscanf(fp, "%d %d %d %d %d %d %d %d\n", &type, &g_pool, &kw, &kh, &stride_w, &stride_h, &pad_w, &pad_h);
     PoolingType ptype = (PoolingType)type;
     _param = new PoolParam(ptype, g_pool>0, kw, kh, stride_w, stride_h, pad_w, pad_h);
     this->_flag_create_param = true;
     this->_flag_param = true;
     return SaberSuccess;
 }
-
+#endif
 SaberStatus SaberPooling::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                                std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
 
@@ -180,7 +197,7 @@ SaberStatus SaberPooling::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &i
 #ifdef ENABLE_OP_TIMER
     this->_timer.end();
     float ts = this->_timer.get_average_ms();
-    printf("pooling time: %f\n", ts);
+    printf("pooling %s: time: %f\n", this->_op_name.c_str(), ts);
     OpTimer::add_timer("pooling", ts);
     OpTimer::add_timer("total", ts);
 #endif

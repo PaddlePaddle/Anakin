@@ -19,12 +19,17 @@ SaberStatus SaberFlatten::load_param(const ParamBase *param) {
     return SaberSuccess;
 }
 
+SaberStatus SaberFlatten::load_param(std::istream &stream, const float *weights) {
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+#if 0
 SaberStatus SaberFlatten::load_param(FILE *fp, const float *weights) {
     fscanf(fp, "\n");
     this->_flag_param = true;
     return SaberSuccess;
 }
-
+#endif
 SaberStatus SaberFlatten::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                              std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
     if (!this->_flag_param) {
@@ -45,7 +50,7 @@ SaberStatus SaberFlatten::compute_output_shape(const std::vector<Tensor<CPU, AK_
 SaberStatus SaberFlatten::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                              std::vector<Tensor<CPU, AK_FLOAT> *> &outputs, Context &ctx) {
     if (!this->_flag_param) {
-        printf("load slice param first\n");
+        printf("load flatten param first\n");
         return SaberNotInitialized;
     }
     // get context

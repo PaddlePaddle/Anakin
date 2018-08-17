@@ -36,6 +36,13 @@ public:
        init_dims(first, res...);
     }
 
+    Shape(std::vector<int> vsh) {
+        this->resize(vsh.size());
+        for (int i = 0; i < vsh.size(); ++i) {
+            data()[i] = vsh[i];
+        }
+    }
+
     int num() const {
         if (dims() == 0) {
             return 0;

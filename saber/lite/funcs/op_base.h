@@ -33,7 +33,8 @@ public:
     virtual ~OpBase(){}
     OpBase(const ParamBase* param) {}
     virtual SaberStatus load_param(const ParamBase* param) = 0;
-    virtual SaberStatus load_param(FILE* fp, const float* weights) = 0;
+    //virtual SaberStatus load_param(FILE* fp, const float* weights) = 0;
+    virtual SaberStatus load_param(std::istream& stream, const float* weights) = 0;
     virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
                                  std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) = 0;
 
@@ -41,17 +42,17 @@ public:
                              std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context& ctx) = 0;
     virtual SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
                                  std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) = 0;
-
+#if defined(ENABLE_OP_TIMER) || defined(ENABLE_DEBUG)
     void set_op_name(const char* name){_op_name = name;}
     const char* get_op_name() { return _op_name.c_str();}
-
+#endif
 protected:
-    std::string _op_name;
     Context* _ctx;
     bool _flag_param{false};
     bool _flag_init{false};
     bool _flag_create_param{false};
-#ifdef ENABLE_OP_TIMER
+#if defined(ENABLE_OP_TIMER) || defined(ENABLE_DEBUG)
+    std::string _op_name;
     SaberTimer _timer;
     unsigned long long _op_macs{0};
 #endif

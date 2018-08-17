@@ -46,8 +46,28 @@ SaberStatus SaberDetectionOutput::load_param(const ParamBase *param) {
     return SaberSuccess;
 }
 
+SaberStatus SaberDetectionOutput::load_param(std::istream &stream, const float *weights) {
+    int class_num;
+    float conf_thresh;
+    int nms_topk;
+    int bg_id;
+    int keep_topk;
+    int cd_type;
+    float nms_thresh;
+    float nms_eta;
+    int share_loc;
+    int encode_in_tar;
+    stream >> class_num >> conf_thresh >> nms_topk >> bg_id >> keep_topk >> \
+        cd_type >> nms_thresh >> nms_eta >> share_loc >> encode_in_tar;
+    CodeType type = static_cast<CodeType>(cd_type);
+    _param = new DetectionOutputParam(class_num, conf_thresh, nms_topk, \
+        bg_id, keep_topk, type, nms_thresh, nms_eta, share_loc>0, encode_in_tar>0);
+    this->_flag_create_param = true;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+#if 0
 SaberStatus SaberDetectionOutput::load_param(FILE *fp, const float *weights) {
-
     int class_num;
     float conf_thresh;
     int nms_topk;
@@ -59,7 +79,7 @@ SaberStatus SaberDetectionOutput::load_param(FILE *fp, const float *weights) {
     int share_loc;
     int encode_in_tar;
 
-    fscanf(fp, "%d,%f,%d,%d,%d,%d,%f,%f,%d,%d\n", &class_num, &conf_thresh, \
+    fscanf(fp, "%d %f %d %d %d %d %f %f %d %d\n", &class_num, &conf_thresh, \
         &nms_topk, &bg_id, &keep_topk, &cd_type, &nms_thresh, &nms_eta, \
         &share_loc, &encode_in_tar);
     CodeType type = static_cast<CodeType>(cd_type);
@@ -69,7 +89,7 @@ SaberStatus SaberDetectionOutput::load_param(FILE *fp, const float *weights) {
     this->_flag_param = true;
     return SaberSuccess;
 }
-
+#endif
 SaberStatus SaberDetectionOutput::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                                        std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
     if (!this->_flag_param) {
@@ -192,7 +212,7 @@ SaberStatus SaberDetectionOutput::dispatch(
 #ifdef ENABLE_OP_TIMER
     this->_timer.end();
     float ts = this->_timer.get_average_ms();
-    printf("detection_output time: %f\n", ts);
+    printf("detection_output %s: time: %f\n", this->_op_name.c_str(), ts);
     OpTimer::add_timer("detection_optput", ts);
     OpTimer::add_timer("total", ts);
 #endif

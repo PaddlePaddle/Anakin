@@ -370,7 +370,7 @@ def Parser_innerproduct(args):
     # parser caffe parameter
     tensors = args[2]
     weight = tensors[0]
-    inner_product_param = layer.inner_product_param	
+    inner_product_param = layer.inner_product_param 
     OpsRegister()["Dense"].axis = inner_product_param.axis # weight().shape.dim.value[2]
     OpsRegister()["Dense"].out_dim = inner_product_param.num_output # weight().shape.dim.value[3]
     OpsRegister()["Dense"].bias_term = inner_product_param.bias_term
@@ -564,7 +564,7 @@ def Parser_input(args):
     OpsRegister()["Input"].input_shape = list(input_param.shape[0].dim)
     #OpsRegister()["Input"].input_num = len(input_param.shape)
     #for shape in input_param.shape:
-    #	OpsRegister()["Input"].input_shape.append(list(shape.dim))
+    #   OpsRegister()["Input"].input_shape.append(list(shape.dim))
 
 
 @ParserFeedDecorator("Permute")
@@ -993,6 +993,10 @@ def Parser_priorbox(args):
     prior_box_param = layer.prior_box_param
     OpsRegister()["PriorBox"].min_size = list(prior_box_param.min_size)
     OpsRegister()["PriorBox"].max_size = list(prior_box_param.max_size)
+    OpsRegister()["PriorBox"].aspect_ratio = list(prior_box_param.aspect_ratio)
+    OpsRegister()["PriorBox"].fixed_size = list(prior_box_param.fixed_size)
+    OpsRegister()["PriorBox"].fixed_ratio = list(prior_box_param.fixed_ratio)
+    OpsRegister()["PriorBox"].density = list(prior_box_param.density)
     OpsRegister()["PriorBox"].aspect_ratio = list(prior_box_param.aspect_ratio)
     OpsRegister()["PriorBox"].is_flip = prior_box_param.flip
     OpsRegister()["PriorBox"].is_clip = prior_box_param.clip

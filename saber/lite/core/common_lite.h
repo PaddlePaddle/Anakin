@@ -23,6 +23,7 @@
 #include <cmath>
 #include <map>
 #include <string>
+#include <sstream>
 #include "anakin_config.h"
 #include "saber/saber_types.h"
 
