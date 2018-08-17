@@ -74,8 +74,8 @@ public:
                             std::vector<DataTensor_out *>& outputs,
                             ScaleParam<OpTensor>& param, Context<NV> &ctx) {
         this->_ctx = &ctx;
-        _inner_dim = inputs[0]->count(_axis + _num_axes, inputs[0]->shape().dims());
-        _scale_dim = inputs[0]->count(_axis, _axis + _num_axes);
+        _inner_dim = inputs[0]->count_valid(_axis + _num_axes, inputs[0]->shape().dims());
+        _scale_dim = inputs[0]->count_valid(_axis, _axis + _num_axes);
         if (inputs.size() == 1) {
             CHECK_EQ(_scale_dim, param.scale_w.size()) << "scale dim not valid";
         }
