@@ -16,6 +16,7 @@
 #define ANAKIN_SABER_FUNCS_PARAM_H
 #include "anakin_config.h"
 #include <vector>
+#include <cmath>
 #include <string>
 #include "saber/core/shape.h"
 #include "saber/core/tensor.h"
@@ -623,7 +624,7 @@ struct PermutePowerParam {
     PermutePowerParam(PermuteParam<opTensor> permute_param, PowerParam<opTensor> power_param):
             power_param(power_param), permute_param(permute_param), has_power_param(true) {}
     PermutePowerParam(const PermutePowerParam & right):
-        power_param(right.power_param), permute_param(right.permute_param) {}
+        power_param(right.power_param), permute_param(right.permute_param), has_power_param(right.has_power_param) {}
     bool operator==(const PermutePowerParam &right) {
         bool comp_eq = true;
         comp_eq = comp_eq && (power_param == right.power_param);
