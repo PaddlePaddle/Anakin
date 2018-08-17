@@ -5,13 +5,13 @@ echo "-- Anakin root dir is: $ANAKIN_ROOT"
 
 # Choose GPU architecture.
 if [ "$1" == "sm50" ]; then
-    NV_ARCH="50"
+    NV_ARCH=50
 else
-    NV_ARCH="61"
+    NV_ARCH=61
 fi
 
 # build the target into gpu_build.
-BUILD_ROOT=$ANAKIN_ROOT/gpu_build
+BUILD_ROOT=$ANAKIN_ROOT/gpu_build_sm$NV_ARCH
 
 mkdir -p $BUILD_ROOT
 echo "-- Build anakin gpu(NVIDIA) into: $BUILD_ROOT"
@@ -34,7 +34,7 @@ cmake .. \
     -DENABLE_NOISY_WARNINGS=NO \
     -DUSE_OPENMP=NO \
     -DBUILD_SHARED=YES \
-    -DSELECTED_SASS_TARGET_ARCH=$NV_ARCH
+    -DSELECTED_SASS_TARGET_ARCH="$NV_ARCH"
 
 # build target lib or unit test.
 if [ "$(uname)" = 'Darwin' ]; then
