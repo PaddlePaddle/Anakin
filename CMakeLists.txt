@@ -76,7 +76,7 @@ anakin_option(BUILD_FAT_BIN "Build anakin cuda fat-bin lib for all device plantf
 
 cmake_minimum_required(VERSION ${MIN_CMAKE_V} FATAL_ERROR)
 
-if(USE_CUDA)
+if(USE_CUDA AND (NOT SELECTED_SASS_TARGET_ARCH))
     # Select gpu target arch for local high performance implement sass code . Now we have checked on sm_61 sm_50 and it works well.
     set(SELECTED_SASS_TARGET_ARCH "61")
 endif()
