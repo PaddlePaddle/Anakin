@@ -1008,16 +1008,16 @@ struct SliceParam {
         axis = axis_in;
         slice_points = slice_points_in;
     }
-    SliceParam(const SliceParam<type> &right) {
+    SliceParam(const SliceParam<TargetType> &right) {
         axis = right.axis;
         slice_points = right.slice_points;
     }
-    SliceParam<type> &operator=(const SliceParam<type> &right) {
+    SliceParam<TargetType> &operator=(const SliceParam<TargetType> &right) {
         axis = right.axis;
         slice_points = right.slice_points;
         return *this;
     }
-    bool operator==(const SliceParam<type> &right) {
+    bool operator==(const SliceParam<TargetType> &right) {
         bool comp_eq = slice_points.size() == right.slice_points.size();
         for (int i = 0; i < slice_points.size(); ++i) {
             if (!comp_eq){
