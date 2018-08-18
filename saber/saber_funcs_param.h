@@ -29,7 +29,6 @@ namespace saber {
 template <typename TargetType>
 struct PreluParam;
 
-
 template <typename TargetType>
 struct ActivationParam {
     ActivationParam()
@@ -95,6 +94,7 @@ struct ActivationParam {
     PreluParam<TargetType> prelu_param;
 };
 
+template <typename TargetType>
 struct CastParam {
     CastParam() = default;
     CastParam(int in_type_in, int out_type_in)
