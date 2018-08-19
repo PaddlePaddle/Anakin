@@ -6,14 +6,13 @@
 #include "saber/funcs/impl/x86/x86_utils.h"
 
 
-#ifdef __AVX512F__
-#include "saber_avx512_activation.h"
+#if defined(__AVX512F__)
 #define SABER_X86_TYPE __m512
-#elif __AVX2__
-#include "saber_avx2_activation.h"
+#elif defined(__AVX2__)
 #define SABER_X86_TYPE __m256
+#elif defined(__SSE4_2__)
+#define SABER_X86_TYPE __m128
 #else
-#include "saber_normal_activation.h"
 #define SABER_X86_TYPE float
 #endif
 
@@ -42,6 +41,7 @@ public:
     typedef typename DataTensor_in::Dtype InDataType;
     typedef typename DataTensor_out::Dtype OutDataType;
     typedef typename OpTensor::Dtype OpDataType;
+
 
     SaberGru() {}
 
@@ -137,10 +137,7 @@ public:
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                                  std::vector<DataTensor_out*>& outputs,
                                  GruParam<OpTensor>& param);
-    SaberStatus naiv_gru(
-            const std::vector<DataTensor_in*>& inputs,
-            std::vector<DataTensor_out*>& outputs,
-            GruParam<OpTensor>& param);
+
 private:
     int _word_size;
     int _hidden_size;
@@ -170,36 +167,12 @@ private:
     OpTensor _temp_x;
     OpTensor _temp_out;
     OpTensor _temp_h_init;
-#if 0
-    SaberStatus batch_gru(\
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        GruParam<OpTensor>& param);
 
-    SaberStatus naiv_256(\
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        GruParam<OpTensor>& param);
-
-    SaberStatus naiv_256_s_aligned(\
-    const std::vector<DataTensor_in*>& inputs,
-               std::vector<DataTensor_out*>& outputs,
-               GruParam<OpTensor>& param);
-
-    SaberStatus batch_256_s_aligned(\
-    const std::vector<DataTensor_in*>& inputs,
-                       std::vector<DataTensor_out*>& outputs,
-                       GruParam<OpTensor>& param);
-    SaberStatus batch_s_aligned__m256SigmoidTanh(\
-    const std::vector<DataTensor_in*>& inputs,
-    std::vector<DataTensor_out*>& outputs,
-    GruParam<OpTensor>& param);
-#endif
     template <typename BIT>
     SaberStatus batch_s_aligned(\
-    const std::vector<DataTensor_in*>& inputs,
-    std::vector<DataTensor_out*>& outputs,
-    GruParam<OpTensor>& param);
+                                const std::vector<OpTensor*>& inputs,
+                                std::vector<OpTensor*>& outputs,
+                                GruParam<OpTensor>& param);
 
 };
 
