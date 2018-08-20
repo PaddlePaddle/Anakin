@@ -72,14 +72,14 @@ public:
             Tensor<NVHX86> new_weight;
             new_weight.re_alloc(weight_shape, param.weight()->get_dtype());
             new_weight.copy_from(*(param.weight()));
-            OpDataType *weight_data = new_weight.mutable_data();
+            OpDataType *weight_data = (OpDataType *)new_weight.mutable_data();
             int round_in_channel = i_align_up(inputs[0]->channel(), 8);
             int round_out_channel = i_align_up(param.weight()->num(), 32);
             int weight4x4_size = round_in_channel * round_out_channel * 4 * 4;
             Shape old_shape = param.weight()->shape();
             Shape new_trans_weights_shape({{weight4x4_size, 1, 1 ,1}}, param.weight()->get_layout());
             trans_weights_host.re_alloc(new_trans_weights_shape, param.weight()->get_dtype());
-            OpDataType* _host_work_space = trans_weights_host.mutable_data();
+            OpDataType* _host_work_space = (OpDataType*)trans_weights_host.mutable_data();
             transform_3x3_weight_2_4x4(weight_data, _host_work_space, param.weight()->num(),
                                        round_out_channel, inputs[0]->channel(), round_in_channel);
             Shape new_weights_shape({weight4x4_size, 1, 1, 1}, param.weight()->get_layout());
@@ -97,9 +97,9 @@ public:
             Tensor<NVHX86> weight_host;
             weight_host.re_alloc(param.weight()->shape(), param.weight()->get_dtype());
             weight_host.copy_from(*(param.weight()));
-            const OpDataType *weight_data = weight_host.data();
+            const OpDataType *weight_data = (const OpDataType *)weight_host.data();
             trans_weights_host.re_alloc(param.weight()->valid_shape(), param.weight()->get_dtype());
-            OpDataType* _host_work_space = trans_weights_host.mutable_data();
+            OpDataType* _host_work_space = (OpDataType*)trans_weights_host.mutable_data();
 
             transpose_filter_KCRS_2_CRSK(weight_data, _host_work_space, \
                                          param.weight()->num(), \
