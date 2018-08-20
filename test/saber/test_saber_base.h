@@ -288,8 +288,8 @@ public:
         Shape sh = _inputs_host[0][0] -> shape();
         for(int i = 0; i < _outputs_host.size(); ++i){
             for(int j = 0; j<_op_output_num; ++j){
-                tensor_cmp_host<dtype>(static_cast<const dtype*>(_outputs_hd[i][j] -> data()),
-                                       static_cast<const dtype*>(_outputs_host[i][j] -> data()),
+                tensor_cmp_host<OpDataType>(static_cast<const OpDataType*>(_outputs_hd[i][j] -> data()),
+                                       static_cast<const OpDataType*>(_outputs_host[i][j] -> data()),
                                        _outputs_hd[i][j] -> valid_size(), max_ratio[i], max_diff[i]);
                 LOG(INFO) << "input_shape:(" << sh.num() << "," << sh.channel() << "," << sh.height() << "," << sh.width() << ")";
                 LOG(INFO) << "max_ratio:" << max_ratio[i];
