@@ -57,9 +57,6 @@ TARGET:
     FLUID:
         # 当 Framework 为 FLUID 时需填写
         Debug: NULL
-        ProtoPaths:
-            - /
-        PrototxtPath: /path/to/fluid/inference_model
         ModelPath: /path/to/fluid/inference_model
     # ...
 ```
