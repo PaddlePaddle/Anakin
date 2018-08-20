@@ -37,7 +37,6 @@ namespace saber{
                    template <typename T> class Param>
 class TestSaberBase{
 public:
-    typedef typename DataTrait<TargetType_D, Dtype> :: Dtype dtype;
     typedef Param<TargetType_D> Param_t;
     typedef Op<TargetType_D, Dtype> Op_t;
     typedef Tensor<TargetType_H> TensorH;
@@ -46,10 +45,11 @@ public:
     typedef std::vector<TensorD*> Output_dt;
     typedef std::vector<TensorH*> Input_ht;
     typedef std::vector<TensorH*> Output_ht;
+    typedef typename DataTrait<TargetType_H, Dtype>::Dtype OpDataType;
     typedef void (*CpuFunc_t) (const Input_ht&, Output_ht&, Param_t& param);
     
     
-    TestSaberBase (int in_num = 1, int out_num=1) : _op_input_num(in_num) , _op_output_num(out_num){
+    TestSaberBase (int in_num = 1, int out_num=1) : _op_input_num(in_num),  _op_output_num(out_num){
     }
     
     void add_param (Param_t& param){
@@ -76,9 +76,9 @@ public:
         }
         
         for(int i = 0; i < _op_output_num; ++i){
-            TensorD *d_od = new TensorD();
-            TensorH *d_oh = new TensorH();
-            TensorH *d_ohd = new TensorH();
+            TensorD *d_od = new TensorD(new_shape);
+            TensorH *d_oh = new TensorH(new_shape);
+            TensorH *d_ohd = new TensorH(new_shape);
             out_d.push_back(d_od);
             out_h.push_back(d_oh);
             out_hd.push_back(d_ohd);
@@ -110,9 +110,9 @@ public:
             in_h.push_back(d_ih);
         }
         for(int i = 0; i < _op_output_num; ++i){
-            TensorD *d_od = new TensorD();
-            TensorH *d_oh = new TensorH();
-            TensorH *d_ohd = new TensorH();
+            TensorD *d_od = new TensorD(new_shape_v[i]);
+            TensorH *d_oh = new TensorH(new_shape_v[i]);
+            TensorH *d_ohd = new TensorH(new_shape_v[i]);
             out_d.push_back(d_od);
             out_h.push_back(d_oh);
             out_hd.push_back(d_ohd);
@@ -124,15 +124,17 @@ public:
         _outputs_hd.push_back(out_hd);
         _input_shapes.push_back(new_shape_v);
         
+        
     }
-    void set_input_shape (Shape new_shape, TestDataType type = RANDOM, double value = 1){
+    void set_input_shape (Shape new_shape, TestDataType type = RANDOM, OpDataType value = 1){
         clear_datas();
         
         add_inputs_shape(new_shape);
         _input_type = type;
         _special_value = value;
     }
-    void set_input_shape (std::vector<Shape> new_shape_v, TestDataType type = RANDOM, double value = 1){
+
+    void set_input_shape (std::vector<Shape> new_shape_v, TestDataType type = RANDOM, OpDataType value = 1){
         clear_datas();
         
         add_inputs_shape(new_shape_v);
@@ -155,14 +157,15 @@ public:
         int input_size = _inputs_dev.size();
         CHECK_EQ(input_size, _inputs_host.size()) << "dev and host inputs num must be equal";
         if(_input_type == RANDOM){
+            CHECK_EQ(input_size, 1) << "special input num must be 1";
             for(int i=0; i<_inputs_dev.size(); ++i){
                 for(int j=0; j<_op_input_num; ++j){
                     fill_tensor_rand(*_inputs_dev[i][j], minv, maxv);
+                  // LOG(INFO) << "_op_input_num: " << _op_input_num;
                     _inputs_host[i][j] -> copy_from(*_inputs_dev[i][j]);
                 }
             }
         } else {
-            CHECK_EQ(input_size, 1) << "special input num must be 1";
             for(int i = 0; i < _inputs_dev.size(); ++i){
                 for(int j = 0; j < _op_input_num; ++j){
                     fill_tensor_const(*_inputs_dev[i][j], _special_value);
@@ -181,6 +184,10 @@ public:
         add_inputs_shape(shape_v);
         for(int i = 0; i < _op_input_num; ++i)
         {
+            SaberStatus status = _inputs_dev[0][i]->set_dtype(input[i]->get_dtype());
+            status &= _inputs_host[0][i]->set_dtype(input[i]->get_dtype());
+            if(!status)
+                LOG(INFO) << "ERROR";
             _inputs_dev[0][i] -> copy_from(*input[i]);
             _inputs_host[0][i] -> copy_from(*input[i]);
         }
@@ -261,13 +268,14 @@ public:
         for(int input_index = 0; input_index < _inputs_dev.size(); ++input_index){
             for(int j = 0; j < _op_output_num; ++j){
                 _outputs_hd[input_index][j] -> copy_from(*_outputs_dev[input_index][j]);
+               // LOG(INFO) << "input_index: " << input_index << ", j: " << j;
             }
         }
         return status;
     }
     void get_cpu_result (CpuFunc_t CpuFunc, int param_index=0){
-        CHECK_EQ(_inputs_dev.size(), _outputs_dev.size()) << "input and output number must be equal";
-        CHECK_EQ(_outputs_hd.size(),_outputs_dev.size()) << "input and output number must be equal";
+        CHECK_EQ(_inputs_host.size(), _outputs_dev.size()) << "input and output number must be equal";
+        CHECK_EQ(_outputs_host.size(),_outputs_dev.size()) << "input and output number must be equal";
         for(int i = 0; i < _inputs_dev.size(); ++i){
             CpuFunc(_inputs_host[i], _outputs_host[i], _params[param_index]);
         }
@@ -277,8 +285,8 @@ public:
         int check_size = _outputs_host.size();
         std::vector<double> max_diff(check_size, 0);
         std::vector<double> max_ratio(check_size, 0);
+        Shape sh = _inputs_host[0][0] -> shape();
         for(int i = 0; i < _outputs_host.size(); ++i){
-            Shape sh = _inputs_host[i][0] -> shape();
             for(int j = 0; j<_op_output_num; ++j){
                 tensor_cmp_host<dtype>(static_cast<const dtype*>(_outputs_hd[i][j] -> data()),
                                        static_cast<const dtype*>(_outputs_host[i][j] -> data()),
@@ -298,10 +306,13 @@ public:
         _min_value = minv;
     }
     void run_test (CpuFunc_t CpuFunc, double succ_ratio=0.00001){
-        if(_input_type == SPECIAL)
+        if(_input_type == SPECIAL){
             fill_inputs(_special_value, _special_value);
-        if(_input_type == RANDOM)
+        }
+        if(_input_type == RANDOM){
             fill_inputs(_min_value, _max_value);
+        }
+       // LOG(INFO) << "_input_type" << _input_type;
         compute_outputs_shape();
         Env<TargetType_D> :: env_init();
         Env<TargetType_H> :: env_init();
@@ -327,7 +338,7 @@ private:
     int _op_output_num;
     Op_t _base_op;
     TestDataType _input_type;
-    dtype _special_value;
+    OpDataType _special_value;
     float _max_value{255.0};
     float _min_value{-255.0};
     std :: vector<Input_ht> _inputs_host;
