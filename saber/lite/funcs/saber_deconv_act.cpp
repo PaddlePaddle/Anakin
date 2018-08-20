@@ -66,7 +66,8 @@ SaberStatus SaberDeconvAct2D::load_param(std::istream &stream, const float *weig
         weights + w_offset, weights + b_offset);
     this->_flag_create_param = true;
     this->_flag_param = true;
-    return SaberSuccess;
+    _conv_func->set_activation(flag_act);
+    return _conv_func->load_param(&_param->_conv_param);
 }
 #if 0
 SaberStatus SaberDeconvAct2D::load_param(FILE *fp, const float *weights) {
