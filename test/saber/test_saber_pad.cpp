@@ -72,8 +72,8 @@ void test_pad(){
                             testbase.set_param(param);
                             for (int n : {1, 2}){
                                 for (int c : {1, 3}){
-                                    for (int h : {8}){
-                                        for (int w : {8}){
+                                    for (int h : {32, 64}){
+                                        for (int w : {32, 64}){
                                             testbase.set_input_shape(Shape({n, c, h, w}));
                                             testbase.run_test(pad_cpu_func<dtype, TargetType_D, TargetType_H>);
                                         }
