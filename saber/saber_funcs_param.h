@@ -27,7 +27,6 @@ namespace saber {
 template <typename TargetType>
 struct PreluParam;
 
-
 template <typename TargetType>
 struct ActivationParam {
     ActivationParam()
@@ -225,6 +224,32 @@ private:
     Tensor<TargetType>* bias_tensor;
 };
 
+template <typename TargetType>
+struct CtcAlignParam {
+    CtcAlignParam() = default;
+    CtcAlignParam(int blank_in, bool merge_repeated_in)
+            : blank(blank_in)
+            , merge_repeated(merge_repeated_in)
+    {}
+    CtcAlignParam(const CtcAlignParam &right)
+            : blank(right.blank)
+            , merge_repeated(right.merge_repeated)
+    {}
+    CtcAlignParam &operator=(const CtcAlignParam &right) {
+        blank = right.blank;
+        merge_repeated = right.merge_repeated;
+        return *this;
+    }
+    bool operator==(const CtcAlignParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (blank == right.blank);
+        comp_eq = comp_eq && (merge_repeated == right.merge_repeated);
+        return comp_eq;
+    }
+    int blank;
+    bool merge_repeated;
+};
+  
 template<typename TargetType>
 struct DetectionOutputParam {
 
@@ -311,6 +336,7 @@ struct DetectionOutputParam {
     int nms_top_k;
     float nms_thresh{0.3f};
     float nms_eta{1.f};
+
 };
 
 template <typename TargetType>
