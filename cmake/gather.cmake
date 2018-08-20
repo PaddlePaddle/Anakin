@@ -24,6 +24,10 @@ if(USE_CUDA)
     anakin_find_cuda()
 endif()
 
+if(USE_BM)
+    anakin_find_bmlib()
+endif()
+
 # set amd opencl path
 if(USE_AMD)
     #amd_set_opencl_path()
@@ -82,7 +86,9 @@ endif()
 if(DISABLE_ALL_WARNINGS) 
     anakin_disable_warnings(CMAKE_CXX_FLAGS)
 endif()
-
+if(USE_OPENMP)
+    anakin_find_openmp()
+endif()
 if(USE_ARM_PLACE)
     if(TARGET_ANDROID)
 		if(USE_OPENMP)

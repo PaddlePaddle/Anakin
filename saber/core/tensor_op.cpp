@@ -127,6 +127,13 @@ void print_tensor(Tensor<TargetType>& tensor, typename Tensor<TargetType>::API::
 }
 
 template <typename TargetType>
+void print_tensor_device(Tensor<TargetType>& tensor, typename Tensor<TargetType>::API::stream_t stream){
+    CHECK(false)<<"not imply print_tensor_device";
+}
+
+
+
+template <typename TargetType>
 void print_tensor_valid(Tensor<TargetType>& tensor, typename Tensor<TargetType>::API::stream_t stream) {
 
     LOG(INFO) << "host tensor data:" << tensor.valid_size();
@@ -161,14 +168,15 @@ void tensor_cmp_host(const Dtype* src1, const Dtype* src2, \
 
     const double eps = 1e-6f;
     max_diff = fabs(src1[0] - src2[0]);
-    max_ratio = 2.0 * max_diff / (src1[0] + src2[0] + eps);
+    max_ratio = fabs(2.0 * max_diff / (src1[0] + src2[0] + eps));
 
     for (int i = 1; i < size; ++i) {
         double diff = fabs(src1[i] - src2[i]);
 
         if (max_diff < diff) {
             max_diff = diff;
-            max_ratio = 2.0 * max_diff / (src1[i] + src2[i] + eps);
+            max_ratio = fabs(2.0 * max_diff / (src1[i] + src2[i] + eps));
+            //LOG(INFO) << "compare two src1: "<< src1[i] << " src2: "<< src2[i] << "i = "<< i << " max_ratio: " << max_ratio ;
         }
     }
 }
@@ -240,7 +248,7 @@ double tensor_mean_value_valid(Tensor<TargetType>& tensor, typename Tensor<Targe
     template double tensor_mean_value<target>(Tensor<target>& tensor, typename Tensor<target>::API::stream_t stream); \
     template double tensor_mean_value_valid<target>(Tensor<target>& tensor, typename Tensor<target>::API::stream_t stream);
 
-#if defined(BUILD_LITE) || defined(USE_X86_PLACE) || defined(USE_AMD) || defined(USE_CUDA)
+#if defined(BUILD_LITE) || defined(USE_X86_PLACE) || defined(USE_AMD) || defined(USE_CUDA) ||defined(USE_BM)
 FILL_TENSOR_HOST(X86)
 #endif
 
@@ -252,7 +260,13 @@ FILL_TENSOR_HOST(NVHX86)
 FILL_TENSOR_HOST(ARM)
 #endif
 
+#ifdef USE_BM
+
+#endif
+
 template void tensor_cmp_host<float>(const float* src1, const float* src2, \
+                                     int size, double& max_ratio, double& max_diff);
+template void tensor_cmp_host<int>(const int* src1, const int* src2, \
                                      int size, double& max_ratio, double& max_diff);
 template void tensor_cmp_host<char>(const char* src1, const char* src2, int size, \
                                     double& max_ratio, double& max_diff);

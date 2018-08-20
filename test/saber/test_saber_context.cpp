@@ -34,8 +34,8 @@ TEST(TestSaberFunc, test_NV_context) {
 #endif //USE_CUDA
 
 #ifdef USE_ARM_PLACE
-TEST(TestSaberFuncTest, test_arm_context) {
-    Env<NV>::env_init();
+TEST(TestSaberFunc, test_arm_context) {
+    Env<ARM>::env_init();
     Context<ARM> ctx;
     LOG(INFO) << "create runtime ctx";
     ctx.set_run_mode(SABER_POWER_HIGH, 4);

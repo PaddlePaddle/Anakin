@@ -63,7 +63,7 @@ public:
      */
     //! now only support fp32 data pointer
     template <typename TargetType_t>
-    Tensor(void* data_ptr, TargetType_t target, int id, Shape shape, DataType type = AK_FLOAT) {
+    Tensor(typename DataTraitBase<TargetType_t>::PtrDtype data_ptr, TargetType_t target, int id, Shape shape, DataType type = AK_FLOAT) {
 
         _shape = shape;
         _valid_shape = shape;
@@ -633,14 +633,16 @@ public:
         typedef typename IF<std::is_same<target_category, __host_target>::value, then_type, else_type>::Type flag_type;
         typedef typename IF<std::is_same<target_category , __host_target>::value, API_t, API>::Type process_API;
 
-        typedef typename DataTraitBase<TargetType>::PtrDtype BaseDtype_src;
+        typedef typename DataTraitBase<TargetType_t>::PtrDtype BaseDtype_src;
+
 
         /// return if src and dst data ptrs are the same
-        if (std::is_same<TargetType, TargetType_t>::value){
-            if ((const void*)data() == (const void*)(tensor.data())) {
-                return SaberSuccess;
-            }
-        }
+        /// FIXME weather true or false compare will be compiled
+//        if (std::is_same<TargetType, TargetType_t>::value){
+//            if (data() == tensor.data()) {
+//                return SaberSuccess;
+//            }
+//        }
 
         /// both tensors are continuous, copy entire buffer
         if (is_continue_mem() && tensor.is_continue_mem()) {
