@@ -24,7 +24,9 @@ def NotNeededInInference(args):
 def Parser_feed(args):
 	private_data = args[4]
 	input_shape = private_data['input_shape']
+        alias = private_data['alias']
 	OpsRegister()["Input"].input_shape = input_shape
+        OpsRegister()["Input"].alias = alias
 
 @ParserFeedDecorator("Convolution")
 def Parser_conv2d(args):
