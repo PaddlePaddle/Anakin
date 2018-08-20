@@ -18,6 +18,7 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+#include "saber/funcs/impl/impl_pooling.h"
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_pooling.h"
 #include "saber/funcs/impl/cuda/vender_pooling.h"
@@ -27,7 +28,7 @@
 #include "saber/funcs/impl/x86/saber_pooling.h"
 #endif
 #ifdef USE_ARM_PLACE
-#include "saber/funcs/impl/arm/saber_pooling.h"
+#include "saber/funcs/impl/impl_pooling.h"
 #endif
 namespace anakin {
 namespace saber {

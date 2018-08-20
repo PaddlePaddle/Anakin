@@ -25,8 +25,8 @@
 namespace anakin{
 namespace saber{
 
-template <typename TargetType>
-Shape conv_compute_shape(const Shape input_shape, ConvParam<TargetType> &param) {
+template <class Param >
+Shape conv_compute_shape(const Shape input_shape, Param &param) {
     Shape output_shape = (input_shape);
     CHECK_GE(input_shape.size(), 4) << "using reshape2d to reshape a 1d conv?";
 
@@ -44,6 +44,30 @@ Shape conv_compute_shape(const Shape input_shape, ConvParam<TargetType> &param) 
     int output_width = (input_dim + 2 * param.pad_w - kernel_exten)
                  / param.stride_w + 1;
     output_shape.set_width(output_width);
+    return output_shape;
+}
+
+template <typename TargetType>
+Shape deconv_compute_shape(const Shape input_shape, ConvParam<TargetType> &param) {
+    Shape output_shape = input_shape;
+    CHECK_GE(input_shape.size(), 4) << "using reshape2d to reshape a 1d deconv?";
+
+    // append the $n and $c/$k, output: N * K * P * Q
+
+    output_shape.set_num(input_shape.num()); // N
+    output_shape.set_channel(param.weight()->num() * param.group); // K
+
+    int kernel_extent_h = param.dilation_h *
+                          (param.weight()->height() - 1) + 1;
+    int output_dim_h = (input_shape.height() - 1) *
+                       param.stride_h + kernel_extent_h - 2 * param.pad_h;
+    int kernel_extent_w = param.dilation_w *
+                          (param.weight()->width() - 1) + 1;
+    int output_dim_w = (input_shape.width() - 1) *
+                       param.stride_w + kernel_extent_w - 2 * param.pad_w;
+
+    output_shape.set_height(output_dim_h);
+    output_shape.set_width(output_dim_w);
     return output_shape;
 }
 
