@@ -117,8 +117,8 @@ public:
             CUDNN_CHECK(cudnnSetStream(_handle, cuda_stream));
         }
 
-        int outer_num = inputs[0]->count(0, param.axis);
-        int inner_num = inputs[0]->count(param.axis + 1, inputs[0]->dims());
+        int outer_num = inputs[0]->count_valid(0, param.axis);
+        int inner_num = inputs[0]->count_valid(param.axis + 1, inputs[0]->dims());
 
         int N = outer_num;
         int K = inputs[0]->valid_shape()[param.axis];
