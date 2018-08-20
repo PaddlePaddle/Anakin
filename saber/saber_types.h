@@ -206,16 +206,6 @@ enum SequencePoolType{
     Sequence_pool_first,
     Sequence_pool_max
 };
-
-template <typename opTensor>
-struct TransposeParam {
-    TransposeParam() = default;
-    TransposeParam(const TransposeParam& right){}
-    TransposeParam& operator=(const TransposeParam& right){}
-    bool operator==(const TransposeParam& right){
-        return true;
-    }
-};
 /**
  * GRU_Formula,origin for paddle,Cudnn for cudnn,difference is w_h_r and weighted mean
  * weight for origin is [W_h_o][W_h_r,W_h_z]

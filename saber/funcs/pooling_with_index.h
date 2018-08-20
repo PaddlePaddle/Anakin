@@ -13,33 +13,28 @@
    limitations under the License. 
 */
 
-#ifndef ANAKIN_SABER_FUNCS_POOLING_H
-#define ANAKIN_SABER_FUNCS_POOLING_H
+#ifndef ANAKIN_SABER_FUNCS_POOLING_WITH_INDEX_H
+#define ANAKIN_SABER_FUNCS_POOLING_WITH_INDEX_H
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
-#include "saber/funcs/impl/impl_pooling.h"
+#include "saber/funcs/impl/impl_pooling_with_index.h"
+
 #ifdef NVIDIA_GPU
-#include "saber/funcs/impl/cuda/saber_pooling.h"
-#include "saber/funcs/impl/cuda/vender_pooling.h"
+//#include "saber/funcs/impl/cuda/saber_pooling_with_index.h"
 #endif
 
-#ifdef USE_X86_PLACE
-#include "saber/funcs/impl/x86/saber_pooling.h"
-#endif
-#ifdef USE_ARM_PLACE
-#include "saber/funcs/impl/impl_pooling.h"
-#endif
 namespace anakin {
 namespace saber {
 
 template<typename TargetType,
         DataType OpDtype>
-class Pooling : public BaseFunc<
+class PoolingWithIndex : public BaseFunc<
         TargetType,
         OpDtype,
         ImplBase,
-        PoolingParam> {
+        PoolingParam
+> {
 public:
     using BaseFunc<
             TargetType,
@@ -47,7 +42,7 @@ public:
             ImplBase,
             PoolingParam>::BaseFunc;
 
-    Pooling() = default;
+    PoolingWithIndex() = default;
 
     typedef Tensor<TargetType> InDataTensor;
     typedef Tensor<TargetType> OutDataTensor;
@@ -57,8 +52,8 @@ public:
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
 
-    virtual SaberStatus compute_output_shape(const Input_v& input, \
-        Output_v &output, Param_t& param) override {
+    virtual SaberStatus compute_output_shape(const Input_v& input, Output_v &output, \
+        Param_t& param) override {
 
         Shape output_shape = (input[0]->valid_shape());
 
@@ -71,32 +66,17 @@ public:
         int pad_w = param.pad_w;
         int stride_h = param.stride_h;
         int stride_w = param.stride_w;
-        int out_height;
-        int out_width;
-        if (param.global_pooling) {
-            out_height = 1;
-            out_width = 1;
-            param.stride_h = in_height;
-            param.stride_w = in_width;
+
+        if (param.global_pooling){
             window_h = in_height;
             window_w = in_width;
-            param.window_h = in_height;
-            param.window_w = in_width;
-        } else {
-            if (param.cmp_out_shape_floor_as_conv) {
-                out_height = static_cast<int>((static_cast<float>(
-                             in_height + 2 * pad_h - window_h) / stride_h)) + 1;
-
-                out_width = static_cast<int>((static_cast<float>(
-                             in_width + 2 * pad_w - window_w) / stride_w)) + 1;
-            } else {
-                out_height = static_cast<int>(ceilf(static_cast<float>(
-                             in_height + 2 * pad_h - window_h) / stride_h)) + 1;
-
-                out_width = static_cast<int>(ceilf(static_cast<float>(
-                             in_width + 2 * pad_w - window_w) / stride_w)) + 1;
-            }
         }
+
+        int out_height = static_cast<int>(ceilf(static_cast<float>(
+                             in_height + 2 * pad_h - window_h) / stride_h)) + 1;
+
+        int out_width = static_cast<int>(ceilf(static_cast<float>(
+                             in_width + 2 * pad_w - window_w) / stride_w)) + 1;
 
         if (param.pooling_padded()) {
             if ((out_height - 1) * stride_h >= in_height + pad_h) {
@@ -112,23 +92,29 @@ public:
 
         output_shape[height_idx] = out_height;
         output_shape[width_idx] = out_width;
+        output[1]->set_shape(output_shape);
 
         return output[0]->set_shape(output_shape);
 
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {
-        switch (implenum) { 
-            case VENDER_IMPL: 
-                this->_impl.push_back(new VenderPooling <TargetType, OpDtype>);
-                return SaberSuccess; 
-            case SABER_IMPL: 
-                this->_impl.push_back(new SaberPooling <TargetType, OpDtype>); 
-                return SaberSuccess; 
-            default: 
+        switch (implenum) {
+            case VENDER_IMPL:
+                this->_impl.push_back(new VenderPoolingWithIndex <TargetType,
+                        OpDtype>);
+                return SaberSuccess;
+
+            case SABER_IMPL:
+                this->_impl.push_back(new SaberPoolingWithIndex <TargetType,
+                        OpDtype>);
+                return SaberSuccess;
+
+            default:
                 return SaberUnImplError;
-        }        
+        }
     }
+
 private:
 
     virtual void pick_best_static() override {
