@@ -37,13 +37,17 @@ void pad_cpu_func(const std::vector<Tensor<TargetType_H>*>& input, std::vector<T
     
     fill_tensor_const(*output[0], 0);
     
+    int c0 = param.pad_c[0];
+    int h0 = param.pad_h[0];
+    int w0 = param.pad_w[0];
+    int offset = c0 * out_stride[out_idc] + h0 * out_stride[out_idh] + w0 * out_stride[out_idw];
     for (int id = 0; id < input[0] -> valid_size(); ++id){
         int i_n = (id / in_stride[in_idn]) % in_n;
         int i_c = (id / in_stride[in_idc]) % in_c;
         int i_h = (id / in_stride[in_idh]) % in_h;
         int i_w = (id / in_stride[in_idw]) % in_w;
         int out_id = i_n * out_stride[out_idn] + i_c * out_stride[out_idc] + i_h * out_stride[out_idh] + i_w * out_stride[out_idw];
-        dst_ptr[out_id] = src_ptr[id];
+        dst_ptr[out_id + offset] = src_ptr[id];
     }
     
 }
