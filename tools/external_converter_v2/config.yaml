@@ -40,14 +40,14 @@
 ##--------------------------------------------------------------
 #
 OPTIONS:
-    Framework: CAFFE
-    SavePath: ./output
-    ResultName: googlenet
+    Framework: TENSORFLOW
+    SavePath: /home/ljj/docker_mount_dev2/tf_model
+    ResultName: vgg16
     Config:
         LaunchBoard: ON
         Server:
             ip: 0.0.0.0
-            port: 8888
+            port: 8889
         OptimizedGraph: 
             enable: OFF
             path: /path/to/anakin_optimized/googlenet.anakin.bin.saved
@@ -79,9 +79,12 @@ TARGET:
         ModelPath:
     
     TENSORFLOW:
-        ProtoPath:
-        PrototxtPath:
-        ModelPath:
+#        ProtoPaths: /home/ljj/py_anakin/tools/external_converter_v2/parser/kill_tf/vgg_model/vgg16_i.pbtxt
+        ProtoPaths: /home/ljj/py_anakin/tools/external_converter_v2/parser/kill_tf/vgg_model/frozen_vgg_16_i.pb
+#        ProtoPaths: /home/ljj/py_anakin/tools/external_converter_v2/parser/kill_tf/ease_model/frozen_mnist.pb
+        PrototxtPath: /path/to/your/model/
+        ModelPath: /path/to/your/model/
+        OutPuts:
     
     ONNX:
         ProtoPath:

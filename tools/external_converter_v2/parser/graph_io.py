@@ -158,6 +158,7 @@ class NodeProtoIO(object):
         self.node_proto.name = node_name
 
     def add_in(self, node_name):
+        print('add_in ',node_name)
         self.node_proto.ins.append(node_name)
 
     def add_out(self, node_name):
@@ -179,6 +180,7 @@ class NodeProtoIO(object):
                                                                                 "shape"
                                                                                 "list_value")
         """
+        print(value_name,data_type_str)
         self.node_proto.attr[value_name].CopyFrom(self.attr_warpper(data, data_type_str))
 
     def __call__(self):
@@ -334,5 +336,17 @@ class GraphProtoIO(object):
                 del graph_outs[idx]
         self.graph_proto.outs[:] = graph_outs
 
+    def format_edge_from_nodes(self):
+        for node in self.graph_proto.nodes:
+            print(node.name,node.Op.name,node.ins,node.outs)
+            name=node.name
+            for node_name in node.outs:
+
+                self.add_in_edge(name,node_name)
+                self.add_out_edge(name,node_name)
+
+
     def __call__(self):
         return self.graph_proto
+
+
