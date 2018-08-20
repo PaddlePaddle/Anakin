@@ -83,14 +83,16 @@ TEST(TestSaberLite, test_lite_model) {
         LOG(INFO) << "iter: " << i << ", time: " << tdiff << "ms";
     }
     for (int i = 0; i < vtout.size(); ++i) {
-//        const float* ptr = vtout[i]->data();
-//        for (int j = 0; j < vtout[i]->valid_size(); ++j) {
-//            printf("%f ", ptr[j]);
-//            if ((j + 1) % 10 == 0) {
-//                printf("\n");
-//            }
-//        }
-//        printf("\n");
+#ifdef ENABLE_DEBUG
+        const float* ptr = vtout[i]->data();
+        for (int j = 0; j < vtout[i]->valid_size(); ++j) {
+            printf("%f ", ptr[j]);
+            if ((j + 1) % 10 == 0) {
+                printf("\n");
+            }
+        }
+        printf("\n");
+#endif
         double mean_val = tensor_mean(*vtout[i]);
         LOG(INFO) << "output mean: " << mean_val;
     }
