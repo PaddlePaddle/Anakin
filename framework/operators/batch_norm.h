@@ -43,8 +43,8 @@ public:
     virtual void operator() (OpContext<Ttype> &ctx, 
                              const std::vector<Tensor4dPtr<Ttype> >& ins, 
                              std::vector<Tensor4dPtr<Ttype> >& outs) {
-		LOG(ERROR) << "Not Impl Yet Operator BatchNorm< Ttype("
-				   << Ttype << "), Precision("<< Ptype <<") >";	
+		LOG(ERROR) << "Not Impl Yet Operator BatchNorm< Ttype(" 
+                   << Ttype << "), Precision("<< Ptype <<") >";	
 
     }
 
@@ -87,7 +87,7 @@ public:
 public:
     saber::ScaleParam<Tensor4d<Ttype>> _param_scale;
     ///< _funcs_scale stand for scale function
-    saber::Scale<Ttype, typename PrecisionWrapper<Ptype>::saber_type> _funcs_scale;
+    saber::Scale<Ttype, typename PrecisionWrapper<Ptype>::saber_type > _funcs_scale;
 
 };
 
