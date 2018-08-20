@@ -18,6 +18,8 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+
+#include "saber/funcs/impl/impl_normalize.h"
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_normalize.h"
 #endif
@@ -95,13 +97,6 @@ private:
         //! Normalize only has saber implementations
         this->_best_impl = this->_impl[0];
     }
-
-    virtual void pick_best_runtime(Input_v input, Output_v output, \
-        Param_t& param, Context<TargetType> &ctx) override {
-        //! Normalize only has saber implementation
-        this->_best_impl = this->_impl[0];
-    }
-
     virtual void pick_best_specify(ImplEnum implenum) override {
         //! Normalize only has saber implementation
         this->_best_impl = this->_impl[0];
