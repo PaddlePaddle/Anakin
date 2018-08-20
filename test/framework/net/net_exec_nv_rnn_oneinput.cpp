@@ -370,7 +370,7 @@ void worker_run(){
     for(int i=0; i<host_tensor_p_in_list[0].size(); i++) {
         std::vector<Tensor4dPtr<target_host<NV>::type, AK_FLOAT> > tensor_in_vec(1);
 //        tensor_in_vec[0]=host_tensor_p_in_list[0][i];
-        workers.sync_prediction(tensor_in_vec);
+        //workers.sync_prediction(tensor_in_vec);
 //        auto  d_tensor_p_out_list = workers.sync_prediction(host_tensor_p_in_list);
 
         // get the output

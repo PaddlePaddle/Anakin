@@ -90,17 +90,25 @@ void Worker<Ttype, Dtype, Ptype, RunType>::register_interior_edges(std::string b
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
-std::vector<Tensor4dPtr<Ttype, Dtype> > Worker<Ttype, Dtype, Ptype, RunType>::sync_prediction(std::vector<Tensor4dPtr<typename target_host<Ttype>::type, Dtype> >& net_ins_list) {
-    auto task = [&](std::vector<Tensor4dPtr<typename target_host<Ttype>::type, Dtype> >& ins) -> std::vector<Tensor4dPtr<Ttype, Dtype> > {
+std::future<std::vector<Tensor4d<typename target_host<Ttype>::type, Dtype> > > 
+Worker<Ttype, Dtype, Ptype, RunType>::sync_prediction(std::vector<Tensor4d<typename target_host<Ttype>::type, Dtype> >& net_ins_list) {
+    auto task = [&](std::vector<Tensor4d<typename target_host<Ttype>::type, Dtype> >& ins) 
+                                -> std::vector<Tensor4d<typename target_host<Ttype>::type, Dtype> > {
         auto& net = MultiThreadModel<Ttype, Dtype, Ptype, RunType>::Global().get_net(std::this_thread::get_id()); 
         //fill the graph inputs
 
         for(int i = 0; i < _inputs_in_order.size(); i++) { 
+            for(int j=0; j<10; j++) {
+                LOG(INFO) << "------> data " << ins[i].mutable_data()[j];;
+            }
             auto d_tensor_in_p = net.get_in(_inputs_in_order[i]);
-            d_tensor_in_p->reshape(ins[i]->valid_shape());
-            d_tensor_in_p->copy_from(*ins[i]);
-            d_tensor_in_p->set_seq_offset(ins[i]->get_seq_offset());
+            d_tensor_in_p->reshape(ins[i].valid_shape());
+            d_tensor_in_p->copy_from(ins[i]);
+            d_tensor_in_p->set_seq_offset(ins[i].get_seq_offset());
         } 
+        Context<NV> ctx(0, 0, 0); 
+        saber::SaberTimer<NV> my_time; 
+        my_time.start(ctx);
 #ifdef ENABLE_OP_TIMER
         Context<NV> ctx(0, 0, 0); 
         saber::SaberTimer<NV> my_time;
@@ -108,27 +116,37 @@ std::vector<Tensor4dPtr<Ttype, Dtype> > Worker<Ttype, Dtype, Ptype, RunType>::sy
 #endif
         net.prediction(); 
 
+        my_time.end(ctx); 
+        LOG(ERROR) << " exec  << time: " << my_time.get_average_ms() << " ms ";
+
 #ifdef ENABLE_OP_TIMER
         my_time.end(ctx); 
         {
             std::lock_guard<std::mutex> guard(_mut); 
             _thead_id_to_prediction_times_vec_in_ms[std::this_thread::get_id()].push_back(my_time.get_average_ms());
+            LOG(ERROR) << " exec  << time: " << my_time.get_average_ms() << " ms ";
         }
 #endif
         // get outputs of graph
-        std::vector<Tensor4dPtr<Ttype, Dtype>> ret;
-        for (auto out : _outputs_in_order) {
-            auto d_tensor_out_p = net.get_out(out);
-            ret.push_back(d_tensor_out_p);
+        std::vector<Tensor4d<typename target_host<Ttype>::type, Dtype>> ret;
+        ret.resize(_outputs_in_order.size());
+        for (int out_idx = 0; out_idx <  _outputs_in_order.size(); out_idx++) {
+            auto d_tensor_out_p = net.get_out(_outputs_in_order[out_idx]);
+            ret[out_idx].re_alloc(d_tensor_out_p->valid_shape());
+            ret[out_idx].copy_from(*d_tensor_out_p);
+            LOG(INFO) << "this thread: " << std::this_thread::get_id();
+            for(int i=0; i< 10; i++) {
+                LOG(INFO) << "????? data " << ret[out_idx].mutable_data()[i];
+            }
         }
 
         return ret; 
     };
-    return this->RunSync(task, net_ins_list);
+    return this->RunAsync(task, net_ins_list);
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
-std::vector<Tensor4dPtr<Ttype, Dtype> > Worker<Ttype, Dtype, Ptype, RunType>::sync_prediction_device(std::vector<Tensor4dPtr<Ttype, Dtype> >& net_ins_list) {
+std::future<std::vector<Tensor4dPtr<Ttype, Dtype> > > Worker<Ttype, Dtype, Ptype, RunType>::sync_prediction_device(std::vector<Tensor4dPtr<Ttype, Dtype> >& net_ins_list) {
     auto task = [&](std::vector<Tensor4dPtr<Ttype, Dtype> >& ins) -> std::vector<Tensor4dPtr<Ttype, Dtype> > {
         auto& net = MultiThreadModel<Ttype, Dtype, Ptype, RunType>::Global().get_net(std::this_thread::get_id()); 
         //fill the graph inputs 
@@ -146,7 +164,7 @@ std::vector<Tensor4dPtr<Ttype, Dtype> > Worker<Ttype, Dtype, Ptype, RunType>::sy
 
         return ret; 
     }; 
-    return this->RunSync(task, net_ins_list);
+    return this->RunAsync(task, net_ins_list);
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>

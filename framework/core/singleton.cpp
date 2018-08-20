@@ -1,4 +1,4 @@
-#include "framework/core/thread_safe_macros.h"
+#include "framework/core/singleton.h"
 
 namespace anakin {
 

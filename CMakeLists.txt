@@ -38,7 +38,9 @@ set(ANAKIN_FRAMEWORK ${ANAKIN_ROOT}/framework)
 set(ANAKIN_LITE_FRAMEWORK ${ANAKIN_FRAMEWORK}/lite)
 set(ANAKIN_UTILS ${ANAKIN_ROOT}/utils)
 set(ANAKIN_THIRD_PARTY_PATH ${ANAKIN_ROOT}/third-party)
+set(ANAKIN_TEMP_THIRD_PARTY_PATH ${CMAKE_BINARY_DIR}/third-party)
 set(ANAKIN_MODEL_PARSER ${ANAKIN_FRAMEWORK}/model_parser)
+set(ANAKIN_SERVICE ${ANAKIN_FRAMEWORK}/service)
 set(ANAKIN_SABER ${ANAKIN_ROOT}/saber)
 set(ANAKIN_LITE_SABER ${ANAKIN_SABER}/lite)
 set(ANAKIN_UNIT_TEST ${ANAKIN_ROOT}/test)
@@ -91,7 +93,7 @@ anakin_option(COMPILE_PTX "Returns a list of PTX files generated from src." NO i
 
 
 # common build options
-anakin_option(ENABLE_DEBUG "Enable DEBUG(default) mode." NO)
+anakin_option(ENABLE_DEBUG "Enable DEBUG(default) mode." YES)
 anakin_option(ENABLE_VERBOSE_MSG "Enable verbose=1 : compile msg during make." NO)
 anakin_option(DISABLE_ALL_WARNINGS "Disable all the warning msg during compile." YES)
 anakin_option(ENABLE_NOISY_WARNINGS "Enable noisy warning msg during compile." NO if DISABLE_ALL_WARNINGS)
@@ -115,6 +117,8 @@ anakin_option(USE_XBYAK "Use XBYAK libs." YES if USE_X86_PLACE)
 anakin_option(BUILD_WITH_UNIT_TEST "Build anakin unit test components." YES)
 
 anakin_option(BUILD_LITE "Build anakin lite components." NO)
+
+anakin_option(BUILD_RPC "Build anakin rpc service components." YES)
 
 # build examples
 anakin_option(BUILD_EXAMPLES "build detection and classification examples" NO)
@@ -164,7 +168,6 @@ if(USE_CUDA)
 endif()
 
 if(USE_X86_PLACE)
-    set(ANAKIN_TEMP_THIRD_PARTY_PATH ${CMAKE_BINARY_DIR}/third-party)
     if(USE_MKLML)
         include(cmake/external/mklml.cmake)
     endif()
@@ -185,6 +188,9 @@ include(cmake/gather.cmake)
 # fetch files of model_parser
 add_subdirectory(${ANAKIN_MODEL_PARSER})
 add_subdirectory(${ANAKIN_SABER})
+if(BUILD_RPC)
+    add_subdirectory(${ANAKIN_SERVICE})
+endif()
 add_subdirectory(${ANAKIN_FRAMEWORK})
 
 if(BUILD_WITH_UNIT_TEST)
@@ -200,7 +206,4 @@ if (BUILD_EXAMPLES)
 endif()
 
 anakin_print_statistic()
-
-
-#set(executable_output_path ${PROJECT_BINARY_DIR}/unit_test)
 

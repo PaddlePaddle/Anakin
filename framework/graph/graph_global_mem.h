@@ -47,7 +47,7 @@ public:
     }
 
     /// get sum size in m-btyes
-    size_t get_sum_mbyte() EXCLUSIVE_LOCKS_REQUIRED(_mut) {
+    float get_sum_mbyte() EXCLUSIVE_LOCKS_REQUIRED(_mut) {
         std::unique_lock<std::mutex> lock(this->_mut); 
         size_t sum = 0;
         for (auto block_p : _int8_mem_pool) {
@@ -139,7 +139,7 @@ enum INFO{
 
 template<INFO INFO_T>
 struct Decide{ 
-    typedef int type;
+    typedef float type;
 };
 
 template<>
@@ -164,16 +164,16 @@ private:
     template<INFO INFO_T>
     struct Info_to_type {};
 
-    inline void _set_info(int mem_in_mbytes, Info_to_type<TEMP_MEM>) {
+    inline void _set_info(float mem_in_mbytes, Info_to_type<TEMP_MEM>) {
         temp_mem_used = mem_in_mbytes;
     }
-    inline void _set_info(int mem_in_mbytes, Info_to_type<ORI_TEMP_MEM>) {
+    inline void _set_info(float mem_in_mbytes, Info_to_type<ORI_TEMP_MEM>) {
         original_temp_mem_used = mem_in_mbytes;
     }
-    inline void _set_info(int mem_in_mbytes, Info_to_type<MODEL_MEM>) {
+    inline void _set_info(float mem_in_mbytes, Info_to_type<MODEL_MEM>) {
         model_mem_used = mem_in_mbytes;
     }
-    inline void _set_info(int mem_in_mbytes, Info_to_type<SYSTEM_MEM>) {
+    inline void _set_info(float mem_in_mbytes, Info_to_type<SYSTEM_MEM>) {
         system_mem_used = mem_in_mbytes;
     }
     inline void _set_info(bool whether_optimized, Info_to_type<IS_OPTIMIZED>) {
@@ -198,13 +198,13 @@ private:
 
 private:
     ///< temp_mem_used : temp memory used by anakin edge [MB].default 0
-    int temp_mem_used{0};
+    float temp_mem_used{0.f};
     ///< original_temp_mem_used : temp memory used by old version [MB].default 0
-    int original_temp_mem_used{0};
+    float original_temp_mem_used{0.f};
     ///< system_mem_used : system mem used by nvidia / amd GPU system resource [MB].default 0
-    int system_mem_used{0};
+    float system_mem_used{0.f};
     ///<  model_mem_used : mem used by model.default 0
-    int model_mem_used{0};
+    float model_mem_used{0.f};
 
     ///< is_optimized stand for whether optimized flag.default false
     bool is_optimized{false};

@@ -78,7 +78,7 @@ endmacro()
 # ----------------------------------------------------------------------------
 macro(anakin_find_cudnn)
 	set(CUDNN_ROOT "" CACHE PATH "CUDNN root dir.")
-  	find_path(CUDNN_INCLUDE_DIR cudnn.h PATHS ${CUDNN_ROOT} ${CUDNN_ROOT}/include
+  	find_path(CUDNN_INCLUDE_DIR cudnn.h PATHS ${CUDNN_ROOT} 
 						  $ENV{CUDNN_ROOT} 
 						  $ENV{CUDNN_ROOT}/include
 						  $ENV{CUDNN_INCLUDE_DIR}
@@ -147,6 +147,9 @@ macro(anakin_find_cuda)
 	    	if(USE_CURAND)
 	    		list(APPEND ANAKIN_LINKER_LIBS ${CUDA_curand_LIBRARY})
 	    	endif()
+            if(BUILD_RPC)
+                list(APPEND ANAKIN_LINKER_LIBS ${CUDA_INCLUDE_DIRS}/../lib64/stubs/libnvidia-ml.so)
+            endif()
 	    	list(APPEND ANAKIN_LINKER_LIBS ${CUDA_CUDART_LIBRARY})
 	    else()
 	    	message(FATAL_ERROR "Cuda SHARED lib Could not found !")	

@@ -13,10 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #===============================================================================
-anakin_find_mklml()
-if(MKLML_FOUND)
-  return()
-endif()  
 
 # download mklml package is only for iomp so far
 include(ExternalProject)

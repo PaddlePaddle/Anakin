@@ -106,15 +106,15 @@ public:
      *  \param host net_in_list the inputs of net graph (note: the len of net_in_list should be equal to the net inputs).  
      *  \return the net graph outputs.
      */
-    std::vector<Tensor4dPtr<Ttype, Dtype> > sync_prediction(\
-        std::vector<Tensor4dPtr<typename target_host<Ttype>::type, Dtype> >& net_in_list);
+    std::future<std::vector<Tensor4d<typename target_host<Ttype>::type, Dtype> > > sync_prediction(\
+        std::vector<Tensor4d<typename target_host<Ttype>::type, Dtype> >& net_in_list);
 
     /** 
      *  \brief Do sync prediction in multi-thread worker useful in sync rpc server, this function need 
      *  \param device net_in_list the inputs of net graph (note: the len of net_in_list should be equal to the net inputs).  
      *  \return the net graph outputs.
      */
-    std::vector<Tensor4dPtr<Ttype, Dtype> > sync_prediction_device(\
+    std::future<std::vector<Tensor4dPtr<Ttype, Dtype> > > sync_prediction_device(\
         std::vector<Tensor4dPtr<Ttype, Dtype> >& net_in_list);
 
     /** 

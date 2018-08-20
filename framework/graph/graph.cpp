@@ -138,19 +138,23 @@ Status Graph<Ttype, Dtype, Ptype>::Optimize() EXCLUSIVE_LOCKS_REQUIRED(_mut) {
             _nodes_exec_order = scheduler.get_exec_node_in_order();
 #else		// enable conv+eltwise fusion
             // optimization
-			ConvElsFusionScheduler conv_eltwise_fusion_scheduler;
-			conv_eltwise_fusion_scheduler.RegIOResource(_vgraph);
-			conv_eltwise_fusion_scheduler.Run();
-			// get node exec in order
-			//_nodes_exec_order = conv_eltwise_fusion_scheduler.get_exec_node_in_order();
+	    ConvElsFusionScheduler conv_eltwise_fusion_scheduler;
+	    conv_eltwise_fusion_scheduler.RegIOResource(_vgraph);
+	    conv_eltwise_fusion_scheduler.Run();
+	    // get node exec in order
+	    //_nodes_exec_order = conv_eltwise_fusion_scheduler.get_exec_node_in_order();
 #endif
-			// optimization again
-            MemoryScheduler mem_scheduler;
-            mem_scheduler.RegIOResource(_vgraph);
-            mem_scheduler.Run();
+            // optimization again
             ParallScheduler para_scheduler;
             para_scheduler.RegIOResource(_vgraph);
             para_scheduler.Run();
+
+            MemoryScheduler mem_scheduler;
+            mem_scheduler.RegIOResource(_vgraph);
+            mem_scheduler.Run();
+            /*ParallScheduler para_scheduler;
+            para_scheduler.RegIOResource(_vgraph);
+            para_scheduler.Run();*/
 
             // set info for graph
             statistics.set_info<IS_OPTIMIZED>(true);

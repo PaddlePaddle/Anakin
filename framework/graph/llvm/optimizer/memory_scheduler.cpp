@@ -123,8 +123,8 @@ void IOBlockResource::free(std::vector<io>& io_vec, VGraph* vgraph_p) {
 
 void IOBlockResource::lock(std::vector<io>& io_vec) {
     for (auto& io_res : io_vec) {
-        if (has_free()) {
-            auto& tmp_io =  _free.front(); // get active resouce
+        if (has_free(io_res)) {
+            auto tmp_io =  get_free(io_res);//_free.front(); // get active resouce
             io_res.shared = true;
 
             if (tmp_io.shared) {
@@ -134,7 +134,6 @@ void IOBlockResource::lock(std::vector<io>& io_vec) {
             }
 
             _lock.push_back(io_res);
-            _free.pop_front();
         } else { // alloc new io block
             io_res.shared = false;
             _lock.push_back(io_res);

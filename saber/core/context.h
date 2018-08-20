@@ -43,14 +43,18 @@ public:
             _device_id = device_id;
         }
         if (data_stream_id >= devs[_device_id]._max_stream) {
-            LOG(WARNING) << "data stream index exceeds the maximum stream number, set to default stream(0)!";
+            LOG(WARNING) << "data stream index("<< data_stream_id 
+						 << ") exceeds the maximum stream number("<< devs[_device_id]._max_stream 
+						 << "), set to default stream(0)!";
             data_stream_id = 0;
         }
         _stream_data = devs[_device_id]._data_stream[data_stream_id];
         _data_stream_id = data_stream_id;
 
         if (compute_stream_id >= devs[_device_id]._max_stream) {
-            LOG(WARNING) << "compute stream index exceeds the maximum stream number, set to default stream(0)!";
+            LOG(WARNING) << "compute stream index(" << compute_stream_id 
+						 << ") exceeds the maximum stream number("<< devs[_device_id]._max_stream 
+						 << "), set to default stream(0)!";
             compute_stream_id = 0;
         }
         _stream_compute = devs[_device_id]._compute_stream[compute_stream_id];

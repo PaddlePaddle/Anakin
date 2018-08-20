@@ -50,7 +50,7 @@ void test_print(Tensor4dPtr<NV, AK_FLOAT>& out_tensor_p) {
     h_tensor_result.re_alloc(out_tensor_p->valid_shape());
     LOG(ERROR) << "result count : " << h_tensor_result.valid_shape().count();
     h_tensor_result.copy_from(*out_tensor_p);
-    for (int i = 0; i < h_tensor_result.valid_size(); i++) {
+    for (int i = 0; i < /*h_tensor_result.valid_size()*/10; i++) {
         LOG(INFO) << " GET OUT (" << i << ") " << h_tensor_result.mutable_data()[i];
     }
 }

@@ -28,19 +28,19 @@ namespace anakin {
 template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunTyp = OpRunType::ASYNC>
 class Net {
 public:
-    explicit Net(bool need_summary = false);
+    explicit Net(bool need_summary = true);
 
     /** 
      *  \brief Construct a net by graph. 
      *  This construction should be use in thread call and make sure thread safety.
      */
-    explicit Net(graph::Graph<Ttype, Dtype, Ptype>&, bool need_summary = false);
+    explicit Net(graph::Graph<Ttype, Dtype, Ptype>&, bool need_summary = true);
 
     /**
      *  \brief Construct a net by graph, init with specified context.
      *  This construction should be use in thread call and make sure thread safety.
      */
-    explicit Net(graph::Graph<Ttype, Dtype, Ptype>&, OpContextPtr<Ttype> ctx, bool need_summary = false);
+    explicit Net(graph::Graph<Ttype, Dtype, Ptype>&, OpContextPtr<Ttype> ctx, bool need_summary = true);
 
     ~Net();
 

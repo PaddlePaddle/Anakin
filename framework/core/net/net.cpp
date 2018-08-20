@@ -73,9 +73,9 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
     for (auto& node_name : node_names_in_exec_order) {
         auto node_ptr = (*_graph_p)[node_name];
         //LOG(ERROR) << "get node " << node_name << ", op type " << node_ptr->get_op_name();
-        if (node_ptr->get_op_name() == "Output") {
+        /*if (node_ptr->get_op_name() == "Output") {
             continue;
-        }
+        }*/
 
         // create operations
         auto* op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
@@ -145,10 +145,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
     // infer basic shape and parsing parameter from graph
     for (auto& node_name : node_names_in_exec_order) {
         auto node_ptr = (*_graph_p)[node_name];
-        //LOG(ERROR) << "get node " << node_name << ", op type " << node_ptr->get_op_name();
-        if (node_ptr->get_op_name() == "Output") {
-            continue;
-        }
+
 #ifdef ENABLE_OP_TIMER
         if (std::string::npos != (node_ptr->get_op_name()).find("Conv") 
                 || std::string::npos != (node_ptr->get_op_name()).find("Deconv")) {
@@ -203,10 +200,10 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
                 int dil_h = dilation_rate_val.vector()[0];
                 int dil_w = dilation_rate_val.vector()[1];
 
-            if ((group_val == 1) && (k_w == 3 && k_h == 3 && dil_h == 1 && dil_w == 1)) {
-                node_ptr->set_op(OpFactory<Ttype, Dtype, Ptype>::Global()["Sass"+node_ptr->get_op_name()]);
-                node_ptr->get_op_name() = "Sass" + node_ptr->get_op_name();
-            } else {
+                if ((group_val == 1) && (k_w == 3 && k_h == 3 && dil_h == 1 && dil_w == 1)) {
+                    node_ptr->set_op(OpFactory<Ttype, Dtype, Ptype>::Global()["Sass"+node_ptr->get_op_name()]);
+                    node_ptr->get_op_name() = "Sass" + node_ptr->get_op_name();
+            	} else {
                     LOG(ERROR) << "node_ptr->get_op_name()  sass not support yet.";
                     auto *op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
                     node_ptr->set_op(op_pointer);
@@ -215,8 +212,7 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
                 auto *op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
                 node_ptr->set_op(op_pointer);
             }
-        }
-        else {
+        } else {
             auto *op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
             if (op_pointer == nullptr) {
                 CHECK(false)<< node_name << ", type " << node_ptr->get_op_name() << " is null";
@@ -337,72 +333,68 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
 
     int i = 0;
     for(auto& executer : _exec_funcs) {
-        if (RunType == OpRunType::SYNC || executer.need_sync) {
+        if (RunType == OpRunType::SYNC || executer.need_sync || executer.op_name == "Output") {
             for(int i = 0; i < executer.ins.size(); i++) {
-                // sync event record in multi_stream
+                // sync event record in multi_stream or syn when encountering output op
                 executer.ins[i]->sync();
             }
         }
 #ifdef ENABLE_DEBUG
         LOG(ERROR) << " executer : " << executer.name << " (" << executer.op_name << ") ";
-        for(auto in : executer.ins) {
-                LOG(ERROR) << "    \\in shape " << in->valid_shape()[0] 
-                           << " " << in->valid_shape()[1] 
-                           << " " << in->valid_shape()[2] 
-                           << " " << in->valid_shape()[3] 
-               << " valid_size: " << in->valid_size() 
-               << " realsize: " << in->size()
-                << " offset_size "<<in->get_seq_offset().size();
+        for(auto in : executer.ins) { 
+            LOG(ERROR) << "    \\in shape " << in->valid_shape()[0] 
+                       << " " << in->valid_shape()[1] 
+                       << " " << in->valid_shape()[2] 
+                       << " " << in->valid_shape()[3] 
+                       << " valid_size: " << in->valid_size() 
+                       << " realsize: " << in->size() 
+                       << " offset_size "<<in->get_seq_offset().size();
         }
 #endif
 #ifdef ENABLE_OP_TIMER
-    Context<Ttype> ctx(0, 0, 0);
-    saber::SaberTimer<Ttype> my_time;
-    my_time.start(ctx);
+        Context<Ttype> ctx(0, 0, 0);
+        saber::SaberTimer<Ttype> my_time;
+        my_time.start(ctx);
 #endif
-      if (executer.op_name != "Input") {
-          executer.infer_shape();
-          executer.launch();
-      }
+        if (executer.op_name != "Input" || executer.op_name != "Output") { 
+            executer.infer_shape(); 
+            executer.launch(); 
+        } 
 
-      for(int i = 0; i < executer.outs.size(); i++) {
-          executer.outs[i]->record_event(executer.ctx_p->get_compute_stream());
-      }
-#ifdef ENABLE_OP_TIMER
-    for (int i = 0; i < executer.outs.size(); i++) {
-        // record
-        executer.outs[i]->record_event(executer.ctx_p->get_compute_stream());
-        executer.outs[i]->sync();
-    }
-    my_time.end(ctx);
-    _op_time[op_id++] += my_time.get_average_ms();
+        for(int i = 0; i < executer.outs.size(); i++) { 
+            executer.outs[i]->record_event(executer.ctx_p->get_compute_stream()); 
+        }
+
+#ifdef ENABLE_OP_TIMER 
+        for (int i = 0; i < executer.outs.size(); i++) { 
+            // record 
+            executer.outs[i]->record_event(executer.ctx_p->get_compute_stream()); 
+            executer.outs[i]->sync();
+        }
+        my_time.end(ctx);
+        _op_time[op_id++] += my_time.get_average_ms();
 #endif
-    //LOG(INFO)<< "op: " << executer.name<<"(" << executer.op_name <<")  ===  infer+launch time "<<my_time.get_average_ms() << " ms";
 #ifdef ENABLE_DEBUG
-#ifdef USE_CUDA
+    #ifdef USE_CUDA
         CUDA_CHECK(cudaDeviceSynchronize());
         CUDA_CHECK(cudaPeekAtLastError());
-#endif
-    for (auto out : executer.outs) {
-        std::vector<int> offset=out->get_seq_offset();
-        LOG(INFO)<<"print offset of "<<executer.name <<",size = "<<offset.size();
-        for(int i=0;i<offset.size();++i){
-            LOG(INFO)<<offset[i]<<",";
+    #endif
+
+        for (auto out : executer.outs) {
+            std::vector<int> offset=out->get_seq_offset();
+            LOG(INFO)<<"print offset of "<<executer.name <<",size = "<<offset.size();
+            for(int i=0;i<offset.size();++i){
+                LOG(INFO)<<offset[i]<<",";
+            }
+            LOG(INFO)<<"  end print offset of "<<executer.name;
+
+    #define RECORD_INNER
+    #if defined(RECORD_INNER) && defined(USE_X86_PLACE)
+            record_tensor_to_file(*out,("record_"+executer.name).c_str());
+    #endif
+            LOG(INFO) <<executer.name <<" d_tensor_out_p :" <<out->data();
+            LOG(ERROR) << "    |---out avg " << tensor_average(out);
         }
-        LOG(INFO)<<"  end print offset of "<<executer.name;
-#define RECORD_INNER
-#if defined(RECORD_INNER) && defined(USE_X86_PLACE)
-        record_tensor_to_file(*out,("record_"+executer.name).c_str());
-        if(executer.name=="")
-#endif
-        LOG(INFO) <<executer.name <<" d_tensor_out_p :" <<out->data();
-#ifdef USE_X86_PLACE
-//        for (int i = 0; i < 10; ++i) {
-//            std::cout << out->data()[i]<<" ";
-//        }
-#endif
-        LOG(ERROR) << "    |---out avg " << tensor_average(out);
-    }
 
 #ifdef USE_ARM_PLACE
         int idx = 0;
@@ -421,7 +413,6 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
                     sum += *ptr_data;
                     ptr_data++;
                 }
-                //LOG(INFO) << "channel: " << j << ", mean value :" << sum_c / (w * h);
             }
 
             LOG(INFO) << executer.name << ", tensor idx: " << idx << ", mean value :" << sum / size << ", num: " << out->num() << \
@@ -660,8 +651,7 @@ template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
 Status Net<Ttype, Dtype, Ptype, RunType>::init_env(graph::Graph<Ttype, Dtype, Ptype>& graph) {
     LOG(WARNING) << "Detect and initial " << graph.get_ins().size() << " lanes.";
     // fixme, multi_stream error
-    //Env<Ttype>::env_init(graph.get_ins().size());
-    Env<Ttype>::env_init(1);
+    Env<Ttype>::env_init(graph.get_ins().size());
     LOG(WARNING) << "Current used device id : " << TargetWrapper<Ttype>::get_device_id();
     return Status::OK();
 }
