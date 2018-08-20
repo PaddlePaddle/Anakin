@@ -17,6 +17,7 @@
 #define ANAKIN_SABER_FUNCS_CUDA_SABER_PRIORBOX_H
 
 #include "saber/funcs/impl/impl_priorbox.h"
+#include <numeric>
 
 namespace anakin{
 
