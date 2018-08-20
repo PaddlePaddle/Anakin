@@ -18,6 +18,7 @@
 
 #include <iostream>
 #include <map>
+#include <cmath>
 #include "saber/core/tensor.h"
 #include "saber/core/tensor_op.h"
 namespace anakin{
