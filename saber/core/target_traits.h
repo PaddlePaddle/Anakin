@@ -28,6 +28,7 @@ struct __cuda_device{};
 struct __arm_device{};
 struct __amd_device{};
 struct __x86_device{};
+struct __bm_device{};
 
 struct __HtoD{};
 struct __HtoH{};
@@ -68,6 +69,12 @@ template <>
 struct TargetTypeTraits<AMD> {
   typedef __device_target target_category;
   typedef __amd_device target_type;
+};
+
+template <>
+struct TargetTypeTraits<BM> {
+  typedef __device_target target_category;
+  typedef __bm_device target_type;
 };
 
 } //namespace saber
