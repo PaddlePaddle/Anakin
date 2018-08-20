@@ -119,14 +119,14 @@ Net类是Anakin预测库对外的接口。
 说明： 从文件路径加载分立模型，分别为网络信息和参数信息；  
 参数： 
 * `const char* info_path`: 模型网络信息
-* `const char* weights_path`：网络参数信息
+* `const char* weights_path`：网络参数信息  
 返回： 若加载成功，则返回`SaberSuccess`，否则返回错误代码；
 
 5. 从内存加载融合模型`load_model(const void* merged_memory, size_t mem_size)`：  
 说明： 从内存加载融合模型，包含网络信息和参数；  
 参数：     
-* `const void* merged_memory`: 融合模型
-* `size_t mem_size`：数据长度，单位bytes
+* `const void* merged_memory`: 融合模型  
+* `size_t mem_size`：数据长度，单位bytes  
 返回： 若加载成功，则返回`SaberSuccess`，否则返回错误代码；
 
 6. 从内存加载分立模型`load_model(const void* info_memory, size_t info_size, const void* weights_memory, size_t weights_size)`：  
@@ -135,7 +135,7 @@ Net类是Anakin预测库对外的接口。
 * `const void* info_memory`: 模型网络信息
 * `size_t info_size`：数据长度，单位bytes
 * `const void* weights_memory`：网络参数信息
-* `size_t weights_size`：数据长度，单位bytes
+* `size_t weights_size`：数据长度，单位bytes  
 返回： 若加载成功，则返回`SaberSuccess`，否则返回错误枚举类型；
 
 7. 获取网络输入`std::vector<Tensor<CPU, AK_FLOAT>*> get_input()`：    
@@ -173,7 +173,7 @@ Tensor包含4个构造函数：
 * `Tensor(Dtype* data_ptr, Shape shape)`：从已有的数据构造一个tensor，不分配数据空间；
 * `Tensor(const Tensor<ttype, dtype>& tensor)`：拷贝构造函数，数据为浅拷贝
 
-2. 设置tensor维度信息`set_shape(Shape valid_shape, Shape shape = Shape(), Shape offset = Shape())`:
+2. 设置tensor维度信息`set_shape(Shape valid_shape, Shape shape = Shape(), Shape offset = Shape())`:  
 说明：设置tensor的维度信息，不分配数据空间。    
 参数：    
 * `valid_shape`：当前tensor有效数据维度信息 
@@ -239,6 +239,7 @@ Tensor包含4个构造函数：
 * `height()`获取tensor高度大小；  
 * `width()`获取tensor宽度大小；   
 返回： 返回对应的维度大小  
+
 ### Shape
 `Shape`类用于指定`Tensor`类数据维度信息，Layout类型是NCHW  
 1. 构造函数  
