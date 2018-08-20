@@ -196,6 +196,7 @@ SaberStatus SaberPermute<NV, AK_FLOAT>::dispatch(\
                         new_steps, old_steps, in_data);
             }
         } else {
+               outputs[0]->copy_from(*inputs[0]);
             //outputs[0]->share_from(inputs[0]);
         }
     } else {
@@ -225,6 +226,7 @@ SaberStatus SaberPermute<NV, AK_FLOAT>::dispatch(\
                         new_steps, old_steps, in_data);
             }
         } else {
+               outputs[0]->copy_from(*inputs[0]);
             //outputs[0]->share_from(inputs[0]);
         }
     }
