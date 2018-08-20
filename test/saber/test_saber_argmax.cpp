@@ -151,8 +151,8 @@ TEST(TestSaberFunc, test_func_argmax) {
 
 #endif
 #ifdef USE_X86_PLACE
-    Env<X86>::env_init();
-    test_accuracy<X86, X86, AK_FLOAT>(num, channel, height, width, out_max, topk, has, ax);
+    //Env<X86>::env_init();
+    //test_accuracy<X86, X86, AK_FLOAT>(num, channel, height, width, out_max, topk, has, ax);
 #endif
 }
 
