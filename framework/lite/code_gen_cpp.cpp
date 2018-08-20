@@ -27,6 +27,7 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_header_start() {
     _code<<"#include <saber/lite/funcs/saber_concat.h>\n";
     _code<<"#include <saber/lite/funcs/saber_detection_output.h>\n";
     _code<<"#include <saber/lite/funcs/saber_eltwise.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_eltwise_act.h>\n";
     _code<<"#include <saber/lite/funcs/saber_permute.h>\n";
     _code<<"#include <saber/lite/funcs/saber_prelu.h>\n";
     _code<<"#include <saber/lite/funcs/saber_power.h>\n";
@@ -186,7 +187,9 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_ops() {
 		auto& node_info = this->_graph_node_map[node_name];
 		if(OPERATION_MAP.count(node_info.op_name) > 0) {
 			_code.feed("    OpBase* %s = new %s; \n", node_name.c_str(), OPERATION_MAP[node_info.op_name].OpClassName.c_str());
+            _code.feed("#if defined(ENABLE_OP_TIMER) || defined(ENABLE_DEBUG)");
             _code.feed("    %s->set_op_name(\"%s\"); \n", node_name.c_str(), node_name.c_str());
+            _code.feed("#endif");
             _code.feed("    %s_g_ops.push_back(%s);\n", _code_name.c_str(), node_name.c_str());
 		}
 	}

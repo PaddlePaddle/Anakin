@@ -192,6 +192,85 @@ std::string ParserDeconvolution(graph::AttrInfo& attr,
     return code_w.get_code_string();
 }
 
+// ParserDeConvolutionRelu
+std::string ParserDeConvolutionRelu(graph::AttrInfo& attr,
+                                  std::string& code_name,
+                                  std::string& op_class_name,
+                                  std::string& node_name,
+                                  std::string& weights_ptr_name,
+                                  WeightsWritter& writter,
+                                  bool gen_param) {
+    // parsing parameter
+    auto group = get_attr<int>("group", attr);
+    auto bias_term = get_attr<bool>("bias_term", attr);
+    auto padding = get_attr<PTuple<int>>("padding", attr);
+    auto strides = get_attr<PTuple<int>>("strides", attr);
+    auto dilation_rate = get_attr<PTuple<int>>("dilation_rate", attr);
+    auto filter_num = get_attr<int>("filter_num", attr);
+    auto kernel_size = get_attr<PTuple<int>>("kernel_size", attr);
+    auto axis = get_attr<int>("axis", attr);
+
+    auto weights = get_attr<PBlock<float, X86>>("weight_1", attr);
+    auto weights_shape = weights.shape();
+    int weights_size = weights_shape.count();//weights_shape[2]*weights_shape[3];
+    int num_output = filter_num;//*weights_shape[1];
+
+    writter.register_weights(node_name, weights);
+            LOG(INFO) << node_name << " write weights: " << weights.count();
+    if(bias_term) {
+        auto bias = get_attr<PBlock<float, X86>>("weight_2", attr);
+        writter.register_weights(node_name, bias);
+                LOG(INFO) << node_name << " write bias: " << bias.count();
+    }
+
+    auto offset_info = writter.get_weights_by_name(node_name);
+
+    // gen cpp code
+    CodeWritter code_w;
+    if(gen_param) {
+        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
+                    weights_size,
+                    num_output,
+                    group,
+                    kernel_size[1],
+                    kernel_size[0],
+                    strides[1],
+                    strides[0],
+                    padding[1],
+                    padding[0],
+                    dilation_rate[1],
+                    dilation_rate[0],
+                    bias_term ? 1 : 0,
+                    (int)Active_relu,
+                    1, //set flag_relu true
+                    offset_info.weights[0].offset,
+                    bias_term ? offset_info.weights[1].offset : 0);
+    } else {
+        code_w.feed("ParamBase* %s_param = new ConvAct2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%s+%d,%s+%d);\n",
+                    node_name.c_str(),
+                    weights_size,
+                    num_output,
+                    group,
+                    kernel_size[1],
+                    kernel_size[0],
+                    strides[1],
+                    strides[0],
+                    padding[1],
+                    padding[0],
+                    dilation_rate[1],
+                    dilation_rate[0],
+                    bias_term ? "true":"false",
+                    "true", //set flag_relu true
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[0].offset,
+                    weights_ptr_name.c_str(),
+                    bias_term ? offset_info.weights[1].offset : 0);
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
+
+    return code_w.get_code_string();
+}
+
 // ParserConvolutionRelu
 std::string ParserConvolutionRelu(graph::AttrInfo& attr,
                                   std::string& code_name,
@@ -1034,6 +1113,62 @@ std::string ParserEltwise(graph::AttrInfo& attr,
 	return code_w.get_code_string();
 }
 
+// SaberEltwiseAct
+std::string ParserEltwiseRelu(graph::AttrInfo& attr,
+                          std::string& code_name,
+                          std::string& op_class_name,
+                          std::string& node_name,
+                          std::string& weights_ptr_name,
+                          WeightsWritter& writter,
+                          bool gen_param) {
+    // parsing parameter
+    auto type = get_attr<std::string>("type", attr);
+    auto coeff = get_attr<PTuple<float>>("coeff", attr);
+
+    std::string eltwise_type_str("Eltwise_unknow");
+    EltwiseType et_type;
+    if (type == "Add") {
+        eltwise_type_str = "Eltwise_sum";
+        et_type = Eltwise_sum;
+    } else if (type == "Max") {
+        eltwise_type_str = "Eltwise_max";
+        et_type = Eltwise_max;
+    } else {
+        eltwise_type_str = "Eltwise_prod";
+        et_type = Eltwise_prod;
+    }
+
+    CodeWritter coeff_vec_code;
+    coeff_vec_code<<"{";
+    for(int i=0; i<coeff.size()-1; i++) {
+        coeff_vec_code<<coeff.vector()[i]<<",";
+    }
+    if(coeff.size() > 0) {
+        coeff_vec_code<<coeff.vector()[coeff.size()-1] << "}";
+    } else {
+        coeff_vec_code<<"}";
+    }
+
+    // gen cpp code
+    CodeWritter code_w;
+    if (gen_param) {
+        code_w.feed("%d %d ", (int)et_type,
+                    coeff.size());
+        for (int i = 0; i < coeff.size(); ++i) {
+            code_w << coeff[i] << " ";
+        }
+        code_w << "\n";
+    } else  {
+        code_w.feed("ParamBase* %s_param = new EltwiseParam(%s, %s);\n",
+                    node_name.c_str(),
+                    eltwise_type_str.c_str(),
+                    coeff_vec_code.get_code_string().c_str());
+
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
+    return code_w.get_code_string();
+}
+
 // SaberActivation
 std::string ParserActivation(graph::AttrInfo& attr,
                              std::string& code_name,
@@ -1693,6 +1828,7 @@ std::unordered_map<std::string, OpParser> OPERATION_MAP({
 	{"Input", {"Input", not_impl_yet} },
 	{"Convolution", {"SaberConv2D", ParserConvolution} }, // done
 	{"Deconvolution", {"SaberDeconv2D", ParserDeconvolution}}, //done
+    {"DeconvRelu", {"SaberDeconvAct2D", ParserDeConvolutionRelu}}, //done
 	{"Activation", {"SaberActivation", ParserActivation} }, // done
 	{"ReLU", {"SaberActivation",ParserRelu}}, // done
 	{"ConvRelu", {"SaberConvAct2D", ParserConvolutionRelu} },  // done
@@ -1704,7 +1840,7 @@ std::unordered_map<std::string, OpParser> OPERATION_MAP({
 	{"Concat", {"SaberConcat", ParserConcat} },  // done
 	{"DetectionOutput", {"SaberDetectionOutput", ParserDectionOutput} }, // done 
 	{"Eltwise", {"SaberEltwise", ParserEltwise} }, //done
-	{"Eltwise", {"SaberEltwiseRelu", not_impl_yet}}, // not impl ??
+	{"EltwiseRelu", {"SaberEltwiseAct", ParserEltwiseRelu}}, // done
 	{"Dense", {"SaberFc", ParserFc} }, // done
 	{"Permute", {"SaberPermute", ParserPermute} }, // done
 	{"Pooling", {"SaberPooling", ParserPooling} }, // done

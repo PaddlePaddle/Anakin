@@ -322,12 +322,11 @@ SaberStatus SaberDeconv2D::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &
             const float* weights_group = weights + g * group_size_weights;
             float* coldata_group = col_data + g * group_size_coldata;
 
-            if (_param->_bias == NULL) {
-                _gemmer(weights_group, _m, din_group, _n, coldata_group, _n, 1.f, 0.f, _flag_relu);
-            }else{
+            if (_param->_bias_term) {
                 _gemmer(weights_group, _m, din_group, _n, coldata_group, _n, 1.f, 0.f, false);
+            }else{
+                _gemmer(weights_group, _m, din_group, _n, coldata_group, _n, 1.f, 0.f, _flag_relu);
             }
-            //_gemmer(weights_group, _m, din_group, _n, coldata_group, _n, 1.f, 0.f, _flag_relu);
         }
 
         if (!flag_1x1s1p1) {
@@ -337,7 +336,6 @@ SaberStatus SaberDeconv2D::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &
 
         //! add bias
         if (_param->_bias != NULL) {
-            //fill_bias(dout_batch, _param->_bias, chout, wout * hout);
             fill_bias_relu(dout_batch, _param->_bias, chout, wout * hout, _flag_relu);
         }
 
