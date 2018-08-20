@@ -25,8 +25,8 @@
 namespace anakin{
 namespace saber{
 
-template <typename TargetType>
-Shape conv_compute_shape(const Shape input_shape, ConvParam<TargetType> &param) {
+template <class Param >
+Shape conv_compute_shape(const Shape input_shape, Param &param) {
     Shape output_shape = (input_shape);
     CHECK_GE(input_shape.size(), 4) << "using reshape2d to reshape a 1d conv?";
 

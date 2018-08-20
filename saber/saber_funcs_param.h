@@ -20,7 +20,7 @@
 #include "saber/saber_types.h"
 
 namespace anakin {
-    
+
 namespace saber {
 
 template <typename TargetType>
