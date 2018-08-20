@@ -12,8 +12,6 @@ class FluidParser:
 		# anakin graph model io
 		self.graphIO = None
 		# config info
-		self.ProtoPaths = fluid_config_dict['ProtoPaths']
-		self.PrototxtPath = fluid_config_dict['PrototxtPath'] 
 		self.ModelPath = fluid_config_dict['ModelPath']
 		self.NetType = fluid_config_dict['NetType']
 		self.Debug = fluid_config_dict['Debug']
