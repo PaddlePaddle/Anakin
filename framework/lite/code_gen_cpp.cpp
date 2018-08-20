@@ -187,9 +187,9 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_ops() {
 		auto& node_info = this->_graph_node_map[node_name];
 		if(OPERATION_MAP.count(node_info.op_name) > 0) {
 			_code.feed("    OpBase* %s = new %s; \n", node_name.c_str(), OPERATION_MAP[node_info.op_name].OpClassName.c_str());
-            _code.feed("#if defined(ENABLE_OP_TIMER) || defined(ENABLE_DEBUG)");
+            _code.feed("#if defined(ENABLE_OP_TIMER) || defined(ENABLE_DEBUG) \n");
             _code.feed("    %s->set_op_name(\"%s\"); \n", node_name.c_str(), node_name.c_str());
-            _code.feed("#endif");
+            _code.feed("#endif \n");
             _code.feed("    %s_g_ops.push_back(%s);\n", _code_name.c_str(), node_name.c_str());
 		}
 	}
@@ -205,7 +205,9 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_init_impl() {
     _code.feed("        %s_g_ops[i]->compute_output_shape(%s_tensor_ins[i], %s_tensor_outs[i]);\n", _code_name.c_str(), _code_name.c_str(), _code_name.c_str());
     _code.feed("        flag = %s_g_ops[i]->init(%s_tensor_ins[i], %s_tensor_outs[i], ctx);\n", _code_name.c_str(), _code_name.c_str(), _code_name.c_str());
     _code.feed("        if (!flag) {\n");
+    _code.feed("#if defined(ENABLE_OP_TIMER) || defined(ENABLE_DEBUG) \n");
     _code.feed("            printf(\"%s op init failed;\\n\", %s_g_ops[i]->get_op_name());\n", "%s", _code_name.c_str());
+    _code.feed("#endif \n");
     _code.feed("            return false;\n");
     _code.feed("        }\n");
     _code << "    }\n";
@@ -235,13 +237,19 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_run_impl(const bool debug_mode) {
     _code.feed("    for (int i = 0; i < %s_g_ops.size(); i++) {\n", _code_name.c_str());
     _code.feed("        flag = %s_g_ops[i]->dispatch(%s_tensor_ins[i], %s_tensor_outs[i]);\n", _code_name.c_str(), _code_name.c_str(), _code_name.c_str());
     _code.feed("        if (!flag) {\n");
+    _code.feed("#if defined(ENABLE_OP_TIMER) || defined(ENABLE_DEBUG) \n");
     _code.feed("            printf(\"%s op dispatch failed;\\n\", %s_g_ops[i]->get_op_name());\n", "%s", _code_name.c_str());
+    _code.feed("#endif \n");
     _code.feed("            return false;\n");
     _code.feed("        }\n");
     if (debug_mode) {
         _code.feed("        for(int j = 0; j < %s_tensor_outs[i].size(); j++) {\n", _code_name.c_str());
         _code.feed("            double mean_val = tensor_mean(*%s_tensor_outs[i][0]); \n", _code_name.c_str());
+        _code.feed("#if defined(ENABLE_OP_TIMER) || defined(ENABLE_DEBUG) \n");
         _code.feed("            printf(\"mean_val in %s ops: %s \\n\", %s_g_ops[i]->get_op_name(), mean_val);\n", "%s", "%.6f", _code_name.c_str());
+        _code.feed("#else \n");
+        _code.feed("            printf(\"mean_val in ops: %s \\n\", mean_val);\n", "%.6f");
+        _code.feed("#endif \n");
         _code.feed("        }\n");
     }
     _code << "    }\n";
