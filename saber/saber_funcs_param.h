@@ -227,6 +227,32 @@ private:
 };
 
 template <typename TargetType>
+struct CtcAlignParam {
+    CtcAlignParam() = default;
+    CtcAlignParam(int blank_in, bool merge_repeated_in)
+            : blank(blank_in)
+            , merge_repeated(merge_repeated_in)
+    {}
+    CtcAlignParam(const CtcAlignParam &right)
+            : blank(right.blank)
+            , merge_repeated(right.merge_repeated)
+    {}
+    CtcAlignParam &operator=(const CtcAlignParam &right) {
+        blank = right.blank;
+        merge_repeated = right.merge_repeated;
+        return *this;
+    }
+    bool operator==(const CtcAlignParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (blank == right.blank);
+        comp_eq = comp_eq && (merge_repeated == right.merge_repeated);
+        return comp_eq;
+    }
+    int blank;
+    bool merge_repeated;
+};
+
+template <typename TargetType>
 struct DeformableConvParam {
 
     DeformableConvParam() : group(-1), pad_h(-1), pad_w(-1),
@@ -408,6 +434,7 @@ struct DetectionOutputParam {
     int nms_top_k;
     float nms_thresh{0.3f};
     float nms_eta{1.f};
+
 };
 
 template <typename TargetType>
