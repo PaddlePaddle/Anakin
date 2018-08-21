@@ -2707,7 +2707,7 @@ void conv_3x3s1_direct(const float* din, float* dout, \
                             [wr10] "w"(wr10), [wr11] "w"(wr11), \
                             [vmask_rp] "w" (vmask_rp), [vzero] "w" (vzero), \
                             [relu] "r" (relu)
-                        :"q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q15"
+                        :"q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
                         );
 #endif //__aarch64__
 

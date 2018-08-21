@@ -216,7 +216,7 @@ void pooling_global(const float* din, float* dout, \
                     "bne        max_loop                              @bne num\n"
                     :[data_in_channel] "+r" (data_in_channel), [num] "+r" (num), [vmax] "+w" (vmax)
                     :"r" (data_in_channel), "r" (num)
-                    : "q0"
+                    : "q0", "q1"
                     );
                 }
 #endif //__aarch64__

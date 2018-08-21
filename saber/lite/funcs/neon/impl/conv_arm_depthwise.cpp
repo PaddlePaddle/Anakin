@@ -6534,10 +6534,11 @@ void conv_depthwise_3x3s1p1_bias_relu(float* dout, const float* din, \
                     "vext.32  q13, q12, %q[mask], #3        @ shift mask right 1\n"
                     "vbif q8, q10, q13                      @ bit select\n"
 
-                    "sub %[dout_ptr1], %[dout_ptr1], %[pad_right] @ sub \n"
-                    "sub %[dout_ptr2], %[dout_ptr2], %[pad_right] @ sub \n"
                     "vst1.32  {d18-d19}, [%[dout_ptr2]]!    @ store result, add pointer\n"
                     "vst1.32  {d16-d17}, [%[dout_ptr1]]!    @ store result, add pointer\n"
+                    
+                    "sub %[dout_ptr1], %[dout_ptr1], %[pad_right] @ sub \n"
+                    "sub %[dout_ptr2], %[dout_ptr2], %[pad_right] @ sub \n"
 
             :[dout_ptr1] "+r"(doutr0), [dout_ptr2] "+r"(doutr1), \
                  [din0_ptr] "+r"(din0_ptr), [din1_ptr] "+r"(din1_ptr), \
@@ -9252,7 +9253,7 @@ void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
             :[wr1] "w"(wr1), [wr2] "w"(wr2), \
                     [bias] "w"(wbias), [mask_din] "w" (vmask_rp), [mask_w]  "w" (vmask_w) //, \
                     //[pad_right] "r" (size_right_remain)
-            :"q6", "q7", "q8", "q10", "q12", "q15"
+            :"q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
             );
 
             dr0 = dr1;
@@ -9380,7 +9381,7 @@ void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
                 :[wr1] "w"(wr1), [wr2] "w"(wr2), \
                     [bias] "w"(wbias), [mask_din] "w" (vmask_rp), [mask_w]  "w" (vmask_w) //, \
                     //[pad_right] "r" (size_right_remain)
-                :"q6", "q7", "q8", "q10", "q12", "q15"
+                :"q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
                 );
             } // end of process bottom pad
         }
@@ -10656,7 +10657,7 @@ void conv_depthwise_3x3s2p1_bias_s_relu(float* dout, const float* din, \
             :[wr1] "w"(wr1), [wr2] "w"(wr2), \
                     [bias] "w"(wbias), [mask_din] "w" (vmask_rp), [mask_w]  "w" (vmask_w) //, \
                     //[pad_right] "r" (size_right_remain)
-            :"q6", "q7", "q8", "q10", "q12", "q15"
+            :"q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
             );
 
             dr0 = dr1;
@@ -10792,7 +10793,7 @@ void conv_depthwise_3x3s2p1_bias_s_relu(float* dout, const float* din, \
                 :[wr1] "w"(wr1), [wr2] "w"(wr2), \
                     [bias] "w"(wbias), [mask_din] "w" (vmask_rp), [mask_w]  "w" (vmask_w) //, \
                     //[pad_right] "r" (size_right_remain)
-                :"q6", "q7", "q8", "q10", "q12", "q15"
+                :"q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
                 );
 
             } // end of process bottom pad
