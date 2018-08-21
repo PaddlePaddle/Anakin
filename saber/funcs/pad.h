@@ -77,13 +77,11 @@ public:
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
             case VENDER_IMPL:
-                this->_impl.push_back(new VenderPad <TargetType,
-                        OpDtype>);
+                this->_impl.push_back(new VenderPad<TargetType,OpDtype>);
                 return SaberSuccess;
 
             case SABER_IMPL:
-                this->_impl.push_back(new SaberPad <TargetType,
-                        OpDtype>);
+                this->_impl.push_back(new SaberPad<TargetType,OpDtype>);
                 return SaberSuccess;
 
             default:
