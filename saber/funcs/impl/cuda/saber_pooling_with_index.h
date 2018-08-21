@@ -29,7 +29,7 @@ class SaberPoolingWithIndex<NV, OpDtype>:\
             PoolingParam<NV>> {
 
 public:
-                typedef typename DataTrait<NV, OpDtype> :: Dtype dtype;
+    typedef typename DataTrait<NV, OpDtype> :: Dtype dtype;
 
     SaberPoolingWithIndex() {}
 
