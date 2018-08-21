@@ -123,7 +123,7 @@ template class ConvReluPoolHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ConvReluPool, ConvReluPoolHelper, ARM, Precision::FP32);
 #endif
 
-#ifdef USE_AMD
+#ifdef AMD_GPU
 INSTANCE_CONVRELUPOOLING(AMD, Precision::FP32);
 template class ConvReluPoolHelper<AMD, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ConvReluPool, ConvReluPoolHelper, AMD, Precision::FP32);
@@ -138,7 +138,7 @@ ANAKIN_REGISTER_OP(ConvReluPool)
 #ifdef USE_ARM_PLACE
     .__alias__<ARM, Precision::FP32>("convolution_batchnorm_scale_relu_pooling")
 #endif
-#ifdef USE_AMD
+#ifdef AMD_GPU
     .__alias__<AMD, Precision::FP32>("convolution_batchnorm_scale_relu_pooling")
 #endif
     .num_in(1)

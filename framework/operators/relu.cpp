@@ -65,7 +65,7 @@ template class ReLUHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ReLU, ReLUHelper, ARM, Precision::FP32);
 #endif//arm
 
-#ifdef USE_AMD
+#ifdef AMD_GPU
 INSTANCE_RELU(AMD, Precision::FP32);
 template class ReLUHelper<AMD, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ReLU, ReLUHelper, AMD, Precision::FP32);
@@ -78,7 +78,7 @@ ANAKIN_REGISTER_OP(ReLU)
 .__alias__<NV, Precision::FP32>("Relu")
 #endif
 
-#ifdef USE_AMD
+#ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("Relu")
 #endif
 

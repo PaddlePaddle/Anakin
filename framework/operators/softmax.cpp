@@ -89,7 +89,7 @@ Status SoftmaxHelper<ARM, Precision::FP32>::Init(OpContext<ARM> &ctx, \
 ANAKIN_REGISTER_OP_HELPER(Softmax, SoftmaxHelper, ARM, Precision::FP32);
 #endif
 
-#ifdef USE_AMD
+#ifdef AMD_GPU
 INSTANCE_SOFTMAX(AMD, Precision::FP32);
 template <>
 Status SoftmaxHelper<AMD, Precision::FP32>::Init(OpContext<AMD> &ctx, \
@@ -113,7 +113,7 @@ ANAKIN_REGISTER_OP(Softmax)
 #ifdef USE_X86_PLACE
 .__alias__<X86, Precision::FP32>("softmax")
 #endif
-#ifdef USE_AMD
+#ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("softmax")
 #endif
 .num_in(1)

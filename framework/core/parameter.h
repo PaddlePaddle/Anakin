@@ -175,6 +175,7 @@ public:
 	inline bool host_only() { return true; }
 };
 
+#ifdef USE_CUDA
 template<>
 class PBlock<NV> {
 public:
@@ -247,7 +248,9 @@ private:
 	std::shared_ptr<d_type> _d_inner_tensor;
 	std::shared_ptr<h_type> _h_inner_tensor;
 };
+#endif
 
+#ifdef AMD_GPU
 template<>
 class PBlock<AMD> {
 public:
@@ -314,7 +317,9 @@ private:
 	std::shared_ptr<d_type> _d_inner_tensor; 
 	std::shared_ptr<h_type> _h_inner_tensor;
 };
+#endif
 
+#ifdef USE_X86_PLACE
 template<>
 class PBlock<X86> {
 public:
@@ -378,7 +383,9 @@ public:
 private:
 	std::shared_ptr<type> _inner_tensor;
 };
+#endif
 
+#ifdef USE_ARM_PLACE
 template<>
 class PBlock<ARM> {
 public:
@@ -444,6 +451,7 @@ public:
 private:
 	std::shared_ptr<type> _inner_tensor;
 };
+#endif
 
 /**
  *  \brief Enum type.

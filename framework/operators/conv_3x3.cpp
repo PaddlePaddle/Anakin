@@ -17,7 +17,7 @@ void SassConvolution<NV, Precision::FP32>::operator()(
 }
 #endif
 
-#ifdef USE_AMD
+#ifdef AMD_GPU
 template<>
 void SassConvolution<AMD, Precision::FP32>::operator()(
     OpContext<AMD>& ctx,
@@ -98,7 +98,7 @@ template class SassConvolutionHelper<NV, Precision::INT8>;
 //template class SassConvolutionHelper<ARM, Precision::INT8>;
 //#endif
 
-#ifdef USE_AMD
+#ifdef AMD_GPU
 template class SassConvolutionHelper<AMD, Precision::FP32>;
 template class SassConvolutionHelper<AMD, Precision::FP16>;
 template class SassConvolutionHelper<AMD, Precision::INT8>;
@@ -113,7 +113,7 @@ ANAKIN_REGISTER_OP_HELPER(SassConvolution, SassConvolutionHelper, NV, Precision:
 //ANAKIN_REGISTER_OP_HELPER(SassConvolution, SassConvolutionHelper, ARM, Precision::FP32);
 #endif
 
-#ifdef USE_AMD
+#ifdef AMD_GPU
 ANAKIN_REGISTER_OP_HELPER(SassConvolution, SassConvolutionHelper, AMD, Precision::FP32);
 #endif
 
@@ -123,7 +123,7 @@ ANAKIN_REGISTER_OP(SassConvolution)
 #ifdef USE_CUDA
 .__alias__<NV, Precision::FP32>("convolution")
 #endif
-#ifdef USE_AMD
+#ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("convolution")
 #endif
 //#ifdef USE_ARM_PLACE

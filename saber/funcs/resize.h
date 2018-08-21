@@ -27,7 +27,7 @@
 #include "saber/funcs/impl/impl_resize.h"
 #endif
 
-#ifdef USE_AMD
+#ifdef AMD_GPU 
 #include "saber/funcs/impl/impl_resize.h"
 #endif
 

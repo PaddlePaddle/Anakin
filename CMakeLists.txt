@@ -76,12 +76,6 @@ anakin_option(USE_CUDNN "Use Cudnn libs." YES if USE_CUDA)
 anakin_option(BUILD_CROSS_PLANTFORM "Build anakin lib for any nvidia device plantform." YES if USE_CUDA)
 anakin_option(BUILD_FAT_BIN "Build anakin cuda fat-bin lib for all device plantform" NO if BUILD_CROSS_PLANTFORM)
 
-# compile options for BitMain place
-anakin_option(USE_BM "Use BitMain libs." YES if USE_BM_PLACE)
-
-# build options for amd.
-anakin_option(USE_AMD "Use AMD ROCm OpenCL" YES if AMD_GPU)
-
 if(USE_CUDA)
     # Select gpu target arch for local high performance implement sass code . Now we have checked on sm_61 sm_50 and it works well.
     set(SELECTED_SASS_TARGET_ARCH "61")
@@ -110,7 +104,7 @@ anakin_option(USE_BOOST "Use static BOOST libs." NO)
 anakin_option(USE_OPENMP "Use Openmp when in android environment." YES if TARGET_ANDROID)
 anakin_option(USE_GTEST "Use googletest libs." NO if BUILD_WITH_UNIT_TEST)
 anakin_option(USE_PYTHON "Generate py wrappers." NO)
-anakin_option(USE_OPENCL "Use OpenCL ." YES if USE_AMD)
+anakin_option(USE_OPENCL "Use OpenCL ." YES if AMD_GPU)
 anakin_option(USE_GFLAGS "Build Google gflags components." NO)
 anakin_option(USE_MKL "Use mkl libs." NO if USE_X86_PLACE)
 anakin_option(USE_MKLML "Use MKLML libs." YES if USE_X86_PLACE)
@@ -180,7 +174,7 @@ if(USE_X86_PLACE)
     #include(cmake/external/mkldnn.cmake)
 endif()
 
-if(USE_AMD)
+if(AMD_GPU)
     include(cmake/amd.cmake)
 endif()
 

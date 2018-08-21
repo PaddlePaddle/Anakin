@@ -78,9 +78,9 @@ Status ActivationHelper<Ttype, Ptype>::InferShape(const
 #ifdef USE_CUDA
 INSTANCE_ACTIVATION(NV, Precision::FP32);
 template<>
-Status ActivationHelper<NV, Precision::FP32>::Init(OpContext<NV>& ctx,
-        const std::vector<Tensor4dPtr<NV>& ins,
-        std::vector<Tensor4dPtr<NV> >& outs) {
+Status ActivationHelper<NV, Precision::FP32>::Init(OpContext<NV>& ctx, 
+                                                   const std::vector<Tensor4dPtr<NV>& ins, 
+                                                   std::vector<Tensor4dPtr<NV> >& outs) {
     SABER_CHECK(_funcs_activation.init(ins, outs, _param_activation, STATIC, VENDER_IMPL, ctx));
     return Status::OK();
 }
@@ -101,7 +101,7 @@ template class ActivationHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, ARM, Precision::FP32);
 #endif//arm
 
-#ifdef USE_AMD
+#ifdef AMD_GPU
 INSTANCE_ACTIVATION(AMD, Precision::FP32);
 template class ActivationHelper<AMD, Precision::FP32>;
 template class ActivationHelper<AMD, Precision::FP16>;
@@ -120,7 +120,7 @@ ANAKIN_REGISTER_OP(Activation)
 #ifdef USE_X86_PLACE
 .__alias__<X86, Precision::FP32>("activation")
 #endif
-#ifdef USE_AMD
+#ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("activation")
 #endif
 .num_in(1)

@@ -101,7 +101,7 @@ template class ConvolutionHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, ARM, Precision::FP32);
 #endif
 
-#ifdef USE_AMD
+#ifdef AMD_GPU
 INSTANCE_CONVOLUTION(AMD, Precision::FP32);
 template class ConvolutionHelper<AMD, Precision::FP32>;
 template class ConvolutionHelper<AMD, Precision::FP16>;
@@ -115,7 +115,7 @@ ANAKIN_REGISTER_OP(Convolution)
 #ifdef USE_CUDA
 .__alias__<NV, Precision::FP32>("convolution")
 #endif
-#ifdef USE_AMD
+#ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("convolution")
 #endif
 #ifdef USE_ARM_PLACE

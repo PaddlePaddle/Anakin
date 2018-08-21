@@ -573,7 +573,7 @@ template class Net<X86, Precision::FP16, OpRunType::SYNC>;
 template class Net<X86, Precision::INT8, OpRunType::SYNC>;
 #endif
 
-#ifdef USE_AMD
+#ifdef AMD_GPU
 template class Net<AMD, Precision::FP32, OpRunType::ASYNC>;
 template class Net<AMD, Precision::FP16, OpRunType::ASYNC>;
 template class Net<AMD, Precision::INT8, OpRunType::ASYNC>;

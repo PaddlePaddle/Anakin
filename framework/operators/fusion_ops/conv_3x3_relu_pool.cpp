@@ -23,7 +23,7 @@ void SassConvReluPool<NV, Precision::FP32>::operator() (
 }
 #endif
 
-#ifdef USE_AMD
+#ifdef AMD_GPU
 template<>
 void SassConvReluPool<AMD, Precision::FP32>::operator() (
 	OpContext<AMD> &ctx, 
@@ -146,7 +146,7 @@ template class SassConvReluPoolHelper<ARM, Precision::FP16>;
 template class SassConvReluPoolHelper<ARM, Precision::INT8>;
 #endif
 
-#ifdef USE_AMD
+#ifdef AMD_GPU
 template class SassConvReluPoolHelper<AMD, Precision::FP32>;
 template class SassConvReluPoolHelper<AMD, Precision::FP16>;
 template class SassConvReluPoolHelper<AMD, Precision::INT8>;
@@ -161,7 +161,7 @@ ANAKIN_REGISTER_OP_HELPER(SassConvReluPool, SassConvReluPoolHelper, NV, Precisio
 ANAKIN_REGISTER_OP_HELPER(SassConvReluPool, SassConvReluPoolHelper, ARM, Precision::FP32);
 #endif
 
-#ifdef USE_AMD
+#ifdef AMD_GPU
 ANAKIN_REGISTER_OP_HELPER(SassConvReluPool, SassConvReluPoolHelper, AMD, Precision::FP32);
 #endif
 
@@ -174,7 +174,7 @@ ANAKIN_REGISTER_OP(SassConvReluPool)
 #ifdef USE_ARM_PLACE
     .__alias__<ARM, Precision::FP32>("convolution_batchnorm_scale_relu_pooling")
 #endif
-#ifdef USE_AMD
+#ifdef AMD_GPU
     .__alias__<AMD, Precision::FP32>("convolution_batchnorm_scale_relu_pooling")
 #endif
     .num_in(1)

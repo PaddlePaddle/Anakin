@@ -24,7 +24,7 @@ template class OperatorFunc<X86, Precision::FP16>;
 template class OperatorFunc<X86, Precision::INT8>;
 #endif
 
-#ifdef USE_AMD
+#ifdef AMD_GPU 
 template class OperatorFunc<AMD, Precision::FP32>;
 template class OperatorFunc<AMD, Precision::FP16>;
 template class OperatorFunc<AMD, Precision::INT8>;

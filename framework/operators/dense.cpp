@@ -79,7 +79,7 @@ template class DenseHelper<X86, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, X86, Precision::FP32);
 #endif
 
-#ifdef USE_AMD
+#ifdef AMD_GPU
 INSTANCE_DENSE(AMD, Precision::FP32);
 template<>
 Status DenseHelper<AMD, Precision::FP32>::Init(OpContext<AMD> &ctx,\
@@ -106,7 +106,7 @@ ANAKIN_REGISTER_OP(Dense)
 .__alias__<X86, Precision::FP32>("fullconnect")
 .__alias__<X86, Precision::FP32>("fc")
 #endif
-#ifdef USE_AMD
+#ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("fullconnect")
 .__alias__<AMD, Precision::FP32>("fc")
 #endif

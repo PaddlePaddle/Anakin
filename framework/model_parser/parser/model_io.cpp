@@ -151,7 +151,7 @@ NodeIO<Ttype, Ptype>& NodeIO<Ttype, Ptype>::operator>>(const NodeProto& node_pro
                     cpu_data[i] = data.f()[i];
                 }
 
-#if defined(USE_CUDA) || defined(USE_AMD) 
+#if defined(USE_CUDA) || defined(AMD_GPU) 
                 //! map cpu data to GPU
                 //block->tensor().get_gpu_data();
                 block->d_tensor().set_shape(saber_shape);
@@ -337,7 +337,7 @@ template class NodeIO<NV, Precision::FP16>;
 template class NodeIO<NV, Precision::INT8>;
 #endif
 
-#ifdef USE_AMD
+#ifdef AMD_GPU 
 template class NodeIO<AMD, Precision::FP32>;
 template class NodeIO<AMD, Precision::FP16>;
 template class NodeIO<AMD, Precision::INT8>;

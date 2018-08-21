@@ -344,8 +344,7 @@ Status save<ARM, Precision::INT8>(graph::Graph<ARM, Precision::INT8>* graph, con
 #endif
 
 
-#ifdef USE_AMD
-
+#ifdef AMD_GPU
 template
 Status load<AMD, Precision::FP32>(graph::Graph<AMD, Precision::FP32>* graph, std::string& model_path);
 template

@@ -119,7 +119,7 @@ template class ConvReluHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, ARM, Precision::FP32);
 #endif
 
-#ifdef USE_AMD
+#ifdef AMD_GPU
 INSTANCE_CONVRELU(AMD, Precision::FP32);
 template class ConvReluHelper<AMD, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, AMD, Precision::FP32);
@@ -134,7 +134,7 @@ ANAKIN_REGISTER_OP(ConvRelu)
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("power")
 #endif
-#ifdef USE_AMD
+#ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("power")
 #endif
 //#ifdef USE_X86_PLACE

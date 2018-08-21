@@ -62,7 +62,7 @@ template class InputHelper<X86, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, X86, Precision::FP32);
 #endif
 
-#ifdef USE_AMD
+#ifdef AMD_GPU
 INSTANCE_INPUT(AMD, Precision::FP32);
 template class InputHelper<AMD, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, AMD, Precision::FP32);
@@ -74,7 +74,7 @@ ANAKIN_REGISTER_OP(Input)
 #ifdef USE_CUDA
 .__alias__<NV, Precision::FP32>("input")
 #endif
-#ifdef USE_AMD
+#ifdef AMD_GPU
     .__alias__<AMD, Precision::FP32>("input")
 #endif
 #ifdef USE_ARM_PLACE

@@ -24,14 +24,12 @@ if(USE_CUDA)
     anakin_find_cuda()
 endif()
 
-if(USE_BM)
+if(USE_BM_PLACE)
     anakin_find_bmlib()
 endif()
 
 # set amd opencl path
-if(USE_AMD)
-    #amd_set_opencl_path()
-    #amd_build_cl_file("${CMAKE_SOURCE_DIR}/saber/core/impl/amd/" "${CMAKE_BINARY_DIR}/cl/amd/")
+if(AMD_GPU)
     amd_build_cl_file("${CMAKE_SOURCE_DIR}/saber/funcs/impl/amd/cl" "${CMAKE_BINARY_DIR}/cl/amd")
     amd_build_cl_binary_file("${CMAKE_SOURCE_DIR}/saber/funcs/impl/amd/lib" "${CMAKE_BINARY_DIR}/cl/amd")
     amd_build_cl_file("${CMAKE_SOURCE_DIR}/saber/funcs/impl/amd/cl" "${PROJECT_SOURCE_DIR}/output/unit_test")

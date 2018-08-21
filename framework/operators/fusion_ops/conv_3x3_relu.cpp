@@ -17,7 +17,7 @@ void SassConvRelu<NV, Precision::FP32>::operator()(
 }
 #endif
 
-#ifdef USE_AMD
+#ifdef AMD_GPU
 template<>
 void SassConvRelu<AMD, Precision::FP32>::operator()(
     OpContext<AMD>& ctx,
@@ -110,7 +110,7 @@ template class SassConvReluHelper<ARM, Precision::FP16>;
 template class SassConvReluHelper<ARM, Precision::INT8>;
 #endif
 
-#ifdef USE_AMD
+#ifdef AMD_GPU
 template class SassConvReluHelper<AMD, Precision::FP32>;
 template class SassConvReluHelper<AMD, Precision::FP16>;
 template class SassConvReluHelper<AMD, Precision::INT8>;
@@ -125,7 +125,7 @@ ANAKIN_REGISTER_OP_HELPER(SassConvRelu, SassConvReluHelper, NV, Precision::FP32)
 ANAKIN_REGISTER_OP_HELPER(SassConvRelu, SassConvReluHelper, ARM, Precision::FP32);
 #endif
 
-#ifdef USE_AMD
+#ifdef AMD_GPU
 ANAKIN_REGISTER_OP_HELPER(SassConvRelu, SassConvReluHelper, AMD, Precision::FP32);
 #endif
 //! register op
@@ -137,7 +137,7 @@ ANAKIN_REGISTER_OP(SassConvRelu)
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("convolution_batchnorm_scale_relu")
 #endif
-#ifdef USE_AMD
+#ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("convolution_batchnorm_scale_relu")
 #endif
 .num_in(1)

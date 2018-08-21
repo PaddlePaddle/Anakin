@@ -119,7 +119,7 @@ TEST(TestSaberFunc, test_func_activation) {
     Env<X86>::env_init();
     test_accuracy<X86, X86>(num, channel, height, width);
 #endif
-#ifdef USE_BM
+#ifdef USE_BM_PLACE
     Env<BM>::env_init();
     test_accuracy<BM, X86>(num, channel, height, width,VENDER_IMPL);
 #endif

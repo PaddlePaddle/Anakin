@@ -3,7 +3,7 @@
 
 #ifdef USE_CUDA
 using Target = NV;
-#elif defined(USE_AMD)
+#elif defined(AMD_GPU)
 using Target = AMD;
 #elif defined(USE_X86_PLACE)
 using Target = X86;
@@ -41,7 +41,7 @@ TEST(OperatorsTest, PoolingFactoryTest) {
 
 
 int main(int argc, const char** argv) {
-#ifdef USE_AMD
+#ifdef AMD_GPU
     Env<AMD>::env_init();
 #endif
     // initial logger

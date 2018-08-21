@@ -83,7 +83,7 @@ template class PoolingHelper<X86, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Pooling, PoolingHelper, X86, Precision::FP32);
 #endif
 
-#ifdef USE_AMD
+#ifdef AMD_GPU
 INSTANCE_POOLING(AMD, Precision::FP32);
 template class PoolingHelper<AMD, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Pooling, PoolingHelper, AMD, Precision::FP32);
@@ -103,7 +103,7 @@ ANAKIN_REGISTER_OP(Pooling)
 .__alias__<X86, Precision::FP32>("pooling")
 .__alias__<X86, Precision::FP32>("pool")
 #endif
-#ifdef USE_AMD
+#ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("pooling")
 .__alias__<AMD, Precision::FP32>("pool")
 #endif

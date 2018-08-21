@@ -29,7 +29,7 @@
 #endif
 
 /*
-#ifdef USE_AMD
+#ifdef AMD_GPU
 #include "saber/funcs/impl/impl_normalize.h"
 */
 

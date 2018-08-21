@@ -33,7 +33,7 @@
 //#include "saber/funcs/impl/arm/saber_conv.h"
 #endif
 
-#ifdef USE_BM
+#ifdef USE_BM_PLACE
 #include "saber/funcs/impl/bm/vender_conv.h"
 #endif
 namespace anakin {

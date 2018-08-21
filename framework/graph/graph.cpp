@@ -417,7 +417,7 @@ template class Graph<ARM, Precision::INT8>;
 #endif
 #endif
 
-#ifdef USE_AMD
+#ifdef AMD_GPU 
 template class Graph<AMD, Precision::FP32>;
 template class Graph<AMD, Precision::FP16>;
 template class Graph<AMD, Precision::INT8>;
