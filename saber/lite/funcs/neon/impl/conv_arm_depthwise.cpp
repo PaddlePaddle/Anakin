@@ -2485,7 +2485,7 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
                     //! process mid cols
                     "cmp %[cnt], #1                         @ check whether has mid cols\n"
                     "blt  1f                                @ jump to main loop start point\n"
-                    "1:                                     @ main loop start point\n"
+                    "2:                                     @ main loop start point\n"
                    // "pld [%[din0_ptr], #192]                @ preload data\n"
                     "vld1.32  {d20-d22}, [%[din0_ptr]]!     @ load din r1\n"
                     "vld1.32  {d24-d26}, [%[din1_ptr]]!     @ load din r2\n"
@@ -2538,7 +2538,7 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
                     "vst1.32  {d18-d19}, [%[dout_ptr2]]!    @ store result, add pointer\n"
 
                     "subs %[cnt], #1                        @ loop count minus 1\n"
-                    "bne    1b                              @ jump to main loop start point\n"
+                    "bne    2b                              @ jump to main loop start point\n"
 
                     //! process right pad
                     "1:                                     @ right pad entry\n"
@@ -3636,7 +3636,6 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
                     "cmp %[cnt], #1                         @ check whether has mid loop\n"
                     "blt  2f                                @ jump to rightpad\n"
                     "1:                                     @ main loop start point\n"
-
                     "vld1.32  {d20-d22}, [%[din0_ptr]]!     @ load din r1\n"
                     "vld1.32  {d24-d26}, [%[din1_ptr]]!     @ load din r2\n"
 
@@ -3668,7 +3667,6 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
 
                     //! process right pad
                     "2:                                     @ right pad entry\n"
-
                     "vld1.32  {d20-d21}, [%[din0_ptr]]!     @ load din r1\n"
                     "vld1.32  {d24-d25}, [%[din1_ptr]]!     @ load din r2\n"
                     "vld1.32  {d22}, [%[din0_ptr]]!     @ load din r1\n"
@@ -3772,7 +3770,7 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
 
                         // process mid cols
                         "cmp %[cnt], #1                         @ check whether has mid loop\n"
-                        "blt  1f                                @ jump to rightpad\n"
+                        "blt  2f                                @ jump to rightpad\n"
                         "1:                                     @ main loop start point\n"
                         "vld1.32  {d20-d22}, [%[din0_ptr]]!     @ load din r0\n"
                         "vld1.32  {d24-d26}, [%[din1_ptr]]!     @ load din r1\n"
@@ -3808,7 +3806,7 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
                         "bne    1b                          @ jump to main loop start point\n"
 
                         // process right pad
-                        "1:                                 @ right pad entry\n"
+                        "2:                                 @ right pad entry\n"
                         "vld1.32  {d20-d22}, [%[din0_ptr]]!    @ load din r1\n"
                         "vmov.u32  d31, #0                  @ zero buf\n"
                         "vld1.32  {d24-d26}, [%[din1_ptr]]!    @ load din r1\n"
@@ -7909,7 +7907,7 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
                         // process mid cols
                         "cmp %[cnt], #1                         @ check whether has mid loop\n"
                         "blt  1f                                @ jump to rightpad\n"
-                        "1:                                     @ main loop start point\n"
+                        "2:                                     @ main loop start point\n"
                         "pld [%[din0_ptr], #192]                @ preload data\n"
                         "pld [%[din1_ptr], #192]                @ preload data\n"
                         "vld1.32  {d20-d22}, [%[din0_ptr]]!     @ load din r0\n"
@@ -7938,7 +7936,7 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
                         "bne    1b                              @ jump to main loop start point\n"
 
                         // process right pad
-                        "1:                                     @ right pad entry\n"
+                        "2:                                     @ right pad entry\n"
                         "vmov.u32  d31, #0                      @ zero buf\n"
                         "pld [%[din0_ptr], #192]                @ preload data\n"
                         "pld [%[din1_ptr], #192]                @ preload data\n"
