@@ -7933,10 +7933,10 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
                         "vst1.32  {d17},   [%[dout_ptr1]]!      @ store result, add pointer\n"
 
                         "subs %[cnt], #1                        @ loop count minus 1\n"
-                        "bne    1b                              @ jump to main loop start point\n"
+                        "bne    2b                              @ jump to main loop start point\n"
 
                         // process right pad
-                        "2:                                     @ right pad entry\n"
+                        "1:                                     @ right pad entry\n"
                         "vmov.u32  d31, #0                      @ zero buf\n"
                         "pld [%[din0_ptr], #192]                @ preload data\n"
                         "pld [%[din1_ptr], #192]                @ preload data\n"
