@@ -1819,6 +1819,39 @@ struct SliceParam {
     int axis;
     std::vector<int> slice_points;
 };
+template <typename TargetType>
+struct ReshapeParam {
+    ReshapeParam() = default;
+    explicit ReshapeParam(std::vector<int> shape_param_in){
+        int count = 0;
+        for (int i = 0; i < shape_param_in.size(); ++i) {
+            if (shape_param_in[i] == -1){
+                count ++;
+            }
+        }
+        CHECK_LE(count, 1) << "shape parameter contains multiple -1 dims";
+        shape_params = shape_param_in;
+    }
+    ReshapeParam(const ReshapeParam<TargetType> &right) {
+        shape_params = right.shape_params;
+    }
+    ReshapeParam<TargetType> &operator=(const ReshapeParam<TargetType> &right) {
+        shape_params = right.shape_params;
+        return *this;
+    }
+    bool operator==(const ReshapeParam &right) {
+        bool comp_eq = shape_params.size() == right.shape_params.size();
+        for (int i = 0; i < shape_params.size(); ++i) {
+            if (!comp_eq){
+                return false;
+            }
+            comp_eq = shape_params[i] == right.shape_params[i];
+        }
+        return true;
+    }
+    std::vector<int> shape_params;
+};
+
 
 template <typename TargetType>
 struct SoftmaxParam {
