@@ -16,20 +16,13 @@
 #ifndef ANAKIN_SABER_FUNCS_PERMUTE_POWER_H
 #define ANAKIN_SABER_FUNCS_PERMUTE_POWER_H
 
+#include "saber/funcs/impl/impl_permute_power.h"
+
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
-#include "saber/funcs/impl/impl_power.h"
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_permute_power.h"
 #include "saber/funcs/impl/cuda/vender_permute_power.h"
-#endif
-
-#ifdef USE_X86_PLACE
-#include "saber/funcs/impl/impl_permute_power.h"
-#endif
-#ifdef USE_ARM_PLACE
-//todo
-#include "saber/funcs/impl/impl_permute_power.h"
 #endif
 namespace anakin {
 namespace saber {
