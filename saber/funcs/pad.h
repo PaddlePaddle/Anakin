@@ -29,16 +29,19 @@
 //todo
 #include "saber/funcs/impl/impl_pad.h"
 #endif
+
 namespace anakin {
 namespace saber {
 
 template<typename TargetType,
-        DataType OpDtype>
+        DataType OpDtype
+>
 class Pad : public BaseFunc<
         TargetType,
         OpDtype,
         ImplBase,
-        PadParam> {
+        PadParam
+> {
 public:
     using BaseFunc<
             TargetType,
@@ -74,11 +77,13 @@ public:
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
             case VENDER_IMPL:
-                this->_impl.push_back(new VenderPad <TargetType, OpDtype>);
+                this->_impl.push_back(new VenderPad <TargetType,
+                        OpDtype>);
                 return SaberSuccess;
 
             case SABER_IMPL:
-                this->_impl.push_back(new SaberPad <TargetType, OpDtype>);
+                this->_impl.push_back(new SaberPad <TargetType,
+                        OpDtype>);
                 return SaberSuccess;
 
             default:
