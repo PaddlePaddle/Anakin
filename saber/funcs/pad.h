@@ -16,19 +16,14 @@
 #ifndef ANAKIN_SABER_FUNCS_PAD_H
 #define ANAKIN_SABER_FUNCS_PAD_H
 
+#include "saber/funcs/impl/impl_pad.h"
+
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_pad.h"
 #endif
 
-#ifdef USE_X86_PLACE
-#include "saber/funcs/impl/impl_pad.h"
-#endif
-#ifdef USE_ARM_PLACE
-//todo
-#include "saber/funcs/impl/impl_pad.h"
-#endif
 
 namespace anakin {
 namespace saber {
