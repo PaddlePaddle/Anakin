@@ -15,6 +15,7 @@
 
 #ifndef ANAKIN_SABER_FUNCS_RESIZE_H
 #define ANAKIN_SABER_FUNCS_RESIZE_H
+#include "saber/funcs/impl/impl_resize.h"
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
