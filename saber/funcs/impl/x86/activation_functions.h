@@ -138,7 +138,7 @@ inline void parallel_activation(size_t len, float *src, float *dst, int index) {
     func(len, src, dst);
 }
 
-#ifdef __AVX2__
+#ifdef __AVX__
 inline __m256 Exp(__m256 a) { return exp256_ps(a); }
 
 inline __m256 Relu(const __m256 a) {
