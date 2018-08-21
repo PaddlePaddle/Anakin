@@ -1867,7 +1867,6 @@ struct SPPParam {
     PoolingType pool_type;
 };
 
-
 template <typename TargetType>
 struct TransposeParam {
     TransposeParam() = default;
