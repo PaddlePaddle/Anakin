@@ -1,4 +1,5 @@
 /* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -11,8 +12,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-#ifndef ANAKIN_SABER_LITE_FUNCS_SABER_SLICE_H
-#define ANAKIN_SABER_LITE_FUNCS_SABER_SLICE_H
+#ifndef ANAKIN_SABER_LITE_FUNCS_SABER_ELTWISE_ACT_H
+#define ANAKIN_SABER_LITE_FUNCS_SABER_ELTWISE_ACT_H
 
 #include "saber/lite/funcs/op_base.h"
 
@@ -22,16 +23,16 @@ namespace anakin{
 namespace saber{
 
 namespace lite{
+
+typedef void (*eltwise_act_func)(const float* din_a, \
+    const float* din_b, float* dout, const int size, std::vector<float> coef);
+
 //template <typename Dtype>
-class SaberSlice : public OpBase {
+class SaberEltwiseAct : public OpBase {
 public:
+    SaberEltwiseAct() {}
 
-    SaberSlice() {
-        _slice_num = 4;
-        _slice_size = 0;
-    }
-
-    SaberSlice(const ParamBase* param);
+    SaberEltwiseAct(const ParamBase* param);
 
     virtual SaberStatus load_param(const ParamBase* param) override;
 
@@ -39,7 +40,7 @@ public:
 
     virtual SaberStatus load_param(std::istream& stream, const float* weights) override;
 
-    ~SaberSlice();
+    ~SaberEltwiseAct();
 
     virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
                                      std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
@@ -47,14 +48,12 @@ public:
     virtual SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
                              std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx) override;
 
-    virtual SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
+    virtual SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
                                  std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
 
 private:
-    const SliceParam* _param;
-    int _slice_num;
-    int _slice_size;
-    std::vector<int> _slice_points;
+    const EltwiseParam* _param;
+    eltwise_act_func _impl{nullptr};
 };
 
 } //namespace lite
@@ -64,4 +63,4 @@ private:
 } //namespace anakin
 #endif // USE_ARM_PLACE
 
-#endif //ANAKIN_SABER_LITE_FUNCS_SABER_SLICE_H
+#endif //ANAKIN_SABER_LITE_FUNCS_SABER_ELTWISE_H

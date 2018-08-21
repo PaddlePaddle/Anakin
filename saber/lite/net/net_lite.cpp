@@ -184,7 +184,9 @@ SaberStatus Net::load_model_info(std::istream &stream) {
 
         //! create op and load param
         OpBase* op = OpRegistry::create_op(op_type);
+#if defined(ENABLE_OP_TIMER) || defined(ENABLE_DEBUG)
         op->set_op_name(op_name.c_str());
+#endif
         op->load_param(stream, _weights);
         _ops[i] = op;
     }

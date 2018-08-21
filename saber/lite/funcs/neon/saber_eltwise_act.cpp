@@ -1,4 +1,4 @@
-#include "saber/lite/funcs/saber_eltwise.h"
+#include "saber/lite/funcs/saber_eltwise_act.h"
 #include "saber/lite/net/saber_factory_lite.h"
 #ifdef USE_ARM_PLACE
 namespace anakin{
@@ -8,19 +8,19 @@ namespace saber{
 namespace lite{
 
 template <typename Dtype>
-void eltwise_prod(const Dtype* din_a, const Dtype* din_b, Dtype* dout, const int size, \
+void eltwise_prod_relu(const Dtype* din_a, const Dtype* din_b, Dtype* dout, const int size, \
     std::vector<float> coef);
 
 template <typename Dtype>
-void eltwise_sum(const Dtype* din_a, const Dtype* din_b, Dtype* dout, const int size, \
+void eltwise_sum_relu(const Dtype* din_a, const Dtype* din_b, Dtype* dout, const int size, \
     std::vector<float> coef);
 
 template <typename Dtype>
-void eltwise_max(const Dtype* din_a, const Dtype* din_b, Dtype* dout, const int size, \
+void eltwise_max_relu(const Dtype* din_a, const Dtype* din_b, Dtype* dout, const int size, \
     std::vector<float> coef);
 
 template <>
-void eltwise_prod(const float* din_a, const float* din_b, float* dout, const int size, \
+void eltwise_prod_relu(const float* din_a, const float* din_b, float* dout, const int size, \
     std::vector<float> coef) {
 
     float* out_ptr = dout;
@@ -29,6 +29,7 @@ void eltwise_prod(const float* din_a, const float* din_b, float* dout, const int
 
     int cnt = size >> 3;
     int remain = size & 7;
+    float32x4_t vzero = vdupq_n_f32(0.f);
 #ifdef __aarch64__
     for (int i = 0; i < cnt; ++i) {
         float32x4_t va0 = vld1q_f32(a_ptr);
@@ -36,9 +37,11 @@ void eltwise_prod(const float* din_a, const float* din_b, float* dout, const int
         float32x4_t va1 = vld1q_f32(a_ptr + 4);
         float32x4_t vb1 = vld1q_f32(b_ptr + 4);
         float32x4_t vout1 = vmulq_f32(va0, vb0);
-        vst1q_f32(out_ptr, vout1);
         float32x4_t vout2 = vmulq_f32(va1, vb1);
-        vst1q_f32(out_ptr + 4, vout2);
+        float32x4_t vout1_relu = vmaxq_f32(vout1, vzero);
+        float32x4_t vout2_relu = vmaxq_f32(vout2, vzero);
+        vst1q_f32(out_ptr, vout1_relu);
+        vst1q_f32(out_ptr + 4, vout2_relu);
         a_ptr += 8;
         b_ptr += 8;
         out_ptr += 8;
@@ -55,23 +58,26 @@ void eltwise_prod(const float* din_a, const float* din_b, float* dout, const int
                 "vmul.f32  q8, q0, q1                   @ q8 = q0 * q1\n"
                 "vmul.f32  q9, q2, q3                   @ q9 = q2 * q3\n"
                 "subs      %[loop_cnt], #1              @ loop --\n"
+                "vmax.f32 q8, q8, %q[vzero]             @ relu \n"
+                "vmax.f32 q9, q9, %q[vzero]             @ relu \n"
                 "vst1.f32 {d16-d17}, [%[out_ptr]]!      @ store data\n"
                 "vst1.f32 {d18-d19}, [%[out_ptr]]!      @ store data\n"
                 "bne       prod_loop                    @ top_loop \n"
         :[loop_cnt] "+r" (loop_cnt), [a_ptr] "+r" (a_ptr), \
             [b_ptr] "+r" (b_ptr), [out_ptr] "+r" (out_ptr)
-        :
+        :[vzero] "w" (vzero)
         :"q0", "q1", "q2", "q3", "q8", "q9"
         );
     }
 #endif //__aarch64__
 
     for (; remain > 0; remain--) {
-        *(out_ptr++) = *(a_ptr++) * (*(b_ptr++));
+        float out = *(a_ptr++) * (*(b_ptr++));
+        *(out_ptr++) = out > 0.f? out : 0.f;
     }
 }
 
-void eltwise_sum(const float* din_a, const float* din_b, float* dout, const int size, \
+void eltwise_sum_relu(const float* din_a, const float* din_b, float* dout, const int size, \
     std::vector<float> coef) {
 
     float* out_ptr = dout;
@@ -80,6 +86,7 @@ void eltwise_sum(const float* din_a, const float* din_b, float* dout, const int 
 
     int cnt = size >> 3;
     int remain = size & 7;
+    float32x4_t vzero = vdupq_n_f32(0.f);
 #ifdef __aarch64__
     for (int i = 0; i < cnt; ++i) {
         float32x4_t va0 = vld1q_f32(a_ptr);
@@ -87,9 +94,11 @@ void eltwise_sum(const float* din_a, const float* din_b, float* dout, const int 
         float32x4_t va1 = vld1q_f32(a_ptr + 4);
         float32x4_t vb1 = vld1q_f32(b_ptr + 4);
         float32x4_t vout1 = vaddq_f32(va0, vb0);
-        vst1q_f32(out_ptr, vout1);
         float32x4_t vout2 = vaddq_f32(va1, vb1);
-        vst1q_f32(out_ptr + 4, vout2);
+        float32x4_t vout1_relu = vmaxq_f32(vout1, vzero);
+        float32x4_t vout2_relu = vmaxq_f32(vout2, vzero);
+        vst1q_f32(out_ptr, vout1_relu);
+        vst1q_f32(out_ptr + 4, vout2_relu);
         a_ptr += 8;
         b_ptr += 8;
         out_ptr += 8;
@@ -106,23 +115,26 @@ void eltwise_sum(const float* din_a, const float* din_b, float* dout, const int 
                 "vadd.f32  q8, q0, q1                   @ q8 = q0 * q1\n"
                 "vadd.f32  q9, q2, q3                   @ q9 = q2 * q3\n"
                 "subs      %[loop_cnt], #1              @ loop --\n"
+                "vmax.f32 q8, q8, %q[vzero]             @ relu \n"
+                "vmax.f32 q9, q9, %q[vzero]             @ relu \n"
                 "vst1.f32 {d16-d17}, [%[out_ptr]]!      @ store data\n"
                 "vst1.f32 {d18-d19}, [%[out_ptr]]!      @ store data\n"
                 "bne       sum_loop                     @ top_loop \n"
         :[loop_cnt] "+r" (loop_cnt), [a_ptr] "+r" (a_ptr), \
             [b_ptr] "+r" (b_ptr), [out_ptr] "+r" (out_ptr)
-        :
+        :[vzero] "w" (vzero)
         :"q0", "q1", "q2", "q3", "q8", "q9"
         );
     }
 #endif //__aarch64__
 
     for (; remain > 0; remain--) {
-        *(out_ptr++) = *(a_ptr++) + (*(b_ptr++));
+        float out = *(a_ptr++) + (*(b_ptr++));
+        *(out_ptr++) = out > 0.f? out : 0.f;
     }
 }
 
-void eltwise_max(const float* din_a, const float* din_b, float* dout, const int size, \
+void eltwise_max_relu(const float* din_a, const float* din_b, float* dout, const int size, \
     std::vector<float> coef) {
 
     float* out_ptr = dout;
@@ -131,6 +143,7 @@ void eltwise_max(const float* din_a, const float* din_b, float* dout, const int 
 
     int cnt = size >> 3;
     int remain = size & 7;
+    float32x4_t vzero = vdupq_n_f32(0.f);
 #ifdef __aarch64__
     for (int i = 0; i < cnt; ++i) {
         float32x4_t va0 = vld1q_f32(a_ptr);
@@ -157,12 +170,14 @@ void eltwise_max(const float* din_a, const float* din_b, float* dout, const int 
                 "vmax.f32  q8, q0, q1                   @ q8 = q0 * q1\n"
                 "vmax.f32  q9, q2, q3                   @ q9 = q2 * q3\n"
                 "subs      %[loop_cnt], #1              @ loop --\n"
+                "vmax.f32 q8, q8, %q[vzero]             @ relu \n"
+                "vmax.f32 q9, q9, %q[vzero]             @ relu \n"
                 "vst1.f32 {d16-d17}, [%[out_ptr]]!      @ store data\n"
                 "vst1.f32 {d18-d19}, [%[out_ptr]]!      @ store data\n"
                 "bne       max_loop                     @ top_loop \n"
         :[loop_cnt] "+r" (loop_cnt), [a_ptr] "+r" (a_ptr), \
             [b_ptr] "+r" (b_ptr), [out_ptr] "+r" (out_ptr)
-        :
+        :[vzero] "w" (vzero)
         :"q0", "q1", "q2", "q3", "q8", "q9"
         );
     }
@@ -173,19 +188,19 @@ void eltwise_max(const float* din_a, const float* din_b, float* dout, const int 
     }
 }
 
-SaberEltwise::SaberEltwise(const ParamBase *param) {
+SaberEltwiseAct::SaberEltwiseAct(const ParamBase *param) {
     _param = (const EltwiseParam*)param;
     this->_flag_param = true;
 }
 
-SaberEltwise::~SaberEltwise() {
+SaberEltwiseAct::~SaberEltwiseAct() {
     if (this->_flag_create_param) {
         delete _param;
         _param = nullptr;
     }
 }
 
-SaberStatus SaberEltwise::load_param(const ParamBase *param) {
+SaberStatus SaberEltwiseAct::load_param(const ParamBase *param) {
     if (this->_flag_create_param) {
         delete _param;
         _param = nullptr;
@@ -196,7 +211,7 @@ SaberStatus SaberEltwise::load_param(const ParamBase *param) {
     return SaberSuccess;
 }
 
-SaberStatus SaberEltwise::load_param(std::istream &stream, const float *weights) {
+SaberStatus SaberEltwiseAct::load_param(std::istream &stream, const float *weights) {
     int type;
     int size;
     std::vector<float> coef;
@@ -231,7 +246,7 @@ SaberStatus SaberEltwise::load_param(FILE *fp, const float *weights) {
     return SaberSuccess;
 }
 #endif
-SaberStatus SaberEltwise::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
+SaberStatus SaberEltwiseAct::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                                std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
 
     if (!this->_flag_param) {
@@ -251,7 +266,7 @@ SaberStatus SaberEltwise::compute_output_shape(const std::vector<Tensor<CPU, AK_
 }
 
 //template <typename Dtype>
-SaberStatus SaberEltwise::init(\
+SaberStatus SaberEltwiseAct::init(\
     const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
         std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx) {
 
@@ -271,13 +286,13 @@ SaberStatus SaberEltwise::init(\
     }
     switch (_param->_elt_type) {
         case Eltwise_prod:
-            _impl = eltwise_prod;
+            _impl = eltwise_prod_relu;
             break;
         case Eltwise_sum:
-            _impl = eltwise_sum;
+            _impl = eltwise_sum_relu;
             break;
         case Eltwise_max:
-            _impl = eltwise_max;
+            _impl = eltwise_max_relu;
             break;
         default:
             printf("unknown eltwise type!!\n");
@@ -288,7 +303,7 @@ SaberStatus SaberEltwise::init(\
 }
 
 //template <typename Dtype>
-SaberStatus SaberEltwise::dispatch(\
+SaberStatus SaberEltwiseAct::dispatch(\
     const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) {
 
@@ -316,14 +331,14 @@ SaberStatus SaberEltwise::dispatch(\
 #ifdef ENABLE_OP_TIMER
     this->_timer.end();
     float ts = this->_timer.get_average_ms();
-    printf("eltwise : %s: time: %f\n", this->_op_name.c_str(), ts);
-    OpTimer::add_timer("eltwise", ts);
+    printf("eltwise act: %s: time: %f\n", this->_op_name.c_str(), ts);
+    OpTimer::add_timer("EltwiseAct", ts);
     OpTimer::add_timer("total", ts);
 #endif
 
     return SaberSuccess;
 }
-REGISTER_LAYER_CLASS(SaberEltwise);
+REGISTER_LAYER_CLASS(SaberEltwiseAct);
 } //namespace lite
 
 } //namespace saber

@@ -151,9 +151,9 @@ add_library(ANAKIN_LITE_OBJS OBJECT ${BUILD_SRC_FILES1} ${BUILD_SRC_FILES2} ${BU
 		${BUILD_SRC_FILES6} ${HEADER_NET})
 
 if(USE_ANDROID)
-	add_library(${anakin_lite_lib_so} SHARED $<TARGET_OBJECTS:ANAKIN_LITE_OBJS>)
-	set_target_properties(${anakin_lite_lib_so} PROPERTIES
-					  LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/output/)
+#	add_library(${anakin_lite_lib_so} SHARED $<TARGET_OBJECTS:ANAKIN_LITE_OBJS>)
+#	set_target_properties(${anakin_lite_lib_so} PROPERTIES
+#					  LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/output/)
 endif()
 add_library(${anakin_lite_lib_static} STATIC $<TARGET_OBJECTS:ANAKIN_LITE_OBJS>)
 set_target_properties(${anakin_lite_lib_static} PROPERTIES 
@@ -207,11 +207,11 @@ install(FILES ${MODEL_HEADER}
         DESTINATION ${PROJECT_SOURCE_DIR}/output/include)
 install(FILES ${PROJECT_BINARY_DIR}/anakin_config.h
         DESTINATION ${PROJECT_SOURCE_DIR}/output/include)
+
+install(TARGETS ${anakin_lite_lib_static}
+		ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/output/lib)
 if(USE_ANDROID)
-	install(TARGETS ${anakin_lite_lib_static} ${anakin_lite_lib_so}
-		ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/output/lib
-		LIBRARY DESTINATION ${PROJECT_SOURCE_DIR}/output/lib)
-else()
-	install(TARGETS ${anakin_lite_lib_static}
-			ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/output/lib)
+#	install(TARGETS ${anakin_lite_lib_static} ${anakin_lite_lib_so}
+#		ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/output/lib
+#		LIBRARY DESTINATION ${PROJECT_SOURCE_DIR}/output/lib)
 endif()

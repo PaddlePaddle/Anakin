@@ -199,7 +199,7 @@ SaberStatus SaberScale::dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inpu
 #ifdef ENABLE_OP_TIMER
     this->_timer.end();
     float ts = this->_timer.get_average_ms();
-    printf("scale time: %f\n", ts);
+    printf("scale : %s: time: %f\n", this->_op_name.c_str(), ts);
     OpTimer::add_timer("scale", ts);
     OpTimer::add_timer("total", ts);
 #endif

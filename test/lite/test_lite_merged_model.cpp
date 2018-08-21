@@ -17,8 +17,8 @@ TEST(TestSaberLite, test_lite_model) {
     //! create net, with power mode and threads
     Net net((PowerMode)FLAGS_cluster, FLAGS_threads);
     //! you can also set net param according to your device
-    //net.set_run_mode((PowerMode)FLAGS_cluster, FLAGS_threads);
-    //net.set_device_cache(32000, 2000000);
+    net.set_run_mode((PowerMode)FLAGS_cluster, FLAGS_threads);
+    //net.set_device_cache(32000, 1000000);
     //! load merged model
     SaberStatus flag = net.load_model(lite_model.c_str());
     CHECK_EQ(flag, SaberSuccess) << "load model: " << lite_model << " failed";
@@ -81,10 +81,20 @@ TEST(TestSaberLite, test_lite_model) {
         }
         to += tdiff;
         LOG(INFO) << "iter: " << i << ", time: " << tdiff << "ms";
-        for (int i = 0; i < vtout.size(); ++i) {
-            double mean_val = tensor_mean(*vtout[i]);
-            LOG(INFO) << "output mean: " << mean_val;
+    }
+    for (int i = 0; i < vtout.size(); ++i) {
+#ifdef ENABLE_DEBUG
+        const float* ptr = vtout[i]->data();
+        for (int j = 0; j < vtout[i]->valid_size(); ++j) {
+            printf("%f ", ptr[j]);
+            if ((j + 1) % 10 == 0) {
+                printf("\n");
+            }
         }
+        printf("\n");
+#endif
+        double mean_val = tensor_mean(*vtout[i]);
+        LOG(INFO) << "output mean: " << mean_val;
     }
     my_time.end();
     LOG(INFO) << lite_model << " batch_size " << FLAGS_num << " average time " << to / FLAGS_epoch << \
@@ -103,7 +113,7 @@ int main(int argc, const char** argv){
     LOG(INFO)<< "   num:            batchSize default to 1";
     LOG(INFO)<< "   warmup_iter:    warm up iterations default to 10";
     LOG(INFO)<< "   epoch:          time statistic epoch default to 10";
-    LOG(INFO)<< "   cluster:        choose which cluster to run, 0: big cores, 1: small cores";
+    LOG(INFO)<< "   cluster:        choose which cluster to run, 0: big cores, 1: small cores, 2: all cores, 3: threads not bind to specify cores";
     LOG(INFO)<< "   threads:        set openmp threads";
     if(argc < 2) {
         LOG(ERROR) << "You should fill in the variable lite model at least.";
@@ -125,8 +135,8 @@ int main(int argc, const char** argv){
         if (FLAGS_cluster < 0) {
             FLAGS_cluster = 0;
         }
-        if (FLAGS_cluster > 1) {
-            FLAGS_cluster = 1;
+        if (FLAGS_cluster > 3) {
+            FLAGS_cluster = 3;
         }
     }
     if(argc > 6) {

@@ -66,7 +66,8 @@ SaberStatus SaberDeconvAct2D::load_param(std::istream &stream, const float *weig
         weights + w_offset, weights + b_offset);
     this->_flag_create_param = true;
     this->_flag_param = true;
-    return SaberSuccess;
+    _conv_func->set_activation(flag_act);
+    return _conv_func->load_param(&_param->_conv_param);
 }
 #if 0
 SaberStatus SaberDeconvAct2D::load_param(FILE *fp, const float *weights) {
@@ -138,6 +139,9 @@ SaberStatus SaberDeconvAct2D::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &i
     // LOG(INFO) << "Deconv act";
     //_conv_func->set_activation(_param->_flag_act);
     this->_flag_init = true;
+#if defined(ENABLE_OP_TIMER) || defined(ENABLE_DEBUG)
+    _conv_func->set_op_name(this->get_op_name());
+#endif
     return _conv_func->init(inputs, outputs, ctx);
 }
 

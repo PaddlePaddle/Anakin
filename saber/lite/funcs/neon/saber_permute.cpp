@@ -285,7 +285,7 @@ SaberStatus SaberPermute::dispatch(\
 #ifdef ENABLE_OP_TIMER
     this->_timer.end();
     float ts = this->_timer.get_average_ms();
-    printf("permute time: %f\n", ts);
+    printf("permute %s: time: %f\n", this->_op_name.c_str(), ts);
     OpTimer::add_timer("permute", ts);
     OpTimer::add_timer("total", ts);
 #endif

@@ -197,7 +197,7 @@ SaberStatus SaberPooling::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &i
 #ifdef ENABLE_OP_TIMER
     this->_timer.end();
     float ts = this->_timer.get_average_ms();
-    printf("pooling time: %f\n", ts);
+    printf("pooling %s: time: %f\n", this->_op_name.c_str(), ts);
     OpTimer::add_timer("pooling", ts);
     OpTimer::add_timer("total", ts);
 #endif

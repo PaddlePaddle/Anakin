@@ -150,8 +150,7 @@ SaberStatus SaberConv2D::init(\
     this->_ctx = &ctx;
     //printf("conv init \n");
 
-    int threads = 1;
-    this->_ctx->get_mode(threads);
+    int threads = this->_ctx->get_threads();
 
     Shape shape_in = inputs[0]->valid_shape();
     Shape shape_out = outputs[0]->valid_shape();
@@ -178,23 +177,29 @@ SaberStatus SaberConv2D::init(\
     if (_param->_group == chin && chin == chout && _param->_kw == 3 && _param->_kh == 3 && \
             _param->_pad_w == 1 && _param->_pad_h == 1 && _param->_dila_w == 1 && _param->_dila_h == 1) {
         _impl = conv_depthwise_3x3;
+#if defined(ENABLE_DEBUG) || defined(ENABLE_OP_TIMER)
         printf("USE DW, num=%d, channel=%d, height=%d, width=%d, group=%d, kernel=%d, stride=%d, dila=%d, pad=%d\n", \
             num, chin, hin, win, _param->_group, _param->_kw, _param->_stride_w, _param->_dila_w, _param->_pad_w);
+#endif
         this->_flag_init = true;
 #ifdef ENABLE_OP_TIMER
        _conv_type = "conv_dw";
 #endif
         return SaberSuccess;
     }
-#if 0 //armv8 conv3x3s2 is not support now
+#if __aarch64__ //armv8 conv3x3s2 is not support now
+
+#else
     //! 3x3s2p1, direct
     if (_param->_kw == 3 && _param->_kh == 3 && _param->_stride_h == 2 && _param->_stride_w == 2 && \
         _param->_pad_w == 1 && _param->_pad_h == 1 && _param->_dila_w == 1 && _param->_dila_h == 1 && _param->_group == 1 && \
         inputs[0]->width() > 7 && inputs[0]->height() > 7 && outputs[0]->channel() > 1) {
         _impl = conv_3x3s2_direct;
         this->_flag_init = true;
+#if defined(ENABLE_DEBUG) || defined(ENABLE_OP_TIMER)
         printf("USE 3x3s2 direct, num=%d, channel=%d, height=%d, width=%d, group=%d, kernel=%d, stride=%d, dila=%d, pad=%d\n", \
             num, chin, hin, win, _param->_group, _param->_kw, _param->_stride_w, _param->_dila_w, _param->_pad_w);
+#endif
 #ifdef ENABLE_OP_TIMER
         _conv_type = "conv3x3s2";
 #endif
@@ -210,8 +215,10 @@ SaberStatus SaberConv2D::init(\
         if (chout / (wout * hout) > 1 || chin < 16 || chout < 14) {
             //! use direct
             _impl = conv_3x3s1_direct;
+#if defined(ENABLE_DEBUG) || defined(ENABLE_OP_TIMER)
             printf("USE 3x3s1 direct, num=%d, channel=%d, height=%d, width=%d, group=%d, kernel=%d, stride=%d, dila=%d, pad=%d\n", \
                 num, chin, hin, win, _param->_group, _param->_kw, _param->_stride_w, _param->_dila_w, _param->_pad_w);
+#endif
 #ifdef ENABLE_OP_TIMER
             _conv_type = "conv3x3_dir";
 #endif
@@ -243,8 +250,10 @@ SaberStatus SaberConv2D::init(\
             _gemmer.init(l1_cache, l2_cache, m_wino, n_wino, k_wino, false, false, threads, this->_ctx->get_work_space());
             _impl = conv_arm_winograd3x3;
             _is_trans_weights = true;
+#if defined(ENABLE_DEBUG) || defined(ENABLE_OP_TIMER)
             printf("USE WINOGRAD, num=%d, channel=%d, height=%d, width=%d, group=%d, kernel=%d, stride=%d, dila=%d, pad=%d\n", \
                 num, chin, hin, win, _param->_group, _param->_kw, _param->_stride_w, _param->_dila_w, _param->_pad_w);
+#endif
 #ifdef ENABLE_OP_TIMER
             _conv_type = "conv3x3_wino";
 #endif
@@ -279,8 +288,10 @@ SaberStatus SaberConv2D::init(\
     }
 
     _gemmer.init(l1_cache, l2_cache, m, n, k, false, false, threads, this->_ctx->get_work_space());
+#if defined(ENABLE_DEBUG) || defined(ENABLE_OP_TIMER)
     printf("USE GEMM, num=%d, channel=%d, height=%d, width=%d, group=%d, kernel=%d, stride=%d, dila=%d, pad=%d\n", \
             num, chin, hin, win, _param->_group, _param->_kw, _param->_stride_w, _param->_dila_w, _param->_pad_w);
+#endif
     this->_flag_init = true;
     return SaberSuccess;
 }
@@ -329,7 +340,7 @@ SaberStatus SaberConv2D::dispatch(\
 #ifdef ENABLE_OP_TIMER
     this->_timer.end();
     float ts = this->_timer.get_average_ms();
-    printf("%s conv time: %f ms, %f GOPS\n", _conv_type.c_str(), ts, 0.000001 * this->_op_macs / ts);
+    printf("type: %s, name: %s, conv time: %f ms, %f GOPs, %f GOPS\n", _conv_type.c_str(), this->get_op_name(), ts, 1e-9f * this->_op_macs, 0.000001 * this->_op_macs / ts);
     OpTimer::add_timer("convolution", ts);
     OpTimer::add_timer("total", ts);
     OpTimer::add_timer(_conv_type, ts);

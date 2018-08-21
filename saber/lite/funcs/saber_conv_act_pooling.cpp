@@ -179,7 +179,9 @@ SaberStatus SaberConvActPooling2D::init(const std::vector<Tensor<CPU, AK_FLOAT> 
         printf("load conv_act_pool param first\n");
         return SaberNotInitialized;
     }
-
+#if defined(ENABLE_OP_TIMER) || defined(ENABLE_DEBUG)
+    _conv_act_func->set_op_name(this->get_op_name());
+#endif
     //SaberConv2D::set_activation(_param->_flag_act);
     _tensor_tmp.re_alloc(_tensor_tmp.valid_shape());
     this->_flag_init = true;

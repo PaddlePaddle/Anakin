@@ -247,7 +247,7 @@ SaberStatus SaberSoftmax::dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& in
 #ifdef ENABLE_OP_TIMER
     this->_timer.end();
     float ts = this->_timer.get_average_ms();
-    printf("softmax time: %f\n", ts);
+    printf("softmax %s: time: %f\n", this->_op_name.c_str(), ts);
     OpTimer::add_timer("softmax", ts);
     OpTimer::add_timer("total", ts);
 #endif

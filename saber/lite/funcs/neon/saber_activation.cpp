@@ -334,15 +334,14 @@ SaberStatus SaberActivation::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *>
     int width = inputs[0]->width();
     float* ptr_out = outputs[0]->mutable_data();
     const float* ptr_in = inputs[0]->data();
-    int threads = 1;
-    this->_ctx->get_mode(threads);
+    int threads = this->_ctx->get_threads();
 
     _impl(ptr_in, ptr_out, num, channel, height, width, this->_param, threads);
 
 #ifdef ENABLE_OP_TIMER
     this->_timer.end();
     float ts = this->_timer.get_average_ms();
-    printf("activation: %d, time: %f\n", (int)this->_param->_act_type, ts);
+    printf("activation %s: %d, time: %f\n", this->_op_name.c_str(), (int)this->_param->_act_type, ts);
     OpTimer::add_timer("activation", ts);
     OpTimer::add_timer("total", ts);
 #endif
