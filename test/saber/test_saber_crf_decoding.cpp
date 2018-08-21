@@ -169,16 +169,16 @@ TEST(TestSaberFunc, test_func_normalize) {
     int width = w_in;
 #ifdef USE_CUDA
     //Init the test_base
-    test_model<AK_FLOAT, NV, NVHX86>();
+//    test_model<AK_FLOAT, NV, NVHX86>();
 #endif
 
 #ifdef USE_X86_PLACE
-test_model<AK_FLOAT, X86, X86>();
+	test_model<AK_FLOAT, X86, X86>();
 #endif
 
 #ifdef USE_ARM_PLACE
    //Init the test_base
-    test_model<AK_FLOAT, ARM, ARM>();
+  //  test_model<AK_FLOAT, ARM, ARM>();
 #endif
 }
 
