@@ -45,7 +45,7 @@ typedef TargetWrapper<BM, __device_target> BM_API;
 
 // Init handle only once in the lifetime
 static bm_handle_t handle;
-static bm_status_t init_handle{bmdnn_init(&handle)};
+static bm_status_t init_handle{bmkernel_init(&handle)};
 
 bm_handle_t BM_API::get_handle() {
     return handle;
