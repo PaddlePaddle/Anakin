@@ -261,9 +261,10 @@ SaberStatus SaberDeconv2D::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inpu
     _workspace_data.reshape(_param->_group * _m * _n * sizeof(float));
 
     _gemmer.init(l1_cache, l2_cache, _m, _n, _k, true, false, threads, this->_ctx->get_work_space());
-
+#if defined(ENABLE_DEBUG) || defined(ENABLE_OP_TIMER)
     printf("Deconv: USE GEMM, numout=%d, chin=%d, kernel=%d, stride=%d, pad=%d, group=%d, win=%d, hin=%d\n", \
             chout, chin, _param->_kw, _param->_stride_w, _param->_pad_w, _param->_group, win, hin);
+#endif
     this->_flag_init = true;
     return SaberSuccess;
 }
@@ -321,12 +322,11 @@ SaberStatus SaberDeconv2D::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &
             const float* weights_group = weights + g * group_size_weights;
             float* coldata_group = col_data + g * group_size_coldata;
 
-            if (_param->_bias == NULL) {
-                _gemmer(weights_group, _m, din_group, _n, coldata_group, _n, 1.f, 0.f, _flag_relu);
-            }else{
+            if (_param->_bias_term) {
                 _gemmer(weights_group, _m, din_group, _n, coldata_group, _n, 1.f, 0.f, false);
+            }else{
+                _gemmer(weights_group, _m, din_group, _n, coldata_group, _n, 1.f, 0.f, _flag_relu);
             }
-            //_gemmer(weights_group, _m, din_group, _n, coldata_group, _n, 1.f, 0.f, _flag_relu);
         }
 
         if (!flag_1x1s1p1) {
@@ -336,7 +336,6 @@ SaberStatus SaberDeconv2D::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &
 
         //! add bias
         if (_param->_bias != NULL) {
-            //fill_bias(dout_batch, _param->_bias, chout, wout * hout);
             fill_bias_relu(dout_batch, _param->_bias, chout, wout * hout, _flag_relu);
         }
 
