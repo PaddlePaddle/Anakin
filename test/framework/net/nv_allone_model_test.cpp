@@ -67,12 +67,10 @@ TEST(NetTest, nv_net_execute_base_test) {
         auto status = graph.load(*iter);
 
         if (!status) {
-                    LOG(FATAL) << " [ERROR] " << status.info();
+            LOG(FATAL) << " [ERROR] " << status.info();
         }
 
-
         graph.ResetBatchSize("input_0", GLB_num);
-
 
         graph.Optimize();
         // constructs the executer net
@@ -83,7 +81,7 @@ TEST(NetTest, nv_net_execute_base_test) {
         auto valid_shape_in = d_tensor_in_p->valid_shape();
 
         for (int i = 0; i < valid_shape_in.size(); i++) {
-                    LOG(INFO) << "detect input dims[" << i << "]" << valid_shape_in[i];
+            LOG(INFO) << "detect input dims[" << i << "]" << valid_shape_in[i];
         }
 
         h_tensor_in.re_alloc(valid_shape_in);
