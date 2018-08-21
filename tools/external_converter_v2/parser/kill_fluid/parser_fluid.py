@@ -766,7 +766,7 @@ class FluidParser:
 					self._RmProtoNode(bn_node_name)
 					self._AddProtoNode(bn_node_name, source_op, helper, {}, 'disc_bn')
 
-	def _DealWithSSDReshape(self, source_ops, helper):
+	def _DealWithSSD(self, source_ops, helper):
 		for source_op in source_ops:
 			if source_op.type == 'reshape':
 				rh_node_name = self._NameNodeMid(source_op)
@@ -780,6 +780,13 @@ class FluidParser:
 						private_data['new_shape'] = [0, -1, 1, 1]
 					self._RmProtoNode(rh_node_name)
 					self._AddProtoNode(rh_node_name, source_op, helper, private_data, 'reshape')
+		for source_op in source_ops:
+			if source_op.type == 'softmax':
+				private_data = dict()
+				sm_node_name = self._NameNodeMid(source_op)
+				private_data['axis'] = 2
+				self._RmProtoNode(sm_node_name)
+				self._AddProtoNode(sm_node_name, source_op, helper, private_data, 'softmax')
 
 	def _NewCommonLayer(self,
 						source_ops,
@@ -826,7 +833,7 @@ class FluidParser:
 			if self.NetType == "SSD":
 				self._DealWithPriorBox(source_ops, helper)
 				self._DealWithDetectionOutput(source_ops, helper)
-				self._DealWithSSDReshape(source_ops, helper)
+				self._DealWithSSD(source_ops, helper)
 		self._Graph()
 
 
