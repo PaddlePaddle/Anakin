@@ -1,11 +1,8 @@
 /* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
-
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
-
        http://www.apache.org/licenses/LICENSE-2.0
-
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -390,7 +387,6 @@ struct CtcAlignParam {
     int blank;
     bool merge_repeated;
 };
-
 template <typename TargetType>
 struct DeformableConvParam {
 
@@ -575,61 +571,60 @@ struct DetectionOutputParam {
     float nms_eta{1.f};
 
 };
-
+  
 template <typename TargetType>
 struct EltwiseParam {
     EltwiseParam()
-        : operation(Eltwise_unknow)
-        , coeff()
-        , activation_param(ActivationParam<TargetType>()) {}
+            : operation(Eltwise_unknow)
+            , coeff()
+            , activation_param(ActivationParam<TargetType>()) {}
+
     EltwiseParam(EltwiseType operation_in
-                 , std::vector<float> coeff_in = std::vector<float>({1, 1})
-                 , ActivationParam<TargetType> activation_param_in = ActivationParam<TargetType>())
-        : operation(operation_in)
-        , coeff(coeff_in)
-        , activation_param(activation_param_in) {
+            , std::vector<float> coeff_in = std::vector<float>({1,1})
+            , ActivationParam<TargetType> activation_param_in = ActivationParam<TargetType>())
+            : operation(operation_in)
+            , coeff(coeff_in)
+            , activation_param(activation_param_in) {
+
         if ((operation == Eltwise_sum) && (coeff.size() == 0)) {
             coeff.push_back(1);
             coeff.push_back(1);
         }
     }
+
     EltwiseParam(const EltwiseParam<TargetType>& right)
-        : operation(right.operation)
-        , coeff(right.coeff)
-        , activation_param(right.activation_param)
+            : operation(right.operation)
+            , coeff(right.coeff)
+            , activation_param(right.activation_param)
     {}
+
     EltwiseParam<TargetType>& operator=(const EltwiseParam<TargetType>& right) {
         operation = right.operation;
         coeff.resize(right.coeff.size());
-
         for (int i = 0; i < coeff.size(); ++i) {
             coeff[i] = right.coeff[i];
         }
-
         activation_param = right.activation_param;
         return *this;
     }
+
     bool operator==(const EltwiseParam<TargetType>& right) {
         bool comp_eq = true;
         comp_eq = comp_eq && (operation == right.operation);
         comp_eq = comp_eq && (coeff.size() == right.coeff.size());
         comp_eq = comp_eq && (activation_param == right.activation_param);
-
         if (!comp_eq) {
             return comp_eq;
         }
-
         for (int i = 0; i < coeff.size(); ++i) {
             comp_eq = comp_eq && (coeff[i] == right.coeff[i]);
         }
-
         return comp_eq;
     }
     ActivationParam<TargetType> activation_param;
     EltwiseType operation;
     std::vector<float> coeff;
 };
-
 
 template <typename TargetType>
 struct EmbeddingParam {
@@ -1874,7 +1869,6 @@ struct SPPParam {
     int pyramid_height;
     PoolingType pool_type;
 };
-
 
 template <typename TargetType>
 struct TransposeParam {
