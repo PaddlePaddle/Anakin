@@ -13,62 +13,53 @@
    limitations under the License.
 */
 
-#ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_CONV2D_H
-#define ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_CONV2D_H
+#ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_CONV_ELTWISE_H
+#define ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_CONV_ELTWISE_H
 
 #include <vector>
-#include "saber/funcs/impl/impl_conv.h"
+#include "saber/funcs/impl/impl_conv_eltwise.h"
 #include "saber/funcs/impl/cuda/base/sass_funcs.h"
-#include "saber/funcs/impl/cuda/saber_activation.h"
+#include "saber/funcs/impl/cuda/saber_conv.h"
 #include "saber/funcs/funcs_utils.h"
 
 namespace anakin{
 
 namespace saber{
 
-template <typename dtype, bool bias_flag, bool relu_flag>
-SaberStatus saber_depthwise_conv_act(const dtype* input, dtype* output, \
-    int num, int cin, int hin, int win, int hout, int wout, \
-    int kw, int kh, int stride_w, int stride_h, \
-    int pad_h, int pad_w, const dtype* weights, const dtype* bias, \
-    cudaStream_t stream);
-
 template <DataType OpDtype>
-class SaberConv2D<NV, OpDtype> : public ImplBase<
-        NV, OpDtype, ConvParam<NV> > {
+class SaberConvEltwise<NV, OpDtype> : public ImplBase<
+        NV, OpDtype, ConvEltwiseParam<NV> > {
 public:
     typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
 
-    SaberConv2D() = default;
-    ~SaberConv2D() {
-        delete _saber_act;
-    }
+    SaberConvEltwise() = default;
+    ~SaberConvEltwise() {}
 
     virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
-                             std::vector<Tensor<NV> *>& outputs,
-                             ConvParam<NV>& param, Context<NV> &ctx);
+            std::vector<Tensor<NV> *>& outputs,
+            ConvEltwiseParam<NV>& param, Context<NV> &ctx);
 
     virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
-                               std::vector<Tensor<NV> *>& outputs,
-                               ConvParam<NV>& param, Context<NV>& ctx) {
+            std::vector<Tensor<NV> *>& outputs,
+            ConvEltwiseParam<NV>& param, Context<NV>& ctx) {
+
         return SaberSuccess;
     }
 
     virtual SaberStatus dispatch(const std::vector<Tensor<NV>*>& inputs,
-                                 std::vector<Tensor<NV>*>& outputs,
-                                 ConvParam<NV>& param);
+            std::vector<Tensor<NV>*>& outputs,
+            ConvEltwiseParam<NV>& param);
+
 
 private:
-    bool _with_saber_act{false};
     bool _in_place{false};
-    bool _use_k1s1p0{false};
     Tensor<NV> _weight_dev;
-    SaberActivation<NV, OpDtype> *_saber_act{nullptr};
     int _kernel_height;
     int _kernel_width;
+    bool _use_k1s1p0;
     std::function<void(const float*,
                        float*,
-                       const OpDataType*,
+                       const float*,
                        const float*,
                        int,
                        int,
@@ -94,13 +85,8 @@ private:
                        int,
                        float,
                        float,
-                       cudaStream_t)> dispatch_func;
-
-    std::function<void(const float*, float* ,
-                       int, int, int, int, int, int,
-                       int, int, int, int,
-                       int, int, const float*, const float*,
-                       cudaStream_t)> depthwise_func;
+                       EltwiseType elt_type,
+                       cudaStream_t)> dispatch_func_elt;
 };
 }
 

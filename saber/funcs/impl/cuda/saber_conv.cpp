@@ -1,6 +1,8 @@
 
 #include "saber/funcs/impl/cuda/saber_conv.h"
 #include "saber/funcs/calibrate.h"
+#include "saber_conv.h"
+
 namespace anakin {
 namespace saber {
 
@@ -79,8 +81,7 @@ SaberStatus SaberConv2D<NV, AK_FLOAT>::\
 
     _kernel_height = param.weight()->height();
     _kernel_width = param.weight()->width();
-    trans_weights(inputs, outputs, param, ctx);
-    cudaDeviceSynchronize();
+    conv_trans_weights(inputs, outputs, param, ctx, _in_place, &_weight_dev);
     if (_with_saber_act) {
         _saber_act = new SaberActivation<NV, AK_FLOAT>;
         _saber_act->init(outputs, outputs, param.activation_param, ctx);
@@ -114,7 +115,7 @@ SaberStatus SaberConv2D<NV, AK_FLOAT>::\
         if (_in_place) {
             weight_ptr = (const float *) param.weight()->data();
         } else {
-            weight_ptr = (const float *) weight_dev.data();
+            weight_ptr = (const float *) _weight_dev.data();
         }
         dispatch_func((const float *) inputs[0]->data(),
                       (float *) outputs[0]->mutable_data(),
