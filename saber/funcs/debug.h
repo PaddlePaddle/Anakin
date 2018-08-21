@@ -20,13 +20,23 @@
 namespace anakin {
 namespace saber {
 
-#if defined(USE_X86_PLACE) || defined(USE_CUDA)
+static void force_reformat_locate_file_path(const char* locate){
+    char* path= const_cast<char *>(locate);
+    for(int i =0;path[i]!='\0';i++){
+        if(path[i]=='/'){
+            path[i]='_';
+        }
 
-template <typename TTensor>
-void record_tensor_to_file(TTensor& dev_tensor,const char* locate){
+    }
+}
+#if defined(USE_X86_PLACE)
+
+
+static void record_tensor_to_file(Tensor <X86, AK_FLOAT, NCHW>& dev_tensor,const char* locate){
     Tensor <X86, AK_FLOAT, NCHW> host_temp;
     host_temp.re_alloc(dev_tensor.valid_shape());
     host_temp.copy_from(dev_tensor);
+    force_reformat_locate_file_path(locate);
     FILE* fp = fopen(locate, "w+");
 
     if (fp == 0) {
@@ -44,6 +54,7 @@ void record_tensor_to_file(TTensor& dev_tensor,const char* locate){
 static void write_tensorfile(Tensor <X86, AK_FLOAT, NCHW> tensor, const char* locate) {
     typedef typename Tensor<X86, AK_FLOAT, NCHW>::Dtype Dtype;
     LOG(INFO) << "host tensor data:" << tensor.size();
+    force_reformat_locate_file_path(locate);
     FILE* fp = fopen(locate, "w+");
 
     if (fp == 0) {
@@ -63,32 +74,31 @@ static void write_tensorfile(Tensor <X86, AK_FLOAT, NCHW> tensor, const char* lo
     LOG(INFO) << "!!! write success: " << locate;
 }
 #endif
-template <typename TargetType>
-static void record_dev_tensorfile(const float* dev_tensor, int size, const char* locate){};
+
 
 #ifdef USE_CUDA
-template <>
-void record_dev_tensorfile<NV>(const float* dev_tensor, int size, const char* locate) {
-    Tensor <X86, AK_FLOAT, NCHW> host_temp;
-    host_temp.re_alloc(Shape(1, 1, 1, size));
-    CUDA_CHECK(cudaMemcpy(host_temp.mutable_data(), dev_tensor, sizeof(float) * size,
-                          cudaMemcpyDeviceToHost));
-    cudaDeviceSynchronize();
-    FILE* fp = fopen(locate, "w+");
 
+static void record_tensor_to_file(Tensor <NV, AK_FLOAT, NCHW>& dev_tensor,const char* locate){
+    Tensor <X86, AK_FLOAT, NCHW> host_temp;
+    host_temp.re_alloc(dev_tensor.valid_shape());
+    host_temp.copy_from(dev_tensor);
+    force_reformat_locate_file_path(locate);
+    FILE* fp = fopen(locate, "w+");
+    cudaDeviceSynchronize();
     if (fp == 0) {
-        LOG(ERROR) << "file open failed " << locate;
+        CHECK(false) << "file open failed " << locate;
 
     } else {
-        for (int i = 0; i < size; ++i) {
+        for (int i = 0; i < host_temp.valid_size(); ++i) {
             fprintf(fp, "[%d] %g \n", i, (host_temp.data()[i]));
         }
 
         fclose(fp);
+                LOG(INFO) << "!!! write success: " << locate;
     }
-
-    LOG(INFO) << "!!! write success: " << locate;
 }
+
+
 static void record_dev_tensorfile(Tensor <NV, AK_FLOAT, NCHW>* dev_tensor, const char* locate) {
     Tensor <X86, AK_FLOAT, NCHW> host_temp;
     int size=dev_tensor->valid_size();
@@ -111,26 +121,11 @@ static void record_dev_tensorfile(Tensor <NV, AK_FLOAT, NCHW>* dev_tensor, const
 
             LOG(INFO) << "!!! write success: " << locate;
 }
+
 #endif
 
 #ifdef USE_X86_PLACE
-template<>
-void record_dev_tensorfile<X86>(const float* dev_tensor, int size, const char* locate) {
-    FILE* fp = fopen(locate, "w+");
 
-    if (fp == 0) {
-        LOG(ERROR) << "file open failed " << locate;
-
-    } else {
-        for (int i = 0; i < size; ++i) {
-            fprintf(fp, "[%d] %g \n", i, (dev_tensor[i]));
-        }
-
-        fclose(fp);
-    }
-
-    LOG(INFO) << "!!! write success: " << locate;
-}
 static void record_dev_tensorfile(Tensor <X86, AK_FLOAT, NCHW>* dev_tensor, const char* locate) {
     int size=dev_tensor->valid_size();
     FILE* fp = fopen(locate, "w+");
