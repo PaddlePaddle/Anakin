@@ -48,7 +48,7 @@ Status BatchNormHelper<Ttype, Ptype>::InitParam() {
         bias[i] = - mean_vec[i] * scale_val / std::sqrt(var_vec[i] * scale_val + eps); 
     }
 
-    saber::ScaleParam <Tensor4d<Ttype>> param_scale(scale, bias, true, 1, 1);
+    saber::ScaleParam<Ttype> param_scale(scale, bias, true, 1, 1);
     _param_scale = param_scale;
     return Status::OK();
 }

@@ -29,7 +29,7 @@ Status CtcAlignHelper<Ttype, Ptype>::InitParam() {
     auto merge_repeated = GET_PARAMETER(bool, merge_repeated);
     auto blank = GET_PARAMETER(int, blank);
 
-    CtcAlignParam<Tensor4d<Ttype>> ctc_align_param(blank, merge_repeated);
+    CtcAlignParam<Ttype> ctc_align_param(blank, merge_repeated);
     _param_ctc_align = ctc_align_param;
 
     return Status::OK();

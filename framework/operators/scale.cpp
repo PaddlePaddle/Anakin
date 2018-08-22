@@ -29,10 +29,10 @@ Status ScaleHelper<Ttype, Ptype>::InitParam() {
 
     if (bias_term) {
         auto bias = GET_PARAMETER(pblock_type, weight_2);
-        ScaleParam <Tensor4d<Ttype>> param_scale(weights.vector(), bias.vector(), bias_term, axis, num_axes);
+        ScaleParam<Ttype> param_scale(weights.vector(), bias.vector(), bias_term, axis, num_axes);
         _param_scale = param_scale;
     } else {
-        ScaleParam <Tensor4d<Ttype>> param_scale(weights.vector(), bias_term, axis, num_axes);
+        ScaleParam<Ttype> param_scale(weights.vector(), bias_term, axis, num_axes);
         _param_scale = param_scale;
     }
     return Status::OK();

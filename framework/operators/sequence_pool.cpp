@@ -36,7 +36,7 @@ Status SequencePoolHelper<Ttype, Ptype>::InitParam() {
     type_map.insert(std::make_pair("LAST", anakin::saber::Sequence_pool_last));
     type_map.insert(std::make_pair("FIRST", anakin::saber::Sequence_pool_first));
     type_map.insert(std::make_pair("MAX", anakin::saber::Sequence_pool_max));
-    saber::SequencePoolParam<Tensor4d<Ttype>> sequence_pool_param(type_map[pooltype]);
+    saber::SequencePoolParam<Ttype> sequence_pool_param(type_map[pooltype]);
     _param_sequence_pool = sequence_pool_param;
     return Status::OK();
 }

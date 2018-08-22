@@ -41,14 +41,14 @@ Status ConvolutionHelper<Ttype, Ptype>::InitParam() {
 
     if (bias_term) {
         auto bias = GET_PARAMETER(pblock_type, weight_2);
-        saber::ConvParam<Tensor4d<Ttype>> conv_param(group, padding[0], padding[1],
+        saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
                                               strides[0], strides[1],
                                               dilation_rate[0], dilation_rate[1],
                                               &(weights.d_tensor()), &(bias.d_tensor()));
         _param_conv = conv_param;
     } else {
         Tensor4d<Ttype>* bias = new Tensor4d<Ttype>();;
-        saber::ConvParam<Tensor4d<Ttype>> conv_param(group, padding[0], padding[1],
+        saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
                                               strides[0], strides[1],
                                               dilation_rate[0], dilation_rate[1],
                                               &(weights.d_tensor()), bias);

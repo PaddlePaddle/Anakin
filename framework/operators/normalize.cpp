@@ -35,7 +35,7 @@ Status NormalizeHelper<Ttype, Ptype>::InitParam() {
 	using pblock_type = PBlock<Ttype>;
     auto input_scale = GET_PARAMETER(pblock_type, weight_1);
 
-    saber::NormalizeParam<Tensor4d<Ttype>> normalize_param(is_across_spatial, is_shared_channel, \
+    saber::NormalizeParam<Ttype> normalize_param(is_across_spatial, is_shared_channel, \
         &(input_scale.d_tensor()), eps, p);
     _param_normalize = normalize_param;
     return Status::OK();

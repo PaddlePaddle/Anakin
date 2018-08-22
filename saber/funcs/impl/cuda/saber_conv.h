@@ -46,7 +46,9 @@ public:
 
     virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
                              std::vector<Tensor<NV> *>& outputs,
-                             ConvParam<NV>& param, Context<NV> &ctx);
+                             ConvParam<NV>& param, Context<NV> &ctx) {
+        return SaberSuccess;
+    }
 
     virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
                                std::vector<Tensor<NV> *>& outputs,
@@ -56,7 +58,9 @@ public:
 
     virtual SaberStatus dispatch(const std::vector<Tensor<NV>*>& inputs,
                                  std::vector<Tensor<NV>*>& outputs,
-                                 ConvParam<NV>& param);
+                                 ConvParam<NV>& param) {
+        return SaberSuccess;
+    }
 
     void trans_weights(const std::vector<Tensor<NV> *>& inputs,
                        std::vector<Tensor<NV> *>& outputs,

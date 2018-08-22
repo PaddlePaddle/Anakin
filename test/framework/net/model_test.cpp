@@ -63,7 +63,7 @@ TEST(NetTest, nv_net_execute_base_test) {
     for (auto iter = models.begin(); iter < models.end(); iter++) {
         LOG(WARNING) << "load anakin model file from " << *iter << " ...";
 #if 1
-        Graph<NV, AK_FLOAT, Precision::FP32> graph;
+        Graph<NV, Precision::FP32> graph;
         auto status = graph.load(*iter);
 
         if (!status) {
@@ -78,10 +78,10 @@ TEST(NetTest, nv_net_execute_base_test) {
 
         graph.Optimize();
         // constructs the executer net
-        Net<NV, AK_FLOAT, Precision::FP32> net_executer(graph, true);
+        Net<NV, Precision::FP32> net_executer(graph, true);
         // get in
         auto d_tensor_in_p = net_executer.get_in("input_0");
-        Tensor4d<Target_H, AK_FLOAT> h_tensor_in;
+        Tensor4d<Target_H> h_tensor_in;
         auto valid_shape_in = d_tensor_in_p->valid_shape();
 
         for (int i = 0; i < valid_shape_in.size(); i++) {
@@ -89,7 +89,7 @@ TEST(NetTest, nv_net_execute_base_test) {
         }
 
         h_tensor_in.re_alloc(valid_shape_in);
-        fill_tensor_host_rand(h_tensor_in, -1.0f, 1.0f);
+        //fill_tensor_host_rand(h_tensor_in, -1.0f, 1.0f);
         d_tensor_in_p->copy_from(h_tensor_in);
         int warmup_iter = 10;
         int epoch = 1000;

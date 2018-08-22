@@ -40,7 +40,7 @@ Status DetectionOutputHelper<Ttype, Ptype>::InitParam() {
                 LOG(FATAL) << "unsupport type: " << code_type_;
     }
 
-    DetectionOutputParam<Tensor4d<Ttype>> param_det(classes_num, background_id_, \
+    DetectionOutputParam<Ttype> param_det(classes_num, background_id_, \
             keep_top_k_, nms_top_k_, nms_thresh_, conf_thresh_, \
             flag_share_location, flag_var_in_target, code_type, nms_eta_);
     _param_detection_output = param_det;

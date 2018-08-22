@@ -43,8 +43,8 @@ public:
     virtual void operator() (OpContext<Ttype> &ctx, 
                              const std::vector<Tensor4dPtr<Ttype> >& ins, 
                              std::vector<Tensor4dPtr<Ttype> >& outs) {
-		LOG(ERROR) << "Not Impl Yet Operator SequencePool< Ttype("
-				   << Ttype << "), Precision("<< Ptype <<") >";	
+		//LOG(ERROR) << "Not Impl Yet Operator SequencePool< Ttype(" 
+                     //<< target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
     friend class SequencePoolHelper<Ttype, Ptype>;
@@ -86,9 +86,9 @@ public:
 
 public:
     ///< _param_sequence_pool stand for SequencePool parameter
-    saber::SequencePoolParam<Tensor4d<Ttype>>  _param_sequence_pool;
+    saber::SequencePoolParam<Ttype>  _param_sequence_pool;
     ///< _funcs_sequence_pool stand for SequencePool function
-    saber::SequencePool<Ttype, typename PrecisionWrapper<Ptype>::saber_type> _funcs_sequence_pool;
+    saber::SequencePool<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_sequence_pool;
 
 private:
     ///< _dims stand for SequencePool size

@@ -44,7 +44,7 @@ public:
                              const std::vector<Tensor4dPtr<Ttype> >& ins, 
                              std::vector<Tensor4dPtr<Ttype> >& outs) {
 		LOG(ERROR) << "Not Impl Yet Operator Axpy< Ttype("
-				   << Ttype << "), Precision("<< Ptype <<") >";	
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
     friend class AxpyHelper<Ttype, Ptype>;
@@ -88,7 +88,7 @@ public:
     ///< _param_axpy stand for axpy parameter
     saber::AxpyParam<Tensor4d<Ttype>> _param_axpy;
     ///< _funcs_axpy stand for axpy function
-    saber::Axpy<Ttype, typename PrecisionWrapper<Ptype>::saber_type> _funcs_axpy;
+    saber::Axpy<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_axpy;
 
 private:
     ///< _dims stand for axpy size

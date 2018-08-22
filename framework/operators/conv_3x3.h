@@ -44,7 +44,7 @@ public:
                              const std::vector<Tensor4dPtr<Ttype> >& ins, 
                              std::vector<Tensor4dPtr<Ttype> >& outs) {
 		LOG(ERROR) << "Not Impl Yet Operator SassConvolution< Ttype("
-				   << Ttype << "), Precision("<< Ptype <<") >";	
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
     friend class SassConvolutionHelper<Ttype, Ptype>;
@@ -86,9 +86,9 @@ public:
 
 public:
     ///< _param_conv stand for conv_3X3 parameter
-    saber::ConvParam<Tensor4d<Ttype>>  _param_conv;
+    saber::ConvParam<Ttype>  _param_conv;
     ///< _funcs_conv stand for convolution function 
-    saber::Conv<Ttype, typename PrecisionWrapper<Ptype>::saber_type> _funcs_conv; 
+    saber::Conv<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_conv; 
 
 private:
     ///< _dims stand for conv_3X3 size

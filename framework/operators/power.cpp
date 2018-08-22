@@ -32,7 +32,7 @@ Status PowerHelper<Ttype, Ptype>::InitParam() {
     auto shift = GET_PARAMETER(float, shift);
     auto power = GET_PARAMETER(float, power);
 
-    saber::PowerParam<Tensor4d<Ttype>> power_param(power, scale, shift);
+    saber::PowerParam<Ttype> power_param(power, scale, shift);
     _param_power = power_param;
     return Status::OK();
 }

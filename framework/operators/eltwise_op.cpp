@@ -30,7 +30,7 @@ Status EltwiseHelper<Ttype, Ptype>::InitParam() {
     } else {
         elt_type = Eltwise_prod;
     }
-    saber::EltwiseParam<Tensor4d<Ttype> > eltwise_param(elt_type, coeff.vector());
+    saber::EltwiseParam<Ttype> eltwise_param(elt_type, coeff.vector());
     _param_eltwise = eltwise_param;
     return Status::OK();
 }

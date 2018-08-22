@@ -45,7 +45,7 @@ public:
                              const std::vector<Tensor4dPtr<Ttype> >& ins, 
                              std::vector<Tensor4dPtr<Ttype> >& outs) {
 		LOG(ERROR) << "Not Impl Yet Operator CtcAlign< Ttype("
-				   << Ttype << "), Precision("<< Ptype <<") >";	
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
     friend class CtcAlignHelper<Ttype, Ptype>;
@@ -87,9 +87,9 @@ public:
 
 public:
     ///< _param_ctc_align stand for CtcAlign parameter
-    saber::CtcAlignParam<Tensor4d<Ttype>> _param_ctc_align;
+    saber::CtcAlignParam<Ttype> _param_ctc_align;
     ///< _funcs_ctc_align stand for CtcAlign function
-    saber::CtcAlign<Ttype, typename PrecisionWrapper<Ptype>::saber_type> _funcs_ctc_align;
+    saber::CtcAlign<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_ctc_align;
 };
 
 } /* namespace ops */

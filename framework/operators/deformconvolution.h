@@ -44,7 +44,7 @@ public:
                              const std::vector<Tensor4dPtr<Ttype> >& ins, 
                              std::vector<Tensor4dPtr<Ttype> >& outs) {
 		LOG(ERROR) << "Not Impl Yet Operator  DeformConvolution<Ttype("
-				   << Ttype << "), Precision("<< Ptype <<") >";	
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
     friend class DeformConvolutionHelper<Ttype, Ptype>;
@@ -86,9 +86,9 @@ public:
 
 public:
     ///< _param_deform_conv stand for deformconvolution parameter
-    saber::DeformableConvParam<Tensor4d<Ttype>>  _param_deform_conv;
+    saber::DeformableConvParam<Ttype>  _param_deform_conv;
     ///< _funcs_deform_conv stand for deformconvolution function
-    saber::DeformableConv<Ttype, typename PrecisionWrapper<Ptype>::saber_type> _funcs_deform_conv;
+    saber::DeformableConv<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_deform_conv;
 
 private:
     ///< _dims stand for batchNorm size

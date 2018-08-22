@@ -39,7 +39,7 @@ public:
                              const std::vector<Tensor4dPtr<Ttype> >& ins, 
                              std::vector<Tensor4dPtr<Ttype> >& outs) {
 		LOG(ERROR) << "Not Impl Yet Operator  DetectionOutput<Ttype("
-				   << Ttype << "), Precision("<< Ptype <<") >";	
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
     friend class DetectionOutputHelper<Ttype, Ptype>;
@@ -64,8 +64,8 @@ public:
                       std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
 public:
-    saber::DetectionOutputParam<Tensor4d<Ttype>> _param_detection_output;
-    saber::DetectionOutput<Ttype, typename PrecisionWrapper<Ptype>::saber_type> _funcs_detection_output;
+    saber::DetectionOutputParam<Ttype> _param_detection_output;
+    saber::DetectionOutput<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_detection_output;
 };
 
 } /* namespace ops */

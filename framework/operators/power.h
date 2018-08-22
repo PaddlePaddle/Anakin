@@ -44,7 +44,7 @@ public:
                              const std::vector<Tensor4dPtr<Ttype> >& ins, 
                              std::vector<Tensor4dPtr<Ttype> >& outs) {
 		LOG(ERROR) << "Not Impl Yet Operator Power< Ttype("
-				   << Ttype << "), Precision("<< Ptype <<") >";	
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
 
     }
 
@@ -87,9 +87,9 @@ public:
 
 public:
     ///< _param_power stand for Power parameter
-    saber::PowerParam<Tensor4d<Ttype>> _param_power;
+    saber::PowerParam<Ttype> _param_power;
     ///< _funcs_power stand for Power function 
-    saber::Power<Ttype, typename PrecisionWrapper<Ptype>::saber_type> _funcs_power;
+    saber::Power<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_power;
 
 private:
     ///< _dims stand for Power size

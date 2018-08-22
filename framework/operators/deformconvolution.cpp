@@ -8,7 +8,7 @@ namespace ops {
 template<>
 void DeformConvolution<NV, Precision::FP32>::operator()(
     OpContext<NV>& ctx,
-    const std::vector<Tensor4dPtr<NV >& ins,
+    const std::vector<Tensor4dPtr<NV > >& ins,
     std::vector<Tensor4dPtr<NV> >& outs) {
     auto* impl = static_cast<DeformConvolutionHelper<NV, Precision::FP32>*>(this->_helper);
     auto& param = static_cast<DeformConvolutionHelper<NV, Precision::FP32>*>
@@ -42,14 +42,14 @@ Status DeformConvolutionHelper<Ttype, Ptype>::InitParam() {
 
     if (bias_term) {
         auto bias = GET_PARAMETER(pblock_type, weight_2);
-        saber::DeformableConvParam<Tensor4d<Ttype>> deform_conv_param(group, padding[0], padding[1],
+        saber::DeformableConvParam<Ttype> deform_conv_param(group, padding[0], padding[1],
                 strides[0], strides[1],
                 dilation_rate[0], dilation_rate[1],
                 &(weights.d_tensor()), &(bias.d_tensor()));
         _param_deform_conv = deform_conv_param;
     } else {
         Tensor4d<Ttype>* bias = new Tensor4d<Ttype>();;
-        saber::DeformableConvParam<Tensor4d<Ttype>> deform_conv_param(group, padding[0], padding[1],
+        saber::DeformableConvParam<Ttype> deform_conv_param(group, padding[0], padding[1],
                 strides[0], strides[1],
                 dilation_rate[0], dilation_rate[1],
                 &(weights.d_tensor()), bias);

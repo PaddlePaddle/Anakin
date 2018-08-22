@@ -29,15 +29,6 @@ template<typename Ttype, Precision Ptype>
 class OperatorHelper;
 
 /** 
- *  \brief Basic operation class.
- */
-class OperatorBase {
-public:
-    OperatorBase() {}
-    virtual ~OperatorBase() {}
-};
-
-/** 
  *  \brief Operator class, it's a base class for other op defined by anakin.
  */
 template<typename Ttype, Precision Ptype>

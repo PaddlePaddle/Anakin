@@ -44,7 +44,7 @@ public:
                              const std::vector<Tensor4dPtr<Ttype> >& ins, 
                              std::vector<Tensor4dPtr<Ttype> >& outs) {
 		LOG(ERROR) << "Not Impl Yet Operator Normalize< Ttype("
-				   << Ttype << "), Precision("<< Ptype <<") >";	
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
     friend class NormalizeHelper<Ttype, Ptype>;
@@ -86,9 +86,9 @@ public:
 
 public:
     ///< _param_normalize stand for Normalize parameter
-    saber::NormalizeParam<Tensor4d<Ttype>>  _param_normalize;
+    saber::NormalizeParam<Ttype>  _param_normalize;
     ///< _funcs_normalize stand for Normalize function
-    saber::Normalize<Ttype, typename PrecisionWrapper<Ptype>::saber_type> _funcs_normalize;
+    saber::Normalize<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_normalize;
 
 private:
     ///< _dims stand for Normalize size

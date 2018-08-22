@@ -22,7 +22,7 @@ Status ReLUHelper<Ttype, Ptype>::InitParam() {
 
     // get relu param
     auto alpha = GET_PARAMETER(float, alpha);
-    ActivationParam<Tensor4d<Ttype>> active_param(Active_relu);//, alpha); // TEMP
+    ActivationParam<Ttype> active_param(Active_relu);//, alpha); // TEMP
     _param_relu = active_param;
     return Status::OK();
 }

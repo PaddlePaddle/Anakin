@@ -44,7 +44,7 @@ public:
                              const std::vector<Tensor4dPtr<Ttype> >& ins, 
                              std::vector<Tensor4dPtr<Ttype> >& outs) {
 		LOG(ERROR) << "Not Impl Yet Operator Scale< Ttype("
-				   << Ttype << "), Precision("<< Ptype <<") >";	
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
     friend class ScaleHelper<Ttype, Ptype>;
@@ -86,9 +86,9 @@ public:
 
 public:
     ///< _param_scale stand for scale parameter
-    saber::ScaleParam<Tensor4d<Ttype>> _param_scale;
+    saber::ScaleParam<Ttype> _param_scale;
     ///< _funcs_scale stand for scale function
-    saber::Scale<Ttype, typename PrecisionWrapper<Ptype>::saber_type> _funcs_scale;
+    saber::Scale<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_scale;
 };
 
 } /* namespace ops */

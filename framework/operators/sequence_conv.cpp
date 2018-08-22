@@ -54,11 +54,11 @@ Status SequenceConvHelper<Ttype, Ptype>::InitParam() {
 
 
     if(padding_tensor.d_tensor().valid_size()>0) {
-        SequenceConvParam<Tensor4d<Ttype>> param(&(filter_tensor.d_tensor()), context_length, context_start,
+        SequenceConvParam<Ttype> param(&(filter_tensor.d_tensor()), context_length, context_start,
                                                         context_stride, padding_trainable, &(padding_tensor.d_tensor()));
         _param = param;
     }else{
-        SequenceConvParam<Tensor4d<Ttype>> param(&(filter_tensor.d_tensor()), context_length, context_start,
+        SequenceConvParam<Ttype> param(&(filter_tensor.d_tensor()), context_length, context_start,
                                                         context_stride, padding_trainable);
         _param = param;
     }

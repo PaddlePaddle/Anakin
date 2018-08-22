@@ -54,7 +54,7 @@ public:
                              const std::vector<Tensor4dPtr<Ttype> >& ins, 
                              std::vector<Tensor4dPtr<Ttype> >& outs) {
 		LOG(ERROR) << "Not Impl Yet Operator Pooling< Ttype("
-				   << Ttype << "), Precision("<< Ptype <<") >";	
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
 
     }
 
@@ -97,9 +97,9 @@ public:
 
 public:
     ///< _param_pooling stand for Pooling parameter
-    saber::PoolingParam<Tensor4d<Ttype>> _param_pooling;
+    saber::PoolingParam<Ttype> _param_pooling;
     ///< _funcs_pooling stand for Pooling function
-    saber::Pooling<Ttype, typename PrecisionWrapper<Ptype>::saber_type> _funcs_pooling;
+    saber::Pooling<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_pooling;
 };
 
 

@@ -44,7 +44,7 @@ public:
                              const std::vector<Tensor4dPtr<Ttype> >& ins, 
                              std::vector<Tensor4dPtr<Ttype> >& outs) {
 		LOG(ERROR) << "Not Impl Yet Operator Deconvolution< Ttype("
-				   << Ttype << "), Precision("<< Ptype <<") >";	
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
     friend class DeconvolutionHelper<Ttype, Ptype>;
@@ -87,9 +87,9 @@ public:
 
 public:
     ///< _param_deconv stand for deconvolution parameter
-    saber::ConvParam<Tensor4d<Ttype>>  _param_deconv;
+    saber::ConvParam<Ttype>  _param_deconv;
     ///< _funcs_deconv stand for deconvolution function
-    saber::Deconv<Ttype, typename PrecisionWrapper<Ptype>::saber_type> _funcs_deconv;
+    saber::Deconv<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_deconv;
 
 private:
     ///< _dims stand for batchNorm size

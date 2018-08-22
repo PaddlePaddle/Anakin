@@ -23,10 +23,14 @@
 
 namespace anakin {
 
-class OperatorBase;
-
-template<typename Ttype, Precision Ptype>
-class Operator;
+/**
+ * \brief Basic operation class.
+ */
+class OperatorBase {
+public:
+    OperatorBase() {}
+    virtual ~OperatorBase() {}
+};
 
 namespace graph {
 

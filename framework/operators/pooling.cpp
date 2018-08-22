@@ -27,13 +27,13 @@ Status PoolingHelper<Ttype, Ptype>::InitParam() {
     auto pool_method = GET_PARAMETER(std::string, method);
 
     if (pool_method == "MAX") {
-        PoolingParam<Tensor4d<Ttype>> pooling_param(pool_size[0], pool_size[1],
+        PoolingParam<Ttype> pooling_param(pool_size[0], pool_size[1],
                                                            pool_padding[0], pool_padding[1],
                                                            pool_strides[0], pool_strides[1],
                                                            Pooling_max, global_pooling, cmp_out_shape_floor_as_conv);
         _param_pooling = pooling_param;
     } else if (pool_method == "AVG") {
-        PoolingParam<Tensor4d<Ttype>> pooling_param(pool_size[0], pool_size[1],
+        PoolingParam<Ttype> pooling_param(pool_size[0], pool_size[1],
                                                            pool_padding[0], pool_padding[1],
                                                            pool_strides[0], pool_strides[1],
                                                            Pooling_average_include_padding, global_pooling, cmp_out_shape_floor_as_conv);

@@ -44,7 +44,7 @@ public:
                              const std::vector<Tensor4dPtr<Ttype> >& ins, 
                              std::vector<Tensor4dPtr<Ttype> >& outs) {
 		LOG(ERROR) << "Not Impl Yet Operator ReLU< Ttype("
-				   << Ttype << "), Precision("<< Ptype <<") >";	
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
     friend class ReLUHelper<Ttype, Ptype>;
@@ -86,9 +86,9 @@ public:
 
 public:
     ///< _param_relu stand for ReLU parameter
-    saber::ActivationParam<Tensor4d<Ttype>> _param_relu;
+    saber::ActivationParam<Ttype> _param_relu;
     ///< _funcs_relu stand for ReLU function 
-    saber::Activation<Ttype, typename PrecisionWrapper<Ptype>::saber_type> _funcs_relu;
+    saber::Activation<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_relu;
 
 private:
     ///< _dims stand for ReLU size

@@ -44,7 +44,7 @@ public:
                              const std::vector<Tensor4dPtr<Ttype> >& ins, 
                              std::vector<Tensor4dPtr<Ttype> >& outs) {
 		LOG(ERROR) << "Not Impl Yet Operator Eltwise< Ttype("
-				   << Ttype << "), Precision("<< Ptype <<") >";	
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
     friend class EltwiseHelper<Ttype, Ptype>;
@@ -86,9 +86,9 @@ public:
 
 public:
     ///< _param_eltwise stand for Eltwise parameter
-    saber::EltwiseParam<Tensor4d<Ttype>>  _param_eltwise;
+    saber::EltwiseParam<Ttype>  _param_eltwise;
      ///< _funcs_eltwise stand for Eltwise function
-    saber::Eltwise<Ttype, typename PrecisionWrapper<Ptype>::saber_type> _funcs_eltwise;
+    saber::Eltwise<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_eltwise;
 
 private:
     ///< _dims stand for Eltwise size

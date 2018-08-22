@@ -11,7 +11,7 @@ std::string model_path = "/path/to/name.anakin.bin";
 
 
 TEST(GraphTest, graph_load_model) {
-    /*Graph<ARM, float, Precision::FP32>* graph = new Graph<ARM, float, Precision::FP32>();
+    /*Graph<ARM, Precision::FP32>* graph = new Graph<ARM, Precision::FP32>();
     LOG(WARNING) << "load anakin model file from " << model_path << " ...";
     // load anakin model files.
     graph->load(model_path);
@@ -23,7 +23,7 @@ TEST(GraphTest, graph_load_model) {
 
 #ifdef USE_CUDA
 TEST(GraphTest, nvidia_graph_save_model) {
-    Graph<NV, AK_FLOAT, Precision::FP32>* graph = new Graph<NV, AK_FLOAT, Precision::FP32>();
+    Graph<NV, Precision::FP32>* graph = new Graph<NV, Precision::FP32>();
     // load anakin model files.
     LOG(INFO) << "load anakin model file from " << model_path << " ...";
     graph->load(model_path);
@@ -42,7 +42,7 @@ TEST(GraphTest, nvidia_graph_save_model) {
 
 #ifdef USE_X86_PLACE
 TEST(GraphTest, x86_graph_save_model) {
-    Graph<X86, AK_FLOAT, Precision::FP32>* graph = new Graph<X86, AK_FLOAT, Precision::FP32>();
+    Graph<X86, Precision::FP32>* graph = new Graph<X86, Precision::FP32>();
     // load anakin model files.
     LOG(INFO) << "load anakin model file from " << model_path << " ...";
     graph->load(model_path);
@@ -61,7 +61,7 @@ TEST(GraphTest, x86_graph_save_model) {
 
 #ifdef USE_ARM_PLACE
 TEST(GraphTest, arm_graph_save_model) {
-    Graph<ARM, AK_FLOAT, Precision::FP32>* graph = new Graph<ARM, AK_FLOAT, Precision::FP32>();
+    Graph<ARM, Precision::FP32>* graph = new Graph<ARM, Precision::FP32>();
     // load anakin model files.
     LOG(INFO) << "load anakin model file from " << model_path << " ...";
     graph->load(model_path);

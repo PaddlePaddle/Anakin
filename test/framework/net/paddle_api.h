@@ -85,7 +85,7 @@ public:
     return _net_executer.get_out(name);
   }
 private:
-    anakin::graph::Graph<Ttype, Dtype, Ptype> _graph;
+    anakin::graph::Graph<Ttype, Ptype> _graph;
     anakin::Net<Ttype, Dtype, Ptype> _net_executer;
 };  // class TensorRTEngine
 

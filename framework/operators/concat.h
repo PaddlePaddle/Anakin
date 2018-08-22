@@ -44,7 +44,7 @@ public:
                              const std::vector<Tensor4dPtr<Ttype> >& ins, 
                              std::vector<Tensor4dPtr<Ttype> >& outs) {
 		LOG(ERROR) << "Not Impl Yet Operator Concat< Ttype("
-				   << Ttype << "), Precision("<< Ptype <<") >";	
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
     friend class ConcatHelper<Ttype, Ptype>;
@@ -86,9 +86,9 @@ public:
 
 public:
     ///< _param_concat stand for contact parameter
-    saber::ConcatParam<Tensor4d<Ttype>> _param_concat;
+    saber::ConcatParam<Ttype> _param_concat;
     ///< _funcs_concat stand for contact function
-    saber::Concat<Ttype, typename PrecisionWrapper<Ptype>::saber_type> _funcs_concat;
+    saber::Concat<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_concat;
 
 private:
     ///< _dims stand for contact size

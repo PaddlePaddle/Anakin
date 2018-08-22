@@ -44,7 +44,7 @@ public:
                             const std::vector<Tensor4dPtr<Ttype> >& ins,
                             std::vector<Tensor4dPtr<Ttype> >& outs) {
 		LOG(ERROR) << "Not Impl Yet Operator SequenceConv< Ttype("
-				   << Ttype << "), Precision("<< Ptype <<") >";	
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
     friend class SequenceConvHelper<Ttype, Ptype>;
@@ -86,9 +86,9 @@ public:
 
 public:
     ///< _param_softmax stand for softmax parameter
-    saber::SequenceConvParam<Tensor4d<Ttype>> _param;
+    saber::SequenceConvParam<Ttype> _param;
     ///< _funcs_SequenceConv stand for softmax function
-    saber::SequenceConv<Ttype, typename PrecisionWrapper<Ptype>::saber_type> _funcs;
+    saber::SequenceConv<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs;
 };
 
 
