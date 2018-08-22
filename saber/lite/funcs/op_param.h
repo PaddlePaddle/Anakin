@@ -616,7 +616,30 @@ struct PriorBoxParam : public ParamBase {
     int _prior_num{0};
     std::vector<PriorType> _order;
 };
+struct ResizeParam: public ParamBase{
 
+    ResizeParam(){}
+    ResizeParam(float width_scale_in, float height_scale_in){
+        _width_scale = width_scale_in;
+        _height_scale = height_scale_in;
+    }
+    ResizeParam(const ResizeParam &right):ParamBase(right){
+        _width_scale = right._width_scale;
+        _height_scale = right._height_scale;
+    }
+    ResizeParam &operator=(const ResizeParam &right){
+        _width_scale = right._width_scale;
+        _height_scale = right._height_scale;
+        return *this;
+    }
+    bool operator==(const ResizeParam &right){
+        bool comp_eq = (_width_scale == right._width_scale) &&\
+                        (_height_scale == right._height_scale);
+        return comp_eq;
+    }
+    float _width_scale{0.0f};
+    float _height_scale{0.0f};
+};
 struct SliceParam : public ParamBase {
 
     SliceParam(){}
