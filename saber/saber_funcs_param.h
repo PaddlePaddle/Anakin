@@ -1,11 +1,8 @@
 /* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
-
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
-
        http://www.apache.org/licenses/LICENSE-2.0
-
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -34,28 +31,42 @@ struct PowerParam;
 template <typename TargetType>
 struct ActivationParam {
     ActivationParam()
-        : active(Active_unknow)
-        , negative_slope(float(-1))
-        , coef(float(-1))
-        , prelu_param(PreluParam<TargetType>(false, nullptr))
-        , has_active(false) {}
+            : active(Active_unknow)
+            , negative_slope(float(-1))
+            , coef(float(-1))
+            , prelu_param(PreluParam<TargetType>(false, nullptr))
+            , has_active(false) 
+    {}
+
     ActivationParam(ActiveType act, float n_slope = float(0),
                     float co = float(1),
                     PreluParam<TargetType> prelu = PreluParam<TargetType>(false, nullptr))
-        : active(act)
-        , negative_slope(n_slope)
-        , coef(co)
-        , prelu_param(prelu)
-        , has_active(true)
+            : active(act)
+            , negative_slope(n_slope)
+            , coef(co)
+            , prelu_param(prelu)
+            , has_active(true)
     {}
-    ActivationParam(const ActivationParam& right)
-        : active(right.active)
-        , negative_slope(right.negative_slope)
-        , coef(right.coef)
-        , prelu_param(right.prelu_param)
-        , has_active(right.has_active)
+
+    ActivationParam(ActiveType act, float n_slope,
+                    float co,
+                    PreluParam<TargetType> prelu,
+                    bool has)
+            : active(act)
+            , negative_slope(n_slope)
+            , coef(co)
+            , prelu_param(prelu)
+            , has_active(has)
     {}
-    ActivationParam& operator=(const ActivationParam& right) {
+
+    ActivationParam(const ActivationParam &right)
+            : active(right.active)
+            , negative_slope(right.negative_slope)
+            , coef(right.coef)
+            , prelu_param(right.prelu_param)
+            , has_active(right.has_active)
+    {}
+    ActivationParam &operator=(const ActivationParam &right) {
         active = right.active;
         negative_slope = right.negative_slope;
         coef = right.coef;
@@ -63,7 +74,7 @@ struct ActivationParam {
         has_active = right.has_active;
         return *this;
     }
-    bool operator==(const ActivationParam& right) {
+    bool operator==(const ActivationParam &right) {
         bool comp_eq = true;
         comp_eq = comp_eq && (active == right.active);
         comp_eq = comp_eq && (negative_slope == right.negative_slope);
@@ -72,7 +83,7 @@ struct ActivationParam {
         comp_eq = comp_eq && (has_active == right.has_active);
         return comp_eq;
     }
-    bool has_negative_slope() {
+    bool has_negative_slope(){
         return (active == Active_relu) && (negative_slope != float (0));
     }
     ActiveType active;
