@@ -8,9 +8,9 @@
 
 #if defined(__AVX512F__)
 #define SABER_X86_TYPE __m512
-#elif defined(__AVX2__)
+#elif defined(__AVX2__) and defined(__FMA__)
 #define SABER_X86_TYPE __m256
-#elif defined(__SSE4_2__)
+#elif defined(__SSE4_2__) and defined(__FMA__)
 #define SABER_X86_TYPE __m128
 #else
 #define SABER_X86_TYPE float

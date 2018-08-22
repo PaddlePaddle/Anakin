@@ -39,7 +39,7 @@
 #define SABER_FUNCS_IMPL_X86_SABER_AVX2_MATH_H
 
 
-#if defined(__AVX2__)
+#if defined(__AVX2__) and defined(__FMA__)
 #pragma once
 #include <immintrin.h>
 /* yes I know, the top of this file is quite ugly */
