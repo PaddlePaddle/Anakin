@@ -65,6 +65,9 @@ TARGET:
 
     FLUID:
         # path of fluid inference model
+        ProtoPaths:
+            - /                                # Don't modify. We will delete this term.
+        PrototxtPath: /                        # Don't modify. We will delete this term.
         Debug: NULL                            # Generally no need to modify.
         ModelPath: /path/to/your/model/        # The upper path of a fluid inference model.
         NetType:                               # Generally no need to modify.
