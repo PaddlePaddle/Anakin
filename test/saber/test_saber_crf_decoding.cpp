@@ -29,6 +29,7 @@ void decoding(dtype* path, const dtype* emission, const dtype* transition,
         for (int i = 0; i < tag_num; ++i) {
             dtype max_score = -std::numeric_limits<dtype>::max();
             int max_j = 0;
+        #ifdef __AVX2__
             if(tag_num % 8 == 0){
                 for (size_t j = 0; j < tag_num; ++j) {
                     dtype score = alpha_value[(k - 1) * tag_num + j] +
@@ -48,6 +49,16 @@ void decoding(dtype* path, const dtype* emission, const dtype* transition,
                     }
                 }
             }
+        #else
+            for (size_t j = 0; j < tag_num; ++j) {
+                dtype score = alpha_value[(k - 1) * tag_num + j] +
+                    w[(j + state_trans_base_idx) * tag_num + i];
+                if (score > max_score) {
+                    max_score = score;
+                    max_j = j;
+                }
+            }
+        #endif
             alpha_value[k * tag_num + i] = max_score + x[k * tag_num + i];
             track_value[k * tag_num + i] = max_j;
         }
