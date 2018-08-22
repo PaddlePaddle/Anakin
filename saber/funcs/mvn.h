@@ -62,7 +62,8 @@ public:
 
         //! support inplace computation, output shape = input shape
         Shape output_shape = input[0]->valid_shape();
-        output[0]->set_shape(output_shape);
+        return output[0]->set_shape(output_shape);
+ //       return SaberSuccess;
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {
