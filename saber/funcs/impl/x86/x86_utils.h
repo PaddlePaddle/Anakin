@@ -602,7 +602,7 @@ inline void weight_reorder_OIhw16i16o(Tensor<X86>& input,
     CHECK_EQ(output.get_dtype(), AK_FLOAT) << "only support float type";
     Shape shape = input.valid_shape();
     int oc_value = shape[0], ic_value = shape[1], kh_value = shape[2], kw_value = shape[3];
-    
+
     float* output_ptr = static_cast<float*>(output.mutable_data());
     const float* input_ptr = static_cast<const float*>(input.data());
     #pragma omp parallel for collapse(6) schedule(static)
@@ -703,7 +703,7 @@ static void weight_reorder_Goihw16g(Tensor<X86>& input,
     Shape shape = input.shape();
     int g_value = shape[0], oc_value = shape[1], ic_value = shape[1], kh_value = shape[2],
         kw_value = shape[3];
-    
+
     float* output_ptr = static_cast<float*>(output.mutable_data());
     const float* input_ptr = static_cast<const float*>(input.data());
     #pragma omp parallel for collapse(6) schedule(static)
