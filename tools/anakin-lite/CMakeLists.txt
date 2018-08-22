@@ -29,7 +29,7 @@ if(CMAKE_TOOLCHAIN_FILE)
 endif()
 
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-	set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "Installation Directory")
+	set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/" CACHE PATH "Installation Directory")
 endif()
 message(STATUS "CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
 
@@ -153,11 +153,11 @@ add_library(ANAKIN_LITE_OBJS OBJECT ${BUILD_SRC_FILES1} ${BUILD_SRC_FILES2} ${BU
 if(USE_ANDROID)
 #	add_library(${anakin_lite_lib_so} SHARED $<TARGET_OBJECTS:ANAKIN_LITE_OBJS>)
 #	set_target_properties(${anakin_lite_lib_so} PROPERTIES
-#					  LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/output/)
+#					  LIBRARY_OUTPUT_DIRECTORY ${CMAKE_INSTALL_PREFIX}/)
 endif()
 add_library(${anakin_lite_lib_static} STATIC $<TARGET_OBJECTS:ANAKIN_LITE_OBJS>)
 set_target_properties(${anakin_lite_lib_static} PROPERTIES 
-					  ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/output/)
+					  ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_INSTALL_PREFIX}/)
 
 if(USE_OPENCV)
 	# set your opencv path here
@@ -191,27 +191,27 @@ if(BUILD_LITE_UNIT_TEST)
 		#	endif()
 		set_target_properties(${TEST_CASE_NAME} PROPERTIES
 				RUNTIME_OUTPUT_DIRECTORY
-				${PROJECT_SOURCE_DIR}/output/unit_test)
+				${CMAKE_INSTALL_PREFIX}/unit_test)
 	endforeach()
 endif()
 
 FILE(GLOB MODEL_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 
 install(DIRECTORY ${ANAKIN_LITE_SABER}/../../saber/lite
-		DESTINATION ${PROJECT_SOURCE_DIR}/output/include/saber
+		DESTINATION ${CMAKE_INSTALL_PREFIX}/include/saber
 		FILES_MATCHING
 		PATTERN "*.h")
 install(FILES ${ANAKIN_LITE_SABER}/../../saber/saber_types.h
-        DESTINATION ${PROJECT_SOURCE_DIR}/output/include/saber)
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/include/saber)
 install(FILES ${MODEL_HEADER}
-        DESTINATION ${PROJECT_SOURCE_DIR}/output/include)
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 install(FILES ${PROJECT_BINARY_DIR}/anakin_config.h
-        DESTINATION ${PROJECT_SOURCE_DIR}/output/include)
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
 install(TARGETS ${anakin_lite_lib_static}
-		ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/output/lib)
+		ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 if(USE_ANDROID)
 #	install(TARGETS ${anakin_lite_lib_static} ${anakin_lite_lib_so}
-#		ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/output/lib
-#		LIBRARY DESTINATION ${PROJECT_SOURCE_DIR}/output/lib)
+#		ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+#		LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 endif()
