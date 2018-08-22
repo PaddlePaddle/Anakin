@@ -13,57 +13,55 @@
    limitations under the License. 
 */
 
-#ifndef ANAKIN_SABER_FUNCS_PAD_H
-#define ANAKIN_SABER_FUNCS_PAD_H
-
-#include "saber/funcs/impl/impl_pad.h"
+#ifndef ANAKIN_SABER_FUNCS_LRN_H
+#define ANAKIN_SABER_FUNCS_LRN_H
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+#include "saber/funcs/impl/impl_lrn.h"
 #ifdef NVIDIA_GPU
-#include "saber/funcs/impl/cuda/saber_pad.h"
+#include "saber/funcs/impl/cuda/saber_lrn.h"
 #endif
 
-
+#ifdef USE_X86_PLACE
+#include "saber/funcs/impl/impl_lrn.h"
+#endif
+#ifdef USE_ARM_PLACE
+//todo
+#include "saber/funcs/impl/impl_lrn.h"
+#endif
 namespace anakin {
 namespace saber {
 
-template<typename TargetType,
-        DataType OpDtype
->
-class Pad : public BaseFunc<
+template<typename TargetType, DataType OpDtype>
+class Lrn : public BaseFunc<
         TargetType,
         OpDtype,
         ImplBase,
-        PadParam
-> {
+        LrnParam> {
 public:
     using BaseFunc<
-            TargetType,
-            OpDtype,
-            ImplBase,
-            PadParam>::BaseFunc;
+        TargetType,
+        OpDtype,
+        ImplBase,
+        LrnParam>::BaseFunc;
 
-    Pad() = default;
+    Lrn() = default;
 
-    typedef PadParam<TargetType> Param_t;
-    typedef std::vector<Tensor<TargetType> *> Input_v;
-    typedef std::vector<Tensor<TargetType> *> Output_v;
+    typedef Tensor<TargetType> InDataTensor;
+    typedef Tensor<TargetType> OutDataTensor;
+    typedef Tensor<TargetType> OpTensor;
+    typedef LrnParam<TargetType> Param_t;
+    typedef std::vector<InDataTensor *> Input_v;
+    typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
 
     virtual SaberStatus compute_output_shape(const Input_v& input, Output_v& output, \
         Param_t& param) override {
         SaberStatus status;
-        CHECK_EQ(2, param.pad_c.size());
-        CHECK_EQ(2, param.pad_h.size());
-        CHECK_EQ(2, param.pad_w.size());
+        CHECK_EQ(input.size(), 1);
+       
         Shape output_shape = input[0]->valid_shape();
-        int c_id = input[0]->channel_index();
-        int h_id = input[0]->height_index();
-        int w_id = input[0]->width_index();
-        output_shape[c_id] += param.pad_c[0] + param.pad_c[1];
-        output_shape[h_id] += param.pad_h[0] + param.pad_h[1];
-        output_shape[w_id] += param.pad_w[0] + param.pad_w[1];
         output[0]->set_shape(output_shape);
 
         return SaberSuccess;
@@ -72,11 +70,11 @@ public:
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
             case VENDER_IMPL:
-                this->_impl.push_back(new VenderPad<TargetType,OpDtype>);
+                this->_impl.push_back(new VenderLrn <TargetType, OpDtype>);
                 return SaberSuccess;
 
             case SABER_IMPL:
-                this->_impl.push_back(new SaberPad<TargetType,OpDtype>);
+                this->_impl.push_back(new SaberLrn <TargetType, OpDtype>);
                 return SaberSuccess;
 
             default:
@@ -103,4 +101,4 @@ private:
 
 }
 
-#endif //ANAKIN_SABER_FUNCS_PAD_H
+#endif //ANAKIN_SABER_FUNCS_LRN_H
