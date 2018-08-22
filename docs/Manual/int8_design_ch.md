@@ -2,7 +2,7 @@
 # Int8设计文档
 
 ## 计算流程
-
+[[pics/int8_design.png]]
 ## saber完成的功能
 
 对于支持int8的op，接口需要完成的功能做如下规定：
