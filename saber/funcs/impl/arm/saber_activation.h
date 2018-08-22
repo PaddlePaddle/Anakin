@@ -29,8 +29,7 @@ class SaberActivation<ARM, OpDtype> : \
         ActivationParam<ARM > >
 {
 public:
-    typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
-    
+    typedef typename DataTrait<ARM, OpDtype>::Dtype OpDataType;
 
     SaberActivation()
     {}
@@ -52,17 +51,8 @@ public:
     
     virtual SaberStatus dispatch(const std::vector<Tensor<ARM> *>& inputs,
                           std::vector<Tensor<ARM> *>& outputs,
-                          ActivationParam<ARM>& param) {
-        const OpDataType* din = (const OpDataType*)inputs[0]->data();
-        OpDataType* dout = (OpDataType*)outputs[0]->mutable_data();
-        int size = outputs[0]->valid_size();
-        if (param.active == Active_relu) {
-            for (int i = 0; i < size; ++i) {
-                dout[i] = std::max(din[i], (OpDataType)0);
-            }
-        }
-        return SaberSuccess;
-    }
+                          ActivationParam<ARM>& param);
+
 
 };
 
