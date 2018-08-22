@@ -5,25 +5,23 @@
    You may obtain a copy of the License at
 
        http://www.apache.org/licenses/LICENSE-2.0
-   
+
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License. 
+   limitations under the License.
 */
-
-#ifndef ANAKIN_SABER_FUNCS_PAD_H
-#define ANAKIN_SABER_FUNCS_PAD_H
-
-#include "saber/funcs/impl/impl_pad.h"
+#ifndef ANAKIN_SABER_FUNCS_DEFORMABLE_CONV_H
+#define ANAKIN_SABER_FUNCS_DEFORMABLE_CONV_H
 
 #include "saber/funcs/base.h"
+#include "saber/funcs/funcs_utils.h"
 #include "saber/funcs/impl/impl_base.h"
+#include "saber/funcs/impl/impl_deformable_conv.h"
 #ifdef NVIDIA_GPU
-#include "saber/funcs/impl/cuda/saber_pad.h"
+//#include "saber/funcs/impl/cuda/saber_deformable_conv.h"
 #endif
-
 
 namespace anakin {
 namespace saber {
@@ -31,52 +29,47 @@ namespace saber {
 template<typename TargetType,
         DataType OpDtype
 >
-class Pad : public BaseFunc<
+class DeformableConv : public BaseFunc<
         TargetType,
         OpDtype,
         ImplBase,
-        PadParam
-> {
+        DeformableConvParam> {
 public:
     using BaseFunc<
             TargetType,
             OpDtype,
             ImplBase,
-            PadParam>::BaseFunc;
+            DeformableConvParam>::BaseFunc;
 
-    Pad() = default;
+    DeformableConv() = default;
 
-    typedef PadParam<TargetType> Param_t;
-    typedef std::vector<Tensor<TargetType> *> Input_v;
-    typedef std::vector<Tensor<TargetType> *> Output_v;
+    typedef Tensor<TargetType> InDataTensor;
+    typedef Tensor<TargetType> OutDataTensor;
+    typedef Tensor<TargetType> OpTensor;
+    typedef DeformableConvParam<TargetType> Param_t;
+    typedef std::vector<InDataTensor *> Input_v;
+    typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
 
-    virtual SaberStatus compute_output_shape(const Input_v& input, Output_v& output, \
-        Param_t& param) override {
-        SaberStatus status;
-        CHECK_EQ(2, param.pad_c.size());
-        CHECK_EQ(2, param.pad_h.size());
-        CHECK_EQ(2, param.pad_w.size());
-        Shape output_shape = input[0]->valid_shape();
-        int c_id = input[0]->channel_index();
-        int h_id = input[0]->height_index();
-        int w_id = input[0]->width_index();
-        output_shape[c_id] += param.pad_c[0] + param.pad_c[1];
-        output_shape[h_id] += param.pad_h[0] + param.pad_h[1];
-        output_shape[w_id] += param.pad_w[0] + param.pad_w[1];
-        output[0]->set_shape(output_shape);
+    virtual SaberStatus compute_output_shape(const Input_v &input,
+                                             Output_v &output, Param_t &param) override {
 
-        return SaberSuccess;
+        Shape conv_shape = conv_compute_shape(input[0]->valid_shape(), param);
+        conv_shape.set_layout(Layout_NCHW);
+        return output[0]->set_shape(conv_shape);
+
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
             case VENDER_IMPL:
-                this->_impl.push_back(new VenderPad<TargetType,OpDtype>);
+                this->_impl.push_back(new VenderDeformableConv2D <TargetType,
+                        OpDtype>);
                 return SaberSuccess;
 
             case SABER_IMPL:
-                this->_impl.push_back(new SaberPad<TargetType,OpDtype>);
+                this->_impl.push_back(new SaberDeformableConv2D <TargetType,
+                        OpDtype>);
                 return SaberSuccess;
 
             default:
@@ -91,16 +84,14 @@ private:
             this->_best_impl = this->_impl[0];
     }
 
-    //virtual void pick_best_runtime(Input_v input, Output_v output, Param_t& param) override {}
-
     virtual void pick_best_specify(ImplEnum implenum) override {
         this->_best_impl = this->_impl[0];
     }
 
 };
 
-}
+} // namespace saber
+} // namespace anakin
 
-}
 
-#endif //ANAKIN_SABER_FUNCS_PAD_H
+#endif
