@@ -19,6 +19,7 @@
 #include "saber/lite/core/tensor_lite.h"
 #include "saber/lite/core/context_lite.h"
 #include "saber/lite/funcs/op_param.h"
+#include "saber/lite/funcs/timer_lite.h"
 
 namespace anakin{
 
@@ -48,6 +49,9 @@ protected:
     Context* _ctx;
     bool _flag_param;
     bool _flag_init;
+#ifdef ENABLE_OP_TIMER
+    SaberTimer _timer;
+#endif
 };
 
 } //namespace lite

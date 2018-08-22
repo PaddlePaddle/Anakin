@@ -36,9 +36,6 @@ public:
     virtual SaberStatus load_param(const ParamBase* param) override {
         return SaberSuccess;
     }
-//    SaberSoftmax(int axis);
-//
-//    SaberStatus load_param(int axis);
 
     ~SaberSplit() {}
 
@@ -64,9 +61,6 @@ public:
                                  std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override {
         return SaberSuccess;
     }
-
-private:
-    const SaberSplit* _param;
 };
 
 } //namespace lite

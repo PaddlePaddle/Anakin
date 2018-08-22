@@ -15,6 +15,7 @@
 #define ANAKIN_SABER_LITE_FUNCS_SABER_CONV_ACT_H
 
 #include "saber/lite/funcs/saber_conv.h"
+#include "saber/lite/funcs/saber_activation.h"
 #ifdef USE_ARM_PLACE
 
 namespace anakin{
@@ -27,59 +28,36 @@ namespace lite{
 class SaberConvAct2D : public OpBase {
 public:
     SaberConvAct2D() {
-        _conv_func = new SaberConv2D;
+        //_conv_func = new SaberConv2D;
+        _conv_op = new SaberConv2D;
+        _act_op = nullptr;
     }
 
     SaberConvAct2D(const ParamBase* param) {
-        _conv_func = new SaberConv2D;
+        _conv_op = new SaberConv2D;
         _param = (const ConvAct2DParam*)param;
+        /*
         if (_param->_flag_act) {
             LCHECK_EQ(_param->_act_type, Active_relu, "active type must be relu");
         }
+        */
         this->_flag_param = true;
-        _conv_func->load_param(&_param->_conv_param);
+        _conv_op->load_param(&_param->_conv_param);
     }
 
     virtual SaberStatus load_param(const ParamBase* param) override {
         _param = (const ConvAct2DParam*)param;
         this->_flag_param = true;
-        _conv_func->set_activation(_param->_flag_act);
-        return _conv_func->load_param(&_param->_conv_param);
+        _conv_op->set_activation(_param->_flag_act);
+        return _conv_op->load_param(&_param->_conv_param);
     }
 
-
-//    SaberConvAct2D(int weights_size, int num_output, int group, int kw, int kh, int stride_w, int stride_h, \
-//        int pad_w, int pad_h, int dila_w, int dila_h, bool flag_bias, ActiveType type, bool flag_relu, \
-//        const float* weights, const float* bias) {
-//
-//        if (flag_relu) {
-//            LCHECK_EQ(type, Active_relu, "active type must be relu");
-//            _flag_relu = true;
-//        } else {
-//            _flag_relu = false;
-//        }
-//        SaberConv2D::set_activation(_flag_relu);
-//        SaberConv2D::load_param(weights_size, num_output, group, kw, kh, stride_w, stride_h, \
-//            pad_w, pad_h, dila_w, dila_h, flag_bias, weights, bias);
-//    }
-//
-//    SaberStatus load_param(int weights_size, int num_output, int group, int kw, int kh, int stride_w, int stride_h, \
-//        int pad_w, int pad_h, int dila_w, int dila_h, bool flag_bias, ActiveType type, bool flag_relu, \
-//        const float* weights, const float* bias) {
-//
-//        if (flag_relu) {
-//            LCHECK_EQ(type, Active_relu, "active type must be relu");
-//            _flag_relu = true;
-//        } else {
-//            _flag_relu = false;
-//        }
-//        SaberConv2D::set_activation(_flag_relu);
-//        return SaberConv2D::load_param(weights_size, num_output, group, kw, kh, stride_w, stride_h, \
-//            pad_w, pad_h, dila_w, dila_h, flag_bias, weights, bias);
-//    }
-
     ~SaberConvAct2D() {
-        delete _conv_func;
+       // delete _conv_func;
+        delete _conv_op;
+        if(_act_op) {
+            delete _act_op;
+        }
     }
 
     virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
@@ -88,7 +66,7 @@ public:
             printf("load conv_act param first\n");
             return SaberNotInitialized;
         }
-        return _conv_func->compute_output_shape(inputs, outputs);
+        return _conv_op->compute_output_shape(inputs, outputs);
     }
 
     virtual SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
@@ -97,9 +75,21 @@ public:
             printf("load conv_act param first\n");
             return SaberNotInitialized;
         }
-        _conv_func->set_activation(_param->_flag_act);
+      //  _conv_func->set_activation(_param->_flag_act);
         this->_flag_init = true;
-        return _conv_func->init(inputs, outputs, ctx);
+
+        _conv_op->init(inputs, outputs, ctx);
+        if (_param->_flag_act) {
+            if (_param->_act_type == Active_relu) {
+                _conv_op->set_activation(_param->_flag_act);
+             } else {
+                if (_act_op == nullptr) {
+                    _act_op = new SaberActivation;
+                }
+                _act_op->init(outputs, outputs, ctx);
+            }
+        }
+        return SaberSuccess; //_conv_func->init(inputs, outputs, ctx);
     }
 
     virtual SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *>& inputs,
@@ -108,11 +98,17 @@ public:
             printf("init conv_act first\n");
             return SaberNotInitialized;
         }
-        return _conv_func->dispatch(inputs, outputs);
+        SaberStatus state = _conv_op->dispatch(inputs, outputs);
+        if (_act_op) {
+            state = (SaberStatus)(state & _act_op->dispatch(outputs, outputs));
+        }
+        return state; //_conv_func->dispatch(inputs, outputs);
     }
 private:
     const ConvAct2DParam* _param;
-    SaberConv2D* _conv_func;
+   // SaberConv2D* _conv_func;
+    SaberConv2D* _conv_op{nullptr};
+    SaberActivation* _act_op{nullptr};
 };
 
 } //namespace lite

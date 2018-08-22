@@ -2989,7 +2989,7 @@ void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
             :[wr1] "w"(wr1), [wr2] "w"(wr2), \
                     [bias] "w"(wbias), [mask_din] "w" (vmask_rp), [mask_w]  "w" (vmask_w) //, \ 
                     //[pad_right] "r" (size_right_remain)
-            :"q6", "q7", "q8", "q10", "q12", "q15"
+            :"q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
             );
 
 #endif //__aarch64__
@@ -3130,7 +3130,7 @@ void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
             :[wr1] "w"(wr1), [wr2] "w"(wr2), \
                     [bias] "w"(wbias), [mask_din] "w" (vmask_rp), [mask_w]  "w" (vmask_w) //, \ 
                     //[pad_right] "r" (size_right_remain)
-            :"q6", "q7", "q8", "q10", "q12", "q15"
+            :"q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
             );
 #endif //__aarch64__
             } // end of process bottom pad
@@ -3624,7 +3624,7 @@ void conv_depthwise_3x3s2p1_bias_s_relu(float* dout, const float* din, \
             :[wr1] "w"(wr1), [wr2] "w"(wr2), \
                     [bias] "w"(wbias), [mask_din] "w" (vmask_rp), [mask_w]  "w" (vmask_w) //, \ 
                     //[pad_right] "r" (size_right_remain)
-            :"q6", "q7", "q8", "q10", "q12", "q15"
+            :"q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
             );
 
 #endif //__aarch64__
@@ -3767,7 +3767,7 @@ void conv_depthwise_3x3s2p1_bias_s_relu(float* dout, const float* din, \
             :[wr1] "w"(wr1), [wr2] "w"(wr2), \
                     [bias] "w"(wbias), [mask_din] "w" (vmask_rp), [mask_w]  "w" (vmask_w) //, \ 
                     //[pad_right] "r" (size_right_remain)
-            :"q6", "q7", "q8", "q10", "q12", "q15"
+            :"q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
             );
 #endif //__aarch64__
             } // end of process bottom pad

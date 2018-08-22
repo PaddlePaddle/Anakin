@@ -31,7 +31,7 @@ struct ParamBase {
 struct ActivationParam : public ParamBase {
     ActivationParam(){}
     ActivationParam(ActiveType act_type, float neg_slope = 0.f, float coef = 1.f, \
-        bool channel_shared = false, float* weights = nullptr) {
+        bool channel_shared = false, const float* weights = nullptr) {
         _act_type = act_type;
         _neg_slope = neg_slope;
         _coef = coef;
@@ -59,7 +59,28 @@ struct ActivationParam : public ParamBase {
     bool _prelu_channel_shared{false};
     const float* _prelu_weights{nullptr};
 };
-
+struct PowerParam : public ParamBase {
+        PowerParam(){}
+        PowerParam(float scale,float shift,float power ) {
+            _scale = scale;
+            _shift=shift;
+            _power=power;
+        }
+        PowerParam(const PowerParam& param) : ParamBase(param) {
+            _scale =param._scale;
+            _shift=param._shift;
+            _power=param._power;
+        }
+        PowerParam&operator=(const PowerParam& param) {
+            _scale =param._scale;
+            _shift=param._shift;
+            _power=param._power;
+            return *this;
+        }
+        float _scale;
+        float _shift;
+        float _power;
+    };
 struct Conv2DParam : public ParamBase{
     Conv2DParam(){}
     Conv2DParam(int weighs_size, int num_out, int group, int kw, int kh, \
@@ -591,6 +612,102 @@ struct SplitParam : public ParamBase {
     SplitParam&operator=(const SplitParam& param) { return *this; }
 };
 
+struct FlattenParam : public ParamBase {
+    FlattenParam() = default;
+    FlattenParam(const FlattenParam& right) : ParamBase(right) {}
+    FlattenParam& operator=(const FlattenParam& right){ return *this;}
+    bool operator==(const FlattenParam& right){
+        return true;
+    }
+};
+
+struct ReshapeParam : public ParamBase {
+    ReshapeParam() = default;
+    explicit ReshapeParam(std::vector<int> shape_param_in) {
+        int count = 0;
+        for (int i = 0; i < shape_param_in.size(); ++i) {
+            if (shape_param_in[i] == -1){
+                count ++;
+            }
+        }
+        LCHECK_LE(count, 1, "shape parameter contains multiple -1 dims");
+        _shape_params = shape_param_in;
+    }
+    ReshapeParam(const ReshapeParam& right) : ParamBase(right) {
+        _shape_params = right._shape_params;
+    }
+    ReshapeParam& operator=(const ReshapeParam& right) {
+        _shape_params = right._shape_params;
+        return *this;
+    }
+    bool operator==(const ReshapeParam& right) {
+        bool comp_eq = _shape_params.size() == right._shape_params.size();
+        for (int i = 0; i < _shape_params.size(); ++i) {
+            if (!comp_eq){
+                return false;
+            }
+            comp_eq = _shape_params[i] == right._shape_params[i];
+        }
+        return true;
+    }
+    std::vector<int> _shape_params;
+};
+
+struct ScaleParam : public ParamBase {
+    ScaleParam() {
+        _axis = 1;
+        _num_axes = 1;
+        _bias_term = false;
+    }
+
+    ScaleParam(const float* scale_w_in, const float* scale_b_in,
+               bool bias_term_in = true, int axis_in = 1, int num_axes_in = 1) {
+        _scale_w = scale_w_in;
+        _scale_b = scale_b_in;
+        _bias_term = bias_term_in;
+        _axis = axis_in;
+        _num_axes = num_axes_in;
+    }
+
+    ScaleParam(const float*  scale_w_in,
+               bool bias_term_in = false, int axis_in = 1, int num_axes_in = 1) {
+        _scale_w = scale_w_in;
+        _bias_term = bias_term_in;
+        _axis = axis_in;
+        _num_axes = num_axes_in;
+    }
+
+    ScaleParam(const ScaleParam &right) : ParamBase(right) {
+        _scale_w = right._scale_w;
+        _scale_b = right._scale_b;
+        _bias_term = right._bias_term;
+        _axis = right._axis;
+        _num_axes = right._num_axes;
+    }
+
+    ScaleParam &operator=(const ScaleParam &right) {
+        _scale_w = right._scale_w;
+        _scale_b = right._scale_b;
+        _bias_term = right._bias_term;
+        _axis = right._axis;
+        _num_axes = right._num_axes;
+        return *this;
+    }
+    bool operator==(const ScaleParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (_scale_w == right._scale_w);
+        comp_eq = comp_eq && (_scale_b == right._scale_b);
+        comp_eq = comp_eq && (_bias_term == right._bias_term);
+        comp_eq = comp_eq && (_axis == right._axis);
+        comp_eq = comp_eq && (_num_axes == right._num_axes);
+        return comp_eq;
+    }
+    int _axis; // default is 1
+    int _num_axes; // default is 1
+    bool _bias_term; // default false
+    const float*  _scale_w;
+    const float*  _scale_b;
+};
 } //namespace lite
 
 } //namespace saber

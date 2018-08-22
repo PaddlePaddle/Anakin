@@ -1131,6 +1131,18 @@ struct ConvActiveParam {
             , has_eltwise(false)
             , has_eltwise_act(false)
     {}
+
+    ConvActiveParam(ConvParam<opTensor> &conv_param_in
+            , BatchnormParam<opTensor> &batchnorm_param_in)
+            : conv_param(conv_param_in)
+            , batchnorm_param(batchnorm_param_in)
+            , has_batchnorm(true)
+            , has_scale(false)
+            , has_active(false)
+            , has_eltwise(false)
+            , has_eltwise_act(false)
+    {}
+
     ConvActiveParam(ConvParam<opTensor> &conv_param_in
             , ActivationParam<opTensor> &activation_param_in
             , BatchnormParam<opTensor> &batchnorm_param_in

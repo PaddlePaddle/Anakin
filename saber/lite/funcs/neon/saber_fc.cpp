@@ -15,15 +15,49 @@ void fill_bias_fc(Dtype* tensor, const Dtype* bias, const int num, const int cha
 template <>
 void fill_bias_fc<float>(float* tensor, const float* bias, const int num, const int channel) {
 
-    int cnt = channel >> 2;
-    int remain = channel & 3;
+    int cnt = channel >> 4;
+    int remain = channel & 15;
 
     for (int j = 0; j < num; ++j) {
 
         const float* ptr_bias = bias;
         float* ptr_out = tensor + j * channel;
 
+        float32x4_t vout1;
+        float32x4_t vout2;
+        float32x4_t vout3;
+        float32x4_t vout4;
+
+        for (int i = 0; i < cnt; ++i) {
+            float32x4_t vin1 = vld1q_f32(ptr_out);
+            float32x4_t vb1 = vld1q_f32(ptr_bias);
+
+            float32x4_t vin2 = vld1q_f32(ptr_out + 4);
+            float32x4_t vb2 = vld1q_f32(ptr_bias + 4);
+
+            float32x4_t vin3 = vld1q_f32(ptr_out + 8);
+            float32x4_t vb3 = vld1q_f32(ptr_bias + 8);
+
+            float32x4_t vin4 = vld1q_f32(ptr_out + 12);
+            float32x4_t vb4 = vld1q_f32(ptr_bias + 12);
+
+            vout1 = vaddq_f32(vin1, vb1);
+            vout2 = vaddq_f32(vin2, vb2);
+            vout3 = vaddq_f32(vin3, vb3);
+            vout4 = vaddq_f32(vin4, vb4);
+
+            vst1q_f32(ptr_out, vout1);
+            vst1q_f32(ptr_out + 4, vout2);
+            vst1q_f32(ptr_out + 8, vout3);
+            vst1q_f32(ptr_out + 12, vout4);
+
+            ptr_out += 16;
+            ptr_bias += 16;
+        }
+
+#if 0
         if (cnt > 0) {
+
             asm(
             "1: \n"
             "vld1.32 {d0-d1}, [%[ptr_out]]    @ load data\n"
@@ -38,7 +72,7 @@ void fill_bias_fc<float>(float* tensor, const float* bias, const int num, const 
             :"q0", "q1", "q2"
             );
         }
-
+#endif
         for (; remain > 0; remain--) {
             *(ptr_out++) += *(ptr_bias++);
         }
@@ -55,29 +89,6 @@ SaberStatus SaberFc::load_param(const ParamBase *param) {
     this->_flag_param = true;
     return SaberSuccess;
 }
-
-//SaberFc::SaberFc(int axis, int num_output, bool flag_trans, bool flag_bias, \
-//    const float *weights, const float *bias) {
-//
-//    _axis = axis;
-//    _num_output = num_output;
-//    _flag_trans = flag_trans;
-//    _bias_term = flag_bias;
-//    _weights = weights;
-//    _bias = bias;
-//}
-//
-//SaberStatus SaberFc::load_param(int axis, int num_output, bool flag_trans, bool flag_bias, \
-//    const float *weights, const float *bias) {
-//
-//    _axis = axis;
-//    _num_output = num_output;
-//    _flag_trans = flag_trans;
-//    _bias_term = flag_bias;
-//    _weights = weights;
-//    _bias = bias;
-//    return SaberSuccess;
-//}
 
 SaberStatus SaberFc::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                           std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
@@ -138,6 +149,11 @@ SaberStatus SaberFc::dispatch(\
         return SaberNotInitialized;
     }
 
+#ifdef ENABLE_OP_TIMER
+    this->_timer.clear();
+    this->_timer.start();
+#endif
+
     const float* din = inputs[0]->data();
     float* dout = outputs[0]->mutable_data();
     const float* weights = _param->_weights;
@@ -158,6 +174,15 @@ SaberStatus SaberFc::dispatch(\
             sgemv(false, _n, _k, weights, din, dout);
         }
     }
+
+#ifdef ENABLE_OP_TIMER
+    this->_timer.end();
+    float ts = this->_timer.get_average_ms();
+    printf("fc time: %f\n", ts);
+    OpTimer::add_timer("fc", ts);
+    OpTimer::add_timer("total", ts);
+#endif
+
     return SaberSuccess;
 }
 

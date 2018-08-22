@@ -29,15 +29,21 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_header_start() {
     _code<<"#include <saber/lite/funcs/saber_eltwise.h>\n";
     _code<<"#include <saber/lite/funcs/saber_permute.h>\n";
     _code<<"#include <saber/lite/funcs/saber_prelu.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_power.h>\n";
     _code<<"#include <saber/lite/funcs/saber_priorbox.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_scale.h>\n";
     _code<<"#include <saber/lite/funcs/saber_slice.h>\n";
     _code<<"#include <saber/lite/funcs/timer_lite.h>\n";
     _code<<"#include <saber/lite/funcs/saber_conv.h>\n";
     _code<<"#include <saber/lite/funcs/saber_conv_act.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_deconv.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_deconv_act.h>\n";
 	_code<<"#include <saber/lite/funcs/saber_conv_act_pooling.h>\n";
     _code<<"#include <saber/lite/funcs/saber_fc.h>\n";
     _code<<"#include <saber/lite/funcs/saber_pooling.h>\n";
     _code<<"#include <saber/lite/funcs/saber_split.h>\n";
+	_code<<"#include <saber/lite/funcs/saber_flatten.h>\n";
+	_code<<"#include <saber/lite/funcs/saber_reshape.h>\n";
     _code<<"#include <saber/lite/funcs/saber_softmax.h>\n\n";
 	_code<<"using namespace anakin;\n";
 	_code<<"using namespace anakin::saber;\n";
@@ -230,8 +236,10 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_run_impl(const bool debug_mode) {
     _code.feed("            return false;\n");
     _code.feed("        }\n");
     if (debug_mode) {
-        _code.feed("        double mean_val = tensor_mean(*%s_tensor_outs[i][0]); \n", _code_name.c_str());
-        _code.feed("        printf(\"mean_val in %s ops: %s \\n\", %s_g_ops[i]->get_op_name(), mean_val);\n", "%s", "%.6f", _code_name.c_str());
+        _code.feed("        for(int j = 0; j < %s_tensor_outs[i].size(); j++) {\n", _code_name.c_str());
+        _code.feed("            double mean_val = tensor_mean(*%s_tensor_outs[i][0]); \n", _code_name.c_str());
+        _code.feed("            printf(\"mean_val in %s ops: %s \\n\", %s_g_ops[i]->get_op_name(), mean_val);\n", "%s", "%.6f", _code_name.c_str());
+        _code.feed("        }\n");
     }
     _code << "    }\n";
 
@@ -303,6 +311,9 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_head_api() {
 	// gen weights loading function
 	_code.feed("LITE_EXPORT bool %s_load_param(const char* param_path);\n\n", _code_name.c_str());
 
+    // gen weights loading function from memory
+    _code.feed("LITE_EXPORT bool %s_load_weights(const void* weights);\n\n", _code_name.c_str());
+
 	// gen api for model init
 	_code.feed("/// %s_init should only be invoked once when input shape changes.\n", _code_name.c_str());
 	_code.feed("LITE_EXPORT bool %s_init(Context& ctx);\n\n", _code_name.c_str());
@@ -370,20 +381,28 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_head_api_impl() {
 	// gen weights loading function
 	_code.feed("float *%s = nullptr; // global weights start pointer \n", _g_weights_ptr_name.c_str());
     _code.feed("std::vector<ParamBase*> %s_g_param; // global vector of param \n", _code_name.c_str());
-	_code.feed("bool %s_load_param(const char* param_path) {\n", _code_name.c_str());
-	_code <<   "    FILE *f = fopen(param_path, \"rb\"); \n";
-	_code <<   "    if(!f) {\n";
-	_code <<   "        return false;\n    }\n";
-	_code <<   "    fseek(f, 0, SEEK_END);\n";
-	_code <<   "    long fsize = ftell(f);\n";
-	_code <<   "    fseek(f, 0, SEEK_SET);\n";
+
+    _code.feed("bool %s_load_param(const char* param_path) {\n", _code_name.c_str());
+    _code <<   "    FILE *f = fopen(param_path, \"rb\"); \n";
+    _code <<   "    if(!f) {\n";
+    _code <<   "        return false;\n    }\n";
+    _code <<   "    fseek(f, 0, SEEK_END);\n";
+    _code <<   "    long fsize = ftell(f);\n";
+    _code <<   "    fseek(f, 0, SEEK_SET);\n";
     _code.feed("    if(%s) {\n", _g_weights_ptr_name.c_str());
     _code.feed("        delete [] %s;\n", _g_weights_ptr_name.c_str());
     _code.feed("        %s = nullptr;\n", _g_weights_ptr_name.c_str());
     _code.feed("    }\n");
-	_code.feed("    %s = new float[fsize + 1];\n", _g_weights_ptr_name.c_str());
-	_code.feed("    fread(%s, fsize, sizeof(float), f);\n", _g_weights_ptr_name.c_str());
-	_code <<   "    fclose(f);\n";
+    _code.feed("    %s = new float[fsize + 1];\n", _g_weights_ptr_name.c_str());
+    _code.feed("    fread(%s, fsize, sizeof(float), f);\n", _g_weights_ptr_name.c_str());
+    _code <<   "    fclose(f);\n";
+    _code.feed("    %s_load_weights((const void*)%s);\n", _code_name.c_str(), _g_weights_ptr_name.c_str());
+    _code << "}";
+
+	_code.feed("bool %s_load_weights(const void* weights) {\n", _code_name.c_str());
+    _code.feed("    if (weights == nullptr) {\n"); // invoke (model_name)_tensors_init()
+    _code.feed("        return false;\n"); // invoke (model_name)_tensors_init()
+    _code.feed("    }\n"); // invoke (model_name)_tensors_init()
 	_code.feed("    %s_tensors_init();\n", _code_name.c_str()); // invoke (model_name)_tensors_init()
 	_code.feed("    %s_model_ios_init();\n", _code_name.c_str()); // invoke (model_name)_model_ios_init()
     _code.feed("    for (int i = 0; i < %s_g_param.size(); i++) {\n", _code_name.c_str());
@@ -393,6 +412,9 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_head_api_impl() {
     _code.feed("        %s_g_param[i] = nullptr;\n", _code_name.c_str());
     _code.feed("    }\n");
     _code.feed("    %s_g_param.clear();\n", _code_name.c_str());
+    _code.feed("    const float* weights_ptr = (const float*)weights;\n");
+    std::string local_weight_string = "weights_ptr";
+
 	for(auto & node_name : this->_exec_node_order) {
 		if(this->_graph_node_map[node_name].op_name == "Input" || this->_graph_node_map[node_name].op_name == "Output") {
 			continue;
@@ -404,13 +426,13 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_head_api_impl() {
 			auto str = OPERATION_MAP[node_info.op_name].parse(attr_info, _code_name,
                                                               OPERATION_MAP[node_info.op_name].OpClassName,
 															  node_name, 
-															  _g_weights_ptr_name,
+															  local_weight_string,
 															  _weights);
 			if(!str.empty()) {
 				_code.feed("    %s", str.c_str());
 			}
 		} else {
-			LOG(WARNING) << "Target op type : " << this->_graph_node_map[node_name].op_name << " not support";
+			LOG(FATAL) << "Target op type : " << this->_graph_node_map[node_name].op_name << " not support";
 		}
 	}
     _code.feed("    %s_gen_ops();\n", _code_name.c_str());
@@ -440,8 +462,10 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_head_api_impl() {
     _code.feed("        }\n");
     _code.feed("    }\n");
     _code.feed("    %s_g_param.clear();\n", _code_name.c_str());
-	_code.feed("    delete [] %s;\n", _g_weights_ptr_name.c_str());
-	_code.feed("    %s = nullptr;\n", _g_weights_ptr_name.c_str());
+    _code.feed("    if (%s) {\n", _g_weights_ptr_name.c_str());
+	_code.feed("        delete [] %s;\n", _g_weights_ptr_name.c_str());
+	_code.feed("        %s = nullptr;\n", _g_weights_ptr_name.c_str());
+    _code.feed("    }\n", _g_weights_ptr_name.c_str());
 	_code <<"}\n\n";
 }
 

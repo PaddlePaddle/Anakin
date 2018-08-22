@@ -30,28 +30,8 @@ class SaberDetectionOutput : public OpBase {
 public:
     SaberDetectionOutput(){}
     SaberDetectionOutput(const ParamBase* param);
-//    SaberDetectionOutput(bool share_loc,
-//                         bool variance_encode,
-//                         int class_num,
-//                         int background_id,
-//                         int keep_topk,
-//                         CodeType type,
-//                         float conf_thresh,
-//                         int nms_topk,
-//                         float nms_thresh = 0.3f,
-//                         float nms_eta = 1.f);
-    ~SaberDetectionOutput() {}
 
-//    SaberStatus load_param(bool share_loc,
-//                           bool variance_encode,
-//                           int class_num,
-//                           int background_id,
-//                           int keep_topk,
-//                           CodeType type,
-//                           float conf_thresh,
-//                           int nms_topk,
-//                           float nms_thresh = 0.3f,
-//                           float nms_eta = 1.f);
+    ~SaberDetectionOutput() {}
 
     virtual SaberStatus load_param(const ParamBase* param) override;
 
@@ -67,16 +47,7 @@ public:
 
 private:
     const DetectionOutputParam* _param;
-//    bool _share_loacation{true};
-//    bool _variance_encode_in_target{false};
     int _class_num;
-//    int _background_id{0};
-//    int _keep_top_k{-1};
-//    CodeType _type{CENTER_SIZE};
-//    float _conf_thresh;
-//    int _nms_top_k;
-//    float _nms_thresh{0.3f};
-//    float _nms_eta{1.f};
     int _num_loc_classes;
     int _num_priors;
     Tensor<CPU, AK_FLOAT> _bbox_preds;

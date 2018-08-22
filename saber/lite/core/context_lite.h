@@ -15,6 +15,7 @@
 #ifndef ANAKIN_SABER_LITE_CORE_DEVICE_LITE_H
 #define ANAKIN_SABER_LITE_CORE_DEVICE_LITE_H
 #include "saber/lite/core/common_lite.h"
+#include "saber/lite/core/tensor_lite.h"
 namespace anakin{
 
 namespace saber{
@@ -81,25 +82,8 @@ public:
 
     Context(const Context& ctx);
 
-#if 0
-    /**
-     * \brief get device id of current context
-     * @return
-     */
-    int get_device_id();
+    Context&operator=(const Context& ctx);
 
-    /**
-     * \brief get data process stream
-     * @return
-     */
-    typename TargetTrait<ttype>::stream_t get_data_stream();
-
-    /**
-     * \brief get compute process stream
-     * @return
-     */
-    typename TargetTrait<ttype>::stream_t get_compute_stream();
-#endif
     void set_run_mode(PowerMode mode, int threads);
     //void set_act_cores(std::vector<int> ids);
     void bind_dev();
@@ -108,21 +92,13 @@ public:
     void set_cache(size_t l1size, size_t l2size, size_t l3size);
     void* get_work_space();
 private:
-#if 0
-    //! current stream to process
-    typename TargetTrait<ttype>::stream_t _stream_data;
-    typename TargetTrait<ttype>::stream_t _stream_compute;
-    //! current device id
-    int _device_id;
-    int _data_stream_id;
-    int _compute_stream_id;
-#endif
+
     //! SABER_POWER_HIGH stands for using big cores,
     //! SABER_POWER_LOW stands for using small core,
     //! SABER_POWER_FULL stands for using all cores
     PowerMode _mode;
     std::vector<int> _act_ids;
-    void* _work_space;
+    Tensor<CPU, AK_FLOAT> _work_space;
 };
 
 } //namespace lite

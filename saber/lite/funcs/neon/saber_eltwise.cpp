@@ -184,17 +184,6 @@ SaberStatus SaberEltwise::load_param(const ParamBase *param) {
     return SaberSuccess;
 }
 
-//SaberEltwise::SaberEltwise(EltwiseType type, std::vector<float> coef) {
-//    _type = type;
-//    _coef = coef;
-//}
-//
-//SaberStatus SaberEltwise::load_param(EltwiseType type, std::vector<float> coef) {
-//    _type = type;
-//    _coef = coef;
-//    return SaberSuccess;
-//}
-
 SaberStatus SaberEltwise::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                                std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
 
@@ -261,6 +250,11 @@ SaberStatus SaberEltwise::dispatch(\
         return SaberNotInitialized;
     }
 
+#ifdef ENABLE_OP_TIMER
+    this->_timer.clear();
+    this->_timer.start();
+#endif
+
     const float* din_a = inputs[0]->data();
     const float* din_b = inputs[1]->data();
     float* dout = outputs[0]->mutable_data();
@@ -272,6 +266,13 @@ SaberStatus SaberEltwise::dispatch(\
         din_a = inputs[i]->data();
         _impl(din_a, dout, dout, size, _param->_coef);
     }
+#ifdef ENABLE_OP_TIMER
+    this->_timer.end();
+    float ts = this->_timer.get_average_ms();
+    printf("eltwise time: %f\n", ts);
+    OpTimer::add_timer("eltwise", ts);
+    OpTimer::add_timer("total", ts);
+#endif
 
     return SaberSuccess;
 }
