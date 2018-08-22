@@ -3,6 +3,7 @@
 #include "saber/funcs/impl/cuda/cudnn_helper.h"
 #include "saber/funcs/calibrate.h"
 #include "saber/funcs/impl/cuda/vender_conv.h"
+#include "saber/core/tensor_op.h"
 
 namespace anakin {
 namespace saber {
@@ -15,7 +16,7 @@ SaberStatus VenderConvEltwise<NV, AK_FLOAT>::\
                 ConvEltwiseParam<NV>& param, Context<NV>& ctx) {
 
     _vender_conv.create(inputs, outputs, param.conv_param, ctx);
-    _vender_conv.set_beta(1.f);
+
     return SaberSuccess;
 }
 
@@ -33,6 +34,7 @@ SaberStatus VenderConvEltwise<NV, AK_FLOAT>::
     }
 
     _vender_conv.init(inputs, outputs, param.conv_param, ctx);
+    _vender_conv.set_beta(1.f);
     return create(inputs, outputs, param, ctx);
 }
 

@@ -18,17 +18,14 @@
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/funcs/funcs_utils.h"
-#include "saber/funcs/impl/impl_conv.h"
+#include "saber/funcs/impl/impl_conv_eltwise.h"
 #include "saber/saber_funcs_param.h"
 
 #ifdef NVIDIA_GPU
-#include "saber/funcs/impl/cuda/saber_conv.h"
-#include "saber/funcs/impl/cuda/vender_conv.h"
+//#include "saber/funcs/impl/cuda/saber_conv_eltwise.h"
+#include "saber/funcs/impl/cuda/vender_conv_eltwise.h"
 #endif
 
-#ifdef USE_X86_PLACE
-#include "saber/funcs/impl/impl_conv.h"
-#endif
 
 namespace anakin {
 namespace saber {
@@ -59,7 +56,7 @@ public:
 
     virtual SaberStatus compute_output_shape(const Input_v &input,
                                              Output_v &output, Param_t &param) override {
-        Shape conv_shape = conv_compute_shape(input[0]->valid_shape(), param);
+        Shape conv_shape = conv_compute_shape(input[0]->valid_shape(), param.conv_param);
         conv_shape.set_layout(Layout_NCHW);
         return output[0]->set_shape(conv_shape);
     }
