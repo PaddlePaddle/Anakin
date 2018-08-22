@@ -27,17 +27,24 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_header_start() {
     _code<<"#include <saber/lite/funcs/saber_concat.h>\n";
     _code<<"#include <saber/lite/funcs/saber_detection_output.h>\n";
     _code<<"#include <saber/lite/funcs/saber_eltwise.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_eltwise_act.h>\n";
     _code<<"#include <saber/lite/funcs/saber_permute.h>\n";
     _code<<"#include <saber/lite/funcs/saber_prelu.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_power.h>\n";
     _code<<"#include <saber/lite/funcs/saber_priorbox.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_scale.h>\n";
     _code<<"#include <saber/lite/funcs/saber_slice.h>\n";
     _code<<"#include <saber/lite/funcs/timer_lite.h>\n";
     _code<<"#include <saber/lite/funcs/saber_conv.h>\n";
     _code<<"#include <saber/lite/funcs/saber_conv_act.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_deconv.h>\n";
+    _code<<"#include <saber/lite/funcs/saber_deconv_act.h>\n";
 	_code<<"#include <saber/lite/funcs/saber_conv_act_pooling.h>\n";
     _code<<"#include <saber/lite/funcs/saber_fc.h>\n";
     _code<<"#include <saber/lite/funcs/saber_pooling.h>\n";
     _code<<"#include <saber/lite/funcs/saber_split.h>\n";
+	_code<<"#include <saber/lite/funcs/saber_flatten.h>\n";
+	_code<<"#include <saber/lite/funcs/saber_reshape.h>\n";
     _code<<"#include <saber/lite/funcs/saber_softmax.h>\n\n";
 	_code<<"using namespace anakin;\n";
 	_code<<"using namespace anakin::saber;\n";
@@ -180,7 +187,9 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_ops() {
 		auto& node_info = this->_graph_node_map[node_name];
 		if(OPERATION_MAP.count(node_info.op_name) > 0) {
 			_code.feed("    OpBase* %s = new %s; \n", node_name.c_str(), OPERATION_MAP[node_info.op_name].OpClassName.c_str());
+            _code.feed("#if defined(ENABLE_OP_TIMER) || defined(ENABLE_DEBUG) \n");
             _code.feed("    %s->set_op_name(\"%s\"); \n", node_name.c_str(), node_name.c_str());
+            _code.feed("#endif \n");
             _code.feed("    %s_g_ops.push_back(%s);\n", _code_name.c_str(), node_name.c_str());
 		}
 	}
@@ -196,7 +205,9 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_init_impl() {
     _code.feed("        %s_g_ops[i]->compute_output_shape(%s_tensor_ins[i], %s_tensor_outs[i]);\n", _code_name.c_str(), _code_name.c_str(), _code_name.c_str());
     _code.feed("        flag = %s_g_ops[i]->init(%s_tensor_ins[i], %s_tensor_outs[i], ctx);\n", _code_name.c_str(), _code_name.c_str(), _code_name.c_str());
     _code.feed("        if (!flag) {\n");
+    _code.feed("#if defined(ENABLE_OP_TIMER) || defined(ENABLE_DEBUG) \n");
     _code.feed("            printf(\"%s op init failed;\\n\", %s_g_ops[i]->get_op_name());\n", "%s", _code_name.c_str());
+    _code.feed("#endif \n");
     _code.feed("            return false;\n");
     _code.feed("        }\n");
     _code << "    }\n";
@@ -226,12 +237,20 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_run_impl(const bool debug_mode) {
     _code.feed("    for (int i = 0; i < %s_g_ops.size(); i++) {\n", _code_name.c_str());
     _code.feed("        flag = %s_g_ops[i]->dispatch(%s_tensor_ins[i], %s_tensor_outs[i]);\n", _code_name.c_str(), _code_name.c_str(), _code_name.c_str());
     _code.feed("        if (!flag) {\n");
+    _code.feed("#if defined(ENABLE_OP_TIMER) || defined(ENABLE_DEBUG) \n");
     _code.feed("            printf(\"%s op dispatch failed;\\n\", %s_g_ops[i]->get_op_name());\n", "%s", _code_name.c_str());
+    _code.feed("#endif \n");
     _code.feed("            return false;\n");
     _code.feed("        }\n");
     if (debug_mode) {
-        _code.feed("        double mean_val = tensor_mean(*%s_tensor_outs[i][0]); \n", _code_name.c_str());
-        _code.feed("        printf(\"mean_val in %s ops: %s \\n\", %s_g_ops[i]->get_op_name(), mean_val);\n", "%s", "%.6f", _code_name.c_str());
+        _code.feed("        for(int j = 0; j < %s_tensor_outs[i].size(); j++) {\n", _code_name.c_str());
+        _code.feed("            double mean_val = tensor_mean(*%s_tensor_outs[i][0]); \n", _code_name.c_str());
+        _code.feed("#if defined(ENABLE_OP_TIMER) || defined(ENABLE_DEBUG) \n");
+        _code.feed("            printf(\"mean_val in %s ops: %s \\n\", %s_g_ops[i]->get_op_name(), mean_val);\n", "%s", "%.6f", _code_name.c_str());
+        _code.feed("#else \n");
+        _code.feed("            printf(\"mean_val in ops: %s \\n\", mean_val);\n", "%.6f");
+        _code.feed("#endif \n");
+        _code.feed("        }\n");
     }
     _code << "    }\n";
 
@@ -303,6 +322,9 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_head_api() {
 	// gen weights loading function
 	_code.feed("LITE_EXPORT bool %s_load_param(const char* param_path);\n\n", _code_name.c_str());
 
+    // gen weights loading function from memory
+    _code.feed("LITE_EXPORT bool %s_load_weights(const void* weights);\n\n", _code_name.c_str());
+
 	// gen api for model init
 	_code.feed("/// %s_init should only be invoked once when input shape changes.\n", _code_name.c_str());
 	_code.feed("LITE_EXPORT bool %s_init(Context& ctx);\n\n", _code_name.c_str());
@@ -370,20 +392,28 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_head_api_impl() {
 	// gen weights loading function
 	_code.feed("float *%s = nullptr; // global weights start pointer \n", _g_weights_ptr_name.c_str());
     _code.feed("std::vector<ParamBase*> %s_g_param; // global vector of param \n", _code_name.c_str());
-	_code.feed("bool %s_load_param(const char* param_path) {\n", _code_name.c_str());
-	_code <<   "    FILE *f = fopen(param_path, \"rb\"); \n";
-	_code <<   "    if(!f) {\n";
-	_code <<   "        return false;\n    }\n";
-	_code <<   "    fseek(f, 0, SEEK_END);\n";
-	_code <<   "    long fsize = ftell(f);\n";
-	_code <<   "    fseek(f, 0, SEEK_SET);\n";
+
+    _code.feed("bool %s_load_param(const char* param_path) {\n", _code_name.c_str());
+    _code <<   "    FILE *f = fopen(param_path, \"rb\"); \n";
+    _code <<   "    if(!f) {\n";
+    _code <<   "        return false;\n    }\n";
+    _code <<   "    fseek(f, 0, SEEK_END);\n";
+    _code <<   "    long fsize = ftell(f);\n";
+    _code <<   "    fseek(f, 0, SEEK_SET);\n";
     _code.feed("    if(%s) {\n", _g_weights_ptr_name.c_str());
     _code.feed("        delete [] %s;\n", _g_weights_ptr_name.c_str());
     _code.feed("        %s = nullptr;\n", _g_weights_ptr_name.c_str());
     _code.feed("    }\n");
-	_code.feed("    %s = new float[fsize + 1];\n", _g_weights_ptr_name.c_str());
-	_code.feed("    fread(%s, fsize, sizeof(float), f);\n", _g_weights_ptr_name.c_str());
-	_code <<   "    fclose(f);\n";
+    _code.feed("    %s = new float[fsize + 1];\n", _g_weights_ptr_name.c_str());
+    _code.feed("    fread(%s, fsize, sizeof(float), f);\n", _g_weights_ptr_name.c_str());
+    _code <<   "    fclose(f);\n";
+    _code.feed("    %s_load_weights((const void*)%s);\n", _code_name.c_str(), _g_weights_ptr_name.c_str());
+    _code << "}";
+
+	_code.feed("bool %s_load_weights(const void* weights) {\n", _code_name.c_str());
+    _code.feed("    if (weights == nullptr) {\n"); // invoke (model_name)_tensors_init()
+    _code.feed("        return false;\n"); // invoke (model_name)_tensors_init()
+    _code.feed("    }\n"); // invoke (model_name)_tensors_init()
 	_code.feed("    %s_tensors_init();\n", _code_name.c_str()); // invoke (model_name)_tensors_init()
 	_code.feed("    %s_model_ios_init();\n", _code_name.c_str()); // invoke (model_name)_model_ios_init()
     _code.feed("    for (int i = 0; i < %s_g_param.size(); i++) {\n", _code_name.c_str());
@@ -393,10 +423,14 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_head_api_impl() {
     _code.feed("        %s_g_param[i] = nullptr;\n", _code_name.c_str());
     _code.feed("    }\n");
     _code.feed("    %s_g_param.clear();\n", _code_name.c_str());
+    _code.feed("    const float* weights_ptr = (const float*)weights;\n");
+    std::string local_weight_string = "weights_ptr";
+
 	for(auto & node_name : this->_exec_node_order) {
 		if(this->_graph_node_map[node_name].op_name == "Input" || this->_graph_node_map[node_name].op_name == "Output") {
 			continue;
 		}
+
 		auto& node_info = this->_graph_node_map[node_name];
 		auto& attr_info = this->_graph[node_name]->attr();
 		if(OPERATION_MAP.count(node_info.op_name) > 0) {
@@ -404,13 +438,13 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_head_api_impl() {
 			auto str = OPERATION_MAP[node_info.op_name].parse(attr_info, _code_name,
                                                               OPERATION_MAP[node_info.op_name].OpClassName,
 															  node_name, 
-															  _g_weights_ptr_name,
-															  _weights);
+															  local_weight_string,
+															  _weights, false);
 			if(!str.empty()) {
 				_code.feed("    %s", str.c_str());
 			}
 		} else {
-			LOG(WARNING) << "Target op type : " << this->_graph_node_map[node_name].op_name << " not support";
+			LOG(FATAL) << "Target op type : " << this->_graph_node_map[node_name].op_name << " not support";
 		}
 	}
     _code.feed("    %s_gen_ops();\n", _code_name.c_str());
@@ -440,8 +474,10 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_head_api_impl() {
     _code.feed("        }\n");
     _code.feed("    }\n");
     _code.feed("    %s_g_param.clear();\n", _code_name.c_str());
-	_code.feed("    delete [] %s;\n", _g_weights_ptr_name.c_str());
-	_code.feed("    %s = nullptr;\n", _g_weights_ptr_name.c_str());
+    _code.feed("    if (%s) {\n", _g_weights_ptr_name.c_str());
+	_code.feed("        delete [] %s;\n", _g_weights_ptr_name.c_str());
+	_code.feed("        %s = nullptr;\n", _g_weights_ptr_name.c_str());
+    _code.feed("    }\n", _g_weights_ptr_name.c_str());
 	_code <<"}\n\n";
 }
 
@@ -478,7 +514,145 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_source(const bool debug_mode) {
 	// gen running api impl
 	gen_run_impl(debug_mode);
 	gen_source_end();
-	_code.save();	
+	_code.save();
+    gen_opt_model();
+    if (!_flag_aot) {
+        gen_merge_model();
+    }
+}
+
+template<typename Ttype, DataType Dtype, Precision Ptype>
+void GenCPP<Ttype, Dtype, Ptype>::gen_opt_model() {
+    //! generate Tensors
+    LOG(INFO) << "gen opt model tensors";
+    _opt_param_write << "Tensor_number " << this->_tensor_map.size() << "\n";
+    //! firstly, gen tensor withnot shared
+    for(auto it = this->_tensor_map.begin(); it != this->_tensor_map.end(); ++it) {
+        auto& edge_name = it->first;
+        auto& edge_info = it->second;
+        if(! edge_info.is_shared) {
+            //tensor info format: tensor_name valid_shape real_shape is_shared shared_tensor_name
+            _opt_param_write << edge_name << " ";
+            _opt_param_write << edge_info.valid_shape.size() << " ";
+            for (int i = 0; i < edge_info.valid_shape.size(); ++i) {
+                _opt_param_write << edge_info.valid_shape[i] << " ";
+            }
+            _opt_param_write << edge_info.real_shape.size() << " ";
+            for (int i = 0; i < edge_info.real_shape.size(); ++i) {
+                _opt_param_write << edge_info.real_shape[i] << " ";
+            }
+            _opt_param_write << 0 << " " << "null" << "\n";
+        }
+    }
+    //! then gen tensor shared memory
+    for(auto it = this->_tensor_map.begin(); it != this->_tensor_map.end(); ++it) {
+        auto& edge_name = it->first;
+        auto& edge_info = it->second;
+        if(edge_info.is_shared) {
+            //tensor info format: tensor_name valid_shape real_shape is_shared shared_tensor_name
+
+            _opt_param_write << edge_name << " ";
+            _opt_param_write << edge_info.valid_shape.size() << " ";
+            for (int i = 0; i < edge_info.valid_shape.size(); ++i) {
+                _opt_param_write << edge_info.valid_shape[i] << " ";
+            }
+            _opt_param_write << edge_info.valid_shape.size() << " ";
+            for (int i = 0; i < edge_info.valid_shape.size(); ++i) {
+                _opt_param_write << edge_info.valid_shape[i] << " ";
+            }
+            _opt_param_write << 1 << " " << edge_info.share_from << "\n";
+        }
+    }
+    //! gen inputs and outputs tensor name
+    _opt_param_write << "inputs " << this->_ins.size();
+    for(auto in : this->_ins) {
+        auto node_info = this->_graph_node_map[in];
+        auto edge_info = this->_tensor_map[node_info.outs[0]];
+        _opt_param_write << " " << edge_info.name;
+    }
+    _opt_param_write << "\n";
+
+    //! gen outputs and outputs tensor name
+    _opt_param_write << "outputs " << this->_outs.size();
+    for(auto out : this->_outs) {
+        auto node_info = this->_graph_node_map[out];
+        auto edge_info = this->_tensor_map[node_info.ins[0]];
+        _opt_param_write << " " << edge_info.name;
+    }
+    _opt_param_write << "\n";
+
+    //! gen ops and params
+    int op_num = this->_exec_node_order.size();
+    for(auto & node_name : this->_exec_node_order) {
+        if (this->_graph_node_map[node_name].op_name == "Input" ||
+            this->_graph_node_map[node_name].op_name == "Output") {
+            op_num--;
+        }
+    }
+    _opt_param_write << "OPS " << op_num << "\n";
+    for(auto & node_name : this->_exec_node_order) {
+        if(this->_graph_node_map[node_name].op_name == "Input" || this->_graph_node_map[node_name].op_name == "Output") {
+            continue;
+        }
+        auto& node_info = this->_graph_node_map[node_name];
+        auto& attr_info = this->_graph[node_name]->attr();
+        if(OPERATION_MAP.count(node_info.op_name) > 0) {
+            LOG(INFO) << "Target op type : " << this->_graph_node_map[node_name].op_name << " parsing ...";
+            _opt_param_write << OPERATION_MAP[node_info.op_name].OpClassName << " " << node_name << " ";
+            _opt_param_write << node_info.ins.size() << " ";
+            _opt_param_write << node_info.outs.size() << " ";
+            for(auto &edge_in : node_info.ins) {
+                _opt_param_write << edge_in << " ";
+            }
+            for(auto &edge_out : node_info.outs) {
+                _opt_param_write << edge_out.c_str() << " ";
+            }
+            std::string local_weighs_string = "null";
+            auto str = OPERATION_MAP[node_info.op_name].parse(attr_info, _code_name,
+                                                              OPERATION_MAP[node_info.op_name].OpClassName,
+                                                              node_name,
+                                                              local_weighs_string,
+                                                              _opt_weights,
+                                                              true);
+            _opt_param_write << str;
+        } else {
+            LOG(FATAL) << "Target op type : " << this->_graph_node_map[node_name].op_name << " not support";
+        }
+    }
+
+    _opt_param_write.save();
+}
+
+template<typename Ttype, DataType Dtype, Precision Ptype>
+void GenCPP<Ttype, Dtype, Ptype>::gen_merge_model() {
+    FILE* fp_merge = fopen(_merge_opt_file.c_str(), "wb");
+    FILE* fp_weight = fopen(_model_file_name.c_str(), "rb");
+    FILE* fp_info = fopen(_model_opt_file_name.c_str(), "rb");
+    fseek(fp_weight, 0, SEEK_END);
+    long wsize = ftell(fp_weight);
+    fseek(fp_weight, 0, SEEK_SET);
+    char* wbuffer = new char[wsize + 1];
+    fread(wbuffer, wsize, 1, fp_weight);
+
+    fseek(fp_info, 0, SEEK_END);
+    long isize = ftell(fp_info);
+    fseek(fp_info, 0, SEEK_SET);
+    char* ibuffer = new char[isize + 1];
+    fread(ibuffer, isize, 1, fp_info);
+
+    fprintf(fp_merge, "Wsize %lu\n", wsize);
+    fwrite(wbuffer, wsize, 1, fp_merge);
+
+    fwrite(ibuffer, isize, 1, fp_merge);
+
+    fflush(fp_merge);
+    fclose(fp_merge);
+
+    fclose(fp_weight);
+    fclose(fp_info);
+
+    delete [] wbuffer;
+    delete [] ibuffer;
 }
 
 #ifdef USE_CUDA
