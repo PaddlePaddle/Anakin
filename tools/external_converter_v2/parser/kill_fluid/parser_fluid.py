@@ -599,17 +599,17 @@ class FluidParser:
 					if input_list[0].split('#')[0] == 'mul':
 						mul_node_name = input_list[0]
 						mul_op = self._GetOp(source_ops, mul_node_name)
-						if helper.var_name_by_param(mul_op, 'Y').startswith('fc'):
-							if helper.attr_data(mul_op, 'x_num_col_dims') == 1:
-								input_list_of_mul = self.ins[mul_node_name].targets('X')
-								input_name_of_mul = input_list_of_mul[0]
-								[w_np, w_sh] = helper.data_with_shape_by_param(mul_op, 'Y', \
+						#if helper.var_name_by_param(mul_op, 'Y').startswith('fc'):
+						if helper.attr_data(mul_op, 'x_num_col_dims') == 1:
+							input_list_of_mul = self.ins[mul_node_name].targets('X')
+							input_name_of_mul = input_list_of_mul[0]
+							[w_np, w_sh] = helper.data_with_shape_by_param(mul_op, 'Y', \
 									False, None, 0, False)
 								private_data['np_flat_fc_weight'] = w_np
 								private_data['np_fc_outdim'] = w_sh[3]
 								lstm_flags[1] = True
-							else:
-								raise NameError('ERROR: Axis of LSTM_FC must be 1.')
+						else:
+							raise NameError('ERROR: Axis of LSTM_FC must be 1.')
 				if lstm_flags == [True, True]:
 					self.outs[input_name_of_mul].mv(mul_node_name, lstm_node_name)
 					self.ins[lstm_node_name].mv(in_lstm_node_name, input_name_of_mul)
