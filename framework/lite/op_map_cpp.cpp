@@ -1169,6 +1169,80 @@ std::string ParserEltwiseRelu(graph::AttrInfo& attr,
     return code_w.get_code_string();
 }
 
+// SaberEltwiseAct
+std::string ParserEltwisePRelu(graph::AttrInfo& attr,
+                          std::string& code_name,
+                          std::string& op_class_name,
+                          std::string& node_name,
+                          std::string& weights_ptr_name,
+                          WeightsWritter& writter,
+                          bool gen_param) {
+    // parsing parameter
+    auto type = get_attr<std::string>("type", attr);
+    auto coeff = get_attr<PTuple<float>>("coeff", attr);
+
+    std::string eltwise_type_str("Eltwise_unknow");
+    EltwiseType et_type;
+    if (type == "Add") {
+        eltwise_type_str = "Eltwise_sum";
+        et_type = Eltwise_sum;
+    } else if (type == "Max") {
+        eltwise_type_str = "Eltwise_max";
+        et_type = Eltwise_max;
+    } else {
+        eltwise_type_str = "Eltwise_prod";
+        et_type = Eltwise_prod;
+    }
+
+    CodeWritter coeff_vec_code;
+    coeff_vec_code<<"{";
+    for(int i=0; i<coeff.size()-1; i++) {
+        coeff_vec_code<<coeff.vector()[i]<<",";
+    }
+    if(coeff.size() > 0) {
+        coeff_vec_code<<coeff.vector()[coeff.size()-1] << "}";
+    } else {
+        coeff_vec_code<<"}";
+    }
+    //prelu
+    auto prelu_channel_shared = get_attr<bool>("channel_shared", attr);
+    // auto prelu_weights = get_attr<bool>("weights", attr);
+    auto prelu_weights = get_attr<PBlock<float, X86>>("weight_1", attr);
+
+    writter.register_weights(node_name, prelu_weights);
+    LOG(INFO) << node_name << " write weights: " << prelu_weights.count();
+
+    auto offset_info = writter.get_weights_by_name(node_name);
+    // gen cpp code
+    CodeWritter code_w;
+
+    if (gen_param) {
+        code_w.feed("%d %d ", (int)et_type,
+                    coeff.size());
+        for (int i = 0; i < coeff.size(); ++i) {
+            code_w << coeff[i] << " ";
+        }
+        code_w << (int)Active_prelu << " " << 0.f << " " << 0.f << " " << \
+                (prelu_channel_shared ? 1 : 0) << " " << offset_info.weights[0].offset <<"\n";
+        //code_w << "\n";
+    } else  {
+        code_w.feed("ParamBase* %s_param = new EltwiseActParam(%s, %s, %d, %f, %f, %d, %s+%d, %d);\n",
+                    node_name.c_str(),
+                    eltwise_type_str.c_str(),
+                    coeff_vec_code.get_code_string().c_str(),
+                    (int)Active_prelu,
+                    0.f,
+                    0.f,
+                    (prelu_channel_shared ? 1 : 0),
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[0].offset,
+                    1);
+
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
+    return code_w.get_code_string();
+}
+
 // SaberActivation
 std::string ParserActivation(graph::AttrInfo& attr,
                              std::string& code_name,
@@ -1841,6 +1915,7 @@ std::unordered_map<std::string, OpParser> OPERATION_MAP({
 	{"DetectionOutput", {"SaberDetectionOutput", ParserDectionOutput} }, // done 
 	{"Eltwise", {"SaberEltwise", ParserEltwise} }, //done
 	{"EltwiseRelu", {"SaberEltwiseAct", ParserEltwiseRelu}}, // done
+    {"EltwisePRelu", {"SaberEltwiseAct", ParserEltwisePRelu}}, // done
 	{"Dense", {"SaberFc", ParserFc} }, // done
 	{"Permute", {"SaberPermute", ParserPermute} }, // done
 	{"Pooling", {"SaberPooling", ParserPooling} }, // done
