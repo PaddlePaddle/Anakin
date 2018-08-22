@@ -22,7 +22,7 @@
 #include "saber/saber_funcs_param.h"
 
 #ifdef NVIDIA_GPU
-//#include "saber/funcs/impl/cuda/saber_conv_eltwise.h"
+#include "saber/funcs/impl/cuda/saber_conv_eltwise.h"
 #include "saber/funcs/impl/cuda/vender_conv_eltwise.h"
 #endif
 

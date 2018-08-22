@@ -3,6 +3,8 @@
 #include "saber/funcs/impl/cuda/saber_conv_eltwise.h"
 #include "saber/funcs/impl/cuda/base/sass_funcs.h"
 #include "saber/funcs/calibrate.h"
+#include "saber_conv_eltwise.h"
+
 namespace anakin {
 namespace saber {
 
@@ -12,6 +14,7 @@ SaberStatus SaberConvEltwise<NV, AK_FLOAT>::\
             std::vector<Tensor<NV> *>& outputs,
             ConvEltwiseParam<NV>& param, Context<NV>& ctx) {
 
+    _ctx = &ctx;
     _kernel_height = param.conv_param.weight()->height();
     _kernel_width = param.conv_param.weight()->width();
 
@@ -22,11 +25,15 @@ SaberStatus SaberConvEltwise<NV, AK_FLOAT>::\
     _use_k1s1p0 = _use_k1s1p0 && (param.conv_param.pad_w == 0);
     _use_k1s1p0 = _use_k1s1p0 && (param.conv_param.stride_h == 1);
     _use_k1s1p0 = _use_k1s1p0 && (param.conv_param.stride_w == 1);
+    _use_k1s1p0 = _use_k1s1p0 && (param.conv_param.bias()->valid_size()>0);
+    _use_k1s1p0 = _use_k1s1p0 && (!param.conv_param.activation_param.has_active);
+    _use_k1s1p0 = _use_k1s1p0 && (param.eltwise_param.activation_param.active == Active_relu);
 
     if (_use_k1s1p0) {
         return SaberSuccess;
+    } else {
+        return SaberUnImplError;
     }
-
     return create(inputs, outputs, param, ctx);
 }
 
@@ -42,6 +49,8 @@ SaberStatus SaberConvEltwise<NV, AK_FLOAT>::\
     } else {
         bias_data = nullptr;
     }
+    Shape shape_in = inputs[0]->valid_shape();
+    Shape shape_out = outputs[0]->valid_shape();
     int num = inputs[0]->num();
     int chin = inputs[0]->channel();
     int win = inputs[0]->width();
@@ -51,7 +60,6 @@ SaberStatus SaberConvEltwise<NV, AK_FLOAT>::\
     int hout = outputs[0]->height();
     int in_stride = chin * win * hin;
     int out_stride = chout * wout * hout;
-
     if (_use_k1s1p0) {
         if (param.eltwise_param.has_eltwise) {
             if (param.eltwise_param.activation_param.has_active) {
@@ -87,6 +95,8 @@ SaberStatus SaberConvEltwise<NV, AK_FLOAT>::\
             }
         }
         return SaberSuccess;
+    } else {
+        return SaberUnImplError;
     }
     return SaberSuccess;
 }

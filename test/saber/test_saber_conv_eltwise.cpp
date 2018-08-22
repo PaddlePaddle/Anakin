@@ -57,12 +57,12 @@ void test_conv_eltwise() {
     Env<TargetType_H>::env_init();
     TestSaberBase<TargetType, TargetType_H, AK_FLOAT, ConvEltwise, ConvEltwiseParam> testbase;
 
-    std::vector<int> kernel_h_v{3};
-    std::vector<int> kernel_w_v{3};
-    std::vector<int> pad_h_v{0, 1};
-    std::vector<int> pad_w_v{0, 1};
-    std::vector<int> stride_h_v{1, 2};
-    std::vector<int> stride_w_v{1, 2};
+    std::vector<int> kernel_h_v{1, 3};
+    std::vector<int> kernel_w_v{1, 3};
+    std::vector<int> pad_h_v{0};
+    std::vector<int> pad_w_v{0};
+    std::vector<int> stride_h_v{1};
+    std::vector<int> stride_w_v{1};
     std::vector<int> dilation_h_v{1};
     std::vector<int> dilation_w_v{1};
     std::vector<int> group_v{1};
@@ -71,11 +71,9 @@ void test_conv_eltwise() {
     std::vector<int> input_num_v{3};
     std::vector<int> input_channels_v{17, 4};
     std::vector<int> output_channels_v{4, 17};
-    std::vector<bool> bias_term_v{false, true};
+    std::vector<bool> bias_term_v{true};
     std::vector<bool> with_relu_v{false, true};
 
-    for (int bias_term : bias_term_v)
-    for (int with_relu : with_relu_v)
     for (auto kernel_h : kernel_h_v)
     for (auto kernel_w : kernel_w_v)
     for (auto pad_h : pad_h_v)

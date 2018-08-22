@@ -81,11 +81,26 @@ SaberStatus SaberConv2D<NV, AK_FLOAT>::\
 
     _kernel_height = param.weight()->height();
     _kernel_width = param.weight()->width();
-    conv_trans_weights(inputs, outputs, param, ctx, _in_place, &_weight_dev);
+    _use_k1s1p0 = true;
+    _use_k1s1p0 = _use_k1s1p0 && (_kernel_height == 1);
+    _use_k1s1p0 = _use_k1s1p0 && (_kernel_width == 1);
+    _use_k1s1p0 = _use_k1s1p0 && (param.pad_h == 0);
+    _use_k1s1p0 = _use_k1s1p0 && (param.pad_w == 0);
+    _use_k1s1p0 = _use_k1s1p0 && (param.stride_h == 1);
+    _use_k1s1p0 = _use_k1s1p0 && (param.stride_w == 1);
+    _use_k1s1p0 = _use_k1s1p0 && (param.bias()->valid_size()>0);
+    _use_k1s1p0 = _use_k1s1p0 && (param.activation_param.active == Active_relu);
+
+    if (_use_k1s1p0) {
+        return SaberSuccess;
+    }
+
     if (_with_saber_act) {
         _saber_act = new SaberActivation<NV, AK_FLOAT>;
         _saber_act->init(outputs, outputs, param.activation_param, ctx);
     }
+
+    conv_trans_weights(inputs, outputs, param, ctx, _in_place, &_weight_dev);
     return create(inputs, outputs, param, ctx);
 }
 
@@ -98,6 +113,15 @@ SaberStatus SaberConv2D<NV, AK_FLOAT>::\
     Shape shape_in = inputs[0]->valid_shape();
     Shape shape_out = outputs[0]->valid_shape();
     const float* bias_data = nullptr;
+    int num = inputs[0]->num();
+    int chin = inputs[0]->channel();
+    int win = inputs[0]->width();
+    int hin = inputs[0]->height();
+    int chout = outputs[0]->channel();
+    int wout = outputs[0]->width();
+    int hout = outputs[0]->height();
+    int in_stride = chin * win * hin;
+    int out_stride = chout * wout * hout;
     if (param.bias()->size() > 0) {
         bias_data = (const float*)param.bias()->data();
     }
@@ -110,6 +134,23 @@ SaberStatus SaberConv2D<NV, AK_FLOAT>::\
                        param.stride_h, param.pad_w, param.pad_h,
                        (const OpDataType*)param.weight()->data(), (const float*)bias_data,
                        this->_ctx->get_compute_stream());
+    } else if (_use_k1s1p0){
+        if (param.activation_param.has_active) {
+            conv_gemm_k1s1p0<true>(num, in_stride, out_stride,
+                                   (float*)outputs[0]->mutable_data(),
+                                   (const float*)inputs[0]->data(),
+                                   (const float*)param.weight()->data(),
+                                   chout, chin, hin, win, bias_data,
+                                   this->_ctx->get_compute_stream(), 1.f, 0.f);
+        } else {
+            conv_gemm_k1s1p0<false>(num, in_stride, out_stride,
+                                    (float*)outputs[0]->mutable_data(),
+                                    (const float*)inputs[0]->data(),
+                                    (const float*)param.weight()->data(),
+                                    chout, chin, hin, win, bias_data,
+                                    this->_ctx->get_compute_stream(), 1.f, 0.f);
+        }
+        return SaberSuccess;
     } else {
         const float* weight_ptr = nullptr;
         if (_in_place) {

@@ -56,7 +56,8 @@ private:
     Tensor<NV> _weight_dev;
     int _kernel_height;
     int _kernel_width;
-    bool _use_k1s1p0;
+    bool _use_k1s1p0{false};
+    bool _use_k3{false};
     std::function<void(const float*,
                        float*,
                        const float*,
