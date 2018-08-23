@@ -250,7 +250,10 @@ OpsRegister.Register("Axpy").set_attr()
 
 OpsRegister.Register("PriorBox").set_attr(min_size=list(), 
                                           max_size=list(), 
-                                          aspect_ratio=list(), 
+                                          aspect_ratio=list(),
+                                          fixed_size=list(), 
+                                          fixed_ratio=list(), 
+                                          density=list(),  
                                           is_flip=bool(), 
                                           is_clip=bool(), 
                                           variance=list(), 
@@ -359,3 +362,4 @@ OpsRegister.Register("Normalize").set_attr(begin_norm_axis=int(),
                                            p=int())
 
 
+OpsRegister.Register("ShuffleChannel").set_attr(group=int())

@@ -95,7 +95,8 @@ SaberStatus SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::cr
     //! otherwise use direct conv
 
     if (_kw == 3 && _kh == 3 && conv_param.stride_h == 1 && \
-        conv_param.pad_w == 1 && conv_param.group == 1) {
+        conv_param.pad_w == 1 && conv_param.group == 1 && \
+        inputs[0]->width() > 4 && inputs[0]->height() > 4 && outputs[0]->channel() > 1) {
 
         if (chout / (wout * hout) > 1 || chin < 16 || chout < 14) {
             //! use direct
