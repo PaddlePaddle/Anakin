@@ -27,46 +27,46 @@ namespace anakin {
 namespace ops {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
-class EltwisePReluHelper;
+class EltwiseActivationHelper;
 
 /// pooling op
 /**
- * \brief EltwisePRelu implementation class
+ * \brief EltwiseActivation implementation class
  * public inherit Operator
  */
 template<typename Ttype, DataType Dtype, Precision Ptype>
-class EltwisePRelu : public Operator<Ttype, Dtype, Ptype> {
+class EltwiseActivation : public Operator<Ttype, Dtype, Ptype> {
 public:
-    EltwisePRelu() {}
+    EltwiseActivation() {}
 
     /// forward impl
     virtual void operator() (OpContext<Ttype> &ctx, 
                              const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
                              std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-        LOG(ERROR) << "Not Impl Yet Operator eltwisePrelu<TargetType:"<<"unknown"<<","
+        LOG(ERROR) << "Not Impl Yet Operator EltwiseActivation<TargetType:"<<"unknown"<<","
                    <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info()<<">";
     }
 
-    friend class EltwisePReluHelper<Ttype, Dtype, Ptype>;
+    friend class EltwiseActivationHelper<Ttype, Dtype, Ptype>;
 };
 
 /**
- * \brief EltwisePRelu helper class to implement it
+ * \brief EltwiseActivation helper class to implement it
  * public inherit OperatorHelper
- * including init resource and shape size in EltwisePRelu context
+ * including init resource and shape size in EltwiseActivation context
  */
 template<typename Ttype, DataType Dtype, Precision Ptype>
-class EltwisePReluHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
+class EltwiseActivationHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
-    EltwisePReluHelper()=default;
+    EltwiseActivationHelper()=default;
 
-    ~EltwisePReluHelper();
+    ~EltwiseActivationHelper();
 
     Status InitParam() override;
 
     /**
     * \brief initial all the resource needed by pooling
-    * \param ctx stand for EltwisePRelu operation context
+    * \param ctx stand for EltwiseActivation operation context
     * \param ins stand for input tensor vector
     * \param outs stand for output tensor vector
     * \return status
@@ -85,13 +85,13 @@ public:
                       std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
 
 public:
-    ///< _param_eltwise_relu stand for EltwisePRelu parameter
+    ///< _param_eltwise_relu stand for EltwiseActivation parameter
     saber::EltwiseActiveParam<Tensor4d<Ttype, Dtype>>  _param_eltwise_prelu;
-     ///< _funcs_eltwise_relu stand for EltwisePRelu function
+     ///< _funcs_eltwise_relu stand for EltwiseActivation function
     saber::EltwiseActive<Ttype, Dtype> _funcs_eltwise_prelu;
 
 private:
-    ///< _dims stand for EltwisePRelu size
+    ///< _dims stand for EltwiseActivation size
     PTuple<int> _dims; 
 };
 

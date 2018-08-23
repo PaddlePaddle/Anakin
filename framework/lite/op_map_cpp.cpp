@@ -1205,9 +1205,9 @@ std::string ParserEltwisePRelu(graph::AttrInfo& attr,
         coeff_vec_code<<"}";
     }
     //prelu
-    auto prelu_channel_shared = get_attr<bool>("channel_shared", attr);
+    auto prelu_channel_shared = get_attr<bool>("prelu_0_channel_shared", attr);
     // auto prelu_weights = get_attr<bool>("weights", attr);
-    auto prelu_weights = get_attr<PBlock<float, X86>>("weight_1", attr);
+    auto prelu_weights = get_attr<PBlock<float, X86>>("prelu_0_weight_1", attr);
 
     writter.register_weights(node_name, prelu_weights);
     LOG(INFO) << node_name << " write weights: " << prelu_weights.count();
@@ -1915,7 +1915,7 @@ std::unordered_map<std::string, OpParser> OPERATION_MAP({
 	{"DetectionOutput", {"SaberDetectionOutput", ParserDectionOutput} }, // done 
 	{"Eltwise", {"SaberEltwise", ParserEltwise} }, //done
 	{"EltwiseRelu", {"SaberEltwiseAct", ParserEltwiseRelu}}, // done
-    {"EltwisePRelu", {"SaberEltwiseAct", ParserEltwisePRelu}}, // done
+    {"EltwiseActivation", {"SaberEltwiseAct", ParserEltwisePRelu}}, // done
 	{"Dense", {"SaberFc", ParserFc} }, // done
 	{"Permute", {"SaberPermute", ParserPermute} }, // done
 	{"Pooling", {"SaberPooling", ParserPooling} }, // done

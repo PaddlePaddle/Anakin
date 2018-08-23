@@ -85,10 +85,10 @@ REGISTER_GRAPH_FUSION_PATTERN(EltwiseRelu)
 .AddConnect("eltwise_0", "relu_0")
 .CreatePattern([](VGraph* graph) {});
 
-REGISTER_GRAPH_FUSION_PATTERN(EltwisePRelu)
+REGISTER_GRAPH_FUSION_PATTERN(EltwiseActivation)
 .Type(IN_ORDER)
 .AddOpNode("eltwise_0", "Eltwise")
-.AddOpNode("prelu_0", "PReLU")
+.AddOpNode("prelu_0", "Activation")
 .AddConnect("eltwise_0", "prelu_0")
 .CreatePattern([](VGraph* graph) {});
 

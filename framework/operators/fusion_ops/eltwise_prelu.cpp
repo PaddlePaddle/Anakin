@@ -6,36 +6,36 @@ namespace ops {
 
 #ifdef USE_CUDA
 template<>
-void EltwisePRelu<NV, AK_FLOAT, Precision::FP32>::operator()(
+void EltwiseActivation<NV, AK_FLOAT, Precision::FP32>::operator()(
     OpContext<NV>& ctx,
     const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
     std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    auto* impl = static_cast<EltwisePReluHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<EltwisePReluHelper<NV, AK_FLOAT, Precision::FP32>*>
+    auto* impl = static_cast<EltwiseActivationHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
+    auto& param = static_cast<EltwiseActivationHelper<NV, AK_FLOAT, Precision::FP32>*>
                   (this->_helper)->_param_eltwise_prelu;
     impl->_funcs_eltwise_prelu(ins, outs, param, ctx);
 }
 #endif
 #ifdef USE_ARM_PLACE
 template<>
-void EltwisePRelu<ARM, AK_FLOAT, Precision::FP32>::operator()(
+void EltwiseActivation<ARM, AK_FLOAT, Precision::FP32>::operator()(
     OpContext<ARM>& ctx,
     const std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& ins,
     std::vector<Tensor4dPtr<ARM, AK_FLOAT> >& outs) {
-    auto* impl = static_cast<EltwisePReluHelper<ARM, AK_FLOAT, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<EltwisePReluHelper<ARM, AK_FLOAT, Precision::FP32>*>
+    auto* impl = static_cast<EltwiseActivationHelper<ARM, AK_FLOAT, Precision::FP32>*>(this->_helper);
+    auto& param = static_cast<EltwiseActivationHelper<ARM, AK_FLOAT, Precision::FP32>*>
                   (this->_helper)->_param_eltwise_prelu;
     impl->_funcs_eltwise_prelu(ins, outs, param, ctx);
 }
 #endif
 #ifdef USE_X86_PLACE
 template<>
-void EltwisePRelu<X86, AK_FLOAT, Precision::FP32>::operator()(
+void EltwiseActivation<X86, AK_FLOAT, Precision::FP32>::operator()(
     OpContext<X86>& ctx,
     const std::vector<Tensor4dPtr<X86, AK_FLOAT> >& ins,
     std::vector<Tensor4dPtr<X86, AK_FLOAT> >& outs) {
-    auto* impl = static_cast<EltwisePReluHelper<X86, AK_FLOAT, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<EltwisePReluHelper<X86, AK_FLOAT, Precision::FP32>*>
+    auto* impl = static_cast<EltwiseActivationHelper<X86, AK_FLOAT, Precision::FP32>*>(this->_helper);
+    auto& param = static_cast<EltwiseActivationHelper<X86, AK_FLOAT, Precision::FP32>*>
                   (this->_helper)->_param_eltwise_prelu;
     impl->_funcs_eltwise_prelu(ins, outs, param, ctx);
 }
@@ -45,19 +45,21 @@ void EltwisePRelu<X86, AK_FLOAT, Precision::FP32>::operator()(
 
 /// set helper
 template<typename Ttype, DataType Dtype, Precision Ptype>
-EltwisePReluHelper<Ttype, Dtype, Ptype>::~EltwisePReluHelper() {
+EltwiseActivationHelper<Ttype, Dtype, Ptype>::~EltwiseActivationHelper() {
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
-Status EltwisePReluHelper<Ttype, Dtype, Ptype>::InitParam() {
-    DLOG(WARNING) << "Parsing EltwisePRelu op parameter.";
+Status EltwiseActivationHelper<Ttype, Dtype, Ptype>::InitParam() {
+    DLOG(WARNING) << "Parsing EltwiseActivation op parameter.";
+    //FIND_PARAMETER(type);
     auto type = GET_PARAMETER(std::string, type);
    // auto alpha = GET_PARAMETER(float, relu_0_alpha);
     auto coeff = GET_PARAMETER(PTuple<float>, coeff);
 
-    auto channel_shared = GET_PARAMETER(bool, channel_shared);
+    auto channel_shared = GET_PARAMETER(bool, prelu_0_channel_shared);
+    //printf("channel_shared: %d \n", channel_shared);
     using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
-    auto weights = GET_PARAMETER(pblock_type, weight_1);
+    auto weights = GET_PARAMETER(pblock_type, prelu_0_weight_1);
 
     PreluParam<Tensor4d<Ttype, Dtype>> prelu_param(channel_shared, &(weights.d_tensor()));
         
@@ -90,7 +92,7 @@ Status EltwisePReluHelper<Ttype, Dtype, Ptype>::InitParam() {
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
-Status EltwisePReluHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
+Status EltwiseActivationHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
         const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
         std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
     _funcs_eltwise_prelu.init(ins, outs, _param_eltwise_prelu, SPECIFY, SABER_IMPL, ctx);
@@ -98,7 +100,7 @@ Status EltwisePReluHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
-Status EltwisePReluHelper<Ttype, Dtype, Ptype>::InferShape(const
+Status EltwiseActivationHelper<Ttype, Dtype, Ptype>::InferShape(const
         std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
         std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
     _funcs_eltwise_prelu.compute_output_shape(ins, outs, _param_eltwise_prelu);
@@ -106,37 +108,37 @@ Status EltwisePReluHelper<Ttype, Dtype, Ptype>::InferShape(const
 }
 
 #ifdef USE_CUDA
-template class EltwisePReluHelper<NV, AK_FLOAT, Precision::FP32>;
-template class EltwisePReluHelper<NV, AK_FLOAT, Precision::FP16>;
-template class EltwisePReluHelper<NV, AK_FLOAT, Precision::INT8>;
+template class EltwiseActivationHelper<NV, AK_FLOAT, Precision::FP32>;
+template class EltwiseActivationHelper<NV, AK_FLOAT, Precision::FP16>;
+template class EltwiseActivationHelper<NV, AK_FLOAT, Precision::INT8>;
 #endif
 
 #ifdef USE_ARM_PLACE
-template class EltwisePReluHelper<ARM, AK_FLOAT, Precision::FP32>;
-template class EltwisePReluHelper<ARM, AK_FLOAT, Precision::FP16>;
-template class EltwisePReluHelper<ARM, AK_FLOAT, Precision::INT8>;
+template class EltwiseActivationHelper<ARM, AK_FLOAT, Precision::FP32>;
+template class EltwiseActivationHelper<ARM, AK_FLOAT, Precision::FP16>;
+template class EltwiseActivationHelper<ARM, AK_FLOAT, Precision::INT8>;
 #endif
 
 #if defined(USE_X86_PLACE) || defined(BUILD_LITE)
-template class EltwisePReluHelper<X86, AK_FLOAT, Precision::FP32>;
+template class EltwiseActivationHelper<X86, AK_FLOAT, Precision::FP32>;
 #endif
 
 // register helper
 #ifdef USE_CUDA
-ANAKIN_REGISTER_OP_HELPER(EltwisePRelu, EltwisePReluHelper, NV, AK_FLOAT, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(EltwiseActivation, EltwiseActivationHelper, NV, AK_FLOAT, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE
-ANAKIN_REGISTER_OP_HELPER(EltwisePRelu, EltwisePReluHelper, ARM, AK_FLOAT, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(EltwiseActivation, EltwiseActivationHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
 
 #if defined(USE_X86_PLACE) || defined(BUILD_LITE)
-ANAKIN_REGISTER_OP_HELPER(EltwisePRelu, EltwisePReluHelper, X86, AK_FLOAT, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(EltwiseActivation, EltwiseActivationHelper, X86, AK_FLOAT, Precision::FP32);
 #endif
 
 //! register op
-ANAKIN_REGISTER_OP(EltwisePRelu)
-.Doc("EltwisePRelu operator")
+ANAKIN_REGISTER_OP(EltwiseActivation)
+.Doc("EltwiseActivation operator")
 #ifdef USE_CUDA
 .__alias__<NV, AK_FLOAT, Precision::FP32>("eltwise_prelu")
 #endif
