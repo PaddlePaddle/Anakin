@@ -216,7 +216,6 @@ public:
                     fill_tensor_rand(*_outputs_dev[i][j], -5.f, 5.f);
                     _outputs_host[i][j]->copy_from(*_outputs_dev[i][j]);
                     _outputs_hd[i][j]->copy_from(*_outputs_dev[i][j]);
-                    cudaDeviceSynchronize();
                 }
 
             }
