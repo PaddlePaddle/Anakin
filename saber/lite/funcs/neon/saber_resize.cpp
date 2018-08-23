@@ -12,63 +12,25 @@ namespace saber{
 namespace lite{
 
 
-static void resize_spatial(const float* src, int w_in, int h_in, float* dst, int w_out, int h_out, float scale_x, float scale_y)
-{
+static void resize_spatial(const float* src, int w_in, int h_in, float* dst, \
+                            int w_out, int h_out, float* coor_buf, std::vector<Tensor<CPU, AK_FLOAT>> rows_buf){
 
-    int* buf = new int[w_out + h_out + w_out * 2 + h_out * 2];
+    int* xofs = (int*)coor_buf;
+    int* yofs = xofs + w_out;
 
-    int* xofs = buf;
-    int* yofs = buf + w_out;
+    float* alpha = (float*)yofs + h_out;
+    float* beta = alpha + w_out * 2;
 
-    float* alpha = (float*)(buf + w_out + h_out);
-    float* beta = (float*)(buf + w_out + h_out + w_out * 2);
-
-    float fx;
-    float fy;
-    int sx;
-    int sy;
-
-    for (int dx = 0; dx < w_out; dx++){
-        fx = dx * scale_x;
-        sx = int(fx);
-        fx -= sx;
-
-        if (sx >= w_in - 1){
-            sx = w_in - 2;
-            fx = 1.f;
-        }
-
-        xofs[dx] = sx;
-
-        alpha[dx*2    ] = 1.f - fx;
-        alpha[dx*2 + 1] = fx;
-    }
-
-    for (int dy = 0; dy < h_out; dy++){
-        fy = dy * scale_y;
-        sy = int(fy);
-        fy -= sy;
-
-        if (sy >= h_in - 1)
-        {
-            sy = h_in - 2;
-            fy = 1.f;
-        }
-
-        yofs[dy] = sy;
-
-        beta[dy*2    ] = 1.f - fy;
-        beta[dy*2 + 1] = fy;
-    }
-
-    // loop body
-    float* rowsbuf0 = new float[w_out + 1];
-    float* rowsbuf1 = new float[w_out + 1];
-    float* rows0 = rowsbuf0;
-    float* rows1 = rowsbuf1;
+#ifdef USE_OPENMP
+    int thread_id = omp_get_thread_num();
+#else
+    int thread_id = 0;
+#endif
+    float* rows0 = rows_buf[thread_id * 2].mutable_data();
+    float* rows1 = rows_buf[thread_id * 2 + 1].mutable_data();
 
     int prev_sy1 = -1;
-
+    //main loop 
     for (int dy = 0; dy < h_out; dy++ ){
         int sy = yofs[dy];
 
@@ -83,7 +45,6 @@ static void resize_spatial(const float* src, int w_in, int h_in, float* dst, int
             float* rows1p = rows1;
             
             int dx = 0;
-            float* rows1pt = rows1;
             for ( ; dx+1 < w_out; dx += 2 ){
                 int sx = xofs[dx];
                 int sxn = xofs[dx+1];
@@ -103,6 +64,7 @@ static void resize_spatial(const float* src, int w_in, int h_in, float* dst, int
                 vst1_f32(rows1p + dx, _rows1);
                 alphap += 4;
 #else
+                float* rows1pt = rows1;
                 asm volatile(
                         "vld1.32 {d0-d1}, [%[alpha]]!       @load alpha to q0\n"
                         "vld1.32 d2, [%[s1p]]               @load s1p to d2  \n"
@@ -176,22 +138,21 @@ static void resize_spatial(const float* src, int w_in, int h_in, float* dst, int
                   
                 /*
                 asm volatile(
-                            "pld [%[alpha]]        \n"
-                            "vld1.32 {d0-d1}, [%[alpha]]!      \n"
-                            "vld1.32 d2, [%[s0p]]                  \n"
+                            "pld [%[alpha]]                         \n"
+                            "vld1.32 {d0-d1}, [%[alpha]]!           \n"
+                            "vld1.32 d2, [%[s0p]]                   \n"
                             "vld1.32 d3, [%[s0np]]                  \n"
                             "vld1.32 d4, [%[s1p]]                   \n"
-                            "vld1.32 d5, [%[s1np]]                   \n"
+                            "vld1.32 d5, [%[s1np]]                  \n"
                 
-                            "vmul.f32 q3, q1, q0               \n"
-                            "vmul.f32 q4, q2, q0               \n"
+                            "vmul.f32 q3, q1, q0                    \n"
+                            "vmul.f32 q4, q2, q0                    \n"
 
-                            "vpadd.f32 d10, d6, d7              \n"
-                            "vpadd.f32 d11, d8, d9              \n"
+                            "vpadd.f32 d10, d6, d7                  \n"
+                            "vpadd.f32 d11, d8, d9                  \n"
 
-                            "vst1.32 d10, [%[out1]]!             \n"
-                          
-                            "vst1.32 d11, [%[out2]]!            \n"
+                            "vst1.32 d10, [%[out1]]!                \n"
+                            "vst1.32 d11, [%[out2]]!                \n"
 
                             :[out1]"+r"(rows0pt), [out2]"+r"(rows1pt), [alpha]"+r"(alphap)
                             :[s0p]"r"(S0p), [s1p]"r"(S1p),[s0np]"r"(S0np),[s1np]"r"(S1np)
@@ -257,7 +218,7 @@ static void resize_spatial(const float* src, int w_in, int h_in, float* dst, int
         }
         
 #else
-        if(nn > 0){
+        if (nn > 0){
             asm volatile(
                 "vdup.32 q0, %[b0]                   @dup b0 to q1\n"
                 "vdup.32 q1, %[b1]                   @dup b1 to q0\n"
@@ -291,22 +252,19 @@ static void resize_spatial(const float* src, int w_in, int h_in, float* dst, int
         beta += 2;
     }
 
-    delete[] buf;
-
-    delete[] rowsbuf0;
-    delete[] rowsbuf1;
 }
 
 
 void resize(const float* in_data, int count, int h_in, int w_in, \
-            float* out_data, int h_out, int w_out, float width_scale, float height_scale){
+            float* out_data, int h_out, int w_out, float* coor_buf, std::vector<Tensor<CPU, AK_FLOAT>> &rows_buf){
 
     int spatial_in = h_in * w_in;
     int spatial_out = h_out * w_out;
 
 #pragma omp parallel for
     for(int i = 0; i < count; ++i){
-        resize_spatial(in_data + i * spatial_in, w_in, h_in, out_data + i * spatial_out, w_out, h_out, width_scale, height_scale);
+        resize_spatial(in_data + i * spatial_in, w_in, h_in, \
+                        out_data + i * spatial_out, w_out, h_out, coor_buf, rows_buf);
     }
 }
 
@@ -361,10 +319,66 @@ SaberStatus SaberResize::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs
         return SaberNotInitialized;
     }
     this->_ctx = &ctx;
+
     _width_scale = _param->_width_scale;
     _height_scale = _param->_height_scale;
+    
+    int out_w = outputs[0]->valid_shape()[3];
+    int out_h = outputs[0]->valid_shape()[2];
+    int in_w = inputs[0]->valid_shape()[3];
+    int in_h = inputs[0]->valid_shape()[2];
+
+#ifdef USE_OPENMP
+    int num_threads = omp_get_max_threads();
+#else
+    int num_threads = 1;
+#endif
+    //allocate space 
+    Shape sh_coor(1, 1, 1, 3 * (out_w+out_h)); 
+    _coor_buf.re_alloc(sh_coor);
+    _rows_buf.resize(2 * num_threads);
+    //allocate rows buf according to threads num
+    for (int i = 0; i < _rows_buf.size(); ++i){
+        _rows_buf[i].re_alloc(out_w + 1);
+    }
+    int* xofs = (int*)_coor_buf.mutable_data();
+    int* yofs =  xofs + out_w; 
+    float* alpha = (float*)(yofs) + out_h;
+    float* beta = alpha + out_w * 2;
+    float fx, fy;
+    int sx, sy;
+
+    //pre compute coordinate in x and y direction
+    for (int dx = 0; dx < out_w; dx++){
+        fx = dx * (1.0 / _width_scale);
+        sx = int(fx);
+        fx -= sx;
+
+        if (sx >= in_w - 1){
+            sx = in_w - 2;
+            fx = 1.f;
+        }
+        xofs[dx] = sx;
+        alpha[dx * 2    ] = 1.f - fx;
+        alpha[dx * 2 + 1] = fx;
+    }
+
+    for (int dy = 0; dy < out_h; dy++){
+        fy = dy * (1.0 / _height_scale);
+        sy = int(fy);
+        fy -= sy;
+
+        if (sy >= in_h - 1){
+            sy = in_h - 2;
+            fy = 1.f;
+        }
+        yofs[dy] = sy;
+        beta[dy * 2    ] = 1.f - fy;
+        beta[dy * 2 + 1] = fy;
+    }
     this->_flag_init = true;
     return SaberSuccess;
+
 }
 
 
@@ -392,9 +406,7 @@ SaberStatus SaberResize::dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inp
     int out_h = outputs[0]->height();
     int out_w = outputs[0]->width();
 
-
-    resize(din, count, in_h, in_w, dout, out_h, out_w, 1.0f / _width_scale, 1.0f / _height_scale);
-
+    resize(din, count, in_h, in_w, dout, out_h, out_w, _coor_buf.mutable_data(), _rows_buf);
 
 
 #ifdef ENABLE_OP_TIMER
@@ -406,7 +418,9 @@ SaberStatus SaberResize::dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inp
 #endif
     return SaberSuccess;
 }
+
 REGISTER_LAYER_CLASS(SaberResize);
+
 } //namespace lite
 
 } //namespace saber
