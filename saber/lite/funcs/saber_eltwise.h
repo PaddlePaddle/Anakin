@@ -33,12 +33,14 @@ public:
     SaberEltwise() {}
 
     SaberEltwise(const ParamBase* param);
-    //SaberEltwise(EltwiseType type, std::vector<float> coef);
 
     virtual SaberStatus load_param(const ParamBase* param) override;
-    //SaberStatus load_param(EltwiseType type, std::vector<float> coef);
 
-    ~SaberEltwise() {}
+    //virtual SaberStatus load_param(FILE* fp, const float* weights) override;
+
+    virtual SaberStatus load_param(std::istream& stream, const float* weights) override;
+
+    ~SaberEltwise();
 
     virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
                                      std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
@@ -51,8 +53,6 @@ public:
 
 private:
     const EltwiseParam* _param;
-//    EltwiseType _type;
-//    std::vector<float> _coef;
     eltwise_func _impl{nullptr};
 };
 

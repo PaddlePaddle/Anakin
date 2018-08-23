@@ -96,7 +96,7 @@ Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path) {
     auto it_in = graph_proto.edges_in().begin();
 
     for (; it_in != graph_proto.edges_in().end(); ++it_in) {
-        LOG(WARNING) << " Parsing in edges of node : " << it_in->first;
+        DLOG(WARNING) << " Parsing in edges of node : " << it_in->first;
         auto& key = it_in->first;
         auto& second = it_in->second;
 
@@ -151,6 +151,90 @@ Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path) {
     graph->statistics.template set_info<graph::TEMP_MEM>(graph_proto.summary().temp_mem_used());
     graph->statistics.template set_info<graph::ORI_TEMP_MEM>
     (graph_proto.summary().original_temp_mem_used());
+    graph->statistics.template set_info<graph::SYSTEM_MEM>(graph_proto.summary().system_mem_used());
+    graph->statistics.template set_info<graph::MODEL_MEM>(graph_proto.summary().model_mem_used());
+
+    return Status::OK();
+}
+
+template<typename Ttype, DataType Dtype, Precision Ptype>
+Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, std::istream* instream) {
+
+    GraphProto graph_proto;
+
+    // parsing GraphProto from model
+    if (!graph_proto.ParseFromIstream(instream)) {
+        DLOG(ERROR) << "Fail to parse GraphProto.";
+        return Status::FAIL("Fail to parse GraphProto.");
+    }
+
+    // fill the graph with name
+    LOG(INFO) << "graph name: " << graph_proto.name();
+    graph->set_name(graph_proto.name());
+
+    // fill the graph with ins/outs
+    for (int i = 0; i < graph_proto.ins().size(); i++) {
+        LOG(INFO) << "graph in: " << graph_proto.ins()[i];
+        std::string in_name(graph_proto.ins()[i]);
+        graph->add_in(in_name);
+    }
+
+    for (int i = 0; i < graph_proto.outs().size(); i++) {
+        LOG(INFO) << "graph out: " << graph_proto.outs()[i];
+        std::string out_name(graph_proto.outs()[i]);
+        graph->add_out(out_name);
+    }
+
+    // fill the graph with nodes
+    NodeIO<Ttype, Dtype, Ptype> node_io;
+
+    for (int i = 0; i < graph_proto.nodes().size(); i++) {
+        node_io >> graph_proto.nodes()[i];
+    }
+
+    node_io << *graph;
+
+    // fill the graph with edges
+    auto it_in = graph_proto.edges_in().begin();
+
+    for (; it_in != graph_proto.edges_in().end(); ++it_in) {
+        DLOG(WARNING) << " Parsing in edges of node : " << it_in->first;
+        auto& key = it_in->first;
+        auto& second = it_in->second;
+
+        for (int i = 0; i < second.val().size(); i++) {
+            //Tensor4dPtr<Ttype, Dtype> tensor_p = std::make_shared<Tensor4d<Ttype, Dtype>>();
+            graph::Edge<Ttype, Dtype> edge(second.val()[i], key);
+            //edge.weight() = new Tensor4d<Ttype, Dtype>();
+            //edge.weight() = std::make_shared<Tensor4d<Ttype, Dtype> >();
+            edge.shared() = (*graph_proto.mutable_edges_info())[edge.name()].shared();
+            edge.share_from() = (*graph_proto.mutable_edges_info())[edge.name()].share_from();
+            graph->add_in_arc(edge);
+        }
+    }
+
+    auto it_out = graph_proto.edges_out().begin();
+
+    for (; it_out != graph_proto.edges_out().end(); ++it_out) {
+        auto& key = it_out->first;
+        auto& second = it_out->second;
+
+        for (int i = 0; i < second.val().size(); i++) {
+            //Tensor4dPtr<Ttype, Dtype> tensor_p = std::make_shared<Tensor4d<Ttype, Dtype>>();
+            graph::Edge<Ttype, Dtype> edge(key, second.val()[i]);
+            //edge.weight() = new Tensor4d<Ttype, Dtype>();
+            //edge.weight() = std::make_shared<Tensor4d<Ttype, Dtype> >();
+            edge.shared() = (*graph_proto.mutable_edges_info())[edge.name()].shared();
+            edge.share_from() = (*graph_proto.mutable_edges_info())[edge.name()].share_from();
+            graph->add_out_arc(edge);
+        }
+    }
+
+    // fill the graph with info (only use the key value: is_optimized)
+    graph->statistics.template set_info<graph::IS_OPTIMIZED>(graph_proto.summary().is_optimized());
+    graph->statistics.template set_info<graph::TEMP_MEM>(graph_proto.summary().temp_mem_used());
+    graph->statistics.template set_info<graph::ORI_TEMP_MEM>
+            (graph_proto.summary().original_temp_mem_used());
     graph->statistics.template set_info<graph::SYSTEM_MEM>(graph_proto.summary().system_mem_used());
     graph->statistics.template set_info<graph::MODEL_MEM>(graph_proto.summary().model_mem_used());
 
@@ -251,6 +335,16 @@ Status save(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path) {
 #ifdef USE_CUDA
 template
 Status load<NV, AK_FLOAT, Precision::FP32>(graph::Graph<NV, AK_FLOAT, Precision::FP32>* graph,
+        std::istream* instream);
+template
+Status load<NV, AK_FLOAT, Precision::FP16>(graph::Graph<NV, AK_FLOAT, Precision::FP16>* graph,
+        std::istream* instream);
+template
+Status load<NV, AK_FLOAT, Precision::INT8>(graph::Graph<NV, AK_FLOAT, Precision::INT8>* graph,
+        std::istream* instream);
+
+template
+Status load<NV, AK_FLOAT, Precision::FP32>(graph::Graph<NV, AK_FLOAT, Precision::FP32>* graph,
         const char* model_path);
 template
 Status load<NV, AK_FLOAT, Precision::FP16>(graph::Graph<NV, AK_FLOAT, Precision::FP16>* graph,
@@ -258,7 +352,8 @@ Status load<NV, AK_FLOAT, Precision::FP16>(graph::Graph<NV, AK_FLOAT, Precision:
 template
 Status load<NV, AK_FLOAT, Precision::INT8>(graph::Graph<NV, AK_FLOAT, Precision::INT8>* graph,
         const char* model_path);
-        template
+
+template
 Status save<NV, AK_FLOAT, Precision::FP32>(graph::Graph<NV, AK_FLOAT, Precision::FP32>* graph,
         std::string& model_path);
 template
@@ -290,6 +385,16 @@ Status save<NV, AK_FLOAT, Precision::INT8>(graph::Graph<NV, AK_FLOAT, Precision:
 #endif
 
 #if defined(USE_X86_PLACE) || defined(BUILD_LITE)
+template
+Status load<X86, AK_FLOAT, Precision::FP32>(graph::Graph<X86, AK_FLOAT, Precision::FP32>* graph,
+        std::istream* instream);
+template
+Status load<X86, AK_FLOAT, Precision::FP16>(graph::Graph<X86, AK_FLOAT, Precision::FP16>* graph,
+        std::istream* instream);
+template
+Status load<X86, AK_FLOAT, Precision::INT8>(graph::Graph<X86, AK_FLOAT, Precision::INT8>* graph,
+        std::istream* instream);
+
 template
 Status load<X86, AK_FLOAT, Precision::FP32>(graph::Graph<X86, AK_FLOAT, Precision::FP32>* graph,
         const char* model_path);
@@ -335,6 +440,9 @@ Status save<X86, AK_FLOAT, Precision::INT8>(graph::Graph<X86, AK_FLOAT, Precisio
 #ifdef ANAKIN_TYPE_FP32
 template
 Status load<ARM, AK_FLOAT, Precision::FP32>(graph::Graph<ARM, AK_FLOAT, Precision::FP32>* graph,
+                                                    std::istream* instream);
+template
+Status load<ARM, AK_FLOAT, Precision::FP32>(graph::Graph<ARM, AK_FLOAT, Precision::FP32>* graph,
                                                     const char* model_path);
 template
 Status save<ARM, AK_FLOAT, Precision::FP32>(graph::Graph<ARM, AK_FLOAT, Precision::FP32>* graph,
@@ -350,6 +458,10 @@ Status save<ARM, AK_FLOAT, Precision::FP32>(graph::Graph<ARM, AK_FLOAT, Precisio
 #ifdef ANAKIN_TYPE_FP16
 template
 Status load<ARM, AK_FLOAT, Precision::FP16>(graph::Graph<ARM, AK_FLOAT, Precision::FP16>* graph,
+                                                    std::istream* instream);
+
+template
+Status load<ARM, AK_FLOAT, Precision::FP16>(graph::Graph<ARM, AK_FLOAT, Precision::FP16>* graph,
                                                     const char* model_path);
 template
 Status save<ARM, AK_FLOAT, Precision::FP16>(graph::Graph<ARM, AK_FLOAT, Precision::FP16>* graph,
@@ -363,6 +475,9 @@ Status save<ARM, AK_FLOAT, Precision::FP16>(graph::Graph<ARM, AK_FLOAT, Precisio
 #endif
 
 #ifdef ANAKIN_TYPE_INT8
+template
+Status load<ARM, AK_FLOAT, Precision::INT8>(graph::Graph<ARM, AK_FLOAT, Precision::INT8>* graph,
+                                                    std::istream* instream);
 template
 Status load<ARM, AK_FLOAT, Precision::INT8>(graph::Graph<ARM, AK_FLOAT, Precision::INT8>* graph,
                                                     const char* model_path);

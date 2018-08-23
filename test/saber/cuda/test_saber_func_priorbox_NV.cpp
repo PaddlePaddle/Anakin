@@ -58,8 +58,10 @@ TEST(TestSaberFuncNV, test_func_priorbox_NV) {
     order.push_back(PRIOR_MAX);
     order.push_back(PRIOR_COM);
 
-    PriorBoxParam<TensorDf4> param(min_size, max_size, aspect_ratio, \
+    //PriorBoxParam<TensorDf4> param(min_size, max_size, aspect_ratio, \
                                    variance, flip, clip, img_w, img_h, step_w, step_h, offset, order);
+    PriorBoxParam<TensorDf4> param(variance, flip, clip, img_w, img_h, step_w, step_h, offset, order, \
+                                    min_size, max_size, aspect_ratio, std::vector<float>(), std::vector<float>(), std::vector<float>());
 
 
     std::vector<TensorDf4*> vin;
