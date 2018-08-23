@@ -12,7 +12,9 @@
 #include "framework/operators/ops.h"
 #include <fstream>
 #include <thread>
-
+#ifdef USE_X86_PLACE
+#include <mkl_service.h>
+#endif
 
 #if defined(USE_CUDA)
 using Target = NV;
@@ -20,7 +22,6 @@ using Target_H = NVHX86;
 #elif defined(USE_X86_PLACE)
 using Target = X86;
 using Target_H = X86;
-#include <mkl_service.h>
 #elif defined(USE_ARM_PLACE)
 using Target = ARM;
 using Target_H = ARM;
