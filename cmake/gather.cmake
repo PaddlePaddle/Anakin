@@ -37,6 +37,11 @@ if(AMD_GPU)
     amd_build_cl_file("${CMAKE_SOURCE_DIR}/test/saber/amd" "${PROJECT_SOURCE_DIR}/${AK_OUTPUT_PATH}/unit_test")
 endif()
 
+# find openssl
+if(USE_OPENSSL)
+    anakin_find_openssl()
+endif()
+
 # find opencl
 if(USE_OPENCL)
     #anakin_generate_kernel(${ANAKIN_ROOT})

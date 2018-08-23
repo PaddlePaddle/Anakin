@@ -136,6 +136,7 @@ anakin_option(USE_GFLAGS "Build Google gflags components." NO)
 anakin_option(USE_MKL "Use mkl libs." YES if USE_SGX)
 anakin_option(USE_MKLML "Use MKLML libs." YES if USE_X86_PLACE AND NOT USE_SGX)
 anakin_option(USE_XBYAK "Use XBYAK libs." YES if USE_X86_PLACE)
+anakin_option(USE_OPENSSL "Use OpenSSL." YES if AMD_GPU)
 
 # build components
 anakin_option(BUILD_WITH_UNIT_TEST "Build anakin unit test components." YES)
