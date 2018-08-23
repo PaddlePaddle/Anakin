@@ -340,6 +340,42 @@ struct ConvEltwiseParam {
 };
 
 template <typename TargetType>
+struct PoolingParam;
+
+template <typename TargetType>
+struct ConvPoolingParam{
+    ConvPoolingParam()
+            : conv_param()
+            , pooling_param()
+    {}
+
+    ConvPoolingParam(ConvParam<TargetType> conv_param_in,
+                     PoolingParam<TargetType> pooling_param_in)
+            : conv_param(conv_param_in)
+            , pooling_param(pooling_param_in)
+    {}
+
+    ConvPoolingParam(const ConvPoolingParam<TargetType> &right)
+            : conv_param(right.conv_param)
+            , pooling_param(right.pooling_param)
+    {}
+    ConvPoolingParam &operator=(const ConvPoolingParam &right) {
+        conv_param = right.conv_param;
+        pooling_param = right.pooling_param;
+        return *this;
+    }
+    bool operator==(const ConvPoolingParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (conv_param == right.conv_param);
+        comp_eq = comp_eq && (pooling_param == right.pooling_param);
+        return comp_eq;
+    }
+
+    ConvParam<TargetType> conv_param;
+    PoolingParam<TargetType> pooling_param;
+};
+
+template <typename TargetType>
 struct CrfDecodingParam {
     CrfDecodingParam()
         : weight_tensor(NULL)
