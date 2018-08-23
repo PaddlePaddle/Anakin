@@ -1,5 +1,4 @@
 #include "saber/funcs/impl/cuda/saber_permute_power.h"
-#include "cuda_fp16.h"
 
 namespace anakin {
 namespace saber {
