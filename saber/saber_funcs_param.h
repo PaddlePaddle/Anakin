@@ -2720,6 +2720,7 @@ struct AttensionParam {
          fc_vec(right.fc_vec) {}
    AttensionParam&operator=(const AttensionParam &right){
        fc_vec = right.fc_vec;
+       return *this;
    }
    bool operator == (const AttensionParam &right) {
        bool cmp_eq = true;
@@ -2749,6 +2750,7 @@ struct AttensionLstmParam {
     AttensionLstmParam &operator=(const AttensionLstmParam &right) {
         attension_param = right.attension_param;
         lstm_param = right.lstm_param;
+        return *this;
     }
     bool operator==(const AttensionLstmParam &right) {
         bool cmp_eq = true;
@@ -2769,6 +2771,7 @@ struct SequenceExpandParam {
             ref_level(right.ref_level_in) {}
     SequenceExpandParam &operator=(const  SequenceExpandParam &right) {
         ref_level = right.ref_level;
+        return *this;
     }
     bool operator==(const SequenceExpandParam &right) {
         return ref_level == right.ref_level;
@@ -2776,6 +2779,24 @@ struct SequenceExpandParam {
 
 public:
     int ref_level;
+};
+
+template <typename opTensor>
+struct ShuffleChannelParam {
+    ShuffleChannelParam():group(1) {}
+    ShuffleChannelParam(int group_in):group(group_in) {}
+    ShuffleChannelParam(const  ShuffleChannelParam &right):
+            group(right.group) {}
+    ShuffleChannelParam &operator=(const  ShuffleChannelParam &right) {
+        group = right.group;
+        return *this;
+    }
+    bool operator==(const ShuffleChannelParam &right) {
+        return group == right.group;
+    }
+
+public:
+    int group;
 };
 
 }
