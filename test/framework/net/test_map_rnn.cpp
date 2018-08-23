@@ -12,7 +12,7 @@
 #include "framework/operators/ops.h"
 #include <fstream>
 #include <thread>
-#include <mkl_service.h>
+
 
 #if defined(USE_CUDA)
 using Target = NV;
@@ -20,6 +20,7 @@ using Target_H = NVHX86;
 #elif defined(USE_X86_PLACE)
 using Target = X86;
 using Target_H = X86;
+#include <mkl_service.h>
 #elif defined(USE_ARM_PLACE)
 using Target = ARM;
 using Target_H = ARM;
@@ -325,6 +326,7 @@ void one_thread_run(std::string path,int thread_id){
 }
 
 TEST(NetTest, net_execute_base_test) {
+#ifdef USE_X86_PLACE
     std::vector<std::string> models;
     Env<X86>::env_init();
 
@@ -351,6 +353,7 @@ TEST(NetTest, net_execute_base_test) {
                           <<" , thread num = "<<FLAGS_thread_num;
                 LOG(WARNING) << "load anakin model file from " << *iter << " ...";
     }
+#endif
 
 }
 
