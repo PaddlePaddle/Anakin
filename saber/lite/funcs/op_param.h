@@ -414,6 +414,41 @@ struct EltwiseParam : public ParamBase {
     std::vector<float> _coef;
 };
 
+struct EltwiseActParam : public ParamBase {
+    EltwiseActParam()
+        : _eltwise_param()
+        , _activation_param()
+        , _has_activation(false)
+    {}
+    EltwiseActParam(EltwiseType elt_type, std::vector<float> coef, \
+         ActiveType act_type, float neg_slope, float act_coef, bool channel_shared, const float* weights)
+        : _eltwise_param(elt_type, coef)
+        , _activation_param(act_type, neg_slope, act_coef, channel_shared, weights)
+        , _has_activation(true)
+    {}
+    EltwiseActParam(EltwiseParam &eltwise_param_in,
+                ActivationParam &activation_param_in)
+            : _eltwise_param(eltwise_param_in)
+            , _activation_param(activation_param_in)
+            , _has_activation(true)
+    {}
+    EltwiseActParam(const EltwiseActParam &right)
+            : _eltwise_param(right._eltwise_param)
+            , _activation_param(right._activation_param)
+            , _has_activation(right._has_activation)
+    {}
+    EltwiseActParam&operator=(const EltwiseActParam &right) {
+        _eltwise_param = right._eltwise_param;
+        _activation_param = right._activation_param;
+        _has_activation = right._has_activation;
+        return *this;
+    }
+    EltwiseParam _eltwise_param;
+    ActivationParam _activation_param;
+    bool _has_activation;
+};
+
+
 struct FcParam : public ParamBase {
     FcParam(){}
     FcParam(int axis, int num_output, bool flag_bias, const float* weights, const float* bias = nullptr, bool flag_trans = false) {
