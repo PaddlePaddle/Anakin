@@ -362,3 +362,4 @@ OpsRegister.Register("Normalize").set_attr(begin_norm_axis=int(),
                                            p=int())
 
 
+OpsRegister.Register("ShuffleChannel").set_attr(group=int())
