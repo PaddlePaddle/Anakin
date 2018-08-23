@@ -1141,7 +1141,7 @@ CAFFE_LAYER_PARSER = {
                 "ContrastiveLoss": OpsParam().set_parser(NotNeededInInference),
                 "Convolution": OpsParam().set_parser(Parser_convolution),
                 "ConvolutionDepthwise": OpsParam().set_parser(Parser_convolutiondepthwise),
-	        "DepthwiseConvolution": OpsParam().set_parser(Parser_convolutiondepthwise),
+	          "DepthwiseConvolution": OpsParam().set_parser(Parser_convolutiondepthwise),
                 "Deconvolution": OpsParam().set_parser(Parser_deconvolution),
                 "DeformableConvolution": OpsParam().set_parser(Parser_deformable_convolution),
                 "Crop": OpsParam().set_parser(Parser_crop),
