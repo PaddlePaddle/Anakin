@@ -1,11 +1,8 @@
 /* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
-
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
-
        http://www.apache.org/licenses/LICENSE-2.0
-
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -26,7 +23,7 @@ namespace anakin {
 
 namespace saber {
 
-template <typename TargetType>
+template<typename TargetType>
 struct PreluParam;
 template<typename TargetType>
 struct PowerParam;
@@ -34,28 +31,42 @@ struct PowerParam;
 template <typename TargetType>
 struct ActivationParam {
     ActivationParam()
-        : active(Active_unknow)
-        , negative_slope(float(-1))
-        , coef(float(-1))
-        , prelu_param(PreluParam<TargetType>(false, nullptr))
-        , has_active(false) {}
+            : active(Active_unknow)
+            , negative_slope(float(-1))
+            , coef(float(-1))
+            , prelu_param(PreluParam<TargetType>(false, nullptr))
+            , has_active(false) 
+    {}
+
     ActivationParam(ActiveType act, float n_slope = float(0),
                     float co = float(1),
                     PreluParam<TargetType> prelu = PreluParam<TargetType>(false, nullptr))
-        : active(act)
-        , negative_slope(n_slope)
-        , coef(co)
-        , prelu_param(prelu)
-        , has_active(true)
+            : active(act)
+            , negative_slope(n_slope)
+            , coef(co)
+            , prelu_param(prelu)
+            , has_active(true)
     {}
-    ActivationParam(const ActivationParam& right)
-        : active(right.active)
-        , negative_slope(right.negative_slope)
-        , coef(right.coef)
-        , prelu_param(right.prelu_param)
-        , has_active(right.has_active)
+
+    ActivationParam(ActiveType act, float n_slope,
+                    float co,
+                    PreluParam<TargetType> prelu,
+                    bool has)
+            : active(act)
+            , negative_slope(n_slope)
+            , coef(co)
+            , prelu_param(prelu)
+            , has_active(has)
     {}
-    ActivationParam& operator=(const ActivationParam& right) {
+
+    ActivationParam(const ActivationParam &right)
+            : active(right.active)
+            , negative_slope(right.negative_slope)
+            , coef(right.coef)
+            , prelu_param(right.prelu_param)
+            , has_active(right.has_active)
+    {}
+    ActivationParam &operator=(const ActivationParam &right) {
         active = right.active;
         negative_slope = right.negative_slope;
         coef = right.coef;
@@ -63,7 +74,7 @@ struct ActivationParam {
         has_active = right.has_active;
         return *this;
     }
-    bool operator==(const ActivationParam& right) {
+    bool operator==(const ActivationParam &right) {
         bool comp_eq = true;
         comp_eq = comp_eq && (active == right.active);
         comp_eq = comp_eq && (negative_slope == right.negative_slope);
@@ -72,7 +83,7 @@ struct ActivationParam {
         comp_eq = comp_eq && (has_active == right.has_active);
         return comp_eq;
     }
-    bool has_negative_slope() {
+    bool has_negative_slope(){
         return (active == Active_relu) && (negative_slope != float (0));
     }
     ActiveType active;
@@ -86,6 +97,13 @@ template <typename TargetType>
 struct ArgmaxParam {
 
     ArgmaxParam() = default;
+	
+     ArgmaxParam(bool out_max_val_in,int top_k_in, bool has_axis_in, int axis_in) {
+        out_max_val = out_max_val_in;
+        top_k = top_k_in;
+        has_axis = has_axis_in;
+        axis = axis_in;
+    }
 
     ArgmaxParam(bool out_max_val_in, int top_k_in, int axis_in) {
         out_max_val = out_max_val_in;
@@ -100,8 +118,7 @@ struct ArgmaxParam {
         has_axis = false;
         axis = 3;
     }
-
-
+    
     ArgmaxParam(const ArgmaxParam<TargetType>& right) {
         out_max_val = right.out_max_val;
         top_k = right.top_k;
@@ -384,7 +401,6 @@ struct CtcAlignParam {
     int blank;
     bool merge_repeated;
 };
-
 template <typename TargetType>
 struct DeformableConvParam {
 
@@ -569,61 +585,60 @@ struct DetectionOutputParam {
     float nms_eta{1.f};
 
 };
-
+  
 template <typename TargetType>
 struct EltwiseParam {
     EltwiseParam()
-        : operation(Eltwise_unknow)
-        , coeff()
-        , activation_param(ActivationParam<TargetType>()) {}
+            : operation(Eltwise_unknow)
+            , coeff()
+            , activation_param(ActivationParam<TargetType>()) {}
+
     EltwiseParam(EltwiseType operation_in
-                 , std::vector<float> coeff_in = std::vector<float>({1, 1})
-                 , ActivationParam<TargetType> activation_param_in = ActivationParam<TargetType>())
-        : operation(operation_in)
-        , coeff(coeff_in)
-        , activation_param(activation_param_in) {
+            , std::vector<float> coeff_in = std::vector<float>({1,1})
+            , ActivationParam<TargetType> activation_param_in = ActivationParam<TargetType>())
+            : operation(operation_in)
+            , coeff(coeff_in)
+            , activation_param(activation_param_in) {
+
         if ((operation == Eltwise_sum) && (coeff.size() == 0)) {
             coeff.push_back(1);
             coeff.push_back(1);
         }
     }
+
     EltwiseParam(const EltwiseParam<TargetType>& right)
-        : operation(right.operation)
-        , coeff(right.coeff)
-        , activation_param(right.activation_param)
+            : operation(right.operation)
+            , coeff(right.coeff)
+            , activation_param(right.activation_param)
     {}
+
     EltwiseParam<TargetType>& operator=(const EltwiseParam<TargetType>& right) {
         operation = right.operation;
         coeff.resize(right.coeff.size());
-
         for (int i = 0; i < coeff.size(); ++i) {
             coeff[i] = right.coeff[i];
         }
-
         activation_param = right.activation_param;
         return *this;
     }
+
     bool operator==(const EltwiseParam<TargetType>& right) {
         bool comp_eq = true;
         comp_eq = comp_eq && (operation == right.operation);
         comp_eq = comp_eq && (coeff.size() == right.coeff.size());
         comp_eq = comp_eq && (activation_param == right.activation_param);
-
         if (!comp_eq) {
             return comp_eq;
         }
-
         for (int i = 0; i < coeff.size(); ++i) {
             comp_eq = comp_eq && (coeff[i] == right.coeff[i]);
         }
-
         return comp_eq;
     }
     ActivationParam<TargetType> activation_param;
     EltwiseType operation;
     std::vector<float> coeff;
 };
-
 
 template <typename TargetType>
 struct EmbeddingParam {
@@ -1900,7 +1915,6 @@ struct SPPParam {
     int pyramid_height;
     PoolingType pool_type;
 };
-
 
 template <typename TargetType>
 struct TransposeParam {
