@@ -628,13 +628,16 @@ class FluidParser:
 			if source_op.type == 'cast':
 				if helper.attr_data(source_op, 'out_dtype') == 5:
 					cast_node_name = self._NameNodeMid(source_op)
-					input_name_of_cast = self.ins[cast_node_name].target('X')
-					if input_name_of_cast.startswith('top_k') is False:
-						output_name_of_cast = self.outs[cast_node_name].target('Out')
-						self.outs[input_name_of_cast].mv(cast_node_name, output_name_of_cast)
-						self.ins[output_name_of_cast].mv(cast_node_name, input_name_of_cast)
-						self._RmProtoNode(cast_node_name)
-						self._ClearEdges(cast_node_name)
+					if cast_node_name in self.ins:
+						input_name_of_cast = self.ins[cast_node_name].target('X')
+						if input_name_of_cast.startswith('top_k') is False:
+							output_name_of_cast = self.outs[cast_node_name].target('Out')
+							self.outs[input_name_of_cast].mv(cast_node_name, output_name_of_cast)
+							self.ins[output_name_of_cast].mv(cast_node_name, input_name_of_cast)
+							self._RmProtoNode(cast_node_name)
+							self._ClearEdges(cast_node_name)
+					else:
+						print 'Cannot find the layer corresponding to cast.'
 				else:
 					raise NameError('The out type of cast must be float32.')
 
@@ -644,21 +647,31 @@ class FluidParser:
 				private_data = {}
 				topk_node_name = self._NameNodeMid(source_op)
 				out_list = self.outs[topk_node_name].targets('Out')
-				indices_list = self.outs[topk_node_name].targets('Indices')
-				if len(indices_list) > 0:
-					if len(out_list) == 1 and indices_list[0].startswith('cast'):
+				index_list = self.outs[topk_node_name].targets('Indices')
+				if len(index_list) > 0:
+					if len(out_list) == 1 and index_list[0].startswith('cast'):
 						private_data['out_max_val'] = True
-						cast_node_name = indices_list[0]
-						output_name_of_cast = self.outs[cast_node_name].target('Out')
-						if output_name_of_cast == out_list[0] and out_list[0].startswith('concat'):
+						idxcast_node_name = index_list[0]
+						output_name_of_idxcast = self.outs[idxcast_node_name].target('Out')
+						if output_name_of_idxcast == out_list[0] and out_list[0].startswith('concat'):
 							concat_node_name = out_list[0]
 							output_name_of_concat = self.outs[concat_node_name].target('Out')
-							self.outs[topk_node_name].rm(cast_node_name)
+							self.outs[topk_node_name].rm(idxcast_node_name)
 							self.outs[topk_node_name].mv(concat_node_name, output_name_of_concat)
 							self.ins[output_name_of_concat].mv(concat_node_name, topk_node_name)
-							for node_to_del_name in [concat_node_name, cast_node_name]:
+							for node_to_del_name in [concat_node_name, idxcast_node_name]:
 								self._RmProtoNode(node_to_del_name)
 								self._ClearEdges(node_to_del_name)
+						elif output_name_of_idxcast != out_list[0]:
+							if output_name_of_idxcast.endswith('_gout') and \
+							out_list[0].endswith('_gout'):
+								gout_node_name = out_list[0]
+								idx_gout_node_name = output_name_of_idxcast
+								self.outs[topk_node_name].rm(gout_node_name)
+								for node_to_del_name in [idx_gout_node_name, idxcast_node_name]:
+									self._RmProtoNode(node_to_del_name)
+									self._ClearEdges(node_to_del_name)
+								self.graphIO.rm_out(idx_gout_node_name)
 					elif len(out_list) == 0:
 						private_data['out_max_val'] = False
 						self._DealWithCast(source_ops, helper)
