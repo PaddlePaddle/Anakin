@@ -52,7 +52,7 @@ SaberStatus convert_weights_to_nchw_c4_host(Tensor<TargetType_H>& out_tensor,
     int weight_inner_dim = in_tensor.channel()
                            * in_tensor.height()
                            * in_tensor.width();
-    const float* in_weight_data = in_tensor.data();
+    const float* in_weight_data = (const float*)(in_tensor.data());
 
     for (int c = 0; c < output_channel; ++c) {
         float max_val = -1.f;
