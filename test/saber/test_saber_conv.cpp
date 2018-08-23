@@ -112,9 +112,9 @@ TEST(TestSaberFunc, test_saber_conv_results) {
     for (auto in_channels : input_channels_v)
     for (auto out_channels : output_channels_v)
     for (auto group : group_v) {
+        
         Shape weights_s({out_channels, in_channels, kernel_h, kernel_w}, Layout_NCHW);
         Shape bias_s({1, out_channels, 1, 1}, Layout_NCHW);
-        
 #ifdef USE_CUDA
         Tensor<NV> weights_dev;
         Tensor<NV> bias_dev;
