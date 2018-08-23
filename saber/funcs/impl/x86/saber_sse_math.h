@@ -11,7 +11,7 @@
 
 #ifndef ANAKIN_SABER_SSE_MATH_H
 #define ANAKIN_SABER_SSE_MATH_H
-#if defined(__SSE4_2__)
+#if defined(__SSE4_2__) and defined(__FMA__)
 
 #include <immintrin.h>
 

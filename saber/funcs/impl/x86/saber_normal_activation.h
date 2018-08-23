@@ -41,7 +41,7 @@ inline Dtype Identity(const Dtype a) {
     return a;
 }
 
-#if defined(__SSE4_2__)
+#if defined(__SSE4_2__) and defined(__FMA__)
 
 
 template<>
@@ -77,7 +77,7 @@ inline __m128 Tanh<__m128>(const __m128 a) {
 
 
 
-#if defined(__AVX2__)
+#if defined(__AVX2__) and defined(__FMA__)
 
 
 template<>
