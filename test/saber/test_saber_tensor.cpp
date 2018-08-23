@@ -10,17 +10,20 @@ void tensor_constructor() {
     typedef TargetWrapper<TargetH> HAPI;
     typedef TargetWrapper<TargetD> DAPI;
 
-    typedef typename TargetTypeTraits<TargetH>::target_type target_H;
-    typedef typename TargetTypeTraits<TargetD>::target_type target_D;
+    typedef typename TargetTypeTraits<TargetH>::target_category target_H;
+    typedef typename TargetTypeTraits<TargetD>::target_category target_D;
     typedef typename IF<std::is_same<target_D, target_H>::value, __HtoH, __DtoH>::Type then_type;
     typedef typename IF<std::is_same<target_D, target_H>::value, __DtoD, __HtoD>::Type else_type;
-    typedef typename IF<std::is_same<target_D, __host_target>::value, else_type, then_type>::Type flag_type;
+    typedef typename IF<std::is_same<target_D, __host_target>::value, then_type, else_type>::Type flag_type;
     typedef typename IF<std::is_same<target_D, __host_target>::value, HAPI, DAPI>::Type copy_API;
 
     typedef Tensor<TargetH> TensorH;
     typedef Tensor<TargetD> TensorD;
 
     typedef typename DataTrait<TargetH, Dtype>::Dtype dtype;
+
+    typedef typename DataTraitBase<TargetD>::PtrDtype TargetPtr;
+    typedef typename DataTraitBase<TargetH>::PtrDtype HostPtr;
 
     //! test empty constructor
     LOG(INFO) << "test default (empty) constructor";
@@ -85,9 +88,9 @@ void tensor_constructor() {
     //! test tensor constructor with data, if target is different, create buffer, and copy the data
     LOG(INFO) << "test tensor constructor with data, if target is different, create buffer, and copy the data";
     dtype* host_data_ptr;
-    dtype* dev_data_ptr;
-    void* tmp_pt_host;
-    void* tmp_pt_dev;
+    TargetPtr dev_data_ptr;
+    HostPtr tmp_pt_host;
+    TargetPtr tmp_pt_dev;
     HAPI::mem_alloc(&tmp_pt_host, sizeof(dtype) * sh1.count());
     host_data_ptr = static_cast<dtype*>(tmp_pt_host);
 
@@ -96,11 +99,11 @@ void tensor_constructor() {
     }
 
     DAPI::mem_alloc(&tmp_pt_dev, sizeof(dtype) * sh1.count());
-    dev_data_ptr = static_cast<dtype*>(tmp_pt_dev);
+    dev_data_ptr = tmp_pt_dev;
 
     copy_API::sync_memcpy(dev_data_ptr, 0, DAPI::get_device_id(), \
-        host_data_ptr, 0, HAPI::get_device_id(), \
-        sizeof(dtype) * sh1.count(), flag_type());
+        static_cast<HostPtr>(host_data_ptr), 0, HAPI::get_device_id(), \
+        sizeof(dtype) * sh1.count(), __HtoD());
 
     LOG(INFO) << "|--construct host tensor from host data ptr";
     TensorH thost3(host_data_ptr, TargetH(), HAPI::get_device_id(), sh1, Dtype);
@@ -258,13 +261,13 @@ TEST(TestSaberFunc, test_tensor_constructor) {
     tensor_constructor<NV, NVHX86, AK_INT8>();
 #endif
 
-#ifdef USE_X86_PLACE
-    Env<X86>::env_init();
-    LOG(INFO) << "test X86 FP32 tensor";
-    tensor_constructor<X86, X86, AK_FLOAT>();
-    LOG(INFO) << "test X86 INT8 tensor";
-    tensor_constructor<X86, X86, AK_INT8>();
-#endif
+//#ifdef USE_X86_PLACE
+//    Env<X86>::env_init();
+//    LOG(INFO) << "test X86 FP32 tensor";
+//    tensor_constructor<X86, X86, AK_FLOAT>();
+//    LOG(INFO) << "test X86 INT8 tensor";
+//    tensor_constructor<X86, X86, AK_INT8>();
+//#endif
 
 #ifdef USE_ARM_PLACE
     Env<ARM>::env_init();
@@ -273,7 +276,19 @@ TEST(TestSaberFunc, test_tensor_constructor) {
     LOG(INFO) << "test ARM INT8 tensor";
     tensor_constructor<ARM, ARM, AK_INT8>();
 #endif
+
+#ifdef USE_BM
+Env<BM>::env_init();
+Env<X86>::env_init();
+LOG(INFO) << "test BM FP32 tensor";
+tensor_constructor<BM, X86, AK_FLOAT>();
+LOG(INFO) << "test BM INT8 tensor";
+tensor_constructor<BM, X86, AK_INT8>();
+#endif
 }
+
+
+
 
 #if 1
 template <typename TargetD, typename TargetH, DataType Dtype>
