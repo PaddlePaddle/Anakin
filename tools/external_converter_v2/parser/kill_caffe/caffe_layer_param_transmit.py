@@ -668,6 +668,13 @@ def Parser_split(args):
     top = layer.top
     OpsRegister()["Split"].split_num = len(top)
 
+@ParserFeedDecorator("ShuffleChannel")
+def Parser_ShuffleChannel(args):
+    layer = args[1]
+    # parser caffe parameter
+    shufflechannel_param = layer.shuffle_channel_param
+    OpsRegister()["ShuffleChannel"].group = shufflechannel_param.group
+
 
 @ParserFeedDecorator("RPNProposalSSD")
 def Parser_rpn_proposal_ssd(args):
@@ -1144,6 +1151,7 @@ CAFFE_LAYER_PARSER = {
                 "ContrastiveLoss": OpsParam().set_parser(NotNeededInInference),
                 "Convolution": OpsParam().set_parser(Parser_convolution),
                 "ConvolutionDepthwise": OpsParam().set_parser(Parser_convolutiondepthwise),
+                "DepthwiseConvolution": OpsParam().set_parser(Parser_convolutiondepthwise),
                 "Deconvolution": OpsParam().set_parser(Parser_deconvolution),
                 "DeformableConvolution": OpsParam().set_parser(Parser_deformable_convolution),
                 "Crop": OpsParam().set_parser(Parser_crop),
@@ -1197,5 +1205,6 @@ CAFFE_LAYER_PARSER = {
                 "DetectionOutput": OpsParam().set_parser(Parser_detectionoutput), # vis add
                 "ArgMax": OpsParam().set_parser(Parser_argmax),
                 "Normalize": OpsParam().set_parser(Parser_normalize),
-                "ReLU6": OpsParam().set_parser(Parser_relu6)
+                "ReLU6": OpsParam().set_parser(Parser_relu6),
+                "ShuffleChannel": OpsParam().set_parser(Parser_ShuffleChannel)
                 }
