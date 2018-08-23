@@ -43,7 +43,7 @@ SaberStatus JitAvx2ConvAct<OpDtype, inDtype, outDtype,
         const std::vector<inTensor*>& inputs,
         std::vector<outTensor*>& outputs,
         ConvActiveParam<opTensor> &param, Context<X86> &ctx) {
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
     ConvParam<opTensor> *conv_param = &(param.conv_param);
     ActivationParam<opTensor> *act_param = &(param.activation_param);
 

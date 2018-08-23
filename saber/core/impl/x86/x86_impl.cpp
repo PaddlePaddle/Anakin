@@ -1,10 +1,10 @@
-#include "core/tensor.h"
-#include "env.h"
+#include "saber/core/tensor.h"
+#include "saber/core/env.h"
 
 namespace anakin{
 
 namespace saber{
-using namespace anakin::saber;
+
 //! target wrapper
 template struct TargetWrapper<X86, __host_target>;
 

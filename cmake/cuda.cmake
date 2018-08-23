@@ -1,10 +1,16 @@
-# ----------------------------------------------------------------------------
-# Copyright (c) 2017 Baidu.com, Inc. All Rights Reserved
-# @file     cuda.cmake
-# @auther   cuichaowen
-# @date     2017-10-23
-# ----------------------------------------------------------------------------
-
+# Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 # ----------------------------------------------------------------------------
 # section: Set nvcc arch info.
 # ----------------------------------------------------------------------------
@@ -72,14 +78,18 @@ endmacro()
 # ----------------------------------------------------------------------------
 macro(anakin_find_cudnn)
 	set(CUDNN_ROOT "" CACHE PATH "CUDNN root dir.")
-  	find_path(CUDNN_INCLUDE_DIR cudnn.h PATHS ${CUDNN_ROOT} 
+  	find_path(CUDNN_INCLUDE_DIR cudnn.h PATHS ${CUDNN_ROOT} ${CUDNN_ROOT}/include
 						  $ENV{CUDNN_ROOT} 
 						  $ENV{CUDNN_ROOT}/include
+						  $ENV{CUDNN_INCLUDE_DIR}
 						  ${ANAKIN_ROOT}/third-party/cudnn/include NO_DEFAULT_PATH)
+    message(STATUS "cudnn include header is ${CUDNN_INCLUDE_DIR}/cudnn.h")
     if(BUILD_SHARED)
         find_library(CUDNN_LIBRARY NAMES libcudnn.so 
                                PATHS ${CUDNN_INCLUDE_DIR}/../lib64/ ${CUDNN_INCLUDE_DIR}/
+						                   $ENV{CUDNN_LIBRARY}
                                DOC "library path for cudnn.") 
+        message(STATUS "cudnn library is ${CUDNN_LIBRARY}/libcudnn.so")
     else()
         find_library(CUDNN_LIBRARY NAMES libcudnn_static.a
                                PATHS ${CUDNN_INCLUDE_DIR}/../lib64/
@@ -167,13 +177,14 @@ macro(anakin_find_cuda)
 
 	# build cuda part for local machine.
     if(BUILD_CROSS_PLANTFORM)
-        anakin_detect_arch()
         if(BUILD_FAT_BIN)
 		    message(STATUS "Building fat-bin for cuda code !")
 		    anakin_set_nvcc_archs_info(ANAKIN_ARCH_LIST)
         else()
             message(STATUS "Building cross-plantform target for cuda code !")
-            anakin_set_nvcc_archs_info(TARGET_GPUARCH)
+			anakin_detect_arch()
         endif()
+	else()
+		anakin_set_nvcc_archs_info(TARGET_GPUARCH)
     endif()
 endmacro()

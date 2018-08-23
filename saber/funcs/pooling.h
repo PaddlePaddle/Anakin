@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+#include "saber/funcs/impl/impl_pooling.h"
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_pooling.h"
 #include "saber/funcs/impl/cuda/vender_pooling.h"
@@ -26,7 +27,9 @@
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_pooling.h"
 #endif
-
+#ifdef USE_ARM_PLACE
+#include "saber/funcs/impl/arm/saber_pooling.h"
+#endif
 namespace anakin {
 namespace saber {
 

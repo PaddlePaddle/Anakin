@@ -22,7 +22,7 @@ SaberStatus SaberEltwise<X86, OpDtype, inDtype, outDtype,
         Context<X86> &ctx)
 {
     // get context
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
     return create(inputs, outputs, param, ctx);
 }
 
@@ -48,9 +48,31 @@ SaberStatus SaberEltwise<X86, OpDtype, inDtype, outDtype,
     typedef typename DataTensor_in::Dtype DataType_in;
     typedef typename DataTensor_out::Dtype DataType_out;
     typedef typename OpTensor::Dtype DataType_op;
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
 
     return SaberSuccess;
+}
+template <typename HTensor>
+static void very_simple_eltwise(const std::vector<HTensor*>& inputs,
+                                    std::vector<HTensor*>& outputs,
+                                    EltwiseParam<HTensor>& param){
+    typedef typename HTensor::Dtype Dtype;
+    const int input_num = inputs.size();
+    volatile const size_t inner_size = inputs[0]->valid_size();
+    Dtype* target=outputs[0]->mutable_data();
+    std::vector<const Dtype*> in_ptrs(input_num);
+    for(int i=0;i<input_num;++i){
+        in_ptrs[i]=inputs[i]->data();
+    }
+//TODO:can be SIMD to improve cache efficient
+//TODO:can be opt by check coeff == 1
+    for(int inner_id=0;inner_id<inner_size;++inner_id){
+        Dtype temp=0;
+        for(int input_id=0;input_id<input_num;++input_id) {
+            temp+=in_ptrs[input_id][inner_id]*param.coeff[input_id];
+        }
+        target[inner_id]=temp;
+    }
 }
 
 template <DataType OpDtype ,
@@ -124,7 +146,7 @@ SaberStatus SaberEltwise<X86, OpDtype, inDtype, outDtype,
     CHECK_EQ(outputs.size(), (size_t)1);
     switch (param.operation) {
         case Eltwise_sum:
-            simple_sum(inputs, outputs, param);
+            very_simple_eltwise(inputs, outputs, param);
             return SaberSuccess;
         default:
             return SaberUnImplError;

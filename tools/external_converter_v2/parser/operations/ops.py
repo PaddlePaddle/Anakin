@@ -1,13 +1,14 @@
 #! /usr/bin/env python
 # Copyright (c) 2017, Cuichaowen. All rights reserved.
 # -*- coding: utf-8 -*-
-from op import OpParam
-from op import OpsRegister
+from op import OpsParam, OpsRegister
 from op_io import *
 
 ############################# IO define ##############################
 # graph may has mult-inputs, so graph will have multi-input
-OpsRegister.Register("Input").set_attr(input_shape=list())
+OpsRegister.Register("Input").set_attr(input_shape=list(),
+                                       alias="NULL",
+                                       data_type="NULL")
 
 # graph out , only hold place for edge
 OpsRegister.Register("Output").set_attr()
@@ -54,7 +55,8 @@ OpsRegister.Register("Softmax").set_attr(axis=int())
 #			  TanH, 
 #			  Sigmoid, 
 # 		  }
-OpsRegister.Register("Activation").set_attr(type="")
+OpsRegister.Register("Activation").set_attr(type="",
+                                            clip_relu_num=int())
 # Leaky version of a Rectified Linear Unit ( alpha != 0 ).
 # 	f(x) = alpha * x  	 : x < 0
 # 	f(x) = 		   x  	 : x >= 0
@@ -248,7 +250,10 @@ OpsRegister.Register("Axpy").set_attr()
 
 OpsRegister.Register("PriorBox").set_attr(min_size=list(), 
                                           max_size=list(), 
-                                          aspect_ratio=list(), 
+                                          aspect_ratio=list(),
+                                          fixed_size=list(), 
+                                          fixed_ratio=list(), 
+                                          density=list(),  
                                           is_flip=bool(), 
                                           is_clip=bool(), 
                                           variance=list(), 
@@ -256,7 +261,8 @@ OpsRegister.Register("PriorBox").set_attr(min_size=list(),
                                           img_w=int(), 
                                           step_h=float(), 
                                           step_w=float(), 
-                                          offset=float())
+                                          offset=float(),
+                                          order=list())
 
 # enum code_type {
 #	 CORNER,
@@ -281,10 +287,79 @@ OpsRegister.Register("DetectionOutput").set_attr(share_location=bool(),
 
 OpsRegister.Register("Argmax").set_attr(out_max_val=bool(), 
                                         top_k=int(), 
-                                        axis=int())
+                                        axis=int(),
+                                        axis_term=bool())
 
 
-OpsRegister.Register("Normalize").set_attr(is_across_spatial=bool(), 
-                                           is_shared_channel=bool(), 
-                                           eps=float(), 
+########### OCR Op define #############
+
+OpsRegister.Register("Im2Sequence").set_attr(paddings=list(),
+                                             strides=list(),
+                                             window_size=list(),
+                                             dilations=list())
+
+
+OpsRegister.Register("Cast").set_attr(in_type=int(),
+                                      out_type=int())
+
+
+OpsRegister.Register("Gru").set_attr(is_reverse=bool(),
+                                     gate_activation="sigmoid",
+                                     activation="relu",
+                                     gru_formula="")
+
+OpsRegister.Register("CtcAlign").set_attr(merge_repeated=bool(),
+                                          blank=int())
+
+
+########### RNN Op define #############
+
+
+OpsRegister.Register("Embedding").set_attr(word_num=int(),
+                                           emb_dim=int(),
+                       padding_idx=int())
+
+
+OpsRegister.Register("SequencePool").set_attr(pooltype="LAST")
+
+
+OpsRegister.Register("SequenceConv").set_attr(filter_num=int(),
+                                              kernel_size=list(), 
+                                              padding_trainable=bool(),
+                                              context_stride=int(),
+                                              context_start=int(),
+                                              context_length=int())
+
+OpsRegister.Register("CrfDecoding").set_attr()
+
+
+OpsRegister.Register("LSTM").set_attr(candidate_activation="tanh",
+                                      cell_activation="tanh",
+                                      gate_activation="sigmoid",
+                                      is_reverse=bool(),
+                                      use_peepholes=bool(),
+                                      num_direction=int(),
+                                      dropout_param=float(),
+                                      num_layers=int(),
+                                      input_activation="null")
+
+
+OpsRegister.Register("MatMul").set_attr(transpose_x=bool(),
+                                        transpose_y=bool(),
+                                        coeff=float())
+
+
+OpsRegister.Register("LayerNorm").set_attr(is_across_spatial=bool(),
+                                           is_shared_channel=bool(),
+                                           begin_norm_axis=int(),
+                                           eps=float())
+
+
+OpsRegister.Register("Normalize").set_attr(begin_norm_axis=int(),
+                                           is_across_spatial=bool(),
+                                           is_shared_channel=bool(),
+                                           eps=float(),
                                            p=int())
+
+
+OpsRegister.Register("ShuffleChannel").set_attr(group=int())

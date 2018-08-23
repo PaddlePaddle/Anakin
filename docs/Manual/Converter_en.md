@@ -8,15 +8,17 @@ Before using Anakin, you must convert your models to Anakin ones. If you don't, 
 
 ## Requirements
 
-- python 2.7+
-- pyyaml
-- flask
+- Python 2.7+
+- Protobuf 3.1+ (Make sure that Pip Protobuf is consistent with the system Protobuf version.)
+- PaddlePaddle 0.12.0+ (Fluid mode)
+- flask, bson, matplotlib, scikit-image
+- tkinter
 
 ## Downloading Converter Source
 
 ```bash
 git clone https://xxxxxxxxx
-``` 
+```
 
 ## Usage
 
@@ -47,9 +49,8 @@ TARGET:
             - /path/to/caffe/src/caffe/proto/caffe.proto
         PrototxtPath: /path/to/your/googlenet.prototxt
         ModelPath: /path/to/your/googlenet.caffemodel
-   
-	# not support yet 
-    PADDLE:
+
+    FLUID:
         # path to proto files   
         ProtoPath:
             - /path/to/proto_0
@@ -57,10 +58,10 @@ TARGET:
             - /path/to/proto_n
         PrototxtPath: /path/to/prototxt
         ModelPath: /path/to/model
-	# ... 
+    # ...
 ```
 
-### 2. Converting 
+### 2. Converting
 After finishing configuration , you just need to call python script ```python converter.py```  to complete transfromation.
 
 ### 3. Launching dash board
@@ -68,10 +69,3 @@ Anakin external converter will be launched on site http://0.0.0.0:8888 (configur
 Then open you browser and search http://0.0.0.0:8888, amazing things will happen!
 
 > if you set ip to 0.0.0.0 in remote server, you need to open local browser and search the server real ip:port, not the 0.0.0.0.
-
-
-### 4. Note
-
-> 1.We support caffe so far
-
-

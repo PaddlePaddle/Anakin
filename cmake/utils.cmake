@@ -1,9 +1,16 @@
-# ----------------------------------------------------------------------------
-# Copyright (c) 2016 Baidu.com, Inc. All Rights Reserved
-# @file     utils.cmake
-# @auther   cuichaowen
-# @date     2016-11-8
-# ----------------------------------------------------------------------------
+# Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 # ----------------------------------------------------------------------------
 # section: help to search src and include files
@@ -24,9 +31,9 @@ function(anakin_fetch_files_with_suffix search_dir suffix outputs)
 		endforeach()
 		set(${outputs} ${${outputs}} ${abs_dir} PARENT_SCOPE)
 	else()
-        #message(WARNING "anakin_fetch_files_recursively ${BoldRed}failed${ColourReset}:\n"
-        #                "real_dir:${BoldYellow}${search_dir}${ColourReset}\n"
-        #                "suffix:*.${BoldYellow}${suffix}${ColourReset} \n")
+		#message(WARNING "anakin_fetch_files_recursively ${BoldRed}failed${ColourReset}:\n"
+		#                "real_dir:${BoldYellow}${search_dir}${ColourReset}\n"
+		#                "suffix:*.${BoldYellow}${suffix}${ColourReset} \n")
 	endif()
 endfunction()
 
@@ -39,7 +46,7 @@ endfunction()
 # recursively fetch include dir 
 function(anakin_fetch_include_recursively root_dir)
     if (IS_DIRECTORY ${root_dir})
-        #message(STATUS "include dir: " ${Magenta}${root_dir}${ColourReset})
+		#message(STATUS "include dir: " ${Magenta}${root_dir}${ColourReset})
 		include_directories(${root_dir})
     endif()
 
@@ -51,6 +58,14 @@ function(anakin_fetch_include_recursively root_dir)
     endforeach()
 endfunction()
 
+# judge fetch files
+function(anakin_judge_avx   outputs)
+	exec_program(cat /proc/cpuinfo|greps flag|uniq
+			OUTPUT_VARIABLE OUTPUT
+			RETURN_VALUE VALUE)
+	message("it is anakin_judge_avx " OUTPUT)
+	set(${outputs} ${${outputs}} PARENT_SCOPE)
+endfunction()
 # ----------------------------------------------------------------------------
 # section: help to detect the compiler options
 # ----------------------------------------------------------------------------
@@ -229,10 +244,16 @@ function(anakin_protos_processing)
 	set(__working_dir ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/PROTO_TEMP/)
 	
 	anakin_fetch_files_with_suffix(${PROTO_SRC_PATH} "proto" PROTO_SRC_FILES)
-	foreach(__file ${PROTO_SRC_FILES})	
-		exec_program(protoc  ${__working_dir} ARGS " -I=${PROTO_SRC_PATH} --cpp_out=. ${__file}"
+	foreach(__file ${PROTO_SRC_FILES})
+		if(USE_ARM_PLACE)
+			exec_program(protoc ${__working_dir} ARGS " -I=${PROTO_SRC_PATH} --cpp_out=. ${__file}"
+					OUTPUT_VARIABLE OUTPUT
+					RETURN_VALUE VALUE)
+		else()
+			exec_program(${PROTOBUF_PROTOC_EXECUTABLE} ${__working_dir} ARGS " -I=${PROTO_SRC_PATH} --cpp_out=. ${__file}"
 							OUTPUT_VARIABLE OUTPUT
 							RETURN_VALUE VALUE)
+		endif()
 		if(NOT VALUE)
 			anakin_fetch_files_with_suffix(${__working_dir} "h" PROTO_GENERATE_H)
 			# get *.cpp or *.cc

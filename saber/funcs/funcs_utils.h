@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -18,9 +18,55 @@
 
 #include <iostream>
 #include <map>
+#include <cmath>
 #include "saber/core/tensor.h"
+#include "saber/core/tensor_op.h"
+#include "saber/saber_funcs_param.h"
+
 namespace anakin{
 namespace saber{
+
+template <typename Dtype>
+
+void transpose_inplace(float* output, const float* input, const int num,
+                       const int channel,
+                       const int height, const int width) {
+    for (int n = 0; n < num; ++n) {
+        for (int c = 0; c < channel; ++c) {
+            int offset = n * channel * height * width + c * height * width;
+
+            for (int y = 0; y < height; ++y) {
+                for (int x = 0; x < width; ++x) {
+                    output[(x * height) + y + offset] = input[(y * width) + x + offset];
+                }
+            }
+        }
+    }
+}
+
+template <typename Dtype>
+void extract_matrix_from_matrix_in_leddim(const Dtype* input,
+                Dtype* output,int start_index,int end_index,int stride,int dim_size){
+    for (int i = start_index; i < end_index; i += stride){
+        int output_height = (i - start_index) / stride;
+        for(int j = 0; j < dim_size; j++){
+            output[output_height * dim_size + j] = input[i + j];
+        }
+    }
+}
+
+
+
+template <typename Dtype>
+void merge_matrix_to_matrix_in_leddim(const Dtype* input,
+                                          Dtype* output,int start_index,int end_index,int stride,int dimsize){
+    for(int i=start_index;i<end_index;i+=stride){
+        int input_height=(i-start_index)/stride;
+        for(int j=0;j<dimsize;j++){
+            output[i+j]=input[input_height*dimsize+j];
+        }
+    }
+}
 
 template <typename Dtype>
 void transform_3x3_weight_2_4x4(const Dtype* input, 
@@ -175,8 +221,13 @@ void transpose_filter_KCRS_2_CRSK(const Dtype *input, Dtype *output, \
 template < typename Tensor_t, template <typename T> class Param >
 void update_conv_weights(Param<Tensor_t>& param)
 {
+#ifdef USE_ARM_PLACE
+    Tensor<ARM, AK_FLOAT, NCHW> new_weight;
+    Tensor<ARM, AK_FLOAT, NCHW> new_bias;
+#else
     Tensor<X86, AK_FLOAT, NCHW> new_weight;
     Tensor<X86, AK_FLOAT, NCHW> new_bias;
+#endif //USE_ARM_PLACE
     typedef typename Tensor_t::Dtype dtype;
 
     Shape weight_shape = param.conv_param.weight()->shape();
@@ -255,9 +306,174 @@ void update_conv_weights(Param<Tensor_t>& param)
     param.conv_param.mutable_bias()->copy_from(new_bias);
 }
 
+template < typename Tensor_t, template <typename T> class Param >
+void update_deconv_weights(Param<Tensor_t>& param)
+{
+#ifdef USE_ARM_PLACE
+    Tensor<ARM, AK_FLOAT, NCHW> new_weight;
+    Tensor<ARM, AK_FLOAT, NCHW> new_bias;
+#else
+    Tensor<X86, AK_FLOAT, NCHW> new_weight;
+    Tensor<X86, AK_FLOAT, NCHW> new_bias;
+#endif //USE_ARM_PLACE
+    typedef typename Tensor_t::Dtype dtype;
 
+    Shape weight_shape = param.conv_param.weight()->shape();
+    new_weight.re_alloc(weight_shape);
+    new_weight.copy_from(*(param.conv_param.weight()));
+    Shape bias_shape;
+
+    if (param.conv_param.bias()->size() > 0) {
+        bias_shape = param.conv_param.bias()->shape();
+        new_bias.re_alloc(bias_shape);
+        new_bias.copy_from(*(param.conv_param.bias()));
+
+    } else if (param.has_batchnorm) {
+        bias_shape = {1, param.batchnorm_param.mean.size(), 1, 1};
+        new_bias.re_alloc(bias_shape);
+        void* new_bias_data = new_bias.mutable_data();
+        memset(new_bias_data, 0, sizeof(dtype) * new_bias.size());
+
+    } else if (param.has_scale) {
+        bias_shape = {1, param.scale_param.scale_w.size(), 1, 1};
+        new_bias.re_alloc(bias_shape);
+        void* new_bias_data = new_bias.mutable_data();
+        memset(new_bias_data, 0, sizeof(dtype) * new_bias.size());
+    } else {
+        return;
+    }
+    int filter_num = new_weight.num();
+    int channel_num_per_group = new_weight.channel();
+    std::vector<dtype> scale(new_weight.num(), 0);
+    std::vector<dtype> shift(new_weight.num(), 0);
+
+    for (int i = 0; i < filter_num; ++i) {
+        dtype alpha = 1.f;
+        dtype beta = 0.f;
+
+        if (param.has_batchnorm) {
+            float scale_factor = 1.f;
+            scale_factor = (param.batchnorm_param.scale == 0) ?
+                           1 : 1.f / param.batchnorm_param.scale;
+            float eps = param.batchnorm_param.eps;
+            float variance;
+            float mean;
+            alpha = param.batchnorm_param.variance[i] * scale_factor + eps;
+            alpha = 1.f / sqrtf(alpha);
+            beta = -1.f * (param.batchnorm_param.mean[i] * scale_factor);
+            beta *= alpha;
+        }
+
+        if (param.has_scale) {
+            alpha *= param.scale_param.scale_w[i];
+
+            if (param.scale_param.bias_term) {
+                beta = beta * param.scale_param.scale_w[i]
+                       + param.scale_param.scale_b[i];
+            } else {
+                beta *= param.scale_param.scale_w[i];
+            }
+        }
+        scale[i] = alpha;
+        shift[i] = beta;
+    }
+
+
+    dtype* weight_data = new_weight.mutable_data();
+    dtype* bias_data = new_bias.mutable_data();
+    // {Ic, Oc/group, K_h, K_w} real shape
+    // {Oc, Ic/group, K_h, K_w} parser return back shape
+    // filter_num = Oc;
+    // channel_num_per_group = Ic/group;
+    // [group, Ic/group, Oc/group, K_h, k_w]
+
+    int hw = new_weight.height() * new_weight.width();
+    int group = param.conv_param.group;
+    int filter_num_per_group = filter_num / group;
+    int id = 0;
+    for (int i = 0; i < group; i++) {
+        for (int j = 0; j < channel_num_per_group; j++) {
+            for (int k = 0; k < filter_num_per_group; k++) {
+                int out_channel_id = i * filter_num_per_group + k;
+                for (int m = 0; m < hw; m++) {
+                    weight_data[id] = weight_data[id]* scale[out_channel_id];
+                    id++;
+                }
+            }
+        }
+    }
+
+    for (int i = 0; i < filter_num; i++) {
+        bias_data[i] *= scale[i];
+        bias_data[i] += shift[i];
+    }
+
+    param.conv_param.mutable_weight()->copy_from(new_weight);
+    Shape new_bias_shape = new_bias.shape();
+    param.conv_param.mutable_bias()->re_alloc(new_bias_shape);
+    param.conv_param.mutable_bias()->copy_from(new_bias);
+}
+inline int align_up(int a, int b) {
+    return (a % b != 0) ? (a - a % b + b) : a;
+}
+template <typename DataTensor>
+void conv_trans_weights(const std::vector<DataTensor *>& inputs,
+                   std::vector<DataTensor *>& outputs,
+                   ConvParam<DataTensor >& param, Context<NV> &ctx) {
+
+    Tensor<X86, AK_FLOAT, NCHW> trans_weights_host;
+    if (param.stride_h == 1 &&
+        param.stride_w == 1 &&
+        param.weight()->height() == 3 &&
+        param.weight()->width() == 3 && param.group == 1)
+    {
+        //Update weights if need
+        Shape weight_shape = param.weight()->shape();
+        Tensor<X86, AK_FLOAT, NCHW> new_weight;
+        new_weight.re_alloc(weight_shape);
+        new_weight.copy_from(*(param.weight()));
+        float *weight_data = new_weight.mutable_data();
+        int round_in_channel = align_up(inputs[0]->channel(), 8);
+        int round_out_channel = align_up(param.weight()->num(), 32);
+        int weight4x4_size = round_in_channel * round_out_channel * 4 * 4;
+        Shape old_shape = param.weight()->shape();
+        trans_weights_host.re_alloc({weight4x4_size, 1, 1 ,1});
+        float* _host_work_space = trans_weights_host.mutable_data();
+        transform_3x3_weight_2_4x4(weight_data, _host_work_space, param.weight()->num(),
+                                   round_out_channel, inputs[0]->channel(), round_in_channel);
+
+        param.mutable_weight()->re_alloc({weight4x4_size, 1, 1, 1});
+        param.mutable_weight()->copy_from(trans_weights_host);
+        param.mutable_weight()->set_shape(old_shape);
+
+    } else if (param.group == 1) {
+
+        int weight_size = (param.weight()->shape()).count();
+        Tensor<X86, AK_FLOAT, NCHW> weight_host;
+        weight_host.re_alloc(param.weight()->shape());
+        weight_host.copy_from(*(param.weight()));
+        const float *weight_data = weight_host.data();
+        trans_weights_host.re_alloc(param.weight()->shape());
+        float* _host_work_space = trans_weights_host.mutable_data();
+
+        transpose_filter_KCRS_2_CRSK(weight_data, _host_work_space, \
+                                         param.weight()->num(), \
+                                         param.weight()->channel(), \
+                                         param.weight()->height(), \
+                                         param.weight()->width());
+
+        param.mutable_weight()->re_alloc(param.weight()->shape());
+        param.mutable_weight()->copy_from(trans_weights_host);
+    }
+#ifdef USE_CUDA
+    cudaDeviceSynchronize();
+#endif
+}
 
 } // namespace saber
 
 } // namespace anakin
 #endif //SABER_FUNCS_UTILS_H
+
+
+

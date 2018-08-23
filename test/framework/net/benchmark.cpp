@@ -9,6 +9,18 @@
 #include <unistd.h>  
 #include <fcntl.h>
 #include <map>
+#include "framework/operators/ops.h"
+
+#if defined(USE_CUDA)
+using Target = NV;
+using Target_H = X86;
+#elif defined(USE_X86_PLACE)
+using Target = X86;
+using Target_H = X86;
+#elif defined(USE_ARM_PLACE)
+using Target = ARM;
+using Target_H = ARM;
+#endif
 
 #ifdef USE_GFLAGS
 #include <gflags/gflags.h>
@@ -24,6 +36,7 @@ std::string FLAGS_model_file;
 int FLAGS_num = 1;
 int FLAGS_warmup_iter = 10;
 int FLAGS_epoch = 1000;
+int FLAGS_device_id = 0;
 #endif
 
 void getModels(std::string path, std::vector<std::string>& files) {
@@ -54,28 +67,46 @@ TEST(NetTest, net_execute_base_test) {
     for (auto iter = models.begin(); iter < models.end(); iter++)
     {
         LOG(WARNING) << "load anakin model file from " << *iter << " ...";
-        Graph<NV, AK_FLOAT, Precision::FP32> graph;   
+        Graph<Target, AK_FLOAT, Precision::FP32> graph;   
         auto status = graph.load(*iter);
         if (!status) {
             LOG(FATAL) << " [ERROR] " << status.info();
         }
-        graph.ResetBatchSize("input_0", FLAGS_num);        
-        graph.Optimize();
-        // constructs the executer net
-        Net<NV, AK_FLOAT, Precision::FP32> net_executer(graph, true);
-        // get in
-        auto d_tensor_in_p = net_executer.get_in("input_0");
-        Tensor4d<X86, AK_FLOAT> h_tensor_in;
-        auto valid_shape_in = d_tensor_in_p->valid_shape();
-        for (int i = 0; i < valid_shape_in.size(); i++) {
-            LOG(INFO) << "detect input dims[" << i << "]" << valid_shape_in[i];
+
+        //! get output name
+        std::vector<std::string>& vin_name = graph.get_ins();
+        LOG(INFO) << "input tensor num: " << vin_name.size();
+
+        //! get output name
+        std::vector<std::string>& vout_name = graph.get_outs();
+        LOG(INFO) << "output tensor num: " << vout_name.size();
+
+        for (int j = 0; j < vin_name.size(); ++j) {
+            LOG(INFO) << "set input " << vin_name[j] << " batchsize to " << FLAGS_num;
+            graph.ResetBatchSize(vin_name[j].c_str(), FLAGS_num);
         }
-        h_tensor_in.re_alloc(valid_shape_in);
-        fill_tensor_host_rand(h_tensor_in, -1.0f,1.0f);
-        d_tensor_in_p->copy_from(h_tensor_in);
+
+
+        LOG(INFO) << "optimize the graph";
+        graph.Optimize();
+
+        // constructs the executer net
+        LOG(INFO) << "create net to execute";
+        Net<Target, AK_FLOAT, Precision::FP32> net_executer(graph, true);
+        // get in
+        LOG(INFO) << "set input";
+        for (auto& in : vin_name) {
+            auto d_tensor_in_p = net_executer.get_in(in.c_str());
+            for (int i = 0; i < d_tensor_in_p->valid_shape().size(); i++) {
+                LOG(INFO) << "detect input dims[" << i << "]" << d_tensor_in_p->valid_shape()[i];
+            }
+            Tensor<Target_H, AK_FLOAT> th(d_tensor_in_p->valid_shape());
+            fill_tensor_host_const(th, 1.f);
+            d_tensor_in_p->copy_from(th);
+        }
         // do inference
-        Context<NV> ctx(0, 0, 0);
-        saber::SaberTimer<NV> my_time;
+        Context<Target> ctx(FLAGS_device_id, 0, 0);
+        saber::SaberTimer<Target> my_time;
         LOG(WARNING) << "EXECUTER !!!!!!!! ";
         for (int i = 0; i < FLAGS_warmup_iter; i++) {
             net_executer.prediction();
@@ -84,14 +115,18 @@ TEST(NetTest, net_execute_base_test) {
         net_executer.reset_op_time();
 #endif
         my_time.start(ctx);
-        //auto start = std::chrono::system_clock::now();
         for (int i = 0; i < FLAGS_epoch; i++) {
-        //DLOG(ERROR) << " epoch(" << i << "/" << epoch << ") ";
+            for (auto& in : vin_name) {
+                auto d_tensor_in_p = net_executer.get_in(in.c_str());
+                Tensor<Target_H, AK_FLOAT> th(d_tensor_in_p->valid_shape());
+                fill_tensor_host_const(th, 1.f);
+                d_tensor_in_p->copy_from(th);
+            }
             net_executer.prediction();
         }
         my_time.end(ctx);
 #ifdef ENABLE_OP_TIMER
-        std::vector<float> op_time = net_executer.get_op_time();
+        std::vector<float> op_time = net_executer.geifrot_op_time();
         auto exec_funcs = net_executer.get_exec_funcs();
         auto op_param = net_executer.get_op_param();
         for (int i = 0; i <  op_time.size(); i++) {
@@ -117,6 +152,9 @@ TEST(NetTest, net_execute_base_test) {
     }
 }
 int main(int argc, const char** argv){
+
+    Env<Target>::env_init();
+
     // initial logger
     logger::init(argv[0]);
 
@@ -130,6 +168,7 @@ int main(int argc, const char** argv){
     LOG(INFO)<< "   num:            batchSize default to 1";
     LOG(INFO)<< "   warmup_iter:    warm up iterations default to 10";
     LOG(INFO)<< "   epoch:          time statistic epoch default to 1000";
+    LOG(INFO)<< "   device_id:      select which device to run the model";
     if(argc < 3) {
         LOG(ERROR) << "You should fill in the variable model_dir and model_file at least.";
         return 0;
@@ -146,6 +185,9 @@ int main(int argc, const char** argv){
     }
     if(argc > 5) {
         FLAGS_epoch = atoi(argv[5]);
+    }
+    if(argc > 6) {
+        FLAGS_device_id = atoi(argv[6]);
     }
 #endif
     InitTest();

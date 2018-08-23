@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ class DeconvolutionHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
 public:
     DeconvolutionHelper()=default;
 
-    ~DeconvolutionHelper();
+    ~DeconvolutionHelper(){}
 
     Status InitParam() override;
 
@@ -95,8 +95,6 @@ private:
     ///< _dims stand for batchNorm size
     PTuple<int> _dims; 
 };
-
-
 
 } /* namespace ops */
 

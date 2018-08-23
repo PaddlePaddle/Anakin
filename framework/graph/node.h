@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -121,7 +121,12 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 class Node {
 public:
     Node() {}
-    ~Node() {}
+    ~Node() {
+		if(_Op) {
+			delete _Op;
+			_Op = nullptr;
+		}
+	}
     /// print message
     std::string DebugString();
 
@@ -150,6 +155,17 @@ public:
     /// Access to attributes.
     AttrInfo& attr() { return _attr; } 
 
+	/// inspect if node attr have target attr name
+	inline bool inspect_attr(const std::string& attr_name) {
+		auto& attrs = this->attr();
+		auto it_end = attrs.parameter.end();
+		auto it_find = attrs.parameter.find(attr_name);
+		if(it_find != it_end) {
+			return true;
+		}
+		return false;
+	}
+
     /**
     * \brief Get target attr by name
     * \param attr_name stand for target_attr name
@@ -158,7 +174,7 @@ public:
     template<typename T>
     T get_attr(std::string& attr_name) {
         auto& attrs = this->attr();
-        const auto& it_end = attrs.parameter.end();
+        auto it_end = attrs.parameter.end();
         auto it_find = attrs.parameter.find(attr_name);
         if(it_find == it_end) {
             LOG(FATAL) << "Target attr name(" << attr_name << ") not found.";
@@ -175,7 +191,7 @@ public:
     template<typename T>
     Status set_attr(const std::string& attr_name, const T val) {
         auto& attrs = this->attr();    
-        const auto& it_end = attrs.parameter.end();
+        auto it_end = attrs.parameter.end();
         auto it_find = attrs.parameter.find(attr_name);
         if(it_find != it_end) {
             return Status::FAIL();
@@ -191,7 +207,7 @@ public:
     */
     Status remove_attr(const std::string& attr_name) {
         auto& attrs = this->attr();
-        const auto& it_end = attrs.parameter.end();
+        auto it_end = attrs.parameter.end();
         auto it_find = attrs.parameter.find(attr_name);
         if(it_find != it_end) {
             attrs.parameter.erase(attr_name);
@@ -232,7 +248,7 @@ public:
     inline Node<Ttype, Dtype, Ptype>& operator=(const Node<Ttype, Dtype, Ptype>& operand) {
         _name = operand._name;
         _current_lane = operand._current_lane;
-        _Op = operand._Op;
+        _Op = nullptr; // Assign the op pointer with operand's should be disabled, because it causes double free after binding the nodeptr by op itself.
         _op_name = operand._op_name;
         // copy attributes
         auto it_begin = operand._attr.parameter.begin();
@@ -243,6 +259,7 @@ public:
         _need_wait = operand._need_wait;
         _in_degree = operand._in_degree;
         _out_degree = operand._out_degree;
+        return *this;
     }
     
     /// print message

@@ -9,8 +9,7 @@ try:
     from google.protobuf.pyext._message import RepeatedScalarContainer as repeat_container # 3.5.1 + 
 except ImportError:
     pass
-from ..operations import OpParam
-from ..operations import OpsRegister
+from ..operations import OpsParam, OpsRegister
 from ..logger import *
 from ..pbs import *
 
@@ -293,6 +292,72 @@ def Parser_convolution(args):
         OpsRegister()["Convolution"].axis = 1
     OpsRegister()["Convolution"].bias_term = convolution_param.bias_term
 
+@ParserFeedDecorator("Convolution")
+def Parser_convolutiondepthwise(args):
+    layer = args[1]
+    # parser caffe parameter
+    convolution_param = layer.convolution_param
+    OpsRegister()["Convolution"].filter_num = convolution_param.num_output
+    kernel_size = []
+    if type(convolution_param.kernel_size) == repeat_container: # support for old version caffe proto
+        if len(convolution_param.kernel_size):
+            if len(convolution_param.kernel_size) == 1:
+                kernel_size = list([convolution_param.kernel_size[0], convolution_param.kernel_size[0]])
+            else:
+                kernel_size = list(convolution_param.kernel_size)
+        else:
+            kernel_size = [convolution_param.kernel_h, convolution_param.kernel_w]
+    elif convolution_param.kernel_size > 0:
+        kernel_size = list([convolution_param.kernel_size, convolution_param.kernel_size])
+    else:
+        kernel_size = [convolution_param.kernel_h, convolution_param.kernel_w]
+    OpsRegister()["Convolution"].kernel_size = kernel_size
+    strides = []
+    if type(convolution_param.stride) == repeat_container:
+        if len(convolution_param.stride):
+            if len(convolution_param.stride) == 1:
+                strides = list([convolution_param.stride[0], convolution_param.stride[0]])
+            else:
+                strides = list(convolution_param.stride)
+        else:
+            strides = [convolution_param.stride_h, convolution_param.stride_w]
+    elif convolution_param.stride > 0:
+        strides = [convolution_param.stride, convolution_param.stride]
+    else:
+        strides = [convolution_param.stride_h, convolution_param.stride_w]
+    if strides[0] == 0:
+        strides[0] = 1
+        strides[1] = 1
+    OpsRegister()["Convolution"].strides = strides
+    paddings = []
+    if type(convolution_param.pad) == repeat_container:
+        if len(convolution_param.pad):
+            if len(convolution_param.pad) == 1:
+                paddings = list([convolution_param.pad[0], convolution_param.pad[0]])
+            else:
+                paddings = list(convolution_param.pad)
+        else:
+            paddings = [convolution_param.pad_h, convolution_param.pad_w]
+    elif convolution_param.pad > 0:
+        paddings = list([convolution_param.pad, convolution_param.pad])
+    else:
+        paddings = [convolution_param.pad_h, convolution_param.pad_w]
+    OpsRegister()["Convolution"].padding = paddings
+    if is_has_proto_key(convolution_param, "dilation"):
+        if len(convolution_param.dilation) == 0:
+            OpsRegister()["Convolution"].dilation_rate = list([1, 1])
+        elif len(convolution_param.dilation) == 1:
+            OpsRegister()["Convolution"].dilation_rate = list([convolution_param.dilation[0], convolution_param.dilation[0]])
+        else:
+            OpsRegister()["Convolution"].dilation_rate = list(convolution_param.dilation)
+    else:
+        OpsRegister()["Convolution"].dilation_rate = list([1, 1])
+    OpsRegister()["Convolution"].group = convolution_param.num_output
+    if is_has_proto_key(convolution_param, "axis"):
+        OpsRegister()["Convolution"].axis = convolution_param.axis
+    else:
+        OpsRegister()["Convolution"].axis = 1
+    OpsRegister()["Convolution"].bias_term = convolution_param.bias_term
 
 @ParserFeedDecorator("Cropping")
 def Parser_crop(args):
@@ -371,7 +436,7 @@ def Parser_innerproduct(args):
     # parser caffe parameter
     tensors = args[2]
     weight = tensors[0]
-    inner_product_param = layer.inner_product_param	
+    inner_product_param = layer.inner_product_param 
     OpsRegister()["Dense"].axis = inner_product_param.axis # weight().shape.dim.value[2]
     OpsRegister()["Dense"].out_dim = inner_product_param.num_output # weight().shape.dim.value[3]
     OpsRegister()["Dense"].bias_term = inner_product_param.bias_term
@@ -463,12 +528,13 @@ def Parser_power(args):
     OpsRegister()["Power"].power = power_param.power
 
 
-@ParserFeedDecorator("PReLU")
+@ParserFeedDecorator("Activation")
 def Parser_prelu(args):
     layer = args[1]
     # parser caffe parameter
     prelu_param = layer.prelu_param
-    OpsRegister()["PReLU"].channel_shared = prelu_param.channel_shared
+    OpsRegister()["Activation"].type = "PReLU"
+    OpsRegister()["Activation"].channel_shared = prelu_param.channel_shared
 
 
 @ParserFeedDecorator("RNN")
@@ -564,7 +630,7 @@ def Parser_input(args):
     OpsRegister()["Input"].input_shape = list(input_param.shape[0].dim)
     #OpsRegister()["Input"].input_num = len(input_param.shape)
     #for shape in input_param.shape:
-    #	OpsRegister()["Input"].input_shape.append(list(shape.dim))
+    #   OpsRegister()["Input"].input_shape.append(list(shape.dim))
 
 
 @ParserFeedDecorator("Permute")
@@ -601,6 +667,13 @@ def Parser_split(args):
     # parser caffe parameter
     top = layer.top
     OpsRegister()["Split"].split_num = len(top)
+
+@ParserFeedDecorator("ShuffleChannel")
+def Parser_ShuffleChannel(args):
+    layer = args[1]
+    # parser caffe parameter
+    shufflechannel_param = layer.shuffle_channel_param
+    OpsRegister()["ShuffleChannel"].group = shufflechannel_param.group
 
 
 @ParserFeedDecorator("RPNProposalSSD")
@@ -994,14 +1067,23 @@ def Parser_priorbox(args):
     OpsRegister()["PriorBox"].min_size = list(prior_box_param.min_size)
     OpsRegister()["PriorBox"].max_size = list(prior_box_param.max_size)
     OpsRegister()["PriorBox"].aspect_ratio = list(prior_box_param.aspect_ratio)
+    OpsRegister()["PriorBox"].fixed_size = list(prior_box_param.fixed_size)
+    OpsRegister()["PriorBox"].fixed_ratio = list(prior_box_param.fixed_ratio)
+    OpsRegister()["PriorBox"].density = list(prior_box_param.density)
+    OpsRegister()["PriorBox"].aspect_ratio = list(prior_box_param.aspect_ratio)
     OpsRegister()["PriorBox"].is_flip = prior_box_param.flip
     OpsRegister()["PriorBox"].is_clip = prior_box_param.clip
     OpsRegister()["PriorBox"].variance = list(prior_box_param.variance)
     OpsRegister()["PriorBox"].img_h = prior_box_param.img_h
     OpsRegister()["PriorBox"].img_w = prior_box_param.img_w
-    OpsRegister()["PriorBox"].step_h = prior_box_param.step_h
-    OpsRegister()["PriorBox"].step_w = prior_box_param.step_w
+    if prior_box_param.HasField('step_h') and pooling_param.HasField('step_w'):
+        OpsRegister()["PriorBox"].step_h = prior_box_param.step_h
+        OpsRegister()["PriorBox"].step_w = prior_box_param.step_w
+    elif prior_box_param.HasField('step'):
+        OpsRegister()["PriorBox"].step_h = prior_box_param.step
+        OpsRegister()["PriorBox"].step_w = prior_box_param.step
     OpsRegister()["PriorBox"].offset = prior_box_param.offset
+    OpsRegister()["PriorBox"].order = ['MIN', 'MAX', 'COM']
 
 
 @ParserFeedDecorator("DetectionOutput")
@@ -1035,6 +1117,7 @@ def Parser_argmax(args):
     OpsRegister()["Argmax"].out_max_val = argmax_param.out_max_val
     OpsRegister()["Argmax"].top_k = argmax_param.top_k
     OpsRegister()["Argmax"].axis = argmax_param.axis
+    OpsRegister()["Argmax"].axis_term = True
 
 
 @ParserFeedDecorator("Normalize")
@@ -1042,74 +1125,86 @@ def Parser_normalize(args):
     layer = args[1]
     norm_param = layer.norm_param
     scale_filler = norm_param.scale_filler
+    OpsRegister()["Normalize"].begin_norm_axis = -1
     OpsRegister()["Normalize"].is_across_spatial = norm_param.across_spatial
     OpsRegister()["Normalize"].is_shared_channel = norm_param.channel_shared
     OpsRegister()["Normalize"].eps = norm_param.eps
     OpsRegister()["Normalize"].p = 2
 
 
+@ParserFeedDecorator("Activation")
+def Parser_relu6(args):
+    layer = args[1]
+    relu6_param = layer.relu6_param
+    OpsRegister()["Activation"].type = "ClippedRelu"
+    OpsRegister()["Activation"].clip_relu_num = 6
+
+
 # caffe layer parameter parser map
 CAFFE_LAYER_PARSER = {
-                "Split": OpParam().set_parser(Parser_split),
-                "Accuracy": OpParam().set_parser(NotNeededInInference),
-                "ArgMax": OpParam().set_parser(NotNeededInInference),
-                "BatchNorm": OpParam().set_parser(Parser_batch_norm),
-                "Bias": OpParam().set_parser(NotNeededInInference),
-                "Concat": OpParam().set_parser(Parser_concat),
-                "ContrastiveLoss": OpParam().set_parser(NotNeededInInference),
-                "Convolution": OpParam().set_parser(Parser_convolution),
-                "ConvolutionDepthwise": OpParam().set_parser(Parser_convolution),
-                "Deconvolution": OpParam().set_parser(Parser_deconvolution),
-                "DeformableConvolution": OpParam().set_parser(Parser_deformable_convolution),
-                "Crop": OpParam().set_parser(Parser_crop),
-                "Data": OpParam().set_parser(NotNeededInInference),
-                "Dropout": OpParam().set_parser(Parser_dropout),
-                "DummyData": OpParam().set_parser(NotNeededInInference),
-                "Eltwise": OpParam().set_parser(Parser_eltwise),
-                "ELU": OpParam().set_parser(Parser_elu),
-                "Embed": OpParam().set_parser(Parser_embed),
-                "Exp": OpParam().set_parser(Parser_exp),
-                "Flatten": OpParam().set_parser(Parser_flatten),
-                "HDF5Data": OpParam().set_parser(NotNeededInInference),
-                "HDF5Output": OpParam().set_parser(NotNeededInInference),
-                "HingeLoss": OpParam().set_parser(NotNeededInInference),
-                "ImageData": OpParam().set_parser(NotNeededInInference),
-                "InfogainLoss": OpParam().set_parser(NotNeededInInference),
-                "InnerProduct": OpParam().set_parser(Parser_innerproduct),
-                "Input": OpParam().set_parser(Parser_input),
-                "Log": OpParam().set_parser(Parser_log),
-                "LRN": OpParam().set_parser(Parser_lrn),
-                "MemoryData": OpParam().set_parser(NotNeededInInference),
-                "MVN": OpParam().set_parser(Parser_mvn),
-                "Parameter": OpParam().set_parser(NotNeededInInference),
-                "Pooling": OpParam().set_parser(Parser_pooling),
-                "Power": OpParam().set_parser(Parser_power),
-                "PReLU": OpParam().set_parser(Parser_prelu),
-                "Permute": OpParam().set_parser(Parser_permute),
-                "Python": OpParam().set_parser(NotNeededInInference),
-                "Recurrent": OpParam().set_parser(Parser_rnn_ori),
-                "RNN": OpParam().set_parser(Parser_rnn_ori),
-                "LSTM": OpParam().set_parser(Parser_rnn_lstm),
-                "Reduction": OpParam().set_parser(NotNeededInInference),
-                "ReLU": OpParam().set_parser(Parser_relu),
-                "Reshape": OpParam().set_parser(Parser_reshape),
-                "Scale": OpParam().set_parser(Parser_scale),
-                "Sigmoid": OpParam().set_parser(Parser_sigmoid),
-                "Softmax": OpParam().set_parser(Parser_softmax),
-                "SPP": OpParam().set_parser(Parser_spp),
-                "Slice": OpParam().set_parser(Parser_slice),
-                "TanH": OpParam().set_parser(Parser_tanh),
-                "Threshold": OpParam().set_parser(NotNeededInInference),
-                "Tile": OpParam().set_parser(NotNeededInInference),
-                "WindowData": OpParam().set_parser(NotNeededInInference),
-                "RPNProposalSSD": OpParam().set_parser(Parser_rpn_proposal_ssd), # adu add
-                "RCNNDetOutputWithAttr": OpParam().set_parser(Parser_rcnn_net_output_with_attr), # adu add
-                "DFMBPSROIAlign": OpParam().set_parser(Parser_dfmbps_roi_align), # adu add
-                "RCNNProposal": OpParam().set_parser(Parser_rcnn_proposal), # adu add
-                "ProposalImgScaleToCamCoords": OpParam().set_parser(Parser_proposal_img_scale_to_cam_coords), # adu add
-                "Axpy": OpParam().set_parser(Parser_axpy), # vis add
-                "PriorBox": OpParam().set_parser(Parser_priorbox), # vis add
-                "DetectionOutput": OpParam().set_parser(Parser_detectionoutput), # vis add
-                "ArgMax": OpParam().set_parser(Parser_argmax),
-                "Normalize": OpParam().set_parser(Parser_normalize)
+                "Split": OpsParam().set_parser(Parser_split),
+                "Accuracy": OpsParam().set_parser(NotNeededInInference),
+                "ArgMax": OpsParam().set_parser(NotNeededInInference),
+                "BatchNorm": OpsParam().set_parser(Parser_batch_norm),
+                "Bias": OpsParam().set_parser(NotNeededInInference),
+                "Concat": OpsParam().set_parser(Parser_concat),
+                "ContrastiveLoss": OpsParam().set_parser(NotNeededInInference),
+                "Convolution": OpsParam().set_parser(Parser_convolution),
+                "ConvolutionDepthwise": OpsParam().set_parser(Parser_convolutiondepthwise),
+                "DepthwiseConvolution": OpsParam().set_parser(Parser_convolutiondepthwise),
+                "Deconvolution": OpsParam().set_parser(Parser_deconvolution),
+                "DeformableConvolution": OpsParam().set_parser(Parser_deformable_convolution),
+                "Crop": OpsParam().set_parser(Parser_crop),
+                "Data": OpsParam().set_parser(NotNeededInInference),
+                "Dropout": OpsParam().set_parser(Parser_dropout),
+                "DummyData": OpsParam().set_parser(NotNeededInInference),
+                "Eltwise": OpsParam().set_parser(Parser_eltwise),
+                "ELU": OpsParam().set_parser(Parser_elu),
+                "Embed": OpsParam().set_parser(Parser_embed),
+                "Exp": OpsParam().set_parser(Parser_exp),
+                "Flatten": OpsParam().set_parser(Parser_flatten),
+                "HDF5Data": OpsParam().set_parser(NotNeededInInference),
+                "HDF5Output": OpsParam().set_parser(NotNeededInInference),
+                "HingeLoss": OpsParam().set_parser(NotNeededInInference),
+                "ImageData": OpsParam().set_parser(NotNeededInInference),
+                "InfogainLoss": OpsParam().set_parser(NotNeededInInference),
+                "InnerProduct": OpsParam().set_parser(Parser_innerproduct),
+                "Input": OpsParam().set_parser(Parser_input),
+                "Log": OpsParam().set_parser(Parser_log),
+                "LRN": OpsParam().set_parser(Parser_lrn),
+                "MemoryData": OpsParam().set_parser(NotNeededInInference),
+                "MVN": OpsParam().set_parser(Parser_mvn),
+                "Parameter": OpsParam().set_parser(NotNeededInInference),
+                "Pooling": OpsParam().set_parser(Parser_pooling),
+                "Power": OpsParam().set_parser(Parser_power),
+                "PReLU": OpsParam().set_parser(Parser_prelu),
+                "Permute": OpsParam().set_parser(Parser_permute),
+                "Python": OpsParam().set_parser(NotNeededInInference),
+                "Recurrent": OpsParam().set_parser(Parser_rnn_ori),
+                "RNN": OpsParam().set_parser(Parser_rnn_ori),
+                "LSTM": OpsParam().set_parser(Parser_rnn_lstm),
+                "Reduction": OpsParam().set_parser(NotNeededInInference),
+                "ReLU": OpsParam().set_parser(Parser_relu),
+                "Reshape": OpsParam().set_parser(Parser_reshape),
+                "Scale": OpsParam().set_parser(Parser_scale),
+                "Sigmoid": OpsParam().set_parser(Parser_sigmoid),
+                "Softmax": OpsParam().set_parser(Parser_softmax),
+                "SPP": OpsParam().set_parser(Parser_spp),
+                "Slice": OpsParam().set_parser(Parser_slice),
+                "TanH": OpsParam().set_parser(Parser_tanh),
+                "Threshold": OpsParam().set_parser(NotNeededInInference),
+                "Tile": OpsParam().set_parser(NotNeededInInference),
+                "WindowData": OpsParam().set_parser(NotNeededInInference),
+                "RPNProposalSSD": OpsParam().set_parser(Parser_rpn_proposal_ssd), # adu add
+                "RCNNDetOutputWithAttr": OpsParam().set_parser(Parser_rcnn_net_output_with_attr), # adu add
+                "DFMBPSROIAlign": OpsParam().set_parser(Parser_dfmbps_roi_align), # adu add
+                "RCNNProposal": OpsParam().set_parser(Parser_rcnn_proposal), # adu add
+                "ProposalImgScaleToCamCoords": OpsParam().set_parser(Parser_proposal_img_scale_to_cam_coords), # adu add
+                "Axpy": OpsParam().set_parser(Parser_axpy), # vis add
+                "PriorBox": OpsParam().set_parser(Parser_priorbox), # vis add
+                "DetectionOutput": OpsParam().set_parser(Parser_detectionoutput), # vis add
+                "ArgMax": OpsParam().set_parser(Parser_argmax),
+                "Normalize": OpsParam().set_parser(Parser_normalize),
+                "ReLU6": OpsParam().set_parser(Parser_relu6),
+                "ShuffleChannel": OpsParam().set_parser(Parser_ShuffleChannel)
                 }

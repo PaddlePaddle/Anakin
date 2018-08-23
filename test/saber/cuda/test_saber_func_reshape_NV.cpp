@@ -11,7 +11,7 @@ using namespace anakin::saber;
 TEST(TestSaberFuncReshapeNV, test_func_reshape) {
 
     Env<NV>::env_init();
-    Env<X86>::env_init();
+    //Env<X86>::env_init();
     typedef TargetWrapper<NV> API;
     typedef TargetWrapper<X86> X86_API;
 
@@ -64,7 +64,7 @@ TEST(TestSaberFuncReshapeNV, test_func_reshape) {
 
     // start Reshape & doInfer
     Context<NV> ctx_dev(0, 1, 1);
-    Context<X86> ctx_host;
+    //Context<X86> ctx_host;
 
     std::vector<TensorHf4*> input_host_4d;
     std::vector<TensorHf4*> output_host_4d;
@@ -113,9 +113,9 @@ TEST(TestSaberFuncReshapeNV, test_func_reshape) {
 
     // init assume output tensor has been reshpaed by user.
     LOG(INFO) << "reshape initialization";
-    SABER_CHECK(host_reshape_4d.init(input_host_4d, output_host_4d, param_host_4d, \
+    //SABER_CHECK(host_reshape_4d.init(input_host_4d, output_host_4d, param_host_4d, \
                                      RUNTIME, SABER_IMPL, ctx_host));
-    SABER_CHECK(host_reshape_2d.init(input_host_4d, output_host_2d, param_host_2d, \
+    //SABER_CHECK(host_reshape_2d.init(input_host_4d, output_host_2d, param_host_2d, \
                                      RUNTIME, SABER_IMPL, ctx_host));
     SABER_CHECK(dev_reshape_4d.init(input_dev_4d, output_dev_4d, param_dev_4d, \
                                     RUNTIME, SABER_IMPL, ctx_dev));
@@ -123,8 +123,8 @@ TEST(TestSaberFuncReshapeNV, test_func_reshape) {
                                     RUNTIME, SABER_IMPL, ctx_dev));
 
     LOG(INFO) << "reshape compute";
-    host_reshape_4d(input_host_4d, output_host_4d, param_host_4d, ctx_host);
-    host_reshape_2d(input_host_4d, output_host_2d, param_host_2d, ctx_host);
+    //host_reshape_4d(input_host_4d, output_host_4d, param_host_4d, ctx_host);
+    //host_reshape_2d(input_host_4d, output_host_2d, param_host_2d, ctx_host);
     dev_reshape_4d(input_dev_4d, output_dev_4d, param_dev_4d, ctx_dev);
     dev_reshape_2d(input_dev_4d, output_dev_2d, param_dev_2d, ctx_dev);
     print_tensor_host(*output_host_4d[0]);

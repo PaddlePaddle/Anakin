@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/funcs/funcs_utils.h"
+#include "saber/funcs/impl/impl_conv_act_pooling.h"
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_conv_act_pooling.h"
 #include "saber/funcs/impl/cuda/vender_conv_act_pooling.h"
@@ -25,6 +26,11 @@
 
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_conv_act_pooling.h"
+#endif
+
+#ifdef USE_ARM_PLACE
+//todo
+#include "saber/funcs/impl/arm/saber_conv_act_pooling.h"
 #endif
 
 namespace anakin {
@@ -201,10 +207,14 @@ private:
         _use_saber_conv_pooling &= !(this->_param).pooling_param.global_pooling;
         _use_saber_conv_pooling &= (this->_param).pooling_param.pooling_type == Pooling_max;
 
-        if (!_use_saber_conv_pooling) {
-            this->_best_impl = this->_impl[0];
-        } else {
+        if (_use_saber_conv_pooling) {
             this->_best_impl = this->_impl[1];
+            delete this->_impl[0];
+            this->_impl[0] = NULL;
+        } else {
+            this->_best_impl = this->_impl[0];
+            delete this->_impl[1];
+            this->_impl[1] = NULL;
         }
     }
 

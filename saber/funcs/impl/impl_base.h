@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -34,7 +34,8 @@ public:
     ImplBase() {
     }
 
-    virtual ~ImplBase(){}
+    virtual ~ImplBase(){
+	}
 
     virtual SaberStatus init(const std::vector<inTensor*>& inputs,
               std::vector<outTensor*>& outputs,
@@ -56,7 +57,7 @@ public:
 
 protected:
     Param* _param;
-    Context<targetType_t> _ctx;
+    Context<targetType_t>* _ctx;
 };
 
 }

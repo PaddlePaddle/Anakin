@@ -43,6 +43,8 @@ void fill_tensor_device_const(Tensor_t& tensor, \
 };
 
 
+
+
 template <class Tensor_t>
 void fill_tensor_device_rand(Tensor_t& tensor, typename Tensor_t::API::stream_t stream) {
 
@@ -108,13 +110,13 @@ void print_tensor_device(Tensor_t& tensor, typename Tensor_t::API::stream_t stre
 
 #define FILL_TENSOR_NV(type, layout) \
     template void fill_tensor_device_const<Tensor<NV, type, layout>>\
-        (Tensor<NV, type, layout>& tensor, DataTrait<type>::dtype value, \
+        (Tensor<NV, type, layout>& tensor, DataTrait<NV, type>::dtype value, \
         typename TargetWrapper<NV>::stream_t stream); \
     template void fill_tensor_device_rand<Tensor<NV, type, layout>>\
         (Tensor<NV, type, layout>& tensor, typename TargetWrapper<NV>::stream_t stream); \
     template void fill_tensor_device_rand<Tensor<NV, type, layout>>\
-        (Tensor<NV, type, layout>& tensor, DataTrait<type>::dtype vstart, \
-        DataTrait<type>::dtype vend, typename TargetWrapper<NV>::stream_t stream); \
+        (Tensor<NV, type, layout>& tensor, DataTrait<NV, type>::dtype vstart, \
+        DataTrait<NV, type>::dtype vend, typename TargetWrapper<NV>::stream_t stream); \
     template void print_tensor_device<Tensor<NV, type, layout>>\
         (Tensor<NV, type, layout>& tensor, typename TargetWrapper<NV>::stream_t stream);
 

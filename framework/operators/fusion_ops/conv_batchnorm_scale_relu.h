@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -29,7 +29,6 @@ namespace ops {
 template<typename Ttype, DataType Dtype, Precision Ptype>
 class ConvBatchnormScaleReluHelper;
 
-/// pooling op
 /**
  * \brief ConvBatchnormScaleRelu implementation class
  * public inherit Operator
@@ -60,7 +59,7 @@ class ConvBatchnormScaleReluHelper : public OperatorHelper<Ttype, Dtype, Ptype> 
 public:
     ConvBatchnormScaleReluHelper()=default;
 
-    ~ConvBatchnormScaleReluHelper();
+    ~ConvBatchnormScaleReluHelper() {}
 
     Status InitParam() override;
 
@@ -94,8 +93,6 @@ private:
     ///< _dims stand for ConvBatchnormScaleRelu size
     PTuple<int> _dims; 
 };
-
-
 
 } /* namespace ops */
 

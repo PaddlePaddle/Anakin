@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -58,10 +58,13 @@ public:
 
 	/// add vertex to graph
 	virtual void add_vertex(VertexNameType vertexName, VertexType vertex);
+	virtual void add_alias(VertexNameType vertexNameOri, VertexNameType vertexNameAlias);
 
     /// add in/out arc to graph, if you in/out arc need order
 	virtual void add_in_arc(ArcType& arc);
+	virtual void update_in_arc(ArcType& arc, size_t index_of_in_arc);
     virtual void add_out_arc(ArcType& arc);
+	virtual void uddate_out_arc(ArcType& arc, size_t index_of_out_arc);
 
 	/// remove vertex from graph
 	virtual void remove(VertexNameType vertexName);

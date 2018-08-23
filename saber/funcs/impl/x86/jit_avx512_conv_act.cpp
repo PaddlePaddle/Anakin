@@ -50,7 +50,7 @@ SaberStatus JitAvx512ConvAct<OpDtype, inDtype, outDtype,
         ConvActiveParam<opTensor> &param,
         Context<X86> &ctx) {
     // get context of avx512_conv_act
-    this->_ctx = ctx;
+    this->_ctx = &ctx;
     ConvParam<opTensor> *conv_param = &(param.conv_param);
     ActivationParam<opTensor> *act_param = &(param.activation_param);
 
