@@ -9,32 +9,32 @@ namespace lite{
 
 template <typename Dtype>
 void eltwise_prod_relu(const Dtype* din_a, const Dtype* din_b, Dtype* dout, const int num, \
-    int channel, int channel_size, std::vector<float> coef, bool channel_shared, float* slop_ptr);
+    int channel, int channel_size, std::vector<float> coef, bool channel_shared, const float* slop_ptr);
 
 template <typename Dtype>
 void eltwise_sum_relu(const Dtype* din_a, const Dtype* din_b, Dtype* dout, const int num, \
-     int channel, int channel_size, std::vector<float> coef, bool channel_shared, float* slop_ptr);
+     int channel, int channel_size, std::vector<float> coef, bool channel_shared, const float* slop_ptr);
 
 template <typename Dtype>
 void eltwise_max_relu(const Dtype* din_a, const Dtype* din_b, Dtype* dout, const int num, \
-     int channel, int channel_size, std::vector<float> coef, bool channel_shared, float* slop_ptr);
+     int channel, int channel_size, std::vector<float> coef, bool channel_shared, const float* slop_ptr);
 
 template <typename Dtype>
 void eltwise_prod_prelu(const Dtype* din_a, const Dtype* din_b, Dtype* dout, const int num, \
-    int channel, int channel_size, std::vector<float> coef, bool channel_shared, float* slop_ptr);
+    int channel, int channel_size, std::vector<float> coef, bool channel_shared, const float* slop_ptr);
 
 template <typename Dtype>
 void eltwise_sum_prelu(const Dtype* din_a, const Dtype* din_b, Dtype* dout, const int num, \
-     int channel, int channel_size, std::vector<float> coef, bool channel_shared, float* slop_ptr);
+     int channel, int channel_size, std::vector<float> coef, bool channel_shared, const float* slop_ptr);
 
 template <typename Dtype>
 void eltwise_max_prelu(const Dtype* din_a, const Dtype* din_b, Dtype* dout, const int num, \
-     int channel, int channel_size, std::vector<float> coef, bool channel_shared, float* slop_ptr);
+     int channel, int channel_size, std::vector<float> coef, bool channel_shared, const float* slop_ptr);
 
 
 template <>
 void eltwise_prod_relu(const float* din_a, const float* din_b, float* dout, const int num, \
-     int channel, int channel_size, std::vector<float> coef, bool channel_shared, float* slop_ptr) {
+     int channel, int channel_size, std::vector<float> coef, bool channel_shared, const float* slop_ptr) {
 
     int cnt = channel_size >> 3;
     int remain = channel_size & 7;
@@ -95,7 +95,7 @@ void eltwise_prod_relu(const float* din_a, const float* din_b, float* dout, cons
 }
 
 void eltwise_sum_relu(const float* din_a, const float* din_b, float* dout, const int num, \
-     int channel, int channel_size, std::vector<float> coef, bool channel_shared, float* slop_ptr) {
+     int channel, int channel_size, std::vector<float> coef, bool channel_shared, const float* slop_ptr) {
 
     int cnt = channel_size >> 3;
     int remain = channel_size & 7;
@@ -156,7 +156,7 @@ void eltwise_sum_relu(const float* din_a, const float* din_b, float* dout, const
 }
 
 void eltwise_max_relu(const float* din_a, const float* din_b, float* dout, const int num, \
-     int channel, int channel_size, std::vector<float> coef, bool channel_shared, float* slop_ptr) {
+     int channel, int channel_size, std::vector<float> coef, bool channel_shared, const float* slop_ptr) {
 
     int cnt = channel_size >> 3;
     int remain = channel_size & 7;
@@ -215,7 +215,7 @@ void eltwise_max_relu(const float* din_a, const float* din_b, float* dout, const
 
 //prelu
 void eltwise_prod_prelu(const float* din_a, const float* din_b, float* dout, const int num, \
-    int channel, int channel_size, std::vector<float> coeff, bool channel_shared, float* slop_ptr) {
+    int channel, int channel_size, std::vector<float> coeff, bool channel_shared, const float* slop_ptr) {
 
     int cnt = channel_size >> 3;
     int remain = channel_size & 7;
@@ -250,7 +250,7 @@ void eltwise_prod_prelu(const float* din_a, const float* din_b, float* dout, con
 
                 float32x4_t vout_sel0 = vbslq_f32(vmask0, vout0, vsum0);
                 float32x4_t vout_sel1 = vbslq_f32(vmask1, vout1, vsum1);
-            
+
                 a_ptr += 8;
                 b_ptr += 8;
 
@@ -259,7 +259,7 @@ void eltwise_prod_prelu(const float* din_a, const float* din_b, float* dout, con
 
                 out_ptr += 8;
             }
-    
+
     #else
             int loop_cnt = cnt;
             if (loop_cnt > 0) {
@@ -304,7 +304,7 @@ void eltwise_prod_prelu(const float* din_a, const float* din_b, float* dout, con
 }
 
 void eltwise_sum_prelu(const float* din_a, const float* din_b, float* dout, const int num, \
-    int channel, int channel_size, std::vector<float> coeff, bool channel_shared, float* slop_ptr) {
+    int channel, int channel_size, std::vector<float> coeff, bool channel_shared, const float* slop_ptr) {
 
     int cnt = channel_size >> 3;
     int remain = channel_size & 7;
@@ -339,7 +339,7 @@ void eltwise_sum_prelu(const float* din_a, const float* din_b, float* dout, cons
 
                 float32x4_t vout_sel0 = vbslq_f32(vmask0, vout0, vsum0);
                 float32x4_t vout_sel1 = vbslq_f32(vmask1, vout1, vsum1);
-            
+
                 a_ptr += 8;
                 b_ptr += 8;
 
@@ -348,7 +348,7 @@ void eltwise_sum_prelu(const float* din_a, const float* din_b, float* dout, cons
 
                 out_ptr += 8;
             }
-    
+
 #else
             int loop_cnt = cnt;
             if (loop_cnt > 0) {
@@ -393,7 +393,7 @@ void eltwise_sum_prelu(const float* din_a, const float* din_b, float* dout, cons
 }
 
 void eltwise_max_prelu(const float* din_a, const float* din_b, float* dout, const int num, \
-    int channel, int channel_size, std::vector<float> coeff, bool channel_shared, float* slop_ptr) {
+    int channel, int channel_size, std::vector<float> coeff, bool channel_shared, const float* slop_ptr) {
 
     int cnt = channel_size >> 3;
     int remain = channel_size & 7;
@@ -428,7 +428,7 @@ void eltwise_max_prelu(const float* din_a, const float* din_b, float* dout, cons
 
                 float32x4_t vout_sel0 = vbslq_f32(vmask0, vout0, vsum0);
                 float32x4_t vout_sel1 = vbslq_f32(vmask1, vout1, vsum1);
-            
+
                 a_ptr += 8;
                 b_ptr += 8;
 
@@ -437,7 +437,7 @@ void eltwise_max_prelu(const float* din_a, const float* din_b, float* dout, cons
 
                 out_ptr += 8;
             }
-    
+
 #else
             int loop_cnt = cnt;
             if (loop_cnt > 0) {
