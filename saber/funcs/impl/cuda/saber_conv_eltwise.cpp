@@ -27,7 +27,6 @@ SaberStatus SaberConvEltwise<NV, AK_FLOAT>::\
     _use_k1s1p0 = _use_k1s1p0 && (param.conv_param.stride_w == 1);
     _use_k1s1p0 = _use_k1s1p0 && (param.conv_param.bias()->valid_size()>0);
     _use_k1s1p0 = _use_k1s1p0 && (!param.conv_param.activation_param.has_active);
-    _use_k1s1p0 = _use_k1s1p0 && (param.eltwise_param.activation_param.active == Active_relu);
 
     if (_use_k1s1p0) {
         return SaberSuccess;

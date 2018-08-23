@@ -468,20 +468,20 @@ inline int align_up(int a, int b) {
     return (a % b != 0) ? (a - a % b + b) : a;
 }
 
-template <typename DataTensor>
+template <typename TargetType, typename TargetType_H, typename DataTensor>
 void conv_trans_weights(const std::vector<DataTensor *>& inputs,
     std::vector<DataTensor *>& outputs,
-    ConvParam<NV>& param, Context<NV> &ctx,
+    ConvParam<TargetType>& param, Context<TargetType> &ctx,
     bool in_place = false, DataTensor* weight_dev = nullptr) {
 
-    Tensor<NVHX86> trans_weights_host;
+    Tensor<TargetType_H> trans_weights_host;
     if (param.stride_h == 1 &&
     param.stride_w == 1 &&
     param.weight()->height() == 3 &&
     param.weight()->width() == 3 && param.group == 1) {
         //Update weights if need
         Shape weight_shape = param.weight()->shape();
-        Tensor<NVHX86> new_weight;
+        Tensor<TargetType_H> new_weight;
         new_weight.re_alloc(weight_shape, param.weight()->get_dtype());
         new_weight.copy_from(*(param.weight()));
         float *weight_data = (float *)new_weight.mutable_data();
@@ -506,7 +506,7 @@ void conv_trans_weights(const std::vector<DataTensor *>& inputs,
         }
     } else if (param.group == 1) {
         int weight_size = (param.weight()->shape()).count();
-        Tensor<NVHX86> weight_host;
+        Tensor<TargetType_H> weight_host;
         weight_host.re_alloc(param.weight()->shape(), param.weight()->get_dtype());
         weight_host.copy_from(*(param.weight()));
         const float *weight_data = (const float *)weight_host.data();
