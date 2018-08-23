@@ -249,7 +249,7 @@ class FluidParser:
 					if input_node_name in reshape_dict.keys():
 						shape = reshape_dict[input_node_name]
 					private_data['input_shape'] = shape
-                                        private_data['alias'] = arg
+					private_data['alias'] = arg
 					self.outs[input_node_name] = out_edges
 					self._AddProtoNode(input_node_name, source_op, helper, private_data)
 
@@ -605,9 +605,9 @@ class FluidParser:
 							input_name_of_mul = input_list_of_mul[0]
 							[w_np, w_sh] = helper.data_with_shape_by_param(mul_op, 'Y', \
 									False, None, 0, False)
-								private_data['np_flat_fc_weight'] = w_np
-								private_data['np_fc_outdim'] = w_sh[3]
-								lstm_flags[1] = True
+							private_data['np_flat_fc_weight'] = w_np
+							private_data['np_fc_outdim'] = w_sh[3]
+							lstm_flags[1] = True
 						else:
 							raise NameError('ERROR: Axis of LSTM_FC must be 1.')
 				if lstm_flags == [True, True]:
@@ -667,7 +667,7 @@ class FluidParser:
 							out_list[0].endswith('_gout'):
 								gout_node_name = out_list[0]
 								idx_gout_node_name = output_name_of_idxcast
-								self.outs[topk_node_name].rm(gout_node_name)
+								self.outs[topk_node_name].rm(idx_gout_node_name)
 								for node_to_del_name in [idx_gout_node_name, idxcast_node_name]:
 									self._RmProtoNode(node_to_del_name)
 									self._ClearEdges(node_to_del_name)
