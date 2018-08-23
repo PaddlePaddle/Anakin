@@ -318,12 +318,14 @@ void conv_im2col_gemm(Tensor<ARM, AK_FLOAT, NCHW>& tensor_out, Tensor<ARM, AK_FL
             const float* weights_group = weights + g * weights_size_per_group;
             const float* bias_group = bias + g * m;
             float* dB = (float*)work_space;
-            if (kernel_w == 1 && pad_w == 0) {
-                im2col1x1s2(din_group, chin_per_group, h_in, w_in, dB);
-            } else {
-                im2col(din_group, chin_per_group, h_in, w_in, kernel_h, kernel_w, \
+//            if (kernel_w == 1 && pad_w == 0) {
+//                im2col1x1s2(din_group, chin_per_group, h_in, w_in, dB);
+//            } else {
+//                im2col(din_group, chin_per_group, h_in, w_in, kernel_h, kernel_w, \
+//                    pad_h, pad_w, stride_h, stride_w, dila_h, dila_w, dB);
+//            }
+            im2col(din_group, chin_per_group, h_in, w_in, kernel_h, kernel_w, \
                     pad_h, pad_w, stride_h, stride_w, dila_h, dila_w, dB);
-            }
             float beta = 0.f;
             if (flag_bias) {
                 fill_bias(dout_group, bias_group, m, w_out * h_out);

@@ -15,7 +15,7 @@
 
 #ifndef ANAKIN_SABER_CORE_TARGET_TRAITS_H
 #define ANAKIN_SABER_CORE_TARGET_TRAITS_H
-#include "core/common.h"
+#include "saber/core/common.h"
 
 namespace anakin{
 

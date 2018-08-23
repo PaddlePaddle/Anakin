@@ -34,6 +34,10 @@ public:
 
     SaberDeconv2D(const ParamBase* param);
 
+    //virtual SaberStatus load_param(FILE* fp, const float* weights) override;
+
+    virtual SaberStatus load_param(std::istream& stream, const float* weights) override;
+
     ~SaberDeconv2D();
 
     virtual SaberStatus load_param(const ParamBase* param) override;
@@ -53,7 +57,7 @@ public:
     }
 
 private:
-    const DeConv2DParam* _param;
+    const Conv2DParam* _param;
     Sgemm _gemmer;
     bool _flag_relu{false};
     int _m;
