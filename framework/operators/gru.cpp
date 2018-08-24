@@ -51,9 +51,9 @@ Status GruHelper<Ttype, Dtype, Ptype>::InitParam() {
                               || formula == "gru_cudnn")) << "formula illegal";
 
     std::unordered_map<std::string, ActiveType> act_map = {
-            {"sigmoid_fluid", Active_sigmoid_fluid},
+            {"sigmoid_fluid", Active_sigmoid},
             {"relu_fluid", Active_relu},
-            {"tanh_fluid", Active_tanh_fluid},
+            {"tanh_fluid", Active_tanh},
             {"identity_fluid", Active_identity}
     };
     std::unordered_map<std::string, GruFormula > formula_map = {
