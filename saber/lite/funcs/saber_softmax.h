@@ -53,6 +53,7 @@ public:
 
 private:
     const SoftmaxParam* _param;
+    float* _work_space_data;
     int _axis_size{0};
     int _inner_num{0};
     int _outer_num{0};
