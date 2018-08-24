@@ -57,8 +57,7 @@ void getModels(std::string path, std::vector<std::string>& files) {
 
 #ifdef USE_CUDA
 TEST(NetTest, nv_net_execute_base_test) {
-    std::vector<std::string> models;
-    getModels(GLB_model_dir, models);
+    std::vector<std::string> models={GLB_model_dir};
 
     for (auto iter = models.begin(); iter < models.end(); iter++) {
                 LOG(WARNING) << "load anakin model file from " << *iter << " ...";
