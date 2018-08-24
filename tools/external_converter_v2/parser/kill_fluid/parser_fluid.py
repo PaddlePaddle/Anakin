@@ -667,7 +667,7 @@ class FluidParser:
 							out_list[0].endswith('_gout'):
 								gout_node_name = out_list[0]
 								idx_gout_node_name = output_name_of_idxcast
-								self.outs[topk_node_name].rm(idx_gout_node_name)
+								self.outs[topk_node_name].rm(idxcast_node_name)
 								for node_to_del_name in [idx_gout_node_name, idxcast_node_name]:
 									self._RmProtoNode(node_to_del_name)
 									self._ClearEdges(node_to_del_name)
