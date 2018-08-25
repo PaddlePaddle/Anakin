@@ -15,29 +15,29 @@ namespace saber {
 
 
 template<typename Dtype>
-inline Dtype InValidAct(Dtype a) {
+static inline Dtype InValidAct(Dtype a) {
     CHECK_EQ(0, 1) << "InValidAct";
 }
 
 template<typename Dtype>
-inline Dtype Sigmoid(const Dtype a) {
+static inline Dtype Sigmoid(const Dtype a) {
     return static_cast<Dtype>(1.0) / (static_cast<Dtype>(1.0) + exp(-a));
 }
 
 
 template<typename Dtype>
-inline Dtype Tanh(const Dtype a) {
+static inline Dtype Tanh(const Dtype a) {
     Dtype tmp = -2.0 * a;
     return (2.0 / (1.0 + exp(tmp))) - 1.0;
 }
 
 template<typename Dtype>
-inline Dtype Relu(const Dtype a) {
+static inline Dtype Relu(const Dtype a) {
     return a > static_cast<Dtype>(0.0) ? a : static_cast<Dtype>(0.0);
 }
 
 template<typename Dtype>
-inline Dtype Identity(const Dtype a) {
+static inline Dtype Identity(const Dtype a) {
     return a;
 }
 
@@ -147,13 +147,23 @@ struct ACTIVATION {
 };
 
 template<typename Dtype>
-inline typename ACTIVATION<Dtype>::Act Activate_inner(ActiveType type) {
+static inline typename ACTIVATION<Dtype>::Act Activate_inner(ActiveType type) {
     static typename ACTIVATION<Dtype>::Act vec[7] = {&InValidAct<Dtype>, &Sigmoid < Dtype >, &Relu < Dtype >,
                                                      &Tanh < Dtype >,
                                                      &InValidAct<Dtype>, &InValidAct<Dtype>,
                                                      &Identity < Dtype >
                                                     };
     return vec[type];
+}
+
+template<typename Dtype>
+static inline Dtype Activate_inner(Dtype value,ActiveType type) {
+    static typename ACTIVATION<Dtype>::Act vec[7] = {&InValidAct<Dtype>, &Sigmoid < Dtype >, &Relu < Dtype >,
+                                                     &Tanh < Dtype >,
+                                                     &InValidAct<Dtype>, &InValidAct<Dtype>,
+                                                     &Identity < Dtype >
+    };
+    return vec[type](value);
 }
 
 }
