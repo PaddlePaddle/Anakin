@@ -59,7 +59,7 @@ void conv_depthwise_3x3(const float* din, float* dout, \
                           int chin, int hin, int win, \
                           const float* weights, const float* bias, \
                           int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
-                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space) {
+                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, /*Sgemm& gemmer*/Context* ctx, void* work_space) {
 
     int w_in = win;
     int h_in = hin;
