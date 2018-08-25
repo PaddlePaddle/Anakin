@@ -96,7 +96,7 @@ void conv_depthwise_3x3(const float* din, float* dout, \
         }
     } else { //! stride = 2
         if (flag_relu) {
-            if(w_in > 4){
+            if(w_in > 7){
                 conv_depthwise_3x3s2p1_bias_relu(dout, din, weights, bias, flag_bias, \
                 num, ch_in, h_in, w_in, h_out, w_out);
             }else{
@@ -104,7 +104,7 @@ void conv_depthwise_3x3(const float* din, float* dout, \
                 num, ch_in, h_in, w_in, h_out, w_out);
             }
         } else {
-            if(w_in > 4){
+            if(w_in > 7){
                 conv_depthwise_3x3s2p1_bias(dout, din, weights, bias, flag_bias, \
                 num, ch_in, h_in, w_in, h_out, w_out);
             }else{
@@ -3088,6 +3088,465 @@ void conv_depthwise_3x3s1p1_bias(float* dout, const float* din, \
  */
 #ifdef __aarch64__
 //one line
+#if 1
+//w_in > 7
+void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
+    const float* weights, const float* bias, bool flag_bias, \
+    const int num, const int ch_in, const int h_in, const int w_in, \
+    const int h_out, const int w_out) {
+
+    int right_pad_idx[8] = {0, 2, 4, 6, 1, 3, 5, 7};
+    int out_pad_idx[4] = {0, 1, 2, 3};
+    int size_pad_bottom = h_out * 2 - h_in;
+
+    int cnt_col = (w_out >> 2) - 1;
+    int cnt_remain = (w_out % 4);
+    int size_right_remain = w_in - (7 + cnt_col * 8);
+
+    int size_right_pad = w_out * 2 - w_in;
+
+    uint32x4_t vmask_rp1 = vcgtq_s32(vdupq_n_s32(size_right_remain), vld1q_s32(right_pad_idx));//0 2 4 6
+    uint32x4_t vmask_rp2 = vcgtq_s32(vdupq_n_s32(size_right_remain), vld1q_s32(right_pad_idx + 4));//1 3 5 7
+    uint32x4_t wmask = vcgtq_s32(vdupq_n_s32(cnt_remain), vld1q_s32(out_pad_idx));//0 1 2 3
+   // printf("w_out %d, cnt_col: %d, remain: %d \n", w_out, cnt_col, size_right_remain);
+    //printf("mask1: %d, %d, %d, %d \n", vmask_rp1[0], vmask_rp1[1], vmask_rp1[2], vmask_rp1[3]);
+    //printf("mask2: %d, %d, %d, %d \n", vmask_rp2[0], vmask_rp2[1], vmask_rp2[2], vmask_rp2[3]);
+    //printf("wmask: %d, %d, %d, %d \n", wmask[0], wmask[1], wmask[2], wmask[3]);
+   // size_right_remain *= sizeof(float);
+
+    int size_in_channel = w_in * h_in;
+    int size_out_channel = w_out * h_out;
+
+    for (int n = 0; n < num; ++n) {
+        const float *din_batch = din + n * ch_in * size_in_channel;
+        float *dout_batch = dout + n * ch_in * size_out_channel;
+#pragma omp parallel for
+        for (int i = 0; i < ch_in; ++i) {
+            const float* din_channel = din_batch + i * size_in_channel;
+            float* dout_channel = dout_batch + i * size_out_channel;
+
+            const float *weight_ptr = weights + i * 9;
+            float32x4_t wr0 = vld1q_f32(weight_ptr);
+            float32x4_t wr1 = vld1q_f32(weight_ptr + 3);
+            float32x4_t wr2 = vld1q_f32(weight_ptr + 6);
+
+            float32x4_t vzero= vdupq_n_f32(0.f);
+
+            float32x4_t wbias;
+            if (flag_bias) {
+                wbias  = vdupq_n_f32(bias[i]);
+            } else {
+                wbias = vdupq_n_f32(0.f);
+            }
+
+            const float *dr0 = din_channel;
+            const float *dr1 = dr0 + w_in;
+            const float *dr2 = dr1 + w_in;
+
+            const float *din0_ptr = dr0;
+            const float *din1_ptr = dr1;
+            const float *din2_ptr = dr2;
+
+            float *doutr0 = dout_channel;
+            float *doutr0_ptr = doutr0;
+
+            //! top pad
+            if(1){
+               int cnt = cnt_col;
+
+               //printf("cnt_col: %d, remain: %d \n", cnt_col, size_right_remain);
+             //  printf("mask1: %d, %d, %d, %d \n", vmask_rp1[0], vmask_rp1[1], vmask_rp1[2], vmask_rp1[3]);
+             //  printf("mask2: %d, %d, %d, %d \n", vmask_rp2[0], vmask_rp2[1], vmask_rp2[2], vmask_rp2[3]);
+              // printf("wmask: %d, %d, %d, %d \n", wmask[0], wmask[1], wmask[2], wmask[3]);
+
+                asm volatile (
+                //top
+                // Load up 12 elements (3 vectors) from each of 8 sources.
+                "0:                                      \n"
+                "prfm pldl1keep, [%[inptr0]]             \n"
+                "prfm pldl1keep, [%[inptr1]]             \n"
+                "ld2  {v0.4s, v1.4s}, [%[inptr0]], #32    \n" //v0={0,2,4,6} v1={1,3,5,7}
+                "ld2  {v4.4s, v5.4s}, [%[inptr1]], #32    \n"
+                "and  v10.16b, %[vbias].16b, %[vbias].16b  \n" //v10 = vbias
+
+                "ext  v2.16b, %[vzero].16b, v1.16b, #12     \n" // v2 = {0,1,3,5}
+                "ext  v6.16b, %[vzero].16b, v5.16b, #12    \n" // v6 = {0,1,3,5}
+
+                "fmul v8.4s, v0.4s, %[w1].s[1]            \n" // v0 * w01
+                "fmul v9.4s, v1.4s, %[w1].s[2]            \n" // v1 * w02
+                "fmla v10.4s, v2.4s, %[w1].s[0]            \n" // v2 * w00
+
+                "sub %[inptr0], %[inptr0], #4            \n"
+                "sub %[inptr1], %[inptr1], #4             \n"
+
+                "fmla v8.4s, v4.4s, %[w2].s[1]            \n" // v0 * w01
+                "fmla v9.4s, v5.4s, %[w2].s[2]            \n" // v1 * w02
+                "fmla v10.4s, v6.4s, %[w2].s[0]            \n" // v2 * w00
+
+                "prfm pldl1keep, [%[inptr0]]             \n"
+                "prfm pldl1keep, [%[inptr1]]             \n"
+
+                "fadd v0.4s, v8.4s, v9.4s                  \n"
+                "fadd v0.4s, v0.4s, v10.4s                  \n"
+
+                "st1 {v0.4s}, [%[outptr]], #16              \n"
+                "cmp %[cnt], #1                             \n"
+                "blt 1f                                     \n"
+                //mid
+                "2:                                          \n"
+                "ld2  {v0.4s, v1.4s}, [%[inptr0]], #32    \n" //v0={0,2,4,6} v1={1,3,5,7}
+                "ld2  {v4.4s, v5.4s}, [%[inptr1]], #32    \n"
+                "and  v10.16b, %[vbias].16b, %[vbias].16b  \n" //v10 = vbias
+
+                "prfm pldl1keep, [%[inptr0]]             \n"
+                "prfm pldl1keep, [%[inptr1]]             \n"
+
+                "ld2  {v2.4s, v3.4s}, [%[inptr0]]      \n" //v2={8,10,12,14} v3={9,11,13,15}
+                "ext  v6.16b, v0.16b, v2.16b, #4     \n" // v6 = {2,4,6,8}
+
+                "fmul v8.4s, v0.4s, %[w1].s[0]            \n" // v0 * w00
+                "fmul v9.4s, v1.4s, %[w1].s[1]            \n" // v1 * w01
+                "fmla v10.4s, v6.4s, %[w1].s[2]            \n" // v6 * w02
+
+                "ld2  {v6.4s, v7.4s}, [%[inptr1]]      \n" //v2={8,10,12,14} v3={9,11,13,15}
+                "ext  v11.16b, v4.16b, v6.16b, #4     \n" // v6 = {2,4,6,8}
+
+                "fmla v8.4s, v4.4s, %[w2].s[0]            \n" // v0 * w01
+                "fmla v9.4s, v5.4s, %[w2].s[1]            \n" // v1 * w02
+                "fmla v10.4s, v11.4s, %[w2].s[2]            \n" // v2 * w00
+
+                "prfm pldl1keep, [%[inptr0]]             \n"
+                "prfm pldl1keep, [%[inptr1]]             \n"
+
+                "fadd v0.4s, v8.4s, v9.4s                  \n"
+                "fadd v0.4s, v0.4s, v10.4s                  \n"
+
+                "subs %[cnt], %[cnt], #1                    \n"
+
+                "st1 {v0.4s}, [%[outptr]], #16              \n"
+
+                "bne  2b                                    \n"
+
+                //right
+                "1:                                          \n"
+                "cmp %[remain], #1                           \n"
+                "blt 4f                                     \n"
+                "3:                                         \n"
+                "ld2  {v0.4s, v1.4s}, [%[inptr0]], #32    \n" //v0={0,2,4,6} v1={1,3,5,7}
+                "ld2  {v4.4s, v5.4s}, [%[inptr1]], #32    \n"
+                "and  v10.16b, %[vbias].16b, %[vbias].16b  \n" //v10 = vbias
+                "bif  v0.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+                "bif  v1.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+               // "bif  v10.16b, %[vzero].16b, %[wmask].16b    \n" //pipei
+                "ext  v2.16b, v0.16b, %[vzero].16b, #4     \n" // v6 = {2,4,6,8}
+                "bif  v4.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+
+
+                "fmul v8.4s, v0.4s, %[w1].s[0]            \n" // v0 * w01
+                "fmul v9.4s, v1.4s, %[w1].s[1]            \n" // v1 * w02
+                "fmla v10.4s, v2.4s, %[w1].s[2]            \n" // v2 * w00
+
+                "bif  v5.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+                "ext  v6.16b, v4.16b, %[vzero].16b, #4     \n" // v6 = {2,4,6,8}
+
+                "fmla v8.4s, v4.4s, %[w2].s[0]            \n" // v0 * w01
+                "fmla v9.4s, v5.4s, %[w2].s[1]            \n" // v1 * w02
+                "fmla v10.4s, v6.4s, %[w2].s[2]            \n" // v2 * w00
+
+                "fadd v0.4s, v8.4s, v9.4s                  \n"
+                "fadd v0.4s, v0.4s, v10.4s                  \n"
+                "bif  v0.16b, %[vzero].16b, %[wmask].16b    \n" //pipei
+
+                "st1 {v0.4s}, [%[outptr]], #16              \n"
+                "4:                                          \n"
+                : [inptr0] "+r"(din0_ptr), [inptr1] "+r"(din1_ptr), [outptr] "+r"(doutr0_ptr), \
+                  [vzero] "+w" (vzero), [w1] "+w" (wr1), [w2] "+w" (wr2), [cnt] "+r" (cnt), \
+                  [mask1] "+w" (vmask_rp1), [mask2] "+w" (vmask_rp2), [wmask] "+w" (wmask), [vbias] "+w" (wbias)
+                : [remain] "r" (cnt_remain)
+                : "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11"
+                );
+            }
+
+            dr0 = dr1;
+            dr1 = dr2;
+            dr2 = dr1 + w_in;
+            doutr0 = doutr0 + w_out;
+            //! mid
+            for (int j = h_out - size_pad_bottom - 1; j > 0; j--){
+                din0_ptr = dr0;
+                din1_ptr = dr1;
+                din2_ptr = dr2;
+
+                doutr0_ptr = doutr0;
+
+               int cnt = cnt_col;
+
+                asm volatile (
+                //top
+                // Load up 12 elements (3 vectors) from each of 8 sources.
+                "0:                                      \n"
+                "prfm pldl1keep, [%[inptr0]]             \n"
+                "prfm pldl1keep, [%[inptr1]]             \n"
+                "prfm pldl1keep, [%[inptr2]]             \n"
+                "ld2  {v0.4s, v1.4s}, [%[inptr0]], #32    \n" //v0={0,2,4,6} v1={1,3,5,7}
+                "ld2  {v4.4s, v5.4s}, [%[inptr1]], #32    \n"
+                "and  v10.16b, %[vbias].16b, %[vbias].16b  \n" //v10 = vbias
+
+                "ext  v2.16b, %[vzero].16b, v1.16b, #12     \n" // v2 = {0,1,3,5}
+                "ext  v6.16b, %[vzero].16b, v5.16b, #12    \n" // v6 = {0,1,3,5}
+
+                "fmul v8.4s, v0.4s, %[w0].s[1]            \n" // v0 * w01
+                "fmul v9.4s, v1.4s, %[w0].s[2]            \n" // v1 * w02
+                "fmla v10.4s, v2.4s, %[w0].s[0]            \n" // v2 * w00
+
+                "ld2  {v12.4s, v13.4s}, [%[inptr2]], #32    \n"
+
+                "sub %[inptr0], %[inptr0], #4            \n"
+                "sub %[inptr1], %[inptr1], #4             \n"
+
+                "fmla v8.4s, v4.4s, %[w1].s[1]            \n" // v0 * w01
+                "fmla v9.4s, v5.4s, %[w1].s[2]            \n" // v1 * w02
+                "fmla v10.4s, v6.4s, %[w1].s[0]            \n" // v2 * w00
+
+                "ext  v14.16b, %[vzero].16b, v13.16b, #12    \n" // v6 = {0,1,3,5}
+                "sub %[inptr2], %[inptr2], #4             \n"
+
+                "prfm pldl1keep, [%[inptr0]]             \n"
+
+                "fmla v8.4s, v12.4s, %[w2].s[1]            \n" // v0 * w01
+                "fmla v9.4s, v13.4s, %[w2].s[2]            \n" // v1 * w02
+                "fmla v10.4s, v14.4s, %[w2].s[0]            \n" // v2 * w00
+
+                "prfm pldl1keep, [%[inptr1]]             \n"
+                "prfm pldl1keep, [%[inptr2]]             \n"
+
+                "fadd v0.4s, v8.4s, v9.4s                  \n"
+                "fadd v0.4s, v0.4s, v10.4s                  \n"
+
+                "st1 {v0.4s}, [%[outptr]], #16              \n"
+                "cmp %[cnt], #1                             \n"
+                "blt 1f                                     \n"
+                //mid
+                "2:                                          \n"
+                "ld2  {v0.4s, v1.4s}, [%[inptr0]], #32    \n" //v0={0,2,4,6} v1={1,3,5,7}
+                "ld2  {v4.4s, v5.4s}, [%[inptr1]], #32    \n"
+                "and  v10.16b, %[vbias].16b, %[vbias].16b  \n" //v10 = vbias
+
+                "prfm pldl1keep, [%[inptr0]]             \n"
+                "prfm pldl1keep, [%[inptr1]]             \n"
+
+                "ld2  {v2.4s, v3.4s}, [%[inptr0]]      \n" //v2={8,10,12,14} v3={9,11,13,15}
+                "ld2  {v6.4s, v7.4s}, [%[inptr1]]      \n" //v2={8,10,12,14} v3={9,11,13,15}
+                "ld2  {v12.4s, v13.4s}, [%[inptr2]], #32    \n"
+                "ext  v11.16b, v0.16b, v2.16b, #4     \n" // v6 = {2,4,6,8}
+
+                "prfm pldl1keep, [%[inptr2]]             \n"
+
+                "fmul v8.4s, v0.4s, %[w0].s[0]            \n" // v0 * w00
+                "fmul v9.4s, v1.4s, %[w0].s[1]            \n" // v1 * w01
+                "fmla v10.4s, v11.4s, %[w0].s[2]            \n" // v6 * w02
+
+                "ext  v11.16b, v4.16b, v6.16b, #4     \n" // v6 = {2,4,6,8}
+                "ld2  {v14.4s, v15.4s}, [%[inptr2]]    \n"
+
+                "fmla v8.4s, v4.4s, %[w1].s[0]            \n" // v0 * w01
+                "fmla v9.4s, v5.4s, %[w1].s[1]            \n" // v1 * w02
+                "fmla v10.4s, v11.4s, %[w1].s[2]            \n" // v2 * w00
+
+                "ext  v11.16b, v12.16b, v14.16b, #4     \n" // v6 = {2,4,6,8}
+
+                "fmla v8.4s, v12.4s, %[w2].s[0]            \n" // v0 * w00
+                "fmla v9.4s, v13.4s, %[w2].s[1]            \n" // v1 * w01
+                "fmla v10.4s, v11.4s, %[w2].s[2]            \n" // v6 * w02
+
+                "prfm pldl1keep, [%[inptr0]]             \n"
+                "prfm pldl1keep, [%[inptr1]]             \n"
+                "prfm pldl1keep, [%[inptr2]]             \n"
+
+                "fadd v0.4s, v8.4s, v9.4s                  \n"
+                "fadd v0.4s, v0.4s, v10.4s                  \n"
+
+                "subs %[cnt], %[cnt], #1                    \n"
+
+                "st1 {v0.4s}, [%[outptr]], #16              \n"
+
+                "bne  2b                                    \n"
+
+                //right
+                "1:                                          \n"
+                "cmp %[remain], #1                           \n"
+                "blt 4f                                     \n"
+                "3:                                         \n"
+                "ld2  {v0.4s, v1.4s}, [%[inptr0]], #32    \n" //v0={0,2,4,6} v1={1,3,5,7}
+                "ld2  {v4.4s, v5.4s}, [%[inptr1]], #32    \n"
+                "and  v10.16b, %[vbias].16b, %[vbias].16b  \n" //v10 = vbias
+
+                "bif  v0.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+                "bif  v1.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+               // "bif  v10.16b, %[vzero].16b, %[wmask].16b    \n" //pipei
+                "ext  v2.16b, v0.16b, %[vzero].16b, #4     \n" // v6 = {2,4,6,8}
+                "bif  v4.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+
+                "ld2  {v12.4s, v13.4s}, [%[inptr2]], #32    \n"
+                "bif  v5.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+                "ext  v6.16b, v4.16b, %[vzero].16b, #4     \n" // v6 = {2,4,6,8}
+
+                "fmul v8.4s, v0.4s, %[w0].s[0]            \n" // v0 * w01
+                "fmul v9.4s, v1.4s, %[w0].s[1]            \n" // v1 * w02
+                "fmla v10.4s, v2.4s, %[w0].s[2]            \n" // v2 * w00
+
+                "bif  v12.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+                "bif  v13.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+
+                "fmla v8.4s, v4.4s, %[w1].s[0]            \n" // v0 * w01
+                "fmla v9.4s, v5.4s, %[w1].s[1]            \n" // v1 * w02
+                "fmla v10.4s, v6.4s, %[w1].s[2]            \n" // v2 * w00
+
+                "ext  v14.16b, v12.16b, %[vzero].16b, #4     \n" // v6 = {2,4,6,8}
+
+                "fmla v8.4s, v12.4s, %[w2].s[0]            \n" // v0 * w01
+                "fmla v9.4s, v13.4s, %[w2].s[1]            \n" // v1 * w02
+                "fmla v10.4s, v14.4s, %[w2].s[2]            \n" // v2 * w00
+
+                "fadd v0.4s, v8.4s, v9.4s                  \n"
+                "fadd v0.4s, v0.4s, v10.4s                  \n"
+                "bif  v0.16b, %[vzero].16b, %[wmask].16b    \n" //pipei
+
+                "st1 {v0.4s}, [%[outptr]], #16              \n"
+                "4:                                          \n"
+                : [inptr0] "+r"(din0_ptr), [inptr1] "+r"(din1_ptr), [inptr2] "+r"(din2_ptr), [outptr] "+r"(doutr0_ptr), \
+                  [vzero] "+w" (vzero), [w1] "+w" (wr1), [w2] "+w" (wr2), [cnt] "+r" (cnt), [w0] "+w" (wr0), \
+                  [mask1] "+w" (vmask_rp1), [mask2] "+w" (vmask_rp2), [wmask] "+w" (wmask), [vbias] "+w" (wbias)
+                : [remain] "r" (cnt_remain)
+                : "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "v12", "v13", "v14"
+                );
+                dr0 = dr2;
+                dr1 = dr0 + w_in;
+                dr2 = dr1 + w_in;
+                doutr0 = doutr0 + w_out;
+            }
+
+            if (size_pad_bottom){
+               int cnt = cnt_col;
+                din0_ptr = dr0;
+                din1_ptr = dr1;
+
+                doutr0_ptr = doutr0;
+
+                asm volatile (
+                //top
+                // Load up 12 elements (3 vectors) from each of 8 sources.
+                "0:                                      \n"
+                "prfm pldl1keep, [%[inptr0]]             \n"
+                "prfm pldl1keep, [%[inptr1]]             \n"
+                "ld2  {v0.4s, v1.4s}, [%[inptr0]], #32    \n" //v0={0,2,4,6} v1={1,3,5,7}
+                "ld2  {v4.4s, v5.4s}, [%[inptr1]], #32    \n"
+                "and  v10.16b, %[vbias].16b, %[vbias].16b  \n" //v10 = vbias
+
+                "ext  v2.16b, %[vzero].16b, v1.16b, #12     \n" // v2 = {0,1,3,5}
+                "ext  v6.16b, %[vzero].16b, v5.16b, #12    \n" // v6 = {0,1,3,5}
+
+                "fmul v8.4s, v0.4s, %[w0].s[1]            \n" // v0 * w01
+                "fmul v9.4s, v1.4s, %[w0].s[2]            \n" // v1 * w02
+                "fmla v10.4s, v2.4s, %[w0].s[0]            \n" // v2 * w00
+
+                "sub %[inptr0], %[inptr0], #4            \n"
+                "sub %[inptr1], %[inptr1], #4             \n"
+
+                "fmla v8.4s, v4.4s, %[w1].s[1]            \n" // v0 * w01
+                "fmla v9.4s, v5.4s, %[w1].s[2]            \n" // v1 * w02
+                "fmla v10.4s, v6.4s, %[w1].s[0]            \n" // v2 * w00
+
+                "prfm pldl1keep, [%[inptr0]]             \n"
+                "prfm pldl1keep, [%[inptr1]]             \n"
+
+                "fadd v0.4s, v8.4s, v9.4s                  \n"
+                "fadd v0.4s, v0.4s, v10.4s                  \n"
+
+                "st1 {v0.4s}, [%[outptr]], #16              \n"
+                "cmp %[cnt], #1                             \n"
+                "blt 1f                                     \n"
+                //mid
+                "2:                                          \n"
+                "ld2  {v0.4s, v1.4s}, [%[inptr0]], #32    \n" //v0={0,2,4,6} v1={1,3,5,7}
+                "ld2  {v4.4s, v5.4s}, [%[inptr1]], #32    \n"
+                "and  v10.16b, %[vbias].16b, %[vbias].16b  \n" //v10 = vbias
+
+                "prfm pldl1keep, [%[inptr0]]             \n"
+                "prfm pldl1keep, [%[inptr1]]             \n"
+
+                "ld2  {v2.4s, v3.4s}, [%[inptr0]]      \n" //v2={8,10,12,14} v3={9,11,13,15}
+                "ext  v6.16b, v0.16b, v2.16b, #4     \n" // v6 = {2,4,6,8}
+
+                "fmul v8.4s, v0.4s, %[w0].s[0]            \n" // v0 * w00
+                "fmul v9.4s, v1.4s, %[w0].s[1]            \n" // v1 * w01
+                "fmla v10.4s, v6.4s, %[w0].s[2]            \n" // v6 * w02
+
+                "ld2  {v6.4s, v7.4s}, [%[inptr1]]      \n" //v2={8,10,12,14} v3={9,11,13,15}
+                "ext  v11.16b, v4.16b, v6.16b, #4     \n" // v6 = {2,4,6,8}
+
+                "fmla v8.4s, v4.4s, %[w1].s[0]            \n" // v0 * w01
+                "fmla v9.4s, v5.4s, %[w1].s[1]            \n" // v1 * w02
+                "fmla v10.4s, v11.4s, %[w1].s[2]            \n" // v2 * w00
+
+                "prfm pldl1keep, [%[inptr0]]             \n"
+                "prfm pldl1keep, [%[inptr1]]             \n"
+
+                "fadd v0.4s, v8.4s, v9.4s                  \n"
+                "fadd v0.4s, v0.4s, v10.4s                  \n"
+
+                "subs %[cnt], %[cnt], #1                    \n"
+
+                "st1 {v0.4s}, [%[outptr]], #16              \n"
+
+                "bne  2b                                    \n"
+
+                //right
+                "1:                                          \n"
+                "cmp %[remain], #1                           \n"
+                "blt 4f                                     \n"
+                "3:                                         \n"
+                "ld2  {v0.4s, v1.4s}, [%[inptr0]], #32    \n" //v0={0,2,4,6} v1={1,3,5,7}
+                "ld2  {v4.4s, v5.4s}, [%[inptr1]], #32    \n"
+                "and  v10.16b, %[vbias].16b, %[vbias].16b  \n" //v10 = vbias
+                "bif  v0.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+                "bif  v1.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+               // "bif  v10.16b, %[vzero].16b, %[wmask].16b    \n" //pipei
+                "ext  v2.16b, v0.16b, %[vzero].16b, #4     \n" // v6 = {2,4,6,8}
+                "bif  v4.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+
+
+                "fmul v8.4s, v0.4s, %[w0].s[0]            \n" // v0 * w01
+                "fmul v9.4s, v1.4s, %[w0].s[1]            \n" // v1 * w02
+                "fmla v10.4s, v2.4s, %[w0].s[2]            \n" // v2 * w00
+
+                "bif  v5.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+                "ext  v6.16b, v4.16b, %[vzero].16b, #4     \n" // v6 = {2,4,6,8}
+
+                "fmla v8.4s, v4.4s, %[w1].s[0]            \n" // v0 * w01
+                "fmla v9.4s, v5.4s, %[w1].s[1]            \n" // v1 * w02
+                "fmla v10.4s, v6.4s, %[w1].s[2]            \n" // v2 * w00
+
+                "fadd v0.4s, v8.4s, v9.4s                  \n"
+                "fadd v0.4s, v0.4s, v10.4s                  \n"
+                "bif  v0.16b, %[vzero].16b, %[wmask].16b    \n" //pipei
+
+                "st1 {v0.4s}, [%[outptr]], #16              \n"
+                "4:                                          \n"
+                : [inptr0] "+r"(din0_ptr), [inptr1] "+r"(din1_ptr), [outptr] "+r"(doutr0_ptr), \
+                  [vzero] "+w" (vzero), [w0] "+w" (wr0), [w1] "+w" (wr1), [cnt] "+r" (cnt), \
+                  [mask1] "+w" (vmask_rp1), [mask2] "+w" (vmask_rp2), [wmask] "+w" (wmask), [vbias] "+w" (wbias)
+                : [remain] "r" (cnt_remain)
+                : "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11"
+                );
+            }
+
+        }
+    }
+
+
+}
+#else
 void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
     const float* weights, const float* bias, bool flag_bias, \
     const int num, const int ch_in, const int h_in, const int w_in, \
@@ -3155,9 +3614,9 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
 
             prefetch(din0_ptr);
             prefetch(din1_ptr);
-            // todo
-            float *doutr0_ptr = doutr0;
 
+            float *doutr0_ptr = doutr0;
+            // todo
             float32x4_t din0_1234 = vld1q_f32(din0_ptr);
             float32x4_t din1_1234 = vld1q_f32(din1_ptr);
 
@@ -3536,7 +3995,7 @@ void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
         }
     }
 }
-
+#endif
 #else
 
 void conv_depthwise_3x3s2p1_bias(float* dout, const float* din, \
@@ -6275,7 +6734,6 @@ void conv_depthwise_3x3s1p1_bias_relu(float* dout, const float* din, \
     }
 
 }
-
 #else
 
 void conv_depthwise_3x3s1p1_bias_relu(float* dout, const float* din, \
@@ -7070,6 +7528,476 @@ void conv_depthwise_3x3s1p1_bias_relu(float* dout, const float* din, \
  * \brief depthwise convolution kernel 3x3, stride 2, with reulu
  */
 #ifdef __aarch64__
+#if 1
+//w_in > 7
+void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
+    const float* weights, const float* bias, bool flag_bias, \
+    const int num, const int ch_in, const int h_in, const int w_in, \
+    const int h_out, const int w_out) {
+
+    int right_pad_idx[8] = {0, 2, 4, 6, 1, 3, 5, 7};
+    int out_pad_idx[4] = {0, 1, 2, 3};
+    int size_pad_bottom = h_out * 2 - h_in;
+
+    int cnt_col = (w_out >> 2) - 1;
+    int cnt_remain = (w_out % 4);
+    int size_right_remain = w_in - (7 + cnt_col * 8);
+
+    int size_right_pad = w_out * 2 - w_in;
+
+    uint32x4_t vmask_rp1 = vcgtq_s32(vdupq_n_s32(size_right_remain), vld1q_s32(right_pad_idx));//0 2 4 6
+    uint32x4_t vmask_rp2 = vcgtq_s32(vdupq_n_s32(size_right_remain), vld1q_s32(right_pad_idx + 4));//1 3 5 7
+    uint32x4_t wmask = vcgtq_s32(vdupq_n_s32(cnt_remain), vld1q_s32(out_pad_idx));//0 1 2 3
+   // printf("w_out %d, cnt_col: %d, remain: %d \n", w_out, cnt_col, size_right_remain);
+    //printf("mask1: %d, %d, %d, %d \n", vmask_rp1[0], vmask_rp1[1], vmask_rp1[2], vmask_rp1[3]);
+    //printf("mask2: %d, %d, %d, %d \n", vmask_rp2[0], vmask_rp2[1], vmask_rp2[2], vmask_rp2[3]);
+    //printf("wmask: %d, %d, %d, %d \n", wmask[0], wmask[1], wmask[2], wmask[3]);
+   // size_right_remain *= sizeof(float);
+
+    int size_in_channel = w_in * h_in;
+    int size_out_channel = w_out * h_out;
+
+    for (int n = 0; n < num; ++n) {
+        const float *din_batch = din + n * ch_in * size_in_channel;
+        float *dout_batch = dout + n * ch_in * size_out_channel;
+#pragma omp parallel for
+        for (int i = 0; i < ch_in; ++i) {
+            const float* din_channel = din_batch + i * size_in_channel;
+            float* dout_channel = dout_batch + i * size_out_channel;
+
+            const float *weight_ptr = weights + i * 9;
+            float32x4_t wr0 = vld1q_f32(weight_ptr);
+            float32x4_t wr1 = vld1q_f32(weight_ptr + 3);
+            float32x4_t wr2 = vld1q_f32(weight_ptr + 6);
+
+            float32x4_t vzero= vdupq_n_f32(0.f);
+
+            float32x4_t wbias;
+            if (flag_bias) {
+                wbias  = vdupq_n_f32(bias[i]);
+            } else {
+                wbias = vdupq_n_f32(0.f);
+            }
+
+            const float *dr0 = din_channel;
+            const float *dr1 = dr0 + w_in;
+            const float *dr2 = dr1 + w_in;
+
+            const float *din0_ptr = dr0;
+            const float *din1_ptr = dr1;
+            const float *din2_ptr = dr2;
+
+            float *doutr0 = dout_channel;
+            float *doutr0_ptr = doutr0;
+
+            //! top pad
+            if(1){
+               int cnt = cnt_col;
+
+               //printf("cnt_col: %d, remain: %d \n", cnt_col, size_right_remain);
+             //  printf("mask1: %d, %d, %d, %d \n", vmask_rp1[0], vmask_rp1[1], vmask_rp1[2], vmask_rp1[3]);
+             //  printf("mask2: %d, %d, %d, %d \n", vmask_rp2[0], vmask_rp2[1], vmask_rp2[2], vmask_rp2[3]);
+              // printf("wmask: %d, %d, %d, %d \n", wmask[0], wmask[1], wmask[2], wmask[3]);
+
+                asm volatile (
+                //top
+                // Load up 12 elements (3 vectors) from each of 8 sources.
+                "0:                                      \n"
+                "prfm pldl1keep, [%[inptr0]]             \n"
+                "prfm pldl1keep, [%[inptr1]]             \n"
+                "ld2  {v0.4s, v1.4s}, [%[inptr0]], #32    \n" //v0={0,2,4,6} v1={1,3,5,7}
+                "ld2  {v4.4s, v5.4s}, [%[inptr1]], #32    \n"
+                "and  v10.16b, %[vbias].16b, %[vbias].16b  \n" //v10 = vbias
+
+                "ext  v2.16b, %[vzero].16b, v1.16b, #12     \n" // v2 = {0,1,3,5}
+                "ext  v6.16b, %[vzero].16b, v5.16b, #12    \n" // v6 = {0,1,3,5}
+
+                "fmul v8.4s, v0.4s, %[w1].s[1]            \n" // v0 * w01
+                "fmul v9.4s, v1.4s, %[w1].s[2]            \n" // v1 * w02
+                "fmla v10.4s, v2.4s, %[w1].s[0]            \n" // v2 * w00
+
+                "sub %[inptr0], %[inptr0], #4            \n"
+                "sub %[inptr1], %[inptr1], #4             \n"
+
+                "fmla v8.4s, v4.4s, %[w2].s[1]            \n" // v0 * w01
+                "fmla v9.4s, v5.4s, %[w2].s[2]            \n" // v1 * w02
+                "fmla v10.4s, v6.4s, %[w2].s[0]            \n" // v2 * w00
+
+                "prfm pldl1keep, [%[inptr0]]             \n"
+                "prfm pldl1keep, [%[inptr1]]             \n"
+
+                "fadd v0.4s, v8.4s, v9.4s                  \n"
+                "fadd v0.4s, v0.4s, v10.4s                  \n"
+                "fmax  v0.4s, v0.4s, %[vzero].4s             \n"
+
+                "cmp %[cnt], #1                             \n"
+                "st1 {v0.4s}, [%[outptr]], #16              \n"
+                "blt 1f                                     \n"
+                //mid
+                "2:                                          \n"
+                "ld2  {v0.4s, v1.4s}, [%[inptr0]], #32    \n" //v0={0,2,4,6} v1={1,3,5,7}
+                "ld2  {v4.4s, v5.4s}, [%[inptr1]], #32    \n"
+                "and  v10.16b, %[vbias].16b, %[vbias].16b  \n" //v10 = vbias
+
+                "prfm pldl1keep, [%[inptr0]]             \n"
+                "prfm pldl1keep, [%[inptr1]]             \n"
+
+                "ld2  {v2.4s, v3.4s}, [%[inptr0]]      \n" //v2={8,10,12,14} v3={9,11,13,15}
+                "ext  v6.16b, v0.16b, v2.16b, #4     \n" // v6 = {2,4,6,8}
+
+                "fmul v8.4s, v0.4s, %[w1].s[0]            \n" // v0 * w00
+                "fmul v9.4s, v1.4s, %[w1].s[1]            \n" // v1 * w01
+                "fmla v10.4s, v6.4s, %[w1].s[2]            \n" // v6 * w02
+
+                "ld2  {v6.4s, v7.4s}, [%[inptr1]]      \n" //v2={8,10,12,14} v3={9,11,13,15}
+                "ext  v11.16b, v4.16b, v6.16b, #4     \n" // v6 = {2,4,6,8}
+
+                "fmla v8.4s, v4.4s, %[w2].s[0]            \n" // v0 * w01
+                "fmla v9.4s, v5.4s, %[w2].s[1]            \n" // v1 * w02
+                "fmla v10.4s, v11.4s, %[w2].s[2]            \n" // v2 * w00
+
+                "prfm pldl1keep, [%[inptr0]]             \n"
+                "prfm pldl1keep, [%[inptr1]]             \n"
+
+                "fadd v0.4s, v8.4s, v9.4s                  \n"
+                "fadd v0.4s, v0.4s, v10.4s                  \n"
+
+                "subs %[cnt], %[cnt], #1                    \n"
+
+                "fmax  v0.4s, v0.4s, %[vzero].4s             \n"
+                "st1 {v0.4s}, [%[outptr]], #16              \n"
+
+                "bne  2b                                    \n"
+
+                //right
+                "1:                                          \n"
+                "cmp %[remain], #1                           \n"
+                "blt 4f                                     \n"
+                "3:                                         \n"
+                "ld2  {v0.4s, v1.4s}, [%[inptr0]], #32    \n" //v0={0,2,4,6} v1={1,3,5,7}
+                "ld2  {v4.4s, v5.4s}, [%[inptr1]], #32    \n"
+                "and  v10.16b, %[vbias].16b, %[vbias].16b  \n" //v10 = vbias
+                "bif  v0.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+                "bif  v1.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+               // "bif  v10.16b, %[vzero].16b, %[wmask].16b    \n" //pipei
+                "ext  v2.16b, v0.16b, %[vzero].16b, #4     \n" // v6 = {2,4,6,8}
+                "bif  v4.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+
+
+                "fmul v8.4s, v0.4s, %[w1].s[0]            \n" // v0 * w01
+                "fmul v9.4s, v1.4s, %[w1].s[1]            \n" // v1 * w02
+                "fmla v10.4s, v2.4s, %[w1].s[2]            \n" // v2 * w00
+
+                "bif  v5.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+                "ext  v6.16b, v4.16b, %[vzero].16b, #4     \n" // v6 = {2,4,6,8}
+
+                "fmla v8.4s, v4.4s, %[w2].s[0]            \n" // v0 * w01
+                "fmla v9.4s, v5.4s, %[w2].s[1]            \n" // v1 * w02
+                "fmla v10.4s, v6.4s, %[w2].s[2]            \n" // v2 * w00
+
+                "fadd v0.4s, v8.4s, v9.4s                  \n"
+                "fadd v0.4s, v0.4s, v10.4s                  \n"
+                "fmax  v0.4s, v0.4s, %[vzero].4s             \n"
+                "bif  v0.16b, %[vzero].16b, %[wmask].16b    \n" //pipei
+
+                "st1 {v0.4s}, [%[outptr]], #16              \n"
+                "4:                                          \n"
+                : [inptr0] "+r"(din0_ptr), [inptr1] "+r"(din1_ptr), [outptr] "+r"(doutr0_ptr), \
+                  [vzero] "+w" (vzero), [w1] "+w" (wr1), [w2] "+w" (wr2), [cnt] "+r" (cnt), \
+                  [mask1] "+w" (vmask_rp1), [mask2] "+w" (vmask_rp2), [wmask] "+w" (wmask), [vbias] "+w" (wbias)
+                : [remain] "r" (cnt_remain)
+                : "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11"
+                );
+            }
+
+            dr0 = dr1;
+            dr1 = dr2;
+            dr2 = dr1 + w_in;
+            doutr0 = doutr0 + w_out;
+            //! mid
+            for (int j = h_out - size_pad_bottom - 1; j > 0; j--){
+                din0_ptr = dr0;
+                din1_ptr = dr1;
+                din2_ptr = dr2;
+
+                doutr0_ptr = doutr0;
+
+               int cnt = cnt_col;
+
+                asm volatile (
+                //top
+                // Load up 12 elements (3 vectors) from each of 8 sources.
+                "0:                                      \n"
+                "prfm pldl1keep, [%[inptr0]]             \n"
+                "prfm pldl1keep, [%[inptr1]]             \n"
+                "prfm pldl1keep, [%[inptr2]]             \n"
+                "ld2  {v0.4s, v1.4s}, [%[inptr0]], #32    \n" //v0={0,2,4,6} v1={1,3,5,7}
+                "ld2  {v4.4s, v5.4s}, [%[inptr1]], #32    \n"
+                "and  v10.16b, %[vbias].16b, %[vbias].16b  \n" //v10 = vbias
+
+                "ext  v2.16b, %[vzero].16b, v1.16b, #12     \n" // v2 = {0,1,3,5}
+                "ext  v6.16b, %[vzero].16b, v5.16b, #12    \n" // v6 = {0,1,3,5}
+
+                "fmul v8.4s, v0.4s, %[w0].s[1]            \n" // v0 * w01
+                "fmul v9.4s, v1.4s, %[w0].s[2]            \n" // v1 * w02
+                "fmla v10.4s, v2.4s, %[w0].s[0]            \n" // v2 * w00
+
+                "ld2  {v12.4s, v13.4s}, [%[inptr2]], #32    \n"
+
+                "sub %[inptr0], %[inptr0], #4            \n"
+                "sub %[inptr1], %[inptr1], #4             \n"
+
+                "fmla v8.4s, v4.4s, %[w1].s[1]            \n" // v0 * w01
+                "fmla v9.4s, v5.4s, %[w1].s[2]            \n" // v1 * w02
+                "fmla v10.4s, v6.4s, %[w1].s[0]            \n" // v2 * w00
+
+                "ext  v14.16b, %[vzero].16b, v13.16b, #12    \n" // v6 = {0,1,3,5}
+                "sub %[inptr2], %[inptr2], #4             \n"
+
+                "prfm pldl1keep, [%[inptr0]]             \n"
+
+                "fmla v8.4s, v12.4s, %[w2].s[1]            \n" // v0 * w01
+                "fmla v9.4s, v13.4s, %[w2].s[2]            \n" // v1 * w02
+                "fmla v10.4s, v14.4s, %[w2].s[0]            \n" // v2 * w00
+
+                "prfm pldl1keep, [%[inptr1]]             \n"
+                "prfm pldl1keep, [%[inptr2]]             \n"
+
+                "fadd v0.4s, v8.4s, v9.4s                  \n"
+                "fadd v0.4s, v0.4s, v10.4s                  \n"
+                "fmax  v0.4s, v0.4s, %[vzero].4s            \n"
+
+                "cmp %[cnt], #1                             \n"
+                "st1 {v0.4s}, [%[outptr]], #16              \n"
+                "blt 1f                                     \n"
+                //mid
+                "2:                                          \n"
+                "ld2  {v0.4s, v1.4s}, [%[inptr0]], #32    \n" //v0={0,2,4,6} v1={1,3,5,7}
+                "ld2  {v4.4s, v5.4s}, [%[inptr1]], #32    \n"
+                "and  v10.16b, %[vbias].16b, %[vbias].16b  \n" //v10 = vbias
+
+                "prfm pldl1keep, [%[inptr0]]             \n"
+                "prfm pldl1keep, [%[inptr1]]             \n"
+
+                "ld2  {v2.4s, v3.4s}, [%[inptr0]]      \n" //v2={8,10,12,14} v3={9,11,13,15}
+                "ld2  {v6.4s, v7.4s}, [%[inptr1]]      \n" //v2={8,10,12,14} v3={9,11,13,15}
+                "ld2  {v12.4s, v13.4s}, [%[inptr2]], #32    \n"
+                "ext  v11.16b, v0.16b, v2.16b, #4     \n" // v6 = {2,4,6,8}
+
+                "prfm pldl1keep, [%[inptr2]]             \n"
+
+                "fmul v8.4s, v0.4s, %[w0].s[0]            \n" // v0 * w00
+                "fmul v9.4s, v1.4s, %[w0].s[1]            \n" // v1 * w01
+                "fmla v10.4s, v11.4s, %[w0].s[2]            \n" // v6 * w02
+
+                "ext  v11.16b, v4.16b, v6.16b, #4     \n" // v6 = {2,4,6,8}
+                "ld2  {v14.4s, v15.4s}, [%[inptr2]]    \n"
+
+                "fmla v8.4s, v4.4s, %[w1].s[0]            \n" // v0 * w01
+                "fmla v9.4s, v5.4s, %[w1].s[1]            \n" // v1 * w02
+                "fmla v10.4s, v11.4s, %[w1].s[2]            \n" // v2 * w00
+
+                "ext  v11.16b, v12.16b, v14.16b, #4     \n" // v6 = {2,4,6,8}
+
+                "fmla v8.4s, v12.4s, %[w2].s[0]            \n" // v0 * w00
+                "fmla v9.4s, v13.4s, %[w2].s[1]            \n" // v1 * w01
+                "fmla v10.4s, v11.4s, %[w2].s[2]            \n" // v6 * w02
+
+                "prfm pldl1keep, [%[inptr0]]             \n"
+                "prfm pldl1keep, [%[inptr1]]             \n"
+                "prfm pldl1keep, [%[inptr2]]             \n"
+
+                "fadd v0.4s, v8.4s, v9.4s                  \n"
+                "fadd v0.4s, v0.4s, v10.4s                  \n"
+
+                "subs %[cnt], %[cnt], #1                    \n"
+                "fmax  v0.4s, v0.4s, %[vzero].4s            \n"
+
+                "st1 {v0.4s}, [%[outptr]], #16              \n"
+
+                "bne  2b                                    \n"
+
+                //right
+                "1:                                          \n"
+                "cmp %[remain], #1                           \n"
+                "blt 4f                                     \n"
+                "3:                                         \n"
+                "ld2  {v0.4s, v1.4s}, [%[inptr0]], #32    \n" //v0={0,2,4,6} v1={1,3,5,7}
+                "ld2  {v4.4s, v5.4s}, [%[inptr1]], #32    \n"
+                "and  v10.16b, %[vbias].16b, %[vbias].16b  \n" //v10 = vbias
+
+                "bif  v0.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+                "bif  v1.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+               // "bif  v10.16b, %[vzero].16b, %[wmask].16b    \n" //pipei
+                "ext  v2.16b, v0.16b, %[vzero].16b, #4     \n" // v6 = {2,4,6,8}
+                "bif  v4.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+
+                "ld2  {v12.4s, v13.4s}, [%[inptr2]], #32    \n"
+                "bif  v5.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+                "ext  v6.16b, v4.16b, %[vzero].16b, #4     \n" // v6 = {2,4,6,8}
+
+                "fmul v8.4s, v0.4s, %[w0].s[0]            \n" // v0 * w01
+                "fmul v9.4s, v1.4s, %[w0].s[1]            \n" // v1 * w02
+                "fmla v10.4s, v2.4s, %[w0].s[2]            \n" // v2 * w00
+
+                "bif  v12.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+                "bif  v13.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+
+                "fmla v8.4s, v4.4s, %[w1].s[0]            \n" // v0 * w01
+                "fmla v9.4s, v5.4s, %[w1].s[1]            \n" // v1 * w02
+                "fmla v10.4s, v6.4s, %[w1].s[2]            \n" // v2 * w00
+
+                "ext  v14.16b, v12.16b, %[vzero].16b, #4     \n" // v6 = {2,4,6,8}
+
+                "fmla v8.4s, v12.4s, %[w2].s[0]            \n" // v0 * w01
+                "fmla v9.4s, v13.4s, %[w2].s[1]            \n" // v1 * w02
+                "fmla v10.4s, v14.4s, %[w2].s[2]            \n" // v2 * w00
+
+                "fadd v0.4s, v8.4s, v9.4s                  \n"
+                "fadd v0.4s, v0.4s, v10.4s                  \n"
+                "fmax  v0.4s, v0.4s, %[vzero].4s             \n"
+
+                "bif  v0.16b, %[vzero].16b, %[wmask].16b    \n" //pipei
+
+                "st1 {v0.4s}, [%[outptr]], #16              \n"
+                "4:                                          \n"
+                : [inptr0] "+r"(din0_ptr), [inptr1] "+r"(din1_ptr), [inptr2] "+r"(din2_ptr), [outptr] "+r"(doutr0_ptr), \
+                  [vzero] "+w" (vzero), [w1] "+w" (wr1), [w2] "+w" (wr2), [cnt] "+r" (cnt), [w0] "+w" (wr0), \
+                  [mask1] "+w" (vmask_rp1), [mask2] "+w" (vmask_rp2), [wmask] "+w" (wmask), [vbias] "+w" (wbias)
+                : [remain] "r" (cnt_remain)
+                : "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "v12", "v13", "v14"
+                );
+                dr0 = dr2;
+                dr1 = dr0 + w_in;
+                dr2 = dr1 + w_in;
+                doutr0 = doutr0 + w_out;
+            }
+
+            if (size_pad_bottom){
+               int cnt = cnt_col;
+                din0_ptr = dr0;
+                din1_ptr = dr1;
+
+                doutr0_ptr = doutr0;
+
+                asm volatile (
+                //top
+                // Load up 12 elements (3 vectors) from each of 8 sources.
+                "0:                                      \n"
+                "prfm pldl1keep, [%[inptr0]]             \n"
+                "prfm pldl1keep, [%[inptr1]]             \n"
+                "ld2  {v0.4s, v1.4s}, [%[inptr0]], #32    \n" //v0={0,2,4,6} v1={1,3,5,7}
+                "ld2  {v4.4s, v5.4s}, [%[inptr1]], #32    \n"
+                "and  v10.16b, %[vbias].16b, %[vbias].16b  \n" //v10 = vbias
+
+                "ext  v2.16b, %[vzero].16b, v1.16b, #12     \n" // v2 = {0,1,3,5}
+                "ext  v6.16b, %[vzero].16b, v5.16b, #12    \n" // v6 = {0,1,3,5}
+
+                "fmul v8.4s, v0.4s, %[w0].s[1]            \n" // v0 * w01
+                "fmul v9.4s, v1.4s, %[w0].s[2]            \n" // v1 * w02
+                "fmla v10.4s, v2.4s, %[w0].s[0]            \n" // v2 * w00
+
+                "sub %[inptr0], %[inptr0], #4            \n"
+                "sub %[inptr1], %[inptr1], #4             \n"
+
+                "fmla v8.4s, v4.4s, %[w1].s[1]            \n" // v0 * w01
+                "fmla v9.4s, v5.4s, %[w1].s[2]            \n" // v1 * w02
+                "fmla v10.4s, v6.4s, %[w1].s[0]            \n" // v2 * w00
+
+                "prfm pldl1keep, [%[inptr0]]             \n"
+                "prfm pldl1keep, [%[inptr1]]             \n"
+
+                "fadd v0.4s, v8.4s, v9.4s                  \n"
+                "fadd v0.4s, v0.4s, v10.4s                  \n"
+
+                "fmax  v0.4s, v0.4s, %[vzero].4s             \n"
+
+                "cmp %[cnt], #1                             \n"
+                "st1 {v0.4s}, [%[outptr]], #16              \n"
+                "blt 1f                                     \n"
+                //mid
+                "2:                                          \n"
+                "ld2  {v0.4s, v1.4s}, [%[inptr0]], #32    \n" //v0={0,2,4,6} v1={1,3,5,7}
+                "ld2  {v4.4s, v5.4s}, [%[inptr1]], #32    \n"
+                "and  v10.16b, %[vbias].16b, %[vbias].16b  \n" //v10 = vbias
+
+                "prfm pldl1keep, [%[inptr0]]             \n"
+                "prfm pldl1keep, [%[inptr1]]             \n"
+
+                "ld2  {v2.4s, v3.4s}, [%[inptr0]]      \n" //v2={8,10,12,14} v3={9,11,13,15}
+                "ext  v6.16b, v0.16b, v2.16b, #4     \n" // v6 = {2,4,6,8}
+
+                "fmul v8.4s, v0.4s, %[w0].s[0]            \n" // v0 * w00
+                "fmul v9.4s, v1.4s, %[w0].s[1]            \n" // v1 * w01
+                "fmla v10.4s, v6.4s, %[w0].s[2]            \n" // v6 * w02
+
+                "ld2  {v6.4s, v7.4s}, [%[inptr1]]      \n" //v2={8,10,12,14} v3={9,11,13,15}
+                "ext  v11.16b, v4.16b, v6.16b, #4     \n" // v6 = {2,4,6,8}
+
+                "fmla v8.4s, v4.4s, %[w1].s[0]            \n" // v0 * w01
+                "fmla v9.4s, v5.4s, %[w1].s[1]            \n" // v1 * w02
+                "fmla v10.4s, v11.4s, %[w1].s[2]            \n" // v2 * w00
+
+                "prfm pldl1keep, [%[inptr0]]             \n"
+                "prfm pldl1keep, [%[inptr1]]             \n"
+
+                "fadd v0.4s, v8.4s, v9.4s                  \n"
+                "fadd v0.4s, v0.4s, v10.4s                  \n"
+
+                "subs %[cnt], %[cnt], #1                    \n"
+                "fmax  v0.4s, v0.4s, %[vzero].4s             \n"
+
+                "st1 {v0.4s}, [%[outptr]], #16              \n"
+
+                "bne  2b                                    \n"
+
+                //right
+                "1:                                          \n"
+                "cmp %[remain], #1                           \n"
+                "blt 4f                                     \n"
+                "3:                                         \n"
+                "ld2  {v0.4s, v1.4s}, [%[inptr0]], #32    \n" //v0={0,2,4,6} v1={1,3,5,7}
+                "ld2  {v4.4s, v5.4s}, [%[inptr1]], #32    \n"
+                "and  v10.16b, %[vbias].16b, %[vbias].16b  \n" //v10 = vbias
+                "bif  v0.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+                "bif  v1.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+               // "bif  v10.16b, %[vzero].16b, %[wmask].16b    \n" //pipei
+                "ext  v2.16b, v0.16b, %[vzero].16b, #4     \n" // v6 = {2,4,6,8}
+                "bif  v4.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+
+
+                "fmul v8.4s, v0.4s, %[w0].s[0]            \n" // v0 * w01
+                "fmul v9.4s, v1.4s, %[w0].s[1]            \n" // v1 * w02
+                "fmla v10.4s, v2.4s, %[w0].s[2]            \n" // v2 * w00
+
+                "bif  v5.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+                "ext  v6.16b, v4.16b, %[vzero].16b, #4     \n" // v6 = {2,4,6,8}
+
+                "fmla v8.4s, v4.4s, %[w1].s[0]            \n" // v0 * w01
+                "fmla v9.4s, v5.4s, %[w1].s[1]            \n" // v1 * w02
+                "fmla v10.4s, v6.4s, %[w1].s[2]            \n" // v2 * w00
+
+                "fadd v0.4s, v8.4s, v9.4s                  \n"
+                "fadd v0.4s, v0.4s, v10.4s                  \n"
+                "fmax  v0.4s, v0.4s, %[vzero].4s             \n"
+                "bif  v0.16b, %[vzero].16b, %[wmask].16b    \n" //pipei
+
+                "st1 {v0.4s}, [%[outptr]], #16              \n"
+                "4:                                          \n"
+                : [inptr0] "+r"(din0_ptr), [inptr1] "+r"(din1_ptr), [outptr] "+r"(doutr0_ptr), \
+                  [vzero] "+w" (vzero), [w0] "+w" (wr0), [w1] "+w" (wr1), [cnt] "+r" (cnt), \
+                  [mask1] "+w" (vmask_rp1), [mask2] "+w" (vmask_rp2), [wmask] "+w" (wmask), [vbias] "+w" (wbias)
+                : [remain] "r" (cnt_remain)
+                : "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11"
+                );
+            }
+
+        }
+    }
+
+
+}
+#else
 void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
     const float* weights, const float* bias, bool flag_bias, \
     const int num, const int ch_in, const int h_in, const int w_in, \
@@ -7529,7 +8457,7 @@ void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
         }
     }
 }
-
+#endif
 #else
 
 void conv_depthwise_3x3s2p1_bias_relu(float* dout, const float* din, \
@@ -8881,6 +9809,232 @@ void conv_depthwise_3x3s1p1_bias_s(float* dout, const float* din, \
  * \brief depthwise convolution kernel 3x3, stride 2, width <= 4
  */
 #ifdef __aarch64__
+#if 1  //w <= 7
+void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
+    const float* weights, const float* bias, bool flag_bias, \
+    const int num, const int ch_in, const int h_in, const int w_in, \
+    const int h_out, const int w_out) {
+
+    int right_pad_idx[8] = {0, 2, 4, 6, 1, 3, 5, 7};
+    int out_pad_idx[4] = {0, 1, 2, 3};
+    int size_pad_bottom = h_out * 2 - h_in;
+
+    int size_right_remain = w_in;
+
+    int size_right_pad = w_out * 2 - w_in;
+
+    int cnt_remain = w_out;
+
+    uint32x4_t vmask_rp1 = vcgtq_s32(vdupq_n_s32(size_right_remain), vld1q_s32(right_pad_idx));//0 2 4 6
+    uint32x4_t vmask_rp2 = vcgtq_s32(vdupq_n_s32(size_right_remain), vld1q_s32(right_pad_idx + 4));//1 3 5 7
+    uint32x4_t wmask = vcgtq_s32(vdupq_n_s32(cnt_remain), vld1q_s32(out_pad_idx));//0 1 2 3
+    //printf("w_in %d, remain: %d \n", w_in, size_right_remain);
+   // printf("mask1: %d, %d, %d, %d \n", vmask_rp1[0], vmask_rp1[1], vmask_rp1[2], vmask_rp1[3]);
+    //printf("mask2: %d, %d, %d, %d \n", vmask_rp2[0], vmask_rp2[1], vmask_rp2[2], vmask_rp2[3]);
+    //printf("wmask: %d, %d, %d, %d \n", wmask[0], wmask[1], wmask[2], wmask[3]);
+   // size_right_remain *= sizeof(float);
+
+    int size_in_channel = w_in * h_in;
+    int size_out_channel = w_out * h_out;
+
+    for (int n = 0; n < num; ++n) {
+        const float *din_batch = din + n * ch_in * size_in_channel;
+        float *dout_batch = dout + n * ch_in * size_out_channel;
+#pragma omp parallel for
+        for (int i = 0; i < ch_in; ++i) {
+            const float* din_channel = din_batch + i * size_in_channel;
+            float* dout_channel = dout_batch + i * size_out_channel;
+
+            const float *weight_ptr = weights + i * 9;
+            float32x4_t wr0 = vld1q_f32(weight_ptr);
+            float32x4_t wr1 = vld1q_f32(weight_ptr + 3);
+            float32x4_t wr2 = vld1q_f32(weight_ptr + 6);
+
+            float32x4_t vzero= vdupq_n_f32(0.f);
+
+            float32x4_t wbias;
+            if (flag_bias) {
+                wbias  = vdupq_n_f32(bias[i]);
+            } else {
+                wbias = vdupq_n_f32(0.f);
+            }
+
+            const float *dr0 = din_channel;
+            const float *dr1 = dr0 + w_in;
+            const float *dr2 = dr1 + w_in;
+
+            const float *din0_ptr = dr0;
+            const float *din1_ptr = dr1;
+            const float *din2_ptr = dr2;
+
+            float *doutr0 = dout_channel;
+            float *doutr0_ptr = doutr0;
+
+            //! top pad
+            if(1){
+               //printf("cnt_col: %d, remain: %d \n", cnt_col, size_right_remain);
+             //  printf("mask1: %d, %d, %d, %d \n", vmask_rp1[0], vmask_rp1[1], vmask_rp1[2], vmask_rp1[3]);
+             //  printf("mask2: %d, %d, %d, %d \n", vmask_rp2[0], vmask_rp2[1], vmask_rp2[2], vmask_rp2[3]);
+              // printf("wmask: %d, %d, %d, %d \n", wmask[0], wmask[1], wmask[2], wmask[3]);
+
+                asm volatile (
+                //top
+                // Load up 12 elements (3 vectors) from each of 8 sources.
+                "0:                                      \n"
+                "ld2  {v0.4s, v1.4s}, [%[inptr0]], #32    \n" //v0={0,2,4,6} v1={1,3,5,7}
+                "ld2  {v4.4s, v5.4s}, [%[inptr1]], #32    \n"
+                "and  v10.16b, %[vbias].16b, %[vbias].16b  \n" //v10 = vbias
+                "bif  v0.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+                "bif  v1.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+               // "bif  v10.16b, %[vzero].16b, %[wmask].16b    \n" //pipei
+                "ext  v2.16b, %[vzero].16b, v1.16b, #12     \n" // v6 = {0, 1, 3, 5}
+                "bif  v4.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+
+
+                "fmul v8.4s, v0.4s, %[w1].s[1]            \n" // v0 * w01
+                "fmul v9.4s, v1.4s, %[w1].s[2]            \n" // v1 * w02
+                "fmla v10.4s, v2.4s, %[w1].s[0]            \n" // v2 * w00
+
+                "bif  v5.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+                "ext  v6.16b, %[vzero].16b, v5.16b, #12     \n" // v6 = {2,4,6,8}
+
+                "fmla v8.4s, v4.4s, %[w2].s[1]            \n" // v0 * w01
+                "fmla v9.4s, v5.4s, %[w2].s[2]            \n" // v1 * w02
+                "fmla v10.4s, v6.4s, %[w2].s[0]            \n" // v2 * w00
+
+                "fadd v0.4s, v8.4s, v9.4s                  \n"
+                "fadd v0.4s, v0.4s, v10.4s                  \n"
+              //  "fmax  v0.4s, v0.4s, %[vzero].4s             \n"
+                "bif  v0.16b, %[vzero].16b, %[wmask].16b    \n" //pipei
+
+                "st1 {v0.4s}, [%[outptr]], #16              \n"
+                : [inptr0] "+r"(din0_ptr), [inptr1] "+r"(din1_ptr), [outptr] "+r"(doutr0_ptr), \
+                  [vzero] "+w" (vzero), [w1] "+w" (wr1), [w2] "+w" (wr2), \
+                  [mask1] "+w" (vmask_rp1), [mask2] "+w" (vmask_rp2), [wmask] "+w" (wmask), [vbias] "+w" (wbias)
+                :
+                : "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11"
+                );
+            }
+
+            dr0 = dr1;
+            dr1 = dr2;
+            dr2 = dr1 + w_in;
+            doutr0 = doutr0 + w_out;
+            //! mid
+            for (int j = h_out - size_pad_bottom - 1; j > 0; j--){
+                din0_ptr = dr0;
+                din1_ptr = dr1;
+                din2_ptr = dr2;
+
+                doutr0_ptr = doutr0;
+
+
+                asm volatile (
+                //top
+                // Load up 12 elements (3 vectors) from each of 8 sources.
+                "0:                                      \n"
+                "ld2  {v0.4s, v1.4s}, [%[inptr0]], #32    \n" //v0={0,2,4,6} v1={1,3,5,7}
+                "ld2  {v4.4s, v5.4s}, [%[inptr1]], #32    \n"
+                "and  v10.16b, %[vbias].16b, %[vbias].16b  \n" //v10 = vbias
+
+                "bif  v0.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+                "bif  v1.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+               // "bif  v10.16b, %[vzero].16b, %[wmask].16b    \n" //pipei
+                "ext  v2.16b, %[vzero].16b, v1.16b, #12     \n" // v6 = {0,1,3,5}
+                "bif  v4.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+
+                "ld2  {v12.4s, v13.4s}, [%[inptr2]], #32    \n"
+                "bif  v5.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+                "ext  v6.16b, %[vzero].16b, v5.16b, #12     \n" // v6 = {2,4,6,8}
+
+                "fmul v8.4s, v0.4s, %[w0].s[1]            \n" // v0 * w01
+                "fmul v9.4s, v1.4s, %[w0].s[2]            \n" // v1 * w02
+                "fmla v10.4s, v2.4s, %[w0].s[0]            \n" // v2 * w00
+
+                "bif  v12.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+                "bif  v13.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+
+                "fmla v8.4s, v4.4s, %[w1].s[1]            \n" // v0 * w01
+                "fmla v9.4s, v5.4s, %[w1].s[2]            \n" // v1 * w02
+                "fmla v10.4s, v6.4s, %[w1].s[0]            \n" // v2 * w00
+
+                "ext  v14.16b, %[vzero].16b, v13.16b, #12     \n" // v6 = {0,1,3,5}
+
+                "fmla v8.4s, v12.4s, %[w2].s[1]            \n" // v0 * w01
+                "fmla v9.4s, v13.4s, %[w2].s[2]            \n" // v1 * w02
+                "fmla v10.4s, v14.4s, %[w2].s[0]            \n" // v2 * w00
+
+                "fadd v0.4s, v8.4s, v9.4s                  \n"
+                "fadd v0.4s, v0.4s, v10.4s                  \n"
+               // "fmax  v0.4s, v0.4s, %[vzero].4s             \n"
+
+                "bif  v0.16b, %[vzero].16b, %[wmask].16b    \n" //pipei
+
+                "st1 {v0.4s}, [%[outptr]], #16              \n"
+                : [inptr0] "+r"(din0_ptr), [inptr1] "+r"(din1_ptr), [inptr2] "+r"(din2_ptr), [outptr] "+r"(doutr0_ptr), \
+                  [vzero] "+w" (vzero), [w1] "+w" (wr1), [w2] "+w" (wr2), [w0] "+w" (wr0), \
+                  [mask1] "+w" (vmask_rp1), [mask2] "+w" (vmask_rp2), [wmask] "+w" (wmask), [vbias] "+w" (wbias)
+                :
+                : "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "v12", "v13", "v14"
+                );
+                dr0 = dr2;
+                dr1 = dr0 + w_in;
+                dr2 = dr1 + w_in;
+                doutr0 = doutr0 + w_out;
+            }
+
+            if (size_pad_bottom){
+                din0_ptr = dr0;
+                din1_ptr = dr1;
+
+                doutr0_ptr = doutr0;
+
+                asm volatile (
+                //top
+                // Load up 12 elements (3 vectors) from each of 8 sources.
+                "0:                                      \n"
+                "ld2  {v0.4s, v1.4s}, [%[inptr0]], #32    \n" //v0={0,2,4,6} v1={1,3,5,7}
+                "ld2  {v4.4s, v5.4s}, [%[inptr1]], #32    \n"
+                "and  v10.16b, %[vbias].16b, %[vbias].16b  \n" //v10 = vbias
+                "bif  v0.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+                "bif  v1.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+               // "bif  v10.16b, %[vzero].16b, %[wmask].16b    \n" //pipei
+                "ext  v2.16b, %[vzero].16b, v1.16b, #12    \n" // v6 = {2,4,6,8}
+                "bif  v4.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+
+
+                "fmul v8.4s, v0.4s, %[w0].s[0]            \n" // v0 * w01
+                "fmul v9.4s, v1.4s, %[w0].s[1]            \n" // v1 * w02
+                "fmla v10.4s, v2.4s, %[w0].s[2]            \n" // v2 * w00
+
+                "bif  v5.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+                "ext  v6.16b, %[vzero].16b, v5.16b, #12     \n" // v6 = {2,4,6,8}
+
+                "fmla v8.4s, v4.4s, %[w1].s[0]            \n" // v0 * w01
+                "fmla v9.4s, v5.4s, %[w1].s[1]            \n" // v1 * w02
+                "fmla v10.4s, v6.4s, %[w1].s[2]            \n" // v2 * w00
+
+                "fadd v0.4s, v8.4s, v9.4s                  \n"
+                "fadd v0.4s, v0.4s, v10.4s                  \n"
+             //   "fmax  v0.4s, v0.4s, %[vzero].4s             \n"
+                "bif  v0.16b, %[vzero].16b, %[wmask].16b    \n" //pipei
+
+                "st1 {v0.4s}, [%[outptr]], #16              \n"
+                "4:                                          \n"
+                : [inptr0] "+r"(din0_ptr), [inptr1] "+r"(din1_ptr), [outptr] "+r"(doutr0_ptr), \
+                  [vzero] "+w" (vzero), [w0] "+w" (wr0), [w1] "+w" (wr1), \
+                  [mask1] "+w" (vmask_rp1), [mask2] "+w" (vmask_rp2), [wmask] "+w" (wmask), [vbias] "+w" (wbias)
+                : [remain] "r" (cnt_remain)
+                : "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11"
+                );
+            }
+
+        }
+    }
+
+
+}
+#else
 void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
     const float* weights, const float* bias, bool flag_bias, \
     const int num, const int ch_in, const int h_in, const int w_in, \
@@ -9144,6 +10298,7 @@ void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
         }
     }
 }
+#endif
 #else
 void conv_depthwise_3x3s2p1_bias_s(float* dout, const float* din, \
     const float* weights, const float* bias, bool flag_bias, \
@@ -9908,7 +11063,6 @@ void conv_depthwise_3x3s1p1_bias_s_relu(float* dout, const float* din, \
 }
 
 #else
-
 void conv_depthwise_3x3s1p1_bias_s_relu(float* dout, const float* din, \
     const float* weights, const float* bias, bool flag_bias, \
     const int num, const int ch_in, const int h_in, const int w_in, \
@@ -10279,6 +11433,232 @@ void conv_depthwise_3x3s1p1_bias_s_relu(float* dout, const float* din, \
  * \brief depthwise convolution kernel 3x3, stride 2, width <= 4
  */
 #ifdef __aarch64__
+#if 1  //w <= 7
+void conv_depthwise_3x3s2p1_bias_s_relu(float* dout, const float* din, \
+    const float* weights, const float* bias, bool flag_bias, \
+    const int num, const int ch_in, const int h_in, const int w_in, \
+    const int h_out, const int w_out) {
+
+    int right_pad_idx[8] = {0, 2, 4, 6, 1, 3, 5, 7};
+    int out_pad_idx[4] = {0, 1, 2, 3};
+    int size_pad_bottom = h_out * 2 - h_in;
+
+    int size_right_remain = w_in;
+
+    int size_right_pad = w_out * 2 - w_in;
+
+    int cnt_remain = w_out;
+
+    uint32x4_t vmask_rp1 = vcgtq_s32(vdupq_n_s32(size_right_remain), vld1q_s32(right_pad_idx));//0 2 4 6
+    uint32x4_t vmask_rp2 = vcgtq_s32(vdupq_n_s32(size_right_remain), vld1q_s32(right_pad_idx + 4));//1 3 5 7
+    uint32x4_t wmask = vcgtq_s32(vdupq_n_s32(cnt_remain), vld1q_s32(out_pad_idx));//0 1 2 3
+    //printf("w_in %d, remain: %d \n", w_in, size_right_remain);
+   // printf("mask1: %d, %d, %d, %d \n", vmask_rp1[0], vmask_rp1[1], vmask_rp1[2], vmask_rp1[3]);
+    //printf("mask2: %d, %d, %d, %d \n", vmask_rp2[0], vmask_rp2[1], vmask_rp2[2], vmask_rp2[3]);
+    //printf("wmask: %d, %d, %d, %d \n", wmask[0], wmask[1], wmask[2], wmask[3]);
+   // size_right_remain *= sizeof(float);
+
+    int size_in_channel = w_in * h_in;
+    int size_out_channel = w_out * h_out;
+
+    for (int n = 0; n < num; ++n) {
+        const float *din_batch = din + n * ch_in * size_in_channel;
+        float *dout_batch = dout + n * ch_in * size_out_channel;
+#pragma omp parallel for
+        for (int i = 0; i < ch_in; ++i) {
+            const float* din_channel = din_batch + i * size_in_channel;
+            float* dout_channel = dout_batch + i * size_out_channel;
+
+            const float *weight_ptr = weights + i * 9;
+            float32x4_t wr0 = vld1q_f32(weight_ptr);
+            float32x4_t wr1 = vld1q_f32(weight_ptr + 3);
+            float32x4_t wr2 = vld1q_f32(weight_ptr + 6);
+
+            float32x4_t vzero= vdupq_n_f32(0.f);
+
+            float32x4_t wbias;
+            if (flag_bias) {
+                wbias  = vdupq_n_f32(bias[i]);
+            } else {
+                wbias = vdupq_n_f32(0.f);
+            }
+
+            const float *dr0 = din_channel;
+            const float *dr1 = dr0 + w_in;
+            const float *dr2 = dr1 + w_in;
+
+            const float *din0_ptr = dr0;
+            const float *din1_ptr = dr1;
+            const float *din2_ptr = dr2;
+
+            float *doutr0 = dout_channel;
+            float *doutr0_ptr = doutr0;
+
+            //! top pad
+            if(1){
+               //printf("cnt_col: %d, remain: %d \n", cnt_col, size_right_remain);
+             //  printf("mask1: %d, %d, %d, %d \n", vmask_rp1[0], vmask_rp1[1], vmask_rp1[2], vmask_rp1[3]);
+             //  printf("mask2: %d, %d, %d, %d \n", vmask_rp2[0], vmask_rp2[1], vmask_rp2[2], vmask_rp2[3]);
+              // printf("wmask: %d, %d, %d, %d \n", wmask[0], wmask[1], wmask[2], wmask[3]);
+
+                asm volatile (
+                //top
+                // Load up 12 elements (3 vectors) from each of 8 sources.
+                "0:                                      \n"
+                "ld2  {v0.4s, v1.4s}, [%[inptr0]], #32    \n" //v0={0,2,4,6} v1={1,3,5,7}
+                "ld2  {v4.4s, v5.4s}, [%[inptr1]], #32    \n"
+                "and  v10.16b, %[vbias].16b, %[vbias].16b  \n" //v10 = vbias
+                "bif  v0.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+                "bif  v1.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+               // "bif  v10.16b, %[vzero].16b, %[wmask].16b    \n" //pipei
+                "ext  v2.16b, %[vzero].16b, v1.16b, #12     \n" // v6 = {0, 1, 3, 5}
+                "bif  v4.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+
+
+                "fmul v8.4s, v0.4s, %[w1].s[1]            \n" // v0 * w01
+                "fmul v9.4s, v1.4s, %[w1].s[2]            \n" // v1 * w02
+                "fmla v10.4s, v2.4s, %[w1].s[0]            \n" // v2 * w00
+
+                "bif  v5.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+                "ext  v6.16b, %[vzero].16b, v5.16b, #12     \n" // v6 = {2,4,6,8}
+
+                "fmla v8.4s, v4.4s, %[w2].s[1]            \n" // v0 * w01
+                "fmla v9.4s, v5.4s, %[w2].s[2]            \n" // v1 * w02
+                "fmla v10.4s, v6.4s, %[w2].s[0]            \n" // v2 * w00
+
+                "fadd v0.4s, v8.4s, v9.4s                  \n"
+                "fadd v0.4s, v0.4s, v10.4s                  \n"
+                "fmax  v0.4s, v0.4s, %[vzero].4s             \n"
+                "bif  v0.16b, %[vzero].16b, %[wmask].16b    \n" //pipei
+
+                "st1 {v0.4s}, [%[outptr]], #16              \n"
+                : [inptr0] "+r"(din0_ptr), [inptr1] "+r"(din1_ptr), [outptr] "+r"(doutr0_ptr), \
+                  [vzero] "+w" (vzero), [w1] "+w" (wr1), [w2] "+w" (wr2), \
+                  [mask1] "+w" (vmask_rp1), [mask2] "+w" (vmask_rp2), [wmask] "+w" (wmask), [vbias] "+w" (wbias)
+                :
+                : "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11"
+                );
+            }
+
+            dr0 = dr1;
+            dr1 = dr2;
+            dr2 = dr1 + w_in;
+            doutr0 = doutr0 + w_out;
+            //! mid
+            for (int j = h_out - size_pad_bottom - 1; j > 0; j--){
+                din0_ptr = dr0;
+                din1_ptr = dr1;
+                din2_ptr = dr2;
+
+                doutr0_ptr = doutr0;
+
+
+                asm volatile (
+                //top
+                // Load up 12 elements (3 vectors) from each of 8 sources.
+                "0:                                      \n"
+                "ld2  {v0.4s, v1.4s}, [%[inptr0]], #32    \n" //v0={0,2,4,6} v1={1,3,5,7}
+                "ld2  {v4.4s, v5.4s}, [%[inptr1]], #32    \n"
+                "and  v10.16b, %[vbias].16b, %[vbias].16b  \n" //v10 = vbias
+
+                "bif  v0.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+                "bif  v1.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+               // "bif  v10.16b, %[vzero].16b, %[wmask].16b    \n" //pipei
+                "ext  v2.16b, %[vzero].16b, v1.16b, #12     \n" // v6 = {0,1,3,5}
+                "bif  v4.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+
+                "ld2  {v12.4s, v13.4s}, [%[inptr2]], #32    \n"
+                "bif  v5.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+                "ext  v6.16b, %[vzero].16b, v5.16b, #12     \n" // v6 = {2,4,6,8}
+
+                "fmul v8.4s, v0.4s, %[w0].s[1]            \n" // v0 * w01
+                "fmul v9.4s, v1.4s, %[w0].s[2]            \n" // v1 * w02
+                "fmla v10.4s, v2.4s, %[w0].s[0]            \n" // v2 * w00
+
+                "bif  v12.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+                "bif  v13.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+
+                "fmla v8.4s, v4.4s, %[w1].s[1]            \n" // v0 * w01
+                "fmla v9.4s, v5.4s, %[w1].s[2]            \n" // v1 * w02
+                "fmla v10.4s, v6.4s, %[w1].s[0]            \n" // v2 * w00
+
+                "ext  v14.16b, %[vzero].16b, v13.16b, #12     \n" // v6 = {0,1,3,5}
+
+                "fmla v8.4s, v12.4s, %[w2].s[1]            \n" // v0 * w01
+                "fmla v9.4s, v13.4s, %[w2].s[2]            \n" // v1 * w02
+                "fmla v10.4s, v14.4s, %[w2].s[0]            \n" // v2 * w00
+
+                "fadd v0.4s, v8.4s, v9.4s                  \n"
+                "fadd v0.4s, v0.4s, v10.4s                  \n"
+                "fmax  v0.4s, v0.4s, %[vzero].4s             \n"
+
+                "bif  v0.16b, %[vzero].16b, %[wmask].16b    \n" //pipei
+
+                "st1 {v0.4s}, [%[outptr]], #16              \n"
+                : [inptr0] "+r"(din0_ptr), [inptr1] "+r"(din1_ptr), [inptr2] "+r"(din2_ptr), [outptr] "+r"(doutr0_ptr), \
+                  [vzero] "+w" (vzero), [w1] "+w" (wr1), [w2] "+w" (wr2), [w0] "+w" (wr0), \
+                  [mask1] "+w" (vmask_rp1), [mask2] "+w" (vmask_rp2), [wmask] "+w" (wmask), [vbias] "+w" (wbias)
+                :
+                : "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "v12", "v13", "v14"
+                );
+                dr0 = dr2;
+                dr1 = dr0 + w_in;
+                dr2 = dr1 + w_in;
+                doutr0 = doutr0 + w_out;
+            }
+
+            if (size_pad_bottom){
+                din0_ptr = dr0;
+                din1_ptr = dr1;
+
+                doutr0_ptr = doutr0;
+
+                asm volatile (
+                //top
+                // Load up 12 elements (3 vectors) from each of 8 sources.
+                "0:                                      \n"
+                "ld2  {v0.4s, v1.4s}, [%[inptr0]], #32    \n" //v0={0,2,4,6} v1={1,3,5,7}
+                "ld2  {v4.4s, v5.4s}, [%[inptr1]], #32    \n"
+                "and  v10.16b, %[vbias].16b, %[vbias].16b  \n" //v10 = vbias
+                "bif  v0.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+                "bif  v1.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+               // "bif  v10.16b, %[vzero].16b, %[wmask].16b    \n" //pipei
+                "ext  v2.16b, %[vzero].16b, v1.16b, #12    \n" // v6 = {2,4,6,8}
+                "bif  v4.16b, %[vzero].16b, %[mask1].16b    \n" //pipei
+
+
+                "fmul v8.4s, v0.4s, %[w0].s[0]            \n" // v0 * w01
+                "fmul v9.4s, v1.4s, %[w0].s[1]            \n" // v1 * w02
+                "fmla v10.4s, v2.4s, %[w0].s[2]            \n" // v2 * w00
+
+                "bif  v5.16b, %[vzero].16b, %[mask2].16b    \n" //pipei
+                "ext  v6.16b, %[vzero].16b, v5.16b, #12     \n" // v6 = {2,4,6,8}
+
+                "fmla v8.4s, v4.4s, %[w1].s[0]            \n" // v0 * w01
+                "fmla v9.4s, v5.4s, %[w1].s[1]            \n" // v1 * w02
+                "fmla v10.4s, v6.4s, %[w1].s[2]            \n" // v2 * w00
+
+                "fadd v0.4s, v8.4s, v9.4s                  \n"
+                "fadd v0.4s, v0.4s, v10.4s                  \n"
+                "fmax  v0.4s, v0.4s, %[vzero].4s             \n"
+                "bif  v0.16b, %[vzero].16b, %[wmask].16b    \n" //pipei
+
+                "st1 {v0.4s}, [%[outptr]], #16              \n"
+                "4:                                          \n"
+                : [inptr0] "+r"(din0_ptr), [inptr1] "+r"(din1_ptr), [outptr] "+r"(doutr0_ptr), \
+                  [vzero] "+w" (vzero), [w0] "+w" (wr0), [w1] "+w" (wr1), \
+                  [mask1] "+w" (vmask_rp1), [mask2] "+w" (vmask_rp2), [wmask] "+w" (wmask), [vbias] "+w" (wbias)
+                : [remain] "r" (cnt_remain)
+                : "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11"
+                );
+            }
+
+        }
+    }
+
+
+}
+#else
 void conv_depthwise_3x3s2p1_bias_s_relu(float* dout, const float* din, \
     const float* weights, const float* bias, bool flag_bias, \
     const int num, const int ch_in, const int h_in, const int w_in, \
@@ -10546,6 +11926,7 @@ void conv_depthwise_3x3s2p1_bias_s_relu(float* dout, const float* din, \
         }
     }
 }
+#endif
 #else
 void conv_depthwise_3x3s2p1_bias_s_relu(float* dout, const float* din, \
     const float* weights, const float* bias, bool flag_bias, \
