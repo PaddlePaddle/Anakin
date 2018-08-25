@@ -3,7 +3,6 @@
 
 #include "saber/funcs/impl/x86/vender_gru.h"
 #include "sequence2batch.h"
-#include "saber/funcs/impl/x86/activation_functions.h"
 #include "saber/funcs/impl/x86/x86_utils.h"
 #include "saber/funcs/impl/x86/kernel/jit_generator.h"
 #include "saber/funcs/impl/x86/saber_normal_activation.h"

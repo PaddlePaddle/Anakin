@@ -4,8 +4,6 @@
 #define ANAKIN_SABER_FUNCS_IMPL_X86_SABER_GRU_H
 #include "saber/funcs/impl/impl_gru.h"
 #include "saber/funcs/impl/x86/x86_utils.h"
-
-
 #if defined(__AVX512F__)
 #define SABER_X86_TYPE __m512
 #elif defined(__AVX2__) and defined(__FMA__)
@@ -15,6 +13,8 @@
 #else
 #define SABER_X86_TYPE float
 #endif
+
+
 
 namespace anakin {
 
