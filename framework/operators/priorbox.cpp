@@ -23,14 +23,17 @@ Status PriorBoxHelper<Ttype, Dtype, Ptype>::InitParam() {
     if (FIND_PARAMETER(fixed_size)) {
         fixed_size_ = GET_PARAMETER(PTuple<float>, fixed_size);
     }
+   // LOG(ERROR) << "fixed_size size " << fixed_size_.size();
     PTuple<float> fixed_ratio_;
     if (FIND_PARAMETER(fixed_ratio)) {
         fixed_ratio_ = GET_PARAMETER(PTuple<float>, fixed_ratio);;
     }
+    //LOG(ERROR) << "fixed_ratio size " << fixed_ratio_.size();
     PTuple<float> density_;
     if (FIND_PARAMETER(density)) {
-        auto density_ = GET_PARAMETER(PTuple<float>, density);
+         density_ = GET_PARAMETER(PTuple<float>, density);
     }
+    //LOG(ERROR) << "density_ size " << density_.size();
     //end
     auto max_size_ = GET_PARAMETER(PTuple<float>, max_size);
     auto as_ratio  = GET_PARAMETER(PTuple<float>, aspect_ratio);
