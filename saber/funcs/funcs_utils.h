@@ -71,6 +71,60 @@ Shape deconv_compute_shape(const Shape input_shape, ConvParam<TargetType> &param
     return output_shape;
 }
 
+template <class Param >
+Shape pool_compute_shape(const Shape input_shape, Param &param) {
+
+    Shape output_shape = input_shape;
+
+    int in_height = input_shape.height();
+    int in_width = input_shape.width();
+
+    int window_h = param.window_h;
+    int window_w = param.window_w;
+    int pad_h = param.pad_h;
+    int pad_w = param.pad_w;
+    int stride_h = param.stride_h;
+    int stride_w = param.stride_w;
+    int out_height;
+    int out_width;
+    if (param.global_pooling) {
+        out_height = 1;
+        out_width = 1;
+        param.stride_h = in_height;
+        param.stride_w = in_width;
+        window_h = in_height;
+        window_w = in_width;
+        param.window_h = in_height;
+        param.window_w = in_width;
+    } else {
+        if (param.cmp_out_shape_floor_as_conv) {
+            out_height = static_cast<int>((static_cast<float>(
+                                                   in_height + 2 * pad_h - window_h) / stride_h)) + 1;
+
+            out_width = static_cast<int>((static_cast<float>(
+                                                  in_width + 2 * pad_w - window_w) / stride_w)) + 1;
+        } else {
+            out_height = static_cast<int>(ceilf(static_cast<float>(
+                                                        in_height + 2 * pad_h - window_h) / stride_h)) + 1;
+
+            out_width = static_cast<int>(ceilf(static_cast<float>(
+                                                       in_width + 2 * pad_w - window_w) / stride_w)) + 1;
+        }
+    }
+
+    if (param.pooling_padded()) {
+        if ((out_height - 1) * stride_h >= in_height + pad_h) {
+            -- out_height;
+        }
+        if ((out_width - 1) * stride_w >= in_width + pad_w) {
+            -- out_width;
+        }
+    }
+    output_shape.set_height(out_height);
+    output_shape.set_width(out_width);
+    return output_shape;
+}
+
 template <typename Dtype>
 void transpose_inplace(float* output, const float* input, const int num,
                        const int channel,

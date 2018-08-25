@@ -20,6 +20,11 @@
 #include "saber/funcs/funcs_utils.h"
 #include "saber/funcs/impl/impl_conv_pooling.h"
 
+#ifdef NVIDIA_GPU
+#include "saber/funcs/impl/cuda/vender_conv_pooling.h"
+#include "saber/funcs/impl/cuda/saber_conv_pooling.h"
+#endif
+
 namespace anakin {
 namespace saber {
 
@@ -49,9 +54,10 @@ public:
 
     virtual SaberStatus compute_output_shape(const Input_v &input,
                                              Output_v &output, Param_t &param) override {
-        Shape conv_shape = conv_compute_shape(input[0]->valid_shape(), param);
-        conv_shape.set_layout(Layout_NCHW);
-        return output[0]->set_shape(conv_shape);
+        Shape conv_shape = conv_compute_shape(input[0]->valid_shape(), param.conv_param);
+        Shape pool_shape = pool_compute_shape(conv_shape, param.pooling_param);
+        pool_shape.set_layout(Layout_NCHW);
+        return output[0]->set_shape(pool_shape);
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {
