@@ -465,7 +465,9 @@ void conv_trans_weights(const std::vector<DataTensor *>& inputs,
         param.mutable_weight()->re_alloc(param.weight()->shape());
         param.mutable_weight()->copy_from(trans_weights_host);
     }
+#ifdef USE_CUDA
     cudaDeviceSynchronize();
+#endif
 }
 
 } // namespace saber

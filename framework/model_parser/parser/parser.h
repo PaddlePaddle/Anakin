@@ -33,6 +33,9 @@ Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, std::string& model_path);
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path);
 
+template<typename Ttype, DataType Dtype, Precision Ptype>
+Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, std::istream* instream);
+
 //! save graph to disk. use to save improved Graph.
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status save(graph::Graph<Ttype, Dtype, Ptype>* graph, std::string& model_path);

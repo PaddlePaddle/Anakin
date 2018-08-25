@@ -186,56 +186,82 @@ void transpose(float* data_out, const float* data_in, int w_in, int h_in) {
 
     int nw = w_in >> 2;
     int nh = h_in >> 2;
+    int size_in = w_in * h_in;
+
+    float* ptr_out = data_out;
+    const float* ptr_in = data_in;
 #pragma omp parallel for
-    for (int i = 0; i < nh; i++) {
-        for (int j = 0; j < nw; j++) {
-            const float *ptr = data_in + i * 4 * w_in + j * 4;
-            float *outptr = data_out + j * 4 * h_in + i * 4;
+    for (int h = 0; h < nh; h++) {
+        const float* ptr_din_row = ptr_in + h * 4 * w_in;
+        for (int w = 0; w < nw; w++) {
+            float* data_out_ptr = ptr_out + w * 4 * h_in + h * 4;
+            const float* din0 = ptr_din_row;
+            const float* din1 = din0 + w_in;
+            const float* din2 = din1 + w_in;
+            const float* din3 = din2 + w_in;
 
-            const float *in0 = ptr;
-            const float *in1 = in0 + w_in;
-            const float *in2 = in1 + w_in;
-            const float *in3 = in2 + w_in;
-
-            float *out0 = outptr;
-            float *out1 = out0 + h_in;
-            float *out2 = out1 + h_in;
-            float *out3 = out2 + h_in;
+            float* dout0 = data_out_ptr;
+            float* dout1 = dout0 + h_in;
+            float* dout2 = dout1 + h_in;
+            float* dout3 = dout2 + h_in;
 #ifdef __aarch64__
+            float32x4_t vr0 = vld1q_f32(din0);
+            float32x4_t vr1 = vld1q_f32(din1);
+            float32x4_t vr2 = vld1q_f32(din2);
+            float32x4_t vr3 = vld1q_f32(din3);
+            float32x4_t re0=vtrn1q_f32(vr0,vr1);
+            float32x4_t re1=vtrn2q_f32(vr0,vr1);
+            float32x4_t re2=vtrn1q_f32(vr2,vr3);
+            float32x4_t re3=vtrn2q_f32(vr2,vr3);
+            vst1_f32(dout0,vget_low_f32(re0));
+            dout0+=2;
+            vst1_f32(dout0,vget_low_f32(re2));
+            vst1_f32(dout1,vget_low_f32(re1));
+            dout1+=2;
+            vst1_f32(dout1,vget_low_f32(re3));
+            vst1_f32(dout2,vget_high_f32(re0));
+            dout2+=2;
+            vst1_f32(dout2,vget_high_f32(re2));
+            vst1_f32(dout3,vget_high_f32(re1));
+            dout3+=2;
+            vst1_f32(dout3,vget_high_f32(re3));
 #else
-            asm(    "vld1.32 {d0, d1}, [%[in0]]    \n"
-                    "vld1.32 {d2, d3}, [%[in1]]    \n"
-                    "vld1.32 {d4, d5}, [%[in2]]    \n"
-                    "vld1.32 {d6, d7}, [%[in3]]    \n"
-                    "vtrn.32 q0, q1                \n"
-                    "vtrn.32 q2, q3                \n"
-                    "vswp d1, d4                   \n"
-                    "vswp d3, d6                   \n"
-                    "vst1.32 {d0, d1}, [%[out0]]   \n"
-                    "vst1.32 {d2, d3}, [%[out1]]   \n"
-                    "vst1.32 {d4, d5}, [%[out2]]   \n"
-                    "vst1.32 {d6, d7}, [%[out3]]   \n"
-            :
-            : [out0] "r" (out0), [out1] "r" (out1), [out2] "r" (out2), [out3] "r" (out3),
-            [in0] "r" (in0), [in1] "r" (in1), [in2] "r" (in2), [in3] "r" (in3)
-            : "d0", "d1", "d2", "d3", "d4", "d5", "d6", "d7"
-            );
-#endif //__aarch64__
+            asm(
+                "vld1.32 {d0, d1}, [%[in0]]    \n"
+                        "vld1.32 {d2, d3}, [%[in1]]    \n"
+                        "vld1.32 {d4, d5}, [%[in2]]    \n"
+                        "vld1.32 {d6, d7}, [%[in3]]    \n"
+                        "vtrn.32 q0, q1                \n"
+                        "vtrn.32 q2, q3                \n"
+                        "vswp d1, d4                   \n"
+                        "vswp d3, d6                   \n"
+                        "vst1.32 {d0, d1}, [%[out0]]   \n"
+                        "vst1.32 {d2, d3}, [%[out1]]   \n"
+                        "vst1.32 {d4, d5}, [%[out2]]   \n"
+                        "vst1.32 {d6, d7}, [%[out3]]   \n"
+                :
+                : [out0] "r" (dout0), [out1] "r" (dout1), [out2] "r" (dout2), \
+                        [out3] "r" (dout3), [in0] "r" (din0), [in1] "r" (din1), \
+                         [in2] "r" (din2), [in3] "r" (din3)
+                : "q0", "q1", "q2", "q3"
+                );
+#endif
+            ptr_din_row += 4;
         }
     }
-    //! process remains
-    for (int i = 0; i < nw * 4; i++) {
-        for (int j = nh * 4; j < h_in; j++) {
-            const float *ptr = data_in + j * w_in + i;
-            float *outptr = data_out + i * h_in + j;
-            *outptr = *ptr;
+    //remian
+    for (int h = 0; h < h_in; h++){
+        for (int w = nw * 4; w < w_in; w++){
+            const float* data_in_ptr = ptr_in + h * w_in + w;
+            float* data_out_ptr = ptr_out + w * h_in + h;
+            *data_out_ptr = *data_in_ptr;
         }
     }
-    for (int i = nw * 4; i < w_in; i++) {
-        for (int j = 0; j < h_in; j++) {
-            const float *ptr = data_in + w_in * j + i;
-            float *outptr = data_out + i * h_in + j;
-            *outptr = *ptr;
+    for (int w = 0; w < w_in; w++){
+        for (int h = nh * 4; h < h_in; h++){
+            const float* data_in_ptr = ptr_in + h * w_in + w;
+            float* data_out_ptr = ptr_out + w * h_in + h;
+            *data_out_ptr = *data_in_ptr;
         }
     }
 }

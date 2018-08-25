@@ -1,5 +1,5 @@
 #include "saber/lite/funcs/saber_permute.h"
-
+#include "saber/lite/net/saber_factory_lite.h"
 #ifdef USE_ARM_PLACE
 
 namespace anakin{
@@ -49,20 +49,27 @@ void transpose_mat(const float* din, float* dout, \
                 float* dout1 = dout0 + height;
                 float* dout2 = dout1 + height;
                 float* dout3 = dout2 + height;
-
 #ifdef __aarch64__
                 float32x4_t vr0 = vld1q_f32(din0);
-                    float32x4_t vr1 = vld1q_f32(din1);
-                    float32x4_t vr2 = vld1q_f32(din2);
-                    float32x4_t vr3 = vld1q_f32(din3);
-                    vtrnq_f32(vr0, vr1);
-                    vtrnq_f32(vr2, vr3);
-                    vswp_f32(d1, d4);
-                    vswp_f32(d3, d6);
-                    vst1q_f32(dout0, vr0);
-                    vst1q_f32(dout1, vr1);
-                    vst1q_f32(dout2, vr2);
-                    vst1q_f32(dout3, vr3);
+                float32x4_t vr1 = vld1q_f32(din1);
+                float32x4_t vr2 = vld1q_f32(din2);
+                float32x4_t vr3 = vld1q_f32(din3);
+                float32x4_t re0=vtrn1q_f32(vr0,vr1);
+                float32x4_t re1=vtrn2q_f32(vr0,vr1);
+                float32x4_t re2=vtrn1q_f32(vr2,vr3);
+                float32x4_t re3=vtrn2q_f32(vr2,vr3);
+                vst1_f32(dout0,vget_low_f32(re0));
+                dout0+=2;
+                vst1_f32(dout0,vget_low_f32(re2));
+                vst1_f32(dout1,vget_low_f32(re1));
+                dout1+=2;
+                vst1_f32(dout1,vget_low_f32(re3));
+                vst1_f32(dout2,vget_high_f32(re0));
+                dout2+=2;
+                vst1_f32(dout2,vget_high_f32(re2));
+                vst1_f32(dout3,vget_high_f32(re1));
+                dout3+=2;
+                vst1_f32(dout3,vget_high_f32(re3));
 #else
                 asm(
                 "vld1.32 {d0, d1}, [%[in0]]    \n"
@@ -111,26 +118,58 @@ SaberPermute::SaberPermute() {
     _transpose = false;
 }
 
-//SaberPermute::SaberPermute(std::vector<int> orders) {
-//    _order_dims = orders;
-//}
-//
-//SaberStatus SaberPermute::load_param(std::vector<int> orders) {
-//    _order_dims = orders;
-//    return SaberSuccess;
-//}
-
 SaberPermute::SaberPermute(const ParamBase *param) {
     _param = (const PermuteParam*)param;
     this->_flag_param = true;
 }
 
+SaberPermute::~SaberPermute() {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+    }
+}
+
 SaberStatus SaberPermute::load_param(const ParamBase *param) {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+        this->_flag_create_param = false;
+    }
     _param = (const PermuteParam*)param;
     this->_flag_param = true;
     return SaberSuccess;
 }
 
+SaberStatus SaberPermute::load_param(std::istream &stream, const float *weights) {
+    int size;
+    std::vector<int> order;
+    stream >> size;
+    order.resize(size);
+    for (int i = 0; i < size; ++i) {
+        stream >> order[i];
+    }
+    _param = new PermuteParam(order);
+    this->_flag_create_param = true;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+#if 0
+SaberStatus SaberPermute::load_param(FILE *fp, const float *weights) {
+    int size;
+    std::vector<int> order;
+    fscanf(fp, "%d ", &size);
+    order.resize(size);
+    for (int i = 0; i < size; ++i) {
+        fscanf(fp, "%d ", &order[i]);
+    }
+    fscanf(fp, "\n");
+    _param = new PermuteParam(order);
+    this->_flag_create_param = true;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+#endif
 SaberStatus SaberPermute::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                                std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
     if (!this->_flag_param) {
@@ -162,6 +201,7 @@ SaberStatus SaberPermute::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &input
         return SaberNotInitialized;
     }
 
+    this->_flag_init = true;
     this->_ctx = &ctx;
     _num_axes = inputs[0]->dims();
     _count = outputs[0]->valid_size();
@@ -209,8 +249,6 @@ SaberStatus SaberPermute::init(const std::vector<Tensor<CPU, AK_FLOAT> *> &input
         printf("permute: transpose=false\n");
     }
 
-    this->_flag_init = true;
-
     return SaberSuccess;
 }
 
@@ -223,6 +261,11 @@ SaberStatus SaberPermute::dispatch(\
         printf("init permute first\n");
         return SaberNotInitialized;
     }
+
+#ifdef ENABLE_OP_TIMER
+    this->_timer.clear();
+    this->_timer.start();
+#endif
 
     //! only copy the data
     if (!_need_permute) {
@@ -239,10 +282,16 @@ SaberStatus SaberPermute::dispatch(\
         permute_basic(_count, din, _param->_order.data(), \
         _old_steps.data(), _new_steps.data(), _num_axes, dout);
     }
-
+#ifdef ENABLE_OP_TIMER
+    this->_timer.end();
+    float ts = this->_timer.get_average_ms();
+    printf("permute %s: time: %f\n", this->_op_name.c_str(), ts);
+    OpTimer::add_timer("permute", ts);
+    OpTimer::add_timer("total", ts);
+#endif
     return SaberSuccess;
 }
-
+REGISTER_LAYER_CLASS(SaberPermute);
 } //namespace lite
 
 } //namespace saber
