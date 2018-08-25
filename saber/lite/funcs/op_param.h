@@ -755,6 +755,23 @@ struct ScaleParam : public ParamBase {
     const float*  _scale_w;
     const float*  _scale_b;
 };
+
+struct ShuffleChannelParam : public ParamBase {
+    ShuffleChannelParam() : _group(1) {}
+    ShuffleChannelParam(int group) : _group(group) {}
+    ShuffleChannelParam(const ShuffleChannelParam& right) : ParamBase(right) {
+        _group = right._group;
+    }
+    ShuffleChannelParam& operator=(const ShuffleChannelParam& right){
+        _group = right._group;
+        return *this;
+    }
+    bool operator==(const ShuffleChannelParam& right){
+        return _group == right._group;
+    }
+    int _group;
+};
+
 } //namespace lite
 
 } //namespace saber
