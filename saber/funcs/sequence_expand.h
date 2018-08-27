@@ -30,7 +30,7 @@
 #endif
 
 #ifdef USE_ARM_PLACE
-//#include "saber/funcs/impl/arm/saber_activation.h"
+#include "saber/funcs/impl/impl_sequence_expand.h"
 #endif
 
 namespace anakin {
