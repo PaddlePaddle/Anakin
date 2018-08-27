@@ -23,7 +23,8 @@ namespace anakin{
 namespace saber{
 
 typedef void (*eltwise_active_func)(const float* din_a, \
-    const float* din_b, float* dout, std::vector<float> coeff, const int size);
+    const float* din_b, float* dout, std::vector<float> coeff, const int size, \
+      int channel_size, int channel, float* slop_ptr, bool channel_shared);
 
 
 template <DataType OpDtype,
@@ -69,6 +70,11 @@ private:
     eltwise_active_func _impl{nullptr};
     std::vector<float> _coeff;
     bool _flag_relu = true;
+    //prelu
+    float* _slop_ptr{nullptr};
+    bool _channel_shared = false;
+    int _channel_size = 0;
+    int _channel = 0;
 };
 
 } //namespace saber

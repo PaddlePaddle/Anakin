@@ -3,9 +3,6 @@
 #include <stdlib.h>
 #include <vector>
 
-#include "mkl_cblas.h"
-#include "mkl_vml_functions.h"
-
 #include "saber/core/context.h"
 #include "saber/funcs/lstm.h"
 #include "saber/funcs/impl/x86/x86_utils.h"
@@ -18,358 +15,290 @@
 using namespace anakin::saber;
 using namespace std;
 
-typedef struct _test_lstm_params {
-    int mb;
-    int input_size;
-    int layer_size;
-    ActiveType input_activation;
-    ActiveType gate_activation;
-    ActiveType candidate_activation;
-    ActiveType cell_activation;
-    bool with_peephole;
-    bool with_init_hidden;
-    bool skip_input;
-} test_lstm_params;
+template <typename Dtype>
+static Dtype InValidAct(Dtype a) {
+    CHECK(false)<<"InValidAct";
+}
 
-typedef Tensor<X86, AK_FLOAT, NCHW> Tensor4f;
+template <typename Dtype>
+static Dtype Sigmoid(const Dtype a) {
+    return static_cast<Dtype>(1.0) / (static_cast<Dtype>(1.0) + exp(-a));
+}
 
-inline void sigmoid(int len, float *x, float *y) {
-    for (int i = 0; i < len; i++) {
-        y[i] = 1. / (1. + exp(-x[i]));
+template <typename Dtype>
+static Dtype Tanh(const Dtype a) {
+    Dtype tmp = -2.0 * a;
+    return (2.0 / (1.0 + exp(tmp))) - 1.0;
+}
+
+template <typename Dtype>
+static Dtype Relu(const Dtype a) {
+    return a > static_cast<Dtype>(0.0) ? a : static_cast<Dtype>(0.0);
+}
+
+template <typename Dtype>
+static Dtype Identity(const Dtype a) {
+    return a;
+}
+
+
+template <typename Dtype>
+struct ACTIVATION{
+    typedef Dtype(*Act)(const Dtype);
+};
+
+template <typename Dtype>
+inline typename ACTIVATION<Dtype>::Act Activate(ActiveType type){
+    static  typename ACTIVATION<Dtype>::Act vec[7]={&InValidAct<Dtype>, &Sigmoid<Dtype>, &Relu<Dtype>, &Tanh<Dtype>,
+                                                    &InValidAct<Dtype>,& InValidAct<Dtype>, &Identity<Dtype>};
+    return vec[type];
+}
+
+
+template<typename Dtype>
+static void gemm_naive(int m,int n,int k,const float alpha,const Dtype * a, const Dtype*b ,const float beta,Dtype *c){
+    for(int i=0;i<m;i++){
+        for(int j=0;j<n;j++){
+            Dtype acc=0;
+            for(int inner=0;inner<k;inner++){
+                acc+=alpha*a[i*k+inner]*b[inner*n+j];
+            }
+            c[i*n+j]=acc+beta*c[i*n+j];
+        }
     }
 }
 
-inline void relu(int len, float *x, float *y) {
-    for (int i = 0; i < len; i++) {
-        y[i] = x[i] < 0 ? 0 : x[i];
+template <typename Dtype>
+void compute_ref_lstm_one_word(const Dtype* wx_i,const Dtype* wx_f,const Dtype* wx_c,const Dtype* wx_o,Dtype* h_new,const Dtype* cell_old,Dtype* cell_new,
+                               const Dtype* bias_i,const Dtype* bias_f,const Dtype* bias_c,const Dtype* bias_o,const Dtype* w_c_i,
+                               const Dtype* w_c_f,const Dtype* w_c_o,int hidden_size,
+                               ActiveType gate_activity,ActiveType cell_activity,ActiveType candidate_activity, bool with_peephole){
+
+    typename ACTIVATION<Dtype>::Act gate_func=Activate<Dtype >(gate_activity);
+    typename ACTIVATION<Dtype>::Act cell_func=Activate<Dtype >(cell_activity);
+    typename ACTIVATION<Dtype>::Act candi_func=Activate<Dtype >(candidate_activity);
+    if(with_peephole) {
+        for (int i = 0; i < hidden_size; i++) {
+            Dtype gate_i = gate_func(wx_i[i] + w_c_i[i] * cell_old[i] + bias_i[i]);
+            Dtype gate_f = gate_func(wx_f[i] + w_c_f[i] * cell_old[i] + bias_f[i]);
+            Dtype gate_c_t = cell_func(wx_c[i] + bias_c[i]);
+            Dtype gate_c = gate_f * cell_old[i] + gate_i * gate_c_t;
+            Dtype gate_o = gate_func(wx_o[i] + w_c_o[i] * gate_c + bias_o[i]);
+            h_new[i] = gate_o * candi_func(gate_c);
+            cell_new[i] = gate_c;
+//        DLOG(INFO)<<"gate_i = "<<gate_i<<","<<wx_i[i]<<","<<w_c_i[i]<<","<<cell_old[i]<<","<<bias_i[i]<<",befor "<<wx_o[i]+w_c_o[i]*gate_c+bias_o[i]<<",h = "<<h_new[i]<<",c = "<<cell_new[i];
+        }
+    }else{
+        for (int i = 0; i < hidden_size; i++) {
+            Dtype gate_i = gate_func(wx_i[i]  + bias_i[i]);
+            Dtype gate_f = gate_func(wx_f[i]  + bias_f[i]);
+            Dtype gate_c_t = cell_func(wx_c[i] + bias_c[i]);
+            Dtype gate_c = gate_f * cell_old[i] + gate_i * gate_c_t;
+            Dtype gate_o = gate_func(wx_o[i]  + bias_o[i]);
+            h_new[i] = gate_o * candi_func(gate_c);
+            cell_new[i] = gate_c;
+//        DLOG(INFO)<<"gate_i = "<<gate_i<<","<<wx_i[i]<<","<<w_c_i[i]<<","<<cell_old[i]<<","<<bias_i[i]<<",befor "<<wx_o[i]+w_c_o[i]*gate_c+bias_o[i]<<",h = "<<h_new[i]<<",c = "<<cell_new[i];
+        }
     }
 }
 
-inline void tanh(int len, float *x, float *y) {
-    for (int i = 0; i < len; i++) {
-        float e_x = exp(x[i]);
-        float e_minus_x = 1 / e_x;
-        y[i] = (e_x - e_minus_x) / (e_x + e_minus_x);
-    }
-}
-
-inline void stanh(int len, float *x, float *y) {
-    for (int i = 0; i < len; i++) {
-        float e_x = exp(2 * x[i] / 3);
-        float e_minus_x = 1 / e_x;
-        y[i] = 1.7159 * (e_x - e_minus_x) / (e_x + e_minus_x);
-    }
-}
-
-void compute_ref_lstm_fwd(std::vector<Tensor4f*> &src, std::vector<Tensor4f*> &dst, LstmParam<Tensor4f> &param) {
+template <typename Tensor4f,typename TargetType>
+void compute_ref_lstm_fwd_me(std::vector<Tensor4f*> &src, std::vector<Tensor4f*> &dst, LstmParam<TargetType> &param){
+    typedef float Dtype;
     SaberStatus status = SaberSuccess;
 
-    const Tensor4f *weights = param.weight();
-    const Tensor4f *bias = param.bias();
-    const Tensor4f *init_hidden = param.init_hidden();
+    Tensor4f *input_tensor = src[0];
+    Tensor4f *output_tensor = dst[0];
+    const Dtype *x = (const Dtype*)input_tensor->data();
+    int word_size=input_tensor->channel();
+    int hidden_size=output_tensor->channel();
+    int seq_sum=input_tensor->num();
 
-    Tensor4f *input = src[0];
-    float *h = dst[0]->mutable_data();
-    float *c = nullptr;
-
-    // get Wx = [Wix, Wfx, Wcx, Woc] while they are all input_size * layer_size matrices
-    const float *x = input->data();
-    int N = input->num();
-    int input_size = input->channel();
-    int layer_size = dst[0]->channel();
-
-    if (dst.size() >= 2) {
-        c = dst[1]->mutable_data();
-    } else {
-        c = (float*)zmalloc(N * layer_size * sizeof(float), 4096);
+    const Dtype *weights = (const Dtype *)param.weight()->data();
+    const Dtype *weights_x=weights;
+    const Dtype *weights_h=weights+4*word_size*hidden_size;
+    const Dtype *bias = (const Dtype *)param.bias()->data();
+    const Dtype *weights_peephole=bias+4*hidden_size;
+    const Dtype *init_hidden = nullptr;
+    vector<Dtype> vec_init_hidden(hidden_size,0);
+    if(param.init_hidden()!= nullptr){
+        init_hidden=(const Dtype *)param.init_hidden()->data();
+    } else{
+        init_hidden=vec_init_hidden.data();
     }
+    const Dtype *b_i = bias + 0 * hidden_size;
+    const Dtype *b_f = bias + 1 * hidden_size;
+    const Dtype *b_c = bias + 2 * hidden_size;
+    const Dtype *b_o = bias + 3 * hidden_size;
 
-    float *xx = nullptr;
-    if (param.skip_input) {
-        // the input is x * Wx
-        xx = const_cast<float *>(x);
-    } else {
-        // get xx = x * Wx
-        const float *Wx = weights->data();
-        xx = (float*)zmalloc(N * 4 * layer_size * sizeof(float), 4096);
-        cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N, 4 * layer_size, input_size, 1, x, input_size, Wx, 4 * layer_size, 0, xx, 4 * layer_size);
-        if (param.input_activity != Active_unknow) {
-            if (param.input_activity == Active_stanh) {
-                stanh(N * 4 * layer_size, xx, xx);
-            } else if (param.input_activity == Active_tanh) {
-                tanh(N * 4 * layer_size, xx, xx);
-            } else {
-                LOG(ERROR) << "unsupported gate activation now";
+    const Dtype *wc_i = weights_peephole + 0 * hidden_size;
+    const Dtype *wc_f = weights_peephole + 1 * hidden_size;
+    const Dtype *wc_o = weights_peephole + 2 * hidden_size;
+
+    Dtype *h = (Dtype*)dst[0]->mutable_data();
+    vector<Dtype> vec_c(seq_sum*hidden_size,0);
+    vector<Dtype> vec_wx(seq_sum*4*hidden_size,0);
+    Dtype *c=vec_c.data();
+    Dtype *wx= vec_wx.data();
+    std::vector<int> seq_offset = input_tensor->get_seq_offset();
+
+    gemm_naive(seq_sum,4*hidden_size,word_size,1,x,weights,0,wx);
+    for(int seq_id=0;seq_id<seq_offset.size()-1;seq_id++){
+        int seq_start=seq_offset[seq_id];
+        int seq_end=seq_offset[seq_id+1];
+        if(param.is_reverse){
+            for (int word_id = seq_end-1; word_id >= seq_start; word_id--) {
+
+                Dtype *cell_old = nullptr;
+                if (word_id == seq_end-1) {
+                    cell_old = c + word_id * hidden_size;
+//                    LOG(INFO) << "word = " << word_id << ",seq sum = " << seq_sum<<",cell[]="<<word_id * hidden_size<<","<<seq_sum*hidden_size<<","<<c[4];
+                    gemm_naive(1, 4 * hidden_size, hidden_size, 1, init_hidden, weights_h, 1,
+                               wx + word_id * 4 * hidden_size);
+                } else {
+                    cell_old = c + (word_id + 1) * hidden_size;
+                    gemm_naive(1, 4 * hidden_size, hidden_size, 1, h + (word_id + 1) * hidden_size, weights_h,
+                               1, wx + word_id * 4 * hidden_size);
+                }
+                const Dtype *wx_i = wx + word_id * 4 * hidden_size + 0 * hidden_size;
+                const Dtype *wx_f = wx + word_id * 4 * hidden_size + 1 * hidden_size;
+                const Dtype *wx_c = wx + word_id * 4 * hidden_size + 2 * hidden_size;
+                const Dtype *wx_o = wx + word_id * 4 * hidden_size + 3 * hidden_size;
+
+                Dtype *h_new = h + word_id * hidden_size;
+                Dtype *cell_new = c + word_id * hidden_size;
+
+                compute_ref_lstm_one_word(wx_i, wx_f, wx_c, wx_o, h_new, cell_old, cell_new, b_i, b_f, b_c, b_o, wc_i,
+                                          wc_f, wc_o,
+                                          hidden_size, param.gate_activity, param.cell_activity,
+                                          param.candidate_activity,param.with_peephole);
+            }
+
+        }else {
+            for (int word_id = seq_start; word_id < seq_end; word_id++) {
+
+                Dtype *cell_old = nullptr;
+                if (word_id == seq_start) {
+                    cell_old = c + word_id * hidden_size;
+                    gemm_naive(1, 4 * hidden_size, hidden_size, 1, init_hidden, weights_h, 1,
+                               wx + word_id * 4 * hidden_size);
+                } else {
+                    cell_old = c + (word_id - 1) * hidden_size;
+                    gemm_naive(1, 4 * hidden_size, hidden_size, 1, h + (word_id - 1) * hidden_size, weights_h,
+                               1, wx + word_id * 4 * hidden_size);
+                }
+                const Dtype *wx_i = wx + word_id * 4 * hidden_size + 0 * hidden_size;
+                const Dtype *wx_f = wx + word_id * 4 * hidden_size + 1 * hidden_size;
+                const Dtype *wx_c = wx + word_id * 4 * hidden_size + 2 * hidden_size;
+                const Dtype *wx_o = wx + word_id * 4 * hidden_size + 3 * hidden_size;
+
+                Dtype *h_new = h + word_id * hidden_size;
+                Dtype *cell_new = c + word_id * hidden_size;
+
+                compute_ref_lstm_one_word(wx_i, wx_f, wx_c, wx_o, h_new, cell_old, cell_new, b_i, b_f, b_c, b_o, wc_i,
+                                          wc_f, wc_o,
+                                          hidden_size, param.gate_activity, param.cell_activity,
+                                          param.candidate_activity,param.with_peephole);
             }
         }
     }
 
-    float* ihcot = (float*)zmalloc(4 * layer_size * sizeof(float), 4096);
-    float* act = (float*)zmalloc(layer_size * sizeof(float), 4096);
-    float* p = (float*)zmalloc(layer_size * sizeof(float), 4096);
-
-    std::vector<int> seq_offset = input->get_seq_offset();
-    int seq_num = seq_offset.size() - 1;
-
-    const float *Wh = nullptr;
-    if (param.skip_input) {
-        Wh = weights->data();
-    } else {
-        Wh = weights->data() + 4 * input_size * layer_size;
-    }
-    const float *b = bias->data();
-    const float *peephole = nullptr;
-    if (param.with_peephole) {
-        peephole = bias->data() + 4 * layer_size;
-    }
-
-    float* init_h = (float*)zmalloc(layer_size * sizeof(float), 4096);
-    float* init_c = (float*)zmalloc(layer_size * sizeof(float), 4096);
-    memset(init_h, 0, layer_size * sizeof(float));
-    memset(init_c, 0, layer_size * sizeof(float));
-
-    for (int i = 0; i < seq_num; i++) {
-        if (param.init_hidden()) {
-            const float *init_state = param.init_hidden()->data();
-            memcpy(init_h, init_state + i * layer_size, layer_size * sizeof(float));
-            memcpy(init_c, init_state + (i + seq_num)* layer_size, layer_size * sizeof(float));
-        }
-        // do LSTM per sequence
-        int seq_len = seq_offset[i + 1] - seq_offset[i];
-        for (int j = 0; j < seq_len; j++) {
-            float *ht = h + (seq_offset[i] + j) * layer_size;
-            float *ct = c + (seq_offset[i] + j) * layer_size;
-            float *xxt = xx + (seq_offset[i] + j) * 4 * layer_size;
-            float *ht_1 = nullptr;
-            float *ct_1 = nullptr;
-            cblas_saxpby (4 * layer_size, 1, xxt, 1, 0, ihcot, 1);
-
-            if (j == 0) {
-                ht_1 = init_h;
-                ct_1 = init_c;
-            } else {
-                ht_1 = h + (seq_offset[i] + (j - 1)) * layer_size;
-                ct_1 = c + (seq_offset[i] + (j - 1)) * layer_size;
-            }
-
-            cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 1, 4 * layer_size, layer_size, 1, ht_1, layer_size, Wh,
-                        4 * layer_size, 1, ihcot, 4 * layer_size);
-
-            if (peephole) {
-                // peephole for it
-                vsMul(layer_size, ct_1, peephole, p);
-                cblas_saxpby(layer_size, 1, p, 1, 1, ihcot, 1);
-                // peephole for ft
-                vsMul(layer_size, ct_1, peephole + layer_size, p);
-                cblas_saxpby(layer_size, 1, p, 1, 1, ihcot + layer_size, 1);
-            }
-            // add bias
-            cblas_saxpby(4 * layer_size, 1, b, 1, 1, ihcot, 1);
-
-            // gate activity for it and ft, candidate activity for cct
-            if (param.gate_activity == Active_sigmoid) {
-                sigmoid(layer_size, ihcot, ihcot);
-                sigmoid(layer_size, ihcot + layer_size, ihcot + layer_size);
-            } else {
-                LOG(ERROR) << "unsupported gate activation now";
-            }
-
-            if (param.candidate_activity == Active_relu) {
-                relu(layer_size, ihcot + 2 * layer_size, ihcot + 2 * layer_size);
-            } else {
-                LOG(ERROR) << "unsupported candidate activation now";
-            }
-
-            // calc ct
-            vsMul(layer_size, ihcot, ihcot + 2 * layer_size, p);
-            cblas_saxpby(layer_size, 1, p, 1, 0, ct, 1);
-            vsMul(layer_size, ihcot + layer_size, ct_1, p);
-            cblas_saxpby(layer_size, 1, p, 1, 1, ct, 1);
-
-            // peephole for ot
-            if (peephole) {
-                vsMul(layer_size, ct, peephole + 2 * layer_size, p);
-                cblas_saxpby(layer_size, 1, p, 1, 1, ihcot + 3 * layer_size, 1);
-            }
-            if (param.gate_activity == Active_sigmoid) {
-                sigmoid(layer_size, ihcot + 3 * layer_size, ihcot + 3 * layer_size);
-            }
-
-            // calc ht
-            if (param.cell_activity == Active_sigmoid) {
-                sigmoid(layer_size, ct, act);
-            }
-            vsMul(layer_size, ihcot + 3 * layer_size, act, ht);
-        }
-    }
-
-    if (!param.skip_input && xx) {
-        zfree(xx);
-        xx = nullptr;
-    }
-    if (ihcot) {
-        zfree(ihcot);
-        ihcot = nullptr;
-    }
-    if (act) {
-        zfree(act);
-        act = nullptr;
-    }
-    if (p) {
-        zfree(p);
-        p = nullptr;
-    }
-    if (init_h) {
-        zfree(init_h);
-        init_h = nullptr;
-    }
-    if (init_c) {
-        zfree(init_c);
-        init_c = nullptr;
-    }
-    if (dst.size() < 2 && c != nullptr) {
-        zfree(c);
-        c = nullptr;
-    }
-
-    return;
 }
+template <typename HOST,typename DEVICE>
+void lstm_ut(int word_size = 222,
+             int hidden_size = 333,
+             std::vector<int> offsets = {0, 3,13,22,30,50},
+             bool is_reverse = true,
+             bool with_peephole= true,
+             ActiveType gate_activity=Active_sigmoid,
+             ActiveType cell_activity=Active_tanh,
+             ActiveType candi_activity=Active_tanh,
+             int perf_iter=0,ImplEnum test_mode=SABER_IMPL){
+    typedef Tensor<HOST, AK_FLOAT, NCHW> TensorHf4;
+    typedef Tensor<DEVICE, AK_FLOAT, NCHW> TensorDf4;
+    Context<DEVICE> ctx_dev(0, 1, 1);
 
-bool lstm_test(test_lstm_params &param) {
-    std::vector<Tensor4f*> inputs;
-
-    std::vector<int> seq_offsets;
-    int total_seq_len = 0;
-    int offset = 0;
-    for (int i = 0; i < param.mb; i++) {
-        int seq_len = rand()%50 + 50;
-        total_seq_len += seq_len;
-        seq_offsets.push_back(offset);
-        offset += seq_len;
-    }
-    seq_offsets.push_back(offset);
-
-    Shape inputShape(total_seq_len, param.input_size, 1, 1);
-    if (param.skip_input) {
-        inputShape[1] = 4 * param.layer_size;
-    }
-    Tensor4f *i = new Tensor4f(inputShape);
-    i->set_seq_offset(seq_offsets);
-    inputs.push_back(i);
-    fill_tensor_host_rand<Tensor4f>(*(inputs[0]));
-
-    // weight's layout:
-    // [ Wih Wfh Wch Woh ]
-    Shape weightShape(param.layer_size, 4 * param.layer_size, 1, 1);
-    if (!param.skip_input) {
-        // weight's layout:
-        // [ Wix Wfx Wcx Wox ]
-        // [ Wih Wfh Wch Woh ]
-        // It's a (input_size + layer_size) * (4 * layer_size) matrix
-        weightShape[0] = param.input_size + param.layer_size;
-    }
-    Tensor4f saberWeight(weightShape);
-    fill_tensor_host_rand(saberWeight);
-
-    // bias's layout:
-    // while with peephole: [bi, bf, bc, bo, wic, wfc, woc]
-    // while not: [bi, bf, bc, bo]
-    // It's a 1 * (7 * layer_size or 4 * layer_size) vector
-    int bias_num = 4;
-    if (param.with_peephole) {
-        bias_num = 7;
-    }
-    Shape biasShape(1, bias_num * param.layer_size, 1, 1);
-    Tensor4f saberBias(biasShape);
-    fill_tensor_host_rand(saberBias);
-
-    Shape hiddenShape(param.mb * 2, param.layer_size, 1, 1);
-    Tensor4f saberHidden(hiddenShape);
-    fill_tensor_host_rand(saberHidden);
-
-    LstmParam<Tensor4f> lstm_param(&saberWeight, &saberBias, param.with_init_hidden ? &saberHidden : nullptr,
-                                   param.input_activation, param.gate_activation, param.cell_activation,
-                                   param.candidate_activation, param.with_peephole, param.skip_input);
-
-    Shape outputShape(total_seq_len, param.layer_size, 1, 1);
-    std::vector<Tensor4f*> saber_outputs;
-    Tensor4f saberOutputh(outputShape);
-    Tensor4f saberOutputc(outputShape);
-    saber_outputs.push_back(&saberOutputh);
-//    saber_outputs.push_back(&saberOutputc);
-
-    std::vector<Tensor4f*> ref_outputs;
-    Tensor4f refOutputh(outputShape);
-    Tensor4f refOutputc(outputShape);
-    ref_outputs.push_back(&refOutputh);
-    ref_outputs.push_back(&refOutputc);
-
-    // compute reference result
-    compute_ref_lstm_fwd(inputs, ref_outputs, lstm_param);
-
-    // compute saber result
-    Lstm<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW> saberLstm;
-    Context<X86> ctx_host;
-    saberLstm.init(inputs, saber_outputs, lstm_param, SPECIFY, SABER_IMPL, ctx_host);
-    saberLstm(inputs, saber_outputs, lstm_param, ctx_host);
-
-    bool flag = compare_tensor(*saber_outputs[0], *ref_outputs[0], 1e-4);
-//    flag &= compare_tensor(*saber_outputs[1], *ref_outputs[1], 1e-4);
-    return flag;
-}
-
-typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
-void py_lstm(int word_size = 222,
-             int hidden_size = 333){
-    Context<X86> ctx_dev(0, 1, 1);
-    std::vector<int> offsets = {0, 3,12,19,20};
-    ImplEnum test_mode=SABER_IMPL;
-//    ImplEnum test_mode=VENDER_IMPL;
-    bool is_reverse = false;
-    bool with_peephole=false;
-    Shape shape_weight(1, 1, 1,hidden_size*hidden_size*4+hidden_size*word_size*4);
+    Shape shape_weight({1, 1, 1,hidden_size*hidden_size*4+hidden_size*word_size*4});
     Shape shape_bias;
     if(with_peephole){
-        shape_bias=Shape(1,1,1,hidden_size*7);
+        shape_bias=Shape({1,1,1,hidden_size*7});
     }else{
-        shape_bias=Shape(1,1,1,hidden_size*4);
+        shape_bias=Shape({1,1,1,hidden_size*4});
     }
-    Shape shape_x(offsets[offsets.size() - 1], word_size, 1, 1);
-    Shape shape_h(offsets[offsets.size() - 1], hidden_size, 1, 1);
+    Shape shape_x({offsets[offsets.size() - 1], word_size, 1, 1});
+    Shape shape_h({offsets[offsets.size() - 1], hidden_size, 1, 1});
     TensorHf4 host_x(shape_x);
     TensorHf4 host_weight(shape_weight);
     TensorHf4 host_bias(shape_bias);
     TensorHf4 host_hidden_out(shape_h);
-    readTensorData(host_weight, "host_w");
-    readTensorData(host_x, "host_x");
-    readTensorData(host_bias, "host_b");
+    TensorDf4 dev_x(shape_x);
+    TensorDf4 dev_weight(shape_weight);
+    TensorDf4 dev_bias(shape_bias);
+    TensorDf4 dev_hidden_out(shape_h);
+//    readTensorData(host_weight, "host_w");
+//    readTensorData(host_x, "host_x");
+//    readTensorData(host_bias, "host_b");
+    fill_tensor_host_rand(host_weight);
+    fill_tensor_host_rand(host_x);
+    fill_tensor_host_rand(host_bias);
+    dev_weight.copy_from(host_weight);
+    dev_x.copy_from(host_x);
+    dev_bias.copy_from(host_bias);
 
     host_x.set_seq_offset(offsets);
-    LstmParam<TensorHf4> param(&host_weight, &host_bias,nullptr,Active_unknow,Active_sigmoid,Active_tanh,Active_tanh,
-                               with_peephole,false,is_reverse);
-    Lstm<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW> lstm_op;
+    dev_x.set_seq_offset(offsets);
+    LstmParam<TensorDf4> param(&dev_weight, &dev_bias,nullptr,Active_unknow,gate_activity,cell_activity,candi_activity,
+                            with_peephole,false,is_reverse);
+    Lstm<DEVICE, AK_FLOAT> lstm_op;
 
-    std::vector<TensorHf4*> inputs;
-    std::vector<TensorHf4*> outputs;
-    inputs.push_back(&host_x);
-    outputs.push_back(&host_hidden_out);
+    std::vector<TensorDf4*> inputs;
+    std::vector<TensorDf4*> outputs;
+    inputs.push_back(&dev_x);
+    outputs.push_back(&dev_hidden_out);
 
     SABER_CHECK(lstm_op.init(inputs, outputs, param, SPECIFY, test_mode, ctx_dev));
     SABER_CHECK(lstm_op.compute_output_shape(inputs, outputs, param));
     outputs[0]->re_alloc(outputs[0]->valid_shape());
     SABER_CHECK(lstm_op(inputs, outputs, param, ctx_dev));
+    outputs[0]->record_event(ctx_dev.get_compute_stream());
+    outputs[0]->sync();
 
+    if(perf_iter>0) {
+        SaberTimer<DEVICE> t1;
+        t1.start(ctx_dev);
+        for (int i = 0; i < perf_iter; ++i) {
+            SABER_CHECK(lstm_op(inputs, outputs, param, ctx_dev));
+            outputs[0]->record_event(ctx_dev.get_compute_stream());
+            outputs[0]->sync();
+        }
+        t1.end(ctx_dev);
+                LOG(INFO) << "!!saber care: iter = " << perf_iter << " , total time: " << t1.get_average_ms() <<
+                          "avg time : " << t1.get_average_ms() / perf_iter << " args [" << offsets[offsets.size() - 1]
+                          << "," << offsets.size() - 1 << ","<< word_size << "," << hidden_size << "]";
+    }
+
+    host_hidden_out.copy_from(dev_hidden_out);
     TensorHf4 compare_g(shape_h);
-    readTensorData(compare_g, "host_correct");
-    write_tensorfile(host_hidden_out, "host_g.txt");
-    write_tensorfile(compare_g, "host_correct.txt");
+
+//    readTensorData(compare_g, "host_correct");
+//    write_tensorfile(host_hidden_out, "host_g.txt");
+//    write_tensorfile(compare_g, "host_correct.txt");
+
+    std::vector<TensorHf4*> inputs_ref;
+    std::vector<TensorHf4*> outputs_ref;
+    outputs_ref.push_back(&compare_g);
+    inputs_ref.push_back(&host_x);
+    LstmParam<TensorHf4> param_ref(&host_weight, &host_bias,nullptr,Active_unknow,gate_activity,cell_activity,candi_activity,
+                              with_peephole,false,is_reverse);
+    compute_ref_lstm_fwd_me(inputs_ref,outputs_ref,param_ref);
+
     double maxdiff = 0;
     double maxratio = 0;
-    tensor_cmp_host(host_hidden_out.data(), compare_g.data(), host_hidden_out.valid_size(), maxratio, maxdiff);
-    if (abs(maxratio) <= 0.001) {
-        LOG(INFO) << "passed  " << maxratio<<","<<maxdiff<<",?="<<abs(maxratio);
+    tensor_cmp_host((const float*)host_hidden_out.data(), (const float*)compare_g.data(), host_hidden_out.valid_size(), maxratio, maxdiff);
+    if (abs(maxratio) <= 0.001||abs(maxdiff)<0.001) {
+                LOG(INFO) << "passed  " << maxratio<<","<<maxdiff<<",?="<<abs(maxratio);
     } else {
-        LOG(INFO) << "failed : ratio " << maxratio<<","<<maxdiff;
+        CHECK(false) << "failed : ratio " << maxratio<<","<<maxdiff;
     }
 
 }
@@ -377,46 +306,23 @@ void py_lstm(int word_size = 222,
 TEST(TestSaberFuncX86, test_tensor_lstm) {
     Env<X86>::env_init();
 
-    test_lstm_params test_param[] = {
-        // batch_size, input_size, layer_size, input_activation, gate_activation, candidate_activation, cell_activation, with_peephole, with_init_hidden, skip_input
-        test_lstm_params{6, 55, 300, Active_unknow, Active_sigmoid, Active_relu, Active_sigmoid, false, false, false},
-        test_lstm_params{6, 55, 300, Active_unknow, Active_sigmoid, Active_relu, Active_sigmoid, true, false, false},
-//        test_lstm_params{6, 55, 300, Active_unknow, Active_sigmoid, Active_relu, Active_sigmoid, false, true, false},
-//        test_lstm_params{6, 55, 300, Active_unknow, Active_sigmoid, Active_relu, Active_sigmoid, true, true, false},
-//        test_lstm_params{6, 55, 300, Active_tanh, Active_sigmoid, Active_relu, Active_sigmoid, false, false, false},
-//        test_lstm_params{6, 55, 300, Active_tanh, Active_sigmoid, Active_relu, Active_sigmoid, true, false, false},
-//        test_lstm_params{6, 55, 300, Active_tanh, Active_sigmoid, Active_relu, Active_sigmoid, true, true, false},
-//        test_lstm_params{6, 55, 300, Active_tanh, Active_sigmoid, Active_relu, Active_sigmoid, false, true, false},
-//        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, false, false, false},
-//        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, true, false, false},
-//        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, false, true, false},
-//        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, true, true, false},
-//        test_lstm_params{6, 55, 300, Active_unknow, Active_sigmoid, Active_relu, Active_sigmoid, false, false, true},
-//        test_lstm_params{6, 55, 300, Active_unknow, Active_sigmoid, Active_relu, Active_sigmoid, true, false, true},
-//        test_lstm_params{6, 55, 300, Active_unknow, Active_sigmoid, Active_relu, Active_sigmoid, false, true, true},
-//        test_lstm_params{6, 55, 300, Active_unknow, Active_sigmoid, Active_relu, Active_sigmoid, true, true, true},
-        /*test_lstm_params{6, 55, 300, Active_tanh, Active_sigmoid, Active_relu, Active_sigmoid, false, false, true},
-        test_lstm_params{6, 55, 300, Active_tanh, Active_sigmoid, Active_relu, Active_sigmoid, true, false, true},
-        test_lstm_params{6, 55, 300, Active_tanh, Active_sigmoid, Active_relu, Active_sigmoid, true, true, true},
-        test_lstm_params{6, 55, 300, Active_tanh, Active_sigmoid, Active_relu, Active_sigmoid, false, true, true},
-        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, false, false, true},
-        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, true, false, true},
-        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, false, true, true},
-        test_lstm_params{6, 55, 300, Active_stanh, Active_sigmoid, Active_relu, Active_sigmoid, true, true, true},*/
-    };
+    lstm_ut<X86,X86>(222,333,{0,1,3,5,10},false, false,Active_sigmoid,Active_tanh,Active_tanh,100,SABER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,1,3,5,10},false, true,Active_sigmoid,Active_tanh,Active_tanh,100,SABER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,1,3,5,10},true, false,Active_sigmoid,Active_tanh,Active_tanh,100,SABER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,1,3,5,10},true, true,Active_sigmoid,Active_tanh,Active_tanh,100,SABER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,10},false, true,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,10},false, false,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,10},true, true,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,10},true, false,Active_sigmoid,Active_tanh,Active_tanh,0,SABER_IMPL);
 
-    for (size_t i = 0; i < ARRAY_SIZE(test_param); i++) {
-        LOG(INFO) << "case " << i;
-        bool ret = lstm_test(test_param[i]);
-        if (ret) {
-            LOG(INFO) << "Test Passed";
-        }
-        else {
-            LOG(ERROR) << "Test Failed";
-        }
-    }
-
-//    py_lstm();
+    lstm_ut<X86,X86>(222,333,{0,1,3,5,10},false, false,Active_sigmoid,Active_tanh,Active_tanh,100,VENDER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,1,3,5,10},false, true,Active_sigmoid,Active_tanh,Active_tanh,100,VENDER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,1,3,5,10},true, false,Active_sigmoid,Active_tanh,Active_tanh,100,VENDER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,1,3,5,10},true, true,Active_sigmoid,Active_tanh,Active_tanh,100,VENDER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,10},false, true,Active_sigmoid,Active_tanh,Active_tanh,0,VENDER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,10},false, false,Active_sigmoid,Active_tanh,Active_tanh,0,VENDER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,10},true, true,Active_sigmoid,Active_tanh,Active_tanh,0,VENDER_IMPL);
+    lstm_ut<X86,X86>(222,333,{0,10},true, false,Active_sigmoid,Active_tanh,Active_tanh,0,VENDER_IMPL);
 }
 
 int main(int argc, const char** argv) {

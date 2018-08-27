@@ -29,12 +29,14 @@ namespace lite{
 class SaberConcat : public OpBase {
 public:
     SaberConcat() = default;
-    //SaberConcat(int axis);
     SaberConcat(const ParamBase* param);
-    ~SaberConcat() {}
+    ~SaberConcat();
 
-    //SaberStatus load_param(int axis);
     virtual SaberStatus load_param(const ParamBase* param) override;
+
+    //virtual SaberStatus load_param(FILE* fp, const float* weights) override;
+
+    virtual SaberStatus load_param(std::istream& stream, const float* weights) override;
 
     virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
                                      std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;

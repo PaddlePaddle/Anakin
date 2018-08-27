@@ -29,7 +29,6 @@ namespace ops {
 template<typename Ttype, DataType Dtype, Precision Ptype>
 class SassConvBatchnormScaleHelper;
 
-/// pooling op
 /**
  * \brief SassConvBatchnormScale implementation class
  * public inherit Operator
@@ -65,12 +64,12 @@ public:
     Status InitParam() override;
     
     /**
-    * \brief initial all the resource needed by pooling
+    * \brief initial all the resource needed
     * \param ctx stand for SassConvBatchnormScale operation context
     * \param ins stand for input tensor vector
     * \param outs stand for output tensor vector
     * \return status
-    *///! initial all the resource needed by pooling
+    *///! initial all the resource needed
     Status Init(OpContext<Ttype> &ctx,
                 const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
                 std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;

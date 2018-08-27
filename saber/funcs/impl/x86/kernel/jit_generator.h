@@ -1,9 +1,17 @@
+
+#ifndef SABER_FUNCS_IMPL_X86_KERNEL_JIT_GENERATOR_H
+#define SABER_FUNCS_IMPL_X86_KERNEL_JIT_GENERATOR_H
+
 #pragma once
 
 #include <type_traits>
 
-#define XBYAK64
-#define XBYAK_NO_OP_NAMES
+#ifndef XBYAK64
+ #define XBYAK64
+#endif
+#ifndef XBYAK_NO_OP_NAMES
+ #define XBYAK_NO_OP_NAMES
+#endif
 /* in order to make selinux happy memory that would be marked with X-bit should
  * be obtained with mmap */
 #define XBYAK_USE_MMAP_ALLOCATOR
@@ -659,3 +667,5 @@ public:
 }
 }
 }
+
+#endif
