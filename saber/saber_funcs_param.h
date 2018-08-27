@@ -305,6 +305,77 @@ private:
 };
 
 template <typename TargetType>
+struct EltwiseParam;
+
+template <typename TargetType>
+struct ConvEltwiseParam {
+    ConvEltwiseParam()
+        : conv_param()
+        , eltwise_param()
+    {}
+    ConvEltwiseParam(ConvParam<TargetType> conv_param_in,
+            EltwiseParam<TargetType> eltwise_param_in)
+        : conv_param(conv_param_in)
+        , eltwise_param(eltwise_param_in)
+    {}
+
+    ConvEltwiseParam(const ConvEltwiseParam &right)
+        : conv_param(right.conv_param)
+        , eltwise_param(right.eltwise_param)
+    {}
+    ConvEltwiseParam& operator=(const ConvEltwiseParam& right) {
+        conv_param = right.conv_param;
+        eltwise_param = right.eltwise_param;
+        return *this;
+    }
+    bool operator==(const ConvEltwiseParam& right) {
+        bool comp_eq = true;
+        comp_eq &= (conv_param == right.conv_param);
+        comp_eq &= (eltwise_param == right.eltwise_param);
+        return comp_eq;
+    }
+
+    ConvParam<TargetType> conv_param;
+    EltwiseParam<TargetType> eltwise_param;
+};
+
+template <typename TargetType>
+struct PoolingParam;
+
+template <typename TargetType>
+struct ConvPoolingParam{
+    ConvPoolingParam()
+            : conv_param()
+            , pooling_param()
+    {}
+
+    ConvPoolingParam(ConvParam<TargetType> conv_param_in,
+                     PoolingParam<TargetType> pooling_param_in)
+            : conv_param(conv_param_in)
+            , pooling_param(pooling_param_in)
+    {}
+
+    ConvPoolingParam(const ConvPoolingParam<TargetType> &right)
+            : conv_param(right.conv_param)
+            , pooling_param(right.pooling_param)
+    {}
+    ConvPoolingParam &operator=(const ConvPoolingParam &right) {
+        conv_param = right.conv_param;
+        pooling_param = right.pooling_param;
+        return *this;
+    }
+    bool operator==(const ConvPoolingParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (conv_param == right.conv_param);
+        comp_eq = comp_eq && (pooling_param == right.pooling_param);
+        return comp_eq;
+    }
+
+    ConvParam<TargetType> conv_param;
+    PoolingParam<TargetType> pooling_param;
+};
+
+template <typename TargetType>
 struct CrfDecodingParam {
     CrfDecodingParam()
         : weight_tensor(NULL)
@@ -401,6 +472,7 @@ struct CtcAlignParam {
     int blank;
     bool merge_repeated;
 };
+
 template <typename TargetType>
 struct DeformableConvParam {
 
@@ -585,60 +657,66 @@ struct DetectionOutputParam {
     float nms_eta{1.f};
 
 };
-  
+
 template <typename TargetType>
 struct EltwiseParam {
     EltwiseParam()
-            : operation(Eltwise_unknow)
-            , coeff()
-            , activation_param(ActivationParam<TargetType>()) {}
-
+        : operation(Eltwise_unknow)
+        , coeff()
+        , activation_param(ActivationParam<TargetType>())
+        , has_eltwise(false) {}
     EltwiseParam(EltwiseType operation_in
-            , std::vector<float> coeff_in = std::vector<float>({1,1})
-            , ActivationParam<TargetType> activation_param_in = ActivationParam<TargetType>())
-            : operation(operation_in)
-            , coeff(coeff_in)
-            , activation_param(activation_param_in) {
-
+                 , std::vector<float> coeff_in = std::vector<float>({1, 1})
+                 , ActivationParam<TargetType> activation_param_in = ActivationParam<TargetType>())
+        : operation(operation_in)
+        , coeff(coeff_in)
+        , activation_param(activation_param_in)
+        , has_eltwise(true) {
         if ((operation == Eltwise_sum) && (coeff.size() == 0)) {
             coeff.push_back(1);
             coeff.push_back(1);
         }
     }
-
     EltwiseParam(const EltwiseParam<TargetType>& right)
-            : operation(right.operation)
-            , coeff(right.coeff)
-            , activation_param(right.activation_param)
+        : operation(right.operation)
+        , coeff(right.coeff)
+        , activation_param(right.activation_param)
+        , has_eltwise(right.has_eltwise)
     {}
-
     EltwiseParam<TargetType>& operator=(const EltwiseParam<TargetType>& right) {
         operation = right.operation;
         coeff.resize(right.coeff.size());
+
         for (int i = 0; i < coeff.size(); ++i) {
             coeff[i] = right.coeff[i];
         }
+
         activation_param = right.activation_param;
+        has_eltwise = right.has_eltwise;
         return *this;
     }
-
     bool operator==(const EltwiseParam<TargetType>& right) {
         bool comp_eq = true;
         comp_eq = comp_eq && (operation == right.operation);
         comp_eq = comp_eq && (coeff.size() == right.coeff.size());
         comp_eq = comp_eq && (activation_param == right.activation_param);
+        comp_eq = comp_eq && (has_eltwise == right.has_eltwise);
         if (!comp_eq) {
             return comp_eq;
         }
+
         for (int i = 0; i < coeff.size(); ++i) {
             comp_eq = comp_eq && (coeff[i] == right.coeff[i]);
         }
+
         return comp_eq;
     }
     ActivationParam<TargetType> activation_param;
     EltwiseType operation;
+    bool has_eltwise{false};
     std::vector<float> coeff;
 };
+
 
 template <typename TargetType>
 struct EmbeddingParam {
@@ -1915,6 +1993,7 @@ struct SPPParam {
     int pyramid_height;
     PoolingType pool_type;
 };
+
 
 template <typename TargetType>
 struct TransposeParam {

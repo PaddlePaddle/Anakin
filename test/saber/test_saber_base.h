@@ -205,16 +205,20 @@ public:
             SABER_CHECK(_base_op.compute_output_shape(_inputs_dev[i],
                                                       _outputs_dev[i], _params[param_index]));
         }
-        for(int i = 0; i < _outputs_dev.size(); ++i){
-            for(int j = 0; j < _op_output_num; ++j){
+        for(int i = 0; i < _outputs_dev.size(); ++i) {
+            for(int j = 0; j < _op_output_num; ++j) {
                 Shape sh = _outputs_dev[i][j] -> valid_shape();
                 _outputs_dev[i][j] -> re_alloc(sh, Dtype);
                 _outputs_host[i][j] -> re_alloc(sh, Dtype);
                 _outputs_hd[i][j] -> re_alloc(sh, Dtype);
-                
-                //init output_dev and output_host to equal
-                fill_tensor_const(*_outputs_dev[i][j],0);
-                fill_tensor_const(*_outputs_host[i][j],0);
+                if (!_use_random_output) {
+                    fill_tensor_const(*_outputs_dev[i][j], 0);
+                    fill_tensor_const(*_outputs_host[i][j], 0);
+                } else {
+                    fill_tensor_rand(*_outputs_dev[i][j], -5.f, 5.f);
+                    _outputs_host[i][j]->copy_from(*_outputs_dev[i][j]);
+                    _outputs_hd[i][j]->copy_from(*_outputs_dev[i][j]);
+                }
             }
         }
     }
@@ -252,6 +256,7 @@ public:
             _base_op.init(_inputs_dev[input_index], _outputs_dev[input_index],
                           _params[param_index], strategy, implenum, ctx);
             for(int iter=0; iter<100; ++iter){
+                _outputs_dev[input_index][0]->copy_from(*_outputs_host[input_index][0]);
                 status= _base_op(_inputs_dev[input_index], _outputs_dev[input_index],
                                  _params[param_index], ctx);
                 if(status == SaberUnImplError){
@@ -334,6 +339,9 @@ public:
     }
     void result_check_speed(){
     }
+    void set_random_output(bool random_output) {
+        _use_random_output = random_output;
+    }
 private:
     int _op_input_num;
     int _op_output_num;
@@ -349,7 +357,7 @@ private:
     std :: vector<Output_ht> _outputs_hd;
     std :: vector<std::vector<Shape>> _input_shapes;
     std :: vector<Param_t> _params;
-    
+    bool _use_random_output{false};
 };//testsaberbase
 }//namespace saber
 }//namespace anakin
