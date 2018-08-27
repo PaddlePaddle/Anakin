@@ -6,7 +6,7 @@
 using namespace anakin::saber;
 
 int cluster = 0;
-int threads = 4;
+int threads = 1;
 
 #define USE_COMPARE
 const bool FLAG_RELU = false;
@@ -58,6 +58,9 @@ void test_arm_priorbox(std::vector<TensorHf4*>& tin, \
     std::vector<float> min_size{60.f};
     std::vector<float> max_size;
     std::vector<float> aspect_ratio{2};
+    std::vector<float> fixed_size{256.f};
+    std::vector<float> density{1.0f};
+    std::vector<float> fixed_ratio{1.0f};
     std::vector<float> variance{0.1f, 0.1f, 0.2f, 0.2f};
     bool flip = true;
     bool clip = false;
@@ -73,8 +76,11 @@ void test_arm_priorbox(std::vector<TensorHf4*>& tin, \
     order.push_back(PRIOR_MAX);
     order.push_back(PRIOR_COM);
 
-    PriorBoxParam<TensorHf4> param(min_size, max_size, aspect_ratio, \
-        variance, flip, clip, img_w, img_h, step_w, step_h, offset, order);
+   // PriorBoxParam<TensorHf4> param(variance, flip, clip, img_w, img_h, step_w, step_h, offset, order, \
+                                    min_size, max_size, aspect_ratio);
+    PriorBoxParam<TensorHf4> param(variance, flip, clip, img_w, img_h, step_w, step_h, offset, order, \
+                                    std::vector<float>(), std::vector<float>(), std::vector<float>(), \
+                                    fixed_size, fixed_ratio, density);
     PriorBox<ARM, AK_FLOAT> priorbox_saber;
 
     priorbox_saber.compute_output_shape(tin, tvout_saber, param);

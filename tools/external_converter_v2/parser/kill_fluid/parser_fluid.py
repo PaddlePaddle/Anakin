@@ -12,8 +12,6 @@ class FluidParser:
 		# anakin graph model io
 		self.graphIO = None
 		# config info
-		self.ProtoPaths = fluid_config_dict['ProtoPaths']
-		self.PrototxtPath = fluid_config_dict['PrototxtPath'] 
 		self.ModelPath = fluid_config_dict['ModelPath']
 		self.NetType = fluid_config_dict['NetType']
 		self.Debug = fluid_config_dict['Debug']
@@ -251,7 +249,7 @@ class FluidParser:
 					if input_node_name in reshape_dict.keys():
 						shape = reshape_dict[input_node_name]
 					private_data['input_shape'] = shape
-                                        private_data['alias'] = arg
+					private_data['alias'] = arg
 					self.outs[input_node_name] = out_edges
 					self._AddProtoNode(input_node_name, source_op, helper, private_data)
 
@@ -601,17 +599,17 @@ class FluidParser:
 					if input_list[0].split('#')[0] == 'mul':
 						mul_node_name = input_list[0]
 						mul_op = self._GetOp(source_ops, mul_node_name)
-						if helper.var_name_by_param(mul_op, 'Y').startswith('fc'):
-							if helper.attr_data(mul_op, 'x_num_col_dims') == 1:
-								input_list_of_mul = self.ins[mul_node_name].targets('X')
-								input_name_of_mul = input_list_of_mul[0]
-								[w_np, w_sh] = helper.data_with_shape_by_param(mul_op, 'Y', \
+						#if helper.var_name_by_param(mul_op, 'Y').startswith('fc'):
+						if helper.attr_data(mul_op, 'x_num_col_dims') == 1:
+							input_list_of_mul = self.ins[mul_node_name].targets('X')
+							input_name_of_mul = input_list_of_mul[0]
+							[w_np, w_sh] = helper.data_with_shape_by_param(mul_op, 'Y', \
 									False, None, 0, False)
-								private_data['np_flat_fc_weight'] = w_np
-								private_data['np_fc_outdim'] = w_sh[3]
-								lstm_flags[1] = True
-							else:
-								raise NameError('ERROR: Axis of LSTM_FC must be 1.')
+							private_data['np_flat_fc_weight'] = w_np
+							private_data['np_fc_outdim'] = w_sh[3]
+							lstm_flags[1] = True
+						else:
+							raise NameError('ERROR: Axis of LSTM_FC must be 1.')
 				if lstm_flags == [True, True]:
 					self.outs[input_name_of_mul].mv(mul_node_name, lstm_node_name)
 					self.ins[lstm_node_name].mv(in_lstm_node_name, input_name_of_mul)
@@ -630,13 +628,16 @@ class FluidParser:
 			if source_op.type == 'cast':
 				if helper.attr_data(source_op, 'out_dtype') == 5:
 					cast_node_name = self._NameNodeMid(source_op)
-					input_name_of_cast = self.ins[cast_node_name].target('X')
-					if input_name_of_cast.startswith('top_k') is False:
-						output_name_of_cast = self.outs[cast_node_name].target('Out')
-						self.outs[input_name_of_cast].mv(cast_node_name, output_name_of_cast)
-						self.ins[output_name_of_cast].mv(cast_node_name, input_name_of_cast)
-						self._RmProtoNode(cast_node_name)
-						self._ClearEdges(cast_node_name)
+					if cast_node_name in self.ins:
+						input_name_of_cast = self.ins[cast_node_name].target('X')
+						if input_name_of_cast.startswith('top_k') is False:
+							output_name_of_cast = self.outs[cast_node_name].target('Out')
+							self.outs[input_name_of_cast].mv(cast_node_name, output_name_of_cast)
+							self.ins[output_name_of_cast].mv(cast_node_name, input_name_of_cast)
+							self._RmProtoNode(cast_node_name)
+							self._ClearEdges(cast_node_name)
+					else:
+						print 'Cannot find the layer corresponding to cast.'
 				else:
 					raise NameError('The out type of cast must be float32.')
 
@@ -646,21 +647,31 @@ class FluidParser:
 				private_data = {}
 				topk_node_name = self._NameNodeMid(source_op)
 				out_list = self.outs[topk_node_name].targets('Out')
-				indices_list = self.outs[topk_node_name].targets('Indices')
-				if len(indices_list) > 0:
-					if len(out_list) == 1 and indices_list[0].startswith('cast'):
+				index_list = self.outs[topk_node_name].targets('Indices')
+				if len(index_list) > 0:
+					if len(out_list) == 1 and index_list[0].startswith('cast'):
 						private_data['out_max_val'] = True
-						cast_node_name = indices_list[0]
-						output_name_of_cast = self.outs[cast_node_name].target('Out')
-						if output_name_of_cast == out_list[0] and out_list[0].startswith('concat'):
+						idxcast_node_name = index_list[0]
+						output_name_of_idxcast = self.outs[idxcast_node_name].target('Out')
+						if output_name_of_idxcast == out_list[0] and out_list[0].startswith('concat'):
 							concat_node_name = out_list[0]
 							output_name_of_concat = self.outs[concat_node_name].target('Out')
-							self.outs[topk_node_name].rm(cast_node_name)
+							self.outs[topk_node_name].rm(idxcast_node_name)
 							self.outs[topk_node_name].mv(concat_node_name, output_name_of_concat)
 							self.ins[output_name_of_concat].mv(concat_node_name, topk_node_name)
-							for node_to_del_name in [concat_node_name, cast_node_name]:
+							for node_to_del_name in [concat_node_name, idxcast_node_name]:
 								self._RmProtoNode(node_to_del_name)
 								self._ClearEdges(node_to_del_name)
+						elif output_name_of_idxcast != out_list[0]:
+							if output_name_of_idxcast.endswith('_gout') and \
+							out_list[0].endswith('_gout'):
+								gout_node_name = out_list[0]
+								idx_gout_node_name = output_name_of_idxcast
+								self.outs[topk_node_name].rm(idxcast_node_name)
+								for node_to_del_name in [idx_gout_node_name, idxcast_node_name]:
+									self._RmProtoNode(node_to_del_name)
+									self._ClearEdges(node_to_del_name)
+								self.graphIO.rm_out(idx_gout_node_name)
 					elif len(out_list) == 0:
 						private_data['out_max_val'] = False
 						self._DealWithCast(source_ops, helper)
@@ -768,6 +779,28 @@ class FluidParser:
 					self._RmProtoNode(bn_node_name)
 					self._AddProtoNode(bn_node_name, source_op, helper, {}, 'disc_bn')
 
+	def _DealWithSSD(self, source_ops, helper):
+		for source_op in source_ops:
+			if source_op.type == 'reshape':
+				rh_node_name = self._NameNodeMid(source_op)
+				if rh_node_name in self.ins:
+					private_data = dict()
+					input_name = self.ins[rh_node_name].target('X')
+					shape = helper.attr_data(source_op, 'shape')
+					if input_name.startswith('concat'):
+						private_data['new_shape'] = [0, shape[0], shape[1], 0]
+					else:
+						private_data['new_shape'] = [0, -1, 1, 1]
+					self._RmProtoNode(rh_node_name)
+					self._AddProtoNode(rh_node_name, source_op, helper, private_data, 'reshape')
+		for source_op in source_ops:
+			if source_op.type == 'softmax':
+				private_data = dict()
+				sm_node_name = self._NameNodeMid(source_op)
+				private_data['axis'] = 2
+				self._RmProtoNode(sm_node_name)
+				self._AddProtoNode(sm_node_name, source_op, helper, private_data, 'softmax')
+
 	def _NewCommonLayer(self,
 						source_ops,
 						in_target,
@@ -810,6 +843,10 @@ class FluidParser:
 			self._DealWithMultiFC(source_ops, helper)
 			self._DealWithArgmax(source_ops, helper)
 			self._DealWithAxpy(source_ops, helper)
+			if self.NetType == "SSD":
+				self._DealWithPriorBox(source_ops, helper)
+				self._DealWithDetectionOutput(source_ops, helper)
+				self._DealWithSSD(source_ops, helper)
 		self._Graph()
 
 

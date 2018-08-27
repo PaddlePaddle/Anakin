@@ -1,5 +1,5 @@
 #include "saber/lite/funcs/saber_concat.h"
-
+#include "saber/lite/net/saber_factory_lite.h"
 #ifdef USE_ARM_PLACE
 
 namespace anakin{
@@ -8,26 +8,47 @@ namespace saber{
 
 namespace lite{
 
-//SaberConcat::SaberConcat(int axis) {
-//    _axis = axis;
-//}
-//
-//SaberStatus SaberConcat::load_param(int axis) {
-//    _axis = axis;
-//    return SaberSuccess;
-//}
-
 SaberConcat::SaberConcat(const ParamBase *param) {
     _param = (const ConcatParam*)param;
     this->_flag_param = true;
 }
 
+SaberConcat::~SaberConcat() {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+    }
+}
+
 SaberStatus SaberConcat::load_param(const ParamBase *param) {
+    if (this->_flag_create_param) {
+        delete _param;
+        _param = nullptr;
+        this->_flag_create_param = false;
+    }
     _param = (const ConcatParam*)param;
     this->_flag_param = true;
     return SaberSuccess;
 }
 
+SaberStatus SaberConcat::load_param(std::istream &stream, const float *weights) {
+    int axis;
+    stream >> axis;
+    _param = new ConcatParam(axis);
+    this->_flag_create_param = true;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+#if 0
+SaberStatus SaberConcat::load_param(FILE *fp, const float *weights) {
+    int axis;
+    fscanf(fp, "%d\n", &axis);
+    _param = new ConcatParam(axis);
+    this->_flag_create_param = true;
+    this->_flag_param = true;
+    return SaberSuccess;
+}
+#endif
 SaberStatus SaberConcat::compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT> *> &inputs,
                                               std::vector<Tensor<CPU, AK_FLOAT> *> &outputs) {
 
@@ -82,6 +103,11 @@ SaberStatus SaberConcat::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &in
         return SaberNotInitialized;
     }
 
+#ifdef ENABLE_OP_TIMER
+    this->_timer.clear();
+    this->_timer.start();
+#endif
+
     int input_size = inputs.size();
 
     //! get output data, valid shape and stride shape
@@ -108,9 +134,16 @@ SaberStatus SaberConcat::dispatch(const std::vector<Tensor<CPU, AK_FLOAT> *> &in
         }
         offset_concat_axis += in_concat_axis;
     }
+#ifdef ENABLE_OP_TIMER
+    this->_timer.end();
+    float ts = this->_timer.get_average_ms();
+    printf("concat %s time: %f\n", this->_op_name.c_str(), ts);
+    OpTimer::add_timer("concat", ts);
+    OpTimer::add_timer("total", ts);
+#endif
     return SaberSuccess;
 }
-
+REGISTER_LAYER_CLASS(SaberConcat);
 
 } //namespace lite
 

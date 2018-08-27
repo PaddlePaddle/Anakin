@@ -288,12 +288,13 @@ LayOutType_op, LayOutType_in, LayOutType_out>::create(\
             _impl = eltwise_prod;
             break;
         case Eltwise_sum:
-            if (param.coeff[0] == 1 && param.coeff[1] == 1)
+            if ((fabsf(param.coeff[0] - 1.f) < 1e-6f) && fabsf(param.coeff[1] - 1.f) < 1e-6f) {
                 _impl = eltwise_sum;
-            else if (param.coeff[0] == 1 && param.coeff[1] == -1)
+            } else if ((fabsf(param.coeff[0] - 1.f) < 1e-6f) && (fabsf(param.coeff[1] + 1.f) < 1e-6f)) {
                 _impl = eltwise_sub;
-            else
+            } else {
                 _impl = eltwise_sum_coeff;
+            }
             break;
         case Eltwise_max:
             _impl = eltwise_max;

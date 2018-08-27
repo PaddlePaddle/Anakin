@@ -358,7 +358,10 @@ def Parser_convolutiondepthwise(args):
     else:
         OpsRegister()["Convolution"].axis = 1
     OpsRegister()["Convolution"].bias_term = convolution_param.bias_term
+<<<<<<< HEAD
 
+=======
+>>>>>>> upstream/developing
 
 @ParserFeedDecorator("Cropping")
 def Parser_crop(args):
@@ -437,7 +440,7 @@ def Parser_innerproduct(args):
     # parser caffe parameter
     tensors = args[2]
     weight = tensors[0]
-    inner_product_param = layer.inner_product_param	
+    inner_product_param = layer.inner_product_param 
     OpsRegister()["Dense"].axis = inner_product_param.axis # weight().shape.dim.value[2]
     OpsRegister()["Dense"].out_dim = inner_product_param.num_output # weight().shape.dim.value[3]
     OpsRegister()["Dense"].bias_term = inner_product_param.bias_term
@@ -631,7 +634,7 @@ def Parser_input(args):
     OpsRegister()["Input"].input_shape = list(input_param.shape[0].dim)
     #OpsRegister()["Input"].input_num = len(input_param.shape)
     #for shape in input_param.shape:
-    #	OpsRegister()["Input"].input_shape.append(list(shape.dim))
+    #   OpsRegister()["Input"].input_shape.append(list(shape.dim))
 
 
 @ParserFeedDecorator("Permute")
@@ -668,6 +671,13 @@ def Parser_split(args):
     # parser caffe parameter
     top = layer.top
     OpsRegister()["Split"].split_num = len(top)
+
+@ParserFeedDecorator("ShuffleChannel")
+def Parser_ShuffleChannel(args):
+    layer = args[1]
+    # parser caffe parameter
+    shufflechannel_param = layer.shuffle_channel_param
+    OpsRegister()["ShuffleChannel"].group = shufflechannel_param.group
 
 
 @ParserFeedDecorator("RPNProposalSSD")
@@ -1061,6 +1071,10 @@ def Parser_priorbox(args):
     OpsRegister()["PriorBox"].min_size = list(prior_box_param.min_size)
     OpsRegister()["PriorBox"].max_size = list(prior_box_param.max_size)
     OpsRegister()["PriorBox"].aspect_ratio = list(prior_box_param.aspect_ratio)
+    OpsRegister()["PriorBox"].fixed_size = list(prior_box_param.fixed_size)
+    OpsRegister()["PriorBox"].fixed_ratio = list(prior_box_param.fixed_ratio)
+    OpsRegister()["PriorBox"].density = list(prior_box_param.density)
+    OpsRegister()["PriorBox"].aspect_ratio = list(prior_box_param.aspect_ratio)
     OpsRegister()["PriorBox"].is_flip = prior_box_param.flip
     OpsRegister()["PriorBox"].is_clip = prior_box_param.clip
     OpsRegister()["PriorBox"].variance = list(prior_box_param.variance)
@@ -1141,7 +1155,7 @@ CAFFE_LAYER_PARSER = {
                 "ContrastiveLoss": OpsParam().set_parser(NotNeededInInference),
                 "Convolution": OpsParam().set_parser(Parser_convolution),
                 "ConvolutionDepthwise": OpsParam().set_parser(Parser_convolutiondepthwise),
-	          "DepthwiseConvolution": OpsParam().set_parser(Parser_convolutiondepthwise),
+                "DepthwiseConvolution": OpsParam().set_parser(Parser_convolutiondepthwise),
                 "Deconvolution": OpsParam().set_parser(Parser_deconvolution),
                 "DeformableConvolution": OpsParam().set_parser(Parser_deformable_convolution),
                 "Crop": OpsParam().set_parser(Parser_crop),
@@ -1195,5 +1209,6 @@ CAFFE_LAYER_PARSER = {
                 "DetectionOutput": OpsParam().set_parser(Parser_detectionoutput), # vis add
                 "ArgMax": OpsParam().set_parser(Parser_argmax),
                 "Normalize": OpsParam().set_parser(Parser_normalize),
-                "ReLU6": OpsParam().set_parser(Parser_relu6)
+                "ReLU6": OpsParam().set_parser(Parser_relu6),
+                "ShuffleChannel": OpsParam().set_parser(Parser_ShuffleChannel)
                 }

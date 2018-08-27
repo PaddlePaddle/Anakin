@@ -4,7 +4,7 @@ namespace anakin {
 
 namespace ops {
 
-#define INSTANCE_CONVRELU(Ttype, Dtype, Ptype) \
+#define INSTANCE_DECONVRELU(Ttype, Dtype, Ptype) \
 template<> \
 void DeconvRelu<Ttype, Dtype, Ptype>::operator()(\
     OpContext<Ttype>& ctx,\
@@ -86,7 +86,7 @@ Status DeconvReluHelper<Ttype, Dtype, Ptype>::InferShape(const
 }
 
 #ifdef USE_CUDA
-INSTANCE_CONVRELU(NV, AK_FLOAT, Precision::FP32);
+INSTANCE_DECONVRELU(NV, AK_FLOAT, Precision::FP32);
 template<>
 Status DeconvReluHelper<NV, AK_FLOAT, Precision::FP32>::Init(OpContext<NV>& ctx,
         const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
@@ -119,9 +119,15 @@ ANAKIN_REGISTER_OP_HELPER(DeconvRelu, DeconvReluHelper, NV, AK_FLOAT, Precision:
 #endif
 
 #ifdef USE_ARM_PLACE
-INSTANCE_CONVRELU(ARM, AK_FLOAT, Precision::FP32);
+INSTANCE_DECONVRELU(ARM, AK_FLOAT, Precision::FP32);
 template class DeconvReluHelper<ARM, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(DeconvRelu, DeconvReluHelper, ARM, AK_FLOAT, Precision::FP32);
+#endif
+
+#ifdef BUILD_LITE
+INSTANCE_DECONVRELU(X86, AK_FLOAT, Precision::FP32);
+template class DeconvReluHelper<X86, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(DeconvRelu, DeconvReluHelper, X86, AK_FLOAT, Precision::FP32);
 #endif
 
 //! register op
