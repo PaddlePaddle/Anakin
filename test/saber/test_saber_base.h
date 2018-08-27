@@ -187,6 +187,10 @@ public:
                 LOG(INFO) << "ERROR";
             _inputs_dev[0][i] -> copy_from(*input[i]);
             _inputs_host[0][i] -> copy_from(*input[i]);
+            if(input[i]->get_seq_offset().size() > 0){
+                 _inputs_dev[0][i] -> set_seq_offset(input[i]->get_seq_offset());
+                _inputs_host[0][i] -> set_seq_offset(input[i]->get_seq_offset());
+            }
         }
         _input_type = CUSTOM;
         
