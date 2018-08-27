@@ -1,24 +1,25 @@
-#include "saber/funcs/eltwise_act.h"
-#include "test_saber_func_test_arm.h"
-#include "tensor_op.h"
-#include "saber_types.h"
-
-#define DEFINE_GLOBAL(type, var, value) \
-        type (GLB_##var) = (value)
-DEFINE_GLOBAL(int, threads, 1);
-DEFINE_GLOBAL(int, cluster_id, 0);
-DEFINE_GLOBAL(int, operation, 1);
-DEFINE_GLOBAL(int, num_coeff, 0);
-DEFINE_GLOBAL(int, act_type, 2);
-#define USE_COMPARE
+#include "test_lite.h"
+#include "saber/lite/funcs/saber_eltwise_act.h"
 
 using namespace anakin::saber;
+using namespace anakin::saber::lite;
+int test_iter = 10;
 
-typedef TargetWrapper<ARM> ARM_API;
-typedef Tensor<ARM, AK_FLOAT, NCHW> TensorHf4;
+int num_in = 9;
+int ch_in = 9;
+int w_in = 9;
+int h_in = 9;
+int cluster = 0;
+int threads = 4;
+int act_type = 2;
+int elt_type = 1;
 
-void eltwise_active_basic(const Context<ARM> &ctx, TensorHf4& tensor_out, \
-    std::vector<TensorHf4*> &tensor_in,int op_type, std::vector<float> coeffs_ptr, int num_coeff, \
+typedef Tensor<CPU, AK_FLOAT> TensorHf4;
+
+#define COMPARE_RESULT 1
+
+void eltwise_active_basic(const Context &ctx, TensorHf4& tensor_out, \
+    std::vector<TensorHf4*> &tensor_in, int op_type, std::vector<float> coeffs_ptr, int num_coeff, \
      int act_type, bool channel_shared, float* slope_ptr) {
     CHECK_GT(tensor_out.size(), 0) << "output tensor is empty";
     CHECK_GT(tensor_in.size(), 1) << "input tensor is empty";
@@ -211,28 +212,28 @@ void eltwise_active_basic(const Context<ARM> &ctx, TensorHf4& tensor_out, \
     
 }
 
-void test_arm_eltwise(std::vector<TensorHf4*>& tin, EltwiseType operation, \
+void test_eltwise_act(std::vector<TensorHf4*>& tin, int operation, \
      std::vector<float> coeffs_ptr, int num_coeff, int threads, int cluster_id, int act_type) {
 
-    int test_iter = 100;
+   // int test_iter = 100;
     double to = 0;
     double min_time = 1000000;
-    SaberTimer<ARM> t1;
-    SaberTimer<ARM> t2;
-
-    Context<ARM> ctx1;
-    PowerMode mode = cluster_id == 0? SABER_POWER_HIGH : SABER_POWER_LOW;
+    SaberTimer t1;
+    SaberTimer t2;
+    // start Reshape & doInfer
+    Context ctx1;
+    LOG(INFO) << "set runtine context";
+    PowerMode mode = cluster == 0? SABER_POWER_HIGH : SABER_POWER_LOW;
     ctx1.set_run_mode(mode, threads);
     LOG(INFO) << "test threads activated";
 #pragma omp parallel
     {
 #ifdef USE_OPENMP
         int thread = omp_get_num_threads();
-                LOG(INFO) << "number of threads: " << thread;
+        LOG(INFO) << "number of threads: " << thread;
 #endif
     }
-
-    TensorHf4 tout_basic;
+TensorHf4 tout_basic;
     TensorHf4 tout_saber;
 
     //TensorHf4* thin = tin[0];
@@ -255,20 +256,26 @@ void test_arm_eltwise(std::vector<TensorHf4*>& tin, EltwiseType operation, \
     LOG(INFO) << " img_h = " << hin;
     LOG(INFO) << " img_w = " << win;
    // enum { Eltwise_prod = 1, Eltwise_sum = 2, Eltwise_max = 3 };
+    // LOG(INFO) << "operation: " << operation;
     if (operation == 1)
         LOG(INFO) << " operation = " << Eltwise_prod;
     if (operation == 2)
         LOG(INFO) << " operation = " << Eltwise_sum;
     if (operation == 3)
         LOG(INFO) << " operation = " << Eltwise_max;
-    LOG(INFO) << "active =" << act_type;
+    LOG(INFO) << "active = " << act_type;
 
     int input_dim = 1;
     Shape shape_out = tin[0]->valid_shape();
     for (int i = 0; i < 4; i++){
-    	shape_out[i] = tin[0]->valid_shape()[i];
+        shape_out[i] = tin[0]->valid_shape()[i];
     }
    //Shape shape_out{num, ch_out, h_out, w_out}
+
+    TensorHf4 tslop;
+    Shape shape{numin, chin, 1, 1};
+    tslop.re_alloc(shape);
+    fill_tensor_rand(tslop, -1.f, 1.f);
 
 #ifdef USE_COMPARE
 
@@ -283,25 +290,20 @@ void test_arm_eltwise(std::vector<TensorHf4*>& tin, EltwiseType operation, \
 
     LOG(INFO) << "run basic eltwise active for precision comparation";
     tout_basic.re_alloc(shape_out);
-
-    TensorHf4 tslop;
-    Shape shape{numin, chin, 1, 1};
-    tslop.re_alloc(shape);
-    fill_tensor_host_rand(tslop, -1.f, 1.f);
    
     to = 0;
     for (int i = 0; i < test_iter; ++i) {
         t1.clear();
-        t1.start(ctx1);
+        t1.start();
         if(act_type == 2)
             eltwise_active_basic(ctx1, tout_basic, tin, operation, coeffs_ptr, num_coeff, act_type, false, nullptr);
         if(act_type == 10){
             eltwise_active_basic(ctx1, tout_basic, tin, operation, coeffs_ptr, num_coeff, act_type, false, tslop.data());
         }
         
-        tvout_basic[0] ->record_event(ctx1.get_compute_stream());
-        tvout_basic[0] ->sync();
-        t1.end(ctx1);
+        //tvout_basic[0] ->record_event(ctx1.get_compute_stream());
+        //tvout_basic[0] ->sync();
+        t1.end();
         to += t1.get_average_ms();
         if (t1.get_average_ms() < min_time) {
             min_time = t1.get_average_ms();
@@ -311,16 +313,15 @@ void test_arm_eltwise(std::vector<TensorHf4*>& tin, EltwiseType operation, \
    // print_tensor_host(tout_basic);
 #endif
     
-    EltwiseActive<ARM, AK_FLOAT> eltwise_act_saber;
-    EltwiseParam<TensorHf4> eltwise_param(operation, coeffs_ptr);
-    ActivationParam<TensorHf4> activation_param(Active_relu);
-    if(act_type == 10){
-        PreluParam<TensorHf4> prelu_param(false, &tslop);
-        activation_param = ActivationParam<TensorHf4>(Active_prelu, 0, 0, prelu_param);
-    }
-    EltwiseActiveParam<TensorHf4> eltwise_act_param(eltwise_param, activation_param);
-
-    eltwise_act_saber.compute_output_shape(tin, tvout_saber, eltwise_act_param);
+    SaberEltwiseAct eltwise_act_saber;
+    EltwiseActParam eltwise_act_param(operation, coeffs_ptr, act_type, 0.f, 1.f, false, tslop.data());
+   // ParamBase* base =new EltwiseActParam(operation, coeffs_ptr, act_type, 0.f, 1.f, false, tslop.data());
+    LOG(INFO) << "saber eltwise act load param";
+    eltwise_act_saber.load_param(&eltwise_act_param);
+    //LITE_CHECK(eltwise_act_saber.load_param(&eltwise_act_param));
+    
+    LOG(INFO) << "saber eltwise act compute output shape";
+    eltwise_act_saber.compute_output_shape(tin, tvout_saber);
 
     Shape sh_out_saber = tvout_saber[0]->valid_shape();
     LOG(INFO) << "output shape_1: " << sh_out_saber[0] << ", " << sh_out_saber[1] << ", " \
@@ -333,7 +334,8 @@ void test_arm_eltwise(std::vector<TensorHf4*>& tin, EltwiseType operation, \
     tvout_saber[0]->re_alloc(shape_out);
 
     LOG(INFO) << "saber eltwise act impl init";
-    SABER_CHECK(eltwise_act_saber.init(tin, tvout_saber, eltwise_act_param, SPECIFY, SABER_IMPL, ctx1));
+    CHECK_EQ(eltwise_act_saber.init(tin, tvout_saber, ctx1), SaberSuccess) << "init error";
+    //SABER_CHECK(eltwise_act_saber.init(tin, tvout_saber, eltwise_act_param, SPECIFY, SABER_IMPL, ctx1));
 
     //! compute
     LOG(INFO) << "saber eltwise act compute";
@@ -341,12 +343,13 @@ void test_arm_eltwise(std::vector<TensorHf4*>& tin, EltwiseType operation, \
     min_time = 1000000;
     for (int i = 0; i < test_iter; ++i) {
         t2.clear();
-        t2.start(ctx1);
+        t2.start();
         //eltwise_arm(ctx2, tout_saber, tin, operation, coeffs_ptr, num_coeff);
-        eltwise_act_saber(tin, tvout_saber, eltwise_act_param, ctx1);
-        tvout_saber[0]->record_event(ctx1.get_compute_stream());
-        tvout_saber[0]->sync();
-        t2.end(ctx1);
+        //eltwise_act_saber(tin, tvout_saber, eltwise_act_param, ctx1);
+        eltwise_act_saber.dispatch(tin, tvout_saber);
+       // tvout_saber[0]->record_event(ctx1.get_compute_stream());
+       // tvout_saber[0]->sync();
+        t2.end();
         //printf("i: %d \n",i);
         to += t2.get_average_ms();
         if (t2.get_average_ms() < min_time) {
@@ -374,34 +377,28 @@ void test_arm_eltwise(std::vector<TensorHf4*>& tin, EltwiseType operation, \
 }
 
 #if 1
-TEST(TestSaberFuncTest, test_func_eltwise_arm) {
+TEST(TestSaberLite, test_func_eltwise_act_lite) {
 
-    int num = 1;
-    int chin = 32;
-    int hin = 112;
-    int win = 112;
-
-    int pad = 1;
-    int stride = 2;
-    int kernel = 3;
-    //int chout = 3;
+    int num = num_in;
+    int chin = ch_in;
+    int hin = h_in;
+    int win = w_in;
 
    // bool bias_term = false;
    // bool global = true;
    // PoolingType type = 1;
 
     Shape shape_in(num, chin, hin, win);
-
     
     //fill_tensor_host_const(tdin, 1.f);
 
     std::vector<TensorHf4*> tin;
     TensorHf4 tdin;
     tdin.re_alloc(shape_in);
-    fill_tensor_host_rand(tdin, -1.f, 1.f);
+    fill_tensor_rand(tdin, -1.f, 1.f);
     TensorHf4 tdin1;
     tdin1.re_alloc(shape_in);
-    fill_tensor_host_rand(tdin1, -1.f, 1.f);
+    fill_tensor_rand(tdin1, -1.f, 1.f);
     
     tin.push_back(&tdin);
     tin.push_back(&tdin1);
@@ -409,43 +406,46 @@ TEST(TestSaberFuncTest, test_func_eltwise_arm) {
     
     std::vector<float> coeffs_ptr;
    
-	coeffs_ptr.push_back(1.0f);
-	coeffs_ptr.push_back(1.0f);
+    coeffs_ptr.push_back(1.0f);
+    coeffs_ptr.push_back(1.0f);
     //printf("test_arm_eltwise: GLB_operation: %d \n", GLB_operation);
-    test_arm_eltwise(tin, (EltwiseType)GLB_operation, coeffs_ptr, GLB_num_coeff, GLB_threads, GLB_cluster_id, GLB_act_type);
+   // LOG(INFO) << "elt_type: " << elt_type;
+    test_eltwise_act(tin, elt_type, coeffs_ptr, 0, threads, cluster, act_type);
     //LOG(WARNING) << "pooling not support yet";
 }
 #endif
 
 int main(int argc, const char** argv){
-    anakin::saber::Env<ARM>::env_init();
 
-    // initial logger
-    //logger::init(argv[0]);
-   // printf("Test0:\n");
-     if (argc < 1) {
-        LOG(INFO) << "Example of Usage:\n \
-        ./output/unit_test/eltwise_test\n \
-            threads\n \
-            cluster_id\n \
-            operation\n \
-            num_coeff\n  ";
-        exit(0);
-    } else if (argc == 3){
-        GLB_threads = atoi(argv[1]);
-        GLB_cluster_id = atoi(argv[2]);
-    }else if (argc == 6){
-        GLB_threads = atoi(argv[1]);
-        GLB_cluster_id = atoi(argv[2]);
-        GLB_operation = atoi(argv[3]);
-        GLB_num_coeff = atoi(argv[4]);
-        GLB_act_type = atoi(argv[5]);
+    Env::env_init();
+
+    if (argc >= 2) {
+        cluster = atoi(argv[1]);
     }
-    //printf("Test:\n");
+    if (argc >= 3) {
+        threads = atoi(argv[2]);
+    }
+    if (argc >= 4){
+        test_iter = atoi(argv[3]);
+    }
+    if (argc >= 5 ) {
+        elt_type = atoi(argv[4]);
+    }
+    if (argc >= 6 ) {
+        act_type = atoi(argv[5]);
+    }
+    if(argc >= 7) {
+        if (argc < 10) {
+            LOG(ERROR) << "usage: ./" << argv[0] << " cluster  threads  test_iter " << \
+                " elt_type act_type num ch_in h_in w_in";
+            return 0;
+        }
+        num_in = atoi(argv[6]);
+        ch_in = atoi(argv[7]);
+        h_in = atoi(argv[8]);
+        w_in = atoi(argv[9]);
+    }
     InitTest();
     RUN_ALL_TESTS(argv[0]);
     return 0;
 }
-
-
-
