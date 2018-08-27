@@ -162,7 +162,7 @@ SaberStatus VenderConv2D<NV, AK_FLOAT>::dispatch(
                                                               _input_descs, in_data,
                                                               _filter_desc, weight_data,
                                                               _conv_descs, _fwd_algo, _workspace, _workspace_fwd_sizes,
-                                                              cudnn::cudnnTypeWrapper<float>::kZero(),
+                                                              &_beta,
                                                               _output_descs, out_data,
                                                               _bias_desc, bias_data,
                                                               _active_descs, _output_descs, out_data));
@@ -172,13 +172,13 @@ SaberStatus VenderConv2D<NV, AK_FLOAT>::dispatch(
                                                 _input_descs, in_data,
                                                 _filter_desc, weight_data,
                                                 _conv_descs,  _fwd_algo, _workspace, _workspace_fwd_sizes,
-                                                cudnn::cudnnTypeWrapper<float>::kZero(),
+                                                &_beta,
                                                 _output_descs, out_data));
 
             CUDNN_CHECK(cudnnActivationForward(_handle, _active_descs,
                                                cudnn::cudnnTypeWrapper<float>::kOne(),
                                                _output_descs, out_data,
-                                               cudnn::cudnnTypeWrapper<float>::kZero(),
+                                               &_beta,
                                                _output_descs, out_data));
         }
     } else {
@@ -187,7 +187,7 @@ SaberStatus VenderConv2D<NV, AK_FLOAT>::dispatch(
                                             _input_descs, in_data,
                                             _filter_desc, weight_data,
                                             _conv_descs, _fwd_algo, _workspace, _workspace_fwd_sizes,
-                                            cudnn::cudnnTypeWrapper<float>::kZero(),
+                                            &_beta,
                                             _output_descs, out_data));
 
         if (param.bias()->size() > 0) {
