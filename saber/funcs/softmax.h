@@ -12,66 +12,57 @@
    See the License for the specific language governing permissions and
    limitations under the License. 
 */
-#ifndef ANAKIN_SABER_FUNCS_UNPOOL_H
-#define ANAKIN_SABER_FUNCS_UNPOOL_H
+
+#ifndef ANAKIN_SABER_FUNCS_SOFTMAX_H
+#define ANAKIN_SABER_FUNCS_SOFTMAX_H
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
-#include "saber/funcs/impl/impl_unpool.h"
+#include "saber/funcs/impl/impl_softmax.h"
 #ifdef NVIDIA_GPU
-//#include "saber/funcs/impl/cuda/saber_unpool.h"
+#include "saber/funcs/impl/cuda/saber_softmax.h"
+#include "saber/funcs/impl/cuda/vender_softmax.h"
 #endif
 
-namespace anakin {
-namespace saber {
+#ifdef USE_X86_PLACE
+#include "saber/funcs/impl/x86/saber_softmax.h"
+#endif
+#ifdef USE_ARM_PLACE
+#include "saber/funcs/impl/arm/saber_softmax.h"
+#endif
+namespace anakin{
 
-template <typename TargetType,
-        DataType OpDtype>
-class Unpool : public BaseFunc<
-        TargetType,
-        OpDtype,
-        ImplBase,
-        PoolingParam> {
+namespace saber{
+
+template <typename TargetType, DataType OpDtype>
+class Softmax : public BaseFunc<TargetType, OpDtype, ImplBase, SoftmaxParam>
+{
 public:
-    using BaseFunc<
-        TargetType,
-        OpDtype,
-        ImplBase,
-        PoolingParam >::BaseFunc;
-    Unpool() = default;
+    using BaseFunc<TargetType, OpDtype, ImplBase, SoftmaxParam>::BaseFunc;
+    Softmax() = default;
 
     typedef Tensor<TargetType> InDataTensor;
     typedef Tensor<TargetType> OutDataTensor;
     typedef Tensor<TargetType> OpTensor;
-    typedef PoolingParam<TargetType> Param_t;
+    typedef SoftmaxParam<TargetType> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
 
-    virtual SaberStatus compute_output_shape(const Input_v& input, \
-        Output_v &output, Param_t& param) override {
-        SaberStatus status;
-        Shape output_shape = input[0]->valid_shape();
-        int h_id = input[0]->height_index();
-        int w_id = input[0]->width_index();
-        output_shape[h_id] =  (input[0]->height() - 1) * param.stride_h \
-                + param.window_h - 2 * param.pad_h;
-        output_shape[w_id] =  (input[0]->width() - 1) * param.stride_w \
-                + param.window_w - 2 * param.pad_w;
-        output[0]->set_shape(output_shape);
-
-        return SaberSuccess;
+    virtual SaberStatus compute_output_shape(const Input_v& input,\
+     Output_v &output, Param_t& param) override {
+        output[0]->set_seq_offset(input[0]->get_seq_offset());
+        //! "input" only has one input tensor
+        return output[0]->set_shape(input[0]->valid_shape());
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) { 
             case VENDER_IMPL: 
-                this->_impl.push_back(new VenderUnpool <TargetType,
-                        OpDtype>);
+                this->_impl.push_back(new VenderSoftmax <TargetType, OpDtype>); 
                 return SaberSuccess; 
             case SABER_IMPL: 
-                this->_impl.push_back(new SaberUnpool <TargetType,
-                        OpDtype>);
+                this->_impl.push_back(new SaberSoftmax <TargetType, OpDtype>); 
                 return SaberSuccess; 
             default: 
                 return SaberUnImplError;
@@ -81,11 +72,13 @@ public:
 private:
 
     virtual void pick_best_static() override {
-        if (true) // some condition?
+	//! saber softmax is better when axis is in outer dims
+        if (this->_param.axis > 1) {
+            this->_best_impl = this->_impl[1];
+        } else {
             this->_best_impl = this->_impl[0];
+        }
     }
-
-    //virtual void pick_best_runtime(Input_v input, Output_v output, Param_t& param) override {}
 
     virtual void pick_best_specify(ImplEnum implenum) override {
         this->_best_impl = this->_impl[0];
@@ -93,8 +86,8 @@ private:
 
 };
 
-}
+} //namespace saber
 
-}
+} //namespace anakin
 
-#endif //ANAKIN_SABER_FUNCS_UNPOOL_H
+#endif //ANAKIN_SABER_FUNCS_SOFTMAX_H
