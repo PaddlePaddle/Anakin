@@ -14,6 +14,9 @@
 
 #if defined(__AVX512F__)
 #include <immintrin.h>
+namespace anakin {
+
+namespace saber {
 static inline __m512 _mm512_expfaster_ps(const __m512& a) {
 
     const __m512 C1 = _mm512_set1_ps(1064872507.1541044f);
@@ -22,7 +25,7 @@ static inline __m512 _mm512_expfaster_ps(const __m512& a) {
     return _mm512_castsi512_ps(_mm512_cvttps_epi32(_mm512_fmadd_ps(C2, a, C1)));
 }
 
-inline __m512 exp512_ps_fma(__m512 x) {
+static inline __m512 exp512_ps_fma(__m512 x) {
     __m512 tmp = _mm512_setzero_ps(), fx;
     __m512i imm0;
     __m512 one = _mm512_set1_ps(1.f);
@@ -78,6 +81,9 @@ inline __m512 exp512_ps_fma(__m512 x) {
     __m512 pow2n = _mm512_castsi512_ps(imm0);
     y = _mm512_mul_ps(y, pow2n);
     return y;
+}
+
+}
 }
 #endif
 #endif //ANAKIN_SABER_AVX512_MATH_H
