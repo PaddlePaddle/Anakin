@@ -102,7 +102,7 @@ void test_pooling(){
                                 <<"pad_h:"<<pad_h<<"pad_w:"<<pad_w \
                                 <<"stride_h:"<<stride_h<<"stride_w:"<<stride_w \
                                 <<"pooling_type:"<<pooling_type;
-                                
+
                                 for(int in_n:{1, 2}){
                                     for(int in_c:{1, 3, 8}){
                                         for(int in_h:{32, 64}){
@@ -111,7 +111,7 @@ void test_pooling(){
                                                 testbase.set_param(param);//set param
                                                 testbase.set_input_shape(Shape({in_n,in_c,in_h,in_w}));//add some input shape
                                                 testbase.run_test(pooling_cpu_func<dtype, TargetType_D, TargetType_H>);//run test
-                                                
+
                                             }
                                         }
                                     }
