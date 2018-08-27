@@ -22,6 +22,10 @@ namespace anakin {
 
 namespace saber {
 
+static int round_up(int k, int c) {
+    return ((k + c - 1) / c) * c;
+}
+
 template <DataType OpDtype>
 class SaberLstm<NV, OpDtype>: public ImplBase <
         NV, OpDtype,LstmParam<NV> > {
@@ -45,6 +49,9 @@ public:
             _hidden_size=param.bias()->valid_size()/4;
         }
         _word_size=(param.weight()->valid_size()-_hidden_size*_hidden_size*4)/_hidden_size/4;
+        //TODO:add round_up to saber_util
+        _aligned_hidden_size=round_up(_hidden_size,32);
+
 
         _seq_util = SeqSortedseqTranseUtil(param.is_reverse);
         return create(inputs, outputs, param, ctx);
@@ -76,6 +83,7 @@ public:
 private:
     int _word_size;
     int _hidden_size;
+    int _aligned_hidden_size;
 
     Tensor<NV> _init_hidden;
 

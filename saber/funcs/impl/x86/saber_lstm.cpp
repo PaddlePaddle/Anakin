@@ -4,9 +4,6 @@
 #include "mkl_cblas.h"
 
 
-
-
-
 namespace anakin {
 
 namespace saber {
@@ -297,7 +294,6 @@ dispatch(const std::vector<Tensor<X86>*>& inputs,
     } else {
         avx_dispatch<SABER_X86_TYPE,false>(inputs, outputs, param);
     }
-
     return SaberSuccess;
 }
 

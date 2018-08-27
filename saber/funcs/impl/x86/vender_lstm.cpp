@@ -11,7 +11,7 @@ void VenderLstm<X86, AK_FLOAT>::compute_with_avx(LstmMetaValue<OpDataType> value
         const ActiveType& gate_act,
         const ActiveType& cell_act,
         const ActiveType& cand_act) {
-#ifdef __AVX__
+#if defined(__AVX2__) and defined(__FMA__)
     #pragma omp parallel for if(this->max_thread_num_ > 1) collapse(2)
 
     for (int b = 0; b < batch_size; b++) {

@@ -21,59 +21,38 @@ namespace anakin{
 
 namespace saber{
 
-template <DataType OpDtype,
-    DataType inDtype,
-    DataType outDtype,
-    typename LayOutType_op,
-    typename LayOutType_in,
-    typename LayOutType_out>
-class SaberActivation<ARM, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out> : \
+template <DataType OpDtype>
+class SaberActivation<ARM, OpDtype> : \
     public ImplBase<
-        Tensor<ARM, inDtype, LayOutType_in>,
-        Tensor<ARM, outDtype, LayOutType_out>,
-        Tensor<ARM, OpDtype, LayOutType_op>,
-        ActivationParam<Tensor<ARM, OpDtype, LayOutType_op> > >
+        ARM,
+        OpDtype,
+        ActivationParam<ARM > >
 {
 public:
-    typedef Tensor<ARM, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<ARM, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<ARM, OpDtype, LayOutType_op> OpTensor;
-    typedef typename DataTensor_in::Dtype InDataType;
-    typedef typename DataTensor_out::Dtype OutDataType;
-    typedef typename OpTensor::Dtype OpDataType;
+    typedef typename DataTrait<ARM, OpDtype>::Dtype OpDataType;
 
     SaberActivation()
     {}
 
     ~SaberActivation() {}
 
-    virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
-                            std::vector<DataTensor_out *>& outputs,
-                            ActivationParam<OpTensor>& param, Context<ARM>& ctx) {
+    virtual SaberStatus init(const std::vector<Tensor<ARM> *>& inputs,
+                            std::vector<Tensor<ARM> *>& outputs,
+                            ActivationParam<ARM>& param, Context<ARM>& ctx) {
         this->_ctx = &ctx;
         return SaberSuccess;
     }
 
-    virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
-                            std::vector<DataTensor_out *>& outputs,
-                            ActivationParam<OpTensor>& param, Context<ARM> &ctx) {
+    virtual SaberStatus create(const std::vector<Tensor<ARM> *>& inputs,
+                            std::vector<Tensor<ARM> *>& outputs,
+                            ActivationParam<ARM>& param, Context<ARM> &ctx) {
         return SaberSuccess;
     }
     
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
-                          std::vector<DataTensor_out*>& outputs,
-                          ActivationParam<OpTensor>& param) {
-        const InDataType* din = inputs[0]->data();
-        OutDataType* dout = outputs[0]->mutable_data();
-        int size = outputs[0]->valid_size();
-        if (param.active == Active_relu) {
-            for (int i = 0; i < size; ++i) {
-                dout[i] = std::max(din[i], (OutDataType)0);
-            }
-        }
-        return SaberSuccess;
-    }
+    virtual SaberStatus dispatch(const std::vector<Tensor<ARM> *>& inputs,
+                          std::vector<Tensor<ARM> *>& outputs,
+                          ActivationParam<ARM>& param);
+
 
 };
 

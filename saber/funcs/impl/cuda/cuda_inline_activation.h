@@ -19,7 +19,7 @@ static inline __device__ Dtype
 InValidAct(Dtype
            a) {
     printf("invalid act\n");
-    return (Dtype)0;
+    return static_cast<Dtype>(0);
 }
 
 template<typename Dtype>
@@ -83,12 +83,11 @@ struct ACTIVATION {
 };
 
 template<typename Dtype>
-inline typename ACTIVATION<Dtype>::Act Activate_inner(ActiveType type) {
-    static  typename ACTIVATION<Dtype>::Act vec[9] = {&InValidAct<Dtype>, &Sigmoid < Dtype >, &Relu < Dtype >,
+__device__ inline typename ACTIVATION<Dtype>::Act Activate_inner(ActiveType type) {
+    static  typename ACTIVATION<Dtype>::Act vec[7] = {&InValidAct<Dtype>, &Sigmoid < Dtype >, &Relu < Dtype >,
                                                      &Tanh < Dtype >,
                                                      &InValidAct<Dtype>, &InValidAct<Dtype>,
-                                                     &Identity < Dtype >, &Sigmoid_fluid < Dtype >,
-                                                     &Tanh_fluid < Dtype >
+                                                     &Identity < Dtype >
                                                     };
     return vec[type];
 }

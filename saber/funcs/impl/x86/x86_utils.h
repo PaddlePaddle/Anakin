@@ -13,8 +13,9 @@
  limitations under the License.
  */
 
-#ifndef X86_UTILS_H
-#define X86_UTILS_H
+
+#ifndef SABER_FUNCS_IMPL_X86_X86_UTILS_H
+#define SABER_FUNCS_IMPL_X86_X86_UTILS_H
 
 #include <stddef.h>
 #include <stdio.h>
@@ -22,8 +23,8 @@
 #include <assert.h>
 
 #include "saber/core/common.h"
+#include "saber/core/tensor.h"
 #include "saber_util.h"
-
 namespace anakin {
 namespace saber {
 
@@ -66,6 +67,12 @@ public:
     template <typename Dtype>
     void aligned_last_dim(const Dtype* input, Dtype* output, int input_size, int ori_last_dim,
                           int aligned_dim) {
+        for (int row = 0; row < input_size / ori_last_dim; row++) {
+            for (int col = ori_last_dim; col < aligned_dim; col++) {
+                output[row * aligned_dim + col] = static_cast<Dtype>(0);
+            }
+        }
+
         for (int i = 0; i < input_size; i++) {
             int row = i / ori_last_dim;
             int col = i % ori_last_dim;
@@ -619,6 +626,7 @@ inline void weight_reorder_OIhw16i16o(Tensor<X86>& input,
     float* output_ptr = static_cast<float*>(output.mutable_data());
     const float* input_ptr = static_cast<const float*>(input.data());
     #pragma omp parallel for collapse(6) schedule(static)
+
     for (int oc_idx = 0; oc_idx < oc_value / 16; ++oc_idx) {
         for (int ic_idx = 0; ic_idx < ic_value / 16; ++ic_idx) {
             for (int kh = 0; kh < kh_value; ++kh) {
@@ -653,6 +661,7 @@ inline void weight_reorder_OIhwi16o(Tensor<X86>& input,
     float* output_ptr = static_cast<float*>(output.mutable_data());
     const float* input_ptr = static_cast<const float*>(input.data());
     #pragma omp parallel for collapse(5) schedule(static)
+
     for (int oc_idx = 0; oc_idx < shape[0] / 16; ++oc_idx) {
         for (int kh = 0; kh < shape[2]; ++kh) {
             for (int kw = 0; kw < shape[3]; ++kw) {
@@ -686,6 +695,7 @@ inline void weight_reorder_OIhwi8o(Tensor<X86>& input,
     float* output_ptr = static_cast<float*>(output.mutable_data());
     const float* input_ptr = static_cast<const float*>(input.data());
     #pragma omp parallel for collapse(5) schedule(static)
+
     for (int oc_idx = 0; oc_idx < shape[0] / 8; ++oc_idx) {
         for (int kh = 0; kh < shape[2]; ++kh) {
             for (int kw = 0; kw < shape[3]; ++kw) {
@@ -720,6 +730,7 @@ static void weight_reorder_Goihw16g(Tensor<X86>& input,
     float* output_ptr = static_cast<float*>(output.mutable_data());
     const float* input_ptr = static_cast<const float*>(input.data());
     #pragma omp parallel for collapse(6) schedule(static)
+
     for (int g_idx = 0; g_idx < g_value / 16; ++g_idx) {
         for (int oc_idx = 0; oc_idx < oc_value; ++oc_idx) {
             for (int ic_idx = 0; ic_idx < ic_value; ++ic_idx) {
@@ -735,7 +746,7 @@ static void weight_reorder_Goihw16g(Tensor<X86>& input,
                                              ic_idx * kh_value * kw_value * 16 +
                                              kh * kw_value * 16 + kw * 16 + g;
 
-                            *( output_ptr+ output_idx) = *(input_ptr + input_idx);
+                            *(output_ptr + output_idx) = *(input_ptr + input_idx);
                         }
                     }
                 }
@@ -790,5 +801,3 @@ static inline int omp_in_parallel() {
 #endif
 
 #endif // X86_UTILS_H
-
-// vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s
