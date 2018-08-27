@@ -3,10 +3,10 @@
 
 #include "saber/funcs/impl/x86/vender_gru.h"
 #include "sequence2batch.h"
-#include "saber/funcs/impl/x86/activation_functions.h"
 #include "saber/funcs/impl/x86/x86_utils.h"
 #include "saber/funcs/impl/x86/kernel/jit_generator.h"
 #include "tensor_op.h"
+#include "saber/funcs/impl/x86/saber_normal_activation.h"
 
 namespace anakin {
 namespace saber {
@@ -321,7 +321,7 @@ SaberStatus VenderGru<X86, OpDtype>::dispatch(
                 __m256* hit_1 = (__m256*)(ht_1 + intra_bat_offset * aligned_hidden_size_);
 
                 for (int i = 0; i < aligned_hidden_size_ / 8; ++i) {
-                    r[i] = math::avx_activation(r[i], param.gate_activity);
+                    r[i] = Activate_inner(r[i], param.gate_activity);
                     hit[i] = r[i] * hit_1[i];
                 }
             }
@@ -334,7 +334,7 @@ SaberStatus VenderGru<X86, OpDtype>::dispatch(
                 float* hit_1 = (float*)(ht_1 + intra_bat_offset * aligned_hidden_size_);
 
                 for (int i = 0; i < aligned_hidden_size_; ++i) {
-                    math::activation(1, r + i, r + i, param.gate_activity);
+                    r[i] = Activate_inner(r[i], param.gate_activity);
                     hit[i] = r[i] * hit_1[i];
                 }
             }
@@ -366,8 +366,8 @@ SaberStatus VenderGru<X86, OpDtype>::dispatch(
                 __m256* hit_1 = (__m256*)(ht_1 + intra_bat_offset * aligned_hidden_size_);
 
                 for (int i = 0; i < aligned_hidden_size_ / 8; ++i) {
-                    u[i] = math::avx_activation(u[i], param.gate_activity);
-                    c[i] = math::avx_activation(c[i], param.h_activity);
+                    u[i] = Activate_inner(u[i], param.gate_activity);
+                    c[i] = Activate_inner(c[i], param.h_activity);
                     hit[i] = (c[i] - hit_1[i]) * u[i] + hit_1[i];
                 }
             }
@@ -381,8 +381,8 @@ SaberStatus VenderGru<X86, OpDtype>::dispatch(
                 float* hit_1 = (float*)(ht_1 + intra_bat_offset * aligned_hidden_size_);
 
                 for (int i = 0; i < aligned_hidden_size_; ++i) {
-                    math::activation(1, u + i, u + i, param.gate_activity);
-                    math::activation(1, c + i, c + i, param.h_activity);
+                    u[i]=Activate_inner(u[i], param.gate_activity);
+                    c[i] = Activate_inner(c[i], param.h_activity);
                     hit[i] = (c[i] - hit_1[i]) * u[i] + hit_1[i];
                 }
             }
