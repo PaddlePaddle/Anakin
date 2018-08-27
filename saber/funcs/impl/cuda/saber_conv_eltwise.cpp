@@ -99,5 +99,7 @@ SaberStatus SaberConvEltwise<NV, AK_FLOAT>::\
     }
     return SaberSuccess;
 }
+DEFINE_OP_TEMPLATE(SaberConvEltwise, ConvEltwiseParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberConvEltwise, ConvEltwiseParam, NV, AK_INT8);
 }
 }
