@@ -6,7 +6,11 @@ using namespace anakin::saber::lite;
 
 int cluster = 0;
 int threads = 4;
-
+int num = 1;
+int ch = 1971;
+int h = 21;
+int w = 1;
+int axis = 2;
 typedef Tensor<CPU, AK_FLOAT> TensorHf4;
 
 #define COMPARE_RESULT 1
@@ -78,13 +82,13 @@ TEST(TestSaberLite, test_func_softmax_arm) {
 #endif
     }
 
-    int test_iter = 100;
+    int test_iter = 1;
 
-    int softmax_axis = 2; // channel
-    int w_in = 1;
-    int h_in = 21;
-    int ch_in = 1917;
-    int num_in = 1;
+    int softmax_axis = axis; // channel
+    int w_in = w;
+    int h_in = h;
+    int ch_in = ch;
+    int num_in = num;
 
     Shape shape_in(num_in, ch_in, h_in, w_in);
     Shape shape_out = shape_in;
@@ -107,7 +111,7 @@ TEST(TestSaberLite, test_func_softmax_arm) {
 
 #if COMPARE_RESULT
     softmax_basic(thin, softmax_axis, tout_basic);
-    //print_tensor_host(tout_basic);
+    //print_tensor(tout_basic);
 #endif
 
     SaberSoftmax softmax_lite;
@@ -145,7 +149,7 @@ TEST(TestSaberLite, test_func_softmax_arm) {
     }
 
     printf("saber softmax total time : %.4f, avg time : %.4f\n", to, to / test_iter, min_time);
-    //print_tensor_host(*vout[0]);
+    //print_tensor(*vout[0]);
 
 #if COMPARE_RESULT
     double max_ratio = 0;
@@ -169,6 +173,15 @@ int main(int argc, const char** argv){
     }
     if (argc >= 3) {
         threads = atoi(argv[2]);
+    }
+    if (argc >= 4) {
+        axis = atoi(argv[3]);
+    }
+    if (argc >= 5 && argc <= 8) {
+        num = atoi(argv[4]);
+        ch = atoi(argv[5]);
+        h = atoi(argv[6]);
+        w = atoi(argv[7]);
     }
 
     InitTest();
