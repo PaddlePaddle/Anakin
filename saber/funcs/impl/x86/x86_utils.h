@@ -24,7 +24,7 @@
 
 #include "saber/core/common.h"
 #include "saber/core/tensor.h"
-#include "saber_util.h"
+#include "saber/funcs/saber_util.h"
 namespace anakin {
 namespace saber {
 

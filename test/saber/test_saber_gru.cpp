@@ -10,7 +10,6 @@
 #include "debug.h"
 
 #include "test_saber_func.h"
-#include "test_util.h"
 
 using namespace anakin::saber;
 using namespace std;
@@ -320,19 +319,15 @@ void gru_ut(int word_size = 222,
 
 TEST(TestSaberFunc, test_func_gru_x86) {
     Env<X86>::env_init();
-    gru_ut<X86,X86>(222,333,{0,2,5,12,30}, true,Active_sigmoid,Active_tanh,100);
-    gru_ut<X86,X86>(222,333,{0,2,5,12,30}, false,Active_sigmoid,Active_tanh,100);
-    gru_ut<X86,X86>(222,333,{0,2,5,12,30}, true,Active_sigmoid,Active_relu,100);
-    gru_ut<X86,X86>(222,333,{0,2,5,12,30}, false,Active_sigmoid,Active_relu,100);
-    gru_ut<X86,X86>(222,333,{0,30},        true,Active_sigmoid,Active_tanh,100);
-    gru_ut<X86,X86>(222,333,{0,30},        false,Active_sigmoid,Active_tanh,100);
-
-    gru_ut<X86,X86>(222,333,{0,2,5,12,30}, true,Active_sigmoid,Active_tanh,100,VENDER_IMPL);
-    gru_ut<X86,X86>(222,333,{0,2,5,12,30}, false,Active_sigmoid,Active_tanh,100,VENDER_IMPL);
-    gru_ut<X86,X86>(222,333,{0,2,5,12,30}, true,Active_sigmoid,Active_relu,100,VENDER_IMPL);
-    gru_ut<X86,X86>(222,333,{0,2,5,12,30}, false,Active_sigmoid,Active_relu,100,VENDER_IMPL);
-    gru_ut<X86,X86>(222,333,{0,30},        true,Active_sigmoid,Active_tanh,100,VENDER_IMPL);
-    gru_ut<X86,X86>(222,333,{0,30},        false,Active_sigmoid,Active_tanh,100,VENDER_IMPL);
+    for(int word_size:{15,222})
+        for(int hidden_size:{15,333})
+            for(bool reverse:{true,false})
+                    for(ActiveType gate_act:{Active_sigmoid,Active_tanh})
+                        for(ActiveType cell_act:{Active_sigmoid,Active_tanh})
+                                for(ImplEnum impl:{SABER_IMPL,VENDER_IMPL}){
+        gru_ut<X86,X86>(word_size,hidden_size,{0,3,7,12,13},reverse,gate_act,cell_act,0,impl);
+        gru_ut<X86,X86>(word_size,hidden_size,{0,5},reverse,gate_act,cell_act,0,impl);
+    }
 
 }
 
@@ -343,13 +338,15 @@ TEST(TestSaberFunc, test_func_gru_x86) {
 TEST(TestSaberFunc, test_func_gru_nv) {
     Env<NV>::env_init();
     Env<NVHX86>::env_init();
-    gru_ut<NVHX86,NV>(222,333,{0,2,5,12,30}, true,Active_sigmoid,Active_tanh,100);
-    gru_ut<NVHX86,NV>(222,333,{0,2,5,12,30}, false,Active_sigmoid,Active_tanh,100);
-    gru_ut<NVHX86,NV>(222,333,{0,2,5,12,30}, true,Active_sigmoid,Active_relu,100);
-    gru_ut<NVHX86,NV>(222,333,{0,2,5,12,30}, false,Active_sigmoid,Active_relu,100);
-    gru_ut<NVHX86,NV>(222,333,{0,30},        true,Active_sigmoid,Active_tanh,100);
-    gru_ut<NVHX86,NV>(222,333,{0,30},        false,Active_sigmoid,Active_tanh,100);
-
+    for(int word_size:{15,222})
+    for(int hidden_size:{15,333})
+        for(bool reverse:{true,false})
+                for(ActiveType gate_act:{Active_sigmoid,Active_tanh})
+                    for(ActiveType cell_act:{Active_sigmoid,Active_tanh})
+                            for(ImplEnum impl:{SABER_IMPL}){
+    gru_ut<NVHX86,NV>(word_size,hidden_size,{0,3,7,12,13},reverse,gate_act,cell_act,0,impl);
+    gru_ut<NVHX86,NV>(word_size,hidden_size,{0,5},reverse,gate_act,cell_act,0,impl);
+    }
 }
 
 #endif
