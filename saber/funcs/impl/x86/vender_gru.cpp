@@ -25,7 +25,11 @@ GruParam<X86>& param, Context<X86>& ctx) {
     aligned_hidden_size_ = (hidden_size_ % aligned_size) ? ((hidden_size_ / aligned_size) + 1) *
                            aligned_size : hidden_size_;
 
+#if defined(__AVX2__) and defined(__FMA__)
     avx2_available_ = jit::mayiuse(jit::avx2);
+#else
+    avx2_available_ = false;
+#endif
     // LOG(ERROR) << "AVX2 available: " << avx2_available_;
 
     if (param.formula == GRU_ORIGIN) {
@@ -313,6 +317,7 @@ SaberStatus VenderGru<X86, OpDtype>::dispatch(
 
         // compute reset gate output r and rh
         if (avx2_available_) {
+#if defined(__AVX2__) and defined(__FMA__)
             for (int bat_word_id = bat_word_id_start; bat_word_id < bat_word_id_end; bat_word_id++) {
                 int intra_bat_offset = bat_word_id - bat_word_id_start;
                 __m256* r = (__m256*)(batched_xx_data + bat_word_id * hidden_stride + r_offset *
@@ -325,6 +330,7 @@ SaberStatus VenderGru<X86, OpDtype>::dispatch(
                     hit[i] = r[i] * hit_1[i];
                 }
             }
+#endif
         } else {
             for (int bat_word_id = bat_word_id_start; bat_word_id < bat_word_id_end; bat_word_id++) {
                 int intra_bat_offset = bat_word_id - bat_word_id_start;
@@ -357,6 +363,7 @@ SaberStatus VenderGru<X86, OpDtype>::dispatch(
 
         // compute candidate activation output and h
         if (avx2_available_) {
+#if defined(__AVX2__) and defined(__FMA__)
             for (int bat_word_id = bat_word_id_start; bat_word_id < bat_word_id_end; bat_word_id++) {
                 int intra_bat_offset = bat_word_id - bat_word_id_start;
                 int h_word_id_offset = bat_word_id * hidden_stride;
@@ -371,6 +378,7 @@ SaberStatus VenderGru<X86, OpDtype>::dispatch(
                     hit[i] = (c[i] - hit_1[i]) * u[i] + hit_1[i];
                 }
             }
+#endif
         } else {
             for (int bat_word_id = bat_word_id_start; bat_word_id < bat_word_id_end; bat_word_id++) {
                 int intra_bat_offset = bat_word_id - bat_word_id_start;
