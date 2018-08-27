@@ -9,233 +9,340 @@
 #include "stdio.h"
 #include "x86_test_common.h"
 #include "test_saber_func_x86.h"
-#include "saber/funcs/impl/x86/saber_gru.h"
+#include "test/saber/x86/test_saber_func_x86.h"
 
 #include <mkl_service.h>
 #ifdef USE_OPENMP
 #include "omp.h"
 #endif
 
-//#include "cublas.h"
-
 using namespace anakin::saber;
+using namespace std;
 
-#define printShape(tensor)\
-do{\
-LOG(INFO)<<"("<<tensor[0]<<","<<tensor[1]<<","<<tensor[2]<<","<<tensor[3]<<")";\
-}while(0)
+template <typename Dtype>
+static Dtype InValidAct(Dtype a) {
+    CHECK(false)<<"InValidAct";
+}
 
-//#define FAKEINPUT
-#define GRUOFFSET
-//#define CUDNNGRU
-#define TEST_X86
-//#define INNER_TEST
+template <typename Dtype>
+static Dtype Sigmoid(const Dtype a) {
+    return static_cast<Dtype>(1.0) / (static_cast<Dtype>(1.0) + exp(-a));
+}
 
-typedef Tensor<X86, AK_FLOAT, NCHW> TensorDf4;
-typedef Tensor<X86, AK_FLOAT, NCHW> TensorHf4;
-#ifdef INNER_TEST
-void compute_compare_correct(TensorDf4 dev_x,TensorDf4 last_dev_out,GruParam<TensorDf4> param){
-    Context<X86> ctx_dev(0, 1, 1);
-    std::vector<TensorDf4*> input_dev_4d;
-    std::vector<TensorDf4*> output_dev_4d;
+template <typename Dtype>
+static Dtype Tanh(const Dtype a) {
+    Dtype tmp = -2.0 * a;
+    return (2.0 / (1.0 + exp(tmp))) - 1.0;
+}
 
-    TensorDf4 new_dev_out;
-    new_dev_out.re_alloc(last_dev_out.valid_shape());
+template <typename Dtype>
+static Dtype Relu(const Dtype a) {
+    return a > static_cast<Dtype>(0.0) ? a : static_cast<Dtype>(0.0);
+}
 
-    input_dev_4d.push_back(&dev_x);
-    output_dev_4d.push_back(&new_dev_out);
+template <typename Dtype>
+static Dtype Identity(const Dtype a) {
+    return a;
+}
 
-    SaberGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW> gru;
-    SABER_CHECK(gru.init(input_dev_4d, output_dev_4d, param, ctx_dev));
+#define SIGMOID_THRESHOLD_MIN -40.0
+#define SIGMOID_THRESHOLD_MAX 13.0
+#define EXP_MAX_INPUT 40.0
 
-    int test_iter = 1;
-    SaberTimer<X86> t1;
-    t1.start(ctx_dev);
+template <typename Dtype>
+static Dtype Sigmoid_fluid(const Dtype a) {
+    const Dtype min = SIGMOID_THRESHOLD_MIN;
+    const Dtype max = SIGMOID_THRESHOLD_MAX;
+    Dtype tmp = (a < min) ? min : ((a > max) ? max : a);
+    return static_cast<Dtype>(1.0) / (static_cast<Dtype>(1.0) + exp(-tmp));
+}
 
-    for (int i = 0; i < test_iter; ++i) {
-        gru.naiv_gru(input_dev_4d, output_dev_4d, param);
-        output_dev_4d[0]->record_event(ctx_dev.get_compute_stream());
-        output_dev_4d[0]->sync();
+template <typename Dtype>
+static Dtype Tanh_fluid(const Dtype a) {
+    Dtype tmp = -2.0 * a;
+    tmp = (tmp > EXP_MAX_INPUT) ? EXP_MAX_INPUT : tmp;
+    return (2.0 / (1.0 + exp(tmp))) - 1.0;
+}
+
+template <typename Dtype>
+struct ACTIVATION{
+    typedef Dtype(*Act)(const Dtype);
+};
+
+template <typename Dtype>
+inline typename ACTIVATION<Dtype>::Act Activate(ActiveType type){
+    static  typename ACTIVATION<Dtype>::Act vec[9]={&InValidAct<Dtype>, &Sigmoid<Dtype>, &Relu<Dtype>, &Tanh<Dtype>,
+                                                    &InValidAct<Dtype>,& InValidAct<Dtype>, &Identity<Dtype>, &Sigmoid_fluid<Dtype>,
+                                                    &Tanh_fluid<Dtype>};
+    return vec[type];
+}
+
+template<typename Dtype>
+static void gemm_naive(int m,int n,int k,const float alpha,const Dtype * a, const Dtype*b ,const float beta,Dtype *c){
+    for(int i=0;i<m;i++){
+        for(int j=0;j<n;j++){
+            Dtype acc=0;
+            for(int inner=0;inner<k;inner++){
+                acc+=alpha*a[i*k+inner]*b[inner*n+j];
+            }
+            c[i*n+j]=acc+beta*c[i*n+j];
+        }
+    }
+}
+
+
+template <typename Tensor4f,typename TargetType>
+void compute_ref_gru_fwd_me(std::vector<Tensor4f*> &inputs, std::vector<Tensor4f*> &outputs, GruParam<TargetType> &param){
+    typedef float OpDataType;
+            CHECK_NE(param.formula, GRU_CUDNN) << "X86 gru not support cudnn formula now";
+    int hidden_size = param.bias()->valid_size() / 3;
+    int weights_bias_size = hidden_size * 3;
+    int weights_h2h_size = hidden_size * hidden_size * 3;
+    int weights_i2h_size = param.weight()->valid_size() - weights_h2h_size;
+    int word_size = weights_i2h_size / hidden_size / 3;
+
+    const OpDataType* weight_h = ((const OpDataType*)param.weight()->data())+weights_i2h_size;
+    const OpDataType* weight_w = (const OpDataType*)param.weight()->data();
+    const OpDataType* bias = (const OpDataType*)param.bias()->data();
+
+    OpDataType(* gat_act)(const OpDataType) = Activate<OpDataType>(param.gate_activity);
+    OpDataType(* h_act)(const OpDataType) = Activate<OpDataType>(param.h_activity);
+
+    std::vector<int> offset_vec=inputs[0]->get_seq_offset();
+
+    int batch_size = offset_vec.size() - 1;
+    int seqsum = inputs[0]->num();
+
+    const OpDataType* h_init = nullptr;
+
+    Shape zero_hidden_shape({1,1,batch_size,hidden_size});
+    Tensor4f zero_hidden(zero_hidden_shape);
+    if (inputs.size() > 1) {
+        h_init = (const OpDataType*)inputs[1]->data();
+    } else if (param.init_hidden() != nullptr) {
+        h_init = (const OpDataType*)param.init_hidden()->data();
+    } else {
+        h_init = (const OpDataType*)zero_hidden.data();
     }
 
-    t1.end(ctx_dev);
-    LOG(INFO) << "!!saber care: naive" << test_iter << "test, total time: " << t1.get_average_ms();
+    const OpDataType* x = (const OpDataType*)inputs[0]->data();
+    OpDataType* out = (OpDataType*)outputs[0]->mutable_data();
 
-    double maxdiff = 0;
-    double maxratio = 0;
-    tensor_cmp_host(last_dev_out.data(), new_dev_out.data(), last_dev_out.valid_size(), maxratio, maxdiff);
+    bool is_reverse = param.is_reverse;
 
-    if (abs(maxratio) <= 0.001) {
-                LOG(INFO) << "passed  " << maxratio<<" : "<<maxdiff;
-    } else {
-                LOG(INFO) << "failed : ratio " << maxratio<<" : "<<maxdiff;
-                exit(-1);
+    //        Shape wx_shaep(1,seqsum,3,_alignedhidden_size_iter_num,_aligned_size);
+    Shape temp_wx_shape({1,1,1,seqsum * 3 * hidden_size});
+    Shape temp_wh_shape({1,1,1,2 * hidden_size});
+    Shape temp_whr_shape({1,1,1, hidden_size});
+    Tensor4f temp_wx_t(temp_wx_shape);
+    Tensor4f temp_wh_t(temp_wh_shape);
+    Tensor4f temp_whr_t(temp_whr_shape);
+
+    OpDataType* temp_wx = (OpDataType*)temp_wx_t.mutable_data();
+    OpDataType* temp_wh = (OpDataType*)temp_wh_t.mutable_data();
+    OpDataType* temp_whr =(OpDataType*)temp_whr_t.mutable_data();
+
+
+    //wx
+    gemm_naive(seqsum, 3 * hidden_size, word_size, 1.f, x, weight_w, 0.f, temp_wx);
+
+    int o_offset = 0;
+    int r_offset = 1;
+    int z_offset = 2;
+    const OpDataType* b_r = bias + r_offset * hidden_size;
+    const OpDataType* b_z = bias + z_offset * hidden_size;
+    const OpDataType* b_o = bias + o_offset * hidden_size;
+
+
+    for (int batch_id = 0; batch_id < batch_size; ++batch_id) {
+        int batch_offset = offset_vec[batch_id];
+        int batch_length = offset_vec[batch_id+1]-batch_offset;
+
+        for (int seq_id_in_batch = 0; seq_id_in_batch < batch_length; ++seq_id_in_batch) {
+            int seqid = batch_offset + seq_id_in_batch;
+            int last_seq_id = seqid - 1;
+
+            if (is_reverse) {
+                seqid = batch_offset + batch_length - 1 - seq_id_in_batch;
+                last_seq_id = seqid + 1;
+            }
+
+            const OpDataType* hin;
+            OpDataType* hout = seqid * hidden_size + out;
+
+            if (seq_id_in_batch == 0) {
+                hin = h_init + batch_id * hidden_size;
+            } else {
+                hin = out + last_seq_id * hidden_size;
+            }
+
+            gemm_naive(1, 2 * hidden_size, hidden_size, 1.0, hin,
+                       weight_h + hidden_size * hidden_size,
+                       0.f, temp_wh);
+
+            volatile OpDataType r;
+            volatile OpDataType z;
+            volatile OpDataType _h;
+            OpDataType* w_x_r = temp_wx + r_offset * hidden_size
+                                + seqid * hidden_size * 3;
+            OpDataType* w_x_z = temp_wx + z_offset * hidden_size
+                                + seqid * hidden_size * 3;
+            OpDataType* w_x_o = temp_wx + o_offset * hidden_size
+                                + seqid * hidden_size * 3;
+
+            OpDataType* w_h_r = temp_wh + 0 * hidden_size;
+            OpDataType* w_h_z = temp_wh + 1 * hidden_size;
+            const OpDataType* w_o = weight_h;
+
+            //#pragma simd
+            for (int frame_id = 0; frame_id < hidden_size; ++frame_id) {
+                r = w_x_r[frame_id] + w_h_r[frame_id] + b_r[frame_id]; //h_out=gate_r
+                r = gat_act(r);
+                hout[frame_id] = r * hin[frame_id];
+            }
+
+            gemm_naive(1, hidden_size, hidden_size, 1.0, hout, w_o, 0.f, temp_whr);
+
+            //#pragma simd
+            for (int frame_id = 0; frame_id < hidden_size; ++frame_id) {
+                z = gat_act(w_x_z[frame_id] + w_h_z[frame_id] + b_z[frame_id]);
+                _h = w_x_o[frame_id] + temp_whr[frame_id] + b_o[frame_id];
+                _h = h_act(_h);
+                hout[frame_id] = (1 - z) * hin[frame_id] + z * _h;
+            }
+        }
+
     }
 
 }
-#endif
-void test_saber_gru_x86(int sequence_size = 2, int batch_size = 1, int word_size = 52,
-                    int hidden_size = 36) {
+//#define COMPARE_WITH_OUT
+template <typename HOST,typename DEVICE>
+void gru_ut(int word_size = 222,
+            int hidden_size = 333,
+            std::vector<int> offsets = {0, 3,13,22,30,50},
+            bool is_reverse = false,
+            ActiveType gate_activity=Active_sigmoid,
+            ActiveType h_activity_in=Active_tanh,
+            int perf_iter=0,ImplEnum test_mode=SABER_IMPL){
+    typedef Tensor<HOST,AK_FLOAT, NCHW> TensorHf4;
+    typedef Tensor<DEVICE,AK_FLOAT, NCHW> TensorDf4;
+    Context<DEVICE> ctx_dev(0, 1, 1);
 
-#ifdef USE_OPENMP
-      omp_set_dynamic(0);
-    omp_set_num_threads(1);
-#endif
-    mkl_set_num_threads(1);
-    Context<X86> ctx_dev(0, 1, 1);
-    std::vector<int> offsets = {0,39};
-    ImplEnum test_mode=SABER_IMPL;
-//    ImplEnum test_mode=VENDER_IMPL;
-    bool is_reverse = false;
-    batch_size = offsets.size() - 1;
-    Shape shape_ux(1, 1, offsets[offsets.size() - 1], hidden_size * 3);
-    Shape shape_x(offsets[offsets.size() - 1], word_size, 1, 1);
-    Shape shape_out(1, 1, offsets[offsets.size() - 1], hidden_size);
+    Shape shape_weight({1, 1, 1,hidden_size*word_size*3+hidden_size*hidden_size*3});
+    Shape shape_bias({1,1,1,hidden_size*3});
 
-
-    Shape shape_ux_k(1, 1, 1, hidden_size);
-    Shape shape_u(1, 1, word_size, 3 * hidden_size);
-
-    Shape shape_b(1, 1, 3, hidden_size);
-    Shape shape_w(1, 1, hidden_size, 3 * hidden_size);
-    Shape shape_wu(1, 1,1, (hidden_size* 3 * hidden_size+word_size* 3 * hidden_size));
-    Shape shape_h(1, 1, batch_size, hidden_size);
-
-
-    TensorHf4 host_ux;//z,r,o
-    TensorHf4 host_x;//z,r,o
-    TensorHf4 host_b;//z,r,o
-    TensorHf4 host_wu;//z,r,o
-    TensorHf4 host_h;
-    TensorHf4 host_out;
-    TensorHf4 host_out_bak;
-
-    TensorDf4 dev_ux;
-    TensorDf4 dev_x;
-    TensorDf4 dev_b;
-    TensorDf4 dev_wu;
-    TensorDf4 dev_h;
-    TensorDf4 dev_out;
-    TensorDf4 dev_out_bak;
-
-    //    host_ux.re_alloc(shape_ux);
-    host_x.re_alloc(shape_x);
-    host_b.re_alloc(shape_b);
-    host_wu.re_alloc(shape_wu);
-    host_h.re_alloc(shape_h);
-    host_out.re_alloc(shape_out);
-    host_out_bak.re_alloc(shape_out);
-
-    //    dev_ux.re_alloc(shape_ux);
-    dev_x.re_alloc(shape_x);
-    dev_b.re_alloc(shape_b);
-    dev_wu.re_alloc(shape_wu);
-    dev_h.re_alloc(shape_h);
-    dev_out.re_alloc(shape_out);
-    dev_out_bak.re_alloc(shape_out);
-#ifdef INNER_TEST
-    fill_tensor_host_rand(host_wu,-1,1);
-    fill_tensor_host_rand(host_x,-1,1);
-    fill_tensor_host_rand(host_b,-1,1);
-    fill_tensor_host_rand(host_h,-1,1);
-#else
-    readTensorData(host_wu, "host_wu");
+    Shape shape_x({offsets[offsets.size() - 1], word_size, 1, 1});
+    Shape shape_h({offsets[offsets.size() - 1], hidden_size, 1, 1});
+    TensorHf4 host_x(shape_x);
+    TensorHf4 host_weight(shape_weight);
+    TensorHf4 host_bias(shape_bias);
+    TensorHf4 host_hidden_out(shape_h);
+    TensorDf4 dev_x(shape_x);
+    TensorDf4 dev_weight(shape_weight);
+    TensorDf4 dev_bias(shape_bias);
+    TensorDf4 dev_hidden_out(shape_h);
+#ifdef COMPARE_WITH_OUT
+    readTensorData(host_weight, "host_w");
     readTensorData(host_x, "host_x");
-    readTensorData(host_b, "host_b");
-    readTensorData(host_h, "host_h");
+    readTensorData(host_bias, "host_b");
+#else
+    fill_tensor_host_rand(host_weight);
+    fill_tensor_host_rand(host_x);
+    fill_tensor_host_rand(host_bias);
+#endif
+    dev_weight.copy_from(host_weight);
+    dev_x.copy_from(host_x);
+    dev_bias.copy_from(host_bias);
+
+    host_x.set_seq_offset(offsets);
+    dev_x.set_seq_offset(offsets);
+    GruParam<TensorDf4> param(&dev_weight, &dev_bias,GRU_ORIGIN,gate_activity,h_activity_in,
+                           is_reverse, nullptr,1.f,1,1);
+
+    Gru<DEVICE, AK_FLOAT> gru_op;
+
+    std::vector<TensorDf4*> inputs;
+    std::vector<TensorDf4*> outputs;
+    inputs.push_back(&dev_x);
+    outputs.push_back(&dev_hidden_out);
+
+    SABER_CHECK(gru_op.init(inputs, outputs, param, SPECIFY, test_mode, ctx_dev));
+    SABER_CHECK(gru_op.compute_output_shape(inputs, outputs, param));
+    outputs[0]->re_alloc(outputs[0]->valid_shape());
+#ifndef COMPARE_WITH_OUT
+    SABER_CHECK(gru_op(inputs, outputs, param, ctx_dev));
+    outputs[0]->record_event(ctx_dev.get_compute_stream());
+    outputs[0]->sync();
+
+    if(perf_iter>0) {
+        SaberTimer<DEVICE> t1;
+        t1.start(ctx_dev);
+        for (int i = 0; i < perf_iter; ++i) {
+            SABER_CHECK(gru_op(inputs, outputs, param, ctx_dev));
+            outputs[0]->record_event(ctx_dev.get_compute_stream());
+            outputs[0]->sync();
+        }
+        t1.end(ctx_dev);
+                LOG(INFO) << "!!saber care: iter = " << perf_iter << " , total time: " << t1.get_average_ms() <<
+                          "avg time : " << t1.get_average_ms() / perf_iter << " args [" << offsets[offsets.size() - 1]
+                          << "," << offsets.size() - 1 << ","<< word_size << "," << hidden_size << "]";
+    }
+    host_hidden_out.copy_from(dev_hidden_out);
 #endif
 
+    TensorHf4 compare_g(shape_h);
 
+//    readTensorData(compare_g, "host_correct");
+//    write_tensorfile(host_hidden_out, "host_g.txt");
+//    write_tensorfile(compare_g, "host_correct.txt");
 
-    //    dev_ux.copy_from(host_ux);
-    dev_x.copy_from(host_x);
-    dev_b.copy_from(host_b);
-    dev_wu.copy_from(host_wu);
-    dev_h.copy_from(host_h);
-
-    std::vector<TensorDf4*> input_dev_4d;
-    std::vector<TensorDf4*> output_dev_4d;
-    input_dev_4d.push_back(&dev_x);
-//    input_dev_4d.push_back(&dev_h);
-    output_dev_4d.push_back(&dev_out);
-
-
-    dev_x.set_seq_offset(offsets);
-    GruParam<TensorDf4> param(&dev_wu, &dev_b, GRU_ORIGIN,Active_sigmoid,Active_tanh,is_reverse);
-
-
-    Gru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW> dev_gru;
-    SaberTimer<X86> t1;
-
-    dev_gru.compute_output_shape(input_dev_4d, output_dev_4d, param);
-            LOG(INFO) << "shape of output =" << dev_out.valid_shape().data()[0] << ","
-                      << dev_out.valid_shape().data()[1] << ","
-                      << dev_out.valid_shape().data()[2] << ","
-                      << dev_out.valid_shape().data()[3];
-
-    output_dev_4d[0]->re_alloc(output_dev_4d[0]->valid_shape());
-    SABER_CHECK(dev_gru.init(input_dev_4d, output_dev_4d, param, SPECIFY, test_mode, ctx_dev));
-    Shape shape = output_dev_4d[0]->get_stride();
-    //    printShape(shape);
-
-    dev_gru(input_dev_4d, output_dev_4d, param, ctx_dev);
-
-    int test_iter = 1000;
-
-    t1.start(ctx_dev);
-
-    for (int i = 0; i < test_iter; ++i) {
-        dev_gru(input_dev_4d, output_dev_4d, param, ctx_dev);
-        output_dev_4d[0]->record_event(ctx_dev.get_compute_stream());
-        output_dev_4d[0]->sync();
-    }
-
-    t1.end(ctx_dev);
-            LOG(INFO) << "!!saber care:" << test_iter << "test, total time: " << t1.get_average_ms() <<
-                      "avg time : " << \
-              t1.get_average_ms() / test_iter << " args [" \
-                << sequence_size << "," << batch_size << ","
-                      << word_size << "," << hidden_size << "]";
-#ifdef INNER_TEST
-    compute_compare_correct(dev_x,dev_out,param);
-    return;
-#else
-    Tensor<X86, AK_FLOAT, NCHW> host_g;
-    Tensor<X86, AK_FLOAT, NCHW> compare_g;
-    host_g.re_alloc(shape_out);
-    compare_g.re_alloc(shape_out);
-    host_g.copy_from(dev_out);
-    write_tensorfile(host_g, "host_g.txt");
+    std::vector<TensorHf4*> inputs_ref;
+    std::vector<TensorHf4*> outputs_ref;
+    inputs_ref.push_back(&host_x);
+    outputs_ref.push_back(&compare_g);
+    GruParam<TensorHf4> param_ref(&host_weight, &host_bias,GRU_ORIGIN,gate_activity,h_activity_in,
+                             is_reverse, nullptr,1.f,1,1);
+    compute_ref_gru_fwd_me(inputs_ref,outputs_ref,param_ref);
+#ifdef COMPARE_WITH_OUT
+    host_hidden_out.copy_from(compare_g);
+    write_tensorfile(host_hidden_out, "host_g.txt");
     readTensorData(compare_g, "host_correct");
-    write_tensorfile(compare_g, "host_correct.txt");
+#endif
     double maxdiff = 0;
     double maxratio = 0;
-    tensor_cmp_host(host_g.data(), compare_g.data(), host_g.valid_size(), maxratio, maxdiff);
-
-    if (abs(maxratio) <= 0.001) {
+    tensor_cmp_host((const float*)host_hidden_out.data(), (const float*)compare_g.data(), host_hidden_out.valid_size(), maxratio, maxdiff);
+    if (abs(maxratio) <= 0.001||abs(maxdiff)<0.001) {
                 LOG(INFO) << "passed  " << maxratio<<","<<maxdiff<<",?="<<abs(maxratio);
     } else {
-                LOG(INFO) << "failed : ratio " << maxratio<<","<<maxdiff;
+        CHECK(false) << "failed : ratio " << maxratio<<","<<maxdiff;
     }
-    return;
-#endif
-    //    return;
 }
 
-TEST(TestSaberFuncX86, test_func_saber_gru_x86) {
 
-    test_saber_gru_x86();
+
+TEST(TestSaberFuncX86, test_func_gru_x86) {
+    Env<X86>::env_init();
+    gru_ut<X86,X86>(222,333,{0,2,5,12,30}, true,Active_sigmoid,Active_tanh,100);
+    gru_ut<X86,X86>(222,333,{0,2,5,12,30}, false,Active_sigmoid,Active_tanh,100);
+    gru_ut<X86,X86>(222,333,{0,2,5,12,30}, true,Active_sigmoid,Active_relu,100);
+    gru_ut<X86,X86>(222,333,{0,2,5,12,30}, false,Active_sigmoid,Active_relu,100);
+    gru_ut<X86,X86>(222,333,{0,30},        true,Active_sigmoid,Active_tanh,100);
+    gru_ut<X86,X86>(222,333,{0,30},        false,Active_sigmoid,Active_tanh,100);
+
+    gru_ut<X86,X86>(222,333,{0,2,5,12,30}, true,Active_sigmoid,Active_tanh,100,VENDER_IMPL);
+    gru_ut<X86,X86>(222,333,{0,2,5,12,30}, false,Active_sigmoid,Active_tanh,100,VENDER_IMPL);
+    gru_ut<X86,X86>(222,333,{0,2,5,12,30}, true,Active_sigmoid,Active_relu,100,VENDER_IMPL);
+    gru_ut<X86,X86>(222,333,{0,2,5,12,30}, false,Active_sigmoid,Active_relu,100,VENDER_IMPL);
+    gru_ut<X86,X86>(222,333,{0,30},        true,Active_sigmoid,Active_tanh,100,VENDER_IMPL);
+    gru_ut<X86,X86>(222,333,{0,30},        false,Active_sigmoid,Active_tanh,100,VENDER_IMPL);
 
 }
+
+
 
 int main(int argc, const char** argv) {
     // initial logger
     //logger::init(argv[0]);
-#ifdef TEST_X86
-    Env<X86>::env_init();
-#else
-    Env<NV>::env_init();
-#endif
 
     InitTest();
     RUN_ALL_TESTS(argv[0]);
