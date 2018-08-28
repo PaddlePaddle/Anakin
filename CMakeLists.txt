@@ -21,10 +21,10 @@ include(cmake/statistic.cmake)
 # ----------------------------------------------------------------------------
 # section: global anakin version and lib name
 # ----------------------------------------------------------------------------
-# global anakin version 0.1.0
+# global anakin version 0.1.1
 set(VERSION_MAJOR "0")
 set(VERSION_MINOR "1")
-set(VERSION_PATCH "0")
+set(VERSION_PATCH "1")
 set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 
 # anakin lib name and global directories
@@ -56,7 +56,7 @@ anakin_option(ANAKIN_TYPE_INT8 "define the INT8 for data precision." NO)
 
 #select the plantform to build
 anakin_option(USE_GPU_PLACE "Select the build mode for GPU place." YES)
-anakin_option(USE_X86_PLACE "Select the build mode for X86 place." NO)
+anakin_option(USE_X86_PLACE "Select the build mode for X86 place." YES)
 anakin_option(USE_ARM_PLACE "Select the build mode for ARM place." NO)
 
 # plantfrom details
@@ -76,7 +76,7 @@ anakin_option(BUILD_FAT_BIN "Build anakin cuda fat-bin lib for all device plantf
 
 cmake_minimum_required(VERSION ${MIN_CMAKE_V} FATAL_ERROR)
 
-if(USE_CUDA)
+if(USE_CUDA AND (NOT SELECTED_SASS_TARGET_ARCH))
     # Select gpu target arch for local high performance implement sass code . Now we have checked on sm_61 sm_50 and it works well.
     set(SELECTED_SASS_TARGET_ARCH "61")
 endif()

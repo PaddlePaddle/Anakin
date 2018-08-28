@@ -17,7 +17,7 @@
 #define ANAKIN_SABER_CORE_SHAPE_H
 
 #include <vector>
-#include "core/common.h"
+#include "saber/core/common.h"
 
 namespace anakin{
 

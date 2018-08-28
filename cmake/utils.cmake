@@ -244,10 +244,16 @@ function(anakin_protos_processing)
 	set(__working_dir ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/PROTO_TEMP/)
 	
 	anakin_fetch_files_with_suffix(${PROTO_SRC_PATH} "proto" PROTO_SRC_FILES)
-	foreach(__file ${PROTO_SRC_FILES})	
-		exec_program(${PROTOBUF_PROTOC_EXECUTABLE} ${__working_dir} ARGS " -I=${PROTO_SRC_PATH} --cpp_out=. ${__file}"
+	foreach(__file ${PROTO_SRC_FILES})
+		if(USE_ARM_PLACE)
+			exec_program(protoc ${__working_dir} ARGS " -I=${PROTO_SRC_PATH} --cpp_out=. ${__file}"
+					OUTPUT_VARIABLE OUTPUT
+					RETURN_VALUE VALUE)
+		else()
+			exec_program(${PROTOBUF_PROTOC_EXECUTABLE} ${__working_dir} ARGS " -I=${PROTO_SRC_PATH} --cpp_out=. ${__file}"
 							OUTPUT_VARIABLE OUTPUT
 							RETURN_VALUE VALUE)
+		endif()
 		if(NOT VALUE)
 			anakin_fetch_files_with_suffix(${__working_dir} "h" PROTO_GENERATE_H)
 			# get *.cpp or *.cc

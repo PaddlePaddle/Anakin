@@ -71,19 +71,20 @@
 
 #### 2.3.1、安装包准备 ###
 
-将 Anakin 源码和 `anakin_third_party.tar.gz` 拷贝到离线环境中。
+将 Anakin 源码、Protobuf 源码，以及 `anakin_third_party.tar.gz` 拷贝到离线环境中。
 
     wget https://github.com/PaddlePaddle/Anakin/archive/developing.zip
+    wget https://github.com/google/protobuf/releases/download/v3.1.0/protobuf-cpp-3.1.0.tar.gz
 
 除 GNU Make 3.81、CMake 2.8.12、GCC-G++ 4.8.2 和上一小节所述不同架构的依赖外，您可能还需要准备 [AutoConf 2.63](https://centos.pkgs.org/6/centos-i386/autoconf-2.63-5.1.el6.noarch.rpm.html)、[AutoMake 1.11](https://centos.pkgs.org/6/centos-i386/automake-1.11.1-4.el6.noarch.rpm.html)、[libtool 2.26](https://centos.pkgs.org/6/centos-x86_64/libtool-2.2.6-15.5.el6.x86_64.rpm.html)。
 
 #### 2.3.2、离线安装 ###
 
-将 `anakin_third_party.tar.gz` 解压至 Anakin/third_party，并按上一小节的说明安装 Protobuf。
+将第三方库 `anakin_third_party.tar.gz` 解压至 Anakin/third-party，并按上一小节的说明源码编译安装 Protobuf。
 
 注释 `cmake/external/mkldnn.cmake`、`cmake/external/mklyl.cmake` 和 `cmake/external/xbyak.cmake` 的 `ExternalProject_Add` 语句。
 
-最后执行 `tools/` 中的脚本，进行安装。
+执行 `tools` 中的脚本，进行安装。
 
 ## 3、其它 ##
 

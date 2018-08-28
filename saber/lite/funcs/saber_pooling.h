@@ -38,13 +38,11 @@ public:
 
     virtual SaberStatus load_param(const ParamBase* param) override;
 
-//    SaberPooling(PoolingType type, bool flag_global, int kernel_w, int kernel_h, \
-//        int stride_w, int stride_h, int pad_w, int pad_h);
-//
-//    SaberStatus load_param(PoolingType type, bool flag_global, int kernel_w, int kernel_h, \
-//        int stride_w, int stride_h, int pad_w, int pad_h);
+    //virtual SaberStatus load_param(FILE* fp, const float* weights) override;
 
-    ~SaberPooling() {}
+    virtual SaberStatus load_param(std::istream& stream, const float* weights) override;
+
+    ~SaberPooling();
 
     virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
                                      std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) override;
@@ -58,14 +56,6 @@ public:
 private:
     const PoolParam* _param;
     pool_func _impl{nullptr};
-//    PoolingType _type;
-//    bool _is_global{false};
-//    int _kw;
-//    int _kh;
-//    int _stride_w;
-//    int _stride_h;
-//    int _pad_w;
-//    int _pad_h;
 };
 
 } //namespace lite

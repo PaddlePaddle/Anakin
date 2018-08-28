@@ -1131,6 +1131,18 @@ struct ConvActiveParam {
             , has_eltwise(false)
             , has_eltwise_act(false)
     {}
+
+    ConvActiveParam(ConvParam<opTensor> &conv_param_in
+            , BatchnormParam<opTensor> &batchnorm_param_in)
+            : conv_param(conv_param_in)
+            , batchnorm_param(batchnorm_param_in)
+            , has_batchnorm(true)
+            , has_scale(false)
+            , has_active(false)
+            , has_eltwise(false)
+            , has_eltwise_act(false)
+    {}
+
     ConvActiveParam(ConvParam<opTensor> &conv_param_in
             , ActivationParam<opTensor> &activation_param_in
             , BatchnormParam<opTensor> &batchnorm_param_in
@@ -1688,13 +1700,21 @@ template <typename opTensor>
 struct PriorBoxParam {
 
     PriorBoxParam(){}
-    PriorBoxParam(std::vector<float> min_in, std::vector<float> max_in, \
-        std::vector<float> aspect_in, std::vector<float> variance_in,
+
+    PriorBoxParam(std::vector<float> variance_in, \
         bool flip, bool clip, int image_width, int image_height, \
-        float step_width, float step_height, float offset_in, std::vector<PriorType> order_in) {
+        float step_width, float step_height, float offset_in, std::vector<PriorType> order_in, \
+        std::vector<float> min_in= std::vector<float>(), std::vector<float> max_in= std::vector<float>(), \
+        std::vector<float> aspect_in= std::vector<float>(),
+        std::vector<float> fixed_in = std::vector<float>(), std::vector<float> fixed_ratio_in = std::vector<float>(), \
+        std::vector<float> density_in = std::vector<float>()) {
         is_flip = flip;
         is_clip = clip;
         min_size = min_in;
+        //add 
+        fixed_size = fixed_in;
+        density_size = density_in;
+
         img_w = image_width;
         img_h = image_height;
         step_w = step_width;
@@ -1718,6 +1738,21 @@ struct PriorBoxParam {
             variance.push_back(variance_in[3]);
         }
 
+        //add
+        if (fixed_size.size() > 0){
+            CHECK_GT(density_size.size(), 0) << "if use fixed_size then you must provide density";
+        }
+       // if (fixed_ratio_in.size() > 0) {
+         //   CHECK_EQ(0, aspect_in.size()) <<"can not provide fixed_ratio and aspect_ratio simultaneously.";
+         //}
+        //add
+         fixed_ratio.clear();
+
+         for (int i = 0; i < fixed_ratio_in.size(); i++){
+            fixed_ratio.push_back(fixed_ratio_in[i]);
+         }
+         //end
+
         for (int i = 0; i < aspect_in.size(); ++i) {
             float ar = aspect_in[i];
             bool already_exist = false;
@@ -1734,7 +1769,26 @@ struct PriorBoxParam {
                 }
             }
         }
-        prior_num = min_size.size() * aspect_ratio.size();
+
+        //add
+        if (min_size.size() > 0)
+            prior_num = min_size.size() * aspect_ratio.size();
+        if (fixed_size.size() > 0){
+            prior_num = fixed_size.size() * fixed_ratio.size();
+        }
+
+        if(density_size.size() > 0){
+            for (int i = 0; i < density_size.size(); i++){
+                if(fixed_ratio.size() > 0){
+                    prior_num += (fixed_ratio.size() * ((pow(density_size[i], 2))-1));
+                }else{
+                    prior_num += ((fixed_ratio.size() + 1) * ((pow(density_size[i], 2))-1));
+                }
+            }
+        }
+        //end
+       // LOG(INFO) << "min_size: " << min_size.size() << "max_size: " << max_in.size();
+        //LOG(INFO) << "fixed_size: " << fixed_size.size();
         max_size.clear();
         if (max_in.size() > 0) {
             CHECK_EQ(max_in.size(), min_size.size()) << "max_size num must = min_size num";
@@ -1745,10 +1799,14 @@ struct PriorBoxParam {
             }
         }
     }
+
     PriorBoxParam(const PriorBoxParam<opTensor>& right) {
         is_flip = right.is_flip;
         is_clip = right.is_clip;
         min_size = right.min_size;
+        fixed_size = right.fixed_size;
+        fixed_ratio = right.fixed_ratio;
+        density_size = right.density_size;
         max_size = right.max_size;
         aspect_ratio = right.aspect_ratio;
         variance = right.variance;
@@ -1764,6 +1822,9 @@ struct PriorBoxParam {
         this->is_flip = right.is_flip;
         this->is_clip = right.is_clip;
         this->min_size = right.min_size;
+        this->fixed_size = right.fixed_size;
+        this->fixed_ratio = right.fixed_ratio;
+        this->density_size = right.density_size;
         this->max_size = right.max_size;
         this->aspect_ratio = right.aspect_ratio;
         this->variance = right.variance;
@@ -1784,6 +1845,30 @@ struct PriorBoxParam {
         }
         for (int i = 0; i < min_size.size(); ++i) {
             if (min_size[i] != right.min_size[i]) {
+                return false;
+            }
+        }
+        if (fixed_size.size() != right.fixed_size.size()) {
+            return false;
+        }
+        for (int i = 0; i < fixed_size.size(); ++i) {
+            if (fixed_size[i] != right.fixed_size[i]) {
+                return false;
+            }
+        }
+        if (fixed_ratio.size() != right.fixed_ratio.size()) {
+            return false;
+        }
+        for (int i = 0; i < fixed_ratio.size(); ++i) {
+            if (fixed_ratio[i] != right.fixed_ratio[i]) {
+                return false;
+            }
+        }
+        if (density_size.size() != right.density_size.size()) {
+            return false;
+        }
+        for (int i = 0; i < density_size.size(); ++i) {
+            if (density_size[i] != right.density_size[i]) {
                 return false;
             }
         }
@@ -1824,6 +1909,9 @@ struct PriorBoxParam {
     bool is_flip;
     bool is_clip;
     std::vector<float> min_size;
+    std::vector<float> fixed_size;
+    std::vector<float> fixed_ratio;
+    std::vector<float> density_size;
     std::vector<float> max_size;
     std::vector<float> aspect_ratio;
     std::vector<float> variance;
@@ -2632,6 +2720,7 @@ struct AttensionParam {
          fc_vec(right.fc_vec) {}
    AttensionParam&operator=(const AttensionParam &right){
        fc_vec = right.fc_vec;
+       return *this;
    }
    bool operator == (const AttensionParam &right) {
        bool cmp_eq = true;
@@ -2661,6 +2750,7 @@ struct AttensionLstmParam {
     AttensionLstmParam &operator=(const AttensionLstmParam &right) {
         attension_param = right.attension_param;
         lstm_param = right.lstm_param;
+        return *this;
     }
     bool operator==(const AttensionLstmParam &right) {
         bool cmp_eq = true;
@@ -2681,6 +2771,7 @@ struct SequenceExpandParam {
             ref_level(right.ref_level_in) {}
     SequenceExpandParam &operator=(const  SequenceExpandParam &right) {
         ref_level = right.ref_level;
+        return *this;
     }
     bool operator==(const SequenceExpandParam &right) {
         return ref_level == right.ref_level;
@@ -2688,6 +2779,24 @@ struct SequenceExpandParam {
 
 public:
     int ref_level;
+};
+
+template <typename opTensor>
+struct ShuffleChannelParam {
+    ShuffleChannelParam():group(1) {}
+    ShuffleChannelParam(int group_in):group(group_in) {}
+    ShuffleChannelParam(const  ShuffleChannelParam &right):
+            group(right.group) {}
+    ShuffleChannelParam &operator=(const  ShuffleChannelParam &right) {
+        group = right.group;
+        return *this;
+    }
+    bool operator==(const ShuffleChannelParam &right) {
+        return group == right.group;
+    }
+
+public:
+    int group;
 };
 
 }

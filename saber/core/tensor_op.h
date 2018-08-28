@@ -16,8 +16,8 @@
 #ifndef ANAKIN_SABER_TENSOR_OP_H
 #define ANAKIN_SABER_TENSOR_OP_H
 
-#include "core/tensor.h"
-#include "context.h"
+#include "saber/core/tensor.h"
+#include "saber/core/context.h"
 #include "anakin_config.h"
 
 namespace anakin{

@@ -157,7 +157,8 @@ enum CodeType {
 typedef enum {
     SABER_POWER_HIGH = 0,
     SABER_POWER_LOW  = 1,
-    SABER_POWER_FULL = 2
+    SABER_POWER_FULL = 2,
+    SABER_POWER_NO_BIND = 3
 } PowerMode;
 
 typedef enum {
