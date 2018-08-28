@@ -69,7 +69,6 @@ public:
         int input_height = input[0]->height();
         int input_width = input[0]->width();
 
-
         CHECK_GE(input.size(), 1) << "input must >= 1";
 
         int hiddenSize = param.bias()->valid_size() / 3;
