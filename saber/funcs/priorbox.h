@@ -45,6 +45,7 @@ public:
     typedef TargetWrapper<TargetType> API;
     typedef std::vector<Tensor<TargetType> *> Input_v;
     typedef std::vector<Tensor<TargetType> *> Output_v;
+    typedef PriorBoxParam<TargetType> Param_t;
 
     virtual SaberStatus compute_output_shape(const Input_v &input,
                                              Output_v &output, Param_t &param) override {
@@ -63,6 +64,7 @@ public:
     }
 
     SaberStatus compute_priorbox_kernel(const Input_v& input, Output_v& output, Param_t& param) {
+        /*
         unsigned long long out_size = output[0]->valid_size();
         if (_cpu_data == nullptr) {
             _size = out_size;
@@ -85,8 +87,8 @@ public:
         int img_width = param.img_w;
         int img_height = param.img_h;
         if (img_width == 0 || img_height == 0) {
-            img_width = inputs[1]->width();
-            img_height = inputs[1]->height();
+            img_width = input[1]->width();
+            img_height = input[1]->height();
         }
 
         float step_w = param.step_w;
@@ -199,7 +201,7 @@ public:
         typedef typename IF<std::is_same<target_category, __host_target>::value, H2H, H2D>::Type copy_type;
         API::sync_memcpy(_tensor_tmp.mutable_data(), 0, API::get_device_id(), \
             _cpu_data, 0, 0, sizeof(float) * out_size, copy_type());
-
+*/
         return SaberSuccess;
     }
 
@@ -214,16 +216,16 @@ public:
         return SaberSuccess;
     }
     //copy data to output
-    virtual SaberStatus operator()(const Input_v& input, Output_v& output, Param_t& param, \
+    virtual SaberStatus operator() (const Input_v& input, Output_v& output, Param_t& param, \
         Context<TargetType> &ctx) {
 
-        API::stream_t stream = ctx.get_compute_stream();
-        bool flag = _param == param;
+        typename Tensor<TargetType>::API::stream_t stream = ctx.get_compute_stream();
+        bool flag = (this->_param == param);
         for (int i = 0; i < input.size(); ++i) {
             flag = flag && input[i]->valid_shape() == this->_last_input_shape[i];
         }
         if (!flag) {
-            _param = param;
+            this->_param = param;
             this->_last_input_shape.clear();
             for (int i = 0; i < input.size(); ++i) {
                 this->_last_input_shape.push_back(input[i]->valid_shape());

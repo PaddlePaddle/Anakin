@@ -122,9 +122,11 @@ Status SassConvBatchnormScaleReluPoolHelper<Ttype, Ptype>::InitParam() {
         LOG(FATAL) << " SassConvBatchnormScaleReluPool fusion op doesn't support : " << pool_method << " pooling.";
     }
 
-    ConvActivePoolingParam<Ttype> conv_act_pooling_param(_conv_param, batchnorm_param,
-                                                                          scale_param, active_param,
-                                                                          _pooling_param);
+    ConvPoolingParam<Ttype> conv_act_pooling_param(_conv_param, 
+                                                   batchnorm_param, 
+                                                   scale_param, 
+                                                   active_param, 
+                                                   _pooling_param);
     _param_conv_batchnorm_scale_relu_pooling = conv_act_pooling_param;
     return Status::OK();
 }

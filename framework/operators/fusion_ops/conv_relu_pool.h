@@ -86,9 +86,9 @@ public:
 
 public:
     ///< _param_conv_relu_pooling stand for ConvReluPool parameter
-    saber::ConvActivePoolingParam<Ttype>  _param_conv_relu_pooling;
+    saber::ConvPoolingParam<Ttype>  _param_conv_relu_pooling;
     ///< _funcs_conv_relu_pooling stand for ConvReluPool function 
-    saber::ConvActPooling<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_conv_relu_pooling;
+    saber::ConvPooling<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_conv_relu_pooling;
 
 private:
     ///< _dims stand for ConvReluPool size

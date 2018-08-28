@@ -20,7 +20,7 @@
 #include "framework/core/data_types.h"
 #include "framework/core/operator/operator.h"
 #include "utils/logger/logger.h"
-#include "saber/funcs/conv_act_pooling.h"
+#include "saber/funcs/conv_pooling.h"
 
 namespace anakin {
 
@@ -86,9 +86,9 @@ public:
 
 public:
     ///< _param_conv_relu_pooling stand for SassConvReluPool parameter
-    saber::ConvActivePoolingParam<Ttype>  _param_conv_relu_pooling;
+    saber::ConvPoolingParam<Ttype>  _param_conv_relu_pooling;
     ///< _funcs_conv_relu_pooling stand for SassConvReluPool function 
-    saber::ConvActPooling<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_conv_relu_pooling;
+    saber::ConvPooling<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_conv_relu_pooling;
 
 private:
     ///< _dims stand for SassConvReluPool size

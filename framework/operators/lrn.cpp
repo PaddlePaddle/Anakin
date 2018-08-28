@@ -88,10 +88,10 @@ ANAKIN_REGISTER_OP_HELPER(Lrn, LrnHelper, ARM, Precision::FP32);
 ANAKIN_REGISTER_OP(Lrn)
 .Doc("LRN operator")
 #ifdef USE_CUDA
-.__alias__<NV, AK_FLOAT, Precision::FP32>("LRN")
+.__alias__<NV, Precision::FP32>("LRN")
 #endif
 #ifdef USE_ARM_PLACE
-.__alias__<ARM, AK_FLOAT, Precision::FP32>("LRN")
+.__alias__<ARM, Precision::FP32>("LRN")
 #endif
 .num_in(3)
 .num_out(1);

@@ -13,8 +13,8 @@ void SassConvBatchnormScale<NV, Precision::FP32>::operator()(
     auto* impl = static_cast<SassConvBatchnormScaleHelper<NV, Precision::FP32>*>
                  (this->_helper);
     auto& param = static_cast<SassConvBatchnormScaleHelper<NV, Precision::FP32>*>
-                  (this->_helper)->_param_conv_batchnorm_scale_relu;
-    impl->_funcs_conv_batchnorm_scale_relu(ins, outs, param, ctx);
+                  (this->_helper)->_param_conv_batchnorm_scale;
+    impl->_funcs_conv_batchnorm_scale(ins, outs, param, ctx);
 }
 #endif
 
@@ -109,10 +109,10 @@ Status SassConvBatchnormScaleHelper<Ttype, Ptype>::InitParam() {
     	EltwiseActiveParam<Ttype> eltwise_relu_param(eltwise_param, activation_param);
 
 		ConvActiveParam<Ttype> conv_act_param(_conv_param, batchnorm_param, scale_param, eltwise_relu_param);
-		_param_conv_batchnorm_scale_relu = conv_act_param;
+		_param_conv_batchnorm_scale = _conv_param;//conv_act_param;
 	} else { 
 		ConvActiveParam<Ttype> conv_act_param(_conv_param, batchnorm_param, scale_param); 
-		_param_conv_batchnorm_scale_relu = conv_act_param;
+		_param_conv_batchnorm_scale = _conv_param;//conv_act_param;
 	}
 
     return Status::OK();
@@ -122,7 +122,7 @@ template<typename Ttype, Precision Ptype>
 Status SassConvBatchnormScaleHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
         const std::vector<Tensor4dPtr<Ttype> >& ins,
         std::vector<Tensor4dPtr<Ttype> >& outs) {
-    _funcs_conv_batchnorm_scale_relu.init(ins, outs, _param_conv_batchnorm_scale_relu, SPECIFY, SABER_IMPL, ctx);
+    _funcs_conv_batchnorm_scale.init(ins, outs, _param_conv_batchnorm_scale, SPECIFY, SABER_IMPL, ctx);
     return Status::OK();
 }
 
@@ -130,7 +130,7 @@ template<typename Ttype, Precision Ptype>
 Status SassConvBatchnormScaleHelper<Ttype, Ptype>::InferShape(
     const std::vector<Tensor4dPtr<Ttype> >& ins,
     std::vector<Tensor4dPtr<Ttype> >& outs) {
-    _funcs_conv_batchnorm_scale_relu.compute_output_shape(ins, outs, _param_conv_batchnorm_scale_relu);
+    _funcs_conv_batchnorm_scale.compute_output_shape(ins, outs, _param_conv_batchnorm_scale);
     return Status::OK();
 }
 

@@ -20,7 +20,7 @@
 #include "framework/core/data_types.h"
 #include "framework/core/operator/operator.h"
 #include "utils/logger/logger.h"
-#include "saber/funcs/conv_act.h"
+#include "saber/funcs/conv.h"
 
 namespace anakin {
 
@@ -86,9 +86,9 @@ public:
 
 public:
     ///< _param_conv_relu stand for ConvRelu parameter
-    saber::ConvActiveParam<Ttype> _param_conv_relu;
+    saber::ConvParam<Ttype> _param_conv_relu;
     ///< _funcs_conv_relu stand for ConvRelu function 
-    saber::ConvAct<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_conv_relu;
+    saber::Conv<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_conv_relu;
 };
 
 } /* namespace ops */

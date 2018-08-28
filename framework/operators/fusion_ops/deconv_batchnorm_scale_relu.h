@@ -20,7 +20,7 @@
 #include "framework/core/data_types.h"
 #include "framework/core/operator/operator.h"
 #include "utils/logger/logger.h"
-#include "saber/funcs/deconv_act.h"
+#include "saber/funcs/deconv.h"
 
 namespace anakin {
 
@@ -86,9 +86,9 @@ public:
 
 public:
     ///< _param_deconv_batchnorm_scale_relu stand for DeconvBatchnormScaleRelu parameter
-    saber::ConvActiveParam<Ttype>  _param_deconv_batchnorm_scale_relu;
+    saber::ConvParam<Ttype>  _param_deconv_batchnorm_scale_relu;
     ///< _funcs_deconv_batchnorm_scale_relu stand for DeconvBatchnormScaleRelu function
-    saber::DeconvAct<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_deconv_batchnorm_scale_relu;
+    saber::Deconv<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_deconv_batchnorm_scale_relu;
 
 private:
     ///< _dims stand for DeconvBatchnormScaleRelu size

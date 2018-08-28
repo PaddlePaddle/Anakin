@@ -20,7 +20,7 @@
 #include "framework/core/data_types.h"
 #include "framework/core/operator/operator.h"
 #include "utils/logger/logger.h"
-#include "saber/funcs/conv_act.h"
+#include "saber/funcs/conv.h"
 
 namespace anakin {
 
@@ -85,10 +85,10 @@ public:
                       std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
 public:
-     ///< _param_conv_batchnorm_scale_relu stand for SassConvBatchnormScale parameter
-    saber::ConvActiveParam<Ttype>  _param_conv_batchnorm_scale_relu;
-    ///< _funcs_conv_batchnorm_scale_relu stand for SassConvBatchnormScale function 
-    saber::ConvAct<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_conv_batchnorm_scale_relu;
+     ///< _param_conv_batchnorm_scale stand for SassConvBatchnormScale parameter
+    saber::ConvParam<Ttype>  _param_conv_batchnorm_scale;
+    ///< _funcs_conv_batchnorm_scale stand for SassConvBatchnormScale function 
+    saber::Conv<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_conv_batchnorm_scale;
 
 private:
     ///< _dims stand for SassConvBatchnormScale size

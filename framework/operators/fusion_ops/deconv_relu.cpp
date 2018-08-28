@@ -66,8 +66,8 @@ Status DeconvReluHelper<Ttype, Ptype>::InitParam() {
     ActivationParam<Ttype> active_param(Active_relu);//, alpha); // TEMP
 
 
-    ConvActiveParam<Ttype> conv_act_param(_conv_param, active_param);
-    _param_deconv_relu = conv_act_param;
+    //ConvActiveParam<Ttype> conv_act_param(_conv_param, active_param);
+    _param_deconv_relu = _conv_param;//conv_act_param;
 
     return Status::OK();
 
