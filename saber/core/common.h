@@ -179,8 +179,9 @@ const char* cudnn_get_errorstring(cudnnStatus_t status);
 #ifdef USE_BM
 
 #include "bmlib_runtime.h"
+#include "bmdnn_api.h"
+#include "bmdnn_ext_api.h"
 #include "bmlib_utils.h"
-#include "bmkernel_runtime.h"
 
 #define BMDNN_CHECK(condition) \
   do { \
