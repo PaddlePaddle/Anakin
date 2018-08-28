@@ -125,10 +125,6 @@ TEST(TestSaberFunc, test_saber_conv_results) {
     test_conv_eltwise<NV, NVHX86>();
 #endif
 
-#ifdef USE_X86_PLACE
-    test_conv_eltwise<NV, NVHX86>();
-#endif
-
 }
 int main(int argc, const char** argv) {
     // initial logger

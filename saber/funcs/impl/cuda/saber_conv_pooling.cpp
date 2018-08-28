@@ -149,5 +149,7 @@ SaberStatus SaberConv2DPooling<NV, AK_FLOAT>::dispatch(
 }
 
 template class SaberConv2DPooling<NV, AK_FLOAT>;
+DEFINE_OP_TEMPLATE(SaberConv2DPooling, ConvPoolingParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberConv2DPooling, ConvPoolingParam, NV, AK_INT8);
 }
 }

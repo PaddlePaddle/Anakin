@@ -310,6 +310,7 @@ SaberStatus SaberPermutePower<NV, AK_FLOAT>::\
 
     return SaberSuccess;
 }
-
+DEFINE_OP_TEMPLATE(SaberPermutePower, PermutePowerParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberPermutePower, PermutePowerParam, NV, AK_INT8);
 }
 }
