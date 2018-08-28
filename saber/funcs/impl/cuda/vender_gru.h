@@ -153,7 +153,6 @@ public:
             Tensor<X86, OpDtype, LayOutType_op> temp_tensor;
             temp_tensor.re_alloc(temp_tensor_shape);
             extract_matrix_from_matrix_in_leddim(weights_i2h,temp_tensor.mutable_data(),0,weights_i2h_size,_hidden_size*3,_hidden_size);
-            write_tensorfile(temp_tensor,"temp_tensor");
         }
 
 

@@ -115,10 +115,10 @@ void test_transpose() {
 
     if (maxdiff > 0.01) {
         LOG(INFO) << "before print: ";
-        write_tensorfile(img_host_out, "host.txt");
+//        write_tensorfile(img_host_out, "host.txt");
         LOG(INFO) << "before host ";
-        write_tensorfile(img_host_from_dev, "dev.txt");
-        write_tensorfile(img_host_to_dev, "origin.txt");
+//        write_tensorfile(img_host_from_dev, "dev.txt");
+//        write_tensorfile(img_host_to_dev, "origin.txt");
         LOG(ERROR) << img_num << "," << in_channels << "," << img_h << "," << img_w;
         return;
     }

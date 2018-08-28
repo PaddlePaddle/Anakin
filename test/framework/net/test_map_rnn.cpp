@@ -12,7 +12,10 @@
 #include "framework/operators/ops.h"
 #include <fstream>
 #include <thread>
+
+#ifdef USE_X86_PLACE
 #include <mkl_service.h>
+#endif
 
 #if defined(USE_CUDA)
 using Target = NV;
