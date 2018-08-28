@@ -13,41 +13,41 @@
    limitations under the License. 
 */
 
-#ifndef ANAKIN_OPERATOR_AXPY_H
-#define ANAKIN_OPERATOR_AXPY_H
+#ifndef ANAKIN_FRAMEWORK_OPERATOR_ARGMAX_H
+#define ANAKIN_FRAMEWORK_OPERATOR_ARGMAX_H
 
 #include "framework/core/base.h"
 #include "framework/core/data_types.h"
 #include "framework/core/operator/operator.h"
 #include "utils/logger/logger.h"
-#include "saber/funcs/axpy.h"
+#include "saber/funcs/argmax.h"
 
 namespace anakin {
 
 namespace ops {
 
 template<typename Ttype, Precision Ptype>
-class AxpyHelper;
+class ArgmaxHelper;
 
 /// axpy op
 /**
- * \brief operation of Axpy class
+ * \brief operation of argMax class
  * public inheritance Operator
  */
 template<typename Ttype, Precision Ptype>
-class Axpy : public Operator<Ttype, Ptype> {
+class Argmax : public Operator<Ttype, Ptype> {
 public:
-    Axpy() {}
+    Argmax() {}
 
     /// forward impl
     virtual void operator() (OpContext<Ttype> &ctx, 
                              const std::vector<Tensor4dPtr<Ttype> >& ins, 
                              std::vector<Tensor4dPtr<Ttype> >& outs) {
-		LOG(ERROR) << "Not Impl Yet Operator Axpy< Ttype("
+		LOG(ERROR) << "Not Impl Yet Operator Argmax< Ttype("
 				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
-    friend class AxpyHelper<Ttype, Ptype>;
+    friend class ArgmaxHelper<Ttype, Ptype>;
 };
 
 /**
@@ -56,16 +56,16 @@ public:
  *  including init operation context and the size of shape
  */
 template<typename Ttype, Precision Ptype>
-class AxpyHelper : public OperatorHelper<Ttype, Ptype> {
+class ArgmaxHelper : public OperatorHelper<Ttype, Ptype> {
 public:
-    AxpyHelper()=default;
+    ArgmaxHelper()=default;
 
-    ~AxpyHelper();
+    ~ArgmaxHelper();
 
     Status InitParam() override;
 
     /**
-    * \brief initial all the resource needed by Axpy
+    * \brief initial all the resource needed by argmax
     * \param ctx stand for operation context
     * \param ins stand for input tensor vector
     * \param outs stand for output tensor vector
@@ -85,13 +85,13 @@ public:
                       std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
 public:
-    ///< _param_axpy stand for axpy parameter
-    saber::AxpyParam<Tensor4d<Ttype>> _param_axpy;
-    ///< _funcs_axpy stand for axpy function
-    saber::Axpy<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_axpy;
+    ///< _param_argmax stand for argmax parameter
+    saber::ArgmaxParam<Ttype> _param_argmax;
+    ///< _funcs_argmax stand for argmax function
+    saber::Argmax<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_argmax;
 
 private:
-    ///< _dims stand for axpy size
+    ///< _dims stand for argmax size
     PTuple<int> _dims; 
 };
 

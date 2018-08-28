@@ -43,8 +43,8 @@ public:
         }
     }
     typedef TargetWrapper<TargetType> API;
-    typedef std::vector<InDataTensor *> Input_v;
-    typedef std::vector<OutDataTensor *> Output_v;
+    typedef std::vector<Tensor<TargetType> *> Input_v;
+    typedef std::vector<Tensor<TargetType> *> Output_v;
 
     virtual SaberStatus compute_output_shape(const Input_v &input,
                                              Output_v &output, Param_t &param) override {
@@ -228,7 +228,7 @@ public:
             for (int i = 0; i < input.size(); ++i) {
                 this->_last_input_shape.push_back(input[i]->valid_shape());
             }
-            compute_output_shape(input, output, param, ctx);
+            compute_output_shape(input, output, param);
             compute_priorbox_kernel(input, output, param);
         }
         return output[0]->async_copy_from(_tensor_tmp, stream);

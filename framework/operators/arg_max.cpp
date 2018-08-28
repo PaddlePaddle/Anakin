@@ -43,10 +43,10 @@ Status ArgmaxHelper<Ttype, Ptype>::InitParam() {
 
     if (axis_term == true) {
         auto axis = GET_PARAMETER(int, axis);
-        saber::ArgmaxParam <Tensor4d<Ttype>> argmax_param(out_max_val, top_k, axis);
+        saber::ArgmaxParam <Ttype> argmax_param(out_max_val, top_k, axis);
         _param_argmax = argmax_param;
     } else {
-        saber::ArgmaxParam <Tensor4d<Ttype>> argmax_param(out_max_val, top_k);
+        saber::ArgmaxParam <Ttype> argmax_param(out_max_val, top_k);
         _param_argmax = argmax_param;
     }
 
@@ -62,9 +62,8 @@ Status ArgmaxHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
 }
 
 template<typename Ttype, Precision Ptype>
-Status ArgmaxHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype> >&
-        ins,
-        std::vector<Tensor4dPtr<Ttype> >& outs) {
+Status ArgmaxHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype> >& ins,
+                                              std::vector<Tensor4dPtr<Ttype> >& outs) {
     SABER_CHECK(_funcs_argmax.compute_output_shape(ins, outs, _param_argmax));
     return Status::OK();
 }

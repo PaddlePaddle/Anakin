@@ -38,7 +38,7 @@ template<typename Ttype, Precision Ptype>
 Status AxpyHelper<Ttype, Ptype>::InitParam() {
     DLOG(WARNING) << "Parsing Axpy op parameter.";
 
-    saber::AxpyParam<Tensor4d<Ttype>> axpy_param;
+    saber::AxpyParam<Ttype> axpy_param;
     _param_axpy = axpy_param;
     return Status::OK();
 }

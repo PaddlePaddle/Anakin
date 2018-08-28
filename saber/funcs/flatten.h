@@ -78,12 +78,6 @@ private:
         this->_best_impl = this->_impl[0];
     }
 
-    virtual void pick_best_runtime(Input_v input, Output_v output, \
-        Param_t& param, Context<TargetType> &ctx) override {
-        //! flatten only has saber implementation
-        this->_best_impl = this->_impl[0];
-    }
-
     virtual void pick_best_specify(ImplEnum implenum) override {
         //! flatten only has saber implementation
         this->_best_impl = this->_impl[0];
