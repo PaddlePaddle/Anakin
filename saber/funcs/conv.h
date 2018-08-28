@@ -87,6 +87,19 @@ public:
         }
     }
 
+    SaberStatus trans_weights(const Input_v &input,
+                              Output_v &output, Param_t &param, Context<TargetType> &ctx,
+                              ImplEnum implenum) {
+        if (implenum == VENDER_IMPL) {
+            return static_cast<VenderConv2D<TargetType, OpDtype> *>(this->_best_impl)->trans_weights(
+                    input, output, param, ctx);
+        } else if (implenum == SABER_IMPL) {
+            return static_cast<SaberConv2D<TargetType, OpDtype> *>(this->_best_impl)->trans_weights(
+                    input, output, param, ctx);
+        } else {
+            return SaberUnImplError;
+        }
+    }
 private:
 
     virtual void pick_best_static() override {

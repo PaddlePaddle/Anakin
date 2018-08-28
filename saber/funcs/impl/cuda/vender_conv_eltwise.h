@@ -55,7 +55,12 @@ public:
     virtual SaberStatus dispatch(const std::vector<Tensor<NV>*>& inputs,
         std::vector<Tensor<NV>*>& outputs,
         ConvEltwiseParam<NV>& param);
-
+    SaberStatus trans_weights(const std::vector<Tensor<NV> *>& inputs,
+                              std::vector<Tensor<NV> *>& outputs,
+                              ConvParam<NV>& param, Context<NV> &ctx,
+                              bool in_place = false, Tensor<NV>* weight_dev = nullptr) {
+        return SaberUnImplError;
+    }
 private:
     VenderConv2D<NV, OpDtype> _vender_conv;
 

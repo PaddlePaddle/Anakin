@@ -21,7 +21,30 @@ namespace anakin{
 
 namespace saber{
 
-DEFINE_OP_CLASS(Conv2DPooling, ConvPoolingParam);
+template <typename TargetType, DataType OpDtype = AK_FLOAT>
+class SaberConv2DPooling : public ImplBase<
+        TargetType, OpDtype,
+        ConvPoolingParam <TargetType> > {
+    SaberStatus trans_weights(const std::vector<Tensor<TargetType> *>& inputs,
+                              std::vector<Tensor<TargetType> *>& outputs,
+                              ConvPoolingParam<TargetType>& param, Context<TargetType> &ctx,
+                              bool in_place = true, Tensor<TargetType>* weight_dev = nullptr) {
+        return SaberUnImplError;
+    }
+};
+
+template <typename TargetType,
+        DataType OpDtype = AK_FLOAT>
+class VenderConv2DPooling : public ImplBase<
+        TargetType, OpDtype,
+        ConvPoolingParam <TargetType> > {
+    SaberStatus trans_weights(const std::vector<Tensor<TargetType> *>& inputs,
+                              std::vector<Tensor<TargetType> *>& outputs,
+                              ConvPoolingParam<TargetType>& param, Context<TargetType> &ctx,
+                              bool in_place = true, Tensor<TargetType>* weight_dev = nullptr) {
+        return SaberUnImplError;
+    }
+};
 
 }
 }

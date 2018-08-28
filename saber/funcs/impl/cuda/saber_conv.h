@@ -58,6 +58,14 @@ public:
                                  std::vector<Tensor<NV>*>& outputs,
                                  ConvParam<NV>& param);
 
+    SaberStatus trans_weights(const std::vector<Tensor<NV> *>& inputs,
+                  std::vector<Tensor<NV> *>& outputs,
+                  ConvParam<NV>& param, Context<NV> &ctx,
+                  bool in_place = false, Tensor<NV>* weight_dev = nullptr) {
+        conv_trans_weights<NV, NVHX86>(inputs, outputs, param, ctx, in_place, weight_dev);
+        return SaberSuccess;
+    }
+
 private:
     bool _with_saber_act{false};
     bool _in_place{false};
