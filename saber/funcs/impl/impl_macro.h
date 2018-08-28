@@ -35,5 +35,18 @@ class Vender##class_name : public ImplBase< \
     TargetType, OpDtype,\
     param_name <TargetType> > {};
 
+#define DEFINE_OP_TEMPLATE(op_name, op_param, op_target, op_dtype) \
+template<> SaberStatus op_name<op_target, op_dtype>::create( \
+        const std::vector<Tensor<op_target> *>& inputs, \
+        std::vector<Tensor<op_target> *>& outputs, op_param<op_target> &param, \
+        Context<op_target> &ctx) {return SaberUnImplError;} \
+template<> SaberStatus op_name<op_target, op_dtype>::init( \
+        const std::vector<Tensor<op_target> *>& inputs, \
+        std::vector<Tensor<op_target> *>& outputs, op_param<op_target> &param, \
+        Context<op_target> &ctx) {return SaberUnImplError;} \
+template<> SaberStatus op_name<op_target, op_dtype>::dispatch( \
+        const std::vector<Tensor<op_target> *>& inputs, \
+        std::vector<Tensor<op_target> *>& outputs, op_param<op_target> &param \
+        ) {return SaberUnImplError;}
 }
 }

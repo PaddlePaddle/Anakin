@@ -87,8 +87,8 @@ SaberStatus VenderPooling<NV, AK_FLOAT>::\
     dispatch(const std::vector<DataTensor_in*>& inputs,
                     std::vector<DataTensor_out*>& outputs,
                     PoolingParam<NV> &param) {
-            const float *in_data = inputs[0]->data();
-            float *out_data = outputs[0]->mutable_data();
+            const float *in_data = (const float*)inputs[0]->data();
+            float *out_data = (float*)outputs[0]->mutable_data();
             
             CUDNN_CHECK(cudnnPoolingForward(_handle, _pooling_descs,
                                             cudnn::cudnnTypeWrapper<float>::kOne(),
@@ -99,6 +99,7 @@ SaberStatus VenderPooling<NV, AK_FLOAT>::\
             
             return SaberSuccess;
 }
-
+DEFINE_OP_TEMPLATE(VenderPooling, PoolingParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(VenderPooling, PoolingParam, NV, AK_INT8);
 } //namespace saber
 } // namespace anakin

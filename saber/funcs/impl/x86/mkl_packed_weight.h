@@ -65,12 +65,12 @@ private:
     size_t  _width_;
 };
 
-template <DataType Dtype, typename LayOutType>
+template <typename Dtype, typename LayOutType>
 class mkl_packed_weight {
 
 public:
-    typedef Tensor<X86, Dtype, LayOutType> ioTensor;
-    typedef typename ioTensor::Dtype dtype;
+    typedef Tensor<X86> ioTensor;
+    typedef Dtype dtype;
     explicit mkl_packed_weight(MatrixInfo<dtype> *weight, bool transW = false) {
         packed_weight_ = nullptr;
         weight_ = weight->buf();
@@ -128,7 +128,7 @@ protected:
     bool trans_w_;
 };
 
-template class mkl_packed_weight<AK_FLOAT, NCHW>;
+template class mkl_packed_weight<float, NCHW>;
 
 }  // namespace saber
 }  // namespace anakin

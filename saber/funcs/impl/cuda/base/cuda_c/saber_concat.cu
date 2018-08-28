@@ -102,6 +102,8 @@ SaberStatus SaberConcat<NV, AK_FLOAT>::dispatch(const std::vector<Tensor<NV> *>&
     }
     return SaberSuccess;
 }
+DEFINE_OP_TEMPLATE(SaberConcat, ConcatParam, NV, AK_INT8);
+DEFINE_OP_TEMPLATE(SaberConcat, ConcatParam, NV, AK_INT16);
 } //namespace anakin
 
 } //namespace anakin

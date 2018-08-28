@@ -556,6 +556,58 @@ std::function<void(const int, const int, const int,
 saber_find_fast_sass_gemm(const bool TransA, const bool TransB,
                           const int M, const int N, const int K);
 
+
+template <bool with_relu>
+void conv_gemm_k1s1p0(int num, int in_stride, int out_stride,
+                      float* out, const float* img,
+                      const float* weights, int out_channel,
+                      int in_channel, int img_h, int img_w,
+                      const float* bias, cudaStream_t cuda_stream,
+                      float a = 1.f, float b = 0.f) {
+
+    float alpha = a; float beta = b;
+    int m = out_channel;
+    int k = in_channel;
+    int n = img_h * img_w;
+    if (ifVec(m, n, k, k, n, n)) {
+        if (with_relu) {
+            for (int i = 0; i < num; ++i) {
+                ker_gemm_32x32x32_NN_vec_bias_relu(m, n, k,
+                                                   alpha, weights,
+                                                   beta, img + i * in_stride,
+                                                   out + i * out_stride, bias,
+                                                   cuda_stream);
+            }
+        } else {
+            for (int i = 0; i < num; ++i) {
+                ker_gemm_32x32x32_NN_vec_bias(m, n, k,
+                                              alpha, weights,
+                                              beta, img + i * in_stride,
+                                              out + i * out_stride, bias,
+                                              cuda_stream);
+            }
+        }
+    } else {
+        if (with_relu) {
+            for (int i = 0; i < num; ++i) {
+                ker_gemm_32x32x32_NN_bias_relu(m, n, k,
+                                               alpha, weights,
+                                               beta, img + i * in_stride,
+                                               out + i * out_stride, bias,
+                                               cuda_stream);
+            }
+        } else {
+            for (int i = 0; i < num; ++i) {
+                ker_gemm_32x32x32_NN_bias(m, n, k,
+                                          alpha, weights,
+                                          beta, img + i * in_stride,
+                                          out + i * out_stride, bias,
+                                          cuda_stream);
+            }
+        }
+    }
+}
+
 } // namespace saber
 } // namespace anakin
 
