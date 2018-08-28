@@ -58,9 +58,9 @@ Status LstmHelper<Ttype, Dtype, Ptype>::InitParam() {
 
     std::unordered_map<std::string, ActiveType> enum_map = {
             {"null",Active_unknow},
-            {"sigmoid_fluid", Active_sigmoid_fluid},
+            {"sigmoid_fluid", Active_sigmoid},
             {"relu_fluid", Active_relu},
-            {"tanh_fluid", Active_tanh_fluid},
+            {"tanh_fluid", Active_tanh},
             {"identity_fluid", Active_identity},
             {"sigmoid", Active_sigmoid},
             {"tanh", Active_tanh},
