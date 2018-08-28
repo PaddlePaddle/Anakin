@@ -336,7 +336,8 @@ SaberLstm<NV, AK_FLOAT>::dispatch(
     return dispatch_batch(inputs, outputs, param);
 
 }
-
+DEFINE_OP_TEMPLATE(SaberLstm, LstmParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberLstm, LstmParam, NV, AK_INT8);
 }
 }
 

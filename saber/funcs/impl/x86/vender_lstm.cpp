@@ -481,7 +481,8 @@ SaberStatus VenderLstm<X86, AK_FLOAT>::check_conf(
     return SaberSuccess;
 }
 
-
+DEFINE_OP_TEMPLATE(VenderLstm, LstmParam, X86, AK_INT16);
+DEFINE_OP_TEMPLATE(VenderLstm, LstmParam, X86, AK_INT8);
 
 } // namespace saber
 } // namespace anakin

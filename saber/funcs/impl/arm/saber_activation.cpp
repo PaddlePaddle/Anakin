@@ -452,6 +452,7 @@ SaberStatus SaberActivation<ARM, AK_FLOAT>::dispatch(
     }
     return SaberSuccess;
 }
-
+DEFINE_OP_TEMPLATE(SaberActivation, ActivationParam, ARM, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberActivation, ActivationParam, ARM, AK_INT8);
 }
 } // namespace anakin

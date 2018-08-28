@@ -98,6 +98,7 @@ SaberStatus SaberPoolingWithIndex<NV, OpDtype>::dispatch(\
 
     return SaberSuccess;
 }
-
+DEFINE_OP_TEMPLATE(SaberPoolingWithIndex, PoolingParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberPoolingWithIndex, PoolingParam, NV, AK_INT8);
 }
 }
