@@ -412,6 +412,7 @@ GruParam<X86>& param) {
 }
 
 template class VenderGru<X86, AK_FLOAT>;
-
+DEFINE_OP_TEMPLATE(VenderGru, GruParam, X86, AK_INT16);
+DEFINE_OP_TEMPLATE(VenderGru, GruParam, X86, AK_INT8);
 } // namespace saber
 } // namespace anakin

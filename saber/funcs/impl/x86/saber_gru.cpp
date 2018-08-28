@@ -256,6 +256,7 @@ SaberStatus SaberGru<X86, AK_FLOAT>::dispatch(\
 };
 
 template class SaberGru<X86, AK_FLOAT>;
-
+DEFINE_OP_TEMPLATE(SaberGru, GruParam, X86, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberGru, GruParam, X86, AK_INT8);
 }
 }

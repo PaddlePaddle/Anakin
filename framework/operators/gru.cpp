@@ -39,9 +39,6 @@ Status GruHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto hidden_act = GET_PARAMETER(std::string, activation);
     auto formula = GET_PARAMETER(std::string, gru_formula);
 
-//    auto weight_h2h = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>, weight_1);
-//    auto bias = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>, weight_3);
-//    auto weight_i2h = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>, weight_2);
 
 	using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
     auto weight_wu = GET_PARAMETER(pblock_type, weight_1);
