@@ -12,16 +12,13 @@ from google.protobuf import text_format
 
 from tensorflow.python.platform import gfile
 
-# graph_path = '/tmp/pycharm_project_635/external_converter_v2/parser/kill_tf/mnist_model/graph.pbtxt'
+
 # graph_path = './resnet_v1_50_graph.pb'
 # graph_path = './frozen_graph.pb'
-# graph_path='./ease_model/model.cpkt.meta'
-# graph_path='./ease_model/graph.pb'
-# graph_path='./ease_model/frozen_mnist.pb'
 # graph_path='./vgg_model/frozen_vgg_16_i.pb'
-graph_path='./inception_model/frozen_inception_v2.pb'
-# graph_path='./inception_model/inception_v2_inf_graph.pb'
-# graph_path='./resnet_model/frozen_resnet_v1_50.pb'
+# graph_path='./inception_model/frozen_inception_v2.pb'
+graph_path='./resnet_model/frozen_resnet_v1_50.pb'
+# graph_path='./mobilnetv2/frozen_mobilnet_v2.pb'
 
 def get_graph(graph_path):
     if graph_path.endswith('.pbtxt'):

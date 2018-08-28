@@ -41,8 +41,9 @@
 #
 OPTIONS:
     Framework: TENSORFLOW
-    SavePath: /home/ljj/docker_mount_dev2/tf_model
-    ResultName: vgg16
+    SavePath: /ak_model/save/path
+    ResultName: resnet50_v1
+
     Config:
         LaunchBoard: ON
         Server:
@@ -79,11 +80,9 @@ TARGET:
         ModelPath:
     
     TENSORFLOW:
-#        ProtoPaths: /home/ljj/py_anakin/tools/external_converter_v2/parser/kill_tf/vgg_model/vgg16_i.pbtxt
-        ProtoPaths: /home/ljj/py_anakin/tools/external_converter_v2/parser/kill_tf/vgg_model/frozen_vgg_16_i.pb
-#        ProtoPaths: /home/ljj/py_anakin/tools/external_converter_v2/parser/kill_tf/ease_model/frozen_mnist.pb
-        PrototxtPath: /path/to/your/model/
-        ModelPath: /path/to/your/model/
+        ProtoPaths: /path/to/your/model/
+        PrototxtPath:
+        ModelPath:
         OutPuts:
     
     ONNX:

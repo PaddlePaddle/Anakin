@@ -8,6 +8,11 @@ class ParseTF2Med:
     def __init__(self,tf_forzen_pb_path):
         self.model_path=tf_forzen_pb_path
 
+    def _debug_nodes(self,nodes):
+        for i in nodes.values():
+            print(i['name'],i['input'],i['output'],i['out_shape'])
+        print('debug end')
+        exit()
 
 
     def _parse_tf_node(self,tf_graph,shape_override):
@@ -27,26 +32,15 @@ class ParseTF2Med:
         op_cnt = collections.Counter()
         attr_cnt = collections.Counter()
         anakin_nodes = {}
-        output_shapes = {}
         dtypes = {}
 
         # find outputs
         ops = tf_graph.get_operations()
 
-
-        # create dict with output to shape mappings
+        tensor_shape={}
         for node in ops:
             for out in node.outputs:
-                shape = shape_override.get(out.name)
-                if shape is None:
-                    try:
-                        shape = out.get_shape().as_list()
-                    except Exception as ex:
-                        shape = []
-                if shape == []:
-                    print(out.name, '== []')
-                dtypes[out.name] = map_tf_dtype(out.dtype)
-                output_shapes[out.name[:out.name.find(':')]] = shape
+                tensor_shape[out.name]=out.get_shape().as_list()
 
 
         # minimal conversion of attributes
@@ -87,20 +81,22 @@ class ParseTF2Med:
 
             if takeit:
                 try:
-                    # input_names = [i.name[:i.name.find(':')] for i in node.inputs]
-                    # output_names = [i.name[:i.name.find(':')] for i in node.outputs]
                     input_names = [i.name for i in node.inputs]
                     output_names = [i.name for i in node.outputs]
-                    anakin_nodes[node.name] = {'name': node.name, 'type': node.type, 'input': input_names,
-                                               'output': output_names, 'tf_attr': attr, 'visted': False,
-                                               'out_shape': output_shapes[node.name],
+                    anakin_nodes[node.name] = {'name': node.name, 'type': node.type,
+                                               'input': input_names,
+                                               'output': output_names,
+                                               'tf_attr': attr, 'visted': False,
                                                'ak_type': None, 'ak_attr': {}}
                 except Exception as ex:
                     log.error("pass1 convert failed for %s, ex=%s", node, ex)
                     raise
+
+        self._fix_self_output(anakin_nodes,tensor_shape)
+
         return anakin_nodes
 
-    def _fix_self_output(self,nodes):
+    def _fix_self_output(self, nodes, tensor_shape_dict):
         out2nodename = {}
         for node in nodes.values():
             for out_name in node['output']:
@@ -120,21 +116,21 @@ class ParseTF2Med:
         for node in nodes.values():
             new_output=[]
             new_input=[]
-            for i in node['output']:
-                if in2nodename.get(i) is not None:
-                    new_output=new_output+in2nodename[i]
 
-            for i in node['input']:
-                if out2nodename.get(i) is not None:
-                    new_input=new_input+out2nodename[i]
+            for tensor_name in node['output']:
+                if in2nodename.get(tensor_name) is not None:
+                    new_output+=[{'name':op_name,'shape':tensor_shape_dict[tensor_name]} for op_name in in2nodename[tensor_name]]
+
+            for tensor_name in node['input']:
+                if out2nodename.get(tensor_name) is not None:
+                    new_input+=[{'name':op_name,'shape':tensor_shape_dict[tensor_name]} for op_name in out2nodename[tensor_name]]
+
             node['output']=new_output
             node['input']=new_input
 
+
+
     def _parse_tf_graph(self,nodes):
-        # out2nodename = {i['name']:[] for i in nodes}
-        self._fix_self_output(nodes)
-
-
 
         def all_search(graph, table):
             for tf_node in graph.values():
@@ -145,23 +141,41 @@ class ParseTF2Med:
                     table[type_name](tf_node, graph)
 
         all_search(nodes, {'Identity': parse_Identity,
-                           'Placeholder': parse_Placeholder})
+                           'Placeholder': parse_Placeholder,
+                           'Shape': parse_Shape
+                           })
 
+        all_search(nodes, {'Reshape': parse_fusionReshape,})
 
         all_search(nodes, {'MatMul': parse_MatMul,
-                           'Conv2D': parse_Conv2D})
-        all_search(nodes, {'Reshape': parse_Reshape,
-                           'Relu': parse_Act,
-                           'MaxPool': parse_Pooling})
-        return nodes
+                           'Conv2D': parse_Conv2D,
+                           'DepthwiseConv2dNative': parse_Conv2D,
+                           'FusedBatchNorm':parse_BatchNorm,
+                           'Rsqrt': parse_CustmerBatchNorm,})
 
+        all_search(nodes, {'Add':parse_Add,
+                           'AvgPool': parse_Pooling,
+                           'ConcatV2': parse_Concat,
+                           'MaxPool': parse_Pooling,
+                           'Mean':parse_Mean,
+                           'Pad': parse_Pad,
+                           'Relu': parse_Act,
+                           'Relu6': parse_Act,
+                           'Reshape': parse_Reshape,
+                           'Squeeze': parse_Squeeze,
+                           'Softmax': parse_Softmax,
+
+                           })
+
+        return nodes
 
     def parse(self):
         tf_graph = load_graph(self.model_path)
         nodes = self._parse_tf_node(tf_graph, {})
-        # for node in nodes.values():
-        #     print(node['name'],node['input'],node['output'])
-        # exit()
+
         med_graph=self._parse_tf_graph(nodes)
         filter_graph={i:med_graph[i] for i in med_graph.keys() if med_graph[i]['ak_type'] is not None}
+        for node in filter_graph.values():
+            node['input']=[i for i in node['input'] if filter_graph.get(i['name']) is not None]
+            node['output'] = [i for i in node['output'] if filter_graph.get(i['name']) is not None]
         return filter_graph
