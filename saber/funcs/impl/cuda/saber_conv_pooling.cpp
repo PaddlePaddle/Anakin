@@ -72,7 +72,7 @@ init(const std::vector<Tensor<NV> *>& inputs,
 //    _use_kp = _use_kp && (param.pooling_param.pooling_type == Pooling_max);
 //    _use_kp = _use_kp && (param.conv_param.bias()->valid_size() > 0);
     if (_use_k3p || _use_kp) {
-        conv_trans_weights<NV, NVHX86>(inputs, outputs, param.conv_param, ctx, _in_place, &_weight_dev);
+        trans_weights(inputs, outputs, param.conv_param, ctx, _in_place, &_weight_dev);
     }
     if (_use_k3p) {
         dispatch_func = winograd_conv_relu_pooling<float, float>;

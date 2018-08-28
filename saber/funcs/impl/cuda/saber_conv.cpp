@@ -99,8 +99,8 @@ SaberStatus SaberConv2D<NV, AK_FLOAT>::\
         _saber_act = new SaberActivation<NV, AK_FLOAT>;
         _saber_act->init(outputs, outputs, param.activation_param, ctx);
     }
+    trans_weights(inputs, outputs, param, ctx, _in_place, &_weight_dev);
 
-    conv_trans_weights<NV, NVHX86>(inputs, outputs, param, ctx, _in_place, &_weight_dev);
     return create(inputs, outputs, param, ctx);
 }
 

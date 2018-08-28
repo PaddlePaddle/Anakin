@@ -21,8 +21,30 @@ namespace anakin{
 
 namespace saber{
 
-DEFINE_OP_CLASS(ConvEltwise, ConvEltwiseParam);
+template <typename TargetType, DataType OpDtype = AK_FLOAT>
+class SaberConvEltwise : public ImplBase<
+        TargetType, OpDtype,
+        ConvEltwiseParam <TargetType> > {
+    SaberStatus trans_weights(const std::vector<Tensor<TargetType> *>& inputs,
+                              std::vector<Tensor<TargetType> *>& outputs,
+                              ConvEltwiseParam<TargetType>& param, Context<TargetType> &ctx,
+                              bool in_place = true, Tensor<TargetType>* weight_dev = nullptr) {
+        return SaberUnImplError;
+    }
+};
 
+template <typename TargetType,
+        DataType OpDtype = AK_FLOAT>
+class VenderConvEltwise : public ImplBase<
+        TargetType, OpDtype,
+        ConvEltwiseParam <TargetType> > {
+    SaberStatus trans_weights(const std::vector<Tensor<TargetType> *>& inputs,
+                              std::vector<Tensor<TargetType> *>& outputs,
+                              ConvEltwiseParam<TargetType>& param, Context<TargetType> &ctx,
+                              bool in_place = true, Tensor<TargetType>* weight_dev = nullptr) {
+        return SaberUnImplError;
+    }
+};
 }
 }
 
