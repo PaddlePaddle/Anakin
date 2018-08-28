@@ -212,6 +212,6 @@ SaberStatus SaberConv2D<NV, AK_INT8>::\
 
     return SaberInvalidValue;
 }
-
+DEFINE_OP_TEMPLATE(SaberConv2D, ConvParam, NV, AK_INT16);
 }
 }

@@ -53,7 +53,8 @@ SaberStatus SaberSlice<NV, OpDtype>::dispatch(\
     return SaberSuccess;
 
 }
-
+DEFINE_OP_TEMPLATE(SaberSlice, SliceParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberSlice, SliceParam, NV, AK_INT8);
 } //namespace anakin
 
 } //namespace anakin

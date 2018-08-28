@@ -45,7 +45,8 @@ SaberStatus SaberConcat<ARM, AK_FLOAT>::dispatch(\
     }
     return SaberSuccess;
 }
-
+DEFINE_OP_TEMPLATE(SaberConcat, ConcatParam, ARM, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberConcat, ConcatParam, ARM, AK_INT8);
 //template class SaberConcat<ARM, AK::FLOAT>;
 
 } //namespace anakin
