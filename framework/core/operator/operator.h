@@ -119,6 +119,8 @@ public:
     template<typename T>
     T get_attr(std::string attr_name) { return _node_p-> template get_attr<T>(attr_name); }
 
+    bool find_attr(std::string attr_name) { return _node_p->inspect_attr(attr_name); }
+
 	/**
 	 *  \brief Judge if op access target attr
 	 */
@@ -136,6 +138,11 @@ private:
  */
 #define GET_PARAMETER(type, name) \
     this->template get_attr<type>(#name)
+
+/**
+ *  \brief Call get_attr from derived class.
+ */
+#define FIND_PARAMETER(name) this->find_attr(#name)
 
 /**
  *  \brief Operator creator.

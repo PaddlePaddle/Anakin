@@ -1,4 +1,4 @@
-#include "detection_lite.h"
+#include "saber/lite/funcs/detection_lite.h"
 #include <map>
 #include <algorithm>
 namespace anakin{

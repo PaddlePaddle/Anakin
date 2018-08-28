@@ -13,6 +13,406 @@ void sgemv(const bool transA, const int M, const int N, \
     const float* data_in = x;
     const float* weights_ptr = A;
 
+   // printf("M: %d, N: %d \n", M, N);
+
+#ifdef __aarch64__
+//todo
+    int cnt_loop = N >> 3;
+    int tail = N & 7;
+    int out_cnt = M >> 3;
+
+    unsigned int imask[8] = {7, 6, 5, 4, 3, 2, 1, 0};
+
+    uint32x4_t vmask1 = vcgtq_u32(vld1q_u32(imask), vdupq_n_u32(tail));
+    uint32x4_t vmask2 = vcgtq_u32(vld1q_u32(imask + 4), vdupq_n_u32(tail));
+
+    float32x4_t vzero = vdupq_n_f32(0.f);
+
+#pragma omp parallel for
+    for (int j = 0; j < out_cnt; j++) {
+
+        int out_idx = j * 8;
+        float *ptr_out = data_out + out_idx;
+        const float *ptr_in = data_in;
+        const float *ptr_w0 = weights_ptr + (N * out_idx);
+        const float *ptr_w1 = ptr_w0 + N;
+        const float *ptr_w2 = ptr_w1 + N;
+        const float *ptr_w3 = ptr_w2 + N;
+        const float *ptr_w4 = ptr_w3 + N;
+        const float *ptr_w5 = ptr_w4 + N;
+        const float *ptr_w6 = ptr_w5 + N;
+        const float *ptr_w7 = ptr_w6 + N;
+
+         asm volatile(
+            "prfm  pldl1keep, [%[in]]   \n"
+                    "prfm  pldl1keep, [%[w0]]   \n"
+                    "prfm  pldl1keep, [%[w1]]   \n"
+                    "prfm  pldl1keep, [%[w2]]   \n"
+                    "prfm  pldl1keep, [%[w3]]   \n"
+                    "prfm  pldl1keep, [%[w4]]   \n"
+                    "prfm  pldl1keep, [%[w5]]   \n"
+                    "prfm  pldl1keep, [%[w6]]   \n"
+                    "prfm  pldl1keep, [%[w7]]   \n"
+                     :
+        :[in] "r"(ptr_in), [w0] "r"(ptr_w0), [w1] "r"(ptr_w1), [w2] "r"(ptr_w2), \
+                [w3] "r"(ptr_w3), [w4] "r"(ptr_w4), [w5] "r"(ptr_w5), [w6] "r"(ptr_w6), \
+                [w7] "r" (ptr_w7)
+        :"memory"
+        );
+#if 1
+        float32x4_t sum0 = vdupq_n_f32(0.f);
+        float32x4_t sum1 = vdupq_n_f32(0.f);
+        float32x4_t sum2 = vdupq_n_f32(0.f);
+        float32x4_t sum3 = vdupq_n_f32(0.f);
+        float32x4_t sum4 = vdupq_n_f32(0.f);
+        float32x4_t sum5 = vdupq_n_f32(0.f);
+        float32x4_t sum6 = vdupq_n_f32(0.f);
+        float32x4_t sum7 = vdupq_n_f32(0.f);
+
+        for(int i = 0; i < cnt_loop; i++){
+
+            float32x4_t din0 = vld1q_f32(ptr_in);
+            float32x4_t w0_0 = vld1q_f32(ptr_w0);
+            float32x4_t w1_0 = vld1q_f32(ptr_w1);
+            float32x4_t w2_0 = vld1q_f32(ptr_w2);
+            float32x4_t w3_0 = vld1q_f32(ptr_w3);
+            float32x4_t w4_0 = vld1q_f32(ptr_w4);
+            float32x4_t w5_0 = vld1q_f32(ptr_w5);
+            float32x4_t w6_0 = vld1q_f32(ptr_w6);
+            float32x4_t w7_0 = vld1q_f32(ptr_w7);
+
+            sum0 = vmlaq_f32(sum0, din0, w0_0);
+            sum1 = vmlaq_f32(sum1, din0, w1_0);
+            sum2 = vmlaq_f32(sum2, din0, w2_0);
+            sum3 = vmlaq_f32(sum3, din0, w3_0);
+            sum4 = vmlaq_f32(sum4, din0, w4_0);
+            sum5 = vmlaq_f32(sum5, din0, w5_0);
+            sum6 = vmlaq_f32(sum6, din0, w6_0);
+            sum7 = vmlaq_f32(sum7, din0, w7_0);
+
+
+            float32x4_t din1 = vld1q_f32(ptr_in + 4);
+            float32x4_t w0_1 = vld1q_f32(ptr_w0 + 4);
+            float32x4_t w1_1 = vld1q_f32(ptr_w1 + 4);
+            float32x4_t w2_1 = vld1q_f32(ptr_w2 + 4);
+            float32x4_t w3_1 = vld1q_f32(ptr_w3 + 4);
+            float32x4_t w4_1 = vld1q_f32(ptr_w4 + 4);
+            float32x4_t w5_1 = vld1q_f32(ptr_w5 + 4);
+            float32x4_t w6_1 = vld1q_f32(ptr_w6 + 4);
+            float32x4_t w7_1 = vld1q_f32(ptr_w7 + 4);
+
+            sum0 = vmlaq_f32(sum0, din1, w0_1);
+            sum1 = vmlaq_f32(sum1, din1, w1_1);
+            sum2 = vmlaq_f32(sum2, din1, w2_1);
+            sum3 = vmlaq_f32(sum3, din1, w3_1);
+            sum4 = vmlaq_f32(sum4, din1, w4_1);
+            sum5 = vmlaq_f32(sum5, din1, w5_1);
+            sum6 = vmlaq_f32(sum6, din1, w6_1);
+            sum7 = vmlaq_f32(sum7, din1, w7_1);
+
+            ptr_in += 8;
+            ptr_w0 += 8; 
+            ptr_w1 += 8;
+            ptr_w2 += 8;
+            ptr_w3 += 8; 
+            ptr_w4 += 8;
+            ptr_w5 += 8;
+            ptr_w6 += 8; 
+            ptr_w7 += 8;
+
+        }
+        if(tail >= 1){
+            float32x4_t din0 = vld1q_f32(ptr_in);
+            float32x4_t w0_0 = vld1q_f32(ptr_w0);
+            float32x4_t w1_0 = vld1q_f32(ptr_w1);
+            float32x4_t w2_0 = vld1q_f32(ptr_w2);
+            float32x4_t w3_0 = vld1q_f32(ptr_w3);
+
+            din0 = vbslq_f32(vmask1, din0, vzero);
+
+            float32x4_t w4_0 = vld1q_f32(ptr_w4);
+            float32x4_t w5_0 = vld1q_f32(ptr_w5);
+            float32x4_t w6_0 = vld1q_f32(ptr_w6);
+            float32x4_t w7_0 = vld1q_f32(ptr_w7);
+
+
+            sum0 = vmlaq_f32(sum0, din0, w0_0);
+            sum1 = vmlaq_f32(sum1, din0, w1_0);
+            sum2 = vmlaq_f32(sum2, din0, w2_0);
+            sum3 = vmlaq_f32(sum3, din0, w3_0);
+            sum4 = vmlaq_f32(sum4, din0, w4_0);
+            sum5 = vmlaq_f32(sum5, din0, w5_0);
+            sum6 = vmlaq_f32(sum6, din0, w6_0);
+            sum7 = vmlaq_f32(sum7, din0, w7_0);
+
+
+            float32x4_t din1 = vld1q_f32(ptr_in + 4);
+            float32x4_t w0_1 = vld1q_f32(ptr_w0 + 4);
+            float32x4_t w1_1 = vld1q_f32(ptr_w1 + 4);
+            float32x4_t w2_1 = vld1q_f32(ptr_w2 + 4);
+
+            din1 = vbslq_f32(vmask2, din1, vzero);
+
+            float32x4_t w3_1 = vld1q_f32(ptr_w3 + 4);
+            float32x4_t w4_1 = vld1q_f32(ptr_w4 + 4);
+            float32x4_t w5_1 = vld1q_f32(ptr_w5 + 4);
+            float32x4_t w6_1 = vld1q_f32(ptr_w6 + 4);
+            float32x4_t w7_1 = vld1q_f32(ptr_w7 + 4);
+
+            sum0 = vmlaq_f32(sum0, din1, w0_1);
+            sum1 = vmlaq_f32(sum1, din1, w1_1);
+            sum2 = vmlaq_f32(sum2, din1, w2_1);
+            sum3 = vmlaq_f32(sum3, din1, w3_1);
+            sum4 = vmlaq_f32(sum4, din1, w4_1);
+            sum5 = vmlaq_f32(sum5, din1, w5_1);
+            sum6 = vmlaq_f32(sum6, din1, w6_1);
+            sum7 = vmlaq_f32(sum7, din1, w7_1);
+        }
+        //add
+        float32x4_t vout0 = vpaddq_f32(sum0, sum1);
+        float32x4_t vout1 = vpaddq_f32(sum2, sum3);
+        float32x4_t vout2 = vpaddq_f32(sum4, sum5);
+        float32x4_t vout3 = vpaddq_f32(sum6, sum7);
+        float32x4_t vdout = vpaddq_f32(vout0, vout1);
+        float32x4_t vdout1 = vpaddq_f32(vout2, vout3);
+        vst1q_f32(ptr_out, vdout);
+        vst1q_f32(ptr_out + 4, vdout1);
+    }
+    //! deal with remains
+    #pragma omp parallel for
+    for (int j = out_cnt * 8; j < M; ++j){
+        float *ptr_out = data_out + j;
+        const float *ptr_in = data_in;
+        const float *ptr_w0 = weights_ptr + (N * j);
+        int cnt = cnt_loop;
+
+         asm volatile(
+            "prfm  pldl1keep, [%[in]]   \n"
+                    "prfm  pldl1keep, [%[w0]]   \n"
+                     :
+        :[in] "r"(ptr_in), [w0] "r"(ptr_w0)
+        :"memory"
+        );
+
+        float32x4_t sum0 = vdupq_n_f32(0.f);
+        for(int i = 0; i < cnt_loop; i++){
+            float32x4_t din0 = vld1q_f32(ptr_in);
+            float32x4_t w0_0 = vld1q_f32(ptr_w0);
+
+            sum0 = vmlaq_f32(sum0, din0, w0_0);
+
+
+            float32x4_t din1 = vld1q_f32(ptr_in + 4);
+            float32x4_t w0_1 = vld1q_f32(ptr_w0 + 4);
+
+            sum0 = vmlaq_f32(sum0, din1, w0_1);
+
+            ptr_in += 8;
+            ptr_w0 += 8;
+
+        }
+        if(tail >= 1){
+            float32x4_t din0 = vld1q_f32(ptr_in);
+            float32x4_t w0_0 = vld1q_f32(ptr_w0);
+
+            din0 = vbslq_f32(vmask1, din0, vzero);
+
+
+            sum0 = vmlaq_f32(sum0, din0, w0_0);
+
+
+            float32x4_t din1 = vld1q_f32(ptr_in + 4);
+            float32x4_t w0_1 = vld1q_f32(ptr_w0 + 4);
+
+            din1 = vbslq_f32(vmask2, din1, vzero);
+
+            sum0 = vmlaq_f32(sum0, din1, w0_1);
+        }
+        //add
+        float32x2_t vout = vpadd_f32(vget_low_f32(sum0), vget_high_f32(sum0));
+        float32x2_t vdout = vpadd_f32(vout, vout);
+        vst1_f32(ptr_out, vdout);
+    }
+#else
+        int cnt = cnt_loop;
+        if (cnt > 0) {
+            asm volatile(
+                    "1:                             \n"
+                    "LDP q30, q31, [%[in]], #32   \n" // q0=A0A1A2A3
+                    "LDP q8, q9, [%[w0]], #32       \n" // q0=A0A1A2A3
+                    "LDP q10, q11, [%[w1]], #32       \n" // q0=A0A1A2A3
+                    "LDP q12, q13, [%[w2]], #32     \n" // q0=A0A1A2A3
+                    "LDP q14, q15, [%[w3]], #32     \n" // q0=A0A1A2A
+
+                    "prfm  pldl1keep, [%[w0]]   \n"
+                    "prfm  pldl1keep, [%[w1]]   \n"
+                    "prfm  pldl1keep, [%[w2]]   \n"
+                    "prfm  pldl1keep, [%[w3]]   \n"
+
+
+                    "fmul v0.4s, v30.4s, v8.4s       \n"
+                    "fmul v1.4s, v30.4s, v10.4s       \n"
+                    "fmul v2.4s, v30.4s, v12.4s       \n"
+                    "fmul v3.4s, v30.4s, v14.4s       \n"
+
+                    "LDP q16, q17, [%[w4]], #32     \n" // q0=A0A1A2A3
+                    "LDP q18, q19, [%[w5]], #32     \n" // q0=A0A1A2A3
+                    "LDP q20, q21, [%[w6]], #32     \n" // q0=A0A1A2A3
+                    "LDP q22, q23, [%[w7]], #32     \n" // q0=A0A1A2A3
+
+                    "prfm  pldl1keep, [%[w4]]   \n"
+                    "prfm  pldl1keep, [%[w5]]   \n"
+                    "prfm  pldl1keep, [%[w6]]   \n"
+                    "prfm  pldl1keep, [%[w7]]   \n"
+
+                    "fmul v4.4s, v30.4s, v16.4s       \n"
+                    "fmul v5.4s, v30.4s, v18.4s       \n"
+                    "fmul v6.4s, v30.4s, v20.4s       \n"
+                    "fmul v7.4s, v30.4s, v22.4s       \n"
+
+
+                    "prfm  pldl1keep, [%[in]]   \n"
+                    "prfm   pldl1keep, [%[in], #64]   \n"
+
+                    "fmla v0.4s, v31.4s, v9.4s       \n"
+                    "fmla v1.4s, v31.4s, v11.4s       \n"
+                    "fmla v2.4s, v31.4s, v13.4s       \n"
+                    "fmla v3.4s, v31.4s, v15.4s       \n"
+
+                    "fmla v4.4s, v31.4s, v17.4s       \n"
+                    "fmla v5.4s, v31.4s, v19.4s       \n"
+                    "fmla v6.4s, v31.4s, v21.4s       \n"
+                    "fmla v7.4s, v31.4s, v23.4s       \n"
+
+
+                    // check loop end
+                    "subs %[cnt], %[cnt], #1        \n"
+                    "bne 1b                         \n"
+
+                    // check tails
+                    "cmp %[tail], #1                \n"
+                    "blt  2f                       \n"
+
+                    // process tail
+                    "LDP q30, q31, [%[in]], #32   \n" // q0=A0A1A2A3
+
+                    "movi  v26.4s, #0x0           \n"
+                    // deal with right pad
+                    "bif v30.8b, v16.8b, %[mask1].8b         \n"
+                    "bif v31.8b, v16.8b, %[mask2].8b         \n"
+
+                    "LDP q8, q9, [%[w0]], #32       \n" // q0=A0A1A2A3
+                    "LDP q10, q11, [%[w1]], #32       \n" // q0=A0A1A2A3
+                    "LDP q12, q13, [%[w2]], #32     \n" // q0=A0A1A2A3
+                    "LDP q14, q15, [%[w3]], #32     \n" // q0=A0A1A2A
+
+                    "LDP q16, q17, [%[w4]], #32     \n" // q0=A0A1A2A3
+                    "LDP q18, q19, [%[w5]], #32     \n" // q0=A0A1A2A3
+                    "LDP q20, q21, [%[w6]], #32     \n" // q0=A0A1A2A3
+                    "LDP q22, q23, [%[w7]], #32     \n" // q0=A0A1A2A3
+
+                    "fmul v0.4s, v30.4s, v8.4s       \n"
+                    "fmul v1.4s, v30.4s, v10.4s       \n"
+                    "fmul v2.4s, v30.4s, v12.4s       \n"
+                    "fmul v3.4s, v30.4s, v14.4s       \n"
+                    "fmul v4.4s, v30.4s, v16.4s       \n"
+                    "fmul v5.4s, v30.4s, v18.4s       \n"
+                    "fmul v6.4s, v30.4s, v20.4s       \n"
+                    "fmul v7.4s, v30.4s, v22.4s       \n"
+
+
+                    "fmla v0.4s, v31.4s, v9.4s       \n"
+                    "fmla v1.4s, v31.4s, v11.4s       \n"
+                    "fmla v2.4s, v31.4s, v13.4s       \n"
+                    "fmla v3.4s, v31.4s, v15.4s       \n"
+
+                    "fmla v4.4s, v31.4s, v17.4s       \n"
+                    "fmla v5.4s, v31.4s, v19.4s       \n"
+                    "fmla v6.4s, v31.4s, v21.4s       \n"
+                    "fmla v7.4s, v31.4s, v23.4s       \n"
+
+                    // pair add to final result
+                    "2:                             \n"
+                    "addp v8.4s, v0.4s, v1.4s      \n"
+                    "addp v9.4s, v2.4s, v3.4s      \n"
+                    "addp v10.4s, v4.4s, v5.4s     \n"
+                    "addp v11.4s, v6.4s, v7.4s     \n"
+
+                    "addp v12.4s, v8.4s, v9.4s      \n"
+                    "addp v13.4s, v10.4s, v11.4s    \n"
+
+                    "STR   q12, [%[out]], #16       \n"
+                    "STR   q13, [%[out]], #16      \n"
+
+            :[in] "+r"(ptr_in), [w0] "+r"(ptr_w0), [w1] "+r"(ptr_w1), \
+                 [w2] "+r"(ptr_w2), [w3] "+r"(ptr_w3), [w4] "+r"(ptr_w4), \
+                 [w5] "+r"(ptr_w5), [w6] "+r"(ptr_w6), [w7] "+r"(ptr_w7), [out] "+r"(ptr_out), \
+                 [cnt] "+r"(cnt)
+            :[tail] "r" (tail), [mask1] "w" (vmask1), [mask2] "w" (vmask2)
+            :"v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", \
+                "v10", "v11", "v12", "v13", "v14", "v15", "v16", "v17",  \
+                "v18", "v19", "v20", "v21",  "v22", "v23", "v26", "v30", "v31"
+            );
+        }
+    }
+
+    //! deal with remains
+    #pragma omp parallel for
+    for (int j = out_cnt * 8; j < M; ++j) {
+        float *ptr_out = data_out + j;
+        const float *ptr_in = data_in;
+        const float *ptr_w0 = weights_ptr + (N * j);
+        int cnt = cnt_loop;
+        if(cnt > 0){
+            asm volatile(
+                "prfm  pldl1keep, [%[in]]   \n"
+                "prfm  pldl1keep, [%[w0]]   \n"
+
+                "movi  v0.4s, #0x0           \n"
+
+                "1:                                 \n"
+                "LDP q12, q13, [%[in]], #32       \n" // q0=A0A1A2A3
+                "LDP q14, q15, [%[w0]], #32      \n" // q0=A0A1A2A3
+
+                "prfm  pldl1keep, [%[in]]   \n"
+                "prfm  pldl1keep, [%[w0]]   \n"
+
+                "fmla v0.4s, v12.4s, v14.4s       \n"
+                "fmla v0.4s, v13.4s, v15.4s       \n"
+
+                "subs %[cnt], %[cnt], #1                  \n"
+                "bne 1b                             \n"
+
+                // check tails
+                "cmp %[tail], #1                    \n"
+                "blt  2f                            \n"
+
+                // process tail
+                "LDP q12, q13, [%[in]], #32       \n" // q0=A0A1A2A3
+                // deal with right pad
+                "movi  v1.4s, #0x0           \n"
+                "bif v12.8b, v1.8b, %[mask1].8b            \n"
+                "bif v13.8b, v1.8b, %[mask2].8b            \n"
+
+                "LDP q14, q15, [%[in]], #32       \n" // q0=A0A1A2A3
+
+                "fmla v0.4s, v12.4s, v14.4s       \n"
+                "fmla v0.4s, v13.4s, v15.4s       \n"
+
+                // pair add to final result
+                "2:                                 \n"
+                "addp v1.4s, v0.4s, v0.4s               \n"
+                "addp v3.4s, v1.4s, v2.4s              \n"
+                "str   q3, [%[out]], #4      \n"
+            :[in] "+r"(ptr_in), [w0] "+r"(ptr_w0), [out] "+r"(ptr_out), \
+            [cnt] "+r"(cnt)
+            :[tail] "r" (tail), [mask1] "w" (vmask1), [mask2] "w" (vmask2)
+            :"v0", "v1", "v12", "v13", "v14", "v15"
+            );
+        }
+    }
+#endif
+#else
     int cnt_loop = N >> 3;
     int tail = N & 7;
     int out_cnt = M >> 2;
@@ -195,6 +595,7 @@ void sgemv(const bool transA, const int M, const int N, \
         :"q0", "q1", "q12", "q13", "q14", "q15"
         );
     }
+#endif //__aarch64__
 }
 
 
@@ -203,6 +604,229 @@ void sgemv_relu(const bool transA, const int M, const int N, \
     float* data_out = y;
     const float* data_in = x;
     const float* weights_ptr = A;
+
+#ifdef __aarch64__
+//todo
+    int cnt_loop = N >> 3;
+    int tail = N & 7;
+    int out_cnt = M >> 3;
+
+    unsigned int imask[8] = {7, 6, 5, 4, 3, 2, 1, 0};
+
+    uint32x4_t vmask1 = vcgtq_u32(vld1q_u32(imask), vdupq_n_u32(tail));
+    uint32x4_t vmask2 = vcgtq_u32(vld1q_u32(imask + 4), vdupq_n_u32(tail));
+
+    float32x4_t vzero = vdupq_n_f32(0.f);
+
+#pragma omp parallel for
+    for (int j = 0; j < out_cnt; j++) {
+
+        int out_idx = j * 8;
+        float *ptr_out = data_out + out_idx;
+        const float *ptr_in = data_in;
+        const float *ptr_w0 = weights_ptr + (N * out_idx);
+        const float *ptr_w1 = ptr_w0 + N;
+        const float *ptr_w2 = ptr_w1 + N;
+        const float *ptr_w3 = ptr_w2 + N;
+        const float *ptr_w4 = ptr_w3 + N;
+        const float *ptr_w5 = ptr_w4 + N;
+        const float *ptr_w6 = ptr_w5 + N;
+        const float *ptr_w7 = ptr_w6 + N;
+
+         asm volatile(
+            "prfm  pldl1keep, [%[in]]   \n"
+                    "prfm  pldl1keep, [%[w0]]   \n"
+                    "prfm  pldl1keep, [%[w1]]   \n"
+                    "prfm  pldl1keep, [%[w2]]   \n"
+                    "prfm  pldl1keep, [%[w3]]   \n"
+                    "prfm  pldl1keep, [%[w4]]   \n"
+                    "prfm  pldl1keep, [%[w5]]   \n"
+                    "prfm  pldl1keep, [%[w6]]   \n"
+                    "prfm  pldl1keep, [%[w7]]   \n"
+                     :
+        :[in] "r"(ptr_in), [w0] "r"(ptr_w0), [w1] "r"(ptr_w1), [w2] "r"(ptr_w2), \
+                [w3] "r"(ptr_w3), [w4] "r"(ptr_w4), [w5] "r"(ptr_w5), [w6] "r"(ptr_w6), \
+                [w7] "r" (ptr_w7)
+        :"memory"
+        );
+
+        float32x4_t sum0 = vdupq_n_f32(0.f);
+        float32x4_t sum1 = vdupq_n_f32(0.f);
+        float32x4_t sum2 = vdupq_n_f32(0.f);
+        float32x4_t sum3 = vdupq_n_f32(0.f);
+        float32x4_t sum4 = vdupq_n_f32(0.f);
+        float32x4_t sum5 = vdupq_n_f32(0.f);
+        float32x4_t sum6 = vdupq_n_f32(0.f);
+        float32x4_t sum7 = vdupq_n_f32(0.f);
+
+        for(int i = 0; i < cnt_loop; i++){
+
+            float32x4_t din0 = vld1q_f32(ptr_in);
+            float32x4_t w0_0 = vld1q_f32(ptr_w0);
+            float32x4_t w1_0 = vld1q_f32(ptr_w1);
+            float32x4_t w2_0 = vld1q_f32(ptr_w2);
+            float32x4_t w3_0 = vld1q_f32(ptr_w3);
+            float32x4_t w4_0 = vld1q_f32(ptr_w4);
+            float32x4_t w5_0 = vld1q_f32(ptr_w5);
+            float32x4_t w6_0 = vld1q_f32(ptr_w6);
+            float32x4_t w7_0 = vld1q_f32(ptr_w7);
+
+            sum0 = vmlaq_f32(sum0, din0, w0_0);
+            sum1 = vmlaq_f32(sum1, din0, w1_0);
+            sum2 = vmlaq_f32(sum2, din0, w2_0);
+            sum3 = vmlaq_f32(sum3, din0, w3_0);
+            sum4 = vmlaq_f32(sum4, din0, w4_0);
+            sum5 = vmlaq_f32(sum5, din0, w5_0);
+            sum6 = vmlaq_f32(sum6, din0, w6_0);
+            sum7 = vmlaq_f32(sum7, din0, w7_0);
+
+
+            float32x4_t din1 = vld1q_f32(ptr_in + 4);
+            float32x4_t w0_1 = vld1q_f32(ptr_w0 + 4);
+            float32x4_t w1_1 = vld1q_f32(ptr_w1 + 4);
+            float32x4_t w2_1 = vld1q_f32(ptr_w2 + 4);
+            float32x4_t w3_1 = vld1q_f32(ptr_w3 + 4);
+            float32x4_t w4_1 = vld1q_f32(ptr_w4 + 4);
+            float32x4_t w5_1 = vld1q_f32(ptr_w5 + 4);
+            float32x4_t w6_1 = vld1q_f32(ptr_w6 + 4);
+            float32x4_t w7_1 = vld1q_f32(ptr_w7 + 4);
+
+            sum0 = vmlaq_f32(sum0, din1, w0_1);
+            sum1 = vmlaq_f32(sum1, din1, w1_1);
+            sum2 = vmlaq_f32(sum2, din1, w2_1);
+            sum3 = vmlaq_f32(sum3, din1, w3_1);
+            sum4 = vmlaq_f32(sum4, din1, w4_1);
+            sum5 = vmlaq_f32(sum5, din1, w5_1);
+            sum6 = vmlaq_f32(sum6, din1, w6_1);
+            sum7 = vmlaq_f32(sum7, din1, w7_1);
+
+            ptr_in += 8;
+            ptr_w0 += 8; 
+            ptr_w1 += 8;
+            ptr_w2 += 8;
+            ptr_w3 += 8; 
+            ptr_w4 += 8;
+            ptr_w5 += 8;
+            ptr_w6 += 8; 
+            ptr_w7 += 8;
+
+        }
+        if(tail >= 1){
+            float32x4_t din0 = vld1q_f32(ptr_in);
+            float32x4_t w0_0 = vld1q_f32(ptr_w0);
+            float32x4_t w1_0 = vld1q_f32(ptr_w1);
+            float32x4_t w2_0 = vld1q_f32(ptr_w2);
+            float32x4_t w3_0 = vld1q_f32(ptr_w3);
+
+            din0 = vbslq_f32(vmask1, din0, vzero);
+
+            float32x4_t w4_0 = vld1q_f32(ptr_w4);
+            float32x4_t w5_0 = vld1q_f32(ptr_w5);
+            float32x4_t w6_0 = vld1q_f32(ptr_w6);
+            float32x4_t w7_0 = vld1q_f32(ptr_w7);
+
+
+            sum0 = vmlaq_f32(sum0, din0, w0_0);
+            sum1 = vmlaq_f32(sum1, din0, w1_0);
+            sum2 = vmlaq_f32(sum2, din0, w2_0);
+            sum3 = vmlaq_f32(sum3, din0, w3_0);
+            sum4 = vmlaq_f32(sum4, din0, w4_0);
+            sum5 = vmlaq_f32(sum5, din0, w5_0);
+            sum6 = vmlaq_f32(sum6, din0, w6_0);
+            sum7 = vmlaq_f32(sum7, din0, w7_0);
+
+
+            float32x4_t din1 = vld1q_f32(ptr_in + 4);
+            float32x4_t w0_1 = vld1q_f32(ptr_w0 + 4);
+            float32x4_t w1_1 = vld1q_f32(ptr_w1 + 4);
+            float32x4_t w2_1 = vld1q_f32(ptr_w2 + 4);
+
+            din1 = vbslq_f32(vmask2, din1, vzero);
+
+            float32x4_t w3_1 = vld1q_f32(ptr_w3 + 4);
+            float32x4_t w4_1 = vld1q_f32(ptr_w4 + 4);
+            float32x4_t w5_1 = vld1q_f32(ptr_w5 + 4);
+            float32x4_t w6_1 = vld1q_f32(ptr_w6 + 4);
+            float32x4_t w7_1 = vld1q_f32(ptr_w7 + 4);
+
+            sum0 = vmlaq_f32(sum0, din1, w0_1);
+            sum1 = vmlaq_f32(sum1, din1, w1_1);
+            sum2 = vmlaq_f32(sum2, din1, w2_1);
+            sum3 = vmlaq_f32(sum3, din1, w3_1);
+            sum4 = vmlaq_f32(sum4, din1, w4_1);
+            sum5 = vmlaq_f32(sum5, din1, w5_1);
+            sum6 = vmlaq_f32(sum6, din1, w6_1);
+            sum7 = vmlaq_f32(sum7, din1, w7_1);
+        }
+        //add
+        float32x4_t vout0 = vpaddq_f32(sum0, sum1);
+        float32x4_t vout1 = vpaddq_f32(sum2, sum3);
+        float32x4_t vout2 = vpaddq_f32(sum4, sum5);
+        float32x4_t vout3 = vpaddq_f32(sum6, sum7);
+        float32x4_t vdout = vpaddq_f32(vout0, vout1);
+        float32x4_t vdout1 = vpaddq_f32(vout2, vout3);
+        vdout = vmaxq_f32(vdout, vzero);
+        vdout1 = vmaxq_f32(vdout1, vzero);
+        vst1q_f32(ptr_out, vdout);
+        vst1q_f32(ptr_out + 4, vdout1);
+    }
+    //! deal with remains
+#pragma omp parallel for
+    for (int j = out_cnt * 8; j < M; ++j){
+        float *ptr_out = data_out + j;
+        const float *ptr_in = data_in;
+        const float *ptr_w0 = weights_ptr + (N * j);
+        int cnt = cnt_loop;
+
+         asm volatile(
+            "prfm  pldl1keep, [%[in]]   \n"
+                    "prfm  pldl1keep, [%[w0]]   \n"
+                     :
+        :[in] "r"(ptr_in), [w0] "r"(ptr_w0)
+        :"memory"
+        );
+
+        float32x4_t sum0 = vdupq_n_f32(0.f);
+        for(int i = 0; i < cnt_loop; i++){
+            float32x4_t din0 = vld1q_f32(ptr_in);
+            float32x4_t w0_0 = vld1q_f32(ptr_w0);
+
+            sum0 = vmlaq_f32(sum0, din0, w0_0);
+
+
+            float32x4_t din1 = vld1q_f32(ptr_in + 4);
+            float32x4_t w0_1 = vld1q_f32(ptr_w0 + 4);
+
+            sum0 = vmlaq_f32(sum0, din1, w0_1);
+
+            ptr_in += 8;
+            ptr_w0 += 8;
+
+        }
+        if(tail >= 1){
+            float32x4_t din0 = vld1q_f32(ptr_in);
+            float32x4_t w0_0 = vld1q_f32(ptr_w0);
+
+            din0 = vbslq_f32(vmask1, din0, vzero);
+
+
+            sum0 = vmlaq_f32(sum0, din0, w0_0);
+
+
+            float32x4_t din1 = vld1q_f32(ptr_in + 4);
+            float32x4_t w0_1 = vld1q_f32(ptr_w0 + 4);
+
+            din1 = vbslq_f32(vmask2, din1, vzero);
+
+            sum0 = vmlaq_f32(sum0, din1, w0_1);
+        }
+        //add
+        float32x2_t vout = vpadd_f32(vget_low_f32(sum0), vget_high_f32(sum0));
+        float32x2_t vdout = vpadd_f32(vout, vout);
+        vdout = vmax_f32(vdout, vget_low_f32(vzero));
+        vst1_f32(ptr_out, vdout);
+    }
+#else
 
     int cnt_loop = N >> 3;
     int tail = N & 7;
@@ -394,6 +1018,7 @@ void sgemv_relu(const bool transA, const int M, const int N, \
         :"q0", "q1", "q12", "q13", "q14", "q15"
         );
     }
+#endif //__aarch64__
 }
 
 void sgemv_bias(const bool transA, const int M, const int N, \
@@ -401,6 +1026,240 @@ void sgemv_bias(const bool transA, const int M, const int N, \
     float* data_out = y;
     const float* data_in = x;
     const float* weights_ptr = A;
+
+#ifdef __aarch64__
+//todo
+    int cnt_loop = N >> 3;
+    int tail = N & 7;
+    int out_cnt = M >> 3;
+
+    unsigned int imask[8] = {7, 6, 5, 4, 3, 2, 1, 0};
+
+    uint32x4_t vmask1 = vcgtq_u32(vld1q_u32(imask), vdupq_n_u32(tail));
+    uint32x4_t vmask2 = vcgtq_u32(vld1q_u32(imask + 4), vdupq_n_u32(tail));
+
+    float32x4_t vzero = vdupq_n_f32(0.f);
+
+#pragma omp parallel for
+    for (int j = 0; j < out_cnt; j++) {
+
+        int out_idx = j * 8;
+        float *ptr_out = data_out + out_idx;
+        const float *ptr_bias = bias + out_idx;
+        const float *ptr_in = data_in;
+        const float *ptr_w0 = weights_ptr + (N * out_idx);
+        const float *ptr_w1 = ptr_w0 + N;
+        const float *ptr_w2 = ptr_w1 + N;
+        const float *ptr_w3 = ptr_w2 + N;
+        const float *ptr_w4 = ptr_w3 + N;
+        const float *ptr_w5 = ptr_w4 + N;
+        const float *ptr_w6 = ptr_w5 + N;
+        const float *ptr_w7 = ptr_w6 + N;
+
+         asm volatile(
+            "prfm  pldl1keep, [%[in]]   \n"
+                    "prfm  pldl1keep, [%[w0]]   \n"
+                    "prfm  pldl1keep, [%[w1]]   \n"
+                    "prfm  pldl1keep, [%[w2]]   \n"
+                    "prfm  pldl1keep, [%[w3]]   \n"
+                    "prfm  pldl1keep, [%[w4]]   \n"
+                    "prfm  pldl1keep, [%[w5]]   \n"
+                    "prfm  pldl1keep, [%[w6]]   \n"
+                    "prfm  pldl1keep, [%[w7]]   \n"
+                     :
+        :[in] "r"(ptr_in), [w0] "r"(ptr_w0), [w1] "r"(ptr_w1), [w2] "r"(ptr_w2), \
+                [w3] "r"(ptr_w3), [w4] "r"(ptr_w4), [w5] "r"(ptr_w5), [w6] "r"(ptr_w6), \
+                [w7] "r" (ptr_w7)
+        :"memory"
+        );
+
+        float32x4_t sum0 = vdupq_n_f32(0.f);
+        float32x4_t sum1 = vdupq_n_f32(0.f);
+        float32x4_t sum2 = vdupq_n_f32(0.f);
+        float32x4_t sum3 = vdupq_n_f32(0.f);
+        float32x4_t sum4 = vdupq_n_f32(0.f);
+        float32x4_t sum5 = vdupq_n_f32(0.f);
+        float32x4_t sum6 = vdupq_n_f32(0.f);
+        float32x4_t sum7 = vdupq_n_f32(0.f);
+
+        for(int i = 0; i < cnt_loop; i++){
+
+            float32x4_t din0 = vld1q_f32(ptr_in);
+            float32x4_t w0_0 = vld1q_f32(ptr_w0);
+            float32x4_t w1_0 = vld1q_f32(ptr_w1);
+            float32x4_t w2_0 = vld1q_f32(ptr_w2);
+            float32x4_t w3_0 = vld1q_f32(ptr_w3);
+            float32x4_t w4_0 = vld1q_f32(ptr_w4);
+            float32x4_t w5_0 = vld1q_f32(ptr_w5);
+            float32x4_t w6_0 = vld1q_f32(ptr_w6);
+            float32x4_t w7_0 = vld1q_f32(ptr_w7);
+
+            sum0 = vmlaq_f32(sum0, din0, w0_0);
+            sum1 = vmlaq_f32(sum1, din0, w1_0);
+            sum2 = vmlaq_f32(sum2, din0, w2_0);
+            sum3 = vmlaq_f32(sum3, din0, w3_0);
+            sum4 = vmlaq_f32(sum4, din0, w4_0);
+            sum5 = vmlaq_f32(sum5, din0, w5_0);
+            sum6 = vmlaq_f32(sum6, din0, w6_0);
+            sum7 = vmlaq_f32(sum7, din0, w7_0);
+
+
+            float32x4_t din1 = vld1q_f32(ptr_in + 4);
+            float32x4_t w0_1 = vld1q_f32(ptr_w0 + 4);
+            float32x4_t w1_1 = vld1q_f32(ptr_w1 + 4);
+            float32x4_t w2_1 = vld1q_f32(ptr_w2 + 4);
+            float32x4_t w3_1 = vld1q_f32(ptr_w3 + 4);
+            float32x4_t w4_1 = vld1q_f32(ptr_w4 + 4);
+            float32x4_t w5_1 = vld1q_f32(ptr_w5 + 4);
+            float32x4_t w6_1 = vld1q_f32(ptr_w6 + 4);
+            float32x4_t w7_1 = vld1q_f32(ptr_w7 + 4);
+
+            sum0 = vmlaq_f32(sum0, din1, w0_1);
+            sum1 = vmlaq_f32(sum1, din1, w1_1);
+            sum2 = vmlaq_f32(sum2, din1, w2_1);
+            sum3 = vmlaq_f32(sum3, din1, w3_1);
+            sum4 = vmlaq_f32(sum4, din1, w4_1);
+            sum5 = vmlaq_f32(sum5, din1, w5_1);
+            sum6 = vmlaq_f32(sum6, din1, w6_1);
+            sum7 = vmlaq_f32(sum7, din1, w7_1);
+
+            ptr_in += 8;
+            ptr_w0 += 8; 
+            ptr_w1 += 8;
+            ptr_w2 += 8;
+            ptr_w3 += 8; 
+            ptr_w4 += 8;
+            ptr_w5 += 8;
+            ptr_w6 += 8; 
+            ptr_w7 += 8;
+
+        }
+        if(tail >= 1){
+            float32x4_t din0 = vld1q_f32(ptr_in);
+            float32x4_t w0_0 = vld1q_f32(ptr_w0);
+            float32x4_t w1_0 = vld1q_f32(ptr_w1);
+            float32x4_t w2_0 = vld1q_f32(ptr_w2);
+            float32x4_t w3_0 = vld1q_f32(ptr_w3);
+
+            din0 = vbslq_f32(vmask1, din0, vzero);
+
+            float32x4_t w4_0 = vld1q_f32(ptr_w4);
+            float32x4_t w5_0 = vld1q_f32(ptr_w5);
+            float32x4_t w6_0 = vld1q_f32(ptr_w6);
+            float32x4_t w7_0 = vld1q_f32(ptr_w7);
+
+
+            sum0 = vmlaq_f32(sum0, din0, w0_0);
+            sum1 = vmlaq_f32(sum1, din0, w1_0);
+            sum2 = vmlaq_f32(sum2, din0, w2_0);
+            sum3 = vmlaq_f32(sum3, din0, w3_0);
+            sum4 = vmlaq_f32(sum4, din0, w4_0);
+            sum5 = vmlaq_f32(sum5, din0, w5_0);
+            sum6 = vmlaq_f32(sum6, din0, w6_0);
+            sum7 = vmlaq_f32(sum7, din0, w7_0);
+
+
+            float32x4_t din1 = vld1q_f32(ptr_in + 4);
+            float32x4_t w0_1 = vld1q_f32(ptr_w0 + 4);
+            float32x4_t w1_1 = vld1q_f32(ptr_w1 + 4);
+            float32x4_t w2_1 = vld1q_f32(ptr_w2 + 4);
+
+            din1 = vbslq_f32(vmask2, din1, vzero);
+
+            float32x4_t w3_1 = vld1q_f32(ptr_w3 + 4);
+            float32x4_t w4_1 = vld1q_f32(ptr_w4 + 4);
+            float32x4_t w5_1 = vld1q_f32(ptr_w5 + 4);
+            float32x4_t w6_1 = vld1q_f32(ptr_w6 + 4);
+            float32x4_t w7_1 = vld1q_f32(ptr_w7 + 4);
+
+            sum0 = vmlaq_f32(sum0, din1, w0_1);
+            sum1 = vmlaq_f32(sum1, din1, w1_1);
+            sum2 = vmlaq_f32(sum2, din1, w2_1);
+            sum3 = vmlaq_f32(sum3, din1, w3_1);
+            sum4 = vmlaq_f32(sum4, din1, w4_1);
+            sum5 = vmlaq_f32(sum5, din1, w5_1);
+            sum6 = vmlaq_f32(sum6, din1, w6_1);
+            sum7 = vmlaq_f32(sum7, din1, w7_1);
+        }
+
+        float32x4_t vbias0 = vld1q_f32(ptr_bias);
+        float32x4_t vbias1 = vld1q_f32(ptr_bias + 4);
+        //add
+        float32x4_t vout0 = vpaddq_f32(sum0, sum1);
+        float32x4_t vout1 = vpaddq_f32(sum2, sum3);
+        float32x4_t vout2 = vpaddq_f32(sum4, sum5);
+        float32x4_t vout3 = vpaddq_f32(sum6, sum7);
+        float32x4_t vdout = vpaddq_f32(vout0, vout1);
+        float32x4_t vdout1 = vpaddq_f32(vout2, vout3);
+
+
+        vdout = vaddq_f32(vdout, vbias0);
+        vdout1 = vaddq_f32(vdout1, vbias1);
+
+        vst1q_f32(ptr_out, vdout);
+        vst1q_f32(ptr_out + 4, vdout1);
+    }
+    //! deal with remains
+#pragma omp parallel for
+    for (int j = out_cnt * 8; j < M; ++j){
+        float *ptr_out = data_out + j;
+        const float *ptr_bias = bias + j;
+        const float *ptr_in = data_in;
+        const float *ptr_w0 = weights_ptr + (N * j);
+        int cnt = cnt_loop;
+
+         asm volatile(
+            "prfm  pldl1keep, [%[in]]   \n"
+                    "prfm  pldl1keep, [%[w0]]   \n"
+                    "prfm  pldl1keep, [%[bias]]   \n"
+                     :
+        :[in] "r"(ptr_in), [w0] "r"(ptr_w0), [bias] "r" (ptr_bias)
+        :"memory"
+        );
+
+        float32x4_t sum0 = vdupq_n_f32(0.f);
+        for(int i = 0; i < cnt_loop; i++){
+            float32x4_t din0 = vld1q_f32(ptr_in);
+            float32x4_t w0_0 = vld1q_f32(ptr_w0);
+
+            sum0 = vmlaq_f32(sum0, din0, w0_0);
+
+
+            float32x4_t din1 = vld1q_f32(ptr_in + 4);
+            float32x4_t w0_1 = vld1q_f32(ptr_w0 + 4);
+
+            sum0 = vmlaq_f32(sum0, din1, w0_1);
+
+            ptr_in += 8;
+            ptr_w0 += 8;
+
+        }
+        if(tail >= 1){
+            float32x4_t din0 = vld1q_f32(ptr_in);
+            float32x4_t w0_0 = vld1q_f32(ptr_w0);
+
+            din0 = vbslq_f32(vmask1, din0, vzero);
+
+
+            sum0 = vmlaq_f32(sum0, din0, w0_0);
+
+
+            float32x4_t din1 = vld1q_f32(ptr_in + 4);
+            float32x4_t w0_1 = vld1q_f32(ptr_w0 + 4);
+
+            din1 = vbslq_f32(vmask2, din1, vzero);
+
+            sum0 = vmlaq_f32(sum0, din1, w0_1);
+        }
+
+        float32x2_t vbias = vld1_f32(ptr_bias);
+        //add
+        float32x2_t vout = vpadd_f32(vget_low_f32(sum0), vget_high_f32(sum0));
+        float32x2_t vdout = vpadd_f32(vout, vout);
+        vdout = vadd_f32(vdout, vbias);
+        vst1_f32(ptr_out, vdout);
+    }
+#else
 
     int cnt_loop = N >> 3;
     int tail = N & 7;
@@ -596,6 +1455,8 @@ void sgemv_bias(const bool transA, const int M, const int N, \
         :"q0", "q1", "q12", "q13", "q14", "q15"
         );
     }
+
+#endif //__aarch64__
 }
 
 
@@ -604,6 +1465,245 @@ void sgemv_bias_relu(const bool transA, const int M, const int N, \
     float* data_out = y;
     const float* data_in = x;
     const float* weights_ptr = A;
+
+#ifdef __aarch64__
+//todo
+    
+    int cnt_loop = N >> 3;
+    int tail = N & 7;
+    int out_cnt = M >> 3;
+
+    unsigned int imask[8] = {7, 6, 5, 4, 3, 2, 1, 0};
+
+    uint32x4_t vmask1 = vcgtq_u32(vld1q_u32(imask), vdupq_n_u32(tail));
+    uint32x4_t vmask2 = vcgtq_u32(vld1q_u32(imask + 4), vdupq_n_u32(tail));
+
+    float32x4_t vzero = vdupq_n_f32(0.f);
+
+#pragma omp parallel for
+    for (int j = 0; j < out_cnt; j++) {
+
+        int out_idx = j * 8;
+        float *ptr_out = data_out + out_idx;
+        const float *ptr_bias = bias + out_idx;
+        const float *ptr_in = data_in;
+        const float *ptr_w0 = weights_ptr + (N * out_idx);
+        const float *ptr_w1 = ptr_w0 + N;
+        const float *ptr_w2 = ptr_w1 + N;
+        const float *ptr_w3 = ptr_w2 + N;
+        const float *ptr_w4 = ptr_w3 + N;
+        const float *ptr_w5 = ptr_w4 + N;
+        const float *ptr_w6 = ptr_w5 + N;
+        const float *ptr_w7 = ptr_w6 + N;
+
+         asm volatile(
+            "prfm  pldl1keep, [%[in]]   \n"
+                    "prfm  pldl1keep, [%[w0]]   \n"
+                    "prfm  pldl1keep, [%[w1]]   \n"
+                    "prfm  pldl1keep, [%[w2]]   \n"
+                    "prfm  pldl1keep, [%[w3]]   \n"
+                    "prfm  pldl1keep, [%[w4]]   \n"
+                    "prfm  pldl1keep, [%[w5]]   \n"
+                    "prfm  pldl1keep, [%[w6]]   \n"
+                    "prfm  pldl1keep, [%[w7]]   \n"
+                     :
+        :[in] "r"(ptr_in), [w0] "r"(ptr_w0), [w1] "r"(ptr_w1), [w2] "r"(ptr_w2), \
+                [w3] "r"(ptr_w3), [w4] "r"(ptr_w4), [w5] "r"(ptr_w5), [w6] "r"(ptr_w6), \
+                [w7] "r" (ptr_w7)
+        :"memory"
+        );
+
+        float32x4_t sum0 = vdupq_n_f32(0.f);
+        float32x4_t sum1 = vdupq_n_f32(0.f);
+        float32x4_t sum2 = vdupq_n_f32(0.f);
+        float32x4_t sum3 = vdupq_n_f32(0.f);
+        float32x4_t sum4 = vdupq_n_f32(0.f);
+        float32x4_t sum5 = vdupq_n_f32(0.f);
+        float32x4_t sum6 = vdupq_n_f32(0.f);
+        float32x4_t sum7 = vdupq_n_f32(0.f);
+
+        for(int i = 0; i < cnt_loop; i++){
+
+            float32x4_t din0 = vld1q_f32(ptr_in);
+            float32x4_t w0_0 = vld1q_f32(ptr_w0);
+            float32x4_t w1_0 = vld1q_f32(ptr_w1);
+            float32x4_t w2_0 = vld1q_f32(ptr_w2);
+            float32x4_t w3_0 = vld1q_f32(ptr_w3);
+            float32x4_t w4_0 = vld1q_f32(ptr_w4);
+            float32x4_t w5_0 = vld1q_f32(ptr_w5);
+            float32x4_t w6_0 = vld1q_f32(ptr_w6);
+            float32x4_t w7_0 = vld1q_f32(ptr_w7);
+
+            sum0 = vmlaq_f32(sum0, din0, w0_0);
+            sum1 = vmlaq_f32(sum1, din0, w1_0);
+            sum2 = vmlaq_f32(sum2, din0, w2_0);
+            sum3 = vmlaq_f32(sum3, din0, w3_0);
+            sum4 = vmlaq_f32(sum4, din0, w4_0);
+            sum5 = vmlaq_f32(sum5, din0, w5_0);
+            sum6 = vmlaq_f32(sum6, din0, w6_0);
+            sum7 = vmlaq_f32(sum7, din0, w7_0);
+
+
+            float32x4_t din1 = vld1q_f32(ptr_in + 4);
+            float32x4_t w0_1 = vld1q_f32(ptr_w0 + 4);
+            float32x4_t w1_1 = vld1q_f32(ptr_w1 + 4);
+            float32x4_t w2_1 = vld1q_f32(ptr_w2 + 4);
+            float32x4_t w3_1 = vld1q_f32(ptr_w3 + 4);
+            float32x4_t w4_1 = vld1q_f32(ptr_w4 + 4);
+            float32x4_t w5_1 = vld1q_f32(ptr_w5 + 4);
+            float32x4_t w6_1 = vld1q_f32(ptr_w6 + 4);
+            float32x4_t w7_1 = vld1q_f32(ptr_w7 + 4);
+
+            sum0 = vmlaq_f32(sum0, din1, w0_1);
+            sum1 = vmlaq_f32(sum1, din1, w1_1);
+            sum2 = vmlaq_f32(sum2, din1, w2_1);
+            sum3 = vmlaq_f32(sum3, din1, w3_1);
+            sum4 = vmlaq_f32(sum4, din1, w4_1);
+            sum5 = vmlaq_f32(sum5, din1, w5_1);
+            sum6 = vmlaq_f32(sum6, din1, w6_1);
+            sum7 = vmlaq_f32(sum7, din1, w7_1);
+
+            ptr_in += 8;
+            ptr_w0 += 8; 
+            ptr_w1 += 8;
+            ptr_w2 += 8;
+            ptr_w3 += 8; 
+            ptr_w4 += 8;
+            ptr_w5 += 8;
+            ptr_w6 += 8; 
+            ptr_w7 += 8;
+
+        }
+        if(tail >= 1){
+            float32x4_t din0 = vld1q_f32(ptr_in);
+            float32x4_t w0_0 = vld1q_f32(ptr_w0);
+            float32x4_t w1_0 = vld1q_f32(ptr_w1);
+            float32x4_t w2_0 = vld1q_f32(ptr_w2);
+            float32x4_t w3_0 = vld1q_f32(ptr_w3);
+
+            din0 = vbslq_f32(vmask1, din0, vzero);
+
+            float32x4_t w4_0 = vld1q_f32(ptr_w4);
+            float32x4_t w5_0 = vld1q_f32(ptr_w5);
+            float32x4_t w6_0 = vld1q_f32(ptr_w6);
+            float32x4_t w7_0 = vld1q_f32(ptr_w7);
+
+
+            sum0 = vmlaq_f32(sum0, din0, w0_0);
+            sum1 = vmlaq_f32(sum1, din0, w1_0);
+            sum2 = vmlaq_f32(sum2, din0, w2_0);
+            sum3 = vmlaq_f32(sum3, din0, w3_0);
+            sum4 = vmlaq_f32(sum4, din0, w4_0);
+            sum5 = vmlaq_f32(sum5, din0, w5_0);
+            sum6 = vmlaq_f32(sum6, din0, w6_0);
+            sum7 = vmlaq_f32(sum7, din0, w7_0);
+
+
+            float32x4_t din1 = vld1q_f32(ptr_in + 4);
+            float32x4_t w0_1 = vld1q_f32(ptr_w0 + 4);
+            float32x4_t w1_1 = vld1q_f32(ptr_w1 + 4);
+            float32x4_t w2_1 = vld1q_f32(ptr_w2 + 4);
+
+            din1 = vbslq_f32(vmask2, din1, vzero);
+
+            float32x4_t w3_1 = vld1q_f32(ptr_w3 + 4);
+            float32x4_t w4_1 = vld1q_f32(ptr_w4 + 4);
+            float32x4_t w5_1 = vld1q_f32(ptr_w5 + 4);
+            float32x4_t w6_1 = vld1q_f32(ptr_w6 + 4);
+            float32x4_t w7_1 = vld1q_f32(ptr_w7 + 4);
+
+            sum0 = vmlaq_f32(sum0, din1, w0_1);
+            sum1 = vmlaq_f32(sum1, din1, w1_1);
+            sum2 = vmlaq_f32(sum2, din1, w2_1);
+            sum3 = vmlaq_f32(sum3, din1, w3_1);
+            sum4 = vmlaq_f32(sum4, din1, w4_1);
+            sum5 = vmlaq_f32(sum5, din1, w5_1);
+            sum6 = vmlaq_f32(sum6, din1, w6_1);
+            sum7 = vmlaq_f32(sum7, din1, w7_1);
+        }
+
+        float32x4_t vbias0 = vld1q_f32(ptr_bias);
+        float32x4_t vbias1 = vld1q_f32(ptr_bias + 4);
+        //add
+        float32x4_t vout0 = vpaddq_f32(sum0, sum1);
+        float32x4_t vout1 = vpaddq_f32(sum2, sum3);
+        float32x4_t vout2 = vpaddq_f32(sum4, sum5);
+        float32x4_t vout3 = vpaddq_f32(sum6, sum7);
+        float32x4_t vdout = vpaddq_f32(vout0, vout1);
+        float32x4_t vdout1 = vpaddq_f32(vout2, vout3);
+
+
+        vdout = vaddq_f32(vdout, vbias0);
+        vdout1 = vaddq_f32(vdout1, vbias1);
+
+        vdout = vmaxq_f32(vdout, vzero);
+        vdout1 = vmaxq_f32(vdout1, vzero);
+
+        vst1q_f32(ptr_out, vdout);
+        vst1q_f32(ptr_out + 4, vdout1);
+    }
+    //! deal with remains
+#pragma omp parallel for
+    for (int j = out_cnt * 8; j < M; ++j){
+        float *ptr_out = data_out + j;
+        const float *ptr_bias = bias + j;
+        const float *ptr_in = data_in;
+        const float *ptr_w0 = weights_ptr + (N * j);
+        int cnt = cnt_loop;
+
+         asm volatile(
+            "prfm  pldl1keep, [%[in]]   \n"
+                    "prfm  pldl1keep, [%[w0]]   \n"
+                    "prfm  pldl1keep, [%[bias]]   \n"
+                     :
+        :[in] "r"(ptr_in), [w0] "r"(ptr_w0), [bias] "r" (ptr_bias)
+        :"memory"
+        );
+
+        float32x4_t sum0 = vdupq_n_f32(0.f);
+        for(int i = 0; i < cnt_loop; i++){
+            float32x4_t din0 = vld1q_f32(ptr_in);
+            float32x4_t w0_0 = vld1q_f32(ptr_w0);
+
+            sum0 = vmlaq_f32(sum0, din0, w0_0);
+
+
+            float32x4_t din1 = vld1q_f32(ptr_in + 4);
+            float32x4_t w0_1 = vld1q_f32(ptr_w0 + 4);
+
+            sum0 = vmlaq_f32(sum0, din1, w0_1);
+
+            ptr_in += 8;
+            ptr_w0 += 8;
+
+        }
+        if(tail >= 1){
+            float32x4_t din0 = vld1q_f32(ptr_in);
+            float32x4_t w0_0 = vld1q_f32(ptr_w0);
+
+            din0 = vbslq_f32(vmask1, din0, vzero);
+
+
+            sum0 = vmlaq_f32(sum0, din0, w0_0);
+
+
+            float32x4_t din1 = vld1q_f32(ptr_in + 4);
+            float32x4_t w0_1 = vld1q_f32(ptr_w0 + 4);
+
+            din1 = vbslq_f32(vmask2, din1, vzero);
+
+            sum0 = vmlaq_f32(sum0, din1, w0_1);
+        }
+
+        float32x2_t vbias = vld1_f32(ptr_bias);
+        //add
+        float32x2_t vout = vpadd_f32(vget_low_f32(sum0), vget_high_f32(sum0));
+        float32x2_t vdout = vpadd_f32(vout, vout);
+        vdout = vadd_f32(vdout, vbias);
+        vdout = vmax_f32(vdout, vget_low_f32(vzero));
+        vst1_f32(ptr_out, vdout);
+    }
+#else
 
     int cnt_loop = N >> 3;
     int tail = N & 7;
@@ -804,6 +1904,7 @@ void sgemv_bias_relu(const bool transA, const int M, const int N, \
         :"q0", "q1", "q12", "q13", "q14", "q15"
         );
     }
+#endif //__aarch64__
 }
 
 } //lite

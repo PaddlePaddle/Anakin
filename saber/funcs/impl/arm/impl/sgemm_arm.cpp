@@ -132,7 +132,7 @@ void Sgemm::init(unsigned int L1_cache, unsigned int L2_cache, unsigned int M, u
     //_c_worksize = _thread_num * _c_worksize_per_thread;
     _cblock_size = ROUND_UP(sizeof(float) * _x_block * OUT_HEIGHT) / sizeof(float);
 
-    _work_size = _a_worksize + _b_worksize + _cblock_size * sizeof(float) * _thread_num;
+    _work_size = 2 * (_a_worksize + _b_worksize) + _cblock_size * sizeof(float) * _thread_num;
 
     _work_space_ptr = fast_malloc(_work_size + GEMM_ALIGN);
     _align_ptr = _work_space_ptr;

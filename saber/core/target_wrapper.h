@@ -15,7 +15,7 @@
 
 #ifndef ANAKIN_SABER_CORE_TARGET_WRAPPER_H
 #define ANAKIN_SABER_CORE_TARGET_WRAPPER_H
-#include "core/target_traits.h"
+#include "saber/core/target_traits.h"
 #include <memory>
 
 namespace anakin {

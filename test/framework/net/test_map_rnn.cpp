@@ -12,7 +12,6 @@
 #include "framework/operators/ops.h"
 #include <fstream>
 #include <thread>
-
 #ifdef USE_X86_PLACE
 #include <mkl_service.h>
 #endif
@@ -328,6 +327,7 @@ void one_thread_run(std::string path,int thread_id){
 }
 
 TEST(NetTest, net_execute_base_test) {
+#ifdef USE_X86_PLACE
     std::vector<std::string> models;
     Env<X86>::env_init();
 
@@ -354,6 +354,7 @@ TEST(NetTest, net_execute_base_test) {
                           <<" , thread num = "<<FLAGS_thread_num;
                 LOG(WARNING) << "load anakin model file from " << *iter << " ...";
     }
+#endif
 
 }
 
