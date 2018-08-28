@@ -8,6 +8,8 @@
 #include <vector>
 
 using namespace anakin::saber;
+#define CHECK_RESULT
+//#define CHECK_SPEED
 
 #ifdef USE_BM
 TEST(TestSaberFunc, test_saber_conv_results_bm) {
@@ -147,6 +149,7 @@ TEST(TestSaberFunc, test_saber_conv_results) {
         for (auto height : in_h_v)
         for (auto width : in_w_v) {
 #ifdef USE_CUDA
+
             testbase_nv.set_param(param_nv);//set param
             testbase_nv.set_input_shape(Shape({input_num,in_channels,height,width},
                                               Layout_NCHW));//add some input shape

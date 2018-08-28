@@ -1,11 +1,11 @@
 /* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
- 
+
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
  You may obtain a copy of the License at
- 
+
  http://www.apache.org/licenses/LICENSE-2.0
- 
+
  Unless required by applicable law or agreed to in writing, software
  distributed under the License is distributed on an "AS IS" BASIS,
  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -13,16 +13,17 @@
  limitations under the License.
  */
 
-#ifndef X86_UTILS_H
-#define X86_UTILS_H
+
+#ifndef SABER_FUNCS_IMPL_X86_X86_UTILS_H
+#define SABER_FUNCS_IMPL_X86_X86_UTILS_H
 
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 
+#include "saber/core/common.h"
 #include "saber/core/tensor.h"
-
 namespace anakin {
 namespace saber {
 
@@ -34,6 +35,21 @@ namespace saber {
 #endif
 
 namespace utils {
+template <typename opTensor>
+inline void try_expand_tensor(opTensor& x, Shape shape) {
+    if (x.valid_size() < shape.count()) {
+        x.re_alloc(shape, x.get_dtype());
+    }
+}
+
+template <typename opTensor>
+inline void try_expand_tensor(opTensor& x, int size) {
+    if (x.valid_size() < size) {
+        Shape shape({1, 1, 1, size}, Layout_NCHW);
+        try_expand_tensor(x, shape);
+    }
+}
+
 
 /* a bunch of std:: analogues to be compliant with any msvs version
  *
@@ -44,35 +60,45 @@ namespace utils {
  * (since there is no any c++-rt dependent stuff, ideally...). */
 
 /* SFINAE helper -- analogue to std::enable_if */
-class VectorPrint{
+class VectorPrint {
 public:
     template <typename Dtype>
-    static void print_float(Dtype *target){
-        float* f=(float*)target;
+    static void print_float(Dtype* target) {
+        float* f = (float*)target;
         printf("size = %d\n", sizeof(Dtype));
-        for(int i=0;i<sizeof(Dtype)/ sizeof(float);i++){
-            printf(" %f ,",f[i]);
+
+        for (int i = 0; i < sizeof(Dtype) / sizeof(float); i++) {
+            printf(" %f ,", f[i]);
         }
+
         printf("\n");
     }
 };
 
-class AlignedUtils{
+class AlignedUtils {
 public:
     template <typename Dtype>
-    void aligned_last_dim(const Dtype* input,Dtype* output,int input_size, int ori_last_dim,int aligned_dim){
-        for(int i=0;i<input_size;i++){
-            int row=i/ori_last_dim;
-            int col=i%ori_last_dim;
-            output[row*aligned_dim+col]=input[i];
+    void aligned_last_dim(const Dtype* input, Dtype* output, int input_size, int ori_last_dim,
+                          int aligned_dim) {
+        for (int row = 0; row < input_size / ori_last_dim; row++) {
+            for (int col = ori_last_dim; col < aligned_dim; col++) {
+                output[row * aligned_dim + col] = static_cast<Dtype>(0);
+            }
+        }
+
+        for (int i = 0; i < input_size; i++) {
+            int row = i / ori_last_dim;
+            int col = i % ori_last_dim;
+            output[row * aligned_dim + col] = input[i];
         }
     }
     template <typename Dtype>
-    void unaligned_last_dim(const Dtype* input,Dtype* output,int output_size, int ori_last_dim,int aligned_dim){
-        for(int i=0;i<output_size;i++){
-            int row=i/ori_last_dim;
-            int col=i%ori_last_dim;
-            output[i]=input[row*aligned_dim+col];
+    void unaligned_last_dim(const Dtype* input, Dtype* output, int output_size, int ori_last_dim,
+                            int aligned_dim) {
+        for (int i = 0; i < output_size; i++) {
+            int row = i / ori_last_dim;
+            int col = i % ori_last_dim;
+            output[i] = input[row * aligned_dim + col];
         }
     }
 
@@ -80,9 +106,9 @@ public:
 
 class SeqSortedseqTranseUtil {
 public:
-    SeqSortedseqTranseUtil(bool is_reverse=false,bool is_bi=false)
-            :_is_reverse(is_reverse),
-            _is_bi(is_bi){};
+    SeqSortedseqTranseUtil(bool is_reverse = false, bool is_bi = false)
+        : _is_reverse(is_reverse),
+          _is_bi(is_bi) {};
     void print_vec(int* in, int size, const char* perfix) {
         for (int i = 0; i < size; i++) {
             printf("[%s] %d = %d\n", perfix, i, in[i]);
@@ -145,7 +171,8 @@ public:
         }
     }
     template <typename Dtype>
-    void sorted_seq_2_seq(const Dtype* input, Dtype* output, int hidden_size,int alligned_hidden_size) {
+    void sorted_seq_2_seq(const Dtype* input, Dtype* output, int hidden_size,
+                          int alligned_hidden_size) {
         int word_sum = _map_vec.size();
 
         for (int ori_word_id = 0; ori_word_id < word_sum; ori_word_id++) {
@@ -160,13 +187,13 @@ public:
             }
         }
     }
-/**
- * return whether need to transform
- * @param offset_vec
- * @param emit_offset_vec
- * @param emit_length
- * @return
- */
+    /**
+     * return whether need to transform
+     * @param offset_vec
+     * @param emit_offset_vec
+     * @param emit_length
+     * @return
+     */
     bool get_sorted_map(std::vector<int>& offset_vec,
                         std::vector<int>& emit_offset_vec, int& emit_length) {
         int batch_size = offset_vec.size() - 1;
@@ -176,9 +203,12 @@ public:
 
         if (batch_size == 1) {
             emit_length = offset_vec[1] - offset_vec[0];
-            emit_offset_vec.resize(emit_length+1);
-            for(int i=0;i<=emit_length;i++)
-                emit_offset_vec[i]=i;
+            emit_offset_vec.resize(emit_length + 1);
+
+            for (int i = 0; i <= emit_length; i++) {
+                emit_offset_vec[i] = i;
+            }
+
             return false;
         }
 
@@ -195,7 +225,7 @@ public:
 
         if (max_len == 1) {
             emit_offset_vec.push_back(0);
-            emit_offset_vec.push_back(emit_length*batch_size);
+            emit_offset_vec.push_back(emit_length * batch_size);
             return false;
         }
 
@@ -207,7 +237,8 @@ public:
         _map_vec.resize(word_sum);
 
         int target_word_id = 0;
-        std::vector<int> length_vec_cnt=length_vec;
+        std::vector<int> length_vec_cnt = length_vec;
+
         for (int word_id_in_seq = 0; word_id_in_seq < max_len; word_id_in_seq++) {
             emit_offset_vec[word_id_in_seq] = target_word_id;
 
@@ -215,13 +246,15 @@ public:
                 int old_batch_id = _length_index[batch_id];
 
                 if (length_vec_cnt[old_batch_id] > 0) {
-                    int inner_word_id_in_seq=word_id_in_seq;
-                    if(_is_reverse){
-                        inner_word_id_in_seq=length_vec[old_batch_id]-1-word_id_in_seq;
+                    int inner_word_id_in_seq = word_id_in_seq;
+
+                    if (_is_reverse) {
+                        inner_word_id_in_seq = length_vec[old_batch_id] - 1 - word_id_in_seq;
                     }
+
                     int old_word_id = offset_vec[old_batch_id] + inner_word_id_in_seq;
                     _map_vec[old_word_id] = target_word_id;
-//                    printf("map %d -> %d\n",old_word_id,target_word_id);
+                    //                    printf("map %d -> %d\n",old_word_id,target_word_id);
                     length_vec_cnt[old_batch_id]--;
                     target_word_id++;
                 } else {
@@ -247,7 +280,7 @@ private:
 };
 
 inline int round_up(int k, int c) {
-    return  k+(c-k%c);
+    return ((k + c - 1) / c) * c;
 }
 
 inline int div_up(int k, int c) {
@@ -602,10 +635,11 @@ inline void weight_reorder_OIhw16i16o(Tensor<X86>& input,
     CHECK_EQ(output.get_dtype(), AK_FLOAT) << "only support float type";
     Shape shape = input.valid_shape();
     int oc_value = shape[0], ic_value = shape[1], kh_value = shape[2], kw_value = shape[3];
-    
+
     float* output_ptr = static_cast<float*>(output.mutable_data());
     const float* input_ptr = static_cast<const float*>(input.data());
     #pragma omp parallel for collapse(6) schedule(static)
+
     for (int oc_idx = 0; oc_idx < oc_value / 16; ++oc_idx) {
         for (int ic_idx = 0; ic_idx < ic_value / 16; ++ic_idx) {
             for (int kh = 0; kh < kh_value; ++kh) {
@@ -632,14 +666,15 @@ inline void weight_reorder_OIhw16i16o(Tensor<X86>& input,
 // reorder weight layout from NCHW(oc, ic, kh, kw) to OIhwi16o
 inline void weight_reorder_OIhwi16o(Tensor<X86>& input,
                                     Tensor<X86>& output) {
-    
+
     CHECK_EQ(input.get_dtype(), AK_FLOAT) << "only support float type";
     CHECK_EQ(output.get_dtype(), AK_FLOAT) << "only support float type";
     Shape shape = input.shape();
-    
+
     float* output_ptr = static_cast<float*>(output.mutable_data());
     const float* input_ptr = static_cast<const float*>(input.data());
     #pragma omp parallel for collapse(5) schedule(static)
+
     for (int oc_idx = 0; oc_idx < shape[0] / 16; ++oc_idx) {
         for (int kh = 0; kh < shape[2]; ++kh) {
             for (int kw = 0; kw < shape[3]; ++kw) {
@@ -666,13 +701,14 @@ inline void weight_reorder_OIhwi16o(Tensor<X86>& input,
 inline void weight_reorder_OIhwi8o(Tensor<X86>& input,
                                    Tensor<X86>& output) {
     Shape shape = input.shape();
-    
+
     CHECK_EQ(input.get_dtype(), AK_FLOAT) << "only support float type";
     CHECK_EQ(output.get_dtype(), AK_FLOAT) << "only support float type";
 
     float* output_ptr = static_cast<float*>(output.mutable_data());
     const float* input_ptr = static_cast<const float*>(input.data());
     #pragma omp parallel for collapse(5) schedule(static)
+
     for (int oc_idx = 0; oc_idx < shape[0] / 8; ++oc_idx) {
         for (int kh = 0; kh < shape[2]; ++kh) {
             for (int kw = 0; kw < shape[3]; ++kw) {
@@ -697,16 +733,17 @@ inline void weight_reorder_OIhwi8o(Tensor<X86>& input,
 // reorder weight layout from NCHW to Goihw16g
 static void weight_reorder_Goihw16g(Tensor<X86>& input,
                                     Tensor<X86>& output) {
-    
+
     CHECK_EQ(input.get_dtype(), AK_FLOAT) << "only support float type";
     CHECK_EQ(output.get_dtype(), AK_FLOAT) << "only support float type";
     Shape shape = input.shape();
     int g_value = shape[0], oc_value = shape[1], ic_value = shape[1], kh_value = shape[2],
         kw_value = shape[3];
-    
+
     float* output_ptr = static_cast<float*>(output.mutable_data());
     const float* input_ptr = static_cast<const float*>(input.data());
     #pragma omp parallel for collapse(6) schedule(static)
+
     for (int g_idx = 0; g_idx < g_value / 16; ++g_idx) {
         for (int oc_idx = 0; oc_idx < oc_value; ++oc_idx) {
             for (int ic_idx = 0; ic_idx < ic_value; ++ic_idx) {
@@ -722,7 +759,7 @@ static void weight_reorder_Goihw16g(Tensor<X86>& input,
                                              ic_idx * kh_value * kw_value * 16 +
                                              kh * kw_value * 16 + kw * 16 + g;
 
-                            *( output_ptr+ output_idx) = *(input_ptr + input_idx);
+                            *(output_ptr + output_idx) = *(input_ptr + input_idx);
                         }
                     }
                 }
@@ -759,23 +796,21 @@ inline size_t datatype_size(DataType data_type) {
 } // namespace saber
 } // namespace anakin
 
-#if defined(_OPENMP)
+#if defined(USE_OPENMP)
 #include <omp.h>
 #else
-inline int omp_get_max_threads() {
+static inline int omp_get_max_threads() {
     return 1;
 }
-inline int omp_get_num_threads() {
+static inline int omp_get_num_threads() {
     return 1;
 }
-inline int omp_get_thread_num() {
+static inline int omp_get_thread_num() {
     return 0;
 }
-inline int omp_in_parallel() {
+static inline int omp_in_parallel() {
     return 0;
 }
 #endif
 
 #endif // X86_UTILS_H
-
-// vim: et ts=4 sw=4 cindent cino^=l0,\:0,N-s

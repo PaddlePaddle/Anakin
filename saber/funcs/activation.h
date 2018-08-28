@@ -80,13 +80,11 @@ public:
         switch (implenum) {
             case VENDER_IMPL:
                 //this->_impl.push_back(new VenderActivation <TargetType,
-                this->_impl.push_back(new VenderActivation <TargetType,
-                        OpDtype>);
+                this->_impl.push_back(new VenderActivation <TargetType, OpDtype>);
                 return SaberSuccess;
 
             case SABER_IMPL:
-                this->_impl.push_back(new SaberActivation <TargetType,
-                        OpDtype>);
+                this->_impl.push_back(new SaberActivation <TargetType, OpDtype>);
                 return SaberSuccess;
 
             default:
