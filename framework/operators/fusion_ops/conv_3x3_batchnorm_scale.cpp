@@ -92,7 +92,7 @@ Status SassConvBatchnormScaleHelper<Ttype, Ptype>::InitParam() {
 
 	// check if conv has eltwise_relu op attr
 	if(check_attr("merge_type")) {
-		LOG(ERROR) << "detect eltwise relu!!!!!!!! ";
+		/*LOG(ERROR) << "detect eltwise relu!!!!!!!! ";
 		auto type = GET_PARAMETER(std::string, merge_type);
     	auto alpha = GET_PARAMETER(float, merge_relu_0_alpha);
     	auto coeff = GET_PARAMETER(PTuple<float>, merge_coeff);
@@ -108,10 +108,10 @@ Status SassConvBatchnormScaleHelper<Ttype, Ptype>::InitParam() {
     	saber::EltwiseParam<Ttype>  eltwise_param(elt_type, coeff.vector());
     	EltwiseActiveParam<Ttype> eltwise_relu_param(eltwise_param, activation_param);
 
-		ConvActiveParam<Ttype> conv_act_param(_conv_param, batchnorm_param, scale_param, eltwise_relu_param);
+		ConvActiveParam<Ttype> conv_act_param(_conv_param, batchnorm_param, scale_param, eltwise_relu_param);*/
 		_param_conv_batchnorm_scale = _conv_param;//conv_act_param;
 	} else { 
-		ConvActiveParam<Ttype> conv_act_param(_conv_param, batchnorm_param, scale_param); 
+		//ConvActiveParam<Ttype> conv_act_param(_conv_param, batchnorm_param, scale_param); 
 		_param_conv_batchnorm_scale = _conv_param;//conv_act_param;
 	}
 

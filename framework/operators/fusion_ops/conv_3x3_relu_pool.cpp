@@ -113,7 +113,7 @@ Status SassConvReluPoolHelper<Ttype, Ptype>::InitParam() {
         LOG(FATAL) << " SassConvReluPool fusion op doesn't support : " << pool_method << " pooling.";
     }
 
-    ConvPoolingParam<Ttype> conv_act_pooling_param(_conv_param, active_param, _pooling_param);
+    ConvPoolingParam<Ttype> conv_act_pooling_param;//(_conv_param, active_param, _pooling_param);
     _param_conv_relu_pooling = conv_act_pooling_param;
     return Status::OK();
 }

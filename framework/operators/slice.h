@@ -88,7 +88,7 @@ public:
     ///< _param_slice stand for slice parameter
     saber::SliceParam<Ttype> _param_slice;
     ///< _funcs_slice stand for slice function 
-    saber::Slice<Ttype, typename PrecisionWrapper<Ptype>::saber_type> _funcs_slice;
+    saber::Slice<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_slice;
 
 private:
    ///< _slice_point stand for op slice

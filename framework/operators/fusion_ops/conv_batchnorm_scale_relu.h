@@ -86,9 +86,9 @@ public:
 
 public:
     ///< _param_conv_batchnorm_scale_relu stand for ConvBatchnormScaleRelu parameter
-    saber::ConvActiveParam<Ttype>  _param_conv_batchnorm_scale_relu;
+    saber::ConvParam<Ttype>  _param_conv_batchnorm_scale_relu;
     ///< _funcs_conv_batchnorm_scale_relu stand for ConvBatchnormScaleRelu function
-    saber::ConvAct<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_conv_batchnorm_scale_relu;
+    saber::Conv<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_conv_batchnorm_scale_relu;
 
 private:
     ///< _dims stand for ConvBatchnormScaleRelu size

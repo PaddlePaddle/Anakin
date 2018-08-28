@@ -20,7 +20,7 @@
 #include "framework/core/data_types.h"
 #include "framework/core/operator/operator.h"
 #include "utils/logger/logger.h"
-#include "saber/funcs/eltwise_act.h"
+#include "saber/funcs/eltwise.h"
 
 namespace anakin {
 
@@ -86,9 +86,9 @@ public:
 
 public:
     ///< _param_eltwise_relu stand for EltwiseRelu parameter
-    saber::EltwiseActiveParam<Ttype>  _param_eltwise_relu;
+    saber::EltwiseParam<Ttype>  _param_eltwise_relu;
      ///< _funcs_eltwise_relu stand for EltwiseRelu function
-    saber::EltwiseActive<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_eltwise_relu;
+    saber::Eltwise<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_eltwise_relu;
 
 private:
     ///< _dims stand for EltwiseRelu size

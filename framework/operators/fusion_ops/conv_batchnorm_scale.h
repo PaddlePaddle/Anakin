@@ -86,9 +86,9 @@ public:
 
 public:
     ///< _param_conv_batchnorm_scale stand for ConvBatchnormScale parameter
-    saber::ConvActiveParam<Ttype>  _param_conv_batchnorm_scale;
+    saber::ConvParam<Ttype>  _param_conv_batchnorm_scale;
     ///< _funcs_conv stand for ConvBatchnormScale function 
-    saber::ConvAct<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_conv_batchnorm_scale;
+    saber::Conv<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_conv_batchnorm_scale;
 };
 
 } /* namespace ops */

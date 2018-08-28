@@ -20,7 +20,7 @@
 #include "framework/core/data_types.h"
 #include "framework/core/operator/operator.h"
 #include "utils/logger/logger.h"
-#include "saber/funcs/conv_act_pooling.h"
+#include "saber/funcs/conv_pooling.h"
 
 namespace anakin {
 

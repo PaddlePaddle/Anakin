@@ -6,13 +6,13 @@ namespace ops {
 
 #ifdef USE_CUDA
 template<>
-void DeconvBatchnormScaleRelu<NV, AK_FLOAT, Precision::FP32>::operator()(
+void DeconvBatchnormScaleRelu<NV, Precision::FP32>::operator()(
     OpContext<NV>& ctx,
-    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
-    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    auto* impl = static_cast<DeconvBatchnormScaleReluHelper<NV, AK_FLOAT, Precision::FP32>*>
+    const std::vector<Tensor4dPtr<NV> >& ins,
+    std::vector<Tensor4dPtr<NV> >& outs) {
+    auto* impl = static_cast<DeconvBatchnormScaleReluHelper<NV, Precision::FP32>*>
                  (this->_helper);
-    auto& param = static_cast<DeconvBatchnormScaleReluHelper<NV, AK_FLOAT, Precision::FP32>*>
+    auto& param = static_cast<DeconvBatchnormScaleReluHelper<NV, Precision::FP32>*>
                   (this->_helper)->_param_deconv_batchnorm_scale_relu;
     impl->_funcs_deconv_batchnorm_scale_relu(ins, outs, param, ctx);
 }
@@ -106,8 +106,8 @@ template<typename Ttype, Precision Ptype>
 Status DeconvBatchnormScaleReluHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
         const std::vector<Tensor4dPtr<Ttype> >& ins,
         std::vector<Tensor4dPtr<Ttype> >& outs) {
-    if (_param_deconv_batchnorm_scale_relu.conv_param.group == ins[0]->channel() && \
-            _param_deconv_batchnorm_scale_relu.conv_param.group == outs[0]->channel()) {
+    if (_param_deconv_batchnorm_scale_relu.group == ins[0]->channel() && \
+            _param_deconv_batchnorm_scale_relu.group == outs[0]->channel()) {
         _funcs_deconv_batchnorm_scale_relu.init(ins, outs, _param_deconv_batchnorm_scale_relu, SPECIFY,
                                               SABER_IMPL, ctx);
     } else {
@@ -128,36 +128,34 @@ Status DeconvBatchnormScaleReluHelper<Ttype, Ptype>::InferShape(const
 }
 
 #ifdef USE_CUDA
-template class DeconvBatchnormScaleReluHelper<NV, AK_FLOAT, Precision::FP32>;
-template class DeconvBatchnormScaleReluHelper<NV, AK_FLOAT, Precision::FP16>;
-template class DeconvBatchnormScaleReluHelper<NV, AK_FLOAT, Precision::INT8>;
+template class DeconvBatchnormScaleReluHelper<NV, Precision::FP32>;
+template class DeconvBatchnormScaleReluHelper<NV, Precision::FP16>;
+template class DeconvBatchnormScaleReluHelper<NV, Precision::INT8>;
 #endif
 
 #ifdef USE_ARM_PLACE
-template class DeconvBatchnormScaleReluHelper<ARM, AK_FLOAT, Precision::FP32>;
-template class DeconvBatchnormScaleReluHelper<ARM, AK_FLOAT, Precision::FP16>;
-template class DeconvBatchnormScaleReluHelper<ARM, AK_FLOAT, Precision::INT8>;
+template class DeconvBatchnormScaleReluHelper<ARM, Precision::FP32>;
+template class DeconvBatchnormScaleReluHelper<ARM, Precision::FP16>;
+template class DeconvBatchnormScaleReluHelper<ARM, Precision::INT8>;
 #endif
 
 // register helper
 #ifdef USE_CUDA
-ANAKIN_REGISTER_OP_HELPER(DeconvBatchnormScaleRelu, DeconvBatchnormScaleReluHelper, NV, AK_FLOAT,
-                          Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(DeconvBatchnormScaleRelu, DeconvBatchnormScaleReluHelper, NV, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE
-ANAKIN_REGISTER_OP_HELPER(DeconvBatchnormScaleRelu, DeconvBatchnormScaleReluHelper, ARM, AK_FLOAT,
-                          Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(DeconvBatchnormScaleRelu, DeconvBatchnormScaleReluHelper, ARM, Precision::FP32);
 #endif
 
 //! register op
 ANAKIN_REGISTER_OP(DeconvBatchnormScaleRelu)
 .Doc("DeconvBatchnormScaleRelu fusion operator")
 #ifdef USE_CUDA
-.__alias__<NV, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale_relu")
+.__alias__<NV, Precision::FP32>("convolution_batchnorm_scale_relu")
 #endif
 #ifdef USE_ARM_PLACE
-.__alias__<ARM, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale_relu")
+.__alias__<ARM, Precision::FP32>("convolution_batchnorm_scale_relu")
 #endif
 .num_in(1)
 .num_out(1)

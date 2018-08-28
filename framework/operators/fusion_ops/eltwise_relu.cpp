@@ -55,8 +55,8 @@ Status EltwiseReluHelper<Ttype, Ptype>::InitParam() {
     //
     //    saber::EltwiseParam<Ttype>    eltwise_param(elt_type, tdcoeff_p);
     saber::EltwiseParam<Ttype>  eltwise_param(elt_type, coeff.vector());
-    EltwiseActiveParam<Ttype> eltwise_relu_param(eltwise_param, activation_param);
-    _param_eltwise_relu = eltwise_relu_param;
+    //EltwiseActiveParam<Ttype> eltwise_relu_param(eltwise_param, activation_param);
+    _param_eltwise_relu =eltwise_param;// eltwise_relu_param;
     return Status::OK();
 }
 
@@ -94,17 +94,17 @@ ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, NV, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE
-ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, ARM, AK_FLOAT, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, ARM, Precision::FP32);
 #endif
 
 //! register op
 ANAKIN_REGISTER_OP(EltwiseRelu)
 .Doc("EltwiseRelu operator")
 #ifdef USE_CUDA
-.__alias__<NV, AK_FLOAT, Precision::FP32>("eltwise")
+.__alias__<NV, Precision::FP32>("eltwise")
 #endif
 #ifdef USE_ARM_PLACE
-.__alias__<ARM, AK_FLOAT, Precision::FP32>("eltwise")
+.__alias__<ARM, Precision::FP32>("eltwise")
 #endif
 .num_in(1)
 .num_out(1)

@@ -20,7 +20,7 @@ void ConvBatchnormScaleRelu<Ttype, Ptype>::operator()(\
 template<typename Ttype, Precision Ptype>
 Status ConvBatchnormScaleReluHelper<Ttype, Ptype>::InitParam() {
     DLOG(WARNING) << "Parsing ConvBatchnormScaleRelu op parameter.";
-    saber::ConvParam<Tensor4d<Ttype>> _conv_param;
+    saber::ConvParam<Ttype> _conv_param;
 
     // get conv param
     auto group = GET_PARAMETER(int, group);
@@ -37,14 +37,14 @@ Status ConvBatchnormScaleReluHelper<Ttype, Ptype>::InitParam() {
 
     if (bias_term) {
         auto bias = GET_PARAMETER(pblock_type, weight_2);
-        saber::ConvParam<Tensor4d<Ttype>> conv_param(group, padding[0], padding[1],
+        saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
                                               strides[0], strides[1],
                                               dilation_rate[0], dilation_rate[1],
                                               &(weights.d_tensor()), &(bias.d_tensor()));
         _conv_param = conv_param;
     } else {
         Tensor4d<Ttype>* bias = new Tensor4d<Ttype>();;
-        saber::ConvParam<Tensor4d<Ttype>> conv_param(group, padding[0], padding[1],
+        saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
                                               strides[0], strides[1],
                                               dilation_rate[0], dilation_rate[1],
                                               &(weights.d_tensor()), bias);
@@ -64,7 +64,7 @@ Status ConvBatchnormScaleReluHelper<Ttype, Ptype>::InitParam() {
     auto batch_norm_weight_3 = GET_PARAMETER(pblock_type,
                                batchnorm_0_weight_3);
     auto batch_norm_weight_3_vector = batch_norm_weight_3.vector();
-    BatchnormParam<Tensor4d<Ttype>> batchnorm_param(batch_norm_weight_1_vector,
+    BatchnormParam<Ttype> batchnorm_param(batch_norm_weight_1_vector,
                                         batch_norm_weight_2_vector,
                                         batch_norm_weight_3_vector[0],
                                         momentum, epsilon);
@@ -78,17 +78,17 @@ Status ConvBatchnormScaleReluHelper<Ttype, Ptype>::InitParam() {
     auto scale_weight_2 = GET_PARAMETER(pblock_type,
                                         scale_0_weight_2);
     auto  scale_weight_2_vector = scale_weight_2.vector();
-    saber::ScaleParam<Tensor4d<Ttype>> scale_param(scale_weight_1_vector,  scale_weight_2_vector,
+    saber::ScaleParam<Ttype> scale_param(scale_weight_1_vector,  scale_weight_2_vector,
                                            scale_bias_term, scale_axis, scale_num_axes);
 
     // get relu param
     auto alpha = GET_PARAMETER(float, relu_0_alpha);
-    ActivationParam<Tensor4d<Ttype>> active_param(Active_relu);//, alpha); // TEMP
+    ActivationParam<Ttype> active_param(Active_relu);//, alpha); // TEMP
 
 
-    ConvActiveParam<Tensor4d<Ttype>> conv_act_param(_conv_param, active_param, batchnorm_param,
-                                         scale_param);
-    _param_conv_batchnorm_scale_relu = conv_act_param;
+    /*ConvActiveParam<Ttype> conv_act_param(_conv_param, active_param, batchnorm_param,
+                                         scale_param);*/
+    _param_conv_batchnorm_scale_relu = _conv_param;
 
     return Status::OK();
 }
@@ -115,8 +115,8 @@ Status ConvBatchnormScaleReluHelper<Ttype, Ptype>::InferShape(const
 template <>
 Status ConvBatchnormScaleReluHelper<NV, Precision::FP32>::Init(OpContext<NV> &ctx, \
     const std::vector<Tensor4dPtr<NV> >& ins, std::vector<Tensor4dPtr<NV> >& outs) {
-    if (_param_conv_batchnorm_scale_relu.conv_param.group == ins[0]->channel() && \
-            _param_conv_batchnorm_scale_relu.conv_param.group == outs[0]->channel()) {
+    if (_param_conv_batchnorm_scale_relu.group == ins[0]->channel() && \
+            _param_conv_batchnorm_scale_relu.group == outs[0]->channel()) {
         _funcs_conv_batchnorm_scale_relu.init(ins, outs, _param_conv_batchnorm_scale_relu, SPECIFY,
                                               SABER_IMPL, ctx);
     } else {

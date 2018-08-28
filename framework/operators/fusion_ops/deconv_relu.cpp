@@ -6,12 +6,12 @@ namespace ops {
 
 #ifdef USE_CUDA
 template<>
-void DeconvRelu<NV, AK_FLOAT, Precision::FP32>::operator()(
+void DeconvRelu<NV, Precision::FP32>::operator()(
     OpContext<NV>& ctx,
-    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
-    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
+    const std::vector<Tensor4dPtr<NV> >& ins,
+    std::vector<Tensor4dPtr<NV> >& outs) {
     auto* impl =
-        static_cast<DeconvReluHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
+        static_cast<DeconvReluHelper<NV, Precision::FP32>*>(this->_helper);
     auto& param = impl->_param_deconv_relu;
     impl->_funcs_deconv_relu(ins, outs, param, ctx);
 }
@@ -78,15 +78,15 @@ Status DeconvReluHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
         const std::vector<Tensor4dPtr<Ttype> >& ins,
         std::vector<Tensor4dPtr<Ttype> >& outs) {
     bool p = true;
-    p = p && (_param_deconv_relu.conv_param.weight()->width() == 4);
-    p = p && (_param_deconv_relu.conv_param.weight()->height() == 4);
-    p = p && (_param_deconv_relu.conv_param.pad_h == 1);
-    p = p && (_param_deconv_relu.conv_param.pad_w == 1);
-    p = p && (_param_deconv_relu.conv_param.stride_h == 2);
-    p = p && (_param_deconv_relu.conv_param.stride_w == 2);
+    p = p && (_param_deconv_relu.weight()->width() == 4);
+    p = p && (_param_deconv_relu.weight()->height() == 4);
+    p = p && (_param_deconv_relu.pad_h == 1);
+    p = p && (_param_deconv_relu.pad_w == 1);
+    p = p && (_param_deconv_relu.stride_h == 2);
+    p = p && (_param_deconv_relu.stride_w == 2);
     p = p && (ins[0]->channel() <= 64);
     p = p && (ins[0]->width() % 32 == 0);
-    p = p || ((ins[0]->channel() == _param_deconv_relu.conv_param.group)
+    p = p || ((ins[0]->channel() == _param_deconv_relu.group)
               && (ins[0]->channel() == outs[0]->channel()));
 
     //    LOG(ERROR)<<"DECONV RELU INIT";
@@ -109,33 +109,33 @@ Status DeconvReluHelper<Ttype, Ptype>::InferShape(const
 }
 
 #ifdef USE_CUDA
-template class DeconvReluHelper<NV, AK_FLOAT, Precision::FP32>;
-template class DeconvReluHelper<NV, AK_FLOAT, Precision::FP16>;
-template class DeconvReluHelper<NV, AK_FLOAT, Precision::INT8>;
+template class DeconvReluHelper<NV, Precision::FP32>;
+template class DeconvReluHelper<NV, Precision::FP16>;
+template class DeconvReluHelper<NV, Precision::INT8>;
 #endif
 
 #ifdef USE_ARM_PLACE
-template class DeconvReluHelper<ARM, AK_FLOAT, Precision::FP32>;
-template class DeconvReluHelper<ARM, AK_FLOAT, Precision::FP16>;
-template class DeconvReluHelper<ARM, AK_FLOAT, Precision::INT8>;
+template class DeconvReluHelper<ARM, Precision::FP32>;
+template class DeconvReluHelper<ARM, Precision::FP16>;
+template class DeconvReluHelper<ARM, Precision::INT8>;
 #endif
 
 // register helper
 #ifdef USE_CUDA
-ANAKIN_REGISTER_OP_HELPER(DeconvRelu, DeconvReluHelper, NV, AK_FLOAT, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(DeconvRelu, DeconvReluHelper, NV, Precision::FP32);
 #endif
 #ifdef USE_ARM_PLACE
-ANAKIN_REGISTER_OP_HELPER(DeconvRelu, DeconvReluHelper, ARM, AK_FLOAT, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(DeconvRelu, DeconvReluHelper, ARM, Precision::FP32);
 #endif
 
 //! register op
 ANAKIN_REGISTER_OP(DeconvRelu)
 .Doc("DeconvRelu operator")
 #ifdef USE_CUDA
-.__alias__<NV, AK_FLOAT, Precision::FP32>("deconv_relu")
+.__alias__<NV, Precision::FP32>("deconv_relu")
 #endif
 #ifdef USE_ARM_PLACE
-.__alias__<ARM, AK_FLOAT, Precision::FP32>("deconv_relu")
+.__alias__<ARM, Precision::FP32>("deconv_relu")
 #endif
 .num_in(1)
 .num_out(1)

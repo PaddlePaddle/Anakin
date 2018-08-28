@@ -29,7 +29,7 @@ SassConvBatchnormScaleReluHelper<Ttype, Ptype>::~SassConvBatchnormScaleReluHelpe
 template<typename Ttype, Precision Ptype>
 Status SassConvBatchnormScaleReluHelper<Ttype, Ptype>::InitParam() {
     DLOG(WARNING) << "Parsing SassConvBatchnormScaleRelu op parameter.";
-    saber::ConvParam<Tensor4d<Ttype>> _conv_param;
+    saber::ConvParam<Ttype> _conv_param;
 
     // get conv param
     auto group = GET_PARAMETER(int, group);
@@ -91,8 +91,8 @@ Status SassConvBatchnormScaleReluHelper<Ttype, Ptype>::InitParam() {
     ActivationParam<Ttype> active_param(Active_relu);//, alpha); // TEMP
 
 
-    ConvActiveParam<Ttype> conv_act_param(_conv_param, active_param, batchnorm_param,
-                                         scale_param);
+    /*ConvActiveParam<Ttype> conv_act_param(_conv_param, active_param, batchnorm_param,
+                                         scale_param);*/
     _param_conv_batchnorm_scale_relu = _conv_param;//conv_act_param;
 
     return Status::OK();

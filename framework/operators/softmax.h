@@ -44,7 +44,7 @@ public:
                              const std::vector<Tensor4dPtr<Ttype> >& ins, 
                              std::vector<Tensor4dPtr<Ttype> >& outs) {
 		LOG(ERROR) << "Not Impl Yet Operator Softmax< Ttype("
-				   << Ttype << "), Precision("<< Ptype <<") >";	
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
     friend class SoftmaxHelper<Ttype, Ptype>;
@@ -90,7 +90,7 @@ public:
     ///< _param_softmax stand for softmax parameter
     saber::SoftmaxParam<Ttype> _param_softmax;
     ///< _funcs_softmax stand for softmax function 
-    saber::Softmax<Ttype, typename PrecisionWrapper<Ptype>::saber_type> _funcs_softmax;
+    saber::Softmax<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_softmax;
 };
 
 } /* namespace ops */
