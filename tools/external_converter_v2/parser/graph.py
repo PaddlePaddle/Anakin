@@ -26,8 +26,9 @@ class Graph(object):
             pass
         elif config.framework == 'LEGO':
             pass
-        elif config.framework == 'TF':
-            pass
+        elif config.framework == 'TENSORFLOW':
+            from kill_tf import TFParser
+            self.parser=TFParser(config.framework_config_dict)
         elif config.framework == 'MXNET':
             pass
         elif config.framework == 'FLUID':

@@ -143,6 +143,7 @@ OpsRegister.Register("MVN").set_attr(normalize_variance=bool(),
 #      enum method {
 #           MAX, 		// [default]
 #			AVG,
+#           AVGEXC, average_exclude_padding_value
 #			STOCHASTIC,
 #      }
 OpsRegister.Register("Pooling").set_attr(pool_size=list(), 
@@ -360,6 +361,10 @@ OpsRegister.Register("Normalize").set_attr(begin_norm_axis=int(),
                                            is_shared_channel=bool(),
                                            eps=float(),
                                            p=int())
+
+OpsRegister.Register("Pad").set_attr(pad_c=list(),
+                                     pad_h=list(),
+                                     pad_w=list())
 
 
 OpsRegister.Register("ShuffleChannel").set_attr(group=int())
