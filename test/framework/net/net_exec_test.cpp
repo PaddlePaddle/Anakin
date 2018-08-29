@@ -201,7 +201,7 @@ TEST(NetTest, net_execute_base_test) {
 
 #if 0
 TEST(NetTest, net_execute_reconstruction_test) {
-    graph = new Graph<NV, AK_FLOAT, Precision::FP32>();
+    graph = new Graph<NV, Precision::FP32>();
     LOG(WARNING) << "load anakin model file from optimized model " << model_saved_path << " ...";
     // load anakin model files.
     auto status = graph->load(model_saved_path);

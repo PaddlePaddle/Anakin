@@ -158,30 +158,30 @@ std::string ParserConvBatchnormScale(graph::AttrInfo& attr,
 
 	if(bias_term) {
 		auto bias = get_attr<PBlock<NV>>("weight_2", attr);
-		update_weights(weights, bias,
-					   weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
-					   bias_term, 
-					   batch_norm_weight_3_vector[0], epsilon, 
-					   batch_norm_weight_1_vector, 
-					   batch_norm_weight_2_vector,
-					   scale_weight_1_vector,
-					   scale_weight_2_vector,
-					   scale_bias_term);
+		update_weights<float, NV>(weights, bias,
+					              weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+					              bias_term, 
+					              batch_norm_weight_3_vector[0], epsilon, 
+					              batch_norm_weight_1_vector, 
+					              batch_norm_weight_2_vector,
+					              scale_weight_1_vector,
+					              scale_weight_2_vector,
+					              scale_bias_term);
 	
 		
 		writter.register_weights(node_name, weights);
 		writter.register_weights(node_name, bias);
 	} else {
 		auto bias = PBlock<NV>();
-		update_weights(weights, bias,
-					   weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
-					   false, 
-					   batch_norm_weight_3_vector[0], epsilon, 
-					   batch_norm_weight_1_vector, 
-					   batch_norm_weight_2_vector,
-					   scale_weight_1_vector,
-					   scale_weight_2_vector,
-					   scale_bias_term);
+		update_weights<float, NV>(weights, bias,
+					              weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+					              false, 
+					              batch_norm_weight_3_vector[0], epsilon, 
+					              batch_norm_weight_1_vector, 
+					              batch_norm_weight_2_vector,
+					              scale_weight_1_vector,
+					              scale_weight_2_vector,
+					              scale_bias_term);
 
 		writter.register_weights(node_name, weights);
 		writter.register_weights(node_name, bias);
@@ -253,30 +253,30 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
 
 	if(bias_term) {
 		auto bias = get_attr<PBlock<NV>>("weight_2", attr);
-		update_weights(weights, bias,
-					   weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
-					   bias_term, 
-					   batch_norm_weight_3_vector[0], epsilon, 
-					   batch_norm_weight_1_vector, 
-					   batch_norm_weight_2_vector,
-					   scale_weight_1_vector,
-					   scale_weight_2_vector,
-					   scale_bias_term);
+		update_weights<float, NV>(weights, bias,
+					              weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+					              bias_term, 
+					              batch_norm_weight_3_vector[0], epsilon, 
+					              batch_norm_weight_1_vector, 
+					              batch_norm_weight_2_vector,
+					              scale_weight_1_vector,
+					              scale_weight_2_vector,
+					              scale_bias_term);
 	
 		
 		writter.register_weights(node_name, weights);
 		writter.register_weights(node_name, bias);
 	} else {
 		auto bias = PBlock<NV>();
-		update_weights(weights, bias,
-					   weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
-					   false, 
-					   batch_norm_weight_3_vector[0], epsilon, 
-					   batch_norm_weight_1_vector, 
-					   batch_norm_weight_2_vector,
-					   scale_weight_1_vector,
-					   scale_weight_2_vector,
-					   scale_bias_term);
+		update_weights<float, NV>(weights, bias,
+					              weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+					              false, 
+					              batch_norm_weight_3_vector[0], epsilon, 
+					              batch_norm_weight_1_vector, 
+					              batch_norm_weight_2_vector,
+					              scale_weight_1_vector,
+					              scale_weight_2_vector,
+					              scale_bias_term);
 
 		writter.register_weights(node_name, weights);
 		writter.register_weights(node_name, bias);

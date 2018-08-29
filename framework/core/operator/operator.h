@@ -162,21 +162,14 @@ public:
      *  \brief Create Operator object by op_name.
      *
      *   note: If Ptype is low precision( < FP32) and the low precise op doesn't exist, 
-     *         this function will return corresponding FP32 op.
+     *         this function will return nullptr.
      *         
      */
     virtual Operator<Ttype, Ptype>* operator[](const std::string op_name) {
         if(has_op(op_name)) { 
             return Factory<Operator<Ttype, Ptype>, OperatorCreator<Ttype, Ptype>>::operator[](op_name);
-        } else {
-            if (std::is_same<Ptype, Precision::INT4>::value ||
-                std::is_same<Ptype, Precision::INT8>::value || 
-                std::is_same<Ptype, Precision::FP16>::value) {
-                return Factory<Operator<Ttype, Precision::FP32>, OperatorCreator<Ttype, Precision::FP32>>::operator[](op_name);
-            }
-        }
-        // else return fp32 operation
-        return Factory<Operator<Ttype, Precision::FP32>, OperatorCreator<Ttype, Precision::FP32>>::operator[](op_name);
+        } 
+        return nullptr;
     }
 
     /** 

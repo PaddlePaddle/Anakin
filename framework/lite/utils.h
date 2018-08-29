@@ -27,7 +27,7 @@ namespace lite {
  * \brief  update conv weights with batchnorm and scale parameters.
  */
 template<typename D, typename T>
-void update_weights(PBlock<D, T> weights, PBlock<D, T> bias,
+void update_weights(PBlock<T> weights, PBlock<T> bias,
 					int n, int c, int h, int w, bool conv_bias_term, 
 					float batchnorm_scale, float batchnorm_eps, 
 					std::vector<float> batchnorm_mean, 
@@ -35,13 +35,13 @@ void update_weights(PBlock<D, T> weights, PBlock<D, T> bias,
 					std::vector<float> scale_w, 
 					std::vector<float> scale_b, 
 					bool scale_bias_term) {
-	D* weights_p = weights.h_tensor().mutable_data();
+	D* weights_p = (D* )(weights.h_tensor().mutable_data());
 	if(!conv_bias_term) {
-		bias.re_alloc({1,batchnorm_mean.size(),1,1});
+		bias.re_alloc(Shape4d({1,batchnorm_mean.size(),1,1}));
 		void* new_bias_data = bias.h_tensor().mutable_data();
 		memset(new_bias_data, 0, sizeof(D) * bias.h_tensor().size());
 	}
-	D* bias_p = bias.h_tensor().mutable_data();
+	D* bias_p = (D* )(bias.h_tensor().mutable_data());
 
 	batchnorm_scale = (batchnorm_scale == 0) ? 1.f : batchnorm_scale;
 	int chw = c*h*w;
