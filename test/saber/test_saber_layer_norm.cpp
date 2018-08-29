@@ -96,6 +96,30 @@ int axis = 1;
     }
 #endif 
 
+#ifdef USE_X86_PLACE
+    TestSaberBase<X86, X86, AK_FLOAT, LayerNorm, LayerNormParam> testbase_x86;
+      for(int w_in : {8, 8, 16}) {
+        for(int h_in : {2, 8, 32}){
+            for(int ch_in : {2, 3, 8, 64}){
+                for(int num_in:{1, 21, 32}){
+                    Shape shape({num_in, ch_in, h_in, w_in});
+                    int inner_size = shape.count(axis);
+                    Shape bias_scale_shape({1, 1, 1, inner_size});
+                    Tensor<X86> bias(bias_scale_shape);
+                    Tensor<X86> scale(bias_scale_shape);
+                    fill_tensor_rand(bias, -1.0f, 1.0f);
+                    fill_tensor_rand(scale, -1.0f, 1.0f);
+                    LayerNormParam<X86> param(axis, eps, &bias, &scale);
+                    testbase_x86.set_param(param);
+                    testbase_x86.set_rand_limit(-5.0, 5.0);
+                    testbase_x86.set_input_shape(shape);
+                    testbase_x86.run_test(layerNorm_cpu_base<float, X86, X86>);
+                }
+            }
+        }
+    }  
+
+#endif
 }
 
 int main(int argc, const char** argv) {
