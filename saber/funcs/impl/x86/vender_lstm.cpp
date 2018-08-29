@@ -464,21 +464,30 @@ SaberStatus VenderLstm<X86, AK_FLOAT>::dispatch(
 }
 
 template <>
-SaberStatus VenderLstm<X86, AK_FLOAT>::init_conf(
-    const std::vector<Tensor<X86>*>& inputs,
-    std::vector<Tensor<X86>*>& outputs,
-    LstmParam<X86>& param) {
-    return SaberSuccess;
-}
+void VenderLstm<X86, AK_INT8>::compute(LstmMetaValue<OpDataType> value,
+                                        int hidden_size, int batch_size,
+                                        const ActiveType& gate_act,
+                                        const ActiveType& cell_act,
+                                        const ActiveType& cand_act){}
+template <>
+void VenderLstm<X86, AK_HALF>::compute(LstmMetaValue<OpDataType> value,
+                                       int hidden_size, int batch_size,
+                                       const ActiveType& gate_act,
+                                       const ActiveType& cell_act,
+                                       const ActiveType& cand_act){}
 
 template <>
-SaberStatus VenderLstm<X86, AK_FLOAT>::check_conf(
-    const std::vector<Tensor<X86>*>& inputs,
-    std::vector<Tensor<X86>*>& outputs,
-    LstmParam<X86>& param) {
-    return SaberSuccess;
-}
-
+void VenderLstm<X86, AK_INT8>::compute_with_avx(LstmMetaValue<OpDataType> value,
+                                                 int hidden_size, int batch_size,
+                                                 const ActiveType& gate_act,
+                                                 const ActiveType& cell_act,
+                                                 const ActiveType& cand_act){}
+template <>
+void VenderLstm<X86, AK_HALF>::compute_with_avx(LstmMetaValue<OpDataType> value,
+                                                 int hidden_size, int batch_size,
+                                                 const ActiveType& gate_act,
+                                                 const ActiveType& cell_act,
+                                                 const ActiveType& cand_act){}
 DEFINE_OP_TEMPLATE(VenderLstm, LstmParam, X86, AK_HALF);
 DEFINE_OP_TEMPLATE(VenderLstm, LstmParam, X86, AK_INT8);
 
