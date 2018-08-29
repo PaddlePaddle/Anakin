@@ -75,6 +75,9 @@
 
 #cmakedefine SUPPORT_PTHREADS
 
+// build AOT lite for device
+#cmakedefine BUILD_WITH_LITE
+
 
 #if defined(ANDROID) || defined(__ANDROID__)
     #define PLATFORM_ANDROID

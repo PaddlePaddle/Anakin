@@ -117,7 +117,7 @@ anakin_option(BUILD_WITH_UNIT_TEST "Build anakin unit test components." YES)
 
 anakin_option(BUILD_WITH_FRAMEWORK "Build anakin framework" YES)
 
-anakin_option(BUILD_RPC "Build anakin rpc service components." NO if BUILD_WITH_FRAMEWORK)
+anakin_option(BUILD_RPC "Build anakin rpc service components." YES if BUILD_WITH_FRAMEWORK)
 anakin_option(BUILD_WITH_LITE "Build anakin lite components." YES if USE_GPU_PLACE AND BUILD_WITH_FRAMEWORK)
 
 # build examples
