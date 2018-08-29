@@ -30,6 +30,7 @@ if(BUILD_WITH_FRAMEWORK)
     anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/operators "cpp" ANAKIN_TEST_CASE_SRC)
     anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/net "cpp" ANAKIN_TEST_CASE_SRC)
     anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/lite "cpp" ANAKIN_TEST_CASE_SRC)
+    anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/service "cpp" ANAKIN_TEST_CASE_SRC)
 endif()
 
 anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/saber "cpp" ANAKIN_TEST_CASE_SRC)
