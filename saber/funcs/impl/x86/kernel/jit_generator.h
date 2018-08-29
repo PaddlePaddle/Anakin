@@ -1,3 +1,7 @@
+
+#ifndef SABER_FUNCS_IMPL_X86_KERNEL_JIT_GENERATOR_H
+#define SABER_FUNCS_IMPL_X86_KERNEL_JIT_GENERATOR_H
+
 #pragma once
 
 #include <type_traits>
@@ -663,3 +667,5 @@ public:
 }
 }
 }
+
+#endif
