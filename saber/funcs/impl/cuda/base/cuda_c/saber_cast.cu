@@ -57,6 +57,6 @@ SaberStatus SaberCast<NV, OpDtype>::dispatch(const std::vector<Tensor<NV> *>& in
 template class SaberCast<NV, AK_FLOAT>;
 template class SaberCast<NV, AK_INT32>;
 DEFINE_OP_TEMPLATE(SaberCast, CastParam, NV, AK_INT8);
-DEFINE_OP_TEMPLATE(SaberCast, CastParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberCast, CastParam, NV, AK_HALF);
 }
 }
