@@ -63,7 +63,9 @@ SaberStatus SaberMvn<X86, OpDtype>::dispatch(
                 dst_ptr[j] = src_ptr[j] - mean;
             }
         }
-    }  
+    }
+    
+    return SaberSuccess;
 }
 
 template class SaberMvn<X86, AK_FLOAT>;

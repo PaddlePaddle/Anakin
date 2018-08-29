@@ -13,8 +13,9 @@
    limitations under the License.
 */
 
-#ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_MVN_H
-#define ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_MVN_H
+
+#ifndef ANAKIN_SABER_FUNCS_IMPL_X86_SABER_MVN_H
+#define ANAKIN_SABER_FUNCS_IMPL_X86_SABER_MVN_H
 
 #include "saber/funcs/impl/impl_mvn.h"
 
@@ -58,4 +59,4 @@ public:
 
 } //namespace anakin
 
-#endif //ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_MVN_H
+#endif //ANAKIN_SABER_FUNCS_IMPL_X86_SABER_MVN_H
