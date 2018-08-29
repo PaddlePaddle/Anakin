@@ -88,7 +88,7 @@ public:
         LstmParam<X86>& param);
 
 private:
-    inline void safe_free(MatrixInfo<OpDataType>** ptr) {
+    inline void safe_free(MatrixInfo<float>** ptr) {
         if (*ptr) {
             delete (*ptr);
             (*ptr) = nullptr;
@@ -102,7 +102,7 @@ private:
         }
     }
 
-    inline void safe_free(mkl_packed_weight<OpDataType, NCHW>** ptr) {
+    inline void safe_free(mkl_packed_weight<float, NCHW>** ptr) {
         if (*ptr) {
             delete (*ptr);
             (*ptr) = nullptr;
@@ -134,8 +134,8 @@ private:
     bool avx2_available_;
     int max_thread_num_;
 
-    mkl_packed_weight<OpDataType, NCHW>* packed_w_x_;
-    mkl_packed_weight<OpDataType, NCHW>* packed_w_h_;
+    mkl_packed_weight<float, NCHW>* packed_w_x_;
+    mkl_packed_weight<float, NCHW>* packed_w_h_;
     Tensor<X86>* batch_h0_;
     Tensor<X86>* batch_c0_;
     Tensor<X86>* check_ig_;
