@@ -47,9 +47,9 @@ Status GruHelper<Ttype, Ptype>::InitParam() {
                               || formula == "gru_cudnn")) << "formula illegal";
 
     std::unordered_map<std::string, ActiveType> act_map = {
-            {"sigmoid_fluid", Active_sigmoid_fluid},
+            {"sigmoid_fluid", Active_sigmoid},
             {"relu_fluid", Active_relu},
-            {"tanh_fluid", Active_tanh_fluid},
+            {"tanh_fluid", Active_tanh},
             {"identity_fluid", Active_identity}
     };
     std::unordered_map<std::string, GruFormula > formula_map = {
@@ -69,8 +69,8 @@ Status GruHelper<Ttype, Ptype>::InitParam() {
 }
 
 template<typename Ttype, Precision Ptype>
-Status GruHelper<Ttype, Ptype>::Init(OpContext<Ttype> &ctx, 
-                                                const std::vector<Tensor4dPtr<Ttype> >& ins, 
+Status GruHelper<Ttype, Ptype>::Init(OpContext<Ttype> &ctx,
+                                                const std::vector<Tensor4dPtr<Ttype> >& ins,
                                                 std::vector<Tensor4dPtr<Ttype> >& outs) {
     SABER_CHECK(_funcs_gru.init(ins, outs, _param_gru, SPECIFY, SABER_IMPL, ctx));
 //    SABER_CHECK(_funcs_gru.init(ins, outs, _param_gru, SPECIFY, VENDER_IMPL, ctx));

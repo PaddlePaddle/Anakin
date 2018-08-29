@@ -12,6 +12,8 @@
 #ifndef ANAKIN_SABER_SSE_MATH_H
 #define ANAKIN_SABER_SSE_MATH_H
 #if defined(__SSE4_2__) and defined(__FMA__)
+namespace anakin {
+namespace saber {
 
 #include <immintrin.h>
 
@@ -66,6 +68,9 @@ static inline __m128 exp128_ps_fma(__m128 x) {
     __m128 pow2n = _mm_castsi128_ps(imm0);
     y = _mm_mul_ps(y, pow2n);
     return y;
+}
+
+}
 }
 #endif
 

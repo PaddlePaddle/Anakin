@@ -7,7 +7,7 @@ namespace ops {
 #ifdef USE_CUDA
 template<>
 void Lstm<NV, Precision::FP32>::operator() (OpContext<NV> &ctx,
-                          const std::vector<Tensor4dPtr<NV> >& ins, 
+                          const std::vector<Tensor4dPtr<NV> >& ins,
                           std::vector<Tensor4dPtr<NV> >& outs) {
     auto* impl = static_cast<LstmHelper<NV, Precision::FP32>*>(this->_helper);
     auto& param = static_cast<LstmHelper<NV, Precision::FP32>*>(this->_helper)->_param_lstm;
@@ -54,13 +54,12 @@ Status LstmHelper<Ttype, Ptype>::InitParam() {
 
     LOG(INFO)<<"lstm act = ["<<input_activation<<","<<gate_activation<<","<<cell_activation<<","<<candidate_activation<<"]";
     LOG(INFO)<<"lstm other param = ["<<use_peepholes<<","<<is_reverse<<","<<dropout_param<<","<<num_direction<<","<<num_layers<<"]";
-//    exit(0);
 
     std::unordered_map<std::string, ActiveType> enum_map = {
             {"null",Active_unknow},
-            {"sigmoid_fluid", Active_sigmoid_fluid},
+            {"sigmoid_fluid", Active_sigmoid},
             {"relu_fluid", Active_relu},
-            {"tanh_fluid", Active_tanh_fluid},
+            {"tanh_fluid", Active_tanh},
             {"identity_fluid", Active_identity},
             {"sigmoid", Active_sigmoid},
             {"tanh", Active_tanh},
@@ -77,7 +76,7 @@ Status LstmHelper<Ttype, Ptype>::InitParam() {
 
 template<typename Ttype, Precision Ptype>
 Status LstmHelper<Ttype, Ptype>::Init(OpContext<Ttype> &ctx,
-                                                const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                                                const std::vector<Tensor4dPtr<Ttype> >& ins,
                                                 std::vector<Tensor4dPtr<Ttype> >& outs) {
     DLOG(INFO)<<"inti lstm in op.cpp";
     SABER_CHECK(_funcs_lstm.init(ins, outs, _param_lstm, SPECIFY, SABER_IMPL, ctx));
