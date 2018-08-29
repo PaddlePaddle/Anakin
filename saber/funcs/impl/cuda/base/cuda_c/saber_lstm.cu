@@ -173,35 +173,34 @@ SaberLstm<NV, AK_FLOAT>::dispatch_batch(
 
     std::vector<int> emit_offset_vec;
     int emit_length = 0;
-    try_expand_tensor(_temp_map_dev,seq_sum);
+    utils::try_expand_tensor(_temp_map_dev,seq_sum);
     bool transform = _seq_util.get_sorted_map(offset_vec, emit_offset_vec, emit_length,
                      _ctx->get_compute_stream());
 
     if (inputs.size() > 1) {
         h_init = (const OpDataType *)inputs[1]->data();
-        try_expand_tensor(_init_hidden,batch_size * _hidden_size);
+        utils::try_expand_tensor(_init_hidden,batch_size * _hidden_size);
         h_init = (const OpDataType *)_init_hidden.data();
     } else if (param.init_hidden() != nullptr) {
         h_init = (const OpDataType *)param.init_hidden()->data();
         //FIXME:is it correct?
     } else {
         if (_temp_zero.valid_size() < batch_size * _hidden_size) {
-            try_expand_tensor(_temp_zero,batch_size * _hidden_size);
+            utils::try_expand_tensor(_temp_zero,batch_size * _hidden_size);
             CUDA_CHECK(cudaMemsetAsync(_temp_zero.mutable_data(), 0,
                                        sizeof(OpDataType)*batch_size * _hidden_size,
                                        _ctx->get_compute_stream()));
         }
-
         h_init = (const OpDataType *)_temp_zero.data();
     }
 
-    try_expand_tensor(_temp_wx,seq_sum * 4 * _hidden_size);
-    try_expand_tensor(_temp_wh,batch_size * 4 * _hidden_size);
-    try_expand_tensor(_temp_out,seq_sum * _hidden_size * param.num_direction);
-    try_expand_tensor(_temp_cell,batch_size * _hidden_size);
+    utils::try_expand_tensor(_temp_wx,seq_sum * 4 * _hidden_size);
+    utils::try_expand_tensor(_temp_wh,batch_size * 4 * _hidden_size);
+    utils::try_expand_tensor(_temp_out,seq_sum * _hidden_size * param.num_direction);
+    utils::try_expand_tensor(_temp_cell,batch_size * _hidden_size);
 
     if (transform) {
-        try_expand_tensor(_temp_x,seq_sum * _word_size);
+        utils::try_expand_tensor(_temp_x,seq_sum * _word_size);
         _seq_util.seq_2_sorted_seq(x_data, (OpDataType *)_temp_x.mutable_data(), _word_size, _ctx->get_compute_stream());
 
         inner_h_out = (OpDataType *)_temp_out.mutable_data();
@@ -211,6 +210,7 @@ SaberLstm<NV, AK_FLOAT>::dispatch_batch(
             CHECK(false) << "not support inner_h_init != nullptr";
         }
     }
+
 
     inner_cell = (OpDataType *)_temp_cell.mutable_data();
     CUDA_CHECK(cudaMemsetAsync(inner_cell, 0, sizeof(OpDataType)*batch_size * _hidden_size,
