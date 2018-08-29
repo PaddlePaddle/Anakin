@@ -86,7 +86,7 @@ void fill_tensor_const<NV>(Tensor<NV>& tensor, float value, typename Tensor<NV>:
                     0, stream>>>((unsigned char*)dio, static_cast<unsigned char>(value), size); break;
         case AK_INT8: set_device_data<<<CUDA_GET_BLOCKS(size), CUDA_NUM_THREADS,
                     0, stream>>>((char*)dio, static_cast<char>(value), size); break;
-        case AK_HALF: set_device_data<<<CUDA_GET_BLOCKS(size), CUDA_NUM_THREADS,
+        case AK_INT16: set_device_data<<<CUDA_GET_BLOCKS(size), CUDA_NUM_THREADS,
                     0, stream>>>((short*)dio, static_cast<short>(value), size); break;
         case AK_UINT16: set_device_data<<<CUDA_GET_BLOCKS(size), CUDA_NUM_THREADS,
                     0, stream>>>((unsigned short*)dio, static_cast<unsigned short>(value), size); break;
@@ -112,7 +112,7 @@ void fill_tensor_rand<NV>(Tensor<NV>& tensor, typename Tensor<NV>::API::stream_t
     switch (type) {
         case AK_UINT8: fill_tensor_device_rand_impl((unsigned char*)dio, size, stream); break;
         case AK_INT8: fill_tensor_device_rand_impl((char*)dio, size, stream); break;
-        case AK_HALF: fill_tensor_device_rand_impl((short*)dio, size, stream); break;
+        case AK_INT16: fill_tensor_device_rand_impl((short*)dio, size, stream); break;
         case AK_UINT16: fill_tensor_device_rand_impl((unsigned short*)dio, size, stream); break;
         case AK_UINT32: fill_tensor_device_rand_impl((unsigned int*)dio, size, stream); break;
         case AK_INT32: fill_tensor_device_rand_impl((int*)dio, size, stream); break;
@@ -132,7 +132,7 @@ void fill_tensor_rand<NV>(Tensor<NV>& tensor, float vstart, float vend, typename
         case AK_UINT8: fill_tensor_device_rand_impl2((unsigned char*)dio, static_cast<unsigned char>(vstart),
                                                    static_cast<unsigned char>(vend), size, stream); break;
         case AK_INT8: fill_tensor_device_rand_impl2((char*)dio, static_cast<char>(vstart), static_cast<char>(vend), size, stream); break;
-        case AK_HALF: fill_tensor_device_rand_impl2((short*)dio, static_cast<short>(vstart), static_cast<short>(vend), size, stream); break;
+        case AK_INT16: fill_tensor_device_rand_impl2((short*)dio, static_cast<short>(vstart), static_cast<short>(vend), size, stream); break;
         case AK_UINT16: fill_tensor_device_rand_impl2((unsigned short*)dio, static_cast<unsigned short>(vstart),
                                                     static_cast<unsigned short>(vend), size, stream); break;
         case AK_UINT32: fill_tensor_device_rand_impl2((unsigned int*)dio, static_cast<unsigned int>(vstart),
