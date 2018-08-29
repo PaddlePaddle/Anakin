@@ -24,6 +24,7 @@
 
 #include "saber/core/common.h"
 #include "saber/core/tensor.h"
+#include "saber/funcs/saber_util.h"
 namespace anakin {
 namespace saber {
 
@@ -35,20 +36,6 @@ namespace saber {
 #endif
 
 namespace utils {
-template <typename opTensor>
-inline void try_expand_tensor(opTensor& x, Shape shape) {
-    if (x.valid_size() < shape.count()) {
-        x.re_alloc(shape, x.get_dtype());
-    }
-}
-
-template <typename opTensor>
-inline void try_expand_tensor(opTensor& x, int size) {
-    if (x.valid_size() < size) {
-        Shape shape({1, 1, 1, size}, Layout_NCHW);
-        try_expand_tensor(x, shape);
-    }
-}
 
 
 /* a bunch of std:: analogues to be compliant with any msvs version
