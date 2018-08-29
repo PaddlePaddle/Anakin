@@ -2,8 +2,11 @@
 # Copyright (c) 2017, Cuichaowen. All rights reserved.
 # -*- coding: utf-8 -*-
 
-try:
-    from caffe_pb2 import *
-except ImportError:
-    raise ImportError(' No module named caffe_pb2 . ')
+import os
 
+for module in os.listdir(os.path.dirname(__file__)):
+    if module == '__init__.py' or module[-3:] != '.py':
+        continue
+    __import__(module[:-3], locals(), globals())
+    logger(verbose.WARNING).feed("Import Module: ", module)
+del module
