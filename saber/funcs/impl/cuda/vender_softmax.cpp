@@ -94,7 +94,7 @@ SaberStatus VenderSoftmax<NV, AK_FLOAT>::dispatch(const std::vector<DataTensor_i
 }
 
 
-DEFINE_OP_TEMPLATE(VenderSoftmax, SoftmaxParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(VenderSoftmax, SoftmaxParam, NV, AK_HALF);
 DEFINE_OP_TEMPLATE(VenderSoftmax, SoftmaxParam, NV, AK_INT8);
 
 }

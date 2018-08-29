@@ -159,7 +159,7 @@ void print_tensor<NV>(Tensor<NV>& tensor, typename Tensor<NV>::API::stream_t str
                     0, stream>>>((const char*)data_ptr, size, width); break;
         case AK_UINT16: print_device_data<<<1, 1,
                     0, stream>>>((const unsigned short*)data_ptr, size, width); break;
-        case AK_INT16: print_device_data<<<1, 1,
+        case AK_HALF: print_device_data<<<1, 1,
                     0, stream>>>((const short*)data_ptr, size, width); break;
         case AK_UINT32: print_device_data<<<1, 1,
                     0, stream>>>((const unsigned int*)data_ptr, size, width); break;
@@ -191,7 +191,7 @@ void print_tensor_valid<NV>(Tensor<NV>& tensor, typename Tensor<NV>::API::stream
                         0, stream>>>((const char*)data_ptr, size, width); break;
             case AK_UINT16: print_device_data<<<1, 1,
                         0, stream>>>((const unsigned short*)data_ptr, size, width); break;
-            case AK_INT16: print_device_data<<<1, 1,
+            case AK_HALF: print_device_data<<<1, 1,
                         0, stream>>>((const short*)data_ptr, size, width); break;
             case AK_UINT32: print_device_data<<<1, 1,
                         0, stream>>>((const unsigned int*)data_ptr, size, width); break;
