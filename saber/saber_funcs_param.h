@@ -2005,6 +2005,28 @@ struct TransposeParam {
     }
 };
 
+template <typename TargetType>
+struct TopKPoolingParam {
+    TopKPoolingParam() = default;
+    TopKPoolingParam(int top_k_in, int feat_map_num_in):
+        top_k(top_k_in), feat_map_num(feat_map_num_in) {};
+    TopKPoolingParam(const TopKPoolingParam& right):
+        top_k(right.top_k),
+        feat_map_num(right.feat_map_num) {}
+    TopKPoolingParam& operator=(const TopKPoolingParam& right) {
+        top_k = right.top_k;
+        feat_map_num = right.feat_map_num;
+    }
+    bool operator==(const TopKPoolingParam& right) {
+        bool flag = true;
+        flag = flag && (top_k == right.top_k);
+        flag = flag && (feat_map_num == right.feat_map_num);
+        return flag;
+    }
+    int top_k{1};
+    int feat_map_num{1};
+};
+
 }
 }
 #endif //SABER_FUNCS_PARAM_H
