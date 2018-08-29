@@ -117,7 +117,6 @@ void Net<Ttype, Ptype, RunType>::init(graph::Graph<Ttype, Ptype>& graph, \
         op_func.op->_helper->InferShape(op_func.ins, op_func.outs);
         op_func.op->_helper->Init(*(op_func.ctx_p), op_func.ins, op_func.outs);
     }
-    //LOG(ERROR) << "finish create op";
 
     // init memory of _graph_p
     init_memory();

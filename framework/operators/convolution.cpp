@@ -83,17 +83,19 @@ Status ConvolutionHelper<NV, Precision ::FP32>::Init(OpContext<NV> &ctx, \
     SABER_CHECK(_funcs_conv.init(ins, outs, _param_conv, SPECIFY, VENDER_IMPL, ctx));
     return Status::OK();
 }
+
 template class ConvolutionHelper<NV, Precision::FP32>;
 template class ConvolutionHelper<NV, Precision::FP16>;
 template class ConvolutionHelper<NV, Precision::INT8>;
+
 ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, NV, Precision::FP32);
 #endif
 
-//#ifdef USE_X86_PLACE
-//INSTANCE_CONVOLUTION(X86, Precision::FP32);
-//template class ConvolutionHelper<X86, Precision::FP32>;
-//ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, X86, Precision::FP32);
-//#endif
+#ifdef USE_X86_PLACE
+INSTANCE_CONVOLUTION(X86, Precision::FP32);
+template class ConvolutionHelper<X86, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, X86, Precision::FP32);
+#endif
 
 #ifdef USE_ARM_PLACE
 INSTANCE_CONVOLUTION(ARM, Precision::FP32);
