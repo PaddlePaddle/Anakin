@@ -41,6 +41,7 @@ set(ANAKIN_LITE ${ANAKIN_FRAMEWORK}/lite)
 set(ANAKIN_UTILS ${ANAKIN_ROOT}/utils)
 set(ANAKIN_THIRD_PARTY_PATH ${ANAKIN_ROOT}/third-party)
 set(ANAKIN_MODEL_PARSER ${ANAKIN_FRAMEWORK}/model_parser)
+set(ANAKIN_SERVICE ${ANAKIN_FRAMEWORK}/service)
 set(ANAKIN_SABER ${ANAKIN_ROOT}/saber)
 set(ANAKIN_UNIT_TEST ${ANAKIN_ROOT}/test)
 set(ANAKIN_EXAMPLES ${ANAKIN_ROOT}/examples)
@@ -113,8 +114,11 @@ anakin_option(USE_OPENMP "Use Openmp when in android environment." YES if TARGET
 
 # build components
 anakin_option(BUILD_WITH_UNIT_TEST "Build anakin unit test components." YES)
+
 anakin_option(BUILD_WITH_FRAMEWORK "Build anakin framework" YES)
-anakin_option(BUILD_WITH_LITE "Build anakin lite components." YES if USE_GPU_PLACE)
+
+anakin_option(BUILD_RPC "Build anakin rpc service components." NO if BUILD_WITH_FRAMEWORK)
+anakin_option(BUILD_WITH_LITE "Build anakin lite components." YES if USE_GPU_PLACE AND BUILD_WITH_FRAMEWORK)
 
 # build examples
 anakin_option(BUILD_EXAMPLES "build detection and classification examples" NO)
@@ -192,16 +196,16 @@ add_subdirectory(${ANAKIN_SABER})
 if(BUILD_WITH_FRAMEWORK)
     add_subdirectory(${ANAKIN_MODEL_PARSER})
     add_subdirectory(${ANAKIN_FRAMEWORK})
+    if(BUILD_RPC) 
+        add_subdirectory(${ANAKIN_SERVICE}) 
+    endif()
+    if(BUILD_WITH_LITE) 
+        add_subdirectory(${ANAKIN_LITE})
+    endif()
 endif()
 
 if(BUILD_WITH_UNIT_TEST)
     add_subdirectory(${ANAKIN_UNIT_TEST})
-endif()
-
-if(BUILD_WITH_LITE)
-    if(BUILD_WITH_FRAMEWORK)
-	    add_subdirectory(${ANAKIN_LITE})
-    endif()
 endif()
 
 if (BUILD_EXAMPLES)
