@@ -109,7 +109,7 @@ void test_cudnn_gru() {
     img_dev_hidden.copy_from(img_host_hidden);
 
     readTensorData(img_host_out, "y_out");
-    write_tensorfile(img_host_out, "host_in_y.txt");
+//    write_tensorfile(img_host_out, "host_in_y.txt");
 
     LOG(INFO) << "before real run: ";
     //    compute_transpose_gold(img_host_out.mutable_data(), img_host_in.data(),
@@ -165,14 +165,14 @@ void test_cudnn_gru() {
     double maxdiff = 0;
     tensor_cmp_host(img_host_out.data(), img_host_from_dev.data(), img_host_from_dev.size(), maxratio,
                     maxdiff);
-    write_tensorfile(img_host_out, "host.txt");
+//    write_tensorfile(img_host_out, "host.txt");
 //            LOG(INFO) << "before host ";
-    write_tensorfile(img_host_from_dev, "dev.txt");
+//    write_tensorfile(img_host_from_dev, "dev.txt");
     if (maxdiff > 0.0001) {
         LOG(INFO) << "before print: ";
-        write_tensorfile(img_host_out, "host.txt");
+//        write_tensorfile(img_host_out, "host.txt");
         LOG(INFO) << "before host ";
-        write_tensorfile(img_host_from_dev, "dev.txt");
+//        write_tensorfile(img_host_from_dev, "dev.txt");
         LOG(ERROR) << img_num << "," << in_channels << "," << img_h << "," << img_w;
         return;
     }
