@@ -68,6 +68,7 @@ public:
     virtual bool directed() final { return true; }
 
     /// Parsing from model
+    Status load(std::istream* instream);
     Status load(std::string model_path); 
     Status load(const char*  model_path);
     Status save(std::string model_path);

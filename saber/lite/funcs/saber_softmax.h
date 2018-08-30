@@ -34,11 +34,12 @@ public:
     SaberSoftmax(const ParamBase* param);
 
     virtual SaberStatus load_param(const ParamBase* param) override;
-//    SaberSoftmax(int axis);
-//
-//    SaberStatus load_param(int axis);
 
-    ~SaberSoftmax() {}
+    //virtual SaberStatus load_param(FILE* fp, const float* weights) override;
+
+    virtual SaberStatus load_param(std::istream& stream, const float* weights) override;
+
+    ~SaberSoftmax();
 
 
     virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
@@ -55,9 +56,6 @@ private:
     int _axis_size{0};
     int _inner_num{0};
     int _outer_num{0};
-
-    //int _axis;
-
 };
 
 } //namespace lite

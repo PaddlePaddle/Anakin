@@ -12,6 +12,22 @@ namespace anakin {
 namespace graph {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
+Status Graph<Ttype, Dtype, Ptype>::load(std::istream* instream) EXCLUSIVE_LOCKS_REQUIRED(_mut) {
+    std::unique_lock<std::mutex> lock(this->_mut);
+    Status ret = Status::OK();
+    if(instream != nullptr) {
+        this->Clean();
+        ret = parser::load<Ttype, Dtype>(this, instream);
+        _model_path = "parser from istream";
+    } else {
+        LOG(ERROR) << "input stream is empty";
+        return Status::FAIL();
+    }
+
+    return ret;
+}
+
+template<typename Ttype, DataType Dtype, Precision Ptype>
 Status Graph<Ttype, Dtype, Ptype>::load(std::string model_path) EXCLUSIVE_LOCKS_REQUIRED(_mut) {
     std::unique_lock<std::mutex> lock(this->_mut);
     Status ret = Status::OK();

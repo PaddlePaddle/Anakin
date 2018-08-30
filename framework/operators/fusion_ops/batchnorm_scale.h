@@ -29,7 +29,6 @@ namespace ops {
 template<typename Ttype, DataType Dtype, Precision Ptype>
 class BatchnormScaleHelper;
 
-/// pooling op
 /**
  * \brief BatchnormScaleHelper implementation class
  * public inherit Operator
@@ -65,7 +64,7 @@ public:
     Status InitParam() override;
 
     /**
-    * \brief initial all the resource needed by pooling
+    * \brief initial all the resource needed
     * \param ctx stand for BatchnormScale operation context
     * \param ins stand for input tensor vector
     * \param outs stand for output tensor vector
