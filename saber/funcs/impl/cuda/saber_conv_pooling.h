@@ -57,12 +57,14 @@ public:
                               ConvParam<NV>& param, Context<NV> &ctx,
                               bool in_place = false, Tensor<NV>* weight_dev = nullptr) {
         conv_trans_weights<NV, NVHX86>(inputs, outputs, param, ctx, in_place, weight_dev);
+        _extern_trans = true;
         return SaberSuccess;
     }
 private:
     bool _use_k3p{false};
     bool _use_kp{false};
     bool _in_place{false};
+    bool _extern_trans{false};
     Tensor<NV> _weight_dev;
     VenderPooling<NV, OpDtype> _vender_pool;
     SaberConv2D<NV, OpDtype> _saber_conv;

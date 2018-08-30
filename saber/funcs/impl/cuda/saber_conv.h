@@ -67,6 +67,7 @@ public:
                   ConvParam<NV>& param, Context<NV> &ctx,
                   bool in_place = false, Tensor<NV>* weight_dev = nullptr) {
         conv_trans_weights<NV, NVHX86>(inputs, outputs, param, ctx, in_place, weight_dev);
+        _extern_trans = true;
         return SaberSuccess;
     }
 
@@ -74,6 +75,7 @@ private:
     bool _with_saber_act{false};
     bool _in_place{false};
     bool _use_k1s1p0{false};
+    bool _extern_trans{false};
     Tensor<NV> _weight_dev;
     SaberActivation<NV, OpDtype> *_saber_act{nullptr};
     int _kernel_height;

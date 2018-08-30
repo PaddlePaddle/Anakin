@@ -55,6 +55,7 @@ public:
                               ConvParam<NV>& param, Context<NV> &ctx,
                               bool in_place = false, Tensor<NV>* weight_dev = nullptr) {
         conv_trans_weights<NV, NVHX86>(inputs, outputs, param, ctx, in_place, weight_dev);
+        _extern_trans = true;
         return SaberSuccess;
     }
 
@@ -65,6 +66,7 @@ private:
     int _kernel_width;
     bool _use_k1s1p0{false};
     bool _use_k3{false};
+    bool _extern_trans{false};
     std::function<void(const float*,
                        float*,
                        const float*,
