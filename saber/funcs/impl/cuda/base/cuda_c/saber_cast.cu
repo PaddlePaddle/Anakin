@@ -27,7 +27,7 @@ SaberStatus SaberCast<NV, OpDtype>::dispatch(const std::vector<Tensor<NV> *>& in
     outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
 
     if(_inDtype == _outDtype){
-        outputs[0]->share_from(*inputs[0]);
+        outputs[0]->copy_from(*inputs[0]);
         return SaberSuccess;
     }
 
@@ -56,5 +56,7 @@ SaberStatus SaberCast<NV, OpDtype>::dispatch(const std::vector<Tensor<NV> *>& in
 }
 template class SaberCast<NV, AK_FLOAT>;
 template class SaberCast<NV, AK_INT32>;
+DEFINE_OP_TEMPLATE(SaberCast, CastParam, NV, AK_INT8);
+DEFINE_OP_TEMPLATE(SaberCast, CastParam, NV, AK_INT16);
 }
 }

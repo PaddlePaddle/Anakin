@@ -104,7 +104,9 @@ public:
     virtual SaberStatus dispatch(const std::vector<Tensor<NV>*>& inputs,
                                  std::vector<Tensor<NV>*>& outputs,
                                  ConvParam<NV>& param);
-
+    void set_beta(float beta) {
+        _beta = beta;
+    }
 private:
     cudnnHandle_t _handle;
     cudnnConvolutionFwdAlgo_t _fwd_algo;
@@ -128,7 +130,7 @@ private:
     // create transform descriptor
     cudnnTensorDescriptor_t _input_nchw_descs;
     cudnnTensorDescriptor_t _output_nchw_descs;
-
+    float _beta{0.f};
     bool _with_saber_act{false};
     SaberActivation<NV, OpDtype> *_saber_act{nullptr};
     float* weights_scale;
