@@ -366,7 +366,7 @@ GruParam <OpTensor>& param) {
                     , _ctx->get_compute_stream() >> > (
                     w_x_r, w_h_r
                             , b_r, hidden_size, hidden_out, hidden_in);
-        }else if(param.gate_activity == Active_sigmoid_fluid){
+        }else if(param.gate_activity == Active_sigmoid){
             RESET_KERNEL_NAME(sigmoid_fluid) << < emit_word_length, frame_per_block, 0
                     , _ctx->get_compute_stream() >> > (
                     w_x_r, w_h_r
@@ -377,11 +377,11 @@ GruParam <OpTensor>& param) {
 
         _gemm_wh_o(emit_word_length, hidden_size, hidden_size,1.0, hidden_out,0.0,w_o,_temp_WHR.mutable_data(),_ctx->get_compute_stream());
 
-        if(param.gate_activity == Active_sigmoid_fluid&&param.h_activity == Active_tanh_fluid) {
+        if(param.gate_activity == Active_sigmoid&&param.h_activity == Active_tanh) {
             FINAL_KERNEL_NAME(sigmoid_fluid,tanh_fluid)<< < emit_word_length, frame_per_block, 0
                     , _ctx->get_compute_stream() >> > (
                     w_x_z, w_x_o, w_h_z, b_z, b_o, hidden_size, hidden_out, hidden_in, _temp_WHR.data());
-        }else if(param.gate_activity == Active_sigmoid_fluid&&param.h_activity == Active_relu){
+        }else if(param.gate_activity == Active_sigmoid&&param.h_activity == Active_relu){
             FINAL_KERNEL_NAME(sigmoid_fluid,relu)<< < emit_word_length, frame_per_block, 0
                     , _ctx->get_compute_stream() >> > (
                     w_x_z, w_x_o, w_h_z, b_z, b_o, hidden_size, hidden_out, hidden_in, _temp_WHR.data());
