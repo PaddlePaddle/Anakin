@@ -143,12 +143,8 @@ SaberStatus SaberConv2DPooling<NV, AK_FLOAT>::dispatch(
                       param.conv_param.beta,
                       this->_ctx->get_compute_stream());
     } else {
-        LOG(INFO) << "else!!1";
         _saber_conv.dispatch(inputs, _inner_tensor_v, param.conv_param);
-        cudaDeviceSynchronize();
-        print_tensor_valid(*_inner_tensor_v[0]);
         _vender_pool.dispatch(_inner_tensor_v, outputs, param.pooling_param);
-        cudaDeviceSynchronize();
     }
     return SaberSuccess;
 }
