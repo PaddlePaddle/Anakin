@@ -40,15 +40,14 @@
 ##--------------------------------------------------------------
 #
 OPTIONS:
-    Framework: TENSORFLOW
-    SavePath: /ak_model/save/path
-    ResultName: resnet50_v1
-
+    Framework: CAFFE
+    SavePath: ./output
+    ResultName: googlenet
     Config:
         LaunchBoard: ON
         Server:
             ip: 0.0.0.0
-            port: 8889
+            port: 8888
         OptimizedGraph: 
             enable: OFF
             path: /path/to/anakin_optimized/googlenet.anakin.bin.saved
@@ -77,10 +76,9 @@ TARGET:
         ModelPath:
     
     TENSORFLOW:
-        ProtoPaths: /path/to/your/model/
+        ProtoPath:
         PrototxtPath:
         ModelPath:
-        OutPuts:
     
     ONNX:
         ProtoPath:
