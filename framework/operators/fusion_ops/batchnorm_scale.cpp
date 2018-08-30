@@ -60,8 +60,11 @@ Status BatchnormScaleHelper<Ttype, Ptype>::InitParam() {
         }
     }
     
-    saber::ScaleParam<Ttype> scale_param(new_scale,  new_shift,
-                                           scale_bias_term, scale_axis, scale_num_axes);
+    saber::ScaleParam<Ttype> scale_param(new_scale,  
+                                         new_shift, 
+                                         scale_bias_term, 
+                                         scale_axis, 
+                                         scale_num_axes);
 
 	_param_scale = scale_param;
 

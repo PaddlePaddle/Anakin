@@ -10,13 +10,6 @@ void SassConvReluPool<NV, Precision::FP32>::operator() (
 	OpContext<NV> &ctx, 
 	const std::vector<Tensor4dPtr<NV> >& ins, 
 	std::vector<Tensor4dPtr<NV> >& outs) {
-    /*LOG(ERROR) << " compute of SassConvReluPool ";
-    float * h_data = new float[outs[0]->size()];//valid_size()];
-    LOG(ERROR) << " outs[0]->valid_size() : " << outs[0]->size();
-    cudaMemcpy(h_data, outs[0]->mutable_data(), outs[0]->size()*sizeof(float), cudaMemcpyDeviceToHost);
-    cudaDeviceSynchronize();
-    CUDA_CHECK(cudaPeekAtLastError()); 
-    LOG(ERROR) << "over "; */
     auto* impl = static_cast<SassConvReluPoolHelper<NV, Precision::FP32>*>(this->_helper);
     auto& param = static_cast<SassConvReluPoolHelper<NV, Precision::FP32>*>(this->_helper)->_param_conv_relu_pooling;
     impl->_funcs_conv_relu_pooling(ins, outs, param, ctx);
@@ -29,13 +22,6 @@ void SassConvReluPool<AMD, Precision::FP32>::operator() (
 	OpContext<AMD> &ctx, 
 	const std::vector<Tensor4dPtr<AMD> >& ins, 
 	std::vector<Tensor4dPtr<AMD> >& outs) {
-    /*LOG(ERROR) << " compute of SassConvReluPool ";
-    float * h_data = new float[outs[0]->size()];//valid_size()];
-    LOG(ERROR) << " outs[0]->valid_size() : " << outs[0]->size();
-    cudaMemcpy(h_data, outs[0]->mutable_data(), outs[0]->size()*sizeof(float), cudaMemcpyDeviceToHost);
-    cudaDeviceSynchronize();
-    CUDA_CHECK(cudaPeekAtLastError()); 
-    LOG(ERROR) << "over "; */
     auto* impl = static_cast<SassConvReluPoolHelper<AMD, Precision::FP32>*>(this->_helper);
     auto& param = static_cast<SassConvReluPoolHelper<AMD, Precision::FP32>*>(this->_helper)->_param_conv_relu_pooling;
     impl->_funcs_conv_relu_pooling(ins, outs, param, ctx);
@@ -52,8 +38,9 @@ SassConvReluPoolHelper<Ttype, Ptype>::~SassConvReluPoolHelper() {
 template<typename Ttype, Precision Ptype>
 Status SassConvReluPoolHelper<Ttype, Ptype>::InitParam() {
     DLOG(WARNING) << "Parsing SassConvReluPool op parameter.";
-    saber::ConvParam<Ttype> _conv_param;
-    PoolingParam<Ttype> _pooling_param;
+
+    saber::ConvParam<Ttype> conv_param_temp;
+    PoolingParam<Ttype> pooling_param_temp;
     // get conv param
     auto group = GET_PARAMETER(int, group);
     auto bias_term = GET_PARAMETER(bool, bias_term);
@@ -68,22 +55,6 @@ Status SassConvReluPoolHelper<Ttype, Ptype>::InitParam() {
     auto weights = GET_PARAMETER(pblock_type, weight_1);
     auto weight_vec = weights.vector();
 
-    if (bias_term) {
-        auto bias = GET_PARAMETER(pblock_type, weight_2);
-        saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
-                                                            strides[0], strides[1],
-                                                            dilation_rate[0], dilation_rate[1],
-                                                            &(weights.d_tensor()), &(bias.d_tensor()));
-        _conv_param = conv_param;
-    } else {
-        Tensor4d<Ttype>* bias = new Tensor4d<Ttype>();
-        saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
-                                                            strides[0], strides[1],
-                                                            dilation_rate[0], dilation_rate[1],
-                                                            &(weights.d_tensor()), bias);
-        _conv_param = conv_param;
-    }
-
     // get relu param
     auto alpha = GET_PARAMETER(float, relu_0_alpha);
     ActivationParam<Ttype> active_param(Active_relu);//, alpha); // Temp
@@ -96,25 +67,45 @@ Status SassConvReluPoolHelper<Ttype, Ptype>::InitParam() {
     auto pool_method = GET_PARAMETER(std::string, pooling_0_method);
     auto cmp_out_shape_floor_as_conv = GET_PARAMETER(bool, pooling_0_cmp_out_shape_floor_as_conv);
     if (pool_method == "MAX") {
-        PoolingParam<Ttype> pooling_param(pool_size[0], pool_size[1],
-                                                           pool_padding[0], pool_padding[1],
-                                                           pool_strides[0], pool_strides[1],
-                                                           Pooling_max, global_pooling,
-                                                           cmp_out_shape_floor_as_conv);
-        _pooling_param = pooling_param;
+        PoolingParam<Ttype> pooling_param(pool_size[0], pool_size[1], 
+                                          pool_padding[0], pool_padding[1], 
+                                          pool_strides[0], pool_strides[1], 
+                                          Pooling_max, global_pooling, 
+                                          cmp_out_shape_floor_as_conv);
+        pooling_param_temp = pooling_param;
     } else if (pool_method == "AVG") {
         PoolingParam<Ttype> pooling_param(pool_size[0], pool_size[1],
-                                                           pool_padding[0], pool_padding[1],
-                                                           pool_strides[0], pool_strides[1],
-                                                           Pooling_average_include_padding, global_pooling,
-                                                           cmp_out_shape_floor_as_conv);
-        _pooling_param = pooling_param;
+                                          pool_padding[0], pool_padding[1],
+                                          pool_strides[0], pool_strides[1],
+                                          Pooling_average_include_padding, global_pooling,
+                                          cmp_out_shape_floor_as_conv);
+        pooling_param_temp = pooling_param;
     } else {
         LOG(FATAL) << " SassConvReluPool fusion op doesn't support : " << pool_method << " pooling.";
     }
 
-    ConvPoolingParam<Ttype> conv_act_pooling_param;//(_conv_param, active_param, _pooling_param);
+
+    if (bias_term) {
+        auto bias = GET_PARAMETER(pblock_type, weight_2);
+        saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
+                                                            strides[0], strides[1],
+                                                            dilation_rate[0], dilation_rate[1],
+                                                            &(weights.d_tensor()), &(bias.d_tensor()),
+                                                            active_param);
+        conv_param_temp = conv_param;
+    } else {
+        Tensor4d<Ttype>* bias = new Tensor4d<Ttype>();
+        saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
+                                                            strides[0], strides[1],
+                                                            dilation_rate[0], dilation_rate[1],
+                                                            &(weights.d_tensor()), bias, 
+                                                            active_param);
+        conv_param_temp = conv_param;
+    }
+
+    ConvPoolingParam<Ttype> conv_act_pooling_param(conv_param_temp, pooling_param_temp);
     _param_conv_relu_pooling = conv_act_pooling_param;
+
     return Status::OK();
 }
 

@@ -29,7 +29,6 @@ SassConvBatchnormScaleHelper<Ttype, Ptype>::~SassConvBatchnormScaleHelper() {
 template<typename Ttype, Precision Ptype>
 Status SassConvBatchnormScaleHelper<Ttype, Ptype>::InitParam() {
     LOG(WARNING) << "Parsing SassConvBatchnormScale op parameter.";
-    saber::ConvParam<Ttype> _conv_param;
 
     // get conv param
     auto group = GET_PARAMETER(int, group);
@@ -44,23 +43,7 @@ Status SassConvBatchnormScaleHelper<Ttype, Ptype>::InitParam() {
 	
 	using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
-
-    if (bias_term) {
-        auto bias = GET_PARAMETER(pblock_type, weight_2);
-        saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
-                                              strides[0], strides[1],
-                                              dilation_rate[0], dilation_rate[1],
-                                              &(weights.d_tensor()), &(bias.d_tensor()));
-        _conv_param = conv_param;
-    } else {
-        Tensor4d<Ttype>* bias = new Tensor4d<Ttype>();;
-        saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
-                                              strides[0], strides[1],
-                                              dilation_rate[0], dilation_rate[1],
-                                              &(weights.d_tensor()), bias);
-        _conv_param = conv_param;
-    }
-
+    auto weights_shape = weights.shape();
 
     // get batchnorm param
     auto epsilon = GET_PARAMETER(float, batchnorm_0_epsilon);
@@ -71,10 +54,7 @@ Status SassConvBatchnormScaleHelper<Ttype, Ptype>::InitParam() {
     auto batch_norm_weight_2_vector = batch_norm_weight_2.vector();
     auto batch_norm_weight_3 = GET_PARAMETER(pblock_type, batchnorm_0_weight_3);
     auto batch_norm_weight_3_vector = batch_norm_weight_3.vector();
-    BatchnormParam<Ttype> batchnorm_param(batch_norm_weight_1_vector,
-                                        batch_norm_weight_2_vector,
-                                        batch_norm_weight_3_vector[0],
-                                        momentum, epsilon);
+
     // get scale param
     auto scale_num_axes = GET_PARAMETER(int, scale_0_num_axes);
     auto scale_bias_term = GET_PARAMETER(bool, scale_0_bias_term);
@@ -83,37 +63,42 @@ Status SassConvBatchnormScaleHelper<Ttype, Ptype>::InitParam() {
     auto scale_weight_1_vector = scale_weight_1.vector();
     auto scale_weight_2 = GET_PARAMETER(pblock_type, scale_0_weight_2);
     auto  scale_weight_2_vector = scale_weight_2.vector();
-    saber::ScaleParam<Ttype> scale_param(scale_weight_1_vector,  scale_weight_2_vector,
-                                           scale_bias_term, scale_axis, scale_num_axes);
 
-    // get relu param
-    //auto alpha = GET_PARAMETER(float, relu_0_alpha);
-    //ActivationParam<Ttype> active_param(Active_relu);//, alpha); // TEMP
-
-	// check if conv has eltwise_relu op attr
-	if(check_attr("merge_type")) {
-		/*LOG(ERROR) << "detect eltwise relu!!!!!!!! ";
-		auto type = GET_PARAMETER(std::string, merge_type);
-    	auto alpha = GET_PARAMETER(float, merge_relu_0_alpha);
-    	auto coeff = GET_PARAMETER(PTuple<float>, merge_coeff);
-    	ActivationParam<Ttype> activation_param(Active_relu);
-    	EltwiseType elt_type;
-    	if (type == "Add") {
-        	elt_type = Eltwise_sum;
-    	} else if (type == "Max") {
-        	elt_type = Eltwise_max;
-    	} else {
-        	elt_type = Eltwise_prod;
-    	}
-    	saber::EltwiseParam<Ttype>  eltwise_param(elt_type, coeff.vector());
-    	EltwiseActiveParam<Ttype> eltwise_relu_param(eltwise_param, activation_param);
-
-		ConvActiveParam<Ttype> conv_act_param(_conv_param, batchnorm_param, scale_param, eltwise_relu_param);*/
-		_param_conv_batchnorm_scale = _conv_param;//conv_act_param;
-	} else { 
-		//ConvActiveParam<Ttype> conv_act_param(_conv_param, batchnorm_param, scale_param); 
-		_param_conv_batchnorm_scale = _conv_param;//conv_act_param;
-	}
+    if(bias_term) {
+        auto bias = GET_PARAMETER(pblock_type, weight_2);
+        graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(update_weights<float, Ttype>,
+                                                              weights,bias,
+                                                              weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3], 
+                                                              true,
+                                                              batch_norm_weight_3_vector[0], epsilon, 
+                                                              batch_norm_weight_1_vector, 
+                                                              batch_norm_weight_2_vector, 
+                                                              scale_weight_1_vector,
+                                                              scale_weight_2_vector, 
+                                                              scale_bias_term);
+        saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
+                                           strides[0], strides[1],
+                                           dilation_rate[0], dilation_rate[1],
+                                           &(weights.d_tensor()), &(bias.d_tensor()));
+        _param_conv_batchnorm_scale = conv_param;
+    } else {
+        Tensor4d<Ttype>* bias = new Tensor4d<Ttype>();;
+        graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(update_weights<float, Ttype>,
+                                                              weights,PBlock<Ttype>(),
+                                                              weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3], 
+                                                              false,
+                                                              batch_norm_weight_3_vector[0], epsilon, 
+                                                              batch_norm_weight_1_vector, 
+                                                              batch_norm_weight_2_vector, 
+                                                              scale_weight_1_vector,
+                                                              scale_weight_2_vector, 
+                                                              scale_bias_term);
+        saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
+                                           strides[0], strides[1],
+                                           dilation_rate[0], dilation_rate[1],
+                                           &(weights.d_tensor()), bias);
+        _param_conv_batchnorm_scale = conv_param;
+    }
 
     return Status::OK();
 }

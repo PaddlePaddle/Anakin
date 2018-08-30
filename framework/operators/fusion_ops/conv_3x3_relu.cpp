@@ -40,7 +40,6 @@ SassConvReluHelper<Ttype, Ptype>::~SassConvReluHelper() {
 template<typename Ttype, Precision Ptype>
 Status SassConvReluHelper<Ttype, Ptype>::InitParam() {
     DLOG(WARNING) << "Parsing SassConvRelu op parameter.";
-    saber::ConvParam<Ttype> _conv_param;
 
     // get conv param
     auto group = GET_PARAMETER(int, group);
@@ -55,29 +54,28 @@ Status SassConvReluHelper<Ttype, Ptype>::InitParam() {
 	using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
 
-    if (bias_term) {
-        auto bias = GET_PARAMETER(pblock_type, weight_2);
-        saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
-                                              strides[0], strides[1],
-                                              dilation_rate[0], dilation_rate[1],
-                                              &(weights.d_tensor()), &(bias.d_tensor()));
-        _conv_param = conv_param;
-    } else {
-        Tensor4d<Ttype>* bias = new Tensor4d<Ttype>();;
-        saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
-                                              strides[0], strides[1],
-                                              dilation_rate[0], dilation_rate[1],
-                                              &(weights.d_tensor()), bias);
-        _conv_param = conv_param;
-    }
-
     // get relu param
     auto alpha = GET_PARAMETER(float, relu_0_alpha);
     ActivationParam<Ttype> active_param(Active_relu);//, alpha); // TEMP
 
 
-    //ConvActiveParam<Ttype> conv_act_param(_conv_param, active_param);
-    _param_conv_relu = _conv_param;//conv_act_param;
+    if (bias_term) {
+        auto bias = GET_PARAMETER(pblock_type, weight_2);
+        saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
+                                              strides[0], strides[1],
+                                              dilation_rate[0], dilation_rate[1],
+                                              &(weights.d_tensor()), &(bias.d_tensor()),
+                                              active_param);
+        _param_conv_relu = conv_param;
+    } else {
+        Tensor4d<Ttype>* bias = new Tensor4d<Ttype>();;
+        saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
+                                              strides[0], strides[1],
+                                              dilation_rate[0], dilation_rate[1],
+                                              &(weights.d_tensor()), bias,
+                                              active_param);
+        _param_conv_relu = conv_param;
+    }
 
     return Status::OK();
 }

@@ -25,8 +25,10 @@ ConvBatchnormScaleReluPoolHelper<Ttype, Ptype>::~ConvBatchnormScaleReluPoolHelpe
 template<typename Ttype, Precision Ptype>
 Status ConvBatchnormScaleReluPoolHelper<Ttype, Ptype>::InitParam() {
     DLOG(WARNING) << "Parsing ConvBatchnormScaleReluPool op parameter.";
-    saber::ConvParam<Ttype> _conv_param;
-    PoolingParam<Ttype> _pooling_param;
+
+    ConvParam<Ttype> conv_param_temp; 
+    PoolingParam<Ttype> pooling_param_temp;
+
     // get conv param
     auto group = GET_PARAMETER(int, group);
     auto bias_term = GET_PARAMETER(bool, bias_term);
@@ -37,24 +39,10 @@ Status ConvBatchnormScaleReluPoolHelper<Ttype, Ptype>::InitParam() {
     auto kernel_size = GET_PARAMETER(PTuple<int>, kernel_size);
     auto axis = GET_PARAMETER(int, axis);
 
+	
 	using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
-    if (bias_term) {
-        auto bias = GET_PARAMETER(pblock_type, weight_2);
-        saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
-                                                            strides[0], strides[1],
-                                                            dilation_rate[0], dilation_rate[1],
-                                                            &(weights.d_tensor()), &(bias.d_tensor()));
-        _conv_param = conv_param;
-    } else {
-        Tensor4d<Ttype>* bias = new Tensor4d<Ttype>();
-        saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
-                                                            strides[0], strides[1],
-                                                            dilation_rate[0], dilation_rate[1],
-                                                            &(weights.d_tensor()), bias);
-        _conv_param = conv_param;
-    }
-
+    auto weights_shape = weights.shape();
 
     // get batchnorm param
     auto epsilon = GET_PARAMETER(float, batchnorm_0_epsilon);
@@ -65,10 +53,7 @@ Status ConvBatchnormScaleReluPoolHelper<Ttype, Ptype>::InitParam() {
     auto batch_norm_weight_2_vector = batch_norm_weight_2.vector();
     auto batch_norm_weight_3 = GET_PARAMETER(pblock_type, batchnorm_0_weight_3);
     auto batch_norm_weight_3_vector = batch_norm_weight_3.vector();
-    BatchnormParam<Ttype> batchnorm_param(batch_norm_weight_1_vector, 
-                                                           batch_norm_weight_2_vector, 
-                                                           batch_norm_weight_3_vector[0], 
-                                                           momentum, epsilon);
+
     // get scale param
     auto scale_num_axes = GET_PARAMETER(int, scale_0_num_axes);
     auto scale_bias_term = GET_PARAMETER(bool, scale_0_bias_term);
@@ -77,8 +62,6 @@ Status ConvBatchnormScaleReluPoolHelper<Ttype, Ptype>::InitParam() {
     auto scale_weight_1_vector = scale_weight_1.vector();
     auto scale_weight_2 = GET_PARAMETER(pblock_type, scale_0_weight_2);
     auto  scale_weight_2_vector = scale_weight_2.vector();
-    saber::ScaleParam<Ttype> scale_param(scale_weight_1_vector,  scale_weight_2_vector, 
-                                                          scale_bias_term, scale_axis, scale_num_axes);
 
     // get relu param
     auto alpha = GET_PARAMETER(float, relu_0_alpha);
@@ -92,27 +75,64 @@ Status ConvBatchnormScaleReluPoolHelper<Ttype, Ptype>::InitParam() {
     auto pool_method = GET_PARAMETER(std::string, pooling_0_method);
     auto cmp_out_shape_floor_as_conv = GET_PARAMETER(bool, pooling_0_cmp_out_shape_floor_as_conv);
     if (pool_method == "MAX") {
-        PoolingParam<Ttype> pooling_param(pool_size[0], pool_size[1],
-                                                           pool_padding[0], pool_padding[1],
-                                                           pool_strides[0], pool_strides[1],
-                                                           Pooling_max, global_pooling,
-                                                           cmp_out_shape_floor_as_conv);
-        _pooling_param = pooling_param;
+        PoolingParam<Ttype> pooling_param(pool_size[0], pool_size[1], 
+                                          pool_padding[0], pool_padding[1], 
+                                          pool_strides[0], pool_strides[1], 
+                                          Pooling_max, global_pooling, 
+                                          cmp_out_shape_floor_as_conv);
+        pooling_param_temp = pooling_param;
     } else if (pool_method == "AVG") {
-        PoolingParam<Ttype> pooling_param(pool_size[0], pool_size[1],
-                                                           pool_padding[0], pool_padding[1],
-                                                           pool_strides[0], pool_strides[1],
-                                                           Pooling_average_include_padding,
-                                                           global_pooling,
-                                                           cmp_out_shape_floor_as_conv);
-        _pooling_param = pooling_param;
+        PoolingParam<Ttype> pooling_param(pool_size[0], pool_size[1], 
+                                          pool_padding[0], pool_padding[1], 
+                                          pool_strides[0], pool_strides[1], 
+                                          Pooling_average_include_padding, global_pooling, 
+                                          cmp_out_shape_floor_as_conv);
+        pooling_param_temp = pooling_param;
     } else {
-        LOG(FATAL) << " ConvBatchnormScaleReluPool fusion op doesn't support : " << pool_method << " pooling.";
+        LOG(FATAL) << " SassConvBatchnormScaleReluPool fusion op doesn't support : " << pool_method << " pooling.";
     }
 
-    ConvPoolingParam<Ttype> conv_act_pooling_param;/*(_conv_param, batchnorm_param,
-                                                                          scale_param, active_param,
-                                                                          _pooling_param);*/
+    if(bias_term) {
+        auto bias = GET_PARAMETER(pblock_type, weight_2);
+        graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(update_weights<float, Ttype>,
+                                                       weights,bias,
+                                                       weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3], 
+                                                       true,
+                                                       batch_norm_weight_3_vector[0], epsilon, 
+                                                       batch_norm_weight_1_vector, 
+                                                       batch_norm_weight_2_vector, 
+                                                       scale_weight_1_vector,
+                                                       scale_weight_2_vector, 
+                                                       scale_bias_term);
+        saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
+                                           strides[0], strides[1],
+                                           dilation_rate[0], dilation_rate[1],
+                                           &(weights.d_tensor()), &(bias.d_tensor()),
+                                           active_param);
+        conv_param_temp = conv_param;
+    } else {
+        Tensor4d<Ttype>* bias = new Tensor4d<Ttype>();;
+        graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(update_weights<float, Ttype>,
+                                                       weights, pblock_type(),
+                                                       weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3], 
+                                                       false,
+                                                       batch_norm_weight_3_vector[0], epsilon, 
+                                                       batch_norm_weight_1_vector, 
+                                                       batch_norm_weight_2_vector, 
+                                                       scale_weight_1_vector,
+                                                       scale_weight_2_vector, 
+                                                       scale_bias_term);
+        saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
+                                           strides[0], strides[1],
+                                           dilation_rate[0], dilation_rate[1],
+                                           &(weights.d_tensor()), bias, 
+                                           active_param);
+        conv_param_temp = conv_param;
+    }
+ 
+    
+    ConvPoolingParam<Ttype> conv_act_pooling_param(conv_param_temp, pooling_param_temp); 
+
     _param_conv_batchnorm_scale_relu_pooling = conv_act_pooling_param;
     return Status::OK();
 }

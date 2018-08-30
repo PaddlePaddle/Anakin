@@ -23,8 +23,9 @@ ConvReluPoolHelper<Ttype, Ptype>::~ConvReluPoolHelper() {
 template<typename Ttype, Precision Ptype>
 Status ConvReluPoolHelper<Ttype, Ptype>::InitParam() {
     DLOG(WARNING) << "Parsing ConvReluPool op parameter.";
-    saber::ConvParam<Ttype> _conv_param;
-    PoolingParam<Ttype> _pooling_param;
+    saber::ConvParam<Ttype> conv_param_temp;
+    PoolingParam<Ttype> pooling_param_temp;
+
     // get conv param
     auto group = GET_PARAMETER(int, group);
     auto bias_term = GET_PARAMETER(bool, bias_term);
@@ -38,22 +39,6 @@ Status ConvReluPoolHelper<Ttype, Ptype>::InitParam() {
 	using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
     auto weight_vec = weights.vector();
-
-    if (bias_term) {
-        auto bias = GET_PARAMETER(pblock_type, weight_2);
-        saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
-                                                            strides[0], strides[1],
-                                                            dilation_rate[0], dilation_rate[1],
-                                                            &(weights.d_tensor()), &(bias.d_tensor()));
-        _conv_param = conv_param;
-    } else {
-        Tensor4d<Ttype>* bias = new Tensor4d<Ttype>();
-        saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
-                                                            strides[0], strides[1],
-                                                            dilation_rate[0], dilation_rate[1],
-                                                            &(weights.d_tensor()), bias);
-        _conv_param = conv_param;
-    }
 
     // get relu param
     auto alpha = GET_PARAMETER(float, relu_0_alpha);
@@ -72,20 +57,40 @@ Status ConvReluPoolHelper<Ttype, Ptype>::InitParam() {
                                                            pool_strides[0], pool_strides[1],
                                                            Pooling_max, global_pooling,
                                                            cmp_out_shape_floor_as_conv);
-        _pooling_param = pooling_param;
+        pooling_param_temp = pooling_param;
     } else if (pool_method == "AVG") {
         PoolingParam<Ttype> pooling_param(pool_size[0], pool_size[1],
                                                            pool_padding[0], pool_padding[1],
                                                            pool_strides[0], pool_strides[1],
                                                            Pooling_average_include_padding, global_pooling,
                                                            cmp_out_shape_floor_as_conv);
-        _pooling_param = pooling_param;
+        pooling_param_temp = pooling_param;
     } else {
         LOG(FATAL) << " ConvReluPool fusion op doesn't support : " << pool_method << " pooling.";
     }
 
-    ConvPoolingParam<Ttype> conv_act_pooling_param;//(_conv_param, active_param, _pooling_param);
+    if (bias_term) {
+        auto bias = GET_PARAMETER(pblock_type, weight_2);
+        saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
+                                                            strides[0], strides[1],
+                                                            dilation_rate[0], dilation_rate[1],
+                                                            &(weights.d_tensor()), &(bias.d_tensor()),
+                                                            active_param);
+        conv_param_temp = conv_param;
+    } else {
+        Tensor4d<Ttype>* bias = new Tensor4d<Ttype>();
+        saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
+                                                            strides[0], strides[1],
+                                                            dilation_rate[0], dilation_rate[1],
+                                                            &(weights.d_tensor()), bias,
+                                                            active_param);
+        conv_param_temp = conv_param;
+    }
+
+    
+    ConvPoolingParam<Ttype> conv_act_pooling_param(conv_param_temp, pooling_param_temp);
     _param_conv_relu_pooling = conv_act_pooling_param;
+
     return Status::OK();
 }
 

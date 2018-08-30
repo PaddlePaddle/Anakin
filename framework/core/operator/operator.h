@@ -22,6 +22,8 @@
 #include "framework/core/factory.h"
 #include "framework/core/parameter.h"
 #include "framework/core/singleton.h"
+#include "framework/utils/parameter_fusion.h"
+#include "framework/graph/graph_global_mem.h"
 
 namespace anakin {
 

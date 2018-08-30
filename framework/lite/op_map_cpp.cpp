@@ -1,5 +1,5 @@
 #include "framework/lite/op_map.h"
-#include "framework/lite/utils.h"
+#include "framework/utils/parameter_fusion.h"
 
 namespace anakin {
 

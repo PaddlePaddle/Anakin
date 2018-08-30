@@ -26,7 +26,52 @@ namespace anakin {
 
 using namespace saber;
 
+/**
+* \brief global resource level 
+*/
+enum Level {
+    Level_0 = 0,
+    Level_1,
+    Level_2,
+    Level_3,
+    Level_4,
+    Level_5 
+};
+
 namespace graph {
+
+/**
+* \brief global resource level stage
+*/
+template<Level L>
+struct LevelStage {
+    std::mutex _mut;
+    bool accessible = true;
+};
+
+/**
+* \brief global resource multi level stage and restraint
+*/
+template<Level ...levels>
+struct GlobalResRestrain : public LevelStage<levels>... {
+    GlobalResRestrain() {}
+    GlobalResRestrain<levels...>& operator=(const GlobalResRestrain<levels...>& other){
+        return *this;
+    }
+
+    template<Level L>
+    std::mutex& get_mut() {
+        return LevelStage<L>::_mut;
+    }
+    template<Level L>
+    bool& check_access() {
+        return LevelStage<L>::accessible;
+    }
+    template<Level L>
+    void use() {
+        LevelStage<L>::accessible = false;
+    }
+};
 
 /**
 * \brief GraphGlobalMemBase class
@@ -42,8 +87,53 @@ public:
     PBlock<Ttype>* new_block(saber::Shape& shape) EXCLUSIVE_LOCKS_REQUIRED(_mut) {
         std::unique_lock<std::mutex> lock(this->_mut); 
         PBlock<Ttype>* block_p = new PBlock<Ttype>(shape, Dtype);
+        // register new block_p for resource guard
+        _res_guard[block_p->h_tensor().data()] = LevelList();
         _push_mem_pool(block_p, DataTypeWarpper<Dtype>()); 
         return block_p;
+    }
+
+    /// apply arbitrary function to one memory block
+    /// note: that args may contain target PBlock pointer
+    ///       so we need to set mutex for mem management
+    /*template<Level L, typename functor, typename ...ParamTypes>
+    void apply(functor func, PBlock<Ttype> tensor , ParamTypes ...args) {
+        std::unique_lock<std::mutex> lock(this->_mut);
+        void* key = tensor.h_tensor().data();
+        if(_res_guard[key].check_access<L>()) {
+            std::unique_lock<std::mutex> lock(_res_guard[key].get_mut<L>());
+            _res_guard[key].use<L>();
+            func(tensor, std::forward<ParamTypes>(args)...);
+        }
+    }*/
+
+    /// apply arbitrary function to two memory block
+    /// note: that args may contain target PBlock pointer
+    ///       so we need to set mutex for mem management
+    template<Level L, typename functor, typename ...ParamTypes>
+    void apply(functor func, PBlock<Ttype> tensor_1 , PBlock<Ttype> tensor_2, ParamTypes ...args) {
+        std::unique_lock<std::mutex> lock(this->_mut);
+        void* key_1 = tensor_1.h_tensor().data();
+        void* key_2 = tensor_1.h_tensor().data();
+        if(_res_guard[key_1].check_access<L>()) {
+            std::unique_lock<std::mutex> lock(_res_guard[key_1].get_mut<L>());
+            _res_guard[key_1].use<L>();
+            _res_guard[key_2].use<L>();
+            func(tensor_1, tensor_2, std::forward<ParamTypes>(args)...);
+        }
+    }
+    /// apply arbitrary function to one memory block
+    /// note: that args may contain target PBlock pointer
+    ///       so we need to set mutex for mem management
+    template<Level L, typename functor, typename ...ParamTypes>
+    void apply(functor func, PBlock<Ttype> tensor , ParamTypes ...args) {
+        std::unique_lock<std::mutex> lock(this->_mut);
+        void* key = tensor.h_tensor().data();
+        if(_res_guard[key].check_access<L>()) {
+            std::unique_lock<std::mutex> lock(_res_guard[key].get_mut<L>());
+            _res_guard[key].use<L>();
+            func(tensor, std::forward<ParamTypes>(args)...);
+        }
     }
 
     /// get sum size in m-btyes
@@ -111,6 +201,8 @@ private:
     }
 
 private:
+    typedef GlobalResRestrain<Level_0, Level_1, Level_2, Level_3> LevelList;
+    std::unordered_map<void*, LevelList> _res_guard;
     ///< _int8_mem_pool stand for int8 type memory
     std::vector<PBlock<Ttype>* > _int8_mem_pool GUARDED_BY(_mut);
     ///< _fp16_mem_pool stand for fp16 type memory

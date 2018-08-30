@@ -160,6 +160,9 @@ struct target_host<saber::NV> {
     typedef saber::NVHX86 type;
 };
 
+template<ServiceRunPattern P>
+struct ServiceRunPatternToType{};
+
 template<typename Ttype>
 struct target_name {
     static constexpr const char* value = "INVALID";

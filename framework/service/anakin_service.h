@@ -26,7 +26,7 @@ namespace anakin {
 
 namespace rpc {
 
-template<typename Ttype, DataType Dtype, Precision Ptype, ServiceRunPattern RunP = ServiceRunPattern::SYNC>
+template<typename Ttype, Precision Ptype, ServiceRunPattern RunP = ServiceRunPattern::SYNC>
 class AnakinService : public RPCService {
 public: 
     void evaluate(::google::protobuf::RpcController* controller_base, 
@@ -63,10 +63,10 @@ public:
 
 private:
     void extract_request(const RPCRequest* request, 
-                         std::vector<Tensor4d<typename target_host<Ttype>::type, Dtype> >& inputs);
+                         std::vector<Tensor4d<typename target_host<Ttype>::type> >& inputs);
     void fill_response_data(int request_id, std::string model_name, 
                             RPCResponse* response, 
-                            std::vector<Tensor4d<typename target_host<Ttype>::type, Dtype> >& outputs);
+                            std::vector<Tensor4d<typename target_host<Ttype>::type> >& outputs);
     void fill_response_exec_info(RPCResponse* response);
 
 private:
@@ -86,7 +86,7 @@ private:
         std::string model_name = request->model();
         int request_id = request->request_id();
         LOG(INFO) <<" |-- Get model: "<<model_name << " id: " << request_id; 
-        std::vector<Tensor4d<typename target_host<Ttype>::type, Dtype> > inputs;
+        std::vector<Tensor4d<typename target_host<Ttype>::type> > inputs;
         extract_request(request, inputs);
         auto ret = _worker_map[model_name]->sync_prediction(inputs);
         auto results = ret.get();
@@ -108,7 +108,7 @@ private:
 
 
 private:
-    std::unordered_map<std::string, std::shared_ptr<Worker<Ttype, Dtype, Ptype, OpRunType::ASYNC> > > _worker_map;
+    std::unordered_map<std::string, std::shared_ptr<Worker<Ttype, Ptype, OpRunType::ASYNC> > > _worker_map;
     Monitor<Ttype> _monitor;
     int _dev_id;
 };

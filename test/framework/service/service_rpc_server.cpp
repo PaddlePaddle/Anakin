@@ -22,7 +22,7 @@ int service_start(int port, int dev_id) {
     brpc::Server server;
 
     // instance anakin rpc service
-    AnakinService<NV, AK_FLOAT, Precision::FP32, ServiceRunPattern::SYNC> rpc_service;
+    AnakinService<NV, Precision::FP32, ServiceRunPattern::SYNC> rpc_service;
     // device id must be set
     rpc_service.set_device_id(dev_id); 
 
