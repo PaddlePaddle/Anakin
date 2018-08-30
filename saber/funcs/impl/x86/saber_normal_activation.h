@@ -156,6 +156,16 @@ inline typename ACTIVATION<Dtype>::Act Activate_inner(ActiveType type) {
     return vec[type];
 }
 
+template<typename Dtype>
+static inline Dtype Activate_inner(Dtype value,ActiveType type) {
+    static typename ACTIVATION<Dtype>::Act vec[7] = {&InValidAct<Dtype>, &Sigmoid < Dtype >, &Relu < Dtype >,
+                                                     &Tanh < Dtype >,
+                                                     &InValidAct<Dtype>, &InValidAct<Dtype>,
+                                                     &Identity < Dtype >
+    };
+    return vec[type](value);
+}
+
 }
 }
 #endif //ANAKIN_SABER_NORMAL_ACTIVATION_H
