@@ -87,15 +87,14 @@ public:
         }
     }
 
-    SaberStatus trans_weights(const Input_v &input,
-                              Output_v &output, Param_t &param, Context<TargetType> &ctx,
-                              ImplEnum implenum) {
+    SaberStatus trans_weights(Tensor<NV> &target_weights, int stride_h, int stride_w, int group,
+            ImplEnum implenum) {
         if (implenum == VENDER_IMPL) {
             return static_cast<VenderConv2D<TargetType, OpDtype> *>(this->_best_impl)->trans_weights(
-                    input, output, param, ctx);
+                    target_weights, stride_h, stride_w, group);
         } else if (implenum == SABER_IMPL) {
             return static_cast<SaberConv2D<TargetType, OpDtype> *>(this->_best_impl)->trans_weights(
-                    input, output, param, ctx);
+                    target_weights, stride_h, stride_w, group);
         } else {
             return SaberUnImplError;
         }

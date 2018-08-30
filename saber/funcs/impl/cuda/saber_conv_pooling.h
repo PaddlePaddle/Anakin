@@ -52,11 +52,9 @@ public:
                                  std::vector<Tensor<NV> *> &outputs,
                                  ConvPoolingParam<NV> &param);
 
-    SaberStatus trans_weights(const std::vector<Tensor<NV> *>& inputs,
-                              std::vector<Tensor<NV> *>& outputs,
-                              ConvParam<NV>& param, Context<NV> &ctx,
-                              bool in_place = false, Tensor<NV>* weight_dev = nullptr) {
-        conv_trans_weights<NV, NVHX86>(inputs, outputs, param, ctx, in_place, weight_dev);
+    SaberStatus trans_weights(Tensor<NV> &target_weights,
+                              int stride_h, int stride_w, int group) {
+        conv_trans_weights<NV, NVHX86>(target_weights, stride_h, stride_w, group, true, nullptr);
         _extern_trans = true;
         return SaberSuccess;
     }
