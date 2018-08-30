@@ -72,7 +72,9 @@ init(const std::vector<Tensor<NV> *>& inputs,
 //    _use_kp = _use_kp && (param.pooling_param.pooling_type == Pooling_max);
 //    _use_kp = _use_kp && (param.conv_param.bias()->valid_size() > 0);
     if (_use_k3p || _use_kp) {
-        trans_weights(inputs, outputs, param.conv_param, ctx, _in_place, &_weight_dev);
+        conv_trans_weights<NV, NVHX86>(*(param.conv_param.mutable_weight()),
+                param.conv_param.stride_h, param.conv_param.stride_w, param.conv_param.group,
+                _in_place, &_weight_dev);
     }
     if (_use_k3p) {
         dispatch_func = winograd_conv_relu_pooling<float, float>;
@@ -112,7 +114,6 @@ SaberStatus SaberConv2DPooling<NV, AK_FLOAT>::dispatch(
         weight_data = (const float*)param.conv_param.weight()->data();
     }
     if (_use_k3p || _use_kp) {
-        LOG(INFO) << "use sass!!!";
         dispatch_func((const float*)inputs[0]->data(), (float*)outputs[0]->mutable_data(),
                       weight_data,
                       bias_data,
