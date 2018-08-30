@@ -25,10 +25,8 @@ template <typename TargetType, DataType OpDtype = AK_FLOAT>
 class SaberConv2DPooling : public ImplBase<
         TargetType, OpDtype,
         ConvPoolingParam <TargetType> > {
-    SaberStatus trans_weights(const std::vector<Tensor<TargetType> *>& inputs,
-                              std::vector<Tensor<TargetType> *>& outputs,
-                              ConvPoolingParam<TargetType>& param, Context<TargetType> &ctx,
-                              bool in_place = true, Tensor<TargetType>* weight_dev = nullptr) {
+    SaberStatus trans_weights(Tensor<NV> &target_weights,
+                              int stride_h, int stride_w, int group) {
         return SaberUnImplError;
     }
 };
@@ -38,10 +36,8 @@ template <typename TargetType,
 class VenderConv2DPooling : public ImplBase<
         TargetType, OpDtype,
         ConvPoolingParam <TargetType> > {
-    SaberStatus trans_weights(const std::vector<Tensor<TargetType> *>& inputs,
-                              std::vector<Tensor<TargetType> *>& outputs,
-                              ConvPoolingParam<TargetType>& param, Context<TargetType> &ctx,
-                              bool in_place = true, Tensor<TargetType>* weight_dev = nullptr) {
+    SaberStatus trans_weights(Tensor<NV> &target_weights,
+                              int stride_h, int stride_w, int group) {
         return SaberUnImplError;
     }
 };

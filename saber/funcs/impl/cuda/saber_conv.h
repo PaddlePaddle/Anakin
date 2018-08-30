@@ -46,27 +46,20 @@ public:
 
     virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
                              std::vector<Tensor<NV> *>& outputs,
-                             ConvParam<NV>& param, Context<NV> &ctx) {
-        return SaberSuccess;
-    }
+                             ConvParam<NV>& param, Context<NV> &ctx);
 
     virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
                                std::vector<Tensor<NV> *>& outputs,
-                               ConvParam<NV>& param, Context<NV>& ctx) {
-        return SaberSuccess;
-    }
+                               ConvParam<NV>& param, Context<NV>& ctx);
 
     virtual SaberStatus dispatch(const std::vector<Tensor<NV>*>& inputs,
                                  std::vector<Tensor<NV>*>& outputs,
-                                 ConvParam<NV>& param) {
-        return SaberSuccess;
-    }
+                                 ConvParam<NV>& param);
 
-    SaberStatus trans_weights(const std::vector<Tensor<NV> *>& inputs,
-                  std::vector<Tensor<NV> *>& outputs,
-                  ConvParam<NV>& param, Context<NV> &ctx,
-                  bool in_place = false, Tensor<NV>* weight_dev = nullptr) {
-        conv_trans_weights<NV, NVHX86>(inputs, outputs, param, ctx, in_place, weight_dev);
+    SaberStatus trans_weights(Tensor<NV> &target_weights,
+            int stride_h, int stride_w, int group) {
+        conv_trans_weights<NV, NVHX86>(target_weights, stride_h, stride_w, group, true, nullptr);
+        _extern_trans = true;
         return SaberSuccess;
     }
 
@@ -74,6 +67,7 @@ private:
     bool _with_saber_act{false};
     bool _in_place{false};
     bool _use_k1s1p0{false};
+    bool _extern_trans{false};
     Tensor<NV> _weight_dev;
     SaberActivation<NV, OpDtype> *_saber_act{nullptr};
     int _kernel_height;
