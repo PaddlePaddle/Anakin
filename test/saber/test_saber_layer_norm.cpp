@@ -118,7 +118,6 @@ int axis = 1;
             }
         }
     }  
-
 #endif
 }
 
