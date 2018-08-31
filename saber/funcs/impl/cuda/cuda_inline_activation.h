@@ -32,8 +32,8 @@ Sigmoid(const Dtype a) {
 template<typename Dtype>
 static inline __device__ Dtype
 Tanh(const Dtype a) {
-    Dtype tmp = -2.0 * a;
-    return (2.0 / (1.0 + expf(tmp))) - 1.0;
+    Dtype tmp = static_cast<Dtype>(-2.0) * a;
+    return (static_cast<Dtype>(2.0) / (static_cast<Dtype>(1.0) + expf(tmp))) - static_cast<Dtype>(1.0);
 }
 
 template<typename Dtype>
