@@ -2,7 +2,6 @@
 #include "saber/funcs/impl/x86/saber_mvn.h"
 #include "saber/funcs/impl/x86/x86_utils.h"
 
-
 namespace anakin{
 namespace saber {
 /**
