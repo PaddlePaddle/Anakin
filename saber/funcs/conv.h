@@ -87,7 +87,7 @@ public:
         }
     }
 
-    SaberStatus trans_weights(Tensor<NV> &target_weights, int stride_h, int stride_w, int group,
+    SaberStatus trans_weights(Tensor<TargetType> &target_weights, int stride_h, int stride_w, int group,
             ImplEnum implenum) {
         if (implenum == VENDER_IMPL) {
             return static_cast<VenderConv2D<TargetType, OpDtype> *>(this->_best_impl)->trans_weights(
