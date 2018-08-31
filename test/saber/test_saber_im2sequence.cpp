@@ -8,7 +8,6 @@
 
 using namespace anakin::saber;
 
-
 /**
  * @brief Extract image patches from input tensor to a tensor with the shape 
  *                  [batch_size * output_h * ouput_w, window_h * window_w * channels]
