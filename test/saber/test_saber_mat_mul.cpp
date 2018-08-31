@@ -100,12 +100,13 @@ void mat_mul_cpu_base(const std::vector<Tensor<TargetType_H>* > &input, std::vec
 
 TEST(TestSaberFunc, test_op_mat_mul) {
 
-#ifdef USE_CUDA
-    //2 inputs
     int input_num = 2;
-    TestSaberBase<NV, NVHX86, AK_FLOAT, MatMul, MatMulParam> testbase(input_num);
     bool trans_A = true;
     bool trans_B = false; 
+
+#ifdef USE_CUDA
+    //2 inputs
+    TestSaberBase<NV, NVHX86, AK_FLOAT, MatMul, MatMulParam> testbase(input_num);
 
     for(int w_in : {2, 8, 16}) {
         for(int h_in : {2, 8, 32}){
@@ -128,7 +129,29 @@ TEST(TestSaberFunc, test_op_mat_mul) {
 
 #endif
 
+#ifdef USE_X86_PLACE
+    TestSaberBase<X86, X86, AK_FLOAT, MatMul, MatMulParam> testbase_x86(input_num);
 
+    for(int w_in : {2, 8, 16}) {
+        for(int h_in : {2, 8, 32}){
+            for(int ch_in : {2, 3, 8, 64}){
+                for(int num_in:{1, 21, 32}){
+                    Shape shape0({num_in, ch_in, w_in, h_in});
+                    Shape shape1({num_in, ch_in, w_in, h_in});
+                    std::vector<Shape> shapes;
+                    shapes.push_back(shape0);
+                    shapes.push_back(shape1);
+                    MatMulParam<X86> param(trans_A, trans_B);
+                    testbase_x86.set_param(param);
+                    testbase_x86.set_rand_limit(1, 12);
+                    testbase_x86.set_input_shape(shapes);
+                    testbase_x86.run_test(mat_mul_cpu_base<float, X86, X86>);
+                }
+            }
+        }
+    }
+
+#endif
 }
 
 
