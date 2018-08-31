@@ -91,7 +91,7 @@ anakin_option(BUILD_CUBIN "BUILD with the -cubin option in Device mode" NO if US
 anakin_option(COMPILE_PTX "Returns a list of PTX files generated from src." NO if USE_CUDA)
 
 # common build options
-anakin_option(ENABLE_DEBUG "Enable DEBUG(default) mode." NO)
+anakin_option(ENABLE_DEBUG "Enable DEBUG(default) mode." YES)
 anakin_option(ENABLE_VERBOSE_MSG "Enable verbose=1 : compile msg during make." NO)
 anakin_option(DISABLE_ALL_WARNINGS "Disable all the warning msg during compile." YES)
 anakin_option(ENABLE_NOISY_WARNINGS "Enable noisy warning msg during compile." NO if DISABLE_ALL_WARNINGS)
@@ -117,7 +117,7 @@ anakin_option(BUILD_WITH_UNIT_TEST "Build anakin unit test components." YES)
 
 anakin_option(BUILD_WITH_FRAMEWORK "Build anakin framework" YES)
 
-anakin_option(BUILD_RPC "Build anakin rpc service components." YES if BUILD_WITH_FRAMEWORK)
+anakin_option(BUILD_RPC "Build anakin rpc service components." NO if BUILD_WITH_FRAMEWORK)
 anakin_option(BUILD_WITH_LITE "Build anakin lite components." YES if USE_GPU_PLACE AND BUILD_WITH_FRAMEWORK)
 
 # build examples
@@ -195,13 +195,13 @@ add_subdirectory(${ANAKIN_SABER})
 
 if(BUILD_WITH_FRAMEWORK)
     add_subdirectory(${ANAKIN_MODEL_PARSER})
-    add_subdirectory(${ANAKIN_FRAMEWORK})
     if(BUILD_RPC) 
         add_subdirectory(${ANAKIN_SERVICE}) 
     endif()
     if(BUILD_WITH_LITE) 
         add_subdirectory(${ANAKIN_LITE})
     endif()
+    add_subdirectory(${ANAKIN_FRAMEWORK})
 endif()
 
 if(BUILD_WITH_UNIT_TEST)

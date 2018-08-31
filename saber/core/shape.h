@@ -27,7 +27,9 @@ class Shape : public std::vector<int> {
 public:
     using vector = std::vector<int>;
 
-    Shape() : vector(), _layout(nullptr) {}
+    Shape() : vector(), _layout(nullptr) {
+        create_layout(Layout_NCHW);
+    }
 
     Shape(vector data, LayoutType layout_type = Layout_NCHW) {
         create_layout(layout_type);

@@ -54,9 +54,9 @@ struct LevelStage {
 */
 template<Level ...levels>
 struct GlobalResRestrain : public LevelStage<levels>... {
-    GlobalResRestrain() {}
-    GlobalResRestrain<levels...>& operator=(const GlobalResRestrain<levels...>& other){
-        return *this;
+    GlobalResRestrain() {} 
+    GlobalResRestrain<levels...>& operator=(const GlobalResRestrain<levels...>& other){ 
+        return *this; 
     }
 
     template<Level L>
@@ -93,20 +93,6 @@ public:
         return block_p;
     }
 
-    /// apply arbitrary function to one memory block
-    /// note: that args may contain target PBlock pointer
-    ///       so we need to set mutex for mem management
-    /*template<Level L, typename functor, typename ...ParamTypes>
-    void apply(functor func, PBlock<Ttype> tensor , ParamTypes ...args) {
-        std::unique_lock<std::mutex> lock(this->_mut);
-        void* key = tensor.h_tensor().data();
-        if(_res_guard[key].check_access<L>()) {
-            std::unique_lock<std::mutex> lock(_res_guard[key].get_mut<L>());
-            _res_guard[key].use<L>();
-            func(tensor, std::forward<ParamTypes>(args)...);
-        }
-    }*/
-
     /// apply arbitrary function to two memory block
     /// note: that args may contain target PBlock pointer
     ///       so we need to set mutex for mem management
@@ -133,6 +119,27 @@ public:
             std::unique_lock<std::mutex> lock(_res_guard[key].get_mut<L>());
             _res_guard[key].use<L>();
             func(tensor, std::forward<ParamTypes>(args)...);
+        }
+    }
+
+    /// apply arbitrary function to one memory tensor
+    /// note: that args may contain target PBlock pointer
+    ///       so we need to set mutex for mem management
+    template<Level L, typename functor, typename ...ParamTypes>
+    void apply(functor func, Tensor4d<Ttype>& tensor , ParamTypes ...args) {
+        std::unique_lock<std::mutex> lock(this->_mut);
+        void* key = tensor.data();
+        if(_res_guard[key].check_access<L>()) {
+            std::unique_lock<std::mutex> lock(_res_guard[key].get_mut<L>());
+            _res_guard[key].use<L>();
+            func(tensor, std::forward<ParamTypes>(args)...);
+            void* new_key = tensor.data(); // check if tensor data has changed 
+            if(key != new_key) {
+                _res_guard[new_key] = _res_guard[key];
+                if(_res_guard.erase(key) != 1) { // delete old key-vale
+                    LOG(FATAL) << "target key(" << key << ") doesn't exist.";
+                }
+            }
         }
     }
 

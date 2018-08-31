@@ -21,7 +21,7 @@ double tensor_average(Tensor4dPtr<Ttype>& out_tensor_p) {
     Shape shin = out_tensor_p->valid_shape();
     PBlock<Ttype> tensorptr(shin);
     tensorptr.h_tensor().copy_from(*out_tensor_p);
-    hptr = tensorptr.h_tensor().data();
+    hptr = (const float* )(tensorptr.h_tensor().data());
     for (int i=0; i<out_tensor_p->valid_size(); i++) {
         sum += hptr[i];
     }
@@ -337,6 +337,7 @@ void Net<Ttype, Ptype, RunType>::prediction() {
                 executer.ins[i]->sync();
             }
         }
+
 #ifdef ENABLE_DEBUG
         LOG(ERROR) << " executer : " << executer.name << " (" << executer.op_name << ") ";
         for(auto in : executer.ins) { 
@@ -349,6 +350,7 @@ void Net<Ttype, Ptype, RunType>::prediction() {
                        << " offset_size "<<in->get_seq_offset().size();
         }
 #endif
+
 #ifdef ENABLE_OP_TIMER
         Context<Ttype> ctx(0, 0, 0);
         saber::SaberTimer<Ttype> my_time;
@@ -362,6 +364,15 @@ void Net<Ttype, Ptype, RunType>::prediction() {
         for(int i = 0; i < executer.outs.size(); i++) { 
             executer.outs[i]->record_event(executer.ctx_p->get_compute_stream()); 
         }
+#ifdef ENABLE_DEBUG
+        for(auto out : executer.outs) {
+            LOG(WARNING) << "    \\out shape(" << out->valid_shape()[0] << ","
+                                               << out->valid_shape()[1] << ","
+                                               << out->valid_shape()[2] << ","
+                                               << out->valid_shape()[3] << ") "
+                                               << " avg: " << tensor_average(out);
+        }
+#endif
 
 #ifdef ENABLE_OP_TIMER 
         for (int i = 0; i < executer.outs.size(); i++) { 
@@ -372,93 +383,8 @@ void Net<Ttype, Ptype, RunType>::prediction() {
         my_time.end(ctx);
         _op_time[op_id++] += my_time.get_average_ms();
 #endif
-#ifdef ENABLE_DEBUG
-    #ifdef USE_CUDA
-        CUDA_CHECK(cudaDeviceSynchronize());
-        CUDA_CHECK(cudaPeekAtLastError());
-    #endif
 
-        for (auto out : executer.outs) {
-            std::vector<int> offset=out->get_seq_offset();
-            LOG(INFO)<<"print offset of "<<executer.name <<",size = "<<offset.size();
-            for(int i=0;i<offset.size();++i){
-                LOG(INFO)<<offset[i]<<",";
-            }
-            LOG(INFO)<<"  end print offset of "<<executer.name;
-
-    #define RECORD_INNER
-    #if defined(RECORD_INNER) && defined(USE_X86_PLACE)
-            record_tensor_to_file(*out,("record_"+executer.name).c_str());
-    #endif
-            LOG(INFO) <<executer.name <<" d_tensor_out_p :" <<out->data();
-            LOG(ERROR) << "    |---out avg " << tensor_average(out);
-        }
-
-#ifdef USE_ARM_PLACE
-        int idx = 0;
-        for (auto out : executer.outs) {
-            int size = out->valid_size();
-            const float* ptr_data = out->data();
-            int num = out->num();
-            int c = out->channel();
-            int w = out->width();
-            int h = out->height();
-            double sum = 0;
-            for (int j = 0; j < num * c; ++j) {
-                double sum_c = 0;
-                for (int k = 0; k < w * h; ++k) {
-                    sum_c += *ptr_data;
-                    sum += *ptr_data;
-                    ptr_data++;
-                }
-            }
-
-            LOG(INFO) << executer.name << ", tensor idx: " << idx << ", mean value :" << sum / size << ", num: " << out->num() << \
-                 ", channel: " << out->channel() << ", height: " << out->height() << ", width: " << out->width();
-            idx++;
-        }
-
-
-        i++;
-        if (0/*executer.name == "prob"*/) {
-            for (auto out : executer.outs) {
-                printf("output size: dims=%d, ", out->dims());
-                for (int i = 0; i < out->dims(); i++){
-                    printf("%d ", out->valid_shape()[i]);
-                }
-                printf("\n");
-
-                printf("extract data: size: %d, num: %d, channel: %d, height=%d, width=%d\n", \
-                     out->valid_size(), out->num(), out->channel(), out->height(), out->width());
-
-                int ch_get = 0;
-                int size_channel = out->width() * out->height();
-                int start = ch_get * size_channel;
-                int end = start + 1000;//size_channel;
-                end = (end > out->valid_size())? (out->valid_size() - start) : end;
-                const float* ptr_in = out->data(start);
-#if 1
-                //FILE* fp = fopen("conv0_relu_anakin.txt", "w+");
-
-                for (int i = 0; i < end - start; i++)
-                {
-                    //fprintf(fp, "%f ", ptr_in[i]);
-                    printf("%0.4f  ", ptr_in[i]);
-                    if ((i + 1) % 10 == 0) {
-                        //fprintf(fp, "\n");
-                        printf("\n");
-                    }
-                }
-                printf("\n");
-                //fflush(fp);
-                //fclose(fp);
-#endif
-            }
-            LOG(FATAL) << "exit";
-        }
-#endif
-#endif //debug
-    }
+    } // for
 }
 
 template<typename Ttype, Precision Ptype, OpRunType RunType>

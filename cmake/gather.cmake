@@ -62,6 +62,10 @@ if(USE_PROTOBUF)
     anakin_protos_processing()
 endif()
 
+if(BUILD_RPC)
+    anakin_find_baidu_rpc()
+endif()
+
 if (USE_GFLAGS)
     anakin_find_gflags()
 endif()

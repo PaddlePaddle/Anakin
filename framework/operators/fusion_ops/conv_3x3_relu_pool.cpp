@@ -113,6 +113,16 @@ template<typename Ttype, Precision Ptype>
 Status SassConvReluPoolHelper<Ttype, Ptype>::Init(OpContext<Ttype> &ctx, 
                                                                    const std::vector<Tensor4dPtr<Ttype> >& ins,
                                                                    std::vector<Tensor4dPtr<Ttype> >& outs) {
+    auto group = GET_PARAMETER(int, group);
+    auto strides = GET_PARAMETER(PTuple<int>, strides);
+    auto weights = GET_PARAMETER(PBlock<Ttype>, weight_1);
+    graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
+                                std::bind(&ConvPooling<Ttype, PrecisionWrapper<Ptype>::saber_type>::trans_weights, 
+                                &_funcs_conv_relu_pooling, 
+                                weights.d_tensor(), 
+                                strides[0], strides[1], 
+                                group, 
+                                SABER_IMPL));
     _funcs_conv_relu_pooling.init(ins, outs, _param_conv_relu_pooling, STATIC, SABER_IMPL/*VENDER_IMPL*/, ctx);
     return Status::OK();
 }

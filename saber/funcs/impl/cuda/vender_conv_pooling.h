@@ -56,10 +56,9 @@ public:
     virtual SaberStatus dispatch(const std::vector<Tensor<NV>*>& inputs,
             std::vector<Tensor<NV>*>& outputs,
             ConvPoolingParam<NV>& param);
-    SaberStatus trans_weights(const std::vector<Tensor<NV> *>& inputs,
-                              std::vector<Tensor<NV> *>& outputs,
-                              ConvParam<NV>& param, Context<NV> &ctx,
-                              bool in_place = false, Tensor<NV>* weight_dev = nullptr) {
+    
+    SaberStatus trans_weights(Tensor<NV> &target_weights,
+            int stride_h, int stride_w, int group) {
         return SaberUnImplError;
     }
 private:

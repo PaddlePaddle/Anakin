@@ -15,7 +15,7 @@ void AnakinService<Ttype, Ptype, RunP>::initial(std::string model_name,
                                                        std::string model_path, 
                                                        int thread_num) { 
     _worker_map[model_name] = std::make_shared<Worker<Ttype, Ptype, OpRunType::ASYNC> >(model_path, 
-                                                                                               thread_num); 
+                                                                                        thread_num); 
 }
 
 template<typename Ttype, Precision Ptype, ServiceRunPattern RunP>
@@ -121,39 +121,39 @@ inline void AnakinService<Ttype, Ptype, RunP>::fill_response_exec_info(RPCRespon
 }
 
 #ifdef USE_CUDA
-template class AnakinService<NV, AK_FLOAT, Precision::FP32, ServiceRunPattern::ASYNC>;
-template class AnakinService<NV, AK_FLOAT, Precision::FP16, ServiceRunPattern::ASYNC>;
-template class AnakinService<NV, AK_FLOAT, Precision::INT8, ServiceRunPattern::ASYNC>;
+template class AnakinService<NV, Precision::FP32, ServiceRunPattern::ASYNC>;
+template class AnakinService<NV, Precision::FP16, ServiceRunPattern::ASYNC>;
+template class AnakinService<NV, Precision::INT8, ServiceRunPattern::ASYNC>;
 
-template class AnakinService<NV, AK_FLOAT, Precision::FP32, ServiceRunPattern::SYNC>;
-template class AnakinService<NV, AK_FLOAT, Precision::FP16, ServiceRunPattern::SYNC>;
-template class AnakinService<NV, AK_FLOAT, Precision::INT8, ServiceRunPattern::SYNC>;
+template class AnakinService<NV, Precision::FP32, ServiceRunPattern::SYNC>;
+template class AnakinService<NV, Precision::FP16, ServiceRunPattern::SYNC>;
+template class AnakinService<NV, Precision::INT8, ServiceRunPattern::SYNC>;
 #endif
 
 #ifdef USE_X86_PLACE
-template class AnakinService<X86, AK_FLOAT, Precision::FP32, ServiceRunPattern::ASYNC>;
-template class AnakinServNet<X86, AK_FLOAT, Precision::FP16, ServiceRunPattern::ASYNC>;
-template class AnakinServNet<X86, AK_FLOAT, Precision::INT8, ServiceRunPattern::ASYNC>;
+template class AnakinService<X86, Precision::FP32, ServiceRunPattern::ASYNC>;
+template class AnakinService<X86, Precision::FP16, ServiceRunPattern::ASYNC>;
+template class AnakinService<X86, Precision::INT8, ServiceRunPattern::ASYNC>;
 
-template class AnakinServNet<X86, AK_FLOAT, Precision::FP32, ServiceRunPattern::SYNC>;
-template class AnakinServNet<X86, AK_FLOAT, Precision::FP16, ServiceRunPattern::SYNC>;
-template class AnakinServNet<X86, AK_FLOAT, Precision::INT8, ServiceRunPattern::SYNC>;
+template class AnakinService<X86, Precision::FP32, ServiceRunPattern::SYNC>;
+template class AnakinService<X86, Precision::FP16, ServiceRunPattern::SYNC>;
+template class AnakinService<X86, Precision::INT8, ServiceRunPattern::SYNC>;
 #endif
 
 #ifdef USE_ARM_PLACE
 #ifdef ANAKIN_TYPE_FP32
-template class AnakinService<ARM, AK_FLOAT, Precision::FP32, ServiceRunPattern::ASYNC>;
-template class AnakinService<ARM, AK_FLOAT, Precision::FP32, ServiceRunPattern::SYNC>;
+template class AnakinService<ARM, Precision::FP32, ServiceRunPattern::ASYNC>;
+template class AnakinService<ARM, Precision::FP32, ServiceRunPattern::SYNC>;
 #endif
 
 #ifdef ANAKIN_TYPE_FP16
-template class AnakinService<ARM, AK_FLOAT, Precision::FP16, ServiceRunPattern::ASYNC>;
-template class AnakinService<ARM, AK_FLOAT, Precision::FP16, ServiceRunPattern::SYNC>;
+template class AnakinService<ARM, Precision::FP16, ServiceRunPattern::ASYNC>;
+template class AnakinService<ARM, Precision::FP16, ServiceRunPattern::SYNC>;
 #endif
 
 #ifdef ANAKIN_TYPE_INT8
-template class AnakinService<ARM, AK_FLOAT, Precision::INT8, ServiceRunPattern::ASYNC>;
-template class AnakinService<ARM, AK_FLOAT, Precision::INT8, ServiceRunPattern::SYNC>;
+template class AnakinService<ARM, Precision::INT8, ServiceRunPattern::ASYNC>;
+template class AnakinService<ARM, Precision::INT8, ServiceRunPattern::SYNC>;
 #endif //int8
 
 #endif //arm
