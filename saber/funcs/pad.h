@@ -16,12 +16,14 @@
 #ifndef ANAKIN_SABER_FUNCS_PAD_H
 #define ANAKIN_SABER_FUNCS_PAD_H
 
+#include "saber/funcs/impl/impl_pad.h"
+
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
-#include "saber/funcs/impl/impl_pad.h"
 #ifdef NVIDIA_GPU
-//#include "saber/funcs/impl/cuda/saber_pad.h"
+#include "saber/funcs/impl/cuda/saber_pad.h"
 #endif
+
 
 namespace anakin {
 namespace saber {
@@ -44,12 +46,9 @@ public:
 
     Pad() = default;
 
-    typedef Tensor<TargetType> InDataTensor;
-    typedef Tensor<TargetType> OutDataTensor;
-    typedef Tensor<TargetType> OpTensor;
     typedef PadParam<TargetType> Param_t;
-    typedef std::vector<InDataTensor *> Input_v;
-    typedef std::vector<OutDataTensor *> Output_v;
+    typedef std::vector<Tensor<TargetType> *> Input_v;
+    typedef std::vector<Tensor<TargetType> *> Output_v;
     typedef std::vector<Shape> Shape_v;
 
     virtual SaberStatus compute_output_shape(const Input_v& input, Output_v& output, \
@@ -73,13 +72,11 @@ public:
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
             case VENDER_IMPL:
-                this->_impl.push_back(new VenderPad <TargetType,
-                        OpDtype>);
+                this->_impl.push_back(new VenderPad<TargetType,OpDtype>);
                 return SaberSuccess;
 
             case SABER_IMPL:
-                this->_impl.push_back(new SaberPad <TargetType,
-                        OpDtype>);
+                this->_impl.push_back(new SaberPad<TargetType,OpDtype>);
                 return SaberSuccess;
 
             default:
@@ -93,8 +90,6 @@ private:
         if (true) // some condition?
             this->_best_impl = this->_impl[0];
     }
-
-    //virtual void pick_best_runtime(Input_v input, Output_v output, Param_t& param) override {}
 
     virtual void pick_best_specify(ImplEnum implenum) override {
         this->_best_impl = this->_impl[0];
