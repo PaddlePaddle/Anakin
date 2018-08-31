@@ -65,7 +65,7 @@ class shellcolors:
             return self.BOLD + self.func(args[0], args[1]) + self.ENDC
         elif args[1] == verbose.WARNING:
             return self.WARNING + self.func(args[0], args[1]) + self.ENDC
-        elif args[1] == verbose.ERROR:
+        elif args[1] == verbose.INFO:
             return self.ERROR + self.func(args[0], args[1]) + self.ENDC
         elif args[1] == verbose.FATAL:
             return self.ERROR + self.BOLD + self.UNDERLINE + self.func(args[0], args[1]) + self.ENDC
