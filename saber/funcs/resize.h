@@ -15,6 +15,7 @@
 
 #ifndef ANAKIN_SABER_FUNCS_RESIZE_H
 #define ANAKIN_SABER_FUNCS_RESIZE_H
+#include "saber/funcs/impl/impl_resize.h"
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
@@ -115,13 +116,6 @@ private:
         //! resize only has saber implementation
         this->_best_impl = this->_impl[0];
     }
-
-    virtual void pick_best_runtime(Input_v input, Output_v output, \
-        Param_t& param, Context<TargetType> &ctx) override {
-        //! resize only has saber implementation
-        this->_best_impl = this->_impl[0];
-    }
-
     virtual void pick_best_specify(ImplEnum implenum) override {
         //! resize only has saber implementation
         this->_best_impl = this->_impl[0];

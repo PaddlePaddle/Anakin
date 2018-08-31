@@ -16,6 +16,7 @@
 #ifndef ANAKIN_SABER_CORE_TYPES_H
 #define ANAKIN_SABER_CORE_TYPES_H
 
+#include "anakin_config.h"
 namespace anakin{
 
 namespace saber{
@@ -34,13 +35,15 @@ enum TargetTypeEnum {
     eNVHX86 = 5,
     eNVHARM = 6,
     eARMGPU = 7,
-    eARMDSP
+    eARMDSP =8,
+    eBM = 9
 };
 
 template <TargetTypeEnum T>
 struct TargetType {};
 // NV device without pinned memory
 typedef TargetType<eNV> NV;
+typedef TargetType<eBM> BM;
 typedef TargetType<eARM> ARM;
 typedef TargetType<eARMGPU> ARMGPU;
 typedef TargetType<eAMD> AMD;
@@ -204,15 +207,6 @@ enum SequencePoolType{
     Sequence_pool_max
 };
 
-template <typename opTensor>
-struct TransposeParam {
-    TransposeParam() = default;
-    TransposeParam(const TransposeParam& right){}
-    TransposeParam& operator=(const TransposeParam& right){}
-    bool operator==(const TransposeParam& right){
-        return true;
-    }
-};
 /**
  * GRU_Formula,origin for paddle,Cudnn for cudnn,difference is w_h_r and weighted mean
  * weight for origin is [W_h_o][W_h_r,W_h_z]
@@ -231,8 +225,6 @@ typedef enum{
     Active_clipped_relu = 4,
     Active_elu = 5,
     Active_identity = 6,
-    Active_sigmoid_fluid = 7,
-    Active_tanh_fluid = 8,
     Active_stanh = 9,
     Active_prelu = 10
 

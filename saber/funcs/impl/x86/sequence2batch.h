@@ -4,7 +4,8 @@
 #include <algorithm>
 #include <vector>
 #include "saber/core/tensor.h"
-#include "omp.h"
+
+#include "x86_utils.h"
 
 namespace anakin {
 namespace saber {

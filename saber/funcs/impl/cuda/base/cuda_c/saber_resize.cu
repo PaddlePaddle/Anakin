@@ -162,6 +162,7 @@ SaberStatus SaberResize<NV, OpDtype>::dispatch(\
 }
 template class SaberResize<NV, AK_FLOAT>;
 template class SaberResize<NV, AK_INT8>;
+DEFINE_OP_TEMPLATE(SaberResize, ResizeParam, NV, AK_INT16);
 } //namespace anakin
 
 } //namespace 
