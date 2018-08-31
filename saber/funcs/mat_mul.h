@@ -24,7 +24,7 @@
 #endif
 
 #ifdef USE_X86_PLACE
-#include "saber/funcs/impl/impl_mat_mul.h"
+#include "saber/funcs/impl/x86/vender_mat_mul.h"
 #endif
 
 namespace anakin{
