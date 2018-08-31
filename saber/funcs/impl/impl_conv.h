@@ -25,7 +25,7 @@ template <typename TargetType, DataType OpDtype = AK_FLOAT>
 class SaberConv2D : public ImplBase<
     TargetType, OpDtype,
     ConvParam <TargetType> > {
-    SaberStatus trans_weights(Tensor<NV> &target_weights,
+    SaberStatus trans_weights(Tensor<TargetType> &target_weights,
                               int stride_h, int stride_w, int group) {
         return SaberUnImplError;
     }
@@ -36,7 +36,7 @@ template <typename TargetType,
 class VenderConv2D : public ImplBase<
     TargetType, OpDtype,
     ConvParam <TargetType> > {
-    SaberStatus trans_weights(Tensor<NV> &target_weights,
+    SaberStatus trans_weights(Tensor<TargetType> &target_weights,
                               int stride_h, int stride_w, int group) {
         return SaberUnImplError;
     }
