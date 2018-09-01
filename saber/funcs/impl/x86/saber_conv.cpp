@@ -19,7 +19,12 @@ SaberStatus SaberConv2D<X86, AK_FLOAT>::init(const std::vector<Tensor<X86> *>& i
          ConvParam<X86>& param, Context<X86>& ctx) {
 
     this->_ctx = &ctx;
-    this->impl = new SaberIm2colConv<AK_FLOAT>;
+
+    if (false) {
+
+    } else {
+        this->impl = new SaberIm2colConv<AK_FLOAT>;
+    }
     this->impl->init(inputs, outputs, param, ctx);
     return create(inputs, outputs, param, ctx);
 

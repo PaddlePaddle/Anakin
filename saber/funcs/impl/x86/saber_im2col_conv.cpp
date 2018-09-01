@@ -1,6 +1,6 @@
 
 #include "saber/funcs/impl/x86/saber_im2col_conv.h"
-#include <mkl.h>
+
 namespace anakin {
 namespace saber {
 
@@ -51,25 +51,15 @@ void im2col_cpu(const Dtype* data_im, const int channels,
     }
 }
 
-inline void mkl_gemm(const bool TransA, const bool TransB, int m, int n, int k, const float alpha,
-                     const float* a, const float* b, const float beta, float* c) {
-    //    cout << "(" << m << "," << n << "," << k << ")" << endl;
-    int lda = (!TransA/* == CblasNoTrans*/) ? k : m;
-    int ldb = (!TransB/* == CblasNoTrans*/) ? n : k;
-    CBLAS_TRANSPOSE cuTransA =
-            (!TransA/* == CblasNoTrans*/) ? CblasNoTrans : CblasTrans;
-    CBLAS_TRANSPOSE cuTransB =
-            (!TransB/* == CblasNoTrans*/) ? CblasNoTrans : CblasTrans;
-    cblas_sgemm(CblasRowMajor, cuTransA, cuTransB, m, n, k, alpha, a, k, b, n, beta, c, n);
-};
-
 template <>
 SaberStatus SaberIm2colConv<AK_FLOAT>::create(const std::vector<Tensor<X86> *>& inputs,
                                   std::vector<Tensor<X86>*>& outputs,
                                   ConvParam<X86> &param, Context<X86>&ctx) {
+    this->_ctx = &ctx;
     int in_c = inputs[0]->channel();
     int in_h = inputs[0]->height();
     int in_w = inputs[0]->width();
+    int out_c = outputs[0]->channel();
     int out_h = outputs[0]->height();
     int out_w = outputs[0]->width();
     int kernel_h = param.weight()->height();
@@ -79,6 +69,9 @@ SaberStatus SaberIm2colConv<AK_FLOAT>::create(const std::vector<Tensor<X86> *>& 
     Shape _im2col_shape({slice_size}, Layout_W);
     _im2col_tensor.reshape(_im2col_shape);
 
+    int out_stride = out_h * out_w;
+    _gemm.init(false, false, out_c, out_stride, in_c * kernel_h * kernel_w, *(this->_ctx));
+
     return SaberSuccess;
 }
 
@@ -86,7 +79,7 @@ template <>
 SaberStatus SaberIm2colConv<AK_FLOAT>::init(const std::vector<Tensor<X86> *>& inputs,
                  std::vector<Tensor<X86>*>& outputs,
                  ConvParam<X86> &param, Context<X86>&ctx) {
-
+    this->_ctx = &ctx;
     return create(inputs, outputs, param, ctx);
 }
 template <>
@@ -120,8 +113,7 @@ SaberStatus SaberIm2colConv<AK_FLOAT>::dispatch(const std::vector<Tensor<X86> *>
                 param.stride_h, param.stride_w, param.dilation_h, param.dilation_w,
                 (float*)_im2col_tensor.mutable_data());
 
-        mkl_gemm(false, false, out_c, out_stride, in_c * kernel_h * kernel_w,
-                1.f, weights_d, _im2col_tensor.data(), 0.f, dout);
+        _gemm.dispatch(1.f, 0.f, weights_d, (const float*)_im2col_tensor.data(), dout);
 
         din += in_c * in_stride;
         dout += out_c * out_stride;

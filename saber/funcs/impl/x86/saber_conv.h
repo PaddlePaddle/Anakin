@@ -29,11 +29,11 @@ public:
     typedef ImplBase<X86, OpDtype, ConvParam<X86> > Impl_t;
 
     SaberConv2D()
-        : impl(NULL)
+        : impl(nullptr)
     {}
 
     ~SaberConv2D() {
-        if (impl != NULL) {
+        if (impl != nullptr) {
             delete impl;
         }
     }
