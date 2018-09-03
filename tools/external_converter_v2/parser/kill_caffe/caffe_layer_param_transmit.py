@@ -68,7 +68,7 @@ def NotNeededInInference(args):
     node_io = args[0]
     layer = args[1]
     tensors = args[2]
-    logger(verbose.ERROR).feed("Layer type(", layer.name, " : ", layer.type, ") with ", \
+    logger(verbose.INFO).feed("Layer type(", layer.name, " : ", layer.type, ") with ", \
             len(tensors), " tensors  not needed in inference.")
 
 
@@ -614,14 +614,14 @@ def Parser_slice(args):
 @ParserFeedDecorator("Activation")
 def Parser_tanh(args):
     # parser caffe parameter
-    logger(verbose.ERROR).feed("Layer  in tanh")
+    logger(verbose.INFO).feed("Layer  in tanh")
     OpsRegister()["Activation"].type = "TanH"
 
 
 @ParserFeedDecorator("Activation")
 def Parser_sigmoid(args):
     # parser caffe parameter
-    logger(verbose.ERROR).feed("Layer  in Sigmoid")
+    logger(verbose.INFO).feed("Layer  in Sigmoid")
     OpsRegister()["Activation"].type = "Sigmoid"
 
 
