@@ -12,8 +12,8 @@
    See the License for the specific language governing permissions and
    limitations under the License. */
 
-#ifndef ANAKIN_SABER_FUNCS_IMPL_X86_SABER_CROP_H
-#define ANAKIN_SABER_FUNCS_IMPL_X86_SABER_CROP_H
+#ifndef ANAKIN_SABER_FUNCS_IMPL_X86_SABER_POWER_H
+#define ANAKIN_SABER_FUNCS_IMPL_X86_SABER_POWER_H
 
 #include "saber/funcs/impl/impl_power.h"
 #include "saber/funcs/power.h"
