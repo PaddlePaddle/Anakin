@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+import "operator.proto";
+import "tensor.proto";
+
+// node attribute base value type define
+message valueType {
+    oneof data {
+        bytes s = 1;         // string 
+        int32 i = 2;         // int
+        float f = 3;         // float
+        bool  b = 4;         // bool
+		CacheDate cache_list = 8; // cache list
+		TensorProto tensor = 10;	// tensor
+    }
+	DateTypeProto type = 14;	
+};
+
+message NodeProto {
+    // name of node.
+    string name = 1;
+
+    // the node's input nodes name
+    repeated string ins = 2;
+
+    // the node's output nodes name
+    repeated string outs = 3;
+
+    // map :attr name ---> Attributes
+    map<string, valueType> attr = 10;
+	
+	// op execute lane [optional]
+    // ( only used when anakin generates optimized model )
+    int32 lane = 11;
+
+	// whether op need wait
+    // ( only used when anakin generates optimized model )
+    bool need_wait = 12;
+
+    // Operator of node.
+    OpsProto Op = 15;
+};
+

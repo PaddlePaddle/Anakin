@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+// anakin tensor shape define.
+message TensorShape {
+    message Dim {
+        repeated int32 value = 1;
+        int64 size = 2;
+    }
+    Dim dim = 3;
+};
+
+// anakin data type.
+// maybe need to be improved
+enum DateTypeProto {
+        STR = 0;
+		INT8 = 2;
+        INT32 = 4;
+		FLOAT16 = 8;
+        FLOAT = 13;
+        DOUBLE = 14;
+        BOOLEN = 20;
+		CACHE_LIST = 30;
+		TENSOR = 31;
+};
+
+// list data cache
+message CacheDate {
+    repeated bytes s = 1;      /// list string
+    repeated int32 i = 2;      /// list int
+    repeated float f = 3;      /// list float
+    repeated bool  b = 4;      /// list bool
+	repeated CacheDate l = 5;  /// list list
+	DateTypeProto type = 6;
+    int64 size = 7;
+};
+
+// anakin tensor define
+// it maybe need to improved to support sequence data.
+message TensorProto {
+	// tensor id [optional] 
+	// ( only used when anakin generates optimized model )
+	bytes name = 1;
+
+	// whether shared from other [optional] 
+	// ( anakin generates optimized model )
+	bool shared = 2;
+
+	// share_from is not null if shared [optional] 
+	// ( only used when anakin generates optimized model)
+	bytes  share_from = 3;
+
+    // tensor shape
+    TensorShape shape = 8;
+
+    // tensor data cache.
+    CacheDate data = 10;
+};
+
+

@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+// define an operation of anain.
+message OpProto {
+    // operator name.
+    string name = 1;
+
+    // judge if the operation is commutative  
+    // e.g.  op(a,b) == op(b,a) if op is commutative
+    bool is_commutative = 2;
+
+	// in/out num
+    int32 in_num = 3;
+	int32 out_num = 4;
+
+    // operator description of what the op does.
+    string description = 5;
+};
+
