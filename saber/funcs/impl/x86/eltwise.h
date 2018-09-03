@@ -20,7 +20,7 @@
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/funcs/impl/impl_eltwise.h"
 #ifdef NVIDIA_GPU
-#include "saber/funcs/impl/cuda/saber_eltwise.h"
+//#include "saber/funcs/impl/cuda/saber_eltwise.h"
 #endif
 
 #ifdef USE_X86_PLACE
@@ -95,6 +95,8 @@ private:
         if (true) // some condition?
             this->_best_impl = this->_impl[0];
     }
+
+    //virtual void pick_best_runtime(Input_v input, Output_v output, Param_t& param) override {}
 
     virtual void pick_best_specify(ImplEnum implenum) override {
         this->_best_impl = this->_impl[0];
