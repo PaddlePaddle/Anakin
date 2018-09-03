@@ -1,9 +1,6 @@
 #include "test_lite.h"
-#include "tensor_op_lite.h"
-#include "saber/lite/funcs/saber_conv.h"
+#include "saber/lite/funcs/saber_conv_act.h"
 #include "saber/lite/funcs/neon/impl/conv_arm_impl.h"
-#include "saber/lite/funcs/timer_lite.h"
-#include "saber/lite/core/context_lite.h"
 
 using namespace anakin::saber;
 using namespace anakin::saber::lite;
@@ -91,7 +88,8 @@ void test_arm_conv(std::vector<TensorHf4*>& tin, \
     LOG(INFO) << " dilation = " << dila;
     LOG(INFO) << " kernel = " << kernel;
     LOG(INFO) << " out_channels = " << ch_out;
-    LOG(INFO) << "bias flag = " << (bias_flag? "true" : "false");
+    LOG(INFO) << " bias flag = " << (bias_flag? "true" : "false");
+    LOG(INFO) << " relu flag = " << (flag_relu? "true" : "false");
 
     int input_dim = tin[0]->height(); // P
     int kernel_exten = dila * (kernel - 1) + 1;
@@ -111,8 +109,8 @@ void test_arm_conv(std::vector<TensorHf4*>& tin, \
     fill_tensor_rand(pweiht, -1.f, 1.f);
     fill_tensor_rand(pbias, -1.f, 1.f);
 
-    //fill_tensor_host_const(pweiht, 1.f);
-    //fill_tensor_host_const(pbias, 1.f);
+//    fill_tensor_const(pweiht, 1.f);
+//    fill_tensor_const(pbias, 1.f);
 
     TensorHf4* bias_ptr = nullptr;
     if (bias_flag) {
@@ -134,13 +132,13 @@ void test_arm_conv(std::vector<TensorHf4*>& tin, \
         //conv_direct_basic1(tout_basic, *thin, pweiht.data(), pbias.data(), group, kernel, \
         kernel, stride, stride, dila, dila, pad, pad, bias_flag, flag_relu, &gemmer, work_space_data);
         //fast_free(work_space_data);
-        //print_tensor_host(tout_basic);
+        //print_tensor(tout_basic);
     }
 
-    SaberConv2D conv_lite;
+    SaberConvAct2D conv_lite;
 
-    Conv2DParam param(pweiht.valid_size(), ch_out, group, kernel, kernel, \
-        stride, stride, pad, pad, dila, dila, flag_bias, pweiht.data(), pbias.data());
+    ConvAct2DParam param(pweiht.valid_size(), ch_out, group, kernel, kernel, \
+        stride, stride, pad, pad, dila, dila, flag_bias, Active_relu, flag_relu, pweiht.data(), pbias.data());
 
     conv_lite.load_param(&param);
 
@@ -176,16 +174,18 @@ void test_arm_conv(std::vector<TensorHf4*>& tin, \
         }
     }
     LOG(INFO) << "saber conv running time, ave: " << to / test_iter << ", min time: " << min_time;
-    //print_tensor_host(*tvout_saber[0]);
+    //print_tensor(*tvout_saber[0]);
 
     if (compare_result) {
         double max_ratio = 0;
         double max_diff = 0;
-        //TensorHf4 tdiff(tout_basic.valid_shape());
-        //tensor_diff(tout_basic, tout_saber, tdiff);
-        //print_tensor_host(tdiff);
         tensor_cmp_host(tout_basic.data(), tout_saber.data(), tout_basic.valid_size(), max_ratio, max_diff);
         LOG(INFO) << "compare result, max diff: " << max_diff << ", max ratio: " << max_ratio;
+        if (fabsf(max_ratio) > 1e-4f) {
+            TensorHf4 tdiff(tout_basic.valid_shape());
+            tensor_diff(tout_basic, tout_saber, tdiff);
+            print_tensor(tdiff);
+        }
         CHECK_EQ(fabsf(max_ratio) < 1e-4f, true) << "compute result error";
     }
 
@@ -393,7 +393,7 @@ TEST(TestSaberLite, test_conv_custom_size) {
 
     tdin.re_alloc(shape_in);
     fill_tensor_rand(tdin, -1.f, 1.f);
-    //fill_tensor_host_const(tdin, 1.f);
+    //fill_tensor_const(tdin, 1.f);
 
     std::vector<TensorHf4*> tin;
     tin.push_back(&tdin);
@@ -423,7 +423,6 @@ int main(int argc, const char** argv){
     if (argc >= 7) {
         flag_relu = atoi(argv[6]) > 0;
     }
-    flag_relu = 0;
     if(argc >= 8) {
         if (argc < 17) {
             LOG(ERROR) << "usage: ./" << argv[0] << " cluster  threads  test_iter " << \

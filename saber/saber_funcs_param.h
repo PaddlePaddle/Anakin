@@ -1,5 +1,4 @@
 /* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
-
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -17,6 +16,7 @@
 #define ANAKIN_SABER_FUNCS_PARAM_H
 #include "anakin_config.h"
 #include <vector>
+#include <cmath>
 #include <string>
 #include "saber/core/shape.h"
 #include "saber/core/tensor.h"
@@ -301,6 +301,37 @@ private:
     opTensor* bias_tensor;
     opTensor* init_hidden_tensor;
 };
+
+
+template <typename opTensor>
+struct LstmUnitParam{
+
+    LstmUnitParam() :
+            forget_bias(0.f)
+    {}
+
+    LstmUnitParam(float forget_bias_in)
+            :
+            forget_bias(forget_bias_in)
+    {}
+
+
+    LstmUnitParam &operator=(const LstmUnitParam &right) {
+        forget_bias = right.forget_bias;
+        return *this;
+    }
+
+    bool operator==(const LstmUnitParam &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (forget_bias == right.forget_bias);
+        return comp_eq;
+    }
+    float forget_bias;
+private:
+
+};
+
+
 
 template <typename opTensor>
 struct ConvParam {
@@ -593,7 +624,7 @@ struct PermutePowerParam {
     PermutePowerParam(PermuteParam<opTensor> permute_param, PowerParam<opTensor> power_param):
             power_param(power_param), permute_param(permute_param), has_power_param(true) {}
     PermutePowerParam(const PermutePowerParam & right):
-        power_param(right.power_param), permute_param(right.permute_param) {}
+        power_param(right.power_param), permute_param(right.permute_param), has_power_param(right.has_power_param) {}
     bool operator==(const PermutePowerParam &right) {
         bool comp_eq = true;
         comp_eq = comp_eq && (power_param == right.power_param);
@@ -1100,6 +1131,18 @@ struct ConvActiveParam {
             , has_eltwise(false)
             , has_eltwise_act(false)
     {}
+
+    ConvActiveParam(ConvParam<opTensor> &conv_param_in
+            , BatchnormParam<opTensor> &batchnorm_param_in)
+            : conv_param(conv_param_in)
+            , batchnorm_param(batchnorm_param_in)
+            , has_batchnorm(true)
+            , has_scale(false)
+            , has_active(false)
+            , has_eltwise(false)
+            , has_eltwise_act(false)
+    {}
+
     ConvActiveParam(ConvParam<opTensor> &conv_param_in
             , ActivationParam<opTensor> &activation_param_in
             , BatchnormParam<opTensor> &batchnorm_param_in
@@ -1657,13 +1700,21 @@ template <typename opTensor>
 struct PriorBoxParam {
 
     PriorBoxParam(){}
-    PriorBoxParam(std::vector<float> min_in, std::vector<float> max_in, \
-        std::vector<float> aspect_in, std::vector<float> variance_in,
+
+    PriorBoxParam(std::vector<float> variance_in, \
         bool flip, bool clip, int image_width, int image_height, \
-        float step_width, float step_height, float offset_in, std::vector<PriorType> order_in) {
+        float step_width, float step_height, float offset_in, std::vector<PriorType> order_in, \
+        std::vector<float> min_in= std::vector<float>(), std::vector<float> max_in= std::vector<float>(), \
+        std::vector<float> aspect_in= std::vector<float>(),
+        std::vector<float> fixed_in = std::vector<float>(), std::vector<float> fixed_ratio_in = std::vector<float>(), \
+        std::vector<float> density_in = std::vector<float>()) {
         is_flip = flip;
         is_clip = clip;
         min_size = min_in;
+        //add 
+        fixed_size = fixed_in;
+        density_size = density_in;
+
         img_w = image_width;
         img_h = image_height;
         step_w = step_width;
@@ -1687,6 +1738,21 @@ struct PriorBoxParam {
             variance.push_back(variance_in[3]);
         }
 
+        //add
+        if (fixed_size.size() > 0){
+            CHECK_GT(density_size.size(), 0) << "if use fixed_size then you must provide density";
+        }
+       // if (fixed_ratio_in.size() > 0) {
+         //   CHECK_EQ(0, aspect_in.size()) <<"can not provide fixed_ratio and aspect_ratio simultaneously.";
+         //}
+        //add
+         fixed_ratio.clear();
+
+         for (int i = 0; i < fixed_ratio_in.size(); i++){
+            fixed_ratio.push_back(fixed_ratio_in[i]);
+         }
+         //end
+
         for (int i = 0; i < aspect_in.size(); ++i) {
             float ar = aspect_in[i];
             bool already_exist = false;
@@ -1703,7 +1769,26 @@ struct PriorBoxParam {
                 }
             }
         }
-        prior_num = min_size.size() * aspect_ratio.size();
+
+        //add
+        if (min_size.size() > 0)
+            prior_num = min_size.size() * aspect_ratio.size();
+        if (fixed_size.size() > 0){
+            prior_num = fixed_size.size() * fixed_ratio.size();
+        }
+
+        if(density_size.size() > 0){
+            for (int i = 0; i < density_size.size(); i++){
+                if(fixed_ratio.size() > 0){
+                    prior_num += (fixed_ratio.size() * ((pow(density_size[i], 2))-1));
+                }else{
+                    prior_num += ((fixed_ratio.size() + 1) * ((pow(density_size[i], 2))-1));
+                }
+            }
+        }
+        //end
+       // LOG(INFO) << "min_size: " << min_size.size() << "max_size: " << max_in.size();
+        //LOG(INFO) << "fixed_size: " << fixed_size.size();
         max_size.clear();
         if (max_in.size() > 0) {
             CHECK_EQ(max_in.size(), min_size.size()) << "max_size num must = min_size num";
@@ -1714,10 +1799,14 @@ struct PriorBoxParam {
             }
         }
     }
+
     PriorBoxParam(const PriorBoxParam<opTensor>& right) {
         is_flip = right.is_flip;
         is_clip = right.is_clip;
         min_size = right.min_size;
+        fixed_size = right.fixed_size;
+        fixed_ratio = right.fixed_ratio;
+        density_size = right.density_size;
         max_size = right.max_size;
         aspect_ratio = right.aspect_ratio;
         variance = right.variance;
@@ -1733,6 +1822,9 @@ struct PriorBoxParam {
         this->is_flip = right.is_flip;
         this->is_clip = right.is_clip;
         this->min_size = right.min_size;
+        this->fixed_size = right.fixed_size;
+        this->fixed_ratio = right.fixed_ratio;
+        this->density_size = right.density_size;
         this->max_size = right.max_size;
         this->aspect_ratio = right.aspect_ratio;
         this->variance = right.variance;
@@ -1753,6 +1845,30 @@ struct PriorBoxParam {
         }
         for (int i = 0; i < min_size.size(); ++i) {
             if (min_size[i] != right.min_size[i]) {
+                return false;
+            }
+        }
+        if (fixed_size.size() != right.fixed_size.size()) {
+            return false;
+        }
+        for (int i = 0; i < fixed_size.size(); ++i) {
+            if (fixed_size[i] != right.fixed_size[i]) {
+                return false;
+            }
+        }
+        if (fixed_ratio.size() != right.fixed_ratio.size()) {
+            return false;
+        }
+        for (int i = 0; i < fixed_ratio.size(); ++i) {
+            if (fixed_ratio[i] != right.fixed_ratio[i]) {
+                return false;
+            }
+        }
+        if (density_size.size() != right.density_size.size()) {
+            return false;
+        }
+        for (int i = 0; i < density_size.size(); ++i) {
+            if (density_size[i] != right.density_size[i]) {
                 return false;
             }
         }
@@ -1793,6 +1909,9 @@ struct PriorBoxParam {
     bool is_flip;
     bool is_clip;
     std::vector<float> min_size;
+    std::vector<float> fixed_size;
+    std::vector<float> fixed_ratio;
+    std::vector<float> density_size;
     std::vector<float> max_size;
     std::vector<float> aspect_ratio;
     std::vector<float> variance;
@@ -2591,6 +2710,93 @@ struct LayerNormParam {
 private:
     opTensor* scale;
     opTensor* bias;
+};
+
+template <typename opTensor>
+struct AttensionParam {
+   AttensionParam() {};
+   AttensionParam(std::vector<FcParam<opTensor>>& fc_vec_in) : fc_vec(fc_vec_in) {}
+   AttensionParam(const AttensionParam &right):
+         fc_vec(right.fc_vec) {}
+   AttensionParam&operator=(const AttensionParam &right){
+       fc_vec = right.fc_vec;
+       return *this;
+   }
+   bool operator == (const AttensionParam &right) {
+       bool cmp_eq = true;
+       cmp_eq = cmp_eq && fc_vec.size() == right.fc_vec.size();
+       if (cmp_eq == false) {
+           return cmp_eq;
+       }
+       for (int i = 0; i < fc_vec.size(); i++) {
+           cmp_eq = cmp_eq && fc_vec[i] == right.fc_vec[i];
+       }
+       return cmp_eq;
+   }
+   
+public:
+    std::vector<FcParam<opTensor>> fc_vec;
+    //std::vector<int> fc_vec;
+};
+
+template<typename opTensor>
+struct AttensionLstmParam {
+    AttensionLstmParam() {}
+    AttensionLstmParam(AttensionParam<opTensor>& attn_param_in, LstmParam<opTensor>& lstm_param_in):
+        attension_param(attn_param_in), lstm_param(lstm_param_in) {}
+    AttensionLstmParam(const AttensionLstmParam &right):
+        attension_param(right.attension_param),
+        lstm_param(right.lstm_param) {}
+    AttensionLstmParam &operator=(const AttensionLstmParam &right) {
+        attension_param = right.attension_param;
+        lstm_param = right.lstm_param;
+        return *this;
+    }
+    bool operator==(const AttensionLstmParam &right) {
+        bool cmp_eq = true;
+        cmp_eq = cmp_eq && attension_param == right.attension_param;
+        cmp_eq = cmp_eq && lstm_param == right.lstm_param;
+        return cmp_eq;
+    }
+public:
+    AttensionParam<opTensor> attension_param;
+    LstmParam<opTensor> lstm_param;
+};
+
+template <typename opTensor>
+struct SequenceExpandParam {
+    SequenceExpandParam():ref_level(0) {}
+    SequenceExpandParam(int ref_level_in):ref_level(ref_level_in) {}
+    SequenceExpandParam(const  SequenceExpandParam &right):
+            ref_level(right.ref_level_in) {}
+    SequenceExpandParam &operator=(const  SequenceExpandParam &right) {
+        ref_level = right.ref_level;
+        return *this;
+    }
+    bool operator==(const SequenceExpandParam &right) {
+        return ref_level == right.ref_level;
+    }
+
+public:
+    int ref_level;
+};
+
+template <typename opTensor>
+struct ShuffleChannelParam {
+    ShuffleChannelParam():group(1) {}
+    ShuffleChannelParam(int group_in):group(group_in) {}
+    ShuffleChannelParam(const  ShuffleChannelParam &right):
+            group(right.group) {}
+    ShuffleChannelParam &operator=(const  ShuffleChannelParam &right) {
+        group = right.group;
+        return *this;
+    }
+    bool operator==(const ShuffleChannelParam &right) {
+        return group == right.group;
+    }
+
+public:
+    int group;
 };
 
 }

@@ -128,6 +128,11 @@ template class ConvReluPoolHelper<ARM, AK_FLOAT, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ConvReluPool, ConvReluPoolHelper, ARM, AK_FLOAT, Precision::FP32);
 #endif
 
+#ifdef USE_X86_PLACE
+INSTANCE_CONVRELUPOOLING(X86, AK_FLOAT, Precision::FP32);
+template class ConvReluPoolHelper<X86, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(ConvReluPool, ConvReluPoolHelper, X86, AK_FLOAT, Precision::FP32);
+#endif
 
 //! register op
 ANAKIN_REGISTER_OP(ConvReluPool)
@@ -137,6 +142,9 @@ ANAKIN_REGISTER_OP(ConvReluPool)
 #endif
 #ifdef USE_ARM_PLACE
     .__alias__<ARM, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale_relu_pooling")
+#endif
+#ifdef USE_X86_PLACE
+.__alias__<X86, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale_relu_pooling")
 #endif
 #if defined(BUILD_LITE)
 .__alias__<X86, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale_relu_pooling")

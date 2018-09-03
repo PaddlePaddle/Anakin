@@ -6,7 +6,9 @@ from op_io import *
 
 ############################# IO define ##############################
 # graph may has mult-inputs, so graph will have multi-input
-OpsRegister.Register("Input").set_attr(input_shape=list())
+OpsRegister.Register("Input").set_attr(input_shape=list(),
+                                       alias="NULL",
+                                       data_type="NULL")
 
 # graph out , only hold place for edge
 OpsRegister.Register("Output").set_attr()
@@ -53,7 +55,8 @@ OpsRegister.Register("Softmax").set_attr(axis=int())
 #			  TanH, 
 #			  Sigmoid, 
 # 		  }
-OpsRegister.Register("Activation").set_attr(type="")
+OpsRegister.Register("Activation").set_attr(type="",
+                                            clip_relu_num=int())
 # Leaky version of a Rectified Linear Unit ( alpha != 0 ).
 # 	f(x) = alpha * x  	 : x < 0
 # 	f(x) = 		   x  	 : x >= 0
@@ -140,6 +143,7 @@ OpsRegister.Register("MVN").set_attr(normalize_variance=bool(),
 #      enum method {
 #           MAX, 		// [default]
 #			AVG,
+#           AVGEXC, average_exclude_padding_value
 #			STOCHASTIC,
 #      }
 OpsRegister.Register("Pooling").set_attr(pool_size=list(), 
@@ -247,7 +251,10 @@ OpsRegister.Register("Axpy").set_attr()
 
 OpsRegister.Register("PriorBox").set_attr(min_size=list(), 
                                           max_size=list(), 
-                                          aspect_ratio=list(), 
+                                          aspect_ratio=list(),
+                                          fixed_size=list(), 
+                                          fixed_ratio=list(), 
+                                          density=list(),  
                                           is_flip=bool(), 
                                           is_clip=bool(), 
                                           variance=list(), 
@@ -350,3 +357,16 @@ OpsRegister.Register("LayerNorm").set_attr(is_across_spatial=bool(),
 
 OpsRegister.Register("Resize").set_attr(height_scale=float(),
                                         width_scale=float())
+
+OpsRegister.Register("Normalize").set_attr(begin_norm_axis=int(),
+                                           is_across_spatial=bool(),
+                                           is_shared_channel=bool(),
+                                           eps=float(),
+                                           p=int())
+
+OpsRegister.Register("Pad").set_attr(pad_c=list(),
+                                     pad_h=list(),
+                                     pad_w=list())
+
+
+OpsRegister.Register("ShuffleChannel").set_attr(group=int())

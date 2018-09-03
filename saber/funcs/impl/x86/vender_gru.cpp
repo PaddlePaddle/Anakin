@@ -3,10 +3,9 @@
 
 #include "saber/funcs/impl/x86/vender_gru.h"
 #include "sequence2batch.h"
-#include "saber/funcs/impl/x86/activation_functions.h"
 #include "saber/funcs/impl/x86/x86_utils.h"
 #include "saber/funcs/impl/x86/kernel/jit_generator.h"
-
+#include "saber/funcs/impl/x86/saber_normal_activation.h"
 namespace anakin {
 namespace saber {
 
@@ -29,8 +28,11 @@ GruParam<OpTensor>& param, Context<X86>& ctx) {
     int aligned_size = 8;
     aligned_hidden_size_ = (hidden_size_ % aligned_size) ? ((hidden_size_ / aligned_size) + 1) *
                            aligned_size : hidden_size_;
-
+#if defined(__AVX2__) and defined(__FMA__)
     avx2_available_ = jit::mayiuse(jit::avx2);
+#else
+    avx2_available_ = false;
+#endif
     // LOG(ERROR) << "AVX2 available: " << avx2_available_;
 
     if (param.formula == GRU_ORIGIN) {
@@ -328,6 +330,8 @@ GruParam<OpTensor>& param) {
 
         // compute reset gate output r and rh
         if (avx2_available_) {
+#if defined(__AVX2__) and defined(__FMA__)
+
             for (int bat_word_id = bat_word_id_start; bat_word_id < bat_word_id_end; bat_word_id++) {
                 int intra_bat_offset = bat_word_id - bat_word_id_start;
                 __m256* r = (__m256*)(batched_xx_data + bat_word_id * hidden_stride + r_offset *
@@ -336,10 +340,11 @@ GruParam<OpTensor>& param) {
                 __m256* hit_1 = (__m256*)(ht_1 + intra_bat_offset * aligned_hidden_size_);
 
                 for (int i = 0; i < aligned_hidden_size_ / 8; ++i) {
-                    r[i] = math::avx_activation(r[i], param.gate_activity);
+                    r[i] = Activate_inner(r[i], param.gate_activity);
                     hit[i] = r[i] * hit_1[i];
                 }
             }
+#endif
         } else {
             for (int bat_word_id = bat_word_id_start; bat_word_id < bat_word_id_end; bat_word_id++) {
                 int intra_bat_offset = bat_word_id - bat_word_id_start;
@@ -349,7 +354,7 @@ GruParam<OpTensor>& param) {
                 float* hit_1 = (float*)(ht_1 + intra_bat_offset * aligned_hidden_size_);
 
                 for (int i = 0; i < aligned_hidden_size_; ++i) {
-                    math::activation(1, r + i, r + i, param.gate_activity);
+                    r[i] = Activate_inner(r[i], param.gate_activity);
                     hit[i] = r[i] * hit_1[i];
                 }
             }
@@ -372,6 +377,7 @@ GruParam<OpTensor>& param) {
 
         // compute candidate activation output and h
         if (avx2_available_) {
+#if defined(__AVX2__) and defined(__FMA__)
             for (int bat_word_id = bat_word_id_start; bat_word_id < bat_word_id_end; bat_word_id++) {
                 int intra_bat_offset = bat_word_id - bat_word_id_start;
                 int h_word_id_offset = bat_word_id * hidden_stride;
@@ -381,11 +387,12 @@ GruParam<OpTensor>& param) {
                 __m256* hit_1 = (__m256*)(ht_1 + intra_bat_offset * aligned_hidden_size_);
 
                 for (int i = 0; i < aligned_hidden_size_ / 8; ++i) {
-                    u[i] = math::avx_activation(u[i], param.gate_activity);
-                    c[i] = math::avx_activation(c[i], param.h_activity);
+                    u[i] = Activate_inner(u[i], param.gate_activity);
+                    c[i] = Activate_inner(c[i], param.h_activity);
                     hit[i] = (c[i] - hit_1[i]) * u[i] + hit_1[i];
                 }
             }
+#endif
         } else {
             for (int bat_word_id = bat_word_id_start; bat_word_id < bat_word_id_end; bat_word_id++) {
                 int intra_bat_offset = bat_word_id - bat_word_id_start;
@@ -396,8 +403,8 @@ GruParam<OpTensor>& param) {
                 float* hit_1 = (float*)(ht_1 + intra_bat_offset * aligned_hidden_size_);
 
                 for (int i = 0; i < aligned_hidden_size_; ++i) {
-                    math::activation(1, u + i, u + i, param.gate_activity);
-                    math::activation(1, c + i, c + i, param.h_activity);
+                    u[i]=Activate_inner(u[i], param.gate_activity);
+                    c[i] = Activate_inner(c[i], param.h_activity);
                     hit[i] = (c[i] - hit_1[i]) * u[i] + hit_1[i];
                 }
             }

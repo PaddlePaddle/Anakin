@@ -83,7 +83,7 @@ __global__ void top1(const Dtype* in_data,
         volatile Dtype *vmax = share_data;
         volatile Dtype *vindex = share_index;
         if (blockSize >= 64) {
-            int index2 = index + 64;
+            int index2 = index + 32;
             if (vmax[index2] > vmax[index]) {
                 vmax[index] = vmax[index2];
                 vindex[index] = vindex[index2];
@@ -788,11 +788,11 @@ SaberStatus SaberArgmax<NV, OpDtype, inDtype, outDtype,\
     outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
     const InDataType * in_data = inputs[0]->data();
     OutDataType * out_data = outputs[0]->mutable_data();
-    int outer_dim = inputs[0]->count(0, param.axis);
+    int outer_dim = inputs[0]->count_valid(0, param.axis);
     if (param.has_axis) {
-        int count = inputs[0]->count(0, inputs[0]->dims());
+        int count = inputs[0]->count_valid(0, inputs[0]->dims());
         int dim = inputs[0]->shape()[param.axis];
-        int inner_dim = inputs[0]->count(param.axis + 1, inputs[0]->dims());
+        int inner_dim = inputs[0]->count_valid(param.axis + 1, inputs[0]->dims());
         int total_threads = count / dim;
         if (param.top_k == 1) {
             top1_channel<InDataType><<<CUDA_GET_BLOCKS(total_threads), CUDA_NUM_THREADS, 0, cuda_stream>>>(in_data, outer_dim, dim, inner_dim, param.out_max_val, out_data);
@@ -800,7 +800,7 @@ SaberStatus SaberArgmax<NV, OpDtype, inDtype, outDtype,\
             topk_channel<InDataType><<<CUDA_GET_BLOCKS(total_threads), CUDA_NUM_THREADS, 2 * sizeof(InDataType) * CUDA_NUM_THREADS * param.top_k, cuda_stream>>>(in_data, outer_dim, dim, inner_dim, param.top_k, param.out_max_val, out_data);
         }
     } else {
-        int inner_dim = inputs[0]->count(1, inputs[0]->dims());
+        int inner_dim = inputs[0]->count_valid(1, inputs[0]->dims());
         int outer_dim = inputs[0]->num();
         if (param.top_k == 1) {
             if (inner_dim / CUDA_NUM_THREADS < 10) {

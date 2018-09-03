@@ -146,6 +146,13 @@ ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScaleRelu, ConvBatchnormScaleReluHelper, 
                                   Precision::FP32);
 #endif
 
+#ifdef USE_X86_PLACE
+INSTANCE_CONVBATCHNORMSCALERELU(X86, AK_FLOAT, Precision::FP32);
+template class ConvBatchnormScaleReluHelper<X86, AK_FLOAT, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScaleRelu, ConvBatchnormScaleReluHelper, X86, AK_FLOAT,
+                                  Precision::FP32);
+#endif
+
 //! register op
 ANAKIN_REGISTER_OP(ConvBatchnormScaleRelu)
 .Doc("ConvBatchnormScaleRelu fusion operator")

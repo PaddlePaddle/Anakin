@@ -20,14 +20,13 @@
 #include "saber/funcs/impl/x86/x86_utils.h"
 
 
-#ifdef __AVX512F__
-#include "saber_avx512_activation.h"
+#if defined(__AVX512F__)
 #define SABER_X86_TYPE __m512
-#elif __AVX2__
-#include "saber_avx2_activation.h"
+#elif defined(__AVX2__) and defined(__FMA__)
 #define SABER_X86_TYPE __m256
+#elif defined(__SSE4_2__) and defined(__FMA__)
+#define SABER_X86_TYPE __m128
 #else
-#include "saber_normal_activation.h"
 #define SABER_X86_TYPE float
 #endif
 
@@ -53,6 +52,7 @@ public:
     typedef typename DataTensor_in::Dtype DataType_in;
     typedef typename DataTensor_out::Dtype DataType_out;
     typedef typename OpTensor::Dtype DataType_op;
+    typedef DataType_op OpDataType;
 
     SaberLstm():_hidden_size(0){};
 
@@ -69,7 +69,7 @@ public:
         }
         _word_size=(param.weight()->valid_size()-_hidden_size*_hidden_size*4)/_hidden_size/4;
 
-        LOG(INFO)<<"wordsize = "<<_word_size;
+        DLOG(INFO)<<"wordsize = "<<_word_size;
         int weights_i2h_size=4*_hidden_size*_word_size;
         int weights_h2h_size=4*_hidden_size*_hidden_size;
         int weights_bias_size=4*_hidden_size;
@@ -149,15 +149,11 @@ private:
     OpTensor _temp_out;
     OpTensor _temp_h_init;
 
-    template <typename BIT>
-    SaberStatus avx_dispatch_without_peephole(const std::vector<DataTensor_in*>& inputs,
+    template <typename BIT,bool with_peephole>
+    SaberStatus avx_dispatch(const std::vector<DataTensor_in*>& inputs,
                                            std::vector<DataTensor_out*>& outputs,
                                            LstmParam<OpTensor>& param);
 
-    template <typename BIT>
-    SaberStatus avx_dispatch_with_peephole(const std::vector<DataTensor_in*>& inputs,
-                                           std::vector<DataTensor_out*>& outputs,
-                                           LstmParam<OpTensor>& param);
 
 
 

@@ -29,7 +29,7 @@ template <typename dtype, bool bias_flag, bool relu_flag>
 SaberStatus saber_depthwise_conv_act(const dtype* input, dtype* output, \
     int num, int cin, int hin, int win, int hout, int wout, \
     int kw, int kh, int stride_w, int stride_h, \
-    int pad_h, int pad_w, const dtype* weights, const dtype* bias, \
+    int pad_w, int pad_h, const dtype* weights, const dtype* bias, \
     cudaStream_t stream);
 
 template <DataType OpDtype,
@@ -120,7 +120,7 @@ public:
         } else {
             return SaberUnImplError;
         }
-        trans_weights(inputs, outputs, param, ctx);
+        conv_trans_weights(inputs, outputs, param.conv_param, ctx);
         cudaDeviceSynchronize();
 
         return create(inputs, outputs, param, ctx);
@@ -263,64 +263,6 @@ public:
             }
 
         return SaberSuccess;
-    }
-    void trans_weights(const std::vector<DataTensor_in *>& inputs,
-                       std::vector<DataTensor_out *>& outputs,
-                       ConvActiveParam<OpTensor>& param, Context<NV> &ctx) {
-        Tensor<X86, OpDtype, LayOutType_op> trans_weights_host;
-        if (_use_k1s1p0) {
-            return;
-        }
-        if (param.conv_param.group == inputs[0]->channel() && \
-            param.conv_param.group == outputs[0]->channel()){
-            return;
-
-        } else if (param.conv_param.stride_h == 1 &&
-                   param.conv_param.stride_w == 1 &&
-                   _kernel_height == 3 &&
-                   _kernel_width == 3
-                   &&param.conv_param.group == 1) {
-            //Update weights if need
-            Shape weight_shape = param.conv_param.weight()->shape();
-            Tensor<X86, OpDtype, LayOutType_op> new_weight;
-            new_weight.re_alloc(weight_shape);
-            new_weight.copy_from(*(param.conv_param.weight()));
-            OpDataType *weight_data = new_weight.mutable_data();
-
-            int round_in_channel = i_align_up(inputs[0]->channel(),8);
-            int round_out_channel = i_align_up(param.conv_param.weight()->num(),32);
-            int weight4x4_size = round_in_channel * round_out_channel * 4 * 4;
-            trans_weights_host.re_alloc({weight4x4_size, 1, 1, 1});
-            OpDataType* _host_work_space;
-            _host_work_space = trans_weights_host.mutable_data();
-
-            transform_3x3_weight_2_4x4(weight_data, _host_work_space, param.conv_param.weight()->num(), round_out_channel, inputs[0]->channel(), round_in_channel);
-            Shape old_shape = param.conv_param.weight()->shape();
-            param.conv_param.mutable_weight()->re_alloc({weight4x4_size, 1, 1, 1});
-            param.conv_param.mutable_weight()->copy_from(trans_weights_host);
-            param.conv_param.mutable_weight()->set_shape(old_shape);
-        } else if(param.conv_param.group == 1) {
-            Shape weight_shape = param.conv_param.weight()->shape();
-            Tensor<X86, OpDtype, LayOutType_op> new_weight;
-            new_weight.re_alloc(weight_shape);
-            new_weight.copy_from(*(param.conv_param.weight()));
-            OpDataType *weight_data = new_weight.mutable_data();
-
-            int weight_size = param.conv_param.weight()->shape().count();
-            trans_weights_host.re_alloc(param.conv_param.weight()->shape());
-            OpDataType* _host_work_space;
-            _host_work_space = trans_weights_host.mutable_data();
-
-            transpose_filter_KCRS_2_CRSK(weight_data, _host_work_space, \
-                                         param.conv_param.weight()->num(), \
-                                         param.conv_param.weight()->channel(), \
-                                         _kernel_height, \
-                                         _kernel_width);
-
-            param.conv_param.mutable_weight()->re_alloc(param.conv_param.weight()->shape());
-            param.conv_param.mutable_weight()->copy_from(trans_weights_host);
-
-        }
     }
 
 private:

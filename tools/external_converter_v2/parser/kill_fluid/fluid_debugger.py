@@ -35,3 +35,26 @@ class Fluid_debugger:
 					attrs={'col': i})
 				i = i + 1
 		return new_fetch_vars
+
+	def print_tmp_vars(self, block, var_names_list = []):
+		for var_name in var_names_list:
+			var_to_print = block.var(var_name)
+			out_to_print = block.create_var(
+				name=var_name+'.print',
+				dtype="float32",
+				persistable=True,
+				stop_gradient=False)
+			block.append_op(
+				type='print',
+				inputs={'In': var_to_print},
+				attrs={
+					'first_n': -1,
+					'summarize': -1,
+					'message': "",
+					'print_tensor_name': True,
+					'print_tensor_type': True,
+					'print_tensor_shape': True,
+					'print_tensor_lod': True,
+					'print_phase': 'FORWARD'
+				},
+				outputs={'Out': out_to_print})

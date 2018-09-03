@@ -1,240 +1,10 @@
 #include "saber/funcs/impl/cuda/saber_gru.h"
 #include "saber/core/tensor_op.h"
-
+#include "cuda_inline_activation.h"
 namespace anakin {
 
 namespace saber {
 
-////TODO:can try record vector in shared
-
-template <typename Dtype>
-__global__ void trans_map2in(Dtype* output, const Dtype* input, const int* map, int count,
-                             int lastdim) {
-    CUDA_KERNEL_LE(tid, count) {
-        int seq = tid / lastdim;
-        output[tid] = input[map[seq] * lastdim + tid % lastdim];
-//        printf("in %d = %f\n",tid,output[tid]);
-    }
-}
-
-template <typename Dtype>
-__global__ void trans_map2out(Dtype* output, const Dtype* input, const int* map, int count,
-                              int lastdim) {
-    CUDA_KERNEL_LE(tid, count) {
-        int seq = tid / lastdim;
-        output[map[seq]*lastdim + tid % lastdim] = input[tid];
-//        printf("out %d = %f\n",map[seq]*lastdim + tid % lastdim,output[map[seq]*lastdim + tid % lastdim]);
-    }
-}
-
-template <typename Dtype>
-void trans_map2out_cfunc(const Dtype*  input, Dtype* output, int word_size,int seq_sum, cudaStream_t stream,int *dev_map_vec) {
-    int count = seq_sum * word_size;
-    int block_dim = count;
-    int grid_dim = 1;
-
-    if (count > 1024) {
-        block_dim = 256;
-        grid_dim = (count + block_dim - 1) / block_dim;
-    }
-
-    trans_map2out << < grid_dim, block_dim, 0, stream >> > (output, input, dev_map_vec,
-            count, word_size);
-
-//    cudaDeviceSynchronize();
-}
-
-template <typename Dtype>
-void trans_map2in_cfunc(const Dtype*  input, Dtype* output, int hidden_size,int seq_sum, cudaStream_t stream,int *dev_map_vec) {
-    int count = seq_sum * hidden_size;
-    int block_dim = count;
-    int grid_dim = 1;
-
-    if (count > 1024) {
-        block_dim = 256;
-        grid_dim = (count + block_dim - 1) / block_dim;
-    }
-
-    trans_map2in << < grid_dim, block_dim, 0, stream >> > (output, input, dev_map_vec,
-            count, hidden_size);
-//    cudaDeviceSynchronize();
-//    exit(0);
-}
-
-
-
-template <>
-void SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::seq2hw(\
-        std::vector<DataTensor_out*> outputs, std::vector<DataTensor_in*> inputs,
-        GruParam<OpTensor>& param, int hidden_size,
-        void* real_temp_out
-                                                                         ) {
-    DataTensor_in* din = inputs[0];
-    DataTensor_out* dout = outputs[0];
-    int wordsize = din->channel();
-    std::vector<int> offset_vec = din->get_seq_offset();
-    CHECK_GE(offset_vec.size(), 2) << "offset must >=2" ;
-    int batch_size = offset_vec.size() - 1;
-
-    int max_len = 0;
-    std::vector<int> length_vec;
-
-    if ((void*)(outputs[0]->data()) == real_temp_out) {
-        DLOG(INFO) << "not use inner space";
-        return;
-    }
-
-    const OutDataType* origin = _temp_tensor_out.data();
-    OutDataType* target = dout->mutable_data();
-
-    //source is sequence id in seq target is hw id in seq,map is source to target ptr offset
-    int seq_sum = offset_vec[batch_size];
-    CUDA_CHECK(cudaMemcpyAsync(_temp_map_dev.mutable_data(), _temp_map_host.data(), sizeof(int)*seq_sum,
-                               cudaMemcpyHostToDevice, _ctx->get_compute_stream()));
-    int count=seq_sum * hidden_size;
-    int block_dim=count;
-    int grid_dim=1;
-    if(count>1024){
-        block_dim=256;
-        grid_dim=(count+block_dim-1)/block_dim;
-    }
-    trans_map2in <<< grid_dim, block_dim, 0, _ctx->get_compute_stream()>>>(target, origin, _temp_map_dev.data(),
-            count, hidden_size);
-
-//    trans_map2in_old <<< 4, 128, 0, _ctx.get_compute_stream()>>>(target, origin, _temp_map_dev.data(),
-//            count, hidden_size);
-
-}
-
-
-//TODO:gem by self, flatten by time, padding by nothing (zhangs)
-template <>
-const float* SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::hw2seq(\
-        std::vector<DataTensor_in*> inputs, GruParam<OpTensor>& param, \
-        int word_size, int hidden_size, int& sequence_len) {
-    DataTensor_in* din = inputs[0];
-
-    std::vector<int> offset_vec = din->get_seq_offset();
-    CHECK_GE(offset_vec.size(), 2) << "offset must >=2" ;
-    int batch_size = offset_vec.size() - 1;
-    int seq_sum = offset_vec[offset_vec.size() - 1];
-    int wordsize = din->channel();
-    int max_len = 0;
-    std::vector<int> length_vec(batch_size);
-
-    for (int i = 0; i < offset_vec.size() - 1; ++i) {
-        int len = offset_vec[i + 1] - offset_vec[i];
-        max_len = max_len > len ? max_len : len;
-        length_vec[i] = len;
-    }
-
-    Shape seq_shape(1, max_len, batch_size, word_size);
-    _temp_tensor_in.try_expand_size(seq_shape);
-
-    Shape seq_out_shape(1, max_len, batch_size, hidden_size);
-    _temp_tensor_out.try_expand_size(seq_out_shape);
-
-    sequence_len = max_len;
-
-    if (batch_size == 1 || max_len == 1) {
-        return din->mutable_data();
-    }
-
-    InDataType* target = _temp_tensor_in.mutable_data();
-    const InDataType* origin = din->data();
-
-    _temp_map_host.try_expand_size(seq_sum);
-    _temp_map_dev.try_expand_size(seq_sum);
-    int* map = _temp_map_host.mutable_data();
-
-    if (param.is_reverse) {
-        for (int batchid = 0; batchid < batch_size; ++batchid) {
-            int batch_offset = max_len - length_vec[batchid];
-
-            for (int seqid = 0; seqid < length_vec[batchid]; ++seqid) {
-                int source = (offset_vec[batchid] + seqid);
-                int target = ((seqid + batch_offset) * batch_size + batchid);
-                map[source] = target;
-            }
-        }
-    } else {
-        for (int batchid = 0; batchid < batch_size; ++batchid) {
-            for (int seqid = 0; seqid < length_vec[batchid]; ++seqid) {
-                int source = (offset_vec[batchid] + seqid);
-                int target = (seqid * batch_size + batchid);
-                map[source] = target;
-            }
-        }
-    }
-
-    CUDA_CHECK(cudaMemcpyAsync(_temp_map_dev.mutable_data(), _temp_map_host.data(), sizeof(int)*seq_sum,
-                               cudaMemcpyHostToDevice, _ctx->get_compute_stream()));
-    int count=seq_sum * wordsize;
-    int block_dim=count;
-    int grid_dim=1;
-    if(count>1024){
-        block_dim=256;
-        grid_dim=(count+block_dim-1)/block_dim;
-    }
-    trans_map2out <<< grid_dim, block_dim, 0, _ctx->get_compute_stream()>>>(target, origin, _temp_map_dev.data(),
-            count, wordsize);
-
-//    trans_map2out_old <<< 4, 128, 0, _ctx.get_compute_stream()>>>(target, origin, _temp_map_dev.data(),
-//            count, wordsize);
-
-
-    return _temp_tensor_in.data();
-}
-
-#define SIGMOID_THRESHOLD_MIN_PADDLE -40.0
-#define SIGMOID_THRESHOLD_MAX_PADDLE 13.0
-#define EXP_MAX_INPUT_PADDLE 40.0
-
-template <typename Dtype>
- static  __device__ Dtype invalidact(Dtype a) {
-            printf("invalid act\n");
-}
-
-template <typename Dtype>
- static  __device__ Dtype sigmoid(const Dtype a) {
-    return static_cast<Dtype>(1.0) / (static_cast<Dtype>(1.0) + expf(-a));
-}
-
-
-template <typename Dtype>
- static __device__ Dtype tanh(const Dtype a) {
-    Dtype tmp = -2.0 * a;
-    return (2.0 / (1.0 + expf(tmp))) - 1.0;
-}
-
-template <typename Dtype>
-  static __device__ Dtype identity(const Dtype a) {
-    return a;
-}
-
-template <typename Dtype>
- static __device__ Dtype relu(const Dtype a) {
-    return a > static_cast<Dtype>(0.0) ? a : static_cast<Dtype>(0.0);
-}
-
-template <typename Dtype>
- static __device__ Dtype sigmoid_fluid(const Dtype a) {
-    const Dtype min = SIGMOID_THRESHOLD_MIN_PADDLE;
-    const Dtype max = SIGMOID_THRESHOLD_MAX_PADDLE;
-    Dtype tmp = (a < min) ? min : ((a > max) ? max : a);
-
-    return static_cast<Dtype>(1.0) / (static_cast<Dtype>(1.0) + expf(-tmp));
-}
-
-template <typename Dtype>
- static __device__ Dtype tanh_fluid(const Dtype a) {
-    Dtype tmp = -2.0 * a;
-    tmp = (tmp > EXP_MAX_INPUT_PADDLE) ? EXP_MAX_INPUT_PADDLE : tmp;
-    return (2.0 / (1.0 + expf(tmp))) - 1.0;
-}
-
-static float (*act_funcs_cu[])(float)= {&invalidact, &sigmoid, &relu, &tanh, &invalidact, \
-                                & invalidact, &identity, &sigmoid_fluid, &tanh_fluid};
 
 static void anakin_NV_gemm(cublasHandle_t handle, const bool TransA,
                            const bool TransB, const int M, const int N, const int K,
@@ -362,7 +132,7 @@ FINAL_KERNEL_DEFINE(sigmoid_fluid,tanh_fluid);
 
 FINAL_KERNEL_DEFINE(sigmoid_fluid,relu);
 
-
+#if 0
 template <>
 SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::gru_cudnn(
     const std::vector<DataTensor_in*> inputs,
@@ -475,19 +245,21 @@ SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::gru_cu
     return SaberSuccess;
 
 }
+#endif
 
 template<>
-        SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispatch(\
+SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispatch(\
 const std::vector<DataTensor_in*>& inputs,
 std::vector<DataTensor_out*>& outputs,
 GruParam <OpTensor>& param) {
     if (param.formula == GRU_CUDNN) {
-                LOG(ERROR) << "saber cudnn formula not support reverse yet";
-        if (param.is_reverse) {
-                    LOG(ERROR) << "saber cudnn formula not support reverse yet";
-
-        }
-        return gru_cudnn(inputs, outputs, param);
+//                LOG(ERROR) << "saber cudnn formula not support reverse yet";
+//        if (param.is_reverse) {
+//                    LOG(ERROR) << "saber cudnn formula not support reverse yet";
+//
+//        }
+//        return gru_cudnn(inputs, outputs, param);
+        CHECK(false)<<"not support gru_cudnn now!";
     }
 
     //    LOG(INFO)<<"gru_paddle";
@@ -509,10 +281,10 @@ GruParam <OpTensor>& param) {
     int r_offset = 1;
     int z_offset = 2;
 
-    std::vector<int> emit_offset_vec;
-    int emit_length=0;
     _temp_map_dev.try_expand_size(seq_sum);
-    isHW2Seq=_seq_util.get_sorted_map(offset,emit_offset_vec,emit_length,_ctx->get_compute_stream());
+    isHW2Seq = _seq_util.get_sorted_map(offset, _ctx->get_compute_stream());
+    auto emit_offset_vec = _seq_util.get_emit_offset_vec();
+    auto emit_length = emit_offset_vec.size() - 1;
     if (isHW2Seq) {
         Shape seq_shape(1, 1, seq_sum, _word_size);
         _temp_tensor_in.try_expand_size(seq_shape);
@@ -532,7 +304,7 @@ GruParam <OpTensor>& param) {
     Shape shape_WHR(1, batch_size, 1, hidden_size);
     _temp_WHR.try_expand_size(shape_WHR);
 
-    _gemm_wx(seq_sum * batch_size, 3 * hidden_size, _word_size,1.0, x_data,0.0, _weights_i2h.data(),_temp_WX.mutable_data(),_ctx->get_compute_stream());
+    _gemm_wx(seq_sum, 3 * hidden_size, _word_size,1.0, x_data,0.0, _weights_i2h.data(),_temp_WX.mutable_data(),_ctx->get_compute_stream());
 
     const OpDataType* b_r = b->data() + r_offset * hidden_size;
     const OpDataType* b_z = b->data() + z_offset * hidden_size;
@@ -594,7 +366,7 @@ GruParam <OpTensor>& param) {
                     , _ctx->get_compute_stream() >> > (
                     w_x_r, w_h_r
                             , b_r, hidden_size, hidden_out, hidden_in);
-        }else if(param.gate_activity == Active_sigmoid_fluid){
+        }else if(param.gate_activity == Active_sigmoid){
             RESET_KERNEL_NAME(sigmoid_fluid) << < emit_word_length, frame_per_block, 0
                     , _ctx->get_compute_stream() >> > (
                     w_x_r, w_h_r
@@ -605,11 +377,11 @@ GruParam <OpTensor>& param) {
 
         _gemm_wh_o(emit_word_length, hidden_size, hidden_size,1.0, hidden_out,0.0,w_o,_temp_WHR.mutable_data(),_ctx->get_compute_stream());
 
-        if(param.gate_activity == Active_sigmoid_fluid&&param.h_activity == Active_tanh_fluid) {
+        if(param.gate_activity == Active_sigmoid&&param.h_activity == Active_tanh) {
             FINAL_KERNEL_NAME(sigmoid_fluid,tanh_fluid)<< < emit_word_length, frame_per_block, 0
                     , _ctx->get_compute_stream() >> > (
                     w_x_z, w_x_o, w_h_z, b_z, b_o, hidden_size, hidden_out, hidden_in, _temp_WHR.data());
-        }else if(param.gate_activity == Active_sigmoid_fluid&&param.h_activity == Active_relu){
+        }else if(param.gate_activity == Active_sigmoid&&param.h_activity == Active_relu){
             FINAL_KERNEL_NAME(sigmoid_fluid,relu)<< < emit_word_length, frame_per_block, 0
                     , _ctx->get_compute_stream() >> > (
                     w_x_z, w_x_o, w_h_z, b_z, b_o, hidden_size, hidden_out, hidden_in, _temp_WHR.data());
@@ -617,44 +389,15 @@ GruParam <OpTensor>& param) {
             CHECK_EQ(0,1) << "not support active  function "<<param.gate_activity<<","<<param.h_activity;
         }
 
-//        if (param.gate_activity == Active_sigmoid
-//            && param.h_activity == Active_tanh) {
-//            cal_one_kernel_sigmoid_tanh_paddle_formula
-//                    <<< emit_word_length, frame_per_block, sizeof(OutDataType)*hidden_size
-//                    , _ctx.get_compute_stream()>>>(
-//                    w_x_r, w_x_z, w_x_o, w_h_r, w_h_z, w_o
-//                            , b_r, b_z, b_o, hidden_size, hidden_out, hidden_in);
-//
-//        } else if (param.gate_activity == Active_sigmoid_fluid
-//                   && param.h_activity == Active_tanh_fluid) {
-//            cal_one_kernel_sigmoidfluid_tanhfluid_paddle_formula
-//                    <<< emit_word_length, frame_per_block, sizeof(OutDataType)*hidden_size
-//                    , _ctx.get_compute_stream()>>>(
-//                    w_x_r, w_x_z, w_x_o, w_h_r, w_h_z, w_o
-//                            , b_r, b_z, b_o, hidden_size, hidden_out, hidden_in);
-//
-//        }  else if (param.gate_activity == Active_sigmoid_fluid
-//                    && param.h_activity == Active_relu) {
-//            cal_one_kernel_paddlesigmoid_relu_paddle_formula
-//                    << < emit_word_length, frame_per_block, sizeof(OutDataType)*hidden_size
-//                    , _ctx.get_compute_stream() >> >
-//                      (w_x_r, w_x_z, w_x_o, w_h_r, w_h_z, w_o
-//                              , b_r, b_z, b_o, hidden_size, hidden_out, hidden_in);
-//
-//        } else {
-//                    LOG(ERROR) << "not support active  function";
-//        }
     }
 
     if (isHW2Seq) {
         _seq_util.sorted_seq_2_seq(_temp_tensor_out.data(),dout->mutable_data(),_hidden_size,_ctx->get_compute_stream());
-//        LOG(INFO)<<"are you ok";
-//        seq2hw(outputs, inputs, param, hidden_size, dout_data);
     }
     outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
     return SaberSuccess;
 }
-
+template class SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
 #if 0
 template<>
 SaberStatus SaberGru<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispatch(\

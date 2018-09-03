@@ -58,9 +58,9 @@ Status LstmHelper<Ttype, Dtype, Ptype>::InitParam() {
 
     std::unordered_map<std::string, ActiveType> enum_map = {
             {"null",Active_unknow},
-            {"sigmoid_fluid", Active_sigmoid_fluid},
+            {"sigmoid_fluid", Active_sigmoid},
             {"relu_fluid", Active_relu},
-            {"tanh_fluid", Active_tanh_fluid},
+            {"tanh_fluid", Active_tanh},
             {"identity_fluid", Active_identity},
             {"sigmoid", Active_sigmoid},
             {"tanh", Active_tanh},
@@ -80,7 +80,11 @@ Status LstmHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype> &ctx,
                                                 const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
                                                 std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
     DLOG(INFO)<<"inti lstm in op.cpp";
+    #ifdef USE_CUDA
     SABER_CHECK(_funcs_lstm.init(ins, outs, _param_lstm, SPECIFY, SABER_IMPL, ctx));
+    #else
+    SABER_CHECK(_funcs_lstm.init(ins, outs, _param_lstm, SPECIFY, SABER_IMPL, ctx));
+    #endif
     return Status::OK();
 }
 

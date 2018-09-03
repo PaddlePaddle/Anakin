@@ -12,6 +12,22 @@ namespace anakin {
 namespace graph {
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
+Status Graph<Ttype, Dtype, Ptype>::load(std::istream* instream) EXCLUSIVE_LOCKS_REQUIRED(_mut) {
+    std::unique_lock<std::mutex> lock(this->_mut);
+    Status ret = Status::OK();
+    if(instream != nullptr) {
+        this->Clean();
+        ret = parser::load<Ttype, Dtype>(this, instream);
+        _model_path = "parser from istream";
+    } else {
+        LOG(ERROR) << "input stream is empty";
+        return Status::FAIL();
+    }
+
+    return ret;
+}
+
+template<typename Ttype, DataType Dtype, Precision Ptype>
 Status Graph<Ttype, Dtype, Ptype>::load(std::string model_path) EXCLUSIVE_LOCKS_REQUIRED(_mut) {
     std::unique_lock<std::mutex> lock(this->_mut);
     Status ret = Status::OK();
@@ -133,7 +149,7 @@ Status Graph<Ttype, Dtype, Ptype>::Optimize() EXCLUSIVE_LOCKS_REQUIRED(_mut) {
 			_nodes_exec_order = scheduler.get_exec_node_in_order();
 
 
-#if 0
+#if 1
             // get node exec in order
             _nodes_exec_order = scheduler.get_exec_node_in_order();
 #else		// enable conv+eltwise fusion

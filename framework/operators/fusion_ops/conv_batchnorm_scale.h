@@ -29,7 +29,6 @@ namespace ops {
 template<typename Ttype, DataType Dtype, Precision Ptype>
 class ConvBatchnormScaleHelper;
 
-/// pooling op
 /**
  * \brief ConvBatchnormScaleHelper implementation class
  * public inherit Operator

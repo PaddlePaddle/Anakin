@@ -21,10 +21,10 @@ include(cmake/statistic.cmake)
 # ----------------------------------------------------------------------------
 # section: global anakin version and lib name
 # ----------------------------------------------------------------------------
-# global anakin version 0.1.0
+# global anakin version 0.1.2
 set(VERSION_MAJOR "0")
 set(VERSION_MINOR "1")
-set(VERSION_PATCH "0")
+set(VERSION_PATCH "2")
 set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 
 # anakin lib name and global directories
@@ -76,7 +76,7 @@ anakin_option(BUILD_FAT_BIN "Build anakin cuda fat-bin lib for all device plantf
 
 cmake_minimum_required(VERSION ${MIN_CMAKE_V} FATAL_ERROR)
 
-if(USE_CUDA)
+if(USE_CUDA AND (NOT SELECTED_SASS_TARGET_ARCH))
     # Select gpu target arch for local high performance implement sass code . Now we have checked on sm_61 sm_50 and it works well.
     set(SELECTED_SASS_TARGET_ARCH "61")
 endif()
@@ -102,7 +102,7 @@ anakin_option(USE_GLOG "Build Glog components." NO if NOT USE_LOGGER)
 anakin_option(USE_PROTOBUF "Build Google protobuf components." YES)
 anakin_option(USE_OPENCV "Use static opencv libs." NO)
 anakin_option(USE_BOOST "Use static BOOST libs." NO)
-anakin_option(USE_OPENMP "Use Openmp when in android environment." NO)
+anakin_option(USE_OPENMP "Use Openmp when in android environment." YES if USE_ARM_PLACE OR USE_X86_PLACE)
 anakin_option(USE_GTEST "Use googletest libs." NO if BUILD_WITH_UNIT_TEST)
 anakin_option(USE_PYTHON "Generate py wrappers." NO)
 anakin_option(USE_OPENCL "Use OpenCL ." NO)

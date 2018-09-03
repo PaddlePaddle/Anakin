@@ -68,7 +68,7 @@ def NotNeededInInference(args):
     node_io = args[0]
     layer = args[1]
     tensors = args[2]
-    logger(verbose.ERROR).feed("Layer type(", layer.name, " : ", layer.type, ") with ", \
+    logger(verbose.INFO).feed("Layer type(", layer.name, " : ", layer.type, ") with ", \
             len(tensors), " tensors  not needed in inference.")
 
 
@@ -303,6 +303,72 @@ def Parser_convolution(args):
         OpsRegister()["Convolution"].axis = 1
     OpsRegister()["Convolution"].bias_term = convolution_param.bias_term
 
+@ParserFeedDecorator("Convolution")
+def Parser_convolutiondepthwise(args):
+    layer = args[1]
+    # parser caffe parameter
+    convolution_param = layer.convolution_param
+    OpsRegister()["Convolution"].filter_num = convolution_param.num_output
+    kernel_size = []
+    if type(convolution_param.kernel_size) == repeat_container: # support for old version caffe proto
+        if len(convolution_param.kernel_size):
+            if len(convolution_param.kernel_size) == 1:
+                kernel_size = list([convolution_param.kernel_size[0], convolution_param.kernel_size[0]])
+            else:
+                kernel_size = list(convolution_param.kernel_size)
+        else:
+            kernel_size = [convolution_param.kernel_h, convolution_param.kernel_w]
+    elif convolution_param.kernel_size > 0:
+        kernel_size = list([convolution_param.kernel_size, convolution_param.kernel_size])
+    else:
+        kernel_size = [convolution_param.kernel_h, convolution_param.kernel_w]
+    OpsRegister()["Convolution"].kernel_size = kernel_size
+    strides = []
+    if type(convolution_param.stride) == repeat_container:
+        if len(convolution_param.stride):
+            if len(convolution_param.stride) == 1:
+                strides = list([convolution_param.stride[0], convolution_param.stride[0]])
+            else:
+                strides = list(convolution_param.stride)
+        else:
+            strides = [convolution_param.stride_h, convolution_param.stride_w]
+    elif convolution_param.stride > 0:
+        strides = [convolution_param.stride, convolution_param.stride]
+    else:
+        strides = [convolution_param.stride_h, convolution_param.stride_w]
+    if strides[0] == 0:
+        strides[0] = 1
+        strides[1] = 1
+    OpsRegister()["Convolution"].strides = strides
+    paddings = []
+    if type(convolution_param.pad) == repeat_container:
+        if len(convolution_param.pad):
+            if len(convolution_param.pad) == 1:
+                paddings = list([convolution_param.pad[0], convolution_param.pad[0]])
+            else:
+                paddings = list(convolution_param.pad)
+        else:
+            paddings = [convolution_param.pad_h, convolution_param.pad_w]
+    elif convolution_param.pad > 0:
+        paddings = list([convolution_param.pad, convolution_param.pad])
+    else:
+        paddings = [convolution_param.pad_h, convolution_param.pad_w]
+    OpsRegister()["Convolution"].padding = paddings
+    if is_has_proto_key(convolution_param, "dilation"):
+        if len(convolution_param.dilation) == 0:
+            OpsRegister()["Convolution"].dilation_rate = list([1, 1])
+        elif len(convolution_param.dilation) == 1:
+            OpsRegister()["Convolution"].dilation_rate = list([convolution_param.dilation[0], convolution_param.dilation[0]])
+        else:
+            OpsRegister()["Convolution"].dilation_rate = list(convolution_param.dilation)
+    else:
+        OpsRegister()["Convolution"].dilation_rate = list([1, 1])
+    OpsRegister()["Convolution"].group = convolution_param.num_output
+    if is_has_proto_key(convolution_param, "axis"):
+        OpsRegister()["Convolution"].axis = convolution_param.axis
+    else:
+        OpsRegister()["Convolution"].axis = 1
+    OpsRegister()["Convolution"].bias_term = convolution_param.bias_term
 
 @ParserFeedDecorator("Cropping")
 def Parser_crop(args):
@@ -381,7 +447,7 @@ def Parser_innerproduct(args):
     # parser caffe parameter
     tensors = args[2]
     weight = tensors[0]
-    inner_product_param = layer.inner_product_param	
+    inner_product_param = layer.inner_product_param 
     OpsRegister()["Dense"].axis = inner_product_param.axis # weight().shape.dim.value[2]
     OpsRegister()["Dense"].out_dim = inner_product_param.num_output # weight().shape.dim.value[3]
     OpsRegister()["Dense"].bias_term = inner_product_param.bias_term
@@ -548,14 +614,14 @@ def Parser_slice(args):
 @ParserFeedDecorator("Activation")
 def Parser_tanh(args):
     # parser caffe parameter
-    logger(verbose.ERROR).feed("Layer  in tanh")
+    logger(verbose.INFO).feed("Layer  in tanh")
     OpsRegister()["Activation"].type = "TanH"
 
 
 @ParserFeedDecorator("Activation")
 def Parser_sigmoid(args):
     # parser caffe parameter
-    logger(verbose.ERROR).feed("Layer  in Sigmoid")
+    logger(verbose.INFO).feed("Layer  in Sigmoid")
     OpsRegister()["Activation"].type = "Sigmoid"
 
 
@@ -575,7 +641,7 @@ def Parser_input(args):
     OpsRegister()["Input"].input_shape = list(input_param.shape[0].dim)
     #OpsRegister()["Input"].input_num = len(input_param.shape)
     #for shape in input_param.shape:
-    #	OpsRegister()["Input"].input_shape.append(list(shape.dim))
+    #   OpsRegister()["Input"].input_shape.append(list(shape.dim))
 
 
 @ParserFeedDecorator("Permute")
@@ -612,6 +678,13 @@ def Parser_split(args):
     # parser caffe parameter
     top = layer.top
     OpsRegister()["Split"].split_num = len(top)
+
+@ParserFeedDecorator("ShuffleChannel")
+def Parser_ShuffleChannel(args):
+    layer = args[1]
+    # parser caffe parameter
+    shufflechannel_param = layer.shuffle_channel_param
+    OpsRegister()["ShuffleChannel"].group = shufflechannel_param.group
 
 
 @ParserFeedDecorator("RPNProposalSSD")
@@ -1005,13 +1078,21 @@ def Parser_priorbox(args):
     OpsRegister()["PriorBox"].min_size = list(prior_box_param.min_size)
     OpsRegister()["PriorBox"].max_size = list(prior_box_param.max_size)
     OpsRegister()["PriorBox"].aspect_ratio = list(prior_box_param.aspect_ratio)
+    OpsRegister()["PriorBox"].fixed_size = list(prior_box_param.fixed_size)
+    OpsRegister()["PriorBox"].fixed_ratio = list(prior_box_param.fixed_ratio)
+    OpsRegister()["PriorBox"].density = list(prior_box_param.density)
+    OpsRegister()["PriorBox"].aspect_ratio = list(prior_box_param.aspect_ratio)
     OpsRegister()["PriorBox"].is_flip = prior_box_param.flip
     OpsRegister()["PriorBox"].is_clip = prior_box_param.clip
     OpsRegister()["PriorBox"].variance = list(prior_box_param.variance)
     OpsRegister()["PriorBox"].img_h = prior_box_param.img_h
     OpsRegister()["PriorBox"].img_w = prior_box_param.img_w
-    OpsRegister()["PriorBox"].step_h = prior_box_param.step_h
-    OpsRegister()["PriorBox"].step_w = prior_box_param.step_w
+    if prior_box_param.HasField('step_h') and pooling_param.HasField('step_w'):
+        OpsRegister()["PriorBox"].step_h = prior_box_param.step_h
+        OpsRegister()["PriorBox"].step_w = prior_box_param.step_w
+    elif prior_box_param.HasField('step'):
+        OpsRegister()["PriorBox"].step_h = prior_box_param.step
+        OpsRegister()["PriorBox"].step_w = prior_box_param.step
     OpsRegister()["PriorBox"].offset = prior_box_param.offset
     OpsRegister()["PriorBox"].order = ['MIN', 'MAX', 'COM']
 
@@ -1055,10 +1136,19 @@ def Parser_normalize(args):
     layer = args[1]
     norm_param = layer.norm_param
     scale_filler = norm_param.scale_filler
+    OpsRegister()["Normalize"].begin_norm_axis = -1
     OpsRegister()["Normalize"].is_across_spatial = norm_param.across_spatial
     OpsRegister()["Normalize"].is_shared_channel = norm_param.channel_shared
     OpsRegister()["Normalize"].eps = norm_param.eps
     OpsRegister()["Normalize"].p = 2
+
+
+@ParserFeedDecorator("Activation")
+def Parser_relu6(args):
+    layer = args[1]
+    relu6_param = layer.relu6_param
+    OpsRegister()["Activation"].type = "ClippedRelu"
+    OpsRegister()["Activation"].clip_relu_num = 6
 
 
 # caffe layer parameter parser map
@@ -1071,7 +1161,8 @@ CAFFE_LAYER_PARSER = {
                 "Concat": OpsParam().set_parser(Parser_concat),
                 "ContrastiveLoss": OpsParam().set_parser(NotNeededInInference),
                 "Convolution": OpsParam().set_parser(Parser_convolution),
-                "ConvolutionDepthwise": OpsParam().set_parser(Parser_convolution),
+                "ConvolutionDepthwise": OpsParam().set_parser(Parser_convolutiondepthwise),
+                "DepthwiseConvolution": OpsParam().set_parser(Parser_convolutiondepthwise),
                 "Deconvolution": OpsParam().set_parser(Parser_deconvolution),
                 "DeformableConvolution": OpsParam().set_parser(Parser_deformable_convolution),
                 "Crop": OpsParam().set_parser(Parser_crop),
@@ -1125,5 +1216,7 @@ CAFFE_LAYER_PARSER = {
                 "DetectionOutput": OpsParam().set_parser(Parser_detectionoutput), # vis add
                 "ArgMax": OpsParam().set_parser(Parser_argmax),
                 "Normalize": OpsParam().set_parser(Parser_normalize),
-                "Resize": OpsParam().set_parser(Parser_resize)
+                "Resize": OpsParam().set_parser(Parser_resize),
+                "ReLU6": OpsParam().set_parser(Parser_relu6),
+                "ShuffleChannel": OpsParam().set_parser(Parser_ShuffleChannel)
                 }

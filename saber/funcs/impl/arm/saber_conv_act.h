@@ -15,6 +15,7 @@
 #define ANAKIN_SABER_FUNCS_ARM_IMPL_SABER_CONV_ACT_H
 
 #include "saber/funcs/impl/arm/saber_conv.h"
+#include "saber/funcs/impl/arm/saber_activation.h"
 #include "saber/funcs/impl/impl_conv_act.h"
 
 #ifdef USE_ARM_PLACE
@@ -62,7 +63,9 @@ public:
                                  ConvActiveParam<OpTensor> &param) override;
 
 private:
-    SaberConv2D<ARM, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>* _conv_op;
+    SaberConv2D<ARM,  OpDtype, inDtype, outDtype, LayOutType_op, LayOutType_in, LayOutType_out>* _conv_op{nullptr};
+    SaberActivation<ARM,  OpDtype, inDtype, outDtype, LayOutType_op, LayOutType_in, LayOutType_out>* _act_op{nullptr};
+    //Tensor<ARM, AK_FLOAT, NCHW> tmp_tensor;
 };
 
 } //namespace saber

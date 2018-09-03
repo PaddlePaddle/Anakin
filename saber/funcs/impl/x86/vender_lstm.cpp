@@ -1,5 +1,5 @@
 #include "saber/funcs/impl/x86/vender_lstm.h"
-#include "saber/funcs/impl/x86/activation_functions.h"
+#include "saber/funcs/impl/x86/saber_normal_activation.h"
 #include "saber/funcs/impl/x86/kernel/jit_generator.h"
 
 namespace anakin {
@@ -17,7 +17,7 @@ void VenderLstm<X86, OpDtype, inDtype, outDtype,
                                                                         const ActiveType &gate_act,
                                                                         const ActiveType &cell_act,
                                                                         const ActiveType &cand_act) {
-#ifdef __AVX__
+#if defined(__AVX2__) and defined(__FMA__)
 #pragma omp parallel for if(this->max_thread_num_ > 1) collapse(2)
     for (int b = 0; b < batch_size; b++) {
         for (int i = 0; i < hidden_size/8; i++) {
@@ -44,12 +44,12 @@ void VenderLstm<X86, OpDtype, inDtype, outDtype,
                 r_checkO = (reinterpret_cast<const __m256 *>(value.check_og))[i];
             }
 
-            value_in[i] = math::avx_activation(value_in[i], cand_act);
-            value_ig[i] = math::avx_activation(_mm256_add_ps(value_ig[i], _mm256_mul_ps(prev_state_v, r_checkI)), gate_act);
-            value_fg[i] = math::avx_activation(_mm256_add_ps(value_fg[i], _mm256_mul_ps(prev_state_v, r_checkF)), gate_act);
+            value_in[i] = Activate_inner(value_in[i], cand_act);
+            value_ig[i] = Activate_inner(_mm256_add_ps(value_ig[i], _mm256_mul_ps(prev_state_v, r_checkI)), gate_act);
+            value_fg[i] = Activate_inner(_mm256_add_ps(value_fg[i], _mm256_mul_ps(prev_state_v, r_checkF)), gate_act);
             state[i] = _mm256_add_ps(_mm256_mul_ps(value_in[i],value_ig[i]), _mm256_mul_ps(prev_state_v, value_fg[i]));
-            value_og[i] = math::avx_activation(_mm256_add_ps(value_og[i], _mm256_mul_ps(state[i], r_checkO)), gate_act);
-            state_active[i] = math::avx_activation(state[i], cell_act);
+            value_og[i] = Activate_inner(_mm256_add_ps(value_og[i], _mm256_mul_ps(state[i], r_checkO)), gate_act);
+            state_active[i] = Activate_inner(state[i], cell_act);
             output[i] = _mm256_mul_ps(value_og[i], state_active[i]);
         }
     }
@@ -87,15 +87,20 @@ void VenderLstm<X86, OpDtype, inDtype, outDtype,
             DataType_in r_checkF = value.check_fg ? value.check_fg[i] : 0;
             DataType_in r_checkO = value.check_og ? value.check_og[i] : 0;
 
-            math::activation(1, value_in + i, value_in + i, cand_act);
+            value_in[i]=Activate_inner(value_in[i],cand_act);
+//            math::activation(1, value_in + i, value_in + i, cand_act);
             DataType_in tmp = value_ig[i] + prev_state_v * r_checkI;
-            math::activation(1, &tmp, value_ig + i, gate_act);
+            value_ig[i]=Activate_inner(tmp,gate_act);
+//            math::activation(1, &tmp, value_ig + i, gate_act);
             tmp = value_fg[i] + prev_state_v * r_checkF;
-            math::activation(1, &tmp, value_fg + i, gate_act);
+            value_fg[i]=Activate_inner(tmp,gate_act);
+//            math::activation(1, &tmp, value_fg + i, gate_act);
             state[i] = value_in[i] * value_ig[i] + prev_state_v * value_fg[i];
             tmp = value_og[i] + state[i] * r_checkO;
-            math::activation(1, &tmp, value_og + i, gate_act);
-            math::activation(1, state + i, state_active + i, cell_act);
+            value_og[i]=Activate_inner(tmp,gate_act);
+//            math::activation(1, &tmp, value_og + i, gate_act);
+            state_active[i]=Activate_inner(state[i],cell_act);
+//            math::activation(1, state + i, state_active + i, cell_act);
             output[i] = value_og[i] * state_active[i];
         }
     }
@@ -315,7 +320,9 @@ SaberStatus VenderLstm<X86, OpDtype, inDtype, outDtype,
         switch (param.input_activity) {
             case Active_stanh:
             case Active_tanh:
-                math::parallel_activation(cnt, p, p, param.input_activity);
+
+                for(int i=0;i<cnt;i++)
+                    p[i]=Activate_inner(p[i], param.input_activity);
                 break;
             case Active_unknow:
                 break;
