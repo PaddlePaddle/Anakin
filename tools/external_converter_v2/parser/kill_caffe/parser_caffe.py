@@ -96,8 +96,8 @@ class CaffeParser:
         '''
         param_split = NetParameter()
         layers = self.net_parameter.layer or self.net_parameter.layers
-	top_blobs_of_slices = list()
-	btm_blobs_of_concats = list()
+        top_blobs_of_slices = list()
+        btm_blobs_of_concats = list()
         for idx, layer in enumerate(layers):
             if layer.type == 'Slice':
 		top_blobs_of_slices.extend(layer.top)
