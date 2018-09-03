@@ -4,7 +4,7 @@
 import os
 from ..logger import *
 
-import caffe_pb2
+#import caffe_pb2
 
 for module in os.listdir(os.path.dirname(__file__)):
     if module == '__init__.py' or module[-3:] != '.py':
