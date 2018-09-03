@@ -34,12 +34,23 @@ void fill_tensor_const(Tensor<TargetType>& tensor, float value, typename Tensor<
 
 template <typename Dtype>
 void fill_tensor_host_rand_impl(Dtype* dio, long long size) {
-    const int max=1024;
     for (long long i = 0; i < size; ++i) {
-        dio[i] = static_cast<Dtype>(rand()%max-max/2)/static_cast<Dtype>(max/2);
+        Dtype rand_x=static_cast<Dtype>(rand()%256);
+        dio[i] = (rand_x-128)/128;
     }
 }
-
+template <>
+void fill_tensor_host_rand_impl<char>(char* dio, long long size) {
+    for (long long i = 0; i < size; ++i) {
+        dio[i] = rand()%256-128;
+    }
+}
+template <>
+void fill_tensor_host_rand_impl<unsigned char>(unsigned char* dio, long long size) {
+    for (long long i = 0; i < size; ++i) {
+        dio[i] = rand()%256;
+    }
+}
 template <typename Dtype>
 void fill_tensor_host_seq_impl(Dtype* dio, long long size) {
     for (long long i = 0; i < size; ++i) {
