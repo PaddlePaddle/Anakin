@@ -54,6 +54,7 @@
 #include "framework/operators/priorbox.h"
 #include "framework/operators/relu.h"
 #include "framework/operators/reshape.h"
+#include "framework/operators/resize.h"
 #include "framework/operators/scale.h"
 #include "framework/operators/sequence_pool.h"
 #include "framework/operators/slice.h"
