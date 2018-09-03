@@ -40,10 +40,11 @@ def board_home():
     # parsing target framework config
     framework = config.framework
     parser_config.append(["Framework", framework, " The target framework processing "])
-    protos = clip_paths(config.framework_config_dict['ProtoPaths'])
-    parser_config.append(["Proto", protos, "Protobuf define files "])
-    prototxt = clip_path(config.framework_config_dict['PrototxtPath'])
-    parser_config.append(["Prototxt", prototxt, "Network tarits define"])
+    if framework == "CAFFE":
+        protos = clip_paths(config.framework_config_dict['ProtoPaths'])
+        parser_config.append(["Proto", protos, "Protobuf define files "])
+        prototxt = clip_path(config.framework_config_dict['PrototxtPath'])
+        parser_config.append(["Prototxt", prototxt, "Network tarits define"])
     model = clip_path(config.framework_config_dict['ModelPath'])
     parser_config.append(["Model", model, "Model parameter file"])
     return render_template('index.html', \
