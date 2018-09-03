@@ -135,16 +135,16 @@ TEST(TestSaberFuncPowerNV, test_func_constructor) {
     PowerParam<TensorDf4> param(/*power*/1.0f, /*scale*/ float(5), /*shift*/0.0f);
 
     for (auto input_share : {
-                false, true
+                false
             }) {
         for (auto output_share : {
-                    false, true
+                    false
                 }) {
             for (auto input_share_sub : {
-                        false, true
+                        false
                     }) {
                 for (auto output_share_sub : {
-                            false, true
+                            false
                         }) {
                     for (auto get_time : {
                                 false

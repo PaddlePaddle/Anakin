@@ -40,10 +40,146 @@ class CaffeParser:
         self._ParserPrototxt()
         self._UpgradeNetAsNeeded()
         self._FilterNet()
+        self._SplitInception(False)
         self._InsertSplits()
         self._ScatterInputLayer()
         # create input node
         #self._CreateInputNode() maybe not need
+    def _SplitInception(self, is_weight):
+        print is_weight
+        net = self.net_parameter
+        
+        if is_weight:
+            net = self.net_param_weights
+        else:
+            print net
+        layers = net.layers or net.layer;
+        new_layers = []
+        net_param  = NetParameter()
+        blob_name_dict = {}
+        for idx, layer in enumerate(layers):
+            if layer.type != "Inception":
+                for b_id, blob in enumerate(layer.bottom):
+                    if blob in blob_name_dict:
+                        layer.bottom[b_id] = blob_name_dict[blob]
+                new_layers.append(layer)
+                if is_weight:
+                    if (layer.type == "Slice"):
+                        print layer
+            else:
+                for b_id, blob in enumerate(layer.bottom):
+                    if blob in blob_name_dict:
+                        layer.bottom[b_id] = blob_name_dict[blob]
+                #if is_weight:
+                    #print layer
+                inception_top = layer.top
+                bottom_name = layer.bottom
+                inception_param = layer.inception_param
+                relu_param = inception_param.relu_param
+                need_relu = inception_param.need_relu
+                relu_at_top = inception_param.relu_at_top
+                columns = inception_param.inception_column
+                columns_top = []
+                blob_id = 0
+                inception = []
+                blobs = layer.blobs
+                if len(blobs) != 0:
+                     print "****************************************"
+                     for b in blobs:
+                         print "inception blob shape", b.shape
+                for cl_id, column in enumerate(columns):
+                    convs = column.convolution_param
+                    col_name = inception_top[0] + "_" + column.column_name
+                    bottom = bottom_name[0]
+                    for conv_id, conv in enumerate(convs):
+                         conv_layer = net_param.layer.add()
+                         conv_layer.type = "Convolution"
+                         top = col_name + "_" + str(conv_id + 1) + "_conv"
+                         conv_layer.convolution_param.CopyFrom(conv)
+                         if conv_layer.convolution_param.HasField("kernel_size"):
+                             conv_layer.convolution_param.pad = (conv_layer.convolution_param.kernel_size  - 1) / 2
+                         else:
+                             conv_layer.convolution_param.pad_h = (conv_layer.convolution_param.kernel_h  - 1) / 2
+                             conv_layer.convolution_param.pad_w = (conv_layer.convolution_param.kernel_w  - 1) / 2
+                              
+                         conv_layer.top.append(top)
+                         conv_layer.bottom.append(bottom)
+                         conv_layer.name = top;
+                         inception.append(conv_layer)
+                         if len(blobs) != 0:
+                             if conv_layer.convolution_param.bias_term:
+                             #    conv_layer.blobs.append(blobs[blob_id])
+                             #    conv_layer.blobs.append(blobs[blob_id+1])
+                                 blob_id += 2
+                             else:
+                             #    conv_layer.blobs.append(blobs[blob_id+1])
+                                 blob_id += 1
+                         bottom = top
+                         if (need_relu):
+                             if relu_at_top:
+                                 relu_layer = net_param.layer.add()
+                                 relu_layer.type = "ReLU"
+                                 relu_layer.top.append(bottom)
+                                 relu_layer.bottom.append(bottom)
+                                 relu_layer.relu_param.CopyFrom(inception_param.relu_param)
+                                 relu_layer.name = col_name + "_" + str(conv_id + 1) + "relu";
+                                 inception.append(relu_layer)
+                             else:
+                                 relu_layer = net_param.layer.add()
+                                 relu_layer.type = "ReLU"
+                                 top = col_name + "_relu_" + str(conv_id)
+                                 relu_layer.name = col_name + "_" + str(conv_id + 1) + "relu";
+                                 relu_layer.bottom.append(bottom)
+                                 relu_layer.top.append(top)
+                                 if inception_param.HasField("relu_param"):
+                                     relu_layer.relu_param.CopyFrom(inception_param.relu_param)
+                                 else:
+                                     relu_layer.relu_param = ReLUParameter()
+                                 bottom = top
+                                 inception.append(relu_layer)
+                                 
+                    if column.HasField("pooling_param"):
+                        pool_layer = net_param.layer.add()
+                        pool_layer.type = "Pool"
+                        top = col_name + "_pool"
+                        pool_layer.name = top
+                        pool_layer.top.append(top)
+                        pool_layer.bottom.append(bottom)
+                        pool_layer.pooling_param.CopyFrom(column.pooling_param)
+                        bottom = top
+                        inception.append(pool_layer)
+                    columns_top.append(bottom)
+                if len(columns_top) > 1:
+                    concat_layer = net_param.layer.add()
+                    for bot in columns_top:
+                        concat_layer.bottom.append(bot)
+                    concat_layer.top.append(inception_top[0])
+                    concat_layer.type = "Concat"
+                    concat_layer.name = top + "_concat"
+                    inception.append(concat_layer)
+                    bottom = inception_top[0]
+                else:
+                    blob_name_dict[inception_top[0]] = bottom
+                
+                new_layers.extend(inception)
+                #print inception
+                #for com in inception:
+                #    new_layers.append(com)
+        if is_weight:
+            if self.net_param_weights.layers:
+                del self.net_param_weights.layers[:]
+                self.net_param_weights.layers.extend(new_layers)
+            if self.net_param_weights.layer:
+                del self.net_param_weights.layer[:]
+                self.net_param_weights.layer.extend(new_layers)
+        else:
+            if self.net_parameter.layers:
+                del self.net_parameter.layers[:]
+                self.net_parameter.layers.extend(new_layers)
+            if self.net_parameter.layer:
+                del self.net_parameter.layer[:]
+                self.net_parameter.layer.extend(new_layers)
+        
 
     def _ParserPrototxt(self):
         """
@@ -51,6 +187,13 @@ class CaffeParser:
         """
         with open(self.PrototxtPath, "r") as f:
             text_format.Merge(f.read(), self.net_parameter)
+
+    def _ParserPrototxtWithModel(self):
+        """
+        don't need to be used.
+        """
+        with open(self.ModelPath, "r") as f:
+            self.net_parameter.MergeFromString(f.read())
 
     def _ParserModel(self):
         with open(self.ModelPath, "r") as f:
@@ -340,6 +483,7 @@ class CaffeParser:
         # parsing model
         logger(verbose.ERROR).feed(" [CAFFE] Model Parameter Parsing ...")
         self._ParserModel()
+        self._SplitInception(True)
         model_layers = self.net_param_weights.layers or self.net_param_weights.layer
 
         # we must setting graph edge first
@@ -460,6 +604,7 @@ class CaffeParser:
         # parsing model
         logger(verbose.ERROR).feed(" [CAFFE] Model Parameter Parsing ...")
         self._ParserModel()
+        #self._SplitInception(True)
         model_layers = self.net_param_weights.layers or self.net_param_weights.layer
         for idx, rlayer in enumerate(real_layers):
             source_layer_name = rlayer.name
