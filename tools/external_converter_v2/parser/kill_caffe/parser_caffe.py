@@ -419,19 +419,20 @@ class CaffeParser:
             if not input_dim:
                 if len(self.net_parameter.input_shape) > 0:
                     input_dim = map(int, self.net_parameter.input_shape[0].dim)
-                    node_io.set_name(in_name)
-                    node_io.add_in(in_name)
-                    # leak out name , need to be added later.
-                    shape = TensorShape()
-                    shape.dim.value[:] = input_dim
-                    shape.dim.size = len(input_dim)
-                    node_io.add_attr("shape", shape, "shape")
-                    op_io.set_name("Input")
-                    op_io.set_in_num(1)
-                    op_io.set_commutative(True)
-                    node_io.set_op(op_io())
-                    self.graphIO.add_node(node_io())
-                    self.graphIO.add_in(in_name)
+                    for in_name in inputs:
+                        node_io.set_name(in_name)
+                        node_io.add_in(in_name)
+                        # leak out name , need to be added later.
+                        shape = TensorShape()
+                        shape.dim.value[:] = input_dim
+                        shape.dim.size = len(input_dim)
+                        node_io.add_attr("shape", shape, "shape")
+                        op_io.set_name("Input")
+                        op_io.set_in_num(1)
+                        op_io.set_commutative(True)
+                        node_io.set_op(op_io())
+                        self.graphIO.add_node(node_io())
+                        self.graphIO.add_in(in_name)
                 else: 
                     # parser InputParameter instead.
                     logger(verbose.INFO).feed(" Need to parse the layer of type InputParameter.")
