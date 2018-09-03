@@ -36,16 +36,16 @@ void update_weights(PBlock<T> weights, PBlock<T> bias,
 					bool scale_bias_term) {
 	D* weights_p = (D* )(weights.h_tensor().mutable_data());
 	if(!conv_bias_term) {
-		bias.re_alloc(Shape4d({1,batchnorm_mean.size(),1,1}));
+		bias.re_alloc(Shape4d({1, batchnorm_mean.size(), 1, 1}));
 		void* new_bias_data = bias.h_tensor().mutable_data();
 		memset(new_bias_data, 0, sizeof(D) * bias.h_tensor().size());
 	}
 	D* bias_p = (D* )(bias.h_tensor().mutable_data());
 
-	batchnorm_scale = (batchnorm_scale == 0) ? 1.f : batchnorm_scale;
-	int chw = c*h*w;
-	for(int i=0; i <n; i++ ) {
-		D alpha = 0.f;
+	batchnorm_scale = (batchnorm_scale == 0) ? 1.f : 1.f / batchnorm_scale;
+	int chw = c * h * w;
+	for (int i = 0; i < n; i++) {
+		D alpha = 1.f;
 		D beta = 0.f;
 		// insert batchnorm parameters
 		alpha = batchnorm_variance[i] * batchnorm_scale + batchnorm_eps;
