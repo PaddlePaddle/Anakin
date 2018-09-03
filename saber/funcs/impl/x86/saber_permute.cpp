@@ -59,6 +59,10 @@ SaberStatus SaberPermute<X86, AK_FLOAT>::\
     dispatch(const std::vector<Tensor<X86>*>& inputs,
                 std::vector<Tensor<X86>*>& outputs,
                 PermuteParam<X86> &param){
+        if (!_need_permute){
+            outputs[0] -> copy_from(*inputs[0]);
+            return SaberSuccess;
+        }
         const float* src_ptr = static_cast<const float*>(inputs[0] -> data());
         float* dst_ptr = static_cast<float*>(outputs[0] -> mutable_data());
         std::vector<int> orders = param.order;
@@ -98,6 +102,7 @@ SaberStatus SaberPermute<X86, AK_FLOAT>::\
                 dst_ptr[out_idx] = src_ptr[in_idx];
             }
         }
+        return SaberSuccess;
         
 }
 
