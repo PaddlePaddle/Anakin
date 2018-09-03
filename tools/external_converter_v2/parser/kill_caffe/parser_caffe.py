@@ -36,6 +36,7 @@ class CaffeParser:
     def _DetectionArch(self):
         """
         """
+        self._InsSplitBtwSliceConcat()
         self._ParserPrototxt()
         self._UpgradeNetAsNeeded()
         self._FilterNet()
@@ -70,7 +71,7 @@ class CaffeParser:
                 logger(verbose.FATAL).feed("[ Upgrade Level 1 ]  Details: need to upgrade from V0 to V1 [ FAILED ]")
                 exit()
         if NetNeedsDataUpgrade(self.net_parameter):
-            logger(verbose.INFO).feed("[ Upgrade Level 2 ] Details: need Data upgrade [ IGNORED ]")
+            logger(verbose.ERROR).feed("[ Upgrade Level 2 ] Details: need Data upgrade [ IGNORED ]")
         if NetNeedsV1ToV2Upgrade(self.net_parameter):
             logger(verbose.INFO).feed("[ Upgrade Level 3 ] Details: need to upgrade from V1 to V2 [ ... ]")
             original_param = NetParameter()
@@ -88,6 +89,31 @@ class CaffeParser:
             logger(verbose.INFO).feed("[ Upgrade Level 5 ] Details: need BatchNorm upgrade [ ... ]")
             UpgradeNetBatchNorm(self.net_parameter)
             logger(verbose.INFO).feed("[ Upgrade Level 5 ] Details: need BatchNorm upgrade [ ... ]")
+
+    def _InsSplitBtwSliceConcat(self):
+        '''
+        Currently, the connection between Slice and Concat must be implemented via Split.
+        '''
+        param_split = NetParameter()
+        layers = self.net_parameter.layer or self.net_parameter.layers
+	top_blobs_of_slices = list()
+	btm_blobs_of_concats = list()
+        for idx, layer in enumerate(layers):
+            if layer.type == 'Slice':
+		top_blobs_of_slices.extend(layer.top)
+            elif layer.type == 'Concat':
+                btm_blobs_of_concats.extend(layer.bottom)
+        intersection_blobs = list(set(top_blobs_of_slices).intersection(set(btm_blobs_of_concats)))
+        for blob in intersection_blobs:
+            layer_param = param_split.layer.add()
+            layer_param.bottom.append(blob)
+            layer_param.top.append(blob)
+            layer_param.name = 'Split_' + blob
+            layer_param.type = 'Split'
+        if self.net_parameter.layer:
+            self.net_parameter.layer.extend(param_split.layer)
+        else:
+            self.net_parameter.layers.extend(param_split.layer)
 
     def _InsertSplits(self):
         """
@@ -309,10 +335,10 @@ class CaffeParser:
                     blob_top_to_layer_name[top].put(tmp_rlayer.name)
         # set graph proto's name
         self.graphIO.set_name(self.net_parameter.name)
-        logger(verbose.INFO).feed(" [CAFFE] Archtecture Parsing ...")
+        logger(verbose.ERROR).feed(" [CAFFE] Archtecture Parsing ...")
 
         # parsing model
-        logger(verbose.INFO).feed(" [CAFFE] Model Parameter Parsing ...")
+        logger(verbose.ERROR).feed(" [CAFFE] Model Parameter Parsing ...")
         self._ParserModel()
         model_layers = self.net_param_weights.layers or self.net_param_weights.layer
 
@@ -429,10 +455,10 @@ class CaffeParser:
                 #blob_btm_to_layer_name[top] = tmp_rlayer.name
         # set graph proto's name
         self.graphIO.set_name(self.net_parameter.name)
-        logger(verbose.INFO).feed(" [CAFFE] Archtecture Parsing ...")
+        logger(verbose.ERROR).feed(" [CAFFE] Archtecture Parsing ...")
 
         # parsing model
-        logger(verbose.INFO).feed(" [CAFFE] Model Parameter Parsing ...")
+        logger(verbose.ERROR).feed(" [CAFFE] Model Parameter Parsing ...")
         self._ParserModel()
         model_layers = self.net_param_weights.layers or self.net_param_weights.layer
         for idx, rlayer in enumerate(real_layers):
