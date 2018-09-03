@@ -13,8 +13,8 @@
    limitations under the License.
 */
 
-#ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_NORMALIZE_H
-#define ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_NORMALIZE_H
+#ifndef ANAKIN_SABER_FUNCS_IMPL_X86_SABER_NORMALIZE_H
+#define ANAKIN_SABER_FUNCS_IMPL_X86_SABER_NORMALIZE_H
 
 #include "saber/funcs/impl/impl_normalize.h"
 

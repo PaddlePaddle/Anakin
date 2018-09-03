@@ -1,10 +1,10 @@
 
-#include "core/context.h"
-#include "funcs/normalize.h"
-#include "test_saber_func.h"
-#include "test_saber_base.h"
-#include "tensor_op.h"
-#include "saber_types.h"
+#include "saber/core/context.h"
+#include "saber/funcs/normalize.h"
+#include "test/saber/test_saber_func.h"
+#include "test/saber/test_saber_base.h"
+#include "saber/core/tensor_op.h"
+#include "saber/saber_types.h"
 #include "saber/core/tensor_op.h"
 #include <vector>
 
@@ -13,7 +13,7 @@ using namespace anakin::saber;
  void FuncName(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tensor<TargetType_H>*>& output,Param<TargetType_D>& param,Shape shape)
  */
 template <typename dtype,typename TargetType_D,typename TargetType_H>
-void norm_cpu_nchw(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tensor<TargetType_H>*>& output,NormalizeParam<TargetType_D>& param) {
+void norm_cpu_func(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tensor<TargetType_H>*>& output,NormalizeParam<TargetType_D>& param) {
     
     int p=param.p;
     bool across_spatial=param.across_spatial;
@@ -142,12 +142,12 @@ void test_normalize(){
     int pass_count=0;
     for (bool sp_flag : {false}){
         for (bool channel_flag : {false,true}) {
-            for (int p : {1,2}) {
+            for (int p : {1, 2}) {
                 
-                for(int w_in:{32,64}){
-                    for(int h_in: {32,64}){
-                        for(int ch_in:{3,8}){
-                            for(int num_in:{1,2}){
+                for(int w_in:{32, 64}){
+                    for(int h_in: {32, 64}){
+                        for(int ch_in:{3, 8}){
+                            for(int num_in:{1, 2}){
                                 //make param
                                 NormalizeParam<TargetType_D> param;
                                 int ch_scale = channel_flag ? 1 : ch_in;
@@ -171,7 +171,7 @@ void test_normalize(){
                                 testbase.set_param(param);//set param
                                 //testbase.set_rand_limit(255,255);
                                 testbase.set_input_shape(Shape({num_in, ch_in, h_in, w_in}));//add some input shape
-                                testbase.run_test(norm_cpu_nchw<dtype, TargetType_D, TargetType_H>);//run test
+                                testbase.run_test(norm_cpu_func<dtype, TargetType_D, TargetType_H>);//run test
                                 
                                 
                             }
