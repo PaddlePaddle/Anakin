@@ -19,7 +19,7 @@
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/funcs/impl/impl_unpool.h"
 #ifdef NVIDIA_GPU
-//#include "saber/funcs/impl/cuda/saber_unpool.h"
+#include "saber/funcs/impl/cuda/saber_unpool.h"
 #endif
 
 namespace anakin {

@@ -176,7 +176,7 @@ public:
         clear_datas();
         std::vector<Shape> shape_v;
         for (int i=0; i<_op_input_num; ++i){
-            shape_v.push_back(input[0] -> valid_shape());
+            shape_v.push_back(input[i] -> valid_shape());
         }
         add_inputs_shape(shape_v);
         for(int i = 0; i < _op_input_num; ++i)
