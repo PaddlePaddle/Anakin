@@ -118,6 +118,7 @@ SaberStatus SaberPower<NV, AK_FLOAT>::dispatch(\
 
     return SaberSuccess;
 }
-
+DEFINE_OP_TEMPLATE(SaberPower, PowerParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberPower, PowerParam, NV, AK_INT8);
 }
 }

@@ -24,7 +24,7 @@
 #endif
 
 #ifdef USE_X86_PLACE
-#include "saber/funcs/impl/impl_mat_mul.h"
+#include "saber/funcs/impl/x86/vender_mat_mul.h"
 #endif
 
 namespace anakin{
@@ -110,12 +110,10 @@ private:
         this->_best_impl = this->_impl[0];
     }
 
-    virtual void pick_best_runtime(Input_v input, Output_v output, \
-        Param_t& param, Context<TargetType> &ctx) override {
-        //! Fc only has saber implementation
+    virtual void pick_best_runtime(const Input_v input, Output_v output, Param_t& param, \
+        Context<TargetType> &ctx) {
         this->_best_impl = this->_impl[0];
     }
-
     virtual void pick_best_specify(ImplEnum implenum) override {
         //! Fc only has saber implementation
         this->_best_impl = this->_impl[0];
