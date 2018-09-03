@@ -79,30 +79,43 @@ TEST(TestSaberFunc, test_func_eltwise){
 
 #ifdef USE_CUDA
     //Init the test_base
-    TestSaberBase<NV,NVHX86,AK_FLOAT,Eltwise, EltwiseParam> testbase_nv(3,1);
+    TestSaberBase<NV,NVHX86,AK_FLOAT,Eltwise, EltwiseParam> testbase_nv(2,1);
 #endif  
 #ifdef USE_X86_PLACE
     //Init the test_base
-    TestSaberBase<X86,X86,AK_FLOAT,Eltwise, EltwiseParam> testbase_x86(3,1);
+    TestSaberBase<X86,X86,AK_FLOAT,Eltwise, EltwiseParam> testbase_x86(2,1);
 #endif        
     //Eltwise<NV,AK_FLOAT> test;
-    for(int num_in:{1,3,32}){
+    for(int num_in:{2,3,32}){
         for(int c_in:{1,3,32}){
             for(int h_in:{2,3,32}){
                 for(int w_in:{2,3,32}){
-                	for(int type:{1,2,3}){
-                	std::vector<float> coeff({-1.5f,-1.5f,-1.5f});
+                	for(EltwiseType type:{Eltwise_prod,Eltwise_sum,Eltwise_max}){
+                	    LOG(INFO)<<"input = "<<num_in<<", type = "<<type;
+                	    std::vector<float> coeff({-1.5f,-2.f,3.f});
                 	#ifdef USE_CUDA
                         ActivationParam<NV> activationparam_nv(Active_relu);
-                        EltwiseParam<NV> param_nv((EltwiseType)type,coeff,activationparam_nv);
+                        EltwiseParam<NV> param_nv(type,coeff,activationparam_nv);
                         testbase_nv.set_param(param_nv);
+                        testbase_nv.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
+                        testbase_nv.run_test(eltwise_cpu<float, NV, NVHX86>);
+
+                        ActivationParam<NV> activationparam_nv_no;
+                        EltwiseParam<NV> param_nv_noactivate(type,coeff,activationparam_nv_no);
+                        testbase_nv.set_param(param_nv_noactivate);
                         testbase_nv.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
                         testbase_nv.run_test(eltwise_cpu<float, NV, NVHX86>);
                     #endif
                     #ifdef USE_X86_PLACE
                         ActivationParam<X86> activationparam_x86(Active_relu);
-                        EltwiseParam<X86> param_x86((EltwiseType)type,coeff,activationparam_x86);
+                        EltwiseParam<X86> param_x86(type,coeff,activationparam_x86);
                         testbase_x86.set_param(param_x86);
+                        testbase_x86.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
+                        testbase_x86.run_test(eltwise_cpu<float, X86, X86>);
+
+                        ActivationParam<X86> activationparam_x86_no;
+                        EltwiseParam<X86> param_x86_noactivate(type,coeff,activationparam_x86_no);
+                        testbase_x86.set_param(param_x86_noactivate);
                         testbase_x86.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
                         testbase_x86.run_test(eltwise_cpu<float, X86, X86>);
                     #endif
