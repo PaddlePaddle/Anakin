@@ -22,7 +22,8 @@ using Target_H = X86;
 // vgg16
 //std::string model_path = "../benchmark/CNN/models/vgg16.anakin.bin";
 
-std::string model_path = "/home/cuichaowen/anakin2/public_model/public-caffe-model/mobilenetv12/mobilenet_v2.anakin.bin";
+//std::string model_path = "/home/cuichaowen/anakin2/public_model/public-caffe-model/mobilenetv12/mobilenet_v2.anakin.bin";
+std::string model_path = "/home/cuichaowen/anakin2/public_model/public-caffe-model/yolo/yolo.anakin.bin";
 
 #ifdef USE_CUDA
 #if 1
@@ -191,7 +192,7 @@ TEST(NetTest, net_execute_base_test) {
 	//test_print(tensor_out_0_p);
 
     // mobilenet-v2
-	auto tensor_out_0_p = net_executer.get_out("prob_out");
+	auto tensor_out_0_p = net_executer.get_out("result_out");
 
 
     // get out result

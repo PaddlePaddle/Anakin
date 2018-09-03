@@ -87,14 +87,14 @@ Status SassConvReluHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
     auto group = GET_PARAMETER(int, group);
     auto strides = GET_PARAMETER(PTuple<int>, strides);
     auto weights = GET_PARAMETER(PBlock<Ttype>, weight_1);
+    _funcs_conv_relu.init(ins, outs, _param_conv_relu, SPECIFY, SABER_IMPL, ctx);
     graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
                                 std::bind(&Conv<Ttype, PrecisionWrapper<Ptype>::saber_type>::trans_weights, 
-                                &_funcs_conv_relu, 
+                                &_funcs_conv_relu, _1, _2, _3, _4, _5),
                                 weights.d_tensor(), 
                                 strides[0], strides[1], 
                                 group, 
-                                SABER_IMPL));
-    _funcs_conv_relu.init(ins, outs, _param_conv_relu, SPECIFY, SABER_IMPL, ctx);
+                                SABER_IMPL);
     return Status::OK();
 }
 

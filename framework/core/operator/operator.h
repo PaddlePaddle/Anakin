@@ -27,6 +27,8 @@
 
 namespace anakin {
 
+using namespace std::placeholders;
+
 template<typename Ttype, Precision Ptype>
 class OperatorHelper;
 

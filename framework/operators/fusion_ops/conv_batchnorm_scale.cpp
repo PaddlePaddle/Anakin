@@ -100,15 +100,15 @@ Status ConvBatchnormScaleHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
     auto group = GET_PARAMETER(int, group);
     auto strides = GET_PARAMETER(PTuple<int>, strides);
     auto weights = GET_PARAMETER(PBlock<Ttype>, weight_1);
+    SABER_CHECK(_funcs_conv_batchnorm_scale.init(ins, outs, \
+        _param_conv_batchnorm_scale, SPECIFY, SABER_IMPL, ctx));
     graph::GraphGlobalMem<Ttype>::Global().template apply<Level_1>(
                                 std::bind(&Conv<Ttype, PrecisionWrapper<Ptype>::saber_type>::trans_weights, 
-                                &_funcs_conv_batchnorm_scale, 
+                                &_funcs_conv_batchnorm_scale, _1, _2, _3, _4, _5),
                                 weights.d_tensor(), 
                                 strides[0], strides[1], 
                                 group, 
-                                SABER_IMPL));
-    SABER_CHECK(_funcs_conv_batchnorm_scale.init(ins, outs, \
-        _param_conv_batchnorm_scale, SPECIFY, SABER_IMPL, ctx));
+                                SABER_IMPL);
     return Status::OK();
 }
 
@@ -135,15 +135,15 @@ Status ConvBatchnormScaleHelper<NV, Precision::FP32>::Init(OpContext<NV>& ctx, \
     std::vector<Tensor4dPtr<NV> >& outs) {
     auto group = GET_PARAMETER(int, group);
     auto strides = GET_PARAMETER(PTuple<int>, strides);
-    auto weights = GET_PARAMETER(PBlock<Ttype>, weight_1);
+    auto weights = GET_PARAMETER(PBlock<NV>, weight_1);
+    _funcs_conv_batchnorm_scale.init(ins, outs, _param_conv_batchnorm_scale, SPECIFY, VENDER_IMPL, ctx);
     graph::GraphGlobalMem<NV>::Global().template apply<Level_1>(
                                 std::bind(&Conv<NV, PrecisionWrapper<Precision::FP32>::saber_type>::trans_weights, 
-                                &_funcs_conv_batchnorm_scale, 
+                                &_funcs_conv_batchnorm_scale, _1, _2, _3, _4, _5),
                                 weights.d_tensor(), 
                                 strides[0], strides[1], 
                                 group, 
-                                VENDER_IMPL));
-    _funcs_conv_batchnorm_scale.init(ins, outs, _param_conv_batchnorm_scale, SPECIFY, VENDER_IMPL, ctx);
+                                VENDER_IMPL);
     return Status::OK();
 }
 ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScale, ConvBatchnormScaleHelper, NV, Precision::FP32);

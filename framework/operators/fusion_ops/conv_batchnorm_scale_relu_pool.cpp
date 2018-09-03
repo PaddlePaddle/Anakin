@@ -144,6 +144,8 @@ Status ConvBatchnormScaleReluPoolHelper<Ttype, Ptype>::Init(OpContext<Ttype> &ct
     auto group = GET_PARAMETER(int, group);
     auto strides = GET_PARAMETER(PTuple<int>, strides);
     auto weights = GET_PARAMETER(PBlock<Ttype>, weight_1);
+    SABER_CHECK(_funcs_conv_batchnorm_scale_relu_pooling.init(ins, outs, \
+        _param_conv_batchnorm_scale_relu_pooling, SPECIFY, SABER_IMPL, ctx));
     graph::GraphGlobalMem<Ttype>::Global().template apply<Level_1>(
                                 std::bind(&ConvPooling<Ttype, PrecisionWrapper<Ptype>::saber_type>::trans_weights, 
                                 &_funcs_conv_batchnorm_scale_relu_pooling, 
@@ -151,8 +153,6 @@ Status ConvBatchnormScaleReluPoolHelper<Ttype, Ptype>::Init(OpContext<Ttype> &ct
                                 strides[0], strides[1], 
                                 group, 
                                 SABER_IMPL));
-    SABER_CHECK(_funcs_conv_batchnorm_scale_relu_pooling.init(ins, outs, \
-        _param_conv_batchnorm_scale_relu_pooling, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }
 
@@ -173,14 +173,14 @@ Status ConvBatchnormScaleReluPoolHelper<NV, Precision::FP32>::Init(OpContext<NV>
     auto group = GET_PARAMETER(int, group);
     auto strides = GET_PARAMETER(PTuple<int>, strides);
     auto weights = GET_PARAMETER(PBlock<NV>, weight_1);
+    _funcs_conv_batchnorm_scale_relu_pooling.init(ins, outs, _param_conv_batchnorm_scale_relu_pooling, SPECIFY, VENDER_IMPL, ctx);
     graph::GraphGlobalMem<NV>::Global().template apply<Level_1>(
                                 std::bind(&ConvPooling<NV, PrecisionWrapper<Precision::FP32>::saber_type>::trans_weights, 
-                                &_funcs_conv_batchnorm_scale_relu_pooling, 
+                                &_funcs_conv_batchnorm_scale_relu_pooling, _1, _2, _3, _4, _5),
                                 weights.d_tensor(), 
                                 strides[0], strides[1], 
                                 group, 
-                                VENDER_IMPL));
-    _funcs_conv_batchnorm_scale_relu_pooling.init(ins, outs, _param_conv_batchnorm_scale_relu_pooling, SPECIFY, VENDER_IMPL, ctx);
+                                VENDER_IMPL);
     return Status::OK();
 }
 ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScaleReluPool, ConvBatchnormScaleReluPoolHelper, NV, Precision::FP32);
