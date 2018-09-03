@@ -40,11 +40,13 @@ class CaffeParser:
         self._ParserPrototxt()
         self._UpgradeNetAsNeeded()
         self._FilterNet()
-        self._SplitInception(False)
+        #self._SplitInception(False)
         self._InsertSplits()
         self._ScatterInputLayer()
         # create input node
         #self._CreateInputNode() maybe not need
+
+    '''
     def _SplitInception(self, is_weight):
         print is_weight
         net = self.net_parameter
@@ -179,7 +181,7 @@ class CaffeParser:
             if self.net_parameter.layer:
                 del self.net_parameter.layer[:]
                 self.net_parameter.layer.extend(new_layers)
-        
+    '''
 
     def _ParserPrototxt(self):
         """

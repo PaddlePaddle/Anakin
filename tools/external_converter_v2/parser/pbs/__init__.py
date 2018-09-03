@@ -2,9 +2,10 @@
 # Copyright (c) 2017, Cuichaowen. All rights reserved.
 # -*- coding: utf-8 -*-
 import os
-from ..logger import *
-
-#import caffe_pb2
+from ..logger import verbose
+from ..logger import shellcolors
+from ..logger import with_color
+from ..logger import logger
 
 for module in os.listdir(os.path.dirname(__file__)):
     if module == '__init__.py' or module[-3:] != '.py':
