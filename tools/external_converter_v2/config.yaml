@@ -40,7 +40,7 @@
 ##--------------------------------------------------------------
 #
 OPTIONS:
-    Framework: TENSORFLOW
+    Framework: FLUID
     SavePath: /ak_model/save/path
     ResultName: resnet50_v1
 
@@ -66,6 +66,7 @@ TARGET:
 
     FLUID:
         # path of fluid inference model
+        ProtoPaths: /
         Debug: NULL                            # Generally no need to modify.
         ModelPath: /path/to/your/model/        # The upper path of a fluid inference model.
         NetType:                               # Generally no need to modify.
