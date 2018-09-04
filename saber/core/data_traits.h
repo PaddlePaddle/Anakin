@@ -225,7 +225,8 @@ struct DataTraitBase<BM> {
 #endif
 
 
-#ifdef USE_OPENCL
+//#ifdef USE_OPENCL
+#if 0
 struct ClMem {
     ClMem() {
         dmem = nullptr;

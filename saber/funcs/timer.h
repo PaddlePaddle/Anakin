@@ -177,8 +177,8 @@ class SaberTimer<AMD> final {
 public:
     SaberTimer() {
         Env<AMD>::env_init();
-        AMD_API::create_event(_e_start);
-        AMD_API::create_event(_e_end);
+        AMD_API::create_event(&_e_start);
+        AMD_API::create_event(&_e_end);
     }
 
     ~SaberTimer() {

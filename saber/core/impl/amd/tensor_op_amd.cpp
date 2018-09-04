@@ -12,6 +12,9 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+
+
+/*
 #include "saber/core/tensor_op.h"
 #include <limits>
 
@@ -168,11 +171,11 @@ void print_tensor_device(Tensor_t& tensor, typename Tensor_t::API::stream_t stre
 
 };
 
-#define FILL_TENSOR_AMD(type, layout) \
-    template void fill_tensor_device_const<Tensor<AMD, type, layout>>\
+#define FILL_TENSOR_AMD(type) \
+    template void fill_tensor_device_const<Tensor<AMD, type>>\
         (Tensor<AMD, type, layout>& tensor, DataTrait<AMD, type>::Dtype value, \
         typename TargetWrapper<AMD>::stream_t stream); \
-    template void fill_tensor_device_rand<Tensor<AMD, type, layout>>\
+    template void fill_tensor_device_rand<Tensor<AMD, type>>\
         (Tensor<AMD, type, layout>& tensor, typename TargetWrapper<AMD>::stream_t stream); \
     template void fill_tensor_device_rand<Tensor<AMD, type, layout>>\
         (Tensor<AMD, type, layout>& tensor, DataTrait<AMD, type>::Dtype vstart, \
@@ -200,3 +203,4 @@ FILL_TENSOR_AMD(AK_INT8, W);
 } //namespace anakin
 
 #endif //USE_AMD
+*/
