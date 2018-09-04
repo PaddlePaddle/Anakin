@@ -9,9 +9,9 @@
 #include <vector>
 #include "debug.h"
 using namespace anakin::saber;
-typedef TargetWrapper<X86> X86_API;
-typedef TargetWrapper<NV> NV_API;
-typedef Tensor<X86> TensorHf4;
+
+#ifdef NVIDIA_GPU
+typedef Tensor<NVHX86> TensorHf4;
 typedef Tensor<NV> TensorDf4;
 
 
@@ -65,6 +65,7 @@ void test_deconv_results(std::vector<TensorDf4*>& inputs, std::vector<TensorDf4*
 
 
 TEST(TestSaberFunc, test_func_self_deconv) {
+    Env<NV>::env_init();
     int img_n = 8;
     int kernel_size = 4;
     int pad = 1;
@@ -158,11 +159,11 @@ TEST(TestSaberFunc, test_func_self_deconv) {
         LOG(INFO) << "compare result, max diff: " << max_diff << ", max ratio: " << max_ratio;
     }
 }
-
+#endif
 int main(int argc, const char** argv) {
     // initial logger
     //logger::init(argv[0]);
-    Env<NV>::env_init();
+
     InitTest();
     RUN_ALL_TESTS(argv[0]);
     return 0;
