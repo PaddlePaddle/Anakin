@@ -83,8 +83,8 @@ void Device<AMD>::create_stream() {
     	typename AMD_API::stream_t stream_data;
     	typename AMD_API::stream_t stream_compute;
 
-    	API::_create_stream_with_flag(stream_data, context, id, CL_QUEUE_PROFILING_ENABLE);
-    	API::_create_stream_with_flag(stream_compute, context, id, CL_QUEUE_PROFILING_ENABLE);
+    	API::_create_stream_with_flag(&stream_data, context, id, CL_QUEUE_PROFILING_ENABLE);
+    	API::_create_stream_with_flag(&stream_compute, context, id, CL_QUEUE_PROFILING_ENABLE);
     	_data_stream.push_back(stream_data);
     	_compute_stream.push_back(stream_compute);
     }

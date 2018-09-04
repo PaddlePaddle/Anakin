@@ -32,6 +32,7 @@ void flatten_cpu_base(const std::vector<Tensor<TargetType_H>* > &input, std::vec
 
 TEST(TestSaberFunc, test_op_flatten) {
 
+#ifdef USE_X86_PLACE
     TestSaberBase<X86, X86, AK_FLOAT, Flatten, FlattenParam> testbase;
     for(int w_in : {2, 8, 16}) {
         for(int h_in : {2, 8, 32}){
@@ -48,6 +49,8 @@ TEST(TestSaberFunc, test_op_flatten) {
             }
         }
     }
+#endif
+
 }
 
 int main(int argc, const char** argv) {
