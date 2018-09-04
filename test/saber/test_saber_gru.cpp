@@ -66,7 +66,6 @@ static void gemm_naive(int m,int n,int k,const float alpha,const Dtype * a, cons
     }
 }
 
-
 template <typename Tensor4f,typename TargetType>
 void compute_ref_gru_fwd_me(std::vector<Tensor4f*> &inputs, std::vector<Tensor4f*> &outputs, GruParam<TargetType> &param){
     typedef float OpDataType;
