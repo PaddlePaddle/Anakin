@@ -104,6 +104,7 @@ SaberStatus SaberPermutePower<X86, AK_FLOAT>::\
                 }
             }//if p=1
         }//if is_continue_mem
+        return SaberSuccess;
 }
 
     
