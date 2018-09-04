@@ -74,14 +74,14 @@ public:
         Shape out_valid_shape  = outputs[0]->valid_shape();
         memcpy(_old_steps.mutable_data(), &in_stride[0], sizeof(int) * _num_axes);
         memcpy(_new_steps.mutable_data(), &out_stride[0], sizeof(int) * _num_axes);
-        memcpy(_permute_order.mutable_data(), &(permute_param.order[0]),sizeof(int) * _num_axes);
+        memcpy(_permute_order.mutable_data(), &(permute_param.order[0]), sizeof(int) * _num_axes);
         memcpy(_out_valid_shape.mutable_data(), &out_valid_shape[0], sizeof(int) * _num_axes);
         return SaberSuccess;
     }
 
     virtual SaberStatus dispatch(const std::vector<Tensor<X86>*>& inputs,
                                  std::vector<Tensor<X86>*>& outputs,
-                                 PermutePowerParam<X86> &permute_param);
+                                 PermutePowerParam<X86> &param);
 
 private:
     int _num_axes;
