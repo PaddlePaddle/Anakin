@@ -66,6 +66,8 @@ void update_weights(PBlock<T> weights, PBlock<T> bias,
 		bias_p[i] *= alpha;
 		bias_p[i] += beta;
 	}
+    weights.d_tensor().copy_from(weights.h_tensor());
+    bias.d_tensor().copy_from(bias.h_tensor());
 }
 
 } /* namespace anakin */

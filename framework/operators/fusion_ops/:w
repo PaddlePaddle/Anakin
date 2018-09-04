@@ -86,7 +86,7 @@ Status ConvBatchnormScaleHelper<Ttype, Ptype>::InitParam() {
         saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
                                            strides[0], strides[1],
                                            dilation_rate[0], dilation_rate[1],
-                                           &(weights.d_tensor()), &(bias->d_tensor()));
+                                           &(weights.d_tensor()), bias);
         _param_conv_batchnorm_scale = conv_param;
     }
 

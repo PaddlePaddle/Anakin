@@ -112,9 +112,9 @@ Status SassConvBatchnormScaleReluPoolHelper<Ttype, Ptype>::InitParam() {
                                            active_param);
         conv_param_temp = conv_param;
     } else {
-        Tensor4d<Ttype>* bias = new Tensor4d<Ttype>();;
+        pblock_type* bias = new pblock_type();
         graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(update_weights<float, Ttype>,
-                                                       weights, pblock_type(),
+                                                       weights, *bias,
                                                        weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3], 
                                                        false,
                                                        batch_norm_weight_3_vector[0], epsilon, 
@@ -126,7 +126,7 @@ Status SassConvBatchnormScaleReluPoolHelper<Ttype, Ptype>::InitParam() {
         saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
                                            strides[0], strides[1],
                                            dilation_rate[0], dilation_rate[1],
-                                           &(weights.d_tensor()), bias, 
+                                           &(weights.d_tensor()), &(bias->d_tensor()), 
                                            active_param);
         conv_param_temp = conv_param;
     }

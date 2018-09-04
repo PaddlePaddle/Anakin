@@ -106,6 +106,20 @@ public:
             _res_guard[key_1].use<L>();
             _res_guard[key_2].use<L>();
             func(tensor_1, tensor_2, std::forward<ParamTypes>(args)...);
+            void* new_key_1 = tensor_1.h_tensor().data();
+            void* new_key_2 = tensor_2.h_tensor().data();
+            if(new_key_1 != key_1) {
+                _res_guard[new_key_1] = _res_guard[key_1];
+                if(_res_guard.erase(key_1) != 1) { // delete old key-vale
+                    LOG(FATAL) << "target key_1(" << key_1 << ") doesn't exist.";
+                }
+            }
+            if(new_key_2 != key_2) {
+                _res_guard[new_key_2] = _res_guard[key_2];
+                if(_res_guard.erase(key_2) != 1) { // delete old key-vale
+                    LOG(FATAL) << "target key_2(" << key_2 << ") doesn't exist.";
+                }
+            }
         }
     }
     /// apply arbitrary function to one memory block
@@ -119,6 +133,13 @@ public:
             std::unique_lock<std::mutex> lock(_res_guard[key].get_mut<L>());
             _res_guard[key].use<L>();
             func(tensor, std::forward<ParamTypes>(args)...);
+            void* new_key = tensor.data();
+            if(new_key != key) {
+                _res_guard[new_key] = _res_guard[key];
+                if(_res_guard.erase(key) != 1) { // delete old key-vale
+                    LOG(FATAL) << "target key(" << key << ") doesn't exist.";
+                }
+            }
         }
     }
 

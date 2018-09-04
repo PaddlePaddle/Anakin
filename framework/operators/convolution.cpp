@@ -26,15 +26,6 @@ Status ConvolutionHelper<Ttype, Ptype>::InitParam() {
     auto filter_num = GET_PARAMETER(int, filter_num);
     auto kernel_size = GET_PARAMETER(PTuple<int>, kernel_size);
     auto axis = GET_PARAMETER(int, axis);
-    DLOG(INFO) << "conv group : " << group;
-    DLOG(INFO) << "conv bias_term: " << bias_term;
-    DLOG(INFO) << "conv padding : [" << padding[0] << " " << padding[1] << "]";
-    DLOG(INFO) << "conv strides : [" << strides[0] << " " << strides[1] << "]";
-    DLOG(INFO) << "conv dilation_rate : [" << dilation_rate[0] << " " << dilation_rate[1] << "]";
-    DLOG(INFO) << "conv filter_num : " << filter_num;
-    DLOG(INFO) << "conv kernel_size : " << kernel_size[0] << " " << kernel_size[1] << "]";
-    DLOG(INFO) << "conv axis : " << axis;
-
 
 	using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);

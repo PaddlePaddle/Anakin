@@ -51,7 +51,7 @@ void test_print(Tensor4dPtr<NV>& out_tensor_p) {
     LOG(ERROR) << "result count : " << h_tensor_result.valid_shape().count();
     h_tensor_result.copy_from(*out_tensor_p);
     float * data = (float*)(h_tensor_result.mutable_data());
-    for (int i = 0; i < h_tensor_result.valid_size(); i++) {
+    for (int i = 0; i < 10/*h_tensor_result.valid_size()*/; i++) {
         LOG(INFO) << " GET OUT (" << i << ") " << data[i];
     }
 }

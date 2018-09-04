@@ -21,9 +21,8 @@ double tensor_average(Tensor4dPtr<Ttype>& out_tensor_p) {
     Shape shin = out_tensor_p->valid_shape();
     Shape rs = out_tensor_p->shape();
     PBlock<Ttype> tensorptr(shin);
-    LOG(INFO) << "      ---> get valid_shape("<< shin[0]<< ", " << shin[1] << ", " << shin[2] << ", " << shin[3] << ") "
-              <<" real_shape: (" << rs[0] << ", "<< rs[1] << ", "<< rs[2] << ", "<< rs[3] << ") "
-              << "p: " << out_tensor_p->data();
+    /*LOG(INFO) << "      ---> get valid_shape("<< shin[0]<< ", " << shin[1] << ", " << shin[2] << ", " << shin[3] << ") "
+              <<" real_shape: (" << rs[0] << ", "<< rs[1] << ", "<< rs[2] << ", "<< rs[3] << ") ";*/
     tensorptr.h_tensor().copy_from(*out_tensor_p);
     hptr = (const float* )(tensorptr.h_tensor().data());
     for (int i=0; i<out_tensor_p->valid_size(); i++) {
@@ -186,7 +185,7 @@ void Net<Ttype, Ptype, RunType>::init(graph::Graph<Ttype, Ptype>& graph) {
 
         // create operations
 
-        if(std::is_same<Ttype,NV>::value && false) {
+        if(std::is_same<Ttype,NV>::value) {
             if (node_ptr->get_op_name() == "ConvBatchnormScale" ||
                 node_ptr->get_op_name() == "ConvBatchnormScaleRelu" || node_ptr->get_op_name() == "ConvRelu" ||
                 node_ptr->get_op_name() == "Convolution") {
