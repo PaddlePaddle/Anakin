@@ -51,12 +51,8 @@ TARGET:
         ModelPath: /path/to/your/googlenet.caffemodel
 
     FLUID:
-        # path to proto files   
-        ProtoPath:
-            - /path/to/proto_0
-            - /path/to/proto_1
-            - /path/to/proto_n
-        PrototxtPath: /path/to/prototxt
+        # path to proto files  
+        Debug: NULL 
         ModelPath: /path/to/model
     # ...
 ```

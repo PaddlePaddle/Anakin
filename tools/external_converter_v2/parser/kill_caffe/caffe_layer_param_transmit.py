@@ -68,7 +68,7 @@ def NotNeededInInference(args):
     node_io = args[0]
     layer = args[1]
     tensors = args[2]
-    logger(verbose.ERROR).feed("Layer type(", layer.name, " : ", layer.type, ") with ", \
+    logger(verbose.INFO).feed("Layer type(", layer.name, " : ", layer.type, ") with ", \
             len(tensors), " tensors  not needed in inference.")
 
 
@@ -87,6 +87,17 @@ def Parser_concat(args):
     # parser caffe parameter
     concat_param = layer.concat_param
     OpsRegister()["Concat"].axis = concat_param.axis
+
+@ParserFeedDecorator("Resize")
+def Parser_resize(args):
+    layer = args[1]
+    # parser caffe parameter
+    resize_param = layer.resize_param
+    if resize_param.HasField("out_width_scale"):
+        OpsRegister()["Resize"].width_scale = resize_param.out_width_scale
+    if resize_param.HasField("out_height_scale"):
+        OpsRegister()["Resize"].height_scale = resize_param.out_height_scale
+    
 
 
 @ParserFeedDecorator("DeformConvolution")
@@ -603,14 +614,14 @@ def Parser_slice(args):
 @ParserFeedDecorator("Activation")
 def Parser_tanh(args):
     # parser caffe parameter
-    logger(verbose.ERROR).feed("Layer  in tanh")
+    logger(verbose.INFO).feed("Layer  in tanh")
     OpsRegister()["Activation"].type = "TanH"
 
 
 @ParserFeedDecorator("Activation")
 def Parser_sigmoid(args):
     # parser caffe parameter
-    logger(verbose.ERROR).feed("Layer  in Sigmoid")
+    logger(verbose.INFO).feed("Layer  in Sigmoid")
     OpsRegister()["Activation"].type = "Sigmoid"
 
 
@@ -1205,6 +1216,7 @@ CAFFE_LAYER_PARSER = {
                 "DetectionOutput": OpsParam().set_parser(Parser_detectionoutput), # vis add
                 "ArgMax": OpsParam().set_parser(Parser_argmax),
                 "Normalize": OpsParam().set_parser(Parser_normalize),
+                "Resize": OpsParam().set_parser(Parser_resize),
                 "ReLU6": OpsParam().set_parser(Parser_relu6),
                 "ShuffleChannel": OpsParam().set_parser(Parser_ShuffleChannel)
                 }

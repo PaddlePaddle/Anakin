@@ -21,10 +21,10 @@ include(cmake/statistic.cmake)
 # ----------------------------------------------------------------------------
 # section: global anakin version and lib name
 # ----------------------------------------------------------------------------
-# global anakin version 0.1.1
+# global anakin version 0.1.2
 set(VERSION_MAJOR "0")
 set(VERSION_MINOR "1")
-set(VERSION_PATCH "1")
+set(VERSION_PATCH "2")
 set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 
 # anakin lib name and global directories
