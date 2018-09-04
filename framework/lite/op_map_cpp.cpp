@@ -1545,19 +1545,24 @@ std::string ParserPriorBox(graph::AttrInfo& attr,
     //add
     std::vector<float> fixed_size, fixed_ratio, density;
     if (find_attr("fixed_size", attr) == SaberSuccess) {
-        LOG(ERROR) << "not exit";
         auto fix_size  = get_attr<PTuple<float>>("fixed_size", attr);
         fixed_size = fix_size.vector();
+    } else {
+        LOG(WARNING) << "not fixed_size param in priorbox";
     }
 
     if (find_attr("fixed_ratio", attr) == SaberSuccess) {
         auto fix_ratio  = get_attr<PTuple<float>>("fixed_ratio", attr);
         fixed_ratio = fix_ratio.vector();
+    } else {
+        LOG(WARNING) << "not fixed_ratio param in priorbox";
     }
 
     if (find_attr("density", attr) == SaberSuccess) {
         auto den = get_attr<PTuple<float>>("density", attr);
         density = den.vector();
+    } else {
+        LOG(WARNING) << "not density param in priorbox";
     }
 
     auto flip_flag = get_attr<bool>("is_flip", attr); 
@@ -1740,7 +1745,7 @@ std::string ParserSlice(graph::AttrInfo& attr,
 	return code_w.get_code_string();
 }
 
-// SaberSlice
+// SaberScale
 std::string ParserScale(graph::AttrInfo& attr,
                         std::string& code_name,
                         std::string& op_class_name,
@@ -1790,6 +1795,81 @@ std::string ParserScale(graph::AttrInfo& attr,
     return code_w.get_code_string();
 }
 
+// SaberScale
+std::string ParserBatchNorm(graph::AttrInfo& attr,
+                            std::string& code_name,
+                            std::string& op_class_name,
+                            std::string& node_name,
+                            std::string& weights_ptr_name,
+                            WeightsWritter& writter,
+                            bool gen_param) {
+
+    // get batchnorm param
+    auto eps = get_attr<float>("epsilon", attr);
+    auto momentum = get_attr<float>("momentum", attr);
+    auto mean = get_attr<PBlock<float, X86>>("weight_1", attr);
+    auto mean_vec = mean.vector();
+    auto var = get_attr<PBlock<float, X86>>("weight_2", attr);
+    auto var_vec = var.vector();
+    auto scale_factor = get_attr<PBlock<float, X86>>("weight_3", attr);
+    auto scale_factor_vec = scale_factor.vector();
+
+    std::vector<float> scale;
+    std::vector<float> bias;
+    scale.resize(mean.count());
+    bias.resize(mean.count());
+    auto scale_val = scale_factor_vec[0] == 0 ? 0 : 1 / scale_factor_vec[0];
+
+    for (int i = 0; i < mean.count(); i++) {
+        scale[i] = 1.0f / std::sqrt(var_vec[i] * scale_val + eps);
+        bias[i] = - mean_vec[i] * scale_val / std::sqrt(var_vec[i] * scale_val + eps);
+    }
+
+    Shape sh1 = {1, 1, 1, scale.size()};
+    Shape sh2 = {1, 1, 1, bias.size()};
+    PBlock<float, X86> pscale(sh1);
+    PBlock<float, X86> pbias(sh2);
+    float* pscale_ptr = pscale.h_tensor().mutable_data();
+    for (int j = 0; j < scale.size(); ++j) {
+        pscale_ptr[j] = scale[j];
+    }
+    float* pbias_ptr = pbias.h_tensor().mutable_data();
+    for (int j = 0; j < bias.size(); ++j) {
+        pbias_ptr[j] = bias[j];
+    }
+
+    writter.register_weights(node_name, pscale);
+            LOG(INFO) << node_name << " write weights: " << pscale.count();
+
+    writter.register_weights(node_name, pbias);
+            LOG(INFO) << node_name << " write bias: " << pbias.count();
+
+    auto offset_info = writter.get_weights_by_name(node_name);
+
+    // gen cpp code
+    CodeWritter code_w;
+    if (gen_param) {
+        code_w.feed("%d %d %d %d %d\n",
+                    offset_info.weights[0].offset,
+                    offset_info.weights[1].offset,
+                    1,
+                    1,
+                    1);
+    } else {
+        code_w.feed("ParamBase* %s_param = new ScaleParam(%s+%d, %s+%d, %s, %d, %d);\n",
+                    node_name.c_str(),
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[0].offset,
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[1].offset,
+                    "true",
+                    1,
+                    1);
+
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
+    return code_w.get_code_string();
+}
 
 // SaberSoftmax
 std::string ParserSoftmax(graph::AttrInfo& attr,
@@ -1923,6 +2003,7 @@ std::unordered_map<std::string, OpParser> OPERATION_MAP({
 	{"PriorBox", {"SaberPriorBox", ParserPriorBox} }, // done
 	{"Power", {"SaberPower", ParserPower} }, // done
 	{"Scale", {"SaberScale", ParserScale} }, // done
+    {"BatchNorm", {"SaberScale", ParserBatchNorm} }, // done
 	{"Slice", {"SaberSlice", ParserSlice} }, // done
     {"Flatten", {"SaberFlatten", ParserFlatten}}, //done
     {"Reshape", {"SaberReshape", ParserReshape}}, //done
