@@ -114,12 +114,27 @@ public:
     template<typename T>
     T get_attr(std::string attr_name) { return _node_p->get_attr<T>(attr_name); }
 
+    /** 
+     *  \brief set target attr
+     */
+    template<typename T> 
+    void set_sttr(const std::string& attr_name, const T val) {
+        _node_p->set_attr(attr_name, val);
+    }
+
 	/**
 	 *  \brief Judge if op access target attr
 	 */
 	inline bool check_attr(const std::string& attr_name) {
 		return _node_p->inspect_attr(attr_name);
 	}
+
+    /**
+     * \brief remove attr if it exists
+     */
+    inline void remove_attr(const std::string& attr_name) {
+        _node_p->remove_attr(attr_name);
+    }
 
 private:
     ///< Pointer to graph node.
@@ -131,6 +146,24 @@ private:
  */
 #define GET_PARAMETER(type, name) \
     this->template get_attr<type>(#name)
+
+/**
+ *  \brief Call set_sttr from derived class.
+ */
+#define SET_PARAMETER(name, val, type) \
+    this->template set_sttr<type>(#name, val)
+
+/**
+ *  \brief Call check_attr from derived class.
+ */
+#define CHECK_PARAMETER(name) \
+    this->check_attr(#name)
+
+/**
+ *  \brief Call remove_attr from derived class.
+ */
+#define REMOVE_PARAMETER(name) \
+    this->remove_attr(#name)
 
 /**
  *  \brief Operator creator.

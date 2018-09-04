@@ -191,12 +191,7 @@ public:
     */
     template<typename T>
     Status set_attr(const std::string& attr_name, const T val) {
-        auto& attrs = this->attr();    
-        auto it_end = attrs.parameter.end();
-        auto it_find = attrs.parameter.find(attr_name);
-        if(it_find != it_end) {
-            return Status::FAIL();
-        }
+        auto& attrs = this->attr();
         attrs.parameter[attr_name] = val;
         return Status::OK();
     }

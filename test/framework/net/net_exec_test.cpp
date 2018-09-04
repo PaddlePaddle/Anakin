@@ -19,11 +19,8 @@ using Target_H = X86;
 
 //#define USE_DIEPSE
 
-// vgg16
-//std::string model_path = "../benchmark/CNN/models/vgg16.anakin.bin";
-
-//std::string model_path = "/home/cuichaowen/anakin2/public_model/public-caffe-model/mobilenetv12/mobilenet_v2.anakin.bin";
 std::string model_path = "/home/cuichaowen/github_anakin/Anakin/build/yolo_camera_detector.anakin.bin";
+std::string model_saved_path = model_path + ".saved";
 
 #ifdef USE_CUDA
 #if 1
@@ -211,9 +208,9 @@ TEST(NetTest, net_execute_base_test) {
 #endif 
 #endif
 
-#if 0
+#if 1
 TEST(NetTest, net_execute_reconstruction_test) {
-    graph = new Graph<NV, Precision::FP32>();
+    Graph<NV, Precision::FP32>* graph = new Graph<NV, Precision::FP32>();
     LOG(WARNING) << "load anakin model file from optimized model " << model_saved_path << " ...";
     // load anakin model files.
     auto status = graph->load(model_saved_path);
@@ -223,7 +220,7 @@ TEST(NetTest, net_execute_reconstruction_test) {
 
     // regisiter output tensor
     //graph->RegistOut("data_perm",  "data_scale");
-    graph->RegistOut("data_perm",  "conv1");
+    //graph->RegistOut("data_perm",  "conv1");
 
     //anakin graph optimization
     graph->Optimize();
@@ -262,18 +259,22 @@ TEST(NetTest, net_execute_reconstruction_test) {
     my_time.end(ctx);
     LOG(INFO)<<"aveage time "<<my_time.get_average_ms()/1 << " ms";
 
-    auto tensor_out_inner_p = net_executer.get_tensor_from_edge("data_perm",  "conv1");
+    //auto tensor_out_inner_p = net_executer.get_tensor_from_edge("data_perm",  "conv1");
 
     // get out
-    auto tensor_out_0_p = net_executer.get_out("loc_pred_out");
+    /*auto tensor_out_0_p = net_executer.get_out("loc_pred_out");
     auto tensor_out_1_p = net_executer.get_out("obj_pred_out");
     auto tensor_out_2_p = net_executer.get_out("cls_pred_out");
     auto tensor_out_3_p = net_executer.get_out("ori_pred_out");
-    auto tensor_out_4_p = net_executer.get_out("dim_pred_out");
+    auto tensor_out_4_p = net_executer.get_out("dim_pred_out");*/
 
     
+    auto tensor_out_0_p = net_executer.get_out("dim_pred_out");
+
+
     // get out result
-    test_print<NV>(tensor_out_inner_p);
+	test_print(tensor_out_0_p);
+
 }
 #endif
 

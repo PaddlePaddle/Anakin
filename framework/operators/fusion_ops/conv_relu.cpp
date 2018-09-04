@@ -66,13 +66,20 @@ Status ConvReluHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
     auto strides = GET_PARAMETER(PTuple<int>, strides);
     auto weights = GET_PARAMETER(PBlock<Ttype>, weight_1);
     SABER_CHECK(_funcs_conv_relu.init(ins, outs, _param_conv_relu, SPECIFY, SABER_IMPL, ctx));
-    graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
-                                std::bind(&Conv<Ttype, PrecisionWrapper<Ptype>::saber_type>::trans_weights, 
-                                &_funcs_conv_relu, _1, _2, _3, _4, _5),
-                                weights.d_tensor(), 
-                                strides[0], strides[1], 
-                                group, 
-                                SABER_IMPL);
+
+    // check if weights have been transposed
+    auto is_weights_transed = CHECK_PARAMETER(is_weights_transed);
+    if(!is_weights_transed) {
+        SET_PARAMETER(is_weights_transed, true, bool);
+
+        graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
+                                    std::bind(&Conv<Ttype, PrecisionWrapper<Ptype>::saber_type>::trans_weights, 
+                                    &_funcs_conv_relu, _1, _2, _3, _4, _5),
+                                    weights.d_tensor(), 
+                                    strides[0], strides[1], 
+                                    group, 
+                                    SABER_IMPL);
+    }
     return Status::OK();
 }
 
@@ -96,22 +103,36 @@ Status ConvReluHelper<NV, Precision::FP32>::Init(OpContext<NV>& ctx, \
     if (_param_conv_relu.group == 1|| (_param_conv_relu.group == ins[0]->channel() && \
         _param_conv_relu.group == outs[0]->channel())) {
         _funcs_conv_relu.init(ins, outs, _param_conv_relu, SPECIFY, SABER_IMPL, ctx);
-        graph::GraphGlobalMem<NV>::Global().template apply<Level_0>(
-                                std::bind(&Conv<NV, PrecisionWrapper<Precision::FP32>::saber_type>::trans_weights, 
-                                &_funcs_conv_relu, _1, _2, _3, _4, _5),
-                                weights.d_tensor(), 
-                                strides[0], strides[1], 
-                                group, 
-                                SABER_IMPL);
+
+        // check if weights have been transposed
+        auto is_weights_transed = CHECK_PARAMETER(is_weights_transed);
+        if(!is_weights_transed) {
+            SET_PARAMETER(is_weights_transed, true, bool);
+
+            graph::GraphGlobalMem<NV>::Global().template apply<Level_0>(
+                                    std::bind(&Conv<NV, PrecisionWrapper<Precision::FP32>::saber_type>::trans_weights, 
+                                    &_funcs_conv_relu, _1, _2, _3, _4, _5),
+                                    weights.d_tensor(), 
+                                    strides[0], strides[1], 
+                                    group, 
+                                    SABER_IMPL);
+        }
     } else {
         _funcs_conv_relu.init(ins, outs, _param_conv_relu, SPECIFY, VENDER_IMPL, ctx);
-        graph::GraphGlobalMem<NV>::Global().template apply<Level_0>(
-                                std::bind(&Conv<NV, PrecisionWrapper<Precision::FP32>::saber_type>::trans_weights, 
-                                &_funcs_conv_relu, _1, _2, _3, _4, _5),
-                                weights.d_tensor(), 
-                                strides[0], strides[1], 
-                                group, 
-                                VENDER_IMPL);
+
+        // check if weights have been transposed
+        auto is_weights_transed = CHECK_PARAMETER(is_weights_transed);
+        if(!is_weights_transed) {
+            SET_PARAMETER(is_weights_transed, true, bool);
+
+            graph::GraphGlobalMem<NV>::Global().template apply<Level_0>(
+                                    std::bind(&Conv<NV, PrecisionWrapper<Precision::FP32>::saber_type>::trans_weights, 
+                                    &_funcs_conv_relu, _1, _2, _3, _4, _5),
+                                    weights.d_tensor(), 
+                                    strides[0], strides[1], 
+                                    group, 
+                                    VENDER_IMPL);
+        }
     }
     return Status::OK();
 }

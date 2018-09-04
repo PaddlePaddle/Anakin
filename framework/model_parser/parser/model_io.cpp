@@ -153,7 +153,6 @@ NodeIO<Ttype, Ptype>& NodeIO<Ttype, Ptype>::operator>>(const NodeProto& node_pro
 
 #if defined(USE_CUDA) || defined(AMD_GPU) 
                 //! map cpu data to GPU
-                //block->tensor().get_gpu_data();
                 block->d_tensor().set_shape(saber_shape);
                 block->d_tensor().copy_from(block->h_tensor());
 #endif
