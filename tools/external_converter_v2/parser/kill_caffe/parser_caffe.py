@@ -227,7 +227,7 @@ class CaffeParser:
                 logger(verbose.FATAL).feed("[ Upgrade Level 3 ] Details: need to upgrade from V1 to V2 [ FAILED ]")
                 exit()
         if NetNeedsInputUpgrade(self.net_parameter):
-            logger(verbose.INFO).feed("[ Upgrade Level 4 ] Details: need Input upgrade [ ... ]")	
+            logger(verbose.INFO).feed("[ Upgrade Level 4 ] Details: need Input upgrade [ ... ]")    
             UpgradeNetInput(self.net_parameter)
             logger(verbose.WARNING).feed("[ Upgrade Level 4 ] Details: need Input upgrade [ SUC ]")
         if NetNeedsBatchNormUpgrade(self.net_parameter):
@@ -239,26 +239,34 @@ class CaffeParser:
         '''
         Currently, the connection between Slice and Concat must be implemented via Split.
         '''
-        param_split = NetParameter()
         layers = self.net_parameter.layer or self.net_parameter.layers
         top_blobs_of_slices = list()
         btm_blobs_of_concats = list()
-        for idx, layer in enumerate(layers):
+        for layer in layers:
             if layer.type == 'Slice':
-		top_blobs_of_slices.extend(layer.top)
+                top_blobs_of_slices.extend(layer.top)
             elif layer.type == 'Concat':
                 btm_blobs_of_concats.extend(layer.bottom)
         intersection_blobs = list(set(top_blobs_of_slices).intersection(set(btm_blobs_of_concats)))
-        for blob in intersection_blobs:
-            layer_param = param_split.layer.add()
-            layer_param.bottom.append(blob)
-            layer_param.top.append(blob)
-            layer_param.name = 'Split_' + blob
-            layer_param.type = 'Split'
+        new_param = NetParameter()
+        for layer in layers:
+            new_layer = new_param.layer.add()
+            new_layer.CopyFrom(layer)
+            if layer.type == 'Slice':
+                for top_blob in layer.top:
+                    if top_blob in intersection_blobs:
+                        split_param = new_param.layer.add()
+                        split_param.bottom.append(top_blob)
+                        split_param.top.append(top_blob)
+                        split_param.name = 'Split_' + top_blob
+                        split_param.type = 'Split'
         if self.net_parameter.layer:
-            self.net_parameter.layer.extend(param_split.layer)
+            del self.net_parameter.layer[:]
+            self.net_parameter.layer.extend(new_param.layer)
         else:
-            self.net_parameter.layers.extend(param_split.layer)
+            del self.net_parameter.layers[:]
+            self.net_parameter.layers.extend(new_param.layer)
+
 
     def _InsertSplits(self):
         """
@@ -283,7 +291,7 @@ class CaffeParser:
             layer_idx_to_name[idx] = layer.name
             for j, btm in enumerate(layer.bottom):
                 if btm not in self.blob_name_to_last_top_idx.keys():
-                    logger(verbose.FATAL).feed("Unknown bottom (blob: %s) in (layer: '%s')" % (btm, layer.name))		
+                    logger(verbose.FATAL).feed("Unknown bottom (blob: %s) in (layer: '%s')" % (btm, layer.name))        
                     exit()
                 bottom_idx = (idx, j)
                 top_idx = self.blob_name_to_last_top_idx[btm]
