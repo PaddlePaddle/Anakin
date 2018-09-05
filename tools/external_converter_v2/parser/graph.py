@@ -105,11 +105,17 @@ class Graph(object):
         self.graph_io.serialization(self.save_file_path)
 
     def info_table(self):
+        """
+        print input table.
+        """
         tables = list()
         in_table = PrettyTable(["Input Name", "Shape", "Alias", "Data Type"])
         out_table = PrettyTable(["Output Name"])
 
         def ins_attr():
+            """
+            get inputs attr.
+            """
             ins = list()
             for graph_in in self.ins():
                 attr = dict()

@@ -36,14 +36,17 @@ class CaffeParser:
     def _DetectionArch(self):
         """
         """
+        self._InsSplitBtwSliceConcat()
         self._ParserPrototxt()
         self._UpgradeNetAsNeeded()
         self._FilterNet()
-        self._SplitInception(False)
+        #self._SplitInception(False)
         self._InsertSplits()
         self._ScatterInputLayer()
         # create input node
         #self._CreateInputNode() maybe not need
+
+    '''
     def _SplitInception(self, is_weight):
         print is_weight
         net = self.net_parameter
@@ -178,7 +181,7 @@ class CaffeParser:
             if self.net_parameter.layer:
                 del self.net_parameter.layer[:]
                 self.net_parameter.layer.extend(new_layers)
-        
+    '''
 
     def _ParserPrototxt(self):
         """
@@ -213,7 +216,7 @@ class CaffeParser:
                 logger(verbose.FATAL).feed("[ Upgrade Level 1 ]  Details: need to upgrade from V0 to V1 [ FAILED ]")
                 exit()
         if NetNeedsDataUpgrade(self.net_parameter):
-            logger(verbose.INFO).feed("[ Upgrade Level 2 ] Details: need Data upgrade [ IGNORED ]")
+            logger(verbose.ERROR).feed("[ Upgrade Level 2 ] Details: need Data upgrade [ IGNORED ]")
         if NetNeedsV1ToV2Upgrade(self.net_parameter):
             logger(verbose.INFO).feed("[ Upgrade Level 3 ] Details: need to upgrade from V1 to V2 [ ... ]")
             original_param = NetParameter()
@@ -231,6 +234,31 @@ class CaffeParser:
             logger(verbose.INFO).feed("[ Upgrade Level 5 ] Details: need BatchNorm upgrade [ ... ]")
             UpgradeNetBatchNorm(self.net_parameter)
             logger(verbose.INFO).feed("[ Upgrade Level 5 ] Details: need BatchNorm upgrade [ ... ]")
+
+    def _InsSplitBtwSliceConcat(self):
+        '''
+        Currently, the connection between Slice and Concat must be implemented via Split.
+        '''
+        param_split = NetParameter()
+        layers = self.net_parameter.layer or self.net_parameter.layers
+        top_blobs_of_slices = list()
+        btm_blobs_of_concats = list()
+        for idx, layer in enumerate(layers):
+            if layer.type == 'Slice':
+		top_blobs_of_slices.extend(layer.top)
+            elif layer.type == 'Concat':
+                btm_blobs_of_concats.extend(layer.bottom)
+        intersection_blobs = list(set(top_blobs_of_slices).intersection(set(btm_blobs_of_concats)))
+        for blob in intersection_blobs:
+            layer_param = param_split.layer.add()
+            layer_param.bottom.append(blob)
+            layer_param.top.append(blob)
+            layer_param.name = 'Split_' + blob
+            layer_param.type = 'Split'
+        if self.net_parameter.layer:
+            self.net_parameter.layer.extend(param_split.layer)
+        else:
+            self.net_parameter.layers.extend(param_split.layer)
 
     def _InsertSplits(self):
         """
@@ -393,19 +421,20 @@ class CaffeParser:
             if not input_dim:
                 if len(self.net_parameter.input_shape) > 0:
                     input_dim = map(int, self.net_parameter.input_shape[0].dim)
-                    node_io.set_name(in_name)
-                    node_io.add_in(in_name)
-                    # leak out name , need to be added later.
-                    shape = TensorShape()
-                    shape.dim.value[:] = input_dim
-                    shape.dim.size = len(input_dim)
-                    node_io.add_attr("shape", shape, "shape")
-                    op_io.set_name("Input")
-                    op_io.set_in_num(1)
-                    op_io.set_commutative(True)
-                    node_io.set_op(op_io())
-                    self.graphIO.add_node(node_io())
-                    self.graphIO.add_in(in_name)
+                    for in_name in inputs:
+                        node_io.set_name(in_name)
+                        node_io.add_in(in_name)
+                        # leak out name , need to be added later.
+                        shape = TensorShape()
+                        shape.dim.value[:] = input_dim
+                        shape.dim.size = len(input_dim)
+                        node_io.add_attr("shape", shape, "shape")
+                        op_io.set_name("Input")
+                        op_io.set_in_num(1)
+                        op_io.set_commutative(True)
+                        node_io.set_op(op_io())
+                        self.graphIO.add_node(node_io())
+                        self.graphIO.add_in(in_name)
                 else: 
                     # parser InputParameter instead.
                     logger(verbose.INFO).feed(" Need to parse the layer of type InputParameter.")
@@ -452,10 +481,10 @@ class CaffeParser:
                     blob_top_to_layer_name[top].put(tmp_rlayer.name)
         # set graph proto's name
         self.graphIO.set_name(self.net_parameter.name)
-        logger(verbose.INFO).feed(" [CAFFE] Archtecture Parsing ...")
+        logger(verbose.ERROR).feed(" [CAFFE] Archtecture Parsing ...")
 
         # parsing model
-        logger(verbose.INFO).feed(" [CAFFE] Model Parameter Parsing ...")
+        logger(verbose.ERROR).feed(" [CAFFE] Model Parameter Parsing ...")
         self._ParserModel()
         self._SplitInception(True)
         model_layers = self.net_param_weights.layers or self.net_param_weights.layer
@@ -573,10 +602,10 @@ class CaffeParser:
                 #blob_btm_to_layer_name[top] = tmp_rlayer.name
         # set graph proto's name
         self.graphIO.set_name(self.net_parameter.name)
-        logger(verbose.INFO).feed(" [CAFFE] Archtecture Parsing ...")
+        logger(verbose.ERROR).feed(" [CAFFE] Archtecture Parsing ...")
 
         # parsing model
-        logger(verbose.INFO).feed(" [CAFFE] Model Parameter Parsing ...")
+        logger(verbose.ERROR).feed(" [CAFFE] Model Parameter Parsing ...")
         self._ParserModel()
         #self._SplitInception(True)
         model_layers = self.net_param_weights.layers or self.net_param_weights.layer
