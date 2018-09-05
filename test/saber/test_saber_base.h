@@ -107,9 +107,9 @@ public:
             in_h.push_back(d_ih);
         }
         for(int i = 0; i < _op_output_num; ++i){
-            TensorD *d_od = new TensorD(new_shape_v[i]);
-            TensorH *d_oh = new TensorH(new_shape_v[i]);
-            TensorH *d_ohd = new TensorH(new_shape_v[i]);
+            TensorD *d_od = new TensorD();
+            TensorH *d_oh = new TensorH();
+            TensorH *d_ohd = new TensorH();
             out_d.push_back(d_od);
             out_h.push_back(d_oh);
             out_hd.push_back(d_ohd);
@@ -154,7 +154,6 @@ public:
         int input_size = _inputs_dev.size();
         CHECK_EQ(input_size, _inputs_host.size()) << "dev and host inputs num must be equal";
         if(_input_type == RANDOM){
-            CHECK_EQ(input_size, 1) << "special input num must be 1";
             for(int i=0; i<_inputs_dev.size(); ++i){
                 for(int j=0; j<_op_input_num; ++j){
                     fill_tensor_rand(*_inputs_dev[i][j], minv, maxv);
@@ -163,6 +162,7 @@ public:
                 }
             }
         } else {
+            CHECK_EQ(input_size, 1) << "special input num must be 1";
             for(int i = 0; i < _inputs_dev.size(); ++i){
                 for(int j = 0; j < _op_input_num; ++j){
                     fill_tensor_const(*_inputs_dev[i][j], _special_value);
