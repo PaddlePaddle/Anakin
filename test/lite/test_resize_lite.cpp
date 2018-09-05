@@ -21,9 +21,9 @@ void resize_basic(const float* in_data,int count, int h_in, int w_in, \
 
     int spatial_in = h_in * w_in;
     int spatial_out = h_out * w_out;
-#pragma omp parallel for
-    for(int i = 0; i < count; ++i){
-        for(int s = 0; s < spatial_out; ++s){
+
+    for (int i = 0; i < count; ++i){
+        for (int s = 0; s < spatial_out; ++s){
             int x_out = s % w_out;
             int y_out = s / w_out;
             float x_in = x_out * width_scale;
@@ -67,8 +67,7 @@ TEST(TestSaberLite, test_func_resize_arm) {
     // start Reshape & doInfer
     Context ctx1;
     LOG(INFO) << "set runtine context";
-    PowerMode mode = cluster == 0? SABER_POWER_HIGH : SABER_POWER_LOW;
-    ctx1.set_run_mode(mode, threads);
+    ctx1.set_run_mode((PowerMode)cluster, threads);
     LOG(INFO) << "test threads activated";
 #pragma omp parallel
     {
@@ -139,16 +138,16 @@ TEST(TestSaberLite, test_func_resize_arm) {
         }
     }
 
+    printf("basic resize time: %.4fms\n", basic_tdiff);
+    printf("saber resize total time : %.4fms, avg time : %.4fms\n", sum, sum / test_iter, min_time);
 #if COMPARE_RESULT
     double max_ratio = 0;
     double max_diff = 0;
-
     tensor_cmp_host(tout_basic.data(), tout.data(), tout_basic.valid_size(), max_ratio, max_diff);
     CHECK_EQ(fabsf(max_ratio) < 1e-5f, true) << "compute result error" \
      << "compare result, max diff: " << max_diff << ", max ratio: " << max_ratio;;
 #endif
-    printf("basic resize time: %.4fms\n", basic_tdiff);
-    printf("saber resize total time : %.4fms, avg time : %.4fms\n", sum, sum / test_iter, min_time);
+    
     //print_tensor(*vin[0]);
     //print_tensor(tout_basic);
     //print_tensor(*vout[0]);
@@ -161,26 +160,32 @@ int main(int argc, const char** argv){
 
     if (argc >= 2) {
         cluster = atoi(argv[1]);
+        if (cluster < 0){
+            cluster = 0;
+        }
+        if (cluster > 3){
+            cluster = 3;
+        }
     }
     if (argc >= 3) {
         threads = atoi(argv[2]);
     }
-    if(argc >= 4){
+    if (argc >= 4){
         num_in = atoi(argv[3]);
     }
-    if(argc >= 5){
+    if (argc >= 5){
         ch_in = atoi(argv[4]);
     }
-    if(argc >= 6){
+    if (argc >= 6){
         h_in = atoi(argv[5]);
     }
-    if(argc >= 7){
+    if (argc >= 7){
         w_in = atoi(argv[6]);
     }
-    if(argc >= 8){
+    if (argc >= 8){
         width_scale = atof(argv[7]);
     }
-    if(argc >= 9){
+    if (argc >= 9){
         height_scale = atof(argv[8]);
     }
     InitTest();
