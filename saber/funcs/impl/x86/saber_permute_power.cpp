@@ -12,7 +12,11 @@ SaberStatus SaberPermutePower<X86, AK_FLOAT>::\
              PermutePowerParam<X86> &param){
         const float* src_ptr = static_cast<const float*>(inputs[0] -> data());
         float* dst_ptr = static_cast<float*>(outputs[0] -> mutable_data());
-        //permute
+        
+        float p = param.power_param.power;
+        float scale = param.power_param.scale;
+        float shift = param.power_param.shift;
+        
         if (!_need_permute){
             outputs[0] -> copy_from(*inputs[0]);
         } else {
@@ -34,7 +38,11 @@ SaberStatus SaberPermutePower<X86, AK_FLOAT>::\
                         in_idx += offset;
                         id %= new_step;
                     }
-                    dst_ptr[j] = src_ptr[in_idx];
+                    if (p == 1){
+                        dst_ptr[j] = src_ptr[in_idx]*scale + shift;
+                    } else {
+                        dst_ptr[j] = pow(src_ptr[in_idx]*scale + shift, p);
+                    }
                 }
             } else {
                 for (int j=0; j<out_size; ++j){
@@ -50,60 +58,64 @@ SaberStatus SaberPermutePower<X86, AK_FLOAT>::\
                         out_idx += id * new_step;
                         new_valid_stride *= new_valid_shape[i];
                     }
-                    dst_ptr[out_idx] = src_ptr[in_idx];
+                    if (p == 1){
+                        dst_ptr[out_idx] = src_ptr[in_idx]*scale + shift;
+                    } else {
+                        dst_ptr[out_idx] = pow(src_ptr[in_idx]*scale + shift, p);
+                    }
                 }
             }
         }//if !need_permute
-        //power
-        float p = param.power_param.power;
-        float scale = param.power_param.scale;
-        float shift = param.power_param.shift;
-        int out_size = outputs[0] -> valid_size();
         
-        if (outputs[0] -> is_continue_mem() && inputs[0] -> is_continue_mem()){
-            if (p ==1){
-                for (int i=0; i < out_size; ++i){
-                    dst_ptr[i] = dst_ptr[i] * scale + shift;
-                }
-            } else {
-                for (int i=0; i < out_size; ++i){
-                    dst_ptr[i] = pow(dst_ptr[i] * scale + shift, p);
-                }
-            }
-        } else {
-            int num_axes = outputs[0] -> valid_shape().size();
-            std::vector<int> new_steps = outputs[0] -> get_stride();
-            std::vector<int> old_steps = inputs[0] -> get_stride();
-            std::vector<int> new_valid_shape = outputs[0] -> valid_shape();
+        //if _need_permute is false, do power individually
+        if (!_need_permute){
+            int out_size = outputs[0] -> valid_size();
             
-            if (p ==1){
-                for (int i=0; i<out_size; ++i){
-                    int in_idx = 0;
-                    int out_idx = 0;
-                    int new_valid_stride = 1;
-                    for (int axis_id = num_axes; axis_id >=0; --axis_id){
-                        int id = (i / new_valid_stride) % new_valid_shape[axis_id];
-                        in_idx += id*old_steps[axis_id];
-                        out_idx += id*new_steps[axis_id];
-                        new_valid_stride *= new_valid_shape[axis_id];
+            if (outputs[0] -> is_continue_mem() && inputs[0] -> is_continue_mem()){
+                if (p ==1){
+                    for (int i=0; i < out_size; ++i){
+                        dst_ptr[i] = dst_ptr[i] * scale + shift;
                     }
-                    dst_ptr[out_idx] = src_ptr[in_idx] *scale + shift;
+                } else {
+                    for (int i=0; i < out_size; ++i){
+                        dst_ptr[i] = pow(dst_ptr[i] * scale + shift, p);
+                    }
                 }
             } else {
-                for (int i=0; i<out_size; ++i){
-                    int in_idx = 0;
-                    int out_idx = 0;
-                    int new_valid_stride = 1;
-                    for (int axis_id = num_axes; axis_id >=0; --axis_id){
-                        int id = (i / new_valid_stride) % new_valid_shape[axis_id];
-                        in_idx += id*old_steps[axis_id];
-                        out_idx += id*new_steps[axis_id];
-                        new_valid_stride *= new_valid_shape[axis_id];
+                int num_axes = outputs[0] -> valid_shape().size();
+                std::vector<int> new_steps = outputs[0] -> get_stride();
+                std::vector<int> old_steps = inputs[0] -> get_stride();
+                std::vector<int> new_valid_shape = outputs[0] -> valid_shape();
+                
+                if (p ==1){
+                    for (int i=0; i<out_size; ++i){
+                        int in_idx = 0;
+                        int out_idx = 0;
+                        int new_valid_stride = 1;
+                        for (int axis_id = num_axes; axis_id >=0; --axis_id){
+                            int id = (i / new_valid_stride) % new_valid_shape[axis_id];
+                            in_idx += id*old_steps[axis_id];
+                            out_idx += id*new_steps[axis_id];
+                            new_valid_stride *= new_valid_shape[axis_id];
+                        }
+                        dst_ptr[out_idx] = dst_ptr[in_idx] *scale + shift;
                     }
-                    dst_ptr[out_idx] = pow(src_ptr[in_idx] *scale + shift, p);
-                }
-            }//if p=1
-        }//if is_continue_mem
+                } else {
+                    for (int i=0; i<out_size; ++i){
+                        int in_idx = 0;
+                        int out_idx = 0;
+                        int new_valid_stride = 1;
+                        for (int axis_id = num_axes; axis_id >=0; --axis_id){
+                            int id = (i / new_valid_stride) % new_valid_shape[axis_id];
+                            in_idx += id*old_steps[axis_id];
+                            out_idx += id*new_steps[axis_id];
+                            new_valid_stride *= new_valid_shape[axis_id];
+                        }
+                        dst_ptr[out_idx] = pow(dst_ptr[in_idx] *scale + shift, p);
+                    }
+                }//if p=1
+            }//if is_continue_mem
+        }
         return SaberSuccess;
 }
 
