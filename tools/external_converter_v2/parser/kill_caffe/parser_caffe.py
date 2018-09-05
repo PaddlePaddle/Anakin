@@ -40,13 +40,13 @@ class CaffeParser:
         self._ParserPrototxt()
         self._UpgradeNetAsNeeded()
         self._FilterNet()
-        #self._SplitInception(False)
+        self._SplitInception(False)
         self._InsertSplits()
         self._ScatterInputLayer()
         # create input node
         #self._CreateInputNode() maybe not need
 
-    '''
+    
     def _SplitInception(self, is_weight):
         print is_weight
         net = self.net_parameter
@@ -181,7 +181,7 @@ class CaffeParser:
             if self.net_parameter.layer:
                 del self.net_parameter.layer[:]
                 self.net_parameter.layer.extend(new_layers)
-    '''
+    
 
     def _ParserPrototxt(self):
         """
@@ -486,7 +486,7 @@ class CaffeParser:
         # parsing model
         logger(verbose.ERROR).feed(" [CAFFE] Model Parameter Parsing ...")
         self._ParserModel()
-        self._SplitInception(True)
+        #self._SplitInception(True)
         model_layers = self.net_param_weights.layers or self.net_param_weights.layer
 
         # we must setting graph edge first
@@ -607,7 +607,7 @@ class CaffeParser:
         # parsing model
         logger(verbose.ERROR).feed(" [CAFFE] Model Parameter Parsing ...")
         self._ParserModel()
-        #self._SplitInception(True)
+        self._SplitInception(True)
         model_layers = self.net_param_weights.layers or self.net_param_weights.layer
         for idx, rlayer in enumerate(real_layers):
             source_layer_name = rlayer.name
