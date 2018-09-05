@@ -38,8 +38,75 @@ namespace graph {
 * \brief struct AttrInfo of node
 */
 struct AttrInfo {
+public:
+    AttrInfo() {
+        parameter_p = 
+            std::make_shared<std::unordered_map<std::string, ::anakin::any> >();
+    }
+
+    inline bool inspect(const std::string& attr_name) {
+		auto it_end = parameter_p->end();
+		auto it_find = parameter_p->find(attr_name);
+		if(it_find != it_end) {
+			return true;
+		}
+		return false;
+	}
+
+    template<typename T>
+    T get(const std::string& attr_name) {
+        auto it_end = parameter_p->end();
+        auto it_find = parameter_p->find(attr_name);
+        if(it_find == it_end) {
+            LOG(FATAL) << "Target attr name(" << attr_name << ") not found.";
+            return T();
+        }
+        return any_cast<T>((*parameter_p)[attr_name]);
+    }
+
+    template<typename T>
+    Status set(const std::string& attr_name, const T val) {
+        (*parameter_p)[attr_name] = val;
+        return Status::OK();
+    }
+
+    Status remove(const std::string& attr_name) {
+        auto it_end = parameter_p->end();
+        auto it_find = parameter_p->find(attr_name);
+        if(it_find != it_end) {
+            parameter_p->erase(attr_name);
+            return Status::OK();
+        } else {
+            return Status::OK("target attr_name not included in attrs");
+        }
+    }
+
+    inline void  MergeWithPattern(AttrInfo& operand, const std::string& pattern_name) {
+        auto it_begin = operand.parameter_p->begin();
+        auto it_end = operand.parameter_p->end();
+        for(auto it = it_begin; it != it_end; ++it ) {
+            // operand name has been changed!
+            std::string new_name = pattern_name + "_" + it->first; 
+            (*parameter_p)[new_name] = it->second; 
+        }
+    }
+
+    std::unordered_map<std::string, ::anakin::any>::iterator begin() {
+        return parameter_p->begin();
+    }
+
+    std::unordered_map<std::string, ::anakin::any>::iterator end() {
+        return parameter_p->end();
+    }
+
+    /// shallow copy from other AttrInfo
+    AttrInfo& operator=(const AttrInfo& other_attr_info) {
+        this->parameter_p = other_attr_info.parameter_p;
+        return *this;
+    }
+private:
     /// map : parameter ---> value
-    std::unordered_map<std::string, ::anakin::any> parameter;
+    std::shared_ptr<std::unordered_map<std::string, ::anakin::any> > parameter_p;
 };
 
 /**
@@ -158,13 +225,7 @@ public:
 
 	/// inspect if node attr have target attr name
 	inline bool inspect_attr(const std::string& attr_name) {
-		auto& attrs = this->attr();
-		auto it_end = attrs.parameter.end();
-		auto it_find = attrs.parameter.find(attr_name);
-		if(it_find != it_end) {
-			return true;
-		}
-		return false;
+	    return this->_attr.inspect(attr_name);	
 	}
 
     /**
@@ -173,15 +234,8 @@ public:
     * \return T the value of target attribute
     */
     template<typename T>
-    T get_attr(std::string& attr_name) {
-        auto& attrs = this->attr();
-        auto it_end = attrs.parameter.end();
-        auto it_find = attrs.parameter.find(attr_name);
-        if(it_find == it_end) {
-            LOG(FATAL) << "Target attr name(" << attr_name << ") not found.";
-            return T();
-        }
-        return any_cast<T>(attrs.parameter[attr_name]);
+    T get_attr(const std::string& attr_name) {
+        return this->_attr.get<T>(attr_name); 
     }
     /**
     * \brief Set target attr by name and value 
@@ -191,9 +245,8 @@ public:
     */
     template<typename T>
     Status set_attr(const std::string& attr_name, const T val) {
-        auto& attrs = this->attr();
-        attrs.parameter[attr_name] = val;
-        return Status::OK();
+        std::unique_lock<std::mutex> lock(this->_mut);
+        return this->_attr.set<T>(attr_name, val);  
     }
 
     /**
@@ -202,15 +255,8 @@ public:
     * \return Status
     */
     Status remove_attr(const std::string& attr_name) {
-        auto& attrs = this->attr();
-        auto it_end = attrs.parameter.end();
-        auto it_find = attrs.parameter.find(attr_name);
-        if(it_find != it_end) {
-            attrs.parameter.erase(attr_name);
-            return Status::OK();
-        } else {
-            return Status::OK("target attr_name not included in attrs");
-        }
+        std::unique_lock<std::mutex> lock(this->_mut);
+        return this->_attr.remove(attr_name); 
     }
 
     /// get lane
@@ -222,36 +268,21 @@ public:
     * \param pattern_name 
     * \return Node 
     */
-    inline Node& Merge(const Node& operand, std::string& pattern_name) {
-        auto it_begin = operand._attr.parameter.begin();
-        auto it_end = operand._attr.parameter.end();
-        for(auto it = it_begin; it != it_end; ++it ) {
-            // operand name has been changed!
-            std::string new_name = pattern_name + "_" + it->first; 
-            _attr.parameter[new_name] = it->second;
-            /*if(_attr.parameter.count(it->first) > 0) {
-                // change the parameter name if fusion node have same parameter name 
-                std::string new_name = operand._name + "_" + it->first;
-                _attr.parameter[new_name] = it->second;
-            } else {
-                _attr.parameter[it->first] = it->second;
-            }*/
-        }
+    inline Node& Merge(Node& operand, const std::string& pattern_name) { 
+        std::unique_lock<std::mutex> lock(this->_mut);
+        this->_attr.MergeWithPattern(operand.attr(), pattern_name);
         return *this;
     }
 
     /// copy construction [ shallow copy ]
-    inline Node& operator=(const Node& operand) {
+    inline Node& operator=(Node& operand) {
         _name = operand._name;
         _current_lane = operand._current_lane;
         _Op = nullptr; // Assign the op pointer with operand's should be disabled, because it causes double free after binding the nodeptr by op itself.
         _op_name = operand._op_name;
-        // copy attributes
-        auto it_begin = operand._attr.parameter.begin();
-        auto it_end = operand._attr.parameter.end();
-        for(auto it = it_begin; it != it_end; ++it ) {
-            _attr.parameter[it->first] = it->second;
-        }
+        // shallow copy of attributes
+        this->_attr = operand.attr();        
+        // copy others
         _need_wait = operand._need_wait;
         _in_degree = operand._in_degree;
         _out_degree = operand._out_degree;
@@ -281,8 +312,10 @@ private:
 
     ///<  _in_degree stand for number input degree
     size_t _in_degree;
-     ///<  _out_degree stand for number output degree
+    ///<  _out_degree stand for number output degree
     size_t _out_degree;
+
+    std::mutex _mut; 
 };
 
 

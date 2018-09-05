@@ -20,6 +20,7 @@ using Target_H = X86;
 //#define USE_DIEPSE
 
 std::string model_path = "/home/cuichaowen/github_anakin/Anakin/build/yolo_camera_detector.anakin.bin";
+
 std::string model_saved_path = model_path + ".saved";
 
 #ifdef USE_CUDA
@@ -208,7 +209,7 @@ TEST(NetTest, net_execute_base_test) {
 #endif 
 #endif
 
-#if 1
+#if 0
 TEST(NetTest, net_execute_reconstruction_test) {
     Graph<NV, Precision::FP32>* graph = new Graph<NV, Precision::FP32>();
     LOG(WARNING) << "load anakin model file from optimized model " << model_saved_path << " ...";

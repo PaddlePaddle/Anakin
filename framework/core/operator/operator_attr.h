@@ -103,10 +103,9 @@ public:
     template<typename T>
     T& GetArg(std::string arg_name, graph::AttrInfo& info) {
         CHECK(this->has_arg(arg_name)) << " the operator doesn't have target argument: " << arg_name;
-        CHECK(info.parameter.count(arg_name) > 0) << " Attr info doesn't have target argument: " 
+        CHECK(info.inspect(arg_name)) << " Attr info doesn't have target argument: " 
                                                   << arg_name;
-        any& target_arg = info.parameter[arg_name];
-        return any_cast<T>(target_arg);
+        return info.get<T>(arg_name);
     }
 
     /** 

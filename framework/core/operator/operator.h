@@ -104,8 +104,11 @@ public:
      *  \brief Bind parameter pack from graph.
      */
     void BindParam(graph::NodePtr& node_p) { 
-		_node_p = std::make_shared<graph::Node>(); 
-		*_node_p = *node_p;
+        // Shareptr shallow copy
+        // Note: We can also use deep copy by using node operator=, 
+        //       but if change the node attrs through net class, 
+        //       the base graph can't detect it.
+		_node_p = node_p; 
 	}
 
     /** 
@@ -119,7 +122,7 @@ public:
      */
     template<typename T> 
     void set_sttr(const std::string& attr_name, const T val) {
-        _node_p->set_attr(attr_name, val);
+        _node_p->set_attr<T>(attr_name, val);
     }
 
 	/**

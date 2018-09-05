@@ -221,9 +221,9 @@ Status NodeIO<Ttype, Ptype>::operator<<(GraphProto& graph) {
 
         // set node proto's attr
         auto node_proto_attr = node_proto->mutable_attr();
-        auto it = node_p->attr().parameter.begin();
+        auto it = node_p->attr().begin();
 
-        for (; it != node_p->attr().parameter.end(); ++it) {
+        for (; it != node_p->attr().end(); ++it) {
             auto& key = it->first;
             auto& value = it->second;
 

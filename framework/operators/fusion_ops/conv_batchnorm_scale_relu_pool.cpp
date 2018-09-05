@@ -203,6 +203,7 @@ Status ConvBatchnormScaleReluPoolHelper<NV, Precision::FP32>::Init(OpContext<NV>
     auto is_weights_transed = CHECK_PARAMETER(is_weights_transed);
     if(!is_weights_transed) {
         SET_PARAMETER(is_weights_transed, true, bool);
+        auto is_weights_transed_test = CHECK_PARAMETER(is_weights_transed);
         graph::GraphGlobalMem<NV>::Global().template apply<Level_1>(
                                     std::bind(&ConvPooling<NV, PrecisionWrapper<Precision::FP32>::saber_type>::trans_weights, 
                                     &_funcs_conv_batchnorm_scale_relu_pooling, _1, _2, _3, _4, _5),

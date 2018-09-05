@@ -61,10 +61,10 @@ inline void AnakinService<Ttype, Ptype, RunP>::extract_request(
         auto& io = request->inputs(i);
         auto& data = io.tensor();
         auto& shape = data.shape();
-        saber::Shape tensor_shape{shape[0],shape[1],shape[2],shape[3]};
+        saber::Shape tensor_shape({shape[0],shape[1],shape[2],shape[3]});
         Tensor4d<typename target_host<Ttype>::type> h_tensor;
         h_tensor.re_alloc(tensor_shape);
-        auto* h_data = h_tensor.mutable_data();
+        float* h_data = (float*)(h_tensor.mutable_data());
         DLOG(INFO) <<"Check shape: " << shape[0] << " " << shape[1] << " " << shape[2] << " " <<shape[3];
         DLOG(INFO) << "h_data: " << h_data << "data_p: " << data.data().data();
         for(int j=0; j<10;j++) {
@@ -101,7 +101,7 @@ inline void AnakinService<Ttype, Ptype, RunP>::fill_response_data(
         data->add_shape(shape[3]);
         data->mutable_data()->Reserve(shape[0]*shape[1]*shape[2]*shape[3]);
         for(int j=0; j<shape[0]*shape[1]*shape[2]*shape[3]; j++) {
-            data->add_data(h_out.mutable_data()[j]);
+            data->add_data(((float*)(h_out.mutable_data()))[j]);
         }
         LOG(INFO) << " output size: " <<data->data_size();
     }
