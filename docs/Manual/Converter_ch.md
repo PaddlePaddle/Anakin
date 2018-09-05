@@ -56,11 +56,9 @@ TARGET:
 
     FLUID:
         # 当 Framework 为 FLUID 时需填写
-        Debug: NULL
-        ProtoPaths:
-            - /
-        PrototxtPath: /path/to/fluid/inference_model
-        ModelPath: /path/to/fluid/inference_model
+        Debug: NULL                                # 不需要更改
+        ModelPath: /path/to/fluid/inference_model  # 此路径通常包括 model 和 params 两个文件
+        NetType:                                   # 填写网络类型，如 OCR、SSD
     # ...
 ```
 
