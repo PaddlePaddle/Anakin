@@ -15,8 +15,7 @@ SaberStatus SaberConv2D<X86, AK_FLOAT>::create(const std::vector<Tensor<X86> *>&
                                              std::vector<Tensor<X86> *>& outputs,
                                              ConvParam<X86>& param, Context<X86>& ctx) {
     this->_ctx = &ctx;
-    this->impl->create(inputs, outputs, param, ctx);
-    return SaberSuccess;
+    return this->impl->create(inputs, outputs, param, ctx);
 }
 template <>
 SaberStatus SaberConv2D<X86, AK_FLOAT>::init(const std::vector<Tensor<X86> *>& inputs,
@@ -47,8 +46,7 @@ SaberStatus SaberConv2D<X86, AK_FLOAT>::\
     dispatch(const std::vector<Tensor<X86> *>& inputs,
              std::vector<Tensor<X86> *>& outputs,
              ConvParam<X86>& param) {
-    this->impl->dispatch(inputs, outputs, param);
-    return SaberSuccess;
+    return this->impl->dispatch(inputs, outputs, param);
 }
 
 template <>

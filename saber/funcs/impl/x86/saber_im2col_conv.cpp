@@ -106,6 +106,9 @@ SaberStatus SaberIm2colConv<AK_FLOAT>::dispatch(const std::vector<Tensor<X86> *>
     bool flag_bias = (param.bias()->valid_size() > 0);
     bool flag_relu = param.activation_param.has_active;
     const float* bias = flag_bias ? (const float*)param.bias()->data() : nullptr;
+    if (param.group != 1) {
+        return SaberUnImplError;
+    }
 
     for (int i = 0; i < batch_size; i++) {
 
