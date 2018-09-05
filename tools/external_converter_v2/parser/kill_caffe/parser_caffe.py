@@ -486,7 +486,7 @@ class CaffeParser:
         # parsing model
         logger(verbose.ERROR).feed(" [CAFFE] Model Parameter Parsing ...")
         self._ParserModel()
-        #self._SplitInception(True)
+        self._SplitInception(True)
         model_layers = self.net_param_weights.layers or self.net_param_weights.layer
 
         # we must setting graph edge first
@@ -607,7 +607,7 @@ class CaffeParser:
         # parsing model
         logger(verbose.ERROR).feed(" [CAFFE] Model Parameter Parsing ...")
         self._ParserModel()
-        self._SplitInception(True)
+        #self._SplitInception(True)
         model_layers = self.net_param_weights.layers or self.net_param_weights.layer
         for idx, rlayer in enumerate(real_layers):
             source_layer_name = rlayer.name
