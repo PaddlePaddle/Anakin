@@ -25,8 +25,8 @@
 namespace anakin{
 namespace saber{
 
-template <typename TargetType>
-Shape conv_compute_shape(const Shape input_shape, ConvParam<TargetType> &param) {
+template <class Param >
+Shape conv_compute_shape(const Shape input_shape, Param &param) {
     Shape output_shape = (input_shape);
     CHECK_GE(input_shape.size(), 4) << "using reshape2d to reshape a 1d conv?";
 
@@ -44,6 +44,84 @@ Shape conv_compute_shape(const Shape input_shape, ConvParam<TargetType> &param) 
     int output_width = (input_dim + 2 * param.pad_w - kernel_exten)
                  / param.stride_w + 1;
     output_shape.set_width(output_width);
+    return output_shape;
+}
+
+template <typename TargetType>
+Shape deconv_compute_shape(const Shape input_shape, ConvParam<TargetType> &param) {
+    Shape output_shape = input_shape;
+    CHECK_GE(input_shape.size(), 4) << "using reshape2d to reshape a 1d deconv?";
+
+    // append the $n and $c/$k, output: N * K * P * Q
+
+    output_shape.set_num(input_shape.num()); // N
+    output_shape.set_channel(param.weight()->num() * param.group); // K
+
+    int kernel_extent_h = param.dilation_h *
+                          (param.weight()->height() - 1) + 1;
+    int output_dim_h = (input_shape.height() - 1) *
+                       param.stride_h + kernel_extent_h - 2 * param.pad_h;
+    int kernel_extent_w = param.dilation_w *
+                          (param.weight()->width() - 1) + 1;
+    int output_dim_w = (input_shape.width() - 1) *
+                       param.stride_w + kernel_extent_w - 2 * param.pad_w;
+
+    output_shape.set_height(output_dim_h);
+    output_shape.set_width(output_dim_w);
+    return output_shape;
+}
+
+template <class Param >
+Shape pool_compute_shape(const Shape input_shape, Param &param) {
+
+    Shape output_shape = input_shape;
+
+    int in_height = input_shape.height();
+    int in_width = input_shape.width();
+
+    int window_h = param.window_h;
+    int window_w = param.window_w;
+    int pad_h = param.pad_h;
+    int pad_w = param.pad_w;
+    int stride_h = param.stride_h;
+    int stride_w = param.stride_w;
+    int out_height;
+    int out_width;
+    if (param.global_pooling) {
+        out_height = 1;
+        out_width = 1;
+        param.stride_h = in_height;
+        param.stride_w = in_width;
+        window_h = in_height;
+        window_w = in_width;
+        param.window_h = in_height;
+        param.window_w = in_width;
+    } else {
+        if (param.cmp_out_shape_floor_as_conv) {
+            out_height = static_cast<int>((static_cast<float>(
+                                                   in_height + 2 * pad_h - window_h) / stride_h)) + 1;
+
+            out_width = static_cast<int>((static_cast<float>(
+                                                  in_width + 2 * pad_w - window_w) / stride_w)) + 1;
+        } else {
+            out_height = static_cast<int>(ceilf(static_cast<float>(
+                                                        in_height + 2 * pad_h - window_h) / stride_h)) + 1;
+
+            out_width = static_cast<int>(ceilf(static_cast<float>(
+                                                       in_width + 2 * pad_w - window_w) / stride_w)) + 1;
+        }
+    }
+
+    if (param.pooling_padded()) {
+        if ((out_height - 1) * stride_h >= in_height + pad_h) {
+            -- out_height;
+        }
+        if ((out_width - 1) * stride_w >= in_width + pad_w) {
+            -- out_width;
+        }
+    }
+    output_shape.set_height(out_height);
+    output_shape.set_width(out_width);
     return output_shape;
 }
 
@@ -438,6 +516,72 @@ void update_deconv_weights(Param<Tensor_t>& param)
     Shape new_bias_shape = new_bias.shape();
     param.conv_param.mutable_bias()->re_alloc(new_bias_shape);
     param.conv_param.mutable_bias()->copy_from(new_bias);
+}
+
+inline int align_up(int a, int b) {
+    return (a % b != 0) ? (a - a % b + b) : a;
+}
+
+template <typename TargetType, typename TargetType_H, typename DataTensor>
+void conv_trans_weights(const std::vector<DataTensor *>& inputs,
+    std::vector<DataTensor *>& outputs,
+    ConvParam<TargetType>& param, Context<TargetType> &ctx,
+    bool in_place = false, DataTensor* weight_dev = nullptr) {
+
+    Tensor<TargetType_H> trans_weights_host;
+    if (param.stride_h == 1 &&
+    param.stride_w == 1 &&
+    param.weight()->height() == 3 &&
+    param.weight()->width() == 3 && param.group == 1) {
+        //Update weights if need
+        Shape weight_shape = param.weight()->shape();
+        Tensor<TargetType_H> new_weight;
+        new_weight.re_alloc(weight_shape, param.weight()->get_dtype());
+        new_weight.copy_from(*(param.weight()));
+        float *weight_data = (float *)new_weight.mutable_data();
+        int round_in_channel = align_up(inputs[0]->channel(), 8);
+        int round_out_channel = align_up(param.weight()->num(), 32);
+        int weight4x4_size = round_in_channel * round_out_channel * 4 * 4;
+        Shape old_shape = param.weight()->shape();
+        Shape new_trans_weights_shape({{weight4x4_size, 1, 1 ,1}}, param.weight()->get_layout());
+        trans_weights_host.re_alloc(new_trans_weights_shape, param.weight()->get_dtype());
+        float* _host_work_space = (float*)trans_weights_host.mutable_data();
+        transform_3x3_weight_2_4x4(weight_data, _host_work_space, param.weight()->num(),
+        round_out_channel, inputs[0]->channel(), round_in_channel);
+        Shape new_weights_shape({weight4x4_size, 1, 1, 1}, param.weight()->get_layout());
+        if (in_place) {
+            param.mutable_weight()->re_alloc(new_weights_shape, param.weight()->get_dtype());
+            param.mutable_weight()->copy_from(trans_weights_host);
+            param.mutable_weight()->set_shape(old_shape);
+        } else {
+            weight_dev->re_alloc(new_weights_shape, param.weight()->get_dtype());
+            weight_dev->copy_from(trans_weights_host);
+            weight_dev->set_shape(old_shape);
+        }
+    } else if (param.group == 1) {
+        int weight_size = (param.weight()->shape()).count();
+        Tensor<TargetType_H> weight_host;
+        weight_host.re_alloc(param.weight()->shape(), param.weight()->get_dtype());
+        weight_host.copy_from(*(param.weight()));
+        const float *weight_data = (const float *)weight_host.data();
+        trans_weights_host.re_alloc(param.weight()->valid_shape(), param.weight()->get_dtype());
+        float* _host_work_space = (float*)trans_weights_host.mutable_data();
+
+        transpose_filter_KCRS_2_CRSK(weight_data, _host_work_space, \
+                                                 param.weight()->num(), \
+                                                 param.weight()->channel(), \
+                                                 param.weight()->height(), \
+                                                 param.weight()->width());
+        if (in_place) {
+            param.mutable_weight()->re_alloc(param.weight()->valid_shape(), param.weight()->get_dtype());
+            param.mutable_weight()->copy_from(trans_weights_host);
+        } else {
+            weight_dev->re_alloc(param.weight()->valid_shape(), param.weight()->get_dtype());
+            weight_dev->copy_from(trans_weights_host);
+        }
+
+    }
+//    cudaDeviceSynchronize();
 }
 
 } // namespace saber

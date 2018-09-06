@@ -54,17 +54,17 @@ Status LstmHelper<Ttype, Dtype, Ptype>::InitParam() {
 
     LOG(INFO)<<"lstm act = ["<<input_activation<<","<<gate_activation<<","<<cell_activation<<","<<candidate_activation<<"]";
     LOG(INFO)<<"lstm other param = ["<<use_peepholes<<","<<is_reverse<<","<<dropout_param<<","<<num_direction<<","<<num_layers<<"]";
-//    exit(0);
 
     std::unordered_map<std::string, ActiveType> enum_map = {
             {"null",Active_unknow},
-            {"sigmoid_fluid", Active_sigmoid_fluid},
+            {"sigmoid_fluid", Active_sigmoid},
             {"relu_fluid", Active_relu},
-            {"tanh_fluid", Active_tanh_fluid},
+            {"tanh_fluid", Active_tanh},
             {"identity_fluid", Active_identity},
             {"sigmoid", Active_sigmoid},
             {"tanh", Active_tanh},
     };
+
     LstmParam<Tensor4d<Ttype, Dtype>> lstm_param(&(weight_wu.d_tensor()), &(bias.d_tensor()), nullptr,
             enum_map[input_activation], enum_map[gate_activation],
             enum_map[cell_activation], enum_map[candidate_activation],
