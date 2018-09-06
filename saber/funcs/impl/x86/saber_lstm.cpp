@@ -297,5 +297,7 @@ dispatch(const std::vector<Tensor<X86>*>& inputs,
     return SaberSuccess;
 }
 
+DEFINE_OP_TEMPLATE(SaberLstm, LstmParam, X86, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberLstm, LstmParam, X86, AK_INT8);
 }
 }

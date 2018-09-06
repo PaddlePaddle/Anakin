@@ -39,9 +39,6 @@ Status GruHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto hidden_act = GET_PARAMETER(std::string, activation);
     auto formula = GET_PARAMETER(std::string, gru_formula);
 
-//    auto weight_h2h = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>, weight_1);
-//    auto bias = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>, weight_3);
-//    auto weight_i2h = GET_PARAMETER(PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>, weight_2);
 
 	using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
     auto weight_wu = GET_PARAMETER(pblock_type, weight_1);
@@ -51,9 +48,9 @@ Status GruHelper<Ttype, Dtype, Ptype>::InitParam() {
                               || formula == "gru_cudnn")) << "formula illegal";
 
     std::unordered_map<std::string, ActiveType> act_map = {
-            {"sigmoid_fluid", Active_sigmoid_fluid},
+            {"sigmoid_fluid", Active_sigmoid},
             {"relu_fluid", Active_relu},
-            {"tanh_fluid", Active_tanh_fluid},
+            {"tanh_fluid", Active_tanh},
             {"identity_fluid", Active_identity}
     };
     std::unordered_map<std::string, GruFormula > formula_map = {

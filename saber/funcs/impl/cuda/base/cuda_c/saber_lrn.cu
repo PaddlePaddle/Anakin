@@ -79,5 +79,7 @@ SaberStatus SaberLrn<NV, OpDtype>::dispatch(\
     return SaberSuccess;
 }
 
+DEFINE_OP_TEMPLATE(SaberLrn, LrnParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberLrn, LrnParam, NV, AK_INT8);
 }
 }
