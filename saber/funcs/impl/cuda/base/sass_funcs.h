@@ -443,7 +443,7 @@ void scale_to_new_tensor_k4_s2_p1_deconv (Tensor<NV> *weight, int in_channel, in
                                       trans_w + 1 * offset,
                                       trans_w + 2 * offset,
                                       trans_w + 3 * offset,
-                                      temp_weights.data(),
+                                      static_cast<float*>(temp_weights.data()),
                                       in_channel, out_channel);
     weight->copy_from(new_weights_h);
 }
