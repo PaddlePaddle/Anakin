@@ -91,6 +91,9 @@ TEST(TestSaberFunc, test_func_normalize) {
 #ifdef USE_CUDA
     test_permute_power<NV, NVHX86, AK_FLOAT>();
 #endif
+#ifdef USE_X86_PLACE
+    test_permute_power<X86, X86, AK_FLOAT>();
+#endif
 }
 
 int main(int argc, const char** argv) {
