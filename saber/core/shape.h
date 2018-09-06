@@ -359,13 +359,12 @@ public:
 
     friend std::ostream& operator<<(std::ostream& out, const Shape& s) {
         out << " [AK Shape : (";
-        for(int i=0;i< sizeof(s.dims());i++) {
-            out << s.data()[i]<<",";
+        for (int i = 0; i < s.dims(); i++) {
+            out << s.data()[i] << ",";
         }
-        out <<") ]";
+        out << ") ]";
         return out;
     }
-
 
 protected:
     Layout* _layout{nullptr};
