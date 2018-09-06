@@ -250,7 +250,7 @@ public:
         Context<TargetType_D> ctx(0, 1, 1);
         SaberStatus status;
         SaberTimer<TargetType_D> t;
-        int iter_num=test_speed?100:1;
+        int iter_num=test_speed?100:10;
         t.clear();
         t.start(ctx);
         for(int input_index = 0; input_index < _inputs_dev.size(); ++input_index){
