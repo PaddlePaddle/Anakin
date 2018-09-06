@@ -257,7 +257,7 @@ public:
             _base_op.init(_inputs_dev[input_index], _outputs_dev[input_index],
                           _params[param_index], strategy, implenum, ctx);
             for(int iter=0; iter<iter_num; ++iter){
-//                _outputs_dev[input_index][0]->copy_from(*_outputs_host[input_index][0]);
+                _outputs_dev[input_index][0]->copy_from(*_outputs_host[input_index][0]);
                 status= _base_op(_inputs_dev[input_index], _outputs_dev[input_index],
                                  _params[param_index], ctx);
                 if(status == SaberUnImplError){
@@ -336,7 +336,7 @@ public:
         
         std :: vector<std :: string> runtype{"STATIC", "RUNTIME", "SPECIFY"};
         std :: vector<std :: string> impltype{"VENDER", "SABER"};
-        get_cpu_result(CpuFunc);
+
         for(auto strate : {SPECIFY, RUNTIME, STATIC}){
             for(auto implenum : {VENDER_IMPL, SABER_IMPL}){
                 LOG(INFO) << "TESTING: strategy:" << runtype[strate-1] << ",impltype:" << impltype[(int)implenum];
@@ -344,6 +344,7 @@ public:
                     LOG(INFO) << "Unimpl!!";
                     continue;
                 }
+                get_cpu_result(CpuFunc);
                 result_check_accuracy(succ_ratio,write_error_tensor);
             }
         }
