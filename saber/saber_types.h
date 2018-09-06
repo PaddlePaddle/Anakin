@@ -65,7 +65,9 @@ enum LayoutType {
     Layout_NHWC = 7,
     Layout_NCHW_C4 = 8,
     Layout_NCHW_C8 = 9,
-    Layout_NCHW_C16 = 10
+    Layout_NCHW_C16 = 10,
+    Layout_OIHW16I16O = 11,
+    Layout_GOIHW16I16O = 12
 };
 
 //! target_type struct
