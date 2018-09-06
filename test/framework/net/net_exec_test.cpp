@@ -12,20 +12,21 @@ using Target_H = X86;
 #elif defined(USE_ARM_PLACE)
 using Target = ARM;
 using Target_H = ARM;
-#elif defined(USE_AMD)
+#elif defined(AMD_GPU)
 using Target = AMD;
 using Target_H = X86;
 #endif
 
 //#define USE_DIEPSE
 
-// vgg16
-std::string model_path = "../benchmark/CNN/models/vgg16.anakin.bin";
+std::string model_path = "/home/cuichaowen/github_anakin/Anakin/build/yolo_camera_detector.anakin.bin";
+
+std::string model_saved_path = model_path + ".saved";
 
 #ifdef USE_CUDA
 #if 1
 TEST(NetTest, net_execute_base_test) {
-    Graph<NV, AK_FLOAT, Precision::FP32>* graph = new Graph<NV, AK_FLOAT, Precision::FP32>();
+    Graph<NV, Precision::FP32>* graph = new Graph<NV, Precision::FP32>();
     LOG(WARNING) << "load anakin model file from " << model_path << " ...";
     // load anakin model files.
     auto status = graph->load(model_path);
@@ -50,14 +51,14 @@ TEST(NetTest, net_execute_base_test) {
     // constructs the executer net
 	//{ // inner scope
 #ifdef USE_DIEPSE
-    Net<NV, AK_FLOAT, Precision::FP32, OpRunType::SYNC> net_executer(*graph, true);
+    Net<NV, Precision::FP32, OpRunType::SYNC> net_executer(*graph, true);
 #else
-    Net<NV, AK_FLOAT, Precision::FP32> net_executer(*graph, true);
+    Net<NV, Precision::FP32> net_executer(*graph, true);
 #endif
 
     // get in
     auto d_tensor_in_p = net_executer.get_in("input_0");
-    Tensor4d<Target_H, AK_FLOAT> h_tensor_in;
+    Tensor4d<Target_H> h_tensor_in;
 
     auto valid_shape_in = d_tensor_in_p->valid_shape();
     for (int i=0; i<valid_shape_in.size(); i++) {
@@ -65,7 +66,7 @@ TEST(NetTest, net_execute_base_test) {
     }
 
     h_tensor_in.re_alloc(valid_shape_in);
-    float* h_data = h_tensor_in.mutable_data();
+    float* h_data = (float*)(h_tensor_in.mutable_data());
 
     for (int i=0; i<h_tensor_in.size(); i++) {
         h_data[i] = 1.0f;
@@ -76,7 +77,7 @@ TEST(NetTest, net_execute_base_test) {
 #ifdef USE_DIEPSE
     // for diepse model
     auto d_tensor_in_1_p = net_executer.get_in("input_1");
-    Tensor4d<X86, AK_FLOAT> h_tensor_in_1;
+    Tensor4d<X86> h_tensor_in_1;
 
     h_tensor_in_1.re_alloc(d_tensor_in_1_p->valid_shape());
     for (int i=0; i<d_tensor_in_1_p->valid_shape().size(); i++) {
@@ -92,7 +93,7 @@ TEST(NetTest, net_execute_base_test) {
     d_tensor_in_1_p->copy_from(h_tensor_in_1);
 
     auto d_tensor_in_2_p = net_executer.get_in("input_2");
-    Tensor4d<X86, AK_FLOAT> h_tensor_in_2;
+    Tensor4d<X86> h_tensor_in_2;
 
     h_tensor_in_2.re_alloc(d_tensor_in_2_p->valid_shape());
     for (int i=0; i<d_tensor_in_2_p->valid_shape().size(); i++) {
@@ -180,13 +181,22 @@ TEST(NetTest, net_execute_base_test) {
 
 	// restnet 101
  	//auto tensor_out_0_p = net_executer.get_out("elementwise_add_0.tmp_0_out");
-	auto tensor_out_0_p = net_executer.get_out("prob_out");
+	//auto tensor_out_0_p = net_executer.get_out("prob_out");
 
 	//auto tensor_out_0_p = net_executer.get_out("detection_output_0.tmp_0_out");
 
     // get out result
     //LOG(WARNING)<< "result avg: " << tensor_average(tensor_out_0_p);
+	//test_print(tensor_out_0_p);
+
+    // mobilenet-v2
+	auto tensor_out_0_p = net_executer.get_out("dim_pred_out");
+
+
+    // get out result
+    //LOG(WARNING)<< "result avg: " << tensor_average(tensor_out_0_p);
 	test_print(tensor_out_0_p);
+
 
 
     // save the optimized model to disk.
@@ -201,7 +211,7 @@ TEST(NetTest, net_execute_base_test) {
 
 #if 0
 TEST(NetTest, net_execute_reconstruction_test) {
-    graph = new Graph<NV, AK_FLOAT, Precision::FP32>();
+    Graph<NV, Precision::FP32>* graph = new Graph<NV, Precision::FP32>();
     LOG(WARNING) << "load anakin model file from optimized model " << model_saved_path << " ...";
     // load anakin model files.
     auto status = graph->load(model_saved_path);
@@ -211,17 +221,17 @@ TEST(NetTest, net_execute_reconstruction_test) {
 
     // regisiter output tensor
     //graph->RegistOut("data_perm",  "data_scale");
-    graph->RegistOut("data_perm",  "conv1");
+    //graph->RegistOut("data_perm",  "conv1");
 
     //anakin graph optimization
     graph->Optimize();
 
     // constructs the executer net
-    Net<NV, AK_FLOAT, Precision::FP32> net_executer(*graph);
+    Net<NV, Precision::FP32> net_executer(*graph);
 
     // get in
     auto d_tensor_in_p = net_executer.get_in("input_0");
-    Tensor4d<X86, AK_FLOAT> h_tensor_in;
+    Tensor4d<X86> h_tensor_in;
 
     auto valid_shape_in = d_tensor_in_p->valid_shape();
     for (int i=0; i<valid_shape_in.size(); i++) {
@@ -250,18 +260,22 @@ TEST(NetTest, net_execute_reconstruction_test) {
     my_time.end(ctx);
     LOG(INFO)<<"aveage time "<<my_time.get_average_ms()/1 << " ms";
 
-    auto tensor_out_inner_p = net_executer.get_tensor_from_edge("data_perm",  "conv1");
+    //auto tensor_out_inner_p = net_executer.get_tensor_from_edge("data_perm",  "conv1");
 
     // get out
-    auto tensor_out_0_p = net_executer.get_out("loc_pred_out");
+    /*auto tensor_out_0_p = net_executer.get_out("loc_pred_out");
     auto tensor_out_1_p = net_executer.get_out("obj_pred_out");
     auto tensor_out_2_p = net_executer.get_out("cls_pred_out");
     auto tensor_out_3_p = net_executer.get_out("ori_pred_out");
-    auto tensor_out_4_p = net_executer.get_out("dim_pred_out");
+    auto tensor_out_4_p = net_executer.get_out("dim_pred_out");*/
 
     
+    auto tensor_out_0_p = net_executer.get_out("dim_pred_out");
+
+
     // get out result
-    test_print<NV>(tensor_out_inner_p);
+	test_print(tensor_out_0_p);
+
 }
 #endif
 

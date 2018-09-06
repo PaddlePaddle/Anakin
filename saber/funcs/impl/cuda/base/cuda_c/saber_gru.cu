@@ -184,7 +184,7 @@ SaberStatus SaberGru<NV, AK_FLOAT>::dispatch(\
     return SaberSuccess;
 }
 template class SaberGru<NV, AK_FLOAT>;
-DEFINE_OP_TEMPLATE(SaberGru, GruParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberGru, GruParam, NV, AK_HALF);
 DEFINE_OP_TEMPLATE(SaberGru, GruParam, NV, AK_INT8);
 }
 }

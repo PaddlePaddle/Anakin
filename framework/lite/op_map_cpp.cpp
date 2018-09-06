@@ -1,5 +1,5 @@
 #include "framework/lite/op_map.h"
-#include "framework/lite/utils.h"
+#include "framework/utils/parameter_fusion.h"
 
 namespace anakin {
 
@@ -30,14 +30,14 @@ std::string ParserConvolution(graph::AttrInfo& attr,
 	auto kernel_size = get_attr<PTuple<int>>("kernel_size", attr);
 	auto axis = get_attr<int>("axis", attr);
 
-	auto weights = get_attr<PBlock<float, NV>>("weight_1", attr);
+	auto weights = get_attr<PBlock<NV>>("weight_1", attr);
     auto weights_shape = weights.shape();
     int weights_size = weights_shape[2]*weights_shape[3];
     int num_output = weights_shape[0]*weights_shape[1];
 
 	writter.register_weights(node_name, weights);
 	if(bias_term) {
-		auto bias = get_attr<PBlock<float, NV>>("weight_2", attr);
+		auto bias = get_attr<PBlock<NV>>("weight_2", attr);
 		writter.register_weights(node_name, bias);
 	}
 
@@ -81,14 +81,14 @@ std::string ParserConvolutionRelu(graph::AttrInfo& attr,
 	auto kernel_size = get_attr<PTuple<int>>("kernel_size", attr);
 	auto axis = get_attr<int>("axis", attr);
 
-	auto weights = get_attr<PBlock<float, NV>>("weight_1", attr);
+	auto weights = get_attr<PBlock<NV>>("weight_1", attr);
     auto weights_shape = weights.shape();
     int weights_size = weights_shape[2]*weights_shape[3];
     int num_output = weights_shape[0]*weights_shape[1];
 
 	writter.register_weights(node_name, weights);
 	if(bias_term) {
-		auto bias = get_attr<PBlock<float, NV>>("weight_2", attr);
+		auto bias = get_attr<PBlock<NV>>("weight_2", attr);
 		writter.register_weights(node_name, bias);
 	}
 
@@ -131,7 +131,7 @@ std::string ParserConvBatchnormScale(graph::AttrInfo& attr,
 	auto kernel_size = get_attr<PTuple<int>>("kernel_size", attr);
 	auto axis = get_attr<int>("axis", attr);
 
-	auto weights = get_attr<PBlock<float, NV>>("weight_1", attr);
+	auto weights = get_attr<PBlock<NV>>("weight_1", attr);
     auto weights_shape = weights.shape();
     int weights_size = weights_shape[2]*weights_shape[3];
     int num_output = weights_shape[0]*weights_shape[1];
@@ -139,49 +139,49 @@ std::string ParserConvBatchnormScale(graph::AttrInfo& attr,
     // get batchnorm param
     auto epsilon = get_attr<float>("batchnorm_0_epsilon", attr);
     auto momentum = get_attr<float>("batchnorm_0_momentum", attr);
-    auto batch_norm_weight_1 = get_attr<PBlock<float, NV>>("batchnorm_0_weight_1", attr);
+    auto batch_norm_weight_1 = get_attr<PBlock<NV>>("batchnorm_0_weight_1", attr);
     auto batch_norm_weight_1_vector = batch_norm_weight_1.vector();
-    auto batch_norm_weight_2 = get_attr<PBlock<float, NV>>("batchnorm_0_weight_2", attr);
+    auto batch_norm_weight_2 = get_attr<PBlock<NV>>("batchnorm_0_weight_2", attr);
     auto batch_norm_weight_2_vector = batch_norm_weight_2.vector();
-    auto batch_norm_weight_3 = get_attr<PBlock<float, NV>>("batchnorm_0_weight_3", attr);
+    auto batch_norm_weight_3 = get_attr<PBlock<NV>>("batchnorm_0_weight_3", attr);
     auto batch_norm_weight_3_vector = batch_norm_weight_3.vector();
 
     // get scale param
     auto scale_num_axes = get_attr<int>("scale_0_num_axes", attr);
     auto scale_bias_term = get_attr<bool>("scale_0_bias_term", attr);
     auto scale_axis = get_attr<int>("scale_0_axis", attr);
-    auto scale_weight_1 = get_attr<PBlock<float, NV>>("scale_0_weight_1", attr);
+    auto scale_weight_1 = get_attr<PBlock<NV>>("scale_0_weight_1", attr);
     auto scale_weight_1_vector = scale_weight_1.vector();
-    auto scale_weight_2 = get_attr<PBlock<float, NV>>("scale_0_weight_2", attr);
+    auto scale_weight_2 = get_attr<PBlock<NV>>("scale_0_weight_2", attr);
     auto scale_weight_2_vector = scale_weight_2.vector();
 
 
 	if(bias_term) {
-		auto bias = get_attr<PBlock<float, NV>>("weight_2", attr);
-		update_weights(weights, bias,
-					   weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
-					   bias_term, 
-					   batch_norm_weight_3_vector[0], epsilon, 
-					   batch_norm_weight_1_vector, 
-					   batch_norm_weight_2_vector,
-					   scale_weight_1_vector,
-					   scale_weight_2_vector,
-					   scale_bias_term);
+		auto bias = get_attr<PBlock<NV>>("weight_2", attr);
+		update_weights<float, NV>(weights, bias,
+					              weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+					              bias_term, 
+					              batch_norm_weight_3_vector[0], epsilon, 
+					              batch_norm_weight_1_vector, 
+					              batch_norm_weight_2_vector,
+					              scale_weight_1_vector,
+					              scale_weight_2_vector,
+					              scale_bias_term);
 	
 		
 		writter.register_weights(node_name, weights);
 		writter.register_weights(node_name, bias);
 	} else {
-		auto bias = PBlock<float, NV>();
-		update_weights(weights, bias,
-					   weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
-					   false, 
-					   batch_norm_weight_3_vector[0], epsilon, 
-					   batch_norm_weight_1_vector, 
-					   batch_norm_weight_2_vector,
-					   scale_weight_1_vector,
-					   scale_weight_2_vector,
-					   scale_bias_term);
+		auto bias = PBlock<NV>();
+		update_weights<float, NV>(weights, bias,
+					              weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+					              false, 
+					              batch_norm_weight_3_vector[0], epsilon, 
+					              batch_norm_weight_1_vector, 
+					              batch_norm_weight_2_vector,
+					              scale_weight_1_vector,
+					              scale_weight_2_vector,
+					              scale_bias_term);
 
 		writter.register_weights(node_name, weights);
 		writter.register_weights(node_name, bias);
@@ -227,7 +227,7 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
 	auto kernel_size = get_attr<PTuple<int>>("kernel_size", attr);
 	auto axis = get_attr<int>("axis", attr);
 
-	auto weights = get_attr<PBlock<float, NV>>("weight_1", attr);
+	auto weights = get_attr<PBlock<NV>>("weight_1", attr);
     auto weights_shape = weights.shape();
     int weights_size = weights_shape[2]*weights_shape[3];
     int num_output = weights_shape[0]*weights_shape[1];
@@ -235,48 +235,48 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
     // get batchnorm param
     auto epsilon = get_attr<float>("batchnorm_0_epsilon", attr);
     auto momentum = get_attr<float>("batchnorm_0_momentum", attr);
-    auto batch_norm_weight_1 = get_attr<PBlock<float, NV>>("batchnorm_0_weight_1", attr);
+    auto batch_norm_weight_1 = get_attr<PBlock<NV>>("batchnorm_0_weight_1", attr);
     auto batch_norm_weight_1_vector = batch_norm_weight_1.vector();
-    auto batch_norm_weight_2 = get_attr<PBlock<float, NV>>("batchnorm_0_weight_2", attr);
+    auto batch_norm_weight_2 = get_attr<PBlock<NV>>("batchnorm_0_weight_2", attr);
     auto batch_norm_weight_2_vector = batch_norm_weight_2.vector();
-    auto batch_norm_weight_3 = get_attr<PBlock<float, NV>>("batchnorm_0_weight_3", attr);
+    auto batch_norm_weight_3 = get_attr<PBlock<NV>>("batchnorm_0_weight_3", attr);
     auto batch_norm_weight_3_vector = batch_norm_weight_3.vector(); 
 
     // get scale param
     auto scale_num_axes = get_attr<int>("scale_0_num_axes", attr);
     auto scale_bias_term = get_attr<bool>("scale_0_bias_term", attr);
     auto scale_axis = get_attr<int>("scale_0_axis", attr);
-    auto scale_weight_1 = get_attr<PBlock<float, NV>>("scale_0_weight_1", attr);
+    auto scale_weight_1 = get_attr<PBlock<NV>>("scale_0_weight_1", attr);
     auto scale_weight_1_vector = scale_weight_1.vector();
-    auto scale_weight_2 = get_attr<PBlock<float, NV>>("scale_0_weight_2", attr);
+    auto scale_weight_2 = get_attr<PBlock<NV>>("scale_0_weight_2", attr);
     auto scale_weight_2_vector = scale_weight_2.vector();
 
 	if(bias_term) {
-		auto bias = get_attr<PBlock<float, NV>>("weight_2", attr);
-		update_weights(weights, bias,
-					   weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
-					   bias_term, 
-					   batch_norm_weight_3_vector[0], epsilon, 
-					   batch_norm_weight_1_vector, 
-					   batch_norm_weight_2_vector,
-					   scale_weight_1_vector,
-					   scale_weight_2_vector,
-					   scale_bias_term);
+		auto bias = get_attr<PBlock<NV>>("weight_2", attr);
+		update_weights<float, NV>(weights, bias,
+					              weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+					              bias_term, 
+					              batch_norm_weight_3_vector[0], epsilon, 
+					              batch_norm_weight_1_vector, 
+					              batch_norm_weight_2_vector,
+					              scale_weight_1_vector,
+					              scale_weight_2_vector,
+					              scale_bias_term);
 	
 		
 		writter.register_weights(node_name, weights);
 		writter.register_weights(node_name, bias);
 	} else {
-		auto bias = PBlock<float, NV>();
-		update_weights(weights, bias,
-					   weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
-					   false, 
-					   batch_norm_weight_3_vector[0], epsilon, 
-					   batch_norm_weight_1_vector, 
-					   batch_norm_weight_2_vector,
-					   scale_weight_1_vector,
-					   scale_weight_2_vector,
-					   scale_bias_term);
+		auto bias = PBlock<NV>();
+		update_weights<float, NV>(weights, bias,
+					              weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+					              false, 
+					              batch_norm_weight_3_vector[0], epsilon, 
+					              batch_norm_weight_1_vector, 
+					              batch_norm_weight_2_vector,
+					              scale_weight_1_vector,
+					              scale_weight_2_vector,
+					              scale_bias_term);
 
 		writter.register_weights(node_name, weights);
 		writter.register_weights(node_name, bias);
@@ -444,10 +444,10 @@ std::string ParserFc(graph::AttrInfo& attr,
     auto out_dim = get_attr<int>("out_dim", attr); 
     auto bias_term = get_attr<bool>("bias_term", attr);
 	
-	auto weights = get_attr<PBlock<float, NV>>("weight_1", attr);
+	auto weights = get_attr<PBlock<NV>>("weight_1", attr);
 	writter.register_weights(node_name, weights);
 	if(bias_term) {
-		auto bias = get_attr<PBlock<float, NV>>("weight_2", attr);
+		auto bias = get_attr<PBlock<NV>>("weight_2", attr);
 		writter.register_weights(node_name, bias);
 	}
 
@@ -526,7 +526,7 @@ std::string ParserPrelu(graph::AttrInfo& attr,
 	// parsing parameter
 	auto channel_shared = get_attr<bool>("channel_shared", attr);
 
-	auto weights = get_attr<PBlock<float, NV>>("weight_1", attr);
+	auto weights = get_attr<PBlock<NV>>("weight_1", attr);
 	writter.register_weights(node_name, weights);
 
     auto offset_info = writter.get_weights_by_name(node_name);

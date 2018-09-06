@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package anakin.rpc;
+
+option cc_generic_services = true;
+
+message Data {
+    repeated int32 shape = 1;
+    repeated float data = 2;
+};
+
+message IO {
+  Data tensor = 1; // input tensor
+};
+
+// RPC request
+message RPCRequest {
+    bytes model = 1;
+    repeated IO inputs = 2;
+    int64 request_id = 3; // you need to set request ID，then to get async retults by request_id
+};
+
+message DeviceStatus {
+    int32 id = 1;       // device id (represent as device num id)
+    bytes name = 2;     // device name
+    int32 temp = 3;     // device temperature Celsius degree
+    int32 mem_free = 4; // device memory free bytes
+    int32 mem_used = 5; // device memory used bytes
+};
+
+// RPC service execution information
+message ExecutionInfo {
+    // additional exception message of the execution
+    bytes msg = 1;
+    // duration of this execution in nano seconds
+    int32 duration_in_nano_seconds = 2;
+    // device status
+    DeviceStatus device_status = 3;
+};
+
+// RPC response
+message RPCResponse {
+    bytes model = 1;         // model name
+    repeated IO outputs = 2;         // evaluation output of a batch
+    ExecutionInfo info = 3; // the additional information of this execution
+    int64 request_id = 4;
+};
+
+service RPCService {
+    rpc evaluate (RPCRequest) returns (RPCResponse);
+};

@@ -315,6 +315,6 @@ SaberStatus SaberActivation<NV, OpDtype>::dispatch( \
 
 template class SaberActivation<NV, AK_FLOAT>;
 DEFINE_OP_TEMPLATE(SaberActivation, ActivationParam, NV, AK_INT8);
-DEFINE_OP_TEMPLATE(SaberActivation, ActivationParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberActivation, ActivationParam, NV, AK_HALF);
 }
 }

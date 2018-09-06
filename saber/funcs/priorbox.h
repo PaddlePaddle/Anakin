@@ -208,7 +208,7 @@ public:
     //PriorBox do computation in init
     virtual SaberStatus init(const Input_v& input, Output_v& output, Param_t& param,
                              SaberImplStrategy strategy, ImplEnum implenum, Context<TargetType > &ctx) {
-        if (output[0]->get_dtype != AK_FLOAT) {
+        if (output[0]->get_dtype() != AK_FLOAT) {
             return SaberInvalidValue;
         } else {
             compute_priorbox_kernel(input, output, param);
@@ -219,7 +219,7 @@ public:
     virtual SaberStatus operator() (const Input_v& input, Output_v& output, Param_t& param, \
         Context<TargetType> &ctx) {
 
-        typename Tensor<TargetType>::API::stream_t stream = ctx.get_compute_stream();
+        /*typename Tensor<TargetType>::API::stream_t stream = ctx.get_compute_stream();
         bool flag = (this->_param == param);
         for (int i = 0; i < input.size(); ++i) {
             flag = flag && input[i]->valid_shape() == this->_last_input_shape[i];
@@ -230,10 +230,11 @@ public:
             for (int i = 0; i < input.size(); ++i) {
                 this->_last_input_shape.push_back(input[i]->valid_shape());
             }
-            compute_output_shape(input, output, param, ctx);
+            compute_output_shape(input, output, param);
             compute_priorbox_kernel(input, output, param);
         }
-        return output[0]->async_copy_from(_tensor_tmp, stream);
+        return output[0]->async_copy_from(_tensor_tmp, stream);*/
+        return SaberSuccess;
     }
 
 private:

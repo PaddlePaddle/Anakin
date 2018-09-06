@@ -26,7 +26,7 @@ namespace anakin {
 
 namespace ops {
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class DenseHelper;
 
 /// pooling op
@@ -34,20 +34,20 @@ class DenseHelper;
  * \brief Dense operation class
  * public inheritance Operator
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class Dense : public Operator<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class Dense : public Operator<Ttype, Ptype> {
 public:
     Dense() {}
 
     /// forward impl
     virtual void operator() (OpContext<Ttype> &ctx, 
-                             const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                             std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-        LOG(ERROR) << "Not Impl Yet Operator convolution<TargetType:"<<"unknown"<<","
-                   <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info()<<">";
+                             const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                             std::vector<Tensor4dPtr<Ttype> >& outs) {
+		LOG(ERROR) << "Not Impl Yet Operator  Dense<Ttype("
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
-    friend class DenseHelper<Ttype, Dtype, Ptype>;
+    friend class DenseHelper<Ttype, Ptype>;
 };
 
 /**
@@ -55,8 +55,8 @@ public:
  * public inherit OperatorHelper
  * including init resource and shape size in dense context
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class DenseHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class DenseHelper : public OperatorHelper<Ttype, Ptype> {
 public:
     DenseHelper()=default;
 
@@ -72,8 +72,8 @@ public:
     * \return status
     */
     Status Init(OpContext<Ttype> &ctx,
-                const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
     /**
     * \brief infer the shape of output and input.
@@ -81,14 +81,14 @@ public:
     * \param outs stand for output tensor vector
     * \return status
     */
-    Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+    Status InferShape(const std::vector<Tensor4dPtr<Ttype> >& ins,
+                      std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
 public:
     ///< _param_dense stand for Dense parameter
-    saber::FcParam<Tensor4d<Ttype, Dtype>>  _param_dense;
+    saber::FcParam<Ttype>  _param_dense;
     ///< _funcs_dense stand for Dense function
-    saber::Fc<Ttype, Dtype> _funcs_dense;
+    saber::Fc<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_dense;
 
 private:
     ///< _dims stand for Dense size

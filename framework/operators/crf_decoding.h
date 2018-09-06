@@ -26,7 +26,7 @@ namespace anakin {
 
 namespace ops {
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class CrfDecodingHelper;
 
 /// pooling op
@@ -34,20 +34,18 @@ class CrfDecodingHelper;
  * \brief CrfDecoding operation class
  * public inheritance Operator
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class CrfDecoding : public Operator<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class CrfDecoding : public Operator<Ttype, Ptype> {
 public:
     CrfDecoding() {}
 
     /// forward impl
     virtual void operator() (OpContext<Ttype> &ctx, 
-                             const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                             std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-        LOG(ERROR) << "Not Impl Yet Operator CrfDecoding<TargetType:"<<"unknown"<<","
-                   <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info()<<">";
+                             const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                             std::vector<Tensor4dPtr<Ttype> >& outs) {
     }
 
-    friend class CrfDecodingHelper<Ttype, Dtype, Ptype>;
+    friend class CrfDecodingHelper<Ttype, Ptype>;
 };
 
 /**
@@ -55,8 +53,8 @@ public:
  * public inherit OperatorHelper
  * including init resource and shape size in crf_decoding context
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class CrfDecodingHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class CrfDecodingHelper : public OperatorHelper<Ttype, Ptype> {
 public:
     CrfDecodingHelper()=default;
 
@@ -72,8 +70,8 @@ public:
     * \return status
     */
     Status Init(OpContext<Ttype> &ctx,
-                const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
     /**
     * \brief infer the shape of output and input.
@@ -81,14 +79,14 @@ public:
     * \param outs stand for output tensor vector
     * \return status
     */
-    Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+    Status InferShape(const std::vector<Tensor4dPtr<Ttype> >& ins,
+                      std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
 public:
     ///< _param_crf_decoding stand for CrfDecoding parameter
-    saber::CrfDecodingParam<Tensor4d<Ttype, Dtype>>  _param_crf_decoding;
+    saber::CrfDecodingParam<Ttype>  _param_crf_decoding;
     ///< _funcs_crf_decoding stand for CrfDecoding function
-    saber::CrfDecoding<Ttype, Dtype> _funcs_crf_decoding;
+    saber::CrfDecoding<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_crf_decoding;
 
 private:
     ///< _dims stand for CrfDecoding size

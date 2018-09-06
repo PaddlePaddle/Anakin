@@ -52,11 +52,18 @@ public:
                                  std::vector<Tensor<NV> *> &outputs,
                                  ConvPoolingParam<NV> &param);
 
-
+    SaberStatus trans_weights(Tensor<NV> &target_weights,
+                              int stride_h, int stride_w, int group) {
+        conv_trans_weights<NV, NVHX86>(target_weights, stride_h, stride_w, group, true, nullptr);
+        _extern_trans = true;
+        _in_place = true;
+        return SaberSuccess;
+    }
 private:
     bool _use_k3p{false};
     bool _use_kp{false};
     bool _in_place{false};
+    bool _extern_trans{false};
     Tensor<NV> _weight_dev;
     VenderPooling<NV, OpDtype> _vender_pool;
     SaberConv2D<NV, OpDtype> _saber_conv;

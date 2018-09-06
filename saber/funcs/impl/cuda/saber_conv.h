@@ -50,18 +50,25 @@ public:
 
     virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
                                std::vector<Tensor<NV> *>& outputs,
-                               ConvParam<NV>& param, Context<NV>& ctx) {
-        return SaberSuccess;
-    }
+                               ConvParam<NV>& param, Context<NV>& ctx);
 
     virtual SaberStatus dispatch(const std::vector<Tensor<NV>*>& inputs,
                                  std::vector<Tensor<NV>*>& outputs,
                                  ConvParam<NV>& param);
 
+    SaberStatus trans_weights(Tensor<NV> &target_weights,
+            int stride_h, int stride_w, int group) {
+        conv_trans_weights<NV, NVHX86>(target_weights, stride_h, stride_w, group, true, nullptr);
+        _extern_trans = true;
+        _in_place = true;
+        return SaberSuccess;
+    }
+
 private:
     bool _with_saber_act{false};
     bool _in_place{false};
     bool _use_k1s1p0{false};
+    bool _extern_trans{true};
     Tensor<NV> _weight_dev;
     SaberActivation<NV, OpDtype> *_saber_act{nullptr};
     int _kernel_height;

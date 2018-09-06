@@ -52,7 +52,7 @@ SaberStatus convert_weights_to_nchw_c4_host(Tensor<TargetType_H>& out_tensor,
     int weight_inner_dim = in_tensor.channel()
                            * in_tensor.height()
                            * in_tensor.width();
-    const float* in_weight_data = in_tensor.data();
+    const float* in_weight_data = (const float*)(in_tensor.data());
 
     for (int c = 0; c < output_channel; ++c) {
         float max_val = -1.f;
@@ -77,8 +77,8 @@ SaberStatus convert_weights_to_nchw_c4_host(Tensor<TargetType_H>& out_tensor,
     int out_h_stride = o_width;
 
     Shape in_stride = in_tensor.get_stride();
-    in_weight_data = in_tensor.data();
-    char* out_weight_data = out_tensor.mutable_data();
+    in_weight_data = (const float*)in_tensor.data();
+    char* out_weight_data = (char*)out_tensor.mutable_data();
 
     for (int idx = 0; idx < o_num * o_channel * o_height * o_width; ++idx) {
 
@@ -119,8 +119,8 @@ SaberStatus convert_bias_host(Tensor<TargetType_H>& out_tensor,
             CHECK_GT(weight_size, 0);
             CHECK_EQ(bias_size, weight_size);
 
-    const float* in_data = in_tensor.data();
-    float* out_data = out_tensor.mutable_data();
+    const float* in_data = (const float*)in_tensor.data();
+    float* out_data = (float*)out_tensor.mutable_data();
 
     for (int i = 0; i < bias_size; ++i) {
         out_data[i] = in_data[i] / in_scale / vector_weight_scale[i];
