@@ -55,6 +55,9 @@ TEST(TestSaberFunc, test_func_power) {
 #ifdef USE_CUDA
     test_power<NV, NVHX86, AK_FLOAT>();
 #endif
+#ifdef USE_X86_PLACE
+    test_power<X86, X86, AK_FLOAT>();
+#endif
 }
 
 

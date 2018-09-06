@@ -8,7 +8,6 @@
 
 using namespace anakin::saber;
 
-
 /**
  * @brief Extract image patches from input tensor to a tensor with the shape 
  *                  [batch_size * output_h * ouput_w, window_h * window_w * channels]
@@ -129,6 +128,26 @@ TEST(TestSaberFunc, test_op_im2sequence) {
         }
     }
 
+#endif
+
+#ifdef USE_X86_PLACE
+    TestSaberBase<X86, X86, AK_FLOAT, Im2Sequence, Im2SequenceParam> testbase_x86;
+    Im2SequenceParam<X86> param_x86(window_h, window_w, pad_up, pad_down, pad_left, pad_right, \
+                                    stride_h, stride_w, dilation_h, dilation_w);
+
+    for(int w_in : {8, 8, 16}) {
+        for(int h_in : {2, 8, 32}){
+            for(int ch_in : {2, 3, 8, 64}){
+                for(int num_in:{1, 21, 32}){
+                    Shape shape({num_in, ch_in, h_in, w_in});
+                    testbase_x86.set_param(param_x86);
+                    testbase_x86.set_rand_limit(-5.0, 5.0);
+                    testbase_x86.set_input_shape(shape);
+                    testbase_x86.run_test(im2sequence_cpu_base<float, X86, X86>);
+                }
+            }
+        }
+    }
 #endif
 }
 
