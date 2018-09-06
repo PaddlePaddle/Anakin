@@ -17,10 +17,6 @@ int test_iter = 1;
                 Tensor<NVHX86>& tensor_out, AxpyParam<NV> param){
 template <typename dtype,typename TargetType_D,typename TargetType_H>
 void axpy_nv_basic(const std::vector<Tensor<TargetType_H>*>& inputs,std::vector<Tensor<TargetType_H>*>& outputs,AxpyParam<TargetType_D>& param){
-   // int num = tensor_in.num();
-   // int channel = tensor_in.channel();
-   // int height = tensor_in.height();
-   // int width = tensor_in.width();
     Tensor<TargetType_H>* scale_in = inputs[0];
     Tensor<TargetType_H>* tensor_in = inputs[1];
     Tensor<TargetType_H>* bias_in = inputs[2];
@@ -78,34 +74,41 @@ void axpy_nv_basic(const std::vector<Tensor<TargetType_H>*>& inputs,std::vector<
     }
 }
 
-TEST(TestSaberFunc, test_func_axpy) {
+template <DataType Dtype,typename TargetType_D,typename TargetType_H>
+void test_model(){
+
     int num = num_in;
     int channel = ch_in;
     int height = h_in;
     int width = w_in;
-   
-#ifdef USE_CUDA
-   //Init the test_base
-    TestSaberBase<NV, NVHX86, AK_FLOAT, Axpy, AxpyParam> testbase(3,1);
+
+    TestSaberBase<TargetType_D, TargetType_H, Dtype, Axpy, AxpyParam> testbase(3,1);
     Shape input_shape({num, channel, height, width}, Layout_NCHW);
-    Shape input_shape2({1, 32, 17, 32}, Layout_NCHW);
-    AxpyParam<NV> param;
+    Shape input_shape2({1, 3, 17, 42}, Layout_NCHW);
+    AxpyParam<TargetType_D> param;
 
     for(auto shape: {input_shape, input_shape2}){
         testbase.set_param(param);//set param
         //testbase.set_rand_limit(255,255);
         std::vector<Shape> shape_v;
+        //LOG(INFO) << "shape" << shape[0] << ", " << shape[1] << ", " << shape[2] << ", " << shape[3];
         shape_v.push_back(Shape({shape[0],shape[1],1,1}, Layout_NCHW));//scale
         shape_v.push_back(shape);//x
         shape_v.push_back(shape);//y
         testbase.set_input_shape(shape_v);//add some input shape
-        testbase.run_test(axpy_nv_basic<float, NV, NVHX86>);//run test
+        testbase.run_test(axpy_nv_basic<float, TargetType_D, TargetType_H>);//run test
     }
 
+}
+
+TEST(TestSaberFunc, test_func_axpy) {
+   
+#ifdef USE_CUDA
+   //Init the test_base
+   test_model<AK_FLOAT, NV, NVHX86>();
 #endif
 #ifdef USE_X86_PLACE
-    Env<X86>::env_init();
-    //test_accuracy<X86, X86, AK_FLOAT>(num, channel, height, width);
+    test_model<AK_FLOAT, X86, X86>();
 #endif
 }
 

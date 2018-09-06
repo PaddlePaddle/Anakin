@@ -581,7 +581,7 @@ void conv_trans_weights(const std::vector<DataTensor *>& inputs,
         }
 
     }
-    cudaDeviceSynchronize();
+//    cudaDeviceSynchronize();
 }
 
 } // namespace saber
