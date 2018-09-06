@@ -234,7 +234,7 @@ SaberStatus SaberEltwise<NV, OpDtype>::dispatch(\
 }
 
 template class SaberEltwise<NV, AK_FLOAT>;
-DEFINE_OP_TEMPLATE(SaberEltwise, EltwiseParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberEltwise, EltwiseParam, NV, AK_HALF);
 DEFINE_OP_TEMPLATE(SaberEltwise, EltwiseParam, NV, AK_INT8);
 
 }
