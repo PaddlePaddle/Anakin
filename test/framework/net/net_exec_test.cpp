@@ -209,7 +209,7 @@ TEST(NetTest, net_execute_base_test) {
 #endif 
 #endif
 
-#if 0
+#if 1
 TEST(NetTest, net_execute_reconstruction_test) {
     Graph<NV, Precision::FP32>* graph = new Graph<NV, Precision::FP32>();
     LOG(WARNING) << "load anakin model file from optimized model " << model_saved_path << " ...";

@@ -173,6 +173,8 @@ template<typename Ttype>
 class PBlock {
 public:
 	inline bool host_only() { return true; }
+
+    inline void map_to_host() {}
 };
 
 #ifdef USE_CUDA
@@ -193,6 +195,15 @@ public:
     }
 
 	inline bool host_only() { return false; }
+
+    inline void map_to_host() {
+        _h_inner_tensor->re_alloc(this->real_shape());
+        auto save_valid_shape = _d_inner_tensor->valid_shape();
+        _d_inner_tensor->set_shape(this->real_shape());
+        _h_inner_tensor->copy_from(*_d_inner_tensor);
+        _d_inner_tensor->set_shape(save_valid_shape);
+        _h_inner_tensor->set_shape(save_valid_shape);
+    }
 
     /// shallow copy construction
     PBlock(PBlock<NV>& p_block) { *this = p_block; }
@@ -224,7 +235,7 @@ public:
         return ret;
     }
 
-	// reallocate the storage
+	/// reallocate the storage
 	void re_alloc(Shape4d shape) {
 		_d_inner_tensor->re_alloc(shape);
 		_h_inner_tensor->re_alloc(shape);
@@ -235,6 +246,11 @@ public:
         CHECK(_d_inner_tensor->valid_shape() == _h_inner_tensor->valid_shape()) 
             << " [Fatal Err]  device shape is not equal to that of host in PBlock";
         return _d_inner_tensor->valid_shape(); 
+    }
+
+    /// get real shape
+    Shape4d real_shape() {
+        return _d_inner_tensor->shape();
     }
 
     /// Get size.
@@ -268,6 +284,15 @@ public:
     }
 
 	inline bool host_only() { return false; }
+
+    inline void map_to_host() { 
+        _h_inner_tensor->re_alloc(this->real_shape());
+        auto save_valid_shape = _d_inner_tensor->valid_shape();
+        _d_inner_tensor->set_shape(this->real_shape());
+        _h_inner_tensor->copy_from(*_d_inner_tensor);
+        _d_inner_tensor->set_shape(save_valid_shape);
+        _h_inner_tensor->set_shape(save_valid_shape);
+    }
 
     /// shallow copy construction
     PBlock(PBlock<AMD>& p_block) { *this = p_block; }
@@ -306,6 +331,12 @@ public:
         return _d_inner_tensor->valid_shape(); 
     }
 
+    /// get real shape
+    Shape4d real_shape() {
+        return _d_inner_tensor->shape();
+    }
+
+
     /// Get size.
     size_t count() { 
         return this->shape().count();
@@ -334,6 +365,8 @@ public:
     }
 
 	inline bool host_only() { return true; }
+    
+    inline void map_to_host() {}
 
     /// shallow copy construction
     PBlock(PBlock<X86>& p_block) { *this = p_block; }
@@ -373,6 +406,12 @@ public:
         return _inner_tensor->valid_shape();
     }
 
+    /// get real shape
+    Shape4d real_shape() {
+        return _inner_tensor->shape();
+    }
+
+
     /// Get size.
     size_t count() {
         return this->shape().count();
@@ -400,6 +439,7 @@ public:
     }
 
 	inline bool host_only() { return true; }
+    inline void map_to_host() {}
 
     /// shallow copy construction
     PBlock(PBlock<ARM>& p_block) { *this = p_block; }
@@ -439,6 +479,10 @@ public:
     /// Get shape.
     Shape4d shape() {
         return _inner_tensor->valid_shape();
+    }
+
+    Shape4d real_shape() {
+        return _inner_tensor->shape();
     }
 
     /// Get size.

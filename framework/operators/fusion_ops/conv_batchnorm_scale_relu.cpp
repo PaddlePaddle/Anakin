@@ -136,6 +136,7 @@ Status ConvBatchnormScaleReluHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
                                     strides[0], strides[1], 
                                     group, 
                                     SABER_IMPL);
+        weights.map_to_host();
     }
     return Status::OK();
 }
@@ -171,6 +172,7 @@ Status ConvBatchnormScaleReluHelper<NV, Precision::FP32>::Init(OpContext<NV> &ct
                                     strides[0], strides[1], 
                                     group, 
                                     SABER_IMPL);
+            weights.map_to_host();
         }
     } else {
         _funcs_conv_batchnorm_scale_relu.init(ins, outs, _param_conv_batchnorm_scale_relu, SPECIFY,
@@ -187,6 +189,7 @@ Status ConvBatchnormScaleReluHelper<NV, Precision::FP32>::Init(OpContext<NV> &ct
                                     strides[0], strides[1], 
                                     group, 
                                     VENDER_IMPL);
+            weights.map_to_host();
         }
     }
 

@@ -138,6 +138,16 @@ Status SassConvBatchnormScaleReluHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ct
 
     // check if weights have been transposed
     auto is_weights_transed = CHECK_PARAMETER(is_weights_transed);
+
+    LOG(INFO) << is_weights_transed 
+              << " SassConvBatchnormScaleRelu: weights valid shape[" << weights.shape()[0] << ", " 
+                                                                     << weights.shape()[1] << ", "
+                                                                     << weights.shape()[2] << ", "
+                                                                     << weights.shape()[3] << "] "
+                                                   << " real shape[" << weights.real_shape()[0] << ", "
+                                                                     << weights.real_shape()[1] << ", "
+                                                                     << weights.real_shape()[2] << ", "
+                                                                     << weights.real_shape()[3] << "] ";
     if(!is_weights_transed) {
         SET_PARAMETER(is_weights_transed, true, bool);
         graph::GraphGlobalMem<Ttype>::Global().template apply<Level_1>(
@@ -147,6 +157,7 @@ Status SassConvBatchnormScaleReluHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ct
                                     strides[0], strides[1], 
                                     group, 
                                     SABER_IMPL);
+        weights.map_to_host();
     }
     return Status::OK();
 }

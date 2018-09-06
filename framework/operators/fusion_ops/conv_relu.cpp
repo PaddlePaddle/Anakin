@@ -79,6 +79,7 @@ Status ConvReluHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
                                     strides[0], strides[1], 
                                     group, 
                                     SABER_IMPL);
+        weights.map_to_host();
     }
     return Status::OK();
 }
@@ -116,6 +117,7 @@ Status ConvReluHelper<NV, Precision::FP32>::Init(OpContext<NV>& ctx, \
                                     strides[0], strides[1], 
                                     group, 
                                     SABER_IMPL);
+            weights.map_to_host();
         }
     } else {
         _funcs_conv_relu.init(ins, outs, _param_conv_relu, SPECIFY, VENDER_IMPL, ctx);
@@ -132,6 +134,7 @@ Status ConvReluHelper<NV, Precision::FP32>::Init(OpContext<NV>& ctx, \
                                     strides[0], strides[1], 
                                     group, 
                                     VENDER_IMPL);
+            weights.map_to_host();
         }
     }
     return Status::OK();

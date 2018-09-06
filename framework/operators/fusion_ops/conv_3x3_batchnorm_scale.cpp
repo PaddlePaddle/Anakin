@@ -139,6 +139,8 @@ Status SassConvBatchnormScaleHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
                                     strides[0], strides[1], 
                                     group, 
                                     SABER_IMPL);
+        weights.map_to_host();
+
     }
     return Status::OK();
 }

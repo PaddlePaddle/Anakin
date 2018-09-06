@@ -69,6 +69,7 @@ Status ConvolutionHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
                                     strides[0], strides[1], 
                                     group, 
                                     SABER_IMPL);
+        weights.map_to_host();
     }
     return Status::OK();
 }
@@ -102,6 +103,7 @@ Status ConvolutionHelper<NV, Precision ::FP32>::Init(OpContext<NV> &ctx, \
                                    strides[0], strides[1], 
                                    group, 
                                    VENDER_IMPL);
+        weights.map_to_host();
     }
     return Status::OK();
 }
