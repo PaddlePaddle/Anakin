@@ -40,15 +40,14 @@
 ##--------------------------------------------------------------
 #
 OPTIONS:
-    Framework: FLUID
-    SavePath: /ak_model/save/path
-    ResultName: resnet50_v1
-
+    Framework: CAFFE
+    SavePath: ./output
+    ResultName: googlenet
     Config:
         LaunchBoard: ON
         Server:
             ip: 0.0.0.0
-            port: 8889
+            port: 8888
         OptimizedGraph: 
             enable: OFF
             path: /path/to/anakin_optimized/googlenet.anakin.bin.saved
@@ -66,7 +65,6 @@ TARGET:
 
     FLUID:
         # path of fluid inference model
-        ProtoPaths: /
         Debug: NULL                            # Generally no need to modify.
         ModelPath: /path/to/your/model/        # The upper path of a fluid inference model.
         NetType:                               # Generally no need to modify.

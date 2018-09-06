@@ -71,6 +71,8 @@ public:
     Status load(std::istream* instream);
     Status load(std::string model_path); 
     Status load(const char*  model_path);
+    Status load(const char* buffer, size_t len);
+
     Status save(std::string model_path);
     Status save(const char*  model_path);
     /// Get nodes in execution oroder.
@@ -152,6 +154,9 @@ private:
     std::string _model_path{"None"} GUARDED_BY(this->_mut);
     /// this make the graph optimized.
     bool _has_graph_optimized{false}; GUARDED_BY(this->_mut);
+
+    const char* _buffer{NULL} GUARDED_BY(this->_mut);
+    size_t _len{0} GUARDED_BY(this->_mut);
     std::mutex _mut;
 }; 
 
