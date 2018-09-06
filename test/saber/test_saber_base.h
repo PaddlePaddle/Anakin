@@ -255,7 +255,7 @@ public:
         for(int input_index = 0; input_index < _inputs_dev.size(); ++input_index){
             _base_op.init(_inputs_dev[input_index], _outputs_dev[input_index],
                           _params[param_index], strategy, implenum, ctx);
-            for(int iter=0; iter<100; ++iter){
+            for(int iter=0; iter<_gpu_iters; ++iter){
                 _outputs_dev[input_index][0]->copy_from(*_outputs_host[input_index][0]);
                 status= _base_op(_inputs_dev[input_index], _outputs_dev[input_index],
                                  _params[param_index], ctx);
@@ -325,6 +325,7 @@ public:
         
         std :: vector<std :: string> runtype{"STATIC", "RUNTIME", "SPECIFY"};
         std :: vector<std :: string> impltype{"VENDER", "SABER"};
+        get_cpu_result(CpuFunc);//first get cpu result
         for(auto strate : {SPECIFY, RUNTIME, STATIC}){
             for(auto implenum : {VENDER_IMPL, SABER_IMPL}){
                 LOG(INFO) << "TESTING: strategy:" << runtype[strate-1] << ",impltype:" << impltype[(int)implenum];
@@ -332,7 +333,6 @@ public:
                     LOG(INFO) << "Unimpl!!";
                     continue;
                 }
-                get_cpu_result(CpuFunc);
                 result_check_accuracy(succ_ratio);
             }
         }
@@ -341,6 +341,9 @@ public:
     }
     void set_random_output(bool random_output) {
         _use_random_output = random_output;
+    }
+    void set_gpu_iters(int iters){
+        _gpu_iters = iters;
     }
 private:
     int _op_input_num;
@@ -358,6 +361,7 @@ private:
     std :: vector<std::vector<Shape>> _input_shapes;
     std :: vector<Param_t> _params;
     bool _use_random_output{false};
+    int _gpu_iters{1};
 };//testsaberbase
 }//namespace saber
 }//namespace anakin
