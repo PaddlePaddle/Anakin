@@ -118,6 +118,10 @@ TEST(TestSaberFunc, test_func_power) {
 #ifdef USE_CUDA
     test_pooling_with_index<NV, NVHX86, AK_FLOAT>();
 #endif
+#ifdef USE_X86_PLACE
+    test_pooling_with_index<X86, X86, AK_FLOAT>();
+#endif
+
 }
 
 
