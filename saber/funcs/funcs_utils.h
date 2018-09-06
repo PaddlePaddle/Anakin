@@ -580,7 +580,7 @@ void conv_trans_weights(Tensor<TargetType> &target_weights,
         }
 
     }
-    cudaDeviceSynchronize();
+//    cudaDeviceSynchronize();
 }
 
 } // namespace saber
