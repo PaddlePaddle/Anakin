@@ -50,16 +50,21 @@ public:
                                  std::vector<DataTensor_out*>& outputs,
                                  EltwiseParam<X86> &param) override;
 private:
+    template <bool with_relu>
     void simple_sum(const std::vector<DataTensor_in*>& inputs,
                     std::vector<DataTensor_out*>& outputs,
                     EltwiseParam<X86> &param);
+    template <bool with_relu>
     void simple_prod(const std::vector<DataTensor_in*>& inputs,
                     std::vector<DataTensor_out*>& outputs,
                     EltwiseParam<X86> &param);
+    template <bool with_relu>
     void simple_max(const std::vector<DataTensor_in*>& inputs,
                     std::vector<DataTensor_out*>& outputs,
                     EltwiseParam<X86> &param);
-    void simple_relu(std::vector<DataTensor_in*>& outputs);
+
+    bool _with_relu;
+    bool _other_activation;
 };
 
 }

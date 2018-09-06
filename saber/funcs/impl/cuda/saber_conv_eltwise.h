@@ -52,7 +52,9 @@ public:
 
     SaberStatus trans_weights(Tensor<NV> &target_weights,
                               int stride_h, int stride_w, int group) {
-        conv_trans_weights<NV, NVHX86>(target_weights, stride_h, stride_w, group, true, nullptr);
+        if (target_weights.valid_size() > 0) {
+            conv_trans_weights<NV, NVHX86>(target_weights, stride_h, stride_w, group, true, nullptr);
+        }
         _extern_trans = true;
         _in_place = true;
         return SaberSuccess;
