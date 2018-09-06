@@ -51,6 +51,7 @@ class SaberCrfDecoding<NV, OpDtype> : public ImplBase<
     
         _track.re_alloc(inputs[0]->valid_shape(), AK_INT32);
         _alpha.re_alloc(inputs[0]->valid_shape(), OpDtype);
+        
         return SaberSuccess;
     }
 
@@ -60,6 +61,7 @@ class SaberCrfDecoding<NV, OpDtype> : public ImplBase<
 private:
     Tensor< NV> _alpha;
     Tensor< NV> _track;
+    Tensor< NV> _seq;
     int _aligned_tag_num;
 };
 }

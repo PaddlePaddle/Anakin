@@ -7,49 +7,62 @@ namespace anakin{
 namespace saber{
 
 template<typename Dtype, unsigned int blockSize>
-__global__ void decoding_bloclk_kernel(Dtype* decode_path, const Dtype* emission_ptr, const Dtype* trans_ptr, \
-                    Dtype* alpha_ptr, int* track_ptr, int seq_len, int tag_num, const int base_idx){
+__global__ void decoding_kernel2(Dtype* decode_path, const Dtype* emission_ptr, const Dtype* trans_ptr, \
+                    Dtype* alpha_ptr, int* track_ptr, int* seq_offset, int seq_num, int slice_size, int tag_num, const int base_idx){
+
+    int bdx = blockIdx.x;
+    if (bdx >= seq_num){
+        return;
+    }
+    int seq_len = seq_offset[bdx];
+    int sum = 0;
+    int sum2 = 0;
+    for (int i = 0; i < bdx; i++){
+        int tmp = seq_offset[i];
+        sum += tmp;
+        sum2 += tmp * slice_size;
+    }
+    Dtype* path = decode_path + sum;
+    const Dtype* emission = emission_ptr + sum2;
+
     int idx = threadIdx.x;
-    if (blockIdx.x == 0 && idx < tag_num){
+    const Dtype* x = emission;
+    const Dtype* w = trans_ptr;
+    if (idx < tag_num){
         alpha_ptr[idx] = trans_ptr[idx] + emission_ptr[idx];
     }
-    __syncthreads();
-    CUDA_KERNEL_LOOP(idx, (seq_len - 1) * tag_num){
-        const Dtype* x = emission_ptr + blockIdx.x * tag_num;
-        const Dtype* w = trans_ptr + blockIdx.x * tag_num;
-        Dtype* alpha = alpha_ptr + blockIdx.x * tag_num;
-        int* track = track_ptr + blockIdx.x * tag_num;
-        Dtype max_score = -1e32;//-std::numeric_limits<Dtype>::max();
-        int max_index = 0;
-        for (int i = 0; i < tag_num; i++){
-            Dtype score = alpha[i] + w[(i + base_idx) * tag_num + idx];
-            if (score > max_score) {
-                max_score = score;
-                max_index = i;
+    for (int k = 1; k < seq_len; ++k) {
+        if (idx < tag_num) {
+            Dtype max_score = -1e32;//-std::numeric_limits<Dtype>::max();
+            int max_j = 0;
+            for (int j = 0; j < tag_num; ++j) {
+                Dtype score = alpha_ptr[(k - 1) * tag_num + j] +
+                    w[(j + base_idx) * tag_num + idx];
+                if (score > max_score) {
+                    max_score = score;
+                    max_j = j;
+                }
             }
+            alpha_ptr[k * tag_num + idx] = max_score + x[k * tag_num + idx];
+            track_ptr[k * tag_num + idx] = max_j;
         }
-        alpha[tag_num + idx] = max_score + x[tag_num + idx];
-        track[tag_num + idx] = max_index;
     }
-    //__syncthreads();
-}
-
-template<typename Dtype, unsigned int blockSize>
-__global__ void decoding_final_kernel(Dtype* decode_path, const Dtype* trans_ptr, Dtype* alpha_ptr, int* track_ptr, int seq_len, int tag_num){
+    __syncthreads();
+//only run block times
     Dtype max_score = -1e32;
     int max_i = 0;
-        for (size_t i = 0; i < tag_num; i++) {
-            Dtype score = alpha_ptr[(seq_len - 1) * tag_num + i] + trans_ptr[tag_num + i];
-            if (score > max_score) {
-                max_score = score;
-                max_i = i;
-            }
+    for (int i = 0; i < tag_num; i++) {
+        Dtype score = alpha_ptr[(seq_len - 1) * tag_num + i] + w[tag_num + i];
+        if (score > max_score) {
+            max_score = score;
+            max_i = i;
         }
-       decode_path[seq_len - 1] = max_i;
-        for (int k = seq_len - 1; k >= 1; k--) {
-            max_i = track_ptr[k * tag_num + max_i];
-            decode_path[k - 1] = max_i;
-        }
+    }
+    path[seq_len - 1] = max_i;
+    for (int k = seq_len - 1; k >= 1; k--) {
+        max_i = track_ptr[k * tag_num + max_i];
+        path[k - 1] = max_i;
+    }
 }
 
 template<typename Dtype, unsigned int blockSize>
@@ -93,6 +106,7 @@ __global__ void decoding_kernel(Dtype* decode_path, const Dtype* emission_ptr, c
         decode_path[k - 1] = max_i;
     }
 }
+
 template <>
 SaberStatus SaberCrfDecoding<NV, AK_FLOAT>::dispatch( \
                         const std::vector<Tensor<NV> *>& inputs,
@@ -108,17 +122,10 @@ SaberStatus SaberCrfDecoding<NV, AK_FLOAT>::dispatch( \
     std::vector<std::vector<int>> seq_offset = inputs[0]->get_seq_offset();
     int seq_num = seq_offset[0].size() - 1;
     const int base_idx = 2;
+    #if 1
     for (int i = 0; i < seq_num; i++){
         int seq_len = seq_offset[0][i+1] - seq_offset[0][i];
         if (seq_len < 1) continue;
-        #if 0
-        //const int threads = CUDA_NUM_THREADS >= tag_num ? tag_num : CUDA_NUM_THREADS;
-        decoding_block_kernel<OpDataType, CUDA_NUM_THREADS><<<seq_len, tag_num, 0, \
-            cuda_stream>>>(decode_path, emission_ptr, trans_ptr, (OpDataType*)_alpha.mutable_data(), \
-            (int*)_track.mutable_data(), seq_len, tag_num, base_idx);
-        decoding_final_kernel<OpDataType, 1><<<1, 1, 0, cuda_stream>>>(decode_path, trans_ptr, (OpDataType*)_alpha.mutable_data(), \
-            (int*)_track.mutable_data(), seq_len, tag_num);
-        #endif
         decoding_kernel<OpDataType, 1><<<1, 1, 0, cuda_stream>>>(decode_path, \
             emission_ptr, trans_ptr, (OpDataType*)_alpha.mutable_data(), \
             (int*)_track.mutable_data(), seq_len, tag_num, base_idx);
@@ -126,6 +133,20 @@ SaberStatus SaberCrfDecoding<NV, AK_FLOAT>::dispatch( \
         emission_ptr += slice_size * seq_len;
         decode_path += seq_len;
     }
+    #else
+    Tensor<NVHX86> seq_host;
+    seq_host.re_alloc(Shape({1, 1, 1, seq_num}, Layout_NCHW), AK_INT32);
+    _seq.re_alloc(Shape({1, 1, 1, seq_num}, Layout_NCHW), AK_INT32);
+    int* seq = (int*)seq_host.mutable_data();
+    for (int i = 0; i < seq_num; i++){
+        seq[i] = seq_offset[0][i+1] - seq_offset[0][i];
+    }
+    _seq.copy_from(seq_host);
+    decoding_kernel2<OpDataType, CUDA_NUM_THREADS><<<seq_num, tag_num, 0, cuda_stream>>>(decode_path, \
+            emission_ptr, trans_ptr, (OpDataType*)_alpha.mutable_data(), \
+            (int*)_track.mutable_data(), (int*)_seq.mutable_data(), seq_num, slice_size, tag_num, base_idx);
+   // delete seq_host;
+   #endif
     return SaberSuccess;
 }
 DEFINE_OP_TEMPLATE(SaberCrfDecoding, CrfDecodingParam, NV, AK_INT8);
