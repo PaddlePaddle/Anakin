@@ -27,6 +27,7 @@ void fill_tensor_rand<BM>(Tensor<BM>& tensor, float vstart, float vend,
 
 template<>
 void print_tensor<BM>(Tensor<BM>& tensor, typename Tensor<BM>::API::stream_t stream = NULL) {
+    LOG(INFO) << "device tensor data";
     Tensor<X86> temp_tensor(tensor.valid_shape(),tensor.get_dtype());
     temp_tensor.copy_from(tensor);
     print_tensor(temp_tensor);
@@ -34,6 +35,7 @@ void print_tensor<BM>(Tensor<BM>& tensor, typename Tensor<BM>::API::stream_t str
 
 template<>
 void print_tensor_valid<BM>(Tensor<BM>& tensor, typename Tensor<BM>::API::stream_t stream = NULL) {
+    LOG(INFO) << "device tensor data";
     print_tensor(tensor);
 }
 
