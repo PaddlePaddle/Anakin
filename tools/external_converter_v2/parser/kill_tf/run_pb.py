@@ -16,7 +16,6 @@ def convert_name_tf2ak(tf_name, perfix='record_'):
     return perfix + ak_name
 
 
-ak_work_space = '/home/ljj/docker_mount_dev2/anakin2_developing_parser/build/'
 # ak_work_space='/your/anakin/workspace'
 output_compare_op = None
 

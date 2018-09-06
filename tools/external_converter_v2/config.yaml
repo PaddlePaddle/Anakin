@@ -76,9 +76,9 @@ TARGET:
         ModelPath:
     
     TENSORFLOW:
-        ProtoPaths: /path/to/your/model/
-        PrototxtPath:
-        ModelPath:
+        ProtoPaths: /
+        PrototxtPath: /
+        ModelPath: /
         OutPuts:
     
     ONNX:

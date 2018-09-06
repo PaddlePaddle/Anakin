@@ -151,7 +151,7 @@ class AutoDebug:
         # self._debug_graph(graph)
 
 
-ak_work_space = '/home/ljj/docker_mount_dev2/anakin2_developing_parser/build/'
+ak_work_space = ''
 
 debug = AutoDebug('./resnet_model/frozen_resnet_v1_50.pb', ak_work_space)
 debug.run_ak()
