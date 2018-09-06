@@ -98,7 +98,7 @@ TEST(TestSaberFunc, test_func_concat) {
    test_model<AK_FLOAT, NV, NVHX86>();
 #endif
 #ifdef USE_X86_PLACE
-test_model<AK_FLOAT, X86, X86>();
+    test_model<AK_FLOAT, X86, X86>();
 #endif
 
 #ifdef USE_ARM_PLACE
@@ -106,7 +106,6 @@ test_model<AK_FLOAT, X86, X86>();
     test_model<AK_FLOAT, ARM, ARM>();
 #endif
 }
-
 
 int main(int argc, const char** argv) {
     if (argc >= 2) {
