@@ -38,7 +38,7 @@ virtual SaberStatus init(const std::vector<OpTensor *>& inputs,
                          std::vector<OpTensor *>& outputs,
                          ConvParam<NV>& param, Context<NV>& ctx) {
 
-    this->_ctx = &ctx;
+
 
     return create(inputs, outputs, param, ctx);
 }
@@ -61,6 +61,23 @@ virtual SaberStatus create(const std::vector<OpTensor *>& inputs,
                                                in_channel, out_channel);
 //            LOG(INFO)<<"scale weights finished!!";
     }
+    this->_ctx = &ctx;
+    int win = inputs[0]->width();
+    int hin = inputs[0]->height();
+    int chin = inputs[0]->channel();
+    int num = inputs[0]->num();
+    int wout = outputs[0]->width();
+    int hout = outputs[0]->height();
+    int chout = outputs[0]->channel();
+
+    int _kw = param.weight()->width();
+    int _kh = param.weight()->height();
+
+    int _m = chout * _kw * _kh / param.group;
+    int _n = hin * win;
+    int _k = chin / param.group;
+    _gemm_wx = saber_find_fast_sass_gemm(true, false, _m, _n,
+                                         _k);
     return SaberSuccess;
 }
 
@@ -69,6 +86,10 @@ virtual SaberStatus dispatch(const std::vector<OpTensor*>& inputs,
                              ConvParam<NV>& param);
 private:
 bool _use_k4_s2_p1;
+    std::function<void(const int, const int, const int,
+                       const float, const float*, const float,
+                       const float*, float*, cudaStream_t)> _gemm_wx;
+    OpTensor _workspace_tensor;
 };
 
 

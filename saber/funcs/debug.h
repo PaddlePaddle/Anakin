@@ -20,22 +20,45 @@
 namespace anakin {
 namespace saber {
 
-#if defined(USE_X86_PLACE) || defined(USE_CUDA)
-template <typename HTensor>
-static void write_tensorfile(HTensor tensor, const char* locate) {
-    typedef float Dtype;
-    LOG(INFO) << "host tensor data:" << tensor.size();
+template <typename Target_Type>
+struct DefaultHostType{
+    typedef X86 Host_type;
+};
+
+template <>
+struct DefaultHostType<NV>{
+    typedef NVHX86 Host_type;
+};
+
+template <>
+struct DefaultHostType<ARM>{
+    typedef ARM Host_type;
+};
+
+
+template <typename Target_Type>
+static void write_tensorfile(Tensor<Target_Type>& tensor, const char* locate) {
+
+    typedef typename DefaultHostType<Target_Type>::Host_type HOST_TYPE;
+    Tensor<HOST_TYPE> host_tensor;
+    host_tensor.re_alloc(tensor.valid_shape(),tensor.get_dtype());
+    host_tensor.copy_from(tensor);
+    LOG(INFO) << "target tensor data:" << tensor.size();
     FILE* fp = fopen(locate, "w+");
 
     if (fp == 0) {
-        LOG(ERROR) << "file open field " << locate;
+                LOG(ERROR) << "file open field " << locate;
 
     } else {
-        const Dtype* data_ptr = (const Dtype*)tensor.data();
-        int size = tensor.valid_size();
+        if(tensor.get_dtype()==AK_FLOAT){
+            const float* data_ptr = (const float*)host_tensor.data();
+            int size = host_tensor.valid_size();
 
-        for (int i = 0; i < size; ++i) {
-            fprintf(fp, "[%d] %g \n", i, (data_ptr[i]));
+            for (int i = 0; i < size; ++i) {
+                fprintf(fp, "[%d] %g \n", i, (data_ptr[i]));
+            }
+        } else{
+            LOG(FATAL)<<"not supported write type";
         }
 
         fclose(fp);
@@ -43,7 +66,7 @@ static void write_tensorfile(HTensor tensor, const char* locate) {
 
     LOG(INFO) << "!!! write success: " << locate;
 }
-#endif
+
 template <typename TargetType>
 static void record_dev_tensorfile(const float* dev_tensor, int size, const char* locate){};
 

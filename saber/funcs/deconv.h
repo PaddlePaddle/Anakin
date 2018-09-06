@@ -21,7 +21,7 @@
 #include "saber/funcs/impl/impl_deconv.h"
 
 #ifdef NVIDIA_GPU
-#include "saber/funcs/impl/cuda/saber_deconv.h"
+//#include "saber/funcs/impl/cuda/saber_deconv.h"
 #include "saber/funcs/impl/cuda/vender_deconv.h"
 #endif
 

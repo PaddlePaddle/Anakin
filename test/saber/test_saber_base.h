@@ -23,7 +23,7 @@
 #include "saber/core/data_traits.h"
 #include "utils/unit_test/aktest.h"
 #include "utils/logger/logger.h"
-
+#include "saber/funcs/debug.h"
 #include <vector>
 #include <string>
 
@@ -107,9 +107,9 @@ public:
             in_h.push_back(d_ih);
         }
         for(int i = 0; i < _op_output_num; ++i){
-            TensorD *d_od = new TensorD(new_shape_v[i]);
-            TensorH *d_oh = new TensorH(new_shape_v[i]);
-            TensorH *d_ohd = new TensorH(new_shape_v[i]);
+            TensorD *d_od = new TensorD();
+            TensorH *d_oh = new TensorH();
+            TensorH *d_ohd = new TensorH();
             out_d.push_back(d_od);
             out_h.push_back(d_oh);
             out_hd.push_back(d_ohd);
@@ -154,7 +154,6 @@ public:
         int input_size = _inputs_dev.size();
         CHECK_EQ(input_size, _inputs_host.size()) << "dev and host inputs num must be equal";
         if(_input_type == RANDOM){
-            CHECK_EQ(input_size, 1) << "special input num must be 1";
             for(int i=0; i<_inputs_dev.size(); ++i){
                 for(int j=0; j<_op_input_num; ++j){
                     fill_tensor_rand(*_inputs_dev[i][j], minv, maxv);
@@ -163,6 +162,7 @@ public:
                 }
             }
         } else {
+            CHECK_EQ(input_size, 1) << "special input num must be 1";
             for(int i = 0; i < _inputs_dev.size(); ++i){
                 for(int j = 0; j < _op_input_num; ++j){
                     fill_tensor_const(*_inputs_dev[i][j], _special_value);
@@ -243,20 +243,21 @@ public:
         clear_vv<TensorH>(_outputs_hd);
         _input_shapes.clear();
     }
-    SaberStatus get_op_result (SaberImplStrategy strategy, ImplEnum implenum, int param_index = 0){
+    SaberStatus get_op_result (SaberImplStrategy strategy, ImplEnum implenum, int param_index = 0,bool test_speed=false){
         CHECK_GE(param_index, 0) << "param index must be positive";
         CHECK_LT(param_index, _params.size()) << "param index out of range";
         
         Context<TargetType_D> ctx(0, 1, 1);
         SaberStatus status;
         SaberTimer<TargetType_D> t;
+        int iter_num=test_speed?100:1;
         t.clear();
         t.start(ctx);
         for(int input_index = 0; input_index < _inputs_dev.size(); ++input_index){
             _base_op.init(_inputs_dev[input_index], _outputs_dev[input_index],
                           _params[param_index], strategy, implenum, ctx);
-            for(int iter=0; iter<100; ++iter){
-                _outputs_dev[input_index][0]->copy_from(*_outputs_host[input_index][0]);
+            for(int iter=0; iter<iter_num; ++iter){
+//                _outputs_dev[input_index][0]->copy_from(*_outputs_host[input_index][0]);
                 status= _base_op(_inputs_dev[input_index], _outputs_dev[input_index],
                                  _params[param_index], ctx);
                 if(status == SaberUnImplError){
@@ -270,7 +271,9 @@ public:
         }
         t.end(ctx);
         float ts = t.get_average_ms();
-        LOG(INFO) << "avg run time:" << ts / _inputs_dev.size() / 100 << "ms";
+        if(test_speed) {
+            LOG(INFO) << "avg run time:" << ts / _inputs_dev.size() / 100 << "ms";
+        }
         for(int input_index = 0; input_index < _inputs_dev.size(); ++input_index){
             for(int j = 0; j < _op_output_num; ++j){
                 _outputs_hd[input_index][j] -> copy_from(*_outputs_dev[input_index][j]);
@@ -286,23 +289,31 @@ public:
             CpuFunc(_inputs_host[i], _outputs_host[i], _params[param_index]);
         }
     }
-    void result_check_accuracy (double succ_ratio = 0.00001){
+    void result_check_accuracy (double succ_ratio = 0.00001,bool write_error_tensor=false){
         CHECK_EQ(_outputs_host.size(), _outputs_hd.size()) << "output size in dev and cpu must be equal";
         int check_size = _outputs_host.size();
         std::vector<double> max_diff(check_size, 0);
         std::vector<double> max_ratio(check_size, 0);
-        Shape sh = _inputs_host[0][0] -> shape();
+        Shape sh = _inputs_host[0][0] -> valid_shape();
         for(int i = 0; i < _outputs_host.size(); ++i){
             for(int j = 0; j<_op_output_num; ++j){
                 tensor_cmp_host<OpDataType>(static_cast<const OpDataType*>(_outputs_hd[i][j] -> data()),
                                        static_cast<const OpDataType*>(_outputs_host[i][j] -> data()),
                                        _outputs_hd[i][j] -> valid_size(), max_ratio[i], max_diff[i]);
                 LOG(INFO) << "input_shape:(" << sh.num() << "," << sh.channel() << "," << sh.height() << "," << sh.width() << ")";
-                LOG(INFO) << "max_ratio:" << max_ratio[i];
+                LOG(INFO) << "max_ratio:" << max_ratio[i]<<",max diff = "<<max_diff[i];
+                LOG(INFO)<<"mean_value = "<<tensor_mean_value(*_outputs_hd[i][j])<<","<<tensor_mean_value(*_outputs_host[i][j]);
+                LOG(INFO)<<"output shape = "<<_outputs_hd[i][j]->valid_shape();
                 if(max_ratio[i] <= succ_ratio && (_outputs_hd[i][0]->valid_shape() == _outputs_host[i][0]->valid_shape())){
                     LOG(INFO) << "Test Passed!";
+
                 } else {
+                    if(write_error_tensor) {
+                        write_tensorfile(*_outputs_hd[i][j], "error_record_target");
+                        write_tensorfile(*_outputs_host[i][j], "error_record_host");
+                    }
                     LOG(FATAL) << "Test Failed!!"<< "output:(" << i << "-" << j << ")";
+
                 }
             }
         }
@@ -311,7 +322,7 @@ public:
         _max_value = maxv;
         _min_value = minv;
     }
-    void run_test (CpuFunc_t CpuFunc, double succ_ratio=0.00001){
+    void run_test (CpuFunc_t CpuFunc, double succ_ratio=0.00001, bool write_error_tensor= false,bool test_speed=false){
         if(_input_type == SPECIAL){
             fill_inputs(_special_value, _special_value);
         }
@@ -325,15 +336,15 @@ public:
         
         std :: vector<std :: string> runtype{"STATIC", "RUNTIME", "SPECIFY"};
         std :: vector<std :: string> impltype{"VENDER", "SABER"};
+        get_cpu_result(CpuFunc);
         for(auto strate : {SPECIFY, RUNTIME, STATIC}){
             for(auto implenum : {VENDER_IMPL, SABER_IMPL}){
                 LOG(INFO) << "TESTING: strategy:" << runtype[strate-1] << ",impltype:" << impltype[(int)implenum];
-                if(get_op_result(strate, implenum) == SaberUnImplError){
+                if(get_op_result(strate, implenum,test_speed) == SaberUnImplError){
                     LOG(INFO) << "Unimpl!!";
                     continue;
                 }
-                get_cpu_result(CpuFunc);
-                result_check_accuracy(succ_ratio);
+                result_check_accuracy(succ_ratio,write_error_tensor);
             }
         }
     }
