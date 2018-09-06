@@ -4,7 +4,6 @@
 #include "saber/core/tensor.h"
 #include "saber/core/context.h"
 #include <vector>
-#include "cuda.h"
 namespace anakin {
 namespace saber {
 
