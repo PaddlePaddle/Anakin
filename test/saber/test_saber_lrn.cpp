@@ -153,7 +153,6 @@ NormRegion norm_region = ACROSS_CHANNELS;
         }
     }
 #endif 
-
 }
 
 int main(int argc, const char** argv) {
