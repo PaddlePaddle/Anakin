@@ -175,6 +175,15 @@ Status SassConvBatchnormScaleReluPoolHelper<Ttype, Ptype>::Init(OpContext<Ttype>
                                     group, 
                                     SABER_IMPL);
         weights.map_to_host();
+    } else {
+        PBlock<Ttype> weight_empty;
+        graph::GraphGlobalMem<Ttype>::Global().template apply<Level_1>(
+                                    std::bind(&ConvPooling<Ttype, PrecisionWrapper<Ptype>::saber_type>::trans_weights, 
+                                    &_funcs_conv_batchnorm_scale_relu_pooling, _1, _2, _3, _4, _5),
+                                    weight_empty.d_tensor(), 
+                                    strides[0], strides[1], 
+                                    group, 
+                                    SABER_IMPL);
     }
     return Status::OK();
 }

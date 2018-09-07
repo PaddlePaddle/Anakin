@@ -131,6 +131,15 @@ Status ConvBatchnormScaleHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
                                     group, 
                                     SABER_IMPL);
         weights.map_to_host();
+    } else {
+        PBlock<Ttype> weight_empty;
+        graph::GraphGlobalMem<Ttype>::Global().template apply<Level_1>(
+                                    std::bind(&Conv<Ttype, PrecisionWrapper<Ptype>::saber_type>::trans_weights, 
+                                    &_funcs_conv_batchnorm_scale, _1, _2, _3, _4, _5),
+                                    weight_empty.d_tensor(), 
+                                    strides[0], strides[1], 
+                                    group, 
+                                    SABER_IMPL);
     }
     return Status::OK();
 }
@@ -169,6 +178,15 @@ Status ConvBatchnormScaleHelper<NV, Precision::FP32>::Init(OpContext<NV>& ctx, \
                                     std::bind(&Conv<NV, PrecisionWrapper<Precision::FP32>::saber_type>::trans_weights, 
                                     &_funcs_conv_batchnorm_scale, _1, _2, _3, _4, _5),
                                     weights.d_tensor(), 
+                                    strides[0], strides[1], 
+                                    group, 
+                                    VENDER_IMPL);
+    } else {
+        PBlock<NV> weight_empty;
+        graph::GraphGlobalMem<NV>::Global().template apply<Level_1>(
+                                    std::bind(&Conv<NV, PrecisionWrapper<Precision::FP32>::saber_type>::trans_weights, 
+                                    &_funcs_conv_batchnorm_scale, _1, _2, _3, _4, _5),
+                                    weight_empty.d_tensor(), 
                                     strides[0], strides[1], 
                                     group, 
                                     VENDER_IMPL);
