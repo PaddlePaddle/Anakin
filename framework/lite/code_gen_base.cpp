@@ -5,6 +5,8 @@
 #include "framework/graph/llvm/optimizer/parall_scheduler.h"
 #include "framework/graph/llvm/optimizer/memory_scheduler.h"
 
+#ifdef BUILD_WITH_LITE
+
 namespace anakin {
 
 namespace lite {
@@ -221,6 +223,8 @@ template class CodeGenBase<X86, Precision::INT8>;
 template class CodeGenBase<ARM, Precision::FP32>;
 template class CodeGenBase<ARM, Precision::FP16>;
 template class CodeGenBase<ARM, Precision::INT8>;
+#endif
+
 #endif
 
 } /* namespace lite */

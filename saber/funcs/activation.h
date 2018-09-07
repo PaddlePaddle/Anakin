@@ -29,10 +29,6 @@
 #include "saber/funcs/impl/x86/saber_activation.h"
 #endif
 
-#ifdef AMD_GPU 
-#include "saber/funcs/impl/amd/saber_activation.h"
-#endif
-
 #ifdef USE_ARM_PLACE
 #include "saber/funcs/impl/arm/saber_activation.h"
 #endif
