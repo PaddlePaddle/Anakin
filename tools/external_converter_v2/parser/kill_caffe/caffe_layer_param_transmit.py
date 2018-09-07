@@ -1218,5 +1218,6 @@ CAFFE_LAYER_PARSER = {
                 "Normalize": OpsParam().set_parser(Parser_normalize),
                 "Resize": OpsParam().set_parser(Parser_resize),
                 "ReLU6": OpsParam().set_parser(Parser_relu6),
+                "Normalization": OpsParam().set_parser(Parser_normalize),
                 "ShuffleChannel": OpsParam().set_parser(Parser_ShuffleChannel)
                 }
