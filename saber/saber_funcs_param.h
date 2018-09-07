@@ -376,6 +376,38 @@ struct ConvPoolingParam {
 };
 
 template <typename TargetType>
+struct ConvUnpaddingPaddingParam {
+    ConvUnpaddingPaddingParam():stride_h(1),stride_w(1)
+    {}
+
+    ConvUnpaddingPaddingParam(int stride_h_in,
+                     int stride_w_in)
+            : stride_h(stride_h_in)
+            , stride_w(stride_w_in)
+    {}
+
+    ConvUnpaddingPaddingParam(const ConvUnpaddingPaddingParam<TargetType>& right)
+            : stride_h(right.stride_h)
+            , stride_w(right.stride_w)
+    {}
+    ConvUnpaddingPaddingParam& operator=(const ConvUnpaddingPaddingParam& right) {
+        stride_h = right.stride_h;
+        stride_w = right.stride_w;
+        return *this;
+    }
+    bool operator==(const ConvUnpaddingPaddingParam& right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (stride_h == right.stride_h);
+        comp_eq = comp_eq && (stride_w == right.stride_w);
+        return comp_eq;
+    }
+
+    int stride_h;
+    int stride_w;
+};
+
+
+template <typename TargetType>
 struct CrfDecodingParam {
     CrfDecodingParam()
         : weight_tensor(NULL)
