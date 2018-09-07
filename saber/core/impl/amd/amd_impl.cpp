@@ -727,19 +727,171 @@ void AMD_API::init(){
 }
 */
 
+
+typedef TargetWrapper<AMDHX86, __host_target> AMDH_API;
+typedef Env<AMDHX86> AMDH_ENV;
+
+void AMDH_API::get_device_count(int &count) {
+    //todo
+    LOG(WARNING) << "host target AMDHX86 \" get_device_count\" is not implemented";
+    count = 1;
+}
+
+void AMDH_API::set_device(int id) {
+    //todo
+    LOG(WARNING) << "host target AMDHX86 \" set_device\" is not implemented";
+}
+
+void AMDH_API::mem_alloc(void** ptr, size_t n) {
+   *ptr = (void*)fast_malloc(n);
+}
+        
+void AMDH_API::mem_free(void* ptr){
+    if (ptr != nullptr) {
+        fast_free(ptr);
+    }
+}
+
+
+void AMDH_API::mem_set(void* ptr, int value, size_t n){
+     memset(ptr, value, n);
+}
+
+void AMDH_API::create_event(event_t* event, bool flag) {
+
+    LOG(INFO) << "create_event break opencl call sequence. Is baidu expect clCreateUserEvent?";
+    //do nothing for this.
+    *event = nullptr;
+
+    //Env<AMD>::is_init();
+    //cl_int err = CL_SUCCESS;
+    //event = clCreaeUserEvent(AMD_ENV::cur_env()[current_device_id_index].context, &err);
+    //AMD_CHECK(err);
+}
+
+void AMDH_API::create_stream(stream_t* stream) {
+    create_stream_with_flag(stream, 0);
+}
+
+/**
+ * \brief create cuda stream with flag
+ * @param stream    input stream
+ * @param flag      input flag, 0: default stream flag, 1: cudaStreamNonBlocking
+ */
+void AMDH_API::create_stream_with_flag(stream_t* stream, unsigned int flag) {
+    Env<AMD>::is_init();
+    int current_device_id_index = 0;
+    cl_int err = CL_SUCCESS;
+    if (!stream) {
+        LOG(FATAL) << "Stream should not be NULL.";
+    }
+    *stream = clCreateCommandQueue(Env<AMD>::cur_env()[current_device_id_index].get_context(), Env<AMD>::cur_env()[current_device_id_index].get_device(), (cl_command_queue_properties) flag, &err);
+    AMD_CHECK(err);
+}
+
+void AMDH_API::create_stream_with_priority(stream_t* stream, unsigned int flag, int priority) {
+    LOG(ERROR) << "not support, use create_stream_with_flag to instead";
+    create_stream_with_flag(stream, flag);
+}
+
+void AMDH_API::destroy_stream(stream_t stream) {
+    AMD_CHECK(clReleaseCommandQueue(stream));
+}
+
+void AMDH_API::destroy_event(event_t event) {
+    if(event == nullptr){
+//        LOG(INFO) << "event is empty, do nothing";
+        return;
+    }
+
+    cl_command_type t;
+    AMD_CHECK(clGetEventInfo(event, CL_EVENT_COMMAND_TYPE, sizeof(cl_command_type), &t, NULL));
+    if ( t == CL_COMMAND_USER) {
+        cl_int refs;
+        AMD_CHECK(clGetEventInfo(event, CL_EVENT_REFERENCE_COUNT, sizeof(cl_int), &refs, NULL));
+        if(refs == 1)
+           AMD_CHECK(clSetUserEventStatus(event, CL_COMPLETE));
+
+        AMD_CHECK(clReleaseEvent(event));
+    } else {
+//        LOG(INFO) << "NOT User Event, do nothing";
+    }
+
+}
+
+void AMDH_API::record_event(event_t event, stream_t stream) {
+    AMD_CHECK(clEnqueueMarkerWithWaitList(stream, 0, NULL, &event));
+}
+
+void AMDH_API::query_event(event_t event) {
+     LOG(ERROR) << "OpenCL us clGetEventInfo to retrive event's specific info. so we need to know what info user want to know";
+}
+
+void AMDH_API::sync_event(event_t event) {
+//    LOG(INFO) << __func__ ;
+
+    if(event == nullptr){
+        LOG(INFO) << "event is empty, do nothing";
+        return;
+    }
+    
+//    LOG(INFO) << "sync_event E " << event;
+    AMD_CHECK(clWaitForEvents( 1, &event));
+//    LOG(INFO) << "sync_event X " << event;
+}
+
+void AMDH_API::sync_stream(event_t event, stream_t stream) {
+    LOG(INFO) << __func__ ;
+    if(event != nullptr) {
+        LOG(INFO) << "event is null";
+        return;
+    }
+
+    LOG(INFO) << "sync_stream E ";
+    AMD_CHECK(clEnqueueBarrierWithWaitList(stream, 1, &event, NULL));
+    clFlush(stream);
+    LOG(INFO) << "sync_stream D ";
+}
+
+void AMDH_API::sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
+    const void* src, size_t src_offset, int src_id, \
+    size_t count, __HtoH) {
+    memcpy((char*)dst + dst_offset, (char*)src + src_offset, count);
+}
+        
+void AMDH_API::async_memcpy(void* dst, size_t dst_offset, int dst_id, \
+    const void* src, size_t src_offset, int src_id, \
+    size_t count, stream_t stream, __HtoH) {
+    memcpy((char*)dst + dst_offset, (char*)src + src_offset, count);
+}
+
+void AMDH_API::sync_memcpy_p2p(void* dst, size_t dst_offset, int dst_id, \
+    const void* src, size_t src_offset, int src_id, size_t count) {}
+        
+void AMDH_API::async_memcpy_p2p(void* dst, size_t dst_offset, int dst_id, \
+    const void* src, size_t src_offset, int src_id, \
+    size_t count, stream_t stream) {}
+
+void AMDH_API::device_sync() {}
+
+int AMDH_API::get_device_id(){
+    return 0;
+}
+
 //! AMD TargetWrapper
 template struct TargetWrapper<AMD, __device_target>;
 
 //! AMD Tensor
 template class Tensor<AMD>;
-template class Tensor<X86>;
+template class Tensor<AMDHX86>;
 
 //! AMD Buffer
 template class Buffer<AMD>;
-template class Tensor<X86>;
+template class Buffer<AMDHX86>;
 
 //!
 template struct Env<AMD>;
+template struct Env<AMDHX86>;
 
 #endif //USE_AMD
 

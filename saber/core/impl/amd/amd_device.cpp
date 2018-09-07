@@ -23,6 +23,7 @@ namespace saber{
 #ifdef USE_AMD
 
 typedef TargetWrapper<AMD> AMD_API;
+typedef TargetWrapper<AMDHX86> AMDHX86_API;
 
 size_t split(const std::string &txt, std::vector<std::string> &strs, char ch)
 {
@@ -142,6 +143,27 @@ typename AMD_API::stream_t Device<AMD>::get_available_stream(typename AMD_API::s
     return _data_stream[0];
 
 }
+
+template <>
+void Device<AMDHX86>::create_stream() {
+    _data_stream.clear();
+    _compute_stream.clear();
+    for(int i = 0; i < _max_stream; i++) {
+        typedef TargetWrapper<AMDHX86> API;
+        typename API::stream_t stream_data;
+        typename API::stream_t stream_compute;
+
+        API::create_stream_with_flag(&stream_data, 1);
+        API::create_stream_with_flag(&stream_compute, 1);
+        _data_stream.push_back(stream_data);
+        _compute_stream.push_back(stream_compute);
+    }
+}
+
+template <>
+void Device<AMDHX86>::get_info() {
+    LOG(ERROR) << "AMDHX86 get_info is not implemented";
+};
 
 
 #endif //USE_AMD

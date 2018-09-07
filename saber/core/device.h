@@ -81,6 +81,10 @@ private:
     cl_device_id id;
     cl_context context;    
 };
+
+
+template struct Device<AMDHX86>;
+
 #endif
 } //namespace saber
 

@@ -36,7 +36,8 @@ enum TargetTypeEnum {
     eNVHARM = 6,
     eARMGPU = 7,
     eARMDSP =8,
-    eBM = 9
+    eBM = 9,
+    eAMDHX86 = 10,
 };
 
 template <TargetTypeEnum T>
@@ -52,6 +53,7 @@ typedef TargetType<eX86> X86;
 typedef TargetType<eNVHX86> NVHX86;
 //typedef TargetType<eNVHARM> NVHARM;
 // invalid target type, for target has only one memory block
+typedef TargetType<eAMDHX86> AMDHX86;
 typedef TargetType<eINVALID> INVLD;
 
 enum LayoutType {

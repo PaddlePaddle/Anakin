@@ -13,6 +13,8 @@
    limitations under the License.
 */
 
+
+
 #include "saber/core/tensor_op.h"
 #include <limits>
 
@@ -44,7 +46,6 @@ void fill_tensor_const(Tensor<TargetType>& tensor, \
         stream = dev._data_stream[0];
     }
 
-
     cl_mem mem = (cl_mem)data_ptr;
     cl_event event;
     clEnqueueFillBuffer(stream, mem, &value, sizeof(Dtype), 0, size * sizeof(Dtype), 0, NULL, &event);
@@ -63,7 +64,6 @@ void fill_tensor_rand(Tensor<TargetType>& tensor, typename Tensor<TargetType>::A
     PtrDtype ptr = (PtrDtype)tensor.mutable_data();
     cl_mem mem = (cl_mem)ptr;
     int size = tensor.valid_size();
-
 
     Device<AMD> dev = Env<AMD>::cur_env()[tensor.device_id()];
     if(stream == nullptr){
@@ -95,7 +95,6 @@ void fill_tensor_rand(Tensor<TargetType>& tensor, float vstart, \
 
     typedef typename DataTrait<AMD, AK_FLOAT>::Dtype Dtype;
     typedef typename DataTrait<AMD, AK_FLOAT>::PtrDtype PtrDtype;
-
 
     PtrDtype ptr = (PtrDtype)tensor.mutable_data();
     cl_mem mem = (cl_mem)ptr;
@@ -135,7 +134,6 @@ void print_tensor(Tensor<TargetType>& tensor, typename Tensor<TargetType>::API::
     typedef typename DataTrait<AMD, AK_FLOAT>::Dtype Dtype;
     typedef typename DataTrait<AMD, AK_FLOAT>::PtrDtype PtrDtype;
 
-
     PtrDtype ptr = (PtrDtype)tensor.mutable_data();
     cl_mem mem = (cl_mem)ptr;
 
@@ -169,36 +167,17 @@ void print_tensor(Tensor<TargetType>& tensor, typename Tensor<TargetType>::API::
 
 };
 
-
-
 template void print_tensor<AMD> \
     (Tensor<AMD>& tensor, \
     typename Tensor<AMD>::API::stream_t stream = NULL);
-
 template void fill_tensor_const<AMD>\
     (Tensor<AMD>& tensor, \
     float value, typename Tensor<AMD>::API::stream_t stream = NULL); 
-
 template void fill_tensor_rand<AMD>\
      (Tensor<AMD>& tensor, typename Tensor<AMD>::API::stream_t stream);
-
 template void fill_tensor_rand<AMD>\
      (Tensor<AMD>& tensor, float vstart, \
     float vend, typename Tensor<AMD>::API::stream_t stream);
-
-
-/*
-
-
-template void fill_tensor_device_rand<Tensor<AMD>, type>\
-     (Tensor<AMD>& tensor, typename Tensor<TargetType>::API::stream_t stream); \
-template void fill_tensor_device_rand<Tensor<AMD>, type>\
-     (Tensor<AMD>& tensor, DataTrait<AMD, type>::Dtype vstart, \
-     DataTrait<AMD, type>::Dtype vend, typename Tensor<TargetType>::API::stream_t stream); \
-template void print_tensor<Tensor<AMD>, type>\
-     (Tensor<AMD>& tensor, typename Tensor<TargetType>::API::stream_t stream);
-*/
-
 
 #endif
 } //namespace saber

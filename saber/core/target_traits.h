@@ -77,6 +77,12 @@ struct TargetTypeTraits<BM> {
   typedef __bm_device target_type;
 };
 
+template <>
+struct TargetTypeTraits<AMDHX86> {
+  typedef __host_target target_category;
+  typedef __x86_device target_type;
+};
+
 } //namespace saber
 
 } //namespace anakin
