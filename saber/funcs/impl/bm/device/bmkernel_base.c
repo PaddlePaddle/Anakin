@@ -20,7 +20,7 @@ int bmkernel_func(void *args)
             // bm_conv_fwd(param)
             break;
         default:
-            printf("op %s is not supported by BM yet.\n", param->op);
+            printf("op %d is not supported by BM yet.\n", param->op);
     }
     return 0;
 }
