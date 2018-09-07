@@ -7,25 +7,13 @@
 #include "core/common.h"
 #include "core/tensor.h"
 #include "cuda.h"
+#include "saber_util.h"
 
 namespace anakin {
 
 namespace saber {
 
-template <typename opTensor>
-inline void try_expand_tensor(opTensor& x,Shape shape){
-    if(x.valid_size()<shape.count()){
-        x.re_alloc(shape,x.get_dtype());
-    }
-}
 
-template <typename opTensor>
-inline void try_expand_tensor(opTensor& x,int size){
-    if(x.valid_size()<size) {
-        Shape shape({1, 1, 1, size},Layout_NCHW);
-        try_expand_tensor(x,shape);
-    }
-}
 
 template<typename Dtype>
 extern void trans_map2out_cfunc(const Dtype* input, Dtype* output, int word_size, int seq_sum,

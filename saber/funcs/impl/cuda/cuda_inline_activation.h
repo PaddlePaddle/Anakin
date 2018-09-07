@@ -66,6 +66,17 @@ Tanh_fluid(const Dtype a) {
     return (2.0 / (1.0 + expf(tmp))) - 1.0;
 }
 
+static __device__ float (*act_funcs_cu[])(float) = {&InValidAct<float>, &Sigmoid < float >, &Relu < float >,
+                                                    &Tanh < float >,
+                                                    &InValidAct<float>, &InValidAct<float>,
+                                                    &Identity < float >, &Sigmoid_fluid < float >,
+                                                    &Tanh_fluid < float >
+                                                   };
+
+static inline __device__ float  activate_cuda_float(float x, ActiveType type_id) {
+    return act_funcs_cu[type_id](x);
+}
+
 template<typename Dtype>
 struct ACTIVATION {
     typedef  Dtype(*Act)(const Dtype);

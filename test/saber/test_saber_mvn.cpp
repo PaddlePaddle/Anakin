@@ -29,8 +29,8 @@ void mvn_cpu_base(const std::vector<Tensor<TargetType_H>* > &input, std::vector<
     int H = input[0]->height();
     int W = input[0]->width();
 
-    const dtype* src = input[0]->data();
-    dtype* dst = output[0]->mutable_data();
+    const dtype* src = (const dtype*)input[0]->data();
+    dtype* dst = (dtype*)output[0]->mutable_data();
     int num = N * C;
     int inner_dim = H * W;
     if (param.across_channels) {
@@ -72,7 +72,7 @@ TEST(TestSaberFunc, test_op_mvn) {
     bool normalize_variance{true};
     bool across_channels{false};
     float eps{1e-9};
-
+    
 #ifdef USE_CUDA
     TestSaberBase<NV, NVHX86, AK_FLOAT, Mvn, MvnParam> testbase;
     for(int w_in : {8, 8, 16}) {
@@ -89,7 +89,25 @@ TEST(TestSaberFunc, test_op_mvn) {
             }
         }
     }
-#endif 
+#endif
+
+#ifdef USE_X86_PLACE
+    TestSaberBase<X86, X86, AK_FLOAT, Mvn, MvnParam> testbase_x86;
+    for(int w_in : {8, 8, 16}) {
+        for(int h_in : {2, 8, 32}){
+            for(int ch_in : {2, 3, 8, 64}){
+                for(int num_in:{1, 21, 32}){
+                    Shape shape_x86({num_in, ch_in, h_in, w_in});
+                    MvnParam<X86> param_x86(normalize_variance, across_channels, eps);
+                    testbase_x86.set_param(param_x86);
+                    testbase_x86.set_rand_limit(-5.0, 5.0);
+                    testbase_x86.set_input_shape(shape_x86);
+                    testbase_x86.run_test(mvn_cpu_base<float, X86, X86>);
+                }
+            }
+        }
+    }
+#endif
 
 }
 
