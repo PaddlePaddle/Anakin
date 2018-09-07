@@ -10,22 +10,35 @@ namespace utils {
 #include "saber/core/shape.h"
 
 template<typename opTensor>
-static inline void try_expand_tensor(opTensor& x, anakin::saber::Shape shape) {
+static inline bool try_expand_tensor(opTensor& x, anakin::saber::Shape shape) {
     if (x.valid_size() < shape.count()) {
         x.re_alloc(shape, x.get_dtype());
+        return true;
     }
+    return false;
 }
 
 template<typename opTensor>
-static inline void try_expand_tensor(opTensor& x, int size) {
+static inline bool try_expand_tensor(opTensor& x, int size) {
     if (x.valid_size() < size) {
         anakin::saber::Shape shape({1, 1, 1, size}, Layout_NCHW);
-        try_expand_tensor(x, shape);
+        return try_expand_tensor(x, shape);
+    }
+    return false;
+}
+
+template <typename DataType>
+static inline void transpose(const DataType* in,int height,int width,DataType*out){
+    for(int i=0;i<height;++i){
+        for(int j=0;j<width;++j){
+            out[j*height+i]=in[i*width+j];
+        }
     }
 }
 
 
 }
+
 }
 }
 #endif //ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_UTIL_H
