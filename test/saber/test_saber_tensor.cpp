@@ -277,11 +277,13 @@ TEST(TestSaberFunc, test_tensor_constructor) {
     tensor_constructor<ARM, ARM, AK_INT8>();
 #endif
 
-#ifdef USE_BM
-    Env<BM>::env_init();
-    Env<X86>::env_init();
-    LOG(INFO) << "test BM FP32 tensor";
-    tensor_constructor<BM, X86, AK_FLOAT>();
+#ifdef USE_BM_PLACE 
+Env<BM>::env_init();
+Env<X86>::env_init();
+LOG(INFO) << "test BM FP32 tensor";
+tensor_constructor<BM, X86, AK_FLOAT>();
+LOG(INFO) << "test BM INT8 tensor";
+tensor_constructor<BM, X86, AK_INT8>();
 #endif
 }
 

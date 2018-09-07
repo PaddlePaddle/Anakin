@@ -31,20 +31,20 @@ namespace graph {
  * \brief Graph class
  * public inherit GraphBase
 */
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class Graph : public GraphBase<std::string, 
-                               NodePtr<Ttype, Dtype, Ptype>, 
-                               Tensor4dPtr<Ttype, Dtype>, 
-                               Edge<Ttype, Dtype> > {
+                               NodePtr, 
+                               Tensor4dPtr<Ttype>, 
+                               Edge<Ttype> > {
 public:
     Graph():GraphBase<std::string, 
-                      NodePtr<Ttype, Dtype, Ptype>, 
-                      Tensor4dPtr<Ttype, Dtype>, 
-                      Edge<Ttype, Dtype> >() {}
+                      NodePtr, 
+                      Tensor4dPtr<Ttype>, 
+                      Edge<Ttype> >() {}
     Graph(size_t size):GraphBase<std::string, 
-                                 NodePtr<Ttype, Dtype, Ptype>, 
-                                 Tensor4dPtr<Ttype, Dtype>, 
-                                 Edge<Ttype, Dtype> >(size) {}
+                                 NodePtr, 
+                                 Tensor4dPtr<Ttype>, 
+                                 Edge<Ttype> >(size) {}
 
     ~Graph() {
         if(_vgraph) { 
@@ -112,7 +112,7 @@ public:
      * \biref shallow copy of graph
      * note: only copy parameters and architecture, but not the weights
     */
-    Status CopyFrom(Graph<Ttype, Dtype, Ptype>& graph);
+    Status CopyFrom(Graph<Ttype, Ptype>& graph);
 
     ///< statistics stand for Statistics info of anakin graph
     Statistics statistics;

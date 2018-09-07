@@ -41,7 +41,7 @@ SaberStatus SaberAxpy<NV, AK_FLOAT>::dispatch( \
     return SaberSuccess;
 }
 DEFINE_OP_TEMPLATE(SaberAxpy, AxpyParam, NV, AK_INT8);
-DEFINE_OP_TEMPLATE(SaberAxpy, AxpyParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberAxpy, AxpyParam, NV, AK_HALF);
 } //namespace anakin
 
 } //namespace anakin
