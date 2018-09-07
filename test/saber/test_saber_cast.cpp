@@ -9,15 +9,15 @@
 using namespace anakin::saber;
 
 int num_in = 2;
-int ch_in = 1;
-int h_in = 3;
-int w_in = 3;
+int ch_in = 32;
+int h_in = 112;
+int w_in = 112;
 int inType = 1;
 int outType = 1;
-//void axpy_nv_basic(Tensor<NVHX86>& tensor_in, const float* scale, const float* bias, \
-                Tensor<NVHX86>& tensor_out, AxpyParam<NV> param){
+
 template <typename dtype,typename TargetType_D,typename TargetType_H>
-void cast_nv_basic(const std::vector<Tensor<TargetType_H>*>& inputs,std::vector<Tensor<TargetType_H>*>& outputs, CastParam<TargetType_D>& param){
+void cast_basic(const std::vector<Tensor<TargetType_H>*>& inputs,std::vector<Tensor<TargetType_H>*>& outputs, \
+    CastParam<TargetType_D>& param){
    // int num = tensor_in.num();
    // int channel = tensor_in.channel();
    // int height = tensor_in.height();
@@ -33,36 +33,6 @@ void cast_nv_basic(const std::vector<Tensor<TargetType_H>*>& inputs,std::vector<
     //LOG(INFO) << "in_type: "<<param.in_type << ", out_type: "<<param.out_type;
     if(param.in_type == param.out_type){
         outputs[0]->copy_from(*inputs[0]);
-      /* if(tensor_in->get_dtype() == 1){
-          //  LOG(INFO) << "float";
-            const float* in_data = (const float*)tensor_in->data();
-            float* out_data = (float*)tensor_out->mutable_data();
-            //memcpy(out_data, in_data, num * size);
-            for (int i = 0; i < num; i++){
-                const float* din_ptr = in_data + i * size;
-                float* dout_ptr = out_data + i * size;
-                for (int j = 0; j < size; j++){
-                    dout_ptr[j] = din_ptr[j];
-                    //LOG(INFO) << "din: " << din_ptr[j];
-                    //LOG(INFO) << "dout: " << dout_ptr[j];
-                }
-            }
-            return;
-        }
-        if(tensor_in->get_dtype() == 5){
-            const int* in_data = (const int*)tensor_in->data();
-            int* out_data = (int*)tensor_out->mutable_data();
-           // memcpy(out_data, in_data, num * size);
-            for (int i = 0; i < num; i++){
-                const int* din_ptr = in_data + i * size;
-                int* dout_ptr = out_data + i * size;
-                for (int j = 0; j < size; j++){
-                    dout_ptr[j] = din_ptr[j];
-                }
-            }
-            return;
-        }
-        */
         return;
     }
     if(tensor_in->get_dtype() == 1){//AK_FLOAT
@@ -91,25 +61,61 @@ void cast_nv_basic(const std::vector<Tensor<TargetType_H>*>& inputs,std::vector<
     }
     return;
 }
-
-TEST(TestSaberFunc, test_func_cast) {
+template <typename TargetType_D,typename TargetType_H>
+void test_model(){
     int num = num_in;
     int channel = ch_in;
     int height = h_in;
     int width = w_in;
-   
-#ifdef USE_CUDA
-   //Init the test_base
-    typedef Tensor<NVHX86> TensorH;
-    typedef Tensor<NV> TensorD;
+
+    typedef Tensor<TargetType_H> TensorH;
+    typedef Tensor<TargetType_D> TensorD;
     Shape input_shape({num, channel, height, width}, Layout_NCHW);
     Shape input_shape2({1, 32, 17, 32}, Layout_NCHW);
-   
+
+    for (auto shape: {input_shape, input_shape2}){
+        for (auto a: {1, 5, inType}){
+            TensorH input_host;
+            TensorD input_dev;
+            if (a == 1){
+                float min = -100.f;
+                float max =100.f;
+                input_host.re_alloc(shape, AK_FLOAT);
+                input_dev.re_alloc(shape, AK_FLOAT);
+                fill_tensor_rand(input_host, min, max);
+            }
+            if (a == 5){
+                float min = -100.f;
+                float max =100.f;
+                input_host.re_alloc(shape, AK_INT32);
+                input_dev.re_alloc(shape, AK_INT32);
+                fill_tensor_rand(input_host, min, max);
+            }
+            input_dev.copy_from(input_host);
+            std::vector<TensorD*> input_dt;
+            input_dt.push_back(&input_dev);
+            for (auto b: {1, 5, outType}){
+                CastParam<TargetType_D> param(a, b);
+                if (b == 1){
+                    TestSaberBase<TargetType_D, TargetType_H, AK_FLOAT, Cast, CastParam> testbase(1,1);
+                    testbase.set_param(param);
+                    testbase.add_custom_input(input_dt);
+                    testbase.run_test(cast_basic<float, TargetType_D, TargetType_H>, 2.1e-5f);
+                }
+                if (b == 5){
+                    TestSaberBase<TargetType_D, TargetType_H, AK_INT32, Cast, CastParam> testbase(1,1);
+                    testbase.set_param(param);
+                    testbase.add_custom_input(input_dt);
+                    testbase.run_test(cast_basic<int, TargetType_D, TargetType_H>, 2.1e-5f);
+                }
+            }
+        }
+    }
+   /*
     for(auto shape: {input_shape, input_shape2}){
         for(auto a: {1, 5, inType}){
             TensorH input_host;
             TensorD input_dev;
-           // input_host.re_alloc(shape, a);
             if(a == 1){
                 float min = -100.f;
                 float max = 100.f;
@@ -129,32 +135,35 @@ TEST(TestSaberFunc, test_func_cast) {
             for(auto b: {1, 5, outType}){
                 CastParam<NV> param(a, b);
                 if(b == 1){
-                    //LOG(INFO) << "=============================================AK_FLOAT";
                     TestSaberBase<NV, NVHX86, AK_FLOAT, Cast, CastParam> testbase(1,1);
                     testbase.set_param(param);//set param
                     testbase.add_custom_input(input_dt);
-                    //testbase.set_rand_limit(255,255);
-                    //testbase.set_input_shape(shape);//add some input shape
                     testbase.run_test(cast_nv_basic<float, NV, NVHX86>);//run test
                 }else{
-                    //LOG(INFO) << "=============================================AK_INT32";
                     TestSaberBase<NV, NVHX86, AK_INT32, Cast, CastParam> testbase(1,1);
                     testbase.set_param(param);//set param
                     testbase.add_custom_input(input_dt);
-                    //testbase.set_rand_limit(255,255);
-                    //testbase.set_input_shape(shape);//add some input shape
                     testbase.run_test(cast_nv_basic<int, NV, NVHX86>);//run test
                 }
                 
             }
         }
-         
     }
-
+    */
+}
+TEST(TestSaberFunc, test_func_cast) {
+    int num = num_in;
+    int channel = ch_in;
+    int height = h_in;
+    int width = w_in;
+   
+#ifdef USE_CUDA
+   //Init the test_base
+    test_model<NV, NVHX86>();
 #endif
 #ifdef USE_X86_PLACE
     //Env<X86>::env_init();
-    //test_accuracy<X86, X86, AK_FLOAT>(num, channel, height, width);
+    test_model<X86, X86>();
 #endif
 }
 

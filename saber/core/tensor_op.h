@@ -41,6 +41,12 @@ void reorder(Tensor_s& src, Tensor_d& dst);
 template <typename TargetType>
 void fill_tensor_const(Tensor<TargetType>& tensor, float value, typename Tensor<TargetType>::API::stream_t stream = NULL);
 
+/**
+ *  \brief Fill the tensor buffer with rand value.
+ *  \param The reference of input tensor.
+ */
+template <typename TargetType>
+void fill_tensor_seq(Tensor<TargetType>& tensor, typename Tensor<TargetType>::API::stream_t stream = NULL);
 
 /**
  *  \brief Fill the tensor buffer with rand value.
