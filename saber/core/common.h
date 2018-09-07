@@ -182,7 +182,7 @@ const char* cudnn_get_errorstring(cudnnStatus_t status);
 #include "bmlib_utils.h"
 #include "bmkernel_runtime.h"
 
-#define BMDNN_CHECK(condition) \
+#define BM_CHECK(condition) \
   do { \
     bm_status_t error = condition; \
     CHECK_EQ(error, BM_SUCCESS) << " Failed with error code:" << error; \
