@@ -533,7 +533,7 @@ void conv_trans_weights(Tensor<TargetType> &target_weights,
     target_weights.height() == 3 &&
     target_weights.width() == 3 && group == 1) {
         //Update weights if need
-        Shape weight_shape = target_weights.shape();
+        Shape weight_shape = target_weights.valid_shape();
         Tensor<TargetType_H> new_weight;
         new_weight.re_alloc(weight_shape, target_weights.get_dtype());
         new_weight.copy_from(target_weights);
@@ -541,7 +541,7 @@ void conv_trans_weights(Tensor<TargetType> &target_weights,
         int round_in_channel = align_up(target_weights.channel(), 8);
         int round_out_channel = align_up(target_weights.num(), 32);
         int weight4x4_size = round_in_channel * round_out_channel * 4 * 4;
-        Shape old_shape = target_weights.shape();
+        Shape old_shape = target_weights.valid_shape();
         Shape new_trans_weights_shape({{weight4x4_size, 1, 1 ,1}}, target_weights.get_layout());
         trans_weights_host.re_alloc(new_trans_weights_shape, target_weights.get_dtype());
         float* _host_work_space = (float*)trans_weights_host.mutable_data();
@@ -558,9 +558,9 @@ void conv_trans_weights(Tensor<TargetType> &target_weights,
             weight_dev->set_shape(old_shape);
         }
     } else if (group == 1) {
-        int weight_size = (target_weights.shape()).count();
+        int weight_size = (target_weights.valid_shape()).count();
         Tensor<TargetType_H> weight_host;
-        weight_host.re_alloc(target_weights.shape(), target_weights.get_dtype());
+        weight_host.re_alloc(target_weights.valid_shape(), target_weights.get_dtype());
         weight_host.copy_from(target_weights);
         const float *weight_data = (const float *)weight_host.data();
         trans_weights_host.re_alloc(target_weights.valid_shape(), target_weights.get_dtype());
