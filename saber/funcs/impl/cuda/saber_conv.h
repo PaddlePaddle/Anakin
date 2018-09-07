@@ -68,9 +68,9 @@ public:
 
 private:
     bool _with_saber_act{false};
-    bool _in_place{true};
+    bool _in_place{false};
     bool _use_k1s1p0{false};
-    bool _extern_trans{true};
+    bool _extern_trans{false};
     Tensor<NV> _weight_dev;
     SaberActivation<NV, OpDtype> *_saber_act{nullptr};
     int _kernel_height;
