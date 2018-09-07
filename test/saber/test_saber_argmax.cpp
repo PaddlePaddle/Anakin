@@ -114,8 +114,9 @@ void argmax_nv_basic(const std::vector<Tensor<TargetType_H>*>& tensor_in,std::ve
         }
     }
 }
-
-TEST(TestSaberFunc, test_func_argmax) {
+template <DataType Dtype,typename TargetType_D,typename TargetType_H>
+void test_model(){
+    
     int num = num_in;
     int channel = ch_in;
     int height = h_in;
@@ -124,18 +125,16 @@ TEST(TestSaberFunc, test_func_argmax) {
     int topk = top_k;
     bool has = has_axis;
     int ax = axis;
-   // LOG(INFO) << "topk: " << topk << ", has_axis: " << has << ", axis: " << ax << ", out_max_val: " << out_max;
-#ifdef USE_CUDA
-    //Init the test_base
-    TestSaberBase<NV, NVHX86, AK_FLOAT, Argmax, ArgmaxParam> testbase;
+    
+    TestSaberBase<TargetType_D, TargetType_H, Dtype, Argmax, ArgmaxParam> testbase;  
     Shape input_shape({num, channel, height, width}, Layout_NCHW);
     Shape input_shape2({1, 32, 17, 32}, Layout_NCHW);
    // typename NV TargetD;
-    ArgmaxParam<NV> argmax_param(out_max, topk, has, ax);//has axis
-    ArgmaxParam<NV> argmax1(false, 3, true, 1);//has axis
-    ArgmaxParam<NV> argmax2(false, 3, false, 1);//has axis
-    ArgmaxParam<NV> argmax3(true, 3, true, 2);//has axis
-    ArgmaxParam<NV> argmax4(true, 3, false, 1);//has axis
+    ArgmaxParam<TargetType_D> argmax_param(out_max, topk, has, ax);//has axis
+    ArgmaxParam<TargetType_D> argmax1(false, 3, true, 1);//has axis
+    ArgmaxParam<TargetType_D> argmax2(false, 3, false, 1);//has axis
+    ArgmaxParam<TargetType_D> argmax3(true, 3, true, 2);//has axis
+    ArgmaxParam<TargetType_D> argmax4(true, 3, false, 1);//has axis
 
    // test_argmax<TargetD, TargetH, OpType>(input_shape, argmax_param);
     for(auto shape: {input_shape, input_shape2}){
@@ -143,28 +142,28 @@ TEST(TestSaberFunc, test_func_argmax) {
            // test_argmax<TargetD, TargetH, OpType>(shape, param);
             testbase.set_param(param);//set param
             testbase.set_input_shape(shape);//add some input shape
-            testbase.run_test(argmax_nv_basic<float, NV, NVHX86>);//run test
+            testbase.run_test(argmax_nv_basic<float, TargetType_D, TargetType_H>);//run test
                                
         }
     }
 
 
+}
+
+TEST(TestSaberFunc, test_func_argmax) {
+   // LOG(INFO) << "topk: " << topk << ", has_axis: " << has << ", axis: " << ax << ", out_max_val: " << out_max;
+#ifdef USE_CUDA
+    //Init the test_base
+    test_model<AK_FLOAT, NV, NVHX86>();
 #endif
 #ifdef USE_X86_PLACE
     //Env<X86>::env_init();
-    //test_accuracy<X86, X86, AK_FLOAT>(num, channel, height, width, out_max, topk, has, ax);
+    test_model<AK_FLOAT, X86, X86>();
 #endif
 }
 
 int main(int argc, const char** argv) {
 
- /*   if (argc >= 2) {
-        cluster = atoi(argv[1]);
-    }
-    if (argc >= 3) {
-        threads = atoi(argv[2]);
-    }
-    */
     if (argc >= 2) {
         top_k = atoi(argv[1]);
     }

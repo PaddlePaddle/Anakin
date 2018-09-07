@@ -38,16 +38,22 @@ public:
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
                              std::vector<DataTensor_out*>& outputs,
                              SoftmaxParam<X86>& param,
-                             Context<X86> &ctx) override;
+                             Context<X86> &ctx) override {
+        return SaberUnImplError;
+    }
 
     virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
                                std::vector<DataTensor_out*>& outputs,
                                SoftmaxParam<X86>& param,
-                               Context<X86> &ctx) override;
+                               Context<X86> &ctx) override {
+        return SaberUnImplError;
+    }
 
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                                  std::vector<DataTensor_out*>& outputs,
-                                 SoftmaxParam<X86> &param) override;
+                                 SoftmaxParam<X86> &param) override {
+        return SaberUnImplError;
+    }
 
 private:
     void _max(int n, const float *x, float *max_data);

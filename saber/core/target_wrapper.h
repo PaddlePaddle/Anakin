@@ -385,7 +385,7 @@ struct TargetWrapper<NV, __device_target> {
 #endif //USE_CUDA
 
 
-#ifdef USE_BM
+#ifdef USE_BM_PLACE 
 /**
  * \brief for Bitmain sophon device target only, device target is BM tpu
  * use bitmain api to manage memory
@@ -441,20 +441,18 @@ struct TargetWrapper<BM, __device_target> {
         const TPtr src, size_t src_offset, int src_id, \
         size_t count);
 
-
     /**
      * \brief device target return currently used device id
      * @return          currently activated device id
      */
     static int get_device_id();
     static void device_sync(){};
-//    static bm_handle_t get_handler();
+    static bm_handle_t get_handle();
 
-//    bm_handle_t handle;
 };
-#endif
+#endif //USE_BM
 
-#ifdef USE_AMD
+#ifdef AMD_GPU
 
 /**
  * \brief for AMD device target only, device target is AMD gpu
@@ -506,7 +504,7 @@ struct TargetWrapper<AMD, __device_target> {
 
     static void sync_stream(event_t event, stream_t stream);
     static void sync_stream(stream_t stream);
-    
+
     static void sync_memcpy(TPtr dst, size_t dst_offset, int dst_id, \
         const TPtr src, size_t src_offset, int src_id, \
         size_t count, __DtoD);
@@ -570,7 +568,7 @@ struct TargetWrapper<AMD, __device_target> {
 
 };
 
-#endif //USE_AMD
+#endif //AMD_GPU
 
 } //namespace saber
 

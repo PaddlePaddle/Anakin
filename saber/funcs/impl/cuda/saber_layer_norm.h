@@ -67,6 +67,7 @@ public:
             _flag_bias = true;
         }
 
+        return SaberSuccess;
     }
 
     virtual SaberStatus dispatch(const std::vector<Tensor<NV>* >& inputs,

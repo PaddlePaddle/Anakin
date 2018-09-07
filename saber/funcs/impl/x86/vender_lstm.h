@@ -82,13 +82,9 @@ public:
                                  std::vector<Tensor<X86>*>& outputs,
                                  LstmParam<X86>& param) override;
 
-    virtual SaberStatus init_conf(
-        const std::vector<Tensor<X86>*>& inputs,
-        std::vector<Tensor<X86>*>& outputs,
-        LstmParam<X86>& param);
 
 private:
-    inline void safe_free(MatrixInfo<OpDataType>** ptr) {
+    inline void safe_free(MatrixInfo<float>** ptr) {
         if (*ptr) {
             delete (*ptr);
             (*ptr) = nullptr;
@@ -102,7 +98,7 @@ private:
         }
     }
 
-    inline void safe_free(mkl_packed_weight<OpDataType, NCHW>** ptr) {
+    inline void safe_free(mkl_packed_weight<float, NCHW>** ptr) {
         if (*ptr) {
             delete (*ptr);
             (*ptr) = nullptr;
@@ -134,8 +130,8 @@ private:
     bool avx2_available_;
     int max_thread_num_;
 
-    mkl_packed_weight<OpDataType, NCHW>* packed_w_x_;
-    mkl_packed_weight<OpDataType, NCHW>* packed_w_h_;
+    mkl_packed_weight<float, NCHW>* packed_w_x_;
+    mkl_packed_weight<float, NCHW>* packed_w_h_;
     Tensor<X86>* batch_h0_;
     Tensor<X86>* batch_c0_;
     Tensor<X86>* check_ig_;
@@ -153,9 +149,6 @@ private:
     /*aligned with 256bit(8 float)*/
     int aligned_hidden_size_;
 
-    virtual SaberStatus check_conf(const std::vector<Tensor<X86>*>& inputs,
-                                   std::vector<Tensor<X86>*>& outputs,
-                                   LstmParam<X86>& param);
 
     virtual void compute(LstmMetaValue<OpDataType> value,
                          int hidden_size, int batch_size,
