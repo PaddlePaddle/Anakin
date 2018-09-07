@@ -43,6 +43,16 @@ public:
     virtual SaberStatus dispatch(const std::vector<Tensor<NV>*>& inputs,
                                  std::vector<Tensor<NV>*>& outputs,
                                  ConvParam<NV>& param);
+
+    SaberStatus trans_weights(Tensor<NV> &target_weights,
+                              Tensor<NV> &target_bias,
+                              int in_channel, int out_channel,
+                              int stride_h, int stride_w,
+                              int pad_h, int pad_w,
+                              int dilation_h, int dilation_w,
+                              int group) {
+        return SaberUnImplError;
+    }
 private:
     bool _use_k4_s2_p1{false};
     std::function<void(const int, const int, const int,
