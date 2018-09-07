@@ -3,9 +3,16 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+namespace anakin {
+namespace saber {
+
 typedef struct {
     char op[64];
 } __attribute__((packed)) bmkernel_api_base;
+
+}
+}
 #ifdef __cplusplus
 }
 #endif

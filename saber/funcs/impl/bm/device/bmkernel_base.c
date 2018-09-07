@@ -10,6 +10,10 @@
  *               op - Flag to determine which op forward function 
  *                    it should delegate to.             
  */
+
+namespace anakin {
+namespace saber {
+
 int bmkernel_func(void *args)
 {
     bmkernel_api_base* param = (bmkernel_api_base *)args;
@@ -24,4 +28,7 @@ int bmkernel_func(void *args)
             LOG(FATAL) << "op is not supported by BM yet.";
     }
     return 0;
+}
+
+}
 }
