@@ -1,6 +1,5 @@
 #include "saber/funcs/impl/cuda/saber_fc.h"
 #include "saber/funcs/impl/cuda/base/sass_funcs.h"
-#include "test/saber/test_saber_base.h"
 
 namespace anakin{
 

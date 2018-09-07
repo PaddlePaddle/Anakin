@@ -24,72 +24,31 @@ namespace anakin{
 namespace saber{
 
 template <DataType OpDtype>
-class SaberDeconv2D<NV, OpDtype> : \
-    public ImplBase<NV, OpDtype, ConvParam<NV>>
-{
+class SaberDeconv2D<NV, OpDtype> :
+        public ImplBase<NV, OpDtype, ConvParam<NV> > {
 public:
-typedef Tensor<NV> OpTensor;
 
-SaberDeconv2D() :_use_k4_s2_p1(false) {}
+    SaberDeconv2D() = default;
 
-~SaberDeconv2D() {}
+    ~SaberDeconv2D() = default;
 
-virtual SaberStatus init(const std::vector<OpTensor *>& inputs,
-                         std::vector<OpTensor *>& outputs,
-                         ConvParam<NV>& param, Context<NV>& ctx) {
+    virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
+                             std::vector<Tensor<NV> *>& outputs,
+                             ConvParam<NV>& param, Context<NV>& ctx);
 
+    virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
+                               std::vector<Tensor<NV> *>& outputs,
+                               ConvParam<NV>& param, Context<NV> &ctx);
 
-
-    return create(inputs, outputs, param, ctx);
-}
-
-virtual SaberStatus create(const std::vector<OpTensor *>& inputs,
-                           std::vector<OpTensor *>& outputs,
-                           ConvParam<NV>& param, Context<NV> &ctx) {
-    _use_k4_s2_p1 = true;
-    _use_k4_s2_p1 = _use_k4_s2_p1 && (param.weight()->width()==4);
-    _use_k4_s2_p1 = _use_k4_s2_p1 && (param.weight()->height()==4);
-    _use_k4_s2_p1 = _use_k4_s2_p1 && (param.stride_h==2);
-    _use_k4_s2_p1 = _use_k4_s2_p1 && (param.stride_w==2);
-    _use_k4_s2_p1 = _use_k4_s2_p1 && (param.pad_h==1);
-    _use_k4_s2_p1 = _use_k4_s2_p1 && (param.pad_w==1);
-    _use_k4_s2_p1 = _use_k4_s2_p1 && (param.group==1);
-    if (_use_k4_s2_p1) {
-        int in_channel = inputs[0]->channel();
-        int out_channel = outputs[0]->channel();
-        scale_to_new_tensor_k4_s2_p1_deconv<4>(param.mutable_weight(),
-                                               in_channel, out_channel);
-//            LOG(INFO)<<"scale weights finished!!";
-    }
-    this->_ctx = &ctx;
-    int win = inputs[0]->width();
-    int hin = inputs[0]->height();
-    int chin = inputs[0]->channel();
-    int num = inputs[0]->num();
-    int wout = outputs[0]->width();
-    int hout = outputs[0]->height();
-    int chout = outputs[0]->channel();
-
-    int _kw = param.weight()->width();
-    int _kh = param.weight()->height();
-
-    int _m = chout * _kw * _kh / param.group;
-    int _n = hin * win;
-    int _k = chin / param.group;
-    _gemm_wx = saber_find_fast_sass_gemm(true, false, _m, _n,
-                                         _k);
-    return SaberSuccess;
-}
-
-virtual SaberStatus dispatch(const std::vector<OpTensor*>& inputs,
-                             std::vector<OpTensor*>& outputs,
-                             ConvParam<NV>& param);
+    virtual SaberStatus dispatch(const std::vector<Tensor<NV>*>& inputs,
+                                 std::vector<Tensor<NV>*>& outputs,
+                                 ConvParam<NV>& param);
 private:
-bool _use_k4_s2_p1;
+    bool _use_k4_s2_p1{false};
     std::function<void(const int, const int, const int,
                        const float, const float*, const float,
                        const float*, float*, cudaStream_t)> _gemm_wx;
-    OpTensor _workspace_tensor;
+    Tensor<NV> _workspace_tensor;
 };
 
 
