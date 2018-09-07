@@ -5,18 +5,17 @@
  * bmkernel_func is the user entry to BMKERNEL just like "main" to some applications.
  * 
  * \param args - Pointer to arguments that user sends from host.
- *               op - Flag to determine which op forward function 
- *                    it should delegate to.             
+ *               op - Flag to determine the operation type.             
  */
 
 int bmkernel_func(void *args)
 {
     bmkernel_api_base* param = (bmkernel_api_base *)args;
     switch (param->op) {
-        case 0:
+        case ACTIVATION:
             // bm_activation_fwd(param)
             break;
-        case 1:
+        case CONV:
             // bm_conv_fwd(param)
             break;
         default:
