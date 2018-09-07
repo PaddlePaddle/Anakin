@@ -18,11 +18,12 @@
 
 #include "saber_types.h"
 
-#ifdef USE_BM
+#ifdef USE_BM_PLACE 
 #include "bmlib_runtime.h"
 #include "bmdnn_api.h"
 #include "bmlib_utils.h"
 #endif
+
 namespace anakin {
 
 namespace saber {
@@ -142,8 +143,7 @@ struct DataTrait<Ttype, AK_UINT32> {
     typedef unsigned int* PtrDtype;
 };
 
-#ifdef USE_BM
-
+#ifdef USE_BM_PLACE
 
 struct BM_mem_addr: bm_mem_desc {
 

@@ -1,6 +1,5 @@
 #include "saber/funcs/impl/cuda/saber_fc.h"
 #include "saber/funcs/impl/cuda/base/sass_funcs.h"
-#include "test/saber/test_saber_base.h"
 
 namespace anakin{
 
@@ -46,7 +45,7 @@ SaberStatus SaberFc<NV, OpDtype>::dispatch(
 }
 
 template class SaberFc<NV, AK_FLOAT>;
-DEFINE_OP_TEMPLATE(SaberFc, FcParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberFc, FcParam, NV, AK_HALF);
 DEFINE_OP_TEMPLATE(SaberFc, FcParam, NV, AK_INT8);
 } //namespace anakin
 

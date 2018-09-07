@@ -119,13 +119,13 @@ SaberStatus SaberPooling<X86, AK_FLOAT>
     if (!mayiuse(avx512_common)) {
         return SaberUnImplError;
     }
-    const float *src = inputs[0]->data();
-    float *dst = outputs[0]->mutable_data();
+    const float *src = (const float*)inputs[0]->data();
+    float *dst = (float*)outputs[0]->mutable_data();
     
     const auto &jpp = _kernel->jpp;
     
     auto ker = [&](int n, int b_c, int oh) {
-         jit_pool_call_t arg = {};
+         jit_pool_call_t arg;
         
         const int ij = oh * jpp.stride_h;
         const int i_t_overflow = std::max(0, jpp.t_pad - ij);
@@ -159,7 +159,8 @@ SaberStatus SaberPooling<X86, AK_FLOAT>
     
     return SaberSuccess;
 }
-DEFINE_OP_TEMPLATE(SaberPooling, PoolingParam, X86, AK_INT16);
+
+DEFINE_OP_TEMPLATE(SaberPooling, PoolingParam, X86, AK_HALF);
 DEFINE_OP_TEMPLATE(SaberPooling, PoolingParam, X86, AK_INT8);
 }
 } // namespace anakin

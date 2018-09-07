@@ -20,7 +20,7 @@ namespace anakin{
 
 namespace saber{
 
-#ifdef USE_AMD
+#ifdef AMD_GPU 
 
 typedef TargetWrapper<AMD> AMD_API;
 typedef TargetWrapper<AMDHX86> AMDHX86_API;
@@ -166,7 +166,7 @@ void Device<AMDHX86>::get_info() {
 };
 
 
-#endif //USE_AMD
+#endif // AMD_GPU
 
 } //namespace saber
 } //namespace anakin

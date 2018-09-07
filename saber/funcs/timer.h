@@ -167,7 +167,7 @@ private:
 #endif
 
 
-#ifdef USE_AMD
+#ifdef AMD_GPU 
 
 typedef TargetWrapper<AMD> AMD_API;
 

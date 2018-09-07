@@ -49,7 +49,7 @@ SaberStatus VenderConvEltwise<NV, AK_FLOAT>::dispatch(
 }
 
 template class VenderConvEltwise<NV, AK_FLOAT>;
-DEFINE_OP_TEMPLATE(VenderConvEltwise, ConvEltwiseParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(VenderConvEltwise, ConvEltwiseParam, NV, AK_HALF);
 DEFINE_OP_TEMPLATE(VenderConvEltwise, ConvEltwiseParam, NV, AK_INT8);
 }
 }

@@ -56,7 +56,7 @@ struct Device {
     std::vector<typename API::stream_t> _compute_stream;
 };
 
-#ifdef USE_AMD
+#ifdef AMD_GPU 
 template <>
 struct Device<AMD> {
 

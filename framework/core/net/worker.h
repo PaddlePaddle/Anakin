@@ -62,7 +62,7 @@ namespace anakin {
  *          \endcode
  *
  */
-template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunTyp = OpRunType::ASYNC>
+template<typename Ttype, Precision Ptype, OpRunType RunTyp = OpRunType::ASYNC>
 class Worker : public ThreadPool {
 public:
     Worker(std::string model_path, int thread_num);
@@ -106,23 +106,23 @@ public:
      *  \param host net_in_list the inputs of net graph (note: the len of net_in_list should be equal to the net inputs).  
      *  \return the net graph outputs.
      */
-    std::vector<Tensor4dPtr<Ttype, Dtype> > sync_prediction(\
-        std::vector<Tensor4dPtr<typename target_host<Ttype>::type, Dtype> >& net_in_list);
+    std::future<std::vector<Tensor4d<typename target_host<Ttype>::type> > > sync_prediction(\
+        std::vector<Tensor4d<typename target_host<Ttype>::type> >& net_in_list);
 
     /** 
      *  \brief Do sync prediction in multi-thread worker useful in sync rpc server, this function need 
      *  \param device net_in_list the inputs of net graph (note: the len of net_in_list should be equal to the net inputs).  
      *  \return the net graph outputs.
      */
-    std::vector<Tensor4dPtr<Ttype, Dtype> > sync_prediction_device(\
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& net_in_list);
+    std::future<std::vector<Tensor4dPtr<Ttype> > > sync_prediction_device(\
+        std::vector<Tensor4dPtr<Ttype> >& net_in_list);
 
     /** 
      *  \brief do async prediction in multi-thread worker, the result will be save to que 
      *  \param net_in_list the inputs of net graph (note: the len of net_in_list should be equal to the net inputs)  
      *  \return void
      */
-    void async_prediction(std::vector<Tensor4dPtr<typename target_host<Ttype>::type, Dtype> >& net_in_list);
+    void async_prediction(std::vector<Tensor4dPtr<typename target_host<Ttype>::type> >& net_in_list);
     
     /** 
      *  \brief Judge if the async queue is empty.
@@ -135,7 +135,7 @@ public:
      *  the return order of results from async_get_result is the same as the order of net_in_list called by async_prediction.
      *  \return the net inference result.
      */
-    std::vector<Tensor4dPtr<Ttype, Dtype> > async_get_result();
+    std::vector<Tensor4dPtr<Ttype> > async_get_result();
 
 public:
     /** 
@@ -175,7 +175,7 @@ private:
     std::vector<std::string> _outputs_in_order;
     ///< vector of edges in order.
     std::vector<graph::Arc<std::string, int>> _edges_in_order;
-    std::queue< std::future< std::vector<Tensor4dPtr<Ttype, Dtype> > > > _async_que GUARDED_BY(_async_que_mut);
+    std::queue< std::future< std::vector<Tensor4dPtr<Ttype> > > > _async_que GUARDED_BY(_async_que_mut);
     std::mutex _async_que_mut;    
     std::vector<std::function<void(void)> > _auxiliary_funcs;
     std::unordered_map<std::string, std::vector<int>> _in_shapes;
@@ -185,17 +185,17 @@ private:
 #endif
 };
 
-template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
+template<typename Ttype, Precision Ptype, OpRunType RunType>
 template<typename functor, typename ...ParamTypes>
-void Worker<Ttype, Dtype, Ptype, RunType>::register_aux_function(functor function, ParamTypes ...args) {
+void Worker<Ttype, Ptype, RunType>::register_aux_function(functor function, ParamTypes ...args) {
     auto task = std::bind(function, std::forward<ParamTypes>(args)...);
     _auxiliary_funcs.push_back(task);
 }
 
 
 ///< global singleton worker
-template<typename Ttype, DataType Dtype, Precision Ptype, OpRunType RunType>
-using GlobalWorker = Singleton<Worker<Ttype, Dtype, Ptype, RunType>>;
+template<typename Ttype, Precision Ptype, OpRunType RunType>
+using GlobalWorker = Singleton<Worker<Ttype, Ptype, RunType>>;
 
 } /* namespace */
 

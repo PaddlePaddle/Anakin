@@ -28,13 +28,7 @@ namespace lite {
 
 template<typename T> 
 inline T get_attr(std::string attr_name, graph::AttrInfo& attrs) { 
-	const auto& it_end = attrs.parameter.end(); 
-	auto it_find = attrs.parameter.find(attr_name); 
-	if(it_find == it_end) { 
-		LOG(FATAL) << "Target attr name(" << attr_name << ") not found."; 
-		return T(); 
-	} 
-	return any_cast<T>(attrs.parameter[attr_name]); 
+    return attrs.get<T>(attr_name);
 }
 
 /// function type for parser

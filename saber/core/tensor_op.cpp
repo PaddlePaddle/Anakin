@@ -287,6 +287,7 @@ double tensor_mean_value_valid(Tensor<TargetType>& tensor, typename Tensor<Targe
     template double tensor_mean_value<target>(Tensor<target>& tensor, typename Tensor<target>::API::stream_t stream); \
     template double tensor_mean_value_valid<target>(Tensor<target>& tensor, typename Tensor<target>::API::stream_t stream);
 
+
 #if defined(BUILD_LITE) || defined(USE_X86_PLACE) || defined(USE_CUDA) ||defined(USE_BM_PLACE)
 FILL_TENSOR_HOST(X86)
 #endif
@@ -298,6 +299,7 @@ FILL_TENSOR_HOST(NVHX86)
 #ifdef USE_ARM_PLACE
 FILL_TENSOR_HOST(ARM)
 #endif
+
 
 #ifdef AMD_GPU
 FILL_TENSOR_HOST(AMDHX86)

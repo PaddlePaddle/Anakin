@@ -26,7 +26,7 @@ namespace anakin {
 
 namespace ops {
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class LayerNormHelper;
 
 /// pooling op
@@ -34,20 +34,20 @@ class LayerNormHelper;
  * \brief Normalize operation class
  * public inheritance Operator
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class LayerNorm : public Operator<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class LayerNorm : public Operator<Ttype, Ptype> {
 public:
     LayerNorm() {}
 
     /// forward impl
     virtual void operator() (OpContext<Ttype> &ctx, 
-                             const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                             std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-        LOG(ERROR) << "Not Impl Yet Operator Normalize<TargetType:"<<"unknown"<<","
-                   <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info()<<">";
+                             const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                             std::vector<Tensor4dPtr<Ttype> >& outs) {
+		LOG(ERROR) << "Not Impl Yet Operator LayerNorm< Ttype("
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
-    friend class LayerNormHelper<Ttype, Dtype, Ptype>;
+    friend class LayerNormHelper<Ttype, Ptype>;
 };
 
 /**
@@ -55,8 +55,8 @@ public:
  * public inherit OperatorHelper
  * including init resource and shape size in normalize context
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class LayerNormHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class LayerNormHelper : public OperatorHelper<Ttype, Ptype> {
 public:
     LayerNormHelper()=default;
 
@@ -72,8 +72,8 @@ public:
     * \return status
     */
     Status Init(OpContext<Ttype> &ctx,
-                const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
     /**
     * \brief infer the shape of output and input.
@@ -81,14 +81,14 @@ public:
     * \param outs stand for output tensor vector
     * \return status
     */
-    Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+    Status InferShape(const std::vector<Tensor4dPtr<Ttype> >& ins,
+                      std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
 public:
     ///< _param_normalize stand for Normalize parameter
-    saber::LayerNormParam<Tensor4d<Ttype, Dtype>>  _param_layer_norm;
+    saber::LayerNormParam<Ttype>  _param_layer_norm;
     ///< _funcs_normalize stand for Normalize function
-    saber::LayerNorm<Ttype, Dtype> _funcs_layer_norm;
+    saber::LayerNorm<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_layer_norm;
 };
 
 } /* namespace ops */

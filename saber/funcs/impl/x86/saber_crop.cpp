@@ -33,7 +33,7 @@ SaberStatus SaberCrop<X86, OpDtype>::dispatch(
 }
 
 template class SaberCrop<X86, AK_FLOAT>;
-DEFINE_OP_TEMPLATE(SaberCrop, CropParam, X86, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberCrop, CropParam, X86, AK_HALF);
 DEFINE_OP_TEMPLATE(SaberCrop, CropParam, X86, AK_INT8);
 }
 } // namespace anakin

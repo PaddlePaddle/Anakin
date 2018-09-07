@@ -568,7 +568,6 @@ struct TargetWrapper<AMD, __device_target> {
 
 };
 
-
 template <>
 struct TargetWrapper<AMDHX86, __host_target> {
     typedef cl_event event_t;
@@ -624,7 +623,6 @@ struct TargetWrapper<AMDHX86, __host_target> {
     static int get_device_id();
     static void device_sync();
 };
-
 #endif //AMD_GPU
 
 } //namespace saber

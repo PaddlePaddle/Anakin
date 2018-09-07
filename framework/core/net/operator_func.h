@@ -24,7 +24,7 @@ namespace anakin {
 /** 
  *  \brief Operator executor class.
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 struct OperatorFunc {
     OperatorFunc() {}
 
@@ -44,14 +44,13 @@ struct OperatorFunc {
     ///< request list for operators.
     ///< std::vector<Request<EnumReqType> > requests.
     ///< input data of operator.
-    ///< std::vector<const Tensor4d<Ttype, Dtype> *> ins.
-    std::vector<Tensor4dPtr<Ttype, Dtype>> ins;
+    std::vector<Tensor4dPtr<Ttype> > ins;
 
     ///< the lanes int data resides in
     std::vector<graph::Lane> in_lanes;
     
     ///< output data of operator
-    std::vector<Tensor4dPtr<Ttype, Dtype>> outs;
+    std::vector<Tensor4dPtr<Ttype> > outs;
     
     ///< the lanes out data resides in
     std::vector<graph::Lane> out_lanes;
@@ -61,7 +60,7 @@ struct OperatorFunc {
 
     bool need_sync{false};
 
-    Operator<Ttype, Dtype, Ptype>* op;
+    Operator<Ttype, Ptype>* op;
 
     ///< node name
     std::string name;

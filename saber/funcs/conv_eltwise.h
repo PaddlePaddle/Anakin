@@ -12,8 +12,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-#ifndef ANAKIN_SABER_FUNCS_CONV_H
-#define ANAKIN_SABER_FUNCS_CONV_H
+#ifndef ANAKIN_SABER_FUNCS_CONV_ELTWISE_H
+#define ANAKIN_SABER_FUNCS_CONV_ELTWISE_H
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
@@ -75,7 +75,18 @@ public:
                 return SaberUnImplError;
         }
     }
-
+    SaberStatus trans_weights(Tensor<TargetType> &target_weights, int stride_h, int stride_w, int group,
+                              ImplEnum implenum) {
+        if (implenum == VENDER_IMPL) {
+            return static_cast<VenderConvEltwise<TargetType, OpDtype> *>(this->_best_impl)->trans_weights(
+                    target_weights, stride_h, stride_w, group);
+        } else if (implenum == SABER_IMPL) {
+            return static_cast<SaberConvEltwise<TargetType, OpDtype> *>(this->_best_impl)->trans_weights(
+                    target_weights, stride_h, stride_w, group);
+        } else {
+            return SaberUnImplError;
+        }
+    }
 private:
 
     virtual void pick_best_static() override {
