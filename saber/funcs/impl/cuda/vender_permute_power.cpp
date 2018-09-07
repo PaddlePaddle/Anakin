@@ -128,8 +128,8 @@ SaberStatus VenderPermutePower<NV, AK_FLOAT>::\
     dispatch(const std::vector<Tensor<NV>*>& inputs,
                           std::vector<Tensor<NV>*>& outputs,
                           PermutePowerParam<NV> &param) {
-        const float* input_data = inputs[0]->data();
-        float* output_data = outputs[0]->mutable_data();
+        const float* input_data = (const float*)inputs[0]->data();
+        float* output_data = (float*)outputs[0]->mutable_data();
         float scale = param.power_param.scale;
         float shift = param.power_param.shift;
         float power = param.power_param.power;
@@ -155,7 +155,8 @@ SaberStatus VenderPermutePower<NV, AK_FLOAT>::\
 
         return SaberSuccess;
 }
-
+DEFINE_OP_TEMPLATE(VenderPermutePower, PermutePowerParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(VenderPermutePower, PermutePowerParam, NV, AK_INT8);
 } //namespace saber
 
 } //namespace anakin

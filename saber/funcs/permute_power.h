@@ -24,6 +24,9 @@
 #include "saber/funcs/impl/cuda/saber_permute_power.h"
 #include "saber/funcs/impl/cuda/vender_permute_power.h"
 #endif
+#ifdef USE_X86_PLACE
+#include "saber/funcs/impl/x86/saber_permute_power.h"
+#endif
 namespace anakin {
 namespace saber {
 
@@ -90,8 +93,6 @@ private:
         if (true) // some condition?
             this->_best_impl = this->_impl[0];
     }
-
-    //virtual void pick_best_runtime(Input_v input, Output_v output, Param_t& param) override {}
 
     virtual void pick_best_specify(ImplEnum implenum) override {
         this->_best_impl = this->_impl[0];

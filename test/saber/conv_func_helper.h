@@ -30,10 +30,13 @@ template<typename targetType>
 void conv_basic_check(Tensor<targetType> &tensor_in,Tensor<targetType> &tensor_out,
                       const float *weights, const float *bias, int group,
                       int kernel_w, int kernel_h, int stride_w, int stride_h, int dilation_w, int dilation_h,
-                      int pad_w, int pad_h, bool flag_bias, bool flag_relu) {
+                      int pad_w, int pad_h, bool flag_bias, bool flag_relu, float beta = 0.f) {
 
     auto src_data = reinterpret_cast<const float*>(tensor_in.data());
     auto dst_data_ref = reinterpret_cast<float*>(tensor_out.mutable_data());
+    Tensor<targetType> bk;
+    bk.re_alloc(tensor_out.valid_shape(), AK_FLOAT);
+    bk.copy_from(tensor_out);
     auto weights_data = weights;
     bool with_bias = flag_bias;
     auto bias_data = bias;
@@ -48,7 +51,6 @@ void conv_basic_check(Tensor<targetType> &tensor_in,Tensor<targetType> &tensor_o
     int in_w = tensor_in.width();
     int out_c_group = out_channels / group;
     int in_c_group = in_channel / group;
-
 #pragma omp parallel for num_threads(8) collapse(5) schedule(static)
     for (int n = 0; n < in_num; ++n) {
         for (int g = 0; g < group; ++g) {
@@ -57,8 +59,8 @@ void conv_basic_check(Tensor<targetType> &tensor_in,Tensor<targetType> &tensor_o
                     for (int ow = 0; ow < out_w; ++ow) {
                         int out_idx = n * group * out_c_group * out_h * out_w + g * out_c_group * out_h * out_w
                                    + oc * out_h * out_w + oh * out_w + ow;
-                        dst_data_ref[out_idx] = with_bias ? (float)(bias_data[g * out_c_group + oc]) : 0.f;
-
+                        float bias_d = with_bias ? (float)(bias_data[g * out_c_group + oc]) : 0.f;
+                        dst_data_ref[out_idx] = bias_d + dst_data_ref[out_idx] * beta;
                         for (int ic = 0; ic < in_c_group; ++ic) {
                             for (int kh = 0; kh < kernel_h; ++kh) {
                                 for (int kw = 0; kw < kernel_w; ++kw) {
@@ -84,7 +86,6 @@ void conv_basic_check(Tensor<targetType> &tensor_in,Tensor<targetType> &tensor_o
                                 }
                             }
                         }
-
                         if (flag_relu) {
                             dst_data_ref[out_idx] = dst_data_ref[out_idx] > 0.f ? dst_data_ref[out_idx] : 0.f;
                         }

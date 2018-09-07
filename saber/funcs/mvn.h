@@ -24,7 +24,7 @@
 #endif
 
 #ifdef USE_X86_PLACE
-#include "saber/funcs/impl/impl_mvn.h"
+#include "saber/funcs/impl/x86/saber_mvn.h"
 #endif
 #ifdef USE_ARM_PLACE
 //todo
@@ -62,7 +62,7 @@ public:
 
         //! support inplace computation, output shape = input shape
         Shape output_shape = input[0]->valid_shape();
-        output[0]->set_shape(output_shape);
+        return output[0]->set_shape(output_shape);
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {
@@ -84,12 +84,6 @@ public:
 private:
 
     virtual void pick_best_static() override {
-        //! Mvn only has saber implementation
-        this->_best_impl = this->_impl[0];
-    }
-
-    virtual void pick_best_runtime(Input_v input, Output_v output, \
-        Param_t& param, Context<TargetType> &ctx) override {
         //! Mvn only has saber implementation
         this->_best_impl = this->_impl[0];
     }

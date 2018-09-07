@@ -31,42 +31,42 @@ struct PowerParam;
 template <typename TargetType>
 struct ActivationParam {
     ActivationParam()
-            : active(Active_unknow)
-            , negative_slope(float(-1))
-            , coef(float(-1))
-            , prelu_param(PreluParam<TargetType>(false, nullptr))
-            , has_active(false) 
+        : active(Active_unknow)
+        , negative_slope(float(-1))
+        , coef(float(-1))
+        , prelu_param(PreluParam<TargetType>(false, nullptr))
+        , has_active(false)
     {}
 
     ActivationParam(ActiveType act, float n_slope = float(0),
                     float co = float(1),
                     PreluParam<TargetType> prelu = PreluParam<TargetType>(false, nullptr))
-            : active(act)
-            , negative_slope(n_slope)
-            , coef(co)
-            , prelu_param(prelu)
-            , has_active(true)
+        : active(act)
+        , negative_slope(n_slope)
+        , coef(co)
+        , prelu_param(prelu)
+        , has_active(true)
     {}
 
     ActivationParam(ActiveType act, float n_slope,
                     float co,
                     PreluParam<TargetType> prelu,
                     bool has)
-            : active(act)
-            , negative_slope(n_slope)
-            , coef(co)
-            , prelu_param(prelu)
-            , has_active(has)
+        : active(act)
+        , negative_slope(n_slope)
+        , coef(co)
+        , prelu_param(prelu)
+        , has_active(has)
     {}
 
-    ActivationParam(const ActivationParam &right)
-            : active(right.active)
-            , negative_slope(right.negative_slope)
-            , coef(right.coef)
-            , prelu_param(right.prelu_param)
-            , has_active(right.has_active)
+    ActivationParam(const ActivationParam& right)
+        : active(right.active)
+        , negative_slope(right.negative_slope)
+        , coef(right.coef)
+        , prelu_param(right.prelu_param)
+        , has_active(right.has_active)
     {}
-    ActivationParam &operator=(const ActivationParam &right) {
+    ActivationParam& operator=(const ActivationParam& right) {
         active = right.active;
         negative_slope = right.negative_slope;
         coef = right.coef;
@@ -74,7 +74,7 @@ struct ActivationParam {
         has_active = right.has_active;
         return *this;
     }
-    bool operator==(const ActivationParam &right) {
+    bool operator==(const ActivationParam& right) {
         bool comp_eq = true;
         comp_eq = comp_eq && (active == right.active);
         comp_eq = comp_eq && (negative_slope == right.negative_slope);
@@ -83,7 +83,7 @@ struct ActivationParam {
         comp_eq = comp_eq && (has_active == right.has_active);
         return comp_eq;
     }
-    bool has_negative_slope(){
+    bool has_negative_slope() {
         return (active == Active_relu) && (negative_slope != float (0));
     }
     ActiveType active;
@@ -97,8 +97,8 @@ template <typename TargetType>
 struct ArgmaxParam {
 
     ArgmaxParam() = default;
-	
-     ArgmaxParam(bool out_max_val_in,int top_k_in, bool has_axis_in, int axis_in) {
+
+    ArgmaxParam(bool out_max_val_in, int top_k_in, bool has_axis_in, int axis_in) {
         out_max_val = out_max_val_in;
         top_k = top_k_in;
         has_axis = has_axis_in;
@@ -118,7 +118,7 @@ struct ArgmaxParam {
         has_axis = false;
         axis = 3;
     }
-    
+
     ArgmaxParam(const ArgmaxParam<TargetType>& right) {
         out_max_val = right.out_max_val;
         top_k = right.top_k;
@@ -305,6 +305,77 @@ private:
 };
 
 template <typename TargetType>
+struct EltwiseParam;
+
+template <typename TargetType>
+struct ConvEltwiseParam {
+    ConvEltwiseParam()
+        : conv_param()
+        , eltwise_param()
+    {}
+    ConvEltwiseParam(ConvParam<TargetType> conv_param_in,
+                     EltwiseParam<TargetType> eltwise_param_in)
+        : conv_param(conv_param_in)
+        , eltwise_param(eltwise_param_in)
+    {}
+
+    ConvEltwiseParam(const ConvEltwiseParam& right)
+        : conv_param(right.conv_param)
+        , eltwise_param(right.eltwise_param)
+    {}
+    ConvEltwiseParam& operator=(const ConvEltwiseParam& right) {
+        conv_param = right.conv_param;
+        eltwise_param = right.eltwise_param;
+        return *this;
+    }
+    bool operator==(const ConvEltwiseParam& right) {
+        bool comp_eq = true;
+        comp_eq &= (conv_param == right.conv_param);
+        comp_eq &= (eltwise_param == right.eltwise_param);
+        return comp_eq;
+    }
+
+    ConvParam<TargetType> conv_param;
+    EltwiseParam<TargetType> eltwise_param;
+};
+
+template <typename TargetType>
+struct PoolingParam;
+
+template <typename TargetType>
+struct ConvPoolingParam {
+    ConvPoolingParam()
+        : conv_param()
+        , pooling_param()
+    {}
+
+    ConvPoolingParam(ConvParam<TargetType> conv_param_in,
+                     PoolingParam<TargetType> pooling_param_in)
+        : conv_param(conv_param_in)
+        , pooling_param(pooling_param_in)
+    {}
+
+    ConvPoolingParam(const ConvPoolingParam<TargetType>& right)
+        : conv_param(right.conv_param)
+        , pooling_param(right.pooling_param)
+    {}
+    ConvPoolingParam& operator=(const ConvPoolingParam& right) {
+        conv_param = right.conv_param;
+        pooling_param = right.pooling_param;
+        return *this;
+    }
+    bool operator==(const ConvPoolingParam& right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (conv_param == right.conv_param);
+        comp_eq = comp_eq && (pooling_param == right.pooling_param);
+        return comp_eq;
+    }
+
+    ConvParam<TargetType> conv_param;
+    PoolingParam<TargetType> pooling_param;
+};
+
+template <typename TargetType>
 struct CrfDecodingParam {
     CrfDecodingParam()
         : weight_tensor(NULL)
@@ -401,6 +472,7 @@ struct CtcAlignParam {
     int blank;
     bool merge_repeated;
 };
+
 template <typename TargetType>
 struct DeformableConvParam {
 
@@ -585,60 +657,67 @@ struct DetectionOutputParam {
     float nms_eta{1.f};
 
 };
-  
+
 template <typename TargetType>
 struct EltwiseParam {
     EltwiseParam()
-            : operation(Eltwise_unknow)
-            , coeff()
-            , activation_param(ActivationParam<TargetType>()) {}
-
+        : operation(Eltwise_unknow)
+        , coeff()
+        , activation_param(ActivationParam<TargetType>())
+        , has_eltwise(false) {}
     EltwiseParam(EltwiseType operation_in
-            , std::vector<float> coeff_in = std::vector<float>({1,1})
-            , ActivationParam<TargetType> activation_param_in = ActivationParam<TargetType>())
-            : operation(operation_in)
-            , coeff(coeff_in)
-            , activation_param(activation_param_in) {
-
+                 , std::vector<float> coeff_in = std::vector<float>({1, 1})
+                 , ActivationParam<TargetType> activation_param_in = ActivationParam<TargetType>())
+        : operation(operation_in)
+        , coeff(coeff_in)
+        , activation_param(activation_param_in)
+        , has_eltwise(true) {
         if ((operation == Eltwise_sum) && (coeff.size() == 0)) {
             coeff.push_back(1);
             coeff.push_back(1);
         }
     }
-
     EltwiseParam(const EltwiseParam<TargetType>& right)
-            : operation(right.operation)
-            , coeff(right.coeff)
-            , activation_param(right.activation_param)
+        : operation(right.operation)
+        , coeff(right.coeff)
+        , activation_param(right.activation_param)
+        , has_eltwise(right.has_eltwise)
     {}
-
     EltwiseParam<TargetType>& operator=(const EltwiseParam<TargetType>& right) {
         operation = right.operation;
         coeff.resize(right.coeff.size());
+
         for (int i = 0; i < coeff.size(); ++i) {
             coeff[i] = right.coeff[i];
         }
+
         activation_param = right.activation_param;
+        has_eltwise = right.has_eltwise;
         return *this;
     }
-
     bool operator==(const EltwiseParam<TargetType>& right) {
         bool comp_eq = true;
         comp_eq = comp_eq && (operation == right.operation);
         comp_eq = comp_eq && (coeff.size() == right.coeff.size());
         comp_eq = comp_eq && (activation_param == right.activation_param);
+        comp_eq = comp_eq && (has_eltwise == right.has_eltwise);
+
         if (!comp_eq) {
             return comp_eq;
         }
+
         for (int i = 0; i < coeff.size(); ++i) {
             comp_eq = comp_eq && (coeff[i] == right.coeff[i]);
         }
+
         return comp_eq;
     }
     ActivationParam<TargetType> activation_param;
     EltwiseType operation;
+    bool has_eltwise{false};
     std::vector<float> coeff;
 };
+
 
 template <typename TargetType>
 struct EmbeddingParam {
@@ -682,6 +761,18 @@ struct EmbeddingParam {
     int padding_idx;
 private:
     Tensor<TargetType>* weight_tensor;
+};
+
+template <typename TargetType>
+struct EmptyParam{
+    EmptyParam() = default;
+    EmptyParam(const EmptyParam& right) {}
+    EmptyParam& operator=(const EmptyParam& right) {
+        return *this;
+    }
+    bool operator==(const EmptyParam& right) {
+        return true;
+    }
 };
 
 template <typename TargetType>
@@ -1601,6 +1692,43 @@ struct PriorBoxParam {
     std::vector<PriorType> order;
 };
 
+template <typename TargetType>
+struct ReshapeParam {
+    ReshapeParam() = default;
+    explicit ReshapeParam(std::vector<int> shape_param_in) {
+        int count = 0;
+
+        for (int i = 0; i < shape_param_in.size(); ++i) {
+            if (shape_param_in[i] == -1) {
+                count ++;
+            }
+        }
+
+        CHECK_LE(count, 1) << "shape parameter contains multiple -1 dims";
+        shape_params = shape_param_in;
+    }
+    ReshapeParam(const ReshapeParam<TargetType>& right) {
+        shape_params = right.shape_params;
+    }
+    ReshapeParam<TargetType>& operator=(const ReshapeParam<TargetType>& right) {
+        shape_params = right.shape_params;
+        return *this;
+    }
+    bool operator==(const ReshapeParam& right) {
+        bool comp_eq = shape_params.size() == right.shape_params.size();
+
+        for (int i = 0; i < shape_params.size(); ++i) {
+            if (!comp_eq) {
+                return false;
+            }
+
+            comp_eq = shape_params[i] == right.shape_params[i];
+        }
+
+        return true;
+    }
+    std::vector<int> shape_params;
+};
 
 template<typename TargetType>
 struct ResizeParam {
@@ -1883,6 +2011,7 @@ struct SPPParam {
     int pyramid_height;
     PoolingType pool_type;
 };
+
 
 template <typename TargetType>
 struct TransposeParam {

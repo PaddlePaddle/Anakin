@@ -24,7 +24,7 @@
 #endif
 
 #ifdef USE_X86_PLACE
-#include "saber/funcs/impl/impl_im2sequence.h"
+#include "saber/funcs/impl/x86/saber_im2sequence.h"
 #endif
 #ifdef USE_ARM_PLACE
 //todo
@@ -115,8 +115,6 @@ private:
         if (true) // some condition?
             this->_best_impl = this->_impl[0];
     }
-
-    //virtual void pick_best_runtime(Input_v input, Output_v output, Param_t& param) override {}
 
     virtual void pick_best_specify(ImplEnum implenum) override {
         this->_best_impl = this->_impl[0];

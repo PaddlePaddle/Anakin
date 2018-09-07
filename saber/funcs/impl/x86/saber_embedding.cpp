@@ -66,5 +66,6 @@ SaberStatus SaberEmbedding<X86, OpDtype>::dispatch(
 
 template class SaberEmbedding<X86, AK_FLOAT>;
 template class SaberEmbedding<X86, AK_INT8>;
+DEFINE_OP_TEMPLATE(SaberEmbedding, EmbeddingParam, X86, AK_INT16);
 }
 } // namespace anakin

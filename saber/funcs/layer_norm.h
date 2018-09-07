@@ -24,7 +24,7 @@
 #endif
 
 #ifdef USE_X86_PLACE
-#include "saber/funcs/impl/impl_layer_norm.h"
+#include "saber/funcs/impl/x86/saber_layer_norm.h"
 #endif
 #ifdef USE_ARM_PLACE
 //todo
@@ -86,12 +86,6 @@ public:
 private:
 
     virtual void pick_best_static() override {
-        //! Normalize only has saber implementation
-        this->_best_impl = this->_impl[0];
-    }
-
-    virtual void pick_best_runtime(Input_v input, Output_v output, \
-        Param_t& param, Context<TargetType> &ctx) override {
         //! Normalize only has saber implementation
         this->_best_impl = this->_impl[0];
     }

@@ -94,10 +94,13 @@ SaberStatus SaberPoolingWithIndex<NV, OpDtype>::dispatch(\
                  param.pad_h, param.pad_w, \
                  param.stride_h, param.stride_w, \
                  param.window_h, param.window_w, count);
+        return SaberSuccess;
+    } else {
+        LOG(ERROR) <<"pooling_with_index only support continue memory";
+        return SaberUnImplError;
     }
-
-    return SaberSuccess;
 }
-
+DEFINE_OP_TEMPLATE(SaberPoolingWithIndex, PoolingParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberPoolingWithIndex, PoolingParam, NV, AK_INT8);
 }
 }

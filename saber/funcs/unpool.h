@@ -19,7 +19,7 @@
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/funcs/impl/impl_unpool.h"
 #ifdef NVIDIA_GPU
-//#include "saber/funcs/impl/cuda/saber_unpool.h"
+#include "saber/funcs/impl/cuda/saber_unpool.h"
 #endif
 
 namespace anakin {
@@ -84,8 +84,6 @@ private:
         if (true) // some condition?
             this->_best_impl = this->_impl[0];
     }
-
-    //virtual void pick_best_runtime(Input_v input, Output_v output, Param_t& param) override {}
 
     virtual void pick_best_specify(ImplEnum implenum) override {
         this->_best_impl = this->_impl[0];

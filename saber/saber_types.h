@@ -65,7 +65,9 @@ enum LayoutType {
     Layout_NHWC = 7,
     Layout_NCHW_C4 = 8,
     Layout_NCHW_C8 = 9,
-    Layout_NCHW_C16 = 10
+    Layout_NCHW_C16 = 10,
+    Layout_OIHW16I16O = 11,
+    Layout_GOIHW16I16O = 12
 };
 
 //! target_type struct
@@ -206,6 +208,7 @@ enum SequencePoolType{
     Sequence_pool_first,
     Sequence_pool_max
 };
+
 /**
  * GRU_Formula,origin for paddle,Cudnn for cudnn,difference is w_h_r and weighted mean
  * weight for origin is [W_h_o][W_h_r,W_h_z]
@@ -224,8 +227,6 @@ typedef enum{
     Active_clipped_relu = 4,
     Active_elu = 5,
     Active_identity = 6,
-    Active_sigmoid_fluid = 7,
-    Active_tanh_fluid = 8,
     Active_stanh = 9,
     Active_prelu = 10
 

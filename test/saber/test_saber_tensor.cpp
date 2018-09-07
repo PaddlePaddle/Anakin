@@ -278,12 +278,10 @@ TEST(TestSaberFunc, test_tensor_constructor) {
 #endif
 
 #ifdef USE_BM
-Env<BM>::env_init();
-Env<X86>::env_init();
-LOG(INFO) << "test BM FP32 tensor";
-tensor_constructor<BM, X86, AK_FLOAT>();
-LOG(INFO) << "test BM INT8 tensor";
-tensor_constructor<BM, X86, AK_INT8>();
+    Env<BM>::env_init();
+    Env<X86>::env_init();
+    LOG(INFO) << "test BM FP32 tensor";
+    tensor_constructor<BM, X86, AK_FLOAT>();
 #endif
 }
 
@@ -297,11 +295,11 @@ void tensor_deepcopy() {
     typedef TargetWrapper<TargetH> HAPI;
     typedef TargetWrapper<TargetD> DAPI;
 
-    typedef typename TargetTypeTraits<TargetH>::target_type target_H;
-    typedef typename TargetTypeTraits<TargetD>::target_type target_D;
+    typedef typename TargetTypeTraits<TargetH>::target_category target_H;
+    typedef typename TargetTypeTraits<TargetD>::target_category target_D;
     typedef typename IF<std::is_same<target_D, target_H>::value, __HtoH, __DtoH>::Type then_type;
     typedef typename IF<std::is_same<target_D, target_H>::value, __DtoD, __HtoD>::Type else_type;
-    typedef typename IF<std::is_same<target_D, __host_target>::value, else_type, then_type>::Type flag_type;
+    typedef typename IF<std::is_same<target_D, __host_target>::value, then_type, else_type>::Type flag_type;
     typedef typename IF<std::is_same<target_D, __host_target>::value, HAPI, DAPI>::Type copy_API;
 
     typedef Tensor<TargetH> TensorH;
@@ -515,6 +513,10 @@ TEST(TestSaberFunc, test_tensor_deepcopy) {
     LOG(INFO) << "test ARM INT8 tensor deep copy";
     tensor_deepcopy<ARM, ARM, AK_INT8>();
 #endif //USE_ARM_PLACE
+
+#ifdef USE_BM
+    //BM does not support this yet
+#endif //USE_BM
 }
 #endif
 
@@ -615,6 +617,13 @@ TEST(TestSaberFunc, test_saber_tensor_shape) {
     LOG(INFO) << "test ARM tensor shape API";
     test_tensor_shape<ARM>();
 #endif //USE_ARM_PLACE
+
+#ifdef USE_BM
+    Env<BM>::env_init();
+    Env<X86>::env_init();
+    LOG(INFO) << "test BM tensor shape API";
+    test_tensor_shape<BM>();
+#endif //USE_BM
 }
 #endif
 
@@ -625,11 +634,11 @@ void tensor_reshape_realloc() {
     typedef TargetWrapper<TargetH> HAPI;
     typedef TargetWrapper<TargetD> DAPI;
 
-    typedef typename TargetTypeTraits<TargetH>::target_type target_H;
-    typedef typename TargetTypeTraits<TargetD>::target_type target_D;
+    typedef typename TargetTypeTraits<TargetH>::target_category target_H;
+    typedef typename TargetTypeTraits<TargetD>::target_category target_D;
     typedef typename IF<std::is_same<target_D, target_H>::value, __HtoH, __DtoH>::Type then_type;
     typedef typename IF<std::is_same<target_D, target_H>::value, __DtoD, __HtoD>::Type else_type;
-    typedef typename IF<std::is_same<target_D, __host_target>::value, else_type, then_type>::Type flag_type;
+    typedef typename IF<std::is_same<target_D, __host_target>::value, then_type, else_type>::Type flag_type;
     typedef typename IF<std::is_same<target_D, __host_target>::value, HAPI, DAPI>::Type copy_API;
 
     typedef Tensor<TargetH> TensorH;
@@ -729,6 +738,13 @@ TEST(TestSaberFunc, test_tensor_reshape_realloc) {
     LOG(INFO) << "test ARM INT8 tensor reshape realloc";
     tensor_reshape_realloc<ARM, ARM, AK_INT8>();
 #endif //USE_ARM_PLACE
+
+#ifdef USE_BM
+    Env<BM>::env_init();
+    Env<X86>::env_init();
+    LOG(INFO) << "test BM FP32 tensor reshape realloc";
+    //tensor_reshape_realloc<BM, X86, AK_FLOAT>();
+#endif //USE_BM
 }
 #endif
 
@@ -738,11 +754,11 @@ void test_tensor_op() {
     typedef TargetWrapper<TargetH> HAPI;
     typedef TargetWrapper<TargetD> DAPI;
 
-    typedef typename TargetTypeTraits<TargetH>::target_type target_H;
-    typedef typename TargetTypeTraits<TargetD>::target_type target_D;
+    typedef typename TargetTypeTraits<TargetH>::target_category target_H;
+    typedef typename TargetTypeTraits<TargetD>::target_category target_D;
     typedef typename IF<std::is_same<target_D, target_H>::value, __HtoH, __DtoH>::Type then_type;
     typedef typename IF<std::is_same<target_D, target_H>::value, __DtoD, __HtoD>::Type else_type;
-    typedef typename IF<std::is_same<target_D, __host_target>::value, else_type, then_type>::Type flag_type;
+    typedef typename IF<std::is_same<target_D, __host_target>::value, then_type, else_type>::Type flag_type;
     typedef typename IF<std::is_same<target_D, __host_target>::value, HAPI, DAPI>::Type copy_API;
 
     typedef Tensor<TargetH> TensorH;
@@ -803,6 +819,13 @@ TEST(TestSaberFunc, test_tensor_ops) {
     LOG(INFO) << "test ARM INT8 tensor op";
     test_tensor_op<ARM, ARM, AK_INT8>();
 #endif //USE_ARM_PLACE
+
+#ifdef USE_BM
+    Env<BM>::env_init();
+    Env<X86>::env_init();
+    LOG(INFO) << "test BM FP32 tensor op";
+    test_tensor_op<BM, X86, AK_FLOAT>();
+#endif //USE_BM
 }
 #endif
 
@@ -849,6 +872,10 @@ TEST(TestSaberFunc, test_tensor_share_diff_dtype) {
     LOG(INFO) << "test ARM tensor share different data type";
     tensor_share_diff_dtype<ARM, ARM>();
 #endif //USE_ARM_PLACE
+
+#ifdef USE_BM
+    //BM does not support this yet
+#endif //USE_BM
 }
 #endif
 int main(int argc, const char** argv) {

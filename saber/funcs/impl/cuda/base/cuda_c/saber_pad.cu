@@ -60,6 +60,7 @@ SaberStatus SaberPad<NV, OpDtype>::dispatch(\
 
     return SaberSuccess;
 }
-
+DEFINE_OP_TEMPLATE(SaberPad, PadParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberPad, PadParam, NV, AK_INT8);
 }
 }
