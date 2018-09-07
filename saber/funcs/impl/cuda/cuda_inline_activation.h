@@ -32,8 +32,8 @@ Sigmoid(const Dtype a) {
 template<typename Dtype>
 static inline __device__ Dtype
 Tanh(const Dtype a) {
-    Dtype tmp = -2.0 * a;
-    return (2.0 / (1.0 + expf(tmp))) - 1.0;
+    Dtype tmp = static_cast<Dtype>(-2.0) * a;
+    return (static_cast<Dtype>(2.0) / (static_cast<Dtype>(1.0) + expf(tmp))) - static_cast<Dtype>(1.0);
 }
 
 template<typename Dtype>
@@ -64,6 +64,17 @@ Tanh_fluid(const Dtype a) {
     Dtype tmp = -2.0 * a;
     tmp = (tmp > EXP_MAX_INPUT_PADDLE) ? EXP_MAX_INPUT_PADDLE : tmp;
     return (2.0 / (1.0 + expf(tmp))) - 1.0;
+}
+
+static __device__ float (*act_funcs_cu[])(float) = {&InValidAct<float>, &Sigmoid < float >, &Relu < float >,
+                                                    &Tanh < float >,
+                                                    &InValidAct<float>, &InValidAct<float>,
+                                                    &Identity < float >, &Sigmoid_fluid < float >,
+                                                    &Tanh_fluid < float >
+                                                   };
+
+static inline __device__ float  activate_cuda_float(float x, ActiveType type_id) {
+    return act_funcs_cu[type_id](x);
 }
 
 template<typename Dtype>

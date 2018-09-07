@@ -24,7 +24,7 @@
 #endif
 
 #ifdef USE_X86_PLACE
-#include "saber/funcs/impl/impl_im2sequence.h"
+#include "saber/funcs/impl/x86/saber_im2sequence.h"
 #endif
 #ifdef USE_ARM_PLACE
 //todo

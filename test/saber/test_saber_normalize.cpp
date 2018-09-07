@@ -1,10 +1,10 @@
 
-#include "core/context.h"
-#include "funcs/normalize.h"
-#include "test_saber_func.h"
-#include "test_saber_base.h"
-#include "tensor_op.h"
-#include "saber_types.h"
+#include "saber/core/context.h"
+#include "saber/funcs/normalize.h"
+#include "test/saber/test_saber_func.h"
+#include "test/saber/test_saber_base.h"
+#include "saber/core/tensor_op.h"
+#include "saber/saber_types.h"
 #include "saber/core/tensor_op.h"
 #include <vector>
 
@@ -13,7 +13,7 @@ using namespace anakin::saber;
  void FuncName(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tensor<TargetType_H>*>& output,Param<TargetType_D>& param,Shape shape)
  */
 template <typename dtype,typename TargetType_D,typename TargetType_H>
-void norm_cpu_nchw(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tensor<TargetType_H>*>& output,NormalizeParam<TargetType_D>& param) {
+void norm_cpu_func(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tensor<TargetType_H>*>& output,NormalizeParam<TargetType_D>& param) {
     
     int p=param.p;
     bool across_spatial=param.across_spatial;
@@ -130,12 +130,11 @@ void norm_cpu_nchw(const std::vector<Tensor<TargetType_H>*>& input,std::vector<T
     }
 }
 
-
-TEST(TestSaberFunc, test_func_normalize) {
-#ifdef USE_CUDA
+template <typename TargetType_D, typename TargetType_H, DataType OpDtype>
+void test_normalize(){
+    typedef typename DataTrait<TargetType_D, OpDtype> :: Dtype dtype;
     //Init the test_base
-    TestSaberBase<NV,NVHX86,AK_FLOAT,Normalize,
-    NormalizeParam> testbase;
+    TestSaberBase<TargetType_D, TargetType_H, OpDtype, Normalize, NormalizeParam> testbase;
     
     //combine param by yourself
     bool scale_flag=false;
@@ -143,36 +142,36 @@ TEST(TestSaberFunc, test_func_normalize) {
     int pass_count=0;
     for (bool sp_flag : {false}){
         for (bool channel_flag : {false,true}) {
-            for (int p : {1,2}) {
+            for (int p : {1, 2}) {
                 
-                for(int w_in:{32,64}){
-                    for(int h_in: {32,64}){
-                        for(int ch_in:{3,8}){
-                            for(int num_in:{1,2}){
+                for(int w_in:{32, 64}){
+                    for(int h_in: {32, 64}){
+                        for(int ch_in:{3, 8}){
+                            for(int num_in:{1, 2}){
                                 //make param
-                                NormalizeParam<NV> param;
+                                NormalizeParam<TargetType_D> param;
                                 int ch_scale = channel_flag ? 1 : ch_in;
                                 Shape sh_slope({1, 1, 1, ch_scale});
-                                Tensor<NVHX86> th_scale(sh_slope);
-                                Tensor<NV> tdscale;
+                                Tensor<TargetType_H> th_scale(sh_slope);
+                                Tensor<TargetType_D> tdscale;
                                 tdscale.re_alloc(sh_slope,AK_FLOAT);
                                 for (int i = 0; i < ch_scale; ++i) {
-                                    static_cast<float *>(th_scale.mutable_data())[i] = 0.1f * (i + 1);
+                                    static_cast<dtype *>(th_scale.mutable_data())[i] = 0.1f * (i + 1);
                                 }
                                 tdscale.copy_from(th_scale);
                                 if (scale_flag) {
-                                    NormalizeParam<NV> param_tmp(sp_flag, channel_flag, &tdscale, eps, p);
+                                    NormalizeParam<TargetType_D> param_tmp(sp_flag, channel_flag, &tdscale, eps, p);
                                     param = param_tmp;
                                 } else {
-                                    NormalizeParam<NV> param_tmp(sp_flag, eps, p);
+                                    NormalizeParam<TargetType_D> param_tmp(sp_flag, eps, p);
                                     param = param_tmp;
                                 }
                                 
                                 //testbase test
                                 testbase.set_param(param);//set param
                                 //testbase.set_rand_limit(255,255);
-                                testbase.set_input_shape(Shape({num_in,ch_in,h_in,w_in}));//add some input shape
-                                testbase.run_test(norm_cpu_nchw<float,NV,NVHX86>);//run test
+                                testbase.set_input_shape(Shape({num_in, ch_in, h_in, w_in}));//add some input shape
+                                testbase.run_test(norm_cpu_func<dtype, TargetType_D, TargetType_H>);//run test
                                 
                                 
                             }
@@ -181,8 +180,15 @@ TEST(TestSaberFunc, test_func_normalize) {
                 }
             }
         }
-        
     }
+}
+
+TEST(TestSaberFunc, test_func_normalize) {
+#ifdef USE_CUDA
+    test_normalize<NV, NVHX86, AK_FLOAT>();
+#endif
+#ifdef USE_X86_PLACE
+    test_normalize<X86, X86, AK_FLOAT>();
 #endif
 }
 
