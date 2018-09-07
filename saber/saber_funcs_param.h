@@ -808,6 +808,18 @@ private:
 };
 
 template <typename TargetType>
+struct EmptyParam{
+    EmptyParam() = default;
+    EmptyParam(const EmptyParam& right) {}
+    EmptyParam& operator=(const EmptyParam& right) {
+        return *this;
+    }
+    bool operator==(const EmptyParam& right) {
+        return true;
+    }
+};
+
+template <typename TargetType>
 struct FcParam {
     FcParam() = default;
     FcParam(Tensor<TargetType>* input_weight, int output_num, int in_axis = 1,

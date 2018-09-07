@@ -23,7 +23,7 @@
 
 #ifdef NVIDIA_GPU
 
-#include "saber/funcs/impl/impl_crf_decoding.h"
+#include "saber/funcs/impl/cuda/saber_crf_decoding.h"
 #endif
 
 #ifdef USE_X86_PLACE

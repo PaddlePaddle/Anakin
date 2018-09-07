@@ -359,6 +359,15 @@ public:
         return sh;
     }
 
+    friend std::ostream& operator<<(std::ostream& out, const Shape& s) {
+        out << " [AK Shape : (";
+        for (int i = 0; i < s.dims(); i++) {
+            out << s.data()[i] << ",";
+        }
+        out << ") ]";
+        return out;
+    }
+
 protected:
     Layout* _layout{nullptr};
 private:

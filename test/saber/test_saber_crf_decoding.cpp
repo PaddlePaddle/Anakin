@@ -14,6 +14,7 @@ int num_in = 7;
 int ch_in = 7;
 int h_in = 1;
 int w_in = 1;
+int GLB_flag = 0; //NV
 
 template<typename dtype>
 void decoding(dtype* path, const dtype* emission, const dtype* transition,
@@ -30,7 +31,7 @@ void decoding(dtype* path, const dtype* emission, const dtype* transition,
             dtype max_score = -std::numeric_limits<dtype>::max();
             int max_j = 0;
         #ifdef __AVX2__
-            if(tag_num % 8 == 0){
+            if(tag_num % 8 == 0 && GLB_flag){
                 for (size_t j = 0; j < tag_num; ++j) {
                     dtype score = alpha_value[(k - 1) * tag_num + j] +
                           w[(i + state_trans_base_idx) * tag_num + j];
@@ -130,7 +131,7 @@ void crfdecoding_nv_basic(const std::vector<Tensor<TargetType_H>*>& inputs, \
 }
 
 template <DataType Dtype,typename TargetType_D,typename TargetType_H>
-void test_model(){
+void test_model(int flag){
     typedef Tensor<TargetType_H> TensorH;
     typedef Tensor<TargetType_D> TensorD;
     int num = num_in;
@@ -139,7 +140,9 @@ void test_model(){
     int width = w_in;
     
     Shape input_shape({num, channel, height, width}, Layout_NCHW);
-    Shape input_shape2({200, 200, 1, 1}, Layout_NCHW);
+    Shape input_shape2({100, 100, 1, 1}, Layout_NCHW);
+
+    if (flag == 1) GLB_flag = 1;//X86
 
     TestSaberBase<TargetType_D, TargetType_H, Dtype, CrfDecoding, CrfDecodingParam> testbase(1,1);
    for(auto shape: {input_shape, input_shape2}){
@@ -180,11 +183,11 @@ TEST(TestSaberFunc, test_func_normalize) {
     int width = w_in;
 #ifdef USE_CUDA
     //Init the test_base
-//    test_model<AK_FLOAT, NV, NVHX86>();
+    test_model<AK_FLOAT, NV, NVHX86>(0);
 #endif
 
 #ifdef USE_X86_PLACE
-	test_model<AK_FLOAT, X86, X86>();
+	test_model<AK_FLOAT, X86, X86>(1);
 #endif
 
 #ifdef USE_ARM_PLACE

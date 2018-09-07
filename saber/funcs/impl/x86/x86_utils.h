@@ -61,6 +61,12 @@ public:
         printf("\n");
     }
 };
+template<typename opTensor>
+static inline void try_expand_clean_tensor(opTensor& tensor,anakin::saber::Shape shape){
+    if(utils::try_expand_tensor(tensor,shape)){
+        memset(tensor.mutable_data(),0,tensor.valid_size()* type_length(tensor.get_dtype()));
+    };
+}
 
 class AlignedUtils {
 public:

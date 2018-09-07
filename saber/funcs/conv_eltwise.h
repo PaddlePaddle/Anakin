@@ -12,8 +12,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-#ifndef ANAKIN_SABER_FUNCS_CONV_H
-#define ANAKIN_SABER_FUNCS_CONV_H
+#ifndef ANAKIN_SABER_FUNCS_CONV_ELTWISE_H
+#define ANAKIN_SABER_FUNCS_CONV_ELTWISE_H
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
