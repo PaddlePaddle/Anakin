@@ -136,7 +136,7 @@ void AMD_API::create_event(event_t* event, bool flag) {
 
     LOG(INFO) << "create_event break opencl call sequence. Is baidu expect clCreateUserEvent?";
     //do nothing for this.
-    event = nullptr;
+    *event = nullptr;
 
     //Env<AMD>::is_init();
     //cl_int err = CL_SUCCESS;
@@ -503,6 +503,7 @@ void AMD_API::async_memcpy(void* dst, size_t dst_offset, int dst_id, \
         size_t count, stream_t stream, __DtoH) {
 
     LOG(INFO)  << __func__<< " D2H dst=" << dst << " dst_id=" << dst_id << " dst_office=" << dst_offset << " src=" <<src << " src_id=" << src_id << " src_offset=" << src_offset << " count=" << count;
+    LOG(INFO)  << __func__<< " stream: " << stream;
 
     cl_mem src_mem = (cl_mem)src;
     cl_command_queue src_cm = AMD_ENV::cur_env()[src_id].get_available_stream(stream);
@@ -613,6 +614,8 @@ int AMD_API::get_device_id(){
     //LOG(INFO) << "get device id = " << current_device_id_index;
     return current_device_id_index;
 }
+
+void AMD_API::device_sync() {}
 
 void get_mem_from_ptr(void *ptr, cl_mem *mem){
 
@@ -729,9 +732,11 @@ template struct TargetWrapper<AMD, __device_target>;
 
 //! AMD Tensor
 template class Tensor<AMD>;
+template class Tensor<X86>;
 
 //! AMD Buffer
 template class Buffer<AMD>;
+template class Tensor<X86>;
 
 //!
 template struct Env<AMD>;
