@@ -13,8 +13,6 @@
    limitations under the License.
 */
 
-
-
 #include "saber/core/tensor_op.h"
 #include <limits>
 
