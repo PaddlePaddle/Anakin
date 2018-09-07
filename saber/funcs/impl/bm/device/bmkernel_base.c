@@ -13,10 +13,10 @@ int bmkernel_func(void *args)
 {
     bmkernel_api_base* param = (bmkernel_api_base *)args;
     switch (param->op) {
-        case "activation":
+        case 0:
             // bm_activation_fwd(param)
             break;
-        case "conv":
+        case 1:
             // bm_conv_fwd(param)
             break;
         default:

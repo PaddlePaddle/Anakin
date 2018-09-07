@@ -5,7 +5,7 @@ extern "C" {
 #endif
 
 typedef struct {
-    char op[64];
+    int op; //TODO: use ENUM
 } __attribute__((packed)) bmkernel_api_base;
 
 #ifdef __cplusplus
