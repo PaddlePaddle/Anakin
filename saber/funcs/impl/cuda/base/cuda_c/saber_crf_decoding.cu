@@ -150,7 +150,7 @@ SaberStatus SaberCrfDecoding<NV, AK_FLOAT>::dispatch( \
     return SaberSuccess;
 }
 DEFINE_OP_TEMPLATE(SaberCrfDecoding, CrfDecodingParam, NV, AK_INT8);
-DEFINE_OP_TEMPLATE(SaberCrfDecoding, CrfDecodingParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberCrfDecoding, CrfDecodingParam, NV, AK_HALF);
 } //namespace anakin
 
 } //namespace anakin
