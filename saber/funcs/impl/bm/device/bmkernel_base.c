@@ -1,7 +1,5 @@
 #include "bmkernel_base.h"
 #include "bm_config.h"
-#include "core/common.h"
-#include "core/tensor.h"
 #include <stdio.h>
 /**
  * bmkernel_func is the user entry to BMKERNEL just like "main" to some applications.
@@ -10,9 +8,6 @@
  *               op - Flag to determine which op forward function 
  *                    it should delegate to.             
  */
-
-namespace anakin {
-namespace saber {
 
 int bmkernel_func(void *args)
 {
@@ -25,10 +20,7 @@ int bmkernel_func(void *args)
             // bm_conv_fwd(param)
             break;
         default:
-            LOG(FATAL) << "op is not supported by BM yet.";
+            printf("op %s is not supported by BM yet.\n", param->op);
     }
     return 0;
-}
-
-}
 }
