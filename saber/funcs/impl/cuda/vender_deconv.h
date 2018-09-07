@@ -91,6 +91,16 @@ public:
     virtual SaberStatus dispatch(const std::vector<OpTensor*>& inputs,
                                  std::vector<OpTensor*>& outputs,
                                  ConvParam<NV>& param);
+
+    SaberStatus trans_weights(Tensor<NV> &target_weights,
+                              Tensor<NV> &target_bias,
+                              int in_channel, int out_channel,
+                              int stride_h, int stride_w,
+                              int pad_h, int pad_w,
+                              int dilation_h, int dilation_w,
+                              int group) {
+        return SaberUnImplError;
+    }
 private:
     bool _use_saber_act{false};
     SaberActivation<NV, OpDtype> _saber_act;

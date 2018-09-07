@@ -76,6 +76,25 @@ public:
                 return SaberUnImplError;
         }
     }
+    SaberStatus trans_weights(Tensor<TargetType> &target_weights,
+                              Tensor<TargetType> &target_bias,
+                              int stride_h, int stride_w,
+                              int pad_h, int pad_w,
+                              int dilation_h, int dilation_w,
+                              int group,
+                              ImplEnum implenum) {
+        if (implenum == VENDER_IMPL) {
+            return static_cast<VenderDeconv2D<TargetType, OpDtype> *>(this->_best_impl)->trans_weights(
+                    target_weights, target_bias, stride_h, stride_w, pad_h, pad_w,
+                    dilation_h, dilation_w, group);
+        } else if (implenum == SABER_IMPL) {
+            return static_cast<SaberDeconv2D<TargetType, OpDtype> *>(this->_best_impl)->trans_weights(
+                    target_weights, target_bias, stride_h, stride_w, pad_h, pad_w,
+                    dilation_h, dilation_w, group);
+        } else {
+            return SaberUnImplError;
+        }
+    }
 
 private:
 
