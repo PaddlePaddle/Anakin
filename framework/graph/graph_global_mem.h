@@ -162,6 +162,9 @@ public:
                 }
             }
         }
+        if(key == nullptr) {
+            func(tensor, std::forward<ParamTypes>(args)...);
+        }
     }
 
     /// get sum size in m-btyes

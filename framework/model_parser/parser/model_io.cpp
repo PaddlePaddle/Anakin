@@ -361,8 +361,13 @@ Status NodeIO<Ttype, Ptype>::operator<<(GraphProto& graph) {
                     (*node_proto_attr)[key].set_type(TENSOR);
                 }
             } else {
+                auto tuple_float = any_cast<PTuple<float>>(value);
+                (*node_proto_attr)[key].set_type(CACHE_LIST);
+                (*node_proto_attr)[key].mutable_cache_list()->set_type(FLOAT);
+                (*node_proto_attr)[key].mutable_cache_list()->set_size(tuple_float.size());
+
                 LOG(ERROR) << "node: " << node_p->name() << " (" << node_p->get_op_name() << ") \
-                              key : " << key << " value_type: " << value.type();
+                    key : " << key << " value_type: " << value.type();
             }
         }
 
