@@ -4,7 +4,7 @@
 extern "C" {
 #endif
 typedef struct {
-    char str[64];
+    char op[64];
 } __attribute__((packed)) bmkernel_api_base;
 #ifdef __cplusplus
 }
