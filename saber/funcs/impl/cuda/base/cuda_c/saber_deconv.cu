@@ -285,12 +285,21 @@ SaberStatus SaberDeconv2D<NV, AK_FLOAT>::dispatch(\
     if (_use_k4_s2_p1) {
         const float * bias_data = (param.bias()->valid_size() > 0) ?
                                   (const float*)param.bias()->data() : NULL;
+
         const float *weights_data = (const float*)param.weight()->data();
-        ker_deconv_implicit_gemm_k4_s2_p1_16x64(dout, din,
-                                                weights_data, bias_data,
-                                                num,
-                                                hin, win, hout, wout,
-                                                ch_in, ch_out, stream);
+        if (param.activation_param.has_active) {
+            ker_deconv_implicit_gemm_k4_s2_p1_32x32_relu(dout, din,
+                    weights_data, bias_data,
+                    num,
+                    hin, win, hout, wout,
+                    ch_in, ch_out, stream);
+        } else {
+            ker_deconv_implicit_gemm_k4_s2_p1_16x64(dout, din,
+                    weights_data, bias_data,
+                    num,
+                    hin, win, hout, wout,
+                    ch_in, ch_out, stream);
+        }
         return SaberSuccess;
     } else {
         return SaberUnImplError;
