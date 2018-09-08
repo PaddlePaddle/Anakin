@@ -22,28 +22,28 @@ namespace anakin {
 
 namespace ops {
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class PriorBoxHelper;
 
 //! PriorBox op
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class PriorBox : public Operator<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class PriorBox : public Operator<Ttype, Ptype> {
 public:
     PriorBox() {}
 
     //! forward impl
     virtual void operator() (OpContext<Ttype> &ctx, 
-                             const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                             std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-        //LOG(ERROR) << "Not Impl Yet Operator power<TargetType:"<<"unknown"<<","
-         //          <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info()<<">";
+                             const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                             std::vector<Tensor4dPtr<Ttype> >& outs) {
+		LOG(ERROR) << "Not Impl Yet Operator PriorBox< Ttype("
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
-    friend class PriorBoxHelper<Ttype, Dtype, Ptype>;
+    friend class PriorBoxHelper<Ttype, Ptype>;
 };
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class PriorBoxHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class PriorBoxHelper : public OperatorHelper<Ttype, Ptype> {
 public:
     PriorBoxHelper()=default;
 
@@ -53,16 +53,16 @@ public:
 
     //! initial all the resource needed by pooling
     Status Init(OpContext<Ttype> &ctx,
-                const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
     //! infer the shape of output and input.
-    Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+    Status InferShape(const std::vector<Tensor4dPtr<Ttype> >& ins,
+                      std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
 public:
-    saber::PriorBoxParam<Tensor4d<Ttype, Dtype>> _param_priorbox;
-    saber::PriorBox<Ttype, Dtype> _funcs_priorbox;
+    saber::PriorBoxParam<Ttype> _param_priorbox;
+    saber::PriorBox<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_priorbox;
 };
 
 } /* namespace ops */

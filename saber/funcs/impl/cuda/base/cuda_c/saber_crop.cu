@@ -57,7 +57,7 @@ SaberStatus SaberCrop<NV,AK_FLOAT>::dispatch(const std::vector<Tensor<NV> *>& in
 
     return SaberSuccess;
 }
-DEFINE_OP_TEMPLATE(SaberCrop, CropParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberCrop, CropParam, NV, AK_HALF);
 DEFINE_OP_TEMPLATE(SaberCrop, CropParam, NV, AK_INT8);
 }
 }

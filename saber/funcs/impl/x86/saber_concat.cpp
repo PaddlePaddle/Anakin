@@ -45,7 +45,7 @@ SaberStatus SaberConcat<X86, OpDtype>::dispatch(const std::vector<Tensor<X86>*>&
 }
 
 template class SaberConcat<X86, AK_FLOAT>;
-DEFINE_OP_TEMPLATE(SaberConcat, ConcatParam, X86, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberConcat, ConcatParam, X86, AK_HALF);
 DEFINE_OP_TEMPLATE(SaberConcat, ConcatParam, X86, AK_INT8);
 } //namespace anakin
 

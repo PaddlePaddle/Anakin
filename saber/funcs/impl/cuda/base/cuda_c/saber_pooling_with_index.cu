@@ -100,7 +100,7 @@ SaberStatus SaberPoolingWithIndex<NV, OpDtype>::dispatch(\
         return SaberUnImplError;
     }
 }
-DEFINE_OP_TEMPLATE(SaberPoolingWithIndex, PoolingParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberPoolingWithIndex, PoolingParam, NV, AK_HALF);
 DEFINE_OP_TEMPLATE(SaberPoolingWithIndex, PoolingParam, NV, AK_INT8);
 }
 }

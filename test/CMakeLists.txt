@@ -14,9 +14,10 @@
 
 # used for temporary
 if(BUILD_WITH_FRAMEWORK)
-anakin_fetch_include_recursively(${ANAKIN_FRAMEWORK})
-anakin_fetch_include_recursively(${ANAKIN_MODEL_PARSER})
+    anakin_fetch_include_recursively(${ANAKIN_FRAMEWORK})
+    anakin_fetch_include_recursively(${ANAKIN_MODEL_PARSER})
 endif()
+
 anakin_fetch_include_recursively(${ANAKIN_SABER})
 
 if(USE_GTEST)
@@ -29,11 +30,15 @@ if(BUILD_WITH_FRAMEWORK)
     anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/operators "cpp" ANAKIN_TEST_CASE_SRC)
     anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/net "cpp" ANAKIN_TEST_CASE_SRC)
     anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/lite "cpp" ANAKIN_TEST_CASE_SRC)
+    if(BUILD_RPC)
+    anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/framework/service "cpp" ANAKIN_TEST_CASE_SRC)
+    endif()
 endif()
 
 anakin_fetch_files_with_suffix(${ANAKIN_UNIT_TEST}/saber "cpp" ANAKIN_TEST_CASE_SRC)
 
 file(REMOVE ${PROJECT_SOURCE_DIR}/output/unit_test/*)
+
 install(FILES ${PROJECT_BINARY_DIR}/anakin_config.h
         DESTINATION ${PROJECT_SOURCE_DIR}/output/include)
 
@@ -53,14 +58,13 @@ foreach(SRC_NAME ${ANAKIN_TEST_CASE_SRC})
                 target_link_libraries(${TEST_CASE_NAME} ${ANAKIN_SABER_LIB_TARGET})
             endif()
 	else()
-        if(BUILD_WITH_FRAMEWORK)
-		    target_link_libraries(${TEST_CASE_NAME} -Wl,--whole-archive ${anakin_lib_static} -Wl,--no-whole-archive)
-        else()
-                target_link_libraries(${TEST_CASE_NAME} -Wl,--whole-archive ${ANAKIN_SABER_LIB_TARGET} -Wl,--no-whole-archive)
+        if(BUILD_WITH_FRAMEWORK) 
+            target_link_libraries(${TEST_CASE_NAME} -Wl,--whole-archive ${anakin_lib_static} -Wl,--no-whole-archive)
+        else() 
+            target_link_libraries(${TEST_CASE_NAME} -Wl,--whole-archive ${ANAKIN_SABER_LIB_TARGET} -Wl,--no-whole-archive)
         endif()
 
 	endif()
-	set_target_properties(${TEST_CASE_NAME} PROPERTIES
-						RUNTIME_OUTPUT_DIRECTORY 
-						${PROJECT_SOURCE_DIR}/output/unit_test)
+	set_target_properties(${TEST_CASE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY 
+						  ${PROJECT_SOURCE_DIR}/output/unit_test)
 endforeach()

@@ -64,7 +64,7 @@ public:
         update_weights(_new_weights, _new_bias, weights, bias, \
             num_output, ch, kh, kw, flag_bias, \
             bn_scale, bn_eps, bn_mean, bn_variance, \
-            scale_w, scale_b, scale_bias_term);
+            scale_w, scale_b, scale_bias_term);*/
 
         return _conv_op->load_param(weights_size, num_output, group, kw, kh, stride_w, stride_h, \
             pad_w, pad_h, dila_w, dila_h, true, _new_weights.data(), _new_bias.data());

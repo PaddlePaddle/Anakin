@@ -25,7 +25,7 @@ namespace anakin {
 
 namespace ops {
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class OutputHelper;
 
 /// Output op without any compute, this a holder for input
@@ -33,17 +33,15 @@ class OutputHelper;
  * \brief Output implementation class
  * public inherit Operator
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class Output : public Operator<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class Output : public Operator<Ttype, Ptype> {
 public:
     virtual void operator() (OpContext<Ttype> &ctx, 
-                             const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                             std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-        LOG(ERROR) << "Not Impl Yet Operator Output<TargetType:"<<"unknown"<<"," 
-                   <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info();
+                             const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                             std::vector<Tensor4dPtr<Ttype> >& outs) {
     }
 
-    friend class OutputHelper<Ttype, Dtype, Ptype>;
+    friend class OutputHelper<Ttype, Ptype>;
 };
 
 /**
@@ -51,9 +49,9 @@ public:
  * public inherit OperatorHelper
  * including init resource and shape size in output context
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class OutputHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
-    typedef OperatorHelper<Ttype, Dtype, Ptype> Base; 
+template<typename Ttype, Precision Ptype>
+class OutputHelper : public OperatorHelper<Ttype, Ptype> {
+    typedef OperatorHelper<Ttype, Ptype> Base; 
 public:
     OutputHelper() {}
 
@@ -69,8 +67,8 @@ public:
     * \return status
     */
     Status Init(OpContext<Ttype> &ctx, 
-                const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
     /**
     * \brief infer the shape of output and input.
@@ -78,8 +76,8 @@ public:
     * \param outs stand for output tensor vector
     * \return status
     */
-    Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+    Status InferShape(const std::vector<Tensor4dPtr<Ttype> >& ins,
+                      std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
 };
 

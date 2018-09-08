@@ -55,6 +55,6 @@ SaberStatus SaberEmbedding<NV, OpDtype>::dispatch( \
 
 template class SaberEmbedding<NV, AK_FLOAT>;
 template class SaberEmbedding<NV, AK_INT8>;
-DEFINE_OP_TEMPLATE(SaberEmbedding, EmbeddingParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberEmbedding, EmbeddingParam, NV, AK_HALF);
 }
 }

@@ -13,21 +13,20 @@
    limitations under the License. 
 */
 
-#ifndef ANAKIN_FRAMEWORK_LITE_UTILS_H
-#define ANAKIN_FRAMEWORK_LITE_UTILS_H
+#ifndef ANAKIN_FRAMEWORK_UTILS_PARAMETER_FUSION_H
+#define ANAKIN_FRAMEWORK_UTILS_PARAMETER_FUSION_H
 
 #include <string>
 #include <unordered_map>
+#include "framework/core/parameter.h"
 
 namespace anakin {
-
-namespace lite {
 
 /**
  * \brief  update conv weights with batchnorm and scale parameters.
  */
 template<typename D, typename T>
-void update_weights(PBlock<D, T> weights, PBlock<D, T> bias,
+void update_weights(PBlock<T> weights, PBlock<T> bias,
 					int n, int c, int h, int w, bool conv_bias_term, 
 					float batchnorm_scale, float batchnorm_eps, 
 					std::vector<float> batchnorm_mean, 
@@ -35,18 +34,18 @@ void update_weights(PBlock<D, T> weights, PBlock<D, T> bias,
 					std::vector<float> scale_w, 
 					std::vector<float> scale_b, 
 					bool scale_bias_term) {
-	D* weights_p = weights.h_tensor().mutable_data();
+	D* weights_p = (D* )(weights.h_tensor().mutable_data());
 	if(!conv_bias_term) {
-		bias.re_alloc({1,batchnorm_mean.size(),1,1});
+		bias.re_alloc(Shape4d({1, batchnorm_mean.size(), 1, 1}));
 		void* new_bias_data = bias.h_tensor().mutable_data();
 		memset(new_bias_data, 0, sizeof(D) * bias.h_tensor().size());
 	}
-	D* bias_p = bias.h_tensor().mutable_data();
+	D* bias_p = (D* )(bias.h_tensor().mutable_data());
 
-	batchnorm_scale = (batchnorm_scale == 0) ? 1.f : batchnorm_scale;
-	int chw = c*h*w;
-	for(int i=0; i <n; i++ ) {
-		D alpha = 0.f;
+	batchnorm_scale = (batchnorm_scale == 0) ? 1.f : 1.f / batchnorm_scale;
+	int chw = c * h * w;
+	for (int i = 0; i < n; i++) {
+		D alpha = 1.f;
 		D beta = 0.f;
 		// insert batchnorm parameters
 		alpha = batchnorm_variance[i] * batchnorm_scale + batchnorm_eps;
@@ -67,9 +66,9 @@ void update_weights(PBlock<D, T> weights, PBlock<D, T> bias,
 		bias_p[i] *= alpha;
 		bias_p[i] += beta;
 	}
+    weights.d_tensor().copy_from(weights.h_tensor());
+    bias.d_tensor().copy_from(bias.h_tensor());
 }
-
-} /* namespace lite */
 
 } /* namespace anakin */
 

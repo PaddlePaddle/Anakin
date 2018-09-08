@@ -472,6 +472,6 @@ SaberStatus VenderConv2D<NV, AK_INT8>::dispatch(
 
 template class VenderConv2D<NV, AK_FLOAT>;
 template class VenderConv2D<NV, AK_INT8>;
-DEFINE_OP_TEMPLATE(VenderConv2D, ConvParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(VenderConv2D, ConvParam, NV, AK_HALF);
 }
 }
