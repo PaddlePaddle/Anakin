@@ -136,7 +136,7 @@ TEST(TestSaberFunc, test_func_scale) {
 #endif
 
 #ifdef USE_X86_PLACE
-	LOG(INFO) << "x86 test......";
+    LOG(INFO) << "x86 test......";
     do
     {
         TestSaberBase<X86, X86, AK_FLOAT, Scale, ScaleParam> testbase;
