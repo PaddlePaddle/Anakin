@@ -35,7 +35,26 @@ void fill_tensor_const(Tensor<TargetType>& tensor, float value, typename Tensor<
 template <typename Dtype>
 void fill_tensor_host_rand_impl(Dtype* dio, long long size) {
     for (long long i = 0; i < size; ++i) {
-        dio[i] = static_cast<Dtype>(rand());
+        Dtype rand_x=static_cast<Dtype>(rand()%256);
+        dio[i] = (rand_x-128)/128;
+    }
+}
+template <>
+void fill_tensor_host_rand_impl<char>(char* dio, long long size) {
+    for (long long i = 0; i < size; ++i) {
+        dio[i] = rand()%256-128;
+    }
+}
+template <>
+void fill_tensor_host_rand_impl<unsigned char>(unsigned char* dio, long long size) {
+    for (long long i = 0; i < size; ++i) {
+        dio[i] = rand()%256;
+    }
+}
+template <typename Dtype>
+void fill_tensor_host_seq_impl(Dtype* dio, long long size) {
+    for (long long i = 0; i < size; ++i) {
+        dio[i] = static_cast<Dtype>(i);
     }
 }
 
@@ -54,6 +73,25 @@ void fill_tensor_rand(Tensor<TargetType>& tensor, typename Tensor<TargetType>::A
         case AK_HALF: fill_tensor_host_rand_impl((short*)dio, size); break;
         case AK_FLOAT: fill_tensor_host_rand_impl((float*)dio, size); break;
         case AK_DOUBLE: fill_tensor_host_rand_impl((double*)dio, size); break;
+        default: LOG(FATAL) << "data type: " << type << " is unsupported now";
+    }
+}
+
+template <typename TargetType>
+void fill_tensor_seq(Tensor<TargetType>& tensor, typename Tensor<TargetType>::API::stream_t stream) {
+    long long size = tensor.size();
+    void* dio = tensor.mutable_data();
+    DataType type = tensor.get_dtype();
+    switch (type){
+        case AK_UINT8: fill_tensor_host_seq_impl((unsigned char*)dio, size); break;
+        case AK_INT8: fill_tensor_host_seq_impl((char*)dio, size); break;
+        case AK_INT16: fill_tensor_host_seq_impl((short*)dio, size); break;
+        case AK_UINT16: fill_tensor_host_seq_impl((unsigned short*)dio, size); break;
+        case AK_UINT32: fill_tensor_host_seq_impl((unsigned int*)dio, size); break;
+        case AK_INT32: fill_tensor_host_seq_impl((int*)dio, size); break;
+        case AK_HALF: fill_tensor_host_seq_impl((short*)dio, size); break;
+        case AK_FLOAT: fill_tensor_host_seq_impl((float*)dio, size); break;
+        case AK_DOUBLE: fill_tensor_host_seq_impl((double*)dio, size); break;
         default: LOG(FATAL) << "data type: " << type << " is unsupported now";
     }
 }
@@ -241,6 +279,7 @@ double tensor_mean_value_valid(Tensor<TargetType>& tensor, typename Tensor<Targe
 
 #define FILL_TENSOR_HOST(target) \
     template void fill_tensor_const<target>(Tensor<target>& tensor, float value, typename Tensor<target>::API::stream_t stream); \
+    template void fill_tensor_seq<target>(Tensor<target>& tensor, typename Tensor<target>::API::stream_t stream); \
     template void fill_tensor_rand<target>(Tensor<target>& tensor, typename Tensor<target>::API::stream_t stream); \
     template void fill_tensor_rand<target>(Tensor<target>& tensor, float vstart, float vend, typename Tensor<target>::API::stream_t stream); \
     template void print_tensor<target>(Tensor<target>& tensor, typename Tensor<target>::API::stream_t stream); \
@@ -248,7 +287,7 @@ double tensor_mean_value_valid(Tensor<TargetType>& tensor, typename Tensor<Targe
     template double tensor_mean_value<target>(Tensor<target>& tensor, typename Tensor<target>::API::stream_t stream); \
     template double tensor_mean_value_valid<target>(Tensor<target>& tensor, typename Tensor<target>::API::stream_t stream);
 
-#if defined(BUILD_LITE) || defined(USE_X86_PLACE) || defined(USE_AMD) || defined(USE_CUDA) ||defined(USE_BM)
+#if defined(BUILD_LITE) || defined(USE_X86_PLACE) || defined(AMD_GPU) || defined(USE_CUDA) ||defined(USE_BM_PLACE)
 FILL_TENSOR_HOST(X86)
 #endif
 
@@ -260,7 +299,7 @@ FILL_TENSOR_HOST(NVHX86)
 FILL_TENSOR_HOST(ARM)
 #endif
 
-#ifdef USE_BM
+#ifdef USE_BM_PLACE 
 
 #endif
 

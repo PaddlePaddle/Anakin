@@ -29,7 +29,7 @@ if(USE_ARM_PLACE)
     anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/arm/impl "cpp" ANAKIN_SABER_BASE_SRC)
 endif()
 
-if(USE_BM)
+if(USE_BM_PLACE)
     anakin_fetch_files_with_suffix(${ANAKIN_SABER}/core/impl/bm "cpp" ANAKIN_SABER_BASE_SRC)
     anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/bm "cpp" ANAKIN_SABER_BASE_SRC)
     anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/bm/impl "cpp" ANAKIN_SABER_BASE_SRC)
@@ -46,7 +46,7 @@ if(USE_GPU_PLACE)
 endif()
 
 
-if(USE_X86_PLACE OR USE_BM)
+if(USE_X86_PLACE OR USE_BM_PLACE)
     anakin_fetch_files_with_suffix(${ANAKIN_SABER}/core/impl/x86 "cpp" ANAKIN_SABER_BASE_SRC)
 endif()
 

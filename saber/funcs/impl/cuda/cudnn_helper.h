@@ -32,6 +32,30 @@ namespace anakin{
 
 namespace cudnn{
 
+struct ParamsRegion {
+
+    ParamsRegion():_offset(NULL), _size(0){};
+    ParamsRegion(void *offset, size_t size):_offset(offset), _size(size){}
+    ~ParamsRegion(){}
+    ParamsRegion(const ParamsRegion &right): _offset(right._offset),_size(right._size){};
+
+    ParamsRegion &operator=(const ParamsRegion &right) {
+        _offset = right._offset;
+        _size=right._size;
+        return *this;
+    }
+    bool operator==(const ParamsRegion &right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (_offset == right._offset);
+        comp_eq = comp_eq && (_size == right._size);
+        return  comp_eq;
+    }
+
+    void * _offset;
+    size_t _size;
+};
+
+
 template <typename T>
 class cudnnTypeWrapper;
 
@@ -82,23 +106,24 @@ public:
         return &v;
     }
 };
+
 template <typename T>
 class TensorDescriptors {
 public:
     TensorDescriptors(
             size_t n,
-            const std::vector<int>& dim,
-            const std::vector<int>& stride) {
+            const std::vector<std::vector<int>>& dim,
+            const std::vector<std::vector<int>>& stride) {
         descs_.resize(n);
-                CHECK_EQ(dim.size(), stride.size());
+        CHECK_EQ(dim.size(), stride.size());
         for (auto i = 0; i < n; ++i) {
             CUDNN_CHECK(cudnnCreateTensorDescriptor(&descs_[i]));
             CUDNN_CHECK(cudnnSetTensorNdDescriptor(
                     descs_[i],
                     cudnnTypeWrapper<T>::type,
-                    dim.size(),
-                    dim.data(),
-                    stride.data()));
+                    dim[i].size(),
+                    dim[i].data(),
+                    stride[i].data()));
         }
     }
     ~TensorDescriptors() {

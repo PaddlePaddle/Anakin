@@ -48,7 +48,7 @@ void Device<NV>::get_info() {
 	_info._max_frequence = deviceProp.clockRate / 1000;
 	_info._min_frequence = deviceProp.clockRate / 1000;
 	LOG(INFO) << "frequency:" << deviceProp.clockRate / 1000 << "MHz";
-	_info._generate_arch = deviceProp.major*10+deviceProp.minor;
+	_info._generate_arch = deviceProp.major * 10 + deviceProp.minor;
 	LOG(INFO) << "CUDA Capability : "<< deviceProp.major << "." << deviceProp.minor;
 	_info._max_memory = deviceProp.totalGlobalMem / 1048576;
 	LOG(INFO) << "total global memory: " << deviceProp.totalGlobalMem / 1048576 << "MBytes.";

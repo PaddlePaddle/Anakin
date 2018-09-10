@@ -4,6 +4,13 @@ namespace anakin{
 
 namespace saber{
 
+
+template <typename dtype>
+void axpy_kernel(const int len, const dtype* src, dtype* dst) {
+    if (dst != src) {
+        memcpy(dst, src, sizeof(dtype) * len);
+    }
+}
 template <DataType OpDtype>
 SaberStatus SaberAxpy<X86, OpDtype>::dispatch(const std::vector<Tensor<X86>*>& inputs,
             std::vector<Tensor<X86>*>& outputs, AxpyParam<X86> &param) {
@@ -42,7 +49,7 @@ SaberStatus SaberAxpy<X86, OpDtype>::dispatch(const std::vector<Tensor<X86>*>& i
 }
 
 template class SaberAxpy<X86, AK_FLOAT>;
-DEFINE_OP_TEMPLATE(SaberAxpy, AxpyParam, X86, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberAxpy, AxpyParam, X86, AK_HALF);
 DEFINE_OP_TEMPLATE(SaberAxpy, AxpyParam, X86, AK_INT8);
 } //namespace anakin
 

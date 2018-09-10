@@ -522,61 +522,60 @@ inline int align_up(int a, int b) {
     return (a % b != 0) ? (a - a % b + b) : a;
 }
 
-template <typename TargetType, typename TargetType_H, typename DataTensor>
-void conv_trans_weights(const std::vector<DataTensor *>& inputs,
-    std::vector<DataTensor *>& outputs,
-    ConvParam<TargetType>& param, Context<TargetType> &ctx,
-    bool in_place = false, DataTensor* weight_dev = nullptr) {
+template <typename TargetType, typename TargetType_H>
+void conv_trans_weights(Tensor<TargetType> &target_weights,
+        int stride_h, int stride_w, int group,
+        bool in_place = false, Tensor<TargetType>* weight_dev = nullptr) {
 
     Tensor<TargetType_H> trans_weights_host;
-    if (param.stride_h == 1 &&
-    param.stride_w == 1 &&
-    param.weight()->height() == 3 &&
-    param.weight()->width() == 3 && param.group == 1) {
+    if (stride_h == 1 &&
+    stride_w == 1 &&
+    target_weights.height() == 3 &&
+    target_weights.width() == 3 && group == 1) {
         //Update weights if need
-        Shape weight_shape = param.weight()->shape();
+        Shape weight_shape = target_weights.valid_shape();
         Tensor<TargetType_H> new_weight;
-        new_weight.re_alloc(weight_shape, param.weight()->get_dtype());
-        new_weight.copy_from(*(param.weight()));
+        new_weight.re_alloc(weight_shape, target_weights.get_dtype());
+        new_weight.copy_from(target_weights);
         float *weight_data = (float *)new_weight.mutable_data();
-        int round_in_channel = align_up(inputs[0]->channel(), 8);
-        int round_out_channel = align_up(param.weight()->num(), 32);
+        int round_in_channel = align_up(target_weights.channel(), 8);
+        int round_out_channel = align_up(target_weights.num(), 32);
         int weight4x4_size = round_in_channel * round_out_channel * 4 * 4;
-        Shape old_shape = param.weight()->shape();
-        Shape new_trans_weights_shape({{weight4x4_size, 1, 1 ,1}}, param.weight()->get_layout());
-        trans_weights_host.re_alloc(new_trans_weights_shape, param.weight()->get_dtype());
+        Shape old_shape = target_weights.valid_shape();
+        Shape new_trans_weights_shape({{weight4x4_size, 1, 1 ,1}}, target_weights.get_layout());
+        trans_weights_host.re_alloc(new_trans_weights_shape, target_weights.get_dtype());
         float* _host_work_space = (float*)trans_weights_host.mutable_data();
-        transform_3x3_weight_2_4x4(weight_data, _host_work_space, param.weight()->num(),
-        round_out_channel, inputs[0]->channel(), round_in_channel);
-        Shape new_weights_shape({weight4x4_size, 1, 1, 1}, param.weight()->get_layout());
+        transform_3x3_weight_2_4x4(weight_data, _host_work_space, target_weights.num(),
+        round_out_channel, target_weights.channel(), round_in_channel);
+        Shape new_weights_shape({weight4x4_size, 1, 1, 1}, target_weights.get_layout());
         if (in_place) {
-            param.mutable_weight()->re_alloc(new_weights_shape, param.weight()->get_dtype());
-            param.mutable_weight()->copy_from(trans_weights_host);
-            param.mutable_weight()->set_shape(old_shape);
+            target_weights.re_alloc(new_weights_shape, target_weights.get_dtype());
+            target_weights.copy_from(trans_weights_host);
+            target_weights.set_shape(old_shape);
         } else {
-            weight_dev->re_alloc(new_weights_shape, param.weight()->get_dtype());
+            weight_dev->re_alloc(new_weights_shape, target_weights.get_dtype());
             weight_dev->copy_from(trans_weights_host);
             weight_dev->set_shape(old_shape);
         }
-    } else if (param.group == 1) {
-        int weight_size = (param.weight()->shape()).count();
+    } else if (group == 1) {
+        int weight_size = (target_weights.valid_shape()).count();
         Tensor<TargetType_H> weight_host;
-        weight_host.re_alloc(param.weight()->shape(), param.weight()->get_dtype());
-        weight_host.copy_from(*(param.weight()));
+        weight_host.re_alloc(target_weights.valid_shape(), target_weights.get_dtype());
+        weight_host.copy_from(target_weights);
         const float *weight_data = (const float *)weight_host.data();
-        trans_weights_host.re_alloc(param.weight()->valid_shape(), param.weight()->get_dtype());
+        trans_weights_host.re_alloc(target_weights.valid_shape(), target_weights.get_dtype());
         float* _host_work_space = (float*)trans_weights_host.mutable_data();
 
         transpose_filter_KCRS_2_CRSK(weight_data, _host_work_space, \
-                                                 param.weight()->num(), \
-                                                 param.weight()->channel(), \
-                                                 param.weight()->height(), \
-                                                 param.weight()->width());
+                                                 target_weights.num(), \
+                                                 target_weights.channel(), \
+                                                 target_weights.height(), \
+                                                 target_weights.width());
         if (in_place) {
-            param.mutable_weight()->re_alloc(param.weight()->valid_shape(), param.weight()->get_dtype());
-            param.mutable_weight()->copy_from(trans_weights_host);
+            target_weights.re_alloc(target_weights.valid_shape(), target_weights.get_dtype());
+            target_weights.copy_from(trans_weights_host);
         } else {
-            weight_dev->re_alloc(param.weight()->valid_shape(), param.weight()->get_dtype());
+            weight_dev->re_alloc(target_weights.valid_shape(), target_weights.get_dtype());
             weight_dev->copy_from(trans_weights_host);
         }
 

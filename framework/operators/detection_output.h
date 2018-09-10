@@ -25,28 +25,28 @@ namespace anakin {
 
 namespace ops {
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class DetectionOutputHelper;
 
 //! DetectionOutput op
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class DetectionOutput : public Operator<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class DetectionOutput : public Operator<Ttype, Ptype> {
 public:
     DetectionOutput() {}
 
     //! forward impl
     virtual void operator() (OpContext<Ttype> &ctx, 
-                             const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                             std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-        //LOG(ERROR) << "Not Impl Yet Operator power<TargetType:"<<"unknown"<<","
-         //          <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info()<<">";
+                             const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                             std::vector<Tensor4dPtr<Ttype> >& outs) {
+		LOG(ERROR) << "Not Impl Yet Operator  DetectionOutput<Ttype("
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
-    friend class DetectionOutputHelper<Ttype, Dtype, Ptype>;
+    friend class DetectionOutputHelper<Ttype, Ptype>;
 };
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class DetectionOutputHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class DetectionOutputHelper : public OperatorHelper<Ttype, Ptype> {
 public:
     DetectionOutputHelper()=default;
 
@@ -56,16 +56,16 @@ public:
 
     //! initial all the resource needed by pooling
     Status Init(OpContext<Ttype> &ctx,
-                const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
     //! infer the shape of output and input.
-    Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+    Status InferShape(const std::vector<Tensor4dPtr<Ttype> >& ins,
+                      std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
 public:
-    saber::DetectionOutputParam<Tensor4d<Ttype, Dtype>> _param_detection_output;
-    saber::DetectionOutput<Ttype, Dtype> _funcs_detection_output;
+    saber::DetectionOutputParam<Ttype> _param_detection_output;
+    saber::DetectionOutput<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_detection_output;
 };
 
 } /* namespace ops */

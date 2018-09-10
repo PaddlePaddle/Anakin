@@ -17,10 +17,6 @@ int test_iter = 1;
                 Tensor<NVHX86>& tensor_out, AxpyParam<NV> param){
 template <typename dtype,typename TargetType_D,typename TargetType_H>
 void axpy_nv_basic(const std::vector<Tensor<TargetType_H>*>& inputs,std::vector<Tensor<TargetType_H>*>& outputs,AxpyParam<TargetType_D>& param){
-   // int num = tensor_in.num();
-   // int channel = tensor_in.channel();
-   // int height = tensor_in.height();
-   // int width = tensor_in.width();
     Tensor<TargetType_H>* scale_in = inputs[0];
     Tensor<TargetType_H>* tensor_in = inputs[1];
     Tensor<TargetType_H>* bias_in = inputs[2];
