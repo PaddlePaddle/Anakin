@@ -19,10 +19,14 @@
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/funcs/impl/impl_roi_pooling.h"
+
 #ifdef NVIDIA_GPU
-//#include "saber/funcs/impl/cuda/saber_roi_pool.h"
+#include "saber/funcs/impl/cuda/saber_roi_pool.h"
 #endif
 
+#ifdef USE_X86_PLACE
+#include "saber/funcs/impl/x86/saber_roi_pool.h"
+#endif
 namespace anakin {
 namespace saber {
 
