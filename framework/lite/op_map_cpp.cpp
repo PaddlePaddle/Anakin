@@ -5,7 +5,7 @@ namespace anakin {
 
 namespace lite {
 
-#if 0
+#if 1
 
 std::string not_impl_yet(graph::AttrInfo&, 
 						 std::string& op_class_name, 

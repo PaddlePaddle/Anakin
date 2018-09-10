@@ -5,7 +5,7 @@
 using namespace anakin;
 using namespace anakin::saber;
 using namespace anakin::lite;
-#if 0
+#if 1
 
 void anakin_lite_executer(const char* model_name, const char* model_path, const char* output_path = "./") {
     // constructs 
@@ -28,10 +28,10 @@ int main(int argc, const char** argv){
 	const char* model_name = argv[1];
 	const char* model_path = argv[2];
 	if(argc == 3) {
-//		anakin_lite_executer(model_name, model_path);
+		anakin_lite_executer(model_name, model_path);
 	} else { // > 3
 		const char* output_path = argv[3];
-//		anakin_lite_executer(model_name, model_path, output_path);
+		anakin_lite_executer(model_name, model_path, output_path);
 	}
 	return 0;
 }
