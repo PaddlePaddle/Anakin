@@ -20,13 +20,13 @@
 #include "framework/core/data_types.h"
 #include "framework/core/operator/operator.h"
 #include "utils/logger/logger.h"
-#include "saber/funcs/conv_act_pooling.h"
+#include "saber/funcs/conv_pooling.h"
 
 namespace anakin {
 
 namespace ops {
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class SassConvBatchnormScaleReluPoolHelper;
 
 /// pooling op
@@ -34,20 +34,20 @@ class SassConvBatchnormScaleReluPoolHelper;
  * \brief SassConvBatchnormScaleReluPool implementation class
  * public inherit Operator
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class SassConvBatchnormScaleReluPool : public Operator<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class SassConvBatchnormScaleReluPool : public Operator<Ttype, Ptype> {
 public:
     SassConvBatchnormScaleReluPool() {}
 
     /// forward impl
     virtual void operator() (OpContext<Ttype> &ctx, 
-                             const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                             std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-        LOG(ERROR) << "Not Impl Yet Operator convolution<TargetType:"<<"unknown"<<","
-                   <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info()<<">";
+                             const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                             std::vector<Tensor4dPtr<Ttype> >& outs) {
+		LOG(ERROR) << "Not Impl Yet Operator SassConvBatchnormScaleReluPool< Ttype("
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
-    friend class SassConvBatchnormScaleReluPoolHelper<Ttype, Dtype, Ptype>;
+    friend class SassConvBatchnormScaleReluPoolHelper<Ttype, Ptype>;
 };
 
 /**
@@ -55,8 +55,8 @@ public:
  * public inherit OperatorHelper
  * including init resource and shape size in SassConvBatchnormScaleReluPool context
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class SassConvBatchnormScaleReluPoolHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class SassConvBatchnormScaleReluPoolHelper : public OperatorHelper<Ttype, Ptype> {
 public:
     SassConvBatchnormScaleReluPoolHelper()=default;
 
@@ -72,8 +72,8 @@ public:
     * \return status
     */
     Status Init(OpContext<Ttype> &ctx,
-                const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
     /**
     * \brief infer the shape of output and input.
@@ -81,14 +81,14 @@ public:
     * \param outs stand for output tensor vector
     * \return status
     */
-    Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+    Status InferShape(const std::vector<Tensor4dPtr<Ttype> >& ins,
+                      std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
 public:
     ///< _param_conv_batchnorm_scale_relu_pooling stand for SassConvBatchnormScaleReluPool parameter
-    saber::ConvActivePoolingParam<Tensor4d<Ttype, Dtype>>  _param_conv_batchnorm_scale_relu_pooling;
+    saber::ConvPoolingParam<Ttype>  _param_conv_batchnorm_scale_relu_pooling;
     ///< _funcs_conv_batchnorm_scale_relu_pooling stand for SassConvBatchnormScaleReluPool function
-    saber::ConvActPooling<Ttype, Dtype> _funcs_conv_batchnorm_scale_relu_pooling;
+    saber::ConvPooling<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_conv_batchnorm_scale_relu_pooling;
 
 private:
     ///< _dims stand for SassConvBatchnormScaleReluPool size

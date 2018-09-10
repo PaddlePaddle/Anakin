@@ -54,7 +54,7 @@ SaberStatus VenderConv2DPooling<NV, AK_FLOAT>::dispatch(
 }
 
 template class VenderConv2DPooling<NV, AK_FLOAT>;
-DEFINE_OP_TEMPLATE(VenderConv2DPooling, ConvPoolingParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(VenderConv2DPooling, ConvPoolingParam, NV, AK_HALF);
 DEFINE_OP_TEMPLATE(VenderConv2DPooling, ConvPoolingParam, NV, AK_INT8);
 }
 }

@@ -49,7 +49,7 @@ SaberStatus SaberAxpy<X86, OpDtype>::dispatch(const std::vector<Tensor<X86>*>& i
 }
 
 template class SaberAxpy<X86, AK_FLOAT>;
-DEFINE_OP_TEMPLATE(SaberAxpy, AxpyParam, X86, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberAxpy, AxpyParam, X86, AK_HALF);
 DEFINE_OP_TEMPLATE(SaberAxpy, AxpyParam, X86, AK_INT8);
 } //namespace anakin
 

@@ -50,6 +50,11 @@ public:
             std::vector<Tensor<X86>*>& outputs,
             ConvParam<X86>& param);
 
+    SaberStatus trans_weights(Tensor<X86> &target_weights,
+            int stride_h, int stride_w, int group) {
+        return SaberUnImplError;
+    }
+
 private:
     Impl_t* impl;
 };

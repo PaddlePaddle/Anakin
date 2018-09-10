@@ -118,7 +118,7 @@ SaberStatus VenderFc<X86, OpDtype>
 
     return SaberSuccess;
 }
-DEFINE_OP_TEMPLATE(VenderFc, FcParam, X86, AK_INT16);
+DEFINE_OP_TEMPLATE(VenderFc, FcParam, X86, AK_HALF);
 DEFINE_OP_TEMPLATE(VenderFc, FcParam, X86, AK_INT8);
 } // namespace saber
 } // namespace anakin

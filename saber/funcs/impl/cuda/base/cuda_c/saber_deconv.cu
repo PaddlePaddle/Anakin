@@ -1,7 +1,6 @@
 #include "saber/funcs/impl/cuda/saber_deconv.h"
 #include "saber/funcs/saber_util.h"
 
-
 namespace anakin {
 
 namespace saber {
@@ -124,7 +123,6 @@ __global__ void direct_deconv(const dtype* const din,
     int idx_out = iout * channel_out_stride + ho * wout + wo;
 
     extern __shared__ dtype sharedw[];
-
     dtype val = 0;
 
     if (wo < wout && ho < hout) {
@@ -157,18 +155,14 @@ __global__ void direct_deconv(const dtype* const din,
                 }
             }
         }
-
         //! finnal computation
         if (flag_bias) {
             val += bias_data[cout];
         }
-
         if (flag_act) {
             val = val > (dtype)0 ? val : (dtype)0;
         }
-
         dout[idx_out] = val;
-
     }
 }
 
@@ -196,7 +190,6 @@ __global__ void depthwise_deconv_2d(const int channel_in_stride, const int chann
     if (idx < kernel_size) {
         sharedw[idx] = weight[c * kernel_size + idx];
     }
-
     __syncthreads();
 
     if (wo < wout && ho < hout) {
@@ -210,7 +203,6 @@ __global__ void depthwise_deconv_2d(const int channel_in_stride, const int chann
 
         dtype gradient = 0;
         const dtype* const top_diff_slice = din + i * channel_in_stride;
-
         const dtype* const weight_slice = weight + c * kernel_size;
 
         for (int ph = phstart; ph < phend; ++ph) {
@@ -221,7 +213,6 @@ __global__ void depthwise_deconv_2d(const int channel_in_stride, const int chann
                 //gradient += top_diff_slice[ph * win + pw] * weight_slice[kh * kernel_w + kw];
             }
         }
-
         if (bias_flag) {
             gradient += bias[c];
         }
@@ -233,17 +224,52 @@ __global__ void depthwise_deconv_2d(const int channel_in_stride, const int chann
         dout[index] = gradient;
     }
 }
+
+
+template <>
+SaberStatus SaberDeconv2D<NV, AK_FLOAT>::create(
+        const std::vector<Tensor<NV> *>& inputs,
+        std::vector<Tensor<NV> *>& outputs,
+        ConvParam<NV>& param, Context<NV> &ctx) {
+    _use_k4_s2_p1 = true;
+    _use_k4_s2_p1 = _use_k4_s2_p1 && (param.weight()->width() == 4);
+    _use_k4_s2_p1 = _use_k4_s2_p1 && (param.weight()->height() == 4);
+    _use_k4_s2_p1 = _use_k4_s2_p1 && (param.stride_h == 2);
+    _use_k4_s2_p1 = _use_k4_s2_p1 && (param.stride_w == 2);
+    _use_k4_s2_p1 = _use_k4_s2_p1 && (param.pad_h == 1);
+    _use_k4_s2_p1 = _use_k4_s2_p1 && (param.pad_w == 1);
+    _use_k4_s2_p1 = _use_k4_s2_p1 && (param.group == 1);
+    _use_k4_s2_p1 = _use_k4_s2_p1 && (inputs[0]->width() % 64 == 0);
+    if (_use_k4_s2_p1) {
+        int in_channel = inputs[0]->channel();
+        int out_channel = outputs[0]->channel();
+        scale_to_new_tensor_k4_s2_p1_deconv<4>(param.mutable_weight(),
+                                               in_channel, out_channel);
+        return SaberSuccess;
+    } else {
+        return SaberUnImplError;
+    }
+}
+
+template <>
+SaberStatus SaberDeconv2D<NV, AK_FLOAT>::init(
+        const std::vector<Tensor<NV> *>& inputs,
+        std::vector<Tensor<NV> *>& outputs,
+        ConvParam<NV>& param, Context<NV>& ctx) {
+    this->_ctx = &ctx;
+    return create(inputs, outputs, param, ctx);
+}
+
 template <>
 SaberStatus SaberDeconv2D<NV, AK_FLOAT>::dispatch(\
-        const std::vector<OpTensor*>& inputs,
-        std::vector<OpTensor*>& outputs,
+        const std::vector<Tensor<NV> *>& inputs,
+        std::vector<Tensor<NV> *>& outputs,
         ConvParam<NV>& param) {
     cudaStream_t stream = this->_ctx->get_compute_stream();
-    //! inputs only has one tensor
 
-    const float* din = static_cast<const float*>(inputs[0]->data());
-    float* dout = static_cast<float*>(outputs[0]->mutable_data());
-    const float* weight = static_cast<const float*>(param.weight()->data());
+    const float* din = (const float*)inputs[0]->data();
+    float* dout = (float*)outputs[0]->mutable_data();
+    const float* weight = (const float*)param.weight()->data();
 
     int win = inputs[0]->width();
     int hin = inputs[0]->height();
@@ -256,157 +282,22 @@ SaberStatus SaberDeconv2D<NV, AK_FLOAT>::dispatch(\
     int kernel_w = param.weight()->width();
     int kernel_h = param.weight()->height();
 
-
-    dim3 block(32, 32);
-    int gx = (wout + block.x - 1) / block.x;
-    int gy = (hout + block.y - 1) / block.y;
-    dim3 grid(gx, gy, num * ch_out);
-    int channel_in_stride = hin * win;
-    int channel_out_stride = hout * wout;
-    int kernel_size = kernel_h * kernel_w;
-    int shared_mem_size = kernel_size * sizeof(float);
-
     if (_use_k4_s2_p1) {
-        const float* bias_data = (param.bias()->valid_size() > 0) ?
-                                 static_cast<const float*>(param.bias()->data()) : NULL;
-        const float* weights_data = static_cast<const float*>(param.weight()->data());
+        const float * bias_data = (param.bias()->valid_size() > 0) ?
+                                  (const float*)param.bias()->data() : NULL;
+        const float *weights_data = (const float*)param.weight()->data();
         ker_deconv_implicit_gemm_k4_s2_p1_16x64(dout, din,
                                                 weights_data, bias_data,
                                                 num,
                                                 hin, win, hout, wout,
                                                 ch_in, ch_out, stream);
         return SaberSuccess;
+    } else {
+        return SaberUnImplError;
     }
-
-
-    int _m = ch_out * kernel_w * kernel_h / param.group;
-    int _n = hin * win;
-    int _k = ch_in / param.group;
-    int group = param.group;
-    int group_size_in = win * hin * ch_in / group;
-    int group_size_out = wout * hout * ch_out / group;
-    int group_size_coldata = _m * _n;
-    int group_size_weights = ch_in * ch_out * kernel_w * kernel_h / (group * group);
-    bool with_relu = param.activation_param.active == Active_relu;
-    utils::try_expand_tensor(_workspace_tensor, param.group * _m * _n);
-    float* workspace_ptr = static_cast<float*>(_workspace_tensor.mutable_data());
-    const float* bias_data = (param.bias() != nullptr && param.bias()->valid_size() > 0) ?
-                             static_cast<const float*>(param.bias()->data()) : nullptr;
-    const float* weights_data = static_cast<const float*>(param.weight()->data());
-
-    for (int i = 0; i < num; ++i) {
-        const float* din_batch = din + i * ch_in * hin * win;
-        float* dout_batch = dout + i * ch_out * hout * wout;
-
-        float* col_data = workspace_ptr;
-
-        for (int g = 0; g < param.group; ++g) {
-            const float* din_group = din_batch + g * group_size_in;
-            const float* weights_group = weights_data + g * group_size_weights;
-            float* coldata_group = col_data + g * group_size_coldata;
-            _gemm_wx(_m, _n, _k, 1.f, weights_group, 0.f, din_group, coldata_group, stream);
-        }
-
-
-        col2im_gpu(col_data, ch_out, hout, wout, kernel_h, kernel_w, param.pad_h, param.pad_w, \
-                   param.stride_h, param.stride_w, param.dilation_h, param.dilation_w, \
-                   dout_batch, stream);
-
-        //! add bias
-        if (bias_data != nullptr) {
-            bias_relu(dout_batch, bias_data, ch_out, wout * hout, with_relu, stream);
-        }
-
-        //        LOG(INFO)<<"CPU DECONV grout = "<<param.group;
-        //        print_tensor(weights_host);
-        //        print_tensor(bias_host);
-        //        print_tensor(*inputs[0]);
-        //        print_tensor(workspace_tensor);
-        //        print_tensor(*outputs[0]);
-        //        LOG(INFO)<<"CPU DECONV END";
-    }
-
-#if 0
-
-    if (param.bias() != nullptr && param.bias()->valid_size() > 0) { // deconv with bias
-        const float* bias = static_cast<const float*>(param.bias()->data());
-
-        //! depthwise deconv
-        if (param.group == ch_in && ch_in == ch_out) {
-            //            LOG(ERROR) << "In deconv cu";
-            if (param.activation_param.has_active && param.activation_param.active == Active_relu) {
-                depthwise_deconv_2d<float, true, true> << < grid, block, shared_mem_size, stream >> > (
-                        channel_in_stride, channel_out_stride, kernel_size, \
-                        din, num, ch_in, hin, win, hout, wout, kernel_h, \
-                        kernel_w, param.stride_h, param.stride_w, \
-                        param.pad_h, param.pad_w, \
-                        dout, weight, bias);
-            } else {
-                depthwise_deconv_2d<float, true, false> << < grid, block, shared_mem_size, stream >> > (
-                        channel_in_stride, channel_out_stride, kernel_size, \
-                        din, num, ch_in, hin, win, hout, wout, kernel_h, \
-                        kernel_w, param.stride_h, param.stride_w, \
-                        param.pad_h, param.pad_w, \
-                        dout, weight, bias);
-            }
-        } else {
-            if (param.activation_param.has_active && param.activation_param.active == Active_relu) {
-                direct_deconv<float, true, true> << < grid, block, shared_mem_size, stream >> > \
-                                                 (din, bias, weight, num, ch_in, ch_out, hout, wout, channel_out_stride, \
-                                                  hin, win, channel_in_stride, kernel_h, kernel_w, kernel_size, \
-                                                  param.stride_h, param.stride_w, param.pad_h, param.pad_w, \
-                                                  param.dilation_h, param.dilation_w, dout);
-            } else {
-                direct_deconv<float, true, false> << < grid, block, shared_mem_size, stream >> > \
-                                                  (din, bias, weight, num, ch_in, ch_out, hout, wout, channel_out_stride, \
-                                                   hin, win, channel_in_stride, kernel_h, kernel_w, kernel_size, \
-                                                   param.stride_h, param.stride_w, param.pad_h, param.pad_w, \
-                                                   param.dilation_h, param.dilation_w, dout);
-            }
-        }
-    } else { //deconv without bias
-        //! depthwise deconv
-        if (param.group == ch_in && ch_in == ch_out) {
-            //            LOG(ERROR) << "In deconv cu";
-            if (param.activation_param.has_active && param.activation_param.active == Active_relu) {
-                depthwise_deconv_2d<float, false, true> << < grid, block, shared_mem_size, stream >> > (
-                        channel_in_stride, channel_out_stride, kernel_size, \
-                        din, num, ch_in, hin, win, hout, wout, kernel_h, \
-                        kernel_w, param.stride_h, param.stride_w, \
-                        param.pad_h, param.pad_w, \
-                        dout, weight, nullptr);
-            } else {
-                depthwise_deconv_2d<float, false, false> << < grid, block, shared_mem_size, stream >> > (
-                            channel_in_stride, channel_out_stride, kernel_size, \
-                            din, num, ch_in, hin, win, hout, wout, kernel_h, \
-                            kernel_w, param.stride_h, param.stride_w, \
-                            param.pad_h, param.pad_w, \
-                            dout, weight, nullptr);
-            }
-        } else {
-            //            LOG(INFO)<<"Calling This ";
-            if (param.activation_param.has_active && param.activation_param.active == Active_relu) {
-                direct_deconv<float, false, true> << < grid, block, shared_mem_size, stream >> > \
-                                                  (din, nullptr, weight, num, ch_in, ch_out, hout, wout, channel_out_stride, \
-                                                   hin, win, channel_in_stride, kernel_h, kernel_w, kernel_size, \
-                                                   param.stride_h, param.stride_w, param.pad_h, param.pad_w, \
-                                                   param.dilation_h, param.dilation_w, dout);
-            } else {
-                direct_deconv<float, false, false> << < grid, block, shared_mem_size, stream >> > \
-                                                   (din, nullptr, weight, num, ch_in, ch_out, hout, wout, channel_out_stride, \
-                                                    hin, win, channel_in_stride, kernel_h, kernel_w, kernel_size, \
-                                                    param.stride_h, param.stride_w, param.pad_h, param.pad_w, \
-                                                    param.dilation_h, param.dilation_w, dout);
-            }
-        }
-    }
-
-#endif
-
-    return SaberSuccess;
 }
 template class SaberDeconv2D<NV, AK_FLOAT>;
-DEFINE_OP_TEMPLATE(SaberDeconv2D, ConvParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberDeconv2D, ConvParam, NV, AK_HALF);
 DEFINE_OP_TEMPLATE(SaberDeconv2D, ConvParam, NV, AK_INT8);
 } //namespace anakin
 
