@@ -59,7 +59,7 @@ TEST(TestSaberFunc, test_func_resize){
 
 #ifdef USE_CUDA
 
-    LOG(INFO)<<"cuda test......";
+    LOG(INFO)<<"NV test......";
     //Init the test_base
     TestSaberBase<NV, NVHX86, AK_FLOAT, Resize, ResizeParam> testbase;
     for (int num_in : {3, 5, 8}) {
