@@ -12,7 +12,7 @@ using Target_H = X86;
 #elif defined(USE_ARM_PLACE)
 using Target = ARM;
 using Target_H = ARM;
-#elif defined(USE_AMD)
+#elif defined(AMD_GPU)
 using Target = AMD;
 using Target_H = X86;
 #endif
@@ -31,10 +31,10 @@ TEST(NetTest, nv_net_execute_muti_thread_sync_test) {
 
     workers.launch();
 
-    std::vector<Tensor4dPtr<target_host<NV>::type, AK_FLOAT> > host_tensor_p_in_list;
+    std::vector<Tensor4dPtr<target_host<NV>::type> > host_tensor_p_in_list;
     // get in
     saber::Shape valid_shape_in({1, 384, 960, 3});
-    Tensor4dPtr<target_host<NV>::type, AK_FLOAT> h_tensor_in = new Tensor4d<target_host<NV>::type, AK_FLOAT>(valid_shape_in);
+    Tensor4dPtr<target_host<NV>::type> h_tensor_in = new Tensor4d<target_host<NV>::type, AK_FLOAT>(valid_shape_in);
     float* h_data = h_tensor_in->mutable_data();
     for (int i=0; i<h_tensor_in->size(); i++) {
         h_data[i] = 1.0f;
@@ -74,19 +74,19 @@ TEST(NetTest, nv_net_execute_muti_thread_sync_test) {
 
     workers.launch();
 
-    std::vector<Tensor4dPtr<target_host<NV>::type, AK_FLOAT> > host_tensor_p_in_list;
+    std::vector<Tensor4dPtr<target_host<NV>::type> > host_tensor_p_in_list;
     // get in
     saber::Shape valid_shape_in({1, 384, 960, 3});
-    Tensor4dPtr<target_host<NV>::type, AK_FLOAT> h_tensor_in = new Tensor4d<target_host<NV>::type, AK_FLOAT>(valid_shape_in);
+    Tensor4dPtr<target_host<NV>::type> h_tensor_in = new Tensor4d<target_host<NV>::type, AK_FLOAT>(valid_shape_in);
     float* h_data = h_tensor_in->mutable_data();
     for (int i=0; i<h_tensor_in->size(); i++) {
         h_data[i] = 1.0f;
     }
     host_tensor_p_in_list.push_back(h_tensor_in);
 
-    std::vector<Tensor4dPtr<NV, AK_FLOAT> > device_tensor_p_in_list;
+    std::vector<Tensor4dPtr<NV> > device_tensor_p_in_list;
     for (int i=0; i<host_tensor_p_in_list.size(); i++) {
-        Tensor4dPtr<NV, AK_FLOAT> d_tensor_in = new Tensor4d<NV, AK_FLOAT>(host_tensor_p_in_list[i]->valid_shape());
+        Tensor4dPtr<NV> d_tensor_in = new Tensor4d<NV, AK_FLOAT>(host_tensor_p_in_list[i]->valid_shape());
         d_tensor_in->copy_from(*(host_tensor_p_in_list[i]));
         device_tensor_p_in_list.push_back(d_tensor_in);
     }
@@ -114,17 +114,17 @@ TEST(NetTest, nv_net_execute_muti_thread_sync_test) {
 #if 1
 TEST(NetTest, net_execute_muti_thread_async_test) {
     LOG(WARNING) << "Async Runing multi_threads for model: " << model_path;
-    Worker<NV, AK_FLOAT, Precision::FP32>  workers(model_path, 10); 
+    Worker<NV, Precision::FP32>  workers(model_path, 10); 
     //workers.register_inputs({"input_0"});
     //workers.register_outputs({"softmax_out"});    
     //workers.Reshape("input_0", {1, 384, 960, 3});
 
     workers.launch();
 
-    std::vector<Tensor4dPtr<target_host<NV>::type, AK_FLOAT> > host_tensor_p_in_list;
+    std::vector<Tensor4dPtr<target_host<NV>::type> > host_tensor_p_in_list;
     // get in
     /*saber::Shape valid_shape_in({1, 384, 960, 3});
-    Tensor4dPtr<target_host<NV>::type, AK_FLOAT> h_tensor_in = new Tensor4d<target_host<NV>::type, AK_FLOAT>(valid_shape_in);
+    Tensor4dPtr<target_host<NV>::type> h_tensor_in = new Tensor4d<target_host<NV>::type, AK_FLOAT>(valid_shape_in);
     float* h_data = h_tensor_in->mutable_data();
     for (int i=0; i<h_tensor_in->size(); i++) {
         h_data[i] = 1.0f;

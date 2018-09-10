@@ -104,6 +104,12 @@ public:
     virtual SaberStatus dispatch(const std::vector<Tensor<NV>*>& inputs,
                                  std::vector<Tensor<NV>*>& outputs,
                                  ConvParam<NV>& param);
+
+    SaberStatus trans_weights(Tensor<NV> &target_weights,
+            int stride_h, int stride_w, int group) {
+        return SaberUnImplError;
+    }
+
     void set_beta(float beta) {
         _beta = beta;
     }

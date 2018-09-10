@@ -18,7 +18,7 @@ namespace anakin{
 
 namespace saber{
 
-#ifdef USE_AMD
+#ifdef AMD_GPU
 
 
 typedef TargetWrapper<AMD> AMD_API;
@@ -191,7 +191,7 @@ void AMD_ENV::pop(){
 
 //template void AMD_ENV::evn_init();
 
-#endif //USE_AMD
+#endif // AMD_GPU
 
 } //namespace saber
 } //namespace anakin

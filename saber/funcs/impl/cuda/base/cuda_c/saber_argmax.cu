@@ -673,6 +673,6 @@ SaberStatus SaberArgmax<NV, AK_FLOAT>::dispatch( \
     return SaberSuccess;
 }
 DEFINE_OP_TEMPLATE(SaberArgmax, ArgmaxParam, NV, AK_INT8);
-DEFINE_OP_TEMPLATE(SaberArgmax, ArgmaxParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberArgmax, ArgmaxParam, NV, AK_HALF);
 }
 }

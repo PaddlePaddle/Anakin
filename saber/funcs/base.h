@@ -170,7 +170,7 @@ private:
     //typedef std::unordered_map<Param_t, Impl*> static_map;
     virtual void pick_best_static() = 0;
 
-    virtual void pick_best_runtime(const Input_v input, Output_v output, Param_t& param, \
+    virtual void pick_best_runtime(const Input_v& input, Output_v& output, Param_t& param, \
         Context<TargetType> &ctx) {
 
         float time_cost = 99999.f;

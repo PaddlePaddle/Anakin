@@ -62,14 +62,14 @@ TEST(TestSaberFunc, test_func_resize){
 
 #ifdef USE_CUDA
     //Init the test_base
-    TestSaberBase<NV,NVHX86,AK_FLOAT,Resize, ResizeParam> testbase;
-    for(int num_in:{1,3,32}){
-        for(int c_in:{1,3,128}){
-            for(int h_in:{2,3,256}){
-                for(int w_in:{2,3,64}){
-                    for(float scale_w:{1.0,2.0,3.3}){
-                        for(float scale_h:{1.0,2.0,4.4}){
-                                LOG(INFO)<<scale_w<<"   "<< scale_h;
+    TestSaberBase<NV, NVHX86, AK_FLOAT, Resize, ResizeParam> testbase;
+    for (int num_in : {1, 3, 5, 8}) {
+        for (int c_in : {1, 3, 5, 8}) {
+            for (int h_in : {2, 3, 5, 8}) {
+                for (int w_in : {2, 3, 5, 8}) {
+                    for (float scale_w : {1.0f, 2.0f, 3.3f}) {
+                        for (float scale_h : {1.0f, 2.0f, 4.4f}) {
+                                LOG(INFO) << scale_w << "   " << scale_h;
                                 ResizeParam<NV> param(scale_w, scale_h);
                                 testbase.set_param(param);
                                 testbase.set_input_shape(Shape({num_in, c_in, h_in, w_in}));

@@ -6,15 +6,15 @@ namespace ops {
 
 #ifdef USE_CUDA
 template<>
-void SassConvBatchnormScale<NV, AK_FLOAT, Precision::FP32>::operator()(
+void SassConvBatchnormScale<NV, Precision::FP32>::operator()(
     OpContext<NV>& ctx,
-    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
-    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    auto* impl = static_cast<SassConvBatchnormScaleHelper<NV, AK_FLOAT, Precision::FP32>*>
+    const std::vector<Tensor4dPtr<NV> >& ins,
+    std::vector<Tensor4dPtr<NV> >& outs) {
+    auto* impl = static_cast<SassConvBatchnormScaleHelper<NV, Precision::FP32>*>
                  (this->_helper);
-    auto& param = static_cast<SassConvBatchnormScaleHelper<NV, AK_FLOAT, Precision::FP32>*>
-                  (this->_helper)->_param_conv_batchnorm_scale_relu;
-    impl->_funcs_conv_batchnorm_scale_relu(ins, outs, param, ctx);
+    auto& param = static_cast<SassConvBatchnormScaleHelper<NV, Precision::FP32>*>
+                  (this->_helper)->_param_conv_batchnorm_scale;
+    impl->_funcs_conv_batchnorm_scale(ins, outs, param, ctx);
 }
 #endif
 
@@ -22,14 +22,13 @@ void SassConvBatchnormScale<NV, AK_FLOAT, Precision::FP32>::operator()(
 
 
 /// set helper
-template<typename Ttype, DataType Dtype, Precision Ptype>
-SassConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::~SassConvBatchnormScaleHelper() {
+template<typename Ttype, Precision Ptype>
+SassConvBatchnormScaleHelper<Ttype, Ptype>::~SassConvBatchnormScaleHelper() {
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status SassConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::InitParam() {
+template<typename Ttype, Precision Ptype>
+Status SassConvBatchnormScaleHelper<Ttype, Ptype>::InitParam() {
     LOG(WARNING) << "Parsing SassConvBatchnormScale op parameter.";
-    saber::ConvParam<Tensor4d<Ttype, Dtype>> _conv_param;
 
     // get conv param
     auto group = GET_PARAMETER(int, group);
@@ -42,25 +41,9 @@ Status SassConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto axis = GET_PARAMETER(int, axis);
 
 	
-	using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
+	using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
-
-    if (bias_term) {
-        auto bias = GET_PARAMETER(pblock_type, weight_2);
-        saber::ConvParam<Tensor4d<Ttype, Dtype>> conv_param(group, padding[0], padding[1],
-                                              strides[0], strides[1],
-                                              dilation_rate[0], dilation_rate[1],
-                                              &(weights.d_tensor()), &(bias.d_tensor()));
-        _conv_param = conv_param;
-    } else {
-        Tensor4d<Ttype, Dtype>* bias = new Tensor4d<Ttype, Dtype>();;
-        saber::ConvParam<Tensor4d<Ttype, Dtype>> conv_param(group, padding[0], padding[1],
-                                              strides[0], strides[1],
-                                              dilation_rate[0], dilation_rate[1],
-                                              &(weights.d_tensor()), bias);
-        _conv_param = conv_param;
-    }
-
+    auto weights_shape = weights.shape();
 
     // get batchnorm param
     auto epsilon = GET_PARAMETER(float, batchnorm_0_epsilon);
@@ -71,10 +54,7 @@ Status SassConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto batch_norm_weight_2_vector = batch_norm_weight_2.vector();
     auto batch_norm_weight_3 = GET_PARAMETER(pblock_type, batchnorm_0_weight_3);
     auto batch_norm_weight_3_vector = batch_norm_weight_3.vector();
-    BatchnormParam<Tensor4d<Ttype, Dtype>> batchnorm_param(batch_norm_weight_1_vector,
-                                        batch_norm_weight_2_vector,
-                                        batch_norm_weight_3_vector[0],
-                                        momentum, epsilon);
+
     // get scale param
     auto scale_num_axes = GET_PARAMETER(int, scale_0_num_axes);
     auto scale_bias_term = GET_PARAMETER(bool, scale_0_bias_term);
@@ -83,88 +63,134 @@ Status SassConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto scale_weight_1_vector = scale_weight_1.vector();
     auto scale_weight_2 = GET_PARAMETER(pblock_type, scale_0_weight_2);
     auto  scale_weight_2_vector = scale_weight_2.vector();
-    saber::ScaleParam<Tensor4d<Ttype, Dtype>> scale_param(scale_weight_1_vector,  scale_weight_2_vector,
-                                           scale_bias_term, scale_axis, scale_num_axes);
 
-    // get relu param
-    //auto alpha = GET_PARAMETER(float, relu_0_alpha);
-    //ActivationParam<Tensor4d<Ttype, Dtype>> active_param(Active_relu);//, alpha); // TEMP
+    // check if batchnorm parameters have been optimized 
+    auto is_param_updated = CHECK_PARAMETER(is_param_updated);
+    if(!is_param_updated) {
+        SET_PARAMETER(is_param_updated, true, bool);
+        if(bias_term) {
+            auto bias = GET_PARAMETER(pblock_type, weight_2);
+            graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(update_weights<float, Ttype>,
+                                                                  weights,bias,
+                                                                  weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3], 
+                                                                  true,
+                                                                  batch_norm_weight_3_vector[0], epsilon, 
+                                                                  batch_norm_weight_1_vector, 
+                                                                  batch_norm_weight_2_vector, 
+                                                                  scale_weight_1_vector,
+                                                                  scale_weight_2_vector, 
+                                                                  scale_bias_term);
+            saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
+                                               strides[0], strides[1],
+                                               dilation_rate[0], dilation_rate[1],
+                                               &(weights.d_tensor()), &(bias.d_tensor()));
+            _param_conv_batchnorm_scale = conv_param;
+        } else {
+            pblock_type* bias = new pblock_type();
+            SET_PARAMETER(bias_term, true, bool); // set attr bias_term true
+            SET_PARAMETER(weight_2, *bias, pblock_type); // gen new bias
 
-	// check if conv has eltwise_relu op attr
-	if(check_attr("merge_type")) {
-		LOG(ERROR) << "detect eltwise relu!!!!!!!! ";
-		auto type = GET_PARAMETER(std::string, merge_type);
-    	auto alpha = GET_PARAMETER(float, merge_relu_0_alpha);
-    	auto coeff = GET_PARAMETER(PTuple<float>, merge_coeff);
-    	ActivationParam<Tensor4d<Ttype, Dtype>> activation_param(Active_relu);
-    	EltwiseType elt_type;
-    	if (type == "Add") {
-        	elt_type = Eltwise_sum;
-    	} else if (type == "Max") {
-        	elt_type = Eltwise_max;
-    	} else {
-        	elt_type = Eltwise_prod;
-    	}
-    	saber::EltwiseParam<Tensor4d<Ttype, Dtype>>  eltwise_param(elt_type, coeff.vector());
-    	EltwiseActiveParam<Tensor4d<Ttype, Dtype>> eltwise_relu_param(eltwise_param, activation_param);
+            graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(update_weights<float, Ttype>,
+                                                                  weights, *bias,
+                                                                  weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3], 
+                                                                  false,
+                                                                  batch_norm_weight_3_vector[0], epsilon, 
+                                                                  batch_norm_weight_1_vector, 
+                                                                  batch_norm_weight_2_vector, 
+                                                                  scale_weight_1_vector,
+                                                                  scale_weight_2_vector, 
+                                                                  scale_bias_term);
+            saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
+                                               strides[0], strides[1],
+                                               dilation_rate[0], dilation_rate[1],
+                                               &(weights.d_tensor()), &(bias->d_tensor()));
+            _param_conv_batchnorm_scale = conv_param;
+        }
+    } else {
+        auto bias = GET_PARAMETER(pblock_type, weight_2);
+        saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
+                                               strides[0], strides[1],
+                                               dilation_rate[0], dilation_rate[1],
+                                               &(weights.d_tensor()), &(bias.d_tensor())); 
+        _param_conv_batchnorm_scale = conv_param;
 
-		ConvActiveParam<Tensor4d<Ttype, Dtype>> conv_act_param(_conv_param, batchnorm_param, scale_param, eltwise_relu_param);
-		_param_conv_batchnorm_scale_relu = conv_act_param;
-	} else { 
-		ConvActiveParam<Tensor4d<Ttype, Dtype>> conv_act_param(_conv_param, batchnorm_param, scale_param); 
-		_param_conv_batchnorm_scale_relu = conv_act_param;
-	}
+    }
 
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status SassConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
-        const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-    _funcs_conv_batchnorm_scale_relu.init(ins, outs, _param_conv_batchnorm_scale_relu, SPECIFY, SABER_IMPL, ctx);
+template<typename Ttype, Precision Ptype>
+Status SassConvBatchnormScaleHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
+        const std::vector<Tensor4dPtr<Ttype> >& ins,
+        std::vector<Tensor4dPtr<Ttype> >& outs) {
+    auto group = GET_PARAMETER(int, group);
+    auto strides = GET_PARAMETER(PTuple<int>, strides);
+    auto weights = GET_PARAMETER(PBlock<Ttype>, weight_1);
+    _funcs_conv_batchnorm_scale.init(ins, outs, _param_conv_batchnorm_scale, SPECIFY, SABER_IMPL, ctx);
+
+    // check if weights have been transposed
+    auto is_weights_transed = CHECK_PARAMETER(is_weights_transed);
+    if(!is_weights_transed) {
+        SET_PARAMETER(is_weights_transed, true, bool);
+        graph::GraphGlobalMem<Ttype>::Global().template apply<Level_1>(
+                                    std::bind(&Conv<Ttype, PrecisionWrapper<Ptype>::saber_type>::trans_weights, 
+                                    &_funcs_conv_batchnorm_scale, _1, _2, _3, _4, _5),
+                                    weights.d_tensor(), 
+                                    strides[0], strides[1], 
+                                    group, 
+                                    SABER_IMPL);
+        weights.map_to_host();
+
+    } else {
+        PBlock<Ttype> weight_empty;
+        graph::GraphGlobalMem<Ttype>::Global().template apply<Level_1>(
+                                    std::bind(&Conv<Ttype, PrecisionWrapper<Ptype>::saber_type>::trans_weights, 
+                                    &_funcs_conv_batchnorm_scale, _1, _2, _3, _4, _5),
+                                    weight_empty.d_tensor(), 
+                                    strides[0], strides[1], 
+                                    group, 
+                                    SABER_IMPL);
+    }
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status SassConvBatchnormScaleHelper<Ttype, Dtype, Ptype>::InferShape(
-    const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-    std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-    _funcs_conv_batchnorm_scale_relu.compute_output_shape(ins, outs, _param_conv_batchnorm_scale_relu);
+template<typename Ttype, Precision Ptype>
+Status SassConvBatchnormScaleHelper<Ttype, Ptype>::InferShape(
+    const std::vector<Tensor4dPtr<Ttype> >& ins,
+    std::vector<Tensor4dPtr<Ttype> >& outs) {
+    _funcs_conv_batchnorm_scale.compute_output_shape(ins, outs, _param_conv_batchnorm_scale);
     return Status::OK();
 }
 
 #ifdef USE_CUDA
-template class SassConvBatchnormScaleHelper<NV, AK_FLOAT, Precision::FP32>;
-template class SassConvBatchnormScaleHelper<NV, AK_FLOAT, Precision::FP16>;
-template class SassConvBatchnormScaleHelper<NV, AK_FLOAT, Precision::INT8>;
+template class SassConvBatchnormScaleHelper<NV, Precision::FP32>;
+template class SassConvBatchnormScaleHelper<NV, Precision::FP16>;
+template class SassConvBatchnormScaleHelper<NV, Precision::INT8>;
 #endif
 
 #ifdef USE_ARM_PLACE
-template class SassConvBatchnormScaleHelper<ARM, AK_FLOAT, Precision::FP32>;
-template class SassConvBatchnormScaleHelper<ARM, AK_FLOAT, Precision::FP16>;
-template class SassConvBatchnormScaleHelper<ARM, AK_FLOAT, Precision::INT8>;
+template class SassConvBatchnormScaleHelper<ARM, Precision::FP32>;
+template class SassConvBatchnormScaleHelper<ARM, Precision::FP16>;
+template class SassConvBatchnormScaleHelper<ARM, Precision::INT8>;
 #endif
 
 // register helper
 #ifdef USE_CUDA
-ANAKIN_REGISTER_OP_HELPER(SassConvBatchnormScale, SassConvBatchnormScaleHelper, NV,
-                          AK_FLOAT, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(SassConvBatchnormScale, SassConvBatchnormScaleHelper, NV, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE
-ANAKIN_REGISTER_OP_HELPER(SassConvBatchnormScale, SassConvBatchnormScaleHelper, ARM,
-                          AK_FLOAT, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(SassConvBatchnormScale, SassConvBatchnormScaleHelper, ARM, Precision::FP32);
 #endif
 
 //! register op
 ANAKIN_REGISTER_OP(SassConvBatchnormScale)
 .Doc("SassConvBatchnormScale fusion operator")
 #ifdef USE_CUDA
-.__alias__<NV, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale_relu")
+.__alias__<NV, Precision::FP32>("convolution_batchnorm_scale_relu")
 #endif
 #ifdef USE_ARM_PLACE
-.__alias__<ARM, AK_FLOAT, Precision::FP32>("convolution_batchnorm_scale_relu")
+.__alias__<ARM, Precision::FP32>("convolution_batchnorm_scale_relu")
 #endif
 .num_in(1)
 .num_out(1)

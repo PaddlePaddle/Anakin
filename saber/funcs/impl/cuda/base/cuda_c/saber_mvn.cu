@@ -233,7 +233,7 @@ SaberStatus SaberMvn<NV, OpDtype>::dispatch(\
 
     return SaberSuccess;
 }
-DEFINE_OP_TEMPLATE(SaberMvn, MvnParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberMvn, MvnParam, NV, AK_HALF);
 DEFINE_OP_TEMPLATE(SaberMvn, MvnParam, NV, AK_INT8);
 }
 }
