@@ -85,14 +85,14 @@ SaberStatus SaberLrn<X86, OpDtype>::dispatch(\
     int size = param.local_size;
     int pre_pad = (size - 1) / 2;
 
-    for (int i = 0; i < N; i++) {
-        offset_num = i * C * H * W;
-        for (int j = 0; j < C; j++) {
-            for (int l = 0; l < H; l++) {
-                for (int m = 0; m < W; m++) {
-                    offset_within_channel = l * W + m;
-                    dst_id = offset_num + j * H * W + offset_within_channel;
-                    square = lrn_square<OpDataType, X86>(*inputs[0], j, offset_within_channel, offset_num, C, H, W, size);
+    for (int i = 0; i < _N; i++) {
+        offset_num = i * _C * _H * _W;
+        for (int j = 0; j < _C; j++) {
+            for (int l = 0; l < _H; l++) {
+                for (int m = 0; m < _W; m++) {
+                    offset_within_channel = l * _W + m;
+                    dst_id = offset_num + j * _H * _W + offset_within_channel;
+                    square = lrn_square<OpDataType, X86>(*inputs[0], j, offset_within_channel, offset_num, _C, _H, _W, size);
                     dst[dst_id] = src[dst_id] * pow(param.k + param.alpha * square, -param.beta);
                 }
             }

@@ -43,10 +43,10 @@ public:
                                std::vector<Tensor<X86> *>& outputs,
                                LrnParam<X86> &crop_param,
                                Context<X86> &ctx) {
-        N = inputs[0]->num();
-        C = inputs[0]->channel();
-        H = inputs[0]->height();
-        W = inputs[0]->width();
+        _N = inputs[0]->num();
+        _C = inputs[0]->channel();
+        _H = inputs[0]->height();
+        _W = inputs[0]->width();
         return SaberSuccess;
     }
 
@@ -55,10 +55,10 @@ public:
                                  LrnParam<X86> &param);
 
 private:
-    int N;
-    int C;
-    int H;
-    int W;
+    int _N;
+    int _C;
+    int _H;
+    int _W;
 };
 
 } //namespace saber

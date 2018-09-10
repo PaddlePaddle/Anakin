@@ -72,7 +72,7 @@ TEST(TestSaberFunc, test_op_mvn) {
     bool normalize_variance{true};
     bool across_channels{false};
     float eps{1e-9};
- 
+
 #ifdef USE_CUDA
     TestSaberBase<NV, NVHX86, AK_FLOAT, Mvn, MvnParam> testbase;
     for(int w_in : {8, 8, 16}) {

@@ -119,7 +119,7 @@ private:
     float beta{0.0f};
 };
 
-} //namespace saber
+} //namespace saber.
 
 } //namespace anakin
 
