@@ -1,5 +1,5 @@
 # Parser的编写指南
-下文称Anakin为AK，运算操作为OP,本文参考Tensorflow的Parser编写,参考代码目录为tools/external_converter_v2/parser/kill_tf
+下文称Anakin为AK，运算操作为OP,本文参考Tensorflow的Parser编写,参考代码目录为tools/external_converter_v2/parser/tensorflow
 ## Parser的功能和执行流程
 功能是将其他深度学习框架(如CAFFE，FLUID，TENSORFLOW，ONNEX)的模型转换为AK的模型.对AK的作用是屏蔽不同框架间的差异，这种差异包括模型存储、OP的定义、图差异
 因此Parser的执行流程是：
@@ -12,11 +12,11 @@ Parser工具在tools/external_converter_v2/parser目录下
 Parser的目录主要包含3部分:
 1. Parser的运行配置文件包括 config.py, config.yaml, converter.py, 用户只用执行converter.py，Parser就会按照config.yaml中的声明去解析模型
 2. Parser的公共定义，包括operations,pbs,proto三个目录. Parser的公共工具函数 graph*.py logger.py utils.py
-3. 各个框架对应的Parser，其目录的命名方式为kill_*,如kill_caffe
+3. 各个框架对应的Parser，其目录的命名方式为框架名,如caffe, tensorflow
 ## Parser的编写流程
 ### 1、声明你的Parser
 1. 在config.yaml中填写你的Parser运行的必要信息，包括ProtoPath和SavePath等.OPTIONS/Framework改为你的Parser的类型，TARGET下填写对应的参数列表
-2. 添加你的Parser目录，如kill_tf，导出你的Parser符号.注意，Parser的框架默认调用你的Parser类中的__call__方法来执行解析，这个方法需要返回填写完毕的GraphProtoIO对象
+2. 添加你的Parser目录，如tensorflow，导出你的Parser符号.注意，Parser的框架默认调用你的Parser类中的__call__方法来执行解析，这个方法需要返回填写完毕的GraphProtoIO对象
 3. 在config.py中Configuration下__init__函数中增加对你的Parser的调用，将yaml中读取的配置信息传给你的Parser，此处调用你的Parser中的__init__方法
 ### 2、添加你的Parser主体
 可以参考parser_tf.py
