@@ -41,6 +41,8 @@ anakin_add_compile_option(-Wshadow)
 anakin_add_compile_option(-fpermissive)
 anakin_add_compile_option(-Wsign-promo)
 anakin_add_compile_option(-fdiagnostics-show-option)
+anakin_add_compile_option(-Wno-missing-field-initializers)
+anakin_add_compile_option(-Wno-extra)
 
 if(ENABLE_NOISY_WARNINGS)
 	anakin_add_compile_option(-Wcast-align)
