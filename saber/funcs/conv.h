@@ -34,7 +34,7 @@
 #endif
 
 #ifdef USE_BM_PLACE
-#include "saber/funcs/impl/bm/vender_conv.h"
+//#include "saber/funcs/impl/bm/vender_conv.h"
 #endif
 namespace anakin {
 namespace saber {
