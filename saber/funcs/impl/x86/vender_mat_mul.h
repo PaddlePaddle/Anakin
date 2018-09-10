@@ -105,7 +105,7 @@ public:
                                  MatMulParam<X86>  &param);
 
 private:
-    CBLAS_LAYOUT layout; //CblasRowMajor or CblasColMajor
+    CBLAS_LAYOUT layout; //CblasRowMajor or CblasColMajor.
     CBLAS_TRANSPOSE transa; //matrix A whether to tranpose.
     CBLAS_TRANSPOSE transb; //matrix B whether to tranpose.
     int batch;

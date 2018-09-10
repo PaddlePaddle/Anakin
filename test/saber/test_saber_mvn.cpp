@@ -28,7 +28,7 @@ void mvn_cpu_base(const std::vector<Tensor<TargetType_H>* > &input, std::vector<
     int C = input[0]->channel();
     int H = input[0]->height();
     int W = input[0]->width();
-
+    
     const dtype* src = (const dtype*)input[0]->data();
     dtype* dst = (dtype*)output[0]->mutable_data();
     int num = N * C;
@@ -72,7 +72,7 @@ TEST(TestSaberFunc, test_op_mvn) {
     bool normalize_variance{true};
     bool across_channels{false};
     float eps{1e-9};
-    
+ 
 #ifdef USE_CUDA
     TestSaberBase<NV, NVHX86, AK_FLOAT, Mvn, MvnParam> testbase;
     for(int w_in : {8, 8, 16}) {

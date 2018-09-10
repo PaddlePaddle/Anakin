@@ -107,7 +107,7 @@ TEST(TestSaberFunc, test_op_mat_mul) {
 #ifdef USE_CUDA
     //2 inputs
     TestSaberBase<NV, NVHX86, AK_FLOAT, MatMul, MatMulParam> testbase(input_num);
-
+    
     for(int w_in : {2, 8, 16}) {
         for(int h_in : {2, 8, 32}){
             for(int ch_in : {2, 3, 8, 64}){

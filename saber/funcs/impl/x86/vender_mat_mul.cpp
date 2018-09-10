@@ -17,7 +17,6 @@ SaberStatus SaberMatMul<X86, OpDtype>::dispatch(
     OpDataType* dst = (OpDataType*)outputs[0]->mutable_data();
  
     for (int i = 0; i < batch; i++) {
-        
         cblas_sgemm(layout, transa, transb, M, N, K, alpha, src0 + i * M * K, lda, src1 + i * K * N, ldb, beta, dst + i * M * N, ldc);
     }
 }
