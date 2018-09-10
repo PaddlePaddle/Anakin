@@ -48,15 +48,15 @@ SaberStatus SaberRoiPool<X86, OpDtype>::dispatch(\
                         int out_id = n * _out_n_stride + c * _out_c_stride + h * _out_h_stride + w * _out_w_stride;
                         bool is_empty = (h_start >= h_end) || (w_start >= w_end);
                         float max = is_empty ? 0.0f : std::numeric_limits<float>::min();
-						int max_idx = -1;
+                        int max_idx = -1;
                         for(int j = h_start; j < h_end; ++j){
                             for(int i = w_start; i < w_end; ++i){
-								int in_id = in_index + i * _in_w_stride + j * _in_h_stride;
+                                int in_id = in_index + i * _in_w_stride + j * _in_h_stride;
                                 float data_in = in_data[in_id];
                                 if(data_in > max){
                                     max = data_in;
-				    				max_idx = in_id;
-								}
+                                    max_idx = in_id;
+                                }
                             }
                         }
                         out_data[out_id] = max;
