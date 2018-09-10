@@ -155,7 +155,7 @@ SaberStatus VenderPermutePower<NV, AK_FLOAT>::\
 
         return SaberSuccess;
 }
-DEFINE_OP_TEMPLATE(VenderPermutePower, PermutePowerParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(VenderPermutePower, PermutePowerParam, NV, AK_HALF);
 DEFINE_OP_TEMPLATE(VenderPermutePower, PermutePowerParam, NV, AK_INT8);
 } //namespace saber
 

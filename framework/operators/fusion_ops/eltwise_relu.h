@@ -20,13 +20,13 @@
 #include "framework/core/data_types.h"
 #include "framework/core/operator/operator.h"
 #include "utils/logger/logger.h"
-#include "saber/funcs/eltwise_act.h"
+#include "saber/funcs/eltwise.h"
 
 namespace anakin {
 
 namespace ops {
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class EltwiseReluHelper;
 
 /// pooling op
@@ -34,20 +34,20 @@ class EltwiseReluHelper;
  * \brief EltwiseRelu implementation class
  * public inherit Operator
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class EltwiseRelu : public Operator<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class EltwiseRelu : public Operator<Ttype, Ptype> {
 public:
     EltwiseRelu() {}
 
     /// forward impl
     virtual void operator() (OpContext<Ttype> &ctx, 
-                             const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                             std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-        LOG(ERROR) << "Not Impl Yet Operator convolution<TargetType:"<<"unknown"<<","
-                   <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info()<<">";
+                             const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                             std::vector<Tensor4dPtr<Ttype> >& outs) {
+		LOG(ERROR) << "Not Impl Yet Operator EltwiseRelu< Ttype("
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
-    friend class EltwiseReluHelper<Ttype, Dtype, Ptype>;
+    friend class EltwiseReluHelper<Ttype, Ptype>;
 };
 
 /**
@@ -55,8 +55,8 @@ public:
  * public inherit OperatorHelper
  * including init resource and shape size in EltwiseRelu context
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class EltwiseReluHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class EltwiseReluHelper : public OperatorHelper<Ttype, Ptype> {
 public:
     EltwiseReluHelper()=default;
 
@@ -72,8 +72,8 @@ public:
     * \return status
     */
     Status Init(OpContext<Ttype> &ctx,
-                const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
     /**
     * \brief infer the shape of output and input.
@@ -81,14 +81,14 @@ public:
     * \param outs stand for output tensor vector
     * \return status
     */
-    Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+    Status InferShape(const std::vector<Tensor4dPtr<Ttype> >& ins,
+                      std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
 public:
     ///< _param_eltwise_relu stand for EltwiseRelu parameter
-    saber::EltwiseActiveParam<Tensor4d<Ttype, Dtype>>  _param_eltwise_relu;
+    saber::EltwiseParam<Ttype>  _param_eltwise_relu;
      ///< _funcs_eltwise_relu stand for EltwiseRelu function
-    saber::EltwiseActive<Ttype, Dtype> _funcs_eltwise_relu;
+    saber::Eltwise<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_eltwise_relu;
 
 private:
     ///< _dims stand for EltwiseRelu size
