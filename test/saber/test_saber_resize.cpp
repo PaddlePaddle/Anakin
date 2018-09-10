@@ -73,7 +73,7 @@ TEST(TestSaberFunc, test_func_resize){
                                 ResizeParam<NV> param(scale_w, scale_h);
                                 testbase.set_param(param);
                                 testbase.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
-                                testbase.run_test(resize_cpu<float, NV, NVHX86>);
+                                testbase.run_test(resize_cpu<float, NV, NVHX86>, 0.0001);
                         }
                     }
                 }
