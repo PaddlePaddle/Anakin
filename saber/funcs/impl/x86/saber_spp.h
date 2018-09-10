@@ -1,9 +1,7 @@
 /* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
-
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
-
        http://www.apache.org/licenses/LICENSE-2.0
    
    Unless required by applicable law or agreed to in writing, software
@@ -13,8 +11,8 @@
    limitations under the License. 
 */
 
-#ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_SPP_H
-#define ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_SPP_H
+#ifndef ANAKIN_SABER_FUNCS_IMPL_X86_SABER_SPP_H
+#define ANAKIN_SABER_FUNCS_IMPL_X86_SABER_SPP_H
 #include "saber/funcs/pooling.h"
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/funcs/impl/impl_spp.h"
@@ -23,18 +21,18 @@ namespace anakin{
 
 namespace saber{
 template <DataType OpDtype>
-class SaberSpp<NV, OpDtype>:
-    public ImplBase<NV, OpDtype, SPPParam<NV>> {
+class SaberSpp<X86, OpDtype>:
+    public ImplBase<X86, OpDtype, SPPParam<X86>> {
 
 public:
-    typedef Tensor<NV> DataTensor_in;
-    typedef Tensor<NV> DataTensor_out;
-    typedef Tensor<NV> OpTensor;
+    typedef Tensor<X86> DataTensor_in;
+    typedef Tensor<X86> DataTensor_out;
+    typedef Tensor<X86> OpTensor;
 
-    typedef typename DataTrait<NV, OpDtype>::Dtype InDataType;
-    typedef typename DataTrait<NV, OpDtype>::Dtype OutDataType;
-    typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
-    typedef Pooling<NV, OpDtype> Pooling_t;
+    typedef typename DataTrait<X86, OpDtype>::Dtype InDataType;
+    typedef typename DataTrait<X86, OpDtype>::Dtype OutDataType;
+    typedef typename DataTrait<X86, OpDtype>::Dtype OpDataType;
+    typedef Pooling<X86, OpDtype> Pooling_t;
 
     SaberSpp()
     {}
@@ -53,8 +51,8 @@ public:
 
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
                              std::vector<DataTensor_out*>& outputs,
-                             SPPParam<NV> &param,
-                             Context<NV> &ctx)  {
+                             SPPParam<X86> &param,
+                             Context<X86> &ctx)  {
         this->_ctx = &ctx;
         _pooling.clear();
         _pooling_output.clear();
@@ -70,7 +68,7 @@ public:
              int window_w = std::ceil(inputs[0]->width() / static_cast<double>(num_bins));
              int pad_h = (window_h * num_bins - inputs[0]->height() + 1) / 2;
              int pad_w = (window_w * num_bins - inputs[0]->width() + 1) / 2;
-             PoolingParam<NV> pool_param(window_h, window_w, pad_h, pad_w
+             PoolingParam<X86> pool_param(window_h, window_w, pad_h, pad_w
             , window_h, window_w, param.pool_type);
 
              Shape valid_shape = outputs[0]->valid_shape();
@@ -80,7 +78,7 @@ public:
              _pooling_output[i] = new DataTensor_out(valid_shape);
              std::vector<DataTensor_out*> pool_outputs = {_pooling_output[i]};
              _pooling[i]->compute_output_shape(inputs, pool_outputs, pool_param);
-             _pooling[i]->init(inputs, pool_outputs, pool_param, SPECIFY, VENDER_IMPL, ctx);
+             _pooling[i]->init(inputs, pool_outputs, pool_param, SPECIFY, SABER_IMPL, ctx);
              _pooling_param[i] = pool_param;
              
         }
@@ -90,23 +88,23 @@ public:
 
     virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
                              std::vector<DataTensor_out*>& outputs,
-                             SPPParam<NV> &param,
-                             Context<NV> &ctx)  {
+                             SPPParam<X86> &param,
+                             Context<X86> &ctx)  {
         return SaberSuccess;
     }
 
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                                  std::vector<DataTensor_out*>& outputs,
-                                 SPPParam<NV> &param);
+                                 SPPParam<X86> &param);
 
 private:
     std::vector<Pooling_t*> _pooling;
-    std::vector<PoolingParam<NV>> _pooling_param;
+    std::vector<PoolingParam<X86>> _pooling_param;
     std::vector<DataTensor_out*> _pooling_output;
 };
-template class SaberSpp<NV, AK_FLOAT>;
+template class SaberSpp<X86, AK_FLOAT>;
 }
 
 }
 
-#endif //ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_SPP_H
+#endif //ANAKIN_SABER_FUNCS_IMPL_X86_SABER_SPP_H

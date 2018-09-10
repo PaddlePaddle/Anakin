@@ -5,10 +5,7 @@
 #include "saber/core/tensor_op.h"
 #include "saber/saber_types.h"
 #include <vector>
-
 using namespace anakin::saber;
-
-
 template<typename dtype,typename TargetType_H>
 void pooling_cpu(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tensor<TargetType_H>*>& output,PoolingParam<TargetType_H>& param)
 {
@@ -88,7 +85,7 @@ void spp_cpu(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tensor<
     typedef Pooling<TargetType_H, AK_FLOAT> pool_t;
     pool_t * pool = new pool_t[pyramid_height];
     dtype * out_data = (dtype*)output[0]->mutable_data();
-	int spatial_size = output[0]->width() * output[0]->height();
+    int spatial_size = output[0]->width() * output[0]->height();
     for (int i = 0; i < pyramid_height; ++i){
         int out_w = pow(2, i);
         int out_h = pow(2, i);
@@ -107,24 +104,21 @@ void spp_cpu(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tensor<
         pool_out[0]->re_alloc(sh, AK_FLOAT);
         pooling_cpu<dtype, TargetType_H>(input, pool_out, pool_param);
         int valid_size = pool_out[0]->valid_size();
-		int spatial_size_out = pool_out[0]->width() * pool_out[0]->height();
-		dtype* in_data = (dtype*)pool_out[0]->mutable_data();
-		int offset = (pow(4,i) - 1) / 3;
-		for (int i = 0; i < valid_size; ++i){
-			int idx = i / spatial_size_out;
-			int out_index = idx * spatial_size + i % spatial_size_out;
-			out_data[out_index + offset] = in_data[i];
-		}
+        int spatial_size_out = pool_out[0]->width() * pool_out[0]->height();
+        dtype* in_data = (dtype*)pool_out[0]->mutable_data();
+        int offset = (pow(4,i) - 1) / 3;
+        for (int i = 0; i < valid_size; ++i){
+            int idx = i / spatial_size_out;
+            int out_index = idx * spatial_size + i % spatial_size_out;
+            out_data[out_index + offset] = in_data[i];
+        }
     }
     delete [] pool;
 }
-
-TEST(TestSaberFunc, test_func_scale) {
+ TEST(TestSaberFunc, test_func_scale) {
 #ifdef USE_CUDA
-    
+    LOG(INFO)<<"NV test......";
     TestSaberBase<NV, NVHX86, AK_FLOAT, Spp, SPPParam> testbase;
-    //test1
-    
     for (auto num:{1,3,11}){
         for (auto c:{1,3,11}){
             for (auto h:{16,32,64}){
@@ -141,15 +135,38 @@ TEST(TestSaberFunc, test_func_scale) {
             }
         }
     }
+    LOG(INFO)<<"NV test end.";
+#endif
+
+#ifdef USE_X86_PLACE
+    LOG(INFO)<<"x86 test......";
+    do
+    {
+        TestSaberBase<X86, X86, AK_FLOAT, Spp, SPPParam> testbase;
+        for (auto num:{1,3,11}){
+            for (auto c:{1,3,11}){
+                for (auto h:{16,32,64}){
+                    for (auto w:{16,32,64}){
+                        for(auto pyramid_height:{1, 2, 3}){
+                            for (auto pool_type:{Pooling_max, Pooling_average_exclude_padding, Pooling_average_include_padding}){
+                                SPPParam<X86> param(pyramid_height, pool_type);
+                                testbase.set_param(param);
+                                testbase.set_input_shape(Shape({num , c, h, w}));
+                                testbase.run_test(spp_cpu<float, X86, X86>, 0.0001);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }while(0);
+    LOG(INFO)<<"x86 test end.";
     
 #endif
 }
-
-
-int main(int argc, const char** argv) {
+ int main(int argc, const char** argv) {
     // initial logger
     InitTest();
     RUN_ALL_TESTS(argv[0]);
     return 0;
 }
-
