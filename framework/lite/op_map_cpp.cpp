@@ -5,8 +5,6 @@ namespace anakin {
 
 namespace lite {
 
-#if 1
-
 std::string not_impl_yet(graph::AttrInfo&, 
 						 std::string& op_class_name, 
 						 std::string& node_name, 
@@ -654,8 +652,6 @@ std::unordered_map<std::string, OpParser> OPERATION_MAP({
 	{"Slice", {"SaberSlice", ParserSlice} }, // done
 	{"Softmax", {"SaberSoftmax", ParserSoftmax} } // done
 });
-
-#endif
 
 } /* namespace lite */
 

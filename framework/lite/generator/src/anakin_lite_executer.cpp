@@ -5,7 +5,6 @@
 using namespace anakin;
 using namespace anakin::saber;
 using namespace anakin::lite;
-#if 1
 
 void anakin_lite_executer(const char* model_name, const char* model_path, const char* output_path = "./") {
     // constructs 
@@ -17,7 +16,6 @@ void anakin_lite_executer(const char* model_name, const char* model_path, const 
 	code_gen.gen_files();
 }
 
-#endif
 int main(int argc, const char** argv){
     // initial logger
     logger::init(argv[0]);
