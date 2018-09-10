@@ -26,7 +26,7 @@ namespace anakin {
 
 namespace ops {
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class ArgmaxHelper;
 
 /// axpy op
@@ -34,20 +34,20 @@ class ArgmaxHelper;
  * \brief operation of argMax class
  * public inheritance Operator
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class Argmax : public Operator<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class Argmax : public Operator<Ttype, Ptype> {
 public:
     Argmax() {}
 
     /// forward impl
     virtual void operator() (OpContext<Ttype> &ctx, 
-                             const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                             std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-        LOG(ERROR) << "Not Impl Yet Operator Argmax<TargetType:"<<"unknown"<<","
-                   <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info()<<">";
+                             const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                             std::vector<Tensor4dPtr<Ttype> >& outs) {
+		LOG(ERROR) << "Not Impl Yet Operator Argmax< Ttype("
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
-    friend class ArgmaxHelper<Ttype, Dtype, Ptype>;
+    friend class ArgmaxHelper<Ttype, Ptype>;
 };
 
 /**
@@ -55,8 +55,8 @@ public:
  *  public inheritance OperatorHelper
  *  including init operation context and the size of shape
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class ArgmaxHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class ArgmaxHelper : public OperatorHelper<Ttype, Ptype> {
 public:
     ArgmaxHelper()=default;
 
@@ -72,8 +72,8 @@ public:
     * \return status
     */
     Status Init(OpContext<Ttype> &ctx,
-                const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
     /**
     * \brief infer the shape of output and input.
@@ -81,14 +81,14 @@ public:
     * \param outs stand for output tensor vector
     * \return status
     */
-    Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+    Status InferShape(const std::vector<Tensor4dPtr<Ttype> >& ins,
+                      std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
 public:
     ///< _param_argmax stand for argmax parameter
-    saber::ArgmaxParam<Tensor4d<Ttype, Dtype>> _param_argmax;
+    saber::ArgmaxParam<Ttype> _param_argmax;
     ///< _funcs_argmax stand for argmax function
-    saber::Argmax<Ttype, Dtype> _funcs_argmax;
+    saber::Argmax<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_argmax;
 
 private:
     ///< _dims stand for argmax size

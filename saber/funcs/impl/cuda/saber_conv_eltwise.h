@@ -50,6 +50,15 @@ public:
             std::vector<Tensor<NV>*>& outputs,
             ConvEltwiseParam<NV>& param);
 
+    SaberStatus trans_weights(Tensor<NV> &target_weights,
+                              int stride_h, int stride_w, int group) {
+        if (target_weights.valid_size() > 0) {
+            conv_trans_weights<NV, NVHX86>(target_weights, stride_h, stride_w, group, true, nullptr);
+        }
+        _extern_trans = true;
+        _in_place = true;
+        return SaberSuccess;
+    }
 
 private:
     bool _in_place{false};
@@ -58,6 +67,7 @@ private:
     int _kernel_width;
     bool _use_k1s1p0{false};
     bool _use_k3{false};
+    bool _extern_trans{false};
     std::function<void(const float*,
                        float*,
                        const float*,

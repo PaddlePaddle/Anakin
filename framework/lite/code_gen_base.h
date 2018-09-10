@@ -57,7 +57,7 @@ struct EdgeInfo {
  *  	2. All the tensor model needs and share info between those tensors.
  *  	3. Model weights
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class CodeGenBase {
 public:
 	CodeGenBase() {}
@@ -83,7 +83,7 @@ private:
 	/**
 	 * \brief change graph edge and node name to match the standard of c variable name
 	 */
-	void change_name(graph::Graph<Ttype, Dtype, Ptype>&);
+	void change_name(graph::Graph<Ttype, Ptype>&);
 
 	/**
 	 * \brief generate ops of graph
@@ -91,7 +91,7 @@ private:
 	virtual void gen_ops() = 0;
 
 protected:
-	graph::Graph<Ttype, Dtype, Ptype> _graph;
+	graph::Graph<Ttype, Ptype> _graph;
 	std::vector<std::string> _exec_node_order; /// running order of operation's name
 	std::vector<std::string> _ins;	/// graph ins
 	std::vector<std::string> _outs; /// graph outs

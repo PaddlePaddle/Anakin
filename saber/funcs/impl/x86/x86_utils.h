@@ -769,7 +769,7 @@ inline size_t datatype_size(DataType data_type) {
     case AK_INT32:
         return sizeof(int32_t);
 
-    case AK_INT16:
+    case AK_HALF:
         return sizeof(int16_t);
 
     case AK_INT8:

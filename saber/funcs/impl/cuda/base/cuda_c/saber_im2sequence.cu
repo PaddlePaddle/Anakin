@@ -197,7 +197,7 @@ SaberStatus SaberIm2Sequence<NV, OpDtype>::dispatch(\
 
     return SaberSuccess;
 }
-DEFINE_OP_TEMPLATE(SaberIm2Sequence, Im2SequenceParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberIm2Sequence, Im2SequenceParam, NV, AK_HALF);
 DEFINE_OP_TEMPLATE(SaberIm2Sequence, Im2SequenceParam, NV, AK_INT8);
 }
 }

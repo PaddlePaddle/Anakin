@@ -55,7 +55,7 @@ private:
     Env(){}
 };
 
-#ifdef USE_AMD
+#ifdef AMD_GPU 
 typedef std::list<cl_event> cl_event_list;
 
 template <>

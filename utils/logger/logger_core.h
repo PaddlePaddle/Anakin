@@ -283,6 +283,7 @@ namespace logger {
           ss_<<var;
           return *this;
         }
+
         // access for std::endl and other io
         loggerMsg& operator<<(std::ostream&(*func)(std::ostream&)){
           func(ss_);

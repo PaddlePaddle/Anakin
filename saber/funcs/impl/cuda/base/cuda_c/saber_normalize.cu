@@ -323,7 +323,7 @@ SaberStatus SaberNormalize<NV, AK_FLOAT>::dispatch(\
     }
     return SaberSuccess;
 }
-DEFINE_OP_TEMPLATE(SaberNormalize, NormalizeParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberNormalize, NormalizeParam, NV, AK_HALF);
 DEFINE_OP_TEMPLATE(SaberNormalize, NormalizeParam, NV, AK_INT8);
 } //namespace anakin
 
