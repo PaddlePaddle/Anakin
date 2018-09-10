@@ -4,13 +4,13 @@ namespace anakin {
 
 namespace lite {
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-void GenCPP<Ttype, Dtype, Ptype>::gen_license() {
+template<typename Ttype, Precision Ptype>
+void GenCPP<Ttype, Ptype>::gen_license() {
 	_code<< "/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.\n\n   Licensed under the Apache License, Version 2.0 (the \"License\");\n   you may not use this file except in compliance with the License.\n   You may obtain a copy of the License at\n\n       http://www.apache.org/licenses/LICENSE-2.0\n\n   Unless required by applicable law or agreed to in writing, software\n   distributed under the License is distributed on an \"AS IS\" BASIS,\n   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n   See the License for the specific language governing permissions and\n   limitations under the License.\n*/\n\n";
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-void GenCPP<Ttype, Dtype, Ptype>::gen_header_start() {
+template<typename Ttype, Precision Ptype>
+void GenCPP<Ttype, Ptype>::gen_header_start() {
 	_code.Clean();
 	gen_license();
 	_code.feed("#ifndef ANAKIN_%s_H \n", _code_name.c_str());
@@ -40,27 +40,27 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_header_start() {
     _code<<"namespace anakin { \n\n";
 }	
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-void GenCPP<Ttype, Dtype, Ptype>::gen_header_end() {
+template<typename Ttype, Precision Ptype>
+void GenCPP<Ttype, Ptype>::gen_header_end() {
 	_code<<"} /* namespace anakin */\n";
 	_code<<"\n#endif\n";
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-void GenCPP<Ttype, Dtype, Ptype>::gen_source_start() {
+template<typename Ttype, Precision Ptype>
+void GenCPP<Ttype, Ptype>::gen_source_start() {
 	_code.Clean();
 	_code.feed("#include \"%s.h\" \n\n", _code_name.c_str());
 	_code<<"namespace anakin { \n\n";
 	// add running impl for model api
 }	
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-void GenCPP<Ttype, Dtype, Ptype>::gen_source_end() {
+template<typename Ttype, Precision Ptype>
+void GenCPP<Ttype, Ptype>::gen_source_end() {
 	_code<<"} /* namespace anakin */\n";
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-void GenCPP<Ttype, Dtype, Ptype>::gen_tensors() {
+template<typename Ttype, Precision Ptype>
+void GenCPP<Ttype, Ptype>::gen_tensors() {
 	_code<<"\n// generating tensors \n";
 	for(auto it = this->_tensor_map.begin(); it != this->_tensor_map.end(); ++it) {
 		auto& edge_name = it->first;
@@ -90,8 +90,8 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_tensors() {
 	}
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-void GenCPP<Ttype, Dtype, Ptype>::tensors_init() {
+template<typename Ttype, Precision Ptype>
+void GenCPP<Ttype, Ptype>::tensors_init() {
 	_code<<"\n// initialize tensors \n";
 	_code.feed("void %s_tensors_init() {\n", _code_name.c_str());
 	for(auto it = this->_tensor_map.begin(); it != this->_tensor_map.end(); ++it) {
@@ -114,8 +114,8 @@ void GenCPP<Ttype, Dtype, Ptype>::tensors_init() {
 
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-void GenCPP<Ttype, Dtype, Ptype>::gen_model_ios() {
+template<typename Ttype, Precision Ptype>
+void GenCPP<Ttype, Ptype>::gen_model_ios() {
 	_code<<"\n// generating model's I/O \n";
 	for(auto & node_name : this->_exec_node_order) {
 		auto& node_info = this->_graph_node_map[node_name];
@@ -124,8 +124,8 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_model_ios() {
 	}
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-void GenCPP<Ttype, Dtype, Ptype>::model_ios_init() {
+template<typename Ttype, Precision Ptype>
+void GenCPP<Ttype, Ptype>::model_ios_init() {
 	_code<<"\n// initialize model's I/O \n";
     _code.feed("void %s_model_ios_init() {\n", _code_name.c_str());
     for(auto & node_name : this->_exec_node_order) {
@@ -140,8 +140,8 @@ void GenCPP<Ttype, Dtype, Ptype>::model_ios_init() {
 	_code<<"}\n";
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-void GenCPP<Ttype, Dtype, Ptype>::gen_ops() {
+template<typename Ttype, Precision Ptype>
+void GenCPP<Ttype, Ptype>::gen_ops() {
 	_code<<"\n// generating model's operations\n";
 	for(auto & node_name : this->_exec_node_order) {
 		if(this->_graph_node_map[node_name].op_name == "Input" || this->_graph_node_map[node_name].op_name == "Output") {
@@ -154,8 +154,8 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_ops() {
 	}
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-void GenCPP<Ttype, Dtype, Ptype>::gen_init_impl() {
+template<typename Ttype, Precision Ptype>
+void GenCPP<Ttype, Ptype>::gen_init_impl() {
 	_code<<"// initial function for model.\n"; 
 	_code.feed("void %s_init(Context& ctx) {\n", _code_name.c_str());
 	for(auto & node_name : this->_exec_node_order) {
@@ -175,8 +175,8 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_init_impl() {
 	_code << "}\n";
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-void GenCPP<Ttype, Dtype, Ptype>::gen_run_impl() {
+template<typename Ttype, Precision Ptype>
+void GenCPP<Ttype, Ptype>::gen_run_impl() {
 	_code << "// Running prediction for model. \n";
 	_code.feed("void %s_prediction() {\n", _code_name.c_str());
 	for(auto & node_name : this->_exec_node_order) {
@@ -196,8 +196,8 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_run_impl() {
 	_code << "}\n";
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-void GenCPP<Ttype, Dtype, Ptype>::gen_head_api() {
+template<typename Ttype, Precision Ptype>
+void GenCPP<Ttype, Ptype>::gen_head_api() {
 	// gen gloss for graph ins
 	_code << "/// Model "<< _code_name << " have  " << this->_ins.size() << " inputs.\n";
 	for(auto in : this->_ins) {
@@ -253,8 +253,8 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_head_api() {
 
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-void GenCPP<Ttype, Dtype, Ptype>::gen_head_api_impl() {
+template<typename Ttype, Precision Ptype>
+void GenCPP<Ttype, Ptype>::gen_head_api_impl() {
 	// gen api for getting graph input tensor
 	_code << "\n// gen api for getting graph input tensor \n";
 	_code << "Tensor<CPU, AK_FLOAT>* get_in(const char* in_name) {\n";
@@ -331,8 +331,8 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_head_api_impl() {
 	_code <<"}\n\n";
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-void GenCPP<Ttype, Dtype, Ptype>::gen_header() {
+template<typename Ttype, Precision Ptype>
+void GenCPP<Ttype, Ptype>::gen_header() {
 	_code.Clean();
 	_code.open(_h_file_name);
 	gen_header_start();
@@ -342,8 +342,8 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_header() {
 	_code.save();	
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-void GenCPP<Ttype, Dtype, Ptype>::gen_source() {
+template<typename Ttype, Precision Ptype>
+void GenCPP<Ttype, Ptype>::gen_source() {
 	_code.Clean();
 	_code.open(_cpp_file_name);
 	gen_source_start(); 
@@ -368,15 +368,15 @@ void GenCPP<Ttype, Dtype, Ptype>::gen_source() {
 }
 
 #ifdef USE_CUDA
-template class GenCPP<NV, AK_FLOAT, Precision::FP32>;
-template class GenCPP<NV, AK_FLOAT, Precision::FP16>;
-template class GenCPP<NV, AK_FLOAT, Precision::INT8>;
+template class GenCPP<NV, Precision::FP32>;
+template class GenCPP<NV, Precision::FP16>;
+template class GenCPP<NV, Precision::INT8>;
 #endif
 
 #ifdef USE_X86_PLACE
-template class GenCPP<X86, AK_FLOAT, Precision::FP32>;
-template class GenCPP<X86, AK_FLOAT, Precision::FP16>;
-template class GenCPP<X86, AK_FLOAT, Precision::INT8>;
+template class GenCPP<X86, Precision::FP32>;
+template class GenCPP<X86, Precision::FP16>;
+template class GenCPP<X86, Precision::INT8>;
 #endif
 
 #ifdef USE_ARM_PLACE

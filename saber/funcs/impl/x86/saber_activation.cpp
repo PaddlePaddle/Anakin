@@ -147,7 +147,7 @@ SaberStatus SaberActivation<X86, OpDtype>::dispatch(
 }
 
 template class SaberActivation<X86, AK_FLOAT>;
-DEFINE_OP_TEMPLATE(SaberActivation, ActivationParam, X86, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberActivation, ActivationParam, X86, AK_HALF);
 DEFINE_OP_TEMPLATE(SaberActivation, ActivationParam, X86, AK_INT8);
 }
 } // namespace anakin

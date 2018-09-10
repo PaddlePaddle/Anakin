@@ -5,9 +5,9 @@ namespace anakin{
 
 namespace saber{
 
-#ifdef USE_AMD
+#ifdef AMD_GPU
 
-#define USE_AMD_EXTENSION
+#define AMD_GPU_EXTENSION
 
 const char* opencl_get_error_string(cl_int err){
     switch (err) {
@@ -65,7 +65,7 @@ void AMD_API::set_device(int id){
 void AMD_API::mem_alloc(TPtr* ptr, size_t n){
     AMD_ENV::is_init();
 
-#ifdef  USE_AMD_EXTENSION
+#ifdef  AMD_GPU_EXTENSION
     //LOG(INFO) << "use CL_MEM_USE_PERSISTENT_MEM_AMD to create buffer.";
 #else
     //LOG(INFO) << "use CL_MEM_ALLOC_HOST_PTR to create buffer.";
@@ -77,7 +77,7 @@ void AMD_API::mem_alloc(TPtr* ptr, size_t n){
 
     cl_int err;
     cl_mem buf = clCreateBuffer(context, CL_MEM_READ_WRITE
-#ifdef USE_AMD_EXTENSION
+#ifdef AMD_GPU_EXTENSION
         | CL_MEM_USE_PERSISTENT_MEM_AMD
 #else
         | CL_MEM_ALLOC_HOST_PTR
@@ -699,7 +699,7 @@ INSTANTIATE_TENSOR(AMD, AK_HALF, NW);
 //!
 template struct Env<AMD>;
 
-#endif //USE_AMD
+#endif // AMD_GPU
 
 } //namespace saber
 
