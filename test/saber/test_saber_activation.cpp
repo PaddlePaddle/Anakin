@@ -166,9 +166,9 @@ TEST(TestSaberFunc, test_func_activation) {
 #ifdef USE_ARM_PLACE
     test_model<AK_FLOAT, ARM, ARM>();
 #endif
-#ifdef USE_BM
-   // Env<BM>::env_init();
-    //test_accuracy<BM, X86>(num, channel, height, width,VENDER_IMPL);
+#ifdef USE_BM_PLACE
+    Env<BM>::env_init();
+    test_accuracy<BM, X86>(num, channel, height, width,VENDER_IMPL);
 #endif
 }
 

@@ -371,7 +371,7 @@ SaberStatus SaberSoftmax<NV, OpDtype>::dispatch(\
     //outputs[0]->record_event(stream);
     return SaberSuccess;
 }
-DEFINE_OP_TEMPLATE(SaberSoftmax, SoftmaxParam, NV, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberSoftmax, SoftmaxParam, NV, AK_HALF);
 DEFINE_OP_TEMPLATE(SaberSoftmax, SoftmaxParam, NV, AK_INT8);
 } //namespace anakin
 

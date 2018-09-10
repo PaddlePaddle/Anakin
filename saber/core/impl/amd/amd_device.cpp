@@ -20,7 +20,7 @@ namespace anakin{
 
 namespace saber{
 
-#ifdef USE_AMD
+#ifdef AMD_GPU 
 
 typedef TargetWrapper<AMD> AMD_API;
 
@@ -146,7 +146,7 @@ typename AMD_API::stream_t Device<AMD>::get_available_stream(typename AMD_API::s
 //template void Device<AMD>::create_stream();
 //template void Device<AMD>::get_info();
 
-#endif //USE_AMD
+#endif // AMD_GPU
 
 } //namespace saber
 } //namespace anakin

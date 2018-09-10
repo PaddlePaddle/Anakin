@@ -26,7 +26,7 @@ namespace anakin {
 
 namespace ops {
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class SequencePoolHelper;
 
 /// pooling op
@@ -34,20 +34,20 @@ class SequencePoolHelper;
  * \brief SequencePool operation class
  * public inheritance Operator
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class SequencePool : public Operator<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class SequencePool : public Operator<Ttype, Ptype> {
 public:
     SequencePool() {}
 
     /// forward impl
     virtual void operator() (OpContext<Ttype> &ctx, 
-                             const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                             std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-        LOG(ERROR) << "Not Impl Yet Operator SequencePool<TargetType:"<<"unknown"<<","
-                   <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info()<<">";
+                             const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                             std::vector<Tensor4dPtr<Ttype> >& outs) {
+		//LOG(ERROR) << "Not Impl Yet Operator SequencePool< Ttype(" 
+                     //<< target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
-    friend class SequencePoolHelper<Ttype, Dtype, Ptype>;
+    friend class SequencePoolHelper<Ttype, Ptype>;
 };
 
 /**
@@ -55,8 +55,8 @@ public:
  * public inherit OperatorHelper
  * including init resource and shape size in sequence_pool context
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class SequencePoolHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class SequencePoolHelper : public OperatorHelper<Ttype, Ptype> {
 public:
     SequencePoolHelper()=default;
 
@@ -72,8 +72,8 @@ public:
     * \return status
     */
     Status Init(OpContext<Ttype> &ctx,
-                const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
     /**
     * \brief infer the shape of output and input.
@@ -81,14 +81,14 @@ public:
     * \param outs stand for output tensor vector
     * \return status
     */
-    Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+    Status InferShape(const std::vector<Tensor4dPtr<Ttype> >& ins,
+                      std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
 public:
     ///< _param_sequence_pool stand for SequencePool parameter
-    saber::SequencePoolParam<Tensor4d<Ttype, Dtype>>  _param_sequence_pool;
+    saber::SequencePoolParam<Ttype>  _param_sequence_pool;
     ///< _funcs_sequence_pool stand for SequencePool function
-    saber::SequencePool<Ttype, Dtype> _funcs_sequence_pool;
+    saber::SequencePool<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_sequence_pool;
 
 private:
     ///< _dims stand for SequencePool size

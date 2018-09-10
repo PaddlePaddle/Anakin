@@ -26,7 +26,7 @@ namespace anakin {
 
 namespace ops {
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class PowerHelper;
 
 /// pooling op
@@ -34,20 +34,21 @@ class PowerHelper;
  * \brief Power implementation class
  * public inherit Operator
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class Power : public Operator<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class Power : public Operator<Ttype, Ptype> {
 public:
     Power() {}
 
     /// forward impl
     virtual void operator() (OpContext<Ttype> &ctx, 
-                             const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                             std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-        LOG(ERROR) << "Not Impl Yet Operator power<TargetType:"<<"unknown"<<","
-                   <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info()<<">";
+                             const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                             std::vector<Tensor4dPtr<Ttype> >& outs) {
+		LOG(ERROR) << "Not Impl Yet Operator Power< Ttype("
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
+
     }
 
-    friend class PowerHelper<Ttype, Dtype, Ptype>;
+    friend class PowerHelper<Ttype, Ptype>;
 };
 
 /**
@@ -55,8 +56,8 @@ public:
  * public inherit OperatorHelper
  * including init resource and shape size in Power context
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class PowerHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class PowerHelper : public OperatorHelper<Ttype, Ptype> {
 public:
     PowerHelper()=default;
 
@@ -72,8 +73,8 @@ public:
     * \return status
     */
     Status Init(OpContext<Ttype> &ctx,
-                const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
     /**
     * \brief infer the shape of output and input.
@@ -81,14 +82,14 @@ public:
     * \param outs stand for output tensor vector
     * \return status
     */
-    Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+    Status InferShape(const std::vector<Tensor4dPtr<Ttype> >& ins,
+                      std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
 public:
     ///< _param_power stand for Power parameter
-    saber::PowerParam<Tensor4d<Ttype, Dtype>> _param_power;
+    saber::PowerParam<Ttype> _param_power;
     ///< _funcs_power stand for Power function 
-    saber::Power<Ttype, Dtype> _funcs_power;
+    saber::Power<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_power;
 
 private:
     ///< _dims stand for Power size

@@ -15,7 +15,7 @@
 #include "saber/core/tensor_op.h"
 #include <limits>
 
-#ifdef USE_AMD
+#ifdef AMD_GPU 
 
 #include <random>
 
@@ -199,4 +199,4 @@ FILL_TENSOR_AMD(AK_INT8, W);
 
 } //namespace anakin
 
-#endif //USE_AMD
+#endif //AMD_GPU

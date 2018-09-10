@@ -4,7 +4,7 @@
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
 
-  http://www.apache.org/licenses/LICENSE-2.0
+       http://www.apache.org/licenses/LICENSE-2.0
    
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,17 +13,15 @@
    limitations under the License. 
 */
 
-#ifndef ANAKIN_SABER_FUNCS_IMPL_DECONV2DACT_H
-#define ANAKIN_SABER_FUNCS_IMPL_DECONV2DACT_H
+#ifndef ANAKIN_OPERATOR_HELP_H
+#define ANAKIN_OPERATOR_HELP_H
 
-#include "saber/funcs/impl/impl_macro.h"
-namespace anakin{
+namespace anakin {
 
-namespace saber{
+class MixPrecOpGen {
+};
 
-DEFINE_OP_CLASS(Deconv2DAct, ConvActiveParam);
 
-}
-}
+} /* namespace anakin */
 
-#endif //ANAKIN_SABER_FUNCS_IMPL_DECONV2DACT_H
+#endif
