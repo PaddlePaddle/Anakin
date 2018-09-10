@@ -27,7 +27,9 @@ class Shape : public std::vector<int> {
 public:
     using vector = std::vector<int>;
 
-    Shape() : vector(), _layout(nullptr) {}
+    Shape() : vector(), _layout(nullptr) {
+        create_layout(Layout_NCHW);
+    }
 
     Shape(vector data, LayoutType layout_type = Layout_NCHW) {
         create_layout(layout_type);
@@ -355,6 +357,15 @@ public:
             sh[i] = -1;
         }
         return sh;
+    }
+
+    friend std::ostream& operator<<(std::ostream& out, const Shape& s) {
+        out << " [AK Shape : (";
+        for (int i = 0; i < s.dims(); i++) {
+            out << s.data()[i] << ",";
+        }
+        out << ") ]";
+        return out;
     }
 
 protected:

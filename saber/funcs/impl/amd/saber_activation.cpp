@@ -332,7 +332,7 @@ SaberStatus SaberActivation<AMD, OpDtype, inDtype, outDtype,
 }
 
 template class SaberActivation<AMD, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
-DEFINE_OP_TEMPLATE(SaberActivation, ActivationParam, AMD, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberActivation, ActivationParam, AMD, AK_HALF);
 DEFINE_OP_TEMPLATE(SaberActivation, ActivationParam, AMD, AK_INT8);
 }
 } // namespace anakin

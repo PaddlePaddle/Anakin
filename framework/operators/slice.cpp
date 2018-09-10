@@ -4,21 +4,21 @@ namespace anakin {
 
 namespace ops {
 
-#define INSTANCE_SLICE(Ttype, Dtype, Ptype) \
+#define INSTANCE_SLICE(Ttype, Ptype) \
 template<> \
-void Slice<Ttype, Dtype, Ptype>::operator()( \
+void Slice<Ttype, Ptype>::operator()( \
     OpContext<Ttype>& ctx, \
-    const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, \
-    std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) { \
+    const std::vector<Tensor4dPtr<Ttype> >& ins, \
+    std::vector<Tensor4dPtr<Ttype> >& outs) { \
     auto* impl = \
-        static_cast<SliceHelper<Ttype, Dtype, Ptype>*>(this->_helper); \
+        static_cast<SliceHelper<Ttype, Ptype>*>(this->_helper); \
     auto& param = \
-        static_cast<SliceHelper<Ttype, Dtype, Ptype>*>(this->_helper)->_param_slice; \
+        static_cast<SliceHelper<Ttype, Ptype>*>(this->_helper)->_param_slice; \
     impl->_funcs_slice(ins, outs, param, ctx); \
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status SliceHelper<Ttype, Dtype, Ptype>::InitParam() {
+template<typename Ttype, Precision Ptype>
+Status SliceHelper<Ttype, Ptype>::InitParam() {
     DLOG(WARNING) << "Parsing Slice op parameter.";
     auto slice_dim = GET_PARAMETER(int, slice_dim);
     _slice_point = GET_PARAMETER(PTuple<int>, slice_point);
@@ -32,30 +32,30 @@ Status SliceHelper<Ttype, Dtype, Ptype>::InitParam() {
 
     LOG(INFO) << " axis " << _axis;
 
-    SliceParam<Tensor4d<Ttype, Dtype>> param_slice(_axis, _slice_point.vector());
+    SliceParam<Ttype> param_slice(_axis, _slice_point.vector());
     _param_slice = param_slice;
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status SliceHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
-        const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+template<typename Ttype, Precision Ptype>
+Status SliceHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
+        const std::vector<Tensor4dPtr<Ttype> >& ins,
+        std::vector<Tensor4dPtr<Ttype> >& outs) {
     SABER_CHECK(_funcs_slice.init(ins, outs, _param_slice, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status SliceHelper<Ttype, Dtype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >&
+template<typename Ttype, Precision Ptype>
+Status SliceHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype> >&
         ins,
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+        std::vector<Tensor4dPtr<Ttype> >& outs) {
     if (_slice_point.size() + 1 != outs.size()) {
         if (_slice_point.size() == 1) {
             for (int i = 0; i < outs.size() - 2; i++) {
                 _slice_point.push_back(_slice_point[0] + _slice_point[_slice_point.size() - 1]);
             }
 
-            SliceParam<Tensor4d<Ttype, Dtype>> param_slice(_axis, _slice_point.vector());
+            SliceParam<Ttype> param_slice(_axis, _slice_point.vector());
             _param_slice = param_slice;
         }
     }
@@ -65,33 +65,33 @@ Status SliceHelper<Ttype, Dtype, Ptype>::InferShape(const std::vector<Tensor4dPt
 }
 
 #ifdef USE_CUDA
-INSTANCE_SLICE(NV, AK_FLOAT, Precision::FP32);
-template class SliceHelper<NV, AK_FLOAT, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(Slice, SliceHelper, NV, AK_FLOAT, Precision::FP32);
-template class SliceHelper<NV, AK_FLOAT, Precision::FP16>;
-template class SliceHelper<NV, AK_FLOAT, Precision::INT8>;
+INSTANCE_SLICE(NV, Precision::FP32);
+template class SliceHelper<NV, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Slice, SliceHelper, NV, Precision::FP32);
+template class SliceHelper<NV, Precision::FP16>;
+template class SliceHelper<NV, Precision::INT8>;
 #endif
 
 #ifdef USE_X86_PLACE
-INSTANCE_SLICE(X86, AK_FLOAT, Precision::FP32);
-template class SliceHelper<X86, AK_FLOAT, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(Slice, SliceHelper, X86, AK_FLOAT, Precision::FP32);
+INSTANCE_SLICE(X86, Precision::FP32);
+template class SliceHelper<X86, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Slice, SliceHelper, X86, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE
-INSTANCE_SLICE(ARM, AK_FLOAT, Precision::FP32);
-template class SliceHelper<ARM, AK_FLOAT, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(Slice, SliceHelper, ARM, AK_FLOAT, Precision::FP32);
+INSTANCE_SLICE(ARM, Precision::FP32);
+template class SliceHelper<ARM, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Slice, SliceHelper, ARM, Precision::FP32);
 #endif
 
 //! register op
 ANAKIN_REGISTER_OP(Slice)
 .Doc("Slice operator")
 #ifdef USE_CUDA
-.__alias__<NV, AK_FLOAT, Precision::FP32>("slice")
+.__alias__<NV, Precision::FP32>("slice")
 #endif
 #ifdef USE_ARM_PLACE
-.__alias__<ARM, AK_FLOAT, Precision::FP32>("slice")
+.__alias__<ARM, Precision::FP32>("slice")
 #endif
 .num_in(1)
 .num_out(1)

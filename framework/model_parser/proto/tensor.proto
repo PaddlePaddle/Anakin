@@ -47,8 +47,11 @@ message TensorProto {
     // ( only used when anakin generates optimized model)
     bytes  share_from = 3; 
 
-    // tensor shape
+    // tensor real shape
     TensorShape shape = 8;
+
+    // tensor valid shape
+    TensorShape valid_shape = 9;
 
     // tensor data cache.
     CacheDate data = 10;
