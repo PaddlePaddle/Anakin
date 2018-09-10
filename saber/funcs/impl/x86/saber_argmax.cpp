@@ -94,7 +94,7 @@ SaberStatus SaberArgmax<X86, OpDtype>::dispatch(const std::vector<Tensor<X86>*>&
         int size = shape[ax];
         if(size < top){
             LOG(INFO) << "input data size less than topk";
-            return; 
+            return SaberUnImplError; 
         }
         /*
         for (int n = 0; n < num * out_stride; n++){
@@ -122,7 +122,7 @@ SaberStatus SaberArgmax<X86, OpDtype>::dispatch(const std::vector<Tensor<X86>*>&
     }else{//all  
         if(in_channel < top){
             LOG(INFO) << "input data size less than topk";
-            return; 
+            return SaberUnImplError; 
         }
         /*
         for (int n = 0; n < num; n++){
@@ -160,7 +160,7 @@ SaberStatus SaberArgmax<X86, OpDtype>::dispatch(const std::vector<Tensor<X86>*>&
 }
 
 template class SaberArgmax<X86, AK_FLOAT>;
-DEFINE_OP_TEMPLATE(SaberArgmax, ArgmaxParam, X86, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberArgmax, ArgmaxParam, X86, AK_HALF);
 DEFINE_OP_TEMPLATE(SaberArgmax, ArgmaxParam, X86, AK_INT8);
 } //namespace anakin
 

@@ -140,7 +140,7 @@ const char* cublas_get_errorstring(cublasStatus_t error);
 const char* cudnn_get_errorstring(cudnnStatus_t status);
 #endif //USE_CUDNN
 
-#ifdef USE_AMD
+#ifdef AMD_GPU
 
 #ifdef __APPLE__
 #include <OpenCL/cl_ext.h>
@@ -176,7 +176,7 @@ const char* cudnn_get_errorstring(cudnnStatus_t status);
 
 #endif //ANAKIN_SABER_CORE_COMMON_H
 
-#ifdef USE_BM
+#ifdef USE_BM_PLACE 
 
 #include "bmlib_runtime.h"
 #include "bmdnn_api.h"
@@ -189,4 +189,4 @@ const char* cudnn_get_errorstring(cudnnStatus_t status);
     CHECK_EQ(error, BM_SUCCESS) << " Failed with error code:" << error; \
   } while (0)
 
-#endif // USE_BM
+#endif // USE_BM_PLACE 

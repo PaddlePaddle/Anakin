@@ -27,7 +27,6 @@
 // build options
 #cmakedefine ENABLE_DEBUG
 
-// boost
 #cmakedefine USE_BOOST
 
 #cmakedefine USE_CUBLAS
@@ -35,8 +34,6 @@
 #cmakedefine USE_CURAND
 
 #cmakedefine USE_CUDA
-
-#cmakedefine USE_BM
 
 #cmakedefine USE_CUDNN
 
@@ -54,7 +51,6 @@
 
 #cmakedefine USE_GFLAGS
 
-#cmakedefine USE_AMD
 
 // plantform to use
 #cmakedefine USE_GPU_PLACE
@@ -62,6 +58,8 @@
 #cmakedefine USE_X86_PLACE
 
 #cmakedefine USE_ARM_PLACE
+
+#cmakedefine USE_BM_PLACE
 
 #cmakedefine TARGET_ANDROID
 
@@ -71,9 +69,14 @@
 
 #cmakedefine NVIDIA_GPU
 
+#cmakedefine AMD_GPU 
+
 #cmakedefine ENABLE_STACKTRACES
 
 #cmakedefine SUPPORT_PTHREADS
+
+// build AOT lite for device
+#cmakedefine BUILD_WITH_LITE
 
 
 #if defined(ANDROID) || defined(__ANDROID__)

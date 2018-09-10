@@ -26,7 +26,7 @@ namespace anakin {
 
 namespace ops {
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class SassConvolutionHelper;
 
 /// pooling op
@@ -34,20 +34,20 @@ class SassConvolutionHelper;
  * \brief conv_3X3 implementation class
  * public inherit Operator
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class SassConvolution : public Operator<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class SassConvolution : public Operator<Ttype, Ptype> {
 public:
     SassConvolution() {}
 
     /// forward impl
     virtual void operator() (OpContext<Ttype> &ctx, 
-                             const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                             std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-        LOG(ERROR) << "Not Impl Yet Operator convolution<TargetType:"<<"unknown"<<","
-                   <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info()<<">";
+                             const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                             std::vector<Tensor4dPtr<Ttype> >& outs) {
+		LOG(ERROR) << "Not Impl Yet Operator SassConvolution< Ttype("
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
-    friend class SassConvolutionHelper<Ttype, Dtype, Ptype>;
+    friend class SassConvolutionHelper<Ttype, Ptype>;
 };
 
 /**
@@ -55,8 +55,8 @@ public:
  * public inherit OperatorHelper
  * including init resource and shape size in conv3X3 context
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class SassConvolutionHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class SassConvolutionHelper : public OperatorHelper<Ttype, Ptype> {
 public:
     SassConvolutionHelper()=default;
 
@@ -72,8 +72,8 @@ public:
     * \return status
     */
     Status Init(OpContext<Ttype> &ctx,
-                const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
     /**
     * \brief infer the shape of output and input.
@@ -81,14 +81,14 @@ public:
     * \param outs stand for output tensor vector
     * \return status
     */
-    Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+    Status InferShape(const std::vector<Tensor4dPtr<Ttype> >& ins,
+                      std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
 public:
     ///< _param_conv stand for conv_3X3 parameter
-    saber::ConvParam<Tensor4d<Ttype, Dtype>>  _param_conv;
+    saber::ConvParam<Ttype>  _param_conv;
     ///< _funcs_conv stand for convolution function 
-    saber::Conv<Ttype, Dtype> _funcs_conv; 
+    saber::Conv<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_conv; 
 
 private:
     ///< _dims stand for conv_3X3 size

@@ -66,8 +66,6 @@ private:
     Tensor<NV> _block_max_index;
 };
 
-//template class SaberArgmax<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
-
 }
 
 }

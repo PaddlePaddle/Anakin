@@ -75,14 +75,14 @@ public:
 	~WeightsWritter() {}
 
 	// set weight
-	template<typename Ttype, typename Dtype>
-	void register_weights(const std::string& node_name, PBlock<Dtype, Ttype>& weight) {
+	template<typename Ttype>
+	void register_weights(const std::string& node_name, PBlock<Ttype>& weight) {
 		WeghtOffset::Offset offset_tmp;
 		offset_tmp.offset = _offset;
 		offset_tmp.length = weight.count();
 		_offset += offset_tmp.length;
 		_node_weights_map[node_name].weights.push_back(offset_tmp);
-		write(weight.h_tensor().mutable_data(), sizeof(Dtype), offset_tmp.length);
+		write(weight.h_tensor().mutable_data(), weight.h_tensor().get_dtype_size(), offset_tmp.length);
 	}
 
 	bool has_node(std::string node_name) {
