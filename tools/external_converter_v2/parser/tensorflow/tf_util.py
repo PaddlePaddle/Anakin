@@ -3,9 +3,17 @@ from tensorflow.python.platform import gfile
 from google.protobuf import text_format
 import numpy as np
 
+
 class TfUtil:
     @staticmethod
     def tf_run_model(graph_path, inputs, output_tensor_list):
+        '''
+        fill inputs, run tensorflow mode and fetch output in output_tensor_list
+        :param graph_path:
+        :param inputs:
+        :param output_tensor_list:
+        :return:
+        '''
         sess = tf.Session()
         if graph_path.endswith('.pbtxt'):
             input_binary = False

@@ -12,15 +12,21 @@ from google.protobuf import text_format
 
 from tensorflow.python.platform import gfile
 
-
 # graph_path = './resnet_v1_50_graph.pb'
 # graph_path = './frozen_graph.pb'
 # graph_path='./vgg_model/frozen_vgg_16_i.pb'
 # graph_path='./inception_model/frozen_inception_v2.pb'
-graph_path='./resnet_model/frozen_resnet_v1_50.pb'
+graph_path = './resnet_model/frozen_resnet_v1_50.pb'
+
+
 # graph_path='./mobilnetv2/frozen_mobilnet_v2.pb'
 
 def get_graph(graph_path):
+    '''
+    get tensor board graph from pb file or meta file
+    :param graph_path:
+    :return:
+    '''
     if graph_path.endswith('.pbtxt'):
         input_binary = False
     else:
@@ -41,5 +47,5 @@ def get_graph(graph_path):
     return graph
 
 
-graph=get_graph(graph_path)
+graph = get_graph(graph_path)
 summaryWriter = tf.summary.FileWriter('log/', graph)

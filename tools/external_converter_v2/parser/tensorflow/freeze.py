@@ -6,7 +6,13 @@ from tensorflow.python.framework import graph_util
 dir = os.path.dirname(os.path.realpath(__file__))
 
 
-def freeze_graph(model_folder,output_name):
+def freeze_graph(model_folder, output_name):
+    '''
+    freeze graph from meta input
+    :param model_folder:
+    :param output_name:
+    :return:
+    '''
     # We retrieve our checkpoint fullpath
     checkpoint = tf.train.get_checkpoint_state(model_folder)
     input_checkpoint = checkpoint.model_checkpoint_path
@@ -59,4 +65,3 @@ if __name__ == '__main__':
 
     # freeze_graph('/tmp/pycharm_project_635/tensorflow/RNN/model/language_model_tf','Softmax')
     freeze_graph('./ease_model/', 'add_2')
-
