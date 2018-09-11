@@ -226,6 +226,16 @@ template class Worker<NV, Precision::FP16, OpRunType::SYNC>;
 template class Worker<NV, Precision::INT8, OpRunType::SYNC>;
 #endif
 
+#ifdef AMD_GPU
+template class Worker<AMD, Precision::FP32, OpRunType::ASYNC>;
+template class Worker<AMD, Precision::FP16, OpRunType::ASYNC>;
+template class Worker<AMD, Precision::INT8, OpRunType::ASYNC>;
+
+template class Worker<AMD, Precision::FP32, OpRunType::SYNC>;
+template class Worker<AMD, Precision::FP16, OpRunType::SYNC>;
+template class Worker<AMD, Precision::INT8, OpRunType::SYNC>;
+#endif
+
 #ifdef USE_X86_PLACE
 template class Worker<X86, Precision::FP32, OpRunType::ASYNC>;
 template class Worker<X86, Precision::FP16, OpRunType::ASYNC>;

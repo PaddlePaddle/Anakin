@@ -129,6 +129,10 @@ ANAKIN_TO_TYPE_ID(Enum, anakin_tuple_enum)
 	ANAKIN_PBLOCK_TO_TYPE_ID(X86, anakin_block)
 #endif
 
+#ifdef AMD_GPU
+  ANAKIN_PBLOCK_TO_TYPE_ID(AMD, anakin_block)
+#endif
+
 #ifdef USE_ARM_PLACE
 	ANAKIN_PBLOCK_TO_TYPE_ID(ARM, anakin_block)
 #endif
