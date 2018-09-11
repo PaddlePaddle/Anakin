@@ -112,7 +112,7 @@ if(USE_BM_PLACE)
         COMMENT "custom compilation..."
     )
     add_custom_target(ANAKIN ALL DEPENDS bm_kernel_tmp)
-    configure_file(${ANAKIN_ROOT}/build/saber/bmkernel_bin.bin ${BM_ROOT}/bmkernel_bin.bin COPYONLY)
+    #configure_file(${ANAKIN_ROOT}/build/saber/bmkernel_bin.bin ${BM_ROOT}/bmkernel_bin.bin COPYONLY)
 endif()
 
 # add saber library to static
