@@ -92,7 +92,7 @@ if(USE_CUDA)
 				      ${WHOLE_ARCHIVE_END})	
 endif()
 
-if(USE_BM)
+if(USE_BM_PLACE)
     set(BIN_NAME bmkernel_bin)
     set(LINK_CONFIG link/bm1682_ddr.lds)
     add_custom_command(OUTPUT bm_kernel_tmp
