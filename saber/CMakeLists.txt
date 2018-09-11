@@ -109,10 +109,10 @@ if(USE_BM_PLACE)
         COMMAND printf "%x" 0x58926 >> ${BIN_NAME}.bin
         COMMAND cat ${BIN_NAME}_itcm.hex.sim >> ${BIN_NAME}.bin
         COMMAND cat ${BIN_NAME}_ddr.hex.sim >> ${BIN_NAME}.bin
-        COMMENT "custom compilation..."
+        COMMAND cp ${ANAKIN_ROOT}/build/saber/bmkernel_bin.bin ${BM_ROOT}/bmkernel_bin.bin
+        COMMENT "BM Kernel compilation..."
     )
     add_custom_target(ANAKIN ALL DEPENDS bm_kernel_tmp)
-    #configure_file(${ANAKIN_ROOT}/build/saber/bmkernel_bin.bin ${BM_ROOT}/bmkernel_bin.bin COPYONLY)
 endif()
 
 # add saber library to static
