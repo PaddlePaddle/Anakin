@@ -11,7 +11,6 @@ using namespace anakin::saber;
 #define CHECK_RESULT
 //#define CHECK_SPEED
 
-#if 0
 #ifdef USE_BM_PLACE
 TEST(TestSaberFunc, test_saber_conv_results_bm) {
     Env<BM>::env_init();
@@ -69,7 +68,6 @@ TEST(TestSaberFunc, test_saber_conv_results_bm) {
 
     }
 }
-#endif
 #endif
 
 TEST(TestSaberFunc, test_saber_conv_results) {
