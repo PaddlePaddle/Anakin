@@ -73,7 +73,8 @@ template<typename VertexNameType, typename VertexType, typename WeightType, type
 void GraphBase<VertexNameType, VertexType, WeightType, ArcType>::add_in_arc(ArcType& arc) {
     if(!this->has_arc(arc)){
         _arcs.push_back(arc);
-        CHECK(this->has_vertex(arc.bottom()) && this->has_vertex(arc.top())) << " The arc's top or bottom is not vertex! ";
+        CHECK(this->has_vertex(arc.bottom()) && this->has_vertex(arc.top())) << " The arc's top or bottom is not vertex! vertex ="
+            <<arc.bottom()<<" , "<<arc.top()<<" : "<<this->has_vertex(arc.bottom())<<" , "<<this->has_vertex(arc.top());
     }     
     Arc_iterator<VertexNameType, WeightType, ArcType> arc_iterator = find(arc.bottom(), arc.top()); 
     _graph_in_arcs[arc.top()].push_back(arc_iterator);

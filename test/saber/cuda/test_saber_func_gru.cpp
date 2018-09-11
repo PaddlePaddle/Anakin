@@ -292,9 +292,9 @@ void test_saber_gru(int sequence_size = 2, int batch_size = 1, int word_size = 2
     host_g.re_alloc(shape_out);
     compare_g.re_alloc(shape_out);
     host_g.copy_from(dev_out);
-    write_tensorfile(host_g, "host_g.txt");
+//    write_tensorfile(host_g, "host_g.txt");
     readTensorData(compare_g, "host_correct");
-    write_tensorfile(compare_g, "host_correct.txt");
+//    write_tensorfile(compare_g, "host_correct.txt");
     double maxdiff = 0;
     double maxratio = 0;
     tensor_cmp_host(host_g.data(), compare_g.data(), host_g.valid_size(), maxratio, maxdiff);

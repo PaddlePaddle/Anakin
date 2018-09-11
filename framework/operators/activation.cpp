@@ -49,7 +49,8 @@ Status ActivationHelper<Ttype, Dtype, Ptype>::InitParam() {
          ActivationParam<Tensor4d<Ttype, Dtype>> param_activation(Active_relu);
          _param_activation = param_activation;
     } else if (type == "ClippedRelu") {
-         ActivationParam<Tensor4d<Ttype, Dtype>> param_activation(Active_clipped_relu);
+        auto clip_relu_num = GET_PARAMETER(int, clip_relu_num);
+         ActivationParam<Tensor4d<Ttype, Dtype>> param_activation(Active_clipped_relu,0,clip_relu_num);
          _param_activation = param_activation;
     } else if (type == "Elu") {
          ActivationParam<Tensor4d<Ttype, Dtype>> param_activation(Active_elu);

@@ -70,8 +70,8 @@ void py_lstm(int word_size = 38,
     host_hidden_out.copy_from(dev_hidden_out);
     TensorHf4 compare_g(shape_h);
     readTensorData(compare_g, "host_correct");
-    write_tensorfile(host_hidden_out, "host_g.txt");
-    write_tensorfile(compare_g, "host_correct.txt");
+//    write_tensorfile(host_hidden_out, "host_g.txt");
+//    write_tensorfile(compare_g, "host_correct.txt");
     double maxdiff = 0;
     double maxratio = 0;
     tensor_cmp_host(host_hidden_out.data(), compare_g.data(), host_hidden_out.valid_size(), maxratio, maxdiff);

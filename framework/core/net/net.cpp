@@ -203,13 +203,13 @@ void Net<Ttype, Dtype, Ptype, RunType>::init(graph::Graph<Ttype, Dtype, Ptype>& 
                 int dil_h = dilation_rate_val.vector()[0];
                 int dil_w = dilation_rate_val.vector()[1];
 
-            if ((group_val == 1) && (k_w == 3 && k_h == 3 && dil_h == 1 && dil_w == 1)) {
-                node_ptr->set_op(OpFactory<Ttype, Dtype, Ptype>::Global()["Sass"+node_ptr->get_op_name()]);
-                node_ptr->get_op_name() = "Sass" + node_ptr->get_op_name();
-            } else {
-                    LOG(ERROR) << "node_ptr->get_op_name()  sass not support yet.";
-                    auto *op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
-                    node_ptr->set_op(op_pointer);
+                if ((group_val == 1) && (k_w == 3 && k_h == 3 && dil_h == 1 && dil_w == 1)) {
+                    node_ptr->set_op(OpFactory<Ttype, Dtype, Ptype>::Global()["Sass"+node_ptr->get_op_name()]);
+                    node_ptr->get_op_name() = "Sass" + node_ptr->get_op_name();
+                } else {
+                        LOG(ERROR) << node_ptr->get_op_name()<<"  sass not support yet. "<<group_val<<","<<k_h<<","<<k_w<<","<<dil_h<<","<<dil_w;
+                        auto *op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
+                        node_ptr->set_op(op_pointer);
                 }
             } else {
                 auto *op_pointer = OpFactory<Ttype, Dtype, Ptype>::Global()[node_ptr->get_op_name()];
@@ -390,17 +390,11 @@ void Net<Ttype, Dtype, Ptype, RunType>::prediction() {
             LOG(INFO)<<offset[i]<<",";
         }
         LOG(INFO)<<"  end print offset of "<<executer.name;
-#define RECORD_INNER
-#if defined(RECORD_INNER) && defined(USE_X86_PLACE)
+
+#if (defined(USE_X86_PLACE) || defined(USE_CUDA))
         record_tensor_to_file(*out,("record_"+executer.name).c_str());
-        if(executer.name=="")
 #endif
         LOG(INFO) <<executer.name <<" d_tensor_out_p :" <<out->data();
-#ifdef USE_X86_PLACE
-//        for (int i = 0; i < 10; ++i) {
-//            std::cout << out->data()[i]<<" ";
-//        }
-#endif
         LOG(ERROR) << "    |---out avg " << tensor_average(out);
     }
 
