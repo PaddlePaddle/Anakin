@@ -96,8 +96,8 @@ void argmax_nv_basic(const std::vector<Tensor<TargetType_H>*>& tensor_in,std::ve
             //out
             if(out_max){
                 dtype* dout_ch = dout + n * out_channel;
-                dtype* dout_data = dout_ch;
-                dtype* dout_index = dout_ch + top;
+                dtype* dout_index = dout_ch;
+                dtype* dout_data = dout_ch + top;
                 for (int i = 0; i < top; i++){
                     dout_data[i] = vec[i].first;
                     dout_index[i] = vec[i].second;
