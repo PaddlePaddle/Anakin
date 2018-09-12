@@ -434,7 +434,7 @@ struct ConvUnpaddingPaddingParam {
             : stride_h(right.stride_h)
             , stride_w(right.stride_w)
     {}
-    ConvUnpaddingPaddingParam& operator=(const ConvUnpaddingPaddingParam& right) {
+    ConvUnpaddingPaddingParam& operator=(const ConvUnpaddingPaddingParam<TargetType>& right) {
         stride_h = right.stride_h;
         stride_w = right.stride_w;
         return *this;
