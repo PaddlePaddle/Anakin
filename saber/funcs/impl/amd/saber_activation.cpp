@@ -301,6 +301,7 @@ SaberStatus SaberActivation<AMD, OpDtype>::dispatch(
 }
 
 template class SaberActivation<AMD, AK_FLOAT>;
+DEFINE_OP_TEMPLATE(SaberActivation, ActivationParam, AMD, AK_INT8);
 DEFINE_OP_TEMPLATE(SaberActivation, ActivationParam, AMD, AK_HALF);
 
 }
