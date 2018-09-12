@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 from tensorflow.core.framework import types_pb2, tensor_pb2
 from google.protobuf import text_format
-from med_graph import MedNodeUtil,MedGraphUtil
+from med_graph import MedNodeUtil, MedGraphUtil
 
 TF_TO_ANAKIN_DTYPE = {
     types_pb2.DT_FLOAT: np.float32,
@@ -62,6 +62,11 @@ def get_tf_tensor_data(tensor):
 
 
 def map_tf_dtype(dtype):
+    '''
+    wraper for TF_TO_ANAKIN_DTYPE
+    :param dtype:
+    :return:
+    '''
     return TF_TO_ANAKIN_DTYPE.get(dtype)
 
 
@@ -92,9 +97,9 @@ def tf_to_anakin_tensor(tensor):
     if dims == [0]:
         dims = [1]
     is_raw, data = get_tf_tensor_data(tensor)
-    dim_size=1
+    dim_size = 1
     for i in dims:
-        dim_size*=i
+        dim_size *= i
     # print(type(data),data,tensor.dtype,is_raw)
     if is_raw:
         if len(dims) > 0:
@@ -103,14 +108,19 @@ def tf_to_anakin_tensor(tensor):
         else:
             anakin_tensor = np.zeros(0)
         return anakin_tensor
-    elif dim_size >1 and len(data)==1:
+    elif dim_size > 1 and len(data) == 1:
 
-        return np.array([data]*dim_size).reshape(dims)
+        return np.array([data] * dim_size).reshape(dims)
     else:
         return data
 
 
 def load_graph(graph_path):
+    '''
+    load tensorflow graph
+    :param graph_path:
+    :return:
+    '''
     if graph_path.endswith('.pbtxt'):
         input_binary = False
     else:
@@ -138,6 +148,12 @@ NCHW_TO_HWCN = [2, 3, 1, 0]
 
 
 def spatial_map(shape, perm):
+    '''
+    convert shape in different layout
+    :param shape:
+    :param perm:
+    :return:
+    '''
     # print('HI ',type(shape),shape)
     new_shape = shape[:]
     for i in perm:
@@ -146,6 +162,12 @@ def spatial_map(shape, perm):
 
 
 def trans_move_attr(attr, format):
+    '''
+    get h,w shape from attr
+    :param attr:
+    :param format:
+    :return:
+    '''
     if attr is None:
         return attr
     if len(attr) == 2:
@@ -158,24 +180,40 @@ def trans_move_attr(attr, format):
         raise Exception('not support format ' + format)
     return [h, w]
 
-def add_special_pad(padding,tf_node,graph):
+
+def add_special_pad(padding, tf_node, graph):
+    '''
+    add pad op to solve different pad method in caffe and tensorflow
+    :param padding:
+    :param tf_node:
+    :param graph:
+    :return:
+    '''
     # print(tf_node['name'])
-    assert len(tf_node['input'])<=2
-    now_shape=tf_node['input'][0]['shape']
-    tar_shape =now_shape[:]
-    tar_shape[1]=now_shape[1]+padding[0]+padding[1]
+    assert len(tf_node['input']) <= 2
+    now_shape = tf_node['input'][0]['shape']
+    tar_shape = now_shape[:]
+    tar_shape[1] = now_shape[1] + padding[0] + padding[1]
     tar_shape[2] = now_shape[2] + padding[2] + padding[3]
     tf_name = tf_node['name']
-    padding_node={'name':tf_node['name']+'_pad','ak_type':'Pad','type':None,'visted':True,
-                  'ak_attr':{'pad_c':[0,0],'pad_h':[padding[0],padding[1]],'pad_w':[padding[2],padding[3]]},
-                  'input':[tf_node['input'][0]],'output':[{'name':tf_name,'shape':tar_shape}]}
+    padding_node = {'name': tf_node['name'] + '_pad', 'ak_type': 'Pad', 'type': None, 'visted': True,
+                    'ak_attr': {'pad_c': [0, 0], 'pad_h': [padding[0], padding[1]], 'pad_w': [padding[2], padding[3]]},
+                    'input': [tf_node['input'][0]], 'output': [{'name': tf_name, 'shape': tar_shape}]}
 
-    input_0=graph[tf_node['input'][0]['name']]
-    input_0['output']=MedNodeUtil.replace_name_with_list(input_0['output'],tf_name,[{'name':padding_node['name'],'shape':now_shape}])
-    tf_node['input'][0]={'name':padding_node['name'],'shape':tar_shape}
-    graph[padding_node['name']]=padding_node
+    input_0 = graph[tf_node['input'][0]['name']]
+    input_0['output'] = MedNodeUtil.replace_name_with_list(input_0['output'], tf_name,
+                                                           [{'name': padding_node['name'], 'shape': now_shape}])
+    tf_node['input'][0] = {'name': padding_node['name'], 'shape': tar_shape}
+    graph[padding_node['name']] = padding_node
+
 
 def parse_Identity(tf_node, graph):
+    '''
+    remove identity in tensorflow graph
+    :param tf_node:
+    :param graph:
+    :return:
+    '''
     tf_node['visted'] = True
     outputs = tf_node['output']
     input_0 = tf_node['input'][0]
@@ -189,6 +227,12 @@ def parse_Identity(tf_node, graph):
 
 
 def parse_Shape(tf_node, graph):
+    '''
+    parse shape for tensorflow graph
+    :param tf_node:
+    :param graph:
+    :return:
+    '''
     assert len(tf_node['input']) == 1
     tf_node['type'] = 'Const'
     tf_node['tf_attr']['value'] = tf_node['input'][0]['shape']
@@ -196,6 +240,12 @@ def parse_Shape(tf_node, graph):
 
 
 def parse_Squeeze(tf_node, graph):
+    '''
+    convert squeeze to reshape
+    :param tf_node:
+    :param graph:
+    :return:
+    '''
     tf_node['visted'] = True
     tf_node['ak_type'] = 'Reshape'
     tf_node['ak_attr']['shape'] = tf_node['output'][0]['shape']
@@ -203,30 +253,54 @@ def parse_Squeeze(tf_node, graph):
 
 
 def parse_Placeholder(tf_node, graph):
+    '''
+    conver placeholder to input op
+    :param tf_node:
+    :param graph:
+    :return:
+    '''
     tf_node['visted'] = True
     tf_node['ak_type'] = 'Input'
     tf_node['ak_attr']['shape'] = spatial_map(tf_node['output'][0]['shape'], NHWC_TO_NCHW)
 
 
 def parse_Pad(tf_node, graph):
+    '''
+    convert pad op
+    :param tf_node:
+    :param graph:
+    :return:
+    '''
     tf_node['visted'] = True
     tf_node['ak_type'] = 'Pad'
     pad_shape_node = graph[tf_node['input'][1]['name']]
     assert pad_shape_node['type'] == 'Const'
-    pad_shape=pad_shape_node['tf_attr']['value']
-    ak_attr=tf_node['ak_attr']
+    pad_shape = pad_shape_node['tf_attr']['value']
+    ak_attr = tf_node['ak_attr']
     ak_attr['pad_c'] = pad_shape[3].flatten().tolist()
     ak_attr['pad_h'] = pad_shape[1].flatten().tolist()
     ak_attr['pad_w'] = pad_shape[2].flatten().tolist()
 
 
 def parse_Softmax(tf_node, graph):
+    '''
+    convert softmax op, default axis is 3
+    :param tf_node:
+    :param graph:
+    :return:
+    '''
     tf_node['visted'] = True
     tf_node['ak_type'] = 'Softmax'
-    tf_node['ak_attr']['axis']=3
+    tf_node['ak_attr']['axis'] = 3
 
 
 def parse_Reshape(tf_node, graph):
+    '''
+    convert reshape op
+    :param tf_node:
+    :param graph:
+    :return:
+    '''
     tf_node['visted'] = True
     tf_node['ak_type'] = 'Reshape'
     shape = graph[tf_node['input'][1]['name']]
@@ -238,9 +312,15 @@ def parse_Reshape(tf_node, graph):
 
 
 def parse_Act(tf_node, graph):
+    '''
+    convert activate op
+    :param tf_node:
+    :param graph:
+    :return:
+    '''
     tf_node['visted'] = True
     tf_node['ak_type'] = 'Activation'
-    if tf_node['type'] == 'Relu' :
+    if tf_node['type'] == 'Relu':
         tf_node['ak_type'] = 'Relu'
         tf_node['ak_attr']['type'] = 'Relu'
     elif tf_node['type'] == 'Relu6':
@@ -252,16 +332,28 @@ def parse_Act(tf_node, graph):
 
 
 def parse_Concat(tf_node, graph):
+    '''
+    convert concat op
+    :param tf_node:
+    :param graph:
+    :return:
+    '''
     tf_node['visted'] = True
     tf_node['ak_type'] = 'Concat'
     N = tf_node['tf_attr']['N']
     axis_node = graph[tf_node['input'][N]['name']]
     assert axis_node['type'] == 'Const'
-    nhwc2hchw={0:0,1:2,2:3,3:1}
+    nhwc2hchw = {0: 0, 1: 2, 2: 3, 3: 1}
     tf_node['ak_attr']['axis'] = nhwc2hchw[axis_node['tf_attr']['value'][0]]
 
 
 def parse_Add(tf_node, graph):
+    '''
+    convert add op
+    :param tf_node:
+    :param graph:
+    :return:
+    '''
     tf_node['visted'] = True
     assert len(tf_node['input']) == 2
     input_0 = graph[tf_node['input'][0]['name']]
@@ -278,33 +370,47 @@ def parse_Add(tf_node, graph):
         tf_node['ak_type'] = 'Eltwise'
         ak_attr['type'] = 'Add'
 
+
 def parse_Mean(tf_node, graph):
+    '''
+    convert mean op to pooling op
+    :param tf_node:
+    :param graph:
+    :return:
+    '''
     tf_node['visted'] = True
     tf_node['ak_type'] = 'Pooling'
     ak_attr = tf_node['ak_attr']
     tf_attr = tf_node['tf_attr']
-    ak_attr['type']='AVG'
-    reduction_shape=None
-    keep_dims=tf_attr['keep_dims']
+    ak_attr['type'] = 'AVG'
+    reduction_shape = None
+    keep_dims = tf_attr['keep_dims']
 
-    if len(tf_node['input'])>1:
-        reduction_shape_node=graph[tf_node['input'][1]['name']]
-        assert reduction_shape_node['type']=='Const'
-        reduction_shape=reduction_shape_node['tf_attr']['value'].flatten().tolist()
+    if len(tf_node['input']) > 1:
+        reduction_shape_node = graph[tf_node['input'][1]['name']]
+        assert reduction_shape_node['type'] == 'Const'
+        reduction_shape = reduction_shape_node['tf_attr']['value'].flatten().tolist()
     assert reduction_shape is not None
     assert keep_dims is True
-    assert reduction_shape == [1,2]
-    ak_attr['strides'] = [1,1]
-    ak_attr['window'] = [tf_node['input'][0]['shape'][reduction_shape[0]],tf_node['input'][0]['shape'][reduction_shape[1]]]
-    ak_attr['padding'] = [0,0]
+    assert reduction_shape == [1, 2]
+    ak_attr['strides'] = [1, 1]
+    ak_attr['window'] = [tf_node['input'][0]['shape'][reduction_shape[0]],
+                         tf_node['input'][0]['shape'][reduction_shape[1]]]
+    ak_attr['padding'] = [0, 0]
 
 
 def parse_Pooling(tf_node, graph):
+    '''
+    convert pooling op
+    :param tf_node:
+    :param graph:
+    :return:
+    '''
     tf_node['visted'] = True
     tf_node['ak_type'] = 'Pooling'
     ak_attr = tf_node['ak_attr']
     tf_attr = tf_node['tf_attr']
-    #TODO TF default pad is exclusive method
+    # TODO TF default pad is exclusive method
     map_tf_pool = {'MaxPool': 'MAX',
                    'AvgPool': 'AVGEXC'}
 
@@ -322,26 +428,38 @@ def parse_Pooling(tf_node, graph):
     padding = cal_padding(padding, kernel_shape, strides, dilations, data_format,
                           tf_node['input'][0]['shape'], tf_node['output'][0]['shape'])
 
-    if padding[0]!=padding[1] or padding[2]!=padding[3]:
-        add_special_pad(padding,tf_node,graph)
-        padding=[0,0]
+    if padding[0] != padding[1] or padding[2] != padding[3]:
+        add_special_pad(padding, tf_node, graph)
+        padding = [0, 0]
     else:
-        padding=[padding[0],padding[2]]
+        padding = [padding[0], padding[2]]
 
     ak_attr['window'] = kernel_shape
     ak_attr['padding'] = padding
     ak_attr['strides'] = strides
-    ak_attr['cmp_out_shape_floor_as_conv']=True
+    ak_attr['cmp_out_shape_floor_as_conv'] = True
 
 
 def cal_padding(padding, kernel_shape, strides, dilations, data_format, input_shape, output_shape, spatial=2):
-    pads = [0] * spatial*2
+    '''
+    convert pad string to pad list
+    :param padding:
+    :param kernel_shape:
+    :param strides:
+    :param dilations:
+    :param data_format:
+    :param input_shape:
+    :param output_shape:
+    :param spatial:
+    :return:
+    '''
+    pads = [0] * spatial * 2
     if type(padding) == bytes:
         padding = padding.decode()
         if dilations is None:
             dilations = [1] * spatial * 2
         if padding == 'SAME':
-            pads = [0] * spatial*2
+            pads = [0] * spatial * 2
             if data_format == 'NHWC':
                 # print('in out shape = ',input_shape,output_shape)
                 input_shape = spatial_map(input_shape, NHWC_TO_NCHW)
@@ -353,7 +471,7 @@ def cal_padding(padding, kernel_shape, strides, dilations, data_format, input_sh
                 pad = max(pad, 0)
                 pads1 = pad // 2
                 pads2 = pad - pad // 2
-                pads[i*2+0]=pads1
+                pads[i * 2 + 0] = pads1
                 pads[i * 2 + 1] = pads2
             return pads
         elif padding == 'VALID':
@@ -363,6 +481,12 @@ def cal_padding(padding, kernel_shape, strides, dilations, data_format, input_sh
 
 
 def get_const_from_biinput(inputs, graph):
+    '''
+    search const input of node`s input
+    :param inputs:
+    :param graph:
+    :return:
+    '''
     assert len(inputs) <= 2
     input_0 = graph[inputs[0]['name']]
     input_1 = graph[inputs[1]['name']]
@@ -374,6 +498,12 @@ def get_const_from_biinput(inputs, graph):
 
 
 def get_bias(tf_node, graph):
+    '''
+    try to fetch const value form node
+    :param tf_node:
+    :param graph:
+    :return:
+    '''
     bias_weight = None
     output = tf_node['output']
     output_0 = graph[output[0]['name']]
@@ -383,12 +513,18 @@ def get_bias(tf_node, graph):
         if bias_weight is not None:
             output_0['visted'] = True
             tf_node['output'] = output_0['output']
-            MedNodeUtil.redirecto_outputs_input_to_this(output_0,graph,tf_node['name'],output[0]['shape'])
+            MedNodeUtil.redirecto_outputs_input_to_this(output_0, graph, tf_node['name'], output[0]['shape'])
 
     return bias_weight
 
 
 def parse_Conv2D(tf_node, graph):
+    '''
+    convert conv2D to convolution
+    :param tf_node:
+    :param graph:
+    :return:
+    '''
     tf_node['visted'] = True
     tf_node['ak_type'] = 'Convolution'
     weights_node = graph[tf_node['input'][1]['name']]
@@ -407,18 +543,18 @@ def parse_Conv2D(tf_node, graph):
     # print('name ',tf_node['name'],input_node['name'],input_node['out_shape'])
     padding = cal_padding(padding, kernel_shape, strides, dilations, data_format, tf_node['input'][0]['shape'],
                           tf_node['output'][0]['shape'])
-    if padding[0]!=padding[1] or padding[2]!=padding[3]:
-        add_special_pad(padding,tf_node,graph)
-        padding=[0,0]
+    if padding[0] != padding[1] or padding[2] != padding[3]:
+        add_special_pad(padding, tf_node, graph)
+        padding = [0, 0]
     else:
-        padding=[padding[0],padding[2]]
+        padding = [padding[0], padding[2]]
 
     group = 1
     if tf_node['type'] == 'DepthwiseConv2dNative':
         weights = weights.transpose((1, 0, 2, 3))
         group = weights.shape[0]
-        out_c=weights.shape[0]*weights.shape[1]
-        weights=weights.reshape(out_c,1,weights.shape[2],weights.shape[3])
+        out_c = weights.shape[0] * weights.shape[1]
+        weights = weights.reshape(out_c, 1, weights.shape[2], weights.shape[3])
 
     ak_attr = tf_node['ak_attr']
     ak_attr['weights'] = weights
@@ -431,6 +567,12 @@ def parse_Conv2D(tf_node, graph):
 
 
 def parse_MatMul(tf_node, graph):
+    '''
+    convert matmul to dense
+    :param tf_node:
+    :param graph:
+    :return:
+    '''
     tf_node['visted'] = True
     tf_node['ak_type'] = 'Dense'
     in_name_0 = tf_node['input'][0]['name']
@@ -457,6 +599,12 @@ def parse_MatMul(tf_node, graph):
 
 
 def parse_fusionReshape(tf_node, graph):
+    '''
+    convert reshape
+    :param tf_node:
+    :param graph:
+    :return:
+    '''
     assert tf_node['type'] == 'Reshape'
     input_0 = graph[tf_node['input'][0]['name']]
     input_1 = graph[tf_node['input'][1]['name']]
@@ -472,6 +620,7 @@ def parse_fusionReshape(tf_node, graph):
 
 
 def parse_CustmerBatchNorm(tf_node, graph):
+    '''convert user custmer batchnorm to scale'''
     assert tf_node['type'] == 'Rsqrt'
     assert len(tf_node['input']) == 1 and len(tf_node['output']) == 1
     rsqrt_mul_node = graph[tf_node['output'][0]['name']]
@@ -485,7 +634,7 @@ def parse_CustmerBatchNorm(tf_node, graph):
     var_value = var_node['tf_attr']['value'].flatten()
     assert rsqrt_mul_node['type'] == 'Mul' and len(rsqrt_mul_node['input']) == 2 and len(rsqrt_mul_node['output']) == 2
     const_mul_node_input_1 = graph[rsqrt_mul_node['input'][1]['name']]
-    if MedGraphUtil.check_one_of_input_is_const(graph[rsqrt_mul_node['output'][0]['name']],graph):
+    if MedGraphUtil.check_one_of_input_is_const(graph[rsqrt_mul_node['output'][0]['name']], graph):
         mul_mul_1_node = graph[rsqrt_mul_node['output'][1]['name']]
         mul_mul_2_node = graph[rsqrt_mul_node['output'][0]['name']]
     else:
@@ -503,7 +652,7 @@ def parse_CustmerBatchNorm(tf_node, graph):
     assert mul_add_node['type'] == 'Add' and mul2_sub_node['type'] == 'Sub' and mean_node['type'] == 'Const'
     beta_node = graph[mul2_sub_node['input'][0]['name']]
 
-    assert beta_node['type']=='Const'
+    assert beta_node['type'] == 'Const'
     beta_value = beta_node['tf_attr']['value'].flatten()
     mean_value = mean_node['tf_attr']['value'].flatten()
     assert mul_add_node['input'][1]['name'] == mul2_sub_node['name']
@@ -518,13 +667,14 @@ def parse_CustmerBatchNorm(tf_node, graph):
 
     var = np.sqrt(var_value + epse_value)
     np_scale = alpha_value / var
-    np_bias = beta_value -np_scale * mean_value
+    np_bias = beta_value - np_scale * mean_value
     mul_mul_1_node['output'] = mul_add_node['output']
     mul_mul_1_node['type'] = 'CustomerBN'
     mul_mul_1_node['ak_type'] = 'Scale'
 
     MedNodeUtil.retain_input(mul_mul_1_node, [mul_mul_1_node['input'][0]])
-    MedNodeUtil.redirecto_outputs_input_to_this(mul_add_node,graph,mul_mul_1_node['name'],mul_mul_1_node['output'][0]['shape'])
+    MedNodeUtil.redirecto_outputs_input_to_this(mul_add_node, graph, mul_mul_1_node['name'],
+                                                mul_mul_1_node['output'][0]['shape'])
     ak_attr = mul_mul_1_node['ak_attr']
     ak_attr['scale_weights'] = np_scale.astype('float32')
     ak_attr['bias_weights'] = np_bias.astype('float32')
@@ -532,6 +682,12 @@ def parse_CustmerBatchNorm(tf_node, graph):
 
 
 def parse_BatchNorm(tf_node, graph):
+    '''
+    convert fused batchnorm to scale
+    :param tf_node:
+    :param graph:
+    :return:
+    '''
     tf_node['visted'] = True
     tf_node['ak_type'] = 'Scale'
     assert len(tf_node['input']) == 5

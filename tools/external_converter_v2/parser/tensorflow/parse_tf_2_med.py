@@ -4,23 +4,26 @@ from tensorflow.core.framework import types_pb2, tensor_pb2
 import logging as log
 import collections
 from tf_trans_util import *
-class ParseTF2Med:
-    def __init__(self,tf_forzen_pb_path):
-        self.model_path=tf_forzen_pb_path
 
-    def _debug_nodes(self,nodes):
+
+class ParseTF2Med:
+    def __init__(self, tf_forzen_pb_path):
+        self.model_path = tf_forzen_pb_path
+
+    def _debug_nodes(self, nodes):
+        '''
+        print debug info and exit
+        :param nodes:
+        :return:
+        '''
         for i in nodes.values():
-            print(i['name'],i['input'],i['output'],i['out_shape'])
+            print(i['name'], i['input'], i['output'], i['out_shape'])
         print('debug end')
         exit()
 
-
-    def _parse_tf_node(self,tf_graph,shape_override):
-
-
+    def _parse_tf_node(self, tf_graph, shape_override):
         """
-        Load tensorflow graph into an onnx graph with minimal rewrites so
-        we can use the onnx graph as intermediate graph.
+        Load tensorflow graph into an raw med graph
         """
 
         # ignore the following attributes
@@ -37,11 +40,10 @@ class ParseTF2Med:
         # find outputs
         ops = tf_graph.get_operations()
 
-        tensor_shape={}
+        tensor_shape = {}
         for node in ops:
             for out in node.outputs:
-                tensor_shape[out.name]=out.get_shape().as_list()
-
+                tensor_shape[out.name] = out.get_shape().as_list()
 
         # minimal conversion of attributes
         for node in ops:
@@ -50,7 +52,7 @@ class ParseTF2Med:
             op_cnt[node.type] += 1
 
             for a in node.node_def.attr:
-                a=str(a)
+                a = str(a)
                 attr_cnt[a] += 1
                 if a == "dtype":
                     attr[a] = map_tf_dtype(node.get_attr("dtype"))
@@ -92,11 +94,17 @@ class ParseTF2Med:
                     log.error("pass1 convert failed for %s, ex=%s", node, ex)
                     raise
 
-        self._fix_self_output(anakin_nodes,tensor_shape)
+        self._fix_self_output(anakin_nodes, tensor_shape)
 
         return anakin_nodes
 
     def _fix_self_output(self, nodes, tensor_shape_dict):
+        '''
+        convert tensor connection to op connection
+        :param nodes:
+        :param tensor_shape_dict:
+        :return:
+        '''
         out2nodename = {}
         for node in nodes.values():
             for out_name in node['output']:
@@ -114,23 +122,28 @@ class ParseTF2Med:
                     in2nodename[in_name].append(node['name'])
 
         for node in nodes.values():
-            new_output=[]
-            new_input=[]
+            new_output = []
+            new_input = []
 
             for tensor_name in node['output']:
                 if in2nodename.get(tensor_name) is not None:
-                    new_output+=[{'name':op_name,'shape':tensor_shape_dict[tensor_name]} for op_name in in2nodename[tensor_name]]
+                    new_output += [{'name': op_name, 'shape': tensor_shape_dict[tensor_name]} for op_name in
+                                   in2nodename[tensor_name]]
 
             for tensor_name in node['input']:
                 if out2nodename.get(tensor_name) is not None:
-                    new_input+=[{'name':op_name,'shape':tensor_shape_dict[tensor_name]} for op_name in out2nodename[tensor_name]]
+                    new_input += [{'name': op_name, 'shape': tensor_shape_dict[tensor_name]} for op_name in
+                                  out2nodename[tensor_name]]
 
-            node['output']=new_output
-            node['input']=new_input
+            node['output'] = new_output
+            node['input'] = new_input
 
-
-
-    def _parse_tf_graph(self,nodes):
+    def _parse_tf_graph(self, nodes):
+        '''
+        conver op in tf graph to med graph
+        :param nodes:
+        :return:
+        '''
 
         def all_search(graph, table):
             for tf_node in graph.values():
@@ -145,19 +158,19 @@ class ParseTF2Med:
                            'Shape': parse_Shape
                            })
 
-        all_search(nodes, {'Reshape': parse_fusionReshape,})
+        all_search(nodes, {'Reshape': parse_fusionReshape, })
 
         all_search(nodes, {'MatMul': parse_MatMul,
                            'Conv2D': parse_Conv2D,
                            'DepthwiseConv2dNative': parse_Conv2D,
-                           'FusedBatchNorm':parse_BatchNorm,
-                           'Rsqrt': parse_CustmerBatchNorm,})
+                           'FusedBatchNorm': parse_BatchNorm,
+                           'Rsqrt': parse_CustmerBatchNorm, })
 
-        all_search(nodes, {'Add':parse_Add,
+        all_search(nodes, {'Add': parse_Add,
                            'AvgPool': parse_Pooling,
                            'ConcatV2': parse_Concat,
                            'MaxPool': parse_Pooling,
-                           'Mean':parse_Mean,
+                           'Mean': parse_Mean,
                            'Pad': parse_Pad,
                            'Relu': parse_Act,
                            'Relu6': parse_Act,
@@ -170,12 +183,16 @@ class ParseTF2Med:
         return nodes
 
     def parse(self):
+        '''
+        entrance to load tf graph and convert it to med graph
+        :return:
+        '''
         tf_graph = load_graph(self.model_path)
         nodes = self._parse_tf_node(tf_graph, {})
 
-        med_graph=self._parse_tf_graph(nodes)
-        filter_graph={i:med_graph[i] for i in med_graph.keys() if med_graph[i]['ak_type'] is not None}
+        med_graph = self._parse_tf_graph(nodes)
+        filter_graph = {i: med_graph[i] for i in med_graph.keys() if med_graph[i]['ak_type'] is not None}
         for node in filter_graph.values():
-            node['input']=[i for i in node['input'] if filter_graph.get(i['name']) is not None]
+            node['input'] = [i for i in node['input'] if filter_graph.get(i['name']) is not None]
             node['output'] = [i for i in node['output'] if filter_graph.get(i['name']) is not None]
         return filter_graph

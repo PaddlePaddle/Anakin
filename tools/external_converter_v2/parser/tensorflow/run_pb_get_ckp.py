@@ -11,12 +11,12 @@ from tensorflow.python.platform import gfile
 # graph_path='./ease_model/graph.pb'
 # graph_path='./ease_model/frozen_mnist.pb'
 # graph_path='./vgg_model/frozen_vgg_16_i.pb'
-graph_path='./inception_model/inception_v2_inf_graph.pb'
-cpkt_path='./inception_model/'
+graph_path = './inception_model/inception_v2_inf_graph.pb'
+cpkt_path = './inception_model/'
 # graph_path='./resnet_model/frozen_resnet_v1_50.pb'
 
 
-sess=tf.Session()
+sess = tf.Session()
 if graph_path.endswith('.pbtxt'):
     input_binary = False
 else:
@@ -35,17 +35,17 @@ else:
     tf.train.import_meta_graph(graph_path, clear_devices=True)
 
 tf.import_graph_def(graph_def, name='graph')
-sess=tf.Session(graph=graph)
+sess = tf.Session(graph=graph)
 x = graph.get_tensor_by_name('graph/input:0')
 y = graph.get_tensor_by_name('graph/InceptionV2/Predictions/Reshape_1:0')
 
 for var in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES):
-  print(var.name)
-init_table=tf.tables_initializer()
+    print(var.name)
+init_table = tf.tables_initializer()
 sess.run(init_table)
-init=tf.global_variables_initializer()
+init = tf.global_variables_initializer()
 sess.run(init)
-out=sess.run(y,{x:np.ones((1,224,224,3))})
+out = sess.run(y, {x: np.ones((1, 224, 224, 3))})
 
 saver = tf.train.Saver()
-saver.save(sess, cpkt_path+'/model.cpkt')
+saver.save(sess, cpkt_path + '/model.cpkt')

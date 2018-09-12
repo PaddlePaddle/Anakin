@@ -4,11 +4,11 @@ import numpy as np
 from tensorflow.python.platform import gfile
 from google.protobuf import text_format
 
-graph_path='./inception_model/inception_v2_inf_graph.pb'
-output_node_names='InceptionV2/Predictions/Reshape_1'
-output_graph='./inception_model/inception_v2_inf_graph_empty.pb'
+graph_path = './inception_model/inception_v2_inf_graph.pb'
+output_node_names = 'InceptionV2/Predictions/Reshape_1'
+output_graph = './inception_model/inception_v2_inf_graph_empty.pb'
 
-sess=tf.Session()
+sess = tf.Session()
 if graph_path.endswith('.pbtxt'):
     input_binary = False
 else:
@@ -29,10 +29,10 @@ else:
 tf.import_graph_def(graph_def, name='graph')
 
 output_graph_def = graph_util.convert_variables_to_constants(
-            sess,
-            graph_def,
-            output_node_names.split(",")  # We split on comma for convenience
-        )
+    sess,
+    graph_def,
+    output_node_names.split(",")  # We split on comma for convenience
+)
 # Finally we serialize and dump the output graph to the filesystem
 with tf.gfile.GFile(output_graph, "wb") as f:
     f.write(output_graph_def.SerializeToString())
