@@ -36,6 +36,7 @@ cmake \
     -DUSE_OPENCL=YES \
     -DUSE_OPENCV=NO \
     -DBUILD_EXAMPLES=NO \
+    -DBUILD_WITH_LITE=NO \
     ..
         
 
