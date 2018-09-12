@@ -88,12 +88,17 @@ Status SassConvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::InitParam() {
 
     // get relu param
     auto alpha = GET_PARAMETER(float, relu_0_alpha);
-    ActivationParam<Tensor4d<Ttype, Dtype>> active_param(Active_relu);//, alpha); // TEMP
-
-
-    ConvActiveParam<Tensor4d<Ttype, Dtype>> conv_act_param(_conv_param, active_param, batchnorm_param,
-                                         scale_param);
-    _param_conv_batchnorm_scale_relu = conv_act_param;
+    if (alpha != 0) {
+        ActivationParam<Tensor4d<Ttype, Dtype>> active_param(Active_prelu, alpha); // TEMP
+        ConvActiveParam<Tensor4d<Ttype, Dtype>> conv_act_param(_conv_param, active_param, batchnorm_param,
+                                                               scale_param);
+        _param_conv_batchnorm_scale_relu = conv_act_param;
+    } else {
+        ActivationParam<Tensor4d<Ttype, Dtype>> active_param(Active_relu); // TEMP
+        ConvActiveParam<Tensor4d<Ttype, Dtype>> conv_act_param(_conv_param, active_param, batchnorm_param,
+                                                               scale_param);
+        _param_conv_batchnorm_scale_relu = conv_act_param;
+    }
 
     return Status::OK();
 }
@@ -102,8 +107,13 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 Status SassConvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype>& ctx,
         const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
         std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-    _funcs_conv_batchnorm_scale_relu.init(ins, outs, _param_conv_batchnorm_scale_relu, SPECIFY,
-                                          SABER_IMPL, ctx);
+    if (_param_conv_batchnorm_scale_relu.activation_param.active == Active_relu) {
+        _funcs_conv_batchnorm_scale_relu.init(ins, outs, _param_conv_batchnorm_scale_relu, SPECIFY,
+                                              SABER_IMPL, ctx);
+    } else {
+        _funcs_conv_batchnorm_scale_relu.init(ins, outs, _param_conv_batchnorm_scale_relu, SPECIFY,
+                                              VENDER_IMPL, ctx);
+    }
     return Status::OK();
 }
 
