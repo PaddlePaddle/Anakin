@@ -1,5 +1,6 @@
 #include "test_saber_func.h"
 #include "saber/core/buffer.h"
+#include "saber/core/env.h"
 #include "saber/core/data_traits.h"
 
 using namespace anakin::saber;
@@ -29,9 +30,9 @@ void test_buffer() {
     }
 
     void* tmp_d_ptr;
-    Dtype* d_ptr;
+    TPtr d_ptr;
     DAPI::mem_alloc(&tmp_d_ptr, sizeof(Dtype) * n0);
-    d_ptr = static_cast<Dtype*>(tmp_d_ptr);
+    d_ptr = static_cast<TPtr>(tmp_d_ptr);
 
     LOG(INFO) << "Buffer: test default(empty) constructor";
     BufferH h_buf0;
@@ -122,6 +123,15 @@ TEST(TestSaberFunc, test_saber_buffer) {
     test_buffer<NV, NVHX86, AK_FLOAT>();
     LOG(INFO) << "test NV INT8 buffer";
     test_buffer<NV, NVHX86, AK_INT8>();
+#endif
+
+#ifdef AMD_GPU
+    Env<AMD>::env_init();
+    Env<AMDHX86>::env_init();
+    LOG(INFO) << "test AMD FP32 buffer";
+    test_buffer<AMD, AMDHX86, AK_FLOAT>();
+    //LOG(INFO) << "test NV INT8 buffer";
+    //test_buffer<AMD, AMDHX86, AK_INT8>();
 #endif
 
 #ifdef USE_X86_PLACE
