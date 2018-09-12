@@ -20,19 +20,19 @@ class Graph(object):
         """
         self.save_file_path = config.SavePath + config.ResultName + ".anakin.bin"
         if config.framework == 'CAFFE':
-            from kill_caffe import CaffeParser
+            from caffe import CaffeParser
             self.parser = CaffeParser(config.framework_config_dict)
         elif config.framework == 'PADDLE':
             pass
         elif config.framework == 'LEGO':
             pass
         elif config.framework == 'TENSORFLOW':
-            from kill_tf import TFParser
+            from tensorflow import TFParser
             self.parser=TFParser(config.framework_config_dict)
         elif config.framework == 'MXNET':
             pass
         elif config.framework == 'FLUID':
-            from kill_fluid import FluidParser
+            from fluid import FluidParser
             self.parser = FluidParser(config.framework_config_dict)
         else:
             raise NameError('ERROR: GrapProtoIO not support %s model.' % (config.framework))
