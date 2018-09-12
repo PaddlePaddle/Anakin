@@ -756,8 +756,8 @@ __global__ void topk_heap_shared(Dtype *out_data, int n, int inner_dim, const in
             if (!out_max_val) {
                 out[i] = cur_tree_index[0];
             } else {
-                out[i] = cur_tree[0];
-                out[i + top_k] = cur_tree_index[0];
+                out[i + top_k] = cur_tree[0];
+                out[i] = cur_tree_index[0];
             }
             cur_tree[0] = FLT_MAX;
             cur_tree_index[0] = -1;
