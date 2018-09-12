@@ -1,5 +1,6 @@
 #include "saber/core/context.h"
 #include "saber/funcs/spp.h"
+#include "saber/funcs/pooling.h"
 #include "test_saber_func.h"
 #include "test_saber_base.h"
 #include "saber/core/tensor_op.h"
