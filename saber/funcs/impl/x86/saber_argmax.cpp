@@ -44,8 +44,8 @@ void Argmax_kernel(const dtype* din, dtype* dout, int num, int in_channel, \
             //out
             if(out_max){
                 dtype* dout_ch = dout + n * out_channel;
-                dtype* dout_data = dout_ch;
-                dtype* dout_index = dout_ch + top;
+                dtype* dout_index = dout_ch;
+                dtype* dout_data = dout_ch + top;
                 for (int i = 0; i < top; i++){
                     dout_data[i] = vec[i].first;
                     dout_index[i] = vec[i].second;
