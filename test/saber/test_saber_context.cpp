@@ -64,6 +64,23 @@ TEST(TestSaberFunc, test_BM_context) {
 }
 #endif //USE_BM
 
+#ifdef AMD_GPU
+TEST(TestSaberFunc, test_AMD_context) {
+    Env<AMD>::env_init();
+    typedef TargetWrapper<AMD> API;
+    typename API::event_t event;
+    API::create_event(&event);
+    LOG(INFO) << "test context constructor";
+    Context<AMD> ctx0;
+    Context<AMD> ctx1(0, 1, 1);
+    LOG(INFO) << "test record event to context data stream and compute stream";
+    API::record_event(event, ctx0.get_data_stream());
+    API::record_event(event, ctx0.get_compute_stream());
+    API::record_event(event, ctx1.get_data_stream());
+    API::record_event(event, ctx1.get_compute_stream());
+}
+#endif
+
 int main(int argc, const char** argv) {
     // initial logger
     logger::init(argv[0]);
