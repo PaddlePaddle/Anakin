@@ -41,7 +41,8 @@ nms_param = Dictionary().set_attr(need_nms=bool(),
                                   use_soft_nms=list(), 
                                   nms_among_classes=bool(), 
                                   voting=list(), 
-                                  vote_iou=list())
+                                  vote_iou=list(),
+                                  nms_gpu_max_n_per_time=int())
 
 # BBoxRegParameter
 bbox_reg_param = Dictionary().set_attr(bbox_mean=list(), 
@@ -189,11 +190,14 @@ proposal_img_scale_to_cam_coords_param = Dictionary().set_attr(num_class=int(),
                                                                cords_offset_y=float(), 
                                                                bbox_size_add_one=bool(), 
                                                                rotate_coords_by_pitch=bool(), 
-                                                               refine_coords_by_bbox=bool(), 
-                                                               refine_min_dist=float(), 
-                                                               refine_dist_for_height_ratio_one=float(), 
-                                                               max_3d2d_height_ratio_for_min_dist=float(), 
-                                                               with_trunc_ratio=bool()) 
+                                                               #refine_coords_by_bbox=bool(), 
+                                                               #refine_min_dist=float(), 
+                                                               #refine_dist_for_height_ratio_one=float(), 
+                                                               #max_3d2d_height_ratio_for_min_dist=float(), 
+                                                               with_trunc_ratio=bool(),
+                                                               regress_ph_rh_as_whole=bool(),
+                                                               real_h_means_as_whole=list(),
+                                                               real_h_stds_as_whole=list()) 
 # RPNProposalSSD parameter
 RPNProposalSSD_param = Dictionary().set_attr(detection_output_ssd=detection_output_ssd_param(), 
                                              bbox_reg=bbox_reg_param())
