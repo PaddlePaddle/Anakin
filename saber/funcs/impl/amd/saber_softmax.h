@@ -11,36 +11,36 @@
    limitations under the License. 
 */
 
-#ifndef ANAKIN_SABER_FUNCS_IMPL_AMD_SABER_ACTIVATION_H
-#define ANAKIN_SABER_FUNCS_IMPL_AMD_SABER_ACTIVATION_H
+#ifndef ANAKIN_SABER_FUNCS_IMPL_AMD_SABER_SOFTMAX_H
+#define ANAKIN_SABER_FUNCS_IMPL_AMD_SABER_SOFTMAX_H
 
-#include "saber/funcs/impl/impl_activation.h"
+#include "saber/funcs/impl/impl_softmax.h"
 
 namespace anakin{
 
 namespace saber{
 
 template <DataType OpDtype>
-class SaberActivation<AMD, OpDtype> :
+class SaberSoftmax<AMD, OpDtype> :
     public ImplBase<
         AMD, OpDtype,
-        ActivationParam<AMD> > {
+        SoftmaxParam<AMD> > {
 public:
     typedef typename DataTrait<AMD, OpDtype>::Dtype OpDataType;
-    SaberActivation() = default;
-    ~SaberActivation() {}
+    SaberSoftmax() = default;
+    ~SaberSoftmax() {}
 
     virtual SaberStatus init(const std::vector<Tensor<AMD> *>& inputs,
                             std::vector<Tensor<AMD> *>& outputs,
-                            ActivationParam<AMD>& param, Context<AMD>& ctx) override;
+                            SoftmaxParam<AMD>& param, Context<AMD>& ctx) override;
 
     virtual SaberStatus create(const std::vector<Tensor<AMD> *>& inputs,
                             std::vector<Tensor<AMD> *>& outputs,
-                            ActivationParam<AMD>& param, Context<AMD> &ctx) override;
+                            SoftmaxParam<AMD>& param, Context<AMD> &ctx) override;
 
     virtual SaberStatus dispatch(const std::vector<Tensor<AMD>*>& inputs,
                           std::vector<Tensor<AMD>*>& outputs,
-                          ActivationParam<AMD>& param) override;
+                          SoftmaxParam<AMD>& param) override;
 
     private:
     cl_kernel _kernel;
@@ -51,4 +51,4 @@ public:
 }
 
 }
-#endif //ANAKIN_SABER_FUNCS_IMPL_AMD_SABER_ACTIVATION_H
+#endif //ANAKIN_SABER_FUNCS_IMPL_AMD_SABER_SOFTMAX_H
