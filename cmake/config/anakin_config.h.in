@@ -53,6 +53,7 @@
 
 #cmakedefine USE_GFLAGS
 
+#cmakedefine USE_MIOPENGEMM
 
 // platform to use
 #cmakedefine USE_GPU_PLACE

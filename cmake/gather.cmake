@@ -112,3 +112,8 @@ endif()
 if(USE_SGX)
     anakin_find_sgx()
 endif()
+
+# find miopengemm
+if(USE_MIOPENGEMM)
+    anakin_find_miopengemm()
+endif()
