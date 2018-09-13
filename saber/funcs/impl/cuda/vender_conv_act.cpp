@@ -144,7 +144,7 @@ SaberStatus VenderConv2DAct<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>:
 
         }
         if (_use_saber_act) {
-            _saber_act.dispatch(inputs, outputs, param.activation_param);
+            _saber_act.dispatch(outputs, outputs, param.activation_param);
         }
         return SaberSuccess;
     }
