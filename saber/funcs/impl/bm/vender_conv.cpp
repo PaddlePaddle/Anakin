@@ -47,8 +47,6 @@ SaberStatus VenderConv2D<BM, AK_FLOAT>::\
     /* Send arguments. */
     BM_CHECK(bmkernel_send_args(_handle, reinterpret_cast<void *>(&api), sizeof(api)));
 
-    LOG(INFO) << "BM conv done!";
-
     return SaberSuccess;
 }
 
