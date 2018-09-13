@@ -65,71 +65,74 @@ void softmax_cpu(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Ten
 }
 
 TEST(TestSaberFunc, test_func_softmax){
-    #ifdef USE_CUDA
-        TestSaberBase<NV,NVHX86,AK_FLOAT,Softmax, SoftmaxParam> testbase;
-        for(auto num:{1,3,4,11}){
-            for(auto c:{1,3,11,4}){
-                for(auto h:{3,1,11,4}){
-                    for(auto w:{1,3,4,12}){
-                        for(auto axis:{0,1,2,3}){
-                            SoftmaxParam<NV> param(axis);
-                            testbase.set_param(param);
-                            testbase.set_input_shape(Shape({num, c, h , w}));
-                            testbase.run_test(softmax_cpu<float, NV, NVHX86>);        
-                        }
+#ifdef USE_CUDA
+    LOG(INFO)<<"NV test......";
+    TestSaberBase<NV,NVHX86,AK_FLOAT,Softmax, SoftmaxParam> testbase;
+    for(auto num:{1,3,4,11}){
+        for(auto c:{1,3,11,4}){
+            for(auto h:{3,1,11,4}){
+                for(auto w:{1,3,4,12}){
+                    for(auto axis:{0,1,2,3}){
+                        SoftmaxParam<NV> param(axis);
+                        testbase.set_param(param);
+                        testbase.set_input_shape(Shape({num, c, h , w}));
+                        testbase.run_test(softmax_cpu<float, NV, NVHX86>);        
                     }
                 }
             }
         }
+    }
 // softmax roi test will add later 
 /*
-        TestSaberBase<NV,NVHX86,AK_FLOAT,Softmax, SoftmaxParam> testbase1;
-        for(auto num:{10,20,32}){
-            for(auto c:{5,22,32}){
-                for(auto h:{11,22,32}){
-                    for(auto w:{11,22,32}){
-                        for(auto axis:{0,1,2,3}){
-                            Tensor<NV> bigtensor;
-                            Tensor<NV> subtensor;
-                            Shape sh({num, c, h, w});
-                            Shape sh_roi({num/2, c/2, h/2, w/2});
-                            Shape sh_offset({num/4, c/4, h/4, w/4});
-                            bigtensor.re_alloc(sh, AK_FLOAT);
-                            fill_tensor_rand(bigtensor);
-                            subtensor.share_sub_buffer(bigtensor, sh_roi, sh_offset);
-                            std::vector<Tensor<NV> *> input;
-                            input.push_back(&subtensor);
-                            testbase1.add_custom_input(input);
-                            SoftmaxParam<NV> param(axis);
-                            testbase1.set_param(param);
-                            testbase1.run_test(softmax_cpu<float, NV, NVHX86>);        
-                        }
+    TestSaberBase<NV,NVHX86,AK_FLOAT,Softmax, SoftmaxParam> testbase1;
+    for(auto num:{10,20,32}){
+        for(auto c:{5,22,32}){
+            for(auto h:{11,22,32}){
+                for(auto w:{11,22,32}){
+                    for(auto axis:{0,1,2,3}){
+                        Tensor<NV> bigtensor;
+                        Tensor<NV> subtensor;
+                        Shape sh({num, c, h, w});
+                        Shape sh_roi({num/2, c/2, h/2, w/2});
+                        Shape sh_offset({num/4, c/4, h/4, w/4});
+                        bigtensor.re_alloc(sh, AK_FLOAT);
+                        fill_tensor_rand(bigtensor);
+                        subtensor.share_sub_buffer(bigtensor, sh_roi, sh_offset);
+                        std::vector<Tensor<NV> *> input;
+                        input.push_back(&subtensor);
+                        testbase1.add_custom_input(input);
+                        SoftmaxParam<NV> param(axis);
+                        testbase1.set_param(param);
+                        testbase1.run_test(softmax_cpu<float, NV, NVHX86>);        
                     }
                 }
             }
         }
+    }
 */
-    #endif
-//x86 softmax test will add later
-/*
-    #ifdef USE_X86_PLACE
-        TestSaberBase<X86,X86,AK_FLOAT,Softmax, SoftmaxParam> testbase2;
-        for(auto num:{1,3,4,12}){
-            for(auto c:{1,3,11,3}){
-                for(auto h:{3,1,11,2}){
-                    for(auto w:{1,3,4,11}){
-                        for(auto axis:{0,1,2,3}){
-                            SoftmaxParam<X86> param(axis);
-                            testbase2.set_param(param);
-                            testbase2.set_input_shape(Shape({num, c, h , w}));
-                            testbase2.run_test(softmax_cpu<float, X86, X86>);        
-                        }
+    LOG(INFO)<<"NV test end.";
+#endif
+
+#ifdef USE_X86_PLACE
+    LOG(INFO)<<"x86 test......";
+    TestSaberBase<X86,X86,AK_FLOAT,Softmax, SoftmaxParam> testbase2;
+    for(auto num:{1,3,4,12}){
+        for(auto c:{1,3,11,3}){
+            for(auto h:{3,1,11,2}){
+                for(auto w:{1,3,4,11}){
+                    for(auto axis:{0,1,2,3}){
+                        SoftmaxParam<X86> param(axis);
+                        testbase2.set_param(param);
+                        testbase2.set_input_shape(Shape({num, c, h , w}));
+                        testbase2.run_test(softmax_cpu<float, X86, X86>);        
                     }
                 }
             }
         }
-    #endif
-*/
+    }
+    LOG(INFO)<<"x86 test end.";
+#endif
+
 
 }
 
