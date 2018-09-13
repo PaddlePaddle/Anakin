@@ -454,7 +454,6 @@ macro(anakin_find_openssl)
     endif()
 endmacro()
 
-
 macro(anakin_find_nvinfer)
 	find_path(NVINFER_INCLUDE_DIR NvInfer.h PATHS ${ANAKIN_ROOT}/third-party/tensorrt5/include
 	$ENV{NVINFER_ROOT})
@@ -496,5 +495,16 @@ macro(anakin_find_nvinfer)
 	else()
 		message(FATAL_ERROR "Couldn't found NvInfer ! in path: ${NVINFER_INCLUDE_DIR}")
 	endif()
+endmacro()
+
+#find miopengemm
+macro(anakin_find_miopengemm)
+    find_package(miopengemm REQUIRED PATHS /opt/rocm)
+    if(miopengemm_FOUND)
+        set(MIOPENGEMM_FOUND  TRUE)
+        message(STATUS "Found miopengemm: ${miopengemm_INCLUDE_DIR}")
+        include_directories(SYSTEM ${miopengemm_INCLUDE_DIR})
+        list(APPEND ANAKIN_LINKER_LIBS ${miopengemm_LIBRARIES})
+    endif()
 endmacro()
 

@@ -55,6 +55,7 @@
 
 #cmakedefine USE_GFLAGS
 
+#cmakedefine USE_MIOPENGEMM
 
 // plantform to use
 #cmakedefine USE_GPU_PLACE

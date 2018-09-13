@@ -106,3 +106,8 @@ endif()
 if(USE_TENSORRT)
     anakin_find_nvinfer()
 endif()
+
+# find miopengemm
+if(USE_MIOPENGEMM)
+    anakin_find_miopengemm()
+endif()
