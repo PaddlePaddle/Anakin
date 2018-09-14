@@ -429,23 +429,28 @@ void direct_conv_bias_relu_maxpool2k2s0p_Kindiv4(const DataType* src,
     cudaStream_t cuda_stream);
 
 template<int k>
-void scale_to_new_tensor_k4_s2_p1_deconv (Tensor<NV> *weight, int in_channel, int out_channel) {
+void scale_to_new_tensor_k4_s2_p1_deconv (Tensor<NV> &weight, int in_channel, int out_channel, bool in_place = false, Tensor<NV> *weight_dev = nullptr) {
     Tensor<X86> new_weights_h;
     Tensor<X86> temp_weights;
 //    new_weights_dev.reshape(weight->valid_shape());
-    new_weights_h.reshape(weight->valid_shape());
-    temp_weights.reshape(weight->valid_shape());
+    new_weights_h.reshape(weight.valid_shape());
+    temp_weights.reshape(weight.valid_shape());
 
-    temp_weights.copy_from(*weight);
+    temp_weights.copy_from(weight);
     int offset = in_channel * out_channel * k;
     float* trans_w = (float*)new_weights_h.mutable_data();
     scale_weight_deconv_w4x4<k, true>(trans_w + 0 * offset,
                                       trans_w + 1 * offset,
                                       trans_w + 2 * offset,
                                       trans_w + 3 * offset,
-                                      temp_weights.data(),
+                                      static_cast<float*>(temp_weights.data()),
                                       in_channel, out_channel);
-    weight->copy_from(new_weights_h);
+    if (in_place) {
+        weight.copy_from(new_weights_h);
+    } else {
+        weight_dev->re_alloc(weight.valid_shape(), AK_FLOAT);
+        weight_dev->copy_from(new_weights_h);
+    }
 }
 
 void ker_deconv_implicit_gemm_k4_s2_p1_16x64(

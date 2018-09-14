@@ -56,7 +56,11 @@ public:
     virtual SaberStatus dispatch(const std::vector<Tensor<NV>*>& inputs,
             std::vector<Tensor<NV>*>& outputs,
             ConvPoolingParam<NV>& param);
-
+    
+    SaberStatus trans_weights(Tensor<NV> &target_weights,
+            int stride_h, int stride_w, int group) {
+        return SaberUnImplError;
+    }
 private:
     VenderPooling<NV, OpDtype> _vender_pool;
     VenderConv2D<NV, OpDtype> _vender_conv;

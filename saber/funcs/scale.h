@@ -21,10 +21,14 @@
 #include "saber/saber_funcs_param.h"
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/funcs/impl/impl_scale.h"
+
 #ifdef NVIDIA_GPU
-//#include "saber/funcs/impl/cuda/saber_scale.h"
+#include "saber/funcs/impl/cuda/saber_scale.h"
 #endif
 
+#ifdef USE_X86_PLACE
+#include "saber/funcs/impl/x86/saber_scale.h"  
+#endif
 namespace anakin {
 namespace saber {
 

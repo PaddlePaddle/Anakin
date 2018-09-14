@@ -121,16 +121,19 @@ struct is_status_function :
 template<Precision P>
 struct PrecisionWrapper {
     typedef float type;
+	const static saber::DataType saber_type = saber::AK_FLOAT;
 };
 
 template<>
 struct PrecisionWrapper<Precision::INT8> {
     typedef int8_t type;
+	const static saber::DataType saber_type = saber::AK_INT8;
 };
 
 template<>
 struct PrecisionWrapper<Precision::FP16> { 
     typedef unsigned short type;
+	const static saber::DataType saber_type = saber::AK_HALF;
 };
 
 template<Precision P>
@@ -157,7 +160,55 @@ struct target_host<saber::NV> {
     typedef saber::NVHX86 type;
 };
 
+template<ServiceRunPattern P>
+struct ServiceRunPatternToType{};
 
+template<typename Ttype>
+struct target_name {
+    static constexpr const char* value = "INVALID";
+};
+
+#define TARGET_NAME_SET(Ttype, TargetName) \
+    template<>\
+    struct target_name<Ttype> {\
+        static constexpr const char* value = #TargetName;\
+    };
+
+TARGET_NAME_SET(saber::NV, saber_NV)
+TARGET_NAME_SET(saber::NVHX86, saber_NVHX86)
+TARGET_NAME_SET(saber::X86, saber_X86)
+TARGET_NAME_SET(saber::ARM, saber_ARM)
+TARGET_NAME_SET(saber::BM, saber_BM)
+TARGET_NAME_SET(saber::AMD, saber_AMD)
+
+/*template<typename Ttype>
+struct target_name {
+    static const char* value()  {
+        return ret(Ttype());
+    }
+private:
+    static const char* ret(saber::NV) {
+        return "saber::NV";
+    }
+    static const char* ret(saber::NVHX86) {
+        return "saber::NVHX86";
+    }
+    static const char* ret(saber::X86) {
+        return "saber::X86";
+    }
+    static const char* ret(saber::ARM) {
+        return "saber::ARM";
+    }
+    static const char* ret(saber::BM) {
+        return "saber::BM";
+    }
+    static const char* ret(saber::AMD) {
+        return "saber::AMD";
+    }
+    static const char* ret(saber::INVLD) {
+        return "saber::INVLD";
+    }
+};*/
 
 } /* namespace anakin */
 

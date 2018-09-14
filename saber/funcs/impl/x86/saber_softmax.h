@@ -50,11 +50,13 @@ public:
                                  SoftmaxParam<X86> &param) override;
 
 private:
-    void _max(int n, const float *x, float *max_data);
-    void _sub(int n, float alpha, const float *x, float *y);
-    void _exp(int n, const float *a, float *r);
-    void _sum(int n, const float *x, float *sum_data);
-    void _scal(int n, float alpha, float *x);
+    int _inner_num;
+    int _outer_num;
+    int _axis_size;
+    int _dims;
+    Tensor<X86> _input_stride;
+    Tensor<X86> _output_stride;
+    Tensor<X86> _max_data;
 };
 
 }

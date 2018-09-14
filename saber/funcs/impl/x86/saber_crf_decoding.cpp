@@ -233,7 +233,7 @@ SaberStatus SaberCrfDecoding<X86, OpDtype>::dispatch(
 }
 
 template class SaberCrfDecoding<X86, AK_FLOAT>;
-DEFINE_OP_TEMPLATE(SaberCrfDecoding, CrfDecodingParam, X86, AK_INT16);
+DEFINE_OP_TEMPLATE(SaberCrfDecoding, CrfDecodingParam, X86, AK_HALF);
 DEFINE_OP_TEMPLATE(SaberCrfDecoding, CrfDecodingParam, X86, AK_INT8);
 }
 } // namespace anakin

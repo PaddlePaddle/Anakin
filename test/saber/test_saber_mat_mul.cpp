@@ -16,30 +16,25 @@ using namespace anakin::saber;
  * @param data: input/output
  */
 template<typename dtype, typename TargetType>
-void batch_transpos(Tensor<TargetType> &data)
+void batch_transpos(const Tensor<TargetType> &data, Tensor<TargetType> &trans_data)
 {
     int M = data.height();
     int N = data.width();
     int B = data.num() * data.channel();
-    dtype* data_ptr = (dtype*)data.mutable_data();
-    dtype* data_tmp = new dtype[data.valid_size()]();
+    const dtype* data_ptr = (const dtype*)data.data();
+    dtype* trans_data_ptr = (dtype*)trans_data.mutable_data();
     for (int b = 0; b < B; b++)
     {
         for (int m = 0; m < M; m++)
         {
             for (int n = 0; n < N; n++)
             {
-                data_tmp[b * M * N + n * M + m] = data_ptr[b * M * N + m * N + n];
+                trans_data_ptr[b * M * N + n * M + m] = data_ptr[b * M * N + m * N + n];
             }
         }
     }
-    data.set_height(N);
-    data.set_width(M);
-    for (int i = 0; i < data.valid_size(); i++) {
-        data_ptr[i] = data_tmp[i];
-    }
-    delete[] data_tmp;
-
+    trans_data.set_height(N);
+    trans_data.set_width(M);
 }
 
 
@@ -60,23 +55,27 @@ void mat_mul_cpu_base(const std::vector<Tensor<TargetType_H>* > &input, std::vec
     //bath size
     B = input[0]->num() * input[0]->channel();
 
+    Tensor<TargetType_H> trans_input0(input[0]->valid_shape());
+    trans_input0.copy_from(*input[0]);
+    Tensor<TargetType_H> trans_input1(input[1]->valid_shape());
+    trans_input1.copy_from(*input[1]);   
     //whether input[0] trans.
-    if (param._is_transpose_X) {
-        batch_transpos<dtype, TargetType_H>(*input[0]);
+    if (param._is_transpose_X) {     
+        batch_transpos<dtype, TargetType_H>(*input[0], trans_input0);
     }
     //whether input[1] trans
     if (param._is_transpose_Y) {
-        batch_transpos<dtype, TargetType_H>(*input[1]);
+        batch_transpos<dtype, TargetType_H>(*input[1], trans_input1);
     }
-    CHECK_EQ(input[0]->width(), input[1]->height()) << "can't do matrix multiplay";
+    CHECK_EQ(trans_input0.width(), trans_input1.height()) << "can't do matrix multiplay";
 
-    M = input[0]->height();
-    N = input[1]->width();
-    K = input[1]->height();
+    M = trans_input0.height();
+    N = trans_input1.width();
+    K = trans_input1.height();
 
     dtype *out_ptr = (dtype*)output[0]->mutable_data();
-    const dtype *in_ptr0 = (const dtype*)input[0]->data();
-    const dtype *in_ptr1 = (const dtype*)input[1]->data();
+    const dtype *in_ptr0 = (const dtype*)trans_input0.data();
+    const dtype *in_ptr1 = (const dtype*)trans_input1.data();
 
     for (int b = 0; b < B; b++)
     {
@@ -85,27 +84,25 @@ void mat_mul_cpu_base(const std::vector<Tensor<TargetType_H>* > &input, std::vec
         const float* iptr1 = in_ptr1 + b * K * N;
         for (int i = 0; i < M; ++i) {
             float* pdout = optr + i * N;
-            const float* pdin = iptr0 + i * K;
-
             for (int j = 0; j < N; ++j) {
-
+                pdout[j] = 0;
                 for (int l = 0; l < K; ++l) {
-                    pdout[j] += pdin[l] * iptr1[l * N + j];
+                    pdout[j] += iptr0[i * K + l] * iptr1[l * N + j];
                 }
             }
         }
     }
 
 }
-
 TEST(TestSaberFunc, test_op_mat_mul) {
+
+    int input_num = 2;
+    bool trans_A = true;
+    bool trans_B = false; 
 
 #ifdef USE_CUDA
     //2 inputs
-    int input_num = 2;
     TestSaberBase<NV, NVHX86, AK_FLOAT, MatMul, MatMulParam> testbase(input_num);
-    bool trans_A = true;
-    bool trans_B = false; 
 
     for(int w_in : {2, 8, 16}) {
         for(int h_in : {2, 8, 32}){
@@ -128,7 +125,29 @@ TEST(TestSaberFunc, test_op_mat_mul) {
 
 #endif
 
+#ifdef USE_X86_PLACE
+    TestSaberBase<X86, X86, AK_FLOAT, MatMul, MatMulParam> testbase_x86(input_num);
 
+    for(int w_in : {2, 8, 16}) {
+        for(int h_in : {2, 8, 32}){
+            for(int ch_in : {2, 3, 8, 64}){
+                for(int num_in:{1, 21, 32}){
+                    Shape shape0({num_in, ch_in, w_in, h_in});
+                    Shape shape1({num_in, ch_in, w_in, h_in});
+                    std::vector<Shape> shapes;
+                    shapes.push_back(shape0);
+                    shapes.push_back(shape1);
+                    MatMulParam<X86> param(trans_A, trans_B);
+                    testbase_x86.set_param(param);
+                    testbase_x86.set_rand_limit(1, 12);
+                    testbase_x86.set_input_shape(shapes);
+                    testbase_x86.run_test(mat_mul_cpu_base<float, X86, X86>);
+                }
+            }
+        }
+    }
+
+#endif
 }
 
 

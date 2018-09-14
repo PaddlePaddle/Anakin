@@ -11,7 +11,8 @@ using namespace anakin::saber;
 #define CHECK_RESULT
 //#define CHECK_SPEED
 
-#ifdef USE_BM
+#if 0
+#ifdef USE_BM_PLACE
 TEST(TestSaberFunc, test_saber_conv_results_bm) {
     Env<BM>::env_init();
     Env<X86>::env_init();
@@ -69,16 +70,17 @@ TEST(TestSaberFunc, test_saber_conv_results_bm) {
     }
 }
 #endif
+#endif
 
 TEST(TestSaberFunc, test_saber_conv_results) {
 #ifdef USE_CUDA
     Env<NV>::env_init();
     Env<NVHX86>::env_init();
-    TestSaberBase<NV,NVHX86,AK_FLOAT,Conv,ConvParam> testbase_nv;
+    TestSaberBase<NV, NVHX86, AK_FLOAT, Conv, ConvParam> testbase_nv;
 #endif
 #ifdef USE_X86_PLACE
     Env<X86>::env_init();
-    TestSaberBase<X86,X86,AK_FLOAT,Conv,ConvParam> testbase_x86;
+    TestSaberBase<X86, X86, AK_FLOAT, Conv, ConvParam> testbase_x86;
 #endif
     std::vector<int> kernel_h_v{1, 3};
     std::vector<int> kernel_w_v{1, 3};
@@ -92,8 +94,8 @@ TEST(TestSaberFunc, test_saber_conv_results) {
     std::vector<int> in_h_v{4, 16};
     std::vector<int> in_w_v{16, 8};
     std::vector<int> input_num_v{1, 3};
-    std::vector<int> input_channels_v{17, 4};
-    std::vector<int> output_channels_v{4, 17};
+    std::vector<int> input_channels_v{4};
+    std::vector<int> output_channels_v{4};
     std::vector<bool> bias_term_v{true, false};
     std::vector<bool> with_relu_v{true, false};
 
@@ -129,6 +131,9 @@ TEST(TestSaberFunc, test_saber_conv_results) {
                                stride_h, stride_w,
                                dilation_h, dilation_w,
                                &weights_dev, &bias_dev);
+        if (with_relu) {
+            param_nv.activation_param = ActivationParam<NV>(Active_relu);
+        }
 #endif
 #ifdef USE_X86_PLACE
         Tensor<X86> weights_x86;
@@ -144,6 +149,9 @@ TEST(TestSaberFunc, test_saber_conv_results) {
                                stride_h, stride_w,
                                dilation_h, dilation_w,
                                &weights_x86, &bias_x86);
+        if (with_relu) {
+            param_x86.activation_param = ActivationParam<X86>(Active_relu);
+        }
 #endif
         for (auto input_num : input_num_v)
         for (auto height : in_h_v)

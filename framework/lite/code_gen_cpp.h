@@ -27,8 +27,8 @@ namespace lite {
  *  \brief class to generate cpp files.
  *
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class GenCPP : public CodeGenBase<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class GenCPP : public CodeGenBase<Ttype, Ptype> {
 public:
 	explicit GenCPP(std::string model_name, std::string model_dir = ".") {
 		_cpp_file_name = model_dir + '/' + model_name + ".cpp";

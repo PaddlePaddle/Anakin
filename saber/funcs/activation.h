@@ -29,7 +29,7 @@
 #include "saber/funcs/impl/x86/saber_activation.h"
 #endif
 
-#ifdef USE_AMD
+#ifdef AMD_GPU 
 #include "saber/funcs/impl/amd/saber_activation.h"
 #endif
 
@@ -37,8 +37,8 @@
 #include "saber/funcs/impl/arm/saber_activation.h"
 #endif
 
-#ifdef USE_BM
-#include "saber/funcs/impl/bm/vender_activation.h"
+#ifdef USE_BM_PLACE 
+//#include "saber/funcs/impl/bm/vender_activation.h"
 #endif
 
 namespace anakin {

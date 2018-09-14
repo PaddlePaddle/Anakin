@@ -24,7 +24,7 @@
 #endif
 
 #ifdef USE_X86_PLACE
-#include "saber/funcs/impl/impl_slice.h"
+#include "saber/funcs/impl/x86/saber_slice.h"
 #endif
 #ifdef USE_ARM_PLACE
 #include "saber/funcs/impl/arm/saber_slice.h"
@@ -85,8 +85,9 @@ public:
             Shape sh = shape_in;
             sh[param.axis] = step;
             output[0]->set_shape(sh);
+            param.slice_points.clear();
             for (int i = 1; i < top_size; ++i) {
-                param.slice_points[i - 1] = i * step;
+                param.slice_points.push_back(i * step);
                 status = output[i]->set_shape(sh);
                 if (status != SaberSuccess) {
                     return status;

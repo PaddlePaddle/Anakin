@@ -18,6 +18,9 @@ anakin_fetch_include_recursively(${ANAKIN_FRAMEWORK}/core)
 anakin_fetch_include_recursively(${ANAKIN_FRAMEWORK}/graph)
 anakin_fetch_include_recursively(${ANAKIN_FRAMEWORK}/model_parser)
 anakin_fetch_include_recursively(${ANAKIN_FRAMEWORK}/operators)
+if(BUILD_RPC)
+    anakin_fetch_include_recursively(${ANAKIN_SERVICE})
+endif()
 
 
 set(ANAKIN_BASE_SRC "")
