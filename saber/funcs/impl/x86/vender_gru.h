@@ -90,9 +90,9 @@ private:
     float* aligned_bias_;
     OpTensor aligned_init_hidden;
 
-    OpDataType* weight_x_packed_ = nullptr;
-    OpDataType* weight_ru_packed_ = nullptr;
-    OpDataType* weight_c_packed_ = nullptr;
+    float* weight_x_packed_ = nullptr;
+    float* weight_ru_packed_ = nullptr;
+    float* weight_c_packed_ = nullptr;
     OpTensor batched_h;
     OpTensor batched_x;
     OpTensor batched_xx;
