@@ -194,7 +194,7 @@ SaberStatus SaberSequencePool<NV, OpDtype>::dispatch(
 
 }
 
-template class SaberSequencePool<NV, AK_FLOAT>;
-
+DEFINE_OP_TEMPLATE(SaberSequencePool, SequencePoolParam, NV, AK_HALF);
+DEFINE_OP_TEMPLATE(SaberSequencePool, SequencePoolParam, NV, AK_INT8);
 }
 } // namespace anakin
