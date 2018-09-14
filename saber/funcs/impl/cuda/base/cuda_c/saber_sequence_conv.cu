@@ -73,7 +73,8 @@ SaberStatus SaberSequenceConv<NV, AK_FLOAT>::dispatch(
 
     return SaberSuccess;
 }
-
+DEFINE_OP_TEMPLATE(SaberSequenceConv, SequenceConvParam, NV, AK_HALF);
+DEFINE_OP_TEMPLATE(SaberSequenceConv, SequenceConvParam, NV, AK_INT8);
 
 }
 }
