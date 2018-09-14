@@ -30,7 +30,7 @@
 #endif
 
 #ifdef AMD_GPU
-//#include "saber/funcs/impl/amd/saber_activation.h"
+#include "saber/funcs/impl/amd/include/saber_activation.h"
 #endif
 
 #ifdef USE_ARM_PLACE
