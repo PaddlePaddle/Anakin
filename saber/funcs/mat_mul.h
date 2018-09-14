@@ -58,10 +58,14 @@ public:
         Param_t& param) override 
     {
         CHECK_EQ(input.size(), 2);
-        CHECK_EQ(input[0]->num(), input[0]->num());
-        CHECK_EQ(input[1]->channel(), input[1]->channel());
+        CHECK_EQ(input[0]->num(), input[1]->num());
+        CHECK_EQ(input[0]->channel(), input[1]->channel());
         Shape shape_output = input[0]->shape();
         int M,N,K0,K1,B;
+        LOG(INFO)<<"input0 shape:";
+        LOG(INFO)<<"n:"<<input[0]->num()<<"c:"<<input[0]->channel()<<"h:"<<input[0]->height()<<"w:"<<input[0]->width();
+        LOG(INFO)<<"input1 shape:";
+        LOG(INFO)<<"n:"<<input[1]->num()<<"c:"<<input[1]->channel()<<"h:"<<input[1]->height()<<"w:"<<input[1]->width();
         if (param._is_transpose_X)
         {
             K0 = input[0]->height();

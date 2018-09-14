@@ -7,9 +7,6 @@
 #include "saber/saber_types.h"
 #include <vector>
 
-#include <chrono>
-
-
 using namespace anakin::saber;
 
 template <typename dtype,typename TargetType_D,typename TargetType_H>
@@ -61,19 +58,21 @@ void resize_cpu(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tens
 TEST(TestSaberFunc, test_func_resize){
 
 #ifdef USE_CUDA
+
+    LOG(INFO)<<"NV test......";
     //Init the test_base
     TestSaberBase<NV, NVHX86, AK_FLOAT, Resize, ResizeParam> testbase;
-    for (int num_in : {1, 3, 5, 8}) {
-        for (int c_in : {1, 3, 5, 8}) {
-            for (int h_in : {2, 3, 5, 8}) {
-                for (int w_in : {2, 3, 5, 8}) {
-                    for (float scale_w : {1.0f, 2.0f, 3.3f}) {
-                        for (float scale_h : {1.0f, 2.0f, 4.4f}) {
+    for (int num_in : {3, 5, 8}) {
+        for (int c_in : {3, 5, 8}) {
+            for (int h_in : {3, 5, 8}) {
+                for (int w_in : {2, 5, 8}) {
+                    for (float scale_w : {1.0f, 3.3f}) {
+                        for (float scale_h : {1.0f, 4.4f}) {
                                 LOG(INFO) << scale_w << "   " << scale_h;
                                 ResizeParam<NV> param(scale_w, scale_h);
                                 testbase.set_param(param);
                                 testbase.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
-                                testbase.run_test(resize_cpu<float, NV, NVHX86>);
+                                testbase.run_test(resize_cpu<float, NV, NVHX86>, 0.001);
                         }
                     }
                 }
@@ -83,11 +82,39 @@ TEST(TestSaberFunc, test_func_resize){
 
     
 #endif
+
+#ifdef USE_X86_PLACE
+
+    LOG(INFO)<<"x86 test......";
+    //Init the test_base
+    TestSaberBase<X86, X86, AK_FLOAT, Resize, ResizeParam> testbase1;
+    for (int num_in : {3, 5, 8}) {
+        for (int c_in : {3, 5, 8}) {
+            for (int h_in : {3, 5, 8}) {
+                for (int w_in : {2, 5, 8}) {
+                    for (float scale_w : {1.0f, 3.3f}) {
+                        for (float scale_h : {1.0f, 4.4f}) {
+                                LOG(INFO) << scale_w << "   " << scale_h;
+                                ResizeParam<X86> param(scale_w, scale_h);
+                                testbase1.set_param(param);
+                                testbase1.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
+                                testbase1.run_test(resize_cpu<float, X86, X86>);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    
+#endif
+
 }
 int main(int argc, const char** argv) {
     // initial logger
     //logger::init(argv[0]);
     InitTest();
+	for(int i=0; i<100;i++)
     RUN_ALL_TESTS(argv[0]);
     return 0;
 }

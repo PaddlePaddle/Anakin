@@ -62,6 +62,7 @@ private:
 
 
 };
+template class SaberSequencePool<NV, AK_FLOAT>;
 }
 }
 

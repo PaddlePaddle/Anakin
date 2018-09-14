@@ -7,9 +7,6 @@
 #include "saber/saber_types.h"
 #include <vector>
 
-#include <chrono>
-
-
 using namespace anakin::saber;
 
 template <typename dtype,typename TargetType_D,typename TargetType_H>
@@ -46,12 +43,13 @@ void transpose_cpu(const std::vector<Tensor<TargetType_H>*>& input,std::vector<T
 TEST(TestSaberFunc, test_func_transpose){
 
 #ifdef USE_CUDA
+    LOG(INFO)<<"NV test......";
     //Init the test_base
     TestSaberBase<NV,NVHX86,AK_FLOAT, Transpose, TransposeParam> testbase;
     for(int num_in:{1,3,32}){
-        for(int c_in:{1,3,128}){
-            for(int h_in:{2,3,256}){
-                for(int w_in:{2,3,64}){
+        for(int c_in:{1,3,12}){
+            for(int h_in:{2,3,25}){
+                for(int w_in:{2,3,32}){
                     TransposeParam<NV> param;
                     testbase.set_param(param);
                     testbase.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
@@ -60,9 +58,29 @@ TEST(TestSaberFunc, test_func_transpose){
                 }
             }
         }
-    }
+    }  
+#endif
 
-    
+#ifdef USE_X86_PLACE
+    LOG(INFO)<<"x86 test......";
+    do
+    {
+        //Init the test_base
+        TestSaberBase<X86,X86,AK_FLOAT, Transpose, TransposeParam> testbase;
+        for(int num_in:{1,3,32}){
+            for(int c_in:{1,3,12}){
+                for(int h_in:{2,3,25}){
+                    for(int w_in:{2,3,32}){
+                        TransposeParam<X86> param;
+                        testbase.set_param(param);
+                        testbase.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
+                        testbase.run_test(transpose_cpu<float, X86, X86>);
+
+                    }
+                }
+            }
+        }  
+    }while(0);
 #endif
 }
 int main(int argc, const char** argv) {

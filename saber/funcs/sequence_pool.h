@@ -21,8 +21,12 @@
 #include "saber/saber_funcs_param.h"
 #include "saber/funcs/impl/impl_sequence_pool.h"
 
+#ifdef NVIDIA_GPU
+#include "saber/funcs/impl/cuda/saber_sequence_pool.h"
+#endif
+
 #ifdef USE_X86_PLACE
-//#include "saber/funcs/impl/x86/saber_sequence_pool.h"
+#include "saber/funcs/impl/x86/saber_sequence_pool.h"
 #endif
 
 namespace anakin {
@@ -98,6 +102,7 @@ private:
     }
 
 };
+template class SaberSequencePool<NV, AK_FLOAT>;
 }
 }
 #endif
