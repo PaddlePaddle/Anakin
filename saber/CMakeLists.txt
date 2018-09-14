@@ -107,11 +107,11 @@ if(USE_BM_PLACE)
         COMMAND printf "%x" 0x0 >> ${BIN_NAME}.bin
         COMMAND printf "%x" 0x0 >> ${BIN_NAME}.bin
 
-        COMMAND ${ANAKIN_SABER}/funcs/impl/bm/bmk_script.sh
+        COMMAND printf \"%x\" `wc -c < ${BIN_NAME}_itcm.hex.sim` >> ${BIN_NAME}.bin
 
         COMMAND cat ${BIN_NAME}_itcm.hex.sim >> ${BIN_NAME}.bin
         COMMAND cat ${BIN_NAME}_ddr.hex.sim >> ${BIN_NAME}.bin
-        COMMAND cp ${ANAKIN_ROOT}/build/saber/bmkernel_bin.bin ${BM_ROOT}/bmkernel_bin.bin
+        COMMAND cp ${ANAKIN_ROOT}/build/saber/bmkernel_bin.bin ${BM_ROOT}/${BIN_NAME}.bin
         COMMENT "BM Kernel compilation..."
     )
     add_custom_target(ANAKIN ALL DEPENDS bm_kernel_tmp)
