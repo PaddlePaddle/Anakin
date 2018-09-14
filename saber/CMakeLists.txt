@@ -96,8 +96,8 @@ if(USE_BM_PLACE)
     set(BIN_NAME bmkernel_bin)
     set(LINK_CONFIG link/bm1682_ddr.lds)
     add_custom_command(OUTPUT bm_kernel_tmp
-        COMMAND arm-none-eabi-gcc ${ANAKIN_SABER}/funcs/impl/bm/device/bmkernel_base.c -mcpu=arm926ej-s -mfpu=vfp -fno-short-enums -std=gnu99 -O2 -Wall -Werror -ffunction-sections -fdata-sections -nostdlib -DENABLE_PRINT -I${BM_ROOT}/include/device -c -o ${BIN_NAME}.o
-        COMMAND arm-none-eabi-gcc -T ${BM_ROOT}/${LINK_CONFIG} -mcpu=arm926ej-s -mfpu=vfp -fno-short-enums -Wl,--check-sections -Wl,--gc-sections -Wl,--unresolved-symbols=report-all -Wl,--no-enum-size-warning -Wl,--start-group -lc -lm ${BIN_NAME}.o ${BM_ROOT}/lib/device/libbmkernel-top-asic.a ${BM_ROOT}/lib/device/libbmkernel-core-asic.a -Wl,--end-group -o ${BIN_NAME}.elf
+        COMMAND arm-none-eabi-gcc ${ANAKIN_SABER}/funcs/impl/bm/device/bmkernel_base.c -mcpu=arm926ej-s -mfpu=vfp -fno-short-enums -std=gnu99 -O2 -Wall -Werror -ffunction-sections -fdata-sections -nostdlib -DENABLE_PRINT -I${BM_ROOT}/include/device/atomic -I${BM_ROOT}/include/device/utils -I${BM_ROOT}/include/device -c -o ${BIN_NAME}.o
+        COMMAND arm-none-eabi-gcc -T ${BM_ROOT}/${LINK_CONFIG} -mcpu=arm926ej-s -mfpu=vfp -fno-short-enums -Wl,--check-sections -Wl,--gc-sections -Wl,--unresolved-symbols=report-all -Wl,--no-enum-size-warning -o ${BIN_NAME}.elf -Wl,--start-group -lc -lm ${BIN_NAME}.o ${BM_ROOT}/lib/device/libbmkernel-top-asic.a ${BM_ROOT}/lib/device/libbmkernel-core-asic.a -Wl,--end-group
         COMMAND arm-none-eabi-objcopy -O binary -R *.slow* ${BIN_NAME}.elf ${BIN_NAME}_itcm.bin
         COMMAND hexdump -v -e '1/4 \"%08x\\n\"' ${BIN_NAME}_itcm.bin > ${BIN_NAME}_itcm.hex.sim
         COMMAND arm-none-eabi-objcopy -O binary -j *.slow* ${BIN_NAME}.elf ${BIN_NAME}_ddr.bin
@@ -106,7 +106,9 @@ if(USE_BM_PLACE)
         COMMAND printf "%x" 0x0 >> ${BIN_NAME}.bin
         COMMAND printf "%x" 0x0 >> ${BIN_NAME}.bin
         COMMAND printf "%x" 0x0 >> ${BIN_NAME}.bin
-        COMMAND printf "%x" 0x58926 >> ${BIN_NAME}.bin
+
+        COMMAND ${ANAKIN_SABER}/funcs/impl/bm/bmk_script.sh
+
         COMMAND cat ${BIN_NAME}_itcm.hex.sim >> ${BIN_NAME}.bin
         COMMAND cat ${BIN_NAME}_ddr.hex.sim >> ${BIN_NAME}.bin
         COMMAND cp ${ANAKIN_ROOT}/build/saber/bmkernel_bin.bin ${BM_ROOT}/bmkernel_bin.bin
