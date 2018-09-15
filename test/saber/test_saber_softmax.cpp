@@ -1,4 +1,17 @@
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
 #include "saber/core/context.h"
 #include "saber/funcs/softmax.h"
 #include "test_saber_func.h"
@@ -201,11 +214,44 @@ TEST(TestSaberFunc, test_func_softmax) {
 #endif
 
 
+#ifdef AMD_GPU
+    LOG(INFO) << "AMD test......";
+    TestSaberBase<AMD, AMDHX86, AK_FLOAT, Softmax, SoftmaxParam> testbase3;
+
+    for (auto num : {
+                1, 3, 4, 12
+            }) {
+        for (auto c : {
+                    1, 3, 11, 3
+                }) {
+            for (auto h : {
+                        3, 1, 11, 2
+                    }) {
+                for (auto w : {
+                            1, 3, 4, 11
+                        }) {
+                    for (auto axis : {
+                                0, 1, 2, 3
+                            }) {
+                        SoftmaxParam<AMD> param(axis);
+                        testbase3.set_param(param);
+                        testbase3.set_input_shape(Shape({num, c, h, w}));
+                        testbase3.run_test(softmax_cpu<float, AMD, AMDHX86>);
+                    }
+                }
+            }
+        }
+    }
+    LOG(INFO) << "AMD test end.";
+#endif
 }
 
 int main(int argc, const char** argv) {
     // initial logger
     //logger::init(argv[0]);
+#ifdef AMD_GPU
+    Env<AMD>::env_init();
+#endif
     InitTest();
     RUN_ALL_TESTS(argv[0]);
     return 0;
