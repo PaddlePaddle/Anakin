@@ -94,7 +94,7 @@ static void get_seq_offset(int num, std::vector<int>& seq_offset){
 TEST(TestSaberFunc, test_func_saber_sequenconv){
 
 #ifdef USE_CUDA
-/*
+	LOG(INFO)<<"NV test......";
     typedef Tensor<NV> TensorD;
     //Init the test_base
     TestSaberBase<NV,NVHX86,AK_FLOAT,SequenceConv, SequenceConvParam> testbase;
@@ -130,8 +130,51 @@ TEST(TestSaberFunc, test_func_saber_sequenconv){
             }
         }
     }
+	LOG(INFO)<<"NV end......";
 
-  */  
+#endif
+
+#ifdef USE_X86_PLACE
+    LOG(INFO)<<"x86 test......";
+    do
+    {
+    typedef Tensor<X86> TensorD;
+    //Init the test_base
+    TestSaberBase<X86,X86,AK_FLOAT,SequenceConv, SequenceConvParam> testbase;
+    for(auto num:{8, 16}){
+        for(auto hidden_size:{10, 20, 31}){
+            for(auto context_length:{2, 3, 7}){
+                for(auto feature_size:{4, 10, 64}){
+                    for(auto pad_up:{-1, -2}){
+                        LOG(INFO) << "num: " << num << ", hidden_size: " << hidden_size \
+                        << ", context_length: " << context_length << ", feature_size: " << feature_size\
+                        << ", pad_up: " << pad_up; 
+                        TensorD filter_tensor;
+                        TensorD in_tensor;
+                        std::vector<TensorD*> input;
+                        Shape in_sh({num, hidden_size, 1, 1});
+                        Shape filter_sh({1, 1, hidden_size * context_length, feature_size});
+                        in_tensor.re_alloc(in_sh, AK_FLOAT);
+                        filter_tensor.re_alloc(filter_sh, AK_FLOAT);
+                        fill_tensor_rand(filter_tensor, -1.0f, 1.0f);
+                        fill_tensor_rand(in_tensor, -1.0f, 1.0f);
+                        std::vector<int> seq_offset;
+                        std::vector<std::vector<int>> vseq_offset;
+                        get_seq_offset(num , seq_offset);
+                        vseq_offset.push_back(seq_offset);
+                        in_tensor.set_seq_offset(vseq_offset);
+                        input.push_back(&in_tensor);
+                        SequenceConvParam<X86> param(&filter_tensor, context_length, pad_up);
+                        testbase.set_param(param);
+                        testbase.add_custom_input(input);
+                        testbase.run_test(sequence_conv_cpu<float, X86, X86>, 1e-4);
+                    }
+                }
+            }
+        }
+    }
+    }while(0);
+    LOG(INFO)<<"x86 end.......";
 #endif
 }
 int main(int argc, const char** argv) {

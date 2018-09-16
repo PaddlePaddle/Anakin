@@ -24,6 +24,10 @@
 #ifdef NVIDIA_GPU 
 #include "saber/funcs/impl/cuda/saber_sequence_conv.h"
 #endif
+
+#ifdef USE_X86_PLACE
+#include "saber/funcs/impl/x86/saber_sequence_conv.h"
+#endif
 namespace anakin {
 namespace saber {
 
