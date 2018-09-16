@@ -17,6 +17,9 @@
 ANAKIN_ROOT="$( cd "$(dirname "$0")"/.. ; pwd -P)"
 echo "-- Anakin root dir is: $ANAKIN_ROOT"
 
+echo "delete cache files"
+rm -rf ~/.cache/amd_saber/
+
 # build the target into gpu_build.
 BUILD_ROOT=$ANAKIN_ROOT/amd_gpu_build
 

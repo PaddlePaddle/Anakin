@@ -49,7 +49,7 @@ function(add_kernels KERNEL_FILES)
         list(APPEND INIT_KERNELS_LIST "    { \"${KEY_NAME}\", std::string(reinterpret_cast<const char*>(${VAR_NAME}), ${VAR_NAME}_SIZE) }")
     endforeach()
     string(REPLACE ";" ",\n" INIT_KERNELS "${INIT_KERNELS_LIST}")
-    configure_file("${CMAKE_SOURCE_DIR}/saber/funcs/impl/amd/amd_kernels.cpp.in" ${PROJECT_BINARY_DIR}/amd_kernels.cpp)
+    configure_file("${CMAKE_SOURCE_DIR}/saber/core/impl/amd/utils/amd_kernels.cpp.in" ${PROJECT_BINARY_DIR}/amd_kernels.cpp)
 endfunction()
 
 macro(generate_amd_kernel_src)
