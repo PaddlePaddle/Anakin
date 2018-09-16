@@ -30,7 +30,11 @@
 #include "saber/funcs/impl/arm/saber_fc.h"
 #endif
 
-namespace anakin {
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_fc.h"
+#endif
+
+namespace anakin{
 
 namespace saber {
 
