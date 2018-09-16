@@ -94,7 +94,7 @@ static void get_seq_offset(int num, std::vector<int>& seq_offset){
 TEST(TestSaberFunc, test_func_saber_sequenconv){
 
 #ifdef USE_CUDA
-	LOG(INFO)<<"NV test......";
+    LOG(INFO)<<"NV test......";
     typedef Tensor<NV> TensorD;
     //Init the test_base
     TestSaberBase<NV,NVHX86,AK_FLOAT,SequenceConv, SequenceConvParam> testbase;
@@ -130,7 +130,7 @@ TEST(TestSaberFunc, test_func_saber_sequenconv){
             }
         }
     }
-	LOG(INFO)<<"NV end......";
+    LOG(INFO)<<"NV end......";
 
 #endif
 
