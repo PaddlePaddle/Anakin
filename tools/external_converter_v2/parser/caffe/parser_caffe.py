@@ -611,7 +611,6 @@ class CaffeParser:
             # add node to graph io
             self.graphIO.add_node(nodeIO())
 
-        #print self.graphIO()
         return self.graphIO
 
     def _Parsing(self):
