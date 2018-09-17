@@ -568,6 +568,61 @@ struct TargetWrapper<AMD, __device_target> {
 
 };
 
+template <>
+struct TargetWrapper<AMDHX86, __host_target> {
+    typedef cl_event event_t;
+    typedef cl_command_queue stream_t;
+
+    static void get_device_count(int& count);
+
+    static void set_device(int id);
+
+    static void mem_alloc(void** ptr, size_t n);
+
+    static void mem_free(void* ptr);
+
+    static void mem_set(void* ptr, int value, size_t n);
+
+    static void create_event(event_t* event, bool flag = false);
+
+    static void destroy_event(event_t event);
+
+    static void record_event(event_t event, stream_t stream);
+
+    static void create_stream(stream_t* stream);
+
+    static void create_stream_with_flag(stream_t* stream, unsigned int flag);
+
+    static void create_stream_with_priority(stream_t* stream, unsigned int flag, int priority);
+
+    static void destroy_stream(stream_t stream);
+
+    static void query_event(event_t event);
+
+    static void sync_event(event_t event);
+
+    static void sync_stream(event_t event, stream_t stream);
+
+    static void sync_stream(stream_t stream);
+
+    static void sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
+        size_t count, __HtoH);
+
+    static void async_memcpy(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
+        size_t count, stream_t stream, __HtoH);
+
+    static void sync_memcpy_p2p(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, size_t count);
+
+    static void async_memcpy_p2p(void* dst, size_t dst_offset, int dst_id, \
+        const void* src, size_t src_offset, int src_id, \
+        size_t count, stream_t stream);
+
+    static int get_device_id();
+    static void device_sync();
+};
 #endif //AMD_GPU
 
 } //namespace saber

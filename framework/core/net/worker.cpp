@@ -106,7 +106,8 @@ Worker<Ttype, Ptype, RunType>::sync_prediction(std::vector<Tensor4d<typename tar
             d_tensor_in_p->reshape(ins[i].valid_shape());
             d_tensor_in_p->copy_from(ins[i]);
             d_tensor_in_p->set_seq_offset(ins[i].get_seq_offset());
-        } 
+        }
+#ifdef NVIDIA_GPU 
         Context<NV> ctx(0, 0, 0); 
         saber::SaberTimer<NV> my_time; 
         my_time.start(ctx);
@@ -114,7 +115,7 @@ Worker<Ttype, Ptype, RunType>::sync_prediction(std::vector<Tensor4d<typename tar
         Context<NV> ctx(0, 0, 0); 
         saber::SaberTimer<NV> my_time;
         my_time.start(ctx);
-#endif
+#endif // ENABLE_OP_TIMER
         net.prediction(); 
 
         my_time.end(ctx); 
@@ -127,7 +128,8 @@ Worker<Ttype, Ptype, RunType>::sync_prediction(std::vector<Tensor4d<typename tar
             _thead_id_to_prediction_times_vec_in_ms[std::this_thread::get_id()].push_back(my_time.get_average_ms());
             LOG(ERROR) << " exec  << time: " << my_time.get_average_ms() << " ms ";
         }
-#endif
+#endif // ENABLE_OP_TIMER
+#endif // NVIDIA_GPU
         // get outputs of graph
         std::vector<Tensor4d<typename target_host<Ttype>::type>> ret;
         ret.resize(_outputs_in_order.size());
@@ -224,6 +226,16 @@ template class Worker<NV, Precision::INT8, OpRunType::ASYNC>;
 template class Worker<NV, Precision::FP32, OpRunType::SYNC>;
 template class Worker<NV, Precision::FP16, OpRunType::SYNC>;
 template class Worker<NV, Precision::INT8, OpRunType::SYNC>;
+#endif
+
+#ifdef AMD_GPU
+template class Worker<AMD, Precision::FP32, OpRunType::ASYNC>;
+template class Worker<AMD, Precision::FP16, OpRunType::ASYNC>;
+template class Worker<AMD, Precision::INT8, OpRunType::ASYNC>;
+
+template class Worker<AMD, Precision::FP32, OpRunType::SYNC>;
+template class Worker<AMD, Precision::FP16, OpRunType::SYNC>;
+template class Worker<AMD, Precision::INT8, OpRunType::SYNC>;
 #endif
 
 #ifdef USE_X86_PLACE

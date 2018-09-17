@@ -875,6 +875,13 @@ TEST(TestSaberFunc, test_tensor_share_diff_dtype) {
     tensor_share_diff_dtype<ARM, ARM>();
 #endif //USE_ARM_PLACE
 
+#ifdef AMD_GPU
+    Env<AMD>::env_init();
+    Env<AMDHX86>::env_init();
+    LOG(INFO) << "test AMD tensor share different data type";
+    tensor_share_diff_dtype<AMD, AMDHX86>();
+#endif //USE_CUDA
+
 #ifdef USE_BM
     //BM does not support this yet
 #endif //USE_BM

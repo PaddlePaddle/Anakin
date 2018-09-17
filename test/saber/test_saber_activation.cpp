@@ -166,6 +166,10 @@ TEST(TestSaberFunc, test_func_activation) {
 #ifdef USE_ARM_PLACE
     test_model<AK_FLOAT, ARM, ARM>();
 #endif
+#ifdef AMD_GPU
+    Env<AMD>::env_init();
+    test_model<AK_FLOAT, AMD, AMDHX86>();
+#endif
 #ifdef USE_BM_PLACE
 //    Env<BM>::env_init();
 //    test_accuracy<BM, X86>(num, channel, height, width,VENDER_IMPL);

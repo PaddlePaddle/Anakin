@@ -12,6 +12,9 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+
+
+
 #include "saber/core/tensor_op.h"
 #include <limits>
 
@@ -23,20 +26,18 @@ namespace anakin{
 
 namespace saber{
 
-
 typedef TargetWrapper<AMD> AMD_API;
 
 #if 1 
-template <class Tensor_t>
-void fill_tensor_device_const(Tensor_t& tensor, \
-    typename Tensor_t::Dtype value, \
-    typename Tensor_t::API::stream_t stream){
+template <typename TargetType>
+void fill_tensor_const(Tensor<TargetType>& tensor, \
+    float value, typename Tensor<TargetType>::API::stream_t stream){
 
-    typedef typename Tensor_t::Dtype Dtype;
-    typedef typename Tensor_t::PtrDtype PtrDtype;
+    typedef typename DataTrait<AMD, AK_FLOAT>::Dtype Dtype;
+    typedef typename DataTrait<AMD, AK_FLOAT>::PtrDtype PtrDtype;
 
-    PtrDtype data_ptr = (PtrDtype)tensor.get_buf()->get_data_mutable();
-    int size = tensor.size();
+    PtrDtype data_ptr = (PtrDtype)tensor.mutable_data();
+    int size = tensor.valid_size();
    
     Device<AMD> dev = Env<AMD>::cur_env()[tensor.device_id()];
 
@@ -45,8 +46,7 @@ void fill_tensor_device_const(Tensor_t& tensor, \
         stream = dev._data_stream[0];
     }
 
-
-    cl_mem mem = data_ptr.dmem;
+    cl_mem mem = (cl_mem)data_ptr;
     cl_event event;
     clEnqueueFillBuffer(stream, mem, &value, sizeof(Dtype), 0, size * sizeof(Dtype), 0, NULL, &event);
     clFlush(stream);
@@ -55,16 +55,15 @@ void fill_tensor_device_const(Tensor_t& tensor, \
 };
 
 
-template <class Tensor_t>
-void fill_tensor_device_rand(Tensor_t& tensor, typename Tensor_t::API::stream_t stream) {
+template <typename TargetType>
+void fill_tensor_rand(Tensor<TargetType>& tensor, typename Tensor<TargetType>::API::stream_t stream) {
 
-    typedef typename Tensor_t::Dtype Dtype;
-    typedef typename Tensor_t::PtrDtype PtrDtype;
+    typedef typename DataTrait<AMD, AK_FLOAT>::Dtype Dtype;
+    typedef typename DataTrait<AMD, AK_FLOAT>::PtrDtype PtrDtype;
 
-    PtrDtype ptr = (PtrDtype)tensor.get_buf()->get_data_mutable();
-    cl_mem mem = ptr.dmem;
-    int size = tensor.size();
-
+    PtrDtype ptr = (PtrDtype)tensor.mutable_data();
+    cl_mem mem = (cl_mem)ptr;
+    int size = tensor.valid_size();
 
     Device<AMD> dev = Env<AMD>::cur_env()[tensor.device_id()];
     if(stream == nullptr){
@@ -90,15 +89,15 @@ void fill_tensor_device_rand(Tensor_t& tensor, typename Tensor_t::API::stream_t 
    
 };
 
-template <class Tensor_t>
-void fill_tensor_device_rand(Tensor_t& tensor, typename Tensor_t::Dtype vstart, \
-    typename Tensor_t::Dtype vend, typename Tensor_t::API::stream_t stream) {
+template <typename TargetType>
+void fill_tensor_rand(Tensor<TargetType>& tensor, float vstart, \
+    float vend, typename Tensor<TargetType>::API::stream_t stream) {
 
-    typedef typename Tensor_t::Dtype Dtype;
-    typedef typename Tensor_t::PtrDtype PtrDtype;
+    typedef typename DataTrait<AMD, AK_FLOAT>::Dtype Dtype;
+    typedef typename DataTrait<AMD, AK_FLOAT>::PtrDtype PtrDtype;
 
-    PtrDtype ptr = (PtrDtype)tensor.get_buf()->get_data_mutable();
-    cl_mem mem = ptr.dmem;
+    PtrDtype ptr = (PtrDtype)tensor.mutable_data();
+    cl_mem mem = (cl_mem)ptr;
 
     int size = tensor.size();
 
@@ -129,14 +128,14 @@ void fill_tensor_device_rand(Tensor_t& tensor, typename Tensor_t::Dtype vstart, 
     clWaitForEvents(1, &event);
 };
 
-template <class Tensor_t>
-void print_tensor_device(Tensor_t& tensor, typename Tensor_t::API::stream_t stream){
+template <typename TargetType>
+void print_tensor(Tensor<TargetType>& tensor, typename Tensor<TargetType>::API::stream_t stream){
 
-    typedef typename Tensor_t::Dtype Dtype;
-    typedef typename Tensor_t::PtrDtype PtrDtype;
+    typedef typename DataTrait<AMD, AK_FLOAT>::Dtype Dtype;
+    typedef typename DataTrait<AMD, AK_FLOAT>::PtrDtype PtrDtype;
 
-    PtrDtype ptr = (PtrDtype)tensor.get_buf()->get_data_mutable();
-    cl_mem mem = ptr.dmem;
+    PtrDtype ptr = (PtrDtype)tensor.mutable_data();
+    cl_mem mem = (cl_mem)ptr;
 
     LOG(INFO) << "device tensor size: " << tensor.size() << " type size: " << sizeof(Dtype);
     int size = tensor.size();
@@ -168,31 +167,17 @@ void print_tensor_device(Tensor_t& tensor, typename Tensor_t::API::stream_t stre
 
 };
 
-#define FILL_TENSOR_AMD(type, layout) \
-    template void fill_tensor_device_const<Tensor<AMD, type, layout>>\
-        (Tensor<AMD, type, layout>& tensor, DataTrait<AMD, type>::Dtype value, \
-        typename TargetWrapper<AMD>::stream_t stream); \
-    template void fill_tensor_device_rand<Tensor<AMD, type, layout>>\
-        (Tensor<AMD, type, layout>& tensor, typename TargetWrapper<AMD>::stream_t stream); \
-    template void fill_tensor_device_rand<Tensor<AMD, type, layout>>\
-        (Tensor<AMD, type, layout>& tensor, DataTrait<AMD, type>::Dtype vstart, \
-        DataTrait<AMD, type>::Dtype vend, typename TargetWrapper<AMD>::stream_t stream); \
-    template void print_tensor_device<Tensor<AMD, type, layout>>\
-        (Tensor<AMD, type, layout>& tensor, typename TargetWrapper<AMD>::stream_t stream);
-
-FILL_TENSOR_AMD(AK_FLOAT, NCHW);
-FILL_TENSOR_AMD(AK_FLOAT, NHWC);
-FILL_TENSOR_AMD(AK_FLOAT, NHW);
-FILL_TENSOR_AMD(AK_FLOAT, NW);
-FILL_TENSOR_AMD(AK_FLOAT, HW);
-FILL_TENSOR_AMD(AK_FLOAT, W);
-
-FILL_TENSOR_AMD(AK_INT8, NCHW);
-FILL_TENSOR_AMD(AK_INT8, NHWC);
-FILL_TENSOR_AMD(AK_INT8, NHW);
-FILL_TENSOR_AMD(AK_INT8, NW);
-FILL_TENSOR_AMD(AK_INT8, HW);
-FILL_TENSOR_AMD(AK_INT8, W);
+template void print_tensor<AMD> \
+    (Tensor<AMD>& tensor, \
+    typename Tensor<AMD>::API::stream_t stream = NULL);
+template void fill_tensor_const<AMD>\
+    (Tensor<AMD>& tensor, \
+    float value, typename Tensor<AMD>::API::stream_t stream = NULL); 
+template void fill_tensor_rand<AMD>\
+     (Tensor<AMD>& tensor, typename Tensor<AMD>::API::stream_t stream);
+template void fill_tensor_rand<AMD>\
+     (Tensor<AMD>& tensor, float vstart, \
+    float vend, typename Tensor<AMD>::API::stream_t stream);
 
 #endif
 } //namespace saber

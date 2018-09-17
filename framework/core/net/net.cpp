@@ -303,7 +303,7 @@ void Net<Ttype, Ptype, RunType>::init(graph::Graph<Ttype, Ptype>& graph) {
 #endif
 
 #ifdef ENABLE_DEBUG
-    LOG(ERROR) << "Checking memroy...";
+    LOG(ERROR) << "Checking memory...";
     for(auto& executer : _exec_funcs) {
         if (executer.need_sync) {
             for(int i = 0; i < executer.ins.size(); i++) {
@@ -601,6 +601,16 @@ template class Net<X86, Precision::INT8, OpRunType::ASYNC>;
 template class Net<X86, Precision::FP32, OpRunType::SYNC>;
 template class Net<X86, Precision::FP16, OpRunType::SYNC>;
 template class Net<X86, Precision::INT8, OpRunType::SYNC>;
+#endif
+
+#ifdef AMD_GPU
+template class Net<AMD, Precision::FP32, OpRunType::ASYNC>;
+template class Net<AMD, Precision::FP16, OpRunType::ASYNC>;
+template class Net<AMD, Precision::INT8, OpRunType::ASYNC>;
+
+template class Net<AMD, Precision::FP32, OpRunType::SYNC>;
+template class Net<AMD, Precision::FP16, OpRunType::SYNC>;
+template class Net<AMD, Precision::INT8, OpRunType::SYNC>;
 #endif
 
 #ifdef USE_ARM_PLACE

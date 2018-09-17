@@ -140,6 +140,16 @@ template class AnakinService<X86, Precision::FP16, ServiceRunPattern::SYNC>;
 template class AnakinService<X86, Precision::INT8, ServiceRunPattern::SYNC>;
 #endif
 
+#ifdef AMD_GPU
+template class AnakinService<AMD, Precision::FP32, ServiceRunPattern::ASYNC>;
+template class AnakinService<AMD, Precision::FP16, ServiceRunPattern::ASYNC>;
+template class AnakinService<AMD, Precision::INT8, ServiceRunPattern::ASYNC>;
+
+template class AnakinService<AMD, Precision::FP32, ServiceRunPattern::SYNC>;
+template class AnakinService<AMD, Precision::FP16, ServiceRunPattern::SYNC>;
+template class AnakinService<AMD, Precision::INT8, ServiceRunPattern::SYNC>;
+#endif
+
 #ifdef USE_ARM_PLACE
 #ifdef ANAKIN_TYPE_FP32
 template class AnakinService<ARM, Precision::FP32, ServiceRunPattern::ASYNC>;

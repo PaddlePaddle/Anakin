@@ -75,9 +75,9 @@ __global__ void resize_bilinear_2d_kernel(const int wout, const int hout,
                 dtype br = (w > win || h > hin)? 0 : src[src_indexBR];
 #else
                 dtype tl = src[src_indexTL];
-                dtype tr = w >= win? 0 : src[src_indexTR];//w > win? 0 :
-                dtype bl = h >= hin? 0 : src[src_indexBL];//h > hin? 0 :
-                dtype br = (w >= win || h >= hin)? 0 : src[src_indexBR];//(w > win || h > hin)? 0 :
+                dtype tr = w >= win? 0 : src[src_indexTR];
+                dtype bl = h >= hin? 0 : src[src_indexBL];
+                dtype br = (w >= win || h >= hin)? 0 : src[src_indexBR];
 #endif
                 dst[dst_index] = static_cast<dtype>(w_00 * tl + w_01 * tr + w_10 * bl + w_11 * br);
                 src_indexBR += src_stride_c;
@@ -141,14 +141,14 @@ SaberStatus SaberResize<NV, OpDtype>::dispatch(\
         dst_real_shape = outputs[0]->shape();
     }
 
-    int src_stride_w = src_real_shape.count(width_idx + 1);//inputs[0]->count(width_idx + 1, dims);
-    int src_stride_h = src_real_shape.count(height_idx + 1);//inputs[0]->count(height_idx + 1, dims);
-    int src_stride_channel = src_real_shape.count(channel_idx + 1);//inputs[0]->count(channel_idx + 1, dims);
-    int src_stride_batch = src_real_shape.count(num_idx + 1);//inputs[0]->count(num_idx + 1, dims);
-    int dst_stride_w = dst_real_shape.count(width_idx + 1);//outputs[0]->count(width_idx + 1, dims);
-    int dst_stride_h = dst_real_shape.count(height_idx + 1);//outputs[0]->count(height_idx + 1, dims);
-    int dst_stride_channel = dst_real_shape.count(channel_idx + 1);//outputs[0]->count(channel_idx + 1, dims);
-    int dst_stride_batch = dst_real_shape.count(num_idx + 1);//outputs[0]->count(num_idx + 1, dims);
+    int src_stride_w = src_real_shape.count(width_idx + 1);
+    int src_stride_h = src_real_shape.count(height_idx + 1);
+    int src_stride_channel = src_real_shape.count(channel_idx + 1);
+    int src_stride_batch = src_real_shape.count(num_idx + 1);
+    int dst_stride_w = dst_real_shape.count(width_idx + 1);
+    int dst_stride_h = dst_real_shape.count(height_idx + 1);
+    int dst_stride_channel = dst_real_shape.count(channel_idx + 1);
+    int dst_stride_batch = dst_real_shape.count(num_idx + 1);
     resize_bilinear_2d_kernel<OpDataType><<<grid, block, 0, stream>>>(
 			w_out, h_out, n_out, c_out,
                     	dst_stride_w, dst_stride_h, dst_stride_channel, dst_stride_batch,
@@ -157,7 +157,6 @@ SaberStatus SaberResize<NV, OpDtype>::dispatch(\
                     	1 / param.width_scale, 1 / param.height_scale,
                     	(const OpDataType*)inputs[0]->data(), (OpDataType*)outputs[0]->mutable_data());
 
-    //outputs[0]->record_event(stream);
     return SaberSuccess;
 }
 template class SaberResize<NV, AK_FLOAT>;

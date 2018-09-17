@@ -25,7 +25,7 @@ namespace saber{
 template <typename TargetType>
 class Env {
 public:
-    typedef TargetWrapper<TargetType> API;
+    typedef TargetWrapper<TargetType> AMD_API;
     typedef std::vector<Device<TargetType>> Devs;
     static Devs& cur_env() {
         static Devs* _g_env = new Devs();
@@ -37,18 +37,18 @@ public:
             return;
         }
         int count = 0;
-        API::get_device_count(count);
+        AMD_API::get_device_count(count);
         if (count == 0) {
             CHECK(false) << "no device found!";
         } else {
             LOG(INFO) << "found " << count << " device(s)";
         }
-        int cur_id = API::get_device_id();
+        int cur_id = AMD_API::get_device_id();
         for (int i = 0; i < count; i++) {
-            API::set_device(i);
+            AMD_API::set_device(i);
             devs.push_back(Device<TargetType>(max_stream));
         }
-        API::set_device(cur_id);
+        AMD_API::set_device(cur_id);
         LOG(INFO)<<"dev size = "<<devs.size();
     }
 private:
@@ -61,7 +61,7 @@ typedef std::list<cl_event> cl_event_list;
 template <>
 class Env<AMD> {
 public:
-    typedef TargetWrapper<AMD> API;
+    typedef TargetWrapper<AMD> AMD_API;
     typedef std::vector<Device<AMD>> Devs;
     static Devs& cur_env() {
         static Devs* _g_env = new Devs();
