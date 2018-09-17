@@ -35,7 +35,7 @@ public:
      * @param compute_stream_id
      */
     Context(int device_id = 0, int data_stream_id = 0, int compute_stream_id = 0){
-#ifdef USE_BM        
+#ifdef USE_BM_PLACE        
         if(std::is_same<TargetType, BM>::value){
             LOG(INFO) << "context init for BM";
             int dev_count = 0;
@@ -69,7 +69,7 @@ public:
     }
 
     Context(const Context<TargetType>& ctx){
-#ifdef USE_BM
+#ifdef USE_BM_PLACE
         if(std::is_same<TargetType, BM>::value){
             LOG(INFO) << "context init for BM";
             _bm_handle = ctx._bm_handle;
@@ -98,7 +98,7 @@ public:
         this->_act_ids = ctx._act_ids;
         this->_mode = ctx._mode;
 #endif
-#ifdef USE_BM
+#ifdef USE_BM_PLACE
         this->_bm_handle = ctx._bm_handle;
 #endif
         return *this;
@@ -109,7 +109,7 @@ public:
         comp_eq = comp_eq && (_device_id == right._device_id);
         comp_eq = comp_eq && (_data_stream_id == right._data_stream_id);
         comp_eq = comp_eq && (_compute_stream_id == right._compute_stream_id);
-#ifdef USE_BM
+#ifdef USE_BM_PLACE
         comp_eq = comp_eq && (_bm_handle == right._bm_handle);
 #endif
         return comp_eq;
@@ -151,7 +151,7 @@ public:
     //std::vector<int> get_act_ids();
 #endif
 
-#ifdef USE_BM
+#ifdef USE_BM_PLACE
     bm_handle_t get_handle() {
         return _bm_handle;
     }
@@ -170,7 +170,7 @@ private:
     PowerMode _mode{SABER_POWER_HIGH};
     std::vector<int> _act_ids{0};
 #endif
-#ifdef USE_BM
+#ifdef USE_BM_PLACE
     bm_handle_t _bm_handle;
 #endif
 };

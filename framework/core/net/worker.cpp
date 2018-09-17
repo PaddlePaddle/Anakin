@@ -107,7 +107,7 @@ Worker<Ttype, Ptype, RunType>::sync_prediction(std::vector<Tensor4d<typename tar
             d_tensor_in_p->copy_from(ins[i]);
             d_tensor_in_p->set_seq_offset(ins[i].get_seq_offset());
         } 
-        Context<NV> ctx(0, 0, 0); 
+        /*Context<NV> ctx(0, 0, 0); 
         saber::SaberTimer<NV> my_time; 
         my_time.start(ctx);
 #ifdef ENABLE_OP_TIMER
@@ -118,7 +118,7 @@ Worker<Ttype, Ptype, RunType>::sync_prediction(std::vector<Tensor4d<typename tar
         net.prediction(); 
 
         my_time.end(ctx); 
-        LOG(ERROR) << " exec  << time: " << my_time.get_average_ms() << " ms ";
+        LOG(ERROR) << " exec  << time: " << my_time.get_average_ms() << " ms ";*/
 
 #ifdef ENABLE_OP_TIMER
         my_time.end(ctx); 

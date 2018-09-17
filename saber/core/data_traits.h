@@ -20,7 +20,6 @@
 
 #ifdef USE_BM_PLACE 
 #include "bmlib_runtime.h"
-#include "bmdnn_api.h"
 #include "bmlib_utils.h"
 #endif
 
