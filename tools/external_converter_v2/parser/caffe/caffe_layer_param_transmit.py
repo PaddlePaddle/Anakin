@@ -1098,11 +1098,11 @@ def Parser_axpy(args):
 def Parser_priorbox(args):
     layer = args[1]
     prior_box_param = layer.prior_box_param
-    if prior_box_param.HasField('aspect_ratio'):
+    if len(prior_box_param.aspect_ratio) > 0:
         OpsRegister()["PriorBox"].min_size = list(prior_box_param.min_size)
         OpsRegister()["PriorBox"].max_size = list(prior_box_param.max_size)
         OpsRegister()["PriorBox"].aspect_ratio = list(prior_box_param.aspect_ratio)
-    if prior_box_param.HasField('density'):
+    if len(prior_box_param.density) > 0:
         OpsRegister()["PriorBox"].fixed_size = list(prior_box_param.fixed_size)
         OpsRegister()["PriorBox"].fixed_ratio = list(prior_box_param.fixed_ratio)
         OpsRegister()["PriorBox"].density = list(prior_box_param.density)
