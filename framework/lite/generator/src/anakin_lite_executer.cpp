@@ -16,7 +16,6 @@ void anakin_lite_executer(const char* model_name, const char* model_path, const 
 	code_gen.gen_files();
 }
 
-
 int main(int argc, const char** argv){
     // initial logger
     logger::init(argv[0]);
@@ -34,3 +33,4 @@ int main(int argc, const char** argv){
 	}
 	return 0;
 }
+

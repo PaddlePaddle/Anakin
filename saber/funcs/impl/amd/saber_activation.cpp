@@ -21,41 +21,23 @@ namespace saber {
 
 typedef TargetWrapper<AMD> AMD_API;
 
-template <DataType OpDtype ,
-    DataType inDtype,
-    DataType outDtype,
-    typename LayOutType_op,
-    typename LayOutType_in,
-    typename LayOutType_out>
-SaberStatus SaberActivation<AMD, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::init(
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        ActivationParam<OpTensor> &param,
-        Context<AMD> &ctx)
-{
-
-    typedef typename DataTensor_in::Dtype DataType_in;
-    typedef typename DataTensor_out::Dtype DataType_out;
-    typedef typename OpTensor::Dtype DataType_op;
+template <DataType OpDtype>
+SaberStatus SaberActivation<AMD, OpDtype>::init(
+        const std::vector<Tensor<AMD>*>& inputs,
+        std::vector<Tensor<AMD>*>& outputs,
+        ActivationParam<AMD> &param,
+        Context<AMD> &ctx) {
     this->_ctx = &ctx;
-
     return create(inputs, outputs, param, ctx);
 }
 
-template <DataType OpDtype ,
-    DataType inDtype,
-    DataType outDtype,
-    typename LayOutType_op,
-    typename LayOutType_in,
-    typename LayOutType_out>
-SaberStatus SaberActivation<AMD, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::create(
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        ActivationParam<OpTensor> &param,
-        Context<AMD> &ctx)
-{
+template <DataType OpDtype>
+SaberStatus SaberActivation<AMD, OpDtype>::create(
+        const std::vector<Tensor<AMD>*>& inputs,
+        std::vector<Tensor<AMD>*>& outputs,
+        ActivationParam<AMD> &param,
+        Context<AMD> &ctx) {
+
     this->_ctx = &ctx;
 
     cl_context context = 0;
@@ -277,34 +259,20 @@ SaberStatus SaberActivation<AMD, OpDtype, inDtype, outDtype,
     return SaberSuccess;
 }
 
-template <DataType OpDtype ,
-    DataType inDtype,
-    DataType outDtype,
-    typename LayOutType_op,
-    typename LayOutType_in,
-    typename LayOutType_out>
-SaberStatus SaberActivation<AMD, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        ActivationParam<OpTensor> &param)
-{
+template <DataType OpDtype>
+SaberStatus SaberActivation<AMD, OpDtype>::dispatch(
+        const std::vector<Tensor<AMD>*>& inputs,
+        std::vector<Tensor<AMD>*>& outputs,
+        ActivationParam<AMD> &param) {
+
     cl_int errNum = 0;
     //To get the commpute command queue
     AMD_API::stream_t cm = this->_ctx->get_compute_stream();
 
     //To set the argument
     cl_mem memObjects[2] = { 0, 0 };
-
-    size_t offset_in, offset_out;
-
-    const ClMem clin = inputs[0]->data();
-    ClMem clout = outputs[0]->mutable_data();
-    offset_in = clin.offset;
-    offset_out = clout.offset;
-
-    memObjects[0] = clin.dmem;//(cl_mem)inputs[0]->data();
-    memObjects[1] = clout.dmem;//(cl_mem)outputs[0]->mutable_data();
+    memObjects[0] = (cl_mem)inputs[0]->data();
+    memObjects[1] = (cl_mem)outputs[0]->mutable_data();
 
     errNum = clSetKernelArg(_kernel, 0, sizeof(cl_mem), &memObjects[0]);
     errNum |= clSetKernelArg(_kernel, 1, sizeof(cl_mem), &memObjects[1]);
@@ -328,11 +296,13 @@ SaberStatus SaberActivation<AMD, OpDtype, inDtype, outDtype,
     cl_event_list list;
     list.push_back(event);
     Env<AMD>::add_event(list);
+
     return SaberSuccess;
 }
 
-template class SaberActivation<AMD, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
-DEFINE_OP_TEMPLATE(SaberActivation, ActivationParam, AMD, AK_HALF);
+template class SaberActivation<AMD, AK_FLOAT>;
 DEFINE_OP_TEMPLATE(SaberActivation, ActivationParam, AMD, AK_INT8);
+DEFINE_OP_TEMPLATE(SaberActivation, ActivationParam, AMD, AK_HALF);
+
 }
 } // namespace anakin

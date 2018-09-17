@@ -32,22 +32,22 @@ void AMD_ENV::env_init(int max_stream){
         return;
     }
 
-    platform_id = API::get_platform_id();
+    platform_id = AMD_API::get_platform_id();
 
     int count = 0;
-    API::get_device_count(count);
+    AMD_API::get_device_count(count);
     if (count == 0) {
         LOG(WARNING) << "no device found!";
     } else {
         LOG(INFO) << "found " << count << " device(s)";
     }
 
-    int cur_id = API::get_device_id();
+    int cur_id = AMD_API::get_device_id();
     for (int i = 0; i < count; i++) {
-        API::set_device(i);
+        AMD_API::set_device(i);
         devs.push_back(Device<AMD>(max_stream));
     }
-    API::set_device(cur_id);
+    AMD_API::set_device(cur_id);
 }
 
 bool AMD_ENV::is_init(){

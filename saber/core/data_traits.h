@@ -226,47 +226,6 @@ struct DataTraitBase<BM> {
 
 
 #ifdef USE_OPENCL
-struct ClMem {
-    ClMem() {
-        dmem = nullptr;
-        offset = 0;
-    }
-
-    ClMem(cl_mem mem_in, size_t offset_in = 0) {
-        dmem = mem_in;
-        offset = offset_in;
-    }
-
-    ClMem(const ClMem& right) {
-        dmem = right.dmem;
-        offset = right.offset;
-    }
-
-    ClMem& operator=(const ClMem& right) {
-        this->dmem = right.dmem;
-        this->offset = right.offset;
-        return *this;
-    }
-
-    ClMem& operator+(const size_t offset_in) {
-        this->offset += offset_in;
-        return *this;
-    }
-
-    ClMem& operator ++() {
-        this->offset += 1;
-        return *this;
-    }
-
-    ClMem& operator ++(int) {
-        this->offset += 1;
-        return *this;
-    }
-
-    size_t offset{0};
-    cl_mem dmem{nullptr};
-};
-
 template <>
 struct DataTrait<AMD, AK_FLOAT> {
     typedef float Dtype;

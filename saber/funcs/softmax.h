@@ -23,7 +23,9 @@
 #include "saber/funcs/impl/cuda/saber_softmax.h"
 #include "saber/funcs/impl/cuda/vender_softmax.h"
 #endif
-
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/saber_softmax.h"
+#endif
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_softmax.h"
 #endif

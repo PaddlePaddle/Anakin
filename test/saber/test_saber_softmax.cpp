@@ -134,6 +134,26 @@ TEST(TestSaberFunc, test_func_softmax){
 #endif
 
 
+    #ifdef AMD_GPU
+        Env<AMD>::env_init();
+        TestSaberBase<AMD, AMDHX86, AK_FLOAT, Softmax, SoftmaxParam> testbase3;
+        for(auto num:{1,3,4,12}){
+            for(auto c:{1,3,11,3}){
+                for(auto h:{3,1,11,2}){
+                    for(auto w:{1,3,4,11}){
+                        for(auto axis:{0,1,2,3}){
+                            SoftmaxParam<AMD> param(axis);
+                            testbase3.set_param(param);
+                            testbase3.set_input_shape(Shape({num, c, h, w}));
+                            testbase3.run_test(softmax_cpu<float, AMD, AMDHX86>, 0.0001, true);        
+                        }
+                    }
+                }
+            }
+        }
+    #endif
+
+
 }
 
 int main(int argc, const char** argv) {
