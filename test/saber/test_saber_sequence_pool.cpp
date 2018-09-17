@@ -7,9 +7,6 @@
 #include "saber/saber_types.h"
 #include <vector>
 
-#include <chrono>
-
-
 using namespace anakin::saber;
 
 template <typename dtype>
@@ -125,7 +122,7 @@ void sequence_pool_cpu(const std::vector<Tensor<TargetType_H>*>& inputs,std::vec
                 break;
             case Sequence_pool_unknow:
                 seq_pool_unknow(dst_ptr, src_ptr, slice_num, slice_size);
-				break;
+                break;
         }
         dst_ptr += slice_size;
         src_ptr += slice_size * slice_num;
@@ -145,6 +142,7 @@ static void ge_seq_offset(int num, std::vector<int>& seq_offset){
 TEST(TestSaberFunc, test_func_sequence_pool){
 
 #ifdef USE_CUDA
+    LOG(INFO)<<"NV test......";
     //Init the test_base
     TestSaberBase<NV,NVHX86,AK_FLOAT,SequencePool, SequencePoolParam> testbase;
     for (auto num:{4,10,32}){
@@ -172,6 +170,42 @@ TEST(TestSaberFunc, test_func_sequence_pool){
             }
         }
     }
+    LOG(INFO)<<"NV test end.";
+#endif
+
+#ifdef USE_X86_PLACE
+    LOG(INFO)<<"x86 test......";
+    do
+    {
+        //Init the test_base
+        TestSaberBase<X86,X86,AK_FLOAT,SequencePool, SequencePoolParam> testbase;
+        for (auto num:{4,10,32}){
+            for (auto c:{1, 30, 128}){
+                for (auto h:{2, 32}){
+                    for (auto w:{2, 32}){
+                        for (auto seq_type:{Sequence_pool_average, Sequence_pool_sum,\
+                                           Sequence_pool_max, Sequence_pool_sqrt,\
+                                           Sequence_pool_first, Sequence_pool_last}){
+                            Tensor<X86> input;
+                            input.re_alloc(Shape({num, c, h, w}), AK_FLOAT);
+                            std::vector<int> seq_offset;
+                            ge_seq_offset(num, seq_offset);
+                            std::vector<std::vector<int>> vseq_offset;
+                            vseq_offset.push_back(seq_offset);
+                            input.set_seq_offset(vseq_offset);
+                            std::vector<Tensor<X86>*> inputs;
+                            inputs.push_back(&input);
+                            testbase.add_custom_input(inputs);
+                            SequencePoolParam<X86> param(seq_type);
+                            testbase.set_param(param);
+                            testbase.run_test(sequence_pool_cpu<float, X86, X86>);
+                        }
+                    }
+                }
+            }
+        }
+    }while(0);
+    LOG(INFO)<<"x86 test end.";
 
 #endif
 }

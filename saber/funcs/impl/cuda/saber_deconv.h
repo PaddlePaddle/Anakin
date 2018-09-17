@@ -19,18 +19,22 @@
 #include "saber/funcs/impl/impl_deconv.h"
 #include "saber/funcs/impl/cuda/base/sass_funcs.h"
 
-namespace anakin{
+namespace anakin {
 
-namespace saber{
+namespace saber {
 
 template <DataType OpDtype>
 class SaberDeconv2D<NV, OpDtype> :
         public ImplBase<NV, OpDtype, ConvParam<NV> > {
 public:
-
+    typedef ImplBase<NV, OpDtype, ConvParam<NV> > Impl_t;
     SaberDeconv2D() = default;
 
-    ~SaberDeconv2D() = default;
+    ~SaberDeconv2D() {
+        if (_impl) {
+            delete _impl;
+        }
+    }
 
     virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
                              std::vector<Tensor<NV> *>& outputs,
@@ -50,17 +54,16 @@ public:
                               int stride_h, int stride_w,
                               int pad_h, int pad_w,
                               int dilation_h, int dilation_w,
-                              int group) {
-        return SaberUnImplError;
-    }
+                              int group);
 private:
     bool _use_k4_s2_p1{false};
+
     std::function<void(const int, const int, const int,
                        const float, const float*, const float,
                        const float*, float*, cudaStream_t)> _gemm_wx;
-    Tensor<NV> _workspace_tensor;
-};
 
+    Impl_t* _impl{nullptr};
+};
 
 } //namespace saber
 
