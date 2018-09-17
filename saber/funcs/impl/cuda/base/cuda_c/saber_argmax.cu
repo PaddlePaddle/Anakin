@@ -83,7 +83,7 @@ __global__ void top1(const Dtype* in_data,
         volatile Dtype *vmax = share_data;
         volatile Dtype *vindex = share_index;
         if (blockSize >= 64) {
-            int index2 = index + 64;
+            int index2 = index + 32;
             if (vmax[index2] > vmax[index]) {
                 vmax[index] = vmax[index2];
                 vindex[index] = vindex[index2];

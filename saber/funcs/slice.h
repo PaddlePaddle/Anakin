@@ -102,8 +102,9 @@ public:
             Shape sh = shape_in;
             sh[param.axis] = step;
             output[0]->set_shape(sh);
+            param.slice_points.clear();
             for (int i = 1; i < top_size; ++i) {
-                param.slice_points[i - 1] = i * step;
+                param.slice_points.push_back(i * step);
                 status = output[i]->set_shape(sh);
                 if (status != SaberSuccess) {
                     return status;

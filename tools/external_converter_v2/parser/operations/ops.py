@@ -143,6 +143,7 @@ OpsRegister.Register("MVN").set_attr(normalize_variance=bool(),
 #      enum method {
 #           MAX, 		// [default]
 #			AVG,
+#           AVGEXC, average_exclude_padding_value
 #			STOCHASTIC,
 #      }
 OpsRegister.Register("Pooling").set_attr(pool_size=list(), 
@@ -354,6 +355,8 @@ OpsRegister.Register("LayerNorm").set_attr(is_across_spatial=bool(),
                                            begin_norm_axis=int(),
                                            eps=float())
 
+OpsRegister.Register("Resize").set_attr(height_scale=float(),
+                                        width_scale=float())
 
 OpsRegister.Register("Normalize").set_attr(begin_norm_axis=int(),
                                            is_across_spatial=bool(),
@@ -361,5 +364,22 @@ OpsRegister.Register("Normalize").set_attr(begin_norm_axis=int(),
                                            eps=float(),
                                            p=int())
 
+OpsRegister.Register("Pad").set_attr(pad_c=list(),
+                                     pad_h=list(),
+                                     pad_w=list())
+
 
 OpsRegister.Register("ShuffleChannel").set_attr(group=int())
+
+OpsRegister.Register("RoisAnchorFeature").set_attr(min_anchor_size=float(),
+                                                   num_anchor_scales=int(),
+                                                   anchor_scale_pow_base=float(),
+                                                   anchor_wph_ratios=list(),
+                                                   num_top_iou_anchor=int(),
+                                                   min_num_top_iou_anchor=int(),
+                                                   iou_thr=float(),
+                                                   ft_ratio_h=bool(),
+                                                   ft_ratio_w=bool(),
+                                                   ft_log_ratio_h=bool(),
+                                                   ft_log_ratio_w=bool(),
+                                                   bbox_size_add_one=bool())

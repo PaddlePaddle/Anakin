@@ -45,7 +45,8 @@ class Configuration:
         elif self.framework == "LEGO":
             pass
         elif self.framework == "TENSORFLOW":
-            pass
+            proto_list = data['TARGET'][self.framework]['ProtoPaths']
+            self.framework_config_dict = data['TARGET'][self.framework]
         elif self.framework == "MXNET":
             pass
         elif self.framework == "FLUID":

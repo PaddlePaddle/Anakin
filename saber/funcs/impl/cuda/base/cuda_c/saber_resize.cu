@@ -73,9 +73,9 @@ __global__ void resize_bilinear_2d_kernel(const int wout, const int hout,
                 dtype br = (w > win || h > hin)? 0 : src[src_indexBR];
 #else
                 dtype tl = src[src_indexTL];
-                dtype tr = w > win? 0 : src[src_indexTR];//w > win? 0 :
-                dtype bl = h > hin? 0 : src[src_indexBL];//h > hin? 0 :
-                dtype br = (w > win || h > hin)? 0 : src[src_indexBR];//(w > win || h > hin)? 0 :
+                dtype tr = w < win? src[src_indexTR]:0;//w > win? 0 :
+                dtype bl = h < hin? src[src_indexBL]:0;//h > hin? 0 :
+                dtype br = (w < win && h < hin) ? src[src_indexBR]: 0;//(w > win || h > hin)? 0 :
 #endif
                 dst[dst_index] = static_cast<dtype>(w_00 * tl + w_01 * tr + w_10 * bl + w_11 * br);
                 src_indexBR += src_stride_c;
@@ -152,19 +152,13 @@ SaberStatus SaberResize<NV, OpDtype, inDtype, outDtype,\
     int dst_stride_h = dst_real_shape.count(height_idx + 1);//outputs[0]->count(height_idx + 1, dims);
     int dst_stride_channel = dst_real_shape.count(channel_idx + 1);//outputs[0]->count(channel_idx + 1, dims);
     int dst_stride_batch = dst_real_shape.count(num_idx + 1);//outputs[0]->count(num_idx + 1, dims);
-    const InDataType* in_data_batch = in_data;
-    OutDataType* out_data_batch = out_data;
-    for (int i = 0; i < n_out; ++i) {
-        resize_bilinear_2d_kernel<OpDataType><<<grid, block, 0, stream>>>(
-                w_out, h_out, n_out, c_out,
-                        dst_stride_w, dst_stride_h, dst_stride_channel, dst_stride_batch,
-                        w_in, h_in,
-                        src_stride_w, src_stride_h, src_stride_channel, src_stride_batch,
-                        1 / param.width_scale, 1 / param.height_scale,
-                        in_data, out_data);
-        in_data_batch += src_stride_batch;
-        out_data_batch += dst_stride_batch;
-    }
+    resize_bilinear_2d_kernel<OpDataType><<<grid, block, 0, stream>>>(
+            w_out, h_out, n_out, c_out,
+                    dst_stride_w, dst_stride_h, dst_stride_channel, dst_stride_batch,
+                    w_in, h_in,
+                    src_stride_w, src_stride_h, src_stride_channel, src_stride_batch,
+                    1 / param.width_scale, 1 / param.height_scale,
+                    in_data, out_data);
     //outputs[0]->record_event(stream);
     return SaberSuccess;
 }

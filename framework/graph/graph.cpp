@@ -41,6 +41,21 @@ Status Graph<Ttype, Dtype, Ptype>::load(std::string model_path) EXCLUSIVE_LOCKS_
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
+Status Graph<Ttype, Dtype, Ptype>::load(const char* buffer, size_t len) EXCLUSIVE_LOCKS_REQUIRED(_mut) {
+    std::unique_lock<std::mutex> lock(this->_mut);
+    Status ret = Status::OK();
+    if(len != _len || buffer != _buffer) {
+        this->Clean();
+        ret = parser::load<Ttype, Dtype>(this, buffer, len);
+        _buffer = buffer;
+        _len = len;
+    }
+
+    return ret;
+}
+
+
+template<typename Ttype, DataType Dtype, Precision Ptype>
 Status Graph<Ttype, Dtype, Ptype>::load(const char* model_path) {
     return parser::load<Ttype, Dtype>(this, model_path);
 }
