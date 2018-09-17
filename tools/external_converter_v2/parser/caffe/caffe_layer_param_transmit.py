@@ -1098,13 +1098,14 @@ def Parser_axpy(args):
 def Parser_priorbox(args):
     layer = args[1]
     prior_box_param = layer.prior_box_param
-    OpsRegister()["PriorBox"].min_size = list(prior_box_param.min_size)
-    OpsRegister()["PriorBox"].max_size = list(prior_box_param.max_size)
-    OpsRegister()["PriorBox"].aspect_ratio = list(prior_box_param.aspect_ratio)
-    OpsRegister()["PriorBox"].fixed_size = list(prior_box_param.fixed_size)
-    OpsRegister()["PriorBox"].fixed_ratio = list(prior_box_param.fixed_ratio)
-    OpsRegister()["PriorBox"].density = list(prior_box_param.density)
-    OpsRegister()["PriorBox"].aspect_ratio = list(prior_box_param.aspect_ratio)
+    if prior_box_param.HasField('aspect_ratio'):
+        OpsRegister()["PriorBox"].min_size = list(prior_box_param.min_size)
+        OpsRegister()["PriorBox"].max_size = list(prior_box_param.max_size)
+        OpsRegister()["PriorBox"].aspect_ratio = list(prior_box_param.aspect_ratio)
+    if prior_box_param.HasField('density'):
+        OpsRegister()["PriorBox"].fixed_size = list(prior_box_param.fixed_size)
+        OpsRegister()["PriorBox"].fixed_ratio = list(prior_box_param.fixed_ratio)
+        OpsRegister()["PriorBox"].density = list(prior_box_param.density)
     OpsRegister()["PriorBox"].is_flip = prior_box_param.flip
     OpsRegister()["PriorBox"].is_clip = prior_box_param.clip
     OpsRegister()["PriorBox"].variance = list(prior_box_param.variance)
