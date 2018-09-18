@@ -134,7 +134,7 @@ TEST(TestSaberFunc, test_func_softmax){
 #endif
 
 
-    #ifdef AMD_GPU
+    #if 0
         Env<AMD>::env_init();
         TestSaberBase<AMD, AMDHX86, AK_FLOAT, Softmax, SoftmaxParam> testbase3;
         for(auto num:{1,3,4,12}){

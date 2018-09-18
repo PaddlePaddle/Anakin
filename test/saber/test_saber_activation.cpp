@@ -167,8 +167,8 @@ TEST(TestSaberFunc, test_func_activation) {
     test_model<AK_FLOAT, ARM, ARM>();
 #endif
 #ifdef AMD_GPU
-    Env<AMD>::env_init();
-    test_model<AK_FLOAT, AMD, AMDHX86>();
+//    Env<AMD>::env_init();
+//    test_model<AK_FLOAT, AMD, AMDHX86>();
 #endif
 #ifdef USE_BM_PLACE
 //    Env<BM>::env_init();
