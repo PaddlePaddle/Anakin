@@ -18,10 +18,14 @@
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/funcs/impl/impl_unpool.h"
+
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_unpool.h"
 #endif
 
+#ifdef USE_X86_PLACE
+#include "saber/funcs/impl/x86/saber_unpool.h"
+#endif
 namespace anakin {
 namespace saber {
 

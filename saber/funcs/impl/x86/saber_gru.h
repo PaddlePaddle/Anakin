@@ -108,7 +108,7 @@ public:
                    sizeof(OpDataType) * _hidden_size*_hidden_size);
 
             float* rz_temp_tensor_ptr=temp_tensor_ptr+_hidden_size*_hidden_size;
-            const float* rz_weights_tensor_ptr=static_cast<const OpDataType*>(gru_param.weight()->data()) + weights_i2h_size+_hidden_size*_hidden_size;
+            const float* rz_weights_tensor_ptr=static_cast<const float*>(gru_param.weight()->data()) + weights_i2h_size+_hidden_size*_hidden_size;
             for(int row=0;row<_hidden_size;row++){
                 for(int block=0;block<2;block++) {
                     int block_offset=block*_hidden_size;
