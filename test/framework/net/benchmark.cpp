@@ -104,7 +104,7 @@ TEST(NetTest, net_execute_base_test) {
             fill_tensor_host_const(th, 1.f);
             d_tensor_in_p->copy_from(th);
         }
-		cudaDeviceSynchronize();
+       cudaDeviceSynchronize();
         // do inference
         Context<Target> ctx(FLAGS_device_id, 0, 0);
         saber::SaberTimer<Target> my_time;
@@ -112,7 +112,7 @@ TEST(NetTest, net_execute_base_test) {
         for (int i = 0; i < FLAGS_warmup_iter; i++) {
             net_executer.prediction();
         }
-		cudaDeviceSynchronize();
+        cudaDeviceSynchronize();
 #ifdef ENABLE_OP_TIMER
         net_executer.reset_op_time();
 #endif
