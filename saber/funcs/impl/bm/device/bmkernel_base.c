@@ -15,15 +15,14 @@ int bmkernel_func(void *args)
     switch (param->op) {
         case ACTIVATION: {
             // bm_activation_fwd(param)
-            break;
+            return 0;
         }
         case CONV: {
             bm_api_conv_forward* api = (bm_api_conv_forward *)param->opParam;
-            bm_conv_fwd(*api);
-            break;
+            return bm_conv_fwd(*api);
         }
         default:
             printf("op %d is not supported by BM yet.\n", param->op);
+            return -1;
     }
-    return 0;
 }

@@ -1,5 +1,5 @@
-#ifndef ANAKIN_SABER_FUNCS_IMPL_BM_BM_COMMON_H
-#define ANAKIN_SABER_FUNCS_IMPL_BM_BM_COMMON_H
+#ifndef ANAKIN_SABER_FUNCS_IMPL_BM_DEVICE_BM_COMMON_H
+#define ANAKIN_SABER_FUNCS_IMPL_BM_DEVICE_BM_COMMON_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,6 +10,8 @@
 #include <unistd.h>
 #include <time.h>
 #include "bm_config.h"
+#include "bm_atomic.h"
+#include "bm_memmap.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -165,7 +167,14 @@ static INLINE int get_align_tensor_size(bm_tensor_4d_t shape){
   return shape.n * c_per_npu * get_neuron_csize_local(shape.h, shape.w);
 }
 
+static int INLINE get_cstride_local(int h, int w)
+{
+  int size = h * w;
+  //EU_NUM neurons align
+  return ALIGN(size,EU_NUM);
+}
+
 #ifdef __cplusplus
 }
 #endif
-#endif /* ANAKIN_SABER_FUNCS_IMPL_BM_BM_COMMON_H */
+#endif /* ANAKIN_SABER_FUNCS_IMPL_BM_DEVICE_BM_COMMON_H */
