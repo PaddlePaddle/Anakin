@@ -175,6 +175,34 @@ __global__ void ker_prelu_fwd(Dtype * out_data,
     }
 }
 
+template<typename Dtype>
+__global__ void ker_prelu_fwd(Dtype * out_data,
+                              const Dtype* in_data, const int count,
+                              const Dtype slope, bool is_channel_shared,
+                              int in_n, int in_c, int in_h, int in_w,
+                              int in_n_stride, int in_c_stride, int in_h_stride, int in_w_stride,
+                              int out_n_stride, int out_c_stride, int out_h_stride, int out_w_stride) {
+    CUDA_KERNEL_LOOP(tid, count){
+        int w =  tid % in_w;
+        int h = (tid / (in_w)) % in_h;
+        int c = (tid / (in_h * in_w)) % in_c;
+        int n = (tid / (in_c * in_h * in_w)) % in_n;
+
+        int in_idx =   n * in_n_stride
+                       + c * in_c_stride
+                       + h * in_h_stride
+                       + w * in_w_stride;
+
+        int out_idx =   n * out_n_stride
+                        + c * out_c_stride
+                        + h * out_h_stride
+                        + w * out_w_stride;
+
+        Dtype in_var = in_data[in_idx];
+        out_data[out_idx] = in_var > 0 ? in_var : slope * in_var;
+    }
+}
+
 template <>
 SaberStatus SaberActivation<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, \
         NCHW, NCHW, NCHW>::dispatch( \
@@ -248,12 +276,21 @@ SaberStatus SaberActivation<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, \
             break;
         case Active_prelu:
             auto prelu_param  = param.prelu_param;
-            ker_prelu_fwd<InDataType>
-                    <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(
-                    out_data, in_data, count, prelu_param.slope->data(), prelu_param.channel_shared,
-                    in_shape[0], in_shape[1], in_shape[2], in_shape[3],
-                    stride_in[0], stride_in[1], stride_in[2], stride_in[3],
-                    stride_out[0], stride_out[1], stride_out[2], stride_out[3]);
+            if (param.prelu_param.slope == nullptr) {
+                ker_prelu_fwd<InDataType>
+                        << < CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream >> > (
+                        out_data, in_data, count, param.negative_slope, prelu_param.channel_shared,
+                                in_shape[0], in_shape[1], in_shape[2], in_shape[3],
+                                stride_in[0], stride_in[1], stride_in[2], stride_in[3],
+                                stride_out[0], stride_out[1], stride_out[2], stride_out[3]);
+            } else {
+                ker_prelu_fwd<InDataType>
+                        << < CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream >> > (
+                        out_data, in_data, count, prelu_param.slope->data(), prelu_param.channel_shared,
+                                in_shape[0], in_shape[1], in_shape[2], in_shape[3],
+                                stride_in[0], stride_in[1], stride_in[2], stride_in[3],
+                                stride_out[0], stride_out[1], stride_out[2], stride_out[3]);
+            }
              break;
     }
 

@@ -83,12 +83,19 @@ Status ConvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::InitParam() {
 
     // get relu param
     auto alpha = GET_PARAMETER(float, relu_0_alpha);
-    ActivationParam<Tensor4d<Ttype, Dtype>> active_param(Active_relu);//, alpha); // TEMP
+    if (alpha != 0) {
+        ActivationParam<Tensor4d<Ttype, Dtype>> active_param(Active_prelu, alpha); // TEMP
+        ConvActiveParam<Tensor4d<Ttype, Dtype>> conv_act_param(_conv_param, active_param, batchnorm_param,
+                                                               scale_param);
+        _param_conv_batchnorm_scale_relu = conv_act_param;
+    } else {
+        ActivationParam<Tensor4d<Ttype, Dtype>> active_param(Active_relu); // TEMP
+        ConvActiveParam<Tensor4d<Ttype, Dtype>> conv_act_param(_conv_param, active_param, batchnorm_param,
+                                                               scale_param);
+        _param_conv_batchnorm_scale_relu = conv_act_param;
+    }
 
 
-    ConvActiveParam<Tensor4d<Ttype, Dtype>> conv_act_param(_conv_param, active_param, batchnorm_param,
-                                         scale_param);
-    _param_conv_batchnorm_scale_relu = conv_act_param;
 
     return Status::OK();
 }
@@ -115,7 +122,9 @@ Status ConvBatchnormScaleReluHelper<Ttype, Dtype, Ptype>::InferShape(const
 template <>
 Status ConvBatchnormScaleReluHelper<NV, AK_FLOAT, Precision::FP32>::Init(OpContext<NV> &ctx, \
     const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins, std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    if (_param_conv_batchnorm_scale_relu.conv_param.group == ins[0]->channel() && \
+    bool use_saber = true;
+    use_saber = use_saber && (_param_conv_batchnorm_scale_relu.activation_param.active == Active_relu);
+    if (use_saber && _param_conv_batchnorm_scale_relu.conv_param.group == ins[0]->channel() && \
             _param_conv_batchnorm_scale_relu.conv_param.group == outs[0]->channel()) {
         _funcs_conv_batchnorm_scale_relu.init(ins, outs, _param_conv_batchnorm_scale_relu, SPECIFY,
                                               SABER_IMPL, ctx);
