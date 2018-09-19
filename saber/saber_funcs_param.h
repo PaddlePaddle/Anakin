@@ -1515,7 +1515,17 @@ struct NormalizeParam {
         eps = eps_in;
         CHECK_EQ(p == 2 || p == 1, true) << "only support L1 and L2 norm";
     }
+    NormalizeParam(bool is_across_spatial, bool is_shared_channel, \
+        float eps_in = 1e-6f, int pin = 2) {
 
+        across_spatial = is_across_spatial;
+        channel_shared = is_shared_channel;
+        p = pin;
+        has_scale = false;
+        scale = nullptr;
+        eps = eps_in;
+        CHECK_EQ(p == 2 || p == 1, true) << "only support L1 and L2 norm";
+    }
     NormalizeParam(const NormalizeParam<opTensor>& right) {
         channel_shared = right.channel_shared;
         across_spatial = right.across_spatial;
