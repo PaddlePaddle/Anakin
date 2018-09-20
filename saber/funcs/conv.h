@@ -39,6 +39,10 @@
 #ifdef USE_BM_PLACE
 //#include "saber/funcs/impl/bm/vender_conv.h"
 #endif
+
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_conv.h"
+#endif
 namespace anakin {
 namespace saber {
 
