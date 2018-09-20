@@ -1174,6 +1174,16 @@ def Parser_relu6(args):
     OpsRegister()["Activation"].type = "ClippedRelu"
     OpsRegister()["Activation"].clip_relu_num = 6
 
+@ParserFeedDecorator("Interp")
+def Parser_interp(args):
+    layer = args[1]
+    interp_param = layer.interp_param
+    OpsRegister()["Interp"].height = interp_param.height
+    OpsRegister()["Interp"].width = interp_param.width
+    OpsRegister()["Interp"].zoom_factor = interp_param.zoom_factor
+    OpsRegister()["Interp"].shrink_factor = interp_param.shrink_factor
+    OpsRegister()["Interp"].pad_beg = interp_param.pad_beg
+    OpsRegister()["Interp"].pad_end = interp_param.pad_end
 
 # caffe layer parameter parser map
 CAFFE_LAYER_PARSER = {
@@ -1244,5 +1254,6 @@ CAFFE_LAYER_PARSER = {
                 "ReLU6": OpsParam().set_parser(Parser_relu6),
                 "Normalization": OpsParam().set_parser(Parser_normalize),
                 "ShuffleChannel": OpsParam().set_parser(Parser_ShuffleChannel),
-                "RoisAnchorFeature": OpsParam().set_parser(Parser_rois_anchor_feature)
+                "RoisAnchorFeature": OpsParam().set_parser(Parser_rois_anchor_feature),
+                "Interp": OpsParam().set_parser(Parser_interp)
                 }
