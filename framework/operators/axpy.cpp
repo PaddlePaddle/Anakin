@@ -1,3 +1,17 @@
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
 #include "framework/operators/axpy.h"
 
 namespace anakin {
@@ -57,6 +71,8 @@ ANAKIN_REGISTER_OP_HELPER(Axpy, AxpyHelper, NV, Precision::FP32);
 #ifdef AMD_GPU
 INSTANCE_AXPY(AMD, Precision::FP32);
 template class AxpyHelper<AMD, Precision::FP32>;
+template class AxpyHelper<AMD, Precision::FP16>;
+template class AxpyHelper<AMD, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(Axpy, AxpyHelper, AMD, Precision::FP32);
 #endif
 
@@ -89,6 +105,7 @@ template class AxpyHelper<ARM, Precision::INT8>;
 //! register op
 ANAKIN_REGISTER_OP(Axpy)
 .Doc("Axpy operator")
+
 #ifdef USE_CUDA
 .__alias__<NV, Precision::FP32>("axpy")
 #endif

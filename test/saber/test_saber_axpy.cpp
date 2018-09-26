@@ -1,3 +1,18 @@
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
 #include "core/context.h"
 #include "funcs/axpy.h"
 #include "test_saber_func.h"
@@ -102,7 +117,11 @@ void test_model(){
 }
 
 TEST(TestSaberFunc, test_func_axpy) {
-   
+#ifdef AMD_GPU
+   //Init the test_base
+   test_model<AK_FLOAT, AMD, AMDHX86>();
+#endif
+
 #ifdef USE_CUDA
    //Init the test_base
    test_model<AK_FLOAT, NV, NVHX86>();
@@ -129,6 +148,9 @@ int main(int argc, const char** argv) {
     // initial logger
     //logger::init(argv[0]);
     InitTest();
+#ifdef AMD_GPU
+    Env<AMD>::env_init();
+#endif
     RUN_ALL_TESTS(argv[0]);
 
     return 0;
