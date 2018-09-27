@@ -69,7 +69,10 @@ class Configuration:
                    __name__ = '__main__'
                    exec(f.read(), locals())
                break
-        protoc_out = subprocess.check_output(["protoc", "--version"]).split()[1]
+        try:
+            protoc_out = subprocess.check_output(["protoc", "--version"]).split()[1]
+        except OSError as exc:
+            raise OSError('Can not find Protobuf in system environment.')
         sys_versions = map(int, protoc_out.split('.'))
         pip_versions = map(int, __version__.split('.'))
         assert pip_versions[0] >= sys_versions[0], \
