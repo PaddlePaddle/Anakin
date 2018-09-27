@@ -75,9 +75,11 @@ class Configuration:
             raise OSError('Can not find Protobuf in system environment.')
         sys_versions = map(int, protoc_out.split('.'))
         pip_versions = map(int, __version__.split('.'))
-        assert pip_versions[0] >= sys_versions[0], \
-            "ERROR: Protobuf must be the same.\nSystem Protobuf %s\nPython Protobuf %s" \
-            % (protoc_out, __version__)
+        assert sys_versions[0] >= 3 and pip_versions[0] >= 3 , \
+            "Protobuf version must be greater than 3.0. Please refer to the Anakin Docs."
+        assert pip_versions[1] >= sys_versions[1], \
+            "ERROR: Protobuf must be the same.\nSystem Protobuf %s\nPython Protobuf %s\n" \
+            % (protoc_out, __version__) + "Try to execute pip install protobuf==%s" % (protoc_out)
 
     def generate_pbs_of_anakin(self):
         protoFilesStr = subprocess.check_output(["ls", "parser/proto/"])
