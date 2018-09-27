@@ -19,6 +19,11 @@
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/funcs/impl/impl_layer_norm.h"
+
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_layer_norm.h"
+#endif
+
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_layer_norm.h"
 #endif
