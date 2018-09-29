@@ -766,9 +766,11 @@ class FluidParser:
     def _RefreshSplit(self, split_node_name, helper):
         outputs_of_split = self.outs[split_node_name].targets('_Out')
         inputs_of_split = self.ins[split_node_name].targets('_In')
-        assert len(inputs_of_split) == 1
+        assert len(inputs_of_split) < 2
         split_num = len(outputs_of_split)
-        if split_num == 1:
+	if split_num == 0:
+	    print 'WARNING: RefeshSplit num is equal to zero.'
+        elif split_num == 1:
             self.ins[outputs_of_split[0]].mv(split_node_name, inputs_of_split[0])
             self.outs[inputs_of_split[0]].mv(split_node_name, outputs_of_split[0])
             self._RmProtoNode(split_node_name)
@@ -794,7 +796,6 @@ class FluidParser:
                         self._RmProtoNode(softmax_node_name)
                         self._AddProtoNode(softmax_node_name, source_op, helper, private_data)
                         ins_of_softmax = self.ins[softmax_node_name].targets('X')
-                        print 'ins_of_softmax', ins_of_softmax
                         assert len(ins_of_softmax) == 1
                         self._RefreshSplit(ins_of_softmax[0], helper)
 
