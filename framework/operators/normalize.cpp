@@ -32,12 +32,16 @@ Status NormalizeHelper<Ttype, Dtype, Ptype>::InitParam() {
     auto eps = GET_PARAMETER(float, eps);
     auto p = GET_PARAMETER(int, p);
 
-	using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
-    auto input_scale = GET_PARAMETER(pblock_type, weight_1);
-
-    saber::NormalizeParam<Tensor4d<Ttype, Dtype>> normalize_param(is_across_spatial, is_shared_channel, \
-        &(input_scale.d_tensor()), eps, p);
-    _param_normalize = normalize_param;
+    if (FIND_PARAMETER(weight_1)) {
+        using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
+        auto input_scale = GET_PARAMETER(pblock_type, weight_1);
+        saber::NormalizeParam<Tensor4d<Ttype, Dtype>> normalize_param(is_across_spatial, is_shared_channel, \
+            &(input_scale.d_tensor()), eps, p);
+        _param_normalize = normalize_param;
+    } else {
+        saber::NormalizeParam<Tensor4d<Ttype, Dtype>> normalize_param(is_across_spatial, is_shared_channel, eps, p);
+        _param_normalize = normalize_param;
+    }
     return Status::OK();
 }
 

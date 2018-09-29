@@ -447,6 +447,17 @@ def Parser_elementwise_mul(args):
     else:
         OpsRegister()["Scale"].bias_term = False
 
+@ParserFeedDecorator("Flatten")
+def Parser_flatten(args):
+    pass
+
+@ParserFeedDecorator("assign_value")
+def Parser_assign_value(args):
+    pass
+
+@ParserFeedDecorator("shape")
+def Parser_shape(args):
+    pass
 
 FLUID_NODE_FILLER = {
     "feed":OpsParam().set_parser(Parser_feed),
@@ -488,4 +499,7 @@ FLUID_NODE_FILLER = {
     "layer_norm":OpsParam().set_parser(Parser_layer_norm),
     "dropout":OpsParam().set_parser(Parser_dropout),
     "scale":OpsParam().set_parser(Parser_scale),
+    "flatten":OpsParam().set_parser(Parser_flatten),
+    "assign_value":OpsParam().set_parser(Parser_assign_value),
+    "shape":OpsParam().set_parser(Parser_shape),
 }

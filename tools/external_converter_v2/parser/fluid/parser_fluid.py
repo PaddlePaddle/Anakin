@@ -703,18 +703,80 @@ class FluidParser:
                     self._RmProtoNode(topk_node_name)
                     self._AddProtoNode(topk_node_name, source_op, helper, private_data)
 
-    def _DealWithReshape(self, source_ops, helper):
+    def _RefreshReshape(self, source_ops, helper, need_assign=False):
         for source_op in source_ops:
             if source_op.type == 'reshape':
                 reshape_node_name = self._NameNodeMid(source_op)
+                # Make sure this node exists in this graph.
                 if reshape_node_name in self.ins:
                     shape_inputs = self.ins[reshape_node_name].targets('Shape')
                     tensor_inputs = self.ins[reshape_node_name].targets('X')
                     if len(shape_inputs) == 1 and len(tensor_inputs) == 1:
                         self.ins[reshape_node_name].rm(shape_inputs[0])
-                        self.ins[reshape_node_name].add('Shape', shape_inputs[0])
-                else:
-                    pass
+                        if shape_inputs[0].split('#')[0] != 'assign_value' \
+                        or need_assign is True:
+                            self.ins[reshape_node_name].add('Shape', shape_inputs[0])
+                        else:
+                            self._RmProtoNode(shape_inputs[0])
+                            self._ClearEdges(shape_inputs[0])
+
+    def _CutReshape(self, reshape_node_name):
+        branch = []
+        branch.append(reshape_node_name)
+        shape_inputs = self.ins[reshape_node_name].targets('Shape')
+        tensor_input = self.ins[reshape_node_name].target('X')
+        tensor_output = self.outs[reshape_node_name].target('Out')
+        if len(shape_inputs) == 1:
+            branch.append(shape_inputs[0])
+        if len(branch) == 2 and branch[1].split('#')[0] == 'split':
+            split_node_name = branch[1]
+            self.outs[split_node_name].rm(reshape_node_name)
+            self.ins[reshape_node_name].rm(split_node_name)
+            if len(self.outs[split_node_name].targets('_Out')) == 0:
+                input_of_split = self.ins[split_node_name].target('_In')
+                branch.append(input_of_split)
+                self._RmProtoNode(split_node_name)
+                self._ClearEdges(split_node_name)
+        elif len(branch) == 2 and branch[1].split('#')[0] == 'shape':
+            shape_node_name = branch[1]
+            input_of_shape = self.ins[shape_node_name].targets('Input')
+            assert len(input_of_shape) == 1
+            self.outs[input_of_shape[0]].rm(shape_node_name)
+            self.ins[reshape_node_name].rm(shape_node_name)
+            self._RmProtoNode(shape_node_name)
+            self._ClearEdges(shape_node_name)
+        elif len(branch) == 2 and branch[1].split('#')[0] == 'assign_value':
+            assign_node_name = branch[1]
+            self.ins[reshape_node_name].rm(assign_node_name)
+            self._RmProtoNode(assign_node_name)
+            self._ClearEdges(assign_node_name)
+        elif len(branch) == 2 and branch[1].startswith('input'):
+            raise NameError('ERROR: None-split input of Softmax has not supported.')
+        else:
+            pass
+        self.outs[tensor_input].mv(reshape_node_name, tensor_output)
+        self.ins[tensor_output].mv(reshape_node_name, tensor_input)
+        self._RmProtoNode(reshape_node_name)
+        self._ClearEdges(reshape_node_name)
+        if len(branch) == 3 and branch[2].startswith('input'):
+            input_node_name = branch[2]
+            self._RmProtoNode(input_node_name)
+            self._ClearEdges(input_node_name)
+
+    def _RefreshSplit(self, split_node_name, helper):
+        outputs_of_split = self.outs[split_node_name].targets('_Out')
+        inputs_of_split = self.ins[split_node_name].targets('_In')
+        assert len(inputs_of_split) == 1
+        split_num = len(outputs_of_split)
+        if split_num == 1:
+            self.ins[outputs_of_split[0]].mv(split_node_name, inputs_of_split[0])
+            self.outs[inputs_of_split[0]].mv(split_node_name, outputs_of_split[0])
+            self._RmProtoNode(split_node_name)
+            self._ClearEdges(split_node_name)
+        else:
+            private_data = {'split_num': split_num}
+            self._RmProtoNode(split_node_name)
+            self._AddProtoNode(split_node_name, None, helper, private_data, 'split')
 
     def _DealWithSoftmax(self, source_ops, helper):
         for source_op in source_ops:
@@ -722,43 +784,19 @@ class FluidParser:
                 softmax_node_name = self._NameNodeMid(source_op)
                 outs_of_softmax = self.outs[softmax_node_name].targets('Out')
                 ins_of_softmax = self.ins[softmax_node_name].targets('X')
-                def prune(reshape_node_name):
-                    """
-                    """
-                    branch = []
-                    branch.append(reshape_node_name)
-                    shape_inputs = self.ins[reshape_node_name].targets('Shape')
-                    tensor_input = self.ins[reshape_node_name].target('X')
-                    tensor_output = self.outs[reshape_node_name].target('Out')
-                    if len(shape_inputs) == 1:
-                        branch.append(shape_inputs[0])
-                    if len(branch) == 2 and branch[1].split('#')[0] == 'split':
-                        split_node_name = branch[1]
-                        self.outs[split_node_name].rm(reshape_node_name)
-                        self.ins[reshape_node_name].rm(split_node_name)
-                        if len(self.outs[split_node_name].targets('_Out')) == 0:
-                            input_of_split = self.ins[split_node_name].target('_In')
-                            branch.append(input_of_split)
-                            self._RmProtoNode(split_node_name)
-                            self._ClearEdges(split_node_name)
-                    elif len(branch) == 2 and branch[1].startswith('input'):
-                        raise NameError('ERROR: None-split input of Softmax has not supported.')
-                    self.outs[tensor_input].mv(reshape_node_name, tensor_output)
-                    self.ins[tensor_output].mv(reshape_node_name, tensor_input)
-                    self._RmProtoNode(reshape_node_name)
-                    self._ClearEdges(reshape_node_name)
-                    if len(branch) == 3 and branch[2].startswith('input'):
-                        input_node_name = branch[2]
-                        self._RmProtoNode(input_node_name)
-                        self._ClearEdges(input_node_name)
-                if outs_of_softmax[0].split('#')[0] == 'reshape' and \
-                ins_of_softmax[0].split('#')[0] == 'reshape':
-                    private_data = {}
-                    private_data['axis'] = 3
-                    prune(outs_of_softmax[0])
-                    prune(ins_of_softmax[0])
-                    self._RmProtoNode(softmax_node_name)
-                    self._AddProtoNode(softmax_node_name, source_op, helper, private_data)
+                if outs_of_softmax[0].split('#')[0] == 'reshape':
+                    if ins_of_softmax[0].split('#')[0] == 'reshape' or \
+                    ins_of_softmax[0].split('#')[0] == 'flatten':
+                        private_data = {}
+                        private_data['axis'] = 3
+                        self._CutReshape(outs_of_softmax[0])
+                        self._CutReshape(ins_of_softmax[0])
+                        self._RmProtoNode(softmax_node_name)
+                        self._AddProtoNode(softmax_node_name, source_op, helper, private_data)
+                        ins_of_softmax = self.ins[softmax_node_name].targets('X')
+                        print 'ins_of_softmax', ins_of_softmax
+                        assert len(ins_of_softmax) == 1
+                        self._RefreshSplit(ins_of_softmax[0], helper)
 
     def _DealWithMatmal(self, source_ops, helper):
         for source_op in source_ops:
@@ -872,6 +910,8 @@ class FluidParser:
                 self._DealWithPriorBox(source_ops, helper)
                 self._DealWithDetectionOutput(source_ops, helper)
                 self._DealWithSSD(source_ops, helper)
+                self._DealWithSoftmax(source_ops, helper)
+                self._RefreshReshape(source_ops, helper)
         self._Graph()
 
     def _Parsing(self):
