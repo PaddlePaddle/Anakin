@@ -176,7 +176,8 @@ def Parser_concat(args):
 def Parser_concat_btw_priorbox_boxcoder(args):
     op = args[1]
     helper = args[3]
-    OpsRegister()["Concat"].axis = 3
+    private_data = args[4]
+    OpsRegister()["Concat"].axis = private_data['axis']
 
 @ParserFeedDecorator("Permute")
 def Parser_transpose(args):

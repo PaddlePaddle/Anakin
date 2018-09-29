@@ -453,10 +453,15 @@ class FluidParser:
                     self._RmProtoNode(mul_node_name)
                     self._AddProtoNode(add_node_name, None, helper, {}, 'axpy')
 
-    def _DealWithPriorBox(self, source_ops, helper):
+    def _DealWithPriorBox(self, source_ops, helper, is_dev_v2=True):
         nodes_to_del = []
         for source_op in source_ops:
             if source_op.type == 'prior_box':
+                if is_dev_v2 is True:
+                   axis = 2
+                else:
+                   axis = 3
+                private_data = {"axis": axis}
                 pb_node_name = self._NameNodeMid(source_op)
                 br_node_name = self.outs[pb_node_name].target('Boxes')
                 vr_node_name = self.outs[pb_node_name].target('Variances')
@@ -477,7 +482,7 @@ class FluidParser:
                 self.ins[pb_node_name].add('Input', input_node_name)
                 self.ins[pb_node_name].add('Image', image_node_name)
                 self._RmProtoNode(bc_node_name)
-                self._AddProtoNode(bc_node_name, None, helper, {}, 'concat_btw_priorbox_boxcoder')
+                self._AddProtoNode(bc_node_name, None, helper, private_data, 'concat_btw_priorbox_boxcoder')
         for node_name in nodes_to_del:
             self._RmProtoNode(node_name)
             self._ClearEdges(node_name)
@@ -908,6 +913,12 @@ class FluidParser:
             self._DealWithArgmax(source_ops, helper)
             self._DealWithAxpy(source_ops, helper)
             if self.NetType == "SSD":
+                self._DealWithPriorBox(source_ops, helper, False)
+                self._DealWithDetectionOutput(source_ops, helper)
+                self._DealWithSSD(source_ops, helper)
+                self._DealWithSoftmax(source_ops, helper)
+                self._RefreshReshape(source_ops, helper)
+            if self.NetType == "SSD_dev_v2":
                 self._DealWithPriorBox(source_ops, helper)
                 self._DealWithDetectionOutput(source_ops, helper)
                 self._DealWithSSD(source_ops, helper)
