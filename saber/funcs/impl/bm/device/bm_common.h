@@ -59,11 +59,6 @@ typedef struct tensor_info{
     u32 matrix_col_magin;	//the magin is not 0, when column_num%w_param!=0
 }TENSOR_INFO;
 
-
-typedef struct shape{
-    u16 n, c, h, w;
-}local_shape_t;
-
 #define FLOAT_SIZE              4
 #define INT8_SIZE               1
 #define FLOAT_BITWIDTH          32
@@ -78,14 +73,6 @@ typedef enum {
     NODECHIP_REG    = 0,
     HOST_REG        = 1
 } REG_TYPE;
-
-typedef enum {
-  ENGINE_BD                     = 0,
-  ENGINE_GDMA                   = 1,
-  ENGINE_CDMA                   = 2,
-  ENGINE_HDMA                   = 3,
-  ENGINE_END
-} ENGINE_ID;
 
 typedef struct kernel_param{
     int g;
