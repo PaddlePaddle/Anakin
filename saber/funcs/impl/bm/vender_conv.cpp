@@ -11,6 +11,11 @@ namespace anakin
 namespace saber
 {
 
+int get_align_tensor_size(bm_tensor_4d_t shape){
+  int c_per_npu = ceiling_func_shift(shape.c, NPU_SHIFT);
+  return shape.n * c_per_npu * get_neuron_csize_local(shape.h, shape.w);
+}
+
 void conv_splitc(bm_kernel_param_t kernel_param, conv_secs_info_t *secs_info){
   int oc_per_NPU = ceiling_func_shift(kernel_param.oc, NPU_SHIFT);
   int kernel_size = kernel_param.h * kernel_param.w * FLOAT_SIZE;
