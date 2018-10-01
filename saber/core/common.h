@@ -180,7 +180,6 @@ const char* cudnn_get_errorstring(cudnnStatus_t status);
 
 #include "bmlib_runtime.h"
 #include "bmlib_utils.h"
-#include "bmkernel_runtime.h"
 
 #define BM_CHECK(condition) \
   do { \

@@ -86,13 +86,6 @@ typedef enum {
   ENGINE_END
 } ENGINE_ID;
 
-typedef struct tensor_4d_t {
-    int n;
-    int c;
-    int h;
-    int w;
-} bm_tensor_4d_t;
-
 typedef struct kernel_param{
     int g;
     int oc;
@@ -162,7 +155,7 @@ static int INLINE addr_EU_align(int addr){
   return ALIGN( addr, EU_NUM ) * FLOAT_SIZE;
 }
 
-static INLINE int get_align_tensor_size(bm_tensor_4d_t shape){
+static int get_align_tensor_size(bm_tensor_4d_t shape){
   int c_per_npu = ceiling_func_shift(shape.c, NPU_SHIFT);
   return shape.n * c_per_npu * get_neuron_csize_local(shape.h, shape.w);
 }
