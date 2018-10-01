@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include "bm_common.h"
+#include "atomic_dma_gen_cmd.h"
+#include "atomic_conv_gen_cmd.h"
 
 int bm_conv_fwd(bm_api_conv_forward conv_param)
 {
@@ -29,8 +31,9 @@ int bm_conv_fwd(bm_api_conv_forward conv_param)
     int nsecs = conv_param.nsecs;
     int hsecs = conv_param.hsecs;
 
-    BM_ATOMIC_RESULT bm_res = BM_ATOMIC_SUCCESS;
-    const int start_npu_idx = 0;
+    P_COMMAND dma_command;
+    CMD_ID_NODE id_node;
+    resync_cmd_id( &id_node );
 
     int kh_ext = dh * (kh - 1) + 1;
     int kw_ext = dw * (kw - 1) + 1;
@@ -74,22 +77,18 @@ int bm_conv_fwd(bm_api_conv_forward conv_param)
             ocend = ocstart + cur_ocslice;
             oc_per_NPU = ceiling_func_shift(cur_ocslice, NPU_SHIFT);
             if (using_bias){
-                bm_res = bm_atomic_tensor_compact_move(
-                    start_npu_idx,
-                    bias_offset_local,
-                    bias_offset_global + (ig * bias_group_offset + ocstart) * FLOAT_SIZE,
-                    1, // n
-                    cur_ocslice, // c 
-                    1, // h
-                    1, // w
-                    DMA_G2L, // direction
-                    false, // transpose
-                    false // add results
+                dma_command = get_command(ENGINE_GDMA);
+                tensor_compact_move_gen_cmd(
+                    bias_offset_local, // local_mem_start_addr
+                    bias_offset_global + (ig * bias_group_offset + ocstart) * FLOAT_SIZE, // p_coeff_addr
+                    1, cur_ocslice, 1, 1, // n, c, h, w
+                    0, // direction G2L
+                    0, // transpose
+                    (void *)dma_command,
+                    0, // local memory index
+                    &id_node
                 );
-                if (bm_res != BM_ATOMIC_SUCCESS) {
-                    printf("bm_atomic_tensor_compact_move failed.\n");
-                    return -1;
-                }
+                call_atomic(nodechip_idx, atomic_global_dma, dma_command, ENGINE_GDMA);
             }
             weight_capacity = max_icslice * oc_per_NPU * kh * kw * FLOAT_SIZE;
             int ofmap_offset_local = addr_EU_align(weight_capacity + weight_offset_local);
@@ -125,31 +124,23 @@ int bm_conv_fwd(bm_api_conv_forward conv_param)
                         return -1;
                     }
                     if (result_add){
+                        dma_command = get_command(ENGINE_GDMA);
                         u64 shift = nstart * global_ofmap_Nstride + ig * ofmap_group_offset +
-                                    (ocstart * output_h + o_ht) * output_w;
+                            (ocstart * output_h + o_ht) * output_w;
                         int local_cstride = get_cstride_local(o_h, output_w);
-                        bm_res = bm_atomic_tensor_stride_move(
-                            start_npu_idx,
-                            ofmap_offset_local, 
-                            ofmap_offset_global + shift * FLOAT_SIZE,
-                            sec_len_n, // n
-                            cur_ocslice, // c
-                            o_h, // h
-                            output_w, //w
-                            oc_per_NPU * local_cstride, // dst_stride_n
-                            local_cstride, // dst_stride_c
-                            output_w, // dst_stride_h
-                            global_ofmap_Nstride, // src_stride_n
-                            output_h * output_w, // src_stride_c
-                            output_w, // src_stride_h
-                            DMA_G2L, // direction
-                            DMA_F32, // format
-                            false // transpose
+                        tensor_stride_move_gen_cmd(
+                            ofmap_offset_local, // local_mem_start_addr
+                            ofmap_offset_global + shift * FLOAT_SIZE, // p_tensor_addr
+                            sec_len_n, cur_ocslice, o_h, output_w, // n, c, h, w
+                            0, // local memory index
+                            0, // direction G2L
+                            global_ofmap_Nstride, output_h * output_w, output_w, // src stride n,c,h
+                            oc_per_NPU * local_cstride, local_cstride, output_w, // dst stride n,c,h
+                            GDMA_TYPE_f32, 
+                            0, // transpose 
+                            dma_command, &id_node
                         );
-                        if (bm_res != BM_ATOMIC_SUCCESS) {
-                            printf("bm_atomic_tensor_stride_move failed.\n");
-                            return -1;
-                        }
+                        call_atomic(nodechip_idx, atomic_global_dma, dma_command, ENGINE_GDMA);
                     }
                     int icend = 0;
                     for (int icidx = 0; icidx < icsecs; icidx++){
@@ -159,131 +150,89 @@ int bm_conv_fwd(bm_api_conv_forward conv_param)
                         ic_per_NPU = ceiling_func_shift(cur_icslice, NPU_SHIFT);
                         u64 shift = (ocstart * ic + icstart) * kh * kw + ig * weight_group_offset;
                         if ((icsecs != 1) || (nidx == 0 && hidx == 0)){
-                            bm_res = bm_atomic_tensor_stride_move(
-                                start_npu_idx,
-                                weight_offset_local, 
-                                weight_offset_global + shift * FLOAT_SIZE,
-                                1, // n
-                                cur_ocslice, // c
-                                cur_icslice, // h
-                                kh * kw, // w
-                                0, // dst_stride_n
-                                cur_icslice * kh * kw, // dst_stride_c
-                                kh * kw, // dst_stride_h
-                                0, // src_stride_n
-                                ic * kh * kw, // src_stride_c
-                                kh * kw, // src_stride_h
-                                DMA_G2L, // direction
-                                DMA_F32, // format
-                                false // transpose
+                            dma_command = get_command(ENGINE_GDMA);
+                            tensor_stride_move_gen_cmd(
+                                weight_offset_local, // local_mem_start_addr
+                                weight_offset_global + shift * FLOAT_SIZE, // p_tensor_addr
+                                1, cur_ocslice, cur_icslice, kh * kw, // n, c, h, w
+                                0, // local memory index
+                                0, // direction G2L
+                                0, ic * kh * kw, kh * kw, // src stride n,c,h
+                                0, cur_icslice * kh * kw, kh * kw, // dst stride n,c,h
+                                GDMA_TYPE_f32, 
+                                0, // transpose 
+                                dma_command, &id_node
                             );
-                            if (bm_res != BM_ATOMIC_SUCCESS) {
-                                printf("bm_atomic_tensor_stride_move failed.\n");
-                                return -1;
-                            }
+                            call_atomic(nodechip_idx, atomic_global_dma, dma_command, ENGINE_GDMA);
                         }
                         shift = nstart * global_ifmap_Nstride + ig * ifmap_group_offset +
                                 (icstart * input_h + i_ht) * input_w;
                         int local_cstride = get_cstride_local(i_h, input_w);
-                        bm_res = bm_atomic_tensor_stride_move(
-                            start_npu_idx,
-                            ifmap_offset_local, 
-                            ifmap_offset_global + shift * FLOAT_SIZE,
-                            sec_len_n, // n
-                            cur_icslice, // c
-                            i_h, // h
-                            input_w, // w
-                            ic_per_NPU * local_cstride, // dst_stride_n
-                            local_cstride, // dst_stride_c
-                            input_w, // dst_stride_h
-                            global_ifmap_Nstride, // src_stride_n
-                            input_h * input_w, // src_stride_c
-                            input_w, // src_stride_h
-                            DMA_G2L, // direction
-                            DMA_F32, // format
-                            false // transpose
+                        dma_command = (float*)get_command(ENGINE_GDMA);
+                        tensor_stride_move_gen_cmd(
+                            ifmap_offset_local, // local_mem_start_addr
+                            ifmap_offset_global + shift * FLOAT_SIZE, // p_tensor_addr
+                            sec_len_n, cur_icslice, i_h, input_w, // n, c, h, w
+                            0, // local memory index
+                            0, // direction G2L
+                            global_ifmap_Nstride, input_h * input_w, input_w, // src stride n,c,h
+                            ic_per_NPU * local_cstride, local_cstride, input_w, // dst stride n,c,h
+                            GDMA_TYPE_f32, 
+                            0, // transpose
+                            dma_command, &id_node
                         );
-                        if (bm_res != BM_ATOMIC_SUCCESS) {
-                            printf("bm_atomic_tensor_stride_move failed.\n");
-                            return -1;
-                        }
+                        call_atomic(nodechip_idx, atomic_global_dma, dma_command, ENGINE_GDMA);
 
-                        /*local_shape_t ifshape, ofshape;
+                        local_shape_t ifshape, ofshape;
                         ifshape.n = sec_len_n;
                         ifshape.c = cur_icslice;
                         ifshape.h = i_h;
                         ifshape.w = input_w;
                         ofshape.c = cur_ocslice;
                         ofshape.h = o_h;
-                        ofshape.w = output_w;*/
-                        
-                        bm_res = bm_atomic_conv_kernel_stride(
-                            start_npu_idx,
-                            LOCAL_MEM_START_ADDR | ofmap_offset_local, // ouput local offset
-                            LOCAL_MEM_START_ADDR | ifmap_offset_local, // input local offset
-                            LOCAL_MEM_START_ADDR | weight_offset_local, // weight
-                            LOCAL_MEM_START_ADDR | bias_offset_local, // bias
-                            sec_len_n, // output n
-                            cur_ocslice, // output c
-                            cur_icslice, // input c
-                            i_h, // input h
-                            input_w, // input w
-                            kh, // kernel h
-                            kw, // kernel w
-                            kh * kw, // kernel stride n
-                            cur_icslice * kh * kw, // kernel stride c
-                            kw, // kernel stride h
-                            dh, // dilation h
-                            dw, // dilation w
-                            pad_h_t, // pad top
-                            pad_h_b, // pad bottom
-                            pad_w, // pad left
-                            pad_w, // pad right
-                            stride_h, // stride h
-                            stride_w, // stride w
-                            icidx == icsecs - 1 ? using_bias : 0, // using bias
-                            result_add || icidx > 0 // add result
+                        ofshape.w = output_w;
+                        P_COMMAND conv_command = get_command(ENGINE_BD);
+                        atomic_conv_kernel_stride_gen_cmd(
+                            conv_command,
+                            LOCAL_MEM_START_ADDR | ifmap_offset_local, // input address
+                            LOCAL_MEM_START_ADDR | ofmap_offset_local, // output address
+                            LOCAL_MEM_START_ADDR | weight_offset_local, // weight address
+                            LOCAL_MEM_START_ADDR | bias_offset_local, // bias address
+                            ifshape, // input shape
+                            ofshape, // output shape
+                            kh, kw, // kernel h, w
+                            dh, dw, // dilation h, w
+                            kh * kw, cur_icslice * kh * kw, kw, // kernel stride n,c,h
+                            pad_h_t, pad_h_b, pad_w, pad_w, // pad top, bottom, left, right
+                            stride_h, stride_w, // stride h, w
+                            icidx == icsecs - 1 ? using_bias: 0, // use bias
+                            result_add || icidx > 0, // add result
+                            &id_node
                         );
-                        if (bm_res != BM_ATOMIC_SUCCESS) {
-                            printf("bm_atomic_conv_kernel_stride failed.\n");
-                            return -1;
-                        }
+                        call_atomic(nodechip_idx, atomic_conv_neuron, conv_command, ENGINE_BD);
                     }
                     u64 shift = nstart * global_ofmap_Nstride + ig * ofmap_group_offset +
                                 (ocstart * output_h + o_ht) * output_w;
                     int local_cstride = get_cstride_local(o_h, output_w);
                     
-                    bm_res = bm_atomic_tensor_stride_move(
-                        start_npu_idx,
-                        ofmap_offset_local, 
-                        ofmap_offset_global + shift * FLOAT_SIZE,
-                        sec_len_n, // n
-                        cur_ocslice, // c
-                        o_h, // h
-                        output_w, // w
-                        global_ofmap_Nstride, // dst_stride_n
-                        output_h * output_w, // dst_stride_c
-                        output_w, // dst_stride_h
-                        oc_per_NPU * local_cstride, // src_stride_n
-                        local_cstride, // src_stride_c
-                        output_w, // src_stride_h
-                        DMA_L2G, // direction
-                        DMA_F32, // format
-                        false // transpose
+                    dma_command = get_command(ENGINE_GDMA);
+                    tensor_stride_move_gen_cmd(
+                        ofmap_offset_local, // local_mem_start_addr
+                        ofmap_offset_global + shift * FLOAT_SIZE, // p_tensor_addr
+                        sec_len_n, cur_ocslice, o_h, output_w, // n, c, h, w
+                        0, // local memory index
+                        1, // direction L2G
+                        oc_per_NPU * local_cstride, local_cstride, output_w, // src stride n,c,h
+                        global_ofmap_Nstride, output_h * output_w, output_w, // dst stride n,c,h
+                        GDMA_TYPE_f32, 
+                        0, // transpose
+                        dma_command, &id_node
                     );
-                    if (bm_res != BM_ATOMIC_SUCCESS) {
-                        printf("bm_atomic_tensor_stride_move failed.\n");
-                        return -1;
-                    }
+                    call_atomic(nodechip_idx, atomic_global_dma, dma_command, ENGINE_GDMA);
                 }
             }
         }
     }
-
-    bm_res = bm_atomic_wait_all_task_complete();
-    if (bm_res != BM_ATOMIC_SUCCESS) {
-        printf("bm_atomic_wait_all_task_complete failed.\n");
-        return -1;
-    }
+    poll_all_engine_done(&id_node);
     return 0;
 }
