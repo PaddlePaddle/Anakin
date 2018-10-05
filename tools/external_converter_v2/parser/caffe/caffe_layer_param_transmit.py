@@ -369,6 +369,10 @@ def Parser_convolutiondepthwise(args):
     else:
         OpsRegister()["Convolution"].axis = 1
     OpsRegister()["Convolution"].bias_term = convolution_param.bias_term
+<<<<<<< HEAD
+
+=======
+>>>>>>> upstream/developing
 
 @ParserFeedDecorator("Cropping")
 def Parser_crop(args):
