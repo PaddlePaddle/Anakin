@@ -79,13 +79,13 @@ int bm_conv_fwd(bm_api_conv_forward conv_param)
             if (using_bias){
                 dma_command = get_command(ENGINE_GDMA);
                 tensor_compact_move_gen_cmd(
-                    bias_offset_local, // local_mem_start_addr
-                    bias_offset_global + (ig * bias_group_offset + ocstart) * FLOAT_SIZE, // p_coeff_addr
+                    bias_offset_local, // local mem start address
+                    bias_offset_global + (ig * bias_group_offset + ocstart) * FLOAT_SIZE, // global mem start address
                     1, cur_ocslice, 1, 1, // n, c, h, w
                     0, // direction G2L
                     0, // transpose
                     (void *)dma_command,
-                    0, // local memory index
+                    0, // local mem index
                     &id_node
                 );
                 call_atomic(nodechip_idx, atomic_global_dma, dma_command, ENGINE_GDMA);
@@ -129,10 +129,10 @@ int bm_conv_fwd(bm_api_conv_forward conv_param)
                             (ocstart * output_h + o_ht) * output_w;
                         int local_cstride = get_cstride_local(o_h, output_w);
                         tensor_stride_move_gen_cmd(
-                            ofmap_offset_local, // local_mem_start_addr
-                            ofmap_offset_global + shift * FLOAT_SIZE, // p_tensor_addr
+                            ofmap_offset_local, // local mem start address
+                            ofmap_offset_global + shift * FLOAT_SIZE, // global mem start address
                             sec_len_n, cur_ocslice, o_h, output_w, // n, c, h, w
-                            0, // local memory index
+                            0, // local mem index
                             0, // direction G2L
                             global_ofmap_Nstride, output_h * output_w, output_w, // src stride n,c,h
                             oc_per_NPU * local_cstride, local_cstride, output_w, // dst stride n,c,h
@@ -152,10 +152,10 @@ int bm_conv_fwd(bm_api_conv_forward conv_param)
                         if ((icsecs != 1) || (nidx == 0 && hidx == 0)){
                             dma_command = get_command(ENGINE_GDMA);
                             tensor_stride_move_gen_cmd(
-                                weight_offset_local, // local_mem_start_addr
-                                weight_offset_global + shift * FLOAT_SIZE, // p_tensor_addr
+                                weight_offset_local, // local mem start address
+                                weight_offset_global + shift * FLOAT_SIZE, // global mem start address
                                 1, cur_ocslice, cur_icslice, kh * kw, // n, c, h, w
-                                0, // local memory index
+                                0, // local mem index
                                 0, // direction G2L
                                 0, ic * kh * kw, kh * kw, // src stride n,c,h
                                 0, cur_icslice * kh * kw, kh * kw, // dst stride n,c,h
@@ -170,10 +170,10 @@ int bm_conv_fwd(bm_api_conv_forward conv_param)
                         int local_cstride = get_cstride_local(i_h, input_w);
                         dma_command = (float*)get_command(ENGINE_GDMA);
                         tensor_stride_move_gen_cmd(
-                            ifmap_offset_local, // local_mem_start_addr
-                            ifmap_offset_global + shift * FLOAT_SIZE, // p_tensor_addr
+                            ifmap_offset_local, // local mem start address
+                            ifmap_offset_global + shift * FLOAT_SIZE, // global mem start address
                             sec_len_n, cur_icslice, i_h, input_w, // n, c, h, w
-                            0, // local memory index
+                            0, // local mem index
                             0, // direction G2L
                             global_ifmap_Nstride, input_h * input_w, input_w, // src stride n,c,h
                             ic_per_NPU * local_cstride, local_cstride, input_w, // dst stride n,c,h
@@ -217,10 +217,10 @@ int bm_conv_fwd(bm_api_conv_forward conv_param)
                     
                     dma_command = get_command(ENGINE_GDMA);
                     tensor_stride_move_gen_cmd(
-                        ofmap_offset_local, // local_mem_start_addr
-                        ofmap_offset_global + shift * FLOAT_SIZE, // p_tensor_addr
+                        ofmap_offset_local, // local mem start address
+                        ofmap_offset_global + shift * FLOAT_SIZE, // global mem start address
                         sec_len_n, cur_ocslice, o_h, output_w, // n, c, h, w
-                        0, // local memory index
+                        0, // local mem index
                         1, // direction L2G
                         oc_per_NPU * local_cstride, local_cstride, output_w, // src stride n,c,h
                         global_ofmap_Nstride, output_h * output_w, output_w, // dst stride n,c,h
