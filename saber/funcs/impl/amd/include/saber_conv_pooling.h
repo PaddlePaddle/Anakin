@@ -38,8 +38,12 @@ public:
     typedef typename DataTrait<AMD, OpDtype>::Dtype OpDataType;
     typedef AMD_API::TPtr PtrDtype;
 
-    SaberConv2DPooling()  = default;
-    ~SaberConv2DPooling() = default;
+    SaberConv2DPooling() {
+        _kernels_ptr.clear();
+    }
+    ~SaberConv2DPooling() {
+        _kernels_ptr.clear();
+    }
 
     virtual SaberStatus
     init(const std::vector<Tensor<AMD>*>& inputs,
@@ -75,7 +79,7 @@ private:
     bool _in_place {false};
     bool _extern_trans {false};
     CreateKernelList(int device_id, KernelInfo& kernelInfo);
-    amd_kernel_list _kernels;
+    std::vector<AMDKernelPtr> _kernels_ptr {nullptr};
     Tensor<AMD>* _outConvRelu;
 };
 template <>

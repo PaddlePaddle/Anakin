@@ -32,16 +32,10 @@ public:
     typedef AMD_API::TPtr PtrDtype;
 
     SaberConv2D() {
-        _multikernel = false;
         _kernels_ptr.clear();
-        _outWorkspace = nullptr;
     }
     ~SaberConv2D() {
         _kernels_ptr.clear();
-
-        if (_outWorkspace) {
-            delete _outWorkspace;
-        }
     }
 
     virtual SaberStatus
@@ -77,9 +71,8 @@ public:
 private:
     bool _in_place {false};
     bool _extern_trans {false};
+    CreateKernelList(int device_id, KernelInfo& kernelInfo);
     std::vector<AMDKernelPtr> _kernels_ptr {nullptr};
-    bool _multikernel {false};
-    Tensor<AMD>* _outWorkspace;
 };
 } // namespace saber
 } // namespace anakin
