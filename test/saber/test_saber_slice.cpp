@@ -1,3 +1,18 @@
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ *     
+*/
 
 #include "saber/core/context.h"
 #include "saber/funcs/slice.h"
@@ -39,6 +54,57 @@ void slice_cpu(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tenso
 }
 
 TEST(TestSaberFunc, test_func_slice){
+#ifdef AMD_GPU
+    LOG(INFO)<<"AMD test......";
+    //test 0
+    TestSaberBase<AMD, AMDHX86, AK_FLOAT, Slice, SliceParam> testbase(1,4);
+    int num_in = 4;
+    int c_in = 9;
+    int h_in = 12;
+    int w_in = 12;
+    int slice_axis = 1;
+    std::vector<int> slice_points = {1,3,6};
+    SliceParam<AMD> param(slice_axis, slice_points);
+    testbase.set_param(param);
+    testbase.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
+    testbase.run_test(slice_cpu<float, AMD, AMDHX86>);
+    //test1
+    TestSaberBase<AMD, AMDHX86, AK_FLOAT, Slice, SliceParam> testbase1(1,4);
+    num_in = 10;
+    c_in = 3;
+    h_in = 2;
+    w_in = 3;
+    slice_axis = 0;
+    slice_points = {4,6,8};
+    SliceParam<AMD> param1(slice_axis, slice_points);
+    testbase1.set_param(param1);
+    testbase1.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
+    testbase1.run_test(slice_cpu<float, AMD, AMDHX86>);
+    //test2
+    TestSaberBase<AMD, AMDHX86, AK_FLOAT, Slice, SliceParam> testbase2(1,2);
+    num_in = 6;
+    c_in = 4;
+    h_in = 10;
+    w_in = 2;
+    slice_axis = 2;
+    slice_points = {5};
+    SliceParam<AMD> param2(slice_axis, slice_points);
+    testbase2.set_param(param2);
+    testbase2.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
+    testbase2.run_test(slice_cpu<float, AMD, AMDHX86>);
+    //test3
+    TestSaberBase<AMD, AMDHX86, AK_FLOAT, Slice, SliceParam> testbase3(1,3);
+    num_in = 10;
+    c_in = 11;
+    h_in = 1;
+    w_in = 11;
+    slice_axis = 3;
+    slice_points = {1,9};
+    SliceParam<AMD> param3(slice_axis, slice_points);
+    testbase3.set_param(param3);
+    testbase3.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
+    testbase3.run_test(slice_cpu<float, AMD, AMDHX86>);
+#endif
 #ifdef USE_CUDA
     LOG(INFO)<<"NV test......";
     //test 0
@@ -155,6 +221,9 @@ int main(int argc, const char** argv) {
     // initial logger
     //logger::init(argv[0]);
     InitTest();
+#ifdef AMD_GPU
+    Env<AMD>::env_init();
+#endif
     RUN_ALL_TESTS(argv[0]);
     return 0;
 }
