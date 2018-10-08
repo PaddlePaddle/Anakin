@@ -119,10 +119,7 @@ int bm_conv_fwd(bm_api_conv_forward conv_param)
                     int ofmap_tensor_size = sec_len_n * max_oc_per_NPU * ofmap_align_size;
                     int ifmap_offset_local = ofmap_offset_local + ofmap_tensor_size;
                     int offset_local_end = ifmap_offset_local + ifmap_tensor_size;
-                    if (offset_local_end > LOCAL_MEM_SIZE) {
-                        printf("local memory not enough.\n");
-                        return -1;
-                    }
+                    ASSERT(offset_local_end <= LOCAL_MEM_SIZE);
                     if (result_add){
                         dma_command = get_command(ENGINE_GDMA);
                         u64 shift = nstart * global_ofmap_Nstride + ig * ofmap_group_offset +
