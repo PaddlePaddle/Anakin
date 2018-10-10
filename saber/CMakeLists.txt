@@ -103,7 +103,7 @@ if(USE_BM_PLACE)
     )
     add_custom_target(ANAKIN ALL DEPENDS bm_kernel_tmp)
     
-	list(APPEND ANAKIN_LINKER_LIBS ${BIN_NAME}.a)
+	list(APPEND ANAKIN_LINKER_LIBS ${ANAKIN_ROOT}/build/saber/${BIN_NAME}.a)
 endif()
 
 # add saber library to static
