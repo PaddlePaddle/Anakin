@@ -1,6 +1,5 @@
 #include "bmkernel_base.h"
 #include "bm_config.h"
-#include "bmk_conv.c"
 #include <stdio.h>
 /**
  * bmkernel_func is the user entry to BMKERNEL just like "main" to some applications.
@@ -18,8 +17,8 @@ int bmkernel_func(void *args)
             return 0;
         }
         case CONV: {
-            bm_api_conv_forward* api = (bm_api_conv_forward *)param->opParam;
-            return bm_conv_fwd(*api);
+            // bm_api_conv_forward* api = (bm_api_conv_forward *)param->opParam;
+            return 0;
         }
         default: {
             printf("op %d is not supported by BM yet.\n", param->op);
