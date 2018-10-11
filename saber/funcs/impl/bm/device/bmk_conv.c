@@ -5,6 +5,7 @@
 
 int bm_conv_fwd(bm_api_conv_forward conv_param)
 {
+    printf("BM atomic conv starts...\n");
     // Unpack parameters
     u64 ifmap_offset_global = conv_param.ifmap_offset_global;
     u64 ofmap_offset_global = conv_param.ofmap_offset_global;

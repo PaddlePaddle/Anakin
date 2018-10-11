@@ -19,6 +19,7 @@ int bmkernel_func(void *args)
         }
         case CONV: {
             bm_api_conv_forward* api = (bm_api_conv_forward *)param->opParam;
+            printf("BM conv op.\n");
             return bm_conv_fwd(*api);
         }
         default: {
