@@ -3,6 +3,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import sys
 import subprocess
 from yaml import load, dump
 try:
@@ -38,6 +39,8 @@ class Configuration:
         # parse TARGET info from config file.
         if self.framework == "CAFFE":
             proto_list = data['TARGET'][self.framework]['ProtoPaths']
+            assert type(proto_list) == list, \
+            "The ProtoPaths format maybe incorrect, please check if there is any HORIZONTAL LINE."
             self.__generate_pbs(proto_list)
             self.framework_config_dict = data['TARGET'][self.framework]
         elif self.framework == "PADDLE":
@@ -58,9 +61,28 @@ class Configuration:
         except NameError:
             raise
 
+    def check_protobuf_version(self):
+        for path in sys.path:
+           module_path = os.path.join(path, 'google', 'protobuf', '__init__.py')
+           if os.path.exists(module_path):
+               with open(module_path) as f:
+                   __name__ = '__main__'
+                   exec(f.read(), locals())
+               break
+        try:
+            protoc_out = subprocess.check_output(["protoc", "--version"]).split()[1]
+        except OSError as exc:
+            raise OSError('Can not find Protobuf in system environment.')
+        sys_versions = map(int, protoc_out.split('.'))
+        pip_versions = map(int, __version__.split('.'))
+        assert sys_versions[0] >= 3 and pip_versions[0] >= 3 , \
+            "Protobuf version must be greater than 3.0. Please refer to the Anakin Docs."
+        assert pip_versions[1] >= sys_versions[1], \
+            "ERROR: Protobuf must be the same.\nSystem Protobuf %s\nPython Protobuf %s\n" \
+            % (protoc_out, __version__) + "Try to execute pip install protobuf==%s" % (protoc_out)
+
     def generate_pbs_of_anakin(self):
         protoFilesStr = subprocess.check_output(["ls", "parser/proto/"])
-        print(protoFilesStr)
         filesList = protoFilesStr.split('\n')
         protoFilesList = []
         for file in filesList:
@@ -78,6 +100,7 @@ class Configuration:
                 proto_list: ['/path/to/proto_0','/path/to/proto_1', ... ]
                 default_save_path: default saved to 'parser/pbs/'
         """
+        self.check_protobuf_version()
         for pFile in proto_list:
             subprocess.check_call(['protoc', '-I', 
                                    os.path.dirname(pFile) + "/",

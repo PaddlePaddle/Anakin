@@ -65,7 +65,7 @@ public:
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                           std::vector<DataTensor_out*>& outputs,
                           ActivationParam<OpTensor>& param);
-
+    OpTensor _slope;
 };
 
 //template class SaberActivation<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;

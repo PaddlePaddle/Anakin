@@ -88,6 +88,17 @@ def Parser_concat(args):
     concat_param = layer.concat_param
     OpsRegister()["Concat"].axis = concat_param.axis
 
+@ParserFeedDecorator("Resize")
+def Parser_resize(args):
+    layer = args[1]
+    # parser caffe parameter
+    resize_param = layer.resize_param
+    if resize_param.HasField("out_width_scale"):
+        OpsRegister()["Resize"].width_scale = resize_param.out_width_scale
+    if resize_param.HasField("out_height_scale"):
+        OpsRegister()["Resize"].height_scale = resize_param.out_height_scale
+    
+
 
 @ParserFeedDecorator("DeformConvolution")
 def Parser_deformable_convolution(args):
@@ -721,6 +732,7 @@ def Parser_rpn_proposal_ssd(args):
     OpsRegister()["RPNProposalSSD"].nms_among_classes = nms_param.nms_among_classes
     OpsRegister()["RPNProposalSSD"].voting = list(nms_param.voting)
     OpsRegister()["RPNProposalSSD"].vote_iou = list(nms_param.vote_iou)
+    OpsRegister()["RPNProposalSSD"].nms_gpu_max_n_per_time = nms_param.nms_gpu_max_n_per_time
     # parsing gen_anchor_param pkg
     gen_anchor_param = detect_output_ssd.gen_anchor_param
     OpsRegister()["RPNProposalSSD"].base_size = gen_anchor_param.base_size
@@ -825,6 +837,7 @@ def Parser_rcnn_net_output_with_attr(args):
     OpsRegister()["RCNNDetOutputWithAttr"].nms_among_classes = nms_param.nms_among_classes
     OpsRegister()["RCNNDetOutputWithAttr"].voting = list(nms_param.voting)
     OpsRegister()["RCNNDetOutputWithAttr"].vote_iou = list(nms_param.vote_iou)
+    OpsRegister()["RCNNDetOutputWithAttr"].nms_gpu_max_n_per_time = nms_param.nms_gpu_max_n_per_time
     # parsing gen_anchor_param pkg
     gen_anchor_param = detect_output_ssd.gen_anchor_param
     OpsRegister()["RCNNDetOutputWithAttr"].base_size = gen_anchor_param.base_size
@@ -946,6 +959,7 @@ def Parser_rcnn_proposal(args):
     OpsRegister()["RCNNProposal"].nms_among_classes = nms_param.nms_among_classes
     OpsRegister()["RCNNProposal"].voting = list(nms_param.voting)
     OpsRegister()["RCNNProposal"].vote_iou = list(nms_param.vote_iou)
+    OpsRegister()["RCNNProposal"].nms_gpu_max_n_per_time = nms_param.nms_gpu_max_n_per_time
     # parsing gen_anchor_param pkg
     gen_anchor_param = detect_output_ssd.gen_anchor_param
     OpsRegister()["RCNNProposal"].base_size = gen_anchor_param.base_size
@@ -1048,12 +1062,32 @@ def Parser_proposal_img_scale_to_cam_coords(args):
     OpsRegister()["ProposalImgScaleToCamCoords"].cords_offset_y = proposal_img_scale_to_cam_coords.cords_offset_y
     OpsRegister()["ProposalImgScaleToCamCoords"].bbox_size_add_one = proposal_img_scale_to_cam_coords.bbox_size_add_one
     OpsRegister()["ProposalImgScaleToCamCoords"].rotate_coords_by_pitch = proposal_img_scale_to_cam_coords.rotate_coords_by_pitch
-    OpsRegister()["ProposalImgScaleToCamCoords"].refine_coords_by_bbox = proposal_img_scale_to_cam_coords.refine_coords_by_bbox
-    OpsRegister()["ProposalImgScaleToCamCoords"].refine_min_dist = proposal_img_scale_to_cam_coords.refine_min_dist
-    OpsRegister()["ProposalImgScaleToCamCoords"].refine_dist_for_height_ratio_one = proposal_img_scale_to_cam_coords.refine_dist_for_height_ratio_one
-    OpsRegister()["ProposalImgScaleToCamCoords"].max_3d2d_height_ratio_for_min_dist = proposal_img_scale_to_cam_coords.max_3d2d_height_ratio_for_min_dist
+    #OpsRegister()["ProposalImgScaleToCamCoords"].refine_coords_by_bbox = proposal_img_scale_to_cam_coords.refine_coords_by_bbox
+    #OpsRegister()["ProposalImgScaleToCamCoords"].refine_min_dist = proposal_img_scale_to_cam_coords.refine_min_dist
+    #OpsRegister()["ProposalImgScaleToCamCoords"].refine_dist_for_height_ratio_one = proposal_img_scale_to_cam_coords.refine_dist_for_height_ratio_one
+    #OpsRegister()["ProposalImgScaleToCamCoords"].max_3d2d_height_ratio_for_min_dist = proposal_img_scale_to_cam_coords.max_3d2d_height_ratio_for_min_dist
     OpsRegister()["ProposalImgScaleToCamCoords"].with_trunc_ratio = proposal_img_scale_to_cam_coords.with_trunc_ratio
+    OpsRegister()["ProposalImgScaleToCamCoords"].regress_ph_rh_as_whole = proposal_img_scale_to_cam_coords.regress_ph_rh_as_whole
+    OpsRegister()["ProposalImgScaleToCamCoords"].real_h_means_as_whole = list(proposal_img_scale_to_cam_coords.real_h_means_as_whole)
+    OpsRegister()["ProposalImgScaleToCamCoords"].real_h_stds_as_whole = list(proposal_img_scale_to_cam_coords.real_h_stds_as_whole)
 
+@ParserFeedDecorator("RoisAnchorFeature")
+def Parser_rois_anchor_feature(args):
+    layer = args[1]
+    # parser caffe parameter
+    rois_anchor_feature_param = layer.rois_anchor_feature_param
+    OpsRegister()["RoisAnchorFeature"].min_anchor_size = rois_anchor_feature_param.min_anchor_size
+    OpsRegister()["RoisAnchorFeature"].num_anchor_scales = rois_anchor_feature_param.num_anchor_scales
+    OpsRegister()["RoisAnchorFeature"].anchor_scale_pow_base = rois_anchor_feature_param.anchor_scale_pow_base
+    OpsRegister()["RoisAnchorFeature"].anchor_wph_ratios = list(rois_anchor_feature_param.anchor_wph_ratios)
+    OpsRegister()["RoisAnchorFeature"].num_top_iou_anchor = rois_anchor_feature_param.num_top_iou_anchor
+    OpsRegister()["RoisAnchorFeature"].min_num_top_iou_anchor = rois_anchor_feature_param.min_num_top_iou_anchor
+    OpsRegister()["RoisAnchorFeature"].iou_thr = rois_anchor_feature_param.iou_thr
+    OpsRegister()["RoisAnchorFeature"].ft_ratio_h = rois_anchor_feature_param.ft_ratio_h
+    OpsRegister()["RoisAnchorFeature"].ft_ratio_w = rois_anchor_feature_param.ft_ratio_w
+    OpsRegister()["RoisAnchorFeature"].ft_log_ratio_h = rois_anchor_feature_param.ft_log_ratio_h
+    OpsRegister()["RoisAnchorFeature"].ft_log_ratio_w = rois_anchor_feature_param.ft_log_ratio_w
+    OpsRegister()["RoisAnchorFeature"].bbox_size_add_one = rois_anchor_feature_param.bbox_size_add_one
 
 @ParserFeedDecorator("Axpy")
 def Parser_axpy(args):
@@ -1064,13 +1098,14 @@ def Parser_axpy(args):
 def Parser_priorbox(args):
     layer = args[1]
     prior_box_param = layer.prior_box_param
-    OpsRegister()["PriorBox"].min_size = list(prior_box_param.min_size)
-    OpsRegister()["PriorBox"].max_size = list(prior_box_param.max_size)
-    OpsRegister()["PriorBox"].aspect_ratio = list(prior_box_param.aspect_ratio)
-    OpsRegister()["PriorBox"].fixed_size = list(prior_box_param.fixed_size)
-    OpsRegister()["PriorBox"].fixed_ratio = list(prior_box_param.fixed_ratio)
-    OpsRegister()["PriorBox"].density = list(prior_box_param.density)
-    OpsRegister()["PriorBox"].aspect_ratio = list(prior_box_param.aspect_ratio)
+    if len(prior_box_param.aspect_ratio) > 0:
+        OpsRegister()["PriorBox"].min_size = list(prior_box_param.min_size)
+        OpsRegister()["PriorBox"].max_size = list(prior_box_param.max_size)
+        OpsRegister()["PriorBox"].aspect_ratio = list(prior_box_param.aspect_ratio)
+    if len(prior_box_param.density) > 0:
+        OpsRegister()["PriorBox"].fixed_size = list(prior_box_param.fixed_size)
+        OpsRegister()["PriorBox"].fixed_ratio = list(prior_box_param.fixed_ratio)
+        OpsRegister()["PriorBox"].density = list(prior_box_param.density)
     OpsRegister()["PriorBox"].is_flip = prior_box_param.flip
     OpsRegister()["PriorBox"].is_clip = prior_box_param.clip
     OpsRegister()["PriorBox"].variance = list(prior_box_param.variance)
@@ -1139,6 +1174,16 @@ def Parser_relu6(args):
     OpsRegister()["Activation"].type = "ClippedRelu"
     OpsRegister()["Activation"].clip_relu_num = 6
 
+@ParserFeedDecorator("Interp")
+def Parser_interp(args):
+    layer = args[1]
+    interp_param = layer.interp_param
+    OpsRegister()["Interp"].height = interp_param.height
+    OpsRegister()["Interp"].width = interp_param.width
+    OpsRegister()["Interp"].zoom_factor = interp_param.zoom_factor
+    OpsRegister()["Interp"].shrink_factor = interp_param.shrink_factor
+    OpsRegister()["Interp"].pad_beg = interp_param.pad_beg
+    OpsRegister()["Interp"].pad_end = interp_param.pad_end
 
 # caffe layer parameter parser map
 CAFFE_LAYER_PARSER = {
@@ -1205,6 +1250,10 @@ CAFFE_LAYER_PARSER = {
                 "DetectionOutput": OpsParam().set_parser(Parser_detectionoutput), # vis add
                 "ArgMax": OpsParam().set_parser(Parser_argmax),
                 "Normalize": OpsParam().set_parser(Parser_normalize),
+                "Resize": OpsParam().set_parser(Parser_resize),
                 "ReLU6": OpsParam().set_parser(Parser_relu6),
-                "ShuffleChannel": OpsParam().set_parser(Parser_ShuffleChannel)
+                "Normalization": OpsParam().set_parser(Parser_normalize),
+                "ShuffleChannel": OpsParam().set_parser(Parser_ShuffleChannel),
+                "RoisAnchorFeature": OpsParam().set_parser(Parser_rois_anchor_feature),
+                "Interp": OpsParam().set_parser(Parser_interp)
                 }

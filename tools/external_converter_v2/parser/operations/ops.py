@@ -355,6 +355,8 @@ OpsRegister.Register("LayerNorm").set_attr(is_across_spatial=bool(),
                                            begin_norm_axis=int(),
                                            eps=float())
 
+OpsRegister.Register("Resize").set_attr(height_scale=float(),
+                                        width_scale=float())
 
 OpsRegister.Register("Normalize").set_attr(begin_norm_axis=int(),
                                            is_across_spatial=bool(),
@@ -368,3 +370,23 @@ OpsRegister.Register("Pad").set_attr(pad_c=list(),
 
 
 OpsRegister.Register("ShuffleChannel").set_attr(group=int())
+
+OpsRegister.Register("RoisAnchorFeature").set_attr(min_anchor_size=float(),
+                                                   num_anchor_scales=int(),
+                                                   anchor_scale_pow_base=float(),
+                                                   anchor_wph_ratios=list(),
+                                                   num_top_iou_anchor=int(),
+                                                   min_num_top_iou_anchor=int(),
+                                                   iou_thr=float(),
+                                                   ft_ratio_h=bool(),
+                                                   ft_ratio_w=bool(),
+                                                   ft_log_ratio_h=bool(),
+                                                   ft_log_ratio_w=bool(),
+                                                   bbox_size_add_one=bool())
+
+OpsRegister.Register("Interp").set_attr(height=int(),
+                                        width=int(),
+                                        zoom_factor=int(),
+                                        shrink_factor=int(),
+                                        pad_beg=int(),
+                                        pad_end=int())

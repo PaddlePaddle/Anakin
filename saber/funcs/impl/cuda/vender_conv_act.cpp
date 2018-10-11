@@ -1,4 +1,5 @@
 #include "saber/funcs/impl/cuda/vender_conv_act.h"
+#include "saber/funcs/impl/cuda/saber_activation.h"
 #include "cuda_fp16.h"
 
 namespace anakin {
@@ -10,6 +11,9 @@ SaberStatus VenderConv2DAct<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>:
             std::vector<DataTensor_out *>& outputs,
             ConvActiveParam<OpTensor>& param, Context<NV>& ctx) {
 
+    if (_use_saber_act) {
+        _saber_act.create(inputs, outputs, param.activation_param, ctx);
+    }
     if (!(&ctx == this->_ctx)) {
         if (_handle != NULL) {
             CUDNN_CHECK(cudnnDestroy(_handle));
@@ -65,7 +69,7 @@ SaberStatus VenderConv2DAct<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>:
                                           inputs[0]->dims() - 2, pad_a,
                                           filter_stride_a, dilation_a);
     // set activation descriptor
-    if(param.has_active) {
+    if(param.has_active && !_use_saber_act) {
         cudnn::set_activation_des<OpDataType>(&_active_descs, param.activation_param.active);
     }
 
@@ -113,12 +117,11 @@ SaberStatus VenderConv2DAct<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>:
     dispatch(const std::vector<DataTensor_in*>& inputs,
                 std::vector<DataTensor_out*>& outputs,
                 ConvActiveParam<OpTensor>& param) {
-
     const InDataType *in_data = (const InDataType*)inputs[0]->data();
     InDataType *out_data = (InDataType*)outputs[0]->mutable_data();
 
     const float *weight_data = (const float *) param.conv_param.weight()->data();
-    if (param.has_active == false) {
+    if (_use_saber_act || param.has_active == false) {
         CUDNN_CHECK(cudnnConvolutionForward(_handle,
                                             cudnn::cudnnTypeWrapper<float>::kOne(),
                                             _input_descs, in_data,
@@ -139,6 +142,9 @@ SaberStatus VenderConv2DAct<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>:
                                        cudnn::cudnnTypeWrapper<float>::kOne(),
                                        _output_descs, out_data));
 
+        }
+        if (_use_saber_act) {
+            _saber_act.dispatch(outputs, outputs, param.activation_param);
         }
         return SaberSuccess;
     }

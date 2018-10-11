@@ -17,7 +17,8 @@
 #define ANAKIN_SABER_FUNCS_IMPL_CUDA_CUDNN_CONV_ACT_H
 
 #include "saber/funcs/impl/impl_conv_act.h"
-#include "saber/funcs/impl/cuda/cudnn_helper.h"   
+#include "saber/funcs/impl/cuda/cudnn_helper.h"
+#include "saber/funcs/impl/cuda/saber_activation.h"
 #include <cudnn.h>
 
 namespace anakin{
@@ -119,6 +120,10 @@ public:
                             std::vector<DataTensor_out *>& outputs,
                             ConvActiveParam<OpTensor>& param, Context<NV>& ctx) {
         // ---- init cudnn resources ----
+        if (param.activation_param.active!= Active_relu) {
+            _use_saber_act = true;
+            _saber_act.init(inputs, outputs, param.activation_param, ctx);
+        }
 
         _workspaceSizeInBytes = 0;
         _workspaceData = NULL;
@@ -192,6 +197,9 @@ private:
     cudnnTensorDescriptor_t _input_nchw_descs;
     cudnnTensorDescriptor_t _output_nchw_descs;
 
+    bool _use_saber_act{false};
+    SaberActivation<NV, OpDtype, inDtype, outDtype,\
+    LayOutType_op, LayOutType_in, LayOutType_out> _saber_act;
     void *x8_data;
     void *y8_data;
 
