@@ -93,7 +93,7 @@ if(USE_CUDA)
 endif()
 
 if(USE_BM_PLACE)
-    set(BIN_NAME bmkernel_cmodel)
+    set(BIN_NAME bmkernel_bin)
     #set(LINK_CONFIG link/bm1682_ddr.lds)
     add_custom_command(OUTPUT bm_kernel_tmp
         COMMAND gcc -std=c99 -I${BM_ROOT}/include/config -I${BM_ROOT}/include/common -I${BM_ROOT}/include/c_model -I${BM_ROOT}/include/firmware_core -I${BM_ROOT}/include/bmlib -g -MMD -c -o ${BIN_NAME}.o ${ANAKIN_SABER}/funcs/impl/bm/device/bmkernel_base.c
