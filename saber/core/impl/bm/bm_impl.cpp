@@ -74,7 +74,7 @@ void BM_API::mem_alloc(TPtr* ptr, size_t n) {
 }
 
 void BM_API::mem_free(TPtr ptr) {
-    if ((ptr != BM_MEM_NULL)) {
+    if (bm_mem_get_type(ptr) == BM_MEM_TYPE_SYSTEM) {
         bm_free_device(handle, ptr);
         //        delete ptr;
     }
