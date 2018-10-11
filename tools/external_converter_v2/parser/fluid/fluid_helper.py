@@ -185,19 +185,21 @@ class Fluid_helper:
         '''
         '''
         if param_name not in op.input_names + op.output_names:
-            raise NameError('ERROR: param_name %s is not exists.' % (param_name))
+            raise NameError('ERROR: param_name %s is not exists.' % ( param_name ) )
         elif param_name in op.input_names:
             if len(op.input(param_name)) > 0:
                 var_name_unicode = op.input(param_name)[var_idx]
             else:
-                raise NameError('ERROR: param %s has not var.' % (param_name))
+                raise NameError('ERROR: param %s has not var.' % ( param_name ) )
         elif param_name in op.output_names:
             if len(op.output(param_name)) > 0:
                 var_name_unicode = op.output(param_name)[var_idx]
             else:
-                raise NameError('ERROR: param %s has not var.' % (param_name))
+                raise NameError('ERROR: param %s has not var.' % ( param_name ) )
         var = self.block.var(var_name_unicode)
         var_name = var.name
+        if isinstance(var_name, unicode):
+            var_name = str(var_name)
         return var_name
 
     def var_by_param(self, op, param_name, var_idx = 0):

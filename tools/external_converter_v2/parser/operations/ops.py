@@ -91,7 +91,8 @@ OpsRegister.Register("Flatten").set_attr(start_axis=int(),
 # caffe unique layer
 OpsRegister.Register("Reshape").set_attr(dims=list(), 
                                          axis=int(), 
-                                         num_axes=int())
+                                         num_axes=int(),
+                                         layout='')
 
 # Permutes the dimensions of the input according to a given pattern(list type)
 OpsRegister.Register("Permute").set_attr(dims=list())

@@ -159,12 +159,17 @@ def Parser_reshape(args):
     op = args[1]
     helper = args[3]
     private_data = args[4]
+    layout = str()
     if 'new_shape' in private_data.keys():
         shape = private_data['new_shape']
     else:
         shape = helper.attr_data(op, 'shape')
-        shape = map(int, shape + [1] * (4 - len(shape)))
+    if len(shape) == 4:
+        layout = 'NCHW'
+    elif len(shape) == 3:
+        layout = 'NHW'
     OpsRegister()["Reshape"].dims = shape
+    OpsRegister()["Reshape"].layout = layout
 
 @ParserFeedDecorator("Concat")
 def Parser_concat(args):

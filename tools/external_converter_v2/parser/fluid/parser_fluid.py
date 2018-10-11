@@ -802,7 +802,8 @@ class FluidParser:
                         self._AddProtoNode(softmax_node_name, source_op, helper, private_data)
                         ins_of_softmax = self.ins[softmax_node_name].targets('X')
                         assert len(ins_of_softmax) == 1
-                        self._RefreshSplit(ins_of_softmax[0], helper)
+                        if ins_of_softmax[0].startswith('split'):
+                            self._RefreshSplit(ins_of_softmax[0], helper)
 
     def _DealWithMatmal(self, source_ops, helper):
         for source_op in source_ops:
@@ -848,20 +849,7 @@ class FluidParser:
                     self._RmProtoNode(bn_node_name)
                     self._AddProtoNode(bn_node_name, source_op, helper, {}, 'disc_bn')
 
-    def _DealWithSSD(self, source_ops, helper):
-        for source_op in source_ops:
-            if source_op.type == 'reshape':
-                rh_node_name = self._NameNodeMid(source_op)
-                if rh_node_name in self.ins:
-                    private_data = dict()
-                    input_name = self.ins[rh_node_name].target('X')
-                    shape = helper.attr_data(source_op, 'shape')
-                    if input_name.startswith('concat'):
-                        private_data['new_shape'] = [0, shape[0], shape[1], 0]
-                    else:
-                        private_data['new_shape'] = [0, -1, 1, 1]
-                    self._RmProtoNode(rh_node_name)
-                    self._AddProtoNode(rh_node_name, source_op, helper, private_data, 'reshape')
+    def _DealWithSSDSoftmax(self, source_ops, helper):
         for source_op in source_ops:
             if source_op.type == 'softmax':
                 private_data = dict()
@@ -913,16 +901,10 @@ class FluidParser:
             self._DealWithArgmax(source_ops, helper)
             self._DealWithAxpy(source_ops, helper)
             if self.NetType == "SSD":
-                self._DealWithPriorBox(source_ops, helper, False)
-                self._DealWithDetectionOutput(source_ops, helper)
-                self._DealWithSSD(source_ops, helper)
-                self._DealWithSoftmax(source_ops, helper)
-                self._RefreshReshape(source_ops, helper)
-            if self.NetType == "SSD_dev_v2":
                 self._DealWithPriorBox(source_ops, helper)
                 self._DealWithDetectionOutput(source_ops, helper)
-                self._DealWithSSD(source_ops, helper)
                 self._DealWithSoftmax(source_ops, helper)
+                self._DealWithSSDSoftmax(source_ops, helper)
                 self._RefreshReshape(source_ops, helper)
         self._Graph()
 
