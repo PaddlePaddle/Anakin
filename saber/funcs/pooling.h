@@ -30,6 +30,9 @@
 #ifdef USE_ARM_PLACE
 #include "saber/funcs/impl/impl_pooling.h"
 #endif
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_pooling.h"
+#endif
 namespace anakin {
 namespace saber {
 
