@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <iostream>
+#include "tensor_op.h"
 
 namespace anakin
 {
