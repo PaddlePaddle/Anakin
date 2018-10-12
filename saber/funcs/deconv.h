@@ -20,6 +20,9 @@
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/funcs/impl/impl_deconv.h"
 
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_deconv.h"
+#endif
 #ifdef USE_CUDA
 #include "saber/funcs/impl/cuda/saber_deconv.h"
 #include "saber/funcs/impl/cuda/vender_deconv.h"
