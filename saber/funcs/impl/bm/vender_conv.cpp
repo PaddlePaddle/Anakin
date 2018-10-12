@@ -268,7 +268,8 @@ SaberStatus VenderConv2D<BM, AK_FLOAT>::\
     };
 
     LOG(INFO)<<"BM Conv starts...";
-    printf("TEST BM conv.\n");
+    print_tensor(*inputs[0]);
+
     bm_status_t bm_stat = bmlib_kernel_launch(_handle, "/usr/local/include/bm/bmkernel_bin.bin");
     CHECK_EQ(BM_SUCCESS, bm_stat) << "bmlib_kernel_launch failed.";
     
@@ -278,6 +279,7 @@ SaberStatus VenderConv2D<BM, AK_FLOAT>::\
     BM_CHECK(bmlib_kernel_send_args(_handle, reinterpret_cast<void *>(&api), sizeof(api)));
 
     LOG(INFO)<<"BM Conv ends...";
+    print_tensor(*outputs[0]);
 
     return SaberSuccess;
 }
