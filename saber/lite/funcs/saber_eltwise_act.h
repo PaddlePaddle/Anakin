@@ -26,7 +26,7 @@ namespace lite{
 
 typedef void (*eltwise_act_func)(const float* din_a, \
     const float* din_b, float* dout, const int num, const int channel, \
-    const int channel_size, std::vector<float> coef, bool channel_shared, float* slop_ptr);
+    const int channel_size, std::vector<float> coef, bool channel_shared, const float* slop_ptr);
 
 //template <typename Dtype>
 class SaberEltwiseAct : public OpBase {
