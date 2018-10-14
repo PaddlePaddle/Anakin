@@ -1,3 +1,18 @@
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ *     
+*/
 
 #include "saber/core/context.h"
 #include "saber/funcs/unpool.h"
@@ -50,6 +65,39 @@ void create_pooling_index(float* pool_index, int n, int c, int h, int w, Pooling
 }
 
 TEST(TestSaberFunc, test_func_resize){
+
+#ifdef AMD_GPU 
+    LOG(INFO)<<"AMD test......";
+    //Init the test_base
+    TestSaberBase<AMD,AMDHX86,AK_FLOAT,Unpool, PoolingParam> testbase(2);
+    for(int num_in:{1,3,32}){
+        for(int c_in:{1,3,12}){
+            for(int h_in:{2,3,25}){
+                for(int w_in:{2,3,32}){
+
+                    PoolingParam<AMD> param(3, 3, 0, 0, 3, 3,Pooling_max, false);
+                    Tensor<AMD> td, td_pool_index;
+                    Tensor<X86> th_pool_index;
+                    Shape sh_in({num_in, c_in, h_in, w_in});
+                    td.re_alloc(sh_in, AK_FLOAT);
+                    th_pool_index.re_alloc(sh_in, AK_FLOAT);
+                    td_pool_index.re_alloc(sh_in, AK_FLOAT);
+                    fill_tensor_rand(td, -1.0, 1.0);
+                    float* pool_index_data = (float*)th_pool_index.mutable_data();
+                    create_pooling_index(pool_index_data, num_in, c_in, h_in, w_in, param);
+                    td_pool_index.copy_from(th_pool_index);
+                    std::vector<Tensor<AMD>*> input;
+                    input.push_back(&td);
+                    input.push_back(&td_pool_index);
+                    testbase.add_custom_input(input);
+                    testbase.set_param(param);
+                    testbase.run_test(unpool_cpu<float, AMD, AMDHX86>);
+                }
+            }
+        }
+    }  
+#endif
+
 
 #ifdef USE_CUDA
     LOG(INFO)<<"NV test......";
@@ -122,6 +170,10 @@ int main(int argc, const char** argv) {
     // initial logger
     //logger::init(argv[0]);
     InitTest();
+
+#ifdef AMD_GPU
+    Env<AMD>::env_init();
+#endif
     RUN_ALL_TESTS(argv[0]);
     return 0;
 }
