@@ -10,7 +10,7 @@
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License. 
+   limitations under the License.
 */
 
 #ifndef ANAKIN_SABER_FUNCS_POOLING_WITH_INDEX_H
@@ -20,6 +20,10 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_pooling_with_index.h"
+#endif
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_pooling_with_index.h"
 #endif
