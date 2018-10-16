@@ -667,10 +667,15 @@ def Parser_reshape(args):
     layer = args[1]
     # parser caffe parameter
     reshape_param = layer.reshape_param
-    OpsRegister()["Reshape"].dims = list(reshape_param.shape.dim)
+    shape = list(reshape_param.shape.dim)
+    OpsRegister()["Reshape"].dims = shape
     OpsRegister()["Reshape"].axis = reshape_param.axis
     OpsRegister()["Reshape"].num_axes = reshape_param.num_axes
-
+    if len(shape) == 4:
+        layout = 'NCHW'
+    elif len(shape) == 3:
+        layout = 'NHW'
+    OpsRegister()["Reshape"].layout = layout
 
 @ParserFeedDecorator("Split")
 def Parser_split(args):
@@ -1102,7 +1107,7 @@ def Parser_priorbox(args):
         OpsRegister()["PriorBox"].min_size = list(prior_box_param.min_size)
         OpsRegister()["PriorBox"].max_size = list(prior_box_param.max_size)
         OpsRegister()["PriorBox"].aspect_ratio = list(prior_box_param.aspect_ratio)
-    if len(prior_box_param.density) > 0:
+    elif len(prior_box_param.density) > 0:
         OpsRegister()["PriorBox"].fixed_size = list(prior_box_param.fixed_size)
         OpsRegister()["PriorBox"].fixed_ratio = list(prior_box_param.fixed_ratio)
         OpsRegister()["PriorBox"].density = list(prior_box_param.density)
