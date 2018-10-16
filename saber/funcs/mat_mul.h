@@ -27,6 +27,10 @@
 #include "saber/funcs/impl/x86/vender_mat_mul.h"
 #endif
 
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_mat_mul.h"
+#endif
+
 namespace anakin{
 
 namespace saber{
