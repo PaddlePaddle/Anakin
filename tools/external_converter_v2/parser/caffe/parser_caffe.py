@@ -505,7 +505,7 @@ class CaffeParser:
         elif self.Remark == 'Training':
             if source_layer_type == "BatchNorm":
                 private_data = {'use_global_stats': True}
-                CAFFE_LAYER_PARSER["Normlize"](nodeIO, mlayer, tensors, opIO, private_data)
+                CAFFE_LAYER_PARSER["Normalize"](nodeIO, mlayer, tensors, opIO, private_data)
 
     def _Parsing_new(self):
         """
