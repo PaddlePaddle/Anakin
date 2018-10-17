@@ -1163,14 +1163,22 @@ def Parser_argmax(args):
 @ParserFeedDecorator("Normalize")
 def Parser_normalize(args):
     layer = args[1]
-    norm_param = layer.norm_param
-    scale_filler = norm_param.scale_filler
-    OpsRegister()["Normalize"].begin_norm_axis = -1
-    OpsRegister()["Normalize"].is_across_spatial = norm_param.across_spatial
-    OpsRegister()["Normalize"].is_shared_channel = norm_param.channel_shared
-    OpsRegister()["Normalize"].eps = norm_param.eps
-    OpsRegister()["Normalize"].p = 2
-
+    if len(args) == 4:
+        norm_param = layer.norm_param
+        scale_filler = norm_param.scale_filler
+        OpsRegister()["Normalize"].begin_norm_axis = -1
+        OpsRegister()["Normalize"].is_across_spatial = norm_param.across_spatial
+        OpsRegister()["Normalize"].is_shared_channel = norm_param.channel_shared
+        OpsRegister()["Normalize"].eps = norm_param.eps
+        OpsRegister()["Normalize"].p = 2
+    else:
+        private_data = args[4]
+        assert private_data['use_global_stats'] is True
+        OpsRegister()["Normalize"].begin_norm_axis = -1
+        OpsRegister()["Normalize"].is_across_spatial = False
+        OpsRegister()["Normalize"].is_shared_channel = False
+        OpsRegister()["Normalize"].eps = 0
+        OpsRegister()["Normalize"].p = 2
 
 @ParserFeedDecorator("Activation")
 def Parser_relu6(args):

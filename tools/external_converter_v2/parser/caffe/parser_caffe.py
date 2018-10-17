@@ -25,6 +25,7 @@ class CaffeParser:
         self.ProtoPaths = caffe_config_dict['ProtoPaths']
         self.PrototxtPath = caffe_config_dict['PrototxtPath'] 
         self.ModelPath = caffe_config_dict['ModelPath']
+        self.Remark = caffe_config_dict['Remark']
 
     def __call__(self):
         """
@@ -494,6 +495,18 @@ class CaffeParser:
                     self.graphIO.add_node(node_io())
                     self.graphIO.add_in(in_name)
 
+    def _DealWithRemark(self, layer_type, nodeIO, mlayer, rlayer, tensors, opIO):
+        if self.Remark == 'FaceUniqueBatchNorm':
+            if len(tensors) > 3 and source_layer_type == "BatchNorm": # this is for Face unique Batchnorm layer(batchnorm + scale)
+                scale_node_io, scale_layer, scale_op_io = self._CreateScaleOpForFaceUniqueBatchNorm(source_layer_name)
+                CAFFE_LAYER_PARSER["Scale"](scale_node_io, scale_layer, tensors[3:5], scale_op_io)
+                self.graphIO.add_node(scale_node_io())
+                CAFFE_LAYER_PARSER[source_layer_type](nodeIO, mlayer, tensors[0:3], opIO)
+        elif self.Remark == 'Training':
+            if source_layer_type == "BatchNorm":
+                private_data = {'use_global_stats': True}
+                CAFFE_LAYER_PARSER["Normlize"](nodeIO, mlayer, tensors, opIO, private_data)
+
     def _Parsing_new(self):
         """
         Parsering caffe model and caffe net file.
@@ -592,14 +605,11 @@ class CaffeParser:
                                 tensor.set_data(blob.data, "float")
                                 tensors.append(tensor)
                     # fill node with layerparameter, such as axis kernel_size... and tensors
-                    if len(tensors) > 3 and source_layer_type == "BatchNorm": # this is for Face unique Batchnorm layer(batchnorm + scale)
-                        scale_node_io, scale_layer, scale_op_io = self._CreateScaleOpForFaceUniqueBatchNorm(source_layer_name)
-                        CAFFE_LAYER_PARSER["Scale"](scale_node_io, scale_layer, tensors[3:5], scale_op_io)
-                        self.graphIO.add_node(scale_node_io())
-                        CAFFE_LAYER_PARSER[source_layer_type](nodeIO, mlayer, tensors[0:3], opIO)
-                    else:
+                    if self.Remark == '':
                         # besides, set the name of opIO
                         CAFFE_LAYER_PARSER[source_layer_type](nodeIO, rlayer, tensors, opIO) # call parser automatically
+                    else:
+                        self._DealWithRemark(source_layer_type, nodeIO, mlayer, rlayer, tensors, opIO)
                     match_in_model_layer = True
                     # TODO... over!
                 else: # not find
@@ -711,14 +721,11 @@ class CaffeParser:
                                 tensor.set_data(blob.data, "float")
                                 tensors.append(tensor)
                     # fill node with layerparameter, such as axis kernel_size... and tensors
-                    if len(tensors) > 3 and source_layer_type == "BatchNorm": # this is for Face unique Batchnorm layer(batchnorm + scale)
-                        scale_node_io, scale_layer, scale_op_io = self._CreateScaleOpForFaceUniqueBatchNorm(source_layer_name)
-                        CAFFE_LAYER_PARSER["Scale"](scale_node_io, scale_layer, tensors[3:5], scale_op_io)
-                        self.graphIO.add_node(scale_node_io())
-                        CAFFE_LAYER_PARSER[source_layer_type](nodeIO, mlayer, tensors[0:3], opIO)
-                    else:
+                    if self.Remark == '':
                         # besides, set the name of opIO
                         CAFFE_LAYER_PARSER[source_layer_type](nodeIO, rlayer, tensors, opIO) # call parser automatically
+                    else:
+                        self._DealWithRemark(source_layer_type, nodeIO, mlayer, rlayer, tensors, opIO)
                     match_in_model_layer = True
                     # TODO... over!
                 else: # not find
