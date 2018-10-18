@@ -37,8 +37,7 @@ def feed_ones(block, feed_target_names, batch_size=1):
         return shape
     def fill_ones(var_name, batch_size):
         var = block.var(var_name)
-        #np_shape = set_batch_size(list(var.shape), 1)
-        np_shape = [1, 1, 48, 989]
+        np_shape = set_batch_size(list(var.shape), 1)
         var_np = {
             core.VarDesc.VarType.BOOL: np.bool_,
             core.VarDesc.VarType.INT32: np.int32,
