@@ -282,6 +282,9 @@ SaberStatus VenderConv2D<BM, AK_FLOAT>::\
     LOG(INFO)<<"BM Conv ends...";
     print_tensor(*outputs[0]);
 
+    char *buffer = getcwd(NULL, 0);
+    LOG(INFO)<<buffer;
+
     return SaberSuccess;
 }
 
