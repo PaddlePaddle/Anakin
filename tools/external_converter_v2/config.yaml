@@ -62,6 +62,7 @@ TARGET:
             - /path/to/caffe.proto
         PrototxtPath: /path/to/your/googlenet.prototxt
         ModelPath: /path/to/your/googlenet.caffemodel
+        Remark:  # Generally no need to modify.
 
     FLUID:
         # path of fluid inference model
