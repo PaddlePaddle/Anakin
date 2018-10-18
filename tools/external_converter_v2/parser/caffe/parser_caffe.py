@@ -9,8 +9,6 @@ from caffe_helper import *
 from caffe_layer_param_transmit import *
 from Queue import Queue
 
-import pdb
-
 class CaffeParser:
     """
     """
@@ -507,8 +505,6 @@ class CaffeParser:
                 CAFFE_LAYER_PARSER[layer_type](nodeIO, rlayer, tensors, opIO)
         elif self.Remark == 'Training':
             if layer_type == "BatchNorm":
-                #pdb.set_trace()
-                print 'layer_type: ', layer_type
                 private_data = {'use_global_stats': True}
                 CAFFE_LAYER_PARSER["Normalize"](nodeIO, mlayer, [], opIO, private_data)
             else:
@@ -730,9 +726,11 @@ class CaffeParser:
                     # fill node with layerparameter, such as axis kernel_size... and tensors
                     if self.Remark is None:
                         # besides, set the name of opIO
-                        CAFFE_LAYER_PARSER[source_layer_type](nodeIO, rlayer, tensors, opIO) # call parser automatically
+                        CAFFE_LAYER_PARSER[source_layer_type](nodeIO, rlayer, tensors, opIO)
+                        # call parser automatically
                     else:
-                        self._DealWithRemark(source_layer_type, nodeIO, mlayer, rlayer, tensors, opIO)
+                        self._DealWithRemark(source_layer_type, nodeIO, \
+                        mlayer, rlayer, tensors, opIO)
                     match_in_model_layer = True
                     # TODO... over!
                 else: # not find
@@ -740,7 +738,8 @@ class CaffeParser:
             if not match_in_model_layer:
                 # fill node with layerparameter, such as axis kernel_size... but with [ ] tensors (empty)
                 # besides, set the name of opIO
-                CAFFE_LAYER_PARSER[source_layer_type](nodeIO, rlayer, [], opIO) # call parser automatically
+                CAFFE_LAYER_PARSER[source_layer_type](nodeIO, rlayer, [], opIO)
+                # call parser automatically
             # add node to graph io
             self.graphIO.add_node(nodeIO())
 
