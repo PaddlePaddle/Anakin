@@ -288,6 +288,7 @@ SaberStatus VenderConv2D<BM, AK_FLOAT>::\
     } else {
       printf("%s\n", buffer);
     }
+    printf("%s\n", TEST_PATH);
 
     return SaberSuccess;
 }
