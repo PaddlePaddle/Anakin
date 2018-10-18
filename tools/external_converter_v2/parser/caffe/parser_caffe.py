@@ -9,6 +9,7 @@ from caffe_helper import *
 from caffe_layer_param_transmit import *
 from Queue import Queue
 
+import pdb
 
 class CaffeParser:
     """
@@ -497,15 +498,21 @@ class CaffeParser:
 
     def _DealWithRemark(self, layer_type, nodeIO, mlayer, rlayer, tensors, opIO):
         if self.Remark == 'FaceUniqueBatchNorm':
-            if len(tensors) > 3 and source_layer_type == "BatchNorm": # this is for Face unique Batchnorm layer(batchnorm + scale)
+            if len(tensors) > 3 and layer_type == "BatchNorm": # this is for Face unique Batchnorm layer(batchnorm + scale)
                 scale_node_io, scale_layer, scale_op_io = self._CreateScaleOpForFaceUniqueBatchNorm(source_layer_name)
                 CAFFE_LAYER_PARSER["Scale"](scale_node_io, scale_layer, tensors[3:5], scale_op_io)
                 self.graphIO.add_node(scale_node_io())
-                CAFFE_LAYER_PARSER[source_layer_type](nodeIO, mlayer, tensors[0:3], opIO)
+                CAFFE_LAYER_PARSER[layer_type](nodeIO, mlayer, tensors[0:3], opIO)
+            else:
+                CAFFE_LAYER_PARSER[layer_type](nodeIO, rlayer, tensors, opIO)
         elif self.Remark == 'Training':
-            if source_layer_type == "BatchNorm":
+            if layer_type == "BatchNorm":
+                #pdb.set_trace()
+                print 'layer_type: ', layer_type
                 private_data = {'use_global_stats': True}
-                CAFFE_LAYER_PARSER["Normalize"](nodeIO, mlayer, tensors, opIO, private_data)
+                CAFFE_LAYER_PARSER["Normalize"](nodeIO, mlayer, [], opIO, private_data)
+            else:
+                CAFFE_LAYER_PARSER[layer_type](nodeIO, rlayer, tensors, opIO)
 
     def _Parsing_new(self):
         """
@@ -605,7 +612,7 @@ class CaffeParser:
                                 tensor.set_data(blob.data, "float")
                                 tensors.append(tensor)
                     # fill node with layerparameter, such as axis kernel_size... and tensors
-                    if self.Remark == '':
+                    if self.Remark is None:
                         # besides, set the name of opIO
                         CAFFE_LAYER_PARSER[source_layer_type](nodeIO, rlayer, tensors, opIO) # call parser automatically
                     else:
@@ -721,7 +728,7 @@ class CaffeParser:
                                 tensor.set_data(blob.data, "float")
                                 tensors.append(tensor)
                     # fill node with layerparameter, such as axis kernel_size... and tensors
-                    if self.Remark == '':
+                    if self.Remark is None:
                         # besides, set the name of opIO
                         CAFFE_LAYER_PARSER[source_layer_type](nodeIO, rlayer, tensors, opIO) # call parser automatically
                     else:

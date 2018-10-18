@@ -1,0 +1,793 @@
+digraph G {
+title = "some graph"
+rankdir="TB";
+concentrate="true";
+layout="dot";
+
+
+
+
+op_87 [label=<<B>conv2d</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+param_20 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+conv2d_7.b_0
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: LOD_TENSOR<br />lod_tensor {
+  tensor {
+    data_type: FP32
+    dims: 128
+  }
+}
+
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+arg_51 [label="gru_1.tmp_1" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+param_21 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+conv2d_6.w_0
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: LOD_TENSOR<br />lod_tensor {
+  tensor {
+    data_type: FP32
+    dims: 128
+    dims: 64
+    dims: 3
+    dims: 3
+  }
+}
+
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+param_7 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+fc_1.w_0
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: LOD_TENSOR<br />lod_tensor {
+  tensor {
+    data_type: FP32
+    dims: 384
+    dims: 600
+  }
+}
+
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+op_100 [label=<<B>pool2d</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+param_46 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+conv2d_0.w_0
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: LOD_TENSOR<br />lod_tensor {
+  tensor {
+    data_type: FP32
+    dims: 16
+    dims: 1
+    dims: 3
+    dims: 3
+  }
+}
+
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+param_30 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+fc_2.w_0
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: LOD_TENSOR<br />lod_tensor {
+  tensor {
+    data_type: FP32
+    dims: 200
+    dims: 10785
+  }
+}
+
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+arg_44 [label="pool2d_3.tmp_0" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+op_107 [label=<<B>gru</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+op_73 [label=<<B>conv2d</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+op_81 [label=<<B>elementwise_add</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+arg_64 [label="conv2d_0.tmp_1" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+arg_22 [label="fc_0.tmp_0" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+op_91 [label=<<B>elementwise_add</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+op_78 [label=<<B>relu</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+arg_3 [label="fc_2.tmp_0" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+arg_70 [label="conv2d_5.tmp_1" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+arg_55 [label="conv2d_4.tmp_0" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+op_116 [label=<<B>fetch</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+op_96 [label=<<B>relu</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+arg_67 [label="conv2d_3.tmp_0" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+arg_27 [label="gru_1.tmp_2" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+op_79 [label=<<B>pool2d</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+op_113 [label=<<B>top_k</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+op_92 [label=<<B>relu</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+op_110 [label=<<B>sum</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+op_74 [label=<<B>elementwise_add</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+param_13 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+fc_0.b_0
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: LOD_TENSOR<br />lod_tensor {
+  tensor {
+    data_type: FP32
+    dims: 600
+  }
+}
+
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+op_97 [label=<<B>conv2d</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+op_102 [label=<<B>mul</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+param_2 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+conv2d_5.b_0
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: LOD_TENSOR<br />lod_tensor {
+  tensor {
+    data_type: FP32
+    dims: 64
+  }
+}
+
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+arg_63 [label="conv2d_0.tmp_0" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+param_25 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+gru_0.w_0
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: LOD_TENSOR<br />lod_tensor {
+  tensor {
+    data_type: FP32
+    dims: 200
+    dims: 600
+  }
+}
+
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+arg_37 [label="im2sequence_0.tmp_0" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+arg_9 [label="fc_2.tmp_3" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+op_106 [label=<<B>gru</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+param_47 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+gru_1.w_0
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: LOD_TENSOR<br />lod_tensor {
+  tensor {
+    data_type: FP32
+    dims: 200
+    dims: 600
+  }
+}
+
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+op_75 [label=<<B>relu</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+param_61 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+conv2d_0.b_0
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: LOD_TENSOR<br />lod_tensor {
+  tensor {
+    data_type: FP32
+    dims: 16
+  }
+}
+
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+param_4 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+feed
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: FEED_MINIBATCH<br />
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+arg_57 [label="conv2d_2.tmp_0" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+op_111 [label=<<B>elementwise_add</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+op_101 [label=<<B>im2sequence</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+op_80 [label=<<B>conv2d</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+arg_69 [label="conv2d_3.tmp_1" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+arg_23 [label="conv2d_6.tmp_1" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+op_104 [label=<<B>mul</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+arg_53 [label="gru_1.tmp_0" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+param_62 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+conv2d_3.w_0
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: LOD_TENSOR<br />lod_tensor {
+  tensor {
+    data_type: FP32
+    dims: 32
+    dims: 32
+    dims: 3
+    dims: 3
+  }
+}
+
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+arg_26 [label="conv2d_2.tmp_1" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+op_72 [label=<<B>feed</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+arg_40 [label="conv2d_4.tmp_1" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+arg_29 [label="fc_2.tmp_4" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+arg_10 [label="fc_0.tmp_1" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+arg_35 [label="gru_0.tmp_1" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+arg_68 [label="conv2d_6.tmp_0" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+op_105 [label=<<B>elementwise_add</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+arg_48 [label="gru_0.tmp_0" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+param_56 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+fc_0.w_0
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: LOD_TENSOR<br />lod_tensor {
+  tensor {
+    data_type: FP32
+    dims: 384
+    dims: 600
+  }
+}
+
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+arg_33 [label="fc_2.tmp_1" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+op_95 [label=<<B>elementwise_add</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+param_60 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+conv2d_4.b_0
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: LOD_TENSOR<br />lod_tensor {
+  tensor {
+    data_type: FP32
+    dims: 64
+  }
+}
+
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+param_34 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+fc_2.w_1
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: LOD_TENSOR<br />lod_tensor {
+  tensor {
+    data_type: FP32
+    dims: 200
+    dims: 10785
+  }
+}
+
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+op_86 [label=<<B>pool2d</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+param_66 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+conv2d_2.b_0
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: LOD_TENSOR<br />lod_tensor {
+  tensor {
+    data_type: FP32
+    dims: 32
+  }
+}
+
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+arg_41 [label="pool2d_2.tmp_0" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+param_12 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+gru_0.b_0
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: LOD_TENSOR<br />lod_tensor {
+  tensor {
+    data_type: FP32
+    dims: 1
+    dims: 600
+  }
+}
+
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+arg_1 [label="fc_2.tmp_2" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+arg_18 [label="gru_0.tmp_3" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+arg_17 [label="conv2d_7.tmp_1" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+op_88 [label=<<B>elementwise_add</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+op_76 [label=<<B>conv2d</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+arg_50 [label="top_k_1.tmp_1" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+param_14 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+conv2d_1.w_0
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: LOD_TENSOR<br />lod_tensor {
+  tensor {
+    data_type: FP32
+    dims: 16
+    dims: 16
+    dims: 3
+    dims: 3
+  }
+}
+
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+param_11 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+fc_1.b_0
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: LOD_TENSOR<br />lod_tensor {
+  tensor {
+    data_type: FP32
+    dims: 600
+  }
+}
+
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+op_84 [label=<<B>elementwise_add</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+op_85 [label=<<B>relu</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+op_90 [label=<<B>conv2d</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+param_24 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+conv2d_5.w_0
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: LOD_TENSOR<br />lod_tensor {
+  tensor {
+    data_type: FP32
+    dims: 64
+    dims: 64
+    dims: 3
+    dims: 3
+  }
+}
+
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+op_103 [label=<<B>elementwise_add</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+arg_58 [label="pool2d_1.tmp_0" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+arg_65 [label="conv2d_1.tmp_0" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+op_109 [label=<<B>mul</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+arg_52 [label="pool2d_0.tmp_0" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+arg_42 [label="pixel" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+param_8 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+conv2d_1.b_0
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: LOD_TENSOR<br />lod_tensor {
+  tensor {
+    data_type: FP32
+    dims: 16
+  }
+}
+
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+op_77 [label=<<B>elementwise_add</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+param_5 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+fc_2.b_0
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: LOD_TENSOR<br />lod_tensor {
+  tensor {
+    data_type: FP32
+    dims: 10785
+  }
+}
+
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+param_39 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+gru_1.b_0
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: LOD_TENSOR<br />lod_tensor {
+  tensor {
+    data_type: FP32
+    dims: 1
+    dims: 600
+  }
+}
+
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+op_89 [label=<<B>relu</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+param_43 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+conv2d_4.w_0
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: LOD_TENSOR<br />lod_tensor {
+  tensor {
+    data_type: FP32
+    dims: 64
+    dims: 32
+    dims: 3
+    dims: 3
+  }
+}
+
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+arg_6 [label="fc_1.tmp_1" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+arg_19 [label="conv2d_7.tmp_0" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+arg_59 [label="cast_57.tmp_0" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+op_115 [label=<<B>fetch</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+arg_32 [label="fc_1.tmp_0" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+op_99 [label=<<B>relu</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+arg_36 [label="gru_0.tmp_2" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+op_93 [label=<<B>pool2d</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+arg_38 [label="top_k_1.tmp_0" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+op_98 [label=<<B>elementwise_add</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+param_16 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+conv2d_7.w_0
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: LOD_TENSOR<br />lod_tensor {
+  tensor {
+    data_type: FP32
+    dims: 128
+    dims: 128
+    dims: 3
+    dims: 3
+  }
+}
+
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+arg_31 [label="conv2d_5.tmp_0" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+op_94 [label=<<B>conv2d</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+param_71 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+conv2d_6.b_0
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: LOD_TENSOR<br />lod_tensor {
+  tensor {
+    data_type: FP32
+    dims: 128
+  }
+}
+
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+op_112 [label=<<B>softmax</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+param_15 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+fetch
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: FETCH_LIST<br />
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+op_83 [label=<<B>conv2d</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+op_108 [label=<<B>mul</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+op_114 [label=<<B>cast</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+param_54 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+conv2d_3.b_0
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: LOD_TENSOR<br />lod_tensor {
+  tensor {
+    data_type: FP32
+    dims: 32
+  }
+}
+
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+arg_49 [label="conv2d_1.tmp_1" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+param_28 [label=<<table cellpadding="5">
+  <tr>
+    <td bgcolor="#2b787e">
+    <b>
+conv2d_2.w_0
+    </b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+type: LOD_TENSOR<br />lod_tensor {
+  tensor {
+    data_type: FP32
+    dims: 32
+    dims: 16
+    dims: 3
+    dims: 3
+  }
+}
+
+    </td>  </tr>
+</table>> ,fontname="Arial",color="#148b97",style="rounded,filled,bold",width="1.3",shape="none",fontcolor="#ffffff" ];
+op_82 [label=<<B>relu</B>> ,fontname="Arial",color="#303A3A",style="rounded, filled, bold",height="0.84",width="1.3",shape="box",fontcolor="#ffffff" ];
+arg_45 [label="gru_1.tmp_3" ,color="#dddddd",fontcolor="#999999",shape="box",style="rounded,filled,bold",fontname="Arial" ];
+param_4 -> op_72 [color="#00000"]
+op_72 -> arg_42 [color="#00000"]
+param_46 -> op_73 [color="#00000"]
+arg_42 -> op_73 [color="#00000"]
+op_73 -> arg_63 [color="#00000"]
+arg_63 -> op_74 [color="#00000"]
+param_61 -> op_74 [color="#00000"]
+op_74 -> arg_64 [color="#00000"]
+arg_64 -> op_75 [color="#00000"]
+op_75 -> arg_64 [color="#00000"]
+param_14 -> op_76 [color="#00000"]
+arg_64 -> op_76 [color="#00000"]
+op_76 -> arg_65 [color="#00000"]
+arg_65 -> op_77 [color="#00000"]
+param_8 -> op_77 [color="#00000"]
+op_77 -> arg_49 [color="#00000"]
+arg_49 -> op_78 [color="#00000"]
+op_78 -> arg_49 [color="#00000"]
+arg_49 -> op_79 [color="#00000"]
+op_79 -> arg_52 [color="#00000"]
+param_28 -> op_80 [color="#00000"]
+arg_52 -> op_80 [color="#00000"]
+op_80 -> arg_57 [color="#00000"]
+arg_57 -> op_81 [color="#00000"]
+param_66 -> op_81 [color="#00000"]
+op_81 -> arg_26 [color="#00000"]
+arg_26 -> op_82 [color="#00000"]
+op_82 -> arg_26 [color="#00000"]
+param_62 -> op_83 [color="#00000"]
+arg_26 -> op_83 [color="#00000"]
+op_83 -> arg_67 [color="#00000"]
+arg_67 -> op_84 [color="#00000"]
+param_54 -> op_84 [color="#00000"]
+op_84 -> arg_69 [color="#00000"]
+arg_69 -> op_85 [color="#00000"]
+op_85 -> arg_69 [color="#00000"]
+arg_69 -> op_86 [color="#00000"]
+op_86 -> arg_58 [color="#00000"]
+param_43 -> op_87 [color="#00000"]
+arg_58 -> op_87 [color="#00000"]
+op_87 -> arg_55 [color="#00000"]
+arg_55 -> op_88 [color="#00000"]
+param_60 -> op_88 [color="#00000"]
+op_88 -> arg_40 [color="#00000"]
+arg_40 -> op_89 [color="#00000"]
+op_89 -> arg_40 [color="#00000"]
+param_24 -> op_90 [color="#00000"]
+arg_40 -> op_90 [color="#00000"]
+op_90 -> arg_31 [color="#00000"]
+arg_31 -> op_91 [color="#00000"]
+param_2 -> op_91 [color="#00000"]
+op_91 -> arg_70 [color="#00000"]
+arg_70 -> op_92 [color="#00000"]
+op_92 -> arg_70 [color="#00000"]
+arg_70 -> op_93 [color="#00000"]
+op_93 -> arg_41 [color="#00000"]
+param_21 -> op_94 [color="#00000"]
+arg_41 -> op_94 [color="#00000"]
+op_94 -> arg_68 [color="#00000"]
+arg_68 -> op_95 [color="#00000"]
+param_71 -> op_95 [color="#00000"]
+op_95 -> arg_23 [color="#00000"]
+arg_23 -> op_96 [color="#00000"]
+op_96 -> arg_23 [color="#00000"]
+param_16 -> op_97 [color="#00000"]
+arg_23 -> op_97 [color="#00000"]
+op_97 -> arg_19 [color="#00000"]
+arg_19 -> op_98 [color="#00000"]
+param_20 -> op_98 [color="#00000"]
+op_98 -> arg_17 [color="#00000"]
+arg_17 -> op_99 [color="#00000"]
+op_99 -> arg_17 [color="#00000"]
+arg_17 -> op_100 [color="#00000"]
+op_100 -> arg_44 [color="#00000"]
+arg_44 -> op_101 [color="#00000"]
+op_101 -> arg_37 [color="#00000"]
+arg_37 -> op_102 [color="#00000"]
+param_56 -> op_102 [color="#00000"]
+op_102 -> arg_22 [color="#00000"]
+arg_22 -> op_103 [color="#00000"]
+param_13 -> op_103 [color="#00000"]
+op_103 -> arg_10 [color="#00000"]
+arg_37 -> op_104 [color="#00000"]
+param_7 -> op_104 [color="#00000"]
+op_104 -> arg_32 [color="#00000"]
+arg_32 -> op_105 [color="#00000"]
+param_11 -> op_105 [color="#00000"]
+op_105 -> arg_6 [color="#00000"]
+param_12 -> op_106 [color="#00000"]
+arg_10 -> op_106 [color="#00000"]
+param_25 -> op_106 [color="#00000"]
+op_106 -> arg_35 [color="#00000"]
+op_106 -> arg_18 [color="#00000"]
+op_106 -> arg_36 [color="#00000"]
+op_106 -> arg_48 [color="#00000"]
+param_39 -> op_107 [color="#00000"]
+arg_6 -> op_107 [color="#00000"]
+param_47 -> op_107 [color="#00000"]
+op_107 -> arg_51 [color="#00000"]
+op_107 -> arg_45 [color="#00000"]
+op_107 -> arg_27 [color="#00000"]
+op_107 -> arg_53 [color="#00000"]
+arg_48 -> op_108 [color="#00000"]
+param_30 -> op_108 [color="#00000"]
+op_108 -> arg_3 [color="#00000"]
+arg_53 -> op_109 [color="#00000"]
+param_34 -> op_109 [color="#00000"]
+op_109 -> arg_33 [color="#00000"]
+arg_3 -> op_110 [color="#00000"]
+arg_33 -> op_110 [color="#00000"]
+op_110 -> arg_1 [color="#00000"]
+arg_1 -> op_111 [color="#00000"]
+param_5 -> op_111 [color="#00000"]
+op_111 -> arg_9 [color="#00000"]
+arg_9 -> op_112 [color="#00000"]
+op_112 -> arg_29 [color="#00000"]
+arg_29 -> op_113 [color="#00000"]
+op_113 -> arg_50 [color="#00000"]
+op_113 -> arg_38 [color="#00000"]
+arg_50 -> op_114 [color="#00000"]
+op_114 -> arg_59 [color="#00000"]
+arg_38 -> op_115 [color="#00000"]
+op_115 -> param_15 [color="#00000"]
+arg_59 -> op_116 [color="#00000"]
+op_116 -> param_15 [color="#00000"]
+}
