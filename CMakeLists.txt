@@ -129,8 +129,6 @@ anakin_option(BUILD_STATIC "Build anakin static lib." YES if NOT BUILD_SHARED)
 
 anakin_option(ENABLE_OP_TIMER "Enable op timer mode." NO)
 
-anakin_option(TEST_PATH "Select the build mode for BM place." "/xxxx/xxxx")
-
 # ----------------------------------------------------------------------------
 # section: anakin compiler and linker options
 # ----------------------------------------------------------------------------
