@@ -97,6 +97,7 @@ SaberStatus SaberConv2D<AMD, OpDtype>::create(
     convContext.batch_sz           = inputs[0]->num();
     convContext.pad0               = param.pad_w;
     convContext.pad1               = param.pad_h;
+    convContext.group_counts       = param.group;
     convContext.kernel_stride0     = param.stride_w;
     convContext.kernel_stride1     = param.stride_h;
     convContext.kernel_dilation0   = param.dilation_w;
@@ -136,16 +137,23 @@ SaberStatus SaberConv2D<AMD, OpDtype>::create(
     miopen::Handle::setClEnv(context, device);
     miopen::Handle handle;
     convContext.SetStream(&handle);
-    miopen::solver::ConvSolution solution = miopen::solver::SearchForSolution <
-                                            miopen::solver::ConvBinWinograd3x3U,
-                                            miopen::solver::ConvOclDirectFwd1x1AMD,
-                                            // miopen::solver::ConvAsm3x3U,
-                                            // miopen::solver::ConvAsm1x1U,
-                                            miopen::solver::ConvAsm7x7c3h224w224k64u2v2p3q3f1,
-                                            miopen::solver::ConvOclDirectFwdGen,
-                                            miopen::solver::ConvOclDirectFwd3x3,
-                                            miopen::solver::ConvOclDirectFwd1x1,
-                                            miopen::solver::ConvOclDirectFwd > (convContext, db);
+    miopen::solver::ConvSolution solution;
+
+    if (convContext.group_counts > 1) {
+        solution = miopen::solver::SearchForSolution <miopen::solver::ConvOclDirectFwd > (convContext, db);
+    } else {
+        solution = miopen::solver::SearchForSolution <
+                   miopen::solver::ConvBinWinograd3x3U,
+                   miopen::solver::ConvOclDirectFwd1x1AMD,
+                   // miopen::solver::ConvAsm3x3U,
+                   // miopen::solver::ConvAsm1x1U,
+                   miopen::solver::ConvAsm7x7c3h224w224k64u2v2p3q3f1,
+                   miopen::solver::ConvOclDirectFwdGen,
+                   miopen::solver::ConvOclDirectFwd3x3,
+                   miopen::solver::ConvOclDirectFwd1x1,
+                   miopen::solver::ConvOclDirectFwd > (convContext, db);
+    }
+
     miopen::Handle::clearClEnv();
 
     if (solution.construction_params.size() > 0) {
@@ -204,7 +212,9 @@ SaberStatus SaberConv2D<AMD, OpDtype>::create(
                 if (kernelInfo.kernel_name == "conv7x7c3h224w224k64u2v2p3q3f1b1prelu"
                         || kernelInfo.kernel_name == "conv7x7c3h224w224k64u2v2p3q3f1b0prelu") {
                     kernelInfo.wk_dim      = 3;
-                }    else if (kernelInfo.kernel_name == "ConvFwd1x1") {
+                } else if (kernelInfo.kernel_name == "MIOpenGroupConvUni") {
+                    kernelInfo.wk_dim      = 3;
+                } else if (kernelInfo.kernel_name == "ConvFwd1x1") {
                     int slot_size = 1;
 
                     if (inputs[0]->num() == 1) {
@@ -245,57 +255,92 @@ SaberStatus SaberConv2D<AMD, OpDtype>::create(
         }
     } else {
         LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "No solution found!!!";
-        // not 1x1
-        _outGemmWorkspace = new Tensor<AMD>();
-        std::vector<AMDKernelPtr> vkptr;
-        bool needExtrakernel = false;
-        _outGemmWorkspace->re_alloc(
-            Shape({(param.weight()->height() * param.weight()->width()),
-                   std::max({inputs[0]->channel(),
-                             param.weight()->channel(),
-                             param.weight()->num()
-                            }),
-                   std::max((inputs[0]->height()), (outputs[0]->height())),
-                   std::max((inputs[0]->width()), (outputs[0]->width()))
-                  }));
 
-        if (!findGenericGemm(false, vkptr,
-                             inputs,
-                             outputs[0],
-                             param,
-                             _outGemmWorkspace,
-                             ctx, needExtrakernel)) {
-            return SaberInvalidValue;
+        if ((param.group == inputs[0]->channel()) && (param.group == outputs[0]->channel())) {
+            LOG(INFO) << "Group conv's kernel_type " << kernelInfo.kernel_type;
+
+            int isActiveRelu = 0;
+
+            if (param.activation_param.has_active) {
+                if (param.activation_param.active == Active_relu) {
+                    isActiveRelu = 1;
+                }
+            }
+
+            kernelInfo.comp_options += std::string(" -DMLO_CONV_BIAS=") + std::to_string(isBias) +
+                                       std::string(" -DMLO_CONV_ACTIVE_RELU=") + std::to_string(isActiveRelu);
+
+            kernelInfo.wk_dim = 1;
+            kernelInfo.l_wk   = {256};
+            kernelInfo.g_wk   = {(inputs[0]->num() * inputs[0]->channel() * outputs[0]->height()
+                                  * outputs[0]->width()
+                                  + 256 - 1)
+                                 / 256 * 256
+                                };
+            kernelInfo.kernel_file = "Depthwiseconv.cl";
+            kernelInfo.kernel_name = "Depthwiseconv";
+            kernelInfo.kernel_type = SABER;
+            kptr = CreateKernel(inputs[0]->device_id(), &kernelInfo);
+
+            if (!kptr.get()->isInit()) {
+                LOG(ERROR) << "Failed to load program";
+                return SaberInvalidValue;
+            }
+
+            _kernels_ptr.push_back(kptr);
+        } else {
+            // not 1x1
+            _outGemmWorkspace = new Tensor<AMD>();
+            std::vector<AMDKernelPtr> vkptr;
+            bool needExtrakernel = false;
+            _outGemmWorkspace->re_alloc(
+                Shape({(param.weight()->height() * param.weight()->width()),
+                       std::max({inputs[0]->channel(),
+                                 param.weight()->channel(),
+                                 param.weight()->num()
+                                }),
+                       std::max((inputs[0]->height()), (outputs[0]->height())),
+                       std::max((inputs[0]->width()), (outputs[0]->width()))
+                      }));
+
+            if (!findGenericGemm(false, vkptr,
+                                 inputs,
+                                 outputs[0],
+                                 param,
+                                 _outGemmWorkspace,
+                                 ctx, needExtrakernel)) {
+                return SaberInvalidValue;
+            }
+
+            if (needExtrakernel) {
+                BiasReluPool(
+                    vkptr,
+                    inputs[0]->device_id(),
+                    inputs[0]->num(),
+                    param.weight()->num(),
+                    0,
+                    0,
+                    0,
+                    outputs[0]->height(),
+                    outputs[0]->width(),
+                    outputs[0]->channel(),
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    isBias,
+                    param.activation_param.has_active);
+            }
+
+            for (int i = 0; i < vkptr.size(); i++) {
+                _kernels_ptr.push_back(vkptr[i]);
+            }
+
+            vkptr.clear();
         }
-
-        if (needExtrakernel) {
-            BiasReluPool(
-                vkptr,
-                inputs[0]->device_id(),
-                inputs[0]->num(),
-                param.weight()->num(),
-                0,
-                0,
-                0,
-                outputs[0]->height(),
-                outputs[0]->width(),
-                outputs[0]->channel(),
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                isBias,
-                param.activation_param.has_active);
-        }
-
-        for (int i = 0; i < vkptr.size(); i++) {
-            _kernels_ptr.push_back(vkptr[i]);
-        }
-
-        vkptr.clear();
     }
 
     LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "COMPLETE CREATE KERNEL";
@@ -372,7 +417,8 @@ SaberStatus SaberConv2D<AMD, OpDtype>::dispatch(
                 || (_kernels_ptr[i].get()->GetName() == "MIOpenConv1x1pquv")
                 || (_kernels_ptr[i].get()->GetName() == "MIOpenCvD3x3_WSR0")
                 || (_kernels_ptr[i].get()->GetName() == "MIOpenCDFGen")
-                || (_kernels_ptr[i].get()->GetName() == "MIOpenCDFGen4")) {
+                || (_kernels_ptr[i].get()->GetName() == "MIOpenCDFGen4")
+                || (_kernels_ptr[i].get()->GetName() == "MIOpenGroupConvUni")) {
 
             if (isBias) {
                 if (isActive) {
@@ -548,6 +594,56 @@ SaberStatus SaberConv2D<AMD, OpDtype>::dispatch(
             }
 
             list.push_back(_kernels_ptr[i]);
+        } else if (_kernels_ptr[i].get()->GetName() == "Depthwiseconv") {
+            if (isBias) {
+                err = _kernels_ptr[i].get()->SetKernelArgs(
+                          (PtrDtype)inputs[0]->data(),
+                          (int)inputs[0]->num(),
+                          (int)inputs[0]->channel(),
+                          (int)inputs[0]->height(),
+                          (int)inputs[0]->width(),
+                          (int)outputs[0]->height(),
+                          (int)outputs[0]->width(),
+                          (int)param.weight()->height(),
+                          (int)param.weight()->width(),
+                          (int)param.stride_h,
+                          (int)param.stride_w,
+                          (int)param.pad_h,
+                          (int)param.pad_w,
+                          (PtrDtype)outputs[0]->mutable_data(),
+                          (PtrDtype)param.weight()->data(),
+                          (PtrDtype)param.bias()->data());
+            } else {
+                err = _kernels_ptr[i].get()->SetKernelArgs(
+                          (PtrDtype)inputs[0]->data(),
+                          (int)inputs[0]->num(),
+                          (int)inputs[0]->channel(),
+                          (int)inputs[0]->height(),
+                          (int)inputs[0]->width(),
+                          (int)outputs[0]->height(),
+                          (int)outputs[0]->width(),
+                          (int)param.weight()->height(),
+                          (int)param.weight()->width(),
+                          (int)param.stride_h,
+                          (int)param.stride_w,
+                          (int)param.pad_h,
+                          (int)param.pad_w,
+                          (PtrDtype)outputs[0]->mutable_data(),
+                          (PtrDtype)param.weight()->data());
+            }
+
+            if (!err) {
+                LOG(ERROR) << "Fail to set kernel args :" << err;
+                return SaberInvalidValue;
+            }
+
+            list.push_back(_kernels_ptr[i]);
+            //err = LaunchKernel(cm, list);
+
+            //if (!err) {
+            //    LOG(ERROR) << "Fail to set execution :" << err;
+            //    return SaberInvalidValue;
+            //}
         } else if (_kernels_ptr[i].get()->GetName() == "conv7x7c3h224w224k64u2v2p3q3f1b1prelu") {
             float paddingVal = 0.0f;
             err = _kernels_ptr[i].get()->SetKernelArgs(
