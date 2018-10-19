@@ -1177,7 +1177,7 @@ def Parser_normalize(args):
         OpsRegister()["Normalize"].begin_norm_axis = -1
         OpsRegister()["Normalize"].is_across_spatial = False
         OpsRegister()["Normalize"].is_shared_channel = False
-        OpsRegister()["Normalize"].eps = 0
+        OpsRegister()["Normalize"].eps = 0.0
         OpsRegister()["Normalize"].p = 2
 
 @ParserFeedDecorator("Activation")
