@@ -106,7 +106,7 @@ def Parser_batch_full_connect(args):
         tensors[1].set_shape([1, 1, 1, param.num_out])
         OpsRegister()["Dense"].weight_2 = tensors[1]
     OpsRegister()["Dense"].weight_1 = tensors[0]
-    OpsRegister()["Dense"].in_dim = param.num_in
+    #OpsRegister()["Dense"].in_dim = param.num_in
     OpsRegister()["Dense"].out_dim = param.num_out
     OpsRegister()["Dense"].axis = param.axis
 
