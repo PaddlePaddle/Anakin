@@ -46,7 +46,9 @@ class Configuration:
         elif self.framework == "PADDLE":
             pass
         elif self.framework == "LEGO":
-            pass
+            proto_list = data['TARGET'][self.framework]['ProtoPaths']
+            self.__generate_pbs(proto_list)
+            self.framework_config_dict = data['TARGET'][self.framework]
         elif self.framework == "TENSORFLOW":
             proto_list = data['TARGET'][self.framework]['ProtoPaths']
             self.framework_config_dict = data['TARGET'][self.framework]

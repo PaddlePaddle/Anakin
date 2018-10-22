@@ -7,7 +7,6 @@ from google.protobuf import text_format
 from utils import *
 from proto import *
 
-
 class NodeAttrWrapper(object):
     """
     """
@@ -87,12 +86,29 @@ class TensorProtoIO(object):
     def set_data_type(self, data_type):
         self.tensor_proto.data.type = data_type 
 
+    def get_shape(self):
+	    return self.tensor_proto.shape.dim.value
+
     def set_shape(self, shape_list):
         """
         Shape list equal to python list
         """
         self.tensor_proto.shape.dim.value[:] = shape_list
         self.tensor_proto.shape.dim.size = len(shape_list)
+
+    def get_data(self):
+        """
+        """
+        if self.tensor_proto.data.type == STR:
+            return self.tensor_proto.data.s
+        elif self.tensor_proto.data.type == INT32:
+            return self.tensor_proto.data.i
+        elif self.tensor_proto.data.type == FLOAT:
+            return self.tensor_proto.data.f
+        elif self.tensor_proto.data.type == BOOLEN:
+            return self.tensor_proto.data.b
+        else:
+            raise NameError('ERROR: Unknown data type in message CacheDate')
 
     def set_data(self, data_list, data_type):
         """
@@ -228,8 +244,8 @@ class GraphProtoIO(object):
             if index >= 0:
                 del self.graph_proto.nodes[index]
         else:
-            raise NameError('ERROR: (%s) node not exist.' % ( node ) )
-
+            raise NameError('ERROR: (%s) node not exist.' % (node))
+    
     def find_node_proto(self, node_name):
         for node in self.graph_proto.nodes:
             if node.name == node_name:

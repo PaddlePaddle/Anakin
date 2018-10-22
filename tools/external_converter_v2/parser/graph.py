@@ -25,7 +25,8 @@ class Graph(object):
         elif config.framework == 'PADDLE':
             pass
         elif config.framework == 'LEGO':
-            pass
+            from lego import LegoParser_test
+            self.parser = LegoParser_test(config.framework_config_dict)
         elif config.framework == 'TENSORFLOW':
             from tensorflow import TFParser
             self.parser=TFParser(config.framework_config_dict)
