@@ -774,8 +774,8 @@ class FluidParser:
         inputs_of_split = self.ins[split_node_name].targets('_In')
         assert len(inputs_of_split) < 2
         split_num = len(outputs_of_split)
-    if split_num == 0:
-        print 'WARNING: RefeshSplit num is equal to zero.'
+        if split_num == 0:
+            print 'WARNING: RefeshSplit num is equal to zero.'
         elif split_num == 1:
             self.ins[outputs_of_split[0]].mv(split_node_name, inputs_of_split[0])
             self.outs[inputs_of_split[0]].mv(split_node_name, outputs_of_split[0])
