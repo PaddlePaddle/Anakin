@@ -64,20 +64,23 @@ class Configuration:
             raise
 
     def check_protobuf_version(self):
+        """
+        Check if the pip-protoc version is equal to sys-protoc version.
+        """
         for path in sys.path:
-           module_path = os.path.join(path, 'google', 'protobuf', '__init__.py')
-           if os.path.exists(module_path):
-               with open(module_path) as f:
-                   __name__ = '__main__'
-                   exec(f.read(), locals())
-               break
+            module_path = os.path.join(path, 'google', 'protobuf', '__init__.py')
+            if os.path.exists(module_path):
+                with open(module_path) as f:
+                    __name__ = '__main__'
+                    exec(f.read(), locals())
+                break
         try:
             protoc_out = subprocess.check_output(["protoc", "--version"]).split()[1]
         except OSError as exc:
             raise OSError('Can not find Protobuf in system environment.')
         sys_versions = map(int, protoc_out.split('.'))
         pip_versions = map(int, __version__.split('.'))
-        assert sys_versions[0] >= 3 and pip_versions[0] >= 3 , \
+        assert sys_versions[0] >= 3 and pip_versions[0] >= 3, \
             "Protobuf version must be greater than 3.0. Please refer to the Anakin Docs."
         assert pip_versions[1] >= sys_versions[1], \
             "ERROR: Protobuf must be the same.\nSystem Protobuf %s\nPython Protobuf %s\n" \

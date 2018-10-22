@@ -458,9 +458,9 @@ class FluidParser:
         for source_op in source_ops:
             if source_op.type == 'prior_box':
                 if is_dev_v2 is True:
-                   axis = 2
+                    axis = 2
                 else:
-                   axis = 3
+                    axis = 3
                 private_data = {"axis": axis}
                 pb_node_name = self._NameNodeMid(source_op)
                 br_node_name = self.outs[pb_node_name].target('Boxes')
@@ -482,7 +482,8 @@ class FluidParser:
                 self.ins[pb_node_name].add('Input', input_node_name)
                 self.ins[pb_node_name].add('Image', image_node_name)
                 self._RmProtoNode(bc_node_name)
-                self._AddProtoNode(bc_node_name, None, helper, private_data, 'concat_btw_priorbox_boxcoder')
+                self._AddProtoNode(bc_node_name, None, helper, private_data, \
+                    'concat_btw_priorbox_boxcoder')
         for node_name in nodes_to_del:
             self._RmProtoNode(node_name)
             self._ClearEdges(node_name)
@@ -773,8 +774,8 @@ class FluidParser:
         inputs_of_split = self.ins[split_node_name].targets('_In')
         assert len(inputs_of_split) < 2
         split_num = len(outputs_of_split)
-	if split_num == 0:
-	    print 'WARNING: RefeshSplit num is equal to zero.'
+    if split_num == 0:
+        print 'WARNING: RefeshSplit num is equal to zero.'
         elif split_num == 1:
             self.ins[outputs_of_split[0]].mv(split_node_name, inputs_of_split[0])
             self.outs[inputs_of_split[0]].mv(split_node_name, outputs_of_split[0])
