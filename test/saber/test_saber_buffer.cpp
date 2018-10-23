@@ -148,7 +148,7 @@ TEST(TestSaberFunc, test_saber_buffer) {
     test_buffer<ARM, ARM, AK_INT8>();
 #endif
 
-#ifdef USE_BM
+#ifdef USE_BM_PLACE
     LOG(INFO) << "test BM FP32 buffer";
     //test_buffer<BM, X86, AK_FLOAT>();
 #endif

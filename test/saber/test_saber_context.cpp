@@ -57,12 +57,12 @@ TEST(TestSaberFunc, test_arm_context) {
 }
 #endif //USE_ARM_PLACE
 
-#ifdef USE_BM
+#ifdef USE_BM_PLACE
 TEST(TestSaberFunc, test_BM_context) {
     Context<BM> ctx;
     CHECK_NOTNULL(ctx.get_handle()) << "Failed to get BM handle";
 }
-#endif //USE_BM
+#endif //USE_BM_PLACE
 
 #ifdef AMD_GPU
 TEST(TestSaberFunc, test_AMD_context) {

@@ -268,4 +268,3 @@ template class Worker<ARM, Precision::INT8, OpRunType::SYNC>;
 #endif
 
 } /* namespace */
-

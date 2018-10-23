@@ -450,7 +450,7 @@ struct TargetWrapper<BM, __device_target> {
     static bm_handle_t get_handle();
 
 };
-#endif //USE_BM
+#endif //USE_BM_PLACE
 
 #ifdef AMD_GPU
 
