@@ -87,13 +87,14 @@ public:
         API::set_device(cur_id);
         LOG(INFO)<<"dev size = "<<devs.size();
     }
+
+    ~Env(){
+        API::deinit_handle();
+    }
+    
 private:
     Env(){}
 };
-
-Env<BM>::~Env(){
-    API::deinit_handle();
-}
 
 #endif
 
