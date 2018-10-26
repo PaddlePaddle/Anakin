@@ -47,8 +47,25 @@ struct Device {
     	get_info();
     	create_stream();
     }
-    void get_info();
-    void create_stream();
+
+    void get_info() {
+        LOG(WARNING) << "BM get_info is not implemented";
+    }
+
+    void create_stream(){
+        _data_stream.clear();
+        _compute_stream.clear();
+        for (int i = 0; i < _max_stream; i++) {
+            typedef TargetWrapper<BM> API;
+            typename API::stream_t stream_data;
+            typename API::stream_t stream_compute;
+            API::create_stream_with_flag(&stream_data, 1);
+            API::create_stream_with_flag(&stream_compute, 1);
+            _data_stream.push_back(stream_data);
+            _compute_stream.push_back(stream_compute);
+        }
+    }
+    
     DeviceInfo<TargetType> _info;
 	int _max_stream;
 
