@@ -41,6 +41,7 @@ public:
             int dev_count = 0;
             TargetWrapper<BM>::get_device_count(dev_count);
             CHECK_GE(dev_count, 1) << "Env is not initialized or current target is not exit!";
+            TargetWrapper<BM>::init_handle();
             _bm_handle = TargetWrapper<BM>::get_handle();
             return;
         }
@@ -157,6 +158,14 @@ public:
     }
 #endif
 
+#ifdef USE_BM_PLACE
+    ~Context() {
+        if(std::is_same<TargetType, BM>::value) {
+            LOG(INFO) << "context deinit for BM";
+            TargetWrapper<BM>::deinit_handle();
+        }
+    }
+#endif
 
 private:
     //! current stream to process
