@@ -51,6 +51,10 @@ namespace anakin{
 
             private:
                 const ResizeParam* _param;
+                ////coordinate buffer
+                Tensor<CPU, AK_FLOAT> _coor_buf; 
+                //rows buffer
+                std::vector<Tensor<CPU, AK_FLOAT>> _rows_buf;
                 float _width_scale{0.0f};
                 float _height_scale{0.0f};
             };

@@ -48,6 +48,101 @@ void softmax_basic(const float* din, float* dout, \
     }
 }
 
+void softmax_arm_lite(const float* din, float* dout, \
+    const int axis_size, const int inner_num, \
+    const int outer_num, const int compute_size) {
+
+    int cmp_cnt = compute_size >> 2;
+   // int cmp_remain = compute_size % 4;
+   // printf("axis_size: %d, inner_num: %d, outer_num: %d, compute_size: %d \n", axis_size, inner_num, outer_num, compute_size);
+    //printf("cmp_cnt: %d \n", cmp_cnt);
+    #pragma omp parallel for
+    for (int c = 0; c < cmp_cnt; ++c) {
+        int i = c * 4;
+        int idx_inner = i % inner_num;
+        int idx_outer = (i / inner_num) * axis_size;
+        int real_index = idx_outer * inner_num + idx_inner;
+
+        //float max_data = din[real_index];
+        const float* din_ptr =  din + real_index;
+        float32x4_t vmax = vld1q_f32(din_ptr);
+        //! get max
+        for (int j = 1; j < axis_size; ++j) {
+            din_ptr += inner_num;
+            float32x4_t vdata = vld1q_f32(din_ptr);
+            vmax = vmaxq_f32(vmax, vdata);
+        }
+
+        //! sub, exp and sum
+      //  dout[real_index] = expf(din[real_index] - max_data);
+        din_ptr =  din + real_index;
+        float* dout_ptr = dout + real_index;
+        float32x4_t vdata = vld1q_f32(din_ptr);
+        float32x4_t vsum  = exp_ps(vsubq_f32(vdata, vmax));
+        din_ptr += inner_num;
+        vst1q_f32(dout_ptr, vsum);
+        dout_ptr += inner_num;
+        //float sum_data = dout[real_index];
+        for (int j = 1; j < axis_size; ++j) {
+          //  real_index += inner_num;
+            float32x4_t vdata0 = vld1q_f32(din_ptr);
+            vdata0 = exp_ps(vsubq_f32(vdata0, vmax));
+            din_ptr += inner_num;
+            vsum = vaddq_f32(vsum, vdata0);
+            vst1q_f32(dout_ptr, vdata0);
+            dout_ptr += inner_num;
+        }
+
+      //  float sum_inv = 1.f / sum_data;
+        float32x4_t vone = vdupq_n_f32(1.0f);
+        float32x4_t vinf = div_ps(vone, vsum);
+        dout_ptr = dout + real_index;
+       //printf("real_index: %d, dout: %x, dout_ptr: %x \n", real_index, dout, dout_ptr);
+       // real_index = idx_outer * inner_num + idx_inner;
+        //! get softmax result
+        for (int j = 0; j < axis_size; ++j) {
+            float32x4_t vdata0 = vld1q_f32(dout_ptr);
+            vdata0 = vmulq_f32(vdata0, vinf);
+            vst1q_f32(dout_ptr, vdata0);
+            dout_ptr += inner_num;
+        }
+    }
+
+    for(int i = cmp_cnt * 4; i < compute_size; i++){
+        int idx_inner = i % inner_num;
+        int idx_outer = (i / inner_num) * axis_size;
+        int real_index = idx_outer * inner_num + idx_inner;
+
+      //  printf("real_index: %d, din: %x\n", real_index, din);
+
+        float max_data = din[real_index];
+        //! get max
+        for (int j = 1; j < axis_size; ++j) {
+            real_index += inner_num;
+            max_data = din[real_index] > max_data? din[real_index] : max_data;
+        }
+
+        real_index = idx_outer * inner_num + idx_inner;
+        //! sub, exp and sum
+        dout[real_index] = expf(din[real_index] - max_data);
+        float sum_data = dout[real_index];
+        for (int j = 1; j < axis_size; ++j) {
+            real_index += inner_num;
+            dout[real_index] = expf(din[real_index] - max_data);
+            sum_data += dout[real_index];
+        }
+
+        float sum_inv = 1.f / sum_data;
+        real_index = idx_outer * inner_num + idx_inner;
+        //! get softmax result
+        for (int j = 0; j < axis_size; ++j) {
+            dout[real_index] *= sum_inv;
+            real_index += inner_num;
+        }
+    }
+
+}
+
 //! for inner size == 1
 void softmax_inner1(const float* din, float* dout, \
     const int outer_size, const int axis_size) {
@@ -242,7 +337,16 @@ SaberStatus SaberSoftmax::dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& in
         }
     } else {
         int compute_size = inputs[0]->valid_size() / _axis_size;
-        softmax_basic(din, dout, _axis_size, _inner_num, _outer_num, compute_size);
+     //   softmax_basic(din, dout, _axis_size, _inner_num, _outer_num, compute_size);
+#if 1
+        if(this->_inner_num % 4){
+           // printf("basic \n");
+            softmax_basic(din, dout, _axis_size, _inner_num, _outer_num, compute_size);
+        }else{
+           // printf("lite \n");
+            softmax_arm_lite(din, dout, _axis_size, _inner_num, _outer_num, compute_size);
+        }
+#endif
     }
 #ifdef ENABLE_OP_TIMER
     this->_timer.end();
