@@ -447,7 +447,7 @@ def Parser_elementwise_mul(args):
     if helper.is_persistable_param(op, 'Y'):
         OpsRegister()["Scale"].weight_1 = helper.param_tensor(op, 'Y')
     else:
-        print 'Eltwise_mul: There is no weight in this layer.'
+        OpsRegister()["Scale"].weight_1 = helper.create_tensor([scale_val], [1, 1, 1, 1], FLOAT)
     OpsRegister()["Scale"].axis = helper.attr_data(op, 'axis')
     OpsRegister()["Scale"].num_axes = 1
     if 'bias' in private_data.keys():
