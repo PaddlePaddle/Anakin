@@ -41,13 +41,13 @@ class Configuration:
             proto_list = data['TARGET'][self.framework]['ProtoPaths']
             assert type(proto_list) == list, \
             "The ProtoPaths format maybe incorrect, please check if there is any HORIZONTAL LINE."
-            self.__generate_pbs(proto_list)
+            self.__refresh_pbs(proto_list)
             self.framework_config_dict = data['TARGET'][self.framework]
         elif self.framework == "PADDLE":
             pass
         elif self.framework == "LEGO":
             proto_list = data['TARGET'][self.framework]['ProtoPaths']
-            self.__generate_pbs(proto_list)
+            self.__refresh_pbs(proto_list)
             self.framework_config_dict = data['TARGET'][self.framework]
         elif self.framework == "TENSORFLOW":
             proto_list = data['TARGET'][self.framework]['ProtoPaths']
@@ -78,6 +78,10 @@ class Configuration:
             protoc_out = subprocess.check_output(["protoc", "--version"]).split()[1]
         except OSError as exc:
             raise OSError('Can not find Protobuf in system environment.')
+        try:
+            __version__
+        except NameError:
+            raise OSError('Can not find Protobuf in python environment.')
         sys_versions = map(int, protoc_out.split('.'))
         pip_versions = map(int, __version__.split('.'))
         assert sys_versions[0] >= 3 and pip_versions[0] >= 3, \
@@ -96,9 +100,18 @@ class Configuration:
                 protoFilesList.append("parser/proto/" + file)
         if len(protoFilesList) == 0:
             raise NameError('ERROR: There does not have any proto files in proto/ ')
-        self.__generate_pbs(protoFilesList, "parser/proto/")
+        self.__refresh_pbs(protoFilesList, "parser/proto/")
 
-    def __generate_pbs(self, proto_list, default_save_path="parser/pbs/"):
+    def pbs_eraser(self, folder_path):
+        """
+        Delete existing pb2 to avoid conflicts.
+        """
+        for file_name in os.listdir(os.path.dirname(folder_path)):
+            if "pb2." in file_name:
+                file_path = os.path.join(folder_path, file_name)
+                os.remove(file_path)
+
+    def __refresh_pbs(self, proto_list, default_save_path="parser/pbs/"):
         """
         Genetrate pb files according to proto file list and saved to parser/pbs/ finally.
         parameter:
@@ -106,7 +119,9 @@ class Configuration:
                 default_save_path: default saved to 'parser/pbs/'
         """
         self.check_protobuf_version()
+        self.pbs_eraser(default_save_path)
         for pFile in proto_list:
+            assert os.path.exists(pFile), "%s does not exist.\n" % (pFile)
             subprocess.check_call(['protoc', '-I', 
                                    os.path.dirname(pFile) + "/",
                                    '--python_out', os.path.dirname(default_save_path) + "/", pFile])
