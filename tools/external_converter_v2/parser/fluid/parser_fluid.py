@@ -552,10 +552,10 @@ class FluidParser:
                 private_data = {}
                 gru_flags = [False, False]
                 gru_node_name = self._NameNodeMid(source_op)
+                mul_node_name = str()
                 gru_op = self._GetOp(source_ops, gru_node_name)
                 input_list_of_gru = self.ins[gru_node_name].targets('Input')
-                if len(input_list_of_gru) == 1 and \
-                input_list_of_gru[0].startswith('elementwise_add'):
+                if len(input_list_of_gru) == 1 and input_list_of_gru[0].startswith('elementwise_add'):
                     elt_node_name = input_list_of_gru[0]
                     elt_op = self._GetOp(source_ops, elt_node_name)
                     has_weights = helper.is_persistable_param(elt_op, 'Y')
@@ -565,23 +565,32 @@ class FluidParser:
                     input_list_of_elt = self.ins[elt_node_name].targets('X')
                     if len(input_list_of_elt) == 1 and input_list_of_elt[0].startswith('mul'):
                         mul_node_name = input_list_of_elt[0]
-                        mul_op = self._GetOp(source_ops, mul_node_name)
-                        if helper.var_name_by_param(mul_op, 'Y').startswith('fc'):
-                            if helper.attr_data(mul_op, 'x_num_col_dims') == 1:
-                                input_list_of_mul = self.ins[mul_node_name].targets('X')
-                                input_name_of_mul = input_list_of_mul[0]
-                                private_data['np_weight_x'] = helper.np_param(mul_op, 'Y')
-                                gru_flags[1] = True
-                            else:
-                                raise NameError('ERROR: Axis of GRU_FC must be 1.')
-                if gru_flags == [True, True]:
+                elif len(input_list_of_gru) == 1 and input_list_of_gru[0].startswith('mul'):
+                    mul_node_name = input_list_of_gru[0]
+                    private_data['np_bias_x'] = 0
+                if bool(mul_node_name):
+                    mul_op = self._GetOp(source_ops, mul_node_name)
+                    if helper.var_name_by_param(mul_op, 'Y').startswith('fc'):
+                        if helper.attr_data(mul_op, 'x_num_col_dims') == 1:
+                            input_list_of_mul = self.ins[mul_node_name].targets('X')
+                            input_name_of_mul = input_list_of_mul[0]
+                            private_data['np_weight_x'] = helper.np_param(mul_op, 'Y')
+                            gru_flags[1] = True
+                        else:
+                            raise NameError('ERROR: Axis of GRU_FC must be 1.')
+                if gru_flags[1]:
                     self.outs[input_name_of_mul].mv(mul_node_name, gru_node_name)
-                    self.ins[gru_node_name].mv(elt_node_name, input_name_of_mul)
-                    for node_to_del_name in [mul_node_name, elt_node_name, gru_node_name]:
+                    self._AddProtoNode(gru_node_name, gru_op, helper, private_data)
+                    if gru_flags[0]:
+                        self.ins[gru_node_name].mv(elt_node_name, input_name_of_mul)
+                        nodes_to_del = [mul_node_name, elt_node_name, gru_node_name]
+                    else:
+                        self.ins[gru_node_name].mv(mul_node_name, input_name_of_mul)
+                        nodes_to_del = [mul_node_name, gru_node_name]
+                    for node_to_del_name in nodes_to_del:
                         self._RmProtoNode(node_to_del_name)
                         if node_to_del_name is not gru_node_name:
                             self._ClearEdges(node_to_del_name)
-                    self._AddProtoNode(gru_node_name, gru_op, helper, private_data)
 
     def _SearchBilstm(self, source_ops, helper):
         comp = Fluid_comparator(helper)
