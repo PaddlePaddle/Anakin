@@ -69,7 +69,7 @@ struct Device<BM> {
     }
     void get_info();
     void create_stream();
-    DeviceInfo<BM> _info;
+    DeviceInfo<TargetType> _info;
 	int _max_stream;
 
     std::vector<typename API::stream_t> _data_stream;
