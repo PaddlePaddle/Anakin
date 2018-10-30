@@ -46,13 +46,6 @@ class Configuration:
     def config_from_cmd(self, argv):
         """
         Read configuration information from the command line.
-        usage 1:
-            python ./converter.py CAFFE --proto=/path/to/filename1.proto \
-            --proto=/path/to/filename2.proto --prototxt=/path/to/filename.prototxt \
-            --caffemodel=/path/to/filename.caffemodel --resultname=filename.bin
-        usage 2:
-            python ./converter.py FLUID --modelpath=/model/path/ --type=OCR \
-            --resultname=filename.bin
         """
         cmd = {
             'CAFFE': {
@@ -71,7 +64,6 @@ class Configuration:
                     + '--caffemodel=/path/to/filename.caffemodel\n' \
                     + 'Usage2: python ./converter.py ' \
                     + 'FLUID --modelpath=/model/path/ --type=OCR'
-
         def splitter(arg, key_delim='--', val_delim='='):
             if (key_delim in arg) and (val_delim in arg):
                 # [key, val]
@@ -79,7 +71,6 @@ class Configuration:
                 return element
             else:
                 raise NameError(err_note)
-
         def filler(arg, dic):
             element = splitter(arg)
             key = element[0]
@@ -88,11 +79,9 @@ class Configuration:
             "Param %s in cmd is wrong." % (key)
             if type(dic[key][1]) == str: dic[key][1] = val
             elif type(dic[key][1]) == list: dic[key][1].append(val)
-
         def null_scanner(dic):
             for key in dic:
                 assert (bool(dic[key][1])), 'Key [%s] should not be null.' % (key)
-
         def arg_transmit(dic, target):
             if target == 'CAFFE':
                 self.ResultName = dic['caffemodel'][1].split("/")[-1].split('.caffemodel')[0]
@@ -107,7 +96,7 @@ class Configuration:
                 key = dic[cmd_key][0]
                 val = dic[cmd_key][1]
                 self.framework_config_dict[key] = val
-
+            self.LaunchBoard = False
         target = argv[1]
         assert target in cmd.keys(), "Framework [%s] is not yet supported." % (target)
         for arg in argv[2:]:
