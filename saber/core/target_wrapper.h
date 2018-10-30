@@ -448,6 +448,8 @@ struct TargetWrapper<BM, __device_target> {
     static int get_device_id();
     static void device_sync(){};
     static bm_handle_t get_handle();
+    static void init_handle();
+    static void deinit_handle();
 
 };
 #endif //USE_BM_PLACE
