@@ -55,6 +55,50 @@ private:
     Env(){}
 };
 
+#ifdef USE_BM_PLACE
+static shared_ptr<Env> env_holder;
+
+template <>
+class Env<BM> {
+public:
+    typedef TargetWrapper<BM> API;
+    typedef std::vector<Device<BM>> Devs;
+    static Devs& cur_env() {
+        static Devs* _g_env = new Devs();
+        return *_g_env;
+    }
+    static void env_init(int max_stream = 4){
+        Devs& devs = cur_env();
+        if (devs.size() > 0){
+            return;
+        }
+        int count = 0;
+        API::get_device_count(count);
+        if (count == 0) {
+            CHECK(false) << "no device found!";
+        } else {
+            LOG(INFO) << "found " << count << " device(s)";
+        }
+        int cur_id = API::get_device_id();
+        for (int i = 0; i < count; i++) {
+            API::set_device(i);
+            devs.push_back(Device<BM>(max_stream));
+        }
+        API::set_device(cur_id);
+        LOG(INFO)<<"dev size = "<<devs.size();
+
+        env_holder.reset(new Env());
+        API::init_handle();
+    }
+
+    ~Env() {
+        API::deinit_handle();
+    }
+private:
+    Env(){}
+};
+#endif
+
 #ifdef AMD_GPU 
 typedef std::list<cl_event> cl_event_list;
 

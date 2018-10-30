@@ -42,10 +42,17 @@ namespace saber {
 
 typedef TargetWrapper<BM, __device_target> BM_API;
 
-
-// Init handle only once in the lifetime
 static bm_handle_t handle;
-static bm_status_t init_handle{bmlib_kernel_init(&handle)};
+
+void BM_API::init_handle(){
+    LOG(INFO) << "BM init handle";
+    bmlib_kernel_init(&handle);
+};
+
+void BM_API::deinit_handle(){
+    LOG(INFO) << "BM deinit handle";
+    bmlib_kernel_deinit(handle);
+};
 
 bm_handle_t BM_API::get_handle() {
     return handle;
@@ -60,7 +67,6 @@ void BM_API::set_device(int id) {
     //BM_CHECK(bm_dev_request(&handle, 0, id));
 }
 
-//TODO: Do we have this functionality?
 int BM_API::get_device_id() {
     return 0;
 }
