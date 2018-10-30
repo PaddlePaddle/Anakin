@@ -11,7 +11,7 @@ def launch(config, graph):
     graph.run_with_server(config.ip, config.port)
 
 if __name__ == "__main__":
-    config = Configuration()	
+    config = Configuration(sys.argv)
     # import parser 
     from parser import *
     # init logger

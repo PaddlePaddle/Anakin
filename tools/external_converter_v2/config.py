@@ -19,7 +19,7 @@ class Configuration:
     Parse the config.yaml file.
     Configuration holds all the params defined in configfile.
     """
-    def __init__(self, config_file_path=ConfigFilePath):
+    def __init__(self, argv, config_file_path=ConfigFilePath):
         data = load(open(config_file_path, 'r').read())
         # parse Options from config file.
         self.framework = data['OPTIONS']['Framework']
@@ -27,8 +27,8 @@ class Configuration:
                 if data['OPTIONS']['SavePath'][-1] == '/' \
                 else data['OPTIONS']['SavePath'] + '/'
         self.ResultName = data['OPTIONS']['ResultName']
-        self.intermediateModelPath = data['OPTIONS']['SavePath'] \
-                + data['OPTIONS']['ResultName'] + "anakin.bin"
+        #self.intermediateModelPath = data['OPTIONS']['SavePath'] \
+        #        + data['OPTIONS']['ResultName'] + "anakin.bin"
         self.LaunchBoard = True if data['OPTIONS']['Config']['LaunchBoard'] else False
         self.ip = data['OPTIONS']['Config']['Server']['ip']
         self.port = data['OPTIONS']['Config']['Server']['port']
@@ -36,32 +36,84 @@ class Configuration:
         self.optimizedGraphPath = data['OPTIONS']['Config']['OptimizedGraph']['path'] \
                 if self.hasOptimizedGraph else ""
         self.logger_dict = data['OPTIONS']['LOGGER']
-        # parse TARGET info from config file.
-        if self.framework == "CAFFE":
-            proto_list = data['TARGET'][self.framework]['ProtoPaths']
-            assert type(proto_list) == list, \
-            "The ProtoPaths format maybe incorrect, please check if there is any HORIZONTAL LINE."
-            self.__refresh_pbs(proto_list)
-            self.framework_config_dict = data['TARGET'][self.framework]
-        elif self.framework == "PADDLE":
-            pass
-        elif self.framework == "LEGO":
-            proto_list = data['TARGET'][self.framework]['ProtoPaths']
-            self.__refresh_pbs(proto_list)
-            self.framework_config_dict = data['TARGET'][self.framework]
-        elif self.framework == "TENSORFLOW":
-            proto_list = data['TARGET'][self.framework]['ProtoPaths']
-            self.framework_config_dict = data['TARGET'][self.framework]
-        elif self.framework == "MXNET":
-            pass
-        elif self.framework == "FLUID":
-            self.framework_config_dict = data['TARGET'][self.framework]
-        else:
-            raise NameError('ERROR: Framework not support yet ' % (self.framework))
-        try:
-            self.generate_pbs_of_anakin()
-        except NameError:
-            raise
+        self.framework_config_dict = data['TARGET'][self.framework]
+        if len(argv) > 1:
+            self.config_from_cmd(argv)
+        proto_list = data['TARGET'][self.framework]['ProtoPaths']
+        self.__refresh_pbs(proto_list)
+        self.generate_pbs_of_anakin()
+
+    def config_from_cmd(self, argv):
+        """
+        Read configuration information from the command line.
+        usage 1:
+            python ./converter.py CAFFE --proto=/path/to/filename1.proto \
+            --proto=/path/to/filename2.proto --prototxt=/path/to/filename.prototxt \
+            --caffemodel=/path/to/filename.caffemodel --resultname=filename.bin
+        usage 2:
+            python ./converter.py FLUID --modelpath=/model/path/ --type=OCR \
+            --resultname=filename.bin
+        """
+        cmd = {
+            'CAFFE': {
+                'proto': ['ProtoPaths', list()], 
+                'prototxt': ['PrototxtPath', str()],
+                'caffemodel': ['ModelPath', str()],
+                },
+            'FLUID': {
+                'modelpath': ['ModelPath', str()],
+                'type': ['NetType', str()],
+            },
+        }
+        err_note = '\nUsage1: python ./converter.py ' \
+                    + 'CAFFE --proto=/path/to/filename1.proto ' \
+                    + '--prototxt=/path/to/filename.prototxt ' \
+                    + '--caffemodel=/path/to/filename.caffemodel\n' \
+                    + 'Usage2: python ./converter.py ' \
+                    + 'FLUID --modelpath=/model/path/ --type=OCR'
+
+        def splitter(arg, key_delim='--', val_delim='='):
+            if (key_delim in arg) and (val_delim in arg):
+                # [key, val]
+                element = arg.split(key_delim)[1].split(val_delim)
+                return element
+            else:
+                raise NameError(err_note)
+
+        def filler(arg, dic):
+            element = splitter(arg)
+            key = element[0]
+            val = element[1]
+            assert key in dic.keys(), \
+            "Param %s in cmd is wrong." % (key)
+            if type(dic[key][1]) == str: dic[key][1] = val
+            elif type(dic[key][1]) == list: dic[key][1].append(val)
+
+        def null_scanner(dic):
+            for key in dic:
+                assert (bool(dic[key][1])), 'Key [%s] should not be null.' % (key)
+
+        def arg_transmit(dic, target):
+            if target == 'CAFFE':
+                self.ResultName = dic['caffemodel'][1].split("/")[-1].split('.caffemodel')[0]
+            elif target == 'FLUID':
+                if dic['modelpath'][-1] == '/':
+                    self.ResultName = dic['modelpath'][1].split("/")[-2]
+                else:
+                    self.ResultName = dic['modelpath'][1].split("/")[-1]
+            else:
+                raise NameError(err_note)
+            for cmd_key in cmd[target].keys():
+                key = dic[cmd_key][0]
+                val = dic[cmd_key][1]
+                self.framework_config_dict[key] = val
+
+        target = argv[1]
+        assert target in cmd.keys(), "Framework [%s] is not yet supported." % (target)
+        for arg in argv[2:]:
+            filler(arg, cmd[target])
+        null_scanner(cmd[target])
+        arg_transmit(cmd[target], target)
 
     def check_protobuf_version(self):
         """
@@ -120,8 +172,10 @@ class Configuration:
         """
         self.check_protobuf_version()
         self.pbs_eraser(default_save_path)
+        assert type(proto_list) == list, \
+        "The ProtoPaths format maybe incorrect, please check if there is any HORIZONTAL LINE."
         for pFile in proto_list:
-            assert os.path.exists(pFile), "Proto %s does not exist.\n" % (pFile)
+            assert os.path.exists(pFile), "%s does not exist.\n" % (pFile)
             subprocess.check_call(['protoc', '-I', 
                                    os.path.dirname(pFile) + "/",
                                    '--python_out', os.path.dirname(default_save_path) + "/", pFile])
