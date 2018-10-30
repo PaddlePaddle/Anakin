@@ -1098,13 +1098,14 @@ def Parser_axpy(args):
 def Parser_priorbox(args):
     layer = args[1]
     prior_box_param = layer.prior_box_param
-    OpsRegister()["PriorBox"].min_size = list(prior_box_param.min_size)
-    OpsRegister()["PriorBox"].max_size = list(prior_box_param.max_size)
-    OpsRegister()["PriorBox"].aspect_ratio = list(prior_box_param.aspect_ratio)
-    OpsRegister()["PriorBox"].fixed_size = list(prior_box_param.fixed_size)
-    OpsRegister()["PriorBox"].fixed_ratio = list(prior_box_param.fixed_ratio)
-    OpsRegister()["PriorBox"].density = list(prior_box_param.density)
-    OpsRegister()["PriorBox"].aspect_ratio = list(prior_box_param.aspect_ratio)
+    if len(prior_box_param.aspect_ratio) > 0:
+        OpsRegister()["PriorBox"].min_size = list(prior_box_param.min_size)
+        OpsRegister()["PriorBox"].max_size = list(prior_box_param.max_size)
+        OpsRegister()["PriorBox"].aspect_ratio = list(prior_box_param.aspect_ratio)
+    if len(prior_box_param.density) > 0:
+        OpsRegister()["PriorBox"].fixed_size = list(prior_box_param.fixed_size)
+        OpsRegister()["PriorBox"].fixed_ratio = list(prior_box_param.fixed_ratio)
+        OpsRegister()["PriorBox"].density = list(prior_box_param.density)
     OpsRegister()["PriorBox"].is_flip = prior_box_param.flip
     OpsRegister()["PriorBox"].is_clip = prior_box_param.clip
     OpsRegister()["PriorBox"].variance = list(prior_box_param.variance)
@@ -1173,6 +1174,16 @@ def Parser_relu6(args):
     OpsRegister()["Activation"].type = "ClippedRelu"
     OpsRegister()["Activation"].clip_relu_num = 6
 
+@ParserFeedDecorator("Interp")
+def Parser_interp(args):
+    layer = args[1]
+    interp_param = layer.interp_param
+    OpsRegister()["Interp"].height = interp_param.height
+    OpsRegister()["Interp"].width = interp_param.width
+    OpsRegister()["Interp"].zoom_factor = interp_param.zoom_factor
+    OpsRegister()["Interp"].shrink_factor = interp_param.shrink_factor
+    OpsRegister()["Interp"].pad_beg = interp_param.pad_beg
+    OpsRegister()["Interp"].pad_end = interp_param.pad_end
 
 # caffe layer parameter parser map
 CAFFE_LAYER_PARSER = {
@@ -1243,5 +1254,6 @@ CAFFE_LAYER_PARSER = {
                 "ReLU6": OpsParam().set_parser(Parser_relu6),
                 "Normalization": OpsParam().set_parser(Parser_normalize),
                 "ShuffleChannel": OpsParam().set_parser(Parser_ShuffleChannel),
-                "RoisAnchorFeature": OpsParam().set_parser(Parser_rois_anchor_feature)
+                "RoisAnchorFeature": OpsParam().set_parser(Parser_rois_anchor_feature),
+                "Interp": OpsParam().set_parser(Parser_interp)
                 }

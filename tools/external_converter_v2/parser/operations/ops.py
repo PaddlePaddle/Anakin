@@ -383,3 +383,10 @@ OpsRegister.Register("RoisAnchorFeature").set_attr(min_anchor_size=float(),
                                                    ft_log_ratio_h=bool(),
                                                    ft_log_ratio_w=bool(),
                                                    bbox_size_add_one=bool())
+
+OpsRegister.Register("Interp").set_attr(height=int(),
+                                        width=int(),
+                                        zoom_factor=int(),
+                                        shrink_factor=int(),
+                                        pad_beg=int(),
+                                        pad_end=int())

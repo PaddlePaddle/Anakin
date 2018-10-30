@@ -224,7 +224,12 @@ class Fluid_helper:
     def np_data_by_var_name(self, var_name):
         '''
         '''
-        numpy_array = fluid.executor.fetch_var(var_name, self.scope, True)
+        if hasattr(fluid.executor, '_fetch_var'):
+            numpy_array = fluid.executor._fetch_var(str(var_name), self.scope, True)
+        elif hasattr(fluid.executor, 'fetch_var'):
+            numpy_array = fluid.executor.fetch_var(var_name, self.scope, True)
+        else:
+            raise NameError('ERROR: Unknown Fluid version.')
         return numpy_array
 
     def dtype_by_var_name(self, var_name):

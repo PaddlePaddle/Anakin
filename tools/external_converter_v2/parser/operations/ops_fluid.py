@@ -27,8 +27,22 @@ OpsRegister.Register("tanh").set_attr()
 OpsRegister.Register("sequence_conv").set_attr()
 OpsRegister.Register("stanh").set_attr()
 
-
 OpsRegister.Register("matmul").set_attr()
 OpsRegister.Register("layer_norm").set_attr()
 OpsRegister.Register("dropout").set_attr()
 OpsRegister.Register("scale").set_attr()
+OpsRegister.Register("norm").set_attr()
+
+OpsRegister.Register("lod_reset").set_attr()
+OpsRegister.Register("fill_constant").set_attr()
+OpsRegister.Register("lod_rank_table").set_attr()
+OpsRegister.Register("max_sequence_len").set_attr()
+OpsRegister.Register("less_than").set_attr()
+OpsRegister.Register("lod_tensor_to_array").set_attr()
+OpsRegister.Register("write_to_array").set_attr()
+OpsRegister.Register("reorder_lod_tensor_by_rank").set_attr()
+OpsRegister.Register("while").set_attr()
+OpsRegister.Register("array_to_lod_tensor").set_attr()
+
+OpsRegister.Register("assign_value").set_attr()
+OpsRegister.Register("shape").set_attr()

@@ -41,6 +41,7 @@ class CaffeParser:
         self._FilterNet()
         self._SplitInception(False)
         self._InsSplitBtwSliceConcat()
+        self._InsSplitBtwSliceEltwise()
         self._InsertSplits()
         self._ScatterInputLayer()
         # create input node
@@ -267,6 +268,37 @@ class CaffeParser:
             del self.net_parameter.layers[:]
             self.net_parameter.layers.extend(new_param.layer)
 
+    def _InsSplitBtwSliceEltwise(self):
+        '''
+        Currently, the connection between Slice and Concat must be implemented via Split.
+        '''
+        layers = self.net_parameter.layer or self.net_parameter.layers
+        top_blobs_of_slices = list()
+        btm_blobs_of_concats = list()
+        for layer in layers:
+            if layer.type == 'Slice':
+                top_blobs_of_slices.extend(layer.top)
+            elif layer.type == 'Eltwise':
+                btm_blobs_of_concats.extend(layer.bottom)
+        intersection_blobs = list(set(top_blobs_of_slices).intersection(set(btm_blobs_of_concats)))
+        new_param = NetParameter()
+        for layer in layers:
+            new_layer = new_param.layer.add()
+            new_layer.CopyFrom(layer)
+            if layer.type == 'Slice':
+                for top_blob in layer.top:
+                    if top_blob in intersection_blobs:
+                        split_param = new_param.layer.add()
+                        split_param.bottom.append(top_blob)
+                        split_param.top.append(top_blob)
+                        split_param.name = 'Split_' + top_blob
+                        split_param.type = 'Split'
+        if self.net_parameter.layer:
+            del self.net_parameter.layer[:]
+            self.net_parameter.layer.extend(new_param.layer)
+        else:
+            del self.net_parameter.layers[:]
+            self.net_parameter.layers.extend(new_param.layer)
 
     def _InsertSplits(self):
         """
