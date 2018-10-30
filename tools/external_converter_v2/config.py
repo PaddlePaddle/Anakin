@@ -65,36 +65,47 @@ class Configuration:
                     + 'Usage2: python ./converter.py ' \
                     + 'FLUID --modelpath=/model/path/ --type=OCR'
         def splitter(arg, key_delim='--', val_delim='='):
+            """
+            Extract the valid content of the parameter string to form a [key, val] list.
+            """
             if (key_delim in arg) and (val_delim in arg):
-                # [key, val]
                 element = arg.split(key_delim)[1].split(val_delim)
                 return element
             else:
                 raise NameError(err_note)
-        def filler(arg, dic):
+        def filler(arg, dic, val_idx=1):
+            """
+            Extract the valid content of the parameter string to form a [key, val] list.
+            """
             element = splitter(arg)
             key = element[0]
             val = element[1]
             assert key in dic.keys(), \
             "Param %s in cmd is wrong." % (key)
-            if type(dic[key][1]) == str: dic[key][1] = val
-            elif type(dic[key][1]) == list: dic[key][1].append(val)
-        def null_scanner(dic):
+            if type(dic[key][val_idx]) == str: dic[key][val_idx] = val
+            elif type(dic[key][val_idx]) == list: dic[key][val_idx].append(val)
+        def null_scanner(dic, val_idx=1):
+            """
+            Make sure the parameters are complete.
+            """
             for key in dic:
-                assert (bool(dic[key][1])), 'Key [%s] should not be null.' % (key)
-        def arg_transmit(dic, target):
+                assert (bool(dic[key][val_idx])), 'Key [%s] should not be null.' % (key)
+        def arg_transmit(dic, target, key_idx=0, val_idx=1):
+            """
+            Match the command line to yaml..
+            """
             if target == 'CAFFE':
-                self.ResultName = dic['caffemodel'][1].split("/")[-1].split('.caffemodel')[0]
+                self.ResultName = dic['caffemodel'][val_idx].split("/")[-1].split('.caffemodel')[0]
             elif target == 'FLUID':
                 if dic['modelpath'][-1] == '/':
-                    self.ResultName = dic['modelpath'][1].split("/")[-2]
+                    self.ResultName = dic['modelpath'][val_idx].split("/")[-2]
                 else:
-                    self.ResultName = dic['modelpath'][1].split("/")[-1]
+                    self.ResultName = dic['modelpath'][val_idx].split("/")[-1]
             else:
                 raise NameError(err_note)
             for cmd_key in cmd[target].keys():
-                key = dic[cmd_key][0]
-                val = dic[cmd_key][1]
+                key = dic[cmd_key][key_idx]
+                val = dic[cmd_key][val_idx]
                 self.framework_config_dict[key] = val
             self.LaunchBoard = False
         target = argv[1]
