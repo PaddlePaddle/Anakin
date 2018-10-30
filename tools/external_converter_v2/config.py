@@ -121,7 +121,7 @@ class Configuration:
         self.check_protobuf_version()
         self.pbs_eraser(default_save_path)
         for pFile in proto_list:
-            assert os.path.exists(pFile), "%s does not exist.\n" % (pFile)
+            assert os.path.exists(pFile), "Proto %s does not exist.\n" % (pFile)
             subprocess.check_call(['protoc', '-I', 
                                    os.path.dirname(pFile) + "/",
                                    '--python_out', os.path.dirname(default_save_path) + "/", pFile])
