@@ -65,7 +65,7 @@ struct Device<BM> {
     Device(int max_stream = 4) : _max_stream(max_stream){
     	get_info();
     	create_stream();
-    	//API::init_handle();
+    	API::init_handle();
     }
     void get_info() {
         LOG(WARNING) << "BM get_info is not implemented";
@@ -90,7 +90,7 @@ struct Device<BM> {
     std::vector<typename API::stream_t> _compute_stream;
 
     ~Device(){
-        //API::deinit_handle();
+        API::deinit_handle();
     }
 };
 #endif

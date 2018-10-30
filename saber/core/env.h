@@ -36,9 +36,6 @@ public:
         if (devs.size() > 0){
             return;
         }
-#ifdef USE_BM_PLACE
-        API::init_handle();
-#endif
         int count = 0;
         API::get_device_count(count);
         if (count == 0) {
@@ -56,12 +53,6 @@ public:
     }
 private:
     Env(){}
-
-#ifdef USE_BM_PLACE
-    ~Env(){
-        API::deinit_handle();
-    }
-#endif
 };
 
 #ifdef AMD_GPU 
