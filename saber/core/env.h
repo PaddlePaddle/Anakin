@@ -56,7 +56,7 @@ private:
 };
 
 #ifdef USE_BM_PLACE
-class Env;
+class Env<BM>;
 static std::shared_ptr<Env> env_holder;
 
 template <>
