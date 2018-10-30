@@ -555,7 +555,8 @@ class FluidParser:
                 mul_node_name = str()
                 gru_op = self._GetOp(source_ops, gru_node_name)
                 input_list_of_gru = self.ins[gru_node_name].targets('Input')
-                if len(input_list_of_gru) == 1 and input_list_of_gru[0].startswith('elementwise_add'):
+                if len(input_list_of_gru) == 1 and input_list_of_gru[0]. \
+                startswith('elementwise_add'):
                     elt_node_name = input_list_of_gru[0]
                     elt_op = self._GetOp(source_ops, elt_node_name)
                     has_weights = helper.is_persistable_param(elt_op, 'Y')
