@@ -56,31 +56,6 @@ struct Device {
     std::vector<typename API::stream_t> _compute_stream;
 };
 
-#ifdef USE_BM_PLACE 
-template <>
-struct Device<BM> {
-
-	typedef TargetWrapper<BM> API;
-
-    Device(int max_stream = 4) : _max_stream(max_stream){
-    	get_info();
-    	create_stream();
-    	API::init_handle();
-    }
-    void get_info();
-    void create_stream();
-    DeviceInfo<TargetType> _info;
-	int _max_stream;
-
-    std::vector<typename API::stream_t> _data_stream;
-    std::vector<typename API::stream_t> _compute_stream;
-
-    ~Device(){
-        API::deinit_handle();
-    }
-};
-#endif
-
 #ifdef AMD_GPU 
 template <>
 struct Device<AMD> {
