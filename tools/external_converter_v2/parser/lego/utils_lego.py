@@ -208,9 +208,9 @@ class CreateEdges:
         graphIO.add_node(node())
 
     def create(self, source_layer, node_name, data = HandleBlob(), nodeIO = NodeProtoIO(), graphIO = GraphProtoIO()):
+        source_layer_name = source_layer.name
         for btm in source_layer.bottoms:
             # get rename (RELU for example)
-            source_layer_name = source_layer.name
             if source_layer_name in data.activation_layer.keys():
                 btm = data.btm2rename[btm]
             elif btm in data.top2rename.keys():
