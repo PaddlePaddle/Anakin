@@ -82,7 +82,7 @@ public:
         int cur_id = API::get_device_id();
         for (int i = 0; i < count; i++) {
             API::set_device(i);
-            devs.push_back(Device<BM>(max_stream));
+            devs.push_back(Device<TargetType>(max_stream));
         }
         API::set_device(cur_id);
         LOG(INFO)<<"dev size = "<<devs.size();
