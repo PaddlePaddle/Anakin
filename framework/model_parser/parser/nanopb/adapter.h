@@ -12,15 +12,29 @@
 #include <map>
 #include <functional>
 
-// define the C++ *Proto types in anakin::parser to override
-// the corresponding C types defined in the gloabl namespace
 namespace anakin {
-
 namespace parser {
+// define the C++ message types in anakin::parser to override the
+// corresponding C types defined by nanopb in the gloabl namespace
+
+template<size_t S> struct bool_adaptor {};
+template<> struct bool_adaptor<1> { using type = uint8_t; };
+template<> struct bool_adaptor<2> { using type = uint16_t; };
+template<> struct bool_adaptor<4> { using type = uint32_t; };
+template<> struct bool_adaptor<8> { using type = uint64_t; };
+
+template<typename T>
+struct vec_functor {
+    using type = std::vector<T>;
+};
+template<>
+struct vec_functor<bool> {
+    using type = std::vector<typename bool_adaptor<sizeof(bool)>::type>;
+};
 
 template<typename T> struct argument_type {};
-template<typename T, typename U> struct argument_type<T(U)> {
-    using type = U;
+template<typename U, typename T> struct argument_type<U(T)> {
+    using type = T;
 };
 
 #define PROTO_TY(TYPE) typename argument_type<void(TYPE)>::type
@@ -33,26 +47,25 @@ public:                                                        \
     void set_##NAME(const PROTO_TY(TYPE) &x) { _##NAME = x; }  \
     const PROTO_TY(TYPE) &NAME() const { return _##NAME; }
 
-#define REPEATED_PROTO_FIELD(TYPE, NAME)                \
-    PROTO_FIELD(std::vector<TYPE>, NAME)                \
-    PROTO_TY(TYPE) *add_##NAME() {                      \
-        _##NAME.push_back(PROTO_TY(TYPE)());            \
-        return &(_##NAME.back());                       \
-    }                                                   \
-    PROTO_TY(TYPE) *add_##NAME(                         \
-        const PROTO_TY(TYPE) &x) {                      \
-        _##NAME.push_back(x);                           \
-        return &(_##NAME.back());                       \
+#define REPEATED_PROTO_FIELD(TYPE, NAME)                        \
+    PROTO_FIELD(vec_functor<TYPE>::type, NAME)                  \
+    TYPE *add_##NAME() {                                        \
+        _##NAME.push_back(TYPE());                              \
+        return reinterpret_cast<TYPE *>(&_##NAME.back());       \
+    }                                                           \
+    TYPE *add_##NAME(const TYPE &x) {                           \
+        _##NAME.push_back(x);                                   \
+        return reinterpret_cast<TYPE *>(&_##NAME.back());       \
     }
 
 #define PARSING_MEMBERS(PROTO)                              \
 public:                                                     \
-using Nanopb = ::PROTO;                                     \
-bool parse_from_buffer(const char *bytes, size_t len);      \
-bool parse_from_file(FILE *f);                              \
-void fill(Nanopb *p);                                       \
-void retrieve(const Nanopb *p);                             \
-bool parse(pb_istream_t *stream);
+    using Nanopb = ::PROTO;                                 \
+    bool parse_from_buffer(const char *bytes, size_t len);  \
+    bool parse_from_file(FILE *f);                          \
+    void fill(Nanopb *p);                                   \
+    void retrieve(const Nanopb *p);                         \
+    bool parse(pb_istream_t *stream);
 
 #define STR           DateTypeProto_STR
 #define INT32         DateTypeProto_INT32
@@ -78,10 +91,7 @@ class CacheDate {
     REPEATED_PROTO_FIELD(std::string, s);
     REPEATED_PROTO_FIELD(int32_t, i);
     REPEATED_PROTO_FIELD(float, f);
-    // The field b is of repeated bool, but STL specializes
-    // std::vector<bool> to bit vector and causes troubles
-    // for our macros. Use unsigned char instead.
-    REPEATED_PROTO_FIELD(unsigned char, b);
+    REPEATED_PROTO_FIELD(bool, b);
     REPEATED_PROTO_FIELD(CacheDate, l);
     PROTO_FIELD(DateTypeProto, type);
     PROTO_FIELD(int64_t, size);

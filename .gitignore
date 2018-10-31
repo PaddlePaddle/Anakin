@@ -36,4 +36,5 @@ build
 android_build
 ios_build
 gpu_build
+x86_build
 output

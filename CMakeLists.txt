@@ -27,8 +27,6 @@ set(VERSION_MINOR "1")
 set(VERSION_PATCH "2")
 set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 
-set(CMAKE_CXX_STANDARD 11)
-
 # anakin lib name and global directories
 set(anakin_lib_so "anakin")
 set(anakin_lib_static "anakin_static")
@@ -56,13 +54,12 @@ anakin_option(ANAKIN_TYPE_FP32 "define the FP32 for data precision." YES)
 anakin_option(ANAKIN_TYPE_FP16 "define the FP16 for data precision." NO)
 anakin_option(ANAKIN_TYPE_INT8 "define the INT8 for data precision." NO)
 
-#select the plantform to build
+#select the platform to build
 anakin_option(USE_GPU_PLACE "Select the build mode for GPU place." YES)
 anakin_option(USE_X86_PLACE "Select the build mode for X86 place." YES)
 anakin_option(USE_ARM_PLACE "Select the build mode for ARM place." NO)
 
-
-# plantfrom details
+# platform details
 anakin_option(NVIDIA_GPU "Use NVIDIA GPU place." YES if USE_GPU_PLACE)
 anakin_option(AMD_GPU "Use AMD GPU place." NO if USE_GPU_PLACE AND NOT NVIDIA_GPU)
 anakin_option(TARGET_ANDROID "" YES if USE_ARM_PLACE)
@@ -74,8 +71,8 @@ anakin_option(USE_CUBLAS "Use Cublas libs." YES if USE_CUDA)
 anakin_option(USE_CURAND "Use Curand libs." YES if USE_CUDA)
 anakin_option(USE_CUFFT "Use CuFFT libs." YES if USE_CUDA)
 anakin_option(USE_CUDNN "Use Cudnn libs." YES if USE_CUDA)
-anakin_option(BUILD_CROSS_PLANTFORM "Build anakin lib for any nvidia device plantform." YES if USE_CUDA)
-anakin_option(BUILD_FAT_BIN "Build anakin cuda fat-bin lib for all device plantform" NO if BUILD_CROSS_PLANTFORM)
+anakin_option(BUILD_CROSS_PLANTFORM "Build anakin lib for any nvidia device platform." YES if USE_CUDA)
+anakin_option(BUILD_FAT_BIN "Build anakin cuda fat-bin lib for all device platform" NO if BUILD_CROSS_PLANTFORM)
 
 cmake_minimum_required(VERSION ${MIN_CMAKE_V} FATAL_ERROR)
 
