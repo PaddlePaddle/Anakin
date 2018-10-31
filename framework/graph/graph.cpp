@@ -11,6 +11,7 @@ namespace anakin {
 
 namespace graph {
 
+#ifndef USE_NANOPB
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status Graph<Ttype, Dtype, Ptype>::load(std::istream* instream) EXCLUSIVE_LOCKS_REQUIRED(_mut) {
     std::unique_lock<std::mutex> lock(this->_mut);
@@ -26,6 +27,7 @@ Status Graph<Ttype, Dtype, Ptype>::load(std::istream* instream) EXCLUSIVE_LOCKS_
 
     return ret;
 }
+#endif
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status Graph<Ttype, Dtype, Ptype>::load(std::string model_path) EXCLUSIVE_LOCKS_REQUIRED(_mut) {
@@ -60,6 +62,7 @@ Status Graph<Ttype, Dtype, Ptype>::load(const char* model_path) {
     return parser::load<Ttype, Dtype>(this, model_path);
 }
 
+#ifndef USE_NANOPB
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status Graph<Ttype, Dtype, Ptype>::save(std::string model_path) {
     return parser::save<Ttype, Dtype>(this, model_path);
@@ -69,6 +72,7 @@ template<typename Ttype, DataType Dtype, Precision Ptype>
 Status Graph<Ttype, Dtype, Ptype>::save(const char* model_path) {
     return parser::save<Ttype, Dtype>(this, model_path);
 }
+#endif
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 std::vector<std::string>& Graph<Ttype, Dtype, Ptype>::get_nodes_in_order() {

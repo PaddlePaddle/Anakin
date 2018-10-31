@@ -71,6 +71,8 @@
 
 #cmakedefine SUPPORT_PTHREADS
 
+#cmakedefine USE_NANOPB
+
 // build arm lite
 #cmakedefine BUILD_LITE
 

@@ -68,7 +68,9 @@ public:
     virtual bool directed() final { return true; }
 
     /// Parsing from model
+#ifndef USE_NANOPB
     Status load(std::istream* instream);
+#endif
     Status load(std::string model_path); 
     Status load(const char*  model_path);
     Status load(const char* buffer, size_t len);

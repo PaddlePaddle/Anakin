@@ -46,7 +46,10 @@ endif()
 
 if(USE_PROTOBUF)
     anakin_find_protobuf()
-    anakin_protos_processing()
+endif()
+
+if(USE_NANOPB)
+    anakin_find_nanopb()
 endif()
 
 if (USE_GFLAGS)

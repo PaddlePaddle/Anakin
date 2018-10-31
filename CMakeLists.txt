@@ -27,6 +27,8 @@ set(VERSION_MINOR "1")
 set(VERSION_PATCH "2")
 set(VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 
+set(CMAKE_CXX_STANDARD 11)
+
 # anakin lib name and global directories
 set(anakin_lib_so "anakin")
 set(anakin_lib_static "anakin_static")
@@ -58,6 +60,7 @@ anakin_option(ANAKIN_TYPE_INT8 "define the INT8 for data precision." NO)
 anakin_option(USE_GPU_PLACE "Select the build mode for GPU place." YES)
 anakin_option(USE_X86_PLACE "Select the build mode for X86 place." YES)
 anakin_option(USE_ARM_PLACE "Select the build mode for ARM place." NO)
+
 
 # plantfrom details
 anakin_option(NVIDIA_GPU "Use NVIDIA GPU place." YES if USE_GPU_PLACE)
@@ -99,7 +102,8 @@ anakin_option(ENABLE_NOISY_WARNINGS "Enable noisy warning msg during compile." N
 # using 3rd party libs 
 anakin_option(USE_LOGGER "Build native logger components." YES)
 anakin_option(USE_GLOG "Build Glog components." NO if NOT USE_LOGGER)
-anakin_option(USE_PROTOBUF "Build Google protobuf components." YES)
+anakin_option(USE_NANOPB "Use nanopb, a light-weight C implementation of protobuf" NO)
+anakin_option(USE_PROTOBUF "Build Google protobuf components." YES if NOT USE_NANOPB)
 anakin_option(USE_OPENCV "Use static opencv libs." NO)
 anakin_option(USE_BOOST "Use static BOOST libs." NO)
 anakin_option(USE_OPENMP "Use Openmp when in android environment." YES if USE_ARM_PLACE OR USE_X86_PLACE)
@@ -112,7 +116,7 @@ anakin_option(USE_MKLML "Use MKLML libs." YES if USE_X86_PLACE)
 anakin_option(USE_XBYAK "Use XBYAK libs." YES if USE_X86_PLACE)
 
 # build components
-anakin_option(BUILD_WITH_UNIT_TEST "Build anakin unit test components." YES)
+anakin_option(BUILD_WITH_UNIT_TEST "Build anakin unit test components." YES if NOT USE_NANOPB)
 
 anakin_option(BUILD_LITE "Build anakin lite components." NO)
 

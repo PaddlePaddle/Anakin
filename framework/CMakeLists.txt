@@ -11,6 +11,55 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+anakin_fetch_files_with_suffix(${ANAKIN_MODEL_PARSER}/proto "proto" ANAKIN_PROTO_SRC)
+
+set(PROTOC_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/model_parser/proto")
+file(MAKE_DIRECTORY ${PROTOC_OUT_DIR})
+include_directories(${PROTOC_OUT_DIR})
+
+set(ANAKIN_BASE_SRC "")
+
+if(USE_NANOPB)
+  include_directories(${NANOPB_DIR})
+
+  anakin_fetch_files_with_suffix(${ANAKIN_MODEL_PARSER}/parser/nanopb/ "cpp" ANAKIN_BASE_SRC)
+
+  add_definitions(-DPB_FIELD_16BIT)
+
+  add_custom_command(
+    OUTPUT  "${PROTOBUF_PROTOC_EXECUTABLE}" "${NANOPB_DIR}/pb_decode.c" "${NANOPB_DIR}/pb_common.c"
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${NANOPB_DIR}
+    COMMAND bash ARGS -c "wget -qO- ${NANOPB_DOWNLOAD_URL} | tar xz -C ${NANOPB_DIR} --strip 1"
+    COMMENT "Downlaoding prebuilt nanopb-${NANOPB_VERSION}..."
+    VERBATIM)
+
+  set(PROTOC_OUT_ARGS "--nanopb_out=-I${ANAKIN_MODEL_PARSER}/proto:")
+
+  list(APPEND ANAKIN_SRC "${NANOPB_DIR}/pb_decode.c" "${NANOPB_DIR}/pb_common.c")
+else()
+  set(PROTOC_OUT_ARGS "--cpp_out=")
+endif()
+
+foreach(__file ${ANAKIN_PROTO_SRC})
+  get_filename_component(__file_name ${__file} NAME_WE)
+  if(USE_NANOPB)
+    set(__out_src_name "${PROTOC_OUT_DIR}/${__file_name}.pb.c")
+    if(EXISTS "${ANAKIN_MODEL_PARSER}/proto/${__file_name}.options")
+      set(__proto_options "${ANAKIN_MODEL_PARSER}/proto/${__file_name}.options")
+    endif()
+  else()
+    set(__out_src_name "${PROTOC_OUT_DIR}/${__file_name}.pb.cc")
+  endif()
+  set(__out_header_name "${PROTOC_OUT_DIR}/${__file_name}.pb.h")
+  add_custom_command(
+    OUTPUT "${__out_src_name}" "${__out_header_name}"
+    COMMAND "${PROTOBUF_PROTOC_EXECUTABLE}"
+    ARGS "-I${ANAKIN_MODEL_PARSER}/proto" ${__file} "${PROTOC_OUT_ARGS}${PROTOC_OUT_DIR}"
+    DEPENDS ${PROTOBUF_PROTOC_EXECUTABLE} ${__file} ${__proto_options}
+    COMMENT "Compiling protobuf definition ${__file_name} using ${PROTOBUF_PROTOC_EXECUTABLE}...")
+  list(APPEND ANAKIN_SRC "${__out_src_name}")
+endforeach()
+
 anakin_fetch_include_recursively(${ANAKIN_SABER})
 anakin_fetch_include_recursively(${ANAKIN_MODEL_PARSER})
 anakin_fetch_include_recursively(${ANAKIN_UTILS})
@@ -18,9 +67,6 @@ anakin_fetch_include_recursively(${ANAKIN_FRAMEWORK}/core)
 anakin_fetch_include_recursively(${ANAKIN_FRAMEWORK}/graph)
 anakin_fetch_include_recursively(${ANAKIN_FRAMEWORK}/model_parser)
 anakin_fetch_include_recursively(${ANAKIN_FRAMEWORK}/operators)
-
-
-set(ANAKIN_BASE_SRC "")
 
 # add ak_base_source files
 anakin_fetch_files_with_suffix(${ANAKIN_FRAMEWORK}/core "cpp" ANAKIN_BASE_SRC)

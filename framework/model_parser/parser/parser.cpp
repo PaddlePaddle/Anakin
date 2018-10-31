@@ -1,17 +1,21 @@
 #include "framework/model_parser/parser/parser.h"
 #include "framework/model_parser/parser/model_io.h"
-#include "framework/model_parser/proto/graph.pb.h"
-#include "framework/model_parser/proto/node.pb.h"
-#include "framework/model_parser/proto/operator.pb.h"
-#include "framework/model_parser/proto/tensor.pb.h"
+#include "graph.pb.h"
+#include "node.pb.h"
+#include "operator.pb.h"
+#include "tensor.pb.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <fstream>
+
+#ifdef USE_NANOPB
+#include "nanopb/adapter.h"
+#else
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <google/protobuf/io/zero_copy_stream.h>
 #include <google/protobuf/text_format.h>
-
+#endif
 
 namespace anakin {
 
@@ -23,19 +27,21 @@ Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, std::string& model_path) {
 }
 
 Status parse_graph_proto(GraphProto& graph_proto, const char* buffer, size_t len) {
-    google::protobuf::io::ArrayInputStream* raw_input = new google::protobuf::io::ArrayInputStream(buffer, len);
-    google::protobuf::io::CodedInputStream* coded_input = new google::protobuf::io::CodedInputStream(raw_input);
-    coded_input->SetTotalBytesLimit(INT_MAX, 536870912);
-    bool success = graph_proto.ParseFromCodedStream(coded_input) && coded_input->ConsumedEntireMessage();
+#ifdef USE_NANOPB
+    bool success = graph_proto.parse_from_buffer(buffer, len);
+#else
+    google::protobuf::io::ArrayInputStream raw_input(buffer, len);
+    google::protobuf::io::CodedInputStream coded_input(&raw_input);
+    coded_input.SetTotalBytesLimit(INT_MAX, 536870912);
+    bool success = graph_proto.ParseFromCodedStream(&coded_input) && coded_input.ConsumedEntireMessage();
+#endif
     if (!success) {
         LOG(FATAL) << " Parsing GraphProto " << " ERROR";
     }
-
-    delete coded_input;
-    delete raw_input;
     return Status::OK();
 }
 
+#ifndef USE_NANOPB
 Status parse_graph_proto(GraphProto& graph_proto, std::istream* instream){
     if (!graph_proto.ParseFromIstream(instream)) {
         DLOG(ERROR) << "Fail to parse GraphProto.";
@@ -43,8 +49,16 @@ Status parse_graph_proto(GraphProto& graph_proto, std::istream* instream){
     }
     return Status::OK();
 }
+#endif
 
 Status parse_graph_proto(GraphProto& graph_proto, const char* model_path) {
+#ifdef USE_NANOPB
+  FILE *f = fopen(model_path, "r");
+  graph_proto.parse_from_file(f);
+  fclose(f);
+  return Status::OK();
+#else
+
 #if 0
     std::fstream input(model_path, std::ios::in | std::ios::binary);
 
@@ -68,30 +82,26 @@ Status parse_graph_proto(GraphProto& graph_proto, const char* model_path) {
         LOG(FATAL) << " Cant open " << model_path;
     }
 
-    google::protobuf::io::ZeroCopyInputStream* raw_input = new google::protobuf::io::FileInputStream(
-        file_descriptor);
+    google::protobuf::io::FileInputStream raw_input(file_descriptor);
 
-    google::protobuf::io::CodedInputStream* coded_input = new google::protobuf::io::CodedInputStream(
-        raw_input);
+    google::protobuf::io::CodedInputStream coded_input(&raw_input);
 
-    coded_input->SetTotalBytesLimit(ProtoReadBytesLimit, 536870912);
+    coded_input.SetTotalBytesLimit(ProtoReadBytesLimit, 536870912);
 
-    bool success = graph_proto.ParseFromCodedStream(coded_input);
+    bool success = graph_proto.ParseFromCodedStream(&coded_input);
 
     if (!success) {
         LOG(FATAL) << " Parsing GraphProto " << model_path << " ERROR";
     }
 
-    delete coded_input;
-    delete raw_input;
     close(file_descriptor);
     return Status::OK();
+#endif
 #endif
 }
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status generate_graph_with_graph_proto(graph::Graph<Ttype, Dtype, Ptype>* graph, GraphProto& graph_proto) {
-
     // fill the graph with name
     LOG(INFO) << "graph name: " << graph_proto.name();
     graph->set_name(graph_proto.name());
@@ -190,6 +200,7 @@ Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path) {
     return generate_graph_with_graph_proto(graph, graph_proto);
 }
 
+#ifndef USE_NANOPB
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, std::istream* instream) {
 
@@ -197,6 +208,7 @@ Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, std::istream* instream) {
     parse_graph_proto(graph_proto, instream);
     return generate_graph_with_graph_proto(graph, graph_proto);;
 }
+#endif
 
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* buffer, size_t len) {
@@ -206,6 +218,7 @@ Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* buffer, size_t
     return generate_graph_with_graph_proto(graph, graph_proto);;
 }
 
+#ifndef USE_NANOPB
 template<typename Ttype, DataType Dtype, Precision Ptype>
 Status save(graph::Graph<Ttype, Dtype, Ptype>* graph, std::string& model_path) {
     return save(graph, model_path.c_str());
@@ -295,7 +308,7 @@ Status save(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path) {
 
     return Status::OK();
 }
-
+#endif
 
 #ifdef USE_CUDA
 template
@@ -369,6 +382,7 @@ Status generate_graph_with_graph_proto<NV, AK_FLOAT, Precision::INT8>(graph::Gra
 #endif
 
 #if defined(USE_X86_PLACE) || defined(BUILD_LITE)
+#ifndef USE_NANOPB
 template
 Status load<X86, AK_FLOAT, Precision::FP32>(graph::Graph<X86, AK_FLOAT, Precision::FP32>* graph,
         std::istream* instream);
@@ -378,6 +392,7 @@ Status load<X86, AK_FLOAT, Precision::FP16>(graph::Graph<X86, AK_FLOAT, Precisio
 template
 Status load<X86, AK_FLOAT, Precision::INT8>(graph::Graph<X86, AK_FLOAT, Precision::INT8>* graph,
         std::istream* instream);
+#endif
 
 template
 Status load<X86, AK_FLOAT, Precision::FP32>(graph::Graph<X86, AK_FLOAT, Precision::FP32>* graph,
@@ -389,6 +404,7 @@ template
 Status load<X86, AK_FLOAT, Precision::INT8>(graph::Graph<X86, AK_FLOAT, Precision::INT8>* graph,
         const char* model_path);
 
+#ifndef USE_NANOPB
 template
 Status save<X86, AK_FLOAT, Precision::FP32>(graph::Graph<X86, AK_FLOAT, Precision::FP32>* graph,
         std::string& model_path);
@@ -398,6 +414,7 @@ Status save<X86, AK_FLOAT, Precision::FP16>(graph::Graph<X86, AK_FLOAT, Precisio
 template
 Status save<X86, AK_FLOAT, Precision::INT8>(graph::Graph<X86, AK_FLOAT, Precision::INT8>* graph,
         std::string& model_path);
+#endif
 
 template
 Status load<X86, AK_FLOAT, Precision::FP32>(graph::Graph<X86, AK_FLOAT, Precision::FP32>* graph,
@@ -409,6 +426,7 @@ template
 Status load<X86, AK_FLOAT, Precision::INT8>(graph::Graph<X86, AK_FLOAT, Precision::INT8>* graph,
         std::string& model_path);
 
+#ifndef USE_NANOPB
 template
 Status save<X86, AK_FLOAT, Precision::FP32>(graph::Graph<X86, AK_FLOAT, Precision::FP32>* graph,
         const char* model_path);
@@ -418,6 +436,7 @@ Status save<X86, AK_FLOAT, Precision::FP16>(graph::Graph<X86, AK_FLOAT, Precisio
 template
 Status save<X86, AK_FLOAT, Precision::INT8>(graph::Graph<X86, AK_FLOAT, Precision::INT8>* graph,
         const char* model_path);
+#endif
 
 template
 Status load<X86, AK_FLOAT, Precision::FP32>(graph::Graph<X86, AK_FLOAT, Precision::FP32>* graph,
