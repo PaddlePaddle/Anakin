@@ -116,7 +116,7 @@ anakin_option(USE_MKLML "Use MKLML libs." YES if USE_X86_PLACE)
 anakin_option(USE_XBYAK "Use XBYAK libs." YES if USE_X86_PLACE)
 
 # build components
-anakin_option(BUILD_WITH_UNIT_TEST "Build anakin unit test components." YES if NOT USE_NANOPB)
+anakin_option(BUILD_WITH_UNIT_TEST "Build anakin unit test components." YES)
 
 anakin_option(BUILD_LITE "Build anakin lite components." NO)
 

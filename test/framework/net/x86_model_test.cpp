@@ -196,7 +196,9 @@ TEST(NetTest, net_execute_base_test) {
         std::string model_name = (*iter).substr(start, end-start);
         LOG(INFO) << model_name << " batch_size " << FLAGS_num << " average time "<< my_time.get_average_ms() / FLAGS_epoch << " ms";
 
+#ifndef USE_NANOPB
         auto status1 = graph.save("map.anakin.bin");
+#endif
     }
 }
 int main(int argc, const char** argv){
