@@ -124,8 +124,8 @@ def Parser_scale_disc_bn(args):
     var = np.sqrt(var + eps)
     np_scale = alpha / var
     np_bias = beta - (alpha * mean / var)
-    np_scale_shape = map(int, [1] * (4 - len(np_scale.shape)) + np_scale.shape.tolist())
-    np_bias_shape = map(int, [1] * (4 - len(np_bias.shape)) + np_bias.shape.tolist())
+    np_scale_shape = map(int, [1] * (4 - len(np_scale.shape)) + list(np_scale.shape))
+    np_bias_shape = map(int, [1] * (4 - len(np_bias.shape)) + list(np_bias.shape)))
     np_scale_tensor = helper.create_tensor(np_scale.flatten().tolist(), np_scale_shape, FLOAT)
     np_bias_tensor = helper.create_tensor(np_bias.flatten().tolist(), np_bias_shape, FLOAT)
     OpsRegister()["Scale"].bias_term = True
@@ -338,8 +338,8 @@ def Parser_lstm(args):
             np_lstm_bias, np_fc_weight, np_fc_bias)
         np_weight = np_tensors[0]
         np_bias = np_tensors[1]
-        np_weight_shape = map(int, [1] * (4 - len(np_weight.shape)) + np_weight.shape.tolist())
-        np_bias_shape = map(int, [1] * (4 - len(np_bias.shape)) + np_bias.shape.tolist())
+        np_weight_shape = map(int, [1] * (4 - len(np_weight.shape)) + list(np_weight.shape))
+        np_bias_shape = map(int, [1] * (4 - len(np_bias.shape)) + list(np_bias.shape))
         np_weight_tensor = helper.create_tensor(np_weight.flatten().tolist(), np_weight_shape, FLOAT)
         np_bias_tensor = helper.create_tensor(np_bias.flatten().tolist(), np_bias_shape, FLOAT)
         OpsRegister()["LSTM"].weight_1 = np_weight_tensor
