@@ -41,7 +41,7 @@ class Configuration:
             self.config_from_cmd(argv)
         if 'ProtoPaths' in data['TARGET'][self.framework]:
             proto_list = data['TARGET'][self.framework]['ProtoPaths']
-        self.__refresh_pbs(proto_list)
+            self.__refresh_pbs(proto_list)
         self.generate_pbs_of_anakin()
 
     def config_from_cmd(self, argv):
