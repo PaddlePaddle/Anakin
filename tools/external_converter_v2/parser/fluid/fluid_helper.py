@@ -279,7 +279,7 @@ class Fluid_helper:
         if layout == 'NCHW':
             np_shape = map(int, [1] * (4 - len(np_shape)) + list(np_shape))
         if is_flat_list is True:
-            flat_list = list(np_array.flatten())
+            flat_list = np_array.flatten().tolist()
             return [flat_list, np_shape]
         else:
             return [np_array, np_shape]

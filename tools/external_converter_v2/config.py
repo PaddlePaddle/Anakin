@@ -39,6 +39,7 @@ class Configuration:
         self.framework_config_dict = data['TARGET'][self.framework]
         if len(argv) > 1:
             self.config_from_cmd(argv)
+        self.check_protobuf_version()
         if 'ProtoPaths' in data['TARGET'][self.framework]:
             proto_list = data['TARGET'][self.framework]['ProtoPaths']
             self.__refresh_pbs(proto_list)
@@ -171,7 +172,6 @@ class Configuration:
                 proto_list: ['/path/to/proto_0','/path/to/proto_1', ... ]
                 default_save_path: default saved to 'parser/pbs/'
         """
-        self.check_protobuf_version()
         self.pbs_eraser(default_save_path)
         assert type(proto_list) == list, \
         "The ProtoPaths format maybe incorrect, please check if there is any HORIZONTAL LINE."
