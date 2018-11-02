@@ -125,7 +125,7 @@ def Parser_scale_disc_bn(args):
     np_scale = alpha / var
     np_bias = beta - (alpha * mean / var)
     np_scale_shape = map(int, [1] * (4 - len(np_scale.shape)) + list(np_scale.shape))
-    np_bias_shape = map(int, [1] * (4 - len(np_bias.shape)) + list(np_bias.shape)))
+    np_bias_shape = map(int, [1] * (4 - len(np_bias.shape)) + list(np_bias.shape))
     np_scale_tensor = helper.create_tensor(np_scale.flatten().tolist(), np_scale_shape, FLOAT)
     np_bias_tensor = helper.create_tensor(np_bias.flatten().tolist(), np_bias_shape, FLOAT)
     OpsRegister()["Scale"].bias_term = True
