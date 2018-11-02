@@ -50,6 +50,7 @@ public:
         Param_t& param) override {
         Shape shape_out;
         shape_out.resize(2);
+        shape_out.set_layout(Layout_NW);
 	shape_out[0] = input[0]->num();
         //CHECK_EQ(shape_out.dims(), 4) << "only support 4d(NCHW) layout";
         shape_out[1] = input[0]->valid_size() / input[0]->num();

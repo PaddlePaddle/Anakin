@@ -23,10 +23,10 @@ std::string model_path = "/home/shixiaowei02/vgg16/vgg16.anakin.bin";
 
 std::string model_saved_path = model_path + ".saved";
 
-#ifdef USE_CUDA
+#ifdef AMD_GPU
 #if 1
 TEST(NetTest, net_execute_base_test) {
-    Graph<NV, Precision::FP32>* graph = new Graph<NV, Precision::FP32>();
+    Graph<AMD, Precision::FP32>* graph = new Graph<AMD, Precision::FP32>();
     LOG(WARNING) << "load anakin model file from " << model_path << " ...";
     // load anakin model files.
     auto status = graph->load(model_path);
@@ -52,14 +52,14 @@ TEST(NetTest, net_execute_base_test) {
     // constructs the executer net
     //{ // inner scope
 #ifdef USE_DIEPSE
-    //Net<NV, Precision::FP32, OpRunType::SYNC> net_executer(*graph, true);
-    Net<NV, Precision::FP32, OpRunType::SYNC> net_executer(true);
+    //Net<AMD, Precision::FP32, OpRunType::SYNC> net_executer(*graph, true);
+    Net<AMD, Precision::FP32, OpRunType::SYNC> net_executer(true);
 #else
-    //Net<NV, Precision::FP32> net_executer(*graph, true);
-    Net<NV, Precision::FP32> net_executer(true);
+    //Net<AMD, Precision::FP32> net_executer(*graph, true);
+    Net<AMD, Precision::FP32> net_executer(true);
 #endif
 
-    net_executer.load_calibrator_config("net_pt_config.txt", "cal_file");
+   // net_executer.load_calibrator_config("net_pt_config.txt", "cal_file");
     net_executer.init(*graph);
     // get in
     auto d_tensor_in_p = net_executer.get_in("input_0");
@@ -80,60 +80,17 @@ TEST(NetTest, net_execute_base_test) {
 
     d_tensor_in_p->copy_from(h_tensor_in);
 
-#ifdef USE_DIEPSE
-    // for diepse model
-    auto d_tensor_in_1_p = net_executer.get_in("input_1");
-    Tensor4d<X86> h_tensor_in_1;
 
-    h_tensor_in_1.re_alloc(d_tensor_in_1_p->valid_shape());
-
-    for (int i = 0; i < d_tensor_in_1_p->valid_shape().size(); i++) {
-        LOG(INFO) << "detect input_1 dims[" << i << "]" << d_tensor_in_1_p->valid_shape()[i];
-    }
-
-    h_data = h_tensor_in_1.mutable_data();
-    h_data[0] = 1408;
-    h_data[1] = 800;
-    h_data[2] = 0.733333;
-    h_data[3] = 0.733333;
-    h_data[4] = 0;
-    h_data[5] = 0;
-    d_tensor_in_1_p->copy_from(h_tensor_in_1);
-
-    auto d_tensor_in_2_p = net_executer.get_in("input_2");
-    Tensor4d<X86> h_tensor_in_2;
-
-    h_tensor_in_2.re_alloc(d_tensor_in_2_p->valid_shape());
-
-    for (int i = 0; i < d_tensor_in_2_p->valid_shape().size(); i++) {
-        LOG(INFO) << "detect input_2 dims[" << i << "]" << d_tensor_in_2_p->valid_shape()[i];
-    }
-
-    h_data = h_tensor_in_2.mutable_data();
-    h_data[0] = 2022.56;
-    h_data[1] = 989.389;
-    h_data[2] = 2014.05;
-    h_data[3] = 570.615;
-    h_data[4] = 1.489;
-    h_data[5] = -0.02;
-    d_tensor_in_2_p->copy_from(h_tensor_in_2);
-#endif
-
-    int epoch = 1000;
+    int epoch = 1;
     // do inference
-    Context<NV> ctx(0, 0, 0);
-    saber::SaberTimer<NV> my_time;
+    Context<AMD> ctx(0, 0, 0);
+    saber::SaberTimer<AMD> my_time;
     LOG(WARNING) << "EXECUTER !!!!!!!! ";
-
-    // warm up
-    for (int i = 0; i < 10; i++) {
-        net_executer.prediction();
-    }
 
     my_time.start(ctx);
 
 
-    //auto start = std::chrono::system_clock::now();
+    //auto sta/rt = std::chrono::system_clock::now();
     for (int i = 0; i < epoch; i++) {
         //DLOG(ERROR) << " epoch(" << i << "/" << epoch << ") ";
         net_executer.prediction();
@@ -231,7 +188,7 @@ TEST(NetTest, net_execute_base_test) {
 
 #if 0
 TEST(NetTest, net_execute_reconstruction_test) {
-    Graph<NV, Precision::FP32>* graph = new Graph<NV, Precision::FP32>();
+    Graph<AMD, Precision::FP32>* graph = new Graph<AMD, Precision::FP32>();
     LOG(WARNING) << "load anakin model file from optimized model " << model_saved_path << " ...";
     // load anakin model files.
     auto status = graph->load(model_saved_path);
@@ -248,7 +205,7 @@ TEST(NetTest, net_execute_reconstruction_test) {
     graph->Optimize();
 
     // constructs the executer net
-    Net<NV, Precision::FP32> net_executer(*graph);
+    Net<AMD, Precision::FP32> net_executer(*graph);
 
     // get in
     auto d_tensor_in_p = net_executer.get_in("input_0");
@@ -270,8 +227,8 @@ TEST(NetTest, net_execute_reconstruction_test) {
     d_tensor_in_p->copy_from(h_tensor_in);
 
     // do inference
-    Context<NV> ctx(0, 0, 0);
-    saber::SaberTimer<NV> my_time;
+    Context<AMD> ctx(0, 0, 0);
+    saber::SaberTimer<AMD> my_time;
     my_time.start(ctx);
 
     LOG(WARNING) << "EXECUTER !!!!!!!! ";
@@ -304,7 +261,12 @@ TEST(NetTest, net_execute_reconstruction_test) {
 #endif
 
 int main(int argc, const char** argv) {
-
+    if (argc < 2){
+        LOG(INFO)<<"no input";
+        return 0;
+    }
+    LOG(INFO)<<"begin";
+    model_path = std::string(argv[1]);
     Env<Target>::env_init();
     // initial logger
     logger::init(argv[0]);

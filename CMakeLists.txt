@@ -73,7 +73,7 @@ anakin_option(TARGET_ANDROID "build for android" YES if USE_ARM_PLACE)
 anakin_option(TARGET_IOS "not supported now" YES if USE_ARM_PLACE AND NOT TARGET_ANDROID)
 
 # compile options for NVIDIA_GPU place
-anakin_option(USE_CUDA "Use Cuda libs." YES if NVIDIA_GPU)
+anakin_option(USE_CUDA "Use Cuda libs." NO if NVIDIA_GPU)
 anakin_option(USE_CUBLAS "Use Cublas libs." YES if USE_CUDA)
 anakin_option(USE_CURAND "Use Curand libs." YES if USE_CUDA)
 anakin_option(USE_CUFFT "Use CuFFT libs." YES if USE_CUDA)

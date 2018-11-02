@@ -1,3 +1,17 @@
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
 #include "framework/operators/priorbox.h"
 
 namespace anakin {
@@ -99,6 +113,11 @@ template class PriorBoxHelper<NV, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(PriorBox, PriorBoxHelper, NV, Precision::FP32);
 #endif
 
+#ifdef AMD_GPU
+INSTANCE_PRIORBOX(AMD, Precision::FP32);
+template class PriorBoxHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(PriorBox, PriorBoxHelper, AMD, Precision::FP32);
+#endif
 #ifdef USE_ARM_PLACE
 INSTANCE_PRIORBOX(ARM, Precision::FP32);
 template class PriorBoxHelper<ARM, Precision::FP32>;

@@ -1,7 +1,24 @@
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
 #include "framework/core/net/net.h"
 #include "saber/funcs/timer.h"
 #include "saber/funcs/debug.h"
 #include "framework/core/mem_info.h"
+#ifdef AMD_GPU
+#include "saber/core/impl/amd/utils/amd_profiler.h"
+#endif
 
 namespace anakin {
 
@@ -410,6 +427,14 @@ void Net<Ttype, Ptype, RunType>::prediction() {
                 executer.ins[i]->sync();
             }
         }
+#ifdef AMD_GPU
+        std::string tag;
+        tag.append(executer.name) ;
+        tag.append("(");
+        tag.append(executer.op_name);
+        tag.append(")");
+        AMDProfiler::set_tag(tag.c_str());
+#endif
 
 #ifdef ENABLE_DEBUG
         LOG(WARNING) << " executer: " << executer.name << " (" << executer.op_name << ") ";
