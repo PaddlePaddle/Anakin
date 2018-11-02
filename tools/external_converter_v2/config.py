@@ -39,7 +39,8 @@ class Configuration:
         self.framework_config_dict = data['TARGET'][self.framework]
         if len(argv) > 1:
             self.config_from_cmd(argv)
-        proto_list = data['TARGET'][self.framework]['ProtoPaths']
+        if 'ProtoPaths' in data['TARGET'][self.framework]:
+            proto_list = data['TARGET'][self.framework]['ProtoPaths']
         self.__refresh_pbs(proto_list)
         self.generate_pbs_of_anakin()
 
