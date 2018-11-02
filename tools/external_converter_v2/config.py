@@ -94,7 +94,7 @@ class Configuration:
                 assert (bool(dic[key][val_idx])), 'Key [%s] should not be null.' % (key)
         def arg_transmit(dic, target, key_idx=0, val_idx=1):
             """
-            Match the command line to yaml..
+            Match the command line to yaml.
             """
             if target == 'CAFFE':
                 self.ResultName = dic['caffemodel'][val_idx].split("/")[-1].split('.caffemodel')[0]
