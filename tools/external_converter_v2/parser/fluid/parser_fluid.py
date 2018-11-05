@@ -929,8 +929,9 @@ class FluidParser:
 
     def _Parsing(self):
         with fluid.scope_guard(self.scope):
-            if os.path.exists(self.ModelPath + 'model') and \
-            os.path.exists(self.ModelPath + 'params'):
+            model_abs_path = os.path.join(self.ModelPath, 'model')
+            param_abs_path = os.path.join(self.ModelPath, 'params')
+            if os.path.exists(model_abs_path) and os.path.exists(param_abs_path):
                 [self.net_program, feed_target_names, fetch_targets] = \
                 fluid.io.load_inference_model(self.ModelPath, self.exe, 'model', 'params')
             else:
