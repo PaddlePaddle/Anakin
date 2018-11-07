@@ -1,9 +1,7 @@
 /* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
-
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
-
        http://www.apache.org/licenses/LICENSE-2.0
    
    Unless required by applicable law or agreed to in writing, software
@@ -17,47 +15,32 @@
 #define ANAKIN_SABER_FUNCS_CUDA_SABER_FC_H
 
 #include "saber/funcs/impl/impl_fc.h"
-#include "saber/funcs/impl/cuda/base/sass_funcs.h"
+#include "sass_funcs.h"
 
 namespace anakin{
 
 namespace saber{
 
-template <DataType OpDtype,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-class SaberFc<NV, OpDtype, inDtype, outDtype, LayOutType_op, LayOutType_in, LayOutType_out>: \
-    public ImplBase<
-        Tensor<NV, inDtype, LayOutType_in>, \
-        Tensor<NV, outDtype, LayOutType_out>, \
-        Tensor<NV, OpDtype, LayOutType_op>, \
-        FcParam<Tensor<NV, OpDtype, LayOutType_op>>> {
+template <DataType OpDtype>
+class SaberFc<NV, OpDtype>: public ImplBase<NV, OpDtype, FcParam<NV> > {
 
 public:
-    typedef Tensor<NV, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<NV, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<NV, OpDtype, LayOutType_op> OpTensor;
-    typedef typename DataTensor_in::Dtype InDataType;
-    typedef typename DataTensor_out::Dtype OutDataType;
-    typedef typename OpTensor::Dtype OpDataType;
+    typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
 
     SaberFc() = default;
     ~SaberFc() {}
 
-    virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
-                             std::vector<DataTensor_out *>& outputs,
-                             FcParam<OpTensor>& param, Context<NV>& ctx){
+    virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
+                             std::vector<Tensor<NV> *>& outputs,
+                             FcParam<NV>& param, Context<NV>& ctx){
         // get context
         this->_ctx = &ctx;
         return create(inputs, outputs, param, ctx);
     }
 
-    virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
-                               std::vector<DataTensor_out *>& outputs,
-                               FcParam<OpTensor>& param, Context<NV>& ctx){
+    virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
+                               std::vector<Tensor<NV> *>& outputs,
+                               FcParam<NV>& param, Context<NV>& ctx){
 
         if (!(&ctx == this->_ctx)) {
             this->_ctx = &ctx;
@@ -73,14 +56,13 @@ public:
         }
         //! weights dims must be in h and w
         _flag_trans_weights = param.is_transpose_weights;
-
-        _kernel =saber_find_fast_sass_gemm(false, !_flag_trans_weights, _M, _N, _K);
+        _kernel = saber_find_fast_sass_gemm(false, !_flag_trans_weights, _M, _N, _K);
         return SaberSuccess;
     }
 
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in *>& inputs,
-                                 std::vector<DataTensor_out *>& outputs,
-                                 FcParam<OpTensor>& param);
+    virtual SaberStatus dispatch(const std::vector<Tensor<NV> *>& inputs,
+                                 std::vector<Tensor<NV> *>& outputs,
+                                 FcParam<NV>& param);
 
 
 private:
@@ -94,7 +76,6 @@ private:
                        const float*, float*, cudaStream_t)> _kernel;
 };
 
-template class SaberFc<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
 } //namespace saber
 
 } //namespace anakin

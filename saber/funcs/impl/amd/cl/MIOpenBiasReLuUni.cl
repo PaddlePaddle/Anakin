@@ -13,13 +13,77 @@
    limitations under the License.
 */
 
-__attribute__((reqd_work_group_size(256, 1, 1))) __kernel void
-MIOpenReLu(const __global float* __restrict in,
-	__global float* __restrict out,
-	__global float* bias, 
-	float slope, int N, int C, int H, int W)
-{
-	int gid_x = get_global_id(0);
-	float intermediate = in[gid_x] + bias[(gid_x % (C * H * W)) / (H * W)];
-	out[gid_x] = intermediate * (intermediate > 0.0f ? 1.0f : slope);
+__attribute__((reqd_work_group_size(256, 1, 1))) __kernel void MIOpenBiasReLuUni2(
+        __global float* in,
+        __global float* out,
+        __global float* bias,
+        float slope,
+        int N,
+        int C,
+        int H,
+        int W) {
+    int gid_x = get_global_id(0);
+    if (gid_x < N * C * H * W) {
+        float intermediate = in[gid_x] + bias[(gid_x % (C * H * W)) / (H * W)];
+        out[gid_x]         = intermediate * (intermediate > 0.0f ? 1.0f : slope);
+    }
+}
+
+__kernel void MIOpenBias(
+        __global float* in,
+        __global float* out,
+        __global float* bias,
+        float slope,
+        int N,
+        int C,
+        int H,
+        int W) {
+    int gid_x = get_global_id(0);
+    if (gid_x < N * C * H * W) {
+        float intermediate = in[gid_x] + bias[(gid_x % (C * H * W)) / (H * W)];
+        out[gid_x]         = intermediate;
+    }
+}
+
+__kernel void MIOpenRelu(
+        __global float* in,
+        __global float* out,
+        __global float* bias,
+        float slope,
+        int N,
+        int C,
+        int H,
+        int W) {
+    int gid_x = get_global_id(0);
+    if (gid_x < N * C * H * W) {
+        float intermediate = in[gid_x];
+        out[gid_x]         = intermediate * (intermediate > 0.0f ? 1.0f : slope);
+    }
+}
+__kernel void MIOpenBiasReluBoth(
+        __global float* in,
+        __global float* out,
+        __global float* bias,
+        float slope,
+        int N,
+        int C,
+        int H,
+        int W,
+        int isBias,
+        int relu_flag) {
+    int gid_x = get_global_id(0);
+    if (gid_x < N * C * H * W) {
+        if (isBias) {
+            float intermediate = in[gid_x] + bias[(gid_x % (C * H * W)) / (H * W)];
+            if (relu_flag)
+                out[gid_x] = intermediate * (intermediate > 0.0f ? 1.0f : slope);
+            else
+                out[gid_x] = intermediate;
+        } else {
+            if (relu_flag) {
+                float intermediate = in[gid_x];
+                out[gid_x]         = intermediate * (intermediate > 0.0f ? 1.0f : slope);
+            }
+        }
+    }
 }

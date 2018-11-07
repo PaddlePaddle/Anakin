@@ -17,65 +17,73 @@
 #define ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_ELTWISE_H
 
 #include "saber/funcs/impl/impl_eltwise.h"
-
+#include "saber/funcs/impl/cuda/saber_activation.h"
 namespace anakin {
 
 namespace saber {
 
-template <DataType OpDtype,
-            DataType inDtype,
-            DataType outDtype,
-            typename LayOutType_op,
-            typename LayOutType_in,
-            typename LayOutType_out>
-class SaberEltwise<NV, OpDtype, inDtype, outDtype, LayOutType_op, LayOutType_in, LayOutType_out>:\
-public ImplBase<
-        Tensor<NV, inDtype, LayOutType_in>,
-        Tensor<NV, outDtype, LayOutType_out>,
-        Tensor<NV, OpDtype, LayOutType_op>,
-        EltwiseParam<Tensor<NV, OpDtype, LayOutType_op>>> {
+template <DataType OpDtype>
+class SaberEltwise<NV, OpDtype>:
+    public ImplBase <
+    NV, OpDtype,
+    EltwiseParam<NV> > {
 public:
-    typedef Tensor<NV, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<NV, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<NV, OpDtype, LayOutType_op> OpTensor;
+    typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
 
-    typedef typename DataTensor_in::Dtype InDataType;
-    typedef typename DataTensor_out::Dtype OutDataType;
-    typedef typename OpTensor::Dtype OpDataType;
 
     SaberEltwise() {}
 
     ~SaberEltwise() {}
 
-    virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
-                         std::vector<DataTensor_out*>& outputs,
-                         EltwiseParam<OpTensor> &param,
-                         Context<NV> &ctx) {
+    virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
+                             std::vector<Tensor<NV> *>& outputs,
+                             EltwiseParam<NV>& param,
+                             Context<NV>& ctx) {
         // get context
         this->_ctx = &ctx;
+        CHECK_GE(outputs.size(), 1) << "outputs size has to == 1";
+        CHECK_GE(inputs.size(), 2) << "input size has to >= 2";
+        CHECK(!(inputs.size() > 2
+                && param.operation == Eltwise_sum)) <<
+                        "not support input size>2 and operation==Eltwise_sum, size = " << inputs.size() << ",activation = "
+                        << param.operation;
+        _with_relu = param.has_eltwise && param.activation_param.active == Active_relu;
+        _other_activation = param.has_eltwise && param.activation_param.active != Active_relu
+                            && param.activation_param.active != Active_unknow;
+
+        if (_other_activation) {
+            SABER_CHECK(_saber_activation.init(inputs, outputs, param.activation_param, ctx));
+        }
+
         return create(inputs, outputs, param, ctx);
     }
 
-    virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
-                           std::vector<DataTensor_out*>& outputs,
-                           EltwiseParam<OpTensor> &param,
-                           Context<NV> &ctx) {
+    virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
+                               std::vector<Tensor<NV> *>& outputs,
+                               EltwiseParam<NV>& param,
+                               Context<NV>& ctx) {
         this->_ctx = &ctx;
-        if ((param.operation == Eltwise_max) && (outputs.size() == 1)) {
-            _max_idx.reshape(inputs[0]->shape());
+
+        if (_other_activation) {
+            SABER_CHECK(_saber_activation.create(inputs, outputs, param.activation_param, ctx));
         }
+
         return SaberSuccess;
     }
 
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
-                             std::vector<DataTensor_out*>& outputs,
-                             EltwiseParam<OpTensor> &param) override;
+    virtual SaberStatus dispatch(const std::vector<Tensor<NV> *>& inputs,
+                                 std::vector<Tensor<NV> *>& outputs,
+                                 EltwiseParam<NV>& param) override;
 
 private:
-    OpTensor _max_idx;
+    //    Tensor<NV> _max_idx;
+    bool _with_relu;
+    bool _other_activation;
+    SaberActivation<NV, OpDtype> _saber_activation;
+
 };
 
-template class SaberEltwise<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
+
 
 } //namespace saber
 

@@ -197,21 +197,15 @@ __global__ void sum(const Dtype* in_data,
     }
 }
 
-template <DataType OpDtype,
-            DataType inDtype,
-            DataType outDtype,
-            typename LayOutType_op,
-            typename LayOutType_in,
-            typename LayOutType_out>
-SaberStatus SaberMvn<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(\
-    const std::vector<DataTensor_in *>& inputs, \
-    std::vector<DataTensor_out *>& outputs, \
-    MvnParam<OpTensor>& param) {
+template <DataType OpDtype>
+SaberStatus SaberMvn<NV, OpDtype>::dispatch(\
+    const std::vector<Tensor<NV> *>& inputs, \
+    std::vector<Tensor<NV> *>& outputs, \
+    MvnParam<NV>& param) {
 
     cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
-    const InDataType * in_data = inputs[0]->data();
-    OutDataType * out_data = outputs[0]->mutable_data();
+    const OpDataType * in_data = (const OpDataType*)inputs[0]->data();
+    OpDataType * out_data = (OpDataType*)outputs[0]->mutable_data();
     int num = inputs[0]->num() * inputs[0]->channel();
     int inner_dim = inputs[0]->height() * inputs[0]->width();
     if (param.across_channels) {
@@ -221,10 +215,10 @@ SaberStatus SaberMvn<NV, OpDtype, inDtype, outDtype,\
 
     int block_num = (inner_dim + CUDA_NUM_THREADS - 1) / CUDA_NUM_THREADS;
     dim3 grid(block_num, num);
-    OpDataType* mean = _mean.mutable_data();
+    OpDataType* mean = (OpDataType*)_mean.mutable_data();
     cudaMemsetAsync(mean, 0,  _mean.valid_size() * sizeof(OpDataType), cuda_stream);
     if (param.normalize_variance) {
-        InDataType* sd = _sd.mutable_data();
+        OpDataType* sd = (OpDataType*)_sd.mutable_data();
         cudaMemsetAsync(sd, 0,  _sd.valid_size() * sizeof(OpDataType), cuda_stream);
         sum_square<OpDataType, CUDA_NUM_THREADS><<<grid, CUDA_NUM_THREADS, 0, cuda_stream>>>(\
             in_data, num, inner_dim, mean, sd);
@@ -239,6 +233,7 @@ SaberStatus SaberMvn<NV, OpDtype, inDtype, outDtype,\
 
     return SaberSuccess;
 }
-
+DEFINE_OP_TEMPLATE(SaberMvn, MvnParam, NV, AK_HALF);
+DEFINE_OP_TEMPLATE(SaberMvn, MvnParam, NV, AK_INT8);
 }
 }

@@ -38,21 +38,20 @@ class Configuration:
         # parse TARGET info from config file.
         if self.framework == "CAFFE":
             proto_list = data['TARGET'][self.framework]['ProtoPaths']
-            # generate pb files by proto.
             self.__generate_pbs(proto_list)
-            #prototxt_file = data['TARGET'][self.framework]['PrototxtPath']
-            #model_file = data['TARGET'][self.framework]['ModelPath']
             self.framework_config_dict = data['TARGET'][self.framework]
         elif self.framework == "PADDLE":
             pass
         elif self.framework == "LEGO":
-            pass
+            proto_list = data['TARGET'][self.framework]['ProtoPaths']
+            self.__generate_pbs(proto_list)
+            self.framework_config_dict = data['TARGET'][self.framework]
         elif self.framework == "TENSORFLOW":
-            pass
+            proto_list = data['TARGET'][self.framework]['ProtoPaths']
+            self.framework_config_dict = data['TARGET'][self.framework]
         elif self.framework == "MXNET":
             pass
         elif self.framework == "FLUID":
-            proto_list = data['TARGET'][self.framework]['ProtoPaths']
             self.framework_config_dict = data['TARGET'][self.framework]
         else:
             raise NameError('ERROR: Framework not support yet ' % (self.framework))

@@ -32,20 +32,14 @@ __global__ void ker_pad_fwd(Dtype * out_data, \
     }
 }
 
-template <DataType OpDtype,
-            DataType inDtype,
-            DataType outDtype,
-            typename LayOutType_op,
-            typename LayOutType_in,
-            typename LayOutType_out>
-SaberStatus SaberPad<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(\
-    const std::vector<DataTensor_in *>& inputs, \
-    std::vector<DataTensor_out *>& outputs, \
-    PadParam<OpTensor>& param) {
+template <DataType OpDtype>
+SaberStatus SaberPad<NV, OpDtype>::dispatch(\
+    const std::vector<Tensor<NV> *>& inputs, \
+    std::vector<Tensor<NV> *>& outputs, \
+    PadParam<NV>& param) {
 
-    const InDataType* in_data = inputs[0]->data();
-    OutDataType* out_data = outputs[0]->mutable_data();
+    const dtype* in_data = static_cast<const dtype*>(inputs[0]->data());
+    dtype* out_data = static_cast<dtype*>(outputs[0]->mutable_data());
     cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
     int count = inputs[0]->valid_size();
     int in_n = inputs[0]->num();
@@ -55,8 +49,8 @@ SaberStatus SaberPad<NV, OpDtype, inDtype, outDtype,\
     int out_size = outputs[0]->valid_size();
 
     if (inputs[0]->is_continue_mem() && outputs[0]->is_continue_mem()) {
-        cudaMemsetAsync(out_data, 0, out_size * sizeof(OpDataType), cuda_stream);
-        ker_pad_fwd<OpDataType>\
+        cudaMemsetAsync(out_data, 0, out_size * sizeof(dtype), cuda_stream);
+        ker_pad_fwd<dtype>\
                  <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(\
                  out_data + _img_offset, in_data, _in_n_stride, \
                  _in_c_stride, _in_h_stride, _in_w_stride,\
@@ -66,6 +60,7 @@ SaberStatus SaberPad<NV, OpDtype, inDtype, outDtype,\
 
     return SaberSuccess;
 }
-
+DEFINE_OP_TEMPLATE(SaberPad, PadParam, NV, AK_HALF);
+DEFINE_OP_TEMPLATE(SaberPad, PadParam, NV, AK_INT8);
 }
 }

@@ -13,237 +13,204 @@
    limitations under the License.
 */
 
+#include "saber/funcs/impl/amd/include/saber_pooling.h"
 
-#include "saber/funcs/impl/amd/saber_pooling.h"
-#include "saber/funcs/impl/amd/amd_utils.h"
-#include "saber/funcs/conv.h"
+namespace anakin {
+namespace saber {
 
-
-namespace anakin{
-namespace saber{
-
-#ifdef USE_AMD
 typedef TargetWrapper<AMD> AMD_API;
-typedef Env<AMD> AMD_ENV;
-typedef Tensor<AMD, AK_FLOAT, NCHW> TensorDf4;
 
-
-template <DataType OpDtype ,
-    DataType inDtype,
-    DataType outDtype,
-    typename LayOutType_op,
-    typename LayOutType_in,
-    typename LayOutType_out>
-SaberStatus SaberPooling<AMD, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::init(
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        PoolingParam<OpTensor> &param,
-        Context<AMD> &ctx)
-{
+template <DataType OpDtype>
+SaberStatus SaberPooling<AMD, OpDtype>::init(
+    const std::vector<Tensor<AMD>*>& inputs,
+    std::vector<Tensor<AMD>*>& outputs,
+    PoolingParam<AMD>& param,
+    Context<AMD>& ctx) {
 
     this->_ctx = &ctx;
     return create(inputs, outputs, param, ctx);
 }
 
-template <DataType OpDtype,
-    DataType inDtype,
-    DataType outDtype,
-    typename LayOutType_op,
-    typename LayOutType_in,
-    typename LayOutType_out>
-SaberStatus SaberPooling<AMD, OpDtype, inDtype, outDtype,
-    LayOutType_op, LayOutType_in, LayOutType_out>::create(
-    const std::vector<DataTensor_in*>& inputs,
-    std::vector<DataTensor_out*>& outputs,
-    PoolingParam<OpTensor> &param,
-    Context<AMD> &ctx)
-{
+template <DataType OpDtype>
+SaberStatus SaberPooling<AMD, OpDtype>::create(
+    const std::vector<Tensor<AMD>*>& inputs,
+    std::vector<Tensor<AMD>*>& outputs,
+    PoolingParam<AMD>& param,
+    Context<AMD>& ctx) {
+    KernelInfo kernelInfo;
+    int pooling_type = 0;
+    int average_include = 0;
 
-    cl_context context = 0;
-    cl_device_id device = 0;
-    cl_kernel kernel = 0;
+#ifdef ENABLE_DEBUG
+    ALOGD("param.pooling_type=" << param.pooling_type << " param.window_h=" << param.window_h
+          << " param.window_w=" << param.window_w
+          << " param.pad_h=" << param.pad_h << " param.pad_w=" << param.pad_w
+          << " param.stride_h=" << param.stride_h
+          << " param.stride_w=" << param.stride_w
+          << " param.global_pooling=" << param.global_pooling);
+#endif
 
-    Device<AMD> dev = Env<AMD>::cur_env()[inputs[0]->device_id()]; //anakin device id to AMD device
-    device = dev.get_device();
-    context = dev.get_context();
+    switch (param.pooling_type) {
+    case Pooling_max: {
+        pooling_type = (PoolingType)MLO_POOLING_OP_MAX;
+    }
+    break;
 
-    LOG(INFO) << "device id= " << device << " conext = " << context;
+    case Pooling_average_exclude_padding: {
+        pooling_type = (PoolingType)MLO_POOLING_OP_AVE;
+    }
+    break;
 
-    //Set Solver and get solution back
-    //TODO
+    case Pooling_average_include_padding: {
+        pooling_type = (PoolingType)MLO_POOLING_OP_AVE;
+        average_include = 1;
+    }
+    break;
 
-    switch(param.pooling_type)
-    {
-        case Pooling_max:
-            param.pooling_type = (PoolingType)MLO_POOLING_OP_MAX;
-            break;
-        default:
-            LOG(INFO) << "Unknown polling type";
-            break;
+    default: {
+        ALOGE("Unknown polling type: " << param.pooling_type);
+    }
+    break;
     }
 
-    KernelInfo kernelInfo;
-
-    //TODO
-    //Rewrite here once solver is ready.//////////////
-    T_ExtSolutionConfig extSolution;
-    //////////////////////////////////////////////////
-    int _grp_tile0 = 8;
-    int _grp_tile1 = 8;
-    int _out_width = (inputs[0]->width() + param.pad_w * 2) / param.window_w;
-    int _out_height = (inputs[0]->height() + param.pad_h * 2) / param.window_h;
+    int _grp_tile0     = 8;
+    int _grp_tile1     = 8;
+    int _out_width     = (inputs[0]->width() + param.pad_w * 2 - param.window_w + param.stride_w - 1) /
+                         param.stride_w + 1;
+    int _out_height    = (inputs[0]->height() + param.pad_h * 2 - param.window_h + param.stride_h - 1) /
+                         param.stride_h + 1;
     int _out_pix_tile0 = std::max(1, 8 / param.stride_w);
     int _out_pix_tile1 = std::max(1, 8 / param.stride_h);
 
-    while(_out_pix_tile0 * _grp_tile0 > _out_width * 2 && _out_pix_tile0 > 1)
-    {
+    while (_out_pix_tile0 * _grp_tile0 > _out_width * 2 && _out_pix_tile0 > 1) {
         _out_pix_tile0 >>= 1;
     }
 
-    while(_out_pix_tile1 * _grp_tile1 > _out_height * 2 && _out_pix_tile1 > 1)
-    {
+    while (_out_pix_tile1 * _grp_tile1 > _out_height * 2 && _out_pix_tile1 > 1) {
         _out_pix_tile1 >>= 1;
     }
 
-    //int g_wk_width = ((_out_width + _grp_tile0 * _out_pix_tile0 - 1) /
-    //                  (_grp_tile0 * _out_pix_tile0));
-    //int g_wk_height = ((_out_height + _grp_tile1 * _out_pix_tile1 - 1) /
-    //                   (_grp_tile1 * _out_pix_tile1));
+    kernelInfo.wk_dim = 3;
 
-    //kernelInfo.l_wk = {_grp_tile0, _grp_tile1, 1};
-    //kernelInfo.g_wk = {g_wk_width * _grp_tile0, g_wk_height * _grp_tile1, inputs[0]->channel() * inputs[0]->num()};
-    //kernelInfo.kernel_file = "Pooling.cl";
-    //kernelInfo.kernel_name = "Pooling";
-   
-    kernelInfo.l_wk = {256, 1, 1};
-    kernelInfo.g_wk = {64*64*40, 1, 1};
-    kernelInfo.kernel_file = "Pooling.cl";
-    kernelInfo.kernel_name = "mloPooling";
+    if (param.window_h == 2
+            && param.window_w == 2
+            && param.pad_w == 0
+            && param.pad_h == 0) {
+        kernelInfo.l_wk        = {256, 1, 1};
+        kernelInfo.g_wk        = {64 * 64 * 40, 1, 1};
+        kernelInfo.kernel_file = "Pooling.cl";
+        kernelInfo.kernel_name = "mloPooling";
+    } else if (param.window_h == inputs[0]->height()
+               && param.window_w == inputs[0]->width()
+               && param.pad_w == 0
+               && param.pad_h == 0
+               && (inputs[0]->channel()*inputs[0]->num() % 256) == 0) {
+        int g_wk_width  = 1;
+        int g_wk_height = 1;
+        kernelInfo.l_wk = {256, 1, 1};
+        kernelInfo.g_wk = {inputs[0]->channel()* inputs[0]->num(), 1, 1};
+        kernelInfo.kernel_file = "Pooling7x7_7_7_2048.cl";
+        kernelInfo.kernel_name = "mloPoolingG";
+    } else {
+        int g_wk_width  = ((_out_width + _grp_tile0 * _out_pix_tile0 - 1) / (_grp_tile0 * _out_pix_tile0));
+        int g_wk_height = ((_out_height + _grp_tile1 * _out_pix_tile1 - 1) / (_grp_tile1 * _out_pix_tile1));
+        kernelInfo.l_wk = {_grp_tile0, _grp_tile1, 1};
+        kernelInfo.g_wk = {g_wk_width * _grp_tile0,
+                           g_wk_height * _grp_tile1,
+                           inputs[0]->channel()* inputs[0]->num()
+                          };
+        kernelInfo.kernel_file = "MIOpenPooling.cl";
+        kernelInfo.kernel_name = "mloPoolingG";
+        kernelInfo.kernel_type = MIOPEN;
+    }
 
-    //set comp_options...
+    int bot_batch_stride   = inputs[0]->width() * inputs[0]->height() * outputs[0]->channel();
+    int bot_channel_stride = inputs[0]->width() * inputs[0]->height();
+
+    int top_batch_stride   = outputs[0]->width() * outputs[0]->height() * outputs[0]->channel();
+    int top_channel_stride = outputs[0]->width() * outputs[0]->height();
+
+    // set comp_options...
     kernelInfo.comp_options =
-         std::string(" -DMLO_POOLING_OP_ID=") + std::to_string(param.pooling_type) +
-         std::string(" -DMLO_POOLING_KERNEL_SZ0=2") +
-         std::string(" -DMLO_POOLING_KERNEL_SZ1=2") +
-         std::string(" -DMLO_POOLING_PAD0=") + std::to_string(param.pad_w) +
-         std::string(" -DMLO_POOLING_PAD1=") + std::to_string(param.pad_h) +
-         std::string(" -DMLO_POOLING_STRIDE0=") + std::to_string(param.stride_w) +
-         std::string(" -DMLO_POOLING_STRIDE1=") + std::to_string(param.stride_h) +
-         std::string(" -DMLO_POOLING_N_OUTPUTS=") + std::to_string(inputs[0]->channel()) +
-         std::string(" -DMLO_POOLING_N_CHANNELS=") + std::to_string(outputs[0]->channel()) +
-         std::string(" -DMLO_POOLING_N_HORIZ_OUT_PIX=") + std::to_string(_out_pix_tile0) + //extSolution.horiz_out_pix) +
-         std::string(" -DMLO_POOLING_N_VERT_OUT_PIX=") + std::to_string(_out_pix_tile1) + //extSolution.vert_out_pix) +
-         std::string(" -DMLO_POOLING_GROUP_SZ0=8") +
-         std::string(" -DMLO_POOLING_GROUP_SZ1=8") +
+        std::string(" -DMLO_POOLING_OP_ID=") + std::to_string(pooling_type)
+        + std::string(" -DMLO_POOLING_KERNEL_SZ0=") + std::to_string(param.window_w)
+        + std::string(" -DMLO_POOLING_KERNEL_SZ1=") + std::to_string(param.window_h)
+        + std::string(" -DMLO_POOLING_PAD0=") + std::to_string(param.pad_w)
+        + std::string(" -DMLO_POOLING_PAD1=") + std::to_string(param.pad_h)
+        + std::string(" -DMLO_POOLING_STRIDE0=") + std::to_string(param.stride_w)
+        + std::string(" -DMLO_POOLING_STRIDE1=") + std::to_string(param.stride_h)
+        + std::string(" -DMLO_POOLING_N_OUTPUTS=") + std::to_string(inputs[0]->channel())
+        + std::string(" -DMLO_POOLING_N_CHANNELS=") + std::to_string(outputs[0]->channel())
+        + std::string(" -DMLO_POOLING_N_HORIZ_OUT_PIX=") + std::to_string(_out_pix_tile0)
+        + std::string(" -DMLO_POOLING_N_VERT_OUT_PIX=") + std::to_string(_out_pix_tile1)
+        + std::string(" -DMLO_POOLING_GROUP_SZ0=8")
+        + std::string(" -DMLO_POOLING_GROUP_SZ1=8")
+        + std::string(" -DMLO_POOLING_BOT_BATCH_STRIDE=") + std::to_string(bot_batch_stride)
+        + std::string(" -DMLO_POOLING_BOT_CHANNEL_STRIDE=") + std::to_string(bot_channel_stride)
+        + std::string(" -DMLO_POOLING_BOT_STRIDE=") + std::to_string(inputs[0]->width())
+        + std::string(" -DMLO_POOLING_TOP_BATCH_STRIDE=") + std::to_string(top_batch_stride)
+        + std::string(" -DMLO_POOLING_TOP_CHANNEL_STRIDE=") + std::to_string(top_channel_stride)
+        + std::string(" -DMLO_POOLING_TOP_STRIDE=") + std::to_string(outputs[0]->width())
+        + std::string(" -DMLO_POOLING_BOT_WIDTH=") + std::to_string(inputs[0]->width())
+        + std::string(" -DMLO_POOLING_BOT_HEIGHT=") + std::to_string(inputs[0]->height())
+        + std::string(" -DMLO_POOLING_TOP_WIDTH=") + std::to_string(outputs[0]->width())
+        + std::string(" -DMLO_POOLING_TOP_HEIGHT=") + std::to_string(outputs[0]->height())
+        + std::string(" -DBATCH_NUM=") + std::to_string(inputs[0]->num())
+        + std::string(" -DAVERAGE_INCLUDE=") + std::to_string(average_include)
+        + std::string(" -DCU_NUM=64")
+        + std::string(" -DMIOPEN_USE_FP32=1")
+        + std::string(" -DMIOPEN_USE_FP16=0");
 
-         std::string(" -DMLO_POOLING_BOT_WIDTH=") + std::to_string(inputs[0]->width()) +
-         std::string(" -DMLO_POOLING_BOT_HEIGHT=") + std::to_string(inputs[0]->height()) +
-         std::string(" -DMLO_POOLING_BOT_STRIDE=") + std::to_string(inputs[0]->width()) +
-         std::string(" -DMLO_POOLING_BOT_CHANNEL_STRIDE=") + std::to_string(inputs[0]->width() * inputs[0]->height()) +
-         std::string(" -DMLO_POOLING_BOT_BATCH_STRIDE=") + std::to_string(inputs[0]->width() * inputs[0]->height() * outputs[0]->channel()) +
+    AMDKernelPtr kptr = CreateKernel(inputs[0]->device_id(), &kernelInfo);
 
-         std::string(" -DMLO_POOLING_TOP_WIDTH=") + std::to_string((inputs[0]->width() + param.pad_w * 2) / param.window_w) +
-         std::string(" -DMLO_POOLING_TOP_HEIGHT=") + std::to_string((inputs[0]->height() + param.pad_h * 2) / param.window_h) +
-         std::string(" -DMLO_POOLING_TOP_STRIDE=") + std::to_string((inputs[0]->width() + param.pad_w * 2) / param.window_w) +
-         std::string(" -DMLO_POOLING_TOP_CHANNEL_STRIDE=") + std::to_string((inputs[0]->width() * inputs[0]->height()) / (param.window_w * param.window_h)) +
-         std::string(" -DMLO_POOLING_TOP_BATCH_STRIDE=") + std::to_string((inputs[0]->width() * inputs[0]->height() * outputs[0]->channel()) / (param.window_w * param.window_h)) +
-         std::string(" -DBATCH_NUM=") + std::to_string(inputs[0]->num()) +
-         std::string(" -DCU_NUM=64");
-
-    LOG(INFO) << "kernel file name: " << kernelInfo.kernel_file;
-    LOG(INFO) << "kernel name: " << kernelInfo.kernel_name;
-    LOG(INFO) << "local work size: " << kernelInfo.l_wk[0] << " " << kernelInfo.l_wk[1] << "  " << kernelInfo.l_wk[2];
-    LOG(INFO) << "global work size: " << kernelInfo.g_wk[0] << " " << kernelInfo.g_wk[1] << "  " << kernelInfo.g_wk[2];
-    LOG(INFO) << "compile option: " << kernelInfo.comp_options;
-  
-    //////////////////////////////////////////////////
-    std::copy(kernelInfo.g_wk.begin(), kernelInfo.g_wk.end(), _globalWorkSize);
-    std::copy(kernelInfo.l_wk.begin(), kernelInfo.l_wk.end(), _localWorkSize);
-
-    std::string kernel_file = kernelInfo.kernel_file;
-    std::string kernel_name = kernelInfo.kernel_name;
-
-    //To create the program
-    cl_program program = CreateCLProgram(context, device, kernelInfo.kernel_file.c_str(), &kernelInfo);
-    if (program == NULL)
-    {
-        LOG(INFO) << "Failed to load program";
+    if (!kptr.get()->isInit()) {
+        ALOGE("Failed to load program");
         return SaberInvalidValue;
     }
 
-    LOG(INFO) << "COMPILE OCL KERNEL CODE";
+    _kernel_ptr = kptr;
 
-    //To create kernel
-    _kernel = clCreateKernel(program, kernelInfo.kernel_name.c_str(), NULL);
-    if (_kernel == NULL)
-    {
-        LOG(INFO) << "Failed to create kernel";
-        return SaberInvalidValue;
-    }
+    ALOGD("COMPLETE CREATE KERNEL");
 
-    LOG(INFO) << "COMPLETE CREATE KERNEL";
-    this->_ctx = &ctx;
     return SaberSuccess;
 }
 
-template <DataType OpDtype ,
-    DataType inDtype,
-    DataType outDtype,
-    typename LayOutType_op,
-    typename LayOutType_in,
-    typename LayOutType_out>
-SaberStatus SaberPooling<AMD, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        PoolingParam<OpTensor> &param)
-{
-    typedef typename DataTensor_in::Dtype DataType_in;
-    typedef typename DataTensor_out::Dtype DataType_out;
-    typedef typename OpTensor::Dtype DataType_op;
- 
-    LOG(INFO) << "SaberAMDPooling::dispatch";
+template <DataType OpDtype>
+SaberStatus SaberPooling<AMD, OpDtype>::dispatch(
+    const std::vector<Tensor<AMD>*>& inputs,
+    std::vector<Tensor<AMD>*>& outputs,
+    PoolingParam<AMD>& param) {
+#ifdef ENABLE_DEBUG
+    ALOGD("dispatch");
+#endif
 
-    Shape in_shape = inputs[0]->valid_shape();
-    Shape out_shape = outputs[0]->valid_shape();
+    if (_kernel_ptr == NULL || _kernel_ptr.get() == NULL) {
+        ALOGE("Kernel is not exist");
+        return SaberInvalidValue;
+    }
 
-    Shape stride_in = inputs[0]->get_stride();
-    Shape stride_out = outputs[0]->get_stride();
+    AMDKernel* kernel = _kernel_ptr.get();
 
-    cl_int errNum = 0;
+    bool err = false;
 
-    //To get the commpute command queue
+    // To get the commpute command queue
     AMD_API::stream_t cm = this->_ctx->get_compute_stream();
 
-    //To set the argument
-    cl_mem memObjects[2] = { 0, 0 };
-    memObjects[0] = (cl_mem)inputs[0]->data();
-    memObjects[1] = (cl_mem)outputs[0]->mutable_data();
+    err = kernel->SetKernelArgs(
+              (PtrDtype)inputs[0]->data(), (PtrDtype)outputs[0]->mutable_data(), (PtrDtype)0);
 
-    errNum = clSetKernelArg(_kernel, 0, sizeof(cl_mem), &memObjects[0]);
-    errNum |= clSetKernelArg(_kernel, 1, sizeof(cl_mem), &memObjects[1]);
-    if (errNum != CL_SUCCESS)
-    {
-        LOG(INFO) << "Fail to set kernel arguments";
+    amd_kernel_list list;
+    list.push_back(_kernel_ptr);
+    err = LaunchKernel(cm, list);
+
+    if (!err) {
+        ALOGE("Fail to set execution");
         return SaberInvalidValue;
     }
 
-    LOG(INFO) << "COMPLETE SET ARGUMENT";
-
-    errNum = clEnqueueNDRangeKernel(cm, _kernel, 3, NULL,
-                                    _globalWorkSize, _localWorkSize,
-                                    0, NULL, NULL);
-    if (errNum != CL_SUCCESS)
-    {
-        LOG(INFO) << "Fail to set execution: " << errNum;
-        return SaberInvalidValue;
-    }
-    LOG(INFO) << "COMPLETE EXECUTION";
-
+    ALOGD("COMPLETE EXECUTION");
     return SaberSuccess;
-
 }
-#endif
-}
-}
+template class SaberPooling<AMD, AK_FLOAT>;
+} // namespace saber
+} // namespace anakin

@@ -80,10 +80,12 @@ struct node {
 
     ///< mergeNodes stand for sub merged nodes
     std::vector<node> mergeNodes;
+	///< save node's index in mergeNodes which shouldn't be removed in reconstructing Graph
+	std::vector<int> idx_keep_in_merge_nodes;
 
     ///<mergeNodeNames stand for sub merged node names from pattern
     std::vector<std::string> mergeNodeNames;
-    
+
     ///< lane stand for the stream of lane the node operator occurs. default 0
     int lane{0};
     ///<need_wait stand forwhether it needs wait .default false
@@ -134,6 +136,11 @@ struct node {
         this->mergeNodes.push_back(rhs);
         return *this;
     }
+
+	// register node index should keep
+	inline void register_keep(int idx) {
+		idx_keep_in_merge_nodes.push_back(idx);
+	}
 };
 
 /**
@@ -156,14 +163,28 @@ public:
     /// check if the arc is aceessable for fusion 
     bool check_pass(std::string, std::string);
 
+    ///check if the the node is accessible to another
+    bool check_accessible(std::string, std::string);
+
+    ///make vgraph node index
+    std::map<std::pair<std::string, std::string>, int> connect_table();
+
     /// register the arc outs 
     void register_outs(std::string, std::string);
 
     std::vector<std::pair<std::string, std::string>>& get_registed_outs() { return _registed_outs; }
 
+	bool has_exec_order() { return _nodes_exec_order.size() == 0 ? false : true; }
+
+	void set_exec_order(std::vector<std::string>& exe_order) { _nodes_exec_order = exe_order; }
+
+	std::vector<std::string>& get_exec_order() { return _nodes_exec_order; }
+
 private:
     ///< _registed_outs :outs that needs to be exported
     std::vector<std::pair<std::string, std::string>> _registed_outs;
+	///< node execute order
+	std::vector<std::string> _nodes_exec_order;
 };
 
 

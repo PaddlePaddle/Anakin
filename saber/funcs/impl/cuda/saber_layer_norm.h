@@ -22,50 +22,33 @@ namespace anakin{
 
 namespace saber{
 
-template <DataType OpDtype,
-            DataType inDtype,
-            DataType outDtype,
-            typename LayOutType_op,
-            typename LayOutType_in,
-            typename LayOutType_out>
-    class SaberLayerNorm<NV, OpDtype, inDtype, outDtype, \
-    LayOutType_op, LayOutType_in, LayOutType_out>:\
-    public ImplBase<
-            Tensor<NV, inDtype, LayOutType_in>,
-            Tensor<NV, outDtype, LayOutType_out>,
-            Tensor<NV, OpDtype, LayOutType_op>,
-            LayerNormParam<Tensor<NV, OpDtype, LayOutType_op>>> {
+template <DataType OpDtype>
+class SaberLayerNorm<NV, OpDtype>:public ImplBase<NV, OpDtype, LayerNormParam<NV> > {
 
 public:
-    typedef Tensor<NV, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<NV, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<NV, OpDtype, LayOutType_op> OpTensor;
-
-    typedef typename DataTensor_in::Dtype InDataType;
-    typedef typename DataTensor_out::Dtype OutDataType;
-    typedef typename OpTensor::Dtype OpDataType;
+    typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
 
     SaberLayerNorm() = default;
     ~SaberLayerNorm() {}
 
-    virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
-                             std::vector<DataTensor_out*>& outputs,
-                             LayerNormParam<OpTensor> &param,
+    virtual SaberStatus init(const std::vector<Tensor<NV>* >& inputs,
+                             std::vector<Tensor<NV>* >& outputs,
+                             LayerNormParam<NV> &param,
                              Context<NV> &ctx) {
         // get context
         this->_ctx = &ctx;
         return create(inputs, outputs, param, ctx);
     }
 
-    virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
-                               std::vector<DataTensor_out*>& outputs,
-                               LayerNormParam<OpTensor> &param,
+    virtual SaberStatus create(const std::vector<Tensor<NV>* >& inputs,
+                               std::vector<Tensor<NV>* >& outputs,
+                               LayerNormParam<NV> &param,
                                Context<NV> &ctx) {
         //Shape sh_in = inputs[0]->valid_shape();
         _inner_size = inputs[0]->count_valid(param.axis, inputs[0]->dims());
         _outer_size = inputs[0]->count_valid(0, param.axis);
 
-        Shape sh = Shape::zero(inputs[0]->dims());
+        Shape sh({0, 0, 0, 0});
         for (int i = 0; i < sh.dims(); ++i) {
             sh[i] = 1;
         }
@@ -84,22 +67,23 @@ public:
             _flag_bias = true;
         }
 
+        return SaberSuccess;
     }
 
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
-                                 std::vector<DataTensor_out*>& outputs,
-                                 LayerNormParam<OpTensor> &param);
+    virtual SaberStatus dispatch(const std::vector<Tensor<NV>* >& inputs,
+                                 std::vector<Tensor<NV>* >& outputs,
+                                 LayerNormParam<NV> &param);
 
 
 private:
-    OpTensor _mean;
-    OpTensor _std;
+    Tensor<NV> _mean;
+    Tensor<NV> _std;
     int _inner_size;
     int _outer_size;
     bool _flag_scale{true};
     bool _flag_bias{true};
 };
-template class SaberLayerNorm<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
+template class SaberLayerNorm<NV, AK_FLOAT>;
 } //namespace saber
 
 } //namespace anakin

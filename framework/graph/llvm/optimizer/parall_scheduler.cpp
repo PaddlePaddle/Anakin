@@ -8,23 +8,24 @@ void SyncFlagController::init(VGraph* vgraph) {
     auto graph_in_names = vgraph->get_graph_ins();
     int lane = 0;
 
-    for (auto& name : graph_in_names) {
+    for (auto & name : graph_in_names) {
         (*vgraph)[name].lane = lane;
         auto& arc_out_its_of_graph_in = vgraph->get_out_arc_its(name);
-        CHECK_EQ(arc_out_its_of_graph_in.size(), 1)<<"Parall analysis: graph input node should have one out arc.";
+        CHECK_EQ(arc_out_its_of_graph_in.size(),
+                 1) << "Parall analysis: graph input node should have one out arc.";
         _map_io_to_lane[arc_out_its_of_graph_in[0]->weight()] = lane;
         map_io_to_vgraph(arc_out_its_of_graph_in[0]->weight(), vgraph);
         (*vgraph)[name].lane = lane;
         (*vgraph)[name].need_wait = false;
         lane++;
-    } 
+    }
 }
 
 void SyncFlagController::node_sync_flags(node& node_arg, VGraph* vgraph) {
     std::vector<int> lanes;
     auto& node_arc_in_its = vgraph->get_in_arc_its(node_arg.name);
     auto has_lane = [&](int lane) {
-        for (auto& tmp_lane : lanes) {
+        for (auto & tmp_lane : lanes) {
             if (tmp_lane == lane) {
                 return true;
             }
@@ -34,7 +35,7 @@ void SyncFlagController::node_sync_flags(node& node_arg, VGraph* vgraph) {
     };
 
     if (node_arc_in_its.size()) {
-        for (auto& arc_it : node_arc_in_its) {
+        for (auto & arc_it : node_arc_in_its) {
             auto& io_in = arc_it->weight();
 
             if (!has_lane(_map_io_to_lane[io_in])) {
@@ -54,7 +55,7 @@ void SyncFlagController::io_sync_flags(node& node_arg, VGraph* vgraph) {
     int lane = (*vgraph)[node_arg.name].lane;
     auto& node_arc_out_its = vgraph->get_out_arc_its(node_arg.name);
 
-    for (auto& arc_it : node_arc_out_its) {
+    for (auto & arc_it : node_arc_out_its) {
         auto& io_out = arc_it->weight();
         _map_io_to_lane[io_out] = lane;
         map_io_to_vgraph(io_out, vgraph);

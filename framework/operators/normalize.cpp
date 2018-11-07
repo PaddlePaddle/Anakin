@@ -6,12 +6,12 @@ namespace ops {
 
 #ifdef USE_CUDA
 template<>
-void Normalize<NV, AK_FLOAT, Precision::FP32>::operator() (
-	OpContext<NV> &ctx, 
-	const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins, 
-	std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    auto* impl = static_cast<NormalizeHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<NormalizeHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper)->_param_normalize;
+void Normalize<NV, Precision::FP32>::operator()(
+    OpContext<NV>& ctx,
+    const std::vector<Tensor4dPtr<NV> >& ins,
+    std::vector<Tensor4dPtr<NV> >& outs) {
+    auto* impl = static_cast<NormalizeHelper<NV, Precision::FP32>*>(this->_helper);
+    auto& param = static_cast<NormalizeHelper<NV, Precision::FP32>*>(this->_helper)->_param_normalize;
     impl->_funcs_normalize(ins, outs, param, ctx);
 }
 #endif
@@ -20,78 +20,78 @@ void Normalize<NV, AK_FLOAT, Precision::FP32>::operator() (
 
 
 /// set helper
-template<typename Ttype, DataType Dtype, Precision Ptype>
-NormalizeHelper<Ttype, Dtype, Ptype>::~NormalizeHelper() {
+template<typename Ttype, Precision Ptype>
+NormalizeHelper<Ttype, Ptype>::~NormalizeHelper() {
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status NormalizeHelper<Ttype, Dtype, Ptype>::InitParam() {
+template<typename Ttype, Precision Ptype>
+Status NormalizeHelper<Ttype, Ptype>::InitParam() {
     //DLOG(WARNING) << "Parsing Normalize op parameter.";
     auto is_across_spatial = GET_PARAMETER(bool, is_across_spatial);
     auto is_shared_channel = GET_PARAMETER(bool, is_shared_channel);
     auto eps = GET_PARAMETER(float, eps);
     auto p = GET_PARAMETER(int, p);
 
-	using pblock_type = PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>;
+    using pblock_type = PBlock<Ttype>;
     auto input_scale = GET_PARAMETER(pblock_type, weight_1);
 
-    saber::NormalizeParam<Tensor4d<Ttype, Dtype>> normalize_param(is_across_spatial, is_shared_channel, \
-        &(input_scale.d_tensor()), eps, p);
+    saber::NormalizeParam<Ttype> normalize_param(is_across_spatial, is_shared_channel, \
+            & (input_scale.d_tensor()), eps, p);
     _param_normalize = normalize_param;
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status NormalizeHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype> &ctx, 
-                                                const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                                                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
+template<typename Ttype, Precision Ptype>
+Status NormalizeHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
+        const std::vector<Tensor4dPtr<Ttype> >& ins,
+        std::vector<Tensor4dPtr<Ttype> >& outs) {
     SABER_CHECK(_funcs_normalize.init(ins, outs, _param_normalize, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status NormalizeHelper<Ttype, Dtype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                                                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-   SABER_CHECK(_funcs_normalize.compute_output_shape(ins, outs, _param_normalize));
-   return Status::OK();
+template<typename Ttype, Precision Ptype>
+Status NormalizeHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype> >& ins,
+        std::vector<Tensor4dPtr<Ttype> >& outs) {
+    SABER_CHECK(_funcs_normalize.compute_output_shape(ins, outs, _param_normalize));
+    return Status::OK();
 }
 
 #ifdef USE_CUDA
-template class NormalizeHelper<NV, AK_FLOAT, Precision::FP32>;
-template class NormalizeHelper<NV, AK_FLOAT, Precision::FP16>;
-template class NormalizeHelper<NV, AK_FLOAT, Precision::INT8>;
+template class NormalizeHelper<NV, Precision::FP32>;
+template class NormalizeHelper<NV, Precision::FP16>;
+template class NormalizeHelper<NV, Precision::INT8>;
 #endif
 
 #ifdef USE_ARM_PLACE
-template class NormalizeHelper<ARM, AK_FLOAT, Precision::FP32>;
-template class NormalizeHelper<ARM, AK_FLOAT, Precision::FP16>;
-template class NormalizeHelper<ARM, AK_FLOAT, Precision::INT8>;
+template class NormalizeHelper<ARM, Precision::FP32>;
+template class NormalizeHelper<ARM, Precision::FP16>;
+template class NormalizeHelper<ARM, Precision::INT8>;
 #endif
 
-// register helper 
+// register helper
 #ifdef USE_CUDA
-ANAKIN_REGISTER_OP_HELPER(Normalize, NormalizeHelper, NV, AK_FLOAT, Precision::FP32);
-#endif 
+ANAKIN_REGISTER_OP_HELPER(Normalize, NormalizeHelper, NV, Precision::FP32);
+#endif
 
 #ifdef USE_ARM_PLACE
-ANAKIN_REGISTER_OP_HELPER(Normalize, NormalizeHelper, ARM, AK_FLOAT, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Normalize, NormalizeHelper, ARM, Precision::FP32);
 #endif
 
 //! register op
 ANAKIN_REGISTER_OP(Normalize)
-    .Doc("Normalize operator")
+.Doc("Normalize operator")
 #ifdef USE_CUDA
-    .__alias__<NV, AK_FLOAT, Precision::FP32>("normalize")
+.__alias__<NV, Precision::FP32>("normalize")
 #endif
 #ifdef USE_ARM_PLACE
-    .__alias__<ARM, AK_FLOAT, Precision::FP32>("normalize")
+.__alias__<ARM, Precision::FP32>("normalize")
 #endif
-    .num_in(1)
-    .num_out(1)
-    .Args<bool>("is_across_spatial", "")
-    .Args<bool>("is_shared_channel", "")
-    .Args<float>("eps", "")
-    .Args<int>("p", "");
+.num_in(1)
+.num_out(1)
+.Args<bool>("is_across_spatial", "")
+.Args<bool>("is_shared_channel", "")
+.Args<float>("eps", "")
+.Args<int>("p", "");
 
 } /* namespace ops */
 

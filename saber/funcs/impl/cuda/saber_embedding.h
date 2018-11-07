@@ -1,9 +1,7 @@
 /* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
-
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
-
        http://www.apache.org/licenses/LICENSE-2.0
    
    Unless required by applicable law or agreed to in writing, software
@@ -22,54 +20,37 @@ namespace anakin{
 
 namespace saber{
 
-template <DataType OpDtype,
-    DataType inDtype,
-    DataType outDtype,
-    typename LayOutType_op,
-    typename LayOutType_in,
-    typename LayOutType_out>
-class SaberEmbedding<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out> : \
+template <DataType OpDtype>
+class SaberEmbedding<NV, OpDtype> :
     public ImplBase<
-        Tensor<NV, inDtype, LayOutType_in>, 
-        Tensor<NV, outDtype, LayOutType_out>,
-        Tensor<NV, OpDtype, LayOutType_op>,
-        EmbeddingParam<Tensor<NV, OpDtype, LayOutType_op> > > 
-{
+        NV, OpDtype,
+        EmbeddingParam<NV> > {
 public:
-    typedef Tensor<NV, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<NV, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<NV, OpDtype, LayOutType_op> OpTensor;
-    typedef typename DataTensor_in::Dtype InDataType;
-    typedef typename DataTensor_out::Dtype OutDataType;
-    typedef typename OpTensor::Dtype OpDataType;
-
-    SaberEmbedding()
-    {}
-
+    typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
+    SaberEmbedding() {}
     ~SaberEmbedding() {}
 
-    virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
-                            std::vector<DataTensor_out *>& outputs,
-                            EmbeddingParam<OpTensor>& param, Context<NV>& ctx) {
+    virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
+                            std::vector<Tensor<NV> *>& outputs,
+                            EmbeddingParam<NV>& param, Context<NV>& ctx) {
         this->_ctx = &ctx;
-        
         return SaberSuccess;
     }
 
-    virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
-                            std::vector<DataTensor_out *>& outputs,
-                            EmbeddingParam<OpTensor>& param, Context<NV> &ctx) {
-        this->_ctx = &ctx;
+    virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
+                            std::vector<Tensor<NV> *>& outputs,
+                            EmbeddingParam<NV>& param, Context<NV> &ctx) {
         return SaberSuccess;
     }
     
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
-                          std::vector<DataTensor_out*>& outputs,
-                          EmbeddingParam<OpTensor>& param);
+    virtual SaberStatus dispatch(const std::vector<Tensor<NV>*>& inputs,
+                          std::vector<Tensor<NV>*>& outputs,
+                          EmbeddingParam<NV>& param);
+private:
+    Tensor<NV> _word_seq_map;
+    Tensor<NV> _seq_offset;
 };
 
-//template class SaberEmbedding<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
 
 }
 

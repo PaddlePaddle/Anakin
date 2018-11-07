@@ -1,5 +1,6 @@
 #!/bin/bash
-# This script shows how one can build a anakin for the <NVIDIA> gpu platform 
+set -e
+# This script shows how one can build a anakin for the <NVIDIA> gpu platform
 ANAKIN_ROOT="$( cd "$(dirname "$0")"/.. ; pwd -P)"
 echo "-- Anakin root dir is: $ANAKIN_ROOT"
 
@@ -13,22 +14,27 @@ echo "-- Build anakin gpu(NVIDIA) into: $BUILD_ROOT"
 echo "-- Building anakin ..."
 cd $BUILD_ROOT
 
+
 cmake .. \
     -DCMAKE_BUILD_TYPE=Release \
 	-DUSE_ARM_PLACE=NO \
 	-DUSE_GPU_PLACE=YES \
-	-DUSE_NV_GPU=YES \
-	-DUSE_AMD_GPU=NO \
-	-DUSE_X86_PLACE=NO \
+    -DNVIDIA_GPU=YES \
+    -DAMD_GPU=NO \
+	-DUSE_X86_PLACE=YES \
+	-DUSE_BM_PLACE=NO \
 	-DBUILD_FAT_BIN=YES \
 	-DBUILD_WITH_UNIT_TEST=YES \
+    -DBUILD_RPC=OFF \
    	-DUSE_PYTHON=OFF \
-	-DENABLE_DEBUG=NO \
+    -DUSE_GFLAGS=OFF \
+	-DENABLE_DEBUG=OFF \
 	-DENABLE_VERBOSE_MSG=NO \
 	-DDISABLE_ALL_WARNINGS=YES \
 	-DENABLE_NOISY_WARNINGS=NO \
-    -DUSE_OPENMP=NO\
-	-DBUILD_SHARED=YES
+    -DUSE_OPENMP=YES\
+	-DBUILD_SHARED=YES\
+	-DBUILD_WITH_FRAMEWORK=YES
 
 # build target lib or unit test.
 if [ "$(uname)" = 'Darwin' ]; then

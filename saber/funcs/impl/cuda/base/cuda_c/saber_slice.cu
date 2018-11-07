@@ -20,17 +20,11 @@ __global__ void slice_impl_cuda(const int nthreads, const dtype* in_data,
 }
 
 
-template <DataType OpDtype,
-            DataType inDtype,
-            DataType outDtype,
-            typename LayOutType_op,
-            typename LayOutType_in,
-            typename LayOutType_out>
-SaberStatus SaberSlice<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(\
-    const std::vector<DataTensor_in *>& inputs, \
-    std::vector<DataTensor_out *>& outputs, \
-    SliceParam<OpTensor>& param) {
+template <DataType OpDtype>
+SaberStatus SaberSlice<NV, OpDtype>::dispatch(\
+    const std::vector<Tensor<NV> *>& inputs, \
+    std::vector<Tensor<NV> *>& outputs, \
+    SliceParam<NV>& param) {
 
     cudaStream_t stream = this->_ctx->get_compute_stream();
     //! inputs only has one tensor
@@ -38,29 +32,16 @@ SaberStatus SaberSlice<NV, OpDtype, inDtype, outDtype,\
 
     int output_size = outputs.size();
 
-#if 0 //! shared buffer
-    outputs[0]->share_sub_buffer(*inputs[0], outputs[0]->valid_shape(), \
-        inputs[0]->offset());
-    for (int i = 1; i < output_size; ++i) {
-        Shape offset = inputs[0]->offset();
-        offset[param.axis] += param.slice_points[i - 1];
-        outputs[i]->share_sub_buffer(*inputs[0], outputs[i]->valid_shape(), offset);
-    }
-
-#endif
-
-#if 1 //! deep copy
-    //! if output only has one tensor, then shared the memory buffer
     if (output_size == 1) {
         outputs[0]->share_from(*inputs[0]);
         return SaberSuccess;
     }
 
     int offset_slice_axis = 0;
-    const OpDataType* in_data = inputs[0]->data();
+    const OpDataType* in_data = (const OpDataType*)inputs[0]->data();
     const int in_slice_axis_size = shape_in[param.axis];
     for (int i = 0; i < output_size; ++i) {
-        OpDataType* out_data = outputs[i]->mutable_data();
+        OpDataType* out_data = (OpDataType*)outputs[i]->mutable_data();
         const int out_slice_axis_size = outputs[i]->valid_shape()[param.axis];
         const int out_slice_size = out_slice_axis_size * _slice_size;
         const int nthreads = out_slice_size * _slice_num;
@@ -68,13 +49,12 @@ SaberStatus SaberSlice<NV, OpDtype, inDtype, outDtype,\
                 nthreads, in_data, _slice_num, _slice_size,
                         in_slice_axis_size, out_slice_axis_size, offset_slice_axis, out_data);
         offset_slice_axis += out_slice_axis_size;
-        //outputs[i]->record_event(stream);
     }
-#endif
     return SaberSuccess;
 
 }
-
+DEFINE_OP_TEMPLATE(SaberSlice, SliceParam, NV, AK_HALF);
+DEFINE_OP_TEMPLATE(SaberSlice, SliceParam, NV, AK_INT8);
 } //namespace anakin
 
 } //namespace anakin

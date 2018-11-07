@@ -17,6 +17,11 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+#include "saber/funcs/impl/impl_concat.h"
+
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_concat.h"
+#endif
 
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_concat.h"
@@ -30,43 +35,31 @@
 #include "saber/funcs/impl/arm/saber_concat.h"
 #endif
 
-#ifdef USE_AMD
-//todo
-#include "saber/funcs/impl/impl_concat.h"
-#endif
-
 namespace anakin {
 namespace saber {
 
 template<typename TargetType,
-        DataType OpDtype,
-        DataType inDtype = AK_FLOAT,
-        DataType outDtype = AK_FLOAT,
-        typename LayOutType_op = NCHW,
-        typename LayOutType_in = NCHW,
-        typename LayOutType_out = NCHW
->
+        DataType OpDtype>
+
 class Concat : public BaseFunc<
-        Tensor<TargetType, inDtype, LayOutType_in>,
-        Tensor<TargetType, outDtype, LayOutType_out>,
-        Tensor<TargetType, OpDtype, LayOutType_op>,
+        TargetType,
+        OpDtype,
         ImplBase,
         ConcatParam
 > {
 public:
     using BaseFunc<
-            Tensor<TargetType, inDtype, LayOutType_in>,
-            Tensor<TargetType, outDtype, LayOutType_out>,
-            Tensor<TargetType, OpDtype, LayOutType_op>,
-            ImplBase,
-            ConcatParam>::BaseFunc;
+        TargetType,
+        OpDtype,
+        ImplBase,
+        ConcatParam>::BaseFunc;
 
     Concat() = default;
 
-    typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
-    typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
-    typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-    typedef ConcatParam<OpTensor> Param_t;
+    typedef Tensor<TargetType> InDataTensor;
+    typedef Tensor<TargetType> OutDataTensor;
+    typedef Tensor<TargetType> OpTensor;
+    typedef ConcatParam<TargetType> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
@@ -99,19 +92,18 @@ public:
             }
             shape_out[param.axis] += sh[param.axis];
         }
+        output[0]->set_seq_offset(input[0]->get_seq_offset());
         return output[0]->set_shape(shape_out);
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
             case VENDER_IMPL:
-                this->_impl.push_back(new VenderConcat <TargetType, OpDtype, inDtype, outDtype, 
-							LayOutType_op, LayOutType_in, LayOutType_out>);
+                this->_impl.push_back(new VenderConcat <TargetType, OpDtype>);
                 return SaberSuccess;
 
             case SABER_IMPL:
-                this->_impl.push_back(new SaberConcat <TargetType, OpDtype, inDtype, outDtype,
-                LayOutType_op, LayOutType_in, LayOutType_out>);
+                this->_impl.push_back(new SaberConcat <TargetType, OpDtype>);
                 return SaberSuccess;
 
             default:

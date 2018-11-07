@@ -12,18 +12,16 @@
 #include <google/protobuf/io/zero_copy_stream.h>
 #include <google/protobuf/text_format.h>
 
-
 namespace anakin {
-
 namespace parser {
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, std::string& model_path) {
+template<typename Ttype, Precision Ptype>
+Status load(graph::Graph<Ttype, Ptype>* graph, std::string& model_path) {
     return load(graph, model_path.c_str());
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path) {
+template<typename Ttype, Precision Ptype>
+Status load(graph::Graph<Ttype, Ptype>* graph, const char* model_path) {
 #if 0
     std::fstream input(model_path, std::ios::in | std::ios::binary);
 
@@ -84,7 +82,7 @@ Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path) {
     }
 
     // fill the graph with nodes
-    NodeIO<Ttype, Dtype, Ptype> node_io;
+    NodeIO<Ttype, Ptype> node_io;
 
     for (int i = 0; i < graph_proto.nodes().size(); i++) {
         node_io >> graph_proto.nodes()[i];
@@ -101,10 +99,10 @@ Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path) {
         auto& second = it_in->second;
 
         for (int i = 0; i < second.val().size(); i++) {
-            //Tensor4dPtr<Ttype, Dtype> tensor_p = std::make_shared<Tensor4d<Ttype, Dtype>>();
-            graph::Edge<Ttype, Dtype> edge(second.val()[i], key);
-            //edge.weight() = new Tensor4d<Ttype, Dtype>();
-            //edge.weight() = std::make_shared<Tensor4d<Ttype, Dtype> >();
+            //Tensor4dPtr<Ttype> tensor_p = std::make_shared<Tensor4d<Ttype>>();
+            graph::Edge<Ttype> edge(second.val()[i], key);
+            //edge.weight() = new Tensor4d<Ttype>();
+            //edge.weight() = std::make_shared<Tensor4d<Ttype> >();
             edge.shared() = (*graph_proto.mutable_edges_info())[edge.name()].shared();
             edge.share_from() = (*graph_proto.mutable_edges_info())[edge.name()].share_from();
             graph->add_in_arc(edge);
@@ -118,10 +116,10 @@ Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path) {
         auto& second = it_out->second;
 
         for (int i = 0; i < second.val().size(); i++) {
-            //Tensor4dPtr<Ttype, Dtype> tensor_p = std::make_shared<Tensor4d<Ttype, Dtype>>();
-            graph::Edge<Ttype, Dtype> edge(key, second.val()[i]);
-            //edge.weight() = new Tensor4d<Ttype, Dtype>();
-            //edge.weight() = std::make_shared<Tensor4d<Ttype, Dtype> >();
+            //Tensor4dPtr<Ttype> tensor_p = std::make_shared<Tensor4d<Ttype>>();
+            graph::Edge<Ttype> edge(key, second.val()[i]);
+            //edge.weight() = new Tensor4d<Ttype>();
+            //edge.weight() = std::make_shared<Tensor4d<Ttype> >();
             edge.shared() = (*graph_proto.mutable_edges_info())[edge.name()].shared();
             edge.share_from() = (*graph_proto.mutable_edges_info())[edge.name()].share_from();
             graph->add_out_arc(edge);
@@ -135,8 +133,8 @@ Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path) {
         if (graph_proto.edges().count(node_name) > 0) {
             auto& second_node_name_list = graph_proto.edges().at(node_name);
             for(int j = 0; j < second_node_name_list.val().size(); j++) {
-                graph::Edge<Ttype, Dtype> edge(node_name, second_node_name_list.val()[j]);
-                edge.weight() = std::make_shared<Tensor4d<Ttype, Dtype> >();
+                graph::Edge<Ttype> edge(node_name, second_node_name_list.val()[j]);
+                edge.weight() = std::make_shared<Tensor4d<Ttype> >();
                 edge.shared() = (*graph_proto.mutable_edges_info())[edge.name()].shared();
                 edge.share_from() = (*graph_proto.mutable_edges_info())[edge.name()].share_from();
                 graph->add_arc(edge);
@@ -157,13 +155,13 @@ Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path) {
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status save(graph::Graph<Ttype, Dtype, Ptype>* graph, std::string& model_path) {
+template<typename Ttype, Precision Ptype>
+Status save(graph::Graph<Ttype, Ptype>* graph, std::string& model_path) {
     return save(graph, model_path.c_str());
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status save(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path) {
+template<typename Ttype, Precision Ptype>
+Status save(graph::Graph<Ttype, Ptype>* graph, const char* model_path) {
     std::fstream output(model_path, std::ios::out | std::ios::trunc | std::ios::binary);
 
     if (!output) {
@@ -186,7 +184,7 @@ Status save(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path) {
     }
 
     // fill the graph proto  nodes with NodePtr in exec order
-    NodeIO<Ttype, Dtype, Ptype> node_io;
+    NodeIO<Ttype, Ptype> node_io;
     auto nodes_in_exec_order = graph->get_nodes_in_order();
 
     for (int i = 0; i < nodes_in_exec_order.size(); i++) {
@@ -199,7 +197,7 @@ Status save(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path) {
     auto edges_in = graph_proto.mutable_edges_in();
     auto edges_out = graph_proto.mutable_edges_out();
     auto edges_info = graph_proto.mutable_edges_info();
-    /*auto insert_edge = [&](graph::Edge<Ttype, Dtype>& edge) {
+    /*auto insert_edge = [&](graph::Edge<Ttype>& edge) {
         (*edges)[edge.first()].add_val(edge.second());
         TensorProto ts;
         ts.set_name(edge.name());
@@ -207,11 +205,11 @@ Status save(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path) {
         ts.set_share_from(edge.share_from());
         (*edges_info)[edge.name()].CopyFrom(ts);
     };*/
-    auto insert_edge = [&](graph::NodePtr<Ttype, Dtype, Ptype>& node_p) {
+    auto insert_edge = [&](graph::NodePtr & node_p) {
         auto& arcs_it_in = graph->get_in_arc_its(node_p->name());
         auto& arcs_it_out = graph->get_out_arc_its(node_p->name());
 
-        for (auto& edge_it : arcs_it_in) {
+        for (auto & edge_it : arcs_it_in) {
             (*edges_in)[edge_it->second()].add_val(edge_it->first());
             TensorProto ts;
             ts.set_name(edge_it->name());
@@ -220,7 +218,7 @@ Status save(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path) {
             (*edges_info)[edge_it->name()].CopyFrom(ts);
         }
 
-        for (auto& edge_it : arcs_it_out) {
+        for (auto & edge_it : arcs_it_out) {
             (*edges_out)[edge_it->first()].add_val(edge_it->second());
             TensorProto ts;
             ts.set_name(edge_it->name());
@@ -250,177 +248,164 @@ Status save(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path) {
 
 #ifdef USE_CUDA
 template
-Status load<NV, AK_FLOAT, Precision::FP32>(graph::Graph<NV, AK_FLOAT, Precision::FP32>* graph,
-        const char* model_path);
+Status load<NV, Precision::FP32>(graph::Graph<NV, Precision::FP32>* graph, const char* model_path);
 template
-Status load<NV, AK_FLOAT, Precision::FP16>(graph::Graph<NV, AK_FLOAT, Precision::FP16>* graph,
-        const char* model_path);
+Status load<NV, Precision::FP16>(graph::Graph<NV, Precision::FP16>* graph, const char* model_path);
 template
-Status load<NV, AK_FLOAT, Precision::INT8>(graph::Graph<NV, AK_FLOAT, Precision::INT8>* graph,
-        const char* model_path);
-        template
-Status save<NV, AK_FLOAT, Precision::FP32>(graph::Graph<NV, AK_FLOAT, Precision::FP32>* graph,
-        std::string& model_path);
+Status load<NV, Precision::INT8>(graph::Graph<NV, Precision::INT8>* graph, const char* model_path);
 template
-Status save<NV, AK_FLOAT, Precision::FP16>(graph::Graph<NV, AK_FLOAT, Precision::FP16>* graph,
-        std::string& model_path);
+Status save<NV, Precision::FP32>(graph::Graph<NV, Precision::FP32>* graph, std::string& model_path);
 template
-Status save<NV, AK_FLOAT, Precision::INT8>(graph::Graph<NV, AK_FLOAT, Precision::INT8>* graph,
-        std::string& model_path);
+Status save<NV, Precision::FP16>(graph::Graph<NV, Precision::FP16>* graph, std::string& model_path);
+template
+Status save<NV, Precision::INT8>(graph::Graph<NV, Precision::INT8>* graph, std::string& model_path);
 
 template
-Status load<NV, AK_FLOAT, Precision::FP32>(graph::Graph<NV, AK_FLOAT, Precision::FP32>* graph,
-        std::string& model_path);
+Status load<NV, Precision::FP32>(graph::Graph<NV, Precision::FP32>* graph, std::string& model_path);
 template
-Status load<NV, AK_FLOAT, Precision::FP16>(graph::Graph<NV, AK_FLOAT, Precision::FP16>* graph,
-        std::string& model_path);
+Status load<NV, Precision::FP16>(graph::Graph<NV, Precision::FP16>* graph, std::string& model_path);
 template
-Status load<NV, AK_FLOAT, Precision::INT8>(graph::Graph<NV, AK_FLOAT, Precision::INT8>* graph,
-        std::string& model_path);
+Status load<NV, Precision::INT8>(graph::Graph<NV, Precision::INT8>* graph, std::string& model_path);
 
 template
-Status save<NV, AK_FLOAT, Precision::FP32>(graph::Graph<NV, AK_FLOAT, Precision::FP32>* graph,
-        const char* model_path);
+Status save<NV, Precision::FP32>(graph::Graph<NV, Precision::FP32>* graph, const char* model_path);
 template
-Status save<NV, AK_FLOAT, Precision::FP16>(graph::Graph<NV, AK_FLOAT, Precision::FP16>* graph,
-        const char* model_path);
+Status save<NV, Precision::FP16>(graph::Graph<NV, Precision::FP16>* graph, const char* model_path);
 template
-Status save<NV, AK_FLOAT, Precision::INT8>(graph::Graph<NV, AK_FLOAT, Precision::INT8>* graph,
-        const char* model_path);
+Status save<NV, Precision::INT8>(graph::Graph<NV, Precision::INT8>* graph, const char* model_path);
 #endif
 
-#ifdef USE_X86_PLACE
+#if defined USE_X86_PLACE || defined BUILD_LITE
 template
-Status load<X86, AK_FLOAT, Precision::FP32>(graph::Graph<X86, AK_FLOAT, Precision::FP32>* graph,
-        const char* model_path);
+Status load<X86, Precision::FP32>(graph::Graph<X86, Precision::FP32>* graph,
+                                  const char* model_path);
 template
-Status load<X86, AK_FLOAT, Precision::FP16>(graph::Graph<X86, AK_FLOAT, Precision::FP16>* graph,
-        const char* model_path);
+Status load<X86, Precision::FP16>(graph::Graph<X86, Precision::FP16>* graph,
+                                  const char* model_path);
 template
-Status load<X86, AK_FLOAT, Precision::INT8>(graph::Graph<X86, AK_FLOAT, Precision::INT8>* graph,
-        const char* model_path);
+Status load<X86, Precision::INT8>(graph::Graph<X86, Precision::INT8>* graph,
+                                  const char* model_path);
 
 template
-Status save<X86, AK_FLOAT, Precision::FP32>(graph::Graph<X86, AK_FLOAT, Precision::FP32>* graph,
-        std::string& model_path);
+Status save<X86, Precision::FP32>(graph::Graph<X86, Precision::FP32>* graph,
+                                  std::string& model_path);
 template
-Status save<X86, AK_FLOAT, Precision::FP16>(graph::Graph<X86, AK_FLOAT, Precision::FP16>* graph,
-        std::string& model_path);
+Status save<X86, Precision::FP16>(graph::Graph<X86, Precision::FP16>* graph,
+                                  std::string& model_path);
 template
-Status save<X86, AK_FLOAT, Precision::INT8>(graph::Graph<X86, AK_FLOAT, Precision::INT8>* graph,
-        std::string& model_path);
+Status save<X86, Precision::INT8>(graph::Graph<X86, Precision::INT8>* graph,
+                                  std::string& model_path);
 
 template
-Status load<X86, AK_FLOAT, Precision::FP32>(graph::Graph<X86, AK_FLOAT, Precision::FP32>* graph,
-        std::string& model_path);
+Status load<X86, Precision::FP32>(graph::Graph<X86, Precision::FP32>* graph,
+                                  std::string& model_path);
 template
-Status load<X86, AK_FLOAT, Precision::FP16>(graph::Graph<X86, AK_FLOAT, Precision::FP16>* graph,
-        std::string& model_path);
+Status load<X86, Precision::FP16>(graph::Graph<X86, Precision::FP16>* graph,
+                                  std::string& model_path);
 template
-Status load<X86, AK_FLOAT, Precision::INT8>(graph::Graph<X86, AK_FLOAT, Precision::INT8>* graph,
-        std::string& model_path);
+Status load<X86, Precision::INT8>(graph::Graph<X86, Precision::INT8>* graph,
+                                  std::string& model_path);
 
 template
-Status save<X86, AK_FLOAT, Precision::FP32>(graph::Graph<X86, AK_FLOAT, Precision::FP32>* graph,
-        const char* model_path);
+Status save<X86, Precision::FP32>(graph::Graph<X86, Precision::FP32>* graph,
+                                  const char* model_path);
 template
-Status save<X86, AK_FLOAT, Precision::FP16>(graph::Graph<X86, AK_FLOAT, Precision::FP16>* graph,
-        const char* model_path);
+Status save<X86, Precision::FP16>(graph::Graph<X86, Precision::FP16>* graph,
+                                  const char* model_path);
 template
-Status save<X86, AK_FLOAT, Precision::INT8>(graph::Graph<X86, AK_FLOAT, Precision::INT8>* graph,
-        const char* model_path);
+Status save<X86, Precision::INT8>(graph::Graph<X86, Precision::INT8>* graph,
+                                  const char* model_path);
 #endif
 
 #ifdef USE_ARM_PLACE
 #ifdef ANAKIN_TYPE_FP32
 template
-Status load<ARM, AK_FLOAT, Precision::FP32>(graph::Graph<ARM, AK_FLOAT, Precision::FP32>* graph,
-                                                    const char* model_path);
+Status load<ARM, Precision::FP32>(graph::Graph<ARM, Precision::FP32>* graph,
+                                  const char* model_path);
 template
-Status save<ARM, AK_FLOAT, Precision::FP32>(graph::Graph<ARM, AK_FLOAT, Precision::FP32>* graph,
-                                                    std::string& model_path);
+Status save<ARM, Precision::FP32>(graph::Graph<ARM, Precision::FP32>* graph,
+                                  std::string& model_path);
 template
-Status load<ARM, AK_FLOAT, Precision::FP32>(graph::Graph<ARM, AK_FLOAT, Precision::FP32>* graph,
-                                                    std::string& model_path);
+Status load<ARM, Precision::FP32>(graph::Graph<ARM, Precision::FP32>* graph,
+                                  std::string& model_path);
 template
-Status save<ARM, AK_FLOAT, Precision::FP32>(graph::Graph<ARM, AK_FLOAT, Precision::FP32>* graph,
-                                                    const char* model_path);
+Status save<ARM, Precision::FP32>(graph::Graph<ARM, Precision::FP32>* graph,
+                                  const char* model_path);
 #endif
 
 #ifdef ANAKIN_TYPE_FP16
 template
-Status load<ARM, AK_FLOAT, Precision::FP16>(graph::Graph<ARM, AK_FLOAT, Precision::FP16>* graph,
-                                                    const char* model_path);
+Status load<ARM, Precision::FP16>(graph::Graph<ARM, Precision::FP16>* graph,
+                                  const char* model_path);
 template
-Status save<ARM, AK_FLOAT, Precision::FP16>(graph::Graph<ARM, AK_FLOAT, Precision::FP16>* graph,
-                                                    std::string& model_path);
+Status save<ARM, Precision::FP16>(graph::Graph<ARM, Precision::FP16>* graph,
+                                  std::string& model_path);
 template
-Status load<ARM, AK_FLOAT, Precision::FP16>(graph::Graph<ARM, AK_FLOAT, Precision::FP16>* graph,
-                                                    std::string& model_path);
+Status load<ARM, Precision::FP16>(graph::Graph<ARM, Precision::FP16>* graph,
+                                  std::string& model_path);
 template
-Status save<ARM, AK_FLOAT, Precision::FP16>(graph::Graph<ARM, AK_FLOAT, Precision::FP16>* graph,
-                                                    const char* model_path);
+Status save<ARM, Precision::FP16>(graph::Graph<ARM, Precision::FP16>* graph,
+                                  const char* model_path);
 #endif
 
 #ifdef ANAKIN_TYPE_INT8
 template
-Status load<ARM, AK_FLOAT, Precision::INT8>(graph::Graph<ARM, AK_FLOAT, Precision::INT8>* graph,
-                                                    const char* model_path);
+Status load<ARM, Precision::INT8>(graph::Graph<ARM, Precision::INT8>* graph,
+                                  const char* model_path);
 template
-Status save<ARM, AK_FLOAT, Precision::INT8>(graph::Graph<ARM, AK_FLOAT, Precision::INT8>* graph,
-                                                    std::string& model_path);
+Status save<ARM, Precision::INT8>(graph::Graph<ARM, Precision::INT8>* graph,
+                                  std::string& model_path);
 template
-Status load<ARM, AK_FLOAT, Precision::INT8>(graph::Graph<ARM, AK_FLOAT, Precision::INT8>* graph,
-                                                    std::string& model_path);
+Status load<ARM, Precision::INT8>(graph::Graph<ARM, Precision::INT8>* graph,
+                                  std::string& model_path);
 template
-Status save<ARM, AK_FLOAT, Precision::INT8>(graph::Graph<ARM, AK_FLOAT, Precision::INT8>* graph,
-                                                    const char* model_path);
+Status save<ARM, Precision::INT8>(graph::Graph<ARM, Precision::INT8>* graph,
+                                  const char* model_path);
 #endif
 
 #endif
 
 
-#ifdef USE_AMD
+#ifdef AMD_GPU
+template
+Status load<AMD, Precision::FP32>(graph::Graph<AMD, Precision::FP32>* graph,
+                                  std::string& model_path);
+template
+Status load<AMD, Precision::FP16>(graph::Graph<AMD, Precision::FP16>* graph,
+                                  std::string& model_path);
+template
+Status load<AMD, Precision::INT8>(graph::Graph<AMD, Precision::INT8>* graph,
+                                  std::string& model_path);
 
 template
-Status load<AMD, AK_FLOAT, Precision::FP32>(graph::Graph<AMD, AK_FLOAT, Precision::FP32>* graph,
-        std::string& model_path);
+Status load<AMD, Precision::FP32>(graph::Graph<AMD, Precision::FP32>* graph,
+                                  const char* model_path);
 template
-Status load<AMD, AK_FLOAT, Precision::FP16>(graph::Graph<AMD, AK_FLOAT, Precision::FP16>* graph,
-        std::string& model_path);
+Status load<AMD, Precision::FP16>(graph::Graph<AMD, Precision::FP16>* graph,
+                                  const char* model_path);
 template
-Status load<AMD, AK_FLOAT, Precision::INT8>(graph::Graph<AMD, AK_FLOAT, Precision::INT8>* graph,
-        std::string& model_path);
+Status load<AMD, Precision::INT8>(graph::Graph<AMD, Precision::INT8>* graph,
+                                  const char* model_path);
 
 template
-Status load<AMD, AK_FLOAT, Precision::FP32>(graph::Graph<AMD, AK_FLOAT, Precision::FP32>* graph,
-        const char* model_path);
+Status save<AMD, Precision::FP32>(graph::Graph<AMD, Precision::FP32>* graph,
+                                  std::string& model_path);
 template
-Status load<AMD, AK_FLOAT, Precision::FP16>(graph::Graph<AMD, AK_FLOAT, Precision::FP16>* graph,
-        const char* model_path);
+Status save<AMD, Precision::FP16>(graph::Graph<AMD, Precision::FP16>* graph,
+                                  std::string& model_path);
 template
-Status load<AMD, AK_FLOAT, Precision::INT8>(graph::Graph<AMD, AK_FLOAT, Precision::INT8>* graph,
-        const char* model_path);
+Status save<AMD, Precision::INT8>(graph::Graph<AMD, Precision::INT8>* graph,
+                                  std::string& model_path);
 
 template
-Status save<AMD, AK_FLOAT, Precision::FP32>(graph::Graph<AMD, AK_FLOAT, Precision::FP32>* graph,
-        std::string& model_path);
+Status save<AMD, Precision::FP32>(graph::Graph<AMD, Precision::FP32>* graph,
+                                  const char* model_path);
 template
-Status save<AMD, AK_FLOAT, Precision::FP16>(graph::Graph<AMD, AK_FLOAT, Precision::FP16>* graph,
-        std::string& model_path);
+Status save<AMD, Precision::FP16>(graph::Graph<AMD, Precision::FP16>* graph,
+                                  const char* model_path);
 template
-Status save<AMD, AK_FLOAT, Precision::INT8>(graph::Graph<AMD, AK_FLOAT, Precision::INT8>* graph,
-        std::string& model_path);
-
-template
-Status save<AMD, AK_FLOAT, Precision::FP32>(graph::Graph<AMD, AK_FLOAT, Precision::FP32>* graph,
-        const char* model_path);
-template
-Status save<AMD, AK_FLOAT, Precision::FP16>(graph::Graph<AMD, AK_FLOAT, Precision::FP16>* graph,
-        const char* model_path);
-template
-Status save<AMD, AK_FLOAT, Precision::INT8>(graph::Graph<AMD, AK_FLOAT, Precision::INT8>* graph,
-        const char* model_path);
+Status save<AMD, Precision::INT8>(graph::Graph<AMD, Precision::INT8>* graph,
+                                  const char* model_path);
 #endif
 
 } /* parser */

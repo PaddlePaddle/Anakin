@@ -53,7 +53,7 @@ __global__ void ker_pool_with_index_fwd(Dtype * out_data,
             for (int j = start_w; j < end_w; j++) {
                 Dtype data = in_data[in_offset + i * in_h_stride + j * in_w_stride];
                 if (data > max_data) {
-                    max_data = data;;
+                    max_data = data;
                     max_index = i * in_w + j;
                 }
             }
@@ -63,21 +63,15 @@ __global__ void ker_pool_with_index_fwd(Dtype * out_data,
     }
 }
 
-template <DataType OpDtype,
-            DataType inDtype,
-            DataType outDtype,
-            typename LayOutType_op,
-            typename LayOutType_in,
-            typename LayOutType_out>
-SaberStatus SaberPoolingWithIndex<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(\
-    const std::vector<DataTensor_in *>& inputs, \
-    std::vector<DataTensor_out *>& outputs, \
-    PoolingParam<OpTensor>& param) {
+template <DataType OpDtype>
+SaberStatus SaberPoolingWithIndex<NV, OpDtype>::dispatch(\
+    const std::vector<Tensor<NV> *>& inputs, \
+    std::vector<Tensor<NV> *>& outputs, \
+    PoolingParam<NV>& param) {
 
-    const InDataType* in_data = inputs[0]->data();
-    OutDataType* out_data = outputs[0]->mutable_data();
-    OutDataType* out_index = outputs[1]->mutable_data();
+    const dtype* in_data = static_cast<const dtype*>(inputs[0]->data());
+    dtype* out_data = static_cast<dtype*>(outputs[0]->mutable_data());
+    dtype* out_index = static_cast<dtype*>(outputs[1]->mutable_data());
     cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
     int count = outputs[0]->valid_size();
     int out_n = outputs[0]->num();
@@ -88,7 +82,7 @@ SaberStatus SaberPoolingWithIndex<NV, OpDtype, inDtype, outDtype,\
     int in_w = inputs[0]->width();
 
     if (inputs[0]->is_continue_mem() && outputs[0]->is_continue_mem()) {
-        ker_pool_with_index_fwd<OpDataType>\
+        ker_pool_with_index_fwd<dtype>\
                  <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(\
                  out_data, out_index, in_data, \
                  _in_n_stride, _in_c_stride, \
@@ -100,10 +94,13 @@ SaberStatus SaberPoolingWithIndex<NV, OpDtype, inDtype, outDtype,\
                  param.pad_h, param.pad_w, \
                  param.stride_h, param.stride_w, \
                  param.window_h, param.window_w, count);
+        return SaberSuccess;
+    } else {
+        LOG(ERROR) <<"pooling_with_index only support continue memory";
+        return SaberUnImplError;
     }
-
-    return SaberSuccess;
 }
-
+DEFINE_OP_TEMPLATE(SaberPoolingWithIndex, PoolingParam, NV, AK_HALF);
+DEFINE_OP_TEMPLATE(SaberPoolingWithIndex, PoolingParam, NV, AK_INT8);
 }
 }

@@ -25,7 +25,7 @@ namespace anakin {
 
 namespace ops {
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class InputHelper;
 
 /// Input op without any compute, this a holder for input
@@ -33,17 +33,15 @@ class InputHelper;
  * \brief Input implementation class
  * public inherit Operator
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class Input : public Operator<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class Input : public Operator<Ttype, Ptype> {
 public:
     virtual void operator() (OpContext<Ttype> &ctx, 
-                             const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                             std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-        LOG(ERROR) << "Not Impl Yet Operator Input<TargetType:"<<"unknown"<<"," 
-                   <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info();
+                             const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                             std::vector<Tensor4dPtr<Ttype> >& outs) {
     }
 
-    friend class InputHelper<Ttype, Dtype, Ptype>;
+    friend class InputHelper<Ttype, Ptype>;
 };
 
 /**
@@ -51,9 +49,9 @@ public:
  * public inherit OperatorHelper
  * including init resource and shape size in input context
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class InputHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
-    typedef OperatorHelper<Ttype, Dtype, Ptype> Base; 
+template<typename Ttype, Precision Ptype>
+class InputHelper : public OperatorHelper<Ttype, Ptype> {
+    typedef OperatorHelper<Ttype, Ptype> Base; 
 public:
     InputHelper() {}
 
@@ -69,8 +67,8 @@ public:
     * \return status
     */
     Status Init(OpContext<Ttype> &ctx, 
-                const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
     /**
     * \brief infer the shape of output and input.
@@ -78,12 +76,14 @@ public:
     * \param outs stand for output tensor vector
     * \return status
     */
-    Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+    Status InferShape(const std::vector<Tensor4dPtr<Ttype> >& ins,
+                      std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
 private:
     ///<  input_shape :input op may hold motl-input
     PTuple<int> input_shape;
+    int max_len{0};
+    int max_batch{0};
 };
 
 } /* namespace ops */

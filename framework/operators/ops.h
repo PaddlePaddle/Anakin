@@ -19,7 +19,7 @@
 //#include "framework/graph/llvm/fusion/graph_pattern.h"
 #include "framework/operators/activation.h"
 #include "framework/operators/arg_max.h"
-//#include "framework/operators/axpy.h"
+#include "framework/operators/axpy.h"
 #include "framework/operators/batch_norm.h"
 #include "framework/operators/concat.h"
 #include "framework/operators/conv_3x3.h"
@@ -44,6 +44,7 @@
 #include "framework/operators/input.h"
 #include "framework/operators/log.h"
 #include "framework/operators/lrn.h"
+#include "framework/operators/lstm.h"
 #include "framework/operators/mvn.h"
 #include "framework/operators/normalize.h"
 #include "framework/operators/output.h"
@@ -74,85 +75,12 @@
 #include "framework/operators/fusion_ops/deconv_relu.h"
 #include "framework/operators/fusion_ops/eltwise_relu.h"
 #include "framework/operators/fusion_ops/permute_power.h"
+
 #endif //0
+
 namespace anakin {
 namespace ops {
 } /* namespace ops */
 } /* namespace anakin */
-#if 0
-namespace anakin{
-namespace graph{
-    REGISTER_GRAPH_FUSION_PATTERN(DeconvRelu)
-            .Type(IN_ORDER)
-            .AddOpNode("conv_0",  "Deconvolution")
-            .AddOpNode("relu_0", "ReLU")
-            .AddConnect("conv_0", "relu_0")
-            .CreatePattern([](VGraph* graph) {});
 
-    REGISTER_GRAPH_FUSION_PATTERN(ConvRelu)
-            .Type(IN_ORDER)
-            .AddOpNode("conv_0",  "Convolution")
-            .AddOpNode("relu_0", "ReLU")
-            .AddConnect("conv_0", "relu_0")
-            .CreatePattern([](VGraph* graph) {});
-
-    REGISTER_GRAPH_FUSION_PATTERN(PermutePower)
-            .Type(IN_ORDER)
-            .AddOpNode("permute_0",  "Permute")
-            .AddOpNode("power_0", "Power")
-            .AddConnect("permute_0", "power_0")
-            .CreatePattern([](VGraph* graph) {});
-/*
-    REGISTER_GRAPH_FUSION_PATTERN(ConvReluPool)
-            .Type(IN_ORDER)
-            .AddOpNode("conv_0",  "Convolution")
-            .AddOpNode("relu_0", "ReLU")
-            .AddOpNode("pooling_0", "Pooling")
-            .AddConnect("conv_0", "relu_0")
-            .AddConnect("relu_0", "pooling_0")
-            .CreatePattern([](VGraph* graph) {});
-*/
-/*
-    REGISTER_GRAPH_FUSION_PATTERN(ConvBatchnormScaleReluPool)
-            .Type(IN_ORDER)
-            .AddOpNode("conv_0",  "Convolution")
-            .AddOpNode("batchnorm_0", "BatchNorm")
-            .AddOpNode("scale_0", "Scale")
-            .AddOpNode("relu_0", "ReLU")
-            .AddOpNode("pooling_0", "Pooling")
-            .AddConnect("conv_0", "batchnorm_0")
-            .AddConnect("batchnorm_0", "scale_0")
-            .AddConnect("scale_0", "relu_0")
-            .AddConnect("relu_0", "pooling_0")
-            .CreatePattern([](VGraph* graph) {});
-*/
-    REGISTER_GRAPH_FUSION_PATTERN(ConvBatchnormScaleRelu)
-            .Type(IN_ORDER)
-            .AddOpNode("conv_0",  "Convolution")
-            .AddOpNode("batchnorm_0", "BatchNorm")
-            .AddOpNode("scale_0", "Scale")
-            .AddOpNode("relu_0", "ReLU")
-            .AddConnect("conv_0", "batchnorm_0")
-            .AddConnect("batchnorm_0", "scale_0")
-            .AddConnect("scale_0", "relu_0")
-            .CreatePattern([](VGraph* graph) {});
-
-    REGISTER_GRAPH_FUSION_PATTERN(ConvBatchnormScale)
-            .Type(IN_ORDER)
-            .AddOpNode("conv_0",  "Convolution")
-            .AddOpNode("batchnorm_0", "BatchNorm")
-            .AddOpNode("scale_0", "Scale")
-            .AddConnect("conv_0", "batchnorm_0")
-            .AddConnect("batchnorm_0", "scale_0")
-            .CreatePattern([](VGraph* graph) {});
-
-    REGISTER_GRAPH_FUSION_PATTERN(EltwiseRelu)
-            .Type(IN_ORDER)
-            .AddOpNode("eltwise_0", "Eltwise")
-            .AddOpNode("relu_0", "ReLU")
-            .AddConnect("eltwise_0", "relu_0")
-            .CreatePattern([](VGraph* graph) {});
-}
-}
-#endif //0
 #endif

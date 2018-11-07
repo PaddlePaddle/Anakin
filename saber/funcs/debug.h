@@ -20,151 +20,78 @@
 namespace anakin {
 namespace saber {
 
-#if defined(USE_X86_PLACE) || defined(USE_CUDA)
-static void write_tensorfile(Tensor <X86, AK_FLOAT, NCHW> tensor, const char* locate) {
-    typedef typename Tensor<X86, AK_FLOAT, NCHW>::Dtype Dtype;
-    LOG(INFO) << "host tensor data:" << tensor.size();
-    FILE* fp = fopen(locate, "w+");
+template <typename Target_Type>
+struct DefaultHostType {
+    typedef X86 Host_type;
+};
 
-    if (fp == 0) {
-        LOG(ERROR) << "file open field " << locate;
-
-    } else {
-        const Dtype* data_ptr = static_cast<const Dtype*>(tensor.data());
-        int size = tensor.valid_size();
-
-        for (int i = 0; i < size; ++i) {
-            fprintf(fp, "[%d] %g \n", i, (data_ptr[i]));
-        }
-
-        fclose(fp);
-    }
-
-    LOG(INFO) << "!!! write success: " << locate;
-}
-#endif
-template <typename TargetType>
-static void record_dev_tensorfile(const float* dev_tensor, int size, const char* locate){};
-
-#ifdef USE_CUDA
 template <>
-void record_dev_tensorfile<NV>(const float* dev_tensor, int size, const char* locate) {
-    Tensor <X86, AK_FLOAT, NCHW> host_temp;
-    host_temp.re_alloc(Shape(1, 1, 1, size));
-    CUDA_CHECK(cudaMemcpy(host_temp.mutable_data(), dev_tensor, sizeof(float) * size,
-                          cudaMemcpyDeviceToHost));
-    cudaDeviceSynchronize();
+struct DefaultHostType<NV> {
+    typedef NVHX86 Host_type;
+};
+
+template <>
+struct DefaultHostType<ARM> {
+    typedef ARM Host_type;
+};
+
+template <typename Target_Type>
+static void write_tensorfile(const Tensor<Target_Type>& tensor, const char* locate) {
+
+    typedef typename DefaultHostType<Target_Type>::Host_type HOST_TYPE;
+    Tensor<HOST_TYPE> host_tensor;
+    host_tensor.re_alloc(tensor.valid_shape(), tensor.get_dtype());
+    host_tensor.copy_from(tensor);
+    LOG(INFO) << "target tensor data:" << tensor.valid_size();
     FILE* fp = fopen(locate, "w+");
 
-    if (fp == 0) {
-        LOG(ERROR) << "file open failed " << locate;
-
+    if (fp == nullptr) {
+        LOG(ERROR) << "file open field " << locate;
     } else {
-        for (int i = 0; i < size; ++i) {
-            fprintf(fp, "[%d] %g \n", i, (host_temp.data()[i]));
+        if (tensor.get_dtype() == AK_FLOAT) {
+            const float* data_ptr = (const float*)host_tensor.data();
+            int size = host_tensor.valid_size();
+            for (int i = 0; i < size; ++i) {
+                fprintf(fp, "[%d] %f \n", i, (data_ptr[i]));
+            }
+        } else if (tensor.get_dtype() == AK_INT8){
+            const char* data_ptr = (const char*)host_tensor.data();
+            int size = host_tensor.valid_size();
+            for (int i = 0; i < size; ++i) {
+                fprintf(fp, "[%d] %d \n", i, (data_ptr[i]));
+            }
+        } else {
+            LOG(FATAL) << "not supported write type";
         }
-
         fclose(fp);
     }
-
     LOG(INFO) << "!!! write success: " << locate;
 }
-static void record_dev_tensorfile(Tensor <NV, AK_FLOAT, NCHW>* dev_tensor, const char* locate) {
-    Tensor <X86, AK_FLOAT, NCHW> host_temp;
-    int size=dev_tensor->valid_size();
-    host_temp.re_alloc(Shape(1, 1, 1, size));
-    CUDA_CHECK(cudaMemcpy(host_temp.mutable_data(), dev_tensor->data(), sizeof(float) * size,
-                          cudaMemcpyDeviceToHost));
-    cudaDeviceSynchronize();
-    FILE* fp = fopen(locate, "w+");
 
-    if (fp == 0) {
-                LOG(ERROR) << "file open failed " << locate;
-
-    } else {
-        for (int i = 0; i < size; ++i) {
-            fprintf(fp, "[%d] %g \n", i, (host_temp.data()[i]));
-        }
-
-        fclose(fp);
+template <typename Target_Type>
+static void record_tensor_in_format(const Tensor<Target_Type>& tensor,
+        const std::string &op_type, const std::string &op_name, bool is_out, int index) {
+    std::string path = "record+" + op_type +
+            "+" + op_name +
+            "+" + (is_out ? "out" : "in") +
+            "+" + std::to_string(index) + "+";
+    for (auto x : tensor.valid_shape()) {
+        path += std::to_string(x) + "_";
     }
-
-            LOG(INFO) << "!!! write success: " << locate;
+    write_tensorfile(tensor,(path+".txt").c_str());
 }
-#endif
 
-#ifdef USE_X86_PLACE
-template<>
-void record_dev_tensorfile<X86>(const float* dev_tensor, int size, const char* locate) {
-    FILE* fp = fopen(locate, "w+");
-
-    if (fp == 0) {
-        LOG(ERROR) << "file open failed " << locate;
-
-    } else {
-        for (int i = 0; i < size; ++i) {
-            fprintf(fp, "[%d] %g \n", i, (dev_tensor[i]));
-        }
-
-        fclose(fp);
+template <typename Dtype>
+static std::string vector_2_string(std::vector<Dtype> vec){
+    std::string ans="[";
+    for (auto a : vec){
+        ans+=std::to_string(a)+",";
     }
-
-    LOG(INFO) << "!!! write success: " << locate;
-}
-static void record_dev_tensorfile(Tensor <X86, AK_FLOAT, NCHW>* dev_tensor, const char* locate) {
-    int size=dev_tensor->valid_size();
-    FILE* fp = fopen(locate, "w+");
-
-    if (fp == 0) {
-        LOG(ERROR) << "file open failed " << locate;
-
-    } else {
-
-        for (int i = 0; i < size; ++i) {
-            fprintf(fp, "[%d] %g \n", i, (dev_tensor->data()[i]));
-        }
-
-        fclose(fp);
-    }
-
-        LOG(INFO) << "!!! write success: " << locate;
-}
-#endif
-
-#if defined(USE_X86_PLACE) || defined(USE_CUDA)
-static void readTensorData(Tensor<X86, AK_FLOAT, NCHW> tensor, const char* locate) {
-    typedef typename Tensor<X86, AK_FLOAT, NCHW>::Dtype Dtype;
-    FILE* fp = fopen(locate, "rb");
-
-    if (fp == 0) {
-        LOG(ERROR) << "file open failed " << locate;
-
-    } else {
-        LOG(INFO) << "file open success [" << locate << " ],read " << tensor.valid_shape().count();
-        size_t size=fread(tensor.mutable_data(), sizeof(Dtype), tensor.valid_size(), fp);
-        CHECK_EQ(size,tensor.valid_shape().count())<<"read data file ["<<locate<<"], size not match";
-        fclose(fp);
-    }
+    ans+="]";
+    return ans;
 }
 
-static void readTensorData(Tensor<X86, AK_FLOAT, NCHW_C16> tensor, const char* locate) {
-    typedef typename Tensor<X86, AK_FLOAT, NCHW>::Dtype Dtype;
-    FILE* fp = fopen(locate, "rb");
-
-    if (fp == 0) {
-                LOG(ERROR) << "file open failed " << locate;
-
-    } else {
-                LOG(INFO) << "file open success [" << locate << " ],read " << tensor.valid_shape().count();
-        size_t size=fread(tensor.mutable_data(), sizeof(Dtype), tensor.valid_size(), fp);
-        CHECK_EQ(size,tensor.valid_shape().count())<<"read data file ["<<locate<<"], size not match";
-        fclose(fp);
-    }
-}
-#endif
 }
 }
-
-
 
 #endif //ANAKIN_DEBUG_H

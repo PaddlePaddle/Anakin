@@ -19,10 +19,11 @@
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/saber_funcs_param.h"
+#include "saber/funcs/impl/impl_crf_decoding.h"
 
 #ifdef NVIDIA_GPU
 
-#include "saber/funcs/impl/impl_crf_decoding.h"
+#include "saber/funcs/impl/cuda/saber_crf_decoding.h"
 #endif
 
 #ifdef USE_X86_PLACE
@@ -34,41 +35,29 @@
 #include "saber/funcs/impl/impl_crf_decoding.h"
 #endif
 
-#ifdef USE_AMD
-//todo
-#include "saber/funcs/impl/impl_crf_decoding.h"
-#endif
-
 namespace anakin {
 namespace saber {
 
 template<typename TargetType,
-        DataType OpDtype,
-        DataType inDtype = AK_FLOAT,
-        DataType outDtype = AK_FLOAT,
-        typename LayOutType_op = NCHW,
-        typename LayOutType_in = NCHW,
-        typename LayOutType_out = NCHW>
+        DataType OpDtype>
 class CrfDecoding : public BaseFunc<
-        Tensor<TargetType, inDtype, LayOutType_in>,
-                     Tensor<TargetType, outDtype, LayOutType_out>,
-                     Tensor<TargetType, OpDtype, LayOutType_op>,
+                    TargetType, 
+                    OpDtype,
                      ImplBase,
                      CrfDecodingParam> {
 public:
     using BaseFunc<
-            Tensor<TargetType, inDtype, LayOutType_in>,
-    Tensor<TargetType, outDtype, LayOutType_out>,
-    Tensor<TargetType, OpDtype, LayOutType_op>,
-    ImplBase,
-    CrfDecodingParam>::BaseFunc;
+            TargetType, 
+            OpDtype,
+            ImplBase,
+            CrfDecodingParam>::BaseFunc;
 
     CrfDecoding() = default;
 
-    typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
-    typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
-    typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-    typedef CrfDecodingParam<OpTensor> Param_t;
+    typedef Tensor<TargetType> InDataTensor;
+    typedef Tensor<TargetType> OutDataTensor;
+    typedef Tensor<TargetType> OpTensor;
+    typedef CrfDecodingParam<TargetType> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
@@ -88,12 +77,10 @@ public:
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
             case VENDER_IMPL:
-                this->_impl.push_back(new VenderCrfDecoding <TargetType, OpDtype, inDtype, outDtype,
-                LayOutType_op, LayOutType_in, LayOutType_out>);
+                this->_impl.push_back(new VenderCrfDecoding <TargetType, OpDtype>);
                 return SaberSuccess;
             case SABER_IMPL:
-                this->_impl.push_back(new SaberCrfDecoding <TargetType, OpDtype, inDtype, outDtype,
-                LayOutType_op, LayOutType_in, LayOutType_out>);
+                this->_impl.push_back(new SaberCrfDecoding <TargetType, OpDtype>);
                 return SaberSuccess;
             default:
                 return SaberUnImplError;

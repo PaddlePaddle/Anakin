@@ -38,17 +38,11 @@ __global__ void transpose_tile_2d_if(dtype *odata, const dtype *idata, int num, 
     }
 }
 
-template <DataType OpDtype,
-            DataType inDtype,
-            DataType outDtype,
-            typename LayOutType_op,
-            typename LayOutType_in,
-            typename LayOutType_out>
-SaberStatus SaberTranspose<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(\
+template <DataType OpDtype>
+SaberStatus SaberTranspose<NV, OpDtype>::dispatch(\
     const std::vector<DataTensor_in *>& inputs,\
     std::vector<DataTensor_out *>& outputs, \
-    TransposeParam<OpTensor>& param) {
+    TransposeParam<NV>& param) {
 
     cudaStream_t stream = this->_ctx->get_compute_stream();
 
@@ -81,14 +75,15 @@ SaberStatus SaberTranspose<NV, OpDtype, inDtype, outDtype,\
     dim3 block(block_x, block_y);
     dim3 grid(grid_x, grid_y);
 
-    const InDataType* in_data = inputs[0]->data();
-    OutDataType* out_data = outputs[0]->mutable_data();
+    const InDataType* in_data = (const InDataType*)inputs[0]->data();
+    OutDataType* out_data = (OutDataType*)outputs[0]->mutable_data();
 
     transpose_tile_2d_if<<<grid, block, 0, stream>>>(out_data, in_data, n_in, c_in, h_in, w_in);
 
     return SaberSuccess;
 }
-
+DEFINE_OP_TEMPLATE(SaberTranspose, TransposeParam, NV, AK_HALF);
+DEFINE_OP_TEMPLATE(SaberTranspose, TransposeParam, NV, AK_INT8);
 }//namespace saber
 
 }//namespace anakin

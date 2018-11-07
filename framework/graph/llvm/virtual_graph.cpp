@@ -23,7 +23,7 @@ std::string node::ToString() {
     if (mergeNodes.size()) {
         msg << name << " : op(" << opName << ") merge(";
 
-        for (auto& tmp_node : mergeNodes) {
+        for (auto & tmp_node : mergeNodes) {
             msg << tmp_node.name << " : " << tmp_node.opName << ",";
         }
 
@@ -66,6 +66,74 @@ bool VGraph::check_pass(std::string bottom, std::string top) {
     }
 
     return true;
+}
+
+//check if bottom connect to top
+bool VGraph::check_accessible(std::string bottom, std::string top) {
+    LOG(INFO) << "running";
+
+    if (!check_pass(bottom, top) || bottom == top) {
+        return true;
+    }
+
+    auto bottom_out_arc_its = this -> get_out_arc_its(bottom);
+
+    for (int i = 0; i < bottom_out_arc_its.size(); ++i) {
+        std::string mid_name = (*this)[bottom_out_arc_its[i] -> top()].name;
+
+        if (check_accessible(mid_name, top)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+std::map<std::pair<std::string, std::string>, int> VGraph::connect_table() {
+    std::map<std::pair<std::string, std::string>, int> table_map;
+
+    for (auto node0 = this -> begin(); node0 != this -> end(); ++node0) {
+        for (auto node1 = this -> begin(); node1 != this -> end(); ++node1) {
+            table_map[ {node0->first, node1->first}] = 0;
+        }
+    }
+
+    for (auto gnode = this -> begin(); gnode != this -> end(); ++gnode) {
+
+        std::stack<std::string> stk;
+        auto out_arc_its = this -> get_out_arc_its(gnode->first);
+        table_map[ {gnode->first, gnode->first}] = 1;
+
+
+        for (auto arc : out_arc_its) {
+            stk.push(arc->top());
+        }
+
+        std::vector<std::string> flag;
+
+        while (!stk.empty()) {
+            std::string topname = stk.top();
+            stk.pop();
+
+            if (std::find(flag.begin(), flag.end(), topname) != flag.end()) {
+                continue;
+            }
+
+            table_map[ {gnode->first, topname}] = 1;
+            //if (gnode->first=="conv_4e_3x3")
+            // LOG(INFO)<<"add node:"<<topname;
+
+            auto out_arc_its = this -> get_out_arc_its(topname);
+
+            for (auto arc : out_arc_its) {
+                stk.push(arc->top());
+            }
+
+            flag.push_back(topname);
+        }
+    }
+
+    return table_map;
 }
 
 void VGraph::register_outs(std::string bottom, std::string top) {

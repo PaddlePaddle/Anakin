@@ -18,6 +18,7 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+#include "saber/funcs/impl/impl_pooling.h"
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_pooling.h"
 #include "saber/funcs/impl/cuda/vender_pooling.h"
@@ -26,47 +27,35 @@
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_pooling.h"
 #endif
-
-#ifdef USE_AMD
-#include "saber/funcs/impl/amd/saber_pooling.h"
-#endif
-
 #ifdef USE_ARM_PLACE
-#include "saber/funcs/impl/arm/saber_pooling.h"
+#include "saber/funcs/impl/impl_pooling.h"
 #endif
-
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_pooling.h"
+#endif
 namespace anakin {
 namespace saber {
 
 template<typename TargetType,
-        DataType OpDtype,
-        DataType inDtype = AK_FLOAT,
-        DataType outDtype = AK_FLOAT,
-        typename LayOutType_op = NCHW,
-        typename LayOutType_in = NCHW,
-        typename LayOutType_out = NCHW
->
+        DataType OpDtype>
 class Pooling : public BaseFunc<
-        Tensor<TargetType, inDtype, LayOutType_in>,
-        Tensor<TargetType, outDtype, LayOutType_out>,
-        Tensor<TargetType, OpDtype, LayOutType_op>,
+        TargetType,
+        OpDtype,
         ImplBase,
-        PoolingParam
-> {
+        PoolingParam> {
 public:
     using BaseFunc<
-            Tensor<TargetType, inDtype, LayOutType_in>,
-            Tensor<TargetType, outDtype, LayOutType_out>,
-            Tensor<TargetType, OpDtype, LayOutType_op>,
+            TargetType,
+            OpDtype,
             ImplBase,
             PoolingParam>::BaseFunc;
 
     Pooling() = default;
 
-    typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
-    typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
-    typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-    typedef PoolingParam<OpTensor> Param_t;
+    typedef Tensor<TargetType> InDataTensor;
+    typedef Tensor<TargetType> OutDataTensor;
+    typedef Tensor<TargetType> OpTensor;
+    typedef PoolingParam<TargetType> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
@@ -134,12 +123,10 @@ public:
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) { 
             case VENDER_IMPL: 
-                this->_impl.push_back(new VenderPooling <TargetType, OpDtype, inDtype, outDtype, 
-                    LayOutType_op, LayOutType_in, LayOutType_out>); 
+                this->_impl.push_back(new VenderPooling <TargetType, OpDtype>);
                 return SaberSuccess; 
             case SABER_IMPL: 
-                this->_impl.push_back(new SaberPooling <TargetType, OpDtype, inDtype, outDtype, 
-                    LayOutType_op, LayOutType_in, LayOutType_out>); 
+                this->_impl.push_back(new SaberPooling <TargetType, OpDtype>); 
                 return SaberSuccess; 
             default: 
                 return SaberUnImplError;

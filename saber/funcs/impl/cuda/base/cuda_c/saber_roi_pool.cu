@@ -43,8 +43,8 @@ __global__ void ker_roi_pool_fwd(Dtype * out_data, \
         int roi_end_h = round(cur_roi[4] * spatial_scale);
         int roi_width = roi_end_w - roi_start_w + 1;
         int roi_height = roi_end_h - roi_start_h + 1;
-        Dtype pool_w_rate = roi_width / out_w;
-        Dtype pool_h_rate = roi_height / out_h;
+        Dtype pool_w_rate = (Dtype)roi_width / out_w;
+        Dtype pool_h_rate = (Dtype)roi_height / out_h;
 
         int h_start = static_cast<int>(floor(static_cast<Dtype>(h) * pool_h_rate));
         int w_start = static_cast<int>(floor(static_cast<Dtype>(w) * pool_w_rate));
@@ -76,24 +76,18 @@ __global__ void ker_roi_pool_fwd(Dtype * out_data, \
     }
 }
 
-template <DataType OpDtype,
-            DataType inDtype,
-            DataType outDtype,
-            typename LayOutType_op,
-            typename LayOutType_in,
-            typename LayOutType_out>
-SaberStatus SaberRoiPool<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(\
-    const std::vector<DataTensor_in *>& inputs, \
-    std::vector<DataTensor_out *>& outputs, \
-    RoiPoolParam<OpTensor>& param) {
+template <DataType OpDtype>
+SaberStatus SaberRoiPool<NV, OpDtype>::dispatch(\
+    const std::vector<Tensor<NV> *>& inputs, \
+    std::vector<Tensor<NV> *>& outputs, \
+    RoiPoolParam<NV>& param) {
 
-    const InDataType* in_data = inputs[0]->data();
-    const InDataType* in_rois = inputs[1]->data();
-    OutDataType* out_data = outputs[0]->mutable_data();
-    OutDataType* out_index = nullptr;
+    const OpDataType* in_data = (const OpDataType*)inputs[0]->data();
+    const OpDataType* in_rois = (const OpDataType*)inputs[1]->data();
+    OpDataType* out_data = (OpDataType*)outputs[0]->mutable_data();
+    OpDataType* out_index = nullptr;
     if (outputs.size() == 2) {
-        out_index = outputs[1]->mutable_data();
+        out_index = (OpDataType*)outputs[1]->mutable_data();
     }
     cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
     int count = outputs[0]->valid_size();

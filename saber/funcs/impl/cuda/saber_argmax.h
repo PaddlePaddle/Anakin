@@ -13,8 +13,8 @@
    limitations under the License. 
 */
 
-#ifndef ANAKIN_SABER_FUNCS_IMPL_SABER_ARGMAX_H
-#define ANAKIN_SABER_FUNCS_IMPL_SABER_ARGMAX_H
+#ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_ARGMAX_H
+#define ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_ARGMAX_H
 
 #include "saber/funcs/impl/impl_argmax.h"
 
@@ -22,67 +22,49 @@ namespace anakin{
 
 namespace saber{
 
-template <DataType OpDtype,
-    DataType inDtype,
-    DataType outDtype,
-    typename LayOutType_op,
-    typename LayOutType_in,
-    typename LayOutType_out>
-class SaberArgmax<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out> : \
+template <DataType OpDtype>
+class SaberArgmax<NV, OpDtype> : 
     public ImplBase<
-        Tensor<NV, inDtype, LayOutType_in>, 
-        Tensor<NV, outDtype, LayOutType_out>,
-        Tensor<NV, OpDtype, LayOutType_op>,
-        ArgmaxParam<Tensor<NV, OpDtype, LayOutType_op> > > 
+        NV, OpDtype,
+        ArgmaxParam<NV> > 
 {
 public:
-    typedef Tensor<NV, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<NV, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<NV, OpDtype, LayOutType_op> OpTensor;
-    typedef typename DataTensor_in::Dtype InDataType;
-    typedef typename DataTensor_out::Dtype OutDataType;
-    typedef typename OpTensor::Dtype OpDataType;
+    typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
 
-    SaberArgmax()
-    {}
+    SaberArgmax(){}
 
-    ~SaberArgmax() {
+    ~SaberArgmax() {}
 
+    virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
+                        std::vector<Tensor<NV> *>& outputs,
+                        ArgmaxParam<NV>& param, 
+                        Context<NV> &ctx) {
+        return create(inputs, outputs, param, ctx);//SaberSuccess;
     }
 
-    virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
-                        std::vector<DataTensor_out *>& outputs,
-                        ArgmaxParam<OpTensor>& param, 
-                        Context<NV> &ctx) {
+    virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
+                        std::vector<Tensor<NV> *>& outputs,
+                        ArgmaxParam<NV>& param, 
+                        Context<NV>& ctx) {
         this->_ctx = &ctx;
         if (!param.has_axis) {
             int inner_dim = inputs[0]->count(1, inputs[0]->dims());
             int outer_dim = inputs[0]->num();
             int block_num = CUDA_GET_BLOCKS(inner_dim);
-            _block_max_value.re_alloc(Shape(outer_dim, block_num, 1, 1));
-            _block_max_index.re_alloc(Shape(outer_dim, block_num, 1, 1));
+            _block_max_value.re_alloc(Shape({outer_dim, block_num, 1, 1}, Layout_NCHW), OpDtype);
+            _block_max_index.re_alloc(Shape({outer_dim, block_num, 1, 1}, Layout_NCHW), OpDtype);
         }
         return SaberSuccess;
     }
 
-    virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
-                        std::vector<DataTensor_out *>& outputs,
-                        ArgmaxParam<OpTensor>& param, 
-                        Context<NV>& ctx) {
-        return SaberSuccess;
-    }
-
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in *>& inputs,
-                        std::vector<DataTensor_out *>& outputs,
-                        ArgmaxParam<OpTensor>& param);
+    virtual SaberStatus dispatch(const std::vector<Tensor<NV> *>& inputs,
+                        std::vector<Tensor<NV> *>& outputs,
+                        ArgmaxParam<NV>& param);
 
 private:
-    Tensor<NV, inDtype, LayOutType_in> _block_max_value;
-    Tensor<NV, inDtype, LayOutType_in> _block_max_index;
+    Tensor<NV> _block_max_value;
+    Tensor<NV> _block_max_index;
 };
-
-template class SaberArgmax<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
 
 }
 

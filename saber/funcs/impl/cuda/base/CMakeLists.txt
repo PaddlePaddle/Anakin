@@ -14,7 +14,8 @@
 
 if(USE_CUDA)
     anakin_fetch_files_with_suffix(${CUDA_BASE_CODE_ROOT}/cuda_c "cu" ANAKIN_SABER_CUDA_C_SRC)
-    anakin_fetch_files_with_suffix(${CUDA_BASE_CODE_ROOT}/sass/sm_${SELECTED_SASS_TARGET_ARCH} "a" ANAKIN_SABER_SASS_STATIC_LIB)
+    set(SASS_LIB_PATH ${ANAKIN_THIRD_PARTY_PATH}/sass/lib/sm_${SELECTED_SASS_TARGET_ARCH}/)
+    list(APPEND ANAKIN_SABER_SASS_STATIC_LIB ${SASS_LIB_PATH}/libanakin_saber_sass_sm_${SELECTED_SASS_TARGET_ARCH}.a)
 endif()
 
 macro(anakin_set_upscope src)

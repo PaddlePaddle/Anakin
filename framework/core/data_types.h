@@ -117,20 +117,24 @@ ANAKIN_TO_TYPE_ID(PTuple<bool>, anakin_tuple_bool)
 ANAKIN_TO_TYPE_ID(Enum, anakin_tuple_enum)
 
 
-#define ANAKIN_PBLOCK_TO_TYPE_ID(type, target, type_id) \
-	using type##target = PBlock<type, target>;	\
-	ANAKIN_TO_TYPE_ID(type##target, type_id)
+#define ANAKIN_PBLOCK_TO_TYPE_ID(target, type_id) \
+	using __type##target = PBlock<target>;	\
+	ANAKIN_TO_TYPE_ID(__type##target, type_id)
 
 #ifdef USE_CUDA
-	ANAKIN_PBLOCK_TO_TYPE_ID(float, NV, anakin_block_float)
+	ANAKIN_PBLOCK_TO_TYPE_ID(NV, anakin_block)
 #endif
 
 #ifdef USE_X86_PLACE
-	ANAKIN_PBLOCK_TO_TYPE_ID(float, X86, anakin_block_float)
+	ANAKIN_PBLOCK_TO_TYPE_ID(X86, anakin_block)
+#endif
+
+#ifdef AMD_GPU
+  ANAKIN_PBLOCK_TO_TYPE_ID(AMD, anakin_block)
 #endif
 
 #ifdef USE_ARM_PLACE
-	ANAKIN_PBLOCK_TO_TYPE_ID(float, ARM, anakin_block_float)
+	ANAKIN_PBLOCK_TO_TYPE_ID(ARM, anakin_block)
 #endif
 
 template<typename T>

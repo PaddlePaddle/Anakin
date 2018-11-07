@@ -32,19 +32,13 @@ __global__ void ker_crop_fwd(Dtype * out_data, \
 }
 
 
-template <DataType OpDtype ,
-    DataType inDtype,
-    DataType outDtype,
-    typename LayOutType_op,
-    typename LayOutType_in,
-    typename LayOutType_out>
-SaberStatus SaberCrop<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(const std::vector<DataTensor_in *>& inputs,
-    std::vector<DataTensor_out *>& outputs,
-    CropParam<OpTensor>& param) {
+template <>
+SaberStatus SaberCrop<NV,AK_FLOAT>::dispatch(const std::vector<Tensor<NV> *>& inputs,
+    std::vector<Tensor<NV> *>& outputs,
+    CropParam<NV>& param) {
 
-    const InDataType* in_data = inputs[0]->data();
-    OutDataType* out_data = outputs[0]->mutable_data();
+    const OpDataType* in_data = (const OpDataType*)inputs[0]->data();
+    OpDataType* out_data = (OpDataType*)outputs[0]->mutable_data();
     cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
     int count = outputs[0]->valid_size();
     int out_n = outputs[0]->num();
@@ -53,7 +47,7 @@ SaberStatus SaberCrop<NV, OpDtype, inDtype, outDtype,\
     int out_w = outputs[0]->width();
 
     if (inputs[0]->is_continue_mem() && outputs[0]->is_continue_mem()) {
-           ker_crop_fwd<InDataType>\
+           ker_crop_fwd<OpDataType>\
                     <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(\
                     out_data, in_data + _img_offset, \
                     _in_n_stride, _in_c_stride, _in_h_stride, _in_w_stride,\
@@ -63,6 +57,7 @@ SaberStatus SaberCrop<NV, OpDtype, inDtype, outDtype,\
 
     return SaberSuccess;
 }
-
+DEFINE_OP_TEMPLATE(SaberCrop, CropParam, NV, AK_HALF);
+DEFINE_OP_TEMPLATE(SaberCrop, CropParam, NV, AK_INT8);
 }
 }
