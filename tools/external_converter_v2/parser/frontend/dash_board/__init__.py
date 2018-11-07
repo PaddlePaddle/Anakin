@@ -24,6 +24,7 @@ GraphBoard.config['graph_attrs'] = ""
 GraphBoard.config['graph_option'] = ""
 GraphBoard.config['optimized_graph_attrs'] = ""
 GraphBoard.config['optimized_graph_option'] = ""
+GraphBoard.config['mem_info']=""
 GraphBoard.config['disable_optimization'] = bool()
 GraphBoard.config['config'] = dict()
 GraphBoard.config.from_object(__name__)
@@ -39,10 +40,11 @@ def board_home():
     # parsing target framework config
     framework = config.framework
     parser_config.append(["Framework", framework, " The target framework processing "])
-    protos = clip_paths(config.framework_config_dict['ProtoPaths'])
-    parser_config.append(["Proto", protos, "Protobuf define files "])
-    prototxt = clip_path(config.framework_config_dict['PrototxtPath'])
-    parser_config.append(["Prototxt", prototxt, "Network tarits define"])
+    if framework == "CAFFE":
+        protos = clip_paths(config.framework_config_dict['ProtoPaths'])
+        parser_config.append(["Proto", protos, "Protobuf define files "])
+        prototxt = clip_path(config.framework_config_dict['PrototxtPath'])
+        parser_config.append(["Prototxt", prototxt, "Network tarits define"])
     model = clip_path(config.framework_config_dict['ModelPath'])
     parser_config.append(["Model", model, "Model parameter file"])
     return render_template('index.html', \
@@ -66,7 +68,8 @@ def board_optimization():
     return render_template('optimization.html', 
                            parser_config=parser_config, 
                            graph_def=GraphBoard.config['optimized_graph_option'], 
-                           attrs=GraphBoard.config['optimized_graph_attrs'])
+                           attrs=GraphBoard.config['optimized_graph_attrs'],
+						   mem_info=GraphBoard.config['mem_info'])
 
 
 @GraphBoard.route('/<path:filename>', methods=['GET', 'POST'])

@@ -36,7 +36,7 @@ public:
         if (_container.count(type_id) == 0) {
             LOG(FATAL) << type_id << " has not been registered! ";
         }
-        LOG(INFO) << "create " << type_id << " fuction " << &_container.at(type_id);
+        //LOG(INFO) << "create " << type_id << " fuction " << &_container.at(type_id);
         //auto ptr = _container.at(type_id)();
         //return ptr;
         return (_container.at(type_id))();
@@ -46,6 +46,7 @@ public:
             LOG(FATAL) << type_id << " 's original "<< ori_type_id << " has not been registered! ";
         } else {
             _container[type_id] = _container[ori_type_id];
+            _type_id_list.push_back(type_id);
         }
     }
     std::vector<TypeIdentifier>& GetTypeIdentifierList() {
@@ -108,9 +109,8 @@ public:
     PolicyType* Get(const TypeIdentifier& type_id) {
         if (_container.count(type_id) == 0) {
             LOG(FATAL) << type_id << " has not been registered! ";
-        } else {
-            return _container.at(type_id);
         }
+        return _container.at(type_id);
     }
     void __ALIAS__(const TypeIdentifier& ori_type_id, const TypeIdentifier& type_id) {
         if (_container.count(ori_type_id) == 0) {

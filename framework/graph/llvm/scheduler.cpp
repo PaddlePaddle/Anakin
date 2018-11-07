@@ -14,12 +14,19 @@ void Scheduler::RegIOResource(VGraph* vgraph) {
     // register io resources.
     vgraph->Scanner->BFS_Edge(register_io_f);
 
+    /*if(vgraph->has_exec_order()) {
+        auto node_exec_order = vgraph->get_exec_order();
+        for(auto& node_name : node_exec_order) {
+            this->wait_push((*vgraph)[node_name]);
+        }
+    } else {*/
     auto push_wait_que_f = [this](node & node_arg) {
         this->wait_push(node_arg);
         return 0;
     };
     // push all node op to wait que and disable the out resources.
     vgraph->Scanner->BFS(push_wait_que_f);
+    //}
 
     // scheduler add fix arc io
     auto& regist_outs = vgraph->get_registed_outs();
@@ -39,7 +46,7 @@ bool Scheduler::callable(node& node_arg) {
     auto& node_arc_in_its = _vgraph->get_in_arc_its(node_arg.name);
     std::vector<io> io_in;
 
-    for (auto& arc_it : node_arc_in_its) {
+    for (auto & arc_it : node_arc_in_its) {
         io_in.push_back(arc_it->weight());
     }
 
@@ -51,7 +58,7 @@ void Scheduler::launch(node& node_arg) {
     auto& node_arc_out_its = _vgraph->get_out_arc_its(node_arg.name);
     std::vector<io> io_out;
 
-    for (auto& arc_it : node_arc_out_its) {
+    for (auto & arc_it : node_arc_out_its) {
         io_out.push_back(arc_it->weight());
     }
 
@@ -86,7 +93,7 @@ std::vector<std::string> Scheduler::get_exec_node_in_order() {
     auto& exec_node_in_order = this->get_exec_que();
     std::vector<std::string> ret;
 
-    for (auto& tmp_node : exec_node_in_order) {
+    for (auto & tmp_node : exec_node_in_order) {
         ret.push_back(tmp_node.name);
     }
 

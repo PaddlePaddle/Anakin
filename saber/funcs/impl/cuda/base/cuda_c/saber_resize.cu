@@ -52,19 +52,21 @@ __global__ void resize_bilinear_2d_kernel(const int wout, const int hout,
         float w_10 = w_h1 * w_w0;
         float w_11 = w_h1 * w_w1;
 
-        int hl = src_h * src_stride_h;
-        int hh = h * src_stride_h;
-        int wl = src_w * src_stride_w;
-        int wh = w * src_stride_w;
-
-        int src_indexTL = hl + wl;
-        int src_indexTR = hl + wh;
-        int src_indexBL = hh + wl;
-        int src_indexBR = hh + wh;
-
-        int dst_index = dst_w * dst_stride_w + dst_h * dst_stride_h;
-
         for (int i = 0; i < num; ++i) {
+            int src_batch_idx = i * src_stride_batch;
+
+            int hl = src_h * src_stride_h;
+            int hh = h * src_stride_h;
+            int wl = src_w * src_stride_w;
+            int wh = w * src_stride_w;
+
+            int src_indexTL = src_batch_idx + hl + wl;
+            int src_indexTR = src_batch_idx + hl + wh;
+            int src_indexBL = src_batch_idx + hh + wl;
+            int src_indexBR = src_batch_idx + hh + wh;
+
+            int dst_index = i * dst_stride_batch + dst_w * dst_stride_w + dst_h * dst_stride_h;
+
             for (int j = 0; j < channels; ++j) {
 #if 0
                 dtype tl = (src_w < 0 || src_h < 0)? 0 : src[src_indexTL];
@@ -73,9 +75,9 @@ __global__ void resize_bilinear_2d_kernel(const int wout, const int hout,
                 dtype br = (w > win || h > hin)? 0 : src[src_indexBR];
 #else
                 dtype tl = src[src_indexTL];
-                dtype tr = w > win? 0 : src[src_indexTR];//w > win? 0 :
-                dtype bl = h > hin? 0 : src[src_indexBL];//h > hin? 0 :
-                dtype br = (w > win || h > hin)? 0 : src[src_indexBR];//(w > win || h > hin)? 0 :
+                dtype tr = w >= win? 0 : src[src_indexTR];//w > win? 0 :
+                dtype bl = h >= hin? 0 : src[src_indexBL];//h > hin? 0 :
+                dtype br = (w >= win || h >= hin)? 0 : src[src_indexBR];//(w > win || h > hin)? 0 :
 #endif
                 dst[dst_index] = static_cast<dtype>(w_00 * tl + w_01 * tr + w_10 * bl + w_11 * br);
                 src_indexBR += src_stride_c;
@@ -89,17 +91,14 @@ __global__ void resize_bilinear_2d_kernel(const int wout, const int hout,
 }
 
 
-template <DataType OpDtype,
-            DataType inDtype,
-            DataType outDtype,
-            typename LayOutType_op,
-            typename LayOutType_in,
-            typename LayOutType_out>
-SaberStatus SaberResize<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(\
-    const std::vector<DataTensor_in *>& inputs, \
-    std::vector<DataTensor_out *>& outputs, \
-    ResizeParam<OpTensor>& param) {
+template <DataType OpDtype>
+SaberStatus SaberResize<NV, OpDtype>::dispatch(\
+    const std::vector<Tensor<NV> *>& inputs, \
+    std::vector<Tensor<NV> *>& outputs, \
+    ResizeParam<NV>& param) {
+
+    CHECK_EQ(inputs[0]->get_dtype() == OpDtype && outputs[0]->get_dtype() == OpDtype, true) << \
+    "input datatype, output datatype are not match to Op datatype";
     cudaStream_t stream = this->_ctx->get_compute_stream();
 
     int w_out = outputs[0]->width();
@@ -129,8 +128,6 @@ SaberStatus SaberResize<NV, OpDtype, inDtype, outDtype,\
     dim3 block(block_x, block_y);
     dim3 grid(grid_x, grid_y);
 
-    const InDataType* in_data = inputs[0]->data();
-    OutDataType* out_data = outputs[0]->mutable_data();
     Shape src_real_shape;
     Shape dst_real_shape;
     if (inputs[0]->is_continue_mem()) {
@@ -152,28 +149,20 @@ SaberStatus SaberResize<NV, OpDtype, inDtype, outDtype,\
     int dst_stride_h = dst_real_shape.count(height_idx + 1);//outputs[0]->count(height_idx + 1, dims);
     int dst_stride_channel = dst_real_shape.count(channel_idx + 1);//outputs[0]->count(channel_idx + 1, dims);
     int dst_stride_batch = dst_real_shape.count(num_idx + 1);//outputs[0]->count(num_idx + 1, dims);
-    const InDataType* in_data_batch = in_data;
-    OutDataType* out_data_batch = out_data;
-    for (int i = 0; i < n_out; ++i) {
-        resize_bilinear_2d_kernel<OpDataType><<<grid, block, 0, stream>>>(
-                w_out, h_out, n_out, c_out,
-                        dst_stride_w, dst_stride_h, dst_stride_channel, dst_stride_batch,
-                        w_in, h_in,
-                        src_stride_w, src_stride_h, src_stride_channel, src_stride_batch,
-                        1 / param.width_scale, 1 / param.height_scale,
-                        in_data, out_data);
-        in_data_batch += src_stride_batch;
-        out_data_batch += dst_stride_batch;
-    }
+    resize_bilinear_2d_kernel<OpDataType><<<grid, block, 0, stream>>>(
+			w_out, h_out, n_out, c_out,
+                    	dst_stride_w, dst_stride_h, dst_stride_channel, dst_stride_batch,
+                    	w_in, h_in,
+                    	src_stride_w, src_stride_h, src_stride_channel, src_stride_batch,
+                    	1 / param.width_scale, 1 / param.height_scale,
+                    	(const OpDataType*)inputs[0]->data(), (OpDataType*)outputs[0]->mutable_data());
+
     //outputs[0]->record_event(stream);
     return SaberSuccess;
 }
-template class SaberResize<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
-template class SaberResize<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NHWC, NHWC, NHWC>;
-template class SaberResize<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, HW, HW, HW>;
-template class SaberResize<NV, AK_INT8, AK_INT8, AK_INT8, NCHW, NCHW, NCHW>;
-template class SaberResize<NV, AK_INT8, AK_INT8, AK_INT8, NHWC, NHWC, NHWC>;
-template class SaberResize<NV, AK_INT8, AK_INT8, AK_INT8, HW, HW, HW>;
+template class SaberResize<NV, AK_FLOAT>;
+template class SaberResize<NV, AK_INT8>;
+DEFINE_OP_TEMPLATE(SaberResize, ResizeParam, NV, AK_HALF);
 } //namespace anakin
 
-} //namespace anakin
+} //namespace 

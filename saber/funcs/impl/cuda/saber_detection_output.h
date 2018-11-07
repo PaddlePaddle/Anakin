@@ -16,34 +16,21 @@
 #ifndef ANAKIN_SABER_FUNCS_CUDA_SABER_DETECTION_OUTPUT_H
 #define ANAKIN_SABER_FUNCS_CUDA_SABER_DETECTION_OUTPUT_H
 
-
 #include "saber/funcs/impl/impl_detection_output.h"
+#include "saber/core/data_traits.h"
 
 namespace anakin{
 
 namespace saber{
 
-template <DataType OpDtype,
-    DataType inDtype,
-    DataType outDtype,
-    typename LayOutType_op,
-    typename LayOutType_in,
-    typename LayOutType_out>
-class SaberDetectionOutput<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out> : \
+template <DataType OpDtype>
+class SaberDetectionOutput<NV, OpDtype> : \
     public ImplBase<
-        Tensor<NV, inDtype, LayOutType_in>, 
-        Tensor<NV, outDtype, LayOutType_out>,
-        Tensor<NV, OpDtype, LayOutType_op>,
-        DetectionOutputParam<Tensor<NV, OpDtype, LayOutType_op> > > 
+        NV, OpDtype,
+        DetectionOutputParam<NV> > 
 {
 public:
-    typedef Tensor<NV, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<NV, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<NV, OpDtype, LayOutType_op> OpTensor;
-    typedef typename DataTensor_in::Dtype InDataType;
-    typedef typename DataTensor_out::Dtype OutDataType;
-    typedef typename OpTensor::Dtype OpDataType;
+    typedef typename DataTrait<NV, OpDtype>::Dtype dtype;
 
     SaberDetectionOutput() = default;
     ~SaberDetectionOutput() {
@@ -55,17 +42,17 @@ public:
         }
     }
 
-    virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
-                            std::vector<DataTensor_out *>& outputs,
-                            DetectionOutputParam<OpTensor>& param, Context<NV>& ctx) {
+    virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
+                            std::vector<Tensor<NV> *>& outputs,
+                            DetectionOutputParam<NV>& param, Context<NV>& ctx) {
         // get context
         this->_ctx = &ctx;
         return create(inputs, outputs, param, ctx);
     }
 
-    virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
-                            std::vector<DataTensor_out *>& outputs,
-                            DetectionOutputParam<OpTensor>& param, Context<NV> &ctx) {
+    virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
+                            std::vector<Tensor<NV> *>& outputs,
+                            DetectionOutputParam<NV>& param, Context<NV> &ctx) {
 
         //! inputs[0]: location map, dims = 4 {N, boxes * 4, 1, 1}
         //! inputs[1]: confidence map, dims = 4 {N, classes * boxes, 1, 1}
@@ -75,7 +62,7 @@ public:
         Shape sh_box = inputs[2]->valid_shape();
         //! shape {1, 1, 2, boxes * 4(xmin, ymin, xmax, ymax)}, boxes = size / 2 / 4
         //! layout must be 4 dims, the priors is in the last dim
-        _num_priors = sh_box[3] / 4;
+        _num_priors = sh_box.count() / 8;
         int num = inputs[0]->num();
         if (param.class_num == 0) {
             _num_classes = inputs[1]->valid_size() / (num * _num_priors);
@@ -92,9 +79,9 @@ public:
         _bbox_preds.reshape(sh_loc);
         _conf_permute.reshape(sh_conf);
 
-        CHECK_EQ(_num_priors * _num_loc_classes * 4, sh_loc[1]) << \
+        CHECK_EQ(_num_priors * _num_loc_classes * 4, sh_loc.count() / sh_loc.num()) << \
             "Number of priors must match number of location predictions.";
-        CHECK_EQ(_num_priors * _num_classes, sh_conf[1]) << \
+        CHECK_EQ(_num_priors * _num_classes, sh_conf.count() / sh_conf.num()) << \
             "Number of priors must match number of confidence predictions.";
 
         if (_conf_cpu_data != nullptr) {
@@ -103,28 +90,28 @@ public:
         if (_bbox_cpu_data != nullptr) {
             fast_free(_bbox_cpu_data);
         }
-        _conf_cpu_data = (InDataType*)fast_malloc(sizeof(InDataType) * sh_conf.count());
-        _bbox_cpu_data = (InDataType*)fast_malloc(sizeof(InDataType) * sh_loc.count());
+        _conf_cpu_data = (dtype*)fast_malloc(sizeof(dtype) * sh_conf.count());
+        _bbox_cpu_data = (dtype*)fast_malloc(sizeof(dtype) * sh_loc.count());
 
         return SaberSuccess;
     }
 
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
-                          std::vector<DataTensor_out*>& outputs,
-                          DetectionOutputParam<OpTensor>& param);
+    virtual SaberStatus dispatch(const std::vector<Tensor<NV>*>& inputs,
+                          std::vector<Tensor<NV> *>& outputs,
+                          DetectionOutputParam<NV>& param);
 
 
 private:
     int _num_classes;
     int _num_loc_classes;
     int _num_priors;
-    DataTensor_in _bbox_preds;
-    DataTensor_in _bbox_permute;
-    DataTensor_in _conf_permute;
-    InDataType* _bbox_cpu_data{nullptr};
-    InDataType* _conf_cpu_data{nullptr};
+    Tensor<NV> _bbox_preds;
+    Tensor<NV> _bbox_permute;
+    Tensor<NV> _conf_permute;
+    dtype* _bbox_cpu_data{nullptr};
+    dtype* _conf_cpu_data{nullptr};
 };
-template class SaberDetectionOutput<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
+template class SaberDetectionOutput<NV>;
 } //namespace saber
 
 } //namespace anakin

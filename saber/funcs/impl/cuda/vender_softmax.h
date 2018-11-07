@@ -25,27 +25,15 @@ namespace anakin{
 
 namespace saber{
 
-template <DataType OpDtype,
-    DataType inDtype,
-    DataType outDtype,
-    typename LayOutType_op,
-    typename LayOutType_in,
-    typename LayOutType_out>
-class VenderSoftmax<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out> : \
-    public ImplBase<
-        Tensor<NV, inDtype, LayOutType_in>, 
-        Tensor<NV, outDtype, LayOutType_out>,
-        Tensor<NV, OpDtype, LayOutType_op>,
-        SoftmaxParam<Tensor<NV, OpDtype, LayOutType_op> > > 
+template <DataType OpDtype>
+class VenderSoftmax<NV, OpDtype>:
+    public ImplBase<NV, OpDtype, SoftmaxParam<NV>> 
 {
 public:
-    typedef Tensor<NV, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<NV, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<NV, OpDtype, LayOutType_op> OpTensor;
-    typedef typename DataTensor_in::Dtype InDataType;
-    typedef typename DataTensor_out::Dtype OutDataType;
-    typedef typename OpTensor::Dtype OpDataType;
+    typedef Tensor<NV> DataTensor_in;
+    typedef Tensor<NV> DataTensor_out;
+    typedef Tensor<NV> OpTensor;
+    typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
 
     VenderSoftmax(){
         _handle = nullptr;
@@ -72,87 +60,15 @@ public:
      */
     virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
-                            SoftmaxParam<OpTensor>& param, Context<NV>& ctx) {
-
-        // ---- init cudnn resources ----
-
-        this->_ctx = &ctx;
-        // ---- get cuda resources ----
-
-        cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
-
-        CUDNN_CHECK(cudnnCreate(&_handle));
-        CUDNN_CHECK(cudnnSetStream(_handle, cuda_stream));
-
-        // ---- create cudnn Descs ----
-        cudnn::createTensorDesc<InDataType>(&_input_desc);
-        cudnn::createTensorDesc<OutDataType>(&_output_desc);
-
-        return create(inputs, outputs, param, ctx);
-    }
+                            SoftmaxParam<NV>& param, Context<NV>& ctx) ;
 
     virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
-                            SoftmaxParam<OpTensor>& param, Context<NV> &ctx) {
-
-        if (!inputs[0]->is_continue_mem() || !outputs[0]->is_continue_mem()) {
-            //! unsupported type for cudnn
-            return SaberInvalidValue;
-        }
-
-        //CHECK_EQ(inputs[0]->shape() == inputs[0]->valid_shape(), true) << \
-                "cudnn softmax does not support tensor with roi";
-        //CHECK_EQ(outputs[0]->shape() == outputs[0]->valid_shape(), true) << \
-                "cudnn softmax does not support tensor with roi";
-
-        Shape shape_in = inputs[0]->valid_shape();
-        if (!(ctx == this->_ctx)) {
-            if (_handle != NULL) {
-                CUDNN_CHECK(cudnnDestroy(_handle));
-            }
-            this->_ctx = &ctx;
-            cudaStream_t cuda_stream;
-            cuda_stream = ctx.get_compute_stream();
-            CUDNN_CHECK(cudnnCreate(&_handle));
-            CUDNN_CHECK(cudnnSetStream(_handle, cuda_stream));
-        }
-
-        int outer_num = inputs[0]->count(0, param.axis);
-        int inner_num = inputs[0]->count(param.axis + 1, inputs[0]->dims());
-
-        int N = outer_num;
-        int K = inputs[0]->valid_shape()[param.axis];
-        int H = inner_num;
-        int W = 1;
-
-        const int stride_w = 1;
-        const int stride_h = W * stride_w;
-        const int stride_c = H * stride_h;
-        const int stride_n = K * stride_c;
-        CUDNN_CHECK(cudnnSetTensor4dDescriptorEx(_input_desc, \
-            cudnn::cudnnOpWrapper<InDataType>::type, \
-            N, K, H, W, stride_n, stride_c, stride_h, stride_w));
-        CUDNN_CHECK(cudnnSetTensor4dDescriptorEx(_output_desc, \
-            cudnn::cudnnOpWrapper<InDataType>::type, \
-            N, K, H, W, stride_n, stride_c, stride_h, stride_w));
-
-        _setup = true;
-        return SaberSuccess;
-    }
-
+                            SoftmaxParam<NV>& param, Context<NV> &ctx);
     //call cudnnConvolutionForward here
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                           std::vector<DataTensor_out*>& outputs,
-                          SoftmaxParam<OpTensor> &param){
-        cudaStream_t stream = this->_ctx->get_compute_stream();
-        const InDataType* input_data = inputs[0]->data();
-        InDataType * output_data = outputs[0]->mutable_data();
-        CUDNN_CHECK(cudnnSoftmaxForward(_handle, CUDNN_SOFTMAX_ACCURATE, \
-            CUDNN_SOFTMAX_MODE_CHANNEL, cudnn::cudnnTypeWrapper<InDataType>::kOne(), _input_desc, input_data, \
-            cudnn::cudnnTypeWrapper<InDataType>::kZero(), _output_desc, output_data));
-        //outputs[0]->record_event(stream);
-        return SaberSuccess;
-    }
+                          SoftmaxParam<NV> &param);
 
 private:
     bool _setup{false};
@@ -160,6 +76,8 @@ private:
     cudnnTensorDescriptor_t _input_desc;
     cudnnTensorDescriptor_t _output_desc;
 };
+
+
 
 } //namespace saber
 

@@ -1,5 +1,4 @@
 #include "saber/funcs/impl/cuda/saber_permute_power.h"
-#include "cuda_fp16.h"
 
 namespace anakin {
 namespace saber {
@@ -204,55 +203,49 @@ __global__ void ker_permute_scale_fwd(Dtype * out_data, const int num_axes,\
     }
 }
 
-template <DataType OpDtype,
-            DataType inDtype,
-            DataType outDtype,
-            typename LayOutType_op,
-            typename LayOutType_in,
-            typename LayOutType_out>
-SaberStatus SaberPermutePower<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(\
-    const std::vector<DataTensor_in *>& inputs, \
-    std::vector<DataTensor_out *>& outputs, \
-    PermutePowerParam<OpTensor>& param) {
+template <>
+SaberStatus SaberPermutePower<NV, AK_FLOAT>::\
+    dispatch(const std::vector<Tensor<NV> *>& inputs, \
+                  std::vector<Tensor<NV> *>& outputs, \
+                  PermutePowerParam<NV>& param) {
 
-    const InDataType *in_data = inputs[0]->data();
-    OutDataType *out_data = outputs[0]->mutable_data();
+    const float *in_data = static_cast<const float*>(inputs[0]->data());
+    float *out_data = static_cast<float*>(outputs[0]->mutable_data());
     cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
     int count = outputs[0]->valid_size();
-    const int * permute_order = _permute_order.data();
-    const int * new_steps = _new_steps.data();
-    const int * old_steps = _old_steps.data();
-    const int * new_valid_shape = _out_valid_shape.data();
+    const int * permute_order = static_cast<const int*>(_permute_order.data());
+    const int * new_steps = static_cast<const int*>(_new_steps.data());
+    const int * old_steps = static_cast<const int*>(_old_steps.data());
+    const int * new_valid_shape = static_cast<const int*>(_out_valid_shape.data());
     const float scale = param.has_power_param ? param.power_param.scale : 1.0f;
     const float shift = param.has_power_param ? param.power_param.shift : 0.0f;
     const float power = param.has_power_param ? param.power_param.power : 1.0f;
     std::vector<int> permute_order_t = {0, 3, 1, 2};
-    PermuteParam<OpTensor> param_t(permute_order_t);
+    PermuteParam<NV> param_t(permute_order_t);
     if (inputs[0]->is_continue_mem() && outputs[0]->is_continue_mem()) {
         if (inputs[0]->num() == 1 && inputs[0]->width() == 3 
             && param.permute_param == param_t && 1) {
             int out_w = outputs[0]->width() * outputs[0]->height();
             int out_h = outputs[0]->channel();
             if (power != 1.0f) {
-                ker_permute_power_fwd_transpose<OpDataType>\
+                ker_permute_power_fwd_transpose<float>\
                         <<<CUDA_GET_BLOCKS(out_w), CUDA_NUM_THREADS, 0, cuda_stream>>>(\
                          out_data, out_h, out_w, scale, shift, power, in_data);
             } else {
-                ker_permute_scale_fwd_transpose<OpDataType>\
+                ker_permute_scale_fwd_transpose<float>\
                         <<<CUDA_GET_BLOCKS(out_w), CUDA_NUM_THREADS, 0, cuda_stream>>>(\
                          out_data, out_h, out_w, scale, shift, in_data);
             }
         } else {
             if (power != 1.0f) {
-                ker_permute_power_fwd<OpDataType>\
+                ker_permute_power_fwd<float>\
                         <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(\
                         out_data, _num_axes, count, permute_order, \
                         new_steps, old_steps, 
                         scale, shift, power, 
                         in_data);
             } else {
-                ker_permute_scale_fwd<OpDataType>\
+                ker_permute_scale_fwd<float>\
                         <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(\
                         out_data, _num_axes, count, permute_order, \
                         new_steps, old_steps, 
@@ -270,7 +263,7 @@ SaberStatus SaberPermutePower<NV, OpDtype, inDtype, outDtype,\
             Shape out_stride = outputs[0]->get_stride();
             Shape in_stride = inputs[0]->get_stride();
             if (power != 1.0f) {
-                ker_nhwc_to_nchw_power<OpDataType>
+                ker_nhwc_to_nchw_power<float>
                         <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(out_data, \
                         out_n, out_c, \
                         out_h, out_w, \
@@ -281,7 +274,7 @@ SaberStatus SaberPermutePower<NV, OpDtype, inDtype, outDtype,\
                         scale, shift, power,\
                         in_data);
             } else {
-                ker_nhwc_to_nchw_scale<OpDataType>
+                ker_nhwc_to_nchw_scale<float>
                         <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(out_data, \
                         out_n, out_c, \
                         out_h, out_w, \
@@ -295,7 +288,7 @@ SaberStatus SaberPermutePower<NV, OpDtype, inDtype, outDtype,\
         } else {
             int count = outputs[0]->valid_size();
             if (power != 1.0f) {
-                ker_permute_power_fwd<OpDataType>\
+                ker_permute_power_fwd<float>\
                         <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(\
                         out_data, _num_axes, count, permute_order, \
                         new_steps, old_steps,
@@ -303,7 +296,7 @@ SaberStatus SaberPermutePower<NV, OpDtype, inDtype, outDtype,\
                         scale, shift, power, 
                         in_data);
             } else {
-                ker_permute_scale_fwd<OpDataType>\
+                ker_permute_scale_fwd<float>\
                         <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(\
                         out_data, _num_axes, count, permute_order, \
                         new_steps, old_steps, 
@@ -317,6 +310,7 @@ SaberStatus SaberPermutePower<NV, OpDtype, inDtype, outDtype,\
 
     return SaberSuccess;
 }
-
+DEFINE_OP_TEMPLATE(SaberPermutePower, PermutePowerParam, NV, AK_HALF);
+DEFINE_OP_TEMPLATE(SaberPermutePower, PermutePowerParam, NV, AK_INT8);
 }
 }

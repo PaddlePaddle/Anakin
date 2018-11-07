@@ -22,44 +22,29 @@ namespace anakin{
 
 namespace saber{
 
-template <DataType OpDtype,
-            DataType inDtype,
-            DataType outDtype,
-            typename LayOutType_op,
-            typename LayOutType_in,
-            typename LayOutType_out>
-class SaberLrn<NV, OpDtype, inDtype, outDtype, \
-    LayOutType_op, LayOutType_in, LayOutType_out>:\
-    public ImplBase<
-            Tensor<NV, inDtype, LayOutType_in>,
-            Tensor<NV, outDtype, LayOutType_out>,
-            Tensor<NV, OpDtype, LayOutType_op>,
-            LrnParam<Tensor<NV, OpDtype, LayOutType_op>>> {
+template <DataType OpDtype>
+class SaberLrn<NV, OpDtype>: public ImplBase<NV, OpDtype, LrnParam<NV> > {
 
 public:
-    typedef Tensor<NV, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<NV, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<NV, OpDtype, LayOutType_op> OpTensor;
-
-    typedef typename DataTensor_in::Dtype InDataType;
-    typedef typename DataTensor_out::Dtype OutDataType;
-    typedef typename OpTensor::Dtype OpDataType;
+    typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
 
     SaberLrn() {}
     ~SaberLrn() {}
 
-    virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
-                             std::vector<DataTensor_out*>& outputs,
-                             LrnParam<OpTensor> &param,
+    virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
+                             std::vector<Tensor<NV> *>& outputs,
+                             LrnParam<NV> &param,
                              Context<NV> &ctx) {
         this->_ctx = &ctx;
         return create(inputs, outputs, param, ctx);
     }
 
-    virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
-                               std::vector<DataTensor_out*>& outputs,
-                               LrnParam<OpTensor> &crop_param,
+    virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
+                               std::vector<Tensor<NV> *>& outputs,
+                               LrnParam<NV> &crop_param,
                                Context<NV> &ctx) {
+        Shape temp = outputs[0]->valid_shape();
+        Shape temp_in = inputs[0]->valid_shape();
         Shape out_stride = outputs[0]->get_stride();
         Shape in_stride = inputs[0]->get_stride();
         int in_n_index = inputs[0]->num_index();
@@ -81,9 +66,9 @@ public:
         return SaberSuccess;
     }
 
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
-                                 std::vector<DataTensor_out*>& outputs,
-                                 LrnParam<OpTensor> &param);
+    virtual SaberStatus dispatch(const std::vector<Tensor<NV> *>& inputs,
+                                 std::vector<Tensor<NV> *>& outputs,
+                                 LrnParam<NV> &param);
 
 private:
     int _in_n_stride;
@@ -96,7 +81,7 @@ private:
     int _out_w_stride;
 };
 
-template class SaberLrn<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
+template class SaberLrn<NV, AK_FLOAT>;
 
 } //namespace saber
 

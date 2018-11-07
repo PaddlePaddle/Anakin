@@ -76,20 +76,14 @@ __global__ void ker_scale_fwd(Dtype * out_data, \
     }
 }
 
-template <DataType OpDtype,
-            DataType inDtype,
-            DataType outDtype,
-            typename LayOutType_op,
-            typename LayOutType_in,
-            typename LayOutType_out>
-SaberStatus SaberPower<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(\
-    const std::vector<DataTensor_in *>& inputs, \
-    std::vector<DataTensor_out *>& outputs, \
-    PowerParam<OpTensor>& param) {
+template <>
+SaberStatus SaberPower<NV, AK_FLOAT>::dispatch(\
+    const std::vector<Tensor<NV> *>& inputs, \
+    std::vector<Tensor<NV> *>& outputs, \
+    PowerParam<NV>& param) {
 
-    const InDataType* in_data = inputs[0]->data();
-    OutDataType* out_data = outputs[0]->mutable_data();
+    const float* in_data = static_cast<const float*>(inputs[0] -> data());
+    float* out_data = static_cast<float*>(outputs[0]->mutable_data());
     cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
     int count = outputs[0]->valid_size();
     const float scale = param.scale;
@@ -97,25 +91,25 @@ SaberStatus SaberPower<NV, OpDtype, inDtype, outDtype,\
     const float power = param.power;
     if (inputs[0]->is_continue_mem() && outputs[0]->is_continue_mem()) {
         if (power == 1) {
-            ker_scale_fwd<OpDataType>\
+            ker_scale_fwd<float>\
                     <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(\
                     out_data, count, scale, shift, in_data);
         } else {
-            ker_power_fwd<OpDataType>\
+            ker_power_fwd<float>\
                     <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(\
                     out_data, count, scale, shift, power, in_data);
         }
     } else {
-        const int* i_stride = _in_steps.data();
-        const int* o_stride = _out_steps.data();
-        const int* valid_shape = _out_valid_shape.data();
+        const int* i_stride = static_cast<const int*>(_in_steps.data());
+        const int* o_stride = static_cast<const int*>(_out_steps.data());
+        const int* valid_shape =static_cast<const int*>( _out_valid_shape.data());
         if (power == 1) {
-            ker_scale_fwd<OpDataType>\
+            ker_scale_fwd<float>\
                     <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(\
                     out_data, count, scale, shift, valid_shape, 
                     o_stride, i_stride, outputs[0]->dims(), in_data);
         } else {
-            ker_power_fwd<OpDataType>\
+            ker_power_fwd<float>\
                     <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(\
                     out_data, count, scale, shift, power, valid_shape,
                     o_stride, i_stride, outputs[0]->dims(), in_data);
@@ -124,6 +118,7 @@ SaberStatus SaberPower<NV, OpDtype, inDtype, outDtype,\
 
     return SaberSuccess;
 }
-
+DEFINE_OP_TEMPLATE(SaberPower, PowerParam, NV, AK_HALF);
+DEFINE_OP_TEMPLATE(SaberPower, PowerParam, NV, AK_INT8);
 }
 }

@@ -52,20 +52,14 @@ __global__ void ker_cross_map_region_norm_fwd(Dtype * out_data, \
     }
 }
 
-template <DataType OpDtype,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-SaberStatus SaberLrn<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(\
-    const std::vector<DataTensor_in *>& inputs, \
-    std::vector<DataTensor_out *>& outputs, \
-    LrnParam<OpTensor>& param) {
+template <DataType OpDtype>
+SaberStatus SaberLrn<NV, OpDtype>::dispatch(\
+    const std::vector<Tensor<NV> *>& inputs, \
+    std::vector<Tensor<NV> *>& outputs, \
+    LrnParam<NV>& param) {
 
-    const InDataType* in_data = inputs[0]->data();
-    OutDataType* out_data = outputs[0]->mutable_data();
+    const OpDataType* in_data = (const OpDataType*)inputs[0]->data();
+    OpDataType* out_data = (OpDataType*)outputs[0]->mutable_data();
     cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
     int out_n = outputs[0]->num();
     int out_c = outputs[0]->channel();
@@ -85,5 +79,7 @@ SaberStatus SaberLrn<NV, OpDtype, inDtype, outDtype,\
     return SaberSuccess;
 }
 
+DEFINE_OP_TEMPLATE(SaberLrn, LrnParam, NV, AK_HALF);
+DEFINE_OP_TEMPLATE(SaberLrn, LrnParam, NV, AK_INT8);
 }
 }

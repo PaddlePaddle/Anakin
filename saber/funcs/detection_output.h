@@ -17,81 +17,57 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+#include "saber/funcs/impl/impl_detection_output.h"
+
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_detection_output.h"
 #endif
-
-#ifdef USE_X86_PLACE
-#include "saber/funcs/impl/impl_detection_output.h"
+#ifdef AMD_GPU
+//#include "saber/funcs/impl/amd/include/saber_detection_output.h"
 #endif
-
-#ifdef USE_ARM_PLACE
-#include "saber/funcs/impl/arm/saber_detection_output.h"
-#endif
-
-#ifdef USE_AMD
-//todo
-#include "saber/funcs/impl/impl_detection_output.h"
-#endif
-
 namespace anakin {
 namespace saber {
 
 template<typename TargetType,
-        DataType OpDtype,
-        DataType inDtype = AK_FLOAT,
-        DataType outDtype = AK_FLOAT,
-        typename LayOutType_op = NCHW,
-        typename LayOutType_in = NCHW,
-        typename LayOutType_out = NCHW
->
+        DataType OpDtype>
 class DetectionOutput : public BaseFunc<
-        Tensor<TargetType, inDtype, LayOutType_in>,
-        Tensor<TargetType, outDtype, LayOutType_out>,
-        Tensor<TargetType, OpDtype, LayOutType_op>,
+        TargetType,
+        OpDtype,
         ImplBase,
-        DetectionOutputParam
-> {
+        DetectionOutputParam> {
 public:
     using BaseFunc<
-            Tensor<TargetType, inDtype, LayOutType_in>,
-            Tensor<TargetType, outDtype, LayOutType_out>,
-            Tensor<TargetType, OpDtype, LayOutType_op>,
+            TargetType,
+            OpDtype,
             ImplBase,
             DetectionOutputParam>::BaseFunc;
 
     DetectionOutput() = default;
 
-    typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
-    typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
-    typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-    typedef DetectionOutputParam<OpTensor> Param_t;
+    typedef Tensor<TargetType> InDataTensor;
+    typedef Tensor<TargetType> OutDataTensor;
+    typedef Tensor<TargetType> OpTensor;
+    typedef DetectionOutputParam<TargetType> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
 
     virtual SaberStatus compute_output_shape(const Input_v &input, \
         Output_v &output, Param_t &param) override {
-        Shape shape_out = output[0]->valid_shape();
-        CHECK_EQ(shape_out.dims(), 4) << "only support 4d layout";
-        shape_out[0] = 1;
-        shape_out[1] = 1;
-        shape_out[2] = param.keep_top_k;
-        shape_out[3] = 7;
-
+        Shape shape_out = Shape({1, 1, param.keep_top_k * input[0]->num(), 7}, Layout_NCHW);
         return output[0]->set_shape(shape_out);
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
             case VENDER_IMPL:
-                this->_impl.push_back(new VenderDetectionOutput <TargetType, OpDtype, inDtype, outDtype,
-                LayOutType_op, LayOutType_in, LayOutType_out>);
+                this->_impl.push_back(new VenderDetectionOutput <TargetType,
+                        OpDtype>);
                 return SaberSuccess;
 
             case SABER_IMPL:
-                this->_impl.push_back(new SaberDetectionOutput <TargetType, OpDtype, inDtype, outDtype,
-                LayOutType_op, LayOutType_in, LayOutType_out>);
+                this->_impl.push_back(new SaberDetectionOutput <TargetType,
+                        OpDtype>);
                 return SaberSuccess;
 
             default:

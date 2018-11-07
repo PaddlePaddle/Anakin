@@ -12,318 +12,235 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-#include "saber/funcs/base.h"
-#include "saber/funcs/impl/amd/saber_activation.h"
-#include "saber/funcs/impl/amd/amd_utils.h"
+#include "include/saber_activation.h"
 
-namespace anakin{
+namespace anakin {
 namespace saber {
 
 typedef TargetWrapper<AMD> AMD_API;
 
-template <DataType OpDtype ,
-    DataType inDtype,
-    DataType outDtype,
-    typename LayOutType_op,
-    typename LayOutType_in,
-    typename LayOutType_out>
-SaberStatus SaberActivation<AMD, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::init(
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        ActivationParam<OpTensor> &param,
-        Context<AMD> &ctx)
-{
+template <DataType OpDtype>
+SaberStatus SaberActivation<AMD, OpDtype>::init(
+    const std::vector<Tensor<AMD>*>& inputs,
+    std::vector<Tensor<AMD>*>& outputs,
+    ActivationParam<AMD>& param,
+    Context<AMD>& ctx) {
 
-    typedef typename DataTensor_in::Dtype DataType_in;
-    typedef typename DataTensor_out::Dtype DataType_out;
-    typedef typename OpTensor::Dtype DataType_op;
     this->_ctx = &ctx;
-
     return create(inputs, outputs, param, ctx);
 }
 
-template <DataType OpDtype ,
-    DataType inDtype,
-    DataType outDtype,
-    typename LayOutType_op,
-    typename LayOutType_in,
-    typename LayOutType_out>
-SaberStatus SaberActivation<AMD, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::create(
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        ActivationParam<OpTensor> &param,
-        Context<AMD> &ctx)
-{
+template <DataType OpDtype>
+SaberStatus SaberActivation<AMD, OpDtype>::create(
+    const std::vector<Tensor<AMD>*>& inputs,
+    std::vector<Tensor<AMD>*>& outputs,
+    ActivationParam<AMD>& param,
+    Context<AMD>& ctx) {
     this->_ctx = &ctx;
 
-    cl_context context = 0;
-    cl_device_id device = 0;
-
-    Device<AMD> dev = Env<AMD>::cur_env()[inputs[0]->device_id()]; //anakin device id to AMD device
-    device = dev.get_device();
-    context = dev.get_context();
-
-    //LOG(INFO) << "device id= " << device << " conext = " << context;
-
     KernelInfo kernelInfo;
+    int global_size =
+        inputs[0]->num() * inputs[0]->channel() * inputs[0]->width() * inputs[0]->height();
 
-    switch (param.active){
-        case Active_relu:
-            //TODO
-            //Rewrite here once solver is ready.//////////////
-            T_ExtSolutionConfig extSolution;
-            //LOG(INFO) << inputs[0]->width() << " x " << inputs[0]->height() << " x " << inputs[0]->channel();
-            switch(inputs[0]->width())
-            {
-                case 224:
-                    kernelInfo.l_wk = {256, 1, 1};
-                    kernelInfo.g_wk = {12544, 8, 1};
+    kernelInfo.kernel_file = "Activation.cl";
+    kernelInfo.wk_dim      = 1;
+    kernelInfo.l_wk        = {256};
+    kernelInfo.g_wk        = {(global_size + 255) / 256 * 256};
 
-                    extSolution.in_tile0 = 32;
-                    extSolution.in_tile1 = 32;
-                    extSolution.grp_tile0 = 16;
-                    extSolution.grp_tile1 = 16;
-                    extSolution.out_pix_tile0 = 2;
-                    extSolution.out_pix_tile1 = 2;
-                    extSolution.n_stacks = 1;
-                    extSolution.n_out_pix_tiles = 8;
-                    extSolution.n_out_tiles_perstack = 8;
-                    extSolution.n_in_data_tiles = 2;
-                    extSolution.n_read_procs = 256;
-                    extSolution.alu_tile0 = 16;
-                    extSolution.alu_tile1 = 16;
-                    break;
+    switch (param.active) {
+    case Active_relu:
+        kernelInfo.kernel_name = "Relu";
+        break;
 
-                case 112:
-                    kernelInfo.l_wk = {256, 1, 1};
-                    kernelInfo.g_wk = {4096, 16, 1};
+    case Active_sigmoid:
+        kernelInfo.kernel_name = "Sigmoid";
+        break;
 
-                    extSolution.in_tile0 = 32;
-                    extSolution.in_tile1 = 32;
-                    extSolution.grp_tile0 = 16;
-                    extSolution.grp_tile1 = 16;
-                    extSolution.out_pix_tile0 = 2;
-                    extSolution.out_pix_tile1 = 2;
-                    extSolution.n_stacks = 1;
-                    extSolution.n_out_pix_tiles = 8;
-                    extSolution.n_out_tiles_perstack = 8;
-                    extSolution.n_in_data_tiles = 2;
-                    extSolution.n_read_procs = 256;
-                    extSolution.alu_tile0 = 16;
-                    extSolution.alu_tile1 = 16;
-                    break;
+    case Active_tanh:
+        kernelInfo.kernel_name = "Tanh";
+        break;
 
-                case 56:
-                    kernelInfo.l_wk = {256, 1, 1};
-                    kernelInfo.g_wk = {1024, 32, 1};
+    case Active_stanh:
+        kernelInfo.kernel_name = "Stanh";
+        break;
 
-                    extSolution.in_tile0 = 32;
-                    extSolution.in_tile1 = 32;
-                    extSolution.grp_tile0 = 16;
-                    extSolution.grp_tile1 = 16;
-                    extSolution.out_pix_tile0 = 2;
-                    extSolution.out_pix_tile1 = 2;
-                    extSolution.n_stacks = 1;
-                    extSolution.n_out_pix_tiles = 8;
-                    extSolution.n_out_tiles_perstack = 8;
-                    extSolution.n_in_data_tiles = 2;
-                    extSolution.n_read_procs = 256;
-                    extSolution.alu_tile0 = 16;
-                    extSolution.alu_tile1 = 16;
-                    break;
+    case Active_clipped_relu:
+        kernelInfo.kernel_name = "Clipped_Relu";
+        break;
 
-                case 28:
-                    kernelInfo.l_wk = {256, 1, 1};
-                    kernelInfo.g_wk = {256, 64, 1};
+    case Active_elu:
+        kernelInfo.kernel_name = "Elu";
+        break;
 
-                    extSolution.in_tile0 = 32;
-                    extSolution.in_tile1 = 32;
-                    extSolution.grp_tile0 = 16;
-                    extSolution.grp_tile1 = 16;
-                    extSolution.out_pix_tile0 = 2;
-                    extSolution.out_pix_tile1 = 2;
-                    extSolution.n_stacks = 1;
-                    extSolution.n_out_pix_tiles = 8;
-                    extSolution.n_out_tiles_perstack = 8;
-                    extSolution.n_in_data_tiles = 2;
-                    extSolution.n_read_procs = 256;
-                    extSolution.alu_tile0 = 16;
-                    extSolution.alu_tile1 = 16;
-                    break;
-                case 14:
-                    kernelInfo.l_wk = {64, 1, 1};
-                    kernelInfo.g_wk = {64, 64, 1};
-
-                    extSolution.in_tile0 = 16;
-                    extSolution.in_tile1 = 16;
-                    extSolution.grp_tile0 = 8;
-                    extSolution.grp_tile1 = 8;
-                    extSolution.out_pix_tile0 = 2;
-                    extSolution.out_pix_tile1 = 2;
-                    extSolution.n_stacks = 1;
-                    extSolution.n_out_pix_tiles = 8;
-                    extSolution.n_out_tiles_perstack = 8;
-                    extSolution.n_in_data_tiles = 2;
-                    extSolution.n_read_procs = 64;
-                    extSolution.alu_tile0 = 8;
-                    extSolution.alu_tile1 = 8;
-                    break;
-                case 1:
-                    if (inputs[0]->channel() == 4096) {
-                        kernelInfo.l_wk = {256, 1, 1};
-                        kernelInfo.g_wk = {4096, 1, 1};
-                    }else if(inputs[0]->channel()  == 1000) {
-                        kernelInfo.l_wk = {256, 1, 1};
-                        kernelInfo.g_wk = {1024, 1, 1};
-                    }
-                    break;
-            }
-            
-            kernelInfo.comp_options =
-                std::string(" -DMLO_HW_WAVE_SZ=64") +    // (fixed) wave=64
-                std::string(" -DMLO_DIR_FORWARD=1") +    // (fixed) forward
-                std::string(" -DMLO_FILTER_STRIDE0=1") + // (fixed temp)
-                std::string(" -DMLO_FILTER_STRIDE1=1") + // (fixed temp)
-                std::string(" -DMLO_N_OUTPUTS=") + std::to_string(outputs[0]->channel()) +
-                std::string(" -DMLO_N_INPUTS=") + std::to_string(inputs[0]->channel()) +
-                std::string(" -DMLO_BATCH_SZ=") + std::to_string(inputs[0]->num()) +
-                std::string(" -DMLO_OUT_WIDTH=") + std::to_string(outputs[0]->width()) +
-                std::string(" -DMLO_OUT_HEIGHT=") + std::to_string(outputs[0]->height()) +
-                std::string(" -DMLO_OUT_BATCH_STRIDE=") + std::to_string(outputs[0]->width() * outputs[0]->height() * outputs[0]->channel()) +
-                std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(outputs[0]->width() * outputs[0]->height()) +
-                std::string(" -DMLO_OUT_STRIDE=") + std::to_string(outputs[0]->width()) +
-                std::string(" -DMLO_IN_WIDTH=") + std::to_string(inputs[0]->width()) +
-                std::string(" -DMLO_IN_HEIGHT=") + std::to_string(inputs[0]->height()) +
-                std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(inputs[0]->width() * inputs[0]->height() * inputs[0]->channel()) +
-                std::string(" -DMLO_IN_CHANNEL_STRIDE=") + std::to_string(inputs[0]->width() * inputs[0]->height()) +
-                std::string(" -DMLO_IN_STRIDE=") + std::to_string(inputs[0]->width()) +
-                std::string(" -DMLO_CONV_BIAS=0") ; // (for now not support)
-
-            if(inputs[0]->width() == 1) {
-
-                kernelInfo.kernel_file = "ReluUni.cl";
-                kernelInfo.kernel_name = "ReluUni";
-
-            } else  {
-            //set comp_options...
-
-                kernelInfo.comp_options +=
-                    std::string(" -DMLO_IN_TILE0=") + std::to_string(extSolution.in_tile0) +
-                    std::string(" -DMLO_IN_TILE1=") + std::to_string(extSolution.in_tile1) +
-                    std::string(" -DMLO_GRP_TILE0=") + std::to_string(extSolution.grp_tile0) +
-                    std::string(" -DMLO_GRP_TILE1=") + std::to_string(extSolution.grp_tile1) +
-                    std::string(" -DMLO_OUT_TILE0=") + std::to_string(extSolution.out_pix_tile0) +
-                    std::string(" -DMLO_OUT_TILE1=") + std::to_string(extSolution.out_pix_tile1) +
-                    std::string(" -DMLO_N_STACKS=") + std::to_string(extSolution.n_stacks) +
-                    std::string(" -DMLO_N_OUT_TILES=") + std::to_string(extSolution.n_out_pix_tiles) +
-                    std::string(" -DMLO_N_OUT_TILES_PERSTACK=") + std::to_string(extSolution.n_out_tiles_perstack) +
-                    std::string(" -DMLO_N_IN_TILES_PERSTACK=") + std::to_string(extSolution.n_in_data_tiles) +
-                    std::string(" -DMLO_N_READ_PROCS=") + std::to_string(extSolution.n_read_procs) +
-                    std::string(" -DMLO_ALU_VTILE0=") + std::to_string(extSolution.alu_tile0) +
-                    std::string(" -DMLO_ALU_VTILE1=") + std::to_string(extSolution.alu_tile1);
-
-                kernelInfo.kernel_file = "Relu.cl";
-                kernelInfo.kernel_name = "Relu";
-             }
-            break;
-
-        case Active_sigmoid:
-
-            break;
-
-        case Active_tanh:
-
-            break;
-
-        case Active_clipped_relu:
-
-            break;
-
-        case Active_elu:
-
-            break;
+    case Active_prelu:
+        kernelInfo.kernel_name = "Prelu";
+        break;
     }
-    std::copy(kernelInfo.g_wk.begin(), kernelInfo.g_wk.end(), _globalWorkSize);
-    std::copy(kernelInfo.l_wk.begin(), kernelInfo.l_wk.end(), _localWorkSize);
 
-    //LOG(INFO) << "kernel file name: " << kernelInfo.kernel_file;
-    //LOG(INFO) << "kernel name: " << kernelInfo.kernel_name;
-    //LOG(INFO) << "local work size: " << kernelInfo.l_wk[0] << " " << kernelInfo.l_wk[1] << "  " << kernelInfo.l_wk[2];
-    //LOG(INFO) << "global work size: " << kernelInfo.g_wk[0] << " " << kernelInfo.g_wk[1] << "  " << kernelInfo.g_wk[2];
-    //LOG(INFO) << "compile option: " << kernelInfo.comp_options;
+    // To create the program
+    AMDKernelPtr kptr = CreateKernel(inputs[0]->device_id(), &kernelInfo);
 
-    //To create the program
-    cl_program program = CreateCLProgram(context, device, kernelInfo.kernel_file.c_str(), &kernelInfo);
-    if (program == NULL)
-    {
-        LOG(ERROR) << "Failed to load program";
+    if (!kptr.get()->isInit()) {
+        ALOGE("Failed to load program");
         return SaberInvalidValue;
     }
 
-    //LOG(INFO) << "COMPILE OCL KERNEL CODE";
+    _kernel_ptr = kptr;
 
-    //To create kernel
-    _kernel = clCreateKernel(program, kernelInfo.kernel_name.c_str(), NULL);
-    if (_kernel == NULL)
-    {
-        LOG(ERROR) << "Failed to create kernel";
-        return SaberInvalidValue;
-    }
-
-    //LOG(INFO) << "COMPLETE CREATE KERNEL";
+    ALOGD("COMPLETE CREATE KERNEL");
 
     return SaberSuccess;
 }
 
-template <DataType OpDtype ,
-    DataType inDtype,
-    DataType outDtype,
-    typename LayOutType_op,
-    typename LayOutType_in,
-    typename LayOutType_out>
-SaberStatus SaberActivation<AMD, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        ActivationParam<OpTensor> &param)
-{
-    cl_int errNum = 0;
-    //To get the commpute command queue
+template <DataType OpDtype>
+SaberStatus SaberActivation<AMD, OpDtype>::dispatch(
+    const std::vector<Tensor<AMD>*>& inputs,
+    std::vector<Tensor<AMD>*>& outputs,
+    ActivationParam<AMD>& param) {
+    // To get the commpute command queue
     AMD_API::stream_t cm = this->_ctx->get_compute_stream();
 
-    //To set the argument
-    cl_mem memObjects[2] = { 0, 0 };
-    memObjects[0] = (cl_mem)inputs[0]->data();
-    memObjects[1] = (cl_mem)outputs[0]->mutable_data();
+    // To set the argument
+    int in_n = inputs[0]->num();
+    int in_c = inputs[0]->channel();
+    int in_h = inputs[0]->height();
+    int in_w = inputs[0]->width();
 
-    errNum = clSetKernelArg(_kernel, 0, sizeof(cl_mem), &memObjects[0]);
-    errNum |= clSetKernelArg(_kernel, 1, sizeof(cl_mem), &memObjects[1]);
-    errNum |= clSetKernelArg(_kernel, 2, sizeof(float), &param.negative_slope);
-    if (errNum != CL_SUCCESS)
-    {
-        LOG(ERROR) << "Fail to set kernel arguments";
+    int in_n_stride = inputs[0]->get_stride()[0];
+    int in_c_stride = inputs[0]->get_stride()[1];
+    int in_h_stride = inputs[0]->get_stride()[2];
+    int in_w_stride = inputs[0]->get_stride()[3];
+
+    int out_n_stride = outputs[0]->get_stride()[0];
+    int out_c_stride = outputs[0]->get_stride()[1];
+    int out_h_stride = outputs[0]->get_stride()[2];
+    int out_w_stride = outputs[0]->get_stride()[3];
+
+    if (_kernel_ptr == NULL || _kernel_ptr.get() == NULL) {
+        ALOGE("Kernel is not exist");
         return SaberInvalidValue;
     }
-    cl_event event;
-    //LOG(INFO) << "COMPLETE SET ARGUMENT";
-    errNum = clEnqueueNDRangeKernel(cm, _kernel, 3, NULL,
-                                    _globalWorkSize, _localWorkSize,
-                                    0, NULL, &event);
-    if (errNum != CL_SUCCESS)
-    {
-        LOG(ERROR) << "Fail to set execution: " << errNum;
+
+    AMDKernel* kernel = _kernel_ptr.get();
+
+    bool err = false;
+
+    switch (param.active) {
+    case Active_relu:
+        /* command_queue, num_of_wait_events, wait_events, event */
+        err = kernel->SetKernelArgs(
+                  (PtrDtype)inputs[0]->data(),
+                  (PtrDtype)outputs[0]->mutable_data(),
+                  (int)in_n,
+                  (int)in_c,
+                  (int)in_h,
+                  (int)in_w,
+                  (int)in_n_stride,
+                  (int)in_c_stride,
+                  (int)in_h_stride,
+                  (int)in_w_stride,
+                  (int)out_n_stride,
+                  (int)out_c_stride,
+                  (int)out_h_stride,
+                  (int)out_w_stride,
+                  (float)param.negative_slope);
+        break;
+
+    case Active_sigmoid:
+    case Active_tanh:
+        err = kernel->SetKernelArgs(
+                  (PtrDtype)inputs[0]->data(),
+                  (PtrDtype)outputs[0]->mutable_data(),
+                  (int)in_n,
+                  (int)in_c,
+                  (int)in_h,
+                  (int)in_w,
+                  (int)in_n_stride,
+                  (int)in_c_stride,
+                  (int)in_h_stride,
+                  (int)in_w_stride,
+                  (int)out_n_stride,
+                  (int)out_c_stride,
+                  (int)out_h_stride,
+                  (int)out_w_stride);
+        break;
+
+    case Active_stanh:
+        err = kernel->SetKernelArgs(
+                  (PtrDtype)inputs[0]->data(),
+                  (PtrDtype)outputs[0]->mutable_data(),
+                  (int)in_n,
+                  (int)in_c,
+                  (int)in_h,
+                  (int)in_w,
+                  (int)in_n_stride,
+                  (int)in_c_stride,
+                  (int)in_h_stride,
+                  (int)in_w_stride,
+                  (int)out_n_stride,
+                  (int)out_c_stride,
+                  (int)out_h_stride,
+                  (int)out_w_stride,
+                  (float)param.negative_slope,
+                  (float)param.coef);
+        break;
+
+    case Active_clipped_relu:
+    case Active_elu:
+        err = kernel->SetKernelArgs(
+                  (PtrDtype)inputs[0]->data(),
+                  (PtrDtype)outputs[0]->mutable_data(),
+                  (int)in_n,
+                  (int)in_c,
+                  (int)in_h,
+                  (int)in_w,
+                  (int)in_n_stride,
+                  (int)in_c_stride,
+                  (int)in_h_stride,
+                  (int)in_w_stride,
+                  (int)out_n_stride,
+                  (int)out_c_stride,
+                  (int)out_h_stride,
+                  (int)out_w_stride,
+                  (float)param.coef);
+        break;
+
+    case Active_prelu:
+        err = kernel->SetKernelArgs(
+                  (PtrDtype)inputs[0]->data(),
+                  (PtrDtype)outputs[0]->mutable_data(),
+                  (int)in_n,
+                  (int)in_c,
+                  (int)in_h,
+                  (int)in_w,
+                  (int)in_n_stride,
+                  (int)in_c_stride,
+                  (int)in_h_stride,
+                  (int)in_w_stride,
+                  (int)out_n_stride,
+                  (int)out_c_stride,
+                  (int)out_h_stride,
+                  (int)out_w_stride,
+                  (PtrDtype)param.prelu_param.slope->data(),
+                  (int)param.prelu_param.channel_shared);
+        break;
+    }
+
+    amd_kernel_list list;
+    list.push_back(_kernel_ptr);
+    err = LaunchKernel(cm, list);
+
+    if (!err) {
+        ALOGE("Fail to set execution");
         return SaberInvalidValue;
     }
-    //LOG(INFO) << "COMPLETE EXECUTION";
-    cl_event_list list;
-    list.push_back(event);
-    Env<AMD>::add_event(list);
+
+    ALOGD("COMPLETE EXECUTION");
     return SaberSuccess;
 }
 
-template class SaberActivation<AMD, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
-
-}
+template class SaberActivation<AMD, AK_FLOAT>;
+DEFINE_OP_TEMPLATE(SaberActivation, ActivationParam, AMD, AK_INT8);
+DEFINE_OP_TEMPLATE(SaberActivation, ActivationParam, AMD, AK_HALF);
+} // namespace saber
 } // namespace anakin

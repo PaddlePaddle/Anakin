@@ -26,17 +26,17 @@ namespace anakin {
 template<EnumReqType ReqT>
 struct EnumReqTyptify {
     typedef void type;
-    const std::string info = type_id<type>::type_info();
+    const std::string info = TypeWarpper<type>().type_str;
 };
 
 /// OFFSET map to tensor type.
 /// REQUEST_TYPE_WARP(OFFSET, tensor);
 #define REQUEST_TYPE_WARP(EnumRequestType, RealType) \
-    template<>\
-    struct EnumReqTyptify<EnumRequestType> {\
-        typedef RealType type;\
-        const std::string  info = type_id<type>::type_info();\
-    }
+template<>\
+struct EnumReqTyptify<EnumRequestType> {\
+    typedef RealType type;\
+    const std::string  info = type_id<type>::type_info();\
+}
 
 
 

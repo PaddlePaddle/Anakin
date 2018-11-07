@@ -13,208 +13,333 @@
    limitations under the License.
 */
 
-/* Steps to compute softmax:
- * 1. Compute the max per channel.
- * 2. Subtract the max from each value in the channel.
- * 3. Compute the exponent of all the values.
- * 4. Compute the sum of the vales per channel.
- * 5. Normalize based on the sum.
- *
- * We use CSR-{Vector / Stream} apprach to pick an algorithm depending on the
- * number of channels each workgroup has to work with.
- * J. L. Greathouse, M. Daga, Efficient sparse matrix-vector multiplication
- * on GPUs using the CSR storage format, in: Proc. Int'l Conf. High Performance
- * Computing, Networking, Storage and Analysis (SC'14)
-*/
+#define _FLOAT float
+#define _FLOAT2 float2
+#define _FLOAT4 float4
+#define _FLOAT8 float8
+#define SHARE_MEMORY_DIM 16384
 
-kernel void Softmax(global float* y, const int c, const int grid_size, const int spatial_dim)
-{
-#if NUM_BATCH == 1 // CSR-Vector like appraoch
+//! general kernel for softmax
+__kernel void softmax_max_kernel(
+        int total_size,
+        __global const _FLOAT* in_data,
+        __global _FLOAT* out_data,
+        _FLOAT min_data,
+        int inner_num,
+        int outer_num,
+        int axis_size) {
 
-    /* Entire workgroup works on one spatial_dim.
-     * We use logarthmic reductions to compute max and sum per channel.
-     * This approach reads in the same data thrice from DRAM but is still better
-     * than launching three different kernels.
-     * The workgroup begins by computing the nth image and s (spatial_dim) it
-     * is working on and iterates over the entire grid until finished.
-     */
-
-    local float l_helper[256];
-
-    int gid = get_group_id(0);
-    int lid = get_local_id(0);
-
-    // Total number of workgroups launched can be less than the gridsize, hence iterate over.
-    for(gid = get_group_id(0); gid < grid_size; gid += get_num_groups(0))
-    {
-
-        int n = gid / spatial_dim; // nth image
-        int s = gid % spatial_dim; // spatial dimension (h*w)
-
-        l_helper[lid] = -FLT_MAX;
-
-        float t_helper = -FLT_MAX; // thread_local helper var
-
-        // Compute max per channel
-        // Iterate over all the channels one thread is supposed to loop over
-        // and compute max
-        for(int i = lid; i < c; i += get_local_size(0))
-        {
-            t_helper = max(y[mad24(n, c, i) * spatial_dim + s], t_helper);
+    //! compute data index
+    int idx = get_global_id(0);
+    if (idx < total_size) {
+        int idx_inner  = idx % inner_num;
+        int idx_outer  = (idx / inner_num) * axis_size;
+        int real_index = idx_outer * inner_num + idx_inner;
+        //! get maximum data across softmax axis
+        _FLOAT max_data = min_data;
+        for (int i = 0; i < axis_size; ++i) {
+            max_data = in_data[real_index] > max_data ? in_data[real_index] : max_data;
+            real_index += inner_num;
         }
+        out_data[idx] = max_data;
+    }
+}
 
-        // Now we have to compute the max from 256 values (one per each thread)
-        l_helper[lid] = t_helper;
-        barrier(CLK_LOCAL_MEM_FENCE);
+__kernel void softmax_max_roi_kernel(
+        int total_size,
+        __global const _FLOAT* in_data,
+        __global _FLOAT* out_data,
+        _FLOAT min_data,
+        __global const int* input_stride_real,
+        __global const int* output_stride_real,
+        __global const int* shape_valid,
+        int softmax_axis,
+        int axis_size,
+        int dims) {
 
-        // Logarithmic reduction to compute the max.
-        for(int i = (get_local_size(0) >> 1); i > 0; i >>= 1)
-        {
-            if(lid < i)
-            {
-                l_helper[lid] = max(l_helper[lid], l_helper[lid + i]);
+    int idx = get_global_id(0);
+    if (idx < total_size) {
+
+        //! compute real data index
+        int input_real_index = 0;
+        for (int i = dims - 1; i >= 0; i--) {
+            if (i == softmax_axis) {
+                continue;
+            } else {
+                int x = idx % shape_valid[i];
+                input_real_index += x * input_stride_real[i];
+                idx = idx / shape_valid[i];
             }
-            barrier(CLK_LOCAL_MEM_FENCE);
         }
 
-        float channel_max = l_helper[0];
-        t_helper          = 0.;
-
-        // Subtract channel_max from each value
-        for(int i = lid; i < c; i += get_local_size(0))
-        {
-            float value = y[mad24(n, c, i) * spatial_dim + s];
-
-            // Compute exponent of each value
-            // Then sum all the values touched by this thread
-            t_helper += exp(value - channel_max);
+        //! get maximum data across softmax axis
+        _FLOAT max_data = min_data;
+        for (int i = 0; i < axis_size; ++i) {
+            max_data = in_data[input_real_index] > max_data ? in_data[input_real_index] : max_data;
+            input_real_index += i * input_stride_real[softmax_axis];
         }
+        out_data[idx] = max_data;
+    }
+}
 
-        l_helper[lid] = t_helper;
-        barrier(CLK_LOCAL_MEM_FENCE);
+__kernel void softmax_sub_exp_sum_kernel(
+        int total_size,
+        __global const _FLOAT* in_data,
+        __global _FLOAT* out_data,
+        __global const _FLOAT* max_data,
+        __global _FLOAT* sum_data,
+        int inner_num,
+        int outer_num,
+        int axis_size) {
 
-        // Compute sum of 256 values (one for each thread)
-        // Logarithmic reduction to compute the sum
-        for(int i = (get_local_size(0) >> 1); i > 0; i >>= 1)
-        {
-            if(lid < i)
-            {
-                l_helper[lid] += l_helper[lid + i];
+    //! compute data index
+    int idx = get_global_id(0);
+
+    if (idx < total_size) {
+        int idx_inner = idx % inner_num;
+        int idx_outer = (idx / inner_num) * axis_size;
+
+        _FLOAT max_data_cur = max_data[idx];
+        _FLOAT sum_data_cur = 0;
+        int real_index      = idx_outer * inner_num + idx_inner;
+        //! compute exp and summarize across the softmax axis
+        for (int i = 0; i < axis_size; ++i) {
+            _FLOAT sub_data = in_data[real_index] - max_data_cur;
+            sub_data        = exp(sub_data);
+            sum_data_cur += sub_data;
+            out_data[real_index] = sub_data;
+            real_index += inner_num;
+        }
+        sum_data[idx] = sum_data_cur;
+    }
+}
+
+__kernel void softmax_sub_exp_sum_roi_kernel(
+        int total_size,
+        __global const _FLOAT* in_data,
+        __global _FLOAT* out_data,
+        __global const _FLOAT* max_data,
+        __global _FLOAT* sum_data,
+        __global const int* input_stride_real,
+        __global const int* output_stride_real,
+        __global const int* shape_valid,
+        int softmax_axis,
+        int axis_size,
+        int dims) {
+
+    //! compute data index
+    int idx = get_global_id(0);
+
+    if (idx < total_size) {
+        //! compute real data index
+        int output_real_index = 0;
+        for (int i = dims - 1; i >= 0; i--) {
+            if (i == softmax_axis) {
+                continue;
+            } else {
+                int x = idx % shape_valid[i];
+                output_real_index += x * output_stride_real[i];
+                idx = idx / shape_valid[i];
             }
-            barrier(CLK_LOCAL_MEM_FENCE);
         }
 
-        float channel_sum = l_helper[0];
+        _FLOAT max_data_cur = max_data[idx];
+        _FLOAT sum_data_cur = 0;
+        //! compute exp and summarize across the softmax axis
+        for (int i = 0; i < axis_size; ++i) {
+            _FLOAT sub_data = in_data[output_real_index] - max_data_cur;
+            sub_data        = exp(sub_data);
+            sum_data_cur += sub_data;
+            out_data[output_real_index] = sub_data;
+            output_real_index += output_stride_real[softmax_axis];
+        }
+        sum_data[idx] = sum_data_cur;
+    }
+}
 
-        // Normalize each value in the channel by the channel_sum
-        for(int i = lid; i < c; i += get_local_size(0))
-        {
-            float value = y[mad24(n, c, i) * spatial_dim + s];
+__kernel void softmax_divid_output_kernel(
+        int total_size,
+        __global _FLOAT* io_data,
+        __global const _FLOAT* sum_data,
+        int inner_num,
+        int outer_num,
+        int axis_size) {
+    //! compute data index
+    int idx = get_global_id(0);
 
-            // Subtracting max again because we do not write the output of
-            // value-max to DRAM above. Doing a subtraction again is much
-            // faster than writing uncoalesced to DRAM
-            value = exp(value - channel_max);
-
-            y[mad24(n, c, i) * spatial_dim + s] = value / channel_sum;
+    if (idx < total_size) {
+        int idx_inner       = idx % inner_num;
+        int idx_outer       = (idx / inner_num) * axis_size;
+        _FLOAT sum_data_cur = sum_data[idx];
+        int real_index      = idx_outer * inner_num + idx_inner;
+        //! compute final result
+        for (int i = 0; i < axis_size; ++i) {
+            io_data[real_index] = io_data[real_index] / sum_data_cur;
+            real_index += inner_num;
         }
     }
+}
 
-#else // CSR-Stream like approach
+__kernel void softmax_divid_output_roi_kernel(
+        int total_size,
+        __global _FLOAT* io_data,
+        __global const _FLOAT* sum_data,
+        __global const int* input_stride_real,
+        __global const int* output_stride_real,
+        __global const int* shape_valid,
+        int softmax_axis,
+        int axis_size,
+        int dims) {
+    //! compute data index
+    int idx = get_global_id(0);
 
-    /* Each workgroup is computing the softmax for NUM_BATCH spatial_dims ala CSR-Stream.
-     * The number of threads iterting over channels to compute softmax for one batch is BATCH_SIZE.
-     * The number of values each thread works on is U_BATCH_SIZE (read micro batch size).
-     * Each batch in the workgroup works on its nth image and s (spatial_dim).
-     * E.g. a 256 thread workgroup with c=31 has 8 batches and a batchsize of 32.
-     * The number of workgroups launched are exactly the number as required
-     * hence, there is no for-loop.
-    */
-
-    local float l_helper[256];
-
-    int gid = get_group_id(0);
-    int lid = get_local_id(0);
-
-    // ID of the thread within the batch
-    int batch_lid = lid & (BATCH_SIZE - 1); // thread specific channel_st
-    int batch     = lid / BATCH_SIZE;       // which spatial_dim or pixel
-
-    // Batch specific n and s
-    int batch_n = (NUM_BATCH * gid + batch) / spatial_dim; // nth image
-    int batch_s = (NUM_BATCH * gid + batch) % spatial_dim; // which spatial_dim/pixel
-
-    l_helper[lid] = -FLT_MAX;
-
-    float t_helper = -FLT_MAX; // thread_local helper var
-
-    // stores all the values touched by one thread so that we do not have load
-    // again as the CSR-Vector approach
-    float value[U_BATCH_SIZE];
-    for(int i = 0; i < U_BATCH_SIZE; i++)
-    {
-        value[i] = -FLT_MAX;
-    }
-
-    // Compute max per channel
-    // BATCH_SIZE threads iterate over the channels
-    for(int i = batch_lid; i < c; i += BATCH_SIZE)
-    {
-        if(mad24(batch_n, c, i) * spatial_dim + batch_s < c * grid_size)
-            value[i / BATCH_SIZE] = y[mad24(batch_n, c, i) * spatial_dim + batch_s];
-        t_helper                  = max(value[i / BATCH_SIZE], t_helper);
-    }
-
-    // Now we have to compute the max from 256 values (one per each thread)
-    l_helper[lid] = t_helper;
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-    // Logarithmic reduction to compute the max.
-    for(int i = (BATCH_SIZE >> 1); i > 0; i >>= 1)
-    {
-        if(batch_lid < i)
-        {
-            l_helper[lid] = max(l_helper[lid], l_helper[lid + i]);
+    if (idx < total_size) {
+        //! compute real data index
+        int output_real_index = 0;
+        for (int i = dims - 1; i >= 0; i--) {
+            if (i == softmax_axis) {
+                continue;
+            } else {
+                int x = idx % shape_valid[i];
+                output_real_index += x * output_stride_real[i];
+                idx = idx / shape_valid[i];
+            }
         }
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
 
-    float channel_max = l_helper[batch * BATCH_SIZE];
-    t_helper          = 0.;
-
-    // Subtract channel_max from each value
-    for(int i = batch_lid; i < c; i += BATCH_SIZE)
-    {
-
-        // Compute exponent of each value
-        // Then sum all the values touched by this thread
-        t_helper += exp(value[i / BATCH_SIZE] - channel_max);
-    }
-
-    l_helper[lid] = t_helper;
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-    // Compute sum of 256 values (one for each thread)
-    // Logarithmic reduction to compute the sum
-    for(int i = (BATCH_SIZE >> 1); i > 0; i >>= 1)
-    {
-        if(batch_lid < i)
-        {
-            l_helper[lid] += l_helper[lid + i];
+        _FLOAT sum_data_cur = sum_data[idx];
+        //! compute final result
+        for (int i = 0; i < axis_size; ++i) {
+            io_data[output_real_index] = io_data[output_real_index] / sum_data_cur;
+            output_real_index += output_stride_real[softmax_axis];
         }
-        barrier(CLK_LOCAL_MEM_FENCE);
     }
+}
 
-    float channel_sum = l_helper[batch * BATCH_SIZE];
+__kernel void sharemem_softmax_kernel(
+        int total_size,
+        __global const _FLOAT* in_data,
+        __global _FLOAT* out_data,
+        int inner_num,
+        int outer_num,
+        int axis_size) {
 
-    // Normalize each value in the channel by the channel_sum
-    for(int i = batch_lid; i < c; i += BATCH_SIZE)
-    {
-        value[i / BATCH_SIZE] = exp(value[i / BATCH_SIZE] - channel_max);
+    __local _FLOAT data[SHARE_MEMORY_DIM];
+    int tid = get_local_id(0);
 
-        if(mad24(batch_n, c, i) * spatial_dim + batch_s < c * grid_size)
-            y[mad24(batch_n, c, i) * spatial_dim + batch_s] = value[i / BATCH_SIZE] / channel_sum;
+    //! compute thread index and real data index
+    int idx = get_global_id(0);
+
+    if (idx < total_size) {
+        int idx_inner = idx % inner_num;
+        int idx_outer = (idx / inner_num) * axis_size;
+        // int blocksize = blockDim.x;
+        int blocksize = get_local_size(0);
+
+        int real_index = idx_outer * inner_num + idx_inner;
+        int loop_idx   = real_index;
+//! read all data to sharemem in softmax channel
+#pragma unroll
+        for (int i = 0; i < axis_size; ++i) {
+            data[tid + i * blocksize] = in_data[loop_idx];
+            loop_idx += inner_num;
+        }
+
+        //! get maximum value in softmax channel
+        _FLOAT max_data = data[tid];
+#pragma unroll
+        for (int i = 1; i < axis_size; ++i) {
+            _FLOAT dt = data[tid + i * blocksize];
+            if (max_data < dt) {
+                max_data = dt;
+            }
+        }
+
+        //! subtract then summarize
+        _FLOAT sum = 0;
+#pragma unroll
+        for (int i = 0; i < axis_size; ++i) {
+            __local _FLOAT* dt = data + tid + i * blocksize;
+            *dt                = exp(*dt - max_data);
+            sum += *dt;
+        }
+
+        //! write back result
+        loop_idx = real_index;
+#pragma unroll
+        for (int i = 0; i < axis_size; ++i) {
+            out_data[loop_idx] = data[tid + i * blocksize] / sum;
+            loop_idx += inner_num;
+        }
     }
+}
 
-#endif // CSR-Vector vs CSR-Stream
+__kernel void sharemem_softmax_roi_kernel(
+        int total_size,
+        __global const _FLOAT* in_data,
+        __global _FLOAT* out_data,
+        __global const int* input_stride_real,
+        __global const int* output_stride_real,
+        __global const int* shape_valid,
+        int softmax_axis,
+        int axis_size,
+        int dims) {
+
+    __local _FLOAT data[SHARE_MEMORY_DIM];
+    int tid = get_local_id(0);
+
+    //! compute thread index and real data index
+    int idx1 = get_global_id(0);
+    int idx  = idx1;
+
+    if (idx < total_size) {
+
+        int blocksize = get_local_size(0);
+
+        //! compute real data index
+        int input_real_index  = 0;
+        int output_real_index = 0;
+        for (int i = dims - 1; i >= 0; i--) {
+            if (i == softmax_axis) {
+                continue;
+            } else {
+                int x = idx % shape_valid[i];
+                input_real_index += x * input_stride_real[i];
+                output_real_index += x * output_stride_real[i];
+                idx = idx / shape_valid[i];
+            }
+        }
+
+//! read all data to sharemem in softmax channel
+#pragma unroll
+        for (int i = 0; i < axis_size; ++i) {
+            data[tid + i * blocksize] = in_data[input_real_index];
+            input_real_index += input_stride_real[softmax_axis];
+        }
+
+        //! get maximum value in softmax channel
+        _FLOAT max_data = data[tid];
+#pragma unroll
+        for (int i = 1; i < axis_size; ++i) {
+            _FLOAT dt = data[tid + i * blocksize];
+            if (max_data < dt) {
+                max_data = dt;
+            }
+        }
+
+        //! subtract then summarize
+        _FLOAT sum = 0;
+#pragma unroll
+        for (int i = 0; i < axis_size; ++i) {
+            __local _FLOAT* dt = data + tid + i * blocksize;
+            *dt                = exp(*dt - max_data);
+            sum += *dt;
+        }
+
+//! write back result
+#pragma unroll
+        for (int i = 0; i < axis_size; ++i) {
+            out_data[output_real_index] = data[tid + i * blocksize] / sum;
+            output_real_index += output_stride_real[softmax_axis];
+        }
+    }
 }

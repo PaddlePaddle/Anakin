@@ -13,8 +13,8 @@
    limitations under the License. 
 */
 
-#ifndef ANAKIN_SABER_FUNCS_IMPL_ARGMAX_H
-#define ANAKIN_SABER_FUNCS_IMPL_ARGMAX_H
+#ifndef ANAKIN_SABER_FUNCS_IMPL_AXPY_H
+#define ANAKIN_SABER_FUNCS_IMPL_AXPY_H
 
 #include "saber/funcs/impl/impl_macro.h"
 namespace anakin{
@@ -26,4 +26,4 @@ DEFINE_OP_CLASS(Axpy, AxpyParam);
 }
 }
 
-#endif //ANAKIN_SABER_FUNCS_IMPL_ARGMAX_H
+#endif //ANAKIN_SABER_FUNCS_IMPL_AXPY_H

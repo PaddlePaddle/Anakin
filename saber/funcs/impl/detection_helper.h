@@ -39,13 +39,21 @@ void nms_detect(const dtype* bbox_cpu_data,
                 int keep_topk, int nms_topk, float conf_thresh, float nms_thresh,
                 float nms_eta, bool share_location);
 
-#ifdef USE_CUDA
+#if defined USE_CUDA 
 template <typename Dtype>
 void decode_bboxes(const int nthreads, const Dtype* loc_data, const Dtype* prior_data, \
                    const CodeType code_type, const bool variance_encoded_in_target, \
                    const int num_priors, const bool share_location, \
                    const int num_loc_classes, const int background_label_id, \
                    Dtype* bbox_data, cudaStream_t stream);
+#endif
+#if defined USE_X86_PLACE 
+template <typename Dtype>
+void decode_bboxes(const int nthreads, const Dtype* loc_data, const Dtype* prior_data, \
+                   const CodeType code_type, const bool variance_encoded_in_target, \
+                   const int num_priors, const bool share_location, \
+                   const int num_loc_classes, const int background_label_id, \
+                   Dtype* bbox_data);
 #endif
 
 #ifdef USE_ARM_PLACE

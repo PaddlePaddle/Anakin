@@ -14,9 +14,7 @@
 */
 
 __attribute__((reqd_work_group_size(256, 1, 1))) __kernel void
-ReluUni(const __global float* __restrict in,
-	__global float* __restrict out,
-	float slope)
+ReluUni(const __global float* __restrict in, __global float* __restrict out, float slope)
 {
-	out[get_global_id(0)] = in[get_global_id(0)] * (in[get_global_id(0)] > 0.0f ? 1.0f : slope);
+    out[get_global_id(0)] = in[get_global_id(0)] * (in[get_global_id(0)] > 0.0f ? 1.0f : slope);
 }

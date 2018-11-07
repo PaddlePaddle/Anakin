@@ -17,6 +17,8 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+#include "saber/funcs/funcs_utils.h"
+#include "saber/funcs/impl/impl_conv.h"
 
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_conv.h"
@@ -24,104 +26,64 @@
 #endif
 
 #ifdef USE_X86_PLACE
-#include "saber/funcs/impl/impl_conv.h"
-#endif
-
-#ifdef USE_AMD
-#include "saber/funcs/impl/amd/saber_conv.h"
+#include "saber/funcs/impl/x86/saber_conv.h"
 #endif
 
 #ifdef USE_ARM_PLACE
-#include "saber/funcs/impl/arm/saber_conv.h"
+//#include "saber/funcs/impl/arm/saber_conv.h"
+#endif
+
+#ifdef USE_BM_PLACE
+//#include "saber/funcs/impl/bm/vender_conv.h"
+#endif
+
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_conv.h"
 #endif
 namespace anakin {
 namespace saber {
 
 template<typename TargetType,
-        DataType OpDtype,
-        DataType inDtype = AK_FLOAT,
-        DataType outDtype = AK_FLOAT,
-        typename LayOutType_op = NCHW,
-        typename LayOutType_in = NCHW,
-        typename LayOutType_out = NCHW
->
+        DataType OpDtype>
 class Conv : public BaseFunc<
-        Tensor<TargetType, inDtype, LayOutType_in>,
-        Tensor<TargetType, outDtype, LayOutType_out>,
-        Tensor<TargetType, OpDtype, LayOutType_op>,
+        TargetType,
+        OpDtype,
         ImplBase,
-        ConvParam
-> {
+        ConvParam> {
 public:
     using BaseFunc<
-            Tensor<TargetType, inDtype, LayOutType_in>,
-            Tensor<TargetType, outDtype, LayOutType_out>,
-            Tensor<TargetType, OpDtype, LayOutType_op>,
+            TargetType,
+            OpDtype,
             ImplBase,
             ConvParam>::BaseFunc;
 
     Conv() = default;
 
-    typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
-    typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
-    typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-    typedef ConvParam<OpTensor> Param_t;
+    typedef Tensor<TargetType> InDataTensor;
+    typedef Tensor<TargetType> OutDataTensor;
+    typedef Tensor<TargetType> OpTensor;
+    typedef ConvParam<TargetType> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
 
     virtual SaberStatus compute_output_shape(const Input_v &input,
                                              Output_v &output, Param_t &param) override {
-
-        Shape output_shape = (input[0]->valid_shape());
-        CHECK_EQ(input[0]->shape().size(), 4) << "using reshape2d to reshape a 1d conv?";
-
-        // append the $n and $c/$k, output: N * K * P * Q
-        int num_idx = input[0]->num_index();
-        int channel_idx = input[0]->channel_index();
-        int height_idx = input[0]->height_index();
-        int width_idx = input[0]->width_index();
-
-        output_shape[num_idx] = input[0]->num(); // N
-        output_shape[channel_idx] = param.weight()->num(); // K
-
-        if (std::is_same<LayOutType_in, NCHW_C4>::value) {
-            output_shape[channel_idx] /= 4;
-            if (std::is_same<LayOutType_out, NCHW>::value && (output_shape.size() == 5)) {
-                output_shape[channel_idx] *= 4;
-                output_shape.pop_back();
-            }
-        }
-
-        int input_dim = input[0]->height(); // P
-        int kernel_exten = param.dilation_h * (param.weight()->height() - 1) + 1;
-        int output_dim = (input_dim + 2 * param.pad_h - kernel_exten)
-                         / param.stride_h + 1;
-
-        output_shape[height_idx] = output_dim;
-
-        input_dim = input[0]->width(); // Q
-        kernel_exten = param.dilation_w * (param.weight()->width() - 1) + 1;
-        output_dim = (input_dim + 2 * param.pad_w - kernel_exten)
-                     / param.stride_w + 1;
-
-        output_shape[width_idx] = output_dim;
-
-        return output[0]->set_shape(output_shape);
+        Shape conv_shape = conv_compute_shape(input[0]->valid_shape(), param);
+        output[0]->set_seq_offset(input[0]->get_seq_offset());
+        return output[0]->set_shape(conv_shape);
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
             case VENDER_IMPL:
                 this->_impl.push_back(new VenderConv2D <TargetType,
-                OpDtype, inDtype, outDtype,
-                LayOutType_op, LayOutType_in, LayOutType_out>);
+                        OpDtype>);
                 return SaberSuccess;
 
             case SABER_IMPL:
                 this->_impl.push_back(new SaberConv2D <TargetType,
-                OpDtype, inDtype, outDtype,
-                LayOutType_op, LayOutType_in, LayOutType_out>);
+                        OpDtype>);
                 return SaberSuccess;
 
             default:
@@ -129,6 +91,23 @@ public:
         }
     }
 
+    SaberStatus trans_weights(Tensor<TargetType> &target_weights,
+            Tensor<TargetType> &target_bias, int pad_h, int pad_w,
+            int dilation_h, int dilation_w, int stride_h, int stride_w, int group,
+            ImplEnum implenum) {
+
+        if (implenum == VENDER_IMPL) {
+            return static_cast<VenderConv2D<TargetType, OpDtype> *>(
+                    this->_best_impl)->trans_weights(target_weights, target_bias,
+                            pad_h, pad_w, dilation_h, dilation_w, stride_h, stride_w, group);
+        } else if (implenum == SABER_IMPL) {
+            return static_cast<SaberConv2D<TargetType, OpDtype> *>(
+                    this->_best_impl)->trans_weights(target_weights, target_bias,
+                            pad_h, pad_w, dilation_h, dilation_w, stride_h, stride_w, group);
+        } else {
+            return SaberUnImplError;
+        }
+    }
 private:
 
     virtual void pick_best_static() override {

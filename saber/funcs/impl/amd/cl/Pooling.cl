@@ -13,6 +13,23 @@
    limitations under the License.
 */
 
+// example, change to #if 1 to enable
+#if 0
+#define MLO_POOLING_OP_ID 1
+#define BATCH_NUM 1
+#define CU_NUM 64
+#define MLO_POOLING_N_OUTPUTS 64
+#define MLO_POOLING_TOP_STRIDE 112
+#define MLO_POOLING_TOP_HEIGHT 112
+#define MLO_POOLING_TOP_CHANNEL_STRIDE (MLO_POOLING_TOP_STRIDE * MLO_POOLING_TOP_HEIGHT)
+#define MLO_POOLING_TOP_BATCH_STRIDE (MLO_POOLING_TOP_CHANNEL_STRIDE * MLO_POOLING_N_OUTPUTS)
+#define MLO_POOLING_BOT_STRIDE 224
+#define MLO_POOLING_BOT_HEIGHT 224
+#define MLO_POOLING_BOT_WIDTH 224
+#define MLO_POOLING_BOT_CHANNEL_STRIDE (MLO_POOLING_BOT_STRIDE * MLO_POOLING_BOT_HEIGHT)
+#define MLO_POOLING_BOT_BATCH_STRIDE (MLO_POOLING_BOT_CHANNEL_STRIDE * MLO_POOLING_N_OUTPUTS)
+#endif
+
 #define _FLOAT float
 #define _FLOAT2 float2
 #define _FLOAT4 float4
@@ -26,8 +43,8 @@
 
 #define UNUSED __attribute__((__unused__))
 
-#define MLO_POOLING_OP_MAX 0
-#define MLO_POOLING_OP_AVE 1
+#define MLO_POOLING_OP_AVE 0
+#define MLO_POOLING_OP_MAX 1
 #define MLO_POOLING_OP_STC 2
 
 #define MLO_POOLING_GROUP_SZ2 1
@@ -46,119 +63,89 @@
 
 **********************************************************************************/
 
-#define THREAD_PER_WAVE	64
-#define WAVE_PER_4SIMD	40
+#define THREAD_PER_WAVE 64
+#define WAVE_PER_4SIMD 40
 
 #define MLO_BOT_DATA_SZ0 2
 #define MLO_BOT_DATA_SZ1 2
 
-//#define LOCAL_MEMORY
-
 __attribute__((reqd_work_group_size(256, 1, 1))) __kernel void
-mloPooling(const __global _FLOAT* bot,
-    __global _FLOAT* top )
-//	__global _INT_MASK_GLOBAL* mask)
+mloPooling(const __global _FLOAT* bot, __global _FLOAT* top, UNUSED __global _FLOAT* mask)
 {
     uint gid     = get_global_id(0);
-	uint ob      = BATCH_NUM * MLO_POOLING_N_OUTPUTS; // output * batch_sz
-	uint bot_off = 0;
-	uint top_off = gid;
+    uint ob      = BATCH_NUM * MLO_POOLING_N_OUTPUTS; // output * batch_sz
+    uint bot_off = 0;
+    uint top_off = gid;
 
     _FLOAT2 bot_data[MLO_BOT_DATA_SZ1];
     _FLOAT res;
 
-#ifdef LOCAL_MEMORY
-	__local _FLOAT write_combine[256];
-	__local _FLOAT4* p_write_combine = (__local _FLOAT4*)write_combine;
-	__global _FLOAT4* p_top;
-#endif
+    uint loop_num = ((ob * MLO_POOLING_TOP_STRIDE * MLO_POOLING_TOP_HEIGHT +
+                      THREAD_PER_WAVE * CU_NUM * WAVE_PER_4SIMD - 1) /
+                     (THREAD_PER_WAVE * CU_NUM * WAVE_PER_4SIMD));
+    uint top_loop_stride = THREAD_PER_WAVE * CU_NUM * WAVE_PER_4SIMD;
 
-	uint loop_num = ((ob * MLO_POOLING_TOP_STRIDE * MLO_POOLING_TOP_HEIGHT + THREAD_PER_WAVE * CU_NUM * WAVE_PER_4SIMD - 1) / (THREAD_PER_WAVE * CU_NUM * WAVE_PER_4SIMD));
-	uint top_loop_stride = THREAD_PER_WAVE * CU_NUM * WAVE_PER_4SIMD;
+    for(int index = 0;
+        index < loop_num && top_off < ob * MLO_POOLING_TOP_STRIDE * MLO_POOLING_TOP_HEIGHT;
+        index++, top_off += top_loop_stride)
+    {
+        uint bot_b = (top_off / MLO_POOLING_TOP_BATCH_STRIDE);
+        uint bot_c = (top_off % MLO_POOLING_TOP_BATCH_STRIDE / MLO_POOLING_TOP_CHANNEL_STRIDE);
+        uint bot_y = (top_off % MLO_POOLING_TOP_CHANNEL_STRIDE / MLO_POOLING_TOP_STRIDE) * MLO_POOLING_STRIDE1;
+        uint bot_x = (top_off % MLO_POOLING_TOP_STRIDE) * MLO_POOLING_STRIDE0;
 
-	for (int index = 0; index < loop_num && top_off < ob * MLO_POOLING_TOP_STRIDE * MLO_POOLING_TOP_HEIGHT; index++, top_off += top_loop_stride)
-	{
-		uint bot_b   = (top_off / MLO_POOLING_TOP_BATCH_STRIDE);
-		uint bot_c   = (top_off % MLO_POOLING_TOP_BATCH_STRIDE / MLO_POOLING_TOP_CHANNEL_STRIDE);
-		uint bot_y   = (top_off % MLO_POOLING_TOP_CHANNEL_STRIDE / MLO_POOLING_TOP_STRIDE) << 1;
-		uint bot_x   = (top_off % MLO_POOLING_TOP_STRIDE) << 1;
-
-		bot_off = bot_b * MLO_POOLING_BOT_BATCH_STRIDE + bot_c * MLO_POOLING_BOT_CHANNEL_STRIDE + bot_y * MLO_POOLING_BOT_STRIDE + bot_x;
+        bot_off = bot_b * MLO_POOLING_BOT_BATCH_STRIDE + bot_c * MLO_POOLING_BOT_CHANNEL_STRIDE +
+                  bot_y * MLO_POOLING_BOT_STRIDE + bot_x;
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
-		res = -FLT_MAX;
+        res = -FLT_MAX;
 #elif MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE
-		res = 0;
+        res = 0;
 #endif
 
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE
-		uint pool_size = 0;
+        uint pool_size = 0;
 #endif
-		for(uint j = 0; j < MLO_BOT_DATA_SZ1; ++j)
-		{
-			//int run_y = (int)j;
+        // for window x, y
+        for(uint j = 0; j < MLO_BOT_DATA_SZ1; ++j)
+        {
+            uint bot_gbl_off       = bot_off + j * MLO_POOLING_BOT_STRIDE;
+            __global _FLOAT2* read = (__global _FLOAT2*)(bot + bot_gbl_off);
+            bot_data[j]            = *read;
 
-			uint bot_gbl_off = bot_off + j * MLO_POOLING_BOT_STRIDE;
-			__global _FLOAT2* read = (__global _FLOAT2*)(bot + bot_gbl_off);
-			bot_data[j] = *read;
-
-            //int run_x        = (int)bot_x;
-//#if 1
-//			bool vis = true;
-//#else
-//            bool vis         = ((run_y >= 0 && run_y < MLO_POOLING_BOT_HEIGHT) &&
-//                        (run_x >= 0 && run_x < MLO_POOLING_BOT_WIDTH))
-//                           ? true
-//                           : false;
-//#endif
-//            bot_data[j].s0 = (vis) ? bot_data[j].s0 :
-//#if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
-//                                   -FLT_MAX
-//#elif MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE
-//                                   0
-//#endif
-//                ;
-
+            int run_y = (int)j;
+            int run_x = (int)bot_x;
+            // for w_x = 0
+            uint vis  = ((run_y >= 0 && run_y < MLO_POOLING_BOT_HEIGHT) &&
+                        (run_x >= 0 && run_x < MLO_POOLING_BOT_WIDTH))
+                           ? 1
+                           : 0;
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE
-			pool_size += (uint)vis;
+            bot_data[j].s0 = (vis) ? bot_data[j].s0 : 0;
+            pool_size += vis;
+#else
+            bot_data[j].s0 = (vis) ? bot_data[j].s0 : -FLT_MAX;
 #endif
             res = MLO_POOLING_OP(res, bot_data[j].s0);
+            run_x++;
 
-
-            //run_x++;
-//#if 1
-//#else
-//            vis         = ((run_y >= 0 && run_y < MLO_POOLING_BOT_HEIGHT) &&
-//                        (run_x >= 0 && run_x < MLO_POOLING_BOT_WIDTH))
-//                           ? true
-//                           : false;
-//#endif
-//            bot_data[j].s1 = (vis) ? bot_data[j].s1 :
-//#if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
-//                                   -FLT_MAX
-//#elif MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE
-//                                   0
-//#endif
-//                ;
-
+            // for w_x = 1
+            vis = ((run_y >= 0 && run_y < MLO_POOLING_BOT_HEIGHT) &&
+                   (run_x >= 0 && run_x < MLO_POOLING_BOT_WIDTH))
+                      ? 1
+                      : 0;
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE
-			pool_size += (uint)vis;
+            bot_data[j].s1 = (vis) ? bot_data[j].s1 : 0;
+            pool_size += (uint)vis;
+#else
+            bot_data[j].s1 = (vis) ? bot_data[j].s1 : -FLT_MAX;
 #endif
             res = MLO_POOLING_OP(res, bot_data[j].s1);
-		}
+        }
 
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE
-		res *= 1.f / (_FLOAT)pool_size;
+        res *= 1.f / (_FLOAT)pool_size;
 #endif
 
-#ifdef LOCAL_MEMORY
-		write_combine[get_local_id(0)] = res;
-		if (get_local_id(0) % 4 == 0)
-		{
-			p_top = (__global _FLOAT4*)(top + top_off);
-			*p_top = p_write_combine[get_local_id(0) / 4];
-		}
-#else
-		top[top_off] = res;
-#endif
-	}
+        top[top_off] = res;
+    }
 }

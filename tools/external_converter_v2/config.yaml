@@ -49,7 +49,7 @@ OPTIONS:
             ip: 0.0.0.0
             port: 8888
         OptimizedGraph: 
-            enable: ON
+            enable: OFF
             path: /path/to/anakin_optimized/googlenet.anakin.bin.saved
     LOGGER:
         LogToPath: ./log/
@@ -57,32 +57,31 @@ OPTIONS:
 
 TARGET:
     CAFFE:
-        # path to proto files   
+        # path to proto files
         ProtoPaths:
             - /path/to/caffe.proto
         PrototxtPath: /path/to/your/googlenet.prototxt
         ModelPath: /path/to/your/googlenet.caffemodel
 
     FLUID:
-        # path of fluid inference model   
-        Debug: NULL
-        ProtoPath: 
-        PrototxtPath: 
-        ModelPath:
-        NetType:
+        # path of fluid inference model
+        Debug: NULL                            # Generally no need to modify.
+        ModelPath: /path/to/your/model/        # The upper path of a fluid inference model.
+        NetType:                               # Generally no need to modify.
     
     LEGO:
-        # path to proto files   
+        # path to proto files
         ProtoPath:
         PrototxtPath:
         ModelPath:
     
     TENSORFLOW:
-        ProtoPath:
-        PrototxtPath:
-        ModelPath:
+        ProtoPaths: /
+        PrototxtPath: /
+        ModelPath: /
+        OutPuts:
     
-    MXNET:
+    ONNX:
         ProtoPath:
         PrototxtPath:
         ModelPath:

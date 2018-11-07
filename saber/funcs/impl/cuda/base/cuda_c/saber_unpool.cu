@@ -17,7 +17,7 @@ __global__ void ker_unpool_max_fwd(Dtype * out_data, \
                     const int num_threads)
 {
     CUDA_KERNEL_LOOP(tid, num_threads){
-        int n = (tid / in_n_stride) % in_n;
+        int n = tid / in_n_stride;
         int c = (tid / in_c_stride) % in_c;
         int out_offset = n * out_n_stride + c * out_c_stride; 
         int index = in_max_index[tid];
@@ -25,21 +25,15 @@ __global__ void ker_unpool_max_fwd(Dtype * out_data, \
     }
 }
 
-template <DataType OpDtype,
-            DataType inDtype,
-            DataType outDtype,
-            typename LayOutType_op,
-            typename LayOutType_in,
-            typename LayOutType_out>
-SaberStatus SaberUnpool<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(\
-    const std::vector<Tensor<NV, inDtype, LayOutType_in> *>& inputs, \
-    std::vector<Tensor<NV, outDtype, LayOutType_out> *>& outputs,\
-    PoolingParam<OpTensor>& param) {
+template <DataType OpDtype>
+SaberStatus SaberUnpool<NV, OpDtype>::dispatch(\
+    const std::vector<Tensor<NV> *>& inputs, \
+    std::vector<Tensor<NV> *>& outputs,\
+    PoolingParam<NV>& param) {
 
-    const InDataType* in_data = inputs[0]->data();
-    const OutDataType* in_max_index = inputs[1]->data();
-    OutDataType* out_data = outputs[0]->mutable_data();
+    const InDataType* in_data = (const InDataType*)inputs[0]->data();
+    const OutDataType* in_max_index = (const OutDataType*)inputs[1]->data();
+    OutDataType* out_data = (OutDataType*)outputs[0]->mutable_data();
     cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
     int count = inputs[0]->valid_size();
     int in_n = inputs[0]->num();

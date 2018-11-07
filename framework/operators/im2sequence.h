@@ -26,7 +26,7 @@ namespace anakin {
 
 namespace ops {
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class Im2SequenceHelper;
 
 
@@ -35,20 +35,20 @@ class Im2SequenceHelper;
  * \brief Im2Sequence implementation class
  * public inherit Operator
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class Im2Sequence : public Operator<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class Im2Sequence : public Operator<Ttype, Ptype> {
 public:
     Im2Sequence() {}
 
     /// forward impl
     virtual void operator() (OpContext<Ttype> &ctx, 
-                             const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                             std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-        LOG(ERROR) << "Not Impl Yet Operator Im2Sequence<TargetType:"<<"unknown"<<","
-                   <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info()<<">";
+                             const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                             std::vector<Tensor4dPtr<Ttype> >& outs) {
+		LOG(ERROR) << "Not Impl Yet Operator Im2Sequence< Ttype("
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
-    friend class Im2SequenceHelper<Ttype, Dtype, Ptype>;
+    friend class Im2SequenceHelper<Ttype, Ptype>;
 };
 
 /**
@@ -56,8 +56,8 @@ public:
  * public inherit OperatorHelper
  * including init resource and shape size in Im2Sequence context
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class Im2SequenceHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class Im2SequenceHelper : public OperatorHelper<Ttype, Ptype> {
 public:
     Im2SequenceHelper()=default;
 
@@ -73,8 +73,8 @@ public:
     * \return status
     */
     Status Init(OpContext<Ttype> &ctx,
-                const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
     /**
     * \brief infer the shape of output and input.
@@ -82,14 +82,14 @@ public:
     * \param outs stand for output tensor vector
     * \return status
     */
-    Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+    Status InferShape(const std::vector<Tensor4dPtr<Ttype> >& ins,
+                      std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
 public:
     ///< _param_im2sequence stand for Im2Sequence parameter
-    saber::Im2SequenceParam<Tensor4d<Ttype, Dtype>> _param_im2sequence;
+    saber::Im2SequenceParam<Ttype> _param_im2sequence;
     ///< _funcs_im2sequence stand for Im2Sequence function
-    saber::Im2Sequence<Ttype, Dtype> _funcs_im2sequence;
+    saber::Im2Sequence<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_im2sequence;
 };
 
 } /* namespace ops */

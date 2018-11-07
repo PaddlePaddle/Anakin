@@ -12,71 +12,69 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-#define STRIDE	(25088)
-#define CSTRIDE	(4096)
-#define ITER	(392)
+#define STRIDE (25088)
+#define CSTRIDE (4096)
+#define ITER (392)
 
 void reduce(__local float* buffer, int tid)
 {
-	if (tid < 32)
-	{
-		buffer[tid << 1] += buffer[(tid << 1) + 1];
-	}
-	if (tid < 16)
-	{
-		buffer[tid << 2] += buffer[(tid << 2) + 2];
-	}
+    if(tid < 32)
+    {
+        buffer[tid << 1] += buffer[(tid << 1) + 1];
+    }
+    if(tid < 16)
+    {
+        buffer[tid << 2] += buffer[(tid << 2) + 2];
+    }
 }
 
-__attribute__((reqd_work_group_size(64, 1, 1)))
-__kernel void InnerProduct(
-	__global const float *a,
-	__global const float *b,
-	__global const float *bias,
-	__global float *c)
+__attribute__((reqd_work_group_size(64, 1, 1))) __kernel void InnerProduct(
+    __global const float* a, __global const float* b, __global const float* bias, __global float* c)
 {
-	__local float shared_a[4][66];
-	__local float shared_b[4][66];
-	__local float result[65];
+    __local float shared_a[4][66];
+    __local float shared_b[4][66];
+    __local float result[65];
 
-	int gid_x = get_global_id(0);
-	int lid_x = get_local_id(0);
-	int grid_x = get_group_id(0);
+    int gid_x  = get_global_id(0);
+    int lid_x  = get_local_id(0);
+    int grid_x = get_group_id(0);
 
-	__global const float* pA = (__global const float*)(a);
-	__global const float* pB = (__global const float*)(b + (grid_x << 2) * STRIDE);
+    __global const float* pA = (__global const float*)(a);
+    __global const float* pB = (__global const float*)(b + (grid_x << 2) * STRIDE);
 
-	int offset = ((grid_x << 6)) % STRIDE;
-	float sum = 0.0f;
+    int offset = ((grid_x << 6)) % STRIDE;
+    float sum  = 0.0f;
 
-	for (int i = 0; i < ITER; i++, offset = (offset + 64) % STRIDE)
-	{
-		for (int j = 0; j < 4; j++)
-		{
-			shared_a[j][lid_x + (lid_x >> 5)] = pA[offset + lid_x + j * STRIDE];
-			shared_b[j][lid_x + (lid_x >> 5)] = pB[offset + lid_x + j * STRIDE];
-		}
+    for(int i = 0; i < ITER; i++, offset = (offset + 64) % STRIDE)
+    {
+        for(int j = 0; j < 4; j++)
+        {
+            shared_a[j][lid_x + (lid_x >> 5)] = pA[offset + lid_x + j * STRIDE];
+            shared_b[j][lid_x + (lid_x >> 5)] = pB[offset + lid_x + j * STRIDE];
+        }
 
-		for (int k = 0; k < 16; k++)
-		{
-			sum += shared_a[lid_x >> 4][((lid_x & 3) << 4) + k + ((((lid_x & 3) << 4) + k) >> 5)] * shared_b[(lid_x & 15) >> 2][((lid_x & 3) << 4) + k + ((((lid_x & 3) << 4) + k) >> 5)];
-		}
-	}
+        for(int k = 0; k < 16; k++)
+        {
+            sum += shared_a[lid_x >> 4][((lid_x & 3) << 4) + k + ((((lid_x & 3) << 4) + k) >> 5)] *
+                   shared_b[(lid_x & 15) >> 2]
+                           [((lid_x & 3) << 4) + k + ((((lid_x & 3) << 4) + k) >> 5)];
+        }
+    }
 
-	result[lid_x] = sum;
-	reduce(result, lid_x);
+    result[lid_x] = sum;
+    reduce(result, lid_x);
 
-	if (lid_x < 4)
-	{
-		float4 out;
-		float* pOut = (float*)&out;
+    if(lid_x < 4)
+    {
+        float4 out;
+        float* pOut = (float*)&out;
 
-		for (int i = 0; i < 4; i++)
-		{
-			pOut[i] = result[((lid_x * 4 + i) << 2)] + bias[(grid_x << 2) + i];
-		}
+        for(int i = 0; i < 4; i++)
+        {
+            pOut[i] = result[((lid_x * 4 + i) << 2)] + bias[(grid_x << 2) + i];
+        }
 
-		__global float4* pC = (__global float4*)(c + (grid_x << 2) + lid_x * CSTRIDE);
-		*pC = out;
-	}
+        __global float4* pC = (__global float4*)(c + (grid_x << 2) + lid_x * CSTRIDE);
+        *pC                 = out;
+    }
 }

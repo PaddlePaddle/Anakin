@@ -22,27 +22,14 @@ namespace anakin{
 
 namespace saber{
 
-template <DataType OpDtype,
-    DataType inDtype,
-    DataType outDtype,
-    typename LayOutType_op,
-    typename LayOutType_in,
-    typename LayOutType_out>
-class SaberAxpy<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out> : \
+template <DataType OpDtype>
+class SaberAxpy<NV, OpDtype> : \
     public ImplBase<
-        Tensor<NV, inDtype, LayOutType_in>, 
-        Tensor<NV, outDtype, LayOutType_out>,
-        Tensor<NV, OpDtype, LayOutType_op>,
-        AxpyParam<Tensor<NV, OpDtype, LayOutType_op> > > 
+       NV, OpDtype,
+        AxpyParam<NV>> 
 {
 public:
-    typedef Tensor<NV, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<NV, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<NV, OpDtype, LayOutType_op> OpTensor;
-    typedef typename DataTensor_in::Dtype InDataType;
-    typedef typename DataTensor_out::Dtype OutDataType;
-    typedef typename OpTensor::Dtype OpDataType;
+    typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
 
     SaberAxpy()
     {}
@@ -51,28 +38,28 @@ public:
 
     }
 
-    virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
-                        std::vector<DataTensor_out *>& outputs,
-                        AxpyParam<OpTensor>& param, 
+    virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
+                        std::vector<Tensor<NV> *>& outputs,
+                        AxpyParam<NV>& param, 
                         Context<NV> &ctx) {
         this->_ctx = &ctx;
         return SaberSuccess;
     }
 
-    virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
-                        std::vector<DataTensor_out *>& outputs,
-                        AxpyParam<OpTensor>& param, 
+    virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
+                        std::vector<Tensor<NV> *>& outputs,
+                        AxpyParam<NV>& param, 
                         Context<NV>& ctx) {
         return SaberSuccess;
     }
 
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in *>& inputs,
-                        std::vector<DataTensor_out *>& outputs,
-                        AxpyParam<OpTensor>& param);
+    virtual SaberStatus dispatch(const std::vector<Tensor<NV> *>& inputs,
+                        std::vector<Tensor<NV> *>& outputs,
+                        AxpyParam<NV>& param);
 
 };
 
-template class SaberAxpy<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
+//template class SaberAxpy<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
 }
 
 }

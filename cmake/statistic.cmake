@@ -84,7 +84,12 @@ function(anakin_print_statistic)
     message(STATUS "    `--Openmp version       : ${OPENMP_VERSION}")
     endif()	
 
-
+	if(USE_X86_PLACE)
+	message(STATUS "")
+	message(STATUS "${Green}X86:${ColourReset}")
+	message(STATUS "  USE_X86                  : ${USE_X86_PLACE}")
+	message(STATUS "  X86 Target Arch          : ${BUILD_X86_ARCH}")
+	endif()
 	
     if(USE_CUDA)
 	message(STATUS "")

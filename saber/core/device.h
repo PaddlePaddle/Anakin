@@ -17,46 +17,46 @@
 #define ANAKIN_SABER_CORE_DEVICE_H
 #include "core/target_wrapper.h"
 
-namespace anakin{
+namespace anakin {
 
-namespace saber{
+namespace saber {
 
 template <typename TargetType>
-struct DeviceInfo{
-	int _idx;
-	std::string _device_name;
-	int _max_frequence;
-	int _min_frequence;
-	int _generate_arch;
-	int _compute_core_num;
-	int _max_memory;
+struct DeviceInfo {
+    int _idx;
+    std::string _device_name;
+    int _max_frequence;
+    int _min_frequence;
+    int _generate_arch;
+    int _compute_core_num;
+    int _max_memory;
     int _sharemem_size;
     int _L1_cache;
     int _L2_cache;
     int _L3_cache;
-	std::vector<int> _core_ids;
-	std::vector<int> _cluster_ids;
+    std::vector<int> _core_ids;
+    std::vector<int> _cluster_ids;
 };
 
 template <typename TargetType>
 struct Device {
 
-	typedef TargetWrapper<TargetType> API;
+    typedef TargetWrapper<TargetType> API;
 
-    Device(int max_stream = 4) : _max_stream(max_stream){
-    	get_info();
-    	create_stream();
+    Device(int max_stream = 4) : _max_stream(max_stream) {
+        get_info();
+        create_stream();
     }
     void get_info();
     void create_stream();
     DeviceInfo<TargetType> _info;
-	int _max_stream;
+    int _max_stream;
 
     std::vector<typename API::stream_t> _data_stream;
     std::vector<typename API::stream_t> _compute_stream;
 };
 
-#ifdef USE_AMD
+#ifdef AMD_GPU
 template <>
 struct Device<AMD> {
 
@@ -72,15 +72,23 @@ struct Device<AMD> {
     std::vector<typename API::stream_t> _data_stream;
     std::vector<typename API::stream_t> _compute_stream;
 
-    cl_device_id get_device() {return id;};
-    cl_context get_context() {return context;};
+    cl_device_id get_device() {
+        return id;
+    };
+    cl_context get_context() {
+        return context;
+    };
 
-    typename API::stream_t get_available_stream(typename API::stream_t default_stream=nullptr);
+    typename API::stream_t get_available_stream(typename API::stream_t default_stream = nullptr);
 
 private:
     cl_device_id id;
-    cl_context context;    
+    cl_context context;
 };
+
+
+template struct Device<AMDHX86>;
+
 #endif
 } //namespace saber
 

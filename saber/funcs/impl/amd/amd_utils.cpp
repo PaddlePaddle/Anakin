@@ -12,101 +12,132 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-#include "saber/funcs/impl/amd/amd_utils.h"
-#include "utils/logger/logger.h"
+#include "saber/funcs/impl/amd/include/amd_utils.h"
 
 namespace anakin {
 namespace saber {
-#define MAX_LOG_LENGTH 65535
-cl_program CreateCLProgram(cl_context context, cl_device_id device, const char* fileName, KernelInfo* ki)
-{
-    cl_int errNum;
-    cl_program program;
-    
-    std::ifstream kFile(fileName, std::ios::in);
-    if (!kFile.is_open())
-    {
-        LOG(ERROR) << "Failed to open file for reading: " << fileName;
-        return NULL;
+// so that MIOpen works whether or not recent MIOpenGEMM changes pulled:
+// convert size_t and ulong kernel function parameters to unsigned.
+namespace tempfix {
+void add_bias_relu(std::string& clstr) {
+    clstr = clstr.insert(
+                clstr.find("miog_betac_alphaab") + 20,
+                "__constant TFLOAT * restrict bias,\nTFLOAT slope,");
+
+    std::string search      = "c[index] += alpha*rC";
+    std::string sub_search1 = "c[index] += alpha*rC[dima][dimb]";
+    std::string sub_search2 =
+        "c[index] += alpha*rC[(dimai*VEW_A)/N_MICRO_IN_MACRO_A + dimai_v][dimb]";
+    std::string sub_search3 = "c[index] += alpha*rC[(dimai*VEW_A)/N_MICRO_IN_MACRO_A + "
+                              "dimai_v][(dimbi*VEW_B)/N_MICRO_IN_MACRO_B + dimbi_v]";
+    std::string sub_search4 =
+        "c[index] += alpha*rC[dima][(dimbi*VEW_B)/N_MICRO_IN_MACRO_B + dimbi_v]";
+    std::string add1 = "rC[dima][dimb] += bias[write_start_b + dimb];\nrC[dima][dimb] *= "
+                       "(rC[dima][dimb] > 0.0f ? 1.0f : slope);\n";
+    std::string add2 =
+        "rC[(dimai*VEW_A)/N_MICRO_IN_MACRO_A + dimai_v][dimb] += bias[write_start_b + "
+        "dimb];\nrC[(dimai*VEW_A)/N_MICRO_IN_MACRO_A + dimai_v][dimb] *= "
+        "(rC[(dimai*VEW_A)/N_MICRO_IN_MACRO_A + dimai_v][dimb] > 0.0f ? 1.0f : slope);\n";
+    std::string add3 =
+        "rC[(dimai*VEW_A)/N_MICRO_IN_MACRO_A + dimai_v][(dimbi*VEW_B)/N_MICRO_IN_MACRO_B + "
+        "dimbi_v] += bias[write_start_b + dimb];\nrC[(dimai*VEW_A)/N_MICRO_IN_MACRO_A + "
+        "dimai_v][(dimbi*VEW_B)/N_MICRO_IN_MACRO_B + dimbi_v] *= "
+        "(rC[(dimai*VEW_A)/N_MICRO_IN_MACRO_A + dimai_v][(dimbi*VEW_B)/N_MICRO_IN_MACRO_B + "
+        "dimbi_v] > 0.0f ? 1.0f : slope);\n";
+    std::string add4 =
+        "rC[dima][(dimbi*VEW_B)/N_MICRO_IN_MACRO_B + dimbi_v] += bias[write_start_b + "
+        "dimb];\nrC[dima][(dimbi*VEW_B)/N_MICRO_IN_MACRO_B + dimbi_v] *= "
+        "(rC[dima][(dimbi*VEW_B)/N_MICRO_IN_MACRO_B + dimbi_v] > 0.0f ? 1.0f : slope);\n";
+
+    for (size_t pos = clstr.find(search); pos != std::string::npos; pos = clstr.find(search, pos)) {
+        size_t temp = clstr.find(sub_search2);
+
+        if (clstr.find(sub_search1) != std::string::npos) {
+            clstr = clstr.insert(pos, add1);
+            pos += add1.length() + sub_search1.length();
+        } else if (clstr.find(sub_search2) != std::string::npos) {
+            clstr = clstr.insert(pos, add2);
+            pos += add2.length() + sub_search2.length();
+        } else if (clstr.find(sub_search3) != std::string::npos) {
+            clstr = clstr.insert(pos, add3);
+            pos += add3.length() + sub_search3.length();
+        } else if (clstr.find(sub_search4) != std::string::npos) {
+            clstr = clstr.insert(pos, add4);
+            pos += add4.length() + sub_search4.length();
+        } else {
+            break;
+        }
     }
-    std::string src(
-        (std::istreambuf_iterator<char>(kFile)),
-        std::istreambuf_iterator<char>()
-        );
-    char *srcStr = src.c_str(); 
-    program = clCreateProgramWithSource(context, 1, (const char**)&srcStr, NULL, NULL);
-
-    kFile.close();
-
-    if (program == NULL)
-    {
-         LOG(ERROR) << "Failed to create CL program with source file.";
-         return NULL;
-    }
-    char *comp_options = NULL;
-    if(ki != NULL)
-        comp_options= ki->comp_options.c_str();
-    errNum = clBuildProgram(program, 1, &device, comp_options, NULL, NULL);
-    if (errNum != CL_SUCCESS)
-    {
-        char buildErrLog[MAX_LOG_LENGTH];
-        clGetProgramBuildInfo(program,
-                              device,
-                              CL_PROGRAM_BUILD_LOG,
-                              sizeof(buildErrLog),
-                              buildErrLog,
-                              NULL);
-
-        LOG(ERROR) << "CL program build error log in kernel: " << buildErrLog;
-        clReleaseProgram(program);
-        return NULL;
-     }
-     return program;
-};
-
-cl_program CreatProgramFromBinaryFile(cl_context context, cl_device_id device, const char * binFile)
-{
-    cl_program program;
-    cl_int errNum;
-
-    FILE * fp = fopen(binFile, "rb");
-    if (fp == NULL)
-    {
-        LOG(ERROR) << "Can't open bin file: " <<  std::string(binFile);
-        return NULL;
-    }
-
-    size_t binSize;
-    fseek(fp, 0, SEEK_END);
-    binSize = ftell(fp);
-    rewind(fp);
-
-    unsigned char * binProgram = new unsigned char[binSize];
-    fread(binProgram, 1, binSize, fp);
-    fclose(fp);
-
-    program = clCreateProgramWithBinary(context, 1, &device, &binSize, (const unsigned char**)&binProgram, NULL, &errNum);
-    errNum = clBuildProgram(program, 1, &device, "", NULL, NULL);
-
-    delete[] binProgram;
-    if (errNum != CL_SUCCESS)
-    {
-        char buildErrLog[MAX_LOG_LENGTH];
-        clGetProgramBuildInfo(program,
-                              device,
-                              CL_PROGRAM_BUILD_LOG,
-                              sizeof(buildErrLog),
-                              buildErrLog,
-                              NULL);
-
-        LOG(ERROR) << "CL program build error log in kernel: " << buildErrLog;
-        clReleaseProgram(program);
-        
-        return NULL;
-    }
-    return program;
-};
-
-
 }
+
+void add_relu(std::string& clstr) {
+    clstr = clstr.insert(clstr.find("miog_betac_alphaab") + 20, "TFLOAT slope,");
+
+    std::string search      = "c[index] += alpha*rC";
+    std::string sub_search1 = "c[index] += alpha*rC[dima][dimb]";
+    std::string sub_search2 =
+        "c[index] += alpha*rC[(dimai*VEW_A)/N_MICRO_IN_MACRO_A + dimai_v][dimb]";
+    std::string sub_search3 = "c[index] += alpha*rC[(dimai*VEW_A)/N_MICRO_IN_MACRO_A + "
+                              "dimai_v][(dimbi*VEW_B)/N_MICRO_IN_MACRO_B + dimbi_v]";
+    std::string sub_search4 =
+        "c[index] += alpha*rC[dima][(dimbi*VEW_B)/N_MICRO_IN_MACRO_B + dimbi_v]";
+    std::string add1 = "rC[dima][dimb] *= (rC[dima][dimb] > 0.0f ? 1.0f : slope);\n";
+    std::string add2 =
+        "rC[(dimai*VEW_A)/N_MICRO_IN_MACRO_A + dimai_v][dimb] *= "
+        "(rC[(dimai*VEW_A)/N_MICRO_IN_MACRO_A + dimai_v][dimb] > 0.0f ? 1.0f : slope);\n";
+    std::string add3 =
+        "rC[(dimai*VEW_A)/N_MICRO_IN_MACRO_A + dimai_v][(dimbi*VEW_B)/N_MICRO_IN_MACRO_B + "
+        "dimbi_v] *= (rC[(dimai*VEW_A)/N_MICRO_IN_MACRO_A + "
+        "dimai_v][(dimbi*VEW_B)/N_MICRO_IN_MACRO_B + dimbi_v] > 0.0f ? 1.0f : slope);\n";
+    std::string add4 =
+        "rC[dima][(dimbi*VEW_B)/N_MICRO_IN_MACRO_B + dimbi_v] *= "
+        "(rC[dima][(dimbi*VEW_B)/N_MICRO_IN_MACRO_B + dimbi_v] > 0.0f ? 1.0f : slope);\n";
+
+    for (size_t pos = clstr.find(search); pos != std::string::npos; pos = clstr.find(search, pos)) {
+        size_t temp = clstr.find(sub_search2);
+
+        if (clstr.find(sub_search1) != std::string::npos) {
+            clstr = clstr.insert(pos, add1);
+            pos += add1.length() + sub_search1.length();
+        } else if (clstr.find(sub_search2) != std::string::npos) {
+            clstr = clstr.insert(pos, add2);
+            pos += add2.length() + sub_search2.length();
+        } else if (clstr.find(sub_search3) != std::string::npos) {
+            clstr = clstr.insert(pos, add3);
+            pos += add3.length() + sub_search3.length();
+        } else if (clstr.find(sub_search4) != std::string::npos) {
+            clstr = clstr.insert(pos, add4);
+            pos += add4.length() + sub_search4.length();
+        } else {
+            break;
+        }
+    }
 }
+
+void set_offsets_to_uint(std::string& clstr, int times) {
+    for (int i = 0; i < times; i++) {
+        clstr = clstr.replace(clstr.find("const ulong"), 11, "const uint");
+    }
+}
+void set_offsets_to_uint(std::string& clstr) {
+    auto get_target = [](std::string inttype, char x) {
+        std::stringstream ss;
+        ss << "const " << inttype << ' ' << std::string(1, x) << "_offset";
+        return std::regex(ss.str());
+    };
+
+    for (char x : {
+                'a', 'b', 'c'
+            }) {
+        std::string replacement = "const unsigned " + std::string(1, x) + "_offset";
+
+        for (auto inttype : {
+                    "size_t", "ulong"
+                }) {
+            clstr = std::regex_replace(clstr, get_target(inttype, x), replacement);
+        }
+    }
+}
+} // namespace tempfix
+} // namespace saber
+} // namespace anakin

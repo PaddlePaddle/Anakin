@@ -24,15 +24,13 @@ if(USE_CUDA)
     anakin_find_cuda()
 endif()
 
-# set amd opencl path
-if(USE_AMD)
-    #amd_set_opencl_path()
-    #amd_build_cl_file("${CMAKE_SOURCE_DIR}/saber/core/impl/amd/" "${CMAKE_BINARY_DIR}/cl/amd/")
-    amd_build_cl_file("${CMAKE_SOURCE_DIR}/saber/funcs/impl/amd/cl" "${CMAKE_BINARY_DIR}/cl/amd")
-    amd_build_cl_binary_file("${CMAKE_SOURCE_DIR}/saber/funcs/impl/amd/lib" "${CMAKE_BINARY_DIR}/cl/amd")
-    amd_build_cl_file("${CMAKE_SOURCE_DIR}/saber/funcs/impl/amd/cl" "${PROJECT_SOURCE_DIR}/output/unit_test")
-    amd_build_cl_binary_file("${CMAKE_SOURCE_DIR}/saber/funcs/impl/amd/lib" "${PROJECT_SOURCE_DIR}/output/unit_test")
-    amd_build_cl_file("${CMAKE_SOURCE_DIR}/test/saber/amd" "${PROJECT_SOURCE_DIR}/output/unit_test")
+if(USE_BM_PLACE)
+    anakin_find_bmlib()
+endif()
+
+# find openssl
+if(USE_OPENSSL)
+    anakin_find_openssl()
 endif()
 
 # find opencl
@@ -60,6 +58,10 @@ if(USE_PROTOBUF)
     anakin_protos_processing()
 endif()
 
+if(BUILD_RPC)
+    anakin_find_baidu_rpc()
+endif()
+
 if (USE_GFLAGS)
     anakin_find_gflags()
 endif()
@@ -82,7 +84,9 @@ endif()
 if(DISABLE_ALL_WARNINGS) 
     anakin_disable_warnings(CMAKE_CXX_FLAGS)
 endif()
-
+if(USE_OPENMP)
+    anakin_find_openmp()
+endif()
 if(USE_ARM_PLACE)
     if(TARGET_ANDROID)
 		if(USE_OPENMP)
@@ -93,4 +97,9 @@ if(USE_ARM_PLACE)
     else()
         message(FATAL_ERROR " ARM TARGET unknown !")
     endif()
+endif()
+
+# find miopengemm
+if(USE_MIOPENGEMM)
+    anakin_find_miopengemm()
 endif()

@@ -21,28 +21,18 @@ namespace anakin {
 
 namespace saber {
 
-template <DataType OpDtype,
-            DataType inDtype,
-            DataType outDtype,
-            typename LayOutType_op,
-            typename LayOutType_in,
-            typename LayOutType_out>
-class SaberTranspose<NV, OpDtype, inDtype, outDtype, \
-    LayOutType_op, LayOutType_in, LayOutType_out>:\
-    public ImplBase<
-            Tensor<NV, inDtype, LayOutType_in>,
-            Tensor<NV, outDtype, LayOutType_out>,
-            Tensor<NV, OpDtype, LayOutType_op>,
-            TransposeParam<Tensor<NV, OpDtype, LayOutType_op>>> {
+template <DataType OpDtype>
+class SaberTranspose<NV, OpDtype>:
+    public ImplBase<NV, OpDtype, TransposeParam<NV>> {
 
 public:
-    typedef Tensor<NV, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<NV, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<NV, OpDtype, LayOutType_op> OpTensor;
+    typedef Tensor<NV> DataTensor_in;
+    typedef Tensor<NV> DataTensor_out;
+    typedef Tensor<NV> OpTensor;
 
-    typedef typename DataTensor_in::Dtype InDataType;
-    typedef typename DataTensor_out::Dtype OutDataType;
-    typedef typename OpTensor::Dtype OpDataType;
+    typedef typename DataTrait<NV, OpDtype>::Dtype InDataType;
+    typedef typename DataTrait<NV, OpDtype>::Dtype OutDataType;
+    typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
 
     SaberTranspose() = default;
 
@@ -50,7 +40,7 @@ public:
 
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
                              std::vector<DataTensor_out*>& outputs,
-                             TransposeParam<OpTensor> &param,
+                             TransposeParam<NV> &param,
                              Context<NV> &ctx) {
         // get context
         this->_ctx = &ctx;
@@ -59,7 +49,7 @@ public:
 
     virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
                                std::vector<DataTensor_out*>& outputs,
-                               TransposeParam<OpTensor> &param,
+                               TransposeParam<NV> &param,
                                Context<NV> &ctx) {
         if (!(&ctx == this->_ctx)) {
             this->_ctx = &ctx;
@@ -70,11 +60,11 @@ public:
 
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                                  std::vector<DataTensor_out*>& outputs,
-                                 TransposeParam<OpTensor> &param);
+                                 TransposeParam<NV> &param);
 
 
 };
-template class SaberTranspose<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
+template class SaberTranspose<NV, AK_FLOAT>;
 } //namespace saber
 
 } //namespace anakin

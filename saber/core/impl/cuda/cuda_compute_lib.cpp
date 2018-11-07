@@ -13,14 +13,14 @@
    limitations under the License. */
 #ifdef USE_CUDNN
 #include <cudnn.h>
-namespace anakin{
+namespace anakin {
 
-namespace saber{
+namespace saber {
 
-namespace cudnn{
+namespace cudnn {
 
 typedef cudnnHandle_t handle;
-typedef cudnnConvolutionFwdAlgo_t 
+typedef cudnnConvolutionFwdAlgo_t
 
 
 }
