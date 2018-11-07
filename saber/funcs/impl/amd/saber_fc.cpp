@@ -452,11 +452,7 @@ SaberStatus SaberFc<AMD, OpDtype>::create(
         // gemm
         optmized          = false;
         _outGemmWorkspace = new Tensor<AMD>();
-        _outGemmWorkspace->re_alloc(Shape({(inputs[0]->num()),
-                                           std::max((inputs[0]->channel()), (param.weights->num())),
-                                           (inputs[0]->height()),
-                                           (inputs[0]->width())
-                                          }));
+        _outGemmWorkspace->re_alloc(outputs[0]->shape());
 
         float alpha = 1.0;
         float beta  = 0.0;

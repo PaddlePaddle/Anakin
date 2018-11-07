@@ -26,6 +26,9 @@
 #include <miopen/mlo_internal.hpp>
 #include "saber/core/impl/amd/utils/amd_file_utils.h"
 #include "saber/funcs/funcs_utils.h"
+#include <miopengemm/miogemm.hpp>
+#include <miopengemm/gemm.hpp>
+#include <miopengemm/geometry.hpp>
 
 namespace anakin {
 
@@ -54,35 +57,39 @@ public:
            Context<AMD>& ctx);
 
     virtual SaberStatus dispatch(
-            const std::vector<Tensor<AMD>*>& inputs,
-            std::vector<Tensor<AMD>*>& outputs,
-            ConvPoolingParam<AMD>& param);
+        const std::vector<Tensor<AMD>*>& inputs,
+        std::vector<Tensor<AMD>*>& outputs,
+        ConvPoolingParam<AMD>& param);
 
-    SaberStatus trans_weights(Tensor<AMD> &target_weights, Tensor<AMD> &target_bias,
+    SaberStatus trans_weights(Tensor<AMD>& target_weights, Tensor<AMD>& target_bias,
                               int pad_h, int pad_w, int dilation_h, int dilation_w,
                               int stride_h, int stride_w, int group) {
         if (target_weights.valid_size() > 0) {
             // conv_trans_weights<AMD, AMDHX86>(
             //        target_weights, stride_h, stride_w, group, true, nullptr);
         }
+
         _extern_trans = true;
         _in_place     = true;
         return SaberSuccess;
     }
 
 private:
-    bool _in_place{false};
-    bool _extern_trans{false};
+    bool _in_place {false};
+    bool _extern_trans {false};
     CreateKernelList(int device_id, KernelInfo& kernelInfo);
     amd_kernel_list _kernels;
     Tensor<AMD>* _outConvRelu;
+    bool _multikernel {false};
+    Tensor<AMD>* _outGemmWorkspace;
+    bool _is_gemm {false};
 };
 template <>
 SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::create(
-        const std::vector<Tensor<AMD>*>& inputs,
-        std::vector<Tensor<AMD>*>& outputs,
-        ConvPoolingParam<AMD>& param,
-        Context<AMD>& ctx);
+    const std::vector<Tensor<AMD>*>& inputs,
+    std::vector<Tensor<AMD>*>& outputs,
+    ConvPoolingParam<AMD>& param,
+    Context<AMD>& ctx);
 } // namespace saber
 } // namespace anakin
 #endif // ANAKIN_SABER_FUNCS_IMPL_AMD_SABER_CONV_POOLING_H
