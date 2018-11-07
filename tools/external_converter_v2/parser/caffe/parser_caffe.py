@@ -217,7 +217,7 @@ class CaffeParser:
                 logger(verbose.FATAL).feed("[ Upgrade Level 1 ]  Details: need to upgrade from V0 to V1 [ FAILED ]")
                 exit()
         if NetNeedsDataUpgrade(self.net_parameter):
-            logger(verbose.ERROR).feed("[ Upgrade Level 2 ] Details: need Data upgrade [ IGNORED ]")
+            logger(verbose.WARNING).feed("[ Upgrade Level 2 ] Details: need Data upgrade [ IGNORED ]")
         if NetNeedsV1ToV2Upgrade(self.net_parameter):
             logger(verbose.INFO).feed("[ Upgrade Level 3 ] Details: need to upgrade from V1 to V2 [ ... ]")
             original_param = NetParameter()
@@ -537,10 +537,10 @@ class CaffeParser:
                     blob_top_to_layer_name[top].put(tmp_rlayer.name)
         # set graph proto's name
         self.graphIO.set_name(self.net_parameter.name)
-        logger(verbose.ERROR).feed(" [CAFFE] Archtecture Parsing ...")
+        logger(verbose.INFO).feed(" [CAFFE] Archtecture Parsing ...")
 
         # parsing model
-        logger(verbose.ERROR).feed(" [CAFFE] Model Parameter Parsing ...")
+        logger(verbose.INFO).feed(" [CAFFE] Model Parameter Parsing ...")
         self._ParserModel()
         self._SplitInception(True)
         model_layers = self.net_param_weights.layers or self.net_param_weights.layer
@@ -655,10 +655,10 @@ class CaffeParser:
                 #blob_btm_to_layer_name[top] = tmp_rlayer.name
         # set graph proto's name
         self.graphIO.set_name(self.net_parameter.name)
-        logger(verbose.ERROR).feed(" [CAFFE] Archtecture Parsing ...")
+        logger(verbose.WARNING).feed(" [CAFFE] Archtecture Parsing ...")
 
         # parsing model
-        logger(verbose.ERROR).feed(" [CAFFE] Model Parameter Parsing ...")
+        logger(verbose.WARNING).feed(" [CAFFE] Model Parameter Parsing ...")
         self._ParserModel()
         #self._SplitInception(True)
         model_layers = self.net_param_weights.layers or self.net_param_weights.layer
