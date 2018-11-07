@@ -81,7 +81,29 @@ void transpose_CNHW2NCHW(
     int out_offset,
     int h_stride,
     int w_stride,
-    bool isBias);
+    bool isBias,
+    bool needExtraKernel);
+
+void BiasReluPool(
+    std::vector<AMDKernelPtr>& vkptr,
+    int device_id,
+    int bt_size,
+    int n_wei,
+    int in_h,
+    int in_w,
+    int in_c,
+    int out_h,
+    int out_w,
+    int out_c,
+    int pooling_w_h,
+    int pooling_w_w,
+    int pooling_s_h,
+    int pooling_s_w,
+    int pooling_p_h,
+    int pooling_p_w,
+    int pooling_type,
+    bool isBias,
+    bool isActive);
 
 } // namespace saber
 } // namespace anakin
