@@ -494,6 +494,19 @@ def Parser_leaky_relu(args):
     helper = args[3]
     OpsRegister()["ReLU"].alpha = helper.attr_data(op, 'alpha')
 
+@ParserFeedDecorator("Activation")
+def Parser_prelu(args):
+    op = args[1]
+    helper = args[3]
+    mode = helper.attr_data(op, 'mode')
+    OpsRegister()["Activation"].type = "PReLU"
+    if mode == "all":
+        OpsRegister()["Activation"].channel_shared = True
+    elif mode == "channel":
+        OpsRegister()["Activation"].channel_shared = False
+    else:
+        raise NameError('ERROR: Unknown Prelu channel_shared param.')
+
 @ParserFeedDecorator("Flatten")
 def Parser_flatten(args):
     pass
@@ -552,4 +565,5 @@ FLUID_NODE_FILLER = {
     "shape":OpsParam().set_parser(Parser_shape),
     "relu6":OpsParam().set_parser(Parser_relu6),
     "leaky_relu":OpsParam().set_parser(Parser_leaky_relu),
+    "prelu":OpsParam().set_parser(Parser_prelu),
 }
