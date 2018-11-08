@@ -150,6 +150,9 @@ if(ENABLE_MIN_DEPENDENCY)
     set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--version-script,${ANAKIN_ROOT}/cmake/ak_link.lds")
 endif()
 
+# for AMD profile computing performance
+anakin_option(ENABLE_AMD_PROFILING "Enable amd profiling" NO)
+
 # ----------------------------------------------------------------------------
 # section: anakin compiler and linker options
 # ----------------------------------------------------------------------------
