@@ -568,6 +568,8 @@ class CaffeParser:
 
                     # fill node with blobs parameter, such as filter and weights
                     tensors = []
+                    if rlayer.name == "scale0":
+                        print 'len(scale0.mlayer.blobs): ', len(mlayer.blobs)
                     if mlayer.blobs:
                         for blob in mlayer.blobs:
                             if blob in mlayer.blobs:

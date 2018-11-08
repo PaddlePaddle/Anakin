@@ -910,6 +910,8 @@ class FluidParser:
             reshape_dict = {}
             if self.NetType == "OCR":
                 reshape_dict['input_0'] = [1, 1, 48, 1500]
+            elif self.NetType == "ROUTEDNN":
+                reshape_dict['input_0'] = [1, 37, 1, 1]
             self._ReplaceInputs(source_ops, helper, reshape_dict)
             self._InsertSplit(source_ops, helper)
             self._DealWithGru(source_ops, helper)
