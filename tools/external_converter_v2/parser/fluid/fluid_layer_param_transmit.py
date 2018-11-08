@@ -48,6 +48,26 @@ def Parser_conv2d(args):
     else:
         OpsRegister()["Convolution"].bias_term = False
 
+@ParserFeedDecorator("Deconvolution")
+def Parser_conv2d_transpose(args):
+    op = args[1]
+    helper = args[3]
+    private_data = args[4]
+    [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'Filter')
+    OpsRegister()["Deconvolution"].weight_1 = weights_tensor
+    OpsRegister()["Deconvolution"].filter_num = weights_shape[0]
+    OpsRegister()["Deconvolution"].kernel_size = weights_shape[-2:]
+    OpsRegister()["Deconvolution"].strides = helper.attr_data(op, 'strides')
+    OpsRegister()["Deconvolution"].padding = helper.attr_data(op, 'paddings')
+    OpsRegister()["Deconvolution"].dilation_rate = helper.attr_data(op, 'dilations')
+    OpsRegister()["Deconvolution"].group = helper.attr_data(op, 'groups')
+    OpsRegister()["Deconvolution"].axis = 1
+    if 'bias' in private_data.keys():
+        OpsRegister()["Deconvolution"].bias_term = True
+        OpsRegister()["Deconvolution"].weight_2 = private_data['bias']
+    else:
+        OpsRegister()["Deconvolution"].bias_term = False
+
 @ParserFeedDecorator("ReLU")
 def Parser_relu(args):
     OpsRegister()["ReLU"].alpha = 0.0
@@ -150,9 +170,14 @@ def Parser_scale_of_bn(args):
 
 @ParserFeedDecorator("Split")
 def Parser_split(args):
+    op = args[1]
+    helper = args[3]
     private_data = args[4]
-    split_num = private_data['split_num']
-    OpsRegister()["Split"].split_num = split_num
+    if 'split_num' in private_data.keys():
+        split_num = private_data['split_num']
+        OpsRegister()["Split"].split_num = split_num
+    else:
+        OpsRegister()["Split"].split_num = helper.attr_data(op, 'num')
 
 @ParserFeedDecorator("Reshape")
 def Parser_reshape(args):
@@ -456,6 +481,32 @@ def Parser_elementwise_mul(args):
     else:
         OpsRegister()["Scale"].bias_term = False
 
+@ParserFeedDecorator("Activation")
+def Parser_relu6(args):
+    op = args[1]
+    helper = args[3]
+    OpsRegister()["Activation"].type = "ClippedRelu"
+    OpsRegister()["Activation"].clip_relu_num = helper.attr_data(op, 'threshold')
+
+@ParserFeedDecorator("Activation")
+def Parser_leaky_relu(args):
+    op = args[1]
+    helper = args[3]
+    OpsRegister()["ReLU"].alpha = helper.attr_data(op, 'alpha')
+
+@ParserFeedDecorator("Activation")
+def Parser_prelu(args):
+    op = args[1]
+    helper = args[3]
+    mode = helper.attr_data(op, 'mode')
+    OpsRegister()["Activation"].type = "PReLU"
+    if mode == "all":
+        OpsRegister()["Activation"].channel_shared = True
+    elif mode == "channel":
+        OpsRegister()["Activation"].channel_shared = False
+    else:
+        raise NameError('ERROR: Unknown Prelu channel_shared param.')
+
 @ParserFeedDecorator("Flatten")
 def Parser_flatten(args):
     pass
@@ -471,6 +522,7 @@ def Parser_shape(args):
 FLUID_NODE_FILLER = {
     "feed":OpsParam().set_parser(Parser_feed),
     "conv2d":OpsParam().set_parser(Parser_conv2d),
+    "conv2d_transpose":OpsParam().set_parser(Parser_conv2d_transpose),
     "elementwise_add":OpsParam().set_parser(Parser_sum),
     "relu":OpsParam().set_parser(Parser_relu),
     "pool2d":OpsParam().set_parser(Parser_pool2d),
@@ -511,4 +563,7 @@ FLUID_NODE_FILLER = {
     "flatten":OpsParam().set_parser(Parser_flatten),
     "assign_value":OpsParam().set_parser(Parser_assign_value),
     "shape":OpsParam().set_parser(Parser_shape),
+    "relu6":OpsParam().set_parser(Parser_relu6),
+    "leaky_relu":OpsParam().set_parser(Parser_leaky_relu),
+    "prelu":OpsParam().set_parser(Parser_prelu),
 }
