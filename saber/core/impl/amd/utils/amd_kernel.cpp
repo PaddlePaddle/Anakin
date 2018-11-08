@@ -47,11 +47,13 @@ bool LaunchKernel(AMDStream_t stream, amd_kernel_list kernels, bool sync) {
 
         if (sync) {
             TargetWrapper<AMD>::sync_event(event);
+#ifdef ENABLE_AMD_PROFILING
             cl_ulong start, end;
             clGetEventProfilingInfo(
                 event, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &start, NULL);
             clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &end, NULL);
             exec_time_ms = (end - start) * 1e-6;
+#endif
         }
 
         if (sync) {
