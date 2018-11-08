@@ -468,6 +468,12 @@ def Parser_relu6(args):
     OpsRegister()["Activation"].type = "ClippedRelu"
     OpsRegister()["Activation"].clip_relu_num = helper.attr_data(op, 'threshold')
 
+@ParserFeedDecorator("Activation")
+def Parser_leaky_relu(args):
+    op = args[1]
+    helper = args[3]
+    OpsRegister()["ReLU"].alpha = helper.attr_data(op, 'alpha')
+
 @ParserFeedDecorator("Flatten")
 def Parser_flatten(args):
     pass
@@ -523,5 +529,6 @@ FLUID_NODE_FILLER = {
     "flatten":OpsParam().set_parser(Parser_flatten),
     "assign_value":OpsParam().set_parser(Parser_assign_value),
     "shape":OpsParam().set_parser(Parser_shape),
-    "relu6": OpsParam().set_parser(Parser_relu6),
+    "relu6":OpsParam().set_parser(Parser_relu6),
+    "leaky_relu":OpsParam().set_parser(Parser_leaky_relu),
 }
