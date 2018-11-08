@@ -525,6 +525,8 @@ def Parser_pooling(args):
     #if pooling_param.HasField("cmp_out_shape_floor_as_conv"): # for adu novel pooling approach
     if is_has_proto_key(pooling_param, "cmp_out_shape_floor_as_conv"):
         OpsRegister()["Pooling"].cmp_out_shape_floor_as_conv = pooling_param.cmp_out_shape_floor_as_conv
+    elif is_has_proto_key(pooling_param, "ceil_mode"):
+        OpsRegister()["Pooling"].cmp_out_shape_floor_as_conv = not pooling_param.ceil_mode
     else:
         OpsRegister()["Pooling"].cmp_out_shape_floor_as_conv = False
 

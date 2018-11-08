@@ -49,13 +49,9 @@ class CaffeParser:
 
     
     def _SplitInception(self, is_weight):
-        print is_weight
         net = self.net_parameter
-        
         if is_weight:
             net = self.net_param_weights
-        else:
-            print net
         layers = net.layers or net.layer;
         new_layers = []
         net_param  = NetParameter()
@@ -66,15 +62,10 @@ class CaffeParser:
                     if blob in blob_name_dict:
                         layer.bottom[b_id] = blob_name_dict[blob]
                 new_layers.append(layer)
-                if is_weight:
-                    if (layer.type == "Slice"):
-                        print layer
             else:
                 for b_id, blob in enumerate(layer.bottom):
                     if blob in blob_name_dict:
                         layer.bottom[b_id] = blob_name_dict[blob]
-                #if is_weight:
-                    #print layer
                 inception_top = layer.top
                 bottom_name = layer.bottom
                 inception_param = layer.inception_param
@@ -86,10 +77,6 @@ class CaffeParser:
                 blob_id = 0
                 inception = []
                 blobs = layer.blobs
-                if len(blobs) != 0:
-                     print "****************************************"
-                     for b in blobs:
-                         print "inception blob shape", b.shape
                 for cl_id, column in enumerate(columns):
                     convs = column.convolution_param
                     col_name = inception_top[0] + "_" + column.column_name
@@ -111,11 +98,8 @@ class CaffeParser:
                          inception.append(conv_layer)
                          if len(blobs) != 0:
                              if conv_layer.convolution_param.bias_term:
-                             #    conv_layer.blobs.append(blobs[blob_id])
-                             #    conv_layer.blobs.append(blobs[blob_id+1])
                                  blob_id += 2
                              else:
-                             #    conv_layer.blobs.append(blobs[blob_id+1])
                                  blob_id += 1
                          bottom = top
                          if (need_relu):
@@ -163,11 +147,7 @@ class CaffeParser:
                     bottom = inception_top[0]
                 else:
                     blob_name_dict[inception_top[0]] = bottom
-                
                 new_layers.extend(inception)
-                #print inception
-                #for com in inception:
-                #    new_layers.append(com)
         if is_weight:
             if self.net_param_weights.layers:
                 del self.net_param_weights.layers[:]
@@ -217,7 +197,7 @@ class CaffeParser:
                 logger(verbose.FATAL).feed("[ Upgrade Level 1 ]  Details: need to upgrade from V0 to V1 [ FAILED ]")
                 exit()
         if NetNeedsDataUpgrade(self.net_parameter):
-            logger(verbose.ERROR).feed("[ Upgrade Level 2 ] Details: need Data upgrade [ IGNORED ]")
+            logger(verbose.WARNING).feed("[ Upgrade Level 2 ] Details: need Data upgrade [ IGNORED ]")
         if NetNeedsV1ToV2Upgrade(self.net_parameter):
             logger(verbose.INFO).feed("[ Upgrade Level 3 ] Details: need to upgrade from V1 to V2 [ ... ]")
             original_param = NetParameter()
@@ -537,10 +517,10 @@ class CaffeParser:
                     blob_top_to_layer_name[top].put(tmp_rlayer.name)
         # set graph proto's name
         self.graphIO.set_name(self.net_parameter.name)
-        logger(verbose.ERROR).feed(" [CAFFE] Archtecture Parsing ...")
+        logger(verbose.INFO).feed(" [CAFFE] Archtecture Parsing ...")
 
         # parsing model
-        logger(verbose.ERROR).feed(" [CAFFE] Model Parameter Parsing ...")
+        logger(verbose.INFO).feed(" [CAFFE] Model Parameter Parsing ...")
         self._ParserModel()
         self._SplitInception(True)
         model_layers = self.net_param_weights.layers or self.net_param_weights.layer
@@ -657,10 +637,10 @@ class CaffeParser:
                 #blob_btm_to_layer_name[top] = tmp_rlayer.name
         # set graph proto's name
         self.graphIO.set_name(self.net_parameter.name)
-        logger(verbose.ERROR).feed(" [CAFFE] Archtecture Parsing ...")
+        logger(verbose.WARNING).feed(" [CAFFE] Archtecture Parsing ...")
 
         # parsing model
-        logger(verbose.ERROR).feed(" [CAFFE] Model Parameter Parsing ...")
+        logger(verbose.WARNING).feed(" [CAFFE] Model Parameter Parsing ...")
         self._ParserModel()
         #self._SplitInception(True)
         model_layers = self.net_param_weights.layers or self.net_param_weights.layer
