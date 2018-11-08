@@ -150,9 +150,14 @@ def Parser_scale_of_bn(args):
 
 @ParserFeedDecorator("Split")
 def Parser_split(args):
+    op = args[1]
+    helper = args[3]
     private_data = args[4]
-    split_num = private_data['split_num']
-    OpsRegister()["Split"].split_num = split_num
+    if 'split_num' in private_data.keys():
+        split_num = private_data['split_num']
+        OpsRegister()["Split"].split_num = split_num
+    else:
+        OpsRegister()["Split"].split_num = helper.attr_data(op, 'num')
 
 @ParserFeedDecorator("Reshape")
 def Parser_reshape(args):
@@ -456,6 +461,13 @@ def Parser_elementwise_mul(args):
     else:
         OpsRegister()["Scale"].bias_term = False
 
+@ParserFeedDecorator("Activation")
+def Parser_relu6(args):
+    op = args[1]
+    helper = args[3]
+    OpsRegister()["Activation"].type = "ClippedRelu"
+    OpsRegister()["Activation"].clip_relu_num = helper.attr_data(op, 'threshold')
+
 @ParserFeedDecorator("Flatten")
 def Parser_flatten(args):
     pass
@@ -511,4 +523,5 @@ FLUID_NODE_FILLER = {
     "flatten":OpsParam().set_parser(Parser_flatten),
     "assign_value":OpsParam().set_parser(Parser_assign_value),
     "shape":OpsParam().set_parser(Parser_shape),
+    "relu6": OpsParam().set_parser(Parser_relu6),
 }
