@@ -48,6 +48,26 @@ def Parser_conv2d(args):
     else:
         OpsRegister()["Convolution"].bias_term = False
 
+@ParserFeedDecorator("Deconvolution")
+def Parser_conv2d_transpose(args):
+    op = args[1]
+    helper = args[3]
+    private_data = args[4]
+    [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'Filter')
+    OpsRegister()["Deconvolution"].weight_1 = weights_tensor
+    OpsRegister()["Deconvolution"].filter_num = weights_shape[0]
+    OpsRegister()["Deconvolution"].kernel_size = weights_shape[-2:]
+    OpsRegister()["Deconvolution"].strides = helper.attr_data(op, 'strides')
+    OpsRegister()["Deconvolution"].padding = helper.attr_data(op, 'paddings')
+    OpsRegister()["Deconvolution"].dilation_rate = helper.attr_data(op, 'dilations')
+    OpsRegister()["Deconvolution"].group = helper.attr_data(op, 'groups')
+    OpsRegister()["Deconvolution"].axis = 1
+    if 'bias' in private_data.keys():
+        OpsRegister()["Deconvolution"].bias_term = True
+        OpsRegister()["Deconvolution"].weight_2 = private_data['bias']
+    else:
+        OpsRegister()["Deconvolution"].bias_term = False
+
 @ParserFeedDecorator("ReLU")
 def Parser_relu(args):
     OpsRegister()["ReLU"].alpha = 0.0
@@ -489,6 +509,7 @@ def Parser_shape(args):
 FLUID_NODE_FILLER = {
     "feed":OpsParam().set_parser(Parser_feed),
     "conv2d":OpsParam().set_parser(Parser_conv2d),
+    "conv2d_transpose":OpsParam().set_parser(Parser_conv2d_transpose),
     "elementwise_add":OpsParam().set_parser(Parser_sum),
     "relu":OpsParam().set_parser(Parser_relu),
     "pool2d":OpsParam().set_parser(Parser_pool2d),
