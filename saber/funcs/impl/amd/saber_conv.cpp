@@ -68,17 +68,19 @@ SaberStatus SaberConv2D<AMD, OpDtype>::create(
     cl_device_id device = dev.get_device();
     cl_context context  = dev.get_context();
     bool isBias         = (param.bias()->size() > 0) ? true : false;
+    kernelInfo.comp_options = "";
 
     if (param.group == inputs[0]->channel() && param.group == outputs[0]->channel()) {
-        kernelInfo.comp_options = std::string(" -DMLO_CONV_BIAS=") + std::to_string(isBias);
+        int isActiveRelu = 0;
 
         if (param.activation_param.has_active) {
             if (param.activation_param.active == Active_relu) {
-                bool isActiveRelu = true;
-                kernelInfo.comp_options =
-                    std::string(" -DMLO_CONV_ACTIVE_RELU=") + std::to_string(isActiveRelu);
+                isActiveRelu = 1;
             }
         }
+
+        kernelInfo.comp_options += std::string(" -DMLO_CONV_BIAS=") + std::to_string(isBias) +
+                                   std::string(" -DMLO_CONV_ACTIVE_RELU=") + std::to_string(isActiveRelu);
 
         if ((inputs[0]->channel() == 32) && (inputs[0]->num() == 32)
                 && (inputs[0]->height() == 112)) {
@@ -137,11 +139,11 @@ SaberStatus SaberConv2D<AMD, OpDtype>::create(
             kernelInfo.kernel_name = "DepthwiseconvDw242n32";
         } else {
             kernelInfo.wk_dim = 1;
-            kernelInfo.l_wk   = {64};
+            kernelInfo.l_wk   = {256};
             kernelInfo.g_wk   = {(inputs[0]->num() * inputs[0]->channel() * outputs[0]->height()
                                   * outputs[0]->width()
-                                  + 64 - 1)
-                                 / 64 * 64
+                                  + 256 - 1)
+                                 / 256 * 256
                                 };
             kernelInfo.kernel_file = "Depthwiseconv.cl";
             kernelInfo.kernel_name = "Depthwiseconv";
