@@ -17,11 +17,13 @@
 
 #include <CL/cl.h>
 #include "saber/core/impl/amd/utils/amd_base.h"
+#include "saber/core/impl/amd/utils/amd_kernel.h"
 
 #define MLO_POOLING_OP_AVE 0
 #define MLO_POOLING_OP_MAX 1
 
 namespace anakin {
+
 namespace saber {
 // so that MIOpen works whether or not recent MIOpenGEMM changes pulled:
 // convert size_t and ulong kernel function parameters to unsigned.
@@ -31,6 +33,56 @@ void add_relu(std::string& clstr);
 void set_offsets_to_uint(std::string& clstr, int times);
 void set_offsets_to_uint(std::string& clstr);
 } // namespace tempfix
+
+void Im2ColGPU(
+    KernelInfo& kernelInfo,
+    AMDKernelPtr& kptr,
+    int device_id,
+    int c,
+    int h,
+    int w,
+    int wei_h,
+    int wei_w,
+    int out_h,
+    int out_w,
+    int pad_h,
+    int pad_w,
+    int stride_h,
+    int stride_w,
+    int dilation_h,
+    int dilation_w);
+
+void transpose_NCHW2CNHW(
+    KernelInfo& kernelInfo,
+    AMDKernelPtr& kptr,
+    int device_id,
+    int n,
+    int c,
+    int h_in,
+    int w_in,
+    int h_out,
+    int w_out,
+    int in_offset,
+    int out_offset,
+    int h_stride,
+    int w_stride);
+
+void transpose_CNHW2NCHW(
+    KernelInfo& kernelInfo,
+    AMDKernelPtr& kptr,
+    int device_id,
+    int n,
+    int c,
+    int h_out,
+    int w_out,
+    int h_in,
+    int w_in,
+    int in_offset,
+    int out_offset,
+    int h_stride,
+    int w_stride,
+    bool isBias);
+
 } // namespace saber
 } // namespace anakin
 #endif
