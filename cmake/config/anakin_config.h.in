@@ -82,6 +82,8 @@
 // build arm lite
 #cmakedefine BUILD_LITE
 
+// for AMD profiling computing performance
+#cmakedefine ENABLE_AMD_PROFILING
 
 #if defined(ANDROID) || defined(__ANDROID__)
     #define PLATFORM_ANDROID
@@ -113,4 +115,3 @@
 #endif
 
 #endif
-
