@@ -488,7 +488,7 @@ def Parser_relu6(args):
     OpsRegister()["Activation"].type = "ClippedRelu"
     OpsRegister()["Activation"].clip_relu_num = helper.attr_data(op, 'threshold')
 
-@ParserFeedDecorator("Activation")
+@ParserFeedDecorator("ReLU")
 def Parser_leaky_relu(args):
     op = args[1]
     helper = args[3]
