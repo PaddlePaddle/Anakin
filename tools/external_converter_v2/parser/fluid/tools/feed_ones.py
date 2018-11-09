@@ -91,6 +91,21 @@ def fetch_tmp_vars(block, fetch_targets, var_names_list=None):
             i = i + 1
     return new_fetch_vars
 
+def print_ops_type(block):
+    """
+    """
+    def ops_type(block):
+        ops = list(block.ops)
+        cache = []
+        for op in ops:
+            if op.type not in cache:
+                cache.append(op.type)
+        return cache
+    type_cache = ops_type(block)
+    print 'type: '
+    for op_type in type_cache:
+        print op_type
+
 def print_results(results, fetch_targets, need_save=True):
     """
     """
