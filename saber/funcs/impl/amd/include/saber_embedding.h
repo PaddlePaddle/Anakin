@@ -19,7 +19,6 @@
 #include "saber/funcs/impl/impl_embedding.h"
 #include "saber/funcs/base.h"
 #include "saber/core/impl/amd/utils/amd_base.h"
-#include "saber/core/impl/amd/utils/amd_profiler.h"
 #include "saber/saber_types.h"
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/saber_funcs_param.h"
