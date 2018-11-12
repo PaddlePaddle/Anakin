@@ -323,11 +323,12 @@ void WriteKernelIntoMemCache(cl_program program, ClKernelPtr kernel, KernelInfo*
 
 cl_kernel CreateKernelFromSource(cl_program program, KernelInfo* ki) {
     cl_kernel kernel = NULL;
+    cl_int err       = 0;
 
-    kernel = clCreateKernel(program, ki->kernel_name.c_str(), NULL);
+    kernel = clCreateKernel(program, ki->kernel_name.c_str(), &err);
 
     if (kernel == NULL) {
-        AMD_LOGE("error: failed to create CL kernel.\n");
+        AMD_LOGE("error: failed to create CL kernel(" << err << ").\n");
         return NULL;
     }
 

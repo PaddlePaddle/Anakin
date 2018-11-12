@@ -12,25 +12,25 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-__attribute__((reqd_work_group_size(64, 1, 1))) __kernel void Depthwiseconv(
-        global float* din,
-        const int num,
-        const int channels,
-        const int hin,
-        const int win,
-        const int hout,
-        const int wout,
-        const int kernel_h,
-        const int kernel_w,
-        const int stride_h,
-        const int stride_w,
-        const int pad_h,
-        const int pad_w,
-        global float* dout,
-        global float* weight
+__kernel void Depthwiseconv(
+    global float* din,
+    const int num,
+    const int channels,
+    const int hin,
+    const int win,
+    const int hout,
+    const int wout,
+    const int kernel_h,
+    const int kernel_w,
+    const int stride_h,
+    const int stride_w,
+    const int pad_h,
+    const int pad_w,
+    global float* dout,
+    global float* weight
 #if MLO_CONV_BIAS
-        ,
-        global float* bias
+    ,
+    global float* bias
 #endif
 ) {
     int local_idx        = get_global_id(0);

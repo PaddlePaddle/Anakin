@@ -32,10 +32,12 @@ using ClKernelPtr = SHARED_OBJ(cl_kernel);
 class OCLKernel {
 public:
     OCLKernel(cl_context ctx, cl_device_id id, anakin::saber::KernelInfo* ki) :
-            _context(ctx),
-            _device_id(id) {
-        if (ki == nullptr)
+        _context(ctx),
+        _device_id(id) {
+        if (ki == nullptr) {
             throw "KernelInfo can't be null";
+        }
+
         kernel_info = ki;
         kernel_info.print();
 
@@ -55,15 +57,19 @@ public:
         return _kernel.get();
     };
     template <class... Ts>
-    bool SetKernelArgs(const Ts&... xs) {
+    bool SetKernelArgs(const Ts& ... xs) {
         AMD_LOGD(__func__);
-        if (!isInit())
+
+        if (!isInit()) {
             return false;
+        }
+
         AMD_LOGD("Kernel is init");
 
         if (!setKernelArgs(0, xs...)) {
             return false;
         }
+
         AMD_LOGD("Set Kernel Args complete");
         return true;
     }
@@ -71,8 +77,11 @@ public:
     bool
     Invoke(cl_command_queue cm, int wait_events_num, const cl_event* wait_events, cl_event* event) {
         AMD_LOGD(__func__);
-        if (!isInit())
+
+        if (!isInit()) {
             return false;
+        }
+
         AMD_LOGD("Kernel is init");
         return run(cm, wait_events_num, wait_events, event);
     }
@@ -83,15 +92,19 @@ public:
            int wait_events_num,
            const cl_event* wait_events,
            cl_event* event,
-           const Ts&... xs) {
+           const Ts& ... xs) {
         AMD_LOGD(__func__);
-        if (!isInit())
+
+        if (!isInit()) {
             return false;
+        }
+
         AMD_LOGD("Kernel is init");
 
         if (!setKernelArgs(0, xs...)) {
             return false;
         }
+
         AMD_LOGD("Set Kernel Args complete");
 
         return run(cm, wait_events_num, wait_events, event);
@@ -106,23 +119,27 @@ private:
     bool setKernelArgs(int index, const T& x) {
 
         cl_int errNum = clSetKernelArg(_kernel.get(), index, sizeof(T), &x);
+
         if (errNum != CL_SUCCESS) {
 
-            if (errNum == CL_INVALID_ARG_INDEX) // workaround for miopengemm kenrel
-            {
+            if (errNum == CL_INVALID_ARG_INDEX) { // workaround for miopengemm kenrel
                 AMD_LOGE("set kernel args[" << index << "] err = " << errNum);
                 return true;
             }
+
             AMD_LOGE("set kernel args[" << index << "] err = " << errNum);
             return false;
         }
+
         AMD_LOGD("Set Kernel Args[" << index << "]");
         return true;
     }
     template <class T, class... Ts>
-    bool setKernelArgs(int index, const T& x, const Ts&... xs) {
-        if (!setKernelArgs(index, x))
+    bool setKernelArgs(int index, const T& x, const Ts& ... xs) {
+        if (!setKernelArgs(index, x)) {
             return false;
+        }
+
         return setKernelArgs(index + 1, xs...);
     }
 

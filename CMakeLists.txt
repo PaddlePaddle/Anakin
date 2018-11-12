@@ -73,7 +73,7 @@ anakin_option(TARGET_ANDROID "build for android" YES if USE_ARM_PLACE)
 anakin_option(TARGET_IOS "not supported now" YES if USE_ARM_PLACE AND NOT TARGET_ANDROID)
 
 # compile options for NVIDIA_GPU place
-anakin_option(USE_CUDA "Use Cuda libs." YES if NVIDIA_GPU)
+anakin_option(USE_CUDA "Use Cuda libs." NO if NVIDIA_GPU)
 anakin_option(USE_CUBLAS "Use Cublas libs." YES if USE_CUDA)
 anakin_option(USE_CURAND "Use Curand libs." YES if USE_CUDA)
 anakin_option(USE_CUFFT "Use CuFFT libs." YES if USE_CUDA)
@@ -149,7 +149,8 @@ anakin_option(BUILD_SHARED "Build anakin shared lib." YES)
 anakin_option(BUILD_STATIC "Build anakin static lib." YES if NOT BUILD_SHARED)
 
 anakin_option(ENABLE_OP_TIMER "Enable op timer mode." NO)
-
+# for AMD profile computing performance
+anakin_option(ENABLE_AMD_PROFILING "Enable amd profiling" NO)
 # ----------------------------------------------------------------------------
 # section: anakin compiler and linker options
 # ----------------------------------------------------------------------------
