@@ -488,7 +488,7 @@ def Parser_relu6(args):
     OpsRegister()["Activation"].type = "ClippedRelu"
     OpsRegister()["Activation"].clip_relu_num = helper.attr_data(op, 'threshold')
 
-@ParserFeedDecorator("Activation")
+@ParserFeedDecorator("ReLU")
 def Parser_leaky_relu(args):
     op = args[1]
     helper = args[3]
@@ -509,7 +509,10 @@ def Parser_prelu(args):
 
 @ParserFeedDecorator("Flatten")
 def Parser_flatten(args):
-    pass
+    op = args[1]
+    helper = args[3]
+    OpsRegister()["Flatten"].start_axis = helper.attr_data(op, 'axis')
+    OpsRegister()["Flatten"].end_axis = -1
 
 @ParserFeedDecorator("assign_value")
 def Parser_assign_value(args):
