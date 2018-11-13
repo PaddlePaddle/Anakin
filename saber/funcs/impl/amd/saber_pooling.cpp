@@ -37,6 +37,19 @@ SaberStatus SaberPooling<AMD, OpDtype>::create(
     std::vector<Tensor<AMD>*>& outputs,
     PoolingParam<AMD>& param,
     Context<AMD>& ctx) {
+
+    ALOGD("create");
+
+    ALOGI("AMD Summary: input size N " << inputs[0]->num() << " C " << inputs[0]->channel()
+        << " H " << inputs[0]->height() << " W " << inputs[0]->width());
+
+    ALOGI( "AMD Summary: op param"
+        << " PWH " << param.window_h << " PWW " << param.window_w
+        << " PPH " << param.pad_h << " PPW " << param.pad_w
+        << " PSH " << param.stride_h << " PSW " << param.stride_w
+        << " PType " << param.pooling_type << " GP " << param.global_pooling
+        << " CMP " << param.cmp_out_shape_floor_as_conv);
+
     KernelInfo kernelInfo;
     int pooling_type = 0;
     int average_include = 0;

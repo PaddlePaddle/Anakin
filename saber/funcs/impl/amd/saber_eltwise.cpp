@@ -49,6 +49,16 @@ SaberStatus SaberEltwise<AMD, OpDtype>::create(
     std::vector<Tensor<AMD>*>& outputs,
     EltwiseParam<AMD>& param,
     Context<AMD>& ctx) {
+
+    ALOGD("create");
+
+    ALOGI("AMD Summary: input size N " << inputs[0]->num() << " C " << inputs[0]->channel()
+        << " H " << inputs[0]->height() << " W " << inputs[0]->width());
+
+    ALOGI("AMD Summary: op param has_eltwise " << param.has_eltwise << " type " << param.operation
+        << " has_act " << param.activation_param.has_active << " type " << param.activation_param.active
+        << " coef " << param.activation_param.coef << " negative_slope " << param.activation_param.negative_slope);
+
     if (_other_activation) {
         SABER_CHECK(_saber_activation.create(inputs, outputs, param.activation_param, ctx));
     }

@@ -43,6 +43,18 @@ public:
 
         CreateProgram();
         CreateKernel();
+
+        // performance summary
+        if (ki->kernel_type == KernelType::SOURCE)
+        {
+            AMD_LOGI(__FUNCTION__ << " AMD Summary: kernel file: SourceCode");
+        }
+        else
+        {
+            AMD_LOGI(__FUNCTION__ << " AMD Summary: kernel file: " << ki->kernel_file);
+        }
+        AMD_LOGI(__FUNCTION__ << " AMD Summary: kernel name: " << ki->kernel_name << std::endl);
+
         AMD_LOGD("create kernel complete");
     }
 

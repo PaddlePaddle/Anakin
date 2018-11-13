@@ -37,6 +37,13 @@ SaberStatus SaberResize<AMD, OpDtype>::create(
     ResizeParam<AMD>& param,
     Context<AMD>& ctx) {
 
+    ALOGD("create");
+
+    ALOGI("AMD Summary: input size N " << inputs[0]->num() << " C " << inputs[0]->channel()
+        << " H " << inputs[0]->height() << " W " << inputs[0]->width());
+
+    ALOGI("AMD Summary: op param width_scale " << param.width_scale << " height_scale " << param.height_scale);
+
     KernelInfo kernelInfo;
     kernelInfo.wk_dim      = 2;
     kernelInfo.l_wk        = {8, 8};

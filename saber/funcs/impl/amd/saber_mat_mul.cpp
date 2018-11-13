@@ -37,6 +37,15 @@ SaberStatus SaberMatMul<AMD, OpDtype>::create(
     MatMulParam<AMD>& param,
     Context<AMD>& ctx) {
 
+    ALOGD("create");
+
+    ALOGI("AMD Summary: input size N " << inputs[0]->num() << " C " << inputs[0]->channel()
+        << " H " << inputs[0]->height() << " W " << inputs[0]->width());
+
+    ALOGI("AMD Summary: op param "
+        << " _is_transpose_X " << param._is_transpose_X << " _is_transpose_Y " << param._is_transpose_Y
+        << " _m " << param._m << " _n " << param._n << " _k " << param._k << " _b " << param._b);
+
     this->_ctx   = &ctx;
     this->_param = &param;
     KernelInfo kernelInfo;

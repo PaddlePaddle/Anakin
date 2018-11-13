@@ -37,6 +37,25 @@ SaberStatus SaberCrop<AMD, OpDtype>::create(
     CropParam<AMD>& param,
     Context<AMD>& ctx) {
 
+    ALOGD("create");
+
+    ALOGI("AMD Summary: input size N " << inputs[0]->num() << " C " << inputs[0]->channel()
+        << " H " << inputs[0]->height() << " W " << inputs[0]->width());
+
+    std::string param_str = "axis " + std::to_string(param.axis);
+
+    for(auto item: param.offset)
+    {
+        param_str = param_str + " " + std::to_string(item);
+    }
+
+    for(auto item: param.shape)
+    {
+        param_str = param_str + " " + std::to_string(item);
+    }
+
+    ALOGI("AMD Summary: op param " << param_str);
+
     // compute the kernel input param.
     Shape in_stride = inputs[0]->get_stride();
     int in_n_index  = inputs[0]->num_index();

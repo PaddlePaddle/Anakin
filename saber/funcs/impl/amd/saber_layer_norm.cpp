@@ -38,6 +38,14 @@ SaberStatus SaberLayerNorm<AMD, OpDtype>::create(
     std::vector<Tensor<AMD>*>& outputs,
     LayerNormParam<AMD>& param,
     Context<AMD>& ctx) {
+
+    ALOGD("create");
+
+    ALOGI("AMD Summary: input size N " << inputs[0]->num() << " C " << inputs[0]->channel()
+        << " H " << inputs[0]->height() << " W " << inputs[0]->width());
+
+    ALOGI("AMD Summary: op param axis " << param.axis << " eps " << param.eps);
+
     // Shape sh_in = inputs[0]->valid_shape();
     _inner_size = inputs[0]->count_valid(param.axis, inputs[0]->dims());
     _outer_size = inputs[0]->count_valid(0, param.axis);

@@ -69,6 +69,19 @@ SaberStatus SaberPermute<AMD, OpDtype>::create(
     PermuteParam<AMD>& param,
     Context<AMD>& ctx) {
 
+    ALOGD("create");
+
+    ALOGI("AMD Summary: input size N " << inputs[0]->num() << " C " << inputs[0]->channel()
+        << " H " << inputs[0]->height() << " W " << inputs[0]->width());
+
+    std::string param_str{"order"};
+    for(auto item: param.order)
+    {
+        param_str = param_str + " " + std::to_string(item);
+    }
+
+    ALOGI("AMD Summary: op param " << param_str);
+
     int count = outputs[0]->valid_size();
 
     Shape order_shape({_num_axes, 1, 1, 1});

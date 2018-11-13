@@ -33,6 +33,14 @@ SaberStatus SaberConcat<AMD, OpDtype>::create(
     std::vector<Tensor<AMD>*>& outputs,
     ConcatParam<AMD>& param,
     Context<AMD>& ctx) {
+
+    ALOGD("create");
+
+    ALOGI("AMD Summary: input size N " << inputs[0]->num() << " C " << inputs[0]->channel()
+        << " H " << inputs[0]->height() << " W " << inputs[0]->width());
+
+    ALOGI("AMD Summary: op param axis " << param.axis);
+
     KernelInfo kernelInfo;
     int input_size = inputs.size();
     // input_size = 1;

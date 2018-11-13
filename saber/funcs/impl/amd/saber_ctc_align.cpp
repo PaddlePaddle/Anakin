@@ -44,6 +44,14 @@ SaberStatus SaberCtcAlign<AMD, OpDtype>::create(
     std::vector<Tensor<AMD>*>& outputs,
     CtcAlignParam<AMD>& param,
     Context<AMD>& ctx) {
+
+    ALOGD("create");
+
+    ALOGI("AMD Summary: input size N " << inputs[0]->num() << " C " << inputs[0]->channel()
+        << " H " << inputs[0]->height() << " W " << inputs[0]->width());
+
+    ALOGI("AMD Summary: op param blank " << param.blank << " merge_repeated " << param.merge_repeated);
+
     const int count = outputs[0]->size();
     int globalsize  = outputs[0]->size();
 

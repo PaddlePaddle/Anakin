@@ -28,6 +28,28 @@ SaberStatus SaberScale<AMD, OpDtype>::init(
     std::vector<Tensor<AMD>*>& outputs,
     ScaleParam<AMD>& param,
     Context<AMD>& ctx) {
+
+    ALOGD("create");
+
+    ALOGI("AMD Summary: input size N " << inputs[0]->num() << " C " << inputs[0]->channel()
+        << " H " << inputs[0]->height() << " W " << inputs[0]->width());
+
+    std::string param_str = "axis " + std::to_string(param.axis)
+        + " num_axes " + std::to_string(param.num_axes)
+        + " bias_term " + std::to_string(param.bias_term);
+
+    for(auto item: param.scale_w)
+    {
+        param_str = param_str + " " + std::to_string(item);
+    }
+
+    for(auto item: param.scale_b)
+    {
+        param_str = param_str + " " + std::to_string(item);
+    }
+
+    ALOGI("AMD Summary: op param " << param_str);
+
     this->_ctx = &ctx;
     _axis      = (param.num_axes == 0) ? 0 : param.axis;
     _num_axes  = param.num_axes >= 0 ? param.num_axes : inputs[0]->shape().dims() - _axis;

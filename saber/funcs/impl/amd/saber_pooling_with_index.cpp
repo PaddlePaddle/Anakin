@@ -36,6 +36,18 @@ SaberStatus SaberPoolingWithIndex<AMD, OpDtype>::create(
     PoolingParam<AMD>& power_param,
     Context<AMD>& ctx) {
 
+    ALOGD("create");
+
+    ALOGI("AMD Summary: input size N " << inputs[0]->num() << " C " << inputs[0]->channel()
+        << " H " << inputs[0]->height() << " W " << inputs[0]->width());
+
+    ALOGI( "AMD Summary: op param"
+        << " PWH " << power_param.window_h << " PWW " << power_param.window_w
+        << " PPH " << power_param.pad_h << " PPW " << power_param.pad_w
+        << " PSH " << power_param.stride_h << " PSW " << power_param.stride_w
+        << " PType " << power_param.pooling_type << " GP " << power_param.global_pooling
+        << " CMP " << power_param.cmp_out_shape_floor_as_conv);
+
     const int count = outputs[0]->size();
 
     Shape out_stride = outputs[0]->get_stride();

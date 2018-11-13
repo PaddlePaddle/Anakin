@@ -55,7 +55,27 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::create(
     std::vector<Tensor<AMD>*>& outputs,
     ConvPoolingParam<AMD>& param,
     Context<AMD>& ctx) {
+
     ALOGD("create");
+
+    ALOGI("AMD Summary: input size N " << inputs[0]->num() << " C " << inputs[0]->channel()
+        << " H " << inputs[0]->height() << " W " << inputs[0]->width());
+
+    ALOGI("AMD Summary: op param K " << param.conv_param.weight()->num()
+        << " Y " << param.conv_param.weight()->height() << " X " << param.conv_param.weight()->width()
+        << " SH " << param.conv_param.stride_h << " SW " << param.conv_param.stride_w
+        << " PH " << param.conv_param.pad_h << " PW " << param.conv_param.pad_w
+        << " DH " << param.conv_param.dilation_h << " DW " << param.conv_param.dilation_w
+        << " Alpha " << param.conv_param.alpha << " Beta " << param.conv_param.beta << " GP " << param.conv_param.group
+        << " hasAct " << param.conv_param.activation_param.has_active
+        << " ActType " << param.conv_param.activation_param.active
+        << " slop " << param.conv_param.activation_param.negative_slope
+        << " coef " << param.conv_param.activation_param.coef
+        << " PWH " << param.pooling_param.window_h << " PWW " << param.pooling_param.window_w
+        << " PPH " << param.pooling_param.pad_h << " PPW " << param.pooling_param.pad_w
+        << " PSH " << param.pooling_param.stride_h << " PSW " << param.pooling_param.stride_w
+        << " PType " << param.pooling_param.pooling_type << " GP " << param.pooling_param.global_pooling
+        << " CMP " << param.pooling_param.cmp_out_shape_floor_as_conv);
 
     KernelInfo kernelInfo;
 

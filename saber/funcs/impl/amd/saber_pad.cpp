@@ -37,6 +37,30 @@ SaberStatus SaberPad<AMD, OpDtype>::create(
     PadParam<AMD>& param,
     Context<AMD>& ctx) {
 
+    ALOGD("create");
+
+    ALOGI("AMD Summary: input size N " << inputs[0]->num() << " C " << inputs[0]->channel()
+        << " H " << inputs[0]->height() << " W " << inputs[0]->width());
+
+    std::string param_str = "pad c h w ";
+
+    for (auto item: param.pad_c)
+    {
+        param_str = param_str + " " + std::to_string(item);
+    }
+
+    for (auto item: param.pad_h)
+    {
+        param_str = param_str + " " + std::to_string(item);
+    }
+
+    for (auto item: param.pad_w)
+    {
+        param_str = param_str + " " + std::to_string(item);
+    }
+
+    ALOGI("AMD Summary: op param " << param_str);
+
     CHECK_EQ(2, param.pad_c.size());
     CHECK_EQ(2, param.pad_h.size());
     CHECK_EQ(2, param.pad_w.size());

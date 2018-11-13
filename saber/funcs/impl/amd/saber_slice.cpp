@@ -35,6 +35,20 @@ SaberStatus SaberSlice<AMD, OpDtype>::create(
     std::vector<Tensor<AMD>*>& outputs,
     SliceParam<AMD>& param,
     Context<AMD>& ctx) {
+
+    ALOGD("create");
+
+    ALOGI("AMD Summary: input size N " << inputs[0]->num() << " C " << inputs[0]->channel()
+        << " H " << inputs[0]->height() << " W " << inputs[0]->width());
+
+    std::string param_str{"slice_points"};
+    for(auto item: param.slice_points)
+    {
+        param_str = param_str + " " + std::to_string(item);
+    }
+
+    ALOGI("AMD Summary: op param ");
+
     int output_size = outputs.size();
     _slice_num      = inputs[0]->count_valid(0, param.axis);
     _slice_size     = inputs[0]->count_valid(param.axis + 1, inputs[0]->dims());

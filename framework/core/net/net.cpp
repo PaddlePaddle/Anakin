@@ -109,6 +109,11 @@ void Net<Ttype, Ptype, RunType>::init(graph::Graph<Ttype, Ptype>& graph, \
         auto& op_func = _exec_funcs[i];
         op_func.name = node_name;
         auto& edge_in_its = _graph_p->get_in_arc_its(node_name);
+
+#ifdef AMD_GPU
+        LOG(INFO) << "AMD Summary: node : name " << op_func.name << " op_name " << (*_graph_p)[node_name]->get_op_name();
+#endif
+
         DLOG(WARNING) << " node : " << op_func.name << " (" << (*_graph_p)[node_name]->get_op_name() <<
                       ") ";
 
@@ -145,6 +150,10 @@ void Net<Ttype, Ptype, RunType>::init(graph::Graph<Ttype, Ptype>& graph, \
         op_func.op->_helper->InferShape(op_func.ins, op_func.outs);
         op_func.op->_helper->Init(*(op_func.ctx_p), op_func.ins, op_func.outs);
     }
+
+#ifdef AMD_GPU
+    LOG(INFO) << "AMD Summary: Op init end";
+#endif
 
     // init memory of _graph_p
     init_memory();
@@ -307,6 +316,11 @@ void Net<Ttype, Ptype, RunType>::init(graph::Graph<Ttype, Ptype>& graph) {
         auto& op_func = _exec_funcs[i];
         op_func.name = node_name;
         auto& edge_in_its = _graph_p->get_in_arc_its(node_name);
+
+#ifdef AMD_GPU
+        LOG(INFO) << "AMD Summary: node : name " << op_func.name << " op_name " << (*_graph_p)[node_name]->get_op_name();
+#endif
+
         DLOG(WARNING) << " node : " << op_func.name << " (" << (*_graph_p)[node_name]->get_op_name() <<
                       ") ";
 
@@ -363,6 +377,10 @@ void Net<Ttype, Ptype, RunType>::init(graph::Graph<Ttype, Ptype>& graph) {
         DLOG(INFO) << "op init success " << op_func.name;
 #endif
     }
+
+#ifdef AMD_GPU
+    LOG(INFO) << "AMD Summary: Op init end";
+#endif
 
     double curr_mem_in_mb_end = MemoryInfo<Ttype>::Global().get_used_mem_in_mb();
     this->_graph_p->statistics.template set_info<graph::SYSTEM_MEM>(curr_mem_in_mb_end -

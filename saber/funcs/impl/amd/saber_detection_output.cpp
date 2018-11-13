@@ -36,6 +36,23 @@ SaberStatus SaberDetectionOutput<AMD, OpDtype>::create(
     std::vector<Tensor<AMD>*>& outputs,
     DetectionOutputParam<AMD>& param,
     Context<AMD>& ctx) {
+
+    ALOGD("create");
+
+    ALOGI("AMD Summary: input size N " << inputs[0]->num() << " C " << inputs[0]->channel()
+        << " H " << inputs[0]->height() << " W " << inputs[0]->width());
+
+    ALOGI("AMD Summary: op param share_location " << param.share_location
+        << " variance_encode_in_target " << param.variance_encode_in_target
+        << " class_num " << param.class_num
+        << " background_id " << param.background_id
+        << " keep_top_k " << param.keep_top_k
+        << " type " << param.type
+        << " conf_thresh " << param.conf_thresh
+        << " nms_top_k " << param.nms_top_k
+        << " nms_thresh " << param.nms_thresh
+        << " nms_eta " << param.nms_eta);
+
     const int count = outputs[0]->valid_size();
 
     //! inputs[1]: confidence map, dims = 4 {N, classes * boxes, 1, 1}

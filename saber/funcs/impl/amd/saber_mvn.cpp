@@ -36,6 +36,15 @@ SaberStatus SaberMvn<AMD, OpDtype>::create(
     std::vector<Tensor<AMD>*>& outputs,
     MvnParam<AMD>& param,
     Context<AMD>& ctx) {
+
+    ALOGD("create");
+
+    ALOGI("AMD Summary: input size N " << inputs[0]->num() << " C " << inputs[0]->channel()
+        << " H " << inputs[0]->height() << " W " << inputs[0]->width());
+
+    ALOGI("AMD Summary: op param normalize_variance " << param.normalize_variance
+        << " across_channels " << param.across_channels << " eps " << param.eps);
+
     const int count = outputs[0]->valid_size();
     int num         = inputs[0]->num() * inputs[0]->channel();
     int inner_dim   = inputs[0]->height() * inputs[0]->width();

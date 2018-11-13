@@ -35,6 +35,16 @@ SaberStatus SaberEmbedding<AMD, OpDtype>::create(
     std::vector<Tensor<AMD>*>& outputs,
     EmbeddingParam<AMD>& param,
     Context<AMD>& ctx) {
+
+    ALOGD("create");
+
+    ALOGI("AMD Summary: input size N " << inputs[0]->num() << " C " << inputs[0]->channel()
+        << " H " << inputs[0]->height() << " W " << inputs[0]->width());
+
+    ALOGI("AMD Summary: op param emb_dim " << param.emb_dim
+        << " word_num " << param.word_num
+        << " padding_idx " << param.padding_idx);
+
     const int count = outputs[0]->valid_size();
     KernelInfo kernelInfo;
     kernelInfo.l_wk   = {AMD_NUM_THREADS};

@@ -38,6 +38,15 @@ SaberStatus SaberLrn<AMD, OpDtype>::create(
     LrnParam<AMD>& param,
     Context<AMD>& ctx) {
 
+    ALOGD("create");
+
+    ALOGI("AMD Summary: input size N " << inputs[0]->num() << " C " << inputs[0]->channel()
+        << " H " << inputs[0]->height() << " W " << inputs[0]->width());
+
+    ALOGI("AMD Summary: op param local_size " << param.local_size
+        << " alpha " << param.alpha << " beta " << param.beta
+        << " k " << param.k << " norm_region " << param.norm_region);
+
     Shape out_stride = outputs[0]->get_stride();
     Shape in_stride  = inputs[0]->get_stride();
     int in_n_index   = inputs[0]->num_index();

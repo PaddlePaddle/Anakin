@@ -41,7 +41,23 @@ SaberStatus SaberConv2D<AMD, OpDtype>::create(
     std::vector<Tensor<AMD>*>& outputs,
     ConvParam<AMD>& param,
     Context<AMD>& ctx) {
+
     ALOGD("create");
+
+    ALOGI("AMD Summary: input size N " << inputs[0]->num() << " C " << inputs[0]->channel()
+        << " H " << inputs[0]->height() << " W " << inputs[0]->width());
+
+    ALOGI("AMD Summary: op param K " << param.weight()->num()
+        << " Y " << param.weight()->height() << " X " << param.weight()->width()
+        << " SH " << param.stride_h << " SW " << param.stride_w
+        << " PH " << param.pad_h << " PW " << param.pad_w
+        << " DH " << param.dilation_h << " DW " << param.dilation_w
+        << " Alpha " << param.alpha << " Beta " << param.beta << " GP " << param.group
+        << " hasAct " << param.activation_param.has_active
+        << " ActType " << param.activation_param.active
+        << " slop " << param.activation_param.negative_slope
+        << " coef " << param.activation_param.coef);
+
     this->_ctx = &ctx;
     KernelInfo kernelInfo;
     AMDKernelPtr kptr;

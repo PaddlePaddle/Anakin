@@ -35,6 +35,14 @@ SaberStatus SaberRoiPool<AMD, OpDtype>::create(
     RoiPoolParam<AMD>& param,
     Context<AMD>& ctx) {
 
+    ALOGD("create");
+
+    ALOGI("AMD Summary: input size N " << inputs[0]->num() << " C " << inputs[0]->channel()
+        << " H " << inputs[0]->height() << " W " << inputs[0]->width());
+
+    ALOGI("AMD Summary: op param pooled_height " << param.pooled_height << " pooled_width " << param.pooled_width
+        << " spatial_scale " << param.spatial_scale << " height " << param.height << " width " << param.width );
+
     const int count = outputs[0]->size();
 
     Shape out_stride = outputs[0]->get_stride();

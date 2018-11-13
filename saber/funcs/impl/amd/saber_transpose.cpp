@@ -37,6 +37,13 @@ SaberStatus SaberTranspose<AMD, OpDtype>::create(
     TransposeParam<AMD>& param,
     Context<AMD>& ctx) {
 
+    ALOGD("create");
+
+    ALOGI("AMD Summary: input size N " << inputs[0]->num() << " C " << inputs[0]->channel()
+        << " H " << inputs[0]->height() << " W " << inputs[0]->width());
+
+    ALOGI("AMD Summary: op param ");
+
     int global_size =
         inputs[0]->num() * inputs[0]->channel() * inputs[0]->width() * inputs[0]->height();
     int local_size = 256;

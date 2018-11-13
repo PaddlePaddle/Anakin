@@ -35,6 +35,13 @@ SaberStatus SaberCast<AMD, OpDtype>::create(
     CastParam<AMD>& param,
     Context<AMD>& ctx) {
 
+    ALOGD("create");
+
+    ALOGI("AMD Summary: input size N " << inputs[0]->num() << " C " << inputs[0]->channel()
+        << " H " << inputs[0]->height() << " W " << inputs[0]->width());
+
+    ALOGI("AMD Summary: op param in_type " << param.in_type << " out_type " << param.out_type);
+
     const int count = outputs[0]->size();
     _inDtype        = param.in_type;
     _outDtype       = param.out_type;

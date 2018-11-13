@@ -47,6 +47,13 @@ SaberStatus SaberAxpy<AMD, OpDtype>::create(
     AxpyParam<AMD>& param,
     Context<AMD>& ctx) {
 
+    ALOGD("create");
+
+    ALOGI("AMD Summary: input size N " << inputs[0]->num() << " C " << inputs[0]->channel()
+        << " H " << inputs[0]->height() << " W " << inputs[0]->width());
+
+    ALOGI("AMD Summary: op param ");
+
     _kernels.clear();
     const int count     = outputs[0]->size();
     cl_context context  = 0;

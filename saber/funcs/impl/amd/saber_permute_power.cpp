@@ -37,6 +37,22 @@ SaberStatus SaberPermutePower<AMD, OpDtype>::create(
     PermutePowerParam<AMD>& param,
     Context<AMD>& ctx) {
 
+    ALOGD("create");
+
+    ALOGI("AMD Summary: input size N " << inputs[0]->num() << " C " << inputs[0]->channel()
+        << " H " << inputs[0]->height() << " W " << inputs[0]->width());
+
+    std::string param_str = "power " + std::to_string(param.power_param.power)
+        + " scale " + std::to_string(param.power_param.scale)
+        + " shift " + std::to_string(param.power_param.shift);
+    for(auto item: param.permute_param.order)
+    {
+        param_str = param_str + " " + std::to_string(item);
+    }
+    param_str = param_str + " has_power_param " + std::to_string(param.has_power_param);
+
+    ALOGI("AMD Summary: op param " << param_str);
+
     int count = outputs[0]->valid_size();
 
     _num_axes                       = inputs[0]->shape().size();

@@ -81,6 +81,15 @@ SaberStatus SaberNormalize<AMD, OpDtype>::create(
     NormalizeParam<AMD>& param,
     Context<AMD>& ctx) {
 
+    // compute norm sizeLOGD("create");
+    ALOGD("create");
+
+    ALOGI("AMD Summary: input size N " << inputs[0]->num() << " C " << inputs[0]->channel()
+        << " H " << inputs[0]->height() << " W " << inputs[0]->width());
+
+    ALOGI("AMD Summary: op param p " << param.p << " across_spatial " << param.across_spatial
+        << " has_scale " << param.has_scale << " channel_shared " << param.channel_shared << " eps " << param.eps);
+
     // compute norm size
     int channel_index = inputs[0]->channel_index();
     _dims             = inputs[0]->dims();

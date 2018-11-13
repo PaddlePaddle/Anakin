@@ -150,6 +150,16 @@ SaberStatus SaberFc<AMD, OpDtype>::create(
     std::vector<Tensor<AMD>*>& outputs,
     FcParam<AMD>& param,
     Context<AMD>& ctx) {
+
+    ALOGD("create");
+
+    ALOGI("AMD Summary: input size N " << inputs[0]->num() << " C " << inputs[0]->channel()
+        << " H " << inputs[0]->height() << " W " << inputs[0]->width());
+
+    ALOGI("AMD Summary: op param is_transpose_weights " << param.is_transpose_weights
+        << " num_output " << param.num_output
+        << " axis " << param.axis);
+
     this->_ctx   = &ctx;
     this->_param = &param;
 
