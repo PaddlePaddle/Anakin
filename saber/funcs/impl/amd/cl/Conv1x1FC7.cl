@@ -13,69 +13,84 @@
    limitations under the License.
 */
 
-//#ifndef STRIDE
-//#define STRIDE (1024)
-//#endif
+#ifndef N
+#define N   1
+#endif
 
-#define ITER (STRIDE >> 8)
+#ifndef STRIDE
+#define STRIDE (1024)
+#endif
+
+
+#define ITER (STRIDE >> 6)
 
 #define OUTPUT 1000
 
-__attribute__((reqd_work_group_size(256, 1, 1))) __kernel void InnerProduct(
-        __constant float* a,
-        __global const float* b,
+__attribute__((reqd_work_group_size(64, 1, 1))) __kernel void InnerProduct(
+    __constant float* a, __global const float* b,
 #ifdef BIAS
-        __constant float* bias,
+    __global const float* bias,
 #endif
-        __global float* c) {
-    int lid_x  = get_local_id(0);
-    int grid_x = get_group_id(0);
+    __global float* c,
+    float slope) {
+    uint lid_x = get_local_id(0);
+    uint grid_x = get_group_id(0);
 
-    __local float shared_b[64][66];
-    __local float result[256];
+    __local float result[N][66];
 
-    __constant float* pA = (__constant float*)a;
-    __global const float* pB =
-            (__global const float*)(b + ((grid_x << 4)) * STRIDE + (lid_x & 63)); // correct
+    if (grid_x < OUTPUT) {
+        __constant float* pA;
+        __global const float* pB = (__global const float*)(b + grid_x * STRIDE + lid_x); // correct
+        __global float* pC;
 
-    int offset = ((grid_x >> 2 << 6) + (lid_x >> 6 << 6) * ITER) % STRIDE;
+        pA = (__constant float*)(a + lid_x);
+        pC = (__global float*)(c + grid_x);
 
-    float sum = 0.0f;
+        uint offset = (grid_x >> 2 << 6) % STRIDE;
 
-    for (int i = 0; i < ITER; i++, offset = (offset + 64) % STRIDE) {
-        for (int j = 0; j < 16; j++) {
-            shared_b[(lid_x >> 6 << 4) + j][(lid_x & 63) + ((lid_x & 63) >> 5)] =
-                    (offset + j * STRIDE + ((grid_x << 4)) * STRIDE + (lid_x & 63) < OUTPUT * STRIDE
-                             ? pB[(offset + j * STRIDE)]
-                             : 0.0f); // correct
+        float sum[N] = { 0.0f };
+
+        for (uint i = 0; i < ITER; i++, offset = (offset + 64) % STRIDE) {
+            for (uint n = 0; n < N; n++) {
+                sum[n] += pA[offset + n * STRIDE] * pB[offset]; // correct
+            }
         }
-        barrier(CLK_LOCAL_MEM_FENCE);
 
-        for (int k = 0; k < 16; k++) {
-            sum += pA[(offset + ((lid_x & 3) << 4) + k) % STRIDE]
-                   * shared_b[(lid_x >> 2)]
-                             [(((lid_x & 3) << 4) + k)
-                              + ((((lid_x & 3) << 4) + k) >> 5)]; // correct
-        }
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
+        for (uint n = 0; n < N; n++) {
+            result[n][lid_x] = sum[n];
 
-    result[lid_x] = sum;
-    barrier(CLK_LOCAL_MEM_FENCE);
+            if (lid_x < 32) {
+                result[n][lid_x] += result[n][lid_x + 32];
+            }
 
-    if (lid_x < 64) {
-        result[(lid_x << 2)] +=
-                result[(lid_x << 2) + 1] + result[(lid_x << 2) + 2] + result[(lid_x << 2) + 3];
-        barrier(CLK_LOCAL_MEM_FENCE);
-        result[(lid_x << 2)] +=
-                result[(lid_x << 2) + 64] + result[(lid_x << 2) + 128] + result[(lid_x << 2) + 192];
+            if (lid_x < 16) {
+                result[n][lid_x] += result[n][lid_x + 16];
+            }
 
-        if (lid_x < 16 && (grid_x << 4) + lid_x < OUTPUT) {
+            if (lid_x < 8) {
+                result[n][lid_x] += result[n][lid_x + 8];
+            }
+
+            if (lid_x < 4) {
+                result[n][lid_x] += result[n][lid_x + 4];
+            }
+
+            if (lid_x < 2) {
+                result[n][lid_x] += result[n][lid_x + 2];
+            }
+
+            if (lid_x < 1) {
+                result[n][lid_x] += result[n][lid_x + 1];
+            }
+
+            if (lid_x == 0) {
 #ifdef BIAS
-            c[(grid_x << 4) + lid_x] = bias[(grid_x << 4) + lid_x] + result[(lid_x << 2)];
+                pC[n * OUTPUT] = bias[grid_x] + result[n][0];
 #else
-            c[(grid_x << 4) + lid_x] = result[(lid_x << 2)];
+                pC[n * OUTPUT] = result[n][0];
 #endif
+                pC[n * OUTPUT] *= (pC[n * OUTPUT] > 0 ? 1.0f : slope);
+            }
         }
     }
 }

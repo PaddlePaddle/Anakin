@@ -997,18 +997,19 @@ SaberStatus SaberConv2D<AMD, OpDtype>::dispatch(
                     return SaberInvalidValue;
                 }
             } else if (_kernels_ptr[i].get()->GetName() == "InnerProduct") {
-                // todo: need review activation!!
                 if (isBias) {
                     err = _kernels_ptr[i].get()->SetKernelArgs(
                               (PtrDtype)inputs[0]->data(),
                               (PtrDtype)param.weight()->data(),
                               (PtrDtype)param.bias()->data(),
-                              (PtrDtype)outputs[0]->mutable_data());
+                              (PtrDtype)outputs[0]->mutable_data(),
+                              negative_slope);
                 } else {
                     err = _kernels_ptr[i].get()->SetKernelArgs(
                               (PtrDtype)inputs[0]->data(),
                               (PtrDtype)param.weight()->data(),
-                              (PtrDtype)outputs[0]->mutable_data());
+                              (PtrDtype)outputs[0]->mutable_data(),
+                              negative_slope);
                 }
 
                 if (!err) {
