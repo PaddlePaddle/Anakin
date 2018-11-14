@@ -13,7 +13,6 @@
    limitations under the License.
 */
 #include "amd_kernel.h"
-#include "amd_profiler.h"
 #include "saber/core/env.h"
 #include "saber/core/device.h"
 
@@ -34,7 +33,6 @@ AMDKernelPtr CreateKernel(int device_id, KernelInfo* ki) {
 
 bool LaunchKernel(AMDStream_t stream, amd_kernel_list kernels, bool sync) {
     ALOGD(__func__);
-    bool record        = AMDProfiler::is_recording();
     float exec_time_ms = 0;
     cl_event_list list;
 
@@ -42,7 +40,7 @@ bool LaunchKernel(AMDStream_t stream, amd_kernel_list kernels, bool sync) {
         cl_event event;
         ALOGD(__func__ << " E");
 
-        if (!it->get()->Invoke(stream, 0, NULL, (record || sync ? &event : NULL))) {
+        if (!it->get()->Invoke(stream, 0, NULL, (sync ? &event : NULL))) {
             ALOGD(__func__ << " Failed");
             return false;
         }
@@ -56,17 +54,11 @@ bool LaunchKernel(AMDStream_t stream, amd_kernel_list kernels, bool sync) {
             exec_time_ms = (end - start) * 1e-6;
         }
 
-        if (record) {
-            list.push_back(event);
-        } else if (sync) {
+        if (sync) {
             TargetWrapper<AMD>::destroy_event(event);
         }
 
         ALOGD(__func__ << " X : " << exec_time_ms << " ms");
-    }
-
-    if (record) {
-        AMDProfiler::add_event(list);
     }
 
     return true;

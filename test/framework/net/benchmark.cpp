@@ -10,7 +10,6 @@
 #include <fcntl.h>
 #include <map>
 #include "framework/operators/ops.h"
-#include "saber/core/impl/amd/utils/amd_profiler.h"
 
 #if defined(USE_CUDA)
 using Target = NV;
@@ -130,9 +129,6 @@ TEST(NetTest, net_execute_base_test) {
 #ifdef ENABLE_OP_TIMER
         net_executer.reset_op_time();
 #endif
-#ifdef AMD_GPU
-        AMDProfiler::start_record();
-#endif
         my_time.start(ctx);
 
         for (int i = 0; i < FLAGS_epoch; i++) {
@@ -170,10 +166,6 @@ TEST(NetTest, net_execute_base_test) {
 
         LOG(INFO) << model_name << " batch_size " << FLAGS_num << " average time "<< my_time.get_average_ms() / FLAGS_epoch << " ms";
 
-#ifdef AMD_GPU
-       AMDProfiler::stop_record();
-       AMDProfiler::pop();
-#endif
     }
 }
 int main(int argc, const char** argv){

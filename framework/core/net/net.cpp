@@ -16,9 +16,6 @@
 #include "saber/funcs/timer.h"
 #include "saber/funcs/debug.h"
 #include "framework/core/mem_info.h"
-#ifdef AMD_GPU
-#include "saber/core/impl/amd/utils/amd_profiler.h"
-#endif
 
 namespace anakin {
 
@@ -427,14 +424,6 @@ void Net<Ttype, Ptype, RunType>::prediction() {
                 executer.ins[i]->sync();
             }
         }
-#ifdef AMD_GPU
-        std::string tag;
-        tag.append(executer.name) ;
-        tag.append("(");
-        tag.append(executer.op_name);
-        tag.append(")");
-        AMDProfiler::set_tag(tag.c_str());
-#endif
 
 #ifdef ENABLE_DEBUG
         LOG(WARNING) << " executer: " << executer.name << " (" << executer.op_name << ") ";
