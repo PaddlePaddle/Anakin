@@ -401,38 +401,6 @@ void BiasReluPool(std::vector<AMDKernelPtr>& vkptr, int device_id, int bt_size,
             kernelInfo.kernel_type = SABER;
         } else {
             // Bias relu kernel
-            if (isBias) {
-                kernelInfo.kernel_file = "MIOpenBiasReLuUni.cl";
-
-                if (isActive) {
-                    kernelInfo.kernel_name = "MIOpenBiasReluBoth";
-                } else {
-                    kernelInfo.kernel_name = "MIOpenBias";
-                }
-
-                kernelInfo.l_wk = {256, 1, 1};
-                kernelInfo.g_wk = {bt_size* n_wei* in_h * in_w, 1, 1};
-
-                kernelInfo.kernel_type = SABER;
-
-                // To create the program
-                kptr = CreateKernel(device_id, &kernelInfo);
-                vkptr.push_back(kptr);
-            } else {
-                if (isActive) {
-                    kernelInfo.kernel_file = "ReluUni.cl";
-                    kernelInfo.kernel_name = "ReluUni";
-
-                    kernelInfo.l_wk = {256, 1, 1};
-                    kernelInfo.g_wk = {bt_size* n_wei* in_h * in_w, 1, 1};
-                    kernelInfo.kernel_type = SABER;
-
-                    // To create the program
-                    kptr = CreateKernel(device_id, &kernelInfo);
-                    vkptr.push_back(kptr);
-                }
-            }
-
             while (_out_pix_tile0 * _grp_tile0 > out_w * 2 && _out_pix_tile0 > 1) {
                 _out_pix_tile0 >>= 1;
             }
@@ -447,7 +415,8 @@ void BiasReluPool(std::vector<AMDKernelPtr>& vkptr, int device_id, int bt_size,
                                (_grp_tile1 * _out_pix_tile1));
 
             kernelInfo.l_wk = {_grp_tile0, _grp_tile1, 1};
-            kernelInfo.g_wk = {g_wk_width * _grp_tile0, g_wk_height * _grp_tile1,
+            kernelInfo.g_wk = {g_wk_width * _grp_tile0,
+                               g_wk_height * _grp_tile1,
                                out_c* bt_size
                               };
             kernelInfo.kernel_file = "MIOpenPooling.cl";
@@ -467,37 +436,32 @@ void BiasReluPool(std::vector<AMDKernelPtr>& vkptr, int device_id, int bt_size,
 
         kernelInfo.comp_options =
             std::string(" -DMLO_POOLING_OP_ID=") + std::to_string(ptype) +
-            std::string(" -DMLO_POOLING_KERNEL_SZ0=") +
-            std::to_string(pooling_w_w) +
-            std::string(" -DMLO_POOLING_KERNEL_SZ1=") +
-            std::to_string(pooling_w_h) + std::string(" -DMLO_POOLING_PAD0=") +
-            std::to_string(pooling_p_w) + std::string(" -DMLO_POOLING_PAD1=") +
-            std::to_string(pooling_p_h) + std::string(" -DMLO_POOLING_STRIDE0=") +
-            std::to_string(pooling_s_w) + std::string(" -DMLO_POOLING_STRIDE1=") +
-            std::to_string(pooling_s_h) + std::string(" -DMLO_POOLING_N_OUTPUTS=") +
-            std::to_string(out_c) + std::string(" -DMLO_POOLING_N_CHANNELS=") +
-            std::to_string(in_c) + std::string(" -DMLO_POOLING_N_HORIZ_OUT_PIX=") +
-            std::to_string(_out_pix_tile0) +
-            std::string(" -DMLO_POOLING_N_VERT_OUT_PIX=") +
-            std::to_string(_out_pix_tile1) +
+            std::string(" -DMLO_POOLING_KERNEL_SZ0=") + std::to_string(pooling_w_w) +
+            std::string(" -DMLO_POOLING_KERNEL_SZ1=") + std::to_string(pooling_w_h) +
+            std::string(" -DMLO_POOLING_PAD0=") + std::to_string(pooling_p_w) +
+            std::string(" -DMLO_POOLING_PAD1=") + std::to_string(pooling_p_h) +
+            std::string(" -DMLO_POOLING_STRIDE0=") + std::to_string(pooling_s_w) +
+            std::string(" -DMLO_POOLING_STRIDE1=") + std::to_string(pooling_s_h) +
+            std::string(" -DMLO_POOLING_N_OUTPUTS=") + std::to_string(out_c) +
+            std::string(" -DMLO_POOLING_N_CHANNELS=") + std::to_string(in_c) +
+            std::string(" -DMLO_POOLING_N_HORIZ_OUT_PIX=") + std::to_string(_out_pix_tile0) +
+            std::string(" -DMLO_POOLING_N_VERT_OUT_PIX=") + std::to_string(_out_pix_tile1) +
             std::string(" -DMLO_POOLING_GROUP_SZ0=") + std::to_string(_grp_tile0) +
             std::string(" -DMLO_POOLING_GROUP_SZ1=") + std::to_string(_grp_tile1) +
             std::string(" -DMLO_POOLING_BOT_WIDTH=") + std::to_string(in_w) +
             std::string(" -DMLO_POOLING_BOT_HEIGHT=") + std::to_string(in_h) +
             std::string(" -DMLO_POOLING_BOT_STRIDE=") + std::to_string(in_w) +
-            std::string(" -DMLO_POOLING_BOT_CHANNEL_STRIDE=") +
-            std::to_string(in_w * in_h) +
-            std::string(" -DMLO_POOLING_BOT_BATCH_STRIDE=") +
-            std::to_string(in_w * in_h * in_c) +
+            std::string(" -DMLO_POOLING_BOT_CHANNEL_STRIDE=") + std::to_string(in_w * in_h) +
+            std::string(" -DMLO_POOLING_BOT_BATCH_STRIDE=") + std::to_string(in_w * in_h * in_c) +
             std::string(" -DMLO_POOLING_TOP_WIDTH=") + std::to_string(out_w) +
             std::string(" -DMLO_POOLING_TOP_HEIGHT=") + std::to_string(out_h) +
             std::string(" -DMLO_POOLING_TOP_STRIDE=") + std::to_string(out_w) +
-            std::string(" -DMLO_POOLING_TOP_CHANNEL_STRIDE=") +
-            std::to_string(out_w * out_h) +
-            std::string(" -DMLO_POOLING_TOP_BATCH_STRIDE=") +
-            std::to_string(out_w * out_h * out_c) + std::string(" -DBATCH_NUM=") +
-            std::to_string(bt_size) + std::string(" -DCU_NUM=64") +
+            std::string(" -DMLO_POOLING_TOP_CHANNEL_STRIDE=") + std::to_string(out_w * out_h) +
+            std::string(" -DMLO_POOLING_TOP_BATCH_STRIDE=") + std::to_string(out_w * out_h * out_c) +
+            std::string(" -DBATCH_NUM=") + std::to_string(bt_size) +
+            std::string(" -DCU_NUM=64") +
             std::string(" -DMLO_CONV_BIAS=") + std::to_string(isBias) +
+            std::string(" -DMLO_CONV_PRELU=") + std::to_string(isActive) +
             std::string(" -DMIOPEN_USE_FP32=1");
 
         // To create the program
