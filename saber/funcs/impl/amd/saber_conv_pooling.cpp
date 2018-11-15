@@ -724,10 +724,37 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
                           (PtrDtype)_outConvRelu->mutable_data(),
                           slope);
             } else if (it->get()->GetName() == "mloPoolingG") {
-                err = it->get()->SetKernelArgs(
-                          (PtrDtype)_outConvRelu->data(),
-                          (PtrDtype)outputs[0]->mutable_data(),
-                          (PtrDtype) nullptr);
+                if (isBias) {
+                    if (isActive) {
+                        err = it->get()->SetKernelArgs(
+                                  (PtrDtype)_outConvRelu->data(),
+                                  (PtrDtype)param.conv_param.bias()->data(),
+                                  slope,
+                                  (PtrDtype)outputs[0]->mutable_data(),
+                                  (PtrDtype) nullptr);
+                    } else {
+                        err = it->get()->SetKernelArgs(
+                                  (PtrDtype)_outConvRelu->data(),
+                                  (PtrDtype)param.conv_param.bias()->data(),
+                                  (PtrDtype)outputs[0]->mutable_data(),
+                                  (PtrDtype) nullptr);
+                    }
+                }
+                else
+                {
+                    if (isActive) {
+                        err = it->get()->SetKernelArgs(
+                                  (PtrDtype)_outConvRelu->data(),
+                                  slope,
+                                  (PtrDtype)outputs[0]->mutable_data(),
+                                  (PtrDtype) nullptr);
+                    } else {
+                        err = it->get()->SetKernelArgs(
+                                  (PtrDtype)_outConvRelu->data(),
+                                  (PtrDtype)outputs[0]->mutable_data(),
+                                  (PtrDtype) nullptr);
+                    }
+                }
             } else {
                 ALOGE("not handle kernel:" << it->get()->GetName());
                 return SaberInvalidValue;
