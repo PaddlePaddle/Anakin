@@ -56,8 +56,6 @@ private:
 };
 
 #ifdef AMD_GPU 
-typedef std::list<cl_event> cl_event_list;
-
 template <>
 class Env<AMD> {
 public:
@@ -72,35 +70,10 @@ public:
     static bool is_init(); 
     static cl_platform_id get_platform_id();
 
-    static void add_event(const char *tag, cl_event_list event);
-    static void add_event(cl_event_list event) {
-        add_event(mTag.c_str(), event);
-    }
-
-    static void pop();
-    static void set_tag(const char *tag){
-        mTag = std::string(tag);
-    }
-
-    static const std::string& get_tag(){
-        return mTag;
-    }
-
-    static void start_record(){
-        record = true;
-    }
-    static void stop_record(){
-        record = false;
-    }
 private:
     Env(){}
 
     static cl_platform_id platform_id;
-    static std::map<std::string, std::list<cl_event_list>> eMap;
-    static std::list<std::string> tList;
-    static bool record;
-    static std::string  mTag;
-
 };
 #endif
 
