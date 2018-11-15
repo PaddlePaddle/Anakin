@@ -68,11 +68,13 @@ struct TargetWrapper<TargetType, __host_target> {
      */
     static void get_device_count(int& count) {
         // todo
-        LOG(WARNING) << "host target \" get_device_count\" is not implemented";
+        LOG(WARNING) << "host target x \" get_device_count\" is not implemented";
         count = 1;
     }
 
     static void set_device(int id) {
+        LOG(INFO) << "set_device";
+
         // todo
     }
 

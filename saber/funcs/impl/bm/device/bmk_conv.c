@@ -1,8 +1,4 @@
-#include <stdio.h>
-#include "bm_common.h"
-#include "atomic_dma_gen_cmd.h"
-#include "atomic_conv_gen_cmd.h"
-
+#include "bmk_conv.h"
 int bm_conv_fwd(bm_api_conv_forward conv_param)
 {
     printf("BM atomic conv starts...\n");
@@ -69,7 +65,7 @@ int bm_conv_fwd(bm_api_conv_forward conv_param)
     int max_ic_per_NPU = ceiling_func_shift(max_icslice, NPU_SHIFT);
     int max_ocslice = ocslice + (oc_residual > 0);
     int max_oc_per_NPU = ceiling_func_shift(max_ocslice, NPU_SHIFT);
-
+    int nodechip_idx = 0;
     for (int ig = 0; ig < groups; ig++){
         int ocend = 0;
         for (int ocidx = 0; ocidx < ocsecs; ocidx++){

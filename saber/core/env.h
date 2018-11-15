@@ -46,6 +46,7 @@ public:
         int cur_id = API::get_device_id();
         for (int i = 0; i < count; i++) {
             API::set_device(i);
+            LOG(INFO) << "init device "<<i;
             devs.push_back(Device<TargetType>(max_stream));
         }
         API::set_device(cur_id);
@@ -73,6 +74,7 @@ public:
             return;
         }
         int count = 0;
+//        API::init_handle();
         API::get_device_count(count);
         if (count == 0) {
             CHECK(false) << "no device found!";
@@ -84,11 +86,10 @@ public:
             API::set_device(i);
             devs.push_back(Device<BM>(max_stream));
         }
-        API::set_device(cur_id);
+//        API::set_device(cur_id);
         LOG(INFO)<<"dev size = "<<devs.size();
 
         env_holder.reset(new Env());
-        API::init_handle();
     }
 
     ~Env() {

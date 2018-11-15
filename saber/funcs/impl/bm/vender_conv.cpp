@@ -270,6 +270,7 @@ SaberStatus VenderConv2D<BM, AK_FLOAT>::\
 
     LOG(INFO)<<"BM Conv starts...";
     print_tensor(*inputs[0]);
+    print_tensor(*(param.mutable_weight()));
 
     bm_status_t bm_stat = bmlib_kernel_launch(_handle, "/usr/local/include/bm/bmkernel_bin.bin");
     CHECK_EQ(BM_SUCCESS, bm_stat) << "bmlib_kernel_launch failed.";

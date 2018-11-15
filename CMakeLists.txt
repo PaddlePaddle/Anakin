@@ -132,6 +132,7 @@ anakin_option(ENABLE_OP_TIMER "Enable op timer mode." NO)
 # ----------------------------------------------------------------------------
 # section: anakin compiler and linker options
 # ----------------------------------------------------------------------------
+set(CMAKE_BUILD_TYPE Debug FORCE)
 if(ENABLE_DEBUG)
     set(CMAKE_BUILD_TYPE Debug FORCE)
 else()

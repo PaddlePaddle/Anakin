@@ -64,10 +64,12 @@ void BM_API::get_device_count(int& count) {
 
 void BM_API::set_device(int id) {
     //(bm_handle_t &handle, bool bmkernel_used, int id){
-    //BM_CHECK(bm_dev_request(&handle, 0, id));
+    LOG(INFO) << "BM set_device id" << id;
+    BM_CHECK(bm_dev_request(&handle, 0, id));
 }
 
 int BM_API::get_device_id() {
+    LOG(INFO) << "BM get_device_id " ;
     return 0;
 }
 

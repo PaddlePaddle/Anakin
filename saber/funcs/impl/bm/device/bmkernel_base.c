@@ -1,6 +1,6 @@
 #include "bmkernel_base.h"
 #include "bm_config.h"
-#include "bmk_conv.c"
+#include "bmk_conv.h"
 #include <stdio.h>
 /**
  * bmkernel_func is the user entry to BMKERNEL just like "main" to some applications.

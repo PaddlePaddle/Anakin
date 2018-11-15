@@ -95,16 +95,45 @@ endif()
 if(USE_BM_PLACE)
     set(BIN_NAME bmkernel_bin)
     #set(LINK_CONFIG link/bm1682_ddr.lds)
-    add_custom_command(OUTPUT bm_kernel_tmp
-        COMMAND gcc -std=c99 -I${BM_ROOT}/include/config -I${BM_ROOT}/include/common -I${BM_ROOT}/include/c_model -I${BM_ROOT}/include/firmware_core -I${BM_ROOT}/include/bmlib -g -MMD -c -o ${BIN_NAME}.o ${ANAKIN_SABER}/funcs/impl/bm/device/bmkernel_base.c
-        COMMAND gcc -std=c99 -I${BM_ROOT}/include/config -I${BM_ROOT}/include/common -I${BM_ROOT}/include/c_model -I${BM_ROOT}/include/firmware_core -I${BM_ROOT}/include/bmlib -g -MMD -c -o ${BIN_NAME}.o ${ANAKIN_SABER}/funcs/impl/bm/device/bmk_conv.c
-        #COMMAND AR ${BIN_NAME}.a
-        COMMAND ar rcs ${BIN_NAME}.a ${BIN_NAME}.o
-        COMMENT "BM Kernel compilation..."
-    )
-    add_custom_target(ANAKIN ALL DEPENDS bm_kernel_tmp)
-    
-	list(APPEND ANAKIN_LINKER_LIBS ${ANAKIN_ROOT}/build/saber/${BIN_NAME}.a)
+    message("-----------------xxxxxxxxxxxx-" ${BM_ROOT})
+    message("${ANAKIN_SABER}/funcs/impl/bm/device/bmkernel_base.c")
+    message("-----CMAKE_CXX_FLAGS:${CMAKE_CXX_FLAGS}")
+    message("-----CMAKE_C_FLAGS:${CMAKE_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS_BACKUP ${CMAKE_CXX_FLAGS})
+    set(CMAKE_C_FLAGS_BACKUP ${CMAKE_C_FLAGS})
+    if(CMAKE_BUILD_TYPE MATCHES Debug)
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -DUSING_CMODEL=1")
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -g -DUSING_CMODEL=1")
+    else()
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -DUSING_CMODEL=1")
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -DUSING_CMODEL=1")
+    endif()
+    message("-----CMAKE_CXX_FLAGS:${CMAKE_CXX_FLAGS}")
+    message("-----CMAKE_C_FLAGS:${CMAKE_C_FLAGS}")
+    include_directories(${BM_ROOT}/config)
+    include_directories(${BM_ROOT}/common)
+    include_directories(${BM_ROOT}/c_model)
+    include_directories(${BM_ROOT}/fireware_core)
+    include_directories(${BM_ROOT}/bmlib)
+    include_directories(${BM_ROOT}/c_model/include)
+    anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/bm/device/ "c" ANAKIN_SABER_BASE_SRC)
+    #    ADD_LIBRARY(${BIN_NAME} ${ANAKIN_SABER}/funcs/impl/bm/device/bmkernel_base.c)
+    message(${BUILD_SHARED})
+    message("-----ANAKIN_LINKER_LIBS:${ANAKIN_LINKER_LIBS}")
+
+    #    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_BACKUP})
+    #    set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS_BACKUP})
+    #    message("-----CMAKE_CXX_FLAGS:${CMAKE_CXX_FLAGS}")
+    #    message("-----CMAKE_C_FLAGS:${CMAKE_C_FLAGS}")
+
+    #    add_custom_command(OUTPUT bm_kernel_tmp
+    #        COMMAND gcc -std=c99 -I${BM_ROOT}/include/config -I${BM_ROOT}/include/common -I${BM_ROOT}/include/c_model -I${BM_ROOT}/include/firmware_core -I${BM_ROOT}/include/bmlib -I${BM_ROOT}/c_model/include -DUSING_CMODEL=1 -g -MMD -c -o ${BIN_NAME}.o  ${ANAKIN_SABER}/funcs/impl/bm/device/bmkernel_base.c
+    #        #COMMAND AR ${BIN_NAME}.a
+    #        COMMAND ar rcs ${BIN_NAME}.a ${BIN_NAME}.o
+    #        COMMENT "BM Kernel compilation..."
+    #    )
+    #    add_custom_target(ANAKIN ALL DEPENDS bm_kernel_tmp)
+    #list(APPEND ANAKIN_LINKER_LIBS ${ANAKIN_ROOT}/build/saber/${BIN_NAME}.a)
 endif()
 
 # add saber library to static
@@ -115,13 +144,18 @@ if(UNIX OR APPLE)
                 ${ANAKIN_ROOT}/output/)
     else()
         if (BUILD_SHARED)
+            # 2018/11/13 try to use static lib for debug
             ADD_LIBRARY(${ANAKIN_SABER_TEMP_COMMMON_LIB} SHARED ${ANAKIN_SABER_CUDA_C_SRC_OBJS} ${ANAKIN_SABER_BASE_SRC})
+            #ADD_LIBRARY(${ANAKIN_SABER_TEMP_COMMMON_LIB} ${ANAKIN_SABER_CUDA_C_SRC_OBJS} ${ANAKIN_SABER_BASE_SRC})
             #$<TARGET_OBJECTS:ANAKIN_SABER_BASE_OBJS>)
             if(USE_X86_PLACE)
                 message(STATUS ${ANAKIN_SABER_DEPENDENCIES})
                 add_dependencies(${ANAKIN_SABER_TEMP_COMMMON_LIB} ${ANAKIN_SABER_DEPENDENCIES})
             endif()
             set_target_properties(${ANAKIN_SABER_TEMP_COMMMON_LIB} PROPERTIES VERSION ${VERSION})
+            message("add_link1:${BIN_NAME}")
+            #target_link_libraries(${ANAKIN_SABER_TEMP_COMMMON_LIB} -Wl,--whole-archive ${BIN_NAME} -Wl,--no-whole-archive)
+            #target_link_libraries(${ANAKIN_SABER_TEMP_COMMMON_LIB} -Wl,--whole-archive ${BM_ROOT}/lib/cmodel/bmlib.a -Wl,--no-whole-archive)
             target_link_libraries(${ANAKIN_SABER_TEMP_COMMMON_LIB} ${ANAKIN_LINKER_LIBS})
             target_link_libraries(${ANAKIN_SABER_TEMP_COMMMON_LIB} ${ANAKIN_SABER_STATIC_RELAY})
             set_target_properties(${ANAKIN_SABER_TEMP_COMMMON_LIB} PROPERTIES LINK_FLAGS "")
@@ -129,6 +163,9 @@ if(UNIX OR APPLE)
                     ${ANAKIN_ROOT}/output/)
         else()
             ADD_LIBRARY(${ANAKIN_SABER_TEMP_COMMMON_LIB} STATIC ${ANAKIN_SABER_CUDA_C_SRC_OBJS} ${ANAKIN_SABER_BASE_SRC})
+            message("add_link2:${BIN_NAME}")
+            #            target_link_libraries(${ANAKIN_SABER_TEMP_COMMMON_LIB} ${BIN_NAME})
+            target_link_libraries(${ANAKIN_SABER_TEMP_COMMMON_LIB} ${ANAKIN_LINKER_LIBS})
             set_target_properties(${ANAKIN_SABER_TEMP_COMMMON_LIB} PROPERTIES LIBRARY_OUTPUT_DIRECTORY
                     ${ANAKIN_ROOT}/output/)
         endif ()
