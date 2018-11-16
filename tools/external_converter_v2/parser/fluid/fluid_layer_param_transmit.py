@@ -578,5 +578,5 @@ FLUID_NODE_FILLER = {
     "relu6":OpsParam().set_parser(Parser_relu6),
     "leaky_relu":OpsParam().set_parser(Parser_leaky_relu),
     "prelu":OpsParam().set_parser(Parser_prelu),
-    "slice":OpsParam().set_parser(Parser_slice),
+    "split":OpsParam().set_parser(Parser_slice),
 }
