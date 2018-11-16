@@ -83,7 +83,7 @@ void reduce(__local float* buffer, int tid) {
 #endif
 
 __attribute__((reqd_work_group_size(1024, 1, 1)))
-__kernel void conv1x1_act(
+__kernel void conv1x1_act_pool(
     __global const float* wei,
     __global const float* in,
 #ifdef BIAS
