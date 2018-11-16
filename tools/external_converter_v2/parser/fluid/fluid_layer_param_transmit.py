@@ -500,6 +500,7 @@ def Parser_prelu(args):
     helper = args[3]
     mode = helper.attr_data(op, 'mode')
     OpsRegister()["Activation"].type = "PReLU"
+    OpsRegister()["Activation"].weight_1 = helper.param_tensor(op, 'Alpha')
     if mode == "all":
         OpsRegister()["Activation"].channel_shared = True
     elif mode == "channel":
@@ -509,7 +510,10 @@ def Parser_prelu(args):
 
 @ParserFeedDecorator("Flatten")
 def Parser_flatten(args):
-    pass
+    op = args[1]
+    helper = args[3]
+    OpsRegister()["Flatten"].start_axis = helper.attr_data(op, 'axis')
+    OpsRegister()["Flatten"].end_axis = -1
 
 @ParserFeedDecorator("assign_value")
 def Parser_assign_value(args):
