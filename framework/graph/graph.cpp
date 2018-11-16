@@ -135,7 +135,7 @@ Status Graph<Ttype, Ptype>::RegistAllOut() {
 }
 
 template<typename Ttype, Precision Ptype>
-Status Graph<Ttype, Ptype>::Optimize() EXCLUSIVE_LOCKS_REQUIRED(_mut) {
+Status Graph<Ttype, Ptype>::Optimize(bool use_tensorrt) EXCLUSIVE_LOCKS_REQUIRED(_mut) {
     std::unique_lock<std::mutex> lock(this->_mut);
 
     if (!_has_graph_optimized) {
@@ -146,7 +146,7 @@ Status Graph<Ttype, Ptype>::Optimize() EXCLUSIVE_LOCKS_REQUIRED(_mut) {
         //! decide wheter the vgraph is optimized
         auto is_optimized = statistics.get_info<IS_OPTIMIZED>();
 
-        if (is_optimized && (_registed_outs.size() == 0)) {
+        if (is_optimized && (_registed_outs.size() == 0) || use_tensorrt) {
             // schedule for exec order
             Scheduler scheduler;
             scheduler.RegIOResource(_vgraph);

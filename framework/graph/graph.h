@@ -108,7 +108,7 @@ public:
 
 
     /// optimization for graph
-    Status Optimize();
+    Status Optimize(bool use_tensorrt = false);
     /// Get virtual graph.
     VGraph& get_vgraph();
     /// Restore real Graph from optimized virtual graph.
