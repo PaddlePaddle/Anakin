@@ -15,7 +15,9 @@ OpsRegister.Register("Input").set_attr(input_shape=list(),
 # graph out , only hold place for edge
 OpsRegister.Register("Output").set_attr()
 
-OpsRegister.Register("Split").set_attr(split_num=int())
+OpsRegister.Register("Split").set_attr(split_num=int(),
+                                       sections=list(),
+                                       axis=int())
 
 ############################# Basic Op define ##############################
 # two input 

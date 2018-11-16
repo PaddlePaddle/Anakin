@@ -55,7 +55,7 @@ def Parser_conv2d_transpose(args):
     private_data = args[4]
     [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'Filter')
     OpsRegister()["Deconvolution"].weight_1 = weights_tensor
-    OpsRegister()["Deconvolution"].filter_num = weights_shape[0]
+    OpsRegister()["Deconvolution"].filter_num = weights_shape[1]
     OpsRegister()["Deconvolution"].kernel_size = weights_shape[-2:]
     OpsRegister()["Deconvolution"].strides = helper.attr_data(op, 'strides')
     OpsRegister()["Deconvolution"].padding = helper.attr_data(op, 'paddings')
@@ -178,6 +178,8 @@ def Parser_split(args):
         OpsRegister()["Split"].split_num = split_num
     else:
         OpsRegister()["Split"].split_num = helper.attr_data(op, 'num')
+    OpsRegister()["Split"].axis = helper.attr_data(op, 'axis')
+    OpsRegister()["Split"].sections = helper.attr_data(op, 'sections')
 
 @ParserFeedDecorator("Reshape")
 def Parser_reshape(args):
