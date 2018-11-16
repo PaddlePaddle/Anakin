@@ -54,6 +54,7 @@ def Parser_conv2d_transpose(args):
     helper = args[3]
     private_data = args[4]
     [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'Filter')
+    weights_tensor.set_shape([weights_shape[1], weights_shape[0], weights_shape[2], weights_shape[3]])
     OpsRegister()["Deconvolution"].weight_1 = weights_tensor
     OpsRegister()["Deconvolution"].filter_num = weights_shape[1]
     OpsRegister()["Deconvolution"].kernel_size = weights_shape[-2:]
