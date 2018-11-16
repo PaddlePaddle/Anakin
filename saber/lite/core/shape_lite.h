@@ -36,6 +36,13 @@ public:
        init_dims(first, res...);
     }
 
+    Shape(std::vector<int> vsh) {
+        this->resize(vsh.size());
+        for (int i = 0; i < vsh.size(); ++i) {
+            data()[i] = vsh[i];
+        }
+    }
+
     int num() const {
         if (dims() == 0) {
             return 0;
@@ -168,7 +175,7 @@ public:
         }
         const int* p = data();
         for (size_t i = 0; i < size(); i++) {
-            flag &= (p[i] == shape[i]);
+            flag = flag && (p[i] == shape[i]);
         }
         return flag;
     }
@@ -192,7 +199,7 @@ public:
             return 0;
         }
         int sum = 1;
-        for (int i = 0; i < this->size(); i++) {
+        for (int i = start; i < this->size(); i++) {
             sum *= data()[i];
         }
         return sum;

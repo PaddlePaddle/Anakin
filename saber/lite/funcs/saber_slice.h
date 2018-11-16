@@ -14,8 +14,8 @@
 #ifndef ANAKIN_SABER_LITE_FUNCS_SABER_SLICE_H
 #define ANAKIN_SABER_LITE_FUNCS_SABER_SLICE_H
 
-#include "saber/lite/core/tensor_lite.h"
-#include "saber/lite/core/context_lite.h"
+#include "saber/lite/funcs/op_base.h"
+#include "saber/lite/funcs/calibrate_lite.h"
 
 #ifdef USE_ARM_PLACE
 namespace anakin{
@@ -24,7 +24,7 @@ namespace saber{
 
 namespace lite{
 //template <typename Dtype>
-class SaberSlice {
+class SaberSlice : public OpBase {
 public:
 
     SaberSlice() {
@@ -32,28 +32,33 @@ public:
         _slice_size = 0;
     }
 
-    SaberSlice(int axis, std::vector<int> slice_points);
+    SaberSlice(ParamBase* param);
 
-    SaberStatus load_param(int axis, std::vector<int> slice_points);
+    virtual SaberStatus load_param(ParamBase* param) override;
 
-    ~SaberSlice() {}
+    virtual SaberStatus set_op_precision(DataType ptype) override;
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus load_param(std::istream& stream, const float* weights) override;
 
-    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                             std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx);
+    ~SaberSlice();
 
-    SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                 std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU>*>& inputs,
+                                     std::vector<Tensor<CPU>*>& outputs) override;
+
+    virtual SaberStatus init(const std::vector<Tensor<CPU>*>& inputs,
+                             std::vector<Tensor<CPU>*>& outputs, Context &ctx) override;
+
+    virtual SaberStatus dispatch(const std::vector<Tensor<CPU>*>& inputs,
+                                 std::vector<Tensor<CPU>*>& outputs) override;
 
 private:
-    Context _ctx;
+    SliceParam* _param;
     int _slice_num;
     int _slice_size;
-
-    int _axis;
     std::vector<int> _slice_points;
+
+    Tensor<CPU> _tmp_in;
+    std::vector<Tensor<CPU>> _tmp_out;
 };
 
 } //namespace lite

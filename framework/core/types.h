@@ -38,6 +38,14 @@ enum class OpRunType : int {
     ASYNC           ///< ASYNC the net exec asynchronous (for GPU, means mutli-stream)
 };
 
+/**
+ *  \brief service run pattern
+ */
+enum class ServiceRunPattern: int {
+    SYNC,
+    ASYNC
+};
+
 /** 
  *  \brief Inner return type used by Status type.
  */

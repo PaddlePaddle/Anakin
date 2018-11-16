@@ -22,6 +22,17 @@ namespace anakin{
 namespace saber{
 
 DEFINE_OP_CLASS(Activation, ActivationParam);
+//template <typename TargetType, \
+//    DataType OpDtype = AK_FLOAT,> \
+//class SaberActivation : public ImplBase<TargetType, OpDtype, ActivationParam <TargetType> > {}; \
+//\
+//template <typename TargetType, \
+//    DataType OpDtype = AK_FLOAT,> \
+//class VenderActivation : public ImplBase< \
+//    TargetType, OpDtype,\
+//    ActivationParam <TargetType> > {};
+
+
 
 }
 }

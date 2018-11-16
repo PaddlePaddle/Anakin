@@ -1,0 +1,2 @@
+BUILD_SUBMITTER -e sys-anakin -x -m baidu/sys-hic-gpu/Anakin-2.0 -c "cd baidu/sys-hic-gpu/Anakin-2.0 && mkdir output && sh build.sh" -u ./ -o output
+

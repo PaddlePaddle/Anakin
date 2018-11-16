@@ -154,37 +154,31 @@ __global__ void ker_nchw_to_nhwc(Dtype * out_data,
         out_data[out_offset] = tile[threadIdx.x][threadIdx.y];
     }
 }
-template <DataType OpDtype,
-            DataType inDtype,
-            DataType outDtype,
-            typename LayOutType_op,
-            typename LayOutType_in,
-            typename LayOutType_out>
-SaberStatus SaberPermute<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(\
-    const std::vector<DataTensor_in *>& inputs, \
-    std::vector<DataTensor_out *>& outputs, \
-    PermuteParam<OpTensor>& param) {
+template <>
+SaberStatus SaberPermute<NV, AK_FLOAT>::dispatch(\
+    const std::vector<Tensor<NV> *>& inputs, \
+    std::vector<Tensor<NV> *>& outputs, \
+    PermuteParam<NV>& param) {
 
     cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
-    const InDataType * in_data = inputs[0]->data();
-    OutDataType * out_data = outputs[0]->mutable_data();
+    const float* in_data =static_cast<const float*>(inputs[0]->data());
+    float* out_data = static_cast<float*>(outputs[0]->mutable_data());
     int count = outputs[0]->valid_size();
-    const int * permute_order = _permute_order.data();
-    const int * new_steps = _out_steps.data();
-    const int * old_steps = _in_steps.data();
-    const int * out_valid_shape = _out_valid_shape.data();
+    const int* permute_order = static_cast<const int*>(_permute_order.data());
+    const int* new_steps = static_cast<const int*>(_out_steps.data());
+    const int* old_steps = static_cast<const int*>(_in_steps.data());
+    const int* out_valid_shape = static_cast<const int*>(_out_valid_shape.data());
     std::vector<int> permute_order_nhwc_to_nchw = {0, 3, 1, 2};
-    PermuteParam<OpTensor> param_nhwc_to_nchw(permute_order_nhwc_to_nchw);
+    PermuteParam<NV> param_nhwc_to_nchw(permute_order_nhwc_to_nchw);
     std::vector<int> permute_order_nchw_to_nhwc = {0, 2, 3, 1};
-    PermuteParam<OpTensor> param_nchw_to_nhwc(permute_order_nchw_to_nhwc);
+    PermuteParam<NV> param_nchw_to_nhwc(permute_order_nchw_to_nhwc);
     if (inputs[0]->is_continue_mem() && outputs[0]->is_continue_mem()) {
         if (_need_permute) {
             if (inputs[0]->num() == 1 && inputs[0]->width() == 3
                 && param == param_nhwc_to_nchw) {
                 int out_w = outputs[0]->width() * outputs[0]->height();
                 int out_h = outputs[0]->channel();
-                ker_permute_fwd_transpose<OpDataType>\
+                ker_permute_fwd_transpose<float>\
                         <<<CUDA_GET_BLOCKS(out_w), CUDA_NUM_THREADS, 0, cuda_stream>>>(\
                         out_data, out_h, out_w, in_data);
             } else if (inputs[0]->num() == 1 && param == param_nchw_to_nhwc) {
@@ -192,16 +186,17 @@ SaberStatus SaberPermute<NV, OpDtype, inDtype, outDtype,\
                 int out_w = inputs[0]->channel();
                 dim3 block_size(TRANS_BLOCK_SIZE, TRANS_BLOCK_SIZE);
                 dim3 grid_size((out_h + TRANS_BLOCK_SIZE - 1) / TRANS_BLOCK_SIZE, (out_w + TRANS_BLOCK_SIZE - 1) / TRANS_BLOCK_SIZE);
-                ker_transpose<OpDataType>\
+                ker_transpose<float>\
                         <<<grid_size, block_size, 0, cuda_stream>>>(\
                         out_data, out_h, out_w, in_data);
             } else {
-                ker_permute_fwd<OpDataType>\
+                ker_permute_fwd<float>\
                         <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(\
                         out_data, _num_axes, count, permute_order, \
                         new_steps, old_steps, in_data);
             }
         } else {
+               outputs[0]->copy_from(*inputs[0]);
             //outputs[0]->share_from(inputs[0]);
         }
     } else {
@@ -210,7 +205,7 @@ SaberStatus SaberPermute<NV, OpDtype, inDtype, outDtype,\
                 && param == param_nhwc_to_nchw) {
                 int out_w = outputs[0]->width() * outputs[0]->height();
                 int out_h = outputs[0]->channel();
-                ker_permute_fwd_transpose<OpDataType>\
+                ker_permute_fwd_transpose<float>\
                         <<<CUDA_GET_BLOCKS(out_w), CUDA_NUM_THREADS, 0, cuda_stream>>>(\
                         out_data, outputs[0]->num(), outputs[0]->channel(), \
                         outputs[0]->height(), outputs[0]->width(),
@@ -219,23 +214,25 @@ SaberStatus SaberPermute<NV, OpDtype, inDtype, outDtype,\
                 dim3 block_size(TRANS_BLOCK_SIZE, TRANS_BLOCK_SIZE);
                 dim3 grid_size((inputs[0]->num() * inputs[0]->channel() + TRANS_BLOCK_SIZE - 1) / TRANS_BLOCK_SIZE,
                         (inputs[0]->height() * inputs[0]->width() + TRANS_BLOCK_SIZE - 1) / TRANS_BLOCK_SIZE);
-                ker_nchw_to_nhwc<OpDataType>\
+                ker_nchw_to_nhwc<float>\
                         <<<grid_size, block_size, 0, cuda_stream>>>(\
                         out_data, inputs[0]->num(), inputs[0]->channel(),\
                         inputs[0]->height(), inputs[0]->width(),\
                         new_steps, old_steps, in_data);
             } else {
-                ker_permute_fwd<OpDataType>\
+                ker_permute_fwd<float>\
                         <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(\
                         out_data, _num_axes, count, permute_order, \
                         new_steps, old_steps, in_data);
             }
         } else {
+               outputs[0]->copy_from(*inputs[0]);
             //outputs[0]->share_from(inputs[0]);
         }
     }
     return SaberSuccess;
 }
-
+DEFINE_OP_TEMPLATE(SaberPermute, PermuteParam, NV, AK_HALF);
+DEFINE_OP_TEMPLATE(SaberPermute, PermuteParam, NV, AK_INT8);
 }
 }

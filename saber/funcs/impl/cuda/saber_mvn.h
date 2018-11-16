@@ -22,51 +22,34 @@ namespace anakin{
 
 namespace saber{
 
-template <DataType OpDtype,
-            DataType inDtype,
-            DataType outDtype,
-            typename LayOutType_op,
-            typename LayOutType_in,
-            typename LayOutType_out>
-class SaberMvn<NV, OpDtype, inDtype, outDtype, \
-    LayOutType_op, LayOutType_in, LayOutType_out>:\
-    public ImplBase<
-        Tensor<NV, inDtype, LayOutType_in>,
-        Tensor<NV, outDtype, LayOutType_out>,
-        Tensor<NV, OpDtype, LayOutType_op>,
-        MvnParam<Tensor<NV, OpDtype, LayOutType_op>>> {
+template <DataType OpDtype>
+class SaberMvn<NV, OpDtype>: public ImplBase<NV, OpDtype, MvnParam<NV> > {
 
 public:
-    typedef Tensor<NV, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<NV, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<NV, OpDtype, LayOutType_op> OpTensor;
-
-    typedef typename DataTensor_in::Dtype InDataType;
-    typedef typename DataTensor_out::Dtype OutDataType;
-    typedef typename OpTensor::Dtype OpDataType;
+    typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
 
     SaberMvn() {}
 
     ~SaberMvn() {}
 
-    virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
-                             std::vector<DataTensor_out*>& outputs,
-                             MvnParam<OpTensor> &param,
+    virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
+                             std::vector<Tensor<NV> *>& outputs,
+                             MvnParam<NV> &param,
                              Context<NV> &ctx) {
         this->_ctx = &ctx;
 
         return create(inputs, outputs, param, ctx);
     }
 
-    virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
-                               std::vector<DataTensor_out*>& outputs,
-                               MvnParam<OpTensor> &param,
+    virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
+                               std::vector<Tensor<NV> *>& outputs,
+                               MvnParam<NV> &param,
                                Context<NV> &ctx) {
         int num = inputs[0]->num() * inputs[0]->channel();
         if (param.across_channels) {
             num = inputs[0]->num();
         }
-        Shape shape = Shape::zero(inputs[0]->dims());
+        Shape shape = inputs[0]->valid_shape();
         for (int i = 0; i < shape.size(); i++) {
             shape[i] = 1;
         }
@@ -78,17 +61,17 @@ public:
         return SaberSuccess;
     }
 
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
-                                 std::vector<DataTensor_out*>& outputs,
-                                 MvnParam<OpTensor>  &param);
+    virtual SaberStatus dispatch(const std::vector<Tensor<NV> *>& inputs,
+                                 std::vector<Tensor<NV> *>& outputs,
+                                 MvnParam<NV>  &param);
 
 private:
-    OpTensor _mean;
-    OpTensor _sd;
+    Tensor<NV> _mean;
+    Tensor<NV> _sd;
 
 };
 
-template class SaberMvn<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
+template class SaberMvn<NV, AK_FLOAT>;
 
 } //namespace saber
 

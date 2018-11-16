@@ -6,7 +6,7 @@ We've built and tested Anakin on CentOS 7.3. The other operating systems install
 
 * [Installing on CentOS](#0001)
 * [Installing on Ubuntu](#0002)
-* [Installing on ARM](run_on_arm_en.md)
+* [Installing on ARM](#0003)
 * [Verifying installation](#0004)
 
 
@@ -66,8 +66,93 @@ Not support yet.
 
 #### 4. Building Anakin with AMD GPU Support ####
 
-Coming soon..
+ For more detials of ROCm please see [RadeonOpenCompute/ROCm](https://github.com/RadeonOpenCompute/ROCm) 
+ 
+- 4.1. Setup Environment   
 
+ - 4.1.1 Update OS (Option, if your OS is able to be updated)     
+    >$sudo yum update
+    
+ - 4.1.2 Add ROCM repo   
+    Create a /etc/yum.repos.d/rocm.repo file with the following contents:
+    ```bash
+    [ROCm]
+    name=ROCm
+    baseurl=http://repo.radeon.com/rocm/yum/rpm
+    enabled=1
+    gpgcheck=0
+    ```
+    
+ - 4.1.3 Install ROCK-DKMS     
+    Please check your kernel version before installing ROCk-DKMS and make sure the result is same as your installed kernel related packages, such as kernel-headers and kerenl-devel
+    >$ uname -r 
+  
+  - 4.1.3.1 For kernel ver 3.10.0-`693` (Option 1)     
+     Download kernel-devel-3.10.0-693.el7.x86_64.rpm and kernel-headers-3.10.0-693.el7.x86_64.rpm    
+     >$sudo yum install kernel-devel-3.10.0-693.el7.x86_64.rpm  kernel-headers-3.10.0-693.el7.x86_64.rpm    
+     
+  - 4.1.3.2 For kernel ver 3.10.0-`862`  (Option 2)
+     >$ sudo yum install kernel-devel kernel-headers    
+     
+  - 4.1.3.3 Install ROCk-DKMS   
+     >$ sudo yum install epel-release   
+     >$ sudo yum install dkms   
+     >$ sudo yum install rock-dkms  
+      
+     Use below command to check amdgpu is installed successful or not.    
+     >$ sudo dkms status    
+     >$ 'amdgpu, 1.8-151.el7, ..., x86_64: installed (original_module exists)'    
+      
+  - 4.1.3.4    
+     Reboot your device.
+     
+ ** If you are using docker than step 4.1.4 to 4.1.8 are not required **
+ 
+ - 4.1.4 Install ROCm-OpenCL
+    >$sudo yum install rocm-opencl rocm-opencl-devel rocm-smi rocminfo
+   
+ - 4.1.5 Add user to the video (or wheel) group 
+    >$sudo usermod -a -G video $LOGNAME 
+    
+ - 4.1.6 Setting Environment variables
+    ```bash
+    echo 'export PATH=/opt/rocm/bin:/opt/rocm/opencl/bin/x86_64:$PATH' >> $HOME/.bashrc
+    echo 'export LD_LIBRARY_PATH=/opt/rocm/lib:$LD_LIBRARY_PATH' >> $HOME/.bashrc
+    echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/usr/local/lib64' >>$HOME/.bashrc
+    source ~/.bashrc
+    ```
+   Check 
+    >$ clinfo
+ 
+ - 4.1.7 protobuf 3.4.0  
+    Download source from https://github.com/google/protobuf/releases/tag/v3.4.0
+    >tar -zxvf protobuf-cpp-3.4.0.tar.gz  
+    >$ cd protobuf-3.4.0    
+    >$ ./configure    
+    >$ make  
+    >$ make install  
+
+   Check  
+    >$ protoc --version
+
+    Any problems for protobuf installation, Please see [here](https://github.com/google/protobuf/blob/master/src/README.md)
+    
+ - 4.1.8 cmake 3.2.0  
+    Download source from https://cmake.org/files/v3.2/cmake-3.2.0.tar.gz
+    >tar -zxvf cmake-3.2.0.tar.gz  
+    >$ cd cmake-3.2.0   
+    >$ ./bootstrap   
+    >$ make -j4    
+    >$ make install  
+    
+- 4.2. Compile Anakin
+  >$ git clone xxx  
+  >$ cd anakin  
+  >$ ./tools/amd_gpu_build.sh
+ 
+- 4.3. Run Benchmark
+  >$ cd output/unit_test    
+  >$ benchmark ../../benchmark/CNN/models/ vgg16.anakin.bin 1 2 100
 
 ### <span id = '0002'> Installing on Ubuntu </span> ###
 
@@ -76,8 +161,10 @@ Coming soon..
 
 ### <span id = '0003'> Installing on ARM </span> ###
 
-Coming soon..
+Please refer to [run on arm](run_on_arm_en.md)
 
 ### <span id = '0004'> Verifying installation </span> ###
+
+If build successfully, the libs will be in the directory `output/`, and you can run unit test in `output/unit_test` to verify your installation.
 
 

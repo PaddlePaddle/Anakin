@@ -35,20 +35,7 @@ __global__ void top1(const Dtype* in_data,
         share_index[index] = -1;
     }
     __syncthreads();
-    #if 0
-    for (int stride = blockDim.x >> 1;
-        stride > 0;
-        stride >>= 1) {
-        if (index < stride) {
-            int index2 = index + stride;
-            if (share_data[index2] > share_data[index]) {
-                 share_data[index] = share_data[index2];
-                 share_index[index] = share_index[index2];
-            }
-        }
-        __syncthreads();
-    }
-    #else
+
     if (blockSize >= 512) {
         if (index < 256) {
             int index2 = index + 256;
@@ -83,7 +70,7 @@ __global__ void top1(const Dtype* in_data,
         volatile Dtype *vmax = share_data;
         volatile Dtype *vindex = share_index;
         if (blockSize >= 64) {
-            int index2 = index + 64;
+            int index2 = index + 32;
             if (vmax[index2] > vmax[index]) {
                 vmax[index] = vmax[index2];
                 vindex[index] = vindex[index2];
@@ -127,7 +114,6 @@ __global__ void top1(const Dtype* in_data,
     }
 
     __syncthreads();
-    #endif
     if (index == 0) {
        if (!out_max_val) {
            out_data[blockIdx.x] = share_index[0];
@@ -159,20 +145,7 @@ __global__ void block_top1(const Dtype* in_data,
     }
     __syncthreads();
 
-    #if 0
-    for (int stride = blockDim.x >> 1;
-        stride > 0;
-        stride >>= 1) {
-        if (index < stride) {
-            int index2 = index + stride;
-            if (share_data[index2] > share_data[index]) {
-                 share_data[index] = share_data[index2];
-                 share_index[index] = share_index[index2];
-            }
-        }
-        __syncthreads();
-    }
-    #else
+   
     if (blockSize >= 512) {
         if (index < 256) {
             int index2 = index + 256;
@@ -251,7 +224,6 @@ __global__ void block_top1(const Dtype* in_data,
     }
 
     __syncthreads();
-    #endif
     if (index == 0) {
        int offset = blockIdx.y * gridDim.x + blockIdx.x;
        out_data[offset] = share_data[0];
@@ -288,20 +260,6 @@ __global__ void top1(const Dtype* in_data,
         share_index[index] = -1;
     }
     __syncthreads();
-    #if 0
-        for (int stride = blockDim.x >> 1;
-            stride > 0;
-            stride >>= 1) {
-            if (index < stride) {
-                int index2 = index + stride;
-                if (share_data[index2] > share_data[index]) {
-                     share_data[index] = share_data[index2];
-                     share_index[index] = share_index[index2];
-                }
-            }
-            __syncthreads();
-        }
-    #else
     if (blockSize >= 512) {
         if (index < 256) {
             int index2 = index + 256;
@@ -380,7 +338,6 @@ __global__ void top1(const Dtype* in_data,
     }
 
     __syncthreads();
-    #endif
     if (index == 0) {
        int block_id = share_index[0];
        if (!out_max_val) {
@@ -656,99 +613,7 @@ __global__ void topk_heap_shared(Dtype *out_data, int n, int inner_dim, const in
         }
         __syncthreads();
     }
-   // if (tid < 32) {
-   //     if (blockSize >= 64) {
-   //          volatile Dtype* cur = cur_tree;
-   //          volatile Dtype* cur_index = cur_tree_index;
-   //          volatile Dtype* next = cur + 32 * top_k;
-   //          volatile Dtype* next_index = cur_index + 32 * top_k;
-   //         for (int i = 0; i < top_k; i++) {
-   //             if (next[i] > cur[0]) {
-   //                 cur[0] = next[i];
-   //                 cur_index[0] = next_index[i];
-   //                 adjust_small_heap_with_index_device(cur, cur_index, 0, top_k);
-   //             }
-   //         }
-   //     }
-   //     if (blockSize >= 32) {
-   //          volatile Dtype* cur = cur_tree;
-   //          volatile Dtype* cur_index = cur_tree_index;
-   //          volatile Dtype* next = cur + 16 * top_k;
-   //          volatile Dtype* next_index = cur_index + 16 * top_k;
-   //         for (int i = 0; i < top_k; i++) {
-   //             if (next[i] > cur[0]) {
-   //                 cur[0] = next[i];
-   //                 cur_index[0] = next_index[i];
-   //                 adjust_small_heap_with_index_device(cur, cur_index, 0, top_k);
-   //             }
-   //         }
-   //     }
-   //     if (blockSize >= 16) {
-   //          volatile Dtype* cur = cur_tree;
-   //          volatile Dtype* cur_index = cur_tree_index;
-   //          volatile Dtype* next = cur + 8 * top_k;
-   //          volatile Dtype* next_index = cur_index + 8 * top_k;
-   //         for (int i = 0; i < top_k; i++) {
-   //             if (next[i] > cur[0]) {
-   //                 cur[0] = next[i];
-   //                 cur_index[0] = next_index[i];
-   //                 adjust_small_heap_with_index_device(cur, cur_index, 0, top_k);
-   //             }
-   //         }
-   //         if (tid < 8) {
-   //             for(int i = 0; i < top_k; i++) {
-   //                 printf("block_id:%d, tid:%d, i:%d, cur_tree:%f, \n", block_id, tid, i, cur[i]);
-   //             }
-   //         }
-   //     }
-   //     if (blockSize >= 8) {
-   //          volatile Dtype* cur = cur_tree;
-   //          volatile Dtype* cur_index = cur_tree_index;
-   //          volatile Dtype* next = cur + 4 * top_k;
-   //          volatile Dtype* next_index = cur_index + 4 * top_k;
-   //         for (int i = 0; i < top_k; i++) {
-   //             if (next[i] > cur[0]) {
-   //                 cur[0] = next[i];
-   //                 cur_index[0] = next_index[i];
-   //                 adjust_small_heap_with_index_device(cur, cur_index, 0, top_k);
-   //                 if (block_id == 0 && tid < 1) {
-   //                     for(int m = 0; m < top_k; m++) {
-   //                         printf("block_id:%d, tid:%d, i:%d, m:%d, cur_tree:%f, next:%f\n", block_id, tid, i, m, cur[m], next[m]);
-   //                     }
-   //                 }
-   //             }
-   //         }
-   //     }
-   //     if (blockSize >= 4) {
-   //          volatile Dtype* cur = cur_tree;
-   //          volatile Dtype* cur_index = cur_tree_index;
-   //          volatile Dtype* next = cur + 2 * top_k;
-   //          volatile Dtype* next_index = cur_index + 2 * top_k;
-   //         for (int i = 0; i < top_k; i++) {
-   //             if (next[i] > cur[0]) {
-   //                 cur[0] = next[i];
-   //                 cur_index[0] = next_index[i];
-   //                 adjust_small_heap_with_index_device(cur, cur_index, 0, top_k);
-   //             }
-   //         }
-   //     }
-   //     if (blockSize >= 2) {
-   //          volatile Dtype* cur = cur_tree;
-   //          volatile Dtype* cur_index = cur_tree_index;
-   //          volatile Dtype* next = cur + 1 * top_k;
-   //          volatile Dtype* next_index = cur_index + 1 * top_k;
-   //         if (tid == 0) {
-   //         for (int i = 0; i < top_k; i++) {
-   //                 printf("block_id:%d, i:%d, cur_val:%f, cur_index:%f, next_val:%f, next_val:%f\n", block_id, i,  cur[i], cur_index[i], next[i], next_index[i]);
-   //             //if (next[i] > cur[0]) {
-   //             //    cur[0] = next[i];
-   //             //    cur_index[0] = next_index[i];
-   //             //    adjust_small_heap_with_index_device(cur, cur_index, 0, top_k);
-   //             //}
-   //         }
-   //         }
-   //     }
-   // }
+   
     if (tid == 0) {
         int stride = out_max_val ? block_id * top_k * 2 : block_id * top_k;
         Dtype* out =  out_data + stride;
@@ -756,8 +621,8 @@ __global__ void topk_heap_shared(Dtype *out_data, int n, int inner_dim, const in
             if (!out_max_val) {
                 out[i] = cur_tree_index[0];
             } else {
-                out[i] = cur_tree[0];
-                out[i + top_k] = cur_tree_index[0];
+                out[i + top_k] = cur_tree[0];
+                out[i] = cur_tree_index[0];
             }
             cur_tree[0] = FLT_MAX;
             cur_tree_index[0] = -1;
@@ -765,61 +630,49 @@ __global__ void topk_heap_shared(Dtype *out_data, int n, int inner_dim, const in
         }
     }
 }
-
-/*
-template<DataType dataType, typename LayOutType>
-SaberStatus SaberArgmax<dataType, LayOutType>::dispatch(
-                                 const std::vector<DataTensor *> inputs,
-                                 std::vector<DataTensor *> outputs,
-                                 ArgmaxParam<void> &param) {
-*/    
-template <DataType OpDtype,
-    DataType inDtype,
-    DataType outDtype,
-    typename LayOutType_op,
-    typename LayOutType_in,
-    typename LayOutType_out>
-SaberStatus SaberArgmax<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(const std::vector<DataTensor_in *>& inputs,
-    std::vector<DataTensor_out *>& outputs,
-    ArgmaxParam<OpTensor>& param) {
-            
+    
+template <>
+SaberStatus SaberArgmax<NV, AK_FLOAT>::dispatch( \
+        const std::vector<Tensor<NV>*>& inputs,
+        std::vector<Tensor<NV>*>& outputs,
+        ArgmaxParam<NV>& param) {    
     cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
     outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
-    const InDataType * in_data = inputs[0]->data();
-    OutDataType * out_data = outputs[0]->mutable_data();
-    int outer_dim = inputs[0]->count(0, param.axis);
+    const OpDataType * in_data = (const OpDataType*)inputs[0]->data();
+    OpDataType * out_data = (OpDataType*)outputs[0]->mutable_data();
+    int outer_dim = inputs[0]->count_valid(0, param.axis);
     if (param.has_axis) {
-        int count = inputs[0]->count(0, inputs[0]->dims());
+        int count = inputs[0]->count_valid(0, inputs[0]->dims());
         int dim = inputs[0]->shape()[param.axis];
-        int inner_dim = inputs[0]->count(param.axis + 1, inputs[0]->dims());
+        int inner_dim = inputs[0]->count_valid(param.axis + 1, inputs[0]->dims());
         int total_threads = count / dim;
         if (param.top_k == 1) {
-            top1_channel<InDataType><<<CUDA_GET_BLOCKS(total_threads), CUDA_NUM_THREADS, 0, cuda_stream>>>(in_data, outer_dim, dim, inner_dim, param.out_max_val, out_data);
+            top1_channel<OpDataType><<<CUDA_GET_BLOCKS(total_threads), CUDA_NUM_THREADS, 0, cuda_stream>>>(in_data, outer_dim, dim, inner_dim, param.out_max_val, out_data);
         } else {
-            topk_channel<InDataType><<<CUDA_GET_BLOCKS(total_threads), CUDA_NUM_THREADS, 2 * sizeof(InDataType) * CUDA_NUM_THREADS * param.top_k, cuda_stream>>>(in_data, outer_dim, dim, inner_dim, param.top_k, param.out_max_val, out_data);
+            topk_channel<OpDataType><<<CUDA_GET_BLOCKS(total_threads), CUDA_NUM_THREADS, 2 * sizeof(OpDataType) * CUDA_NUM_THREADS * param.top_k, cuda_stream>>>(in_data, outer_dim, dim, inner_dim, param.top_k, param.out_max_val, out_data);
         }
     } else {
-        int inner_dim = inputs[0]->count(1, inputs[0]->dims());
+        int inner_dim = inputs[0]->count_valid(1, inputs[0]->dims());
         int outer_dim = inputs[0]->num();
         if (param.top_k == 1) {
             if (inner_dim / CUDA_NUM_THREADS < 10) {
                 int block_size = pow(2, ceil(log(inner_dim) / log(2)));
                 block_size  = block_size > CUDA_NUM_THREADS ? CUDA_NUM_THREADS : block_size;
-                top1<InDataType, CUDA_NUM_THREADS><<<outer_dim, CUDA_NUM_THREADS, 0, cuda_stream>>>(in_data, outer_dim, inner_dim, param.out_max_val, out_data);
+                top1<OpDataType, CUDA_NUM_THREADS><<<outer_dim, CUDA_NUM_THREADS, 0, cuda_stream>>>(in_data, outer_dim, inner_dim, param.out_max_val, out_data);
             } else {
                 int block_num = CUDA_GET_BLOCKS(inner_dim);
                 dim3 grid(block_num, outer_dim);
-                block_top1<InDataType, CUDA_NUM_THREADS><<<grid, CUDA_NUM_THREADS, 0, cuda_stream>>>(in_data, outer_dim, inner_dim, _block_max_value.mutable_data(), _block_max_index.mutable_data());
-                top1<InDataType, CUDA_NUM_THREADS><<<outer_dim, CUDA_NUM_THREADS, 0, cuda_stream>>>(_block_max_value.data(), _block_max_index.data(), outer_dim, block_num, param.out_max_val, out_data);
+                block_top1<OpDataType, CUDA_NUM_THREADS><<<grid, CUDA_NUM_THREADS, 0, cuda_stream>>>(in_data, outer_dim, inner_dim, (OpDataType*)_block_max_value.mutable_data(), (OpDataType*)_block_max_index.mutable_data());
+                top1<OpDataType, CUDA_NUM_THREADS><<<outer_dim, CUDA_NUM_THREADS, 0, cuda_stream>>>((OpDataType*)_block_max_value.data(), (OpDataType*)_block_max_index.data(), outer_dim, block_num, param.out_max_val, out_data);
             }
         } else {
-             topk_heap_shared<InDataType, CUDA_NUM_THREADS><<<outer_dim,  CUDA_NUM_THREADS, sizeof(InDataType) * CUDA_NUM_THREADS * param.top_k * 2, cuda_stream>>>(out_data, outer_dim, inner_dim, param.top_k, param.out_max_val,  in_data);
+             topk_heap_shared<OpDataType, CUDA_NUM_THREADS><<<outer_dim,  CUDA_NUM_THREADS, sizeof(OpDataType) * CUDA_NUM_THREADS * param.top_k * 2, cuda_stream>>>(out_data, outer_dim, inner_dim, param.top_k, param.out_max_val,  in_data);
         }
     }
 
     return SaberSuccess;
 }
-
+DEFINE_OP_TEMPLATE(SaberArgmax, ArgmaxParam, NV, AK_INT8);
+DEFINE_OP_TEMPLATE(SaberArgmax, ArgmaxParam, NV, AK_HALF);
 }
 }

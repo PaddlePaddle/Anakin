@@ -3,25 +3,15 @@
 #ifdef PLATFORM_ANDROID
 #include <sys/syscall.h>
 #include <unistd.h>
-
-#define __NCPUBITS__  (8 * sizeof (unsigned long))
-
-#define __CPU_SET(cpu, cpusetp) \
-  ((cpusetp)->mask_bits[(cpu) / __NCPUBITS__] |= (1UL << ((cpu) % __NCPUBITS__)))
-
-#define __CPU_ZERO(cpusetp) \
-  memset((cpusetp), 0, sizeof(cpu_set_t))
-#endif //android
-
+#endif
 #if __APPLE__
 #include "TargetConditionals.h"
 #if TARGET_OS_IPHONE
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #include <mach/machine.h>
-#define __IOS__
-#endif
-#endif //apple
+#endif //TARGET_OS_IPHONE
+#endif //__APPLE__
 
 namespace anakin{
 
@@ -29,14 +19,14 @@ namespace saber{
 
 namespace lite{
 
-int arm_get_cpucount() {
+int arm_get_cpucount(std::vector<ARMArch>& archs) {
 #ifdef PLATFORM_ANDROID
     // get cpu count from /proc/cpuinfo
+#if 0 //read from /proc/cpuinfo
     FILE* fp = fopen("/proc/cpuinfo", "rb");
     if (!fp) {
         return 1;
     }
-
     int count = 0;
     char line[1024];
     while (!feof(fp)) {
@@ -55,32 +45,100 @@ int arm_get_cpucount() {
     if (count < 1) {
         count = 1;
     }
-
     return count;
-#elif __IOS__
+#else
+    int max_cpu_count = 20;
     int count = 0;
-    size_t len = sizeof(count);
-    sysctlbyname("hw.ncpu", &count, &len, NULL, 0);
-
+    for (int i = 0; i < max_cpu_count; ++i) {
+        char path[256];
+        snprintf(path, sizeof(path), "/sys/devices/system/cpu/cpu%d/uevent", i);
+        FILE* fp = fopen(path, "rb");
+        if (!fp) {
+            break;
+        }
+        count++;
+        fclose(fp);
+    }
     if (count < 1) {
         count = 1;
     }
+    archs.clear();
+    //! get CPU ARCH
+    FILE* fp = fopen("/proc/cpuinfo", "rb");
+    if (!fp) {
+        return 1;
+    }
+    char line[1024];
+    while (!feof(fp)) {
+        char* s = fgets(line, 1024, fp);
+        if (!s) {
+            break;
+        }
+        if (strstr(line, "part") != NULL) {
+            int arch_id = 0;
+            sscanf(s, "CPU part\t: %x", &arch_id);
+            switch (arch_id) {
+                case 0xd03:
+                    archs.push_back(A53);
+                    break;
+                case 0xd07:
+                    archs.push_back(A57);
+                    break;
+                case 0xd08:
+                    archs.push_back(A72);
+                    break;
+                case 0xd09:
+                    archs.push_back(A73);
+                    break;
+                case 0xd0a:
+                    archs.push_back(A75);
+                    break;
+                case 0x800:
+                    // 835
+                    archs.push_back(A73);
+                    break;
+                case 0x205:
+                    // 820
+                    archs.push_back(A72);
+                    break;
+                default:
+                    LOGE("ERROR: CPU ARCH unknow type\n");
+                    archs.push_back(ARM_UNKOWN);
+            }
+        }
+    }
 
+    fclose(fp);
+    if (archs.size() < count) {
+        for (int i = archs.size(); i < count; ++i) {
+            archs.push_back(archs[i - 1]);
+        }
+    }
+    return count;
+#endif //if 0
+
+#elif defined(TARGET_IOS)
+    int count = 0;
+    size_t len = sizeof(count);
+    sysctlbyname("hw.ncpu", &count, &len, NULL, 0);
+    if (count < 1) {
+        count = 1;
+    }
     return count;
 #else
     return 1;
-#endif
+#endif //android
 }
 
-int arm_get_meminfo() {
+size_t arm_get_meminfo() {
 #ifdef PLATFORM_ANDROID
-// get cpu count from /proc/cpuinfo
+    // get cpu count from /proc/cpuinfo
     FILE* fp = fopen("/proc/meminfo", "rb");
     if (!fp) {
         return 1;
     }
 
-    int memsize = 0;
+    size_t memsize = 0;
     char line[1024];
     while (!feof(fp)) {
         char* s = fgets(line, 1024, fp);
@@ -93,8 +151,9 @@ int arm_get_meminfo() {
     fclose(fp);
 
     return memsize;
-#elif __IOS__
+#elif defined(TARGET_IOS)
     // to be implemented
+    printf("not implemented\n");
     return 0;
 #endif
 }
@@ -151,7 +210,7 @@ int get_max_freq_khz(int cpuid) {
     return max_freq_khz;
 }
 
-int sort_cpuid_by_max_frequency(int cpu_count, std::vector<int>& cpuids, \
+int arm_sort_cpuid_by_max_frequency(int cpu_count, std::vector<int>& cpuids, \
            std::vector<int>& cpu_freq, std::vector<int>& cluster_ids) {
     //const int cpu_count = cpuids.size();
 
@@ -185,136 +244,101 @@ int sort_cpuid_by_max_frequency(int cpu_count, std::vector<int>& cpuids, \
 
     return 0;
 }
-#endif // __ANDROID__
 
-#ifdef __IOS__
-int sort_cpuid_by_max_frequency(int cpu_count, std::vector<int>& cpuids, \
-       std::vector<int>& cpu_freq, std::vector<int>& cluster_ids){
-    if (cpu_count == 0) {
-        return 0;
-    }
-    cpuids.resize(cpu_count);
-    cpu_freq.resize(cpu_count);
-    cluster_ids.resize(cpu_count);
-    for (int i = 0; i < cpu_count; ++i) {
-        cpuids[i] = i;
-        cpu_freq[i] = 1000;
-        cluster_ids[i] = 0;
-    }
-}
-#endif
-
-#ifdef PLATFORM_ANDROID
 int set_sched_affinity(const std::vector<int>& cpuids) {
     // cpu_set_t definition
     // ref http://stackoverflow.com/questions/16319725/android-set-thread-affinity
-
+#define CPU_SETSIZE 1024
+#define __NCPUBITS  (8 * sizeof (unsigned long))
     typedef struct {
-        unsigned long mask_bits[1024 / __NCPUBITS__];
+        unsigned long __bits[CPU_SETSIZE / __NCPUBITS];
     } cpu_set_t;
 
-    // set affinity for thread
-    pid_t pid = gettid();
+#define CPU_SET(cpu, cpusetp) \
+  ((cpusetp)->__bits[(cpu)/__NCPUBITS] |= (1UL << ((cpu) % __NCPUBITS)))
 
+#define CPU_ZERO(cpusetp) \
+  memset((cpusetp), 0, sizeof(cpu_set_t))
+
+    // set affinity for thread
+#ifdef __GLIBC__
+    pid_t pid = syscall(SYS_gettid);
+#else
+    pid_t pid = gettid();
+#endif
     cpu_set_t mask;
-    __CPU_ZERO(&mask);
-    for (int i = 0; i < (int)cpuids.size(); i++) {
-        __CPU_SET(cpuids[i], &mask);
+    CPU_ZERO(&mask);
+    for (int i = 0; i < cpuids.size(); i++) {
+        CPU_SET(cpuids[i], &mask);
     }
 
     int syscallret = syscall(__NR_sched_setaffinity, pid, sizeof(mask), &mask);
     if (syscallret) {
-        //LOG(ERROR) << "syscall error " << syscallret;
+        LOGE("ERROR: syscall error %d\n", syscallret);
         return -1;
     }
 
     return 0;
 }
-
-int set_cpu_affinity(const std::vector<int>& cpuids){
-#ifdef USE_OPENMP
-    int num_threads = cpuids.size();
-    omp_set_num_threads(num_threads);
-    std::vector<int> ssarets(num_threads, 0);
-#pragma omp parallel for
-    for (int i = 0; i < num_threads; i++) {
-        ssarets[i] = set_sched_affinity(cpuids);
-    }
-    for (int i = 0; i < num_threads; i++) {
-        if (ssarets[i] != 0) {
-            //LOG(ERROR)<<"set cpu affinity failed, cpuID: " << cpuids[i];
-            return -1;
-        }
-    }
-#else
-    std::vector<int> cpuid1;
-    cpuid1.push_back(cpuids[0]);
-    int ssaret = set_sched_affinity(cpuid1);
-        if (ssaret != 0) {
-            //LOG(ERROR)<<"set cpu affinity failed, cpuID: " << cpuids[0];
-            return -1;
-        }
-#endif
-    return 0;
-}
-#endif //PLATFORN_ANDROID
-
+#endif //android
 //template <>
 void Env::get_info(DeviceInfo& dev) {
     //! set to const value, need to fetch from device
-    dev._L1_cache = 31000;
-    dev._L2_cache = 2000000;
+#ifdef TARGET_IOS
+    dev._L1_cache = 64 * 1024;
+    dev._L2_cache = 2048 * 1024;
     dev._L3_cache = 0;
-
-    dev._compute_core_num = arm_get_cpucount();
+#else
+    dev._L1_cache = 32 * 1024;
+    dev._L2_cache = 512 * 1024;
+    dev._L3_cache = 0;
+#endif
+    dev._compute_core_num = arm_get_cpucount(dev._archs);
     dev._max_memory = arm_get_meminfo();
 
     //_max_stream = _info._compute_core_num;
-
+#ifdef PLATFORM_ANDROID
     std::vector<int> max_freq;
 
-    sort_cpuid_by_max_frequency(dev._compute_core_num, dev._core_ids, max_freq, dev._cluster_ids);
+    arm_sort_cpuid_by_max_frequency(dev._compute_core_num, dev._core_ids, max_freq, dev._cluster_ids);
 
-    printf("ARM multiprocessors number: %d\n", dev._compute_core_num);
-    for (int i = 0; i < dev._compute_core_num; ++i) {
-        printf("ARM multiprocessors ID: %d, frequence: %d, cluster ID: %d\n", \
-                dev._core_ids[i], max_freq[dev._core_ids[i]], dev._cluster_ids[dev._core_ids[i]]);
+    dev._big_core_ids.clear();
+    dev._little_core_ids.clear();
+    for (int i = 0; i < dev._cluster_ids.size(); ++i) {
+        if (dev._cluster_ids[i] == 0) {
+            dev._big_core_ids.push_back(dev._core_ids[i]);
+        } else {
+            dev._little_core_ids.push_back(dev._core_ids[i]);
+        }
     }
-    //LOG(INFO) << "L1 DataCache size: " << L1_cache << "B";
-    //LOG(INFO) << "L2 Cache size: " << L2_cache << "B";
-    printf("Total memory: %d kB\n", dev._max_memory);
+    LOGI("ARM multiprocessors number: %d\n", dev._compute_core_num);
+    for (int i = 0; i < dev._compute_core_num; ++i) {
+        LOGI("ARM multiprocessors ID: %d, frequence: %d, cluster ID: %d, CPU ARCH: A%d\n", \
+                dev._core_ids[i], max_freq[dev._core_ids[i]], dev._cluster_ids[dev._core_ids[i]], \
+                dev._archs[i]);
+    }
+    LOGI("L1 DataCache size Not Set, current is:  %d B\n", dev._L1_cache);
+    LOGI("L2 Cache size Not Set, current is:  %d B\n", dev._L2_cache);
+    LOGI("Total memory: %d kB\n", dev._max_memory);
 
     dev._max_frequence = max_freq[0];
     for (int j = 1; j < dev._compute_core_num; ++j) {
-        if(dev._max_frequence < max_freq[j]){
+        if (dev._max_frequence < max_freq[j]){
             dev._max_frequence = max_freq[j];
         }
     }
-}
-#if 0
-template <>
-void Device<CPU>::create_stream() {
-    _compute_stream.resize(_max_stream);
-    _data_stream.resize(_max_stream);
-    for (int i = 0; i < _max_stream; ++i) {
-        _compute_stream[i] = nullptr;
-        _data_stream[i] = nullptr;
-    }
-}
-
-template <>
-Device<CPU>::Device(int max_stream){
-    _max_stream = max_stream;
-    get_info();
-    create_stream();
-}
+#elif defined(TARGET_IOS)
+    printf("ios target, unsupport now\n");
 #endif
+}
 
 void Context::set_cache(size_t l1size, size_t l2size, size_t l3size) {
     DeviceInfo& dev = Env::cur_env();
     dev._L1_cache = l1size;
     dev._L2_cache = l2size;
     dev._L3_cache = l3size;
+    int temp_mem_size = 2 * (l1size + l2size);
+    _work_space.reshape(Shape(temp_mem_size));
 }
 
 //template <>
@@ -322,227 +346,95 @@ Context::Context() {
     //! 1 thread, big core
     _act_ids = {0};
     _mode = SABER_POWER_HIGH;
+    DeviceInfo& dev = Env::cur_env();
+#ifdef TARGET_IOS
+    _arch = APPLE; //use 6x8
+#else
+    _arch = dev._archs[dev._big_core_ids[0]];
+#endif
 }
 
-PowerMode Context::get_mode(int& threads) {
-    threads = _act_ids.size();
+PowerMode Context::get_mode() const {
     return _mode;
 }
 
-std::vector<int> Context::get_act_ids() {
-    return _act_ids;
+int Context::get_threads() const {
+    return _act_ids.size();
 }
 
 Context::Context(const Context& ctx){
     _mode = ctx._mode;
     _act_ids = ctx._act_ids;
+    _work_space = ctx._work_space;
+    _arch = ctx._arch;
+    _count = ctx._count;
 }
 
-void Context::bind_dev() {
-    set_cpu_affinity(_act_ids);
-}
-
-void Context::set_run_mode(PowerMode mode, int threads) {
-    DeviceInfo& dev = Env::cur_env();
-    std::vector<int> big_cores;
-    std::vector<int> small_cores;
-    for (int i = 0; i < dev._cluster_ids.size(); ++i) {
-        if (dev._cluster_ids[i] == 0) {
-            big_cores.push_back(dev._core_ids[i]);
-        } else {
-            small_cores.push_back(dev._core_ids[i]);
-        }
-    }
-    int big_core_size = big_cores.size();
-    int small_core_size = small_cores.size();
-    if (threads > big_core_size + small_core_size) {
-        threads = big_core_size + small_core_size;
-    }
-    switch (mode) {
-        case SABER_POWER_FULL:
-            _mode = mode;
-            _act_ids.clear();
-            for (int i = 0; i < threads; ++i) {
-                if (i < big_core_size) {
-                    _act_ids.push_back(big_cores[i]);
-                } else {
-                    _act_ids.push_back(small_cores[i - big_core_size]);
-                }
-            }
-            break;
-        case SABER_POWER_HIGH:
-            _act_ids.clear();
-            if (big_core_size > 0) {
-                _mode = SABER_POWER_HIGH;
-                if (threads > big_core_size) {
-                    printf("threads: %d, exceed the big cores size: %d\n", threads, big_core_size);
-                    _act_ids = big_cores;
-                } else {
-                    for (int i = 0; i < threads; ++i) {
-                        _act_ids.push_back(big_cores[i]);
-                    }
-                }
-            } else {
-                _mode = SABER_POWER_LOW;
-                printf("HIGH POWER MODE is not support, switch to small cores\n");
-                if(threads > small_core_size) {
-                    _act_ids = small_cores;
-                } else {
-                    for (int i = 0; i < threads; ++i) {
-                        _act_ids.push_back(small_cores[i]);
-                    }
-                }
-
-            }
-            break;
-        case SABER_POWER_LOW:
-            _act_ids.clear();
-            if (small_core_size > 0) {
-                _mode = SABER_POWER_LOW;
-                if (threads > small_core_size) {
-                    printf("threads: %d, exceed the small cores size: %d\n", threads, small_core_size);
-                    _act_ids = small_cores;
-                } else {
-                    for (int i = 0; i < threads; ++i) {
-                        _act_ids.push_back(small_cores[i]);
-                    }
-                }
-            } else {
-                _mode = SABER_POWER_HIGH;
-                printf("LOW POWER MODE is not support, switch to big cores\n");
-                if(threads > big_core_size) {
-                    _act_ids = big_cores;
-                } else {
-                    for (int i = 0; i < threads; ++i) {
-                        _act_ids.push_back(small_cores[i]);
-                    }
-                }
-
-            }
-            break;
-    }
-
-    bind_dev();
-}
-
-#if 0
-template <>
-Context<CPU>::Context(int device_id, int data_stream_id, int compute_stream_id) {
-    typename Env<CPU>::Devs& devs = Env<CPU>::cur_env();
-    LCHECK_GT(devs.size(), 0, "Env is not initialized or current target is not exit!");
-    if (device_id >= devs.size()){
-        printf("device index exceeds the number of devices, set to default device(0)!\n");
-        _device_id = 0;
-    } else {
-        _device_id = device_id;
-    }
-    if (data_stream_id >= devs[_device_id]._max_stream) {
-        printf("data stream index exceeds the maximum stream number, set to default stream(0)!\n");
-        data_stream_id = 0;
-    }
-    _stream_data = devs[_device_id]._data_stream[data_stream_id];
-    _data_stream_id = data_stream_id;
-
-    if (compute_stream_id >= devs[_device_id]._max_stream) {
-        printf("compute stream index exceeds the maximum stream number, set to default stream(0)!\n");
-        compute_stream_id = 0;
-    }
-    _stream_compute = devs[_device_id]._compute_stream[compute_stream_id];
-    _compute_stream_id = compute_stream_id;
-    _act_ids = {0};
-    _mode = SABER_POWER_HIGH;
-}
-
-template <>
-Context<CPU>::Context(const Context<CPU>& ctx){
-    _device_id = ctx._device_id;
-    _data_stream_id = ctx._data_stream_id;
-    _compute_stream_id = ctx._compute_stream_id;
-    _stream_compute = ctx._stream_compute;
-    _stream_data = ctx._stream_data;
+Context& Context::operator=(const Context &ctx) {
     _mode = ctx._mode;
     _act_ids = ctx._act_ids;
-}
-
-template <>
-Context<CPU>& Context<CPU>::operator=(const Context<CPU>& ctx){
-    this->_device_id = ctx._device_id;
-    this->_data_stream_id = ctx._data_stream_id;
-    this->_compute_stream_id = ctx._compute_stream_id;
-    this->_stream_data = ctx._stream_data;
-    this->_stream_compute = ctx._stream_compute;
+    _work_space = ctx._work_space;
+    _arch = ctx._arch;
+    _count = ctx._count;
     return *this;
 }
 
-template<>
-bool Context<CPU>::operator==(const Context<CPU> &right) {
-    bool comp_eq = true;
-    comp_eq = comp_eq && (_device_id == right._device_id);
-    comp_eq = comp_eq && (_data_stream_id == right._data_stream_id);
-    comp_eq = comp_eq && (_compute_stream_id == right._compute_stream_id);
-    return comp_eq;
-}
-
-/**
- * \brief get device id of current context
- * @return
- */
-template <>
-int Context<CPU>::get_device_id() {
-    return _device_id;
-}
-
-/**
- * \brief get data process stream
- * @return
- */
-template <>
-typename TargetTrait<CPU>::stream_t Context<CPU>::get_data_stream(){
-    return _stream_data;
-}
-
-/**
- * \brief get compute process stream
- * @return
- */
-template <>
-typename TargetTrait<CPU>::stream_t Context<CPU>::get_compute_stream(){
-    return _stream_compute;
-}
-
-template <>
-void Context<CPU>::bind_dev() {
-    set_cpu_affinity(_act_ids);
-}
-
-template <>
-void Context<CPU>::set_run_mode(PowerMode mode, int threads) {
-    typename Env<CPU>::Devs& devs = Env<CPU>::cur_env();
-    Device<CPU> dev = devs[_device_id];
-    std::vector<int> big_cores;
-    std::vector<int> small_cores;
-    for (int i = 0; i < dev._info._cluster_ids.size(); ++i) {
-        if (dev._info._cluster_ids[i] == 0) {
-            big_cores.push_back(dev._info._core_ids[i]);
-        } else {
-            small_cores.push_back(dev._info._core_ids[i]);
+void Context::bind_dev() {
+#ifdef USE_OPENMP
+    int num_threads = _act_ids.size();
+    omp_set_num_threads(num_threads);
+#ifdef PLATFORM_ANDROID
+    std::vector<int> ssarets;
+    for (int j = 0; j < num_threads; ++j) {
+        ssarets.push_back(0);
+    }
+#pragma omp parallel for
+    for (int i = 0; i < num_threads; i++) {
+        ssarets[i] = set_sched_affinity(_act_ids);
+    }
+    for (int i = 0; i < num_threads; i++) {
+        if (ssarets[i] != 0) {
+            LOGE("ERROR: set cpu affinity failed, cpuID: %d\n", _act_ids[i]);
+            return;
         }
     }
-    int big_core_size = big_cores.size();
-    int small_core_size = small_cores.size();
+#endif //PLATFORM_ANDROID
+#else //USE_OPENMP
+#ifdef PLATFORM_ANDROID
+    std::vector<int> cpuid1;
+    cpuid1.push_back(_act_ids[0]);
+    int ssaret = set_sched_affinity(cpuid1);
+    if (ssaret != 0) {
+        printf("set cpu affinity failed, cpuID: %d\n", _act_ids[0]);
+        return;
+    }
+#endif //PLATFORM_ANDROID
+#endif//USE_OPENMP
+}
+
+void Context::set_run_mode(PowerMode mode, int threads) {
+#ifdef USE_OPENMP
+    DeviceInfo& dev = Env::cur_env();
+    int big_core_size = dev._big_core_ids.size();
+    int small_core_size = dev._little_core_ids.size();
     if (threads > big_core_size + small_core_size) {
         threads = big_core_size + small_core_size;
     }
+    _count++;
+    int shift_num = (_count / 10) % big_core_size;
     switch (mode) {
         case SABER_POWER_FULL:
             _mode = mode;
             _act_ids.clear();
             for (int i = 0; i < threads; ++i) {
                 if (i < big_core_size) {
-                    _act_ids.push_back(big_cores[i]);
+                    _act_ids.push_back(dev._big_core_ids[i]);
                 } else {
-                    _act_ids.push_back(small_cores[i - big_core_size]);
+                    _act_ids.push_back(dev._little_core_ids[i - big_core_size]);
                 }
+            }
+            if (_act_ids.size() == 0) {
+                _act_ids.push_back(0);
             }
             break;
         case SABER_POWER_HIGH:
@@ -550,24 +442,27 @@ void Context<CPU>::set_run_mode(PowerMode mode, int threads) {
             if (big_core_size > 0) {
                 _mode = SABER_POWER_HIGH;
                 if (threads > big_core_size) {
-                    printf("threads: %d, exceed the big cores size: %d\n", threads, big_core_size);
-                    _act_ids = big_cores;
+                    LOGE("ERROR: threads: %d, exceed the big cores size: %d\n", threads, big_core_size);
+                    _act_ids = dev._big_core_ids;
                 } else {
                     for (int i = 0; i < threads; ++i) {
-                        _act_ids.push_back(big_cores[i]);
+                        _act_ids.push_back(dev._big_core_ids[i]);
                     }
                 }
             } else {
                 _mode = SABER_POWER_LOW;
-                printf("HIGH POWER MODE is not support, switch to small cores\n");
-                if(threads > small_core_size) {
-                    _act_ids = small_cores;
+                LOGE("ERROR: HIGH POWER MODE is not support, switch to small cores\n");
+                if (threads > small_core_size) {
+                    _act_ids = dev._little_core_ids;
                 } else {
                     for (int i = 0; i < threads; ++i) {
-                        _act_ids.push_back(small_cores[i]);
+                        _act_ids.push_back(dev._little_core_ids[i]);
                     }
                 }
 
+            }
+            if (_act_ids.size() == 0) {
+                _act_ids.push_back(0);
             }
             break;
         case SABER_POWER_LOW:
@@ -575,57 +470,152 @@ void Context<CPU>::set_run_mode(PowerMode mode, int threads) {
             if (small_core_size > 0) {
                 _mode = SABER_POWER_LOW;
                 if (threads > small_core_size) {
-                    printf("threads: %d, exceed the small cores size: %d\n", threads, small_core_size);
-                    _act_ids = small_cores;
+                    LOGW("threads: %d, exceed the small cores size: %d\n", threads, small_core_size);
+                    _act_ids = dev._little_core_ids;
                 } else {
                     for (int i = 0; i < threads; ++i) {
-                        _act_ids.push_back(small_cores[i]);
+                        _act_ids.push_back(dev._little_core_ids[i]);
                     }
                 }
             } else {
                 _mode = SABER_POWER_HIGH;
-                printf("LOW POWER MODE is not support, switch to big cores\n");
-                if(threads > big_core_size) {
-                    _act_ids = big_cores;
+                LOGW("LOW POWER MODE is not support, switch to big cores\n");
+                if (threads > big_core_size) {
+                    _act_ids = dev._big_core_ids;
                 } else {
                     for (int i = 0; i < threads; ++i) {
-                        _act_ids.push_back(small_cores[i]);
+                        _act_ids.push_back(dev._little_core_ids[i]);
                     }
                 }
 
             }
+            if (_act_ids.size() == 0) {
+                _act_ids.push_back(0);
+            }
+            break;
+        case SABER_POWER_NO_BIND:
+            _mode = SABER_POWER_NO_BIND;
+            _act_ids.clear();
+            if (threads > dev._core_ids.size()) {
+                _act_ids.resize(dev._core_ids.size());
+            } else {
+                _act_ids.resize(threads);
+            }
+            break;
+        case SABER_POWER_RAND_HIGH:
+            _act_ids.clear();
+            if (big_core_size > 0) {
+                _mode = SABER_POWER_RAND_HIGH;
+                if (threads > big_core_size) {
+                    LOGW("threads: %d, exceed the big cores size: %d\n", threads, big_core_size);
+                    _act_ids = dev._big_core_ids;
+                } else {
+                    for (int i = 0; i < threads; ++i) {
+                        _act_ids.push_back(dev._big_core_ids[(i + shift_num) % big_core_size]);
+                    }
+                }
+            } else {
+                _mode = SABER_POWER_LOW;
+                LOGW("HIGH POWER MODE is not support, switch to small cores\n");
+                if (threads > small_core_size) {
+                    _act_ids = dev._little_core_ids;
+                } else {
+                    for (int i = 0; i < threads; ++i) {
+                        _act_ids.push_back(dev._little_core_ids[i]);
+                    }
+                }
+
+            }
+            if (_act_ids.size() == 0) {
+                _act_ids.push_back(0);
+            }
+            break;
+        case SABER_POWER_RAND_LOW:
+            _act_ids.clear();
+            if (small_core_size > 0) {
+                _mode = SABER_POWER_RAND_LOW;
+                if (threads > small_core_size) {
+                    LOGW("threads: %d, exceed the small cores size: %d\n", threads, small_core_size);
+                    _act_ids = dev._little_core_ids;
+                } else {
+                    for (int i = 0; i < threads; ++i) {
+                        _act_ids.push_back(dev._little_core_ids[(i + shift_num) % small_core_size]);
+                    }
+                }
+            } else {
+                _mode = SABER_POWER_HIGH;
+                LOGW("LOW POWER MODE is not support, switch to big cores\n");
+                if (threads > big_core_size) {
+                    _act_ids = dev._big_core_ids;
+                } else {
+                    for (int i = 0; i < threads; ++i) {
+                        _act_ids.push_back(dev._little_core_ids[i]);
+                    }
+                }
+
+            }
+            if (_act_ids.size() == 0) {
+                _act_ids.push_back(0);
+            }
             break;
     }
-
-    bind_dev();
-}
-//
-//void set_act_cores(std::vector<int> ids) {
-//    Device dev = devs[_device_id];
-//    if (ids.size() == 0){
-//        _act_ids.resize(1);
-//        _act_ids[0] = dev._info._core_ids[0];
-//    }else {
-//        _act_ids.clear();
-//        for (int i = 0; i < ids.size(); ++i) {
-//            if (ids[i] < dev._info._core_ids.size()){
-//                _act_ids.push_back(ids[i]);
-//            }
-//        }
+#ifdef TARGET_IOS
+    _arch = APPLE; //use 6x8
+#else
+//    if (_mode == SABER_POWER_RAND_LOW || _mode == SABER_POWER_LOW) {
+//        _arch = dev._archs[dev._little_core_ids[0]];
+//    } else {
+//        _arch = dev._archs[dev._big_core_ids[0]];
 //    }
-//    bind_dev();
-//}
-
-template <>
-PowerMode Context<CPU>::get_mode(int& threads) {
-    threads = _act_ids.size();
-    return _mode;
-}
-template <>
-std::vector<int> Context<CPU>::get_act_ids() {
-    return _act_ids;
-}
 #endif
+//    LOGI("run mode: %d, arch: %d\n", _mode, _arch);
+//    LOGI("thread num: %lu\n", _act_ids.size());
+//    for (int j = 0; j < _act_ids.size(); ++j) {
+//        LOGI("|----active id: %d\n", _act_ids[j]);
+//    }
+    // fixme
+    //! fix multi-threads SABER_POWER_HIGH mode
+    if (_mode == SABER_POWER_NO_BIND || _mode == SABER_POWER_HIGH) {
+        int threads = _act_ids.size();
+        omp_set_num_threads(threads);
+    } else {
+        bind_dev();
+    }
+#else
+    _act_ids = {0};
+#endif
+    //! alloc memory for sgemm in this context
+    int temp_mem_size = Env::cur_env()._L2_cache / sizeof(float);
+    _work_space.reshape(Shape(temp_mem_size));
+}
+
+void* Context::get_work_space() {
+    return (void*)_work_space.mutable_data();
+}
+
+ARMArch Context::get_arch() const {
+    return _arch;
+}
+
+void Context::set_arch(ARMArch arch) {
+    _arch = arch;
+}
+
+size_t Context::l1_cache_size() const {
+    DeviceInfo& dev = Env::cur_env();
+    return dev._L1_cache;
+}
+
+size_t Context::l2_cache_size() const {
+    DeviceInfo& dev = Env::cur_env();
+    return dev._L2_cache;
+}
+
+void Context::workspace_extend(Shape sh) {
+    int count = sh.count();
+    _work_space.reshape(Shape(count + l2_cache_size() / sizeof(float)));
+}
+
 } //namespace lite
 
 } //namespace saber

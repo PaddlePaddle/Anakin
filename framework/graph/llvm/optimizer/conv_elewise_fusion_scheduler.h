@@ -16,6 +16,8 @@
 #ifndef ANAKIN_LLVM_SCHEDULER_CONV_ELEWISE_FUSION_H
 #define ANAKIN_LLVM_SCHEDULER_CONV_ELEWISE_FUSION_H
 
+#include <unordered_map>
+
 #include "utils/logger/logger.h"
 #include "framework/graph/llvm/schedule_base.h"
 #include "framework/graph/llvm/virtual_graph.h"
@@ -32,6 +34,7 @@ struct ConvElsFusionHelper {
 private:
 	std::vector<std::string> ops {
 		"ConvBatchnormScale",
+        "Convolution"
 	};
 	struct conv_eltwise_pair {
 		std::string conv_name;
@@ -129,9 +132,12 @@ public:
 	/// run scheduler
     virtual void Run();
 
+    virtual std::vector<std::string> get_exec_node_in_order();
+
 
 private:
 	ConvElsFusionHelper _helper;
+	std::unordered_map<std::string, node> _force_order;
 };
 
 

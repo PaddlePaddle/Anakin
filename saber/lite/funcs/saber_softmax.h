@@ -15,8 +15,7 @@
 #ifndef ANAKIN_SABER_LITE_FUNCS_SABER_SOFTMAX_H
 #define ANAKIN_SABER_LITE_FUNCS_SABER_SOFTMAX_H
 
-#include "saber/lite/core/tensor_lite.h"
-#include "saber/lite/core/context_lite.h"
+#include "saber/lite/funcs/op_base.h"
 
 #ifdef USE_ARM_PLACE
 
@@ -27,37 +26,36 @@ namespace saber{
 namespace lite{
 
 //template <typename Dtype>
-class SaberSoftmax{
+class SaberSoftmax : public OpBase {
 public:
 
     SaberSoftmax() = default;
 
-    SaberSoftmax(int axis);
+    SaberSoftmax(ParamBase* param);
 
-    SaberStatus load_param(int axis);
+    virtual SaberStatus load_param(ParamBase* param) override;
 
-    ~SaberSoftmax() {}
+    virtual SaberStatus set_op_precision(DataType ptype) override;
+
+    virtual SaberStatus load_param(std::istream& stream, const float* weights) override;
+
+    ~SaberSoftmax();
 
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                              std::vector<Tensor<CPU, AK_FLOAT>*>& outputs) {
-        return outputs[0]->set_shape(inputs[0]->valid_shape());
-    }
+    virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU>*>& inputs,
+                              std::vector<Tensor<CPU>*>& outputs) override;
 
-    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                               std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx);
+    virtual SaberStatus init(const std::vector<Tensor<CPU>*>& inputs,
+                               std::vector<Tensor<CPU>*>& outputs, Context &ctx) override;
 
-    SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                 std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus dispatch(const std::vector<Tensor<CPU>*>& inputs,
+                                 std::vector<Tensor<CPU>*>& outputs) override;
 
 private:
-    Context _ctx;
+    SoftmaxParam* _param;
     int _axis_size{0};
     int _inner_num{0};
     int _outer_num{0};
-
-    int _axis;
-
 };
 
 } //namespace lite

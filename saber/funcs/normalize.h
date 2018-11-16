@@ -18,54 +18,50 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+#include "saber/funcs/impl/impl_normalize.h"
+
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_normalize.h"
 #endif
 
 #ifdef USE_X86_PLACE
-#include "saber/funcs/impl/impl_normalize.h"
+#include "saber/funcs/impl/x86/saber_normalize.h"
 #endif
-#ifdef USE_ARM_PLACE
-//todo
+
+/*
+#ifdef AMD_GPU
 #include "saber/funcs/impl/impl_normalize.h"
-#endif
+*/
+
 namespace anakin{
 
 namespace saber{
 
 template<typename TargetType,
-        DataType OpDtype,
-        DataType inDtype = AK_FLOAT,
-        DataType outDtype = AK_FLOAT,
-        typename LayOutType_op = NCHW,
-        typename LayOutType_in = NCHW,
-        typename LayOutType_out = NCHW
->
+        DataType OpDtype>
 class Normalize : public BaseFunc<
-        Tensor<TargetType, inDtype, LayOutType_in>,
-        Tensor<TargetType, outDtype, LayOutType_out>,
-        Tensor<TargetType, OpDtype, LayOutType_op>,
+        TargetType,
+        OpDtype,
         ImplBase,
-        NormalizeParam
-> {
+        NormalizeParam> {
 public:
     using BaseFunc<
-            Tensor<TargetType, inDtype, LayOutType_in>,
-            Tensor<TargetType, outDtype, LayOutType_out>,
-            Tensor<TargetType, OpDtype, LayOutType_op>,
+            TargetType,
+            OpDtype,
             ImplBase,
             NormalizeParam>::BaseFunc;
 
     Normalize() = default;
     
-    typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
-    typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
-    typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-    typedef NormalizeParam<OpTensor> Param_t;
+    typedef Tensor<TargetType> InDataTensor;
+    typedef Tensor<TargetType> OutDataTensor;
+    typedef Tensor<TargetType> OpTensor;
+    typedef NormalizeParam<TargetType> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
 
+            
     virtual SaberStatus compute_output_shape(const Input_v& input, Output_v& output, \
         Param_t& param) override {
 
@@ -78,13 +74,11 @@ public:
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
             case VENDER_IMPL:
-                this->_impl.push_back(new VenderNormalize <TargetType, OpDtype, inDtype, outDtype,
-                LayOutType_op, LayOutType_in, LayOutType_out>);
+                this->_impl.push_back(new VenderNormalize <TargetType, OpDtype>);
                 return SaberSuccess;
 
             case SABER_IMPL:
-                this->_impl.push_back(new SaberNormalize <TargetType, OpDtype, inDtype, outDtype,
-                LayOutType_op, LayOutType_in, LayOutType_out>);
+                this->_impl.push_back(new SaberNormalize <TargetType, OpDtype>);
                 return SaberSuccess;
 
             default:
@@ -96,16 +90,9 @@ public:
 private:
 
     virtual void pick_best_static() override {
-        //! Normalize only has saber implementation
+        //! Normalize only has saber implementations
         this->_best_impl = this->_impl[0];
     }
-
-    virtual void pick_best_runtime(Input_v input, Output_v output, \
-        Param_t& param, Context<TargetType> &ctx) override {
-        //! Normalize only has saber implementation
-        this->_best_impl = this->_impl[0];
-    }
-
     virtual void pick_best_specify(ImplEnum implenum) override {
         //! Normalize only has saber implementation
         this->_best_impl = this->_impl[0];

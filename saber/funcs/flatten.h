@@ -23,47 +23,52 @@ namespace anakin{
 
 namespace saber{
 
-template<typename TargetType,
-        DataType OpDtype,
-        DataType inDtype = AK_FLOAT,
-        DataType outDtype = AK_FLOAT,
-        typename LayOutType_op = NCHW,
-        typename LayOutType_in = NCHW,
-        typename LayOutType_out = NCHW
->
+template<typename TargetType, DataType OpDtype>
 class Flatten : public BaseFunc<
-        Tensor<TargetType, inDtype, LayOutType_in>,
-        Tensor<TargetType, outDtype, LayOutType_out>,
-        Tensor<TargetType, OpDtype, LayOutType_op>,
+        TargetType,
+        OpDtype,
         ImplBase,
-        FlattenParam
-> {
+        FlattenParam> {
 public:
     using BaseFunc<
-            Tensor<TargetType, inDtype, LayOutType_in>,
-            Tensor<TargetType, outDtype, LayOutType_out>,
-            Tensor<TargetType, OpDtype, LayOutType_op>,
-            ImplBase,
-            FlattenParam>::BaseFunc;
+        TargetType,
+        OpDtype,
+        ImplBase,
+        FlattenParam>::BaseFunc;
 
     Flatten() = default;
 
-    typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
-    typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
-    typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-    typedef FlattenParam<OpTensor> Param_t;
+    typedef Tensor<TargetType> InDataTensor;
+    typedef Tensor<TargetType> OutDataTensor;
+    typedef Tensor<TargetType> OpTensor;
+    typedef FlattenParam<TargetType> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
 
     virtual SaberStatus compute_output_shape(const Input_v& input, Output_v& output, \
         Param_t& param) override {
-        Shape shape_out = input[0]->valid_shape();
-        CHECK_EQ(shape_out.dims(), 4) << "only support 4d(NCHW) layout";
-        shape_out[1] = input[0]->valid_size() / input[0]->num();
-        shape_out[2] = 1;
-        shape_out[3] = 1;
-        return output[0]->set_shape(shape_out);
+        Shape shape_in = input[0]->valid_shape();
+        std::vector<int> shape_out;
+        LayoutType layout = Layout_invalid;
+        const int start_axis = shape_in.canon_axis(param.start_axis);
+        const int end_axis = shape_in.canon_axis(param.end_axis);
+        CHECK_LE(start_axis, end_axis);
+        for (int i = 0; i < start_axis; ++i) {
+            shape_out.push_back(shape_in[i]);
+        }
+        const int flattened_dim = shape_in.count(start_axis, end_axis + 1);
+        shape_out.push_back(flattened_dim);
+        for (int i = end_axis + 1; i < shape_in.dims(); ++i) {
+            shape_out.push_back(shape_in[i]);
+        }
+        switch (shape_out.size()) {
+            case 1: layout = Layout_W; break;
+            case 2: layout = Layout_NW; break;
+            case 3: layout = Layout_NHW; break;
+            case 4: layout = Layout_NCHW; break;
+        }
+        return output[0]->set_shape(Shape(shape_out, layout));
     }
     //flatten ops do nothing
     virtual SaberStatus init_impl(ImplEnum implenum) override {
@@ -84,12 +89,6 @@ public:
 private:
 
     virtual void pick_best_static() override {
-        //! flatten only has saber implementation
-        this->_best_impl = this->_impl[0];
-    }
-
-    virtual void pick_best_runtime(Input_v input, Output_v output, \
-        Param_t& param, Context<TargetType> &ctx) override {
         //! flatten only has saber implementation
         this->_best_impl = this->_impl[0];
     }

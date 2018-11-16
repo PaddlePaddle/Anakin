@@ -17,12 +17,168 @@
 #define ANAKIN_SABER_UTILS_H
 
 #include "saber/core/common.h"
+#include "saber/core/shape.h"
+#include "saber/core/context.h"
 #include <algorithm>
 #include <vector>
-
+#include <cmath>
 namespace anakin{
 
 namespace saber{
+
+template <typename Tensor_device, typename Tensor_host>
+struct PGlue {
+    enum SyncHead {UNINITIALIZED, HEAD_AT_HOST, HEAD_AT_DEVICE, SYNCED };
+
+    PGlue()
+            : head(UNINITIALIZED)
+            , extern_h_tensor(false)
+            , extern_d_tensor(false)
+            , d_tensor(nullptr)
+            , h_tensor(nullptr)
+    {}
+    PGlue(Tensor_device *tensor_d, Tensor_host * tensor_h)
+            : head(SYNCED)
+            , extern_d_tensor(true)
+            , extern_h_tensor(true)
+            , d_tensor(tensor_d)
+            , h_tensor(tensor_h)
+    {}
+    PGlue(Tensor_device *tensor_d)
+            : head(HEAD_AT_DEVICE)
+            , extern_d_tensor(true)
+            , extern_h_tensor(false)
+            , d_tensor(tensor_d)
+            , h_tensor(nullptr)
+    {}
+    PGlue(Tensor_host * tensor_h)
+            : head(HEAD_AT_HOST)
+            , extern_d_tensor(false)
+            , extern_h_tensor(true)
+            , d_tensor(nullptr)
+            , h_tensor(tensor_h)
+    {}
+    ~PGlue() {
+        if (!extern_h_tensor) {
+            delete h_tensor;
+        }
+        if (!extern_d_tensor) {
+            delete d_tensor;
+        }
+    }
+    void set_extern_tensor(Tensor_device *tensor_d) {
+        if (!extern_d_tensor) {
+            delete d_tensor;
+        }
+        extern_d_tensor = true;
+        d_tensor = tensor_d;
+        head = HEAD_AT_DEVICE;
+    }
+    void set_extern_tensor(Tensor_host *tensor_h) {
+        if (!extern_h_tensor) {
+            delete h_tensor;
+        }
+        extern_h_tensor = true;
+        h_tensor = tensor_h;
+        head = HEAD_AT_HOST;
+    }
+    void re_alloc(Shape valid_shape, DataType data_type) {
+        if (d_tensor == nullptr) {
+            d_tensor = new Tensor_device;
+        }
+        if (h_tensor == nullptr) {
+            h_tensor = new Tensor_host;
+        }
+        d_tensor->re_alloc(valid_shape, data_type);
+        h_tensor->re_alloc(valid_shape, data_type);
+        head = SYNCED;
+    }
+    void reshape(Shape valid_shape) {
+        if (d_tensor == nullptr) {
+            d_tensor = new Tensor_device;
+        }
+        if (h_tensor == nullptr) {
+            h_tensor = new Tensor_host;
+        }
+        d_tensor->reshape(valid_shape);
+        h_tensor->reshape(valid_shape);
+    }
+    template <typename Context_d>
+    const void* host_data(Context_d *ctx) {
+        to_host(ctx);
+        return (const void*)h_tensor->data();
+    }
+    template <typename Context_d>
+    void* host_mutable_data(Context_d *ctx) {
+        to_host(ctx);
+        head = HEAD_AT_HOST;
+        return (void*)h_tensor->mutable_data();
+    }
+    template <typename Context_d>
+    const void* device_data(Context_d *ctx) {
+        to_device(ctx);
+        return (const void*)d_tensor->data();
+    }
+    template <typename Context_d>
+    void* device_mutable_data(Context_d *ctx) {
+        to_device(ctx);
+        head = HEAD_AT_DEVICE;
+        return (void*)d_tensor->mutable_data();
+    }
+    template <typename Context_d>
+    void to_host(Context_d *ctx) {
+        switch (head) {
+            case UNINITIALIZED:
+                LOG(FATAL) << "uninitialized glue";
+            case HEAD_AT_DEVICE:
+                if (h_tensor == nullptr) {
+                    h_tensor = new Tensor_host;
+                    h_tensor->re_alloc(d_tensor->valid_shape(), d_tensor->get_dtype());
+                }
+                if (h_tensor->valid_shape() != d_tensor->valid_shape()) {
+                    h_tensor->reshape(d_tensor->valid_shape());
+                }
+                h_tensor->async_copy_from(*d_tensor, ctx->get_compute_stream());
+                h_tensor->record_event(ctx->get_compute_stream());
+                h_tensor->sync();
+//                LOG(INFO) << "copy to host";
+                head = SYNCED;
+                break;
+            case HEAD_AT_HOST:
+            case SYNCED:
+                break;
+        }
+    }
+    template <typename Context_d>
+    void to_device(Context_d *ctx) {
+        switch (head) {
+            case UNINITIALIZED:
+                LOG(FATAL) << "uninitialized glue";
+            case HEAD_AT_HOST:
+                if (d_tensor == nullptr) {
+                    d_tensor = new Tensor_device;
+                    d_tensor->re_alloc(h_tensor->valid_shape(), h_tensor->get_dtype());
+                }
+                if (d_tensor->valid_shape() != h_tensor->valid_shape()) {
+                    d_tensor->reshape(h_tensor->valid_shape());
+                }
+                d_tensor->async_copy_from(*h_tensor, ctx->get_compute_stream());
+                d_tensor->record_event(ctx->get_compute_stream());
+                d_tensor->sync();
+//                        LOG(INFO) << "copy to device";
+                head = SYNCED;
+                break;
+            case HEAD_AT_DEVICE:
+            case SYNCED:
+                break;
+        }
+    }
+    bool extern_d_tensor{false};
+    bool extern_h_tensor{false};
+    Tensor_device *d_tensor{nullptr};
+    Tensor_host *h_tensor{nullptr};
+    SyncHead head;
+};
 
 template <typename Dtype>
 struct InfoCam3d
@@ -324,6 +480,70 @@ const std::vector<bool> nms_voting0(const float *boxes_dev, unsigned long long *
                                const int max_candidates,
                                const int top_n);
 // caffe util_others.hpp:197
+
+#ifdef NVIDIA_GPU
+template <typename Dtype>
+void rpn_cmp_conf_bbox_gpu(const int num_anchors,
+                           const int map_height, const int map_width,
+                           const Dtype input_height, const Dtype input_width,
+                           const Dtype heat_map_a, const Dtype heat_map_b,
+                           const Dtype allow_border, const Dtype allow_border_ratio,
+                           const Dtype min_size_w, const Dtype min_size_h,
+                           const bool min_size_mode_and_else_or, const Dtype thr_obj,
+                           const Dtype bsz01, const bool do_bbox_norm,
+                           const Dtype mean0, const Dtype mean1,
+                           const Dtype mean2, const Dtype mean3,
+                           const Dtype std0, const Dtype std1,
+                           const Dtype std2, const Dtype std3,
+                           const bool refine_out_of_map_bbox, const Dtype* anc_data,
+                           const Dtype* prob_data, const Dtype* tgt_data,
+                           Dtype* conf_data, Dtype* bbox_data, Context<NV> *ctx);
+
+template <typename Dtype>
+void rcnn_cmp_conf_bbox_gpu(const int num_rois,
+                            const Dtype input_height, const Dtype input_width,
+                            const Dtype allow_border, const Dtype allow_border_ratio,
+                            const Dtype min_size_w, const Dtype min_size_h,
+                            const bool min_size_mode_and_else_or, const Dtype thr_obj,
+                            const Dtype bsz01, const bool do_bbox_norm,
+                            const Dtype mean0, const Dtype mean1,
+                            const Dtype mean2, const Dtype mean3,
+                            const Dtype std0, const Dtype std1,
+                            const Dtype std2, const Dtype std3,
+                            const bool refine_out_of_map_bbox, const bool regress_agnostic,
+                            const int num_class, const Dtype* thr_cls,
+                            const Dtype* rois_data, const Dtype* prob_data,
+                            const Dtype* tgt_data, Dtype* conf_data, Dtype* bbox_data,
+                            Context<NV> *ctx);
+
+template <typename Dtype, typename PGlue_nv>
+void apply_nms_gpu(const Dtype *bbox_data, const Dtype *conf_data,
+                   const int num_bboxes, const int bbox_step, const Dtype confidence_threshold,
+                   const int max_canditate_n, const int top_k, const Dtype nms_threshold,
+                   const Dtype bsz01, std::vector<int> *indices,
+                   PGlue_nv *overlapped, PGlue_nv *idx_sm,
+                   Context<NV> *ctx, std::vector<int> *idx_ptr = NULL,
+                   const int conf_step = 1, const int conf_idx = 0,
+                   const int nms_gpu_max_n_per_time = 1000000);
+template <typename Dtype>
+void GenGrdFt_gpu(unsigned int im_width, unsigned int im_height,
+        unsigned int blob_width, unsigned int blob_height,
+        Dtype std_height, const std::vector<Dtype> & cam_params,
+        Dtype* grd_ft, Dtype read_width_scale = 1.0,
+        Dtype read_height_scale = 1.0, unsigned read_height_offset = 0,
+        unsigned int valid_param_idx_st = 0, bool trans_cam_pitch_to_zero = false,
+        bool normalize_grd_ft = false, unsigned int normalize_grd_ft_dim = 11);
+
+#endif
+
+template <typename Dtype>
+void GenGrdFt_cpu(unsigned int im_width, unsigned int im_height,
+        unsigned int blob_width, unsigned int blob_height,
+        Dtype std_height, const std::vector<Dtype> & cam_params,
+        Dtype* grd_ft, Dtype read_width_scale = 1.0,
+        Dtype read_height_scale = 1.0, unsigned read_height_offset = 0,
+        unsigned int valid_param_idx_st = 0, bool trans_cam_pitch_to_zero = false,
+        bool normalize_grd_ft = false, unsigned int normalize_grd_ft_dim = 11);
 
 } //namespace saber
 

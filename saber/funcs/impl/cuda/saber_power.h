@@ -22,48 +22,33 @@ namespace anakin{
 
 namespace saber{
 
-template <DataType OpDtype,
-            DataType inDtype,
-            DataType outDtype,
-            typename LayOutType_op,
-            typename LayOutType_in,
-            typename LayOutType_out>
-class SaberPower<NV, OpDtype, inDtype, outDtype, \
-    LayOutType_op, LayOutType_in, LayOutType_out>:\
+template <DataType OpDtype>
+class SaberPower<NV, OpDtype>:\
     public ImplBase<
-            Tensor<NV, inDtype, LayOutType_in>,
-            Tensor<NV, outDtype, LayOutType_out>,
-            Tensor<NV, OpDtype, LayOutType_op>,
-            PowerParam<Tensor<NV, OpDtype, LayOutType_op>>> {
+            NV, OpDtype,
+            PowerParam<NV>> {
 
 public:
-    typedef Tensor<NV, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<NV, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<NV, OpDtype, LayOutType_op> OpTensor;
-
-    typedef typename DataTensor_in::Dtype InDataType;
-    typedef typename DataTensor_out::Dtype OutDataType;
-    typedef typename OpTensor::Dtype OpDataType;
 
     SaberPower() {}
     ~SaberPower() {}
 
-    virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
-                             std::vector<DataTensor_out*>& outputs,
-                             PowerParam<OpTensor> &power_param,
+    virtual SaberStatus init(const std::vector<Tensor<NV>*>& inputs,
+                             std::vector<Tensor<NV>*>& outputs,
+                             PowerParam<NV> &power_param,
                              Context<NV> &ctx) {
         this->_ctx = &ctx;
         return SaberSuccess;
     }
 
-    virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
-                               std::vector<DataTensor_out*>& outputs,
-                               PowerParam<OpTensor> &power_param,
+    virtual SaberStatus create(const std::vector<Tensor<NV>*>& inputs,
+                               std::vector<Tensor<NV>*>& outputs,
+                               PowerParam<NV> &power_param,
                                Context<NV> &ctx) {
-        Shape shape = {inputs[0]->dims(), 1, 1, 1};
-        _in_steps.re_alloc(shape);
-        _out_steps.re_alloc(shape);
-        _out_valid_shape.re_alloc(shape);
+        Shape shape({inputs[0]->dims(), 1, 1, 1});
+        _in_steps.re_alloc(shape, OpDtype);
+        _out_steps.re_alloc(shape, OpDtype);
+        _out_valid_shape.re_alloc(shape, OpDtype);
         Shape in_stride = inputs[0]->get_stride();
         Shape out_stride = outputs[0]->get_stride();
         Shape out_valid_shape = outputs[0]->valid_shape();
@@ -73,17 +58,17 @@ public:
         return SaberSuccess;
     }
 
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
-                                 std::vector<DataTensor_out*>& outputs,
-                                 PowerParam<OpTensor> &power_param);
+    virtual SaberStatus dispatch(const std::vector<Tensor<NV>*>& inputs,
+                                 std::vector<Tensor<NV>*>& outputs,
+                                 PowerParam<NV> &power_param);
 private:
-    Tensor<NV, AK_INT32, LayOutType_in> _in_steps;
-    Tensor<NV, AK_INT32, LayOutType_out> _out_steps;
-    Tensor<NV, AK_INT32, LayOutType_out> _out_valid_shape;
+    Tensor<NV> _in_steps;
+    Tensor<NV> _out_steps;
+    Tensor<NV> _out_valid_shape;
 
 };
 
-template class SaberPower<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
+template class SaberPower<NV, AK_FLOAT>;
 
 } //namespace saber
 

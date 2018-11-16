@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 set(ANAKIN_SABER_STATIC_RELAY "" )
 
 set(ANAKIN_SABER_BASE_SRC "")
@@ -28,34 +29,34 @@ if(USE_ARM_PLACE)
     anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/arm/impl "cpp" ANAKIN_SABER_BASE_SRC)
 endif()
 
+if(USE_BM_PLACE)
+    anakin_fetch_files_with_suffix(${ANAKIN_SABER}/core/impl/bm "cpp" ANAKIN_SABER_BASE_SRC)
+    anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/bm "cpp" ANAKIN_SABER_BASE_SRC)
+    anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/bm/impl "cpp" ANAKIN_SABER_BASE_SRC)
+endif()
+
 if(USE_GPU_PLACE)
     if(USE_CUDA) 
         anakin_fetch_files_with_suffix(${ANAKIN_SABER}/core/impl/cuda "cpp" ANAKIN_SABER_BASE_SRC)
         anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/cuda "cpp" ANAKIN_SABER_BASE_SRC)
     else()
-        message(ERROR "Use GPU place but not use cuda, not support amd yet.")
+        anakin_fetch_files_with_suffix(${ANAKIN_SABER}/core/impl/amd "cpp" ANAKIN_SABER_BASE_SRC)
+        anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/amd "cpp" ANAKIN_SABER_BASE_SRC)
     endif()
 endif()
 
 
-if(USE_X86_PLACE)
+if(USE_X86_PLACE OR USE_BM_PLACE)
     anakin_fetch_files_with_suffix(${ANAKIN_SABER}/core/impl/x86 "cpp" ANAKIN_SABER_BASE_SRC)
+endif()
+
+if(USE_X86_PLACE)
     anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/x86 "cpp" ANAKIN_SABER_BASE_SRC)
     anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/x86/kernel "cpp" ANAKIN_SABER_BASE_SRC)
 endif()
 
 # compile cpp objs
 # add_library(ANAKIN_SABER_BASE_OBJS OBJECT ${ANAKIN_SABER_BASE_SRC})
-
-# whole archive for static lib
-if(NOT MSVC AND NOT APPLE)
-    set(WHOLE_ARCHIVE_START -Wl,--whole-archive)
-    set(WHOLE_ARCHIVE_END -Wl,--no-whole-archive)
-elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    # using regular Clang or AppleClang
-    set(WHOLE_ARCHIVE_START -Wl,-force_load)
-    set(WHOLE_ARCHIVE_END)
-endif()
 
 set(ANAKIN_SABER_TEMP_COMMMON_LIB "anakin_saber_common")
 
@@ -86,25 +87,27 @@ if(UNIX OR APPLE)
     if (USE_ARM_PLACE)
         ADD_LIBRARY(${ANAKIN_SABER_TEMP_COMMMON_LIB} STATIC ${ANAKIN_SABER_CUDA_C_SRC_OBJS} ${ANAKIN_SABER_BASE_SRC})
         set_target_properties(${ANAKIN_SABER_TEMP_COMMMON_LIB} PROPERTIES LIBRARY_OUTPUT_DIRECTORY
-                ${ANAKIN_ROOT}/output/)
+                ${ANAKIN_ROOT}/${AK_OUTPUT_PATH}/)
     else()
         if (BUILD_SHARED)
             ADD_LIBRARY(${ANAKIN_SABER_TEMP_COMMMON_LIB} SHARED ${ANAKIN_SABER_CUDA_C_SRC_OBJS} ${ANAKIN_SABER_BASE_SRC})
             #$<TARGET_OBJECTS:ANAKIN_SABER_BASE_OBJS>)
-            if(USE_X86_PLACE)
-                message(STATUS ${ANAKIN_SABER_DEPENDENCIES})
-                add_dependencies(${ANAKIN_SABER_TEMP_COMMMON_LIB} ${ANAKIN_SABER_DEPENDENCIES})
+            if(USE_X86_PLACE OR USE_CUDA)
+                list(LENGTH ANAKIN_SABER_DEPENDENCIES dependencies_len)
+                if(dependencies_len GREATER 0)
+                    add_dependencies(${ANAKIN_SABER_TEMP_COMMMON_LIB} ${ANAKIN_SABER_DEPENDENCIES})
+                endif()
             endif()
             set_target_properties(${ANAKIN_SABER_TEMP_COMMMON_LIB} PROPERTIES VERSION ${VERSION})
             target_link_libraries(${ANAKIN_SABER_TEMP_COMMMON_LIB} ${ANAKIN_LINKER_LIBS})
             target_link_libraries(${ANAKIN_SABER_TEMP_COMMMON_LIB} ${ANAKIN_SABER_STATIC_RELAY})
             set_target_properties(${ANAKIN_SABER_TEMP_COMMMON_LIB} PROPERTIES LINK_FLAGS "")
             set_target_properties(${ANAKIN_SABER_TEMP_COMMMON_LIB} PROPERTIES LIBRARY_OUTPUT_DIRECTORY
-                    ${ANAKIN_ROOT}/output/)
+                    ${ANAKIN_ROOT}/${AK_OUTPUT_PATH}/)
         else()
             ADD_LIBRARY(${ANAKIN_SABER_TEMP_COMMMON_LIB} STATIC ${ANAKIN_SABER_CUDA_C_SRC_OBJS} ${ANAKIN_SABER_BASE_SRC})
             set_target_properties(${ANAKIN_SABER_TEMP_COMMMON_LIB} PROPERTIES LIBRARY_OUTPUT_DIRECTORY
-                    ${ANAKIN_ROOT}/output/)
+                    ${ANAKIN_ROOT}/${AK_OUTPUT_PATH}/)
         endif ()
     endif()
 endif()

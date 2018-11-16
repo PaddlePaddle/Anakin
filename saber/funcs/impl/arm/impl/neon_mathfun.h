@@ -29,8 +29,6 @@
 
 #include "saber/core/common.h"
 
-#ifdef USE_ARM_PLACE
-
 #define c_inv_mant_mask ~0x7f800000u
 #define c_cephes_SQRTHF 0.707106781186547524
 #define c_cephes_log_p0 7.0376836292E-2
@@ -318,7 +316,5 @@ static inline float32x4_t pow_ps(float32x4_t a, float32x4_t b)
     // pow(x, m) = exp(m * log(x))
     return exp_ps(vmulq_f32(b, log_ps(a)));
 }
-
-#endif //USE_ARM_PLACE
 
 #endif // ANAKIN_SABER_FUNCS_ARM_IMPL_NEON_MATHFUN_H

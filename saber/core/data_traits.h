@@ -18,128 +18,238 @@
 
 #include "saber_types.h"
 
-namespace anakin{
+#ifdef USE_BM_PLACE 
+#include "bmlib_runtime.h"
+#include "bmdnn_api.h"
+#include "bmlib_utils.h"
+#endif
 
-namespace saber{
+namespace anakin {
+
+namespace saber {
+
+template <typename Ttype>
+struct DataTraitLp {
+    typedef void* PtrDtype;
+};
+
+template <typename Ttype>
+struct DataTraitBase {
+    typedef void* PtrDtype;
+};
+
+#ifdef USE_OPENCL
+template <>
+struct DataTraitLp<AMD> {
+    typedef cl_mem PtrDtype;
+};
+
+template <>
+struct DataTraitBase<AMD> {
+    typedef cl_mem PtrDtype;
+};
+#endif
+
+static size_t type_length(DataType type) {
+    switch (type) {
+    case AK_INT8:
+        return 1;
+    case AK_UINT8:
+        return 1;
+    case AK_INT16:
+        return 2;
+    case AK_UINT16:
+        return 2;
+    case AK_INT32:
+        return 4;
+    case AK_UINT32:
+        return 4;
+    case AK_INT64:
+        return 8;
+    case AK_HALF:
+        return 2;
+    case AK_FLOAT:
+        return 4;
+    case AK_DOUBLE:
+        return 8;
+    default:
+        return 4;
+    }
+}
 
 template <typename Ttype, DataType datatype>
-struct DataTrait{
+struct DataTrait {
     typedef __invalid_type Dtype;
-    typedef __invalid_type dtype;
+    typedef __invalid_type PtrDtype;
 };
 
 template <typename Ttype>
 struct DataTrait<Ttype, AK_HALF> {
     typedef short Dtype;
-    typedef short dtype;
+    typedef short* PtrDtype;
 };
 
 template <typename Ttype>
 struct DataTrait<Ttype, AK_FLOAT> {
     typedef float Dtype;
-    typedef float dtype;
+    typedef float* PtrDtype;
 };
 
 template <typename Ttype>
 struct DataTrait<Ttype, AK_DOUBLE> {
     typedef double Dtype;
-    typedef double dtype;
+    typedef double* PtrDtype;
 };
 
 template <typename Ttype>
 struct DataTrait<Ttype, AK_INT8> {
     typedef char Dtype;
-    typedef char dtype;
+    typedef char* PtrDtype;
 };
 
 template <typename Ttype>
 struct DataTrait<Ttype, AK_INT16> {
     typedef short Dtype;
-    typedef short dtype;
+    typedef short* PtrDtype;
 };
 
 template <typename Ttype>
 struct DataTrait<Ttype, AK_INT32> {
     typedef int Dtype;
-    typedef int dtype;
+    typedef int* PtrDtype;
 };
 
 template <typename Ttype>
 struct DataTrait<Ttype, AK_INT64> {
     typedef long Dtype;
-    typedef long dtype;
+    typedef long* PtrDtype;
 };
 
 template <typename Ttype>
 struct DataTrait<Ttype, AK_UINT8> {
     typedef unsigned char Dtype;
-    typedef unsigned char dtype;
+    typedef unsigned char* PtrDtype;
 };
 
 template <typename Ttype>
 struct DataTrait<Ttype, AK_UINT16> {
     typedef unsigned short Dtype;
-    typedef unsigned short dtype;
+    typedef unsigned short* PtrDtype;
 };
 
 template <typename Ttype>
 struct DataTrait<Ttype, AK_UINT32> {
     typedef unsigned int Dtype;
-    typedef unsigned int dtype;
+    typedef unsigned int* PtrDtype;
 };
 
-#ifdef USE_OPENCL
-struct ClMem{
-    ClMem(){
-        dmem = nullptr;
-        offset = 0;
+#ifdef USE_BM_PLACE
+
+struct BM_mem_addr: bm_mem_desc {
+
+    BM_mem_addr() {};
+
+    BM_mem_addr(void* k) {
+        if (k == nullptr) {
+            *this = BM_MEM_NULL;
+        } else {
+            CHECK(false) << "not suport construct not null ptr";
+        }
     }
 
-    ClMem(cl_mem* mem_in, int offset_in = 0) {
-        dmem = mem_in;
-        offset = offset_in;
+    inline bool compare_char_array(const unsigned char* a, const unsigned char* b, int size)const {
+        for (int i = 0; i < size; ++i) {
+            if (a[i] != b[i]) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
-    ClMem(ClMem& right) {
-        dmem = right.dmem;
-        offset = right.offset;
+    bool operator==(const bm_mem_desc& right) {
+        return compare_char_array(desc, right.desc, sizeof(desc));
+    }
+    bool operator!=(const bm_mem_desc& right) {
+        return !compare_char_array(desc, right.desc, sizeof(desc));
     }
 
-    ClMem& operator=(ClMem& right) {
-        this->dmem = right.dmem;
-        this->offset = right.offset;
+    bool operator==(const void* right) {
+        if (right == nullptr) {
+            return *this == BM_MEM_NULL;
+        } else {
+            CHECK(false) << "not suport compare not null BM_mem_addr with nullptr";
+            return false;
+        }
+    }
+
+    bool operator!=(const void* right) {
+        return !(*this == right);
+    }
+
+    BM_mem_addr(struct bm_mem_desc init_desc): bm_mem_desc(init_desc) {
+
+        ;
+    }
+
+    BM_mem_addr& operator+(int offset) {
+        if (offset != 0) {
+            unsigned long long target_addr = bm_mem_get_device_addr(*this);
+            bm_mem_set_device_addr(*this, target_addr + offset);
+            DLOG(INFO)<<"offset = "<<offset<<", target_addr = "<<target_addr;
+        }
+
         return *this;
     }
 
-    ClMem& operator+(int offset_in) {
-        this->offset += offset_in;
-        return *this;
+    friend std::ostream& operator<<(std::ostream& out, const BM_mem_addr& s) {
+        out << " [print BM_mem_addr] 0x";
+        for (int i=0; i< sizeof(s.desc); i++) {
+            out <<std::hex<< (int)s.desc[i];
+        }
+        return out;
     }
 
-    int offset{0};
-    cl_mem* dmem{nullptr};
+};
+template <>
+struct DataTraitLp<BM> {
+    typedef BM_mem_addr PtrDtype;
 };
 
 template <>
+struct DataTraitBase<BM> {
+    typedef BM_mem_addr PtrDtype;
+};
+
+
+#endif
+
+
+#ifdef USE_OPENCL
+template <>
 struct DataTrait<AMD, AK_FLOAT> {
-    typedef ClMem Dtype;
-    typedef float dtype;
+    typedef float Dtype;
+    typedef cl_mem PtrDtype;
 };
 
 template <>
 struct DataTrait<AMD, AK_DOUBLE> {
-    typedef ClMem Dtype;
-    typedef double dtype;
+    typedef double Dtype;
+    typedef cl_mem PtrDtype;
 };
 
 template <>
 struct DataTrait<AMD, AK_INT8> {
-    typedef ClMem Dtype;
-    typedef char dtype;
+    typedef char Dtype;
+    typedef cl_mem PtrDtype;
 };
 
-#endif
-
+template <>
+struct DataTrait<AMD, AK_HALF> {
+    typedef short Dtype;
+    typedef cl_mem PtrDtype;
+};
+#endif //USE_OPENCL
 } //namespace saber
 
 } //namespace anakin

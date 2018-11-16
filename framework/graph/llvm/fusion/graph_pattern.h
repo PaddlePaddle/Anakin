@@ -138,7 +138,7 @@ public:
 
 typedef Singleton<OpFusionPatternObjectRegister> FusionOpRegister;
 
-extern const std::unordered_map<Fusion, std::function<int(VGraph*, Pattern*)>, FusionHash> FusionSniffer;
+extern std::unordered_map<Fusion, std::function<int(VGraph*, Pattern*)>, FusionHash> FusionSniffer;
 
 
 #define REGISTER_GRAPH_FUSION_PATTERN(OpName) \

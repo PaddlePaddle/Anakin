@@ -22,27 +22,14 @@ namespace anakin{
 
 namespace saber{
 
-template <DataType OpDtype,
-    DataType inDtype,
-    DataType outDtype,
-    typename LayOutType_op,
-    typename LayOutType_in,
-    typename LayOutType_out>
-class SaberCast<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out> : \
+template < DataType OpDtype>
+class SaberCast<NV, OpDtype> : \
     public ImplBase<
-        Tensor<NV, inDtype, LayOutType_in>, 
-        Tensor<NV, outDtype, LayOutType_out>,
-        Tensor<NV, OpDtype, LayOutType_op>,
-        CastParam<Tensor<NV, OpDtype, LayOutType_op> > > 
+       NV, OpDtype,
+        CastParam<NV> > 
 {
 public:
-    typedef Tensor<NV, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<NV, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<NV, OpDtype, LayOutType_op> OpTensor;
-    typedef typename DataTensor_in::Dtype InDataType;
-    typedef typename DataTensor_out::Dtype OutDataType;
-    typedef typename OpTensor::Dtype OpDataType;
+    typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
 
     SaberCast()
     {}
@@ -51,26 +38,41 @@ public:
 
     }
 
-    virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
-                            std::vector<DataTensor_out *>& outputs,
-                            CastParam<OpTensor>& param, Context<NV>& ctx) {
+    virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
+                            std::vector<Tensor<NV> *>& outputs,
+                            CastParam<NV>& param, Context<NV>& ctx) {
         this->_ctx = &ctx;
-        return SaberSuccess;
+        return create(inputs, outputs, param, ctx);
     }
 
-    virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
-                            std::vector<DataTensor_out *>& outputs,
-                            CastParam<OpTensor>& param, Context<NV> &ctx) {
+    virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
+                            std::vector<Tensor<NV> *>& outputs,
+                            CastParam<NV>& param, Context<NV> &ctx) {
+        _inDtype = param.in_type;
+        _outDtype = param.out_type;
+        if(_inDtype != 1 && _inDtype !=5){// AK_FLOAT AK_INT32
+            LOG(FATAL) << "Cast not impl other type: " << _inDtype;
+        }
+        if(_outDtype != 1 && _outDtype !=5){
+            LOG(FATAL) << "Cast not impl other type: " << _outDtype;
+        }
+        CHECK_EQ(_inDtype, inputs[0]->get_dtype()) << "inputs data type should be same with param.in_type";
+        CHECK_EQ(_outDtype, outputs[0]->get_dtype()) << "outputs data type should be same with param.out_type";
+        
         return SaberSuccess;
     }
     
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
-                          std::vector<DataTensor_out*>& outputs,
-                          CastParam<OpTensor>& param);
+    virtual SaberStatus dispatch(const std::vector<Tensor<NV> *>& inputs,
+                          std::vector<Tensor<NV> *>& outputs,
+                          CastParam<NV>& param);
+
+    private:
+    int _inDtype;
+    int _outDtype;
 };
 
-template class SaberCast<NV, AK_FLOAT, AK_FLOAT, AK_INT32, NCHW, NCHW, NCHW>;
-template class SaberCast<NV, AK_FLOAT, AK_INT32, AK_FLOAT, NCHW, NCHW, NCHW>;
+//template class SaberCast<NV, AK_FLOAT, AK_FLOAT, AK_INT32, NCHW, NCHW, NCHW>;
+//template class SaberCast<NV, AK_FLOAT, AK_INT32, AK_FLOAT, NCHW, NCHW, NCHW>;
 
 }
 

@@ -59,14 +59,17 @@ struct check_self_shared {
      * \return bool the value of ret
      */
     inline bool last_op_is_self_shared(VGraph* graph, node& node_tmp, std::vector<io>& self_shared_ios) {
-	bool ret = false;
+    bool ret = false;
         auto node_arc_in_its = graph->get_in_arc_its(node_tmp.name);
         for (auto arc_in_it : node_arc_in_its) {
-            auto& node_ref = (*graph)[arc_in_it->bottom()];
-            for (auto& op_type : ops) {
-                if (op_type == node_ref.opName) {
-		    		self_shared_ios.push_back(arc_in_it->weight());
-                    ret = true;
+            auto& node_ref_top = (*graph)[arc_in_it->top()];
+            if (node_ref_top.opName != "Output") {
+                auto& node_ref = (*graph)[arc_in_it->bottom()];
+                for (auto& op_type : ops) {
+                    if (op_type == node_ref.opName) {
+                        self_shared_ios.push_back(arc_in_it->weight());
+                        ret = true;
+                    }
                 }
             }
         }
@@ -83,7 +86,28 @@ public:
     ~IOBlockResource() {}
 
     void free(std::vector<io>&, VGraph*);
-    inline bool has_free() { return !(_free.empty()); } 
+    inline bool has_free(io& target) { 
+        for (auto it = _free.begin(); it != _free.end();) { 
+            auto& io_tmp = *it; 
+            if (target.lane == io_tmp.lane) { 
+                return true; 
+            } 
+            ++it; 
+        } 
+        return false; 
+    } 
+    inline io get_free(io& target) { 
+        for (auto it = _free.begin(); it != _free.end();) { 
+            auto io_tmp = *it;
+            if (target.lane == io_tmp.lane) { 
+                it = _free.erase(it); 
+                return io_tmp; 
+            } else { 
+                ++it; 
+            } 
+        } 
+        return io(); 
+    }
     bool is_same_target(io&, io&, VGraph*);
     void push_free(io&, VGraph*);
     void lock(std::vector<io>&);

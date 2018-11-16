@@ -12,7 +12,7 @@
 
 #include "tensor.h"
 
-#ifdef USE_CUDA
+#if 0 //#ifdef USE_CUDA
 TEST(CoreComponentsTest, sass_test) {
     LOG(INFO) << "test for cuda code function";
     //anakin::saber::Tensor<3, RTCUDA, float, NCHW> ts;

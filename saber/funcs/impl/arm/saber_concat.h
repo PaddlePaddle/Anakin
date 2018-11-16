@@ -24,50 +24,37 @@ namespace anakin{
 
 namespace saber{
 
-template <DataType OpDtype,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-class SaberConcat<ARM, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out> : \
+template <DataType OpDtype>
+class SaberConcat<ARM, OpDtype> : \
     public ImplBase<
-        Tensor<ARM, inDtype, LayOutType_in>,
-        Tensor<ARM, outDtype, LayOutType_out>,
-        Tensor<ARM, OpDtype, LayOutType_op>,
-        ConcatParam<Tensor<ARM, OpDtype, LayOutType_op> > > {
+        ARM, OpDtype,
+        ConcatParam<ARM> > {
 public:
-    typedef Tensor<ARM, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<ARM, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<ARM, OpDtype, LayOutType_op> OpTensor;
-    typedef typename DataTensor_in::Dtype InDataType;
-    typedef typename DataTensor_out::Dtype OutDataType;
-    typedef typename OpTensor::Dtype OpDataType;
+    typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
 
     SaberConcat() = default;
     ~SaberConcat() {}
 
-    virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
-                      std::vector<DataTensor_out*>& outputs,
-                      ConcatParam<OpTensor> &param, Context<ARM> &ctx){
+    virtual SaberStatus init(const std::vector<Tensor<ARM> *>& inputs,
+                      std::vector<Tensor<ARM> *>& outputs,
+                      ConcatParam<ARM> &param, Context<ARM> &ctx){
         // get context
         this->_ctx = &ctx;
         return create(inputs, outputs, param, ctx);
     }
 
-    virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
-                        std::vector<DataTensor_out*>& outputs,
-                        ConcatParam<OpTensor> &param, Context<ARM> &ctx){
+    virtual SaberStatus create(const std::vector<Tensor<ARM> *>& inputs,
+                        std::vector<Tensor<ARM> *>& outputs,
+                        ConcatParam<ARM> &param, Context<ARM> &ctx){
 
         _num_concats = inputs[0]->count_valid(0, param.axis);
         _concat_input_size = inputs[0]->count_valid(param.axis + 1, inputs[0]->dims());
         return SaberSuccess;
     }
 
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
-                          std::vector<DataTensor_out*>& outputs,
-                          ConcatParam<OpTensor> &param);
+    virtual SaberStatus dispatch(const std::vector<Tensor<ARM> *>& inputs,
+                          std::vector<Tensor<ARM> *>& outputs,
+                          ConcatParam<ARM> &param);
 
 private:
     int _num_concats;

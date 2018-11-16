@@ -16,54 +16,39 @@
 #ifndef ANAKIN_SABER_FUNCS_PERMUTE_POWER_H
 #define ANAKIN_SABER_FUNCS_PERMUTE_POWER_H
 
+#include "saber/funcs/impl/impl_permute_power.h"
+
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_permute_power.h"
 #include "saber/funcs/impl/cuda/vender_permute_power.h"
 #endif
-
 #ifdef USE_X86_PLACE
-#include "saber/funcs/impl/impl_permute_power.h"
-#endif
-#ifdef USE_ARM_PLACE
-//todo
-#include "saber/funcs/impl/impl_permute_power.h"
+#include "saber/funcs/impl/x86/saber_permute_power.h"
 #endif
 namespace anakin {
 namespace saber {
 
 template<typename TargetType,
-        DataType OpDtype,
-        DataType inDtype = AK_FLOAT,
-        DataType outDtype = AK_FLOAT,
-        typename LayOutType_op = NCHW,
-        typename LayOutType_in = NCHW,
-        typename LayOutType_out = NCHW
->
+        DataType OpDtype>
 class PermutePower : public BaseFunc<
-        Tensor<TargetType, inDtype, LayOutType_in>,
-        Tensor<TargetType, outDtype, LayOutType_out>,
-        Tensor<TargetType, OpDtype, LayOutType_op>,
+        TargetType,
+        OpDtype,
         ImplBase,
-        PermutePowerParam
-> {
+        PermutePowerParam> {
 public:
     using BaseFunc<
-            Tensor<TargetType, inDtype, LayOutType_in>,
-            Tensor<TargetType, outDtype, LayOutType_out>,
-            Tensor<TargetType, OpDtype, LayOutType_op>,
+            TargetType,
+            OpDtype,
             ImplBase,
             PermutePowerParam>::BaseFunc;
 
     PermutePower() = default;
 
-    typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
-    typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
-    typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-    typedef PermutePowerParam<OpTensor> Param_t;
-    typedef std::vector<InDataTensor *> Input_v;
-    typedef std::vector<OutDataTensor *> Output_v;
+    typedef PermutePowerParam<TargetType> Param_t;
+    typedef std::vector<Tensor<TargetType> *> Input_v;
+    typedef std::vector<Tensor<TargetType> *> Output_v;
     typedef std::vector<Shape> Shape_v;
 
     virtual SaberStatus compute_output_shape(const Input_v& input, Output_v& output, \
@@ -90,13 +75,11 @@ public:
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
             case VENDER_IMPL:
-                this->_impl.push_back(new VenderPermutePower <TargetType, OpDtype, inDtype, outDtype,
-                LayOutType_op, LayOutType_in, LayOutType_out>);
+                this->_impl.push_back(new VenderPermutePower <TargetType, OpDtype>);
                 return SaberSuccess;
 
             case SABER_IMPL:
-                this->_impl.push_back(new SaberPermutePower <TargetType, OpDtype, inDtype, outDtype,
-                LayOutType_op, LayOutType_in, LayOutType_out>);
+                this->_impl.push_back(new SaberPermutePower <TargetType, OpDtype>);
                 return SaberSuccess;
 
             default:
@@ -110,8 +93,6 @@ private:
         if (true) // some condition?
             this->_best_impl = this->_impl[0];
     }
-
-    //virtual void pick_best_runtime(Input_v input, Output_v output, Param_t& param) override {}
 
     virtual void pick_best_specify(ImplEnum implenum) override {
         this->_best_impl = this->_impl[0];

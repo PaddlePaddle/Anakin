@@ -15,8 +15,7 @@
 #ifndef ANAKIN_SABER_LITE_FUNCS_SABER_ACTIVATION_H
 #define ANAKIN_SABER_LITE_FUNCS_SABER_ACTIVATION_H
 
-#include "saber/lite/core/tensor_lite.h"
-#include "saber/lite/core/context_lite.h"
+#include "saber/lite/funcs/op_base.h"
 
 namespace anakin{
 
@@ -24,28 +23,34 @@ namespace saber{
 
 namespace lite{
 
+typedef void (*act_impl)(const float* din, float* dout, int n, int c, int h, int w, const ActivationParam* _param, int threads);
+
 //template <ARMType ttype, DataType dtype>
-class SaberActivation {
+class SaberActivation : public OpBase {
 public:
     SaberActivation() {}
 
-    SaberActivation(ActiveType type, float neg_slop = 0.f);
-    SaberStatus load_param(ActiveType type, float neg_slop = 0.f);
+    SaberActivation(ParamBase* param);
 
-    ~SaberActivation() {}
+    virtual SaberStatus load_param(ParamBase* param) override;
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus set_op_precision(DataType ptype) override;
 
-    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                            std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context& ctx);
+    virtual SaberStatus load_param(std::istream& stream, const float* weights) override;
+
+    ~SaberActivation();
+
+    virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU>*>& inputs,
+                                     std::vector<Tensor<CPU>*>& outputs) override;
+
+    virtual SaberStatus init(const std::vector<Tensor<CPU>*>& inputs,
+                            std::vector<Tensor<CPU>*>& outputs, Context& ctx) override;
     
-    virtual SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                          std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus dispatch(const std::vector<Tensor<CPU>*>& inputs,
+                          std::vector<Tensor<CPU>*>& outputs) override;
 private:
-    Context _ctx;
-    ActiveType _type;
-    float _neg_slop;
+    ActivationParam* _param;
+    act_impl _impl;
 };
 
 

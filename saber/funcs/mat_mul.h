@@ -18,45 +18,36 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+#include "saber/funcs/impl/impl_mat_mul.h"
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_mat_mul.h"
 #endif
 
 #ifdef USE_X86_PLACE
-#include "saber/funcs/impl/impl_mat_mul.h"
+#include "saber/funcs/impl/x86/vender_mat_mul.h"
 #endif
 
 namespace anakin{
 
 namespace saber{
 
-template<typename TargetType,
-        DataType OpDtype,
-        DataType inDtype = AK_FLOAT,
-        DataType outDtype = AK_FLOAT,
-        typename LayOutType_op = NCHW,
-        typename LayOutType_in = NCHW,
-        typename LayOutType_out = NCHW
->
+template<typename TargetType, DataType OpDtype>
 class MatMul : public BaseFunc<
-        Tensor<TargetType, inDtype, LayOutType_in>,
-        Tensor<TargetType, outDtype, LayOutType_out>,
-        Tensor<TargetType, OpDtype, LayOutType_op>,
+        TargetType,
+        OpDtype,
         ImplBase,
-        MatMulParam
-> {
+        MatMulParam> {
 public:
     using BaseFunc<
-            Tensor<TargetType, inDtype, LayOutType_in>,
-            Tensor<TargetType, outDtype, LayOutType_out>,
-            Tensor<TargetType, OpDtype, LayOutType_op>,
-            ImplBase,
-            MatMulParam>::BaseFunc;
+        TargetType,
+        OpDtype,
+        ImplBase,
+        MatMulParam>::BaseFunc;
 
-    typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
-    typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
-    typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-    typedef MatMulParam<OpTensor> Param_t;
+    typedef Tensor<TargetType> InDataTensor;
+    typedef Tensor<TargetType> OutDataTensor;
+    typedef Tensor<TargetType> OpTensor;
+    typedef MatMulParam<TargetType> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
@@ -67,10 +58,14 @@ public:
         Param_t& param) override 
     {
         CHECK_EQ(input.size(), 2);
-        CHECK_EQ(input[0]->num(), input[0]->num());
-        CHECK_EQ(input[1]->channel(), input[1]->channel());
-        Shape shape_output = input[0]->shape();
+        CHECK_EQ(input[0]->num(), input[1]->num());
+        CHECK_EQ(input[0]->channel(), input[1]->channel());
+        Shape shape_output = input[0]->valid_shape();
         int M,N,K0,K1,B;
+//        LOG(INFO)<<"input0 shape:";
+//        LOG(INFO)<<"n:"<<input[0]->num()<<"c:"<<input[0]->channel()<<"h:"<<input[0]->height()<<"w:"<<input[0]->width();
+//        LOG(INFO)<<"input1 shape:";
+//        LOG(INFO)<<"n:"<<input[1]->num()<<"c:"<<input[1]->channel()<<"h:"<<input[1]->height()<<"w:"<<input[1]->width();
         if (param._is_transpose_X)
         {
             K0 = input[0]->height();
@@ -94,19 +89,17 @@ public:
         param._m = M;
         param._n = N;
         param._k = K0;
-        return output[0]->set_shape({input[0]->num(), input[0]->channel(), M, N});
+        return output[0]->set_shape(Shape({input[0]->num(), input[0]->channel(), M, N}));
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
             case VENDER_IMPL:
-                this->_impl.push_back(new VenderMatMul <TargetType, OpDtype, inDtype, outDtype,
-                LayOutType_op, LayOutType_in, LayOutType_out>);
+                this->_impl.push_back(new VenderMatMul <TargetType, OpDtype>);
                 return SaberSuccess;
 
             case SABER_IMPL:
-                this->_impl.push_back(new SaberMatMul <TargetType, OpDtype, inDtype, outDtype,
-                LayOutType_op, LayOutType_in, LayOutType_out>);
+                this->_impl.push_back(new SaberMatMul <TargetType, OpDtype>);
                 return SaberSuccess;
 
             default:
@@ -121,12 +114,10 @@ private:
         this->_best_impl = this->_impl[0];
     }
 
-    virtual void pick_best_runtime(Input_v input, Output_v output, \
-        Param_t& param, Context<TargetType> &ctx) override {
-        //! Fc only has saber implementation
+    virtual void pick_best_runtime(const Input_v input, Output_v output, Param_t& param, \
+        Context<TargetType> &ctx) {
         this->_best_impl = this->_impl[0];
     }
-
     virtual void pick_best_specify(ImplEnum implenum) override {
         //! Fc only has saber implementation
         this->_best_impl = this->_impl[0];

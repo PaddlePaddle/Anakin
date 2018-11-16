@@ -16,67 +16,108 @@
 #ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_LSTM_H
 #define ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_LSTM_H
 #include "saber/funcs/impl/impl_lstm.h"
-
+#include "sass_funcs.h"
+#include "cuda_utils.h"
 namespace anakin {
 
-    namespace saber {
+namespace saber {
 
-        template <DataType OpDtype,
-                DataType inDtype,
-                DataType outDtype,
-                typename LayOutType_op,
-                typename LayOutType_in,
-                typename LayOutType_out>
-        class SaberLstm<NV, OpDtype, inDtype, outDtype, LayOutType_op, LayOutType_in, LayOutType_out>:\
-    public ImplBase<
-                Tensor<NV, inDtype, LayOutType_in>, \
-        Tensor<NV, outDtype, LayOutType_out>, \
-        Tensor<NV, OpDtype, LayOutType_op>, \
-        LstmParam<Tensor<NV, OpDtype, LayOutType_op>>> {
+static int round_up(int k, int c) {
+    return ((k + c - 1) / c) * c;
+}
 
-        public:
-            typedef Tensor<NV, inDtype, LayOutType_in> DataTensor_in;
-            typedef Tensor<NV, outDtype, LayOutType_out> DataTensor_out;
-            typedef Tensor<NV, OpDtype, LayOutType_op> OpTensor;
+template <DataType OpDtype>
+class SaberLstm<NV, OpDtype>: public ImplBase <
+        NV, OpDtype,LstmParam<NV> > {
 
-            typedef typename DataTensor_in::Dtype InDataType;
-            typedef typename DataTensor_out::Dtype OutDataType;
-            typedef typename OpTensor::Dtype OpDataType;
+public:
+    typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
 
-            SaberLstm() {}
-            ~SaberLstm() {
+    SaberLstm() {}
+    ~SaberLstm() {
 
-            }
+    }
 
-            virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs, \
-        std::vector<DataTensor_out*>& outputs, \
-        LstmParam <OpTensor>& param, Context<NV>& ctx) {
+    virtual SaberStatus init(const std::vector<Tensor<NV>*>& inputs, \
+                             std::vector<Tensor<NV>*>& outputs, \
+                             LstmParam <NV>& param, Context<NV>& ctx) {
 
-                this->_ctx = &ctx;
-
-                return create(inputs, outputs, param, ctx);
-            }
-
-            virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs, \
-        std::vector<DataTensor_out*>& outputs, \
-        LstmParam<OpTensor>& param, Context<NV>& ctx) {
+        this->_ctx = &ctx;
+        if(param.with_peephole){
+            _hidden_size=param.bias()->valid_size()/7;
+        }else{
+            _hidden_size=param.bias()->valid_size()/4;
+        }
+        _word_size=(param.weight()->valid_size()-_hidden_size*_hidden_size*4)/_hidden_size/4;
+        //TODO:add round_up to saber_util
+        _aligned_hidden_size=round_up(_hidden_size,32);
 
 
-                return SaberSuccess;
-            }
+        _seq_util = SeqSortedseqTranseUtil(param.is_reverse);
+        return create(inputs, outputs, param, ctx);
+    }
+
+    virtual SaberStatus create(const std::vector<Tensor<NV>*>& inputs, \
+                               std::vector<Tensor<NV>*>& outputs, \
+                               LstmParam < NV >& param, Context<NV>& ctx) {
+        if (!(&ctx == this->_ctx)) {
+            this->_ctx = &ctx;
+        }
+
+        return SaberSuccess;
+    }
 
 
-            virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
-                                         std::vector<DataTensor_out*>& outputs,
-                                         LstmParam <OpTensor>& param);
+    virtual SaberStatus dispatch(const std::vector<Tensor<NV>*>& inputs,
+                                 std::vector<Tensor<NV>*>& outputs,
+                                 LstmParam <NV>& param);
 
-        private:
+private:
+    int _word_size;
+    int _hidden_size;
+    int _aligned_hidden_size;
 
-        };
+    Tensor<NV> _init_hidden;
+
+    Tensor<NV> _temp_wx;
+    Tensor<NV> _temp_wh;
+    Tensor<NV> _temp_cell;
+
+    Tensor<NV> _temp_x;
+    Tensor<NV> _temp_out;
+    Tensor<NV> _temp_h_init;
+
+
+    Tensor<NV> _temp_map_dev;
+    Tensor<NV> _temp_zero;
+
+    std::function<void(const int, const int, const int,
+                       const float, const float*, const float,
+                       const float*, float*, cudaStream_t)> _gemm_wx;
+
+    std::function<void(const int, const int, const int,
+                       const float, const float*, const float,
+                       const float*, float*, cudaStream_t)> _gemm_wh;
+
+    SeqSortedseqTranseUtil _seq_util;
+
+    SaberStatus
+    dispatch_batch(
+            const std::vector < Tensor<NV>* >& inputs,
+            std::vector < Tensor<NV>* >& outputs,
+            LstmParam < NV >& param);
+
+    SaberStatus
+    dispatch_once(
+            const std::vector < Tensor<NV>* >& inputs,
+            std::vector < Tensor<NV>* >& outputs,
+            LstmParam < NV >& param);
+
+};
 
 
 
-    } //namespace saber
+} //namespace saber
 
 } //namespace anakin
 

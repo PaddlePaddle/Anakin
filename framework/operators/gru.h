@@ -28,7 +28,7 @@ namespace anakin {
 
 namespace ops {
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class GruHelper;
 
 
@@ -37,20 +37,20 @@ class GruHelper;
  * \brief Gru implementation class
  * public inherit Operator
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class Gru : public Operator<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class Gru : public Operator<Ttype, Ptype> {
 public:
     Gru() {}
 
     /// forward impl
     virtual void operator() (OpContext<Ttype> &ctx, 
-                             const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                             std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-        LOG(ERROR) << "Not Impl Yet Operator Gru<TargetType:"<<"unknown"<<","
-                   <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info()<<">";
+                             const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                             std::vector<Tensor4dPtr<Ttype> >& outs) {
+		LOG(ERROR) << "Not Impl Yet Operator Gru< Ttype("
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
-    friend class GruHelper<Ttype, Dtype, Ptype>;
+    friend class GruHelper<Ttype, Ptype>;
 };
 
 /**
@@ -58,8 +58,8 @@ public:
  * public inherit OperatorHelper
  * including init resource and shape size in Gru context
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class GruHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class GruHelper : public OperatorHelper<Ttype, Ptype> {
 public:
     GruHelper()=default;
 
@@ -75,8 +75,8 @@ public:
     * \return status
     */
     Status Init(OpContext<Ttype> &ctx,
-                const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
     /**
     * \brief infer the shape of output and input.
@@ -84,14 +84,14 @@ public:
     * \param outs stand for output tensor vector
     * \return status
     */
-    Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+    Status InferShape(const std::vector<Tensor4dPtr<Ttype> >& ins,
+                      std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
 public:
     ///< _param_gru stand for Gru parameter
-    saber::GruParam<Tensor4d<Ttype, Dtype>> _param_gru;
+    saber::GruParam<Ttype> _param_gru;
     ///< _funcs_gru stand for Gru function
-    saber::Gru<Ttype, Dtype> _funcs_gru;
+    saber::Gru<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_gru;
 };
 
 } /* namespace ops */

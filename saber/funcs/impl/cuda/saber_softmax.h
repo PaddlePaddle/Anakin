@@ -22,28 +22,16 @@ namespace anakin{
 
 namespace saber{
 
-template <DataType OpDtype,
-    DataType inDtype,
-    DataType outDtype,
-    typename LayOutType_op,
-    typename LayOutType_in,
-    typename LayOutType_out>
-class SaberSoftmax<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out> : \
-    public ImplBase<
-        Tensor<NV, inDtype, LayOutType_in>, 
-        Tensor<NV, outDtype, LayOutType_out>,
-        Tensor<NV, OpDtype, LayOutType_op>,
-        SoftmaxParam<Tensor<NV, OpDtype, LayOutType_op> > > 
+template <DataType OpDtype>
+class SaberSoftmax<NV, OpDtype>:
+    public ImplBase<NV, OpDtype, SoftmaxParam<NV>> 
 {
 public:
     typedef TargetWrapper<NV> API;
-    typedef Tensor<NV, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<NV, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<NV, OpDtype, LayOutType_op> OpTensor;
-    typedef typename DataTensor_in::Dtype InDataType;
-    typedef typename DataTensor_out::Dtype OutDataType;
-    typedef typename OpTensor::Dtype OpDataType;
+    typedef Tensor<NV> DataTensor_in;
+    typedef Tensor<NV> DataTensor_out;
+    typedef Tensor<NV> OpTensor;
+    typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
 
     SaberSoftmax() = default;
 
@@ -58,7 +46,7 @@ public:
      */
     virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
-                            SoftmaxParam<OpTensor>& param, Context<NV>& ctx) {
+                            SoftmaxParam<NV>& param, Context<NV>& ctx) {
 
         //! get context
         this->_ctx = &ctx;
@@ -67,7 +55,7 @@ public:
 
     virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
                             std::vector<DataTensor_out *>& outputs,
-                            SoftmaxParam<OpTensor>& param, Context<NV>& ctx) {
+                            SoftmaxParam<NV>& param, Context<NV>& ctx) {
         //! compute size
         Shape shape_in = inputs[0]->valid_shape();
         Shape shape_out = outputs[0]->valid_shape();
@@ -79,9 +67,9 @@ public:
         cudaDeviceProp deviceProp;
         cudaGetDeviceProperties(&deviceProp, API::get_device_id());
         size_t sharedmem_size = deviceProp.sharedMemPerBlock;
-        _max_dimsize = sharedmem_size / sizeof(InDataType) / CUDA_NUM_THREADS;
-        //LOG(INFO) << "shared memory size: " << sharedmem_size / 1024 << "Kb";
-        Shape sh_tmp{1, 1, 1, _outer_num * _inner_num};
+        _max_dimsize = sharedmem_size / sizeof(OpDataType) / CUDA_NUM_THREADS;
+
+        Shape sh_tmp({1, 1, 1, _outer_num * _inner_num});
         if (_axis_size > _max_dimsize){
             //! re_alloc device memory
             _max_data.reshape(sh_tmp);
@@ -96,7 +84,7 @@ public:
             Shape sh_output_real_stride = outputs[0]->get_stride();
 
             //! re_alloc device memory
-            Shape sh{1, 1, 1, _dims};
+            Shape sh({1, 1, 1, _dims});
             _valid_shape.reshape(sh);
             _input_stride.reshape(sh);
             _output_stride.reshape(sh);
@@ -113,7 +101,7 @@ public:
 
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                           std::vector<DataTensor_out*>& outputs,
-                          SoftmaxParam<OpTensor>& param);
+                          SoftmaxParam<NV>& param);
 
 private:
 
@@ -125,14 +113,14 @@ private:
     int _outer_num;
     int _axis_size;
     int _dims;
-    Tensor<NV, AK_INT32, NCHW> _input_stride;
-    Tensor<NV, AK_INT32, NCHW> _output_stride;
-    Tensor<NV, AK_INT32, NCHW> _valid_shape;
+    Tensor<NV> _input_stride;
+    Tensor<NV> _output_stride;
+    Tensor<NV> _valid_shape;
 
-    Tensor<NV, inDtype, NCHW> _max_data;
-    Tensor<NV, inDtype, NCHW> _sum_data;
+    Tensor<NV> _max_data;
+    Tensor<NV> _sum_data;
 };
-template class SaberSoftmax<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
+template class SaberSoftmax<NV, AK_FLOAT>;
 } //namespace saber
 
 } //namespace anakin

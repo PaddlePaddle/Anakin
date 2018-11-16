@@ -123,8 +123,9 @@ void IOBlockResource::free(std::vector<io>& io_vec, VGraph* vgraph_p) {
 
 void IOBlockResource::lock(std::vector<io>& io_vec) {
     for (auto& io_res : io_vec) {
-        if (has_free()) {
-            auto& tmp_io =  _free.front(); // get active resouce
+        
+        if (has_free(io_res)) {
+            auto tmp_io =  get_free(io_res);// get active resouce
             io_res.shared = true;
 
             if (tmp_io.shared) {
@@ -134,7 +135,6 @@ void IOBlockResource::lock(std::vector<io>& io_vec) {
             }
 
             _lock.push_back(io_res);
-            _free.pop_front();
         } else { // alloc new io block
             io_res.shared = false;
             _lock.push_back(io_res);
@@ -150,6 +150,7 @@ bool IOBlockResource::is_locked(io& io_in) {
 			++it;
 		}
 	}
+    return false;
 }
 
 void IOBlockResource::map_ios_to_vgraph(std::vector<io>& io_vec, VGraph* vgraph_p) {
@@ -171,9 +172,12 @@ void MemoryScheduler::launch(node& node_arg) {
     this->exe_push(node_arg);
     auto& node_arc_out_its = _vgraph->get_out_arc_its(node_arg.name);
     std::vector<io> io_out;
+    std::vector<std::string> next_type;
 
     for (auto& arc_it : node_arc_out_its) {
-        io_out.push_back(arc_it->weight());
+        
+            io_out.push_back(arc_it->weight());
+            next_type.push_back((*_vgraph)[arc_it->top()].opName);
     }
 
     this->free(io_out);
@@ -224,6 +228,13 @@ void MemoryScheduler::launch(node& node_arg) {
 					break;
 				}
 			}
+            //if last op is self_shared and we need set selected to this idx
+            for (auto idx: io_locked_idx){
+                auto& node_btm = (*_vgraph)[node_arc_in_its[idx]->bottom()];
+                if (_need_self_shared(node_btm)){
+                    selected = idx;
+                }
+            }
 			_io_block_res.push_self_lock(node_arc_in_its[selected]->weight());
 			for(int i=0; i<node_arc_in_its.size(); i++) {
 				if(i != selected) {
@@ -262,6 +273,13 @@ void MemoryScheduler::launch(node& node_arg) {
 		}
     } else {
         _io_block_res.lock(io_out); // lock out
+
+        for (int i=0; i<io_out.size(); ++i) {
+            if (next_type[i] == "ConvEltwise"){
+                io_out[i].shared = false;
+            }
+        }
+
         _io_block_res.map_ios_to_vgraph(io_out, _vgraph); // map changes to _vgraph
         auto node_arc_in_its = _vgraph->get_in_arc_its(node_arg.name);
         std::vector<io> io_in;

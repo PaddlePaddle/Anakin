@@ -1,4 +1,4 @@
-/* Copyright (c) 2016 Anakin Authors All Rights Reserve.
+/* Copyright (c) 2018 Anakin Authors All Rights Reserve.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -22,25 +22,16 @@
 namespace anakin {
 namespace saber {
 
-template <DataType OpDtype,
-          DataType inDtype,
-          DataType outDtype,
-          typename LayOutType_op,
-          typename LayOutType_in,
-          typename LayOutType_out>
-class SaberSequenceConv<X86, OpDtype, inDtype, outDtype,
-          LayOutType_op, LayOutType_in, LayOutType_out> : public ImplBase <
-          Tensor<X86, inDtype, LayOutType_in>,
-          Tensor<X86, outDtype, LayOutType_out>,
-          Tensor<X86, OpDtype, LayOutType_op>,
-          SequenceConvParam<Tensor<X86, OpDtype, LayOutType_op> > > {
+template <DataType OpDtype>
+class SaberSequenceConv<X86, OpDtype> : 
+    public ImplBase <X86, OpDtype, SequenceConvParam<X86>> {
 public:
-    typedef Tensor<X86, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<X86, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<X86, OpDtype, LayOutType_op> OpTensor;
-    typedef typename DataTensor_in::Dtype DataType_in;
-    typedef typename DataTensor_out::Dtype DataType_out;
-    typedef typename OpTensor::Dtype DataType_op;
+    typedef Tensor<X86> DataTensor_in;
+    typedef Tensor<X86> DataTensor_out;
+    typedef Tensor<X86> OpTensor;
+    typedef typename DataTrait<X86, OpDtype>::Dtype DataType_in;
+    typedef typename DataTrait<X86, OpDtype>::Dtype DataType_out;
+    typedef typename DataTrait<X86, OpDtype>::Dtype DataType_op;
 
     SaberSequenceConv() = default;
 
@@ -48,16 +39,12 @@ public:
 
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
                              std::vector<DataTensor_out*>& outputs,
-                             SequenceConvParam<OpTensor>& param,
+                             SequenceConvParam<X86>& param,
                              Context<X86>& ctx) {
         this->_ctx = &ctx;
         CHECK_EQ(param.padding_trainable, false) << "not support padding_trainable==true";
         CHECK_EQ(param.context_stride, 1) << "not support context_stride!=1";
-
-        if (param.padding_tensor != nullptr) {
-            CHECK_EQ(1, 0) << "not support padding_tensor";
-        }
-
+	CHECK_EQ(param.padding_tensor == nullptr, true) << "not support padding_tensor";
         CHECK_NOTNULL(param.filter_tensor);
         _hidden_size = param.filter_tensor->height() / param.context_length;
         _feature_size = param.filter_tensor->width();
@@ -69,14 +56,14 @@ public:
 
     virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
                                std::vector<DataTensor_out*>& outputs,
-                               SequenceConvParam<OpTensor>& param,
+                               SequenceConvParam<X86>& param,
                                Context<X86>& ctx) {
         return SaberSuccess;
     };
 
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                                  std::vector<DataTensor_out*>& outputs,
-                                 SequenceConvParam<OpTensor>& param);
+                                 SequenceConvParam<X86>& param);
 private:
     OpTensor _temp_im2col_tensor;
     int _hidden_size;
@@ -85,6 +72,7 @@ private:
     int _up_pad;
     int _down_pad;
 };
+template class SaberSequenceConv<X86, AK_FLOAT>;
 }
 }
 

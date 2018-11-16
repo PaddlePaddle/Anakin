@@ -76,7 +76,28 @@ void GraphBase<VertexNameType, VertexType, WeightType, ArcType>::add_in_arc(ArcT
         CHECK(this->has_vertex(arc.bottom()) && this->has_vertex(arc.top())) << " The arc's top or bottom is not vertex! ";
     }     
     Arc_iterator<VertexNameType, WeightType, ArcType> arc_iterator = find(arc.bottom(), arc.top()); 
-    _graph_in_arcs[arc.top()].push_back(arc_iterator);
+    auto top_in_arcs = _graph_in_arcs[arc.top()];
+    if (std::find(top_in_arcs.begin(), top_in_arcs.end(), arc_iterator) == top_in_arcs.end()){
+        _graph_in_arcs[arc.top()].push_back(arc_iterator);
+    }
+    //_graph_in_arcs[arc.top()].push_back(arc_iterator);
+}
+
+template<typename VertexNameType, typename VertexType, typename WeightType, typename ArcType>
+void GraphBase<VertexNameType, VertexType, WeightType, ArcType>::update_in_arc(ArcType& arc, size_t index_of_in_arc) {
+    if(!this->has_vertex(arc.top()) || !this->has_vertex(arc.bottom())) {
+        LOG(FATAL) << "The graph doesn't have vertext " << arc.top() << " or " << arc.bottom();
+        return;
+    }
+    auto& in_arc_it_list = this->get_in_arc_its(arc.top());
+    CHECK(index_of_in_arc >=0 && index_of_in_arc < in_arc_it_list.size())
+            << " The in arc's index should be between 0 and in arc's sizes";
+    for(int i=0; i < in_arc_it_list.size(); i++) {
+        if(i == index_of_in_arc) {
+            in_arc_it_list[i]->bottom() = arc.bottom();
+            break;
+        }
+    }
 }
 
 template<typename VertexNameType, typename VertexType, typename WeightType, typename ArcType>
@@ -86,8 +107,30 @@ void GraphBase<VertexNameType, VertexType, WeightType, ArcType>::add_out_arc(Arc
         CHECK(this->has_vertex(arc.bottom()) && this->has_vertex(arc.top())) << " The arc's top or bottom is not vertex! ";
     }     
     Arc_iterator<VertexNameType, WeightType, ArcType> arc_iterator = find(arc.bottom(), arc.top());
-    _graph_out_arcs[arc.bottom()].push_back(arc_iterator);
+    auto bottom_out_arcs = _graph_out_arcs[arc.bottom()];
+    if (std::find(bottom_out_arcs.begin(), bottom_out_arcs.end(), arc_iterator) == bottom_out_arcs.end()){
+        _graph_out_arcs[arc.bottom()].push_back(arc_iterator);
+    }
+    //_graph_out_arcs[arc.bottom()].push_back(arc_iterator);
 }
+
+template<typename VertexNameType, typename VertexType, typename WeightType, typename ArcType>
+void GraphBase<VertexNameType, VertexType, WeightType, ArcType>::update_out_arc(ArcType& arc, size_t index_of_out_arc) {
+    if(!this->has_vertex(arc.bottom()) || !this->has_vertex(arc.top())) {
+        LOG(FATAL) << "The graph doesn't have vertext " << arc.top() << " or " << arc.bottom();
+        return;
+    }
+    auto& out_arc_it_list = this->get_out_arc_its(arc.bottom());
+    CHECK(index_of_out_arc >=0 && index_of_out_arc < out_arc_it_list.size())
+            << " The in arc's index should be between 0 and in arc's sizes";
+    for(int i=0; i < out_arc_it_list.size(); i++) {
+        if(i == index_of_out_arc) {
+            out_arc_it_list[i]->top() = arc.top();
+            break;
+        }
+    }
+}
+
 
 template<typename VertexNameType, typename VertexType, typename WeightType, typename ArcType>
 void GraphBase<VertexNameType, VertexType, WeightType, ArcType>::remove(VertexNameType vertexName) {
@@ -116,10 +159,14 @@ void GraphBase<VertexNameType, VertexType, WeightType, ArcType>::remove(VertexNa
         }
         // remove corresponding arc in _arcs 
         for(auto& in_arc_it : _graph_in_arcs[vertexName]) {
-            remove(*in_arc_it);
+            if(in_arc_it->top() == vertexName) {
+                remove(*in_arc_it);
+            }
         }
         for(auto& out_arc_it : _graph_out_arcs[vertexName]) {
-            remove(*out_arc_it);
+            if(out_arc_it->bottom() == vertexName) {
+                remove(*out_arc_it);
+            }
         }
 
         // clear corresponding in/out arc in graph in/out map.
@@ -225,6 +272,17 @@ ArcType& GraphBase<VertexNameType, VertexType, WeightType, ArcType>::get_arc(Ver
 template<typename VertexNameType, typename VertexType, typename WeightType, typename ArcType>
 std::vector<VertexNameType> GraphBase<VertexNameType, VertexType, WeightType, ArcType>::get_graph_ins() {
     std::vector<VertexNameType> vertex_names_vec;
+    /*
+     for (auto vertex_pair : _vertices){
+        VertexNameType vertex_name = vertex_pair.first;
+        auto vertex_in_arc_its = get_in_arc_its(vertex_name);
+        if (vertex_in_arc_its.size() == 0){
+            vertex_names_vec.push_back(vertex_name);
+        }
+    }
+    return vertex_names_vec;
+    */
+    
     Arc_iterator<VertexNameType, WeightType, ArcType> it = _arcs.begin();
     Arc_iterator<VertexNameType, WeightType, ArcType> it_end = _arcs.end();
     for(; it != it_end; ++it) {
@@ -242,6 +300,16 @@ std::vector<VertexNameType> GraphBase<VertexNameType, VertexType, WeightType, Ar
 template<typename VertexNameType, typename VertexType, typename WeightType, typename ArcType>
 std::vector<VertexNameType> GraphBase<VertexNameType, VertexType, WeightType, ArcType>::get_graph_outs() {
     std::vector<VertexNameType> vertex_names_vec;
+    /*
+    for (auto vertex_pair : _vertices){
+        VertexNameType vertex_name = vertex_pair.first;
+        auto vertex_out_arc_its = get_out_arc_its(vertex_name);
+        if (vertex_out_arc_its.size() == 0){
+            vertex_names_vec.push_back(vertex_name);
+        }
+    }
+    return vertex_names_vec;
+    */
     Arc_iterator<VertexNameType, WeightType, ArcType> it = _arcs.begin();
     Arc_iterator<VertexNameType, WeightType, ArcType> it_end = _arcs.end();
     for(; it != it_end; ++it) {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <type_traits>
+#include <limits.h>
 
 #define XBYAK64
 #define XBYAK_NO_OP_NAMES
@@ -24,6 +25,7 @@ static Xbyak::util::Cpu cpu;
 typedef enum {
   isa_any,
   sse42,
+  avx,
   avx2,
   avx512_common,
   avx512_core,
@@ -72,6 +74,8 @@ static inline bool mayiuse(const cpu_isa_t cpu_isa) {
   switch (cpu_isa) {
     case sse42:
       return cpu.has(Cpu::tSSE42);
+    case avx:
+      return cpu.has(Cpu::tAVX);
     case avx2:
       return cpu.has(Cpu::tAVX2);
     case avx512_common:
@@ -126,8 +130,12 @@ inline unsigned int get_cache_size(int level, bool per_core = true) {
     }
   }
   if (l < cpu.data_cache_levels) {
-    return cpu.data_cache_size[l] /
+      if (cpu.cores_sharing_data_cache[l] > 0){
+        return cpu.data_cache_size[l] /
            (per_core ? cpu.cores_sharing_data_cache[l] : 1);
+      }else{
+          return cpu.data_cache_size[l];
+      }
   } else
     return 0;
 }
@@ -258,6 +266,10 @@ public:
         prefetcht2(a);
     }
 
+  void uni_vzeroupper() {
+    if (mayiuse(avx) && !mayiuse(avx512_mic))
+        vzeroupper();
+    }
 
   void postamble() {
     for (size_t i = 0; i < num_abi_save_gpr_regs; ++i)
@@ -267,8 +279,48 @@ public:
         movdqu(Xbyak::Xmm(xmm_to_preserve_start + i), ptr[rsp + i * xmm_len]);
       add(rsp, xmm_to_preserve * xmm_len);
     }
+    uni_vzeroupper();
     ret();
   }
+
+    Xbyak::Address make_safe_addr(const Xbyak::Reg64 &reg_out, size_t offt,
+        const Xbyak::Reg64 &tmp_reg, bool bcast = false) {
+        if (offt > INT_MAX) {
+            mov(tmp_reg, offt);
+            return bcast ? ptr_b[reg_out + tmp_reg] : ptr[reg_out + tmp_reg];
+        } else {
+            return bcast ? ptr_b[reg_out + offt] : ptr[reg_out + offt];
+        }
+    }
+
+    Xbyak::Address EVEX_compress_addr_safe(const Xbyak::Reg64 &base,
+        size_t raw_offt, const Xbyak::Reg64 &reg_offt, bool bcast = false) {
+        if (raw_offt > INT_MAX) {
+            return make_safe_addr(base, raw_offt, reg_offt, bcast);
+        } else {
+            return EVEX_compress_addr(base, raw_offt, bcast);
+        }
+    }
+
+    void safe_add(const Xbyak::Reg64 &base, size_t raw_offt,
+        const Xbyak::Reg64 &reg_offt) {
+        if (raw_offt > INT_MAX) {
+            mov(reg_offt, raw_offt);
+            add(base, reg_offt);
+        } else {
+            add(base, raw_offt);
+        }
+    }
+
+    void safe_sub(const Xbyak::Reg64 &base, size_t raw_offt,
+        const Xbyak::Reg64 &reg_offt) {
+        if (raw_offt > INT_MAX) {
+            mov(reg_offt, raw_offt);
+            sub(base, reg_offt);
+        } else {
+            sub(base, raw_offt);
+        }
+    }
 
   void uni_vpxor(const Xbyak::Xmm &x1, const Xbyak::Xmm &x2,
                    const Xbyak::Operand &op) {
@@ -278,7 +330,11 @@ public:
 
   void uni_vpxor(const Xbyak::Ymm &x1, const Xbyak::Ymm &x2,
                    const Xbyak::Operand &op) {
-        vpxor(x1, x2, op);
+        if (mayiuse(avx2)) {
+            vpxor(x1, x2, op);
+        } else {
+            vxorps(x1, x2, op);
+        }
   }
 
   void uni_vpxor(const Xbyak::Zmm &x1, const Xbyak::Zmm &x2,
@@ -340,7 +396,14 @@ public:
   }
 
   void uni_vbroadcastss(const Xbyak::Ymm &x, const Xbyak::Operand &op) {
-        vbroadcastss(x, op);
+        if (mayiuse(avx2)) {
+            vbroadcastss(x, op);
+        } else {
+            Xbyak::Xmm t(x.getIdx());
+            if (t.getIdx() != op.getIdx()) movss(t, op);
+            vinsertf128(x, x, t, 1);
+            vshufps(x, x, x, 0);
+        }       
   }
 
   void uni_vpbroadcastd(const Xbyak::Xmm &x, const Xbyak::Operand &op) {
@@ -349,7 +412,14 @@ public:
   }
 
   void uni_vpbroadcastd(const Xbyak::Ymm &x, const Xbyak::Operand &op) {
-        vpbroadcastd(x, op);
+        if (mayiuse(avx2)) {
+            vpbroadcastd(x, op);
+        } else {
+            Xbyak::Xmm t(x.getIdx());
+            if (t.getIdx() != op.getIdx()) movsd(t, op);
+            vinsertf128(x, x, t, 1);
+            vshufps(x, x, x, 0);
+        }  
   }
 
   void uni_vdivps(const Xbyak::Xmm &x, const Xbyak::Operand &op1,
@@ -361,6 +431,20 @@ public:
   void uni_vdivps(const Xbyak::Ymm &x, const Xbyak::Operand &op1,
                     const Xbyak::Operand &op2 = Xbyak::Operand()) {
         vdivps(x, op1, op2);
+  }
+
+  void uni_vdivps(const Xbyak::Xmm &x, const Xbyak::Operand &op1,
+                    const Xbyak::Operand &op2, const Xbyak::Xmm &buf) {
+      movups(buf, op1);
+      divps(buf, op2);
+      if (x.getIdx() != buf.getIdx()) {
+          movups(x, buf);
+      }
+  }
+
+  void uni_vdivps(const Xbyak::Ymm &x, const Xbyak::Operand &op1,
+                  const Xbyak::Operand &op2, const Xbyak::Ymm &buf) {
+      vdivps(x, op1, op2);
   }
 
   void uni_vaddps(const Xbyak::Xmm &x, const Xbyak::Operand &op1,
@@ -393,6 +477,20 @@ public:
   void uni_vsubps(const Xbyak::Ymm &x, const Xbyak::Operand &op1,
                     const Xbyak::Operand &op2 = Xbyak::Operand()) {
         vsubps(x, op1, op2);
+  }
+
+  void uni_vsubps(const Xbyak::Xmm &x, const Xbyak::Operand &op1,
+                  const Xbyak::Operand &op2, const Xbyak::Xmm &buf) {
+      movups(buf, op1);
+      subps(buf, op2);
+      if (x.getIdx() != buf.getIdx()) {
+          movups(x, buf);
+      }
+  }
+
+  void uni_vsubps(const Xbyak::Ymm &x, const Xbyak::Operand &op1,
+                  const Xbyak::Operand &op2, const Xbyak::Ymm &buf) {
+      vsubps(x, op1, op2);
   }
 
   void uni_vmulps(const Xbyak::Xmm &x, const Xbyak::Operand &op1,

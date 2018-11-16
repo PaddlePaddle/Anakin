@@ -14,12 +14,9 @@
 #ifndef ANAKIN_SABER_LITE_FUNCS_SABER_FC_H
 #define ANAKIN_SABER_LITE_FUNCS_SABER_FC_H
 
-#include "saber/lite/core/tensor_lite.h"
-#include "saber/lite/core/context_lite.h"
+#include "saber/lite/funcs/op_base.h"
 
 #ifdef USE_ARM_PLACE
-
-#include "saber/lite/funcs/neon/impl/sgemm_arm.h"
 
 namespace anakin{
 
@@ -32,41 +29,35 @@ namespace lite{
 //! weights size: nxk
 //! bias size: 1xn
 //template <typename Dtype>
-class SaberFc {
+class SaberFc : public OpBase {
 public:
     SaberFc() {}
 
-    SaberFc(int axis, int num_output, bool flag_trans, bool flag_bias, \
-        const float* weights, const float* bias);
+    SaberFc(ParamBase* param);
 
-    SaberStatus load_param(int axis, int num_output, bool flag_trans, bool flag_bias, \
-        const float* weights, const float* bias);
+    virtual SaberStatus load_param(ParamBase* param) override;
 
-    ~SaberFc() {}
+    virtual SaberStatus set_op_precision(DataType ptype) override;
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus load_param(std::istream& stream, const float* weights) override;
 
-    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
-        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx);
+    ~SaberFc();
 
-    SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
-        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU>*>& inputs,
+                                     std::vector<Tensor<CPU>*>& outputs) override;
+
+    virtual SaberStatus init(const std::vector<Tensor<CPU>*>& inputs, \
+        std::vector<Tensor<CPU>*>& outputs, Context &ctx) override;
+
+    virtual SaberStatus dispatch(const std::vector<Tensor<CPU>*>& inputs, \
+        std::vector<Tensor<CPU>*>& outputs) override;
 
 
 private:
-    Context _ctx;
-    Sgemm _gemmer;
+    FcParam* _param;
     int _m;
     int _k;
     int _n;
-
-    int _axis;
-    int _num_output;
-    bool _bias_term{true};
-    bool _flag_trans{false};
-    const float* _weights{nullptr};
-    const float* _bias{nullptr};
 };
 
 } //namespace lite

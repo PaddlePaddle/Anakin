@@ -29,34 +29,19 @@
 namespace anakin {
 namespace saber {
 
-template<DataType OpDtype,
-         DataType inDtype,
-         DataType outDtype,
-         typename LayOutType_op,
-         typename LayOutType_in,
-         typename LayOutType_out>
-
-class VenderGru<X86, OpDtype, inDtype, outDtype, LayOutType_op, LayOutType_in, LayOutType_out> :
-    public ImplBase <
-    Tensor<X86, inDtype, LayOutType_in>,
-    Tensor<X86, outDtype, LayOutType_out>,
-    Tensor<X86, OpDtype, LayOutType_op>,
-    GruParam<Tensor<X86, OpDtype, LayOutType_op> >> {
+template<DataType OpDtype>
+class VenderGru<X86, OpDtype>: public ImplBase <
+        X86, OpDtype,GruParam<X86> > {
 public:
-    typedef Tensor<X86, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<X86, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<X86, OpDtype, LayOutType_op> OpTensor;
-
-    typedef typename DataTensor_in::Dtype InDataType;
-    typedef typename DataTensor_out::Dtype OutDataType;
-    typedef typename OpTensor::Dtype OpDataType;
+    typedef typename DataTrait<X86, OpDtype>::Dtype OpDataType;
+    typedef Tensor<X86> OpTensor;
 
     VenderGru() : avx2_available_(false), aligned_bias_(nullptr),
-                  max_thread_num_(1),
+        max_thread_num_(1),
         weight_x_packed_(nullptr),
         weight_ru_packed_(nullptr),
         weight_c_packed_(nullptr) {
-        LOG(INFO)<<"init vender gru";
+        LOG(INFO) << "init vender gru";
     }
 
     ~VenderGru() {
@@ -81,19 +66,19 @@ public:
         }
     }
 
-    virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
-                             std::vector<DataTensor_out*>& outputs,
-                             GruParam<OpTensor>& gru_param,
+    virtual SaberStatus init(const std::vector<OpTensor*>& inputs,
+                             std::vector<OpTensor*>& outputs,
+                             GruParam<X86>& gru_param,
                              Context<X86>& ctx) override;
 
-    virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
-                               std::vector<DataTensor_out*>& outputs,
-                               GruParam<OpTensor>& gru_param,
+    virtual SaberStatus create(const std::vector<OpTensor*>& inputs,
+                               std::vector<OpTensor*>& outputs,
+                               GruParam<X86>& gru_param,
                                Context<X86>& ctx) override;
 
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
-                                 std::vector<DataTensor_out*>& outputs,
-                                 GruParam<OpTensor>& param) override;
+    virtual SaberStatus dispatch(const std::vector<OpTensor*>& inputs,
+                                 std::vector<OpTensor*>& outputs,
+                                 GruParam<X86>& param) override;
 
 private:
     bool avx2_available_;
@@ -105,16 +90,16 @@ private:
     float* aligned_bias_;
     OpTensor aligned_init_hidden;
 
-    OpDataType* weight_x_packed_ = nullptr;
-    OpDataType* weight_ru_packed_ = nullptr;
-    OpDataType* weight_c_packed_ = nullptr;
-    DataTensor_out batched_h;
-    DataTensor_in batched_x;
-    DataTensor_out batched_xx;
+    float* weight_x_packed_ = nullptr;
+    float* weight_ru_packed_ = nullptr;
+    float* weight_c_packed_ = nullptr;
+    OpTensor batched_h;
+    OpTensor batched_x;
+    OpTensor batched_xx;
 
-    SaberStatus check_conf(const std::vector<DataTensor_in*>& inputs,
-                           std::vector<DataTensor_out*>& outputs,
-                           GruParam<OpTensor>& param);
+    SaberStatus check_conf(const std::vector<OpTensor*>& inputs,
+                           std::vector<OpTensor*>& outputs,
+                           GruParam<X86>& param);
 };
 
 } // namespace saber

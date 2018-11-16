@@ -21,6 +21,8 @@
 #include <type_traits>
 #include <typeinfo>
 #include <stdlib.h>
+#include <map>
+#include <list>
 
 #include "utils/logger/logger.h"
 #include "anakin_config.h"
@@ -94,6 +96,9 @@ const int CUDA_NUM_THREADS = 512;
 inline int CUDA_GET_BLOCKS(const int N) {
     return (N + CUDA_NUM_THREADS - 1) / CUDA_NUM_THREADS;
 }
+inline int CUDA_GET_BLOCKS(const int N,const int base) {
+    return (N + base - 1) / base;
+}
 
 #define CUDA_CHECK(condition) \
   /* Code block avoids redefinition of cudaError_t error */ \
@@ -138,8 +143,30 @@ const char* cublas_get_errorstring(cublasStatus_t error);
 const char* cudnn_get_errorstring(cudnnStatus_t status);
 #endif //USE_CUDNN
 
-#ifdef USE_AMD
-#include <hip/hip_runtime_api.h>
+#ifdef AMD_GPU
+
+#ifdef __APPLE__
+#include <OpenCL/cl_ext.h>
+#include <OpenCL/cl.h>
+#else
+#include <CL/cl_ext.h>
+#include <CL/cl.h>
+#endif
+
+#define AMD_CHECK_MSG(condition, msg) \
+  /* Code block avoids redefinition of cudaError_t error */ \
+  do { \
+    cl_int error = condition; \
+    CHECK_EQ(error, CL_SUCCESS) << " " << msg << " (err=" << opencl_get_error_string(error) << ")"; \
+  } while (0)
+
+
+#define AMD_CHECK(condition) \
+  /* Code block avoids redefinition of cudaError_t error */ \
+  do { \
+    cl_int error = condition; \
+    CHECK_EQ(error, CL_SUCCESS) << " " <<  opencl_get_error_string(error); \
+  } while (0)
 #endif
 
 
@@ -152,3 +179,17 @@ const char* cudnn_get_errorstring(cudnnStatus_t status);
 
 #endif //ANAKIN_SABER_CORE_COMMON_H
 
+#ifdef USE_BM_PLACE 
+
+#include "bmlib_runtime.h"
+#include "bmdnn_api.h"
+#include "bmdnn_ext_api.h"
+#include "bmlib_utils.h"
+
+#define BMDNN_CHECK(condition) \
+  do { \
+    bm_status_t error = condition; \
+    CHECK_EQ(error, BM_SUCCESS) << " Failed with error code:" << error; \
+  } while (0)
+
+#endif // USE_BM_PLACE 

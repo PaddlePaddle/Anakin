@@ -14,8 +14,7 @@
 #ifndef ANAKIN_SABER_LITE_FUNCS_SABER_PRIORBOX_H
 #define ANAKIN_SABER_LITE_FUNCS_SABER_PRIORBOX_H
 
-#include "saber/lite/core/tensor_lite.h"
-#include "saber/lite/core/context_lite.h"
+#include "saber/lite/funcs/op_base.h"
 
 namespace anakin{
 
@@ -24,47 +23,33 @@ namespace saber{
 namespace lite{
 
 //template <typename Dtype>
-class SaberPriorBox {
+class SaberPriorBox : public OpBase {
 public:
 
     SaberPriorBox() = default;
 
-    SaberPriorBox(bool is_flip, bool is_clip, std::vector<float> min_size, std::vector<float> max_size, \
-        std::vector<float> aspect_ratio, std::vector<float> variance, \
-        int img_width, int img_height, float step_w, float step_h, float offset);
+    SaberPriorBox(ParamBase* param);
 
-    SaberStatus load_param(bool is_flip, bool is_clip, std::vector<float> min_size, std::vector<float> max_size, \
-        std::vector<float> aspect_ratio, std::vector<float> variance, \
-        int img_width, int img_height, float step_w, float step_h, float offset);
+    virtual SaberStatus load_param(ParamBase* param) override;
 
-    ~SaberPriorBox() {}
+    virtual SaberStatus set_op_precision(DataType ptype) override;
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus load_param(std::istream& stream, const float* weights) override;
 
-    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx);
+    ~SaberPriorBox();
 
-    SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                          std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU>*>& inputs,
+                                     std::vector<Tensor<CPU>*>& outputs) override;
+
+    virtual SaberStatus init(const std::vector<Tensor<CPU>*>& inputs,
+                        std::vector<Tensor<CPU>*>& outputs, Context &ctx) override;
+
+    virtual SaberStatus dispatch(const std::vector<Tensor<CPU>*>& inputs,
+                          std::vector<Tensor<CPU>*>& outputs) override;
 
 private:
-    Context _ctx;
-    Tensor<CPU, AK_FLOAT> _output_arm;
-
-    int _num_priors;
-
-    bool _is_flip;
-    bool _is_clip;
-    std::vector<float> _min_size;
-    std::vector<float> _max_size;
-    std::vector<float> _aspect_ratio;
-    std::vector<float> _variance;
-    int _img_width;
-    int _img_height;
-    float _step_w;
-    float _step_h;
-    float _offset;
+    PriorBoxParam* _param;
+    Tensor<CPU> _output_arm;
 };
 
 } //namespace lite

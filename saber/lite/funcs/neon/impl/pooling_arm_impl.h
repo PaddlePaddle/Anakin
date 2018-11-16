@@ -24,37 +24,124 @@ namespace saber{
 
 namespace lite{
 
-void pooling_basic(const float* din, float* dout, \
+//! pooling fp32 Op
+void pooling_basic(const void* din, void* dout, \
                           int num, int chout, int hout, int wout, \
                           int chin, int hin, int win, \
                           PoolingType type, bool global, int kernel_w, int kernel_h, \
                           int stride_w, int stride_h, int pad_w, int pad_h);
 
-void pooling_global(const float* din, float* dout, \
+void pooling_global(const void* din, void* dout, \
                           int num, int chout, int hout, int wout, \
                           int chin, int hin, int win, \
                           PoolingType type, bool global, int kernel_w, int kernel_h, \
                           int stride_w, int stride_h, int pad_w, int pad_h);
 
-void pooling2x2s2_max(const float* din, float* dout, \
+void pooling2x2s2_max(const void* din, void* dout, \
                           int num, int chout, int hout, int wout, \
                           int chin, int hin, int win, \
                           PoolingType type, bool global, int kernel_w, int kernel_h, \
                           int stride_w, int stride_h, int pad_w, int pad_h);
 
-void pooling2x2s2_ave(const float* din, float* dout, \
+void pooling2x2s2_ave(const void* din, void* dout, \
                           int num, int chout, int hout, int wout, \
                           int chin, int hin, int win, \
                           PoolingType type, bool global, int kernel_w, int kernel_h, \
                           int stride_w, int stride_h, int pad_w, int pad_h);
 
-void pooling3x3s2_max(const float* din, float* dout, \
+void pooling3x3s1p1_max(const void* din, void* dout, \
                           int num, int chout, int hout, int wout, \
                           int chin, int hin, int win, \
                           PoolingType type, bool global, int kernel_w, int kernel_h, \
                           int stride_w, int stride_h, int pad_w, int pad_h);
 
-void pooling3x3s2_ave(const float* din, float* dout, \
+void pooling3x3s1p1_ave(const void* din, void* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          PoolingType type, bool global, int kernel_w, int kernel_h, \
+                          int stride_w, int stride_h, int pad_w, int pad_h);
+
+void pooling3x3s2p1_max(const void* din, void* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          PoolingType type, bool global, int kernel_w, int kernel_h, \
+                          int stride_w, int stride_h, int pad_w, int pad_h);
+
+void pooling3x3s2p0_max(const void* din, void* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          PoolingType type, bool global, int kernel_w, int kernel_h, \
+                          int stride_w, int stride_h, int pad_w, int pad_h);
+
+void pooling3x3s2p1_ave(const void* din, void* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          PoolingType type, bool global, int kernel_w, int kernel_h, \
+                          int stride_w, int stride_h, int pad_w, int pad_h);
+
+
+void pooling3x3s2p0_ave(const void* din, void* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          PoolingType type, bool global, int kernel_w, int kernel_h, \
+                          int stride_w, int stride_h, int pad_w, int pad_h);
+
+//! pooling int8 Op
+void pooling_basic_int8(const void* din, void* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          PoolingType type, bool global, int kernel_w, int kernel_h, \
+                          int stride_w, int stride_h, int pad_w, int pad_h);
+
+void pooling_global_int8(const void* din, void* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          PoolingType type, bool global, int kernel_w, int kernel_h, \
+                          int stride_w, int stride_h, int pad_w, int pad_h);
+
+void pooling2x2s2_max_int8(const void* din, void* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          PoolingType type, bool global, int kernel_w, int kernel_h, \
+                          int stride_w, int stride_h, int pad_w, int pad_h);
+
+void pooling2x2s2_ave_int8(const void* din, void* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          PoolingType type, bool global, int kernel_w, int kernel_h, \
+                          int stride_w, int stride_h, int pad_w, int pad_h);
+
+void pooling3x3s1p1_max_int8(const void* din, void* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          PoolingType type, bool global, int kernel_w, int kernel_h, \
+                          int stride_w, int stride_h, int pad_w, int pad_h);
+
+void pooling3x3s1p1_ave_int8(const void* din, void* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          PoolingType type, bool global, int kernel_w, int kernel_h, \
+                          int stride_w, int stride_h, int pad_w, int pad_h);
+
+void pooling3x3s2p1_max_int8(const void* din, void* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          PoolingType type, bool global, int kernel_w, int kernel_h, \
+                          int stride_w, int stride_h, int pad_w, int pad_h);
+
+void pooling3x3s2p0_max_int8(const void* din, void* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          PoolingType type, bool global, int kernel_w, int kernel_h, \
+                          int stride_w, int stride_h, int pad_w, int pad_h);
+
+void pooling3x3s2p1_ave_int8(const void* din, void* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          PoolingType type, bool global, int kernel_w, int kernel_h, \
+                          int stride_w, int stride_h, int pad_w, int pad_h);
+
+void pooling3x3s2p0_ave_int8(const void* din, void* dout, \
                           int num, int chout, int hout, int wout, \
                           int chin, int hin, int win, \
                           PoolingType type, bool global, int kernel_w, int kernel_h, \
