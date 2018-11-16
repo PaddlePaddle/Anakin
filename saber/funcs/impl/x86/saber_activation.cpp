@@ -5,79 +5,41 @@
 namespace anakin{
 namespace saber {
 
-template <DataType OpDtype ,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-SaberStatus SaberActivation<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::init(
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        ActivationParam<OpTensor> &param,
-        Context<X86> &ctx)
-{
-
-    typedef typename DataTensor_in::Dtype DataType_in;
-    typedef typename DataTensor_out::Dtype DataType_out;
-    typedef typename OpTensor::Dtype DataType_op;
+template <DataType OpDtype>
+SaberStatus SaberActivation<X86, OpDtype>::init(
+        const std::vector<Tensor<X86>*>& inputs,
+        std::vector<Tensor<X86>*>& outputs,
+        ActivationParam<X86> &param,
+        Context<X86> &ctx) {
     this->_ctx = &ctx;
-
     return create(inputs, outputs, param, ctx);
 }
 
-template <DataType OpDtype ,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-SaberStatus SaberActivation<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::create(
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        ActivationParam<OpTensor> &param,
-        Context<X86> &ctx)
-{
-    typedef typename DataTensor_in::Dtype DataType_in;
-    typedef typename DataTensor_out::Dtype DataType_out;
-    typedef typename OpTensor::Dtype DataType_op;
+template <DataType OpDtype>
+SaberStatus SaberActivation<X86, OpDtype>::create(
+        const std::vector<Tensor<X86>*>& inputs,
+        std::vector<Tensor<X86>*>& outputs,
+        ActivationParam<X86> &param,
+        Context<X86> &ctx) {
     this->_ctx = &ctx;
-
     return SaberSuccess;
 }
 
-template <DataType OpDtype ,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-SaberStatus SaberActivation<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        ActivationParam<OpTensor> &param)
-{
-    typedef typename DataTensor_in::Dtype DataType_in;
-    typedef typename DataTensor_out::Dtype DataType_out;
-    typedef typename OpTensor::Dtype DataType_op;
-
-    // TODO !! need add other types of activation
+template <DataType OpDtype>
+SaberStatus SaberActivation<X86, OpDtype>::dispatch(
+        const std::vector<Tensor<X86>*>& inputs,
+        std::vector<Tensor<X86>*>& outputs,
+        ActivationParam<X86> &param) {
+    typedef typename DataTrait<X86, OpDtype>::Dtype OpDataType;
+    // x > 0 ? x :0
     if (param.active == Active_relu) {
         for (size_t vc = 0; vc < inputs.size(); vc++) {
             size_t len = inputs[vc]->valid_size();
-            float *input_data = inputs[vc]->mutable_data();
-            float *output_data = outputs[vc]->mutable_data();
+            OpDataType *input_data = (OpDataType*)inputs[vc]->mutable_data();
+            OpDataType *output_data = (OpDataType*)outputs[vc]->mutable_data();
 
             for (size_t i = 0; i < len; i++) {
-                if (*input_data > 0) {
-                    *output_data = *input_data;
-                } else {
-                    *output_data = 0;
-                }
-
+                *output_data = *input_data > (OpDataType)0 ? *input_data : (OpDataType)0;
                 input_data++;
                 output_data++;
             }
@@ -88,8 +50,8 @@ SaberStatus SaberActivation<X86, OpDtype, inDtype, outDtype,
     if (param.active == Active_stanh) {
         for (size_t i = 0; i < inputs.size(); i++) {
             size_t len = inputs[i]->valid_size();
-            DataType_in *input_data = inputs[i]->mutable_data();
-            DataType_out *output_data = outputs[i]->mutable_data();
+            const OpDataType *input_data = (OpDataType*)inputs[i]->data();
+            OpDataType *output_data = (OpDataType*)outputs[i]->mutable_data();
             //negative_slope = scale_a
             //coef = scale_b
             for (size_t j = 0; j < len; j++) {
@@ -101,8 +63,8 @@ SaberStatus SaberActivation<X86, OpDtype, inDtype, outDtype,
     if (param.active == Active_sigmoid) {
         for ( size_t i = 0; i < inputs.size() ; i++) {
             size_t len = inputs[i]->valid_size();
-            DataType_in *input_data = inputs[i]->mutable_data();
-            DataType_out *output_data = outputs[i]->mutable_data();
+            const OpDataType *input_data = (OpDataType*)inputs[i]->data();
+            OpDataType *output_data = (OpDataType*)outputs[i]->mutable_data();
 
             for (size_t j = 0; j < len; j++) {
                 output_data[j] = 1.0f / (1.0f + exp(-input_data[j]));
@@ -114,8 +76,8 @@ SaberStatus SaberActivation<X86, OpDtype, inDtype, outDtype,
     if (param.active == Active_tanh) {
         for (size_t i = 0; i < inputs.size(); i++) {
             size_t len = inputs[i]->valid_size();
-            DataType_in *input_data = inputs[i]->mutable_data();
-            DataType_out *output_data = outputs[i]->mutable_data();
+            const OpDataType *input_data = (OpDataType*)inputs[i]->data();
+            OpDataType *output_data = (OpDataType*)outputs[i]->mutable_data();
 
             for (size_t j = 0; j < len; j++) {
                 output_data[j] = tanh(input_data[j]);
@@ -127,11 +89,11 @@ SaberStatus SaberActivation<X86, OpDtype, inDtype, outDtype,
     // x > 0 ? x : 0;
     // x < threshold ? x : threshold
     if (param.active == Active_clipped_relu) {
-        DataType_in threshold = param.coef;
+        const OpDataType threshold = param.coef;
         for (size_t i = 0; i < inputs.size(); i++) {
             size_t len = inputs[i]->valid_size();
-            DataType_in *input_data = inputs[i]->mutable_data();
-            DataType_out *output_data = outputs[i]->mutable_data();
+            const OpDataType *input_data = (OpDataType*)inputs[i]->data();
+            OpDataType *output_data = (OpDataType*)outputs[i]->mutable_data();
 
             for(size_t j = 0; j < len; j++){
                 output_data[j] = input_data[j] > 0 ? input_data[j] : 0;
@@ -142,14 +104,39 @@ SaberStatus SaberActivation<X86, OpDtype, inDtype, outDtype,
 
     //elu:  x > 0 ? x : coef * (exp(x) - 1)
     if (param.active == Active_elu) {
-        DataType_in coef = param.coef;
+        const OpDataType coef = param.coef;
         for (size_t i = 0; i < inputs.size(); i++) {
             size_t len = inputs[i]->valid_size();
-            DataType_in *input_data = inputs[i]->mutable_data();
-            DataType_out *output_data = outputs[i]->mutable_data();
+            const OpDataType *input_data = (OpDataType*)inputs[i]->data();
+            OpDataType *output_data = (OpDataType*)outputs[i]->mutable_data();
 
             for(size_t j = 0; j < len; j++){
                 output_data[j] = input_data[j] > 0 ? input_data[j] : param.coef * (exp(input_data[j]) - 1);
+            }
+        }
+    }
+    //prelu: x > 0 ? x : slope[c] * x
+    if (param.active == Active_prelu) {
+        PreluParam<X86> prelu = param.prelu_param;
+        for (size_t i = 0; i < inputs.size(); i++) {
+            const OpDataType *input_data = (OpDataType*)inputs[i]->data();
+            OpDataType *output_data = (OpDataType*)outputs[i]->mutable_data();
+            Shape shin = inputs[i]->valid_shape();
+            int num = shin[0];
+            int channel = shin[1];
+            int size = shin[2] * shin[3];
+            for (int n = 0; n < num; n++){
+                const OpDataType *in_ptr = input_data + n * channel * size;
+                OpDataType *out_ptr = output_data + n * channel * size;
+                OpDataType *slope_ptr = (OpDataType*)prelu.slope->data();
+                for (int c = 0; c < channel; c++){
+                    const OpDataType *in_ch_ptr = in_ptr + c * size;
+                    OpDataType *out_ch_ptr = out_ptr + c * size;
+                    OpDataType slope = prelu.channel_shared ?  slope_ptr[0]: slope_ptr[c];
+                    for (int k = 0; k < size; k++){
+                        out_ch_ptr[k] = in_ch_ptr[k] > 0 ? in_ch_ptr[k] : in_ch_ptr[k] * slope;
+                    }
+                }
             }
         }
     }
@@ -159,7 +146,8 @@ SaberStatus SaberActivation<X86, OpDtype, inDtype, outDtype,
     return SaberSuccess;
 }
 
-template class SaberActivation<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
-
+template class SaberActivation<X86, AK_FLOAT>;
+DEFINE_OP_TEMPLATE(SaberActivation, ActivationParam, X86, AK_HALF);
+DEFINE_OP_TEMPLATE(SaberActivation, ActivationParam, X86, AK_INT8);
 }
 } // namespace anakin

@@ -28,21 +28,29 @@ namespace lite {
 
 template<typename T> 
 inline T get_attr(std::string attr_name, graph::AttrInfo& attrs) { 
-	const auto& it_end = attrs.parameter.end(); 
-	auto it_find = attrs.parameter.find(attr_name); 
-	if(it_find == it_end) { 
-		LOG(FATAL) << "Target attr name(" << attr_name << ") not found."; 
-		return T(); 
-	} 
-	return any_cast<T>(attrs.parameter[attr_name]); 
+    if (!attrs.inspect(attr_name)) { 
+        LOG(FATAL) << "Target attr name(" << attr_name << ") not found."; 
+        return T(); 
+    } 
+    return attrs.get<T>(attr_name);
+}
+
+inline SaberStatus find_attr(std::string attr_name, graph::AttrInfo& attrs) {
+	if (!attrs.inspect(attr_name)) {
+		LOG(WARNING) << "Target attr name(" << attr_name << ") not found.";
+		return SaberUnImplError;
+	}
+	return SaberSuccess;
 }
 
 /// function type for parser
-typedef std::function<std::string(graph::AttrInfo& attr, 
+typedef std::function<std::string(graph::AttrInfo& attr,
+                                  std::string& code_name,
 								  std::string& op_class_name, 
 								  std::string& node_name,
 								  std::string& weights_ptr_name,
-								  WeightsWritter& writter)> ParseParamFunctor;
+								  WeightsWritter& writter,
+								  bool gen_param)> ParseParamFunctor;
 /**
  * \brief class OpParser
  */

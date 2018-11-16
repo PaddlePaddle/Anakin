@@ -1,4 +1,4 @@
-/* Copyright (c) 2016 Anakin Authors All Rights Reserve.
+/* Copyright (c) 2018 Anakin Authors All Rights Reserve.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -23,23 +23,13 @@
 namespace anakin {
 namespace saber {
 
-template <DataType OpDtype,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-class SaberScale<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out> : public ImplBase<
-        Tensor<X86, inDtype, LayOutType_in>,
-        Tensor<X86, outDtype, LayOutType_out>,
-        Tensor<X86, OpDtype, LayOutType_op>,
-        ScaleParam<Tensor<X86, OpDtype, LayOutType_op> > >
+template <DataType OpDtype>
+class SaberScale<X86, OpDtype> : public ImplBase<X86, OpDtype, ScaleParam<X86>>
 {
 public:
-    typedef Tensor<X86, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<X86, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<X86, OpDtype, LayOutType_op> OpTensor;
+    typedef Tensor<X86> DataTensor_in;
+    typedef Tensor<X86> DataTensor_out;
+    typedef Tensor<X86> OpTensor;
 
     SaberScale()
     {}
@@ -49,17 +39,17 @@ public:
 
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
                              std::vector<DataTensor_out*>& outputs,
-                             ScaleParam<OpTensor> &param,
+                             ScaleParam<X86> &param,
                              Context<X86> &ctx) override;
 
     virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
                                std::vector<DataTensor_out*>& outputs,
-                               ScaleParam<OpTensor> &param,
+                               ScaleParam<X86> &param,
                                Context<X86> &ctx) override;
 
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                                  std::vector<DataTensor_out*>& outputs,
-                                 ScaleParam<OpTensor> &param) override;
+                                 ScaleParam<X86> &param) override;
 
 private:
 

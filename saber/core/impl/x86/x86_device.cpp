@@ -14,8 +14,8 @@ void Device<X86>::create_stream() {
         typename API::stream_t stream_data;
         typename API::stream_t stream_compute;
         //cudaStreamNonBlocking
-        API::create_stream_with_flag(stream_data, 1);
-        API::create_stream_with_flag(stream_compute, 1);
+        API::create_stream_with_flag(&stream_data, 1);
+        API::create_stream_with_flag(&stream_compute, 1);
         _data_stream.push_back(stream_data);
         _compute_stream.push_back(stream_compute);
     }

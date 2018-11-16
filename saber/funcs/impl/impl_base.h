@@ -17,47 +17,41 @@
 #define ANAKIN_SABER_FUNCS_IMPL_BASE_IMPL_H
 
 #include "saber/core/context.h"
+#include "saber/core/tensor.h"
 
 namespace anakin {
 namespace saber {
 
-template <typename inTensor, 
-    typename outTensor, 
-    typename opTensor,
-    typename Param>
+template <typename TargetType,
+        DataType DataType,
+        typename Param>
 class ImplBase {
 public:
-    typedef typename inTensor::targetType_t targetType_t;
-    //typedef typename inTensor::target_type in_target;
-    //typedef typename outTensor::target_type out_target;
 
-    ImplBase() {
-    }
+    ImplBase() {}
+    virtual ~ImplBase() {}
 
-    virtual ~ImplBase(){
-	}
-
-    virtual SaberStatus init(const std::vector<inTensor*>& inputs,
-              std::vector<outTensor*>& outputs,
-              Param &param, Context<targetType_t > &ctx) {
+    virtual SaberStatus init(const std::vector<Tensor<TargetType>* >& inputs,
+              std::vector<Tensor<TargetType> *>& outputs,
+              Param &param, Context<TargetType > &ctx) {
       return SaberUnImplError;
     }
 
-    virtual SaberStatus create(const std::vector<inTensor*>& inputs,
-                std::vector<outTensor*>& outputs,
-                Param &param, Context<targetType_t> &ctx) {
+    virtual SaberStatus create(const std::vector<Tensor<TargetType>* >& inputs,
+                std::vector<Tensor<TargetType> *>& outputs,
+                Param &param, Context<TargetType> &ctx) {
       return SaberUnImplError;
     }
 
-    virtual SaberStatus dispatch(const std::vector<inTensor*>& inputs,
-                  std::vector<outTensor*>& outputs,
+    virtual SaberStatus dispatch(const std::vector<Tensor<TargetType>* >& inputs,
+                  std::vector<Tensor<TargetType> *>& outputs,
                   Param &param) {
       return SaberUnImplError;
     }
 
 protected:
     Param* _param;
-    Context<targetType_t>* _ctx;
+    Context<TargetType>* _ctx;
 };
 
 }

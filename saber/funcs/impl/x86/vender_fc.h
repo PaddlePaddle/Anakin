@@ -24,25 +24,10 @@
 namespace anakin {
 namespace saber {
 
-template <DataType OpDtype ,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-class VenderFc<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out> : public ImplBase<
-        Tensor<X86, inDtype, LayOutType_in>,
-        Tensor<X86, outDtype, LayOutType_out>,
-        Tensor<X86, OpDtype, LayOutType_op>,
-        FcParam<Tensor<X86, OpDtype, LayOutType_op> > > {
+template <DataType OpDtype>
+class VenderFc<X86, OpDtype> : public ImplBase<X86, OpDtype, FcParam<X86> > {
 public:
-    typedef Tensor<X86, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<X86, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<X86, OpDtype, LayOutType_op> OpTensor;
-    typedef typename DataTensor_in::Dtype DataType_in;
-    typedef typename DataTensor_out::Dtype DataType_out;
-    typedef typename OpTensor::Dtype DataType_op;
+    typedef typename DataTrait<X86, OpDtype>::Dtype OpDataType;
 
     VenderFc() : bias_sum(nullptr)
     {}
@@ -54,33 +39,33 @@ public:
         }
 
         for (int i = packed_weights.size() - 1; i >= 0; i--) {
-           DataType_op *pw = packed_weights[i];
+           OpDataType *pw = packed_weights[i];
            cblas_sgemm_free(pw);
            pw = nullptr;
            packed_weights.pop_back();
         }
-        std::vector<DataType_op*> ().swap(packed_weights);
+        std::vector<OpDataType*> ().swap(packed_weights);
     }
 
-    virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
-                             std::vector<DataTensor_out*>& outputs,
-                             FcParam<OpTensor> &param,
+    virtual SaberStatus init(const std::vector<Tensor<X86> *>& inputs,
+                             std::vector<Tensor<X86> *>& outputs,
+                             FcParam<X86> &param,
                              Context<X86> &ctx) override;
 
-    virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
-                               std::vector<DataTensor_out*>& outputs,
-                               FcParam<OpTensor> &param,
+    virtual SaberStatus create(const std::vector<Tensor<X86> *>& inputs,
+                               std::vector<Tensor<X86> *>& outputs,
+                               FcParam<X86> &param,
                                Context<X86> &ctx) override;
 
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
-                                 std::vector<DataTensor_out*>& outputs,
-                                 FcParam<OpTensor> &param) override;
+    virtual SaberStatus dispatch(const std::vector<Tensor<X86> *>& inputs,
+                                 std::vector<Tensor<X86> *>& outputs,
+                                 FcParam<X86> &param) override;
 
 private:
-    DataType_op *bias_sum;
+    OpDataType *bias_sum;
     int MB;
     int OC;
-    std::vector<DataType_op*> packed_weights;
+    std::vector<OpDataType*> packed_weights;
 };
 
 

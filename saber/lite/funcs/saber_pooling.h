@@ -14,9 +14,8 @@
 #ifndef ANAKIN_SABER_LITE_FUNCS_SABER_POOLING_H
 #define ANAKIN_SABER_LITE_FUNCS_SABER_POOLING_H
 
-#include "saber/lite/core/tensor_lite.h"
-#include "saber/lite/core/context_lite.h"
-
+#include "saber/lite/funcs/op_base.h"
+#include "saber/lite/funcs/calibrate_lite.h"
 #ifdef USE_ARM_PLACE
 namespace anakin{
 
@@ -24,47 +23,42 @@ namespace saber{
 
 namespace lite{
 
-typedef void (*pool_func)(const float* din, float* dout, \
+typedef void (*pool_func)(const void* din, void* dout, \
                           int num, int chout, int hout, int wout, \
                           int chin, int hin, int win, \
                           PoolingType type, bool global, int kernel_w, int kernel_h, \
                           int stride_w, int stride_h, int pad_w, int pad_h);
 
 //template <typename Dtype>
-class SaberPooling {
+class SaberPooling : public OpBase {
 
 public:
     SaberPooling() {}
 
-    SaberPooling(PoolingType type, bool flag_global, int kernel_w, int kernel_h, \
-        int stride_w, int stride_h, int pad_w, int pad_h);
+    SaberPooling(ParamBase* param);
 
-    SaberStatus load_param(PoolingType type, bool flag_global, int kernel_w, int kernel_h, \
-        int stride_w, int stride_h, int pad_w, int pad_h);
+    virtual SaberStatus load_param(ParamBase* param) override;
 
-    ~SaberPooling() {}
+    virtual SaberStatus set_op_precision(DataType ptype) override;
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus load_param(std::istream& stream, const float* weights) override;
 
-    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
-        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx);
+    ~SaberPooling();
 
-    SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
-        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU>*>& inputs,
+                                     std::vector<Tensor<CPU>*>& outputs) override;
+
+    virtual SaberStatus init(const std::vector<Tensor<CPU>*>& inputs, \
+        std::vector<Tensor<CPU>*>& outputs, Context &ctx) override;
+
+    virtual SaberStatus dispatch(const std::vector<Tensor<CPU>*>& inputs, \
+        std::vector<Tensor<CPU>*>& outputs) override;
 
 private:
+    PoolParam* _param;
     pool_func _impl{nullptr};
-    Context _ctx;
-
-    PoolingType _type;
-    bool _is_global{false};
-    int _kw;
-    int _kh;
-    int _stride_w;
-    int _stride_h;
-    int _pad_w;
-    int _pad_h;
+    Tensor<CPU> _tmp_in;
+    Tensor<CPU> _tmp_out;
 };
 
 } //namespace lite

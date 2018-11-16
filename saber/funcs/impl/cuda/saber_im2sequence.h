@@ -22,44 +22,28 @@ namespace anakin{
 
 namespace saber{
 
-template <DataType OpDtype,
-            DataType inDtype,
-            DataType outDtype,
-            typename LayOutType_op,
-            typename LayOutType_in,
-            typename LayOutType_out>
-class SaberIm2Sequence<NV, OpDtype, inDtype, outDtype, \
-    LayOutType_op, LayOutType_in, LayOutType_out>:\
-    public ImplBase<
-            Tensor<NV, inDtype, LayOutType_in>,
-            Tensor<NV, outDtype, LayOutType_out>,
-            Tensor<NV, OpDtype, LayOutType_op>,
-            Im2SequenceParam<Tensor<NV, OpDtype, LayOutType_op>>> {
+template <DataType OpDtype>
+class SaberIm2Sequence<NV, OpDtype>:\
+    public ImplBase<NV, OpDtype, Im2SequenceParam<NV> > {
 
 public:
-    typedef Tensor<NV, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<NV, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<NV, OpDtype, LayOutType_op> OpTensor;
-
-    typedef typename DataTensor_in::Dtype InDataType;
-    typedef typename DataTensor_out::Dtype OutDataType;
-    typedef typename OpTensor::Dtype OpDataType;
+    typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
 
     SaberIm2Sequence() {}
 
     ~SaberIm2Sequence() {}
 
-    virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
-                             std::vector<DataTensor_out*>& outputs,
-                             Im2SequenceParam<OpTensor> &param,
+    virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
+                             std::vector<Tensor<NV> *>& outputs,
+                             Im2SequenceParam<NV> &param,
                              Context<NV> &ctx) {
         this->_ctx = &ctx;
         return create(inputs, outputs, param, ctx);
     }
-
-    virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
-                               std::vector<DataTensor_out*>& outputs,
-                               Im2SequenceParam<OpTensor> &param,
+    
+    virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
+                               std::vector<Tensor<NV> *>& outputs,
+                               Im2SequenceParam<NV> &param,
                                Context<NV> &ctx) {
         int input_height = inputs[0]->height(); // P
         _kernel_exten_h = param.dilation_h * (param.window_h - 1) + 1;
@@ -74,9 +58,9 @@ public:
         return SaberSuccess;
     }
 
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
-                                 std::vector<DataTensor_out*>& outputs,
-                                 Im2SequenceParam<OpTensor> &param);
+    virtual SaberStatus dispatch(const std::vector<Tensor<NV> *>& inputs,
+                                 std::vector<Tensor<NV> *>& outputs,
+                                 Im2SequenceParam<NV> &param);
 
 private:
     int _output_height;
@@ -85,7 +69,7 @@ private:
     int _kernel_exten_w;
 };
 
-template class SaberIm2Sequence<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
+template class SaberIm2Sequence<NV, AK_FLOAT>;
 
 } //namespace saber
 

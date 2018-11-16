@@ -15,65 +15,152 @@
 #define ANAKIN_SABER_LITE_FUNCS_NEON_IMPL_CONV_ARM_IMPL_H
 
 #include "saber/lite/core/tensor_lite.h"
-
+#include "saber/lite/core/context_lite.h"
 #ifdef USE_ARM_PLACE
 
-#include "saber/lite/funcs/neon/impl/sgemm_arm.h"
+//#include "saber/lite/funcs/neon/impl/sgemm_arm.h"
 namespace anakin{
 
 namespace saber{
 
 namespace lite{
 
-void conv_arm_basic(const float* din, float* dout, \
+void conv_3x3s1_direct(const void* din, void* dout, \
                           int num, int chout, int hout, int wout, \
                           int chin, int hin, int win, \
-                          const float* weights, const float* bias, \
+                          const void* weights, const void* bias, \
                           int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
-                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space);
+                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Context* ctx, \
+                          void* work_space, const void* idx_ptr);
 
-void conv_3x3s1_direct(const float* din, float* dout, \
+void conv_3x3s1_direct_int8(const void* din, void* dout, \
                           int num, int chout, int hout, int wout, \
                           int chin, int hin, int win, \
-                          const float* weights, const float* bias, \
+                          const void* weights, const void* bias, \
                           int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
-                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space);
+                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Context* ctx, \
+                          void* work_space, const void* idx_ptr);
 
-void conv1x1s1_gemm(const float* din, float* dout, \
+void conv_3x3s2_direct(const void* din, void* dout, \
                           int num, int chout, int hout, int wout, \
                           int chin, int hin, int win, \
-                          const float* weights, const float* bias, \
+                          const void* weights, const void* bias, \
                           int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
-                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space);
+                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Context* ctx, \
+                          void* work_space, const void* idx_ptr);
 
-void conv_im2col_gemm(const float* din, float* dout, \
+void conv_3x3s2_direct_int8(const void* din, void* dout, \
                           int num, int chout, int hout, int wout, \
                           int chin, int hin, int win, \
-                          const float* weights, const float* bias, \
+                          const void* weights, const void* bias, \
                           int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
-                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space);
+                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Context* ctx, \
+                          void* work_space, const void* idx_ptr);
+
+void conv_3x3s2_2_direct(const void* din, void* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          const void* weights, const void* bias, \
+                          int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
+                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Context* ctx, \
+                          void* work_space, const void* idx_ptr);
+
+void conv_7x7s1_direct(const void* din, void* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          const void* weights, const void* bias, \
+                          int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
+                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Context* ctx, \
+                          void* work_space, const void* idx_ptr);
+
+void conv_1x5s1_direct(const void* din, void* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          const void* weights, const void* bias, \
+                          int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
+                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Context* ctx, \
+                          void* work_space, const void* idx_ptr);
+
+void conv_5x1s1_direct(const void* din, void* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          const void* weights, const void* bias, \
+                          int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
+                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Context* ctx, \
+                          void* work_space, const void* idx_ptr);
+
+void conv1x1s1_gemm(const void* din, void* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          const void* weights, const void* bias, \
+                          int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
+                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Context* ctx, \
+                          void* work_space, const void* idx_ptr);
+
+void conv1x1s1_gemm_int8(const void* din, void* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          const void* weights, const void* bias, \
+                          int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
+                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Context* ctx, \
+                          void* work_space, const void* idx_ptr);
+
+void conv_im2col_gemm(const void* din, void* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          const void* weights, const void* bias, \
+                          int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
+                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Context* ctx, \
+                          void* work_space, const void* idx_ptr);
+
+void conv_im2col_gemm_int8(const void* din, void* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          const void* weights, const void* bias, \
+                          int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
+                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Context* ctx, \
+                          void* work_space, const void* idx_ptr);
 
 /**
  * \brief depthwise convolution, kernel size 3x3, stride 1, pad 1, with bias
  */
-void conv_depthwise_3x3(const float* din, float* dout, \
+void conv_depthwise_3x3(const void* din, void* dout, \
                           int num, int chout, int hout, int wout, \
                           int chin, int hin, int win, \
-                          const float* weights, const float* bias, \
+                          const void* weights, const void* bias, \
                           int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
-                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space);
+                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Context* ctx, \
+                          void* work_space, const void* idx_ptr);
 
-void conv_arm_winograd3x3(const float* din, float* dout, \
+
+void conv_depthwise_3x3_int8(const void* din, void* dout, \
                           int num, int chout, int hout, int wout, \
                           int chin, int hin, int win, \
-                          const float* weights, const float* bias, \
+                          const void* weights, const void* bias, \
                           int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
-                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space);
+                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, \
+                          Context* ctx, void* work_space, const void* idx_ptr);
 
-void winograd_transform_weights(float* dout, const float* din, int ch_out, \
+void conv_arm_winograd3x3(const void* din, void* dout, \
+                          int num, int chout, int hout, int wout, \
+                          int chin, int hin, int win, \
+                          const void* weights, const void* bias, \
+                          int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
+                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Context* ctx, \
+                          void* work_space, const void* idx_ptr);
+
+void winograd_transform_weights(void* dout, const void* din, int ch_out, \
     int ch_in, void* work_space);
 
+void compute_offset(int* idx_out, int h, int w, int kernel_h, int kernel_w, int height, int width, int pad_h, int pad_w, int dilation_h, int dilation_w);
+
 void fill_bias(float* tensor, const float* bias, int channel, int channel_size);
+
+void fill_bias_int8(int* tensor, const int* bias, int channel, int channel_size);
+
+void conv3x3s2_trans_weights4c(void* dout, const void* din, int chout, int chin);
+
+void conv3x3s2_trans_weights4c_int8(void* dout, const void* din, int chout, int chin);
 #if 0
 class ConvWinogradF63 {
 public:

@@ -31,7 +31,7 @@ public:
     Status(RetType ret, const char* err_msg ="Not known"):_is_suc(ret), _error_msg(err_msg) {}
 
     static Status OK(const char* msg = "") { return Status{RetType::SUC, msg}; }
-    static Status FAIL(const char* msg = "Not known") { return Status{RetType::ERR, msg}; }
+    static Status ANAKINFAIL(const char* msg = "Not known") { return Status{RetType::ERR, msg}; }
     static Status EXIT(const char* msg = "succeessfully exit") { return Status{RetType::IMME_EXIT, msg}; }
 
     operator bool() const { return (_is_suc == RetType::SUC) || (_is_suc == RetType::IMME_EXIT); }

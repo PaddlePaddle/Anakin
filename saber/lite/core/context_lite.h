@@ -15,6 +15,7 @@
 #ifndef ANAKIN_SABER_LITE_CORE_DEVICE_LITE_H
 #define ANAKIN_SABER_LITE_CORE_DEVICE_LITE_H
 #include "saber/lite/core/common_lite.h"
+#include "saber/lite/core/tensor_lite.h"
 namespace anakin{
 
 namespace saber{
@@ -22,7 +23,6 @@ namespace saber{
 namespace lite{
 
 struct DeviceInfo{
-	std::string _device_name;
 	int _max_frequence;
 	int _min_frequence;
 	int _generate_arch;
@@ -34,6 +34,9 @@ struct DeviceInfo{
     int _L3_cache;
 	std::vector<int> _core_ids;
 	std::vector<int> _cluster_ids;
+    std::vector<int> _big_core_ids;
+    std::vector<int> _little_core_ids;
+    std::vector<ARMArch> _archs;
 };
 
 //template <ARMType ttype>
@@ -82,46 +85,29 @@ public:
 
     Context(const Context& ctx);
 
-#if 0
-    /**
-     * \brief get device id of current context
-     * @return
-     */
-    int get_device_id();
+    Context&operator=(const Context& ctx);
 
-    /**
-     * \brief get data process stream
-     * @return
-     */
-    typename TargetTrait<ttype>::stream_t get_data_stream();
-
-    /**
-     * \brief get compute process stream
-     * @return
-     */
-    typename TargetTrait<ttype>::stream_t get_compute_stream();
-#endif
     void set_run_mode(PowerMode mode, int threads);
-    //void set_act_cores(std::vector<int> ids);
     void bind_dev();
-    PowerMode get_mode(int& threads);
-    std::vector<int> get_act_ids();
+    PowerMode get_mode() const;
+    int get_threads() const;
     void set_cache(size_t l1size, size_t l2size, size_t l3size);
+    void* get_work_space();
+    ARMArch get_arch() const;
+    void set_arch(ARMArch arch);
+    size_t l1_cache_size() const;
+    size_t l2_cache_size() const;
+    void workspace_extend(Shape sh);
 private:
-#if 0
-    //! current stream to process
-    typename TargetTrait<ttype>::stream_t _stream_data;
-    typename TargetTrait<ttype>::stream_t _stream_compute;
-    //! current device id
-    int _device_id;
-    int _data_stream_id;
-    int _compute_stream_id;
-#endif
+
     //! SABER_POWER_HIGH stands for using big cores,
     //! SABER_POWER_LOW stands for using small core,
     //! SABER_POWER_FULL stands for using all cores
+    ARMArch _arch;
     PowerMode _mode;
     std::vector<int> _act_ids;
+    Tensor<CPU> _work_space;
+    long long _count{0};
 };
 
 } //namespace lite

@@ -4,18 +4,18 @@ namespace anakin {
 
 namespace ops {
 
-#define INSTANCE_DETECTIONOUTPUT(Ttype, Dtype, Ptype) \
+#define INSTANCE_DETECTIONOUTPUT(Ttype, Ptype) \
 template<> \
-void DetectionOutput<Ttype, Dtype, Ptype>::operator()(OpContext<Ttype>& ctx, \
-        const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, \
-        std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) { \
-    auto* impl = static_cast<DetectionOutputHelper<Ttype, Dtype, Ptype>*>(this->_helper); \
-    auto& param = static_cast<DetectionOutputHelper<Ttype, Dtype, Ptype>*>(this->_helper)->_param_detection_output; \
+void DetectionOutput<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+        const std::vector<Tensor4dPtr<Ttype> >& ins, \
+        std::vector<Tensor4dPtr<Ttype> >& outs) { \
+    auto* impl = static_cast<DetectionOutputHelper<Ttype, Ptype>*>(this->_helper); \
+    auto& param = static_cast<DetectionOutputHelper<Ttype, Ptype>*>(this->_helper)->_param_detection_output; \
     impl->_funcs_detection_output(ins, outs, param, ctx); \
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status DetectionOutputHelper<Ttype, Dtype, Ptype>::InitParam() {
+template<typename Ttype, Precision Ptype>
+Status DetectionOutputHelper<Ttype, Ptype>::InitParam() {
     DLOG(WARNING) << "Parsing Detectionoutput op parameter.";
     auto flag_share_location = GET_PARAMETER(bool, share_location);
     auto flag_var_in_target  = GET_PARAMETER(bool, variance_encode_in_target);
@@ -40,56 +40,56 @@ Status DetectionOutputHelper<Ttype, Dtype, Ptype>::InitParam() {
                 LOG(FATAL) << "unsupport type: " << code_type_;
     }
 
-    DetectionOutputParam<Tensor4d<Ttype, Dtype>> param_det(classes_num, background_id_, \
+    DetectionOutputParam<Ttype> param_det(classes_num, background_id_, \
             keep_top_k_, nms_top_k_, nms_thresh_, conf_thresh_, \
             flag_share_location, flag_var_in_target, code_type, nms_eta_);
     _param_detection_output = param_det;
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status DetectionOutputHelper<Ttype, Dtype, Ptype>::Init(OpContext<Ttype> &ctx, const std::vector<Tensor4dPtr<Ttype, Dtype>> &ins,
-                                   std::vector<Tensor4dPtr<Ttype, Dtype>> &outs) {
+template<typename Ttype, Precision Ptype>
+Status DetectionOutputHelper<Ttype, Ptype>::Init(OpContext<Ttype> &ctx, const std::vector<Tensor4dPtr<Ttype>> &ins,
+                                   std::vector<Tensor4dPtr<Ttype>> &outs) {
     SABER_CHECK(_funcs_detection_output.init(ins, outs, _param_detection_output, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status DetectionOutputHelper<Ttype, Dtype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype>> &ins,
-                                         std::vector<Tensor4dPtr<Ttype, Dtype>> &outs) {
+template<typename Ttype, Precision Ptype>
+Status DetectionOutputHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype>> &ins,
+                                         std::vector<Tensor4dPtr<Ttype>> &outs) {
     SABER_CHECK(_funcs_detection_output.compute_output_shape(ins, outs, _param_detection_output));
     return Status::OK();
 }
 
 #ifdef USE_CUDA
-INSTANCE_DETECTIONOUTPUT(NV, AK_FLOAT, Precision::FP32);
-template class DetectionOutputHelper<NV, AK_FLOAT, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(DetectionOutput, DetectionOutputHelper, NV, AK_FLOAT, Precision::FP32);
+INSTANCE_DETECTIONOUTPUT(NV, Precision::FP32);
+template class DetectionOutputHelper<NV, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(DetectionOutput, DetectionOutputHelper, NV, Precision::FP32);
 #endif
 
-#ifdef USE_X86_PLACE
-INSTANCE_DETECTIONOUTPUT(X86, AK_FLOAT, Precision::FP32);
-template class DetectionOutputHelper<X86, AK_FLOAT, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(DetectionOutput, DetectionOutputHelper, X86, AK_FLOAT, Precision::FP32);
+#if defined USE_X86_PLACE || defined BUILD_LITE
+INSTANCE_DETECTIONOUTPUT(X86, Precision::FP32);
+template class DetectionOutputHelper<X86, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(DetectionOutput, DetectionOutputHelper, X86, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE
-INSTANCE_DETECTIONOUTPUT(ARM, AK_FLOAT, Precision::FP32);
-template class DetectionOutputHelper<ARM, AK_FLOAT, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(DetectionOutput, DetectionOutputHelper, ARM, AK_FLOAT, Precision::FP32);
+INSTANCE_DETECTIONOUTPUT(ARM, Precision::FP32);
+template class DetectionOutputHelper<ARM, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(DetectionOutput, DetectionOutputHelper, ARM, Precision::FP32);
 #endif
 
 //! register op
 ANAKIN_REGISTER_OP(DetectionOutput)
 .Doc("DetectionOutput operator")
 #ifdef USE_CUDA
-.__alias__<NV, AK_FLOAT, Precision::FP32>("detectionoutput")
+.__alias__<NV, Precision::FP32>("detectionoutput")
 #endif
 #ifdef USE_ARM_PLACE
-.__alias__<ARM, AK_FLOAT, Precision::FP32>("detectionoutput")
+.__alias__<ARM, Precision::FP32>("detectionoutput")
 #endif
-#ifdef USE_X86_PLACE
-.__alias__<X86, AK_FLOAT, Precision::FP32>("detectionoutput")
+#if defined USE_X86_PLACE || defined BUILD_LITE
+.__alias__<X86, Precision::FP32>("detectionoutput")
 #endif
 .num_in(1)
 .num_out(1)

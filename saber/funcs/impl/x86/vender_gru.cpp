@@ -3,24 +3,19 @@
 
 #include "saber/funcs/impl/x86/vender_gru.h"
 #include "sequence2batch.h"
-#include "saber/funcs/impl/x86/activation_functions.h"
 #include "saber/funcs/impl/x86/x86_utils.h"
 #include "saber/funcs/impl/x86/kernel/jit_generator.h"
+#include "tensor_op.h"
+#include "saber/funcs/impl/x86/saber_normal_activation.h"
 
 namespace anakin {
 namespace saber {
 
-template <DataType OpDtype,
-          DataType inDtype,
-          DataType outDtype,
-          typename LayOutType_op,
-          typename LayOutType_in,
-          typename LayOutType_out>
-SaberStatus VenderGru<X86, OpDtype, inDtype, outDtype,
-            LayOutType_op, LayOutType_in, LayOutType_out>::init(
-                const std::vector<DataTensor_in*>& inputs,
-                std::vector<DataTensor_out*>& outputs,
-GruParam<OpTensor>& param, Context<X86>& ctx) {
+template <DataType OpDtype>
+SaberStatus VenderGru<X86, OpDtype>::init(
+                const std::vector<OpTensor*>& inputs,
+                std::vector<OpTensor*>& outputs,
+GruParam<X86>& param, Context<X86>& ctx) {
     this->_ctx = &ctx;
     this->max_thread_num_ = omp_get_max_threads();
     hidden_size_ = outputs[0]->channel();
@@ -30,11 +25,15 @@ GruParam<OpTensor>& param, Context<X86>& ctx) {
     aligned_hidden_size_ = (hidden_size_ % aligned_size) ? ((hidden_size_ / aligned_size) + 1) *
                            aligned_size : hidden_size_;
 
+#if defined(__AVX2__) and defined(__FMA__)
     avx2_available_ = jit::mayiuse(jit::avx2);
+#else
+    avx2_available_ = false;
+#endif
     // LOG(ERROR) << "AVX2 available: " << avx2_available_;
 
     if (param.formula == GRU_ORIGIN) {
-        OpDataType* weights_data = const_cast<float*>(param.weight()->data());
+        OpDataType* weights_data = static_cast<OpDataType* >(param.weight()->data());
 
         OpDataType* wx = weights_data;
         OpDataType* wch = wx + word_size_ * hidden_size_ * 3;
@@ -49,7 +48,7 @@ GruParam<OpTensor>& param, Context<X86>& ctx) {
 
         if (aligned_bias_ == nullptr) {
             aligned_bias_ = (OpDataType*)zmalloc(3 * aligned_hidden_size_ * sizeof(float), 4096);
-            const OpDataType* bias_data = param.bias()->data();
+            const OpDataType* bias_data = static_cast<const OpDataType*>(param.bias()->data());
 
             for (int i = 0; i < 3; i++) {
                 memcpy(aligned_bias_ + i * aligned_hidden_size_, bias_data + i * hidden_size_,
@@ -60,7 +59,7 @@ GruParam<OpTensor>& param, Context<X86>& ctx) {
                 }
             }
         } else {
-            LOG(ERROR) << "aligned bias in init should not be a non-nullptr";
+            CHECK(false) << "aligned bias in init should not be a non-nullptr";
         }
 
 
@@ -180,50 +179,42 @@ GruParam<OpTensor>& param, Context<X86>& ctx) {
     return create(inputs, outputs, param, ctx);
 }
 
-template <DataType OpDtype,
-          DataType inDtype,
-          DataType outDtype,
-          typename LayOutType_op,
-          typename LayOutType_in,
-          typename LayOutType_out>
-SaberStatus VenderGru<X86, OpDtype, inDtype, outDtype,
-            LayOutType_op, LayOutType_in, LayOutType_out>::create(
-                const std::vector<DataTensor_in*>& inputs,
-                std::vector<DataTensor_out*>& outputs,
-                GruParam<OpTensor>& param,
+template <DataType OpDtype>
+SaberStatus VenderGru<X86, OpDtype>::create(
+                const std::vector<OpTensor*>& inputs,
+                std::vector<OpTensor*>& outputs,
+                GruParam<X86>& param,
 Context<X86>& ctx) {
-    batched_h.try_expand_size(inputs[0]->num() * aligned_hidden_size_ * param.num_direction);
-    batched_x.try_expand_size(inputs[0]->num() * word_size_);
-    batched_xx.try_expand_size(inputs[0]->num() * 3 * aligned_hidden_size_);
+
+
 
     return SaberSuccess;
 }
 
-template <DataType OpDtype,
-          DataType inDtype,
-          DataType outDtype,
-          typename LayOutType_op,
-          typename LayOutType_in,
-          typename LayOutType_out>
-SaberStatus VenderGru<X86, OpDtype, inDtype, outDtype,
-            LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(
-                const std::vector<DataTensor_in*>& inputs,
-                std::vector<DataTensor_out*>& outputs,
-GruParam<OpTensor>& param) {
+template<DataType OpDtype>
+SaberStatus VenderGru<X86, OpDtype>::dispatch(
+                const std::vector<OpTensor*>& inputs,
+                std::vector<OpTensor*>& outputs,
+                GruParam<X86>& param) {
 
-    const OpDataType* bias = param.bias()->data();
-    std::vector<int> seq_offset = inputs[0]->get_seq_offset();
+    utils::try_expand_tensor(batched_h,inputs[0]->num() * aligned_hidden_size_ * param.num_direction);
+    utils::try_expand_tensor(batched_x,inputs[0]->num() * word_size_);
+    utils::try_expand_tensor(batched_xx,inputs[0]->num() * 3 * aligned_hidden_size_);
+
+    const OpDataType* bias = static_cast<const OpDataType*>(param.bias()->data());
+    std::vector<std::vector<int>> seq_offset_vec_vec = inputs[0]->get_seq_offset();
+    std::vector<int> seq_offset = seq_offset_vec_vec[seq_offset_vec_vec.size()-1];
     int word_sum = inputs[0]->num();
-    const InDataType* x = inputs[0]->data();
-    OutDataType* out = outputs[0]->mutable_data();
+    const OpDataType* x = static_cast<const OpDataType*>(inputs[0]->data());
+    OpDataType* out = static_cast<OpDataType*>(outputs[0]->mutable_data());
     bool is_reverse = param.is_reverse;
     int batch_size = seq_offset.size() - 1;
 
-    batched_h.try_expand_size(inputs[0]->num() * aligned_hidden_size_ * param.num_direction);
-    OutDataType* batched_h_data = batched_h.mutable_data();
-    batched_x.try_expand_size(inputs[0]->num() * word_size_);
-    batched_xx.try_expand_size(inputs[0]->num() * 3 * aligned_hidden_size_);
-    InDataType* batched_xx_data = batched_xx.mutable_data();
+    utils::try_expand_tensor(batched_h,inputs[0]->num() * aligned_hidden_size_ * param.num_direction);
+    OpDataType* batched_h_data = static_cast<OpDataType*>(batched_h.mutable_data());
+    utils::try_expand_tensor(batched_x,inputs[0]->num() * word_size_);
+    utils::try_expand_tensor(batched_xx,inputs[0]->num() * 3 * aligned_hidden_size_);
+    OpDataType* batched_xx_data = static_cast<OpDataType*>(batched_xx.mutable_data());
 
     // input sequence to batch
     math::SequenceToBatch batch_value;
@@ -232,41 +223,41 @@ GruParam<OpTensor>& param) {
     int bat_length = batch_value.get_batch_num();
     std::vector<int> bat_offset(bat_length + 1);
     batch_value.get_batch_offset(bat_offset);
-    batch_value.seq_2_bat(x, batched_x.mutable_data(), word_size_);
+    batch_value.seq_2_bat(x, static_cast<OpDataType*>(batched_x.mutable_data()), word_size_);
 
     int delta = aligned_hidden_size_ - hidden_size_;
 
     // init h
-    Shape h_init_shape(batch_size, aligned_hidden_size_, 1, 1);
-    aligned_init_hidden.try_expand_size(h_init_shape);
-    const OutDataType* h0 = nullptr;
+    Shape h_init_shape({batch_size, aligned_hidden_size_, 1, 1});
+    utils::try_expand_tensor(aligned_init_hidden,h_init_shape);
+    const OpDataType* h0 = nullptr;
 
     if (param.init_hidden() != nullptr) {
         CHECK_EQ(param.init_hidden()->valid_shape().count(),
                  batch_size * hidden_size_) << "hidden init must match batch size";
-        h0 = param.init_hidden()->data();
+        h0 = static_cast<const OpDataType*>(param.init_hidden()->data());
         OpTensor h_init_tmp(h_init_shape);
-        float* aligned_init = h_init_tmp.mutable_data();
+        OpDataType* aligned_init = static_cast<OpDataType*>(h_init_tmp.mutable_data());
         int delta = aligned_hidden_size_ - hidden_size_;
 
         if (delta > 0) {
             for (int i = 0; i < batch_size; i++) {
-                float* aligned_row = aligned_init + i * aligned_hidden_size_;
-                const float* row = h0 + i * hidden_size_;
-                memcpy(aligned_row, row, hidden_size_ * sizeof(float));
-                memset(aligned_row + hidden_size_, 0, delta * sizeof(float));
+                OpDataType* aligned_row = aligned_init + i * aligned_hidden_size_;
+                const OpDataType* row = h0 + i * hidden_size_;
+                memcpy(aligned_row, row, hidden_size_ * sizeof(OpDataType));
+                memset(aligned_row + hidden_size_, 0, delta * sizeof(OpDataType));
             }
 
-            batch_value.hidden_2_bat(h_init_tmp.data(), aligned_init_hidden.mutable_data(),
+            batch_value.hidden_2_bat(static_cast<const OpDataType*>(h_init_tmp.data()), static_cast<OpDataType*>(aligned_init_hidden.mutable_data()),
                                      aligned_hidden_size_);
-            h0 = aligned_init_hidden.data();
+            h0 = static_cast<const OpDataType*>(aligned_init_hidden.data());
         } else {
-            batch_value.hidden_2_bat(h0, aligned_init_hidden.mutable_data(), aligned_hidden_size_);
-            h0 = aligned_init_hidden.data();
+            batch_value.hidden_2_bat(h0, static_cast<OpDataType*>(aligned_init_hidden.mutable_data()), aligned_hidden_size_);
+            h0 = static_cast<const OpDataType*>(aligned_init_hidden.data());
         }
     } else {
-        fill_tensor_host_const(aligned_init_hidden, 0);
-        h0 = aligned_init_hidden.data();
+        fill_tensor_const(aligned_init_hidden, 0);
+        h0 = static_cast<const OpDataType*>(aligned_init_hidden.data());
     }
 
     // batched_xx = batched_x * [Wcx, Wrx, Wux]
@@ -276,7 +267,7 @@ GruParam<OpTensor>& param) {
                         word_sum,
                         3 * aligned_hidden_size_,
                         word_size_,
-                        batched_x.data(),
+                        static_cast<const OpDataType*>(batched_x.data()),
                         word_size_,
                         weight_x_packed_,
                         3 * aligned_hidden_size_,
@@ -328,6 +319,7 @@ GruParam<OpTensor>& param) {
 
         // compute reset gate output r and rh
         if (avx2_available_) {
+#if defined(__AVX2__) and defined(__FMA__)
             for (int bat_word_id = bat_word_id_start; bat_word_id < bat_word_id_end; bat_word_id++) {
                 int intra_bat_offset = bat_word_id - bat_word_id_start;
                 __m256* r = (__m256*)(batched_xx_data + bat_word_id * hidden_stride + r_offset *
@@ -336,10 +328,11 @@ GruParam<OpTensor>& param) {
                 __m256* hit_1 = (__m256*)(ht_1 + intra_bat_offset * aligned_hidden_size_);
 
                 for (int i = 0; i < aligned_hidden_size_ / 8; ++i) {
-                    r[i] = math::avx_activation(r[i], param.gate_activity);
+                    r[i] = Activate_inner(r[i], param.gate_activity);
                     hit[i] = r[i] * hit_1[i];
                 }
             }
+#endif
         } else {
             for (int bat_word_id = bat_word_id_start; bat_word_id < bat_word_id_end; bat_word_id++) {
                 int intra_bat_offset = bat_word_id - bat_word_id_start;
@@ -349,7 +342,7 @@ GruParam<OpTensor>& param) {
                 float* hit_1 = (float*)(ht_1 + intra_bat_offset * aligned_hidden_size_);
 
                 for (int i = 0; i < aligned_hidden_size_; ++i) {
-                    math::activation(1, r + i, r + i, param.gate_activity);
+                    r[i] = Activate_inner(r[i], param.gate_activity);
                     hit[i] = r[i] * hit_1[i];
                 }
             }
@@ -372,6 +365,7 @@ GruParam<OpTensor>& param) {
 
         // compute candidate activation output and h
         if (avx2_available_) {
+#if defined(__AVX2__) and defined(__FMA__)
             for (int bat_word_id = bat_word_id_start; bat_word_id < bat_word_id_end; bat_word_id++) {
                 int intra_bat_offset = bat_word_id - bat_word_id_start;
                 int h_word_id_offset = bat_word_id * hidden_stride;
@@ -381,11 +375,12 @@ GruParam<OpTensor>& param) {
                 __m256* hit_1 = (__m256*)(ht_1 + intra_bat_offset * aligned_hidden_size_);
 
                 for (int i = 0; i < aligned_hidden_size_ / 8; ++i) {
-                    u[i] = math::avx_activation(u[i], param.gate_activity);
-                    c[i] = math::avx_activation(c[i], param.h_activity);
+                    u[i] = Activate_inner(u[i], param.gate_activity);
+                    c[i] = Activate_inner(c[i], param.h_activity);
                     hit[i] = (c[i] - hit_1[i]) * u[i] + hit_1[i];
                 }
             }
+#endif
         } else {
             for (int bat_word_id = bat_word_id_start; bat_word_id < bat_word_id_end; bat_word_id++) {
                 int intra_bat_offset = bat_word_id - bat_word_id_start;
@@ -396,8 +391,8 @@ GruParam<OpTensor>& param) {
                 float* hit_1 = (float*)(ht_1 + intra_bat_offset * aligned_hidden_size_);
 
                 for (int i = 0; i < aligned_hidden_size_; ++i) {
-                    math::activation(1, u + i, u + i, param.gate_activity);
-                    math::activation(1, c + i, c + i, param.h_activity);
+                    u[i]=Activate_inner(u[i], param.gate_activity);
+                    c[i] = Activate_inner(c[i], param.h_activity);
                     hit[i] = (c[i] - hit_1[i]) * u[i] + hit_1[i];
                 }
             }
@@ -410,21 +405,16 @@ GruParam<OpTensor>& param) {
     return SaberSuccess;
 }
 
-template <DataType OpDtype,
-          DataType inDtype,
-          DataType outDtype,
-          typename LayOutType_op,
-          typename LayOutType_in,
-          typename LayOutType_out>
-SaberStatus VenderGru<X86, OpDtype, inDtype, outDtype,
-            LayOutType_op, LayOutType_in, LayOutType_out>::check_conf(
-                const std::vector<DataTensor_in*>& inputs,
-                std::vector<DataTensor_out*>& outputs,
-GruParam<OpTensor>& param) {
+template <DataType OpDtype>
+SaberStatus VenderGru<X86, OpDtype>::check_conf(
+                const std::vector<OpTensor*>& inputs,
+                std::vector<OpTensor*>& outputs,
+GruParam<X86>& param) {
     return SaberSuccess;
 }
 
-template class VenderGru<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
-
+template class VenderGru<X86, AK_FLOAT>;
+DEFINE_OP_TEMPLATE(VenderGru, GruParam, X86, AK_HALF);
+DEFINE_OP_TEMPLATE(VenderGru, GruParam, X86, AK_INT8);
 } // namespace saber
 } // namespace anakin

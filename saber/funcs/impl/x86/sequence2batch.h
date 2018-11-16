@@ -4,7 +4,8 @@
 #include <algorithm>
 #include <vector>
 #include "saber/core/tensor.h"
-#include "omp.h"
+
+#include "saber/funcs/impl/x86/x86_utils.h"
 
 namespace anakin {
 namespace saber {
@@ -13,8 +14,8 @@ namespace math {
 template <DataType Dtype, typename LayOutType>
 class CopyMatrixRowsFunctor {
 public:
-    typedef Tensor<X86, Dtype, LayOutType> ioTensor;
-    typedef typename ioTensor::Dtype dtype;
+    typedef Tensor<X86> ioTensor;
+    typedef typename DataTrait<X86, Dtype>::Dtype dtype;
 
     // If is_src_index is true,
     // copy the indexed rows of input src to the output dst.
@@ -23,7 +24,7 @@ public:
     // The indexed rows are based on the input index.
     void operator()(ioTensor* src,
                     std::vector<int> index_lod, ioTensor* dst,
-                    bool is_src_index, int fragment_num);
+                    bool is_src_index, int fragment_num, int offset = 0, int width = 0);
 };
 
 template <DataType Dtype, typename LayOutType>
@@ -43,7 +44,7 @@ class Seq2BatchFunctor {
     };
 
 public:
-    typedef Tensor<X86, Dtype, LayOutType> ioTensor;
+    typedef Tensor<X86> ioTensor;
     void operator()(ioTensor* seq,
                     ioTensor* batch, std::vector<std::vector<int>>& seq_to_batch_meta, bool is_cal_batch_lod,
                     bool is_reverse = false, int fragment_num = 1) const {
@@ -158,28 +159,31 @@ public:
 template <DataType Dtype, typename LayOutType>
 class Batch2SeqFunctor {
 public:
-    typedef Tensor<X86, Dtype, LayOutType> ioTensor;
+    typedef Tensor<X86> ioTensor;
     void operator()(ioTensor* batch,
-                    ioTensor* seq, std::vector<std::vector<int>>& seq_to_batch_meta, int fragment_num = 1) const {
+                    ioTensor* seq, std::vector<std::vector<int>>& seq_to_batch_meta,
+                    int fragment_num = 1,
+                    int offset = 0,
+                    int width = 0) const {
         if (seq_to_batch_meta.size() < 2) {
-            LOG(ERROR) << "The size of seq_to_batch_meta should inlcude at least 2-level sequence information.";
+                    LOG(ERROR) << "The size of seq_to_batch_meta should inlcude at least 2-level sequence information.";
             exit(-1);
         }
 
         if (seq_to_batch_meta[1].size() != static_cast<int>(seq->num())) {
-            LOG(ERROR) << "The seq_to_batch information should be consistent with the dims.";
+                    LOG(ERROR) << "The seq_to_batch information should be consistent with the dims.";
             exit(-1);
         }
 
         CopyMatrixRowsFunctor<Dtype, LayOutType> to_seq;
-        to_seq(batch, seq_to_batch_meta[1], seq, false, fragment_num);
+        to_seq(batch, seq_to_batch_meta[1], seq, false, fragment_num, offset, width);
     }
 };
 
 template <DataType Dtype, typename LayOutType>
 class ReorderInitState {
 public:
-    typedef Tensor<X86, Dtype, LayOutType> ioTensor;
+    typedef Tensor<X86> ioTensor;
     void operator()(ioTensor* src, std::vector<int> ind_lod, ioTensor* dst, bool indexed_src,
                     int fragment_num = 1) {
         math::CopyMatrixRowsFunctor<Dtype, LayOutType> row_shuffle;

@@ -46,6 +46,7 @@ public:
             LOG(FATAL) << type_id << " 's original "<< ori_type_id << " has not been registered! ";
         } else {
             _container[type_id] = _container[ori_type_id];
+            _type_id_list.push_back(type_id);
         }
     }
     std::vector<TypeIdentifier>& GetTypeIdentifierList() {

@@ -29,36 +29,36 @@ namespace lite {
  */
 class BinaryWritter {
 public:
-	BinaryWritter() {}
+    BinaryWritter() {}
 
-	explicit BinaryWritter(std::string path) {
-		this->open(path);
-	}
+    explicit BinaryWritter(std::string path) {
+        this->open(path);
+    }
 
-	// BinaryWritteropen file for code generating.
-	void open(std::string& path, const char* file_mode = "wb") {
-		_file_io.open(path, file_mode);
-	}
+    // BinaryWritteropen file for code generating.
+    void open(std::string& path, const char* file_mode = "wb") {
+        _file_io.open(path, file_mode);
+    }
 
 	// write data list to file
-	inline bool write(void* ptr, size_t size, size_t count) {
-		return _file_io.write(ptr, size, count);
-	}
+    inline bool write(void* ptr, size_t size, size_t count) {
+        return _file_io.write(ptr, size, count);
+    }
 
 	// read data list from file
-	inline bool read(void* ptr, size_t size, size_t count) {
-		return _file_io.read(ptr, size, count);
-	}
+    inline bool read(void* ptr, size_t size, size_t count) {
+        return _file_io.read(ptr, size, count);
+    }
 	
 private:
-	LiteFileIO _file_io;
+    LiteFileIO _file_io;
 };
 
 /**
  * \brief class Weghts
  */
 struct WeghtOffset {
-	struct Offset{
+    struct Offset{
 		size_t offset{0}; // offset from start
 		size_t length{0}; // weight length
 	};
@@ -75,14 +75,15 @@ public:
 	~WeightsWritter() {}
 
 	// set weight
-	template<typename Ttype, typename Dtype>
-	void register_weights(const std::string& node_name, PBlock<Dtype, Ttype>& weight) {
+	template<typename Ttype>
+	void register_weights(const std::string& node_name, PBlock<Ttype>& weight) {
 		WeghtOffset::Offset offset_tmp;
 		offset_tmp.offset = _offset;
 		offset_tmp.length = weight.count();
 		_offset += offset_tmp.length;
 		_node_weights_map[node_name].weights.push_back(offset_tmp);
-		write(weight.h_tensor().mutable_data(), sizeof(Dtype), offset_tmp.length);
+		size_t type_size = weight.h_tensor().get_dtype_size();
+		write(weight.h_tensor().mutable_data(), type_size, offset_tmp.length);
 	}
 
 	bool has_node(std::string node_name) {
@@ -90,7 +91,7 @@ public:
 	}
 
 	WeghtOffset get_weights_by_name(std::string node_name) {
-		if(!has_node(node_name)) {
+		if (!has_node(node_name)) {
 			LOG(FATAL) << "WeightsWritter doesn't have target node name: " << node_name;
 			return WeghtOffset();
 		}

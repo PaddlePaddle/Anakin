@@ -15,9 +15,8 @@
 #ifndef ANAKIN_SABER_LITE_FUNCS_SABER_ELTWISE_H
 #define ANAKIN_SABER_LITE_FUNCS_SABER_ELTWISE_H
 
-#include "saber/lite/core/tensor_lite.h"
-#include "saber/lite/core/context_lite.h"
-
+#include "saber/lite/funcs/op_base.h"
+#include "saber/lite/funcs/calibrate_lite.h"
 #ifdef USE_ARM_PLACE
 namespace anakin{
 
@@ -25,33 +24,40 @@ namespace saber{
 
 namespace lite{
 
-typedef void (*eltwise_func)(const float* din_a, \
-    const float* din_b, float* dout, const int size, std::vector<float> coef);
+typedef void (*eltwise_func)(const void* din_a, \
+    const void* din_b, void* dout, const int size, std::vector<float> coef);
 
+typedef signed char char_t;
 //template <typename Dtype>
-class SaberEltwise {
+class SaberEltwise : public OpBase {
 public:
     SaberEltwise() {}
-    SaberEltwise(EltwiseType type, std::vector<float> coef);
 
-    SaberStatus load_param(EltwiseType type, std::vector<float> coef);
+    SaberEltwise(ParamBase* param);
 
-    ~SaberEltwise() {}
+    virtual SaberStatus load_param(ParamBase* param) override;
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus set_op_precision(DataType ptype) override;
 
-    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                             std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx);
+    virtual SaberStatus load_param(std::istream& stream, const float* weights) override;
 
-    SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
-                                 std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    ~SaberEltwise();
+
+    virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU>*>& inputs,
+                                     std::vector<Tensor<CPU>*>& outputs) override;
+
+    virtual SaberStatus init(const std::vector<Tensor<CPU>*>& inputs,
+                             std::vector<Tensor<CPU>*>& outputs, Context &ctx) override;
+
+    virtual SaberStatus dispatch(const std::vector<Tensor<CPU>*>& inputs, \
+                                 std::vector<Tensor<CPU>*>& outputs) override;
 
 private:
-    Context _ctx;
-    EltwiseType _type;
-    std::vector<float> _coef;
+    EltwiseParam* _param;
     eltwise_func _impl{nullptr};
+
+    std::vector<Tensor<CPU>> _tmp_in;
+    Tensor<CPU> _tmp_out;
 };
 
 } //namespace lite

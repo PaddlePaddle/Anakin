@@ -29,39 +29,43 @@ const float eps = 1e-6f;
  *  \brief Fill the host tensor buffer with rand value.
  *  \param tensor  The reference of input tensor.
  */
-template <ARMType ttype, DataType dtype>
-void fill_tensor_const(Tensor<ttype, dtype>& tensor, typename DataTrait<ttype, dtype>::Dtype value);
+template <ARMType ttype>
+void fill_tensor_const(Tensor<ttype>& tensor, float value);
 
 
 /**
  *  \brief Fill the host tensor buffer with rand value.
  *  \param The reference of input tensor.
  */
-template <ARMType ttype, DataType dtype>
-void fill_tensor_rand(Tensor<ttype, dtype>& tensor);
+template <ARMType ttype>
+void fill_tensor_rand(Tensor<ttype>& tensor);
 
 
 /**
  *  \brief Fill the host tensor buffer with rand value from vstart to vend.
  *  \param tensor The reference of input tensor.
  */
-template <ARMType ttype, DataType dtype>
-void fill_tensor_rand(Tensor<ttype, dtype>& tensor, \
-    typename DataTrait<ttype, dtype>::Dtype vstart, \
-    typename DataTrait<ttype, dtype>::Dtype vend);
+template <ARMType ttype>
+void fill_tensor_rand(Tensor<ttype>& tensor, float vstart, float vend);
 
 /**
  *  \brief Print the data in host tensor.
  *  \param tensor  The reference of input tensor.
  */
-template <ARMType ttype, DataType dtype>
-void print_tensor(Tensor<ttype, dtype>& tensor);
+template <ARMType ttype>
+void print_tensor(const Tensor<ttype>& tensor);
 
-template <ARMType ttype, DataType dtype>
-void print_tensor_valid(Tensor<ttype, dtype>& tensor);
+//template <ARMType ttype>
+//void print_tensor_valid(const Tensor<ttype>& tensor);
 
-template <typename Dtype>
-void tensor_cmp_host(const Dtype* src1, const Dtype* src2, int size, double& max_ratio, double& max_diff);
+template <ARMType ttype>
+double tensor_mean(const Tensor<ttype>& tensor);
+
+template <ARMType ttype>
+void tensor_cmp_host(const Tensor<ttype>& src1, const Tensor<ttype>& src2, double& max_ratio, double& max_diff);
+
+template <ARMType ttype>
+void tensor_diff(const Tensor<ttype>& t1, const Tensor<ttype>& t2, Tensor<ttype>& tdiff);
 
 } //namespace lite
 

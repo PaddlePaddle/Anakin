@@ -163,6 +163,12 @@ public:
     /// check if the arc is aceessable for fusion 
     bool check_pass(std::string, std::string);
 
+    ///check if the the node is accessible to another
+    bool check_accessible(std::string, std::string);
+
+    ///make vgraph node index
+    std::map<std::pair<std::string, std::string>, int> connect_table();
+
     /// register the arc outs 
     void register_outs(std::string, std::string);
 

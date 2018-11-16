@@ -1,11 +1,11 @@
 #include "saber/funcs/impl/cuda/saber_spp.h"
+#include "saber/core/tensor_op.h"
 #include "cuda_fp16.h"
 
 namespace anakin {
 
 namespace saber {
 
-#if 0    
 template <typename Dtype>
 __global__ void ker_concat_fwd(Dtype* out_data, const Dtype* in_data,
                                const int n,
@@ -19,20 +19,14 @@ __global__ void ker_concat_fwd(Dtype* out_data, const Dtype* in_data,
     }
 }
 
-template <DataType OpDtype,
-            DataType inDtype,
-            DataType outDtype,
-            typename LayOutType_op,
-            typename LayOutType_in,
-            typename LayOutType_out>
-SaberStatus SaberSpp<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(\
+template <DataType OpDtype>
+SaberStatus SaberSpp<NV, OpDtype>::dispatch(\
     const std::vector<DataTensor_in *>& inputs, \
     std::vector<DataTensor_out *>& outputs, \
-    SPPParam<OpTensor>& param) {
+    SPPParam<NV>& param) {
 
-    const InDataType* in_data = inputs[0]->data();
-    OutDataType* out_data = outputs[0]->mutable_data();
+    const InDataType* in_data = (const InDataType*)inputs[0]->data();
+    OutDataType* out_data = (OutDataType*)outputs[0]->mutable_data();
     cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
     int count = outputs[0]->valid_size();
     int out_n = outputs[0]->num();
@@ -45,12 +39,12 @@ SaberStatus SaberSpp<NV, OpDtype, inDtype, outDtype,\
         pool_outputs.resize(1);
         for (int i = 0; i < param.pyramid_height; i++) {
             pool_outputs[0] = _pooling_output[i];
-            (*_pooling[i])(inputs, pool_outputs, _pooling_param[i], this->_ctx);
+            (*_pooling[i])(inputs, pool_outputs, _pooling_param[i], *(this->_ctx));
             int valid_size  = pool_outputs[0]->valid_size();
             int offset = (pow(4, i) - 1) / 3;
             ker_concat_fwd<InDataType><<<CUDA_GET_BLOCKS(valid_size),CUDA_NUM_THREADS, 0, cuda_stream>>>(
                     out_data + offset, 
-                    pool_outputs[0]->data(), 
+                    (InDataType*) pool_outputs[0]->data(), 
                     pool_outputs[0]->num() * pool_outputs[0]->channel(), 
                     pool_outputs[0]->height() * pool_outputs[0]->width(), 
                     outputs[0]->width(), 
@@ -60,7 +54,6 @@ SaberStatus SaberSpp<NV, OpDtype, inDtype, outDtype,\
 
     return SaberSuccess;
 }
-#endif
 } //namespace saber
 
 } //namespace anakin

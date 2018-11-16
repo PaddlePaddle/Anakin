@@ -1,5 +1,5 @@
 
-#include "saber/funcs/impl/cuda/base/sass_funcs.h"
+#include "sass_funcs.h"
 
 namespace anakin {
 namespace saber {

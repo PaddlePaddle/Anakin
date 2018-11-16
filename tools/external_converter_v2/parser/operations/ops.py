@@ -6,7 +6,11 @@ from op_io import *
 
 ############################# IO define ##############################
 # graph may has mult-inputs, so graph will have multi-input
-OpsRegister.Register("Input").set_attr(input_shape=list())
+OpsRegister.Register("Input").set_attr(input_shape=list(),
+                                       max_len = int(),
+                                       max_batch = int(),
+                                       alias="NULL",
+                                       data_type="NULL")
 
 # graph out , only hold place for edge
 OpsRegister.Register("Output").set_attr()
@@ -53,7 +57,8 @@ OpsRegister.Register("Softmax").set_attr(axis=int())
 #			  TanH, 
 #			  Sigmoid, 
 # 		  }
-OpsRegister.Register("Activation").set_attr(type="")
+OpsRegister.Register("Activation").set_attr(type="",
+                                            clip_relu_num=int())
 # Leaky version of a Rectified Linear Unit ( alpha != 0 ).
 # 	f(x) = alpha * x  	 : x < 0
 # 	f(x) = 		   x  	 : x >= 0
@@ -88,7 +93,8 @@ OpsRegister.Register("Flatten").set_attr(start_axis=int(),
 # caffe unique layer
 OpsRegister.Register("Reshape").set_attr(dims=list(), 
                                          axis=int(), 
-                                         num_axes=int())
+                                         num_axes=int(),
+                                         layout='')
 
 # Permutes the dimensions of the input according to a given pattern(list type)
 OpsRegister.Register("Permute").set_attr(dims=list())
@@ -140,6 +146,7 @@ OpsRegister.Register("MVN").set_attr(normalize_variance=bool(),
 #      enum method {
 #           MAX, 		// [default]
 #			AVG,
+#           AVGEXC, average_exclude_padding_value
 #			STOCHASTIC,
 #      }
 OpsRegister.Register("Pooling").set_attr(pool_size=list(), 
@@ -247,7 +254,10 @@ OpsRegister.Register("Axpy").set_attr()
 
 OpsRegister.Register("PriorBox").set_attr(min_size=list(), 
                                           max_size=list(), 
-                                          aspect_ratio=list(), 
+                                          aspect_ratio=list(),
+                                          fixed_size=list(), 
+                                          fixed_ratio=list(), 
+                                          density=list(),  
                                           is_flip=bool(), 
                                           is_clip=bool(), 
                                           variance=list(), 
@@ -348,3 +358,91 @@ OpsRegister.Register("LayerNorm").set_attr(is_across_spatial=bool(),
                                            begin_norm_axis=int(),
                                            eps=float())
 
+OpsRegister.Register("Resize").set_attr(height_scale=float(),
+                                        width_scale=float())
+
+OpsRegister.Register("Normalize").set_attr(begin_norm_axis=int(),
+                                           is_across_spatial=bool(),
+                                           is_shared_channel=bool(),
+                                           eps=float(),
+                                           p=int())
+
+OpsRegister.Register("Pad").set_attr(pad_c=list(),
+                                     pad_h=list(),
+                                     pad_w=list())
+
+
+OpsRegister.Register("ShuffleChannel").set_attr(group=int())
+
+OpsRegister.Register("RoisAnchorFeature").set_attr(min_anchor_size=float(),
+                                                   num_anchor_scales=int(),
+                                                   anchor_scale_pow_base=float(),
+                                                   anchor_wph_ratios=list(),
+                                                   num_top_iou_anchor=int(),
+                                                   min_num_top_iou_anchor=int(),
+                                                   iou_thr=float(),
+                                                   ft_ratio_h=bool(),
+                                                   ft_ratio_w=bool(),
+                                                   ft_log_ratio_h=bool(),
+                                                   ft_log_ratio_w=bool(),
+                                                   bbox_size_add_one=bool())
+
+OpsRegister.Register("Interp").set_attr(height=int(),
+                                        width=int(),
+                                        zoom_factor=int(),
+                                        shrink_factor=int(),
+                                        pad_beg=int(),
+                                        pad_end=int())
+
+
+##################################### reverse_sequence op define ############################    #########
+####### it is named BatchReverseSequenceLayer in lego
+#
+OpsRegister.Register("ReverseSequence").set_attr()  ##no prams , no weights.
+
+##################################### reverse op define #####################################
+####### it is named BatchReverseInputLayer in lego
+OpsRegister.Register("Reverse").set_attr()   ## no prams, no weights.
+
+##################################### embedding_lg op define ################################    #####
+####### it is named BatchEmbeddingLayer in lego
+OpsRegister.Register("EmbeddingLg").set_attr() ## ???? is it same to Embedding?
+
+##################################### grnn(single-layer, single-direction GRU) op define ####    #################################
+####### it is named BatchGrnnLayer in lego
+OpsRegister.Register("GRNN").set_attr() ## ???? is it same to RNN?
+
+##################################### match_matrix op define ################################    #####
+####### it is named BatchMatchMatrixTensorLayer in lego
+OpsRegister.Register("MatchMatrix").set_attr(dim_in = int(),
+                                             dim_t = int(),
+                                             linear_term = bool(),
+                                             bias_term = bool(),
+                                             diag_init = int(),
+                                             diag_init_dim_num = int(),
+                                             init_low = int(),
+                                             init_up = int())
+
+
+##################################### var_size_conv op define ###############################    ######
+####### it is named BatchVarSizeConvLayer in lego
+OpsRegister.Register("VarSizeConv").set_attr()  ## it is same to convolution????
+##################################### topk_pooling op define ################################    #####
+###### it is named BatchTopKPoolingLayer in lego
+OpsRegister.Register("TopKPooling").set_attr(top_k = int(),
+                                             feat_map_num = int())
+
+##################################### topk_avg_pooling op define ############################    #########
+###### it is named BatchTopKAvgPoolingByRowLayer in lego
+OpsRegister.Register("TopKAvgPooling").set_attr(top_ks = list(),
+                                                feat_map_num = int(),
+                                                is_pooling_by_row = bool())
+
+##################################### extract_last op define ################################    #####
+###### it is named BatchExtractLastLayer in lego,
+OpsRegister.Register("SequencePool").set_attr(pooltype = str())  #no paras, no weights.
+
+
+#####################################Unpadding_padding op define ############################    #########
+###### it is named UnpaddingPaddingLayer in lego,
+OpsRegister.Register("ConvUnpaddingPadding").set_attr()  #no paras, no weights.

@@ -17,33 +17,46 @@ __global__ void ker_cast_fwd(Ttype * out_data, \
 
 
 
-template <DataType OpDtype,
-    DataType inDtype,
-    DataType outDtype,
-    typename LayOutType_op,
-    typename LayOutType_in,
-    typename LayOutType_out>
-SaberStatus SaberCast<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(const std::vector<DataTensor_in *>& inputs,
-    std::vector<DataTensor_out *>& outputs,
-    CastParam<OpTensor>& param) {
+template <DataType OpDtype>
+SaberStatus SaberCast<NV, OpDtype>::dispatch(const std::vector<Tensor<NV> *>& inputs,
+    std::vector<Tensor<NV> *>& outputs,
+    CastParam<NV>& param) {
 
-    const InDataType* in_data = inputs[0]->data();
-    OutDataType* out_data = outputs[0]->mutable_data();
     cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
-
     int count = outputs[0]->valid_size();
     outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
 
-    if (inputs[0]->is_continue_mem() && outputs[0]->is_continue_mem()) {
-           ker_cast_fwd<InDataType, OutDataType>\
+    if(_inDtype == _outDtype){
+        outputs[0]->copy_from(*inputs[0]);
+        return SaberSuccess;
+    }
+
+    if(inputs[0]->get_dtype() == 1){//AK_FLOAT
+        const float* in_data = (const float*)inputs[0]->data();
+        int* out_data = (int*)outputs[0]->mutable_data();
+        if (inputs[0]->is_continue_mem() && outputs[0]->is_continue_mem()) {
+            ker_cast_fwd<float, int>\
                     <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(\
-                    out_data, in_data, \
-                    count);
+                        out_data, in_data, count);
+        }
+        
+    }
+    
+    if(inputs[0]->get_dtype() == 5){//AK_INT32
+        const int* in_data = (const int*)inputs[0]->data();
+        float* out_data = (float*)outputs[0]->mutable_data();
+        if (inputs[0]->is_continue_mem() && outputs[0]->is_continue_mem()) {
+            ker_cast_fwd<int, float>\
+                    <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(\
+                        out_data, in_data, count);
+        }
     }
 
     return SaberSuccess;
 }
-
+template class SaberCast<NV, AK_FLOAT>;
+template class SaberCast<NV, AK_INT32>;
+DEFINE_OP_TEMPLATE(SaberCast, CastParam, NV, AK_INT8);
+DEFINE_OP_TEMPLATE(SaberCast, CastParam, NV, AK_HALF);
 }
 }

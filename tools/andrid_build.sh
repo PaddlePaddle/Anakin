@@ -21,9 +21,9 @@ fi
 # build the target into build_android.
 BUILD_ROOT=$ANAKIN_ROOT/android_build
 
-if [ -d $BUILD_ROOT ];then
-	rm -rf $BUILD_ROOT
-fi
+#if [ -d $BUILD_ROOT ];then
+#	rm -rf $BUILD_ROOT
+#fi
 
 mkdir -p $BUILD_ROOT
 echo "-- Build anakin Android into: $BUILD_ROOT"
@@ -41,6 +41,7 @@ cmake .. \
 	-DUSE_ARM_PLACE=YES \
 	-DUSE_GPU_PLACE=NO \
 	-DUSE_X86_PLACE=NO \
+	-DUSE_BM_PLACE=NO \
 	-DTARGET_ANDROID=YES \
 	-DBUILD_WITH_UNIT_TEST=YES \
     -DUSE_PYTHON=OFF \
@@ -48,11 +49,11 @@ cmake .. \
 	-DENABLE_VERBOSE_MSG=NO \
 	-DDISABLE_ALL_WARNINGS=YES \
 	-DENABLE_NOISY_WARNINGS=NO \
-	-DUSE_OPENCV=YES\
     -DUSE_OPENMP=YES\
 	-DBUILD_SHARED=NO\
 	-DBUILD_WITH_UNIT_TEST=YES\
-	-DBUILD_EXAMPLES=YES
+	-DBUILD_EXAMPLES=NO\
+	-DUSE_OPENCV=NO
 
 # build target lib or unit test.
 if [ "$(uname)" = 'Darwin' ]; then

@@ -135,20 +135,14 @@ __global__ void ker_im2sequence_fwd_shared(Dtype * out_data, \
             
 }
 
-template <DataType OpDtype,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-SaberStatus SaberIm2Sequence<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(\
-    const std::vector<DataTensor_in *>& inputs, \
-    std::vector<DataTensor_out *>& outputs, \
-    Im2SequenceParam<OpTensor>& param) {
+template <DataType OpDtype>
+SaberStatus SaberIm2Sequence<NV, OpDtype>::dispatch(\
+    const std::vector<Tensor<NV> *>& inputs, \
+    std::vector<Tensor<NV> *>& outputs, \
+    Im2SequenceParam<NV>& param) {
 
-    const InDataType* in_data = inputs[0]->data();
-    OutDataType* out_data = outputs[0]->mutable_data();
+    const OpDataType* in_data = (const OpDataType*)inputs[0]->data();
+    OpDataType* out_data = (OpDataType*)outputs[0]->mutable_data();
     cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
     int count = outputs[0]->valid_size();
     int out_n = outputs[0]->num();
@@ -158,14 +152,18 @@ SaberStatus SaberIm2Sequence<NV, OpDtype, inDtype, outDtype,\
     int in_h = inputs[0]->height();
     int in_w = inputs[0]->width();
     int num_threads = out_n * c;
-    std::vector<int> seq_offset;
+    std::vector<int>offset(n+1);
+    std::vector<std::vector<int>> seq_offset;
+    seq_offset.push_back(offset);
     int per_seq_len = out_n / n;
     for (int i = 0; i < n; i++) {
-        seq_offset.push_back(i * per_seq_len);
+        seq_offset[0].push_back(i * per_seq_len);
     }
-    seq_offset.push_back(n * per_seq_len);
+    seq_offset[0].push_back(n * per_seq_len);
     outputs[0]->set_seq_offset(seq_offset);
-    //LOG(INFO)<<"im2sequence out shape"<< outputs[0]->num()<<"c"<<outputs[0]->channel()<<"h"<<outputs[0]->height()<<"w"<<outputs[0]->width();
+    
+//    LOG(INFO)<<"im2sequence out shape"<<"  n: " \
+    << outputs[0]->num()<<" c: "<<outputs[0]->channel()<<" h:"<<outputs[0]->height()<<" w:"<<outputs[0]->width();
 
     if (inputs[0]->is_continue_mem() && outputs[0]->is_continue_mem()) {
         if (0) {
@@ -183,7 +181,7 @@ SaberStatus SaberIm2Sequence<NV, OpDtype, inDtype, outDtype,\
                      num_threads);
         } else {
             ker_im2sequence_fwd_shared<OpDataType>\
-                     <<<CUDA_GET_BLOCKS(num_threads), CUDA_NUM_THREADS, sizeof(InDataType)*CUDA_NUM_THREADS * param.window_h* param.window_w, cuda_stream>>>(\
+                     <<<CUDA_GET_BLOCKS(num_threads), CUDA_NUM_THREADS, sizeof(OpDataType)*CUDA_NUM_THREADS * param.window_h* param.window_w, cuda_stream>>>(\
                      out_data, in_data, \
                      n, c, in_h, in_w,\
                      _output_height, _output_width,\
@@ -199,6 +197,7 @@ SaberStatus SaberIm2Sequence<NV, OpDtype, inDtype, outDtype,\
 
     return SaberSuccess;
 }
-
+DEFINE_OP_TEMPLATE(SaberIm2Sequence, Im2SequenceParam, NV, AK_HALF);
+DEFINE_OP_TEMPLATE(SaberIm2Sequence, Im2SequenceParam, NV, AK_INT8);
 }
 }

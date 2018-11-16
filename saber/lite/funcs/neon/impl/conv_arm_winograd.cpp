@@ -1,5 +1,5 @@
 #include "saber/lite/funcs/neon/impl/conv_arm_impl.h"
-
+#include "saber/lite/funcs/neon/impl/sgemm_conv.h"
 #ifdef USE_ARM_PLACE
 
 namespace anakin{
@@ -7,7 +7,7 @@ namespace anakin{
 namespace saber{
 
 namespace lite{
-
+#if 1
 void transpose(float* data_out, const float* data_in, int w_in, int h_in);
 void transform_input_f6x6(float* dout, const float* din);
 void transform_output_f6x6(float* output, const float* din, float bias);
@@ -33,12 +33,14 @@ bool ConvWinogradF63::operator()(const float *trans_weights, const float *din, \
     return true;
 }
 #endif
-void conv_arm_winograd3x3(const float* din, float* dout, \
+void conv_arm_winograd3x3(const void* din, void* dout, \
                           int num, int chout, int hout, int wout, \
                           int chin, int hin, int win, \
-                          const float* weights, const float* bias, \
+                          const void* weights, const void* bias, \
                           int group, int kernel_w, int kernel_h, int stride_w, int stride_h, int dila_w, int dila_h, \
-                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Sgemm& gemmer, void* work_space) {
+                          int pad_w, int pad_h, bool flag_bias, bool flag_relu, Context* ctx, void* work_space, const void* idx_ptr) {
+
+    int threads = ctx->get_threads();
 
     int size_in_channel = win * hin;
     int size_out_channel = wout * hout;
@@ -50,8 +52,14 @@ void conv_arm_winograd3x3(const float* din, float* dout, \
     int size_trans_channel = 8 * 8 * size_tile;
     int max_ch = chin > chout? chin : chout;
 
+    int m = chout;
+    int n = size_tile;
+    int k = chin;
+
+    float* tmp_work_space = static_cast<float*>(ctx->get_work_space()) + ctx->l2_cache_size() / sizeof(float);
+
     //! tmp data buffer for input transform
-    float* tmp_data1 = (float*)work_space;
+    float* tmp_data1 = tmp_work_space;
     //! tmp data buffer for dot mul
     float* tmp_data2 = tmp_data1 + size_trans_channel * max_ch;
 
@@ -60,12 +68,12 @@ void conv_arm_winograd3x3(const float* din, float* dout, \
 
     for (int i = 0; i < num; ++i) {
 
-        const float* din_batch = din + i * chin * size_in_channel;
-        float* dout_batch = dout + i * chout * size_out_channel;
+        const float* din_batch = static_cast<const float*>(din) + i * chin * size_in_channel;
+        float* dout_batch = static_cast<float*>(dout) + i * chout * size_out_channel;
 
         //t1.start(ctx1);
         //! transform input Bt * data * B
-#pragma omp parallel for
+#pragma omp parallel for num_threads(threads)
         for (int j = 0; j < chin; ++j) {
 
             const float* din_channel = din_batch + j * size_in_channel;
@@ -101,7 +109,9 @@ void conv_arm_winograd3x3(const float* din, float* dout, \
         //! dot mul
         //! transpose input, convert from ch_in * tile_h * tile_w * 64 to
         //! 64 * ch_in * tile_h * tile_w
-        int stride_a = chout * chin;
+        int hblock = get_hblock(ctx->get_arch());
+        int m_round = hblock * ((chout + hblock - 1) / hblock);
+        int stride_a = m_round * chin;
         int stride_b = chin * size_tile;
         int stride_c = chout * size_tile;
         transpose(tmp_data2, tmp_data1, 64, stride_b);
@@ -115,10 +125,11 @@ void conv_arm_winograd3x3(const float* din, float* dout, \
         //! gemm
 //#pragma omp parallel for
         for (int l = 0; l < 64; ++l) {
-            const float* ptr_a = weights + l * stride_a;
+            const float* ptr_a = static_cast<const float*>(weights) + l * stride_a;
             const float* ptr_b = tmp_data2 + l * stride_b;
             float* ptr_c = tmp_data1 + l * stride_c;
-            gemmer(ptr_a, chin, ptr_b, size_tile, ptr_c, size_tile, 1.f, 0.f, false);
+            sgemm_prepack(ptr_a, ptr_b, nullptr, ptr_c, chout, size_tile, chin, false, false, false, ctx);
+            //gemmer(ptr_a, chin, ptr_b, size_tile, ptr_c, size_tile, 1.f, 0.f, false);
         }
 
         //! transpose output, convert from 64 * ch_out * tile_h * tile_w to
@@ -138,7 +149,7 @@ void conv_arm_winograd3x3(const float* din, float* dout, \
 #pragma omp parallel for
         for (int i = 0; i < chout; ++i) {
 
-            float bias_value = flag_bias? bias[i] : 0.f;
+            float bias_value = flag_bias? static_cast<const float*>(bias)[i] : 0.f;
             float* dout_tmp = tmp_data2 + i * size_trans_channel;
             float* dout_channel = dout_batch + i * size_out_channel;
 
@@ -156,7 +167,11 @@ void conv_arm_winograd3x3(const float* din, float* dout, \
                             for (int k = 0; k < 6; ++k) {
                                 int end_col = w * 6 + k;
                                 if (end_col < wout){
-                                    dout_channel[end_row * wout + end_col] = out_tmp[j][k];
+                                    if (flag_relu) {
+                                        dout_channel[end_row * wout + end_col] = out_tmp[j][k] > 0.f? out_tmp[j][k] : 0.f;
+                                    } else {
+                                        dout_channel[end_row * wout + end_col] = out_tmp[j][k];
+                                    }
                                 }
                             }
                         }
@@ -182,56 +197,85 @@ void transpose(float* data_out, const float* data_in, int w_in, int h_in) {
 
     int nw = w_in >> 2;
     int nh = h_in >> 2;
+    int size_in = w_in * h_in;
+
+    float* ptr_out = data_out;
+    const float* ptr_in = data_in;
 #pragma omp parallel for
-    for (int i = 0; i < nh; i++) {
-        for (int j = 0; j < nw; j++) {
-            const float *ptr = data_in + i * 4 * w_in + j * 4;
-            float *outptr = data_out + j * 4 * h_in + i * 4;
+    for (int h = 0; h < nh; h++) {
+        const float* ptr_din_row = ptr_in + h * 4 * w_in;
+        for (int w = 0; w < nw; w++) {
+            float* data_out_ptr = ptr_out + w * 4 * h_in + h * 4;
+            const float* din0 = ptr_din_row;
+            const float* din1 = din0 + w_in;
+            const float* din2 = din1 + w_in;
+            const float* din3 = din2 + w_in;
 
-            const float *in0 = ptr;
-            const float *in1 = in0 + w_in;
-            const float *in2 = in1 + w_in;
-            const float *in3 = in2 + w_in;
-
-            float *out0 = outptr;
-            float *out1 = out0 + h_in;
-            float *out2 = out1 + h_in;
-            float *out3 = out2 + h_in;
+            float* dout0 = data_out_ptr;
+            float* dout1 = dout0 + h_in;
+            float* dout2 = dout1 + h_in;
+            float* dout3 = dout2 + h_in;
 #ifdef __aarch64__
+            asm(
+            "ldr    q0, [%[in0]]                                            \n"          /*load input 0*/
+                        "ldr    q1, [%[in1]]                                \n"
+                        "ldr    q2, [%[in2]]                                \n"
+                        "ldr    q3, [%[in3]]                                \n"
+                        "trn1   v4.4s, v0.4s, v1.4s                         \n"
+                        "trn2   v5.4s, v0.4s, v1.4s                         \n"
+                        "trn1   v6.4s, v2.4s, v3.4s                         \n"
+                        "trn2   v7.4s, v2.4s, v3.4s                         \n"
+                        "trn1   v8.2d, v4.2d, v6.2d                         \n"
+                        "trn1   v9.2d, v5.2d, v7.2d                         \n"
+                        "trn2   v10.2d, v4.2d, v6.2d                        \n"
+                        "trn2   v11.2d, v5.2d, v7.2d                        \n"
+                        "str    q8, [%[out0]]                               \n"
+                        "str    q9, [%[out1]]                               \n"
+                        "str   q10, [%[out2]]                               \n"
+                        "str   q11, [%[out3]]                               \n"
+                :
+                : [out0] "r" (dout0), [out1] "r" (dout1), [out2] "r" (dout2), \
+                        [out3] "r" (dout3), [in0] "r" (din0), [in1] "r" (din1), \
+                         [in2] "r" (din2), [in3] "r" (din3)
+                : "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11"
+                );
 #else
-            asm(    "vld1.32 {d0, d1}, [%[in0]]    \n"
-                    "vld1.32 {d2, d3}, [%[in1]]    \n"
-                    "vld1.32 {d4, d5}, [%[in2]]    \n"
-                    "vld1.32 {d6, d7}, [%[in3]]    \n"
-                    "vtrn.32 q0, q1                \n"
-                    "vtrn.32 q2, q3                \n"
-                    "vswp d1, d4                   \n"
-                    "vswp d3, d6                   \n"
-                    "vst1.32 {d0, d1}, [%[out0]]   \n"
-                    "vst1.32 {d2, d3}, [%[out1]]   \n"
-                    "vst1.32 {d4, d5}, [%[out2]]   \n"
-                    "vst1.32 {d6, d7}, [%[out3]]   \n"
-            :
-            : [out0] "r" (out0), [out1] "r" (out1), [out2] "r" (out2), [out3] "r" (out3),
-            [in0] "r" (in0), [in1] "r" (in1), [in2] "r" (in2), [in3] "r" (in3)
-            : "d0", "d1", "d2", "d3", "d4", "d5", "d6", "d7"
-            );
-#endif //__aarch64__
+            asm(
+                "vld1.32 {d0, d1}, [%[in0]]    \n"
+                        "vld1.32 {d2, d3}, [%[in1]]    \n"
+                        "vld1.32 {d4, d5}, [%[in2]]    \n"
+                        "vld1.32 {d6, d7}, [%[in3]]    \n"
+                        "vtrn.32 q0, q1                \n"
+                        "vtrn.32 q2, q3                \n"
+                        "vswp d1, d4                   \n"
+                        "vswp d3, d6                   \n"
+                        "vst1.32 {d0, d1}, [%[out0]]   \n"
+                        "vst1.32 {d2, d3}, [%[out1]]   \n"
+                        "vst1.32 {d4, d5}, [%[out2]]   \n"
+                        "vst1.32 {d6, d7}, [%[out3]]   \n"
+                :
+                : [out0] "r" (dout0), [out1] "r" (dout1), [out2] "r" (dout2), \
+                        [out3] "r" (dout3), [in0] "r" (din0), [in1] "r" (din1), \
+                         [in2] "r" (din2), [in3] "r" (din3)
+                : "q0", "q1", "q2", "q3"
+                );
+#endif
+            ptr_din_row += 4;
         }
     }
-    //! process remains
-    for (int i = 0; i < nw * 4; i++) {
-        for (int j = nh * 4; j < h_in; j++) {
-            const float *ptr = data_in + j * w_in + i;
-            float *outptr = data_out + i * h_in + j;
-            *outptr = *ptr;
+    //remian
+    for (int h = 0; h < h_in; h++){
+        for (int w = nw * 4; w < w_in; w++){
+            const float* data_in_ptr = ptr_in + h * w_in + w;
+            float* data_out_ptr = ptr_out + w * h_in + h;
+            *data_out_ptr = *data_in_ptr;
         }
     }
-    for (int i = nw * 4; i < w_in; i++) {
-        for (int j = 0; j < h_in; j++) {
-            const float *ptr = data_in + w_in * j + i;
-            float *outptr = data_out + i * h_in + j;
-            *outptr = *ptr;
+    for (int w = 0; w < w_in; w++){
+        for (int h = nh * 4; h < h_in; h++){
+            const float* data_in_ptr = ptr_in + h * w_in + w;
+            float* data_out_ptr = ptr_out + w * h_in + h;
+            *data_out_ptr = *data_in_ptr;
         }
     }
 }
@@ -246,7 +290,7 @@ void transpose(float* data_out, const float* data_in, int w_in, int h_in) {
  * @param ch_in
  * @param work_space
  */
-void winograd_transform_weights(float* dout, const float* din, int ch_out, \
+void winograd_transform_weights(void* dout, const void* din, int ch_out, \
     int ch_in, void* work_space) {
     const float coeff[8][3] = {
             {      1.0f,         0.0f,       0.0f},
@@ -263,7 +307,7 @@ void winograd_transform_weights(float* dout, const float* din, int ch_out, \
 
     for (int i = 0; i < ch_out; i++) {
         for (int j = 0; j < ch_in; j++) {
-            const float* kernel0 = din + (i * ch_in + j) * 9;
+            const float* kernel0 = static_cast<const float*>(din) + (i * ch_in + j) * 9;
             float* ptr_channel = ptr_out + (i * ch_in + j) * 64;
 
             //! transform kernel, transposed
@@ -289,7 +333,7 @@ void winograd_transform_weights(float* dout, const float* din, int ch_out, \
             }
         }
     }
-    transpose(dout, ptr_out, 64, ch_out * ch_in);
+    transpose(static_cast<float*>(dout), ptr_out, 64, ch_out * ch_in);
 }
 
 /**
@@ -421,7 +465,7 @@ void transform_output_f6x6(float* output, const float* din, float bias) {
         output += 6;
     }
 }
-
+#endif
 } //namespace lite
 
 } //namespace saber

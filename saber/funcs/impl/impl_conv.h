@@ -21,8 +21,30 @@ namespace anakin{
 
 namespace saber{
 
+template <typename TargetType, DataType OpDtype = AK_FLOAT>
+class SaberConv2D : public ImplBase<
+    TargetType, OpDtype,
+    ConvParam <TargetType> > {
+public:
+    SaberStatus trans_weights(Tensor<TargetType> &target_weights,
+            Tensor<TargetType> &target_bias, int pad_h, int pad_w,
+            int dilation_h, int dilation_w, int stride_h, int stride_w, int group) {
+        return SaberUnImplError;
+    }
+};
 
-DEFINE_OP_CLASS(Conv2D, ConvParam);
+template <typename TargetType,
+    DataType OpDtype = AK_FLOAT>
+class VenderConv2D : public ImplBase<
+    TargetType, OpDtype,
+    ConvParam <TargetType> > {
+public:
+    SaberStatus trans_weights(Tensor<TargetType> &target_weights,
+            Tensor<TargetType> &target_bias, int pad_h, int pad_w,
+            int dilation_h, int dilation_w, int stride_h, int stride_w, int group) {
+        return SaberUnImplError;
+    }
+};
 
 }
 }

@@ -169,52 +169,53 @@ __global__ void normalize_with_scale_bias_kernel(
 }
 
 
-template <>
-SaberStatus SaberLayerNorm<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::dispatch(\
-    const std::vector<DataTensor_in*>& inputs, \
-    std::vector<DataTensor_out*>& outputs, \
-    LayerNormParam<OpTensor> &param) {
+template <DataType OpDtype>
+SaberStatus SaberLayerNorm<NV, OpDtype>::dispatch(\
+    const std::vector<Tensor<NV> *>& inputs, \
+    std::vector<Tensor<NV> *>& outputs, \
+    LayerNormParam<NV> &param) {
+
 
     cudaStream_t stream = this->_ctx->get_compute_stream();
 
     int total_size = inputs[0]->valid_size();
 
-    const float* src = inputs[0]->data();
-    float* dst = outputs[0]->mutable_data();
-    float* mean_ptr = _mean.mutable_data();
-    float* std_ptr = _std.mutable_data();
+    const OpDataType* src = (const OpDataType*)inputs[0]->data();
+    OpDataType* dst = (OpDataType*)outputs[0]->mutable_data();
+    OpDataType* mean_ptr = (OpDataType*)_mean.mutable_data();
+    OpDataType* std_ptr = (OpDataType*)_std.mutable_data();
 
-    const float* scale_ptr = param.scale_weights()->data();
-    const float* bias_ptr = param.bias_weights()->data();
+    const OpDataType* scale_ptr = (const OpDataType*)param.scale_weights()->data();
+    const OpDataType* bias_ptr = (const OpDataType*)param.bias_weights()->data();
 
-    const size_t share_mem_size = CUDA_NUM_THREADS * sizeof(float);
+    const size_t share_mem_size = CUDA_NUM_THREADS * sizeof(OpDataType);
 
     //! get mean
-    reduce_mean<CUDA_NUM_THREADS, float>\
+    reduce_mean<CUDA_NUM_THREADS, OpDataType>\
         <<<_outer_size, CUDA_NUM_THREADS, share_mem_size, stream>>>\
         (total_size, _inner_size, src, mean_ptr);
     //! get std
-    reduce_std<CUDA_NUM_THREADS, float>\
+    reduce_std<CUDA_NUM_THREADS, OpDataType>\
         <<<_outer_size, CUDA_NUM_THREADS, share_mem_size, stream>>>\
         (total_size, _inner_size, param.eps, src, mean_ptr, std_ptr);
 
     if (_flag_scale) {
         if (_flag_bias) {
-            normalize_with_scale_bias_kernel<float, true, true>\
+            normalize_with_scale_bias_kernel<OpDataType, true, true>\
             <<<CUDA_GET_BLOCKS(total_size), CUDA_NUM_THREADS, 0, stream>>>\
             (total_size, _inner_size, mean_ptr, std_ptr, scale_ptr, bias_ptr, src, dst);
         } else {
-            normalize_with_scale_bias_kernel<float, true, false>\
+            normalize_with_scale_bias_kernel<OpDataType, true, false>\
             <<<CUDA_GET_BLOCKS(total_size), CUDA_NUM_THREADS, 0, stream>>>\
             (total_size, _inner_size, mean_ptr, std_ptr, scale_ptr, bias_ptr, src, dst);
         }
     } else {
         if (_flag_bias) {
-            normalize_with_scale_bias_kernel<float, false, true>\
+            normalize_with_scale_bias_kernel<OpDataType, false, true>\
             <<<CUDA_GET_BLOCKS(total_size), CUDA_NUM_THREADS, 0, stream>>>\
             (total_size, _inner_size, mean_ptr, std_ptr, scale_ptr, bias_ptr, src, dst);
         } else {
-            normalize_with_scale_bias_kernel<float, false, false>\
+            normalize_with_scale_bias_kernel<OpDataType, false, false>\
             <<<CUDA_GET_BLOCKS(total_size), CUDA_NUM_THREADS, 0, stream>>>\
             (total_size, _inner_size, mean_ptr, std_ptr, scale_ptr, bias_ptr, src, dst);
         }
@@ -222,7 +223,8 @@ SaberStatus SaberLayerNorm<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>::
 
     return SaberSuccess;
 }
-
+DEFINE_OP_TEMPLATE(SaberLayerNorm, LayerNormParam, NV, AK_HALF);
+DEFINE_OP_TEMPLATE(SaberLayerNorm, LayerNormParam, NV, AK_INT8);
 } //namespace anakin
 
 } //namespace anakin

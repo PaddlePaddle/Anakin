@@ -1,485 +1,1091 @@
+#include "saber/core/tensor_op.h"
 #include "saber/funcs/impl/x86/vender_lstm.h"
-#include "saber/funcs/impl/x86/activation_functions.h"
+#include "saber/funcs/impl/x86/sequence2batch.h"
 #include "saber/funcs/impl/x86/kernel/jit_generator.h"
+#include "saber/funcs/impl/x86/saber_normal_activation.h"
 
 namespace anakin {
 namespace saber {
 
-template <DataType OpDtype,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-void VenderLstm<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::compute_with_avx(LstmMetaValue<DataType_in> value,
-                                                                        int hidden_size, int batch_size,
-                                                                        const ActiveType &gate_act,
-                                                                        const ActiveType &cell_act,
-                                                                        const ActiveType &cand_act) {
-#ifdef __AVX__
-#pragma omp parallel for if(this->max_thread_num_ > 1) collapse(2)
-    for (int b = 0; b < batch_size; b++) {
-        for (int i = 0; i < hidden_size/8; i++) {
-            __m256 r_checkI = _mm256_set1_ps(0.0f);
-            __m256 r_checkF = _mm256_set1_ps(0.0f);
-            __m256 r_checkO = _mm256_set1_ps(0.0f);
-            __m256 prev_state_v = _mm256_set1_ps(0.0f);
-            int batch_offset = b * hidden_size;
-            __m256 *value_ig = reinterpret_cast<__m256 *>(value.gate_value + batch_offset * 4);
-            __m256 *value_fg = reinterpret_cast<__m256 *>(value.gate_value + batch_offset * 4 + hidden_size);
-            __m256 *value_in = reinterpret_cast<__m256 *>(value.gate_value + batch_offset * 4 + hidden_size * 2);
-            __m256 *value_og = reinterpret_cast<__m256 *>(value.gate_value + batch_offset * 4 + hidden_size * 3);
 
-            __m256 *state_active = reinterpret_cast<__m256 *>(value.state_active_value + batch_offset);
-            __m256 *state = reinterpret_cast<__m256 *>(value.state_value + batch_offset);
-            __m256 *output = reinterpret_cast<__m256 *>(value.output_value + batch_offset);
-
-            if (value.prev_state_value) {
-                prev_state_v = (reinterpret_cast<__m256 *>(value.prev_state_value + batch_offset))[i];
-            }
-            if (value.check_ig) {
-                r_checkI = (reinterpret_cast<const __m256 *>(value.check_ig))[i];
-                r_checkF = (reinterpret_cast<const __m256 *>(value.check_fg))[i];
-                r_checkO = (reinterpret_cast<const __m256 *>(value.check_og))[i];
-            }
-
-            value_in[i] = math::avx_activation(value_in[i], cand_act);
-            value_ig[i] = math::avx_activation(_mm256_add_ps(value_ig[i], _mm256_mul_ps(prev_state_v, r_checkI)), gate_act);
-            value_fg[i] = math::avx_activation(_mm256_add_ps(value_fg[i], _mm256_mul_ps(prev_state_v, r_checkF)), gate_act);
-            state[i] = _mm256_add_ps(_mm256_mul_ps(value_in[i],value_ig[i]), _mm256_mul_ps(prev_state_v, value_fg[i]));
-            value_og[i] = math::avx_activation(_mm256_add_ps(value_og[i], _mm256_mul_ps(state[i], r_checkO)), gate_act);
-            state_active[i] = math::avx_activation(state[i], cell_act);
-            output[i] = _mm256_mul_ps(value_og[i], state_active[i]);
-        }
-    }
-#endif
+template <>
+SaberStatus VenderLstm<X86, AK_FLOAT>::create(
+    const std::vector<OpTensor*>& inputs,
+    std::vector<OpTensor*>& outputs,
+    LstmParam<X86>& param,
+    Context<X86>& ctx) {
+    utils::try_expand_tensor(batched_h, param.num_direction * param.num_layers * inputs[0]->num() *
+                             aligned_hidden_size_);
+    utils::try_expand_tensor(batched_c, param.num_direction * param.num_layers * inputs[0]->num() *
+                             aligned_hidden_size_);
+    utils::try_expand_tensor(batched_x, inputs[0]->num() * word_size_);
+    utils::try_expand_tensor(batched_x_reverse, inputs[0]->num() * word_size_);
+    utils::try_expand_tensor(batched_xx, param.num_direction * param.num_layers * inputs[0]->num() * 4 *
+                             aligned_hidden_size_);
+    return SaberSuccess;
 }
+template <>
+SaberStatus VenderLstm<X86, AK_FLOAT>::init(
+    const std::vector<OpTensor*>& inputs,
+    std::vector<OpTensor*>& outputs,
+    LstmParam<X86>& param, Context<X86>& ctx) {
+    const char* ret = std::getenv("OMP_NUM_THREADS");
+    this->_ctx = &ctx;
+    this->max_thread_num_ = ret ? atoi(ret) : omp_get_max_threads();
+    int layer_num_ = param.num_layers;
+    int direc_num_ = param.num_direction;
+    hidden_size_ = outputs[0]->channel() / direc_num_;
+    word_size_ = inputs[0]->channel();
+    std::vector<std::vector<int>> seq_offset_vec = inputs[0]->get_seq_offset();
+    std::vector<int> seq_offset = seq_offset_vec[seq_offset_vec.size() - 1];
+    int batch_size_ = seq_offset.size() - 1;
+    int bias_size_ = 4;
 
-template <DataType OpDtype,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-void VenderLstm<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::compute(LstmMetaValue<DataType_in> value,
-                                                               int hidden_size, int batch_size,
-                                                               const ActiveType &gate_act,
-                                                               const ActiveType &cell_act,
-                                                               const ActiveType &cand_act) {
-#pragma omp parallel for if(this->max_thread_num_ > 1) collapse(2)
-    for (int b = 0; b < batch_size; b++) {
-        for (int i = 0; i < hidden_size; i++) {
-            DataType_in *value_ig = value.gate_value + b * hidden_size * 4;
-            DataType_in *value_fg = value_ig + hidden_size;
-            DataType_in *value_in = value_ig + hidden_size * 2;
-            DataType_in *value_og = value_ig + hidden_size * 3;
-            DataType_in *state_active = value.state_active_value + b * hidden_size;
-            DataType_in *state = value.state_value + b * hidden_size;
-            DataType_in *output = value.output_value + b * hidden_size;
-            DataType_in prev_state_v = 0;
-            if (value.prev_state_value) {
-                prev_state_v = *(value.prev_state_value + b * hidden_size + i);
-            }
-
-            DataType_in r_checkI = value.check_ig ? value.check_ig[i] : 0;
-            DataType_in r_checkF = value.check_fg ? value.check_fg[i] : 0;
-            DataType_in r_checkO = value.check_og ? value.check_og[i] : 0;
-
-            math::activation(1, value_in + i, value_in + i, cand_act);
-            DataType_in tmp = value_ig[i] + prev_state_v * r_checkI;
-            math::activation(1, &tmp, value_ig + i, gate_act);
-            tmp = value_fg[i] + prev_state_v * r_checkF;
-            math::activation(1, &tmp, value_fg + i, gate_act);
-            state[i] = value_in[i] * value_ig[i] + prev_state_v * value_fg[i];
-            tmp = value_og[i] + state[i] * r_checkO;
-            math::activation(1, &tmp, value_og + i, gate_act);
-            math::activation(1, state + i, state_active + i, cell_act);
-            output[i] = value_og[i] * state_active[i];
-        }
+    if (param.with_peephole) {
+        bias_size_ = 7;
     }
-}
 
-template <DataType OpDtype,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-SaberStatus VenderLstm<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::init(
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        LstmParam<OpTensor> &param, Context<X86> &ctx) {
+    int aligned_size_ = 8;
+    aligned_hidden_size_ = (hidden_size_ % aligned_size_) ?
+                           ((hidden_size_ / aligned_size_) + 1) * aligned_size_ : hidden_size_;
+    int delta = aligned_hidden_size_ - hidden_size_;
+    int Wx_stride_l0 = word_size_ * 4 * hidden_size_;
+    int W_stride_l0 = (word_size_ + hidden_size_) * 4 * hidden_size_;
+
+    if (param.skip_input) {
+        if ((4 * hidden_size_) != word_size_) {
+            LOG(ERROR) << "input width should be 4 * hidden_size in skip input mode";
+            return SaberInvalidValue;
+        }
+
+        Wx_stride_l0 = 0;
+        W_stride_l0 = hidden_size_ * 4 * hidden_size_;
+    }
+
+    int Wx_stride_ln = hidden_size_ * 4 * hidden_size_;
+    int W_stride_ln = (hidden_size_ + hidden_size_) * 4 * hidden_size_;
+    int W_stride = W_stride_l0 + (layer_num_ - 1) * W_stride_ln;
     avx2_available_ = jit::mayiuse(jit::avx2);
 
-    DataTensor_in *input = inputs[0];
-
-    const OpTensor *bias = param.bias();
-    int frame_size = input->channel();
-    int hidden_size = outputs[0]->channel();
-
-    // aligned hidden_size with 8 float
-    int aligned_size = 8;
-    this->aligned_hidden_size_ = (hidden_size % aligned_size) ? ((hidden_size / aligned_size) + 1) * aligned_size : hidden_size;
-
-    OpTensor *aligned_weights_data_h = nullptr;
-    if (this->aligned_hidden_size_ != hidden_size) {
-        Shape aligned_w_shape(this->aligned_hidden_size_, this->aligned_hidden_size_ * 4, 1, 1);
-        aligned_weights_data_h = new OpTensor(aligned_w_shape);
+    if (aligned_bias_ == nullptr) {
+        aligned_bias_ = (OpDataType*)zmalloc(direc_num_ * layer_num_ * bias_size_ * aligned_hidden_size_ *
+                                             sizeof(float), 4096);
+    } else {
+        LOG(ERROR) << "aligned bias in init should not be a non-nullptr";
     }
 
-    DataType_op *weights_data = const_cast<DataType_op *>(param.weight()->data());
-    MatrixInfo<DataType_op> *weight_x = nullptr;
-    MatrixInfo<DataType_op> *weight_h = nullptr;
-    MatrixInfo<DataType_op> *weight_h_tmp = nullptr;
-    if (param.skip_input) {
-        // if skip_input is true, the weights just includes [Wih, Wfh, Wch, Wph]
-        weight_h = new MatrixInfo<DataType_op>(weights_data, hidden_size, (hidden_size * 4));
-    }
-    else {
-        // split the weight to two parts: [Wix, Wfx, Wcx, Wox], [Wih, Wfh, Wch, Woh]
-        weight_x = new MatrixInfo<DataType_op>(weights_data, frame_size, (hidden_size * 4));
-        weight_h = new MatrixInfo<DataType_op>((weights_data + frame_size * hidden_size * 4), hidden_size, (hidden_size * 4));
-    }
+    weight_x_packed_.clear();
+    weight_h_packed_.clear();
 
-    if (this->aligned_hidden_size_ != hidden_size) {
-        weight_h_tmp = weight_h;
-        weight_h = new MatrixInfo<DataType_op>(aligned_weights_data_h->mutable_data(), this->aligned_hidden_size_, (this->aligned_hidden_size_ * 4));
-        // do weight align
-        int stride = 0;
-        int diff = this->aligned_hidden_size_ - hidden_size;
-        DataType_op *src = nullptr;
-        DataType_op *dst = nullptr;
-        for (int i = 0; i < this->aligned_hidden_size_; i++) {
-            stride = 4 * (this->aligned_hidden_size_);
+    for (int d = 0; d < direc_num_; d++) {
+        const OpDataType* weights_data = static_cast<const OpDataType*>(param.weight()->data()) + d *
+                                         W_stride;
+        const OpDataType* bias_data = static_cast<const OpDataType*>(param.bias()->data()) + d * layer_num_
+                                      * bias_size_ * hidden_size_;
+        OpDataType* aligned_bias_data = aligned_bias_ + d * layer_num_ * bias_size_ * aligned_hidden_size_;
 
-            dst = weight_h->buf() + i * stride;
-            if (i >= hidden_size) {
-                memset(dst, 0, stride * sizeof(DataType_op));
+        for (int l = 0; l < layer_num_; l++) {
+            // align bias
+            for (int i = 0; i < bias_size_; i++) {
+                memcpy(aligned_bias_data + l * bias_size_ * aligned_hidden_size_ + i * aligned_hidden_size_,
+                       bias_data + l * bias_size_ * hidden_size_ + i * hidden_size_, hidden_size_ * sizeof(float));
+
+                if (delta > 0) {
+                    memset(aligned_bias_data + l * bias_size_ * aligned_hidden_size_ + i * aligned_hidden_size_ +
+                           hidden_size_,
+                           0, delta * sizeof(float));
+                }
+            }
+
+            // align weights
+            OpDataType* aligned_wx_tmp;
+            OpDataType* aligned_wh_tmp;
+            const OpDataType* wx = (l == 0) ? weights_data : weights_data + W_stride_l0 + (l - 1) * W_stride_ln;
+            const OpDataType* wh = (l == 0) ? wx + Wx_stride_l0 : wx + Wx_stride_ln;
+            int Wx_row = (l == 0) ? word_size_ : aligned_hidden_size_;
+
+            if (delta > 0) {
+                aligned_wx_tmp = (OpDataType*)zmalloc(Wx_row * aligned_hidden_size_ * 4 * sizeof(float), 4096);
+                aligned_wh_tmp = (OpDataType*)zmalloc(4 * aligned_hidden_size_ * aligned_hidden_size_ * sizeof(
+                        float), 4096);
+
+                if (!(param.skip_input && l == 0)) {
+                    for (int i = 0; i < Wx_row; i++) {
+                        OpDataType* aligned_row = aligned_wx_tmp + i * aligned_hidden_size_ * 4;
+                        const OpDataType* row = wx + i * hidden_size_ * 4;
+
+                        if (i < hidden_size_ || l == 0) {
+                            for (int j = 0; j < 4; j++) {
+                                memcpy(aligned_row + j * aligned_hidden_size_, row + j * hidden_size_,
+                                       hidden_size_ * sizeof(float));
+                                memset(aligned_row + j * aligned_hidden_size_ + hidden_size_, 0, delta * sizeof(float));
+                            }
+                        } else {
+                            memset(aligned_row, 0, 4 * aligned_hidden_size_ * sizeof(float));
+                        }
+                    }
+                }
+
+                for (int i = 0; i < aligned_hidden_size_; i++) {
+                    OpDataType* aligned_row = aligned_wh_tmp + i * aligned_hidden_size_ * 4;
+                    const OpDataType* row = wh + i * hidden_size_ * 4;
+
+                    if (i < hidden_size_) {
+                        for (int j = 0; j < 4; j++) {
+                            memcpy(aligned_row + j * aligned_hidden_size_, row + j * hidden_size_,
+                                   hidden_size_ * sizeof(float));
+                            memset(aligned_row + j * aligned_hidden_size_ + hidden_size_, 0, delta * sizeof(float));
+                        }
+                    } else {
+                        memset(aligned_row, 0, 4 * aligned_hidden_size_ * sizeof(float));
+                    }
+                }
             } else {
-                src = weight_h_tmp->buf() + i * 4 * hidden_size;
-                for (int j = 0; j < 4; j++) {
-                    memcpy(dst + j * this->aligned_hidden_size_,
-                           src + j * hidden_size, hidden_size * sizeof(DataType_op));
-                    memset(dst + j * this->aligned_hidden_size_ + hidden_size,
-                           0, diff * sizeof(DataType_op));
+                aligned_wx_tmp = const_cast<OpDataType*>(wx);
+                aligned_wh_tmp = const_cast<OpDataType*>(wh);
+            }
+
+            if (batch_size_ > 1) {
+                OpDataType* weight_x_packed_tmp;
+                OpDataType* weight_h_packed_tmp;
+                weight_x_packed_tmp = cblas_sgemm_alloc(CblasBMatrix, inputs[0]->num(), 4 * aligned_hidden_size_,
+                                                        Wx_row);
+
+                if (!weight_x_packed_tmp) {
+                    LOG(ERROR) << "cannot alloc weight_x_packed_ for lstm";
+                    return SaberOutOfMem;
+                }
+
+                cblas_sgemm_pack(CblasRowMajor, CblasBMatrix, CblasNoTrans, inputs[0]->num(),
+                                 4 * aligned_hidden_size_, Wx_row, 1.0,
+                                 aligned_wx_tmp, 4 * aligned_hidden_size_, weight_x_packed_tmp);
+                weight_h_packed_tmp = cblas_sgemm_alloc(CblasBMatrix, 1, 4 * aligned_hidden_size_,
+                                                        aligned_hidden_size_);
+
+                if (!weight_h_packed_tmp) {
+                    LOG(ERROR) << "cannot alloc weight_h_packed_ for lstm";
+                    return SaberOutOfMem;
+                }
+
+                cblas_sgemm_pack(CblasRowMajor, CblasBMatrix, CblasNoTrans, 1, 4 * aligned_hidden_size_,
+                                 aligned_hidden_size_, 1.0,
+                                 aligned_wh_tmp, 4 * aligned_hidden_size_, weight_h_packed_tmp);
+                weight_x_packed_.push_back(weight_x_packed_tmp);
+                weight_h_packed_.push_back(weight_h_packed_tmp);
+
+                if (delta > 0) {
+                    zfree(aligned_wx_tmp);
+                    wx = nullptr;
+                    zfree(aligned_wh_tmp);
+                    wh = nullptr;
+                }
+            }
+
+            if (aligned_wx_tmp != nullptr) {
+                aligned_wx_.push_back(aligned_wx_tmp);
+            }
+
+            if (aligned_wh_tmp != nullptr) {
+                aligned_wh_.push_back(aligned_wh_tmp);
+            }
+        }
+    }
+
+    return create(inputs, outputs, param, ctx);
+}
+template <>
+SaberStatus VenderLstm<X86, AK_FLOAT>::single_batch(
+    const std::vector<OpTensor*>& inputs,
+    std::vector<OpTensor*>& outputs,
+    LstmParam<X86>& param) {
+    int direc_thread = 0;
+    int wave_front_thread_num__num_ = 0;
+    int layer_num_ = param.num_layers;
+    int direc_num_ = param.num_direction;
+    std::vector<std::vector<int>> seq_offset_vec = inputs[0]->get_seq_offset();
+    std::vector<int> seq_offset = seq_offset_vec[seq_offset_vec.size() - 1];
+    int batch_size_ = seq_offset.size() - 1;
+    int word_sum = inputs[0]->num();
+    bool is_reverse = param.is_reverse;
+    int delta = aligned_hidden_size_ - hidden_size_;
+    int bias_size_ = 4;
+
+    if (param.with_peephole) {
+        bias_size_ = 7;
+    }
+
+    int i_offset = 1;
+    int c_offset = 2;
+    int o_offset = 3;
+    OpDataType* out = static_cast<OpDataType*>(outputs[0]->mutable_data());
+    OpDataType* out_c = static_cast<OpDataType*>(outputs[1]->mutable_data());
+    batched_h.set_shape(Shape({direc_num_, layer_num_, word_sum, aligned_hidden_size_}));
+    batched_c.set_shape(Shape({direc_num_, layer_num_, word_sum, aligned_hidden_size_}));
+    // init h
+    aligned_init_hidden_ = (OpDataType*)zmalloc(direc_num_ * layer_num_ * aligned_hidden_size_ * sizeof(
+                               float), 4096);
+    aligned_init_hidden_c = (OpDataType*)zmalloc(direc_num_ * layer_num_ * aligned_hidden_size_ *
+                            sizeof(float), 4096);
+
+    if (param.init_hidden() != nullptr) {
+        CHECK_EQ(param.init_hidden()->valid_shape().count(),
+                 direc_num_ * layer_num_ * hidden_size_ * 2) << "hidden init size not matched";
+
+        for (int d = 0; d < direc_num_; d++) {
+            const OpDataType* h0 = static_cast<const OpDataType*>(param.init_hidden()->data()) + d * layer_num_
+                                   * 2 *  hidden_size_;
+            const OpDataType* c0 = static_cast<const OpDataType*>(param.init_hidden()->data()) + hidden_size_ +
+                                   d * layer_num_ * 2 *
+                                   hidden_size_;
+            OpDataType* aligned_h0 = aligned_init_hidden_ + d * layer_num_ * aligned_hidden_size_;
+            OpDataType* aligned_c0 = aligned_init_hidden_c + d * layer_num_ * aligned_hidden_size_;
+
+            if (delta > 0) {
+                for (int l = 0; l < layer_num_; l++) {
+                    memcpy(aligned_h0 + l * aligned_hidden_size_, h0 + 2 * l * hidden_size_,
+                           hidden_size_ * sizeof(float));
+                    memset(aligned_h0 + l * aligned_hidden_size_ + hidden_size_, 0, delta * sizeof(float));
+                    memcpy(aligned_c0 + l * aligned_hidden_size_, c0 + 2 * l * hidden_size_,
+                           hidden_size_ * sizeof(float));
+                    memset(aligned_c0 + l * aligned_hidden_size_ + hidden_size_, 0, delta * sizeof(float));
+                }
+            } else {
+                for (int l = 0; l < layer_num_; l++) {
+                    memcpy(aligned_h0 + l * aligned_hidden_size_, h0 + 2 * l * hidden_size_,
+                           hidden_size_ * sizeof(float));
+                    memcpy(aligned_c0 + l * aligned_hidden_size_, c0 + 2 * l * hidden_size_,
+                           hidden_size_ * sizeof(float));
+                }
+            }
+        }
+    } else {
+        memset(aligned_init_hidden_, 0, direc_num_ * layer_num_ * aligned_hidden_size_ * sizeof(float));
+        memset(aligned_init_hidden_c, 0, direc_num_ * layer_num_ * aligned_hidden_size_ * sizeof(float));
+    }
+
+    OpDataType* Wx_x = nullptr;
+
+    if (!param.skip_input) {
+        Wx_x = (OpDataType*)zmalloc(direc_num_ * 4 * aligned_hidden_size_ * word_sum * sizeof(float), 4096);
+        memset(Wx_x, 0, direc_num_ * word_sum * 4 * aligned_hidden_size_ * sizeof(float));
+
+        for (int direction = 0; direction < direc_num_; direction++) {
+            cblas_sgemm_compute(CblasRowMajor,
+                                CblasNoTrans,
+                                CblasNoTrans,
+                                word_sum,
+                                4 * aligned_hidden_size_,
+                                word_size_,
+                                static_cast<const OpDataType*>(inputs[0]->data()),
+                                word_size_,
+                                aligned_wx_[direction * layer_num_],
+                                4 * aligned_hidden_size_,
+                                0.f,
+                                Wx_x + direction * word_sum * 4 * aligned_hidden_size_,
+                                4 * aligned_hidden_size_);
+        }
+    }
+
+    // cell_exec start
+    auto cell_exec = [&](int layer_idx, int word_idx, int direction, bool reverse) {
+        OpDataType* p = (OpDataType*)zmalloc(aligned_hidden_size_ * sizeof(float), 4096);
+        OpDataType* act = (OpDataType*)zmalloc(aligned_hidden_size_ * sizeof(float), 4096);
+        word_idx = (reverse) ? (word_sum - 1 - word_idx) : word_idx;
+        const OpDataType* x = (layer_idx == 0) ? static_cast<const OpDataType*>
+                              (inputs[0]->data()) + word_idx * word_size_ :
+                              static_cast <OpDataType*>(batched_h.mutable_data())
+                              + direction * layer_num_ * word_sum * aligned_hidden_size_
+                              + (layer_idx - 1) * word_sum * aligned_hidden_size_ + word_idx * aligned_hidden_size_;
+        const OpDataType* init_h = aligned_init_hidden_ + direction * layer_num_ * aligned_hidden_size_ +
+                                   layer_idx * aligned_hidden_size_;
+        const OpDataType* init_c = aligned_init_hidden_c + direction * layer_num_ * aligned_hidden_size_ +
+                                   layer_idx * aligned_hidden_size_;
+        const OpDataType* bias = aligned_bias_ + direction * layer_num_ * bias_size_ * aligned_hidden_size_
+                                 + layer_idx * bias_size_ * aligned_hidden_size_;
+        OpDataType* xx = static_cast<OpDataType*>(batched_xx.mutable_data()) + direction * layer_num_ *
+                         word_sum * 4 *
+                         aligned_hidden_size_ +
+                         layer_idx * word_sum * 4 * aligned_hidden_size_ + word_idx * 4 * aligned_hidden_size_;
+        OpDataType* ht = static_cast<OpDataType*>(batched_h.mutable_data()) + direction * layer_num_ *
+                         word_sum * aligned_hidden_size_
+                         +
+                         layer_idx * word_sum * aligned_hidden_size_ + word_idx * aligned_hidden_size_;
+        OpDataType* ct = static_cast<OpDataType*>(batched_c.mutable_data()) + direction * layer_num_ *
+                         word_sum * aligned_hidden_size_
+                         +
+                         layer_idx * word_sum * aligned_hidden_size_ + word_idx * aligned_hidden_size_;
+        const OpDataType* ht_1 = nullptr;
+        const OpDataType* ct_1 = nullptr;
+
+        if (reverse) {
+            ht_1 = (word_idx == (word_sum - 1)) ? init_h : static_cast<OpDataType*>
+                   (batched_h.mutable_data()) + direction * layer_num_ *
+                   word_sum * aligned_hidden_size_ +
+                   layer_idx * word_sum * aligned_hidden_size_ + (word_idx + 1) * aligned_hidden_size_;
+            ct_1 = (word_idx == (word_sum - 1)) ? init_c : static_cast<OpDataType*>
+                   (batched_c.mutable_data()) + direction * layer_num_ *
+                   word_sum * aligned_hidden_size_ +
+                   layer_idx * word_sum * aligned_hidden_size_ + (word_idx + 1) * aligned_hidden_size_;
+        } else {
+            ht_1 = (word_idx == 0) ? init_h : static_cast<OpDataType*>(batched_h.mutable_data()) + direction *
+                   layer_num_ * word_sum *
+                   aligned_hidden_size_ +
+                   layer_idx * word_sum * aligned_hidden_size_ + (word_idx - 1) * aligned_hidden_size_;
+            ct_1 = (word_idx == 0) ? init_c : static_cast<OpDataType*>(batched_c.mutable_data()) + direction *
+                   layer_num_ * word_sum *
+                   aligned_hidden_size_ +
+                   layer_idx * word_sum * aligned_hidden_size_ + (word_idx - 1) * aligned_hidden_size_;
+        }
+
+        int x_stride = (layer_idx == 0) ? word_size_ : aligned_hidden_size_;
+
+        if (layer_idx == 0) {
+            // xx += bias
+            if (param.skip_input) {
+                if (delta > 0) {
+                    for (int i = 0; i < 4; i++) {
+                        memcpy(xx + i * aligned_hidden_size_, x + i * hidden_size_, hidden_size_ * sizeof(float));
+                        memset(xx + i * aligned_hidden_size_ + hidden_size_, 0, delta * sizeof(float));
+                    }
+                } else {
+                    memcpy(xx, x, word_size_ * sizeof(float));
+                }
+            } else {
+                // non skip input
+                memcpy(xx, Wx_x + direction * 4 * aligned_hidden_size_ * word_sum + word_idx * 4 *
+                       aligned_hidden_size_, 4 * aligned_hidden_size_ * sizeof(float));
+            }
+        } else {
+            cblas_sgemm(CblasRowMajor,
+                        CblasNoTrans,
+                        CblasNoTrans,
+                        1,
+                        4 * aligned_hidden_size_,
+                        x_stride,
+                        1,
+                        x,
+                        x_stride,
+                        aligned_wx_[direction * layer_num_ + layer_idx],
+                        4 * aligned_hidden_size_,
+                        0.f,
+                        xx,
+                        4 * aligned_hidden_size_);
+        }
+
+        cblas_sgemm(CblasRowMajor,
+                    CblasNoTrans,
+                    CblasNoTrans,
+                    1,
+                    4 * aligned_hidden_size_,
+                    aligned_hidden_size_,
+                    1,
+                    ht_1,
+                    aligned_hidden_size_,
+                    aligned_wh_[direction * layer_num_ + layer_idx],
+                    4 * aligned_hidden_size_,
+                    1.f,
+                    xx,
+                    4 * aligned_hidden_size_);
+
+        if (param.with_peephole) {
+            // caculate ft
+            vsMul(aligned_hidden_size_, ct_1, bias + 4 *  aligned_hidden_size_, p);
+            cblas_saxpby(aligned_hidden_size_, 1, p, 1, 1, xx, 1);
+            // caculate it
+            vsMul(aligned_hidden_size_, ct_1, bias + (4 + i_offset) * aligned_hidden_size_, p);
+            cblas_saxpby(aligned_hidden_size_, 1, p, 1, 1, xx + i_offset * aligned_hidden_size_, 1);
+        }
+
+        // xx += bias
+        cblas_saxpy(4 * aligned_hidden_size_, 1, bias, 1, xx, 1);
+#if defined(__AVX2__) and defined(__FMA__)
+
+        // compute forget gate input gate and Cct
+        if (avx2_available_) {
+            __m256* ft = (__m256*)(xx);
+            __m256* it = (__m256*)(xx + i_offset * aligned_hidden_size_);
+            __m256* Cct = (__m256*)(xx + c_offset * aligned_hidden_size_);
+            __m256* ct_temp = (__m256*)(ct);
+            __m256* ct_1_temp = (__m256*)(ct_1);
+
+            for (int i = 0; i < aligned_hidden_size_ / 8; ++i) {
+                ft[i] = Activate_inner(ft[i], param.gate_activity);
+                it[i] = Activate_inner(it[i], param.gate_activity);
+                Cct[i] = Activate_inner(Cct[i], param.candidate_activity);
+                ct_temp[i] = Cct[i] * ft[i] + ct_1_temp[i] * it[i];
+            }
+        } else {
+            float* ft = (float*)(xx);
+            float* it = (float*)(xx + i_offset * aligned_hidden_size_);
+            float* Cct = (float*)(xx + c_offset * aligned_hidden_size_);
+            float* ct_temp = (float*)(ct);
+            float* ct_1_temp = (float*)(ct_1);
+
+            for (int i = 0; i < aligned_hidden_size_; ++i) {
+                ft[i] = Activate_inner(ft[i], param.gate_activity);
+                it[i] = Activate_inner(it[i], param.gate_activity);
+                Cct[i] = Activate_inner(Cct[i], param.candidate_activity);
+                ct_temp[i] = Cct[i] * ft[i] + ct_1_temp[i] * it[i];
+            }
+        }
+
+#else
+        float* ft = (float*)(xx);
+        float* it = (float*)(xx + i_offset * aligned_hidden_size_);
+        float* Cct = (float*)(xx + c_offset * aligned_hidden_size_);
+        float* ct_temp = (float*)(ct);
+        float* ct_1_temp = (float*)(ct_1);
+
+        for (int i = 0; i < aligned_hidden_size_; ++i) {
+            ft[i] = Activate_inner(ft[i], param.gate_activity);
+            it[i] = Activate_inner(it[i], param.gate_activity);
+            Cct[i] = Activate_inner(Cct[i], param.candidate_activity);
+            ct_temp[i] = Cct[i] * ft[i] + ct_1_temp[i] * it[i];
+        }
+
+#endif
+
+        // peephole for ot
+        if (param.with_peephole) {
+            // p = Ct * Woc
+            vsMul(aligned_hidden_size_, ct, bias + 6 * aligned_hidden_size_, p);
+            // Wo[ht_1, xt] + Ct * Woc
+            cblas_saxpby(aligned_hidden_size_, 1, p, 1, 1, xx + o_offset * aligned_hidden_size_, 1);
+        }
+
+        memcpy(act, ct, aligned_hidden_size_ * sizeof(float));
+        // compute output gate
+#if defined(__AVX2__) and defined(__FMA__)
+
+        if (avx2_available_) {
+            __m256* ot = (__m256*)(xx + o_offset * aligned_hidden_size_);
+            __m256* Hht = (__m256*)(act);
+            __m256* ht_temp = (__m256*)(ht);
+
+            for (int i = 0; i < aligned_hidden_size_ / 8; ++i) {
+                ot[i] = Activate_inner(ot[i], param.gate_activity);
+                Hht[i] = Activate_inner(Hht[i], param.cell_activity);
+                ht_temp[i] = ot[i] * Hht[i];
+            }
+        } else {
+            float* ot = (float*)(xx + o_offset * aligned_hidden_size_);
+            float* Hht = (float*)(act);
+            float* ht_temp = (float*)(ht);
+
+            for (int i = 0; i < aligned_hidden_size_; ++i) {
+                ot[i] = Activate_inner(ot[i], param.gate_activity);
+                Hht[i] = Activate_inner(Hht[i], param.cell_activity);
+                ht_temp[i] = ot[i] * Hht[i];
+            }
+        }
+
+#else
+        float* ot = (float*)(xx + o_offset * aligned_hidden_size_);
+        float* Hht = (float*)(act);
+        float* ht_temp = (float*)(ht);
+
+        for (int i = 0; i < aligned_hidden_size_; ++i) {
+            ot[i] = Activate_inner(ot[i], param.gate_activity);
+            Hht[i] = Activate_inner(Hht[i], param.cell_activity);
+            ht_temp[i] = ot[i] * Hht[i];
+        }
+
+#endif
+
+        if (p) {
+            zfree(p);
+            p = nullptr;
+        }
+
+        if (act) {
+            zfree(act);
+            act = nullptr;
+        }
+    };
+    int min_dim, max_dim;
+    bool l_gt_t;
+
+    if (layer_num_ > word_sum) {
+        min_dim = word_sum;
+        max_dim = layer_num_;
+        l_gt_t = true;
+    } else {
+        min_dim = layer_num_;
+        max_dim = word_sum;
+        l_gt_t = false;
+    }
+
+    wave_front_thread_num_ = min_dim < (max_thread_num_ / direc_num_) ? min_dim :
+                             (max_thread_num_ / direc_num_);
+    mkl_thread_num_ = max_thread_num_ / (wave_front_thread_num_ * direc_num_) > 1 ? max_thread_num_ /
+                      (wave_front_thread_num_ * direc_num_) : 1;
+
+    // in single layer condition
+    if (layer_num_ == 1) {
+        wave_front_thread_num_ = 1;
+        direction_parallel_num_ = 1;
+        mkl_thread_num_ = max_thread_num_ / direc_num_;
+        // in multilayer and long sequence condition
+    } else if (layer_num_ >= 3 && word_sum > 14) {
+        mkl_thread_num_ = 1;
+    }
+
+    mkl_set_num_threads(mkl_thread_num_);
+    // omp_set_num_threads(1);
+    auto grid_exec = [&](int direction, bool reverse) {
+        #pragma omp parallel num_threads(wave_front_thread_num_)
+        {
+            for (int n = 0; n < min_dim; n++) {
+                #pragma omp for
+
+                for (int t = 0; t <= n; t++) {
+                    cell_exec(n - t, t, direction, reverse);
+                }
+            }
+
+            for (int n = 0; n < max_dim - min_dim; n++) {
+                #pragma omp for
+
+                for (int t = 0; t < min_dim; t++) {
+                    if (l_gt_t) {
+                        cell_exec(min_dim + n - t, t, direction, reverse);
+                    } else {
+                        cell_exec(t, min_dim + n - t, direction, reverse);
+                    }
+                }
+            }
+
+            for (int n = min_dim - 1; n > 0; n--) {
+                #pragma omp for
+
+                for (int t = 0; t < n; t++) {
+                    cell_exec(layer_num_ - n + t, word_sum - t - 1, direction, reverse);
+                }
+            }
+        }
+    };
+
+    if (direc_num_ == 1) {
+        grid_exec(0, is_reverse);
+    } else {
+        #pragma omp parallel sections num_threads(direction_parallel_num_)
+        {
+            #pragma omp section
+            {
+                grid_exec(0, false);
+            }
+            #pragma omp section
+            {
+                grid_exec(1, true);
+            }
+        }
+    }
+
+    outputs[0]->re_alloc(Shape({word_sum, direc_num_ * hidden_size_, 1, 1}));
+    outputs[0]->reshape(Shape({word_sum, direc_num_ * hidden_size_, 1, 1}));
+    out = static_cast<OpDataType*>(outputs[0]->mutable_data());
+    #pragma omp parallel for
+
+    for (int d = 0; d < direc_num_; d++) {
+        for (int i = 0; i < word_sum; i++) {
+            int in_start = i * aligned_hidden_size_;
+            int out_start = i * direc_num_ * hidden_size_ + d * hidden_size_;
+            memcpy(out + out_start, static_cast<OpDataType*>(batched_h.mutable_data()) +
+                   d * layer_num_ * word_sum * aligned_hidden_size_ +
+                   (layer_num_ - 1) * word_sum * aligned_hidden_size_ + in_start,
+                   hidden_size_ * sizeof(float));
+            memcpy(out_c + out_start, static_cast<OpDataType*>(batched_c.mutable_data()) +
+                   d * layer_num_ * word_sum * aligned_hidden_size_ +
+                   (layer_num_ - 1) * word_sum * aligned_hidden_size_ + in_start,
+                   hidden_size_ * sizeof(float));
+        }
+    }
+
+    if (Wx_x) {
+        zfree(Wx_x);
+        Wx_x = nullptr;
+    }
+
+    return SaberSuccess;
+}
+template <>
+SaberStatus VenderLstm<X86, AK_FLOAT>::dispatch(
+    const std::vector<OpTensor*>& inputs,
+    std::vector<OpTensor*>& outputs,
+    LstmParam<X86>& param) {
+    int layer_num_ = param.num_layers;
+    int direc_num_ = param.num_direction;
+    std::vector<std::vector<int>> seq_offset_vec = inputs[0]->get_seq_offset();
+    std::vector<int> seq_offset = seq_offset_vec[seq_offset_vec.size() - 1];
+    int batch_size_ = seq_offset.size() - 1;
+    int word_sum = inputs[0]->num();
+    bool is_reverse = param.is_reverse;
+    int delta = aligned_hidden_size_ - hidden_size_;
+    int bias_size_ = 4;
+
+    if (param.with_peephole) {
+        bias_size_ = 7;
+    }
+
+    int i_offset = 1;
+    int c_offset = 2;
+    int o_offset = 3;
+    omp_set_nested(1);
+    mkl_set_dynamic(0);
+
+    if (batch_size_ == 1) {
+        return single_batch(inputs, outputs, param);
+    } else {
+        // sequence to batch
+        batched_h.set_shape(Shape({direc_num_, layer_num_, word_sum, aligned_hidden_size_}));
+        batched_c.set_shape(Shape({direc_num_, layer_num_, word_sum, aligned_hidden_size_}));
+        batched_x.set_shape(Shape({word_sum, word_size_, 1, 1}));
+        batched_xx.set_shape(Shape({direc_num_, layer_num_, inputs[0]->num(), 4 * aligned_hidden_size_}));
+        std::vector<std::vector<int>> seq_to_batch_meta;
+        std::vector<std::vector<int>> seq_to_batch_reverse_meta;
+        seq_to_batch_meta.push_back(seq_offset);
+        math::Seq2BatchFunctor<AK_FLOAT, NCHW> to_batch;
+
+        if (direc_num_ == 1) {
+            to_batch(inputs[0], &batched_x, seq_to_batch_meta, true, is_reverse, 1);
+        } else {
+            seq_to_batch_reverse_meta.push_back(seq_offset);
+            batched_x_reverse.set_shape(Shape({word_sum, word_size_, 1, 1}));
+            to_batch(inputs[0], &batched_x, seq_to_batch_meta, true, false, 1);
+            to_batch(inputs[0], &batched_x_reverse, seq_to_batch_reverse_meta, true, true, 1);
+        }
+
+        auto bat_offset = seq_to_batch_meta[0];
+        size_t bat_num = bat_offset.size() - 1;
+        // init h
+        aligned_init_hidden_ = (OpDataType*)zmalloc(direc_num_ * layer_num_ * batch_size_ *
+                               aligned_hidden_size_ * sizeof(float), 4096);
+        aligned_init_hidden_c = (OpDataType*)zmalloc(direc_num_ * layer_num_ * batch_size_ *
+                                aligned_hidden_size_ * sizeof(float), 4096);
+
+        if (param.init_hidden() != nullptr) {
+            CHECK_EQ(param.init_hidden()->valid_shape().count(),
+                     direc_num_ * layer_num_ * batch_size_ * 2 * hidden_size_) << "hidden init size not matched";
+            std::vector<int> order(seq_to_batch_meta[2]);
+
+            for (int d = 0; d < direc_num_; d++) {
+                const OpDataType* h0 = static_cast<const OpDataType*>(param.init_hidden()->data()) + d * layer_num_
+                                       * 2 * batch_size_ *
+                                       hidden_size_;
+                OpDataType* aligned_h0 = aligned_init_hidden_ + d * layer_num_ * batch_size_ * aligned_hidden_size_;
+                const OpDataType* c0 = static_cast<const OpDataType*>(param.init_hidden()->data()) + d * layer_num_
+                                       * 2 * batch_size_ * hidden_size_
+                                       + batch_size_ * hidden_size_;
+                OpDataType* aligned_c0 = aligned_init_hidden_c + d * layer_num_ * batch_size_ *
+                                         aligned_hidden_size_;
+
+                if (delta > 0) {
+                    for (int l = 0; l < layer_num_; l++) {
+                        for (int i = 0; i < batch_size_; i++) {
+                            memcpy(aligned_h0 + l * batch_size_ * aligned_hidden_size_ + i * aligned_hidden_size_,
+                                   h0 + l * 2 * batch_size_ * hidden_size_ + order[i] * hidden_size_, hidden_size_ * sizeof(float));
+                            memset(aligned_h0 + l * batch_size_ * aligned_hidden_size_ + hidden_size_, 0,
+                                   delta * sizeof(float));
+                            memcpy(aligned_c0 + l * batch_size_ * aligned_hidden_size_ + i * aligned_hidden_size_,
+                                   c0 + l * 2 * batch_size_ * hidden_size_ + order[i] * hidden_size_, hidden_size_ * sizeof(float));
+                            memset(aligned_c0 + l * batch_size_ * aligned_hidden_size_ + hidden_size_, 0,
+                                   delta * sizeof(float));
+                        }
+                    }
+                } else {
+                    for (int l = 0; l < layer_num_; l++) {
+                        for (int i = 0; i < batch_size_; i++) {
+                            memcpy(aligned_h0 + l * batch_size_ * aligned_hidden_size_ + i * aligned_hidden_size_,
+                                   h0 + l * 2 * batch_size_ * hidden_size_ + order[i] * hidden_size_, hidden_size_ * sizeof(float));
+                            memcpy(aligned_c0 + l * batch_size_ * aligned_hidden_size_ + i * aligned_hidden_size_,
+                                   c0 + l * 2 * batch_size_ * hidden_size_ + order[i] * hidden_size_, hidden_size_ * sizeof(float));
+                        }
+                    }
+                }
+            }
+        } else {
+            memset(aligned_init_hidden_, 0,
+                   direc_num_ * layer_num_ * batch_size_ * aligned_hidden_size_ * sizeof(float));
+            memset(aligned_init_hidden_c, 0,
+                   direc_num_ * layer_num_ * batch_size_ * aligned_hidden_size_ * sizeof(float));
+        }
+
+        // cell execution start
+        auto cell_exec = [&](int layer_idx, int word_idx, int direction) {
+            OpDataType* p = (OpDataType*)zmalloc(aligned_hidden_size_ * sizeof(float), 4096);
+            OpDataType* act = (OpDataType*)zmalloc(aligned_hidden_size_ * sizeof(float), 4096);
+            int bat_start = bat_offset[word_idx];
+            int bat_end = bat_offset[word_idx + 1];
+            int bat_length = bat_end - bat_start;
+            const OpDataType* batched_x_data = (direction == 0) ? static_cast<const OpDataType*>
+                                               (batched_x.data()) : static_cast<const OpDataType*>(batched_x_reverse.data());
+            const OpDataType* x = (layer_idx == 0) ? batched_x_data + bat_start * word_size_ :
+                                  static_cast< OpDataType*>(batched_h.mutable_data())
+                                  + direction * layer_num_ * word_sum * aligned_hidden_size_
+                                  + (layer_idx - 1) * word_sum * aligned_hidden_size_ + bat_start * aligned_hidden_size_;
+            const OpDataType* init_h = aligned_init_hidden_ + direction * layer_num_ * batch_size_ *
+                                       aligned_hidden_size_
+                                       + layer_idx * batch_size_ * aligned_hidden_size_;
+            const OpDataType* init_c = aligned_init_hidden_c + direction * layer_num_ * batch_size_ *
+                                       aligned_hidden_size_
+                                       + layer_idx * batch_size_ * aligned_hidden_size_;
+            const OpDataType* bias = aligned_bias_ + direction * layer_num_ * bias_size_ * aligned_hidden_size_
+                                     + layer_idx
+                                     * bias_size_ * aligned_hidden_size_;
+            OpDataType* xx = static_cast<OpDataType*>(batched_xx.mutable_data()) + direction * layer_num_ *
+                             word_sum * 4 *
+                             aligned_hidden_size_ +
+                             layer_idx * word_sum * 4 * aligned_hidden_size_ + bat_start * 4 * aligned_hidden_size_;
+            const OpDataType* ht_1 = (word_idx == 0) ? init_h : static_cast<OpDataType*>
+                                     (batched_h.mutable_data()) + direction *
+                                     layer_num_ * word_sum * aligned_hidden_size_ +
+                                     layer_idx * word_sum * aligned_hidden_size_ + bat_offset[word_idx - 1] * aligned_hidden_size_;
+            const OpDataType* ct_1 = (word_idx == 0) ? init_c : static_cast<OpDataType*>
+                                     (batched_c.mutable_data()) + direction *
+                                     layer_num_ * word_sum * aligned_hidden_size_ +
+                                     layer_idx * word_sum * aligned_hidden_size_ + bat_offset[word_idx - 1] * aligned_hidden_size_;
+            OpDataType* ht = static_cast<OpDataType*>(batched_h.mutable_data()) + direction * layer_num_ *
+                             word_sum * aligned_hidden_size_
+                             +
+                             layer_idx * word_sum * aligned_hidden_size_ + bat_start * aligned_hidden_size_;
+            OpDataType* ct = static_cast<OpDataType*>(batched_c.mutable_data()) + direction * layer_num_ *
+                             word_sum * aligned_hidden_size_
+                             +
+                             layer_idx * word_sum * aligned_hidden_size_ + bat_start * aligned_hidden_size_;
+            int x_stride = (layer_idx == 0) ? word_size_ : aligned_hidden_size_;
+
+            if (layer_idx == 0 && param.skip_input) {
+                // xx += bias
+                if (delta > 0) {
+                    for (int i = 0; i < bat_length; i++) {
+                        for (int j = 0; j < 4; j++) {
+                            memcpy(xx + i * 4 * aligned_hidden_size_ + j * aligned_hidden_size_,
+                                   x + i * 4 * hidden_size_ + j * hidden_size_,
+                                   hidden_size_ * sizeof(float));
+                            memset(xx + i * 4 * aligned_hidden_size_ + j * aligned_hidden_size_ + hidden_size_,
+                                   0, delta * sizeof(float));
+                        }
+                    }
+                } else {
+                    cblas_saxpy(bat_length * word_size_, 1, x, 0, xx, 1);
+                }
+            } else {
+                cblas_sgemm_compute(CblasRowMajor,
+                                    CblasNoTrans,
+                                    CblasPacked,
+                                    bat_length,
+                                    4 * aligned_hidden_size_,
+                                    x_stride,
+                                    x,
+                                    x_stride,
+                                    weight_x_packed_[direction * layer_num_ + layer_idx],
+                                    4 * aligned_hidden_size_,
+                                    0.f,
+                                    xx,
+                                    4 * aligned_hidden_size_);
+            }
+
+            // batched_xx += ht_1 * Wh
+            cblas_sgemm_compute(CblasRowMajor,
+                                CblasNoTrans,
+                                CblasPacked,
+                                bat_length,
+                                4 * aligned_hidden_size_,
+                                aligned_hidden_size_,
+                                ht_1,
+                                aligned_hidden_size_,
+                                weight_h_packed_[direction * layer_num_ + layer_idx],
+                                4 * aligned_hidden_size_,
+                                1.f,
+                                xx,
+                                4 * aligned_hidden_size_);
+
+            // batched_xx += bias
+            for (int s = 0; s < bat_length; s++) {
+                cblas_saxpy(4 * aligned_hidden_size_, 1, bias, 1, xx + s * 4 * aligned_hidden_size_, 1);
+            }
+
+            // compute four gate
+#if defined(__AVX2__) and defined(__FMA__)
+
+            if (avx2_available_) {
+                for (int s = 0; s < bat_length; s++) {
+                    const OpDataType* cit_1 = ct_1 + s * aligned_hidden_size_;
+                    OpDataType* cit = ct + s * aligned_hidden_size_;
+
+                    if (param.with_peephole) {
+                        // caculate ft
+                        vsMul(aligned_hidden_size_, cit_1, bias + 4 * aligned_hidden_size_, p);
+                        cblas_saxpby(aligned_hidden_size_, 1, p, 1, 1, xx + s * 4 * aligned_hidden_size_, 1);
+                        // caculate it
+                        vsMul(aligned_hidden_size_, cit_1, bias + (4 + i_offset) * aligned_hidden_size_, p);
+                        cblas_saxpby(aligned_hidden_size_, 1, p, 1, 1,
+                                     xx + i_offset * aligned_hidden_size_ + s * 4 * aligned_hidden_size_, 1);
+                    }
+
+                    __m256* ft = (__m256*)(xx + s * 4 * aligned_hidden_size_);
+                    __m256* it = (__m256*)(xx + s * 4 * aligned_hidden_size_ + i_offset * aligned_hidden_size_);
+                    __m256* Cct = (__m256*)(xx + s * 4 * aligned_hidden_size_ + c_offset * aligned_hidden_size_);
+                    __m256* m_cit = (__m256*)(cit);
+                    __m256* m_cit_1 = (__m256*)(cit_1);
+
+                    for (int i = 0; i < aligned_hidden_size_ / 8; ++i) {
+                        ft[i] = Activate_inner(ft[i], param.gate_activity);
+                        it[i] = Activate_inner(it[i], param.gate_activity);
+                        Cct[i] = Activate_inner(Cct[i], param.candidate_activity);
+                        m_cit[i] = ft[i] * Cct[i] + it[i] * m_cit_1[i];
+                    }
+
+                    // peephole for ot
+                    if (param.with_peephole) {
+                        // p = Ct * Woc
+                        vsMul(aligned_hidden_size_, cit, bias + 6 * aligned_hidden_size_, p);
+                        // Wo[ht_1, xt] + Ct * Woc
+                        cblas_saxpby(aligned_hidden_size_, 1, p, 1, 1,
+                                     xx + s * 4 * aligned_hidden_size_ + o_offset * aligned_hidden_size_, 1);
+                    }
+
+                    memcpy(act, cit, aligned_hidden_size_ * sizeof(float));
+                    // compute output gate
+                    __m256* ot = (__m256*)(xx + s * 4 * aligned_hidden_size_ + o_offset * aligned_hidden_size_);
+                    __m256* Hht = (__m256*)(act);
+                    __m256* hit_temp = (__m256*)(ht + s * aligned_hidden_size_);
+
+                    for (int i = 0; i < aligned_hidden_size_ / 8; ++i) {
+                        ot[i] = Activate_inner(ot[i], param.gate_activity);
+                        Hht[i] = Activate_inner(Hht[i], param.cell_activity);
+                        hit_temp[i] = ot[i] * Hht[i];
+                    }
+                }
+            } else {
+                for (int s = 0; s < bat_length; s++) {
+                    const OpDataType* cit_1 = ct_1 + s * aligned_hidden_size_;
+                    OpDataType* cit = ct + s * aligned_hidden_size_;
+                    OpDataType* hit = ht + s * aligned_hidden_size_;
+
+                    if (param.with_peephole) {
+                        // caculate ft
+                        vsMul(aligned_hidden_size_, cit_1, bias + 4 * aligned_hidden_size_, p);
+                        cblas_saxpby(aligned_hidden_size_, 1, p, 1, 1, xx + s * 4 * aligned_hidden_size_, 1);
+                        // caculate it
+                        vsMul(aligned_hidden_size_, cit_1, bias + (4 + i_offset) * aligned_hidden_size_, p);
+                        cblas_saxpby(aligned_hidden_size_, 1, p, 1, 1,
+                                     xx + i_offset * aligned_hidden_size_ + s * 4 * aligned_hidden_size_, 1);
+                    }
+
+                    float* ft = (float*)(xx + s * 4 * aligned_hidden_size_);
+                    float* it = (float*)(xx + s * 4 * aligned_hidden_size_ + i_offset * aligned_hidden_size_);
+                    float* Cct = (float*)(xx + s * 4 * aligned_hidden_size_ + c_offset * aligned_hidden_size_);
+                    float* m_cit = (float*)(cit);
+                    float* m_cit_1 = (float*)(cit_1);
+
+                    for (int i = 0; i < aligned_hidden_size_; ++i) {
+                        ft[i] = Activate_inner(ft[i], param.gate_activity);
+                        it[i] = Activate_inner(it[i], param.gate_activity);
+                        Cct[i] = Activate_inner(Cct[i], param.candidate_activity);
+                        m_cit[i] = ft[i] * Cct[i] + it[i] * m_cit_1[i];
+                    }
+
+                    // peephole for ot
+                    if (param.with_peephole) {
+                        // p = Ct * Woc
+                        vsMul(aligned_hidden_size_, cit, bias + 6 * aligned_hidden_size_, p);
+                        // Wo[ht_1, xt] + Ct * Woc
+                        cblas_saxpby(aligned_hidden_size_, 1, p, 1, 1,
+                                     xx + s * 4 * aligned_hidden_size_ + o_offset * aligned_hidden_size_, 1);
+                    }
+
+                    memcpy(act, cit, aligned_hidden_size_ * sizeof(float));
+                    float* ot = (float*)(xx + s * 4 * aligned_hidden_size_ + o_offset * aligned_hidden_size_);
+                    float* Hht = (float*)(act);
+                    float* hit_temp = (float*)(ht + s * aligned_hidden_size_);
+
+                    for (int i = 0; i < aligned_hidden_size_; ++i) {
+                        ot[i] = Activate_inner(ot[i], param.gate_activity);
+                        Hht[i] = Activate_inner(Hht[i], param.cell_activity);
+                        hit_temp[i] = ot[i] * Hht[i];
+                    }
+                }
+            }
+
+#else
+
+        for (int s = 0; s < bat_length; s++) {
+            const OpDataType* cit_1 = ct_1 + s * aligned_hidden_size_;
+            OpDataType* cit = ct + s * aligned_hidden_size_;
+            OpDataType* hit = ht + s * aligned_hidden_size_;
+
+            if (param.with_peephole) {
+                // caculate ft
+                vsMul(aligned_hidden_size_, cit_1, bias + 4 * aligned_hidden_size_, p);
+                cblas_saxpby(aligned_hidden_size_, 1, p, 1, 1, xx + s * 4 * aligned_hidden_size_, 1);
+                // caculate it
+                vsMul(aligned_hidden_size_, cit_1, bias + (4 + i_offset) * aligned_hidden_size_, p);
+                cblas_saxpby(aligned_hidden_size_, 1, p, 1, 1,
+                             xx + i_offset * aligned_hidden_size_ + s * 4 * aligned_hidden_size_, 1);
+            }
+
+            float* ft = (float*)(xx + s * 4 * aligned_hidden_size_);
+            float* it = (float*)(xx + s * 4 * aligned_hidden_size_ + i_offset * aligned_hidden_size_);
+            float* Cct = (float*)(xx + s * 4 * aligned_hidden_size_ + c_offset * aligned_hidden_size_);
+            float* m_cit = (float*)(cit);
+            float* m_cit_1 = (float*)(cit_1);
+
+            for (int i = 0; i < aligned_hidden_size_; ++i) {
+                ft[i] = Activate_inner(ft[i], param.gate_activity);
+                it[i] = Activate_inner(it[i], param.gate_activity);
+                Cct[i] = Activate_inner(Cct[i], param.candidate_activity);
+                m_cit[i] = ft[i] * Cct[i] + it[i] * m_cit_1[i];
+            }
+
+            // peephole for ot
+            if (param.with_peephole) {
+                // p = Ct * Woc
+                vsMul(aligned_hidden_size_, cit, bias + 6 * aligned_hidden_size_, p);
+                // Wo[ht_1, xt] + Ct * Woc
+                cblas_saxpby(aligned_hidden_size_, 1, p, 1, 1,
+                             xx + s * 4 * aligned_hidden_size_ + o_offset * aligned_hidden_size_, 1);
+            }
+
+            memcpy(act, cit, aligned_hidden_size_ * sizeof(float));
+            float* ot = (float*)(xx + s * 4 * aligned_hidden_size_ + o_offset * aligned_hidden_size_);
+            float* Hht = (float*)(act);
+            float* hit_temp = (float*)(ht + s * aligned_hidden_size_);
+
+            for (int i = 0; i < aligned_hidden_size_; ++i) {
+                ot[i] = Activate_inner(ot[i], param.gate_activity);
+                Hht[i] = Activate_inner(Hht[i], param.cell_activity);
+                hit_temp[i] = ot[i] * Hht[i];
+            }
+        }
+
+#endif
+
+            if (p) {
+                zfree(p);
+                p = nullptr;
+            }
+
+            if (act) {
+                zfree(act);
+                act = nullptr;
+            }
+        };
+        // cell execution end
+        int min_dim, max_dim;
+        bool l_gt_t;
+
+        if (layer_num_ > bat_num) {
+            min_dim = bat_num;
+            max_dim = layer_num_;
+            l_gt_t = true;
+        } else {
+            min_dim = layer_num_;
+            max_dim = bat_num;
+            l_gt_t = false;
+        }
+
+        wave_front_thread_num_ = min_dim < (max_thread_num_ / direc_num_) ? min_dim :
+                                 (max_thread_num_ / direc_num_);
+        mkl_thread_num_ = max_thread_num_ / (wave_front_thread_num_ * direc_num_) > 1 ? max_thread_num_ /
+                          (wave_front_thread_num_ * direc_num_) : 1;
+
+        // in single layer condition
+        if (layer_num_ == 1) {
+            wave_front_thread_num_ = 1;
+            direction_parallel_num_ = 1;
+            mkl_thread_num_ = max_thread_num_ / direc_num_;
+            // in multilayer and long sequence condition
+        } else if (layer_num_ >= 3 && bat_num > 14) {
+            mkl_thread_num_ = 1;
+        }
+
+        mkl_set_num_threads(mkl_thread_num_);
+        // omp_set_num_threads(wave_front_thread_num_);
+        auto grid_exec = [&](int direction) {
+            #pragma omp parallel num_threads(wave_front_thread_num_)
+            {
+                for (int n = 0; n < min_dim; n++) {
+                    #pragma omp for
+
+                    for (int t = 0; t <= n; t++) {
+                        cell_exec(n - t, t, direction);
+                    }
+                }
+
+                for (int n = 0; n < max_dim - min_dim; n++) {
+                    #pragma omp for
+
+                    for (int t = 0; t < min_dim; t++) {
+                        if (l_gt_t) {
+                            cell_exec(min_dim + n - t, t, direction);
+                        } else {
+                            cell_exec(t, min_dim + n - t, direction);
+                        }
+                    }
+                }
+
+                for (int n = min_dim - 1; n > 0; n--) {
+                    #pragma omp for
+
+                    for (int t = 0; t < n; t++) {
+                        cell_exec(layer_num_ - n + t, bat_num - t - 1, direction);
+                    }
+                }
+            }
+        };
+
+        if (direc_num_ == 1) {
+            grid_exec(0);
+        } else {
+            #pragma omp parallel sections num_threads(direction_parallel_num_)
+            {
+                #pragma omp section
+                {
+                    grid_exec(0);
+                }
+                #pragma omp section
+                {
+                    grid_exec(1);
                 }
             }
         }
 
-        delete weight_h_tmp;
-    }
+        outputs[0]->re_alloc(Shape({word_sum, direc_num_ * hidden_size_, 1, 1}));
+        outputs[0]->reshape(Shape({word_sum, direc_num_ * hidden_size_, 1, 1}));
+        // batch to sequence
+        OpTensor batched_out(static_cast<OpDataType*>(batched_h.mutable_data()) + (layer_num_ - 1)
+                             * word_sum * aligned_hidden_size_, X86(), 0, Shape({word_sum, aligned_hidden_size_, 1, 1}));
+        OpTensor batched_out_c(static_cast<OpDataType*>(batched_c.mutable_data()) + (layer_num_ - 1)
+                               * word_sum * aligned_hidden_size_, X86(), 0, Shape({word_sum, aligned_hidden_size_, 1, 1}));
+        math::Batch2SeqFunctor<AK_FLOAT, NCHW> to_seq;
 
-    // clean the packed weight
-    safe_free(&(this->packed_w_x_));
-    safe_free(&(this->packed_w_h_));
-    // pack weights for Wix, Wfx, Wcx, Wox] and [Wih, Wfh, Wch, Woh]
-    if (weight_x) {
-        int m = input->num();
-        this->packed_w_x_ = new mkl_packed_weight<OpDtype, LayOutType_op>(weight_x, m);
-        this->packed_w_x_->pack();
-    }
-    this->packed_w_h_ = new mkl_packed_weight<OpDtype, LayOutType_op>(weight_h);
-    this->packed_w_h_->pack();
-
-    const OpTensor *init_t0 = param.init_hidden();
-    safe_free(&batch_c0_);
-    safe_free(&batch_h0_);
-    // tensor for batched init cell and batched init hidden, they are both with size batch_size * hidden_size
-    if (init_t0) {
-        int batch_size = input->get_seq_offset().size() - 1;
-        Shape batched_state_shape(batch_size, this->aligned_hidden_size_, 1 , 1);
-
-        // create buf in create func, batch_size * hidden_size
-        batch_c0_ = new OpTensor(batched_state_shape);
-
-        // create buf in create func, batch_size * hidden_size
-        batch_h0_ = new OpTensor(batched_state_shape);
-    }
-
-    bool with_peephole = param.with_peephole;
-    if (bias && with_peephole) {
-        const DataType_op *bias_data = bias->data();
-        // shape for Wic, Wfc, Woc
-        Shape weights_c_shape(1, this->aligned_hidden_size_, 1, 1);
-        safe_free(&(this->check_ig_));
-        safe_free(&(this->check_fg_));
-        safe_free(&(this->check_og_));
-        this->check_ig_ = new OpTensor(weights_c_shape);
-        this->check_fg_ = new OpTensor(weights_c_shape);
-        this->check_og_ = new OpTensor(weights_c_shape);
-        memcpy(this->check_ig_->mutable_data(), bias_data + 4 * hidden_size, hidden_size * sizeof(DataType_op));
-        memcpy(this->check_fg_->mutable_data(), bias_data + 5 * hidden_size, hidden_size * sizeof(DataType_op));
-        memcpy(this->check_og_->mutable_data(), bias_data + 6 * hidden_size, hidden_size * sizeof(DataType_op));
-    }
-
-    safe_free(&weight_x);
-    safe_free(&weight_h);
-    safe_free(&aligned_weights_data_h);
-
-    this->_ctx = &ctx;
-    this->max_thread_num_ = omp_get_max_threads();
-
-    return create(inputs, outputs, param, ctx);
-}
-
-template <DataType OpDtype,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-SaberStatus VenderLstm<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::create(
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        LstmParam<OpTensor> &param,
-        Context<X86> &ctx) {
-    DataTensor_in *input = inputs[0];
-    DataTensor_out *hidden_out = outputs[0];
-    int hidden_size = hidden_out->channel();
-
-    // aligned hidden_size with AVX-512
-    int aligned_size = 8;
-    this->aligned_hidden_size_ = (hidden_size % aligned_size) ? ((hidden_size / aligned_size) + 1) * aligned_size : hidden_size;
-    Shape aligned_output_shape(hidden_out->num(), this->aligned_hidden_size_, 1, 1);
-
-    // xx = x * [Wix, Wfx, Wcx, Wox]
-    Shape xx_shape(input->num(), hidden_size * 4, 1, 1);
-    Shape aligned_xx_shape(input->num(), this->aligned_hidden_size_ * 4, 1, 1);
-    // if current size < request size, realloc a buf
-    this->xx_ = request_buf_for_input(this->xx_, xx_shape);
-    this->batch_xx_ = request_buf_for_input(this->batch_xx_, aligned_xx_shape);
-    this->batch_hidden_ = request_buf_for_input(this->batch_hidden_, aligned_output_shape);
-    this->batch_cell_ = request_buf_for_input(this->batch_cell_, aligned_output_shape);
-    this->batch_cell_act_ = request_buf_for_input(this->batch_cell_act_, aligned_output_shape);
-
-    return SaberSuccess;
-}
-
-template <DataType OpDtype,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-SaberStatus VenderLstm<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::dispatch(
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        LstmParam<OpTensor> &param) {
-    DLOG(INFO)<<"vender lstm";
-    DataTensor_in *input = inputs[0];
-    DataTensor_out *hidden_out = outputs[0];
-    DataTensor_out *cell_out = nullptr;
-    if (outputs.size() >= 2) {
-        cell_out = outputs[1];
-    }
-    const OpTensor *bias = param.bias();
-    const OpTensor *init_t0 = param.init_hidden();
-
-    int hidden_size = hidden_out->channel();
-    int batch_size = input->get_seq_offset().size() - 1;
-    Shape offset(0, 0, 0, 0);
-
-    // init state shape
-    Shape init_state_shape(batch_size, hidden_size, 1 , 1);
-    math::ReorderInitState<OpDtype, LayOutType_op> reorder;
-
-    DataTensor_in *xx = nullptr;
-
-    if (param.skip_input) {
-        // if skip_input is true, the input memory layout should be
-        // total_seq_len * (4 * hidden_size)
-        xx = input;
-    } else {
-        // if skip_input is false, the input memory layout should be
-        // total_seq_len * input_size
-        // xx = x * [Wix, Wfx, Wcx, Wox]
-        Shape xx_shape(input->num(), hidden_size * 4, 1, 1);
-
-        // if current size < request size, realloc a buf for using
-        xx = new DataTensor_in();
-        this->xx_ = request_buf_for_input(this->xx_, xx_shape);
-        xx->share_sub_buffer(*(this->xx_), xx_shape, offset);
-
-        MatrixInfo<DataType_in> src((input->mutable_data()), input->num(), input->channel());
-        MatrixInfo<DataType_in> dst((xx->mutable_data()), xx->num(), xx->channel());
-        packed_w_x_->gemm_compute(src, &dst, 0.0f);
-
-        // input activation
-        int cnt = xx->size();
-        DataType_out *p = xx->mutable_data();
-        switch (param.input_activity) {
-            case Active_stanh:
-            case Active_tanh:
-                math::parallel_activation(cnt, p, p, param.input_activity);
-                break;
-            case Active_unknow:
-                break;
-            default:
-                        LOG(ERROR) << "not supported input activation";
-                return SaberUnImplError;
-        }
-    }
-
-    DataTensor_in batch_xx;
-    Shape aligned_xx_shape(xx->num(), this->aligned_hidden_size_ * 4, 1 , 1);
-    batch_xx.share_sub_buffer(*(this->batch_xx_), aligned_xx_shape, offset);
-
-    DataTensor_out batch_hidden;
-    Shape aligned_output_shape(hidden_out->num(), this->aligned_hidden_size_, 1 , 1);
-    batch_hidden.share_sub_buffer(*(this->batch_hidden_), aligned_output_shape, offset);
-
-    DataTensor_out batch_cell;
-    batch_cell.share_sub_buffer(*(this->batch_cell_), aligned_output_shape, offset);
-
-    DataTensor_out batch_cell_act;
-    batch_cell_act.share_sub_buffer(*(this->batch_cell_act_), aligned_output_shape, offset);
-
-    MatrixInfo<DataType_in> xx_matrix(xx->mutable_data(), xx->num(), xx->channel());
-    MatrixInfo<DataType_in> batch_xx_matrix(batch_xx.mutable_data(), batch_xx.num(), batch_xx.channel());
-    MatrixInfo<DataType_out> batch_hidden_matrix(batch_hidden.mutable_data(), batch_hidden.num(), batch_hidden.channel());
-    MatrixInfo<DataType_out> batch_cell_matrix(batch_cell.mutable_data(), batch_cell.num(), batch_cell.channel());
-    MatrixInfo<DataType_out> batch_cell_act_matrix(batch_cell_act.mutable_data(), batch_cell_act.num(), batch_cell_act.channel());
-
-    // handle bias info
-    if (bias) {
-        // row-wise-add bias to batch_xx, the layout of bias [bi, bf, bc, bo]
-        const DataType_op *bias_data = bias->data();
-        for (int i = 0; i < input->num(); i++) {
-            int row_size = 4 * hidden_size;
-            cblas_saxpby(row_size, 1, bias_data, 1, 1, (xx_matrix.buf() + i * row_size), 1);
-        }
-    }
-
-    // seq to batch meta data
-    std::vector<std::vector<int>> seq_to_batch_meta;
-    seq_to_batch_meta.push_back(input->get_seq_offset());
-
-    // sequence to batch
-    bool is_reverse = param.is_reverse;
-    math::Seq2BatchFunctor<inDtype, LayOutType_in> to_batch;
-    to_batch(xx, &batch_xx, seq_to_batch_meta, true, is_reverse, 4);
-
-    std::vector<int> order(seq_to_batch_meta[2]);
-    LstmMetaValue<DataType_in> lstm_value;
-    bool with_peephole = param.with_peephole;
-    if (bias && with_peephole) {
-        // with peephole enable, [Wic, Wfc, Woc] is at the behind of bias
-        const DataType_op *bias_data = bias->data();
-        lstm_value.check_ig = this->check_ig_->data();
-        lstm_value.check_fg = this->check_fg_->data();
-        lstm_value.check_og = this->check_og_->data();
-    } else {
-        lstm_value.check_ig = nullptr;
-        lstm_value.check_fg = nullptr;
-        lstm_value.check_og = nullptr;
-    }
-    lstm_value.prev_state_value = nullptr;
-    auto gate_act = param.gate_activity;
-    auto cell_act = param.cell_activity;
-    auto cand_act = param.candidate_activity;
-
-    if (init_t0) {
-        // if have init cell info, fill it to lstm value
-        // get init_c0 from init_t0 and reorder it
-        Shape offset(batch_size, 0, 0, 0);
-        OpTensor init_c0;
-        init_c0.share_sub_buffer(*init_t0, init_state_shape, offset);
-        reorder(&init_c0, order, batch_c0_, true);
-
-        lstm_value.prev_state_value = batch_c0_->mutable_data();
-    }
-
-    auto batch_starts = seq_to_batch_meta[0];
-    size_t num_batch = batch_starts.size() - 1;
-    for (size_t n = 0; n < num_batch; n++) {
-        int bstart = batch_starts[n];
-        int bend = batch_starts[n + 1];
-        int cur_batch_size = bend - bstart;
-
-        // xx += Ht-1 * [Wih, Wfh, Wch, Woh] according to batch number
-        MatrixInfo<DataType_in> dst = batch_xx_matrix.subMatrixInfo(bstart, bend);
-        if (n > 0) {
-            // if n > 0, get Ht-1 information from last calc, and convert it to src
-            int pre_h_start = batch_starts[n - 1];
-            int pre_h_end = pre_h_start + cur_batch_size;
-            MatrixInfo<DataType_in> src = batch_hidden_matrix.subMatrixInfo(pre_h_start, pre_h_end);
-            packed_w_h_->gemm_compute(src, &dst);
-        } else if (init_t0) {
-            // if this is the fisrt time calc and the batch_h0_ is not NULL, then using the init hidden value as src
-            // get init_h0 from init_t0 and reorder it
-            Shape offset(0, 0, 0, 0);
-            OpTensor init_h0;
-            init_h0.share_sub_buffer(*init_t0, init_state_shape, offset);
-            reorder(&init_h0, order, batch_h0_, true);
-
-            MatrixInfo<DataType_in> src((batch_h0_->mutable_data()), batch_h0_->num(), batch_h0_->channel());
-            packed_w_h_->gemm_compute(src, &dst);
-        }
-
-        // calc [Wic*Ct-1, Wfc*Ct-1, WocCt] and activation
-        // fill lstm value with the calc result before and the output buf
-        lstm_value.gate_value = dst.buf();
-        lstm_value.output_value = batch_hidden_matrix.subMatrixInfo(bstart, bend).buf();
-        lstm_value.state_value = batch_cell_matrix.subMatrixInfo(bstart, bend).buf();
-        lstm_value.state_active_value = batch_cell_act_matrix.subMatrixInfo(bstart, bend).buf();
-        if (avx2_available_) {
-            compute_with_avx(lstm_value, this->aligned_hidden_size_, cur_batch_size, gate_act, cell_act, cand_act);
+        if (direc_num_ == 1) {
+            to_seq(&batched_out, outputs[0], seq_to_batch_meta);
+            to_seq(&batched_out_c, outputs[1], seq_to_batch_meta);
         } else {
-            compute(lstm_value, this->aligned_hidden_size_, cur_batch_size, gate_act, cell_act, cand_act);
+            OpTensor batched_out_reverse(static_cast<OpDataType*>(batched_h.mutable_data()) + layer_num_ *
+                                         word_sum*
+                                         aligned_hidden_size_
+                                         + (layer_num_ - 1) * word_sum * aligned_hidden_size_, X86(), 0, Shape({word_sum, aligned_hidden_size_, 1,
+                                                 1}));
+            OpTensor batched_out_c_reverse(static_cast<OpDataType*>(batched_c.mutable_data()) + layer_num_ *
+                                           word_sum*
+                                           aligned_hidden_size_
+                                           + (layer_num_ - 1) * word_sum * aligned_hidden_size_, X86(), 0, Shape({word_sum, aligned_hidden_size_, 1,
+                                                   1}));
+            to_seq(&batched_out, outputs[0], seq_to_batch_meta, 1, 0, hidden_size_);
+            to_seq(&batched_out_reverse, outputs[0], seq_to_batch_reverse_meta, 1, hidden_size_, hidden_size_);
+            to_seq(&batched_out_c, outputs[1], seq_to_batch_meta, 1, 0, hidden_size_);
+            to_seq(&batched_out_c_reverse, outputs[1], seq_to_batch_reverse_meta, 1, hidden_size_,
+                   hidden_size_);
         }
-        lstm_value.prev_state_value = lstm_value.state_value;
-    }
-
-    // batch to sequence
-    math::Batch2SeqFunctor<outDtype, LayOutType_out> to_seq;
-    to_seq(&batch_hidden, hidden_out, seq_to_batch_meta);
-
-    if (cell_out) {
-        to_seq(&batch_cell, cell_out, seq_to_batch_meta);
-    }
-
-    if (!param.skip_input && xx) {
-        delete xx;
-        xx = nullptr;
     }
 
     return SaberSuccess;
 }
-
-template <DataType OpDtype,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-SaberStatus VenderLstm<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::init_conf(
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        LstmParam<OpTensor> &param) {
-    return SaberSuccess;
-}
-
-template <DataType OpDtype,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-SaberStatus VenderLstm<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out>::check_conf(
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        LstmParam<OpTensor> &param) {
-    return SaberSuccess;
-}
-
-template class VenderLstm<X86, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
-
+template class VenderLstm<X86, AK_FLOAT>;
+DEFINE_OP_TEMPLATE(VenderLstm, LstmParam, X86, AK_HALF);
+DEFINE_OP_TEMPLATE(VenderLstm, LstmParam, X86, AK_INT8);
 } // namespace saber
 } // namespace anakin

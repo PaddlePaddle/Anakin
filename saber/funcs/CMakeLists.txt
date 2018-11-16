@@ -21,12 +21,14 @@ if(USE_X86)
     aux_source_directory(impl/x86 X86_BASE_SRCS)
 endif()
 if(USE_CUDA)
-    #FILE(GLOB CUDA_BASE_SRCS "cuda/*.cpp" "cuda/*.cu")
     aux_source_directory(impl/cuda CUDA_BASE_SRCS)
 endif()
-if(USE_AMD)
-    #FILE(GLOB CUDA_BASE_SRCS "cuda/*.cpp" "cuda/*.cu")
+if(AMD_GPU)
     aux_source_directory(impl/amd AMD_BASE_SRCS)
+endif()
+
+if(USE_BM_PLACE)
+    aux_source_directory(impl/bm BM_BASE_SRCS)
 endif()
 
 set(DIR_SRCS_CUR "")
@@ -70,7 +72,16 @@ foreach(SRC_NAME ${X86_BASE_SRCS})
     list(APPEND DIR_SRCS_CUR "${CMAKE_CURRENT_SOURCE_DIR}/${FILE_NAME}")
 endforeach()
 
+
 foreach(SRC_NAME ${AMD_BASE_SRCS})
+    #unpack the dir "/"
+    string(REPLACE "./" "" FILE_NAME ${SRC_NAME})
+    string(REPLACE " " "" FILE_NAME ${FILE_NAME})
+    #string(REPLACE ".cpp" ".cpp;" FILE_NAME ${FILE_NAME})
+    list(APPEND DIR_SRCS_CUR "${CMAKE_CURRENT_SOURCE_DIR}/${FILE_NAME}")
+endforeach()
+
+foreach(SRC_NAME ${BM_BASE_SRCS})
     #unpack the dir "/"
     string(REPLACE "./" "" FILE_NAME ${SRC_NAME})
     string(REPLACE " " "" FILE_NAME ${FILE_NAME})

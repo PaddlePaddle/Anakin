@@ -26,28 +26,28 @@ namespace anakin {
 
 namespace ops {
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class FlattenHelper;
 
 //! pooling op
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class Flatten : public Operator<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class Flatten : public Operator<Ttype, Ptype> {
 public:
     Flatten() {}
 
     //! forward impl
     virtual void operator() (OpContext<Ttype> &ctx, 
-                             const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                             std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-        LOG(ERROR) << "Not Impl Yet Operator flatten<TargetType:" << "unknown" << ","
-                   << type_id<typename DataTypeWarpper<Dtype>::type>().type_info() << ">";
+                             const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                             std::vector<Tensor4dPtr<Ttype> >& outs) {
+		LOG(ERROR) << "Not Impl Yet Operator Flatten< Ttype("
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
-    friend class FlattenHelper<Ttype, Dtype, Ptype>;
+    friend class FlattenHelper<Ttype, Ptype>;
 };
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class FlattenHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class FlattenHelper : public OperatorHelper<Ttype, Ptype> {
 public:
     FlattenHelper()=default;
 
@@ -57,16 +57,16 @@ public:
 
     //! initial all the resource needed by pooling
     Status Init(OpContext<Ttype> &ctx,
-                const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
     //! infer the shape of output and input.
-    Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+    Status InferShape(const std::vector<Tensor4dPtr<Ttype> >& ins,
+                      std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
 public:
-    saber::FlattenParam<Tensor4d<Ttype, Dtype>> _param_flatten;
-    saber::Flatten<Ttype, Dtype> _funcs_flatten;
+    saber::FlattenParam<Ttype> _param_flatten;
+    saber::Flatten<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_flatten;
 
 private:
     PTuple<int> _dims; 

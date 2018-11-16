@@ -32,11 +32,11 @@ public:
 
     Sgemm();
     ~Sgemm();
-    void init(unsigned int L1_cache, unsigned int L2_cache, unsigned int M, unsigned int N, \
-        unsigned int K, bool trA, bool trB, int thread_num = 1);
+    SaberStatus init(unsigned int L1_cache, unsigned int L2_cache, unsigned int M, unsigned int N, \
+        unsigned int K, bool trA, bool trB, int thread_num = 1, void* work_space = nullptr);
 
     //! Actually execute the GEMM.
-    void operator()(const float *A, const int lda, const float *B, const int ldb, \
+    SaberStatus operator()(const float *A, const int lda, const float *B, const int ldb, \
         float *C, const int ldc, const float alpha, const float beta, bool flag_relu = false);
 
 private:
@@ -58,6 +58,7 @@ private:
 
     void* _work_space_ptr{nullptr};
     void* _align_ptr{nullptr};
+    bool _has_mem{false};
 
     size_t _work_size{0};
     size_t _a_worksize{0};

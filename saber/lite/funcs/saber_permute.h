@@ -14,8 +14,7 @@
 #ifndef ANAKIN_SABER_LITE_FUNCS_SABER_PERMUTE_H
 #define ANAKIN_SABER_LITE_FUNCS_SABER_PERMUTE_H
 
-#include "saber/lite/core/tensor_lite.h"
-#include "saber/lite/core/context_lite.h"
+#include "saber/lite/funcs/op_base.h"
 
 #ifdef USE_ARM_PLACE
 namespace anakin{
@@ -25,28 +24,32 @@ namespace saber{
 namespace lite{
 
 //template <typename Dtype>
-class SaberPermute {
+class SaberPermute : public OpBase {
 public:
     SaberPermute();
 
-    SaberPermute(std::vector<int> orders);
+    SaberPermute(ParamBase* param);
 
-    ~SaberPermute() {}
+    ~SaberPermute();
 
-    SaberStatus load_param(std::vector<int> orders);
+    virtual SaberStatus load_param(ParamBase* param) override;
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus set_op_precision(DataType ptype) override;
 
-    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
-        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx);
+    virtual SaberStatus load_param(std::istream& stream, const float* weights) override;
 
-    SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
-        std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU>*>& inputs,
+                                     std::vector<Tensor<CPU>*>& outputs) override;
+
+    virtual SaberStatus init(const std::vector<Tensor<CPU>*>& inputs, \
+        std::vector<Tensor<CPU>*>& outputs, Context &ctx) override;
+
+    virtual SaberStatus dispatch(const std::vector<Tensor<CPU>*>& inputs, \
+        std::vector<Tensor<CPU>*>& outputs) override;
 
 
 private:
-    Context _ctx;
+    PermuteParam* _param;
     int _num_axes;
     int _count;
     bool _need_permute{false};
@@ -54,7 +57,6 @@ private:
     int _trans_num;
     int _trans_w;
     int _trans_h;
-    std::vector<int> _order_dims;
     std::vector<int> _new_steps;
     std::vector<int> _old_steps;
 

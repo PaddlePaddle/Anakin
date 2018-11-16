@@ -22,31 +22,19 @@
 namespace anakin{
 
 namespace saber{
-#if 0
-template <DataType OpDtype,
-            DataType inDtype,
-            DataType outDtype,
-            typename LayOutType_op,
-            typename LayOutType_in,
-            typename LayOutType_out>
-class SaberSpp<NV, OpDtype, inDtype, outDtype, \
-    LayOutType_op, LayOutType_in, LayOutType_out>:\
-    public ImplBase<
-            Tensor<NV, inDtype, LayOutType_in>,
-            Tensor<NV, outDtype, LayOutType_out>,
-            Tensor<NV, OpDtype, LayOutType_op>,
-            SPPParam<Tensor<NV, OpDtype, LayOutType_op>>> {
+template <DataType OpDtype>
+class SaberSpp<NV, OpDtype>:
+    public ImplBase<NV, OpDtype, SPPParam<NV>> {
 
 public:
-    typedef Tensor<NV, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<NV, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<NV, OpDtype, LayOutType_op> OpTensor;
+    typedef Tensor<NV> DataTensor_in;
+    typedef Tensor<NV> DataTensor_out;
+    typedef Tensor<NV> OpTensor;
 
-    typedef typename DataTensor_in::Dtype InDataType;
-    typedef typename DataTensor_out::Dtype OutDataType;
-    typedef typename OpTensor::Dtype OpDataType;
-    typedef Pooling<NV, OpDtype, inDtype, outDtype, 
-        LayOutType_op, LayOutType_in, LayOutType_out> Pooling_t;
+    typedef typename DataTrait<NV, OpDtype>::Dtype InDataType;
+    typedef typename DataTrait<NV, OpDtype>::Dtype OutDataType;
+    typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
+    typedef Pooling<NV, OpDtype> Pooling_t;
 
     SaberSpp()
     {}
@@ -65,7 +53,7 @@ public:
 
     virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
                              std::vector<DataTensor_out*>& outputs,
-                             SPPParam<OpTensor> &param,
+                             SPPParam<NV> &param,
                              Context<NV> &ctx)  {
         this->_ctx = &ctx;
         _pooling.clear();
@@ -82,7 +70,7 @@ public:
              int window_w = std::ceil(inputs[0]->width() / static_cast<double>(num_bins));
              int pad_h = (window_h * num_bins - inputs[0]->height() + 1) / 2;
              int pad_w = (window_w * num_bins - inputs[0]->width() + 1) / 2;
-             PoolingParam<OpTensor> pool_param(window_h, window_w, pad_h, pad_w
+             PoolingParam<NV> pool_param(window_h, window_w, pad_h, pad_w
             , window_h, window_w, param.pool_type);
 
              Shape valid_shape = outputs[0]->valid_shape();
@@ -102,25 +90,23 @@ public:
 
     virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
                              std::vector<DataTensor_out*>& outputs,
-                             SPPParam<OpTensor> &param,
+                             SPPParam<NV> &param,
                              Context<NV> &ctx)  {
         return SaberSuccess;
     }
 
-    //call cudnnConvolutionForward here
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                                  std::vector<DataTensor_out*>& outputs,
-                                 SPPParam<OpTensor> &param);
+                                 SPPParam<NV> &param);
 
 private:
     std::vector<Pooling_t*> _pooling;
-    std::vector<PoolingParam<OpTensor>> _pooling_param;
+    std::vector<PoolingParam<NV>> _pooling_param;
     std::vector<DataTensor_out*> _pooling_output;
 };
-template class SaberSpp<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
-#endif
+template class SaberSpp<NV, AK_FLOAT>;
 }
 
 }
 
-#endif //ANAKIN_SABER_FUNCS_SABER_CONV2D_H
+#endif //ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_SPP_H

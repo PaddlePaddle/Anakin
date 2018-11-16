@@ -18,42 +18,30 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+#include "saber/saber_funcs_param.h"
 
 namespace anakin {
 
 namespace saber {
 
-template <typename TargetType,
-    DataType OpDtype,
-    DataType inDtype = AK_FLOAT,
-    DataType outDtype = AK_FLOAT,
-    typename LayOutType_op = NCHW,
-    typename LayOutType_in = NCHW,
-    typename LayOutType_out = NCHW
-    >
+template <typename TargetType, DataType OpDtype>
 class Reshape : public BaseFunc<
-    Tensor<TargetType, inDtype, LayOutType_in>,
-    Tensor<TargetType, outDtype, LayOutType_out>,
-    Tensor<TargetType, OpDtype, LayOutType_op>,
+    TargetType,
+    OpDtype,
     ImplBase,
-    ReshapeParam
-    >
+    ReshapeParam>
 {
 public:
     using BaseFunc<
-        Tensor<TargetType, inDtype, LayOutType_in>,
-        Tensor<TargetType, outDtype, LayOutType_out>,
-        Tensor<TargetType, OpDtype, LayOutType_op>,
+        TargetType,
+        OpDtype,
         ImplBase,
         ReshapeParam >::BaseFunc;
     Reshape() = default;
 
-    typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
-    typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
-    typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-    typedef ReshapeParam<OpTensor> Param_t;
-    typedef std::vector<InDataTensor *> Input_v;
-    typedef std::vector<OutDataTensor *> Output_v;
+    typedef ReshapeParam<TargetType> Param_t;
+    typedef std::vector<Tensor<TargetType> *> Input_v;
+    typedef std::vector<Tensor<TargetType> *> Output_v;
     typedef std::vector<Shape> Shape_v;
 
     virtual SaberStatus compute_output_shape(const Input_v& input, \
@@ -61,13 +49,15 @@ public:
 
         Shape output_shape;
         output_shape.resize(param.shape_params.size());
+        output_shape.set_layout(param.layout);
 
-        CHECK_EQ(input[0]->is_continue_mem(), true) << "input tensor must not have roi";
+        CHECK_EQ(input[0] -> is_continue_mem(), true) << "input tensor must not have roi";
 
-        Shape input_shape = input[0]->valid_shape();
-        int valid_size = input[0]->valid_size();
+        Shape input_shape = input[0] -> valid_shape();
+        int valid_size = input[0] -> valid_size();
         int infer_axis = -1;
         int count_axis = 1;
+
         for (int i = 0; i < param.shape_params.size(); ++i) {
             if (param.shape_params[i] == 0){
                 CHECK_LT(i, input_shape.size()) << "wrong parameters, exceed input dims";
@@ -81,17 +71,16 @@ public:
                 infer_axis = i;
             }
         }
-
+        // The axis that needs to automatically infer the dimension
         if (infer_axis >= 0){
             output_shape[infer_axis] = valid_size / count_axis;
         }
-        return output[0]->set_shape(output_shape);//, output_shape, offset);
+        
+        return output[0] -> set_shape(output_shape);
     }
     //Reshape ops do nothing
     virtual SaberStatus init_impl(ImplEnum implenum) override {
-
         return SaberSuccess;
-
     }
 
     //Reshape ops do nothing
@@ -108,14 +97,12 @@ private:
 
     virtual void pick_best_static() override {
         //saber impl
-        this->_best_impl = this->_impl[0];
+        this -> _best_impl = this -> _impl[0];
     }
-
-    //virtual void pick_best_runtime(Input_v input, Output_v output, Param_t& param) override {}
 
     virtual void pick_best_specify(ImplEnum implenum) override {
         //saber impl
-        this->_best_impl = this->_impl[0];
+        this -> _best_impl = this -> _impl[0];
     }
 
 };

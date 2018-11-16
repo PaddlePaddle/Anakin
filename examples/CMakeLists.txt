@@ -7,6 +7,10 @@ if(NVIDIA_GPU)
 anakin_fetch_files_with_suffix(${ANAKIN_EXAMPLES}/cuda "cpp" ANAKIN_TEST_CASE_SRC)
 endif()
 
+if(AMD_GPU)
+anakin_fetch_files_with_suffix(${ANAKIN_EXAMPLES}/amd "cpp" ANAKIN_TEST_CASE_SRC)
+endif()
+
 if(USE_X86_PLACE)
 anakin_fetch_files_with_suffix(${ANAKIN_EXAMPLES}/x86 "cpp" ANAKIN_TEST_CASE_SRC)
 endif()

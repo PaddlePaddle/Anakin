@@ -15,9 +15,9 @@ limitations under the License. */
 #define ANAKIN_SABER_FUNCS_IMPL_X86_JIT_UNI_1X1_CONV_UTIL_H
 
 #include <stdint.h>
-
 #include <float.h>
-#include "x86_utils.h"
+
+#include "saber/funcs/impl/x86/x86_utils.h"
 
 namespace anakin {
 namespace saber {
@@ -83,18 +83,17 @@ typedef int jit_dims_t[JIT_TENSOR_MAX_DIMS];
 typedef int jit_strides_t[JIT_TENSOR_MAX_DIMS];
 
 struct conv_1x1_desc {
-    jit_dims_t src_d;
-    int src_d_dims;
-    jit_dims_t dst_d;
-    int dst_d_dims;
-    jit_dims_t padding[2];
-    int strides[2];
-};
-
-struct reduce_to_unit_stride_t {
-    jit_strides_t src_dstrides;
-    conv_1x1_desc *conv_d_;
-    bool reduce_src_;
+    int n;
+    int ic;
+    int ih;
+    int iw;
+    int oc;
+    int oh;
+    int ow;
+    int stride_h;
+    int stride_w;
+    int t_pad;
+    int l_pad;
 };
 
 

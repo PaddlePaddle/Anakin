@@ -5,46 +5,31 @@
    You may obtain a copy of the License at
 
        http://www.apache.org/licenses/LICENSE-2.0
-   
+
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License. 
+   limitations under the License.
 */
 
 #ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_CUDNN_CONV2D_H
 #define ANAKIN_SABER_FUNCS_IMPL_CUDA_CUDNN_CONV2D_H
 
 #include "saber/funcs/impl/impl_conv.h"
-#include "saber/funcs/impl/cuda/cudnn_helper.h"   
+#include "saber/funcs/impl/cuda/saber_activation.h"
 #include <cudnn.h>
 
 namespace anakin{
 
 namespace saber{
 
-template <DataType OpDtype,
-    DataType inDtype,
-    DataType outDtype,
-    typename LayOutType_op,
-    typename LayOutType_in,
-    typename LayOutType_out>
-class VenderConv2D<NV, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out> : \
-    public ImplBase<
-        Tensor<NV, inDtype, LayOutType_in>, 
-        Tensor<NV, outDtype, LayOutType_out>,
-        Tensor<NV, OpDtype, LayOutType_op>,
-        ConvParam<Tensor<NV, OpDtype, LayOutType_op> > > 
-{
+template <DataType OpDtype>
+class VenderConv2D<NV, OpDtype> : public ImplBase<
+        NV, OpDtype, ConvParam<NV> > {
 public:
-    typedef Tensor<NV, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<NV, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<NV, OpDtype, LayOutType_op> OpTensor;
-    typedef typename DataTensor_in::Dtype InDataType;
-    typedef typename DataTensor_out::Dtype OutDataType;
-    typedef typename OpTensor::Dtype OpDataType;
+    typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
+
     VenderConv2D()
             : _handle(NULL)
             , _workspaceData(NULL)
@@ -57,12 +42,9 @@ public:
             , _workspaceSizeInBytes(0)
             , _fwd_algo((cudnnConvolutionFwdAlgo_t)0)
             , _input_nchw_descs(NULL)
-            , _bias_desc(NULL)
             , _output_nchw_descs(NULL)
-            , x8_data(NULL)
-            , y8_data(NULL)
-            , x8_data_size(0)
-            , y8_data_size(0)
+            , _active_descs(NULL)
+            , _bias_desc(NULL)
     {}
 
     ~VenderConv2D() {
@@ -75,6 +57,9 @@ public:
         }
         if (_output_descs) {
             CUDNN_CHECK(cudnnDestroyTensorDescriptor(_output_descs));
+        }
+        if (_active_descs) {
+            CUDNN_CHECK(cudnnDestroyActivationDescriptor(_active_descs));
         }
         if (_bias_desc) {
             CUDNN_CHECK(cudnnDestroyTensorDescriptor(_bias_desc));
@@ -94,12 +79,7 @@ public:
         if (_output_nchw_descs != NULL) {
             CUDNN_CHECK(cudnnDestroyTensorDescriptor(_output_nchw_descs));
         }
-        if (x8_data != NULL) {
-            CUDA_CHECK(cudaFree(x8_data));
-        }
-        if (y8_data != NULL) {
-            CUDA_CHECK(cudaFree(y8_data));
-        }
+        delete _saber_act;
     }
 
     /**
@@ -110,74 +90,42 @@ public:
      * @param     outputs                   [description]
      * @param     param                [conv parameters]
      */
-    virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
-                            std::vector<DataTensor_out *>& outputs,
-                            ConvParam<OpTensor>& param, Context<NV>& ctx) {
+    virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
+                             std::vector<Tensor<NV> *>& outputs,
+                             ConvParam<NV>& param, Context<NV>& ctx);
 
-        // ---- init cudnn resources ----
-
-        _workspaceSizeInBytes = 0;
-        _workspaceData = NULL;
-
-        _workspace_fwd_sizes = 0;
-
-        this->_ctx = &ctx;
-        // ---- get cuda resources ----
-
-        cudaStream_t cuda_stream;
-        cuda_stream = ctx.get_compute_stream();
-
-        CUDNN_CHECK(cudnnCreate(&_handle));
-        CUDNN_CHECK(cudnnSetStream(_handle, cuda_stream));
-
-        _workspace = NULL;
-
-        int in_channels = inputs[0]->channel();
-
-        // ---- create cudnn Descs ----
-        cudnn::createFilterDesc<OpDataType>(&_filter_desc);
-
-        cudnn::createTensorDesc<InDataType>(&_input_descs);
-        cudnn::createTensorDesc<InDataType>(&_output_descs);
-        cudnn::createConvolutionDesc<OpDataType>(&_conv_descs);
-
-        if (param.bias()->size() > 0) {
-            cudnn::createTensorDesc<OpDataType>(&_bias_desc);
-        }
-
-        cudnnCreateTensorDescriptor(&_input_nchw_descs);
-        cudnnCreateTensorDescriptor(&_output_nchw_descs);
-
-        return create(inputs, outputs, param, ctx);
-    }
-
-    virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
-                            std::vector<DataTensor_out *>& outputs,
-                            ConvParam<OpTensor>& param, Context<NV>& ctx);
+    virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
+                               std::vector<Tensor<NV> *>& outputs,
+                               ConvParam<NV>& param, Context<NV>& ctx);
 
     //call cudnnConvolutionForward here
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
-                          std::vector<DataTensor_out*>& outputs,
-                          ConvParam<OpTensor>& param);
+    virtual SaberStatus dispatch(const std::vector<Tensor<NV>*>& inputs,
+                                 std::vector<Tensor<NV>*>& outputs,
+                                 ConvParam<NV>& param);
 
+    SaberStatus trans_weights(Tensor<NV> &target_weights, Tensor<NV> &target_bias,
+                              int pad_h, int pad_w, int dilation_h, int dilation_w,
+                              int stride_h, int stride_w, int group);
+
+    void set_beta(float beta) {
+        _beta = beta;
+    }
 private:
     cudnnHandle_t _handle;
     cudnnConvolutionFwdAlgo_t _fwd_algo;
-
     cudnnTensorDescriptor_t _input_descs;
     cudnnTensorDescriptor_t _output_descs;
     cudnnTensorDescriptor_t _bias_desc;
-
     cudnnFilterDescriptor_t _filter_desc;
-
     cudnnConvolutionDescriptor_t _conv_descs;
+
+    // activation descriptor
+    cudnnActivationDescriptor_t _active_descs;
 
     size_t _workspace_fwd_sizes;
     size_t _workspaceSizeInBytes;  // size of underlying storage
-
     void *_workspaceData;  // underlying storage
     void *_workspace;  // aliases into _workspaceData
-
     const bool _use_tensor_core = true;
     const size_t _workspace_limit_bytes = 4 * 1024 * 1024;
     const cudnnConvolutionFwdPreference_t _preference = CUDNN_CONVOLUTION_FWD_PREFER_FASTEST;
@@ -185,12 +133,12 @@ private:
     // create transform descriptor
     cudnnTensorDescriptor_t _input_nchw_descs;
     cudnnTensorDescriptor_t _output_nchw_descs;
-
-    void *x8_data;
-    void *y8_data;
-
-    int x8_data_size;
-    int y8_data_size;
+    float _beta{0.f};
+    bool _with_saber_act{false};
+    SaberActivation<NV, OpDtype> *_saber_act{nullptr};
+    float _in_scale;
+    Tensor<NV> int8_input;
+    Tensor<NV> int8_output;
 };
 
 

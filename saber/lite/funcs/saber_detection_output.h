@@ -15,8 +15,7 @@
 #ifndef ANAKIN_SABER_LITE_FUNCS_SABER_DETECTION_OUTPUT_H
 #define ANAKIN_SABER_LITE_FUNCS_SABER_DETECTION_OUTPUT_H
 
-#include "saber/lite/core/tensor_lite.h"
-#include "saber/lite/core/context_lite.h"
+#include "saber/lite/funcs/op_base.h"
 
 #ifdef USE_ARM_PLACE
 
@@ -27,59 +26,38 @@ namespace saber{
 namespace lite{
 
 //template <ARMType ttype, DataType dtype>
-class SaberDetectionOutput {
+class SaberDetectionOutput : public OpBase {
 public:
     SaberDetectionOutput(){}
-    SaberDetectionOutput(bool share_loc,
-                         bool variance_encode,
-                         int class_num,
-                         int background_id,
-                         int keep_topk,
-                         CodeType type,
-                         float conf_thresh,
-                         int nms_topk,
-                         float nms_thresh = 0.3f,
-                         float nms_eta = 1.f);
-    ~SaberDetectionOutput() {}
 
-    SaberStatus load_param(bool share_loc,
-                           bool variance_encode,
-                           int class_num,
-                           int background_id,
-                           int keep_topk,
-                           CodeType type,
-                           float conf_thresh,
-                           int nms_topk,
-                           float nms_thresh = 0.3f,
-                           float nms_eta = 1.f);
+    SaberDetectionOutput(ParamBase* param);
 
-    SaberStatus compute_output_shape(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                                     std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    ~SaberDetectionOutput();
 
-    SaberStatus init(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs, \
-                      std::vector<Tensor<CPU, AK_FLOAT>*>& outputs, Context &ctx);
+    virtual SaberStatus load_param(ParamBase* param) override;
 
-    SaberStatus dispatch(const std::vector<Tensor<CPU, AK_FLOAT>*>& inputs,
-                          std::vector<Tensor<CPU, AK_FLOAT>*>& outputs);
+    virtual SaberStatus set_op_precision(DataType ptype) override;
+
+    virtual SaberStatus load_param(std::istream& stream, const float* weights) override;
+
+    virtual SaberStatus compute_output_shape(const std::vector<Tensor<CPU>*>& inputs,
+                                     std::vector<Tensor<CPU>*>& outputs) override;
+
+    virtual SaberStatus init(const std::vector<Tensor<CPU>*>& inputs, \
+                      std::vector<Tensor<CPU>*>& outputs, Context &ctx) override;
+
+    virtual SaberStatus dispatch(const std::vector<Tensor<CPU>*>& inputs,
+                          std::vector<Tensor<CPU>*>& outputs) override;
 
 
 private:
-    Context _ctx;
-    bool _share_loacation{true};
-    bool _variance_encode_in_target{false};
+    DetectionOutputParam* _param;
     int _class_num;
-    int _background_id{0};
-    int _keep_top_k{-1};
-    CodeType _type{CENTER_SIZE};
-    float _conf_thresh;
-    int _nms_top_k;
-    float _nms_thresh{0.3f};
-    float _nms_eta{1.f};
     int _num_loc_classes;
     int _num_priors;
-    Tensor<CPU, AK_FLOAT> _bbox_preds;
-    Tensor<CPU, AK_FLOAT> _bbox_permute;
-    Tensor<CPU, AK_FLOAT> _conf_permute;
+    Tensor<CPU> _bbox_preds;
+    Tensor<CPU> _bbox_permute;
+    Tensor<CPU> _conf_permute;
 };
 
 } //namepace lite

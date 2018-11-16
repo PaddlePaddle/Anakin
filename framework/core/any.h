@@ -180,7 +180,7 @@ ValueType any_cast(const any* operand) {
 
 template<typename ValueType>
 ValueType any_cast(const any& operand) {
-    return any_cast<ValueType>(const_cast<any>(operand));
+    return any_cast<ValueType>(operand);
 }
 
 } /* namespace anakin */

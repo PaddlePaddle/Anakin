@@ -22,44 +22,37 @@ namespace anakin{
 
 namespace saber{
 
-template <DataType OpDtype,
-            DataType inDtype,
-            DataType outDtype,
-            typename LayOutType_op,
-            typename LayOutType_in,
-            typename LayOutType_out>
-    class SaberNormalize<NV, OpDtype, inDtype, outDtype, \
-    LayOutType_op, LayOutType_in, LayOutType_out>:\
+template <DataType OpDtype>
+    class SaberNormalize<NV, OpDtype>:
     public ImplBase<
-            Tensor<NV, inDtype, LayOutType_in>,
-            Tensor<NV, outDtype, LayOutType_out>,
-            Tensor<NV, OpDtype, LayOutType_op>,
-            NormalizeParam<Tensor<NV, OpDtype, LayOutType_op>>> {
+            NV,OpDtype,
+            NormalizeParam<NV> > {
 
 public:
-    typedef Tensor<NV, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<NV, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<NV, OpDtype, LayOutType_op> OpTensor;
+    typedef Tensor<NV> DataTensor_in;
+    typedef Tensor<NV> DataTensor_out;
+    typedef Tensor<NV> OpTensor;
 
-    typedef typename DataTensor_in::Dtype InDataType;
-    typedef typename DataTensor_out::Dtype OutDataType;
-    typedef typename OpTensor::Dtype OpDataType;
+    //typedef typename DataTensor_in::Dtype InDataType;
+    //typedef typename DataTensor_out::Dtype OutDataType;
+    //typedef typename OpTensor::Dtype OpDataType;
+    typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
 
     SaberNormalize() = default;
     ~SaberNormalize() {}
 
-    virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
-                             std::vector<DataTensor_out*>& outputs,
-                             NormalizeParam<OpTensor> &param,
+    virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
+                             std::vector<Tensor<NV> *>& outputs,
+                             NormalizeParam<NV> &param,
                              Context<NV> &ctx) {
         // get context
         this->_ctx = &ctx;
         return create(inputs, outputs, param, ctx);
     }
 
-    virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
-                               std::vector<DataTensor_out*>& outputs,
-                               NormalizeParam<OpTensor> &param,
+    virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
+                               std::vector<Tensor<NV> *>& outputs,
+                               NormalizeParam<NV> &param,
                                Context<NV> &ctx) {
         // compute norm size
         int channel_index = inputs[0]->channel_index();
@@ -84,7 +77,7 @@ public:
         }
         _channel_stride = inputs[0]->count_valid(channel_index + 1, _dims);
         _compute_size = _size / _norm_size;
-        Shape sh_norm{1, 1, 1, _norm_size};
+        Shape sh_norm({1, 1, 1, _norm_size});
         _norm_reduce.reshape(sh_norm);
 
         _is_continue_buf = outputs[0]->is_continue_mem() && inputs[0]->is_continue_mem();
@@ -93,7 +86,7 @@ public:
             Shape sh_output_real_stride = outputs[0]->get_stride();
 
             //! re_alloc device memory
-            Shape sh{1, 1, 1, _dims};
+            Shape sh({1, 1, 1, _dims});
             _valid_shape.reshape(sh);
             _input_stride.reshape(sh);
             _output_stride.reshape(sh);
@@ -108,13 +101,14 @@ public:
         return SaberSuccess;
     }
 
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
-                                 std::vector<DataTensor_out*>& outputs,
-                                 NormalizeParam<OpTensor> &param);
+    virtual SaberStatus dispatch(const std::vector<Tensor<NV> *>& inputs,
+                                 std::vector<Tensor<NV> *>& outputs,
+                                 NormalizeParam<NV> &param);
 
 
 private:
-    Tensor<NV, OpDtype, NCHW> _norm_reduce;
+    //Tensor<NV, OpDtype, NCHW> _norm_reduce;
+    Tensor<NV> _norm_reduce;
     int _size;
     int _norm_size;
     int _compute_size;
@@ -122,12 +116,14 @@ private:
     int _channels;
     int _dims;
     int _channel_stride;
-    Tensor<NV, AK_INT32, NCHW> _input_stride;
-    Tensor<NV, AK_INT32, NCHW> _output_stride;
-    Tensor<NV, AK_INT32, NCHW> _valid_shape;
+    //todo:
+    Tensor<NV> _input_stride;
+    Tensor<NV> _output_stride;
+    Tensor<NV> _valid_shape;
+
     bool _is_continue_buf{true};
 };
-template class SaberNormalize<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, NCHW, NCHW, NCHW>;
+//template class SaberNormalize<NV, AK_FLOAT>;
 } //namespace saber
 
 } //namespace anakin

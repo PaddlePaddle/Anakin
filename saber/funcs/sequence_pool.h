@@ -19,50 +19,41 @@
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/saber_funcs_param.h"
+#include "saber/funcs/impl/impl_sequence_pool.h"
 
 #ifdef NVIDIA_GPU
-#include "saber/funcs/impl/impl_sequence_pool.h"
+#include "saber/funcs/impl/cuda/saber_sequence_pool.h"
 #endif
 
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_sequence_pool.h"
 #endif
-#ifdef USE_ARM_PLACE
-//todo
-#include "saber/funcs/impl/impl_sequence_pool.h"
-#endif
+
 namespace anakin {
 namespace saber {
 
 template<typename TargetType,
-        DataType OpDtype,
-        DataType inDtype = AK_FLOAT,
-        DataType outDtype = AK_FLOAT,
-        typename LayOutType_op = NCHW,
-        typename LayOutType_in = NCHW,
-        typename LayOutType_out = NCHW
+        DataType OpDtype
 >
 class SequencePool : public BaseFunc<
-        Tensor<TargetType, inDtype, LayOutType_in>,
-        Tensor<TargetType, outDtype, LayOutType_out>,
-        Tensor<TargetType, OpDtype, LayOutType_op>,
+        TargetType,
+        OpDtype,
         ImplBase,
         SequencePoolParam
 > {
 public:
     using BaseFunc<
-            Tensor<TargetType, inDtype, LayOutType_in>,
-            Tensor<TargetType, outDtype, LayOutType_out>,
-            Tensor<TargetType, OpDtype, LayOutType_op>,
+            TargetType,
+            OpDtype,
             ImplBase,
             SequencePoolParam>::BaseFunc;
 
     SequencePool() = default;
 
-    typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
-    typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
-    typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-    typedef SequencePoolParam<OpTensor> Param_t;
+    typedef Tensor<TargetType> InDataTensor;
+    typedef Tensor<TargetType> OutDataTensor;
+    typedef Tensor<TargetType> OpTensor;
+    typedef SequencePoolParam<TargetType> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
@@ -71,32 +62,29 @@ public:
         Output_v &output, Param_t& param) override {
         Shape output_shape = (input[0]->valid_shape());
         int num_idx = input[0]->num_index();
-        std::vector<int> offset = input[0]->get_seq_offset();
+        std::vector<std::vector<int> > offset = input[0]->get_seq_offset();
         //CHECK_GT(offset.size(), 1) << "seq num error! " << offset.size();
         int output_shape_num=0;
-        if (offset.size() > 1) {
-            output_shape_num = offset.size() - 1;
+        if (offset[0].size() > 1) {
+            output_shape_num = offset[0].size() - 1;
         } else {
             output_shape_num = input[0]->num();
         }
         output_shape[num_idx]=output_shape_num;
-        std::vector<int> offset_new(output_shape_num+1);
-        for(int i=0;i<=output_shape_num;++i){
-            offset_new[i]=i;
-        }
-        output[0]->set_seq_offset(offset_new);
+
+        output[0]->set_seq_offset(input[0]->get_seq_offset());
         return output[0]->set_shape(output_shape);
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
             case VENDER_IMPL:
-                this->_impl.push_back(new VenderSequencePool <TargetType, OpDtype, inDtype, outDtype,
-                        LayOutType_op, LayOutType_in, LayOutType_out>);
+                this->_impl.push_back(new VenderSequencePool <TargetType,
+                OpDtype>);
                 return SaberSuccess;
             case SABER_IMPL:
-                this->_impl.push_back(new SaberSequencePool <TargetType, OpDtype, inDtype, outDtype,
-                        LayOutType_op, LayOutType_in, LayOutType_out>);
+                this->_impl.push_back(new SaberSequencePool <TargetType,
+                OpDtype>);
                 return SaberSuccess;
             default:
                 return SaberUnImplError;

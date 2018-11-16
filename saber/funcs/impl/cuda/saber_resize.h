@@ -22,52 +22,35 @@ namespace anakin{
 
 namespace saber{
 
-template <DataType OpDtype,
-            DataType inDtype,
-            DataType outDtype,
-            typename LayOutType_op,
-            typename LayOutType_in,
-            typename LayOutType_out>
-class SaberResize<NV, OpDtype, inDtype, outDtype, \
-    LayOutType_op, LayOutType_in, LayOutType_out>:\
-    public ImplBase<
-            Tensor<NV, inDtype, LayOutType_in>,
-            Tensor<NV, outDtype, LayOutType_out>,
-            Tensor<NV, OpDtype, LayOutType_op>,
-            ResizeParam<Tensor<NV, OpDtype, LayOutType_op>>> {
+template <DataType OpDtype>
+class SaberResize<NV, OpDtype>:
+    public ImplBase<NV, OpDtype,ResizeParam<NV>> {
 
 public:
-    typedef Tensor<NV, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<NV, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<NV, OpDtype, LayOutType_op> OpTensor;
-
-    typedef typename DataTensor_in::Dtype InDataType;
-    typedef typename DataTensor_out::Dtype OutDataType;
-    typedef typename OpTensor::Dtype OpDataType;
-
+    typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
     SaberResize() = default;
     ~SaberResize() {}
 
-    virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
-                             std::vector<DataTensor_out*>& outputs,
-                             ResizeParam<OpTensor> &param,
+    virtual SaberStatus init(const std::vector<Tensor<NV>*>& inputs,
+                             std::vector<Tensor<NV>*>& outputs,
+                             ResizeParam<NV> &param,
                              Context<NV> &ctx) {
         // get context
         this->_ctx = &ctx;
         return create(inputs, outputs, param, ctx);
     }
 
-    virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
-                               std::vector<DataTensor_out*>& outputs,
-                               ResizeParam<OpTensor> &param,
+    virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
+                               std::vector<Tensor<NV> *>& outputs,
+                               ResizeParam<NV> &param,
                                Context<NV> &ctx) {
         // do nothing
         return SaberSuccess;
     }
 
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
-                                 std::vector<DataTensor_out*>& outputs,
-                                 ResizeParam<OpTensor> &param);
+    virtual SaberStatus dispatch(const std::vector<Tensor<NV> *>& inputs,
+                                 std::vector<Tensor<NV> *>& outputs,
+                                 ResizeParam<NV> &param);
 
 
 };
