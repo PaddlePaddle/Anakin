@@ -15,9 +15,7 @@ OpsRegister.Register("Input").set_attr(input_shape=list(),
 # graph out , only hold place for edge
 OpsRegister.Register("Output").set_attr()
 
-OpsRegister.Register("Split").set_attr(split_num=int(),
-                                       sections=list(),
-                                       axis=int())
+OpsRegister.Register("Split").set_attr(split_num=int())
 
 ############################# Basic Op define ##############################
 # two input 
@@ -109,7 +107,9 @@ OpsRegister.Register("Cropping").set_attr(cropping=list(),
 # slices an input layer to multiple output layers along a given dimension with given slice indices
 OpsRegister.Register("Slice").set_attr(axis=int(), 
                                        slice_point=list(), 
-                                       slice_dim=int())
+                                       slice_dim=int(),
+                                       num=int(),
+                                       sections=list())
 
 
 ############################# Normalization Op define ##############################
