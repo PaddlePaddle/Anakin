@@ -277,7 +277,7 @@ class FluidParser:
                             self.ins[out_target].mv(node, split_node_name)
                             self.outs[split_node_name].add('_Out', out_target)
                         self._AddPairEdges(node, split_node_name, param, '_In')
-                        self._AddProtoNode(split_node_name, None, helper, private_data, 'split')
+                        self._AddProtoNode(split_node_name, None, helper, private_data, 'split_ins')
 
     def _Subgraph(self, starts, ends):
         """
@@ -794,7 +794,7 @@ class FluidParser:
         else:
             private_data = {'split_num': split_num}
             self._RmProtoNode(split_node_name)
-            self._AddProtoNode(split_node_name, None, helper, private_data, 'split')
+            self._AddProtoNode(split_node_name, None, helper, private_data, 'split_ins')
 
     def _DealWithSoftmax(self, source_ops, helper):
         for source_op in source_ops:

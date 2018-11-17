@@ -77,6 +77,7 @@ anakin_option(USE_CUBLAS "Use Cublas libs." YES if USE_CUDA)
 anakin_option(USE_CURAND "Use Curand libs." YES if USE_CUDA)
 anakin_option(USE_CUFFT "Use CuFFT libs." YES if USE_CUDA)
 anakin_option(USE_CUDNN "Use Cudnn libs." YES if USE_CUDA)
+anakin_option(USE_TENSORRT "Use tensorrt for inference." NO)
 anakin_option(BUILD_CROSS_PLANTFORM "Build anakin lib for any nvidia device plantform." YES if USE_CUDA)
 anakin_option(BUILD_FAT_BIN "Build anakin cuda fat-bin lib for all device plantform" NO if BUILD_CROSS_PLANTFORM)
 
@@ -104,7 +105,7 @@ anakin_option(BUILD_CUBIN "BUILD with the -cubin option in Device mode" NO if US
 anakin_option(COMPILE_PTX "Returns a list of PTX files generated from src." NO if USE_CUDA)
 
 # common build options
-anakin_option(ENABLE_DEBUG "Enable DEBUG(default) mode." NO)
+anakin_option(ENABLE_DEBUG "Enable DEBUG(default) mode." YES)
 anakin_option(ENABLE_VERBOSE_MSG "Enable verbose=1 : compile msg during make." NO)
 anakin_option(DISABLE_ALL_WARNINGS "Disable all the warning msg during compile." YES)
 anakin_option(ENABLE_NOISY_WARNINGS "Enable noisy warning msg during compile." NO if DISABLE_ALL_WARNINGS)

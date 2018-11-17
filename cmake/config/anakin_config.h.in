@@ -39,6 +39,8 @@
 
 #cmakedefine USE_CUDNN
 
+#cmakedefine USE_TENSORRT
+
 #cmakedefine USE_PYTHON
 
 #cmakedefine USE_OPENCL 

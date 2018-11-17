@@ -27,7 +27,7 @@ TEST(NetTest, net_execute_base_test) {
     if (!status) {
         LOG(FATAL) << " [ERROR] " << status.info();
     }
-    //graph->ResetBatchSize("input_0", g_batch_size);
+    graph->ResetBatchSize("input_0", g_batch_size);
     graph->Optimize();
 
     Net<X86, Precision::FP32> net_executer(true);

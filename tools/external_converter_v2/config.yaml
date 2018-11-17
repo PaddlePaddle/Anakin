@@ -42,15 +42,15 @@
 OPTIONS:
     Framework: CAFFE
     SavePath: ./output
-    ResultName: googlenet
+    ResultName: life_feature1
     Config:
         LaunchBoard: ON
         Server:
             ip: 0.0.0.0
-            port: 8888
+            port: 8000
         OptimizedGraph: 
-            enable: OFF
-            path: /path/to/anakin_optimized/googlenet.anakin.bin.saved
+            enable: ON
+            path: /home/chengyujuan/baidu/sys-hic-gpu/anakin-models/map/anakin-models/route-dnn/route-dnn.anakin2.bin.saved
     LOGGER:
         LogToPath: ./log/
         WithColor: ON 
@@ -59,9 +59,11 @@ TARGET:
     CAFFE:
         # path to proto files
         ProtoPaths:
-            - /path/to/caffe.proto
-        PrototxtPath: /path/to/your/googlenet.prototxt
-        ModelPath: /path/to/your/googlenet.caffemodel
+            - /home/chengyujuan/baidu/sys-hic-gpu/anakin-models/face/caffe.proto
+        #PrototxtPath: /home/chengyujuan/baidu/sys-hic-gpu/anakin-models/face/face_detect/multiscale-sgnet13R2_no_inception.prototxt
+        #ModelPath: /home/chengyujuan/baidu/sys-hic-gpu/anakin-models/face/face_detect/sgnet13R2_iter_480000.caffemodel
+        PrototxtPath: /home/chengyujuan/baidu/sys-hic-gpu/anakin-models/face/life_feature/caffe_life_feature1.prototxt
+        ModelPath: /home/chengyujuan/baidu/sys-hic-gpu/anakin-models/face/life_feature/caffe_life_feature1.caffemodel
         Remark:  # Generally no need to modify.
 
     FLUID:

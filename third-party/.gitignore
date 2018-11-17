@@ -37,3 +37,5 @@ mkldnn_source
 mkldnn
 xbyak_source
 xbyak
+sass
+tensorrt5

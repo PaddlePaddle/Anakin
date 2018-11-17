@@ -1,5 +1,7 @@
 #include "saber/funcs/impl/x86/saber_softmax.h"
 #include <cmath>
+#include "mkl_cblas.h"
+#include "mkl_vml_functions.h"
 namespace anakin {
 namespace saber {
 
@@ -32,7 +34,50 @@ SaberStatus SaberSoftmax<X86, OpDtype>::create(
     memcpy(_output_stride.mutable_data(), (outputs[0]->get_stride()).data(), sizeof(int) * _dims);
     return SaberSuccess;
 }
+template <typename dtype>
+void _max(int n, const dtype *x, dtype *max_data) {
+    max_data[0] = x[0];
+    for (int c = 1; c < n; ++c) {
+        max_data[0] = max_data[0] > x[c] ? max_data[0] : x[c];
+    }
+}
+template <typename dtype>
+void _sub(int n, dtype alpha, const dtype *x, dtype *y) {
+    for (int c = 0; c < n; ++c) {
+        y[c] = x[c] - alpha;
+    }
+}
 
+template <typename dtype>
+void _exp(int n, const dtype *a, dtype *r) {
+#if 1
+    vsExp(n, a, r);
+#else
+    #pragma omp parallel for
+    for (int c = 0; c < n; ++c) {
+        r[c] = expf(a[c]);
+    }
+#endif
+}
+
+template <typename dtype>
+void _sum(int n, const dtype *x, dtype *sum_data) {
+    sum_data[0] = 0;
+    for (int c = 0; c < n; ++c) {
+        sum_data[0] += x[c];
+    }
+}
+template <typename dtype>
+void _scal (int n, dtype alpha, dtype *x) {
+#if 0
+    cblas_sscal(n, alpha, x, 1);
+#else
+#pragma omp parallel for
+    for (int c = 0; c < n; ++c) {
+        x[c] *= alpha;
+    }
+#endif
+}
 
 template <DataType OpDtype>
 SaberStatus SaberSoftmax<X86, OpDtype>::dispatch(
@@ -41,6 +86,35 @@ SaberStatus SaberSoftmax<X86, OpDtype>::dispatch(
     SoftmaxParam<X86>& param) {
 
     typedef typename DataTrait<X86, OpDtype>::Dtype OpDataType;
+    int axis = param.axis;
+    Shape sh_in = inputs[0]->valid_shape();
+    Shape sh_out = outputs[0]->valid_shape();
+    bool use_avx2 = true;
+    use_avx2 = use_avx2 && (sh_in.count(axis + 1) == 1);
+#if defined(__AVX2__) and defined(__FMA__)
+    if (use_avx2) {
+        int num = sh_in.count(0, axis);
+        int channel = sh_in.count(axis);
+
+        const float *src_ptr = (const float *) inputs[0]->data();
+        float *dst_ptr = (float *) outputs[0]->mutable_data();
+        outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
+
+#pragma omp parallel for schedule(static)
+        for (int ou = 0; ou < num; ou++) {
+            const float *src_data = src_ptr + ou * channel;
+            float *dst_data = dst_ptr + ou * channel;
+            float scalar = 0;
+
+            _max(channel, src_data, &scalar);
+            _sub(channel, scalar, src_data, dst_data);
+            _exp(channel, dst_data, dst_data);
+            _sum(channel, dst_data, &scalar);
+            _scal(channel, float(1.f) / scalar, dst_data);
+        }
+        return SaberSuccess;
+    }
+#endif
 
     const OpDataType* data_in = (const OpDataType*)inputs[0]->data();
     OpDataType* data_out = (OpDataType*)outputs[0]->mutable_data();
@@ -48,9 +122,6 @@ SaberStatus SaberSoftmax<X86, OpDtype>::dispatch(
     const int* input_stride = (const int*)_input_stride.data();
     const int* output_stride = (const int*)_output_stride.data();
     int total_num = _inner_num * _outer_num;
-    int axis = param.axis;
-    Shape sh_in = inputs[0]->valid_shape();
-    Shape sh_out = outputs[0]->valid_shape();
 
     #pragma omp parallel for schedule(static)
 
@@ -97,3 +168,4 @@ DEFINE_OP_TEMPLATE(SaberSoftmax, SoftmaxParam, X86, AK_HALF);
 DEFINE_OP_TEMPLATE(SaberSoftmax, SoftmaxParam, X86, AK_INT8);
 }
 } // namespace anakin
+

@@ -54,8 +54,9 @@ def Parser_conv2d_transpose(args):
     helper = args[3]
     private_data = args[4]
     [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'Filter')
+    weights_tensor.set_shape([weights_shape[1], weights_shape[0], weights_shape[2], weights_shape[3]])
     OpsRegister()["Deconvolution"].weight_1 = weights_tensor
-    OpsRegister()["Deconvolution"].filter_num = weights_shape[0]
+    OpsRegister()["Deconvolution"].filter_num = weights_shape[1]
     OpsRegister()["Deconvolution"].kernel_size = weights_shape[-2:]
     OpsRegister()["Deconvolution"].strides = helper.attr_data(op, 'strides')
     OpsRegister()["Deconvolution"].padding = helper.attr_data(op, 'paddings')
@@ -169,7 +170,7 @@ def Parser_scale_of_bn(args):
         OpsRegister()["Scale"].bias_term = False
 
 @ParserFeedDecorator("Split")
-def Parser_split(args):
+def Parser_split_ins(args):
     op = args[1]
     helper = args[3]
     private_data = args[4]
@@ -177,7 +178,16 @@ def Parser_split(args):
         split_num = private_data['split_num']
         OpsRegister()["Split"].split_num = split_num
     else:
-        OpsRegister()["Split"].split_num = helper.attr_data(op, 'num')
+        raise NameError('ERROR: Unknown Split_ins type.')
+
+@ParserFeedDecorator("Slice")
+def Parser_slice(args):
+    op = args[1]
+    helper = args[3]
+    OpsRegister()["Slice"].slice_point = [-1]
+    OpsRegister()["Slice"].num = helper.attr_data(op, 'num')
+    OpsRegister()["Slice"].axis = helper.attr_data(op, 'axis')
+    OpsRegister()["Slice"].sections = helper.attr_data(op, 'sections')
 
 @ParserFeedDecorator("Reshape")
 def Parser_reshape(args):
@@ -500,6 +510,7 @@ def Parser_prelu(args):
     helper = args[3]
     mode = helper.attr_data(op, 'mode')
     OpsRegister()["Activation"].type = "PReLU"
+    OpsRegister()["Activation"].weight_1 = helper.param_tensor(op, 'Alpha')
     if mode == "all":
         OpsRegister()["Activation"].channel_shared = True
     elif mode == "channel":
@@ -537,7 +548,7 @@ FLUID_NODE_FILLER = {
     "disc_bn":OpsParam().set_parser(Parser_scale_disc_bn),
     "scale_of_bn":OpsParam().set_parser(Parser_scale_of_bn),
     "elementwise_mul":OpsParam().set_parser(Parser_elementwise_mul),
-    "split":OpsParam().set_parser(Parser_split),
+    "split_ins":OpsParam().set_parser(Parser_split_ins),
     "depthwise_conv2d":OpsParam().set_parser(Parser_conv2d),
     "reshape":OpsParam().set_parser(Parser_reshape),
     "concat":OpsParam().set_parser(Parser_concat),
@@ -569,4 +580,5 @@ FLUID_NODE_FILLER = {
     "relu6":OpsParam().set_parser(Parser_relu6),
     "leaky_relu":OpsParam().set_parser(Parser_leaky_relu),
     "prelu":OpsParam().set_parser(Parser_prelu),
+    "split":OpsParam().set_parser(Parser_slice),
 }

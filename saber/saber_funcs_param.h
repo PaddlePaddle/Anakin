@@ -1022,6 +1022,27 @@ struct EmptyParam{
 };
 
 template <typename TargetType>
+struct FakeQuantizeAbsMaxParam {
+    FakeQuantizeAbsMaxParam() = default;
+
+    FakeQuantizeAbsMaxParam(int bit_length_in):
+        bit_length(bit_length_in) {}
+
+    FakeQuantizeAbsMaxParam(const FakeQuantizeAbsMaxParam& right):
+        bit_length(right.bit_length) {}
+
+    FakeQuantizeAbsMaxParam& operator=(const FakeQuantizeAbsMaxParam& right) {
+        bit_length = right.bit_length;
+    }
+
+    bool operator==(const FakeQuantizeAbsMaxParam& right) {
+        return bit_length == right.bit_length;
+    }
+
+    int bit_length{8};
+};
+
+template <typename TargetType>
 struct ExpandParam{
     ExpandParam() = default;
     ExpandParam(std::vector<int> expand_times_in) :

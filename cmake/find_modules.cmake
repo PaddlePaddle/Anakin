@@ -443,3 +443,48 @@ macro(anakin_find_bmlib)
         message(FATAL_ERROR "Could not found bm_lib") 
     endif()
 endmacro()
+
+
+macro(anakin_find_nvinfer)
+	find_path(NVINFER_INCLUDE_DIR NvInfer.h PATHS ${ANAKIN_ROOT}/third-party/tensorrt5/include
+	$ENV{NVINFER_ROOT})
+	if (BUILD_SHARED)
+		find_library(NVINFER_LIBRARY NAMES libnvinfer.so
+				PATHS ${NVINFER_INCLUDE_DIR}/../lib64/
+				PATHS ${NVINFER_INCLUDE_DIR}/../lib/
+				DOC "library path for tensorrt.")
+		find_library(NVINFER_PLUGIN_LIBRARY NAMES libnvinfer_plugin.so
+				PATHS ${NVINFER_INCLUDE_DIR}/../lib64/
+				PATHS ${NVINFER_INCLUDE_DIR}/../lib/
+				DOC "library path for tensorrt.")
+		find_library(NVPARSERS_LIBRARY NAMES libnvparsers.so
+				PATHS ${NVINFER_INCLUDE_DIR}/../lib64/
+				PATHS ${NVINFER_INCLUDE_DIR}/../lib/
+				DOC "library path for tensorrt.")
+	else()
+		find_library(NVINFER_LIBRARY NAMES libnvinfer.a
+				PATHS ${NVINFER_INCLUDE_DIR}/../lib64/
+				DOC "library path for tensorrt.")
+		find_library(NVINFER_PLUGIN_LIBRARY NAMES libnvinfer_plugin.a
+				PATHS ${NVINFER_INCLUDE_DIR}/../lib64/
+				DOC "library path for tensorrt.")
+		find_library(NVPARSERS_LIBRARY NAMES libnvparsers.a
+				PATHS ${NVINFER_INCLUDE_DIR}/../lib64/
+				DOC "library path for tensorrt.")
+	endif()
+	if(NVINFER_INCLUDE_DIR AND NVINFER_LIBRARY AND NVINFER_PLUGIN_LIBRARY AND NVPARSERS_LIBRARY)
+		set(NVINFER_FOUND TRUE)
+	endif()
+	if(NVINFER_FOUND)
+		message(STATUS "Found NvInfer in ${NVINFER_INCLUDE_DIR}")
+		include_directories(SYSTEM ${NVINFER_INCLUDE_DIR})
+		#include_directories(${NVINFER_INCLUDE_DIR})
+		list(APPEND ANAKIN_LINKER_LIBS ${NVINFER_LIBRARY})
+		list(APPEND ANAKIN_LINKER_LIBS ${NVINFER_PLUGIN_LIBRARY})
+		list(APPEND ANAKIN_LINKER_LIBS ${NVPARSERS_LIBRARY})
+		message(STATUS "${ANAKIN_LINKER_LIBS}")
+	else()
+		message(FATAL_ERROR "Couldn't found NvInfer ! in path: ${NVINFER_INCLUDE_DIR}")
+	endif()
+endmacro()
+
