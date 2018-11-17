@@ -1,9 +1,16 @@
-# ----------------------------------------------------------------------------
-# Copyright (c) 2017 Baidu.com, Inc. All Rights Reserved
-# @file     find_modules.cmake
-# @auther   cuichaowen
-# @date     2016-11-9
-# ----------------------------------------------------------------------------
+# Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 #anakin cmake module
 set(CMAKE_MODULE_PATH "${ANAKIN_ROOT}/cmake")
@@ -11,12 +18,16 @@ set(CMAKE_MODULE_PATH "${ANAKIN_ROOT}/cmake")
 set(ANAKIN_LINKER_LIBS "")
 
 if(UNIX)
-    find_library(RTLIB rt)
-    if(RTLIB)
-        list(APPEND ANAKIN_LINKER_LIBS ${RTLIB})
-    else()
-        message(SEND_ERROR "Could not found -lrt !")
-    endif()
+	if(USE_ARM_PLACE )
+	elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+	else()
+		find_library(RTLIB rt)
+		if(RTLIB)
+			list(APPEND ANAKIN_LINKER_LIBS ${RTLIB})
+		else()
+			message(SEND_ERROR "Could not found -lrt !")
+		endif()
+	endif()
 
     find_library(DLLIB dl)
     if(DLLIB)
@@ -26,32 +37,50 @@ if(UNIX)
     endif()
 endif()
 
+# whole archive for static lib
+if(NOT MSVC AND NOT APPLE) 
+    set(WHOLE_ARCHIVE_START -Wl,--whole-archive) 
+    set(WHOLE_ARCHIVE_END -Wl,--no-whole-archive) 
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang") 
+    # using regular Clang or AppleClang 
+    set(WHOLE_ARCHIVE_START -Wl,-force_load) 
+    set(WHOLE_ARCHIVE_END) 
+endif()
+
 #find opencv version >= 2.4.3
 macro(anakin_find_opencv)
-    if(BUILD_SHARED OR TRUE) # temporary not support static link opencv.
-	    #set(CMAKE_FIND_ROOT_PATH ${ANAKIN_ROOT}/third-party/opencv243/lib)
-        find_package(OpenCV QUIET COMPONENTS core highgui imgproc imgcodecs)
-        if(NOT OpenCV_FOUND)
-            find_package(OpenCV QUIET COMPONENTS core highgui imgproc)
-        endif()
-	    if(OpenCV_FOUND)
-	    	message(STATUS "Found opencv: ${OpenCV_INCLUDE_DIRS}")
-	    	include_directories(SYSTEM ${OpenCV_INCLUDE_DIRS})
-	    	list(APPEND ANAKIN_LINKER_LIBS ${OpenCV_LIBS})	
-	    else()
-	    	message(SEND_ERROR "Could not found opencv !")
-	    endif()	
-    else() # BUILD_STATIC
-        list(APPEND OPENCV_STATIC_LIBS libopencv_core.a
-                                       libopencv_highgui.a
-                                       libopencv_imgproc.a
-                                       libopencv_contrib.a)
-        foreach(CV_LIB ${OPENCV_STATIC_LIBS})
-            set(__CV_LIB_FULL_PATH "${ANAKIN_ROOT}/third-party/opencv243/lib/${CV_LIB}")    
-            #message(STATUS ${__CV_LIB_FULL_PATH})
-            list(APPEND ANAKIN_LINKER_LIBS ${__CV_LIB_FULL_PATH})
-        endforeach()
-        unset(__CV_LIB_FULL_PATH)
+
+	if(USE_ARM_PLACE AND TARGET_ANDROID)
+		include_directories(${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/sdk/native/jni/include/)
+		LINK_DIRECTORIES(${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/sdk/native/libs/armeabi-v7a/)
+
+	else()
+
+		if(BUILD_SHARED) # temporary not support static link opencv.
+			find_package(OpenCV QUIET COMPONENTS core highgui imgproc imgcodecs)
+			if(NOT OpenCV_FOUND)
+				find_package(OpenCV QUIET COMPONENTS core highgui imgproc)
+			endif()
+			if(OpenCV_FOUND)
+				message(STATUS "Found opencv: ${OpenCV_INCLUDE_DIRS}")
+				include_directories(SYSTEM ${OpenCV_INCLUDE_DIRS})
+				list(APPEND ANAKIN_LINKER_LIBS ${OpenCV_LIBS})
+
+			else()
+				message(SEND_ERROR "Could not found opencv !")
+			endif()
+		else() # BUILD_STATIC
+			set(OPENCV_LIB_PATH "" CACHE "Path to oopen cv library")
+			list(APPEND OPENCV_STATIC_LIBS ${OPENCV_LIB_PATH}/libopencv_core.a
+					${OPENCV_LIB_PATH}libopencv_highgui.a
+					${OPENCV_LIB_PATH}libopencv_imgproc.a
+					${OPENCV_LIB_PATH}libopencv_contrib.a)
+			foreach(CV_LIB ${OPENCV_STATIC_LIBS})
+				list(APPEND ANAKIN_LINKER_LIBS ${CV_LIB})
+			endforeach()
+			unset(__CV_LIB_FULL_PATH)
+		endif()
+
     endif()
 endmacro()
 
@@ -60,8 +89,8 @@ macro(anakin_find_opencl)
 	set(OCL_ROOT "" CACHE PATH "openCL root dir.")
 
 	find_path(OCL_INCLUDE_DIR  NAMES  CL/cl.h PATHS ${OCL_ROOT}/include $ENV{OCL_ROOT}/include)
+	find_library(OCL_LIBRARIES NAMES libOpenCL.so PATHS ${OCL_ROOT} ${OCL_ROOT}/lib/x86_64 $ENV{OCL_ROOT}/lib $ENV{OCL_ROOT}/lib/x86_64)
 
-	find_library(OCL_LIBRARIES NAMES libOpenCL.so PATHS ${OCL_ROOT})
 	if(OCL_INCLUDE_DIR AND OCL_LIBRARIES)
 		set(OCL_FOUND  TRUE)
 		message(STATUS "Found opencl: ${OCL_INCLUDE_DIR}")
@@ -104,7 +133,6 @@ macro(anakin_find_mkl)
 	find_path(MKL_INCLUDE_DIR mkl_blas.h PATHS $ENV{MKL_ROOT}/include
     										   ${INTEL_ROOT}/mklml/include
     										   DOC "Folder contains MKL")
-	#message(STATUS "test ??? ${MKL_INCLUDE_DIR}")
 	# include to anakin sys.
 	include_directories(SYSTEM ${MKL_INCLUDE_DIR})
 	# find for libs.
@@ -218,9 +246,13 @@ endmacro()
 
 
 macro(anakin_find_gflags)
-	set(GFLAGS_INCLUDE_DIR ${ANAKIN_ROOT}/third-party/gflags/include)
+	set(GFLAGS_ROOT "~/.jumbo/" CACHE PATH "google flags root dir." )
+    find_path(GFLAGS_INCLUDE_DIR gflags/gflags.h 
+                                    PATHS ${GFLAGS_ROOT}/include 
+                                    $ENV{GFLAGS_ROOT}/include)
     find_library(GFLAGS_LIBRARY NAMES libgflags.so
-                                   PATHS ${GFLAGS_INCLUDE_DIR}/../lib
+                                   PATHS ${GFLAGS_ROOT}/lib
+                                   $ENV{GFLAGS_ROOT}/lib 
                                    DOC "library path for gflags.")
     if(GFLAGS_INCLUDE_DIR AND GFLAGS_LIBRARY)
     	set(GFLAGS_FOUND TRUE)
@@ -259,32 +291,200 @@ macro(anakin_find_mklml)
             list(APPEND MKLML_LIBRARIES ${MKLML_ROOT}/lib/libiomp5.so)
             list(APPEND MKLML_LIBRARIES ${MKLML_ROOT}/lib/libmklml_intel.so)
             list(APPEND ANAKIN_LINKER_LIBS ${MKLML_LIBRARIES})
-        else()
-                message(FATAL_ERROR "NOT FOUND MKLML")
+			install(FILES ${MKLML_ROOT}/lib/libiomp5.so ${MKLML_ROOT}/lib/libmklml_intel.so DESTINATION ${PROJECT_SOURCE_DIR}/${AK_OUTPUT_PATH}/)
+			install(DIRECTORY ${MKLML_ROOT}/include/
+					DESTINATION ${PROJECT_SOURCE_DIR}/${AK_OUTPUT_PATH}/mklml_include)
+#        else()
+#                message(FATAL_ERROR "NOT FOUND MKLML")
         endif()
 endmacro()
 
 macro(anakin_find_protobuf)
-    list(APPEND ANAKIN_LINKER_LIBS ${PROTOBUF_LIBRARIES})
-        find_package(Protobuf REQUIRED)
-        if(PROTOBUF_FOUND)
-                message(STATUS "Found protobuf in ${PROTOBUF_INCLUDE_DIR}")
+	if(USE_ARM_PLACE)
+		set(ARM_RPOTO_ROOT "${CMAKE_SOURCE_DIR}/third-party/arm-android/protobuf")
+		include_directories(${ARM_RPOTO_ROOT}/include)
+		set(PROTOBUF_LIBRARIES "")
+		#if(BUILD_SHARED)
+		#	list(APPEND ANAKIN_LINKER_LIBS ${ARM_RPOTO_ROOT}/lib/libprotobuf.so)
+		#else()
+			list(APPEND ANAKIN_LINKER_LIBS ${ARM_RPOTO_ROOT}/lib/libprotobuf.a)
+		#endif()
+		find_library( # Sets the name of the path variable.
+				log-lib
+
+				# Specifies the name of the NDK library that
+				# you want CMake to locate.
+				log )
+		list(APPEND ANAKIN_LINKER_LIBS ${log-lib})
+	else()
+        if(NOT ENABLE_MIN_DEPENDENCY) 
+            find_program(PROTOBUF_PROTOC_EXECUTABLE protoc)
+            if(PROTOBUF_PROTOC_EXECUTABLE)
+              find_package(Protobuf REQUIRED)
+              message(STATUS "Found protobuf in ${PROTOBUF_INCLUDE_DIR}")
+              include_directories(${PROTOBUF_INCLUDE_DIR})
+              list(APPEND ANAKIN_LINKER_LIBS ${PROTOBUF_LIBRARIES})
+            else()
+              set(PROTOBUF_ROOT "" CACHE PATH "Folder contains protobuf")
+              if (NOT "${PROTOBUF_ROOT}" STREQUAL "")
+                  find_path(PROTOBUF_INCLUDE_DIR google/protobuf/message.h PATHS ${PROTOBUF_ROOT}/include NO_DEFAULT_PATH)
+                  find_library(PROTOBUF_LIBRARY protobuf PATHS ${PROTOBUF_ROOT}/lib NO_DEFAULT_PATH)
+                  find_library(PROTOBUF_LITE_LIBRARY protobuf-lite PATHS ${PROTOBUF_ROOT}/lib NO_DEFAULT_PATH)
+                  find_library(PROTOBUF_PROTOC_LIBRARY protoc PATHS ${PROTOBUF_ROOT}/lib NO_DEFAULT_PATH)
+                  find_program(PROTOBUF_PROTOC_EXECUTABLE protoc PATHS ${PROTOBUF_ROOT}/bin NO_DEFAULT_PATH)
+                  if (PROTOBUF_INCLUDE_DIR AND PROTOBUF_LIBRARY AND PROTOBUF_LITE_LIBRARY AND PROTOBUF_PROTOC_LIBRARY AND PROTOBUF_PROTOC_EXECUTABLE)
+                      message(STATUS "Using custom protobuf library in ${PROTOBUF_ROOT}.")
+                      set(PROTOBUF_LIBRARIES ${PROTOBUF_LIBRARY} ${PROTOBUF_LITE_LIBRARY} ${PROTOBUF_PROTOC_LIBRARY})
+                      list(APPEND ANAKIN_LINKER_LIBS ${PROTOBUF_LIBRARIES})
+                      include_directories(${PROTOBUF_INCLUDE_DIR})
+                  else()
+                      message(SEND_ERROR "Cannot find protobuf library in ${PROTOBUF_ROOT}.")
+                  endif()
+              endif()
+            endif()
+        else()
+            set(PROTOBUF_ROOT "/usr/local" CACHE PATH "Folder contains protobuf")    
+            find_path(PROTOBUF_INCLUDE_DIR google/protobuf/stubs/common.h PATHS 
+                        ${PROTOBUF_ROOT}/include $ENV{PROTOBUF_ROOT}/include NO_DEFAULT_PATH)
+
+            find_library(PROTOBUF_LIBRARY libprotobuf.a PATHS ${PROTOBUF_ROOT}/lib 
+                                                 $ENV{PROTOBUF_ROOT}/lib NO_DEFAULT_PATH)
+
+            find_program(PROTOBUF_PROTOC_EXECUTABLE protoc PATHS ${PROTOBUF_ROOT}/bin 
+                                                 $ENV{PROTOBUF_ROOT}/bin NO_DEFAULT_PATH)
+            if(PROTOBUF_INCLUDE_DIR AND PROTOBUF_LIBRARY) 
+                list(APPEND ANAKIN_LINKER_LIBS ${PROTOBUF_LIBRARY})
                 include_directories(${PROTOBUF_INCLUDE_DIR})
-                list(APPEND ANAKIN_LINKER_LIBS ${PROTOBUF_LIBRARIES})
+            else()
+                message(SEND_ERROR "Cannot find protobuf library in ${PROTOBUF_ROOT}.")
+            endif()
         endif()
+	endif()
 endmacro()
 
+macro(anakin_find_baidu_rpc)
+    if(NOT ENABLE_MIN_DEPENDENCY)
+        set(BAIDU_RPC_ROOT "/opt/brpc" CACHE PATH "baidu rpc root dir")
+        find_path(RPC_INCLUDE_DIR brpc/server.h PATHS ${BAIDU_RPC_ROOT}/include $ENV{BAIDU_RPC_ROOT}/include)
+        find_library(RPC_LIBRARY NAMES libbrpc.so
+                                 PATHS ${BAIDU_RPC_ROOT}/lib $ENV{BAIDU_RPC_ROOT}/lib
+                                 DOC "library path for baidu rpc.")
+        if(RPC_INCLUDE_DIR AND RPC_LIBRARY)
+            include_directories(${RPC_INCLUDE_DIR})
+            list(APPEND ANAKIN_LINKER_LIBS ${RPC_LIBRARY})
+        else()
+            message(SEND_ERROR "Could not found baidu-rpc !")
+        endif()
+    else()
+        set(BAIDU_RPC_ROOT "/opt/brpc" CACHE PATH "baidu rpc root dir")
+        find_path(RPC_INCLUDE_DIR brpc/server.h PATHS ${BAIDU_RPC_ROOT}/include $ENV{BAIDU_RPC_ROOT}/include)
+        find_library(RPC_LIBRARY NAMES libbrpc.a
+                                 PATHS ${BAIDU_RPC_ROOT}/lib $ENV{BAIDU_RPC_ROOT}/lib
+                                 DOC "library path for baidu rpc.")
+
+        find_path (GCC_PATH NAMES gcc)
+        find_library(SSL_LIB NAMES libssl.so PATHS ${GCC_PATH}/../lib/)
+        list(APPEND BRPC_RELAY ${SSL_LIB})
+        find_library(CRYPTO_LIB NAMES libcrypto.so PATHS ${GCC_PATH}/../lib/)
+        list(APPEND BRPC_RELAY ${CRYPTO_LIB})
+        find_library(LEVELDB_LIB NAMES libleveldb.so PATHS /home/chaowen/.jumbo/lib/ NO_DEFAULT_PATH)
+        list(APPEND BRPC_RELAY ${LEVELDB_LIB})
+        #find_library(DL_LIB NAMES libdl.so PATHS ${GCC_PATH}/../lib/)
+        #list(APPEND BRPC_RELAY ${DL_LIB})
+        find_library(Z_LIB NAMES libz.so PATHS ${GCC_PATH}/../lib/)
+        list(APPEND BRPC_RELAY ${Z_LIB})
+
+        if(RPC_INCLUDE_DIR AND RPC_LIBRARY)
+            include_directories(${RPC_INCLUDE_DIR})
+            list(APPEND ANAKIN_LINKER_LIBS ${RPC_LIBRARY})
+            foreach(relay_lib ${BRPC_RELAY})
+                message(STATUS ${relay_lib})
+                list(APPEND ANAKIN_LINKER_LIBS ${relay_lib})
+            endforeach()
+        else()
+            message(SEND_ERROR "Could not found baidu-rpc !")
+        endif()
+    endif()
+endmacro()
 
 macro(anakin_find_openmp)
 	find_package(OpenMP REQUIRED)
 	if(OPENMP_FOUND OR OpenMP_CXX_FOUND)
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 		message(STATUS "Found openmp in ${OPENMP_INCLUDE_DIR}")
-		message(STATUS " |-- openmp c flags:  ${OpenMP_C_FLAGS}")
-	    	message(STATUS " |-- openmp cxx flags:  ${OpenMP_CXX_FLAGS}")
-	    	message(STATUS " `-- openmp link flags:  ${OpenMP_EXE_LINKER_FLAGS}")
-		include_directories(${OPENMP_INCLUDE_DIR})
-		list(APPEND ANAKIN_LINKER_LIBS ${OPENMP_LIBRARIES})
+		message(STATUS " |--openmp cflags: ${OpenMP_C_FLAGS}")
+		message(STATUS " |--openmp cxxflags: ${OpenMP_CXX_FLAGS}")
+		message(STATUS " |--openmp cflags: ${OpenMP_EXE_LINKER_FLAGS}")
 	else()
 		message(FATAL_ERROR "Could not found openmp !")
 	endif()
 endmacro()
+
+macro(anakin_find_bmlib)
+    find_path(BM_ROOT include/bmdnn/bmdnn_api.h ${CMAKE_SOURCE_DIR}/third-party/bm_lib/ $ENV{BM_ROOT}/) 
+    find_path(BM_ROOT_INCLUDE_DNN bmdnn_api.h ${BM_ROOT}/include/bmdnn) 
+    find_path(BM_ROOT_INCLUDE_RT bmruntime.h ${BM_ROOT}/include/bmruntime) 
+    find_path(BM_ROOT_INCLUDE_LIB bmlib_runtime.h ${BM_ROOT}/include/bmlib) 
+    if(BM_ROOT_INCLUDE_DNN AND BM_ROOT_INCLUDE_RT AND BM_ROOT_INCLUDE_LIB) 
+        set(BM_FOUND TRUE) 
+    endif() 
+    if(BM_FOUND) 
+        message(STATUS " Found bm_lib in ${BM_ROOT}  ${BM_ROOT_INCLUDE_DNN} ${BM_ROOT_INCLUDE_RT} ${BM_ROOT_INCLUDE_LIB}")
+        include_directories(${BM_ROOT_INCLUDE_DNN})
+        include_directories(${BM_ROOT_INCLUDE_RT}) 
+        include_directories(${BM_ROOT_INCLUDE_LIB}) 
+        set(BM_LIBRARIES "") 
+        list(APPEND BM_LIBRARIES ${BM_ROOT}/lib/app/libbmdnn_device.so) 
+        list(APPEND BM_LIBRARIES ${BM_ROOT}/lib/app/libbmlib_device.so)
+        list(APPEND BM_LIBRARIES ${BM_ROOT}/lib/app/libbmrt.so) 
+        list(APPEND ANAKIN_LINKER_LIBS ${BM_LIBRARIES}) 
+    else() 
+        message(FATAL_ERROR "Could not found bm_lib") 
+    endif()
+endmacro()
+
+
+macro(anakin_find_nvinfer)
+	find_path(NVINFER_INCLUDE_DIR NvInfer.h PATHS ${ANAKIN_ROOT}/third-party/tensorrt5/include
+	$ENV{NVINFER_ROOT})
+	if (BUILD_SHARED)
+		find_library(NVINFER_LIBRARY NAMES libnvinfer.so
+				PATHS ${NVINFER_INCLUDE_DIR}/../lib64/
+				PATHS ${NVINFER_INCLUDE_DIR}/../lib/
+				DOC "library path for tensorrt.")
+		find_library(NVINFER_PLUGIN_LIBRARY NAMES libnvinfer_plugin.so
+				PATHS ${NVINFER_INCLUDE_DIR}/../lib64/
+				PATHS ${NVINFER_INCLUDE_DIR}/../lib/
+				DOC "library path for tensorrt.")
+		find_library(NVPARSERS_LIBRARY NAMES libnvparsers.so
+				PATHS ${NVINFER_INCLUDE_DIR}/../lib64/
+				PATHS ${NVINFER_INCLUDE_DIR}/../lib/
+				DOC "library path for tensorrt.")
+	else()
+		find_library(NVINFER_LIBRARY NAMES libnvinfer.a
+				PATHS ${NVINFER_INCLUDE_DIR}/../lib64/
+				DOC "library path for tensorrt.")
+		find_library(NVINFER_PLUGIN_LIBRARY NAMES libnvinfer_plugin.a
+				PATHS ${NVINFER_INCLUDE_DIR}/../lib64/
+				DOC "library path for tensorrt.")
+		find_library(NVPARSERS_LIBRARY NAMES libnvparsers.a
+				PATHS ${NVINFER_INCLUDE_DIR}/../lib64/
+				DOC "library path for tensorrt.")
+	endif()
+	if(NVINFER_INCLUDE_DIR AND NVINFER_LIBRARY AND NVINFER_PLUGIN_LIBRARY AND NVPARSERS_LIBRARY)
+		set(NVINFER_FOUND TRUE)
+	endif()
+	if(NVINFER_FOUND)
+		message(STATUS "Found NvInfer in ${NVINFER_INCLUDE_DIR}")
+		include_directories(SYSTEM ${NVINFER_INCLUDE_DIR})
+		#include_directories(${NVINFER_INCLUDE_DIR})
+		list(APPEND ANAKIN_LINKER_LIBS ${NVINFER_LIBRARY})
+		list(APPEND ANAKIN_LINKER_LIBS ${NVINFER_PLUGIN_LIBRARY})
+		list(APPEND ANAKIN_LINKER_LIBS ${NVPARSERS_LIBRARY})
+		message(STATUS "${ANAKIN_LINKER_LIBS}")
+	else()
+		message(FATAL_ERROR "Couldn't found NvInfer ! in path: ${NVINFER_INCLUDE_DIR}")
+	endif()
+endmacro()
+

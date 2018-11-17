@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -30,16 +30,6 @@ using ::anakin::test::Test;
 
 using namespace anakin::graph;
 
-#ifdef USE_CUDA
-using Target = NV;
-#endif
-#ifdef USE_X86_PLACE
-using Target = X86;
-#endif
-#ifdef USE_ARM_PLACE
-using Target = ARM;
-#endif
-
 /**
  * \brief Graph test is base Test class for anakin graph funciton.  
  */
@@ -52,21 +42,35 @@ public:
     void TearDown(){}
 
 protected:
-    Graph<Target, AK_FLOAT, Precision::FP32>* graph;
 };
 
-void test_print(Tensor4dPtr<Target, AK_FLOAT>& out_tensor_p) {
-    Tensor4d<target_host<Target>::type, AK_FLOAT> h_tensor_result;
+#ifdef USE_CUDA
+void test_print(Tensor4dPtr<NV>& out_tensor_p) {
+    Tensor4d<target_host<NV>::type> h_tensor_result;
     h_tensor_result.re_alloc(out_tensor_p->valid_shape());
     LOG(ERROR) << "result count : " << h_tensor_result.valid_shape().count();
     h_tensor_result.copy_from(*out_tensor_p);
+    LOG(INFO) << "output num:" << h_tensor_result.valid_size();
+    float * data = (float*)(h_tensor_result.mutable_data());
     for (int i = 0; i < h_tensor_result.valid_size(); i++) {
-        LOG(INFO) << " GET OUT (" << i << ") " << h_tensor_result.mutable_data()[i];
+        LOG(INFO) << " GET OUT (" << i << ") " << data[i];
     }
 }
+#endif
+
+#ifdef USE_X86_PLACE
+void test_print(Tensor4dPtr<X86>& out_tensor_p) {
+    LOG(ERROR) << "result count : " << out_tensor_p->valid_shape().count();
+    LOG(INFO) << "output num:" << out_tensor_p->valid_size();
+    float * data = (float*)(out_tensor_p->mutable_data());
+    for (int i = 0; i < out_tensor_p->valid_size(); i++) {
+        LOG(INFO) << " GET OUT (" << i << ") " << data[i];
+    }
+}
+#endif
 
 template<typename Ttype, DataType Dtype>
-double tensor_average(Tensor4dPtr<Ttype, Dtype>& out_tensor_p) {
+double tensor_average(Tensor4dPtr<Ttype>& out_tensor_p) {
     double sum = 0.0f;
 #ifdef USE_CUDA
     float* h_data = new float[out_tensor_p->valid_size()];
@@ -78,27 +82,29 @@ double tensor_average(Tensor4dPtr<Ttype, Dtype>& out_tensor_p) {
     for (int i=0; i<out_tensor_p->valid_size(); i++) {
 		sum+=h_data[i];
     }
-    return sum/out_tensor_p->valid_size();
+    return sum/*/out_tensor_p->valid_size()*/;
 }
 
-
-static int record_dev_tensorfile(const Tensor4d<Target, AK_FLOAT>* dev_tensor, const char* locate) {
-    Tensor<target_host<Target>::type, AK_FLOAT, NCHW> host_temp;
+#ifdef USE_X86_PLACE
+static int record_dev_tensorfile(const Tensor4d<X86>* dev_tensor, const char* locate) {
+    Tensor<target_host<X86>::type> host_temp;
     host_temp.re_alloc(dev_tensor->valid_shape());
     host_temp.copy_from(*dev_tensor);
+    const float* data = (const float*)(host_temp.data());
     FILE* fp = fopen(locate, "w+");
     int size = host_temp.valid_shape().count();
     if (fp == 0) {
         LOG(ERROR) << "[ FAILED ] file open target txt: " << locate;
     } else {
         for (int i = 0; i < size; ++i) {
-            fprintf(fp, "%.18f \n", i, (host_temp.data()[i]));
+            fprintf(fp, "%.18f \n", i, (data[i]));
         }
         fclose(fp);
     }
     LOG(INFO) << "[ SUCCESS ] Write " << size << " data to: " << locate;
     return 0;
 }
+#endif
 
 #endif
 

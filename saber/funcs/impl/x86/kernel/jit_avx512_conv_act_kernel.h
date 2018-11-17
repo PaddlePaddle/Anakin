@@ -1,11 +1,11 @@
-#ifndef ANAKIN_SABER_FUNCS_IMPL_X86_KERNEL_JIT_AVX512_CONV_ACT_KERNEL_H 
+#ifndef ANAKIN_SABER_FUNCS_IMPL_X86_KERNEL_JIT_AVX512_CONV_ACT_KERNEL_H
 #define ANAKIN_SABER_FUNCS_IMPL_X86_KERMEL_JIT_AVX512_CONV_ACT_KERNEL_H
 
 #include <iostream>
 #include <stddef.h>
 
-#include "saber/funcs/impl/x86/kernel/jit_generator.h"
-#include "saber/funcs/impl/x86/jit_call_conf.h"
+#include "jit_generator.h"
+#include "saber/funcs/impl/x86/kernel/jit_call_conf.h"
 #include "saber/saber_types.h"
 #include "saber/funcs/impl/x86/x86_utils.h"
 
@@ -16,8 +16,7 @@ namespace jit {
 struct jit_conv_act_kernel : public jit_generator {
 
 public:
-    jit_conv_act_kernel(jit_conv_conf_t ajcp) : jcp(ajcp)
-    {
+    jit_conv_act_kernel(jit_conv_conf_t ajcp) : jcp(ajcp) {
         generate();
         jit_ker = (void (*)(jit_conv_call_t *))getCode();
     }
@@ -25,7 +24,7 @@ public:
     DECLARE_CPU_JIT_AUX_FUNCTIONS(jit_avx512_conv_act_kernel);
 
     static SaberStatus init_conf(jit_conv_conf_t &jcp);
-   
+
     jit_conv_conf_t jcp;
     void (*jit_ker)(jit_conv_call_t *);
 
@@ -95,6 +94,7 @@ private:
     Xbyak::Zmm zmm_relu_ns = Xbyak::Zmm(30);
     Xbyak::Zmm zmm_zero = Xbyak::Zmm(31);
     Xbyak::Zmm zmm_wei = Xbyak::Zmm(31);
+    Xbyak::Zmm zmm_s32_tmp = Xbyak::Zmm(31);
 
     inline void prepare_output(int ur_w);
     inline void store_output(int ur_w);
@@ -126,8 +126,13 @@ private:
     }
 
     inline int get_output_offset(int oi, int n_oc_block) {
-        return jcp.typesize_out
-            * (n_oc_block * jcp.oh * jcp.ow + oi) * jcp.oc_block;
+        if (jcp.output_nhwc) {
+            return jcp.typesize_out
+                * (oi * jcp.oc + (n_oc_block * jcp.oc_block));
+        } else {
+            return jcp.typesize_out
+                * (n_oc_block * jcp.oh * jcp.ow + oi) * jcp.oc_block;
+        }
     }
 
     inline int get_input_offset(int ki, int ic, int oi, int pad_l) {
@@ -153,7 +158,7 @@ private:
         return ur_w - utils::max(0,
             (ki + pad_r - (jcp.kw - 1) + jcp.stride_w - 1) / jcp.stride_w);
     }
-    
+
 };
 
 

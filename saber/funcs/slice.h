@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -18,47 +18,33 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+#include "saber/funcs/impl/impl_slice.h"
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_slice.h"
 #endif
 
 #ifdef USE_X86_PLACE
-#include "saber/funcs/impl/impl_slice.h"
+#include "saber/funcs/impl/x86/saber_slice.h"
 #endif
-
+#ifdef USE_ARM_PLACE
+#include "saber/funcs/impl/arm/saber_slice.h"
+#endif
 namespace anakin{
 
 namespace saber{
 
-template <typename TargetType,
-        DataType OpDtype,
-        DataType inDtype = AK_FLOAT,
-        DataType outDtype = AK_FLOAT,
-        typename LayOutType_op = NCHW,
-        typename LayOutType_in = NCHW,
-        typename LayOutType_out = NCHW
->
-class Slice : public BaseFunc<
-        Tensor<TargetType, inDtype, LayOutType_in>,
-        Tensor<TargetType, outDtype, LayOutType_out>,
-        Tensor<TargetType, OpDtype, LayOutType_op>,
-        ImplBase,
-        SliceParam>
+template <typename TargetType, DataType OpDtype>
+class Slice : public BaseFunc<TargetType, OpDtype, ImplBase, SliceParam>
 {
 public:
 
-    using BaseFunc<
-        Tensor<TargetType, inDtype, LayOutType_in>,
-        Tensor<TargetType, outDtype, LayOutType_out>,
-        Tensor<TargetType, OpDtype, LayOutType_op>,
-        ImplBase,
-        SliceParam >::BaseFunc;
+    using BaseFunc<TargetType, OpDtype, ImplBase, SliceParam >::BaseFunc;
     Slice() = default;
 
-    typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
-    typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
-    typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-    typedef SliceParam<OpTensor> Param_t;
+    typedef Tensor<TargetType> InDataTensor;
+    typedef Tensor<TargetType> OutDataTensor;
+    typedef Tensor<TargetType> OpTensor;
+    typedef SliceParam<TargetType> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
@@ -99,8 +85,9 @@ public:
             Shape sh = shape_in;
             sh[param.axis] = step;
             output[0]->set_shape(sh);
+            param.slice_points.clear();
             for (int i = 1; i < top_size; ++i) {
-                param.slice_points[i - 1] = i * step;
+                param.slice_points.push_back(i * step);
                 status = output[i]->set_shape(sh);
                 if (status != SaberSuccess) {
                     return status;
@@ -113,12 +100,10 @@ public:
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) { 
             case VENDER_IMPL: 
-                this->_impl.push_back(new VenderSlice <TargetType, OpDtype, inDtype, outDtype, 
-                    LayOutType_op, LayOutType_in, LayOutType_out>); 
+                this->_impl.push_back(new VenderSlice <TargetType, OpDtype>); 
                 return SaberSuccess; 
             case SABER_IMPL: 
-                this->_impl.push_back(new SaberSlice <TargetType, OpDtype, inDtype, outDtype, 
-                    LayOutType_op, LayOutType_in, LayOutType_out>); 
+                this->_impl.push_back(new SaberSlice <TargetType, OpDtype>); 
                 return SaberSuccess; 
             default: 
                 return SaberUnImplError;
@@ -128,12 +113,6 @@ public:
 private:
 
     virtual void pick_best_static() override {
-        //! slice only has saber implementation
-        this->_best_impl = this->_impl[0];
-    }
-
-    virtual void pick_best_runtime(Input_v input, Output_v output, \
-        Param_t& param, Context<TargetType> &ctx) override {
         //! slice only has saber implementation
         this->_best_impl = this->_impl[0];
     }

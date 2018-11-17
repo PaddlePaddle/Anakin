@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -31,20 +31,20 @@ namespace graph {
  * \brief Graph class
  * public inherit GraphBase
 */
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class Graph : public GraphBase<std::string, 
-                               NodePtr<Ttype, Dtype, Ptype>, 
-                               Tensor4dPtr<Ttype, Dtype>, 
-                               Edge<Ttype, Dtype> > {
+                               NodePtr, 
+                               Tensor4dPtr<Ttype>, 
+                               Edge<Ttype> > {
 public:
     Graph():GraphBase<std::string, 
-                      NodePtr<Ttype, Dtype, Ptype>, 
-                      Tensor4dPtr<Ttype, Dtype>, 
-                      Edge<Ttype, Dtype> >() {}
+                      NodePtr, 
+                      Tensor4dPtr<Ttype>, 
+                      Edge<Ttype> >() {}
     Graph(size_t size):GraphBase<std::string, 
-                                 NodePtr<Ttype, Dtype, Ptype>, 
-                                 Tensor4dPtr<Ttype, Dtype>, 
-                                 Edge<Ttype, Dtype> >(size) {}
+                                 NodePtr, 
+                                 Tensor4dPtr<Ttype>, 
+                                 Edge<Ttype> >(size) {}
 
     ~Graph() {
         if(_vgraph) { 
@@ -54,6 +54,7 @@ public:
     }
 
     /// get graph name
+    void set_name(std::string name){_name = name;}
     std::string& name() { return _name; }
 
     /// add i/o
@@ -71,6 +72,9 @@ public:
     Status load(const char*  model_path);
     Status save(std::string model_path);
     Status save(const char*  model_path);
+
+    Status load(const char* buffer, size_t len);
+
     /// Get nodes in execution oroder.
     std::vector<std::string>& get_nodes_in_order();
 
@@ -78,6 +82,9 @@ public:
     void Reshape(std::string in_name, std::vector<int> shape);
 
     void ResetBatchSize(std::string in_name, const int batch_size);
+    
+    /// change graph node and edge name to standard of c(or others)variable name
+    void change_name();
 
 public:
     /** 
@@ -101,7 +108,7 @@ public:
 
 
     /// optimization for graph
-    Status Optimize();
+    Status Optimize(bool use_tensorrt = false);
     /// Get virtual graph.
     VGraph& get_vgraph();
     /// Restore real Graph from optimized virtual graph.
@@ -111,7 +118,7 @@ public:
      * \biref shallow copy of graph
      * note: only copy parameters and architecture, but not the weights
     */
-    Status CopyFrom(Graph<Ttype, Dtype, Ptype>& graph);
+    Status CopyFrom(Graph<Ttype, Ptype>& graph);
 
     ///< statistics stand for Statistics info of anakin graph
     Statistics statistics;
@@ -126,7 +133,7 @@ private:
     ///< _vgraph stand for graph. default nullptr
     VGraph* _vgraph{nullptr};
     ///< _name stand for message
-    std::string _name;
+    std::string _name{"default"};
     ///< graph input node name
     std::vector<std::string> _ins; 
     ///< graph output node name     
@@ -135,6 +142,8 @@ private:
     std::vector<std::string> _nodes_exec_order;
     ///< node_merges map: target node map to all its fusion node
     std::unordered_map<std::string, std::vector<std::string> > _node_merges;
+	///< _node_merges_keep map: target node map to all its fusion node that shouldn't be removed
+	std::unordered_map<std::string, std::vector<int> > _node_merges_keep;
 
     ///< _pattern_name_merges map: target node map to all its fusion pattern node
     std::unordered_map<std::string, std::vector<std::string> > _pattern_name_merges;

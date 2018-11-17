@@ -3,66 +3,79 @@
 
 namespace anakin {
 
-OpAttrWarpper& OpAttrWarpper::name(std::string op_name) {
+OpAttrWarpper& OpAttrWarpper::name(const std::string& op_name) {
     //! set the origin op name.
     opAttr_.name = op_name;
+    return *this;
 }
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
-OpAttrWarpper& OpAttrWarpper::__alias__(std::string op_name) {
+template<typename Ttype, Precision Ptype>
+OpAttrWarpper& OpAttrWarpper::__alias__(const std::string& op_name) {
     OpAttrRegister::Global().add_alias(this->opAttr_.name, op_name);
-    OpFactory<Ttype, Dtype, Ptype>::Global().add_alias(this->opAttr_.name, op_name);
-    return *(this);
+    OpFactory<Ttype, Ptype>::Global().add_alias(this->opAttr_.name, op_name);
+    return *this;
 }
+//#ifdef USE_CUDA
+template
+OpAttrWarpper& OpAttrWarpper::__alias__<NV, Precision::FP32>(const std::string& op_name);
+template
+OpAttrWarpper& OpAttrWarpper::__alias__<NV, Precision::FP16>(const std::string& op_name);
+template
+OpAttrWarpper& OpAttrWarpper::__alias__<NV, Precision::INT8>(const std::string& op_name);
+//#endif
+
+//#ifdef USE_X86_PLACE
+template
+OpAttrWarpper& OpAttrWarpper::__alias__<X86, Precision::FP32>(const std::string& op_name);
+template
+OpAttrWarpper& OpAttrWarpper::__alias__<X86, Precision::FP16>(const std::string& op_name);
+template
+OpAttrWarpper& OpAttrWarpper::__alias__<X86, Precision::INT8>(const std::string& op_name);
+//#endif
+
+//#ifdef USE_ARM_PLACE
+//#ifdef ANAKIN_TYPE_FP32
+template
+OpAttrWarpper& OpAttrWarpper::__alias__<ARM, Precision::FP32>(const std::string& op_name);
+//#endif
+
+//#ifdef ANAKIN_TYPE_FP16
+template
+OpAttrWarpper& OpAttrWarpper::__alias__<ARM, Precision::FP16>(const std::string& op_name);
+//#endif
+
+//#ifdef ANAKIN_TYPE_INT8
+template
+OpAttrWarpper& OpAttrWarpper::__alias__<ARM, Precision::INT8>(const std::string& op_name);
+//#endif
+
+//#endif
 
 template
-OpAttrWarpper& OpAttrWarpper::__alias__<NV, AK_FLOAT, Precision::FP32>(std::string op_name);
+OpAttrWarpper& OpAttrWarpper::__alias__<AMD, Precision::FP32>(const std::string& op_name);
 template
-OpAttrWarpper& OpAttrWarpper::__alias__<NV, AK_FLOAT, Precision::FP16>(std::string op_name);
+OpAttrWarpper& OpAttrWarpper::__alias__<AMD, Precision::FP16>(const std::string& op_name);
 template
-OpAttrWarpper& OpAttrWarpper::__alias__<NV, AK_FLOAT, Precision::INT8>(std::string op_name);
+OpAttrWarpper& OpAttrWarpper::__alias__<AMD, Precision::INT8>(const std::string& op_name);
 
-template
-OpAttrWarpper& OpAttrWarpper::__alias__<X86, AK_FLOAT, Precision::FP32>(std::string op_name);
-template
-OpAttrWarpper& OpAttrWarpper::__alias__<X86, AK_FLOAT, Precision::FP16>(std::string op_name);
-template
-OpAttrWarpper& OpAttrWarpper::__alias__<X86, AK_FLOAT, Precision::INT8>(std::string op_name);
-
-template
-OpAttrWarpper& OpAttrWarpper::__alias__<ARM, AK_FLOAT, Precision::FP32>(std::string op_name);
-template
-OpAttrWarpper& OpAttrWarpper::__alias__<ARM, AK_FLOAT, Precision::FP16>(std::string op_name);
-template
-OpAttrWarpper& OpAttrWarpper::__alias__<ARM, AK_FLOAT, Precision::INT8>(std::string op_name);
-
-OpAttrWarpper& OpAttrWarpper::Doc(std::string doc) {
+OpAttrWarpper& OpAttrWarpper::Doc(const std::string& doc) {
     opAttr_.doc = doc;
-    return *(this);
+    return *this;
 }
 
 OpAttrWarpper& OpAttrWarpper::num_in(size_t num) {
     opAttr_.num_in = num;
-    return *(this);
+    return *this;
 }
 
 OpAttrWarpper& OpAttrWarpper::num_out(size_t num) {
     opAttr_.num_out = num;
-    return *(this);
+    return *this;
 }
 
 OpAttrWarpper& OpAttrWarpper::commutative(bool is_commutative) {
     opAttr_.is_commutative = is_commutative;
-    return *(this);
-}
-
-template<typename T>
-T& OpAttrWarpper::GetArg(std::string arg_name, graph::AttrInfo& info) {
-    CHECK(this->has_arg(arg_name)) << " the operator doesn't have target argument: " << arg_name;
-    CHECK(info.parameter.count(arg_name) > 0) << " Attr info doesn't have target argument: " <<
-            arg_name;
-    any& target_arg = info.parameter[arg_name];
-    return any_cast<T>(target_arg);
+    return *this;
 }
 
 } /* namespace anakin */

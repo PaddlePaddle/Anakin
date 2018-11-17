@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -20,56 +20,42 @@
 #include "saber/funcs/impl/impl_concat.h"
 #include "saber/core/tensor.h"
 
-#ifdef USE_X86_PLACE
-
 namespace anakin{
 
 namespace saber{
 
-template <DataType OpDtype,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-class SaberConcat<X86, OpDtype, inDtype, outDtype,\
-    LayOutType_op, LayOutType_in, LayOutType_out> : \
+template <DataType OpDtype>
+class SaberConcat<X86, OpDtype> : \
     public ImplBase<
-        Tensor<X86, inDtype, LayOutType_in>,
-        Tensor<X86, outDtype, LayOutType_out>,
-        Tensor<X86, OpDtype, LayOutType_op>,
-        ConcatParam<Tensor<X86, OpDtype, LayOutType_op> > > {
+        X86,
+        OpDtype,
+        ConcatParam<X86> > {
 public:
-    typedef Tensor<X86, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<X86, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<X86, OpDtype, LayOutType_op> OpTensor;
-    typedef typename DataTensor_in::Dtype InDataType;
-    typedef typename DataTensor_out::Dtype OutDataType;
-    typedef typename OpTensor::Dtype OpDataType;
+    typedef typename DataTrait<X86, OpDtype>::Dtype OpDataType;
 
     SaberConcat() = default;
     ~SaberConcat() {}
 
-    virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
-                      std::vector<DataTensor_out*>& outputs,
-                      ConcatParam<OpTensor> &param, Context<X86> &ctx){
+    virtual SaberStatus init(const std::vector<Tensor<X86>*>& inputs,
+                      std::vector<Tensor<X86>*>& outputs,
+                      ConcatParam<X86> &param, Context<X86> &ctx){
         // get context
-        this->_ctx = ctx;
+        this->_ctx = &ctx;
         return create(inputs, outputs, param, ctx);
     }
 
-    virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
-                        std::vector<DataTensor_out*>& outputs,
-                        ConcatParam<OpTensor> &param, Context<X86> &ctx){
+    virtual SaberStatus create(const std::vector<Tensor<X86>*>& inputs,
+                        std::vector<Tensor<X86>*>& outputs,
+                        ConcatParam<X86> &param, Context<X86> &ctx){
 
         _num_concats = inputs[0]->count_valid(0, param.axis);
         _concat_input_size = inputs[0]->count_valid(param.axis + 1, inputs[0]->dims());
         return SaberSuccess;
     }
 
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
-                          std::vector<DataTensor_out*>& outputs,
-                          ConcatParam<OpTensor> &param);
+    virtual SaberStatus dispatch(const std::vector<Tensor<X86>*>& inputs,
+                          std::vector<Tensor<X86>*>& outputs,
+                          ConcatParam<X86> &param)override;
 
 private:
     int _num_concats;
@@ -79,7 +65,5 @@ private:
 } //namespace saber
 
 } //namespace anakin
-
-#endif //USE_X86_PLACE
 
 #endif //ANAKIN_SABER_FUNCS_IMPL_X86_SABER_CONCAT_H

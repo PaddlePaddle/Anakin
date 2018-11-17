@@ -1,10 +1,16 @@
-# ----------------------------------------------------------------------------
-# Copyright (c) 2017 Baidu.com, Inc. All Rights Reserved
-# @file     cuda.cmake
-# @auther   cuichaowen
-# @date     2017-10-23
-# ----------------------------------------------------------------------------
-
+# Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 # ----------------------------------------------------------------------------
 # section: Set nvcc arch info.
 # ----------------------------------------------------------------------------
@@ -128,6 +134,7 @@ macro(anakin_find_cuda)
     	set(CUDA_BUILD_CUBIN ON) # defauld OFF
     endif()
 	find_package(CUDA 7.5 REQUIRED)
+    set(CUDA_HOST_COMPILER ${CMAKE_C_COMPILER})
     if(BUILD_SHARED)
 	    if(CUDA_FOUND)
 	    	include_directories(SYSTEM ${CUDA_INCLUDE_DIRS})
@@ -137,6 +144,9 @@ macro(anakin_find_cuda)
 	    	if(USE_CURAND)
 	    		list(APPEND ANAKIN_LINKER_LIBS ${CUDA_curand_LIBRARY})
 	    	endif()
+            if(BUILD_RPC) 
+                list(APPEND ANAKIN_LINKER_LIBS ${CUDA_INCLUDE_DIRS}/../lib64/stubs/libnvidia-ml.so) 
+            endif()
 	    	list(APPEND ANAKIN_LINKER_LIBS ${CUDA_CUDART_LIBRARY})
 	    else()
 	    	message(FATAL_ERROR "Cuda SHARED lib Could not found !")	

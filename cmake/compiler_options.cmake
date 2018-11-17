@@ -1,10 +1,16 @@
-# ----------------------------------------------------------------------------
-# Copyright (c) 2016 Baidu.com, Inc. All Rights Reserved
-# @file     compiler_options.cmake
-# @auther   cuichaowen
-# @date     2017-3-2
-# ----------------------------------------------------------------------------
-
+# Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 # ----------------------------------------------------------------------------
 # section: set the compiler and linker options 
@@ -15,8 +21,9 @@ set(ANAKIN_NVCC_FLAG "")
 anakin_add_compile_option(-std=c++11)
 anakin_add_compile_option(-fPIC)
 anakin_add_compile_option(-ldl)
-anakin_add_compile_option(-mavx2)
-if(NOT USE_ARM_PLACE)
+if(USE_ARM_PLACE )
+elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+else()
     anakin_add_compile_option(-lrt)
 endif()
 anakin_add_compile_option(-W)
@@ -47,8 +54,10 @@ else()
 	anakin_add_compile_option(-Wno-delete-non-virtual-dtor)
 	anakin_add_compile_option(-Wno-comment)
 	anakin_add_compile_option(-Wno-sign-compare)
-    	anakin_add_compile_option(-Wno-ignored-qualifiers)
-    	anakin_add_compile_option(-Wno-enum-compare)
+    anakin_add_compile_option(-Wno-write-strings) 
+    anakin_add_compile_option(-Wno-ignored-qualifiers) 
+    anakin_add_compile_option(-Wno-enum-compare)
+    anakin_add_compile_option(-Wno-missing-field-initializers)
 endif()
 
 if(CMAKE_BUILD_TYPE MATCHES Debug)
@@ -57,6 +66,7 @@ if(CMAKE_BUILD_TYPE MATCHES Debug)
 	anakin_add_compile_option(-gdwarf-2) # for old version gcc and gdb. see: http://stackoverflow.com/a/15051109/673852 
 else()
 	anakin_add_compile_option(-O3)
+	#anakin_add_compile_option(-g)
 	anakin_add_compile_option(-DNDEBUG)
 endif()
 
@@ -74,6 +84,20 @@ if(TARGET_IOS)
 endif()
 
 if(USE_X86_PLACE)
+if(X86_COMPILE_482)
+    set(CMAKE_SYSROOT /opt/compiler/gcc-4.8.2/)
+    set(CMAKE_SKIP_BUILD_RPATH TRUE)
+    set(CMAKE_BUILD_RPATH "/opt/compiler/gcc-4.8.2/lib64/")
+    set(CMAKE_INSTALL_RPATH "/opt/compiler/gcc-4.8.2/lib64/;${PROJECT_SOURCE_DIR}/${AK_OUTPUT_PATH}/;./;../")
+    set(CMAKE_EXE_LINKER_FLAGS "-Wl,-dynamic-linker,/opt/compiler/gcc-4.8.2/lib64/ld-linux-x86-64.so.2")
+    set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+    set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+    anakin_add_compile_option(-static-libstdc++)
+#    anakin_add_compile_option(-static-libgcc)
+endif()
+
+	anakin_add_compile_option(-fabi-version=6)
+	anakin_add_compile_option(-march=${BUILD_X86_ARCH})
     anakin_add_compile_option(-Ofast)
     anakin_add_compile_option(-ffast-math)
     anakin_add_compile_option(-Wall)
@@ -86,7 +110,7 @@ if(X86_64)
 	anakin_add_compile_option(-Wno-long-long)
 endif()
 
-set(CMAKE_CXX_FLAGS  ${ANAKIN_EXTRA_CXX_FLAGS})
+set(CMAKE_CXX_FLAGS  ${CMAKE_CXX_FLAGS} ${ANAKIN_EXTRA_CXX_FLAGS})
 
 #if(WIN32) 
 #    if(MSVC)
@@ -101,6 +125,7 @@ if(USE_CUDA)
         anakin_add_compile_option(-G NVCC)
         anakin_add_compile_option(-g NVCC)
         anakin_add_compile_option(-std=c++11 NVCC)
+        anakin_add_compile_option("--default-stream per-thread" NVCC)
         anakin_add_compile_option(-Wno-deprecated-gpu-targets NVCC) # suppress warning by architectures are deprecated (2.0,2.1)
     else()
         anakin_add_compile_option("-Xcompiler -fPIC" NVCC)

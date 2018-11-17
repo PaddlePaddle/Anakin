@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -35,72 +35,61 @@ template <class Tensor_s, class Tensor_d>
 void reorder(Tensor_s& src, Tensor_d& dst);
 
 /**
- *  \brief Fill the host tensor buffer with rand value.
+ *  \brief Fill the tensor buffer with rand value.
  *  \param tensor  The reference of input tensor.
  */
-template <class Tensor_t>
-void fill_tensor_host_const(Tensor_t& tensor, \
-    typename Tensor_t::Dtype value);
-
+template <typename TargetType>
+void fill_tensor_const(Tensor<TargetType>& tensor, float value, typename Tensor<TargetType>::API::stream_t stream = NULL);
 
 /**
- *  \brief Fill the host tensor buffer with rand value.
+ *  \brief Fill the tensor buffer with rand value.
  *  \param The reference of input tensor.
  */
-template <class Tensor_t>
-void fill_tensor_host_rand(Tensor_t& tensor);
+template <typename TargetType>
+void fill_tensor_seq(Tensor<TargetType>& tensor, typename Tensor<TargetType>::API::stream_t stream = NULL);
+
+/**
+ *  \brief Fill the tensor buffer with rand value.
+ *  \param The reference of input tensor.
+ */
+template <typename TargetType>
+void fill_tensor_rand(Tensor<TargetType>& tensor, typename Tensor<TargetType>::API::stream_t stream = NULL);
 
 
 /**
- *  \brief Fill the host tensor buffer with rand value from vstart to vend.
+ *  \brief Fill the tensor buffer with rand value from vstart to vend.
  *  \param tensor The reference of input tensor.
  */
-template <class Tensor_t>
-void fill_tensor_host_rand(Tensor_t& tensor, typename Tensor_t::Dtype vstart, \
-    typename Tensor_t::Dtype vend);
+template <typename TargetType>
+void fill_tensor_rand(Tensor<TargetType>& tensor, float vstart, float vend, typename Tensor<TargetType>::API::stream_t stream = NULL);
 
-/**
-* \brief fill_tensor_host_seq fill the host tensor buffer with sequence value
-* \param tensor  input tensor reference
-*/
-template <class Tensor_t>
-void fill_tensor_host_seq(Tensor_t& tensor);
-
-/**
- *  \brief Fill the device tensor buffer with value.
- *  \param tensor The reference of input tensor.
- *  \param value  Input value.
- */
-template <class Tensor_t>
-void fill_tensor_device_const(Tensor_t& tensor, \
-    typename Tensor_t::Dtype value, \
-    typename Tensor_t::API::stream_t stream = NULL);
-
-/**
- *  \brief Fill the device tensor buffer with rand value.
- *  \param tensor The reference of input tensor.
- */
-template <class Tensor_t>
-void fill_tensor_device_rand(Tensor_t& tensor, \
-    typename Tensor_t::API::stream_t stream = NULL);
-
-template <class Tensor_t>
-void fill_tensor_device_rand(Tensor_t& tensor, typename Tensor_t::Dtype vstart, \
-    typename Tensor_t::Dtype vend, typename Tensor_t::API::stream_t stream = NULL);
 /**
  *  \brief Print the data in host tensor.
  *  \param tensor  The reference of input tensor.
  */
-template <class Tensor_t>
-void print_tensor_host(Tensor_t& tensor);
+template <typename TargetType>
+void print_tensor(Tensor<TargetType>& tensor, typename Tensor<TargetType>::API::stream_t stream = NULL);
 
 /**
- *  \brief Print the data in device tensor.
+ *  \brief Print the valid data in host tensor.
  *  \param tensor  The reference of input tensor.
  */
-template <class Tensor_t>
-void print_tensor_device(Tensor_t& tensor,  \
-    typename Tensor_t::API::stream_t stream = NULL);
+template <typename TargetType>
+void print_tensor_valid(Tensor<TargetType>& tensor, typename Tensor<TargetType>::API::stream_t stream = NULL);
+
+/**
+ *  \brief compute mean value of the valid data in device tensor.
+ *  \param tensor  The reference of input tensor.
+ */
+template <typename TargetType>
+double tensor_mean_value(Tensor<TargetType>& tensor, typename Tensor<TargetType>::API::stream_t stream = NULL);
+
+/**
+ *  \brief compute mean value of the valid data in device tensor.
+ *  \param tensor  The reference of input tensor.
+ */
+template <typename TargetType>
+double tensor_mean_value_valid(Tensor<TargetType>& tensor, typename Tensor<TargetType>::API::stream_t stream = NULL);
 
 template <typename Dtype >
 void tensor_cmp_host(const Dtype* src1, const Dtype* src2, int size, double& max_ratio, double& max_diff);

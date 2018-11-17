@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ void nms_detect(const dtype* bbox_cpu_data,
                 int keep_topk, int nms_topk, float conf_thresh, float nms_thresh,
                 float nms_eta, bool share_location);
 
-#ifdef USE_CUDA
+#if defined USE_CUDA 
 template <typename Dtype>
 void decode_bboxes(const int nthreads, const Dtype* loc_data, const Dtype* prior_data, \
                    const CodeType code_type, const bool variance_encoded_in_target, \
@@ -47,7 +47,22 @@ void decode_bboxes(const int nthreads, const Dtype* loc_data, const Dtype* prior
                    const int num_loc_classes, const int background_label_id, \
                    Dtype* bbox_data, cudaStream_t stream);
 #endif
+#if defined USE_X86_PLACE 
+template <typename Dtype>
+void decode_bboxes(const int nthreads, const Dtype* loc_data, const Dtype* prior_data, \
+                   const CodeType code_type, const bool variance_encoded_in_target, \
+                   const int num_priors, const bool share_location, \
+                   const int num_loc_classes, const int background_label_id, \
+                   Dtype* bbox_data);
+#endif
 
+#ifdef USE_ARM_PLACE
+void decode_bboxes(const int batch_num, const float* loc_data, const float* prior_data, \
+                       const CodeType code_type, const bool variance_encoded_in_target, \
+                       const int num_priors, const bool share_location, \
+                       const int num_loc_classes, const int background_label_id, \
+                       float* bbox_data);
+#endif
 } //namespace saber
 
 } //namespace anakin

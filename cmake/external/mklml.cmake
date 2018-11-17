@@ -14,11 +14,16 @@
 # limitations under the License.
 #===============================================================================
 
+anakin_find_mklml()
+if(MKLML_FOUND)
+    return() 
+endif()  
+
 # download mklml package is only for iomp so far
 include(ExternalProject)
 
 set(MKLML_PROJECT       "extern_mklml")
-set(MKLML_VER           "mklml_lnx_2018.0.3.20180406")
+set(MKLML_VER           "mklml_lnx_2019.0.20180710")
 #set(MKLML_URL           "https://github.com/01org/mkl-dnn/releases/download/v0.13/${MKLML_VER}.tgz") // original site
 set(MKLML_URL 			"http://paddlepaddledeps.cdn.bcebos.com/${MKLML_VER}.tgz") # use paddle mirror site instead
 set(MKLML_SOURCE_DIR    "${ANAKIN_TEMP_THIRD_PARTY_PATH}/mklml")
@@ -59,5 +64,15 @@ list(APPEND ANAKIN_SABER_DEPENDENCIES mklml)
 
 list(APPEND ANAKIN_LINKER_LIBS ${MKLML_LIB};${MKLML_IOMP_LIB})
 
+#set(OPENMP_FLAGS "-fopenmp")
+##set(CMAKE_C_CREATE_SHARED_LIBRARY_FORBIDDEN_FLAGS ${OPENMP_FLAGS})
+#set(CMAKE_CXX_CREATE_SHARED_LIBRARY_FORBIDDEN_FLAGS ${OPENMP_FLAGS})
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OPENMP_FLAGS}")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OPENMP_FLAGS}")
+
+
 # iomp5 must be installed
-install(FILES ${MKLML_LIB} ${MKLML_IOMP_LIB} DESTINATION lib)
+install(FILES ${MKLML_LIB} ${MKLML_IOMP_LIB} DESTINATION ${PROJECT_SOURCE_DIR}/${AK_OUTPUT_PATH}/)
+install(DIRECTORY ${MKLML_INSTALL_ROOT}/include
+        DESTINATION ${PROJECT_SOURCE_DIR}/${AK_OUTPUT_PATH}/mklml_include)
+message(STATUS "areyouok ${CMAKE_INSTALL_PREFIX} ${MKLML_INSTALL_ROOT}/include")

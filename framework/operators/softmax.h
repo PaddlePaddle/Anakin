@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ namespace anakin {
 
 namespace ops {
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class SoftmaxHelper;
 
 /// pooling op
@@ -34,33 +34,35 @@ class SoftmaxHelper;
  * \brief softmax implementation class
  * public inherit Operator
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class Softmax : public Operator<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class Softmax : public Operator<Ttype, Ptype> {
 public:
     Softmax() {}
 
     /// forward impl
     virtual void operator() (OpContext<Ttype> &ctx, 
-                             const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                             std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-        //LOG(ERROR) << "Not Impl Yet Operator power<TargetType:"<<"unknown"<<","
-         //          <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info()<<">";
+                             const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                             std::vector<Tensor4dPtr<Ttype> >& outs) {
+		LOG(ERROR) << "Not Impl Yet Operator Softmax< Ttype("
+				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
-    friend class SoftmaxHelper<Ttype, Dtype, Ptype>;
+    friend class SoftmaxHelper<Ttype, Ptype>;
 };
+
+
 
 /**
  * \brief softmax helper class to implement softmax
  * public inherit OperatorHelper
  * including init resource and shape size in softmax context
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class SoftmaxHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class SoftmaxHelper : public OperatorHelper<Ttype, Ptype> {
 public:
     SoftmaxHelper()=default;
 
-    ~SoftmaxHelper();
+    ~SoftmaxHelper() {}
 
     Status InitParam() override;
 
@@ -72,8 +74,8 @@ public:
     * \return status
     */
     Status Init(OpContext<Ttype> &ctx,
-                const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
     /**
     * \brief infer the shape of output and input.
@@ -81,17 +83,15 @@ public:
     * \param outs stand for output tensor vector
     * \return status
     */
-    Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+    Status InferShape(const std::vector<Tensor4dPtr<Ttype> >& ins,
+                      std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
 public:
     ///< _param_softmax stand for softmax parameter
-    saber::SoftmaxParam<Tensor4d<Ttype, Dtype>> _param_softmax;
+    saber::SoftmaxParam<Ttype> _param_softmax;
     ///< _funcs_softmax stand for softmax function 
-    saber::Softmax<Ttype, Dtype> _funcs_softmax;
+    saber::Softmax<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_softmax;
 };
-
-
 
 } /* namespace ops */
 

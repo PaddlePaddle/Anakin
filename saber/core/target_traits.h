@@ -1,16 +1,17 @@
-/* Copyright (c) 2016 Anakin Authors All Rights Reserve.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+       http://www.apache.org/licenses/LICENSE-2.0
 
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License. */
+   limitations under the License.
+*/
 
 #ifndef ANAKIN_SABER_CORE_TARGET_TRAITS_H
 #define ANAKIN_SABER_CORE_TARGET_TRAITS_H
@@ -27,6 +28,7 @@ struct __cuda_device{};
 struct __arm_device{};
 struct __amd_device{};
 struct __x86_device{};
+struct __bm_device{};
 
 struct __HtoD{};
 struct __HtoH{};
@@ -67,6 +69,18 @@ template <>
 struct TargetTypeTraits<AMD> {
   typedef __device_target target_category;
   typedef __amd_device target_type;
+};
+
+template <>
+struct TargetTypeTraits<BM> {
+  typedef __device_target target_category;
+  typedef __bm_device target_type;
+};
+
+template <>
+struct TargetTypeTraits<AMDHX86> {
+  typedef __host_target target_category;
+  typedef __x86_device target_type;
 };
 
 } //namespace saber

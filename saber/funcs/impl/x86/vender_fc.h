@@ -1,4 +1,4 @@
-/* Copyright (c) 2016 Anakin Authors All Rights Reserve.
+/* Copyright (c) 2018 Anakin Authors All Rights Reserve.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -10,57 +10,66 @@
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License. */
+   limitations under the License.
+*/
 
 #ifndef ANAKIN_SABER_FUNCS_IMPL_X86_SABER_VENDER_FC_H
 #define ANAKIN_SABER_FUNCS_IMPL_X86_SABER_VENDER_FC_H
 
+#include <vector>
+
+#include "mkl_cblas.h"
 #include "saber/funcs/impl/impl_fc.h"
 
-namespace anakin{
+namespace anakin {
 namespace saber {
 
-template <DataType OpDtype ,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-class VenderFc<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out> : public ImplBase<
-        Tensor<X86, inDtype, LayOutType_in>,
-        Tensor<X86, outDtype, LayOutType_out>,
-        Tensor<X86, OpDtype, LayOutType_op>,
-        FcParam<Tensor<X86, OpDtype, LayOutType_op> > >
-{
+template <DataType OpDtype>
+class VenderFc<X86, OpDtype> : public ImplBase<X86, OpDtype, FcParam<X86> > {
 public:
-    typedef Tensor<X86, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<X86, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<X86, OpDtype, LayOutType_op> OpTensor;
+    typedef typename DataTrait<X86, OpDtype>::Dtype OpDataType;
 
-    VenderFc() {}
+    VenderFc() : bias_sum(nullptr)
+    {}
 
-    ~VenderFc() {}
+    ~VenderFc() {
+        if (bias_sum) {
+            free(bias_sum);
+            bias_sum = nullptr;
+        }
 
-    virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
-                             std::vector<DataTensor_out*>& outputs,
-                             FcParam<OpTensor> &param,
+        for (int i = packed_weights.size() - 1; i >= 0; i--) {
+           OpDataType *pw = packed_weights[i];
+           cblas_sgemm_free(pw);
+           pw = nullptr;
+           packed_weights.pop_back();
+        }
+        std::vector<OpDataType*> ().swap(packed_weights);
+    }
+
+    virtual SaberStatus init(const std::vector<Tensor<X86> *>& inputs,
+                             std::vector<Tensor<X86> *>& outputs,
+                             FcParam<X86> &param,
                              Context<X86> &ctx) override;
 
-    virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
-                               std::vector<DataTensor_out*>& outputs,
-                               FcParam<OpTensor> &param,
+    virtual SaberStatus create(const std::vector<Tensor<X86> *>& inputs,
+                               std::vector<Tensor<X86> *>& outputs,
+                               FcParam<X86> &param,
                                Context<X86> &ctx) override;
 
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
-                                 std::vector<DataTensor_out*>& outputs,
-                                 FcParam<OpTensor> &param) override;
+    virtual SaberStatus dispatch(const std::vector<Tensor<X86> *>& inputs,
+                                 std::vector<Tensor<X86> *>& outputs,
+                                 FcParam<X86> &param) override;
 
 private:
-
+    OpDataType *bias_sum;
+    int MB;
+    int OC;
+    std::vector<OpDataType*> packed_weights;
 };
 
-}
-}
 
-#endif
+} // namespace saber
+} // namespace anakin
+
+#endif // ANAKIN_SABER_FUNCS_IMPL_X86_SABER_VENDER_FC_H
