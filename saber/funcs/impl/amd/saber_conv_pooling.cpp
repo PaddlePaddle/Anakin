@@ -171,7 +171,7 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::create(
                                             miopen::solver::ConvOclDirectFwd1x1AMD,
                                             // miopen::solver::ConvAsm3x3U,
                                             // miopen::solver::ConvAsm1x1U,
-                                            // miopen::solver::ConvAsm7x7c3h224w224k64u2v2p3q3f1,
+                                            miopen::solver::ConvAsm7x7c3h224w224k64u2v2p3q3f1,
                                             miopen::solver::ConvOclDirectFwdGen,
                                             miopen::solver::ConvOclDirectFwd3x3,
                                             miopen::solver::ConvOclDirectFwd1x1,
@@ -181,6 +181,12 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::create(
     if (solution.construction_params.size() > 0) {
         for (auto s : solution.construction_params) {
             kernelInfo = s; // assign MIOpen kernelInfo to Saber kernelInfo
+
+            if (kernelInfo.kernel_name == "conv7x7c3h448w448k64u2v2p3q3f1b1prelupooling"
+                    || kernelInfo.kernel_name == "conv7x7c3h448w448k64u2v2p3q3f1b0prelupooling") {
+                kernelInfo.wk_dim      = 3;
+            }
+
             CreateKernelList(inputs[0]->device_id(), kernelInfo);
         }
     } else {
@@ -304,19 +310,43 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
         } else if (_kernels_ptr[i].get()->GetName() == "sp3AsmConv3x3F") {
             int d_n_groups = 64, d_flags = 0;
             PtrDtype biasMemObject = isBias ? param.conv_param.bias()->data() : 0;
-            err                    = _kernels_ptr[i].get()->SetKernelArgs(
-                                         (unsigned int)inputs[0]->num(),
-                                         (unsigned int)inputs[0]->channel(),
-                                         (unsigned int)inputs[0]->height(),
-                                         (unsigned int)inputs[0]->width(),
-                                         (unsigned int)param.conv_param.weight()->num(),
-                                         (unsigned int)d_n_groups,
-                                         (unsigned int)d_flags,
-                                         negative_slope,
-                                         (PtrDtype)inputs[0]->data(),
-                                         (PtrDtype)param.conv_param.weight()->data(),
-                                         (PtrDtype)_outConvRelu->mutable_data(),
-                                         (PtrDtype)biasMemObject);
+
+            if (isBias && isActive
+                    && param.pooling_param.pooling_type == Pooling_max
+                    && param.pooling_param.window_h == 2
+                    && param.pooling_param.window_w == 2
+                    && param.pooling_param.stride_h == 2
+                    && param.pooling_param.stride_w == 2
+                    && param.pooling_param.pad_h == 0
+                    && param.pooling_param.pad_w == 0) {
+                err                    = _kernels_ptr[i].get()->SetKernelArgs(
+                                             (unsigned int)inputs[0]->num(),
+                                             (unsigned int)inputs[0]->channel(),
+                                             (unsigned int)inputs[0]->height(),
+                                             (unsigned int)inputs[0]->width(),
+                                             (unsigned int)param.conv_param.weight()->num(),
+                                             (unsigned int)d_n_groups,
+                                             (unsigned int)d_flags,
+                                             (float)param.conv_param.activation_param.negative_slope,
+                                             (PtrDtype)inputs[0]->data(),
+                                             (PtrDtype)param.conv_param.weight()->data(),
+                                             (PtrDtype)outputs[0]->mutable_data(),
+                                             (PtrDtype)biasMemObject);
+            } else {
+                err                    = _kernels_ptr[i].get()->SetKernelArgs(
+                                             (unsigned int)inputs[0]->num(),
+                                             (unsigned int)inputs[0]->channel(),
+                                             (unsigned int)inputs[0]->height(),
+                                             (unsigned int)inputs[0]->width(),
+                                             (unsigned int)param.conv_param.weight()->num(),
+                                             (unsigned int)d_n_groups,
+                                             (unsigned int)d_flags,
+                                             (float)param.conv_param.activation_param.negative_slope,
+                                             (PtrDtype)inputs[0]->data(),
+                                             (PtrDtype)param.conv_param.weight()->data(),
+                                             (PtrDtype)_outConvRelu->mutable_data(),
+                                             (PtrDtype)biasMemObject);
+            }
 
             if (!err) {
                 ALOGE("Fail to set execution");
@@ -361,6 +391,79 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
 
             if (!err) {
                 ALOGE("Fail to set execution");
+                return SaberInvalidValue;
+            }
+
+            list.push_back(_kernels_ptr[i]);
+        } else if (_kernels_ptr[i].get()->GetName() == "conv7x7c3h448w448k64u2v2p3q3f1b1prelupooling") {
+            float paddingVal = 0.0f;
+            err = _kernels_ptr[i].get()->SetKernelArgs(
+                      (PtrDtype)inputs[0]->data(),
+                      (PtrDtype)param.conv_param.weight()->data(),
+                      (PtrDtype)outputs[0]->mutable_data(),
+                      paddingVal,
+                      negative_slope,
+                      (PtrDtype)param.conv_param.bias()->data());
+
+            if (!err) {
+                ALOGE("Fail to set kernel args :" << err);
+                return SaberInvalidValue;
+            }
+
+            list.push_back(_kernels_ptr[i]);
+        } else if (_kernels_ptr[i].get()->GetName() == "conv7x7c3h448w448k64u2v2p3q3f1b0prelupooling") {
+            float paddingVal = 0.0f;
+            err = _kernels_ptr[i].get()->SetKernelArgs(
+                      (PtrDtype)inputs[0]->data(),
+                      (PtrDtype)param.conv_param.weight()->data(),
+                      (PtrDtype)outputs[0]->mutable_data(),
+                      paddingVal,
+                      negative_slope);
+
+            if (!err) {
+                ALOGE("Fail to set kernel args :" << err);
+                return SaberInvalidValue;
+            }
+
+            list.push_back(_kernels_ptr[i]);
+        } else if (_kernels_ptr[i].get()->GetName() == "conv7x7c3h224w224k64u2v2p3q3f1b1prelu") {
+            float paddingVal = 0.0f;
+            err = _kernels_ptr[i].get()->SetKernelArgs(
+                      (PtrDtype)inputs[0]->data(),
+                      (PtrDtype)param.conv_param.weight()->data(),
+                      (PtrDtype)_outConvRelu->mutable_data(),
+                      paddingVal,
+                      negative_slope,
+                      (PtrDtype)param.conv_param.bias()->data());
+
+            if (!err) {
+                ALOGE("Fail to set kernel args :" << err);
+                return SaberInvalidValue;
+            }
+
+            list.push_back(_kernels_ptr[i]);
+        } else if (_kernels_ptr[i].get()->GetName() == "conv7x7c3h224w224k64u2v2p3q3f1b0prelu") {
+            float paddingVal = 0.0f;
+            err = _kernels_ptr[i].get()->SetKernelArgs(
+                      (PtrDtype)inputs[0]->data(),
+                      (PtrDtype)param.conv_param.weight()->data(),
+                      (PtrDtype)_outConvRelu->mutable_data(),
+                      paddingVal,
+                      negative_slope);
+
+            if (!err) {
+                ALOGE("Fail to set kernel args :" << err);
+                return SaberInvalidValue;
+            }
+
+            list.push_back(_kernels_ptr[i]);
+        } else if (_kernels_ptr[i].get()->GetName() == "pooling_f3x3_s2x2") {
+            err = _kernels_ptr[i].get()->SetKernelArgs(
+                      (PtrDtype)_outConvRelu->data(),
+                      (PtrDtype)outputs[0]->mutable_data());
+
+            if (!err) {
+                ALOGE("Fail to set kernel args :" << err);
                 return SaberInvalidValue;
             }
 

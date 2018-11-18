@@ -146,6 +146,12 @@ SaberStatus SaberConv2D<AMD, OpDtype>::create(
     if (solution.construction_params.size() > 0) {
         for (auto s : solution.construction_params) {
             kernelInfo = s; // assign MIOpen kernelInfo to Saber kernelInfo
+
+            if (kernelInfo.kernel_name == "conv7x7c3h224w224k64u2v2p3q3f1b1prelu"
+                    || kernelInfo.kernel_name == "conv7x7c3h224w224k64u2v2p3q3f1b0prelu") {
+                kernelInfo.wk_dim      = 3;
+            }
+
             CreateKernelList(inputs[0]->device_id(), kernelInfo);
         }
     } else {
@@ -257,22 +263,69 @@ SaberStatus SaberConv2D<AMD, OpDtype>::dispatch(
                 return SaberInvalidValue;
             }
 
+
             list.push_back(_kernels_ptr[i]);
         } else if (_kernels_ptr[i].get()->GetName() == "InnerProduct") {
             if (isBias) {
-                err = _kernels_ptr[i].get()->SetKernelArgs(
-                          (PtrDtype)inputs[0]->data(),
-                          (PtrDtype)param.weight()->data(),
-                          (PtrDtype)param.bias()->data(),
-                          (PtrDtype)outputs[0]->mutable_data(),
-                          negative_slope);
+                if (isActive) {
+                    err = _kernels_ptr[i].get()->SetKernelArgs(
+                              (PtrDtype)inputs[0]->data(),
+                              (PtrDtype)param.weight()->data(),
+                              (PtrDtype)param.bias()->data(),
+                              (PtrDtype)outputs[0]->mutable_data(),
+                              negative_slope);
+                } else {
+                    err = _kernels_ptr[i].get()->SetKernelArgs(
+                              (PtrDtype)inputs[0]->data(),
+                              (PtrDtype)param.weight()->data(),
+                              (PtrDtype)param.bias()->data(),
+                              (PtrDtype)outputs[0]->mutable_data());
+                }
             } else {
-                err = _kernels_ptr[i].get()->SetKernelArgs(
-                          (PtrDtype)inputs[0]->data(),
-                          (PtrDtype)param.weight()->data(),
-                          (PtrDtype)outputs[0]->mutable_data(),
-                          negative_slope);
+                if (isActive) {
+                    err = _kernels_ptr[i].get()->SetKernelArgs(
+                              (PtrDtype)inputs[0]->data(),
+                              (PtrDtype)param.weight()->data(),
+                              (PtrDtype)outputs[0]->mutable_data(),
+                              negative_slope);
+                } else {
+                    err = _kernels_ptr[i].get()->SetKernelArgs(
+                              (PtrDtype)inputs[0]->data(),
+                              (PtrDtype)param.weight()->data(),
+                              (PtrDtype)outputs[0]->mutable_data());
+                }
             }
+
+            if (!err) {
+                ALOGE("Fail to set kernel args :" << err);
+                return SaberInvalidValue;
+            }
+
+            list.push_back(_kernels_ptr[i]);
+        } else if (_kernels_ptr[i].get()->GetName() == "conv7x7c3h224w224k64u2v2p3q3f1b1prelu") {
+            float paddingVal = 0.0f;
+            err = _kernels_ptr[i].get()->SetKernelArgs(
+                      (PtrDtype)inputs[0]->data(),
+                      (PtrDtype)param.weight()->data(),
+                      (PtrDtype)outputs[0]->mutable_data(),
+                      paddingVal,
+                      negative_slope,
+                      (PtrDtype)param.bias()->data());
+
+            if (!err) {
+                ALOGE("Fail to set kernel args :" << err);
+                return SaberInvalidValue;
+            }
+
+            list.push_back(_kernels_ptr[i]);
+        } else if (_kernels_ptr[i].get()->GetName() == "conv7x7c3h224w224k64u2v2p3q3f1b0prelu") {
+            float paddingVal = 0.0f;
+            err = _kernels_ptr[i].get()->SetKernelArgs(
+                      (PtrDtype)inputs[0]->data(),
+                      (PtrDtype)param.weight()->data(),
+                      (PtrDtype)outputs[0]->mutable_data(),
+                      paddingVal,
+                      negative_slope);
 
             if (!err) {
                 ALOGE("Fail to set kernel args :" << err);
