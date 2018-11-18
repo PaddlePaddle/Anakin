@@ -16,7 +16,8 @@ Please refer to our [release announcement](https://github.com/PaddlePaddle/Anaki
 
 - **Flexibility**
 
-    Baidu Anakin has integrated with NVIDIA TensorRT and open source this part integrated API to provide services, developers can call the API directly or modify it as needed, which will be more flexible for development requirements. Anakin is a cross-platform, high-performance inference engine, supports a wide range of neural network architectures and different hardware platforms. It is easy to run Anakin on GPU / x86 / ARM platform.
+    Anakin has integrated with NVIDIA TensorRT and open source this part of integrated API to provide services, developers can call the API directly or modify it as needed, which will be more flexible for development requirements. 
+    Anakin is a cross-platform, high-performance inference engine, supports a wide range of neural network architectures and different hardware platforms. It is easy to run Anakin on GPU / x86 / ARM platform.
 
 -  **High performance**
 
