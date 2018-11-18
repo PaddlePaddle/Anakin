@@ -235,8 +235,8 @@ SaberStatus SaberConv2D<AMD, OpDtype>::create(
                                                 /*
                                                             miopen::solver::ConvAsm3x3U,
                                                             miopen::solver::ConvAsm1x1U,
-                                                            miopen::solver::ConvAsm7x7c3h224w224k64u2v2p3q3f1,
                                                 */
+                                                miopen::solver::ConvAsm7x7c3h224w224k64u2v2p3q3f1,
                                                 miopen::solver::ConvOclDirectFwdGen,
                                                 miopen::solver::ConvOclDirectFwd3x3,
                                                 miopen::solver::ConvOclDirectFwd1x1,
@@ -252,6 +252,11 @@ SaberStatus SaberConv2D<AMD, OpDtype>::create(
                 if (kernelInfo.kernel_name == "conv1x1_act"
                         || kernelInfo.kernel_name == "InnerProduct") {
                     kernelInfo.kernel_type = SABER;
+                }
+
+                if (kernelInfo.kernel_name == "conv7x7c3h224w224k64u2v2p3q3f1b1prelu"
+                        || kernelInfo.kernel_name == "conv7x7c3h224w224k64u2v2p3q3f1b0prelu") {
+                    kernelInfo.wk_dim      = 3;
                 }
 
                 kptr = CreateKernel(inputs[0]->device_id(), &kernelInfo);
@@ -959,6 +964,49 @@ SaberStatus SaberConv2D<AMD, OpDtype>::dispatch(
                               (PtrDtype)outputs[0]->mutable_data(),
                               negative_slope);
                 }
+
+                if (!err) {
+                    ALOGE("Fail to set kernel args :" << err);
+                    return SaberInvalidValue;
+                }
+
+                list.push_back(_kernels_ptr[i]);
+                err = LaunchKernel(cm, list);
+
+                if (!err) {
+                    ALOGE("Fail to set execution :" << err);
+                    return SaberInvalidValue;
+                }
+            } else if (_kernels_ptr[i].get()->GetName() == "conv7x7c3h224w224k64u2v2p3q3f1b1prelu") {
+                float paddingVal = 0.0f;
+                err = _kernels_ptr[i].get()->SetKernelArgs(
+                          (PtrDtype)inputs[0]->data(),
+                          (PtrDtype)param.weight()->data(),
+                          (PtrDtype)outputs[0]->mutable_data(),
+                          paddingVal,
+                          negative_slope,
+                          (PtrDtype)param.bias()->data());
+
+                if (!err) {
+                    ALOGE("Fail to set kernel args :" << err);
+                    return SaberInvalidValue;
+                }
+
+                list.push_back(_kernels_ptr[i]);
+                err = LaunchKernel(cm, list);
+
+                if (!err) {
+                    ALOGE("Fail to set execution :" << err);
+                    return SaberInvalidValue;
+                }
+            } else if (_kernels_ptr[i].get()->GetName() == "conv7x7c3h224w224k64u2v2p3q3f1b0prelu") {
+                float paddingVal = 0.0f;
+                err = _kernels_ptr[i].get()->SetKernelArgs(
+                          (PtrDtype)inputs[0]->data(),
+                          (PtrDtype)param.weight()->data(),
+                          (PtrDtype)outputs[0]->mutable_data(),
+                          paddingVal,
+                          negative_slope);
 
                 if (!err) {
                     ALOGE("Fail to set kernel args :" << err);
