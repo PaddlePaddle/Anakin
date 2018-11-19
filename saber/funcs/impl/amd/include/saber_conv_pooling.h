@@ -40,9 +40,19 @@ public:
 
     SaberConv2DPooling() {
         _kernels_ptr.clear();
+        _outConvRelu = nullptr;
+        _outGemmWorkspace = nullptr;
     }
     ~SaberConv2DPooling() {
         _kernels_ptr.clear();
+
+        if (_outConvRelu) {
+            delete _outConvRelu;
+        }
+
+        if (_outGemmWorkspace) {
+            delete _outGemmWorkspace;
+        }
     }
 
     virtual SaberStatus
@@ -81,6 +91,7 @@ private:
     CreateKernelList(int device_id, KernelInfo& kernelInfo);
     std::vector<AMDKernelPtr> _kernels_ptr {nullptr};
     Tensor<AMD>* _outConvRelu;
+    Tensor<AMD>* _outGemmWorkspace;
 };
 template <>
 SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::create(

@@ -33,9 +33,14 @@ public:
 
     SaberConv2D() {
         _kernels_ptr.clear();
+        _outGemmWorkspace = nullptr;
     }
     ~SaberConv2D() {
         _kernels_ptr.clear();
+
+        if (_outGemmWorkspace) {
+            delete _outGemmWorkspace;
+        }
     }
 
     virtual SaberStatus
@@ -73,6 +78,7 @@ private:
     bool _extern_trans {false};
     CreateKernelList(int device_id, KernelInfo& kernelInfo);
     std::vector<AMDKernelPtr> _kernels_ptr {nullptr};
+    Tensor<AMD>* _outGemmWorkspace;
 };
 } // namespace saber
 } // namespace anakin
