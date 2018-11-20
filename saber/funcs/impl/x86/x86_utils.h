@@ -22,10 +22,12 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#include <type_traits>
+
 #include "saber/core/common.h"
 #include "saber/core/tensor.h"
 #include "saber/funcs/saber_util.h"
-#include "omp.h"
+
 namespace anakin {
 namespace saber {
 
@@ -317,16 +319,6 @@ template <typename U, U t, U f> struct conditional_v<false, U, t, f> {
     static constexpr U value = f;
 };
 
-template <typename T> struct remove_reference {
-    typedef T type;
-};
-template <typename T> struct remove_reference<T&> {
-    typedef T type;
-};
-template <typename T> struct remove_reference < T&& > {
-    typedef T type;
-};
-
 template<typename T>
 inline const T& min(const T& a, const T& b) {
     return a < b ? a : b;
@@ -338,17 +330,8 @@ inline const T& max(const T& a, const T& b) {
 }
 
 template <typename T>
-inline T&& forward(typename utils::remove_reference<T>::type& t) {
-    return static_cast < T && >(t);
-}
-template <typename T>
-inline T&& forward(typename utils::remove_reference<T>::type&& t) {
-    return static_cast < T && >(t);
-}
-
-template <typename T>
-inline typename remove_reference<T>::type zero() {
-    auto zero = typename remove_reference<T>::type();
+inline typename std::remove_reference<T>::type zero() {
+    auto zero = typename std::remove_reference<T>::type();
     return zero;
 }
 
@@ -434,18 +417,18 @@ inline R array_product(const T* arr, size_t size) {
 }
 
 template <typename T, typename U>
-inline typename remove_reference<T>::type div_up(const T a, const U b) {
+inline typename std::remove_reference<T>::type div_up(const T a, const U b) {
     assert(b);
     return (a + b - 1) / b;
 }
 
 template <typename T, typename U>
-inline typename remove_reference<T>::type rnd_up(const T a, const U b) {
+inline typename std::remove_reference<T>::type rnd_up(const T a, const U b) {
     return div_up(a, b) * b;
 }
 
 template <typename T, typename U>
-inline typename remove_reference<T>::type rnd_dn(const T a, const U b) {
+inline typename std::remove_reference<T>::type rnd_dn(const T a, const U b) {
     return (a / b) * b;
 }
 
@@ -461,131 +444,6 @@ inline U this_block_size(const T offset, const U max, const V block_size) {
     } else {
         return block_size;
     }
-}
-
-
-
-template <typename T, typename U>
-inline void balance211(T n, U team, U tid, T& n_start, T& n_end) {
-    T n_min = 1;
-    T& n_my = n_end;
-
-    if (team <= 1 || n == 0) {
-        n_start = 0;
-        n_my = n;
-    } else if (n_min == 1) {
-        // team = T1 + T2
-        // n = T1*n1 + T2*n2  (n1 - n2 = 1)
-        T n1 = div_up(n, (T)team);
-        T n2 = n1 - 1;
-        T T1 = n - n2 * (T)team;
-        n_my = (T)tid < T1 ? n1 : n2;
-        n_start = (T)tid <= T1 ? tid * n1 : T1 * n1 + ((T)tid - T1) * n2;
-    }
-
-    n_end += n_start;
-}
-
-template<typename T>
-inline T nd_iterator_init(T start) {
-    return start;
-}
-template<typename T, typename U, typename W, typename... Args>
-inline T nd_iterator_init(T start, U& x, const W& X, Args&& ... tuple) {
-    start = nd_iterator_init(start, utils::forward<Args>(tuple)...);
-    x = start % X;
-    return start / X;
-}
-
-inline bool nd_iterator_step() {
-    return true;
-}
-template<typename U, typename W, typename... Args>
-inline bool nd_iterator_step(U& x, const W& X, Args&& ... tuple) {
-    if (nd_iterator_step(utils::forward<Args>(tuple)...)) {
-        x = (x + 1) % X;
-        return x == 0;
-    }
-
-    return false;
-}
-
-template <typename T0, typename T1, typename F>
-inline void parallel_nd(const T0 D0, const T1 D1, F f) {
-    const size_t work_amount = (size_t)D0 * D1;
-
-    if (work_amount == 0) {
-        return;
-    }
-
-    #pragma omp parallel
-    {
-        const int ithr = omp_get_thread_num();
-        const int nthr = omp_get_num_threads();
-        size_t start{0}, end{0};
-        balance211(work_amount, nthr, ithr, start, end);
-        T0 d0{0};
-        T1 d1{0};
-        nd_iterator_init(start, d0, D0, d1, D1);
-
-        for (size_t iwork = start; iwork < end; ++iwork) {
-            f(d0, d1);
-            nd_iterator_step(d0, D0, d1, D1);
-        }
-    }
-}
-
-template <typename T0, typename T1, typename T2, typename F>
-inline void parallel_nd(const T0 D0, const T1 D1, const T2 D2, F f) {
-    const size_t work_amount = (size_t)D0 * D1 * D2;
-
-    if (work_amount == 0) {
-        return;
-    }
-
-    #pragma omp parallel
-    {
-        const int ithr = omp_get_thread_num();
-        const int nthr = omp_get_num_threads();
-        size_t start{0}, end{0};
-        balance211(work_amount, nthr, ithr, start, end);
-        T0 d0{0};
-        T1 d1{0};
-        T2 d2{0};
-        nd_iterator_init(start, d0, D0, d1, D1, d2, D2);
-
-        for (size_t iwork = start; iwork < end; ++iwork) {
-            f(d0, d1, d2);
-            nd_iterator_step(d0, D0, d1, D1, d2, D2);
-        }
-    }
-}
-
-template<typename U, typename W, typename Y>
-inline bool nd_iterator_jump(U& cur, const U end, W& x, const Y& X) {
-    U max_jump = end - cur;
-    U dim_jump = X - x;
-
-    if (dim_jump <= max_jump) {
-        x = 0;
-        cur += dim_jump;
-        return true;
-    } else {
-        cur += max_jump;
-        x += max_jump;
-        return false;
-    }
-}
-
-template<typename U, typename W, typename Y, typename... Args>
-inline bool nd_iterator_jump(U& cur, const U end, W& x, const Y& X,
-                             Args&& ... tuple) {
-    if (nd_iterator_jump(cur, end, utils::forward<Args>(tuple)...)) {
-        x = (x + 1) % X;
-        return x == 0;
-    }
-
-    return false;
 }
 
 template <typename Telem, size_t Tdims>

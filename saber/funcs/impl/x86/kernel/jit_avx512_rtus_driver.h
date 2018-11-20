@@ -184,7 +184,7 @@ inline void init_rtus_driver(rtus_driver_t **p_rtus_driver,
                              conv_1x1_desc &conv_d,
                              size_t &ws_per_thread,
                              Dtype **p_scratch) {
-    const int max_threads = omp_get_max_threads();
+    const int max_threads = anakin_get_max_threads();
     size_t factor = 0;
 
     factor = jcp.nb_reduce;

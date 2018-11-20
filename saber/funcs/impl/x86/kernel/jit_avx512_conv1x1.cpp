@@ -157,8 +157,8 @@ void balance2D(U nthr, U ithr, T ny, T &ny_start, T &ny_end,
         grp = ithr / grp_nthr + first_grps;
         grp_ithr = ithr % grp_nthr;
     }
-    utils::balance211(nx, grp_count, grp, nx_start, nx_end);
-    utils::balance211(ny, grp_nthr, grp_ithr, ny_start, ny_end);
+    balance211(nx, grp_count, grp, nx_start, nx_end);
+    balance211(ny, grp_nthr, grp_ithr, ny_start, ny_end);
 }
 
 
@@ -280,7 +280,7 @@ SaberStatus JitAvx512Conv1x1<AK_FLOAT>::create(
 
     prepare_rtus();
 
-    status = jit_avx512_common_1x1_conv_kernel::init_conf(conf, conv_d, omp_get_max_threads(), reduce_src);
+    status = jit_avx512_common_1x1_conv_kernel::init_conf(conf, conv_d, anakin_get_max_threads(), reduce_src);
     if (status == SaberSuccess) {
         if (kernel != nullptr) {
             delete kernel;
@@ -370,7 +370,7 @@ SaberStatus JitAvx512Conv1x1<AK_FLOAT>::dispatch(
 
 #pragma omp parallel
     {
-        int ithr = omp_get_thread_num(), nthr = omp_get_num_threads();
+        int ithr = anakin_get_thread_num(), nthr = anakin_get_num_threads();
 
         jit_1x1_conv_call_t p;
 
@@ -402,16 +402,16 @@ SaberStatus JitAvx512Conv1x1<AK_FLOAT>::dispatch(
             iw = utils::max(ow * stride_w - pad_l, 0);
             rp.iw_start = iw;
 
-            p.bcast_dim = this_block_size(os, jcp.os,
-                                          bcast_step * os_block);
+            p.bcast_dim = utils::this_block_size(os, jcp.os,
+                                                 bcast_step * os_block);
             rp.os = p.bcast_dim;
         };
 
         auto init_load = [&](int ocb, int &load_step) {
             load_step = step(jcp.nb_load_blocking, ocb_end - ocb,
                              jcp.nb_load_blocking_max);
-            p.load_dim = this_block_size(ocb * jcp.oc_block,
-                                         ocb_end * jcp.oc_block, load_step * jcp.oc_block);
+            p.load_dim = utils::this_block_size(ocb * jcp.oc_block,
+                                                ocb_end * jcp.oc_block, load_step * jcp.oc_block);
         };
 
         auto init_reduce = [&](int icb) {
@@ -422,8 +422,8 @@ SaberStatus JitAvx512Conv1x1<AK_FLOAT>::dispatch(
                                 | (icb + nb_ic_blocking_step >= nb_ic
                                    ? FLAG_REDUCE_LAST : 0);
 
-            p.reduce_dim = this_block_size(icb * jcp.ic_block,
-                                           jcp.ic, nb_ic_blocking_step * jcp.ic_block);
+            p.reduce_dim = utils::this_block_size(icb * jcp.ic_block,
+                                                  jcp.ic, nb_ic_blocking_step * jcp.ic_block);
             rp.icb = p.reduce_dim / jcp.reduce_block;
         };
 

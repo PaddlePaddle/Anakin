@@ -242,11 +242,11 @@ SaberStatus JitAvx512Conv<AK_FLOAT>::dispatch(
 
 #pragma omp parallel
     {
-        int ithr = omp_get_thread_num(), nthr = omp_get_num_threads();
+        int ithr = anakin_get_thread_num(), nthr = anakin_get_num_threads();
         int oc_chunks = jcp.nb_oc / jcp.nb_oc_blocking;
         int start, end, start_copy;
         int work_amount = jcp.mb * jcp.ngroups * oc_chunks * jcp.oh;
-        utils::balance211(work_amount, nthr, ithr, start, end);
+        balance211(work_amount, nthr, ithr, start, end);
         start_copy = start;
 
         auto par_conv = jit_conv_call_t();
@@ -271,10 +271,10 @@ SaberStatus JitAvx512Conv<AK_FLOAT>::dispatch(
             start = start_copy;
             int n{0}, g{0}, occ{0}, oh_s{0};
             if (jcp.loop_order == conv_loop_order_t::loop_cgn) {
-                utils::nd_iterator_init(start, occ, oc_chunks, g, jcp.ngroups, n, jcp.mb, oh_s, jcp.oh);
+                nd_iterator_init(start, occ, oc_chunks, g, jcp.ngroups, n, jcp.mb, oh_s, jcp.oh);
             }
             else if (jcp.loop_order == conv_loop_order_t::loop_gnc) {
-                utils::nd_iterator_init(start, g, jcp.ngroups, n, jcp.mb, occ, oc_chunks, oh_s, jcp.oh);
+                nd_iterator_init(start, g, jcp.ngroups, n, jcp.mb, occ, oc_chunks, oh_s, jcp.oh);
             }
 
             while (start < end) {
@@ -335,10 +335,10 @@ SaberStatus JitAvx512Conv<AK_FLOAT>::dispatch(
                 }
 
                 if (jcp.loop_order == conv_loop_order_t::loop_cgn) {
-                    utils::nd_iterator_jump(start, end,
-                                            occ, oc_chunks, g, jcp.ngroups, n, jcp.mb, oh_s, jcp.oh);
+                    nd_iterator_jump(start, end,
+                                     occ, oc_chunks, g, jcp.ngroups, n, jcp.mb, oh_s, jcp.oh);
                 } else if (jcp.loop_order == conv_loop_order_t::loop_gnc) {
-                    utils::nd_iterator_jump(start, end, g, jcp.ngroups, n, jcp.mb, occ, oc_chunks, oh_s, jcp.oh);
+                    nd_iterator_jump(start, end, g, jcp.ngroups, n, jcp.mb, occ, oc_chunks, oh_s, jcp.oh);
                 }
             }
         }

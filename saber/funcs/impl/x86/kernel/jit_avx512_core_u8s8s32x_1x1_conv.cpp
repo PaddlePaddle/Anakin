@@ -47,8 +47,8 @@ void balance2D(U nthr, U ithr, T ny, T& ny_start, T& ny_end,
         grp_ithr = ithr % grp_nthr;
     }
 
-    utils::balance211(nx, grp_count, grp, nx_start, nx_end);
-    utils::balance211(ny, grp_nthr, grp_ithr, ny_start, ny_end);
+    balance211(nx, grp_count, grp, nx_start, nx_end);
+    balance211(ny, grp_nthr, grp_ithr, ny_start, ny_end);
 }
 
 SaberStatus JitAvx512u8s8s32xConv1x1::init(const std::vector<Tensor<X86>*>& inputs,
@@ -166,7 +166,7 @@ SaberStatus JitAvx512u8s8s32xConv1x1::create(const std::vector<Tensor<X86>*>& in
     conv_d.stride_h = conv_param->stride_h;
     conv_d.stride_w = conv_param->stride_w;
 
-    status = jit_avx512_core_u8s8s32x_conv1x1_kernel::init_conf(conf, conv_d, omp_get_max_threads(),
+    status = jit_avx512_core_u8s8s32x_conv1x1_kernel::init_conf(conf, conv_d, anakin_get_max_threads(),
              reduce_src);
 
     if (status == SaberSuccess) {
@@ -245,8 +245,8 @@ SaberStatus JitAvx512u8s8s32xConv1x1::dispatch(const std::vector<Tensor<X86>*>& 
 
     #pragma omp parallel
     {
-        int ithr = omp_get_thread_num();
-        int nthr = omp_get_num_threads();
+        int ithr = anakin_get_thread_num();
+        int nthr = anakin_get_num_threads();
 
         auto p = jit_1x1_conv_call_t();
 
@@ -278,15 +278,15 @@ SaberStatus JitAvx512u8s8s32xConv1x1::dispatch(const std::vector<Tensor<X86>*>& 
             iw = utils::max(ow * stride_w - pad_l, 0);
             rp.iw_start = iw;
 
-            p.bcast_dim = this_block_size(os, jcp.os, bcast_step * os_block);
+            p.bcast_dim = utils::this_block_size(os, jcp.os, bcast_step * os_block);
             rp.os = p.bcast_dim;
         };
 
         auto init_load = [&](int ocb, int& load_step) {
             load_step = step(jcp.nb_load_blocking, ocb_end - ocb,
                              jcp.nb_load_blocking_max);
-            p.load_dim = this_block_size(ocb * jcp.oc_block,
-                                         ocb_end * jcp.oc_block, load_step * jcp.oc_block);
+            p.load_dim = utils::this_block_size(ocb * jcp.oc_block,
+                                                ocb_end * jcp.oc_block, load_step * jcp.oc_block);
 
             if (ocb + load_step >= nb_oc) {
                 p.first_last_flag |= FLAG_OC_LAST;
@@ -296,7 +296,7 @@ SaberStatus JitAvx512u8s8s32xConv1x1::dispatch(const std::vector<Tensor<X86>*>& 
         };
 
         auto init_reduce = [&]() {
-            p.reduce_dim = this_block_size(0, jcp.ic, jcp.ic);
+            p.reduce_dim = utils::this_block_size(0, jcp.ic, jcp.ic);
             rp.icb = p.reduce_dim / jcp.reduce_block;
         };
 

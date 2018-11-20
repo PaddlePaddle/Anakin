@@ -12,6 +12,7 @@
 #include "xbyak/xbyak.h"
 #include "xbyak/xbyak_util.h"
 #include "x86_utils.h"
+#include "anakin_thread.h"
 
 #define DECLARE_CPU_JIT_AUX_FUNCTIONS(jit_name)                      \
   const char *name() const override { return #jit_name; } \
@@ -117,7 +118,7 @@ inline unsigned int get_cache_size(int level, bool per_core = true) {
     const int L1_cache_per_core = 32000;
     const int L2_cache_per_core = 512000;
     const int L3_cache_per_core = 1024000;
-    int num_cores = per_core ? 1 : omp_get_max_threads();
+    int num_cores = per_core ? 1 : anakin_get_max_threads();
     switch (l) {
       case (0):
         return L1_cache_per_core * num_cores;

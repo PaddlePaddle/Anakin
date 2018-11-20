@@ -239,10 +239,10 @@ SaberStatus JitUniDWConv<AK_FLOAT>::dispatch(
 
     auto ker = [&](const int ithr, const int nthr) {
         size_t start{0}, end{0};
-        utils::balance211(work_amount, nthr, ithr, start, end);
+        balance211(work_amount, nthr, ithr, start, end);
 
         size_t n{0}, chb{0}, oh{0};
-        utils::nd_iterator_init(start, n, MB, chb, chb_work, oh, jcp.oh);
+        nd_iterator_init(start, n, MB, chb, chb_work, oh, jcp.oh);
         for (size_t iwork = start; iwork < end; ++iwork) {
             int ch = chb * jcp.nb_ch_blocking;
             int ch_num = jcp.nb_ch_blocking;
@@ -288,13 +288,13 @@ SaberStatus JitUniDWConv<AK_FLOAT>::dispatch(
                 kernel->jit_ker(&par_conv);
             }
 
-            utils::nd_iterator_step(n, MB, chb, chb_work, oh, jcp.oh);
+            nd_iterator_step(n, MB, chb, chb_work, oh, jcp.oh);
         }
     };
 
 #pragma omp parallel
     {
-        ker(omp_get_thread_num(), omp_get_num_threads());
+        ker(anakin_get_thread_num(), anakin_get_num_threads());
     }
 
     return SaberSuccess;

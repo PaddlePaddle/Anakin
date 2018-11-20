@@ -103,8 +103,8 @@ SaberStatus GemmU8S8S32XConv::dispatch(const std::vector<Tensor<X86>*> &inputs,
 
         int n{0}, g{0};
         size_t start = 0, end = 0;
-        utils::balance211 (work_amount, nthr, ithr, start, end);
-        utils::nd_iterator_init (start, n, jcp.mb, g, jcp.ngroups);
+        balance211 (work_amount, nthr, ithr, start, end);
+        nd_iterator_init (start, n, jcp.mb, g, jcp.ngroups);
 
         for (size_t iwork = start; iwork < end; ++iwork) {
             const unsigned char *src = ptr_src + n * src_mb_stride + g * src_g_stride;
@@ -144,7 +144,7 @@ SaberStatus GemmU8S8S32XConv::dispatch(const std::vector<Tensor<X86>*> &inputs,
                 }
             }
 
-            utils::nd_iterator_step (n, jcp.mb, g, jcp.ngroups);
+            nd_iterator_step (n, jcp.mb, g, jcp.ngroups);
         }
     });
 
@@ -212,7 +212,7 @@ SaberStatus GemmU8S8S32XConv::init_conf(jit_conv_conf_t &jcp,
         return SaberUnImplError;
     }
 
-    jcp.nthr = omp_get_max_threads();
+    jcp.nthr = anakin_get_max_threads();
     if (!(jcp.ic == 1 &&
           jcp.oc == 1 &&
           jcp.ngroups != 1) &&
@@ -255,7 +255,7 @@ SaberStatus GemmU8S8S32XConv::check_conf(const jit_conv_conf_t &jcp,
 SaberStatus GemmU8S8S32XConv::im2col_u8(const jit_conv_conf_t &jcp,
                                         const unsigned char* im,
                                         unsigned char* col) {
-    int num_thr = (jcp.mb != 1) ? omp_get_max_threads() : 1;
+    int num_thr = (jcp.mb != 1) ? anakin_get_max_threads() : 1;
     MAYBE_UNUSED(num_thr);
     #pragma omp parallel for collapse(2) num_threads(num_thr)
     for (int oh = 0; oh < jcp.oh; ++oh) {

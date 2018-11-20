@@ -31,7 +31,7 @@ SaberStatus VenderLstm<X86, AK_FLOAT>::init(
     LstmParam<X86>& param, Context<X86>& ctx) {
     const char* ret = std::getenv("OMP_NUM_THREADS");
     this->_ctx = &ctx;
-    this->max_thread_num_ = ret ? atoi(ret) : omp_get_max_threads();
+    this->max_thread_num_ = ret ? atoi(ret) : anakin_get_max_threads();
     int layer_num_ = param.num_layers;
     int direc_num_ = param.num_direction;
     hidden_size_ = outputs[0]->channel() / direc_num_;
@@ -630,7 +630,7 @@ SaberStatus VenderLstm<X86, AK_FLOAT>::dispatch(
     int i_offset = 1;
     int c_offset = 2;
     int o_offset = 3;
-    omp_set_nested(1);
+    anakin_set_nested(1);
     mkl_set_dynamic(0);
 
     if (batch_size_ == 1) {

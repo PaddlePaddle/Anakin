@@ -119,11 +119,11 @@ SaberStatus JitAvx512U8S8S32XConv::dispatch(const std::vector<Tensor<X86>*> &inp
 
         int n{0}, gb{0}, occ{0}, oh_s{0};
         if (jcp.loop_order == loop_cgn) {
-            utils::nd_iterator_init(start, occ, oc_chunks, gb, nb_groups, n, jcp.mb, oh_s, jcp.oh);
+            nd_iterator_init(start, occ, oc_chunks, gb, nb_groups, n, jcp.mb, oh_s, jcp.oh);
         } else if (jcp.loop_order == loop_gnc) {
-            utils::nd_iterator_init(start, gb, nb_groups, n, jcp.mb, occ, oc_chunks, oh_s, jcp.oh);
+            nd_iterator_init(start, gb, nb_groups, n, jcp.mb, occ, oc_chunks, oh_s, jcp.oh);
         } else if (jcp.loop_order == loop_ngc) {
-            utils::nd_iterator_init(start, n, jcp.mb, gb, nb_groups, occ, oc_chunks, oh_s, jcp.oh);
+            nd_iterator_init(start, n, jcp.mb, gb, nb_groups, occ, oc_chunks, oh_s, jcp.oh);
         } else {
             assert(!"unsupported loop order");
         }
@@ -161,8 +161,7 @@ SaberStatus JitAvx512U8S8S32XConv::dispatch(const std::vector<Tensor<X86>*> &inp
                 int i_t_overflow = utils::div_up(utils::max(0, -ij), dilate_h);
                 int i_b_overflow = utils::div_up(utils::max(0, ij - jcp.ih + (jcp.kh - 1) * dilate_h + 1),
                                                  dilate_h);
-                int kh_padding = utils::max(0,
-                                            jcp.kh - i_t_overflow - i_b_overflow);
+                int kh_padding = utils::max(0, jcp.kh - i_t_overflow - i_b_overflow);
 
                 p.src = src_w + i_t_overflow * dilate_h * src_h_stride;
                 p.dst = dst_w;
@@ -178,14 +177,14 @@ SaberStatus JitAvx512U8S8S32XConv::dispatch(const std::vector<Tensor<X86>*> &inp
             }
 
             if (jcp.loop_order == loop_cgn) {
-                utils::nd_iterator_jump(start, end, occ, oc_chunks, gb, nb_groups, n,
-                                        jcp.mb, oh_s, jcp.oh);
+                nd_iterator_jump(start, end, occ, oc_chunks, gb, nb_groups, n,
+                                 jcp.mb, oh_s, jcp.oh);
             } else if (jcp.loop_order == loop_gnc) {
-                utils::nd_iterator_jump(start, end, gb, nb_groups, n, jcp.mb, occ,
-                                        oc_chunks, oh_s, jcp.oh);
+                nd_iterator_jump(start, end, gb, nb_groups, n, jcp.mb, occ,
+                                 oc_chunks, oh_s, jcp.oh);
             } else if (jcp.loop_order == loop_ngc) {
-                utils::nd_iterator_jump(start, end, n, jcp.mb, gb, nb_groups, occ,
-                                        oc_chunks, oh_s, jcp.oh);
+                nd_iterator_jump(start, end, n, jcp.mb, gb, nb_groups, occ,
+                                 oc_chunks, oh_s, jcp.oh);
             } else {
                 assert(!"unsupported loop order");
             }
@@ -268,7 +267,7 @@ SaberStatus JitAvx512U8S8S32XConv::init_conf(jit_conv_conf_t &jcp,
         return SaberUnImplError;
     }
 
-    const int nthreads = omp_get_max_threads();
+    const int nthreads = anakin_get_max_threads();
     ws_per_thread_ = jcp.oh * jcp.ow * jcp.oc;
     ws_ = (int *)zmalloc(nthreads * ws_per_thread_ * sizeof(int), 4096);
     if (!ws_) {
