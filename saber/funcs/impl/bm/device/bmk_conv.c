@@ -65,7 +65,7 @@ int bm_conv_fwd(bm_api_conv_forward conv_param)
     int max_ic_per_NPU = ceiling_func_shift(max_icslice, NPU_SHIFT);
     int max_ocslice = ocslice + (oc_residual > 0);
     int max_oc_per_NPU = ceiling_func_shift(max_ocslice, NPU_SHIFT);
-    int nodechip_idx = 0;
+//    int nodechip_idx = 0;
     for (int ig = 0; ig < groups; ig++){
         int ocend = 0;
         for (int ocidx = 0; ocidx < ocsecs; ocidx++){
@@ -85,7 +85,7 @@ int bm_conv_fwd(bm_api_conv_forward conv_param)
                     0, // local mem index
                     &id_node
                 );
-                call_atomic(nodechip_idx, atomic_global_dma, dma_command, ENGINE_GDMA);
+                call_atomic(0, atomic_global_dma, dma_command, ENGINE_GDMA);
             }
             weight_capacity = max_icslice * oc_per_NPU * kh * kw * FLOAT_SIZE;
             int ofmap_offset_local = addr_EU_align(weight_capacity + weight_offset_local);
@@ -134,7 +134,7 @@ int bm_conv_fwd(bm_api_conv_forward conv_param)
                             0, // transpose 
                             dma_command, &id_node
                         );
-                        call_atomic(nodechip_idx, atomic_global_dma, dma_command, ENGINE_GDMA);
+                        call_atomic(0, atomic_global_dma, dma_command, ENGINE_GDMA);
                     }
                     int icend = 0;
                     for (int icidx = 0; icidx < icsecs; icidx++){
@@ -157,7 +157,7 @@ int bm_conv_fwd(bm_api_conv_forward conv_param)
                                 0, // transpose 
                                 dma_command, &id_node
                             );
-                            call_atomic(nodechip_idx, atomic_global_dma, dma_command, ENGINE_GDMA);
+                            call_atomic(0, atomic_global_dma, dma_command, ENGINE_GDMA);
                         }
                         shift = nstart * global_ifmap_Nstride + ig * ifmap_group_offset +
                                 (icstart * input_h + i_ht) * input_w;
@@ -175,7 +175,7 @@ int bm_conv_fwd(bm_api_conv_forward conv_param)
                             0, // transpose
                             dma_command, &id_node
                         );
-                        call_atomic(nodechip_idx, atomic_global_dma, dma_command, ENGINE_GDMA);
+                        call_atomic(0, atomic_global_dma, dma_command, ENGINE_GDMA);
 
                         local_shape_t ifshape, ofshape;
                         ifshape.n = sec_len_n;
@@ -203,7 +203,7 @@ int bm_conv_fwd(bm_api_conv_forward conv_param)
                             result_add || icidx > 0, // add result
                             &id_node
                         );
-                        call_atomic(nodechip_idx, atomic_conv_neuron, conv_command, ENGINE_BD);
+                        call_atomic(0, atomic_conv_neuron, conv_command, ENGINE_BD);
                     }
                     u64 shift = nstart * global_ofmap_Nstride + ig * ofmap_group_offset +
                                 (ocstart * output_h + o_ht) * output_w;
@@ -222,7 +222,7 @@ int bm_conv_fwd(bm_api_conv_forward conv_param)
                         0, // transpose
                         dma_command, &id_node
                     );
-                    call_atomic(nodechip_idx, atomic_global_dma, dma_command, ENGINE_GDMA);
+                    call_atomic(0, atomic_global_dma, dma_command, ENGINE_GDMA);
                 }
             }
         }

@@ -40,7 +40,7 @@ anakin_add_compile_option(-fpermissive)
 anakin_add_compile_option(-Wsign-promo)
 anakin_add_compile_option(-fdiagnostics-show-option)
 if(USE_BM_PLACE)
-    anakin_add_compile_option(-lbmlib-cmodel)
+    anakin_add_compile_option(-lbmlib-asic)
 endif()
 
 if(ENABLE_NOISY_WARNINGS)
