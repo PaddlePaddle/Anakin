@@ -2,11 +2,11 @@
 #include "saber/funcs/impl/x86/saber_crf_decoding.h"
 #include "saber/saber_funcs_param.h"
 #include "saber/funcs/impl/x86/x86_utils.h"
+#include "saber/funcs/impl/x86/anakin_thread.h"
 #include <cstring>
 #include <limits>
 #include <cmath>
 #include <immintrin.h>
-#include "omp.h"
 
 namespace anakin {
 namespace saber {
@@ -213,7 +213,7 @@ SaberStatus SaberCrfDecoding<X86, OpDtype>::dispatch(
 #endif
     OpDataType *decoded_path = (OpDataType*) outputs[0]->mutable_data();
     int seq_num = seq_offset[0].size() - 1;
-    int nthreads = omp_get_max_threads();
+    int nthreads = anakin_get_max_threads();
 
     if (nthreads > seq_num) {
         nthreads = seq_num;
