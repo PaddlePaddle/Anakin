@@ -32,10 +32,12 @@
 #define ANAKIN_THR_SYNC 1
 inline int anakin_get_max_threads() { return 1; }
 inline int anakin_get_num_threads() { return 1; }
+inline void anakin_set_num_threads(int val) {}
 inline int anakin_get_thread_num() { return 0; }
 inline int anakin_in_parallel() { return 0; }
 inline void anakin_thr_barrier() {}
 inline void anakin_set_nested(int val) {}
+inline void anakin_set_dynamic(int val) {}
 
 #elif ANAKIN_THR == ANAKIN_THR_OMP
 #include <omp.h>
@@ -43,12 +45,14 @@ inline void anakin_set_nested(int val) {}
 
 inline int anakin_get_max_threads() { return omp_get_max_threads(); }
 inline int anakin_get_num_threads() { return omp_get_num_threads(); }
+inline void anakin_set_num_threads(int val) { omp_set_num_threads(val); }
 inline int anakin_get_thread_num() { return omp_get_thread_num(); }
 inline int anakin_in_parallel() { return omp_in_parallel(); }
 inline void anakin_thr_barrier() {
 #   pragma omp barrier
 }
 inline void anakin_set_nested(int val) { omp_set_nested(val); }
+inline void anakin_set_dynamic(int val) { omp_set_dynamic(val); }
 
 #elif ANAKIN_THR == ANAKIN_THR_TBB
 #include "tbb/parallel_for.h"
