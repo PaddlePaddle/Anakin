@@ -721,7 +721,7 @@ class FluidParser:
 
     def _RefreshReshape(self, source_ops, helper, need_assign=False):
         for source_op in source_ops:
-            if source_op.type == 'reshape':
+            if source_op.type in ['reshape', 'reshape2']:
                 reshape_node_name = self._NameNodeMid(source_op)
                 # Make sure this node exists in this graph.
                 if reshape_node_name in self.ins:
@@ -802,9 +802,9 @@ class FluidParser:
                 softmax_node_name = self._NameNodeMid(source_op)
                 outs_of_softmax = self.outs[softmax_node_name].targets('Out')
                 ins_of_softmax = self.ins[softmax_node_name].targets('X')
-                if outs_of_softmax[0].split('#')[0] == 'reshape':
-                    if ins_of_softmax[0].split('#')[0] == 'reshape' or \
-                    ins_of_softmax[0].split('#')[0] == 'flatten':
+                if outs_of_softmax[0].split('#')[0] in ['reshape', 'reshape2']:
+                    if ins_of_softmax[0].split('#')[0] in ['reshape', 'reshape2'] or \
+                    ins_of_softmax[0].split('#')[0] in ['flatten', 'flatten2']:
                         private_data = {}
                         private_data['axis'] = 3
                         self._CutReshape(outs_of_softmax[0])
@@ -877,6 +877,17 @@ class FluidParser:
                 self._RmProtoNode(sm_node_name)
                 self._AddProtoNode(sm_node_name, source_op, helper, private_data, 'softmax')
 
+    def _DealWithFakeQuantize(self, source_ops, helper):
+        for source_op in source_ops:
+            if source_op.type in ['fake_quantize_abs_max', 'fake_dequantize_max_abs']:
+                qt_node_name = self._NameNodeMid(source_op)
+                in_of_qt = self.ins[qt_node_name].target('X')
+                out_of_qt = self.outs[qt_node_name].target('Out')
+                self.outs[in_of_qt].mv(qt_node_name, out_of_qt)
+                self.ins[out_of_qt].mv(qt_node_name, in_of_qt)
+                self._RmProtoNode(qt_node_name)
+                self._ClearEdges(qt_node_name)
+
     def _NewCommonLayer(self,
                         source_ops,
                         in_target,
@@ -913,6 +924,7 @@ class FluidParser:
             elif self.NetType == "ROUTEDNN":
                 reshape_dict['input_0'] = [1, 37, 1, 1]
             self._ReplaceInputs(source_ops, helper, reshape_dict)
+            self._DealWithFakeQuantize(source_ops, helper, reshape_dict)
             self._InsertSplit(source_ops, helper)
             self._DealWithGru(source_ops, helper)
             self._DealWithLstm(source_ops, helper)
