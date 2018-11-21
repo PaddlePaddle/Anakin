@@ -533,6 +533,14 @@ def Parser_assign_value(args):
 def Parser_shape(args):
     pass
 
+@ParserFeedDecorator("fake_quantize_abs_max")
+def Parser_fake_quantize_abs_max(args):
+    pass
+
+@ParserFeedDecorator("fake_dequantize_max_abs")
+def Parser_fake_dequantize_max_abs(args):
+    pass
+
 FLUID_NODE_FILLER = {
     "feed":OpsParam().set_parser(Parser_feed),
     "conv2d":OpsParam().set_parser(Parser_conv2d),
@@ -584,4 +592,6 @@ FLUID_NODE_FILLER = {
     "leaky_relu":OpsParam().set_parser(Parser_leaky_relu),
     "prelu":OpsParam().set_parser(Parser_prelu),
     "split":OpsParam().set_parser(Parser_slice),
+    "fake_quantize_abs_max":OpsParam().set_parser(Parser_fake_quantize_abs_max),
+    "fake_dequantize_max_abs":OpsParam().set_parser(Parser_fake_dequantize_max_abs),
 }
