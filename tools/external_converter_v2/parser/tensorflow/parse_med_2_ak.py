@@ -26,7 +26,6 @@ def np_2_ak_tensor(np_tensor):
     }
 
     type_str = data_type_map.get(np_tensor.dtype)
-    # print(np_tensor.dtype)
     assert type_str != None
     ak_tensor = TensorProtoIO()
     ak_tensor.set_shape(shape_2_ak_shape(np_tensor.shape))
@@ -70,16 +69,31 @@ class MedTransAK:
         :param param:
         :return:
         '''
+        if med_attr.get('trans_weights', False):
+            med_attr['weights'] = np.transpose(med_attr['weights'])
         param.weight_1 = np_2_ak_tensor(med_attr['weights'])
-        param.axis = 1
+        param.axis = med_attr.get('axis', 1)
+        param.out_dim = med_attr.get('out_dim', 0)
+
         if med_attr.get('bias_weights') is not None:
             param.bias_term = True
             param.weight_2 = np_2_ak_tensor(med_attr['bias_weights'])
+            if param.out_dim == 0:
+                param.out_dim = len(med_attr['bias_weights'].flatten())
         else:
             param.bias_term = False
         pass
 
-    def Relu(self, med_attr, param):
+    def Permute(self, med_attr, param):
+        """
+        fill Relu param in ak graph
+        :param med_attr:
+        :param param:
+        :return:
+        """
+        param.dims = med_attr['dims']
+
+    def ReLU(self, med_attr, param):
         '''
         fill Relu param in ak graph
         :param med_attr:

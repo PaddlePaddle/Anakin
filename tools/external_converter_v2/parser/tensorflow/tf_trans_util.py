@@ -141,6 +141,17 @@ def load_graph(graph_path):
     return graph
 
 
+def find_layout_in(node, graph):
+    if node['ak_type'] in ('Dense'):
+        return None
+    if 'data_format' in node['tf_attr']:
+        return node['tf_attr']['data_format']
+    elif len(node['input']) > 0:
+        return find_layout_in(graph[node['input'][0]['name']], graph)
+    else:
+        return None
+
+
 NCHW_TO_NHWC = [0, 2, 3, 1]
 NHWC_TO_NCHW = [0, 3, 1, 2]
 HWCN_TO_NCHW = [3, 2, 0, 1]
@@ -207,6 +218,55 @@ def add_special_pad(padding, tf_node, graph):
     graph[padding_node['name']] = padding_node
 
 
+def parse_slim_flatten(tf_node, graph):
+    '''
+    parse shape for tensorflow graph
+    :param tf_node:
+    :param graph:
+    :return:
+    '''
+    # try:
+
+    assert len(tf_node['output']) == 1
+    get_shape_node = graph[tf_node['input'][0]['name']]
+    pack_node = graph[tf_node['output'][0]['name']]
+    assert get_shape_node['type'] == 'Shape'
+    assert pack_node['type'] == 'Pack'
+    assert len(pack_node['output']) == 1
+    reshape_node = graph[pack_node['output'][0]['name']]
+    assert reshape_node['type'] == 'Reshape'
+    assert reshape_node['input'][0]['name'] == get_shape_node['input'][0]['name']
+
+    tf_node['visted'] = True
+    get_shape_node['visted'] = True
+    pack_node['visted'] = True
+    reshape_node['visted'] = True
+
+    the_node = MedNodeUtil.new_med_node(name=tf_node['name'] + '_flatten')
+    graph[the_node['name']] = the_node
+
+    the_node['type'] = 'Flatten'
+    the_node['ak_type'] = 'Flatten'
+    the_node['input'] = get_shape_node['input']
+    the_node['output'] = reshape_node['output']
+    the_node['visted'] = True
+    MedNodeUtil.redirecto_outputs_input_to_this_any(
+        the_node, graph, reshape_node['name'], the_node['name'], the_node['output'][0]['shape'])
+    MedNodeUtil.redirecto_inputs_output_to_this_any(
+        the_node, graph, get_shape_node['name'], the_node['name'], the_node['input'][0]['shape'])
+    pre_out = graph[the_node['input'][0]['name']]['output']
+    for index, out in enumerate(pre_out):
+        if out['name'] == reshape_node['name']:
+            del pre_out[index]
+
+    # print(the_node['output'])
+    # print(graph[the_node['output'][0]['name']]['input'])
+    # exit()
+
+    # except Exception,e:
+    #     raise e
+
+
 def parse_Identity(tf_node, graph):
     '''
     remove identity in tensorflow graph
@@ -223,7 +283,8 @@ def parse_Identity(tf_node, graph):
         next_name = next['name']
         next_node = graph[next_name]
         next_node['input'] = [input_0 if i['name'] == tf_node['name'] else i for i in next_node['input']]
-        in_node['output'] = MedNodeUtil.replace_name_with_list(in_node['output'], tf_node['name'], outputs)
+        in_node['output'] = MedNodeUtil.replace_name_with_list(
+            in_node['output'], tf_node['name'], outputs)
 
 
 def parse_Shape(tf_node, graph):
@@ -261,7 +322,10 @@ def parse_Placeholder(tf_node, graph):
     '''
     tf_node['visted'] = True
     tf_node['ak_type'] = 'Input'
-    tf_node['ak_attr']['shape'] = spatial_map(tf_node['output'][0]['shape'], NHWC_TO_NCHW)
+    if len(tf_node['output'][0]['shape']) == 4:
+        tf_node['ak_attr']['shape'] = spatial_map(tf_node['output'][0]['shape'], NHWC_TO_NCHW)
+    else:
+        tf_node['ak_attr']['shape'] = tf_node['output'][0]['shape']
 
 
 def parse_Pad(tf_node, graph):
@@ -280,6 +344,23 @@ def parse_Pad(tf_node, graph):
     ak_attr['pad_c'] = pad_shape[3].flatten().tolist()
     ak_attr['pad_h'] = pad_shape[1].flatten().tolist()
     ak_attr['pad_w'] = pad_shape[2].flatten().tolist()
+
+
+def parse_Transpose(tf_node, graph):
+    '''
+    :param tf_node:
+    :param graph:
+    :return:
+    '''
+    tf_node['visted'] = True
+    tf_node['ak_type'] = 'Permute'
+    assert len(tf_node['input']) == 2
+    arg_node = graph[tf_node['input'][1]['name']]
+    assert arg_node['type'] == 'Const'
+    tf_node['ak_attr']['dims'] = arg_node['tf_attr']['value'].flatten().tolist()
+    print(tf_node['ak_attr']['dims'], type(tf_node['ak_attr']['dims']))
+    # exit()
+    pass
 
 
 def parse_Softmax(tf_node, graph):
@@ -321,7 +402,7 @@ def parse_Act(tf_node, graph):
     tf_node['visted'] = True
     tf_node['ak_type'] = 'Activation'
     if tf_node['type'] == 'Relu':
-        tf_node['ak_type'] = 'Relu'
+        tf_node['ak_type'] = 'ReLU'
         tf_node['ak_attr']['type'] = 'Relu'
     elif tf_node['type'] == 'Relu6':
         tf_node['ak_type'] = 'Activation'
@@ -355,6 +436,7 @@ def parse_Add(tf_node, graph):
     :return:
     '''
     tf_node['visted'] = True
+    print(tf_node)
     assert len(tf_node['input']) == 2
     input_0 = graph[tf_node['input'][0]['name']]
     input_1 = graph[tf_node['input'][1]['name']]
@@ -392,7 +474,8 @@ def parse_Mean(tf_node, graph):
         reduction_shape = reduction_shape_node['tf_attr']['value'].flatten().tolist()
     assert reduction_shape is not None
     assert keep_dims is True
-    assert reduction_shape == [1, 2]
+    # print('reduction ',reduction_shape,tf_node['name'])
+    # assert reduction_shape == [1, 2]
     ak_attr['strides'] = [1, 1]
     ak_attr['window'] = [tf_node['input'][0]['shape'][reduction_shape[0]],
                          tf_node['input'][0]['shape'][reduction_shape[1]]]
@@ -518,6 +601,22 @@ def get_bias(tf_node, graph):
     return bias_weight
 
 
+def fix_Dense(tf_node, graph):
+    input_node = graph[tf_node['input'][0]['name']]
+    layout = find_layout_in(input_node, graph)
+    print(tf_node['name'], tf_node['input'], layout, type(layout))
+    if layout == 'NHWC':
+        if input_node['ak_type'] in ('Flatten'):
+            input_node = graph[input_node['input'][0]['name']]
+            shape = input_node['output'][0]['shape']
+            weights = tf_node['ak_attr']['weights']
+            full_shape = [i for i in shape if i is not None]
+            full_shape.append(weights.shape[1])
+            weights = weights.reshape(full_shape)
+            weights = weights.transpose((2, 0, 1, 3))
+            tf_node['ak_attr']['weights'] = weights.reshape(tf_node['ak_attr']['weights'].shape)
+
+
 def parse_Conv2D(tf_node, graph):
     '''
     convert conv2D to convolution
@@ -583,14 +682,12 @@ def parse_MatMul(tf_node, graph):
         raise Exception('Whate hannpend both const')
     elif in_type_1 == 'Const' and tf_node['tf_attr']['transpose_a'] != True:
         weights = graph[in_name_1]['tf_attr']['value']
-        if tf_node['tf_attr']['transpose_b']:
-            weights = weights.T
+        tf_node['ak_attr']['trans_weights'] = not tf_node['tf_attr']['transpose_b']
         tf_node['ak_attr']['weights'] = weights
         MedNodeUtil.retain_input(tf_node, [tf_node['input'][0]])
     elif in_type_0 == 'Const' and tf_node['tf_attr']['transpose_b'] != True:
-        weights = graph[in_name_1]['tf_attr']['value'].T
-        if tf_node['tf_attr']['transpose_a']:
-            weights = weights.T
+        weights = graph[in_name_1]['tf_attr']['value']
+        tf_node['ak_attr']['trans_weights'] = tf_node['tf_attr']['transpose_a']
         tf_node['ak_attr']['weights'] = weights
         MedNodeUtil.retain_input(tf_node, [tf_node['input'][1]])
     else:

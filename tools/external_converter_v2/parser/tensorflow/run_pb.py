@@ -16,7 +16,7 @@ def convert_name_tf2ak(tf_name, perfix='record_'):
     return perfix + ak_name
 
 
-# ak_work_space='/your/anakin/workspace'
+ak_work_space='/home/ljj/docker_mount_dev2/anakin2_developing/build'
 output_compare_op = None
 
 # graph_path='./vgg_model/frozen_vgg_16_i.pb'

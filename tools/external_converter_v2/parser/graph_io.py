@@ -7,35 +7,37 @@ from google.protobuf import text_format
 from utils import *
 from proto import *
 
+
 class NodeAttrWrapper(object):
     """
     """
+
     def __init__(self):
         self.value_data = valueType()
 
     def __call__(self, data, data_type_str):
         """
         """
-        if data_type_str == type(""):   # type string
+        if data_type_str == type(""):  # type string
             self.value_data.s = data
             self.value_data.type = STR
-        elif data_type_str == type(int()): # type int
+        elif data_type_str == type(int()):  # type int
             self.value_data.i = data
             self.value_data.type = INT32
-        elif data_type_str == type(float()): # type float
+        elif data_type_str == type(float()):  # type float
             self.value_data.f = data
             self.value_data.type = FLOAT
-        elif data_type_str == type(bool()): # type bool
+        elif data_type_str == type(bool()):  # type bool
             self.value_data.b = data
             self.value_data.type = BOOLEN
-        elif data_type_str == type(TensorProtoIO()): # type tensor
+        elif data_type_str == type(TensorProtoIO()):  # type tensor
             self.value_data.tensor.CopyFrom(data())
             self.value_data.type = TENSOR
-        elif data_type_str == type(unicode()): # not used
+        elif data_type_str == type(unicode()):  # not used
             return self.value_data
-        elif data_type_str == type(list()): # type shape
+        elif data_type_str == type(list()):  # type shape
             self.value_data.type = CACHE_LIST
-            if len(data): # in case of error(empty data list): index out of range
+            if len(data):  # in case of error(empty data list): index out of range
                 if type(data[0]) == type(float()):
                     self.value_data.cache_list.f[:] = data
                     self.value_data.cache_list.type = FLOAT
@@ -52,7 +54,7 @@ class NodeAttrWrapper(object):
                     self.value_data.cache_list.s[:] = data
                     self.value_data.cache_list.type = STR
                     self.value_data.cache_list.size = len(data)
-                elif type(data[0]) == type(data): # Recursive Structures of list..[list...] (deep num is only 2) 
+                elif type(data[0]) == type(data):  # Recursive Structures of list..[list...] (deep num is only 2)
                     self.value_data.cache_list.type = CACHE_LIST
                     self.value_data.cache_list.size = len(data)
                     for idx, list_one in enumerate(data):
@@ -63,7 +65,10 @@ class NodeAttrWrapper(object):
                             data_cache.size = len(list_one)
                             self.value_data.cache_list.l.extend([data_cache])
                         else:
-                            raise NameError('ERROR: UnSupport Recursive list data type(%s) in list ' % (str(type(list_one[0]))))
+                            raise NameError(
+                                'ERROR: UnSupport Recursive list data type(%s) in list '
+                                % (str(type(list_one[0])))
+                            )
                 else:
                     raise NameError('ERROR: UnSupport data type(%s) in list ' % (str(type(data[0]))))
             else:
@@ -78,16 +83,17 @@ class NodeAttrWrapper(object):
 class TensorProtoIO(object):
     """
     """
+
     def __init__(self):
         """
         """
         self.tensor_proto = TensorProto()
 
     def set_data_type(self, data_type):
-        self.tensor_proto.data.type = data_type 
+        self.tensor_proto.data.type = data_type
 
     def get_shape(self):
-	    return self.tensor_proto.shape.dim.value
+        return self.tensor_proto.shape.dim.value
 
     def set_shape(self, shape_list):
         """
@@ -136,6 +142,7 @@ class TensorProtoIO(object):
 class OpsProtoIO(object):
     """
     """
+
     def __init__(self):
         """
         """
@@ -164,6 +171,7 @@ class NodeProtoIO(object):
     """
     Node io class of NodeProto
     """
+
     def __init__(self):
         """
         """
@@ -206,6 +214,7 @@ class GraphProtoIO(object):
     """
     Graph io class of GraphProto.
     """
+
     def __init__(self):
         """
         """
@@ -215,7 +224,7 @@ class GraphProtoIO(object):
         """
         Serialize to disk.
         """
-        #self._get_graph_proto();
+        # self._get_graph_proto();
         with open(file_path, "wb") as f:
             f.write(self.graph_proto.SerializeToString())
         f.close()
@@ -245,11 +254,12 @@ class GraphProtoIO(object):
                 del self.graph_proto.nodes[index]
         else:
             raise NameError('ERROR: (%s) node not exist.' % (node))
-    
+
     def find_node_proto(self, node_name):
         for node in self.graph_proto.nodes:
             if node.name == node_name:
                 return node
+
     def get_edge_nexts(self, node_name_0):
         """
         get edge's next node_name
@@ -264,13 +274,13 @@ class GraphProtoIO(object):
         remove edge is directive from node_name_0 to node_name_1
         """
         if node_name_0 in self.graph_proto.edges_out:
-            index = -1 
+            index = -1
             for idx, node_name in enumerate(self.graph_proto.edges_out[node_name_0].val):
                 if node_name == node_name_1:
                     index = idx
                     break
             if index >= 0:
-                #print "suc in " + node_name_0 + " -> " + node_name_1 + "  idx: "  + str(index)
+                # print "suc in " + node_name_0 + " -> " + node_name_1 + "  idx: "  + str(index)
                 del self.graph_proto.edges_out[node_name_0].val[index]
         if node_name_1 in self.graph_proto.edges_in:
             index = -1
@@ -279,7 +289,7 @@ class GraphProtoIO(object):
                     index = idx
                     break
             if index >= 0:
-                #print "suc in " + node_name_0 + " -> " + node_name_1 +  " idx: " + str(index)
+                # print "suc in " + node_name_0 + " -> " + node_name_1 +  " idx: " + str(index)
                 del self.graph_proto.edges_in[node_name_1].val[index]
 
     def add_in_edge(self, node_name_0, node_name_1):
@@ -352,6 +362,10 @@ class GraphProtoIO(object):
         self.graph_proto.outs[:] = graph_outs
 
     def format_edge_from_nodes(self):
+        """
+        format edge from nodes with input and output list
+        :return:
+        """
         in_set = set()
         out_set = set()
         for node in self.graph_proto.nodes:
@@ -368,9 +382,30 @@ class GraphProtoIO(object):
         print('------')
         print(ba_set)
         assert len(ab_set) == 0 and len(ba_set) == 0, 'in edge must equal with out edge'
+        self.debug_edge()
 
+    def debug_edge(self):
+        """
+        check wether in edge match out edge
+        :return:
+        """
+        in_set = set()
+        out_set = set()
+
+        for i in self.graph_proto.edges_in:
+            for j in self.graph_proto.edges_in[i].val:
+                in_set.add((i, j))
+
+        for i in self.graph_proto.edges_out:
+            for j in self.graph_proto.edges_out[i].val:
+                out_set.add((j, i))
+
+        ab_set = in_set - out_set
+        ba_set = out_set - in_set
+        print(ab_set)
+        print('------')
+        print(ba_set)
+        assert len(ab_set) == 0 and len(ba_set) == 0, 'in edge must equal with out edge'
 
     def __call__(self):
         return self.graph_proto
-
-
