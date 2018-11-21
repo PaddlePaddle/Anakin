@@ -924,7 +924,7 @@ class FluidParser:
             elif self.NetType == "ROUTEDNN":
                 reshape_dict['input_0'] = [1, 37, 1, 1]
             self._ReplaceInputs(source_ops, helper, reshape_dict)
-            self._DealWithFakeQuantize(source_ops, helper, reshape_dict)
+            self._DealWithFakeQuantize(source_ops, helper)
             self._InsertSplit(source_ops, helper)
             self._DealWithGru(source_ops, helper)
             self._DealWithLstm(source_ops, helper)
