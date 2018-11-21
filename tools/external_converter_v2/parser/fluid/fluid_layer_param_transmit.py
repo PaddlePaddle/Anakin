@@ -535,10 +535,16 @@ def Parser_shape(args):
 
 @ParserFeedDecorator("fake_quantize_abs_max")
 def Parser_fake_quantize_abs_max(args):
+    """
+    A placeholder for an empty function.
+    """
     pass
 
 @ParserFeedDecorator("fake_dequantize_max_abs")
 def Parser_fake_dequantize_max_abs(args):
+    """
+    A placeholder for an empty function.
+    """
     pass
 
 FLUID_NODE_FILLER = {
