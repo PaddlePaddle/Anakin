@@ -345,9 +345,11 @@ public:
                     LOG(INFO) << "Unimpl!!";
                     continue;
                 }
+                break;
                 //get_cpu_result(CpuFunc);
                 //result_check_accuracy(succ_ratio,write_error_tensor);
             }
+            break;
         }
     }
     void result_check_speed(){

@@ -18,9 +18,9 @@ int bmkernel_func(void *args)
             return 0;
         }
         case CONV: {
-            bm_api_conv_forward* api = (bm_api_conv_forward *)param->opParam;
-            printf("BM conv op.\n");
-            return bm_conv_fwd(*api);
+            bm_api_conv_forward* api = &(param->opParam.convParam);
+//            printf("BM conv op.\n");
+            return bm_conv_fwd(api);
         }
         default: {
             printf("op %d is not supported by BM yet.\n", param->op);
