@@ -1113,7 +1113,8 @@ def Parser_priorbox(args):
     len(prior_box_param.density):
         OpsRegister()["PriorBox"].fixed_size = list(prior_box_param.fixed_size)
         OpsRegister()["PriorBox"].fixed_ratio = list(prior_box_param.fixed_ratio)
-        OpsRegister()["PriorBox"].density = list(prior_box_param.density)
+        density_list = list(prior_box_param.density)
+        OpsRegister()["PriorBox"].density = map(float, density_list)
     OpsRegister()["PriorBox"].is_flip = prior_box_param.flip
     OpsRegister()["PriorBox"].is_clip = prior_box_param.clip
     OpsRegister()["PriorBox"].variance = list(prior_box_param.variance)
