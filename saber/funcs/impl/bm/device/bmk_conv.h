@@ -14,5 +14,5 @@
 #include "atomic_md_sum.h"
 #endif
 #include "bmkernel_base.h"
-int bm_conv_fwd(bm_api_conv_forward conv_param);
+int bm_conv_fwd(bm_api_conv_forward *conv_param);
 #endif

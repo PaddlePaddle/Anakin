@@ -192,7 +192,13 @@ include(cmake/gather.cmake)
 # ----------------------------------------------------------------------------
 # add source sub_directory whick holds the cmake build module
 # fetch files of model_parser
+
+
 add_subdirectory(${ANAKIN_SABER})
+
+if(USE_BM_PLACE)
+  add_subdirectory(${ANAKIN_SABER}/funcs/impl/bm)
+endif()
 
 if(BUILD_WITH_FRAMEWORK)
     add_subdirectory(${ANAKIN_MODEL_PARSER})
