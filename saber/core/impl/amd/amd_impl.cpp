@@ -65,7 +65,7 @@ int AMD_API::current_device_id_index = 0;
 std::map<void*, cl_mem> AMD_API::buffers;
 
 void AMD_API::get_device_count(int& count) {
-    cl_platform_id id = AMD_ENV::get_platform_id();
+    cl_platform_id id = AMD_API::get_platform_id();
     cl_uint nums;
     AMD_CHECK(clGetDeviceIDs(id, CL_DEVICE_TYPE_GPU, 0, NULL, &nums));
     count = (int)nums;
@@ -77,7 +77,6 @@ void AMD_API::set_device(int id) {
 }
 
 void AMD_API::mem_alloc(TPtr* ptr, size_t n) {
-    AMD_ENV::is_init();
 
 #ifdef  AMD_GPU_EXTENSION
     //LOG(INFO) << "use CL_MEM_USE_PERSISTENT_MEM_AMD to create buffer.";
@@ -118,8 +117,6 @@ void AMD_API::mem_set(TPtr ptr, int value, size_t n) {
     if (ptr == nullptr) {
         return ;
     }
-
-    AMD_ENV::is_init();
 
     Device<AMD> dev = AMD_ENV::cur_env()[current_device_id_index];
     stream_t cm = dev.get_available_stream();
@@ -168,7 +165,6 @@ void AMD_API::create_stream(stream_t* stream) {
  * @param flag      input flag, 0: default stream flag, 1: cudaStreamNonBlocking
  */
 void AMD_API::create_stream_with_flag(stream_t* stream, unsigned int flag) {
-    Env<AMD>::is_init();
     cl_int err = CL_SUCCESS;
 
     if (!stream) {
@@ -847,7 +843,6 @@ void AMDH_API::create_stream(stream_t* stream) {
  * @param flag      input flag, 0: default stream flag, 1: cudaStreamNonBlocking
  */
 void AMDH_API::create_stream_with_flag(stream_t* stream, unsigned int flag) {
-    Env<AMD>::is_init();
     int current_device_id_index = 0;
     cl_int err = CL_SUCCESS;
 
