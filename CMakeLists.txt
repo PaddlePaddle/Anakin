@@ -202,6 +202,7 @@ endif()
 
 if(AMD_GPU)
     include(cmake/amd.cmake)
+    include(cmake/external/miopen.cmake)
 endif()
 
 # gather all the config options to anakin
