@@ -29,7 +29,8 @@ message Info {
 
 // string list 
 message List {
-	repeated string val = 1;	
+	repeated string val = 1;
+	repeated float scale = 2;
 };
 
 // Anakin Graph define
