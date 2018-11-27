@@ -43,6 +43,7 @@ SaberStatus SaberTopKAvgPooling<X86, OpDtype>::get_topk(std::vector<OpDataType>&
     for (int k = real_k; k < top_k; k++) {
        dst[k] = (OpDataType) 0.f;
     }
+    return SaberSuccess;
 }
 
 

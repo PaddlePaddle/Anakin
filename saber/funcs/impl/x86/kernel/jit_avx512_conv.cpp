@@ -227,16 +227,7 @@ SaberStatus JitAvx512Conv<AK_FLOAT>::dispatch(
     const float *ptr_weights = reinterpret_cast<const float*>(weights_internal->data());
     const float *ptr_bias = reinterpret_cast<const float*>(bias->data());
 
-    auto ptr_dst = NULL;
-    switch (type){
-        case AK_UINT8: ptr_dst = reinterpret_cast<unsigned char*>(outputs[0]->mutable_data()); break;
-        case AK_INT8: ptr_dst = reinterpret_cast<char*>(outputs[0]->mutable_data()); break;
-        case AK_UINT32: ptr_dst = reinterpret_cast<unsigned int*>(outputs[0]->mutable_data()); break;
-        case AK_INT32: ptr_dst = reinterpret_cast<int*>(outputs[0]->mutable_data()); break;
-        case AK_FLOAT: ptr_dst = reinterpret_cast<float*>(outputs[0]->mutable_data()); break;
-        default: LOG(FATAL) << "data type: " << type << " is unsupported now";
-    }
-    //ptr_dst = reinterpret_cast<float*>(outputs[0]->mutable_data());
+    auto ptr_dst= static_cast<float*>(outputs[0]->mutable_data());
 
     const auto &jcp = kernel->jcp;
 

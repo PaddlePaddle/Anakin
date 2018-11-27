@@ -134,7 +134,7 @@ void test_model() {
 
     //test example
     for (auto shape : {input_shape, input_shape2}) {
-    for (auto act : {1, 2, 3, 4, 5, 9, 10, active}) {
+    for (auto act : {Active_sigmoid,Active_relu, Active_tanh, Active_clipped_relu, Active_elu, Active_stanh, Active_prelu}) {
     LOG(INFO) << "================ active: " << act;
 
     for (auto neg_slope : {-1.0, 0.5}) {

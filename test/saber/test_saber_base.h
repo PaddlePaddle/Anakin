@@ -181,10 +181,11 @@ public:
         add_inputs_shape(shape_v);
         for(int i = 0; i < _op_input_num; ++i)
         {
-            SaberStatus status = _inputs_dev[0][i]->set_dtype(input[i]->get_dtype());
-            status &= _inputs_host[0][i]->set_dtype(input[i]->get_dtype());
-            if(!status)
+            SaberStatus status_dev = _inputs_dev[0][i]->set_dtype(input[i]->get_dtype());
+            SaberStatus status_host= _inputs_host[0][i]->set_dtype(input[i]->get_dtype());
+            if (status_dev != SaberSuccess || status_host != SaberSuccess){
                 LOG(INFO) << "ERROR";
+            }
             _inputs_dev[0][i] -> copy_from(*input[i]);
             _inputs_host[0][i] -> copy_from(*input[i]);
             if(input[i]->get_seq_offset().size() > 0){

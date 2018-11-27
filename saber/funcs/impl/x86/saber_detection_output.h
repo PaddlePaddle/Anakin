@@ -112,7 +112,7 @@ private:
     dtype* _bbox_cpu_data{nullptr};
     dtype* _conf_cpu_data{nullptr};
 };
-template class SaberDetectionOutput<X86>;
+
 } //namespace saber
 
 } //namespace anakin

@@ -120,7 +120,6 @@ void topk_avg_pooling_basic(const std::vector<Tensor<TargetType_H>*>& inputs, st
         }
     }
 
-    return SaberSuccess;
 }
 
 

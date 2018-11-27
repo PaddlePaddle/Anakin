@@ -37,7 +37,7 @@ SequenceExpandParam<X86>& param) {
 
     auto ref_offset = inputs[1]->get_seq_offset()[0];
     size_t len = inputs[0]->valid_size();
-    OpDataType* input_data = static_cast<const OpDataType* >(inputs[0]->data());
+    const OpDataType* input_data = static_cast<const OpDataType* >(inputs[0]->data());
     OpDataType* output_data =  static_cast<OpDataType* >(outputs[0]->mutable_data());
     int dim = inputs[0]->valid_size() / inputs[0]->num();
 

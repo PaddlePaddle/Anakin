@@ -60,7 +60,7 @@ void padding_out(const dtype* src, std::vector<int>& offset_r, int dim_t, int le
     int tl = dim_t * len_l;
     for (int i = 0; i < seq_num; i++) {
         dtype* dst_tmp = dst + i * tl * max_len_r;
-        dtype* src_tmp = src + offset_r[i] *  tl;
+        const dtype* src_tmp = src + offset_r[i] *  tl;
         int cur_len = offset_r[i+1] - offset_r[i];
         for (int j = 0; j < cur_len; j++) {
             for (int k = 0; k < tl; k++) {
