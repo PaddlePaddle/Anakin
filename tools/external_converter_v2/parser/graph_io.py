@@ -166,6 +166,24 @@ class OpsProtoIO(object):
     def __call__(self):
         return self.op_proto
 
+class TargetProtoIO(object):
+    """
+    """
+
+    def __init__(self):
+        """
+        """
+        self.target_proto = TargetProtoIO()
+
+    def set_node(self, node):
+        self.target_proto.node = node
+
+    def set_scale(self, scale):
+        self.target_proto.scale = scale
+
+    def __call__(self):
+        return self.target_proto
+
 
 class NodeProtoIO(object):
     """
@@ -189,6 +207,9 @@ class NodeProtoIO(object):
 
     def set_op(self, operator=OpsProto()):
         self.node_proto.Op.CopyFrom(operator)
+
+    def set_bit_type(self, bit_type):
+        self.node_proto.bit_type = bit_type
 
     def add_attr(self, value_name, data, data_type_str):
         """
@@ -260,14 +281,19 @@ class GraphProtoIO(object):
             if node.name == node_name:
                 return node
 
-    def get_edge_nexts(self, node_name_0):
+    def get_edge_nexts(self, node_name, with_info=False):
         """
         get edge's next node_name
         """
-        if node_name_0 in self.graph_proto.edges_out:
-            return list(self.graph_proto.edges_out[node_name_0].val[:])
-        else:
-            return []
+        edges_out = self.graph_proto.edges_out
+        nexts = list()
+        if node_name in edges_out:
+            if with_info is True:
+                for target in edges_out[node_name].target:
+                    nexts.append(target.node)
+            else:
+                nexts = edges_out[node_name].target[:]
+        return nexts
 
     def rm_edge(self, node_name_0, node_name_1):
         """
@@ -275,36 +301,50 @@ class GraphProtoIO(object):
         """
         if node_name_0 in self.graph_proto.edges_out:
             index = -1
-            for idx, node_name in enumerate(self.graph_proto.edges_out[node_name_0].val):
-                if node_name == node_name_1:
+            for idx, target in enumerate(self.graph_proto.edges_out[node_name_0].target):
+                if target.node == node_name_1:
                     index = idx
                     break
             if index >= 0:
                 # print "suc in " + node_name_0 + " -> " + node_name_1 + "  idx: "  + str(index)
-                del self.graph_proto.edges_out[node_name_0].val[index]
+                del self.graph_proto.edges_out[node_name_0].target[index]
         if node_name_1 in self.graph_proto.edges_in:
             index = -1
-            for idx, node_name in enumerate(self.graph_proto.edges_in[node_name_1].val):
-                if node_name == node_name_0:
+            for idx, target in enumerate(self.graph_proto.edges_in[node_name_1].target):
+                if target.node == node_name_0:
                     index = idx
                     break
             if index >= 0:
                 # print "suc in " + node_name_0 + " -> " + node_name_1 +  " idx: " + str(index)
-                del self.graph_proto.edges_in[node_name_1].val[index]
+                del self.graph_proto.edges_in[node_name_1].target[index]
 
-    def add_in_edge(self, node_name_0, node_name_1):
+    def add_in_edge(self, node_name_0, node_name_1, scale=None):
         """
         add_in_edge is directive from node_name_0 to node_name_1
         """
-        if node_name_0 not in self.graph_proto.edges_in[node_name_1].val:
-            self.graph_proto.edges_in[node_name_1].val.append(node_name_0)
+        edges_in = self.graph_proto.edges_in
+        nexts = list()
+        for target in edges_in[node_name].target:
+            nexts.append(target.node)
+        if node_name_0 not in nexts:
+            targetIO = TargetProtoIO()
+            targetIO.set_node(node_name_0)
+            targetIO.scale(scale)
+            edges_out[node_name_1].target.append(targetIO)
 
-    def add_out_edge(self, node_name_0, node_name_1):
+    def add_out_edge(self, node_name_0, node_name_1, scale=None):
         """
         add_out_edge is directive from node_name_0 to node_name_1
         """
-        if node_name_1 not in self.graph_proto.edges_out[node_name_0].val:
-            self.graph_proto.edges_out[node_name_0].val.append(node_name_1)
+        edges_out = self.graph_proto.edges_out
+        nexts = list()
+        for target in edges_out[node_name].target:
+            nexts.append(target.node)
+        if node_name_1 not in nexts:
+            targetIO = TargetProtoIO()
+            targetIO.set_node(node_name_1)
+            targetIO.scale(scale)
+            edges_out[node_name_0].target.append(targetIO)
 
     def add_in(self, node_name):
         self.graph_proto.ins.append(node_name)
@@ -316,8 +356,6 @@ class GraphProtoIO(object):
                 idx = graph_ins.index(in_name)
                 del graph_ins[idx]
         self.graph_proto.ins[:] = graph_ins
-        print 'self.graph_proto.ins[:]'
-        print self.graph_proto.ins[:]
 
     def ins(self):
         return list(self.graph_proto.ins)
