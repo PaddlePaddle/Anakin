@@ -28,7 +28,7 @@ message Info {
 };
 
 message TargetInfo {
-	string node_name = 1;
+	string node = 1;
 	repeated float scale = 2;
 };
 
