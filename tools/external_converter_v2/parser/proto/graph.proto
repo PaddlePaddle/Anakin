@@ -27,15 +27,14 @@ message Info {
 	bool is_optimized = 10;	
 };
 
-message QuantInfo {
-	optional bool has_scale = 1;
-	repeated float scale = 2;
-}
+message EdgeInfo {
+	repeated float scale = 1;
+};
 
 // string list 
 message List {
 	repeated string val = 1;
-	repeated QuantInfo q = 2;
+	map<string, EdgeInfo> q = 2;
 };
 
 // Anakin Graph define
