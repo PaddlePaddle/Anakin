@@ -96,8 +96,11 @@ if(X86_COMPILE_482)
 #    anakin_add_compile_option(-static-libgcc)
 endif()
 
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
 	anakin_add_compile_option(-fabi-version=6)
-	anakin_add_compile_option(-march=${BUILD_X86_ARCH})
+    anakin_add_compile_option(-march=${BUILD_X86_ARCH})
+endif()
+
     anakin_add_compile_option(-Ofast)
     anakin_add_compile_option(-ffast-math)
     anakin_add_compile_option(-Wall)

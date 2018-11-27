@@ -57,8 +57,8 @@ SaberStatus SaberSequenceConv<X86, OpDtype>::dispatch(
                       _hidden_size);
     }
 
-    gemm(false, false, word_num, _feature_size, _hidden_kernel_size, 1.f, _temp_im2col_tensor.data(),
-         param.filter_tensor->data(), 0.f, out_data->mutable_data());
+    gemm(false, false, word_num, _feature_size, _hidden_kernel_size, 1.f, static_cast<const float*>(_temp_im2col_tensor.data()),
+         static_cast<const float*>(param.filter_tensor->data()), 0.f, static_cast<float*>(out_data->mutable_data()));
     std::vector<std::vector<int>> voffset;
     voffset.push_back(offset);
     out_data->set_seq_offset(voffset);

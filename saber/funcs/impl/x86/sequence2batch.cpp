@@ -29,13 +29,14 @@ void CopyMatrixRowsFunctor<Dtype, LayOutType>::operator()(
         LOG(ERROR) << "hidden size should be divided with no remainder by fragment_num.";
         exit(-1);
     }
+    typedef typename DataTrait<X86,Dtype>::PtrDtype Data_ptr;
 
     auto height = dst_shape[0];
     auto dst_width = dst_shape[1] / fragment_num;
     auto src_width = src_shape[1] / fragment_num;
     auto real_width = (width != 0) ? width : (dst_width > src_width ? src_width : dst_width);
-    auto* src_data = src->data();
-    auto* dst_data = dst->mutable_data();
+    Data_ptr src_data = static_cast<Data_ptr>(src->data());
+    Data_ptr dst_data = static_cast<Data_ptr>(dst->mutable_data());
 
     if (is_src_index) {
         #pragma omp parallel for collapse(2)

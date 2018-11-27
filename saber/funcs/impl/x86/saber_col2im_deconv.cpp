@@ -171,6 +171,7 @@ SaberStatus SaberCol2ImDeconv<AK_FLOAT>::dispatch(const std::vector<Tensor<X86> 
                       with_relu);
         }
     }
+    return SaberSuccess;
 }
 }
 }

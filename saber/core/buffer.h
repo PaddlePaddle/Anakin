@@ -202,14 +202,14 @@ public:
     /**
      * \brief return const data pointer
      */
-    const TPtr get_data(){
+    const TPtr get_data()const {
         return _data;
     }
 
     /**
      * \brief return mutable data pointer
      */
-    TPtr get_data_mutable(){
+    TPtr get_data_mutable()const{
         return _data;
     }
 

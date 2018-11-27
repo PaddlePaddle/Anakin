@@ -104,7 +104,9 @@ struct AffineChannelParam {
 
     AffineChannelParam(const AffineChannelParam<TargetType>& right) {}
 
-    AffineChannelParam<TargetType>& operator=(const AffineChannelParam<TargetType>& right) {}
+    AffineChannelParam<TargetType>& operator=(const AffineChannelParam<TargetType>& right) {
+        return *this;
+    }
 
     bool operator==(const AffineChannelParam<TargetType>& right) {return true;}
 };
@@ -1053,6 +1055,7 @@ struct ExpandParam{
     }
     ExpandParam& operator=(const ExpandParam& right) {
        expand_times = right.expand_times;
+        return *this;
     }
     bool operator==(const ExpandParam& right) {
         bool flag = true;
@@ -1534,6 +1537,7 @@ struct MatMulParam {
     MatMulParam& operator=(const MatMulParam& right) {
         _is_transpose_X = right._is_transpose_X;
         _is_transpose_Y = right._is_transpose_Y;
+        return *this;
     }
     bool operator==(const MatMulParam& right) {
         bool comp_eq = true;
@@ -2396,7 +2400,9 @@ template <typename TargetType>
 struct TransposeParam {
     TransposeParam() = default;
     TransposeParam(const TransposeParam& right) {}
-    TransposeParam& operator=(const TransposeParam& right) {}
+    TransposeParam& operator=(const TransposeParam& right) {
+        return *this;
+    }
     bool operator==(const TransposeParam& right) {
         return true;
     }
@@ -2534,7 +2540,9 @@ template <typename TargetType>
 struct MeanParam {
     MeanParam() = default;
     MeanParam(const MeanParam& right) {}
-    MeanParam& operator=(const MeanParam& right) {}
+    MeanParam& operator=(const MeanParam& right) {
+        return *this;
+    }
     bool operator==(const MeanParam& right) {
         return true;
     }

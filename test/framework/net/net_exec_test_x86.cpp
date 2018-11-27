@@ -75,7 +75,7 @@ TEST(NetTest, net_execute_base_test) {
 int main(int argc, const char** argv){
     if (argc < 2){
         LOG(ERROR)<<"no input!!!";
-        return;
+        return -1;
     }
     if (argc > 1) {
         g_model_path = std::string(argv[1]);

@@ -118,7 +118,7 @@ void test_pooling() {
                     if (pad_h >= window_h || pad_w >= window_w){
                         continue;
                     }
-                    for (int pooling_type : {Pooling_max, Pooling_average_include_padding, Pooling_average_exclude_padding}) {
+                    for (PoolingType pooling_type : {Pooling_max, Pooling_average_include_padding, Pooling_average_exclude_padding}) {
                         for (int stride_h : {1, 2 }) {
                             for (int stride_w : {1, 2}) {
                                 PoolingParam<TargetType_D> param(window_h, window_w, pad_h, pad_w, stride_h, stride_w,

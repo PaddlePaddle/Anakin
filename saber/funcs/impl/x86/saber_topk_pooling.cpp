@@ -43,6 +43,7 @@ SaberStatus SaberTopKPooling<X86, OpDtype>::get_topk(std::vector<OpDataType>& sr
     for (int k = real_k; k < top_k; k++) {
         dst[k] = (OpDataType) 0.f;
     }
+    return SaberSuccess;
 }
 
 template <DataType OpDtype>
@@ -76,7 +77,7 @@ SaberStatus SaberTopKPooling<X86, OpDtype>::dispatch(
         int feat_map_size = height_stride * width_stride;
         for (int c = 0; c < channel; c++) {
             OpDataType* tmp_out_data = output_data + (i * channel + c) * top_k;
-            OpDataType* tmp_in_data = input_data + (i * channel + c) * feat_map_size;
+            const OpDataType* tmp_in_data = input_data + (i * channel + c) * feat_map_size;
             std::vector<OpDataType> vec;
 
             for (int h = 0; h < height; h++) {
