@@ -27,14 +27,15 @@ message Info {
 	bool is_optimized = 10;	
 };
 
-message EdgeInfo {
-	repeated float scale = 1;
+message TargetInfo {
+	string node_name = 1;
+	repeated float scale = 2;
 };
 
 // string list 
 message List {
-	repeated string val = 1;
-	map<string, EdgeInfo> q = 2;
+	repeated string val = 1;  // Will be deprecated
+	repeated TargetInfo target = 2;
 };
 
 // Anakin Graph define
