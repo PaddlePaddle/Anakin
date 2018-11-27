@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 
 #ifndef ANAKIN_SABER_FUNCS_RESIZE_H
 #define ANAKIN_SABER_FUNCS_RESIZE_H
+#include "saber/funcs/impl/impl_resize.h"
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
@@ -26,38 +27,38 @@
 #include "saber/funcs/impl/impl_resize.h"
 #endif
 
+#ifdef AMD_GPU 
+#include "saber/funcs/impl/impl_resize.h"
+#endif
+
+#ifdef USE_ARM_PLACE
+//todo
+#include "saber/funcs/impl/impl_resize.h"
+#endif
 namespace anakin{
 
 namespace saber{
 
 template <typename TargetType,
-    DataType OpDtype,
-    DataType inDtype = AK_FLOAT,
-    DataType outDtype = AK_FLOAT,
-    typename LayOutType_op = NCHW,
-    typename LayOutType_in = NCHW,
-    typename LayOutType_out = NCHW
-    >
+        DataType OpDtype>
 class Resize : public BaseFunc<
-        Tensor<TargetType, inDtype, LayOutType_in>,
-        Tensor<TargetType, outDtype, LayOutType_out>,
-        Tensor<TargetType, OpDtype, LayOutType_op>,
+        TargetType,
+        OpDtype,
         ImplBase,
         ResizeParam>
 {
 public:
     using BaseFunc<
-        Tensor<TargetType, inDtype, LayOutType_in>,
-        Tensor<TargetType, outDtype, LayOutType_out>,
-        Tensor<TargetType, OpDtype, LayOutType_op>,
+        TargetType,
+        OpDtype,
         ImplBase,
         ResizeParam >::BaseFunc;
     Resize() = default;
 
-    typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
-    typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
-    typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-    typedef ResizeParam<OpTensor> Param_t;
+    typedef Tensor<TargetType> InDataTensor;
+    typedef Tensor<TargetType> OutDataTensor;
+    typedef Tensor<TargetType> OpTensor;
+    typedef ResizeParam<TargetType> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
@@ -96,15 +97,17 @@ public:
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) { 
             case VENDER_IMPL: 
-                return SaberUnImplError; 
+                //return SaberUnImplError; 
+                this->_impl.push_back(new VenderResize<TargetType,
+                        OpDtype>);
+                return SaberSuccess;
             case SABER_IMPL: 
-                this->_impl.push_back(new SaberResize<TargetType, OpDtype, inDtype, outDtype,
-                LayOutType_op, LayOutType_in, LayOutType_out>); 
+                this->_impl.push_back(new SaberResize<TargetType,
+                        OpDtype>);
                 return SaberSuccess;
             default: 
                 return SaberUnImplError; 
         } 
-        return SaberSuccess;
     };
 
 private:
@@ -113,13 +116,6 @@ private:
         //! resize only has saber implementation
         this->_best_impl = this->_impl[0];
     }
-
-    virtual void pick_best_runtime(Input_v input, Output_v output, \
-        Param_t& param, Context<TargetType> &ctx) override {
-        //! resize only has saber implementation
-        this->_best_impl = this->_impl[0];
-    }
-
     virtual void pick_best_specify(ImplEnum implenum) override {
         //! resize only has saber implementation
         this->_best_impl = this->_impl[0];

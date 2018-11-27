@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ namespace anakin {
 namespace parser {
 
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class NodeIO {
 public:
     NodeIO() {}
@@ -44,10 +44,10 @@ public:
     // read NodeProto
     NodeIO& operator>>(const NodeProto& node_proto);
     // read Node 
-    NodeIO& operator>>(const graph::NodePtr<Ttype, Dtype, Ptype> node_p);
+    NodeIO& operator>>(const graph::NodePtr& node_p);
 
     // output to Graph
-    Status operator<<(graph::Graph<Ttype, Dtype, Ptype>& graph);
+    Status operator<<(graph::Graph<Ttype, Ptype>& graph);
 
     // output to GraphProto
     Status operator<<(GraphProto& graph);
@@ -56,7 +56,7 @@ public:
     std::vector<std::string>& get_node_name_in_order() { return _que_node_name_in_order; }
 
 private:
-    std::queue<graph::NodePtr<Ttype, Dtype, Ptype>> _que;
+    std::queue<graph::NodePtr> _que;
     std::vector<std::string> _que_node_name_in_order;
 };
 

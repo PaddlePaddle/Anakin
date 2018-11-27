@@ -37,6 +37,22 @@ $chmod +x ./anakin_docker_build_and_run.sh
 $./anakin_docker_build_and_run.sh  -p NVIDIA-GPU -o Centos -m Run
 ```
 
+### AMD Docker
+#### Build Image
+```bash
+$/usr/bash anakin_docker_build_and_run.sh  -p AMD-GPU -o Centos -m Build
+or
+$chmod +x ./anakin_docker_build_and_run.sh
+$./anakin_docker_build_and_run.sh  -p AMD-GPU -o Centos -m Build
+```
+
+#### Run docker
+```bash
+$/usr/bash anakin_docker_build_and_run.sh  -p AMD-GPU -o Centos -m Run
+or
+$chmod +x ./anakin_docker_build_and_run.sh
+$./anakin_docker_build_and_run.sh  -p AMD-GPU -o Centos -m Run
+```
 ### X86 Docker
 
 > Not support yet

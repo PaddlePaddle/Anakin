@@ -36,32 +36,36 @@ __global__ void ker_scale_fwd(Dtype * out_data,
 
 
 template <>
-SaberStatus SaberScale<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, \
-        NCHW, NCHW, NCHW>::dispatch( \
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        ScaleParam<OpTensor>& param) {
+SaberStatus SaberScale<NV, AK_FLOAT>::dispatch( \
+        const std::vector<Tensor<NV>*>& inputs,
+        std::vector<Tensor<NV>*>& outputs,
+        ScaleParam<NV>& param) {
 
-    cudaStream_t cuda_stream = this->_ctx.get_compute_stream();
+    cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
 
     auto in_data = inputs[0]->data();
     auto out_data = outputs[0]->mutable_data();
     const int count = inputs[0]->valid_size();
+    if (inputs.size() > 1) {
+        _scale_dim = inputs[1]->valid_size();
+        _inner_dim = count / _scale_dim;
+    }
     if (_scale_dim > 1 || inputs.size() > 1) {
         auto scale_data = inputs.size() > 1 ? inputs[1]->data() : _weight.data();
         auto bias_data = param.bias_term ? _bias.data() : NULL;
-        ker_scale_fwd<InDataType>
+        ker_scale_fwd<OpDataType>
                 <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(
-                out_data, in_data, scale_data, bias_data, count, _scale_dim, _inner_dim);
+                (OpDataType*)out_data, (const OpDataType*)in_data, (const OpDataType*)scale_data, \
+                (const OpDataType*)bias_data, count, _scale_dim, _inner_dim);
     } else {
         auto scale = param.scale_w[0];
-        InDataType bias = 0;
+        OpDataType bias = 0;
         if (_bias_term) {
             bias = param.scale_b[0];
         }
-        ker_scale_fwd<InDataType>
+        ker_scale_fwd<OpDataType>
                 <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(
-                out_data, in_data, scale, bias, count);
+                (OpDataType*)out_data, (const OpDataType*)in_data, scale, bias, count);
     }
 
     CUDA_POST_KERNEL_CHECK;

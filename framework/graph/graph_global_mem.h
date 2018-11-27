@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -26,7 +26,52 @@ namespace anakin {
 
 using namespace saber;
 
+/**
+* \brief global resource level 
+*/
+enum Level {
+    Level_0 = 0,
+    Level_1,
+    Level_2,
+    Level_3,
+    Level_4,
+    Level_5 
+};
+
 namespace graph {
+
+/**
+* \brief global resource level stage
+*/
+template<Level L>
+struct LevelStage {
+    std::mutex _mut;
+    bool accessible = true;
+};
+
+/**
+* \brief global resource multi level stage and restraint
+*/
+template<Level ...levels>
+struct GlobalResRestrain : public LevelStage<levels>... {
+    GlobalResRestrain() {} 
+    GlobalResRestrain<levels...>& operator=(const GlobalResRestrain<levels...>& other){ 
+        return *this; 
+    }
+
+    template<Level L>
+    std::mutex& get_mut() {
+        return LevelStage<L>::_mut;
+    }
+    template<Level L>
+    bool& check_access() {
+        return LevelStage<L>::accessible;
+    }
+    template<Level L>
+    void use() {
+        LevelStage<L>::accessible = false;
+    }
+};
 
 /**
 * \brief GraphGlobalMemBase class
@@ -39,11 +84,87 @@ public:
 
     /// create Block memory
     template<DataType Dtype>
-    PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>* new_block(saber::Shape& shape) EXCLUSIVE_LOCKS_REQUIRED(_mut) {
+    PBlock<Ttype>* new_block(saber::Shape& shape) EXCLUSIVE_LOCKS_REQUIRED(_mut) {
         std::unique_lock<std::mutex> lock(this->_mut); 
-        PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>* block_p = new PBlock<typename DataTypeWarpper<Dtype>::type, Ttype>(shape);
+        PBlock<Ttype>* block_p = new PBlock<Ttype>(shape, Dtype);
+        // register new block_p for resource guard
+        _res_guard[block_p->h_tensor().data()] = LevelList();
         _push_mem_pool(block_p, DataTypeWarpper<Dtype>()); 
         return block_p;
+    }
+
+    /// apply arbitrary function to two memory block
+    /// note: that args may contain target PBlock pointer
+    ///       so we need to set mutex for mem management
+    template<Level L, typename functor, typename ...ParamTypes>
+    void apply(functor func, PBlock<Ttype> tensor_1 , PBlock<Ttype> tensor_2, ParamTypes ...args) {
+        std::unique_lock<std::mutex> lock(this->_mut);
+        void* key_1 = tensor_1.h_tensor().data();
+        void* key_2 = tensor_1.h_tensor().data();
+        if(_res_guard[key_1].check_access<L>()) {
+            std::unique_lock<std::mutex> lock(_res_guard[key_1].get_mut<L>());
+            _res_guard[key_1].use<L>();
+            _res_guard[key_2].use<L>();
+            func(tensor_1, tensor_2, std::forward<ParamTypes>(args)...);
+            void* new_key_1 = tensor_1.h_tensor().data();
+            void* new_key_2 = tensor_2.h_tensor().data();
+            if(new_key_1 != key_1) {
+                _res_guard[new_key_1] = _res_guard[key_1];
+                if(_res_guard.erase(key_1) != 1) { // delete old key-vale
+                    LOG(FATAL) << "target key_1(" << key_1 << ") doesn't exist.";
+                }
+            }
+            if(new_key_2 != key_2) {
+                _res_guard[new_key_2] = _res_guard[key_2];
+                if(_res_guard.erase(key_2) != 1) { // delete old key-vale
+                    LOG(FATAL) << "target key_2(" << key_2 << ") doesn't exist.";
+                }
+            }
+        }
+    }
+    /// apply arbitrary function to one memory block
+    /// note: that args may contain target PBlock pointer
+    ///       so we need to set mutex for mem management
+    template<Level L, typename functor, typename ...ParamTypes>
+    void apply(functor func, PBlock<Ttype> tensor , ParamTypes ...args) {
+        std::unique_lock<std::mutex> lock(this->_mut);
+        void* key = tensor.h_tensor().data();
+        if(_res_guard[key].check_access<L>()) {
+            std::unique_lock<std::mutex> lock(_res_guard[key].get_mut<L>());
+            _res_guard[key].use<L>();
+            func(tensor, std::forward<ParamTypes>(args)...);
+            void* new_key = tensor.data();
+            if(new_key != key) {
+                _res_guard[new_key] = _res_guard[key];
+                if(_res_guard.erase(key) != 1) { // delete old key-vale
+                    LOG(FATAL) << "target key(" << key << ") doesn't exist.";
+                }
+            }
+        }
+    }
+
+    /// apply arbitrary function to one memory tensor
+    /// note: that args may contain target PBlock pointer
+    ///       so we need to set mutex for mem management
+    template<Level L, typename functor, typename ...ParamTypes>
+    void apply(functor func, Tensor4d<Ttype>& tensor , ParamTypes ...args) {
+        std::unique_lock<std::mutex> lock(this->_mut);
+        void* key = tensor.data();
+        if(_res_guard[key].check_access<L>()) {
+            std::unique_lock<std::mutex> lock(_res_guard[key].get_mut<L>());
+            _res_guard[key].use<L>();
+            func(tensor, std::forward<ParamTypes>(args)...);
+            void* new_key = tensor.data(); // check if tensor data has changed 
+            if(key != new_key) {
+                _res_guard[new_key] = _res_guard[key];
+                if(_res_guard.erase(key) != 1) { // delete old key-vale
+                    LOG(FATAL) << "target key(" << key << ") doesn't exist.";
+                }
+            }
+        }
+        if(key == nullptr) {
+            func(tensor, std::forward<ParamTypes>(args)...);
+        }
     }
 
     /// get sum size in m-btyes
@@ -85,15 +206,15 @@ public:
 
 private:
     /// push int8_mem operaiton 
-    void _push_mem_pool(PBlock<int8_t, Ttype>* block_p, DataTypeWarpper<AK_INT8>) {
+    void _push_mem_pool(PBlock<Ttype>* block_p, DataTypeWarpper<AK_INT8>) {
         _int8_mem_pool.push_back(block_p);
     }
     /// push fp16_mem operaiton 
-    void _push_mem_pool(PBlock<unsigned short, Ttype>* block_p, DataTypeWarpper<AK_HALF>) {
+    void _push_mem_pool(PBlock<Ttype>* block_p, DataTypeWarpper<AK_HALF>) {
         _fp16_mem_pool.push_back(block_p);
     }
     /// push fp32_mem operaiton 
-    void _push_mem_pool(PBlock<float, Ttype>* block_p, DataTypeWarpper<AK_FLOAT>) {
+    void _push_mem_pool(PBlock<Ttype>* block_p, DataTypeWarpper<AK_FLOAT>) {
         _fp32_mem_pool.push_back(block_p);
     }
 
@@ -111,12 +232,14 @@ private:
     }
 
 private:
+    typedef GlobalResRestrain<Level_0, Level_1, Level_2, Level_3> LevelList;
+    std::unordered_map<void*, LevelList> _res_guard;
     ///< _int8_mem_pool stand for int8 type memory
-    std::vector<PBlock<typename DataTypeWarpper<AK_INT8>::type, Ttype>* > _int8_mem_pool GUARDED_BY(_mut);
+    std::vector<PBlock<Ttype>* > _int8_mem_pool GUARDED_BY(_mut);
     ///< _fp16_mem_pool stand for fp16 type memory
-    std::vector<PBlock<typename DataTypeWarpper<AK_HALF>::type, Ttype>* > _fp16_mem_pool GUARDED_BY(_mut);
+    std::vector<PBlock<Ttype>* > _fp16_mem_pool GUARDED_BY(_mut);
     ///< _fp32_mem_pool stand for fp32 type memory
-    std::vector<PBlock<typename DataTypeWarpper<AK_FLOAT>::type, Ttype>* > _fp32_mem_pool GUARDED_BY(_mut);
+    std::vector<PBlock<Ttype>* > _fp32_mem_pool GUARDED_BY(_mut);
     ///< _mut
     std::mutex _mut;
 };

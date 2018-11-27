@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -29,42 +29,41 @@
 #include "saber/funcs/impl/x86/saber_activation.h"
 #endif
 
-#ifdef USE_BM
-#include "saber/funcs/impl/bm/vender_activation.h"
+#ifdef AMD_GPU 
+#include "saber/funcs/impl/amd/saber_activation.h"
+#endif
+
+#ifdef USE_ARM_PLACE
+#include "saber/funcs/impl/arm/saber_activation.h"
+#endif
+
+#ifdef USE_BM_PLACE 
+//#include "saber/funcs/impl/bm/vender_activation.h"
 #endif
 
 namespace anakin {
 namespace saber {
 
 template<typename TargetType,
-        DataType OpDtype,
-        DataType inDtype = AK_FLOAT,
-        DataType outDtype = AK_FLOAT,
-        typename LayOutType_op = NCHW,
-        typename LayOutType_in = NCHW,
-        typename LayOutType_out = NCHW
->
+        DataType OpDtype>
 class Activation : public BaseFunc<
-        Tensor<TargetType, inDtype, LayOutType_in>,
-        Tensor<TargetType, outDtype, LayOutType_out>,
-        Tensor<TargetType, OpDtype, LayOutType_op>,
+        TargetType,
+        OpDtype,
         ImplBase,
-        ActivationParam
-> {
+        ActivationParam> {
 public:
     using BaseFunc<
-            Tensor<TargetType, inDtype, LayOutType_in>,
-            Tensor<TargetType, outDtype, LayOutType_out>,
-            Tensor<TargetType, OpDtype, LayOutType_op>,
+            TargetType,
+            OpDtype,
             ImplBase,
             ActivationParam>::BaseFunc;
 
     Activation() = default;
 
-    typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
-    typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
-    typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-    typedef ActivationParam<OpTensor> Param_t;
+    typedef Tensor<TargetType> InDataTensor;
+    typedef Tensor<TargetType> OutDataTensor;
+    typedef Tensor<TargetType> OpTensor;
+    typedef ActivationParam<TargetType> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
@@ -73,6 +72,7 @@ public:
                                              Output_v &output, Param_t &param) override {
 
         Shape output_shape = (input[0]->valid_shape());
+        output[0]->set_seq_offset(input[0]->get_seq_offset());
         return output[0]->set_shape(output_shape);
     }
 
@@ -80,15 +80,11 @@ public:
         switch (implenum) {
             case VENDER_IMPL:
                 //this->_impl.push_back(new VenderActivation <TargetType,
-                this->_impl.push_back(new VenderActivation <TargetType,
-                        OpDtype, inDtype, outDtype,
-                        LayOutType_op, LayOutType_in, LayOutType_out>);
+                this->_impl.push_back(new VenderActivation <TargetType, OpDtype>);
                 return SaberSuccess;
 
             case SABER_IMPL:
-                this->_impl.push_back(new SaberActivation <TargetType,
-                        OpDtype, inDtype, outDtype,
-                        LayOutType_op, LayOutType_in, LayOutType_out>);
+                this->_impl.push_back(new SaberActivation <TargetType, OpDtype>);
                 return SaberSuccess;
 
             default:
@@ -99,8 +95,11 @@ public:
 private:
 
     virtual void pick_best_static() override {
-        if (true) // some condition?
+        if (this->_param.active == Active_prelu) {
+            this->_best_impl = this->_impl[1];
+        } else {
             this->_best_impl = this->_impl[0];
+        }
     }
 
     virtual void pick_best_specify(ImplEnum implenum) override {

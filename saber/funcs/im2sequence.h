@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -18,46 +18,40 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+#include "saber/funcs/impl/impl_im2sequence.h"
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_im2sequence.h"
 #endif
 
 #ifdef USE_X86_PLACE
+#include "saber/funcs/impl/x86/saber_im2sequence.h"
+#endif
+#ifdef USE_ARM_PLACE
+//todo
 #include "saber/funcs/impl/impl_im2sequence.h"
 #endif
-
 namespace anakin {
 namespace saber {
 
-template<typename TargetType,
-        DataType OpDtype,
-        DataType inDtype = AK_FLOAT,
-        DataType outDtype = AK_FLOAT,
-        typename LayOutType_op = NCHW,
-        typename LayOutType_in = NCHW,
-        typename LayOutType_out = NCHW
->
+template<typename TargetType, DataType OpDtype>
 class Im2Sequence : public BaseFunc<
-        Tensor<TargetType, inDtype, LayOutType_in>,
-        Tensor<TargetType, outDtype, LayOutType_out>,
-        Tensor<TargetType, OpDtype, LayOutType_op>,
+        TargetType,
+        OpDtype,
         ImplBase,
-        Im2SequenceParam
-> {
+        Im2SequenceParam> {
 public:
     using BaseFunc<
-            Tensor<TargetType, inDtype, LayOutType_in>,
-            Tensor<TargetType, outDtype, LayOutType_out>,
-            Tensor<TargetType, OpDtype, LayOutType_op>,
-            ImplBase,
-            Im2SequenceParam>::BaseFunc;
+        TargetType,
+        OpDtype,
+        ImplBase,
+        Im2SequenceParam>::BaseFunc;
 
     Im2Sequence() = default;
 
-    typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
-    typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
-    typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-    typedef Im2SequenceParam<OpTensor> Param_t;
+    typedef Tensor<TargetType> InDataTensor;
+    typedef Tensor<TargetType> OutDataTensor;
+    typedef Tensor<TargetType> OpTensor;
+    typedef Im2SequenceParam<TargetType> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
@@ -89,20 +83,25 @@ public:
         output_shape[width_idx] = 1;
         output[0]->set_shape(output_shape);
 
-
+        int n=input[0]->num();
+        std::vector<int> offset0(n+1);
+        std::vector<std::vector<int>> offset;
+        offset.push_back(offset0);
+        for(int i=0;i<=n;i++){
+            offset[0].push_back(i*output_height * output_width);
+        }
+        output[0]->set_seq_offset(offset);
         return SaberSuccess;
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
             case VENDER_IMPL:
-                this->_impl.push_back(new VenderIm2Sequence <TargetType, OpDtype, inDtype, outDtype,
-                LayOutType_op, LayOutType_in, LayOutType_out>);
+                this->_impl.push_back(new VenderIm2Sequence <TargetType, OpDtype>);
                 return SaberSuccess;
 
             case SABER_IMPL:
-                this->_impl.push_back(new SaberIm2Sequence <TargetType, OpDtype, inDtype, outDtype,
-                LayOutType_op, LayOutType_in, LayOutType_out>);
+                this->_impl.push_back(new SaberIm2Sequence <TargetType, OpDtype>);
                 return SaberSuccess;
 
             default:
@@ -116,8 +115,6 @@ private:
         if (true) // some condition?
             this->_best_impl = this->_impl[0];
     }
-
-    //virtual void pick_best_runtime(Input_v input, Output_v output, Param_t& param) override {}
 
     virtual void pick_best_specify(ImplEnum implenum) override {
         this->_best_impl = this->_impl[0];

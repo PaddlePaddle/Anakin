@@ -63,19 +63,15 @@ TARGET:
         PrototxtPath: /path/to/your/googlenet.prototxt
         ModelPath: /path/to/your/googlenet.caffemodel
 
-    PADDLE:
-        # path to proto files   
-        ProtoPath:
+    FLUID:
+        # path of fluid inference model   
+        Debug: NULL
+        ProtoPath: 
         PrototxtPath: 
-        ModelPath: 
+        ModelPath:
+        NetType:
     
     LEGO:
-        # path to proto files   
-        ProtoPath:
-        PrototxtPath:
-        ModelPath:
-    
-    PADDLE:
         # path to proto files   
         ProtoPath:
         PrototxtPath:

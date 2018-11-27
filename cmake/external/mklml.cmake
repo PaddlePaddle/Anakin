@@ -14,6 +14,11 @@
 # limitations under the License.
 #===============================================================================
 
+anakin_find_mklml()
+if(MKLML_FOUND) 
+    return() 
+endif()  
+
 # download mklml package is only for iomp so far
 include(ExternalProject)
 
@@ -59,5 +64,12 @@ list(APPEND ANAKIN_SABER_DEPENDENCIES mklml)
 
 list(APPEND ANAKIN_LINKER_LIBS ${MKLML_LIB};${MKLML_IOMP_LIB})
 
+#set(OPENMP_FLAGS "-fopenmp")
+##set(CMAKE_C_CREATE_SHARED_LIBRARY_FORBIDDEN_FLAGS ${OPENMP_FLAGS})
+#set(CMAKE_CXX_CREATE_SHARED_LIBRARY_FORBIDDEN_FLAGS ${OPENMP_FLAGS})
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OPENMP_FLAGS}")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OPENMP_FLAGS}")
+
+
 # iomp5 must be installed
-install(FILES ${MKLML_LIB} ${MKLML_IOMP_LIB} DESTINATION lib)
+#install(FILES ${MKLML_LIB} ${MKLML_IOMP_LIB} DESTINATION lib)

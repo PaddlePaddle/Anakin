@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -20,13 +20,13 @@
 #include "framework/core/data_types.h"
 #include "framework/core/operator/operator.h"
 #include "utils/logger/logger.h"
-//#include "saber/funcs/permute.h"
+#include "saber/funcs/scale.h"
 
 namespace anakin {
 
 namespace ops {
 
-template<typename Ttype, DataType Dtype, Precision Ptype>
+template<typename Ttype, Precision Ptype>
 class BatchNormHelper;
 
 /// pooling op
@@ -34,20 +34,20 @@ class BatchNormHelper;
  * \brief Batch normalization class
  * public inherit Operator
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class BatchNorm : public Operator<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class BatchNorm : public Operator<Ttype, Ptype> {
 public:
     BatchNorm() {}
 
     /// forward impl
     virtual void operator() (OpContext<Ttype> &ctx, 
-                             const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                             std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) {
-        LOG(ERROR) << "Not Impl Yet Operator power<TargetType:"<<"unknown"<<","
-                   <<type_id<typename DataTypeWarpper<Dtype>::type>().type_info()<<">";
+                             const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                             std::vector<Tensor4dPtr<Ttype> >& outs) {
+		LOG(ERROR) << "Not Impl Yet Operator BatchNorm< Ttype("
+                   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
-    friend class BatchNormHelper<Ttype, Dtype, Ptype>;
+    friend class BatchNormHelper<Ttype, Ptype>;
 };
 
 /**
@@ -55,12 +55,12 @@ public:
  * public inherit OperatorHelper
  * including init resource and shape size in BatchNorm processing
  */
-template<typename Ttype, DataType Dtype, Precision Ptype>
-class BatchNormHelper : public OperatorHelper<Ttype, Dtype, Ptype> {
+template<typename Ttype, Precision Ptype>
+class BatchNormHelper : public OperatorHelper<Ttype, Ptype> {
 public:
     BatchNormHelper()=default;
 
-    ~BatchNormHelper();
+    ~BatchNormHelper() {}
 
     Status InitParam() override;
 
@@ -72,8 +72,8 @@ public:
     * \return status
     */
     Status Init(OpContext<Ttype> &ctx,
-                const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins, 
-                std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
+                const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
     /**
     * \brief infer the shape of output and input.
@@ -81,19 +81,14 @@ public:
     * \param outs stand for output tensor vector
     * \return status
     */
-    Status InferShape(const std::vector<Tensor4dPtr<Ttype, Dtype> >& ins,
-                      std::vector<Tensor4dPtr<Ttype, Dtype> >& outs) override;
-
+    Status InferShape(const std::vector<Tensor4dPtr<Ttype> >& ins,
+                      std::vector<Tensor4dPtr<Ttype> >& outs) override;
 public:
-    //PermuteParam<void> _param_permute;
-    //saber::Permute<Ttype, Dtype> _funcs_permute;
+    saber::ScaleParam<Ttype> _param_scale;
+    ///< _funcs_scale stand for scale function
+    saber::Scale<Ttype, PrecisionWrapper<Ptype>::saber_type > _funcs_scale;
 
-private:
-    ///< _dims stand for batchNorm size 
-    PTuple<int> _dims; 
 };
-
-
 
 } /* namespace ops */
 

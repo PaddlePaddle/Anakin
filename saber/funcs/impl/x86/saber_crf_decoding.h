@@ -21,47 +21,37 @@
 namespace anakin{
 namespace saber {
 
-template <DataType OpDtype,
-        DataType inDtype,
-        DataType outDtype,
-        typename LayOutType_op,
-        typename LayOutType_in,
-        typename LayOutType_out>
-class SaberCrfDecoding<X86, OpDtype, inDtype, outDtype,
-        LayOutType_op, LayOutType_in, LayOutType_out> : public ImplBase<
-        Tensor<X86, inDtype, LayOutType_in>,
-        Tensor<X86, outDtype, LayOutType_out>,
-        Tensor<X86, OpDtype, LayOutType_op>,
-        CrfDecodingParam<Tensor<X86, OpDtype, LayOutType_op> > >
+template <DataType OpDtype>
+class SaberCrfDecoding<X86, OpDtype> : public ImplBase<
+        X86, OpDtype,
+        CrfDecodingParam<X86> >
 {
 public:
-    typedef Tensor<X86, inDtype, LayOutType_in> DataTensor_in;
-    typedef Tensor<X86, outDtype, LayOutType_out> DataTensor_out;
-    typedef Tensor<X86, OpDtype, LayOutType_op> OpTensor;
-    typedef typename DataTensor_in::Dtype DataType_in;
-    typedef typename DataTensor_out::Dtype DataType_out;
-    typedef typename OpTensor::Dtype DataType_op;
+    typedef typename DataTrait<X86, OpDtype>::Dtype OpDataType;
 
     SaberCrfDecoding() = default;
 
     ~SaberCrfDecoding() {}
 
-    virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
-                             std::vector<DataTensor_out*>& outputs,
-                             CrfDecodingParam<OpTensor> &param,
+    virtual SaberStatus init(const std::vector<Tensor<X86> *>& inputs,
+                             std::vector<Tensor<X86> *>& outputs,
+                             CrfDecodingParam<X86> &param,
                              Context<X86> &ctx) override;
 
-    virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
-                               std::vector<DataTensor_out*>& outputs,
-                               CrfDecodingParam<OpTensor> &param,
+    virtual SaberStatus create(const std::vector<Tensor<X86> *>& inputs,
+                               std::vector<Tensor<X86> *>& outputs,
+                               CrfDecodingParam<X86> &param,
                                Context<X86> &ctx) override;
 
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
-                                 std::vector<DataTensor_out*>& outputs,
-                                 CrfDecodingParam<OpTensor> &param) override;
+    virtual SaberStatus dispatch(const std::vector<Tensor<X86> *>& inputs,
+                                 std::vector<Tensor<X86> *>& outputs,
+                                 CrfDecodingParam<X86> &param) override;
 private:
-    DataTensor_in _alpha;
-    Tensor<X86, AK_INT32, NCHW> _track;
+    Tensor<X86> _alpha;
+    Tensor<X86> _track;
+    Tensor<X86> _trans;
+    Tensor<X86> _emis;
+    int _aligned_tag_num;
 };
 }
 }

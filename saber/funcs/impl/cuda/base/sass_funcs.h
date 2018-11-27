@@ -336,7 +336,7 @@ void direct_conv_bias_relu_Kdivis4(const DataType* src,
 
 template <typename DataType, typename OpType>
 void direct_conv_bias_relu_Kindiv4(const DataType* src,
-    DataType* dst, 
+    DataType* dst,
     const OpType* weight,
     const DataType* bias,
     int img_num,
@@ -429,25 +429,23 @@ void direct_conv_bias_relu_maxpool2k2s0p_Kindiv4(const DataType* src,
     cudaStream_t cuda_stream);
 
 template<int k>
-void scale_to_new_tensor_k4_s2_p1_decov (Tensor<NV, AK_FLOAT, NCHW> &new_weights_dev,
-                                         const Tensor<NV, AK_FLOAT, NCHW> *weight,
-                                         int in_channel, int out_channel) {
-    Tensor<X86, AK_FLOAT, NCHW> new_weights_h;
-    Tensor<X86, AK_FLOAT, NCHW> temp_weights;
-    new_weights_dev.reshape(weight->valid_shape());
+void scale_to_new_tensor_k4_s2_p1_deconv (Tensor<NV> *weight, int in_channel, int out_channel) {
+    Tensor<X86> new_weights_h;
+    Tensor<X86> temp_weights;
+//    new_weights_dev.reshape(weight->valid_shape());
     new_weights_h.reshape(weight->valid_shape());
     temp_weights.reshape(weight->valid_shape());
 
     temp_weights.copy_from(*weight);
     int offset = in_channel * out_channel * k;
-    float* trans_w = new_weights_h.mutable_data();
+    float* trans_w = (float*)new_weights_h.mutable_data();
     scale_weight_deconv_w4x4<k, true>(trans_w + 0 * offset,
                                       trans_w + 1 * offset,
                                       trans_w + 2 * offset,
                                       trans_w + 3 * offset,
-                                      temp_weights.data(),
+                                      static_cast<float*>(temp_weights.data()),
                                       in_channel, out_channel);
-    new_weights_dev.copy_from(new_weights_h);
+    weight->copy_from(new_weights_h);
 }
 
 void ker_deconv_implicit_gemm_k4_s2_p1_16x64(
@@ -486,6 +484,16 @@ void ker_gemm_32x32x32_NN_vec_bias_relu(const int M, const int N, const int K,
                                         const float alpha, const float* A,
                                         const float beta, const float* B,
                                         float* C, const float* bias, cudaStream_t cuda_stream);
+
+void ker_gemm_32x32x32_NN_bias(const int M, const int N, const int K,
+                               const float alpha, const float* A,
+                               const float beta, const float* B,
+                               float* C, const float* bias, cudaStream_t cuda_stream);
+
+void ker_gemm_32x32x32_NN_vec_bias(const int M, const int N, const int K,
+                                   const float alpha, const float* A,
+                                   const float beta, const float* B,
+                                   float* C, const float* bias, cudaStream_t cuda_stream);
 
 template <int tile>
 void ker_sgemm_nn(const int M, const int N, const int K,
@@ -547,6 +555,58 @@ std::function<void(const int, const int, const int,
                    const float*, float*, cudaStream_t)>
 saber_find_fast_sass_gemm(const bool TransA, const bool TransB,
                           const int M, const int N, const int K);
+
+
+template <bool with_relu>
+void conv_gemm_k1s1p0(int num, int in_stride, int out_stride,
+                      float* out, const float* img,
+                      const float* weights, int out_channel,
+                      int in_channel, int img_h, int img_w,
+                      const float* bias, cudaStream_t cuda_stream,
+                      float a = 1.f, float b = 0.f) {
+
+    float alpha = a; float beta = b;
+    int m = out_channel;
+    int k = in_channel;
+    int n = img_h * img_w;
+    if (ifVec(m, n, k, k, n, n)) {
+        if (with_relu) {
+            for (int i = 0; i < num; ++i) {
+                ker_gemm_32x32x32_NN_vec_bias_relu(m, n, k,
+                                                   alpha, weights,
+                                                   beta, img + i * in_stride,
+                                                   out + i * out_stride, bias,
+                                                   cuda_stream);
+            }
+        } else {
+            for (int i = 0; i < num; ++i) {
+                ker_gemm_32x32x32_NN_vec_bias(m, n, k,
+                                              alpha, weights,
+                                              beta, img + i * in_stride,
+                                              out + i * out_stride, bias,
+                                              cuda_stream);
+            }
+        }
+    } else {
+        if (with_relu) {
+            for (int i = 0; i < num; ++i) {
+                ker_gemm_32x32x32_NN_bias_relu(m, n, k,
+                                               alpha, weights,
+                                               beta, img + i * in_stride,
+                                               out + i * out_stride, bias,
+                                               cuda_stream);
+            }
+        } else {
+            for (int i = 0; i < num; ++i) {
+                ker_gemm_32x32x32_NN_bias(m, n, k,
+                                          alpha, weights,
+                                          beta, img + i * in_stride,
+                                          out + i * out_stride, bias,
+                                          cuda_stream);
+            }
+        }
+    }
+}
 
 } // namespace saber
 } // namespace anakin

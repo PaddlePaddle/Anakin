@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+#include "saber/funcs/impl/impl_softmax.h"
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_softmax.h"
 #include "saber/funcs/impl/cuda/vender_softmax.h"
@@ -26,50 +27,31 @@
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_softmax.h"
 #endif
-
-#ifdef USE_BM
-#include "saber/funcs/impl/bm/vender_softmax.h"
+#ifdef USE_ARM_PLACE
+#include "saber/funcs/impl/arm/saber_softmax.h"
 #endif
-
 namespace anakin{
 
 namespace saber{
 
-template <typename TargetType,
-        DataType OpDtype,
-        DataType inDtype = AK_FLOAT,
-        DataType outDtype = AK_FLOAT,
-        typename LayOutType_op = NCHW,
-        typename LayOutType_in = NCHW,
-        typename LayOutType_out = NCHW
->
-class Softmax : public BaseFunc<
-        Tensor<TargetType, inDtype, LayOutType_in>,
-        Tensor<TargetType, outDtype, LayOutType_out>,
-        Tensor<TargetType, OpDtype, LayOutType_op>,
-        ImplBase,
-        SoftmaxParam>
+template <typename TargetType, DataType OpDtype>
+class Softmax : public BaseFunc<TargetType, OpDtype, ImplBase, SoftmaxParam>
 {
 public:
-    using BaseFunc<
-        Tensor<TargetType, inDtype, LayOutType_in>,
-        Tensor<TargetType, outDtype, LayOutType_out>,
-        Tensor<TargetType, OpDtype, LayOutType_op>,
-        ImplBase,
-        SoftmaxParam >::BaseFunc;
+    using BaseFunc<TargetType, OpDtype, ImplBase, SoftmaxParam>::BaseFunc;
     Softmax() = default;
 
-    typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
-    typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
-    typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-    typedef SoftmaxParam<OpTensor> Param_t;
+    typedef Tensor<TargetType> InDataTensor;
+    typedef Tensor<TargetType> OutDataTensor;
+    typedef Tensor<TargetType> OpTensor;
+    typedef SoftmaxParam<TargetType> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
 
     virtual SaberStatus compute_output_shape(const Input_v& input,\
      Output_v &output, Param_t& param) override {
-
+        output[0]->set_seq_offset(input[0]->get_seq_offset());
         //! "input" only has one input tensor
         return output[0]->set_shape(input[0]->valid_shape());
     }
@@ -77,12 +59,10 @@ public:
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) { 
             case VENDER_IMPL: 
-                this->_impl.push_back(new VenderSoftmax <TargetType, OpDtype, inDtype, outDtype, 
-                    LayOutType_op, LayOutType_in, LayOutType_out>); 
+                this->_impl.push_back(new VenderSoftmax <TargetType, OpDtype>); 
                 return SaberSuccess; 
             case SABER_IMPL: 
-                this->_impl.push_back(new SaberSoftmax <TargetType, OpDtype, inDtype, outDtype, 
-                    LayOutType_op, LayOutType_in, LayOutType_out>); 
+                this->_impl.push_back(new SaberSoftmax <TargetType, OpDtype>); 
                 return SaberSuccess; 
             default: 
                 return SaberUnImplError;

@@ -26,28 +26,35 @@ __global__ void ker_embedding_fwd(OutDataType * out_data,
     }
 }
 
-template <>
-SaberStatus SaberEmbedding<NV, AK_FLOAT, AK_FLOAT, AK_FLOAT, \
-        NCHW, NCHW, NCHW>::dispatch( \
-        const std::vector<DataTensor_in*>& inputs,
-        std::vector<DataTensor_out*>& outputs,
-        EmbeddingParam<OpTensor>& param) {
+template <DataType OpDtype>
+SaberStatus SaberEmbedding<NV, OpDtype>::dispatch( \
+    const std::vector<Tensor<NV>*>& inputs,
+    std::vector<Tensor<NV>*>& outputs,
+	EmbeddingParam<NV>& param) {
 
-    const InDataType *in_data = (const InDataType*)inputs[0]->data();
-    const OpDataType *op_data = (const InDataType*)(param.weight()->data());
-    OutDataType *out_data = (OutDataType*)outputs[0]->mutable_data();
+    CHECK_EQ(inputs[0]->get_dtype(), AK_FLOAT) <<" Embedding only support float inputs.";
+    const OpDataType *op_data = (const OpDataType*)(param.weight()->data());
 
     const int count = outputs[0]->valid_size();
-    cudaStream_t cuda_stream = this->_ctx.get_compute_stream();
-
-    ker_embedding_fwd<InDataType, OpDataType, OutDataType>
-            <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(
-            out_data, in_data, op_data, param.word_num, param.emb_dim, inputs[0]->num(),
-            param.padding_idx, outputs[0]->valid_size());
+    cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
+    
+    //outputs: chose corresponding informations of words.
+    //inputs: word_id [Its type maybe float or int]
+    //outputs = weights[inputs[j]].
+    ker_embedding_fwd<float, OpDataType, OpDataType>
+    <<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(
+                (OpDataType*)outputs[0]->mutable_data(), 
+                (const float*)inputs[0]->data(), op_data, 
+                param.word_num, param.emb_dim, inputs[0]->num(),
+                param.padding_idx, outputs[0]->valid_size());
+    
     outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
     CUDA_POST_KERNEL_CHECK;
     return SaberSuccess;
 }
 
+template class SaberEmbedding<NV, AK_FLOAT>;
+template class SaberEmbedding<NV, AK_INT8>;
+DEFINE_OP_TEMPLATE(SaberEmbedding, EmbeddingParam, NV, AK_HALF);
 }
 }

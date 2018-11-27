@@ -43,4 +43,4 @@ ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 ENV CUDNN_ROOT=/usr/local/cuda/include
 
 # build and install anakin
-RUN git clone --branch developing --recursive https://github.com/PaddlePaddle/Anakin.git 
+#RUN git clone --branch developing --recursive https://github.com/PaddlePaddle/Anakin.git 

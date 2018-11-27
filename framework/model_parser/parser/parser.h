@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -28,16 +28,16 @@ namespace anakin {
 namespace parser {
 
 //! parse data of external model_path file into graph.
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, std::string& model_path);
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status load(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path);
+template<typename Ttype, Precision Ptype>
+Status load(graph::Graph<Ttype, Ptype>* graph, std::string& model_path);
+template<typename Ttype, Precision Ptype>
+Status load(graph::Graph<Ttype, Ptype>* graph, const char* model_path);
 
 //! save graph to disk. use to save improved Graph.
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status save(graph::Graph<Ttype, Dtype, Ptype>* graph, std::string& model_path);
-template<typename Ttype, DataType Dtype, Precision Ptype>
-Status save(graph::Graph<Ttype, Dtype, Ptype>* graph, const char* model_path);
+template<typename Ttype, Precision Ptype>
+Status save(graph::Graph<Ttype, Ptype>* graph, std::string& model_path);
+template<typename Ttype, Precision Ptype>
+Status save(graph::Graph<Ttype, Ptype>* graph, const char* model_path);
 
 } /* parser */
 

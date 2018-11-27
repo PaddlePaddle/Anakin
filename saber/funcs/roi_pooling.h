@@ -1,4 +1,4 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -18,47 +18,36 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
-#ifdef NVIDIA_GPU
-#include "saber/funcs/impl/cuda/saber_roi_pool.h"
-#endif
-
-#ifdef USE_X86_PLACE
 #include "saber/funcs/impl/impl_roi_pooling.h"
+#ifdef NVIDIA_GPU
+//#include "saber/funcs/impl/cuda/saber_roi_pool.h"
 #endif
 
 namespace anakin {
 namespace saber {
 
 template <typename TargetType,
-    DataType OpDtype,
-    DataType inDtype = AK_FLOAT,
-    DataType outDtype = AK_FLOAT,
-    typename LayOutType_op = NCHW,
-    typename LayOutType_in = NCHW,
-    typename LayOutType_out = NCHW
+        DataType OpDtype
 >
 class RoiPool : public BaseFunc<
-    Tensor<TargetType, inDtype, LayOutType_in>,
-    Tensor<TargetType, outDtype, LayOutType_out>,
-    Tensor<TargetType, OpDtype, LayOutType_op>,
-    ImplBase,
-    RoiPoolParam
-    >
+        TargetType,
+        OpDtype,
+        ImplBase,
+        RoiPoolParam>
 {
 public:
     using BaseFunc<
-        Tensor<TargetType, inDtype, LayOutType_in>,
-        Tensor<TargetType, outDtype, LayOutType_out>,
-        Tensor<TargetType, OpDtype, LayOutType_op>,
-        ImplBase,
-        RoiPoolParam >::BaseFunc;   
+            TargetType,
+            OpDtype,
+            ImplBase,
+            RoiPoolParam >::BaseFunc;
 
     RoiPool() = default;
 
-    typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
-    typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
-    typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-    typedef RoiPoolParam<OpTensor> Param_t;
+    typedef Tensor<TargetType> InDataTensor;
+    typedef Tensor<TargetType> OutDataTensor;
+    typedef Tensor<TargetType> OpTensor;
+    typedef RoiPoolParam<TargetType> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
@@ -84,12 +73,12 @@ public:
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) { 
             case VENDER_IMPL: 
-                this->_impl.push_back(new VenderRoiPool <TargetType, OpDtype, inDtype, outDtype, 
-                    LayOutType_op, LayOutType_in, LayOutType_out>); 
+                this->_impl.push_back(new VenderRoiPool <TargetType,
+                        OpDtype>);
                 return SaberSuccess; 
             case SABER_IMPL: 
-                this->_impl.push_back(new SaberRoiPool <TargetType, OpDtype, inDtype, outDtype, 
-                    LayOutType_op, LayOutType_in, LayOutType_out>); 
+                this->_impl.push_back(new SaberRoiPool <TargetType,
+                        OpDtype>);
                 return SaberSuccess; 
             default: 
                 return SaberUnImplError;
@@ -102,9 +91,6 @@ private:
         if (true) // some condition?
             this->_best_impl = this->_impl[0];
     }
-
-    //virtual void pick_best_runtime(Input_v input, Output_v output, Param_t& param) override {}
-
     virtual void pick_best_specify(ImplEnum implenum) override {
         this->_best_impl = this->_impl[0];
     }

@@ -1,9 +1,16 @@
-# ----------------------------------------------------------------------------
-# Copyright (c) 2016 Baidu.com, Inc. All Rights Reserved
-# @file     utils.cmake
-# @auther   cuichaowen
-# @date     2016-11-8
-# ----------------------------------------------------------------------------
+# Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 # ----------------------------------------------------------------------------
 # section: help to search src and include files
@@ -24,9 +31,9 @@ function(anakin_fetch_files_with_suffix search_dir suffix outputs)
 		endforeach()
 		set(${outputs} ${${outputs}} ${abs_dir} PARENT_SCOPE)
 	else()
-        #message(WARNING "anakin_fetch_files_recursively ${BoldRed}failed${ColourReset}:\n"
-        #                "real_dir:${BoldYellow}${search_dir}${ColourReset}\n"
-        #                "suffix:*.${BoldYellow}${suffix}${ColourReset} \n")
+		#message(WARNING "anakin_fetch_files_recursively ${BoldRed}failed${ColourReset}:\n"
+		#                "real_dir:${BoldYellow}${search_dir}${ColourReset}\n"
+		#                "suffix:*.${BoldYellow}${suffix}${ColourReset} \n")
 	endif()
 endfunction()
 
@@ -39,7 +46,7 @@ endfunction()
 # recursively fetch include dir 
 function(anakin_fetch_include_recursively root_dir)
     if (IS_DIRECTORY ${root_dir})
-        #message(STATUS "include dir: " ${Magenta}${root_dir}${ColourReset})
+		#message(STATUS "include dir: " ${Magenta}${root_dir}${ColourReset})
 		include_directories(${root_dir})
     endif()
 
@@ -51,6 +58,14 @@ function(anakin_fetch_include_recursively root_dir)
     endforeach()
 endfunction()
 
+# judge fetch files
+function(anakin_judge_avx   outputs)
+	exec_program(cat /proc/cpuinfo|greps flag|uniq
+			OUTPUT_VARIABLE OUTPUT
+			RETURN_VALUE VALUE)
+	message("it is anakin_judge_avx " OUTPUT)
+	set(${outputs} ${${outputs}} PARENT_SCOPE)
+endfunction()
 # ----------------------------------------------------------------------------
 # section: help to detect the compiler options
 # ----------------------------------------------------------------------------
@@ -129,19 +144,19 @@ macro(anakin_check_compiler_flag LANG FLAG RESULT)
 endmacro()
 
 macro(anakin_check_flag_support lang flag varname)
-	if("_${lang}_" MATCHES "_CXX_")
-		set(_lang CXX)
+    if("_${lang}_" MATCHES "_CXX_")
+        set(_lang CXX)
     elseif("_${lang}_" MATCHES "_CU_")
         set(_lang NVCC)
-	else()
-		set(_lang ${lang})
-	endif()
+    else()
+        set(_lang ${lang})
+    endif()
 	
-	string(TOUPPER "${flag}" ${varname})
-	string(REGEX REPLACE "^(/|-)" "HAVE_${_lang}_" ${varname} "${${varname}}")
- 	string(REGEX REPLACE " --|-|=| |\\." "_" ${varname} "${${varname}}")
+    string(TOUPPER "${flag}" ${varname})
+    string(REGEX REPLACE "^(/|-)" "HAVE_${_lang}_" ${varname} "${${varname}}")
+    string(REGEX REPLACE " --|-|=| |\\." "_" ${varname} "${${varname}}")
 
-	anakin_check_compiler_flag("${_lang}" "${ARGN} ${flag}" ${${varname}})
+    anakin_check_compiler_flag("${_lang}" "${ARGN} ${flag}" ${${varname}})
 endmacro()
 
 macro(anakin_add_compile_option option)
@@ -224,31 +239,26 @@ endfunction()
 # ----------------------------------------------------------------------------
 # section: generate the protobuf .h and .cpp files.
 # ----------------------------------------------------------------------------
-function(anakin_protos_processing)
-	set(PROTO_SRC_PATH ${ANAKIN_MODEL_PARSER}/proto)
-	set(__working_dir ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/PROTO_TEMP/)
-	
-	anakin_fetch_files_with_suffix(${PROTO_SRC_PATH} "proto" PROTO_SRC_FILES)
-	foreach(__file ${PROTO_SRC_FILES})	
-		exec_program(protoc  ${__working_dir} ARGS " -I=${PROTO_SRC_PATH} --cpp_out=. ${__file}"
-							OUTPUT_VARIABLE OUTPUT
-							RETURN_VALUE VALUE)
-		if(NOT VALUE)
-			anakin_fetch_files_with_suffix(${__working_dir} "h" PROTO_GENERATE_H)
-			# get *.cpp or *.cc
-			anakin_fetch_files_with_suffix(${__working_dir} "c*" PROTO_GENERATE_C)
-			foreach(__include_file ${PROTO_GENERATE_H})
-				exec_program(mv ARGS ${__include_file} ${PROTO_SRC_PATH}
-								OUTPUT_VARIABLE __out
-								RETURN_VALUE __value)
-			endforeach()
-			foreach(__src_file ${PROTO_GENERATE_C})
-				if(POLICY CMP0007)
-					cmake_policy(PUSH)
-  					cmake_policy(SET CMP0007 NEW)
-				endif()
-				string(REPLACE "." ";" SRC_LIST ${__src_file})				
-				list(GET SRC_LIST -1 __src_file_name_suffix)
+function(anakin_gen_pb proto_src_path)
+    set(__working_dir ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/PROTO_TEMP/)
+    foreach(__proto_file ${ARGN}) 
+        exec_program(${PROTOBUF_PROTOC_EXECUTABLE} ${__working_dir} ARGS " -I=${proto_src_path} --cpp_out=. ${__proto_file}" 
+                                              OUTPUT_VARIABLE OUTPUT RETURN_VALUE VALUE)
+        if(NOT VALUE)
+            anakin_fetch_files_with_suffix(${__working_dir} "h" PROTO_GENERATE_H)
+            # get *.cpp or *.cc
+            anakin_fetch_files_with_suffix(${__working_dir} "c*" PROTO_GENERATE_C)
+            foreach(__include_file ${PROTO_GENERATE_H})
+                exec_program(mv ARGS ${__include_file} ${proto_src_path} 
+                                OUTPUT_VARIABLE __out RETURN_VALUE __value)
+            endforeach()
+            foreach(__src_file ${PROTO_GENERATE_C})
+                if(POLICY CMP0007) 
+                    cmake_policy(PUSH) 
+                    cmake_policy(SET CMP0007 NEW) 
+                endif()
+                string(REPLACE "." ";" SRC_LIST ${__src_file})
+                list(GET SRC_LIST -1 __src_file_name_suffix)
 				list(GET SRC_LIST -3 __src_file_name)
 
 				string(REPLACE "/" ";" SRC_LIST_PATH ${__src_file_name})
@@ -259,18 +269,31 @@ function(anakin_protos_processing)
 				else()
 					set(__full_src_filename "${__pure_src_file_name}.pb.cc")
 				endif()
-				#message(STATUS " first ---> ${__working_dir}${__full_src_filename} ${ANAKIN_ROOT}/src/${__pure_src_file_name}.pb.cpp")
-				exec_program(mv ARGS " ${__working_dir}${__full_src_filename}  ${PROTO_SRC_PATH}/${__pure_src_file_name}.pb.cpp" 
+				exec_program(mv ARGS " ${__working_dir}${__full_src_filename}  ${proto_src_path}/${__pure_src_file_name}.pb.cpp" 
 								OUTPUT_VARIABLE __out
 								RETURN_VALUE __value)
 				if(POLICY CMP0007)
   					cmake_policy(POP)
 				endif()
-			endforeach()
-		else()
-			message(FATAL_ERROR "anakin_protos_processing : ${__file} \n error msg: ${OUTPUT}")
-		endif()
-	endforeach()
+            endforeach()
+        else()
+            message(FATAL_ERROR "anakin_gen_bp: ${__file} \n error msg: ${OUTPUT}")
+        endif()
+    endforeach()
+endfunction()
+
+function(anakin_protos_processing)
+	set(PROTO_SRC_PATH ${ANAKIN_MODEL_PARSER}/proto)
+    set(SERVICE_API_SRC_PATH ${ANAKIN_SERVICE}/api)
+
+	set(__working_dir ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/PROTO_TEMP/)
+	
+	anakin_fetch_files_with_suffix(${PROTO_SRC_PATH} "proto" PROTO_SRC_FILES)
+    anakin_fetch_files_with_suffix(${SERVICE_API_SRC_PATH} "proto" SERVICE_API_PROTO_SRC_FILES)
+    anakin_gen_pb(${PROTO_SRC_PATH} ${PROTO_SRC_FILES})
+    if(BUILD_RPC)
+        anakin_gen_pb(${SERVICE_API_SRC_PATH} ${SERVICE_API_PROTO_SRC_FILES})
+    endif()
 endfunction()
 
 # ----------------------------------------------------------------------------

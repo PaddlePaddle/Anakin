@@ -1,9 +1,7 @@
-/* Copyright (c) 2018 Baidu, Inc. All Rights Reserved.
-
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
-
        http://www.apache.org/licenses/LICENSE-2.0
    
    Unless required by applicable law or agreed to in writing, software
@@ -18,48 +16,42 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+#include "saber/funcs/impl/impl_fc.h"
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_fc.h"
-#include "saber/funcs/impl/cuda/vender_fc.h"
 #endif
 
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/vender_fc.h"
 #endif
-   
+
+#ifdef USE_ARM_PLACE
+#include "saber/funcs/impl/arm/saber_fc.h"
+#endif
+
 namespace anakin{
 
 namespace saber{
 
-template<typename TargetType,
-        DataType OpDtype,
-        DataType inDtype = AK_FLOAT,
-        DataType outDtype = AK_FLOAT,
-        typename LayOutType_op = NCHW,
-        typename LayOutType_in = NCHW,
-        typename LayOutType_out = NCHW
->
+template<typename TargetType, DataType OpDtype>
 class Fc : public BaseFunc<
-        Tensor<TargetType, inDtype, LayOutType_in>,
-        Tensor<TargetType, outDtype, LayOutType_out>,
-        Tensor<TargetType, OpDtype, LayOutType_op>,
+        TargetType, 
+        OpDtype, 
         ImplBase,
-        FcParam
-> {
+        FcParam> {
 public:
     using BaseFunc<
-            Tensor<TargetType, inDtype, LayOutType_in>,
-            Tensor<TargetType, outDtype, LayOutType_out>,
-            Tensor<TargetType, OpDtype, LayOutType_op>,
-            ImplBase,
-            FcParam>::BaseFunc;
+        TargetType, 
+        OpDtype, 
+        ImplBase, 
+        FcParam>::BaseFunc;
 
     Fc() = default;
 
-    typedef Tensor<TargetType, inDtype, LayOutType_in> InDataTensor;
-    typedef Tensor<TargetType, outDtype, LayOutType_out> OutDataTensor;
-    typedef Tensor<TargetType, OpDtype, LayOutType_op> OpTensor;
-    typedef FcParam<OpTensor> Param_t;
+    typedef Tensor<TargetType> InDataTensor;
+    typedef Tensor<TargetType> OutDataTensor;
+    typedef Tensor<TargetType> OpTensor;
+    typedef FcParam<TargetType> Param_t;
     typedef std::vector<InDataTensor *> Input_v;
     typedef std::vector<OutDataTensor *> Output_v;
     typedef std::vector<Shape> Shape_v;
@@ -77,32 +69,21 @@ public:
         }
         CHECK_EQ(weights_size / n, k) << "weights size does not meet the input size";
 
-        int num_idx = output[0]->num_index();
-        int channel_idx = output[0]->channel_index();
-        int height_idx = output[0]->height_index();
-        int widht_idx = output[0]->width_index();
-        if (num_idx >= 0) {
-            shape_out[num_idx] = m;
-        }
-        if (height_idx >= 0) {
-            shape_out[height_idx] = 1;
-        }
-        if (widht_idx >= 0) {
-            shape_out[widht_idx] = 1;
-        }
-        shape_out[channel_idx] = n;
+        shape_out.set_num(m);
+        shape_out.set_height(1);
+        shape_out.set_width(1);
+        shape_out.set_channel(n);
+        output[0]->set_seq_offset(input[0]->get_seq_offset());
         return output[0]->set_shape(shape_out);
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {
         switch (implenum) {
             case VENDER_IMPL:
-                this->_impl.push_back(new VenderFc <TargetType, OpDtype, inDtype, outDtype,
-                LayOutType_op, LayOutType_in, LayOutType_out>);
+                this->_impl.push_back(new VenderFc<TargetType, OpDtype>);
                 return SaberSuccess;
             case SABER_IMPL:
-                this->_impl.push_back(new SaberFc <TargetType, OpDtype, inDtype, outDtype,
-                LayOutType_op, LayOutType_in, LayOutType_out>);
+                this->_impl.push_back(new SaberFc<TargetType, OpDtype>);
                 return SaberSuccess;
 
             default:
