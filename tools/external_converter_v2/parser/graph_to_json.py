@@ -38,7 +38,7 @@ class GraphToJson(object):
         edges_out = self.graph_proto.edges_out
         nexts = list()
         if node_name in edges_out:
-            if with_info is True:
+            if with_info is False:
                 for target in edges_out[node_name].target:
                     nexts.append(target.node)
             else:

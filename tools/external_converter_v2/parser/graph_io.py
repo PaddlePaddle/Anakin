@@ -166,25 +166,6 @@ class OpsProtoIO(object):
     def __call__(self):
         return self.op_proto
 
-class TargetProtoIO(object):
-    """
-    """
-
-    def __init__(self):
-        """
-        """
-        self.target_proto = TargetProtoIO()
-
-    def set_node(self, node):
-        self.target_proto.node = node
-
-    def set_scale(self, scale):
-        self.target_proto.scale = scale
-
-    def __call__(self):
-        return self.target_proto
-
-
 class NodeProtoIO(object):
     """
     Node io class of NodeProto
@@ -288,7 +269,7 @@ class GraphProtoIO(object):
         edges_out = self.graph_proto.edges_out
         nexts = list()
         if node_name in edges_out:
-            if with_info is True:
+            if with_info is False:
                 for target in edges_out[node_name].target:
                     nexts.append(target.node)
             else:
@@ -324,13 +305,13 @@ class GraphProtoIO(object):
         """
         edges_in = self.graph_proto.edges_in
         nexts = list()
-        for target in edges_in[node_name].target:
+        for target in edges_in[node_name_1].target:
             nexts.append(target.node)
         if node_name_0 not in nexts:
-            targetIO = TargetProtoIO()
-            targetIO.set_node(node_name_0)
-            targetIO.scale(scale)
-            edges_out[node_name_1].target.append(targetIO)
+            target = edges_in[node_name_1].target.add()
+            if scale is not None:
+                target.scale.append(scale)
+            target.node = node_name_0
 
     def add_out_edge(self, node_name_0, node_name_1, scale=None):
         """
@@ -338,13 +319,13 @@ class GraphProtoIO(object):
         """
         edges_out = self.graph_proto.edges_out
         nexts = list()
-        for target in edges_out[node_name].target:
+        for target in edges_out[node_name_0].target:
             nexts.append(target.node)
         if node_name_1 not in nexts:
-            targetIO = TargetProtoIO()
-            targetIO.set_node(node_name_1)
-            targetIO.scale(scale)
-            edges_out[node_name_0].target.append(targetIO)
+            target = edges_out[node_name_0].target.add()
+            if scale is not None:
+                target.scale.append(scale)
+            target.node = node_name_1
 
     def add_in(self, node_name):
         self.graph_proto.ins.append(node_name)
