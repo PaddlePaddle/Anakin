@@ -12,7 +12,7 @@ message TensorShape {
 // anakin data type.
 // maybe need to be improved
 enum DateTypeProto {
-        STR = 0;
+        STR = 0;  // When used as bit type, enum 0 means invalid.
 		INT8 = 2;
         INT32 = 4;
 		FLOAT16 = 8;

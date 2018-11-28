@@ -203,8 +203,11 @@ class GraphToJson(object):
                 value = 'FLOAT32'
             elif node_proto.bit_type == INT8:
                 value = 'INT8'
-            else:
+            elif node_proto.bit_type == STR:
                 value = 'UNKNOWN'
+            else:
+                raise NameError('ERROR: Unknown data type (%d) in message valueType' \
+                 % (node_proto.bit_type))
             target_attr = CreateJson(id=name, 
                                                              type=type_str,
                                                              value=str(value))

@@ -190,6 +190,9 @@ class NodeProtoIO(object):
         self.node_proto.Op.CopyFrom(operator)
 
     def set_bit_type(self, bit_type):
+        """
+        Bit width setting.
+        """
         self.node_proto.bit_type = bit_type
 
     def add_attr(self, value_name, data, data_type_str):
