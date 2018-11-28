@@ -92,6 +92,8 @@ def fetch_tmp_vars(block, fetch_targets, var_names_list=None):
     return new_fetch_vars
 
 def numpy_var(scope, var_name):
+    """
+    """
     if hasattr(fluid.executor, '_fetch_var'):
         numpy_array = fluid.executor._fetch_var(var_name, scope, True)
     elif hasattr(fluid.executor, 'fetch_var'):
@@ -101,6 +103,8 @@ def numpy_var(scope, var_name):
     return numpy_array
 
 def var_dtype(block, var_name):
+    """
+    """
     var = block.var(var_name)
     return var.dtype
 
