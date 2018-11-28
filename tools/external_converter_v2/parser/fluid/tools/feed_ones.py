@@ -91,6 +91,15 @@ def fetch_tmp_vars(block, fetch_targets, var_names_list=None):
             i = i + 1
     return new_fetch_vars
 
+def numpy_var(scope, var_name):
+    if hasattr(fluid.executor, '_fetch_var'):
+        numpy_array = fluid.executor._fetch_var(var_name, scope, True)
+    elif hasattr(fluid.executor, 'fetch_var'):
+        numpy_array = fluid.executor.fetch_var(var_name, scope, True)
+    else:
+        raise NameError('ERROR: Unknown Fluid version.')
+    return numpy_array
+
 def print_ops_type(block):
     """
     """
