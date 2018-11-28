@@ -125,6 +125,9 @@ class TensorProtoIO(object):
         elif data_type == "int32":
             self.tensor_proto.data.i[:] = data_list
             self.tensor_proto.data.type = INT32
+        elif data_type == "int8":
+            self.tensor_proto.data.s[:] = data_list
+            self.tensor_proto.data.type = INT8
         elif data_type == "float":
             self.tensor_proto.data.f[:] = data_list
             self.tensor_proto.data.type = FLOAT

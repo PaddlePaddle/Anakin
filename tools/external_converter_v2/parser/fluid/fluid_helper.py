@@ -362,12 +362,14 @@ class Fluid_helper:
         '''
         '''
         tensor = TensorProtoIO()
-        [flat_data, shape] = self.data_with_shape_by_param(op, param_name, transpose, \
-            axes, var_idx, True, layout)
+        [np_data, shape] = self.data_with_shape_by_param(op, param_name, transpose, \
+            axes, var_idx, False, layout)
         dtype = self.dtype_by_param(op, param_name, var_idx)
         tensor.set_data_type(dtype)
-        if dtype in ANAKIN_TENSOR_DTYPESTR.keys():
-            tensor.set_data(flat_data, ANAKIN_TENSOR_DTYPESTR[dtype])
+        if dtype is INT8:
+            tensor.set_data(np_data.flatten().tobytes(), ANAKIN_TENSOR_DTYPESTR[dtype])
+        elif dtype in ANAKIN_TENSOR_DTYPESTR.keys():
+            tensor.set_data(np_data.flatten().tolist(), ANAKIN_TENSOR_DTYPESTR[dtype])
             #pass #debug
         else:
             raise NameError('ERROR: Unknown data type (%s)' % (dtype))
