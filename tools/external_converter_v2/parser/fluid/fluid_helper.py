@@ -572,7 +572,7 @@ ANAKIN_TENSOR_DTYPESTR = {
     INT8: "int8",
     INT32: "int32",
     FLOAT: "float",
-    BOOLEN: "bool",
+    BOOLEN: "bool"
 }
 
 ANAKIN_ATTR_DTYPE = {
