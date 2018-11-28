@@ -100,6 +100,10 @@ def numpy_var(scope, var_name):
         raise NameError('ERROR: Unknown Fluid version.')
     return numpy_array
 
+def var_dtype(block, var_name):
+    var = block.var(var_name)
+    return var.dtype
+
 def print_ops_type(block):
     """
     """
