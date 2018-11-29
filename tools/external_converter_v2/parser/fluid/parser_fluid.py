@@ -224,7 +224,7 @@ class FluidParser:
         for node in self.ins.keys():
             targets_list = self.ins[node]()
             targets_scale = self.ins[node].all_scales()
-            for idx, target in enumerate(targets_list)
+            for idx, target in enumerate(targets_list):
                 scale = targets_scale[idx]
                 if reverse is False:
                     self.graphIO.add_in_edge(target, node, scale)
@@ -233,7 +233,7 @@ class FluidParser:
         for node in self.outs.keys():
             targets_list = self.outs[node]()
             targets_scale = self.outs[node].all_scales()
-            for idx, target in enumerate(targets_list)
+            for idx, target in enumerate(targets_list):
                 scale = targets_scale[idx]
                 if reverse is False:
                     self.graphIO.add_out_edge(node, target, scale)
