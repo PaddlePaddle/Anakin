@@ -945,7 +945,10 @@ class FluidParser:
                 self._DealWithSoftmax(source_ops, helper)
                 self._DealWithSSD(source_ops, helper)
                 self._RefreshReshape(source_ops, helper)
-        self._Graph()
+        if self.Debug == 'IN':
+            self._Graph(True)
+        else:
+            self._Graph()
 
     def _Parsing(self):
         with fluid.scope_guard(self.scope):
