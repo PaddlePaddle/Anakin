@@ -17,6 +17,7 @@ GLB_model_path = ''
 GLB_arg_name = ''
 GLB_batch_size = 1
 
+
 def load_inference_model(model_path, exe):
     '''
     '''
@@ -26,6 +27,7 @@ def load_inference_model(model_path, exe):
         return fluid.io.load_inference_model(model_path, exe, 'model', 'params')
     else:
         return fluid.io.load_inference_model(model_path, exe)
+
 
 def feed_ones(block, feed_target_names, batch_size=1):
     """ 
@@ -52,6 +54,7 @@ def feed_ones(block, feed_target_names, batch_size=1):
         feed_dict[feed_target_name] = fill_ones(feed_target_name, batch_size)
     return feed_dict
 
+
 def draw(block, filename='debug'):
     """
     """
@@ -60,6 +63,7 @@ def draw(block, filename='debug'):
     debugger.draw_block_graphviz(block, path=dot_path)
     cmd = ["dot", "-Tpdf", dot_path, "-o", pdf_path]
     subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
 
 def fetch_tmp_vars(block, fetch_targets, var_names_list=None):
     """
@@ -91,8 +95,10 @@ def fetch_tmp_vars(block, fetch_targets, var_names_list=None):
             i = i + 1
     return new_fetch_vars
 
+
 def numpy_var(scope, var_name):
     """
+    get numpy data by the name of var.
     """
     if hasattr(fluid.executor, '_fetch_var'):
         numpy_array = fluid.executor._fetch_var(var_name, scope, True)
@@ -102,11 +108,14 @@ def numpy_var(scope, var_name):
         raise NameError('ERROR: Unknown Fluid version.')
     return numpy_array
 
+
 def var_dtype(block, var_name):
     """
+    get dtype of fluid var.
     """
     var = block.var(var_name)
     return var.dtype
+
 
 def print_ops_type(block):
     """
@@ -123,6 +132,7 @@ def print_ops_type(block):
     for op_type in type_cache:
         print op_type
 
+
 def print_results(results, fetch_targets, need_save=True):
     """
     """
@@ -133,7 +143,11 @@ def print_results(results, fetch_targets, need_save=True):
         if need_save is True:
             numpy_to_txt(result, fetch_targets[idx].name, result.shape())
 
+
 def numpy_to_txt(numpy_array, save_name, shape_list=None):
+    """
+    transform numpy to txt.
+    """
     fluid_fetch_list = list(np.array(numpy_array).flatten())
     fetch_txt_fp = open('result_' + save_name + '.txt', 'w')
     for num in fluid_fetch_list:
@@ -144,6 +158,7 @@ def numpy_to_txt(numpy_array, save_name, shape_list=None):
             fetch_txt_fp.write(str(val) + ', ')
         fetch_txt_fp.write(')\n')
     fetch_txt_fp.close()
+
 
 def fluid_inference_test(model_path):
     """
@@ -164,6 +179,7 @@ def fluid_inference_test(model_path):
                           fetch_list=fetch_targets,
                           return_numpy=False)
         print_results(results, fetch_targets)
+
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:

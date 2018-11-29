@@ -29,9 +29,9 @@ message CacheDate {
     repeated int32 i = 2;      /// list int
     repeated float f = 3;      /// list float
     repeated bool  b = 4;      /// list bool
-	repeated CacheDate l = 5;  /// list list
-    bytes c = 5;               /// string for int8
-	DateTypeProto type = 6;
+    repeated CacheDate l = 5;  /// list list
+    bytes c = 8;               /// string for int8
+    DateTypeProto type = 6;
     int64 size = 7;
 };
 
