@@ -220,15 +220,21 @@ class FluidParser:
             var_name = var[0]
         print node + ",\t" + target + ",\t" + var_name
 
-    def _Graph(self, need_print=False):
+    def _Graph(self, reverse=False, need_print=False):
         for node in self.ins.keys():
             targets_list = self.ins[node]()
             for target in targets_list:
-                self.graphIO.add_in_edge(target, node)
+                if reverse is False:
+                    self.graphIO.add_in_edge(target, node)
+                else:
+                    self.graphIO.add_out_edge(node, target)
         for node in self.outs.keys():
             targets_list = self.outs[node]()
             for target in targets_list:
-                self.graphIO.add_out_edge(node, target)
+                if reverse is False:
+                    self.graphIO.add_out_edge(node, target)
+                else:
+                    self.graphIO.add_in_edge(target, node)
                 if need_print is True:
                     self._PrintEdge(node, target, 'out')
 
