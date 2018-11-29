@@ -134,7 +134,7 @@ class TensorProtoIO(object):
             self.tensor_proto.data.type = INT32
         elif data_type == "int8":
             assert type(data_list) is str
-            self.tensor_proto.data.c = char_list
+            self.tensor_proto.data.c = data_list
             self.tensor_proto.data.type = INT8
         elif data_type == "float":
             self.tensor_proto.data.f[:] = data_list
