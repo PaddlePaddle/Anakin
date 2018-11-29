@@ -88,7 +88,14 @@ class TensorProtoIO(object):
         """
         """
         self.tensor_proto = TensorProto()
-
+    
+    def set_shared(self, is_shared):
+        self.tensor_proto.shared = is_shared
+    
+    def set_shared_from(self, shared_node_name):
+        # current tensor is shared from the node shared_node_name if it needs.
+        self.tensor_proto.share_from = shared_node_name
+    
     def set_data_type(self, data_type):
         self.tensor_proto.data.type = data_type
 
@@ -126,7 +133,11 @@ class TensorProtoIO(object):
             self.tensor_proto.data.i[:] = data_list
             self.tensor_proto.data.type = INT32
         elif data_type == "int8":
-            self.tensor_proto.data.s[:] = data_list
+            assert type(data_list) is str
+            char_list = list()
+            for c in data_list:
+                char_list.append(c)
+            self.tensor_proto.data.s[:] = char_list
             self.tensor_proto.data.type = INT8
         elif data_type == "float":
             self.tensor_proto.data.f[:] = data_list
@@ -407,30 +418,8 @@ class GraphProtoIO(object):
         print('------')
         print(ba_set)
         assert len(ab_set) == 0 and len(ba_set) == 0, 'in edge must equal with out edge'
-        self.debug_edge()
 
-    def debug_edge(self):
-        """
-        check wether in edge match out edge
-        :return:
-        """
-        in_set = set()
-        out_set = set()
-
-        for i in self.graph_proto.edges_in:
-            for j in self.graph_proto.edges_in[i].val:
-                in_set.add((i, j))
-
-        for i in self.graph_proto.edges_out:
-            for j in self.graph_proto.edges_out[i].val:
-                out_set.add((j, i))
-
-        ab_set = in_set - out_set
-        ba_set = out_set - in_set
-        print(ab_set)
-        print('------')
-        print(ba_set)
-        assert len(ab_set) == 0 and len(ba_set) == 0, 'in edge must equal with out edge'
 
     def __call__(self):
         return self.graph_proto
+
