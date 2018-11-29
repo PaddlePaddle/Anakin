@@ -879,7 +879,7 @@ class FluidParser:
 
     def _DealWithFakeQuantize(self, source_ops, helper):
         for source_op in source_ops:
-            if source_op.type in ['fake_quantize_abs_max', 'fake_dequantize_max_abs']:
+            if source_op.type in FLUID_QUANTIZE_LAYERS:
                 qt_node_name = self._NameNodeMid(source_op)
                 in_of_qt = self.ins[qt_node_name].target('X')
                 out_of_qt = self.outs[qt_node_name].target('Out')

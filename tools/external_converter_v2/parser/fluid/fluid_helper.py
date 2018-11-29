@@ -562,6 +562,7 @@ class Fluid_comparator:
 
 
 ANAKIN_TENSOR_DTYPE = {
+    VarDesc.VarType.INT8: INT8,
     VarDesc.VarType.BOOL: BOOLEN,
     VarDesc.VarType.INT32: INT32,
     VarDesc.VarType.FP16: FLOAT16,
@@ -620,3 +621,11 @@ APPEND_ACT_OP_TYPE = [
     'row_conv',
     'reshape',
 ]
+
+FLUID_QUANTIZE_LAYERS = [
+    'fake_quantize_abs_max',
+    'fake_dequantize_max_abs',
+    'fake_quantize_range_abs_max',
+    'fake_dequantize_range_max_abs',
+]
+
