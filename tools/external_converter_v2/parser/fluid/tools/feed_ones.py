@@ -131,11 +131,19 @@ def print_results(results, fetch_targets, need_save=True):
         print fetch_targets[idx]
         print np.array(result)
         if need_save is True:
-            fluid_fetch_list = list(np.array(result).flatten())
-            fetch_txt_fp = open('result_' + fetch_targets[idx].name + '.txt', 'w')
-            for num in fluid_fetch_list:
-                fetch_txt_fp.write(str(num) + '\n')
-            fetch_txt_fp.close()
+            numpy_to_txt(result, fetch_targets[idx].name, result.shape())
+
+def numpy_to_txt(numpy_array, save_name, shape_list=None):
+    fluid_fetch_list = list(np.array(numpy_array).flatten())
+    fetch_txt_fp = open('result_' + save_name + '.txt', 'w')
+    for num in fluid_fetch_list:
+        fetch_txt_fp.write(str(num) + '\n')
+    if shape_list is not None:
+        fetch_txt_fp.write('Shape: (')
+        for val in shape_list:
+            fetch_txt_fp.write(str(val) + ', ')
+        fetch_txt_fp.write(')\n')
+    fetch_txt_fp.close()
 
 def fluid_inference_test(model_path):
     """
