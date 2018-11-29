@@ -18,22 +18,23 @@ def difference(list_a, list_b):
 
 class Edge_for_fluid:
 
-    def __init__(self, param, target, var):
+    def __init__(self, param, target, var, scale):
         '''
         '''
         self.param = param
         self.target = target
         self.var = var
+        self.scale = scale
 
 
 class Fluid_edger:
 
-    def __init__(self, param = None, target = None, var = None):
+    def __init__(self, param=None, target=None, var=None, scale=None):
         '''
         '''
         self.edges = []
         if param is not None and target is not None:
-            edge = Edge_for_fluid(param, target, var)
+            edge = Edge_for_fluid(param, target, var, scale)
             self.edges.append(edge)
 
     def __call__(self):
@@ -41,10 +42,10 @@ class Fluid_edger:
         '''
         return self.all_targets()
 
-    def add(self, param, target, var = None):
+    def add(self, param, target, var=None, scale=None):
         '''
         '''
-        edge = Edge_for_fluid(param, target, var)
+        edge = Edge_for_fluid(param, target, var, scale)
         self.edges.append(edge)
 
     def rm_edges_by_param(self, param):
@@ -94,6 +95,19 @@ class Fluid_edger:
         for edge in self.edges:
             targets.append(edge.target)
         return targets
+
+    def all_scales(self):
+        '''
+        '''
+        scales = []
+        for edge in self.edges:
+            scales.append(edge.scale)
+        return scales
+
+    def set_scale(self, target, scale):
+        for edge in self.edges:
+            if edge.target == target:
+                edge.scale = scale
 
     def targets(self, param):
         '''
@@ -624,8 +638,11 @@ APPEND_ACT_OP_TYPE = [
 
 FLUID_QUANTIZE_LAYERS = [
     'fake_quantize_abs_max',
-    'fake_dequantize_max_abs',
     'fake_quantize_range_abs_max',
+]
+
+FLUID_DEQUANTIZE_LAYERS = [
+    'fake_dequantize_max_abs',
     'fake_dequantize_range_max_abs',
 ]
 

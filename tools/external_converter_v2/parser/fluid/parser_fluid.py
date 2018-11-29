@@ -223,18 +223,22 @@ class FluidParser:
     def _Graph(self, reverse=False, need_print=False):
         for node in self.ins.keys():
             targets_list = self.ins[node]()
-            for target in targets_list:
+            targets_scale = self.ins[node].all_scales()
+            for idx, target in enumerate(targets_list)
+                scale = targets_scale[idx]
                 if reverse is False:
-                    self.graphIO.add_in_edge(target, node)
+                    self.graphIO.add_in_edge(target, node, scale)
                 else:
-                    self.graphIO.add_out_edge(node, target)
+                    self.graphIO.add_out_edge(node, target, scale)
         for node in self.outs.keys():
             targets_list = self.outs[node]()
-            for target in targets_list:
+            targets_scale = self.outs[node].all_scales()
+            for idx, target in enumerate(targets_list)
+                scale = targets_scale[idx]
                 if reverse is False:
-                    self.graphIO.add_out_edge(node, target)
+                    self.graphIO.add_out_edge(node, target, scale)
                 else:
-                    self.graphIO.add_in_edge(target, node)
+                    self.graphIO.add_in_edge(target, node, scale)
                 if need_print is True:
                     self._PrintEdge(node, target, 'out')
 
@@ -886,11 +890,31 @@ class FluidParser:
     def _DealWithFakeQuantize(self, source_ops, helper):
         for source_op in source_ops:
             if source_op.type in FLUID_QUANTIZE_LAYERS:
+                private_data = dict()
                 qt_node_name = self._NameNodeMid(source_op)
                 in_of_qt = self.ins[qt_node_name].target('X')
                 out_of_qt = self.outs[qt_node_name].target('Out')
+                op_out_q = self._GetOp(source_ops, out_of_qt)
+                in_scale = helper.attr_data(source_op, 'InScale')
+                private_data['scale_1'] = helper.param_tensor(op_out_q, 'OutScales')
                 self.outs[in_of_qt].mv(qt_node_name, out_of_qt)
+                self.outs[in_of_qt].set_scale(out_of_qt, in_scale)
                 self.ins[out_of_qt].mv(qt_node_name, in_of_qt)
+                self.ins[out_of_qt].set_scale(in_of_qt, in_scale)
+                self._RmProtoNode(qt_node_name)
+                self._RmProtoNode(out_of_qt)
+                self._AddProtoNode(out_of_qt, op_out_q, helper, private_data)
+                self._ClearEdges(qt_node_name)
+        for source_op in source_ops:
+            if source_op.type in FLUID_QUANTIZE_LAYERS:
+                qt_node_name = self._NameNodeMid(source_op)
+                in_of_qt = self.ins[qt_node_name].target('X')
+                out_of_qt = self.outs[qt_node_name].target('Out')
+                scale = helper.attr_data(source_op, 'Scale')
+                self.outs[in_of_qt].mv(qt_node_name, out_of_qt)
+                self.outs[in_of_qt].set_scale(out_of_qt, scale)
+                self.ins[out_of_qt].mv(qt_node_name, in_of_qt)
+                self.ins[out_of_qt].set_scale(in_of_qt, scale)
                 self._RmProtoNode(qt_node_name)
                 self._ClearEdges(qt_node_name)
 
