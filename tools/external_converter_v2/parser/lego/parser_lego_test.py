@@ -43,6 +43,7 @@ class LegoParser_test:
             expect_model_size = os.path.getsize(self.ModelPath)
             sum_s = 0
             layer_cache = {}
+            shared_layer = {}
             # deal with each layer
             for source_layer in source_layers:
                 source_layer_name = source_layer.name
@@ -64,17 +65,32 @@ class LegoParser_test:
                 #get weights from lego.
                 tensors = []
                 size_list = blob_size_of_layer(source_layer)
-                if len(size_list):
-                    for size in size_list:
-                        data = np.fromfile(f, '<f4', size)
-                        tensor = TensorProtoIO()
-                        tensor.set_data_type(FLOAT)
-                        tensor.set_data(data, "float")
-                        tensors.append(tensor)
-                        if layer_cache[source_layer_name][1] == 0:	# The FIRST appearance of layer
-                            sum_s = sum_s + size * 4
-                        else:
-                            pass
+                if source_layer_name not in shared_layer.keys(): 
+                    shared_layer[source_layer_name] = node_name              
+                    if len(size_list):
+                        for size in size_list:
+                            data = np.fromfile(f, '<f4', size)
+                            tensor = TensorProtoIO()
+                            tensor.set_data_type(FLOAT)
+                            tensor.set_data(data, "float")
+                            tensors.append(tensor)
+                            if layer_cache[source_layer_name][1] == 0:	# The FIRST appearance of layer
+                                sum_s = sum_s + size * 4
+                            else:
+                                pass
+                else:
+                    if len(size_list):
+                        for size in size_list:
+                            tensor = TensorProtoIO()
+                            tensor.set_data_type(FLOAT)
+                            tensor.set_data([], "float")
+                            tensor.set_shared(True)
+                            tensor.set_shared_from(str(shared_layer[source_layer_name]))
+                            tensors.append(tensor)
+                            if layer_cache[source_layer_name][1] == 0:	# The FIRST appearance of layer
+                                sum_s = sum_s + size * 4
+                            else:
+                                pass
                 # print source_layer
                 LEGO_NODE_FILLER[source_layer_type](nodeIO, source_layer, tensors, opIO)   # Fill the nodeIO
                 self.graphIO.add_node(nodeIO())    # Add the nodeIO
