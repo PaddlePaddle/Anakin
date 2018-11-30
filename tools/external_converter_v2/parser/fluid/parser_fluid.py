@@ -242,7 +242,7 @@ class FluidParser:
                 if need_print is True:
                     self._PrintEdge(node, target, 'out')
 
-    def _ReplaceInputs(self, source_ops, helper, reshape_dict=None, layout='NCHW'):
+    def _ReplaceInputs(self, source_ops, helper, reshape_dict=None, layout='NCHW', quantized=False):
         if reshape_dict is None:
             reshape_dict = dict()
         for source_op in source_ops:
@@ -269,7 +269,7 @@ class FluidParser:
                     self.outs[input_node_name] = out_edges
                     self._AddProtoNode(input_node_name, source_op, helper, private_data)
 
-    def _InsertSplit(self, source_ops, helper):
+    def _InsertSplit(self, source_ops, helper, quantized=False):
         # If a layer has two identical output tensors, add a split layer.
         for node in self.outs.keys():
             if node.startswith('split#') is False:
@@ -331,7 +331,7 @@ class FluidParser:
                 cache.pop()
         return results
 
-    def _CropGraph(self, ins_of_subgraph, outs_of_subgraph, helper, need_io = True):
+    def _CropGraph(self, ins_of_subgraph, outs_of_subgraph, helper, need_io=True, quantized=False):
         '''
         '''
         def all_nodes():
@@ -374,7 +374,7 @@ class FluidParser:
                     self.outs[in_node_name] = Fluid_edger('_Out', node_name)
                     self._AddProtoNode(in_node_name, None, helper, private_data, 'feed')
 
-    def _IntegrateNodes(self, main_op, main_node_name, sec_node_name, helper, private_data):
+    def _IntegrateNodes(self, main_op, main_node_name, sec_node_name, helper, private_data, quantized=False):
         # Merge secondary nodes to the primary node and process the edges.
         self._RmProtoNode(main_node_name)
         self._RmProtoNode(sec_node_name)
@@ -388,7 +388,7 @@ class FluidParser:
         self.outs[main_node_name].rm(sec_node_name)
         self._AddProtoNode(main_node_name, main_op, helper, private_data)
 
-    def _DealWithBias(self, source_ops, helper):
+    def _DealWithBias(self, source_ops, helper, quantized=False):
         # In fluid, the bias parameter of the conv2d is split into elementwise_add.
         for source_op in source_ops:
             if source_op.type in APPEND_BIAS_OP_TYPE:
@@ -409,7 +409,7 @@ class FluidParser:
                             self._IntegrateNodes(source_op, main_node_name, \
                                 elt_node_name, helper, private_data)
 
-    def _DealWithBatchnorm(self, source_ops, helper):
+    def _DealWithBatchnorm(self, source_ops, helper, quantized=False):
         # In anakin, the scale part of batchnorm layer is independent.
         for source_op in source_ops:
             if source_op.type == 'batch_norm':
@@ -442,7 +442,7 @@ class FluidParser:
                     self.ins[append_node_name].add('_Ins', main_node_name)
                     self._AddProtoNode(append_node_name, source_op, helper, {}, 'scale_of_bn')
 
-    def _DealWithAxpy(self, source_ops, helper):
+    def _DealWithAxpy(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type == 'elementwise_mul':
                 mul_node_name = self._NameNodeMid(source_op)
@@ -463,7 +463,7 @@ class FluidParser:
                     self._RmProtoNode(mul_node_name)
                     self._AddProtoNode(add_node_name, None, helper, {}, 'axpy')
 
-    def _DealWithPriorBox(self, source_ops, helper, is_dev_v2=True):
+    def _DealWithPriorBox(self, source_ops, helper, is_dev_v2=True, quantized=False):
         nodes_to_del = []
         for source_op in source_ops:
             if source_op.type == 'prior_box':
@@ -498,7 +498,7 @@ class FluidParser:
             self._RmProtoNode(node_name)
             self._ClearEdges(node_name)
 
-    def _DealWithDetectionOutput(self, source_ops, helper):
+    def _DealWithDetectionOutput(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type == 'box_coder':
                 bc_node_name = self._NameNodeMid(source_op)
@@ -526,7 +526,7 @@ class FluidParser:
                     self._AddProtoNode(nms_node_name, nms_op, helper, \
                         private_data, 'multiclass_nms')
 
-    def _DealWithMultiFC(self, source_ops, helper):
+    def _DealWithMultiFC(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type == 'sum':
                 sum_node_name = self._NameNodeMid(source_op)
@@ -556,7 +556,7 @@ class FluidParser:
                         self._RmProtoNode(first_mul_name)
                         self._AddProtoNode(first_mul_name, first_mul_op, helper, private_data)
 
-    def _DealWithGru(self, source_ops, helper):
+    def _DealWithGru(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type == 'gru':
                 private_data = {}
@@ -603,7 +603,7 @@ class FluidParser:
                         if node_to_del_name is not gru_node_name:
                             self._ClearEdges(node_to_del_name)
 
-    def _SearchBilstm(self, source_ops, helper):
+    def _SearchBilstm(self, source_ops, helper, quantized=False):
         comp = Fluid_comparator(helper)
         lstm_ops = []
         for source_op in source_ops:
@@ -621,7 +621,7 @@ class FluidParser:
         else:
             return False
 
-    def _DealWithLstm(self, source_ops, helper):
+    def _DealWithLstm(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type == 'lstm':
                 private_data = {}
@@ -671,7 +671,7 @@ class FluidParser:
                             self._ClearEdges(node_to_del_name)
                     self._AddProtoNode(lstm_node_name, lstm_op, helper, private_data)
 
-    def _DealWithCast(self, source_ops, helper):
+    def _DealWithCast(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type == 'cast':
                 if helper.attr_data(source_op, 'out_dtype') == 5:
@@ -689,7 +689,7 @@ class FluidParser:
                 else:
                     raise NameError('The out type of cast must be float32.')
 
-    def _DealWithArgmax(self, source_ops, helper):
+    def _DealWithArgmax(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type == 'top_k':
                 private_data = {}
@@ -729,7 +729,7 @@ class FluidParser:
                     self._RmProtoNode(topk_node_name)
                     self._AddProtoNode(topk_node_name, source_op, helper, private_data)
 
-    def _RefreshReshape(self, source_ops, helper, need_assign=False):
+    def _RefreshReshape(self, source_ops, helper, need_assign=False, quantized=False):
         for source_op in source_ops:
             if source_op.type in ['reshape', 'reshape2']:
                 reshape_node_name = self._NameNodeMid(source_op)
@@ -746,7 +746,7 @@ class FluidParser:
                             self._RmProtoNode(shape_inputs[0])
                             self._ClearEdges(shape_inputs[0])
 
-    def _CutReshape(self, reshape_node_name):
+    def _CutReshape(self, reshape_node_name, quantized=False):
         branch = []
         branch.append(reshape_node_name)
         shape_inputs = self.ins[reshape_node_name].targets('Shape')
@@ -789,7 +789,7 @@ class FluidParser:
             self._RmProtoNode(input_node_name)
             self._ClearEdges(input_node_name)
 
-    def _RefreshSplit(self, split_node_name, helper):
+    def _RefreshSplit(self, split_node_name, helper, quantized=False):
         outputs_of_split = self.outs[split_node_name].targets('_Out')
         inputs_of_split = self.ins[split_node_name].targets('_In')
         assert len(inputs_of_split) < 2
@@ -806,7 +806,7 @@ class FluidParser:
             self._RmProtoNode(split_node_name)
             self._AddProtoNode(split_node_name, None, helper, private_data, 'split_ins')
 
-    def _DealWithSoftmax(self, source_ops, helper):
+    def _DealWithSoftmax(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type == 'softmax':
                 softmax_node_name = self._NameNodeMid(source_op)
@@ -826,7 +826,7 @@ class FluidParser:
                         if ins_of_softmax[0].startswith('split'):
                             self._RefreshSplit(ins_of_softmax[0], helper)
 
-    def _DealWithMatmal(self, source_ops, helper):
+    def _DealWithMatmal(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type == 'matmul':
                 matmul_node_name = self._NameNodeMid(source_op)
@@ -854,7 +854,7 @@ class FluidParser:
                     self._RmProtoNode(matmul_node_name)
                     self._AddProtoNode(matmul_node_name, source_op, helper, private_data)
 
-    def _DealWithDiscBatchNorm(self, source_ops, helper):
+    def _DealWithDiscBatchNorm(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type == 'batch_norm':
                 discrete_flag = True
@@ -870,7 +870,7 @@ class FluidParser:
                     self._RmProtoNode(bn_node_name)
                     self._AddProtoNode(bn_node_name, source_op, helper, {}, 'disc_bn')
 
-    def _DealWithSSD(self, source_ops, helper):
+    def _DealWithSSD(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type == 'softmax':
                 private_data = dict()
@@ -887,7 +887,7 @@ class FluidParser:
                 self._RmProtoNode(sm_node_name)
                 self._AddProtoNode(sm_node_name, source_op, helper, private_data, 'softmax')
 
-    def _DealWithFakeQuantize(self, source_ops, helper):
+    def _DealWithFakeQuantize(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type in FLUID_QUANTIZE_LAYERS:
                 private_data = dict()
@@ -928,7 +928,8 @@ class FluidParser:
                         layer_type,
                         private_data,
                         helper,
-                        insert_mode=True):
+                        insert_mode=True,
+                        quantized=False):
         main_layer = layer_type + '_after_' + in_target
         if insert_mode is True:
             if in_target in self.ins[out_target].all_targets() and \
@@ -944,7 +945,7 @@ class FluidParser:
         self.outs[main_layer] = Fluid_edger(out_param, out_target)
         self._AddProtoNode(main_layer, None, helper, private_data, layer_type)
 
-    def _ParseNetwork(self, source_ops, helper):
+    def _ParseNetwork(self, source_ops, helper, quantized=False):
         self._ParseBase(source_ops, helper)
         if self.NetType == "FLUIDBASE":
             pass
@@ -955,8 +956,8 @@ class FluidParser:
             elif self.NetType == "ROUTEDNN":
                 reshape_dict['input_0'] = [1, 37, 1, 1]
             self._ReplaceInputs(source_ops, helper, reshape_dict)
-            self._DealWithBias(source_ops, helper)
             self._DealWithFakeQuantize(source_ops, helper)
+            self._DealWithBias(source_ops, helper)
             self._InsertSplit(source_ops, helper)
             self._DealWithGru(source_ops, helper)
             self._DealWithLstm(source_ops, helper)
