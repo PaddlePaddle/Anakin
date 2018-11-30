@@ -14,9 +14,9 @@ def ParserFeedDecorator(OpName):
             private_data = args[4]
             if 'scale_1' in private_data:
                 OpsRegister()[OpName].scale_1 = private_data['scale_1']
-                args[2].set_bit_type(INT8)
+                args[0].set_bit_type(INT8)
             else:
-                args[2].set_bit_type(FLOAT)
+                args[0].set_bit_type(FLOAT)
         return warpper_args
     return warpper
 

@@ -894,9 +894,10 @@ class FluidParser:
                 qt_node_name = self._NameNodeMid(source_op)
                 in_of_qt = self.ins[qt_node_name].target('X')
                 out_of_qt = self.outs[qt_node_name].target('Out')
+                qt_node = self._GetOp(source_ops, qt_node_name)
                 op_out_q = self._GetOp(source_ops, out_of_qt)
                 in_scale = helper.attr_data(source_op, 'InScale')
-                private_data['scale_1'] = helper.param_tensor(op_out_q, 'OutScales')
+                private_data['scale_1'] = helper.param_tensor(qt_node, 'OutScales')
                 self.outs[in_of_qt].mv(qt_node_name, out_of_qt)
                 self.outs[in_of_qt].set_scale(out_of_qt, in_scale)
                 self.ins[out_of_qt].mv(qt_node_name, in_of_qt)
@@ -906,7 +907,7 @@ class FluidParser:
                 self._AddProtoNode(out_of_qt, op_out_q, helper, private_data)
                 self._ClearEdges(qt_node_name)
         for source_op in source_ops:
-            if source_op.type in FLUID_QUANTIZE_LAYERS:
+            if source_op.type in FLUID_DEQUANTIZE_LAYERS:
                 qt_node_name = self._NameNodeMid(source_op)
                 in_of_qt = self.ins[qt_node_name].target('X')
                 out_of_qt = self.outs[qt_node_name].target('Out')
@@ -954,11 +955,11 @@ class FluidParser:
             elif self.NetType == "ROUTEDNN":
                 reshape_dict['input_0'] = [1, 37, 1, 1]
             self._ReplaceInputs(source_ops, helper, reshape_dict)
+            self._DealWithBias(source_ops, helper)
             self._DealWithFakeQuantize(source_ops, helper)
             self._InsertSplit(source_ops, helper)
             self._DealWithGru(source_ops, helper)
             self._DealWithLstm(source_ops, helper)
-            self._DealWithBias(source_ops, helper)
             self._DealWithBatchnorm(source_ops, helper)
             self._DealWithMultiFC(source_ops, helper)
             self._DealWithArgmax(source_ops, helper)
