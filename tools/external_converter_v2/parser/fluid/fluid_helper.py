@@ -68,13 +68,15 @@ class Fluid_edger:
         if res != 0:
             pass
 
-    def mv(self, old_target, new_target):
+    def mv(self, old_target, new_target, new_scale=None):
         '''
         '''
         res = -1
         for edge in self.edges:
             if old_target == edge.target:
                 edge.target = new_target
+                if new_scale is not None:
+                    edge.scale = new_scale
                 res = res + 1
         if res != 0:
             pass
@@ -105,9 +107,18 @@ class Fluid_edger:
         return scales
 
     def set_scale(self, target, scale):
+        '''
+        '''
         for edge in self.edges:
             if edge.target == target:
                 edge.scale = scale
+
+    def get_scale(self, target):
+        '''
+        '''
+        for edge in self.edges:
+            if edge.target == target:
+                return edge.scale
 
     def targets(self, param):
         '''
