@@ -11,12 +11,6 @@ def ParserFeedDecorator(OpName):
             OpsRegister()[OpName].feed_node_attr(args[0])
             args[2].set_name(OpName)
             args[0].set_op(args[2]())
-            private_data = args[4]
-            if 'scale_1' in private_data:
-                OpsRegister()[OpName].scale_1 = private_data['scale_1']
-                args[0].set_bit_type(INT8)
-            else:
-                args[0].set_bit_type(FLOAT)
         return warpper_args
     return warpper
 
@@ -36,10 +30,16 @@ def Parser_feed(args):
 
 @ParserFeedDecorator("Convolution")
 def Parser_conv2d(args):
+    node = args[0]
     op = args[1]
     helper = args[3]
     private_data = args[4]
     [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'Filter')
+    if 'scale_1' in private_data:
+        node.set_bit_type(INT8)
+        weights_tensor.set_scale(private_data['scale_1'])
+    else:
+        node.set_bit_type(FLOAT)
     OpsRegister()["Convolution"].weight_1 = weights_tensor
     OpsRegister()["Convolution"].filter_num = weights_shape[0]
     OpsRegister()["Convolution"].kernel_size = weights_shape[-2:]
@@ -56,11 +56,17 @@ def Parser_conv2d(args):
 
 @ParserFeedDecorator("Deconvolution")
 def Parser_conv2d_transpose(args):
+    node = args[0]
     op = args[1]
     helper = args[3]
     private_data = args[4]
     [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'Filter')
     weights_tensor.set_shape([weights_shape[1], weights_shape[0], weights_shape[2], weights_shape[3]])
+    if 'scale_1' in private_data:
+        node.set_bit_type(INT8)
+        weights_tensor.set_scale(private_data['scale_1'])
+    else:
+        node.set_bit_type(FLOAT)
     OpsRegister()["Deconvolution"].weight_1 = weights_tensor
     OpsRegister()["Deconvolution"].filter_num = weights_shape[1]
     OpsRegister()["Deconvolution"].kernel_size = weights_shape[-2:]

@@ -418,13 +418,15 @@ class Fluid_helper:
             reshape, var_idx, layout)
         return tensor
 
-    def create_tensor(self, data_list, data_shape, dtype):
+    def create_tensor(self, data_list, data_shape, dtype, scale=None):
         '''
         '''
         tensor = TensorProtoIO()
         tensor.set_data_type(dtype)
         tensor.set_data(data_list, ANAKIN_TENSOR_DTYPESTR[dtype])
         tensor.set_shape(data_shape)
+        if scale is not None:
+            tensor.set_scale(scale)
         return tensor
 
     def gru_tensor_convert(self, origin_h2h, origin_i2h, origin_b, offset=[2, 1, 0]):
@@ -655,5 +657,10 @@ FLUID_QUANTIZE_LAYERS = [
 FLUID_DEQUANTIZE_LAYERS = [
     'fake_dequantize_max_abs',
     'fake_dequantize_range_max_abs',
+]
+
+FLUID_SCALE_WEIGHT_OP = [
+    'conv2d',
+    'depthwise_conv2d',
 ]
 

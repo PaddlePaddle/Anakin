@@ -146,6 +146,16 @@ class TensorProtoIO(object):
             raise NameError('ERROR: Unknown data type (%s) in message CacheDate' % (data_type))
         self.tensor_proto.data.size = len(data_list)
 
+    def set_scale(self, data_list, data_type):
+        """
+        """
+        if data_type == "float":
+            self.tensor_proto.scale.f[:] = data_list
+            self.tensor_proto.scale.type = FLOAT
+        else:
+            raise NameError('ERROR: Unknown data type (%s) in message CacheDate' % (data_type))
+        self.tensor_proto.scale.size = len(data_list)
+
     def __call__(self):
         return self.tensor_proto
 

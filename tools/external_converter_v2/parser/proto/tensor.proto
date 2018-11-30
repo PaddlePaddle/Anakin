@@ -48,13 +48,16 @@ message TensorProto {
 
 	// share_from is not null if shared [optional] 
 	// ( only used when anakin generates optimized model)
-	bytes  share_from = 3;
+	bytes share_from = 3;
 
     // tensor shape
     TensorShape shape = 8;
 
     // tensor data cache.
     CacheDate data = 10;
+
+    // scale for int8
+    CacheDate scale = 11;
 };
 
 
