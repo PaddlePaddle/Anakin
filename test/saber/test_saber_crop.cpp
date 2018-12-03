@@ -1,3 +1,18 @@
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
 #include "core/context.h"
 #include "saber/core/tensor_op.h"
 #include "funcs/crop.h"
@@ -75,6 +90,11 @@ TEST(TestSaberFunc, test_func_crop) {
     TestSaberBase<X86,X86,AK_FLOAT,Crop,CropParam> testbase_x86;
     LOG(INFO)<<"ENVEND";
 #endif
+#ifdef AMD_GPU
+    Env<AMD>::env_init();
+    TestSaberBase<AMD, AMDHX86, AK_FLOAT, Crop, CropParam> testbase_amd;
+    LOG(INFO) << "ENVEND";
+#endif
     //combine param by yourself
     std::vector<int> offset = {2, 2};
     std::vector<int> shape = {1, 3, 4, 5};
@@ -100,6 +120,15 @@ TEST(TestSaberFunc, test_func_crop) {
                     testbase_x86.set_input_shape(Shape({num_in,ch_in,h_in,w_in}));
                     testbase_x86.run_test(norm_cpu_nchw<float,X86,X86>);//run test
                     #endif
+		    #ifdef AMD_GPU
+    		    //make param
+		    CropParam<AMD> param_amd(/*axis_in*/2, /*offset*/offset, /*shape_in*/shape);
+                    //testbase test
+                    testbase_amd.set_param(param_amd); //set param
+                    //testbase.set_rand_limit(255,255);
+                    testbase_amd.set_input_shape(Shape({num_in,ch_in,h_in,w_in}));
+                    testbase_amd.run_test(norm_cpu_nchw<float, AMD, AMDHX86>);//run_tets 
+		    #endif
                 }
             }
         }
