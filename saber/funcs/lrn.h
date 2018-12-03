@@ -31,6 +31,10 @@
 //todo
 #include "saber/funcs/impl/impl_lrn.h"
 #endif
+
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_lrn.h"
+#endif
 namespace anakin {
 namespace saber {
 
