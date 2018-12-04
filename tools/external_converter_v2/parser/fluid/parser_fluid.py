@@ -897,7 +897,7 @@ class FluidParser:
                 qt_node = self._GetOp(source_ops, qt_node_name)
                 op_out_q = self._GetOp(source_ops, out_of_qt)
                 in_scale = helper.attr_data(source_op, 'InScale')
-                private_data['scale_1'] = helper.param_tensor(qt_node, 'OutScales')
+                private_data['scale_1'] = helper.data_with_shape_by_param(qt_node, 'OutScales')[0]
                 self.outs[in_of_qt].mv(qt_node_name, out_of_qt)
                 self.outs[in_of_qt].set_scale(out_of_qt, in_scale)
                 self.ins[out_of_qt].mv(qt_node_name, in_of_qt)
