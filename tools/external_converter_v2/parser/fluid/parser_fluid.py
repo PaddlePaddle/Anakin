@@ -20,12 +20,13 @@ class FluidParser:
         self.exe = fluid.Executor(self.place)
         self.scope = fluid.core.Scope()
         # in and out edges of node
-        self.ins = {}
-        self.outs = {}
+        self.ins = dict()
+        self.outs = dict()
         # inplaced main node
-        self.inplace_nodes = {}
-        self.graph_ins = []
-        self.graph_outs = []
+        self.inplace_nodes = dict()
+        self.graph_ins = list()
+        self.graph_outs = list()
+        self.scale_dict = dict()
 
     def __call__(self):
         return self._Parsing()
@@ -406,6 +407,8 @@ class FluidParser:
                             new_shape = [1, shape[3], 1, 1]
                             elt_tensor.set_shape(new_shape)
                             private_data['bias'] = elt_tensor
+                            if main_node_name in self.scale_dict.keys():
+                                private_data['scale_1'] = self.scale_dict[main_node_name]
                             self._IntegrateNodes(source_op, main_node_name, \
                                 elt_node_name, helper, private_data)
 
@@ -897,7 +900,8 @@ class FluidParser:
                 qt_node = self._GetOp(source_ops, qt_node_name)
                 op_out_q = self._GetOp(source_ops, out_of_qt)
                 in_scale = helper.attr_data(source_op, 'InScale')
-                private_data['scale_1'] = helper.data_with_shape_by_param(qt_node, 'OutScales')[0]
+                self.scale_dict[qt_node_name] = helper.data_with_shape_by_param(qt_node, 'OutScales')[0]
+                private_data['scale_1'] = self.scale_dict[qt_node_name]
                 self.outs[in_of_qt].mv(qt_node_name, out_of_qt)
                 self.outs[in_of_qt].set_scale(out_of_qt, in_scale)
                 self.ins[out_of_qt].mv(qt_node_name, in_of_qt)
