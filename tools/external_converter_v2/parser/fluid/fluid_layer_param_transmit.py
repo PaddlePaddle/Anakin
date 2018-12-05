@@ -568,6 +568,20 @@ def Parser_fake_dequantize_max_abs(args):
     """
     pass
 
+@ParserFeedDecorator("fake_dequantize_range_max_abs")
+def Parser_fake_dequantize_range_max_abs(args):
+    """
+    A placeholder for an empty function.
+    """
+    pass
+
+@ParserFeedDecorator("fake_quantize_range_abs_max")
+ def Parser_fake_quantize_range_abs_max(args):
+     """
+     A placeholder for an empty function.
+     """
+     pass
+
 @ParserFeedDecorator("ShuffleChannel")
 def Parser_shuffle_channel(args):
     private_data = args[4]
@@ -618,14 +632,6 @@ def Parser_norm(args):
     OpsRegister()["Normalize"].is_shared_channel = False
     OpsRegister()["Normalize"].eps = helper.attr_data(op, 'epsilon')
     OpsRegister()["Normalize"].p = 2
-
-
-@ParserFeedDecorator("fake_dequantize_range_max_abs")
-def Parser_fake_dequantize_range_max_abs(args):
-    """
-    A placeholder for an empty function.
-    """
-    pass
 
 FLUID_NODE_FILLER = {
     "feed":OpsParam().set_parser(Parser_feed),
