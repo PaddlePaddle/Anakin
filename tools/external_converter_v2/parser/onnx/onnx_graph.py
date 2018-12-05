@@ -1,13 +1,18 @@
 import onnx
 import numpy as np
+import math
 #from tensorflow.core.framework import types_pb2, tensor_pb2
 import logging as log
 import collections
 from onnx_trans_utils import *
 
 class ParseOnnxToMed:
-    def __init__(self, onnx_model_path):
+    def __init__(self, onnx_model_path, txt_path = None):
         self.model_path = onnx_model_path
+        if txt_path is not None:
+            self.txt_path = txt_path
+        else:
+            self.txt_path = None
 
     def _parse_onnx_node(self, onnx_graph, shape_override):
         """
@@ -33,6 +38,7 @@ class ParseOnnxToMed:
         ops = onnx_graph.node
 
         # minimal conversion of attributes
+        # print '***********node*******'
         for node in ops:
             attr = {}
             takeit = True
@@ -54,8 +60,13 @@ class ParseOnnxToMed:
                     for val in a.ints:
                         val_list.append(int(val))
                     attr[a.name] = val_list
+                elif a.type == 4: #tensor
+                    val_list = onnx_to_anakin_tensor(a.t)
+                    attr[a.name] = val_list
                 else:
-                    attr[a.name] = a.auto_pad
+                    print 'Error type: ', a.type
+                    # attr[a.name] = a.auto_pad
+                    exit(0)
 
             if takeit:
                 try:
@@ -76,21 +87,35 @@ class ParseOnnxToMed:
                 except Exception as ex:
                     log.error("pass1 convert failed for %s, ex=%s", node, ex)
                     raise
-        #print 'anakin_node', anakin_nodes
+        # print 'anakin_node', anakin_nodes
        # exit()
         #weights and bias
         graph = onnx_graph.initializer
         # print 'weights: ', graph
         weights = {}
         for init_ptr in graph:
-            print 'init_ptr: ', init_ptr.name
+            # print 'init_ptr: ', init_ptr.name
            #  print ('onnx_to_anakin_tensor: ')
             [data, shape, dtype] = onnx_to_anakin_tensor(init_ptr)
             # print ('end')
             anakin_tensor = {}
+            # print'before', shape
+            if len(shape) == 3:
+                # print'before', shape
+                shape.append(1)
+                a = shape[2]
+                shape[2] = 1
+                shape[3] = a
+            # elif len(shape) < 4:
+            #     shape  = map(int, [1] * (4 - len(shape)) + list(shape))
+            # print'after', shape
             anakin_tensor['shape'] = shape
             anakin_tensor['data'] = data
             anakin_tensor['dtype'] = dtype
+
+            # print('**************initializer*******')
+            # print ('shape: ', shape)
+            # print('len: ', len(data))
             #attr[init_ptr.name] = anakin_tensor
             #anakin_nodes[init_ptr.name] = {'name': init_ptr.name, 'onnx_attr': attr, 'visited': False,
              #                               'shape':None, 'ak_type': None, 'ak_attr': {}}
@@ -102,7 +127,6 @@ class ParseOnnxToMed:
 
             #print 'tensor: ',  anakin_tensor
             #exit()
-
         input_name = onnx_graph.input
         inputs = {}
         input_shape = {}
@@ -113,11 +137,18 @@ class ParseOnnxToMed:
             shape = []
             for dim in input_a.type.tensor_type.shape.dim:
                 shape.append(dim.dim_value)
+            if len(shape) == 3:
+                # print 'before', shape
+                shape.append(1)
+                a = shape[2]
+                shape[2] = 1
+                shape[3] = a
+                # print'after', shape
             #attr["shape"] = shape
-            if input_a.name.startswith('data'):
+            if input_a.name.startswith('data') or (input_a.name == '0'):
                 inputs[input_a.name] = shape
                 output_node = []
-                #print 'input: ', input_a.name
+                print 'input: ', input_a.name
                 for node in anakin_nodes.values():
                     for name in node['input']:
                         if name == input_a.name:
@@ -141,7 +172,7 @@ class ParseOnnxToMed:
 
                 in_cnt += 1
             else:
-                #print 'name: ', input_a.name
+                # print 'name: ', input_a.name
                 input_shape[input_a.name] = shape
 
         output_name = onnx_graph.output
@@ -184,7 +215,6 @@ class ParseOnnxToMed:
             for i in range(len(outnode)):
                 if outnode[i] in outputs:
                     outnode.pop(i)
-
 
         #print 'inputs', inputs
         #print 'outputs', outputs
@@ -249,6 +279,10 @@ class ParseOnnxToMed:
         # out2nodename = {i['name']:[] for i in nodes}
         #self._fix_self_output(nodes)
 
+        for node in nodes.values():
+            if node['type'] == 'Div':
+                parse_Div(node, weights, nodes)
+
         def all_search(graph, table):
             """
             search the graph
@@ -265,6 +299,7 @@ class ParseOnnxToMed:
 
         all_search(nodes, {'Conv': parse_Conv,
                            'Gemm': parse_Gemm,
+                           'Mul': parse_Mul,
                            'BatchNormalization': parse_BatchNorm})
 
         all_search(nodes, {'Concat': parse_Concat})
@@ -276,29 +311,158 @@ class ParseOnnxToMed:
                            'Relu': parse_Act,
                            'MaxPool': parse_Pooling,
                            'GlobalAveragePool': parse_Pooling,
+                           'AveragePool': parse_Pooling,
                            'Reshape': parse_Reshape})
         #nodes = rm_weight_node(nodes, weights)
         #print 'anakin_node: ', nodes
         return nodes
+
+    def _read_file(self):
+        fp = open(self.txt_path, mode='r')
+        lines = fp.readlines()
+        cnt = 0
+        weights =[]
+        bias = []
+        for l in lines:
+            l = l.rstrip('\n')
+            if 'Scales' in l:
+                st = l.split('[')
+                st2 = st[-1].split(']')
+                st3 = st2[0].split(' ')
+                # print st3, type(st3[1])
+                for i in range(1, len(st3)-1):
+                    # print st3[i]
+                    weights.append(float(st3[i]))
+                # print '---------------'
+                # print 'weights: ', weights
+                # print(len(st3), len(weights))
+            if 'Offsets' in l:
+                st = l.split('[')
+                st2 = st[-1].split(']')
+                st3 = st2[0].split(' ')
+                # print st3
+
+                for i in range(1, len(st3) - 1):
+                    # print st3[i]
+                    bias.append(float(st3[i]))
+                # print '---------------'
+                # print 'bias: ', bias
+                # print(len(st3), len(bias))
+            cnt = cnt + 1
+            # print l
+            if cnt >= 2:
+                break
+        # print 'weights: ', weights
+        # print 'bias: ', bias
+        # print 'len: ', len(weights), len(bias)
+        weights_node = {}
+        bias_node = {}
+        weights_node['data'] = np.array(weights)
+        weights_node['shape'] = [len(weights), 1, 1]
+        weights_node['dtype'] = 'float32'
+        bias_node['data'] = np.array(bias)
+        bias_node['shape'] = [len(bias), 1, 1]
+        bias_node['dtype'] = 'float32'
+        self.weights_data = weights_node
+        self.bias_data = bias_node
+
+    def _cal_shape(self, graph, weights):
+        #calculate shape
+        input_node = graph['input_0']
+        out_node = input_node['output']
+        op_list = ['Relu', 'Add', 'Dropout', 'Mul', 'BatchNormalization',
+                    'Softmax', 'LRN', 'Div', 'ReduceL2', 'Unsqueeze', 'Shape']
+        while len(out_node) > 0:
+            # print ('out_node: ', out_node)
+            for out_name in out_node:
+                # print out_name
+                node = graph[out_name]
+                op_type = node['type']
+                top_shape = [1, 1, 1, 1]
+                if graph[node['input'][0]]['shape'] is not None:
+                    top_shape = graph[node['input'][0]]['shape']
+                if op_type in op_list:
+                    node['shape'] = top_shape
+                else:
+                    ak_attr = node['onnx_attr']
+                    if op_type == 'Conv':
+                        strides = ak_attr['strides']
+                        pads = ak_attr['pads']
+                        # dilations = ak_attr['dilations']
+                        kernel_shape = ak_attr['kernel_shape']
+                        out_ch = weights[node['input'][1]]['shape'][0]
+                        w = (top_shape[-1] + 2 * pads[0] - kernel_shape[0]) / strides[0] + 1
+                        h = 1
+                        node['shape'] = [top_shape[0], out_ch, h, w]
+                    elif op_type == 'Gemm':
+                        if node['input'][1] in weights and node['input'][2] in weights:
+                            wei_shape = weights[node['input'][1]]['shape']
+                            bia_shape = weights[node['input'][2]]['shape']
+                            # print top_shape, bia_shape, wei_shape
+                            node['shape'] = [top_shape[0], bia_shape[-1],
+                                              top_shape[2], wei_shape[1]]
+                        else:
+                            node['shape'] = [1, 1, 1, 1]
+                    elif op_type == 'MaxPool' or op_type == 'AveragePool':
+                        strides = ak_attr['strides']
+                        pads = ak_attr['pads']
+                        # dilations = ak_attr['dilations']
+                        kernel_shape = ak_attr['kernel_shape']
+                        out_ch = top_shape[1]
+                        w = (top_shape[-1] + 2 * pads[1] - kernel_shape[0]
+                             + strides[0] - 1) / strides[0] + 1
+                        h = 1
+                        node['shape'] = [top_shape[0], out_ch, h, w]
+                    elif op_type == 'GlobalMaxPool' or op_type == 'GlobalAveragePool':
+                        node['shape'] = [top_shape[0], out_ch, 1, 1]
+                    elif op_type == 'Reshape':
+                        re_shape = [1, 128]
+                        if node['input'][1] in weights:
+                            re_shape = weights[node['input'][1]]['shape']
+                        if len(re_shape) < 4:
+                            re_shape  = map(int, [1] * (4 - len(re_shape)) + list(re_shape))
+                        node['shape'] = re_shape
+                    elif op_type == 'Concat':
+                        axis = ak_attr['axis']
+                        num = 0
+                        for i in node['input']:
+                            if graph[i]['shape'] is not None:
+                                num += graph[i]['shape'][axis]
+                        node_shape = [1, 1, 1, 1]
+                        # print axis, top_shape
+                        for i in range(0, 4):
+                            if i == axis:
+                                node_shape[i] = num
+                            else:
+                                node_shape[i] = top_shape[i]
+                    else:
+                        print ('Error op_type: ', op_type)
+                        exit(0)
+            out_node = graph[out_node[0]]['output']
 
     def parse(self):
         """
         parse onnx
         :return:
         """
+        if self.txt_path is not None:
+            self._read_file()
+        else:
+            self.weights_data = None
+            self.bias_data = None
         onnx_model = onnx.load(self.model_path)
         onnx_graph = onnx_model.graph
         [nodes, weights, outputs, output_node] = self._parse_onnx_node(onnx_graph, {})
         print ('onnx_node')
         for node in nodes.values():
-            print(node['name'], node['input'], node['output'])
+            print(node['name'], node['type'], node['input'], node['output'])
         # exit()
         print ('-------------------------------')
+        self._cal_shape(nodes, weights)
         med_graph = self._parse_onnx_graph(nodes, weights)
-        print ('weights or bias shape:')
-        for wei in weights:
-            wei_node = weights[wei]
-            print(wei, wei_node['shape'])
+        print ('med_graph')
+        for name in med_graph.keys():
+            node = med_graph[name]
+            print(node['name'], node['type'], node['input'], node['output'], node['shape'])
         print ('-------------------------------')
-       # filter_graph={i:med_graph[i] for i in med_graph.keys() if med_graph[i]['ak_type'] is not None}
         return med_graph, output_node #filter_graph, outputs

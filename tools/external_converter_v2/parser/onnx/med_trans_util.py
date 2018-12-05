@@ -27,16 +27,25 @@ def np_2_ak_tensor(np_tensor):
         'int32': 'int',
         'bool': 'bool'
     }
-    #print 'np_tensor: ', np_tensor['dtype']
+    # print 'np_tensor: ', np_tensor['dtype']
     #exit()
     type_str = data_type_map.get(np_tensor['dtype'])
     #assert type_str != None
     ak_tensor = TensorProtoIO()
+    # print 'name: ', np_tensor['name']
+    # print 'shape: ', np_tensor['shape']
+    # print 'type_str: ', type_str
+    # print 'np ', type(np_tensor['data'])
+    # print 'np_type:', np_tensor['data'].dtype
+    # print 'len:', len(np_tensor['data'])
+    # print 'data: ', np_tensor['data']
     ak_tensor.set_shape(shape_2_ak_shape(np_tensor['shape']))
-    #print 'np_tensor: ', np_tensor['shape']
-    #print 'type_str: ', type_str
-    ak_tensor.set_data(np_tensor['data'], type_str)
-    #ak_tensor.set_data(np_tensor.flatten(), type_str)
+    # ak_tensor.set_data(np_tensor['data'], type_str)
+    # print('type: ', type(np_tensor['data']), np_tensor['shape'], np_tensor['dtype'], type_str)
+    if (len(np_tensor['shape']) == 1):
+        ak_tensor.set_data(np_tensor['data'], type_str)
+    else:
+        ak_tensor.set_data(np_tensor['data'].flatten(), type_str)
     return ak_tensor
 
 
@@ -75,17 +84,35 @@ class MedTransAK:
         param.filter_num = np_filters['shape'][0] #?
         param.kernel_size = med_attr['kernel']
         param.strides = med_attr['strides']
-        param.padding = med_attr['padding']
+        param.padding = med_attr['padding'] #T L B R
         param.dilation_rate = med_attr['dilations']
+        # print('-------conv group----')
+        # print('filter_num: ', param.filter_num)
+        # print('group: ', med_attr['group'])
         param.group = med_attr['group']
         param.axis = 1
         if med_attr.get('bias') is not None:
             param.bias_term = True
             bias_tensor = med_attr['bias']
-            bias_tensor['shape'] = [1, 1, 1, bias_tensor['shape'][0]]
+            bias_tensor['shape'] = [1, 1, 1, bias_tensor['shape'][-1]]
             param.weight_2 = np_2_ak_tensor(bias_tensor)
         else:
             param.bias_term = False
+
+    def Normalize(self, med_attr, param):
+        """
+        get Normalize param
+        :param med_attr:
+        :param param:
+        :return:
+        """
+        np_filters = med_attr['weights']
+        param.weight_1 = np_2_ak_tensor(np_filters)
+        param.begin_norm_axis = med_attr['begin_norm_axis']
+        param.is_across_spatial = med_attr['is_across_spatial']
+        param.is_shared_channel = med_attr['is_shared_channel'] #T L B R
+        param.eps = med_attr['eps']
+        param.p = med_attr['p']
 
     def Dense(self, med_attr, param):
         """
@@ -94,20 +121,23 @@ class MedTransAK:
         :param param:
         :return:
         """
+        param.axis = 1
+        param.out_dim = 0
         if med_attr['Gemm'] == 1:
             param.weight_1 = np_2_ak_tensor(med_attr['weights'])
-            if med_attr.get('trans') is not None:
-                param.out_dim = med_attr['weights']['shape'][1]
-                # print'trans out_dim', param.out_dim
-            else:
-                param.out_dim = med_attr['weights']['shape'][0]
+            # if med_attr.get('trans') is not None:
+            #     param.out_dim = med_attr['weights']['shape'][1]
+            #     print'trans out_dim', param.out_dim, type(param.out_dim)
+            # else:
+            #     param.out_dim = med_attr['weights']['shape'][0]
                 # print'out_dim', param.out_dim
         else:
             param.weight_1 = TensorProtoIO()
-        param.axis = 1
+
         if med_attr.get('bias') is not None:
             param.bias_term = True
             param.weight_2 = np_2_ak_tensor(med_attr['bias'])
+            param.out_dim = len(med_attr['bias']['data'].flatten())
         else:
             param.bias_term = False
         #print 'shape: ', med_attr['weights']['shape']
@@ -132,9 +162,9 @@ class MedTransAK:
         :return:
         """
         if med_attr.get('axis') is None:
-            param.alpha = 0.0
+            param.axis = 0.0
         else:
-            param.alpha = med_attr['axis']
+            param.axis = med_attr['axis']
 
     def Activation(self, med_attr, param):
         """
@@ -155,7 +185,9 @@ class MedTransAK:
         shape = med_attr['shape']
         if isinstance(shape, type(np.array([]))):
             shape = [int(i) for i in shape]
+        # print('***Reshape:*** ', shape)
         param.dims = shape_2_ak_shape(shape)
+        # print(param.dims)
         pass
 
     def Pooling(self, med_attr, param):
@@ -168,7 +200,7 @@ class MedTransAK:
         param.method = med_attr['type']
         param.pool_size = med_attr['window']
         param.strides = med_attr['strides']
-        param.padding = med_attr['padding']
+        param.padding = med_attr['padding'] # T L B R
         if med_attr.get('global_pooling') is None:
             param.global_pooling = False
         else:
@@ -224,7 +256,9 @@ class MedTransAK:
         :param param:
         :return:
         """
+        # print 'weights'
         param.weight_1 = np_2_ak_tensor(med_attr['weights'])
+        # print 'bias'
         if med_attr.get('bias') is not None:
             param.weight_2 = np_2_ak_tensor(med_attr['bias'])
             param.bias_term = True
@@ -285,15 +319,10 @@ class MedTransAK:
         med_attr = med_node['ak_attr']
         #print type_name
 
-        # print med_node['name'], med_node['type'], med_node['ak_type'], type_name
-        # print 'med_attr: ', med_attr
+        # print med_node['name'], med_node['type'], med_node['ak_type']
         func(med_attr, param)
         # print 'func success'
-        '''
-        for name in med_attr:
-            if name != 'weights' or name != 'bias':
-                print name
-        '''
+
         param.feed_node_attr(ak_node)
         ak_op.set_name(med_node['ak_type'])
         ak_node.set_op(ak_op())

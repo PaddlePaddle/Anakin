@@ -126,8 +126,8 @@ class MedGraphUtil:
             split_node['ak_type'] = 'Split'
             split_node['type'] = 'Split'
             split_node['ak_attr']['split_num'] = len(output)
-            print ('-------------')
-            print ('split', split_node['name'])
+            # print ('-------------')
+            # print ('split', split_node['name'])
             MedGraphUtil.append_node(med_node, split_node, graph=med_graph)
         pass
 
@@ -195,9 +195,9 @@ class MedGraphUtil:
             #not do scale, delete node
             input = med_node['input']
             output = med_node['output']
-            print ('name: ', med_node['name'])
-            print ('inputs: ', input)
-            print ('outputs: ', output)
+            # print ('name: ', med_node['name'])
+            # print ('inputs: ', input)
+            # print ('outputs: ', output)
             #replace node
             for node in input:
                 for out in med_graph.keys():
@@ -226,9 +226,14 @@ class MedGraphUtil:
                                 in_node.pop(i)
                                 in_node += input
                                 # print 'name: ', out
-                                # print 'input: ', in_nodels
+                                # print 'input: ', in_node
                                 # print 'output: ', med_graph[out]['output']
+            # print ('pop: ', med_node['name'])
             med_graph.pop(med_node['name'])
+            # print ('graph: -----')
+            # for key in med_graph.keys():
+            #     node = med_graph[key]
+            #     print(node['name'], node['ak_type'], node['input'], node['output'])
             #del med_graph[med_node]
         pass
 
@@ -275,6 +280,7 @@ class MedGraphUtil:
         MedGraphUtil._all_search_fusion(med_graph, MedGraphUtil._auto_split)
         print ('********scale***********')
         MedGraphUtil._all_search_table(med_graph, {'Scale': MedGraphUtil._deleteScale})
+        print ('********finish***********')
         # MedGraphUtil._all_search_table(med_graph, {'Input': MedGraphUtil._auto_input_name})
 
     @staticmethod

@@ -17,8 +17,12 @@ class OnnxParser:
 		# config info
 		# print 'onnx_config_dict', onnx_config_dict
 
-        self.ProtoPaths = onnx_config_dict['ProtoPaths']
+        # self.ProtoPaths = onnx_config_dict['ProtoPaths']
         self.OnnxPaths = onnx_config_dict['ModelPath']
+        if onnx_config_dict['TxtPath'] == '':
+            self.txtPaths = None
+        else:
+            self.txtPaths = onnx_config_dict['TxtPath']
         self.med_trans_tool = MedTransAK()
         self.input_count = 0
 
@@ -35,7 +39,7 @@ class OnnxParser:
         convert onnx to med graph
         :return:
         """
-        parser = ParseOnnxToMed(self.OnnxPaths)
+        parser = ParseOnnxToMed(self.OnnxPaths, self.txtPaths)
         return parser.parse()
 
     def _add_protonode(self, ak_graph, med_node):
@@ -103,10 +107,9 @@ class OnnxParser:
         anakin_graph = GraphProtoIO()
 		#print 'med_graph: ', med_graph
         for node in med_graph.values():
-			#print 'node: ', node
             self._add_protonode(anakin_graph, node)
 
-        print '***********anakin**************'
+        print '*************anakin**************'
         anakin_graph.format_edge_from_nodes()
         for out_node_name in self.Output:
             anakin_graph.add_out('output_' + out_node_name, out_node_name)
