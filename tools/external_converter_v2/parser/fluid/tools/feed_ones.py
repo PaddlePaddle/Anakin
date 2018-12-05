@@ -55,6 +55,35 @@ def feed_ones(block, feed_target_names, batch_size=1):
     return feed_dict
 
 
+def feed_randn(block, feed_target_names, batch_size=1, need_save=True):
+    """ 
+    """ 
+    feed_dict = dict()
+    def set_batch_size(shape, batch_size):
+        if shape[0] == -1:
+            shape[0] = batch_size
+        return shape
+    def fill_randn(var_name, batch_size, need_save):
+        var = block.var(var_name)
+        np_shape = set_batch_size(list(var.shape), 1)
+        var_np = {
+            core.VarDesc.VarType.BOOL: np.bool_,
+            core.VarDesc.VarType.INT32: np.int32,
+            core.VarDesc.VarType.INT64: np.int64,
+            core.VarDesc.VarType.FP16: np.float16,
+            core.VarDesc.VarType.FP32: np.float32,
+            core.VarDesc.VarType.FP64: np.float64,
+        }
+        np_dtype = var_np[var.dtype]
+        numpy_array = np.random.random(np_shape).astype(np.float32)
+        if need_save is True:
+            numpy_to_txt(numpy_array, 'feed_' + var_name + '.txt', True)
+        return numpy_array
+    for feed_target_name in feed_target_names:
+        feed_dict[feed_target_name] = fill_randn(feed_target_name, batch_size, need_save)
+    return feed_dict
+
+
 def draw(block, filename='debug'):
     """
     """
@@ -133,7 +162,7 @@ def print_ops_type(block):
         print op_type
 
 
-def print_results(results, fetch_targets, need_save=True):
+def print_results(results, fetch_targets, need_save=False):
     """
     """
     for result in results:
@@ -141,20 +170,21 @@ def print_results(results, fetch_targets, need_save=True):
         print fetch_targets[idx]
         print np.array(result)
         if need_save is True:
-            numpy_to_txt(result, fetch_targets[idx].name, result.shape())
+            numpy_to_txt(result, 'result_' + fetch_targets[idx].name, True)
 
 
-def numpy_to_txt(numpy_array, save_name, shape_list=None):
+def numpy_to_txt(numpy_array, save_name, print_shape=True):
     """
     transform numpy to txt.
     """
-    fluid_fetch_list = list(np.array(numpy_array).flatten())
-    fetch_txt_fp = open('result_' + save_name + '.txt', 'w')
+    np_array = np.array(numpy_array)
+    fluid_fetch_list = list(np_array.flatten())
+    fetch_txt_fp = open(save_name + '.txt', 'w')
     for num in fluid_fetch_list:
         fetch_txt_fp.write(str(num) + '\n')
-    if shape_list is not None:
+    if print_shape is True:
         fetch_txt_fp.write('Shape: (')
-        for val in shape_list:
+        for val in np_array.shape:
             fetch_txt_fp.write(str(val) + ', ')
         fetch_txt_fp.write(')\n')
     fetch_txt_fp.close()
@@ -172,13 +202,14 @@ def fluid_inference_test(model_path):
         fetch_targets] = load_inference_model(model_path, exe)
         global_block = net_program.global_block()
         draw(global_block)
-        feed_list = feed_ones(global_block, feed_target_names)
+        feed_list = feed_ones(global_block, feed_target_names, 1)
+        #feed_list = feed_randn(global_block, feed_target_names, 1, need_save=True)
         fetch_targets = fetch_tmp_vars(global_block, fetch_targets, [GLB_arg_name])
         results = exe.run(program=net_program,
                           feed=feed_list,
                           fetch_list=fetch_targets,
                           return_numpy=False)
-        print_results(results, fetch_targets)
+        print_results(results, fetch_targets, need_save=False)
 
 
 if __name__ == "__main__":
