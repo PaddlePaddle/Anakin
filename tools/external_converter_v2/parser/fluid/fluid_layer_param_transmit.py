@@ -576,11 +576,32 @@ def Parser_fake_dequantize_range_max_abs(args):
     pass
 
 @ParserFeedDecorator("fake_quantize_range_abs_max")
- def Parser_fake_quantize_range_abs_max(args):
-     """
-     A placeholder for an empty function.
-     """
-     pass
+def Parser_fake_quantize_range_abs_max(args):
+    """
+    A placeholder for an empty function.
+    """
+    pass
+
+@ParserFeedDecorator("dequantize")
+def Parser_dequantize(args):
+    """
+    A placeholder for an empty function.
+    """
+    pass
+
+@ParserFeedDecorator("quantize")
+def Parser_quantize(args):
+    """
+    A placeholder for an empty function.
+    """
+    pass
+
+@ParserFeedDecorator("increment")
+def Parser_increment(args):
+    """
+    A placeholder for an empty function.
+    """
+    pass
 
 @ParserFeedDecorator("ShuffleChannel")
 def Parser_shuffle_channel(args):
@@ -613,7 +634,7 @@ def Parser_anchor_generator(args):
     OpsRegister()["AnchorGenerator"].variances = helper.attr_data(op, 'variances')
     OpsRegister()["AnchorGenerator"].stride = helper.attr_data(op, 'stride')
     OpsRegister()["AnchorGenerator"].offset = helper.attr_data(op, 'offset')
-	
+    
 @ParserFeedDecorator("GenerateProposals")
 def Parser_generate_proposals(args):
     op = args[1]
@@ -684,6 +705,8 @@ FLUID_NODE_FILLER = {
     "leaky_relu":OpsParam().set_parser(Parser_leaky_relu),
     "prelu":OpsParam().set_parser(Parser_prelu),
     "split":OpsParam().set_parser(Parser_slice),
+    "quantize":OpsParam().set_parser(Parser_quantize),
+    "dequantize":OpsParam().set_parser(Parser_dequantize),
     "fake_quantize_abs_max":OpsParam().set_parser(Parser_fake_quantize_abs_max),
     "fake_quantize_range_abs_max":OpsParam().set_parser(Parser_fake_quantize_range_abs_max),
     "fake_dequantize_max_abs":OpsParam().set_parser(Parser_fake_dequantize_max_abs),
@@ -697,4 +720,5 @@ FLUID_NODE_FILLER = {
     "roi_align":OpsParam().set_parser(Parser_roi_align),
     # FastRCNN end
     "norm":OpsParam().set_parser(Parser_norm),
+    "increment":OpsParam().set_parser(Parser_increment),
 }

@@ -652,11 +652,13 @@ APPEND_ACT_OP_TYPE = [
 FLUID_QUANTIZE_LAYERS = [
     'fake_quantize_abs_max',
     'fake_quantize_range_abs_max',
+    'quantize',
 ]
 
 FLUID_DEQUANTIZE_LAYERS = [
     'fake_dequantize_max_abs',
     'fake_dequantize_range_max_abs',
+    'dequantize',
 ]
 
 FLUID_SCALE_WEIGHT_OP = [

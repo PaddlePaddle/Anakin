@@ -273,7 +273,8 @@ class FluidParser:
     def _InsertSplit(self, source_ops, helper, quantized=False):
         # If a layer has two identical output tensors, add a split layer.
         for node in self.outs.keys():
-            if node.startswith('split#') is False:
+            if node.startswith('split#') is False and \
+            node.startswith('increment#') is False:
                 out_edges = self.outs[node]
                 for param in out_edges.all_params():
                     out_targets_list = out_edges.targets(param)
