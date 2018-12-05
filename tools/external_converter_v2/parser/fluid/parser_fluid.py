@@ -375,7 +375,8 @@ class FluidParser:
                     self.outs[in_node_name] = Fluid_edger('_Out', node_name)
                     self._AddProtoNode(in_node_name, None, helper, private_data, 'feed')
 
-    def _IntegrateNodes(self, main_op, main_node_name, sec_node_name, helper, private_data, quantized=False):
+    def _IntegrateNodes(self, main_op, main_node_name, sec_node_name, \
+        helper, private_data, quantized=False):
         # Merge secondary nodes to the primary node and process the edges.
         self._RmProtoNode(main_node_name)
         self._RmProtoNode(sec_node_name)
@@ -890,6 +891,67 @@ class FluidParser:
                 self._RmProtoNode(sm_node_name)
                 self._AddProtoNode(sm_node_name, source_op, helper, private_data, 'softmax')
 
+
+    def _DealWithPixelShuffle(self, source_ops, helper, quantized=False):
+        for source_op in source_ops:
+            if source_op.type in ['transpose', 'transpose2']:
+                axis = helper.attr_data(source_op, 'axis')
+                if axis == [0, 1, 4, 2, 5, 3]:
+                    private_data = dict()
+                    ts_node_name = self._NameNodeMid(source_op)
+                    in_of_transpose = self.ins[ts_node_name].target('X')
+                    out_of_transpose = self.outs[ts_node_name].target('Out')
+                    if in_of_transpose.startswith('reshape') and \
+                    out_of_transpose.startswith('reshape'):
+                        in_reshape_op = self._GetOp(source_ops, in_of_transpose)
+                        out_reshape_op = self._GetOp(source_ops, out_of_transpose)
+                        in_shape = helper.attr_data(in_reshape_op, 'shape')
+                        out_shape = helper.attr_data(out_reshape_op, 'shape')
+                        private_data['factor'] = out_shape[-1] / in_shape[-1]
+                        in_first_reshape = self.ins[in_of_transpose].target('X')
+                        out_last_reshape = self.outs[out_of_transpose].target('Out')
+                        self.outs[in_first_reshape].mv(in_of_transpose, ts_node_name)
+                        self.outs[ts_node_name].mv(out_of_transpose, out_last_reshape)
+                        self.ins[out_last_reshape].mv(out_of_transpose, ts_node_name)
+                        self.ins[ts_node_name].mv(in_of_transpose, in_first_reshape)
+                        self._RmProtoNode(in_of_transpose)
+                        self._RmProtoNode(out_of_transpose)
+                        self._ClearEdges(in_of_transpose)
+                        self._ClearEdges(out_of_transpose)
+                        self._RmProtoNode(ts_node_name)
+                        self._AddProtoNode(ts_node_name, None, helper, \
+                            private_data, 'pixel_shuffle')
+
+    def _DealWithShuffleChannel(self, source_ops, helper, quantized=False):
+        for source_op in source_ops:
+            if source_op.type in ['transpose', 'transpose2']:
+                axis = helper.attr_data(source_op, 'axis')
+                if axis == [0, 2, 1, 3, 4]:
+                    private_data = dict()
+                    ts_node_name = self._NameNodeMid(source_op)
+                    in_of_transpose = self.ins[ts_node_name].target('X')
+                    out_of_transpose = self.outs[ts_node_name].target('Out')
+                    if in_of_transpose.startswith('reshape') and \
+                    out_of_transpose.startswith('reshape'):
+                        in_reshape_op = self._GetOp(source_ops, in_of_transpose)
+                        out_reshape_op = self._GetOp(source_ops, out_of_transpose)
+                        in_shape = helper.attr_data(in_reshape_op, 'shape')
+                        out_shape = helper.attr_data(out_reshape_op, 'shape')
+                        private_data['group'] = out_shape[-3] / in_shape[-3]
+                        in_first_reshape = self.ins[in_of_transpose].target('X')
+                        out_last_reshape = self.outs[out_of_transpose].target('Out')
+                        self.outs[in_first_reshape].mv(in_of_transpose, ts_node_name)
+                        self.outs[ts_node_name].mv(out_of_transpose, out_last_reshape)
+                        self.ins[out_last_reshape].mv(out_of_transpose, ts_node_name)
+                        self.ins[ts_node_name].mv(in_of_transpose, in_first_reshape)
+                        self._RmProtoNode(in_of_transpose)
+                        self._RmProtoNode(out_of_transpose)
+                        self._ClearEdges(in_of_transpose)
+                        self._ClearEdges(out_of_transpose)
+                        self._RmProtoNode(ts_node_name)
+                        self._AddProtoNode(ts_node_name, None, helper, \
+                            private_data, 'shuffle_channel')
+
     def _DealWithFakeQuantize(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type in FLUID_QUANTIZE_LAYERS:
@@ -900,8 +962,9 @@ class FluidParser:
                 qt_node = self._GetOp(source_ops, qt_node_name)
                 op_out_q = self._GetOp(source_ops, out_of_qt)
                 in_scale = helper.attr_data(source_op, 'InScale')
-                self.scale_dict[qt_node_name] = helper.data_with_shape_by_param(qt_node, 'OutScales')[0]
-                private_data['scale_1'] = self.scale_dict[qt_node_name]
+                self.scale_dict[out_of_qt] = \
+                helper.data_with_shape_by_param(qt_node, 'OutScales')[0]
+                private_data['scale_1'] = self.scale_dict[out_of_qt]
                 self.outs[in_of_qt].mv(qt_node_name, out_of_qt)
                 self.outs[in_of_qt].set_scale(out_of_qt, in_scale)
                 self.ins[out_of_qt].mv(qt_node_name, in_of_qt)
@@ -969,6 +1032,8 @@ class FluidParser:
             self._DealWithMultiFC(source_ops, helper)
             self._DealWithArgmax(source_ops, helper)
             self._DealWithAxpy(source_ops, helper)
+            self._DealWithPixelShuffle(source_ops, helper)
+            self._DealWithShuffleChannel(source_ops, helper)
             if self.NetType == "SSD":
                 self._DealWithPriorBox(source_ops, helper)
                 self._DealWithDetectionOutput(source_ops, helper)
@@ -996,4 +1061,5 @@ class FluidParser:
             helper = Fluid_helper(self.scope, global_block)
 
             self._ParseNetwork(source_ops, helper)
+
             return self.graphIO

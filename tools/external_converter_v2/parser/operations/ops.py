@@ -448,3 +448,22 @@ OpsRegister.Register("SequencePool").set_attr(pooltype = str())  #no paras, no w
 #####################################Unpadding_padding op define ############################    #########
 ###### it is named UnpaddingPaddingLayer in lego,
 OpsRegister.Register("ConvUnpaddingPadding").set_attr()  #no paras, no weights.
+# Fast-RCNN
+OpsRegister.Register("AffineChannel").set_attr()  #no paras, no weights.
+
+OpsRegister.Register("AnchorGenerator").set_attr(anchor_sizes=list(),
+                                                 aspect_ratios=list(),
+                                                 variances=list(),
+                                                 stride=list(),
+                                                 offset=float())
+
+OpsRegister.Register("GenerateProposals").set_attr(pre_nms_top_n=int(),
+                                                 post_nms_top_n=int(),
+                                                 nms_thresh=float(),
+                                                 min_size=float(),
+                                                 eta=float())
+
+OpsRegister.Register("RoiAlign").set_attr(spatial_scale=float(),
+                                          pooled_height=int(),
+                                          pooled_width=int(),
+                                          sampling_ratio=int())
