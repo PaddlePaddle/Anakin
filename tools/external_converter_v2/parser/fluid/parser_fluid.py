@@ -165,39 +165,41 @@ class FluidParser:
                 in_edges = Fluid_edger()
                 out_edges = Fluid_edger()
                 for param in source_op.input_names:
-                    for idx in range(0, len(helper.args_by_input_param(source_op, param))):
-                        arg = helper.var_name_by_param(source_op, param, idx)
-                        for tmp_op in source_ops:
-                            if tmp_op.idx != source_op.idx and arg in tmp_op.output_arg_names:
-                                if tmp_op.type == 'feed':
-                                    if arg not in self.graph_ins:
-                                        self.graph_ins.append(arg)
-                                        self.graphIO.add_in(self._NameNodeIn(arg))
-                                    in_edges.add(param, self._NameNodeIn(arg), arg)
-                                else:
-                                    tmp_node_name = self._NameNodeMid(tmp_op)
-                                    if tmp_node_name in self.inplace_nodes.keys():
-                                        inplace_node_name = self.inplace_nodes[tmp_node_name][-1]
-                                        in_edges.add(param, inplace_node_name, arg)
-                                    elif tmp_node_name not in self._InplaceNodes('All'):
-                                        in_edges.add(param, tmp_node_name, arg)
+                    if param not in ['InScale']:
+                        for idx in range(0, len(helper.args_by_input_param(source_op, param))):
+                            arg = helper.var_name_by_param(source_op, param, idx)
+                            for tmp_op in source_ops:
+                                if tmp_op.idx != source_op.idx and arg in tmp_op.output_arg_names:
+                                    if tmp_op.type == 'feed':
+                                        if arg not in self.graph_ins:
+                                            self.graph_ins.append(arg)
+                                            self.graphIO.add_in(self._NameNodeIn(arg))
+                                        in_edges.add(param, self._NameNodeIn(arg), arg)
+                                    else:
+                                        tmp_node_name = self._NameNodeMid(tmp_op)
+                                        if tmp_node_name in self.inplace_nodes.keys():
+                                            inplace_node_name = self.inplace_nodes[tmp_node_name][-1]
+                                            in_edges.add(param, inplace_node_name, arg)
+                                        elif tmp_node_name not in self._InplaceNodes('All'):
+                                            in_edges.add(param, tmp_node_name, arg)
                 for param in source_op.output_names:
-                    for idx in range(0, len(helper.args_by_output_param(source_op, param))):
-                        arg = helper.var_name_by_param(source_op, param, idx)
-                        for tmp_op in source_ops:
-                            if tmp_op.idx != source_op.idx and arg in tmp_op.input_arg_names:
-                                if tmp_op.type == 'fetch':
-                                    if arg not in debug_fetch_list:
-                                        arg_node_name = self._NameNodeOut(arg)
-                                        if arg not in self.graph_outs:
-                                            self.graph_outs.append(arg)
-                                            self.graphIO.add_out_fluid(arg_node_name, \
+                    if param not in ['OutScale']:
+                        for idx in range(0, len(helper.args_by_output_param(source_op, param))):
+                            arg = helper.var_name_by_param(source_op, param, idx)
+                            for tmp_op in source_ops:
+                                if tmp_op.idx != source_op.idx and arg in tmp_op.input_arg_names:
+                                    if tmp_op.type == 'fetch':
+                                        if arg not in debug_fetch_list:
+                                            arg_node_name = self._NameNodeOut(arg)
+                                            if arg not in self.graph_outs:
+                                                self.graph_outs.append(arg)
+                                                self.graphIO.add_out_fluid(arg_node_name, \
+                                                    main_node_name)
+                                            out_edges.add(param, arg_node_name, arg)
+                                            self.ins[arg_node_name] = Fluid_edger(bytes(source_op.idx), \
                                                 main_node_name)
-                                        out_edges.add(param, arg_node_name, arg)
-                                        self.ins[arg_node_name] = Fluid_edger(bytes(source_op.idx), \
-                                            main_node_name)
-                                else:
-                                    out_edges.add(param, self._NameNodeMid(tmp_op), arg)
+                                    else:
+                                        out_edges.add(param, self._NameNodeMid(tmp_op), arg)
                 self._AddProtoNode(main_node_name, source_op, helper, {})
                 if main_node_name not in self._InplaceNodes('Mid'):
                     if main_node_name not in self._InplaceNodes('End'):
@@ -390,40 +392,6 @@ class FluidParser:
         self.ins[sec_node_name].rm(main_node_name)
         self.outs[main_node_name].rm(sec_node_name)
         self._AddProtoNode(main_node_name, main_op, helper, private_data)
-
-    def _DealWithQuantize(self, source_ops, helper, quantized=False):
-        for source_op in source_ops:
-            if source_op.type in FLUID_QUANTIZE_LAYERS:
-                private_data = dict()
-                qt_node_name = self._NameNodeMid(source_op)
-                in_of_qt = self.ins[qt_node_name].target('X')
-                out_of_qt = self.outs[qt_node_name].target('Out')
-                qt_node = self._GetOp(source_ops, qt_node_name)
-                op_out_q = self._GetOp(source_ops, out_of_qt)
-                in_scale = helper.attr_data(source_op, 'InScale')
-                self.scale_dict[out_of_qt] = \
-                helper.data_with_shape_by_param(qt_node, 'OutScales')[0]
-                private_data['scale_1'] = self.scale_dict[out_of_qt]
-                self.outs[in_of_qt].mv(qt_node_name, out_of_qt)
-                self.outs[in_of_qt].set_scale(out_of_qt, in_scale)
-                self.ins[out_of_qt].mv(qt_node_name, in_of_qt)
-                self.ins[out_of_qt].set_scale(in_of_qt, in_scale)
-                self._RmProtoNode(qt_node_name)
-                self._RmProtoNode(out_of_qt)
-                self._AddProtoNode(out_of_qt, op_out_q, helper, private_data)
-                self._ClearEdges(qt_node_name)
-        for source_op in source_ops:
-            if source_op.type in FLUID_DEQUANTIZE_LAYERS:
-                qt_node_name = self._NameNodeMid(source_op)
-                in_of_qt = self.ins[qt_node_name].target('X')
-                out_of_qt = self.outs[qt_node_name].target('Out')
-                scale = helper.attr_data(source_op, 'Scale')
-                self.outs[in_of_qt].mv(qt_node_name, out_of_qt)
-                self.outs[in_of_qt].set_scale(out_of_qt, scale)
-                self.ins[out_of_qt].mv(qt_node_name, in_of_qt)
-                self.ins[out_of_qt].set_scale(in_of_qt, scale)
-                self._RmProtoNode(qt_node_name)
-                self._ClearEdges(qt_node_name)
 
     def _DealWithBias(self, source_ops, helper, quantized=False):
         # In fluid, the bias parameter of the conv2d is split into elementwise_add.
@@ -1013,7 +981,7 @@ class FluidParser:
                     self._AddPairEdges(ag_node_name, split_node_name, param, '_In')
                     self._AddProtoNode(split_node_name, None, helper, private_data, 'split_ins')
 
-    def _GenerateProposals(self, source_ops, helper, quantized=False):
+    def _DealWithGenerateProposals(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type == 'generate_proposals':
                 gp_node_name = self._NameNodeMid(source_op)
@@ -1026,6 +994,44 @@ class FluidParser:
                     self.outs[gp_node_name].add('temp_out', arg_node_name)
                     self.ins[arg_node_name] = Fluid_edger(bytes(source_op.idx), \
                         gp_node_name)
+
+    def _DealWithQuantize(self, source_ops, helper, quantized=False):
+        for source_op in source_ops:
+            if source_op.type in FLUID_QUANTIZE_LAYERS:
+                private_data = dict()
+                qt_node_name = self._NameNodeMid(source_op)
+                in_of_qt = self.ins[qt_node_name].target('X')
+                outs_of_qt = self.outs[qt_node_name].targets('Out')
+                qt_node = self._GetOp(source_ops, qt_node_name)
+                in_scale = helper.attr_data(source_op, 'InScale')
+                self.outs[in_of_qt].rm(qt_node_name)
+                for out_of_qt in outs_of_qt:
+                    op_out_q = self._GetOp(source_ops, out_of_qt)
+                    self.scale_dict[out_of_qt] = \
+                    helper.data_with_shape_by_param(qt_node, 'OutScales')[0]
+                    private_data['scale_1'] = self.scale_dict[out_of_qt]
+                    param_name = 'Quantize_out_' + str(outs_of_qt.index(out_of_qt))
+                    self.outs[in_of_qt].add(param_name, out_of_qt, None, in_scale)
+                    self.ins[out_of_qt].mv(qt_node_name, in_of_qt)
+                    self.ins[out_of_qt].set_scale(in_of_qt, in_scale)
+                    self._RmProtoNode(out_of_qt)
+                    self._AddProtoNode(out_of_qt, op_out_q, helper, private_data)
+                self._RmProtoNode(qt_node_name)
+                self._ClearEdges(qt_node_name)
+
+    def _DealWithDequantize(self, source_ops, helper, quantized=False):
+        for source_op in source_ops:
+            if source_op.type in FLUID_DEQUANTIZE_LAYERS:
+                qt_node_name = self._NameNodeMid(source_op)
+                in_of_qt = self.ins[qt_node_name].target('X')
+                out_of_qt = self.outs[qt_node_name].target('Out')
+                scale = helper.attr_data(source_op, 'Scale')
+                self.outs[in_of_qt].mv(qt_node_name, out_of_qt)
+                self.outs[in_of_qt].set_scale(out_of_qt, scale)
+                self.ins[out_of_qt].mv(qt_node_name, in_of_qt)
+                self.ins[out_of_qt].set_scale(in_of_qt, scale)
+                self._RmProtoNode(qt_node_name)
+                self._ClearEdges(qt_node_name)
 
 
     def _NewCommonLayer(self,
@@ -1066,6 +1072,7 @@ class FluidParser:
                 reshape_dict['input_0'] = [1, 37, 1, 1]
             self._ReplaceInputs(source_ops, helper, reshape_dict)
             self._DealWithQuantize(source_ops, helper)
+            self._DealWithDequantize(source_ops, helper)
             self._InsertSplit(source_ops, helper)
             self._DealWithBias(source_ops, helper)
             self._DealWithGru(source_ops, helper)
@@ -1078,7 +1085,7 @@ class FluidParser:
             self._DealWithShuffleChannel(source_ops, helper)
             if self.NetType == "FASTRCNN":
                 self._DealWithAnchorGenerator(source_ops, helper)
-                self._GenerateProposals(source_ops, helper)
+                self._DealWithGenerateProposals(source_ops, helper)
             if self.NetType == "SSD":
                 self._DealWithPriorBox(source_ops, helper)
                 self._DealWithDetectionOutput(source_ops, helper)
@@ -1086,9 +1093,9 @@ class FluidParser:
                 self._DealWithSSD(source_ops, helper)
                 self._RefreshReshape(source_ops, helper)
         if self.Debug == 'IN':
-            self._Graph(True, True)
+            self._Graph(True, False)
         else:
-            self._Graph(False, True)
+            self._Graph(False, False)
 
     def _Parsing(self):
         with fluid.scope_guard(self.scope):
