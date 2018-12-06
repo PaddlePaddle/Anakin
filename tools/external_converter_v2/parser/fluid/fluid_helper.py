@@ -81,6 +81,13 @@ class Fluid_edger:
         if res != 0:
             pass
 
+    def reset_target_by_param(self, param, new_target):
+        '''
+        '''
+        for edge in self.edges:
+            if edge.param == param:
+                edge.target = new_target
+
     def all_params(self):
         '''
         '''

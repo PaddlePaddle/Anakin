@@ -230,7 +230,7 @@ class FluidParser:
                 if reverse is False:
                     self.graphIO.add_in_edge(target, node, scale)
                 else:
-                    self.graphIO.add_out_edge(node, target, scale)
+                    self.graphIO.add_out_edge(target, node, scale)
         for node in self.outs.keys():
             targets_list = self.outs[node]()
             targets_scale = self.outs[node].all_scales()
@@ -239,7 +239,7 @@ class FluidParser:
                 if reverse is False:
                     self.graphIO.add_out_edge(node, target, scale)
                 else:
-                    self.graphIO.add_in_edge(target, node, scale)
+                    self.graphIO.add_in_edge(node, target, scale)
                 if need_print is True:
                     self._PrintEdge(node, target, 'out')
 
@@ -390,6 +390,40 @@ class FluidParser:
         self.ins[sec_node_name].rm(main_node_name)
         self.outs[main_node_name].rm(sec_node_name)
         self._AddProtoNode(main_node_name, main_op, helper, private_data)
+
+    def _DealWithQuantize(self, source_ops, helper, quantized=False):
+        for source_op in source_ops:
+            if source_op.type in FLUID_QUANTIZE_LAYERS:
+                private_data = dict()
+                qt_node_name = self._NameNodeMid(source_op)
+                in_of_qt = self.ins[qt_node_name].target('X')
+                out_of_qt = self.outs[qt_node_name].target('Out')
+                qt_node = self._GetOp(source_ops, qt_node_name)
+                op_out_q = self._GetOp(source_ops, out_of_qt)
+                in_scale = helper.attr_data(source_op, 'InScale')
+                self.scale_dict[out_of_qt] = \
+                helper.data_with_shape_by_param(qt_node, 'OutScales')[0]
+                private_data['scale_1'] = self.scale_dict[out_of_qt]
+                self.outs[in_of_qt].mv(qt_node_name, out_of_qt)
+                self.outs[in_of_qt].set_scale(out_of_qt, in_scale)
+                self.ins[out_of_qt].mv(qt_node_name, in_of_qt)
+                self.ins[out_of_qt].set_scale(in_of_qt, in_scale)
+                self._RmProtoNode(qt_node_name)
+                self._RmProtoNode(out_of_qt)
+                self._AddProtoNode(out_of_qt, op_out_q, helper, private_data)
+                self._ClearEdges(qt_node_name)
+        for source_op in source_ops:
+            if source_op.type in FLUID_DEQUANTIZE_LAYERS:
+                qt_node_name = self._NameNodeMid(source_op)
+                in_of_qt = self.ins[qt_node_name].target('X')
+                out_of_qt = self.outs[qt_node_name].target('Out')
+                scale = helper.attr_data(source_op, 'Scale')
+                self.outs[in_of_qt].mv(qt_node_name, out_of_qt)
+                self.outs[in_of_qt].set_scale(out_of_qt, scale)
+                self.ins[out_of_qt].mv(qt_node_name, in_of_qt)
+                self.ins[out_of_qt].set_scale(in_of_qt, scale)
+                self._RmProtoNode(qt_node_name)
+                self._ClearEdges(qt_node_name)
 
     def _DealWithBias(self, source_ops, helper, quantized=False):
         # In fluid, the bias parameter of the conv2d is split into elementwise_add.
@@ -953,39 +987,46 @@ class FluidParser:
                         self._AddProtoNode(ts_node_name, None, helper, \
                             private_data, 'shuffle_channel')
 
-    def _DealWithFakeQuantize(self, source_ops, helper, quantized=False):
+    def _DealWithAnchorGenerator(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
-            if source_op.type in FLUID_QUANTIZE_LAYERS:
+            if source_op.type == 'anchor_generator':
                 private_data = dict()
-                qt_node_name = self._NameNodeMid(source_op)
-                in_of_qt = self.ins[qt_node_name].target('X')
-                out_of_qt = self.outs[qt_node_name].target('Out')
-                qt_node = self._GetOp(source_ops, qt_node_name)
-                op_out_q = self._GetOp(source_ops, out_of_qt)
-                in_scale = helper.attr_data(source_op, 'InScale')
-                self.scale_dict[out_of_qt] = \
-                helper.data_with_shape_by_param(qt_node, 'OutScales')[0]
-                private_data['scale_1'] = self.scale_dict[out_of_qt]
-                self.outs[in_of_qt].mv(qt_node_name, out_of_qt)
-                self.outs[in_of_qt].set_scale(out_of_qt, in_scale)
-                self.ins[out_of_qt].mv(qt_node_name, in_of_qt)
-                self.ins[out_of_qt].set_scale(in_of_qt, in_scale)
-                self._RmProtoNode(qt_node_name)
-                self._RmProtoNode(out_of_qt)
-                self._AddProtoNode(out_of_qt, op_out_q, helper, private_data)
-                self._ClearEdges(qt_node_name)
+                ag_node_name = self._NameNodeMid(source_op)
+                out_edges = self.outs[ag_node_name]
+                for param in out_edges.all_params():
+                    arg = helper.args_by_output_param(source_op, param)
+                    out_target = out_edges.target(param)
+                    if out_target.startswith('generate_proposals') is False:
+                        raise NameError('ERROR: Unknown output of AnchorGenerator.')
+                    private_data['split_num'] = 1
+                    split_node_name = 'split#' + \
+                    bytes(out_edges.all_params().index(param)) + '#' + ag_node_name
+                    self._InitEdges(split_node_name)
+                    self.outs[ag_node_name].reset_target_by_param(param, split_node_name)
+                    in_edges = self.ins[out_target]
+                    in_op = self._GetOp(source_ops, out_target)
+                    for in_param in in_edges.all_params():
+                        in_arg = helper.args_by_input_param(in_op, in_param)
+                        if in_arg == arg:
+                            self.ins[out_target].reset_target_by_param(in_param, split_node_name)
+                    self.outs[split_node_name].add('_Out', out_target)
+                    self._AddPairEdges(ag_node_name, split_node_name, param, '_In')
+                    self._AddProtoNode(split_node_name, None, helper, private_data, 'split_ins')
+
+    def _GenerateProposals(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
-            if source_op.type in FLUID_DEQUANTIZE_LAYERS:
-                qt_node_name = self._NameNodeMid(source_op)
-                in_of_qt = self.ins[qt_node_name].target('X')
-                out_of_qt = self.outs[qt_node_name].target('Out')
-                scale = helper.attr_data(source_op, 'Scale')
-                self.outs[in_of_qt].mv(qt_node_name, out_of_qt)
-                self.outs[in_of_qt].set_scale(out_of_qt, scale)
-                self.ins[out_of_qt].mv(qt_node_name, in_of_qt)
-                self.ins[out_of_qt].set_scale(in_of_qt, scale)
-                self._RmProtoNode(qt_node_name)
-                self._ClearEdges(qt_node_name)
+            if source_op.type == 'generate_proposals':
+                gp_node_name = self._NameNodeMid(source_op)
+                targets = self.outs[gp_node_name].all_targets()
+                if len(targets) == 1 is True or targets[0].startswith('split#') is True:
+                    arg_node_name = 'temp_out_of_generate_proposals'
+                    self.graph_outs.append(arg_node_name)
+                    self.graphIO.add_out_fluid(arg_node_name, \
+                        gp_node_name)
+                    self.outs[gp_node_name].add('temp_out', arg_node_name)
+                    self.ins[arg_node_name] = Fluid_edger(bytes(source_op.idx), \
+                        gp_node_name)
+
 
     def _NewCommonLayer(self,
                         source_ops,
@@ -1024,7 +1065,7 @@ class FluidParser:
             elif self.NetType == "ROUTEDNN":
                 reshape_dict['input_0'] = [1, 37, 1, 1]
             self._ReplaceInputs(source_ops, helper, reshape_dict)
-            self._DealWithFakeQuantize(source_ops, helper)
+            self._DealWithQuantize(source_ops, helper)
             self._DealWithBias(source_ops, helper)
             self._InsertSplit(source_ops, helper)
             self._DealWithGru(source_ops, helper)
@@ -1035,6 +1076,9 @@ class FluidParser:
             self._DealWithAxpy(source_ops, helper)
             self._DealWithPixelShuffle(source_ops, helper)
             self._DealWithShuffleChannel(source_ops, helper)
+            if self.NetType == "FASTRCNN":
+                self._DealWithAnchorGenerator(source_ops, helper)
+                self._GenerateProposals(source_ops, helper)
             if self.NetType == "SSD":
                 self._DealWithPriorBox(source_ops, helper)
                 self._DealWithDetectionOutput(source_ops, helper)
