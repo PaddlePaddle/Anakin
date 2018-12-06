@@ -1086,9 +1086,9 @@ class FluidParser:
                 self._DealWithSSD(source_ops, helper)
                 self._RefreshReshape(source_ops, helper)
         if self.Debug == 'IN':
-            self._Graph(True)
+            self._Graph(True, True)
         else:
-            self._Graph()
+            self._Graph(False, True)
 
     def _Parsing(self):
         with fluid.scope_guard(self.scope):
