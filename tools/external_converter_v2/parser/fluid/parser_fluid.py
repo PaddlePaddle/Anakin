@@ -994,6 +994,7 @@ class FluidParser:
                     self.outs[gp_node_name].add('temp_out', arg_node_name)
                     self.ins[arg_node_name] = Fluid_edger(bytes(source_op.idx), \
                         gp_node_name)
+                    '''
                     anchors_in = self.ins[gp_node_name].target('Anchors')
                     bboxdeltas_in = self.ins[gp_node_name].target('BboxDeltas')
                     iminfo_in = self.ins[gp_node_name].target('ImInfo')
@@ -1008,6 +1009,7 @@ class FluidParser:
                     self.ins[gp_node_name].add('ImInfo', iminfo_in)
                     self.ins[gp_node_name].add('Scores', scores_in)
                     self.ins[gp_node_name].add('Variances', variances_in)
+                    '''
 
     def _DealWithQuantize(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
