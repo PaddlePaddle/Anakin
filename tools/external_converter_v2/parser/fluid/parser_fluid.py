@@ -994,6 +994,20 @@ class FluidParser:
                     self.outs[gp_node_name].add('temp_out', arg_node_name)
                     self.ins[arg_node_name] = Fluid_edger(bytes(source_op.idx), \
                         gp_node_name)
+                    anchors_in = self.ins[gp_node_name].target('Anchors')
+                    bboxdeltas_in = self.ins[gp_node_name].target('BboxDeltas')
+                    iminfo_in = self.ins[gp_node_name].target('ImInfo')
+                    scores_in = self.ins[gp_node_name].target('Scores')
+                    variances_in = self.ins[gp_node_name].target('Variances')
+                    targets_in = [anchors_in, bboxdeltas_in, iminfo_in, \
+                    scores_in, variances_in]
+                    for target_in in targets_in:
+                        self.ins[gp_node_name].rm(target_in)
+                    self.ins[gp_node_name].add('Anchors', anchors_in)
+                    self.ins[gp_node_name].add('BboxDeltas', bboxdeltas_in)
+                    self.ins[gp_node_name].add('ImInfo', iminfo_in)
+                    self.ins[gp_node_name].add('Scores', scores_in)
+                    self.ins[gp_node_name].add('Variances', variances_in)
 
     def _DealWithQuantize(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
@@ -1033,6 +1047,16 @@ class FluidParser:
                 self._RmProtoNode(qt_node_name)
                 self._ClearEdges(qt_node_name)
 
+    def _DealWithRoiAlign(self, source_ops, helper, quantized=False):
+        for source_op in source_ops:
+            if source_op.type == 'roi_align':
+                ra_node_name = self._NameNodeMid(source_op)
+                x_in_of_ra = self.ins[ra_node_name].target('X')
+                rois_in_of_ra = self.ins[ra_node_name].target('ROIs')
+                self.ins[ra_node_name].rm(x_in_of_ra)
+                self.ins[ra_node_name].rm(rois_in_of_ra)
+                self.ins[ra_node_name].add('X', x_in_of_ra, None)
+                self.ins[ra_node_name].add('ROIs', rois_in_of_ra, None)
 
     def _NewCommonLayer(self,
                         source_ops,
@@ -1086,6 +1110,7 @@ class FluidParser:
             if self.NetType == "FASTRCNN":
                 self._DealWithAnchorGenerator(source_ops, helper)
                 self._DealWithGenerateProposals(source_ops, helper)
+                self._DealWithRoiAlign(source_ops, helper)
             if self.NetType == "SSD":
                 self._DealWithPriorBox(source_ops, helper)
                 self._DealWithDetectionOutput(source_ops, helper)
