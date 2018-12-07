@@ -1017,6 +1017,7 @@ class FluidParser:
                 private_data = dict()
                 qt_node_name = self._NameNodeMid(source_op)
                 in_of_qt = self.ins[qt_node_name].target('X')
+                out_param_of_in = self.outs[in_of_qt].all_params()[0]
                 outs_of_qt = self.outs[qt_node_name].targets('Out')
                 qt_node = self._GetOp(source_ops, qt_node_name)
                 in_scale = helper.attr_data(source_op, 'InScale')
@@ -1026,7 +1027,7 @@ class FluidParser:
                     self.scale_dict[out_of_qt] = \
                     helper.data_with_shape_by_param(qt_node, 'OutScales')[0]
                     private_data['scale_1'] = self.scale_dict[out_of_qt]
-                    param_name = 'Quantize_out_' + str(outs_of_qt.index(out_of_qt))
+                    param_name = out_param_of_in
                     self.outs[in_of_qt].add(param_name, out_of_qt, None, in_scale)
                     self.ins[out_of_qt].mv(qt_node_name, in_of_qt)
                     self.ins[out_of_qt].set_scale(in_of_qt, in_scale)
