@@ -994,7 +994,7 @@ class FluidParser:
                     self.outs[gp_node_name].add('temp_out', arg_node_name)
                     self.ins[arg_node_name] = Fluid_edger(bytes(source_op.idx), \
                         gp_node_name)
-                    '''
+                    ''' 
                     anchors_in = self.ins[gp_node_name].target('Anchors')
                     bboxdeltas_in = self.ins[gp_node_name].target('BboxDeltas')
                     iminfo_in = self.ins[gp_node_name].target('ImInfo')
