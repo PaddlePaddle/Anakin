@@ -202,6 +202,40 @@ SaberStatus SaberConv2D<AMD, OpDtype>::create(
                 if (kernelInfo.kernel_name == "conv7x7c3h224w224k64u2v2p3q3f1b1prelu"
                         || kernelInfo.kernel_name == "conv7x7c3h224w224k64u2v2p3q3f1b0prelu") {
                     kernelInfo.wk_dim      = 3;
+                }    else if (kernelInfo.kernel_name == "ConvFwd1x1") {
+                    int slot_size = 1;
+
+                    if (inputs[0]->num() == 1) {
+                        if (inputs[0]->height() == 7 || (inputs[0]->height() == 14 && inputs[0]->channel() == 1024)) {
+                            slot_size = 1024;
+                        } else if (inputs[0]->height() == 28 || (inputs[0]->height() == 14
+                                   && inputs[0]->channel() == 256)) {
+                            slot_size = 2048;
+                        } else {
+                            slot_size = 1664;
+
+                            if (param.weight()->num() == 256) {
+                                slot_size = 1600;
+                            }
+                        }
+                    }
+
+                    else if (inputs[0]->height() == 7 && inputs[0]->channel() == 2048 && param.weight()->num() == 512) {
+                        slot_size = 32761;
+                    } else if (inputs[0]->height() == 14 && inputs[0]->channel() == 1024 && inputs[0]->num() == 2
+                               && param.weight()->num() == 256) {
+                        slot_size = 32584;
+                    }
+
+                    _slot = new Tensor<AMD>();
+                    _slot->re_alloc(
+                        Shape({slot_size}, Layout_W));
+
+                    int out_channels = param.weight()->num();
+                    AMD_API::stream_t cm = this->_ctx->get_compute_stream();
+                    Shape bias_s({1, out_channels, 1, 1}, Layout_NCHW);
+                    _tensile_bias.re_alloc(bias_s, AK_FLOAT);
+                    fill_tensor_const(_tensile_bias, 0.f, cm);
                 }
 
                 CreateKernelList(inputs[0]->device_id(), kernelInfo);
@@ -394,6 +428,57 @@ SaberStatus SaberConv2D<AMD, OpDtype>::dispatch(
             }
 
             list.push_back(_kernels_ptr[i]);
+        } else if (_kernels_ptr[i].get()->GetName() == "ConvFwd1x1") {
+            if (isBias) {
+                if (isActive) {
+                    err = _kernels_ptr[i].get()->SetKernelArgs(
+                              (PtrDtype)inputs[0]->data(),
+                              (PtrDtype)param.weight()->data(),
+                              (PtrDtype)param.bias()->data(),
+                              (PtrDtype)outputs[0]->mutable_data(),
+                              (PtrDtype)_slot->mutable_data(),
+                              param.activation_param.negative_slope);
+                } else {
+                    err = _kernels_ptr[i].get()->SetKernelArgs(
+                              (PtrDtype)inputs[0]->data(),
+                              (PtrDtype)param.weight()->data(),
+                              (PtrDtype)param.bias()->data(),
+                              (PtrDtype)outputs[0]->mutable_data(),
+                              (PtrDtype)_slot->mutable_data(),
+                              1.0f);
+                }
+            } else {
+                if (isActive) {
+                    err = _kernels_ptr[i].get()->SetKernelArgs(
+                              (PtrDtype)inputs[0]->data(),
+                              (PtrDtype)param.weight()->data(),
+                              (PtrDtype)_tensile_bias.data(),
+                              (PtrDtype)outputs[0]->mutable_data(),
+                              (PtrDtype)_slot->mutable_data(),
+                              param.activation_param.negative_slope);
+                } else {
+                    err = _kernels_ptr[i].get()->SetKernelArgs(
+                              (PtrDtype)inputs[0]->data(),
+                              (PtrDtype)param.weight()->data(),
+                              (PtrDtype)_tensile_bias.data(),
+                              (PtrDtype)outputs[0]->mutable_data(),
+                              (PtrDtype)_slot->mutable_data(),
+                              1.0f);
+                }
+            }
+
+            if (!err) {
+                ALOGE("Fail to set kernel args :" << err);
+                return SaberInvalidValue;
+            }
+
+            list.push_back(_kernels_ptr[i]);
+            err = LaunchKernel(cm, list);
+
+            if (!err) {
+                ALOGE("Fail to set execution :" << err);
+                return SaberInvalidValue;
+            }
         } else if (_kernels_ptr[i].get()->GetName() == "conv1x1_act") {
             if (isBias) {
                 err = _kernels_ptr[i].get()->SetKernelArgs(
