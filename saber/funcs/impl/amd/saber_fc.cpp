@@ -636,14 +636,12 @@ SaberStatus SaberFc<AMD, OpDtype>::dispatch(
                           (PtrDtype)memObjects[0],
                           (PtrDtype)memObjects[1],
                           (PtrDtype)memObjects[2],
-                          (PtrDtype)memObjects[3],
-                          1.0f);
+                          (PtrDtype)memObjects[3]);
             } else {
                 err = _kernels_ptr[0].get()->SetKernelArgs(
                           (PtrDtype)memObjects[0],
                           (PtrDtype)memObjects[1],
-                          (PtrDtype)memObjects[3],
-                          1.0f);
+                          (PtrDtype)memObjects[3]);
             }
 
             if (!err) {

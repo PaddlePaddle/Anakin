@@ -31,8 +31,11 @@ __attribute__((reqd_work_group_size(64, 1, 1))) __kernel void InnerProduct(
 #ifdef BIAS
     __global const float* bias,
 #endif
-    __global float* c,
-    float slope) {
+    __global float* c
+#ifdef RELU
+    , float slope
+#endif
+) {
     uint lid_x = get_local_id(0);
     uint grid_x = get_group_id(0);
 
@@ -89,7 +92,9 @@ __attribute__((reqd_work_group_size(64, 1, 1))) __kernel void InnerProduct(
 #else
                 pC[n * OUTPUT] = result[n][0];
 #endif
+#ifdef RELU
                 pC[n * OUTPUT] *= (pC[n * OUTPUT] > 0 ? 1.0f : slope);
+#endif
             }
         }
     }
