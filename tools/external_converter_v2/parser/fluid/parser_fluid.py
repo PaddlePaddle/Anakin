@@ -1014,7 +1014,6 @@ class FluidParser:
     def _DealWithQuantize(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type in FLUID_QUANTIZE_LAYERS:
-                private_data = dict()
                 qt_node_name = self._NameNodeMid(source_op)
                 in_of_qt = self.ins[qt_node_name].target('X')
                 out_param_of_in = self.outs[in_of_qt].all_params()[0]
@@ -1024,25 +1023,25 @@ class FluidParser:
                 self.outs[in_of_qt].rm(qt_node_name)
                 for out_of_qt in outs_of_qt:
                     op_out_q = self._GetOp(source_ops, out_of_qt)
-                    self.scale_dict[out_of_qt] = \
-                    helper.data_with_shape_by_param(qt_node, 'OutScales')[0]
-                    private_data['scale_1'] = self.scale_dict[out_of_qt]
                     param_name = out_param_of_in
                     self.outs[in_of_qt].add(param_name, out_of_qt, None, in_scale)
                     self.ins[out_of_qt].mv(qt_node_name, in_of_qt)
                     self.ins[out_of_qt].set_scale(in_of_qt, in_scale)
-                    self._RmProtoNode(out_of_qt)
-                    self._AddProtoNode(out_of_qt, op_out_q, helper, private_data)
                 self._RmProtoNode(qt_node_name)
                 self._ClearEdges(qt_node_name)
 
     def _DealWithDequantize(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type in FLUID_DEQUANTIZE_LAYERS:
+                private_data = dict()
                 qt_node_name = self._NameNodeMid(source_op)
                 qt_node = self._GetOp(source_ops, qt_node_name)
                 in_of_qt = self.ins[qt_node_name].target('X')
                 out_of_qt = self.outs[qt_node_name].target('Out')
+                op_in_q = self._GetOp(source_ops, in_of_qt)
+                scale_of_weight = helper.attr_data(source_op, 'max_range')
+                self.scale_dict[in_of_qt] = [scale_of_weight]
+                private_data['scale_1'] = self.scale_dict[in_of_qt]
                 scale = helper.data_with_shape_by_param(qt_node, 'Scale')[0][0]
                 self.outs[in_of_qt].mv(qt_node_name, out_of_qt)
                 self.outs[in_of_qt].set_scale(out_of_qt, scale)
@@ -1050,6 +1049,8 @@ class FluidParser:
                 self.ins[out_of_qt].set_scale(in_of_qt, scale)
                 self._RmProtoNode(qt_node_name)
                 self._ClearEdges(qt_node_name)
+                self._RmProtoNode(in_of_qt)
+                self._AddProtoNode(in_of_qt, op_in_q, helper, private_data)
 
     def _DealWithRoiAlign(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
