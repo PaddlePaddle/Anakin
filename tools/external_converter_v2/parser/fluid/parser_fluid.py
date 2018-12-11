@@ -1020,7 +1020,7 @@ class FluidParser:
                 out_param_of_in = self.outs[in_of_qt].all_params()[0]
                 outs_of_qt = self.outs[qt_node_name].targets('Out')
                 qt_node = self._GetOp(source_ops, qt_node_name)
-                in_scale = helper.attr_data(source_op, 'InScale')
+                in_scale = helper.data_with_shape_by_param(qt_node, 'InScale')[0][0]
                 self.outs[in_of_qt].rm(qt_node_name)
                 for out_of_qt in outs_of_qt:
                     op_out_q = self._GetOp(source_ops, out_of_qt)
@@ -1040,9 +1040,10 @@ class FluidParser:
         for source_op in source_ops:
             if source_op.type in FLUID_DEQUANTIZE_LAYERS:
                 qt_node_name = self._NameNodeMid(source_op)
+                qt_node = self._GetOp(source_ops, qt_node_name)
                 in_of_qt = self.ins[qt_node_name].target('X')
                 out_of_qt = self.outs[qt_node_name].target('Out')
-                scale = helper.attr_data(source_op, 'Scale')
+                scale = helper.data_with_shape_by_param(qt_node, 'Scale')[0][0]
                 self.outs[in_of_qt].mv(qt_node_name, out_of_qt)
                 self.outs[in_of_qt].set_scale(out_of_qt, scale)
                 self.ins[out_of_qt].mv(qt_node_name, in_of_qt)
