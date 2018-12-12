@@ -1011,6 +1011,13 @@ class FluidParser:
                     self.ins[gp_node_name].add('Variances', variances_in)
                     '''
 
+    def _DelIncInQuantize(self, source_ops, helper, quantized=False):
+        for source_op in source_ops:
+            if source_op.type in ['increment']:
+                inc_node_name = self._NameNodeMid(source_op)
+                self._RmProtoNode(inc_node_name)
+                self._ClearEdges(inc_node_name)
+
     def _DealWithQuantize(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type in FLUID_QUANTIZE_LAYERS:
@@ -1029,6 +1036,7 @@ class FluidParser:
                     self.ins[out_of_qt].set_scale(in_of_qt, in_scale)
                 self._RmProtoNode(qt_node_name)
                 self._ClearEdges(qt_node_name)
+        self._DelIncInQuantize(source_ops, helper, quantized)
 
     def _DealWithDequantize(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
