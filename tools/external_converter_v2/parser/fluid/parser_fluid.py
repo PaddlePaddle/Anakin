@@ -1049,7 +1049,7 @@ class FluidParser:
                 out_of_qt = self.outs[qt_node_name].target('Out')
                 op_in_q = self._GetOp(source_ops, in_of_qt)
                 scale_of_weight = helper.attr_data(source_op, 'max_range')
-                scale_of_weight = 127 * 127 / scale_of_weight
+                scale_of_weight = 127 / scale_of_weight
                 self.scale_dict[in_of_qt] = [scale_of_weight]
                 private_data['scale_1'] = self.scale_dict[in_of_qt]
                 scale = helper.data_with_shape_by_param(qt_node, 'Scale')[0][0]
