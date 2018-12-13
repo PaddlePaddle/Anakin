@@ -680,5 +680,6 @@ FLUID_DEQUANTIZE_LAYERS = [
 FLUID_SCALE_WEIGHT_OP = [
     'conv2d',
     'depthwise_conv2d',
+    'mul',
 ]
 

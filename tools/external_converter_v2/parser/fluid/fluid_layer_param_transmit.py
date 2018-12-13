@@ -113,7 +113,15 @@ def Parser_mul(args):
     helper = args[3]
     private_data = args[4]
     weights_needs_trans = True
-    [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'Y', weights_needs_trans)
+    weights_tensor = None
+    weights_shape = None
+    if 'scale_1' in private_data:
+        node.set_bit_type(INT8)
+        [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'Y', "int8", weights_needs_trans)
+        weights_tensor.set_scale(private_data['scale_1'], 'float')
+    else:
+        node.set_bit_type(FLOAT)
+        [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'Y', None, weights_needs_trans)
     OpsRegister()["Dense"].weight_1 = weights_tensor
     OpsRegister()["Dense"].out_dim = weights_shape[2]
     OpsRegister()["Dense"].axis = helper.attr_data(op, 'x_num_col_dims')
