@@ -34,12 +34,15 @@ def Parser_conv2d(args):
     op = args[1]
     helper = args[3]
     private_data = args[4]
-    [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'Filter')
+    weights_tensor = None
+    weights_shape = None
     if 'scale_1' in private_data:
         node.set_bit_type(INT8)
+        [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'Filter', "int8")
         weights_tensor.set_scale(private_data['scale_1'], 'float')
     else:
         node.set_bit_type(FLOAT)
+        [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'Filter')
     OpsRegister()["Convolution"].weight_1 = weights_tensor
     OpsRegister()["Convolution"].filter_num = weights_shape[0]
     OpsRegister()["Convolution"].kernel_size = weights_shape[-2:]
@@ -60,13 +63,15 @@ def Parser_conv2d_transpose(args):
     op = args[1]
     helper = args[3]
     private_data = args[4]
-    [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'Filter')
-    weights_tensor.set_shape([weights_shape[1], weights_shape[0], weights_shape[2], weights_shape[3]])
+    weights_tensor = None
+    weights_shape = None
     if 'scale_1' in private_data:
         node.set_bit_type(INT8)
+        [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'Filter', "int8")
         weights_tensor.set_scale(private_data['scale_1'], 'float')
     else:
         node.set_bit_type(FLOAT)
+        [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'Filter')
     OpsRegister()["Deconvolution"].weight_1 = weights_tensor
     OpsRegister()["Deconvolution"].filter_num = weights_shape[1]
     OpsRegister()["Deconvolution"].kernel_size = weights_shape[-2:]

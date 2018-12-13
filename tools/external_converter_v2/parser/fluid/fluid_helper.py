@@ -386,25 +386,33 @@ class Fluid_helper:
     def param_tensor_sh(self,
                         op,
                         param_name,
-                        transpose = False,
-                        axes = None,
-                        reshape = None,
-                        var_idx = 0,
-                        layout = 'NCHW'):
+                        dtype=None,
+                        transpose=False,
+                        axes=None,
+                        reshape=None,
+                        var_idx=0,
+                        layout='NCHW'):
         '''
         '''
         tensor = TensorProtoIO()
         [np_data, shape] = self.data_with_shape_by_param(op, param_name, transpose, \
             axes, var_idx, False, layout)
-        dtype = self.dtype_by_param(op, param_name, var_idx)
-        tensor.set_data_type(dtype)
-        if dtype is INT8:
-            tensor.set_data(np_data.flatten().tobytes(), ANAKIN_TENSOR_DTYPESTR[dtype])
-        elif dtype in ANAKIN_TENSOR_DTYPESTR.keys():
-            tensor.set_data(np_data.flatten().tolist(), ANAKIN_TENSOR_DTYPESTR[dtype])
-            #pass #debug
+        np_dtype = self.dtype_by_param(op, param_name, var_idx)
+        tensor.set_data_type(np_dtype)
+        if np_dtype is INT8:
+            tensor.set_data(np_data.flatten().tobytes(), ANAKIN_TENSOR_DTYPESTR[np_dtype])
+        elif np_dtype in ANAKIN_TENSOR_DTYPESTR.keys():
+            if dtype is None:
+                tensor.set_data(np_data.flatten().tolist(), ANAKIN_TENSOR_DTYPESTR[np_dtype])
+                #pass #debug
+            elif dtype == "int8":
+                np_data = np_data.astype(np.int8)
+                tensor.set_data(np_data.flatten().tobytes(), "int8")
+                #pass #debug
+            else:
+                raise NameError('ERROR: Unknown data type (%s)' % (dtype))
         else:
-            raise NameError('ERROR: Unknown data type (%s)' % (dtype))
+            raise NameError('ERROR: Unknown data type (%s)' % (np_dtype))
         if reshape is not None:
             tensor.set_shape(reshape)
         else:
@@ -414,6 +422,7 @@ class Fluid_helper:
     def param_tensor(self,
                      op,
                      param_name,
+                     dtype=None,
                      transpose = False,
                      axes = None,
                      reshape = None,
@@ -421,7 +430,7 @@ class Fluid_helper:
                      layout = 'NCHW'):
         '''
         '''
-        [tensor, shape] = self.param_tensor_sh(op, param_name, transpose, axes, \
+        [tensor, shape] = self.param_tensor_sh(op, param_name, dtype, transpose, axes, \
             reshape, var_idx, layout)
         return tensor
 
