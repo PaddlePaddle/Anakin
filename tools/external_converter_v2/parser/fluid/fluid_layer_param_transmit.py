@@ -656,6 +656,14 @@ def Parser_norm(args):
     OpsRegister()["Normalize"].eps = helper.attr_data(op, 'epsilon')
     OpsRegister()["Normalize"].p = 2
 
+@ParserFeedDecorator("Resize")
+def Parser_bilinear_interp(args):
+    op = args[1]
+    helper = args[3]
+    OpsRegister()["Resize"].width_scale = helper.attr_data(op, 'out_w')
+    OpsRegister()["Resize"].height_scale = helper.attr_data(op, 'out_h')
+    OpsRegister()["Resize"].method = "BILINEAR_ALIGN"
+
 FLUID_NODE_FILLER = {
     "feed":OpsParam().set_parser(Parser_feed),
     "conv2d":OpsParam().set_parser(Parser_conv2d),
@@ -723,4 +731,5 @@ FLUID_NODE_FILLER = {
     # FastRCNN end
     "norm":OpsParam().set_parser(Parser_norm),
     "increment":OpsParam().set_parser(Parser_increment),
+    "bilinear_interp":OpsParam().set_parser(Parser_bilinear_interp),
 }

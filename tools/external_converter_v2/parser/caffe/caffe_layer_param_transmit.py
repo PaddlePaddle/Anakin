@@ -97,7 +97,7 @@ def Parser_resize(args):
         OpsRegister()["Resize"].width_scale = resize_param.out_width_scale
     if resize_param.HasField("out_height_scale"):
         OpsRegister()["Resize"].height_scale = resize_param.out_height_scale
-
+    OpsRegister()["Resize"].method = "BILINEAR_ALIGN"
 
 
 @ParserFeedDecorator("DeformConvolution")

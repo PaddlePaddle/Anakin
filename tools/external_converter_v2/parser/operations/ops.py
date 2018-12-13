@@ -360,7 +360,7 @@ OpsRegister.Register("LayerNorm").set_attr(is_across_spatial=bool(),
                                            begin_norm_axis=int(),
                                            eps=float())
 
-OpsRegister.Register("Resize").set_attr(resize_method="BILINEAR_ALIGN",
+OpsRegister.Register("Resize").set_attr(method="BILINEAR_ALIGN",
                                         height_scale=float(),
                                         width_scale=float())
 
