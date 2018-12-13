@@ -196,7 +196,7 @@ def Parser_split_ins(args):
 def Parser_slice(args):
     op = args[1]
     helper = args[3]
-    OpsRegister()["Slice"].slice_point = [-1]
+    OpsRegister()["Slice"].slice_point = []
     OpsRegister()["Slice"].num = helper.attr_data(op, 'num')
     OpsRegister()["Slice"].axis = helper.attr_data(op, 'axis')
     OpsRegister()["Slice"].sections = helper.attr_data(op, 'sections')
