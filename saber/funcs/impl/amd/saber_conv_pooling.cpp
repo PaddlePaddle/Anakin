@@ -351,7 +351,13 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
 
     if (param.conv_param.activation_param.has_active) {
         isActive = true;
-        negative_slope = param.conv_param.activation_param.negative_slope;
+
+        if (param.conv_param.activation_param.active == Active_relu) {
+            negative_slope = 0.0f;
+        } else {
+            negative_slope = param.conv_param.activation_param.negative_slope;
+        }
+
         ALOGD("param.has_active=" << param.conv_param.activation_param.has_active
               << " param.conv_param.activation_param.negative_slope="
               << param.conv_param.activation_param.negative_slope

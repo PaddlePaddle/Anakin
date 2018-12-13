@@ -566,8 +566,8 @@ SaberStatus SaberFc<AMD, OpDtype>::create(
         _kernels_ptr.push_back(kptr);
     } else {
         if (param.bias != nullptr && param.bias->valid_size() > 0) {
-            kernelInfo.kernel_file = "MIOpenBiasReLuUni.cl";
-            kernelInfo.kernel_name = "MIOpenReLu";
+            kernelInfo.kernel_file = "BiasReLuUni.cl";
+            kernelInfo.kernel_name = "ReluOnly";
 
             kernelInfo.l_wk = {256, 1, 1};
             kernelInfo.g_wk = {(inputs[0]->num())* (outputs[0]->channel())* (outputs[0]->height())
