@@ -109,6 +109,7 @@ def Parser_pool2d(args):
 
 @ParserFeedDecorator("Dense")
 def Parser_mul(args):
+    node = args[0]
     op = args[1]
     helper = args[3]
     private_data = args[4]
