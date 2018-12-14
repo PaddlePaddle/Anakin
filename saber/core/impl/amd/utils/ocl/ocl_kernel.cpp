@@ -33,7 +33,7 @@ std::string GetDeviceName(cl_device_id device_id) {
 
     char deviceName[100];
     clGetDeviceInfo(device_id, CL_DEVICE_NAME, sizeof(deviceName), deviceName, nullptr);
-    AMD_LOGD("Device Name: " << deviceName);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "Device Name: " << deviceName;
     return std::string(deviceName);
 }
 
@@ -50,7 +50,7 @@ void SaveProgramBinary(const cl_program program, const std::string& name) {
     std::ofstream fout(name.c_str(), std::ios::out | std::ios::binary);
     fout.write(binary.data(), binary.size());
 
-    AMD_LOGD("save program to cache file: " << name);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "save program to cache file: " << name;
 }
 
 void WriteProgramToFile(cl_program cl_prg, cl_device_id device_id, KernelInfo* ki) {
@@ -81,13 +81,13 @@ cl_program LoadBinaryProgram(
     cl_device_id device_id,
     const char* source_data,
     size_t size) {
-    AMD_LOGD(__func__);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__;
     cl_int errNum;
     cl_program program = clCreateProgramWithBinary(
                              context, 1, &device_id, &size, (const unsigned char**)&source_data, NULL, &errNum);
 
     if (errNum != CL_SUCCESS) {
-        AMD_LOGE(__func__ << " error(" << errNum << ")");
+        LOG(ERROR) << __func__ << " error(" << errNum << ")";
     }
 
     return program;
@@ -118,7 +118,7 @@ cl_program LoadProgramFromFileCache(cl_context context, cl_device_id device_id, 
         std::string source = LoadFile(cacheFilePath);
 
         cl_program program = LoadBinaryProgram(context, device_id, source.data(), source.size());
-        AMD_LOGD("Create CL program from cache file: " << kernelKey);
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "Create CL program from cache file: " << kernelKey;
         return program;
     }
 
@@ -136,7 +136,7 @@ ClProgramPtr LoadProgramFromMemCache(cl_context context, KernelInfo* ki) {
         kernelKey.assign(ki->kernel_file + ki->comp_options + ":" + ki->kernel_name);
     }
 
-    AMD_LOGD(__func__ << " " << kernelKey);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__ << " " << kernelKey;
 
     std::string progKey(kernelKey);
     // Consider different compile options for single program
@@ -163,7 +163,7 @@ void WriteProgramIntoMemCache(cl_context context, ClProgramPtr program, KernelIn
         kernelKey.assign(ki->kernel_file + ki->comp_options + ":" + ki->kernel_name);
     }
 
-    AMD_LOGD(__func__ << " " << kernelKey);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__ << " " << kernelKey;
 
     std::string progKey(kernelKey);
     // Consider different compile options for single program
@@ -173,13 +173,13 @@ void WriteProgramIntoMemCache(cl_context context, ClProgramPtr program, KernelIn
     if (programCache->getSize() < programCache->MAX_CACHE_SIZE) {
         programCache->add(std::pair<cl_context, std::string>(context, progKey), program);
     } else {
-        AMD_LOGI("Warning: program code cache has been full.\n");
+        LOG(INFO) << "Warning: program code cache has been full.\n";
     }
 }
 bool BuildProgram(cl_program program, cl_device_id device_id, KernelInfo* ki) {
 
     if (program == NULL) {
-        AMD_LOGE("Failed to Build Program, cl_program is not initialized.");
+        LOG(ERROR) << "Failed to Build Program, cl_program is not initialized.";
         return false;
     }
 
@@ -197,7 +197,7 @@ bool BuildProgram(cl_program program, cl_device_id device_id, KernelInfo* ki) {
         clGetProgramBuildInfo(
             program, device_id, CL_PROGRAM_BUILD_LOG, sizeof(buildErrLog), buildErrLog, NULL);
 
-        AMD_LOGE("CL program build error log in kernel: " << buildErrLog);
+        LOG(ERROR) << "CL program build error log in kernel: " << buildErrLog;
         return true;
     }
 
@@ -220,7 +220,7 @@ cl_program CreateProgramFromSource(cl_context context, cl_device_id device_id, K
                 source = GetKernelSrc(ki->kernel_file);
             }
         } catch (...) {
-            AMD_LOGE("Can't Load CL Program");
+            LOG(ERROR) << "Can't Load CL Program";
             return NULL;
         }
 
@@ -240,7 +240,7 @@ cl_program CreateProgramFromSource(cl_context context, cl_device_id device_id, K
             std::ifstream kFile(ki->kernel_file, std::ios::in);
 
             if (!kFile.is_open()) {
-                AMD_LOGE("Failed to open file for reading: " << ki->kernel_file);
+                LOG(ERROR) << "Failed to open file for reading: " << ki->kernel_file;
                 return NULL;
             }
 
@@ -257,7 +257,7 @@ cl_program CreateProgramFromSource(cl_context context, cl_device_id device_id, K
     if (is_binary) {
         program = LoadBinaryProgram(context, device_id, source.data(), source.size());
     } else {
-        AMD_LOGD("createPrograWithSource");
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "createPrograWithSource";
         std::string params = ki->comp_options;
 #if defined(ENABLE_DEBUG) || defined(ENABLE_LOG)
         params += " -Werror";
@@ -274,7 +274,7 @@ cl_program CreateProgramFromSource(cl_context context, cl_device_id device_id, K
         program = clCreateProgramWithSource(context, 1, (const char**)&srcStr, &size, NULL);
 
         if (program == NULL) {
-            AMD_LOGE("Failed to create CL program from header: " << ki->kernel_file);
+            LOG(ERROR) << "Failed to create CL program from header: " << ki->kernel_file;
             return NULL;
         }
     }
@@ -293,7 +293,7 @@ ClKernelPtr LoadKernelFromMemCache(cl_program program, KernelInfo* ki) {
     }
 
     KernelCache* kernelCache = KernelCache::getInstance();
-    AMD_LOGD(__func__ << " " << kernelKey);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__ << " " << kernelKey;
     auto kernel_ptr = kernelCache->lookup(std::pair<cl_program, std::string>(program, kernelKey));
 
     if (kernel_ptr != NULL && kernel_ptr.get() != NULL) {
@@ -313,12 +313,12 @@ void WriteKernelIntoMemCache(cl_program program, ClKernelPtr kernel, KernelInfo*
     }
 
     KernelCache* kernelCache = KernelCache::getInstance();
-    AMD_LOGD(__func__ << " " << kernelKey);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__ << " " << kernelKey;
 
     if (kernelCache->getSize() < kernelCache->MAX_CACHE_SIZE) {
         kernelCache->add(std::pair<cl_program, std::string>(program, kernelKey), kernel);
     } else {
-        AMD_LOGI("Warning: kernel cache has been full.\n");
+        LOG(INFO) << "Warning: kernel cache has been full.\n";
     }
 }
 #endif
@@ -329,7 +329,7 @@ cl_kernel CreateKernelFromSource(cl_program program, KernelInfo* ki) {
     kernel = clCreateKernel(program, ki->kernel_name.c_str(), NULL);
 
     if (kernel == NULL) {
-        AMD_LOGE("error: failed to create CL kernel.\n");
+        LOG(ERROR) << "error: failed to create CL kernel.\n";
         return NULL;
     }
 
@@ -376,6 +376,7 @@ ClKernelPtr CreateKernel(cl_program program, KernelInfo* kernel_info) {
     if (kernel_ptr != NULL) {
         return kernel_ptr;
     }
+
 #endif
 
     cl_kernel kernel = CreateKernelFromSource(program, kernel_info);
@@ -418,7 +419,7 @@ bool OCLKernel::run(
                         event);
 
     if (errNum != CL_SUCCESS) {
-        AMD_LOGE("Fail to set execution: " << errNum);
+        LOG(ERROR) << "Fail to set execution: " << errNum;
         kernel_info.printE();
         return false;
     }

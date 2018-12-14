@@ -63,7 +63,7 @@ bool is_directory_separator(char c) {
 bool is_root_separator(const char* str, size_t pos) {
     // pos is position of the separator
     if (str != nullptr && !is_directory_separator(str[pos])) {
-        AMD_LOGD("precondition violation");
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "precondition violation";
     }
 
     // subsequent logic expects pos to be for leftmost slash of a set
@@ -173,7 +173,7 @@ std::string temp_directory_path() {
 
     const char* default_tmp = "/tmp";
     std::string temp_directory((val != 0) ? val : default_tmp);
-    AMD_LOGD("temp directory path :" << temp_directory);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "temp directory path :" << temp_directory;
     return temp_directory;
 }
 
@@ -182,16 +182,16 @@ bool is_directory(const std::string& path) {
 
     if (stat(path.c_str(), &info) == 0) {
         if (info.st_mode & S_IFDIR) {
-            AMD_LOGD("it's a directory");
+            LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "it's a directory";
             return true;
         } else if (info.st_mode & S_IFREG) {
-            AMD_LOGD("it's a file");
+            LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "it's a file";
             return false;
         } else {
-            AMD_LOGD("not file or directory");
+            LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "not file or directory";
         }
     } else {
-        AMD_LOGD("path not exist");
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "path not exist";
     }
 
     return false;
@@ -244,10 +244,10 @@ bool exists(std::string path) {
     int state = access(path.c_str(), R_OK | W_OK);
 
     if (state == 0) {
-        AMD_LOGD("file path exist");
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "file path exist";
         return true;
     } else {
-        AMD_LOGD("file path not exist, path :" << path);
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "file path not exist, path :" << path;
         return false;
     }
 }
@@ -283,7 +283,7 @@ bool filename_is_dot_dot(std::string p) {
 }
 
 bool create_directory(const std::string& p) {
-    AMD_LOGD("path :" << p);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "path :" << p;
     int flag = mkdir(p.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);
 
     if (flag == 0) {
@@ -296,17 +296,18 @@ bool create_directory(const std::string& p) {
     }
 
     //  attempt to create directory failed && it doesn't already exist
-    AMD_LOGD("attempt to create directory failed && it doesn't already exist");
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) <<
+                                         "attempt to create directory failed && it doesn't already exist";
     return false;
 }
 
 bool create_directories(const std::string p) {
     if (p.length() == 0) {
-        AMD_LOGD("invalid argument for path");
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "invalid argument for path";
         return false;
     }
 
-    AMD_LOGD("path :" << p);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "path :" << p;
 
     if (filename_is_dot(p) || filename_is_dot_dot(p)) {
         return create_directories(parent_path(p));
@@ -319,7 +320,7 @@ bool create_directories(const std::string p) {
     std::string parent = parent_path(p);
 
     if (parent == p) {
-        AMD_LOGD("internal error: path == parent path");
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "internal error: path == parent path";
     }
 
     if (parent.length() > 0) {
@@ -343,7 +344,7 @@ std::string ComputeCachePath() {
         create_directories(p);
     }
 
-    AMD_LOGD("Get program path :" << p);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "Get program path :" << p;
 
     return p;
 }
@@ -377,7 +378,7 @@ void SaveBinary(
     const std::string& args) {
     auto p = GetCacheFile(device, name, args);
     create_directories(parent_path(p));
-    AMD_LOGD("target path :" << p);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "target path :" << p;
     rename(binary_path.c_str(), p.c_str());
 }
 
@@ -390,14 +391,14 @@ std::string LoadFile(const std::string& s) {
 
 miopen::Db GetDb(std::string device_name, int max_CU) {
     auto p = ReplaceString(miopen::GetDbPath(), "~", getenv("HOME"));
-    AMD_LOGD("db path :" << p);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "db path :" << p;
 
     if (!exists(p)) {
         create_directories(p);
     }
 
     std::string dbFileName = p + "/" + device_name + "_" + std::to_string(max_CU) + ".cd.pad.txt";
-    AMD_LOGD("db file name :" << dbFileName);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "db file name :" << dbFileName;
     return {dbFileName};
 }
 

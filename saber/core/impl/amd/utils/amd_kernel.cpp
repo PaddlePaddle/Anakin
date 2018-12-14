@@ -32,16 +32,16 @@ AMDKernelPtr CreateKernel(int device_id, KernelInfo* ki) {
 }
 
 bool LaunchKernel(AMDStream_t stream, amd_kernel_list kernels, bool sync) {
-    ALOGD(__func__);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__;
 
     float exec_time_ms = 0;
 
     for (amd_kernel_list::iterator it = kernels.begin(); it != kernels.end(); it++) {
         cl_event event;
-        ALOGD(__func__ << " E");
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__ << " E";
 
         if (!it->get()->Invoke(stream, 0, NULL, (sync ? &event : NULL))) {
-            ALOGD(__func__ << " Failed");
+            LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__ << " Failed";
             return false;
         }
 
@@ -60,7 +60,7 @@ bool LaunchKernel(AMDStream_t stream, amd_kernel_list kernels, bool sync) {
             TargetWrapper<AMD>::destroy_event(event);
         }
 
-        ALOGD(__func__ << " X : " << exec_time_ms << " ms");
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__ << " X : " << exec_time_ms << " ms";
     }
 
     return true;

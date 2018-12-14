@@ -22,21 +22,10 @@ namespace anakin {
 namespace saber {
 //#define AMD_ENABLE_LOG
 
-#define _AMD_LOGD(X) std::cout << X << std::endl;
-#define _AMD_LOGE(X) std::cerr << X << std::endl;
-
-#define AMD_LOGI(X) LOG(INFO) << X
-#define AMD_LOGE(X) LOG(ERROR) << X
-
-#define ALOGI(X) LOG(INFO) << X
-#define ALOGE(X) LOG(ERROR) << X
-
-#if defined(ENABLE_DEBUG) || defined(AMD_ENABLE_LOG)
-#define AMD_LOGD(X) LOG(INFO) << X
-#define ALOGD(X) LOG(INFO) << X
+#if defined(ENABLE_DEBUG) || defined(ENABLE_AMD_DEBUG)
+#define ENABLE_AMD_DEBUG_LOG 1
 #else
-#define AMD_LOGD(X)
-#define ALOGD(X)
+#define ENABLE_AMD_DEBUG_LOG 0
 #endif
 
 } // namespace saber
