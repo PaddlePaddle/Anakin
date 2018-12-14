@@ -28,7 +28,7 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::init(
     std::vector<Tensor<AMD>*>& outputs,
     ConvPoolingParam<AMD>& param,
     Context<AMD>& ctx) {
-    ALOGD("init");
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "init";
     this->_ctx = &ctx;
     return create(inputs, outputs, param, ctx);
 }
@@ -38,7 +38,7 @@ SaberConv2DPooling<AMD, AK_FLOAT>::CreateKernelList(int device_id, KernelInfo& k
     AMDKernelPtr kptr = CreateKernel(device_id, &kernelInfo);
 
     if (!kptr.get()->isInit()) {
-        ALOGE("Failed to load program");
+        LOG(ERROR) << "Failed to load program";
         return SaberInvalidValue;
     }
 
@@ -51,7 +51,7 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::create(
     std::vector<Tensor<AMD>*>& outputs,
     ConvPoolingParam<AMD>& param,
     Context<AMD>& ctx) {
-    ALOGD("create");
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "create";
 
     KernelInfo kernelInfo;
 
@@ -146,7 +146,7 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::create(
     case Pooling_unknow:
     case Pooling_max_deterministic:
     default:
-        ALOGE("Unknown polling type");
+        LOG(ERROR) << "Unknown polling type";
         return SaberInvalidValue;
     }
 
@@ -242,7 +242,7 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::create(
             }
         }
     } else {
-        ALOGD("No solution found!!!");
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "No solution found!!!";
         // not 1x1
         bool needExtrakernel = false;
         std::vector<AMDKernelPtr> vkptr;
@@ -302,7 +302,7 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
     const std::vector<Tensor<AMD>*>& inputs,
     std::vector<Tensor<AMD>*>& outputs,
     ConvPoolingParam<AMD>& param) {
-    ALOGD("dispatch");
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "dispatch";
 
     bool err;
     AMD_API::stream_t cm = this->_ctx->get_compute_stream();
@@ -315,38 +315,40 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
     unsigned int in_offset  = 0;
     float floatObjects[2]   = {1.0f, 0.0f};
 
-    ALOGD(" num=" << inputs[0]->num() << " channel=" << inputs[0]->channel()
-          << " height=" << inputs[0]->height() << " width=" << inputs[0]->width()
-          << " param.conv_param.weight()->num()=" << param.conv_param.weight()->num()
-          << " param.conv_param.weight()->channel()="
-          << param.conv_param.weight()->channel()
-          << " param.conv_param.weight()->width()=" << param.conv_param.weight()->width()
-          << " param.conv_param.weight()->height()=" << param.conv_param.weight()->height()
-          << " param.conv_param.group=" << param.conv_param.group
-          << " param.conv_param.pad_h=" << param.conv_param.pad_h
-          << " param.conv_param.pad_w=" << param.conv_param.pad_w
-          << " param.conv_param.stride_h=" << param.conv_param.stride_h
-          << " param.conv_param.stride_w=" << param.conv_param.stride_w
-          << " param.conv_param.dilation_h=" << param.conv_param.dilation_h
-          << " param.conv_param.dilation_w=" << param.conv_param.dilation_w
-          << " param.conv_param.alpha=" << param.conv_param.alpha
-          << " param.conv_param.beta=" << param.conv_param.beta
-          << " param.pooling_param.window_h=" << param.pooling_param.window_h
-          << " param.pooling_param.window_w=" << param.pooling_param.window_w
-          << " param.pooling_param.pad_h=" << param.pooling_param.pad_h
-          << " param.pooling_param.pad_w=" << param.pooling_param.pad_w
-          << " param.pooling_param.stride_h=" << param.pooling_param.stride_h
-          << " param.pooling_param.stride_w=" << param.pooling_param.stride_w
-          << " param.pooling_param.pooling_type=" << param.pooling_param.pooling_type
-          << " param.pooling_param.global_pooling=" << param.pooling_param.global_pooling
-          << " param.pooling_param.cmp_out_shape_floor_as_conv="
-          << param.pooling_param.cmp_out_shape_floor_as_conv);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << " num=" << inputs[0]->num() << " channel=" <<
+                                         inputs[0]->channel()
+                                         << " height=" << inputs[0]->height() << " width=" << inputs[0]->width()
+                                         << " param.conv_param.weight()->num()=" << param.conv_param.weight()->num()
+                                         << " param.conv_param.weight()->channel()="
+                                         << param.conv_param.weight()->channel()
+                                         << " param.conv_param.weight()->width()=" << param.conv_param.weight()->width()
+                                         << " param.conv_param.weight()->height()=" << param.conv_param.weight()->height()
+                                         << " param.conv_param.group=" << param.conv_param.group
+                                         << " param.conv_param.pad_h=" << param.conv_param.pad_h
+                                         << " param.conv_param.pad_w=" << param.conv_param.pad_w
+                                         << " param.conv_param.stride_h=" << param.conv_param.stride_h
+                                         << " param.conv_param.stride_w=" << param.conv_param.stride_w
+                                         << " param.conv_param.dilation_h=" << param.conv_param.dilation_h
+                                         << " param.conv_param.dilation_w=" << param.conv_param.dilation_w
+                                         << " param.conv_param.alpha=" << param.conv_param.alpha
+                                         << " param.conv_param.beta=" << param.conv_param.beta
+                                         << " param.pooling_param.window_h=" << param.pooling_param.window_h
+                                         << " param.pooling_param.window_w=" << param.pooling_param.window_w
+                                         << " param.pooling_param.pad_h=" << param.pooling_param.pad_h
+                                         << " param.pooling_param.pad_w=" << param.pooling_param.pad_w
+                                         << " param.pooling_param.stride_h=" << param.pooling_param.stride_h
+                                         << " param.pooling_param.stride_w=" << param.pooling_param.stride_w
+                                         << " param.pooling_param.pooling_type=" << param.pooling_param.pooling_type
+                                         << " param.pooling_param.global_pooling=" << param.pooling_param.global_pooling
+                                         << " param.pooling_param.cmp_out_shape_floor_as_conv="
+                                         << param.pooling_param.cmp_out_shape_floor_as_conv;
 
     if (isBias) {
-        ALOGD("param.conv_param.bias()->size()=" << param.conv_param.bias()->size()
-              << " param.conv_param.bias()->channel()=" << param.conv_param.bias()->channel()
-              << " param.conv_param.bias()->width()=" << param.conv_param.bias()->width()
-              << " param.conv_param.bias()->height()=" << param.conv_param.bias()->height());
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "param.conv_param.bias()->size()=" <<
+                                             param.conv_param.bias()->size()
+                                             << " param.conv_param.bias()->channel()=" << param.conv_param.bias()->channel()
+                                             << " param.conv_param.bias()->width()=" << param.conv_param.bias()->width()
+                                             << " param.conv_param.bias()->height()=" << param.conv_param.bias()->height();
     }
 
     if (param.conv_param.activation_param.has_active) {
@@ -358,17 +360,19 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
             negative_slope = param.conv_param.activation_param.negative_slope;
         }
 
-        ALOGD("param.has_active=" << param.conv_param.activation_param.has_active
-              << " param.conv_param.activation_param.negative_slope="
-              << param.conv_param.activation_param.negative_slope
-              << " param.conv_param.activation_param.active="
-              << param.conv_param.activation_param.active
-              << " param.conv_param.activation_param.coef="
-              << param.conv_param.activation_param.coef);
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "param.has_active=" <<
+                                             param.conv_param.activation_param.has_active
+                                             << " param.conv_param.activation_param.negative_slope="
+                                             << param.conv_param.activation_param.negative_slope
+                                             << " param.conv_param.activation_param.active="
+                                             << param.conv_param.activation_param.active
+                                             << " param.conv_param.activation_param.coef="
+                                             << param.conv_param.activation_param.coef;
     }
 
     for (int i = 0; i < _kernels_ptr.size(); i++) {
-        ALOGD("kernel size:" << _kernels_ptr.size() << " name:" << _kernels_ptr[i].get()->GetName());
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "kernel size:" << _kernels_ptr.size() << " name:" <<
+                                             _kernels_ptr[i].get()->GetName();
 
         if ((_kernels_ptr[i].get()->GetName() == "MIOpenConvUni")
                 || (_kernels_ptr[i].get()->GetName() == "MIOpenConv1x1")
@@ -412,7 +416,7 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
             }
 
             if (!err) {
-                ALOGE("Fail to set kernel args :" << err);
+                LOG(ERROR) << "Fail to set kernel args :" << err;
                 return SaberInvalidValue;
             }
 
@@ -459,7 +463,7 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
             }
 
             if (!err) {
-                ALOGE("Fail to set kernel args :" << err);
+                LOG(ERROR) << "Fail to set kernel args :" << err;
                 return SaberInvalidValue;
             }
 
@@ -481,7 +485,7 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
             }
 
             if (!err) {
-                ALOGE("Fail to set kernel args :" << err);
+                LOG(ERROR) << "Fail to set kernel args :" << err;
                 return SaberInvalidValue;
             }
 
@@ -508,7 +512,7 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
             }
 
             if (!err) {
-                ALOGE("Fail to set kernel args :" << err);
+                LOG(ERROR) << "Fail to set kernel args :" << err;
                 return SaberInvalidValue;
             }
 
@@ -552,21 +556,21 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
             }
 
             if (!err) {
-                ALOGE("Fail to set kernel args :" << err);
+                LOG(ERROR) << "Fail to set kernel args :" << err;
                 return SaberInvalidValue;
             }
 
             list.push_back(_kernels_ptr[i]);
         } else if (_kernels_ptr[i].get()->GetName() == "transpose_NCHW2CNHW_opt"
                    || _kernels_ptr[i].get()->GetName() == "transpose_NCHW2CNHW") {
-            ALOGD("GEMM 1x1, 14x14");
+            LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "GEMM 1x1, 14x14";
 
             err = _kernels_ptr[i].get()->SetKernelArgs(
                       (PtrDtype)inputs[0]->data(),
                       (PtrDtype)_outGemmWorkspace->mutable_data());
 
             if (!err) {
-                ALOGE("Fail to set kernel args :" << err);
+                LOG(ERROR) << "Fail to set kernel args :" << err;
                 return SaberInvalidValue;
             }
 
@@ -580,7 +584,7 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
                           (PtrDtype)_outGemmWorkspace->mutable_data(), out_offset, floatObjects[1]);
 
                 if (!err) {
-                    ALOGE("Fail to set kernel args :" << err);
+                    LOG(ERROR) << "Fail to set kernel args :" << err;
                     return SaberInvalidValue;
                 }
 
@@ -607,7 +611,7 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
             }
 
             if (!err) {
-                ALOGE("Fail to set kernel args :" << err);
+                LOG(ERROR) << "Fail to set kernel args :" << err;
                 return SaberInvalidValue;
             }
 
@@ -627,14 +631,14 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
             }
 
             if (!err) {
-                ALOGE("Fail to set kernel args :" << err);
+                LOG(ERROR) << "Fail to set kernel args :" << err;
                 return SaberInvalidValue;
             }
 
             list.push_back(_kernels_ptr[i]);
         } else if (_kernels_ptr[i].get()->GetName() == "miog_betac_alphaab"
                    || _kernels_ptr[i].get()->GetName() == "miog_betac") {
-            ALOGD("GEMM 1x1");
+            LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "GEMM 1x1";
 
             if (_kernels_ptr[i].get()->GetName() != "miog_betac_alphaab" || inputs[0]->num() > 1) {
                 needBias = true;
@@ -652,7 +656,7 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
                               _outConvRelu->mutable_data(), out_offset, 0.0f);
 
                     if (!err) {
-                        ALOGE("Fail to set kernel args :" << err);
+                        LOG(ERROR) << "Fail to set kernel args :" << err;
                         return SaberInvalidValue;
                     }
 
@@ -693,7 +697,7 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
                 }
 
                 if (!err) {
-                    ALOGE("Fail to set kernel args :" << err);
+                    LOG(ERROR) << "Fail to set kernel args :" << err;
                     return SaberInvalidValue;
                 }
 
@@ -701,12 +705,12 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
                 err = LaunchKernel(cm, list);
 
                 if (!err) {
-                    ALOGE("Fail to set execution :" << err);
+                    LOG(ERROR) << "Fail to set execution :" << err;
                     return SaberInvalidValue;
                 }
             }
         } else if (_kernels_ptr[i].get()->GetName() == "Im2Col") {
-            ALOGD("GEMM Not 1x1");
+            LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "GEMM Not 1x1";
             needBias = true;
             std::vector<AMDKernelPtr> v_temp;
             int data_size = (inputs[0]->num()) * (inputs[0]->channel())
@@ -738,7 +742,7 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
                           (PtrDtype)_outGemmWorkspace->mutable_data());
 
                 if (!err) {
-                    ALOGE("Fail to set kernel args :" << err);
+                    LOG(ERROR) << "Fail to set kernel args :" << err;
                     return SaberInvalidValue;
                 }
 
@@ -749,7 +753,7 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
                               (PtrDtype)_outConvRelu->mutable_data(), out_offset, 0.0f);
 
                     if (!err) {
-                        ALOGE("Fail to set kernel args :" << err);
+                        LOG(ERROR) << "Fail to set kernel args :" << err;
                         return SaberInvalidValue;
                     }
 
@@ -776,7 +780,7 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
                 }
 
                 if (!err) {
-                    ALOGE("Fail to set kernel args :" << err);
+                    LOG(ERROR) << "Fail to set kernel args :" << err;
                     return SaberInvalidValue;
                 }
 
@@ -784,7 +788,7 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
                 err = LaunchKernel(cm, list);
 
                 if (!err) {
-                    ALOGE("Fail to set execution :" << err);
+                    LOG(ERROR) << "Fail to set execution :" << err;
                     return SaberInvalidValue;
                 }
             }
@@ -799,7 +803,7 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
                       (PtrDtype)param.conv_param.bias()->data());
 
             if (!err) {
-                ALOGE("Fail to set kernel args :" << err);
+                LOG(ERROR) << "Fail to set kernel args :" << err;
                 return SaberInvalidValue;
             }
 
@@ -814,7 +818,7 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
                       negative_slope);
 
             if (!err) {
-                ALOGE("Fail to set kernel args :" << err);
+                LOG(ERROR) << "Fail to set kernel args :" << err;
                 return SaberInvalidValue;
             }
 
@@ -830,7 +834,7 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
                       (PtrDtype)param.conv_param.bias()->data());
 
             if (!err) {
-                ALOGE("Fail to set kernel args :" << err);
+                LOG(ERROR) << "Fail to set kernel args :" << err;
                 return SaberInvalidValue;
             }
 
@@ -845,7 +849,7 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
                       negative_slope);
 
             if (!err) {
-                ALOGE("Fail to set kernel args :" << err);
+                LOG(ERROR) << "Fail to set kernel args :" << err;
                 return SaberInvalidValue;
             }
 
@@ -856,13 +860,14 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
                       (PtrDtype)outputs[0]->mutable_data());
 
             if (!err) {
-                ALOGE("Fail to set kernel args :" << err);
+                LOG(ERROR) << "Fail to set kernel args :" << err;
                 return SaberInvalidValue;
             }
 
             list.push_back(_kernels_ptr[i]);
         } else {
-            ALOGD("disptach non-implementation kernel: " << _kernels_ptr[i].get()->GetName());
+            LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "disptach non-implementation kernel: " <<
+                                                 _kernels_ptr[i].get()->GetName();
         }
     }
 
@@ -870,7 +875,7 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::dispatch(
         err = LaunchKernel(cm, list);
 
         if (!err) {
-            ALOGE("Fail to set execution");
+            LOG(ERROR) << "Fail to set execution";
             return SaberInvalidValue;
         }
     }
