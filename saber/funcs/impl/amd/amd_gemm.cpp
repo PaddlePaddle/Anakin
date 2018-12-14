@@ -37,7 +37,7 @@ bool findGenericGemm(bool fromSolver, std::vector<AMDKernelPtr>& vkptr,
         if ((inputs[0]->num() > 1
                 && inputs[0]->width() <= 14 && param.stride_h == 1)
                 || (param.stride_h == 2)) {
-            ALOGD("GEMM 1x1, 14x14");
+            LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "GEMM 1x1, 14x14";
             int K       = (inputs[0]->channel());
             int M       = (param.weight()->num());
             int N       = (inputs[0]->num()) * (output->height()) * (output->width());
@@ -70,7 +70,7 @@ bool findGenericGemm(bool fromSolver, std::vector<AMDKernelPtr>& vkptr,
                 param.stride_w);
 
             if (!kptr.get()->isInit()) {
-                ALOGE("Failed to create kernel");
+                LOG(ERROR) << "Failed to create kernel";
                 return false;
             }
 
@@ -125,7 +125,7 @@ bool findGenericGemm(bool fromSolver, std::vector<AMDKernelPtr>& vkptr,
                 kptr = CreateKernel(inputs[0]->device_id(), &kernelInfo);
 
                 if (!kptr.get()->isInit()) {
-                    ALOGE("Failed to create kernel");
+                    LOG(ERROR) << "Failed to create kernel";
                     return false;
                 }
 
@@ -153,14 +153,14 @@ bool findGenericGemm(bool fromSolver, std::vector<AMDKernelPtr>& vkptr,
                 isBias);
 
             if (!kptr.get()->isInit()) {
-                ALOGE("Failed to create kernel");
+                LOG(ERROR) << "Failed to create kernel";
                 return false;
             }
 
             vkptr.push_back(kptr);
 
         } else {
-            ALOGD("GEMM 1x1");
+            LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "GEMM 1x1";
             int K = (inputs[0]->channel()) * (param.weight()->height())
                     * (param.weight()->width());
             int M       = (param.weight()->num());
@@ -224,7 +224,7 @@ bool findGenericGemm(bool fromSolver, std::vector<AMDKernelPtr>& vkptr,
                 kptr = CreateKernel(inputs[0]->device_id(), &kernelInfo);
 
                 if (!kptr.get()->isInit()) {
-                    ALOGE("Failed to create kernel");
+                    LOG(ERROR) << "Failed to create kernel";
                     return false;
                 }
 
@@ -260,14 +260,14 @@ bool findGenericGemm(bool fromSolver, std::vector<AMDKernelPtr>& vkptr,
             kptr = CreateKernel(inputs[0]->device_id(), &kernelInfo);
 
             if (!kptr.get()->isInit()) {
-                ALOGE("Failed to create kernel");
+                LOG(ERROR) << "Failed to create kernel";
                 return false;
             }
 
             vkptr.push_back(kptr);
         }
     } else {
-        ALOGD("Not GEMM 1x1");
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "Not GEMM 1x1";
         needBiasRelu = true;
         int K = (inputs[0]->channel()) * (param.weight()->height())
                 * (param.weight()->width());
@@ -313,7 +313,7 @@ bool findGenericGemm(bool fromSolver, std::vector<AMDKernelPtr>& vkptr,
             param.dilation_w);
 
         if (!kptr.get()->isInit()) {
-            ALOGE("Failed to create kernel");
+            LOG(ERROR) << "Failed to create kernel";
             return SaberInvalidValue;
         }
 
@@ -358,7 +358,7 @@ bool findGenericGemm(bool fromSolver, std::vector<AMDKernelPtr>& vkptr,
             kptr = CreateKernel(inputs[0]->device_id(), &kernelInfo);
 
             if (!kptr.get()->isInit()) {
-                ALOGE("Failed to create kernel");
+                LOG(ERROR) << "Failed to create kernel";
                 return SaberInvalidValue;
             }
 
@@ -384,7 +384,7 @@ bool findGenericGemm(bool fromSolver, std::vector<AMDKernelPtr>& vkptr,
         kptr = CreateKernel(inputs[0]->device_id(), &kernelInfo);
 
         if (!kptr.get()->isInit()) {
-            ALOGE("Failed to create kernel");
+            LOG(ERROR) << "Failed to create kernel";
             return SaberInvalidValue;
         }
 
