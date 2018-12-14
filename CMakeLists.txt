@@ -162,6 +162,7 @@ endif()
 
 # for AMD profile computing performance
 anakin_option(ENABLE_AMD_PROFILING "Enable amd profiling" NO)
+anakin_option(ENABLE_AMD_DEBUG "Enable amd debug" NO)
 
 # ----------------------------------------------------------------------------
 # section: anakin compiler and linker options

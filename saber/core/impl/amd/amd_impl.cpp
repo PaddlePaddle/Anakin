@@ -85,16 +85,16 @@ void AMD_API::get_device_count(int& count) {
 }
 
 void AMD_API::set_device(int id) {
-    ALOGI("set device id = " << id);
+    LOG(INFO) << "set device id = " << id;
     current_device_id_index = id;
 }
 
 void AMD_API::mem_alloc(TPtr* ptr, size_t n) {
 
 #ifdef AMD_GPU_EXTENSION
-    // ALOGD("use CL_MEM_USE_PERSISTENT_MEM_AMD to create buffer.";
+    // LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "use CL_MEM_USE_PERSISTENT_MEM_AMD to create buffer.";
 #else
-    // ALOGD("use CL_MEM_ALLOC_HOST_PTR to create buffer.";
+    // LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "use CL_MEM_ALLOC_HOST_PTR to create buffer.";
 #endif
 
     int index = get_device_id();
@@ -118,14 +118,15 @@ void AMD_API::mem_alloc(TPtr* ptr, size_t n) {
     AMD_CHECK(err);
     *ptr = buf;
 
-    ALOGD(__func__ << "device =" << index << " get context :" << context << " buffer :" << buf
-          << " size :" << n);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__ << "device =" << index << " get context :" <<
+                                         context << " buffer :" << buf
+                                         << " size :" << n;
 }
 
 void AMD_API::mem_free(TPtr ptr) {
 
     if (ptr != nullptr) {
-        ALOGD(__func__ << " buffer :" << ptr);
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__ << " buffer :" << ptr;
         clReleaseMemObject(ptr);
     }
 }
@@ -216,11 +217,11 @@ void AMD_API::destroy_stream(stream_t stream) {
 
 void AMD_API::destroy_event(event_t event) {
     if (event == nullptr) {
-        ALOGD("event is empty, do nothing");
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "event is empty, do nothing";
         return;
     }
 
-    ALOGD(__func__ << " " << event);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__ << " " << event;
     cl_command_type t;
     AMD_CHECK(clGetEventInfo(event, CL_EVENT_COMMAND_TYPE, sizeof(cl_command_type), &t, NULL));
 
@@ -240,7 +241,7 @@ void AMD_API::record_event(event_t& event, stream_t stream) {
     // LOG(WARNING) << "OpenCL record event when calling clEnqueueXXX, so we use marker to simulate
     // this behavior";
     AMD_CHECK(clEnqueueMarkerWithWaitList(stream, 0, NULL, &event));
-    ALOGD("marker event " << event);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "marker event " << event;
 }
 
 void AMD_API::query_event(event_t event) {
@@ -251,22 +252,22 @@ void AMD_API::query_event(event_t event) {
 void AMD_API::sync_event(event_t event) {
 
     if (event == nullptr) {
-        ALOGD(__func__ << " event is empty, do nothing");
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__ << " event is empty, do nothing";
         return;
     }
 
-    ALOGD("sync_event E " << event);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "sync_event E " << event;
     AMD_CHECK(clWaitForEvents(1, &event));
-    ALOGD("sync_event X " << event);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "sync_event X " << event;
 }
 
 void AMD_API::sync_stream(event_t event, stream_t stream) {
     if (stream == NULL) {
-        ALOGI(__func__ << " stream is empty, do nothing");
+        LOG(INFO) << __func__ << " stream is empty, do nothing";
         return;
     }
 
-    ALOGI("sync_stream E");
+    LOG(INFO) << "sync_stream E";
     event_t revent;
 
     if (event == NULL) {
@@ -277,7 +278,7 @@ void AMD_API::sync_stream(event_t event, stream_t stream) {
 
     clFlush(stream);
     AMD_API::sync_event(revent);
-    ALOGI("sync_stream D");
+    LOG(INFO) << "sync_stream D";
 }
 
 #if 0
@@ -302,7 +303,7 @@ void AMD_API::sync_memcpy(TPtr dst, int dst_id, const TPtr src, int src_id, \
                                       &event));
         clFlush(cm);
         clWaitForEvents(1, &event);
-        ALOGI("OpenCL, sync, D2D, size: " << count);
+        LOG(INFO) << "OpenCL, sync, D2D, size: " << count;
     } else {
         cl_command_queue dst_cm = AMD_ENV::cur_env()[dst_id].get_available_stream();
         cl_command_queue src_cm = AMD_ENV::cur_env()[src_id].get_available_stream();
@@ -318,7 +319,7 @@ void AMD_API::sync_memcpy(TPtr dst, int dst_id, const TPtr src, int src_id, \
         clFlush(src_cm);
         clFlush(dst_cm);
         clWaitForEvents(1, &event);
-        ALOGI("OpenCL, sync, P2P, size: " << count);
+        LOG(INFO) << "OpenCL, sync, P2P, size: " << count;
     }
 }
 #else
@@ -326,9 +327,10 @@ void AMD_API::sync_memcpy(TPtr dst, size_t dst_offset, int dst_id, \
                           const TPtr src, size_t src_offset, int src_id, \
                           size_t count, __DtoD) {
     // TODO
-    ALOGD(__func__ << " D2D dst=" << dst << " dst_id=" << dst_id << " dst_office=" << dst_offset
-          << " src=" << src << " src_id=" << src_id << " src_offset=" << src_offset
-          << " count=" << count);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__ << " D2D dst=" << dst << " dst_id=" << dst_id <<
+                                         " dst_office=" << dst_offset
+                                         << " src=" << src << " src_id=" << src_id << " src_offset=" << src_offset
+                                         << " count=" << count;
 
     if (count == 0) {
         return;
@@ -345,7 +347,7 @@ void AMD_API::sync_memcpy(TPtr dst, size_t dst_offset, int dst_id, \
         clFlush(cm);
         clWaitForEvents(1, &event);
         clReleaseEvent(event);
-        ALOGI("OpenCL, sync, D2D, size: " << count);
+        LOG(INFO) << "OpenCL, sync, D2D, size: " << count;
     } else {
         cl_command_queue dst_cm = AMD_ENV::cur_env()[dst_id].get_available_stream();
         cl_command_queue src_cm = AMD_ENV::cur_env()[src_id].get_available_stream();
@@ -362,7 +364,7 @@ void AMD_API::sync_memcpy(TPtr dst, size_t dst_offset, int dst_id, \
         clFlush(dst_cm);
         clWaitForEvents(1, &event);
         clReleaseEvent(event);
-        ALOGI("OpenCL, sync, P2P, size: " << count);
+        LOG(INFO) << "OpenCL, sync, P2P, size: " << count;
     }
 }
 #endif
@@ -378,9 +380,10 @@ void AMD_API::async_memcpy(TPtr dst, int dst_id, const TPtr src, int src_id, \
     size_t src_offset = src.offset;
     //async_memcpy_with_offset(dst, dst_id, 0, src, src_id, 0, count, stream, __DtoD());
 
-    ALOGD(__func__ << " D2D dst=" << (void*)dst_mem << " dst_id=" << dst_id << " dst_office=" <<
-          dst_offset << " src=" << (void*)src_mem << " src_id=" << src_id << " src_offset=" << src_offset <<
-          " count=" << count);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__ << " D2D dst=" << (void*)dst_mem << " dst_id=" <<
+                                         dst_id << " dst_office=" <<
+                                         dst_offset << " src=" << (void*)src_mem << " src_id=" << src_id << " src_offset=" << src_offset <<
+                                         " count=" << count;
 
     //cl_mem dst_mem = (cl_mem) dst;
     //cl_mem src_mem = (cl_mem) src;
@@ -389,7 +392,7 @@ void AMD_API::async_memcpy(TPtr dst, int dst_id, const TPtr src, int src_id, \
         cl_command_queue cm = AMD_ENV::cur_env()[dst_id].get_available_stream(stream);
         AMD_CHECK(clEnqueueCopyBuffer(cm, src_mem, dst_mem, src_offset, dst_offset, count, 0, NULL, NULL));
         clFlush(cm);
-        ALOGI("OpenCL, sync, D2D, size: " << count);
+        LOG(INFO) << "OpenCL, sync, D2D, size: " << count;
     } else {
         cl_command_queue dst_cm = AMD_ENV::cur_env()[dst_id].get_available_stream(stream);
         cl_command_queue src_cm = AMD_ENV::cur_env()[src_id].get_available_stream(stream);
@@ -404,7 +407,7 @@ void AMD_API::async_memcpy(TPtr dst, int dst_id, const TPtr src, int src_id, \
         AMD_CHECK(clEnqueueUnmapMemObject(src_cm, src_mem, host_ptr, 1, &src_event2, NULL));
         clFlush(src_cm);
         clFlush(dst_cm);
-        ALOGI("OpenCL, sync, P2P, size: " << count);
+        LOG(INFO) << "OpenCL, sync, P2P, size: " << count;
     }
 
 }
@@ -413,9 +416,10 @@ void AMD_API::async_memcpy(TPtr dst, size_t dst_offset, int dst_id, \
                            const TPtr src, size_t src_offset, int src_id, \
                            size_t count, stream_t stream, __DtoD) {
 
-    ALOGD(__func__ << " D2D dst=" << dst << " dst_id=" << dst_id << " dst_office=" << dst_offset
-          << " src=" << src << " src_id=" << src_id << " src_offset=" << src_offset
-          << " count=" << count);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__ << " D2D dst=" << dst << " dst_id=" << dst_id <<
+                                         " dst_office=" << dst_offset
+                                         << " src=" << src << " src_id=" << src_id << " src_offset=" << src_offset
+                                         << " count=" << count;
 
     if (count == 0) {
         return;
@@ -429,7 +433,7 @@ void AMD_API::async_memcpy(TPtr dst, size_t dst_offset, int dst_id, \
         AMD_CHECK(clEnqueueCopyBuffer(
                       cm, src_mem, dst_mem, src_offset, dst_offset, count, 0, NULL, NULL));
         clFlush(cm);
-        ALOGI("OpenCL, sync, D2D, size: " << count);
+        LOG(INFO) << "OpenCL, sync, D2D, size: " << count;
     } else {
         cl_command_queue dst_cm = AMD_ENV::cur_env()[dst_id].get_available_stream(stream);
         cl_command_queue src_cm = AMD_ENV::cur_env()[src_id].get_available_stream(stream);
@@ -445,7 +449,7 @@ void AMD_API::async_memcpy(TPtr dst, size_t dst_offset, int dst_id, \
         AMD_CHECK(clEnqueueUnmapMemObject(src_cm, src_mem, host_ptr, 1, &src_event, NULL));
         clFlush(src_cm);
         clFlush(dst_cm);
-        ALOGI("OpenCL, sync, P2P, size: " << count);
+        LOG(INFO) << "OpenCL, sync, P2P, size: " << count;
     }
 }
 #endif
@@ -457,24 +461,26 @@ void AMD_API::sync_memcpy(TPtr dst, int dst_id, const void* src, int src_id, \
     cl_mem dst_mem = dst.dmem;
     size_t dst_offset = dst.offset;
 
-    ALOGD(__func__ << " H2D dst=" << (void*)dst_mem << " dst_id=" << dst_id << " dst_office=" <<
-          dst_offset << " src=" << src << " src_id=" << src_id << " count=" << count);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__ << " H2D dst=" << (void*)dst_mem << " dst_id=" <<
+                                         dst_id << " dst_office=" <<
+                                         dst_offset << " src=" << src << " src_id=" << src_id << " count=" << count;
 
     cl_event event;
     cl_command_queue dst_cm = AMD_ENV::cur_env()[dst_id].get_available_stream();
     clEnqueueWriteBuffer(dst_cm, dst_mem, CL_TRUE, dst_offset, count, src, 0, NULL, &event);
     clFlush(dst_cm);
     clWaitForEvents(1, &event);
-    ALOGI("OpenCL, sync, H2D, size: " << count);
+    LOG(INFO) << "OpenCL, sync, H2D, size: " << count;
 }
 #else
 void AMD_API::sync_memcpy(TPtr dst, size_t dst_offset, int dst_id, \
                           const void* src, size_t src_offset, int src_id, \
                           size_t count, __HtoD) {
 
-    ALOGD(__func__ << " H2D dst=" << dst << " dst_id=" << dst_id << " dst_office=" << dst_offset
-          << " src=" << src << " src_id=" << src_id << " src_offset=" << src_offset
-          << " count=" << count);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__ << " H2D dst=" << dst << " dst_id=" << dst_id <<
+                                         " dst_office=" << dst_offset
+                                         << " src=" << src << " src_id=" << src_id << " src_offset=" << src_offset
+                                         << " count=" << count;
 
     if (count == 0) {
         return;
@@ -488,7 +494,7 @@ void AMD_API::sync_memcpy(TPtr dst, size_t dst_offset, int dst_id, \
     clFlush(dst_cm);
     clWaitForEvents(1, &event);
     clReleaseEvent(event);
-    ALOGI("OpenCL, sync, H2D, size: " << count);
+    LOG(INFO) << "OpenCL, sync, H2D, size: " << count;
 }
 #endif
 
@@ -499,13 +505,14 @@ void AMD_API::async_memcpy(TPtr dst, int dst_id, const void* src, int src_id, \
     cl_mem dst_mem = dst.dmem;
     size_t dst_offset = dst.offset;
 
-    ALOGD(__func__ << " H2D dst=" << (void*)dst_mem << " dst_id=" << dst_id << " dst_office=" <<
-          dst_offset << " src=" << src << " src_id=" << src_id << " count=" << count);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__ << " H2D dst=" << (void*)dst_mem << " dst_id=" <<
+                                         dst_id << " dst_office=" <<
+                                         dst_offset << " src=" << src << " src_id=" << src_id << " count=" << count;
 
     cl_command_queue dst_cm = AMD_ENV::cur_env()[dst_id].get_available_stream(stream);
     clEnqueueWriteBuffer(dst_cm, dst_mem, CL_FALSE, dst_offset, count, src, 0, NULL, NULL);
     clFlush(dst_cm);
-    ALOGI("OpenCL, async, H2D, size: " << count);
+    LOG(INFO) << "OpenCL, async, H2D, size: " << count;
 
 }
 #else
@@ -513,9 +520,10 @@ void AMD_API::async_memcpy(TPtr dst, size_t dst_offset, int dst_id, \
                            const void* src, size_t src_offset, int src_id, \
                            size_t count, stream_t stream, __HtoD) {
 
-    ALOGD(__func__ << " H2D dst=" << dst << " dst_id=" << dst_id << " dst_office=" << dst_offset
-          << " src=" << src << " src_id=" << src_id << " src_offset=" << src_offset
-          << " count=" << count);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__ << " H2D dst=" << dst << " dst_id=" << dst_id <<
+                                         " dst_office=" << dst_offset
+                                         << " src=" << src << " src_id=" << src_id << " src_offset=" << src_offset
+                                         << " count=" << count;
 
     if (count == 0) {
         return;
@@ -526,7 +534,7 @@ void AMD_API::async_memcpy(TPtr dst, size_t dst_offset, int dst_id, \
     AMD_CHECK(clEnqueueWriteBuffer(
                   dst_cm, dst_mem, CL_FALSE, dst_offset, count, (char*)src + src_offset, 0, NULL, NULL));
     clFlush(dst_cm);
-    ALOGI("OpenCL, async, H2D, size: " << count);
+    LOG(INFO) << "OpenCL, async, H2D, size: " << count;
 }
 #endif
 
@@ -545,15 +553,16 @@ void AMD_API::sync_memcpy(void* dst, int dst_id, const TPtr src, int src_id, \
     clEnqueueReadBuffer(src_cm, src_mem, CL_TRUE, src_offset, count, dst, 0, NULL, &event);
     clFlush(src_cm);
     clWaitForEvents(1, &event);
-    ALOGI("OpenCL, sync, D2H, size: " << count);
+    LOG(INFO) << "OpenCL, sync, D2H, size: " << count;
 }
 #else
 void AMD_API::sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
                           const TPtr src, size_t src_offset, int src_id, \
                           size_t count, __DtoH) {
-    ALOGD(__func__ << " D2H dst=" << dst << " dst_id=" << dst_id << " dst_office=" << dst_offset
-          << " src=" << src << " src_id=" << src_id << " src_offset=" << src_offset
-          << " count=" << count);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__ << " D2H dst=" << dst << " dst_id=" << dst_id <<
+                                         " dst_office=" << dst_offset
+                                         << " src=" << src << " src_id=" << src_id << " src_offset=" << src_offset
+                                         << " count=" << count;
 
     if (count == 0) {
         return;
@@ -567,7 +576,7 @@ void AMD_API::sync_memcpy(void* dst, size_t dst_offset, int dst_id, \
     clFlush(src_cm);
     clWaitForEvents(1, &event);
     clReleaseEvent(event);
-    ALOGI("OpenCL, sync, D2H, size: " << count);
+    LOG(INFO) << "OpenCL, sync, D2H, size: " << count;
 }
 #endif
 
@@ -578,24 +587,26 @@ void AMD_API::async_memcpy(void* dst, int dst_id, const TPtr src, int src_id, \
     cl_mem src_mem = src.dmem;
     size_t src_offset = src.offset;
 
-    ALOGD(__func__ << " D2H dst=" << dst << " dst_id=" << dst_id << " src=" <<
-          (void*)src_mem << " src_id=" << src_id << " src_offset=" << src_offset << " count=" << count);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__ << " D2H dst=" << dst << " dst_id=" << dst_id <<
+                                         " src=" <<
+                                         (void*)src_mem << " src_id=" << src_id << " src_offset=" << src_offset << " count=" << count;
 
     //cl_mem src_mem = (cl_mem) src;
     cl_command_queue src_cm = AMD_ENV::cur_env()[src_id].get_available_stream(stream);
     clEnqueueReadBuffer(src_cm, src_mem, CL_FALSE, src_offset, count, dst, 0, NULL, NULL);
     clFlush(src_cm);
-    ALOGI("OpenCL, async, D2H, size: " << count);
+    LOG(INFO) << "OpenCL, async, D2H, size: " << count;
 }
 #else
 void AMD_API::async_memcpy(void* dst, size_t dst_offset, int dst_id, \
                            const TPtr src, size_t src_offset, int src_id, \
                            size_t count, stream_t stream, __DtoH) {
 
-    ALOGD(__func__ << " D2H dst=" << dst << " dst_id=" << dst_id << " dst_office=" << dst_offset
-          << " src=" << src << " src_id=" << src_id << " src_offset=" << src_offset
-          << " count=" << count);
-    ALOGD(__func__ << " stream: " << stream);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__ << " D2H dst=" << dst << " dst_id=" << dst_id <<
+                                         " dst_office=" << dst_offset
+                                         << " src=" << src << " src_id=" << src_id << " src_offset=" << src_offset
+                                         << " count=" << count;
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__ << " stream: " << stream;
 
     if (count == 0) {
         return;
@@ -606,7 +617,7 @@ void AMD_API::async_memcpy(void* dst, size_t dst_offset, int dst_id, \
     AMD_CHECK(clEnqueueReadBuffer(
                   src_cm, src_mem, CL_FALSE, src_offset, count, (char*)dst + dst_offset, 0, NULL, NULL));
     clFlush(src_cm);
-    ALOGI("OpenCL, async, D2H, size: " << count);
+    LOG(INFO) << "OpenCL, async, D2H, size: " << count;
 }
 #endif
 
@@ -633,7 +644,7 @@ void AMD_API::sync_memcpy_p2p(TPtr dst, int dst_dev, const TPtr src, \
     clFlush(src_cm);
     clFlush(dst_cm);
     clWaitForEvents(1, &event);
-    ALOGI("OpenCL, sync, P2P, size: " << count);
+    LOG(INFO) << "OpenCL, sync, P2P, size: " << count;
 }
 #else
 void AMD_API::sync_memcpy_p2p(TPtr dst, size_t dst_offset, int dst_id, \
@@ -659,7 +670,7 @@ void AMD_API::sync_memcpy_p2p(TPtr dst, size_t dst_offset, int dst_id, \
     clFlush(dst_cm);
     clWaitForEvents(1, &event);
     clReleaseEvent(event);
-    ALOGI("OpenCL, sync, P2P, size: " << count);
+    LOG(INFO) << "OpenCL, sync, P2P, size: " << count;
 }
 #endif
 
@@ -686,7 +697,7 @@ void AMD_API::async_memcpy_p2p(TPtr dst, int dst_dev, const TPtr src, \
     AMD_CHECK(clEnqueueUnmapMemObject(src_cm, src_mem, host_ptr, 1, &src_event2, NULL));
     clFlush(src_cm);
     clFlush(dst_cm);
-    ALOGI("OpenCL, async, P2P, size: " << count);
+    LOG(INFO) << "OpenCL, async, P2P, size: " << count;
 }
 #else
 void AMD_API::async_memcpy_p2p(TPtr dst, size_t dst_offset, int dst_id, \
@@ -714,7 +725,7 @@ void AMD_API::async_memcpy_p2p(TPtr dst, size_t dst_offset, int dst_id, \
     AMD_CHECK(clEnqueueUnmapMemObject(src_cm, src_mem, host_ptr, 1, &src_event2, NULL));
     clFlush(src_cm);
     clFlush(dst_cm);
-    ALOGI("OpenCL, async, P2P, size: " << count);
+    LOG(INFO) << "OpenCL, async, P2P, size: " << count;
 }
 #endif
 
@@ -723,7 +734,7 @@ void AMD_API::async_memcpy_p2p(TPtr dst, size_t dst_offset, int dst_id, \
  * @return          currently activated device id
  */
 int AMD_API::get_device_id() {
-    // ALOGD("get device id = " << current_device_id_index;
+    // LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "get device id = " << current_device_id_index;
     return current_device_id_index;
 }
 
@@ -915,11 +926,11 @@ void AMDH_API::destroy_stream(stream_t stream) {
 
 void AMDH_API::destroy_event(event_t event) {
     if (event == nullptr) {
-        ALOGD("event is empty, do nothing");
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "event is empty, do nothing";
         return;
     }
 
-    ALOGD(__func__ << " " << event);
+    LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__ << " " << event;
     cl_command_type t;
     AMD_CHECK(clGetEventInfo(event, CL_EVENT_COMMAND_TYPE, sizeof(cl_command_type), &t, NULL));
 
@@ -946,22 +957,22 @@ void AMDH_API::query_event(event_t event) {
 
 void AMDH_API::sync_event(event_t event) {
     if (event == nullptr) {
-        ALOGI(__func__ << " event is empty, do nothing");
+        LOG(INFO) << __func__ << " event is empty, do nothing";
         return;
     }
 
-    ALOGI("sync_event E " << event);
+    LOG(INFO) << "sync_event E " << event;
     AMD_CHECK(clWaitForEvents(1, &event));
-    ALOGI("sync_event X " << event);
+    LOG(INFO) << "sync_event X " << event;
 }
 
 void AMDH_API::sync_stream(event_t event, stream_t stream) {
     if (stream == NULL) {
-        ALOGI(__func__ << " stream is empty, do nothing");
+        LOG(INFO) << __func__ << " stream is empty, do nothing";
         return;
     }
 
-    ALOGI("sync_stream E");
+    LOG(INFO) << "sync_stream E";
     event_t revent;
 
     if (event == NULL) {
@@ -971,7 +982,7 @@ void AMDH_API::sync_stream(event_t event, stream_t stream) {
     }
 
     clFlush(stream);
-    ALOGI("sync_stream D");
+    LOG(INFO) << "sync_stream D";
 }
 
 void AMDH_API::sync_memcpy(void* dst, size_t dst_offset, int dst_id, \

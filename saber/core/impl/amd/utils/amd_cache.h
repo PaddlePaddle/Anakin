@@ -49,7 +49,7 @@ public:
         iter = cache_map.find(key);
 
         if (iter != cache_map.end()) {
-            AMD_LOGD("[" << typeid(T).name() << "] found cache!");
+            LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "[" << typeid(T).name() << "] found cache!";
             return iter->second;
         } else {
             return NULL;
@@ -61,10 +61,11 @@ public:
         std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
         if (!lookup(key)) {
-            AMD_LOGD("[" << typeid(T).name() << "] insert cache to slot, size: " << cache_size);
+            LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "[" << typeid(T).name() << "] insert cache to slot, size: "
+                                                 << cache_size;
             cache_size++;
             cache_map.insert(typename MType::value_type(key, t));
-            AMD_LOGD("[" << typeid(T).name() << "] insert cache to slot done");
+            LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "[" << typeid(T).name() << "] insert cache to slot done";
         }
     }
 

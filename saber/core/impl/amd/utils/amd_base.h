@@ -55,15 +55,15 @@ struct KernelInfo {
     friend std::ostream& operator<<(std::ostream& os, const KernelInfo& k);
 
     KernelInfo& operator=(KernelInfo right) {
-        ALOGD("assign KerneInfo");
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "assign KerneInfo";
         clone(&right);
     };
     KernelInfo& operator=(KernelInfo* right) {
-        ALOGD("assign KerneInfo *");
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "assign KerneInfo *";
         clone(right);
     };
     KernelInfo& operator=(miopen::solver::KernelInfo& right) {
-        ALOGD("assign KerneInfo *");
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "assign KerneInfo *";
         clone(&right);
     };
 

@@ -43,7 +43,7 @@ public:
 
         CreateProgram();
         CreateKernel();
-        AMD_LOGD("create kernel complete");
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "create kernel complete";
     }
 
     bool isInit() {
@@ -58,31 +58,31 @@ public:
     };
     template <class... Ts>
     bool SetKernelArgs(const Ts& ... xs) {
-        AMD_LOGD(__func__);
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__;
 
         if (!isInit()) {
             return false;
         }
 
-        AMD_LOGD("Kernel is init");
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "Kernel is init";
 
         if (!setKernelArgs(0, xs...)) {
             return false;
         }
 
-        AMD_LOGD("Set Kernel Args complete");
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "Set Kernel Args complete";
         return true;
     }
 
     bool
     Invoke(cl_command_queue cm, int wait_events_num, const cl_event* wait_events, cl_event* event) {
-        AMD_LOGD(__func__);
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__;
 
         if (!isInit()) {
             return false;
         }
 
-        AMD_LOGD("Kernel is init");
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "Kernel is init";
         return run(cm, wait_events_num, wait_events, event);
     }
 
@@ -93,19 +93,19 @@ public:
            const cl_event* wait_events,
            cl_event* event,
            const Ts& ... xs) {
-        AMD_LOGD(__func__);
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << __func__;
 
         if (!isInit()) {
             return false;
         }
 
-        AMD_LOGD("Kernel is init");
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "Kernel is init";
 
         if (!setKernelArgs(0, xs...)) {
             return false;
         }
 
-        AMD_LOGD("Set Kernel Args complete");
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "Set Kernel Args complete";
 
         return run(cm, wait_events_num, wait_events, event);
     }
@@ -123,15 +123,15 @@ private:
         if (errNum != CL_SUCCESS) {
 
             if (errNum == CL_INVALID_ARG_INDEX) { // workaround for miopengemm kenrel
-                AMD_LOGE("set kernel args[" << index << "] err = " << errNum);
+                LOG(ERROR) << "set kernel args[" << index << "] err = " << errNum;
                 return true;
             }
 
-            AMD_LOGE("set kernel args[" << index << "] err = " << errNum);
+            LOG(ERROR) << "set kernel args[" << index << "] err = " << errNum;
             return false;
         }
 
-        AMD_LOGD("Set Kernel Args[" << index << "]");
+        LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "Set Kernel Args[" << index << "]";
         return true;
     }
     template <class T, class... Ts>

@@ -28,11 +28,11 @@ struct SharedDeleter {
     void operator()(T* t) const {
         if (t != NULL) {
             try {
-                AMD_LOGD("release shared object :" << typeid(t).name());
+                LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "release shared object :" << typeid(t).name();
                 f(t);
                 t = NULL;
             } catch (...) {
-                AMD_LOGE("Catught error for release shared object : " << typeid(t).name());
+                LOG(ERROR) << "Catught error for release shared object : " << typeid(t).name();
             }
         }
     }

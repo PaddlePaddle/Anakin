@@ -89,6 +89,8 @@
 // for AMD profiling computing performance
 #cmakedefine ENABLE_AMD_PROFILING
 
+#cmakedefine ENABLE_AMD_DEBUG
+
 #if defined(ANDROID) || defined(__ANDROID__)
     #define PLATFORM_ANDROID
     #define IS_MOBILE_PLATFORM
