@@ -74,7 +74,6 @@ Device<AMD>::Device(int max_stream) : _max_stream(max_stream) {
     CHECK(errNum == CL_SUCCESS);
 
     get_info();
-    create_stream();
 }
 
 void Device<AMD>::create_stream() {
