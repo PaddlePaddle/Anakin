@@ -362,7 +362,9 @@ OpsRegister.Register("LayerNorm").set_attr(is_across_spatial=bool(),
 
 OpsRegister.Register("Resize").set_attr(method="BILINEAR_ALIGN",
                                         height_scale=float(),
-                                        width_scale=float())
+                                        width_scale=float(),
+                                        out_w=int(),
+                                        out_h=int())
 
 OpsRegister.Register("Normalize").set_attr(begin_norm_axis=int(),
                                            is_across_spatial=bool(),
