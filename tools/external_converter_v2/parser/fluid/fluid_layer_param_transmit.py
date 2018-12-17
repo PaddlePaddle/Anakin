@@ -528,7 +528,7 @@ def Parser_relu6(args):
     op = args[1]
     helper = args[3]
     OpsRegister()["Activation"].type = "ClippedRelu"
-    OpsRegister()["Activation"].clip_relu_num = helper.attr_data(op, 'threshold')
+    OpsRegister()["Activation"].clip_relu_num = int(helper.attr_data(op, 'threshold'))
 
 @ParserFeedDecorator("ReLU")
 def Parser_leaky_relu(args):
@@ -674,8 +674,8 @@ def Parser_norm(args):
 def Parser_bilinear_interp(args):
     op = args[1]
     helper = args[3]
-    OpsRegister()["Resize"].width_scale = helper.attr_data(op, 'out_w')
-    OpsRegister()["Resize"].height_scale = helper.attr_data(op, 'out_h')
+    OpsRegister()["Resize"].width_scale = float(helper.attr_data(op, 'out_w'))
+    OpsRegister()["Resize"].height_scale = float(helper.attr_data(op, 'out_h'))
     OpsRegister()["Resize"].method = "BILINEAR_ALIGN"
 
 FLUID_NODE_FILLER = {
