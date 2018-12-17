@@ -63,8 +63,10 @@ class ParseOnnxToMed:
                 elif a.type == 4: #tensor
                     val_list = onnx_to_anakin_tensor(a.t)
                     attr[a.name] = val_list
+                elif a.type == 3: #String
+                    attr[a.name] = a.s
                 else:
-                    print 'Error type: ', a.type
+                    print 'Error type: ', a.type, a
                     # attr[a.name] = a.auto_pad
                     exit(0)
 
@@ -106,9 +108,6 @@ class ParseOnnxToMed:
                 a = shape[2]
                 shape[2] = 1
                 shape[3] = a
-            # elif len(shape) < 4:
-            #     shape  = map(int, [1] * (4 - len(shape)) + list(shape))
-            # print'after', shape
             anakin_tensor['shape'] = shape
             anakin_tensor['data'] = data
             anakin_tensor['dtype'] = dtype
@@ -145,7 +144,7 @@ class ParseOnnxToMed:
                 shape[3] = a
                 # print'after', shape
             #attr["shape"] = shape
-            if input_a.name.startswith('data') or (input_a.name == '0'):
+            if input_a.name.startswith('data') or (input_a.name == '0') or (input_a.name == 'image'):
                 inputs[input_a.name] = shape
                 output_node = []
                 print 'input: ', input_a.name
@@ -309,6 +308,8 @@ class ParseOnnxToMed:
                            'Softmax': parse_Softmax,
                            'Dropout': parse_Dropout,
                            'Relu': parse_Act,
+                           'LeakyRelu': parse_Act,
+                           'ImageScaler': parse_ImageScaler,
                            'MaxPool': parse_Pooling,
                            'GlobalAveragePool': parse_Pooling,
                            'AveragePool': parse_Pooling,
@@ -371,7 +372,8 @@ class ParseOnnxToMed:
         input_node = graph['input_0']
         out_node = input_node['output']
         op_list = ['Relu', 'Add', 'Dropout', 'Mul', 'BatchNormalization',
-                    'Softmax', 'LRN', 'Div', 'ReduceL2', 'Unsqueeze', 'Shape']
+                    'Softmax', 'LRN', 'Div', 'ReduceL2', 'Unsqueeze', 'Shape',
+                    'ImageScaler', 'LeakyRelu']
         while len(out_node) > 0:
             # print ('out_node: ', out_node)
             for out_name in out_node:
@@ -386,8 +388,12 @@ class ParseOnnxToMed:
                 else:
                     ak_attr = node['onnx_attr']
                     if op_type == 'Conv':
-                        strides = ak_attr['strides']
-                        pads = ak_attr['pads']
+                        strides =[1, 1]
+                        if 'strides' in ak_attr:
+                            strides = ak_attr['strides']
+                        pads =[1, 1]
+                        if 'pads' in ak_attr:
+                            pads = ak_attr['pads']
                         # dilations = ak_attr['dilations']
                         kernel_shape = ak_attr['kernel_shape']
                         out_ch = weights[node['input'][1]]['shape'][0]
@@ -404,8 +410,12 @@ class ParseOnnxToMed:
                         else:
                             node['shape'] = [1, 1, 1, 1]
                     elif op_type == 'MaxPool' or op_type == 'AveragePool':
-                        strides = ak_attr['strides']
-                        pads = ak_attr['pads']
+                        strides =[1, 1]
+                        if 'strides' in ak_attr:
+                            strides = ak_attr['strides']
+                        pads =[1, 1]
+                        if 'pads' in ak_attr:
+                            pads = ak_attr['pads']
                         # dilations = ak_attr['dilations']
                         kernel_shape = ak_attr['kernel_shape']
                         out_ch = top_shape[1]

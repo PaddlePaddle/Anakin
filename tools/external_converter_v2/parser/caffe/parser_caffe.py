@@ -474,6 +474,43 @@ class CaffeParser:
                     self.graphIO.add_node(node_io())
                     self.graphIO.add_in(in_name)
 
+    def _UpdateScaleModelLayer(self):
+        """
+        """
+        rlayers = self.net_parameter.layer or self.net_parameter.layers
+        mlayers = self.net_param_weights.layers or self.net_param_weights.layer
+        def search_filler(rlayers):
+            scale_dict = dict()
+            for rlayer in rlayers:
+                if rlayer.type == "Scale" and rlayer.scale_param.HasField("filler"):
+                    scale_dict[rlayer.name] = rlayer.scale_param.filler.value
+            return scale_dict
+        def all_names(layers):
+            name_list = list()
+            for layer in layers:
+                name_list.append(layer.name)
+            return name_list
+        def pick_layer(layer_name, layers):
+            assert layer_name in all_names(layers)
+            for layer in layers:
+                if layer_name == layer.name:
+                    return layer
+        def add_scale_model_layer(rlayers, mlayers):
+            scale_dict = search_filler(rlayers)
+            mlayer_names = all_names(mlayers)
+            for layer_name in scale_dict.keys():
+                if layer_name not in mlayer_names:
+                    mlayer = pick_layer(layer_name, rlayers)
+                    blob = BlobProto()
+                    blob.num = 1
+                    blob.channels = 1
+                    blob.height = 1
+                    blob.width = 1
+                    blob.data.append(scale_dict[mlayer.name])
+                    mlayer.blobs.extend([blob])
+                    mlayers.extend([mlayer])
+        add_scale_model_layer(rlayers, mlayers)
+
     def _DealWithRemark(self, layer_type, nodeIO, mlayer, rlayer, tensors, opIO):
         if self.Remark == 'FaceUniqueBatchNorm':
             if len(tensors) > 3 and layer_type == "BatchNorm": # this is for Face unique Batchnorm layer(batchnorm + scale)
@@ -523,6 +560,7 @@ class CaffeParser:
         logger(verbose.INFO).feed(" [CAFFE] Model Parameter Parsing ...")
         self._ParserModel()
         self._SplitInception(True)
+        self._UpdateScaleModelLayer()
         model_layers = self.net_param_weights.layers or self.net_param_weights.layer
 
         # we must setting graph edge first

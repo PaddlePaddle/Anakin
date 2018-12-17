@@ -198,8 +198,8 @@ def trans_const_node(node, weights):
                 for i in axes:
                     if i >= num:
                         new_shape.append(1)
-                print ('shape: ', shape)
-                print ('new_shape: ', new_shape)
+                # print ('shape: ', shape)
+                # print ('new_shape: ', new_shape)
                 weights_data['shape'] = new_shape
                 weights_data['data'] = weights_node['data'].reshape(new_shape)
                 weights_data['dtype'] = weights_node['dtype']
@@ -747,6 +747,19 @@ def parse_Act(onnx_node, weights, graph):
     if onnx_node['type'] == 'Relu':
         onnx_node['ak_type'] = 'ReLU'
         onnx_node['ak_attr']['type'] = 'Relu'
+    elif onnx_node['type'] == 'LeakyRelu':
+        # onnx_node['ak_type'] = 'PReLU'
+        onnx_node['ak_attr']['type'] = 'PReLU'
+        onnx_attr = onnx_node['onnx_attr']
+        slope = 0.01
+        if 'alpha' in onnx_attr:
+            slope = onnx_attr['alpha']
+        weights_node = {}
+        weights_node['dtype'] = 'float32'
+        weights_node['shape'] = [1]
+        weights_node['data'] = [slope]
+        onnx_node['ak_attr']['weights'] = weights_node
+        onnx_node['ak_attr']['channel_shared'] = True
     else:
         raise Exception('un handel activation ' + str(onnx_node.op_type))
 
@@ -860,8 +873,8 @@ def parse_Pooling(onnx_node, weights, graph):
     else:
         kernel_shape = [1, 1]
     # padding deal inlcuding pading
-    # if onnx_attr['auto_pad'] == 'SAME_LOWER' or onnx_attr['auto_pad'] == 'SAME_UPPER':
-    #    padding = [0, 0]
+    if 'auto_pad' in onnx_attr.keys(): #onnx_attr['auto_pad'] == 'SAME_LOWER' or onnx_attr['auto_pad'] == 'SAME_UPPER':
+       padding_val = [1, 1]
     # padding = [1, 1, 1, 1] =[t, left, bottom, right]
     # else:
     padding = [padding_val[0], padding_val[1]]
@@ -902,6 +915,45 @@ def parse_Pooling(onnx_node, weights, graph):
     ak_attr['window'] = kernel_shape
     ak_attr['padding'] = padding #padding_val
     ak_attr['strides'] = strides
+
+def parse_ImageScaler(onnx_node, weights, graph):
+    """
+    parse ImageScaler
+    :param onnx_node:
+    :param weights:
+    :param graph:
+    :return:
+    """
+    onnx_node['visited'] = True
+    onnx_node['ak_type'] = 'Scale'
+    ak_attr = onnx_node['ak_attr']
+
+    scale_val = onnx_node['onnx_attr']['scale']
+    shape = [1, 1, 1, 3]
+    scale_val = [1.0, 1.0, 1.0]
+    if 'scale' in onnx_node['onnx_attr']:
+        scale_val = onnx_node['onnx_attr']['scale']
+    if type(scale_val) is 'float':
+        scale_val =[ scale_val, scale_val, scale_val]
+    scale_np = np.full(shape, scale_val) #np.arange([scale_val])
+    weight_tensor = {}
+    weight_tensor['shape'] = shape
+    weight_tensor['data'] = scale_np
+    weight_tensor['dtype'] = 'float32'
+    ak_attr['weights'] = weight_tensor
+
+    bias_val = [1.0]
+    if 'bias' in onnx_node['onnx_attr']:
+        bias_val = onnx_node['onnx_attr']['bias']
+        # print 'bias: ', len(bias_val)
+        shape_b = [len(bias_val)]
+        # print 'shape_b: ', shape_b
+        bias_tensor = {}
+        bias_tensor['shape'] = shape_b
+        bias_tensor['data'] = bias_val
+        bias_tensor['dtype'] = 'float32'
+        ak_attr['bias'] = bias_tensor
+
 
 def parse_Dropout(onnx_node, weights, graph):
     """

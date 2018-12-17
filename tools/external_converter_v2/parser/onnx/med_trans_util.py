@@ -154,6 +154,18 @@ class MedTransAK:
         else:
             param.alpha = med_attr['type']
 
+    def PReLU(self, med_attr, param):
+        """
+        get relu param
+        :param med_attr:
+        :param param:
+        :return:
+        """
+        if med_attr.get('channel_shared') is None:
+            param.channel_shared = False
+        else:
+            param.channel_shared = med_attr['channel_shared']
+
     def Concat(self, med_attr, param):
         """
         get concat param
@@ -174,6 +186,12 @@ class MedTransAK:
         :return:
         """
         param.type = med_attr['type']
+        if med_attr['type'] == 'PReLU':
+            if med_attr.get('channel_shared') is None:
+                param.channel_shared = False
+            else:
+                param.channel_shared = med_attr['channel_shared']
+            param.weight_1 = np_2_ak_tensor(med_attr['weights'])
 
     def Reshape(self, med_attr, param):
         """
@@ -205,8 +223,11 @@ class MedTransAK:
             param.global_pooling = False
         else:
             param.global_pooling = med_attr['global_pooling']
-
-        param.cmp_out_shape_floor_as_conv = False
+        # if med_attr['padding'][0] == 0:
+        #     param.cmp_out_shape_floor_as_conv = False
+        # else:
+        #     param.cmp_out_shape_floor_as_conv = True
+        param.cmp_out_shape_floor_as_conv = True
         pass
 
     def Input(self, med_attr, param):
