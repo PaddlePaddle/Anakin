@@ -676,6 +676,8 @@ def Parser_reshape(args):
         layout = 'NCHW'
     elif len(shape) == 3:
         layout = 'NHW'
+    elif len(shape) == 2:
+        layout = 'NW'
     OpsRegister()["Reshape"].layout = layout
 
 @ParserFeedDecorator("Split")
