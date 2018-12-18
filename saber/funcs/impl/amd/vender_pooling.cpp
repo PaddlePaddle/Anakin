@@ -13,7 +13,7 @@
    limitations under the License.
 */
 
-#include "saber/funcs/impl/amd/include/saber_pooling.h"
+#include "saber/funcs/impl/amd/include/vender_pooling.h"
 
 namespace anakin {
 namespace saber {
@@ -21,7 +21,7 @@ namespace saber {
 typedef TargetWrapper<AMD> AMD_API;
 
 template <DataType OpDtype>
-SaberStatus SaberPooling<AMD, OpDtype>::init(
+SaberStatus VenderPooling<AMD, OpDtype>::init(
     const std::vector<Tensor<AMD>*>& inputs,
     std::vector<Tensor<AMD>*>& outputs,
     PoolingParam<AMD>& param,
@@ -32,7 +32,7 @@ SaberStatus SaberPooling<AMD, OpDtype>::init(
 }
 
 template <DataType OpDtype>
-SaberStatus SaberPooling<AMD, OpDtype>::create(
+SaberStatus VenderPooling<AMD, OpDtype>::create(
     const std::vector<Tensor<AMD>*>& inputs,
     std::vector<Tensor<AMD>*>& outputs,
     PoolingParam<AMD>& param,
@@ -75,33 +75,34 @@ SaberStatus SaberPooling<AMD, OpDtype>::create(
     break;
     }
 
+    int _grp_tile0     = 8;
+    int _grp_tile1     = 8;
+    int _out_width     = (inputs[0]->width() + param.pad_w * 2 - param.window_w + param.stride_w - 1) /
+                         param.stride_w + 1;
+    int _out_height    = (inputs[0]->height() + param.pad_h * 2 - param.window_h + param.stride_h - 1) /
+                         param.stride_h + 1;
+    int _out_pix_tile0 = std::max(1, 8 / param.stride_w);
+    int _out_pix_tile1 = std::max(1, 8 / param.stride_h);
+
+    while (_out_pix_tile0 * _grp_tile0 > _out_width * 2 && _out_pix_tile0 > 1) {
+        _out_pix_tile0 >>= 1;
+    }
+
+    while (_out_pix_tile1 * _grp_tile1 > _out_height * 2 && _out_pix_tile1 > 1) {
+        _out_pix_tile1 >>= 1;
+    }
+
     kernelInfo.wk_dim = 3;
 
-    if (param.window_h == 2
-            && param.window_w == 2
-            && param.pad_w == 0
-            && param.pad_h == 0) {
-        kernelInfo.l_wk        = {256, 1, 1};
-        kernelInfo.g_wk        = {64 * 64 * 40, 1, 1};
-        kernelInfo.kernel_file = "Pooling.cl";
-        kernelInfo.kernel_name = "mloPooling";
-    } else if (param.window_h == inputs[0]->height()
-               && param.window_w == inputs[0]->width()
-               && param.pad_w == 0
-               && param.pad_h == 0
-               && (inputs[0]->channel()*inputs[0]->num() % 256) == 0) {
-        int g_wk_width  = 1;
-        int g_wk_height = 1;
-        kernelInfo.l_wk = {256, 1, 1};
-        kernelInfo.g_wk = {inputs[0]->channel() * inputs[0]->num(), 1, 1};
-        kernelInfo.kernel_file = "Pooling7x7_7_7_2048.cl";
-        kernelInfo.kernel_name = "mloPoolingG";
-    } else {
-        kernelInfo.l_wk        = {256, 1, 1};
-        kernelInfo.g_wk        = {64 * 64 * 40, 1, 1};
-        kernelInfo.kernel_file = "PoolingGen.cl";
-        kernelInfo.kernel_name = "mloPooling";
-    }
+    int g_wk_width  = ((_out_width + _grp_tile0 * _out_pix_tile0 - 1) / (_grp_tile0 * _out_pix_tile0));
+    int g_wk_height = ((_out_height + _grp_tile1 * _out_pix_tile1 - 1) / (_grp_tile1 * _out_pix_tile1));
+    kernelInfo.l_wk = {_grp_tile0, _grp_tile1, 1};
+    kernelInfo.g_wk = { g_wk_width * _grp_tile0,
+                        g_wk_height * _grp_tile1,
+                        inputs[0]->channel()* inputs[0]->num() };
+    kernelInfo.kernel_file = "MIOpenPooling.cl";
+    kernelInfo.kernel_name = "mloPoolingG";
+    kernelInfo.kernel_type = MIOPEN;
 
     int bot_batch_stride   = inputs[0]->width() * inputs[0]->height() * outputs[0]->channel();
     int bot_channel_stride = inputs[0]->width() * inputs[0]->height();
@@ -120,6 +121,8 @@ SaberStatus SaberPooling<AMD, OpDtype>::create(
         + std::string(" -DMLO_POOLING_STRIDE1=") + std::to_string(param.stride_h)
         + std::string(" -DMLO_POOLING_N_OUTPUTS=") + std::to_string(inputs[0]->channel())
         + std::string(" -DMLO_POOLING_N_CHANNELS=") + std::to_string(outputs[0]->channel())
+        + std::string(" -DMLO_POOLING_N_HORIZ_OUT_PIX=") + std::to_string(_out_pix_tile0)
+        + std::string(" -DMLO_POOLING_N_VERT_OUT_PIX=") + std::to_string(_out_pix_tile1)
         + std::string(" -DMLO_POOLING_GROUP_SZ0=8")
         + std::string(" -DMLO_POOLING_GROUP_SZ1=8")
         + std::string(" -DMLO_POOLING_BOT_BATCH_STRIDE=") + std::to_string(bot_batch_stride)
@@ -153,7 +156,7 @@ SaberStatus SaberPooling<AMD, OpDtype>::create(
 }
 
 template <DataType OpDtype>
-SaberStatus SaberPooling<AMD, OpDtype>::dispatch(
+SaberStatus VenderPooling<AMD, OpDtype>::dispatch(
     const std::vector<Tensor<AMD>*>& inputs,
     std::vector<Tensor<AMD>*>& outputs,
     PoolingParam<AMD>& param) {
@@ -188,6 +191,6 @@ SaberStatus SaberPooling<AMD, OpDtype>::dispatch(
     LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "COMPLETE EXECUTION";
     return SaberSuccess;
 }
-template class SaberPooling<AMD, AK_FLOAT>;
+template class VenderPooling<AMD, AK_FLOAT>;
 } // namespace saber
 } // namespace anakin
