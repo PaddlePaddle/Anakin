@@ -38,3 +38,4 @@ nv_gpu_build
 ios_build
 gpu_build
 output
+third-party/extern_miopen
