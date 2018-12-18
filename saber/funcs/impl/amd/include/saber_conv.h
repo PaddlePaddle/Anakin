@@ -29,23 +29,19 @@ template <DataType OpDtype>
 class SaberConv2D<AMD, OpDtype> : public ImplBase<AMD, OpDtype, ConvParam<AMD>> {
 public:
     typedef typename DataTrait<AMD, OpDtype>::Dtype OpDataType;
+    typedef ImplBase<AMD, OpDtype, ConvParam<AMD> > Impl_t;
     typedef AMD_API::TPtr PtrDtype;
 
     SaberConv2D() {
         _kernels_ptr.clear();
-        _outGemmWorkspace = nullptr;
-        _slot = nullptr;
     }
+
     ~SaberConv2D() {
+        if (_impl != nullptr) {
+            delete _impl;
+        }
+
         _kernels_ptr.clear();
-
-        if (_outGemmWorkspace) {
-            delete _outGemmWorkspace;
-        }
-
-        if (_slot) {
-            delete _slot;
-        }
     }
 
     virtual SaberStatus
@@ -79,13 +75,12 @@ public:
     }
 
 private:
+    Impl_t* _impl {nullptr};
+    bool _use_vender {false};
     bool _in_place {false};
     bool _extern_trans {false};
-    CreateKernelList(int device_id, KernelInfo& kernelInfo);
-    std::vector<AMDKernelPtr> _kernels_ptr {nullptr};
-    Tensor<AMD>* _outGemmWorkspace;
-    Tensor<AMD>* _slot;
-    Tensor<AMD> _tensile_bias;
+    void CreateKernelList(int device_id, KernelInfo& kernelInfo);
+    std::vector<AMDKernelPtr> _kernels_ptr;
 };
 } // namespace saber
 } // namespace anakin

@@ -18,6 +18,9 @@
 #include <CL/cl.h>
 #include "saber/core/impl/amd/utils/amd_base.h"
 #include "saber/core/impl/amd/utils/amd_kernel.h"
+#include "saber/core/impl/amd/utils/amd_file_utils.h"
+#include "saber/funcs/base.h"
+#include <miopen/solver.hpp>
 
 #define MLO_POOLING_OP_AVE 0
 #define MLO_POOLING_OP_MAX 1
@@ -101,6 +104,10 @@ void BiasReluPool(
     bool isBias,
     bool isActive);
 
+std::vector<KernelInfo> FindSolution(
+    const std::vector<Tensor<AMD>*>& inputs,
+    std::vector<Tensor<AMD>*>& outputs,
+    ConvParam<AMD>& param);
 } // namespace saber
 } // namespace anakin
 #endif

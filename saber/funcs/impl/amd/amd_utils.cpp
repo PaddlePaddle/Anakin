@@ -499,5 +499,99 @@ void BiasReluPool(std::vector<AMDKernelPtr>& vkptr, int device_id, int bt_size,
     }
 }
 
+std::vector<KernelInfo> FindSolution(
+    const std::vector<Tensor<AMD>*>& inputs,
+    std::vector<Tensor<AMD>*>& outputs,
+    ConvParam<AMD>& param) {
+    Device<AMD> dev = Env<AMD>::cur_env()[inputs[0]->device_id()]; // anakin device id to AMD device
+    cl_device_id device = dev.get_device();
+    cl_context context  = dev.get_context();
+    miopen::ConvolutionContext convContext;
+    convContext.direction.Set(1);
+    convContext.general_compile_options += "";
+    convContext.n_inputs           = inputs[0]->channel();
+    convContext.in_height          = inputs[0]->height();
+    convContext.in_width           = inputs[0]->width();
+    convContext.kernel_size0       = param.weight()->width();
+    convContext.kernel_size1       = param.weight()->height();
+    convContext.n_outputs          = param.weight()->num();
+    convContext.out_height         = outputs[0]->height();
+    convContext.out_width          = outputs[0]->width();
+    convContext.batch_sz           = inputs[0]->num();
+    convContext.pad0               = param.pad_w;
+    convContext.pad1               = param.pad_h;
+    convContext.group_counts       = param.group;
+    convContext.kernel_stride0     = param.stride_w;
+    convContext.kernel_stride1     = param.stride_h;
+    convContext.kernel_dilation0   = param.dilation_w;
+    convContext.kernel_dilation1   = param.dilation_h;
+    convContext.bias               = (param.bias()->size() > 0) ? 1 : 0;
+    convContext.float_size         = 32;
+    convContext.in_stride          = inputs[0]->get_stride()[2];
+    convContext.out_stride         = outputs[0]->get_stride()[2];
+    convContext.in_channel_stride  = convContext.in_stride * convContext.in_height;
+    convContext.in_batch_stride    = convContext.in_channel_stride * convContext.n_inputs;
+    convContext.out_channel_stride = convContext.out_stride * convContext.out_height;
+    convContext.out_batch_stride   = convContext.out_channel_stride * convContext.n_outputs;
+    convContext.has_active         = param.activation_param.has_active ? 1 : 0;
+    convContext.negative_slope =
+        param.activation_param.has_active ? param.activation_param.negative_slope : 0;
+    convContext.rmv             = rocm_meta_version::AMDHSA_1_0;
+    convContext.use_binaries    = true;
+    convContext.use_asm_kernels = true;
+#ifdef ENABLE_AMD_DO_SEARCH
+    convContext.do_search       = true;
+#else
+    convContext.do_search       = false;
+#endif
+    convContext.save_srch_req   = true;
+    convContext.in_layout       = "NCHW";
+    convContext.out_layout      = "NCHW";
+    convContext.in_data_type    = "FP32";
+    convContext.out_data_type   = "FP32";
+    int data_len                = convContext.in_data_type == "FP32" ? 4 : 2;
+    convContext.bot_sz = convContext.batch_sz * convContext.n_inputs * convContext.in_height
+                         * convContext.in_width * data_len;
+    convContext.top_sz = convContext.batch_sz * convContext.n_outputs * convContext.out_height
+                         * convContext.out_width * data_len;
+    convContext.weights_sz = convContext.n_outputs * convContext.n_inputs * convContext.kernel_size0
+                             * convContext.kernel_size1 * data_len;
+    convContext.bias_sz       = (param.bias()->size() > 0) ? convContext.n_outputs * data_len : 0;
+    convContext.deconvolution = 0;
+    convContext.general_compile_options = " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
+
+    miopen::Db db = anakin::saber::GetDb(dev._info._device_name, dev._info._compute_core_num);
+    miopen::Handle::setClEnv(context, device);
+    miopen::Handle handle;
+    convContext.SetStream(&handle);
+    miopen::solver::ConvSolution solution;
+
+    if (convContext.group_counts > 1) {
+        solution = miopen::solver::SearchForSolution <miopen::solver::ConvOclDirectFwd > (convContext, db);
+    } else {
+        solution = miopen::solver::SearchForSolution <
+                   miopen::solver::ConvBinWinograd3x3U,
+                   miopen::solver::ConvOclDirectFwd1x1AMD,
+                   // miopen::solver::ConvAsm3x3U,
+                   // miopen::solver::ConvAsm1x1U,
+                   miopen::solver::ConvAsm7x7c3h224w224k64u2v2p3q3f1,
+                   miopen::solver::ConvOclDirectFwdGen,
+                   miopen::solver::ConvOclDirectFwd3x3,
+                   miopen::solver::ConvOclDirectFwd1x1,
+                   miopen::solver::ConvOclDirectFwd > (convContext, db);
+    }
+
+    miopen::Handle::clearClEnv();
+    std::vector<KernelInfo> solution_vector;
+    KernelInfo kernelInfo;
+
+    for (auto s : solution.construction_params) {
+        kernelInfo = s;
+        solution_vector.push_back(kernelInfo);
+    }
+
+    return solution_vector;
+}
+
 } // namespace saber
 } // namespace anakin

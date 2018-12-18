@@ -42,6 +42,7 @@
 
 #ifdef AMD_GPU
 #include "saber/funcs/impl/amd/include/saber_conv.h"
+#include "saber/funcs/impl/amd/include/vender_conv.h"
 #endif
 namespace anakin {
 namespace saber {
