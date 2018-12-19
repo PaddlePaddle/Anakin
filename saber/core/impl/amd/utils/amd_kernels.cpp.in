@@ -1,0 +1,56 @@
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+       http://www.apache.org/licenses/LICENSE-2.0
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
+#include "amd_kernels.h"
+#include "utils/logger/logger.h"
+#include <algorithm>
+#include <iostream>
+#include <map>
+
+namespace anakin {
+namespace saber {
+
+const std::map<std::string, std::string>& kernels() {
+    static const std::map<std::string, std::string> data {${INIT_KERNELS}};
+    return data;
+}
+
+std::string GetKernelSrc(std::string name) {
+    // Use the base name of the string
+    int start = 0;
+    auto slash = name.find_last_of("/\\");
+
+    if (slash != std::string::npos) {
+        start = slash + 1;
+    }
+
+    int len = name.size();
+    auto ex = name.rfind('.');
+
+    if (ex != std::string::npos) {
+        len = ex - start;
+    }
+
+    auto key = name.substr(start, len);
+    // Convert to uppercase
+    std::transform(key.begin(), key.end(), key.begin(), ::toupper);
+
+    auto it = kernels().find(key);
+
+    if (it == kernels().end()) {
+        LOG(ERROR) << "Failed to load kernel source: " << key;
+    }
+
+    return it->second;
+}
+} // namespace saber
+} // namespace anakin
