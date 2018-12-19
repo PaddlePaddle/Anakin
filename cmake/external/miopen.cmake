@@ -13,10 +13,12 @@
 # limitations under the License.
 include(ExternalProject)
 
-set(MIOPEN_PROJECT       extern_miopen)
-set(MIOPEN_PREFIX_DIR    ${ANAKIN_THIRD_PARTY_PATH})
+set(MIOPEN_PROJECT       extern-miopen)
+set(MIOPEN_PREFIX_DIR    ${ANAKIN_THIRD_PARTY_PATH}/miopen)
 set(MIOPEN_INSTALL_ROOT  ${ANAKIN_ROOT}/output/miopen)
-set(MIOPEN_SOURCE_DIR    ${ANAKIN_THIRD_PARTY_PATH}/${MIOPEN_PROJECT})
+set(MIOPEN_DOWNLOAD_DIR  ${MIOPEN_PREFIX_DIR})
+set(MIOPEN_SOURCE_DIR    ${MIOPEN_PREFIX_DIR})
+set(MIOPEN_TMP_DIR       ${ANAKIN_TEMP_THIRD_PARTY_PATH}/${MIOPEN_PROJECT}/tmp)
 set(MIOPEN_STAMP_DIR     ${ANAKIN_TEMP_THIRD_PARTY_PATH}/${MIOPEN_PROJECT}/stamp)
 set(MIOPEN_BINARY_DIR    ${ANAKIN_TEMP_THIRD_PARTY_PATH}/${MIOPEN_PROJECT}/build)
 set(MIOPEN_LIB           ${MIOPEN_INSTALL_ROOT}/lib/libMIOpen.so  CACHE FILEPATH "miopen library." FORCE)
@@ -28,10 +30,14 @@ ExternalProject_Add(
     GIT_REPOSITORY        https://github.com/ROCmSoftwarePlatform/Anakin.git
     GIT_TAG               anakin-amd_miopen
     PREFIX                ${MIOPEN_PREFIX_DIR}
+    DOWNLOAD_DIR          ${MIOPEN_DOWNLOAD_DIR}
+    SOURCE_DIR            ${MIOPEN_SOURCE_DIR}
+    TMP_DIR               ${MIOPEN_TMP_DIR}
     STAMP_DIR             ${MIOPEN_STAMP_DIR}
     BINARY_DIR            ${MIOPEN_BINARY_DIR}
     CMAKE_ARGS            -DMIOPEN_BACKEND=OpenCL -DCMAKE_INSTALL_PREFIX=${MIOPEN_INSTALL_ROOT} -DCMAKE_INSTALL_LIBDIR=lib
     LOG_BUILD             1
+    LOG_INSTALLED         1
     
 )
 
