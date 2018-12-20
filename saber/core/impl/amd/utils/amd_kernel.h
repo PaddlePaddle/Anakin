@@ -12,11 +12,28 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+#ifndef ANAKIN_SABER_CORE_IMPL_AMD_AMDKERNEL_H
+#define ANAKIN_SABER_CORE_IMPL_AMD_AMDKERNEL_H
 
-__attribute__((reqd_work_group_size(256, 1, 1))) __kernel void
-ReluUni(const __global float* __restrict in,
-	__global float* __restrict out,
-	float slope)
-{
-	out[get_global_id(0)] = in[get_global_id(0)] * (in[get_global_id(0)] > 0.0f ? 1.0f : slope);
-}
+#include "amd_base.h"
+#include "amd_common.h"
+
+#ifdef USE_OPENCL
+#include "ocl/ocl_kernel.h"
+#endif
+
+namespace anakin {
+namespace saber {
+
+#ifdef USE_OPENCL
+typedef OCLKernel AMDKernel;
+typedef OCLKernelPtr AMDKernelPtr;
+typedef std::list<AMDKernelPtr> amd_kernel_list;
+#endif
+
+extern AMDKernelPtr CreateKernel(int device_id, KernelInfo* ki);
+extern bool LaunchKernel(AMDStream_t stream, amd_kernel_list kernels, bool sync = false);
+
+} // namespace saber
+} // namespace anakin
+#endif

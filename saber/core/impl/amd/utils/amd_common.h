@@ -12,14 +12,18 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+#ifndef ANAKIN_SABER_CORE_IMPL_AMD_AMDCOMMON_H
+#define ANAKIN_SABER_CORE_IMPL_AMD_AMDCOMMON_H
 
-__attribute__((reqd_work_group_size(256, 1, 1))) __kernel void
-MIOpenReLu(const __global float* __restrict in,
-	__global float* __restrict out,
-	__global float* bias, 
-	float slope, int N, int C, int H, int W)
-{
-	int gid_x = get_global_id(0);
-	float intermediate = in[gid_x] + bias[(gid_x % (C * H * W)) / (H * W)];
-	out[gid_x] = intermediate * (intermediate > 0.0f ? 1.0f : slope);
-}
+#include "anakin_config.h"
+#include "saber/core/common.h"
+namespace anakin {
+namespace saber {
+#ifdef USE_OPENCL
+typedef cl_command_queue AMDStream_t;
+typedef cl_event AMDEvent_t;
+#endif
+
+} // namespace saber
+} // namespace anakin
+#endif

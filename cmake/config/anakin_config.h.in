@@ -53,6 +53,7 @@
 
 #cmakedefine USE_GFLAGS
 
+#cmakedefine USE_MIOPENGEMM
 
 // platform to use
 #cmakedefine USE_GPU_PLACE
@@ -85,6 +86,10 @@
 // build arm lite
 #cmakedefine BUILD_LITE
 
+// for AMD profiling computing performance
+#cmakedefine ENABLE_AMD_PROFILING
+
+#cmakedefine ENABLE_AMD_DEBUG
 
 #if defined(ANDROID) || defined(__ANDROID__)
     #define PLATFORM_ANDROID
@@ -116,4 +121,3 @@
 #endif
 
 #endif
-
