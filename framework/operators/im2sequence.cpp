@@ -63,6 +63,7 @@ INSTANCE_IM2SEQUENCE(NV, Precision::FP32);
 template class Im2SequenceHelper<NV, Precision::FP32>;
 template class Im2SequenceHelper<NV, Precision::FP16>;
 template class Im2SequenceHelper<NV, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Im2Sequence, Im2SequenceHelper, NV, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE
@@ -70,15 +71,15 @@ INSTANCE_IM2SEQUENCE(ARM, Precision::FP32);
 template class Im2SequenceHelper<ARM, Precision::FP32>;
 template class Im2SequenceHelper<ARM, Precision::FP16>;
 template class Im2SequenceHelper<ARM, Precision::INT8>;
-#endif
-
-// register helper 
-#ifdef USE_CUDA
-ANAKIN_REGISTER_OP_HELPER(Im2Sequence, Im2SequenceHelper, NV, Precision::FP32);
-#endif
-#ifdef USE_ARM_PLACE
 ANAKIN_REGISTER_OP_HELPER(Im2Sequence, Im2SequenceHelper, ARM, Precision::FP32);
 #endif
+
+#ifdef AMD_GPU
+INSTANCE_IM2SEQUENCE(AMD, Precision::FP32);
+template class Im2SequenceHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Im2Sequence, Im2SequenceHelper, AMD, Precision::FP32);
+#endif
+
 
 //! register op
 ANAKIN_REGISTER_OP(Im2Sequence)

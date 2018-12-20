@@ -62,11 +62,18 @@ Status LrnHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype> 
     return Status::OK();
 }
 
+#ifdef AMD_GPU
+INSTANCE_LRN(AMD, Precision::FP32);
+template class LrnHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Lrn, LrnHelper, AMD, Precision::FP32);
+#endif
+
 #ifdef USE_CUDA
 INSTANCE_LRN(NV, Precision::FP32);
 template class LrnHelper<NV, Precision::FP32>;
 template class LrnHelper<NV, Precision::FP16>;
 template class LrnHelper<NV, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Lrn, LrnHelper, NV, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE
@@ -74,13 +81,6 @@ INSTANCE_LRN(ARM, Precision::FP32);
 template class LrnHelper<ARM, Precision::FP32>;
 template class LrnHelper<ARM, Precision::FP16>;
 template class LrnHelper<ARM, Precision::INT8>;
-#endif
-
-// register helper
-#ifdef USE_CUDA
-ANAKIN_REGISTER_OP_HELPER(Lrn, LrnHelper, NV, Precision::FP32);
-#endif
-#ifdef USE_ARM_PLACE
 ANAKIN_REGISTER_OP_HELPER(Lrn, LrnHelper, ARM, Precision::FP32);
 #endif
 

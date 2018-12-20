@@ -64,6 +64,12 @@ template class BatchNormHelper<NV, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(BatchNorm, BatchNormHelper, NV, Precision::FP32);
 #endif
 
+#ifdef AMD_GPU
+INSTANCE_BATCH_NORM(AMD, Precision::FP32);
+template class BatchNormHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(BatchNorm, BatchNormHelper, AMD, Precision::FP32);
+#endif
+
 #if defined USE_X86_PLACE || defined BUILD_LITE
 INSTANCE_BATCH_NORM(X86, Precision::FP32);
 template class BatchNormHelper<X86, Precision::FP32>;

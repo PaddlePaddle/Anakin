@@ -49,6 +49,12 @@ template class PadHelper<NV, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Pad, PadHelper, NV, Precision::FP32);
 #endif
 
+#ifdef AMD_GPU
+INSTANCE_PAD(AMD, Precision::FP32);
+template class PadHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Pad, PadHelper, AMD, Precision::FP32);
+#endif
+
 #if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 INSTANCE_PAD(X86, Precision::FP32);
 template class PadHelper<X86, Precision::FP32>;

@@ -72,6 +72,12 @@ template class SliceHelper<NV, Precision::FP16>;
 template class SliceHelper<NV, Precision::INT8>;
 #endif
 
+#ifdef AMD_GPU
+INSTANCE_SLICE(AMD, Precision::FP32);
+template class SliceHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Slice, SliceHelper, AMD, Precision::FP32);
+#endif
+
 #if defined USE_X86_PLACE || defined(BUILD_LITE)
 INSTANCE_SLICE(X86, Precision::FP32);
 template class SliceHelper<X86, Precision::FP32>;

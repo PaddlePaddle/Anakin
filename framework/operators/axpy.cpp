@@ -54,6 +54,12 @@ template class AxpyHelper<NV, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(Axpy, AxpyHelper, NV, Precision::FP32);
 #endif
 
+#ifdef AMD_GPU
+INSTANCE_AXPY(AMD, Precision::FP32);
+template class AxpyHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Axpy, AxpyHelper, AMD, Precision::FP32);
+#endif
+
 #if defined USE_X86_PLACE || defined BUILD_LITE
 INSTANCE_AXPY(X86, Precision::FP32);
 template class AxpyHelper<X86, Precision::FP32>;

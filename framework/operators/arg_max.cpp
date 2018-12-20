@@ -63,6 +63,12 @@ template class ArgmaxHelper<NV, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(Argmax, ArgmaxHelper, NV, Precision::FP32);
 #endif
 
+#ifdef AMD_GPU
+INSTANCE_ARGMAX(AMD, Precision::FP32);
+template class ArgmaxHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Argmax, ArgmaxHelper, AMD, Precision::FP32);
+#endif
+
 #if defined USE_X86_PLACE || defined BUILD_LITE
 INSTANCE_ARGMAX(X86, Precision::FP32);
 template class ArgmaxHelper<X86, Precision::FP32>;

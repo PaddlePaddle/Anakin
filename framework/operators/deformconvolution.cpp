@@ -81,6 +81,13 @@ template class DeformConvolutionHelper<NV, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(DeformConvolution, DeformConvolutionHelper, NV, Precision::FP32);
 #endif
 
+#ifdef AMD_GPU
+INSTANCE_DEFORMCONVOLUTION(AMD, Precision::FP32);
+template class DeformConvolutionHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(DeformConvolution, DeformConvolutionHelper, AMD, Precision::FP32);
+#endif
+
+
 #ifdef USE_ARM_PLACE
 INSTANCE_DEFORMCONVOLUTION(ARM, Precision::FP32);
 template class DeformConvolutionHelper<ARM, Precision::FP32>;

@@ -59,6 +59,12 @@ template class CrfDecodingHelper<NV, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(CrfDecoding, CrfDecodingHelper, NV, Precision::FP32);
 #endif
 
+#ifdef AMD_GPU
+INSTANCE_CRF_DECODING(AMD, Precision::FP32);
+template class CrfDecodingHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(CrfDecoding, CrfDecodingHelper, AMD, Precision::FP32);
+#endif
+
 #ifdef USE_ARM_PLACE
 INSTANCE_CRF_DECODING(ARM, Precision::FP32);
 template class CrfDecodingHelper<ARM, Precision::FP32>;

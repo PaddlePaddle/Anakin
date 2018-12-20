@@ -69,6 +69,11 @@ template class PowerHelper<X86, Precision::FP16>;
 template class PowerHelper<X86, Precision::INT8>;
 #endif
 
+#ifdef AMD_GPU
+INSTANCE_POWER(AMD, Precision::FP32);
+template class PowerHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Power, PowerHelper, AMD, Precision::FP32);
+#endif
 
 // register helper
 #ifdef USE_CUDA

@@ -47,6 +47,12 @@ template class ReverseSequenceHelper<NV, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ReverseSequence, ReverseSequenceHelper, NV, Precision::FP32);
 #endif
 
+#ifdef AMD_GPU
+INSTANCE_REVERSE_SEQUENCE(AMD, Precision::FP32);
+template class ReverseSequenceHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(ReverseSequence, ReverseSequenceHelper, AMD, Precision::FP32);
+#endif
+
 #ifdef USE_ARM_PLACE
 INSTANCE_REVERSE_SEQUENCE(ARM, Precision::FP32);
 template class ReverseSequenceHelper<ARM, Precision::FP32>;

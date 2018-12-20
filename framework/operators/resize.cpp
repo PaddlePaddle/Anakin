@@ -77,7 +77,13 @@ ANAKIN_REGISTER_OP_HELPER(Resize, ResizeHelper, X86, Precision::FP32);
 INSTANCE_RESIZE(ARM, Precision::FP32);
 template class ResizeHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Resize, ResizeHelper, ARM, Precision::FP32);
-#endif//arm
+#endif
+
+#ifdef AMD_GPU
+INSTANCE_RESIZE(AMD, Precision::FP32);
+template class ResizeHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Resize, ResizeHelper, AMD, Precision::FP32);
+#endif
 
 //! register op
 ANAKIN_REGISTER_OP(Resize)
