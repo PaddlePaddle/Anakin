@@ -29,7 +29,7 @@
 #endif
 
 #ifdef AMD_GPU 
-#include "saber/funcs/impl/amd/saber_generate_proposals.h"
+//#include "saber/funcs/impl/amd/saber_generate_proposals.h"
 #endif
 
 #ifdef USE_ARM_PLACE
