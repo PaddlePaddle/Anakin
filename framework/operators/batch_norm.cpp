@@ -4,7 +4,7 @@ namespace anakin {
 
 namespace ops {
 
-#define INSTANCE_BATCHNORM(Ttype, Ptype) \
+#define INSTANCE_BATCH_NORM(Ttype, Ptype) \
 template<> \
 void BatchNorm<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
     const std::vector<Tensor4dPtr<Ttype> >& ins, \
@@ -13,18 +13,6 @@ void BatchNorm<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
         auto& param = static_cast<BatchNormHelper<Ttype, Ptype>*>(this->_helper)->_param_scale; \
         impl->_funcs_scale(ins, outs, param, ctx); \
 }
-
-#if 0//def USE_CUDA
-template<>
-void BatchNorm<NV, AK_FLOAT, Precision::FP32>::operator()(
-    OpContext<NV>& ctx,
-    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
-    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-    auto* impl = static_cast<BatchNormHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<BatchNormHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper)->_param_scale;
-    impl->_funcs_scale(ins, outs, param, ctx);
-}
-#endif
 
 template<typename Ttype, Precision Ptype>
 Status BatchNormHelper<Ttype, Ptype>::InitParam() {
@@ -71,19 +59,25 @@ Status BatchNormHelper<Ttype, Ptype>::InferShape(const
 
 // register helper
 #ifdef USE_CUDA
-INSTANCE_BATCHNORM(NV, Precision::FP32);
+INSTANCE_BATCH_NORM(NV, Precision::FP32);
 template class BatchNormHelper<NV, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(BatchNorm, BatchNormHelper, NV, Precision::FP32);
 #endif
 
+#ifdef AMD_GPU
+INSTANCE_BATCH_NORM(AMD, Precision::FP32);
+template class BatchNormHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(BatchNorm, BatchNormHelper, AMD, Precision::FP32);
+#endif
+
 #if defined USE_X86_PLACE || defined BUILD_LITE
-INSTANCE_BATCHNORM(X86, Precision::FP32);
+INSTANCE_BATCH_NORM(X86, Precision::FP32);
 template class BatchNormHelper<X86, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(BatchNorm, BatchNormHelper, X86, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE
-INSTANCE_BATCHNORM(ARM, Precision::FP32);
+INSTANCE_BATCH_NORM(ARM, Precision::FP32);
 template class BatchNormHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(BatchNorm, BatchNormHelper, ARM, Precision::FP32);
 #endif

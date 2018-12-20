@@ -20,6 +20,8 @@ bool CodeGenBase<Ttype, Ptype>::extract_graph(const std::string& model_path, con
 		return false;
 	}
 
+	// change graph node and edge name to standard of c(or others)variable name
+	change_name(graph);
 	//add batchsize
 	std::vector<std::string>& ins = graph.get_ins();
 	for (int i = 0; i < ins.size(); i++){
@@ -119,6 +121,37 @@ bool CodeGenBase<Ttype, Ptype>::extract_graph(const std::string& model_path, con
 		return false;
 	}
 	return true;
+}
+
+
+template<typename Ttype, Precision Ptype>
+void CodeGenBase<Ttype, Ptype>::change_name(graph::Graph<Ttype, Ptype>& graph) {
+	auto convert2underline = [&](std::string& name, char converter_char) -> std::string {
+		char* target_p = strdup(name.c_str());
+		for (char* p = strchr(target_p + 1, converter_char); p!=NULL; p = strchr(p + 1, converter_char)) {
+			*p = '_';
+		}
+		return std::string(target_p);
+	};
+	auto change_node_name = [&, this](graph::NodePtr& node_p) {
+		auto & name = node_p->name();
+		// add_alias is an important api for changing node's name and edge
+		// and add_alias is useful only at this place so far.
+		graph.add_alias(name, convert2underline(name, '/'));
+		name = convert2underline(name, '/');
+		graph.add_alias(name, convert2underline(name, '-'));
+		name = convert2underline(name, '-');
+	};
+	graph.Scanner->BFS(change_node_name);
+	auto change_edge_name = [&, this](graph::Edge<Ttype>& edge) {
+		auto & first = edge.first();
+		auto & second = edge.second();
+		first = convert2underline(first, '/');
+		second = convert2underline(second, '/');
+		first = convert2underline(first, '-');
+		second = convert2underline(second, '-');
+	};
+	graph.Scanner->BFS_Edge(change_edge_name);
 }
 
 template<typename Ttype, Precision Ptype>

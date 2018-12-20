@@ -156,24 +156,6 @@ public:
         return &v;
     }
 };
-template <typename Dtype>
-inline void createReduceTensorDesc(cudnnReduceTensorDescriptor_t* desc) {
-    CUDNN_CHECK(cudnnCreateReduceTensorDescriptor(desc));
-}
-
-template <typename Dtype>
-inline void setReduceTensorDesc(cudnnReduceTensorDescriptor_t* desc,
-                                      cudnnReduceTensorOp_t reduceTensorOp,
-                                      cudnnNanPropagation_t reduceTensorNanOpt,
-                                      cudnnReduceTensorIndices_t reduceTensorIndices,
-                                      cudnnIndicesType_t reduceTensorIndicesType) {
-     CUDNN_CHECK(cudnnSetReduceTensorDescriptor(*desc,
-                                                reduceTensorOp, 
-                                                cudnnTypeWrapper<Dtype>::type, 
-                                                reduceTensorNanOpt, 
-                                                reduceTensorIndices, 
-                                                reduceTensorIndicesType));
-}
 
 template <typename Dtype>
 inline void createTensorDesc(cudnnTensorDescriptor_t* desc) {

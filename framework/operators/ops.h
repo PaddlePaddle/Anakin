@@ -22,7 +22,6 @@
 #include "framework/operators/axpy.h"
 #include "framework/operators/batch_norm.h"
 #include "framework/operators/concat.h"
-#include "framework/operators/conv_3x3.h"
 #include "framework/operators/convolution.h"
 #include "framework/operators/crf_decoding.h"
 #include "framework/operators/crop.h"
@@ -63,10 +62,6 @@
 #include "framework/operators/split.h"
 #include "framework/operators/standard_rnn.h"
 
-#include "framework/operators/fusion_ops/conv_3x3_batchnorm_scale_relu.h"
-#include "framework/operators/fusion_ops/conv_3x3_batchnorm_scale_relu_pool.h"
-#include "framework/operators/fusion_ops/conv_3x3_relu.h"
-#include "framework/operators/fusion_ops/conv_3x3_relu_pool.h"
 #include "framework/operators/fusion_ops/conv_batchnorm_scale.h"
 #include "framework/operators/fusion_ops/conv_batchnorm_scale_relu.h"
 #include "framework/operators/fusion_ops/conv_batchnorm_scale_relu_pool.h"

@@ -153,9 +153,16 @@ class ParseTF2Med:
                 if table.get(type_name) != None:
                     table[type_name](tf_node, graph)
 
+        def all_search_fix(graph, table):
+            for tf_node in graph.values():
+                type_name = tf_node['ak_type']
+                if table.get(type_name) != None:
+                    table[type_name](tf_node, graph)
+
         all_search(nodes, {'Identity': parse_Identity,
                            'Placeholder': parse_Placeholder,
-                           'Shape': parse_Shape
+                           'Shape': parse_Shape,
+                           'StridedSlice': parse_slim_flatten
                            })
 
         all_search(nodes, {'Reshape': parse_fusionReshape, })
@@ -177,8 +184,10 @@ class ParseTF2Med:
                            'Reshape': parse_Reshape,
                            'Squeeze': parse_Squeeze,
                            'Softmax': parse_Softmax,
-
+                           'Transpose': parse_Transpose
                            })
+
+        all_search_fix(nodes, {'Dense': fix_Dense})
 
         return nodes
 

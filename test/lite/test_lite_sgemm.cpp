@@ -1,6 +1,6 @@
 #include "test_lite.h"
 #include "saber/lite/funcs/neon/impl/sgemm_arm.h"
-#include "saber/lite/funcs/neon/impl/sgemm_conv.h"
+#include "saber/lite/funcs/neon/impl/sgemm_prepacked.h"
 using namespace anakin::saber;
 using namespace anakin::saber::lite;
 
@@ -83,8 +83,8 @@ SaberStatus test_arm_sgemm(int M, int N, int K, bool tra, bool trb, bool flag_bi
         //print_tensor(tout_basic);
     }
     //! sgemm init
-    int l1_cache = Env::cur_env()._L1_cache;
-    int l2_cache = Env::cur_env()._L2_cache;
+    int l1_cache = ctx1.l1_cache_size();
+    int l2_cache = ctx1.l2_cache_size();
     //! if L1 cache size is not provided, set to 32K
     l1_cache = l1_cache > 0? l1_cache : 32 * 1024;
     //! if L2 cache size is not provided, set to 2M

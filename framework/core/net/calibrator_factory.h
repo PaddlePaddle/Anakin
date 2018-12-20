@@ -16,12 +16,11 @@
 #ifndef     ANAKIN_NET_CALIBRATOR_FACTORY_H
 #define    ANAKIN_NET_CALIBRATOR_FACTORY_H
 
-#include <string>
-
-#include "framework/core/operator/operator.h"
 #include "framework/core/net/calibrator_parse.h"
+#include "framework/core/operator/operator.h"
 #include "utils/logger/logger.h"
 #include "framework/core/types.h"
+#include <string>
 
 namespace anakin{
 
@@ -29,6 +28,7 @@ OperatorBase* create_op_with_pt(std::string op_name, std::string precision, std:
 
 template <typename Target>
 OperatorBase* create_precision_op(std::string op_name, std::string precision){
+    LOG(INFO) << "creating op:" << op_name << "( precision:" << precision << ")";
     if (precision == "fp32"){
         return OpFactory<Target, Precision::FP32>::Global()[op_name];
     }

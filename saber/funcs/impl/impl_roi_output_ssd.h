@@ -46,7 +46,7 @@ public:
           nms_add_score_(false), num_class_(-1), do_bbox_norm_(false), read_height_offset_(0),
           atrs_reg_norm_idx_st_(-1), has_cam3d_(false), bbox_size_add_one_(false), zero_anchor_center_(false),
           kpts_classify_width_(-1), kpts_do_norm_(false), has_spmp_(false), spmp_dim_sum_(-1),
-          cam3d_bottom_idx_(-1), use_target_type_rcnn_(false), show_time_(false),
+          cam3d_bottom_idx_(-1), use_target_type_rcnn_(false),
           kpts_reg_as_classify_(false),
           kpts_classify_height_(-1), atrs_do_norm_(false), has_ftrs_(false), nms_among_classes_(false),
           channel_per_scale_(false), has_kpts_(false), kpts_exist_bottom_idx_(-1), kpts_reg_bottom_idx_(-1),
@@ -213,7 +213,6 @@ public:
         }
 
         time_get_bbox_ = time_total_ = time_nms_ = 0;
-        show_time_ = ((getenv("SHOW_TIME") != NULL) && (getenv("SHOW_TIME")[0] == '1'));
         refine_out_of_map_bbox_ = detection_output_ssd_param.refine_out_of_map_bbox;
         std::copy(detection_output_ssd_param.class_indexes.begin(),
                   detection_output_ssd_param.class_indexes.end(),
@@ -621,7 +620,6 @@ protected:
     OpDataType im_height_;
     bool rpn_proposal_output_score_;
     bool regress_agnostic_;
-    bool show_time_;
     OpDataType time_get_bbox_, time_total_, time_nms_, time_bbox_to_blob_;
     OpDataType allow_border_;
     OpDataType allow_border_ratio_;

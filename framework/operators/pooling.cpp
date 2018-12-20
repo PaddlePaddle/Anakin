@@ -37,6 +37,12 @@ Status PoolingHelper<Ttype, Ptype>::InitParam() {
                                                            pool_strides[0], pool_strides[1],
                                                            Pooling_average_include_padding, global_pooling, cmp_out_shape_floor_as_conv);
         _param_pooling = pooling_param;
+    } else if (pool_method == "AVGEXC") {
+        PoolingParam<Ttype> pooling_param(pool_size[0], pool_size[1],
+                                          pool_padding[0], pool_padding[1],
+                                          pool_strides[0], pool_strides[1],
+                                          Pooling_average_exclude_padding, global_pooling, cmp_out_shape_floor_as_conv);
+        _param_pooling = pooling_param;
     } else {
                 LOG(FATAL) << " Pooling op doesn't support : " << pool_method << " pooling.";
     }

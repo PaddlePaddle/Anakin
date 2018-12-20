@@ -333,11 +333,11 @@ char* get_ak_cpu_arch_string() {
 
 #ifdef USE_X86_PLACE
 
-#include "omp.h"
+#include "anakin_thread.h"
 #include "mkl_service.h"
 void set_ak_cpu_parallel() {
-    omp_set_dynamic(0);
-    omp_set_num_threads(1);
+    anakin_set_dynamic(0);
+    anakin_set_num_threads(1);
     mkl_set_num_threads(1);
 }
 #endif

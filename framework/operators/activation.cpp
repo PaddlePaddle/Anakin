@@ -44,10 +44,12 @@ Status ActivationHelper<Ttype, Ptype>::InitParam() {
         ActivationParam<Ttype> param_activation(Active_stanh);
         _param_activation = param_activation;
     } else if (type == "Relu") {
-         ActivationParam<Ttype> param_activation(Active_relu);
+         auto alpha = GET_PARAMETER(float, alpha);
+         ActivationParam<Ttype> param_activation(Active_relu, alpha);
          _param_activation = param_activation;
     } else if (type == "ClippedRelu") {
-         ActivationParam<Ttype> param_activation(Active_clipped_relu);
+         float coef = GET_PARAMETER(float, clip_relu_num);
+         ActivationParam<Ttype> param_activation(Active_clipped_relu, 0.f, coef);
          _param_activation = param_activation;
     } else if (type == "Elu") {
          ActivationParam<Ttype> param_activation(Active_elu);
@@ -99,7 +101,7 @@ ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, X86, Precision::FP32);
 INSTANCE_ACTIVATION(ARM, Precision::FP32);
 template class ActivationHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, ARM, Precision::FP32);
-#endif//arm
+#endif
 
 #ifdef AMD_GPU
 INSTANCE_ACTIVATION(AMD, Precision::FP32);

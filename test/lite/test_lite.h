@@ -51,7 +51,7 @@ template  <typename type,  typename type2>
 static void basic_gemm(int m, int n, int k, const type* a, const type* b, const type2* bias, type2* c, \
     type2 alpha, type2 beta, \
     bool trans_a = false, bool trans_b = false, bool flag_bias = false, bool flag_relu = false) {
-//#pragma omp parallel for
+#pragma omp parallel for
     for (int i = 0; i < m; ++i) {
         type2 bias_data = (type2)0;
         if (flag_bias) {
@@ -80,6 +80,35 @@ static void basic_gemm(int m, int n, int k, const type* a, const type* b, const 
             } else {
                 c[i * n + j] = tmp;
             }
+        }
+    }
+}
+
+template  <typename type,  typename type2>
+static void basic_gemv(int m, int k, const type* a, const type* b, const type2* bias, type2* c, \
+    type2 alpha, type2 beta, \
+    bool trans_a = false, bool flag_bias = false, bool flag_relu = false) {
+#pragma omp parallel for
+    for (int i = 0; i < m; ++i) {
+        type2 bias_data = (type2)0;
+        if (flag_bias) {
+            bias_data = bias[i];
+        }
+        type2 sum = static_cast<type2>(0);
+        for (int j = 0; j < k; ++j) {
+            type av;
+            if (trans_a) {
+                av = a[j * m + i];
+            } else{
+                av = a[i * k + j];
+            }
+            sum += av * b[j];
+        }
+        type2 tmp = alpha * sum + beta * c[i] + bias_data;
+        if (flag_relu) {
+            c[i] = tmp > (type2)0? tmp : (type2)0;
+        } else {
+            c[i] = tmp;
         }
     }
 }
@@ -167,8 +196,8 @@ void deconv_basic(const Dtype1* din, Dtype2* dout, \
     int k = chin / group;
 
     if (chin != chout || group != chin) {
-                CHECK_EQ(chin % group, 0) << "input channel or group size error";
-                CHECK_EQ(chout % group, 0) << "output channel or group size error";
+        CHECK_EQ(chin % group, 0) << "input channel or group size error";
+        CHECK_EQ(chout % group, 0) << "output channel or group size error";
     }
 
     anakin::saber::lite::Tensor<anakin::saber::lite::CPU> workspace_tensor;
@@ -193,6 +222,7 @@ void deconv_basic(const Dtype1* din, Dtype2* dout, \
         if (flag_1x1s1p1) {
             col_data = dout_batch;
         }
+        memset(col_data, 0, sizeof(Dtype2) * group_size_coldata);
         for (int g = 0; g < group; ++g) {
             const Dtype1* din_group = din_batch + g * group_size_in;
             const Dtype1* weights_group = weights + g * group_size_weights;

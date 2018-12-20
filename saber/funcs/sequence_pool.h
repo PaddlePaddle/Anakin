@@ -65,7 +65,7 @@ public:
         std::vector<std::vector<int> > offset = input[0]->get_seq_offset();
         //CHECK_GT(offset.size(), 1) << "seq num error! " << offset.size();
         int output_shape_num=0;
-        if (offset.size() > 1) {
+        if (offset.size() >=1 && offset[0].size() > 1) {
             output_shape_num = offset[0].size() - 1;
         } else {
             output_shape_num = input[0]->num();

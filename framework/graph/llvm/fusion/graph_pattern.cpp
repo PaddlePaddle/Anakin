@@ -78,16 +78,20 @@ std::unordered_map<Fusion, std::function<int(VGraph*, Pattern*)>, FusionHash> Fu
                         vgraph->remove(node_temp.name);
                     }
 
+                    auto old_bottom = vgraph_next_node.name;
                     for (int tops_idx = 0; tops_idx < pattern_tops.size(); tops_idx++) {
                         Arc<std::string, io> arc(node_merge.name, pattern_tops[tops_idx]);
                         auto& io_tmp = arc.weight();
                         io_tmp.name = arc.name();
                         vgraph->add_out_arc(arc);
+                        //here,we record the map from origin edge to new edge after fusion
+                        std::string old_e = old_bottom + "-" + pattern_tops[tops_idx];
+                        std::string new_e = node_merge.name + "-" + pattern_tops[tops_idx];
+                        vgraph->add_fusion_edge_map(new_e, old_e);
                     }
 
                     node_merge.mergeNodeNames = pattern_node_name_saves;
                     param_node = node_merge;
-
 
                     return 0;
                 } else {

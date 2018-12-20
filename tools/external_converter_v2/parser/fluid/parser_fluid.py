@@ -20,12 +20,13 @@ class FluidParser:
         self.exe = fluid.Executor(self.place)
         self.scope = fluid.core.Scope()
         # in and out edges of node
-        self.ins = {}
-        self.outs = {}
+        self.ins = dict()
+        self.outs = dict()
         # inplaced main node
-        self.inplace_nodes = {}
-        self.graph_ins = []
-        self.graph_outs = []
+        self.inplace_nodes = dict()
+        self.graph_ins = list()
+        self.graph_outs = list()
+        self.scale_dict = dict()
 
     def __call__(self):
         return self._Parsing()
@@ -164,39 +165,41 @@ class FluidParser:
                 in_edges = Fluid_edger()
                 out_edges = Fluid_edger()
                 for param in source_op.input_names:
-                    for idx in range(0, len(helper.args_by_input_param(source_op, param))):
-                        arg = helper.var_name_by_param(source_op, param, idx)
-                        for tmp_op in source_ops:
-                            if tmp_op.idx != source_op.idx and arg in tmp_op.output_arg_names:
-                                if tmp_op.type == 'feed':
-                                    if arg not in self.graph_ins:
-                                        self.graph_ins.append(arg)
-                                        self.graphIO.add_in(self._NameNodeIn(arg))
-                                    in_edges.add(param, self._NameNodeIn(arg), arg)
-                                else:
-                                    tmp_node_name = self._NameNodeMid(tmp_op)
-                                    if tmp_node_name in self.inplace_nodes.keys():
-                                        inplace_node_name = self.inplace_nodes[tmp_node_name][-1]
-                                        in_edges.add(param, inplace_node_name, arg)
-                                    elif tmp_node_name not in self._InplaceNodes('All'):
-                                        in_edges.add(param, tmp_node_name, arg)
+                    if param not in ['InScale']:
+                        for idx in range(0, len(helper.args_by_input_param(source_op, param))):
+                            arg = helper.var_name_by_param(source_op, param, idx)
+                            for tmp_op in source_ops:
+                                if tmp_op.idx != source_op.idx and arg in tmp_op.output_arg_names:
+                                    if tmp_op.type == 'feed':
+                                        if arg not in self.graph_ins:
+                                            self.graph_ins.append(arg)
+                                            self.graphIO.add_in(self._NameNodeIn(arg))
+                                        in_edges.add(param, self._NameNodeIn(arg), arg)
+                                    else:
+                                        tmp_node_name = self._NameNodeMid(tmp_op)
+                                        if tmp_node_name in self.inplace_nodes.keys():
+                                            inplace_node_name = self.inplace_nodes[tmp_node_name][-1]
+                                            in_edges.add(param, inplace_node_name, arg)
+                                        elif tmp_node_name not in self._InplaceNodes('All'):
+                                            in_edges.add(param, tmp_node_name, arg)
                 for param in source_op.output_names:
-                    for idx in range(0, len(helper.args_by_output_param(source_op, param))):
-                        arg = helper.var_name_by_param(source_op, param, idx)
-                        for tmp_op in source_ops:
-                            if tmp_op.idx != source_op.idx and arg in tmp_op.input_arg_names:
-                                if tmp_op.type == 'fetch':
-                                    if arg not in debug_fetch_list:
-                                        arg_node_name = self._NameNodeOut(arg)
-                                        if arg not in self.graph_outs:
-                                            self.graph_outs.append(arg)
-                                            self.graphIO.add_out_fluid(arg_node_name, \
+                    if param not in ['OutScale']:
+                        for idx in range(0, len(helper.args_by_output_param(source_op, param))):
+                            arg = helper.var_name_by_param(source_op, param, idx)
+                            for tmp_op in source_ops:
+                                if tmp_op.idx != source_op.idx and arg in tmp_op.input_arg_names:
+                                    if tmp_op.type == 'fetch':
+                                        if arg not in debug_fetch_list:
+                                            arg_node_name = self._NameNodeOut(arg)
+                                            if arg not in self.graph_outs:
+                                                self.graph_outs.append(arg)
+                                                self.graphIO.add_out_fluid(arg_node_name, \
+                                                    main_node_name)
+                                            out_edges.add(param, arg_node_name, arg)
+                                            self.ins[arg_node_name] = Fluid_edger(bytes(source_op.idx), \
                                                 main_node_name)
-                                        out_edges.add(param, arg_node_name, arg)
-                                        self.ins[arg_node_name] = Fluid_edger(bytes(source_op.idx), \
-                                            main_node_name)
-                                else:
-                                    out_edges.add(param, self._NameNodeMid(tmp_op), arg)
+                                    else:
+                                        out_edges.add(param, self._NameNodeMid(tmp_op), arg)
                 self._AddProtoNode(main_node_name, source_op, helper, {})
                 if main_node_name not in self._InplaceNodes('Mid'):
                     if main_node_name not in self._InplaceNodes('End'):
@@ -220,19 +223,29 @@ class FluidParser:
             var_name = var[0]
         print node + ",\t" + target + ",\t" + var_name
 
-    def _Graph(self, need_print=False):
+    def _Graph(self, reverse=False, need_print=False):
         for node in self.ins.keys():
             targets_list = self.ins[node]()
-            for target in targets_list:
-                self.graphIO.add_in_edge(target, node)
+            targets_scale = self.ins[node].all_scales()
+            for idx, target in enumerate(targets_list):
+                scale = targets_scale[idx]
+                if reverse is False:
+                    self.graphIO.add_in_edge(target, node, scale)
+                else:
+                    self.graphIO.add_out_edge(target, node, scale)
         for node in self.outs.keys():
             targets_list = self.outs[node]()
-            for target in targets_list:
-                self.graphIO.add_out_edge(node, target)
+            targets_scale = self.outs[node].all_scales()
+            for idx, target in enumerate(targets_list):
+                scale = targets_scale[idx]
+                if reverse is False:
+                    self.graphIO.add_out_edge(node, target, scale)
+                else:
+                    self.graphIO.add_in_edge(node, target, scale)
                 if need_print is True:
                     self._PrintEdge(node, target, 'out')
 
-    def _ReplaceInputs(self, source_ops, helper, reshape_dict=None, layout='NCHW'):
+    def _ReplaceInputs(self, source_ops, helper, reshape_dict=None, layout='NCHW', quantized=False):
         if reshape_dict is None:
             reshape_dict = dict()
         for source_op in source_ops:
@@ -259,10 +272,11 @@ class FluidParser:
                     self.outs[input_node_name] = out_edges
                     self._AddProtoNode(input_node_name, source_op, helper, private_data)
 
-    def _InsertSplit(self, source_ops, helper):
+    def _InsertSplit(self, source_ops, helper, quantized=False):
         # If a layer has two identical output tensors, add a split layer.
         for node in self.outs.keys():
-            if node.startswith('split#') is False:
+            if node.startswith('split#') is False and \
+            node.startswith('increment#') is False:
                 out_edges = self.outs[node]
                 for param in out_edges.all_params():
                     out_targets_list = out_edges.targets(param)
@@ -321,7 +335,7 @@ class FluidParser:
                 cache.pop()
         return results
 
-    def _CropGraph(self, ins_of_subgraph, outs_of_subgraph, helper, need_io = True):
+    def _CropGraph(self, ins_of_subgraph, outs_of_subgraph, helper, need_io=True, quantized=False):
         '''
         '''
         def all_nodes():
@@ -364,7 +378,8 @@ class FluidParser:
                     self.outs[in_node_name] = Fluid_edger('_Out', node_name)
                     self._AddProtoNode(in_node_name, None, helper, private_data, 'feed')
 
-    def _IntegrateNodes(self, main_op, main_node_name, sec_node_name, helper, private_data):
+    def _IntegrateNodes(self, main_op, main_node_name, sec_node_name, \
+        helper, private_data, quantized=False):
         # Merge secondary nodes to the primary node and process the edges.
         self._RmProtoNode(main_node_name)
         self._RmProtoNode(sec_node_name)
@@ -378,7 +393,7 @@ class FluidParser:
         self.outs[main_node_name].rm(sec_node_name)
         self._AddProtoNode(main_node_name, main_op, helper, private_data)
 
-    def _DealWithBias(self, source_ops, helper):
+    def _DealWithBias(self, source_ops, helper, quantized=False):
         # In fluid, the bias parameter of the conv2d is split into elementwise_add.
         for source_op in source_ops:
             if source_op.type in APPEND_BIAS_OP_TYPE:
@@ -396,10 +411,12 @@ class FluidParser:
                             new_shape = [1, shape[3], 1, 1]
                             elt_tensor.set_shape(new_shape)
                             private_data['bias'] = elt_tensor
+                            if main_node_name in self.scale_dict.keys():
+                                private_data['scale_1'] = self.scale_dict[main_node_name]
                             self._IntegrateNodes(source_op, main_node_name, \
                                 elt_node_name, helper, private_data)
 
-    def _DealWithBatchnorm(self, source_ops, helper):
+    def _DealWithBatchnorm(self, source_ops, helper, quantized=False):
         # In anakin, the scale part of batchnorm layer is independent.
         for source_op in source_ops:
             if source_op.type == 'batch_norm':
@@ -432,7 +449,7 @@ class FluidParser:
                     self.ins[append_node_name].add('_Ins', main_node_name)
                     self._AddProtoNode(append_node_name, source_op, helper, {}, 'scale_of_bn')
 
-    def _DealWithAxpy(self, source_ops, helper):
+    def _DealWithAxpy(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type == 'elementwise_mul':
                 mul_node_name = self._NameNodeMid(source_op)
@@ -453,7 +470,7 @@ class FluidParser:
                     self._RmProtoNode(mul_node_name)
                     self._AddProtoNode(add_node_name, None, helper, {}, 'axpy')
 
-    def _DealWithPriorBox(self, source_ops, helper, is_dev_v2=True):
+    def _DealWithPriorBox(self, source_ops, helper, is_dev_v2=True, quantized=False):
         nodes_to_del = []
         for source_op in source_ops:
             if source_op.type == 'prior_box':
@@ -488,7 +505,7 @@ class FluidParser:
             self._RmProtoNode(node_name)
             self._ClearEdges(node_name)
 
-    def _DealWithDetectionOutput(self, source_ops, helper):
+    def _DealWithDetectionOutput(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type == 'box_coder':
                 bc_node_name = self._NameNodeMid(source_op)
@@ -516,7 +533,7 @@ class FluidParser:
                     self._AddProtoNode(nms_node_name, nms_op, helper, \
                         private_data, 'multiclass_nms')
 
-    def _DealWithMultiFC(self, source_ops, helper):
+    def _DealWithMultiFC(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type == 'sum':
                 sum_node_name = self._NameNodeMid(source_op)
@@ -546,7 +563,7 @@ class FluidParser:
                         self._RmProtoNode(first_mul_name)
                         self._AddProtoNode(first_mul_name, first_mul_op, helper, private_data)
 
-    def _DealWithGru(self, source_ops, helper):
+    def _DealWithGru(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type == 'gru':
                 private_data = {}
@@ -593,7 +610,7 @@ class FluidParser:
                         if node_to_del_name is not gru_node_name:
                             self._ClearEdges(node_to_del_name)
 
-    def _SearchBilstm(self, source_ops, helper):
+    def _SearchBilstm(self, source_ops, helper, quantized=False):
         comp = Fluid_comparator(helper)
         lstm_ops = []
         for source_op in source_ops:
@@ -611,7 +628,7 @@ class FluidParser:
         else:
             return False
 
-    def _DealWithLstm(self, source_ops, helper):
+    def _DealWithLstm(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type == 'lstm':
                 private_data = {}
@@ -661,7 +678,7 @@ class FluidParser:
                             self._ClearEdges(node_to_del_name)
                     self._AddProtoNode(lstm_node_name, lstm_op, helper, private_data)
 
-    def _DealWithCast(self, source_ops, helper):
+    def _DealWithCast(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type == 'cast':
                 if helper.attr_data(source_op, 'out_dtype') == 5:
@@ -679,7 +696,7 @@ class FluidParser:
                 else:
                     raise NameError('The out type of cast must be float32.')
 
-    def _DealWithArgmax(self, source_ops, helper):
+    def _DealWithArgmax(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type == 'top_k':
                 private_data = {}
@@ -719,9 +736,9 @@ class FluidParser:
                     self._RmProtoNode(topk_node_name)
                     self._AddProtoNode(topk_node_name, source_op, helper, private_data)
 
-    def _RefreshReshape(self, source_ops, helper, need_assign=False):
+    def _RefreshReshape(self, source_ops, helper, need_assign=False, quantized=False):
         for source_op in source_ops:
-            if source_op.type == 'reshape':
+            if source_op.type in ['reshape', 'reshape2']:
                 reshape_node_name = self._NameNodeMid(source_op)
                 # Make sure this node exists in this graph.
                 if reshape_node_name in self.ins:
@@ -736,7 +753,7 @@ class FluidParser:
                             self._RmProtoNode(shape_inputs[0])
                             self._ClearEdges(shape_inputs[0])
 
-    def _CutReshape(self, reshape_node_name):
+    def _CutReshape(self, reshape_node_name, quantized=False):
         branch = []
         branch.append(reshape_node_name)
         shape_inputs = self.ins[reshape_node_name].targets('Shape')
@@ -779,7 +796,7 @@ class FluidParser:
             self._RmProtoNode(input_node_name)
             self._ClearEdges(input_node_name)
 
-    def _RefreshSplit(self, split_node_name, helper):
+    def _RefreshSplit(self, split_node_name, helper, quantized=False):
         outputs_of_split = self.outs[split_node_name].targets('_Out')
         inputs_of_split = self.ins[split_node_name].targets('_In')
         assert len(inputs_of_split) < 2
@@ -796,15 +813,15 @@ class FluidParser:
             self._RmProtoNode(split_node_name)
             self._AddProtoNode(split_node_name, None, helper, private_data, 'split_ins')
 
-    def _DealWithSoftmax(self, source_ops, helper):
+    def _DealWithSoftmax(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type == 'softmax':
                 softmax_node_name = self._NameNodeMid(source_op)
                 outs_of_softmax = self.outs[softmax_node_name].targets('Out')
                 ins_of_softmax = self.ins[softmax_node_name].targets('X')
-                if outs_of_softmax[0].split('#')[0] == 'reshape':
-                    if ins_of_softmax[0].split('#')[0] == 'reshape' or \
-                    ins_of_softmax[0].split('#')[0] == 'flatten':
+                if outs_of_softmax[0].split('#')[0] in ['reshape', 'reshape2']:
+                    if ins_of_softmax[0].split('#')[0] in ['reshape', 'reshape2'] or \
+                    ins_of_softmax[0].split('#')[0] in ['flatten', 'flatten2']:
                         private_data = {}
                         private_data['axis'] = 3
                         self._CutReshape(outs_of_softmax[0])
@@ -816,7 +833,7 @@ class FluidParser:
                         if ins_of_softmax[0].startswith('split'):
                             self._RefreshSplit(ins_of_softmax[0], helper)
 
-    def _DealWithMatmal(self, source_ops, helper):
+    def _DealWithMatmal(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type == 'matmul':
                 matmul_node_name = self._NameNodeMid(source_op)
@@ -844,7 +861,7 @@ class FluidParser:
                     self._RmProtoNode(matmul_node_name)
                     self._AddProtoNode(matmul_node_name, source_op, helper, private_data)
 
-    def _DealWithDiscBatchNorm(self, source_ops, helper):
+    def _DealWithDiscBatchNorm(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type == 'batch_norm':
                 discrete_flag = True
@@ -860,7 +877,7 @@ class FluidParser:
                     self._RmProtoNode(bn_node_name)
                     self._AddProtoNode(bn_node_name, source_op, helper, {}, 'disc_bn')
 
-    def _DealWithSSD(self, source_ops, helper):
+    def _DealWithSSD(self, source_ops, helper, quantized=False):
         for source_op in source_ops:
             if source_op.type == 'softmax':
                 private_data = dict()
@@ -877,6 +894,186 @@ class FluidParser:
                 self._RmProtoNode(sm_node_name)
                 self._AddProtoNode(sm_node_name, source_op, helper, private_data, 'softmax')
 
+
+    def _DealWithPixelShuffle(self, source_ops, helper, quantized=False):
+        for source_op in source_ops:
+            if source_op.type in ['transpose', 'transpose2']:
+                axis = helper.attr_data(source_op, 'axis')
+                if axis == [0, 1, 4, 2, 5, 3]:
+                    private_data = dict()
+                    ts_node_name = self._NameNodeMid(source_op)
+                    in_of_transpose = self.ins[ts_node_name].target('X')
+                    out_of_transpose = self.outs[ts_node_name].target('Out')
+                    if in_of_transpose.startswith('reshape') and \
+                    out_of_transpose.startswith('reshape'):
+                        in_reshape_op = self._GetOp(source_ops, in_of_transpose)
+                        out_reshape_op = self._GetOp(source_ops, out_of_transpose)
+                        in_shape = helper.attr_data(in_reshape_op, 'shape')
+                        out_shape = helper.attr_data(out_reshape_op, 'shape')
+                        private_data['factor'] = out_shape[-1] / in_shape[-1]
+                        in_first_reshape = self.ins[in_of_transpose].target('X')
+                        out_last_reshape = self.outs[out_of_transpose].target('Out')
+                        self.outs[in_first_reshape].mv(in_of_transpose, ts_node_name)
+                        self.outs[ts_node_name].mv(out_of_transpose, out_last_reshape)
+                        self.ins[out_last_reshape].mv(out_of_transpose, ts_node_name)
+                        self.ins[ts_node_name].mv(in_of_transpose, in_first_reshape)
+                        self._RmProtoNode(in_of_transpose)
+                        self._RmProtoNode(out_of_transpose)
+                        self._ClearEdges(in_of_transpose)
+                        self._ClearEdges(out_of_transpose)
+                        self._RmProtoNode(ts_node_name)
+                        self._AddProtoNode(ts_node_name, None, helper, \
+                            private_data, 'pixel_shuffle')
+
+    def _DealWithShuffleChannel(self, source_ops, helper, quantized=False):
+        for source_op in source_ops:
+            if source_op.type in ['transpose', 'transpose2']:
+                axis = helper.attr_data(source_op, 'axis')
+                if axis == [0, 2, 1, 3, 4]:
+                    private_data = dict()
+                    ts_node_name = self._NameNodeMid(source_op)
+                    in_of_transpose = self.ins[ts_node_name].target('X')
+                    out_of_transpose = self.outs[ts_node_name].target('Out')
+                    if in_of_transpose.startswith('reshape') and \
+                    out_of_transpose.startswith('reshape'):
+                        in_reshape_op = self._GetOp(source_ops, in_of_transpose)
+                        out_reshape_op = self._GetOp(source_ops, out_of_transpose)
+                        in_shape = helper.attr_data(in_reshape_op, 'shape')
+                        out_shape = helper.attr_data(out_reshape_op, 'shape')
+                        private_data['group'] = out_shape[-3] / in_shape[-3]
+                        in_first_reshape = self.ins[in_of_transpose].target('X')
+                        out_last_reshape = self.outs[out_of_transpose].target('Out')
+                        self.outs[in_first_reshape].mv(in_of_transpose, ts_node_name)
+                        self.outs[ts_node_name].mv(out_of_transpose, out_last_reshape)
+                        self.ins[out_last_reshape].mv(out_of_transpose, ts_node_name)
+                        self.ins[ts_node_name].mv(in_of_transpose, in_first_reshape)
+                        self._RmProtoNode(in_of_transpose)
+                        self._RmProtoNode(out_of_transpose)
+                        self._ClearEdges(in_of_transpose)
+                        self._ClearEdges(out_of_transpose)
+                        self._RmProtoNode(ts_node_name)
+                        self._AddProtoNode(ts_node_name, None, helper, \
+                            private_data, 'shuffle_channel')
+
+    def _DealWithAnchorGenerator(self, source_ops, helper, quantized=False):
+        for source_op in source_ops:
+            if source_op.type == 'anchor_generator':
+                private_data = dict()
+                ag_node_name = self._NameNodeMid(source_op)
+                out_edges = self.outs[ag_node_name]
+                for param in out_edges.all_params():
+                    arg = helper.args_by_output_param(source_op, param)
+                    out_target = out_edges.target(param)
+                    if out_target.startswith('generate_proposals') is False:
+                        raise NameError('ERROR: Unknown output of AnchorGenerator.')
+                    private_data['split_num'] = 1
+                    split_node_name = 'split#' + \
+                    bytes(out_edges.all_params().index(param)) + '#' + ag_node_name
+                    self._InitEdges(split_node_name)
+                    self.outs[ag_node_name].reset_target_by_param(param, split_node_name)
+                    in_edges = self.ins[out_target]
+                    in_op = self._GetOp(source_ops, out_target)
+                    for in_param in in_edges.all_params():
+                        in_arg = helper.args_by_input_param(in_op, in_param)
+                        if in_arg == arg:
+                            self.ins[out_target].reset_target_by_param(in_param, split_node_name)
+                    self.outs[split_node_name].add('_Out', out_target)
+                    self._AddPairEdges(ag_node_name, split_node_name, param, '_In')
+                    self._AddProtoNode(split_node_name, None, helper, private_data, 'split_ins')
+
+    def _DealWithGenerateProposals(self, source_ops, helper, quantized=False):
+        for source_op in source_ops:
+            if source_op.type == 'generate_proposals':
+                gp_node_name = self._NameNodeMid(source_op)
+                targets = self.outs[gp_node_name].all_targets()
+                if len(targets) == 1 is True or targets[0].startswith('split#') is True:
+                    arg_node_name = 'temp_out_of_generate_proposals'
+                    self.graph_outs.append(arg_node_name)
+                    self.graphIO.add_out_fluid(arg_node_name, \
+                        gp_node_name)
+                    self.outs[gp_node_name].add('temp_out', arg_node_name)
+                    self.ins[arg_node_name] = Fluid_edger(bytes(source_op.idx), \
+                        gp_node_name)
+                    ''' 
+                    anchors_in = self.ins[gp_node_name].target('Anchors')
+                    bboxdeltas_in = self.ins[gp_node_name].target('BboxDeltas')
+                    iminfo_in = self.ins[gp_node_name].target('ImInfo')
+                    scores_in = self.ins[gp_node_name].target('Scores')
+                    variances_in = self.ins[gp_node_name].target('Variances')
+                    targets_in = [anchors_in, bboxdeltas_in, iminfo_in, \
+                    scores_in, variances_in]
+                    for target_in in targets_in:
+                        self.ins[gp_node_name].rm(target_in)
+                    self.ins[gp_node_name].add('Anchors', anchors_in)
+                    self.ins[gp_node_name].add('BboxDeltas', bboxdeltas_in)
+                    self.ins[gp_node_name].add('ImInfo', iminfo_in)
+                    self.ins[gp_node_name].add('Scores', scores_in)
+                    self.ins[gp_node_name].add('Variances', variances_in)
+                    '''
+
+    def _DelIncInQuantize(self, source_ops, helper, quantized=False):
+        for source_op in source_ops:
+            if source_op.type in ['increment']:
+                inc_node_name = self._NameNodeMid(source_op)
+                self._RmProtoNode(inc_node_name)
+                self._ClearEdges(inc_node_name)
+
+    def _DealWithQuantize(self, source_ops, helper, quantized=False):
+        for source_op in source_ops:
+            if source_op.type in FLUID_QUANTIZE_LAYERS:
+                qt_node_name = self._NameNodeMid(source_op)
+                in_of_qt = self.ins[qt_node_name].target('X')
+                out_param_of_in = self.outs[in_of_qt].all_params()[0]
+                outs_of_qt = self.outs[qt_node_name].targets('Out')
+                qt_node = self._GetOp(source_ops, qt_node_name)
+                in_scale = helper.data_with_shape_by_param(qt_node, 'InScale')[0][0]
+                in_scale = in_scale / 127
+                self.outs[in_of_qt].rm(qt_node_name)
+                for out_of_qt in outs_of_qt:
+                    op_out_q = self._GetOp(source_ops, out_of_qt)
+                    param_name = out_param_of_in
+                    self.outs[in_of_qt].add(param_name, out_of_qt, None, in_scale)
+                    self.ins[out_of_qt].mv(qt_node_name, in_of_qt)
+                    self.ins[out_of_qt].set_scale(in_of_qt, in_scale)
+                self._RmProtoNode(qt_node_name)
+                self._ClearEdges(qt_node_name)
+        self._DelIncInQuantize(source_ops, helper, quantized)
+
+    def _DealWithDequantize(self, source_ops, helper, quantized=False):
+        for source_op in source_ops:
+            if source_op.type in FLUID_DEQUANTIZE_LAYERS:
+                private_data = dict()
+                qt_node_name = self._NameNodeMid(source_op)
+                qt_node = self._GetOp(source_ops, qt_node_name)
+                in_of_qt = self.ins[qt_node_name].target('X')
+                out_of_qt = self.outs[qt_node_name].target('Out')
+                op_in_q = self._GetOp(source_ops, in_of_qt)
+                scale_of_weight = helper.attr_data(source_op, 'max_range')
+                scale_of_weight = 127 / scale_of_weight
+                self.scale_dict[in_of_qt] = [scale_of_weight]
+                private_data['scale_1'] = self.scale_dict[in_of_qt]
+                scale = helper.data_with_shape_by_param(qt_node, 'Scale')[0][0]
+                scale = scale / 127
+                self.outs[in_of_qt].mv(qt_node_name, out_of_qt)
+                self.outs[in_of_qt].set_scale(out_of_qt, scale)
+                self.ins[out_of_qt].mv(qt_node_name, in_of_qt)
+                self.ins[out_of_qt].set_scale(in_of_qt, scale)
+                self._RmProtoNode(qt_node_name)
+                self._ClearEdges(qt_node_name)
+                self._RmProtoNode(in_of_qt)
+                self._AddProtoNode(in_of_qt, op_in_q, helper, private_data)
+
+    def _DealWithRoiAlign(self, source_ops, helper, quantized=False):
+        for source_op in source_ops:
+            if source_op.type == 'roi_align':
+                ra_node_name = self._NameNodeMid(source_op)
+                x_in_of_ra = self.ins[ra_node_name].target('X')
+                rois_in_of_ra = self.ins[ra_node_name].target('ROIs')
+                self.ins[ra_node_name].rm(x_in_of_ra)
+                self.ins[ra_node_name].rm(rois_in_of_ra)
+                self.ins[ra_node_name].add('X', x_in_of_ra, None)
+                self.ins[ra_node_name].add('ROIs', rois_in_of_ra, None)
+
     def _NewCommonLayer(self,
                         source_ops,
                         in_target,
@@ -886,7 +1083,8 @@ class FluidParser:
                         layer_type,
                         private_data,
                         helper,
-                        insert_mode=True):
+                        insert_mode=True,
+                        quantized=False):
         main_layer = layer_type + '_after_' + in_target
         if insert_mode is True:
             if in_target in self.ins[out_target].all_targets() and \
@@ -902,7 +1100,7 @@ class FluidParser:
         self.outs[main_layer] = Fluid_edger(out_param, out_target)
         self._AddProtoNode(main_layer, None, helper, private_data, layer_type)
 
-    def _ParseNetwork(self, source_ops, helper):
+    def _ParseNetwork(self, source_ops, helper, quantized=False):
         self._ParseBase(source_ops, helper)
         if self.NetType == "FLUIDBASE":
             pass
@@ -913,21 +1111,32 @@ class FluidParser:
             elif self.NetType == "ROUTEDNN":
                 reshape_dict['input_0'] = [1, 37, 1, 1]
             self._ReplaceInputs(source_ops, helper, reshape_dict)
+            self._DealWithQuantize(source_ops, helper)
+            self._DealWithDequantize(source_ops, helper)
             self._InsertSplit(source_ops, helper)
+            self._DealWithBias(source_ops, helper)
             self._DealWithGru(source_ops, helper)
             self._DealWithLstm(source_ops, helper)
-            self._DealWithBias(source_ops, helper)
             self._DealWithBatchnorm(source_ops, helper)
             self._DealWithMultiFC(source_ops, helper)
             self._DealWithArgmax(source_ops, helper)
             self._DealWithAxpy(source_ops, helper)
+            self._DealWithPixelShuffle(source_ops, helper)
+            self._DealWithShuffleChannel(source_ops, helper)
+            if self.NetType == "FASTRCNN":
+                self._DealWithAnchorGenerator(source_ops, helper)
+                self._DealWithGenerateProposals(source_ops, helper)
+                self._DealWithRoiAlign(source_ops, helper)
             if self.NetType == "SSD":
                 self._DealWithPriorBox(source_ops, helper)
                 self._DealWithDetectionOutput(source_ops, helper)
                 self._DealWithSoftmax(source_ops, helper)
                 self._DealWithSSD(source_ops, helper)
                 self._RefreshReshape(source_ops, helper)
-        self._Graph()
+        if self.Debug == 'IN':
+            self._Graph(True, False)
+        else:
+            self._Graph(False, False)
 
     def _Parsing(self):
         with fluid.scope_guard(self.scope):
@@ -945,4 +1154,5 @@ class FluidParser:
             helper = Fluid_helper(self.scope, global_block)
 
             self._ParseNetwork(source_ops, helper)
+
             return self.graphIO

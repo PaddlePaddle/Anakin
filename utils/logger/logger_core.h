@@ -759,7 +759,7 @@ inline void get_thread_name(char* buffer, unsigned long long length, bool right_
         uint64_t thread_id = thread;
       #endif
       if (right_align_hext_id) {
-        snprintf(buffer, length, "%*X", length - 1, static_cast<unsigned>(thread_id));
+        snprintf(buffer, length, "%*X", static_cast<int>(length - 1), static_cast<unsigned>(thread_id));
       } else {
         snprintf(buffer, length, "%X", static_cast<unsigned>(thread_id));
       }

@@ -1,6 +1,6 @@
 #include "test_lite.h"
 #include "saber/lite/funcs/neon/impl/sgemm_arm.h"
-#include "saber/lite/funcs/neon/impl/sgemm_conv.h"
+#include "saber/lite/funcs/neon/impl/sgemm_prepacked.h"
 using namespace anakin::saber;
 using namespace anakin::saber::lite;
 int cluster = 0;
@@ -117,7 +117,8 @@ SaberStatus test_arm_sgemm(int M, int N, int K, bool tra, bool trb, bool flag_bi
         double max_ratio = 0;
         double max_diff = 0;
         tensor_cmp_host(tout_basic, tout_saber, max_ratio, max_diff);
-        if (fabs(max_ratio) > 1e-4f) {
+        LOG(INFO) << "compare result, max diff: " << max_diff << ", max ratio: " << max_ratio;
+        if (fabs(max_ratio) > 1e-4f && fabsf(max_diff) > 5e-5f) {
             TensorHf4 tdiff(tout_basic.valid_shape());
             tensor_diff(tout_basic, tout_saber, tdiff);
             LOG(INFO) << "basic result: ";
@@ -126,12 +127,7 @@ SaberStatus test_arm_sgemm(int M, int N, int K, bool tra, bool trb, bool flag_bi
             print_tensor(tout_saber);
             LOG(INFO) << "diff result: ";
             print_tensor(tdiff);
-        }
-        LOG(INFO) << "compare result, max diff: " << max_diff << ", max ratio: " << max_ratio;
-        if (fabs(max_ratio) > 1e-4f) {
-            if (fabsf(max_diff) > 5e-5f) {
-                return SaberInvalidValue;
-            }
+            return SaberInvalidValue;
         }
     }
     return SaberSuccess;

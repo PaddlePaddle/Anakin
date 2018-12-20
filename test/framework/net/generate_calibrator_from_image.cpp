@@ -43,7 +43,7 @@ TEST(NetTest, calibrator) {
 
     // constructs the executer net
     Net<NV, Precision::FP32, OpRunType::SYNC> net_executer(*graph);
-    BatchStream<NV> batch_stream(g_data_file, 1, 3, 192, 192, {104.008f, 116.669f, 122.675f}, {1.f, 1.f, 1.f});
+    BatchStream<NV> batch_stream(g_data_file, 3, 192, 192, {104.008f, 116.669f, 122.675f}, {1.f, 1.f, 1.f});
     EntropyCalibrator<NV> entropy_calibrator(&batch_stream, g_batch_size, g_calibrator_file, &net_executer, g_bin_num);
     entropy_calibrator.generate_calibrator_table();
 

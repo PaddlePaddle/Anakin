@@ -36,6 +36,7 @@ cmake .. \
 	-DBUILD_SHARED=YES\
     -DBAIDU_RPC_ROOT=/opt/brpc \
     -DPROTOBUF_ROOT=/opt \
+    -DX86_COMPILE_482=YES\
 	-DBUILD_WITH_FRAMEWORK=YES
 
 # build target lib or unit test.

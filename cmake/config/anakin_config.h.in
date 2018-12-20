@@ -39,8 +39,6 @@
 
 #cmakedefine USE_CUDNN
 
-#cmakedefine USE_TENSORRT
-
 #cmakedefine USE_PYTHON
 
 #cmakedefine USE_OPENCL 
@@ -57,7 +55,7 @@
 
 #cmakedefine USE_MIOPENGEMM
 
-// plantform to use
+// platform to use
 #cmakedefine USE_GPU_PLACE
 
 #cmakedefine USE_X86_PLACE
@@ -66,6 +64,8 @@
 #cmakedefine USE_ARM_PLACE
 
 #cmakedefine USE_BM_PLACE
+
+#cmakedefine USE_SGX
 
 #cmakedefine TARGET_ANDROID
 
@@ -80,6 +80,8 @@
 #cmakedefine ENABLE_STACKTRACES
 
 #cmakedefine SUPPORT_PTHREADS
+
+#cmakedefine USE_NANOPB
 
 // build arm lite
 #cmakedefine BUILD_LITE

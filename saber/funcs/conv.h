@@ -27,6 +27,9 @@
 
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_conv.h"
+#ifndef USE_SGX
+#include "saber/funcs/impl/x86/vender_conv.h"
+#endif
 #endif
 
 #ifdef USE_ARM_PLACE
@@ -67,7 +70,7 @@ public:
                                              Output_v &output, Param_t &param) override {
         Shape conv_shape = conv_compute_shape(input[0]->valid_shape(), param);
         output[0]->set_seq_offset(input[0]->get_seq_offset());
-        return output[0]->set_shape(conv_shape);
+        return output[0]->set_shape_without_layout(conv_shape);
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {

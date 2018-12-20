@@ -101,47 +101,6 @@ std::string ParserConvolution(graph::AttrInfo& attr,
                     "Active_relu", 0.f, 0.f, "false", weights_ptr_name.c_str(), 0);
         code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
     }
-    /*
-    if (gen_param) {
-        // gen cpp code
-        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
-                    weights_size,
-                    num_output,
-                    group,
-                    kernel_size[1],
-                    kernel_size[0],
-                    strides[1],
-                    strides[0],
-                    padding[1],
-                    padding[0],
-                    dilation_rate[1],
-                    dilation_rate[0],
-                    bias_term ? 1 : 0,
-                    offset_info.weights[0].offset,
-                    bias_term ? offset_info.weights[1].offset : 0);
-    } else {
-        // gen cpp code
-        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(),
-                    weights_size,
-                    num_output,
-                    group,
-                    kernel_size[1],
-                    kernel_size[0],
-                    strides[1],
-                    strides[0],
-                    padding[1],
-                    padding[0],
-                    dilation_rate[1],
-                    dilation_rate[0],
-                    bias_term ? "true":"false",
-                    weights_ptr_name.c_str(),
-                    offset_info.weights[0].offset,
-                    weights_ptr_name.c_str(),
-                    bias_term ? offset_info.weights[1].offset : 0);
-
-        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
-    }
-     */
 
     return code_w.get_code_string();
 }
@@ -251,47 +210,6 @@ std::string ParserDeconvolution(graph::AttrInfo& attr,
                     "Active_relu", 0.f, 0.f, "false", weights_ptr_name.c_str(), 0);
         code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
     }
-    /*
-    // gen cpp code
-    CodeWritter code_w;
-    if (gen_param) {
-        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
-                    weights_size,
-                    num_output,
-                    group,
-                    kernel_size[1],
-                    kernel_size[0],
-                    strides[1],
-                    strides[0],
-                    padding[1],
-                    padding[0],
-                    dilation_rate[1],
-                    dilation_rate[0],
-                    bias_term ? 1 : 0,
-                    offset_info.weights[0].offset,
-                    bias_term ? offset_info.weights[1].offset : 0);
-    } else {
-        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(),
-                    weights_size,
-                    num_output,
-                    group,
-                    kernel_size[1],
-                    kernel_size[0],
-                    strides[1],
-                    strides[0],
-                    padding[1],
-                    padding[0],
-                    dilation_rate[1],
-                    dilation_rate[0],
-                    bias_term ? "true":"false",
-                    weights_ptr_name.c_str(),
-                    offset_info.weights[0].offset,
-                    weights_ptr_name.c_str(),
-                    bias_term ? offset_info.weights[1].offset : 0);
-
-        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
-    }
-    */
     return code_w.get_code_string();
 }
 
@@ -327,6 +245,7 @@ std::string ParserDeConvolutionRelu(graph::AttrInfo& attr,
     }
 
     auto offset_info = writter.get_weights_by_name(node_name);
+    auto alpha = get_attr<float>("relu_0_alpha", attr);
     // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
@@ -348,7 +267,7 @@ std::string ParserDeConvolutionRelu(graph::AttrInfo& attr,
                     0, //flag_eltwise
                     1, //set flag_act true
                     (int)Active_relu,
-                    0.f, //neg slope
+                    alpha, //neg slope
                     0.f, //act_coef
                     0, //prelu, channel_shared
                     0/*prelu weights*/);
@@ -373,53 +292,9 @@ std::string ParserDeConvolutionRelu(graph::AttrInfo& attr,
                     bias_term ? offset_info.weights[1].offset : 0,
                     "false", //flag_eltwise
                     "true", //set flag_act true
-                    "Active_relu", 0.f, 0.f, "false", weights_ptr_name.c_str(), 0);
+                    "Active_relu", alpha, 0.f, "false", weights_ptr_name.c_str(), 0);
         code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
     }
-    /*
-    // gen cpp code
-    CodeWritter code_w;
-    if(gen_param) {
-        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
-                    weights_size,
-                    num_output,
-                    group,
-                    kernel_size[1],
-                    kernel_size[0],
-                    strides[1],
-                    strides[0],
-                    padding[1],
-                    padding[0],
-                    dilation_rate[1],
-                    dilation_rate[0],
-                    bias_term ? 1 : 0,
-                    (int)Active_relu,
-                    1, //set flag_relu true
-                    offset_info.weights[0].offset,
-                    bias_term ? offset_info.weights[1].offset : 0);
-    } else {
-        code_w.feed("ParamBase* %s_param = new ConvAct2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%s+%d,%s+%d);\n",
-                    node_name.c_str(),
-                    weights_size,
-                    num_output,
-                    group,
-                    kernel_size[1],
-                    kernel_size[0],
-                    strides[1],
-                    strides[0],
-                    padding[1],
-                    padding[0],
-                    dilation_rate[1],
-                    dilation_rate[0],
-                    bias_term ? "true":"false",
-                    "true", //set flag_relu true
-                    weights_ptr_name.c_str(),
-                    offset_info.weights[0].offset,
-                    weights_ptr_name.c_str(),
-                    bias_term ? offset_info.weights[1].offset : 0);
-        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
-    }
-    */
     return code_w.get_code_string();
 }
 
@@ -456,6 +331,8 @@ std::string ParserConvolutionRelu(graph::AttrInfo& attr,
 
     auto offset_info = writter.get_weights_by_name(node_name);
 
+    auto alpha = get_attr<float>("relu_0_alpha", attr);
+
     // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
@@ -477,7 +354,7 @@ std::string ParserConvolutionRelu(graph::AttrInfo& attr,
                     0, //flag_eltwise
                     1, //set flag_act true
                     (int)Active_relu,
-                    0.f, //neg slope
+                    alpha, //neg slope
                     0.f, //act_coef
                     0, //prelu, channel_shared
                     0/*prelu weights*/);
@@ -502,53 +379,9 @@ std::string ParserConvolutionRelu(graph::AttrInfo& attr,
                     bias_term ? offset_info.weights[1].offset : 0,
                     "false", //flag_eltwise
                     "true", //set flag_act true
-                    "Active_relu", 0.f, 0.f, "false", weights_ptr_name.c_str(), 0);
+                    "Active_relu", alpha, 0.f, "false", weights_ptr_name.c_str(), 0);
         code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
     }
-    /*
-    // gen cpp code
-    CodeWritter code_w;
-    if(gen_param) {
-        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
-                    weights_size,
-                    num_output,
-                    group,
-                    kernel_size[1],
-                    kernel_size[0],
-                    strides[1],
-                    strides[0],
-                    padding[1],
-                    padding[0],
-                    dilation_rate[1],
-                    dilation_rate[0],
-                    bias_term ? 1 : 0,
-                    (int)Active_relu,
-                    1, //set flag_relu true
-                    offset_info.weights[0].offset,
-                    bias_term ? offset_info.weights[1].offset : 0);
-    } else {
-        code_w.feed("ParamBase* %s_param = new ConvAct2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%s+%d,%s+%d);\n",
-                    node_name.c_str(),
-                    weights_size,
-                    num_output,
-                    group,
-                    kernel_size[1],
-                    kernel_size[0],
-                    strides[1],
-                    strides[0],
-                    padding[1],
-                    padding[0],
-                    dilation_rate[1],
-                    dilation_rate[0],
-                    bias_term ? "true":"false",
-                    "true", //set flag_relu true
-                    weights_ptr_name.c_str(),
-                    offset_info.weights[0].offset,
-                    weights_ptr_name.c_str(),
-                    bias_term ? offset_info.weights[1].offset : 0);
-        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
-    }
-    */
     return code_w.get_code_string();
 }
 
@@ -574,6 +407,9 @@ std::string ParserConvAct(graph::AttrInfo& attr,
     auto weights_shape = weights.shape();
     int weights_size = weights_shape.count();//weights_shape[2]*weights_shape[3];
     int num_output = weights_shape[0];//*weights_shape[1];
+    int prelu_size;
+
+    float alpha = 0.f;
 
     writter.register_weights(node_name, weights);
     LOG(INFO) << node_name << " write weights: " << weights.count();
@@ -602,6 +438,7 @@ std::string ParserConvAct(graph::AttrInfo& attr,
         act_shared = get_attr<bool>("act_0_channel_shared", attr);
         auto prelu_weights = get_attr<PBlock<X86>>("act_0_weight_1", attr);
         writter.register_weights(node_name, prelu_weights);
+        prelu_size = prelu_weights.count();
         LOG(INFO) << node_name << " write weights: " << prelu_weights.count();
         auto offset_info_1 = writter.get_weights_by_name(node_name);
         act_weights_offset = offset_info_1.weights[2].offset;
@@ -609,6 +446,7 @@ std::string ParserConvAct(graph::AttrInfo& attr,
     } else if (type == "Stanh") {
         LOG(FATAL) << "Activation Stanh not supported now.";
     } else if (type == "Relu") {
+        alpha = get_attr<float>("relu_0_alpha", attr);
         act_type = Active_relu;
         act_type_str = "Active_relu";
     } else if (type == "ClippedRelu") {
@@ -642,10 +480,11 @@ std::string ParserConvAct(graph::AttrInfo& attr,
                     0, //flag_eltwise
                     1, //set flag_act true
                     (int)act_type,
-                    0.f, //neg slope
+                    alpha, //neg slope
                     0.f, //act_coef
                     act_shared, //prelu, channel_shared
-                    act_weights_offset/*prelu weights*/);
+                    act_weights_offset,/*prelu weights*/
+                    prelu_size/*prelu weights size*/);
     } else {
         code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d);\n",
                     node_name.c_str(),
@@ -667,7 +506,7 @@ std::string ParserConvAct(graph::AttrInfo& attr,
                     bias_term ? offset_info.weights[1].offset : 0,
                     "false", //flag_eltwise
                     "true", //set flag_act true
-                    act_type_str.c_str(), 0.f, 0.f, act_shared? "true" : "false", weights_ptr_name.c_str(), act_weights_offset);
+                    act_type_str.c_str(), alpha, 0.f, act_shared? "true" : "false", weights_ptr_name.c_str(), act_weights_offset);
         code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
     }
 
@@ -704,6 +543,7 @@ std::string ParserConvolutionReluPool(graph::AttrInfo& attr,
     }
 
     // parsing pooling parameter
+    auto ceil_mode = !get_attr<bool>("cmp_out_shape_floor_as_conv", attr);
     auto global_pooling = get_attr<bool>("pooling_0_global_pooling", attr);
     auto pool_padding = get_attr<PTuple<int>>("pooling_0_padding", attr);
     auto pool_strides = get_attr<PTuple<int>>("pooling_0_strides", attr);
@@ -724,10 +564,13 @@ std::string ParserConvolutionReluPool(graph::AttrInfo& attr,
 
     auto offset_info = writter.get_weights_by_name(node_name);
 
+    //! activation param
+    auto alpha = get_attr<float>("relu_0_alpha", attr);
+
     // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f %f %d %d %d %d %d %d %d %d %d %d\n",
+        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f %f %d %d %d %d %d %d %d %d %d %d %d\n",
                     weights_size,
                     num_output,
                     group,
@@ -745,7 +588,7 @@ std::string ParserConvolutionReluPool(graph::AttrInfo& attr,
                     0, //flag_eltwise
                     1, //set flag_act true
                     (int)Active_relu,
-                    0.f, //neg slope
+                    alpha, //neg slope
                     0.f, //act_coef
                     0, //prelu, channel_shared
                     0,/*prelu weights*/
@@ -756,9 +599,10 @@ std::string ParserConvolutionReluPool(graph::AttrInfo& attr,
                     pool_strides[1],
                     pool_strides[0],
                     pool_padding[1],
-                    pool_padding[0]);
+                    pool_padding[0],
+                    (int)ceil_mode);
     } else {
-        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d,%s,%s,%d,%d,%d,%d,%d,%d);\n",
+        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d,%s,%s,%d,%d,%d,%d,%d,%d,%d);\n",
                     node_name.c_str(),
                     weights_size,
                     num_output,
@@ -778,76 +622,17 @@ std::string ParserConvolutionReluPool(graph::AttrInfo& attr,
                     bias_term ? offset_info.weights[1].offset : 0,
                     "false", //flag_eltwise
                     "true", //set flag_act true
-                    "Active_relu", 0.f, 0.f, "false", weights_ptr_name.c_str(), 0,
+                    "Active_relu", alpha, 0.f, "false", weights_ptr_name.c_str(), 0,
                     str_pool_method.c_str(), global_pooling? "true" : "false",
                     pool_size[1],
                     pool_size[0],
                     pool_strides[1],
                     pool_strides[0],
                     pool_padding[1],
-                    pool_padding[0]);
+                    pool_padding[0],
+                    (int)ceil_mode);
         code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
     }
-    /*
-    // gen cpp code
-    CodeWritter code_w;
-    if (gen_param) {
-        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
-                    weights_size,
-                    num_output,
-                    group,
-                    kernel_size[1],
-                    kernel_size[0],
-                    strides[1],
-                    strides[0],
-                    padding[1],
-                    padding[0],
-                    dilation_rate[1],
-                    dilation_rate[0],
-                    bias_term ? 1 : 0,
-                    (int)Active_relu,
-                    1, //set flag_relu true
-                    (int)pool_type,
-                    global_pooling? 1 : 0,
-                    pool_size[1],
-                    pool_size[0],
-                    pool_strides[1],
-                    pool_strides[0],
-                    pool_padding[1],
-                    pool_padding[0],
-                    offset_info.weights[0].offset,
-                    bias_term ? offset_info.weights[1].offset : 0);
-    } else {
-        code_w.feed("ParamBase* %s_param = new ConvActPool2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,Active_relu,%s,%s,%s,%d,%d,%d,%d,%d,%d,%s+%d,%s+%d);\n",
-                    node_name.c_str(),
-                    weights_size,
-                    num_output,
-                    group,
-                    kernel_size[1],
-                    kernel_size[0],
-                    strides[1],
-                    strides[0],
-                    padding[1],
-                    padding[0],
-                    dilation_rate[1],
-                    dilation_rate[0],
-                    bias_term ? "true":"false",
-                    "true", //set flag_relu true
-                    str_pool_method.c_str(),
-                    global_pooling? "true" : "false",
-                    pool_size[1],
-                    pool_size[0],
-                    pool_strides[1],
-                    pool_strides[0],
-                    pool_padding[1],
-                    pool_padding[0],
-                    weights_ptr_name.c_str(),
-                    offset_info.weights[0].offset,
-                    weights_ptr_name.c_str(),
-                    bias_term ? offset_info.weights[1].offset : 0);
-        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
-    }
-    */
     return code_w.get_code_string();
 }
 
@@ -932,46 +717,6 @@ std::string ParserConvBatchnorm(graph::AttrInfo& attr,
                     "Active_relu", 0.f, 0.f, "false", weights_ptr_name.c_str(), 0);
         code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
     }
-    /*
-    // gen cpp code
-    CodeWritter code_w;
-    if (gen_param) {
-        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
-                    weights_size,
-                    num_output,
-                    group,
-                    kernel_size[1],
-                    kernel_size[0],
-                    strides[1],
-                    strides[0],
-                    padding[1],
-                    padding[0],
-                    dilation_rate[1],
-                    dilation_rate[0],
-                    1,//bias term always true
-                    offset_info.weights[0].offset,
-                    offset_info.weights[1].offset); //always has bias
-    } else {
-        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d);\n", node_name.c_str(), \
-                weights_size,
-                    num_output,
-                    group,
-                    kernel_size[1],
-                    kernel_size[0],
-                    strides[1],
-                    strides[0],
-                    padding[1],
-                    padding[0],
-                    dilation_rate[1],
-                    dilation_rate[0],
-                    "true",//bias term always true
-                    weights_ptr_name.c_str(),
-                    offset_info.weights[0].offset,
-                    weights_ptr_name.c_str(),
-                    offset_info.weights[1].offset); //always has bias
-        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
-    }
-     */
     return code_w.get_code_string();
 }
 
@@ -1089,8 +834,9 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
     }
 
     auto offset_info = writter.get_weights_by_name(node_name);
+    //! activation param
+    auto alpha = get_attr<float>("relu_0_alpha", attr);
     // gen cpp code
-
     CodeWritter code_w;
     if (gen_param) {
         code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f %f %d %d\n",
@@ -1111,7 +857,7 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
                     0, //flag_eltwise
                     1, //set flag_act false
                     (int)Active_relu,
-                    0.f, //neg slope
+                    alpha, //neg slope
                     0.f, //act_coef
                     0, //prelu, channel_shared
                     0/*prelu weights*/);
@@ -1136,7 +882,7 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
                     offset_info.weights[1].offset,
                     "false", //flag_eltwise
                     "true", //set flag_act true
-                    "Active_relu", 0.f, 0.f, "false", weights_ptr_name.c_str(), 0);
+                    "Active_relu", alpha, 0.f, "false", weights_ptr_name.c_str(), 0);
         code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
     }
 
@@ -1174,6 +920,7 @@ std::string ParserConvBatchnormScaleReluPool(graph::AttrInfo& attr,
     }
 
     // parsing pooling parameter
+    auto ceil_mode = !get_attr<bool>("cmp_out_shape_floor_as_conv", attr);
     auto global_pooling = get_attr<bool>("pooling_0_global_pooling", attr);
     auto pool_padding = get_attr<PTuple<int>>("pooling_0_padding", attr);
     auto pool_strides = get_attr<PTuple<int>>("pooling_0_strides", attr);
@@ -1193,10 +940,13 @@ std::string ParserConvBatchnormScaleReluPool(graph::AttrInfo& attr,
 
     auto offset_info = writter.get_weights_by_name(node_name);
 
+    //! activation param
+    auto alpha = get_attr<float>("relu_0_alpha", attr);
+
     // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f %f %d %d %d %d %d %d %d %d %d %d\n",
+        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f %f %d %d %d %d %d %d %d %d %d %d %d\n",
                     weights_size,
                     num_output,
                     group,
@@ -1214,7 +964,7 @@ std::string ParserConvBatchnormScaleReluPool(graph::AttrInfo& attr,
                     0, //flag_eltwise
                     1, //set flag_act true
                     (int)Active_relu,
-                    0.f, //neg slope
+                    alpha, //neg slope
                     0.f, //act_coef
                     0, //prelu, channel_shared
                     0,/*prelu weights*/
@@ -1225,9 +975,10 @@ std::string ParserConvBatchnormScaleReluPool(graph::AttrInfo& attr,
                     pool_strides[1],
                     pool_strides[0],
                     pool_padding[1],
-                    pool_padding[0]);
+                    pool_padding[0],
+                    (int)ceil_mode);
     } else {
-        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d,%s,%s,%d,%d,%d,%d,%d,%d);\n",
+        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d,%s,%s,%d,%d,%d,%d,%d,%d,%d);\n",
                     node_name.c_str(),
                     weights_size,
                     num_output,
@@ -1247,14 +998,15 @@ std::string ParserConvBatchnormScaleReluPool(graph::AttrInfo& attr,
                     offset_info.weights[1].offset,
                     "false", //flag_eltwise
                     "true", //set flag_act true
-                    "Active_relu", 0.f, 0.f, "false", weights_ptr_name.c_str(), 0,
+                    "Active_relu", alpha, 0.f, "false", weights_ptr_name.c_str(), 0,
                     str_pool_method.c_str(), global_pooling? "true" : "false",
                     pool_size[1],
                     pool_size[0],
                     pool_strides[1],
                     pool_strides[0],
                     pool_padding[1],
-                    pool_padding[0]);
+                    pool_padding[0],
+                    (int)ceil_mode);
         code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
     }
 
@@ -1446,9 +1198,9 @@ std::string ParserEltwiseRelu(graph::AttrInfo& attr,
             code_w << coeff[i] << " ";
         }
         code_w << (int)Active_relu << " " << 0.f << " " << 0.f << " " << \
-                0 << " " << 0 <<"\n";
+                0 << " " << 0 << " " << 0 << "\n";
     } else  {
-        code_w.feed("ParamBase* %s_param = new EltwiseActParam(%s, %s, %s, %f, %f, %s, %s);\n",
+        code_w.feed("ParamBase* %s_param = new EltwiseActParam(%s, %s, %s, %f, %f, %s, %s, %d);\n",
                     node_name.c_str(),
                     eltwise_type_str.c_str(),
                     coeff_vec_code.get_code_string().c_str(),
@@ -1456,13 +1208,13 @@ std::string ParserEltwiseRelu(graph::AttrInfo& attr,
                     0.f,
                     0.f,
                     "false",
-                    "nullptr");
+                    "nullptr",
+                    0);
 
         code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
     }
     return code_w.get_code_string();
 }
-
 // SaberEltwiseAct
 std::string ParserEltwisePRelu(graph::AttrInfo& attr,
                           std::string& code_name,
@@ -1517,10 +1269,10 @@ std::string ParserEltwisePRelu(graph::AttrInfo& attr,
             code_w << coeff[i] << " ";
         }
         code_w << (int)Active_prelu << " " << 0.f << " " << 0.f << " " << \
-                (prelu_channel_shared ? 1 : 0) << " " << offset_info.weights[0].offset <<"\n";
+                (prelu_channel_shared ? 1 : 0) << " " << offset_info.weights[0].offset << " " << prelu_weights.count() << "\n";
         //code_w << "\n";
     } else  {
-        code_w.feed("ParamBase* %s_param = new EltwiseActParam(%s, %s, %s, %f, %f, %s, %s+%d);\n",
+        code_w.feed("ParamBase* %s_param = new EltwiseActParam(%s, %s, %s, %f, %f, %s, %s+%d, %d);\n",
                     node_name.c_str(),
                     eltwise_type_str.c_str(),
                     coeff_vec_code.get_code_string().c_str(),
@@ -1529,7 +1281,8 @@ std::string ParserEltwisePRelu(graph::AttrInfo& attr,
                     0.f,
                     (prelu_channel_shared ? "true" : "false"),
                     weights_ptr_name.c_str(),
-                    offset_info.weights[0].offset);
+                    offset_info.weights[0].offset,
+                    prelu_weights.count());
 
         code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
     }
@@ -1549,12 +1302,12 @@ std::string ParserActivation(graph::AttrInfo& attr,
 
     std::string act_type("Active_unknow");
 
-    //! ActiveType act_type, float neg_slope = 0.f, float coef = 1.f, bool channel_shared = false, const float* weights = nullptr
+    //! ActiveType act_type, float neg_slope = 0.f, float coef = 1.f, bool channel_shared = false, const float* weights = nullptr, const size = prelu_size
     // gen cpp code
     CodeWritter code_w;
     if (type == "TanH") {
         if (gen_param) {
-            code_w << (int)Active_tanh << " " << 0.f << " " << 0.f << " " << 0 << " " << 0 << "\n";
+            code_w << (int)Active_tanh << " " << 0.f << " " << 0.f << " " << 0 << " " << 0 << " " << 0 << "\n";
         } else {
             act_type = "Active_tanh";
             code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
@@ -1565,7 +1318,7 @@ std::string ParserActivation(graph::AttrInfo& attr,
 
     } else if (type == "Sigmoid") {
         if (gen_param) {
-            code_w << (int)Active_sigmoid << " " << 0.f << " " << 0.f << " " << 0 << " " << 0 << "\n";
+            code_w << (int)Active_sigmoid << " " << 0.f << " " << 0.f << " " << 0 << " " << 0 << " " << 0 << "\n";
         } else {
             act_type = "Active_sigmoid";
             code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
@@ -1576,8 +1329,9 @@ std::string ParserActivation(graph::AttrInfo& attr,
         }
 
     } else if (type == "ReLU") {
+        auto alpha = get_attr<float>("alpha", attr);
         if (gen_param) {
-            code_w << (int)Active_relu << " " << 0.f << " " << 0.f << " " << 0 << " " << 0 << "\n";
+            code_w << (int)Active_relu << " " << alpha << " " << 0.f << " " << 0 << " " << 0 << " " << 0 << "\n";
         } else {
             act_type = "Active_relu";
             code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
@@ -1594,21 +1348,34 @@ std::string ParserActivation(graph::AttrInfo& attr,
         auto prelu_weights = get_attr<PBlock<X86>>("weight_1", attr);
 
         writter.register_weights(node_name, prelu_weights);
-                LOG(INFO) << node_name << " write weights: " << prelu_weights.count();
-
+        LOG(INFO) << node_name << " write weights: " << prelu_weights.count();
         auto offset_info = writter.get_weights_by_name(node_name);
         if (gen_param) {
             code_w << (int)Active_prelu << " " << 0.f << " " << 0.f << " " << \
-                (prelu_channel_shared ? 1 : 0) << " " << offset_info.weights[0].offset << "\n";
+                (prelu_channel_shared ? 1 : 0) << " " << offset_info.weights[0].offset << " " << prelu_weights.count() << "\n";
         } else {
-            code_w.feed("ParamBase* %s_param = new ActivationParam(%s, %f, %f, %s, %s+%d);\n",
+            code_w.feed("ParamBase* %s_param = new ActivationParam(%s, %f, %f, %s, %s+%d, %d);\n",
                         node_name.c_str(),
                         act_type.c_str(),
                         0.f,
                         0.f,
                         prelu_channel_shared ? "true" : "false",
                         weights_ptr_name.c_str(),
-                        offset_info.weights[0].offset);
+                        offset_info.weights[0].offset,
+                        prelu_weights.count());
+
+            code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+        }
+
+    } else if (type == "ClippedRelu") {
+        auto coef = get_attr<float>("clip_relu_num", attr);
+        if (gen_param) {
+            code_w << (int)Active_clipped_relu << " " << 0.f << " " << coef << " " << 0 << " " << 0 << " " << 0 << "\n";
+        } else {
+            act_type = "Active_clipped_relu";
+            code_w.feed("ParamBase* %s_param = new ActivationParam(%s, %f, %f, %d, %d, %d);\n",
+                        node_name.c_str(),
+                        act_type.c_str(), 0.f, coef, 0, 0, 0);
 
             code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
         }
@@ -1633,7 +1400,7 @@ std::string ParserRelu(graph::AttrInfo& attr,
     // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w << (int)Active_relu << " " << 0.f << " " << 0.f << " " << 0 << " " << 0 << "\n";
+        code_w << (int)Active_relu << " " << alpha << " " << 0.f << " " << 0 << " " << 0 << " " << 0 << "\n";
     } else {
         code_w.feed("ParamBase* %s_param = new ActivationParam(%s);\n",
                     node_name.c_str(),
@@ -1747,6 +1514,7 @@ std::string ParserPooling(graph::AttrInfo& attr,
                           WeightsWritter& writter,
                           bool gen_param) {
     // parsing parameter
+    auto ceil_mode = !get_attr<bool>("cmp_out_shape_floor_as_conv", attr);
     auto global_pooling = get_attr<bool>("global_pooling", attr);
     auto pool_padding = get_attr<PTuple<int>>("padding", attr);
     auto pool_strides = get_attr<PTuple<int>>("strides", attr);
@@ -1767,7 +1535,7 @@ std::string ParserPooling(graph::AttrInfo& attr,
     // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d %d %d %d %d %d %d %d\n",
+        code_w.feed("%d %d %d %d %d %d %d %d %d\n",
                     (int)pool_type,
                     global_pooling ? 1 : 0,
                     pool_size[1],
@@ -1775,9 +1543,10 @@ std::string ParserPooling(graph::AttrInfo& attr,
                     pool_strides[1],
                     pool_strides[0],
                     pool_padding[1],
-                    pool_padding[0]);
+                    pool_padding[0],
+                    (int)ceil_mode);
     } else {
-        code_w.feed("ParamBase* %s_param = new PoolParam(%s,%s,%d,%d,%d,%d,%d,%d);\n",
+        code_w.feed("ParamBase* %s_param = new PoolParam(%s,%s,%d,%d,%d,%d,%d,%d,%d);\n",
                     node_name.c_str(),
                     str_pool_method.c_str(),
                     global_pooling ? "true" : "false",
@@ -1786,47 +1555,13 @@ std::string ParserPooling(graph::AttrInfo& attr,
                     pool_strides[1],
                     pool_strides[0],
                     pool_padding[1],
-                    pool_padding[0]);
+                    pool_padding[0],
+                    (int)ceil_mode);
         code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
     }
     return code_w.get_code_string();
 }
 
-// SaberPrelu
-std::string ParserPrelu(graph::AttrInfo& attr,
-                        std::string& code_name,
-                        std::string& op_class_name,
-                        std::string& node_name,
-                        std::string& weights_ptr_name,
-                        WeightsWritter& writter,
-                        bool gen_param) {
-    // parsing parameter
-    auto channel_shared = get_attr<bool>("channel_shared", attr);
-
-    auto weights = get_attr<PBlock<X86>>("weight_1", attr);
-    writter.register_weights(node_name, weights);
-
-    auto offset_info = writter.get_weights_by_name(node_name);
-
-    // gen cpp code
-    CodeWritter code_w;
-    if (gen_param) {
-        code_w << (int)Active_prelu << " " << 0.f << " " << 0.f << " " << \
-                (channel_shared ? 1 : 0) << " " << offset_info.weights[0].offset << "\n";
-    } else {
-        code_w.feed("ParamBase* %s_param = new ActivationParam(%s, %f, %f, %s, %s+%d);\n",
-                        node_name.c_str(),
-                        "Active_prelu",
-                        0.f,
-                        0.f,
-                        channel_shared ? "true" : "false",
-                        weights_ptr_name.c_str(),
-                        offset_info.weights[0].offset);
-
-        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
-    }
-    return code_w.get_code_string();
-}
 
 // SaberPriorBox
 std::string ParserPriorBox(graph::AttrInfo& attr,
@@ -2233,6 +1968,34 @@ std::string ParserShuffleChannel(graph::AttrInfo& attr,
     return code_w.get_code_string();
 }
 
+// SaberCoord2Patch
+std::string ParserCoord2Patch(graph::AttrInfo& attr,
+                                 std::string& code_name,
+                                 std::string& op_class_name,
+                                 std::string& node_name,
+                                 std::string& weights_ptr_name,
+                                 WeightsWritter& writter,
+                                 bool gen_param) {
+    // parsing parameter
+    auto img_h = get_attr<int>("img_h", attr);
+    auto output_h = get_attr<int>("output_h", attr);
+    auto output_w = get_attr<int>("output_w", attr);
+
+    // gen cpp code
+    CodeWritter code_w;
+
+    if (gen_param) {
+        code_w << img_h << " " << output_h << " " << output_w << "\n";
+    } else {
+        code_w.feed("ParamBase* %s_param = new Coord2PatchParam(%d, %d, %d);\n",
+                    node_name.c_str(),
+                    img_h,
+                    output_h,
+                    output_w);
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
+    return code_w.get_code_string();
+}
 // SaberSplit
 std::string ParserSplit(graph::AttrInfo& attr,
                           std::string& code_name,
@@ -2323,22 +2086,72 @@ std::string ParserResize(graph::AttrInfo& attr,
                           WeightsWritter& writter,
                           bool gen_param) {
     // parsing parameter
-    auto width_scale = get_attr<float>("width_scale", attr);
-    auto height_scale = get_attr<float>("height_scale", attr);
+    float width_scale = 0.f;
+    float height_scale = 0.f;
+    if (find_attr("width_scale", attr) == SaberSuccess && find_attr("height_scale", attr) == SaberSuccess){
+        width_scale = get_attr<float>("width_scale", attr);
+        height_scale = get_attr<float>("height_scale", attr);
+    }
+    int out_w = -1;
+    int out_h = -1;
+    if (find_attr("out_width", attr) == SaberSuccess && find_attr("out_height", attr) == SaberSuccess){
+        out_w = get_attr<int>("out_width", attr);
+        out_h = get_attr<int>("out_height", attr);
+    }
+    auto resize_type = get_attr<std::string>("method", attr);
+    ResizeType type;
+    if (resize_type == "BILINEAR_ALIGN"){
+        type = BILINEAR_ALIGN;
+    } else if (resize_type == "BILINEAR_NO_ALIGN"){
+        type = BILINEAR_NO_ALIGN;
+    } else if (resize_type == "RESIZE_CUSTOM"){
+        type = RESIZE_CUSTOM;
+    } else {
+        LOG(FATAL) << "Unsupport resize type: " << resize_type;
+    }
     // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w << width_scale << " " << height_scale;
+        code_w << (int)type << " " << width_scale << " " << height_scale << " "\
+               << out_w << " " << out_h;
         code_w << "\n";
     } else {
-        code_w.feed("ParamBase* %s_param = new ResizeParam(%f, %f);\n",
+        code_w.feed("ParamBase* %s_param = new ResizeParam(%d, %f, %f, %d, %d);\n",
                     node_name.c_str(),
+                    (int)type,
                     width_scale,
-                    height_scale);
+                    height_scale,
+                    out_w,
+                    out_h);
         code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
     }
     return code_w.get_code_string();
 }
+
+// SaberNormalize
+std::string ParserNormalize(graph::AttrInfo& attr,
+                          std::string& code_name,
+                          std::string& op_class_name,
+                          std::string& node_name,
+                          std::string& weights_ptr_name,
+                          WeightsWritter& writter,
+                          bool gen_param) {
+    // parsing parameter
+    auto eps = get_attr<float>("eps", attr);
+    // gen cpp code
+    CodeWritter code_w;
+    if (gen_param) {
+        code_w << eps;
+        code_w << "\n";
+    } else {
+        code_w.feed("ParamBase* %s_param = new NormalizeParam(%f);\n",
+                    node_name.c_str(),
+                    eps);
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
+    return code_w.get_code_string();
+}
+
 std::unordered_map<std::string, OpParser> OPERATION_MAP({
     {"Input", {"Input", not_impl_yet} },
     {"Convolution", {"SaberConv2D", ParserConvolution} }, // done
@@ -2361,7 +2174,6 @@ std::unordered_map<std::string, OpParser> OPERATION_MAP({
     {"Dense", {"SaberFc", ParserFc} }, // done
     {"Permute", {"SaberPermute", ParserPermute} }, // done
     {"Pooling", {"SaberPooling", ParserPooling} }, // done
-    {"PReLU", {"SaberPrelu", ParserPrelu} }, // done
     {"PriorBox", {"SaberPriorBox", ParserPriorBox} }, // done
     {"Power", {"SaberPower", ParserPower} }, // done
     {"Scale", {"SaberScale", ParserScale} }, // done
@@ -2372,7 +2184,9 @@ std::unordered_map<std::string, OpParser> OPERATION_MAP({
     {"Softmax", {"SaberSoftmax", ParserSoftmax}}, //done
     {"Split", {"SaberSplit", ParserSplit}}, // done
     {"ShuffleChannel", {"SaberShuffleChannel", ParserShuffleChannel}}, // done
+    {"Coord2Patch", {"SaberCoord2Patch", ParserCoord2Patch}}, // done
     {"Resize", {"SaberResize", ParserResize}},  //done
+    {"Normalize", {"SaberNormalize", ParserNormalize}} //done
 });
 
 } /* namespace lite */

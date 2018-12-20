@@ -51,6 +51,12 @@ template class PermuteHelper<NV, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Permute, PermuteHelper, NV, Precision::FP32);
 #endif
 
+#ifdef AMD_GPU
+INSTANCE_PERMUTE(AMD, Precision::FP32);
+template class PermuteHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Permute, PermuteHelper, AMD, Precision::FP32);
+#endif
+
 #if defined USE_X86_PLACE || defined BUILD_LITE
 INSTANCE_PERMUTE(X86, Precision::FP32);
 template class PermuteHelper<X86, Precision::FP32>;

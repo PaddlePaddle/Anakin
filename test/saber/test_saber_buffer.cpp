@@ -2,7 +2,7 @@
 #include "saber/core/buffer.h"
 #include "saber/core/env.h"
 #include "saber/core/data_traits.h"
-
+#include <cmath>
 using namespace anakin::saber;
 
 

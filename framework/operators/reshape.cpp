@@ -74,6 +74,12 @@ template class ReshapeHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Reshape, ReshapeHelper, ARM, Precision::FP32);
 #endif
 
+#ifdef AMD_GPU
+INSTANCE_RESHAPE(AMD, Precision::FP32);
+template class ReshapeHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Reshape, ReshapeHelper, AMD, Precision::FP32);
+#endif
+
 //! register op
 ANAKIN_REGISTER_OP(Reshape)
 .Doc("Reshape operator")

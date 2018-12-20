@@ -6,7 +6,7 @@ using namespace anakin::saber::lite;
 
 int g_cluster = 0;
 int g_threads = 1;
-int g_test_iter = 10;
+int g_test_iter = 1;
 
 bool g_basic_test = false;
 
@@ -65,24 +65,20 @@ SaberStatus test_arm_deconv(int n, int c, int h, int w, \
     int hin = h;
     int win = w;
 
-    LOG(INFO) << "deconv param: ";
-    LOG(INFO) << " img_num = " << num;
-    LOG(INFO) << " in_channels = " << chin;
-    LOG(INFO) << " img_h = " << hin;
-    LOG(INFO) << " img_w = " << win;
-    LOG(INFO) << " group = " << group;
-    LOG(INFO) << " pad = " << pad;
-    LOG(INFO) << " stride = " << stride;
-    LOG(INFO) << " dilation = " << dila;
-    LOG(INFO) << " kernel = " << kernel;
-    LOG(INFO) << " out_channels = " << ch_out;
-    LOG(INFO) << " bias flag = " << (flag_bias? "true" : "false");
+    LOG(INFO) << "deconv param: " << " img_num = " << num << " in_channels = " << chin \
+        << " img_h = " << hin << " img_w = " << win << " group = " << group << " pad = " \
+        << pad << " stride = " << stride << " dilation = " << dila << " kernel = " \
+        << kernel << " out_channels = " << ch_out << " bias flag = " << (flag_bias? "true" : "false");
 
     int kernel_exten = dila * (kernel - 1) + 1;
     int hout = (h - 1) * stride + kernel_exten - 2 * pad;
 
     kernel_exten = dila * (kernel - 1) + 1;
     int wout = (w - 1) * stride + kernel_exten - 2 * pad;
+
+    if (hout <=0 || wout <= 0) {
+        return SaberSuccess;
+    }
 
     Shape shape_out{num, ch_out, hout, wout};
 
@@ -95,6 +91,7 @@ SaberStatus test_arm_deconv(int n, int c, int h, int w, \
     fill_tensor_rand(pweiht, -1.f, 1.f);
     fill_tensor_rand(pbias, -1.f, 1.f);
 
+//    fill_tensor_const(thin, 1.f);
 //    fill_tensor_const(pweiht, 1.f);
 //    fill_tensor_const(pbias, 1.f);
 
@@ -132,11 +129,11 @@ SaberStatus test_arm_deconv(int n, int c, int h, int w, \
     //! re_alloc mem for output tensor
     tvout_saber[0]->re_alloc(shape_out);
 
-    LOG(INFO) << "saber deconv impl init";
+//    LOG(INFO) << "saber deconv impl init";
     CHECK_EQ(deconv_lite.init(tin, tvout_saber, ctx1), SaberSuccess) << "Saber deconv init failed";
 
     //! compute
-    LOG(INFO) << "saber conv compute";
+//    LOG(INFO) << "saber conv compute";
     to = 0;
 
     for (int i = 0; i < g_test_iter; ++i) {
@@ -152,7 +149,7 @@ SaberStatus test_arm_deconv(int n, int c, int h, int w, \
         }
     }
     LOG(INFO) << "saber deconv running time, ave: " << to / g_test_iter << ", min time: " << min_time;
-//    print_tensor(*tvout_saber[0]);
+//    print_tensor(tout_saber);
 
     if (g_compare_result) {
         double max_ratio = 0;
@@ -162,8 +159,6 @@ SaberStatus test_arm_deconv(int n, int c, int h, int w, \
         if (fabsf(max_ratio) > 1e-4f) {
             TensorHf4 tdiff(tout_basic.valid_shape());
             tensor_diff(tout_basic, tout_saber, tdiff);
-            LOG(INFO) << "bias:";
-            print_tensor(pbias);
             LOG(INFO) << "basic result:";
             print_tensor(tout_basic);
             LOG(INFO) << "saber result:";
@@ -196,22 +191,22 @@ TEST(TestSaberLite, fp32_deconv_basic_test) {
 
     if (g_basic_test) {
     for (auto& n : {1, 2}) {
-    for (auto& c : {1, 3, 8, 16}) {
-    for (auto& h : {3, 8, 15, 32}) {
-    int w = h;
-    for (auto& kh : {1, 2, 3, 4}) {
+    for (auto& c : {1, 3, 8, 15}) {
     for (auto& cout : {1, 3, 8, 16}) {
+    for (auto& h : {1, 3, 8, 15, 28, 32, 38, 75}) {
+    for (auto& kh : {1, 2, 3, 4}) {
     for (auto& stride : {1, 2}) {
-    int pad = kh / 2;
     for (auto &dila : {1, 2}) {
     for (auto &g : {1, 2}) {
+    for (auto &bias : {false, true}) {
+    for (auto &relu : {false, true}) {
+    for (auto &threads : {1, 2, 4}) {
+        int w = h;
         int group = g;
         if (c % g != 0 || cout % g != 0) {
             group = 1;
         }
-    for (auto &bias : {false, true}) {
-    for (auto &relu : {false, true}) {
-    for (auto &threads : {1, 2, 4}) {
+        int pad = kh / 2;
         auto flag = test_arm_deconv(n, c, h, w, cout, kh, stride, pad, dila, group, bias, relu, threads, 0);
         if (flag == SaberSuccess) {
             LOG(INFO) << "test fp32 depthwise conv: batchsize: " << n << ", channel: " << c << ", h & w: " << h << \
@@ -270,7 +265,7 @@ int main(int argc, const char** argv){
     }
     if (argc >= 9) {
         if (argc < 18) {
-            LOG(ERROR) << "usage: ./" << argv[0] << " cluster  threads  test_iter " << \
+            LOG(ERROR) << "usage: ./" << argv[0] << " basic_test cluster  threads  test_iter " << \
                 " compare_result flag_bias flag_relu num ch_in h_in w_in ch_out group" << \
                 " kernel pad stride dila";
             return 0;

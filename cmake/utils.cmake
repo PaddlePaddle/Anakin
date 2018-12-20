@@ -247,67 +247,6 @@ function(anakin_generate_kernel anakin_root_dir)
 	endif()
 endfunction()
 
-
-# ----------------------------------------------------------------------------
-# section: generate the protobuf .h and .cpp files.
-# ----------------------------------------------------------------------------
-function(anakin_gen_pb proto_src_path)
-    set(__working_dir ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/PROTO_TEMP/)
-    foreach(__proto_file ${ARGN}) 
-        exec_program(${PROTOBUF_PROTOC_EXECUTABLE} ${__working_dir} ARGS " -I=${proto_src_path} --cpp_out=. ${__proto_file}" 
-                                              OUTPUT_VARIABLE OUTPUT RETURN_VALUE VALUE)
-        if(NOT VALUE)
-            anakin_fetch_files_with_suffix(${__working_dir} "h" PROTO_GENERATE_H)
-            # get *.cpp or *.cc
-            anakin_fetch_files_with_suffix(${__working_dir} "c*" PROTO_GENERATE_C)
-            foreach(__include_file ${PROTO_GENERATE_H})
-                exec_program(mv ARGS ${__include_file} ${proto_src_path} 
-                                OUTPUT_VARIABLE __out RETURN_VALUE __value)
-            endforeach()
-            foreach(__src_file ${PROTO_GENERATE_C})
-                if(POLICY CMP0007) 
-                    cmake_policy(PUSH) 
-                    cmake_policy(SET CMP0007 NEW) 
-                endif()
-                string(REPLACE "." ";" SRC_LIST ${__src_file})
-                list(GET SRC_LIST -1 __src_file_name_suffix)
-				list(GET SRC_LIST -3 __src_file_name)
-
-				string(REPLACE "/" ";" SRC_LIST_PATH ${__src_file_name})
-				list(GET SRC_LIST_PATH -1 __pure_src_file_name)
-
-				if(__src_file_name_suffix EQUAL "cpp")
-					set(__full_src_filename "${__pure_src_file_name}.pb.cpp")
-				else()
-					set(__full_src_filename "${__pure_src_file_name}.pb.cc")
-				endif()
-				exec_program(mv ARGS " ${__working_dir}${__full_src_filename}  ${proto_src_path}/${__pure_src_file_name}.pb.cpp" 
-								OUTPUT_VARIABLE __out
-								RETURN_VALUE __value)
-				if(POLICY CMP0007)
-  					cmake_policy(POP)
-				endif()
-            endforeach()
-        else()
-            message(FATAL_ERROR "anakin_gen_bp: ${__file} \n error msg: ${OUTPUT}")
-        endif()
-    endforeach()
-endfunction()
-
-function(anakin_protos_processing)
-	set(PROTO_SRC_PATH ${ANAKIN_MODEL_PARSER}/proto)
-    set(SERVICE_API_SRC_PATH ${ANAKIN_SERVICE}/api)
-
-	set(__working_dir ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/PROTO_TEMP/)
-	
-	anakin_fetch_files_with_suffix(${PROTO_SRC_PATH} "proto" PROTO_SRC_FILES)
-    anakin_fetch_files_with_suffix(${SERVICE_API_SRC_PATH} "proto" SERVICE_API_PROTO_SRC_FILES)
-    anakin_gen_pb(${PROTO_SRC_PATH} ${PROTO_SRC_FILES})
-    if(BUILD_RPC)
-        anakin_gen_pb(${SERVICE_API_SRC_PATH} ${SERVICE_API_PROTO_SRC_FILES})
-    endif()
-endfunction()
-
 # ----------------------------------------------------------------------------
 # section: Provides macro for an anakin warning diasable
 # ----------------------------------------------------------------------------

@@ -19,6 +19,9 @@ std::string io::ToString() {
 }
 
 std::string node::ToString() {
+#ifdef USE_SGX
+    return "node.ToString not supported in SGX mode";
+#else
     std::ostringstream msg;
 
     if (mergeNodes.size()) {
@@ -34,6 +37,7 @@ std::string node::ToString() {
     }
 
     return msg.str();
+#endif
 }
 
 void VGraph::Match(VGraph* vgraph_pattern) {

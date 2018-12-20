@@ -31,6 +31,20 @@ class GraphToJson(object):
         # decide layout
         #self.get_layout_coordinate()
 
+    def get_edge_nexts(self, node_name, with_info=False):
+        """
+        get edge's next node_name
+        """
+        edges_out = self.graph_proto.edges_out
+        nexts = list()
+        if node_name in edges_out:
+            if with_info is False:
+                for target in edges_out[node_name].target:
+                    nexts.append(target.node)
+            else:
+                nexts = edges_out[node_name].target[:]
+        return nexts
+
     def get_layout_coordinate(self):
         """
         get layout coordinate of node in graph board
@@ -53,7 +67,7 @@ class GraphToJson(object):
                     x = self.map_node_to_coordinate[node_proto.name][0]
                     y = self.map_node_to_coordinate[node_proto.name][1]
                     inc_step = 0
-                    for next_node_name in self.graph_proto.edges_out[node_proto.name].val:
+                    for next_node_name in self.get_edge_nexts(node_proto.name):
                         self.map_node_to_coordinate[next_node_name] = [0, 0]
                         self.map_node_to_coordinate[next_node_name][0] = x + inc_step
                         inc_step = inc_step + horizon_step
@@ -91,7 +105,7 @@ class GraphToJson(object):
         new_color = lambda: ("#%02X%02X%02X" % (r(), r(), r()))
         for node_proto in self.graph_proto.nodes:
             if node_proto.name in self.graph_proto.edges_out:
-                for node_name in self.graph_proto.edges_out[node_proto.name].val:
+                for node_name in self.get_edge_nexts(node_proto.name):
                     edge_name = node_proto.name + '_' + node_name
                     if edge_name in self.graph_proto.edges_info:
                         tensor_proto = self.graph_proto.edges_info[edge_name]
@@ -104,7 +118,7 @@ class GraphToJson(object):
         edges = []
         for node_proto in self.graph_proto.nodes:
             if node_proto.name in self.graph_proto.edges_out:
-                for node_name in self.graph_proto.edges_out[node_proto.name].val:
+                for node_name in self.get_edge_nexts(node_proto.name):
                     edge_name = node_proto.name + '_' + node_name
                     tensor_name = ""
                     shared = ""
@@ -182,6 +196,22 @@ class GraphToJson(object):
                                                                  type=type_str,
                                                                  value=str(value))
                 node_attrs.append(target_attr())
+            # Quantitative information
+            name = 'bit_mode'
+            type_str = 'type'
+            if node_proto.bit_type == FLOAT:
+                value = 'FLOAT32'
+            elif node_proto.bit_type == INT8:
+                value = 'INT8'
+            elif node_proto.bit_type == STR:
+                value = 'UNKNOWN'
+            else:
+                raise NameError('ERROR: Unknown data type (%d) in message valueType' \
+                 % (node_proto.bit_type))
+            target_attr = CreateJson(id=name, 
+                                                             type=type_str,
+                                                             value=str(value))
+            node_attrs.append(target_attr())
             node_map = CreateJson(key_name=key_id,
                                                       key_attrs=node_attrs)
             attrs.append(node_map())

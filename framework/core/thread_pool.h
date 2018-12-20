@@ -26,6 +26,10 @@
 #include "framework/core/thread_safe_macros.h"
 #include "framework/core/type_traits_extend.h"
 #include "utils/logger/logger.h"
+#include "anakin_config.h"
+#ifdef USE_SGX
+#include <support/sgx/sgx_mutex>
+#endif
 
 namespace anakin {
 

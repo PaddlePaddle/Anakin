@@ -23,6 +23,17 @@
 namespace anakin {
 
 namespace saber {
+template <typename Dtype>
+//bool compare_vector(std::vector<Dtype> vec1, std::vector<Dtype> vec2) {
+bool compare_vector(Dtype vec1, Dtype vec2) {
+    bool flag = vec1.size() == vec2.size();
+    if (flag) {
+        for (int i = 0; i < vec1.size(); i++) {
+            flag = flag && (vec1[i] == vec2[i]);
+        }
+    }
+    return flag;
+}
 
 template<typename TargetType>
 struct PreluParam;
@@ -102,11 +113,95 @@ template <typename TargetType>
 struct AffineChannelParam {
     AffineChannelParam() = default;
 
-    AffineChannelParam(const AffineChannelParam<TargetType>& right) {}
+    AffineChannelParam(Tensor<TargetType>* weight_in,
+                       Tensor<TargetType>* bias_in):
+                       weight_tensor(weight_in), bias_tensor(bias_in){}
 
-    AffineChannelParam<TargetType>& operator=(const AffineChannelParam<TargetType>& right) {}
+    AffineChannelParam(const AffineChannelParam<TargetType>& right):
+                       weight_tensor(right.weight_tensor),
+                       bias_tensor(right.bias_tensor) {}
 
-    bool operator==(const AffineChannelParam<TargetType>& right) {return true;}
+    AffineChannelParam<TargetType>& operator=(const AffineChannelParam<TargetType>& right) {
+        weight_tensor = right.weight_tensor;
+        bias_tensor = right.bias_tensor;
+        return *this;
+    }
+
+    bool operator==(const AffineChannelParam<TargetType>& right) {
+        bool flag = true;
+        flag = flag && weight_tensor == right.weight_tensor;
+        flag = flag && bias_tensor == right.bias_tensor;
+        return true;
+    }
+
+    inline const Tensor<TargetType>* weight() {
+        return weight_tensor;
+    }
+
+    inline const Tensor<TargetType>* bias() {
+        return bias_tensor;
+    }
+
+    inline Tensor<TargetType>* mutable_weight() {
+        return weight_tensor;
+    }
+
+    inline Tensor<TargetType>* mutable_bias() {
+        return bias_tensor;
+    }
+
+    inline void set_weight(Tensor<TargetType>* weight_tensor_in) {
+        weight_tensor = weight_tensor_in;
+    }
+private:
+    Tensor<TargetType>* weight_tensor;
+    Tensor<TargetType>* bias_tensor;
+};
+
+template <typename TargetType>
+struct AnchorGeneratorParam {
+    AnchorGeneratorParam() = default;
+    AnchorGeneratorParam(std::vector<float> anchor_sizes_in,
+                         std::vector<float> aspect_ratios_in,
+                         std::vector<float> variances_in,
+                         std::vector<float> stride_in,
+                         float offset_in): anchor_sizes(anchor_sizes_in),
+                         aspect_ratios(aspect_ratios_in),
+                         variances(variances_in),
+                         stride(stride_in),
+                         offset(offset_in) {
+    }
+
+    AnchorGeneratorParam(const AnchorGeneratorParam<TargetType>& right):anchor_sizes(right.anchor_sizes),
+                         aspect_ratios(right.aspect_ratios),
+                         variances(right.variances),
+                         stride(right.stride),
+                         offset(right.offset) {}
+
+    AnchorGeneratorParam<TargetType>& operator=(const AnchorGeneratorParam<TargetType>& right) {
+        anchor_sizes = right.anchor_sizes;
+        aspect_ratios = right.aspect_ratios;
+        variances = right.variances;
+        stride = right.stride;
+        offset = right.offset;
+        return *this;
+    }
+
+    bool operator==(const AnchorGeneratorParam<TargetType>& right) {
+        bool flag = true;
+        flag = flag && compare_vector(anchor_sizes, right.anchor_sizes);
+        flag = flag && compare_vector(aspect_ratios, right.aspect_ratios);
+        flag = flag && compare_vector(variances, right.variances);
+        flag = flag && compare_vector(stride, right.stride);
+        flag = flag && offset == right.offset;
+        return flag;
+    }
+
+    std::vector<float> anchor_sizes;
+    std::vector<float> aspect_ratios;
+    std::vector<float> variances;
+    std::vector<float> stride;
+    float offset;
 };
 
 
@@ -458,6 +553,32 @@ struct ConvEltwiseParam {
 
     ConvParam<TargetType> conv_param;
     EltwiseParam<TargetType> eltwise_param;
+};
+
+template <typename TargetType>
+struct Coord2PatchParam {
+    Coord2PatchParam():img_h(128), output_h(1), output_w(72) {}
+    Coord2PatchParam(int in_img_h, int in_output_h, int in_output_w):img_h(in_img_h), \
+        output_h(in_output_h), output_w(in_output_w) {}
+    Coord2PatchParam(const  Coord2PatchParam &right):
+            img_h(right.img_h), output_h(right.output_h), output_w(right.output_w) {}
+    Coord2PatchParam &operator=(const  Coord2PatchParam &right) {
+        img_h = right.img_h;
+        output_h = right.output_h;
+        output_w = right.output_w;
+        return *this;
+    }
+    bool operator==(const Coord2PatchParam &right) {
+        bool flag = img_h == right.img_h;
+        flag = flag && (output_h == right.output_h);
+        flag = flag && (output_w == right.output_w);
+        return flag;
+    }
+
+public:
+    int img_h;
+    int output_h;
+    int output_w;
 };
 
 template <typename TargetType>
@@ -1022,37 +1143,17 @@ struct EmptyParam{
 };
 
 template <typename TargetType>
-struct FakeQuantizeAbsMaxParam {
-    FakeQuantizeAbsMaxParam() = default;
-
-    FakeQuantizeAbsMaxParam(int bit_length_in):
-        bit_length(bit_length_in) {}
-
-    FakeQuantizeAbsMaxParam(const FakeQuantizeAbsMaxParam& right):
-        bit_length(right.bit_length) {}
-
-    FakeQuantizeAbsMaxParam& operator=(const FakeQuantizeAbsMaxParam& right) {
-        bit_length = right.bit_length;
-    }
-
-    bool operator==(const FakeQuantizeAbsMaxParam& right) {
-        return bit_length == right.bit_length;
-    }
-
-    int bit_length{8};
-};
-
-template <typename TargetType>
 struct ExpandParam{
     ExpandParam() = default;
     ExpandParam(std::vector<int> expand_times_in) :
         expand_times(expand_times_in) {
     }
-    ExpandParam(const ExpandParam& right) : 
+    ExpandParam(const ExpandParam& right) :
         expand_times(right.expand_times) {
     }
     ExpandParam& operator=(const ExpandParam& right) {
        expand_times = right.expand_times;
+        return *this;
     }
     bool operator==(const ExpandParam& right) {
         bool flag = true;
@@ -1136,6 +1237,55 @@ struct FlattenParam {
     }
     int start_axis{1};
     int end_axis{-1};
+};
+
+template <typename >
+struct GenerateProposalsParam {
+    GenerateProposalsParam() = default;
+
+    GenerateProposalsParam(int pre_nms_top_n_in,
+                           int post_nms_top_n_in,
+                           float nms_thresh_in,
+                           float min_size_in,
+                           float eta_in) :
+        pre_nms_top_n(pre_nms_top_n_in),
+        post_nms_top_n(post_nms_top_n_in),
+        nms_thresh(nms_thresh_in),
+        min_size(min_size_in),
+        eta(eta_in) {}
+
+    GenerateProposalsParam(const GenerateProposalsParam& right):
+        pre_nms_top_n(right.pre_nms_top_n),
+        post_nms_top_n(right.post_nms_top_n),
+        nms_thresh(right.nms_thresh),
+        min_size(right.min_size),
+        eta(right.eta) {
+    }
+
+    GenerateProposalsParam& operator=(const GenerateProposalsParam& right) {
+        pre_nms_top_n = right.pre_nms_top_n;
+        post_nms_top_n = right.post_nms_top_n;
+        nms_thresh = right.nms_thresh;
+        min_size = right.min_size;
+        eta = right.eta;
+        return *this;
+    }
+
+    bool operator==(const GenerateProposalsParam& right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (pre_nms_top_n == right.pre_nms_top_n);
+        comp_eq = comp_eq && (post_nms_top_n == right.post_nms_top_n);
+        comp_eq = comp_eq && (nms_thresh == right.nms_thresh);
+        comp_eq = comp_eq && (min_size == right.min_size);
+        comp_eq = comp_eq && (eta == right.eta);
+        return comp_eq;
+    }
+
+    int pre_nms_top_n{1};
+    int post_nms_top_n{1};
+    float nms_thresh{0.f};
+    float min_size{1.f};
+    float eta{0.f};
 };
 
 /**
@@ -1534,6 +1684,7 @@ struct MatMulParam {
     MatMulParam& operator=(const MatMulParam& right) {
         _is_transpose_X = right._is_transpose_X;
         _is_transpose_Y = right._is_transpose_Y;
+        return *this;
     }
     bool operator==(const MatMulParam& right) {
         bool comp_eq = true;
@@ -1602,7 +1753,16 @@ struct NormalizeParam {
         eps = eps_in;
         CHECK_EQ(p == 2 || p == 1, true) << "only support L1 and L2 norm";
     }
-
+    NormalizeParam(bool is_across_spatial, bool is_shared_channel, \
+         float eps_in = 1e-6f, int pin = 2) {
+         across_spatial = is_across_spatial;
+         channel_shared = is_shared_channel;
+         p = pin;
+         has_scale = false;
+         scale = nullptr;
+         eps = eps_in;
+         CHECK_EQ(p == 2 || p == 1, true) << "only support L1 and L2 norm";
+     }
     NormalizeParam(const NormalizeParam<TargetType>& right) {
         channel_shared = right.channel_shared;
         across_spatial = right.across_spatial;
@@ -2094,29 +2254,43 @@ struct ReshapeParam {
 template<typename TargetType>
 struct ResizeParam {
     ResizeParam() = default;
-    explicit ResizeParam(float scale_w, float scale_h) {
-        bool flag = scale_w > 0.f && scale_h > 0.f;
+    explicit ResizeParam(ResizeType type, float scale_w, float scale_h, int out_w = -1, int out_h = -1) {
+        bool flag = (scale_w > 0.f && scale_h > 0.f) || (out_w > 0 && out_h > 0);
         CHECK_EQ(flag, true) << "wrong parameters";
+        resize_type = type;
         width_scale = scale_w;
         height_scale = scale_h;
+        out_width = out_w;
+        out_height = out_h;
     }
     ResizeParam(const ResizeParam<TargetType>& right) {
+        resize_type = right.resize_type;
         width_scale = right.width_scale;
         height_scale = right.height_scale;
+        out_width = right.out_width;
+        out_height = right.out_height;
     }
     ResizeParam<TargetType>& operator=(const ResizeParam<TargetType>& right) {
+        this->resize_type = right.resize_type;
         this->width_scale = right.width_scale;
         this->height_scale = right.height_scale;
+        this->out_width = right.out_width;
+        this->out_height = right.out_height;
         return *this;
     }
     bool operator==(const ResizeParam<TargetType>& right) {
         float eps = 1e-6;
         bool flag = fabsf(width_scale - right.width_scale) < eps;
         flag &= fabsf(height_scale - right.height_scale) < eps;
+        flag &= (resize_type == right.resize_type);
+        flag &= (out_width == right.out_width) && (out_height == right.out_height);
         return flag;
     }
     float width_scale{0.0f};
     float height_scale{0.0f};
+    int out_width{-1};
+    int out_height{-1};
+    ResizeType resize_type;
 };
 
 template <typename TargetType>
@@ -2396,7 +2570,9 @@ template <typename TargetType>
 struct TransposeParam {
     TransposeParam() = default;
     TransposeParam(const TransposeParam& right) {}
-    TransposeParam& operator=(const TransposeParam& right) {}
+    TransposeParam& operator=(const TransposeParam& right) {
+        return *this;
+    }
     bool operator==(const TransposeParam& right) {
         return true;
     }
@@ -2427,7 +2603,7 @@ struct TopKPoolingParam {
 template <typename TargetType>
 struct TopKAvgPoolingParam {
     TopKAvgPoolingParam() = default;
-    TopKAvgPoolingParam(std::vector<int> top_ks_in, 
+    TopKAvgPoolingParam(std::vector<int> top_ks_in,
                         int feat_map_num_in,
                         bool is_pooling_by_row_in):
         top_ks(top_ks_in), feat_map_num(feat_map_num_in),
@@ -2465,7 +2641,7 @@ struct MatchMatrixParam {
         linear_term(false),
         bias_term(false),
         weight_tensor(weight) {}
-    MatchMatrixParam(int dim_in_in, 
+    MatchMatrixParam(int dim_in_in,
                      int dim_t_in,
                      bool linear_term_in,
                      bool bias_term_in,
@@ -2534,7 +2710,9 @@ template <typename TargetType>
 struct MeanParam {
     MeanParam() = default;
     MeanParam(const MeanParam& right) {}
-    MeanParam& operator=(const MeanParam& right) {}
+    MeanParam& operator=(const MeanParam& right) {
+        return *this;
+    }
     bool operator==(const MeanParam& right) {
         return true;
     }
@@ -2561,6 +2739,84 @@ struct ShuffleChannelParam {
 
 public:
     int group;
+};
+
+template <typename TargetType>
+struct ReduceMinParam {
+    ReduceMinParam() = default;
+    ReduceMinParam(std::vector<int>reduce_dim_in, bool keep_dim_in = false) :
+                   reduce_dim(reduce_dim_in), keep_dim(keep_dim_in){}
+
+    ReduceMinParam(const ReduceMinParam& right) {
+        keep_dim = right.keep_dim;
+        reduce_dim = right.reduce_dim;
+    }
+    ReduceMinParam& operator=(const ReduceMinParam& right) {
+        keep_dim = right.keep_dim;
+        reduce_dim = right.reduce_dim;
+        return *this;
+    }
+    bool operator==(const ReduceMinParam& right) {
+        return (keep_dim == right.keep_dim) && (reduce_dim == right.reduce_dim);
+    }
+
+    std::vector<int> reduce_dim;
+    bool keep_dim{false};
+};
+
+template <typename TargetType>
+struct ReduceMaxParam {
+    ReduceMaxParam() = default;
+    ReduceMaxParam(std::vector<int>reduce_dim_in, bool keep_dim_in = false) :
+                   reduce_dim(reduce_dim_in), keep_dim(keep_dim_in){}
+
+    ReduceMaxParam(const ReduceMaxParam& right) {
+        keep_dim = right.keep_dim;
+        reduce_dim = right.reduce_dim;
+    }
+    ReduceMaxParam& operator=(const ReduceMaxParam& right) {
+        keep_dim = right.keep_dim;
+        reduce_dim = right.reduce_dim;
+        return *this;
+    }
+    bool operator==(const ReduceMaxParam& right) {
+        return (keep_dim == right.keep_dim) && (reduce_dim == right.reduce_dim);
+    }
+
+    std::vector<int> reduce_dim;
+    bool keep_dim{false};
+};
+
+template <typename TargetType>
+struct RoiAlignParam {
+    RoiAlignParam() = default;
+    RoiAlignParam(int pooled_height_in, int pooled_width_in, float spatial_scale_in, int sampling_ratio_in) :
+                pooled_height(pooled_height_in), pooled_width(pooled_width_in), \
+                spatial_scale(spatial_scale_in), sampling_ratio(sampling_ratio_in) {}
+    RoiAlignParam(const RoiAlignParam& right) {
+        pooled_height = right.pooled_height;
+        pooled_width = right.pooled_width;
+        spatial_scale = right.spatial_scale;
+        sampling_ratio = right.sampling_ratio;
+    }
+    RoiAlignParam& operator=(const RoiAlignParam& right) {
+        pooled_height = right.pooled_height;
+        pooled_width = right.pooled_width;
+        spatial_scale = right.spatial_scale;
+        sampling_ratio = right.sampling_ratio;
+        return *this;
+    }
+    bool operator==(const RoiAlignParam& right) {
+        return (pooled_height == right.pooled_height) &&
+               (pooled_width == right.pooled_width) &&
+               (spatial_scale == right.spatial_scale) &&
+               (sampling_ratio == right.sampling_ratio);
+    }
+
+    int pooled_height;
+    int pooled_width;
+    float spatial_scale;
+    int sampling_ratio;
 };
 
 }

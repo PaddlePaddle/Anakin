@@ -362,6 +362,13 @@ macro(anakin_find_protobuf)
 	endif()
 endmacro()
 
+macro(anakin_find_nanopb)
+    set(NANOPB_VERSION "0.3.9.1")
+    set(NANOPB_DOWNLOAD_URL "https://jpa.kapsi.fi/nanopb/download/nanopb-${NANOPB_VERSION}-linux-x86.tar.gz")
+    set(NANOPB_DIR ${ANAKIN_THIRD_PARTY_PATH}/nanopb)
+    set(PROTOBUF_PROTOC_EXECUTABLE ${NANOPB_DIR}/generator-bin/protoc)
+endmacro()
+
 macro(anakin_find_baidu_rpc)
     if(NOT ENABLE_MIN_DEPENDENCY)
         set(BAIDU_RPC_ROOT "/opt/brpc" CACHE PATH "baidu rpc root dir")
@@ -441,6 +448,31 @@ macro(anakin_find_bmlib)
         list(APPEND ANAKIN_LINKER_LIBS ${BM_LIBRARIES}) 
     else() 
         message(FATAL_ERROR "Could not found bm_lib")
+endmacro()
+
+
+macro(anakin_find_sgx)
+  set(SGX_SDK $ENV{SGX_SDK})
+  if(SGX_SDK)
+    add_library(anakin_sgx_config INTERFACE)
+    set(SGX_CONFIG_INTERFACE anakin_sgx_config)
+    target_compile_options(${SGX_CONFIG_INTERFACE} INTERFACE
+      -fPIC -fno-builtin -nostdlib -nostdinc $<$<COMPILE_LANGUAGE:CXX>:-nostdinc++>)
+    set(PROBE_CMD "echo \"#include <immintrin.h>\" | ${CMAKE_C_COMPILER} -E -xc - | grep immintrin.h | sed 's:^.*\"\\(.*\\)\".*$:\\1:g' | head -1")
+    execute_process(COMMAND sh -c "${PROBE_CMD}" OUTPUT_VARIABLE IMMINTRIN_H)
+    get_filename_component(IMMINTRIN_PATH ${IMMINTRIN_H} DIRECTORY)
+    target_include_directories(${SGX_CONFIG_INTERFACE} BEFORE INTERFACE
+      "${ANAKIN_ROOT}/sgx/enclave/include"
+      "${SGX_SDK}/include"
+      "${SGX_SDK}/include/tlibc"
+      "${SGX_SDK}/include/libcxx"
+    )
+    target_include_directories(${SGX_CONFIG_INTERFACE} INTERFACE ${IMMINTRIN_PATH})
+    list(APPEND ANAKIN_LINKER_LIBS "sgx_tstdc" "sgx_tcxx")
+    message(STATUS "Found SGX SDK in ${SGX_SDK}")
+  else()
+    message(FATAL_ERROR "SGX SDK not found or not properly configured!")
+  endif()
 endmacro()
 
 macro(anakin_find_openssl)

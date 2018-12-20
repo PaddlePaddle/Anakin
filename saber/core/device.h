@@ -16,6 +16,7 @@
 #ifndef ANAKIN_SABER_CORE_DEVICE_H
 #define ANAKIN_SABER_CORE_DEVICE_H
 #include "core/target_wrapper.h"
+#include <string>
 
 namespace anakin {
 

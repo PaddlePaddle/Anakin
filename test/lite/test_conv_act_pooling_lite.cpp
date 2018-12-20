@@ -107,7 +107,7 @@ void test_arm_conv(std::vector<TensorHf4*>& tin, \
     ConvPool2DParam param(pweiht.valid_size(), ch_out, group, \
         kernel, kernel, stride, stride, pad, pad, dila, dila, bias, pweiht.data(), pbias.data(), \
         false, true, Active_relu, 0.f, 1.f, false, nullptr, \
-        Pooling_average_include_padding, true, 1, 1, 1, 1, 1, 1);
+        Pooling_average_include_padding, true, 1, 1, 1, 1, 1, 1, 1);
 //    conv_lite.load_param(pweiht.valid_size(), ch_out, group, \
 //        kernel, kernel, stride, stride, pad, pad, dila, dila, bias, Active_relu, true, \
 //        Pooling_average_include_padding, true, 1, 1, 1, 1, 1, 1, pweiht.data(), pbias.data());

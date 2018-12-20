@@ -20,11 +20,24 @@ Status ResizeHelper<Ttype, Ptype>::InitParam() {
     DLOG(WARNING) << "Parsing Resize op parameter.";
 
     // get resize param
-    auto width_scale = GET_PARAMETER(float, width_scale);
-    auto height_scale = GET_PARAMETER(float, height_scale);
-    
-    ResizeParam<Ttype> resize_param(height_scale, width_scale);
-    _param_resize = resize_param;
+    auto resize_method = GET_PARAMETER_WITH_DEFAULT(std::string, method,"RESIZE_CUSTOM");
+    auto width_scale = GET_PARAMETER_WITH_DEFAULT(float, width_scale, 0.f);
+    auto height_scale = GET_PARAMETER_WITH_DEFAULT(float, height_scale, 0.f);
+    auto out_width = GET_PARAMETER_WITH_DEFAULT(int, out_width, -1);
+    auto out_height = GET_PARAMETER_WITH_DEFAULT(int, out_height, -1);
+    if (resize_method == "BILINEAR_ALIGN"){
+        ResizeParam<Ttype> resize_param(BILINEAR_ALIGN, height_scale, width_scale, out_width, out_height);
+        _param_resize = resize_param;
+    } else if (resize_method == "BILINEAR_NO_ALIGN"){
+        ResizeParam<Ttype> resize_param(BILINEAR_NO_ALIGN, height_scale, width_scale, out_width, out_height);
+         _param_resize = resize_param;
+    } else if (resize_method == "RESIZE_CUSTOM"){
+        ResizeParam<Ttype> resize_param(RESIZE_CUSTOM, height_scale, width_scale, out_width, out_height);
+         _param_resize = resize_param;
+    } else {
+        LOG(FATAL) << "Resize op doesn't support : " << resize_method << " resize method.";
+    }
+
     return Status::OK();
 }
 
@@ -64,7 +77,13 @@ ANAKIN_REGISTER_OP_HELPER(Resize, ResizeHelper, X86, Precision::FP32);
 INSTANCE_RESIZE(ARM, Precision::FP32);
 template class ResizeHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Resize, ResizeHelper, ARM, Precision::FP32);
-#endif//arm
+#endif
+
+#ifdef AMD_GPU
+INSTANCE_RESIZE(AMD, Precision::FP32);
+template class ResizeHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Resize, ResizeHelper, AMD, Precision::FP32);
+#endif
 
 //! register op
 ANAKIN_REGISTER_OP(Resize)
@@ -80,6 +99,7 @@ ANAKIN_REGISTER_OP(Resize)
 #endif
 .num_in(1)
 .num_out(1)
+.Args<std::string>("method", "resize type to be applied (BILINEAR_ALIGN, BILINEAR_NO_ALIGN, RESIZE_CUSTOM).")
 .Args<float>("height_scale", " height scale for resize")
 .Args<float>("width_scale", " width scale for resize");
 

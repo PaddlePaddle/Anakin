@@ -38,6 +38,7 @@ Status Graph<Ttype, Ptype>::load(const char* buffer, size_t len) EXCLUSIVE_LOCKS
     return ret;
 }
 
+#ifndef USE_NANOPB
 template<typename Ttype, Precision Ptype>
 Status Graph<Ttype, Ptype>::save(std::string model_path) {
     return parser::save<Ttype>(this, model_path);
@@ -47,6 +48,7 @@ template<typename Ttype, Precision Ptype>
 Status Graph<Ttype, Ptype>::save(const char* model_path) {
     return parser::save<Ttype>(this, model_path);
 }
+#endif
 
 template<typename Ttype, Precision Ptype>
 std::vector<std::string>& Graph<Ttype, Ptype>::get_nodes_in_order() {
@@ -84,36 +86,6 @@ void Graph<Ttype, Ptype>::ResetBatchSize(std::string in_name,
 }
 
 template<typename Ttype, Precision Ptype>
-void Graph<Ttype, Ptype>::change_name() {
-    auto convert2underline = [&](std::string& name, char converter_char) -> std::string {
-        char* target_p = strdup(name.c_str());
-        for (char* p = strchr(target_p + 1, converter_char); p!=NULL; p = strchr(p + 1, converter_char)) {
-            *p = '_';
-        }
-        return std::string(target_p);
-    };
-    auto change_node_name = [&, this](graph::NodePtr& node_p) {
-        auto & name = node_p->name();
-        // add_alias is an important api for changing node's name and edge
-        // and add_alias is useful only at this place so far.
-        this->add_alias(name, convert2underline(name, '/'));
-        name = convert2underline(name, '/');
-        this->add_alias(name, convert2underline(name, '-'));
-        name = convert2underline(name, '-');
-    };
-    this->Scanner->BFS(change_node_name);
-
-    auto change_edge_name = [&, this](graph::Edge<Ttype>& edge) {
-        auto & first = edge.first();
-        auto & second = edge.second();
-        first = convert2underline(first, '/');
-        second = convert2underline(second, '/');
-        first = convert2underline(first, '-');
-        second = convert2underline(second, '-');
-    };
-    this->Scanner->BFS_Edge(change_edge_name);
-}
-template<typename Ttype, Precision Ptype>
 Status Graph<Ttype, Ptype>::RegistOut(std::string node_bottom_name,
         std::string node_top_name) {
     std::pair<std::string, std::string> tmp_pair(node_bottom_name, node_top_name);
@@ -135,7 +107,7 @@ Status Graph<Ttype, Ptype>::RegistAllOut() {
 }
 
 template<typename Ttype, Precision Ptype>
-Status Graph<Ttype, Ptype>::Optimize(bool use_tensorrt) EXCLUSIVE_LOCKS_REQUIRED(_mut) {
+Status Graph<Ttype, Ptype>::Optimize() EXCLUSIVE_LOCKS_REQUIRED(_mut) {
     std::unique_lock<std::mutex> lock(this->_mut);
 
     if (!_has_graph_optimized) {
@@ -146,7 +118,7 @@ Status Graph<Ttype, Ptype>::Optimize(bool use_tensorrt) EXCLUSIVE_LOCKS_REQUIRED
         //! decide wheter the vgraph is optimized
         auto is_optimized = statistics.get_info<IS_OPTIMIZED>();
 
-        if (is_optimized && (_registed_outs.size() == 0) || use_tensorrt) {
+        if (is_optimized && (_registed_outs.size() == 0)) {
             // schedule for exec order
             Scheduler scheduler;
             scheduler.RegIOResource(_vgraph);
@@ -158,6 +130,12 @@ Status Graph<Ttype, Ptype>::Optimize(bool use_tensorrt) EXCLUSIVE_LOCKS_REQUIRED
             // TODO ...
             auto in_ordered_fusion_op_name_vec = FusionOpRegister::Global().get_list_op_name_in_fusion_order_of(IN_ORDER);
             for (auto& fusion_name : in_ordered_fusion_op_name_vec) {
+                //in x86, we ignore two fusion patterns
+                if (std::is_same<Ttype, X86>::value &&
+                    (fusion_name == "ConvReluPool" || fusion_name == "ConvBatchnormScaleReluPool")){
+                    continue;
+                }
+
                 LOG(INFO) << " processing in-ordered fusion : " << fusion_name;
                 _vgraph->Match(FusionOpRegister::Global()[fusion_name]);
             }
@@ -268,9 +246,30 @@ VGraph& Graph<Ttype, Ptype>::get_vgraph() {
     return *_vgraph;
 }
 
+//get graph scale maps
+template<typename Ttype, Precision Ptype>
+std::unordered_map<std::string, std::vector<float>> 
+Graph<Ttype, Ptype>::get_scale_map(){
+    std::unordered_map<std::string, std::vector<float>> scale_map;
+    auto get_scale = [&, this](NodePtr& node_p){
+        auto& arc_its = this->get_in_arc_its(node_p->name());
+        for (auto arc : arc_its){
+            std::string edge_s = arc -> first() + "-" + arc -> second();
+            std::vector<float> scales = arc -> scale();
+            scale_map[edge_s] = scales;
+        }
+    };
+
+    this->Scanner->BFS(get_scale);
+    return scale_map;
+
+}
+
 template<typename Ttype, Precision Ptype>
 Status Graph<Ttype, Ptype>::restore_from_vgraph(VGraph* vgraph) {
     //! need to clear graph edge first
+    auto graph_scale_map = this->get_scale_map();
+
     this->arcs_clear();
 
     auto interpreter_io_in = [&, this](node& target_node) {
@@ -387,6 +386,24 @@ Status Graph<Ttype, Ptype>::restore_from_vgraph(VGraph* vgraph) {
         return Status::OK();
     };
     this->Scanner->BFS(merge_node_attrs);
+
+    //recover scales to edge
+    auto recover_scale = [&, this](Edge<Ttype>& edge){
+        std::string edge_name = edge.first() + "-" + edge.second();
+        std::string old_name = vgraph -> get_fusion_old_edge(edge_name);
+        if (old_name != ""){
+            edge_name = old_name;
+        }
+        if (graph_scale_map.count(edge_name) > 0){
+            auto scales = graph_scale_map[edge_name];
+            edge.set_scale(scales);
+        } else {
+            LOG(ERROR) << "when recover scale: the edge has no scale to map:" << edge_name;
+        }
+
+    };
+    this->Scanner->BFS_Edge(recover_scale);
+
     return Status::OK();
 }
 

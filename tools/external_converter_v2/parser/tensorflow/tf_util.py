@@ -33,7 +33,8 @@ class TfUtil:
             tf.train.import_meta_graph(graph_path, clear_devices=True)
 
         tf.import_graph_def(graph_def, name='graph')
-
+        for op in graph.get_operations():
+            print(op.name, [i for i in op.inputs])
         inputs_dict = {graph.get_tensor_by_name(i): inputs[i] for i in inputs}
         output_list = [graph.get_tensor_by_name(i) for i in output_tensor_list]
         print(output_list)

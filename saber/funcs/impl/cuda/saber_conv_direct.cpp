@@ -26,7 +26,7 @@ SaberStatus SaberDirectConv<AK_FLOAT>::init(
     this->_ctx = &ctx;
     _use_saber_act = param.activation_param.has_active
             && !(param.activation_param.active == Active_relu
-            && param.activation_param.negative_slope == 0.f);
+            && fabsf(param.activation_param.negative_slope) < 1e-6f);
     _use_saber_act = _use_saber_act ||
             (param.bias()->valid_size() == 0 && param.activation_param.has_active);
     if (param.activation_param.has_active) {

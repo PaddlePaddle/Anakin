@@ -20,7 +20,11 @@
 #include "framework/core/any.h"
 #include "framework/core/base.h"
 #include "framework/core/parameter.h"
-
+#include <mutex>
+#include "anakin_config.h"
+#ifdef USE_SGX
+#include <support/sgx/sgx_mutex>
+#endif
 namespace anakin {
 
 /**
@@ -58,14 +62,14 @@ public:
     }
 
     bool has_weight(const std::string& weight_name) {
-	    auto it_end = _share_map.end();
+        auto it_end = _share_map.end();
         auto it_find = _share_map.find(weight_name);
         if(it_find == it_end) {
-	    return false;
+        return false;
         }
         return true;
     }
-private:	
+private:    
     std::unordered_map<std::string, std::string> _share_map;
 };
 
@@ -80,13 +84,13 @@ public:
     }
 
     inline bool inspect(const std::string& attr_name) {
-		auto it_end = parameter_p->end();
-		auto it_find = parameter_p->find(attr_name);
-		if(it_find != it_end) {
-			return true;
-		}
-		return false;
-	}
+        auto it_end = parameter_p->end();
+        auto it_find = parameter_p->find(attr_name);
+        if (it_find != it_end) {
+            return true;
+        }
+        return false;
+    }
 
     template<typename T>
     T get(const std::string& attr_name) {
@@ -190,6 +194,7 @@ public:
         _shared = edge._shared; 
         _share_from = edge._share_from; 
         _current_lane = edge._current_lane; 
+        _scale = edge._scale;
     }
 
     explicit Edge(std::string first, std::string second):Arc<std::string, TensorSharedPtr<Ttype> >(first, second) {}
@@ -204,6 +209,12 @@ public:
 
     /// get data weigts of the edge.
     inline TensorSharedPtr<Ttype> data() { return this->weight(); }
+
+    inline std::vector<float> scale() const { return _scale; }
+
+    inline void set_scale(const std::vector<float> &scale) {
+        _scale = scale;
+    }
 
     /// If edge's data is shared from the others.
     bool& shared() { return _shared; }
@@ -228,6 +239,7 @@ public:
         _shared = edge._shared;
         _share_from = edge._share_from;
         _current_lane = edge._current_lane;
+        _scale = edge._scale;
         Arc<std::string, TensorSharedPtr<Ttype> >::operator=(edge);
     }
 
@@ -238,6 +250,8 @@ private:
     std::string _share_from;
     ///< _current_lane :Current lane the edge's data resides in. 
     Lane _current_lane;
+    // _scale: Transfer the scale passed by external parser to Net tensor.
+    std::vector<float> _scale;
 };
 
 /**
@@ -247,11 +261,11 @@ class Node {
 public:
     Node() {}
     ~Node() {
-		if(_Op) {
-			delete _Op;
-			_Op = nullptr;
-		}
-	}
+        if (_Op) {
+            delete _Op;
+            _Op = nullptr;
+        }
+    }
     /// print message
     std::string DebugString();
 
@@ -266,22 +280,25 @@ public:
     /// Node operator
     OperatorBase* Op() { return _Op; }
 
-
     /// set node operator
     void set_op(OperatorBase* other) { _Op = other; }
 
     /// Node need wait
     bool& need_wait() { return _need_wait; }
+
+    /// get bit type
+    DataType& bit_type() { return _bit_type; }
+
     /// get op name
     std::string& get_op_name() { return _op_name; }
 
     /// Access to attributes.
     AttrInfo& attr() { return _attr; } 
 
-	/// inspect if node attr have target attr name
-	inline bool inspect_attr(const std::string& attr_name) {
-	    return this->_attr.inspect(attr_name);	
-	}
+    /// inspect if node attr have target attr name
+    inline bool inspect_attr(const std::string& attr_name) {
+        return this->_attr.inspect(attr_name);  
+    }
 
     /**
     * \brief Get target attr by name
@@ -393,14 +410,19 @@ public:
         _need_wait = operand._need_wait;
         _in_degree = operand._in_degree;
         _out_degree = operand._out_degree;
+        _bit_type = operand._bit_type;
         return *this;
     }
     
     /// print message
-    inline std::string ToString() { 
+    inline std::string ToString() {
+#ifdef USE_SGX
+        return "**Node.ToString not implemented in SGX mode**";
+#else
         std::ostringstream msg; 
         msg << _name << " : op(" << _op_name << ") lane(" << _current_lane << ") need_wait(" << _need_wait << ")";
         return msg.str();
+#endif
     }
 
 private:
@@ -425,7 +447,9 @@ private:
     ///< record info for weight share
     WeightShareCell _share_weights;
 
-    std::mutex _mut; 
+    std::mutex _mut;
+
+    DataType _bit_type{AK_INVALID};
 };
 
 

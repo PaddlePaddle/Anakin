@@ -66,6 +66,8 @@ static size_t type_length(DataType type) {
         return 4;
     case AK_INT64:
         return 8;
+    case AK_UINT64:
+        return 8;
     case AK_HALF:
         return 2;
     case AK_FLOAT:
@@ -139,6 +141,12 @@ struct DataTrait<Ttype, AK_UINT16> {
 
 template <typename Ttype>
 struct DataTrait<Ttype, AK_UINT32> {
+    typedef unsigned int Dtype;
+    typedef unsigned int* PtrDtype;
+};
+
+template <typename Ttype>
+struct DataTrait<Ttype, AK_UINT64> {
     typedef unsigned int Dtype;
     typedef unsigned int* PtrDtype;
 };

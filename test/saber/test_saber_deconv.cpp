@@ -267,18 +267,21 @@ void deconv_testbase() {
     Env<DEVICE>::env_init();
     Env<HOST>::env_init();
     TestSaberBase<DEVICE, HOST, AK_FLOAT, Deconv, ConvParam> testbase;
-    std::vector<int> kernel{4};
-    std::vector<int> pad{1};
+//    std::vector<int> kernel{3,4,5,6,7};
+//    std::vector<int> pad{0,1,2};
+//    std::vector<int> stride{1,2,3};
+    std::vector<int> kernel{3,4,5,6,7};
+    std::vector<int> pad{0,1};
     std::vector<int> stride{2};
     std::vector<int> dilation_v{1};
     std::vector<int> group_v{1};
-    std::vector<int> in_h_v{64};
-    std::vector<int> in_w_v{64};
+    std::vector<int> in_h_v{22};
+    std::vector<int> in_w_v{23};
     std::vector<int> input_num_v{1};
-    std::vector<int> input_channels_v{48};
-    std::vector<int> output_channels_v{16};
-    std::vector<bool> bias_term_v{true, false};
-    std::vector<bool> with_relu_v{true, false};
+    std::vector<int> input_channels_v{12};
+    std::vector<int> output_channels_v{21};
+    std::vector<bool> bias_term_v{true,false};
+    std::vector<bool> with_relu_v{true,false};
 
     for (auto relu_flag : with_relu_v)
     for (auto kernel_h : kernel)
@@ -302,6 +305,7 @@ void deconv_testbase() {
 
         weights_dev.re_alloc(weights_s, AK_FLOAT);
         fill_tensor_rand(weights_dev, -2.f, 2.0f);
+//        fill_tensor_const(weights_dev,1.f);
 
         if (bias_term) {
             bias_dev.re_alloc(bias_s, AK_FLOAT);
@@ -320,7 +324,8 @@ void deconv_testbase() {
         for (auto height : in_h_v)
         for (auto width : in_w_v) {
             testbase.set_param(param_nv);//set param
-            testbase.set_rand_limit(-1, 1);
+            testbase.set_rand_limit(-1.f,1.f);
+//            testbase.set_rand_limit(1.f,1.f);
             testbase.set_input_shape(Shape({input_num, in_channels, height, width},
                                            Layout_NCHW));//add some input shape
             LOG(INFO) << kernel_h << "," << kernel_w << "," << pad_h << "," << pad_w << "," << stride_h << ","

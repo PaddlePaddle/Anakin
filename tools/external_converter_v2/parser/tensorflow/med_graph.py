@@ -4,12 +4,13 @@ import numpy as np
 class MedNodeUtil:
 
     @staticmethod
-    def new_med_node():
+    def new_med_node(name=None):
         '''
         return instance of empty standard med graph node
         :return:
         '''
-        return {'name': None, 'ak_type': None, 'input': [], 'output': [], 'ak_attr': {}, 'type': None,
+        return {'name': name, 'ak_type': None, 'input': [], 'output': [],
+                'ak_attr': {}, 'tf_attr': {}, 'type': None,
                 'med_visted': False}
 
     @staticmethod
@@ -60,8 +61,65 @@ class MedNodeUtil:
         '''
         for i in node['output']:
             tar_node = graph[i['name']]
-            tar_node['input'] = MedNodeUtil.replace_name_with_list(tar_node['input'], node['name'],
-                                                                   [{'name': this_name, 'shape': this_shape}])
+            tar_node['input'] = MedNodeUtil.replace_name_with_list(
+                tar_node['input'], node['name'], [{'name': this_name, 'shape': this_shape}])
+
+    @staticmethod
+    def redirecto_outputs_input_to_this_any(node, graph, ori_name, this_name, this_shape):
+        '''
+        get node_x in node`s outputs
+        make node_x`s inputs reference to node
+        :param node:
+        :param graph:
+        :param this_name:
+        :param this_shape:
+        :return:
+        '''
+        for i in node['output']:
+            tar_node = graph[i['name']]
+            tar_node['input'] = MedNodeUtil.replace_name_with_list(
+                tar_node['input'], ori_name, [{'name': this_name, 'shape': this_shape}])
+
+    @staticmethod
+    def redirecto_inputs_output_to_this(node, graph, this_name, this_shape):
+        '''
+        get node_x in node`s inputs
+        make node_x`s output reference to node
+        :param node:
+        :param graph:
+        :param this_name:
+        :param this_shape:
+        :return:
+        '''
+        for i in node['input']:
+            tar_node = graph[i['name']]
+            tar_node['output'] = MedNodeUtil.replace_name_with_list(
+                tar_node['output'], node['name'], [{'name': this_name, 'shape': this_shape}])
+
+    @staticmethod
+    def redirecto_inputs_output_to_this_any(node, graph, ori_name, this_name, this_shape):
+        '''
+        get node_x in node`s inputs
+        make node_x`s output reference to node
+        :param node:
+        :param graph:
+        :param this_name:
+        :param this_shape:
+        :return:
+        '''
+        for i in node['input']:
+            tar_node = graph[i['name']]
+            tar_node['output'] = MedNodeUtil.replace_name_with_list(
+                tar_node['output'], ori_name, [{'name': this_name, 'shape': this_shape}])
+
+    @staticmethod
+    def remove_node_in_series_graph(med_node, med_graph):
+        assert len(med_node['input']) == 1 and len(med_node['output']) == 1
+        med_node['ak_type'] = None
+        MedNodeUtil.redirecto_outputs_input_to_this(
+            med_node, med_graph, med_node['input'][0]['name'], med_node['input'][0]['shape'])
+        MedNodeUtil.redirecto_inputs_output_to_this(
+            med_node, med_graph, med_node['output'][0]['name'], med_node['output'][0]['shape'])
 
 
 MedGraph_Input_Cnt = 0
@@ -84,8 +142,10 @@ class MedGraphUtil:
         father_node['output'] = [{'name': son_node['name'], 'shape': son_shape}]
         for i in output:
             out_node = graph[i['name']]
-            out_node['input'] = MedNodeUtil.replace_name_with_list(out_node['input'], father_node['name'],
-                                                                   [{'name': son_node['name'], 'shape': son_shape}])
+            out_node['input'] = MedNodeUtil.replace_name_with_list(
+                out_node['input'], father_node['name'],
+                [{'name': son_node['name'], 'shape': son_shape}])
+
         graph[son_node['name']] = son_node
 
     @staticmethod
@@ -131,8 +191,35 @@ class MedGraphUtil:
         med_node['name'] = 'input_' + str(MedGraph_Input_Cnt)
         for i in med_node['output']:
             out_node = med_graph[i['name']]
-            out_node['input'] = MedNodeUtil.replace_name_with_list(out_node['input'], old_name,
-                                                                   [{'name': med_node['name'], 'shape': i['shape']}])
+            out_node['input'] = MedNodeUtil.replace_name_with_list(
+                out_node['input'], old_name, [{'name': med_node['name'], 'shape': i['shape']}])
+
+    @staticmethod
+    def _fusionFlatten(med_node, med_graph):
+        '''
+        fusion flatten node after convolution node
+        :param med_node:
+        :param med_graph:
+        :return:
+        '''
+        assert len(med_node['output']) == 1
+        next_node = med_graph[med_node['output'][0]['name']]
+        assert next_node['ak_type'] == 'Dense'
+
+        assert len(next_node['input']) == 1
+
+        next_node['ak_attr']['axis'] = 1
+        MedNodeUtil.remove_node_in_series_graph(med_node, med_graph)
+
+    @staticmethod
+    def _remove_op(med_node, med_graph):
+        '''
+        fusion scale node after convolution node
+        :param med_node:
+        :param med_graph:
+        :return:
+        '''
+        MedNodeUtil.remove_node_in_series_graph(med_node, med_graph)
 
     @staticmethod
     def _fusionScale(med_node, med_graph):
@@ -160,10 +247,10 @@ class MedGraphUtil:
                 else:
                     input_attr['bias_weights'] = med_ak_attr['bias_weights']
                 med_node['ak_type'] = None
-                input_node['output'] = MedNodeUtil.replace_name_with_list(input_node['output'], med_node['name'],
-                                                                          med_node['output'])
-                MedNodeUtil.redirecto_outputs_input_to_this(med_node, med_graph, input_node['name'],
-                                                            med_node['input'][0]['shape'])
+                input_node['output'] = MedNodeUtil.replace_name_with_list(
+                    input_node['output'], med_node['name'], med_node['output'])
+                MedNodeUtil.redirecto_outputs_input_to_this(
+                    med_node, med_graph, input_node['name'], med_node['input'][0]['shape'])
                 input_node['fusion_out_name'] = med_node['name']
 
         pass
@@ -206,7 +293,10 @@ class MedGraphUtil:
         '''
         for node in med_graph.values():
             node['med_visted'] = False
+
+        MedGraphUtil._all_search_table(med_graph, {'Reshape': MedGraphUtil._remove_op})
         MedGraphUtil._all_search_table(med_graph, {'Scale': MedGraphUtil._fusionScale})
+        MedGraphUtil._all_search_table(med_graph, {'Flatten': MedGraphUtil._fusionFlatten})
         MedGraphUtil._all_search_fusion(med_graph, MedGraphUtil._auto_split)
         MedGraphUtil._all_search_table(med_graph, {'Input': MedGraphUtil._auto_input_name})
 

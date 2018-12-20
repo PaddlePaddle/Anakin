@@ -12,7 +12,7 @@ message TensorShape {
 // anakin data type.
 // maybe need to be improved
 enum DateTypeProto {
-        STR = 0;
+        STR = 0;  // When used as bit type, enum 0 means invalid.
 		INT8 = 2;
         INT32 = 4;
 		FLOAT16 = 8;
@@ -29,8 +29,9 @@ message CacheDate {
     repeated int32 i = 2;      /// list int
     repeated float f = 3;      /// list float
     repeated bool  b = 4;      /// list bool
-	repeated CacheDate l = 5;  /// list list
-	DateTypeProto type = 6;
+    repeated CacheDate l = 5;  /// list list
+    bytes c = 8;               /// string for int8
+    DateTypeProto type = 6;
     int64 size = 7;
 };
 
@@ -47,13 +48,16 @@ message TensorProto {
 
 	// share_from is not null if shared [optional] 
 	// ( only used when anakin generates optimized model)
-	bytes  share_from = 3;
+	bytes share_from = 3;
 
     // tensor shape
     TensorShape shape = 8;
 
     // tensor data cache.
     CacheDate data = 10;
+
+    // scale for int8
+    CacheDate scale = 11;
 };
 
 

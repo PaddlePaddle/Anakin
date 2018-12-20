@@ -27,9 +27,15 @@ message Info {
 	bool is_optimized = 10;	
 };
 
+message TargetProto {
+	string node = 1;
+	repeated float scale = 2;
+};
+
 // string list 
 message List {
-	repeated string val = 1;	
+	repeated string val = 1;  // Will be deprecated
+	repeated TargetProto target = 2;
 };
 
 // Anakin Graph define
@@ -44,7 +50,7 @@ repeated NodeProto nodes = 2;
 // map: node name --->  node name
 // edges saves storage of anakin model.
 map<string, List> edges_in = 3;
-map<string, List> edges_out =4;
+map<string, List> edges_out = 4;
 
 // edges info [optional]
 // map: node_name_0 + "_" + node_name_1 ---> edge tensor (tensor not hold data)

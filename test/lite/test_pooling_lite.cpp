@@ -19,6 +19,7 @@ int w_in = 112;
 int kernel = 2;
 int pad = 0;
 int stride = 2;
+int ceil_mode = 1;
 
 PoolingType type = Pooling_max;
 
@@ -33,10 +34,10 @@ void pooling_basic(const float* din, float* dout, \
     //no need to pad input tensor, border is zero pad inside this function
     int size_channel_in = win * hin;
     int size_channel_out = wout * hout;
-    
+
     float* data_out = dout;
     const float* data_in = din;
-    
+
     if (global) {
         switch (type) {
             case Pooling_max:
@@ -54,9 +55,9 @@ void pooling_basic(const float* din, float* dout, \
                     }
                 }
                 break;
-                
+
             case Pooling_average_include_padding:
-                
+
             case Pooling_average_exclude_padding:
                 for (int n = 0; n < num; ++n) {
                     float* data_out_batch = data_out + n * chout * size_channel_out;
@@ -77,7 +78,7 @@ void pooling_basic(const float* din, float* dout, \
         }
         return;
     }
-    
+
     switch (type) {
         case Pooling_max:
             for (int n = 0; n < num; ++n) {
@@ -85,10 +86,10 @@ void pooling_basic(const float* din, float* dout, \
                 const float* data_in_batch = data_in + n * chin * size_channel_in;
 #pragma omp parallel for
                 for (int q = 0; q < chout; q++) {
-                    
+
                     float* data_out_row = data_out_channel + q * size_channel_out;
                     const float* data_in_channel = data_in_batch + q * size_channel_in;
-                    
+
                     for (int i = 0; i < hout; i++) {
                         for (int j = 0; j < wout; j++) {
                             int hstart = i * stride_h - pad_h;
@@ -99,7 +100,7 @@ void pooling_basic(const float* din, float* dout, \
                             wstart = std::max(wstart, 0);
                             hend = std::min(hend, hin);
                             wend = std::min(wend, win);
-                            
+
                             data_out_row[j] = data_in_channel[hstart * win + wstart];
                             for (int h = hstart; h < hend; ++h) {
                                 for (int w = wstart; w < wend; ++w) {
@@ -114,7 +115,7 @@ void pooling_basic(const float* din, float* dout, \
                 }
             }
             break;
-            
+
         case Pooling_average_include_padding:
             for (int n = 0; n < num; ++n) {
                 int pool_size = kernel_w * kernel_h;//(hend - hstart) * (wend - wstart);//problem
@@ -122,7 +123,7 @@ void pooling_basic(const float* din, float* dout, \
                 const float* data_in_batch = data_in + n * chin * size_channel_in;
 #pragma omp parallel for
                 for (int q = 0; q < chout; q++) {
-                    
+
                     float* data_out_row = data_out_channel + q * size_channel_out;
                     const float* data_in_channel = data_in_batch + q * size_channel_in;
                     for (int i = 0; i < hout; i++) {
@@ -135,7 +136,7 @@ void pooling_basic(const float* din, float* dout, \
                             wstart = std::max(wstart, 0);
                             hend = std::min(hend, hin);
                             wend = std::min(wend, win);
-                            
+
                             data_out_row[j] = data_in_channel[hstart * win + wstart];
                             float sum = 0.f;
                             for (int h = hstart; h < hend; ++h) {
@@ -156,7 +157,7 @@ void pooling_basic(const float* din, float* dout, \
                 const float* data_in_batch = data_in + n * chin * size_channel_in;
 #pragma omp parallel for
                 for (int q = 0; q < chout; q++) {
-                    
+
                     float* data_out_row = data_out_channel + q * size_channel_out;
                     const float* data_in_channel = data_in_batch + q * size_channel_in;
                     for (int i = 0; i < hout; i++) {
@@ -169,7 +170,7 @@ void pooling_basic(const float* din, float* dout, \
                             wstart = std::max(wstart, 0);
                             hend = std::min(hend, hin);
                             wend = std::min(wend, win);
-                            
+
                             data_out_row[j] = data_in_channel[hstart * win + wstart];
                             float sum = 0.f;
                             for (int h = hstart; h < hend; ++h) {
@@ -191,15 +192,15 @@ void pooling_basic(const float* din, float* dout, \
 }
 
 void test_arm_pooling(std::vector<TensorHf4*>& tin, \
-                      int kernel, int stride, int pad, \
+                      int kernel, int stride, int pad, int ceil_mode, \
                       PoolingType type, bool global, int threads, int cluster_id) {
-    
+
     //int test_iter = 1000;
     double to = 0;
     double min_time = 1000000;
     SaberTimer t1;
     SaberTimer t2;
-    
+
     Context ctx1;
     PowerMode mode = cluster_id == 0? SABER_POWER_HIGH : SABER_POWER_LOW;
     ctx1.set_run_mode(mode, threads);
@@ -211,10 +212,10 @@ void test_arm_pooling(std::vector<TensorHf4*>& tin, \
         LOG(INFO) << "number of threads: " << thread;
 #endif
     }
-    
+
     TensorHf4 tout_basic;
     TensorHf4 tout_saber;
-    
+
     TensorHf4* thin = tin[0];
     std::vector<TensorHf4*> vin;
     std::vector<TensorHf4*> tvout_saber;
@@ -222,12 +223,12 @@ void test_arm_pooling(std::vector<TensorHf4*>& tin, \
     //vin.push_back(&thin);
     tvout_saber.push_back(&tout_saber);
     tvout_basic.push_back(&tout_basic);
-    
+
     int num = tin[0]->num();
     int chin = tin[0]->channel();
     int hin = tin[0]->height();
     int win = tin[0]->width();
-    
+
     LOG(INFO) << "pooling param: ";
     LOG(INFO) << " img_num = " << num;
     LOG(INFO) << " in_channels = " << chin;
@@ -237,27 +238,32 @@ void test_arm_pooling(std::vector<TensorHf4*>& tin, \
     LOG(INFO) << "stride = " << stride;
     LOG(INFO) << "pad = " << pad;
     LOG(INFO) << "type = " << type;
+    LOG(INFO) << "ceil_mode = " << ceil_mode;
     int wout = 1;
     int hout = 1;
     if (!global) {
-        int hin = tin[0]->height(); // P
-        hout = static_cast<int>(std::max(0.f,ceilf(static_cast<float>(
-                                                         hin + 2 * pad - kernel) / stride))) + 1;
-        int win = tin[0]->width(); // Q
-        wout = static_cast<int>(std::max(0.f,ceilf(static_cast<float>(
-                                                         win + 2 * pad - kernel) / stride))) + 1;
+        if (ceil_mode){
+            int hin = tin[0]->height();
+            hout = static_cast<int>(std::max(0.f,ceilf(static_cast<float>(
+                                                             hin + 2 * pad - kernel) / stride))) + 1;
+            int win = tin[0]->width();
+            wout = static_cast<int>(std::max(0.f,ceilf(static_cast<float>(
+                                                             win + 2 * pad - kernel) / stride))) + 1;
+        } else {
+            int hin = tin[0]->height();
+            hout = static_cast<int>((hin + 2 * pad - kernel) / stride + 1);
+            int win = tin[0]->width();
+            wout = static_cast<int>((win + 2 * pad - kernel) / stride + 1);
+        }
     }
     Shape shape_out{num, chin, hout, wout};
-    PoolParam pooling_param(type,global,kernel,kernel, stride,stride,pad, pad);
+    PoolParam pooling_param(type, global, kernel, kernel, stride, stride, pad, pad, ceil_mode);
     //LOG(INFO) << "input tensor";
     //print_tensor_host(*tin[0]);
-    
+
     if (compare_result) {
         LOG(INFO) << "run basic pooling for precision comparation";
         tout_basic.re_alloc(shape_out);
-        //pooling_basic(tout_basic, *thin, type,global, kernel, \
-        kernel, stride, stride, pad, pad);
-        //print_tensor_host(tout_basic);
         LOG(INFO) << "basic pooling compute";
         to = 0;
         min_time = 1000000;
@@ -266,16 +272,9 @@ void test_arm_pooling(std::vector<TensorHf4*>& tin, \
             t1.start();
             const float* in=thin->data();
             float* out =tout_basic.mutable_data();
-            
-            pooling_basic(in,out, num, chin,hout,wout,chin,hin,win,type,global, kernel, \
+
+            pooling_basic(in,out, num, chin, hout, wout, chin, hin, win, type, global, kernel, \
                           kernel, stride, stride, pad, pad);
-            
-            //float* out1 =tout_saber.mutable_data();
-            
-           // pooling_basic(in,out1, num, chin,hout,wout,chin,hin,win,3,global, kernel, \
-                          kernel, stride, stride, pad, pad);
-            //tvout_basic[0]->record_event(ctx1.get_compute_stream());
-            //tvout_basic[0]->sync();
             t1.end();
             to += t1.get_average_ms();
             if (t1.get_average_ms() < min_time) {
@@ -284,9 +283,9 @@ void test_arm_pooling(std::vector<TensorHf4*>& tin, \
         }
         LOG(INFO) << "basic pooling running time, ave: " << to / test_iter << ", min time: " << min_time;
         // print_tensor_host(tout_basic);
-        
+
     }
-    
+
     SaberPooling pooling_saber;
     pooling_saber.load_param(&pooling_param);
     pooling_saber.compute_output_shape(tin, tvout_saber);
@@ -296,15 +295,15 @@ void test_arm_pooling(std::vector<TensorHf4*>& tin, \
     LOG(INFO) << "output shape: " << shape_out[0] << ", " << shape_out[1] << ", " \
     << shape_out[2] << ", " << shape_out[3];
     CHECK_EQ(shape_out == sh_out_saber, true) << "compute output shape error";
-    
+
     //! re_alloc mem for output tensor
     tvout_saber[0]->re_alloc(shape_out);
-    
+
     LOG(INFO) << "saber pooling impl init";
     pooling_saber.init(tin, tvout_saber, ctx1);
-    
+
     //print_tensor_host(*thin);
-    
+
     //! compute
     LOG(INFO) << "saber pooling compute";
     to = 0;
@@ -312,17 +311,9 @@ void test_arm_pooling(std::vector<TensorHf4*>& tin, \
     for (int i = 0; i < test_iter; ++i) {
         t2.clear();
         t2.start();
-        //const float* in=thin->data();
-        //float* out1 =tout_saber.mutable_data();
-        
-        //pooling_basic(in,out1, num, chin,hout,wout,chin,hin,win,3,global, kernel, \
-                      kernel, stride, stride, pad, pad);
+
         pooling_saber.dispatch(tin,tvout_saber);
-        //pooling3x3s2_max(tout_saber,*thin,type,global,kernel, \
-        kernel, stride, stride, pad, pad);
-        //tvout_saber[0]->record_event(ctx1.get_compute_stream());
-        //tvout_saber[0]->sync();
-        //pooling_basic()
+
         t2.end();
         to += t2.get_average_ms();
         if (t2.get_average_ms() < min_time) {
@@ -331,16 +322,16 @@ void test_arm_pooling(std::vector<TensorHf4*>& tin, \
     }
     LOG(INFO) << "saber pooling running time, ave: " << to / test_iter << ", min time: " << min_time;
     //print_tensor_host(tout_saber);
-    
+
     if (compare_result) {
         double max_ratio = 0;
         double max_diff = 0;
         TensorHf4 tdiff(tout_basic.valid_shape());
         tensor_cmp_host(tout_saber, tout_basic, max_ratio, max_diff);
-        // LOG(INFO) << "tout_basic";
-        // print_tensor_host(tout_basic);
-        // LOG(INFO) << "tout_saber";
-        // print_tensor_host(tout_saber);
+        LOG(INFO) << "tout_basic";
+        print_tensor(tout_basic);
+        LOG(INFO) << "tout_saber";
+        print_tensor(tout_saber);
         LOG(INFO) << "compare result, max diff: " << max_diff << ", max ratio: " << max_ratio;
         CHECK_EQ(fabsf(max_ratio) < 1e-5f, true) << "compute result error";
     }
@@ -348,11 +339,11 @@ void test_arm_pooling(std::vector<TensorHf4*>& tin, \
 
 #if 1
 TEST(TestSaberLite, test_func_pooling_global_arm) {
-    
+
     Shape shape_in(num, ch_in, h_in, w_in);
-    
+
     TensorHf4 tdin;
-    
+
     tdin.re_alloc(shape_in);
     float* in = tdin.mutable_data();
     for (int i = 0; i < tdin.size(); i++){
@@ -361,11 +352,11 @@ TEST(TestSaberLite, test_func_pooling_global_arm) {
     }
     //fill_tensor_rand(tdin, -1.f, 1.f);
     //fill_tensor_host_const(tdin, 1.f);
-    
+
     std::vector<TensorHf4*> tin;
     tin.push_back(&tdin);
-    
-    test_arm_pooling(tin, kernel, stride, pad, type, global_pool, threads, cluster);
+
+    test_arm_pooling(tin, kernel, stride, pad, ceil_mode, type, global_pool, threads, cluster);
 }
 #endif
 
@@ -393,7 +384,7 @@ int main(int argc, const char** argv){
     if (argc >= 7) {
         if (argc < 14) {
             LOG(ERROR) << "usage: ./" << argv[0] << " cluster  threads  test_iter " << \
-            " compare_result global_pool num ch_in h_in w_in kernel pad stride pool_type";
+            " compare_result global_pool num ch_in h_in w_in kernel pad stride ceil_mode pool_type";
             return 0;
         }
         num = atoi(argv[6]);
@@ -403,7 +394,8 @@ int main(int argc, const char** argv){
         kernel = atoi(argv[10]);
         pad = atoi(argv[11]);
         stride = atoi(argv[12]);
-        type = (PoolingType)atoi(argv[13]);
+        ceil_mode = atoi(argv[13]);
+        type = (PoolingType)atoi(argv[14]);
     }
 
     InitTest();

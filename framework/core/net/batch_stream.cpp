@@ -1,5 +1,3 @@
-
-
 /* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,12 +14,15 @@
 */
 
 #include "framework/core/net/batch_stream.h"
+
+#ifndef USE_SGX
+
 #include "saber/core/tensor_op.h"
 namespace anakin {
 using namespace anakin::saber;
 #ifdef USE_OPENCV
 using namespace cv;
-void fill_tensor_with_cvmat(const Mat& img_in, Tensor<X86>& tout, const int num, \
+void fill_tensor_with_cvmat(const Mat& img_in, Tensor<X86>& tout, int num, \
     const int width, const int height, const float* mean, const float* scale, float& max_val) {
     cv::Mat im;
     max_val = 0.f;
@@ -54,8 +55,8 @@ void fill_tensor_with_cvmat(const Mat& img_in, Tensor<X86>& tout, const int num,
  */
 template<typename Ttype>
 BatchStream<Ttype>::BatchStream(std::string file, int batch_size):_batch_size(batch_size) {
-    std::ifstream ifs(file, std::ofstream::out|std::ofstream::binary);
-    CHECK(ifs.is_open()) << file << "can not be opened";
+    std::ifstream ifs(file, std::ifstream::in);
+    CHECK(ifs.is_open()) << file << " can not be opened";
     while (ifs.good()) {
         std::string new_file;
         std::getline(ifs, new_file);
@@ -69,8 +70,7 @@ BatchStream<Ttype>::BatchStream(std::string file, int batch_size):_batch_size(ba
     _ifs.read((char*)(&_height), 4);
     _ifs.read((char*)(&_width), 4);
     Shape shape = std::vector<int> {batch_size, _channel, _height, _width};
-    auto tensor = new Tensor<X86>(shape);
-    _cpu_tensors.push_back(tensor);
+    _host_tensor.reshape(shape);
     _flag_from_image = false;
 }
 
@@ -83,21 +83,21 @@ void BatchStream<Ttype>::reset() {
     _ifs.read((char*)(&_channel), 4);
     _ifs.read((char*)(&_height), 4);
     _ifs.read((char*)(&_width), 4);
-  
 }
+
+template<typename Ttype>
+BatchStream<Ttype>::~BatchStream() {}
 
 #ifdef USE_OPENCV
 template<typename Ttype>
-BatchStream<Ttype>::BatchStream(std::string image_list, int num, int channel, int height, int width, \
+BatchStream<Ttype>::BatchStream(std::string image_list, int channel, int height, int width, \
         std::vector<float> mean, std::vector<float> scale) {
-    if (num != 1) {
-	LOG(FATAL) << "only support batchsize = 1 for image";
-    }
+
     if (channel != mean.size() || channel != scale.size()) {
         LOG(FATAL) << "channel size must = mean size && scale size";
     }
-    _num = std::max(1, num);
-    _batch_size = num;
+    _num = 1;
+    _batch_size = 1;
     _channel = std::max(1, channel);
     _height = std::max(1, height);
     _width = std::max(1, width);
@@ -122,11 +122,10 @@ BatchStream<Ttype>::BatchStream(std::string image_list, int num, int channel, in
 template<typename Ttype>
 int BatchStream<Ttype>::get_batch_data(std::vector<Tensor4dPtr<Ttype>> outs) {     
      Shape shape = std::vector<int>{_batch_size, _height, _width, _channel};
-     //_cpu_tensors[0]->reshape(shape);
      int num = std::min(_num, _batch_size);
      int image_size = _channel * _height * _width;
 #ifdef USE_CUDA
-     auto data = static_cast<float*>(_host_tensor.mutable_data());//_cpu_tensors[0]->mutable_data();
+     auto data = static_cast<float*>(_host_tensor.mutable_data());
 #else
      auto data = static_cast<float*>(outs[0]->mutable_data());
 #endif
@@ -154,11 +153,10 @@ int BatchStream<Ttype>::get_batch_data(std::vector<Tensor4dPtr<Ttype>> outs) {
         if (num != 0) {
             //outs[0]->reshape(Shape{num, _channel, _height,_width});
             Shape shape = std::vector<int>{num, _height,_width, _channel};
-            //_cpu_tensors[0]->reshape(shape);
             _host_tensor.reshape(shape);
             outs[0]->reshape(shape);
 #ifdef USE_CUDA
-            outs[0]->copy_from(*_cpu_tensors[0]);
+            outs[0]->copy_from(_host_tensor);
 #endif
         }
         return num;
@@ -178,7 +176,7 @@ int BatchStream<Ttype>::get_batch_data(std::vector<Tensor4dPtr<Ttype>> outs) {
         LOG(INFO) << "load image " << _file_list.back() << " successed, with mean value: " << mean_val << ", max_val: " << max_val;
         _file_list.pop_back();
         Shape shape = std::vector<int>{_num, _channel, _height,_width};
-	outs[0]->reshape(shape);
+	    outs[0]->reshape(shape);
         outs[0]->copy_from(_host_tensor);
         return 1;   
     }
@@ -193,3 +191,5 @@ template class BatchStream<NV>;
 template class BatchStream<X86>;
 #endif
 }
+
+#endif // USE_SGX

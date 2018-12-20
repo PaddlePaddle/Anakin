@@ -60,7 +60,10 @@ endif()
 
 if(USE_PROTOBUF)
     anakin_find_protobuf()
-    anakin_protos_processing()
+endif()
+
+if(USE_NANOPB)
+    anakin_find_nanopb()
 endif()
 
 if(BUILD_RPC)
@@ -89,9 +92,11 @@ endif()
 if(DISABLE_ALL_WARNINGS) 
     anakin_disable_warnings(CMAKE_CXX_FLAGS)
 endif()
+
 if(USE_OPENMP)
     anakin_find_openmp()
 endif()
+
 if(USE_ARM_PLACE)
     if(TARGET_ANDROID)
 		if(USE_OPENMP)
@@ -103,8 +108,9 @@ if(USE_ARM_PLACE)
         message(FATAL_ERROR " ARM TARGET unknown !")
     endif()
 endif()
-if(USE_TENSORRT)
-    anakin_find_nvinfer()
+
+if(USE_SGX)
+    anakin_find_sgx()
 endif()
 
 # find miopengemm

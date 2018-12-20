@@ -71,7 +71,7 @@ Status ConvReluHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
     if (std::is_same<Ttype, X86>::value) {
         impl_e = SABER_IMPL;
     }
-    bool use_k1s1p0 = true;
+    bool use_k1s1p0 = (Ptype == Precision::FP32);
     use_k1s1p0 = use_k1s1p0 && (_param_conv_relu.weight()->height() == 1);
     use_k1s1p0 = use_k1s1p0 && (_param_conv_relu.weight()->width() == 1);
     use_k1s1p0 = use_k1s1p0 && (_param_conv_relu.pad_h == 0);
@@ -82,7 +82,7 @@ Status ConvReluHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
     use_k1s1p0 = use_k1s1p0 && (_param_conv_relu.dilation_w == 1);
     use_k1s1p0 = use_k1s1p0 && (_param_conv_relu.group == 1);
     use_k1s1p0 = use_k1s1p0 && (_param_conv_relu.bias()->valid_size() > 0);
-    bool use_k3s1d1 = true;
+    bool use_k3s1d1 = (Ptype == Precision::FP32);
     use_k3s1d1 = use_k3s1d1 && (_param_conv_relu.weight()->height() == 3);
     use_k3s1d1 = use_k3s1d1 && (_param_conv_relu.weight()->width() == 3);
     use_k3s1d1 = use_k3s1d1 && (_param_conv_relu.group == 1);
@@ -90,10 +90,10 @@ Status ConvReluHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
     use_k3s1d1 = use_k3s1d1 && (_param_conv_relu.stride_w == 1);
     use_k3s1d1 = use_k3s1d1 && (_param_conv_relu.dilation_h == 1);
     use_k3s1d1 = use_k3s1d1 && (_param_conv_relu.dilation_w == 1);
-    bool use_depthwise = true;
+    bool use_depthwise = (Ptype == Precision::FP32);
     use_depthwise = use_depthwise && (_param_conv_relu.group == ins[0]->channel());
     use_depthwise = use_depthwise && (_param_conv_relu.group == outs[0]->channel());
-    bool use_direct_k = true;
+    bool use_direct_k = (Ptype == Precision::FP32);
     use_direct_k = use_direct_k && (_param_conv_relu.weight()->channel() >= 16);
     use_direct_k = use_direct_k && (_param_conv_relu.group == 1);
     if (use_k1s1p0 || use_k3s1d1 || use_depthwise || use_direct_k) {
@@ -152,7 +152,6 @@ ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, NV, Precision::INT8);
 
 #ifdef USE_X86_PLACE
 INSTANCE_CONVRELU(X86, Precision::FP32);
-//template class ConvReluHelper<X86, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, X86, Precision::FP32);
 #endif
 
@@ -190,9 +189,9 @@ ANAKIN_REGISTER_OP(ConvRelu)
 #if defined BUILD_LITE
 .__alias__<X86, Precision::FP32>("power")
 #endif
-//#ifdef USE_X86_PLACE
-//.__alias__<X86, Precision::FP32>("power")
-//#endif
+#ifdef USE_X86_PLACE
+.__alias__<X86, Precision::FP32>("conv_relu")
+#endif
 .num_in(1)
 .num_out(1)
 .Args<int>("group", " group of conv ")

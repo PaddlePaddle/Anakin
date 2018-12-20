@@ -52,6 +52,10 @@ template<typename Ttype, Precision Ptype>
 Status DeconvolutionHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
         const std::vector<Tensor4dPtr<Ttype> >& ins,
         std::vector<Tensor4dPtr<Ttype> >& outs) {
+    if (std::is_same<Ttype,X86>::value){
+        SABER_CHECK(_funcs_deconv.init(ins, outs, _param_deconv, SPECIFY, SABER_IMPL, ctx));
+        return Status::OK();
+    }
     SABER_CHECK(_funcs_deconv.init(ins, outs, _param_deconv, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }
@@ -103,6 +107,12 @@ ANAKIN_REGISTER_OP_HELPER(Deconvolution, DeconvolutionHelper, NV, Precision::FP3
 INSTANCE_DECONV(X86, Precision::FP32);
 template class DeconvolutionHelper<X86, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Deconvolution, DeconvolutionHelper, X86, Precision::FP32);
+#endif
+
+#ifdef AMD_GPU
+INSTANCE_DECONV(AMD, Precision::FP32);
+template class DeconvolutionHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Deconvolution, DeconvolutionHelper, AMD, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE

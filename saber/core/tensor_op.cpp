@@ -1,5 +1,7 @@
 #include "tensor_op.h"
 #include <random>
+#include <math.h>
+#include <stdio.h>
 
 namespace anakin {
 
@@ -149,6 +151,9 @@ void print_tensor(Tensor<TargetType>& tensor, typename Tensor<TargetType>::API::
     const void* data_ptr = tensor.data();
     long long size = tensor.size();
     int width = tensor.width();
+    if (tensor.get_layout()==Layout_NCHW_C8){
+        width*=8;
+    }
     DataType type = tensor.get_dtype();
     switch(type) {
         case AK_UINT8: print_tensor_host_impl((const unsigned char*)data_ptr, size, width); break;

@@ -193,8 +193,7 @@ public:
         if (_capacity < vec_cap) {
             alloc(vec_cap);
         }
-        API::sync_memcpy(_data, 0, _id, &data[0], \
-            0, 0, vec_cap, flag_type());
+        API::sync_memcpy(_data, 0, _id, data.data(), 0, 0, vec_cap, flag_type());
 
         return SaberSuccess;
     }
@@ -202,14 +201,14 @@ public:
     /**
      * \brief return const data pointer
      */
-    const TPtr get_data(){
+    const TPtr get_data()const {
         return _data;
     }
 
     /**
      * \brief return mutable data pointer
      */
-    TPtr get_data_mutable(){
+    TPtr get_data_mutable()const{
         return _data;
     }
 

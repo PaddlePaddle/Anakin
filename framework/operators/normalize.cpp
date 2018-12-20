@@ -4,21 +4,19 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void Normalize<NV, Precision::FP32>::operator() (
-	OpContext<NV> &ctx, 
-	const std::vector<Tensor4dPtr<NV> >& ins, 
-	std::vector<Tensor4dPtr<NV> >& outs) {
-    auto* impl = static_cast<NormalizeHelper<NV, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<NormalizeHelper<NV, Precision::FP32>*>(this->_helper)->_param_normalize;
-    impl->_funcs_normalize(ins, outs, param, ctx);
+#define INSTANCE_NORMALIZE(Ttype, Ptype) \
+template<> \
+void Normalize<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+    const std::vector<Tensor4dPtr<Ttype> >& ins, \
+    std::vector<Tensor4dPtr<Ttype> >& outs) { \
+    auto* impl = static_cast<NormalizeHelper<Ttype, Ptype>*>(this->_helper); \
+    auto& param = static_cast<NormalizeHelper<Ttype, Ptype>*> \
+                  (this->_helper)->_param_normalize; \
+    impl->_funcs_normalize(ins, outs, param, ctx); \
 }
-#endif
+
 
 /// TODO ... specialization other type of operator
-
-
 /// set helper
 template<typename Ttype, Precision Ptype>
 NormalizeHelper<Ttype, Ptype>::~NormalizeHelper() {
@@ -32,17 +30,22 @@ Status NormalizeHelper<Ttype, Ptype>::InitParam() {
     auto eps = GET_PARAMETER(float, eps);
     auto p = GET_PARAMETER(int, p);
 
-	using pblock_type = PBlock<Ttype>;
-    auto input_scale = GET_PARAMETER(pblock_type, weight_1);
+    if (FIND_PARAMETER(weight_1)) {
+        using pblock_type = PBlock<Ttype>;
+        auto input_scale = GET_PARAMETER(pblock_type, weight_1);
+        saber::NormalizeParam<Ttype> normalize_param(is_across_spatial, is_shared_channel, \
+            &(input_scale.d_tensor()), eps, p);
+        _param_normalize = normalize_param;
+    } else {
+        saber::NormalizeParam<Ttype> normalize_param(is_across_spatial, is_shared_channel, eps, p);
+        _param_normalize = normalize_param;
+    }
 
-    saber::NormalizeParam<Ttype> normalize_param(is_across_spatial, is_shared_channel, \
-        &(input_scale.d_tensor()), eps, p);
-    _param_normalize = normalize_param;
     return Status::OK();
 }
 
 template<typename Ttype, Precision Ptype>
-Status NormalizeHelper<Ttype, Ptype>::Init(OpContext<Ttype> &ctx, 
+Status NormalizeHelper<Ttype, Ptype>::Init(OpContext<Ttype> &ctx,
                                                 const std::vector<Tensor4dPtr<Ttype> >& ins,
                                                 std::vector<Tensor4dPtr<Ttype> >& outs) {
     SABER_CHECK(_funcs_normalize.init(ins, outs, _param_normalize, SPECIFY, SABER_IMPL, ctx));
@@ -56,32 +59,41 @@ Status NormalizeHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<T
    return Status::OK();
 }
 
+#ifdef AMD_GPU
+INSTANCE_NORMALIZE(AMD, Precision::FP32);
+template class NormalizeHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Normalize, NormalizeHelper, AMD, Precision::FP32);
+#endif
+
 #ifdef USE_CUDA
+INSTANCE_NORMALIZE(NV, Precision::FP32);
 template class NormalizeHelper<NV, Precision::FP32>;
 template class NormalizeHelper<NV, Precision::FP16>;
 template class NormalizeHelper<NV, Precision::INT8>;
 #endif
 
 #ifdef USE_X86_PLACE
+INSTANCE_NORMALIZE(X86, Precision::FP32);
 template class NormalizeHelper<X86, Precision::FP32>;
 #endif
 
 #ifdef USE_ARM_PLACE
+INSTANCE_NORMALIZE(ARM, Precision::FP32);
 template class NormalizeHelper<ARM, Precision::FP32>;
 template class NormalizeHelper<ARM, Precision::FP16>;
 template class NormalizeHelper<ARM, Precision::INT8>;
 #endif
 
-// register helper 
+// register helper
 #ifdef USE_CUDA
 ANAKIN_REGISTER_OP_HELPER(Normalize, NormalizeHelper, NV, Precision::FP32);
-#endif 
+#endif
 
 #ifdef USE_ARM_PLACE
 ANAKIN_REGISTER_OP_HELPER(Normalize, NormalizeHelper, ARM, Precision::FP32);
 #endif
 
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 ANAKIN_REGISTER_OP_HELPER(Normalize, NormalizeHelper, X86, Precision::FP32);
 #endif
 
@@ -91,7 +103,7 @@ ANAKIN_REGISTER_OP(Normalize)
 #ifdef USE_CUDA
     .__alias__<NV, Precision::FP32>("normalize")
 #endif
-#ifdef USE_X86_PLACE
+#if defined(USE_X86_PLACE) || defined(BUILD_LITE)
     .__alias__<X86, Precision::FP32>("normalize")
 #endif
 #ifdef USE_ARM_PLACE
