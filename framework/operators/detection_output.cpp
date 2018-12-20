@@ -51,26 +51,28 @@ Status DetectionOutputHelper<Ttype, Ptype>::InitParam() {
     } else if (code_type_ == "CORNER_SIZE") {
         code_type = CORNER_SIZE;
     } else {
-                LOG(FATAL) << "unsupport type: " << code_type_;
+        LOG(FATAL) << "unsupport type: " << code_type_;
     }
 
     DetectionOutputParam<Ttype> param_det(classes_num, background_id_, \
-            keep_top_k_, nms_top_k_, nms_thresh_, conf_thresh_, \
-            flag_share_location, flag_var_in_target, code_type, nms_eta_);
+                                          keep_top_k_, nms_top_k_, nms_thresh_, conf_thresh_, \
+                                          flag_share_location, flag_var_in_target, code_type, nms_eta_);
     _param_detection_output = param_det;
     return Status::OK();
 }
 
 template<typename Ttype, Precision Ptype>
-Status DetectionOutputHelper<Ttype, Ptype>::Init(OpContext<Ttype> &ctx, const std::vector<Tensor4dPtr<Ttype>> &ins,
-                                   std::vector<Tensor4dPtr<Ttype>> &outs) {
-    SABER_CHECK(_funcs_detection_output.init(ins, outs, _param_detection_output, SPECIFY, SABER_IMPL, ctx));
+Status DetectionOutputHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
+        const std::vector<Tensor4dPtr<Ttype>>& ins,
+        std::vector<Tensor4dPtr<Ttype>>& outs) {
+    SABER_CHECK(_funcs_detection_output.init(ins, outs, _param_detection_output, SPECIFY, SABER_IMPL,
+                ctx));
     return Status::OK();
 }
 
 template<typename Ttype, Precision Ptype>
-Status DetectionOutputHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype>> &ins,
-                                         std::vector<Tensor4dPtr<Ttype>> &outs) {
+Status DetectionOutputHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype>>& ins,
+        std::vector<Tensor4dPtr<Ttype>>& outs) {
     SABER_CHECK(_funcs_detection_output.compute_output_shape(ins, outs, _param_detection_output));
     return Status::OK();
 }
@@ -86,7 +88,6 @@ INSTANCE_DETECTIONOUTPUT(AMD, Precision::FP32);
 template class DetectionOutputHelper<AMD, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(DetectionOutput, DetectionOutputHelper, AMD, Precision::FP32);
 #endif
-
 #if defined USE_X86_PLACE || defined BUILD_LITE
 INSTANCE_DETECTIONOUTPUT(X86, Precision::FP32);
 template class DetectionOutputHelper<X86, Precision::FP32>;
