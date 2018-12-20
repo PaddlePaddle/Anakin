@@ -69,6 +69,9 @@ TEST(NetTest, net_test_load_from_buffer) {
     d_tensor_in_p->copy_from(h_tensor_in);
     cudaDeviceSynchronize();
     net_executer.prediction();
+    cudaDeviceSynchronize();
+    auto h_tensor_out = net_executer.get_out_list()[0];
+    LOG(INFO) << "output mean value: " << tensor_mean_value_valid(*h_tensor_out);
     write_tensorfile(*net_executer.get_out_list()[0],"output_b.txt");
 }
 
@@ -220,9 +223,9 @@ TEST(NetTest, net_execute_base_test) {
 	//} // inner scope over
 
 	LOG(ERROR) << "inner net exe over !";
-    for(auto x:net_executer.get_out_list()){
-//        print_tensor(*x);
-    }
+    //for (auto x:net_executer.get_out_list()){
+    //    print_tensor(*x);
+    //}
     //auto& tensor_out_inner_p = net_executer.get_tensor_from_edge("data_perm", "conv1");
 	
 
@@ -347,8 +350,8 @@ TEST(NetTest, net_execute_reconstruction_test) {
 
 int main(int argc, const char** argv){
     if (argc < 2){
-        LOG(ERROR)<<"no input!!!";
-        return;
+        LOG(ERROR) << "no input!!!, usage: ./" << argv[0] << " model_path [batch size] [warm_up_iter] [test_iter] [device_id]";
+        return -1;
     }
     if (argc > 1) {
         g_model_path = std::string(argv[1]);

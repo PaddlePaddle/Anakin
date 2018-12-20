@@ -6,7 +6,7 @@ try:
 except ImportError:
     pass
 try:
-    from google.protobuf.pyext._message import RepeatedScalarContainer as repeat_container # 3.5.1 + 
+    from google.protobuf.pyext._message import RepeatedScalarContainer as repeat_container # 3.5.1 +
 except ImportError:
     pass
 from ..operations import OpsParam, OpsRegister
@@ -14,13 +14,13 @@ from ..logger import *
 from ..pbs import *
 
 
-def is_has_proto_key(param_pkg, key_name): 
+def is_has_proto_key(param_pkg, key_name):
     """
     Judge if param_pkg has field key_name
     """
-    for field in param_pkg.DESCRIPTOR.fields: 
-        if field.name == key_name: 
-            return True 
+    for field in param_pkg.DESCRIPTOR.fields:
+        if field.name == key_name:
+            return True
     return False
 
 
@@ -57,7 +57,7 @@ def ParserFeedDecorator(OpName):
         return warpper_args
     return warpper
 
-# common 
+# common
 
 
 def NotNeededInInference(args):
@@ -97,7 +97,19 @@ def Parser_resize(args):
         OpsRegister()["Resize"].width_scale = resize_param.out_width_scale
     if resize_param.HasField("out_height_scale"):
         OpsRegister()["Resize"].height_scale = resize_param.out_height_scale
-    
+    if resize_param.HasField("out_width"):
+        OpsRegister()["Resize"].out_width = resize_param.out_width
+    if resize_param.HasField("out_height"):
+        OpsRegister()["Resize"].out_height = resize_param.out_height
+    method = ""
+    if resize_param.type == ResizeParameter.BILINEAR_ALIGN:
+        method = "BILINEAR_ALIGN"
+    elif resize_param.type == ResizeParameter.BILINEAR_NO_ALIGN:
+        method = "BILINEAR_NO_ALIGN"
+    else:
+        method = "RESIZE_CUSTOM"
+    OpsRegister()["Resize"].method = method
+
 
 
 @ParserFeedDecorator("DeformConvolution")
@@ -152,7 +164,7 @@ def Parser_deformable_convolution(args):
         paddings = [convolution_param.pad_h, convolution_param.pad_w]
     OpsRegister()["DeformConvolution"].padding = paddings
     if is_has_proto_key(convolution_param, "dilation"):
-        if len(convolution_param.dilation) == 0: 
+        if len(convolution_param.dilation) == 0:
             OpsRegister()["DeformConvolution"].dilation_rate = list([1, 1])
         elif len(convolution_param.dilation) == 1:
             OpsRegister()["DeformConvolution"].dilation_rate = list([convolution_param.dilation[0], convolution_param.dilation[0]])
@@ -220,7 +232,7 @@ def Parser_deconvolution(args):
         paddings = [convolution_param.pad_h, convolution_param.pad_w]
     OpsRegister()["Deconvolution"].padding = paddings
     if is_has_proto_key(convolution_param, "dilation"):
-        if len(convolution_param.dilation) == 0: 
+        if len(convolution_param.dilation) == 0:
             OpsRegister()["Deconvolution"].dilation_rate = list([1, 1])
         elif len(convolution_param.dilation) == 1:
             OpsRegister()["Deconvolution"].dilation_rate = list([convolution_param.dilation[0], convolution_param.dilation[0]])
@@ -288,7 +300,7 @@ def Parser_convolution(args):
         paddings = [convolution_param.pad_h, convolution_param.pad_w]
     OpsRegister()["Convolution"].padding = paddings
     if is_has_proto_key(convolution_param, "dilation"):
-        if len(convolution_param.dilation) == 0: 
+        if len(convolution_param.dilation) == 0:
             OpsRegister()["Convolution"].dilation_rate = list([1, 1])
         elif len(convolution_param.dilation) == 1:
             OpsRegister()["Convolution"].dilation_rate = list([convolution_param.dilation[0], convolution_param.dilation[0]])
@@ -447,7 +459,7 @@ def Parser_innerproduct(args):
     # parser caffe parameter
     tensors = args[2]
     weight = tensors[0]
-    inner_product_param = layer.inner_product_param 
+    inner_product_param = layer.inner_product_param
     OpsRegister()["Dense"].axis = inner_product_param.axis # weight().shape.dim.value[2]
     OpsRegister()["Dense"].out_dim = inner_product_param.num_output # weight().shape.dim.value[3]
     OpsRegister()["Dense"].bias_term = inner_product_param.bias_term
@@ -692,6 +704,14 @@ def Parser_ShuffleChannel(args):
     shufflechannel_param = layer.shuffle_channel_param
     OpsRegister()["ShuffleChannel"].group = shufflechannel_param.group
 
+@ParserFeedDecorator("Coord2Patch")
+def Parser_Coord2Patch(args):
+    layer = args[1]
+    # parser caffe parameter
+    coord2patch_param = layer.coord2patch_param
+    OpsRegister()["Coord2Patch"].img_h = coord2patch_param.img_h
+    OpsRegister()["Coord2Patch"].output_h = coord2patch_param.output_h
+    OpsRegister()["Coord2Patch"].output_w = coord2patch_param.output_w
 
 @ParserFeedDecorator("RPNProposalSSD")
 def Parser_rpn_proposal_ssd(args):
@@ -1113,7 +1133,8 @@ def Parser_priorbox(args):
     len(prior_box_param.density):
         OpsRegister()["PriorBox"].fixed_size = list(prior_box_param.fixed_size)
         OpsRegister()["PriorBox"].fixed_ratio = list(prior_box_param.fixed_ratio)
-        OpsRegister()["PriorBox"].density = list(prior_box_param.density)
+        density_list = list(prior_box_param.density)
+        OpsRegister()["PriorBox"].density = map(float, density_list)
     OpsRegister()["PriorBox"].is_flip = prior_box_param.flip
     OpsRegister()["PriorBox"].is_clip = prior_box_param.clip
     OpsRegister()["PriorBox"].variance = list(prior_box_param.variance)
@@ -1270,6 +1291,7 @@ CAFFE_LAYER_PARSER = {
                 "ReLU6": OpsParam().set_parser(Parser_relu6),
                 "Normalization": OpsParam().set_parser(Parser_normalize),
                 "ShuffleChannel": OpsParam().set_parser(Parser_ShuffleChannel),
+                "Coord2Patch": OpsParam().set_parser(Parser_Coord2Patch),
                 "RoisAnchorFeature": OpsParam().set_parser(Parser_rois_anchor_feature),
                 "Interp": OpsParam().set_parser(Parser_interp)
                 }

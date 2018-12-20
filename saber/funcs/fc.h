@@ -73,7 +73,7 @@ public:
 
         Shape shape_out({m, n, 1, 1}, Layout_NCHW);
         output[0]->set_seq_offset(input[0]->get_seq_offset());
-        return output[0]->set_shape(shape_out);
+        return output[0]->set_shape_without_layout(shape_out);
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {

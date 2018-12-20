@@ -60,7 +60,7 @@ public:
     virtual SaberStatus compute_output_shape(const Input_v& input, Output_v& output, \
         Param_t& param) override {
         SaberStatus status;
-        CHECK_EQ(input.size(), 3);
+        CHECK_EQ(input.size(), 1);
        
         Shape output_shape = input[0]->valid_shape();
         output[0]->set_shape(output_shape);

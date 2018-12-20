@@ -262,6 +262,11 @@ public:
         return _d_inner_tensor->valid_shape(); 
     }
 
+    ///get data type
+    DataType data_type(){
+        return _h_inner_tensor -> get_dtype();
+    }
+
     /// get real shape
     Shape4d real_shape() {
         return _d_inner_tensor->shape();
@@ -353,6 +358,11 @@ public:
         return _d_inner_tensor->valid_shape(); 
     }
 
+    ///get data type
+    DataType data_type(){
+        return _h_inner_tensor -> get_dtype();
+    }
+
     /// get real shape
     Shape4d real_shape() {
         return _d_inner_tensor->shape();
@@ -431,7 +441,10 @@ public:
     Shape4d shape() {
         return _inner_tensor->valid_shape();
     }
-
+    ///get data type
+    DataType data_type(){
+        return _inner_tensor -> get_dtype();
+    }
     /// get real shape
     Shape4d real_shape() {
         return _inner_tensor->shape();
@@ -504,6 +517,10 @@ public:
         _inner_tensor->re_alloc(shape);
     }
 
+    ///get data type
+    DataType data_type(){
+        return _inner_tensor -> get_dtype();
+    }
     /// Get shape.
     Shape4d shape() {
         return _inner_tensor->valid_shape();

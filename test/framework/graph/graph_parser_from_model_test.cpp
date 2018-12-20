@@ -21,6 +21,7 @@ TEST(GraphTest, graph_load_model) {
     graph->Optimize();  */
 }
 
+#ifndef USE_NANOPB
 #ifdef USE_CUDA
 TEST(GraphTest, nvidia_graph_save_model) {
     Graph<NV, Precision::FP32>* graph = new Graph<NV, Precision::FP32>();
@@ -76,6 +77,7 @@ TEST(GraphTest, arm_graph_save_model) {
     std::string save_model_path = model_path + std::string(".saved");
     Status status = graph->save(save_model_path);
 }
+#endif
 #endif
 
 int main(int argc, const char** argv) {

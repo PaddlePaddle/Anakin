@@ -206,6 +206,11 @@ public:
         _valid_shape.set_layout(layout, data);
         return SaberSuccess;
     }
+    SaberStatus set_layout_without_shape(LayoutType layout, std::vector<int> data = {}) {
+        _valid_shape.set_layout_without_shape(layout, data);
+        return SaberSuccess;
+    }
+
     LayoutType get_layout() const {
         return _valid_shape.get_layout();
     }

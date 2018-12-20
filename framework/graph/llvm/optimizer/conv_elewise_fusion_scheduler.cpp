@@ -48,7 +48,7 @@ bool ConvElsFusionScheduler::callable(node& node_arg) {
 							}
 							_helper.set_holder(io_in, _vgraph);*/
 							//_helper.register_pair(node_arg.name, node_next.name);
-							if ((*_vgraph)[it->bottom()].opName == "Split") { 
+							if ((*_vgraph)[it->bottom()].opName == "Split" || !_helper.has_node((*_vgraph)[it->bottom()])) { 
 								_helper.register_pair(node_arg.name, node_next.name); 
 								_force_order[node_arg.name] = (*_vgraph)[it->bottom()];
 								/*

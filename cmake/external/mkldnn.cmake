@@ -30,28 +30,14 @@ set(MKLDNN_DEPENDS   ${MKLML_PROJECT})
 message(STATUS "Scanning external modules ${Green}MKLDNNN${ColourReset}...")
 
 
-if(${CMAKE_C_COMPILER_VERSION} VERSION_LESS "5.4")
-  set(MKLDNN_CFLAG)
-else()
-  set(MKLDNN_CFLAG "${CMAKE_C_FLAGS} -Wno-error=strict-overflow \
-  -Wno-unused-but-set-variable -Wno-unused-variable -Wno-format-truncation")
-endif()
-
-if(${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "5.4")
-  set(MKLDNN_CXXFLAG)
-else()
-  set(MKLDNN_CXXFLAG "${CMAKE_CXX_FLAGS} -Wno-error=strict-overflow \
-  -Wno-unused-but-set-variable -Wno-unused-variable -Wno-format-truncation")
-endif()
-
 set(MKLDNN_C_COMPILER ${CMAKE_C_COMPILER})
 set(MKLDNN_CXX_COMPILER ${CMAKE_CXX_COMPILER})
 ExternalProject_Add(
     ${MKLDNN_PROJECT}
     ${EXTERNAL_PROJECT_LOG_ARGS}
     DEPENDS             ${MKLDNN_DEPENDS}
-    GIT_REPOSITORY      "https://github.com/01org/mkl-dnn.git"
-    GIT_TAG             "db3424ad44901513c03a1ea31ccaacdf633fbe9f"
+    GIT_REPOSITORY      "https://github.com/intel/mkl-dnn.git"
+    GIT_TAG             "21fb5f2af1dd14e132af4f1b79160977ee487818" ##0.17rc
     PREFIX              ${MKLDNN_SOURCES_DIR}
     UPDATE_COMMAND      ""
     CMAKE_ARGS          -DCMAKE_INSTALL_PREFIX=${MKLDNN_INSTALL_DIR}
@@ -71,4 +57,8 @@ list(APPEND ANAKIN_SABER_DEPENDENCIES mkldnn)
 
 list(APPEND ANAKIN_LINKER_LIBS ${MKLDNN_LIB})
 
+install(FILES ${MKLDNN_INSTALL_DIR}/lib/libmkldnn.so.0 ${MKLDNN_INSTALL_DIR}/lib/libmkldnn.so.0.17.0 ${MKLDNN_LIB} DESTINATION ${PROJECT_SOURCE_DIR}/${AK_OUTPUT_PATH}/)
+install(DIRECTORY ${MKLDNN_INC_DIR}
+        DESTINATION ${PROJECT_SOURCE_DIR}/${AK_OUTPUT_PATH}/mkldnn_include)
+message(STATUS ${MKLML_INSTALL_ROOT}/include)
 

@@ -21,10 +21,12 @@
 #include "framework/core/net/calibrator_factory.h"
 #include "saber/core/tensor_op.h"
 
-
 namespace anakin {
+
+#ifndef USE_SGX
 template<typename Ttype>
 class Calibrator;
+#endif
 
 /** 
  *  \brief Net class used for execution of graph and it is thread safety.
@@ -129,15 +131,47 @@ public:
      *  \brief Get tensor from a given edge.
      */
     Tensor4dPtr<Ttype> get_tensor_from_edge(const char* from, const char* to);
-    
+
+#ifndef USE_SGX
     /**
      *  \brief Get tensor from a given edge.
      */
     void load_calibrator_config(std::string config, std::string calibrator){
+        _calibrator_parser.clear_data();
         _calibrator_parser.parse_from_file(config, calibrator);
+        _net_pt_config_name = config;
+
+        _has_loaded_config = true;
+    }
+    void load_calibrator_config(graph::Graph<Ttype, Ptype>& graph);
+    void load_x86_layout_config(std::string config){
+        _calibrator_parser.clear_data();
+        _calibrator_parser.layout_parse(config);
+        _layout_config_path = config;
+
+        _has_loaded_config = true;
+    }
+
+    void set_calibrator_info(typename graph::Graph<Ttype, Ptype>::Edge_it_t& edge_it){
+        //set tensor dtype
+        edge_it->weight()->set_dtype(_calibrator_parser.get_dtype(edge_it->bottom(), edge_it->top()));
+        //LOG(ERROR) << "set " << edge_it -> name() <<"dtype:" << _calibrator_parser.get_dtype(edge_it->bottom(), edge_it->top());
+        //set tensor calibrator
+        edge_it->weight()->set_scale({_calibrator_parser.get_calibrator(edge_it->name())});
+        LOG(ERROR) << "set " << edge_it->name() << " scale:" << _calibrator_parser.get_calibrator(edge_it->name());
+        //set tensor layout
+        if (!std::is_same<X86, Ttype>::value){
+            edge_it->weight()->set_layout(_calibrator_parser.get_layout(edge_it->bottom(), 
+                edge_it->top(), edge_it->weight()->get_layout()));
+        } else {
+            //set tensor layout     
+            edge_it->weight()->set_layout_without_shape(_calibrator_parser.get_layout(edge_it->name()));
+        }
+
     }
 
     friend class Calibrator<Ttype>;
+#endif
 
 private:
     /**
@@ -151,6 +185,10 @@ private:
     Status init_env(graph::Graph<Ttype, Ptype>&);
 
 private:
+    ///< layout config file path , layout config will be load or create
+    std::string _layout_config_path{"x86_layout_config.txt"};
+    std::string _net_pt_config_name{"net_pt_config.txt"};
+    bool _has_loaded_config{false};
     ///< executor for operators in node.
     std::vector<OperatorFunc<Ttype, Ptype> > _exec_funcs;
 	///< suspended point is set when you invoke execute_stop_at_node

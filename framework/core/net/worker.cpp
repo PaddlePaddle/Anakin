@@ -1,4 +1,6 @@
 #include "framework/core/net/worker.h"
+
+#ifndef USE_SGX
 #include "saber/funcs/timer.h"
 
 namespace anakin {
@@ -268,3 +270,4 @@ template class Worker<ARM, Precision::INT8, OpRunType::SYNC>;
 
 } /* namespace */
 
+#endif

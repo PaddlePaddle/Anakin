@@ -83,6 +83,11 @@ private:
 	bool init_memory_info();
 
 
+    /**
+     * \brief change graph edge and node name to match the standard of c variable name
+     */
+    void change_name(graph::Graph<Ttype, Ptype>&);
+
 	/**
 	 * \brief generate ops of graph
 	 */

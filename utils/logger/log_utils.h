@@ -36,6 +36,9 @@
 #include <sys/stat.h> // mkdir
 #include <unistd.h>   // STDERR_FILENO
 #include "anakin_config.h"
+#ifdef USE_SGX
+#include <support/sgx/sgx_mutex>
+#endif
 
 // Disable all warnings from gcc/clang:
 #if defined(__clang__)

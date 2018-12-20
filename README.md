@@ -1,4 +1,4 @@
-# Anakin
+# Anakin2.0
 
 [![Build Status](https://travis-ci.org/PaddlePaddle/Anakin.svg?branch=developing)](https://travis-ci.org/PaddlePaddle/Anakin)
 [![License](https://img.shields.io/badge/license-Apache%202-blue.svg)](LICENSE)
@@ -16,8 +16,8 @@ Please refer to our [release announcement](https://github.com/PaddlePaddle/Anaki
 
 - **Flexibility**
 
-    Anakin has integrated with NVIDIA TensorRT and open source this part of integrated API to provide services, developers can call the API directly or modify it as needed, which will be more flexible for development requirements. 
-    Anakin is a cross-platform, high-performance inference engine, supports a wide range of neural network architectures and different hardware platforms. It is easy to run Anakin on GPU / x86 / ARM platform.
+    Anakin supports a wide range of neural network architectures and
+    different hardware platforms. It is easy to run Anakin on GPU / x86 / ARM platform.
 
 -  **High performance**
 
@@ -43,7 +43,7 @@ It is recommended to check out the
 before looking into the
 [build from source guide](docs/Manual/INSTALL_en.md).
 
-For ARM, please refer [run on arm](docs/Manual/run_on_arm_en.md).
+For ARM, please refer [run on arm](tools/anakin-lite/README.md).
 
 ## Benchmark
 It is recommended to check out the [readme of benchmark](benchmark/README.md).

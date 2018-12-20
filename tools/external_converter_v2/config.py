@@ -51,7 +51,7 @@ class Configuration:
         """
         cmd = {
             'CAFFE': {
-                'proto': ['ProtoPaths', list()], 
+                'proto': ['ProtoPaths', list()],
                 'prototxt': ['PrototxtPath', str()],
                 'caffemodel': ['ModelPath', str()],
                 },
@@ -103,6 +103,11 @@ class Configuration:
                     self.ResultName = dic['modelpath'][val_idx].split("/")[-2]
                 else:
                     self.ResultName = dic['modelpath'][val_idx].split("/")[-1]
+            elif self.framework == "ONNX":
+                proto_list = dic['TARGET'][self.framework]['ProtoPaths']
+                #onnx_file = dic['TARGET'][self.framework]['OnnxPaths']
+                self.framework_config_dict = dic['TARGET'][self.framework]
+                #print 'self.framework_config_dict', self.framework_config_dict
             else:
                 raise NameError(err_note)
             for cmd_key in cmd[target].keys():
@@ -177,6 +182,6 @@ class Configuration:
         "The ProtoPaths format maybe incorrect, please check if there is any HORIZONTAL LINE."
         for pFile in proto_list:
             assert os.path.exists(pFile), "%s does not exist.\n" % (pFile)
-            subprocess.check_call(['protoc', '-I', 
+            subprocess.check_call(['protoc', '-I',
                                    os.path.dirname(pFile) + "/",
                                    '--python_out', os.path.dirname(default_save_path) + "/", pFile])

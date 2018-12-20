@@ -96,6 +96,12 @@ template class BatchnormScaleHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(BatchnormScale, BatchnormScaleHelper, ARM, Precision::FP32);
 #endif
 
+#ifdef AMD_GPU
+INSTANCE_BATCHNORMSCALE(AMD, Precision::FP32);
+template class BatchnormScaleHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(BatchnormScale, BatchnormScaleHelper, AMD, Precision::FP32);
+#endif
+
 #ifdef USE_CUDA
 INSTANCE_BATCHNORMSCALE(NV, Precision::FP32);
 template<>
@@ -107,12 +113,6 @@ Status BatchnormScaleHelper<NV, Precision::FP32>::Init(OpContext<NV>& ctx, \
 }
 ANAKIN_REGISTER_OP_HELPER(BatchnormScale, BatchnormScaleHelper, NV, Precision::FP32);
 #endif
-//#ifdef USE_X86_PLACE
-//INSTANCE_CONVBATCHNORMSCALE(X86, Precision::FP32);
-//template class BatchnormScaleHelper<X86, Precision::FP32>;
-//ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScale, BatchnormScaleHelper, X86, AK_FLOAT,
-//                          Precision::FP32);
-//#endif
 
 
 //! register op

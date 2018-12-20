@@ -7,7 +7,7 @@ using namespace anakin::saber::lite;
 
 int g_cluster = 0;
 int g_threads = 1;
-int g_test_iter = 2;
+int g_test_iter = 1;
 bool g_basic_test = false;
 bool g_compare_result = true;
 bool g_flag_relu = true;
@@ -65,29 +65,23 @@ SaberStatus test_arm_conv(int n, int c, int h, int w, \
     tvin.push_back(&thin);
     tvout_saber.push_back(&tout_saber);
 
-    LOG(INFO) << "conv param: ";
-    LOG(INFO) << " img_num = " << n;
-    LOG(INFO) << " in_channels = " << c;
-    LOG(INFO) << " img_h = " << h;
-    LOG(INFO) << " img_w = " << w;
-    LOG(INFO) << " group = " << group;
-    LOG(INFO) << " pad_width = " << pad_w;
-    LOG(INFO) << " pad_height = " << pad_h;
-    LOG(INFO) << " stride_width = " << stride_w;
-    LOG(INFO) << " stride_height = " << stride_h;
-    LOG(INFO) << " dilation_w = " << dila_w;
-    LOG(INFO) << " dilation_h = " << dila_h;
-    LOG(INFO) << " kernel_w = " << kernel_w;
-    LOG(INFO) << " kernel_h = " << kernel_h;
-    LOG(INFO) << " out_channels = " << ch_out;
-    LOG(INFO) << " bias flag = " << (is_bias? "true" : "false");
-    LOG(INFO) << " relu flag = " << (is_relu? "true" : "false");
+    LOG(INFO) << "conv param: " << " img_num = " << n << " in_channels = " << c \
+        << " img_h = " << h << " img_w = " << w << " group = " << group \
+        << " pad_width = " << pad_w << " pad_height = " << pad_h << " stride_width = " \
+        << stride_w << " stride_height = " << stride_h << " dilation_w = " << dila_w \
+        << " dilation_h = " << dila_h << " kernel_w = " << kernel_w << " kernel_h = " \
+        << kernel_h << " out_channels = " << ch_out << " bias flag = " \
+        << (is_bias? "true" : "false") << " relu flag = " << (is_relu? "true" : "false");
 
     int kernel_exten = dila_h * (kernel_h - 1) + 1;
     int hout = (h + 2 * pad_h - kernel_exten) / stride_h + 1;
 
     kernel_exten = dila_w * (kernel_w - 1) + 1;
     int wout = (w + 2 * pad_w - kernel_exten) / stride_w + 1;
+
+    if (hout <= 0 || wout <= 0) {
+        return SaberSuccess;
+    }
 
     Shape shape_out{n, ch_out, hout, wout};
 
@@ -99,10 +93,11 @@ SaberStatus test_arm_conv(int n, int c, int h, int w, \
     fill_tensor_rand(thin, -1.f, 1.f);
     fill_tensor_rand(pweiht, -1.f, 1.f);
     fill_tensor_rand(pbias, -1.f, 1.f);
-
+//
 //    fill_tensor_const(thin, 1.f);
 //    fill_tensor_const(pweiht, 1.f);
 //    fill_tensor_const(pbias, 1.f);
+//    print_tensor(thin);
 //    print_tensor(pweiht);
 //    print_tensor(pbias);
     TensorHf4* bias_ptr = nullptr;
@@ -131,7 +126,7 @@ SaberStatus test_arm_conv(int n, int c, int h, int w, \
 
     Conv2DParam param(pweiht.valid_size(), ch_out, group, kernel_w, kernel_h, \
         stride_w, stride_h, pad_w, pad_h, dila_w, dila_h, is_bias, pweiht.data(), pbias.data(), \
-        false, is_relu, Active_relu, 0.f, 1.f, false, nullptr);
+        false, is_relu, Active_relu, 0.f, 0.f, false, nullptr);
 
     conv_lite.load_param(&param);
 
@@ -145,7 +140,7 @@ SaberStatus test_arm_conv(int n, int c, int h, int w, \
     //! re_alloc mem for output tensor
     tvout_saber[0]->re_alloc(shape_out);
 
-    LOG(INFO) << "saber conv impl init";
+//    LOG(INFO) << "saber conv impl init";
     auto states = conv_lite.init(tvin, tvout_saber, ctx1);
     CHECK_EQ(states, SaberSuccess) << "Saber conv init failed";
 
@@ -157,13 +152,17 @@ SaberStatus test_arm_conv(int n, int c, int h, int w, \
         t1.start();
         conv_lite.dispatch(tvin, tvout_saber);
         t1.end();
-        to += t1.get_average_ms();
-        if (t1.get_average_ms() < min_time) {
-            min_time = t1.get_average_ms();
+        double ts = t1.get_average_ms();
+        to += ts;
+        if (ts < min_time) {
+            min_time = ts;
         }
     }
-    LOG(INFO) << "saber conv running time, ave: " << to / g_test_iter << ", min time: " << min_time;
-//    print_tensor(*tvout_saber[0]);
+//    print_tensor(tout_saber);
+
+    long long gops = n * ch_out * wout * hout * (c / group) * kernel_w * kernel_h;
+    LOG(INFO) << "saber conv running time, ave: " << to / g_test_iter << ", min time: " << min_time << \
+        ", GOPS: " << 0.000001 * gops / min_time;
 
     if (g_compare_result) {
         double max_ratio = 0;
@@ -171,42 +170,48 @@ SaberStatus test_arm_conv(int n, int c, int h, int w, \
         tensor_cmp_host(tout_basic, tout_saber, max_ratio, max_diff);
         LOG(INFO) << "compare result, max diff: " << max_diff << ", max ratio: " << max_ratio;
         if (fabsf(max_ratio) > 1e-3f) {
-            if (max_diff > 1e-4f) {
+            if (max_diff > 5e-4f) {
+                LOG(WARNING) << "basic result";
+                print_tensor(tout_basic);
+                LOG(WARNING) << "saber result";
+                print_tensor(tout_saber);
                 TensorHf4 tdiff(tout_basic.valid_shape());
                 tensor_diff(tout_basic, tout_saber, tdiff);
                 print_tensor(tdiff);
                 return SaberInvalidValue;
             }
-
         }
-//        CHECK_EQ(fabsf(max_ratio) < 5e-4f, true) << "compute result error";
     }
     return SaberSuccess;
 
 }
 
-#if 1
+#if 0
+//! 3x3dw
 TEST(TestSaberLite, test_conv_depthwise) {
     if (g_basic_test) {
-    for (auto& batch : {1, 2, 4, 8}) {
-    for (auto& c : {1, 8, 16, 32, 64}) {
-    for (auto& h : {2, 3, 15, 28, 56, 112, 128, 150, 224, 300}) {
-    int w = h;
+    for (auto& batch : {1, 2}) {
+    for (auto& c : {1, 3, 5, 8}) {
+    for (auto& h : {1, 3, 8, 15, 28, 32, 38, 75}) {
     for (auto& stride : {1, 2}) {
     for (auto& flag_bias : {false, true}) {
     for (auto& flag_relu : {false, true}) {
     for (auto& th : {1, 2, 4}) {
+        int w = h;
+        if (h == 1 && stride == 2) {
+            continue;
+        }
         auto flag = test_arm_conv(batch, c, h, w, c, 3, 3, stride, stride, 1, 1, 1, 1, c, flag_bias, flag_relu, th, g_cluster);
         if (flag == SaberSuccess) {
             LOG(INFO) << "test fp32 depthwise conv: batchsize: " << batch << ", channel: " << c << ", h & w: " << h << \
                 ", stride: " << stride << \
                 ", bias: " << (flag_bias? "true" : "false") << ", relu: " << (flag_relu? "true" : "false") << ", threads: " << \
-                th << ", cluster: " << g_cluster << " passed!!";
+                th << ", cluster: " << g_cluster << " passed!!\n";
         } else {
             LOG(FATAL) << "test fp32 depthwise conv: batchsize: " << batch << ", channel: " << c << ", h & w: " << h << \
                 ", stride: " << stride << \
                 ", bias: " << (flag_bias? "true" : "false") << ", relu: " << (flag_relu? "true" : "false") << ", threads: " << \
-                th << ", cluster: " << g_cluster << " failed!!";
+                th << ", cluster: " << g_cluster << " failed!!\n";
         }
     }
     }
@@ -220,21 +225,60 @@ TEST(TestSaberLite, test_conv_depthwise) {
 #endif
 
 #if 1
+//! 5x5dw s1
+TEST(TestSaberLite, test_conv_depthwise_5x5) {
+    if (g_basic_test) {
+    for (auto& batch : {1, 2}) {
+    for (auto& c : {1, 3, 5, 8}) {
+    for (auto& h : {1, 3, 8, 15, 28, 32, 38, 75}) {
+    for (auto& stride : {1,/* 2*/}) {
+    for (auto& flag_bias : {false, true}) {
+    for (auto& flag_relu : {false, true}) {
+    for (auto& th : {1, 2, 4}) {
+        int w = h;
+        if (h == 1 && stride == 2) {
+            continue;
+        }
+        auto flag = test_arm_conv(batch, c, h, w, c, 5, 5, stride, stride, 2, 2, 1, 1, c, flag_bias, flag_relu, th, g_cluster);
+        if (flag == SaberSuccess) {
+            LOG(INFO) << "test fp32 depthwise conv: batchsize: " << batch << ", channel: " << c << ", h & w: " << h << \
+                ", stride: " << stride << \
+                ", bias: " << (flag_bias? "true" : "false") << ", relu: " << (flag_relu? "true" : "false") << ", threads: " << \
+                th << ", cluster: " << g_cluster << " passed!!\n";
+        } else {
+            LOG(FATAL) << "test fp32 depthwise conv: batchsize: " << batch << ", channel: " << c << ", h & w: " << h << \
+                ", stride: " << stride << \
+                ", bias: " << (flag_bias? "true" : "false") << ", relu: " << (flag_relu? "true" : "false") << ", threads: " << \
+                th << ", cluster: " << g_cluster << " failed!!\n";
+        }
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+}
+#endif
+
+#if 0
+//! conv1x1s1
 TEST(TestSaberLite, test_conv_1x1s1) {
     if (g_basic_test) {
-    for (auto& batch : {1, 2, 4, 8}) {
-    for (auto &c : {1, 8, 16, 32, 64}) {
-    for (auto& cout : {1, 16, 32, 64, 128}) {
+    for (auto& batch : {1, 2}) {
+    for (auto &c : {1, 3, 8}) {
+    for (auto& cout : {1, 5, 16}) {
     for (auto &g_div : {1, 2, 4}) {
-    for (auto &h : {2, 3, 15, 28, 56, 112, 128, 150, 224, 300}) {
+    for (auto &h : {1, 3, 8, 15, 28, 32, 38, 75}) {
     for (auto &flag_bias : {false, true}) {
     for (auto &flag_relu : {false, true}) {
     for (auto &th : {1, 2, 4}) {
 
         int w = h;
         int g = g_div;
-        if (g % g_div != 0) {
-            g = 1;
+        if (c % g != 0 || cout % g != 0) {
+            continue;
         }
         auto flag = test_arm_conv(batch, c, h, w, cout, 1, 1, 1, 1, \
             0, 0, 1, 1, g, flag_bias, flag_relu, th, g_cluster);
@@ -243,13 +287,13 @@ TEST(TestSaberLite, test_conv_1x1s1) {
                 << c << ", h & w: " << h << ", num_out: " << cout << ", group: " << g << \
                 ", bias: " << (flag_bias ? "true" : "false") << ", relu: "
                 << (flag_relu ? "true" : "false") << ", threads: " << \
-                th << ", cluster: " << g_cluster << " passed!!";
+                th << ", cluster: " << g_cluster << " passed!!\n";
         } else {
             LOG(FATAL) << "test fp32 1x1s1 conv: batchsize: " << batch << ", channel: "
                 << c << ", h & w: " << h << ", num_out: " << cout << ", group: " << g << \
                 ", bias: " << (flag_bias ? "true" : "false") << ", relu: "
                 << (flag_relu ? "true" : "false") << ", threads: " << \
-                th << ", cluster: " << g_cluster << " failed!!";
+                th << ", cluster: " << g_cluster << " failed!!\n";
         }
     }
     }
@@ -263,7 +307,152 @@ TEST(TestSaberLite, test_conv_1x1s1) {
 }
 #endif
 
-#if 1
+#if 0
+//! conv3x3s1
+TEST(TestSaberLite, test_conv_3x3s1) {
+    if (g_basic_test) {
+    for (auto& batch : {1, 2}) {
+    for (auto &cin : {1, 3, 8}) {
+    for (auto& cout : {1, 5, 8}) {
+    for (auto &h : {1, 3, 4, 15, 28, 32, 38, 75}) {
+    for (auto &pad : {1, 2}) {
+    for (auto &flag_bias : {false, true}) {
+    for (auto &flag_relu : {false, true}) {
+    for (auto &th : {1, 2, 4}) {
+        int w = h;
+        auto flag = test_arm_conv(batch, cin, h, w, cout, 3, 3, 1, 1, \
+                pad, pad, 1, 1, 1, flag_bias, flag_relu, th, g_cluster);
+        if (flag == SaberSuccess) {
+            LOG(INFO) << "test fp32 3x3s1 conv: batchsize: " << batch << ", channel: "
+                << cin << ", h & w: " << h << ", num_out: " << cout << ", group: " << 1 << \
+                ", bias: " << (flag_bias ? "true" : "false") << ", relu: "
+                << (flag_relu ? "true" : "false") << ", threads: " << \
+                th << ", cluster: " << g_cluster << " passed!!\n";
+        } else {
+            LOG(FATAL) << "test fp32 3x3s1 conv: batchsize: " << batch << ", channel: "
+                << cin << ", h & w: " << h << ", num_out: " << cout << ", group: " << 1 << \
+                ", bias: " << (flag_bias ? "true" : "false") << ", relu: "
+                << (flag_relu ? "true" : "false") << ", threads: " << \
+                th << ", cluster: " << g_cluster << " failed!!\n";
+        }
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+    }
+}
+#endif
+
+#if 0
+//! conv3x3s2
+TEST(TestSaberLite, test_conv_3x3s2) {
+    if (g_basic_test) {
+        for (auto& batch : {1, 2}) {
+        for (auto &cin : {1, 3, 8}) {
+        for (auto& cout : {1, 5, 8}) {
+        for (auto &g_div : {1, 2, 4}) {
+        for (auto &h : {1, 3, 4, 15, 28, 32, 38, 75}) {
+        for (auto &pad : {1, 2}) {
+        for (auto &flag_bias : {false, true}) {
+        for (auto &flag_relu : {false, true}) {
+        for (auto &th : {1, 2, 4}) {
+            int w = h;
+            int g = g_div;
+            if (cin % g != 0 || cout % g != 0) {
+                continue;
+            }
+            auto flag = test_arm_conv(batch, cin, h, w, cout, 3, 3, 2, 2, \
+                pad, pad, 1, 1, g, flag_bias, flag_relu, th, g_cluster);
+            if (flag == SaberSuccess) {
+                LOG(INFO) << "test fp32 3x3s2 conv: batchsize: " << batch << ", channel: "
+                    << cin << ", h & w: " << h << ", num_out: " << cout << ", group: " << g << \
+                    ", bias: " << (flag_bias ? "true" : "false") << ", relu: "
+                    << (flag_relu ? "true" : "false") << ", threads: " << \
+                    th << ", cluster: " << g_cluster << " passed!!\n";
+            } else {
+                LOG(FATAL) << "test fp32 3x3s2 conv: batchsize: " << batch << ", channel: "
+                    << cin << ", h & w: " << h << ", num_out: " << cout << ", group: " << g << \
+                    ", bias: " << (flag_bias ? "true" : "false") << ", relu: "
+                    << (flag_relu ? "true" : "false") << ", threads: " << \
+                    th << ", cluster: " << g_cluster << " failed!!\n";
+            }
+        }
+        }
+        }
+        }
+        }
+        }
+        }
+        }
+        }
+    }
+}
+#endif
+
+
+#if 0
+//! test conv
+TEST(TestSaberLite, test_conv_gemm) {
+    if (g_basic_test) {
+        for (auto& batch : {1, 2}) {
+        for (auto &cin : {1, 3, 8}) {
+        for (auto& cout : {1, 5, 8}) {
+        for (auto &g_div : {1, 2, 4}) {
+        for (auto &h : {1, 3, 4, 15, 28, 32, 38, 75}) {
+        for (auto& kw : {1, 2, 3, 4, 5}) {
+        for (auto& kh : {1, 2, 3, 4, 5}) {
+        for (auto& stride : {1, 2}) {
+        for (auto& dila : {1, 2}) {
+        for (auto &pad : {0, 1, 2}) {
+        for (auto &flag_bias : {false, true}) {
+        for (auto &flag_relu : {false, true}) {
+        for (auto &th : {1, 2, 4}) {
+            int w = h;
+            int g = g_div;
+            if (cin % g != 0 || cout % g != 0) {
+                continue;
+            }
+            auto flag = test_arm_conv(batch, cin, h, w, cout, kw, kh, stride, stride, \
+                pad, pad, dila, dila, g, flag_bias, flag_relu, th, g_cluster);
+            if (flag == SaberSuccess) {
+                LOG(INFO) << "test fp32 gemm conv: batchsize: " << batch << ", channel: "
+                    << cin << ", h & w: " << h << ", num_out: " << cout << ", group: " << g << \
+                    ", kernel_w: " << kw << ", kernel_h: " << kh << ", stride: " << stride << \
+                    ", dila: " << dila << ", pad: " << pad << ", bias: " << \
+                    (flag_bias ? "true" : "false") << ", relu: "
+                    << (flag_relu ? "true" : "false") << ", threads: " << \
+                    th << ", cluster: " << g_cluster << " passed!!\n";
+            } else {
+                LOG(FATAL) << "test fp32 gemm conv: batchsize: " << batch << ", channel: "
+                    << cin << ", h & w: " << h << ", num_out: " << cout << ", group: " << g << \
+                    ", kernel_w: " << kw << ", kernel_h: " << kh << ", stride: " << stride << \
+                    ", dila: " << dila << ", pad: " << pad << ", bias: " << \
+                    (flag_bias ? "true" : "false") << ", relu: "
+                           << (flag_relu ? "true" : "false") << ", threads: " << \
+                    th << ", cluster: " << g_cluster << " FAILED!!\n";
+            }
+        }
+        }
+        }
+        }
+        }
+        }
+        }
+        }
+        }
+        }
+        }
+        }
+        }
+    }
+}
+#endif
+
+#if 0
 TEST(TestSaberLite, test_conv_fp32_costom_size) {
     auto flag = test_arm_conv(g_num, g_ch_in, g_h_in, g_w_in, g_ch_out, g_kw, g_kh, g_stride_w, g_stride_h, \
             g_pad_w, g_pad_h, g_dila_w, g_dila_h, g_group, g_flag_bias, g_flag_relu, g_threads, g_cluster);
@@ -272,13 +461,13 @@ TEST(TestSaberLite, test_conv_fp32_costom_size) {
             << g_ch_in << ", h & w: " << g_h_in << \
             ", bias: " << (g_flag_bias ? "true" : "false") << ", relu: "
             << (g_flag_relu ? "true" : "false") << ", threads: " << \
-            g_threads << ", cluster: " << g_cluster << " passed!!";
+            g_threads << ", cluster: " << g_cluster << " passed!!\n";
     } else {
-        LOG(INFO) << "test fp32 1x1s1 conv: batchsize: " << g_num << ", channel: "
+        LOG(INFO) << "test fp32 conv: batchsize: " << g_num << ", channel: "
             << g_ch_in << ", h & w: " << g_h_in << \
             ", bias: " << (g_flag_bias ? "true" : "false") << ", relu: "
             << (g_flag_relu ? "true" : "false") << ", threads: " << \
-            g_threads << ", cluster: " << g_cluster << " failed!!";
+            g_threads << ", cluster: " << g_cluster << " failed!!\n";
     }
 }
 #endif
@@ -313,7 +502,7 @@ int main(int argc, const char** argv){
     }
     if (argc >= 9) {
         if (argc < 18) {
-            LOG(FATAL) << "usage: ./" << argv[0] << " cluster  threads  test_iter " << \
+            LOG(FATAL) << "usage: ./" << argv[0] << " basic_test cluster  threads  test_iter " << \
                 " compare_result flag_bias flag_relu num ch_in h_in w_in ch_out group" << \
                 " kernel pad stride dila [kernel_h] [pad_h] [stride_h] [dila_h]";
             return -1;

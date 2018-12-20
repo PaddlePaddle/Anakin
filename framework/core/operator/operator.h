@@ -108,7 +108,7 @@ public:
         // Note: We can also use deep copy by using node operator=, 
         //       but if change the node attrs through net class, 
         //       the base graph can't detect it.
-		_node_p = node_p; 
+        _node_p = node_p.get();
 	}
 
     /** 
@@ -152,7 +152,7 @@ public:
 
 private:
     ///< Pointer to graph node.
-    graph::NodePtr _node_p;
+    graph::Node* _node_p;
 };
 
 /**

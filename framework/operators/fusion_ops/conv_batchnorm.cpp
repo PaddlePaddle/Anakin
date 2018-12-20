@@ -105,7 +105,7 @@ Status ConvBatchnormHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
     if (std::is_same<Ttype, X86>::value) {
         impl_e = SABER_IMPL;
     }
-    bool use_k1s1p0 = true;
+    bool use_k1s1p0 = (Ptype == Precision::FP32);
     use_k1s1p0 = use_k1s1p0 && (_param_conv_batchnorm.weight()->height() == 1);
     use_k1s1p0 = use_k1s1p0 && (_param_conv_batchnorm.weight()->width() == 1);
     use_k1s1p0 = use_k1s1p0 && (_param_conv_batchnorm.pad_h == 0);
@@ -116,7 +116,7 @@ Status ConvBatchnormHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
     use_k1s1p0 = use_k1s1p0 && (_param_conv_batchnorm.dilation_w == 1);
     use_k1s1p0 = use_k1s1p0 && (_param_conv_batchnorm.group == 1);
     use_k1s1p0 = use_k1s1p0 && (_param_conv_batchnorm.bias()->valid_size() > 0);
-    bool use_k3s1d1 = true;
+    bool use_k3s1d1 = (Ptype == Precision::FP32);
     use_k3s1d1 = use_k3s1d1 && (_param_conv_batchnorm.weight()->height() == 3);
     use_k3s1d1 = use_k3s1d1 && (_param_conv_batchnorm.weight()->width() == 3);
     use_k3s1d1 = use_k3s1d1 && (_param_conv_batchnorm.group == 1);
@@ -124,10 +124,10 @@ Status ConvBatchnormHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
     use_k3s1d1 = use_k3s1d1 && (_param_conv_batchnorm.stride_w == 1);
     use_k3s1d1 = use_k3s1d1 && (_param_conv_batchnorm.dilation_h == 1);
     use_k3s1d1 = use_k3s1d1 && (_param_conv_batchnorm.dilation_w == 1);
-    bool use_depthwise = true;
+    bool use_depthwise = (Ptype == Precision::FP32);
     use_depthwise = use_depthwise && (_param_conv_batchnorm.group == ins[0]->channel());
     use_depthwise = use_depthwise && (_param_conv_batchnorm.group == outs[0]->channel());
-    bool use_direct_k = true;
+    bool use_direct_k = (Ptype == Precision::FP32);
     use_direct_k = use_direct_k && (_param_conv_batchnorm.weight()->channel() >= 16);
     use_direct_k = use_direct_k && (_param_conv_batchnorm.group == 1);
     if (use_k1s1p0 || use_k3s1d1 || use_depthwise || use_direct_k) {

@@ -4,19 +4,6 @@ namespace anakin {
 
 namespace ops {
 
-//#ifdef USE_CUDA
-//template<>
-//void Argmax<NV, AK_FLOAT, Precision::FP32>::operator()(
-//    OpContext<NV>& ctx,
-//    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
-//    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-//    auto* impl =
-//        static_cast<ArgmaxHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
-//    auto& param = impl->_param_argmax;
-//    impl->_funcs_argmax(ins, outs, param, ctx);
-//}
-//#endif
-
 /// TODO ... specialization other type of operator
 #define INSTANCE_ARGMAX(Ttype, Ptype) \
 template<> \
@@ -74,6 +61,12 @@ template class ArgmaxHelper<NV, Precision::FP32>;
 template class ArgmaxHelper<NV, Precision::FP16>;
 template class ArgmaxHelper<NV, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(Argmax, ArgmaxHelper, NV, Precision::FP32);
+#endif
+
+#ifdef AMD_GPU
+INSTANCE_ARGMAX(AMD, Precision::FP32);
+template class ArgmaxHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Argmax, ArgmaxHelper, AMD, Precision::FP32);
 #endif
 
 #if defined USE_X86_PLACE || defined BUILD_LITE

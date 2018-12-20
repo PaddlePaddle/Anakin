@@ -26,6 +26,7 @@
 #endif
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_deconv.h"
+//#include "saber/funcs/impl/x86/vender_deconv.h"
 #endif
 
 namespace anakin {

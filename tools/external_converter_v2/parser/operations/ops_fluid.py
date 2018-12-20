@@ -46,3 +46,11 @@ OpsRegister.Register("array_to_lod_tensor").set_attr()
 
 OpsRegister.Register("assign_value").set_attr()
 OpsRegister.Register("shape").set_attr()
+
+OpsRegister.Register("fake_quantize_abs_max").set_attr()
+OpsRegister.Register("fake_dequantize_max_abs").set_attr()
+OpsRegister.Register("fake_quantize_range_abs_max").set_attr()
+OpsRegister.Register("fake_dequantize_range_max_abs").set_attr()
+
+OpsRegister.Register("increment").set_attr()
+

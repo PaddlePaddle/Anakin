@@ -15,6 +15,9 @@
 */
 
 #include "framework/core/net/entropy_calibrator.h"
+
+#ifndef USE_SGX
+
 #include "framework/utils/data_common.h"
 #include <cmath>
 namespace anakin {
@@ -167,7 +170,7 @@ void EntropyCalibrator<Ttype>::write_calibrator() {
     char buf[200];
     typename std::map<std::string, float>::iterator it;
     for (it = _scale_map.begin(); it != _scale_map.end(); ++it) {
-        int n = sprintf(buf, "%s %f\n", it->first.c_str(), float(it->second));
+        int n = snprintf(buf, sizeof(buf), "%s %f\n", it->first.c_str(), float(it->second));
         ofs.write(buf, n);
     }
     ofs.close();
@@ -372,3 +375,4 @@ template class EntropyCalibrator<X86>;
     
 }
     
+#endif // USE_SGX

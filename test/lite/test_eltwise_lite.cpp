@@ -34,7 +34,7 @@ void eltwise_basic(const Context &ctx, TensorHf4& tensor_out, \
     dtype* data_out = tensor_out.mutable_data();
     const dtype* data_in0 = tensor_in[0]->data();
     const dtype* data_in1 = tensor_in[1]->data();
-    
+
     if (op_type == 1){ //Operation_PROD
         for (int n = 0; n < num; n++){
             dtype* data_out_batch = data_out + n * ch_in * size_in;
@@ -113,7 +113,7 @@ void eltwise_basic(const Context &ctx, TensorHf4& tensor_out, \
                     const dtype* data_in0_channel = data_in0_batch + c * size_in;
                     const dtype* data_in1_channel = data_in1_batch + c * size_in;
                     for (int i = 0; i < size_in; i++){
-                        data_out_channel[i] = data_in0_channel[i] * coeffs_ptr[0] + \ 
+                        data_out_channel[i] = data_in0_channel[i] * coeffs_ptr[0] + \
                         data_in1_channel[i] * coeffs_ptr[1];
                     }
                 }
@@ -129,7 +129,7 @@ void eltwise_basic(const Context &ctx, TensorHf4& tensor_out, \
                         dtype* data_out_channel = data_out_batch + c * size_in;
                         const dtype* data_in_channel = data_in_batch + c * size_in;
                         for (int i = 0; i < size_in; i++){
-                            data_out_channel[i] = data_out_channel[i] + \ 
+                            data_out_channel[i] = data_out_channel[i] + \
                             data_in_channel[i] * coeffs_ptr[b];
                         }
                     }
@@ -169,7 +169,7 @@ void eltwise_basic(const Context &ctx, TensorHf4& tensor_out, \
                 }
             }
         }
-    }  
+    }
 }
 
 void test_eltwise(DataType datatype, std::vector<TensorHf4*>& tin, int operation, \
@@ -195,7 +195,13 @@ void test_eltwise(DataType datatype, std::vector<TensorHf4*>& tin, int operation
     }
     TensorHf4 tout_basic;
     TensorHf4 tout_saber;
-
+    if (Dtype == AK_FLOAT){
+        tout_basic.set_dtype(AK_FLOAT);
+        tout_saber.set_dtype(AK_FLOAT);
+    } else if (Dtype == AK_INT8) {
+        tout_basic.set_dtype(AK_INT8);
+        tout_saber.set_dtype(AK_INT8);
+    }
     //TensorHf4* thin = tin[0];
 
     std::vector<TensorHf4*> tvout_saber;
@@ -243,7 +249,7 @@ void test_eltwise(DataType datatype, std::vector<TensorHf4*>& tin, int operation
 
     LOG(INFO) << "run basic eltwise for precision comparation";
     tout_basic.re_alloc(shape_out);
-   
+
     to = 0;
     for (int i = 0; i < test_iter; ++i) {
         t1.clear();
@@ -265,13 +271,18 @@ void test_eltwise(DataType datatype, std::vector<TensorHf4*>& tin, int operation
     LOG(INFO) << "basic eltwise running time, ave: " << to / test_iter << ", min time: " << min_time;
    // print_tensor_host(tout_basic);
 #endif
-    
+
     SaberEltwise eltwise_saber;
     EltwiseParam eltwise_param((EltwiseType)operation, coeffs_ptr);
    // ParamBase* base =new EltwiseActParam(operation, coeffs_ptr, act_type, 0.f, 1.f, false, tslop.data());
     LOG(INFO) << "saber eltwise load param";
     eltwise_saber.load_param(&eltwise_param);
     //LITE_CHECK(eltwise_act_saber.load_param(&eltwise_act_param));
+    if (Dtype == AK_FLOAT){
+        eltwise_saber.set_op_precision(AK_FLOAT);
+    } else if (Dtype == AK_INT8){
+        eltwise_saber.set_op_precision(AK_INT8);
+    }
     LOG(INFO) << "saber eltwise compute output shape";
     eltwise_saber.compute_output_shape(tin, tvout_saber);
 
@@ -285,7 +296,7 @@ void test_eltwise(DataType datatype, std::vector<TensorHf4*>& tin, int operation
     //! re_alloc mem for output tensor
     tvout_saber[0]->re_alloc(shape_out);
 
-    LOG(INFO) << "saber eltwise act impl init";
+    LOG(INFO) << "saber eltwise impl init";
     CHECK_EQ(eltwise_saber.init(tin, tvout_saber, ctx1), SaberSuccess) << "init error";
     //SABER_CHECK(eltwise_act_saber.init(tin, tvout_saber, eltwise_act_param, SPECIFY, SABER_IMPL, ctx1));
 
@@ -341,7 +352,7 @@ TEST(TestSaberLite, test_func_eltwise_lite) {
    // PoolingType type = 1;
 
     Shape shape_in(num, chin, hin, win);
-    
+
     //fill_tensor_host_const(tdin, 1.f);
 
     std::vector<TensorHf4*> tin;
@@ -350,21 +361,22 @@ TEST(TestSaberLite, test_func_eltwise_lite) {
     TensorHf4 tdin1;
     tdin1.re_alloc(shape_in, Dtype);
     if (Dtype == AK_FLOAT){
+        tdin.set_dtype(AK_FLOAT);
         fill_tensor_rand(tdin, -1.f, 1.f);
         fill_tensor_rand(tdin1, -1.f, 1.f);
     } else if (Dtype == AK_INT8){
+        tdin.set_dtype(AK_INT8);
         for (int i = 0; i < tdin.valid_size(); ++i){
             static_cast<signed char*>(tdin.mutable_data())[i] = i % 126 - 63;
             static_cast<signed char*>(tdin1.mutable_data())[i] = i % 126 - 63;
         }
     }
-    
+
     tin.push_back(&tdin);
     tin.push_back(&tdin1);
-    
-    
+
     std::vector<float> coeffs_ptr;
-   
+
     coeffs_ptr.push_back(1.0f);
     coeffs_ptr.push_back(1.0f);
     //printf("test_arm_eltwise: GLB_operation: %d \n", GLB_operation);

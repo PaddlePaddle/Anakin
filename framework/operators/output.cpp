@@ -35,6 +35,12 @@ template class OutputHelper<NV, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, NV, Precision::FP32);
 #endif
 
+#ifdef AMD_GPU
+INSTANCE_OUTPUT(AMD, Precision::FP32);
+template class OutputHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Output, OutputHelper, AMD, Precision::FP32);
+#endif
+
 #if defined USE_X86_PLACE || defined BUILD_LITE
 INSTANCE_OUTPUT(X86, Precision::FP32);
 template class OutputHelper<X86, Precision::FP32>;

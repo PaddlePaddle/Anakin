@@ -17,10 +17,14 @@
 #define ANAKIN_GRAPH_GLOBAL_MEM_H 
 
 #include <vector>
-#include <mutex>
 #include "framework/core/singleton.h"
 #include "framework/core/parameter.h"
 #include "utils/logger/logger.h"
+#include <mutex>
+#include "anakin_config.h"
+#ifdef USE_SGX
+#include <support/sgx/sgx_mutex>
+#endif
 
 namespace anakin {
 

@@ -43,7 +43,7 @@ void cmp_seg_result(const Mat& gt_img, const TensorHf& tin, long long& diff_coun
     for (int h = 0; h < height; h++) {
         for (int w = 0; w < width; w++) {
             int gt = gt_img.at<char>(h, w);
-            int test = *(din++) > 0.5;
+            int test = *(din++) >= 0.5;
             if (gt != test) {
                 diff_count++;
             }
@@ -119,6 +119,8 @@ TEST(TestSaberLite, test_seg_precision) {
     float scale_val[3] = {1.f, 1.f, 1.f};
 
     double acc = 0.0;
+    double max_acc = 0.0;
+    double min_acc = 1.0;
 
     for (int k = 0; k < img_list.size(); ++k) {
         //! pre-processing
@@ -138,19 +140,21 @@ TEST(TestSaberLite, test_seg_precision) {
         t1.end();
         to = t1.get_average_ms();
         LOG(INFO) << "time consumption: " << to << " ms";
-        for (int i = 0; i < vtout.size(); ++i) {
-            double mean = tensor_mean(*vtout[i]);
-            LOG(INFO) << "output mean: " << mean;
-        }
+//        for (int i = 0; i < vtout.size(); ++i) {
+//            double mean = tensor_mean(*vtout[i]);
+//            LOG(INFO) << "output mean: " << mean;
+//        }
 
         //! post processing
         long long diff_count = 0;
         double acc_curr = 0.0;
         cmp_seg_result(img_gt_resize, *vtout[0], diff_count, acc_curr);
         acc += acc_curr;
+        max_acc = max_acc > acc_curr ? max_acc : acc_curr;
+        min_acc = min_acc < acc_curr ? min_acc : acc_curr;
         LOG(INFO) << "image : " << img_list[k] << ", diff count: " << diff_count << ", accuracy: " << acc_curr;
     }
-    LOG(INFO) << "test accuracy is: " << acc / img_list.size();
+    LOG(INFO) << "test accuracy is: " << acc / img_list.size() << ", min: " << min_acc << ", max: " << max_acc;
 }
 
 int main(int argc, const char** argv) {
@@ -177,7 +181,7 @@ int main(int argc, const char** argv) {
         FLAGS_threads = atoi(argv[4]);
     }
     InitTest();
-    RUN_ALL_TESTS(argv[0]); 
+    RUN_ALL_TESTS(argv[0]);
     return 0;
 }
 #else

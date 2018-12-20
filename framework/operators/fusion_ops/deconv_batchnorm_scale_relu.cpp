@@ -68,7 +68,7 @@ Status DeconvBatchnormScaleReluHelper<Ttype, Ptype>::InitParam() {
 
     if(bias_term) {
         auto bias = GET_PARAMETER(pblock_type, weight_2);
-        graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(update_weights<float, Ttype>,
+        graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(update_deconv_weights<float, Ttype>,
                                                        weights,bias,
                                                        weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3], 
                                                        true,
@@ -86,7 +86,7 @@ Status DeconvBatchnormScaleReluHelper<Ttype, Ptype>::InitParam() {
         _param_deconv_batchnorm_scale_relu = conv_param;
     } else {
         pblock_type* bias = new pblock_type();
-        graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(update_weights<float, Ttype>,
+        graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(update_deconv_weights<float, Ttype>,
                                                        weights, *bias,
                                                        weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3], 
                                                        false,
@@ -117,7 +117,7 @@ Status DeconvBatchnormScaleReluHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
                                               SABER_IMPL, ctx);
     } else {
         _funcs_deconv_batchnorm_scale_relu.init(ins, outs, _param_deconv_batchnorm_scale_relu, SPECIFY,
-                                              VENDER_IMPL, ctx);
+                                              SABER_IMPL, ctx);
     }
 
     //_funcs_deconv_batchnorm_scale_relu.init(ins, outs, _param_deconv_batchnorm_scale_relu, SPECIFY, VENDER_IMPL, ctx);

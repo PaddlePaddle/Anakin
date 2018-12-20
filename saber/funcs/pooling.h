@@ -113,7 +113,7 @@ public:
         output_shape[height_idx] = out_height;
         output_shape[width_idx] = out_width;
 
-        return output[0]->set_shape(output_shape);
+        return output[0]->set_shape_without_layout(output_shape);
 
     }
 

@@ -12,7 +12,6 @@
 #ifndef ANAKIN_SABER_FUNCS_DFMB_PSROI_ALIGN_H
 #define ANAKIN_SABER_FUNCS_DFMB_PSROI_ALIGN_H
 #include "saber/core/tensor.h"
-#include "saber/funcs/timer.h"
 #include "saber/funcs/base.h"
 #include "saber/saber_funcs_param.h"
 #include "saber/funcs/impl/impl_base.h"

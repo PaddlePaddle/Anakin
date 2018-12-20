@@ -146,8 +146,8 @@ int main(int argc, const char** argv){
         if (FLAGS_cluster < 0) {
             FLAGS_cluster = 0;
         }
-        if (FLAGS_cluster > 3) {
-            FLAGS_cluster = 3;
+        if (FLAGS_cluster > 5) {
+            FLAGS_cluster = 5;
         }
     }
     if (argc > 6) {

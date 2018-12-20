@@ -19,6 +19,8 @@
 #include <string>
 #include <unordered_map>
 
+#include "framework/core/parameter.h"
+
 namespace anakin {
 
 namespace lite {
