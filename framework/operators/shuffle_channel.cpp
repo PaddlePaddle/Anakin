@@ -88,7 +88,6 @@ ANAKIN_REGISTER_OP(ShuffleChannel)
 #endif
 #ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("shufflechannel")
-.__alias__<AMD, Precision::INT8>("shufflechannel")
 #endif
 .num_in(1)
 .num_out(1)

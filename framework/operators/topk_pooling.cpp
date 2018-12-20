@@ -90,7 +90,7 @@ ANAKIN_REGISTER_OP(TopKPooling)
 .__alias__<X86, Precision::FP32>("topk_pooling")
 #endif
 #ifdef AMD_GPU
-.__alias__<AMD, Precision::FP32>("topk_pooling")
+//.__alias__<AMD, Precision::FP32>("topk_pooling")
 #endif
 .num_in(1)
 .num_out(1)

@@ -168,7 +168,7 @@ ANAKIN_REGISTER_OP(DeconvBatchnormScaleRelu)
 .__alias__<ARM, Precision::FP32>("convolution_batchnorm_scale_relu")
 #endif
 #ifdef AMD_GPU
-.__alias__<AMD, Precision::FP32>("convolution_batchnorm_scale_relu")
+//.__alias__<AMD, Precision::FP32>("convolution_batchnorm_scale_relu")
 #endif
 .num_in(1)
 .num_out(1)

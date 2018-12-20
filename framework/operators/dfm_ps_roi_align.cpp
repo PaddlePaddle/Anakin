@@ -95,7 +95,7 @@ ANAKIN_REGISTER_OP(DFMBPSROIAlign)
 .__alias__<ARM, Precision::FP32>("rpn_proposal_ssd")
 #endif
 #ifdef AMD_GPU
-.__alias__<AMD, Precision::FP32>("rpn_proposal_ssd")
+//.__alias__<AMD, Precision::FP32>("rpn_proposal_ssd")
 #endif
 .num_in(1)
 .num_out(1)

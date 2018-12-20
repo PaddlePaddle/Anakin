@@ -238,8 +238,8 @@ ANAKIN_REGISTER_OP(ConvBatchnormScale)
 .__alias__<X86, Precision::FP32>("convolution_batchnorm_scale")
 #endif
 #ifdef AMD_GPU
-.__alias__<AMD, Precision::FP32>("convolution_batchnorm_scale")
-.__alias__<AMD, Precision::INT8>("convolution_batchnorm_scale")
+//.__alias__<AMD, Precision::FP32>("convolution_batchnorm_scale")
+//.__alias__<AMD, Precision::INT8>("convolution_batchnorm_scale")
 #endif
 .num_in(1)
 .num_out(1)

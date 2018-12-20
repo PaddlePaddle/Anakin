@@ -146,7 +146,7 @@ ANAKIN_REGISTER_OP(DeconvRelu)
 .__alias__<ARM, Precision::FP32>("deconv_relu")
 #endif
 #ifdef AMD_GPU
-.__alias__<AMD, Precision::FP32>("deconv_relu")
+//.__alias__<AMD, Precision::FP32>("deconv_relu")
 #endif
 .num_in(1)
 .num_out(1)

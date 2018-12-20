@@ -201,8 +201,8 @@ ANAKIN_REGISTER_OP(ConvAffineChannel)
 .__alias__<X86, Precision::FP32>("convolution_affine_channel")
 #endif
 #ifdef AMD_GPU
-.__alias__<AMD, Precision::FP32>("convolution_affine_channel")
-.__alias__<AMD, Precision::INT8>("convolution_affine_channel")
+//.__alias__<AMD, Precision::FP32>("convolution_affine_channel")
+//.__alias__<AMD, Precision::INT8>("convolution_affine_channel")
 #endif
 .num_in(1)
 .num_out(1)

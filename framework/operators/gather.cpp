@@ -97,7 +97,7 @@ ANAKIN_REGISTER_OP(Gather)
     .__alias__<X86, Precision::FP32>("gather")
 #endif
 #ifdef AMD_GPU
-    .__alias__<AMD, Precision::FP32>("gather")
+//    .__alias__<AMD, Precision::FP32>("gather")
 #endif
 	.Doc("Gather operator [ only a middle data holder and reshape ] ");
 
