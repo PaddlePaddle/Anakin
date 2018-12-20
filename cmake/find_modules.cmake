@@ -447,9 +447,9 @@ macro(anakin_find_bmlib)
         list(APPEND BM_LIBRARIES ${BM_ROOT}/lib/app/libbmrt.so) 
         list(APPEND ANAKIN_LINKER_LIBS ${BM_LIBRARIES}) 
     else() 
-        message(FATAL_ERROR "Could not found bm_lib") 
-    endif()
+        message(FATAL_ERROR "Could not found bm_lib")
 endmacro()
+
 
 macro(anakin_find_sgx)
   set(SGX_SDK $ENV{SGX_SDK})
@@ -473,4 +473,69 @@ macro(anakin_find_sgx)
   else()
     message(FATAL_ERROR "SGX SDK not found or not properly configured!")
   endif()
+endmacro()
+
+macro(anakin_find_openssl)
+    find_package(OpenSSL REQUIRED)
+    if(OPENSSL_FOUND)
+        message(STATUS "Found openssl in ${OPENSSL_INCLUDE_DIR}")
+        list(APPEND ANAKIN_LINKER_LIBS ${OPENSSL_LIBRARIES})
+        include_directories(${OPENSSL_INCLUDE_DIR})
+    else()
+        message(FATAL_ERROR "Could not found openmp !")
+    endif()
+endmacro()
+
+macro(anakin_find_nvinfer)
+	find_path(NVINFER_INCLUDE_DIR NvInfer.h PATHS ${ANAKIN_ROOT}/third-party/tensorrt5/include
+	$ENV{NVINFER_ROOT})
+	if (BUILD_SHARED)
+		find_library(NVINFER_LIBRARY NAMES libnvinfer.so
+				PATHS ${NVINFER_INCLUDE_DIR}/../lib64/
+				PATHS ${NVINFER_INCLUDE_DIR}/../lib/
+				DOC "library path for tensorrt.")
+		find_library(NVINFER_PLUGIN_LIBRARY NAMES libnvinfer_plugin.so
+				PATHS ${NVINFER_INCLUDE_DIR}/../lib64/
+				PATHS ${NVINFER_INCLUDE_DIR}/../lib/
+				DOC "library path for tensorrt.")
+		find_library(NVPARSERS_LIBRARY NAMES libnvparsers.so
+				PATHS ${NVINFER_INCLUDE_DIR}/../lib64/
+				PATHS ${NVINFER_INCLUDE_DIR}/../lib/
+				DOC "library path for tensorrt.")
+	else()
+		find_library(NVINFER_LIBRARY NAMES libnvinfer.a
+				PATHS ${NVINFER_INCLUDE_DIR}/../lib64/
+				DOC "library path for tensorrt.")
+		find_library(NVINFER_PLUGIN_LIBRARY NAMES libnvinfer_plugin.a
+				PATHS ${NVINFER_INCLUDE_DIR}/../lib64/
+				DOC "library path for tensorrt.")
+		find_library(NVPARSERS_LIBRARY NAMES libnvparsers.a
+				PATHS ${NVINFER_INCLUDE_DIR}/../lib64/
+				DOC "library path for tensorrt.")
+	endif()
+	if(NVINFER_INCLUDE_DIR AND NVINFER_LIBRARY AND NVINFER_PLUGIN_LIBRARY AND NVPARSERS_LIBRARY)
+		set(NVINFER_FOUND TRUE)
+	endif()
+	if(NVINFER_FOUND)
+		message(STATUS "Found NvInfer in ${NVINFER_INCLUDE_DIR}")
+		include_directories(SYSTEM ${NVINFER_INCLUDE_DIR})
+		#include_directories(${NVINFER_INCLUDE_DIR})
+		list(APPEND ANAKIN_LINKER_LIBS ${NVINFER_LIBRARY})
+		list(APPEND ANAKIN_LINKER_LIBS ${NVINFER_PLUGIN_LIBRARY})
+		list(APPEND ANAKIN_LINKER_LIBS ${NVPARSERS_LIBRARY})
+		message(STATUS "${ANAKIN_LINKER_LIBS}")
+	else()
+		message(FATAL_ERROR "Couldn't found NvInfer ! in path: ${NVINFER_INCLUDE_DIR}")
+	endif()
+endmacro()
+
+#find miopengemm
+macro(anakin_find_miopengemm)
+    find_package(miopengemm REQUIRED PATHS /opt/rocm)
+    if(miopengemm_FOUND)
+        set(MIOPENGEMM_FOUND  TRUE)
+        message(STATUS "Found miopengemm: ${miopengemm_INCLUDE_DIR}")
+        include_directories(SYSTEM ${miopengemm_INCLUDE_DIR})
+        list(APPEND ANAKIN_LINKER_LIBS ${miopengemm_LIBRARIES})
+    endif()
 endmacro()

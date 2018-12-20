@@ -64,7 +64,7 @@ struct Device<AMD> {
 
     typedef TargetWrapper<AMD> API;
 
-    Device(int max_stream = 1);
+    Device(int max_stream = 4);
 
     void get_info();
     void create_stream();
