@@ -98,6 +98,9 @@ ANAKIN_REGISTER_OP(Axpy)
 #if defined USE_X86_PLACE || defined BUILD_LITE
 .__alias__<X86, Precision::FP32>("axpy")
 #endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("axpy")
+#endif
 .num_in(3)
 .num_out(1);
 

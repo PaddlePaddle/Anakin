@@ -91,6 +91,9 @@ ANAKIN_REGISTER_OP(TopKAvgPooling)
 #ifdef USE_X86_PLACE
 .__alias__<X86, Precision::FP32>("topk_avg_pooling")
 #endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("topk_avg_pooling")
+#endif
 .num_in(1)
 .num_out(1)
 .Args<int>("feat_map_num", "feat map nums")

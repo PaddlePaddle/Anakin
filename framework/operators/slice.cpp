@@ -102,6 +102,9 @@ ANAKIN_REGISTER_OP(Slice)
 #if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 .__alias__<X86, Precision::FP32>("slice")
 #endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("slice")
+#endif
 .num_in(1)
 .num_out(1)
 .Args<int>("slice_dim", " slice dim at input ")

@@ -124,6 +124,9 @@ ANAKIN_REGISTER_OP(BatchnormScale)
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("batchnorm_scale")
 #endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("batchnorm_scale")
+#endif
 .num_in(1)
 .num_out(1)
 .Args<int>("axis", "axis of conv")

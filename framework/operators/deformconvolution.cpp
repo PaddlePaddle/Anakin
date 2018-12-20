@@ -105,6 +105,9 @@ ANAKIN_REGISTER_OP(DeformConvolution)
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("defromable_convolution")
 #endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("deformable_convolution")
+#endif
 .num_in(1)
 .num_out(1)
 .Args<int>("group", " group of conv ")

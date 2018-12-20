@@ -97,6 +97,9 @@ ANAKIN_REGISTER_OP(DetectionOutput)
 #if defined USE_X86_PLACE || defined BUILD_LITE
 .__alias__<X86, Precision::FP32>("detectionoutput")
 #endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("detectionoutput")
+#endif
 .num_in(1)
 .num_out(1)
 .Args<bool>("share_location", " flag whether all classes share location ")

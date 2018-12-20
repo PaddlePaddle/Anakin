@@ -17,10 +17,13 @@
 #if  defined(NVIDIA_GPU)
 using Target = NV;
 using Target_H = NVHX86;
-#else if  defined(USE_X86_PLACE)
+#elif  defined(USE_X86_PLACE)
 using Target = X86;
 using Target_H = X86;
 #include "mkl_service.h"
+#elif  defined(AMD_GPU)
+using Target = AMD;
+using Target_H = AMDHX86;
 #endif
 
 
@@ -270,7 +273,7 @@ void one_thread_run(std::string path, int thread_id) {
         h_tensor_in_1->reshape(Shape({week_fea.size(), 10, 1, 1}));
         h_tensor_in_2->reshape(Shape({time_fea.size(), 10, 1, 1}));
         h_tensor_in_0->set_seq_offset({seq_offset});
-#ifdef USE_CUDA
+#if defined(USE_CUDA ) || defined(AMD_GPU)
         Tensor4d<Target_H> h_tensor_0;
         Tensor4d<Target_H> h_tensor_1;
         Tensor4d<Target_H> h_tensor_2;
@@ -314,8 +317,12 @@ void one_thread_run(std::string path, int thread_id) {
 #endif
 
         net_executer.prediction();
-#ifdef USE_CUDA
+#if defined(USE_CUDA) || defined(AMD_GPU)
+#ifdef AMD_GPU
+        clFinish(ctx.get_compute_stream());
+#else
         cudaDeviceSynchronize();
+#endif
         auto dev_out=net_executer.get_out("final_output.tmp_1_gout");
         Tensor<Target_H> out(dev_out->valid_shape());
         out.copy_from(*dev_out);

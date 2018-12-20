@@ -125,6 +125,9 @@ ANAKIN_REGISTER_OP(Interp)
 #if defined USE_X86_PLACE || defined(BUILD_LITE)
 .__alias__<X86, Precision::FP32>("Interp")
 #endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("Interp")
+#endif
 .num_in(1)
 .num_out(1)
 .Args<float>("height_scale", " height scale for resize")

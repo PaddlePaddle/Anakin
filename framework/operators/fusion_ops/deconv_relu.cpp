@@ -145,6 +145,9 @@ ANAKIN_REGISTER_OP(DeconvRelu)
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("deconv_relu")
 #endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("deconv_relu")
+#endif
 .num_in(1)
 .num_out(1)
 .Args<int>("group", " group of conv ")

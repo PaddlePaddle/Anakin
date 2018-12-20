@@ -90,6 +90,9 @@ ANAKIN_REGISTER_OP(Scale)
 #if defined USE_X86_PLACE || defined BUILD_LITE
 .__alias__<X86, Precision::FP32>("Scale")
 #endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("Scale")
+#endif
 .num_in(1)
 .num_out(1)
 .Args<std::string>("type", " type of Scale ");

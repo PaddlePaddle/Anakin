@@ -123,6 +123,9 @@ ANAKIN_REGISTER_OP(EltwiseActivation)
 #if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 .__alias__<X86, Precision::FP32>("eltwise_prelu")
 #endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("eltwise_prelu")
+#endif
 .num_in(1)
 .num_out(1)
 .Args<std::string>("type", " eltwise type( string )")

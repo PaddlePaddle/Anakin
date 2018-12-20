@@ -69,6 +69,9 @@ ANAKIN_REGISTER_OP(Split)
 #if defined USE_X86_PLACE || defined BUILD_LITE
 .__alias__<X86, Precision::FP32>("split")
 #endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("split")
+#endif
 .num_in(1)
 .num_out(1)
 .Args<int>("split_num", " split output number. ");

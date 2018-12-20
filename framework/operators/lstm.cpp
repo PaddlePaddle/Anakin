@@ -124,6 +124,10 @@ ANAKIN_REGISTER_OP(Lstm)
     .__alias__<X86, Precision::FP32>("Lstm")
     .__alias__<X86, Precision::FP32>("LSTM")
 #endif
+#ifdef AMD_GPU
+    .__alias__<AMD, Precision::FP32>("Lstm")
+    .__alias__<AMD, Precision::FP32>("LSTM")
+#endif
     .num_in(1)
     .num_out(1)
     .Args<bool>("is_reverse", " is_reverse for lstm.")

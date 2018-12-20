@@ -93,6 +93,9 @@ ANAKIN_REGISTER_OP(CrfDecoding)
 #ifdef USE_X86_PLACE
 .__alias__<X86, Precision::FP32>("CrfDecoding")
 #endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("CrfDecoding")
+#endif
 .num_in(1)
 .num_out(1);
 

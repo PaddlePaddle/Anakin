@@ -63,8 +63,8 @@ ANAKIN_REGISTER_OP_HELPER(SequencePool, SequencePoolHelper, NV, Precision::FP32)
 #endif
 
 #ifdef AMD_GPU
-INSTANCE_SEQUENCE_POOL(NV, Precision::FP32);
-template class SequencePoolHelper<NV, Precision::FP32>;
+INSTANCE_SEQUENCE_POOL(AMD, Precision::FP32);
+template class SequencePoolHelper<AMD, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(SequencePool, SequencePoolHelper, AMD, Precision::FP32);
 #endif
 
@@ -95,6 +95,9 @@ ANAKIN_REGISTER_OP(SequencePool)
 #endif
 #ifdef USE_X86_PLACE
 .__alias__<X86, Precision::FP32>("SequencePool")
+#endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("SequencePool")
 #endif
 .num_in(1)
 .num_out(1)
