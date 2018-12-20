@@ -35,8 +35,13 @@ public:
     typedef typename DataTrait<AMD, OpDtype>::Dtype OpDataType;
     typedef AMD_API::TPtr PtrDtype;
 
-    SaberMvn() {}
-    ~SaberMvn() {}
+    SaberMvn() {
+        _kernels_ptr.clear();
+    }
+
+    ~SaberMvn() {
+        _kernels_ptr.clear();
+    }
 
     virtual SaberStatus
     init(const std::vector<Tensor<AMD>*>& inputs,
@@ -51,12 +56,12 @@ public:
            Context<AMD>& ctx) override;
 
     virtual SaberStatus dispatch(
-            const std::vector<Tensor<AMD>*>& inputs,
-            std::vector<Tensor<AMD>*>& outputs,
-            MvnParam<AMD>& param) override;
+        const std::vector<Tensor<AMD>*>& inputs,
+        std::vector<Tensor<AMD>*>& outputs,
+        MvnParam<AMD>& param) override;
 
 private:
-    std::vector<AMDKernelPtr> _kernels_ptr{nullptr};
+    std::vector<AMDKernelPtr> _kernels_ptr;
     Tensor<AMD> _mean;
     Tensor<AMD> _sd;
 };
