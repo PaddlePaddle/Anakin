@@ -45,6 +45,8 @@ saber::LayoutType  str2layout(std::string str) {
     }
 }
 
+
+
 std::string CalibratorParser::get_precision(std::string name) const {
     //if not exist, return fp32
     if (_node_precision_map.find(name) == _node_precision_map.end()) {
@@ -53,6 +55,21 @@ std::string CalibratorParser::get_precision(std::string name) const {
 
     return _node_precision_map.at(name);
 }
+saber::DataType CalibratorParser::get_dtype_of_precision(std::string name) const{
+    std::string pre_str = "fp32";
+    if (_node_precision_map.find(name) != _node_precision_map.end()) {
+        pre_str = _node_precision_map.at(name);
+    }
+    if (pre_str == "fp32"){
+        return AK_FLOAT;
+    } else if (pre_str == "int8"){
+        return AK_INT8;
+    } else {
+        LOG(FATAL) << "unsupport precision type of " << pre_str;
+    }
+    return AK_FLOAT;
+}
+
 saber::DataType CalibratorParser::get_dtype(std::string name0, std::string name1) const {
     std::string str0 = get_precision(name0);
     std::string str1 = get_precision(name1);
@@ -123,7 +140,8 @@ void CalibratorParser::set_scale(std::string name, float scale){
 
 #ifndef USE_SGX
 void CalibratorParser::auto_config(const std::vector<std::string>& exe_nodes,
-                                   const std::vector<std::string>& op_names, std::string dst) {
+                                   const std::vector<std::string>& op_names, std::string dst,
+                                   std::string precision, std::string target) {
     std::fstream fs;
     fs.open(dst, std::ios::in);
 
@@ -145,7 +163,7 @@ void CalibratorParser::auto_config(const std::vector<std::string>& exe_nodes,
 
         if (!name.empty()) {
             std::string op_name = op_names[i];
-            ofs << name << "(" << op_name << ")    fp32    NV \n";
+            ofs << name << "(" << op_name << ")    " << precision <<"    " << target <<" \n";
         }
     }
 

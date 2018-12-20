@@ -53,7 +53,6 @@ TEST(NetTest, net_execute_base_test) {
 
     Net<X86, Precision::FP32> net_executer(true);
     net_executer.load_x86_layout_config("layout_config_me.txt");
-    net_executer.load_calibrator_config("net_pt_config.txt", "cal_file");
     net_executer.init(*graph);
     // get in
 

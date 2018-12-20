@@ -34,9 +34,12 @@ public:
 
 #ifndef USE_SGX
         void parse_from_file(std::string config, std::string calibrator);
-        static void auto_config(const std::vector<std::string>& exe_nodes, const std::vector<std::string>& op_names ,std::string dst);
+        static void auto_config(const std::vector<std::string>& exe_nodes, 
+          const std::vector<std::string>& op_names ,std::string dst,
+          std::string precision, std::string target);
 #endif
         std::string get_precision(std::string name) const;
+        saber::DataType get_dtype_of_precision(std::string name) const;
         saber::DataType get_dtype(std::string name0, std::string name1) const;
         void set_precision(std::string name, saber::DataType);
         void set_scale(std::string name, float scale);

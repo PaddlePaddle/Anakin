@@ -136,13 +136,7 @@ public:
     /**
      *  \brief Get tensor from a given edge.
      */
-    void load_calibrator_config(std::string config, std::string calibrator){
-        _calibrator_parser.clear_data();
-        _calibrator_parser.parse_from_file(config, calibrator);
-        _net_pt_config_name = config;
-
-        _has_loaded_config = true;
-    }
+    
     void load_calibrator_config(graph::Graph<Ttype, Ptype>& graph);
     void load_x86_layout_config(std::string config){
         _calibrator_parser.clear_data();
@@ -158,7 +152,7 @@ public:
         //LOG(ERROR) << "set " << edge_it -> name() <<"dtype:" << _calibrator_parser.get_dtype(edge_it->bottom(), edge_it->top());
         //set tensor calibrator
         edge_it->weight()->set_scale({_calibrator_parser.get_calibrator(edge_it->name())});
-        LOG(ERROR) << "set " << edge_it->name() << " scale:" << _calibrator_parser.get_calibrator(edge_it->name());
+        DLOG(WARNING) << "set " << edge_it->name() << " scale:" << _calibrator_parser.get_calibrator(edge_it->name());
         //set tensor layout
         if (!std::is_same<X86, Ttype>::value){
             edge_it->weight()->set_layout(_calibrator_parser.get_layout(edge_it->bottom(), 
@@ -187,7 +181,6 @@ private:
 private:
     ///< layout config file path , layout config will be load or create
     std::string _layout_config_path{"x86_layout_config.txt"};
-    std::string _net_pt_config_name{"net_pt_config.txt"};
     bool _has_loaded_config{false};
     ///< executor for operators in node.
     std::vector<OperatorFunc<Ttype, Ptype> > _exec_funcs;

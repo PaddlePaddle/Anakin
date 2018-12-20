@@ -439,7 +439,7 @@ Status NodeIO<Ttype, Ptype>::operator<<(GraphProto& graph) {
                 (*node_proto_attr)[key].mutable_cache_list()->set_type(FLOAT);
                 (*node_proto_attr)[key].mutable_cache_list()->set_size(tuple_float.size());
 
-                LOG(ERROR) << "node: " << node_p->name() << " (" << node_p->get_op_name() << ") \
+                //LOG(ERROR) << "node: " << node_p->name() << " (" << node_p->get_op_name() << ") \
                     key : " << key << " value_type: " << value.type();
             }
         }

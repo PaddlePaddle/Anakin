@@ -58,7 +58,6 @@ TEST(NetTest, net_execute_base_test) {
     // constructs the executer net
     Net<X86, Precision::FP32> net_executer(true);
 
-    net_executer.load_calibrator_config("net_pt_config.txt","cal_file");
     net_executer.init(*graph);
     // get in
     auto d_image = net_executer.get_in("input_0");

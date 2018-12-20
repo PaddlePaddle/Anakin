@@ -59,7 +59,6 @@ TEST(NetTest, net_execute_base_test) {
     Net<NV, Precision::FP32> net_executer(true);
 #endif
 
-    net_executer.load_calibrator_config("net_pt_config.txt", "cal_file.txt");
     net_executer.init(*graph);
     // get in
     auto d_tensor_in_p = net_executer.get_in("input_0");
@@ -234,7 +233,6 @@ TEST(NetTest, net_execute_reconstruction_test) {
 
     // constructs the executer net
     Net<NV, Precision::FP32> net_executer(true);
-    net_executer.load_calibrator_config("net_pt_config.txt", "cal_file.txt");
     net_executer.init(*graph);
     // get in
     auto d_tensor_in_p = net_executer.get_in("input_0");

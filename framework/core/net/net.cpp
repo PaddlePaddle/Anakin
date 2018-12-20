@@ -50,8 +50,10 @@ load_calibrator_config(graph::Graph<Ttype, Ptype>& graph){
     _graph_p -> Scanner -> BFS(load_node_precision);
     //load edge scale
     auto load_edge_scale = [&, this](graph::Edge<Ttype>& edge){
-        float scale = edge.weight() -> get_scale()[0];
-        _calibrator_parser.set_scale(edge.name(), scale);
+        if (edge.scale().size() > 0){
+            float scale = edge.scale()[0];
+            _calibrator_parser.set_scale(edge.name(), scale);
+        }
     };
     _graph_p -> Scanner -> BFS_Edge(load_edge_scale);
 }
@@ -64,17 +66,11 @@ void Net<Ttype, Ptype, RunType>::init(graph::Graph<Ttype, Ptype>& graph, \
     // shallow copy
     _graph_p->CopyFrom(graph);
     auto node_names_in_exec_order = graph.get_nodes_in_order();
-    //**generate net_pt_config.txt
-    std::vector<std::string> op_names;
-    for (auto& node_name : node_names_in_exec_order) {
-        auto node_ptr = (*_graph_p)[node_name];
-        op_names.push_back(node_ptr->get_op_name());
+    
+    if (!_has_loaded_config){
+        load_calibrator_config(graph);
     }
-#ifndef USE_SGX
-    //autogen config file
-    _calibrator_parser.auto_config(node_names_in_exec_order, op_names, _net_pt_config_name);
-    //_calibrator_parser.parse_from_file("net_config.txt", "cal_file");
-#endif
+
     // infer basic shape and parsing parameter from graph
     for (auto& node_name : node_names_in_exec_order) {
         auto node_ptr = (*_graph_p)[node_name];
@@ -108,9 +104,7 @@ void Net<Ttype, Ptype, RunType>::init(graph::Graph<Ttype, Ptype>& graph, \
 
     std::vector<std::string> tensor_names;
     std::vector<saber::LayoutType> layouts;
-#ifndef USE_SGX
-    _calibrator_parser.layout_parse("./layout_config.txt");
-#endif
+
     for (int i = 0; i < node_names_in_exec_order.size(); i++) {
         auto& node_name = node_names_in_exec_order[i];
         auto& op_func = _exec_funcs[i];
@@ -167,27 +161,11 @@ void Net<Ttype, Ptype, RunType>::init(graph::Graph<Ttype, Ptype>& graph) {
     double curr_mem_in_mb_start = MemoryInfo<Ttype>::Global().get_used_mem_in_mb();
 
     auto node_names_in_exec_order = graph.get_nodes_in_order();
-    /*brief: generate net_pt_config file
-    // 1. if _net_pt_config_name not set in user file, default set "net_pt_config.txt"
-    // 2. if file(_net_pt_config_name) exists, will not create
-    // 3. if file(_net_pt_config_name) not exists, create it with default config
-    */
-    std::vector<std::string> op_names;
-    for (auto& node_name : node_names_in_exec_order) {
-        auto node_ptr = (*_graph_p)[node_name];
-        op_names.push_back(node_ptr->get_op_name());
-    }
-#ifndef USE_SGX
-    _calibrator_parser.auto_config(node_names_in_exec_order,  op_names, _net_pt_config_name);
-    /*brief: load calibrator config
-    // 1. if already loaded config from file, it has highest level, we skip graph config
-    // 2. if not loaded from file, try to load config from graph
-    // 3. if graph has no config info, do nothing and set default config  
-    */
-    if (!_has_loaded_config){
+    
+    if (_has_loaded_config){
         load_calibrator_config(graph);
     }
-#endif
+    
     // infer basic shape and parsing parameter from graph
     for (auto& node_name : node_names_in_exec_order) {
         auto node_ptr = (*_graph_p)[node_name];
