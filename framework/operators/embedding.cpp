@@ -96,6 +96,9 @@ ANAKIN_REGISTER_OP(Embedding)
 #ifdef USE_X86_PLACE
 .__alias__<X86, Precision::FP32>("embedding")
 #endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("embedding")
+#endif
 .num_in(1)
 .num_out(1)
 .Args<int>("word_num", "word_num")

@@ -90,6 +90,9 @@ ANAKIN_REGISTER_OP(Im2Sequence)
 #ifdef USE_ARM_PLACE
     .__alias__<ARM, Precision::FP32>("im2sequence")
 #endif
+#ifdef AMD_GPU
+    .__alias__<AMD, Precision::FP32>("im2sequence")
+#endif
     .num_in(1)
     .num_out(1)
     .Args<PTuple<int>>("paddings", " paddings for im2sequence.")

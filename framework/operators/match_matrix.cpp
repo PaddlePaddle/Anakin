@@ -93,6 +93,9 @@ ANAKIN_REGISTER_OP(MatchMatrix)
 #ifdef USE_X86_PLACE
 .__alias__<X86, Precision::FP32>("match_matrix")
 #endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("match_matrix")
+#endif
 .num_in(2)
 .num_out(1)
 .Args<int>("dim_in", " dims of input embedding ")

@@ -122,6 +122,9 @@ ANAKIN_REGISTER_OP(Gru)
 #ifdef USE_X86_PLACE
 .__alias__<X86, Precision::FP32>("gru")
 #endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("gru")
+#endif
 .num_in(1)
 .num_out(1)
 .Args<bool>("is_reverse", " is_reverse for gru.")

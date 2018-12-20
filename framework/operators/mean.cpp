@@ -84,6 +84,9 @@ ANAKIN_REGISTER_OP(Mean)
 #ifdef USE_X86_PLACE
 .__alias__<X86, Precision::FP32>("mean")
 #endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("mean")
+#endif
 .num_in(1)
 .num_out(1)
 .Args<int>("groups", " split tensor's channel by size groups. ");

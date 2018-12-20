@@ -76,6 +76,9 @@ ANAKIN_REGISTER_OP(Concat)
 #if defined USE_X86_PLACE || defined BUILD_LITE
 .__alias__<X86, Precision::FP32>("concat")
 #endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("concat")
+#endif
 .num_in(2)
 .num_out(1)
 .Args<int>("axis", " axis for concat the input ");

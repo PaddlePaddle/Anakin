@@ -97,6 +97,9 @@ ANAKIN_REGISTER_OP(Resize)
 #if defined USE_X86_PLACE || defined BUILD_LITE
 .__alias__<X86, Precision::FP32>("Resize")
 #endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("Resize")
+#endif
 .num_in(1)
 .num_out(1)
 .Args<std::string>("method", "resize type to be applied (BILINEAR_ALIGN, BILINEAR_NO_ALIGN, RESIZE_CUSTOM).")

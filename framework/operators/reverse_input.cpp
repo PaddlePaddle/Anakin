@@ -77,6 +77,9 @@ ANAKIN_REGISTER_OP(ReverseInput)
 #ifdef USE_X86_PLACE
 .__alias__<X86, Precision::FP32>("reverse_input")
 #endif
+#ifdef USE_GPU
+.__alias__<AMD, Precision::FP32>("reverse_input")
+#endif
 .num_in(1)
 .num_out(1);
 

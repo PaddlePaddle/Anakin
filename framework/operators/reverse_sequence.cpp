@@ -77,6 +77,9 @@ ANAKIN_REGISTER_OP(ReverseSequence)
 #ifdef USE_X86_PLACE
 .__alias__<X86, Precision::FP32>("reverse_sequence")
 #endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("reverse_sequence")
+#endif
 .num_in(1)
 .num_out(1);
 

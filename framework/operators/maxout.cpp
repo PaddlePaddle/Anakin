@@ -85,6 +85,9 @@ ANAKIN_REGISTER_OP(MaxOut)
 #ifdef USE_X86_PLACE
 .__alias__<X86, Precision::FP32>("maxout")
 #endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("maxout")
+#endif
 .num_in(1)
 .num_out(1)
 .Args<int>("groups", " split tensor's channel by size groups. ");

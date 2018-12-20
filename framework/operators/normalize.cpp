@@ -109,6 +109,9 @@ ANAKIN_REGISTER_OP(Normalize)
 #ifdef USE_ARM_PLACE
     .__alias__<ARM, Precision::FP32>("normalize")
 #endif
+#ifdef AMD_GPU
+    .__alias__<AMD, Precision::FP32>("normalize")
+#endif
     .num_in(1)
     .num_out(1)
     .Args<bool>("is_across_spatial", "")

@@ -64,6 +64,9 @@ ANAKIN_REGISTER_OP(Output)
 #if defined USE_X86_PLACE || defined BUILD_LITE
 .__alias__<X86, Precision::FP32>("output")
 #endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("output")
+#endif
 .Doc("Output operator [ only a input data holder and reshape ] ");
 
 } /* namespace ops */

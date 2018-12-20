@@ -133,6 +133,9 @@ ANAKIN_REGISTER_OP(SequenceConv)
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("SequenceConv")
 #endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("SequenceConv")
+#endif
 .num_in(1)
 .num_out(1)
 .Args<int>("axis", " axis ");

@@ -80,12 +80,14 @@ INSTANCE_ELTWISERELU(NV, Precision::FP32)
 template class EltwiseReluHelper<NV, Precision::FP32>;
 template class EltwiseReluHelper<NV, Precision::FP16>;
 template class EltwiseReluHelper<NV, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, NV, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE
 template class EltwiseReluHelper<ARM, Precision::FP32>;
 template class EltwiseReluHelper<ARM, Precision::FP16>;
 template class EltwiseReluHelper<ARM, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, ARM, Precision::FP32);
 #endif
 
 #ifdef BUILD_LITE
@@ -93,6 +95,7 @@ INSTANCE_ELTWISERELU(X86, Precision::FP32)
 template class EltwiseReluHelper<X86, Precision::FP32>;
 template class EltwiseReluHelper<X86, Precision::FP16>;
 template class EltwiseReluHelper<X86, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, X86, Precision::FP32);
 #endif
 // register helper
 
@@ -101,17 +104,12 @@ INSTANCE_ELTWISERELU(X86, Precision::FP32);
 ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, X86, Precision::FP32);
 #endif
 
-#ifdef USE_CUDA
-ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, NV, Precision::FP32);
+#ifdef AMD_GPU
+INSTANCE_ELTWISERELU(AMD, Precision::FP32)
+template class EltwiseReluHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, AMD, Precision::FP32);
 #endif
 
-#ifdef USE_ARM_PLACE
-ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, ARM, Precision::FP32);
-#endif
-
-#ifdef BUILD_LITE
-ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, X86, Precision::FP32);
-#endif
 //! register op
 ANAKIN_REGISTER_OP(EltwiseRelu)
 .Doc("EltwiseRelu operator")
@@ -123,6 +121,9 @@ ANAKIN_REGISTER_OP(EltwiseRelu)
 #endif
 #ifdef BUILD_LITE
 .__alias__<X86, Precision::FP32>("eltwise")
+#endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("eltwise")
 #endif
 .num_in(1)
 .num_out(1)

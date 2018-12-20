@@ -96,6 +96,9 @@ ANAKIN_REGISTER_OP(SequencePool)
 #ifdef USE_X86_PLACE
 .__alias__<X86, Precision::FP32>("SequencePool")
 #endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("SequencePool")
+#endif
 .num_in(1)
 .num_out(1)
 .Args<std::string>("pooltype", " pooltype to compute ");

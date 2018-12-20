@@ -108,6 +108,9 @@ ANAKIN_REGISTER_OP(Argmax)
 #if defined USE_X86_PLACE || defined BUILD_LITE
 .__alias__<X86, Precision::FP32>("Argmax")
 #endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("Argmax")
+#endif
 .num_in(1)
 .num_out(1)
 .Args<bool>("out_max_val", " out_max_val for argmax ")
