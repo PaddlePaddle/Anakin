@@ -254,7 +254,7 @@ Graph<Ttype, Ptype>::get_scale_map(){
     auto get_scale = [&, this](NodePtr& node_p){
         auto& arc_its = this->get_in_arc_its(node_p->name());
         for (auto arc : arc_its){
-            std::string edge_s = arc -> first() + "-" + arc -> second();
+            std::string edge_s = arc -> name();
             std::vector<float> scales = arc -> scale();
             scale_map[edge_s] = scales;
         }
@@ -263,6 +263,22 @@ Graph<Ttype, Ptype>::get_scale_map(){
     this->Scanner->BFS(get_scale);
     return scale_map;
 
+}
+template <typename Ttype, Precision Ptype>
+void Graph<Ttype, Ptype>::load_calibrator_config(
+    std::string config_file, std::string cal_file){
+    CalibratorParser cal_parser;
+    cal_parser.parse_from_file(config_file, cal_file);
+
+    auto set_node_info = [&](NodePtr& node_p){
+        node_p->set_bit_type(cal_parser.get_dtype_of_precision(node_p->name()));
+    };
+    this->Scanner->BFS(set_node_info);
+
+    auto set_edge_scale = [&](Edge<Ttype>& edge){
+        edge.set_scale({cal_parser.get_calibrator(edge.name())});
+    };
+    this->Scanner->BFS_Edge(set_edge_scale); 
 }
 
 template<typename Ttype, Precision Ptype>
@@ -389,7 +405,7 @@ Status Graph<Ttype, Ptype>::restore_from_vgraph(VGraph* vgraph) {
 
     //recover scales to edge
     auto recover_scale = [&, this](Edge<Ttype>& edge){
-        std::string edge_name = edge.first() + "-" + edge.second();
+        std::string edge_name = edge.name();
         std::string old_name = vgraph -> get_fusion_old_edge(edge_name);
         if (old_name != ""){
             edge_name = old_name;

@@ -253,7 +253,6 @@ void test_accuracy(std::string model_path,
     graph->Optimize();
 
     Net<Ttype, Ptype> net_executer(true);
-    net_executer.load_calibrator_config("net_pt_config.txt", "./calibrator.txt");
     net_executer.init(*graph);
     
 

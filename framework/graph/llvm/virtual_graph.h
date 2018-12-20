@@ -188,7 +188,7 @@ public:
         if (_fusion_edge_map.count(new_e) > 0){
             return _fusion_edge_map[new_e];
         } else {
-            LOG(ERROR) << "fusion map has no key: " << new_e;
+            //LOG(ERROR) << "fusion map has no key: " << new_e;
             return "";
         }
     }

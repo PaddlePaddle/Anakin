@@ -1,0 +1,58 @@
+--- xbyak/include/xbyak/xbyak.h.orig	2018-12-02 18:38:55.000000000 -0800
++++ xbyak/include/xbyak/xbyak.h	2018-12-02 18:41:42.723710779 -0800
+@@ -27,9 +27,7 @@
+ // #define XBYAK_DISABLE_AVX512
+ 
+ //#define XBYAK_USE_MMAP_ALLOCATOR
+-#if !defined(__GNUC__) || defined(__MINGW32__)
+-	#undef XBYAK_USE_MMAP_ALLOCATOR
+-#endif
++#undef XBYAK_USE_MMAP_ALLOCATOR
+ 
+ #ifdef __GNUC__
+ 	#define XBYAK_GNUC_PREREQ(major, minor) ((__GNUC__) * 100 + (__GNUC_MINOR__) >= (major) * 100 + (minor))
+@@ -69,7 +67,6 @@
+ 	#include <malloc.h>
+ #elif defined(__GNUC__)
+ 	#include <unistd.h>
+-	#include <sys/mman.h>
+ 	#include <stdlib.h>
+ #endif
+ #if !defined(_MSC_VER) || (_MSC_VER >= 1600)
+@@ -970,35 +967,7 @@
+ 	*/
+ 	static inline bool protect(const void *addr, size_t size, int protectMode)
+ 	{
+-#if defined(_WIN32)
+-		const DWORD c_rw = PAGE_READWRITE;
+-		const DWORD c_rwe = PAGE_EXECUTE_READWRITE;
+-		const DWORD c_re = PAGE_EXECUTE_READ;
+-		DWORD mode;
+-#else
+-		const int c_rw = PROT_READ | PROT_WRITE;
+-		const int c_rwe = PROT_READ | PROT_WRITE | PROT_EXEC;
+-		const int c_re = PROT_READ | PROT_EXEC;
+-		int mode;
+-#endif
+-		switch (protectMode) {
+-		case PROTECT_RW: mode = c_rw; break;
+-		case PROTECT_RWE: mode = c_rwe; break;
+-		case PROTECT_RE: mode = c_re; break;
+-		default:
+-			return false;
+-		}
+-#if defined(_WIN32)
+-		DWORD oldProtect;
+-		return VirtualProtect(const_cast<void*>(addr), size, mode, &oldProtect) != 0;
+-#elif defined(__GNUC__)
+-		size_t pageSize = sysconf(_SC_PAGESIZE);
+-		size_t iaddr = reinterpret_cast<size_t>(addr);
+-		size_t roundAddr = iaddr & ~(pageSize - static_cast<size_t>(1));
+-		return mprotect(reinterpret_cast<void*>(roundAddr), size + (iaddr - roundAddr), mode) == 0;
+-#else
+-		return true;
+-#endif
++		return false;
+ 	}
+ 	/**
+ 		get aligned memory pointer

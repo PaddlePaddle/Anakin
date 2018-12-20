@@ -447,7 +447,6 @@ TEST(NetTest, net_execute_base_test) {
     Net<NV, Precision::FP32> net_executer(true);
 #endif
 
-    net_executer.load_calibrator_config("net_pt_config.txt", "cal_file");
 	net_executer.init(*graph);
 
     int epoch = 1;

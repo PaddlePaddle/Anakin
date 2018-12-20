@@ -85,8 +85,8 @@ std::unordered_map<Fusion, std::function<int(VGraph*, Pattern*)>, FusionHash> Fu
                         io_tmp.name = arc.name();
                         vgraph->add_out_arc(arc);
                         //here,we record the map from origin edge to new edge after fusion
-                        std::string old_e = old_bottom + "-" + pattern_tops[tops_idx];
-                        std::string new_e = node_merge.name + "-" + pattern_tops[tops_idx];
+                        std::string old_e = old_bottom + "_" + pattern_tops[tops_idx];
+                        std::string new_e = node_merge.name + "_" + pattern_tops[tops_idx];
                         vgraph->add_fusion_edge_map(new_e, old_e);
                     }
 

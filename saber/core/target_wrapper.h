@@ -18,9 +18,6 @@
 #include "saber/core/target_traits.h"
 #include "saber/core/data_traits.h"
 #include <memory>
-#ifdef AMD_GPU
-#include "saber/core/impl/amd/utils/amd_common.h"
-#endif
 
 namespace anakin{
 
@@ -467,8 +464,8 @@ struct TargetWrapper<AMD, __device_target> {
 
     typedef typename DataTraitBase<AMD>::PtrDtype TPtr;
 
-    typedef AMDEvent_t event_t;
-    typedef AMDStream_t stream_t;
+    typedef cl_event event_t;
+    typedef cl_command_queue stream_t;
 
     static void get_device_count(int& count);
 
@@ -499,7 +496,7 @@ struct TargetWrapper<AMD, __device_target> {
 
     static void destroy_event(event_t event);
 
-    static void record_event(event_t& event, stream_t stream);
+    static void record_event(event_t event, stream_t stream);
 
     static void query_event(event_t event);
 
@@ -566,15 +563,15 @@ struct TargetWrapper<AMD, __device_target> {
     //static cl_platform_id platform_id;
     //static cl_uint device_nums;
     static int current_device_id_index;
-    static std::map<void *, TPtr> buffers;
+    static std::map<void *, cl_mem> buffers;
     //static cl_context* contexts;
 
 };
 
 template <>
 struct TargetWrapper<AMDHX86, __host_target> {
-    typedef AMDEvent_t event_t;
-    typedef AMDStream_t stream_t;
+    typedef cl_event event_t;
+    typedef cl_command_queue stream_t;
 
     static void get_device_count(int& count);
 
@@ -590,7 +587,7 @@ struct TargetWrapper<AMDHX86, __host_target> {
 
     static void destroy_event(event_t event);
 
-    static void record_event(event_t& event, stream_t stream);
+    static void record_event(event_t event, stream_t stream);
 
     static void create_stream(stream_t* stream);
 

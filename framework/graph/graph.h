@@ -22,6 +22,7 @@
 #include "framework/graph/llvm/virtual_graph.h"
 #include "framework/core/thread_safe_macros.h"
 #include "framework/graph/graph_global_mem.h"
+#include "framework/core/net/calibrator_parse.h"
 
 namespace anakin {
 
@@ -76,6 +77,7 @@ public:
     Status save(const char*  model_path);
 
     Status load(const char* buffer, size_t len);
+    void load_calibrator_config(std::string, std::string);
 
     /// Get nodes in execution oroder.
     std::vector<std::string>& get_nodes_in_order();

@@ -288,6 +288,7 @@ public:
 
     /// get bit type
     DataType& bit_type() { return _bit_type; }
+    void set_bit_type(DataType dtype){_bit_type = dtype;}
 
     /// get op name
     std::string& get_op_name() { return _op_name; }
