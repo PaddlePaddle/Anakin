@@ -55,6 +55,7 @@ SaberStatus SaberConv2D<AMD, OpDtype>::create(
     ConvParam<AMD>& param,
     Context<AMD>& ctx) {
     LOG_IF_S(INFO, ENABLE_AMD_DEBUG_LOG) << "create";
+
     this->_ctx = &ctx;
     KernelInfo kernelInfo;
     AMDKernelPtr kptr;
@@ -216,6 +217,7 @@ SaberStatus SaberConv2D<AMD, OpDtype>::create(
                     kernelInfo.wk_dim      = 3;
                 } else if (kernelInfo.kernel_name == "ConvFwd1x1") {
                     int slot_size = 1;
+                    kernelInfo.kernel_type = MIOPEN;
 
                     if (inputs[0]->num() == 1) {
                         if (inputs[0]->height() == 7 || (inputs[0]->height() == 14 && inputs[0]->channel() == 1024)) {
