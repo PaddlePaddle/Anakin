@@ -51,28 +51,29 @@ INSTANCE_MAXOUT(NV, Precision::FP32);
 template class MaxOutHelper<NV, Precision::FP32>;
 template class MaxOutHelper<NV, Precision::FP16>;
 template class MaxOutHelper<NV, Precision::INT8>;
-ANAKIN_REGISTER_OP_HELPER(MaxOut, MaxOutHelper, NV, Precision::FP32);
 #endif
 #ifdef USE_ARM_PLACE
 INSTANCE_MAXOUT(ARM, Precision::FP32);
 template class MaxOutHelper<ARM, Precision::FP32>;
 template class MaxOutHelper<ARM, Precision::FP16>;
 template class MaxOutHelper<ARM, Precision::INT8>;
-ANAKIN_REGISTER_OP_HELPER(MaxOut, MaxOutHelper, ARM, Precision::FP32);
 #endif
 #ifdef USE_X86_PLACE
 INSTANCE_MAXOUT(X86, Precision::FP32);
 template class MaxOutHelper<X86, Precision::FP32>;
 template class MaxOutHelper<X86, Precision::FP16>;
 template class MaxOutHelper<X86, Precision::INT8>;
+#endif
+// register helper
+#ifdef USE_CUDA
+ANAKIN_REGISTER_OP_HELPER(MaxOut, MaxOutHelper, NV, Precision::FP32);
+#endif
+#ifdef USE_ARM_PLACE
+ANAKIN_REGISTER_OP_HELPER(MaxOut, MaxOutHelper, ARM, Precision::FP32);
+#endif
+#ifdef USE_X86_PLACE
 ANAKIN_REGISTER_OP_HELPER(MaxOut, MaxOutHelper, X86, Precision::FP32);
 #endif
-#ifdef AMD_GPU
-INSTANCE_MAXOUT(AMD, Precision::FP32);
-template class MaxOutHelper<AMD, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(MaxOut, MaxOutHelper, AMD, Precision::FP32);
-#endif
-
 //! register op
 ANAKIN_REGISTER_OP(MaxOut)
 .Doc("MaxOut operator")

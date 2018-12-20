@@ -59,13 +59,6 @@ INSTANCE_SEQUENCE_POOL(NV, Precision::FP32);
 template class SequencePoolHelper<NV, Precision::FP32>;
 template class SequencePoolHelper<NV, Precision::FP16>;
 template class SequencePoolHelper<NV, Precision::INT8>;
-ANAKIN_REGISTER_OP_HELPER(SequencePool, SequencePoolHelper, NV, Precision::FP32);
-#endif
-
-#ifdef AMD_GPU
-INSTANCE_SEQUENCE_POOL(NV, Precision::FP32);
-template class SequencePoolHelper<NV, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(SequencePool, SequencePoolHelper, AMD, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE
@@ -73,7 +66,6 @@ INSTANCE_SEQUENCE_POOL(ARM, Precision::FP32);
 template class SequencePoolHelper<ARM, Precision::FP32>;
 template class SequencePoolHelper<ARM, Precision::FP16>;
 template class SequencePoolHelper<ARM, Precision::INT8>;
-ANAKIN_REGISTER_OP_HELPER(SequencePool, SequencePoolHelper, ARM, Precision::FP32);
 #endif
 
 #ifdef USE_X86_PLACE
@@ -81,6 +73,18 @@ INSTANCE_SEQUENCE_POOL(X86, Precision::FP32);
 template class SequencePoolHelper<X86, Precision::FP32>;
 template class SequencePoolHelper<X86, Precision::FP16>;
 template class SequencePoolHelper<X86, Precision::INT8>;
+#endif
+
+// register helper
+#ifdef USE_CUDA
+ANAKIN_REGISTER_OP_HELPER(SequencePool, SequencePoolHelper, NV, Precision::FP32);
+#endif
+
+#ifdef USE_ARM_PLACE
+ANAKIN_REGISTER_OP_HELPER(SequencePool, SequencePoolHelper, ARM, Precision::FP32);
+#endif
+
+#ifdef USE_X86_PLACE
 ANAKIN_REGISTER_OP_HELPER(SequencePool, SequencePoolHelper, X86, Precision::FP32);
 #endif
 

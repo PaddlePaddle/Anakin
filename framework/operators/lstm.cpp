@@ -80,18 +80,11 @@ Status LstmHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype>
     return Status::OK();
 }
 
-#ifdef AMD_GPU
-INSTANCE_LSTM(AMD, Precision::FP32);
-template class LstmHelper<AMD, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(Lstm, LstmHelper, AMD, Precision::FP32);
-#endif
-
 #ifdef USE_CUDA
 INSTANCE_LSTM(NV, Precision::FP32);
 template class LstmHelper<NV, Precision::FP32>;
 template class LstmHelper<NV, Precision::FP16>;
 template class LstmHelper<NV, Precision::INT8>;
-ANAKIN_REGISTER_OP_HELPER(Lstm, LstmHelper, NV, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE
@@ -99,7 +92,6 @@ INSTANCE_LSTM(ARM, Precision::FP32);
 template class LstmHelper<ARM, Precision::FP32>;
 template class LstmHelper<ARM, Precision::FP16>;
 template class LstmHelper<ARM, Precision::INT8>;
-ANAKIN_REGISTER_OP_HELPER(Lstm, LstmHelper, ARM, Precision::FP32);
 #endif
 
 #ifdef USE_X86_PLACE
@@ -107,9 +99,17 @@ INSTANCE_LSTM(X86, Precision::FP32);
 template class LstmHelper<X86, Precision::FP32>;
 template class LstmHelper<X86, Precision::FP16>;
 template class LstmHelper<X86, Precision::INT8>;
-ANAKIN_REGISTER_OP_HELPER(Lstm, LstmHelper, X86, Precision::FP32);
 #endif
 
+#ifdef USE_CUDA
+ANAKIN_REGISTER_OP_HELPER(Lstm, LstmHelper, NV, Precision::FP32);
+#endif
+#ifdef USE_ARM_PLACE
+ANAKIN_REGISTER_OP_HELPER(Lstm, LstmHelper, ARM, Precision::FP32);
+#endif
+#ifdef USE_X86_PLACE
+ANAKIN_REGISTER_OP_HELPER(Lstm, LstmHelper, X86, Precision::FP32);
+#endif
 //! register op
 ANAKIN_REGISTER_OP(Lstm)
     .Doc("Lstm operator")

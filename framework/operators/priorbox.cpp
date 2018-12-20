@@ -93,12 +93,6 @@ template class PriorBoxHelper<NV, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(PriorBox, PriorBoxHelper, NV, Precision::FP32);
 #endif
 
-#ifdef AMD_GPU
-INSTANCE_PRIORBOX(AMD, Precision::FP32);
-template class PriorBoxHelper<AMD, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(PriorBox, PriorBoxHelper, AMD, Precision::FP32);
-#endif
-
 #ifdef USE_ARM_PLACE
 INSTANCE_PRIORBOX(ARM, Precision::FP32);
 template class PriorBoxHelper<ARM, Precision::FP32>;

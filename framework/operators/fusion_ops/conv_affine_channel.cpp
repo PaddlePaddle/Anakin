@@ -187,6 +187,13 @@ template class ConvAffineChannelHelper<X86, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ConvAffineChannel, ConvAffineChannelHelper, X86, Precision::FP32);
 #endif
 
+//#ifdef USE_X86_PLACE
+//INSTANCE_CONVBATCHNORMAFFINE_CHANNEL(X86, Precision::FP32);
+//template class ConvAffineChannelHelper<X86, Precision::FP32>;
+//ANAKIN_REGISTER_OP_HELPER(ConvAffineChannel, ConvAffineChannelHelper, X86, 
+//                          Precision::FP32);
+//#endif
+
 //! register op
 ANAKIN_REGISTER_OP(ConvAffineChannel)
 .Doc("ConvAffineChannel fusion operator")

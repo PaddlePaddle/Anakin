@@ -59,12 +59,6 @@ Status NormalizeHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<T
    return Status::OK();
 }
 
-#ifdef AMD_GPU
-INSTANCE_NORMALIZE(AMD, Precision::FP32);
-template class NormalizeHelper<AMD, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(Normalize, NormalizeHelper, AMD, Precision::FP32);
-#endif
-
 #ifdef USE_CUDA
 INSTANCE_NORMALIZE(NV, Precision::FP32);
 template class NormalizeHelper<NV, Precision::FP32>;

@@ -1,17 +1,3 @@
-/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-*/
 #include <string>
 #include "net_test.h"
 #include "saber/funcs/timer.h"
@@ -31,14 +17,13 @@
 #if  defined(NVIDIA_GPU)
 using Target = NV;
 using Target_H = NVHX86;
-#elif defined(USE_X86_PLACE)
+#else if  defined(USE_X86_PLACE)
 using Target = X86;
 using Target_H = X86;
 #include "mkl_service.h"
-#elif defined(AMD_GPU)
-using Target = AMD;
-using Target_H = AMDHX86;
 #endif
+
+
 
 std::string FLAGS_data_file;
 std::string FLAGS_model_file;
@@ -285,7 +270,7 @@ void one_thread_run(std::string path, int thread_id) {
         h_tensor_in_1->reshape(Shape({week_fea.size(), 10, 1, 1}));
         h_tensor_in_2->reshape(Shape({time_fea.size(), 10, 1, 1}));
         h_tensor_in_0->set_seq_offset({seq_offset});
-#if defined(USE_CUDA) || defined(AMD_GPU)
+#ifdef USE_CUDA
         Tensor4d<Target_H> h_tensor_0;
         Tensor4d<Target_H> h_tensor_1;
         Tensor4d<Target_H> h_tensor_2;
@@ -329,13 +314,9 @@ void one_thread_run(std::string path, int thread_id) {
 #endif
 
         net_executer.prediction();
-#if defined(USE_CUDA) || defined(AMD_GPU)
-#ifdef AMD_GPU
-        clFinish(ctx.get_compute_stream());
-#else
+#ifdef USE_CUDA
         cudaDeviceSynchronize();
-#endif
-        auto dev_out = net_executer.get_out("final_output.tmp_1_gout");
+        auto dev_out=net_executer.get_out("final_output.tmp_1_gout");
         Tensor<Target_H> out(dev_out->valid_shape());
         out.copy_from(*dev_out);
         int size = out.valid_size();
@@ -350,9 +331,8 @@ void one_thread_run(std::string path, int thread_id) {
 
             printf("%f\n", static_cast<float*>(out.data())[seq_start + seq_len - 1]);
         }
-
 #else
-        auto out = net_executer.get_out("final_output.tmp_1_gout");
+        auto out =net_executer.get_out("final_output.tmp_1_gout");
         int size = out->valid_size();
 
         for (int seq_id = 0; seq_id < seq_offset.size() - 1; seq_id++) {
@@ -365,7 +345,6 @@ void one_thread_run(std::string path, int thread_id) {
 
             printf("%f\n", static_cast<float*>(out->data())[seq_start + seq_len - 1]);
         }
-
 #endif
 
 
@@ -453,3 +432,4 @@ int main(int argc, const char** argv) {
     RUN_ALL_TESTS(argv[0]);
     return 0;
 }
+

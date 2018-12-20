@@ -52,12 +52,6 @@ template class LayerNormHelper<NV, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(LayerNorm, LayerNormHelper, NV, Precision::FP32);
 #endif
 
-#ifdef AMD_GPU
-INSTANCE_LAYER_NORM(AMD, Precision::FP32);
-template class LayerNormHelper<AMD, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(LayerNorm, LayerNormHelper, AMD, Precision::FP32);
-#endif
-
 #ifdef USE_X86_PLACE
 INSTANCE_LAYER_NORM(X86, Precision::FP32);
 template class LayerNormHelper<X86, Precision::FP32>;

@@ -104,11 +104,6 @@ template class GruHelper<X86, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(Gru, GruHelper, X86, Precision::FP32);
 #endif
 
-#ifdef AMD_GPU
-INSTANCE_GRU(AMD, Precision::FP32);
-template class GruHelper<AMD, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(Gru, GruHelper, AMD, Precision::FP32);
-#endif
 
 //! register op
 ANAKIN_REGISTER_OP(Gru)

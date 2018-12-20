@@ -58,12 +58,6 @@ template class CtcAlignHelper<NV, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(CtcAlign, CtcAlignHelper, NV, Precision::FP32);
 #endif
 
-#ifdef AMD_GPU
-INSTANCE_CTC_ALIGN(AMD, Precision::FP32);
-template class CtcAlignHelper<AMD, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(CtcAlign, CtcAlignHelper, AMD, Precision::FP32);
-#endif
-
 #ifdef USE_ARM_PLACE
 INSTANCE_CTC_ALIGN(ARM, Precision::FP32);
 template class CtcAlignHelper<ARM, Precision::FP32>;

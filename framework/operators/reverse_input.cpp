@@ -47,12 +47,6 @@ template class ReverseInputHelper<NV, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ReverseInput, ReverseInputHelper, NV, Precision::FP32);
 #endif
 
-#ifdef AMD_GPU
-INSTANCE_REVERSE_INPUT(AMD, Precision::FP32);
-template class ReverseInputHelper<AMD, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(ReverseInput, ReverseInputHelper, AMD, Precision::FP32);
-#endif
-
 #ifdef USE_ARM_PLACE
 INSTANCE_REVERSE_INPUT(ARM, Precision::FP32);
 template class ReverseInputHelper<ARM, Precision::FP32>;

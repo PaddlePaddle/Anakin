@@ -44,11 +44,7 @@ INSTANCE_FLATTEN(NV, Precision::FP32);
 template class FlattenHelper<NV, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Flatten, FlattenHelper, NV, Precision::FP32);
 #endif
-#ifdef AMD_GPU
-INSTANCE_FLATTEN(AMD, Precision::FP32);
-template class FlattenHelper<AMD, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(Flatten, FlattenHelper, AMD, Precision::FP32);
-#endif
+
 #if defined USE_X86_PLACE || defined BUILD_LITE
 INSTANCE_FLATTEN(X86, Precision::FP32);
 template class FlattenHelper<X86, Precision::FP32>;

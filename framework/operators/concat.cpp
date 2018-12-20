@@ -46,12 +46,6 @@ template class ConcatHelper<NV, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Concat, ConcatHelper, NV, Precision::FP32);
 #endif
 
-#ifdef AMD_GPU
-INSTANCE_CONCAT(AMD, Precision::FP32);
-template class ConcatHelper<AMD, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(Concat, ConcatHelper, AMD, Precision::FP32);
-#endif
-
 #ifdef USE_ARM_PLACE
 INSTANCE_CONCAT(ARM, Precision::FP32);
 template class ConcatHelper<ARM, Precision::FP32>;

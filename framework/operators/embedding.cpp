@@ -64,11 +64,6 @@ template class EmbeddingHelper<NV, Precision::FP16>;
 template class EmbeddingHelper<NV, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(Embedding, EmbeddingHelper, NV, Precision::FP32);
 #endif
-#ifdef AMD_GPU
-INSTANCE_EMBEDDING(AMD, Precision::FP32);
-template class EmbeddingHelper<AMD, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(Embedding, EmbeddingHelper, AMD, Precision::FP32);
-#endif
 #ifdef USE_ARM_PLACE
 INSTANCE_EMBEDDING(ARM, Precision::FP32);
 template class EmbeddingHelper<ARM, Precision::FP32>;

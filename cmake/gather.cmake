@@ -28,14 +28,13 @@ if(USE_BM_PLACE)
     anakin_find_bmlib()
 endif()
 
-# find openssl
-if(USE_OPENSSL)
-    anakin_find_openssl()
-endif()
-
-# find openssl
-if(USE_OPENSSL)
-    anakin_find_openssl()
+# set amd opencl path
+if(AMD_GPU)
+    amd_build_cl_file("${CMAKE_SOURCE_DIR}/saber/funcs/impl/amd/cl" "${CMAKE_BINARY_DIR}/cl/amd")
+    amd_build_cl_binary_file("${CMAKE_SOURCE_DIR}/saber/funcs/impl/amd/lib" "${CMAKE_BINARY_DIR}/cl/amd")
+    amd_build_cl_file("${CMAKE_SOURCE_DIR}/saber/funcs/impl/amd/cl" "${PROJECT_SOURCE_DIR}/${AK_OUTPUT_PATH}/unit_test")
+    amd_build_cl_binary_file("${CMAKE_SOURCE_DIR}/saber/funcs/impl/amd/lib" "${PROJECT_SOURCE_DIR}/${AK_OUTPUT_PATH}/unit_test")
+    amd_build_cl_file("${CMAKE_SOURCE_DIR}/test/saber/amd" "${PROJECT_SOURCE_DIR}/${AK_OUTPUT_PATH}/unit_test")
 endif()
 
 # find opencl
@@ -111,9 +110,4 @@ endif()
 
 if(USE_SGX)
     anakin_find_sgx()
-endif()
-
-# find miopengemm
-if(USE_MIOPENGEMM)
-    anakin_find_miopengemm()
 endif()

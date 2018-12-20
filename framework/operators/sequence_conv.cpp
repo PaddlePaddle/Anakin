@@ -94,33 +94,35 @@ Status SequenceConvHelper<Ttype, Ptype>::InferShape(const
     SABER_CHECK(_funcs.compute_output_shape(ins, outs, _param));
     return Status::OK();
 }
-#ifdef AMD_GPU
-INSTANCE_SEQUENCE_CONV(AMD, Precision::FP32);
-template class SequenceConvHelper<AMD, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(SequenceConv, SequenceConvHelper, AMD, Precision::FP32);
-#endif
 #ifdef USE_X86_PLACE
 INSTANCE_SEQUENCE_CONV(X86, Precision::FP32);
 template class SequenceConvHelper<X86, Precision::FP32>;
 template class SequenceConvHelper<X86, Precision::FP16>;
 template class SequenceConvHelper<X86, Precision::INT8>;
-ANAKIN_REGISTER_OP_HELPER(SequenceConv, SequenceConvHelper, X86, Precision::FP32);
 #endif
 #ifdef USE_CUDA
 INSTANCE_SEQUENCE_CONV(NV, Precision::FP32);
 template class SequenceConvHelper<NV, Precision::FP32>;
 template class SequenceConvHelper<NV, Precision::FP16>;
 template class SequenceConvHelper<NV, Precision::INT8>;
-ANAKIN_REGISTER_OP_HELPER(SequenceConv, SequenceConvHelper, NV, Precision::FP32);
 #endif
 #ifdef USE_ARM_PLACE
 INSTANCE_SEQUENCE_CONV(ARM, Precision::FP32);
 template class SequenceConvHelper<ARM, Precision::FP32>;
 template class SequenceConvHelper<ARM, Precision::FP16>;
 template class SequenceConvHelper<ARM, Precision::INT8>;
-ANAKIN_REGISTER_OP_HELPER(SequenceConv, SequenceConvHelper, ARM, Precision::FP32);
+#endif
+// register helper
+#ifdef USE_X86_PLACE
+ANAKIN_REGISTER_OP_HELPER(SequenceConv, SequenceConvHelper, X86, Precision::FP32);
 #endif
 
+#ifdef USE_CUDA
+ANAKIN_REGISTER_OP_HELPER(SequenceConv, SequenceConvHelper, NV, Precision::FP32);
+#endif
+#ifdef USE_ARM_PLACE
+ANAKIN_REGISTER_OP_HELPER(SequenceConv, SequenceConvHelper, ARM, Precision::FP32);
+#endif
 //! register op
 ANAKIN_REGISTER_OP(SequenceConv)
 .Doc("SequenceConv operator")

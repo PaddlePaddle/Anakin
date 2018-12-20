@@ -76,19 +76,13 @@ Status AttensionLstmHelper<Ttype, Ptype>::InferShape(const
 
 #ifdef USE_CUDA
 INSTANCE_ATTENTION_LSTM(NV, Precision::FP32);
-ANAKIN_REGISTER_OP_HELPER(AttensionLstm, AttensionLstmHelper, NV, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(AttensionLstm, AttensionLstmHelper, NV,  Precision::FP32);
 #endif
 
 #ifdef USE_X86_PLACE
-INSTANCE_ATTENTION_LSTM(X86, Precision::FP32);
+INSTANCE_ATTENTION_LSTM(X86,  Precision::FP32);
 template class AttensionLstmHelper<X86,  Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(AttensionLstm, AttensionLstmHelper, X86, Precision::FP32);
-#endif
-
-#ifdef AMD_GPU
-INSTANCE_ATTENTION_LSTM(AMD, Precision::FP32);
-template class AttensionLstmHelper<AMD,  Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(AttensionLstm, AttensionLstmHelper, AMD, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(AttensionLstm, AttensionLstmHelper, X86,  Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE

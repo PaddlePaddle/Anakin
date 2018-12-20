@@ -109,12 +109,6 @@ template class DeconvolutionHelper<X86, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Deconvolution, DeconvolutionHelper, X86, Precision::FP32);
 #endif
 
-#ifdef AMD_GPU
-INSTANCE_DECONV(AMD, Precision::FP32);
-template class DeconvolutionHelper<AMD, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(Deconvolution, DeconvolutionHelper, AMD, Precision::FP32);
-#endif
-
 #ifdef USE_ARM_PLACE
 INSTANCE_DECONV(ARM, Precision::FP32);
 template class DeconvolutionHelper<ARM, Precision::FP32>;

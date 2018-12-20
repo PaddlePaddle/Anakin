@@ -45,33 +45,34 @@ Status MeanHelper<Ttype, Ptype>::InferShape(const
     return Status::OK();
 }
 
-#ifdef AMD_GPU
-INSTANCE_MEAN(AMD, Precision::FP32);
-template class MeanHelper<AMD, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(Mean, MeanHelper, AMD, Precision::FP32);
-#endif
 #ifdef USE_CUDA
 INSTANCE_MEAN(NV, Precision::FP32);
 template class MeanHelper<NV, Precision::FP32>;
 template class MeanHelper<NV, Precision::FP16>;
 template class MeanHelper<NV, Precision::INT8>;
-ANAKIN_REGISTER_OP_HELPER(Mean, MeanHelper, NV, Precision::FP32);
 #endif
 #ifdef USE_ARM_PLACE
 INSTANCE_MEAN(ARM, Precision::FP32);
 template class MeanHelper<ARM, Precision::FP32>;
 template class MeanHelper<ARM, Precision::FP16>;
 template class MeanHelper<ARM, Precision::INT8>;
-ANAKIN_REGISTER_OP_HELPER(Mean, MeanHelper, ARM, Precision::FP32);
 #endif
 #ifdef USE_X86_PLACE
 INSTANCE_MEAN(X86, Precision::FP32);
 template class MeanHelper<X86, Precision::FP32>;
 template class MeanHelper<X86, Precision::FP16>;
 template class MeanHelper<X86, Precision::INT8>;
+#endif
+// register helper
+#ifdef USE_CUDA
+ANAKIN_REGISTER_OP_HELPER(Mean, MeanHelper, NV, Precision::FP32);
+#endif
+#ifdef USE_ARM_PLACE
+ANAKIN_REGISTER_OP_HELPER(Mean, MeanHelper, ARM, Precision::FP32);
+#endif
+#ifdef USE_X86_PLACE
 ANAKIN_REGISTER_OP_HELPER(Mean, MeanHelper, X86, Precision::FP32);
 #endif
-
 //! register op
 ANAKIN_REGISTER_OP(Mean)
 .Doc("Mean operator")

@@ -60,26 +60,28 @@ INSTANCE_MATCH_MATRIX(NV, Precision::FP32);
 template class MatchMatrixHelper<NV, Precision::FP32>;
 template class MatchMatrixHelper<NV, Precision::FP16>;
 template class MatchMatrixHelper<NV, Precision::INT8>;
-ANAKIN_REGISTER_OP_HELPER(MatchMatrix, MatchMatrixHelper, NV, Precision::FP32);
 #endif
 #ifdef USE_ARM_PLACE
 INSTANCE_MATCH_MATRIX(ARM, Precision::FP32);
 template class MatchMatrixHelper<ARM, Precision::FP32>;
 template class MatchMatrixHelper<ARM, Precision::FP16>;
 template class MatchMatrixHelper<ARM, Precision::INT8>;
-ANAKIN_REGISTER_OP_HELPER(MatchMatrix, MatchMatrixHelper, ARM, Precision::FP32);
 #endif
 #ifdef USE_X86_PLACE
 INSTANCE_MATCH_MATRIX(X86, Precision::FP32);
 template class MatchMatrixHelper<X86, Precision::FP32>;
 template class MatchMatrixHelper<X86, Precision::FP16>;
 template class MatchMatrixHelper<X86, Precision::INT8>;
-ANAKIN_REGISTER_OP_HELPER(MatchMatrix, MatchMatrixHelper, X86, Precision::FP32);
 #endif
-#ifdef AMD_GPU
-INSTANCE_MATCH_MATRIX(AMD, Precision::FP32);
-template class MatchMatrixHelper<AMD, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(MatchMatrix, MatchMatrixHelper, AMD, Precision::FP32);
+// register helper
+#ifdef USE_CUDA
+ANAKIN_REGISTER_OP_HELPER(MatchMatrix, MatchMatrixHelper, NV, Precision::FP32);
+#endif
+#ifdef USE_ARM_PLACE
+ANAKIN_REGISTER_OP_HELPER(MatchMatrix, MatchMatrixHelper, ARM, Precision::FP32);
+#endif
+#ifdef USE_X86_PLACE
+ANAKIN_REGISTER_OP_HELPER(MatchMatrix, MatchMatrixHelper, X86, Precision::FP32);
 #endif
 //! register op
 ANAKIN_REGISTER_OP(MatchMatrix)
