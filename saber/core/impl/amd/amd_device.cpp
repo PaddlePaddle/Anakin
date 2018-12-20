@@ -54,16 +54,14 @@ static void get_param(cl_device_id dev, cl_device_info param_name, T** param_val
 
 
 Device<AMD>::Device(int max_stream) : _max_stream(max_stream) {
-    if (!Env<AMD>::is_init()) {
-        return;
-    }
 
     //get cl device id;
     int nums = 0;
     AMD_API::get_device_count(nums);
     cl_device_id* device_ids = new cl_device_id[nums];
     cl_uint device_nums;
-    clGetDeviceIDs(Env<AMD>::get_platform_id(), CL_DEVICE_TYPE_GPU, (cl_uint)nums, device_ids,
+    cl_platform_id platform_id = TargetWrapper<AMD>::get_platform_id();
+    clGetDeviceIDs(platform_id,  CL_DEVICE_TYPE_GPU, (cl_uint)nums, device_ids,
                    &device_nums);
     id = device_ids[AMD_API::get_device_id()];
     delete []device_ids;
@@ -71,12 +69,11 @@ Device<AMD>::Device(int max_stream) : _max_stream(max_stream) {
 
     //init context, one by one mapping to device.
     cl_int errNum;
-    const cl_context_properties prop[] = {CL_CONTEXT_PLATFORM, (cl_context_properties)Env<AMD>::get_platform_id(), 0};
+    const cl_context_properties prop[] = {CL_CONTEXT_PLATFORM, (cl_context_properties)platform_id, 0};
     context = clCreateContext(prop, 1, &id, NULL, NULL, &errNum);
     CHECK(errNum == CL_SUCCESS);
 
     get_info();
-    create_stream();
 }
 
 void Device<AMD>::create_stream() {
@@ -87,8 +84,13 @@ void Device<AMD>::create_stream() {
         typename AMD_API::stream_t stream_data;
         typename AMD_API::stream_t stream_compute;
 
+#ifdef ENABLE_AMD_PROFILING
         API::_create_stream_with_flag(&stream_data, context, id, CL_QUEUE_PROFILING_ENABLE);
         API::_create_stream_with_flag(&stream_compute, context, id, CL_QUEUE_PROFILING_ENABLE);
+#else
+        API::_create_stream_with_flag(&stream_data, context, id, 0);
+        API::_create_stream_with_flag(&stream_compute, context, id, 0);
+#endif
         _data_stream.push_back(stream_data);
         _compute_stream.push_back(stream_compute);
     }
