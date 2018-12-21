@@ -19,6 +19,9 @@
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/funcs/impl/impl_slice.h"
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_slice.h"
+#endif
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_slice.h"
 #endif

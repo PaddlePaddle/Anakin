@@ -1,6 +1,19 @@
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+*/
 #include <vector>
 #include <cmath>
-
 #include "saber/core/context.h"
 #include "saber/funcs/pooling_with_index.h"
 #include "test/saber/test_saber_func.h"
@@ -111,10 +124,12 @@ void test_pooling_with_index(){
                 }
             }
         }
-    
 }
 
 TEST(TestSaberFunc, test_func_power) {
+#ifdef AMD_GPU
+    test_pooling_with_index<AMD,AMDHX86, AK_FLOAT>();
+#endif
 #ifdef USE_CUDA
     test_pooling_with_index<NV, NVHX86, AK_FLOAT>();
 #endif
@@ -129,9 +144,10 @@ TEST(TestSaberFunc, test_func_power) {
 int main(int argc, const char** argv) {
     // initial logger
     //logger::init(argv[0]);
-    
     InitTest();
+#ifdef AMD_GPU
+    Env<AMD>::env_init();
+#endif
     RUN_ALL_TESTS(argv[0]);
-    
     return 0;
 }

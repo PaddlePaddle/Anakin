@@ -136,6 +136,8 @@ anakin_option(USE_GFLAGS "Build Google gflags components." NO)
 anakin_option(USE_MKL "Use mkl libs." YES if USE_SGX)
 anakin_option(USE_MKLML "Use MKLML libs." YES if USE_X86_PLACE AND NOT USE_SGX)
 anakin_option(USE_XBYAK "Use XBYAK libs." YES if USE_X86_PLACE)
+anakin_option(USE_OPENSSL "Use OpenSSL." YES if AMD_GPU)
+anakin_option(USE_MIOPENGEMM "Use MIOpenGEMM ." YES if AMD_GPU)
 
 # build components
 anakin_option(BUILD_WITH_UNIT_TEST "Build anakin unit test components." YES)
@@ -157,6 +159,10 @@ anakin_option(ENABLE_OP_TIMER "Enable op timer mode." NO)
 if(ENABLE_MIN_DEPENDENCY)
     set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--version-script,${ANAKIN_ROOT}/cmake/ak_link.lds")
 endif()
+
+# for AMD profile computing performance
+anakin_option(ENABLE_AMD_PROFILING "Enable amd profiling" NO)
+anakin_option(ENABLE_AMD_DEBUG "Enable amd debug" NO)
 
 # ----------------------------------------------------------------------------
 # section: anakin compiler and linker options
@@ -213,6 +219,7 @@ endif()
 
 if(AMD_GPU)
     include(cmake/amd.cmake)
+    include(cmake/external/miopen.cmake)
 endif()
 
 # gather all the config options to anakin

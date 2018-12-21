@@ -30,6 +30,11 @@
 #ifdef USE_ARM_PLACE
 #include "saber/funcs/impl/arm/saber_permute.h"
 #endif
+
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_permute.h"
+#endif
+
 namespace anakin {
 namespace saber {
 
