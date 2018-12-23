@@ -74,7 +74,7 @@ SaberStatus SaberEltwise<AMD, OpDtype>::create(
     kernelInfo.l_wk        = {local_size};
     kernelInfo.g_wk        = {(global_size + local_size - 1) / local_size * local_size};
     kernelInfo.kernel_file = "Eltwise.cl";
-    kernelInfo.comp_options = std::string(" -DMLO_CONV_ACTIVE_RELU=") + std::to_string(_with_relu);
+
     AMDKernelPtr kptr      = NULL;
     _kernels_ptr.clear();
 
@@ -290,6 +290,7 @@ SaberStatus SaberEltwise<AMD, OpDtype>::dispatch(
 
                 err = _kernels_ptr[0].get()->SetKernelArgs(
                           (PtrDtype)outputs[0]->mutable_data(),
+                          (int)with_relu,
                           (PtrDtype)inputs[0]->data(),
                           (PtrDtype)inputs[1]->data(),
                           (int)count);
@@ -310,6 +311,7 @@ SaberStatus SaberEltwise<AMD, OpDtype>::dispatch(
 
                 err = _kernels_ptr[0].get()->SetKernelArgs(
                           (PtrDtype)outputs[0]->mutable_data(),
+                          (int)with_relu,
                           (PtrDtype)inputs[0]->data(),
                           (PtrDtype)inputs[1]->data(),
                           (int)count);
@@ -329,7 +331,8 @@ SaberStatus SaberEltwise<AMD, OpDtype>::dispatch(
 
                     err = _kernels_ptr[i - 1].get()->SetKernelArgs(
                               (PtrDtype)outputs[0]->mutable_data(),
-                              (PtrDtype)outputs[0]->mutable_data(),
+                              (int)with_relu,
+                              (PtrDtype)outputs[0]->data(),
                               (PtrDtype)inputs[i]->data(),
                               (int)count);
 
@@ -351,7 +354,8 @@ SaberStatus SaberEltwise<AMD, OpDtype>::dispatch(
 
                 err = _kernels_ptr[inputs.size() - 1 - 1].get()->SetKernelArgs(
                           (PtrDtype)outputs[0]->mutable_data(),
-                          (PtrDtype)outputs[0]->mutable_data(),
+                          (int)with_relu,
+                          (PtrDtype)outputs[0]->data(),
                           (PtrDtype)inputs[inputs.size() - 1]->data(),
                           (int)count);
 
@@ -374,6 +378,7 @@ SaberStatus SaberEltwise<AMD, OpDtype>::dispatch(
 
             err = _kernels_ptr[0].get()->SetKernelArgs(
                       (PtrDtype)outputs[0]->mutable_data(),
+                      (int)with_relu,
                       (PtrDtype)inputs[0]->data(),
                       (PtrDtype)inputs[1]->data(),
                       (int)count);
@@ -393,7 +398,8 @@ SaberStatus SaberEltwise<AMD, OpDtype>::dispatch(
 
                 err = _kernels_ptr[i - 1].get()->SetKernelArgs(
                           (PtrDtype)outputs[0]->mutable_data(),
-                          (PtrDtype)outputs[0]->mutable_data(),
+                          (int)with_relu,
+                          (PtrDtype)outputs[0]->data(),
                           (PtrDtype)inputs[i]->data(),
                           (int)count);
 
@@ -419,6 +425,7 @@ SaberStatus SaberEltwise<AMD, OpDtype>::dispatch(
 
             err = _kernels_ptr[0].get()->SetKernelArgs(
                       (PtrDtype)outputs[0]->mutable_data(),
+                      (int)with_relu,
                       (PtrDtype)inputs[0]->data(),
                       (PtrDtype)inputs[1]->data(),
                       (float)param.coeff[0],
@@ -442,6 +449,7 @@ SaberStatus SaberEltwise<AMD, OpDtype>::dispatch(
 
             err = _kernels_ptr[0].get()->SetKernelArgs(
                       (PtrDtype)outputs[0]->mutable_data(),
+                      (int)with_relu,
                       (PtrDtype)inputs[0]->data(),
                       (PtrDtype)inputs[1]->data(),
                       (float)param.coeff[0],
@@ -471,6 +479,7 @@ SaberStatus SaberEltwise<AMD, OpDtype>::dispatch(
 
                 err = _kernels_ptr[0].get()->SetKernelArgs(
                           (PtrDtype)outputs[0]->mutable_data(),
+                          (int)with_relu,
                           (PtrDtype)inputs[0]->data(),
                           (PtrDtype)inputs[1]->data(),
                           (int)count);
@@ -491,6 +500,7 @@ SaberStatus SaberEltwise<AMD, OpDtype>::dispatch(
 
                 err = _kernels_ptr[0].get()->SetKernelArgs(
                           (PtrDtype)outputs[0]->mutable_data(),
+                          (int)with_relu,
                           (PtrDtype)inputs[0]->data(),
                           (PtrDtype)inputs[1]->data(),
                           (int)count);
@@ -510,7 +520,8 @@ SaberStatus SaberEltwise<AMD, OpDtype>::dispatch(
 
                     err = _kernels_ptr[i - 1].get()->SetKernelArgs(
                               (PtrDtype)outputs[0]->mutable_data(),
-                              (PtrDtype)outputs[0]->mutable_data(),
+                              (int)with_relu,
+                              (PtrDtype)outputs[0]->data(),
                               (PtrDtype)inputs[i]->data(),
                               (int)count);
 
@@ -532,7 +543,8 @@ SaberStatus SaberEltwise<AMD, OpDtype>::dispatch(
 
                 err = _kernels_ptr[inputs.size() - 1 - 1].get()->SetKernelArgs(
                           (PtrDtype)outputs[0]->mutable_data(),
-                          (PtrDtype)outputs[0]->mutable_data(),
+                          (int)with_relu,
+                          (PtrDtype)outputs[0]->data(),
                           (PtrDtype)inputs[inputs.size() - 1]->data(),
                           (int)count);
 
@@ -554,6 +566,7 @@ SaberStatus SaberEltwise<AMD, OpDtype>::dispatch(
 
             err = _kernels_ptr[0].get()->SetKernelArgs(
                       (PtrDtype)outputs[0]->mutable_data(),
+                      (int)with_relu,
                       (PtrDtype)inputs[0]->data(),
                       (PtrDtype)inputs[1]->data(),
                       (int)count);
@@ -573,7 +586,8 @@ SaberStatus SaberEltwise<AMD, OpDtype>::dispatch(
 
                 err = _kernels_ptr[i - 1].get()->SetKernelArgs(
                           (PtrDtype)outputs[0]->mutable_data(),
-                          (PtrDtype)outputs[0]->mutable_data(),
+                          (int)with_relu,
+                          (PtrDtype)outputs[0]->data(),
                           (PtrDtype)inputs[i]->data(),
                           (int)count);
 

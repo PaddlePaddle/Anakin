@@ -14,21 +14,20 @@
 */
 __kernel void ker_elt_production(
     global float* out_data,
+    const int with_relu,
     global const float* in_data_a,
     global const float* in_data_b,
     int count) {
     int idx   = get_global_id(0);
     float tmp = in_data_a[idx] * in_data_b[idx];
 
-#if MLO_CONV_ACTIVE_RELU
-    out_data[idx] = tmp > 0.0f ? tmp : 0.0f;
-#else
-    out_data[idx] = tmp;
-#endif
+    out_data[idx] = 1 == with_relu ? (tmp > 0 ? tmp : 0.0f) : tmp;
+
 }
 
 __kernel void ker_elt_sum(
     global float* out_data,
+    const int with_relu,
     global const float* in_data1,
     global const float* in_data2,
     float coeff1,
@@ -37,15 +36,12 @@ __kernel void ker_elt_sum(
     int idx   = get_global_id(0);
     float tmp = coeff1 * in_data1[idx] + coeff2 * in_data2[idx];
 
-#if MLO_CONV_ACTIVE_RELU
-    out_data[idx] = tmp > 0.0f ? tmp : 0.0f;
-#else
-    out_data[idx] = tmp;
-#endif
+    out_data[idx] = 1 == with_relu ? (tmp > 0 ? tmp : 0.0f) : tmp;
 }
 
 __kernel void ker_elt_max(
     global float* out_data,
+    const int with_relu,
     global const float* in_data_a,
     global const float* in_data_b,
     int count) {
@@ -57,9 +53,5 @@ __kernel void ker_elt_max(
     int a_gt_b  = var_a > var_b;
     tmp         = a_gt_b ? var_a : var_b;
 
-#if MLO_CONV_ACTIVE_RELU
-    out_data[idx] = tmp > 0.0f ? tmp : 0.0f;
-#else
-    out_data[idx] = tmp;
-#endif
+    out_data[idx] = 1 == with_relu ? (tmp > 0 ? tmp : 0.0f) : tmp;
 }
