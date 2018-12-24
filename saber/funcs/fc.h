@@ -31,7 +31,7 @@
 #endif
 
 #ifdef AMD_GPU
-#include "saber/funcs/impl/amd/include/saber_fc.h"
+#include "saber/funcs/impl/amd/include/vender_fc.h"
 #endif
 
 namespace anakin{

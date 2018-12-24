@@ -13,8 +13,8 @@
    limitations under the License.
 */
 
-#ifndef ANAKIN_SABER_FUNCS_IMPL_AMD_SABER_FC_H
-#define ANAKIN_SABER_FUNCS_IMPL_AMD_SABER_FC_H
+#ifndef ANAKIN_VENDER_FUNCS_IMPL_AMD_VENDER_FC_H
+#define ANAKIN_VENDER_FUNCS_IMPL_AMD_VENDER_FC_H
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_fc.h"
@@ -29,18 +29,18 @@ namespace anakin {
 namespace saber {
 
 template <DataType OpDtype>
-class SaberFc<AMD, OpDtype> : public ImplBase<AMD, OpDtype, FcParam<AMD>> {
+class VenderFc<AMD, OpDtype> : public ImplBase<AMD, OpDtype, FcParam<AMD>> {
 public:
     typedef typename DataTrait<AMD, OpDtype>::Dtype OpDataType;
     typedef AMD_API::TPtr PtrDtype;
 
-    SaberFc() {
+    VenderFc() {
         _multikernel      = false;
         _outGemmWorkspace = nullptr;
         _kernels_ptr.clear();
     }
 
-    ~SaberFc() {
+    ~VenderFc() {
         if (_outGemmWorkspace) {
             delete _outGemmWorkspace;
         }

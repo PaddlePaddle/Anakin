@@ -13,7 +13,7 @@
    limitations under the License.
 */
 
-#include "include/saber_fc.h"
+#include "include/vender_fc.h"
 #include "saber/funcs/impl/amd/include/amd_utils.h"
 
 namespace anakin {
@@ -23,7 +23,7 @@ typedef TargetWrapper<AMD> AMD_API;
 typedef Env<AMD> AMD_ENV;
 typedef Tensor<AMD> TensorDf4;
 template <DataType OpDtype>
-SaberStatus SaberFc<AMD, OpDtype>::init(
+SaberStatus VenderFc<AMD, OpDtype>::init(
     const std::vector<Tensor<AMD>*>& inputs,
     std::vector<Tensor<AMD>*>& outputs,
     FcParam<AMD>& param,
@@ -145,7 +145,7 @@ SaberStatus SaberFc<AMD, OpDtype>::init(
 #define FC26_INDEX 5
 
 template <DataType OpDtype>
-SaberStatus SaberFc<AMD, OpDtype>::create(
+SaberStatus VenderFc<AMD, OpDtype>::create(
     const std::vector<Tensor<AMD>*>& inputs,
     std::vector<Tensor<AMD>*>& outputs,
     FcParam<AMD>& param,
@@ -594,7 +594,7 @@ SaberStatus SaberFc<AMD, OpDtype>::create(
 }
 
 template <DataType OpDtype>
-SaberStatus SaberFc<AMD, OpDtype>::dispatch(
+SaberStatus VenderFc<AMD, OpDtype>::dispatch(
     const std::vector<Tensor<AMD>*>& inputs,
     std::vector<Tensor<AMD>*>& outputs,
     FcParam<AMD>& param) {
@@ -719,7 +719,7 @@ SaberStatus SaberFc<AMD, OpDtype>::dispatch(
     return SaberSuccess;
 }
 
-template class SaberFc<AMD, AK_FLOAT>;
+template class VenderFc<AMD, AK_FLOAT>;
 #endif
 } // namespace saber
 } // namespace anakin
