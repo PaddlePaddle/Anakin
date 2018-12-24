@@ -76,7 +76,11 @@ SaberStatus SaberConv2DPooling<AMD, AK_FLOAT>::create(
     int data_len;
     miopen::ConvolutionContext convContext;
     convContext.direction.Set(1);
-    convContext.do_search = true;
+#ifdef ENABLE_AMD_DO_SEARCH
+    convContext.do_search        = true;
+#else
+    convContext.do_search        = false;
+#endif
     convContext.general_compile_options += "";
     // context.SetStream(&profile_h);
     convContext.n_inputs         = inputs[0]->channel();

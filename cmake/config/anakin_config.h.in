@@ -91,6 +91,8 @@
 
 #cmakedefine ENABLE_AMD_DEBUG
 
+#cmakedefine ENABLE_AMD_DO_SEARCH
+
 #if defined(ANDROID) || defined(__ANDROID__)
     #define PLATFORM_ANDROID
     #define IS_MOBILE_PLATFORM

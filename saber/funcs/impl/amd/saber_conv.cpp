@@ -117,7 +117,11 @@ SaberStatus SaberConv2D<AMD, OpDtype>::create(
     convContext.rmv             = rocm_meta_version::AMDHSA_1_0;
     convContext.use_binaries    = true;
     convContext.use_asm_kernels = true;
+#ifdef ENABLE_AMD_DO_SEARCH
     convContext.do_search       = true;
+#else
+    convContext.do_search       = false;
+#endif
     convContext.save_srch_req   = true;
     convContext.in_layout       = "NCHW";
     convContext.out_layout      = "NCHW";
