@@ -14,7 +14,9 @@ std::string not_impl_yet(graph::AttrInfo&,
                          std::string& node_name,
                          std::string& weights_ptr_name,
                          WeightsWritter& writter,
-                         bool gen_param) {
+                         bool gen_param,
+                         bool lite_mode,
+                         DataType op_precision) {
     LOG(INFO) << "Target "<< op_class_name << "Parsing not impl yet. continue ...";
     return "";
 }
@@ -26,7 +28,9 @@ std::string ParserConvolution(graph::AttrInfo& attr,
                               std::string& node_name,
                               std::string& weights_ptr_name,
                               WeightsWritter& writter,
-                              bool gen_param) {
+                              bool gen_param,
+                              bool lite_mode,
+                              DataType op_precision) {
     // parsing parameter
     auto group = get_attr<int>("group", attr);
     auto bias_term = get_attr<bool>("bias_term", attr);
@@ -39,11 +43,29 @@ std::string ParserConvolution(graph::AttrInfo& attr,
 
     auto weights = get_attr<PBlock<X86>>("weight_1", attr);
     auto weights_shape = weights.shape();
-    int weights_size = weights_shape.count();//weights_shape[2]*weights_shape[3];
-    int num_output = weights_shape[0];//*weights_shape[1];
+    auto &weights_tensor = weights.h_tensor();
+    int weights_size = weights_shape.count();
+    int num_output = weights_shape[0];
 
+    // write weights
+    trans_conv_weights_inplace(weights_tensor, op_precision, lite_mode);
+    auto weights_dtype = weights_tensor.get_dtype();
     writter.register_weights(node_name, weights);
-    LOG(INFO) << node_name << " write weights: " << weights.count();
+    LOG(INFO) << node_name << " write weights: " << weights.count() << ", weights dtype: " << weights_dtype;
+
+    // write scale
+    PBlock<X86> scale_tensor(AK_FLOAT);
+    std::vector<float> scale = weights_tensor.get_scale();
+    Shape scale_shape({1, 1, 1, scale.size()});
+    scale_tensor.h_tensor().reshape(scale_shape);
+    float* scale_ptr = (float*)scale_tensor.h_tensor().mutable_data();
+    for (int i = 0; i < scale.size(); ++i){
+        scale_ptr[i] = scale[i];
+    }
+    writter.register_weights(node_name, scale_tensor);
+    LOG(INFO) << node_name << "write scale: " << scale_ptr[0];
+
+    // write bias
     if (bias_term) {
         auto bias = get_attr<PBlock<X86>>("weight_2", attr);
         writter.register_weights(node_name, bias);
@@ -51,11 +73,15 @@ std::string ParserConvolution(graph::AttrInfo& attr,
     }
 
     auto offset_info = writter.get_weights_by_name(node_name);
+    float alpha = 0.f;
+    if (find_attr("relu_0_alpha", attr) == SaberSuccess) {
+        alpha = get_attr<float>("relu_0_alpha", attr);
+    }
 
     // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f %f %d %d\n",
+        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f %f %d %d\n",
                     weights_size,
                     num_output,
                     group,
@@ -68,17 +94,19 @@ std::string ParserConvolution(graph::AttrInfo& attr,
                     dilation_rate[1],
                     dilation_rate[0],
                     bias_term ? 1 : 0,
+                    (int)weights_dtype,
                     offset_info.weights[0].offset,
-                    bias_term ? offset_info.weights[1].offset : 0,
+                    offset_info.weights[1].offset,
+                    bias_term ? offset_info.weights[2].offset : 0,
                     0, //flag_eltwise
                     0, //set flag_act true
                     (int)Active_relu,
-                    0.f, //neg slope
+                    alpha, //neg slope
                     0.f, //act_coef
                     0, //prelu, channel_shared
                     0/*prelu weights*/);
     } else {
-        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d);\n",
+        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%d,%s+%d,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d);\n",
                     node_name.c_str(),
                     weights_size,
                     num_output,
@@ -92,42 +120,47 @@ std::string ParserConvolution(graph::AttrInfo& attr,
                     dilation_rate[1],
                     dilation_rate[0],
                     bias_term ? "true":"false",
+                    (int)weights_dtype,
                     weights_ptr_name.c_str(),
                     offset_info.weights[0].offset,
                     weights_ptr_name.c_str(),
-                    bias_term ? offset_info.weights[1].offset : 0,
+                    offset_info.weights[1].offset,
+                    weights_ptr_name.c_str(),
+                    bias_term ? offset_info.weights[2].offset : 0,
                     "false", //flag_eltwise
                     "false", //set flag_act true
-                    "Active_relu", 0.f, 0.f, "false", weights_ptr_name.c_str(), 0);
+                    "Active_relu", alpha, 0.f, "false", weights_ptr_name.c_str(), 0);
         code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
     }
 
     return code_w.get_code_string();
 }
-    // SaberPower
+// SaberPower
 std::string ParserPower(graph::AttrInfo& attr,
-                            std::string& code_name,
-                            std::string& op_class_name,
-                            std::string& node_name,
-                            std::string& weights_ptr_name,
-                            WeightsWritter& writter,
-                            bool gen_param) {
-        // parsing parameter
-        auto power = get_attr<float>("power", attr);
-        auto scale = get_attr<float>("scale", attr);
-        auto shift = get_attr<float>("shift", attr);
+                        std::string& code_name,
+                        std::string& op_class_name,
+                        std::string& node_name,
+                        std::string& weights_ptr_name,
+                        WeightsWritter& writter,
+                        bool gen_param,
+                        bool lite_mode,
+                        DataType op_precision) {
+    // parsing parameter
+    auto power = get_attr<float>("power", attr);
+    auto scale = get_attr<float>("scale", attr);
+    auto shift = get_attr<float>("shift", attr);
 
-        // gen cpp code
-        CodeWritter code_w;
+    // gen cpp code
+    CodeWritter code_w;
 
-        if (gen_param) {
-            code_w.feed("%f %f %f\n", scale, shift, power);
-        } else {
-            code_w.feed("ParamBase* %s_param = new PowerParam(%f,%f,%f);\n", node_name.c_str(), scale, shift, power);
-            code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
-        }
-        return code_w.get_code_string();
+    if (gen_param) {
+        code_w.feed("%f %f %f\n", scale, shift, power);
+    } else {
+        code_w.feed("ParamBase* %s_param = new PowerParam(%f,%f,%f);\n", node_name.c_str(), scale, shift, power);
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
     }
+    return code_w.get_code_string();
+}
 // SaberDeconv2D
 std::string ParserDeconvolution(graph::AttrInfo& attr,
                               std::string& code_name,
@@ -135,7 +168,9 @@ std::string ParserDeconvolution(graph::AttrInfo& attr,
                               std::string& node_name,
                               std::string& weights_ptr_name,
                               WeightsWritter& writter,
-                              bool gen_param) {
+                              bool gen_param,
+                              bool lite_mode,
+                              DataType op_precision) {
     // parsing parameter
     auto group = get_attr<int>("group", attr);
     auto bias_term = get_attr<bool>("bias_term", attr);
@@ -148,11 +183,29 @@ std::string ParserDeconvolution(graph::AttrInfo& attr,
 
     auto weights = get_attr<PBlock<X86>>("weight_1", attr);
     auto weights_shape = weights.shape();
-    int weights_size = weights_shape.count();//weights_shape[2]*weights_shape[3];
-    int num_output = filter_num;//*weights_shape[1];
+    auto& weights_tensor = weights.h_tensor();
+    int weights_size = weights_shape.count();
+    int num_output = weights_shape[0];
 
+    // write weights
+    trans_deconv_weights_inplace(weights_tensor, op_precision, lite_mode);
+    auto weights_dtype = weights_tensor.get_dtype();
     writter.register_weights(node_name, weights);
-    LOG(INFO) << node_name << " write weights: " << weights.count();
+    LOG(INFO) << node_name << " write weights: " << weights.count() << ", weights dtype: " << weights_dtype;
+
+    // write scale
+    PBlock<X86> scale_tensor(AK_FLOAT);
+    std::vector<float> scale = weights_tensor.get_scale();
+    Shape scale_shape({1, 1, 1, scale.size()});
+    scale_tensor.h_tensor().reshape(scale_shape);
+    float* scale_ptr = (float*)scale_tensor.h_tensor().mutable_data();
+    for (int i = 0; i < scale.size(); ++i){
+        scale_ptr[i] = scale[i];
+    }
+    writter.register_weights(node_name, scale_tensor);
+    LOG(INFO) << node_name << "write scale: " << scale_ptr[0];
+
+    // write bias
     if (bias_term) {
         auto bias = get_attr<PBlock<X86>>("weight_2", attr);
         writter.register_weights(node_name, bias);
@@ -160,11 +213,14 @@ std::string ParserDeconvolution(graph::AttrInfo& attr,
     }
 
     auto offset_info = writter.get_weights_by_name(node_name);
-
+    float alpha = 0.f;
+    if (find_attr("relu_0_alpha", attr) == SaberSuccess) {
+        alpha = get_attr<float>("relu_0_alpha", attr);
+    }
     // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f %f %d %d\n",
+        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f %f %d %d\n",
                     weights_size,
                     num_output,
                     group,
@@ -177,17 +233,19 @@ std::string ParserDeconvolution(graph::AttrInfo& attr,
                     dilation_rate[1],
                     dilation_rate[0],
                     bias_term ? 1 : 0,
+                    (int) weights_dtype,
                     offset_info.weights[0].offset,
-                    bias_term ? offset_info.weights[1].offset : 0,
+                    offset_info.weights[1].offset,
+                    bias_term ? offset_info.weights[2].offset : 0,
                     0, //flag_eltwise
                     0, //set flag_act
                     (int)Active_relu,
-                    0.f, //neg slope
+                    alpha, //neg slope
                     0.f, //act_coef
                     0, //prelu, channel_shared
                     0/*prelu weights*/);
     } else {
-        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d);\n",
+        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%d,%s+%d,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d);\n",
                     node_name.c_str(),
                     weights_size,
                     num_output,
@@ -201,13 +259,16 @@ std::string ParserDeconvolution(graph::AttrInfo& attr,
                     dilation_rate[1],
                     dilation_rate[0],
                     bias_term ? "true":"false",
+                    (int)weights_dtype,
                     weights_ptr_name.c_str(),
                     offset_info.weights[0].offset,
                     weights_ptr_name.c_str(),
-                    bias_term ? offset_info.weights[1].offset : 0,
+                    offset_info.weights[1].offset,
+                    weights_ptr_name.c_str(),
+                    bias_term ? offset_info.weights[2].offset : 0,
                     "false", //flag_eltwise
                     "false", //set flag_act true
-                    "Active_relu", 0.f, 0.f, "false", weights_ptr_name.c_str(), 0);
+                    "Active_relu", alpha, 0.f, "false", weights_ptr_name.c_str(), 0);
         code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
     }
     return code_w.get_code_string();
@@ -220,7 +281,9 @@ std::string ParserDeConvolutionRelu(graph::AttrInfo& attr,
                                   std::string& node_name,
                                   std::string& weights_ptr_name,
                                   WeightsWritter& writter,
-                                  bool gen_param) {
+                                  bool gen_param,
+                                  bool lite_mode,
+                                  DataType op_precision) {
     // parsing parameter
     auto group = get_attr<int>("group", attr);
     auto bias_term = get_attr<bool>("bias_term", attr);
@@ -233,23 +296,44 @@ std::string ParserDeConvolutionRelu(graph::AttrInfo& attr,
 
     auto weights = get_attr<PBlock<X86>>("weight_1", attr);
     auto weights_shape = weights.shape();
-    int weights_size = weights_shape.count();//weights_shape[2]*weights_shape[3];
-    int num_output = filter_num;//*weights_shape[1];
+    auto& weights_tensor = weights.h_tensor();
+    int weights_size = weights_shape.count();
+    int num_output = weights_shape[0];
 
+    // write weights
+    trans_deconv_weights_inplace(weights_tensor, op_precision, lite_mode);
+    auto weights_dtype = weights_tensor.get_dtype();
     writter.register_weights(node_name, weights);
-            LOG(INFO) << node_name << " write weights: " << weights.count();
+    LOG(INFO) << node_name << " write weights: " << weights.count() << ", weights dtype: " << weights_dtype;
+
+    // write scale
+    PBlock<X86> scale_tensor(AK_FLOAT);
+    std::vector<float> scale = weights_tensor.get_scale();
+    Shape scale_shape({1, 1, 1, scale.size()});
+    scale_tensor.h_tensor().reshape(scale_shape);
+    float* scale_ptr = (float*)scale_tensor.h_tensor().mutable_data();
+    for (int i = 0; i < scale.size(); ++i){
+        scale_ptr[i] = scale[i];
+    }
+    writter.register_weights(node_name, scale_tensor);
+    LOG(INFO) << node_name << "write scale: " << scale_ptr[0];
+
+    //write bias
     if (bias_term) {
         auto bias = get_attr<PBlock<X86>>("weight_2", attr);
         writter.register_weights(node_name, bias);
-                LOG(INFO) << node_name << " write bias: " << bias.count();
+        LOG(INFO) << node_name << " write bias: " << bias.count();
     }
 
     auto offset_info = writter.get_weights_by_name(node_name);
-    auto alpha = get_attr<float>("relu_0_alpha", attr);
+    float alpha = 0.f;
+    if (find_attr("relu_0_alpha", attr) == SaberSuccess) {
+        alpha = get_attr<float>("relu_0_alpha", attr);
+    }
     // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f %f %d %d\n",
+        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f %f %d %d\n",
                     weights_size,
                     num_output,
                     group,
@@ -262,8 +346,10 @@ std::string ParserDeConvolutionRelu(graph::AttrInfo& attr,
                     dilation_rate[1],
                     dilation_rate[0],
                     bias_term ? 1 : 0,
+                    (int)weights_dtype,
                     offset_info.weights[0].offset,
-                    bias_term ? offset_info.weights[1].offset : 0,
+                    offset_info.weights[1].offset,
+                    bias_term ? offset_info.weights[2].offset : 0,
                     0, //flag_eltwise
                     1, //set flag_act true
                     (int)Active_relu,
@@ -272,7 +358,7 @@ std::string ParserDeConvolutionRelu(graph::AttrInfo& attr,
                     0, //prelu, channel_shared
                     0/*prelu weights*/);
     } else {
-        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d);\n",
+        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%d,%s+%d,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d);\n",
                     node_name.c_str(),
                     weights_size,
                     num_output,
@@ -286,10 +372,13 @@ std::string ParserDeConvolutionRelu(graph::AttrInfo& attr,
                     dilation_rate[1],
                     dilation_rate[0],
                     bias_term ? "true":"false",
+                    (int)weights_dtype,
                     weights_ptr_name.c_str(),
                     offset_info.weights[0].offset,
                     weights_ptr_name.c_str(),
-                    bias_term ? offset_info.weights[1].offset : 0,
+                    offset_info.weights[1].offset,
+                    weights_ptr_name.c_str(),
+                    bias_term ? offset_info.weights[2].offset : 0,
                     "false", //flag_eltwise
                     "true", //set flag_act true
                     "Active_relu", alpha, 0.f, "false", weights_ptr_name.c_str(), 0);
@@ -305,7 +394,9 @@ std::string ParserConvolutionRelu(graph::AttrInfo& attr,
                                   std::string& node_name,
                                   std::string& weights_ptr_name,
                                   WeightsWritter& writter,
-                                  bool gen_param) {
+                                  bool gen_param,
+                                  bool lite_mode,
+                                  DataType op_precision) {
     // parsing parameter
     auto group = get_attr<int>("group", attr);
     auto bias_term = get_attr<bool>("bias_term", attr);
@@ -318,11 +409,29 @@ std::string ParserConvolutionRelu(graph::AttrInfo& attr,
 
     auto weights = get_attr<PBlock<X86>>("weight_1", attr);
     auto weights_shape = weights.shape();
-    int weights_size = weights_shape.count();//weights_shape[2]*weights_shape[3];
-    int num_output = weights_shape[0];//*weights_shape[1];
+    auto& weights_tensor = weights.h_tensor();
+    int weights_size = weights_shape.count();
+    int num_output = weights_shape[0];
 
+    // write weights
+    trans_conv_weights_inplace(weights_tensor, op_precision, lite_mode);
+    auto weights_dtype = weights_tensor.get_dtype();
     writter.register_weights(node_name, weights);
-    LOG(INFO) << node_name << " write weights: " << weights.count();
+    LOG(INFO) << node_name << " write weights: " << weights.count() << ", weights dtype: " << weights_dtype;
+
+    // write scale
+    PBlock<X86> scale_tensor(AK_FLOAT);
+    std::vector<float> scale = weights_tensor.get_scale();
+    Shape scale_shape({1, 1, 1, scale.size()});
+    scale_tensor.h_tensor().reshape(scale_shape);
+    float* scale_ptr = (float*)scale_tensor.h_tensor().mutable_data();
+    for (int i = 0; i < scale.size(); ++i){
+        scale_ptr[i] = scale[i];
+    }
+    writter.register_weights(node_name, scale_tensor);
+    LOG(INFO) << node_name << "write scale: " << scale_ptr[0];
+
+    // write bias
     if (bias_term) {
         auto bias = get_attr<PBlock<X86>>("weight_2", attr);
         writter.register_weights(node_name, bias);
@@ -330,13 +439,14 @@ std::string ParserConvolutionRelu(graph::AttrInfo& attr,
     }
 
     auto offset_info = writter.get_weights_by_name(node_name);
-
-    auto alpha = get_attr<float>("relu_0_alpha", attr);
-
+    float alpha = 0.f;
+    if (find_attr("relu_0_alpha", attr) == SaberSuccess) {
+        alpha = get_attr<float>("relu_0_alpha", attr);
+    }
     // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f %f %d %d\n",
+        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f %f %d %d\n",
                     weights_size,
                     num_output,
                     group,
@@ -349,8 +459,10 @@ std::string ParserConvolutionRelu(graph::AttrInfo& attr,
                     dilation_rate[1],
                     dilation_rate[0],
                     bias_term ? 1 : 0,
+                    (int)weights_dtype,
                     offset_info.weights[0].offset,
-                    bias_term ? offset_info.weights[1].offset : 0,
+                    offset_info.weights[1].offset,
+                    bias_term ? offset_info.weights[2].offset : 0,
                     0, //flag_eltwise
                     1, //set flag_act true
                     (int)Active_relu,
@@ -359,7 +471,7 @@ std::string ParserConvolutionRelu(graph::AttrInfo& attr,
                     0, //prelu, channel_shared
                     0/*prelu weights*/);
     } else {
-        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d);\n",
+        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%d,%s+%d,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d);\n",
                     node_name.c_str(),
                     weights_size,
                     num_output,
@@ -373,10 +485,13 @@ std::string ParserConvolutionRelu(graph::AttrInfo& attr,
                     dilation_rate[1],
                     dilation_rate[0],
                     bias_term ? "true":"false",
+                    (int)weights_dtype,
                     weights_ptr_name.c_str(),
                     offset_info.weights[0].offset,
                     weights_ptr_name.c_str(),
-                    bias_term ? offset_info.weights[1].offset : 0,
+                    offset_info.weights[1].offset,
+                    weights_ptr_name.c_str(),
+                    bias_term ? offset_info.weights[2].offset : 0,
                     "false", //flag_eltwise
                     "true", //set flag_act true
                     "Active_relu", alpha, 0.f, "false", weights_ptr_name.c_str(), 0);
@@ -392,7 +507,9 @@ std::string ParserConvAct(graph::AttrInfo& attr,
                                   std::string& node_name,
                                   std::string& weights_ptr_name,
                                   WeightsWritter& writter,
-                                  bool gen_param) {
+                                  bool gen_param,
+                                  bool lite_mode,
+                                  DataType op_precision) {
     // parsing parameter
     auto group = get_attr<int>("group", attr);
     auto bias_term = get_attr<bool>("bias_term", attr);
@@ -405,14 +522,31 @@ std::string ParserConvAct(graph::AttrInfo& attr,
 
     auto weights = get_attr<PBlock<X86>>("weight_1", attr);
     auto weights_shape = weights.shape();
-    int weights_size = weights_shape.count();//weights_shape[2]*weights_shape[3];
-    int num_output = weights_shape[0];//*weights_shape[1];
-    int prelu_size;
+    auto& weights_tensor = weights.h_tensor();
+    int weights_size = weights_shape.count();
+    int num_output = weights_shape[0];
 
     float alpha = 0.f;
-
+    float coef = 0.f;
+    // write weights
+    trans_conv_weights_inplace(weights_tensor, op_precision, lite_mode);
+    auto weights_dtype = weights_tensor.get_dtype();
     writter.register_weights(node_name, weights);
-    LOG(INFO) << node_name << " write weights: " << weights.count();
+    LOG(INFO) << node_name << " write weights: " << weights.count() << ", weights dtype: " << weights_dtype;
+
+    // write scale
+    PBlock<X86> scale_tensor(AK_FLOAT);
+    std::vector<float> scale = weights_tensor.get_scale();
+    Shape scale_shape({1, 1, 1, scale.size()});
+    scale_tensor.h_tensor().reshape(scale_shape);
+    float* scale_ptr = (float*)scale_tensor.h_tensor().mutable_data();
+    for (int i = 0; i < scale.size(); ++i){
+        scale_ptr[i] = scale[i];
+    }
+    writter.register_weights(node_name, scale_tensor);
+    LOG(INFO) << node_name << "write scale: " << scale_ptr[0];
+
+    // write bias
     if (bias_term) {
         auto bias = get_attr<PBlock<X86>>("weight_2", attr);
         writter.register_weights(node_name, bias);
@@ -422,6 +556,7 @@ std::string ParserConvAct(graph::AttrInfo& attr,
     // get act param
     ActiveType act_type = Active_unknow;
     std::string act_type_str;
+    int prelu_size = 0;
     bool act_shared = false;
     int act_weights_offset = 0;
     auto type = get_attr<std::string>("act_0_type", attr);
@@ -439,18 +574,20 @@ std::string ParserConvAct(graph::AttrInfo& attr,
         auto prelu_weights = get_attr<PBlock<X86>>("act_0_weight_1", attr);
         writter.register_weights(node_name, prelu_weights);
         prelu_size = prelu_weights.count();
-        LOG(INFO) << node_name << " write weights: " << prelu_weights.count();
-        auto offset_info_1 = writter.get_weights_by_name(node_name);
-        act_weights_offset = offset_info_1.weights[2].offset;
+        LOG(INFO) << node_name << " write prelu weights: " << prelu_weights.count();
         act_type_str = "Active_prelu";
     } else if (type == "Stanh") {
         LOG(FATAL) << "Activation Stanh not supported now.";
     } else if (type == "Relu") {
-        alpha = get_attr<float>("relu_0_alpha", attr);
         act_type = Active_relu;
         act_type_str = "Active_relu";
+        if (find_attr("relu_0_alpha", attr) == SaberSuccess) {
+            alpha = get_attr<float>("relu_0_alpha", attr);
+        }
     } else if (type == "ClippedRelu") {
-        LOG(FATAL) << "Activation ClippedRelu not supported now.";
+        act_type = Active_clipped_relu;
+        act_type_str = "Active_clipped_relu";
+        coef = get_attr<float>("clip_relu_num", attr);
     } else if (type == "Elu") {
         LOG(FATAL) << "Activation Elu not supported now.";
     } else {
@@ -462,7 +599,7 @@ std::string ParserConvAct(graph::AttrInfo& attr,
     // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f %f %d %d\n",
+        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f %f %d %d\n",
                     weights_size,
                     num_output,
                     group,
@@ -475,18 +612,20 @@ std::string ParserConvAct(graph::AttrInfo& attr,
                     dilation_rate[1],
                     dilation_rate[0],
                     bias_term ? 1 : 0,
+                    (int)weights_dtype,
                     offset_info.weights[0].offset,
-                    bias_term ? offset_info.weights[1].offset : 0,
+                    offset_info.weights[1].offset,
+                    bias_term ? offset_info.weights[2].offset : 0,
                     0, //flag_eltwise
                     1, //set flag_act true
                     (int)act_type,
                     alpha, //neg slope
-                    0.f, //act_coef
+                    coef, //act_coef
                     act_shared, //prelu, channel_shared
                     act_weights_offset,/*prelu weights*/
-                    prelu_size/*prelu weights size*/);
+                    offset_info.weights[3].offset/*prelu weights size*/);
     } else {
-        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d);\n",
+        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%d,%s+%d,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d);\n",
                     node_name.c_str(),
                     weights_size,
                     num_output,
@@ -500,27 +639,32 @@ std::string ParserConvAct(graph::AttrInfo& attr,
                     dilation_rate[1],
                     dilation_rate[0],
                     bias_term ? "true":"false",
+                    (int)weights_dtype,
                     weights_ptr_name.c_str(),
                     offset_info.weights[0].offset,
                     weights_ptr_name.c_str(),
-                    bias_term ? offset_info.weights[1].offset : 0,
+                    offset_info.weights[1].offset,
+                    weights_ptr_name.c_str(),
+                    bias_term ? offset_info.weights[2].offset : 0,
                     "false", //flag_eltwise
                     "true", //set flag_act true
-                    act_type_str.c_str(), alpha, 0.f, act_shared? "true" : "false", weights_ptr_name.c_str(), act_weights_offset);
+                    act_type_str.c_str(), alpha, coef, act_shared? "true" : "false", weights_ptr_name.c_str(), offset_info.weights[3].offset);
         code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
     }
 
     return code_w.get_code_string();
 }
 
-// ParserConvolutionRelu
+// ParserConvolutionReluPool
 std::string ParserConvolutionReluPool(graph::AttrInfo& attr,
                                   std::string& code_name,
                                   std::string& op_class_name,
                                   std::string& node_name,
                                   std::string& weights_ptr_name,
                                   WeightsWritter& writter,
-                                  bool gen_param) {
+                                  bool gen_param,
+                                  bool lite_mode,
+                                  DataType op_precision) {
     // parsing parameter
     auto group = get_attr<int>("group", attr);
     auto bias_term = get_attr<bool>("bias_term", attr);
@@ -533,10 +677,29 @@ std::string ParserConvolutionReluPool(graph::AttrInfo& attr,
 
     auto weights = get_attr<PBlock<X86>>("weight_1", attr);
     auto weights_shape = weights.shape();
-    int weights_size = weights_shape.count();//weights_shape[2]*weights_shape[3];
-    int num_output = weights_shape[0];//*weights_shape[1];
+    auto& weights_tensor = weights.h_tensor();
+    int weights_size = weights_shape.count();
+    int num_output = weights_shape[0];
 
+    // write weights
+    trans_conv_weights_inplace(weights_tensor, op_precision, lite_mode);
+    auto weights_dtype = weights_tensor.get_dtype();
     writter.register_weights(node_name, weights);
+    LOG(INFO) << node_name << " write weights: " << weights.count() << ", weights dtype: " << weights_dtype;
+
+    // write scale
+    PBlock<X86> scale_tensor(AK_FLOAT);
+    std::vector<float> scale = weights_tensor.get_scale();
+    Shape scale_shape({1, 1, 1, scale.size()});
+    scale_tensor.h_tensor().reshape(scale_shape);
+    float* scale_ptr = (float*)scale_tensor.h_tensor().mutable_data();
+    for (int i = 0; i < scale.size(); ++i){
+        scale_ptr[i] = scale[i];
+    }
+    writter.register_weights(node_name, scale_tensor);
+    LOG(INFO) << node_name << "write scale: " << scale_ptr[0];
+
+    // write bias
     if (bias_term) {
         auto bias = get_attr<PBlock<X86>>("weight_2", attr);
         writter.register_weights(node_name, bias);
@@ -565,12 +728,14 @@ std::string ParserConvolutionReluPool(graph::AttrInfo& attr,
     auto offset_info = writter.get_weights_by_name(node_name);
 
     //! activation param
-    auto alpha = get_attr<float>("relu_0_alpha", attr);
-
+    float alpha = 0.f;
+    if (find_attr("relu_0_alpha", attr) == SaberSuccess) {
+        alpha = get_attr<float>("relu_0_alpha", attr);
+    }
     // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f %f %d %d %d %d %d %d %d %d %d %d %d\n",
+        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f %f %d %d %d %d %d %d %d %d %d %d\n",
                     weights_size,
                     num_output,
                     group,
@@ -583,8 +748,10 @@ std::string ParserConvolutionReluPool(graph::AttrInfo& attr,
                     dilation_rate[1],
                     dilation_rate[0],
                     bias_term ? 1 : 0,
+                    (int)weights_dtype,
                     offset_info.weights[0].offset,
-                    bias_term ? offset_info.weights[1].offset : 0,
+                    offset_info.weights[1].offset,
+                    bias_term ? offset_info.weights[2].offset : 0,
                     0, //flag_eltwise
                     1, //set flag_act true
                     (int)Active_relu,
@@ -602,7 +769,7 @@ std::string ParserConvolutionReluPool(graph::AttrInfo& attr,
                     pool_padding[0],
                     (int)ceil_mode);
     } else {
-        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d,%s,%s,%d,%d,%d,%d,%d,%d,%d);\n",
+        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%d,%s+%d,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d,%s,%s,%d,%d,%d,%d,%d,%d);\n",
                     node_name.c_str(),
                     weights_size,
                     num_output,
@@ -616,10 +783,13 @@ std::string ParserConvolutionReluPool(graph::AttrInfo& attr,
                     dilation_rate[1],
                     dilation_rate[0],
                     bias_term ? "true":"false",
+                    (int)weights_dtype,
                     weights_ptr_name.c_str(),
                     offset_info.weights[0].offset,
                     weights_ptr_name.c_str(),
-                    bias_term ? offset_info.weights[1].offset : 0,
+                    offset_info.weights[1].offset,
+                    weights_ptr_name.c_str(),
+                    bias_term ? offset_info.weights[2].offset : 0,
                     "false", //flag_eltwise
                     "true", //set flag_act true
                     "Active_relu", alpha, 0.f, "false", weights_ptr_name.c_str(), 0,
@@ -643,7 +813,9 @@ std::string ParserConvBatchnorm(graph::AttrInfo& attr,
                                 std::string& node_name,
                                 std::string& weights_ptr_name,
                                 WeightsWritter& writter,
-                                bool gen_param) {
+                                bool gen_param,
+                                bool lite_mode,
+                                DataType op_precision) {
     // parsing parameter
     auto group = get_attr<int>("group", attr);
     auto bias_term = get_attr<bool>("bias_term", attr);
@@ -656,10 +828,29 @@ std::string ParserConvBatchnorm(graph::AttrInfo& attr,
 
     auto weights = get_attr<PBlock<X86>>("weight_1", attr);
     auto weights_shape = weights.shape();
-    int weights_size = weights_shape.count();//weights_shape[2]*weights_shape[3];
-    int num_output = weights_shape[0];//*weights_shape[1];
+    auto weights_tensor = weights.h_tensor();
+    int weights_size = weights_shape.count();
+    int num_output = weights_shape[0];
+
+    // write weights
+    trans_conv_weights_inplace(weights_tensor, op_precision, lite_mode);
+    auto weights_dtype = weights_tensor.get_dtype();
     writter.register_weights(node_name, weights);
-    LOG(INFO) << node_name << " write weights: " << weights.count();
+    LOG(INFO) << node_name << " write weights: " << weights.count() << ", weights dtype: " << weights_dtype;
+
+    // write scale
+    PBlock<X86> scale_tensor(AK_FLOAT);
+    std::vector<float> scale = weights_tensor.get_scale();
+    Shape scale_shape({1, 1, 1, scale.size()});
+    scale_tensor.h_tensor().reshape(scale_shape);
+    float* scale_ptr = (float*)scale_tensor.h_tensor().mutable_data();
+    for (int i = 0; i < scale.size(); ++i){
+        scale_ptr[i] = scale[i];
+    }
+    writter.register_weights(node_name, scale_tensor);
+    LOG(INFO) << node_name << "write scale: " << scale_ptr[0];
+
+    // write bias
     if (bias_term) {
         auto bias = get_attr<PBlock<X86>>("weight_2", attr);
         writter.register_weights(node_name, bias);
@@ -671,7 +862,7 @@ std::string ParserConvBatchnorm(graph::AttrInfo& attr,
     // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f %f %d %d\n",
+        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f %f %d %d\n",
                     weights_size,
                     num_output,
                     group,
@@ -684,8 +875,10 @@ std::string ParserConvBatchnorm(graph::AttrInfo& attr,
                     dilation_rate[1],
                     dilation_rate[0],
                     1, //BIAS term
+                    (int)weights_dtype,
                     offset_info.weights[0].offset,
                     offset_info.weights[1].offset,
+                    offset_info.weights[2].offset,
                     0, //flag_eltwise
                     0, //set flag_act true
                     (int)Active_relu,
@@ -694,7 +887,7 @@ std::string ParserConvBatchnorm(graph::AttrInfo& attr,
                     0, //prelu, channel_shared
                     0/*prelu weights*/);
     } else {
-        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d);\n",
+        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d);\n",
                     node_name.c_str(),
                     weights_size,
                     num_output,
@@ -708,10 +901,13 @@ std::string ParserConvBatchnorm(graph::AttrInfo& attr,
                     dilation_rate[1],
                     dilation_rate[0],
                     "true",
+                    (int)weights_dtype,
                     weights_ptr_name.c_str(),
                     offset_info.weights[0].offset,
                     weights_ptr_name.c_str(),
                     offset_info.weights[1].offset,
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[2].offset,
                     "false", //flag_eltwise
                     "false", //set flag_act true
                     "Active_relu", 0.f, 0.f, "false", weights_ptr_name.c_str(), 0);
@@ -726,7 +922,9 @@ std::string ParserConvBatchnormScale(graph::AttrInfo& attr,
                                      std::string& node_name,
                                      std::string& weights_ptr_name,
                                      WeightsWritter& writter,
-                                     bool gen_param) {
+                                     bool gen_param,
+                                     bool lite_mode,
+                                     DataType op_precision) {
     // parsing parameter
     auto group = get_attr<int>("group", attr);
     auto bias_term = get_attr<bool>("bias_term", attr);
@@ -739,10 +937,29 @@ std::string ParserConvBatchnormScale(graph::AttrInfo& attr,
 
     auto weights = get_attr<PBlock<X86>>("weight_1", attr);
     auto weights_shape = weights.shape();
-    int weights_size = weights_shape.count();//weights_shape[2]*weights_shape[3];
-    int num_output = weights_shape[0];//*weights_shape[1];
+    auto& weights_tensor = weights.h_tensor();
+    int weights_size = weights_shape.count();
+    int num_output = weights_shape[0];
+
+    // write weights
+    trans_conv_weights_inplace(weights_tensor, op_precision, lite_mode);
+    auto weights_dtype = weights_tensor.get_dtype();
     writter.register_weights(node_name, weights);
-    LOG(INFO) << node_name << " write weights: " << weights.count();
+    LOG(INFO) << node_name << " write weights: " << weights.count() << ", weights dtype: " << weights_dtype;
+
+    // write scale
+    PBlock<X86> scale_tensor(AK_FLOAT);
+    std::vector<float> scale = weights_tensor.get_scale();
+    Shape scale_shape({1, 1, 1, scale.size()});
+    scale_tensor.h_tensor().reshape(scale_shape);
+    float* scale_ptr = (float*)scale_tensor.h_tensor().mutable_data();
+    for (int i = 0; i < scale.size(); ++i){
+        scale_ptr[i] = scale[i];
+    }
+    writter.register_weights(node_name, scale_tensor);
+    LOG(INFO) << node_name << "write scale: " << scale_ptr[0];
+
+    // write bias
     if (bias_term) {
         auto bias = get_attr<PBlock<X86>>("weight_2", attr);
         writter.register_weights(node_name, bias);
@@ -750,10 +967,10 @@ std::string ParserConvBatchnormScale(graph::AttrInfo& attr,
     }
 
     auto offset_info = writter.get_weights_by_name(node_name);
-// gen cpp code
+    // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f %f %d %d\n",
+        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f %f %d %d\n",
                     weights_size,
                     num_output,
                     group,
@@ -766,8 +983,10 @@ std::string ParserConvBatchnormScale(graph::AttrInfo& attr,
                     dilation_rate[1],
                     dilation_rate[0],
                     1, //BIAS term
+                    (int)weights_dtype,
                     offset_info.weights[0].offset,
                     offset_info.weights[1].offset,
+                    offset_info.weights[2].offset,
                     0, //flag_eltwise
                     0, //set flag_act false
                     (int)Active_relu,
@@ -776,7 +995,7 @@ std::string ParserConvBatchnormScale(graph::AttrInfo& attr,
                     0, //prelu, channel_shared
                     0/*prelu weights*/);
     } else {
-        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d);\n",
+        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%d,%s+%d,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d);\n",
                     node_name.c_str(),
                     weights_size,
                     num_output,
@@ -790,10 +1009,13 @@ std::string ParserConvBatchnormScale(graph::AttrInfo& attr,
                     dilation_rate[1],
                     dilation_rate[0],
                     "true",
+                    (int)weights_dtype,
                     weights_ptr_name.c_str(),
                     offset_info.weights[0].offset,
                     weights_ptr_name.c_str(),
                     offset_info.weights[1].offset,
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[2].offset,
                     "false", //flag_eltwise
                     "false", //set flag_act true
                     "Active_relu", 0.f, 0.f, "false", weights_ptr_name.c_str(), 0);
@@ -810,7 +1032,9 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
                                          std::string& node_name,
                                          std::string& weights_ptr_name,
                                          WeightsWritter& writter,
-                                         bool gen_param) {
+                                         bool gen_param,
+                                         bool lite_mode,
+                                         DataType op_precision) {
     // parsing parameter
     auto group = get_attr<int>("group", attr);
     auto bias_term = get_attr<bool>("bias_term", attr);
@@ -823,23 +1047,45 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
 
     auto weights = get_attr<PBlock<X86>>("weight_1", attr);
     auto weights_shape = weights.shape();
-    int weights_size = weights_shape.count();//weights_shape[2]*weights_shape[3];
-    int num_output = weights_shape[0];//*weights_shape[1];
+    auto &weights_tensor = weights.h_tensor();
+    int weights_size = weights_shape.count();
+    int num_output = weights_shape[0];
+
+    // write weights
+    trans_conv_weights_inplace(weights_tensor, op_precision, lite_mode);
+    auto weights_dtype = weights_tensor.get_dtype();
     writter.register_weights(node_name, weights);
-    LOG(INFO) << node_name << " write weights: " << weights.count();
+    LOG(INFO) << node_name << " write weights: " << weights.count() << ", weights dtype: " << weights_dtype;
+
+    // write scale
+    PBlock<X86> scale_tensor(AK_FLOAT);
+    std::vector<float> scale = weights_tensor.get_scale();
+    Shape scale_shape({1, 1, 1, scale.size()});
+    scale_tensor.h_tensor().reshape(scale_shape);
+    float* scale_ptr = (float*)scale_tensor.h_tensor().mutable_data();
+    for (int i = 0; i < scale.size(); ++i){
+        scale_ptr[i] = scale[i];
+    }
+    writter.register_weights(node_name, scale_tensor);
+    LOG(INFO) << node_name << "write scale: " << scale_ptr[0];
+
+    // write bias
     if (bias_term) {
         auto bias = get_attr<PBlock<X86>>("weight_2", attr);
         writter.register_weights(node_name, bias);
         LOG(INFO) << node_name << " write bias: " << bias.count();
     }
-
     auto offset_info = writter.get_weights_by_name(node_name);
+
     //! activation param
-    auto alpha = get_attr<float>("relu_0_alpha", attr);
+    float alpha = 0.f;
+    if (find_attr("relu_0_alpha", attr) == SaberSuccess) {
+        alpha = get_attr<float>("relu_0_alpha", attr);
+    }
     // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f %f %d %d\n",
+        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f %f %d %d\n",
                     weights_size,
                     num_output,
                     group,
@@ -852,8 +1098,10 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
                     dilation_rate[1],
                     dilation_rate[0],
                     1, //BIAS term
+                    (int)weights_dtype,
                     offset_info.weights[0].offset,
                     offset_info.weights[1].offset,
+                    offset_info.weights[2].offset,
                     0, //flag_eltwise
                     1, //set flag_act false
                     (int)Active_relu,
@@ -862,7 +1110,7 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
                     0, //prelu, channel_shared
                     0/*prelu weights*/);
     } else {
-        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d);\n",
+        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%d,%s+%d,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d);\n",
                     node_name.c_str(),
                     weights_size,
                     num_output,
@@ -876,27 +1124,31 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
                     dilation_rate[1],
                     dilation_rate[0],
                     "true",
+                    (int)weights_dtype,
                     weights_ptr_name.c_str(),
                     offset_info.weights[0].offset,
                     weights_ptr_name.c_str(),
                     offset_info.weights[1].offset,
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[2].offset,
                     "false", //flag_eltwise
                     "true", //set flag_act true
                     "Active_relu", alpha, 0.f, "false", weights_ptr_name.c_str(), 0);
         code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
     }
-
     return code_w.get_code_string();
 }
 
-// SaberConvBatchnormScaleRelu
+// SaberConvBatchnormScaleReluPool
 std::string ParserConvBatchnormScaleReluPool(graph::AttrInfo& attr,
                                          std::string& code_name,
                                          std::string& op_class_name,
                                          std::string& node_name,
                                          std::string& weights_ptr_name,
                                          WeightsWritter& writter,
-                                         bool gen_param) {
+                                         bool gen_param,
+                                         bool lite_mode,
+                                         DataType op_precision) {
     // parsing parameter
     auto group = get_attr<int>("group", attr);
     auto bias_term = get_attr<bool>("bias_term", attr);
@@ -909,10 +1161,29 @@ std::string ParserConvBatchnormScaleReluPool(graph::AttrInfo& attr,
 
     auto weights = get_attr<PBlock<X86>>("weight_1", attr);
     auto weights_shape = weights.shape();
-    int weights_size = weights_shape.count();//weights_shape[2]*weights_shape[3];
-    int num_output = weights_shape[0];//*weights_shape[1];
+    auto& weights_tensor = weights.h_tensor();
+    int weights_size = weights_shape.count();
+    int num_output = weights_shape[0];
+
+    // write weights
+    trans_conv_weights_inplace(weights_tensor, op_precision, lite_mode);
+    auto weights_dtype = weights_tensor.get_dtype();
     writter.register_weights(node_name, weights);
-    LOG(INFO) << node_name << " write weights: " << weights.count();
+    LOG(INFO) << node_name << " write weights: " << weights.count() << ", weights dtype: " << weights_dtype;
+
+    // write scale
+    PBlock<X86> scale_tensor(AK_FLOAT);
+    std::vector<float> scale = weights_tensor.get_scale();
+    Shape scale_shape({1, 1, 1, scale.size()});
+    scale_tensor.h_tensor().reshape(scale_shape);
+    float* scale_ptr = (float*)scale_tensor.h_tensor().mutable_data();
+    for (int i = 0; i < scale.size(); ++i){
+        scale_ptr[i] = scale[i];
+    }
+    writter.register_weights(node_name, scale_tensor);
+    LOG(INFO) << node_name << "write scale: " << scale_ptr[0];
+
+    // write bias
     if (bias_term) {
         auto bias = get_attr<PBlock<X86>>("weight_2", attr);
         writter.register_weights(node_name, bias);
@@ -941,12 +1212,14 @@ std::string ParserConvBatchnormScaleReluPool(graph::AttrInfo& attr,
     auto offset_info = writter.get_weights_by_name(node_name);
 
     //! activation param
-    auto alpha = get_attr<float>("relu_0_alpha", attr);
-
+    float alpha = 0.f;
+    if (find_attr("relu_0_alpha", attr) == SaberSuccess) {
+        alpha = get_attr<float>("relu_0_alpha", attr);
+    }
     // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f %f %d %d %d %d %d %d %d %d %d %d %d\n",
+        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f %f %d %d %d %d %d %d %d %d %d %d\n",
                     weights_size,
                     num_output,
                     group,
@@ -959,8 +1232,10 @@ std::string ParserConvBatchnormScaleReluPool(graph::AttrInfo& attr,
                     dilation_rate[1],
                     dilation_rate[0],
                     1, //bias term
+                    (int)weights_dtype,
                     offset_info.weights[0].offset,
                     offset_info.weights[1].offset,
+                    offset_info.weights[2].offset,
                     0, //flag_eltwise
                     1, //set flag_act true
                     (int)Active_relu,
@@ -978,7 +1253,7 @@ std::string ParserConvBatchnormScaleReluPool(graph::AttrInfo& attr,
                     pool_padding[0],
                     (int)ceil_mode);
     } else {
-        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d,%s,%s,%d,%d,%d,%d,%d,%d,%d);\n",
+        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%d,%s+%d,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d,%s,%s,%d,%d,%d,%d,%d,%d);\n",
                     node_name.c_str(),
                     weights_size,
                     num_output,
@@ -992,10 +1267,13 @@ std::string ParserConvBatchnormScaleReluPool(graph::AttrInfo& attr,
                     dilation_rate[1],
                     dilation_rate[0],
                     "true",
+                    (int)weights_dtype,
                     weights_ptr_name.c_str(),
                     offset_info.weights[0].offset,
                     weights_ptr_name.c_str(),
                     offset_info.weights[1].offset,
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[2].offset,
                     "false", //flag_eltwise
                     "true", //set flag_act true
                     "Active_relu", alpha, 0.f, "false", weights_ptr_name.c_str(), 0,
@@ -1020,7 +1298,9 @@ std::string ParserConcat(graph::AttrInfo& attr,
                          std::string& node_name,
                          std::string& weights_ptr_name,
                          WeightsWritter& writter,
-                         bool gen_param) {
+                         bool gen_param,
+                         bool lite_mode,
+                         DataType op_precision) {
     // parsing parameter
     auto axis = get_attr<int>("axis", attr);
     // gen cpp code
@@ -1042,7 +1322,9 @@ std::string ParserDectionOutput(graph::AttrInfo& attr,
                                 std::string& node_name,
                                 std::string& weights_ptr_name,
                                 WeightsWritter& writter,
-                                bool gen_param) {
+                                bool gen_param,
+                                bool lite_mode,
+                                DataType op_precision) {
     // parsing parameter
     auto flag_share_location = get_attr<bool>("share_location", attr);
     auto flag_var_in_target  = get_attr<bool>("variance_encode_in_target", attr);
@@ -1104,7 +1386,9 @@ std::string ParserEltwise(graph::AttrInfo& attr,
                           std::string& node_name,
                           std::string& weights_ptr_name,
                           WeightsWritter& writter,
-                          bool gen_param) {
+                          bool gen_param,
+                          bool lite_mode,
+                          DataType op_precision) {
     // parsing parameter
     auto type = get_attr<std::string>("type", attr);
     auto coeff = get_attr<PTuple<float>>("coeff", attr);
@@ -1160,7 +1444,9 @@ std::string ParserEltwiseRelu(graph::AttrInfo& attr,
                           std::string& node_name,
                           std::string& weights_ptr_name,
                           WeightsWritter& writter,
-                          bool gen_param) {
+                          bool gen_param,
+                          bool lite_mode,
+                          DataType op_precision) {
     // parsing parameter
     auto type = get_attr<std::string>("type", attr);
     auto coeff = get_attr<PTuple<float>>("coeff", attr);
@@ -1222,7 +1508,9 @@ std::string ParserEltwisePRelu(graph::AttrInfo& attr,
                           std::string& node_name,
                           std::string& weights_ptr_name,
                           WeightsWritter& writter,
-                          bool gen_param) {
+                          bool gen_param,
+                          bool lite_mode,
+                          DataType op_precision) {
     // parsing parameter
     auto type = get_attr<std::string>("type", attr);
     auto coeff = get_attr<PTuple<float>>("coeff", attr);
@@ -1252,7 +1540,6 @@ std::string ParserEltwisePRelu(graph::AttrInfo& attr,
     }
     //prelu
     auto prelu_channel_shared = get_attr<bool>("prelu_0_channel_shared", attr);
-    // auto prelu_weights = get_attr<bool>("weights", attr);
     auto prelu_weights = get_attr<PBlock<X86>>("prelu_0_weight_1", attr);
 
     writter.register_weights(node_name, prelu_weights);
@@ -1296,7 +1583,9 @@ std::string ParserActivation(graph::AttrInfo& attr,
                              std::string& node_name,
                              std::string& weights_ptr_name,
                              WeightsWritter& writter,
-                             bool gen_param) {
+                             bool gen_param,
+                             bool lite_mode,
+                             DataType op_precision) {
     // parsing parameter
     auto type = get_attr<std::string>("type", attr);
 
@@ -1344,7 +1633,6 @@ std::string ParserActivation(graph::AttrInfo& attr,
     }  else if (type == "PReLU") {
         act_type = "Active_prelu";
         auto prelu_channel_shared = get_attr<bool>("channel_shared", attr);
-        // auto prelu_weights = get_attr<bool>("weights", attr);
         auto prelu_weights = get_attr<PBlock<X86>>("weight_1", attr);
 
         writter.register_weights(node_name, prelu_weights);
@@ -1391,7 +1679,10 @@ std::string ParserRelu(graph::AttrInfo& attr,
                        std::string& op_class_name,
                        std::string& node_name,
                        std::string& weights_ptr_name,
-                       WeightsWritter& writter, bool gen_param) {
+                       WeightsWritter& writter,
+                       bool gen_param,
+                       bool lite_mode,
+                       DataType op_precision) {
     // parsing parameter
     auto alpha = get_attr<float>("alpha", attr);
 
@@ -1419,7 +1710,9 @@ std::string ParserFc(graph::AttrInfo& attr,
                      std::string& node_name,
                      std::string& weights_ptr_name,
                      WeightsWritter& writter,
-                     bool gen_param) {
+                     bool gen_param,
+                     bool lite_mode,
+                     DataType op_precision) {
     // parsing parameter
     auto axis = get_attr<int>("axis", attr);
     auto out_dim = get_attr<int>("out_dim", attr);
@@ -1427,9 +1720,28 @@ std::string ParserFc(graph::AttrInfo& attr,
 
     auto weights = get_attr<PBlock<X86>>("weight_1", attr);
     auto weights_shape = weights.shape();
+    auto& weights_tensor = weights.h_tensor();
     int weights_size = weights_shape.count();
 
+    // write weights
+    trans_conv_weights_inplace(weights_tensor, op_precision, lite_mode);
+    auto weights_dtype = weights_tensor.get_dtype();
     writter.register_weights(node_name, weights);
+    LOG(INFO) << node_name << " write weights: " << weights.count() << ", weights dtype: " << weights_dtype;
+
+    // write scale
+    PBlock<X86> scale_tensor(AK_FLOAT);
+    std::vector<float> scale = weights_tensor.get_scale();
+    Shape scale_shape({1, 1, 1, scale.size()});
+    scale_tensor.h_tensor().reshape(scale_shape);
+    float* scale_ptr = (float*)scale_tensor.h_tensor().mutable_data();
+    for (int i = 0; i < scale.size(); ++i){
+        scale_ptr[i] = scale[i];
+    }
+    writter.register_weights(node_name, scale_tensor);
+    LOG(INFO) << node_name << "write scale: " << scale_ptr[0];
+
+    // write bias
     if (bias_term) {
         auto bias = get_attr<PBlock<X86>>("weight_2", attr);
         writter.register_weights(node_name, bias);
@@ -1440,25 +1752,30 @@ std::string ParserFc(graph::AttrInfo& attr,
     // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-        code_w.feed("%d %d %d %d %d %d %d\n",
+        code_w.feed("%d %d %d %d %d %d %d %d %d\n",
                     axis,
                     out_dim,
                     bias_term ? 1 : 0,
+                    (int)(weights_dtype),
                     weights_size,
                     offset_info.weights[0].offset,
-                    bias_term ? offset_info.weights[1].offset : 0,
+                    offset_info.weights[1].offset,
+                    bias_term ? offset_info.weights[2].offset : 0,
                     0);
     } else {
-        code_w.feed("ParamBase* %s_param = new FcParam(%d,%d,%s,%d,%s+%d,%s+%d,%s);\n",
+        code_w.feed("ParamBase* %s_param = new FcParam(%d,%d,%s,%d,%d,%s+%d,%s+%d,%s+%d,%s);\n",
                     node_name.c_str(),
                     axis,
                     out_dim,
                     bias_term ? "true":"false",
+                    (int)(weights_dtype),
                     weights_size,
                     weights_ptr_name.c_str(),
                     offset_info.weights[0].offset,
                     weights_ptr_name.c_str(),
-                    bias_term ? offset_info.weights[1].offset : 0,
+                    offset_info.weights[1].offset,
+                    weights_ptr_name.c_str(),
+                    bias_term ? offset_info.weights[2].offset : 0,
                     "false");
 
         code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
@@ -1473,7 +1790,9 @@ std::string ParserPermute(graph::AttrInfo& attr,
                           std::string& node_name,
                           std::string& weights_ptr_name,
                           WeightsWritter& writter,
-                          bool gen_param) {
+                          bool gen_param,
+                          bool lite_mode,
+                          DataType op_precision) {
     // parsing parameter
     auto dims = get_attr<PTuple<int>>("dims", attr);
 
@@ -1512,7 +1831,9 @@ std::string ParserPooling(graph::AttrInfo& attr,
                           std::string& node_name,
                           std::string& weights_ptr_name,
                           WeightsWritter& writter,
-                          bool gen_param) {
+                          bool gen_param,
+                          bool lite_mode,
+                          DataType op_precision) {
     // parsing parameter
     auto ceil_mode = !get_attr<bool>("cmp_out_shape_floor_as_conv", attr);
     auto global_pooling = get_attr<bool>("global_pooling", attr);
@@ -1570,7 +1891,9 @@ std::string ParserPriorBox(graph::AttrInfo& attr,
                            std::string& node_name,
                            std::string& weights_ptr_name,
                            WeightsWritter& writter,
-                           bool gen_param) {
+                           bool gen_param,
+                           bool lite_mode,
+                           DataType op_precision) {
     // parsing parameter
     auto min_size  = get_attr<PTuple<float>>("min_size", attr);
     auto max_size  = get_attr<PTuple<float>>("max_size", attr);
@@ -1664,7 +1987,6 @@ std::string ParserPriorBox(graph::AttrInfo& attr,
     // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
-       // printf("**************\n");
         code_w << var.size() << " ";
         for (int i = 0; i < var.size(); ++i) {
             code_w << var[i] << " ";
@@ -1705,7 +2027,6 @@ std::string ParserPriorBox(graph::AttrInfo& attr,
         }
         code_w << "\n";
     } else {
-      //  printf("===============\n");
         code_w.feed("ParamBase* %s_param = new PriorBoxParam(%s,%s,%s,%d,%d,%f,%f,%f,%s,%s,%s,%s,%s,%s,%s);\n",
                     node_name.c_str(),
                     gen_vec_code(var).c_str(),
@@ -1737,7 +2058,9 @@ std::string ParserSlice(graph::AttrInfo& attr,
                         std::string& node_name,
                         std::string& weights_ptr_name,
                         WeightsWritter& writter,
-                        bool gen_param) {
+                        bool gen_param,
+                        bool lite_mode,
+                        DataType op_precision) {
     // parsing parameter
     auto slice_dim = get_attr<int>("slice_dim", attr);
     auto slice_point = get_attr<PTuple<int>>("slice_point", attr);
@@ -1779,7 +2102,9 @@ std::string ParserScale(graph::AttrInfo& attr,
                         std::string& node_name,
                         std::string& weights_ptr_name,
                         WeightsWritter& writter,
-                        bool gen_param) {
+                        bool gen_param,
+                        bool lite_mode,
+                        DataType op_precision) {
     // parsing parameter
     auto num_axes = get_attr<int>("num_axes", attr);
     auto axis = get_attr<int>("axis", attr);
@@ -1838,7 +2163,9 @@ std::string ParserBatchNorm(graph::AttrInfo& attr,
                         std::string& node_name,
                         std::string& weights_ptr_name,
                         WeightsWritter& writter,
-                        bool gen_param) {
+                        bool gen_param,
+                        bool lite_mode,
+                        DataType op_precision) {
 
     // get batchnorm param
     auto eps = get_attr<float>("epsilon", attr);
@@ -1923,7 +2250,9 @@ std::string ParserSoftmax(graph::AttrInfo& attr,
                           std::string& node_name,
                           std::string& weights_ptr_name,
                           WeightsWritter& writter,
-                          bool gen_param) {
+                          bool gen_param,
+                          bool lite_mode,
+                          DataType op_precision) {
     // parsing parameter
     auto axis = get_attr<int>("axis", attr);
 
@@ -1949,7 +2278,9 @@ std::string ParserShuffleChannel(graph::AttrInfo& attr,
                               std::string& node_name,
                               std::string& weights_ptr_name,
                               WeightsWritter& writter,
-                              bool gen_param) {
+                              bool gen_param,
+                              bool lite_mode,
+                              DataType op_precision) {
     // parsing parameter
     auto group = get_attr<int>("group", attr);
 
@@ -1975,7 +2306,9 @@ std::string ParserCoord2Patch(graph::AttrInfo& attr,
                                  std::string& node_name,
                                  std::string& weights_ptr_name,
                                  WeightsWritter& writter,
-                                 bool gen_param) {
+                                 bool gen_param,
+                                 bool lite_mode,
+                                 DataType op_precision) {
     // parsing parameter
     auto img_h = get_attr<int>("img_h", attr);
     auto output_h = get_attr<int>("output_h", attr);
@@ -2003,7 +2336,9 @@ std::string ParserSplit(graph::AttrInfo& attr,
                           std::string& node_name,
                           std::string& weights_ptr_name,
                           WeightsWritter& writter,
-                          bool gen_param) {
+                          bool gen_param,
+                          bool lite_mode,
+                          DataType op_precision) {
     // parsing parameter
     // no param
     // gen cpp code
@@ -2025,7 +2360,9 @@ std::string ParserFlatten(graph::AttrInfo& attr,
                           std::string& node_name,
                           std::string& weights_ptr_name,
                           WeightsWritter& writter,
-                          bool gen_param) {
+                          bool gen_param,
+                          bool lite_mode,
+                          DataType op_precision) {
     // parsing parameter
     // no param
     // gen cpp code
@@ -2047,7 +2384,9 @@ std::string ParserReshape(graph::AttrInfo& attr,
                                std::string& node_name,
                                std::string& weights_ptr_name,
                                WeightsWritter& writter,
-                               bool gen_param) {
+                               bool gen_param,
+                               bool lite_mode,
+                               DataType op_precision) {
     // parsing parameter
     auto dims = get_attr<PTuple<int>>("dims", attr);
     std::vector<int> vdims = dims.vector();
@@ -2084,7 +2423,9 @@ std::string ParserResize(graph::AttrInfo& attr,
                           std::string& node_name,
                           std::string& weights_ptr_name,
                           WeightsWritter& writter,
-                          bool gen_param) {
+                          bool gen_param,
+                          bool lite_mode,
+                          DataType op_precision) {
     // parsing parameter
     float width_scale = 0.f;
     float height_scale = 0.f;
@@ -2135,7 +2476,9 @@ std::string ParserNormalize(graph::AttrInfo& attr,
                           std::string& node_name,
                           std::string& weights_ptr_name,
                           WeightsWritter& writter,
-                          bool gen_param) {
+                          bool gen_param,
+                          bool lite_mode,
+                          DataType op_precision) {
     // parsing parameter
     auto eps = get_attr<float>("eps", attr);
     // gen cpp code

@@ -39,27 +39,23 @@ public:
 
     virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
                              std::vector<Tensor<NV> *>& outputs,
-                             ConvParam<NV>& param, Context<NV> &ctx)
-    {
+                             ConvParam<NV>& param, Context<NV> &ctx) {
         this->_ctx = &ctx;
-        if (param.activation_param.has_active)
-        {
-            if (param.activation_param.active != Active_relu)
-            {
+        if (param.activation_param.has_active) {
+            if (param.activation_param.active != Active_relu) {
                 _saber_act = new SaberActivation<NV, OpDtype>;
                 _saber_act->init(inputs, outputs, param.activation_param, ctx);
             }
-        }  
-
+        }
         return create(inputs, outputs, param, ctx);
     }
 
     virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
                                std::vector<Tensor<NV> *>& outputs,
-                               ConvParam<NV>& param, Context<NV>& ctx)
-    {
-        if (_saber_act != nullptr)
+                               ConvParam<NV>& param, Context<NV>& ctx) {
+        if (_saber_act != nullptr) {
             _saber_act->create(outputs, outputs, param.activation_param, ctx);
+        }
     }
 
     virtual SaberStatus dispatch(const std::vector<Tensor<NV>*>& inputs,

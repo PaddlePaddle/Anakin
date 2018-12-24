@@ -41,6 +41,7 @@ Status DeconvReluHelper<Ttype, Ptype>::InitParam() {
     
 	using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
+    // fixme, resize deconv weights scale
     
     // get relu param
     auto alpha = GET_PARAMETER(float, relu_0_alpha);

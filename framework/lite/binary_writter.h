@@ -77,12 +77,12 @@ public:
 	// set weight
 	template<typename Ttype>
 	void register_weights(const std::string& node_name, PBlock<Ttype>& weight) {
+		size_t type_size = weight.h_tensor().get_dtype_size();
 		WeghtOffset::Offset offset_tmp;
 		offset_tmp.offset = _offset;
 		offset_tmp.length = weight.count();
-		_offset += offset_tmp.length;
+		_offset += offset_tmp.length * type_size;
 		_node_weights_map[node_name].weights.push_back(offset_tmp);
-		size_t type_size = weight.h_tensor().get_dtype_size();
 		write(weight.h_tensor().mutable_data(), type_size, offset_tmp.length);
 	}
 

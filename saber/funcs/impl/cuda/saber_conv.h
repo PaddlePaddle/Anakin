@@ -43,32 +43,23 @@ public:
 
     virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
                                std::vector<Tensor<NV> *>& outputs,
-                               ConvParam<NV>& param, Context<NV>& ctx) {
-        if (_impl != nullptr) {
-            return _impl->create(inputs, outputs, param, ctx);
-        } else {
-            return SaberUnImplError;
-        }
-    }
+                               ConvParam<NV>& param, Context<NV>& ctx);
 
     virtual SaberStatus dispatch(const std::vector<Tensor<NV>*>& inputs,
                                  std::vector<Tensor<NV>*>& outputs,
-                                 ConvParam<NV>& param) {
-        if (_impl != nullptr) {
-            return _impl->dispatch(inputs, outputs, param);
-        } else {
-            return SaberUnImplError;
-        }
-    }
+                                 ConvParam<NV>& param);
 
     SaberStatus trans_weights(Tensor<NV> &target_weights, Tensor<NV> &target_bias,
                               int pad_h, int pad_w, int dilation_h, int dilation_w,
                               int stride_h, int stride_w, int group);
 
 private:
+    Tensor<NV> int8_input;
+    Tensor<NV> int8_output;
     Impl_t* _impl{nullptr};
     bool _extern_trans{false};
     bool _use_vender{false};
+    float _in_scale{0.f};
 };
 }
 

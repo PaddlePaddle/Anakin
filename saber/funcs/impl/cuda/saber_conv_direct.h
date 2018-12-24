@@ -51,6 +51,7 @@ public:
 private:
     bool _use_saber_act{false};
     SaberActivation<NV, OpDtype> *_saber_act{nullptr};
+    float _in_scale{0.f};
     //we use this func holder only when input and output datatype is float;
     std::function<void(const float*,
                        float*,

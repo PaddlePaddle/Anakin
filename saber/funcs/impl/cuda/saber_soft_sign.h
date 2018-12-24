@@ -13,40 +13,44 @@
    limitations under the License. 
 */
 
-#ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_ACTIVATION_H
-#define ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_ACTIVATION_H
+#ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_SOFT_SIGN_H
+#define ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_SOFT_SIGN_H
 
-#include "saber/funcs/impl/impl_activation.h"
+#include "saber/funcs/impl/impl_soft_sign.h"
 
 namespace anakin{
 
 namespace saber{
 
 template <DataType OpDtype>
-class SaberActivation<NV, OpDtype> :
+class SaberSoftSign<NV, OpDtype> :
     public ImplBase<
         NV, OpDtype,
-        ActivationParam<NV> > {
+        SoftSignParam<NV> > {
 public:
     typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
-    SaberActivation() = default;
-    ~SaberActivation() = default;
+    SaberSoftSign() = default;
+    ~SaberSoftSign() {}
 
     virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
                             std::vector<Tensor<NV> *>& outputs,
-                            ActivationParam<NV>& param, Context<NV>& ctx);
+                            SoftSignParam<NV>& param, Context<NV>& ctx) {
+        this->_ctx = &ctx;
+        return SaberSuccess;
+    }
 
     virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
                             std::vector<Tensor<NV> *>& outputs,
-                            ActivationParam<NV>& param, Context<NV> &ctx);
+                            SoftSignParam<NV>& param, Context<NV> &ctx) {
+        return SaberSuccess;
+    }
     
     virtual SaberStatus dispatch(const std::vector<Tensor<NV>*>& inputs,
                           std::vector<Tensor<NV>*>& outputs,
-                          ActivationParam<NV>& param);
-private:
+                          SoftSignParam<NV>& param);
 };
 
 }
 
 }
-#endif //ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_ACTIVATION_H
+#endif //ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_SOFT_SIGN_H

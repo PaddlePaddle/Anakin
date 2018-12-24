@@ -34,6 +34,7 @@ struct NodeInfo {
     std::string op_name;			// op name
     std::vector<std::string> ins;	// input edge name
     std::vector<std::string> outs;	// output edge name
+    DataType dtype;
 };
 
 
@@ -48,6 +49,8 @@ struct EdgeInfo {
     std::string share_from{""}; 	// if the edge is_shared(true), share_from will hold the target edge name.
     std::string in_node;
     std::string out_node;
+    std::vector<float> scale;
+    DataType dtype;
 };
 
 /**

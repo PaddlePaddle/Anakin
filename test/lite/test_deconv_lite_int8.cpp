@@ -123,6 +123,7 @@ SaberStatus test_arm_deconv_int8(int n, int c, int h, int w, \
 
     //! convert input data type
     std::vector<float> scale;
+    std::vector<float> weights_scale(ch_out, 1.f);
     get_tensor_scale(thinf, scale, 0, 63.f);
 //    LOG(INFO) << "input tesnor scale at factor 63.f is " << thinf.get_scale()[0] << ", max_val: " << 63.f * thinf.get_scale()[0];
     trans_tensor_fp32_to_int8(thinf, thinc, scale[0]);
@@ -172,8 +173,8 @@ SaberStatus test_arm_deconv_int8(int n, int c, int h, int w, \
     SaberDeconv2D deconv_int8;
 
     Conv2DParam param(pweihtf.valid_size(), ch_out, group, kernel_w, kernel_h, \
-        stride_w, stride_h, pad_w, pad_h, dila_w, dila_h, is_bias, \
-        static_cast<const float*>(pweihtf.data()), static_cast<const float*>(pbiasf.data()), \
+        stride_w, stride_h, pad_w, pad_h, dila_w, dila_h, is_bias, AK_FLOAT,\
+        pweihtf.data(), weights_scale.data(), pbiasf.data(), \
         false, is_relu, Active_relu, 0.f, 1.f, false, nullptr);
 
 

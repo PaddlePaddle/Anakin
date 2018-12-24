@@ -314,6 +314,42 @@ void transpose_filter_KCRS_2_CRSK(const Dtype *input, Dtype *output, \
     }
 }
 
+template <typename TargetType, typename TargetType_H, DataType Dtype, typename dtype>
+void transpose_filter_KCRS_2_CRSKC4(Tensor<TargetType> weights,
+                                    int K, int C, int R, int S) {
+    Tensor<TargetType_H> temp;
+    Tensor<TargetType_H> temp_in;
+    Tensor<TargetType_H> target_temp;
+    temp.re_alloc(weights.valid_shape(), Dtype);
+    temp_in.re_alloc(weights.valid_shape(), Dtype);
+    target_temp.re_alloc(weights.valid_shape(), Dtype);
+
+    temp_in.copy_from(weights);
+    const dtype *input = (const dtype*)temp_in.data();
+    dtype *temp_ptr = (dtype*)temp.mutable_data();
+    dtype *target_temp_ptr = (dtype*)target_temp.mutable_data();
+
+    const int CRS = C * R * S;
+    for (int var_k = 0; var_k < K; var_k++) {
+        for (int var_crs = 0; var_crs < CRS; var_crs++) {
+            temp_ptr[var_crs * K + var_k] = input[var_k * CRS + var_crs];
+        }
+    }
+
+    int read_in = 0;
+    int write_out = 0;
+    int out_loop = C / 4;
+    int inner_loop =  K * R * S * 4;
+    for (int i = 0; i < out_loop; ++i) {
+        for (int j = 0; j < inner_loop; ++j) {
+            write_out = i * inner_loop + j;
+            read_in = ((i * 4) + (j % 4))  * (inner_loop / 4) + j / 4;
+            target_temp_ptr[write_out] = temp_ptr[read_in];
+        }
+    }
+    weights.copy_from(target_temp);
+}
+
 template < typename Tensor_t, template <typename T> class Param >
 void update_conv_weights(Param<Tensor_t>& param) {
 #ifdef USE_ARM_PLACE

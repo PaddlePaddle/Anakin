@@ -37,8 +37,13 @@ Status ConvReluPoolHelper<Ttype, Ptype>::InitParam() {
 
 	using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
-    auto weight_vec = weights.vector();
-
+    // resize weights scale
+    auto& w = weights.h_tensor();
+    if (w.get_scale().size() == 1){
+        float scale_tmp = w.get_scale()[0];
+        std::vector<float> w_scale(filter_num, scale_tmp);
+        w.set_scale(w_scale);
+    }
     // get relu param
     auto alpha = GET_PARAMETER(float, relu_0_alpha);
     ActivationParam<Ttype> active_param(Active_relu, alpha); // Temp

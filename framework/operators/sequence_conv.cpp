@@ -56,7 +56,6 @@ template<>
 Status SequenceConvHelper<X86, Precision::FP32>::Init(OpContext<X86>& ctx,
         const std::vector<Tensor4dPtr<X86> >& ins,
         std::vector<Tensor4dPtr<X86> >& outs) {
-    LOG(INFO) << "are you ok";
     SABER_CHECK(_funcs.init(ins, outs, _param, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }
@@ -64,7 +63,6 @@ template<>
 Status SequenceConvHelper<X86, Precision::FP16>::Init(OpContext<X86>& ctx,
         const std::vector<Tensor4dPtr<X86> >& ins,
         std::vector<Tensor4dPtr<X86> >& outs) {
-    LOG(INFO) << "are you ok";
     SABER_CHECK(_funcs.init(ins, outs, _param, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }
@@ -73,7 +71,6 @@ template<>
 Status SequenceConvHelper<X86, Precision::INT8>::Init(OpContext<X86>& ctx,
         const std::vector<Tensor4dPtr<X86> >& ins,
         std::vector<Tensor4dPtr<X86> >& outs) {
-    LOG(INFO) << "are you ok";
     SABER_CHECK(_funcs.init(ins, outs, _param, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }

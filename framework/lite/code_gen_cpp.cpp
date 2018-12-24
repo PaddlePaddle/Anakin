@@ -421,7 +421,7 @@ void GenCPP<Ttype, Ptype>::gen_head_api_impl() {
     _code.feed("        %s_g_param[i] = nullptr;\n", _code_name.c_str());
     _code.feed("    }\n");
     _code.feed("    %s_g_param.clear();\n", _code_name.c_str());
-    _code.feed("    const float* weights_ptr = (const float*)weights;\n");
+    _code.feed("    const char* weights_ptr = (const char*)weights;\n");
     std::string local_weight_string = "weights_ptr";
 
 	for(auto & node_name : this->_exec_node_order) {
@@ -438,7 +438,10 @@ void GenCPP<Ttype, Ptype>::gen_head_api_impl() {
                                                               OPERATION_MAP[node_info.op_name].OpClassName,
 															  node_name,
 															  local_weight_string,
-															  _weights, false);
+															  _weights,
+                                                              false,
+                                                              _lite_mode,
+                                                              this->_graph[node_name]->bit_type());
 			if(!str.empty()) {
 				_code.feed("    %s", str.c_str());
 			}
@@ -526,6 +529,7 @@ void GenCPP<Ttype, Ptype>::gen_opt_model() {
 	//parse config file
 	bool flag_precision = false;
 	bool flag_calibrator = false;
+	bool flag_lite_mode = _lite_mode;
 	CalibratorParser parser;
 	if (_precision_path == ""){
 		flag_precision = false;
@@ -541,36 +545,58 @@ void GenCPP<Ttype, Ptype>::gen_opt_model() {
 		flag_calibrator = true;
 	}
 
-	auto get_op_precision = [&](std::string node_name)->std::string{
+	auto get_op_precision = [&](NodeInfo& node_info)->std::string{
 		if (flag_precision){
-			return parser.get_precision(node_name);
+			return parser.get_precision(node_info.name);
 		} else {
-			return "fp32";
+			auto dtype = node_info.dtype;
+			if (dtype == AK_FLOAT){
+				return "fp32";
+			} else if (dtype == AK_INT8){
+				return "int8";
+			} else {
+				//LOG(FATAL) << "unsupport precision type";
+                node_info.dtype = AK_FLOAT;
+				return "fp32";
+			}
 		}
 	};
-	auto get_tensor_precision = [&](std::string in_node_name, std::string out_node_name)->std::string{
+	auto get_tensor_precision = [&](EdgeInfo& edge_info)->std::string{
 		if (flag_precision){
-			auto dtype = parser.get_dtype(in_node_name, out_node_name);
+			auto dtype = parser.get_dtype(edge_info.in_node, edge_info.out_node);
 			if (dtype == AK_FLOAT){
 				return "fp32";
 			} else if (dtype == AK_INT8) {
 				return "int8";
 			} else {
-				LOG(FATAL) << "unsupport precision type";
+				//LOG(FATAL) << "unsupport precision type";
 				return "fp32";
 			}
 		} else {
-			return "fp32";
+			auto dtype = edge_info.dtype;
+			if (dtype == AK_FLOAT){
+				return "fp32";
+			} else if (dtype == AK_INT8) {
+				return "int8";
+			} else {
+				//LOG(FATAL) << "unsupport precision type";
+                edge_info.dtype = AK_FLOAT;
+				return "fp32";
+			}
 		}
-		return "fp32";
 	};
 
-	auto get_tensor_calibrator = [&](std::string tensor_name)->float{
+	auto get_tensor_calibrator = [&](EdgeInfo& edge_info)->float{
 		if (flag_calibrator){
-			auto calibrator_scale = parser.get_calibrator(tensor_name);
+			auto calibrator_scale = parser.get_calibrator(edge_info.name);
 			return calibrator_scale;
 		} else {
-			return 1.f;
+			std::vector<float> calibrator_scale = edge_info.scale;
+			if (calibrator_scale.size() == 0){
+				return 1.f;
+			} else {
+				return calibrator_scale[0];
+			}
 		}
 	};
 
@@ -588,10 +614,10 @@ void GenCPP<Ttype, Ptype>::gen_opt_model() {
             //tensor info format: tensor_name tensor_precision valid_shape real_shape is_shared shared_tensor_name
             _opt_param_write << edge_name << " ";
             //tensor precision info
-            auto t_precision = get_tensor_precision(edge_info.in_node, edge_info.out_node);
+            auto t_precision = get_tensor_precision(edge_info);
             _opt_param_write << t_precision << " ";
  			//tensor calibrator info
- 			auto t_calibrator = get_tensor_calibrator(edge_name);
+ 			auto t_calibrator = get_tensor_calibrator(edge_info);
  			_opt_param_write << t_calibrator << " ";
             //tensor valid shape
             _opt_param_write << edge_info.valid_shape.size() << " ";
@@ -616,10 +642,10 @@ void GenCPP<Ttype, Ptype>::gen_opt_model() {
             _opt_param_write << edge_name << " ";
 
             //tensor precision info
-            auto t_precision = get_tensor_precision(edge_info.in_node, edge_info.out_node);
+            auto t_precision = get_tensor_precision(edge_info);
             _opt_param_write << t_precision << " ";
             //tensor calibrator info
- 			auto t_calibrator = get_tensor_calibrator(edge_name);
+ 			auto t_calibrator = get_tensor_calibrator(edge_info);
  			_opt_param_write << t_calibrator << " ";
             //tensor valid shape
             _opt_param_write << edge_info.valid_shape.size() << " ";
@@ -669,10 +695,11 @@ void GenCPP<Ttype, Ptype>::gen_opt_model() {
         }
         auto& node_info = this->_graph_node_map[node_name];
         auto& attr_info = this->_graph[node_name]->attr();
-        if(OPERATION_MAP.count(node_info.op_name) > 0) {
+        if (OPERATION_MAP.count(node_info.op_name) > 0) {
+            LOG(INFO) << "node name: " << node_name;
             LOG(INFO) << "Target op type : " << this->_graph_node_map[node_name].op_name << " parsing ...";
             _opt_param_write << OPERATION_MAP[node_info.op_name].OpClassName << " " << node_name << " ";
-        	_opt_param_write << get_op_precision(node_name) << " ";
+        	_opt_param_write << get_op_precision(node_info) << " ";
             _opt_param_write << node_info.ins.size() << " ";
             _opt_param_write << node_info.outs.size() << " ";
             for(auto &edge_in : node_info.ins) {
@@ -695,7 +722,9 @@ void GenCPP<Ttype, Ptype>::gen_opt_model() {
                                                               node_name,
                                                               local_weighs_string,
                                                               _opt_weights,
-                                                              true);
+                                                              true,
+                                                              flag_lite_mode,
+                                                              node_info.dtype);
             _opt_param_write << str;
         } else {
             LOG(FATAL) << "Target op type : " << this->_graph_node_map[node_name].op_name << " not support";
