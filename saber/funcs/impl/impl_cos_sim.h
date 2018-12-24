@@ -13,17 +13,17 @@
    limitations under the License. 
 */
 
-#ifndef ANAKIN_SABER_FUNCS_IMPL_FAKE_QUANTIZE_ABS_MAX_H
-#define ANAKIN_SABER_FUNCS_IMPL_FAKE_QUANTIZE_ABS_MAX_H
+#ifndef ANAKIN_SABER_FUNCS_IMPL_COS_SIM_H
+#define ANAKIN_SABER_FUNCS_IMPL_COS_SIM_H
 
 #include "saber/funcs/impl/impl_macro.h"
 namespace anakin{
 
 namespace saber{
 
-DEFINE_OP_CLASS(FakeQuantizeAbsMax, FakeQuantizeAbsMaxParam);
+DEFINE_OP_CLASS(CosSim, CosSimParam);
 
 }
 }
 
-#endif //ANAKIN_SABER_FUNCS_IMPL_FAKE_QUANTIZE_ABS_MAX_H
+#endif //ANAKIN_SABER_FUNCS_IMPL_SOFT_SIGN_H

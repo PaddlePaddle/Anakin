@@ -33,7 +33,13 @@ Status ConvReluHelper<Ttype, Ptype>::InitParam() {
     
 	using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
-    
+    // resize weights scale
+    auto& w = weights.h_tensor();
+    if (w.get_scale().size() == 1){
+        float scale_tmp = w.get_scale()[0];
+        std::vector<float> w_scale(filter_num, scale_tmp);
+        w.set_scale(w_scale);
+    }
     // get relu param
     auto alpha = GET_PARAMETER(float, relu_0_alpha);
     ActivationParam<Ttype> active_param(Active_relu, alpha); // TEMP
@@ -96,7 +102,8 @@ Status ConvReluHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
     bool use_direct_k = (Ptype == Precision::FP32);
     use_direct_k = use_direct_k && (_param_conv_relu.weight()->channel() >= 16);
     use_direct_k = use_direct_k && (_param_conv_relu.group == 1);
-    if (use_k1s1p0 || use_k3s1d1 || use_depthwise || use_direct_k) {
+    if (std::is_same<Ttype, NV>::value
+        && (use_k1s1p0 || use_k3s1d1 || use_depthwise || use_direct_k)) {
         impl_e = SABER_IMPL;
     }
     SABER_CHECK(_funcs_conv_relu.init(ins, outs,

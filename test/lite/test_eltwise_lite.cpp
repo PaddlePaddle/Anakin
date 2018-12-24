@@ -403,7 +403,7 @@ int main(int argc, const char** argv){
         elt_type = atoi(argv[4]);
     }
     if (argc >= 6){
-        Dtype = atoi(argv[5]);
+        Dtype = (DataType)atoi(argv[5]);
     }
     if (argc >= 7) {
         if (argc < 10) {

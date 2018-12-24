@@ -29,7 +29,13 @@ Status ConvolutionHelper<Ttype, Ptype>::InitParam() {
 
 	using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
-
+    // resize weights scale
+    auto& w = weights.h_tensor();
+    if (w.get_scale().size() == 1){
+        float scale_tmp = w.get_scale()[0];
+        std::vector<float> w_scale(filter_num, scale_tmp);
+        w.set_scale(w_scale);
+    }
     if (bias_term) {
         auto bias = GET_PARAMETER(pblock_type, weight_2);
         saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
@@ -61,6 +67,9 @@ Status ConvolutionHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
     if (std::is_same<Ttype, X86>::value) {
         impl_e = SABER_IMPL;
     }
+    if (std::is_same<Ttype, NV>::value && Ptype == Precision::INT8) {
+        impl_e = SABER_IMPL;
+    }
     bool use_k1s1p0 = (Ptype == Precision::FP32);
     use_k1s1p0 = use_k1s1p0 && (_param_conv.weight()->height() == 1);
     use_k1s1p0 = use_k1s1p0 && (_param_conv.weight()->width() == 1);
@@ -86,7 +95,8 @@ Status ConvolutionHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
     bool use_direct_k = (Ptype == Precision::FP32);
     use_direct_k = use_direct_k && (_param_conv.weight()->channel() >= 16);
     use_direct_k = use_direct_k && (_param_conv.group == 1);
-    if (use_k1s1p0 || use_k3s1d1 || use_depthwise || use_direct_k) {
+    if (std::is_same<Ttype, NV>::value
+        && (use_k1s1p0 || use_k3s1d1 || use_depthwise || use_direct_k)) {
         impl_e = SABER_IMPL;
     }
     SABER_CHECK(_funcs_conv.init(ins, outs, _param_conv, SPECIFY, impl_e, ctx));

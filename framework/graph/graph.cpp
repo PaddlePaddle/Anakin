@@ -63,7 +63,7 @@ void Graph<Ttype, Ptype>::Reshape(std::string in_name,
     std::string in_shape = "input_shape";
     auto input_dim = input_node_p->template get_attr<PTuple<int>>(in_shape);
     CHECK_EQ(input_dim.size(), shape.size()) << "Target shape parameter's dim should equal to " <<
-            input_dim.size();
+             input_dim.size();
 
     for (int i = 0; i < input_dim.size(); i++) {
         input_dim[i] = shape[i];
@@ -150,18 +150,18 @@ Status Graph<Ttype, Ptype>::Optimize() EXCLUSIVE_LOCKS_REQUIRED(_mut) {
 
             //LOG(ERROR) << "gen exe order";
 
-			_nodes_exec_order = scheduler.get_exec_node_in_order();
+            _nodes_exec_order = scheduler.get_exec_node_in_order();
 
 
 #ifndef BUILD_LITE // enable conv+eltwise fusion
             // optimization
-			ConvElsFusionScheduler conv_eltwise_fusion_scheduler;
-			conv_eltwise_fusion_scheduler.RegIOResource(_vgraph);
-			conv_eltwise_fusion_scheduler.Run();
-			// get node exec in order
-			_nodes_exec_order = conv_eltwise_fusion_scheduler.get_exec_node_in_order();
+            ConvElsFusionScheduler conv_eltwise_fusion_scheduler;
+            conv_eltwise_fusion_scheduler.RegIOResource(_vgraph);
+            conv_eltwise_fusion_scheduler.Run();
+            // get node exec in order
+            _nodes_exec_order = conv_eltwise_fusion_scheduler.get_exec_node_in_order();
 #endif
-			// optimization again
+            // optimization again
             ParallScheduler para_scheduler;
             para_scheduler.RegIOResource(_vgraph);
             para_scheduler.Run();
@@ -248,7 +248,7 @@ VGraph& Graph<Ttype, Ptype>::get_vgraph() {
 
 //get graph scale maps
 template<typename Ttype, Precision Ptype>
-std::unordered_map<std::string, std::vector<float>> 
+std::unordered_map<std::string, std::vector<float>>
 Graph<Ttype, Ptype>::get_scale_map(){
     std::unordered_map<std::string, std::vector<float>> scale_map;
     auto get_scale = [&, this](NodePtr& node_p){
@@ -278,7 +278,7 @@ void Graph<Ttype, Ptype>::load_calibrator_config(
     auto set_edge_scale = [&](Edge<Ttype>& edge){
         edge.set_scale({cal_parser.get_calibrator(edge.name())});
     };
-    this->Scanner->BFS_Edge(set_edge_scale); 
+    this->Scanner->BFS_Edge(set_edge_scale);
 }
 
 template<typename Ttype, Precision Ptype>
@@ -348,7 +348,7 @@ Status Graph<Ttype, Ptype>::restore_from_vgraph(VGraph* vgraph) {
     node & target_node) -> Status {
         if (node_p->name() == target_node.name) {
             CHECK_EQ(target_node.mergeNodes.size(), target_node.mergeNodeNames.size())
-                    << "Merge node must have same size with merged pattern name";
+                << "Merge node must have same size with merged pattern name";
 
             if (target_node.mergeNodes.size()) { // target node is merged nodes.
                 for (int i = 0; i < target_node.mergeNodes.size(); i++) {
@@ -356,11 +356,11 @@ Status Graph<Ttype, Ptype>::restore_from_vgraph(VGraph* vgraph) {
                     this->_pattern_name_merges[target_node.name].push_back(target_node.mergeNodeNames[i]);
                 }
             }
-			if (target_node.idx_keep_in_merge_nodes.size()) {
-				for (auto& idx : target_node.idx_keep_in_merge_nodes) {
-					this->_node_merges_keep[target_node.name].push_back(idx);
-				}
-			}
+            if (target_node.idx_keep_in_merge_nodes.size()) {
+                for (auto& idx : target_node.idx_keep_in_merge_nodes) {
+                    this->_node_merges_keep[target_node.name].push_back(idx);
+                }
+            }
 
             auto& need_wait = node_p->need_wait();
             need_wait = target_node.need_wait;
@@ -389,13 +389,13 @@ Status Graph<Ttype, Ptype>::restore_from_vgraph(VGraph* vgraph) {
                 (*node_p).Merge(*tmp_node_p,
                                 this->_pattern_name_merges[target_node_name][i]); // add the merge node's attr
 
-				// detect if the i-th node in _node_merges should be saved in Graph
-				auto ret = std::find(this->_node_merges_keep[target_node_name].begin(),
-									 this->_node_merges_keep[target_node_name].end(),
-									 i);
-				if (ret == this->_node_merges_keep[target_node_name].end()) {
-                	this->remove(this->_node_merges[target_node_name][i]); // remove merge node which is useless
-				}
+                // detect if the i-th node in _node_merges should be saved in Graph
+                auto ret = std::find(this->_node_merges_keep[target_node_name].begin(),
+                                     this->_node_merges_keep[target_node_name].end(),
+                                     i);
+                if (ret == this->_node_merges_keep[target_node_name].end()) {
+                    this->remove(this->_node_merges[target_node_name][i]); // remove merge node which is useless
+                }
             }
         }
 
@@ -454,11 +454,11 @@ Status Graph<Ttype, Ptype>::CopyFrom(Graph<Ttype, Ptype>& graph) {
     graph.Scanner->BFS(shallow_copy_edge);
     // get node execution order
     _nodes_exec_order = graph.get_nodes_in_order();
-	// get graph inputs and outputs
-	 _ins = graph._ins;
-	 _outs = graph._outs;
-	// get statistic
-	statistics = graph.statistics;
+    // get graph inputs and outputs
+    _ins = graph._ins;
+    _outs = graph._outs;
+    // get statistic
+    statistics = graph.statistics;
     return Status::OK();
 }
 

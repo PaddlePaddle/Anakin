@@ -1861,10 +1861,10 @@ struct PermuteParam {
 template<typename TargetType>
 struct PermutePowerParam {
     PermutePowerParam() {}
-    PermutePowerParam(PermuteParam<TargetType> permute_param):
-        power_param(power_param), has_power_param(false) {}
-    PermutePowerParam(PermuteParam<TargetType> permute_param, PowerParam<TargetType> power_param):
-        power_param(power_param), permute_param(permute_param), has_power_param(true) {}
+    PermutePowerParam(PermuteParam<TargetType> permute_param_in):
+        permute_param(permute_param_in), has_power_param(false) {}
+    PermutePowerParam(PermuteParam<TargetType> permute_param_in, PowerParam<TargetType> power_param_in):
+        power_param(power_param_in), permute_param(permute_param_in), has_power_param(true) {}
     PermutePowerParam(const PermutePowerParam& right):
         power_param(right.power_param), permute_param(right.permute_param),
         has_power_param(right.has_power_param) {}
@@ -2817,6 +2817,156 @@ struct RoiAlignParam {
     int pooled_width;
     float spatial_scale;
     int sampling_ratio;
+};
+
+template <typename TargetType>
+struct SoftSignParam{
+    SoftSignParam() = default;
+    SoftSignParam(const SoftSignParam& right) {}
+    SoftSignParam& operator=(const SoftSignParam& right) { return *this;}
+    bool operator==(const SoftSignParam& right) {return true;}
+};
+
+template <typename TargetType>
+struct CosSimParam{
+    CosSimParam() = default;
+
+    CosSimParam(float epsilon_in):epsilon(epsilon_in) {}
+
+    CosSimParam(const CosSimParam& right):epsilon(right.epsilon) {}
+
+    CosSimParam& operator=(const CosSimParam& right) {
+        epsilon = right.epsilon;
+        return *this;
+    }
+
+    bool operator==(const CosSimParam& right) {
+        return epsilon == right.epsilon;
+    }
+
+    float epsilon{0.f};
+};
+
+template <typename TargetType>
+struct ProductQuantEmbeddingWithVsumParam {
+    ProductQuantEmbeddingWithVsumParam() = default;
+    ProductQuantEmbeddingWithVsumParam(size_t word_emb_in,
+                                       size_t word_voc_in,
+                                       size_t top_unigram_in,
+                                       size_t top_bigram_in,
+                                       size_t top_collocation_in,
+                                       size_t sec_unigram_in,
+                                       size_t sec_bigram_in,
+                                       size_t sec_collocation_in,
+                                       size_t thd_unigram_in,
+                                       size_t thd_bigram_in,
+                                       size_t thd_collocation_in,
+                                       int max_seq_len_in,
+                                       Tensor<TargetType>* embedding_0_in,
+                                       Tensor<TargetType>* embedding_1_in,
+                                       Tensor<TargetType>* embedding_2_in,
+                                       Tensor<TargetType>* quant_dict_0_in,
+                                       Tensor<TargetType>* quant_dict_1_in,
+                                       Tensor<TargetType>* quant_dict_2_in):word_emb(word_emb_in), 
+                                       word_voc(word_voc_in),
+                                       top_unigram(top_unigram_in),
+                                       top_bigram(top_bigram_in),
+                                       top_collocation(top_collocation_in),
+                                       sec_unigram(sec_unigram_in),
+                                       sec_bigram(sec_bigram_in),
+                                       sec_collocation(sec_collocation_in),
+                                       thd_unigram(thd_unigram_in),
+                                       thd_bigram(thd_bigram_in),
+                                       thd_collocation(thd_collocation_in),
+                                       max_seq_len(max_seq_len_in),
+                                       embedding_0(embedding_0_in),
+                                       embedding_1(embedding_1_in),
+                                       embedding_2(embedding_2_in),
+                                       quant_dict_0(quant_dict_0_in),
+                                       quant_dict_1(quant_dict_1_in),
+                                       quant_dict_2(quant_dict_2_in) { }
+
+    ProductQuantEmbeddingWithVsumParam(const ProductQuantEmbeddingWithVsumParam& right) :word_emb(right.word_emb),
+                                       word_voc(right.word_voc),
+                                       top_unigram(right.top_unigram),
+                                       top_bigram(right.top_bigram),
+                                       top_collocation(right.top_collocation),
+                                       sec_unigram(right.sec_unigram),
+                                       sec_bigram(right.sec_bigram),
+                                       sec_collocation(right.sec_collocation),
+                                       thd_unigram(right.thd_unigram),
+                                       thd_bigram(right.thd_bigram),
+                                       thd_collocation(right.thd_collocation),
+                                       max_seq_len(right.max_seq_len),
+                                       embedding_0(right.embedding_0),
+                                       embedding_1(right.embedding_1),
+                                       embedding_2(right.embedding_2),
+                                       quant_dict_0(right.quant_dict_0),
+                                       quant_dict_1(right.quant_dict_1),
+                                       quant_dict_2(right.quant_dict_2) {}
+    ProductQuantEmbeddingWithVsumParam& operator=(const ProductQuantEmbeddingWithVsumParam& right) {
+        word_emb = right.word_emb;
+        word_voc = right.word_voc;
+        top_unigram = right.top_unigram;
+        top_bigram = right.top_bigram;
+        top_collocation = right.top_collocation;
+        sec_unigram = right.sec_unigram;
+        sec_bigram = right.sec_bigram;
+        sec_collocation = right.sec_collocation;
+        thd_unigram = right.thd_unigram;
+        thd_bigram = right.thd_bigram;
+        thd_collocation = right.thd_collocation;
+        max_seq_len = right.max_seq_len;
+        embedding_0 = right.embedding_0;
+        embedding_1 = right.embedding_1;
+        embedding_2 = right.embedding_2;
+        quant_dict_0 = right.quant_dict_0;
+        quant_dict_1 = right.quant_dict_1;
+        quant_dict_2 = right.quant_dict_2; 
+        return *this;
+    }
+    bool operator==(const ProductQuantEmbeddingWithVsumParam& right) {
+        bool flag = true;
+        flag = flag && word_emb == right.word_emb;
+        flag = flag && word_voc == right.word_voc;
+        flag = flag && top_unigram == right.top_unigram;
+        flag = flag && top_bigram == right.top_bigram;
+        flag = flag && top_collocation == right.top_collocation;
+        flag = flag && sec_unigram == right.sec_unigram;
+        flag = flag && sec_bigram == right.sec_bigram;
+        flag = flag && sec_collocation == right.sec_collocation;
+        flag = flag && thd_unigram == right.thd_unigram;
+        flag = flag && thd_bigram == right.thd_bigram;
+        flag = flag && thd_collocation == right.thd_collocation;
+        flag = flag && max_seq_len == right.max_seq_len;
+        flag = flag && embedding_0 == right.embedding_0;
+        flag = flag && embedding_1 == right.embedding_1;
+        flag = flag && embedding_2 == right.embedding_2;
+        flag = flag && quant_dict_0 == right.quant_dict_0;
+        flag = flag && quant_dict_1 == right.quant_dict_1;
+        flag = flag && quant_dict_2 == right.quant_dict_2;
+        return flag;
+    }
+    
+    size_t word_emb{128};
+    size_t word_voc{1};
+    size_t top_unigram{0}; 
+    size_t top_bigram{0}; 
+    size_t top_collocation{0}; 
+    size_t sec_unigram{0}; 
+    size_t sec_bigram{0}; 
+    size_t sec_collocation{0}; 
+    size_t thd_unigram{0}; 
+    size_t thd_bigram{0}; 
+    size_t thd_collocation{0}; 
+    int max_seq_len{0};
+    Tensor<TargetType>* embedding_0{NULL};
+    Tensor<TargetType>* embedding_1{NULL};
+    Tensor<TargetType>* embedding_2{NULL};
+    Tensor<TargetType>* quant_dict_0{NULL};
+    Tensor<TargetType>* quant_dict_1{NULL};        
+    Tensor<TargetType>* quant_dict_2{NULL};
+    
 };
 
 }

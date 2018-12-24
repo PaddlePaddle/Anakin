@@ -99,7 +99,7 @@ SaberStatus test_arm_deconv(int n, int c, int h, int w, \
     if (flag_bias) {
         bias_ptr = &pbias;
     }
-
+    std::vector<float> scale(ch_out, 1.f);
     const float* din = static_cast<const float*>(thin.data());
 
     if (g_compare_result) {
@@ -116,7 +116,7 @@ SaberStatus test_arm_deconv(int n, int c, int h, int w, \
     SaberDeconv2D deconv_lite;
 
     Conv2DParam param(pweiht.valid_size(), ch_out, group, kernel, kernel, \
-        stride, stride, pad, pad, dila, dila, flag_bias, pweiht.data(), pbias.data(), false, flag_relu, Active_relu);
+        stride, stride, pad, pad, dila, dila, flag_bias, AK_FLOAT, pweiht.data(), scale.data(), pbias.data(), false, flag_relu, Active_relu);
 
     deconv_lite.load_param(&param);
     deconv_lite.compute_output_shape(tin, tvout_saber);

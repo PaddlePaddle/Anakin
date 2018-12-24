@@ -127,12 +127,14 @@ SaberStatus test_arm_conv_int8(int n, int c, int h, int w, \
 
     LOG(INFO) << "get weights scale";
     //! convert weight data type
+
     trans_weights_dtype(pweihtc, AK_INT8, 127.f, false);
     std::vector<float> w_scale = pweihtc.get_scale();
 //    LOG(INFO) << "input tesnor scale at factor 127.f is ";
 //    for (int j = 0; j < w_scale.size(); ++j) {
 //        LOG(INFO) << "|-- " << j << ": " << w_scale[j] << ", max_val: " << 127.f * w_scale[j];
 //    }
+
     trans_fp32_bias_to_int32(pbiasf, pbiasi, thinf.get_scale()[0], w_scale);
 
 //    print_tensor(pweihtf);
@@ -184,9 +186,10 @@ SaberStatus test_arm_conv_int8(int n, int c, int h, int w, \
     SaberConv2D conv_int8;
 
     Conv2DParam param(pweihtf.valid_size(), ch_out, group, kernel_w, kernel_h, \
-        stride_w, stride_h, pad_w, pad_h, dila_w, dila_h, is_bias, \
-        static_cast<const float*>(pweihtf.data()), static_cast<const float*>(pbiasf.data()), \
+        stride_w, stride_h, pad_w, pad_h, dila_w, dila_h, is_bias, AK_INT8,\
+        pweihtc.data(), w_scale.data(), pbiasf.data(), \
         false, is_relu, Active_relu, 0.f, 0.f, false, nullptr);
+
 
     std::vector<TensorH*> tvin_fp32;
     std::vector<TensorH*> tvin_int8;
@@ -319,7 +322,7 @@ SaberStatus test_arm_conv_int8(int n, int c, int h, int w, \
     return SaberSuccess;
 }
 
-#if 0
+#if 1
 TEST(TestSaberLite, test_func_conv_depthwise_3x3_int8) {
     if (g_basic_test) {
         for (auto& batch : {1, 2}) {
@@ -368,6 +371,54 @@ TEST(TestSaberLite, test_func_conv_depthwise_3x3_int8) {
 }
 #endif
 
+#if 1
+TEST(TestSaberLite, test_func_conv_depthwise_5x5_int8) {
+    if (g_basic_test) {
+        for (auto& batch : {1, 2}) {
+            for (auto& c : {1, 3, 8, 16, 24}) {
+                    for (auto& h : {4, 8, 9, 15, 28, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 112, 128, 256}) {
+                        for (auto &flag_bias : {false, true}) {
+                            for (auto &flag_relu : {false/*, true*/}) {
+                                for (auto &th : {1, 2, 4}) {
+                                    for (auto & stride : {1/*, 2*/}){
+                                        int stride_w = stride;
+                                        int stride_h = stride;
+                                        int group = c;
+                                        int pad_w = 2;
+                                        int pad_h = 2;
+                                        int dila_w = 1;
+                                        int dila_h = 1;
+                                        int kw = 5;
+                                        int kh = 5;
+                                        int w = h;
+                                        int chout = c;
+                                        LOG(INFO) << "conv_depthwise_3x3_int8 OP";
+                                        auto flag = test_arm_conv_int8(batch, c, h, w, chout, kw, kh, stride_w, stride_h, \
+                                            pad_w, pad_h, dila_w, dila_h, group, flag_bias, flag_relu, \
+                                            th, g_cluster);
+                                        if (flag == SaberSuccess) {
+                                            LOG(INFO) << "test int8 3x3s2_dw conv: batchsize: " << batch << ", channel: "
+                                                << c << ", h & w: " << h << ", num_out: " << chout << ", group: " << group << \
+                                                ", bias: " << (flag_bias ? "true" : "false") << ", relu: "
+                                                << (flag_relu ? "true" : "false") << ", threads: " << \
+                                                th << ", cluster: " << g_cluster << " passed!!\n";
+                                        } else {
+                                            LOG(FATAL) << "test int8 3x3s2_dw conv: batchsize: " << batch << ", channel: "
+                                                << c << ", h & w: " << h << ", num_out: " << chout << ", group: " << group << \
+                                                ", bias: " << (flag_bias ? "true" : "false") << ", relu: "
+                                                << (flag_relu ? "true" : "false") << ", threads: " << \
+                                                th << ", cluster: " << g_cluster << " failed!!\n";
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+            }
+        }
+    }
+}
+#endif
 // fixme
 #if 0
 TEST(TestSaberLite, test_func_conv_3x3s1_direct_int8) {
@@ -577,7 +628,7 @@ TEST(TestSaberLite, test_func_conv_gemm_int8) {
 #endif
 
 #if 1
-TEST(TestSaberLite, test_conv_int8_costom_size) {
+TEST(TestSaberLite, test_conv_int8_custom_size) {
     for (int i = 0; i < 1; i++) {
     auto flag = test_arm_conv_int8(g_num, g_chin, g_h_in, g_w_in, g_ch_out, g_kw, g_kh, g_stride_w, g_stride_h, \
             g_pad_w, g_pad_h, g_dila_w, g_dila_h, g_group, g_flag_bias, g_flag_relu, g_threads, g_cluster);

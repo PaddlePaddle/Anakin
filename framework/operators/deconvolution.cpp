@@ -28,6 +28,7 @@ Status DeconvolutionHelper<Ttype, Ptype>::InitParam() {
 
 	using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
+    // fixme, resize deconv weights scale
 
     if (bias_term) {
         auto bias = GET_PARAMETER(pblock_type, weight_2);

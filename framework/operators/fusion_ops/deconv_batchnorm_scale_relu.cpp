@@ -37,11 +37,12 @@ Status DeconvBatchnormScaleReluHelper<Ttype, Ptype>::InitParam() {
     auto filter_num = GET_PARAMETER(int, filter_num);
     auto kernel_size = GET_PARAMETER(PTuple<int>, kernel_size);
     auto axis = GET_PARAMETER(int, axis);
-
 	
 	using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
     auto weights_shape = weights.shape();
+    auto weights_dtype = weights.h_tensor().get_dtype();
+    // fixme , resize deconv weights scale
 
     // get batchnorm param
     auto epsilon = GET_PARAMETER(float, batchnorm_0_epsilon);
@@ -68,16 +69,21 @@ Status DeconvBatchnormScaleReluHelper<Ttype, Ptype>::InitParam() {
 
     if(bias_term) {
         auto bias = GET_PARAMETER(pblock_type, weight_2);
-        graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(update_deconv_weights<float, Ttype>,
-                                                       weights,bias,
-                                                       weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3], 
-                                                       true,
-                                                       batch_norm_weight_3_vector[0], epsilon, 
-                                                       batch_norm_weight_1_vector, 
-                                                       batch_norm_weight_2_vector, 
-                                                       scale_weight_1_vector,
-                                                       scale_weight_2_vector, 
-                                                       scale_bias_term);
+        if (weights_dtype == AK_FLOAT) {
+            graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
+                    WeightsFusion<float, Ttype>::update_deconv_weights,
+                    weights, bias,
+                    weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+                    true,
+                    batch_norm_weight_3_vector[0], epsilon,
+                    batch_norm_weight_1_vector,
+                    batch_norm_weight_2_vector,
+                    scale_weight_1_vector,
+                    scale_weight_2_vector,
+                    scale_bias_term);
+        }else {
+            // fixme
+        }
         saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
                                            strides[0], strides[1],
                                            dilation_rate[0], dilation_rate[1],
@@ -86,16 +92,21 @@ Status DeconvBatchnormScaleReluHelper<Ttype, Ptype>::InitParam() {
         _param_deconv_batchnorm_scale_relu = conv_param;
     } else {
         pblock_type* bias = new pblock_type();
-        graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(update_deconv_weights<float, Ttype>,
-                                                       weights, *bias,
-                                                       weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3], 
-                                                       false,
-                                                       batch_norm_weight_3_vector[0], epsilon, 
-                                                       batch_norm_weight_1_vector, 
-                                                       batch_norm_weight_2_vector, 
-                                                       scale_weight_1_vector,
-                                                       scale_weight_2_vector, 
-                                                       scale_bias_term);
+        if (weights_dtype == AK_FLOAT) {
+            graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
+                    WeightsFusion<float, Ttype>::update_deconv_weights,
+                    weights, *bias,
+                    weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+                    false,
+                    batch_norm_weight_3_vector[0], epsilon,
+                    batch_norm_weight_1_vector,
+                    batch_norm_weight_2_vector,
+                    scale_weight_1_vector,
+                    scale_weight_2_vector,
+                    scale_bias_term);
+        } else{
+            // fixme
+        }
         saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
                                            strides[0], strides[1],
                                            dilation_rate[0], dilation_rate[1],

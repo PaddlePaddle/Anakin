@@ -69,6 +69,7 @@ bool CodeGenBase<Ttype, Ptype>::extract_graph(const std::string& model_path, con
 		_exec_node_order.push_back(node_name);
 		_graph_node_map[node_name].name = node_name;
 		_graph_node_map[node_name].op_name = node_ptr->get_op_name();
+		_graph_node_map[node_name].dtype = node_ptr->bit_type();
 		// set node op pointer
 		auto* op_pointer = OpFactory<Ttype, Ptype>::Global()[node_ptr->get_op_name()];
 		node_ptr->set_op(op_pointer);
@@ -172,18 +173,27 @@ bool CodeGenBase<Ttype, Ptype>::init_memory_info() {
 		}
 		edge_info.in_node = edge.first();
 		edge_info.out_node = edge.second();
+		edge_info.scale = edge.scale();
+//		auto in_node_ptr = _graph[edge_info.in_node];
+//		auto out_node_ptr = _graph[edge_info.out_node];
+//		auto in_node_dtype = in_node_ptr->bit_type();
+//		auto out_node_dtype = out_node_ptr->bit_type();
+//		if (in_node_dtype == AK_INT8 && out_node_dtype == AK_INT8) {
+//            edge_info.dtype = AK_INT8;
+//        } else {
+//		    edge_info.dtype = AK_FLOAT;
+//		}
+		edge_info.dtype = edge.data()->get_dtype();
 		_tensor_map[edge_info.name] = edge_info;
         return 0;
     };
     _graph.Scanner->BFS_Edge(alloc_memory);
-
     auto share_memory = [this](graph::Edge<Ttype>& edge) {
         if (edge.shared()) {
 			auto& edge_name = edge.share_from();
 
 			_tensor_map[edge.name()].valid_shape = edge.weight()->valid_shape();
 			_tensor_map[edge.name()].real_shape = edge.weight()->shape();
-
 			bool continue_search = true;
 			while (continue_search) {
                 auto match_edge = [&](graph::Edge<Ttype>& inner_edge) {

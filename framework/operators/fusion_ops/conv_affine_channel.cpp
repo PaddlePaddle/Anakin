@@ -33,7 +33,14 @@ Status ConvAffineChannelHelper<Ttype, Ptype>::InitParam() {
 	using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
     auto weights_shape = weights.shape();
-
+    auto weights_dtype = weights.h_tensor().get_dtype();
+    // resize weights scale
+    auto& w = weights.h_tensor();
+    if (w.get_scale().size() == 1){
+        float scale_tmp = w.get_scale()[0];
+        std::vector<float> w_scale(filter_num, scale_tmp);
+        w.set_scale(w_scale);
+    }
     // get affine_channel param
     auto affine_channel_weight_1 = GET_PARAMETER(pblock_type, affine_channel_0_weight_1);
     auto affine_channel_w = affine_channel_weight_1.vector();
@@ -54,10 +61,17 @@ Status ConvAffineChannelHelper<Ttype, Ptype>::InitParam() {
             SET_PARAMETER(weight_2, *bias, pblock_type); // gen new bias
         }
         auto bias = GET_PARAMETER(pblock_type, weight_2);
-        graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
-               update_conv_affine_channel_weights<float, Ttype>, weights, bias,
-               weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],       
-               affine_channel_w, affine_channel_b);
+        if (weights_dtype == AK_FLOAT) {
+            graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
+                    WeightsFusion<float, Ttype>::update_conv_affine_channel_weights, weights, bias,
+                    weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+                    affine_channel_w, affine_channel_b);
+        } else {
+            graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
+                    WeightsFusion<char, Ttype>::update_conv_affine_channel_weights, weights, bias,
+                    weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+                    affine_channel_w, affine_channel_b);
+        }
 
         saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
                 strides[0], strides[1], dilation_rate[0], dilation_rate[1],

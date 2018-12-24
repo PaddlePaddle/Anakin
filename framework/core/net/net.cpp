@@ -31,7 +31,7 @@ Net<Ttype, Ptype, RunType>::Net(graph::Graph<Ttype, Ptype>& graph, bool need_sum
 
 template<typename Ttype, Precision Ptype, OpRunType RunType>
 Net<Ttype, Ptype, RunType>::Net(\
-                                graph::Graph<Ttype, Ptype>& graph, OpContextPtr<Ttype> ctx, bool need_summary) {
+                            graph::Graph<Ttype, Ptype>& graph, OpContextPtr<Ttype> ctx, bool need_summary) {
     _graph_p = new graph::Graph<Ttype, Ptype>();
     _need_summary = need_summary;
     //init_env(graph);
@@ -66,7 +66,7 @@ void Net<Ttype, Ptype, RunType>::init(graph::Graph<Ttype, Ptype>& graph, \
     // shallow copy
     _graph_p->CopyFrom(graph);
     auto node_names_in_exec_order = graph.get_nodes_in_order();
-    
+
     if (!_has_loaded_config){
         load_calibrator_config(graph);
     }
@@ -127,7 +127,7 @@ void Net<Ttype, Ptype, RunType>::init(graph::Graph<Ttype, Ptype>& graph, \
             layouts.push_back(edge_it->weight()->get_layout());
 
             set_calibrator_info(edge_it);
-            
+
             op_func.outs.push_back(edge_it->weight().get());
             op_func.out_lanes.push_back(edge_it->lane());
         }
@@ -161,11 +161,11 @@ void Net<Ttype, Ptype, RunType>::init(graph::Graph<Ttype, Ptype>& graph) {
     double curr_mem_in_mb_start = MemoryInfo<Ttype>::Global().get_used_mem_in_mb();
 
     auto node_names_in_exec_order = graph.get_nodes_in_order();
-    
+
     if (_has_loaded_config){
         load_calibrator_config(graph);
     }
-    
+
     // infer basic shape and parsing parameter from graph
     for (auto& node_name : node_names_in_exec_order) {
         auto node_ptr = (*_graph_p)[node_name];
@@ -268,7 +268,7 @@ void Net<Ttype, Ptype, RunType>::init(graph::Graph<Ttype, Ptype>& graph) {
             layouts.push_back(edge_it->weight()->get_layout());
 
             set_calibrator_info(edge_it);
-            
+
             op_func.outs.push_back(edge_it->weight().get());
             op_func.out_lanes.push_back(edge_it->lane());
             _tensor_name_list.push_back(edge_it->name());
@@ -310,22 +310,21 @@ void Net<Ttype, Ptype, RunType>::init(graph::Graph<Ttype, Ptype>& graph) {
 #endif
 
     double curr_mem_in_mb_end = MemoryInfo<Ttype>::Global().get_used_mem_in_mb();
-    this->_graph_p->statistics.template set_info<graph::SYSTEM_MEM>(curr_mem_in_mb_end -
-            curr_mem_in_mb_start);
+    this->_graph_p->statistics.template set_info<graph::SYSTEM_MEM>(curr_mem_in_mb_end - curr_mem_in_mb_start);
     // init memory of _graph_p
     init_memory();
 
     graph.statistics = _graph_p->statistics; // copy statistic back
     LOG(INFO) << "Temp mem used:        " << this->_graph_p->statistics.template
-              get_info<graph::TEMP_MEM>() << " MB";
+            get_info<graph::TEMP_MEM>() << " MB";
     LOG(INFO) << "Original mem used:    " << this->_graph_p->statistics.template
-              get_info<graph::ORI_TEMP_MEM>() << " MB";
+            get_info<graph::ORI_TEMP_MEM>() << " MB";
     LOG(INFO) << "Model mem used:       " << this->_graph_p->statistics.template
-              get_info<graph::MODEL_MEM>() << " MB";
+            get_info<graph::MODEL_MEM>() << " MB";
     LOG(INFO) << "System mem used:      " << this->_graph_p->statistics.template
-              get_info<graph::SYSTEM_MEM>() << " MB";
+            get_info<graph::SYSTEM_MEM>() << " MB";
 
-    
+
 
 #ifdef ENABLE_OP_TIMER
     _op_time = std::vector<float>(_exec_funcs.size(), 0.0f);
@@ -589,7 +588,7 @@ std::vector<Tensor4dPtr<Ttype> > Net<Ttype, Ptype, RunType>::get_in_list() {
 
 template<typename Ttype, Precision Ptype, OpRunType RunType>
 Tensor4dPtr<Ttype> Net<Ttype, Ptype, RunType>::get_tensor_from_edge(const char* from,
-        const char* to) {
+                                                                    const char* to) {
     return _graph_p->get_arc(std::string(from), std::string(to)).weight().get();
 }
 

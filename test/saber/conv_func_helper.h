@@ -26,17 +26,14 @@
 namespace anakin {
 namespace saber {
 
-template<typename targetType>
+template<typename targetType, typename out_dtype = float, typename in_dtype = out_dtype>
 void conv_basic_check(Tensor<targetType> &tensor_in,Tensor<targetType> &tensor_out,
-                      const float *weights, const float *bias, int group,
+                      const in_dtype *weights, const out_dtype *bias, int group,
                       int kernel_w, int kernel_h, int stride_w, int stride_h, int dilation_w, int dilation_h,
                       int pad_w, int pad_h, bool flag_bias, bool flag_relu, float beta = 0.f) {
 
-    auto src_data = reinterpret_cast<const float*>(tensor_in.data());
-    auto dst_data_ref = reinterpret_cast<float*>(tensor_out.mutable_data());
-    Tensor<targetType> bk;
-    bk.re_alloc(tensor_out.valid_shape(), AK_FLOAT);
-    bk.copy_from(tensor_out);
+    auto src_data = reinterpret_cast<const in_dtype*>(tensor_in.data());
+    auto dst_data_ref = reinterpret_cast<out_dtype*>(tensor_out.mutable_data());
     auto weights_data = weights;
     bool with_bias = flag_bias;
     auto bias_data = bias;
@@ -81,8 +78,9 @@ void conv_basic_check(Tensor<targetType> &tensor_in,Tensor<targetType> &tensor_o
                                                + kw;
 
                                     dst_data_ref[out_idx]
-                                            += src_data[iidx]
-                                               * weights_data[widx];
+                                            += (out_dtype)src_data[iidx]
+                                               * (out_dtype)weights_data[widx];
+//                                            LOG(INFO) << "out_idx = " << out_idx << " iidx = " << iidx << " res = " << dst_data_ref[out_idx];
                                 }
                             }
                         }

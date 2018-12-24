@@ -104,6 +104,7 @@ SaberStatus test_arm_conv(int n, int c, int h, int w, \
     if (is_bias) {
         bias_ptr = &pbias;
     }
+    std::vector<float> scale(ch_out, 1.f);
     const float* din = static_cast<const float*>(thin.data());
 
     if (g_compare_result) {
@@ -125,7 +126,7 @@ SaberStatus test_arm_conv(int n, int c, int h, int w, \
     SaberConv2D conv_lite;
 
     Conv2DParam param(pweiht.valid_size(), ch_out, group, kernel_w, kernel_h, \
-        stride_w, stride_h, pad_w, pad_h, dila_w, dila_h, is_bias, pweiht.data(), pbias.data(), \
+        stride_w, stride_h, pad_w, pad_h, dila_w, dila_h, is_bias, AK_FLOAT, pweiht.data(), scale.data(), pbias.data(), \
         false, is_relu, Active_relu, 0.f, 0.f, false, nullptr);
 
     conv_lite.load_param(&param);
@@ -186,7 +187,7 @@ SaberStatus test_arm_conv(int n, int c, int h, int w, \
 
 }
 
-#if 0
+#if 1
 //! 3x3dw
 TEST(TestSaberLite, test_conv_depthwise) {
     if (g_basic_test) {
@@ -262,7 +263,7 @@ TEST(TestSaberLite, test_conv_depthwise_5x5) {
 }
 #endif
 
-#if 0
+#if 1
 //! conv1x1s1
 TEST(TestSaberLite, test_conv_1x1s1) {
     if (g_basic_test) {
@@ -307,7 +308,7 @@ TEST(TestSaberLite, test_conv_1x1s1) {
 }
 #endif
 
-#if 0
+#if 1
 //! conv3x3s1
 TEST(TestSaberLite, test_conv_3x3s1) {
     if (g_basic_test) {
@@ -347,7 +348,7 @@ TEST(TestSaberLite, test_conv_3x3s1) {
 }
 #endif
 
-#if 0
+#if 1
 //! conv3x3s2
 TEST(TestSaberLite, test_conv_3x3s2) {
     if (g_basic_test) {
@@ -394,7 +395,7 @@ TEST(TestSaberLite, test_conv_3x3s2) {
 #endif
 
 
-#if 0
+#if 1
 //! test conv
 TEST(TestSaberLite, test_conv_gemm) {
     if (g_basic_test) {
@@ -452,8 +453,8 @@ TEST(TestSaberLite, test_conv_gemm) {
 }
 #endif
 
-#if 0
-TEST(TestSaberLite, test_conv_fp32_costom_size) {
+#if 1
+TEST(TestSaberLite, test_conv_fp32_custom_size) {
     auto flag = test_arm_conv(g_num, g_ch_in, g_h_in, g_w_in, g_ch_out, g_kw, g_kh, g_stride_w, g_stride_h, \
             g_pad_w, g_pad_h, g_dila_w, g_dila_h, g_group, g_flag_bias, g_flag_relu, g_threads, g_cluster);
     if (flag == SaberSuccess) {

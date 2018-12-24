@@ -44,7 +44,7 @@ file(WRITE ${SASS_SOURCE_DIR}/src/install.sh
 ExternalProject_Add(
     ${SASS_PROJECT}
     GIT_REPOSITORY      "ssh://git@icode.baidu.com:8235/baidu/sys-hic-gpu/anakin_saber_lib"
-    GIT_TAG             batch_gemm
+    GIT_TAG             new_batch_gemm
     PREFIX              ${SASS_SOURCE_DIR}
     BUILD_COMMAND       sh ${SASS_SOURCE_DIR}/src/build.sh 
     INSTALL_COMMAND     sh ${SASS_SOURCE_DIR}/src/install.sh 

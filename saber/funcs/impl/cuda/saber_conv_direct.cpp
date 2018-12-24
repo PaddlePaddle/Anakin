@@ -2,6 +2,7 @@
 #include "saber/funcs/impl/cuda/saber_conv_direct.h"
 #include "saber/funcs/calibrate.h"
 #include "saber_conv.h"
+#include "saber/core/tensor_op.h"
 
 namespace anakin {
 namespace saber {
@@ -111,15 +112,40 @@ SaberStatus SaberDirectConv<AK_FLOAT>::dispatch(
     CUDA_CHECK(cudaGetLastError());
     return SaberSuccess;
 }
-
 template <>
 SaberStatus SaberDirectConv<AK_INT8>::create(
         const std::vector<Tensor<NV> *>& inputs,
         std::vector<Tensor<NV> *>& outputs,
-        ConvParam<NV>& param, Context<NV> &ctx){
-    LOG(INFO) << "conv int8 create"
-              << " input tensor dtype: " << (inputs[0]->get_dtype() == AK_FLOAT ? "AK_FLOAT" : "AK_INT8")
-              << " output tensor dtype: " << (outputs[0]->get_dtype() == AK_FLOAT ? "AK_FLOAT" : "AK_INT8");
+        ConvParam<NV>& param, Context<NV> &ctx) {
+
+    if (&ctx != this->_ctx) {
+        this->_ctx = &ctx;
+    }
+
+    int input_num = inputs[0]->num();
+    int input_channel = inputs[0]->channel();
+    int input_height = inputs[0]->height();
+    int input_width = inputs[0]->width();
+    int output_channel = outputs[0]->channel();
+    int output_height = outputs[0]->height();
+    int output_width = outputs[0]->width();
+    int in_size = inputs[0]->valid_size();
+    int out_size = outputs[0]->valid_size();
+
+    // ====== int8 conv, the input channel must be a multiple of 4
+    CHECK_EQ(input_channel % 4, 0);
+
+    int kernel_h = param.weight()->height();
+    int kernel_w = param.weight()->width();
+
+    int filter_dim_a[] = {output_channel,
+                          input_channel,
+                          kernel_h, kernel_w};
+
+    int pad_a[] = {param.pad_h, param.pad_w};
+    int filter_stride_a[] = {param.stride_h, param.stride_w};
+    int dilation_a[] = {param.dilation_h, param.dilation_w};
+
     return SaberSuccess;
 }
 
@@ -127,25 +153,112 @@ template <>
 SaberStatus SaberDirectConv<AK_INT8>::init(
     const std::vector<Tensor<NV> *>& inputs,
     std::vector<Tensor<NV> *>& outputs,
-    ConvParam<NV>& param, Context<NV> &ctx){
-    LOG(INFO) << "conv int8 init"
-              << " input tensor dtype: " << (inputs[0]->get_dtype() == AK_FLOAT ? "AK_FLOAT" : "AK_INT8")
-              << " output tensor dtype: " << (outputs[0]->get_dtype() == AK_FLOAT ? "AK_FLOAT" : "AK_INT8");
-    return SaberSuccess;
-}
+    ConvParam<NV>& param, Context<NV> &ctx) {
 
+    this->_ctx = &ctx;
+    return create(inputs, outputs, param, ctx);
+}
 template <>
 SaberStatus SaberDirectConv<AK_INT8>::dispatch(
     const std::vector<Tensor<NV> *>& inputs,
     std::vector<Tensor<NV> *>& outputs,
     ConvParam<NV>& param) {
 
-    LOG(INFO) << "conv int8 dispatch"
-              << " input tensor dtype: " << (inputs[0]->get_dtype() == AK_FLOAT ? "AK_FLOAT" : "AK_INT8")
-              << " output tensor dtype: " << (outputs[0]->get_dtype() == AK_FLOAT ? "AK_FLOAT" : "AK_INT8");
+    Shape shape_in = inputs[0]->valid_shape();
+    Shape shape_out = outputs[0]->valid_shape();
+    const void* weight_ptr = param.weight()->data();
+    const float* bias_data = nullptr;
+    if (param.bias()->size() > 0) {
+        bias_data = (const float*)param.bias()->data();
+    }
+
+    const void* in_data = nullptr;
+    void* out_data = nullptr;
+
+    in_data = (const void*)inputs[0]->data();
+    out_data = (void*)outputs[0]->mutable_data();
+    cudaStream_t stream = _ctx->get_compute_stream();
+
+    if (param.bias()->size() > 0 && (!param.activation_param.has_active || _use_saber_act)) {
+        direct_conv_Kdivis4_s8_to_f32<true, false>(
+                in_data,
+                out_data,
+                weight_ptr,
+                bias_data,
+                inputs[0]->num(),
+                inputs[0]->channel() / 4,
+                inputs[0]->height(),
+                inputs[0]->width(),
+                outputs[0]->channel(),
+                outputs[0]->height(),
+                outputs[0]->width(),
+                param.weight()->height(),
+                param.weight()->width(),
+                param.pad_h,
+                param.pad_w,
+                param.stride_h,
+                param.stride_w,
+                param.dilation_h,
+                param.dilation_w,
+                param.group,
+                param.alpha,
+                param.beta,
+                this->_ctx->get_compute_stream());
+    } else if (param.bias()->valid_size() > 0 && !_use_saber_act) {
+        direct_conv_Kdivis4_s8_to_f32<true, true>(
+                in_data,
+                out_data,
+                weight_ptr,
+                bias_data,
+                inputs[0]->num(),
+                inputs[0]->channel() / 4,
+                inputs[0]->height(),
+                inputs[0]->width(),
+                outputs[0]->channel(),
+                outputs[0]->height(),
+                outputs[0]->width(),
+                param.weight()->height(),
+                param.weight()->width(),
+                param.pad_h,
+                param.pad_w,
+                param.stride_h,
+                param.stride_w,
+                param.dilation_h,
+                param.dilation_w,
+                param.group,
+                param.alpha,
+                param.beta,
+                this->_ctx->get_compute_stream());
+    } else {
+        direct_conv_Kdivis4_s8_to_f32<false, false>(
+                in_data,
+                out_data,
+                weight_ptr,
+                bias_data,
+                inputs[0]->num(),
+                inputs[0]->channel() / 4,
+                inputs[0]->height(),
+                inputs[0]->width(),
+                outputs[0]->channel(),
+                outputs[0]->height(),
+                outputs[0]->width(),
+                param.weight()->height(),
+                param.weight()->width(),
+                param.pad_h,
+                param.pad_w,
+                param.stride_h,
+                param.stride_w,
+                param.dilation_h,
+                param.dilation_w,
+                param.group,
+                param.alpha,
+                param.beta,
+                this->_ctx->get_compute_stream());
+    }
+
+
     return SaberSuccess;
 }
-
 
 template <>
 SaberStatus SaberDirectConv<AK_HALF>::init(
@@ -163,5 +276,5 @@ SaberStatus SaberDirectConv<AK_HALF>::dispatch(
     return SaberUnImplError;
 }
 
-}
-}
+} // namespace saber
+} // namespace anakin
