@@ -32,22 +32,23 @@ namespace anakin {
 namespace saber {
 
 template <DataType OpDtype>
-class SaberMatMul<AMD, OpDtype> : public ImplBase<AMD, OpDtype, MatMulParam<AMD>> {
+class VenderMatMul<AMD, OpDtype> : public ImplBase<AMD, OpDtype, MatMulParam<AMD>> {
 
 public:
     typedef typename DataTrait<AMD, OpDtype>::Dtype OpDataType;
     typedef AMD_API::TPtr PtrDtype;
 
-    SaberMatMul() {
+    VenderMatMul() {
         _multikernel      = false;
         _outGemmWorkspace = nullptr;
         _kernels_ptr.clear();
     }
 
-    ~SaberMatMul() {
+    ~VenderMatMul() {
         if (_outGemmWorkspace) {
             delete _outGemmWorkspace;
         }
+
         _kernels_ptr.clear();
     }
 
@@ -64,9 +65,9 @@ public:
            Context<AMD>& ctx) override;
 
     virtual SaberStatus dispatch(
-            const std::vector<Tensor<AMD>*>& inputs,
-            std::vector<Tensor<AMD>*>& outputs,
-            MatMulParam<AMD>& param) override;
+        const std::vector<Tensor<AMD>*>& inputs,
+        std::vector<Tensor<AMD>*>& outputs,
+        MatMulParam<AMD>& param) override;
 
 private:
     Tensor<AMD>* _outGemmWorkspace;

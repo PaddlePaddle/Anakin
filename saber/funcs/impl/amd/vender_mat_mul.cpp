@@ -12,14 +12,14 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-#include "include/saber_mat_mul.h"
+#include "include/vender_mat_mul.h"
 
 namespace anakin {
 
 namespace saber {
 
 template <DataType OpDtype>
-SaberStatus SaberMatMul<AMD, OpDtype>::init(
+SaberStatus VenderMatMul<AMD, OpDtype>::init(
     const std::vector<Tensor<AMD>*>& inputs,
     std::vector<Tensor<AMD>*>& outputs,
     MatMulParam<AMD>& param,
@@ -31,7 +31,7 @@ SaberStatus SaberMatMul<AMD, OpDtype>::init(
 }
 
 template <DataType OpDtype>
-SaberStatus SaberMatMul<AMD, OpDtype>::create(
+SaberStatus VenderMatMul<AMD, OpDtype>::create(
     const std::vector<Tensor<AMD>*>& inputs,
     std::vector<Tensor<AMD>*>& outputs,
     MatMulParam<AMD>& param,
@@ -133,8 +133,8 @@ SaberStatus SaberMatMul<AMD, OpDtype>::create(
         global_work_size       = soln.v_tgks[i].global_work_size;
 
         kernelInfo.kernel_file = kernel_clstring;
-        kernelInfo.l_wk        = {local_work_size * param._b, 1, 1};
-        kernelInfo.g_wk        = {global_work_size * param._b, 1, 1};
+        kernelInfo.l_wk        = {local_work_size, 1, 1};
+        kernelInfo.g_wk        = {global_work_size, 1, 1};
         kernelInfo.kernel_type = SOURCE;
 
         kptr = CreateKernel(inputs[0]->device_id(), &kernelInfo);
@@ -175,7 +175,7 @@ SaberStatus SaberMatMul<AMD, OpDtype>::create(
 }
 
 template <DataType OpDtype>
-SaberStatus SaberMatMul<AMD, OpDtype>::dispatch(
+SaberStatus VenderMatMul<AMD, OpDtype>::dispatch(
     const std::vector<Tensor<AMD>*>& inputs,
     std::vector<Tensor<AMD>*>& outputs,
     MatMulParam<AMD>& param) {
@@ -215,7 +215,7 @@ SaberStatus SaberMatMul<AMD, OpDtype>::dispatch(
         }
 
         if (_multikernel) {
-            err = _kernels_ptr[j++].get()->SetKernelArgs(
+            err = _kernels_ptr[j].get()->SetKernelArgs(
                       memObjects[2], offsetObjects[2], floatObjects[1]);
 
             if (!err) {
@@ -264,7 +264,7 @@ SaberStatus SaberMatMul<AMD, OpDtype>::dispatch(
     return SaberSuccess;
 }
 
-template class SaberMatMul<AMD, AK_FLOAT>;
+template class VenderMatMul<AMD, AK_FLOAT>;
 
 } // namespace saber
 
