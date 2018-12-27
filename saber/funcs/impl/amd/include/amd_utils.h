@@ -108,6 +108,12 @@ std::vector<KernelInfo> FindSolution(
     const std::vector<Tensor<AMD>*>& inputs,
     std::vector<Tensor<AMD>*>& outputs,
     ConvParam<AMD>& param);
+
+std::vector<KernelInfo> FindSolutionWithPooling(
+    const std::vector<Tensor<AMD>*>& inputs,
+    Tensor<AMD>*& workspace,
+    std::vector<Tensor<AMD>*>& outputs,
+    ConvPoolingParam<AMD>& param);
 } // namespace saber
 } // namespace anakin
 #endif

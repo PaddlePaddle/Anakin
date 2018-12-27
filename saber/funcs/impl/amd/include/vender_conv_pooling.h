@@ -12,14 +12,11 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-#ifndef ANAKIN_SABER_FUNCS_IMPL_AMD_SABER_CONV_POOLING_H
-#define ANAKIN_SABER_FUNCS_IMPL_AMD_SABER_CONV_POOLING_H
+#ifndef ANAKIN_SABER_FUNCS_IMPL_AMD_VENDER_CONV_POOLING_H
+#define ANAKIN_SABER_FUNCS_IMPL_AMD_VENDER_CONV_POOLING_H
 
 #include "saber/funcs/base.h"
-#include "saber/core/impl/amd/utils/amd_base.h"
 #include "saber/funcs/impl/impl_conv_pooling.h"
-#include "saber/saber_types.h"
-#include "saber/funcs/impl/impl_base.h"
 #include "saber/saber_funcs_param.h"
 #include "saber/core/impl/amd/utils/amd_kernel.h"
 #include "saber/funcs/funcs_utils.h"
@@ -29,26 +26,27 @@ namespace anakin {
 namespace saber {
 
 template <DataType OpDtype>
-class SaberConv2DPooling<AMD, OpDtype> : public ImplBase<AMD, OpDtype, ConvPoolingParam<AMD>> {
+class VenderConv2DPooling<AMD, OpDtype> : public ImplBase<AMD, OpDtype, ConvPoolingParam<AMD>> {
 public:
-    typedef TargetWrapper<AMD> API;
     typedef typename DataTrait<AMD, OpDtype>::Dtype OpDataType;
-    typedef ImplBase<AMD, OpDtype, ConvPoolingParam<AMD> > Impl_t;
     typedef AMD_API::TPtr PtrDtype;
 
-    SaberConv2DPooling() {
+    VenderConv2DPooling() {
         _kernels_ptr.clear();
+        vkernel.clear();
         _outConvRelu = nullptr;
+        _outGemmWorkspace = nullptr;
     }
-    ~SaberConv2DPooling() {
-        if (_impl != nullptr) {
-            delete _impl;
-        }
-
+    ~VenderConv2DPooling() {
         _kernels_ptr.clear();
+        vkernel.clear();
 
         if (_outConvRelu) {
             delete _outConvRelu;
+        }
+
+        if (_outGemmWorkspace) {
+            delete _outGemmWorkspace;
         }
     }
 
@@ -82,14 +80,22 @@ public:
         return SaberSuccess;
     }
 
+    void set_solution(std::vector<KernelInfo> vkernel1) {
+        if (!vkernel1.empty()) {
+            vkernel.assign(vkernel1.begin(), vkernel1.end());
+        }
+    }
+
 private:
-    Impl_t* _impl {nullptr};
     bool _in_place {false};
     bool _extern_trans {false};
-    CreateKernelList(int device_id, KernelInfo& kernelInfo);
-    std::vector<AMDKernelPtr> _kernels_ptr {nullptr};
+    void CreateKernelList(int device_id, KernelInfo& kernelInfo);
+    std::vector<AMDKernelPtr> _kernels_ptr;
     Tensor<AMD>* _outConvRelu;
+    Tensor<AMD>* _outGemmWorkspace;
+    std::vector<KernelInfo> vkernel;
+    bool impl_vender {false};
 };
 } // namespace saber
 } // namespace anakin
-#endif // ANAKIN_SABER_FUNCS_IMPL_AMD_SABER_CONV_POOLING_H
+#endif // ANAKIN_SABER_FUNCS_IMPL_AMD_VENDER_CONV_POOLING_H
