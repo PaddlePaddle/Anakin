@@ -13,8 +13,8 @@
    limitations under the License.
 */
 
-#ifndef ANAKIN_SABER_FUNCS_IMPL_AMD_SABER_DECOAMD_H
-#define ANAKIN_SABER_FUNCS_IMPL_AMD_SABER_DECOAMD_H
+#ifndef ANAKIN_SABER_FUNCS_IMPL_AMD_VENDER_DECOAMD_H
+#define ANAKIN_SABER_FUNCS_IMPL_AMD_VENDER_DECOAMD_H
 
 #include "saber/funcs/impl/impl_deconv.h"
 #include "saber/core/impl/amd/utils/amd_base.h"
@@ -26,20 +26,19 @@
 #include <miopengemm/gemm.hpp>
 #include <miopengemm/geometry.hpp>
 
-
 namespace anakin {
 
 namespace saber {
 
 template <DataType OpDtype>
-class SaberDeconv2D<AMD, OpDtype> :
+class VenderDeconv2D<AMD, OpDtype> :
     public ImplBase<AMD, OpDtype, ConvParam<AMD> > {
 public:
     typedef typename DataTrait<AMD, OpDtype>::Dtype OpDataType;
     typedef AMD_API::TPtr PtrDtype;
 
     typedef ImplBase<AMD, OpDtype, ConvParam<AMD> > Impl_t;
-    SaberDeconv2D() {
+    VenderDeconv2D() {
         _multikernel = false;
         _outGemmWorkspace = nullptr;
         _outCol2ImSpace = nullptr;
@@ -49,7 +48,7 @@ public:
 
     }
 
-    ~SaberDeconv2D() {
+    ~VenderDeconv2D() {
         if (_impl) {
             delete _impl;
         }

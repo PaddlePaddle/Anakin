@@ -12,7 +12,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-#include "include/saber_deconv.h"
+#include "include/vender_deconv.h"
 namespace anakin {
 
 namespace saber {
@@ -49,7 +49,7 @@ void set_offsets_to_uint(std::string& clstr) {
 }
 
 template <DataType OpDtype>
-SaberStatus SaberDeconv2D<AMD, OpDtype>::init(
+SaberStatus VenderDeconv2D<AMD, OpDtype>::init(
     const std::vector<Tensor<AMD>*>& inputs,
     std::vector<Tensor<AMD>*>& outputs,
     ConvParam<AMD>& param,
@@ -59,7 +59,7 @@ SaberStatus SaberDeconv2D<AMD, OpDtype>::init(
 }
 
 template <DataType OpDtype>
-SaberStatus SaberDeconv2D<AMD, OpDtype>::create(
+SaberStatus VenderDeconv2D<AMD, OpDtype>::create(
     const std::vector<Tensor<AMD>*>& inputs,
     std::vector<Tensor<AMD>*>& outputs,
     ConvParam<AMD>& param,
@@ -300,7 +300,7 @@ SaberStatus SaberDeconv2D<AMD, OpDtype>::create(
 }
 template <DataType OpDtype>
 
-SaberStatus SaberDeconv2D<AMD, OpDtype>::dispatch(
+SaberStatus VenderDeconv2D<AMD, OpDtype>::dispatch(
     const std::vector<Tensor<AMD>*>& inputs,
     std::vector<Tensor<AMD>*>& outputs,
     ConvParam<AMD>& param) {
@@ -498,9 +498,9 @@ SaberStatus SaberDeconv2D<AMD, OpDtype>::dispatch(
     return SaberSuccess;
 }
 
-template class SaberDeconv2D<AMD, AK_FLOAT>;
-DEFINE_OP_TEMPLATE(SaberDeconv2D, ConvParam, AMD, AK_INT8);
-DEFINE_OP_TEMPLATE(SaberDeconv2D, ConvParam, AMD, AK_HALF);
+template class VenderDeconv2D<AMD, AK_FLOAT>;
+DEFINE_OP_TEMPLATE(VenderDeconv2D, ConvParam, AMD, AK_INT8);
+DEFINE_OP_TEMPLATE(VenderDeconv2D, ConvParam, AMD, AK_HALF);
 } // namespace saber
 
 } // namespace anakin
