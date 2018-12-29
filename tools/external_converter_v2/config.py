@@ -22,7 +22,7 @@ class Configuration:
     def __init__(self, argv, config_file_path=ConfigFilePath):
         data = load(open(config_file_path, 'r').read())
         # parse Options from config file.
-        self.debug_config = data['DEBUG'] if 'DEBUG' in data else None
+        self.DebugConfig = data['DEBUG'] if 'DEBUG' in data else None
         self.framework = data['OPTIONS']['Framework']
         self.SavePath = data['OPTIONS']['SavePath'] \
                 if data['OPTIONS']['SavePath'][-1] == '/' \

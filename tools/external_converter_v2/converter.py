@@ -13,12 +13,14 @@ def launch(config, graph):
 if __name__ == "__main__":
     config = Configuration(sys.argv)
     from parser import *
-
     logger.init(config.logger_dict)
 
-    graph = Graph(config)
-    graph.info_table()
-    graph.serialization()
+    if config.DebugConfig is None:
+        graph = Graph(config)
+        graph.info_table()
+        graph.serialization()
 
-    if config.LaunchBoard:
-        launch(config, graph)
+        if config.LaunchBoard:
+            launch(config, graph)
+    else:
+        pass
