@@ -82,3 +82,9 @@ TARGET:
 
     ONNX:
         ModelPath:
+
+DEBUG:
+    Type: NET
+    LoadPaths:
+        -
+    SavePath:

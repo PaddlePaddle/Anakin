@@ -12,9 +12,8 @@ def launch(config, graph):
 
 if __name__ == "__main__":
     config = Configuration(sys.argv)
-    # import parser 
     from parser import *
-    # init logger
+
     logger.init(config.logger_dict)
 
     graph = Graph(config)
