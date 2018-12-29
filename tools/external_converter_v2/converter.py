@@ -5,6 +5,8 @@
 import os
 import sys
 from config import *
+from parser import *
+from utils import *
 
 def launch(config, graph):
     logger(verbose.WARNING).feed("anakin parser dash board will be launch in site: ")
@@ -12,7 +14,6 @@ def launch(config, graph):
 
 if __name__ == "__main__":
     config = Configuration(sys.argv)
-    from parser import *
     logger.init(config.logger_dict)
 
     if config.DebugConfig is None:
