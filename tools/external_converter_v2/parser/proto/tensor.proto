@@ -9,18 +9,39 @@ message TensorShape {
     Dim dim = 3;
 };
 
+enum LayoutProto {
+    Invalid = 0;
+    W = 4;
+    HW = 11;
+    WH = 12;
+    NC = 13;
+    NH = 14;
+    NW = 15;
+    NHW = 21;
+    NCHW = 31;
+    NHWC = 32;
+    NCHW_C4 = 101;
+    NCHW_C8 = 102;
+    NCHW_C16 = 103;
+    NCHW_C8R = 111;
+    NCHW_C16R = 112;
+    OIHW16I16O = 201;
+    GOIHW16I16O = 202;
+};
+
+
 // anakin data type.
 // maybe need to be improved
 enum DateTypeProto {
         STR = 0;  // When used as bit type, enum 0 means invalid.
-		INT8 = 2;
+        INT8 = 2;
         INT32 = 4;
-		FLOAT16 = 8;
+        FLOAT16 = 8;
         FLOAT = 13;
         DOUBLE = 14;
         BOOLEN = 20;
-		CACHE_LIST = 30;
-		TENSOR = 31;
+        CACHE_LIST = 30;
+        TENSOR = 31;
 };
 
 // list data cache
@@ -38,26 +59,29 @@ message CacheDate {
 // anakin tensor define
 // it maybe need to improved to support sequence data.
 message TensorProto {
-	// tensor id [optional] 
-	// ( only used when anakin generates optimized model )
-	bytes name = 1;
+    // tensor id [optional]
+    // ( only used when anakin generates optimized model )
+    bytes name = 1;
 
-	// whether shared from other [optional] 
-	// ( anakin generates optimized model )
-	bool shared = 2;
+    // whether shared from other [optional]
+    // ( anakin generates optimized model )
+    bool shared = 2;
 
-	// share_from is not null if shared [optional] 
-	// ( only used when anakin generates optimized model)
-	bytes share_from = 3;
+    // share_from is not null if shared [optional]
+    // ( only used when anakin generates optimized model)
+    bytes  share_from = 3; 
 
-    // tensor shape
+    // tensor real shape
     TensorShape shape = 8;
+
+    // tensor valid shape
+    TensorShape valid_shape = 9;
 
     // tensor data cache.
     CacheDate data = 10;
 
     // scale for int8
     CacheDate scale = 11;
+
+    LayoutProto layout = 12;
 };
-
-
