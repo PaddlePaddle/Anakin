@@ -12,16 +12,14 @@ class Net:
         '''
         self.config = config.DebugConfig
         self.parser = NetParser(self.config)
-        self.net_io_list = self.parser()
+        self.net_io = self.parser()
 
     def __str__(self):
-        for net_io in self.net_io_list:
-            return net_io.net_proto.__str__()
+        return net_io.net_proto.__str__()
 
     def storage(self):
-        for net_io in self.net_io_list:
-            storager = NetStorage(net_io)
-            storager()
+        storager = NetStorage(net_io)
+        storager()
 
     def serialization(self):
         self.net_io.serialization(self.config['SavePath'])
@@ -35,15 +33,13 @@ class NetParser:
         '''
         assert net_config_dict is not None
         self.load_list = net_config_dict['LoadPaths']
-        self.net_io_list = list()
 
     def load_nets(self):
+        net_io = NetProtoIO()
         for load_path in self.load_list:
-            net_proto = NetProtoIO()
-            net_proto.parse_from_string(load_path)
-            self.net_io_list.append(net_proto)
+            net_io.parse_from_string(load_path)
 
     def __call__(self):
         self.load_nets()
-        return self.net_io_list
+        return self.net_io
 
