@@ -26,4 +26,5 @@ if __name__ == "__main__":
         import utils
         net = utils.net.net_parser.Net(config)
         net.storage()
-        print net
+        net.save()
+        #print net
