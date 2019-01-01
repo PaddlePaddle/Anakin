@@ -278,14 +278,6 @@ class GraphProtoIO(object):
             contents = f.read()
             self.graph_proto.ParseFromString(contents)
 
-    def merge_from_string(self, file_path):
-        """
-        parser from optimized graph model
-        """
-        with open(file_path, "rb") as f:
-            contents = f.read()
-            self.graph_proto.MergeFromString(contents)
-
     def set_name(self, graph_name):
         self.graph_proto.name = graph_name
 

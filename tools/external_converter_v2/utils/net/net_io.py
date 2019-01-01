@@ -52,6 +52,14 @@ class NetProtoIO(object):
             contents = f.read()
             self.net_proto.ParseFromString(contents)
 
+    def merge_from_string(self, file_path):
+        """
+        parser from optimized graph model
+        """
+        with open(file_path, "rb") as f:
+            contents = f.read()
+            self.net_proto.MergeFromString(contents)
+
     def __call__(self):
         return self.net_proto
 
