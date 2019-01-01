@@ -15,7 +15,7 @@ class NetParser:
         self.load_nets()
 
     def __call__(self):
-        pass
+        return self.parsing()
 
     def load_nets(self):
         for load_path in self.load_list:
@@ -26,4 +26,6 @@ class NetParser:
     def save_nets(self):
         pass
 
+    def parsing(self):
+        self.load_nets()
 

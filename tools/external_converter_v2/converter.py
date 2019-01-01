@@ -24,3 +24,4 @@ if __name__ == "__main__":
             launch(config, graph)
     else:
         from utils import *
+        net = Net(config)
