@@ -88,7 +88,7 @@ class FuncProtoIO(object):
 
 class NodeProtoIO(object):
     """
-    Func io class of FuncProto.
+    Node io class of FuncProto.
     """
 
     def __init__(self, proto=None):

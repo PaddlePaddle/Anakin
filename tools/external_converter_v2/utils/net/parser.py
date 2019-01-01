@@ -3,7 +3,6 @@
 
 from net_io import NetProtoIO
 
-
 class NetParser:
 
     def __init__(self, net_config_dict):
@@ -20,15 +19,11 @@ class NetParser:
 
     def load_nets(self):
         for load_path in self.load_list:
-            Net
+            net_proto = NetProtoIO()
             net_proto.parse_from_string(load_path)
-            self.
-        pass
+            print net_proto
 
     def save_nets(self):
         pass
-
-
-
 
 
