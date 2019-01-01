@@ -76,7 +76,7 @@ class NetProtoIO(object):
     def set_name(self, net_name):
         self.net_proto.name = net_name
 
-    def add_func(self, func=FuncProtoIO()):
+    def add_func(self, func=FuncProto()):
         self.net_proto.funcs.extend([func])
 
     def func_io_list(self):

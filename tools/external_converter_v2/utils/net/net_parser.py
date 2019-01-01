@@ -74,7 +74,7 @@ class NetParser(object):
             net.set_name(func_type)
             funcs_list = self.funcs[func_type]
             for func in funcs_list:
-                net.add_func(func)
+                net.add_func(func())
             self.nets_io_out.append(net)
         return self.nets_io_out
 
