@@ -3,6 +3,14 @@
 
 from net_io import NetProtoIO
 
+class Net:
+
+    def __init__(self, config):
+        '''
+        '''
+        self.parser = NetParser(config.DebugConfig)
+        self.net_io = self.parser()
+
 class NetParser:
 
     def __init__(self, net_config_dict):
