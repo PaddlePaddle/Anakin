@@ -10,6 +10,45 @@ from parser.graph_io import GraphProtoIO
 from google.protobuf import text_format
 
 
+class FuncProtoIO(object):
+    """
+    Func io class of FuncProto.
+    """
+
+    def __init__(self, proto=None):
+        """
+        """
+        self.func_proto = None
+        if proto is None:
+            self.func_proto = net_pb2.FuncProto()
+        else:
+            self.func_proto = proto
+
+    def get_name(self):
+        return self.func_proto.name
+
+    def set_name(self, name):
+        self.func_proto.name = name
+
+    def get_type(self):
+        return self.func_proto.type
+
+    def set_type(self, type_value):
+        self.func_proto.type = type_value
+
+    def get_node_io(self):
+        node_io = NodeProtoIO(self.func_proto.node_info)
+        return node_io
+
+    def reset_node_io(self, node_io):
+        node_proto = node_io()
+        self.func_proto.node_info.CopyFrom(node_proto)
+
+    def __call__(self):
+        return self.func_proto
+
+
+
 class NetProtoIO(object):
     """
     Net io class of NetProto.
@@ -78,41 +117,3 @@ class NetProtoIO(object):
 
     def __call__(self):
         return self.net_proto
-
-
-class FuncProtoIO(object):
-    """
-    Func io class of FuncProto.
-    """
-
-    def __init__(self, proto=None):
-        """
-        """
-        self.func_proto = None
-        if proto is None:
-            self.func_proto = net_pb2.FuncProto()
-        else:
-            self.func_proto = proto
-
-    def get_name(self):
-        return self.func_proto.name
-
-    def set_name(self, name):
-        self.func_proto.name = name
-
-    def get_type(self):
-        return self.func_proto.type
-
-    def set_type(self, type_value):
-        self.func_proto.type = type_value
-
-    def get_node_io(self):
-        node_io = NodeProtoIO(self.func_proto.node_info)
-        return node_io
-
-    def reset_node_io(self, node_io):
-        node_proto = node_io()
-        self.func_proto.node_info.CopyFrom(node_proto)
-
-    def __call__(self):
-        return self.func_proto
