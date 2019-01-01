@@ -16,7 +16,7 @@ class NetProtoIO(object):
         """
         self.net_proto = None
         if proto is None:
-            self.net_proto = NetProto()
+            self.net_proto = net_pb2.NetProto()
         else:
             self.net_proto = proto
 
@@ -63,7 +63,7 @@ class FuncProtoIO(object):
         """
         self.func_proto = None
         if proto is None:
-            self.func_proto = FuncProto()
+            self.func_proto = net_pb2.FuncProto()
         else:
             self.func_proto = proto
 
@@ -96,7 +96,7 @@ class NodeProtoIO(object):
         """
         self.node_proto = None
         if proto is None:
-            self.node_proto = NodeProto()
+            self.node_proto = net_pb2.NodeProto()
         else:
             self.node_proto = proto
 
