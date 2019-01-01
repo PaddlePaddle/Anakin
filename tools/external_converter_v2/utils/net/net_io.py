@@ -1,12 +1,14 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import os
 import sys
 sys.path.append("../../")
 
 from parser.proto import net_pb2
 from parser.graph_io import GraphProtoIO
 from google.protobuf import text_format
+
 
 class NetProtoIO(object):
     """
@@ -29,6 +31,15 @@ class NetProtoIO(object):
     def clear_graph(self):
         self.net_proto.graph.Clear()
 
+    def get_name(self):
+        return self.net_proto.name
+
+    def set_name(self, net_name):
+        self.net_proto.name = net_name
+
+    def add_func(self, func=FuncProtoIO()):
+        self.net_proto.funcs.extend([func])
+
     def func_io_list(self):
         func_io_list = list()
         for func in self.net_proto.funcs:
@@ -36,18 +47,17 @@ class NetProtoIO(object):
             func_io_list.append(func_io)
         return func_io_list
 
-    def serialization(self, file_path):
+    def save(self, file_path, text_format=True, use_net_name=True):
         """
-        Serialize to disk.
         """
-        # self._get_graph_proto();
+        if use_net_name is True:
+            assert self.net_proto.name is not None
+            file_path = os.path.join(file_path, self.net_proto.name)
         with open(file_path, "wb") as f:
-            f.write(self.net_proto.SerializeToString())
-        f.close()
-
-    def save_txt(self, file_path):
-        with open(file_path, "wb") as f:
-            f.write(text_format.MessageToString(self.net_proto))
+            if text_format is True:
+                f.write(text_format.MessageToString(self.net_proto))
+            else:
+                f.write(self.net_proto.SerializeToString())
         f.close()
 
     def parse_from_string(self, file_path):

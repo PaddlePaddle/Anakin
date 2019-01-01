@@ -24,5 +24,5 @@ if __name__ == "__main__":
             launch(config, graph)
     else:
         import utils
-        net_parser = utils.net.net_parser.NetParser(config)
-        net_parser()
+        net = utils.net.net_parser.Net(config)
+        net.parse()
