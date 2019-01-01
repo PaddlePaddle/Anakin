@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from net_io import NetProtoIO
+from storage import NetStorage
 
 class Net:
 
