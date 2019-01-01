@@ -85,14 +85,14 @@ class NetProtoIO(object):
             func_io_list.append(func_io)
         return func_io_list
 
-    def save(self, file_path, text_format=True, use_net_name=True):
+    def save(self, file_path, use_txt=True, use_net_name=True):
         """
         """
         if use_net_name is True:
             assert self.net_proto.name is not None
             file_path = os.path.join(file_path, self.net_proto.name)
         with open(file_path, "wb") as f:
-            if text_format is True:
+            if use_txt is True:
                 f.write(text_format.MessageToString(self.net_proto))
             else:
                 f.write(self.net_proto.SerializeToString())
