@@ -15,7 +15,7 @@ class Net:
         self.net_io = self.parser()
 
     def __str__(self):
-        return net_io.net_proto.__str__()
+        return self.net_io.net_proto.__str__()
 
     def storage(self):
         storager = NetStorage(self.net_io)
