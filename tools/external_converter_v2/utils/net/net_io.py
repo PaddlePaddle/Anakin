@@ -6,6 +6,7 @@ sys.path.append("../../")
 
 from parser.proto import net_pb2
 from parser.graph_io import GraphProtoIO
+from google.protobuf import text_format
 
 class NetProtoIO(object):
     """
@@ -42,6 +43,11 @@ class NetProtoIO(object):
         # self._get_graph_proto();
         with open(file_path, "wb") as f:
             f.write(self.net_proto.SerializeToString())
+        f.close()
+
+    def save_txt(self, file_path):
+        with open(file_path, "wb") as f:
+            f.write(text_format.MessageToString(self.net_proto))
         f.close()
 
     def parse_from_string(self, file_path):

@@ -10,9 +10,11 @@ class Net:
     def __init__(self, config):
         '''
         '''
-        self.config = config.DebugConfig
+        assert 'NET' in config.DebugConfig.keys()
+        self.config = config.DebugConfig['NET']
         self.parser = NetParser(self.config)
         self.net_io = self.parser()
+        self.save_format = self.config['SaveFormat']
 
     def __str__(self):
         return self.net_io.net_proto.__str__()
@@ -21,9 +23,11 @@ class Net:
         storager = NetStorage(self.net_io)
         storager()
 
-    def serialization(self):
-        self.net_io.serialization(self.config['SavePath'])
-
+    def save(self):
+        if self.save_format == 'binary':
+            self.net_io.serialization(self.config['SavePath'])
+        elif self.save_format == 'text':
+            self.net_io.save_txt(self.config['SavePath'])
 
 class NetParser:
     """

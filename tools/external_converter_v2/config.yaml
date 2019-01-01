@@ -84,7 +84,8 @@ TARGET:
         ModelPath:
 
 DEBUG:
-    Type: NET
-    LoadPaths:
-        -
-    SavePath:
+    NET:
+        LoadPaths:
+            -
+        SavePath:
+        SaveFormat: text
