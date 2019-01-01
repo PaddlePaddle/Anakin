@@ -5,19 +5,31 @@ from net_io import NetProtoIO
 from storage import NetStorage
 
 class Net:
-
+    """
+    """
     def __init__(self, config):
         '''
         '''
         self.config = config.DebugConfig
         self.parser = NetParser(self.config)
-        self.net_io = self.parser()
+        self.net_io_list = self.parser()
+
+    def __str__(self):
+        for net_io in self.net_io_list:
+            return net_io()
+
+    def storage(self):
+        for net_io in self.net_io_list:
+            storager = NetStorage(net_io)
+            storager()
 
     def serialization(self):
         self.net_io.serialization(self.config['SavePath'])
 
-class NetParser:
 
+class NetParser:
+    """
+    """
     def __init__(self, net_config_dict):
         '''
         '''
@@ -31,19 +43,7 @@ class NetParser:
             net_proto.parse_from_string(load_path)
             self.net_io_list.append(net_proto)
 
-    def storage_net(self):
-        for net_io in self.net_io_list:
-            storager = NetStorage(net_io)
-            storager()
-
-    def print_net(self):
-        for net_io in self.net_io_list:
-            print net_io()
-
-    def parser(self):
-        self.load_nets()
-        self.storage_net()
-
     def __call__(self):
-        self.parser()
-        #self.print_net()
+        self.load_nets()
+        return self.net_io_list
+
