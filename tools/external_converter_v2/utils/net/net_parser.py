@@ -18,7 +18,7 @@ class Net:
         return net_io.net_proto.__str__()
 
     def storage(self):
-        storager = NetStorage(net_io)
+        storager = NetStorage(self.net_io)
         storager()
 
     def serialization(self):
