@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from parser import NetParser
+from net_parser import NetParser
 
 class Net:
 
