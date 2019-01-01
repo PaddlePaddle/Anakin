@@ -84,10 +84,14 @@ class TensorProtoIO(object):
     """
     """
 
-    def __init__(self):
+    def __init__(self, proto=None):
         """
         """
-        self.tensor_proto = TensorProto()
+        self.tensor_proto = None
+        if proto is None:
+            self.tensor_proto = TensorProto()
+        else:
+            self.tensor_proto = proto
     
     def set_shared(self, is_shared):
         self.tensor_proto.shared = is_shared
@@ -163,11 +167,14 @@ class TensorProtoIO(object):
 class OpsProtoIO(object):
     """
     """
-
-    def __init__(self):
+    def __init__(self, proto=None):
         """
         """
-        self.op_proto = OpsProto()
+        self.op_proto = None
+        if proto is None:
+            self.op_proto = OpsProto()
+        else:
+            self.op_proto = proto
 
     def set_name(self, op_name):
         self.op_proto.name = op_name
@@ -192,10 +199,14 @@ class NodeProtoIO(object):
     Node io class of NodeProto
     """
 
-    def __init__(self):
+    def __init__(self, proto=None):
         """
         """
-        self.node_proto = NodeProto()
+        self.node_proto = None
+        if proto is None:
+            self.node_proto = NodeProto()
+        else:
+            self.node_proto = proto
         self.attr_warpper = NodeAttrWrapper()
 
     def set_name(self, node_name):
@@ -241,10 +252,14 @@ class GraphProtoIO(object):
     Graph io class of GraphProto.
     """
 
-    def __init__(self):
+    def __init__(self, proto=None):
         """
         """
-        self.graph_proto = GraphProto()
+        self.graph_proto = None
+        if proto is None:
+            self.graph_proto = GraphProto()
+        else:
+            self.graph_proto = proto
 
     def serialization(self, file_path):
         """

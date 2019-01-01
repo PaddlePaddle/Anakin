@@ -23,9 +23,6 @@ class NetProtoIO(object):
     def graph(self):
         return self.net_proto.graph
 
-    def graph_nodes(self):
-        return self.net_proto.graph.nodes
-
     def clear_graph(self):
         self.net_proto.graph.Clear()
 
@@ -81,6 +78,9 @@ class FuncProtoIO(object):
 
     def node(self):
         return self.func_proto.node_info
+
+    def fill_node(self, node):
+        self.func_proto.node_info = node
 
     def __call__(self):
         return self.func_proto

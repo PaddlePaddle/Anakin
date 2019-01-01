@@ -29,7 +29,7 @@ class NetParser:
         for load_path in self.load_list:
             net_proto = NetProtoIO()
             net_proto.parse_from_string(load_path)
-            print net_proto()
+            self.net_proto_list.append(net_proto)
 
     def save_nets(self):
         pass
