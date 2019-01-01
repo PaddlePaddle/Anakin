@@ -23,5 +23,5 @@ if __name__ == "__main__":
         if config.LaunchBoard:
             launch(config, graph)
     else:
-        from utils import *
+        import utils
         net = utils.net.net_parser.Net(config)
