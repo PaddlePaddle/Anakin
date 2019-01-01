@@ -46,4 +46,4 @@ class NetParser:
 
     def __call__(self):
         self.parser()
-        self.print_net()
+        #self.print_net()
