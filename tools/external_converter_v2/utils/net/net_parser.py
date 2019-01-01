@@ -33,11 +33,11 @@ class NetParser:
         '''
         assert net_config_dict is not None
         self.load_list = net_config_dict['LoadPaths']
+        self.net_io = NetProtoIO()
 
     def load_nets(self):
-        net_io = NetProtoIO()
         for load_path in self.load_list:
-            net_io.merge_from_string(load_path)
+            self.net_io.merge_from_string(load_path)
 
     def __call__(self):
         self.load_nets()
