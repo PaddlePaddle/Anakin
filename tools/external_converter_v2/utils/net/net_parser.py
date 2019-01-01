@@ -24,8 +24,7 @@ class NetParser:
 
     def load(self):
         for load_path in self.load_list:
-            net_io.merge_from_string(load_path)
-        return net_io
+            self.net_io.merge_from_string(load_path)
 
     def save(self):
         if self.save_format == 'binary':
