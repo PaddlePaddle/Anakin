@@ -16,7 +16,7 @@ class Net:
 
     def __str__(self):
         for net_io in self.net_io_list:
-            return net_io()
+            return net_io.net_proto.__str__()
 
     def storage(self):
         for net_io in self.net_io_list:
