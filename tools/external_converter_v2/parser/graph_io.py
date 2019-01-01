@@ -301,6 +301,11 @@ class GraphProtoIO(object):
             if node.name == node_name:
                 return node
 
+    def get_node_io(self, node_name):
+        node_proto = self.find_node_proto(node_name)
+        node_io = NodeProtoIO(node_proto)
+        return node_io
+
     def get_edge_nexts(self, node_name, with_info=False):
         """
         get edge's next node_name

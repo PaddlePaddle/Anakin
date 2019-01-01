@@ -5,6 +5,7 @@ import sys
 sys.path.append("../../")
 
 from parser.proto import net_pb2
+from parser.graph_io import GraphProtoIO
 
 class NetProtoIO(object):
     """
@@ -20,14 +21,19 @@ class NetProtoIO(object):
         else:
             self.net_proto = proto
 
-    def graph(self):
-        return self.net_proto.graph
+    def graph_io(self):
+        graph_io = GraphProtoIO(self.net_proto.graph)
+        return graph_io
 
     def clear_graph(self):
         self.net_proto.graph.Clear()
 
-    def funcs(self):
-        return self.net_proto.funcs
+    def func_io_list(self):
+        func_io_list = list()
+        for func in self.net_proto.funcs:
+            func_io = FuncProtoIO(func)
+            func_io_list.append(func_io)
+        return func_io_list
 
     def serialization(self, file_path):
         """
@@ -76,32 +82,12 @@ class FuncProtoIO(object):
     def set_type(self, type_value):
         self.func_proto.type = type_value
 
-    def node(self):
-        return self.func_proto.node_info
+    def get_node_io(self):
+        node_io = NodeProtoIO(self.func_proto.node_info)
+        return node_io
 
-    def fill_node(self, node):
-        self.func_proto.node_info = node
-
-    def __call__(self):
-        return self.func_proto
-
-
-class NodeProtoIO(object):
-    """
-    Node io class of FuncProto.
-    """
-
-    def __init__(self, proto=None):
-        """
-        """
-        self.node_proto = None
-        if proto is None:
-            self.node_proto = net_pb2.NodeProto()
-        else:
-            self.node_proto = proto
-
-    def get_name(self):
-        return self.node_proto.name
+    def set_node_io(self, node_io):
+        self.func_proto.node_info = node_io()
 
     def __call__(self):
         return self.func_proto
