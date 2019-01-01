@@ -39,7 +39,7 @@ class NetParser(object):
     def __init__(self, net_io, config):
         # reset node in funcs
         self.config = config
-        self.net_io_in = net_io_in
+        self.net_io_in = net_io
         self.graph_io = self.net_io_in.graph_io()
         self.func_io_list = self.net_io_in.func_io_list()
         # funcs slice
