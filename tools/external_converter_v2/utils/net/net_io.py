@@ -48,7 +48,6 @@ class FuncProtoIO(object):
         return self.func_proto
 
 
-
 class NetProtoIO(object):
     """
     Net io class of NetProto.
@@ -76,7 +75,7 @@ class NetProtoIO(object):
     def set_name(self, net_name):
         self.net_proto.name = net_name
 
-    def add_func(self, func=FuncProto()):
+    def add_func(self, func=net_pb2.FuncProto()):
         self.net_proto.funcs.extend([func])
 
     def func_io_list(self):
