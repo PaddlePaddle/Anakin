@@ -9,8 +9,12 @@ class Net:
     def __init__(self, config):
         '''
         '''
-        self.parser = NetParser(config.DebugConfig)
+        self.config = config.DebugConfig
+        self.parser = NetParser(self.config)
         self.net_io = self.parser()
+
+    def serialization():
+        self.net_io.serialization(self.config['SavePath'])
 
 class NetParser:
 
@@ -19,7 +23,6 @@ class NetParser:
         '''
         assert net_config_dict is not None
         self.load_list = net_config_dict['LoadPaths']
-        self.save_directory = net_config_dict['SavePath']
         self.net_io_list = list()
 
     def load_nets(self):
@@ -40,9 +43,6 @@ class NetParser:
     def parser(self):
         self.load_nets()
         self.storage_net()
-
-    def save_nets(self):
-        pass
 
     def __call__(self):
         self.parser()

@@ -25,3 +25,4 @@ if __name__ == "__main__":
     else:
         import utils
         net = utils.net.net_parser.Net(config)
+        net.serialization()
