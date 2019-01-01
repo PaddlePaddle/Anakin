@@ -86,7 +86,7 @@ class FuncProtoIO(object):
         node_io = NodeProtoIO(self.func_proto.node_info)
         return node_io
 
-    def set_node_io(self, node_io):
+    def reset_node_io(self, node_io):
         self.func_proto.node_info = node_io()
 
     def __call__(self):

@@ -3,20 +3,23 @@
 
 class NetStorage(object):
 
-    def __init__(self, net_proto):
-        self.net_proto = net_proto
+    def __init__(self, net_io):
+        self.net_io = net_io
+        self.graph_io = self.net_io.graph_io()
+        self.func_io_list = self.net_io.func_io_list()
 
-    def get_node(self, node_name):
-        ret = None
-        nodes = net_proto.graph_nodes()
-        for node in nodes:
-            if node.name == node_name:
-                ret = node
-        return ret
+    def reset_node_in_func(self):
+        for func_io in self.func_io_list:
+            func_name = func_io.get_name()
+            node_io = self.graph_io.get_node_io(func_name)
+            func_io.reset_node_io(node_io)
 
-    def update_net(self):
-        
+    def clear_graph(self):
+        self.net_io.clear_graph()
 
+    def net_storage(self):
+        self.reset_node_in_func()
+        self.clear_graph()
 
-
-
+    def __call__(self):
+        self.net_storage()
