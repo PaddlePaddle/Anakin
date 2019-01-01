@@ -13,7 +13,7 @@ class Net:
         self.parser = NetParser(self.config)
         self.net_io = self.parser()
 
-    def serialization():
+    def serialization(self):
         self.net_io.serialization(self.config['SavePath'])
 
 class NetParser:
