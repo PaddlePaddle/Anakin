@@ -37,7 +37,7 @@ class NetParser:
     def load_nets(self):
         net_io = NetProtoIO()
         for load_path in self.load_list:
-            net_io.parse_from_string(load_path)
+            net_io.merge_from_string(load_path)
 
     def __call__(self):
         self.load_nets()
