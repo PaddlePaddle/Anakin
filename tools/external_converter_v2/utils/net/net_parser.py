@@ -3,7 +3,7 @@
 
 from net_io import NetProtoIO
 
-class NetList:
+class NetHolder:
     """
     """
     def __init__(self, config):
