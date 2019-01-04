@@ -34,7 +34,7 @@ class NetHolder:
         for path in self.load_list:
             assert path not in self.net_ins.keys()
             net_io = NetProtoIO()
-            net_io.parse_from_string(load_path)
+            net_io.parse_from_string(path)
             self.net_ins[path] = net_io
 
     def __call__(self):
