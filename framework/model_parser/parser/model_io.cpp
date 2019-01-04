@@ -379,6 +379,7 @@ Status NodeIO<Ttype, Ptype>::operator<<(GraphProto& graph) {
                 (*node_proto_attr)[key].mutable_cache_list()->set_type(BOOLEN);
                 (*node_proto_attr)[key].mutable_cache_list()->set_size(tuple_bool.size());
             } else if (value.type() == "anakin_block") { // default block have float data
+                
                 // cope with shared weights
                 if (node_p->check_shared(key)) {
                     auto share_target = node_p->get_share_target(key);
@@ -404,6 +405,7 @@ Status NodeIO<Ttype, Ptype>::operator<<(GraphProto& graph) {
                         for (int i = 0; i < valid_shape.count(); i++) {
                             (*node_proto_attr)[key].mutable_tensor()->mutable_data()->add_f(cpu_data[i]);
                         }
+                        
 
                         (*node_proto_attr)[key].mutable_tensor()->mutable_data()->set_type(FLOAT);
                         (*node_proto_attr)[key].mutable_tensor()->mutable_data()->set_size(valid_shape.count());
@@ -427,6 +429,7 @@ Status NodeIO<Ttype, Ptype>::operator<<(GraphProto& graph) {
                         for (int i = 0; i < real_shape.count(); i++) {
                             (*node_proto_attr)[key].mutable_tensor()->mutable_data()->add_f(cpu_data[i]);
                         }
+                        
 
                         (*node_proto_attr)[key].mutable_tensor()->mutable_data()->set_type(FLOAT);
                         (*node_proto_attr)[key].mutable_tensor()->mutable_data()->set_size(real_shape.count());

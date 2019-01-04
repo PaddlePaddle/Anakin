@@ -7,7 +7,29 @@ message TensorShape {
         int64 size = 2;
     }
     Dim dim = 3;
+    LayoutProto layout = 4;
 };
+
+enum LayoutProto {
+    LAYOUT_INVALID = 0;
+    LAYOUT_W = 1;
+    LAYOUT_HW = 2;
+    LAYOUT_WH = 3;
+    LAYOUT_NC = 4;
+    LAYOUT_NH = 5;
+    LAYOUT_NW = 6;
+    LAYOUT_NHW = 7;
+    LAYOUT_NCHW = 8;
+    LAYOUT_NHWC = 9;
+    LAYOUT_NCHW_C4 = 10;
+    LAYOUT_NCHW_C8 = 11;
+    LAYOUT_NCHW_C16 = 12;
+    LAYOUT_OIHW16I16O = 13;
+    LAYOUT_GOIHW16I16O = 14;
+    LAYOUT_NCHW_C8R = 15;
+    LAYOUT_NCHW_C16R = 16;
+};
+
 
 // anakin data type.
 // maybe need to be improved

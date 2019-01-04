@@ -19,6 +19,7 @@
 #include "framework/graph/graph.h"
 #include "framework/graph/node.h"
 #include "framework/graph/algorithm.h"
+#include "framework/model_parser/proto/graph.pb.h"
 #include <limits>
 
 #define ProtoReadBytesLimit std::numeric_limits<int>::max() 
@@ -41,6 +42,9 @@ template<typename Ttype, Precision Ptype>
 Status save(graph::Graph<Ttype, Ptype>* graph, std::string& model_path);
 template<typename Ttype, Precision Ptype>
 Status save(graph::Graph<Ttype, Ptype>* graph, const char* model_path);
+
+template<typename Ttype, Precision Ptype> 
+Status generate_graph_proto(graph::Graph<Ttype, Ptype>* graph, GraphProto& graph_proto);
 
 } /* parser */
 
