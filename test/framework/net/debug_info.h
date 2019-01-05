@@ -46,13 +46,19 @@ template<typename Ttype>
 Status fill_tensor_proto(const Tensor<Ttype>* tensor_p, TensorProto* tensor_proto_p) {
     Status ret = Status();
     auto valid_shape = tensor_p->valid_shape();
+    LayoutProto layout_proto(LayoutProto(valid_shape.get_layout()));
     for (int i = 0; i < valid_shape.dims(); i++) {
         DLOG(INFO) << "valid_shape: " << valid_shape[i];
         tensor_proto_p->mutable_valid_shape()->mutable_dim()->add_value(valid_shape[i]);
     }
     DLOG(INFO) << "valid_shape size: " << valid_shape.size();
-    tensor_proto_p->mutable_shape()->mutable_dim()->set_size(valid_shape.size());
-    tensor_proto_p->mutable_shape()->set_layout(LayoutProto(valid_shape.get_layout()));
+    tensor_proto_p->mutable_valid_shape()->mutable_dim()->set_size(valid_shape.size());
+    if (valid_shape.size() == 3) {
+        layout_proto = LayoutProto(LAYOUT_NHW);
+    } else if (valid_shape.size() == 2) {
+        layout_proto = LayoutProto(LAYOUT_NW);
+    }
+    tensor_proto_p->mutable_valid_shape()->set_layout(layout_proto);
     return ret;
 }
 
