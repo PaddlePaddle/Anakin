@@ -27,6 +27,11 @@ int main(int argc, char** argv) {
         static_cast<ops::ConvBatchnormScaleReluPoolHelper<Target, Precision::FP32>*>(helper_ptr) \
         ->_param_conv_batchnorm_scale_relu_pooling;
         LOG(INFO) << "conv_act_pooling_param.conv_param.pad_h: " << conv_act_pooling_param.conv_param.pad_h;
+
+        Tensor<Target>* weight_ptr = conv_act_pooling_param.conv_param.mutable_weight();
+        auto valid_size = weight_ptr->valid_size();
+        LOG(INFO) << "valid_size: " << valid_size;
+        fill_tensor_rand(*weight_ptr, -5.f, 5.0f);
     }
     return 0;
 }
