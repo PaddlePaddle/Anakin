@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from net_io import NetProtoIO
+from utils.net.net_io import NetProtoIO
 
 class NetHolder:
     """
