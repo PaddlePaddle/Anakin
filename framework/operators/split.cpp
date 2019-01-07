@@ -33,11 +33,6 @@ Status SplitHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype
     return Status::OK();
 }
 
-#ifdef AMD_GPU
-INSTANCE_SPLIT(AMD, Precision::FP32);
-template class SplitHelper<AMD, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(Split, SplitHelper, AMD, Precision::FP32);
-#endif
 
 #ifdef USE_CUDA
 INSTANCE_SPLIT(NV, Precision::FP32);
@@ -68,9 +63,6 @@ ANAKIN_REGISTER_OP(Split)
 #endif
 #if defined USE_X86_PLACE || defined BUILD_LITE
 .__alias__<X86, Precision::FP32>("split")
-#endif
-#ifdef AMD_GPU
-.__alias__<AMD, Precision::FP32>("split")
 #endif
 .num_in(1)
 .num_out(1)

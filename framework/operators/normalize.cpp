@@ -4,17 +4,15 @@ namespace anakin {
 
 namespace ops {
 
-#define INSTANCE_NORMALIZE(Ttype, Ptype) \
-template<> \
-void Normalize<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
-    const std::vector<Tensor4dPtr<Ttype> >& ins, \
-    std::vector<Tensor4dPtr<Ttype> >& outs) { \
-    auto* impl = static_cast<NormalizeHelper<Ttype, Ptype>*>(this->_helper); \
-    auto& param = static_cast<NormalizeHelper<Ttype, Ptype>*> \
-                  (this->_helper)->_param_normalize; \
-    impl->_funcs_normalize(ins, outs, param, ctx); \
+#ifdef USE_CUDA
+template<>
+void Normalize<NV, Precision::FP32>::operator() (OpContext<NV> &ctx, const std::vector<Tensor4dPtr<NV> >& ins,
+    std::vector<Tensor4dPtr<NV> >& outs) {
+    auto* impl = static_cast<NormalizeHelper<NV, Precision::FP32>*>(this->_helper);
+    auto& param = static_cast<NormalizeHelper<NV, Precision::FP32>*>(this->_helper)->_param_normalize;
+    impl->_funcs_normalize(ins, outs, param, ctx);
 }
-
+#endif
 
 /// TODO ... specialization other type of operator
 /// set helper
@@ -59,26 +57,17 @@ Status NormalizeHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<T
    return Status::OK();
 }
 
-#ifdef AMD_GPU
-INSTANCE_NORMALIZE(AMD, Precision::FP32);
-template class NormalizeHelper<AMD, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(Normalize, NormalizeHelper, AMD, Precision::FP32);
-#endif
-
 #ifdef USE_CUDA
-INSTANCE_NORMALIZE(NV, Precision::FP32);
 template class NormalizeHelper<NV, Precision::FP32>;
 template class NormalizeHelper<NV, Precision::FP16>;
 template class NormalizeHelper<NV, Precision::INT8>;
 #endif
 
 #ifdef USE_X86_PLACE
-INSTANCE_NORMALIZE(X86, Precision::FP32);
 template class NormalizeHelper<X86, Precision::FP32>;
 #endif
 
 #ifdef USE_ARM_PLACE
-INSTANCE_NORMALIZE(ARM, Precision::FP32);
 template class NormalizeHelper<ARM, Precision::FP32>;
 template class NormalizeHelper<ARM, Precision::FP16>;
 template class NormalizeHelper<ARM, Precision::INT8>;
@@ -108,9 +97,6 @@ ANAKIN_REGISTER_OP(Normalize)
 #endif
 #ifdef USE_ARM_PLACE
     .__alias__<ARM, Precision::FP32>("normalize")
-#endif
-#ifdef AMD_GPU
-    .__alias__<AMD, Precision::FP32>("normalize")
 #endif
     .num_in(1)
     .num_out(1)

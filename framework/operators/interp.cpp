@@ -105,13 +105,7 @@ ANAKIN_REGISTER_OP_HELPER(Interp, InterpHelper, X86, Precision::FP32);
 INSTANCE_INTERP(ARM, Precision::FP32);
 template class InterpHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Interp, InterpHelper, ARM, Precision::FP32);
-#endif
-
-#ifdef AMD_GPU
-INSTANCE_INTERP(AMD, Precision::FP32);
-template class InterpHelper<AMD, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(Interp, InterpHelper, AMD, Precision::FP32);
-#endif
+#endif//arm
 
 //! register op
 ANAKIN_REGISTER_OP(Interp)
@@ -124,9 +118,6 @@ ANAKIN_REGISTER_OP(Interp)
 #endif
 #if defined USE_X86_PLACE || defined(BUILD_LITE)
 .__alias__<X86, Precision::FP32>("Interp")
-#endif
-#ifdef AMD_GPU
-.__alias__<AMD, Precision::FP32>("Interp")
 #endif
 .num_in(1)
 .num_out(1)

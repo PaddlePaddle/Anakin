@@ -5,6 +5,20 @@ namespace anakin {
 namespace graph {
 
 void IOBlockResource::reg_self_lock_tree(io& io_in, std::vector<io>& io_out) {
+    // When traversing the graph in BFS, the sharing relationship
+    // needs to be completely recorded in the same tree,
+    // otherwise the release order may be error.
+    for (auto it = _self_lock_next_tree.begin(); it != _self_lock_next_tree.end(); it++) {
+        auto& io_vec = it->second;
+        for (auto io_out_existed : io_vec) {
+            if (io_in.name == io_out_existed.name) {
+                auto io_out_new = _self_lock_next_tree[it->first];
+                io_out_new.insert(io_out_new.end(), io_out.begin(), io_out.end());
+                _self_lock_next_tree[io_in] = io_out_new;
+                return;
+            }
+        }
+    }
     if (_self_lock_next_tree.count(io_in) <= 0) {
         _self_lock_next_tree[io_in] = io_out;
     } else {

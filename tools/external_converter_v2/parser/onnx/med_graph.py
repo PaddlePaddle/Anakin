@@ -48,7 +48,7 @@ class MedNodeUtil:
         node['input'] = new_input
 
     @staticmethod
-    def redirecto_outputs_input_to_this(node, graph, this_name, this_shape):
+    def redirecto_outputs_input_to_this(node, graph, this_name):
         """
         get node_x in node`s outputs
         make node_x`s inputs reference to node
@@ -156,36 +156,103 @@ class MedGraphUtil:
         :return:
         """
         if len(med_node['input']) == 1:
-            input_node = med_graph[med_node]['input'][0]
+            input_node = med_graph[med_node['input'][0]]
             med_ak_attr = med_node['ak_attr']
             if input_node['ak_type'] == 'Convolution':
                 input_attr = input_node['ak_attr']
                 conv_weights = input_attr['weights']
-                scale_weights = med_ak_attr['scale_weights']
+                scale_weights = med_ak_attr['weights']
 
-                assert conv_weights.shape[0] == scale_weights.shape[-1]
-                new_conv_weights = np.zeros(conv_weights.shape)
-                for i in range(conv_weights.shape[0]):
-                    new_conv_weights[i] = conv_weights[i] * scale_weights[i]
-                input_attr['weights'] = new_conv_weights.astype('float32')
-                if input_attr.get('bias_weights') is not None:
-                    input_attr['bias_weights'] = input_attr['bias_weights'] + med_ak_attr['bias_weights']
+                assert (conv_weights['shape'][0] == scale_weights['shape'][-1]) \
+                        or (conv_weights['shape'][0] == scale_weights['shape'][0])
+                shape = conv_weights['shape']
+                new_conv_weights = {}
+                new_conv_weights['shape'] = conv_weights['shape']
+                new_conv_weights['dtype'] = 'float32'
+                new_conv_weights['data'] = np.zeros(shape)
+                tmp = scale_weights['data'].flatten()
+                conv_weights['data'] = conv_weights['data'].reshape(shape)
+                for i in range(shape[0]):
+                    new_conv_weights['data'][i] = conv_weights['data'][i] * tmp[i]
+                input_attr['weights'] = new_conv_weights
+                if input_attr.get('bias') is not None:
+                    bias_val = input_attr['bias']
+                    if 'bias' in med_ak_attr:
+                        new_conv_bias = {}
+                        new_conv_bias['shape'] = bias_val['shape']
+                        new_conv_bias['dtype'] = 'float32'
+                        new_conv_bias['data'] = np.zeros(bias_val['shape'])
+                        med_val = med_ak_attr['bias']
+                        for i in range(bias_val['shape'][0]):
+                            new_conv_bias['data'][i] = bias_val['data'][i] + med_val['data'][i]
+                        input_attr['bias'] = new_conv_bias
+                    else:
+                        input_attr['bias'] = bias_val
+                elif med_ak_attr.get('bias') is not None:
+                    bias_val = med_ak_attr['bias']
+                    input_attr['bias'] = bias_val
                 else:
-                    input_attr['bias_weights'] = med_ak_attr['bias_weights']
+                    print ('conv+scale does not have bias')
+                    # input_attr['bias'] = med_ak_attr['bias']
                 med_node['ak_type'] = None
                 input_node['output'] = MedNodeUtil.replace_name_with_list(input_node['output'],
                                                                           med_node['name'],
                                                                           med_node['output'])
-                MedNodeUtil.redirecto_outputs_input_to_this(med_node, med_graph, input_node['name'],
-                                                            med_node['input'][0]['shape'])
+                MedNodeUtil.redirecto_outputs_input_to_this(med_node, med_graph, input_node['name'])
                 input_node['fusion_out_name'] = med_node['name']
+                # conv+scale+scale * n, bias_n1 = bias_n0 * weights + bias_n1
+                if len(input_node['output']) == 1:
+                    tmp_node = med_graph[input_node['output'][0]]
+                    while tmp_node['ak_type'] == 'Scale':
+                        input_attr = input_node['ak_attr']
+                        conv_weights = input_attr['weights']
+                        scale_weights = tmp_node['ak_attr']['weights']
+                        assert (conv_weights['shape'][0] == scale_weights['shape'][-1]) or (conv_weights['shape'][0] == scale_weights['shape'][0])
+                        shape = conv_weights['shape']
+                        new_conv_weights = {}
+                        new_conv_weights['shape'] = conv_weights['shape']
+                        new_conv_weights['dtype'] = 'float32'
+                        new_conv_weights['data'] = np.zeros(shape)
+                        tmp = scale_weights['data'].flatten()
+                        conv_weights['data'] = conv_weights['data'].reshape(shape)
+                        for i in range(shape[0]):
+                            new_conv_weights['data'][i] = conv_weights['data'][i] * tmp[i]
+                        input_attr['weights'] = new_conv_weights
+                        if input_attr.get('bias') is not None:
+                            bias_val = input_attr['bias']
+                            if 'bias' in tmp_node['ak_attr']:
+                                new_conv_bias = {}
+                                new_conv_bias['shape'] = bias_val['shape']
+                                new_conv_bias['dtype'] = 'float32'
+                                new_conv_bias['data'] = np.zeros(bias_val['shape'])
+                                med_val = tmp_node['ak_attr']['bias']
+                                for i in range(bias_val['shape'][0]):
+                                    new_conv_bias['data'][i] = bias_val['data'][i] * scale_weights['data'][i] + med_val['data'][i]
+                                input_attr['bias'] = new_conv_bias
+                            else:
+                                input_attr['bias'] = bias_val
+                        elif med_ak_attr.get('bias') is not None:
+                            bias_val = tmp_node['ak_attr']['bias']
+                            input_attr['bias'] = bias_val
+                        else:
+                            print ('conv+scale does not have bias')
+                        tmp_node['ak_type'] = None
+                        input_node['output'] = MedNodeUtil.replace_name_with_list(input_node['output'],
+                                                                          tmp_node['name'],
+                                                                          tmp_node['output'])
+                        MedNodeUtil.redirecto_outputs_input_to_this(tmp_node, med_graph, input_node['name'])
+                        input_node['fusion_out_name'] = tmp_node['name']
+                        if len(input_node['output']) == 1:
+                            tmp_node = med_graph[input_node['output'][0]]
+                        else:
+                            break
 
         pass
 
     @staticmethod
     def _deleteScale(med_node, med_graph):
         """
-        fusion scale node after convolution node
+        delete dropout node when is_test = 0
         :param med_node:
         :param med_graph:
         :return:
@@ -275,11 +342,13 @@ class MedGraphUtil:
         """
         for node in med_graph.values():
             node['med_visted'] = False
-        #MedGraphUtil._all_search_table(med_graph, {'Scale': MedGraphUtil._fusionScale})
+
         print ('********split***********')
         MedGraphUtil._all_search_fusion(med_graph, MedGraphUtil._auto_split)
         print ('********scale***********')
         MedGraphUtil._all_search_table(med_graph, {'Scale': MedGraphUtil._deleteScale})
+        print ('********fusion scale***********')
+        MedGraphUtil._all_search_table(med_graph, {'Scale': MedGraphUtil._fusionScale})
         print ('********finish***********')
         # MedGraphUtil._all_search_table(med_graph, {'Input': MedGraphUtil._auto_input_name})
 

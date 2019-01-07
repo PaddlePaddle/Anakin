@@ -32,13 +32,6 @@ def np_2_ak_tensor(np_tensor):
     type_str = data_type_map.get(np_tensor['dtype'])
     #assert type_str != None
     ak_tensor = TensorProtoIO()
-    # print 'name: ', np_tensor['name']
-    # print 'shape: ', np_tensor['shape']
-    # print 'type_str: ', type_str
-    # print 'np ', type(np_tensor['data'])
-    # print 'np_type:', np_tensor['data'].dtype
-    # print 'len:', len(np_tensor['data'])
-    # print 'data: ', np_tensor['data']
     ak_tensor.set_shape(shape_2_ak_shape(np_tensor['shape']))
     # ak_tensor.set_data(np_tensor['data'], type_str)
     # print('type: ', type(np_tensor['data']), np_tensor['shape'], np_tensor['dtype'], type_str)
@@ -55,22 +48,6 @@ class MedTransAK:
     """
     def __init__(self):
         self.input_count=0
-
-    # def AssignDecorator(Converter):
-    #     def warpper(self,ak_node, med_node):
-    #         param = OpsParam()
-    #         ak_op = OpsProtoIO()
-    #         med_attr=med_node['ak_attr']
-    #
-    #         Converter(self, med_attr, param)
-    #
-    #         param.feed_node_attr(ak_node)
-    #         ak_op.set_name(med_node['ak_type'])
-    #         ak_node.set_op(ak_op())
-    #         [ak_node.add_in(i) for i in med_node['input']]
-    #         [ak_node.add_out(i) for i in med_node['output']]
-    #
-    #     return warpper
 
     def Convolution(self, med_attr, param):
         """
@@ -208,6 +185,16 @@ class MedTransAK:
         # print(param.dims)
         pass
 
+    def Permute(self, med_attr, param):
+        """
+        get Permute param
+        :param med_attr:
+        :param param:
+        :return:
+        """
+        shape = med_attr['shape']
+        param.dims = shape
+
     def Pooling(self, med_attr, param):
         """
         get pooling param
@@ -325,6 +312,12 @@ class MedTransAK:
         else:
             param.axis = med_attr['axis']
         pass
+    
+    def PixelShuffle(self, med_attr, param):
+        if med_attr.get('scale_factor') is None:
+            param.scale_factor = 2
+        else:
+            param.scale_factor = med_attr['scale_factor']
 
     def map_med_2_ak(self, ak_node, med_node):
         """

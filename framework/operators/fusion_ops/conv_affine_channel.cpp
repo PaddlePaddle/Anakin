@@ -201,6 +201,13 @@ template class ConvAffineChannelHelper<X86, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ConvAffineChannel, ConvAffineChannelHelper, X86, Precision::FP32);
 #endif
 
+//#ifdef USE_X86_PLACE
+//INSTANCE_CONVBATCHNORMAFFINE_CHANNEL(X86, Precision::FP32);
+//template class ConvAffineChannelHelper<X86, Precision::FP32>;
+//ANAKIN_REGISTER_OP_HELPER(ConvAffineChannel, ConvAffineChannelHelper, X86, 
+//                          Precision::FP32);
+//#endif
+
 //! register op
 ANAKIN_REGISTER_OP(ConvAffineChannel)
 .Doc("ConvAffineChannel fusion operator")
@@ -213,10 +220,6 @@ ANAKIN_REGISTER_OP(ConvAffineChannel)
 #endif
 #if defined BUILD_LITE
 .__alias__<X86, Precision::FP32>("convolution_affine_channel")
-#endif
-#ifdef AMD_GPU
-.__alias__<AMD, Precision::FP32>("convolution_affine_channel")
-.__alias__<AMD, Precision::INT8>("convolution_affine_channel")
 #endif
 .num_in(1)
 .num_out(1)

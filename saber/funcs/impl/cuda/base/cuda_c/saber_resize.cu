@@ -6,7 +6,7 @@ namespace anakin{
 namespace saber{
 
 template <typename dtype>
-__global__ void resize_bilinear_custom_kernel(const int wout, const int hout,
+__global__ static void resize_bilinear_custom_kernel(const int wout, const int hout,
                                  const int num,const int channels,
                                  const int dst_stride_w,
                                  const int dst_stride_h,
@@ -91,7 +91,7 @@ __global__ void resize_bilinear_custom_kernel(const int wout, const int hout,
 }
 
 template <typename dtype>
-__global__ void resize_bilinear_no_align_kernel(const int wout, const int hout,
+__global__ static void resize_bilinear_no_align_kernel(const int wout, const int hout,
                                  const int num,const int channels,
                                  const int dst_stride_w,
                                  const int dst_stride_h,
@@ -168,7 +168,7 @@ __global__ void resize_bilinear_no_align_kernel(const int wout, const int hout,
 }
 
 template <typename dtype>
-__global__ void resize_bilinear_align_kernel(const int wout, const int hout,
+__global__ static void resize_bilinear_align_kernel(const int wout, const int hout,
                                  const int num,const int channels,
                                  const int dst_stride_w,
                                  const int dst_stride_h,

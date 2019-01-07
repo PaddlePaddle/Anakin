@@ -4,17 +4,16 @@ namespace anakin {
 
 namespace ops {
 
-#define INSTANCE_IM2SEQUENCE(Ttype, Ptype) \
-template<> \
-void Im2Sequence<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
-    const std::vector<Tensor4dPtr<Ttype> >& ins, \
-    std::vector<Tensor4dPtr<Ttype> >& outs) { \
-    auto* impl = \
-        static_cast<Im2SequenceHelper<Ttype, Ptype>*>(this->_helper); \
-    auto& param = \
-        static_cast<Im2SequenceHelper<Ttype, Ptype>*>(this->_helper)->_param_im2sequence; \
-    impl->_funcs_im2sequence(ins, outs, param, ctx); \
+#ifdef USE_CUDA
+template<>
+void Im2Sequence<NV, Precision::FP32>::operator() (OpContext<NV> &ctx, 
+                          const std::vector<Tensor4dPtr<NV> >& ins, 
+                          std::vector<Tensor4dPtr<NV> >& outs) {
+    auto* impl = static_cast<Im2SequenceHelper<NV, Precision::FP32>*>(this->_helper);
+    auto& param = static_cast<Im2SequenceHelper<NV, Precision::FP32>*>(this->_helper)->_param_im2sequence;
+    impl->_funcs_im2sequence(ins, outs, param, ctx);
 }
+#endif
 
 /// TODO ... specialization other type of operator
 
@@ -59,27 +58,27 @@ Status Im2SequenceHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr
 }
 
 #ifdef USE_CUDA
-INSTANCE_IM2SEQUENCE(NV, Precision::FP32);
 template class Im2SequenceHelper<NV, Precision::FP32>;
 template class Im2SequenceHelper<NV, Precision::FP16>;
 template class Im2SequenceHelper<NV, Precision::INT8>;
-ANAKIN_REGISTER_OP_HELPER(Im2Sequence, Im2SequenceHelper, NV, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE
-INSTANCE_IM2SEQUENCE(ARM, Precision::FP32);
 template class Im2SequenceHelper<ARM, Precision::FP32>;
 template class Im2SequenceHelper<ARM, Precision::FP16>;
 template class Im2SequenceHelper<ARM, Precision::INT8>;
+#endif
+
+//template class Im2SequenceHelper<ARM, Precision::FP32>;
+//template class Im2SequenceHelper<ARM, Precision::FP16>;
+//template class Im2SequenceHelper<ARM, Precision::INT8>;
+// register helper 
+#ifdef USE_CUDA
+ANAKIN_REGISTER_OP_HELPER(Im2Sequence, Im2SequenceHelper, NV, Precision::FP32);
+#endif
+#ifdef USE_ARM_PLACE
 ANAKIN_REGISTER_OP_HELPER(Im2Sequence, Im2SequenceHelper, ARM, Precision::FP32);
 #endif
-
-#ifdef AMD_GPU
-INSTANCE_IM2SEQUENCE(AMD, Precision::FP32);
-template class Im2SequenceHelper<AMD, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(Im2Sequence, Im2SequenceHelper, AMD, Precision::FP32);
-#endif
-
 
 //! register op
 ANAKIN_REGISTER_OP(Im2Sequence)
@@ -89,9 +88,6 @@ ANAKIN_REGISTER_OP(Im2Sequence)
 #endif
 #ifdef USE_ARM_PLACE
     .__alias__<ARM, Precision::FP32>("im2sequence")
-#endif
-#ifdef AMD_GPU
-    .__alias__<AMD, Precision::FP32>("im2sequence")
 #endif
     .num_in(1)
     .num_out(1)

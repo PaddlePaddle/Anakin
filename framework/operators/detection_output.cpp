@@ -67,12 +67,6 @@ template class DetectionOutputHelper<NV, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(DetectionOutput, DetectionOutputHelper, NV, Precision::FP32);
 #endif
 
-#ifdef AMD_GPU
-INSTANCE_DETECTIONOUTPUT(AMD, Precision::FP32);
-template class DetectionOutputHelper<AMD, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(DetectionOutput, DetectionOutputHelper, AMD, Precision::FP32);
-#endif
-
 #if defined USE_X86_PLACE || defined BUILD_LITE
 INSTANCE_DETECTIONOUTPUT(X86, Precision::FP32);
 template class DetectionOutputHelper<X86, Precision::FP32>;
@@ -96,9 +90,6 @@ ANAKIN_REGISTER_OP(DetectionOutput)
 #endif
 #if defined USE_X86_PLACE || defined BUILD_LITE
 .__alias__<X86, Precision::FP32>("detectionoutput")
-#endif
-#ifdef AMD_GPU
-.__alias__<AMD, Precision::FP32>("detectionoutput")
 #endif
 .num_in(1)
 .num_out(1)

@@ -77,6 +77,9 @@ Status ConvReluHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
     if (std::is_same<Ttype, X86>::value) {
         impl_e = SABER_IMPL;
     }
+    if (std::is_same<Ttype, NV>::value && Ptype == Precision::INT8) {
+        impl_e = SABER_IMPL;
+    }
     bool use_k1s1p0 = (Ptype == Precision::FP32);
     use_k1s1p0 = use_k1s1p0 && (_param_conv_relu.weight()->height() == 1);
     use_k1s1p0 = use_k1s1p0 && (_param_conv_relu.weight()->width() == 1);

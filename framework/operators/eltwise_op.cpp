@@ -54,12 +54,6 @@ template class EltwiseHelper<NV, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Eltwise, EltwiseHelper, NV, Precision::FP32);
 #endif
 
-#ifdef AMD_GPU
-INSTANCE_ELTWISE(AMD, Precision::FP32);
-template class EltwiseHelper<AMD, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(Eltwise, EltwiseHelper, AMD, Precision::FP32);
-#endif
-
 #if defined USE_X86_PLACE || defined BUILD_LITE
 INSTANCE_ELTWISE(X86, Precision::FP32);
 template class EltwiseHelper<X86, Precision::FP32>;
@@ -83,9 +77,6 @@ ANAKIN_REGISTER_OP(Eltwise)
 #endif
 #if defined USE_X86_PLACE || defined BUILD_LITE
 .__alias__<X86, Precision::FP32>("eltwise")
-#endif
-#ifdef AMD_GPU
-.__alias__<AMD, Precision::FP32>("eltwise")
 #endif
 .num_in(1)
 .num_out(1)

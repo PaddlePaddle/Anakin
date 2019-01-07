@@ -5,9 +5,7 @@
 
 #include "saber/core/context.h"
 #include "saber/funcs/lstm.h"
-#ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/x86_utils.h"
-#endif
 #include "saber/core/tensor_op.h"
 #include "debug.h"
 

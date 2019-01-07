@@ -162,7 +162,7 @@ void Net<Ttype, Ptype, RunType>::init(graph::Graph<Ttype, Ptype>& graph) {
 
     auto node_names_in_exec_order = graph.get_nodes_in_order();
 
-    if (_has_loaded_config){
+    if (!_has_loaded_config){
         load_calibrator_config(graph);
     }
 

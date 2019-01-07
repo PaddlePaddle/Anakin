@@ -6,9 +6,8 @@
 #include "test_saber_base.h"
 #include "conv_func_helper.h"
 #include <vector>
-#ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/x86_utils.h"
-#endif
+
 using namespace anakin::saber;
 #define CHECK_RESULT
 //#define CHECK_SPEED

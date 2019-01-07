@@ -5,14 +5,11 @@
 
 #include "saber/core/context.h"
 #include "saber/funcs/gru.h"
-#ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/x86_utils.h"
-#endif
 #include "saber/core/tensor_op.h"
 #include "saber/funcs/debug.h"
 
 #include "test_saber_func.h"
-#include "saber/funcs/saber_util.h"
 
 using namespace anakin::saber;
 using namespace std;

@@ -162,9 +162,11 @@ SaberStatus SaberConv2D<NV, AK_INT8>::create(
 
     if (outputs[0]->get_dtype() == AK_INT8) {
         if (outputs[0]->get_layout() != Layout_NCHW_C4) {
-                    LOG(ERROR) << "output layout must be NCHW_C4 for nv gpu";
+            LOG(ERROR) << "output layout must be NCHW_C4 for nv gpu";
         }
-        int8_output.re_alloc(outputs[0]->valid_shape(), AK_FLOAT);
+        Shape temp = outputs[0]->valid_shape();
+        temp.set_layout(Layout_NCHW);
+        int8_output.re_alloc(temp, AK_FLOAT);
         int8_output.set_scale(inputs[0]->get_scale());
         int8_output.set_layout(Layout_NCHW);
     }
@@ -205,7 +207,7 @@ SaberStatus SaberConv2D<NV, AK_INT8>::init(
                  || (param.activation_param.active == Active_relu));
 
     if (!use_int8) {
-        return SaberInvalidValue;
+        LOG(FATAL) << "not support using int8";
     } else {
         if (inputs[0]->get_scale().size() == 1) {
             _in_scale = inputs[0]->get_scale()[0];
@@ -256,29 +258,25 @@ SaberStatus SaberConv2D<NV, AK_INT8>::dispatch(
     }
     if (outputs[0]->get_dtype() == AK_INT8) {
         if (outputs[0]->get_layout() != Layout_NCHW_C4) {
-            LOG(ERROR) << "output layout must be NCHW_C4 for nv gpu";
+            LOG(FATAL) << "output layout must be NCHW_C4 for nv gpu";
         }
         out_data_tensor[0] = &int8_output;
     } else {
         out_data_tensor[0] = outputs[0];
     }
-
     if (_impl != nullptr) {
         _impl->dispatch(in_data_tensor, out_data_tensor, param);
     }
-
     const float* weights_scale = (const float*)param.weight()->get_scale_data();
-    if (outputs[0]->get_dtype() == AK_FLOAT) {
+    if (param.weight()->get_scale().size() > 1) {
         conv_calibrate_int32_fp32(
-                *outputs[0], *outputs[0], in_scale, weights_scale, *_ctx);
-    } else if (outputs[0]->get_dtype() == AK_INT8) {
+                *out_data_tensor[0], *out_data_tensor[0], in_scale, weights_scale, *_ctx);
+    }
+    if (outputs[0]->get_dtype() == AK_INT8) {
         // TODO THIS CAN BE A LOT OF WASTE OF PERF.
-        conv_calibrate_int32_fp32(
-                int8_output, int8_output, in_scale, weights_scale, *_ctx);
-
         std::vector<float> out_scale_v = outputs[0]->get_scale();
         if (out_scale_v.size() != 1) {
-            LOG(FATAL) << "out scale set error, only support 1 scale for now!!! scale = "
+            LOG(FATAL) << "out scale set error, only support 1 scale for now!!! scale has "
                        << out_scale_v.size();
         }
         float out_scale = out_scale_v[0];

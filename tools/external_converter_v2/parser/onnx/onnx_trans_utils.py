@@ -1,24 +1,9 @@
 import onnx
 import numpy as np
+import math
 from google.protobuf import text_format
 from med_graph import MedNodeUtil, MedGraphUtil
 
-ONNX_TO_ANAKIN_DTYPE1 = {
-    onnx.AttributeProto.FLOAT: np.float32,
-    onnx.AttributeProto.INT: np.int32,
-    # onnx.AttributeProto.HALF: np.float16,
-    # onnx.AttributeProto.DOUBLE: np.float64,
-    # onnx.AttributeProto.INT32: np.int32,
-    # onnx.AttributeProto.INT16: np.int16,
-    # onnx.AttributeProto.INT8: np.int8,
-    # onnx.AttributeProto.UINT8: np.uint8,
-    # onnx.AttributeProto.UINT16: np.uint16,
-    # onnx.AttributeProto.INT64: np.int64,
-     #types_pb2.DT_STRING: onnx_pb.TensorProto.STRING,
-    # types_pb2.DT_COMPLEX64: onnx_pb.TensorProto.COMPLEX64,
-    # types_pb2.DT_COMPLEX128: onnx_pb.TensorProto.COMPLEX128,
-    # nnx.AttributeProto.BOOL: np.bool,
-}
 ONNX_TO_ANAKIN_DTYPE = {
     1: np.float32,
     6: np.int32,
@@ -54,39 +39,31 @@ def get_onnx_tensor_data(tensor):
     assert isinstance(tensor, onnx.TensorProto)
     is_raw = False
     # print 'tensor', tensor
+    # tensor has raw_data and other_data 
     if tensor.float_data is not None and len(tensor.float_data) > 0:
-        # print ('float_data')
         data = tensor.float_data
         is_raw = False
     elif tensor.int32_data is not None and len(tensor.int32_data) > 0:
-        # print 'int32_data'
         data = tensor.int32_data
         is_raw = False
     elif tensor.string_data is not None and len(tensor.string_data) > 0:
-        # print 'string_data'
         data = tensor.string_data
         is_raw = False
     elif tensor.int64_data is not None and len(tensor.int64_data) > 0:
-        # print ('int64_data')
         data = tensor.int64_data
         is_raw = False
     elif tensor.double_data is not None and len(tensor.double_data) > 0:
-        # print 'double_data'
         data = tensor.double_data
         is_raw = False
     elif tensor.uint64_data is not None and len(tensor.uint64_data) > 0:
-        # print 'uint64_data'
         data = tensor.uint64_data
         is_raw = False
     elif tensor.raw_data is not None and len(tensor.raw_data) > 0:
-        # print 'raw_data'
         data = tensor.raw_data
         is_raw = True
     else:
-        print ('Error')
+        print ('Error: ', tensor)
         exit(0)
-        # data = tensor.raw_data
-        # is_raw = True
     # da = np.array(data)
     # print da
     if tensor.data_type == 1: #FLOAT
@@ -104,7 +81,7 @@ def get_onnx_tensor_data(tensor):
     elif tensor.data_type == 13: #uint32
         dtype = 'uint64'
     else:
-        print ('Error')
+        print ('Error: ', tensor.data_type)
         exit(0)
     return [is_raw, data, dtype]
 
@@ -187,7 +164,7 @@ def trans_const_node(node, weights):
                     weights_data['dtype'] = weights_node['dtype']
                     # print ('weights_data: ', node['name'], weights_data['shape'], weights_data['dtype'])
                 else:
-                    print('can not find shape_node', shape_name)
+                    print('Mul can not find shape_node', shape_name)
                     return None
             elif node['type'] == 'Unsqueeze': # axes = [1,2] [64] -> [64, 1, 1]
                 axes = node['onnx_attr']['axes']
@@ -225,7 +202,7 @@ def trans_const_node(node, weights):
                 weights_data = weight_node
             node['visited'] = True
         else:
-            print('can not find input_node', in_name)
+            print('Mul can not find input_node', in_name)
             return None
         # weights_data['shape'] = weights_data['shape'].astype(np.float32)
         return weights_data
@@ -252,7 +229,7 @@ def get_bias(node, weights, graph):
                 bias_node = trans_const_node(graph[ins[i]], weights)
                 if bias_node is not None:
                     #delete Add node
-                    MedNodeUtil.redirecto_outputs_input_to_this(output0, graph, node['name'], None)
+                    MedNodeUtil.redirecto_outputs_input_to_this(output0, graph, node['name'])
                     node['output'] = output0['output']
                     graph.pop(output0['name'])
                     #delete bias node
@@ -303,6 +280,98 @@ def fusion_normL2_node(node_a, node_b, node_c, node, graph):
     #delete node_a
     graph.pop(node_a['name'])
     # print("node delete after: ", node['input'], node['output'])
+
+def fusion_PixelShuffle(node, out_node, outs, weights, graph):
+    """
+    node->out_node->transpose->reshape->B
+    node->outs[0]->...->reshape->B
+    node->outs[1]->...->reshape->B
+    fusion: node->op_pixelshuffle->B
+    :param node:
+    :param out_node:
+    :param outs:
+    :param weights:
+    :param graph:
+    :return:
+    """
+    # print ('fusion_PixelShuffle begin: ')
+    # print('node: ', node['name'], node['type'], node['input'], node['output'])
+    # aaa = graph[node['output'][0]]
+    # print('output: ', aaa['name'], aaa['type'], aaa['input'], aaa['output'])
+    for ou in outs:
+        if ou is not out_node['name']:
+            if graph[ou]['type'] == 'Shape':
+                continue
+            else:
+                print('Error Pattern: ', outs)
+                return
+    out_a = out_node['output']
+    if len(out_a) == 1:
+        out_b = graph[out_a[0]]
+        if out_b['type'] == 'Transpose' and len(out_b['output']) == 1:
+            out_name = out_b['output'][0]
+            out_data = graph[out_name]
+            if out_data['type'] == 'Reshape':
+                out_list = [out_node['name'], out_name]
+                for name in outs:
+                    # print ('name: ', name)
+                    if name not in out_list:
+                        if graph.has_key(name) is not True:
+                            continue
+                        node1 = graph[name]
+                        list_tmp = []
+                        for name_a in node1['output']:
+                            if graph.has_key(name_a) is not True:
+                                if len(node1['output']) == 1:
+                                    graph.pop(node1['name'])
+                                    break
+                            graph[name_a]['input'] = [node['name']]
+                            list_tmp.append(name_a)
+                        #outs.remove(name)
+                        out_list.append(name)
+                        if graph.has_key(name):
+                            graph.pop(name)
+                        # print ('remove name: ', name)
+                        outs += list_tmp
+                        # print ('delete output: ', out_list)
+                node['output'] = [out_name]
+                #delete Transpose and out_node 
+                graph.pop(out_b['name'])
+                graph.pop(out_node['name'])
+                out_data['type'] = 'PixelShuffle'
+                scale_factor = 1
+                if node['input'][1] in weights:
+                    wei_shape = weights[node['input'][1]]['shape']
+                    if len(wei_shape) == 4:
+                        num = (wei_shape[0] / wei_shape[1])
+                        sq = int(math.sqrt(num))
+                        if num == sq * sq:
+                            scale_factor = sq
+                        else:
+                            print('Error shape, it does not meet a*a = wei_shape[0] / wei_shape[1]', wei_shape[0], wei_shape[1])
+                            exit(0)
+                    else:
+                        print('input is not right', node['input'])
+                        exit(0)
+                else:
+                    print('weigths is not right', node['input'][1], wei_shape)
+                out_data['onnx_attr'] ['scale_factor'] = scale_factor
+                out_data['visited'] = True
+                out_data['ak_type'] = 'PixelShuffle'
+                out_data['ak_attr']['scale_factor'] = scale_factor
+            else:
+                print('Error type ', out_data['name'], out_data['type'])
+                exit()
+        else:
+            print('Error type ', out_b['name'], out_b['type'])
+            exit()
+    else:
+        print('Error output lists ', out_a)
+        exit()
+    # print ('fusion_PixelShuffle after: ')
+    # print('node: ', node['name'], node['type'], node['input'], node['output'])
+    # aaa = graph[node['output'][0]]
+    # print('output: ', aaa['name'], aaa['type'], aaa['input'], aaa['output'])
 
 def delete_extra_node(node_a, node_b, node_c, graph):
     """
@@ -382,10 +451,6 @@ def parse_Div(onnx_node, weights, graph):
         if op_type == 'Unsqueeze' or op_type == 'Constant':
             bot_next_node = graph[bot_node['output'][0]]
             if bot_next_node['type'] == 'Div':
-                # normal_l2
-                # if weights_node == None or bias_node == None:
-                #     print('read data error')
-                #     exit(0)
                 ak_attr = onnx_node['ak_attr']
                 ak_attr['begin_norm_axis'] = top_node['onnx_attr']['axes'][0]
                 ak_attr['is_across_spatial'] = False
@@ -473,11 +538,11 @@ def parse_Div(onnx_node, weights, graph):
                 print('Error: ', in_node['type'])
                 exit(0)
         else:
-            print('Error: ', in_node['type'])
-            exit(0)
+            print('Error Pattern: ', in_node['type'])
+            # exit(0)
     else:
-        print('Error: ', in_node['type'])
-        exit(0)
+        print('Error Pattern: ', in_node['type'])
+        # exit(0)
 
 def rm_weight_node(onnx_node, weights, graph):
     """
@@ -509,7 +574,7 @@ def parse_Conv(onnx_node, weights, graph):
     if weights.has_key(wei_name):
         weights_node = weights[wei_name]
     else:
-        print ('can not find weights', wei_name)
+        print ('conv can not find weights', wei_name)
     #assert weights_node['type'] == 'Const'
     weights_data = weights_node
 
@@ -522,7 +587,7 @@ def parse_Conv(onnx_node, weights, graph):
         if weights.has_key(bias_name):
             bias_node = weights[bias_name]
         else:
-            print ('can not find bias', bias_name)
+            print ('conv can not find bias', bias_name)
         '''
         print 'bias dtype', bias_node['dtype']
         print 'bias shape ', bias_node['shape']
@@ -568,9 +633,10 @@ def parse_Conv(onnx_node, weights, graph):
         # print '**shape**', weights_data['shape'], type(chin), type(strides[0])
         kernel_shape = [1, onnx_attr['kernel_shape'][0]]
     #padding deal include padding
-    #if onnx_attr['auto_pad'] == 'SAME_LOWER' or onnx_attr['auto_pad'] =='SAME_UPPER':
-    #    padding = [0, 0]
-    #else:
+    if 'auto_pad' in onnx_attr.keys(): #onnx_attr['auto_pad'] == 'SAME_LOWER' or onnx_attr['auto_pad'] == 'SAME_UPPER':
+       #out_shape[2] = ceil((in_shape[2]- kernel_h) / stride_h)
+       #pad[0] = (out_shape[2] - 1) * stride_h + \ kernel_h - in_shape[2]
+       padding = [1, 1]
     padding = [padding_val[0], padding_val[1]]
 
     ak_attr = onnx_node['ak_attr']
@@ -583,6 +649,15 @@ def parse_Conv(onnx_node, weights, graph):
     if bias_node is not None:
         ak_attr['bias'] = bias_node
 
+    # pixelShuffle
+    if len(onnx_node['output']) == 5:
+        outs = onnx_node['output']
+        for i in range(0, len(outs)):
+            if graph[outs[i]]['type'] == 'Reshape':
+                fusion_PixelShuffle(onnx_node, graph[outs[i]], outs, weights, graph)
+                # refind_node_delete(onnx_node, graph)
+                break
+
     inputs = onnx_node['input']
     inputs.remove(wei_name)
     '''
@@ -592,9 +667,6 @@ def parse_Conv(onnx_node, weights, graph):
         if name == bias_name:
             inputs.remove(bias_name)
     '''
-    #print 'name: ', onnx_node['name']
-    #print 'ak_attr: ', ak_attr
-    #exit()
 
 def parse_Mul(onnx_node, weights, graph):
     """
@@ -621,7 +693,7 @@ def parse_Mul(onnx_node, weights, graph):
             onnx_node['input'].remove(input0)
             # onnx_node['input'].remove(wei_name)
         else:
-            print ('can not find weights', input0)
+            print ('MUL can not find weights', input0)
             exit(0)
     elif in1_type == 'Reshape' or in1_type == 'Unsqueeze' or in1_type == 'Squezze':
         weights_node = trans_const_node(graph[input1], weights)
@@ -632,10 +704,35 @@ def parse_Mul(onnx_node, weights, graph):
         else:
             print ('can not find weights', input1)
             exit(0)
+    elif in0_type == 'Constant' or in1_type == 'Constant':
+        weights_node = {}
+        '''
+        node = graph[onnx_node['input'][0]]
+        wei_name = node['input'][1]
+        a = weights[wei_name]['shape'][0]
+        '''
+        weights_node['shape'] = [64] #[a] 
+        data = np.ones(weights_node['shape'])
+        if 'broadcast' in onnx_node['onnx_attr']:
+            for i in range(0, weights_node['shape'][0]):
+                data[i] = onnx_node['onnx_attr']['broadcast'] # 1
+            weights_node['data'] = data
+            weights_node['dtype'] = "float32"
+            if in0_type == 'Constant':
+                # print('input0: ', input0)
+                graph.pop(input0)
+                onnx_node['input'].remove(input0)
+            else:
+                # print('input1: ', input1)
+                graph.pop(input1)
+                onnx_node['input'].remove(input1)
+        else:
+            print ('Mul parse Error')
+            exit(0)
     else:
-        print ('Mul parse Error')
-        return
-        exit(0)
+        print ('Mul parse Error Pattern: ', in0_type, in1_type)
+        # return
+        # exit(0)
     ak_attr = onnx_node['ak_attr']
     ak_attr['weights'] = weights_node
     bias_node = get_bias(onnx_node, weights, graph)
@@ -688,7 +785,7 @@ def parse_Gemm(onnx_node, weights, graph):
             graph.pop(wei_name)
             # onnx_node['input'].remove(wei_name)
         else:
-            print ('can not find weights', wei_name)
+            print ('Gemm can not find weights', wei_name)
             exit(0)
     #assert weights_node['type'] == 'Const'
     # weights_data = weights_node
@@ -702,7 +799,7 @@ def parse_Gemm(onnx_node, weights, graph):
                 bias_node = weights[bias_name]
             else:
                 bias_node = graph[bias_name]
-                print ('can not find bias', bias_name)
+                print ('Gemm can not find bias', bias_name)
             # print('Dense input: ', onnx_node['input'])
             onnx_node['input'].remove(bias_name)
             # print('Dense input: ', onnx_node['input'])
@@ -790,17 +887,18 @@ def parse_Reshape(onnx_node, weights, graph):
     """
     onnx_node['visited'] = True
     onnx_node['ak_type'] = 'Reshape'
-    shape_tensor = {}
     shape_name = onnx_node['input'][1]
-    shape_node = weights[shape_name]
+    shape_node = {} #weights[shape_name]
     if weights.has_key(shape_name):
         shape_node = weights[shape_name]
     else:
-        print ('can not find weights', shape_name)
-        return
+        shape_node['shape'] = [1,1,1,1]
+        shape_node['data'] = [1]
+        print ('Reshape can not find weights', shape_name)
+        exit(0)
 
     ak_attr = onnx_node['ak_attr']
-    array = np.array(shape_node['shape'])
+    # array = np.array(shape_node['shape'])
     data = shape_node['data']
 
     input_name = onnx_node['input'][0]
@@ -812,7 +910,18 @@ def parse_Reshape(onnx_node, weights, graph):
         ak_attr['end_axis'] = -1
         ak_attr['type'] = 'Flatten'
     else:
-        shape = data
+        if len(data) == 5:
+            if data[0] == 1:
+                shape = [data[1], data[2], data[3], data[4]]
+            else:
+                print ('Reshape does not support 5 dims ', data)
+                exit()
+        elif len(data) > 5:
+            print ('Reshape does not support >5 dims ', data)
+            exit()
+        else:
+            shape = data
+
         ak_attr['type'] = 'Reshape'
     # print ('***Reshape:*** ', shape)
     ak_attr['shape'] = shape
@@ -821,9 +930,51 @@ def parse_Reshape(onnx_node, weights, graph):
     onnx_node['input'].pop(1)
     # print onnx_node['input']
 
+def parse_Transpose(onnx_node, weights, graph):
+    """
+    parse Transpose to Permute
+    :param onnx_node:
+    :param weights:
+    :param graph:
+    :return:
+    """
+    onnx_node['visited'] = True
+    onnx_node['ak_type'] = 'Permute'
+
+    ak_attr = onnx_node['ak_attr']
+    data = onnx_node['onnx_attr']['perm']
+
+    shape = []
+
+    if len(data) == 5 and data[0] == 0:
+        shape = [data[1]-1, data[2]-1, data[3]-1, data[4]-1]
+    elif len(data) >= 5:
+        print ('Permute does not support 5 dims permute ', data)
+        exit(0)
+    else:
+        shape = data
+    # print('data: ', data)
+    # print('shape: ', shape)
+    ak_attr['shape'] = shape
+
 def parse_Add(onnx_node, weights, graph):
     """
     parse Add to Eltwise
+    :param onnx_node:
+    :param weights:
+    :param graph:
+    :return:
+    """
+    onnx_node['visited'] = True
+    assert len(onnx_node['input']) == 2
+
+    ak_attr = onnx_node['ak_attr']
+    onnx_node['ak_type'] = 'Eltwise'
+    ak_attr['type'] = 'Add'
+
+def parse_Sum(onnx_node, weights, graph):
+    """
+    parse Sum to Eltwise
     :param onnx_node:
     :param weights:
     :param graph:
@@ -874,10 +1025,22 @@ def parse_Pooling(onnx_node, weights, graph):
         kernel_shape = [1, 1]
     # padding deal inlcuding pading
     if 'auto_pad' in onnx_attr.keys(): #onnx_attr['auto_pad'] == 'SAME_LOWER' or onnx_attr['auto_pad'] == 'SAME_UPPER':
+       #out_shape[2] = ceil((in_shape[2]- kernel_h) / stride_h)
+       #pad[0] = (out_shape[2] - 1) * stride_h + \ kernel_h - in_shape[2]
        padding_val = [1, 1]
-    # padding = [1, 1, 1, 1] =[t, left, bottom, right]
+    # padding = [1, 1, 1, 1] =[top, left, bottom, right]
     # else:
     padding = [padding_val[0], padding_val[1]]
+    if len(padding_val) == 4:
+        a = padding_val[0] + padding_val[2]
+        b = padding_val[1] + padding_val[3]
+        pad_val0 = a / 2
+        pad_val1 = b / 2
+        # print 'padding:', pad_val0, pad_val1
+        padding = [pad_val0, pad_val1]
+        # inception v2
+        # padding = [padding_val[2], padding_val[3]]
+
 
     ak_attr['window'] = kernel_shape
     ak_attr['padding'] = padding
@@ -888,7 +1051,10 @@ def parse_Pooling(onnx_node, weights, graph):
         ak_attr['global_pooling'] = False
 
     if onnx_node['type'] == 'AveragePool':
-        ak_attr['type'] = 'AVG'
+        if 'count_include_pad'in onnx_attr.keys():
+            ak_attr['type'] = 'AVG'
+        else:
+            ak_attr['type'] = 'AVGEXC'
         ak_attr['global_pooling'] = False
         # padding deal
         # if onnx_attr['atuo_pad'] == 'SAME_LOWER' or onnx_attr['atuo_pad'] == 'SAME_UPPER':
@@ -1001,7 +1167,10 @@ def parse_Softmax(onnx_node, weights, graph):
     """
     onnx_node['visited'] = True
     onnx_node['ak_type'] = 'Softmax'
-    onnx_node['ak_attr']['axis'] = 3
+    if 'axis' in onnx_node['onnx_attr']:
+        onnx_node['ak_attr']['axis'] = onnx_node['onnx_attr']['axis']
+    else:
+        onnx_node['ak_attr']['axis'] = 1
 
 def parse_Lrn(onnx_node, weights, graph):
     """
@@ -1018,17 +1187,17 @@ def parse_Lrn(onnx_node, weights, graph):
     local_size = 0
     if 'size' in onnx_attr.keys():
         local_size = onnx_attr['size']
-    alpha = 0
+    alpha = 0.0001
     if 'alpha' in onnx_attr.keys():
         alpha = onnx_attr['alpha']
-    beta = 0
+    beta = 0.75
     if 'beta' in onnx_attr.keys():
         beta = onnx_attr['beta']
-    k = 0
+    k = 1
     if 'bias' in onnx_attr.keys():
         k = onnx_attr['bias']
     ak_attr['local_size'] = local_size
-    ak_attr['alpha'] = alpha
+    ak_attr['alpha'] = alpha / local_size
     ak_attr['beta'] = beta
     ak_attr['k'] = k
 
@@ -1054,28 +1223,32 @@ def parse_BatchNorm(onnx_node, weights, graph):
     if weights.has_key(alpha_name):
         alpha_node = weights[alpha_name]
     else:
-        print ('can not find alpha_name', alpha_name)
+        print ('BatchNorm can not find alpha_name', alpha_name)
+        exit(0)
         return
 
     beta_node = weights[beta_name]
     if weights.has_key(beta_name):
         beta_node = weights[beta_name]
     else:
-        print ('can not find beta_name', beta_name)
+        print ('BatchNorm can not find beta_name', beta_name)
+        exit(0)
         return
 
     mean_node = weights[mean_name]
     if weights.has_key(mean_name):
         mean_node = weights[mean_name]
     else:
-        print ('can not find mean_name', mean_name)
+        print ('BatchNorm can not find mean_name', mean_name)
+        exit(0)
         return
 
     var_node = weights[var_name]
     if weights.has_key(var_name):
         var_node = weights[var_name]
     else:
-        print ('can not find var_name', var_name)
+        print ('BatchNorm can not find var_name', var_name)
+        exit(0)
         return
 
     onnx_attr = onnx_node['onnx_attr']
@@ -1118,3 +1291,21 @@ def parse_BatchNorm(onnx_node, weights, graph):
     ak_attr['bias'] = bias_tensor
 
     MedNodeUtil.retain_input(onnx_node, [onnx_node['input'][0]])
+
+def parse_Slice(onnx_node, weights, graph):
+    """
+    parse Slice [axes, starts, ends]
+    axes[0]==>[starts[0],ends[0]]
+    axes[1]==>[starts[1],ends[1]]
+    :param onnx_node:
+    :param weights:
+    :param graph:
+    :return:
+    """
+    onnx_node['visited'] = True
+    onnx_node['ak_type'] = 'Slice'
+    ak_attr = onnx_node['ak_attr']
+    onnx_attr = onnx_node['onnx_attr']
+    ak_attr['axis'] = onnx_attr['axes']
+    ak_attr['slice_point'] = onnx_attr['starts']
+    ak_attr['slice_dim'] = onnx_attr['ends']

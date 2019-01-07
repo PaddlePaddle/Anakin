@@ -26,6 +26,7 @@
 #include "node.pb.h"
 #include "operator.pb.h"
 #include "tensor.pb.h"
+#include "net.pb.h"
 
 #ifdef USE_NANOPB
 #include "nanopb/adapter.h"
@@ -57,6 +58,12 @@ public:
 
     // get que node name in order
     std::vector<std::string>& get_node_name_in_order() { return _que_node_name_in_order; }
+
+    graph::NodePtr pop_node_ptr() {
+        graph::NodePtr node_p = _que.front();
+        _que.pop();
+        return node_p;
+    }
 
 private:
     std::queue<graph::NodePtr> _que;

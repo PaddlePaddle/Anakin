@@ -471,3 +471,7 @@ OpsRegister.Register("RoiAlign").set_attr(spatial_scale=float(),
                                           pooled_height=int(),
                                           pooled_width=int(),
                                           sampling_ratio=int())
+
+##################################### pytorch edsr model PixelShuffle op define ################################
+# PixelShuffle in_shape = [n, r * r * c, h, w] scale_factor = r ==> out_shape = [n, c, r * h, r * w]
+OpsRegister.Register("PixelShuffle").set_attr(scale_factor=int())

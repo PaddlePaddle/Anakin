@@ -60,12 +60,6 @@ template class ScaleHelper<NV, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Scale, ScaleHelper, NV, Precision::FP32);
 #endif
 
-#ifdef AMD_GPU
-INSTANCE_SCALE(AMD, Precision::FP32);
-template class ScaleHelper<AMD, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(Scale, ScaleHelper, AMD, Precision::FP32);
-#endif
-
 #if defined USE_X86_PLACE || defined BUILD_LITE
 INSTANCE_SCALE(X86, Precision::FP32);
 template class ScaleHelper<X86, Precision::FP32>;
@@ -89,9 +83,6 @@ ANAKIN_REGISTER_OP(Scale)
 #endif
 #if defined USE_X86_PLACE || defined BUILD_LITE
 .__alias__<X86, Precision::FP32>("Scale")
-#endif
-#ifdef AMD_GPU
-.__alias__<AMD, Precision::FP32>("Scale")
 #endif
 .num_in(1)
 .num_out(1)

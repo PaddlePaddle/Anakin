@@ -171,6 +171,12 @@ SaberStatus SaberDirectConv<AK_INT8>::dispatch(
     if (param.bias()->size() > 0) {
         bias_data = (const float*)param.bias()->data();
     }
+    int in_channel_4 = inputs[0]->channel() / 4;
+
+    if ((inputs[0]->channel() & 3) != 0) {
+        LOG(FATAL) << "input channel is not a multipler of 4 in_channel = "
+                   << inputs[0]->channel();
+    }
 
     const void* in_data = nullptr;
     void* out_data = nullptr;
@@ -186,7 +192,7 @@ SaberStatus SaberDirectConv<AK_INT8>::dispatch(
                 weight_ptr,
                 bias_data,
                 inputs[0]->num(),
-                inputs[0]->channel() / 4,
+                in_channel_4,
                 inputs[0]->height(),
                 inputs[0]->width(),
                 outputs[0]->channel(),
@@ -211,7 +217,7 @@ SaberStatus SaberDirectConv<AK_INT8>::dispatch(
                 weight_ptr,
                 bias_data,
                 inputs[0]->num(),
-                inputs[0]->channel() / 4,
+                in_channel_4,
                 inputs[0]->height(),
                 inputs[0]->width(),
                 outputs[0]->channel(),
@@ -236,7 +242,7 @@ SaberStatus SaberDirectConv<AK_INT8>::dispatch(
                 weight_ptr,
                 bias_data,
                 inputs[0]->num(),
-                inputs[0]->channel() / 4,
+                in_channel_4,
                 inputs[0]->height(),
                 inputs[0]->width(),
                 outputs[0]->channel(),
