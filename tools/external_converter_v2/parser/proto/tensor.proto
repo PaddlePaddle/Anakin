@@ -7,26 +7,27 @@ message TensorShape {
         int64 size = 2;
     }
     Dim dim = 3;
+    LayoutProto layout = 4;
 };
 
 enum LayoutProto {
-    Invalid = 0;
-    W = 4;
-    HW = 11;
-    WH = 12;
-    NC = 13;
-    NH = 14;
-    NW = 15;
-    NHW = 21;
-    NCHW = 31;
-    NHWC = 32;
-    NCHW_C4 = 101;
-    NCHW_C8 = 102;
-    NCHW_C16 = 103;
-    NCHW_C8R = 111;
-    NCHW_C16R = 112;
-    OIHW16I16O = 201;
-    GOIHW16I16O = 202;
+    LAYOUT_INVALID = 0;
+    LAYOUT_W = 1;
+    LAYOUT_HW = 2;
+    LAYOUT_WH = 3;
+    LAYOUT_NC = 4;
+    LAYOUT_NH = 5;
+    LAYOUT_NW = 6;
+    LAYOUT_NHW = 7;
+    LAYOUT_NCHW = 8;
+    LAYOUT_NHWC = 9;
+    LAYOUT_NCHW_C4 = 10;
+    LAYOUT_NCHW_C8 = 11;
+    LAYOUT_NCHW_C16 = 12;
+    LAYOUT_OIHW16I16O = 13;
+    LAYOUT_GOIHW16I16O = 14;
+    LAYOUT_NCHW_C8R = 15;
+    LAYOUT_NCHW_C16R = 16;
 };
 
 
@@ -82,6 +83,6 @@ message TensorProto {
 
     // scale for int8
     CacheDate scale = 11;
-
-    LayoutProto layout = 12;
 };
+
+
