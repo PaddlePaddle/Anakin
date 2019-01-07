@@ -19,9 +19,9 @@ using Target_H = X86;
 
 //#define USE_DIEPSE
 
-std::string model_path = "/home/zhangshuai20/workspace/baidu/sys-hic-gpu/anakin-models/adu/anakin_models/yolo_camera_detector/yolo_camera_detector.anakin.bin";
+//std::string model_path = "/home/zhangshuai20/workspace/baidu/sys-hic-gpu/anakin-models/adu/anakin_models/yolo_camera_detector/yolo_camera_detector.anakin.bin";
 //std::string model_path = "/home/zhangshuai20/workspace/baidu/sys-hic-gpu/anakin-models/public/anakin_models/Resnet50/Resnet50.anakin.bin";
-
+std::string model_path = "/home/zhangshuai20/workspace/baidu/sys-hic-gpu/anakin-models/public/anakin_models/vgg16/vgg16.anakin.bin";
 std::string model_saved_path = model_path + ".saved";
 
 #ifdef USE_CUDA
@@ -41,7 +41,7 @@ TEST(NetTest, net_execute_base_test) {
 
     // register all tensor inside graph
     // graph->RegistAllOut();
-
+    graph->load_calibrator_config("net_pt_config", "calibrate_file.txt");
     // register edge
     // graph->RegistOut("conv2_2/expand/scale", "relu2_2/expand");
 	// graph->RegistOut("relu#3(conv2d_0)","pool2d#4(pool2d_0)");
@@ -113,23 +113,24 @@ TEST(NetTest, net_execute_base_test) {
     d_tensor_in_2_p->copy_from(h_tensor_in_2);
 #endif
 
-    int epoch = 1;
+    int epoch = 100;
     // do inference
     Context<NV> ctx(0, 0, 0);
     saber::SaberTimer<NV> my_time;
     LOG(WARNING) << "EXECUTER !!!!!!!! ";
 	// warm up
-	/*for(int i=0; i<10; i++) {
+	for(int i = 0; i<10; i++) {
 		net_executer.prediction();
-	}*/
-
-    my_time.start(ctx);
-
+	}
+	cudaDeviceSynchronize();
 
     //auto start = std::chrono::system_clock::now();
     for (int i=0; i<epoch; i++) {
+        my_time.start(ctx);
 		//DLOG(ERROR) << " epoch(" << i << "/" << epoch << ") ";
         net_executer.prediction();
+        cudaDeviceSynchronize();
+        my_time.end(ctx);
     }
    /* // running part of model
     net_executer.execute_stop_at_node("relu2_2/expand");
@@ -158,7 +159,7 @@ TEST(NetTest, net_execute_base_test) {
     //LOG(WARNING) << "avg time : " << time/epoch <<" ms";
 
     my_time.end(ctx);
-    LOG(INFO)<<"aveage time "<<my_time.get_average_ms()/epoch << " ms";
+    LOG(INFO)<<"aveage time "<<my_time.get_average_ms() << " ms";
 
 	//} // inner scope over
 
@@ -194,19 +195,19 @@ TEST(NetTest, net_execute_base_test) {
 	//test_print(tensor_out_0_p);
 
     // mobilenet-v2
-	auto tensor_out_0_p = net_executer.get_out("dim_pred_out");
-
-
-    // get out result
-    //LOG(WARNING)<< "result avg: " << tensor_average(tensor_out_0_p);
-	test_print(tensor_out_0_p);
-
-    // save the optimized model to disk.
-    std::string save_model_path = model_path + std::string(".saved");
-    status = graph->save(save_model_path);
-    if (!status ) { 
-        LOG(FATAL) << " [ERROR] " << status.info(); 
-    }
+//	auto tensor_out_0_p = net_executer.get_out("dim_pred_out");
+//
+//
+//    // get out result
+//    //LOG(WARNING)<< "result avg: " << tensor_average(tensor_out_0_p);
+//	test_print(tensor_out_0_p);
+//
+//    // save the optimized model to disk.
+//    std::string save_model_path = model_path + std::string(".saved");
+//    status = graph->save(save_model_path);
+//    if (!status ) {
+//        LOG(FATAL) << " [ERROR] " << status.info();
+//    }
     if (!graph){
         delete graph;
     }
@@ -214,7 +215,7 @@ TEST(NetTest, net_execute_base_test) {
 #endif 
 #endif
 
-#ifdef USE_CUDA
+#ifdef USE_CUDA2
 TEST(NetTest, net_execute_reconstruction_test) {
     Graph<NV, Precision::FP32>* graph = new Graph<NV, Precision::FP32>();
     LOG(WARNING) << "load anakin model file from optimized model " << model_saved_path << " ...";

@@ -23,15 +23,31 @@
 namespace anakin {
 namespace saber {
 
+template <typename TargetType,
+        typename inDtype,
+        typename outDtype = inDtype>
+class MatrixFunc {
+public:
+    virtual SaberStatus init(
+            const bool trans_A, const bool trans_B,
+            const int m, const int n, const int k,
+            Context<TargetType> ctx) = 0;
+
+    virtual SaberStatus dispatch(
+            const outDtype alpha, const outDtype beta,
+            const inDtype* a, const inDtype* b,
+            outDtype* c) = 0;
+};
+
 template<typename TargetType,
         ImplEnum impl,
         typename inDtype,
         typename outDtype = inDtype>
-class Gemm {
+class Gemm : public MatrixFunc<TargetType, inDtype, outDtype> {
     // Row major gemm
 public:
     Gemm() = default;
-    ~Gemm() {}
+    ~Gemm() = default;
 
     SaberStatus init(const bool trans_A, const bool trans_B,
                      const int m, const int n, const int k,
@@ -57,7 +73,7 @@ class Gemv {
     // Row major gemm
 public:
     Gemv() = default;
-    ~Gemv() {}
+    ~Gemv() = default;
 
     SaberStatus init(const bool trans_A, const int m, const int n,
                      const int incx, const int incy,

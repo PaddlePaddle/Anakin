@@ -174,16 +174,16 @@ bool CodeGenBase<Ttype, Ptype>::init_memory_info() {
 		edge_info.in_node = edge.first();
 		edge_info.out_node = edge.second();
 		edge_info.scale = edge.scale();
-//		auto in_node_ptr = _graph[edge_info.in_node];
-//		auto out_node_ptr = _graph[edge_info.out_node];
-//		auto in_node_dtype = in_node_ptr->bit_type();
-//		auto out_node_dtype = out_node_ptr->bit_type();
-//		if (in_node_dtype == AK_INT8 && out_node_dtype == AK_INT8) {
-//            edge_info.dtype = AK_INT8;
-//        } else {
-//		    edge_info.dtype = AK_FLOAT;
-//		}
-		edge_info.dtype = edge.data()->get_dtype();
+		auto in_node_ptr = _graph[edge_info.in_node];
+		auto out_node_ptr = _graph[edge_info.out_node];
+		auto in_node_dtype = in_node_ptr->bit_type();
+		auto out_node_dtype = out_node_ptr->bit_type();
+		if (in_node_dtype == AK_INT8 && out_node_dtype == AK_INT8) {
+            edge_info.dtype = AK_INT8;
+        } else {
+		    edge_info.dtype = AK_FLOAT;
+		}
+		//edge_info.dtype = edge.data()->get_dtype();
 		_tensor_map[edge_info.name] = edge_info;
         return 0;
     };

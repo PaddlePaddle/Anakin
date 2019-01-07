@@ -26,7 +26,6 @@
 #include "node.pb.h"
 #include "operator.pb.h"
 #include "tensor.pb.h"
-#include "net.pb.h"
 
 #ifdef USE_NANOPB
 #include "nanopb/adapter.h"

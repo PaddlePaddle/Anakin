@@ -43,7 +43,7 @@ gen_code() {
 	cali_path=$9
 
 	executor="$( cd "$(dirname "$0")"/src ; pwd -P)"/anakin_lite_executer
-	$executor $mode_name $mode_path $out_path $aot_mode $debug_mode $batch_size $prec_path $cali_path $lite_mode
+	$executor $mode_name $mode_path $out_path $aot_mode $debug_mode $batch_size $lite_mode $prec_path $cali_path
 }
 
 # get args

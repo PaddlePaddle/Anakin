@@ -5,12 +5,12 @@
    You may obtain a copy of the License at
 
        http://www.apache.org/licenses/LICENSE-2.0
-   
+
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License. 
+   limitations under the License.
 */
 
 #ifndef ANAKIN_SABER_FUNCS_POOLING_H
@@ -83,12 +83,20 @@ public:
             param.window_h = in_height;
             param.window_w = in_width;
         } else {
+            // printf("param.cmp_out_shape_floor_as_conv: %d \n", param.cmp_out_shape_floor_as_conv);
             if (param.cmp_out_shape_floor_as_conv) {
                 out_height = static_cast<int>((static_cast<float>(
                              in_height + 2 * pad_h - window_h) / stride_h)) + 1;
 
                 out_width = static_cast<int>((static_cast<float>(
                              in_width + 2 * pad_w - window_w) / stride_w)) + 1;
+                //onnx_pooling (pad_left + pad_right, pad_top + pad_bot)
+                if (out_height <= 0){
+                    out_height = 1;
+                }
+                if (out_width <= 0){
+                    out_width = 1;
+                }
             } else {
                 out_height = static_cast<int>(ceilf(static_cast<float>(
                              in_height + 2 * pad_h - window_h) / stride_h)) + 1;
@@ -118,16 +126,16 @@ public:
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {
-        switch (implenum) { 
-            case VENDER_IMPL: 
+        switch (implenum) {
+            case VENDER_IMPL:
                 this->_impl.push_back(new VenderPooling <TargetType, OpDtype>);
-                return SaberSuccess; 
-            case SABER_IMPL: 
-                this->_impl.push_back(new SaberPooling <TargetType, OpDtype>); 
-                return SaberSuccess; 
-            default: 
+                return SaberSuccess;
+            case SABER_IMPL:
+                this->_impl.push_back(new SaberPooling <TargetType, OpDtype>);
+                return SaberSuccess;
+            default:
                 return SaberUnImplError;
-        }        
+        }
     }
 private:
 

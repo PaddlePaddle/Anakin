@@ -434,6 +434,9 @@ void GenCPP<Ttype, Ptype>::gen_head_api_impl() {
 		if(OPERATION_MAP.count(node_info.op_name) > 0) {
 			LOG(INFO) << "node name: " << node_name;
 			LOG(INFO) << "Target op type : " << this->_graph_node_map[node_name].op_name << " parsing ...";
+			if (this->_graph[node_name]->bit_type() == AK_INVALID){
+			    this->_graph[node_name]->set_bit_type(AK_FLOAT);
+			}
 			auto str = OPERATION_MAP[node_info.op_name].parse(attr_info, _code_name,
                                                               OPERATION_MAP[node_info.op_name].OpClassName,
 															  node_name,
@@ -544,10 +547,17 @@ void GenCPP<Ttype, Ptype>::gen_opt_model() {
 		parser.parse_from_file("", _calibrator_path);
 		flag_calibrator = true;
 	}
-
 	auto get_op_precision = [&](NodeInfo& node_info)->std::string{
 		if (flag_precision){
-			return parser.get_precision(node_info.name);
+		    std::string op_precision = parser.get_precision(node_info.name);
+		    if (op_precision == "fp32"){
+		        node_info.dtype = AK_FLOAT;
+		    } else if (op_precision == "int8"){
+		        node_info.dtype = AK_INT8;
+		    } else{
+		        node_info.dtype = AK_FLOAT;
+		    }
+			return op_precision;
 		} else {
 			auto dtype = node_info.dtype;
 			if (dtype == AK_FLOAT){

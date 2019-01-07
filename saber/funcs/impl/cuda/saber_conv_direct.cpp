@@ -184,7 +184,10 @@ SaberStatus SaberDirectConv<AK_INT8>::dispatch(
     in_data = (const void*)inputs[0]->data();
     out_data = (void*)outputs[0]->mutable_data();
     cudaStream_t stream = _ctx->get_compute_stream();
-
+    float alpha = 1.f;
+    if (param.weight()->get_scale().size() == 1) {
+        alpha = inputs[0]->get_scale()[0] * param.weight()->get_scale()[0];
+    }
     if (param.bias()->size() > 0 && (!param.activation_param.has_active || _use_saber_act)) {
         direct_conv_Kdivis4_s8_to_f32<true, false>(
                 in_data,
@@ -207,10 +210,11 @@ SaberStatus SaberDirectConv<AK_INT8>::dispatch(
                 param.dilation_h,
                 param.dilation_w,
                 param.group,
-                param.alpha,
+                alpha,
                 param.beta,
                 this->_ctx->get_compute_stream());
-    } else if (param.bias()->valid_size() > 0 && !_use_saber_act) {
+    } else if (param.bias()->valid_size() > 0 &&
+    (param.activation_param.has_active && !_use_saber_act)) {
         direct_conv_Kdivis4_s8_to_f32<true, true>(
                 in_data,
                 out_data,
@@ -232,7 +236,7 @@ SaberStatus SaberDirectConv<AK_INT8>::dispatch(
                 param.dilation_h,
                 param.dilation_w,
                 param.group,
-                param.alpha,
+                alpha,
                 param.beta,
                 this->_ctx->get_compute_stream());
     } else {
@@ -257,11 +261,10 @@ SaberStatus SaberDirectConv<AK_INT8>::dispatch(
                 param.dilation_h,
                 param.dilation_w,
                 param.group,
-                param.alpha,
+                alpha,
                 param.beta,
                 this->_ctx->get_compute_stream());
     }
-
 
     return SaberSuccess;
 }

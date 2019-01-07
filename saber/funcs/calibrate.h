@@ -58,35 +58,49 @@ void fix2float(float * dst,
 
 template <typename TargetType>
 SaberStatus get_tensor_scale(std::vector<float> &vector_scale,
-        const Tensor<TargetType> &tensor, const int axis) {
+        const Tensor<TargetType> &tensor, const int axis, bool scale_per_k) {
 
     int out_dims = tensor.valid_shape()[axis];
-    vector_scale.resize(out_dims);
-    long long inner_dim = tensor.count_valid(axis + 1, tensor.dims());
+    if (scale_per_k) {
+        vector_scale.resize(out_dims);
+    } else {
+        vector_scale.resize(1);
+    }
 
     const float* in_data = (const float*)(tensor.data());
+    if (scale_per_k) {
+        long long inner_dim = tensor.count_valid(axis + 1, tensor.dims());
+        for (int c = 0; c < out_dims; ++c) {
+            float max_val = -1.f;
 
-    for (int c = 0; c < out_dims; ++c) {
+            for (int i = 0; i < inner_dim; ++i) {
+                float read_data = fabs(in_data[i]);
+                max_val = (read_data > max_val) ? read_data : max_val;
+            }
+
+            vector_scale[c] = max_val / 127.f;
+            in_data += inner_dim;
+        }
+    } else {
+        long long count = tensor.valid_size();
         float max_val = -1.f;
-
-        for (int i = 0; i < inner_dim; ++i) {
+        for (int i = 0; i < count; ++i) {
             float read_data = fabs(in_data[i]);
             max_val = (read_data > max_val) ? read_data : max_val;
         }
-
-        vector_scale[c] = max_val / 127.f;
-        in_data += inner_dim;
+        vector_scale[0] = max_val / 127.f;
     }
 }
 
 template<typename TargetType, typename TargetType_H>
 SaberStatus convert_weights_to_nchw_c4_host(Tensor<TargetType_H>& out_tensor,
-        const Tensor<TargetType_H>& in_tensor, const Context<TargetType> &ctx) {
+        const Tensor<TargetType_H>& in_tensor, const Context<TargetType> &ctx,
+        bool scale_per_k = false) {
 
     int input_channel = in_tensor.channel();
     int output_channel = out_tensor.num();
     std::vector<float> vector_weight_scale;
-    get_tensor_scale(vector_weight_scale, in_tensor, 0);
+    get_tensor_scale(vector_weight_scale, in_tensor, 0, scale_per_k);
 
     int o_num = out_tensor.num();
     int o_channel = out_tensor.channel() / 4;
@@ -113,15 +127,15 @@ SaberStatus convert_weights_to_nchw_c4_host(Tensor<TargetType_H>& out_tensor,
                          + ((idx / (out_c_stride)) % o_channel) * out_c_stride
                          + ((idx / (out_h_stride)) % o_height) * out_h_stride
                          + (idx % o_width);
-
+        float scale = scale_per_k ? vector_weight_scale[n] : vector_weight_scale[0];
         out_weight_data[out_offset * 4 + 0] = (char)(round(
-                in_weight_data[in_offset + 0 * in_stride[1]] / vector_weight_scale[n]));
+                in_weight_data[in_offset + 0 * in_stride[1]] / scale));
         out_weight_data[out_offset * 4 + 1] = (char)(round(
-                in_weight_data[in_offset + 1 * in_stride[1]] / vector_weight_scale[n]));
+                in_weight_data[in_offset + 1 * in_stride[1]] / scale));
         out_weight_data[out_offset * 4 + 2] = (char)(round(
-                in_weight_data[in_offset + 2 * in_stride[1]] / vector_weight_scale[n]));
+                in_weight_data[in_offset + 2 * in_stride[1]] / scale));
         out_weight_data[out_offset * 4 + 3] = (char)(round(
-                in_weight_data[in_offset + 3 * in_stride[1]] / vector_weight_scale[n]));
+                in_weight_data[in_offset + 3 * in_stride[1]] / scale));
     }
     out_tensor.set_scale(vector_weight_scale);
 //    for (auto i : vector_weight_scale) {
@@ -132,7 +146,8 @@ SaberStatus convert_weights_to_nchw_c4_host(Tensor<TargetType_H>& out_tensor,
 
 template<typename TargetType, typename TargetType_H>
 SaberStatus convert_weights_to_direct(Tensor<TargetType_H>& out_tensor,
-        const Tensor<TargetType_H>& in_tensor, const Context<TargetType> &ctx) {
+        const Tensor<TargetType_H>& in_tensor, const Context<TargetType> &ctx,
+        bool scale_per_k = false) {
 
     Tensor<TargetType_H> weight_temp;
     weight_temp.re_alloc(in_tensor.valid_shape(), AK_INT8);
@@ -141,7 +156,7 @@ SaberStatus convert_weights_to_direct(Tensor<TargetType_H>& out_tensor,
     int input_channel = in_tensor.channel();
     int output_channel = in_tensor.num();
     std::vector<float> vector_weight_scale;
-    get_tensor_scale(vector_weight_scale, in_tensor, 0);
+    get_tensor_scale(vector_weight_scale, in_tensor, 0, scale_per_k);
 
     int num = in_tensor.num();
     int channel = in_tensor.channel() / 4;
@@ -157,8 +172,9 @@ SaberStatus convert_weights_to_direct(Tensor<TargetType_H>& out_tensor,
     // data scale
     for (int idx = 0; idx < num * channel * height * width * 4; ++idx) {
         int n = (idx / (out_n_stride)) % num;
+        float scale = scale_per_k ? vector_weight_scale[n] : vector_weight_scale[0];
         out_weight_data[idx] = (char)(round(
-                in_weight_data[idx] / vector_weight_scale[n]));
+                in_weight_data[idx] / scale));
     }
     // finished scale
     // layout transform
@@ -195,18 +211,18 @@ template<typename TargetType, typename TargetType_H>
 SaberStatus convert_bias_host(Tensor<TargetType_H>& out_tensor,
         const Tensor<TargetType_H>& in_tensor,
         float in_scale, std::vector<float> vector_weight_scale,
-        Context<TargetType> ctx) {
+        Context<TargetType> ctx, bool scale_per_k = false) {
     unsigned long weight_size = vector_weight_scale.size();
     unsigned long bias_size = in_tensor.size();
     CHECK_GT(in_scale, 0);
     CHECK_GT(weight_size, 0);
-    CHECK_EQ(bias_size, weight_size);
 
     const float* in_data = (const float*)in_tensor.data();
     float* out_data = (float*)out_tensor.mutable_data();
 
     for (int i = 0; i < bias_size; ++i) {
-        out_data[i] = in_data[i] / in_scale / vector_weight_scale[i];
+        float weights_scale = scale_per_k ? vector_weight_scale[i] : vector_weight_scale[0];
+        out_data[i] = in_data[i] / in_scale / weights_scale;
     }
 
     return SaberSuccess;

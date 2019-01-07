@@ -72,7 +72,10 @@ SaberStatus SaberGemmLikeConv<AK_INT8>::dispatch(
     if (param.bias()->size() > 0) {
         bias_data = (const void*)param.bias()->data();
     }
-
+    float alpha = 1.f;
+    if (param.weight()->get_scale().size() == 1) {
+        alpha = inputs[0]->get_scale()[0] * param.weight()->get_scale()[0];
+    }
     if (param.activation_param.has_active) {
         if (param.activation_param.active == Active_relu) {
             conv_igemm_k1s1p0<true>(num, in_stride, out_stride,
@@ -80,7 +83,7 @@ SaberStatus SaberGemmLikeConv<AK_INT8>::dispatch(
                                    (const void*)inputs[0]->data(),
                                    (const void*)param.weight()->data(),
                                    chout, chin, hin, win, bias_data,
-                                   this->_ctx->get_compute_stream(), 1.f, 0.f);
+                                   this->_ctx->get_compute_stream(), alpha, 0.f);
             CUDA_CHECK(cudaGetLastError());
             return SaberSuccess;
         }
@@ -91,7 +94,7 @@ SaberStatus SaberGemmLikeConv<AK_INT8>::dispatch(
                             (const void*)inputs[0]->data(),
                             (const void*)param.weight()->data(),
                             chout, chin, hin, win, bias_data,
-                            this->_ctx->get_compute_stream(), 1.f, 0.f);
+                            this->_ctx->get_compute_stream(), alpha, 0.f);
 
     if (this->_saber_act != nullptr) {
         this->_saber_act->dispatch(outputs, outputs, param.activation_param);

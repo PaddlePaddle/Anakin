@@ -219,7 +219,11 @@ SaberStatus SaberConv2D<NV, AK_INT8>::init(
 //        LOG(INFO) << " using gemm to run 1x1 conv!!!!";
         _impl = new SaberGemmLikeConv<AK_INT8>;
         _use_vender = false;
-    } else if (arch_check && (outputs[0]->channel() % 4) == 0) {
+    } else if (arch_check
+           && (outputs[0]->channel() % 4) == 0
+           && (inputs[0]->height() <= 128)
+           && (inputs[0]->width() <= 128)) {
+
 //        LOG(INFO) << " direct alg seleted!!!!";
         _impl = new SaberDirectConv<AK_INT8>;
         _use_vender = false;
@@ -260,10 +264,14 @@ SaberStatus SaberConv2D<NV, AK_INT8>::dispatch(
         if (outputs[0]->get_layout() != Layout_NCHW_C4) {
             LOG(FATAL) << "output layout must be NCHW_C4 for nv gpu";
         }
+        Shape temp = outputs[0]->valid_shape();
+        temp.set_layout(Layout_NCHW);
+        int8_output.re_alloc(temp, AK_FLOAT);
         out_data_tensor[0] = &int8_output;
     } else {
         out_data_tensor[0] = outputs[0];
     }
+
     if (_impl != nullptr) {
         _impl->dispatch(in_data_tensor, out_data_tensor, param);
     }
@@ -324,16 +332,16 @@ SaberStatus SaberConv2D<NV, AK_INT8>::trans_weights(
         target_weights.copy_from(weights_temp);
         target_weights.set_scale(weights_temp.get_scale());
 
-        if (target_bias.valid_size() > 0) {
-            Tensor<NVHX86> bias_fp32_host;
-            Tensor<NVHX86> bias_int32_host;
-            bias_fp32_host.re_alloc(target_bias.valid_shape(), AK_FLOAT);
-            bias_int32_host.re_alloc(target_bias.valid_shape(), AK_FLOAT);
-            bias_fp32_host.copy_from(target_bias);
-            convert_bias_host(bias_int32_host, bias_fp32_host, _in_scale,
-                              target_weights.get_scale(), *_ctx);
-            target_bias.copy_from(bias_int32_host);
-        }
+//        if (target_bias.valid_size() > 0) {
+//            Tensor<NVHX86> bias_fp32_host;
+//            Tensor<NVHX86> bias_int32_host;
+//            bias_fp32_host.re_alloc(target_bias.valid_shape(), AK_FLOAT);
+//            bias_int32_host.re_alloc(target_bias.valid_shape(), AK_FLOAT);
+//            bias_fp32_host.copy_from(target_bias);
+//            convert_bias_host(bias_int32_host, bias_fp32_host, _in_scale,
+//                              target_weights.get_scale(), *_ctx);
+//            target_bias.copy_from(bias_int32_host);
+//        }
         return SaberSuccess;
 
     } else if (arch_check
@@ -347,7 +355,7 @@ SaberStatus SaberConv2D<NV, AK_INT8>::trans_weights(
         weights_int8_host.re_alloc(target_weights.valid_shape(), AK_INT8);
         weights_int8_host.set_layout(Layout_NCHW_C4);
         weights_fp32_host.copy_from(target_weights);
-        convert_weights_to_nchw_c4_host(weights_int8_host, weights_fp32_host, *_ctx);
+        convert_weights_to_nchw_c4_host(weights_int8_host, weights_fp32_host, *_ctx, _use_vender);
         // Open this will be an inplace trans
 
         target_weights.set_dtype(AK_INT8);
@@ -355,14 +363,14 @@ SaberStatus SaberConv2D<NV, AK_INT8>::trans_weights(
         target_weights.set_layout(Layout_NCHW_C4);
         target_weights.copy_from(weights_int8_host);
         target_weights.set_scale(weights_int8_host.get_scale());
-        if (target_bias.valid_size() > 0) {
+        if (_use_vender && target_bias.valid_size() > 0) {
             Tensor<NVHX86> bias_fp32_host;
             Tensor<NVHX86> bias_int32_host;
             bias_fp32_host.re_alloc(target_bias.valid_shape(), AK_FLOAT);
             bias_int32_host.re_alloc(target_bias.valid_shape(), AK_FLOAT);
             bias_fp32_host.copy_from(target_bias);
             convert_bias_host(bias_int32_host, bias_fp32_host, _in_scale,
-                              target_weights.get_scale(), *_ctx);
+                              target_weights.get_scale(), *_ctx, true);
             target_bias.copy_from(bias_int32_host);
         }
     } else {

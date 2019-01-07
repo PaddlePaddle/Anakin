@@ -80,8 +80,12 @@ SaberStatus Gemm<NV, VENDER_IMPL, char, float>::dispatch(
     CHECK(ptr_b != nullptr);
     CHECK(ptr_c != nullptr);
 
+//    CUBLAS_CHECK(cublasGemmEx(_handle, cu_trans_b, cu_trans_a,
+//            _n, _m, _k, &alpha, ptr_b, CUDA_R_8I, _ldb, ptr_a,
+//            CUDA_R_8I, _lda, &beta, ptr_c, CUDA_R_32F, _ldc, CUDA_R_32F, CUBLAS_GEMM_DEFAULT));
+
     CUBLAS_CHECK(cublasSgemmEx(_handle, cu_trans_b, cu_trans_a,
-                             _n, _m, _k, &alpha, ptr_b, CUDA_R_8I, _ldb, ptr_a,
+                               _n, _m, _k, &alpha, ptr_b, CUDA_R_8I, _ldb, ptr_a,
                                CUDA_R_8I, _lda, &beta, ptr_c, CUDA_R_32F, _ldc));
     return SaberSuccess;
 }

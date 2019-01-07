@@ -29,7 +29,7 @@ int test_conv_results(int group,
                       int input_num, int in_channels, int height, int width,
                       int out_channels, int kernel_h, int kernel_w,
                       int stride_h, int stride_w, int dilation_h, int dilation_w,
-                      int pad_h, int pad_w, bool bias_term,
+                      int pad_h, int pad_w, bool bias_term, bool with_relu,
                       SaberImplStrategy strategy, ImplEnum imp) {
 
     LOG(INFO)<< " conv param: "
@@ -47,7 +47,8 @@ int test_conv_results(int group,
              << " kernel_h = " << kernel_h
              << " kernel_w = " << kernel_w
              << " out_channels = " << out_channels
-             << " bias_term = " << (bias_term ? "true" : "false");
+             << " bias_term = " << (bias_term ? "true" : "false")
+             << " with_relu = " << (with_relu ? "true" : "false");
 
     Shape input_s({input_num, in_channels, height, width}, Layout_NCHW);
     Shape weights_s({out_channels, in_channels, kernel_h, kernel_w}, Layout_NCHW);
@@ -84,11 +85,23 @@ int test_conv_results(int group,
     Tensor<TargetType_H> check_host;
 
     Context<TargetType> ctx1(0, 1, 1);
-//    ActivationParam<TargetType> act_param(Active_relu);
+
+    int generate_arch = Env<NV>::cur_env()[ctx1.get_device_id()]._info._generate_arch;
+    // only support 61 arch for now.
+    bool arch_check = (generate_arch == 61);
+    if (!arch_check) {
+        LOG(INFO) << "device not support int8 op!!";
+        return 0;
+    }
+
+    ActivationParam<TargetType> act_param(Active_relu);
     ConvParam<TargetType> param(group, pad_h, pad_w,
                                 stride_h, stride_w,
                                 dilation_h, dilation_w,
                                 &weights_dev, &bias_dev);
+    if (with_relu) {
+        param.activation_param = act_param;
+    }
     Conv<TargetType, AK_INT8> conv;
     std::vector<Tensor<TargetType>* > input_v;
     std::vector<Tensor<TargetType>* > output_v;
@@ -170,13 +183,15 @@ TEST(TestSaberFunc, test_saber_conv_int8_results) {
     std::vector<int> stride_w_v{1, 2};
     std::vector<int> dilation_h_v{1};
     std::vector<int> dilation_w_v{1};
-    std::vector<int> in_channels_v{ 4};
-    std::vector<int> out_channels_v{4, 8};
+    std::vector<int> in_channels_v{ 16, 32};
+    std::vector<int> out_channels_v{16, 32, 8};
 //    std::vector<int> group_v{1, 2, 32};
-    std::vector<int> in_h_v{24, 36};
-    std::vector<int> in_w_v{24, 36};
+    std::vector<int> in_h_v{56, 120};
+    std::vector<int> in_w_v{56, 120};
     std::vector<int> input_num_v{1, 3};
     std::vector<bool> bias_term_v{true, false};
+    std::vector<bool> with_relu_v{false};
+
 #ifdef USE_CUDA
     if (BASIC_TEST) {
     for (auto input_num : input_num_v)
@@ -193,6 +208,7 @@ TEST(TestSaberFunc, test_saber_conv_int8_results) {
     for (auto pad_h : pad_h_v)
     for (auto pad_w : pad_w_v)
     for (auto bias_term : bias_term_v)
+    for (auto with_relu : with_relu_v)
     test_conv_results<NV, NVHX86>(1,
                       input_num,
                       in_channels,
@@ -202,9 +218,9 @@ TEST(TestSaberFunc, test_saber_conv_int8_results) {
                       kernel_h,
                       kernel_w,
                       stride_h, stride_w, dilation_h, dilation_w,
-                      pad_h, pad_w, bias_term,
+                      pad_h, pad_w, bias_term, with_relu,
                       SPECIFY,
-                      VENDER_IMPL);
+                      SABER_IMPL);
     }
 #endif
 }

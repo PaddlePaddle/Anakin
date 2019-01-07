@@ -201,7 +201,6 @@ Status generate_graph_proto(graph::Graph<Ttype, Ptype>* graph, GraphProto& graph
 
     node_io << graph_proto;
 
-/*
     // fill the graph proto' edges/edges_info with edges
     auto edges_in = graph_proto.mutable_edges_in();
     auto edges_out = graph_proto.mutable_edges_out();
@@ -246,7 +245,7 @@ Status generate_graph_proto(graph::Graph<Ttype, Ptype>* graph, GraphProto& graph
     summary->set_original_temp_mem_used(graph->statistics.template get_info<graph::ORI_TEMP_MEM>());
     summary->set_system_mem_used(graph->statistics.template get_info<graph::SYSTEM_MEM>());
     summary->set_model_mem_used(graph->statistics.template get_info<graph::MODEL_MEM>());
-*/
+
     return Status::OK();
 }
 
@@ -328,7 +327,6 @@ template
 Status load<NV, Precision::FP16>(graph::Graph<NV, Precision::FP16>* graph, const char* buffer, size_t len);
 template
 Status load<NV, Precision::INT8>(graph::Graph<NV, Precision::INT8>* graph, const char* buffer, size_t len);
-
 #endif
 
 #if defined USE_X86_PLACE || defined BUILD_LITE

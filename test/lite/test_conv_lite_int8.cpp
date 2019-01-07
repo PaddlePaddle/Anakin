@@ -419,8 +419,8 @@ TEST(TestSaberLite, test_func_conv_depthwise_5x5_int8) {
     }
 }
 #endif
-// fixme
-#if 0
+
+#if 1
 TEST(TestSaberLite, test_func_conv_3x3s1_direct_int8) {
     if (g_basic_test) {
         for (auto& batch : {1, 2}) {
@@ -469,8 +469,7 @@ TEST(TestSaberLite, test_func_conv_3x3s1_direct_int8) {
 }
 #endif
 
-// fixme
-#if 0
+#if 1
 TEST(TestSaberLite, test_func_conv_3x3s2_direct_int8) {
 
     if (g_basic_test) {

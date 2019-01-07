@@ -1,6 +1,6 @@
 
 #include "saber/funcs/impl/cuda/saber_gemm.h"
-
+#include "sass_funcs.h"
 namespace anakin {
 namespace saber {
 

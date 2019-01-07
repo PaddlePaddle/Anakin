@@ -303,15 +303,23 @@ typedef enum{
     SPECIAL,
     CUSTOM
 } TestDataType;
+
 typedef enum{
     ENTROPY= 0,
     MAXABS = 1
 } CalibrationAlgoType;
+
 typedef enum{
     BILINEAR_ALIGN = 0,
     BILINEAR_NO_ALIGN = 1,
     RESIZE_CUSTOM = 2
 } ResizeType;
+
+typedef enum{
+    PAD_CONSTANT = 0,
+    PAD_EDGE = 1,
+    PAD_REFLECT = 2,
+} PadMode;
 } //namespace saber
 } //namespace anakin
 #endif //ANAKIN_SABER_CORE_TYPES_H

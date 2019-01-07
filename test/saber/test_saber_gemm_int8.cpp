@@ -88,6 +88,13 @@ void test_gemm_int8_result (int m, int n, int k, bool trans_a, bool trans_b) {
     Tensor<TargetType_H> a_host, b_host, c_host, c_check;
 
     Context<TargetType> ctx1(0, 1, 0);
+    int generate_arch = Env<NV>::cur_env()[ctx1.get_device_id()]._info._generate_arch;
+    // only support 61 arch for now.
+    bool arch_check = (generate_arch == 61);
+    if (!arch_check) {
+                LOG(INFO) << "device not support int8 op!!";
+        return;
+    }
     Gemm<TargetType, VENDER_IMPL, char, float> gemm_vender;
     Gemm<TargetType, SABER_IMPL, char, float> gemm_saber;
     SaberStatus vender_status = gemm_vender.init(trans_a, trans_b, m, n, k, ctx1);

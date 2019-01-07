@@ -30,7 +30,7 @@ template<typename targetType, typename out_dtype = float, typename in_dtype = ou
 void conv_basic_check(Tensor<targetType> &tensor_in,Tensor<targetType> &tensor_out,
                       const in_dtype *weights, const out_dtype *bias, int group,
                       int kernel_w, int kernel_h, int stride_w, int stride_h, int dilation_w, int dilation_h,
-                      int pad_w, int pad_h, bool flag_bias, bool flag_relu, float beta = 0.f) {
+                      int pad_w, int pad_h, bool flag_bias, bool flag_relu, float beta = 0.f, float alpha = 1.f) {
 
     auto src_data = reinterpret_cast<const in_dtype*>(tensor_in.data());
     auto dst_data_ref = reinterpret_cast<out_dtype*>(tensor_out.mutable_data());
@@ -57,7 +57,7 @@ void conv_basic_check(Tensor<targetType> &tensor_in,Tensor<targetType> &tensor_o
                         int out_idx = n * group * out_c_group * out_h * out_w + g * out_c_group * out_h * out_w
                                    + oc * out_h * out_w + oh * out_w + ow;
                         float bias_d = with_bias ? (float)(bias_data[g * out_c_group + oc]) : 0.f;
-                        dst_data_ref[out_idx] = bias_d + dst_data_ref[out_idx] * beta;
+                        dst_data_ref[out_idx] = dst_data_ref[out_idx] * beta;
                         for (int ic = 0; ic < in_c_group; ++ic) {
                             for (int kh = 0; kh < kernel_h; ++kh) {
                                 for (int kw = 0; kw < kernel_w; ++kw) {
@@ -84,6 +84,8 @@ void conv_basic_check(Tensor<targetType> &tensor_in,Tensor<targetType> &tensor_o
                                 }
                             }
                         }
+                        dst_data_ref[out_idx] *= alpha;
+                        dst_data_ref[out_idx] += bias_d;
                         if (flag_relu) {
                             dst_data_ref[out_idx] = dst_data_ref[out_idx] > 0.f ? dst_data_ref[out_idx] : 0.f;
                         }

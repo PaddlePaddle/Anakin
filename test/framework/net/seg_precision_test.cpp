@@ -97,7 +97,7 @@ TEST(NetTest, net_execute_base_test) {
     //anakin graph optimization
     graph->Optimize();
     Net<NV, Precision::FP32> net_executer(true);
-    net_executer.load_calibrator_config(g_precition_path, g_calibrate_path);
+    graph->load_calibrator_config(g_precition_path, g_calibrate_path);
     net_executer.init(*graph);
     // get in
     auto d_tensor_in_p = net_executer.get_in("input_0");
