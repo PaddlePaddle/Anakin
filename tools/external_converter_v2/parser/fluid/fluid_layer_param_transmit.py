@@ -674,8 +674,8 @@ def Parser_norm(args):
 def Parser_bilinear_interp(args):
     op = args[1]
     helper = args[3]
-    OpsRegister()["Resize"].out_w = helper.attr_data(op, 'out_w')
-    OpsRegister()["Resize"].out_h = helper.attr_data(op, 'out_h')
+    OpsRegister()["Resize"].out_width = helper.attr_data(op, 'out_w')
+    OpsRegister()["Resize"].out_height = helper.attr_data(op, 'out_h')
     OpsRegister()["Resize"].method = "BILINEAR_ALIGN"
 
 FLUID_NODE_FILLER = {
