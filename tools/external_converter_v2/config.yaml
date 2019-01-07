@@ -36,6 +36,11 @@
 ##         Json define prototxt file path  of you model
 ##  @Param ModelPath:
 ##         Path of you binary model.
+##  @Param DEBUG:
+##         NET:
+##         LoadPaths:
+##         SavePath:
+##         SaveFormat: text
 ##
 ##--------------------------------------------------------------
 #
@@ -82,10 +87,3 @@ TARGET:
 
     ONNX:
         ModelPath:
-
-DEBUG:
-    NET:
-        LoadPaths:
-            -
-        SavePath:
-        SaveFormat: text
