@@ -6,6 +6,8 @@
 #include "test_saber_base.h"
 #include <vector>
 #include<cmath>
+#include <omp.h>
+int g_num_threads  = 1;
 
 using namespace anakin::saber;
 bool decode_4d12b( const unsigned char *in,
@@ -194,6 +196,10 @@ void product_quant_embedding_with_vsum_basic(const std::vector<Tensor<TargetType
 
 template <DataType Dtype, typename TargetType_D, typename TargetType_H>
 void test_model() {
+    //for (auto num_threads: {1}) {
+    int proc_num = omp_get_num_procs();
+    CHECK_LE(g_num_threads, proc_num);
+    omp_set_num_threads(g_num_threads);
 
     TestSaberBase<TargetType_D, TargetType_H, Dtype, ProductQuantEmbeddingWithVsum, ProductQuantEmbeddingWithVsumParam> testbase(1, 1);
     size_t word_emb = 256;
@@ -245,14 +251,16 @@ void test_model() {
     Tensor<TargetType_D> quant_dict_2(quant_dict_shape_2); 
     //test example
     //
-    for (auto seq_num : {1, 2, 16, 40}) {
-        for (auto seq_len : {10, 16, 32}) {
-            //fill_tensor_rand(embedding_0, 0, 128);
-            //fill_tensor_rand(embedding_1, 0, 128);
-            //fill_tensor_rand(embedding_2, 0, 128);
-            //fill_tensor_rand(quant_dict_0, -1, 1);
-            //fill_tensor_rand(quant_dict_1, -1, 1);
-            //fill_tensor_rand(quant_dict_2, -1, 1);
+    //for (auto seq_num : {1, 2, 16, 40}) {
+    //    for (auto seq_len : {10, 16, 32}) {
+    for (auto seq_num : {40}) {
+        for (auto seq_len : {32}) {
+            fill_tensor_rand(embedding_0, 0, 128);
+            fill_tensor_rand(embedding_1, 0, 128);
+            fill_tensor_rand(embedding_2, 0, 128);
+            fill_tensor_rand(quant_dict_0, -1, 1);
+            fill_tensor_rand(quant_dict_1, -1, 1);
+            fill_tensor_rand(quant_dict_2, -1, 1);
             
             ProductQuantEmbeddingWithVsumParam<TargetType_D> param(word_emb, word_voc, 
                    top_unigram, top_bigram, top_collocation,
@@ -279,8 +287,9 @@ void test_model() {
             input_0.set_seq_offset(seq_offset);
             input_vec.push_back(&input_0);
             testbase.add_custom_input(input_vec);
-            testbase.run_test(product_quant_embedding_with_vsum_basic<float, TargetType_D, TargetType_H>);//run test
+            testbase.run_test(product_quant_embedding_with_vsum_basic<float, TargetType_D, TargetType_H>, 0.00001, false, true);//run test
         }
+    //}
     }
 }
 
@@ -311,6 +320,10 @@ TEST(TestSaberFunc, test_func_product_quant_embedding_with_vsum) {
 int main(int argc, const char** argv) {
     // initial logger
     //logger::init(argv[0]);
+    if (argc >= 2) {
+        g_num_threads = atoi(argv[1]);
+    }
+    
     InitTest();
     RUN_ALL_TESTS(argv[0]);
     return 0;

@@ -146,6 +146,41 @@ class MedGraphUtil:
             out_node = med_graph[i]
             out_node['input'] = MedNodeUtil.replace_name_with_list(out_node['input'], old_name,
                                                                    [[med_node['name']]])
+    @staticmethod
+    def _fusionPermute(med_node, med_graph):
+        """
+        when permute param >= 5, fusion Permute node to pixelshuffle
+        :param med_node:
+        :param med_graph:
+        :return:
+        """
+        if len(med_node['ak_attr']['shape']) >= 5:
+           ins = med_node['input']
+           outs = med_node['output']
+           if len(ins) == 1 and len(outs) == 1:
+               in_node = med_graph[ins[0]]
+               out_node = med_graph[outs[0]]
+               if in_node['ak_type'] == 'Reshape' and out_node['ak_type'] == 'Reshape':
+                #    print(in_node)
+                   rw = in_node['ak_attr']['shape'][1]
+                   rh = in_node['ak_attr']['shape'][2]
+                   in_node['type'] = 'PixelShuffle'
+                   in_node['ak_type'] = 'PixelShuffle'
+                   in_node['ak_attr']['type'] = 'PixelShuffle'
+                   in_node['ak_attr']['rw'] = int(rw)
+                   in_node['ak_attr']['rh'] = int(rh)
+                   in_node['ak_attr']['channel_first'] = True
+                   #delete med_node and out_node
+                   in_node['output']=out_node['output']
+                   for i in out_node['output']:
+                       in_node_node = med_graph[i]
+                       in_node_node['input'] = MedNodeUtil.replace_name_with_list(in_node_node['input'],
+                                                                   out_node['name'],
+                                                                   [in_node['name']])
+                    #    print(in_node_node['input'])
+                #    print(in_node)
+                   med_graph.pop(med_node['name'])
+                   med_graph.pop(out_node['name'])
 
     @staticmethod
     def _fusionScale(med_node, med_graph):
@@ -347,6 +382,8 @@ class MedGraphUtil:
         MedGraphUtil._all_search_fusion(med_graph, MedGraphUtil._auto_split)
         print ('********scale***********')
         MedGraphUtil._all_search_table(med_graph, {'Scale': MedGraphUtil._deleteScale})
+        print ('********pixelShuffle***********')
+        MedGraphUtil._all_search_table(med_graph, {'Permute': MedGraphUtil._fusionPermute})
         print ('********fusion scale***********')
         MedGraphUtil._all_search_table(med_graph, {'Scale': MedGraphUtil._fusionScale})
         print ('********finish***********')

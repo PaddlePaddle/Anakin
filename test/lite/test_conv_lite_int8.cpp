@@ -211,6 +211,9 @@ SaberStatus test_arm_conv_int8(int n, int c, int h, int w, \
     //! int32
 //    conv_int8.compute_output_shape(tvin_int8, tvout_saber_int32);
 //    Shape sh_out_saber = tvout_saber_int32[0]->valid_shape();
+    //! int8
+    // conv_int8.compute_output_shape(tvin_int8, tvout_saber_int8);
+    // Shape sh_out_saber = tvout_saber_int8[0]->valid_shape();
 
 
     LOG(INFO) << "output shape: " << shape_out[0] << ", " << shape_out[1] << ", " \
@@ -234,6 +237,8 @@ SaberStatus test_arm_conv_int8(int n, int c, int h, int w, \
     states = conv_int8.init(tvin_int8, tvout_saber_fp32, ctx1);
     //! int32
 //    states = conv_int8.init(tvin_int8, tvout_saber_int32, ctx1);
+    //! int8
+    // states = conv_int8.init(tvin_int8, tvout_saber_int8, ctx1);
     CHECK_EQ(states, SaberSuccess) << "Saber conv init failed";
 
     //! compute
@@ -246,6 +251,8 @@ SaberStatus test_arm_conv_int8(int n, int c, int h, int w, \
         states = conv_int8.dispatch(tvin_int8, tvout_saber_fp32);
         //! int32
 //        states = conv_int8.dispatch(tvin_int8, tvout_saber_int32);
+         //! int8
+        // states = conv_int8.dispatch(tvin_int8, tvout_saber_int8);
         t1.end();
         to += t1.get_average_ms();
         if (t1.get_average_ms() < min_time) {
@@ -263,17 +270,24 @@ SaberStatus test_arm_conv_int8(int n, int c, int h, int w, \
     if (g_compare_result) {
         double max_ratio = 0;
         double max_diff = 0;
-        //! fp32
+        // ! fp32
         tensor_cmp_host(tout_basic_fp32, tout_saber_fp32, max_ratio, max_diff);
         //! int32
 //        tensor_cmp_host(tout_basic_int32, tout_saber_int32, max_ratio, max_diff);
+        // ! int8
+        // tensor_cmp_host(tout_basic_int8, tout_saber_int8, max_ratio, max_diff);
         LOG(INFO) << "compare result, max diff: " << max_diff << ", max ratio: " << max_ratio;
+
         //! fp32
         double mean_basic = tensor_mean(tout_basic_fp32);
         double mean_saber = tensor_mean(tout_saber_fp32);
         //! int32
 //        double mean_basic = tensor_mean(tout_basic_int32);
 //        double mean_saber = tensor_mean(tout_saber_int32);
+         //! int8
+        // double mean_basic = tensor_mean(tout_basic_int8);
+        // double mean_saber = tensor_mean(tout_saber_int8);
+
         LOG(INFO) << "mean_basic: " << mean_basic << ", mean_saber: " << mean_saber;
         double max_ratio_thresh = 2e-1f;
         //! fp32
@@ -286,6 +300,11 @@ SaberStatus test_arm_conv_int8(int n, int c, int h, int w, \
 //            static_cast<const float*>(tout_saber_int32.data()), tout_saber_int32.valid_size(), max_ratio_thresh, thinf.get_scale()[0]);
 //        LOG(INFO) << "number of diff ratio > " << max_ratio_thresh << " is: " << diff_num << ", %" \
 //            << 100.f * diff_num / tout_basic_int32.valid_size();
+        //! int8
+        // long long diff_num = count_diff<float>(static_cast<const float*>(tout_basic_int8.data()), \
+        //     static_cast<const float*>(tout_saber_int8.data()), tout_saber_int8.valid_size(), max_ratio_thresh, thinf.get_scale()[0]);
+        // LOG(INFO) << "number of diff ratio > " << max_ratio_thresh << " is: " << diff_num << ", %" \
+        //     << 100.f * diff_num / tout_basic_fp32.valid_size();
 
 //        double mean_diff_ratio = fabs(mean_basic - mean_saber) / (fabs(mean_basic) + fabs(mean_saber));
 //        LOG(INFO) << "mean val diff ratio: " << mean_diff_ratio;
@@ -315,6 +334,21 @@ SaberStatus test_arm_conv_int8(int n, int c, int h, int w, \
 //            print_tensor(tout_saber_int32);
 //            LOG(INFO) << "diff result:";
 //            print_tensor(tdiff);
+
+            //! int8
+            // TensorH tdiff;
+            // tdiff.re_alloc(shape_out, AK_INT8);
+            // tensor_diff(tout_basic_int8, tout_saber_int8, tdiff);
+            // print_tensor(thinc);
+            // print_tensor(pweihtc);
+            // LOG(INFO) << "basic result int32:";
+            // print_tensor(tout_basic_int32);
+            // LOG(INFO) << "basic result int8:";
+            // print_tensor(tout_basic_int8);
+            // LOG(INFO) << "saber result:";
+            // print_tensor(tout_saber_int8);
+            // LOG(INFO) << "diff result:";
+            // print_tensor(tdiff);
             return SaberInvalidValue;
         }
 //        CHECK_EQ(fabsf(max_ratio) < 1e-4f, true) << "compute result error";
@@ -517,7 +551,7 @@ TEST(TestSaberLite, test_func_conv_3x3s2_direct_int8) {
 }
 #endif
 
-#if 0
+#if 1
 TEST(TestSaberLite, test_func_conv_1x1s1_int8) {
 
     if (g_basic_test) {
@@ -561,7 +595,7 @@ TEST(TestSaberLite, test_func_conv_1x1s1_int8) {
 }
 #endif
 
-#if 0
+#if 1
 TEST(TestSaberLite, test_func_conv_gemm_int8) {
     if (g_basic_test) {
     for (auto& batch : {1, 2}) {

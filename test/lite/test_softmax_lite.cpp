@@ -27,8 +27,8 @@ void softmax_basic(TensorHf4& tin, int axis, TensorHf4& tout) {
 
     //TensorHf4 tmax(shtmp);
 
-    const float* din = tin.data();
-    float* dout = tout.mutable_data();
+    const float* din = static_cast<const float*>(tin.data());
+    float* dout = static_cast<float*>(tout.mutable_data());
     //float* dtmp = tmax.mutable_data();
 
     for (int i = 0; i < cnt; ++i) {

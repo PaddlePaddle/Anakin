@@ -32,7 +32,7 @@ template<typename Ttype, Precision Ptype>
 class GenCPP : public CodeGenBase<Ttype, Ptype> {
 public:
 	explicit GenCPP(std::string model_name, std::string model_dir, std::string precision_path, \
-		std::string calibrator_path, bool lite_mode, bool flag_aot) {
+		std::string calibrator_path, int lite_mode, bool flag_aot) {
 		
 		_flag_aot = flag_aot;
         if (!flag_aot) {
@@ -163,7 +163,7 @@ private:
     std::string _merge_opt_file;
     std::string _precision_path;
     std::string _calibrator_path;
-	bool _lite_mode;
+	int _lite_mode;
 
 	CodeWritter _code;
 	CodeWritter _opt_param_write;

@@ -289,9 +289,9 @@ void nv21_to_tensor_basic(const unsigned char* nv21, TensorHf& output, int width
     LCHECK_EQ(3, output.channel(), "sizes of two valid shapes must be the same");
     LCHECK_EQ(1, output.num(), "sizes of two valid shapes must be the same");
     int size = width * height;
-    float* ptr0 = output.mutable_data();
-    float* ptr1 = output.mutable_data() + size;
-    float* ptr2 = output.mutable_data() + size * 2;
+    float* ptr0 = static_cast<float*>(output.mutable_data());
+    float* ptr1 = static_cast<float*>(output.mutable_data()) + size;
+    float* ptr2 = static_cast<float*>(output.mutable_data()) + size * 2;
     float r_means = means[0];
     float g_means = means[1];
     float b_means = means[2];
@@ -332,9 +332,9 @@ void nv12_to_tensor_basic(const unsigned char* nv12, TensorHf& output, int width
     LCHECK_EQ(3, output.channel(), "sizes of two valid shapes must be the same");
     LCHECK_EQ(1, output.num(), "sizes of two valid shapes must be the same");
     int size = width * height;
-    float* ptr0 = output.mutable_data();
-    float* ptr1 = output.mutable_data() + size;
-    float* ptr2 = output.mutable_data() + size * 2;
+    float* ptr0 = static_cast<float*>(output.mutable_data());
+    float* ptr1 = static_cast<float*>(output.mutable_data()) + size;
+    float* ptr2 = static_cast<float*>(output.mutable_data()) + size * 2;
     float r_means = means[0];
     float g_means = means[1];
     float b_means = means[2];
@@ -619,7 +619,7 @@ void bgr_to_tensor_basic(const unsigned char* bgr, TensorHf& output, int width, 
     LCHECK_EQ(3, output.channel(), "sizes of two valid shapes must be the same");
     LCHECK_EQ(1, output.num(), "sizes of two valid shapes must be the same");
     int size = width * height / 3;
-    float* ptr0 = output.mutable_data();
+    float* ptr0 = static_cast<float*>(output.mutable_data());
     float r_means = means[0];
     float g_means = means[1];
     float b_means = means[2];

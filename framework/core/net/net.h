@@ -97,10 +97,6 @@ public:
       */
     void load_calibrator_table();
 
-    std::vector<OperatorFunc<Ttype, Ptype> > get_exec_funcs() {
-        return _exec_funcs;
-    }
-
     //! get time for each op;
 #ifdef ENABLE_OP_TIMER
     void print_and_reset_optime_summary(int epoch){
@@ -112,6 +108,9 @@ public:
     void reset_op_time() {_op_time = std::vector<float>(_exec_funcs.size(), 0.0f);}
     std::vector<float> get_op_time() {return _op_time;}
     std::vector<std::string> get_op_param() {return _op_param;}
+    std::vector<OperatorFunc<Ttype, Ptype> > get_exec_funcs() {
+        return _exec_funcs;
+    }
 #endif
 
 public:

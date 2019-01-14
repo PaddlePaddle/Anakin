@@ -532,7 +532,7 @@ void GenCPP<Ttype, Ptype>::gen_opt_model() {
 	//parse config file
 	bool flag_precision = false;
 	bool flag_calibrator = false;
-	bool flag_lite_mode = _lite_mode;
+	int flag_lite_mode = _lite_mode;
 	CalibratorParser parser;
 	if (_precision_path == ""){
 		flag_precision = false;

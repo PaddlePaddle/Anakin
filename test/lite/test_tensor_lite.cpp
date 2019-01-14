@@ -110,7 +110,7 @@ TEST(TestSaberLite, test_tensor_constructor) {
     int h = thost6.height();
     int c = thost6.channel();
     int n = thost6.num();
-    float* ptr_host = thost6.mutable_data();
+    float* ptr_host = static_cast<float*>(thost6.mutable_data());
     for (int in = 0; in < n; ++in) {
         float* ptr_batch = ptr_host + in * stride_n;
         for (int ic = 0; ic < c; ++ic) {

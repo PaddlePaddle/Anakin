@@ -185,6 +185,9 @@ public:
 			case AK_INT8: {
 				return sizeof(int8_t);
 	  		}
+	  		case AK_INT16: {
+	  		    return sizeof(int16_t);
+	  		}
 			case AK_INT32: {
 				return sizeof(int);
 	  		}

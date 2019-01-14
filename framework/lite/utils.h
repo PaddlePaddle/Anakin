@@ -257,7 +257,7 @@ bool trans_weights_dtype_basic(Tensor<X86>& weights, DataType type, float scale_
     return true;
 }
 
-void trans_conv_weights_inplace(Tensor<X86>& th, DataType op_precision, bool lite_mode){
+void trans_conv_weights_inplace(Tensor<X86>& th, DataType op_precision, int lite_mode){
 
     auto scale = th.get_scale();
     if (scale.size() == 1){
@@ -268,8 +268,11 @@ void trans_conv_weights_inplace(Tensor<X86>& th, DataType op_precision, bool lit
         }
         th.set_scale(scale);
     }
-    if (lite_mode) {
+    if (lite_mode == 1) {
         trans_weights_dtype_basic(th, AK_INT8, 127.0f, false);
+        return;
+    } else if (lite_mode == 2){
+        trans_weights_dtype_basic(th, AK_INT16, 32767.0f, false);
         return;
     }
 
@@ -302,12 +305,33 @@ void trans_conv_weights_inplace(Tensor<X86>& th, DataType op_precision, bool lit
     return;
 }
 
-void trans_deconv_weights_inplace(Tensor<X86>& th, DataType op_precision, bool lite_mode){
+void trans_deconv_weights_inplace(Tensor<X86>& th, DataType op_precision, int lite_mode){
+    auto scale = th.get_scale();
+    if (scale.size() == 1){
+        float scale_old = scale[0];
+        scale.resize(th.valid_shape()[0]);
+        for (int i = 0; i < scale.size(); ++i){
+            scale[i] = scale_old;
+        }
+        th.set_scale(scale);
+    }
+    if (lite_mode == 1) {
+        trans_weights_dtype_basic(th, AK_INT8, 127.0f, false);
+        return;
+    } else if (lite_mode == 2){
+        trans_weights_dtype_basic(th, AK_INT16, 32767.0f, false);
+        return;
+    }
+
     if (th.get_dtype() == AK_INT8 && op_precision == AK_INT8){
         return;
     }
-    if (th.get_dtype() == AK_FLOAT && (op_precision == AK_INT8 || lite_mode)) {
+    if (th.get_dtype() == AK_FLOAT && (op_precision == AK_INT8)) {
         trans_weights_dtype_basic(th, AK_INT8, 127.0f, true);
+        return;
+    }
+    if (th.get_dtype() == AK_FLOAT && (op_precision == AK_INT16)) {
+        trans_weights_dtype_basic(th, AK_INT16, 32767.0f, true);
         return;
     }
     // trans weights to fp32 when op_precision is fp32

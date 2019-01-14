@@ -15,7 +15,6 @@ bool traA = false;
 bool traB = false;
 bool flag_relu = false;
 bool flag_bias = false;
-ARMArch flag_arch = A73;
 int test_iter = 1;
 bool COMPARE_RESULT = true;
 typedef Tensor<CPU> TensorHf4;
@@ -27,8 +26,7 @@ SaberStatus test_arm_sgemm(int M, int N, int K, bool tra, bool trb, bool flag_bi
     Context ctx1;
     PowerMode mode = (PowerMode)cluster;
     ctx1.set_run_mode(mode, in_threads);
-    ctx1.set_arch(flag_arch);
-    LOG(INFO) << "CPU ARCH: A" << flag_arch;
+    LOG(INFO) << "CPU ARCH: A" << ctx1.get_arch();
     LOG(INFO) << "test threads activated";
 #pragma omp parallel
     {
@@ -206,13 +204,6 @@ int main(int argc, const char** argv){
     }
     if (argc > 12) {
         COMPARE_RESULT = atoi(argv[12]) > 0;
-    }
-    if (argc > 13) {
-        if (atoi(argv[13]) > 0) {
-            flag_arch = A72;
-        } else {
-            flag_arch = A73;
-        }
     }
     // initial logger
     //logger::init(argv[0]);

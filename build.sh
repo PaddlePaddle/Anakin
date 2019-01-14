@@ -29,23 +29,32 @@ cd $ANAKIN_ROOT/
 tar -czf  anakin_release_native_x86.tar.gz output/*
 rm -fr $ANAKIN_ROOT/output
 
-
-export ANDROID_NDK=/home/qa_work/arm_tools/android-ndk-r14b
 cd $ANAKIN_ROOT
 mkdir output
 echo 'build.sh start'
 echo 'sh build_lite.sh'
 bash ./tools/build_lite.sh
 echo 'build lite finished!'
+
+export ANDROID_NDK=/home/qa_work/arm_tools/android-ndk-r16b
+export PATH=/usr/local/bin/:$PATH
+export CMAKE_ROOT=/usr/local/bin/
+#which cmake
 #cd tools/anakin-lite
-sed -i "s/export ANDROID_NDK=\/home\/public\/android-ndk-r14b/#/g" tools/anakin-lite/lite_android_build_armv7.sh
-sed -i "s/export ANDROID_NDK=\/home\/public\/android-ndk-r14b/#/g" tools/anakin-lite/lite_android_build_armv8.sh
+sed -i "s/export ANDROID_NDK=\/home\/public\/android-ndk-r16b/#/g" tools/anakin-lite/lite_android_build_armv7.sh
+sed -i "s/export ANDROID_NDK=\/home\/public\/android-ndk-r16b/#/g" tools/anakin-lite/lite_android_build_armv8.sh
+sed -i "s/export ANDROID_NDK=\/home\/public\/android-ndk-r16b/#/g" tools/anakin-lite/lite_android_build_armv8_clang.sh
 echo 'sh lite_android_build_armv7.sh'
 bash ./tools/anakin-lite/lite_android_build_armv7.sh
 echo 'build lite_android_armv7 finished!'
+
 echo 'sh lite_android_build_armv8.sh'
 bash ./tools/anakin-lite/lite_android_build_armv8.sh
 echo 'build lite_android_armv8 finished!'
+
+echo 'sh lite_android_build_armv8_clang.sh'
+bash ./tools/anakin-lite/lite_android_build_armv8_clang.sh
+echo 'build lite_android_armv8_clang finished!'
 
 tar -czf anakin_arm_release.tar.gz output/*
 rm -fr $ANAKIN_ROOT/output/*

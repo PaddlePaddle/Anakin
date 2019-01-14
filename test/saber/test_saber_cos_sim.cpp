@@ -60,7 +60,7 @@ void test_model() {
                     CosSimParam<TargetType_D> param(0.f);
                     testbase.set_param(param);//set param
                     testbase.set_input_shape(shape);
-                    testbase.run_test(cossim_basic<float, TargetType_D, TargetType_H>, true);//run test
+                    testbase.run_test(cossim_basic<float, TargetType_D, TargetType_H>, 0.00001, false, true);//run test
                 }
             }
         }
@@ -70,8 +70,8 @@ TEST(TestSaberFunc, test_func_cos_sim) {
 
 #ifdef USE_CUDA
     //Init the test_base
-    //Env<NV>::env_init();
-    //test_model<AK_FLOAT, NV, NVHX86>();
+    Env<NV>::env_init();
+    test_model<AK_FLOAT, NV, NVHX86>();
 #endif
 #ifdef USE_X86_PLACE
     Env<X86>::env_init();

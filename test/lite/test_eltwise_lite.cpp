@@ -31,9 +31,9 @@ void eltwise_basic(const Context &ctx, TensorHf4& tensor_out, \
     int num = tensor_in[0]->num();
     int size_in = w_in * h_in;
 
-    dtype* data_out = tensor_out.mutable_data();
-    const dtype* data_in0 = tensor_in[0]->data();
-    const dtype* data_in1 = tensor_in[1]->data();
+    dtype* data_out = static_cast<dtype*>(tensor_out.mutable_data());
+    const dtype* data_in0 = static_cast<const dtype*>(tensor_in[0]->data());
+    const dtype* data_in1 = static_cast<const dtype*>(tensor_in[1]->data());
 
     if (op_type == 1){ //Operation_PROD
         for (int n = 0; n < num; n++){
@@ -52,7 +52,7 @@ void eltwise_basic(const Context &ctx, TensorHf4& tensor_out, \
             }
         }
         for (int b = 2; b <tensor_in.size(); b++){
-            const dtype* data_in = tensor_in[b]->data();
+            const dtype* data_in = static_cast<const dtype*>(tensor_in[b]->data());
             for (int n = 0; n < num; n++){
                 dtype* data_out_batch = data_out + n * ch_in * size_in;
                 const dtype* data_in_batch = data_in + n * ch_in * size_in;
@@ -86,7 +86,7 @@ void eltwise_basic(const Context &ctx, TensorHf4& tensor_out, \
                 }
             }
             for (int b = 2; b <tensor_in.size(); b++){
-                const dtype* data_in = tensor_in[b]->data();
+                const dtype* data_in = static_cast<const dtype*>(tensor_in[b]->data());
                 for (int n = 0; n < num; n++){
                     dtype* data_out_batch = data_out + n * ch_in * size_in;
                     const dtype* data_in_batch = data_in + n * ch_in * size_in;
@@ -119,7 +119,7 @@ void eltwise_basic(const Context &ctx, TensorHf4& tensor_out, \
                 }
             }
             for (int b = 2; b <tensor_in.size(); b++){
-                const dtype* data_in = tensor_in[b]->data();
+                const dtype* data_in = static_cast<const dtype*>(tensor_in[b]->data());
                 for (int n = 0; n < num; n++){
                     dtype* data_out_batch = data_out + n * ch_in * size_in;
                     const dtype* data_in_batch = data_in + n * ch_in * size_in;
@@ -154,7 +154,7 @@ void eltwise_basic(const Context &ctx, TensorHf4& tensor_out, \
             }
         }
         for (int b = 2; b <tensor_in.size(); b++){
-            const dtype* data_in = tensor_in[b]->data();
+            const dtype* data_in = static_cast<const dtype*>(tensor_in[b]->data());
             for (int n = 0; n < num; n++){
                 dtype* data_out_batch = data_out + n * ch_in * size_in;
                 const dtype* data_in_batch = data_in + n * ch_in * size_in;

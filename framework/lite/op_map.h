@@ -51,7 +51,7 @@ typedef std::function<std::string(graph::AttrInfo& attr,
 								  std::string& weights_ptr_name,
 								  WeightsWritter& writter,
 								  bool gen_param,
-								  bool lite_mode,
+								  int lite_mode,
                                   DataType op_precision)> ParseParamFunctor;
 /**
  * \brief class OpParser

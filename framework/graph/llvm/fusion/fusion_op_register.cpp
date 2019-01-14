@@ -138,6 +138,15 @@ REGISTER_GRAPH_FUSION_PATTERN(ConvAffineChannelRelu)
 .AddConnect("affine_channel_0", "relu_0")
 .CreatePattern([](VGraph* graph) {});
 
+REGISTER_GRAPH_FUSION_PATTERN(SeqConcatSeqPoolSoftSign)
+.Type(IN_ORDER)
+.AddOpNode("seq_concat_0",  "SequenceConcat")
+.AddOpNode("seq_pool_0", "SequencePool")
+.AddOpNode("soft_sign_0", "SoftSign")
+.AddConnect("seq_concat_0", "seq_pool_0")
+.AddConnect("seq_pool_0", "soft_sign_0")
+.CreatePattern([](VGraph* graph) {});
+
 } /* namespace graph */
 
 } /* namespace anakin */

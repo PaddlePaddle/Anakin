@@ -25,7 +25,7 @@ template <typename dtype>
 void conv_trans_weights_numc_basic(const dtype* din, dtype* dout, int chout, int chin, int n, int kernel_size) {
     if (n <= 0){
         LOGE("ch_n and hei_n are more than zero\n");
-        return SaberInvalidValue;
+        return;
     }
     int c_loop = chout / n;
     int chout_round = (chout + n - 1) / n;
@@ -130,7 +130,6 @@ void prepack_input_nxw_basic(const dtype* din, dtype* dout, int n, int hs, int h
         // }
         din += size_c;
     }
-    return SaberSuccess;
 }
 
 /*wirte result in outputs

@@ -7,7 +7,7 @@ using namespace anakin::saber;
 using namespace anakin::lite;
 
 void anakin_lite_executer(const char* model_name, const char* model_path, const char* precision_path, \
-    const char* calibrator_path, const bool lite_mode, const char* output_path, const bool flag_aot, \
+    const char* calibrator_path, const int lite_mode, const char* output_path, const bool flag_aot, \
     const bool debug_mode = false, const int batch_size = 1) {
     // constructs
     GenCPP<X86, Precision::FP32> code_gen(model_name, output_path, precision_path, calibrator_path,\
@@ -50,14 +50,13 @@ int main(int argc, const char** argv){
     if (argc > 6){
         batch_size = atoi(argv[6]);
     }
-    bool lite_mode = false;
+    int lite_mode = 0;
     if (argc > 7){
-        lite_mode = atoi(argv[7]) > 0;
+        lite_mode = atoi(argv[7]);
     }
     const char* precision_path = "";
     if (argc > 8){
         precision_path = argv[8];
-        printf("precision_Path: %s\n", precision_path);
     }
     const char* calibrator_path = "";
     if (argc > 9){

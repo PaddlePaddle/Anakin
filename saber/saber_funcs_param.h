@@ -2820,6 +2820,14 @@ struct RoiAlignParam {
 };
 
 template <typename TargetType>
+struct SequenceConcatParam{
+    SequenceConcatParam() = default;
+    SequenceConcatParam(const SequenceConcatParam& right) {}
+    SequenceConcatParam& operator=(const SequenceConcatParam& right) { return *this;}
+    bool operator==(const SequenceConcatParam& right) {return true;}
+};
+
+template <typename TargetType>
 struct SoftSignParam{
     SoftSignParam() = default;
     SoftSignParam(const SoftSignParam& right) {}
@@ -2850,17 +2858,17 @@ struct CosSimParam{
 template <typename TargetType>
 struct ProductQuantEmbeddingWithVsumParam {
     ProductQuantEmbeddingWithVsumParam() = default;
-    ProductQuantEmbeddingWithVsumParam(size_t word_emb_in,
-                                       size_t word_voc_in,
-                                       size_t top_unigram_in,
-                                       size_t top_bigram_in,
-                                       size_t top_collocation_in,
-                                       size_t sec_unigram_in,
-                                       size_t sec_bigram_in,
-                                       size_t sec_collocation_in,
-                                       size_t thd_unigram_in,
-                                       size_t thd_bigram_in,
-                                       size_t thd_collocation_in,
+    ProductQuantEmbeddingWithVsumParam(int word_emb_in,
+                                       int word_voc_in,
+                                       int top_unigram_in,
+                                       int top_bigram_in,
+                                       int top_collocation_in,
+                                       int sec_unigram_in,
+                                       int sec_bigram_in,
+                                       int sec_collocation_in,
+                                       int thd_unigram_in,
+                                       int thd_bigram_in,
+                                       int thd_collocation_in,
                                        int max_seq_len_in,
                                        Tensor<TargetType>* embedding_0_in,
                                        Tensor<TargetType>* embedding_1_in,
@@ -2948,17 +2956,17 @@ struct ProductQuantEmbeddingWithVsumParam {
         return flag;
     }
     
-    size_t word_emb{128};
-    size_t word_voc{1};
-    size_t top_unigram{0}; 
-    size_t top_bigram{0}; 
-    size_t top_collocation{0}; 
-    size_t sec_unigram{0}; 
-    size_t sec_bigram{0}; 
-    size_t sec_collocation{0}; 
-    size_t thd_unigram{0}; 
-    size_t thd_bigram{0}; 
-    size_t thd_collocation{0}; 
+    int word_emb{128};
+    int word_voc{1};
+    int top_unigram{0}; 
+    int top_bigram{0}; 
+    int top_collocation{0}; 
+    int sec_unigram{0}; 
+    int sec_bigram{0}; 
+    int sec_collocation{0}; 
+    int thd_unigram{0}; 
+    int thd_bigram{0}; 
+    int thd_collocation{0}; 
     int max_seq_len{0};
     Tensor<TargetType>* embedding_0{NULL};
     Tensor<TargetType>* embedding_1{NULL};
@@ -2967,6 +2975,144 @@ struct ProductQuantEmbeddingWithVsumParam {
     Tensor<TargetType>* quant_dict_1{NULL};        
     Tensor<TargetType>* quant_dict_2{NULL};
     
+};
+
+template <typename TargetType>
+struct ArithmeticParam{
+    ArithmeticParam() = default;
+
+    ArithmeticParam(ArithmeticType op_type_in):op_type(op_type_in) {}
+
+    ArithmeticParam(const ArithmeticParam& right):op_type(right.op_type) {}
+
+    ArithmeticParam& operator=(const ArithmeticParam& right) {
+        op_type = right.op_type;
+        return *this;
+    }
+
+    bool operator==(const ArithmeticParam& right) {
+        return op_type == right.op_type;
+    }
+
+    ArithmeticType op_type;
+};
+
+template <typename TargetType>
+struct PyramidHashQuantEmbeddingParam{
+    PyramidHashQuantEmbeddingParam() = default;
+    PyramidHashQuantEmbeddingParam(int space_size_in,
+                                   int emb_size_in,
+                                   int pyramid_layer_in,
+                                   int rand_len_in,
+                                   int white_list_len_in,
+                                   int black_list_len_in,
+                                   float dropout_percent_in,
+                                   Tensor<TargetType>* quant_dict_in,
+                                   Tensor<TargetType>* hash_space_in,
+                                   Tensor<TargetType>* white_filter_in,
+                                   Tensor<TargetType>* black_filter_in):
+                                   space_size(space_size_in),
+                                   emb_size(emb_size_in),
+                                   pyramid_layer(pyramid_layer_in),
+                                   rand_len(rand_len_in),
+                                   white_list_len(white_list_len_in),
+                                   black_list_len(black_list_len_in),
+                                   dropout_percent(dropout_percent_in),
+                                   quant_dict(quant_dict_in),
+                                   hash_space(hash_space_in),
+                                   white_filter(white_filter_in),
+                                   black_filter(black_filter_in) {};
+
+    PyramidHashQuantEmbeddingParam(const PyramidHashQuantEmbeddingParam& right):
+        space_size(right.space_size),
+        emb_size(right.emb_size),
+        pyramid_layer(right.pyramid_layer),
+        rand_len(right.rand_len),
+        white_list_len(right.white_list_len),
+        black_list_len(right.black_list_len),
+        dropout_percent(right.dropout_percent),
+        quant_dict(right.quant_dict),
+        hash_space(right.hash_space),
+        white_filter(right.white_filter),
+        black_filter(right.black_filter) {}
+
+    PyramidHashQuantEmbeddingParam& operator=(const PyramidHashQuantEmbeddingParam& right) {
+        space_size = right.space_size;
+        emb_size = right.emb_size;
+        pyramid_layer = right.pyramid_layer;
+        rand_len = right.rand_len;
+        white_list_len = right.white_list_len;
+        black_list_len = right.black_list_len;
+        dropout_percent = right.dropout_percent;
+        quant_dict = right.quant_dict;
+        hash_space = right.hash_space;
+        white_filter = right.white_filter;
+        black_filter = right.black_filter;
+        return *this;
+    }
+
+    bool operator==(const PyramidHashQuantEmbeddingParam& right) {
+        bool flag = true;
+        flag = flag && space_size == right.space_size;
+        flag = flag && emb_size == right.emb_size;
+        flag = flag && pyramid_layer == right.pyramid_layer;
+        flag = flag && rand_len == right.rand_len;
+        flag = flag && white_list_len == right.white_list_len;
+        flag = flag && black_list_len == right.black_list_len;
+        flag = flag && dropout_percent == right.dropout_percent;
+        flag = flag && quant_dict == right.quant_dict;
+        flag = flag && hash_space == right.hash_space;
+        flag = flag && white_filter == right.white_filter;
+        flag = flag && black_filter == right.black_filter;
+        return flag;
+    }
+
+    int space_size;
+    int emb_size;
+    int pyramid_layer;
+    int rand_len;
+    int white_list_len;
+    int black_list_len;
+    float dropout_percent;
+    Tensor<TargetType>* quant_dict;
+    Tensor<TargetType>* hash_space;
+    Tensor<TargetType>* white_filter;
+    Tensor<TargetType>* black_filter;
+};
+
+template <typename TargetType>
+struct SeqConcatSeqPoolSoftSignParam{
+    SeqConcatSeqPoolSoftSignParam() = default;
+
+    SeqConcatSeqPoolSoftSignParam(SequenceConcatParam<TargetType> seq_concat_in,
+                                  SequencePoolParam<TargetType> seq_pool_in,
+                                  SoftSignParam<TargetType> soft_sign_in):
+                                  seq_pool(seq_pool_in),
+                                  seq_concat(seq_concat_in),
+                                  soft_sign(soft_sign_in) {}
+
+    SeqConcatSeqPoolSoftSignParam(const SeqConcatSeqPoolSoftSignParam& right) : seq_pool(right.seq_pool), 
+        seq_concat(right.seq_concat),
+        soft_sign(right.soft_sign) {}
+
+    SeqConcatSeqPoolSoftSignParam& operator=(const SeqConcatSeqPoolSoftSignParam& right) {
+        seq_concat = right.seq_concat;
+        seq_pool = right.seq_pool;
+        soft_sign = right.soft_sign;
+        return *this;
+    }
+
+    bool operator==(const SeqConcatSeqPoolSoftSignParam& right) {
+        bool flag = true;
+        flag = flag && seq_concat == right.seq_concat;
+        flag = flag && seq_pool == right.seq_pool;
+        flag = flag && soft_sign == right.soft_sign;
+        return flag;
+    }
+
+    SequenceConcatParam<TargetType> seq_concat;
+    SequencePoolParam<TargetType> seq_pool;
+    SoftSignParam<TargetType> soft_sign;
 };
 
 }

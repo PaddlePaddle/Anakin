@@ -312,12 +312,24 @@ class MedTransAK:
         else:
             param.axis = med_attr['axis']
         pass
-    
+
     def PixelShuffle(self, med_attr, param):
-        if med_attr.get('scale_factor') is None:
-            param.scale_factor = 2
+        if med_attr.get('rw') is None:
+            param.rw = 2
         else:
-            param.scale_factor = med_attr['scale_factor']
+            param.rw = med_attr['rw']
+        if med_attr.get('rh') is None:
+            param.rh = 2
+        else:
+            param.rh = med_attr['rh']
+        if med_attr.get('channel_first') is None:
+            param.channel_first = True
+        else:
+            param.channel_first = med_attr['channel_first']
+        # if med_attr.get('scale_factor') is None:
+        #     param.scale_factor = 2
+        # else:
+        #     param.scale_factor = med_attr['scale_factor']
 
     def map_med_2_ak(self, ak_node, med_node):
         """
@@ -342,8 +354,8 @@ class MedTransAK:
         ak_node.set_op(ak_op())
 
         # print 'name', med_node['name']
-        # print 'type', type(med_node['input'])
-        # print 'type', type(med_node['output'])
+        # print 'type', type(med_node['input']), med_node['input']
+        # print 'type', type(med_node['output']), med_node['output']
         [ak_node.add_in(i) for i in med_node['input']]
         [ak_node.add_out(i) for i in med_node['output']]
 

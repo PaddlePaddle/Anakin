@@ -160,15 +160,24 @@ add_library(ANAKIN_LITE_OBJS OBJECT ${BUILD_SRC_FILES1} ${BUILD_SRC_FILES2} ${BU
 		${BUILD_SRC_FILES7} ${HEADER_UTILS}
 		)
 
-if(USE_ANDROID)
-	add_library(${anakin_lite_lib_so} SHARED $<TARGET_OBJECTS:ANAKIN_LITE_OBJS>)
-	set_target_properties(${anakin_lite_lib_so} PROPERTIES
-					  LIBRARY_OUTPUT_DIRECTORY ${CMAKE_INSTALL_PREFIX}/)
-	target_link_libraries(${anakin_lite_lib_so} ${log-lib})
-endif()
 add_library(${anakin_lite_lib_static} STATIC $<TARGET_OBJECTS:ANAKIN_LITE_OBJS>)
 set_target_properties(${anakin_lite_lib_static} PROPERTIES
 					  ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_INSTALL_PREFIX}/)
+
+if(USE_ANDROID)
+	add_library(${anakin_lite_lib_so} SHARED $<TARGET_OBJECTS:ANAKIN_LITE_OBJS>)
+	set_target_properties(${anakin_lite_lib_so} PROPERTIES
+			LIBRARY_OUTPUT_DIRECTORY ${CMAKE_INSTALL_PREFIX}/)
+	target_link_libraries(${anakin_lite_lib_so} ${log-lib})
+	add_custom_command(TARGET ${anakin_lite_lib_so} POST_BUILD
+			COMMAND "${CMAKE_STRIP}" -s
+			"${CMAKE_INSTALL_PREFIX}/lib${anakin_lite_lib_so}.so"
+			COMMENT "Strip debug symbols done on final dynamic binary.")
+	add_custom_command(TARGET ${anakin_lite_lib_static} POST_BUILD
+			COMMAND "${CMAKE_STRIP}" -g -S -d --strip-debug --verbose
+			"${CMAKE_INSTALL_PREFIX}/lib${anakin_lite_lib_static}.a"
+			COMMENT "Strip debug symbols done on final static binary.")
+endif()
 
 if(USE_OPENCV)
 	# set your opencv path here
@@ -203,6 +212,10 @@ if(BUILD_LITE_UNIT_TEST)
 		set_target_properties(${TEST_CASE_NAME} PROPERTIES
 				RUNTIME_OUTPUT_DIRECTORY
 				${CMAKE_INSTALL_PREFIX}/unit_test)
+		add_custom_command(TARGET ${TEST_CASE_NAME} POST_BUILD
+				COMMAND "${CMAKE_STRIP}" -s
+				"${CMAKE_INSTALL_PREFIX}/unit_test/${TEST_CASE_NAME}"
+				COMMENT "Strip debug symbols done on final executable file.")
 	endforeach()
 endif()
 

@@ -373,6 +373,7 @@ public:
                     }
 
                     print_tensor(*_inputs_host[0][0]);
+                    //print_tensor(*_inputs_host[0][1]);
                     print_tensor(*_outputs_host[0][0]);
                     print_tensor(*_outputs_hd[0][0]);
                     LOG(FATAL) << "Test Failed!!" << "output:(" << i << "-" << j << ")";
@@ -411,7 +412,7 @@ public:
                     }) {
                 LOG(INFO) << "TESTING: strategy:" << runtype[strate - 1] << ",impltype:" << impltype[(int)implenum];
 
-                if (get_op_result(strate, implenum, test_speed) == SaberUnImplError) {
+                if (get_op_result(strate, implenum, 0, test_speed) == SaberUnImplError) {
                     LOG(INFO) << "Unimpl!!";
                     continue;
                 }

@@ -11,6 +11,18 @@ Anakin Lite 的特性包括：
 * 支持大小核调度机制
 * 支持从memory加载模型
 * 简单易用的API
+
+## 注意事项 
+<font color=#ff0000 size=12 face="黑体">如果使用Android NDK自带的`android.toolchain.cmake`，需要修改该文件，去掉debug信息。</font>
+
+```bash
+# 用编辑器打开 $ANDROID_NDK/build/cmake/android.toolchain.cmake
+# 删除 "-g" 这行
+list(APPEND ANDROID_COMPILER_FLAGS
+  -g
+  -DANDROID
+```
+
 ## 编译模型转换器
 1. 为宿主机编译安装protobuf   
 protobuf3.4.0 源码从这里[下载](https://github.com/google/protobuf/releases/tag/v3.4.0)    

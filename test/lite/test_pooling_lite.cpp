@@ -270,8 +270,8 @@ void test_arm_pooling(std::vector<TensorHf4*>& tin, \
         for (int i = 0; i < test_iter; ++i) {
             t1.clear();
             t1.start();
-            const float* in=thin->data();
-            float* out =tout_basic.mutable_data();
+            const float* in = static_cast<const float*>(thin->data());
+            float* out = static_cast<float*>(tout_basic.mutable_data());
 
             pooling_basic(in,out, num, chin, hout, wout, chin, hin, win, type, global, kernel, \
                           kernel, stride, stride, pad, pad);
@@ -345,7 +345,7 @@ TEST(TestSaberLite, test_func_pooling_global_arm) {
     TensorHf4 tdin;
 
     tdin.re_alloc(shape_in);
-    float* in = tdin.mutable_data();
+    float* in = static_cast<float*>(tdin.mutable_data());
     for (int i = 0; i < tdin.size(); i++){
         *in = -1.0f - i;
         in++;

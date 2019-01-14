@@ -3,7 +3,7 @@
 # IMPORTANT!!!!!!!!!!!!!!
 # remove "-g" compile flags in  "$ANDROID_NDK/build/cmake/android.toolchain.cmake"
 # to remove debug info
-export ANDROID_NDK=/home/public/android-ndk-r14b/
+export ANDROID_NDK=/home/public/android-ndk-r16b/
 
 ANAKIN_LITE_ROOT="$( cd "$(dirname "$0")" ; pwd -P)"
 echo "-- Anakin lite root dir is: $ANAKIN_LITE_ROOT"
@@ -38,10 +38,11 @@ cd $BUILD_ROOT
 #-DANDROID_STL=gnustl_static \ # set stl lib
 #-DANDROID_TOOLCHAIN=clang \ # set compile to gcc or clang
 cmake .. \
-    -DCMAKE_TOOLCHAIN_FILE=../../../cmake/android/android.toolchain.cmake \
+    -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
     -DANDROID_NDK=$ANDROID_NDK \
     -DANDROID_NATIVE_API_LEVEL=19 \
     -DANDROID_ABI="armeabi-v7a with NEON" \
+    -DANDROID_TOOLCHAIN=gcc \
     -DENABLE_DEBUG=NO \
     -DUSE_ARMV8=NO \
 	-DUSE_ANDROID=YES \
@@ -62,11 +63,9 @@ fi
 OUT_DIR=$BUILD_ROOT/../../../output
 if [ -d $OUT_DIR/android_armv7 ];then
 	rm -rf $OUT_DIR/android_armv7
-	mkdir -p $OUT_DIR/android_armv7/include
-    mkdir -p $OUT_DIR/android_armv7/lib
+    mkdir -p $OUT_DIR/android_armv7
 else
-    mkdir -p $OUT_DIR/android_armv7/include
-    mkdir -p $OUT_DIR/android_armv7/lib
+    mkdir -p $OUT_DIR/android_armv7
 fi
 
 cp -r include/ $OUT_DIR/android_armv7/include

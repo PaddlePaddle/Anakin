@@ -320,6 +320,12 @@ typedef enum{
     PAD_EDGE = 1,
     PAD_REFLECT = 2,
 } PadMode;
+
+typedef enum{
+    SUM = 0,
+    SUB = 1,
+    MUL = 2,
+} ArithmeticType;
 } //namespace saber
 } //namespace anakin
 #endif //ANAKIN_SABER_CORE_TYPES_H

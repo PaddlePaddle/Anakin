@@ -168,8 +168,38 @@ Status generate_graph_with_graph_proto(graph::Graph<Ttype, Ptype>* graph, GraphP
     return Status::OK();
 }
 
-template<typename Ttype, Precision Ptype> 
-Status generate_graph_proto(graph::Graph<Ttype, Ptype>* graph, GraphProto& graph_proto) {
+template<typename Ttype, Precision Ptype>
+Status load(graph::Graph<Ttype, Ptype>* graph, const char* model_path) {
+    GraphProto graph_proto;
+    parse_graph_proto(graph_proto, model_path);
+    return generate_graph_with_graph_proto(graph, graph_proto);
+}
+
+template<typename Ttype, Precision Ptype>
+Status load(graph::Graph<Ttype, Ptype>* graph, const char* buffer, size_t len) {
+    GraphProto graph_proto;
+    parse_graph_proto(graph_proto, buffer, len);
+    return generate_graph_with_graph_proto(graph, graph_proto);
+}
+
+#ifndef USE_NANOPB
+template<typename Ttype, Precision Ptype>
+Status save(graph::Graph<Ttype, Ptype>* graph, std::string& model_path) {
+    return save(graph, model_path.c_str());
+}
+
+template<typename Ttype, Precision Ptype>
+Status save(graph::Graph<Ttype, Ptype>* graph, const char* model_path) {
+    std::fstream output(model_path, std::ios::out | std::ios::trunc | std::ios::binary);
+
+    if (!output) {
+        LOG(ERROR) << model_path << " : File not found. ";
+        return Status::ANAKINFAIL("File not found");
+    }
+
+    GraphProto graph_proto;
+    // TODO...  fill the graph_proto with graph.
+    // set graph proto name
     graph_proto.set_name(graph->name());
 
     // fill the graph proto with ins/outs
@@ -246,40 +276,7 @@ Status generate_graph_proto(graph::Graph<Ttype, Ptype>* graph, GraphProto& graph
     summary->set_system_mem_used(graph->statistics.template get_info<graph::SYSTEM_MEM>());
     summary->set_model_mem_used(graph->statistics.template get_info<graph::MODEL_MEM>());
 
-    return Status::OK();
-}
-
-
-template<typename Ttype, Precision Ptype>
-Status load(graph::Graph<Ttype, Ptype>* graph, const char* model_path) {
-    GraphProto graph_proto;
-    parse_graph_proto(graph_proto, model_path);
-    return generate_graph_with_graph_proto(graph, graph_proto);
-}
-
-template<typename Ttype, Precision Ptype>
-Status load(graph::Graph<Ttype, Ptype>* graph, const char* buffer, size_t len) {
-    GraphProto graph_proto;
-    parse_graph_proto(graph_proto, buffer, len);
-    return generate_graph_with_graph_proto(graph, graph_proto);
-}
-
-#ifndef USE_NANOPB
-template<typename Ttype, Precision Ptype>
-Status save(graph::Graph<Ttype, Ptype>* graph, std::string& model_path) {
-    return save(graph, model_path.c_str());
-}
-
-template<typename Ttype, Precision Ptype>
-Status save(graph::Graph<Ttype, Ptype>* graph, const char* model_path) {
-    std::fstream output(model_path, std::ios::out | std::ios::trunc | std::ios::binary);
-    if (!output) {
-        LOG(ERROR) << model_path << " : File not found. ";
-        return Status::ANAKINFAIL("File not found");
-    }
-
-    GraphProto graph_proto;
-    generate_graph_proto(graph, graph_proto);
+    //  save graph proto to disk
     graph_proto.SerializeToOstream(&output);
 
     return Status::OK();
@@ -306,13 +303,6 @@ template
 Status load<NV, Precision::FP16>(graph::Graph<NV, Precision::FP16>* graph, std::string& model_path);
 template
 Status load<NV, Precision::INT8>(graph::Graph<NV, Precision::INT8>* graph, std::string& model_path);
-
-template
-Status generate_graph_proto(graph::Graph<NV, Precision::FP32>* graph, GraphProto& graph_proto);
-template
-Status generate_graph_proto(graph::Graph<NV, Precision::FP16>* graph, GraphProto& graph_proto);
-template
-Status generate_graph_proto(graph::Graph<NV, Precision::INT8>* graph, GraphProto& graph_proto);
 
 template
 Status save<NV, Precision::FP32>(graph::Graph<NV, Precision::FP32>* graph, const char* model_path);
@@ -344,14 +334,6 @@ template
 Status save<X86, Precision::FP16>(graph::Graph<X86, Precision::FP16>* graph, std::string& model_path);
 template
 Status save<X86, Precision::INT8>(graph::Graph<X86, Precision::INT8>* graph, std::string& model_path);
-
-template
-Status generate_graph_proto(graph::Graph<X86, Precision::FP32>* graph, GraphProto& graph_proto);
-template
-Status generate_graph_proto(graph::Graph<X86, Precision::FP16>* graph, GraphProto& graph_proto);
-template
-Status generate_graph_proto(graph::Graph<X86, Precision::INT8>* graph, GraphProto& graph_proto);
-
 #endif
 
 template
@@ -391,8 +373,6 @@ template
 Status save<ARM, Precision::FP32>(graph::Graph<ARM, Precision::FP32>* graph, std::string& model_path);
 template
 Status save<ARM, Precision::FP32>(graph::Graph<ARM, Precision::FP32>* graph, const char* model_path);
-template
-Status generate_graph_proto(graph::Graph<ARM, Precision::FP32>* graph, GraphProto& graph_proto);
 #endif
 #endif
 
@@ -408,8 +388,6 @@ template
 Status save<ARM, Precision::FP16>(graph::Graph<ARM, Precision::FP16>* graph, std::string& model_path);
 template
 Status save<ARM, Precision::FP16>(graph::Graph<ARM, Precision::FP16>* graph, const char* model_path);
-template
-Status generate_graph_proto(graph::Graph<ARM, Precision::FP16>* graph, GraphProto& graph_proto);
 #endif
 #endif
 
@@ -425,8 +403,6 @@ template
 Status save<ARM, Precision::INT8>(graph::Graph<ARM, Precision::INT8>* graph, const char* model_path);
 template
 Status save<ARM, Precision::INT8>(graph::Graph<ARM, Precision::INT8>* graph, std::string& model_path);
-template
-Status generate_graph_proto(graph::Graph<ARM, Precision::INT8>* graph, GraphProto& graph_proto);
 #endif
 #endif
 #endif // ifdef USE_ARM_PLACE
@@ -468,14 +444,6 @@ template
 Status save<AMD, Precision::FP16>(graph::Graph<AMD, Precision::FP16>* graph, const char* model_path);
 template
 Status save<AMD, Precision::INT8>(graph::Graph<AMD, Precision::INT8>* graph, const char* model_path);
-
-template
-Status generate_graph_proto(graph::Graph<AMD, Precision::FP32>* graph, GraphProto& graph_proto);
-template
-Status generate_graph_proto(graph::Graph<AMD, Precision::FP16>* graph, GraphProto& graph_proto);
-template
-Status generate_graph_proto(graph::Graph<AMD, Precision::INT8>* graph, GraphProto& graph_proto);
-
 #endif
 #endif
 

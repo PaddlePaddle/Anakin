@@ -382,13 +382,13 @@ def Parser_convolutiondepthwise(args):
         OpsRegister()["Convolution"].axis = 1
     OpsRegister()["Convolution"].bias_term = convolution_param.bias_term
 
-@ParserFeedDecorator("Cropping")
+@ParserFeedDecorator("Crop")
 def Parser_crop(args):
     layer = args[1]
     # parser caffe parameter
     crop_param = layer.crop_param
-    OpsRegister()["Cropping"].cropping = list(crop_param.offset)
-    OpsRegister()["Cropping"].axis = crop_param.axis
+    OpsRegister()["Crop"].cropping = list(crop_param.offset)
+    OpsRegister()["Crop"].axis = crop_param.axis
 
 
 @ParserFeedDecorator("Dropout")
@@ -1222,6 +1222,14 @@ def Parser_interp(args):
     OpsRegister()["Interp"].pad_beg = interp_param.pad_beg
     OpsRegister()["Interp"].pad_end = interp_param.pad_end
 
+@ParserFeedDecorator("RoiPool")
+def Parser_roi_pool(args):
+    layer = args[1]
+    roi_pool_param = layer.roi_pool_param
+    OpsRegister()["RoiPool"].pooled_h = roi_pool_param.pooled_h
+    OpsRegister()["RoiPool"].pooled_w = roi_pool_param.pooled_w
+    OpsRegister()["RoiPool"].spatial_scale = roi_pool_param.spatial_scale
+
 # caffe layer parameter parser map
 CAFFE_LAYER_PARSER = {
                 "Split": OpsParam().set_parser(Parser_split),
@@ -1293,5 +1301,6 @@ CAFFE_LAYER_PARSER = {
                 "ShuffleChannel": OpsParam().set_parser(Parser_ShuffleChannel),
                 "Coord2Patch": OpsParam().set_parser(Parser_Coord2Patch),
                 "RoisAnchorFeature": OpsParam().set_parser(Parser_rois_anchor_feature),
-                "Interp": OpsParam().set_parser(Parser_interp)
+                "Interp": OpsParam().set_parser(Parser_interp),
+                "ROIPooling": OpsParam().set_parser(Parser_roi_pool)
                 }

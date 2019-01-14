@@ -17,6 +17,8 @@ set(ANAKIN_SABER_STATIC_RELAY "" )
 set(ANAKIN_SABER_BASE_SRC "")
 anakin_fetch_include_recursively(${ANAKIN_SABER})
 anakin_fetch_include_recursively(${ANAKIN_UTILS})
+anakin_fetch_include_recursively(${ANAKIN_THIRD_PARTY_PATH}/hash)
+
 
 # add ak_base_source files
 anakin_fetch_files_with_suffix(${ANAKIN_SABER}/core "cpp" ANAKIN_SABER_BASE_SRC)
@@ -53,6 +55,9 @@ endif()
 if(USE_X86_PLACE)
     anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/x86 "cpp" ANAKIN_SABER_BASE_SRC)
     anakin_fetch_files_with_suffix(${ANAKIN_SABER}/funcs/impl/x86/kernel "cpp" ANAKIN_SABER_BASE_SRC)
+    anakin_fetch_files_with_suffix(${ANAKIN_THIRD_PARTY_PATH}/hash/src/bloomfilter "c" ANAKIN_SABER_BASE_SRC)
+    anakin_fetch_files_with_suffix(${ANAKIN_THIRD_PARTY_PATH}/hash/src/xxHash "c" ANAKIN_SABER_BASE_SRC)
+    
 endif()
 
 # compile cpp objs

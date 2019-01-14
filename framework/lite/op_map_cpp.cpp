@@ -15,7 +15,7 @@ std::string not_impl_yet(graph::AttrInfo&,
                          std::string& weights_ptr_name,
                          WeightsWritter& writter,
                          bool gen_param,
-                         bool lite_mode,
+                         int lite_mode,
                          DataType op_precision) {
     LOG(INFO) << "Target "<< op_class_name << "Parsing not impl yet. continue ...";
     return "";
@@ -29,7 +29,7 @@ std::string ParserConvolution(graph::AttrInfo& attr,
                               std::string& weights_ptr_name,
                               WeightsWritter& writter,
                               bool gen_param,
-                              bool lite_mode,
+                              int lite_mode,
                               DataType op_precision) {
     // parsing parameter
     auto group = get_attr<int>("group", attr);
@@ -143,7 +143,7 @@ std::string ParserPower(graph::AttrInfo& attr,
                         std::string& weights_ptr_name,
                         WeightsWritter& writter,
                         bool gen_param,
-                        bool lite_mode,
+                        int lite_mode,
                         DataType op_precision) {
     // parsing parameter
     auto power = get_attr<float>("power", attr);
@@ -169,7 +169,7 @@ std::string ParserDeconvolution(graph::AttrInfo& attr,
                               std::string& weights_ptr_name,
                               WeightsWritter& writter,
                               bool gen_param,
-                              bool lite_mode,
+                              int lite_mode,
                               DataType op_precision) {
     // parsing parameter
     auto group = get_attr<int>("group", attr);
@@ -282,7 +282,7 @@ std::string ParserDeConvolutionRelu(graph::AttrInfo& attr,
                                   std::string& weights_ptr_name,
                                   WeightsWritter& writter,
                                   bool gen_param,
-                                  bool lite_mode,
+                                  int lite_mode,
                                   DataType op_precision) {
     // parsing parameter
     auto group = get_attr<int>("group", attr);
@@ -395,7 +395,7 @@ std::string ParserConvolutionRelu(graph::AttrInfo& attr,
                                   std::string& weights_ptr_name,
                                   WeightsWritter& writter,
                                   bool gen_param,
-                                  bool lite_mode,
+                                  int lite_mode,
                                   DataType op_precision) {
     // parsing parameter
     auto group = get_attr<int>("group", attr);
@@ -508,7 +508,7 @@ std::string ParserConvAct(graph::AttrInfo& attr,
                                   std::string& weights_ptr_name,
                                   WeightsWritter& writter,
                                   bool gen_param,
-                                  bool lite_mode,
+                                  int lite_mode,
                                   DataType op_precision) {
     // parsing parameter
     auto group = get_attr<int>("group", attr);
@@ -663,7 +663,7 @@ std::string ParserConvolutionReluPool(graph::AttrInfo& attr,
                                   std::string& weights_ptr_name,
                                   WeightsWritter& writter,
                                   bool gen_param,
-                                  bool lite_mode,
+                                  int lite_mode,
                                   DataType op_precision) {
     // parsing parameter
     auto group = get_attr<int>("group", attr);
@@ -814,7 +814,7 @@ std::string ParserConvBatchnorm(graph::AttrInfo& attr,
                                 std::string& weights_ptr_name,
                                 WeightsWritter& writter,
                                 bool gen_param,
-                                bool lite_mode,
+                                int lite_mode,
                                 DataType op_precision) {
     // parsing parameter
     auto group = get_attr<int>("group", attr);
@@ -858,7 +858,6 @@ std::string ParserConvBatchnorm(graph::AttrInfo& attr,
     }
 
     auto offset_info = writter.get_weights_by_name(node_name);
-
     // gen cpp code
     CodeWritter code_w;
     if (gen_param) {
@@ -886,8 +885,9 @@ std::string ParserConvBatchnorm(graph::AttrInfo& attr,
                     0.f, //act_coef
                     0, //prelu, channel_shared
                     0/*prelu weights*/);
+
     } else {
-        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s+%d,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d);\n",
+        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%d,%s+%d,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d);\n",
                     node_name.c_str(),
                     weights_size,
                     num_output,
@@ -923,7 +923,7 @@ std::string ParserConvBatchnormScale(graph::AttrInfo& attr,
                                      std::string& weights_ptr_name,
                                      WeightsWritter& writter,
                                      bool gen_param,
-                                     bool lite_mode,
+                                     int lite_mode,
                                      DataType op_precision) {
     // parsing parameter
     auto group = get_attr<int>("group", attr);
@@ -1033,7 +1033,7 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
                                          std::string& weights_ptr_name,
                                          WeightsWritter& writter,
                                          bool gen_param,
-                                         bool lite_mode,
+                                         int lite_mode,
                                          DataType op_precision) {
     // parsing parameter
     auto group = get_attr<int>("group", attr);
@@ -1147,7 +1147,7 @@ std::string ParserConvBatchnormScaleReluPool(graph::AttrInfo& attr,
                                          std::string& weights_ptr_name,
                                          WeightsWritter& writter,
                                          bool gen_param,
-                                         bool lite_mode,
+                                         int lite_mode,
                                          DataType op_precision) {
     // parsing parameter
     auto group = get_attr<int>("group", attr);
@@ -1299,7 +1299,7 @@ std::string ParserConcat(graph::AttrInfo& attr,
                          std::string& weights_ptr_name,
                          WeightsWritter& writter,
                          bool gen_param,
-                         bool lite_mode,
+                         int lite_mode,
                          DataType op_precision) {
     // parsing parameter
     auto axis = get_attr<int>("axis", attr);
@@ -1323,7 +1323,7 @@ std::string ParserDectionOutput(graph::AttrInfo& attr,
                                 std::string& weights_ptr_name,
                                 WeightsWritter& writter,
                                 bool gen_param,
-                                bool lite_mode,
+                                int lite_mode,
                                 DataType op_precision) {
     // parsing parameter
     auto flag_share_location = get_attr<bool>("share_location", attr);
@@ -1387,7 +1387,7 @@ std::string ParserEltwise(graph::AttrInfo& attr,
                           std::string& weights_ptr_name,
                           WeightsWritter& writter,
                           bool gen_param,
-                          bool lite_mode,
+                          int lite_mode,
                           DataType op_precision) {
     // parsing parameter
     auto type = get_attr<std::string>("type", attr);
@@ -1445,7 +1445,7 @@ std::string ParserEltwiseRelu(graph::AttrInfo& attr,
                           std::string& weights_ptr_name,
                           WeightsWritter& writter,
                           bool gen_param,
-                          bool lite_mode,
+                          int lite_mode,
                           DataType op_precision) {
     // parsing parameter
     auto type = get_attr<std::string>("type", attr);
@@ -1509,7 +1509,7 @@ std::string ParserEltwisePRelu(graph::AttrInfo& attr,
                           std::string& weights_ptr_name,
                           WeightsWritter& writter,
                           bool gen_param,
-                          bool lite_mode,
+                          int lite_mode,
                           DataType op_precision) {
     // parsing parameter
     auto type = get_attr<std::string>("type", attr);
@@ -1584,7 +1584,7 @@ std::string ParserActivation(graph::AttrInfo& attr,
                              std::string& weights_ptr_name,
                              WeightsWritter& writter,
                              bool gen_param,
-                             bool lite_mode,
+                             int lite_mode,
                              DataType op_precision) {
     // parsing parameter
     auto type = get_attr<std::string>("type", attr);
@@ -1681,7 +1681,7 @@ std::string ParserRelu(graph::AttrInfo& attr,
                        std::string& weights_ptr_name,
                        WeightsWritter& writter,
                        bool gen_param,
-                       bool lite_mode,
+                       int lite_mode,
                        DataType op_precision) {
     // parsing parameter
     auto alpha = get_attr<float>("alpha", attr);
@@ -1711,7 +1711,7 @@ std::string ParserFc(graph::AttrInfo& attr,
                      std::string& weights_ptr_name,
                      WeightsWritter& writter,
                      bool gen_param,
-                     bool lite_mode,
+                     int lite_mode,
                      DataType op_precision) {
     // parsing parameter
     auto axis = get_attr<int>("axis", attr);
@@ -1791,7 +1791,7 @@ std::string ParserPermute(graph::AttrInfo& attr,
                           std::string& weights_ptr_name,
                           WeightsWritter& writter,
                           bool gen_param,
-                          bool lite_mode,
+                          int lite_mode,
                           DataType op_precision) {
     // parsing parameter
     auto dims = get_attr<PTuple<int>>("dims", attr);
@@ -1832,7 +1832,7 @@ std::string ParserPooling(graph::AttrInfo& attr,
                           std::string& weights_ptr_name,
                           WeightsWritter& writter,
                           bool gen_param,
-                          bool lite_mode,
+                          int lite_mode,
                           DataType op_precision) {
     // parsing parameter
     auto ceil_mode = !get_attr<bool>("cmp_out_shape_floor_as_conv", attr);
@@ -1892,7 +1892,7 @@ std::string ParserPriorBox(graph::AttrInfo& attr,
                            std::string& weights_ptr_name,
                            WeightsWritter& writter,
                            bool gen_param,
-                           bool lite_mode,
+                           int lite_mode,
                            DataType op_precision) {
     // parsing parameter
     auto min_size  = get_attr<PTuple<float>>("min_size", attr);
@@ -2059,7 +2059,7 @@ std::string ParserSlice(graph::AttrInfo& attr,
                         std::string& weights_ptr_name,
                         WeightsWritter& writter,
                         bool gen_param,
-                        bool lite_mode,
+                        int lite_mode,
                         DataType op_precision) {
     // parsing parameter
     auto slice_dim = get_attr<int>("slice_dim", attr);
@@ -2103,7 +2103,7 @@ std::string ParserScale(graph::AttrInfo& attr,
                         std::string& weights_ptr_name,
                         WeightsWritter& writter,
                         bool gen_param,
-                        bool lite_mode,
+                        int lite_mode,
                         DataType op_precision) {
     // parsing parameter
     auto num_axes = get_attr<int>("num_axes", attr);
@@ -2164,7 +2164,7 @@ std::string ParserBatchNorm(graph::AttrInfo& attr,
                         std::string& weights_ptr_name,
                         WeightsWritter& writter,
                         bool gen_param,
-                        bool lite_mode,
+                        int lite_mode,
                         DataType op_precision) {
 
     // get batchnorm param
@@ -2251,7 +2251,7 @@ std::string ParserSoftmax(graph::AttrInfo& attr,
                           std::string& weights_ptr_name,
                           WeightsWritter& writter,
                           bool gen_param,
-                          bool lite_mode,
+                          int lite_mode,
                           DataType op_precision) {
     // parsing parameter
     auto axis = get_attr<int>("axis", attr);
@@ -2279,7 +2279,7 @@ std::string ParserShuffleChannel(graph::AttrInfo& attr,
                               std::string& weights_ptr_name,
                               WeightsWritter& writter,
                               bool gen_param,
-                              bool lite_mode,
+                              int lite_mode,
                               DataType op_precision) {
     // parsing parameter
     auto group = get_attr<int>("group", attr);
@@ -2307,7 +2307,7 @@ std::string ParserCoord2Patch(graph::AttrInfo& attr,
                                  std::string& weights_ptr_name,
                                  WeightsWritter& writter,
                                  bool gen_param,
-                                 bool lite_mode,
+                                 int lite_mode,
                                  DataType op_precision) {
     // parsing parameter
     auto img_h = get_attr<int>("img_h", attr);
@@ -2337,7 +2337,7 @@ std::string ParserSplit(graph::AttrInfo& attr,
                           std::string& weights_ptr_name,
                           WeightsWritter& writter,
                           bool gen_param,
-                          bool lite_mode,
+                          int lite_mode,
                           DataType op_precision) {
     // parsing parameter
     // no param
@@ -2361,7 +2361,7 @@ std::string ParserFlatten(graph::AttrInfo& attr,
                           std::string& weights_ptr_name,
                           WeightsWritter& writter,
                           bool gen_param,
-                          bool lite_mode,
+                          int lite_mode,
                           DataType op_precision) {
     // parsing parameter
     // no param
@@ -2385,7 +2385,7 @@ std::string ParserReshape(graph::AttrInfo& attr,
                                std::string& weights_ptr_name,
                                WeightsWritter& writter,
                                bool gen_param,
-                               bool lite_mode,
+                               int lite_mode,
                                DataType op_precision) {
     // parsing parameter
     auto dims = get_attr<PTuple<int>>("dims", attr);
@@ -2424,7 +2424,7 @@ std::string ParserResize(graph::AttrInfo& attr,
                           std::string& weights_ptr_name,
                           WeightsWritter& writter,
                           bool gen_param,
-                          bool lite_mode,
+                          int lite_mode,
                           DataType op_precision) {
     // parsing parameter
     float width_scale = 0.f;
@@ -2477,7 +2477,7 @@ std::string ParserNormalize(graph::AttrInfo& attr,
                           std::string& weights_ptr_name,
                           WeightsWritter& writter,
                           bool gen_param,
-                          bool lite_mode,
+                          int lite_mode,
                           DataType op_precision) {
     // parsing parameter
     auto eps = get_attr<float>("eps", attr);
