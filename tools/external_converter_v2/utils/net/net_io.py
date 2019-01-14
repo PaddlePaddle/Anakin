@@ -3,7 +3,6 @@
 
 import os
 import sys
-sys.path.append("../../")
 
 from parser.proto import net_pb2
 from parser.graph_io import GraphProtoIO

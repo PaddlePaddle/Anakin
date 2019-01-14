@@ -302,6 +302,9 @@ class GraphProtoIO(object):
                 return node
 
     def get_node_io(self, node_name):
+        """
+        get node's io by name
+        """
         node_proto = self.find_node_proto(node_name)
         assert node_proto is not None
         node_io = NodeProtoIO(node_proto)

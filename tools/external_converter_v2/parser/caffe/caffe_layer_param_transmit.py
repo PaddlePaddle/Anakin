@@ -481,7 +481,7 @@ def Parser_lrn(args):
     # parser caffe parameter
     lrn_param = layer.lrn_param
     OpsRegister()["LRN"].local_size = lrn_param.local_size
-    OpsRegister()["LRN"].alpha = lrn_param.alpha
+    OpsRegister()["LRN"].alpha = lrn_param.alpha / lrn_param.local_size
     OpsRegister()["LRN"].beta = lrn_param.beta
     norm_region = ""
     if lrn_param.norm_region == LRNParameter.ACROSS_CHANNELS:
