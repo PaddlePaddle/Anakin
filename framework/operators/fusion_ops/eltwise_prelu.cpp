@@ -4,44 +4,16 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void EltwiseActivation<NV, Precision::FP32>::operator()(
-    OpContext<NV>& ctx,
-    const std::vector<Tensor4dPtr<NV> >& ins,
-    std::vector<Tensor4dPtr<NV> >& outs) {
-    auto* impl = static_cast<EltwiseActivationHelper<NV, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<EltwiseActivationHelper<NV, Precision::FP32>*>
-                  (this->_helper)->_param_eltwise_prelu;
-    impl->_funcs_eltwise_prelu(ins, outs, param, ctx);
+#define INSTANCE_ELTWISE_PRELU(Ttype, Ptype) \
+template<> \
+void EltwiseActivation<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+    const std::vector<Tensor4dPtr<Ttype> >& ins, \
+    std::vector<Tensor4dPtr<Ttype> >& outs) { \
+    auto* impl = static_cast<EltwiseActivationHelper<Ttype, Ptype>*>(this->_helper); \
+    auto& param = static_cast<EltwiseActivationHelper<Ttype, Ptype>*> \
+                  (this->_helper)->_param_eltwise_prelu; \
+    impl->_funcs_eltwise_prelu(ins, outs, param, ctx); \
 }
-#endif
-#ifdef USE_ARM_PLACE
-template<>
-void EltwiseActivation<ARM, Precision::FP32>::operator()(
-    OpContext<ARM>& ctx,
-    const std::vector<Tensor4dPtr<ARM> >& ins,
-    std::vector<Tensor4dPtr<ARM> >& outs) {
-    auto* impl = static_cast<EltwiseActivationHelper<ARM, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<EltwiseActivationHelper<ARM, Precision::FP32>*>
-                  (this->_helper)->_param_eltwise_prelu;
-    impl->_funcs_eltwise_prelu(ins, outs, param, ctx);
-}
-#endif
-#if defined USE_X86_PLACE || defined BUILD_LITE
-template<>
-void EltwiseActivation<X86, Precision::FP32>::operator()(
-    OpContext<X86>& ctx,
-    const std::vector<Tensor4dPtr<X86> >& ins,
-    std::vector<Tensor4dPtr<X86> >& outs) {
-    auto* impl = static_cast<EltwiseActivationHelper<X86, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<EltwiseActivationHelper<X86, Precision::FP32>*>
-                  (this->_helper)->_param_eltwise_prelu;
-    impl->_funcs_eltwise_prelu(ins, outs, param, ctx);
-}
-#endif
-/// TODO ... specialization other type of operator
-
 
 /// set helper
 template<typename Ttype, Precision Ptype>
@@ -108,18 +80,21 @@ Status EltwiseActivationHelper<Ttype, Ptype>::InferShape(const
 }
 
 #ifdef USE_CUDA
+INSTANCE_ELTWISE_PRELU(NV, Precision::FP32);
 template class EltwiseActivationHelper<NV, Precision::FP32>;
 template class EltwiseActivationHelper<NV, Precision::FP16>;
 template class EltwiseActivationHelper<NV, Precision::INT8>;
 #endif
 
 #ifdef USE_ARM_PLACE
+INSTANCE_ELTWISE_PRELU(ARM, Precision::FP32);
 template class EltwiseActivationHelper<ARM, Precision::FP32>;
 template class EltwiseActivationHelper<ARM, Precision::FP16>;
 template class EltwiseActivationHelper<ARM, Precision::INT8>;
 #endif
 
 #if defined(USE_X86_PLACE) || defined(BUILD_LITE)
+INSTANCE_ELTWISE_PRELU(X86, Precision::FP32);
 template class EltwiseActivationHelper<X86, Precision::FP32>;
 #endif
 
@@ -147,6 +122,9 @@ ANAKIN_REGISTER_OP(EltwiseActivation)
 #endif
 #if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 .__alias__<X86, Precision::FP32>("eltwise_prelu")
+#endif
+#ifdef AMD_GPU
+//.__alias__<AMD, Precision::FP32>("eltwise_prelu")
 #endif
 .num_in(1)
 .num_out(1)

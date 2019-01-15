@@ -41,11 +41,17 @@ Status DeconvReluHelper<Ttype, Ptype>::InitParam() {
     
 	using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
-    // fixme, resize deconv weights scale
+    // resize weights scale
+    auto& w = weights.h_tensor();
+    if (w.get_scale().size() == 1){
+        float scale_tmp = w.get_scale()[0];
+        std::vector<float> w_scale(filter_num, scale_tmp);
+        w.set_scale(w_scale);
+    }
     
     // get relu param
     auto alpha = GET_PARAMETER(float, relu_0_alpha);
-    ActivationParam<Ttype> active_param(Active_relu);//, alpha); // TEMP
+    ActivationParam<Ttype> active_param(Active_relu);
 
     if (bias_term) {
         auto bias = GET_PARAMETER(pblock_type, weight_2);
@@ -56,7 +62,7 @@ Status DeconvReluHelper<Ttype, Ptype>::InitParam() {
                                               active_param);
         _param_deconv_relu = conv_param;
     } else {
-        Tensor4d<Ttype>* bias = new Tensor4d<Ttype>();;
+        Tensor4d<Ttype>* bias = new Tensor4d<Ttype>();
         saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
                                               strides[0], strides[1],
                                               dilation_rate[0], dilation_rate[1],

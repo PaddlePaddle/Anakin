@@ -63,6 +63,9 @@ ANAKIN_REGISTER_OP(Coord2Patch)
 #ifdef USE_CUDA
 .__alias__<NV, Precision::FP32>("coord2patch")
 #endif
+#ifdef AMD_GPU
+//.__alias__<AMD, Precision::FP32>("coord2patch")
+#endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("coord2patch")
 #endif

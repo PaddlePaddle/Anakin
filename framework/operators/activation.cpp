@@ -101,7 +101,7 @@ ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, X86, Precision::FP32);
 INSTANCE_ACTIVATION(ARM, Precision::FP32);
 template class ActivationHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, ARM, Precision::FP32);
-#endif//arm
+#endif
 
 #ifdef AMD_GPU
 INSTANCE_ACTIVATION(AMD, Precision::FP32);

@@ -18,6 +18,10 @@
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/funcs/impl/impl_axpy.h"
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_axpy.h"
+#endif
+
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_axpy.h"
 #endif

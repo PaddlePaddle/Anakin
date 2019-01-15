@@ -4,7 +4,7 @@ namespace anakin {
 
 namespace ops {
 
-#define INSTANCE_ACTIVATION(Ttype, Ptype) \
+#define INSTANCE_ROI_ALIGN(Ttype, Ptype) \
 template<> \
 void RoiAlign<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
     const std::vector<Tensor4dPtr<Ttype> >& ins, \
@@ -50,7 +50,7 @@ Status RoiAlignHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Tt
 }
 
 #ifdef USE_CUDA
-INSTANCE_ACTIVATION(NV, Precision::FP32);
+INSTANCE_ROI_ALIGN(NV, Precision::FP32);
 
 template<>
 Status RoiAlignHelper<NV, Precision::FP32>::Init(OpContext<NV>& ctx, 
@@ -63,21 +63,21 @@ ANAKIN_REGISTER_OP_HELPER(RoiAlign, RoiAlignHelper, NV, Precision::FP32);
 #endif
 
 #if defined USE_X86_PLACE || defined BUILD_LITE
-INSTANCE_ACTIVATION(X86, Precision::FP32);
-INSTANCE_ACTIVATION(X86, Precision::FP16);
-INSTANCE_ACTIVATION(X86, Precision::INT8);
+INSTANCE_ROI_ALIGN(X86, Precision::FP32);
+INSTANCE_ROI_ALIGN(X86, Precision::FP16);
+INSTANCE_ROI_ALIGN(X86, Precision::INT8);
 template class RoiAlignHelper<X86, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(RoiAlign, RoiAlignHelper, X86, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE
-INSTANCE_ACTIVATION(ARM, Precision::FP32);
+INSTANCE_ROI_ALIGN(ARM, Precision::FP32);
 template class RoiAlignHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(RoiAlign, RoiAlignHelper, ARM, Precision::FP32);
 #endif//arm
 
 #ifdef AMD_GPU
-INSTANCE_ACTIVATION(AMD, Precision::FP32);
+INSTANCE_ROI_ALIGN(AMD, Precision::FP32);
 template class RoiAlignHelper<AMD, Precision::FP32>;
 template class RoiAlignHelper<AMD, Precision::FP16>;
 template class RoiAlignHelper<AMD, Precision::INT8>;

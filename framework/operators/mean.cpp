@@ -4,36 +4,16 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void Mean<NV, Precision::FP32>::operator()(
-    OpContext<NV>& ctx,
-    const std::vector<Tensor4dPtr<NV> >& ins,
-    std::vector<Tensor4dPtr<NV> >& outs) {
-    auto* impl =
-        static_cast<MeanHelper<NV, Precision::FP32>*>(this->_helper);
-    auto& param =
-        static_cast<MeanHelper<NV, Precision::FP32>*>(this->_helper)->_param_mean;
-    impl->_funcs_mean(ins, outs, param, ctx);
+#define INSTANCE_MEAN(Ttype, Ptype) \
+template<> \
+void Mean<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+    const std::vector<Tensor4dPtr<Ttype> >& ins, \
+    std::vector<Tensor4dPtr<Ttype> >& outs) { \
+    auto* impl = static_cast<MeanHelper<Ttype, Ptype>*>(this->_helper); \
+    auto& param = static_cast<MeanHelper<Ttype, Ptype>*> \
+                  (this->_helper)->_param_mean; \
+    impl->_funcs_mean(ins, outs, param, ctx); \
 }
-#endif
-
-#ifdef USE_X86_PLACE
-template<>
-void Mean<X86, Precision::FP32>::operator()(
-        OpContext<X86>& ctx,
-        const std::vector<Tensor4dPtr<X86> >& ins,
-        std::vector<Tensor4dPtr<X86> >& outs) {
-    auto* impl =
-            static_cast<MeanHelper<X86, Precision::FP32>*>(this->_helper);
-    auto& param =
-            static_cast<MeanHelper<X86, Precision::FP32>*>(this->_helper)->_param_mean;
-    impl->_funcs_mean(ins, outs, param, ctx);
-}
-#endif
-
-/// TODO ... specialization other type of operator
-
 
 /// set helper
 template<typename Ttype, Precision Ptype>
@@ -65,31 +45,33 @@ Status MeanHelper<Ttype, Ptype>::InferShape(const
     return Status::OK();
 }
 
+#ifdef AMD_GPU
+INSTANCE_MEAN(AMD, Precision::FP32);
+template class MeanHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Mean, MeanHelper, AMD, Precision::FP32);
+#endif
 #ifdef USE_CUDA
+INSTANCE_MEAN(NV, Precision::FP32);
 template class MeanHelper<NV, Precision::FP32>;
 template class MeanHelper<NV, Precision::FP16>;
 template class MeanHelper<NV, Precision::INT8>;
-#endif
-#ifdef USE_ARM_PLACE
-template class MeanHelper<ARM, Precision::FP32>;
-template class MeanHelper<ARM, Precision::FP16>;
-template class MeanHelper<ARM, Precision::INT8>;
-#endif
-#ifdef USE_X86_PLACE
-template class MeanHelper<X86, Precision::FP32>;
-template class MeanHelper<X86, Precision::FP16>;
-template class MeanHelper<X86, Precision::INT8>;
-#endif
-// register helper
-#ifdef USE_CUDA
 ANAKIN_REGISTER_OP_HELPER(Mean, MeanHelper, NV, Precision::FP32);
 #endif
 #ifdef USE_ARM_PLACE
+INSTANCE_MEAN(ARM, Precision::FP32);
+template class MeanHelper<ARM, Precision::FP32>;
+template class MeanHelper<ARM, Precision::FP16>;
+template class MeanHelper<ARM, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(Mean, MeanHelper, ARM, Precision::FP32);
 #endif
 #ifdef USE_X86_PLACE
+INSTANCE_MEAN(X86, Precision::FP32);
+template class MeanHelper<X86, Precision::FP32>;
+template class MeanHelper<X86, Precision::FP16>;
+template class MeanHelper<X86, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(Mean, MeanHelper, X86, Precision::FP32);
 #endif
+
 //! register op
 ANAKIN_REGISTER_OP(Mean)
 .Doc("Mean operator")
@@ -101,6 +83,9 @@ ANAKIN_REGISTER_OP(Mean)
 #endif
 #ifdef USE_X86_PLACE
 .__alias__<X86, Precision::FP32>("mean")
+#endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("mean")
 #endif
 .num_in(1)
 .num_out(1)

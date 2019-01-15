@@ -244,6 +244,10 @@ ANAKIN_REGISTER_OP(ConvBatchnorm)
 #if defined BUILD_LITE
 .__alias__<X86, Precision::FP32>("convolution_batchnorm")
 #endif
+#ifdef AMD_GPU
+//.__alias__<AMD, Precision::FP32>("convolution_batchnorm")
+//.__alias__<AMD, Precision::INT8>("convolution_batchnorm")
+#endif
 .num_in(1)
 .num_out(1)
 .Args<int>("group", " group of conv ")

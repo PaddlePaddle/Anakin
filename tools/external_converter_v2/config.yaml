@@ -40,9 +40,9 @@
 ##--------------------------------------------------------------
 #
 OPTIONS:
-    Framework: CAFFE
+    Framework: HOUYI
     SavePath: ./output
-    ResultName: googlenet
+    ResultName: houyi
     Config:
         LaunchBoard: ON
         Server:
@@ -53,7 +53,7 @@ OPTIONS:
             path: /path/to/anakin_optimized/googlenet.anakin.bin.saved
     LOGGER:
         LogToPath: ./log/
-        WithColor: ON 
+        WithColor: ON
 
 TARGET:
     CAFFE:
@@ -82,3 +82,7 @@ TARGET:
 
     ONNX:
         ModelPath:
+
+    HOUYI:
+        ModelPath: /Users/chenjiao04/Downloads/for_sys/train.conf
+        WeightsPath: /Users/chenjiao04/Downloads/for_sys/model

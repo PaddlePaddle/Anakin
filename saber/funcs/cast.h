@@ -18,6 +18,9 @@
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/funcs/impl/impl_cast.h"
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_cast.h"
+#endif
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_cast.h"
 #endif

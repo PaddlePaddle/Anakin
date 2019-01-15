@@ -19,6 +19,10 @@
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/funcs/impl/impl_concat.h"
 
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_concat.h"
+#endif
+
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_concat.h"
 #endif

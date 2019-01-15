@@ -4,18 +4,16 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void DeformConvolution<NV, Precision::FP32>::operator()(
-    OpContext<NV>& ctx,
-    const std::vector<Tensor4dPtr<NV > >& ins,
-    std::vector<Tensor4dPtr<NV> >& outs) {
-    auto* impl = static_cast<DeformConvolutionHelper<NV, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<DeformConvolutionHelper<NV, Precision::FP32>*>
-                  (this->_helper)->_param_deform_conv;
-    impl->_funcs_deform_conv(ins, outs, param, ctx);
+#define INSTANCE_DEFORMCONVOLUTION(Ttype, Ptype) \
+template<> \
+void DeformConvolution<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+        const std::vector<Tensor4dPtr<Ttype> >& ins, \
+                std::vector<Tensor4dPtr<Ttype> >& outs) { \
+    auto* impl = static_cast<DeformConvolutionHelper<Ttype, Ptype>*>(this->_helper); \
+    auto& param = \
+        static_cast<DeformConvolutionHelper<Ttype, Ptype>*>(this->_helper)->_param_deform_conv; \
+    impl->_funcs_deform_conv(ins, outs, param, ctx); \
 }
-#endif
 
 /// TODO ... specialization other type of operator
 
@@ -76,23 +74,25 @@ Status DeformConvolutionHelper<Ttype, Ptype>::InferShape(const
 }
 
 #ifdef USE_CUDA
+INSTANCE_DEFORMCONVOLUTION(NV, Precision::FP32);
 template class DeformConvolutionHelper<NV, Precision::FP32>;
 template class DeformConvolutionHelper<NV, Precision::FP16>;
 template class DeformConvolutionHelper<NV, Precision::INT8>;
-#endif
-
-#ifdef USE_ARM_PLACE
-template class DeformConvolutionHelper<ARM, Precision::FP32>;
-template class DeformConvolutionHelper<ARM, Precision::FP16>;
-template class DeformConvolutionHelper<ARM, Precision::INT8>;
-#endif
-
-// register helper
-#ifdef USE_CUDA
 ANAKIN_REGISTER_OP_HELPER(DeformConvolution, DeformConvolutionHelper, NV, Precision::FP32);
 #endif
 
+#ifdef AMD_GPU
+INSTANCE_DEFORMCONVOLUTION(AMD, Precision::FP32);
+template class DeformConvolutionHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(DeformConvolution, DeformConvolutionHelper, AMD, Precision::FP32);
+#endif
+
+
 #ifdef USE_ARM_PLACE
+INSTANCE_DEFORMCONVOLUTION(ARM, Precision::FP32);
+template class DeformConvolutionHelper<ARM, Precision::FP32>;
+template class DeformConvolutionHelper<ARM, Precision::FP16>;
+template class DeformConvolutionHelper<ARM, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(DeformConvolution, DeformConvolutionHelper, ARM, Precision::FP32);
 #endif
 
@@ -104,6 +104,9 @@ ANAKIN_REGISTER_OP(DeformConvolution)
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("defromable_convolution")
+#endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("deformable_convolution")
 #endif
 .num_in(1)
 .num_out(1)

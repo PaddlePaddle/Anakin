@@ -1,21 +1,22 @@
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
 #include "framework/operators/axpy.h"
 
 namespace anakin {
 
 namespace ops {
-
-//#ifdef USE_CUDA
-//template<>
-//void Axpy<NV, AK_FLOAT, Precision::FP32>::operator()(
-//    OpContext<NV>& ctx,
-//    const std::vector<Tensor4dPtr<NV, AK_FLOAT> >& ins,
-//    std::vector<Tensor4dPtr<NV, AK_FLOAT> >& outs) {
-//    auto* impl =
-//        static_cast<AxpyHelper<NV, AK_FLOAT, Precision::FP32>*>(this->_helper);
-//    auto& param = impl->_param_axpy;
-//    impl->_funcs_axpy(ins, outs, param, ctx);
-//}
-//#endif
 
 /// TODO ... specialization other type of operator
 #define INSTANCE_AXPY(Ttype, Ptype) \
@@ -67,6 +68,14 @@ template class AxpyHelper<NV, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(Axpy, AxpyHelper, NV, Precision::FP32);
 #endif
 
+#ifdef AMD_GPU
+INSTANCE_AXPY(AMD, Precision::FP32);
+template class AxpyHelper<AMD, Precision::FP32>;
+template class AxpyHelper<AMD, Precision::FP16>;
+template class AxpyHelper<AMD, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Axpy, AxpyHelper, AMD, Precision::FP32);
+#endif
+
 #if defined USE_X86_PLACE || defined BUILD_LITE
 INSTANCE_AXPY(X86, Precision::FP32);
 template class AxpyHelper<X86, Precision::FP32>;
@@ -104,6 +113,9 @@ ANAKIN_REGISTER_OP(Axpy)
 #endif
 #if defined USE_X86_PLACE || defined BUILD_LITE
 .__alias__<X86, Precision::FP32>("axpy")
+#endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("axpy")
 #endif
 .num_in(3)
 .num_out(1);

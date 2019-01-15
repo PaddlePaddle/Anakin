@@ -316,10 +316,10 @@ void trans_deconv_weights_inplace(Tensor<X86>& th, DataType op_precision, int li
         th.set_scale(scale);
     }
     if (lite_mode == 1) {
-        trans_weights_dtype_basic(th, AK_INT8, 127.0f, false);
+        trans_weights_dtype_basic(th, AK_INT8, 127.0f, true);
         return;
     } else if (lite_mode == 2){
-        trans_weights_dtype_basic(th, AK_INT16, 32767.0f, false);
+        trans_weights_dtype_basic(th, AK_INT16, 32767.0f, true);
         return;
     }
 

@@ -4,7 +4,7 @@ namespace anakin {
 
 namespace ops {
 
-#define INSTANCE_ACTIVATION(Ttype, Ptype) \
+#define INSTANCE_GENERATE_PROPOSALS(Ttype, Ptype) \
 template<> \
 void GenerateProposals<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
     const std::vector<Tensor4dPtr<Ttype> >& ins, \
@@ -51,7 +51,7 @@ Status GenerateProposalsHelper<Ttype, Ptype>::InferShape(const std::vector<Tenso
 }
 
 #ifdef USE_CUDA
-INSTANCE_ACTIVATION(NV, Precision::FP32);
+INSTANCE_GENERATE_PROPOSALS(NV, Precision::FP32);
 
 template<>
 Status GenerateProposalsHelper<NV, Precision::FP32>::Init(OpContext<NV>& ctx, 
@@ -64,21 +64,21 @@ ANAKIN_REGISTER_OP_HELPER(GenerateProposals, GenerateProposalsHelper, NV, Precis
 #endif
 
 #if defined USE_X86_PLACE || defined BUILD_LITE
-INSTANCE_ACTIVATION(X86, Precision::FP32);
-INSTANCE_ACTIVATION(X86, Precision::FP16);
-INSTANCE_ACTIVATION(X86, Precision::INT8);
+INSTANCE_GENERATE_PROPOSALS(X86, Precision::FP32);
+INSTANCE_GENERATE_PROPOSALS(X86, Precision::FP16);
+INSTANCE_GENERATE_PROPOSALS(X86, Precision::INT8);
 template class GenerateProposalsHelper<X86, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(GenerateProposals, GenerateProposalsHelper, X86, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE
-INSTANCE_ACTIVATION(ARM, Precision::FP32);
+INSTANCE_GENERATE_PROPOSALS(ARM, Precision::FP32);
 template class GenerateProposalsHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(GenerateProposals, GenerateProposalsHelper, ARM, Precision::FP32);
 #endif//arm
 
 #ifdef AMD_GPU
-INSTANCE_ACTIVATION(AMD, Precision::FP32);
+INSTANCE_GENERATE_PROPOSALS(AMD, Precision::FP32);
 template class GenerateProposalsHelper<AMD, Precision::FP32>;
 template class GenerateProposalsHelper<AMD, Precision::FP16>;
 template class GenerateProposalsHelper<AMD, Precision::INT8>;

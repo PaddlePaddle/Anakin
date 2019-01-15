@@ -64,18 +64,24 @@ ANAKIN_REGISTER_OP_HELPER(SequenceExpand, SequenceExpandHelper, NV, Precision::F
 #endif
 
 #ifdef USE_X86_PLACE
-INSTANCE_SEQUENCE_EXPAND(X86,  Precision::FP32);
-INSTANCE_SEQUENCE_EXPAND(X86,  Precision::FP16);
-INSTANCE_SEQUENCE_EXPAND(X86,  Precision::INT8);
+INSTANCE_SEQUENCE_EXPAND(X86, Precision::FP32);
+INSTANCE_SEQUENCE_EXPAND(X86, Precision::FP16);
+INSTANCE_SEQUENCE_EXPAND(X86, Precision::INT8);
 template class SequenceExpandHelper<X86,  Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(SequenceExpand, SequenceExpandHelper, X86,  Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(SequenceExpand, SequenceExpandHelper, X86, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE
-INSTANCE_SEQUENCE_EXPAND(ARM,  Precision::FP32);
+INSTANCE_SEQUENCE_EXPAND(ARM, Precision::FP32);
 template class SequenceExpandHelper<ARM,  Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(SequenceExpand, SequenceExpandHelper, ARM,  Precision::FP32);
-#endif//arm
+ANAKIN_REGISTER_OP_HELPER(SequenceExpand, SequenceExpandHelper, ARM, Precision::FP32);
+#endif
+
+#ifdef AMD_GPU
+INSTANCE_SEQUENCE_EXPAND(AMD, Precision::FP32);
+template class SequenceExpandHelper<AMD,  Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(SequenceExpand, SequenceExpandHelper, AMD, Precision::FP32);
+#endif
 
 //! register op
 ANAKIN_REGISTER_OP(SequenceExpand)
@@ -88,6 +94,9 @@ ANAKIN_REGISTER_OP(SequenceExpand)
 #endif
 #ifdef USE_X86_PLACE
 .__alias__<X86, Precision::FP32>("sequence_expand")
+#endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("sequence_expand")
 #endif
 .num_in(2)
 .num_out(1)

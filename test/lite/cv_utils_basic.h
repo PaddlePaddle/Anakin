@@ -4,6 +4,103 @@ using namespace anakin::saber;
 using namespace anakin::saber::lite;
 
 typedef Tensor<CPU> TensorHf;
+
+void skip_comments(FILE *fp) {
+    int ch;
+    char line[100];
+    while ((ch = fgetc(fp)) != EOF && isspace(ch)) {
+        ;
+    }
+    if (ch == '#') {
+        fgets(line, sizeof(line), fp);
+        skip_comments(fp);
+    } else {
+        fseek(fp, -1, SEEK_CUR);
+    }
+}
+//read nv12
+void read_pgm(const char *filename, unsigned char *data, int height, int width){
+    // const char* file = "/data/local/tmp/lite/test.pgm";
+    FILE *fp = fopen(filename, "rb");
+    if (fp == nullptr) {
+        LOGI("Failed to open file '%s'!\n", filename);
+        return;
+    }
+    char version[3];
+    fgets(version, sizeof(version), fp);
+    if (strcmp(version, "P5")) {
+        LOGI("Wrong file type!\n", filename);
+        return;
+    }
+
+    int read_height = 0;
+    int read_width = 0;
+    int max_gray = 0;
+    skip_comments(fp);
+    fscanf(fp, "%d", &read_width);
+    skip_comments(fp);
+    fscanf(fp, "%d", &read_height);
+    skip_comments(fp);
+    fscanf(fp, "%d", &max_gray);
+    fgetc(fp);
+
+    for (int i = 0; i < (int)(height * width * 1.5); ++i) {
+            char c = fgetc(fp);
+            data[i] = c;
+    }
+
+    fclose(fp);
+}
+//writ nv12
+void write_pgm(const char* filename, int height, int width, unsigned char* data) {
+    // printf("%s \n", filename);
+    FILE* fp = fopen(filename, "wb");
+    if (!fp) {
+        LOGI("Failed to save file '%s'!\n", filename);
+    }
+    fprintf(fp, "P5\n%d %d\n%d\n", width, height, 255);
+    fwrite(data, 1, width * height, fp);
+    fclose(fp);
+}
+//write rgb hcw
+void write_ppm(const char* filename, int height, int width, unsigned char *data) {
+    for (int i = 0; i < height; ++i) {
+        for (int j = 0; j < width; ++j) {
+            char b = data[(i * width + j) * 3];
+            data[(i * width + j) * 3] = data[(i * width + j) * 3 + 2];
+            data[(i * width + j) * 3 + 1] = data[(i * width + j) * 3 + 1];
+            data[(i * width + j) * 3 + 2] = b;
+        }
+    }
+    FILE* fp = fopen(filename, "wb");
+    if (!fp) {
+        LOGI("Failed to save file '%s'!\n", filename);
+    }
+    fprintf(fp, "P6\n%d %d\n%d\n", width, height, 255);
+    fwrite(data, 1, width * height * 3, fp);
+    fclose(fp);
+}
+
+//write rgb hwc
+void write_ppm_1(const char* filename, int height, int width, unsigned char *data) {
+    for (int i = 0; i < height; ++i) {
+        for (int j = 0; j < width; ++j) {
+            int tmp = j * 3;
+            char b = data[i * width * 3 + tmp];
+            data[i * width * 3 + tmp] = data[i * width * 3 + tmp + 2];
+            data[i * width * 3 + tmp + 1] = data[i * width * 3 + tmp + 1];
+            data[i * width * 3 + tmp + 2] = b;
+        }
+    }
+    FILE* fp = fopen(filename, "wb");
+    if (!fp) {
+        LOGI("Failed to save file '%s'!\n", filename);
+    }
+    fprintf(fp, "P6\n%d %d\n%d\n", width, height, 255);
+    fwrite(data, 1, width * height * 3, fp);
+    fclose(fp);
+}
+
 void resize_uv_basic(const unsigned char* in_data, int count, int h_in, int w_in, \
             unsigned char* out_data, int h_out, int w_out, float width_scale, float height_scale) {
 

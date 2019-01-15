@@ -30,7 +30,7 @@ Status ReverseSequenceHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4
 }
 
 
-#define INSTANCE_CONCAT(Ttype, Ptype) \
+#define INSTANCE_REVERSE_SEQUENCE(Ttype, Ptype) \
 template<> \
 void ReverseSequence<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
         const std::vector<Tensor4dPtr<Ttype> >& ins, \
@@ -42,19 +42,25 @@ void ReverseSequence<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
 }
 
 #ifdef USE_CUDA
-INSTANCE_CONCAT(NV, Precision::FP32);
+INSTANCE_REVERSE_SEQUENCE(NV, Precision::FP32);
 template class ReverseSequenceHelper<NV, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ReverseSequence, ReverseSequenceHelper, NV, Precision::FP32);
 #endif
 
+#ifdef AMD_GPU
+INSTANCE_REVERSE_SEQUENCE(AMD, Precision::FP32);
+template class ReverseSequenceHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(ReverseSequence, ReverseSequenceHelper, AMD, Precision::FP32);
+#endif
+
 #ifdef USE_ARM_PLACE
-INSTANCE_CONCAT(ARM, Precision::FP32);
+INSTANCE_REVERSE_SEQUENCE(ARM, Precision::FP32);
 template class ReverseSequenceHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ReverseSequence, ReverseSequenceHelper, ARM, Precision::FP32);
 #endif
 
 #ifdef USE_X86_PLACE
-INSTANCE_CONCAT(X86, Precision::FP32);
+INSTANCE_REVERSE_SEQUENCE(X86, Precision::FP32);
 template class ReverseSequenceHelper<X86, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ReverseSequence, ReverseSequenceHelper, X86, Precision::FP32);
 #endif
@@ -70,6 +76,9 @@ ANAKIN_REGISTER_OP(ReverseSequence)
 #endif
 #ifdef USE_X86_PLACE
 .__alias__<X86, Precision::FP32>("reverse_sequence")
+#endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("reverse_sequence")
 #endif
 .num_in(1)
 .num_out(1);

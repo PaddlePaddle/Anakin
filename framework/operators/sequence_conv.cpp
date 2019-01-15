@@ -4,31 +4,17 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void SequenceConv<NV, Precision::FP32>::operator()(
-    OpContext<NV>& ctx,
-    const std::vector<Tensor4dPtr<NV> >& ins,
-    std::vector<Tensor4dPtr<NV> >& outs) {
-    auto* impl = static_cast<SequenceConvHelper<NV, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<SequenceConvHelper<NV, Precision::FP32>*>
-                  (this->_helper)->_param;
-    impl->_funcs(ins, outs, param, ctx);
+#define INSTANCE_SEQUENCE_CONV(Ttype, Ptype) \
+template<> \
+void SequenceConv<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+    const std::vector<Tensor4dPtr<Ttype> >& ins, \
+    std::vector<Tensor4dPtr<Ttype> >& outs) { \
+    auto* impl = \
+        static_cast<SequenceConvHelper<Ttype, Ptype>*>(this->_helper); \
+    auto& param = \
+        static_cast<SequenceConvHelper<Ttype, Ptype>*>(this->_helper)->_param; \
+    impl->_funcs(ins, outs, param, ctx); \
 }
-#endif
-
-#ifdef USE_X86_PLACE
-template<>
-void SequenceConv<X86, Precision::FP32>::operator()(
-    OpContext<X86>& ctx,
-    const std::vector<Tensor4dPtr<X86> >& ins,
-    std::vector<Tensor4dPtr<X86> >& outs) {
-    auto* impl = static_cast<SequenceConvHelper<X86, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<SequenceConvHelper<X86, Precision::FP32>*>
-                  (this->_helper)->_param;
-    impl->_funcs(ins, outs, param, ctx);
-}
-#endif
 
 /// TODO ... specialization other type of operator
 
@@ -105,32 +91,33 @@ Status SequenceConvHelper<Ttype, Ptype>::InferShape(const
     SABER_CHECK(_funcs.compute_output_shape(ins, outs, _param));
     return Status::OK();
 }
+#ifdef AMD_GPU
+INSTANCE_SEQUENCE_CONV(AMD, Precision::FP32);
+template class SequenceConvHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(SequenceConv, SequenceConvHelper, AMD, Precision::FP32);
+#endif
 #ifdef USE_X86_PLACE
+INSTANCE_SEQUENCE_CONV(X86, Precision::FP32);
 template class SequenceConvHelper<X86, Precision::FP32>;
 template class SequenceConvHelper<X86, Precision::FP16>;
 template class SequenceConvHelper<X86, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(SequenceConv, SequenceConvHelper, X86, Precision::FP32);
 #endif
 #ifdef USE_CUDA
+INSTANCE_SEQUENCE_CONV(NV, Precision::FP32);
 template class SequenceConvHelper<NV, Precision::FP32>;
 template class SequenceConvHelper<NV, Precision::FP16>;
 template class SequenceConvHelper<NV, Precision::INT8>;
-#endif
-#ifdef USE_ARM_PLACE
-template class SequenceConvHelper<ARM, Precision::FP32>;
-template class SequenceConvHelper<ARM, Precision::FP16>;
-template class SequenceConvHelper<ARM, Precision::INT8>;
-#endif
-// register helper
-#ifdef USE_X86_PLACE
-ANAKIN_REGISTER_OP_HELPER(SequenceConv, SequenceConvHelper, X86, Precision::FP32);
-#endif
-
-#ifdef USE_CUDA
 ANAKIN_REGISTER_OP_HELPER(SequenceConv, SequenceConvHelper, NV, Precision::FP32);
 #endif
 #ifdef USE_ARM_PLACE
+INSTANCE_SEQUENCE_CONV(ARM, Precision::FP32);
+template class SequenceConvHelper<ARM, Precision::FP32>;
+template class SequenceConvHelper<ARM, Precision::FP16>;
+template class SequenceConvHelper<ARM, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(SequenceConv, SequenceConvHelper, ARM, Precision::FP32);
 #endif
+
 //! register op
 ANAKIN_REGISTER_OP(SequenceConv)
 .Doc("SequenceConv operator")
@@ -142,6 +129,9 @@ ANAKIN_REGISTER_OP(SequenceConv)
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("SequenceConv")
+#endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("SequenceConv")
 #endif
 .num_in(1)
 .num_out(1)

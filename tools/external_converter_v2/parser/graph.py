@@ -38,6 +38,9 @@ class Graph(object):
         elif config.framework == 'ONNX':
             from onnx import OnnxParser
             self.parser = OnnxParser(config.framework_config_dict)
+        elif config.framework == 'HOUYI':
+            from houyi import HouyiParser
+            self.parser = HouyiParser(config.framework_config_dict)
         else:
             raise NameError('ERROR: GrapProtoIO not support %s model.' % (config.framework))
         self.graph_io = self.parser()

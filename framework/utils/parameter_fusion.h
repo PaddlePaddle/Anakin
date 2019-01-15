@@ -47,7 +47,7 @@ public:
                                             int n, int c, int h, int w,
                                             std::vector<float> affine_channel_w,
                                             std::vector<float> affine_channel_b){
-        LOG(ERROR) << "support weights dtype";
+        LOG(ERROR) << "unsupport weights dtype";
     };
 
     /**
@@ -58,7 +58,7 @@ public:
                                       float batchnorm_scale, float batchnorm_eps,
                                       std::vector<float> batchnorm_mean,
                                       std::vector<float> batchnorm_variance){
-        LOG(ERROR) << "support weights dtype";
+        LOG(ERROR) << "unsupport weights dtype";
     }
 
     /**
@@ -72,7 +72,7 @@ public:
                                std::vector<float> scale_w,
                                std::vector<float> scale_b,
                                bool scale_bias_term){
-        LOG(ERROR) << "support weights dtype";
+        LOG(ERROR) << "unsupport weights dtype";
     }
 
     /**
@@ -83,7 +83,7 @@ public:
                                              float batchnorm_scale, float batchnorm_eps,
                                              std::vector<float> batchnorm_mean,
                                              std::vector<float> batchnorm_variance){
-        LOG(ERROR) << "support weights dtype";
+        LOG(ERROR) << "unsupport weights dtype";
     };
 };
 

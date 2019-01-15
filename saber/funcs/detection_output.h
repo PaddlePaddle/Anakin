@@ -26,7 +26,9 @@
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_detection_output.h"
 #endif
-
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_detection_output.h"
+#endif
 namespace anakin {
 namespace saber {
 

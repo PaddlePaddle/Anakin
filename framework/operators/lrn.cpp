@@ -4,18 +4,16 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void Lrn<NV, Precision::FP32>::operator()(
-    OpContext<NV>& ctx,
-    const std::vector<Tensor4dPtr<NV> >& ins,
-    std::vector<Tensor4dPtr<NV> >& outs) {
-    auto* impl =
-        static_cast<LrnHelper<NV, Precision::FP32>*>(this->_helper);
-    auto& param = impl->_param_lrn;
-    impl->_funcs_lrn(ins, outs, param, ctx);
+#define INSTANCE_LRN(Ttype, Ptype) \
+template<> \
+void Lrn<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+    const std::vector<Tensor4dPtr<Ttype> >& ins, \
+    std::vector<Tensor4dPtr<Ttype> >& outs) { \
+    auto* impl = static_cast<LrnHelper<Ttype, Ptype>*>(this->_helper); \
+    auto& param = static_cast<LrnHelper<Ttype, Ptype>*> \
+                  (this->_helper)->_param_lrn; \
+    impl->_funcs_lrn(ins, outs, param, ctx); \
 }
-#endif
 
 /// TODO ... specialization other type of operator
 
@@ -64,23 +62,25 @@ Status LrnHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype> 
     return Status::OK();
 }
 
+#ifdef AMD_GPU
+INSTANCE_LRN(AMD, Precision::FP32);
+template class LrnHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Lrn, LrnHelper, AMD, Precision::FP32);
+#endif
+
 #ifdef USE_CUDA
+INSTANCE_LRN(NV, Precision::FP32);
 template class LrnHelper<NV, Precision::FP32>;
 template class LrnHelper<NV, Precision::FP16>;
 template class LrnHelper<NV, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Lrn, LrnHelper, NV, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE
+INSTANCE_LRN(ARM, Precision::FP32);
 template class LrnHelper<ARM, Precision::FP32>;
 template class LrnHelper<ARM, Precision::FP16>;
 template class LrnHelper<ARM, Precision::INT8>;
-#endif
-
-// register helper
-#ifdef USE_CUDA
-ANAKIN_REGISTER_OP_HELPER(Lrn, LrnHelper, NV, Precision::FP32);
-#endif
-#ifdef USE_ARM_PLACE
 ANAKIN_REGISTER_OP_HELPER(Lrn, LrnHelper, ARM, Precision::FP32);
 #endif
 
@@ -92,6 +92,9 @@ ANAKIN_REGISTER_OP(Lrn)
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("LRN")
+#endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("LRN")
 #endif
 .num_in(3)
 .num_out(1);

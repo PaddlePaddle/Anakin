@@ -270,12 +270,11 @@ class MedTransAK:
         if med_attr.get('bias') is not None:
             param.weight_2 = np_2_ak_tensor(med_attr['bias'])
             param.bias_term = True
-            param.axis = 1
-            param.num_axes = 1
         else:
             param.bias_term = False
-            param.axis = 0
-            param.num_axes = 0
+
+        param.axis = 1
+        param.num_axes = 1
 
     def Flatten(self, med_attr, param):
         """

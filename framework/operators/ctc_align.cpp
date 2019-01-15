@@ -4,16 +4,16 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void CtcAlign<NV, Precision::FP32>::operator() (OpContext<NV> &ctx, 
-                          const std::vector<Tensor4dPtr<NV> >& ins, 
-                          std::vector<Tensor4dPtr<NV> >& outs) {
-    auto* impl = static_cast<CtcAlignHelper<NV, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<CtcAlignHelper<NV, Precision::FP32>*>(this->_helper)->_param_ctc_align;
-    impl->_funcs_ctc_align(ins, outs, param, ctx);
+#define INSTANCE_CTC_ALIGN(Ttype, Ptype) \
+template<> \
+void CtcAlign<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+        const std::vector<Tensor4dPtr<Ttype> >& ins, \
+                std::vector<Tensor4dPtr<Ttype> >& outs) { \
+    auto* impl = static_cast<CtcAlignHelper<Ttype, Ptype>*>(this->_helper); \
+    auto& param = \
+        static_cast<CtcAlignHelper<Ttype, Ptype>*>(this->_helper)->_param_ctc_align; \
+    impl->_funcs_ctc_align(ins, outs, param, ctx); \
 }
-#endif
 
 /// TODO ... specialization other type of operator
 
@@ -51,25 +51,24 @@ Status CtcAlignHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Tt
 }
 
 #ifdef USE_CUDA
+INSTANCE_CTC_ALIGN(NV, Precision::FP32);
 template class CtcAlignHelper<NV, Precision::FP32>;
 template class CtcAlignHelper<NV, Precision::FP16>;
 template class CtcAlignHelper<NV, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(CtcAlign, CtcAlignHelper, NV, Precision::FP32);
+#endif
+
+#ifdef AMD_GPU
+INSTANCE_CTC_ALIGN(AMD, Precision::FP32);
+template class CtcAlignHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(CtcAlign, CtcAlignHelper, AMD, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE
+INSTANCE_CTC_ALIGN(ARM, Precision::FP32);
 template class CtcAlignHelper<ARM, Precision::FP32>;
 template class CtcAlignHelper<ARM, Precision::FP16>;
 template class CtcAlignHelper<ARM, Precision::INT8>;
-#endif
-
-//template class CtcAlignHelper<ARM, Precision::FP32>;
-//template class CtcAlignHelper<ARM, Precision::FP16>;
-//template class CtcAlignHelper<ARM, Precision::INT8>;
-// register helper 
-#ifdef USE_CUDA
-ANAKIN_REGISTER_OP_HELPER(CtcAlign, CtcAlignHelper, NV, Precision::FP32);
-#endif
-#ifdef USE_ARM_PLACE
 ANAKIN_REGISTER_OP_HELPER(CtcAlign, CtcAlignHelper, ARM, Precision::FP32);
 #endif
 
@@ -81,6 +80,9 @@ ANAKIN_REGISTER_OP(CtcAlign)
 #endif
 #ifdef USE_ARM_PLACE
     .__alias__<ARM, Precision::FP32>("ctc_align")
+#endif
+#ifdef AMD_GPU
+    .__alias__<AMD, Precision::FP32>("ctc_align")
 #endif
     .num_in(1)
     .num_out(1)

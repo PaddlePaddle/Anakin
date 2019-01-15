@@ -10,7 +10,7 @@
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License. 
+   limitations under the License.
 */
 
 #ifndef ANAKIN_SABER_FUNCS_ROI_POOL_H
@@ -20,6 +20,9 @@
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/funcs/impl/impl_roi_pooling.h"
 
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_roi_pool.h"
+#endif
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_roi_pool.h"
 #endif

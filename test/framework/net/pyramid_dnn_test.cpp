@@ -199,7 +199,7 @@ int batch_string_to_input(const std::vector<std::string> &line_vec, Net<Target_H
             for (size_t j = 0; j < input_size; j++) {
                 // add the case that input's empty
                 if (number_strs[i][j+1].empty()) {
-                    query_shapes[j][0] += 1;
+                    query_shapes[j][0] += 0;
 	        } else {
                     split2(number_strs[i][j+1], tmp, std::string(" "));
 		    query_shapes[j][0] += tmp.size();
@@ -259,7 +259,7 @@ TEST(NetTest, net_execute_performance) {
     net_executer.reset_op_time();
 #endif
 	my_time.start(ctx);	
-    for (int i = 0; i < batch_num/*test_ps::inputed_lines.size()*/; i+= test_ps::batch_size) {
+    for (int i = 0; i < test_ps::inputed_lines.size(); i+= test_ps::batch_size) {
         std::vector<std::string> line_vec;
         int start = i % test_ps::inputed_lines.size();
         for (int j = start; j < test_ps::batch_size + start && j < test_ps::inputed_lines.size(); j++) {
@@ -276,8 +276,8 @@ TEST(NetTest, net_execute_performance) {
 		//int epoch = 1;
 //		Context<NV> ctx(0, 0, 0);
 	    net_executer.prediction();
-            //auto tensor_out_0_p = net_executer.get_out("ps_out");
-            //test_print(tensor_out_0_p);
+            auto tensor_out_0_p = net_executer.get_out("ps_out");
+            test_print(tensor_out_0_p);
     }
 	my_time.end(ctx);
 #ifdef ENABLE_OP_TIMER

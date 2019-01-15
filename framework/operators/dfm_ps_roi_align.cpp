@@ -94,6 +94,9 @@ ANAKIN_REGISTER_OP(DFMBPSROIAlign)
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("rpn_proposal_ssd")
 #endif
+#ifdef AMD_GPU
+//.__alias__<AMD, Precision::FP32>("rpn_proposal_ssd")
+#endif
 .num_in(1)
 .num_out(1)
 .Args<float>("heat_map_a", "heat_map_a of dfmb_psroi_pooling_param")

@@ -28,8 +28,13 @@ Status DeconvolutionHelper<Ttype, Ptype>::InitParam() {
 
 	using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
-    // fixme, resize deconv weights scale
-
+    // resize weights scale
+    auto& w = weights.h_tensor();
+    if (w.get_scale().size() == 1){
+        float scale_tmp = w.get_scale()[0];
+        std::vector<float> w_scale(filter_num, scale_tmp);
+        w.set_scale(w_scale);
+    }
     if (bias_term) {
         auto bias = GET_PARAMETER(pblock_type, weight_2);
         saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],

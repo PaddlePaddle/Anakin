@@ -1,3 +1,18 @@
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
 #include "framework/operators/softmax.h"
 
 namespace anakin {
@@ -95,7 +110,7 @@ template <>
 Status SoftmaxHelper<AMD, Precision::FP32>::Init(OpContext<AMD> &ctx, \
     const std::vector<Tensor4dPtr<AMD> >& ins, \
     std::vector<Tensor4dPtr<AMD> >& outs) {
-    SABER_CHECK(_funcs_softmax.init(ins, outs, _param_softmax, SPECIFY, SABER_IMPL, ctx));
+    SABER_CHECK(_funcs_softmax.init(ins, outs, _param_softmax, SPECIFY, VENDER_IMPL, ctx));
     return Status::OK();
 }
 ANAKIN_REGISTER_OP_HELPER(Softmax, SoftmaxHelper, AMD, Precision::FP32);
