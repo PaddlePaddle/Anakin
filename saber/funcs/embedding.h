@@ -25,9 +25,9 @@
 #include "saber/funcs/impl/x86/saber_embedding.h"
 #endif
 
-// #ifdef USE_AMD
-// #include "saber/funcs/impl/amd/saber_embedding.h"
-// #endif
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_embedding.h"
+#endif
 
 #ifdef USE_ARM_PLACE
 #include "saber/funcs/impl/arm/saber_embedding.h"

@@ -1,3 +1,17 @@
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
 #include "framework/operators/deconvolution.h"
 
 namespace anakin {
@@ -68,6 +82,41 @@ Status DeconvolutionHelper<Ttype, Ptype>::InferShape(const
     SABER_CHECK(_funcs_deconv.compute_output_shape(ins, outs, _param_deconv));
     return Status::OK();
 }
+#ifdef AMD_GPU
+INSTANCE_DECONV(AMD, Precision::FP32);
+template<>
+Status DeconvolutionHelper<AMD, Precision::FP32>::Init(OpContext<AMD>& ctx,
+        const std::vector<Tensor4dPtr<AMD> >& ins,
+        std::vector<Tensor4dPtr<AMD >>& outs) {
+    bool p = true;
+    p = p && (_param_deconv.weight()->width() == 4);
+    p = p && (_param_deconv.weight()->height() == 4);
+    p = p && (_param_deconv.pad_h == 1);
+    p = p && (_param_deconv.pad_w == 1);
+    p = p && (_param_deconv.stride_h == 2);
+    p = p && (_param_deconv.stride_w == 2);
+    p = p && (ins[0]->channel() <= 64);
+    p = p && (ins[0]->width() % 64 == 0);
+    p = p || ((ins[0]->channel() == _param_deconv.group)
+              && (ins[0]->channel() == outs[0]->channel()));
+
+    //p = p && (_param_deconv.group == 1);
+    //    LOG(ERROR)<<"DECONV INIT";
+    if (p) {
+        //        LOG(ERROR)<<"using saber deconv";
+        SABER_CHECK(_funcs_deconv.init(ins, outs, _param_deconv, SPECIFY, SABER_IMPL, ctx));
+    } else {
+        SABER_CHECK(_funcs_deconv.init(ins, outs, _param_deconv, SPECIFY, VENDER_IMPL/*SABER_IMPL*/, ctx));
+    }
+
+    return Status::OK();
+}
+template class DeconvolutionHelper<AMD, Precision::FP32>;
+template class DeconvolutionHelper<AMD, Precision::FP16>;
+template class DeconvolutionHelper<AMD, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Deconvolution, DeconvolutionHelper, AMD, Precision::FP32);
+#endif
+
 
 #ifdef USE_CUDA
 INSTANCE_DECONV(NV, Precision::FP32);
@@ -108,12 +157,6 @@ ANAKIN_REGISTER_OP_HELPER(Deconvolution, DeconvolutionHelper, NV, Precision::FP3
 INSTANCE_DECONV(X86, Precision::FP32);
 template class DeconvolutionHelper<X86, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Deconvolution, DeconvolutionHelper, X86, Precision::FP32);
-#endif
-
-#ifdef AMD_GPU
-INSTANCE_DECONV(AMD, Precision::FP32);
-template class DeconvolutionHelper<AMD, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(Deconvolution, DeconvolutionHelper, AMD, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE

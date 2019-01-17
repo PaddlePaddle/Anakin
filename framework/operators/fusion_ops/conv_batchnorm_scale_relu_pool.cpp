@@ -1,3 +1,17 @@
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
 #include "framework/operators/fusion_ops/conv_batchnorm_scale_relu_pool.h"
 
 namespace anakin {
@@ -180,10 +194,14 @@ Status ConvBatchnormScaleReluPoolHelper<Ttype, Ptype>::Init(OpContext<Ttype> &ct
     auto weights = GET_PARAMETER(PBlock<Ttype>, weight_1);
     auto bias_term = GET_PARAMETER(bool, bias_term);
 
+#ifdef AMD_GPU
     saber::ImplEnum impl_e = SABER_IMPL;
+#else
+    saber::ImplEnum impl_e = VENDER_IMPL;
     if (std::is_same<Ttype, X86>::value) {
         impl_e = SABER_IMPL;
     }
+#endif
     _funcs_conv_batchnorm_scale_relu_pooling.init(ins, outs,
             _param_conv_batchnorm_scale_relu_pooling, SPECIFY, impl_e, ctx);
 
@@ -257,6 +275,12 @@ template class ConvBatchnormScaleReluPoolHelper<X86, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScaleReluPool, ConvBatchnormScaleReluPoolHelper, X86, Precision::FP32);
 #endif
 
+#ifdef AMD_GPU
+INSTANCE_CONVBATCHNORMSCALERELUPOOLING(AMD, Precision::FP32);
+template class ConvBatchnormScaleReluPoolHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(ConvBatchnormScaleReluPool, ConvBatchnormScaleReluPoolHelper, AMD, Precision::FP32);
+#endif
+
 //! register op
 ANAKIN_REGISTER_OP(ConvBatchnormScaleReluPool)
 .Doc("ConvBatchnormScaleReluPool fusion operator")
@@ -271,8 +295,7 @@ ANAKIN_REGISTER_OP(ConvBatchnormScaleReluPool)
     .__alias__<X86, Precision::FP32>("convolution_batchnorm_scale_relu_pooling")
 #endif
 #ifdef AMD_GPU
-//.__alias__<AMD, Precision::FP32>("convolution_batchnorm_scale_relu_pooling")
-//.__alias__<AMD, Precision::INT8>("convolution_batchnorm_scale_relu_pooling")
+.__alias__<AMD, Precision::FP32>("convolution_batchnorm_scale_relu_pooling")
 #endif
 .num_in(1)
 .num_out(1)
@@ -296,8 +319,6 @@ ANAKIN_REGISTER_OP(ConvBatchnormScaleReluPool)
 .Args<int>("scale_0_axis", "axis for scale")
 .Args<float>("batchnorm_0_epsilon", "epsilon for batchnorm")
 .Args<float>("batchnorm_0_momentum", "momentum for batchnorm");
-
-
 } /* namespace ops */
 
 } /* namespace anakin */

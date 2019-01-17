@@ -33,6 +33,10 @@
 #ifdef USE_ARM_PLACE
 #include "saber/funcs/impl/arm/saber_softmax.h"
 #endif
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_softmax.h"
+#include "saber/funcs/impl/amd/include/vender_softmax.h"
+#endif
 namespace anakin{
 
 namespace saber{

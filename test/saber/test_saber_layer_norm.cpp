@@ -1,3 +1,18 @@
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
 #include "saber/core/context.h"
 #include "saber/funcs/layer_norm.h"
 #include "saber/core/tensor_op.h"
@@ -71,6 +86,29 @@ TEST(TestSaberFunc, test_op_layer_norm) {
 float eps = 1e-6f;
 int axis = 1;
 
+#ifdef AMD_GPU
+    TestSaberBase<AMD, AMDHX86, AK_FLOAT, LayerNorm, LayerNormParam> testbase;
+    for(int w_in : {8, 8, 16}) {
+        for(int h_in : {2, 8, 32}){
+            for(int ch_in : {2, 3, 8, 64}){
+                for(int num_in:{1, 21, 32}){
+                    Shape shape({num_in, ch_in, h_in, w_in});
+                    int inner_size = shape.count(axis);
+                    Shape bias_scale_shape({1, 1, 1, inner_size});
+                    Tensor<AMD> bias(bias_scale_shape);
+                    Tensor<AMD> scale(bias_scale_shape);
+                    fill_tensor_rand(bias, -1.0f, 1.0f);
+                    fill_tensor_rand(scale, -1.0f, 1.0f);
+                    LayerNormParam<AMD> param(axis, eps, &bias, &scale);
+                    testbase.set_param(param);
+                    testbase.set_rand_limit(-5.0, 5.0);
+                    testbase.set_input_shape(shape);
+                    testbase.run_test(layerNorm_cpu_base<float, AMD, AMDHX86>);
+                }
+            }
+        }
+    }
+#endif
 
 #ifdef USE_CUDA
     TestSaberBase<NV, NVHX86, AK_FLOAT, LayerNorm, LayerNormParam> testbase;
@@ -117,7 +155,7 @@ int axis = 1;
                 }
             }
         }
-    }  
+    }
 #endif
 }
 
@@ -125,6 +163,10 @@ int main(int argc, const char** argv) {
     // initial logger
     //logger::init(argv[0]);
     InitTest();
+
+#ifdef AMD_GPU
+    Env<AMD>::env_init();
+#endif
     RUN_ALL_TESTS(argv[0]);
     return 0;
 }

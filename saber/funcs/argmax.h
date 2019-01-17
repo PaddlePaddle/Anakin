@@ -32,6 +32,10 @@
 #include "saber/funcs/impl/impl_argmax.h"
 #endif
 
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_argmax.h"
+#endif
+
 namespace anakin {
 namespace saber {
 

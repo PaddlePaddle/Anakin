@@ -28,6 +28,9 @@
 #include "saber/funcs/impl/x86/saber_normalize.h"
 #endif
 
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_normalize.h"
+#endif
 /*
 #ifdef AMD_GPU
 #include "saber/funcs/impl/impl_normalize.h"

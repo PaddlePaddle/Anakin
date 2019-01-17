@@ -1,3 +1,17 @@
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
 
 #include "saber/core/context.h"
 #include "saber/funcs/normalize.h"
@@ -14,7 +28,6 @@ using namespace anakin::saber;
  */
 template <typename dtype,typename TargetType_D,typename TargetType_H>
 void norm_cpu_func(const std::vector<Tensor<TargetType_H>*>& input,std::vector<Tensor<TargetType_H>*>& output,NormalizeParam<TargetType_D>& param) {
-    
     int p=param.p;
     bool across_spatial=param.across_spatial;
     bool has_scale=param.has_scale;
@@ -99,11 +112,11 @@ void norm_cpu_func(const std::vector<Tensor<TargetType_H>*>& input,std::vector<T
                         }
                     }
                     //LOG(INFO)<<"norm:"<<norm;
-                    
+		    
                     if (p == 1) {
                         norm = 1.f / (norm + eps);
                     } else {
-                        norm = 1.f / sqrtf(norm+eps);
+                        norm = 1.f / (sqrtf(norm) + eps);
                     }
                     
                     for (int l = 0; l < c; ++l) {
@@ -124,6 +137,7 @@ void norm_cpu_func(const std::vector<Tensor<TargetType_H>*>& input,std::vector<T
                             
                         }
                     }
+
                 }
             }
         }
@@ -143,11 +157,10 @@ void test_normalize(){
     for (bool sp_flag : {false}){
         for (bool channel_flag : {false,true}) {
             for (int p : {1, 2}) {
-                
-                for(int w_in:{32, 64}){
+                for(int w_in: {32, 64}){
                     for(int h_in: {32, 64}){
-                        for(int ch_in:{3, 8}){
-                            for(int num_in:{1, 2}){
+                        for(int ch_in: {3, 8}){
+                            for(int num_in: {1, 2}){
                                 //make param
                                 NormalizeParam<TargetType_D> param;
                                 int ch_scale = channel_flag ? 1 : ch_in;
@@ -169,7 +182,7 @@ void test_normalize(){
                                 
                                 //testbase test
                                 testbase.set_param(param);//set param
-                                //testbase.set_rand_limit(255,255);
+                                testbase.set_rand_limit(-255, 255);
                                 testbase.set_input_shape(Shape({num_in, ch_in, h_in, w_in}));//add some input shape
                                 testbase.run_test(norm_cpu_func<dtype, TargetType_D, TargetType_H>);//run test
                                 
@@ -189,6 +202,10 @@ TEST(TestSaberFunc, test_func_normalize) {
 #endif
 #ifdef USE_X86_PLACE
     test_normalize<X86, X86, AK_FLOAT>();
+#endif
+#ifdef AMD_GPU
+    Env<AMD>::env_init();
+    test_normalize<AMD, AMDHX86, AK_FLOAT>();
 #endif
 }
 

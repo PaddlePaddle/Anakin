@@ -143,7 +143,7 @@ SaberStatus SaberActivation<AMD, OpDtype>::dispatch(
                   (int)out_c_stride,
                   (int)out_h_stride,
                   (int)out_w_stride,
-                  (float)param.negative_slope);
+                  0.0f);
         break;
 
     case Active_sigmoid:

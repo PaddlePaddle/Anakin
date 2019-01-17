@@ -206,7 +206,7 @@ public:
         AMD_API::sync_event(_e_end);
 
         cl_ulong start;
-        clGetEventProfilingInfo(_e_start, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &start,NULL);
+        clGetEventProfilingInfo(_e_start, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &start,NULL);
 
         cl_ulong end;
         clGetEventProfilingInfo(_e_end, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &end, NULL);
