@@ -22,12 +22,12 @@ OpsRegister.Register("Split").set_attr(split_num=int())
 OpsRegister.Register("Dot").set_attr(axes=list())
 # one or two input
 # enum type {
-#		 Add,
-#		 Subtract,
-#		 Multiply,
-#		 Avg,
-#		 Max
-#	  }
+#    Add,
+#    Subtract,
+#    Multiply,
+#    Avg,
+#    Max
+#   }
 #  note : coeff only used by caffe for "Add"
 OpsRegister.Register("Eltwise").set_attr(type="Add",
                                          coeff=list())
@@ -53,30 +53,30 @@ OpsRegister.Register("Softmax").set_attr(axis=int())
 
 # applies an activation parameter function to an output
 # enum type:
-#		  enum type {
-#			  TanH,
-#			  Sigmoid,
-# 		  }
+#     enum type {
+#       TanH,
+#       Sigmoid,
+#       }
 OpsRegister.Register("Activation").set_attr(type="",
                                             clip_relu_num=int())
 # Leaky version of a Rectified Linear Unit ( alpha != 0 ).
-# 	f(x) = alpha * x  	 : x < 0
-# 	f(x) = 		   x  	 : x >= 0
+#   f(x) = alpha * x     : x < 0
+#   f(x) =       x     : x >= 0
 # Standard ReLU ( alpha = 0 )
 #   f(x) = 0 * x     : x < 0
 #   f(x) =     x     : x >= 0
 #   note:  alpha is fixed value
 OpsRegister.Register("ReLU").set_attr(alpha=float())
 # Parametric Rectified Linear Unit
-#   f(x) = alpha * x 	 : x < 0
-#   f(x) = x 			 : x >= 0
+#   f(x) = alpha * x   : x < 0
+#   f(x) = x       : x >= 0
 #   note: alpha is learned array with the same shape as x.
 #   ref: Parametric ReLU described in K. He et al, Delving Deep into Rectifiers:
-#        	<<Surpassing Human-Level Performance on ImageNet Classification>>, 2015.
+#         <<Surpassing Human-Level Performance on ImageNet Classification>>, 2015.
 OpsRegister.Register("PReLU").set_attr(channel_shared=bool())
 # Exponential Linear Unit.
-# 	f(x) =  alpha * (exp(x) - 1.0) 	: x < 0
-#   f(x) = x 						: x >= 0
+#   f(x) =  alpha * (exp(x) - 1.0)  : x < 0
+#   f(x) = x            : x >= 0
 OpsRegister.Register("ELU").set_attr(alpha=int())
 
 # dense op parameter
@@ -101,7 +101,7 @@ OpsRegister.Register("Permute").set_attr(dims=list())
 
 # Cropping op for cropping data of (1/2/3D) by using axis info
 # cropping is the same as tf cropping parameter, which saved as tuple or int.
-OpsRegister.Register("Cropping").set_attr(cropping=list(),
+OpsRegister.Register("Crop").set_attr(cropping=list(),
                                           axis=int())
 
 # slices an input layer to multiple output layers along a given dimension with given slice indices
@@ -115,8 +115,8 @@ OpsRegister.Register("Slice").set_attr(axis=int(),
 ############################# Normalization Op define ##############################
 # Batch normalization op
 # explanation:
-#	Normalize the activations of the previous layer at each batch,
-#	i.e. applies a transformation that maintains the mean activation close to 0 and the activation standard deviation close to 1.
+# Normalize the activations of the previous layer at each batch,
+# i.e. applies a transformation that maintains the mean activation close to 0 and the activation standard deviation close to 1.
 OpsRegister.Register("BatchNorm").set_attr(momentum=float(),
                                            epsilon=float())
 
@@ -128,8 +128,8 @@ OpsRegister.Register("Scale").set_attr(axis=int(),
 # Local Response Normalization op same as caffe,
 # which performs a kind of "lateral inhibition" by normalizing over local input regions
 # enum NormRegion {
-#	ACROSS_CHANNELS
-#	WITHIN_CHANNEL
+# ACROSS_CHANNELS
+# WITHIN_CHANNEL
 # }
 OpsRegister.Register("LRN").set_attr(local_size=int(),
                                      alpha=float(),
@@ -146,10 +146,10 @@ OpsRegister.Register("MVN").set_attr(normalize_variance=bool(),
 ############################# Pooling (1D/2D/3D) Op define ##############################
 # enum type:
 #      enum method {
-#           MAX, 		// [default]
-#			AVG,
+#           MAX,    // [default]
+#     AVG,
 #           AVGEXC, average_exclude_padding_value
-#			STOCHASTIC,
+#     STOCHASTIC,
 #      }
 OpsRegister.Register("Pooling").set_attr(pool_size=list(),
                                          strides=list(),
@@ -161,9 +161,9 @@ OpsRegister.Register("Pooling").set_attr(pool_size=list(),
 # Spatial Pyramid Pooling
 # enum type:
 #      enum method {
-#           MAX, 		// [default]
-#			AVG,
-#			STOCHASTIC,
+#           MAX,    // [default]
+#     AVG,
+#     STOCHASTIC,
 #      }
 OpsRegister.Register("SPP").set_attr(pyramid_height=int(),
                                      method="MAX",)
@@ -212,13 +212,13 @@ OpsRegister.Register("DeformConvolution").set_attr(filter_num=int(),
 ############################# Rnn Op define ##############################
 # Standard  RNN (LSTM/GRU)
 # enum rnn type:
-# 		 enum type {
-# 			 TANH,		// base
-#			 SIGMOID,	// base
-# 			 RELU,		// base
-#		     LSTM,
-#			 GRU,
-#		 }
+#      enum type {
+#        TANH,    // base
+#      SIGMOID, // base
+#        RELU,    // base
+#        LSTM,
+#      GRU,
+#    }
 OpsRegister.Register("RNN").set_attr(hidden_size=int(),
                                      input_size=int(),
                                      bias_term=bool(),
@@ -271,9 +271,9 @@ OpsRegister.Register("PriorBox").set_attr(min_size=list(),
                                           order=list())
 
 # enum code_type {
-#	 CORNER,
-#	 CENTER_SIZE,
-#	 CORNER_SIZE,
+#  CORNER,
+#  CENTER_SIZE,
+#  CORNER_SIZE,
 # }
 
 OpsRegister.Register("DetectionOutput").set_attr(share_location=bool(),
@@ -348,6 +348,11 @@ OpsRegister.Register("LSTM").set_attr(candidate_activation="tanh",
                                       dropout_param=float(),
                                       num_layers=int(),
                                       input_activation="null")
+
+OpsRegister.Register("LSTMP").set_attr(outDim=int(),
+                                       skipNum=int(),
+                                       reActType='tanh',
+                                       cellDim=int())
 
 
 OpsRegister.Register("MatMul").set_attr(transpose_x=bool(),
@@ -472,6 +477,14 @@ OpsRegister.Register("RoiAlign").set_attr(spatial_scale=float(),
                                           pooled_width=int(),
                                           sampling_ratio=int())
 
+OpsRegister.Register("RoiPool").set_attr(spatial_scale=float(),
+                                          pooled_height=int(),
+                                          pooled_width=int())
+
 ##################################### pytorch edsr model PixelShuffle op define ################################
 # PixelShuffle in_shape = [n, r * r * c, h, w] scale_factor = r ==> out_shape = [n, c, r * h, r * w]
 OpsRegister.Register("PixelShuffle").set_attr(scale_factor=int())
+
+OpsRegister.Register("Coord2Patch").set_attr(img_h=int(),
+                                             output_h=int(),
+                                             output_w=int())

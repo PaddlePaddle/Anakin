@@ -39,7 +39,7 @@ def get_onnx_tensor_data(tensor):
     assert isinstance(tensor, onnx.TensorProto)
     is_raw = False
     # print 'tensor', tensor
-    # tensor has raw_data and other_data 
+    # tensor has raw_data and other_data
     if tensor.float_data is not None and len(tensor.float_data) > 0:
         data = tensor.float_data
         is_raw = False
@@ -335,7 +335,7 @@ def fusion_PixelShuffle(node, out_node, outs, weights, graph):
                         outs += list_tmp
                         # print ('delete output: ', out_list)
                 node['output'] = [out_name]
-                #delete Transpose and out_node 
+                #delete Transpose and out_node
                 graph.pop(out_b['name'])
                 graph.pop(out_node['name'])
                 out_data['type'] = 'PixelShuffle'
@@ -359,6 +359,12 @@ def fusion_PixelShuffle(node, out_node, outs, weights, graph):
                 out_data['visited'] = True
                 out_data['ak_type'] = 'PixelShuffle'
                 out_data['ak_attr']['scale_factor'] = scale_factor
+                out_data['ak_attr']['rw'] = scale_factor
+                out_data['ak_attr']['rh'] = scale_factor
+                if 'channel_first' in out_data['onnx_attr']:
+                    out_data['ak_attr']['channel_first'] = out_data['onnx_attr']['channel_first']
+                else:
+                    out_data['ak_attr']['channel_first'] = True
             else:
                 print('Error type ', out_data['name'], out_data['type'])
                 exit()
@@ -711,7 +717,7 @@ def parse_Mul(onnx_node, weights, graph):
         wei_name = node['input'][1]
         a = weights[wei_name]['shape'][0]
         '''
-        weights_node['shape'] = [64] #[a] 
+        weights_node['shape'] = [64] #[a]
         data = np.ones(weights_node['shape'])
         if 'broadcast' in onnx_node['onnx_attr']:
             for i in range(0, weights_node['shape'][0]):
@@ -892,10 +898,22 @@ def parse_Reshape(onnx_node, weights, graph):
     if weights.has_key(shape_name):
         shape_node = weights[shape_name]
     else:
-        shape_node['shape'] = [1,1,1,1]
-        shape_node['data'] = [1]
-        print ('Reshape can not find weights', shape_name)
-        exit(0)
+        if len(onnx_node['input']) == 2:
+            in_node0 = graph[onnx_node['input'][0]]
+            in_node1 = graph[onnx_node['input'][1]]
+            if in_node0['type'] == 'Constant':
+                shape_node['data'] = in_node1['onnx_attr']['value'][0]
+            elif in_node1['type'] == 'Constant':
+                shape_node['data'] = in_node1['onnx_attr']['value'][0]
+                # print shape_node, type(shape_node['data'])
+            else:
+                print ('Reshape can not find weights', shape_name)
+                exit(0)
+        else:
+            shape_node['shape'] = [1,1,1,1]
+            shape_node['data'] = [1]
+            print ('Reshape can not find weights', shape_name)
+            exit(0)
 
     ak_attr = onnx_node['ak_attr']
     # array = np.array(shape_node['shape'])
@@ -916,9 +934,9 @@ def parse_Reshape(onnx_node, weights, graph):
             else:
                 print ('Reshape does not support 5 dims ', data)
                 exit()
-        elif len(data) > 5:
-            print ('Reshape does not support >5 dims ', data)
-            exit()
+        # elif len(data) > 5:
+        #     print ('Reshape does not support >5 dims ', data)
+        #     exit()
         else:
             shape = data
 
@@ -948,9 +966,10 @@ def parse_Transpose(onnx_node, weights, graph):
 
     if len(data) == 5 and data[0] == 0:
         shape = [data[1]-1, data[2]-1, data[3]-1, data[4]-1]
-    elif len(data) >= 5:
-        print ('Permute does not support 5 dims permute ', data)
-        exit(0)
+    # elif len(data) >= 5:
+    #     shape = data
+    #     print ('Permute does not support 5 dims permute ', data)
+    #     # exit(0)
     else:
         shape = data
     # print('data: ', data)

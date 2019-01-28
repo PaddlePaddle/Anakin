@@ -87,3 +87,7 @@ TARGET:
 
     ONNX:
         ModelPath:
+
+    HOUYI:
+        ModelPath: /Users/chenjiao04/Downloads/for_sys/train.conf
+        WeightsPath: /Users/chenjiao04/Downloads/for_sys/model
