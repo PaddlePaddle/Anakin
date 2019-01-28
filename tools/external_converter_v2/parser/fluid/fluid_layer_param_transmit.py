@@ -678,6 +678,15 @@ def Parser_bilinear_interp(args):
     OpsRegister()["Resize"].out_height = helper.attr_data(op, 'out_h')
     OpsRegister()["Resize"].method = "BILINEAR_ALIGN"
 
+@ParserFeedDecorator("DataNorm")
+def Parser_data_norm(args):
+    op = args[1]
+    helper = args[3]
+    OpsRegister()["DataNorm"].weight_1 = helper.param_tensor(op, 'BatchSum')
+    OpsRegister()["DataNorm"].weight_2 = helper.param_tensor(op, 'BatchSize')
+    OpsRegister()["DataNorm"].weight_3 = helper.param_tensor(op, 'BatchSquareSum')
+    OpsRegister()["DataNorm"].epsilon = 1e-4
+
 FLUID_NODE_FILLER = {
     "feed":OpsParam().set_parser(Parser_feed),
     "conv2d":OpsParam().set_parser(Parser_conv2d),
@@ -746,4 +755,6 @@ FLUID_NODE_FILLER = {
     "norm":OpsParam().set_parser(Parser_norm),
     "increment":OpsParam().set_parser(Parser_increment),
     "bilinear_interp":OpsParam().set_parser(Parser_bilinear_interp),
+    # feed
+    "data_norm":OpsParam().set_parser(Parser_data_norm),
 }

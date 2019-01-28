@@ -488,3 +488,5 @@ OpsRegister.Register("PixelShuffle").set_attr(scale_factor=int())
 OpsRegister.Register("Coord2Patch").set_attr(img_h=int(),
                                              output_h=int(),
                                              output_w=int())
+
+OpsRegister.Register("DataNorm").set_attr(epsilon=float())
