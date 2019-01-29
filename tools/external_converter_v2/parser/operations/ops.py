@@ -10,7 +10,8 @@ OpsRegister.Register("Input").set_attr(input_shape=list(),
                                        max_len = int(),
                                        max_batch = int(),
                                        alias="NULL",
-                                       data_type="NULL")
+                                       data_type="NULL",
+                                       layout="NCHW")
 
 # graph out , only hold place for edge
 OpsRegister.Register("Output").set_attr()
