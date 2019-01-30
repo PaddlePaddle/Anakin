@@ -684,14 +684,31 @@ def Parser_bilinear_interp(args):
     OpsRegister()["Resize"].out_height = helper.attr_data(op, 'out_h')
     OpsRegister()["Resize"].method = "BILINEAR_ALIGN"
 
-@ParserFeedDecorator("DataNorm")
+@ParserFeedDecorator("SequencePoolConcat")
+def Parser_seqpool_concat(args):
+    op = args[1]
+    helper = args[3]
+    OpsRegister()["SequencePoolConcat"].pooltype = helper.attr_data(op, 'pooltype')
+
+@ParserFeedDecorator("Scale")
 def Parser_data_norm(args):
     op = args[1]
     helper = args[3]
-    OpsRegister()["DataNorm"].weight_1 = helper.param_tensor(op, 'BatchSum')
-    OpsRegister()["DataNorm"].weight_2 = helper.param_tensor(op, 'BatchSize')
-    OpsRegister()["DataNorm"].weight_3 = helper.param_tensor(op, 'BatchSquareSum')
-    OpsRegister()["DataNorm"].epsilon = 1e-4
+    batch_size = helper.np_param(op, 'BatchSize')
+    batch_square_sum = helper.np_param(op, 'BatchSquareSum')
+    batch_sum = helper.np_param(op, 'BatchSum')
+    np_means = batch_sum / batch_size
+    np_scales = np.sqrt(batch_size / batch_square_sum)
+    np_bias = - (np_scales * np_means)
+    np_scale_shape = map(int, [1] * (4 - len(np_scales.shape)) + list(np_scales.shape))
+    np_bias_shape = map(int, [1] * (4 - len(np_bias.shape)) + list(np_bias.shape))
+    np_weight_tensor = helper.create_tensor(np_scales.flatten().tolist(), np_scale_shape, FLOAT)
+    np_bias_tensor = helper.create_tensor(np_bias.flatten().tolist(), np_bias_shape, FLOAT)
+    OpsRegister()["Scale"].axis = 0
+    OpsRegister()["Scale"].num_axes = 0
+    OpsRegister()["Scale"].bias_term = True
+    OpsRegister()["Scale"].weight_1 = np_weight_tensor
+    OpsRegister()["Scale"].weight_2 = np_bias_tensor
 
 FLUID_NODE_FILLER = {
     "feed":OpsParam().set_parser(Parser_feed),
@@ -763,4 +780,5 @@ FLUID_NODE_FILLER = {
     "bilinear_interp":OpsParam().set_parser(Parser_bilinear_interp),
     # feed
     "data_norm":OpsParam().set_parser(Parser_data_norm),
+    "seqpool_concat":OpsParam().set_parser(Parser_seqpool_concat),
 }
