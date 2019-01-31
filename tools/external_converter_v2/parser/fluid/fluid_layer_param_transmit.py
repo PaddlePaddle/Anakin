@@ -689,6 +689,7 @@ def Parser_seqpool_concat(args):
     op = args[1]
     helper = args[3]
     OpsRegister()["SequencePoolConcat"].pooltype = helper.attr_data(op, 'pooltype')
+    OpsRegister()["SequencePoolConcat"].axis = 1
 
 @ParserFeedDecorator("Scale")
 def Parser_data_norm(args):

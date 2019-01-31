@@ -492,4 +492,5 @@ OpsRegister.Register("Coord2Patch").set_attr(img_h=int(),
 
 OpsRegister.Register("DataNorm").set_attr(epsilon=float())
 
-OpsRegister.Register("SequencePoolConcat").set_attr(pooltype=str())
+OpsRegister.Register("SequencePoolConcat").set_attr(pooltype=str(),
+                                                    axis=int())

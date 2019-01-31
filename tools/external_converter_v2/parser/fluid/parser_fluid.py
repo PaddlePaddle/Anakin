@@ -1083,15 +1083,19 @@ class FluidParser:
                     in_of_sp = self.ins[seqpool_node_name].target('X')
                     concat_node_name = self.outs[seqpool_node_name].target('Out')
                     out_of_concat = self.outs[concat_node_name].target('Out')
+                    private_data = {'axis': 1}
                     self.outs[seqpool_node_name].mv(concat_node_name, out_of_concat)
                     self.ins[out_of_concat].mv(concat_node_name, seqpool_node_name)
                     self._RmProtoNode(concat_node_name)
                     self._ClearEdges(concat_node_name)
                     self._RmProtoNode(seqpool_node_name)
                     self._AddProtoNode(seqpool_node_name, op_seqpool, helper, \
-                        {}, 'seqpool_concat')
+                        private_data, 'seqpool_concat')
 
     def _DealWithFeedSequencePool(self, source_ops, helper, quantized=False):
+        reshape_dict = dict()
+        reshape_dict['input_0'] = [1, 11, 1, 1]
+        self._ReplaceInputs(source_ops, helper, reshape_dict)
         self._CropGraph(['input_0'], ['fc_7.tmp_1_gout'], helper)
         self._FusionSequencePoolConcat(source_ops, helper)
 
