@@ -264,7 +264,7 @@ class FluidParser:
                     if shape[0] == -1:
                         shape[0] = 1
                     if layout == 'NCHW':
-                        shape = map(int, [1] * (4 - len(shape)) + shape)
+                        shape = map(int, shape + [1] * (4 - len(shape)))
                     if input_node_name in reshape_dict.keys():
                         shape = reshape_dict[input_node_name]
                     private_data['input_shape'] = shape
