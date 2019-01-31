@@ -1093,9 +1093,6 @@ class FluidParser:
                         private_data, 'seqpool_concat')
 
     def _DealWithFeedSequencePool(self, source_ops, helper, quantized=False):
-        reshape_dict = dict()
-        reshape_dict['input_0'] = [1, 11, 1, 1]
-        self._ReplaceInputs(source_ops, helper, reshape_dict)
         self._CropGraph(['input_0'], ['fc_7.tmp_1_gout'], helper)
         self._FusionSequencePoolConcat(source_ops, helper)
 

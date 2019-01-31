@@ -705,8 +705,8 @@ def Parser_data_norm(args):
     np_bias_shape = map(int, [1] * (4 - len(np_bias.shape)) + list(np_bias.shape))
     np_weight_tensor = helper.create_tensor(np_scales.flatten().tolist(), np_scale_shape, FLOAT)
     np_bias_tensor = helper.create_tensor(np_bias.flatten().tolist(), np_bias_shape, FLOAT)
-    OpsRegister()["Scale"].axis = 0
-    OpsRegister()["Scale"].num_axes = 0
+    OpsRegister()["Scale"].axis = 1
+    OpsRegister()["Scale"].num_axes = 1
     OpsRegister()["Scale"].bias_term = True
     OpsRegister()["Scale"].weight_1 = np_weight_tensor
     OpsRegister()["Scale"].weight_2 = np_bias_tensor
