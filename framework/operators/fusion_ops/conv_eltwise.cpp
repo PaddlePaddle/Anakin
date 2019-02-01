@@ -31,6 +31,11 @@ Status ConEltwiseHelper<Ttype, Ptype>::InitParam() {
     auto kernel_size = GET_PARAMETER(PTuple<int>, kernel_size);
     auto axis = GET_PARAMETER(int, axis);
 
+    auto scale_0 = GET_PARAMETER(float, scale_0);
+    auto scale_3 = GET_PARAMETER(float, scale_3);
+    float beta = scale_0;
+//    LOG(ERROR) << scale_0 << " " << scale_3;
+
 	using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
     auto weights_shape = weights.shape();
@@ -179,7 +184,10 @@ Status ConEltwiseHelper<Ttype, Ptype>::InitParam() {
     } else {
         LOG(FATAL) << "ConEltwise Op must have been merged eltwise or eltwise + activation.";
     }
-     
+    if (std::is_same<Ttype, NV>::value && Ptype == Precision::INT8) {
+        _param_conv_eltwise.conv_param.beta = beta;
+    }
+//    LOG(ERROR) << "framework alpha: "<< _param_conv_eltwise.conv_param.alpha << " beta: " << _param_conv_eltwise.conv_param.beta;
     return Status::OK();
 }
 
@@ -194,6 +202,13 @@ Status ConEltwiseHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
 
     //different device pleace change here..
     saber::ImplEnum impl_e = SABER_IMPL;
+    // TODO !! output scale is the eltwise_relu output scale!!!
+    // THIS IS NOT SUPPORT TO BE THIS WAY, the output scale is not the same with conv_eltwise output scale.
+    if (std::is_same<Ttype, NV>::value && Ptype == Precision::INT8) {
+        auto scale_3 = GET_PARAMETER(float, scale_3);
+        outs[0]->set_scale({scale_3});
+    }
+
     SABER_CHECK(_funcs_conv_eltwise.init(ins, outs, _param_conv_eltwise, SPECIFY, impl_e, ctx));
 
     // check if weights have been transposed
@@ -225,6 +240,16 @@ Status ConEltwiseHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
                         &_funcs_conv_eltwise, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10),
                         weight_empty.d_tensor(), bias_empty.d_tensor(), _param_conv_eltwise.conv_param.pad_h, _param_conv_eltwise.conv_param.pad_w, _param_conv_eltwise.conv_param.dilation_h, _param_conv_eltwise.conv_param.dilation_w,
                         strides[0], strides[1], group, impl_e);
+    }
+    // TODO beta need some more data to compute!!! this part perhapes will lead some bugs...
+    // TODO at least check for scale
+    if (std::is_same<Ttype, NV>::value && Ptype == Precision::INT8) {
+        float beta = _param_conv_eltwise.conv_param.beta;
+        float in_scale = ins[0]->get_scale()[0];
+        float weight_scale = _param_conv_eltwise.conv_param.weight()->get_scale()[0];
+        beta = beta / in_scale / weight_scale;
+//    LOG(ERROR) << " beta = " << beta ;
+        _param_conv_eltwise.conv_param.beta = beta;
     }
     return Status::OK();
 }
@@ -282,6 +307,7 @@ ANAKIN_REGISTER_OP(ConEltwise)
 #endif
 #ifdef USE_CUDA
 .__alias__<NV, Precision::FP32>("ConvEltwise")
+.__alias__<NV, Precision::INT8>("ConvEltwise")
 #endif
 #ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("ConvEltwise")

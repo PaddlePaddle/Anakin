@@ -34,8 +34,11 @@
 # dir
 build
 android_build
-nv_gpu_build
 ios_build
-gpu_build
+nv_gpu_build
+x86_build
+sgx_build
 output
-third-party/extern_miopen
+
+.idea
+.vscode

@@ -107,6 +107,7 @@ template<typename TargetType, typename TargetType_H>
 int test_pooling_results(int window_h,int window_w,int pad_h,int pad_w,PoolingType pooling_type,int stride_h,int stride_w,
                          int in_n,int in_c,int in_h,int in_w) {
 
+    Env<TargetType>::env_init();
     Env<TargetType_H>::env_init();
     Shape input_s({in_n, in_c, in_h, in_w}, Layout_NCHW);
     Shape input_nchwc8({in_n, in_c,in_h,in_w}, Layout_NCHW_C8R);
@@ -246,6 +247,56 @@ TEST(TestSaberFunc, test_func_pool) {
 #endif
 }
 
+
+#ifdef USE_CUDA
+TEST(TestSaberFunc, test_func_pool_res) {
+    Env<NV>::env_init();
+    Env<NVHX86>::env_init();
+
+    int window_h = 2;
+    int window_w = 2;
+    int pad_h = 0;
+    int pad_w = 0;
+    PoolingType pooling_type = Pooling_max;
+    int stride_h = 2;
+    int stride_w = 2;
+    int input_num = 1;
+    int in_channels = 4;
+    int height = 4;
+    int width = 4;
+
+    Shape input_s({input_num, in_channels, height, width}, Layout_NCHW);
+    input_s.set_layout(Layout_NCHW_C4);
+    Tensor<NV> input_dev;
+    Tensor<NV> output_dev;
+
+    input_dev.re_alloc(input_s, AK_INT8);
+    fill_tensor_rand(input_dev, -10, 10);
+    PoolingParam<NV> param(window_h,window_w,pad_h,pad_w,stride_h,stride_w,pooling_type);
+
+    std::vector<Tensor<NV>*> input_v;
+    std::vector<Tensor<NV>*> output_v;
+
+    input_dev.set_scale({1.f});
+    output_dev.set_scale({1.f});
+    input_v.push_back(&input_dev);
+    output_v.push_back(&output_dev);
+
+    Pooling<NV, AK_INT8> pool;
+    pool.compute_output_shape(input_v, output_v, param);
+    output_dev.re_alloc(output_dev.valid_shape(), AK_INT8);
+    fill_tensor_const(output_dev, 0);
+//    output_dev.set_layout(Layout_NCHW_C4);
+    Context<NV> ctx(0, 0, 1);
+    pool.init(input_v, output_v, param, SPECIFY, SABER_IMPL, ctx);
+
+    pool(input_v, output_v, param, ctx);
+    cudaDeviceSynchronize();
+//    print_tensor(input_dev);
+//    print_tensor(output_dev);
+//    cudaDeviceSynchronize();
+}
+#endif
 int main(int argc, const char** argv) {
     // initial logger
     logger::init(argv[0]);

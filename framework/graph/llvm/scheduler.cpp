@@ -77,6 +77,8 @@ void Scheduler::Run() {
             }
         }
     }
+    auto exec_node_order = this->get_exec_node_in_order();
+    _vgraph->set_exec_order(exec_node_order);
 }
 
 bool Scheduler::is_fixed(io& io_arg) {

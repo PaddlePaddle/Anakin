@@ -58,7 +58,7 @@ void WeightsFusion<float, T>::update_conv_affine_channel_weights(
                     int n, int c, int h, int w,
                     std::vector<float> affine_channel_w,
                     std::vector<float> affine_channel_b) {
-    float* weights_p = (float* )(weights.h_tensor().mutable_data());
+    float* weights_p = (float*)(weights.h_tensor().mutable_data());
     float* bias_p = (float* )(bias.h_tensor().mutable_data());
 
     int chw = c * h * w;
@@ -88,7 +88,7 @@ void WeightsFusion<float, T>::update_weights_without_scale(
         void* new_bias_data = bias.h_tensor().mutable_data();
         memset(new_bias_data, 0, sizeof(float) * bias.h_tensor().size());
     }
-    float* bias_p = (float* )(bias.h_tensor().mutable_data());
+    float* bias_p = (float*)(bias.h_tensor().mutable_data());
 
     batchnorm_scale = (batchnorm_scale == 0) ? 1.f : 1.f / batchnorm_scale;
     int chw = c * h * w;
@@ -123,13 +123,13 @@ void WeightsFusion<float, T>::update_deconv_weights(
                     std::vector<float> scale_w,
                     std::vector<float> scale_b,
                     bool scale_bias_term) {
-    float* weights_p = (float* )(weights.h_tensor().mutable_data());
+    float* weights_p = (float*)(weights.h_tensor().mutable_data());
     if (!conv_bias_term) {
         bias.re_alloc(Shape4d({1, batchnorm_mean.size(), 1, 1}));
         void* new_bias_data = bias.h_tensor().mutable_data();
         memset(new_bias_data, 0, sizeof(float) * bias.h_tensor().size());
     }
-    float* bias_p = (float* )(bias.h_tensor().mutable_data());
+    float* bias_p = (float*)(bias.h_tensor().mutable_data());
 
     batchnorm_scale = (batchnorm_scale == 0) ? 1.f : 1.f / batchnorm_scale;
     //swap n and c
@@ -177,13 +177,13 @@ void WeightsFusion<float, T>::update_deconv_weights_without_scale(
                     float batchnorm_scale, float batchnorm_eps,
                     std::vector<float> batchnorm_mean,
                     std::vector<float> batchnorm_variance) {
-    float* weights_p = (float* )(weights.h_tensor().mutable_data());
+    float* weights_p = (float*)(weights.h_tensor().mutable_data());
     if (!conv_bias_term) {
         bias.re_alloc(Shape4d({1, batchnorm_mean.size(), 1, 1}));
         void* new_bias_data = bias.h_tensor().mutable_data();
         memset(new_bias_data, 0, sizeof(float) * bias.h_tensor().size());
     }
-    float* bias_p = (float* )(bias.h_tensor().mutable_data());
+    float* bias_p = (float*)(bias.h_tensor().mutable_data());
 
     batchnorm_scale = (batchnorm_scale == 0) ? 1.f : 1.f / batchnorm_scale;
     //swap n and c
@@ -226,12 +226,13 @@ void WeightsFusion<char, T>::update_weights(
         std::vector<float> scale_w,
         std::vector<float> scale_b,
         bool scale_bias_term) {
+    char* weights_p = (char*)(weights.h_tensor().mutable_data());
     if (!conv_bias_term) {
         bias.re_alloc(Shape4d({1, batchnorm_mean.size(), 1, 1}));
         void* new_bias_data = bias.h_tensor().mutable_data();
         memset(new_bias_data, 0, sizeof(float) * bias.h_tensor().size());
     }
-    float* bias_p = (float* )(bias.h_tensor().mutable_data());
+    float* bias_p = (float*)(bias.h_tensor().mutable_data());
     std::vector<float> w_scale = weights.h_tensor().get_scale();
     batchnorm_scale = (batchnorm_scale == 0) ? 1.f : 1.f / batchnorm_scale;
     int chw = c * h * w;
@@ -253,6 +254,12 @@ void WeightsFusion<char, T>::update_weights(
         }
         // change weights scale
         w_scale[i] *= alpha;
+        if (w_scale[i] < 0){
+            w_scale[i] = fabs(w_scale[i]);
+            for (int j = 0; j < chw; ++j){
+                weights_p[i * chw + j] *= -1;
+            }
+        }
         bias_p[i] *= alpha;
         bias_p[i] += beta;
     }
@@ -270,13 +277,19 @@ void WeightsFusion<char, T>::update_conv_affine_channel_weights(
         int n, int c, int h, int w,
         std::vector<float> affine_channel_w,
         std::vector<float> affine_channel_b) {
-    float* weights_p = (float* )(weights.h_tensor().mutable_data());
-    float* bias_p = (float* )(bias.h_tensor().mutable_data());
+    char* weights_p = (char*)(weights.h_tensor().mutable_data());
+    float* bias_p = (float*)(bias.h_tensor().mutable_data());
     std::vector<float> w_scale = weights.h_tensor().get_scale();
     int chw = c * h * w;
     for (int i = 0; i < n; i++) {
         // change weights scale
         w_scale[i] *= affine_channel_w[i];
+        if (w_scale[i] < 0){
+            w_scale[i] = fabs(w_scale[i]);
+            for (int j = 0; j < chw; ++j){
+                weights_p[i * chw + j] *= -1;
+            }
+        }
         bias_p[i] = bias_p[i] * affine_channel_w[i] + affine_channel_b[i];
     }
     weights.h_tensor().set_scale(w_scale);
@@ -294,12 +307,13 @@ void WeightsFusion<char, T>::update_weights_without_scale(
         float batchnorm_scale, float batchnorm_eps,
         std::vector<float> batchnorm_mean,
         std::vector<float> batchnorm_variance) {
+    char* weights_p = (char*)(weights.h_tensor().mutable_data());
     if (!conv_bias_term) {
         bias.re_alloc(Shape4d({1, batchnorm_mean.size(), 1, 1}));
         void* new_bias_data = bias.h_tensor().mutable_data();
         memset(new_bias_data, 0, sizeof(float) * bias.h_tensor().size());
     }
-    float* bias_p = (float* )(bias.h_tensor().mutable_data());
+    float* bias_p = (float*)(bias.h_tensor().mutable_data());
     std::vector<float> w_scale = weights.h_tensor().get_scale();
     batchnorm_scale = (batchnorm_scale == 0) ? 1.f : 1.f / batchnorm_scale;
     int chw = c * h * w;
@@ -314,6 +328,12 @@ void WeightsFusion<char, T>::update_weights_without_scale(
 
         // change weights scale
         w_scale[i] *= alpha;
+        if (w_scale[i] < 0){
+            w_scale[i] = fabs(w_scale[i]);
+            for (int j = 0; j < chw; ++j){
+                weights_p[i * chw + j] *= -1;
+            }
+        }
         bias_p[i] *= alpha;
         bias_p[i] += beta;
     }
@@ -334,13 +354,13 @@ void WeightsFusion<char, T>::update_deconv_weights(
         std::vector<float> scale_w,
         std::vector<float> scale_b,
         bool scale_bias_term) {
-    float* weights_p = (float* )(weights.h_tensor().mutable_data());
+    char* weights_p = (char*)(weights.h_tensor().mutable_data());
     if (!conv_bias_term) {
         bias.re_alloc(Shape4d({1, batchnorm_mean.size(), 1, 1}));
         void* new_bias_data = bias.h_tensor().mutable_data();
         memset(new_bias_data, 0, sizeof(float) * bias.h_tensor().size());
     }
-    float* bias_p = (float* )(bias.h_tensor().mutable_data());
+    float* bias_p = (float*)(bias.h_tensor().mutable_data());
 
     batchnorm_scale = (batchnorm_scale == 0) ? 1.f : 1.f / batchnorm_scale;
     std::vector<float> w_scale = weights.h_tensor().get_scale();
@@ -369,6 +389,14 @@ void WeightsFusion<char, T>::update_deconv_weights(
         }
         // change weights scale
         w_scale[i] *= alpha;
+        if (w_scale[i] < 0){
+            w_scale[i] = fabs(w_scale[i]);
+            for (int ni = 0; ni < n; ++ni){
+                for (int j = 0; j < hw; j++) {
+                    weights_p[ni * chw + i * hw + j] *= -1;
+                }
+            }
+        }
         bias_p[i] *= alpha;
         bias_p[i] += beta;
     }
@@ -387,13 +415,13 @@ void WeightsFusion<char, T>::update_deconv_weights_without_scale(
         float batchnorm_scale, float batchnorm_eps,
         std::vector<float> batchnorm_mean,
         std::vector<float> batchnorm_variance) {
-    float* weights_p = (float* )(weights.h_tensor().mutable_data());
+    char* weights_p = (char*)(weights.h_tensor().mutable_data());
     if (!conv_bias_term) {
         bias.re_alloc(Shape4d({1, batchnorm_mean.size(), 1, 1}));
         void* new_bias_data = bias.h_tensor().mutable_data();
         memset(new_bias_data, 0, sizeof(float) * bias.h_tensor().size());
     }
-    float* bias_p = (float* )(bias.h_tensor().mutable_data());
+    float* bias_p = (float*)(bias.h_tensor().mutable_data());
 
     batchnorm_scale = (batchnorm_scale == 0) ? 1.f : 1.f / batchnorm_scale;
     std::vector<float> w_scale = weights.h_tensor().get_scale();
@@ -413,6 +441,14 @@ void WeightsFusion<char, T>::update_deconv_weights_without_scale(
         beta = -1.f * (batchnorm_mean[i] * batchnorm_scale);
         beta = beta * alpha;
         w_scale[i] *= alpha;
+        if (w_scale[i] < 0){
+            w_scale[i] = fabs(w_scale[i]);
+            for (int ni = 0; ni < n; ++ni){
+                for (int j = 0; j < hw; j++) {
+                    weights_p[ni * chw + i * hw + j] *= -1;
+                }
+            }
+        }
         bias_p[i] *= alpha;
         bias_p[i] += beta;
     }

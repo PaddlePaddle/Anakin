@@ -139,8 +139,7 @@ struct NCHW_C4 : public Layout {
     int channel_index() {return 1;}
     int height_index() {return 2;}
     int width_index() {return 3;}
-    int inner_c() {return 4;}
-    int dims() {return 5;}
+    int dims() {return 4;}
     LayoutType type() {return Layout_NCHW_C4;}
 };
 struct NCHW_C8 : public Layout {

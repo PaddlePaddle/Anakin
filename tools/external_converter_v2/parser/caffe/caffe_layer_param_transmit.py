@@ -93,14 +93,10 @@ def Parser_resize(args):
     layer = args[1]
     # parser caffe parameter
     resize_param = layer.resize_param
-    if resize_param.HasField("out_width_scale"):
-        OpsRegister()["Resize"].width_scale = resize_param.out_width_scale
-    if resize_param.HasField("out_height_scale"):
-        OpsRegister()["Resize"].height_scale = resize_param.out_height_scale
-    if resize_param.HasField("out_width"):
-        OpsRegister()["Resize"].out_width = resize_param.out_width
-    if resize_param.HasField("out_height"):
-        OpsRegister()["Resize"].out_height = resize_param.out_height
+    OpsRegister()["Resize"].width_scale = resize_param.out_width_scale
+    OpsRegister()["Resize"].height_scale = resize_param.out_height_scale
+    OpsRegister()["Resize"].out_width = resize_param.out_width
+    OpsRegister()["Resize"].out_height = resize_param.out_height
     method = ""
     if resize_param.type == ResizeParameter.BILINEAR_ALIGN:
         method = "BILINEAR_ALIGN"
@@ -655,6 +651,16 @@ def Parser_input(args):
     #OpsRegister()["Input"].input_num = len(input_param.shape)
     #for shape in input_param.shape:
     #   OpsRegister()["Input"].input_shape.append(list(shape.dim))
+
+@ParserFeedDecorator("Input")
+def Parser_dummydata(args):
+    logger(verbose.INFO).feed(str(args))
+    layer = args[1]
+    input_param = layer.dummy_data_param
+    OpsRegister()["Input"].input_shape = list(input_param.shape[0].dim)
+    args[3].set_name("Input")
+    logger(verbose.INFO).feed(str(layer))
+    logger(verbose.INFO).feed(str(OpsRegister()["Input"].input_shape))
 
 
 @ParserFeedDecorator("Permute")
@@ -1247,7 +1253,7 @@ CAFFE_LAYER_PARSER = {
                 "Crop": OpsParam().set_parser(Parser_crop),
                 "Data": OpsParam().set_parser(NotNeededInInference),
                 "Dropout": OpsParam().set_parser(Parser_dropout),
-                "DummyData": OpsParam().set_parser(NotNeededInInference),
+                "DummyData": OpsParam().set_parser(Parser_dummydata),
                 "Eltwise": OpsParam().set_parser(Parser_eltwise),
                 "ELU": OpsParam().set_parser(Parser_elu),
                 "Embed": OpsParam().set_parser(Parser_embed),

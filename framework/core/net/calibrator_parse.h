@@ -43,6 +43,7 @@ public:
         saber::DataType get_dtype(std::string name0, std::string name1) const;
         void set_precision(std::string name, saber::DataType);
         void set_scale(std::string name, float scale);
+        void set_layout(std::string name, saber::LayoutType layout);
         std::string get_target(std::string name) const;
         saber::LayoutType get_layout(std::string name0, std::string name1, saber::LayoutType old_layout) const;
         float get_calibrator(std::string edge_name) const;

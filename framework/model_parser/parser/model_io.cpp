@@ -296,6 +296,12 @@ Status NodeIO<Ttype, Ptype>::operator<<(GraphProto& graph) {
         node_proto->set_name(node_p->name());
         node_proto->set_lane(node_p->lane());
         node_proto->set_need_wait(node_p->need_wait());
+
+        switch (node_p->bit_type()) {
+          case AK_INT8: node_proto->set_bit_type(INT8); break;
+          case AK_FLOAT: node_proto->set_bit_type(FLOAT); break;
+          default: node_proto->set_bit_type(FLOAT); break;
+        }
         // set node proto's  op proto
         OpProto* op = node_proto->mutable_op();
         op->set_name(node_p->get_op_name());

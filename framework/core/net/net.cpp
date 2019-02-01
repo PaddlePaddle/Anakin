@@ -37,6 +37,8 @@ Net<Ttype, Ptype, RunType>::Net(\
     //init_env(graph);
     init(graph, ctx);
 }
+
+#ifndef USE_SGX
 template<typename Ttype, Precision Ptype, OpRunType RunType>
 void Net<Ttype, Ptype, RunType>::
 load_calibrator_config(graph::Graph<Ttype, Ptype>& graph){
@@ -47,7 +49,7 @@ load_calibrator_config(graph::Graph<Ttype, Ptype>& graph){
         auto type = node_p -> bit_type();
         _calibrator_parser.set_precision(node_p -> name(), type);
     };
-    _graph_p -> Scanner -> BFS(load_node_precision);
+    graph.Scanner -> BFS(load_node_precision);
     //load edge scale
     auto load_edge_scale = [&, this](graph::Edge<Ttype>& edge){
         if (edge.scale().size() > 0){
@@ -55,8 +57,19 @@ load_calibrator_config(graph::Graph<Ttype, Ptype>& graph){
             _calibrator_parser.set_scale(edge.name(), scale);
         }
     };
-    _graph_p -> Scanner -> BFS_Edge(load_edge_scale);
+    graph.Scanner -> BFS_Edge(load_edge_scale);
+
+    //load edge layout
+    auto load_edge_layout = [&, this](graph::Edge<Ttype>& edge){
+        auto layout = edge.layout();
+        LOG(ERROR) <<edge.name() << "loaded layout: " << layout;
+        _calibrator_parser.set_layout(edge.name(), layout);
+    };
+    graph.Scanner -> BFS_Edge(load_edge_layout);
+
+
 }
+#endif
 
 template<typename Ttype, Precision Ptype, OpRunType RunType>
 void Net<Ttype, Ptype, RunType>::init(graph::Graph<Ttype, Ptype>& graph, \
@@ -67,9 +80,9 @@ void Net<Ttype, Ptype, RunType>::init(graph::Graph<Ttype, Ptype>& graph, \
     _graph_p->CopyFrom(graph);
     auto node_names_in_exec_order = graph.get_nodes_in_order();
 
-    if (!_has_loaded_config){
-        load_calibrator_config(graph);
-    }
+#ifndef USE_SGX
+    load_calibrator_config(graph);
+#endif
 
     // infer basic shape and parsing parameter from graph
     for (auto& node_name : node_names_in_exec_order) {
@@ -125,9 +138,9 @@ void Net<Ttype, Ptype, RunType>::init(graph::Graph<Ttype, Ptype>& graph, \
 
             tensor_names.push_back(edge_it->name());
             layouts.push_back(edge_it->weight()->get_layout());
-
+#ifndef USE_SGX
             set_calibrator_info(edge_it);
-
+#endif
             op_func.outs.push_back(edge_it->weight().get());
             op_func.out_lanes.push_back(edge_it->lane());
         }
@@ -143,10 +156,6 @@ void Net<Ttype, Ptype, RunType>::init(graph::Graph<Ttype, Ptype>& graph, \
         op_func.op->_helper->InferShape(op_func.ins, op_func.outs);
         op_func.op->_helper->Init(*(op_func.ctx_p), op_func.ins, op_func.outs);
     }
-
-#ifndef USE_SGX
-    _calibrator_parser.auto_config_layout(tensor_names, layouts, _layout_config_path);
-#endif
     // init memory of _graph_p
     init_memory();
 }
@@ -162,9 +171,9 @@ void Net<Ttype, Ptype, RunType>::init(graph::Graph<Ttype, Ptype>& graph) {
 
     auto node_names_in_exec_order = graph.get_nodes_in_order();
 
-    if (!_has_loaded_config){
-        load_calibrator_config(graph);
-    }
+#ifndef USE_SGX
+    load_calibrator_config(graph);
+#endif
 
     // infer basic shape and parsing parameter from graph
     for (auto& node_name : node_names_in_exec_order) {
@@ -266,9 +275,9 @@ void Net<Ttype, Ptype, RunType>::init(graph::Graph<Ttype, Ptype>& graph) {
 
             tensor_names.push_back(edge_it->name());
             layouts.push_back(edge_it->weight()->get_layout());
-
+#ifndef USE_SGX
             set_calibrator_info(edge_it);
-
+#endif
             op_func.outs.push_back(edge_it->weight().get());
             op_func.out_lanes.push_back(edge_it->lane());
             _tensor_name_list.push_back(edge_it->name());
@@ -305,9 +314,6 @@ void Net<Ttype, Ptype, RunType>::init(graph::Graph<Ttype, Ptype>& graph) {
         DLOG(INFO) << "op init success " << op_func.name;
 #endif
     }
-#ifndef USE_SGX
-    _calibrator_parser.auto_config_layout(tensor_names, layouts, _layout_config_path);
-#endif
 
     double curr_mem_in_mb_end = MemoryInfo<Ttype>::Global().get_used_mem_in_mb();
     this->_graph_p->statistics.template set_info<graph::SYSTEM_MEM>(curr_mem_in_mb_end - curr_mem_in_mb_start);
@@ -447,9 +453,135 @@ void Net<Ttype, Ptype, RunType>::prediction() {
 #endif
 
     } // for
-
-
 }
+
+
+template<typename Ttype, Precision Ptype, OpRunType RunType>
+std::unique_ptr<Net<Ttype, Ptype, RunType> > Net<Ttype, Ptype, RunType>::Clone() {
+    auto ret_net = std::unique_ptr<Net<Ttype, Ptype, RunType> >(new Net<Ttype, Ptype, RunType>);
+    ret_net->_graph_p->CopyFrom(*(this->_graph_p));
+    return ret_net;
+}
+
+template<typename Ttype, Precision Ptype, OpRunType RunType>
+void Net<Ttype, Ptype, RunType>::init() {
+    init_env(*_graph_p);
+
+    double curr_mem_in_mb_start = MemoryInfo<Ttype>::Global().get_used_mem_in_mb();
+
+    auto node_names_in_exec_order = _graph_p->get_nodes_in_order();
+
+    load_calibrator_config(*_graph_p);
+
+    // infer basic shape and parsing parameter from graph
+    for (auto& node_name : node_names_in_exec_order) {
+        auto node_ptr = (*_graph_p)[node_name];
+
+       //* create operations with target the same as this net
+        //auto* op_pointer = OpFactory<Ttype, Ptype>::Global()[node_ptr->get_op_name()];
+        auto* op_pointer = calibrator_op<Ttype>(node_ptr->get_op_name(), node_ptr->name(), _calibrator_parser);
+        if (op_pointer == nullptr) {
+            CHECK(false) << node_name << ", type " << node_ptr->get_op_name() << " is null";
+            LOG(FATAL) << node_name << ", type " << node_ptr->get_op_name() << " is null";
+        }
+        node_ptr->set_op(op_pointer);
+        // bind parameter structure
+        static_cast<Operator<Ttype, Ptype>*>(node_ptr->Op())->_helper->BindParam(node_ptr);
+        // parsing parameter
+        static_cast<Operator<Ttype, Ptype>*>(node_ptr->Op())->_helper->InitParam();
+    }
+
+    // remove null op node
+    for (auto it = node_names_in_exec_order.begin(); it != node_names_in_exec_order.end();) {
+        if (!(*_graph_p)[*it]->Op()) {
+            it = node_names_in_exec_order.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    _exec_funcs.resize(node_names_in_exec_order.size());
+
+
+    std::vector<std::string> tensor_names;
+    std::vector<saber::LayoutType> layouts;
+
+    //_calibrator_parser.layout_parse(_layout_config_path);
+    for (int i = 0; i < node_names_in_exec_order.size(); i++) {
+        auto& node_name = node_names_in_exec_order[i];
+        auto& op_func = _exec_funcs[i];
+        op_func.name = node_name;
+        auto& edge_in_its = _graph_p->get_in_arc_its(node_name);
+        DLOG(WARNING) << " node : " << op_func.name << " (" << (*_graph_p)[node_name]->get_op_name() << ") ";
+
+        for (auto& edge_it : edge_in_its) {
+            DLOG(INFO) << "  => find in arc : " << edge_it->bottom() << "  -->  " << edge_it->top();
+            DLOG(INFO)<<"set "<<edge_it->name()<<" scale :"<< _calibrator_parser.get_calibrator(edge_it->name());
+
+            op_func.ins.push_back(edge_it->weight().get());
+            op_func.in_lanes.push_back(edge_it->lane());
+        }
+
+        auto& edge_out_its = _graph_p->get_out_arc_its(node_name);
+
+        for (auto& edge_it : edge_out_its) {
+            DLOG(INFO) << "  <= find out arc : " << edge_it->bottom() << "  -->  " << edge_it->top();
+
+            tensor_names.push_back(edge_it->name());
+            layouts.push_back(edge_it->weight()->get_layout());
+
+            set_calibrator_info(edge_it);
+
+            op_func.outs.push_back(edge_it->weight().get());
+            op_func.out_lanes.push_back(edge_it->lane());
+            _tensor_name_list.push_back(edge_it->name());
+        }
+
+        op_func.current_lane = (*_graph_p)[node_name]->lane();
+        op_func.need_sync = (*_graph_p)[node_name]->need_wait();
+        op_func.op = static_cast<Operator<Ttype, Ptype>* >((*_graph_p)[node_name]->Op());
+        op_func.op_name = (*_graph_p)[node_name]->get_op_name();
+        op_func.ctx_p = std::make_shared<Context<Ttype>>(TargetWrapper<Ttype>::get_device_id(),
+                        op_func.current_lane,
+                        op_func.current_lane);
+        // call init of operator
+        CHECK_NOTNULL(op_func.op) << "Node(node_name) doesn't have op pointer! ";
+        op_func.op->_helper->InferShape(op_func.ins, op_func.outs);
+
+#ifdef ENABLE_DEBUG
+
+        for (auto& in : op_func.ins) {
+            LOG(INFO) << "  => [layout]: " << in->get_layout();
+            LOG(INFO) << "  => [shape]: " << in->valid_shape();
+            LOG(INFO) << "in offset size = " << in->get_seq_offset().size();
+        }
+
+        for (auto& out : op_func.outs) {
+            LOG(INFO) << "  <= [layout]: " << out->get_layout();
+            LOG(INFO) << "  <= [shape]: " << out->valid_shape();
+            LOG(INFO) << "out offset size = " << out->get_seq_offset().size();
+        }
+
+#endif
+        op_func.op->_helper->Init(*(op_func.ctx_p), op_func.ins, op_func.outs);
+    }
+
+    double curr_mem_in_mb_end = MemoryInfo<Ttype>::Global().get_used_mem_in_mb();
+    this->_graph_p->statistics.template set_info<graph::SYSTEM_MEM>(curr_mem_in_mb_end - curr_mem_in_mb_start);
+    // init memory of _graph_p
+    init_memory();
+
+    LOG(INFO) << "Temp mem used:        " << this->_graph_p->statistics.template
+            get_info<graph::TEMP_MEM>() << " MB";
+    LOG(INFO) << "Original mem used:    " << this->_graph_p->statistics.template
+            get_info<graph::ORI_TEMP_MEM>() << " MB";
+    LOG(INFO) << "Model mem used:       " << this->_graph_p->statistics.template
+            get_info<graph::MODEL_MEM>() << " MB";
+    LOG(INFO) << "System mem used:      " << this->_graph_p->statistics.template
+            get_info<graph::SYSTEM_MEM>() << " MB";
+}
+
+
 
 template<typename Ttype, Precision Ptype, OpRunType RunType>
 void Net<Ttype, Ptype, RunType>::execute_stop_at_node(std::string node_name) {
@@ -617,12 +749,15 @@ Status Net<Ttype, Ptype, RunType>::init_memory() {
                             edge_name = inner_edge.share_from();
                             return Status::EXIT(" Continue to find next.");
                         }
-
-                        if (inner_edge.weight()->size() < edge.weight()->valid_size()) {
+                        if (inner_edge.weight()->size() * inner_edge.weight()->get_dtype_size()
+                                < edge.weight()->valid_size() * edge.weight()->get_dtype_size()) {
                             auto inner_original_shape = inner_edge.weight()->valid_shape();
+                            auto inner_edge_dtype = inner_edge.weight()->get_dtype();
                             inner_edge.weight()->re_alloc(edge.weight()->valid_shape(),
                                                           edge.weight()->get_dtype());
+                            inner_edge.weight()->set_dtype(inner_edge_dtype);
                             inner_edge.weight()->set_shape(inner_original_shape, inner_edge.weight()->shape());
+
                         }
 
                         edge.weight()->share_from(*(inner_edge.weight()));

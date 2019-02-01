@@ -27,9 +27,32 @@ message Info {
 	bool is_optimized = 10;	
 };
 
+//this proto correspond to LayoutType
+//you should't change the index
+enum LayoutProto {
+	Invalid = 0;
+    LP_W = 1;
+    LP_HW = 2;
+    LP_WH = 3;
+    LP_NC = 4;
+    LP_NH = 5;
+    LP_NW = 6;
+    LP_NHW = 7;
+    LP_NCHW = 8;
+    LP_NHWC = 9;
+    LP_NCHW_C4 = 10;
+    LP_NCHW_C8 = 11;
+    LP_NCHW_C16 = 12;
+    LP_OIHW16I16O = 13;
+    LP_GOIHW16I16O = 14;
+    LP_NCHW_C8R=15;
+    LP_NCHW_C16R=16;
+};
+
 message TargetProto {
 	string node = 1;
 	repeated float scale = 2;
+	LayoutProto layout = 3;
 };
 
 // string list 

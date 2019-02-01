@@ -1,5 +1,5 @@
---- xbyak/include/xbyak/xbyak.h.orig	2018-12-02 18:38:55.000000000 -0800
-+++ xbyak/include/xbyak/xbyak.h	2018-12-02 18:41:42.723710779 -0800
+--- xbyak/include/xbyak/xbyak.h.orig	2019-01-17 11:58:36.391601030 -0800
++++ xbyak/include/xbyak/xbyak.h	2019-01-17 11:59:09.367746049 -0800
 @@ -27,9 +27,7 @@
  // #define XBYAK_DISABLE_AVX512
  
@@ -19,7 +19,25 @@
  	#include <stdlib.h>
  #endif
  #if !defined(_MSC_VER) || (_MSC_VER >= 1600)
-@@ -970,35 +967,7 @@
+@@ -253,15 +250,8 @@
+ 
+ inline void *AlignedMalloc(size_t size, size_t alignment)
+ {
+-#ifdef __MINGW32__
+-	return __mingw_aligned_malloc(size, alignment);
+-#elif defined(_WIN32)
+-	return _aligned_malloc(size, alignment);
+-#else
+-	void *p;
+-	int ret = posix_memalign(&p, alignment, size);
+-	return (ret == 0) ? p : 0;
+-#endif
++    abort();
++    return nullptr;
+ }
+ 
+ inline void AlignedFree(void *p)
+@@ -970,35 +960,7 @@
  	*/
  	static inline bool protect(const void *addr, size_t size, int protectMode)
  	{

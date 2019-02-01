@@ -22,7 +22,7 @@ typedef Tensor<CPU> TensorH4;
 
 #define COMPARE_RESULT 1
 
-void fill_tensor_host_rand(char* dio, long long size) {
+void fill_tensor_host_rand(unsigned char* dio, long long size) {
     for (long long i = 0; i < size; ++i) {
         dio[i] = rand() % 256 ;//-128;
     }
@@ -299,8 +299,8 @@ TEST(TestSaberLite, test_func_cv_bgr_resize) {
     max_diff = 0;
     // const double eps = 1e-6f;
     LOG(INFO) << "diff, bgr_to_tensor_hwc size: " << tensor.valid_size();
-    float* ptr_a = tensor.data();
-    float* ptr_b = tensor_basic.data();
+    float* ptr_a = (float*)tensor.data();
+    float* ptr_b = (float*)tensor_basic.data();
     for (int i = 0; i < tensor.valid_size(); i++){
         int a = ptr_a[i];
         int b = ptr_b[i];
@@ -511,8 +511,8 @@ TEST(TestSaberLite, test_func_nv21_bgr_resize) {
     max_diff = 0;
     // const double eps = 1e-6f;
     LOG(INFO) << "diff, bgr_to_tensor_hwc size: " << tensor.valid_size();
-    float* ptr_a = tensor.data();
-    float* ptr_b = tensor_basic.data();
+    float* ptr_a = (float*)tensor.data();
+    float* ptr_b = (float*)tensor_basic.data();
     for (int i = 0; i < tensor.valid_size(); i++){
         int a = ptr_a[i];
         int b = ptr_b[i];

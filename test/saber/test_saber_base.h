@@ -47,6 +47,8 @@ public:
     typedef void (*CpuFunc_t)(const Input_ht&, Output_ht&, Param_t& param);
 
     TestSaberBase(int in_num = 1, int out_num = 1) : _op_input_num(in_num),  _op_output_num(out_num) {
+        Env<TargetType_D> :: env_init();
+        Env<TargetType_H> :: env_init();
     }
 
     void add_param(Param_t& param) {
@@ -398,8 +400,6 @@ public:
 
         // LOG(INFO) << "_input_type" << _input_type;
         compute_outputs_shape();
-        Env<TargetType_D> :: env_init();
-        Env<TargetType_H> :: env_init();
 
         std :: vector<std :: string> runtype{"STATIC", "RUNTIME", "SPECIFY"};
         std :: vector<std :: string> impltype{"VENDER", "SABER"};

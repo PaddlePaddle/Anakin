@@ -111,15 +111,15 @@ __global__ void ker_elt_max(Dtype* out_data, const Dtype* in_data_a, const Dtype
 }
 
 
-template <DataType OpDtype>
-SaberStatus SaberEltwise<NV, OpDtype>::dispatch(\
+template <>
+SaberStatus SaberEltwise<NV, AK_FLOAT>::dispatch(\
         const std::vector<Tensor<NV> *>& inputs, \
         std::vector<Tensor<NV> *>& outputs, \
         EltwiseParam<NV>& param) {
     const int count = outputs[0]->valid_size();
-    OpDataType* out_data = static_cast<OpDataType*>(outputs[0]->mutable_data());
-    const OpDataType* in_data_a = static_cast<OpDataType*>(inputs[0]->data());
-    const OpDataType* in_data_b = static_cast<OpDataType*>(inputs[1]->data());
+    float* out_data = static_cast<float*>(outputs[0]->mutable_data());
+    const float* in_data_a = static_cast<float*>(inputs[0]->data());
+    const float* in_data_b = static_cast<float*>(inputs[1]->data());
     cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
 
 
@@ -130,34 +130,34 @@ SaberStatus SaberEltwise<NV, OpDtype>::dispatch(\
     case Eltwise_prod:
         if (_with_relu) {
             if (inputs.size() <= 2) {
-                ker_elt_production<OpDataType, true> <<< grid_dim, block_dim, 0, cuda_stream>>>(out_data, in_data_a,
+                ker_elt_production<float, true> <<< grid_dim, block_dim, 0, cuda_stream>>>(out_data, in_data_a,
                         in_data_b, count);
             } else {
-                ker_elt_production<OpDataType, false> <<< grid_dim, block_dim, 0, cuda_stream>>>(out_data,
+                ker_elt_production<float, false> <<< grid_dim, block_dim, 0, cuda_stream>>>(out_data,
                         in_data_a,
                         in_data_b, count);
 
                 for (int i = 2; i < inputs.size() - 1; i++) {
-                    ker_elt_production<OpDataType, false>
+                    ker_elt_production<float, false>
                     <<< grid_dim, block_dim, 0, cuda_stream>>>(out_data, out_data,
-                            static_cast<const OpDataType*>(inputs[i]->data()), count);
+                            static_cast<const float*>(inputs[i]->data()), count);
                 }
 
-                ker_elt_production<OpDataType, true>
+                ker_elt_production<float, true>
                 <<< grid_dim, block_dim, 0, cuda_stream>>>(out_data, out_data,
-                        static_cast<const OpDataType*>(inputs[inputs.size() - 1]->data()), count);
+                        static_cast<const float*>(inputs[inputs.size() - 1]->data()), count);
             }
 
         } else {
 
-            ker_elt_production<OpDataType, false> <<< grid_dim, block_dim, 0, cuda_stream>>>(out_data,
+            ker_elt_production<float, false> <<< grid_dim, block_dim, 0, cuda_stream>>>(out_data,
                     in_data_a,
                     in_data_b, count);
 
             for (int i = 2; i < inputs.size(); i++) {
-                ker_elt_production<OpDataType, false>
+                ker_elt_production<float, false>
                 <<< grid_dim, block_dim, 0, cuda_stream>>>(out_data, out_data,
-                        static_cast<const OpDataType*>(inputs[i]->data()), count);
+                        static_cast<const float*>(inputs[i]->data()), count);
             }
 
         }
@@ -166,13 +166,13 @@ SaberStatus SaberEltwise<NV, OpDtype>::dispatch(\
 
     case Eltwise_sum:
         if (_with_relu) {
-            ker_elt_sum <OpDataType, true>
+            ker_elt_sum <float, true>
             <<<
             grid_dim, block_dim, 0, cuda_stream >>> (out_data,
                     in_data_a, in_data_b,
                     param.coeff[0], param.coeff[1], count);
         } else {
-            ker_elt_sum <OpDataType, false>
+            ker_elt_sum <float, false>
             <<<
             grid_dim, block_dim, 0, cuda_stream >>> (out_data,
                     in_data_a, in_data_b,
@@ -186,34 +186,34 @@ SaberStatus SaberEltwise<NV, OpDtype>::dispatch(\
         //      mask = (float *) _max_idx.mutable_data();
         if (_with_relu) {
             if (inputs.size() <= 2) {
-                ker_elt_max<OpDataType, true>
+                ker_elt_max<float, true>
                 <<< grid_dim, block_dim, 0, cuda_stream >>>(out_data,
                         in_data_a, in_data_b, count);
             } else {
-                ker_elt_max<OpDataType, false> <<< grid_dim, block_dim, 0, cuda_stream>>>(out_data,
+                ker_elt_max<float, false> <<< grid_dim, block_dim, 0, cuda_stream>>>(out_data,
                         in_data_a,
                         in_data_b, count);
 
                 for (int i = 2; i < inputs.size() - 1; i++) {
-                    ker_elt_max<OpDataType, false>
+                    ker_elt_max<float, false>
                     <<< grid_dim, block_dim, 0, cuda_stream>>>(out_data, out_data,
-                            static_cast<const OpDataType*>(inputs[i]->data()), count);
+                            static_cast<const float*>(inputs[i]->data()), count);
                 }
 
-                ker_elt_max<OpDataType, true>
+                ker_elt_max<float, true>
                 <<< grid_dim, block_dim, 0, cuda_stream>>>(out_data, out_data,
-                        static_cast<const OpDataType*>(inputs[inputs.size() - 1]->data()), count);
+                        static_cast<const float*>(inputs[inputs.size() - 1]->data()), count);
             }
         } else {
 
-            ker_elt_max<OpDataType, false> <<< grid_dim, block_dim, 0, cuda_stream>>>(out_data,
+            ker_elt_max<float, false> <<< grid_dim, block_dim, 0, cuda_stream>>>(out_data,
                     in_data_a,
                     in_data_b, count);
 
             for (int i = 2; i < inputs.size() ; i++) {
-                ker_elt_max<OpDataType, false>
+                ker_elt_max<float, false>
                 <<< grid_dim, block_dim, 0, cuda_stream>>>(out_data, out_data,
-                        static_cast<const OpDataType*>(inputs[i]->data()), count);
+                        static_cast<const float*>(inputs[i]->data()), count);
             }
 
         }
@@ -233,9 +233,38 @@ SaberStatus SaberEltwise<NV, OpDtype>::dispatch(\
     return SaberSuccess;
 }
 
+template <>
+SaberStatus SaberEltwise<NV, AK_INT8>::create(
+        const std::vector<Tensor<NV> *>& inputs,
+        std::vector<Tensor<NV> *>& outputs,
+        EltwiseParam<NV>& param,
+        Context<NV>& ctx) {
+
+    return SaberSuccess;
+}
+
+template <>
+SaberStatus SaberEltwise<NV, AK_INT8>::init(
+        const std::vector<Tensor<NV> *>& inputs,
+        std::vector<Tensor<NV> *>& outputs,
+        EltwiseParam<NV>& param,
+        Context<NV>& ctx) {
+
+    return create(inputs, outputs, param, ctx);
+}
+
+template <>
+SaberStatus SaberEltwise<NV, AK_INT8>::dispatch(
+        const std::vector<Tensor<NV> *>& inputs,
+        std::vector<Tensor<NV> *>& outputs,
+        EltwiseParam<NV>& param) {
+    return SaberSuccess;
+}
+
 template class SaberEltwise<NV, AK_FLOAT>;
+template class SaberEltwise<NV, AK_INT8>;
 DEFINE_OP_TEMPLATE(SaberEltwise, EltwiseParam, NV, AK_HALF);
-DEFINE_OP_TEMPLATE(SaberEltwise, EltwiseParam, NV, AK_INT8);
+
 
 }
 }

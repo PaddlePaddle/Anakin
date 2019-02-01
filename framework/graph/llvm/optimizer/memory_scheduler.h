@@ -77,6 +77,7 @@ struct check_self_shared {
     }
 };
 
+
 /**
  * \brief io block resource class used for scheduler of VGraph memory usage
  */
@@ -137,6 +138,22 @@ public:
 
     /// launch operator and push op to execution queue
     virtual void launch(node&) final;
+    virtual void Run();
+    void check_memory();
+    bool check_self_shared_str(std::string str){
+        std::vector<std::string> ops{
+        "Split",
+        "Reshape",
+        "Gather",
+        "Flatten"
+        };
+        for (std::string type : ops){
+            if (str == type){
+                return true;
+            }
+        }
+        return false;
+    }
 
     /// set fix io
     void set_fix_io(std::vector<io>&);
@@ -146,6 +163,7 @@ public:
 private:
     IOBlockResource _io_block_res;
     check_self_shared _need_self_shared;
+    std::map<io, int> io_number_map;
 };
 
 

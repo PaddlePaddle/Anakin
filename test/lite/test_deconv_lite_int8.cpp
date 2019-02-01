@@ -125,6 +125,7 @@ SaberStatus test_arm_deconv_int8(int n, int c, int h, int w, \
     std::vector<float> scale;
     std::vector<float> weights_scale(ch_out, 1.f);
     get_tensor_scale(thinf, scale, 0, 63.f);
+    thinf.set_scale(scale);
 //    LOG(INFO) << "input tesnor scale at factor 63.f is " << thinf.get_scale()[0] << ", max_val: " << 63.f * thinf.get_scale()[0];
     trans_tensor_fp32_to_int8(thinf, thinc, scale[0]);
     thinc.set_scale(scale);

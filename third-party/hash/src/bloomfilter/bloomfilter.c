@@ -184,19 +184,21 @@ bloomfilter_get(struct bloomfilter *bloomfilter, const void *key, size_t len)
 int
 bloomfilter_get_hash(struct bloomfilter *bloomfilter, const void *key, size_t len, char *dst)
 {
+#define SIZEOF_MIN(X, Y) ((X) < (Y) ? (X) : (Y))
     uint32_t i;
     uint64_t  result[2];
     char hash[255] = "";
     char valstr[32];
     for (i = 0; i < bloomfilter->k; i++) {
         murmurhash3_x64_128(key, len, i, &result);
-        sprintf(valstr, "%lld,", result[0]);
-        strcat(hash, valstr);
-        sprintf(valstr, "%lld,", result[1]);
-        strcat(hash, valstr);
+        snprintf(valstr, sizeof(valstr), "%lu,", result[0]);
+        strncat(hash, valstr, SIZEOF_MIN(sizeof(valstr), sizeof(hash)));
+        snprintf(valstr, sizeof(valstr), "%lu,", result[1]);
+        strncat(hash, valstr, SIZEOF_MIN(sizeof(valstr), sizeof(hash)));
     }
-    strcpy(dst, hash);
+    strncpy(dst, hash, SIZEOF_MIN(len, sizeof(hash)));
     return 1;
+#undef SIZEOF_MIN
 }
 
 int

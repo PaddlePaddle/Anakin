@@ -107,7 +107,7 @@ Status Graph<Ttype, Ptype>::RegistAllOut() {
 }
 
 template<typename Ttype, Precision Ptype>
-Status Graph<Ttype, Ptype>::Optimize() EXCLUSIVE_LOCKS_REQUIRED(_mut) {
+Status Graph<Ttype, Ptype>::Optimize(bool with_fusion) EXCLUSIVE_LOCKS_REQUIRED(_mut) {
     std::unique_lock<std::mutex> lock(this->_mut);
 
     if (!_has_graph_optimized) {
@@ -126,20 +126,24 @@ Status Graph<Ttype, Ptype>::Optimize() EXCLUSIVE_LOCKS_REQUIRED(_mut) {
             // get node exec in order
             _nodes_exec_order = scheduler.get_exec_node_in_order();
         } else {
-            DLOG(WARNING) << "Exe the graph fusion and combination [ SUPPORT IN-ORDER PATTERM ]";
-            // TODO ...
-            auto in_ordered_fusion_op_name_vec = FusionOpRegister::Global().get_list_op_name_in_fusion_order_of(IN_ORDER);
-            for (auto& fusion_name : in_ordered_fusion_op_name_vec) {
-                //in x86, we ignore two fusion patterns
-                if (std::is_same<Ttype, X86>::value &&
-                    (fusion_name == "ConvReluPool" || fusion_name == "ConvBatchnormScaleReluPool")){
-                    continue;
+            if (with_fusion) {
+                // xiaogang rang wo jia de
+                DLOG(WARNING) << "Exe the graph fusion and combination [ SUPPORT IN-ORDER PATTERM ]";
+                // TODO ...
+                auto in_ordered_fusion_op_name_vec = FusionOpRegister::Global().get_list_op_name_in_fusion_order_of(
+                        IN_ORDER);
+                for (auto &fusion_name : in_ordered_fusion_op_name_vec) {
+                    //in x86, we ignore two fusion patterns
+                    if (std::is_same<Ttype, X86>::value &&
+                        (fusion_name == "ConvReluPool" || fusion_name == "ConvBatchnormScaleReluPool")) {
+                        continue;
+                    }
+
+                    LOG(INFO) << " processing in-ordered fusion : " << fusion_name;
+                    _vgraph->Match(FusionOpRegister::Global()[fusion_name]);
+
                 }
-
-                LOG(INFO) << " processing in-ordered fusion : " << fusion_name;
-                _vgraph->Match(FusionOpRegister::Global()[fusion_name]);
             }
-
             DLOG(WARNING) <<
                           "Schedule the vgraph for memory optimization and exec lanes ,as well as sync flags.";
 
@@ -151,15 +155,18 @@ Status Graph<Ttype, Ptype>::Optimize() EXCLUSIVE_LOCKS_REQUIRED(_mut) {
             //LOG(ERROR) << "gen exe order";
 
             _nodes_exec_order = scheduler.get_exec_node_in_order();
-
-
+//#if 0
 #ifndef BUILD_LITE // enable conv+eltwise fusion
             // optimization
-            ConvElsFusionScheduler conv_eltwise_fusion_scheduler;
-            conv_eltwise_fusion_scheduler.RegIOResource(_vgraph);
-            conv_eltwise_fusion_scheduler.Run();
-            // get node exec in order
-            _nodes_exec_order = conv_eltwise_fusion_scheduler.get_exec_node_in_order();
+            // xiaogang rang wo jia de
+            if (with_fusion) {
+
+                ConvElsFusionScheduler conv_eltwise_fusion_scheduler;
+                conv_eltwise_fusion_scheduler.RegIOResource(_vgraph);
+                conv_eltwise_fusion_scheduler.Run();
+                // get node exec in order
+                _nodes_exec_order = conv_eltwise_fusion_scheduler.get_exec_node_in_order();
+            }
 #endif
             // optimization again
             ParallScheduler para_scheduler;
@@ -262,13 +269,27 @@ Graph<Ttype, Ptype>::get_scale_map(){
 
     this->Scanner->BFS(get_scale);
     return scale_map;
-
 }
+//get graph scale maps
+template<typename Ttype, Precision Ptype>
+std::unordered_map<std::string, saber::LayoutType>
+Graph<Ttype, Ptype>::get_layout_map(){
+    std::unordered_map<std::string, saber::LayoutType> layout_map;
+    auto get_layout = [&, this](Edge<Ttype>& edge){
+            layout_map[edge.name()] = edge.layout();
+    };
+
+    this->Scanner->BFS_Edge(get_layout);
+    return layout_map;
+}
+
 template <typename Ttype, Precision Ptype>
 void Graph<Ttype, Ptype>::load_calibrator_config(
     std::string config_file, std::string cal_file){
     CalibratorParser cal_parser;
+#ifndef USE_SGX
     cal_parser.parse_from_file(config_file, cal_file);
+#endif
 
     auto set_node_info = [&](NodePtr& node_p){
         node_p->set_bit_type(cal_parser.get_dtype_of_precision(node_p->name()));
@@ -285,6 +306,7 @@ template<typename Ttype, Precision Ptype>
 Status Graph<Ttype, Ptype>::restore_from_vgraph(VGraph* vgraph) {
     //! need to clear graph edge first
     auto graph_scale_map = this->get_scale_map();
+    auto graph_layout_map = this->get_layout_map();
 
     this->arcs_clear();
 
@@ -419,6 +441,57 @@ Status Graph<Ttype, Ptype>::restore_from_vgraph(VGraph* vgraph) {
 
     };
     this->Scanner->BFS_Edge(recover_scale);
+
+    //recover layout to edge
+    auto recover_layout = [&, this](Edge<Ttype>& edge){
+        std::string edge_name = edge.name();
+        std::string old_name = vgraph -> get_fusion_old_edge(edge_name);
+        if (old_name != ""){
+            edge_name = old_name;
+        }
+        if (graph_layout_map.count(edge_name) > 0){
+            auto layout = graph_layout_map[edge_name];
+            edge.set_layout(layout);
+        } else {
+            LOG(ERROR) << "when recover layout: the edge has no layout to map:" << edge_name;
+        }
+
+    };
+    this->Scanner->BFS_Edge(recover_layout);
+
+    //for conv_eltwise, we deal scale to one node
+    auto conv_eltwise_deal_scale = [this](NodePtr& node_p) -> Status {
+        if (node_p->get_op_name() == "Gather"){
+            auto in_edge_its = this->get_in_arc_its(node_p->name());
+            float scale_0 = 1.f;
+            float scale_3 = 1.f;
+            CHECK_EQ(in_edge_its.size(), 2);
+            auto eltwise_node_name = in_edge_its[0]->bottom();
+
+            if (in_edge_its[0]->bottom() == "ConvEltwise"){
+                if (in_edge_its[1]->scale().size() > 0){
+                    scale_0 = in_edge_its[1]->scale()[0];
+                }
+            } else {
+                if (in_edge_its[0]->scale().size() > 0){
+                    scale_0 = in_edge_its[0]->scale()[0];
+                }
+                eltwise_node_name = in_edge_its[1]->bottom();                
+            }
+            auto out_edge_its = this->get_out_arc_its(node_p->name());
+            CHECK_EQ(out_edge_its.size(), 1);
+            if (in_edge_its[1]->scale().size() > 0){
+                scale_3 = out_edge_its[0]->scale()[0];
+            }
+            auto eltwise_node = (*this)[eltwise_node_name];
+            eltwise_node->template set_attr<float>("scale_0", scale_0);
+            eltwise_node->template set_attr<float>("scale_3", scale_3);
+        }
+        
+        return Status::OK();
+    };
+    this->Scanner->BFS(conv_eltwise_deal_scale);
+
 
     return Status::OK();
 }

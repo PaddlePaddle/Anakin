@@ -76,6 +76,11 @@ template class LrnHelper<NV, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(Lrn, LrnHelper, NV, Precision::FP32);
 #endif
 
+#ifdef USE_X86_PLACE
+INSTANCE_LRN(X86, Precision::FP32);
+template class LrnHelper<X86, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Lrn, LrnHelper, X86, Precision::FP32);
+#endif
 #ifdef USE_ARM_PLACE
 INSTANCE_LRN(ARM, Precision::FP32);
 template class LrnHelper<ARM, Precision::FP32>;

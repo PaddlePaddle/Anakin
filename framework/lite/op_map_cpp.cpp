@@ -45,7 +45,7 @@ std::string ParserConvolution(graph::AttrInfo& attr,
     auto weights_shape = weights.shape();
     auto &weights_tensor = weights.h_tensor();
     int weights_size = weights_shape.count();
-    int num_output = weights_shape[0];
+    int num_output = filter_num;
 
     // write weights
     trans_conv_weights_inplace(weights_tensor, op_precision, lite_mode);
@@ -185,7 +185,7 @@ std::string ParserDeconvolution(graph::AttrInfo& attr,
     auto weights_shape = weights.shape();
     auto& weights_tensor = weights.h_tensor();
     int weights_size = weights_shape.count();
-    int num_output = weights_shape[0];
+    int num_output = filter_num;
 
     // write weights
     trans_deconv_weights_inplace(weights_tensor, op_precision, lite_mode);
@@ -298,7 +298,7 @@ std::string ParserDeConvolutionRelu(graph::AttrInfo& attr,
     auto weights_shape = weights.shape();
     auto& weights_tensor = weights.h_tensor();
     int weights_size = weights_shape.count();
-    int num_output = weights_shape[0];
+    int num_output = filter_num;
 
     // write weights
     trans_deconv_weights_inplace(weights_tensor, op_precision, lite_mode);
@@ -411,7 +411,7 @@ std::string ParserConvolutionRelu(graph::AttrInfo& attr,
     auto weights_shape = weights.shape();
     auto& weights_tensor = weights.h_tensor();
     int weights_size = weights_shape.count();
-    int num_output = weights_shape[0];
+    int num_output = filter_num;
 
     // write weights
     trans_conv_weights_inplace(weights_tensor, op_precision, lite_mode);
@@ -524,7 +524,7 @@ std::string ParserConvAct(graph::AttrInfo& attr,
     auto weights_shape = weights.shape();
     auto& weights_tensor = weights.h_tensor();
     int weights_size = weights_shape.count();
-    int num_output = weights_shape[0];
+    int num_output = filter_num;
 
     float alpha = 0.f;
     float coef = 0.f;
@@ -679,7 +679,7 @@ std::string ParserConvolutionReluPool(graph::AttrInfo& attr,
     auto weights_shape = weights.shape();
     auto& weights_tensor = weights.h_tensor();
     int weights_size = weights_shape.count();
-    int num_output = weights_shape[0];
+    int num_output = filter_num;
 
     // write weights
     trans_conv_weights_inplace(weights_tensor, op_precision, lite_mode);
@@ -830,7 +830,7 @@ std::string ParserConvBatchnorm(graph::AttrInfo& attr,
     auto weights_shape = weights.shape();
     auto weights_tensor = weights.h_tensor();
     int weights_size = weights_shape.count();
-    int num_output = weights_shape[0];
+    int num_output = filter_num;
 
     // write weights
     trans_conv_weights_inplace(weights_tensor, op_precision, lite_mode);
@@ -939,7 +939,7 @@ std::string ParserConvBatchnormScale(graph::AttrInfo& attr,
     auto weights_shape = weights.shape();
     auto& weights_tensor = weights.h_tensor();
     int weights_size = weights_shape.count();
-    int num_output = weights_shape[0];
+    int num_output = filter_num;
 
     // write weights
     trans_conv_weights_inplace(weights_tensor, op_precision, lite_mode);
@@ -1049,7 +1049,7 @@ std::string ParserConvBatchnormScaleRelu(graph::AttrInfo& attr,
     auto weights_shape = weights.shape();
     auto &weights_tensor = weights.h_tensor();
     int weights_size = weights_shape.count();
-    int num_output = weights_shape[0];
+    int num_output = filter_num;
 
     // write weights
     trans_conv_weights_inplace(weights_tensor, op_precision, lite_mode);
@@ -1163,7 +1163,7 @@ std::string ParserConvBatchnormScaleReluPool(graph::AttrInfo& attr,
     auto weights_shape = weights.shape();
     auto& weights_tensor = weights.h_tensor();
     int weights_size = weights_shape.count();
-    int num_output = weights_shape[0];
+    int num_output = filter_num;
 
     // write weights
     trans_conv_weights_inplace(weights_tensor, op_precision, lite_mode);
@@ -1314,7 +1314,119 @@ std::string ParserConcat(graph::AttrInfo& attr,
     }
     return code_w.get_code_string();
 }
+// SaberDonvBatchnormScaleRelu
+std::string ParserDeconvBatchnormScaleRelu(graph::AttrInfo& attr,
+                                           std::string& code_name,
+                                           std::string& op_class_name,
+                                           std::string& node_name,
+                                           std::string& weights_ptr_name,
+                                           WeightsWritter& writter,
+                                           bool gen_param,
+                                           int lite_mode,
+                                           DataType op_precision) {
+    // parsing parameter
+    auto group = get_attr<int>("group", attr);
+    auto bias_term = get_attr<bool>("bias_term", attr);
+    auto padding = get_attr<PTuple<int>>("padding", attr);
+    auto strides = get_attr<PTuple<int>>("strides", attr);
+    auto dilation_rate = get_attr<PTuple<int>>("dilation_rate", attr);
+    auto filter_num = get_attr<int>("filter_num", attr);
+    auto kernel_size = get_attr<PTuple<int>>("kernel_size", attr);
+    auto axis = get_attr<int>("axis", attr);
 
+    auto weights = get_attr<PBlock<X86>>("weight_1", attr);
+    auto weights_shape = weights.shape();
+    auto &weights_tensor = weights.h_tensor();
+    int weights_size = weights_shape.count();
+    int num_output = filter_num;
+
+    // write weights
+    trans_deconv_weights_inplace(weights_tensor, op_precision, lite_mode);
+    auto weights_dtype = weights_tensor.get_dtype();
+    writter.register_weights(node_name, weights);
+    LOG(INFO) << node_name << " write weights: " << weights.count() << ", weights dtype: " << weights_dtype;
+
+    // write scale
+    PBlock<X86> scale_tensor(AK_FLOAT);
+    std::vector<float> scale = weights_tensor.get_scale();
+    Shape scale_shape({1, 1, 1, scale.size()});
+    scale_tensor.h_tensor().reshape(scale_shape);
+    float* scale_ptr = (float*)scale_tensor.h_tensor().mutable_data();
+    for (int i = 0; i < scale.size(); ++i){
+        scale_ptr[i] = scale[i];
+    }
+    writter.register_weights(node_name, scale_tensor);
+    LOG(INFO) << node_name << "write scale: " << scale_ptr[0];
+
+    // write bias
+    if (bias_term) {
+        auto bias = get_attr<PBlock<X86>>("weight_2", attr);
+        writter.register_weights(node_name, bias);
+        LOG(INFO) << node_name << " write bias: " << bias.count();
+    }
+    auto offset_info = writter.get_weights_by_name(node_name);
+
+    //! activation param
+    float alpha = 0.f;
+    if (find_attr("relu_0_alpha", attr) == SaberSuccess) {
+        alpha = get_attr<float>("relu_0_alpha", attr);
+    }
+    // gen cpp code
+    CodeWritter code_w;
+    if (gen_param) {
+        code_w.feed("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f %f %d %d\n",
+                    weights_size,
+                    num_output,
+                    group,
+                    kernel_size[1],
+                    kernel_size[0],
+                    strides[1],
+                    strides[0],
+                    padding[1],
+                    padding[0],
+                    dilation_rate[1],
+                    dilation_rate[0],
+                    1, //BIAS term
+                    (int)weights_dtype,
+                    offset_info.weights[0].offset,
+                    offset_info.weights[1].offset,
+                    offset_info.weights[2].offset,
+                    0, //flag_eltwise
+                    1, //set flag_act false
+                    (int)Active_relu,
+                    alpha, //neg slope
+                    0.f, //act_coef
+                    0, //prelu, channel_shared
+                    0/*prelu weights*/);
+    } else {
+        code_w.feed("ParamBase* %s_param = new Conv2DParam(%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%d,%s+%d,%s+%d,%s+%d,%s,%s,%s,%f,%f,%s,%s+%d);\n",
+                    node_name.c_str(),
+                    weights_size,
+                    num_output,
+                    group,
+                    kernel_size[1],
+                    kernel_size[0],
+                    strides[1],
+                    strides[0],
+                    padding[1],
+                    padding[0],
+                    dilation_rate[1],
+                    dilation_rate[0],
+                    "true",
+                    (int)weights_dtype,
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[0].offset,
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[1].offset,
+                    weights_ptr_name.c_str(),
+                    offset_info.weights[2].offset,
+                    "false", //flag_eltwise
+                    "true", //set flag_act true
+                    "Active_relu", alpha, 0.f, "false", weights_ptr_name.c_str(), 0);
+        code_w.feed("    %s_g_param.push_back(%s_param);\n", code_name.c_str(), node_name.c_str());
+    }
+    return code_w.get_code_string();
+}
 // SaberDectionOutput
 std::string ParserDectionOutput(graph::AttrInfo& attr,
                                 std::string& code_name,
@@ -2506,6 +2618,7 @@ std::unordered_map<std::string, OpParser> OPERATION_MAP({
     {"ConvAct", {"SaberConv2D", ParserConvAct} },  // done
     {"ConvReluPool", {"SaberConvPooling2D", ParserConvolutionReluPool} },  // done
     {"ConvBatchnormScaleRelu", {"SaberConv2D", ParserConvBatchnormScaleRelu}}, // done have question ??
+    {"DeconvBatchnormScaleRelu", {"SaberDeconv2D", ParserDeconvBatchnormScaleRelu}}, // done have question ??
     {"ConvBatchnormScaleReluPool", {"SaberConvPooling2D", ParserConvBatchnormScaleReluPool}}, // done have question ??
     {"ConvBatchnormScale", {"SaberConv2D", ParserConvBatchnormScale}}, //done
     {"ConvBatchnorm", {"SaberConv2D", ParserConvBatchnorm}}, //done

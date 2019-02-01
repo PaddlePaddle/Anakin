@@ -109,7 +109,7 @@ public:
 
 
     /// optimization for graph
-    Status Optimize();
+    Status Optimize(bool with_fusion = true);
     /// Get virtual graph.
     VGraph& get_vgraph();
     /// Restore real Graph from optimized virtual graph.
@@ -124,6 +124,8 @@ public:
     //get all edge scales in graph
     std::unordered_map<std::string, std::vector<float>> 
         get_scale_map(); 
+    std::unordered_map<std::string, saber::LayoutType>
+        get_layout_map();
 
     ///< statistics stand for Statistics info of anakin graph
     Statistics statistics;

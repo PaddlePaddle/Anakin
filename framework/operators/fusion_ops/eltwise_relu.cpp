@@ -24,8 +24,8 @@ void EltwiseRelu<Ttype, Ptype>::operator()(\
     OpContext<Ttype>& ctx,\
     const std::vector<Tensor4dPtr<Ttype> >& ins,\
     std::vector<Tensor4dPtr<Ttype> >& outs) { \
-    auto* impl = static_cast<EltwiseReluHelper<Ttype, Precision::FP32>*>(this->_helper); \
-    auto& param = static_cast<EltwiseReluHelper<Ttype, Precision::FP32>*> \
+    auto* impl = static_cast<EltwiseReluHelper<Ttype, Ptype>*>(this->_helper); \
+    auto& param = static_cast<EltwiseReluHelper<Ttype, Ptype>*> \
                   (this->_helper)->_param_eltwise_relu; \
     impl->_funcs_eltwise_relu(ins, outs, param, ctx); \
 }
@@ -91,10 +91,12 @@ Status EltwiseReluHelper<Ttype, Ptype>::InferShape(const
 
 #ifdef USE_CUDA
 INSTANCE_ELTWISERELU(NV, Precision::FP32)
+INSTANCE_ELTWISERELU(NV, Precision::INT8)
 template class EltwiseReluHelper<NV, Precision::FP32>;
 template class EltwiseReluHelper<NV, Precision::FP16>;
 template class EltwiseReluHelper<NV, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, NV, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, NV, Precision::INT8);
 #endif
 
 #ifdef USE_ARM_PLACE
@@ -132,6 +134,7 @@ ANAKIN_REGISTER_OP(EltwiseRelu)
 .Doc("EltwiseRelu operator")
 #ifdef USE_CUDA
 .__alias__<NV, Precision::FP32>("eltwise")
+.__alias__<NV, Precision::INT8>("eltwise")
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("eltwise")

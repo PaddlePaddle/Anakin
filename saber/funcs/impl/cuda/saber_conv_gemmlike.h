@@ -16,11 +16,11 @@
 #ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_CONV_GEMMLIKE_H
 #define ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_CONV_GEMMLIKE_H
 
-#include <vector>
 #include "saber/funcs/impl/impl_conv.h"
-#include "sass_funcs.h"
 #include "saber/funcs/impl/cuda/saber_activation.h"
 #include "saber/funcs/funcs_utils.h"
+#include "sass_funcs.h"
+#include <vector>
 
 namespace anakin{
 
@@ -39,31 +39,25 @@ public:
 
     virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
                              std::vector<Tensor<NV> *>& outputs,
-                             ConvParam<NV>& param, Context<NV> &ctx) {
-        this->_ctx = &ctx;
-        if (param.activation_param.has_active) {
-            if (param.activation_param.active != Active_relu) {
-                _saber_act = new SaberActivation<NV, OpDtype>;
-                _saber_act->init(inputs, outputs, param.activation_param, ctx);
-            }
-        }
-        return create(inputs, outputs, param, ctx);
-    }
+                             ConvParam<NV>& param, Context<NV> &ctx);
 
     virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
                                std::vector<Tensor<NV> *>& outputs,
-                               ConvParam<NV>& param, Context<NV>& ctx) {
-        if (_saber_act != nullptr) {
-            _saber_act->create(outputs, outputs, param.activation_param, ctx);
-        }
-    }
+                               ConvParam<NV>& param, Context<NV>& ctx);
 
     virtual SaberStatus dispatch(const std::vector<Tensor<NV>*>& inputs,
                                  std::vector<Tensor<NV>*>& outputs,
                                  ConvParam<NV>& param);
 
+    void set_act(bool use_act) {
+        _use_act = use_act;
+    }
 private:
     SaberActivation<NV, OpDtype> *_saber_act{nullptr};
+    bool _use_act{false};
+    std::function<void(int, int, int, void *, const void *, const void *,
+            int, int, int, int, const void *, cudaStream_t,
+            float, float, int)> _int8_func;
 
 };
 }

@@ -1679,21 +1679,25 @@ private:
 
 template <typename TargetType>
 struct MatMulParam {
-    MatMulParam(): _is_transpose_X(false), _is_transpose_Y(false) {}
-    MatMulParam(bool x, bool y): _is_transpose_X(x), _is_transpose_Y(y) {}
+    MatMulParam(): _is_transpose_X(false), _is_transpose_Y(false), _scale(1.0f) {}
+    MatMulParam(bool x, bool y): _is_transpose_X(x), _is_transpose_Y(y), _scale(1.0f) {}
+    MatMulParam(bool x, bool y, float scale): _is_transpose_X(x), _is_transpose_Y(y), _scale(scale) {}
     MatMulParam& operator=(const MatMulParam& right) {
         _is_transpose_X = right._is_transpose_X;
         _is_transpose_Y = right._is_transpose_Y;
+        _scale = right._scale;
         return *this;
     }
     bool operator==(const MatMulParam& right) {
         bool comp_eq = true;
         comp_eq = comp_eq && (_is_transpose_X == right._is_transpose_X);
         comp_eq = comp_eq && (_is_transpose_Y == right._is_transpose_Y);
+        comp_eq = comp_eq && (_scale == right._scale);
         return comp_eq;
     }
     bool _is_transpose_X{false};
     bool _is_transpose_Y{false};
+    float _scale{1.0f};
     int _m = 0;
     int _n = 0;
     int _k = 0;
@@ -1878,6 +1882,33 @@ struct PermutePowerParam {
     PermuteParam<TargetType> permute_param;
     bool has_power_param;
 };
+
+template<typename TargetType>
+struct PixelShuffleParam {
+    PixelShuffleParam() {}
+    PixelShuffleParam(int h, int w): rh(h), rw(w), channel_first(true) {};
+    PixelShuffleParam(int h, int w, bool flag): rh(h), rw(w), channel_first(flag) {};
+    PixelShuffleParam(const PixelShuffleParam<TargetType>& right):
+        rh(right.rh), rw(right.rw), channel_first(right.channel_first) {}
+    PixelShuffleParam& operator=(const PixelShuffleParam<TargetType> right){
+        rh = right.rh;
+        rw = right.rw;
+        channel_first = right.channel_first;
+        return *this;
+    } 
+    bool operator==(const PixelShuffleParam& right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (rh == right.rh);
+        comp_eq = comp_eq && (rw == right.rw);
+        comp_eq = comp_eq && (channel_first == right.channel_first);
+        return comp_eq;
+    }
+
+    int rh;
+    int rw;
+    bool channel_first;
+};
+
 
 template <typename TargetType>
 struct PoolingParam {
@@ -2640,28 +2671,43 @@ struct MatchMatrixParam {
         dim_t(dim_t_in),
         linear_term(false),
         bias_term(false),
+        is_l_same(true),
+        weight_tensor(weight) {}
+    MatchMatrixParam(int dim_in_in,
+                     int dim_t_in,
+                     bool is_l_same_in,
+                     opTensor* weight):
+        dim_in(dim_in_in),
+        dim_t(dim_t_in),
+        linear_term(false),
+        bias_term(false),
+        is_l_same(is_l_same_in),
         weight_tensor(weight) {}
     MatchMatrixParam(int dim_in_in,
                      int dim_t_in,
                      bool linear_term_in,
                      bool bias_term_in,
+                     bool is_l_same_in,
                      opTensor* weight):
         dim_in(dim_in_in),
         dim_t(dim_t_in),
         linear_term(linear_term_in),
         bias_term(bias_term_in),
+        is_l_same(is_l_same_in),
         weight_tensor(weight) {}
     MatchMatrixParam(const MatchMatrixParam& right):
         dim_in(right.dim_in),
         dim_t(right.dim_t),
         linear_term(right.linear_term),
         bias_term(right.bias_term),
+        is_l_same(right.is_l_same),
         weight_tensor(right.weight_tensor) {}
     MatchMatrixParam& operator=(const MatchMatrixParam& right) {
         dim_in = right.dim_in;
         dim_t = right.dim_t;
         linear_term = right.linear_term;
         bias_term = right.bias_term;
+        is_l_same = right.is_l_same;
         weight_tensor = right.weight_tensor;
         return *this;
     }
@@ -2670,7 +2716,8 @@ struct MatchMatrixParam {
         flag = flag && (dim_in == right.dim_in);
         flag = flag && (dim_t == right.dim_t);
         flag = flag && (linear_term == right.linear_term);
-        flag = flag && (bias_term == right.bias_term);
+		flag = flag && (bias_term == right.bias_term);
+        flag = flag && (is_l_same == right.is_l_same);
         flag = flag && (weight_tensor == right.weight_tensor);
         return flag;
     }
@@ -2684,6 +2731,7 @@ struct MatchMatrixParam {
     int dim_t{2};
     bool linear_term{false};
     bool bias_term{false};
+    bool is_l_same{true};
     private:
     opTensor* weight_tensor{nullptr};
 };
@@ -2825,6 +2873,14 @@ struct SequenceConcatParam{
     SequenceConcatParam(const SequenceConcatParam& right) {}
     SequenceConcatParam& operator=(const SequenceConcatParam& right) { return *this;}
     bool operator==(const SequenceConcatParam& right) {return true;}
+};
+
+template <typename TargetType>
+struct SequenceConcatByColParam{
+    SequenceConcatByColParam() = default;
+    SequenceConcatByColParam(const SequenceConcatByColParam& right) {}
+    SequenceConcatByColParam& operator=(const SequenceConcatByColParam& right) { return *this;}
+    bool operator==(const SequenceConcatByColParam& right) {return true;}
 };
 
 template <typename TargetType>
@@ -2995,6 +3051,95 @@ struct ArithmeticParam{
     }
 
     ArithmeticType op_type;
+};
+
+template <typename TargetType>
+struct AlignedMatMulParam{
+    AlignedMatMulParam() = default;
+
+    AlignedMatMulParam(bool is_transpose_X_in,
+                       bool is_transpose_Y_in,
+                       float scale_in):is_transpose_X(is_transpose_X_in),
+                                      is_transpose_Y(is_transpose_Y_in),
+                                      scale(scale_in) {}
+
+    AlignedMatMulParam(const AlignedMatMulParam& right):
+            is_transpose_X(right.is_transpose_X),
+            is_transpose_Y(right.is_transpose_Y),
+            scale(right.scale){}
+
+    AlignedMatMulParam& operator=(const AlignedMatMulParam& right) {
+        is_transpose_X = right.is_transpose_X;
+        is_transpose_Y = right.is_transpose_Y;
+        scale = right.scale;
+        return *this;
+    }
+
+    bool operator==(const AlignedMatMulParam& right) {
+        bool flag = true;
+        flag = flag && is_transpose_X == right.is_transpose_X;
+        flag = flag && is_transpose_Y == right.is_transpose_Y;
+        flag = flag && scale == right.scale;
+        return flag;
+    }
+
+    bool is_transpose_X{false};
+    bool is_transpose_Y{false};
+    float scale{1.0f};
+};
+
+template <typename TargetType>
+struct SequencePaddingParam{
+    SequencePaddingParam() = default;
+
+    SequencePaddingParam(const SequencePaddingParam& right) { }
+
+    SequencePaddingParam& operator=(const SequencePaddingParam& right) {
+        return *this;
+    }
+
+    bool operator==(const SequencePaddingParam& right) {
+        return true;
+    }
+};
+
+template <typename TargetType>
+struct SequenceDePaddingParam{
+    SequenceDePaddingParam() = default;
+
+    SequenceDePaddingParam(const SequenceDePaddingParam& right) { }
+
+    SequenceDePaddingParam& operator=(const SequenceDePaddingParam& right) {
+        return *this;
+    }
+
+    bool operator==(const SequenceDePaddingParam& right) {
+        return true;
+    }
+};
+
+template <typename TargetType>
+struct AttentionPaddingMaskParam{
+    AttentionPaddingMaskParam() = default;
+    AttentionPaddingMaskParam(float mask_in,
+                             int pad_id_in):
+                             mask(mask_in),
+                             pad_id(pad_id_in){}
+    AttentionPaddingMaskParam(const AttentionPaddingMaskParam& right):mask(right.mask), pad_id(right.pad_id) {}
+    AttentionPaddingMaskParam& operator=(const AttentionPaddingMaskParam& right) {
+        mask = right.mask;
+        pad_id = right.pad_id;
+        return *this;
+    }
+    bool operator== (const AttentionPaddingMaskParam& right) {
+        bool flag =  mask == right.mask;
+        flag = flag && pad_id == right.pad_id;
+        return flag;
+    }
+    
+    float mask{900000000.0f};
+    int pad_id{12800001};
+    
 };
 
 template <typename TargetType>

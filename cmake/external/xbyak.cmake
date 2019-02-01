@@ -19,7 +19,7 @@ include(ExternalProject)
 set(XBYAK_PROJECT       extern_xbyak)
 set(XBYAK_PREFIX_DIR    ${ANAKIN_TEMP_THIRD_PARTY_PATH}/xbyak)
 set(XBYAK_CLONE_DIR     ${XBYAK_PREFIX_DIR}/src/${XBYAK_PROJECT})
-set(XBYAK_INSTALL_ROOT  ${ANAKIN_THIRD_PARTY_PATH}/xbyak)
+set(XBYAK_INSTALL_ROOT  ${ANAKIN_TEMP_THIRD_PARTY_PATH}/xbyak)
 set(XBYAK_INC_DIR       ${XBYAK_INSTALL_ROOT}/include)
 
 message(STATUS "Scanning external modules ${Green}xbyak${ColourReset} ...")
@@ -28,7 +28,7 @@ message(STATUS "Scanning external modules ${Green}xbyak${ColourReset} ...")
 include_directories(${XBYAK_INC_DIR})
 
 if(USE_SGX)
-    set(SGX_PATCH_CMD "cd ${ANAKIN_THIRD_PARTY_PATH} && patch -p0 <xbyak.patch")
+    set(SGX_PATCH_CMD "cd ${ANAKIN_TEMP_THIRD_PARTY_PATH} && patch -p0 <${ANAKIN_THIRD_PARTY_PATH}/xbyak.patch")
 else()
     # use a whitespace as nop so that sh won't complain about missing argument
     set(SGX_PATCH_CMD " ")

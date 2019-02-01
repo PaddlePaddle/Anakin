@@ -54,12 +54,17 @@ public:
                               int stride_h, int stride_w, int group);
 
 private:
+    std::vector<Tensor<NV> *> _in_data_tensor;
+    std::vector<Tensor<NV> *> _out_data_tensor;
     Tensor<NV> int8_input;
     Tensor<NV> int8_output;
     Impl_t* _impl{nullptr};
     bool _extern_trans{false};
     bool _use_vender{false};
     float _in_scale{0.f};
+    float _out_scale{0.f};
+    bool _scale_per_k{false};
+    bool _output_int8{false};
 };
 }
 

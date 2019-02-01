@@ -74,7 +74,7 @@ Status ConvBatchnormScaleReluHelper<Ttype, Ptype>::InitParam() {
     auto scale_weight_1 = GET_PARAMETER(pblock_type, scale_0_weight_1);
     auto scale_weight_1_vector = scale_weight_1.vector();
     auto scale_weight_2 = GET_PARAMETER(pblock_type, scale_0_weight_2);
-    auto  scale_weight_2_vector = scale_weight_2.vector();
+    auto scale_weight_2_vector = scale_weight_2.vector();
 
     // get relu param
     auto alpha = GET_PARAMETER(float, relu_0_alpha);

@@ -82,6 +82,31 @@ private:
                        float,
                        float,
                        cudaStream_t)> dispatch_func;
+
+    std::function<void (
+            const void *,
+            void *,
+            const void *,
+            const void *,
+            int,
+            int,
+            int,
+            int,
+            int,
+            int,
+            int,
+            int,
+            int,
+            int,
+            int,
+            int,
+            int,
+            int,
+            int,
+            int,
+            float,
+            float,
+            cudaStream_t cuda_stream)> int8_dispatch_func;
 };
 }
 

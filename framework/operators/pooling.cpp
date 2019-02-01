@@ -74,6 +74,15 @@ Status PoolingHelper<NV, Precision::FP32>::Init(OpContext<NV> &ctx, \
     return Status::OK();
 }
 ANAKIN_REGISTER_OP_HELPER(Pooling, PoolingHelper, NV, Precision::FP32);
+INSTANCE_POOLING(NV, Precision::INT8);
+template <>
+Status PoolingHelper<NV, Precision::INT8>::Init(OpContext<NV> &ctx, \
+    const std::vector<Tensor4dPtr<NV> >& ins, \
+    std::vector<Tensor4dPtr<NV> >& outs) {
+    SABER_CHECK(_funcs_pooling.init(ins, outs, _param_pooling, SPECIFY, SABER_IMPL, ctx));
+    return Status::OK();
+}
+ANAKIN_REGISTER_OP_HELPER(Pooling, PoolingHelper, NV, Precision::INT8);
 #endif
 
 #ifdef USE_ARM_PLACE
@@ -99,6 +108,8 @@ ANAKIN_REGISTER_OP(Pooling)
 #ifdef USE_CUDA
 .__alias__<NV, Precision::FP32>("pooling")
 .__alias__<NV, Precision::FP32>("pool")
+.__alias__<NV, Precision::INT8>("pooling")
+.__alias__<NV, Precision::INT8>("pool")
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("pooling")

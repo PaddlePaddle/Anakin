@@ -85,13 +85,24 @@ saber::DataType CalibratorParser::get_dtype(std::string name0, std::string name1
 std::string CalibratorParser::get_target(std::string name) const {
     //if not exist, return NV
     if (_node_target_map.find(name) == _node_target_map.end()) {
+#ifdef USE_CUDA_PLACE
         return "NV";
+#endif
+#ifdef USE_X86_PLACE
+        return "X86";
+#endif
+#ifdef USE_ARM_PLACE
+        return "ARM";
+#endif
+#ifdef USE_AMD_PLACE
+        return "AMD";
+#endif
     }
 
     return _node_target_map.at(name);
 }
 saber::LayoutType CalibratorParser::get_layout(std::string name) const {
-    //if not exist, return NV
+    //if not exist, return nchw
     if (_layout_map.find(name) == _layout_map.end()) {
         return Layout_NCHW;
     }
@@ -136,6 +147,9 @@ void CalibratorParser::set_precision(std::string name, saber::DataType type){
 }
 void CalibratorParser::set_scale(std::string name, float scale){
     _node_calibrator_map[name] = scale;
+}
+void CalibratorParser::set_layout(std::string name, saber::LayoutType layout){
+    _layout_map[name] = layout2str(layout);
 }
 
 #ifndef USE_SGX

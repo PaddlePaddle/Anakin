@@ -156,6 +156,29 @@ SaberStatus SaberDirectConv<AK_INT8>::init(
     ConvParam<NV>& param, Context<NV> &ctx) {
 
     this->_ctx = &ctx;
+
+    if (outputs[0]->get_dtype() == AK_FLOAT) {
+        if (param.bias()->size() > 0 &&
+            (!param.activation_param.has_active || _use_saber_act)) {
+            int8_dispatch_func = direct_conv_Kdivis4_s8_to_f32<true, false>;
+        } else if (param.bias()->valid_size() > 0 &&
+                   (param.activation_param.has_active && !_use_saber_act)) {
+            int8_dispatch_func = direct_conv_Kdivis4_s8_to_f32<true, true>;
+        } else {
+            int8_dispatch_func = direct_conv_Kdivis4_s8_to_f32<false, false>;
+        }
+    } else if (outputs[0]->get_dtype() == AK_INT8) {
+        if (param.bias()->size() > 0 &&
+            (!param.activation_param.has_active || _use_saber_act)) {
+            int8_dispatch_func = direct_conv_Kdivis4_s8_to_s8<true, false>;
+        } else if (param.bias()->valid_size() > 0 &&
+                   (param.activation_param.has_active && !_use_saber_act)) {
+            int8_dispatch_func = direct_conv_Kdivis4_s8_to_s8<true, true>;
+        } else {
+            int8_dispatch_func = direct_conv_Kdivis4_s8_to_s8<false, false>;
+        }
+    }
+
     return create(inputs, outputs, param, ctx);
 }
 template <>
@@ -186,86 +209,37 @@ SaberStatus SaberDirectConv<AK_INT8>::dispatch(
     cudaStream_t stream = _ctx->get_compute_stream();
     float alpha = 1.f;
     if (param.weight()->get_scale().size() == 1) {
+        CHECK_GE(inputs[0]->get_scale().size(), 1);
         alpha = inputs[0]->get_scale()[0] * param.weight()->get_scale()[0];
     }
-    if (param.bias()->size() > 0 && (!param.activation_param.has_active || _use_saber_act)) {
-        direct_conv_Kdivis4_s8_to_f32<true, false>(
-                in_data,
-                out_data,
-                weight_ptr,
-                bias_data,
-                inputs[0]->num(),
-                in_channel_4,
-                inputs[0]->height(),
-                inputs[0]->width(),
-                outputs[0]->channel(),
-                outputs[0]->height(),
-                outputs[0]->width(),
-                param.weight()->height(),
-                param.weight()->width(),
-                param.pad_h,
-                param.pad_w,
-                param.stride_h,
-                param.stride_w,
-                param.dilation_h,
-                param.dilation_w,
-                param.group,
-                alpha,
-                param.beta,
-                this->_ctx->get_compute_stream());
-    } else if (param.bias()->valid_size() > 0 &&
-    (param.activation_param.has_active && !_use_saber_act)) {
-        direct_conv_Kdivis4_s8_to_f32<true, true>(
-                in_data,
-                out_data,
-                weight_ptr,
-                bias_data,
-                inputs[0]->num(),
-                in_channel_4,
-                inputs[0]->height(),
-                inputs[0]->width(),
-                outputs[0]->channel(),
-                outputs[0]->height(),
-                outputs[0]->width(),
-                param.weight()->height(),
-                param.weight()->width(),
-                param.pad_h,
-                param.pad_w,
-                param.stride_h,
-                param.stride_w,
-                param.dilation_h,
-                param.dilation_w,
-                param.group,
-                alpha,
-                param.beta,
-                this->_ctx->get_compute_stream());
-    } else {
-        direct_conv_Kdivis4_s8_to_f32<false, false>(
-                in_data,
-                out_data,
-                weight_ptr,
-                bias_data,
-                inputs[0]->num(),
-                in_channel_4,
-                inputs[0]->height(),
-                inputs[0]->width(),
-                outputs[0]->channel(),
-                outputs[0]->height(),
-                outputs[0]->width(),
-                param.weight()->height(),
-                param.weight()->width(),
-                param.pad_h,
-                param.pad_w,
-                param.stride_h,
-                param.stride_w,
-                param.dilation_h,
-                param.dilation_w,
-                param.group,
-                alpha,
-                param.beta,
-                this->_ctx->get_compute_stream());
+    if (outputs[0]->get_dtype() == AK_INT8) {
+        CHECK_GE(outputs[0]->get_scale().size(), 1);
+        alpha /= outputs[0]->get_scale()[0];
     }
-
+    int8_dispatch_func(
+            in_data,
+            out_data,
+            weight_ptr,
+            bias_data,
+            inputs[0]->num(),
+            in_channel_4,
+            inputs[0]->height(),
+            inputs[0]->width(),
+            outputs[0]->channel(),
+            outputs[0]->height(),
+            outputs[0]->width(),
+            param.weight()->height(),
+            param.weight()->width(),
+            param.pad_h,
+            param.pad_w,
+            param.stride_h,
+            param.stride_w,
+            param.dilation_h,
+            param.dilation_w,
+            param.group,
+            alpha,
+            param.beta,
+            this->_ctx->get_compute_stream());
     return SaberSuccess;
 }
 

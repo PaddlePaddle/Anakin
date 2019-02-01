@@ -20,8 +20,8 @@ using Target_H = X86;
 //#define USE_DIEPSE
 
 //std::string model_path = "/home/zhangshuai20/workspace/baidu/sys-hic-gpu/anakin-models/adu/anakin_models/yolo_camera_detector/yolo_camera_detector.anakin.bin";
-//std::string model_path = "/home/zhangshuai20/workspace/baidu/sys-hic-gpu/anakin-models/public/anakin_models/Resnet50/Resnet50.anakin.bin";
-std::string model_path = "/home/zhangshuai20/workspace/baidu/sys-hic-gpu/anakin-models/public/anakin_models/vgg16/vgg16.anakin.bin";
+std::string model_path = "/home/zhangshuai20/workspace/baidu/sys-hic-gpu/anakin-models/public/anakin_models/Resnet50/Resnet50.anakin.bin";
+//std::string model_path = "/home/zhangshuai20/workspace/baidu/sys-hic-gpu/anakin-models/public/anakin_models/vgg16/vgg16.anakin.bin";
 std::string model_saved_path = model_path + ".saved";
 
 #ifdef USE_CUDA
@@ -58,25 +58,25 @@ TEST(NetTest, net_execute_base_test) {
     //Net<NV, Precision::FP32> net_executer(*graph, true);
     Net<NV, Precision::FP32> net_executer(true);
 #endif
-
+//    net_executer.load_x86_layout_config("layout_config.txt");
     net_executer.init(*graph);
     // get in
     auto d_tensor_in_p = net_executer.get_in("input_0");
     Tensor4d<Target_H> h_tensor_in;
 
     auto valid_shape_in = d_tensor_in_p->valid_shape();
-    for (int i=0; i<valid_shape_in.size(); i++) {
+    for (int i = 0; i < valid_shape_in.size(); i++) {
         LOG(INFO) << "detect input_0 dims[" << i << "]" << valid_shape_in[i];
     }
+    fill_tensor_const(*d_tensor_in_p, 1.f);
+//    h_tensor_in.re_alloc(valid_shape_in, d_tensor_in_p->get_dtype());
+//    float* h_data = (float*)(h_tensor_in.mutable_data());
+//
+//    for (int i=0; i<h_tensor_in.size(); i++) {
+//        h_data[i] = 1.0f;
+//    }
 
-    h_tensor_in.re_alloc(valid_shape_in);
-    float* h_data = (float*)(h_tensor_in.mutable_data());
-
-    for (int i=0; i<h_tensor_in.size(); i++) {
-        h_data[i] = 1.0f;
-    }
-
-    d_tensor_in_p->copy_from(h_tensor_in);
+//    d_tensor_in_p->copy_from(h_tensor_in);
 
 #ifdef USE_DIEPSE
     // for diepse model
@@ -113,13 +113,13 @@ TEST(NetTest, net_execute_base_test) {
     d_tensor_in_2_p->copy_from(h_tensor_in_2);
 #endif
 
-    int epoch = 100;
+    int epoch = 1000;
     // do inference
     Context<NV> ctx(0, 0, 0);
     saber::SaberTimer<NV> my_time;
     LOG(WARNING) << "EXECUTER !!!!!!!! ";
 	// warm up
-	for(int i = 0; i<10; i++) {
+	for (int i = 0; i<100; i++) {
 		net_executer.prediction();
 	}
 	cudaDeviceSynchronize();
@@ -158,12 +158,20 @@ TEST(NetTest, net_execute_base_test) {
     //double time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
     //LOG(WARNING) << "avg time : " << time/epoch <<" ms";
 
-    my_time.end(ctx);
     LOG(INFO)<<"aveage time "<<my_time.get_average_ms() << " ms";
 
 	//} // inner scope over
 
-	LOG(ERROR) << "inner net exe over !";
+#ifdef ENABLE_OP_TIMER
+    net_executer.reset_op_time();
+    for (int i = 0; i < 1000; ++i) {
+        net_executer.prediction();
+#ifdef USE_CUDA
+        cudaDeviceSynchronize();
+#endif
+    }
+    net_executer.print_and_reset_optime_summary(1000);
+#endif
 
     //auto& tensor_out_inner_p = net_executer.get_tensor_from_edge("data_perm", "conv1");
 	

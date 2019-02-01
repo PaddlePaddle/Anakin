@@ -9,6 +9,7 @@
 #include "conv_func_helper.h"
 #include <vector>
 #ifdef USE_CUDA
+#include "saber/funcs/impl/cuda/saber_conv_eltwise.h"
 #include "saber/funcs/impl/cuda/saber_conv.h"
 #include "saber/funcs/impl/cuda/saber_conv_direct.h"
 #include "saber/funcs/impl/cuda/saber_conv_gemmlike.h"
@@ -60,7 +61,7 @@ TEST(TestSaberFunc, test_saber_conv_int8_results) {
     Env<NVHX86>::env_init();
 
     bool with_relu = true;
-    float alpha = 2.1f;
+    float alpha = 1.0f;
     int input_num = 1;
     int in_channels = 128;
     int out_channels = 256;
@@ -235,6 +236,150 @@ TEST(TestSaberFunc, test_weights_calibrate) {
 //    write_tensorfile(weights_host, "int8_output.txt");
 //    write_tensorfile(weights_temp, "fp32_output.txt");
 }
+#if 0
+TEST(TestSaberFunc, test_saber_conv_eltwise_int8_results) {
+
+    Env<NV>::env_init();
+    Env<NVHX86>::env_init();
+
+    bool with_relu = false;
+    float alpha = 1.f;
+    float beta = 1.f;
+    int input_num = 1;
+    int in_channels = 32;
+    int out_channels = 16;
+    int height = 24;
+    int width = 24;
+
+    int kernel_h = 1;
+    int kernel_w = 1;
+    int pad_h = 0;
+    int pad_w = 0;
+    int stride_h = 1;
+    int stride_w = 1;
+    int dilation_h = 1;
+    int dilation_w = 1;
+    int group = 1;
+
+    Shape input_s({input_num, in_channels, height, width}, Layout_NCHW);
+    Shape output_s({input_num, out_channels, height, width}, Layout_NCHW);
+    // trans to input_num, in_channels/4, height, width, inner_channels(4)
+    Shape weights_s({out_channels, in_channels, kernel_h, kernel_w}, Layout_NCHW);
+    // trans to in_channels/4, kernel_h, kernel_w, out_channels, inner_channels(4);
+    Shape bias_s({1, out_channels, 1, 1}, Layout_NCHW);
+
+    Tensor<NV> input_dev;
+    Tensor<NV> weights_dev;
+    Tensor<NV> bias_dev;
+    Tensor<NV> output_dev;
+
+    Tensor<NVHX86> input_host;
+    Tensor<NVHX86> weights_host;
+    Tensor<NVHX86> bias_host;
+    Tensor<NVHX86> output_host;
+    Tensor<NVHX86> check_output;
+
+    input_dev.re_alloc(input_s, AK_INT8);
+    input_host.re_alloc(input_s, AK_INT8);
+
+    weights_dev.re_alloc(weights_s, AK_INT8);
+    weights_host.re_alloc(weights_s, AK_INT8);
+
+    output_dev.re_alloc(output_s, AK_FLOAT);
+    output_host.re_alloc(output_s, AK_FLOAT);
+    check_output.re_alloc(output_s, AK_FLOAT);
+
+    bias_dev.re_alloc(bias_s, AK_FLOAT);
+    bias_host.re_alloc(bias_s, AK_FLOAT);
+
+    fill_tensor_rand(input_host, -10, 10);
+    fill_tensor_rand(weights_host, -10, 10);
+    fill_tensor_rand(bias_dev, -10, 10);
+    fill_tensor_const(output_dev, 2);
+    output_host.copy_from(output_dev);
+    check_output.copy_from(output_dev);
+    bias_host.copy_from(bias_dev);
+
+    Context<NV> ctx(0, 0, 1);
+    int generate_arch = Env<NV>::cur_env()[ctx.get_device_id()]._info._generate_arch;
+    // only support 61 arch for now.
+    bool arch_check = (generate_arch == 61);
+    if (!arch_check) {
+        LOG(INFO) << "device not support int8 op!!";
+        return;
+    }
+    auto stream = ctx.get_compute_stream();
+    {
+        Tensor<NVHX86> input_temp;
+        input_temp.re_alloc(input_host.valid_shape(), AK_INT8);
+        transpose_img_NCHW_2_NCHWC4((const char *) input_host.data(),
+                                    (char *) input_temp.mutable_data(),
+                                    input_host.num(),
+                                    input_host.channel(),
+                                    input_host.height(),
+                                    input_host.width());
+        input_dev.copy_from(input_temp);
+    }
+    bool use_1x1 = true;
+    use_1x1 = use_1x1 && (kernel_h == 1);
+    use_1x1 = use_1x1 && (kernel_w == 1);
+    use_1x1 = use_1x1 && (dilation_h == 1);
+    use_1x1 = use_1x1 && (dilation_w == 1);
+    use_1x1 = use_1x1 && (stride_h == 1);
+    use_1x1 = use_1x1 && (stride_w == 1);
+    use_1x1 = use_1x1 && (pad_h == 0);
+    use_1x1 = use_1x1 && (pad_w == 0);
+    use_1x1 = use_1x1 && (group == 1);
+
+    {
+        Tensor<NVHX86> weight_temp;
+        weight_temp.re_alloc(weights_host.valid_shape(), AK_INT8);
+        transpose_img_NCHW_2_NCHWC4((const char *) weights_host.data(),
+                                    (char *) weight_temp.mutable_data(),
+                                    weights_host.num(),
+                                    weights_host.channel(),
+                                    weights_host.height(),
+                                    weights_host.width());
+
+        weights_dev.copy_from(weight_temp);
+    }
+    ConvParam<NV> conv_param(group, pad_h, pad_w,
+                        stride_h, stride_w,
+                        dilation_h, dilation_w,
+                        &weights_dev, &bias_dev);
+//    conv_param.activation_param.has_active = with_relu;
+//    conv_param.activation_param.active=Active_relu;
+    conv_param.alpha = alpha;
+    conv_param.beta = beta;
+    EltwiseParam<NV> elt_param(Eltwise_sum);
+    ConvEltwiseParam<NV> param(conv_param, elt_param);
+
+    SaberConvEltwise<NV, AK_INT8> conv_eltwise;
+    std::vector<Tensor<NV>*> inputs;
+    std::vector<Tensor<NV>*> outputs;
+    inputs.push_back(&input_dev);
+    outputs.push_back(&output_dev);
+    conv_eltwise.init(inputs, outputs, param, ctx);
+    conv_eltwise.dispatch(inputs, outputs, param);
+
+    cudaDeviceSynchronize();
+    output_host.copy_from(output_dev);
+    cudaDeviceSynchronize();
+    conv_basic_check<NVHX86, float, char>(input_host, check_output,
+            (const char*)weights_host.data(), (const float*)bias_host.data(), group,
+            kernel_w, kernel_h, stride_w, stride_h, dilation_w, dilation_h,
+            pad_w, pad_h, true, with_relu, 1.f, conv_param.alpha);
+
+    write_tensorfile(output_dev, "int8_output.txt");
+    write_tensorfile(check_output, "fp32_output.txt");
+
+    double max_ratio = 0.0;
+    double max_diff = 0.0;
+    tensor_cmp_host((const float*)output_host.data(), (const float*)check_output.data(),
+                    check_output.valid_size(), max_ratio, max_diff);
+            LOG(INFO) << "ratio = " << max_ratio << " max_diff = " << max_diff;
+}
+#endif
 
 void test_saber_cudnn_speed(int input_num,
                             int in_channels,
@@ -331,7 +476,8 @@ void test_saber_cudnn_speed(int input_num,
                             stride_h, stride_w,
                             dilation_h, dilation_w,
                             &weights_dev, &bias_dev);
-
+        ActivationParam<NV> act_param(Active_relu);
+        param.activation_param = act_param;
         VenderConv2D<NV, AK_INT8> conv_vender;
         std::vector<Tensor<NV>*> inputs;
         std::vector<Tensor<NV>*> outputs;
@@ -485,6 +631,8 @@ void test_saber_direct_speed(int input_num, int in_channels,
                             stride_h, stride_w,
                             dilation_h, dilation_w,
                             &weights_dev, &bias_dev);
+        ActivationParam<NV> act_param(Active_relu);
+        param.activation_param = act_param;
 
         SaberGemmLikeConv<AK_INT8> conv_gemm;
         std::vector<Tensor<NV>*> inputs;
@@ -508,20 +656,20 @@ void test_saber_direct_speed(int input_num, int in_channels,
     output_host.copy_from(output_dev);
     cudaDeviceSynchronize();
 }
-#if 0
+#if 1
 TEST(TestSaberFunc, test_saber_speed) {
     Env<NV>::env_init();
     Env<NVHX86>::env_init();
 
     std::vector<int> input_num_v{1};
     std::vector<int> in_channels_v{512};
-    std::vector<int> out_channels_v{512};
-    std::vector<int> height_v{14};
-    std::vector<int> width_v{14};
-    std::vector<int> kernel_h_v{3};
-    std::vector<int> kernel_w_v{3};
-    std::vector<int> pad_h_v{1};
-    std::vector<int> pad_w_v{1};
+    std::vector<int> out_channels_v{2048};
+    std::vector<int> height_v{7};
+    std::vector<int> width_v{7};
+    std::vector<int> kernel_h_v{1};
+    std::vector<int> kernel_w_v{1};
+    std::vector<int> pad_h_v{0};
+    std::vector<int> pad_w_v{0};
     std::vector<int> stride_h_v{1};
     std::vector<int> stride_w_v{1};
     std::vector<int> dilation_h_v{1};

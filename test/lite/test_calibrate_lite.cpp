@@ -50,20 +50,20 @@ std::vector<float> get_scale_basic(const float* in_data, int axis_size, \
     return scale_out;
 }
 
-void fp32_to_int8_basic(const float* din, char* dout, const float* scale, \
+void fp32_to_int8_basic(const float* din, int8_t* dout, const float* scale, \
     int axis_size, long long outer_size, long long inner_size) {
     int loop_size = axis_size * outer_size;
     for (int i = 0; i < loop_size; ++i) {
         float inv_scale = 1.f / scale[i % axis_size];
         for (int j = 0; j < inner_size; ++j) {
-            dout[j] = static_cast<char>(roundf(din[j] * inv_scale));
+            dout[j] = static_cast<int8_t>(roundf(din[j] * inv_scale));
         }
         dout += inner_size;
         din += inner_size;
     }
 }
 
-void int8_to_fp32_basic(const char* din, float* dout, const float* scale, \
+void int8_to_fp32_basic(const int8_t* din, float* dout, const float* scale, \
     int axis_size, long long outer_size, long long inner_size) {
     int loop_size = axis_size * outer_size;
     for (int i = 0; i < loop_size; ++i) {
@@ -89,13 +89,13 @@ void int32_to_fp32_basic(const int* din, float* dout, const float* scale, \
     }
 }
 
-void int32_to_int8_basic(const int* din, char* dout, const float* scale, \
+void int32_to_int8_basic(const int* din, int8_t* dout, const float* scale, \
     int axis_size, long long outer_size, long long inner_size) {
     int loop_size = outer_size * axis_size;
     for (int i = 0; i < loop_size; ++i) {
         float scale_in = scale[i % axis_size];
         for (int j = 0; j < inner_size; ++j) {
-            dout[j] = static_cast<char>(roundf(din[j] * scale_in));
+            dout[j] = static_cast<int8_t>(roundf(din[j] * scale_in));
         }
         dout += inner_size;
         din += inner_size;
@@ -116,7 +116,7 @@ bool trans_weights_dtype_basic(Tensor<CPU>& weights, DataType type, float scale_
         Tensor<CPU> tmp_tensor;
         tmp_tensor.re_alloc(weights.valid_shape(), AK_FLOAT);
         std::vector<float> scale = weights.get_scale();
-        const char* din = static_cast<const char*>(weights.data());
+        const int8_t* din = static_cast<const int8_t*>(weights.data());
         float* dout = static_cast<float*>(tmp_tensor.mutable_data());
 
         if (is_trans) {
@@ -140,7 +140,7 @@ bool trans_weights_dtype_basic(Tensor<CPU>& weights, DataType type, float scale_
         tmp_tensor.re_alloc(weights.valid_shape(), AK_INT8);
         std::vector<float> scale;
         const float* din = static_cast<const float*>(weights.data());
-        char* dout = static_cast<char*>(tmp_tensor.mutable_data());
+        int8_t* dout = static_cast<int8_t*>(tmp_tensor.mutable_data());
         if (is_trans) {
             //! for deconv, chout and chin in inversed
             //! real layout is: chin, chout, kh, kw
@@ -180,7 +180,7 @@ bool trans_tensor_fp32_to_int8_basic(const Tensor<CPU>& tin, Tensor<CPU>& tout, 
     std::vector<float> scale = {input_scale};
 
     const float* din = static_cast<const float*>(tin.data());
-    char* dout = static_cast<char*>(tout.mutable_data());
+    int8_t* dout = static_cast<int8_t*>(tout.mutable_data());
     //! convert to int8
     fp32_to_int8_basic(din, dout, scale.data(), 1, 1, tin.valid_size());
     return true;
@@ -200,7 +200,7 @@ bool trans_tensor_int8_to_fp32_basic(Tensor<CPU>& tin, Tensor<CPU>& tout, \
     //! compute scale
     std::vector<float> scale = {input_scale};
 
-    const char* input = (const char*)tin.data();
+    const int8_t* input = (const int8_t*)tin.data();
     float* output = (float*)tout.mutable_data();
 
     int inner_size = tin.valid_size();
@@ -257,7 +257,7 @@ bool trans_tensor_int32_to_int8_basic(Tensor<CPU>& tin, Tensor<CPU>& tout, \
         scale[i] = input_scale * weights_scale[i] / output_scale;
     }
     const int* input = (const int*)tin.data();
-    char* output = (char*)tout.mutable_data();
+    int8_t* output = (int8_t*)tout.mutable_data();
 
     int outer_size = tin.num();
     int inner_size = tin.width() * tin.height();

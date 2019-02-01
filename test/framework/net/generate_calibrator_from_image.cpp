@@ -39,11 +39,11 @@ TEST(NetTest, calibrator) {
     }
 
     //anakin graph optimization
-    graph->Optimize();
-
+    graph->Optimize(false);
     // constructs the executer net
     Net<NV, Precision::FP32, OpRunType::SYNC> net_executer(*graph);
-    BatchStream<NV> batch_stream(g_data_file, 3, 192, 192, {104.008f, 116.669f, 122.675f}, {1.f, 1.f, 1.f});
+    // resnet 50 params.
+    BatchStream<NV> batch_stream(g_data_file, 3, 224, 224, {103.939f, 116.779f, 123.68f}, {1.f, 1.f, 1.f});
     EntropyCalibrator<NV> entropy_calibrator(&batch_stream, g_batch_size, g_calibrator_file, &net_executer, g_bin_num);
     entropy_calibrator.generate_calibrator_table();
 
@@ -65,7 +65,7 @@ int main(int argc, const char** argv){
     LOG(INFO) << "   lite_model:     path to anakin lite model";
     LOG(INFO) << "   data_file:      path to image data list";
     LOG(INFO) << "   calibrate file: path to calibrate data path";
-    if(argc < 4) {
+    if (argc < 4) {
         LOG(ERROR) << "useage: " << argv[0] << " <lite model> <data_file> <calibrate_file>";
         return 0;
     }

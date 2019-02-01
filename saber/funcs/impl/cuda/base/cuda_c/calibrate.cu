@@ -32,7 +32,7 @@ void transform_nchw_2_c4(char* out_data, const float* in_data,
         int valid_num, int valid_channel_4, int valid_height, int valid_width,
         int in_n_stride, int in_c_stride, int in_h_stride, int in_w_stride,
         int out_n_stride, int out_c_stride, int out_h_stride, int out_w_stride,
-        float scale, int count) {
+        float scale, int count, int out_channel) {
 
     int load0, load1, load2, load3;
     int gid = threadIdx.x + blockIdx.x * blockDim.x;
@@ -53,20 +53,34 @@ void transform_nchw_2_c4(char* out_data, const float* in_data,
                      + write_w;
 
     if (gid < count) {
+        bool p0, p1, p2, p3;
+        p0 = write_c < out_channel;
+        p1 = write_c + 1 < out_channel;
+        p2 = write_c + 2 < out_channel;
+        p3 = write_c + 3 < out_channel;
+        float r0;
         char4 write;
-        load0 = __float2int_rn(__ldg(&in_data[in_offset]) * scale);
+        if (p0) r0 = __ldg(&in_data[in_offset]);
+        else r0 = 0;
+        load0 = __float2int_rn(r0 * scale);
         write.x = static_cast<char>(load0);
 
         in_offset += in_c_stride;
-        load1 = __float2int_rn(__ldg(&in_data[in_offset]) * scale);
+        if (p1) r0 = __ldg(&in_data[in_offset]);
+        else r0 = 0;
+        load1 = __float2int_rn(r0 * scale);
         write.y = static_cast<char>(load1);
 
         in_offset += in_c_stride;
-        load2 = __float2int_rn(__ldg(&in_data[in_offset]) * scale);
+        if (p2) r0 = __ldg(&in_data[in_offset]);
+        else r0 = 0;
+        load2 = __float2int_rn(r0 * scale);
         write.z = static_cast<char>(load2);
 
         in_offset += in_c_stride;
-        load3 = __float2int_rn(__ldg(&in_data[in_offset]) * scale);
+        if (p3) r0 = __ldg(&in_data[in_offset]);
+        else r0 = 0;
+        load3 = __float2int_rn(r0 * scale);
         write.w = static_cast<char>(load3);
 
         ((char4*)out_data)[out_offset] = write;
@@ -147,6 +161,47 @@ void int8nchwc4_fp32nchw(float* out_data, const char* in_data,
         out_data[out_offset] = load1 * scale[scale_index + 1]; out_offset += out_c_stride;
         out_data[out_offset] = load2 * scale[scale_index + 2]; out_offset += out_c_stride;
         out_data[out_offset] = load3 * scale[scale_index + 3];
+    }
+}
+
+__global__
+void int8nchwc4_fp32nchw_s(float* out_data, const char* in_data,
+                         int valid_num, int valid_channel_4, int valid_height, int valid_width,
+                         int in_n_stride, int in_c_stride, int in_h_stride, int in_w_stride,
+                         int out_n_stride, int out_c_stride, int out_h_stride, int out_w_stride,
+                         const float scale, int count) {
+
+    float load0, load1, load2, load3;
+    int gid = threadIdx.x + blockIdx.x * blockDim.x;
+
+    int read_w = (gid) % valid_width;
+    int read_h = (gid / (in_h_stride)) % valid_height;
+    int read_c = (gid / (in_c_stride)) % valid_channel_4;
+    int read_n = (gid / (in_n_stride)) % valid_num;
+
+    int in_offset = read_n * in_n_stride
+                    + read_c * in_c_stride
+                    + read_h * in_h_stride
+                    + read_w;
+
+    int out_offset = read_n * out_n_stride
+                     + read_c * (out_c_stride << 2)
+                     + read_h * out_h_stride
+                     + read_w * out_w_stride;
+
+    if (gid < count) {
+
+        char4 readin = __ldg(&((const char4*)in_data)[in_offset]);
+
+        load0 = static_cast<float>(readin.x);
+        load1 = static_cast<float>(readin.y);
+        load2 = static_cast<float>(readin.z);
+        load3 = static_cast<float>(readin.w);
+
+        out_data[out_offset] = load0 * scale; out_offset += out_c_stride;
+        out_data[out_offset] = load1 * scale; out_offset += out_c_stride;
+        out_data[out_offset] = load2 * scale; out_offset += out_c_stride;
+        out_data[out_offset] = load3 * scale;
     }
 }
 
@@ -324,15 +379,24 @@ SaberStatus conv_data_calibrate<NV, Layout_NCHW_C4, char, Layout_NCHW, float>(
 
     Shape in_shape = in_tensor.valid_shape();
     Shape out_shape = out_tensor.valid_shape();
-    int count = out_shape[0] * out_shape[1] * out_shape[2] * out_shape[3];
+
+    int out_num = out_shape.num();
+    int out_channel = out_shape.channel();
+    int out_height = out_shape.height();
+    int out_width = out_shape.width();
+    int out_channel_4 = out_channel >> 2;
+    bool multipler_4 = (out_channel & 0x3) != 0;
+    out_channel_4 += multipler_4 ? 1 : 0;
+    int count = out_num * out_channel_4 * out_height * out_width;
     cudaStream_t cuda_stream = ctx.get_compute_stream();
+
     transform_nchw_2_c4<<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS,
             0, cuda_stream>>>(out_data, in_data,
-            out_shape[0], out_shape[1], out_shape[2], out_shape[3],
+            out_num, out_channel_4, out_height, out_width,
             in_stride[0], in_stride[1], in_stride[2], in_stride[3],
-            out_shape[1] * out_shape[2] * out_shape[3],
-            out_shape[2] * out_shape[3], out_shape[3], 1,
-            (1.f / in_scale), count);
+            out_channel_4 * out_height * out_width,
+            out_height * out_width, out_width, 1,
+            (1.f / in_scale), count, out_channel);
 
     return SaberSuccess;
 }
@@ -437,15 +501,24 @@ SaberStatus conv_calibrate_fp32_int8_c4<NV>(Tensor<NV> &out_tensor,
 
     Shape in_shape = in_tensor.valid_shape();
     Shape out_shape = out_tensor.valid_shape();
-    int count = out_shape[0] * out_shape[1] * out_shape[2] * out_shape[3];
+
+    int out_num = out_shape.num();
+    int out_channel = out_shape.channel();
+    int out_height = out_shape.height();
+    int out_width = out_shape.width();
+    int out_channel_4 = out_channel >> 2;
+    bool multipler_4 = (out_channel & 0x3) != 0;
+    out_channel_4 += multipler_4 ? 1 : 0;
+    int count = out_num * out_channel_4 * out_height * out_width;
     cudaStream_t cuda_stream = ctx.get_compute_stream();
+
     transform_nchw_2_c4<<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS,
         0, cuda_stream>>>(out_data, in_data,
-            out_shape[0], out_shape[1], out_shape[2], out_shape[3],
+            out_num, out_channel_4, out_height, out_width,
             in_stride[0], in_stride[1], in_stride[2], in_stride[3],
-            out_shape[1] * out_shape[2] * out_shape[3],
-            out_shape[2] * out_shape[3], out_shape[3], 1,
-            (1.f / in_scale), count);
+            out_channel_4 * out_height * out_width,
+            out_height * out_width, out_width, 1,
+            (1.f / in_scale), count, out_channel);
 
     return SaberSuccess;
 }
@@ -489,19 +562,45 @@ SaberStatus conv_calibrate_int8_c4_fp32<NV>(
     Shape out_stride = out_tensor.get_stride();
     Shape in_shape = in_tensor.valid_shape();
     Shape out_shape = out_tensor.valid_shape();
-    int count = in_shape[0] * in_shape[1] * in_shape[2] * in_shape[3];
+    int count = in_shape[0] * in_shape[1] * in_shape[2] * in_shape[3] / 4;
 
     const char * in_data = (const char*)in_tensor.data();
     float * out_data = (float*)out_tensor.mutable_data();
 
     cudaStream_t cuda_stream = ctx.get_compute_stream();
     int8nchwc4_fp32nchw<<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(out_data, in_data,
-            in_shape[0], in_shape[1], in_shape[2], in_shape[3],
+            in_shape[0], in_shape[1] / 4, in_shape[2], in_shape[3],
             in_shape[1] * in_shape[2] * in_shape[3],
             in_shape[2] * in_shape[3],
             in_shape[3], 1,
             out_stride[0], out_stride[1], out_stride[2], out_stride[3],
             weight_scale, count);
+
+    return SaberSuccess;
+}
+
+template<>
+SaberStatus calibrate_int8_c4_fp32<NV>(
+        Tensor<NV> &out_tensor,
+        const Tensor<NV> &in_tensor,
+        const float out_scale,
+        Context<NV> ctx) {
+
+    Shape out_stride = out_tensor.get_stride();
+    Shape in_shape = in_tensor.valid_shape();
+    Shape out_shape = out_tensor.valid_shape();
+    int count = in_shape[0] * in_shape[1] * in_shape[2] * in_shape[3] / 4;
+    const char * in_data = (const char*)in_tensor.data();
+    float * out_data = (float*)out_tensor.mutable_data();
+
+    cudaStream_t cuda_stream = ctx.get_compute_stream();
+    int8nchwc4_fp32nchw_s<<<CUDA_GET_BLOCKS(count), CUDA_NUM_THREADS, 0, cuda_stream>>>(out_data, in_data,
+            in_shape[0], in_shape[1] / 4, in_shape[2], in_shape[3],
+            in_shape[1] * in_shape[2] * in_shape[3] / 4,
+            in_shape[2] * in_shape[3],
+            in_shape[3], 1,
+            out_stride[0], out_stride[1], out_stride[2], out_stride[3],
+            out_scale, count);
 
     return SaberSuccess;
 }

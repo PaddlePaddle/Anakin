@@ -120,6 +120,9 @@ anakin_option(DISABLE_ALL_WARNINGS "Disable all the warning msg during compile."
 anakin_option(ENABLE_NOISY_WARNINGS "Enable noisy warning msg during compile." NO if DISABLE_ALL_WARNINGS)
 anakin_option(ENABLE_MIN_DEPENDENCY "Enable minimum dependency of third party library" NO)
 
+# SGX options
+anakin_option(SGX_SIM_MODE "Build Anakin to run in software-emulated SGX mode." YES if ENABLE_DEBUG)
+
 # using 3rd party libs 
 anakin_option(USE_LOGGER "Build native logger components." YES)
 anakin_option(USE_GLOG "Build Glog components." NO if NOT USE_LOGGER)

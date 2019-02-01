@@ -1,12 +1,10 @@
 #include "framework/model_parser/parser/parser.h"
 #include "framework/model_parser/parser/model_io.h"
-#include "graph.pb.h"
-#include "node.pb.h"
-#include "operator.pb.h"
-#include "tensor.pb.h"
-
 #ifdef USE_NANOPB
-#include "nanopb/adapter.h"
+#include "graph.pb.hpp"
+#include "node.pb.hpp"
+#include "operator.pb.hpp"
+#include "tensor.pb.hpp"
 #else
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <google/protobuf/io/zero_copy_stream.h>
@@ -15,6 +13,11 @@
 #include <fcntl.h>
 #include <fstream>
 #include <sys/types.h>
+
+#include "graph.pb.h"
+#include "node.pb.h"
+#include "operator.pb.h"
+#include "tensor.pb.h"
 #endif
 
 namespace anakin {
@@ -113,7 +116,12 @@ Status generate_graph_with_graph_proto(graph::Graph<Ttype, Ptype>* graph, GraphP
                 for (int j = 0; j < second.target()[i].scale_size(); j++) {
                     scale.push_back(second.target()[i].scale(j));
                 }
+                auto layout = second.target()[i].layout();
+                if (layout == 0){
+                    layout = LP_NCHW;    
+                }
                 edge.set_scale(scale);
+                edge.set_layout((anakin::saber::LayoutType)layout);
                 edge.shared() = (*graph_proto.mutable_edges_info())[edge.name()].shared();
                 edge.share_from() = (*graph_proto.mutable_edges_info())[edge.name()].share_from();
                 graph->add_in_arc(edge);
@@ -142,7 +150,13 @@ Status generate_graph_with_graph_proto(graph::Graph<Ttype, Ptype>* graph, GraphP
                 for (int j = 0; j < second.target()[i].scale_size(); j++) {
                     scale.push_back(second.target()[i].scale(j));
                 }
+                auto layout = second.target()[i].layout();
+                LOG(ERROR) << "layout:" << layout;
+                if (layout == 0){
+                    layout = LP_NCHW;    
+                }
                 edge.set_scale(scale);
+                edge.set_layout((anakin::saber::LayoutType)layout);
                 edge.shared() = (*graph_proto.mutable_edges_info())[edge.name()].shared();
                 edge.share_from() = (*graph_proto.mutable_edges_info())[edge.name()].share_from();
                 graph->add_out_arc(edge);
@@ -239,11 +253,12 @@ Status save(graph::Graph<Ttype, Ptype>* graph, const char* model_path) {
         auto& arcs_it_in = graph->get_in_arc_its(node_p->name());
         auto& arcs_it_out = graph->get_out_arc_its(node_p->name());
         for (auto& edge_it : arcs_it_in) {
-            auto tg = (*edges_in)[edge_it->first()].add_target();
+            auto tg = (*edges_in)[edge_it->second()].add_target();
             tg->set_node(edge_it->first());
             for (auto scale: edge_it->scale()){
                 tg->add_scale(scale);
             }
+            tg->set_layout((LayoutProto)edge_it->layout());
             TensorProto ts;
             ts.set_name(edge_it->name());
             ts.set_shared(edge_it->shared());
@@ -257,6 +272,7 @@ Status save(graph::Graph<Ttype, Ptype>* graph, const char* model_path) {
             for (auto scale: edge_it->scale()){
                 tg->add_scale(scale);
             }
+            tg->set_layout((LayoutProto)edge_it->layout());
             TensorProto ts;
             ts.set_name(edge_it->name());
             ts.set_shared(edge_it->shared());

@@ -259,15 +259,6 @@ bool trans_weights_dtype_basic(Tensor<X86>& weights, DataType type, float scale_
 
 void trans_conv_weights_inplace(Tensor<X86>& th, DataType op_precision, int lite_mode){
 
-    auto scale = th.get_scale();
-    if (scale.size() == 1){
-        float scale_old = scale[0];
-        scale.resize(th.valid_shape()[0]);
-        for (int i = 0; i < scale.size(); ++i){
-            scale[i] = scale_old;
-        }
-        th.set_scale(scale);
-    }
     if (lite_mode == 1) {
         trans_weights_dtype_basic(th, AK_INT8, 127.0f, false);
         return;
@@ -306,15 +297,7 @@ void trans_conv_weights_inplace(Tensor<X86>& th, DataType op_precision, int lite
 }
 
 void trans_deconv_weights_inplace(Tensor<X86>& th, DataType op_precision, int lite_mode){
-    auto scale = th.get_scale();
-    if (scale.size() == 1){
-        float scale_old = scale[0];
-        scale.resize(th.valid_shape()[0]);
-        for (int i = 0; i < scale.size(); ++i){
-            scale[i] = scale_old;
-        }
-        th.set_scale(scale);
-    }
+
     if (lite_mode == 1) {
         trans_weights_dtype_basic(th, AK_INT8, 127.0f, true);
         return;
@@ -344,7 +327,7 @@ void trans_deconv_weights_inplace(Tensor<X86>& th, DataType op_precision, int li
         const float* din = (float*)th.data();
         int axis_size = th.valid_shape()[0];
         int outer_size = th.valid_shape()[1];
-        int inner_size = th.valid_shape()[2] * th.valid_shape()[0];
+        int inner_size = th.valid_shape()[2] * th.valid_shape()[3];
         std::vector<float> scale = get_scale_basic(din, axis_size, outer_size, inner_size, 127.0f);
         th.set_scale(scale);
         return;

@@ -1,5 +1,6 @@
 #include "test_lite.h"
 #include "saber/lite/funcs/neon/impl/gemm_prepacked_int8.h"
+#include "saber/lite/funcs/calibrate_lite.h"
 using namespace anakin::saber;
 using namespace anakin::saber::lite;
 int cluster = 0;
@@ -7,17 +8,17 @@ int threads = 1;
 
 bool Basic_test = false;
 
-int M = 1024;
-int N = 1024;
-int K = 1024;
+int M = 16;
+int N = 16;
+int K = 16;
 bool traA = false;
 bool traB = false;
 bool flag_relu = false;
 bool flag_bias = false;
 ARMArch flag_arch = A73;
 int test_iter = 1;
-bool COMPARE_RESULT = false;
-typedef Tensor<CPU> TensorHf4;
+bool COMPARE_RESULT = true;
+typedef Tensor<CPU> TensorH;
 
 SaberStatus test_arm_sgemm(int M, int N, int K, bool tra, bool trb, bool flag_bias, bool flag_relu, int in_th) {
     double to = 0;
@@ -39,12 +40,24 @@ SaberStatus test_arm_sgemm(int M, int N, int K, bool tra, bool trb, bool flag_bi
     Shape sha(M, K);
     Shape shb(K, N);
     Shape shc(M, N);
-    TensorHf4 ta;
-    TensorHf4 tb;
-    TensorHf4 tbias;
-    ta.re_alloc(sha, AK_INT8);
-    tb.re_alloc(shb, AK_INT8);
-    tbias.re_alloc(Shape(M), AK_INT32);
+
+    TensorH ta(sha, AK_INT8);
+    TensorH tb(shb, AK_INT8);
+
+    TensorH tbias(Shape(M), AK_INT32);
+
+    std::vector<float> scale_a(M);
+    std::vector<float> scale_b = {1.f / 127};
+    std::vector<float> scale_c = {K / 127.f};
+    std::vector<float> scale_merge_fp32(M);
+    std::vector<float> scale_merge_int8(M);
+
+    for (int j = 0; j < M; ++j) {
+        scale_a[j] = 1.f / 127;
+        scale_merge_fp32[j] = scale_a[j] * scale_b[0];
+        scale_merge_int8[j] = scale_merge_fp32[j] / scale_c[0];
+    }
+
     fill_tensor_rand(ta, -127, 127);
 //    fill_tensor_const(ta, 1);
     fill_tensor_rand(tb, -127, 127);
@@ -54,9 +67,16 @@ SaberStatus test_arm_sgemm(int M, int N, int K, bool tra, bool trb, bool flag_bi
 //    print_tensor(ta);
 //    print_tensor(tb);
 //    print_tensor(tbias);
-    TensorHf4 tout_basic;
-    TensorHf4 tout_saber;
-    tout_saber.re_alloc(shc, AK_INT32);
+    TensorH tout_basic_int32;
+    TensorH tout_basic_fp32;
+    TensorH tout_basic_int8;
+
+    TensorH tout_saber_int32;
+    TensorH tout_saber_fp32;
+    TensorH tout_saber_int8;
+    tout_saber_int32.re_alloc(shc, AK_INT32);
+    tout_saber_fp32.re_alloc(shc, AK_FLOAT);
+    tout_saber_int8.re_alloc(shc, AK_INT8);
     int m = M;
     int n = N;
     int k = K;
@@ -65,61 +85,147 @@ SaberStatus test_arm_sgemm(int M, int N, int K, bool tra, bool trb, bool flag_bi
     LOG(INFO) << "relu: " << (flag_relu? "true" : "false") << ", bias: " << (flag_bias? "true" : "false");
     LOG(INFO) << "test iter: " << test_iter;
     LOG(INFO) << "compare result with basic sgemm: " << (COMPARE_RESULT? "true" : "false");
-    const char* da = static_cast<const char*>(ta.data());
-    const char* db = static_cast<const char*>(tb.data());
+    auto da = static_cast<const int8_t*>(ta.data());
+    auto db = static_cast<const int8_t*>(tb.data());
     if (COMPARE_RESULT) {
         LOG(INFO) << "run basic conv for precision comparation";
-        tout_basic.re_alloc(shc, AK_INT32);
-        int* dc_basic = static_cast<int*>(tout_basic.mutable_data());
+        tout_basic_int32.re_alloc(shc, AK_INT32);
+        tout_basic_fp32.re_alloc(shc, AK_FLOAT);
+        tout_basic_int8.re_alloc(shc, AK_INT8);
+        int* dc_basic = static_cast<int*>(tout_basic_int32.mutable_data());
         basic_gemm(m, n, k, da, db, static_cast<const int*>(tbias.data()), \
             dc_basic, 1, 0, tra, trb, flag_bias, flag_relu);
+        //! convert to fp32 and int8
+        trans_tensor_int32_to_fp32(tout_basic_int32, tout_basic_fp32, scale_b[0], scale_a);
+        trans_tensor_int32_to_int8(tout_basic_int32, tout_basic_int8, scale_b[0], scale_c[0], scale_a);
 //        LOG(WARNING) << "basic result";
-//        print_tensor(tout_basic);
+//        print_tensor(tout_basic_int32);
+//        print_tensor(tout_basic_fp32);
+//        print_tensor(tout_basic_int8);
     }
-    long long ops = m * n * k;
-    int* dc_saber = static_cast<int*>(tout_saber.mutable_data());
+    double ops = 2.0 * m * n * k;
+    int* dc_saber_int32 = static_cast<int*>(tout_saber_int32.mutable_data());
+    float* dc_saber_fp32 = static_cast<float*>(tout_saber_fp32.mutable_data());
+    int8_t* dc_saber_int8 = static_cast<int8_t*>(tout_saber_int8.mutable_data());
     to = 0;
     min_time = 1000000;
     int hblock = get_hblock_int8(ctx1.get_arch());
     int round_up_a = ((hblock + m - 1) / hblock) * hblock;
-    TensorHf4 tpackedA(Shape(K, round_up_a), AK_INT8);
+    TensorH tpackedA(Shape(K, round_up_a), AK_INT8);
     //fill_tensor_const(tpackedA, 1);
     int lda = k;
     if (tra) {
         lda = m;
     }
-    prepackA_int8(static_cast<char*>(tpackedA.mutable_data()), da, lda, 0, m, 0, k, tra, &ctx1);
+    prepackA_int8(static_cast<char*>(tpackedA.mutable_data()), reinterpret_cast<const char*>(da), lda, 0, m, 0, k, tra, &ctx1);
     //! compute
-    LOG(INFO) << "saber sgemm compute";
+            LOG(INFO) << "saber sgemm compute";
     for (int i = 0; i < test_iter; ++i) {
         t1.clear();
         t1.start();
-        gemm_prepack_int8(static_cast<const char*>(tpackedA.data()), db, \
-            static_cast<const int*>(tbias.data()), dc_saber, m, n, k, flag_bias, flag_relu, trb, &ctx1);
+        gemm_prepack_int8(static_cast<const int8_t*>(tpackedA.data()), db, \
+            static_cast<const int*>(tbias.data()), dc_saber_int32, m, n, k, \
+            flag_bias, flag_relu, trb, nullptr, &ctx1);
         t1.end();
         to += t1.get_average_ms();
         if (t1.get_average_ms() < min_time) {
             min_time = t1.get_average_ms();
         }
     }
-    LOG(INFO) << "saber packed gemm running time, ave: " << to / test_iter << ", min time: " << min_time;
+            LOG(INFO) << "int8->int32 packed gemm running time, ave: " << to / test_iter << ", min time: " << min_time;
+            LOG(WARNING) << "mean gops: " << 0.000001f * ops * test_iter / to \
+        << " GFLOPS, max gops: " << 0.000001f * ops / min_time << " GFLOPS";
+    min_time = 100000;
+    to = 0;
+    for (int i = 0; i < test_iter; ++i) {
+        t1.clear();
+        t1.start();
+        gemm_prepack_int8(static_cast<const int8_t*>(tpackedA.data()), db, \
+            static_cast<const int*>(tbias.data()), dc_saber_fp32, m, n, k, \
+            flag_bias, flag_relu, trb, scale_merge_fp32.data(), &ctx1);
+        t1.end();
+        to += t1.get_average_ms();
+        if (t1.get_average_ms() < min_time) {
+            min_time = t1.get_average_ms();
+        }
+    }
+            LOG(INFO) << "int8->fp32 packed gemm running time, ave: " << to / test_iter << ", min time: " << min_time;
+            LOG(WARNING) << "mean gops: " << 0.000001f * ops * test_iter / to \
+        << " GFLOPS, max gops: " << 0.000001f * ops / min_time << " GFLOPS";
+
+    min_time = 100000;
+    to = 0;
+    for (int i = 0; i < test_iter; ++i) {
+        t1.clear();
+        t1.start();
+        gemm_prepack_int8(static_cast<const int8_t*>(tpackedA.data()), db, \
+            static_cast<const int*>(tbias.data()), dc_saber_int8, m, n, k, \
+            flag_bias, flag_relu, trb, scale_merge_int8.data(), &ctx1);
+        t1.end();
+        to += t1.get_average_ms();
+        if (t1.get_average_ms() < min_time) {
+            min_time = t1.get_average_ms();
+        }
+    }
+//    print_tensor(tout_saber_int32);
+//    print_tensor(tout_saber_fp32);
+//    print_tensor(tout_saber_int8);
+    LOG(INFO) << "int8->int8 packed gemm running time, ave: " << to / test_iter << ", min time: " << min_time;
     LOG(WARNING) << "mean gops: " << 0.000001f * ops * test_iter / to \
         << " GFLOPS, max gops: " << 0.000001f * ops / min_time << " GFLOPS";
     if (COMPARE_RESULT) {
+        //! int32
         double max_ratio = 0;
         double max_diff = 0;
-        tensor_cmp_host(tout_basic, tout_saber, max_ratio, max_diff);
+        tensor_cmp_host(tout_basic_int32, tout_saber_int32, max_ratio, max_diff);
         if (fabs(max_ratio) > 1e-4f) {
-            TensorHf4 tdiff(tout_basic.valid_shape(), AK_INT32);
-            tensor_diff(tout_basic, tout_saber, tdiff);
-            LOG(WARNING) << "basic result";
-            print_tensor(tout_basic);
-            LOG(WARNING) << "saber result";
-            print_tensor(tout_saber);
-            LOG(WARNING) << "diff tensor";
+            TensorH tdiff(tout_basic_int32.valid_shape(), AK_INT32);
+            tensor_diff(tout_basic_int32, tout_saber_int32, tdiff);
+                    LOG(WARNING) << "int32 basic result";
+            print_tensor(tout_basic_int32);
+                    LOG(WARNING) << "int32 saber result";
+            print_tensor(tout_saber_int32);
+                    LOG(WARNING) << "int32 diff tensor";
             print_tensor(tdiff);
         }
-        LOG(INFO) << "compare result, max diff: " << max_diff << ", max ratio: " << max_ratio;
+                LOG(INFO) << "int32 compare result, max diff: " << max_diff << ", max ratio: " << max_ratio;
+        if (fabs(max_ratio) > 1e-4f) {
+            return SaberInvalidValue;
+        }
+        //! fp32
+        max_ratio = 0;
+        max_diff = 0;
+        tensor_cmp_host(tout_basic_fp32, tout_saber_fp32, max_ratio, max_diff);
+        if (fabs(max_ratio) > 1e-4f) {
+            TensorH tdiff(tout_basic_fp32.valid_shape(), AK_FLOAT);
+            tensor_diff(tout_basic_fp32, tout_saber_fp32, tdiff);
+                    LOG(WARNING) << "fp32 basic result";
+            print_tensor(tout_basic_fp32);
+                    LOG(WARNING) << "fp32 saber result";
+            print_tensor(tout_saber_fp32);
+                    LOG(WARNING) << "fp32 diff tensor";
+            print_tensor(tdiff);
+        }
+                LOG(INFO) << "fp32 compare result, max diff: " << max_diff << ", max ratio: " << max_ratio;
+        if (fabs(max_ratio) > 1e-4f) {
+            return SaberInvalidValue;
+        }
+
+        //! int8
+        max_ratio = 0;
+        max_diff = 0;
+        tensor_cmp_host(tout_basic_int8, tout_saber_int8, max_ratio, max_diff);
+        if (fabs(max_ratio) > 1e-4f) {
+            TensorH tdiff(tout_basic_int8.valid_shape(), AK_INT8);
+            tensor_diff(tout_basic_int8, tout_saber_int8, tdiff);
+                    LOG(WARNING) << "int8 basic result";
+            print_tensor(tout_basic_int8);
+                    LOG(WARNING) << "int8 saber result";
+            print_tensor(tout_saber_int8);
+                    LOG(WARNING) << "int8 diff tensor";
+            print_tensor(tdiff);
+        }
+                LOG(INFO) << "int8 compare result, max diff: " << max_diff << ", max ratio: " << max_ratio;
         if (fabs(max_ratio) > 1e-4f) {
             return SaberInvalidValue;
         }

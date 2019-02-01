@@ -37,7 +37,7 @@ Status DeconvBatchnormScaleReluHelper<Ttype, Ptype>::InitParam() {
     auto filter_num = GET_PARAMETER(int, filter_num);
     auto kernel_size = GET_PARAMETER(PTuple<int>, kernel_size);
     auto axis = GET_PARAMETER(int, axis);
-	
+
 	using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
     auto weights_shape = weights.shape();
@@ -67,7 +67,7 @@ Status DeconvBatchnormScaleReluHelper<Ttype, Ptype>::InitParam() {
     auto scale_weight_1 = GET_PARAMETER(pblock_type, scale_0_weight_1);
     auto scale_weight_1_vector = scale_weight_1.vector();
     auto scale_weight_2 = GET_PARAMETER(pblock_type, scale_0_weight_2);
-    auto  scale_weight_2_vector = scale_weight_2.vector();
+    auto scale_weight_2_vector = scale_weight_2.vector();
 
     // get relu param
     auto alpha = GET_PARAMETER(float, relu_0_alpha);
@@ -108,6 +108,8 @@ Status DeconvBatchnormScaleReluHelper<Ttype, Ptype>::InitParam() {
         _param_deconv_batchnorm_scale_relu = conv_param;
     } else {
         pblock_type* bias = new pblock_type();
+        SET_PARAMETER(bias_term, true, bool); // set attr bias_term true
+        SET_PARAMETER(weight_2, *bias, pblock_type); // gen new bias
         if (weights_dtype == AK_FLOAT) {
             graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
                     WeightsFusion<float, Ttype>::update_deconv_weights,
@@ -140,7 +142,7 @@ Status DeconvBatchnormScaleReluHelper<Ttype, Ptype>::InitParam() {
                                            active_param);
         _param_deconv_batchnorm_scale_relu = conv_param;
     }
-  
+
     return Status::OK();
 }
 
@@ -180,7 +182,14 @@ template class DeconvBatchnormScaleReluHelper<ARM, Precision::FP32>;
 template class DeconvBatchnormScaleReluHelper<ARM, Precision::FP16>;
 template class DeconvBatchnormScaleReluHelper<ARM, Precision::INT8>;
 #endif
-#ifdef USE_X86_PLACE
+
+#if defined USE_X86_PLACE || defined BUILD_LITE
+template class DeconvBatchnormScaleReluHelper<X86, Precision::FP32>;
+template class DeconvBatchnormScaleReluHelper<X86, Precision::FP16>;
+template class DeconvBatchnormScaleReluHelper<X86, Precision::INT8>;
+#endif
+
+#if defined USE_X86_PLACE || defined BUILD_LITE
 INSTANCE_DECONVBATCHNORMSCALERELU(X86, Precision::FP32);
 ANAKIN_REGISTER_OP_HELPER(DeconvBatchnormScaleRelu, DeconvBatchnormScaleReluHelper, X86, Precision::FP32);
 #endif
@@ -202,7 +211,10 @@ ANAKIN_REGISTER_OP(DeconvBatchnormScaleRelu)
 .__alias__<NV, Precision::FP32>("convolution_batchnorm_scale_relu")
 #endif
 #ifdef USE_ARM_PLACE
-.__alias__<ARM, Precision::FP32>("convolution_batchnorm_scale_relu")
+.__alias__<ARM, Precision::FP32>("deconvolution_batchnorm_scale_relu")
+#endif
+#if defined USE_X86_PLACE || defined BUILD_LITE
+.__alias__<X86, Precision::FP32>("deconvolution_batchnorm_scale_relu")
 #endif
 .num_in(1)
 .num_out(1)

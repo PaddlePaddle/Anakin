@@ -3,7 +3,8 @@
 # IMPORTANT!!!!!!!!!!!!!!
 # remove "-g" compile flags in  "$ANDROID_NDK/build/cmake/android.toolchain.cmake"
 # to remove debug info
-export ANDROID_NDK=/home/public/android-ndk-r16b/
+#/
+set -e
 
 ANAKIN_LITE_ROOT="$( cd "$(dirname "$0")" ; pwd -P)"
 echo "-- Anakin lite root dir is: $ANAKIN_LITE_ROOT"

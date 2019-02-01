@@ -1,5 +1,7 @@
 #!/bin/bash
 # This script shows how one can build a anakin for the <NVIDIA> gpu platform 
+set -e
+
 ANAKIN_ROOT="$( cd "$(dirname "$0")"/.. ; pwd -P)"
 echo "-- Anakin root dir is: $ANAKIN_ROOT"
 

@@ -216,6 +216,12 @@ public:
         _scale = scale;
     }
 
+    inline saber::LayoutType layout() const {return _layout;}
+
+    inline void set_layout(saber::LayoutType layout){
+        _layout = layout;
+    }
+
     /// If edge's data is shared from the others.
     bool& shared() { return _shared; }
 
@@ -240,6 +246,7 @@ public:
         _share_from = edge._share_from;
         _current_lane = edge._current_lane;
         _scale = edge._scale;
+        _layout = edge._layout;
         Arc<std::string, TensorSharedPtr<Ttype> >::operator=(edge);
     }
 
@@ -252,6 +259,10 @@ private:
     Lane _current_lane;
     // _scale: Transfer the scale passed by external parser to Net tensor.
     std::vector<float> _scale;
+
+    //_layout: the layout from config
+
+    saber::LayoutType _layout{Layout_NCHW}; 
 };
 
 /**

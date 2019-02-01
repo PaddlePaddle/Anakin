@@ -62,11 +62,23 @@ public:
      *  you can use Net(Graph&) instead.
      */
     void init(graph::Graph<Ttype, Ptype>&);
+
+    /**
+     * \brief init execute net.
+     * this api assumes that the net have cloned graph inside
+     */
+    void init();
+
     
     /** 
      * \brief do inference.   
      */
     void prediction();
+
+    /**
+     * \brief clone new execute net engine
+     */
+    std::unique_ptr<Net<Ttype, Ptype, RunType> > Clone();
 
 	/**
 	 *  \brief Running model from inputs to target edge
@@ -139,7 +151,6 @@ public:
     
     void load_calibrator_config(graph::Graph<Ttype, Ptype>& graph);
     void load_x86_layout_config(std::string config){
-        _calibrator_parser.clear_data();
         _calibrator_parser.layout_parse(config);
         _layout_config_path = config;
 
@@ -149,7 +160,8 @@ public:
     void set_calibrator_info(typename graph::Graph<Ttype, Ptype>::Edge_it_t& edge_it){
         //set tensor dtype
         edge_it->weight()->set_dtype(_calibrator_parser.get_dtype(edge_it->bottom(), edge_it->top()));
-        //LOG(ERROR) << "set " << edge_it -> name() <<"dtype:" << _calibrator_parser.get_dtype(edge_it->bottom(), edge_it->top());
+        DLOG(ERROR) << "set " << edge_it->name() <<
+          "dtype:" << _calibrator_parser.get_dtype(edge_it->bottom(), edge_it->top());
         //set tensor calibrator
         edge_it->weight()->set_scale({_calibrator_parser.get_calibrator(edge_it->name())});
         DLOG(WARNING) << "set " << edge_it->name() << " scale:" << _calibrator_parser.get_calibrator(edge_it->name());

@@ -294,9 +294,9 @@ class MedGraphUtil:
         for node in med_graph.values():
             node['med_visted'] = False
 
-        MedGraphUtil._all_search_table(med_graph, {'Reshape': MedGraphUtil._remove_op})
+        #MedGraphUtil._all_search_table(med_graph, {'Reshape': MedGraphUtil._remove_op})
         MedGraphUtil._all_search_table(med_graph, {'Scale': MedGraphUtil._fusionScale})
-        MedGraphUtil._all_search_table(med_graph, {'Flatten': MedGraphUtil._fusionFlatten})
+        #MedGraphUtil._all_search_table(med_graph, {'Flatten': MedGraphUtil._fusionFlatten})
         MedGraphUtil._all_search_fusion(med_graph, MedGraphUtil._auto_split)
         MedGraphUtil._all_search_table(med_graph, {'Input': MedGraphUtil._auto_input_name})
 

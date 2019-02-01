@@ -201,6 +201,9 @@ Status ConvBatchnormScaleReluPoolHelper<Ttype, Ptype>::Init(OpContext<Ttype> &ct
     if (std::is_same<Ttype, X86>::value) {
         impl_e = SABER_IMPL;
     }
+    if (std::is_same<Ttype, NV>::value && (Ptype == Precision::INT8)) {
+        impl_e = SABER_IMPL;
+    }
 #endif
     _funcs_conv_batchnorm_scale_relu_pooling.init(ins, outs,
             _param_conv_batchnorm_scale_relu_pooling, SPECIFY, impl_e, ctx);

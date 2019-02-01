@@ -30,10 +30,12 @@ Status MatchMatrixHelper<Ttype, Ptype>::InitParam() {
     auto dim_t = GET_PARAMETER(int, dim_t);
     auto linear_term = GET_PARAMETER(bool, linear_term);
     auto bias_term = GET_PARAMETER(bool, bias_term);
+    auto is_l_same = GET_PARAMETER(bool, is_l_same);
     using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
 
-    MatchMatrixParam<Ttype> param_match_matrix(dim_in, dim_t,            linear_term, bias_term, &(weights.d_tensor()));
+    MatchMatrixParam<Ttype> param_match_matrix(dim_in, dim_t,
+            linear_term, is_l_same, bias_term, &(weights.d_tensor()));
     _param_match_matrix = param_match_matrix;
 
     return Status::OK();

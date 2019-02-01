@@ -52,6 +52,9 @@ Status SplitHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype
 INSTANCE_SPLIT(NV, Precision::FP32);
 template class SplitHelper<NV, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Split, SplitHelper, NV, Precision::FP32);
+INSTANCE_SPLIT(NV, Precision::INT8);
+template class SplitHelper<NV, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Split, SplitHelper, NV, Precision::INT8);
 #endif
 
 #ifdef USE_ARM_PLACE

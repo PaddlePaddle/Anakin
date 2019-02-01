@@ -45,7 +45,7 @@ public:
         CHECK_GE(inputs.size(), 2) << "input size has to >= 2";
         CHECK(!(inputs.size() > 2
                 && param.operation == Eltwise_sum)) <<
-                        "not support input size>2 and operation==Eltwise_sum, size = " << inputs.size() << ",activation = "
+                        "not support input size > 2 and operation == Eltwise_sum, size = " << inputs.size() << ",activation = "
                         << param.operation;
         _with_relu = param.has_eltwise && param.activation_param.active == Active_relu;
         _other_activation = param.has_eltwise && param.activation_param.active != Active_relu

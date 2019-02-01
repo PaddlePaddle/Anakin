@@ -187,7 +187,7 @@ SaberStatus test_arm_conv(int n, int c, int h, int w, \
 
 }
 
-#if 0
+#if 1
 //! 3x3dw
 TEST(TestSaberLite, test_conv_depthwise) {
     if (g_basic_test) {
@@ -308,7 +308,7 @@ TEST(TestSaberLite, test_conv_1x1s1) {
 }
 #endif
 
-#if 0
+#if 1
 //! conv3x3s1
 TEST(TestSaberLite, test_conv_3x3s1) {
     if (g_basic_test) {
@@ -348,7 +348,7 @@ TEST(TestSaberLite, test_conv_3x3s1) {
 }
 #endif
 
-#if 0
+#if 1
 //! conv3x3s2
 TEST(TestSaberLite, test_conv_3x3s2) {
     if (g_basic_test) {
@@ -395,7 +395,7 @@ TEST(TestSaberLite, test_conv_3x3s2) {
 #endif
 
 
-#if 0
+#if 1
 //! test conv
 TEST(TestSaberLite, test_conv_gemm) {
     if (g_basic_test) {

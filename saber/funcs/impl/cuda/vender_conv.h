@@ -137,8 +137,6 @@ private:
     bool _with_saber_act{false};
     SaberActivation<NV, OpDtype> *_saber_act{nullptr};
     float _in_scale;
-//    Tensor<NV> int8_input;
-//    Tensor<NV> int8_output;
 };
 
 
