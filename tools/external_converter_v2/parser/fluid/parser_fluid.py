@@ -264,7 +264,7 @@ class FluidParser:
                     if shape[0] == -1:
                         shape[0] = 1
                     if layout == 'NCHW':
-                        shape = map(int, [1] * (4 - len(shape)) + shape)
+                        shape = map(int, shape + [1] * (4 - len(shape)))
                     if input_node_name in reshape_dict.keys():
                         shape = reshape_dict[input_node_name]
                     private_data['input_shape'] = shape
@@ -1074,6 +1074,28 @@ class FluidParser:
                 self.ins[ra_node_name].add('X', x_in_of_ra, None)
                 self.ins[ra_node_name].add('ROIs', rois_in_of_ra, None)
 
+    def _FusionSequencePoolConcat(self, source_ops, helper, quantized=False):
+        for source_op in source_ops:
+            if source_op.type == 'sequence_pool':
+                seqpool_node_name = self._NameNodeMid(source_op)
+                if seqpool_node_name in self.ins:
+                    op_seqpool = self._GetOp(source_ops, seqpool_node_name)
+                    in_of_sp = self.ins[seqpool_node_name].target('X')
+                    concat_node_name = self.outs[seqpool_node_name].target('Out')
+                    out_of_concat = self.outs[concat_node_name].target('Out')
+                    private_data = {'axis': 1}
+                    self.outs[seqpool_node_name].mv(concat_node_name, out_of_concat)
+                    self.ins[out_of_concat].mv(concat_node_name, seqpool_node_name)
+                    self._RmProtoNode(concat_node_name)
+                    self._ClearEdges(concat_node_name)
+                    self._RmProtoNode(seqpool_node_name)
+                    self._AddProtoNode(seqpool_node_name, op_seqpool, helper, \
+                        private_data, 'seqpool_concat')
+
+    def _DealWithFeedSequencePool(self, source_ops, helper, quantized=False):
+        self._CropGraph(['input_0'], ['fc_7.tmp_1_gout'], helper)
+        self._FusionSequencePoolConcat(source_ops, helper)
+
     def _NewCommonLayer(self,
                         source_ops,
                         in_target,
@@ -1133,6 +1155,8 @@ class FluidParser:
                 self._DealWithSoftmax(source_ops, helper)
                 self._DealWithSSD(source_ops, helper)
                 self._RefreshReshape(source_ops, helper)
+            if self.NetType == "FEED":
+                self._DealWithFeedSequencePool(source_ops, helper)
         if self.Debug == 'IN':
             self._Graph(True, False)
         else:
