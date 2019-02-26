@@ -387,13 +387,17 @@ def Parser_crop(args):
     OpsRegister()["Crop"].axis = crop_param.axis
 
 
-@ParserFeedDecorator("Dropout")
+@ParserFeedDecorator("Scale")
 def Parser_dropout(args):
     layer = args[1]
     # parser caffe parameter
     dropout_param = layer.dropout_param
-    OpsRegister()["Dropout"].ratio = dropout_param.dropout_ratio
-
+    scale_val = 1 - dropout_param.dropout_ratio
+    tensor = TensorProtoIO()
+    tensor.set_data_type(FLOAT)
+    tensor.set_data([scale_val], "float")
+    tensor.set_shape([1, 1, 1, 1])
+    OpsRegister()["Scale"].weight_1 = tensor
 
 @ParserFeedDecorator("Eltwise")
 def Parser_eltwise(args):
@@ -651,6 +655,16 @@ def Parser_input(args):
     #OpsRegister()["Input"].input_num = len(input_param.shape)
     #for shape in input_param.shape:
     #   OpsRegister()["Input"].input_shape.append(list(shape.dim))
+
+@ParserFeedDecorator("Input")
+def Parser_dummydata(args):
+    logger(verbose.INFO).feed(str(args))
+    layer = args[1]
+    input_param = layer.dummy_data_param
+    OpsRegister()["Input"].input_shape = list(input_param.shape[0].dim)
+    args[3].set_name("Input")
+    logger(verbose.INFO).feed(str(layer))
+    logger(verbose.INFO).feed(str(OpsRegister()["Input"].input_shape))
 
 
 @ParserFeedDecorator("Permute")
@@ -1199,7 +1213,7 @@ def Parser_normalize(args):
         OpsRegister()["Normalize"].begin_norm_axis = -1
         OpsRegister()["Normalize"].is_across_spatial = False
         OpsRegister()["Normalize"].is_shared_channel = False
-        OpsRegister()["Normalize"].eps = 1e-6
+        OpsRegister()["Normalize"].eps = 1e-5
         OpsRegister()["Normalize"].p = 2
 
 @ParserFeedDecorator("Activation")
@@ -1228,6 +1242,28 @@ def Parser_roi_pool(args):
     OpsRegister()["RoiPool"].pooled_w = roi_pool_param.pooled_w
     OpsRegister()["RoiPool"].spatial_scale = roi_pool_param.spatial_scale
 
+@ParserFeedDecorator("Pad2D")
+def Parser_pad2d(args):
+    layer = args[1]
+    pad2d_param = layer.pad2d_param
+    mode = ""
+    if pad2d_param.mode == Pad2DParameter.EDGE:
+        mode = "edge"
+    elif pad2d_param.mode == Pad2DParameter.REFLECT:
+        mode = "reflect"
+    elif pad2d_param.mode == Pad2DParameter.CONSTANT:
+        mode = "constant"
+    else:
+        mode = "constant"
+    OpsRegister()["Pad2D"].mode = mode
+    value = 0.0
+    if pad2d_param.HasField("value"):
+        value = pad2d_param.value
+    OpsRegister()["Pad2D"].value = value
+    pad_h = [pad2d_param.pad_top, pad2d_param.pad_bottom]
+    OpsRegister()["Pad2D"].pad_h = pad_h
+    pad_w = [pad2d_param.pad_left, pad2d_param.pad_right]
+    OpsRegister()["Pad2D"].pad_w = pad_w
 # caffe layer parameter parser map
 CAFFE_LAYER_PARSER = {
                 "Split": OpsParam().set_parser(Parser_split),
@@ -1245,7 +1281,7 @@ CAFFE_LAYER_PARSER = {
                 "Crop": OpsParam().set_parser(Parser_crop),
                 "Data": OpsParam().set_parser(NotNeededInInference),
                 "Dropout": OpsParam().set_parser(Parser_dropout),
-                "DummyData": OpsParam().set_parser(NotNeededInInference),
+                "DummyData": OpsParam().set_parser(Parser_dummydata),
                 "Eltwise": OpsParam().set_parser(Parser_eltwise),
                 "ELU": OpsParam().set_parser(Parser_elu),
                 "Embed": OpsParam().set_parser(Parser_embed),
@@ -1300,5 +1336,6 @@ CAFFE_LAYER_PARSER = {
                 "Coord2Patch": OpsParam().set_parser(Parser_Coord2Patch),
                 "RoisAnchorFeature": OpsParam().set_parser(Parser_rois_anchor_feature),
                 "Interp": OpsParam().set_parser(Parser_interp),
-                "ROIPooling": OpsParam().set_parser(Parser_roi_pool)
+                "ROIPooling": OpsParam().set_parser(Parser_roi_pool),
+                "Pad2D": OpsParam().set_parser(Parser_pad2d)
                 }

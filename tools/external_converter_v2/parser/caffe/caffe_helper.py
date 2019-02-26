@@ -5,7 +5,6 @@
 from ..utils import *
 from ..pbs import *
 
-
 def SplitBlobName(layer_name, blob_name, blob_idx, split_idx):
     """
     Used for caffe parser.
