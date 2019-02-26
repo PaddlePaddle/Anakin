@@ -1083,8 +1083,8 @@ class FluidParser:
                     in_of_sp = self.ins[seqpool_node_name].target('X')
                     concat_node_name = self.outs[seqpool_node_name].target('Out')
                     out_of_concat = self.outs[concat_node_name].target('Out')
-                    private_data = {'axis': 1}
-                    private_data = {'slot_num': slot_num}
+                    private_data = {'axis': 1,
+                                    'slot_num': slot_num}
                     self.outs[seqpool_node_name].mv(concat_node_name, out_of_concat)
                     self.ins[out_of_concat].mv(concat_node_name, seqpool_node_name)
                     self._RmProtoNode(concat_node_name)
