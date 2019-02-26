@@ -498,5 +498,6 @@ OpsRegister.Register("Pad2D").set_attr(mode="constant",
                                        pad_w=list())
 									   
 OpsRegister.Register("SequencePoolConcat").set_attr(pooltype=str(),
+                                                    slot_num=int(),
                                                     axis=int())
 													

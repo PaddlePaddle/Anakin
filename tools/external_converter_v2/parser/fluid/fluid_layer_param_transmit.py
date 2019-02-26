@@ -688,8 +688,10 @@ def Parser_bilinear_interp(args):
 def Parser_seqpool_concat(args):
     op = args[1]
     helper = args[3]
+    private_data = args[4]
     OpsRegister()["SequencePoolConcat"].pooltype = helper.attr_data(op, 'pooltype')
-    OpsRegister()["SequencePoolConcat"].axis = 1
+    OpsRegister()["SequencePoolConcat"].axis = private_data['axis']
+    OpsRegister()["SequencePoolConcat"].slot_num = private_data['slot_num']
 
 @ParserFeedDecorator("Scale")
 def Parser_data_norm(args):
