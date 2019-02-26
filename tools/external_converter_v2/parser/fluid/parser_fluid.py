@@ -1074,7 +1074,7 @@ class FluidParser:
                 self.ins[ra_node_name].add('X', x_in_of_ra, None)
                 self.ins[ra_node_name].add('ROIs', rois_in_of_ra, None)
 
-    def _FusionSequencePoolConcat(self, source_ops, helper, quantized=False):
+    def _FusionSequencePoolConcat(self, source_ops, helper, slot_num=1, quantized=False):
         for source_op in source_ops:
             if source_op.type == 'sequence_pool':
                 seqpool_node_name = self._NameNodeMid(source_op)
@@ -1084,6 +1084,7 @@ class FluidParser:
                     concat_node_name = self.outs[seqpool_node_name].target('Out')
                     out_of_concat = self.outs[concat_node_name].target('Out')
                     private_data = {'axis': 1}
+                    private_data = {'slot_num': slot_num}
                     self.outs[seqpool_node_name].mv(concat_node_name, out_of_concat)
                     self.ins[out_of_concat].mv(concat_node_name, seqpool_node_name)
                     self._RmProtoNode(concat_node_name)
@@ -1094,7 +1095,7 @@ class FluidParser:
 
     def _DealWithFeedSequencePool(self, source_ops, helper, quantized=False):
         self._CropGraph(['input_0'], ['fc_7.tmp_1_gout'], helper)
-        self._FusionSequencePoolConcat(source_ops, helper)
+        self._FusionSequencePoolConcat(source_ops, helper, 412)
 
     def _NewCommonLayer(self,
                         source_ops,
