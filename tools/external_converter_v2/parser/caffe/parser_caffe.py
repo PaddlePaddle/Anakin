@@ -40,10 +40,10 @@ class CaffeParser:
         self._UpgradeNetAsNeeded()
         self._FilterNet()
         self._SplitInception(False)
-        self._InsSplitBtwSplitConcat()
         self._InsSplitBtwSliceConcat()
         self._InsSplitBtwSliceEltwise()
         self._InsertSplits()
+        self._InsSplitBtwSplitConcat()
         self._ScatterInputLayer()
         # create input node
         #self._CreateInputNode() maybe not need
