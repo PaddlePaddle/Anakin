@@ -127,6 +127,7 @@ class Configuration:
         """
         Check if the pip-protoc version is equal to sys-protoc version.
         """
+        assert sys.version_info[0] == 2
         for path in sys.path:
             module_path = os.path.join(path, 'google', 'protobuf', '__init__.py')
             if os.path.exists(module_path):
