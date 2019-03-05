@@ -288,6 +288,23 @@ def Parser_prior_box(args):
     OpsRegister()["PriorBox"].offset = helper.attr_data(op, 'offset')
     OpsRegister()["PriorBox"].order = ['MIN', 'COM', 'MAX']
 
+@ParserFeedDecorator("PriorBox")
+def Parser_density_prior_box(args):
+    op = args[1]
+    helper = args[3]
+    OpsRegister()["PriorBox"].fixed_size = helper.attr_data(op, 'fixed_sizes')
+    OpsRegister()["PriorBox"].fixed_ratio = helper.attr_data(op, 'fixed_ratios')
+    OpsRegister()["PriorBox"].density = helper.attr_data(op, 'densities')
+    OpsRegister()["PriorBox"].is_flip = helper.attr_data(op, 'flip')
+    OpsRegister()["PriorBox"].is_clip = helper.attr_data(op, 'clip')
+    OpsRegister()["PriorBox"].variance = helper.attr_data(op, 'variances')
+    OpsRegister()["PriorBox"].img_h = 0
+    OpsRegister()["PriorBox"].img_w = 0
+    OpsRegister()["PriorBox"].step_h = helper.attr_data(op, 'step_h')
+    OpsRegister()["PriorBox"].step_w = helper.attr_data(op, 'step_w')
+    OpsRegister()["PriorBox"].offset = helper.attr_data(op, 'offset')
+    OpsRegister()["PriorBox"].order = ['MIN', 'COM', 'MAX']
+
 @ParserFeedDecorator("box_coder")
 def Parser_box_coder(args):
     pass
@@ -736,6 +753,7 @@ FLUID_NODE_FILLER = {
     "transpose":OpsParam().set_parser(Parser_transpose),
     "transpose2":OpsParam().set_parser(Parser_transpose),
     "prior_box":OpsParam().set_parser(Parser_prior_box),
+    "density_prior_box":OpsParam().set_parser(Parser_density_prior_box),
     "box_coder":OpsParam().set_parser(Parser_box_coder),
     "multiclass_nms":OpsParam().set_parser(Parser_multiclass_nms),
     "concat_btw_priorbox_boxcoder":OpsParam().set_parser(Parser_concat_btw_priorbox_boxcoder),
