@@ -219,7 +219,7 @@ def Parser_slice(args):
     sections = list(helper.attr_data(op, 'sections'))
     slice_point = list()
     for i in range(len(sections) - 1):
-        slice_point.append(sum(sections[:i+1]))
+        slice_point.append(sum(sections[:i + 1]))
     OpsRegister()["Slice"].slice_point = slice_point
     OpsRegister()["Slice"].num = helper.attr_data(op, 'num')
     OpsRegister()["Slice"].axis = helper.attr_data(op, 'axis')
