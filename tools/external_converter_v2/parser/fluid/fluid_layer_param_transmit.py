@@ -223,7 +223,6 @@ def Parser_slice(args):
     OpsRegister()["Slice"].slice_point = slice_point
     OpsRegister()["Slice"].num = helper.attr_data(op, 'num')
     OpsRegister()["Slice"].axis = helper.attr_data(op, 'axis')
-    OpsRegister()["Slice"].sections = helper.attr_data(op, 'sections')
 
 @ParserFeedDecorator("Reshape")
 def Parser_reshape(args):
