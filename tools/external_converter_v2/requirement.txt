@@ -1,0 +1,6 @@
+pyyaml
+protobuf==3.1.0
+enum34
+numpy
+flask
+prettytable
