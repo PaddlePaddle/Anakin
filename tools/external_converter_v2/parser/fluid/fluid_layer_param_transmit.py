@@ -216,7 +216,11 @@ def Parser_split_ins(args):
 def Parser_slice(args):
     op = args[1]
     helper = args[3]
-    OpsRegister()["Slice"].slice_point = []
+    sections = list(helper.attr_data(op, 'sections'))
+    slice_point = list()
+    for i in range(len(sections) - 1):
+        slice_point.append(sum(sections[:i+1]))
+    OpsRegister()["Slice"].slice_point = slice_point
     OpsRegister()["Slice"].num = helper.attr_data(op, 'num')
     OpsRegister()["Slice"].axis = helper.attr_data(op, 'axis')
     OpsRegister()["Slice"].sections = helper.attr_data(op, 'sections')
@@ -730,6 +734,52 @@ def Parser_data_norm(args):
     OpsRegister()["Scale"].weight_1 = np_weight_tensor
     OpsRegister()["Scale"].weight_2 = np_bias_tensor
 
+@ParserFeedDecorator("fusion_dropout_add_ln_quant")
+def Parser_fusion_dropout_add_ln_quant(args):
+    pass
+
+@ParserFeedDecorator("dequantize_max_abs_rowwise")
+def Parser_dequantize_max_abs_rowwise(args):
+    pass
+
+@ParserFeedDecorator("quantize_abs_max_rowwise")
+def Parser_quantize_abs_max_rowwise(args):
+    pass
+
+@ParserFeedDecorator("fusion_add_relu_dropout_quant")
+def Parser_fusion_add_relu_dropout_quant(args):
+    pass
+
+@ParserFeedDecorator("fill_constant")
+def Parser_fill_constant(args):
+    pass
+
+@ParserFeedDecorator("less_than")
+def Parser_less_than(args):
+    pass
+
+@ParserFeedDecorator("write_to_array")
+def Parser_write_to_array(args):
+    pass
+
+@ParserFeedDecorator("fill_constant_batch_size_like")
+def Parser_fill_constant_batch_size_like(args):
+    pass
+
+@ParserFeedDecorator("assign")
+def Parser_assign(args):
+    pass
+
+@ParserFeedDecorator("while")
+def Parser_while(args):
+    pass
+
+@ParserFeedDecorator("beam_search_decode")
+def Parser_beam_search_decode(args):
+    pass
+
+
+
 FLUID_NODE_FILLER = {
     "feed":OpsParam().set_parser(Parser_feed),
     "conv2d":OpsParam().set_parser(Parser_conv2d),
@@ -802,4 +852,16 @@ FLUID_NODE_FILLER = {
     # feed
     "data_norm":OpsParam().set_parser(Parser_data_norm),
     "seqpool_concat":OpsParam().set_parser(Parser_seqpool_concat),
+    # capi
+    "fusion_dropout_add_ln_quant":OpsParam().set_parser(Parser_fusion_dropout_add_ln_quant),
+    "dequantize_max_abs_rowwise":OpsParam().set_parser(Parser_dequantize_max_abs_rowwise),
+    "quantize_abs_max_rowwise":OpsParam().set_parser(Parser_quantize_abs_max_rowwise),
+    "fusion_add_relu_dropout_quant":OpsParam().set_parser(Parser_fusion_add_relu_dropout_quant),
+    "fill_constant":OpsParam().set_parser(Parser_fill_constant),
+    "less_than":OpsParam().set_parser(Parser_less_than),
+    "write_to_array":OpsParam().set_parser(Parser_write_to_array),
+    "fill_constant_batch_size_like":OpsParam().set_parser(Parser_fill_constant_batch_size_like),
+    "assign":OpsParam().set_parser(Parser_assign),
+    "while":OpsParam().set_parser(Parser_while),
+    "beam_search_decode":OpsParam().set_parser(Parser_beam_search_decode),
 }

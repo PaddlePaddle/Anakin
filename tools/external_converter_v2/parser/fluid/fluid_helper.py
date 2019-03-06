@@ -669,12 +669,14 @@ FLUID_QUANTIZE_LAYERS = [
     'fake_quantize_abs_max',
     'fake_quantize_range_abs_max',
     'quantize',
+    'dequantize_max_abs_rowwise',
 ]
 
 FLUID_DEQUANTIZE_LAYERS = [
     'fake_dequantize_max_abs',
     'fake_dequantize_range_max_abs',
     'dequantize',
+    'quantize_abs_max_rowwise',
 ]
 
 FLUID_SCALE_WEIGHT_OP = [
@@ -682,4 +684,10 @@ FLUID_SCALE_WEIGHT_OP = [
     'depthwise_conv2d',
     'mul',
 ]
+
+FLUID_SLICE_LAYERS = [
+    'split',
+]
+
+
 

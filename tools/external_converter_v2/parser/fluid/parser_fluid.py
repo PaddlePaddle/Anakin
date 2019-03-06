@@ -185,9 +185,11 @@ class FluidParser:
                 for param in source_op.output_names:
                     if param not in ['OutScale']:
                         for idx in range(0, len(helper.args_by_output_param(source_op, param))):
+                            extra_out = True
                             arg = helper.var_name_by_param(source_op, param, idx)
                             for tmp_op in source_ops:
                                 if tmp_op.idx != source_op.idx and arg in tmp_op.input_arg_names:
+                                    extra_out = False
                                     if tmp_op.type == 'fetch':
                                         if arg not in debug_fetch_list:
                                             arg_node_name = self._NameNodeOut(arg)
@@ -200,6 +202,15 @@ class FluidParser:
                                                 main_node_name)
                                     else:
                                         out_edges.add(param, self._NameNodeMid(tmp_op), arg)
+                            if extra_out is True and source_op.type in ['split']:
+                                arg_node_name = self._NameNodeOut(arg)
+                                if arg not in self.graph_outs:
+                                    self.graph_outs.append(arg)
+                                    self.graphIO.add_out_fluid(arg_node_name, \
+                                        main_node_name)
+                                out_edges.add(param, arg_node_name, arg)
+                                self.ins[arg_node_name] = Fluid_edger(bytes(source_op.idx), \
+                                    main_node_name)
                 self._AddProtoNode(main_node_name, source_op, helper, {})
                 if main_node_name not in self._InplaceNodes('Mid'):
                     if main_node_name not in self._InplaceNodes('End'):
