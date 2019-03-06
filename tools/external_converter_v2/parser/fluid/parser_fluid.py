@@ -114,7 +114,7 @@ class FluidParser:
         for source_op in source_ops:
             if source_op.type not in ['feed', 'fetch']:
                 if len(source_op.input_arg_names) == 1 \
-                and source_op.input_arg_names == source_op.output_arg_names:
+                and intersection(source_op.input_arg_names, source_op.output_arg_names):
                     source_node_name = self._NameNodeMid(source_op)
                     inplace_arg = source_op.input_arg_names[0]
                     for tmp_op in source_ops:

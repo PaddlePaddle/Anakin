@@ -15,6 +15,10 @@ def difference(list_a, list_b):
     '''
     return list(set(list_a).difference(set(list_b)))
 
+def intersection(list_a, list_b):
+    '''
+    '''
+    return list(set(list_a).intersection(set(list_b)))
 
 class Edge_for_fluid:
 
