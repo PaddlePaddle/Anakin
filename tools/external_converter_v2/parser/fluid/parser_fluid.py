@@ -484,7 +484,7 @@ class FluidParser:
     def _DealWithPriorBox(self, source_ops, helper, is_dev_v2=True, quantized=False):
         nodes_to_del = []
         for source_op in source_ops:
-            if source_op.type == 'prior_box':
+            if source_op.type in ['prior_box', 'density_prior_box']:
                 if is_dev_v2 is True:
                     axis = 2
                 else:
