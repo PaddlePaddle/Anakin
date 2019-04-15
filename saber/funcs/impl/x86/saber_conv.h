@@ -58,7 +58,14 @@ public:
     }
 
 private:
+    std::vector<Tensor<X86>*> _fake_input_vec;
+    Tensor<X86> _input_trans_tensor;
+    bool _input_trans{false};
     Impl_t* impl;
+    Tensor<X86> _input_scale;
+    Tensor<X86> _output_scale;
+    std::vector<Tensor<X86> *> _input_vec;
+    std::vector<Tensor<X86> *> _output_vec;
 };
 
 } // namespace saber

@@ -25,15 +25,7 @@ class SaberRCNNProposal<X86, OpDtype> : public ImplROIOutputSSD <
         X86, OpDtype > {
 public:
 
-    SaberRCNNProposal()
-            : _img_info_data_host_tensor(NULL)
-            , _probs_st_host_tensor(NULL)
-            , _cords_st_host_tensor(NULL)
-            , _rois_st_host_tensor(NULL)
-            , _outputs_boxes_scores_host_tensor(NULL)
-            , has_img_info_(false)
-            , rois_dim_(0)
-    {}
+    SaberRCNNProposal() = default;
 
     ~SaberRCNNProposal() {
         if (_img_info_data_host_tensor != NULL) {
@@ -71,13 +63,13 @@ public:
                                  std::vector<Tensor<X86>*> &outputs,
                                  ProposalParam<X86>& param);
 private:
-    bool has_img_info_;
-    int rois_dim_;
-    Tensor<X86>* _img_info_data_host_tensor;
-    Tensor<X86>* _probs_st_host_tensor;
-    Tensor<X86>* _cords_st_host_tensor;
-    Tensor<X86>* _rois_st_host_tensor;
-    Tensor<X86>* _outputs_boxes_scores_host_tensor;
+    bool has_img_info_{false};
+    int rois_dim_{0};
+    Tensor<X86>* _img_info_data_host_tensor{nullptr};
+    Tensor<X86>* _probs_st_host_tensor{nullptr};
+    Tensor<X86>* _cords_st_host_tensor{nullptr};
+    Tensor<X86>* _rois_st_host_tensor{nullptr};
+    Tensor<X86>* _outputs_boxes_scores_host_tensor{nullptr};
 };
 }
 }

@@ -19,6 +19,8 @@
 #define LOGGER_SHUTDOWN 0
 
 #include "anakin_config.h"
+
+#ifndef USE_SGX
 #include "logger_core.h"
 
 #define SCOPE_LOGGER_CORE_FUNC 		logger::core::funcRegister
@@ -204,6 +206,43 @@ CHECK_SYMBOL_WARP(CHECK_GT_IMPL, >)
 #define VLOG_IS_ON(verbose) ((verbose) <= SCOPE_LOGGER_CORE_CONFIG::current_verbosity_cutoff())
 #endif
 
+#else // USE_SGX
 
+// define a nop logger for SGX build
+namespace logger {
+    inline void init(const char*){}
+
+    struct NopLogger {
+        template<typename T>
+        constexpr const NopLogger &operator<<(const T &) const {
+            return *this;
+        }
+
+        template<typename T>
+        T *operator&() {
+            static_assert(sizeof(T) == 0, "Taking the address of NopLogger is disallowed.");
+            return nullptr;
+        }
+    };
+
+    static constexpr NopLogger __NOP;
+}
+// namespace logger
+
+#define NOPLOG(X)             logger::__NOP
+#define LOG                   NOPLOG
+#define VLOG                  NOPLOG
+#define DLOG                  NOPLOG
+#define CHECK(X)              (((X) == true ? void(nullptr) : abort()), logger::__NOP)
+#define CHECK_NOTNULL(X)      CHECK((X) != nullptr)
+#define CHECK_EQ(X, Y)        CHECK(((X) == (Y)))
+#define CHECK_NE(X, Y)        CHECK(((X) != (Y)))
+#define CHECK_LT(X, Y)        CHECK(((X) <  (Y)))
+#define CHECK_LE(X, Y)        CHECK(((X) <= (Y)))
+#define CHECK_GT(X, Y)        CHECK(((X) >  (Y)))
+#define CHECK_GE(X, Y)        CHECK(((X) >= (Y)))
+#define ABORT_S()             CHECK(false)
+
+#endif // USE_SGX
 
 #endif // LOGGER_H

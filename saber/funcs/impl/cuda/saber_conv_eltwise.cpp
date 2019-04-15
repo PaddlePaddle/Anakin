@@ -2,10 +2,12 @@
 #include "saber/funcs/impl/cuda/saber_conv.h"
 #include "saber/funcs/impl/cuda/saber_eltwise.h"
 #include "saber/funcs/impl/cuda/saber_conv_eltwise.h"
-#include "sass_funcs.h"
+#include "saber/funcs/impl/cuda/vender_conv.h"
 #include "saber/funcs/calibrate.h"
 #include "saber_conv_eltwise.h"
-#include "saber/funcs/impl/cuda/vender_conv.h"
+#include "sass_funcs.h"
+#include "saber/funcs/debug.h"
+
 namespace anakin {
 namespace saber {
 
@@ -113,14 +115,14 @@ SaberStatus SaberConvEltwise<NV, AK_FLOAT>::dispatch(
                                        (const float*)inputs[0]->data(),
                                        (const float*)param.conv_param.weight()->data(),
                                        chout, chin, hin, win, bias_data,
-                                       this->_ctx->get_compute_stream(),1.f, 1.f);
+                                       this->_ctx->get_compute_stream(), 1.f, 1.f);
             } else {
                 conv_gemm_k1s1p0<false>(num, in_stride, out_stride,
                                         (float*)outputs[0]->mutable_data(),
                                         (const float*)inputs[0]->data(),
                                         (const float*)param.conv_param.weight()->data(),
                                         chout, chin, hin, win, bias_data,
-                                        this->_ctx->get_compute_stream(),1.f, 1.f);
+                                        this->_ctx->get_compute_stream(), 1.f, 1.f);
             }
         } else {
             if (param.conv_param.activation_param.has_active) {
@@ -207,9 +209,17 @@ SaberStatus SaberConvEltwise<NV, AK_FLOAT>::trans_weights(
     }
     if (target_weights.valid_size() > 0) {
         conv_trans_weights<NV, NVHX86>(target_weights,
-                                       stride_h, stride_w, group, true, nullptr, dilation_h, dilation_w);
+                stride_h, stride_w, group, true, nullptr, dilation_h, dilation_w);
     }
     _extern_trans = true;
+    return SaberSuccess;
+}
+
+template <>
+SaberStatus SaberConvEltwise<NV, AK_HALF>::trans_weights(
+        Tensor<NV> &target_weights, Tensor<NV> &target_bias,
+        int pad_h, int pad_w, int dilation_h, int dilation_w,
+        int stride_h, int stride_w, int group) {
     return SaberSuccess;
 }
 template <>
@@ -219,16 +229,9 @@ SaberStatus SaberConvEltwise<NV, AK_INT8>::trans_weights(
         int stride_h, int stride_w, int group) {
     return SaberSuccess;
 }
-template <>
-SaberStatus SaberConvEltwise<NV, AK_HALF>::trans_weights(
-        Tensor<NV> &target_weights, Tensor<NV> &target_bias,
-        int pad_h, int pad_w, int dilation_h, int dilation_w,
-        int stride_h, int stride_w, int group) {
-    return SaberSuccess;
-}
 
 template class SaberConvEltwise<NV, AK_FLOAT>;
-DEFINE_OP_TEMPLATE(SaberConvEltwise, ConvEltwiseParam, NV, AK_HALF);
 DEFINE_OP_TEMPLATE(SaberConvEltwise, ConvEltwiseParam, NV, AK_INT8);
+DEFINE_OP_TEMPLATE(SaberConvEltwise, ConvEltwiseParam, NV, AK_HALF);
 }
 }

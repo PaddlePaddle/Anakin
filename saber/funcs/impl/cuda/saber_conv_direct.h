@@ -51,6 +51,7 @@ public:
 private:
     bool _use_saber_act{false};
     SaberActivation<NV, OpDtype> *_saber_act{nullptr};
+    float _in_scale{0.f};
     //we use this func holder only when input and output datatype is float;
     std::function<void(const float*,
                        float*,
@@ -81,6 +82,31 @@ private:
                        float,
                        float,
                        cudaStream_t)> dispatch_func;
+
+    std::function<void (
+            const void *,
+            void *,
+            const void *,
+            const void *,
+            int,
+            int,
+            int,
+            int,
+            int,
+            int,
+            int,
+            int,
+            int,
+            int,
+            int,
+            int,
+            int,
+            int,
+            int,
+            int,
+            float,
+            float,
+            cudaStream_t cuda_stream)> int8_dispatch_func;
 };
 }
 

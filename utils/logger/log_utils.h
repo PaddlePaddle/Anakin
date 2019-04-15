@@ -36,6 +36,9 @@
 #include <sys/stat.h> // mkdir
 #include <unistd.h>   // STDERR_FILENO
 #include "anakin_config.h"
+#ifdef USE_SGX
+#include <support/sgx/sgx_mutex>
+#endif
 
 // Disable all warnings from gcc/clang:
 #if defined(__clang__)
@@ -54,7 +57,7 @@
 
 #define SUPPORT_PTHREADS  1 // support for pthreads
 
-#if defined(ANDROID) || defined(__ANDROID__)
+#if defined(ANDROID) || defined(__ANDROID__) || defined(LINUX_ARM_OS)
 //#ifdef TARGET_ANDROID
 	#define STACKTRACES 0
 #else

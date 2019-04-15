@@ -28,8 +28,11 @@
 #endif
 
 #ifdef USE_ARM_PLACE
-//todo
-#include "saber/funcs/impl/impl_argmax.h"
+#include "saber/funcs/impl/arm/saber_argmax.h"
+#endif
+
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_argmax.h"
 #endif
 
 namespace anakin {

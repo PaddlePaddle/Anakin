@@ -5,12 +5,12 @@
    You may obtain a copy of the License at
 
        http://www.apache.org/licenses/LICENSE-2.0
-   
+
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License. 
+   limitations under the License.
 */
 
 #ifndef ANAKIN_SABER_FUNCS_SLICE_H
@@ -19,6 +19,9 @@
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/funcs/impl/impl_slice.h"
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_slice.h"
+#endif
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_slice.h"
 #endif
@@ -98,16 +101,16 @@ public:
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {
-        switch (implenum) { 
-            case VENDER_IMPL: 
-                this->_impl.push_back(new VenderSlice <TargetType, OpDtype>); 
-                return SaberSuccess; 
-            case SABER_IMPL: 
-                this->_impl.push_back(new SaberSlice <TargetType, OpDtype>); 
-                return SaberSuccess; 
-            default: 
+        switch (implenum) {
+            case VENDER_IMPL:
+                this->_impl.push_back(new VenderSlice <TargetType, OpDtype>);
+                return SaberSuccess;
+            case SABER_IMPL:
+                this->_impl.push_back(new SaberSlice <TargetType, OpDtype>);
+                return SaberSuccess;
+            default:
                 return SaberUnImplError;
-        }        
+        }
     }
 
 private:

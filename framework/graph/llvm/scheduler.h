@@ -71,6 +71,9 @@ public:
     /// check if io is fixed
     bool is_fixed(io&);
 
+    /// check if io's share_from target is fixed
+    bool is_target_fixed(io&);
+
     /// ...TODO
     //
 public:

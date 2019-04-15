@@ -24,6 +24,11 @@
 #define ANAKIN_THR_OMP 1
 #define ANAKIN_THR_TBB 2
 
+#ifdef USE_SGX
+#undef ANAKIN_THR
+#define ANAKIN_THR ANAKIN_THR_SEQ
+#endif
+
 #if !defined(ANAKIN_THR)
 #define ANAKIN_THR ANAKIN_THR_OMP
 #endif
@@ -32,9 +37,13 @@
 #define ANAKIN_THR_SYNC 1
 inline int anakin_get_max_threads() { return 1; }
 inline int anakin_get_num_threads() { return 1; }
+inline int anakin_get_num_procs() { return 1; }
+inline void anakin_set_num_threads(int val) {}
 inline int anakin_get_thread_num() { return 0; }
 inline int anakin_in_parallel() { return 0; }
 inline void anakin_thr_barrier() {}
+inline void anakin_set_nested(int val) {}
+inline void anakin_set_dynamic(int val) {}
 
 #elif ANAKIN_THR == ANAKIN_THR_OMP
 #include <omp.h>
@@ -42,11 +51,15 @@ inline void anakin_thr_barrier() {}
 
 inline int anakin_get_max_threads() { return omp_get_max_threads(); }
 inline int anakin_get_num_threads() { return omp_get_num_threads(); }
+inline int anakin_get_num_procs() { return omp_get_num_procs(); }
+inline void anakin_set_num_threads(int val) { omp_set_num_threads(val); }
 inline int anakin_get_thread_num() { return omp_get_thread_num(); }
 inline int anakin_in_parallel() { return omp_in_parallel(); }
 inline void anakin_thr_barrier() {
 #   pragma omp barrier
 }
+inline void anakin_set_nested(int val) { omp_set_nested(val); }
+inline void anakin_set_dynamic(int val) { omp_set_dynamic(val); }
 
 #elif ANAKIN_THR == ANAKIN_THR_TBB
 #include "tbb/parallel_for.h"
@@ -73,26 +86,6 @@ namespace anakin {
 namespace saber {
 
 inline bool anakin_thr_syncable() { return ANAKIN_THR_SYNC == 1; }
-
-template <typename T, typename U>
-inline void balance211(T n, U team, U tid, T &n_start, T &n_end) {
-    T n_min = 1;
-    T &n_my = n_end;
-    if (team <= 1 || n == 0) {
-        n_start = 0;
-        n_my = n;
-    } else if (n_min == 1) {
-        // team = T1 + T2
-        // n = T1*n1 + T2*n2  (n1 - n2 = 1)
-        T n1 = utils::div_up(n, (T)team);
-        T n2 = n1 - 1;
-        T T1 = n - n2 * (T)team;
-        n_my = (T)tid < T1 ? n1 : n2;
-        n_start = (T)tid <= T1 ? tid * n1 : T1 * n1 + ((T)tid - T1) * n2;
-    }
-
-    n_end += n_start;
-}
 
 } // namespace saber
 } // namespace anakin

@@ -44,38 +44,6 @@ inline int best_divider(int value, int min_divider, int max_divider,
     return x_divider;
 }
 
-
-template <typename T, typename U, typename V>
-inline U this_block_size(const T offset, const U max, const V block_size) {
-    assert(offset < max);
-    const T block_boundary = offset + block_size;
-    if (block_boundary > max)
-        return max - offset;
-    else
-        return block_size;
-}
-
-template<typename T>
-inline T nd_iterator_init(T start) { return start; }
-
-template<typename T, typename U, typename W, typename... Args>
-inline T nd_iterator_init(T start, U &x, const W &X, Args &&... tuple) {
-    start = nd_iterator_init(start, utils::forward<Args>(tuple)...);
-    x = start % X;
-    return start / X;
-}
-
-inline bool nd_iterator_step() { return true; }
-
-template<typename U, typename W, typename... Args>
-inline bool nd_iterator_step(U &x, const W &X, Args &&... tuple) {
-    if (nd_iterator_step(utils::forward<Args>(tuple)...)) {
-        x = (x + 1) % X;
-        return x == 0;
-    }
-    return false;
-}
-
 } // namepsace jit
 
 #define JIT_TENSOR_MAX_DIMS 12

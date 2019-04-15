@@ -16,7 +16,7 @@
 #ifndef ANAKIN_SABER_CORE_ENV_H
 #define ANAKIN_SABER_CORE_ENV_H
 
-#include "core/device.h"
+#include "saber/core/device.h"
 
 namespace anakin{
 
@@ -56,7 +56,7 @@ private:
     Env(){}
 };
 
-#ifdef AMD_GPU 
+#ifdef AMD_GPU
 typedef std::list<cl_event> cl_event_list;
 
 template <>
@@ -70,7 +70,7 @@ public:
     }
 
     static void env_init(int max_stream = 4);
-    static bool is_init(); 
+    static bool is_init();
     static cl_platform_id get_platform_id();
 
     static void add_event(const char *tag, cl_event_list event);

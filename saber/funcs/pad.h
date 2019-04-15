@@ -24,6 +24,14 @@
 #include "saber/funcs/impl/cuda/saber_pad.h"
 #endif
 
+#ifdef USE_X86_PLACE
+#include "saber/funcs/impl/x86/saber_pad.h"
+#endif
+
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_pad.h" 
+#endif
+
 
 namespace anakin {
 namespace saber {

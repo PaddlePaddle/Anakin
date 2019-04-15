@@ -23,10 +23,16 @@
 #include "saber/funcs/impl/cuda/saber_detection_output.h"
 #endif
 
+#ifdef USE_ARM_PLACE
+#include "saber/funcs/impl/arm/saber_detection_output.h"
+#endif
+
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_detection_output.h"
 #endif
-
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_detection_output.h"
+#endif
 namespace anakin {
 namespace saber {
 
@@ -56,7 +62,19 @@ public:
 
     virtual SaberStatus compute_output_shape(const Input_v &input, \
         Output_v &output, Param_t &param) override {
-        Shape shape_out = Shape({1, 1, param.keep_top_k * input[0]->num(), 7}, Layout_NCHW);
+        Shape shape_out;
+        if (param.share_location) {
+            // for one stage
+            shape_out = Shape({1, 1, param.keep_top_k * input[0]->num(), 7}, Layout_NCHW);
+        } else {
+            // for two stage
+            auto offset = input[0]->get_seq_offset();
+            CHECK_GT(offset.size(), 0) << "input tensors must have seq_offset";
+            CHECK_GT(offset[0].size(), 0) << "seq offset must have at least 2 elements";
+            int num = offset[0].size() - 1;
+            shape_out = Shape({1, 1, param.keep_top_k * num, 7}, Layout_NCHW);
+        }
+
         return output[0]->set_shape(shape_out);
     }
 

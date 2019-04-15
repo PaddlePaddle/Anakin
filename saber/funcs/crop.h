@@ -31,6 +31,9 @@
 #include "saber/funcs/impl/impl_crop.h"
 #endif
 
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_crop.h"
+#endif
 namespace anakin {
 namespace saber {
 

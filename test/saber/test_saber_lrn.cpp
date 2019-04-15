@@ -160,6 +160,25 @@ TEST(TestSaberFunc, test_op_lrn) {
     }
 #endif
 
+#ifdef USE_ARM_PLACE
+    TestSaberBase<ARM, ARM, AK_FLOAT, Lrn, LrnParam> testbase_arm;
+
+    for (int w_in : {8, 8, 16}) {
+        for (int h_in : {2, 8, 32}) {
+            for (int ch_in : {2, 3, 8, 64}) {
+                for (int num_in : {1, 21, 32}) {
+                    Shape shape_arm({num_in, ch_in, h_in, w_in});
+                    LrnParam<ARM> param_arm(local_size, alpha, beta, k, norm_region);
+                    testbase_arm.set_param(param_arm);
+                    testbase_arm.set_rand_limit(-5.0, 5.0);
+                    testbase_arm.set_input_shape(shape_arm);
+                    testbase_arm.run_test(lrn_cpu_base<float, ARM, ARM>, 0.00001, true, true);
+                }
+            }
+        }
+    }
+#endif
+
 }
 
 int main(int argc, const char** argv) {

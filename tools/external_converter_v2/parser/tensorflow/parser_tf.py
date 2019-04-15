@@ -14,7 +14,7 @@ class TFParser:
     def __init__(self, fluid_config_dict):
         # anakin graph model io
         # config info
-        self.ProtoPaths = fluid_config_dict['ProtoPaths']
+        self.ProtoPaths = fluid_config_dict['ModelPath']
 
         self.OutPuts = fluid_config_dict['OutPuts']
         if self.OutPuts is not None:

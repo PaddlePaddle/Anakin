@@ -1,5 +1,7 @@
 #!/bin/bash
 # This script shows how one can build a anakin for the <NVIDIA> gpu platform 
+set -e
+
 ANAKIN_ROOT="$( cd "$(dirname "$0")"/.. ; pwd -P)"
 echo "-- Anakin root dir is: $ANAKIN_ROOT"
 
@@ -8,7 +10,7 @@ BUILD_ROOT=$ANAKIN_ROOT/lite_build
 
 mkdir -p $BUILD_ROOT
 echo "-- Build anakin lite into: $BUILD_ROOT"
-
+export PATH=/Users/scmtools/buildkit/cmake/cmake-3.8.2/bin:$PATH
 # Now, actually build the gpu target.
 echo "-- Building anakin ..."
 cd $BUILD_ROOT
@@ -22,6 +24,8 @@ cmake .. \
    	-DUSE_PYTHON=OFF \
 	-DENABLE_DEBUG=NO \
 	-DENABLE_VERBOSE_MSG=NO \
+        -DENABLE_MIN_DEPENDENCY=YES \
+        -DPROTOBUF_ROOT=/Users/scmbuild/workspaces_cluster/baidu.sys-hic-gpu.Anakin-2.0/baidu/sys-hic-gpu/Anakin-2.0/protobuf/ \
 	-DDISABLE_ALL_WARNINGS=YES \
 	-DENABLE_NOISY_WARNINGS=NO \
     -DUSE_OPENMP=NO \
@@ -31,8 +35,8 @@ cmake .. \
 
 # build target lib or unit test.
 if [ "$(uname)" = 'Darwin' ]; then
-    make "-j$(sysctl -n hw.ncpu)" && make install
+    make "-j$(sysctl -n hw.ncpu)" install
 else
-    make "-j$(nproc)"   && make install
+    make "-j$(nproc)" install   
 fi
 

@@ -21,7 +21,7 @@ SaberStatus SaberRPNProposalSSD<NV, AK_FLOAT>::create(
     CHECK_EQ(1, this->heat_map_b_vec_.size());
 
     if (outputs.size() == 0) {
-                CHECK_GT(this->num_class_, 0);
+        CHECK_GT(this->num_class_, 0);
     }
 
     num_anchors_ = this->anchor_x1_vec_.size();
@@ -70,7 +70,6 @@ SaberStatus SaberRPNProposalSSD<NV, AK_FLOAT>::dispatch(
         std::vector<Tensor<NV>*> &outputs,
         ProposalParam<NV>& param) {
 
-    float input_height = this->im_height_, input_width = this->im_width_;
     float min_size_w_cur = this->min_size_w_;
     float min_size_h_cur = this->min_size_h_;
     std::vector<float> im_width_scale = std::vector<float>(1, this->read_width_scale_);
@@ -80,8 +79,8 @@ SaberStatus SaberRPNProposalSSD<NV, AK_FLOAT>::dispatch(
     CHECK_EQ(inputs.back()->count(1, inputs.back()->dims()), 6);
     _img_info_glue.set_extern_tensor(inputs.back());
     const float* img_info_data = (const float*)_img_info_glue.host_data(_ctx);
-    input_width = img_info_data[0];
-    input_height = img_info_data[1];
+    float input_width = img_info_data[0];
+    float input_height = img_info_data[1];
     CHECK_GT(input_width, 0);
     CHECK_GT(input_height, 0);
     im_width_scale.clear();
@@ -99,7 +98,7 @@ SaberStatus SaberRPNProposalSSD<NV, AK_FLOAT>::dispatch(
 
     float bsz01 = this->bbox_size_add_one_ ? float(1.0) : float(0.0);
 
-    float min_size_mode_and_else_or = true;
+    bool min_size_mode_and_else_or = true;
     if (this->min_size_mode_ == DetectionOutputSSD_HEIGHT_OR_WIDTH) {
         min_size_mode_and_else_or = false;
     } else {

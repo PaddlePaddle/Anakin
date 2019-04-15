@@ -5,12 +5,12 @@
    You may obtain a copy of the License at
 
        http://www.apache.org/licenses/LICENSE-2.0
-   
+
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License. 
+   limitations under the License.
 */
 
 #ifndef ANAKIN_NET_TEST_H
@@ -31,7 +31,7 @@ using ::anakin::test::Test;
 using namespace anakin::graph;
 
 /**
- * \brief Graph test is base Test class for anakin graph funciton.  
+ * \brief Graph test is base Test class for anakin graph funciton.
  */
 class NetTest: public Test {
 public:
@@ -60,6 +60,17 @@ void test_print(Tensor4dPtr<NV>& out_tensor_p) {
 
 #ifdef USE_X86_PLACE
 void test_print(Tensor4dPtr<X86>& out_tensor_p) {
+    LOG(ERROR) << "result count : " << out_tensor_p->valid_shape().count();
+    LOG(INFO) << "output num:" << out_tensor_p->valid_size();
+    float * data = (float*)(out_tensor_p->mutable_data());
+    for (int i = 0; i < out_tensor_p->valid_size(); i++) {
+        LOG(INFO) << " GET OUT (" << i << ") " << data[i];
+    }
+}
+#endif
+
+#ifdef USE_ARM_PLACE
+void test_print(Tensor4dPtr<ARM>& out_tensor_p) {
     LOG(ERROR) << "result count : " << out_tensor_p->valid_shape().count();
     LOG(INFO) << "output num:" << out_tensor_p->valid_size();
     float * data = (float*)(out_tensor_p->mutable_data());

@@ -30,10 +30,16 @@ class SaberConv2DPooling<X86, OpDtype> : public ImplBase<
         X86, OpDtype, ConvPoolingParam<X86> > {
 public:
     typedef typename DataTrait<X86, OpDtype>::Dtype OpDataType;
+    typedef ImplBase<X86, OpDtype, ConvPoolingParam<X86> > Impl_conv_pool_t;
 
-    SaberConv2DPooling() {}
+    SaberConv2DPooling():conv_pool_impl_(nullptr) {}
 
-    ~SaberConv2DPooling() {}
+    ~SaberConv2DPooling() {
+        if (conv_pool_impl_ != nullptr) {
+            delete conv_pool_impl_;
+            conv_pool_impl_ = nullptr;
+        }
+    }
 
     /**
      * [Create description] Init all cudnn resource here
@@ -67,6 +73,7 @@ private:
     Shape _inner_shape;
     Tensor<X86> _inner_tensor;
     std::vector<Tensor<X86> *> _inner_tensor_v;
+    Impl_conv_pool_t* conv_pool_impl_;
 };
 
 }

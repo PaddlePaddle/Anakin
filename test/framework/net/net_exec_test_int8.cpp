@@ -19,18 +19,22 @@ using Target_H = X86;
 
 //#define USE_DIEPSE
 
-std::string model_path = "/home/zhangshuai20/workspace/baidu/sys-hic-gpu/anakin-models/adu/anakin_models/yolo_camera_detector/yolo_camera_detector.anakin.bin";
-//std::string model_path = "/home/zhangshuai20/workspace/baidu/sys-hic-gpu/anakin-models/public/anakin_models/Resnet50/Resnet50.anakin.bin";
-
-std::string model_saved_path = model_path + ".saved";
+//std::string g_model_path = "/home/zhangshuai20/workspace/baidu/sys-hic-gpu/anakin-models/adu/anakin_models/yolo_camera_detector/yolo_camera_detector.anakin.bin";
+std::string g_model_path = "/path/to/your/anakin_model";
+int g_batch_size = 1;
+int g_warm_up = 10;
+int g_epoch = 1000;
+int g_device_id = 0;
+//std::string model_path = "/home/zhangshuai20/workspace/baidu/sys-hic-gpu/anakin-models/public/anakin_models/vgg16/vgg16.anakin.bin";
+std::string model_saved_path = g_model_path + ".saved";
 
 #ifdef USE_CUDA
 #if 1
 TEST(NetTest, net_execute_base_test) {
-    Graph<NV, Precision::FP32>* graph = new Graph<NV, Precision::FP32>();
-    LOG(WARNING) << "load anakin model file from " << model_path << " ...";
+    Graph<NV, Precision::INT8>* graph = new Graph<NV, Precision::INT8>();
+    LOG(WARNING) << "load anakin model file from " << g_model_path << " ...";
     // load anakin model files.
-    auto status = graph->load(model_path);
+    auto status = graph->load(g_model_path);
     if (!status ) {
         LOG(FATAL) << " [ERROR] " << status.info();
     }
@@ -41,7 +45,7 @@ TEST(NetTest, net_execute_base_test) {
 
     // register all tensor inside graph
     // graph->RegistAllOut();
-
+//    graph->load_calibrator_config("net_pt_config", "calibrate_file.txt");
     // register edge
     // graph->RegistOut("conv2_2/expand/scale", "relu2_2/expand");
 	// graph->RegistOut("relu#3(conv2d_0)","pool2d#4(pool2d_0)");
@@ -53,31 +57,30 @@ TEST(NetTest, net_execute_base_test) {
 	//{ // inner scope
 #ifdef USE_DIEPSE
     //Net<NV, Precision::FP32, OpRunType::SYNC> net_executer(*graph, true);
-    Net<NV, Precision::FP32, OpRunType::SYNC> net_executer(true);
+    Net<NV, Precision::INT8, OpRunType::SYNC> net_executer(true);
 #else
     //Net<NV, Precision::FP32> net_executer(*graph, true);
-    Net<NV, Precision::FP32> net_executer(true);
+    Net<NV, Precision::INT8> net_executer(true);
 #endif
-
-    net_executer.load_calibrator_config("net_pt_config.txt", "cal_file.txt");
+//    net_executer.load_x86_layout_config("layout_config.txt");
     net_executer.init(*graph);
     // get in
     auto d_tensor_in_p = net_executer.get_in("input_0");
     Tensor4d<Target_H> h_tensor_in;
 
     auto valid_shape_in = d_tensor_in_p->valid_shape();
-    for (int i=0; i<valid_shape_in.size(); i++) {
+    for (int i = 0; i < valid_shape_in.size(); i++) {
         LOG(INFO) << "detect input_0 dims[" << i << "]" << valid_shape_in[i];
     }
+    fill_tensor_const(*d_tensor_in_p, 1.f);
+//    h_tensor_in.re_alloc(valid_shape_in, d_tensor_in_p->get_dtype());
+//    float* h_data = (float*)(h_tensor_in.mutable_data());
+//
+//    for (int i=0; i<h_tensor_in.size(); i++) {
+//        h_data[i] = 1.0f;
+//    }
 
-    h_tensor_in.re_alloc(valid_shape_in);
-    float* h_data = (float*)(h_tensor_in.mutable_data());
-
-    for (int i=0; i<h_tensor_in.size(); i++) {
-        h_data[i] = 1.0f;
-    }
-
-    d_tensor_in_p->copy_from(h_tensor_in);
+//    d_tensor_in_p->copy_from(h_tensor_in);
 
 #ifdef USE_DIEPSE
     // for diepse model
@@ -114,23 +117,24 @@ TEST(NetTest, net_execute_base_test) {
     d_tensor_in_2_p->copy_from(h_tensor_in_2);
 #endif
 
-    int epoch = 1;
+    int epoch = g_epoch;
     // do inference
     Context<NV> ctx(0, 0, 0);
     saber::SaberTimer<NV> my_time;
     LOG(WARNING) << "EXECUTER !!!!!!!! ";
 	// warm up
-	/*for(int i=0; i<10; i++) {
+	for (int i = 0; i<g_warm_up; i++) {
 		net_executer.prediction();
-	}*/
-
-    my_time.start(ctx);
-
+	}
+	cudaDeviceSynchronize();
 
     //auto start = std::chrono::system_clock::now();
     for (int i=0; i<epoch; i++) {
+        my_time.start(ctx);
 		//DLOG(ERROR) << " epoch(" << i << "/" << epoch << ") ";
         net_executer.prediction();
+        cudaDeviceSynchronize();
+        my_time.end(ctx);
     }
    /* // running part of model
     net_executer.execute_stop_at_node("relu2_2/expand");
@@ -158,15 +162,23 @@ TEST(NetTest, net_execute_base_test) {
     //double time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
     //LOG(WARNING) << "avg time : " << time/epoch <<" ms";
 
-    my_time.end(ctx);
-    LOG(INFO)<<"aveage time "<<my_time.get_average_ms()/epoch << " ms";
+    LOG(INFO)<<"aveage time "<<my_time.get_average_ms() << " ms";
 
 	//} // inner scope over
 
-	LOG(ERROR) << "inner net exe over !";
+#ifdef ENABLE_OP_TIMER
+    net_executer.reset_op_time();
+    for (int i = 0; i < 1000; ++i) {
+        net_executer.prediction();
+#ifdef USE_CUDA
+        cudaDeviceSynchronize();
+#endif
+    }
+    net_executer.print_and_reset_optime_summary(1000);
+#endif
 
     //auto& tensor_out_inner_p = net_executer.get_tensor_from_edge("data_perm", "conv1");
-	
+
 
     // get out yolo_v2
     /*auto tensor_out_0_p = net_executer.get_out("loc_pred_out");
@@ -175,7 +187,7 @@ TEST(NetTest, net_execute_base_test) {
     auto tensor_out_3_p = net_executer.get_out("ori_pred_out");
     auto tensor_out_4_p = net_executer.get_out("dim_pred_out");*/
 
-	// get outs cnn_seg 
+	// get outs cnn_seg
 	/*auto tensor_out_0_p = net_executer.get_out("slice_[dump, mask]_out");
 	auto tensor_out_1_p = net_executer.get_out("category_score_out");
 	auto tensor_out_2_p = net_executer.get_out("instance_pt_out");
@@ -195,27 +207,27 @@ TEST(NetTest, net_execute_base_test) {
 	//test_print(tensor_out_0_p);
 
     // mobilenet-v2
-	auto tensor_out_0_p = net_executer.get_out("dim_pred_out");
-
-
-    // get out result
-    //LOG(WARNING)<< "result avg: " << tensor_average(tensor_out_0_p);
-	test_print(tensor_out_0_p);
-
-    // save the optimized model to disk.
-    std::string save_model_path = model_path + std::string(".saved");
-    status = graph->save(save_model_path);
-    if (!status ) { 
-        LOG(FATAL) << " [ERROR] " << status.info(); 
-    }
+//	auto tensor_out_0_p = net_executer.get_out("dim_pred_out");
+//
+//
+//    // get out result
+//    //LOG(WARNING)<< "result avg: " << tensor_average(tensor_out_0_p);
+//	test_print(tensor_out_0_p);
+//
+//    // save the optimized model to disk.
+//    std::string save_model_path = g_model_path + std::string(".saved");
+//    status = graph->save(save_model_path);
+//    if (!status ) {
+//        LOG(FATAL) << " [ERROR] " << status.info();
+//    }
     if (!graph){
         delete graph;
     }
 }
-#endif 
+#endif
 #endif
 
-#ifdef USE_CUDA
+#ifdef USE_CUDA2
 TEST(NetTest, net_execute_reconstruction_test) {
     Graph<NV, Precision::FP32>* graph = new Graph<NV, Precision::FP32>();
     LOG(WARNING) << "load anakin model file from optimized model " << model_saved_path << " ...";
@@ -234,7 +246,6 @@ TEST(NetTest, net_execute_reconstruction_test) {
 
     // constructs the executer net
     Net<NV, Precision::FP32> net_executer(true);
-    net_executer.load_calibrator_config("net_pt_config.txt", "cal_file.txt");
     net_executer.init(*graph);
     // get in
     auto d_tensor_in_p = net_executer.get_in("input_0");
@@ -281,11 +292,29 @@ TEST(NetTest, net_execute_reconstruction_test) {
 }
 #endif
 int main(int argc, const char** argv){
-
+    if (argc < 2) {
+                LOG(ERROR) << "no input!!!, usage: ./" << argv[0] << " model_path [batch size] [warm_up_iter] [test_iter] [device_id]";
+        return -1;
+    }
+    if (argc > 1) {
+        g_model_path = std::string(argv[1]);
+    }
+    if (argc > 2) {
+        g_batch_size = atoi(argv[2]);
+    }
+    if (argc > 3) {
+        g_warm_up = atoi(argv[3]);
+    }
+    if (argc > 4) {
+        g_epoch = atoi(argv[4]);
+    }
+    if (argc > 5) {
+        g_device_id = atoi(argv[5]);
+    }
 	Env<Target>::env_init();
     // initial logger
     logger::init(argv[0]);
 	InitTest();
-	RUN_ALL_TESTS(argv[0]);	
+	RUN_ALL_TESTS(argv[0]);
 	return 0;
 }

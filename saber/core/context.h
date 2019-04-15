@@ -16,8 +16,11 @@
 #ifndef ANAKIN_SABER_CORE_CONTEXT_H
 #define ANAKIN_SABER_CORE_CONTEXT_H
 
-#include "core/env.h"
+#include "saber/core/env.h"
 #include "saber/saber_types.h"
+#ifdef USE_ARM_PLACE
+#include "saber/core/tensor.h"
+#endif
 
 namespace anakin{
 
@@ -35,7 +38,7 @@ public:
      * @param compute_stream_id
      */
     Context(int device_id = 0, int data_stream_id = 0, int compute_stream_id = 0){
-#ifdef USE_BM        
+#ifdef USE_BM
         if(std::is_same<TargetType, BM>::value){
             LOG(INFO) << "context init for BM";
             int dev_count = 0;
@@ -70,6 +73,24 @@ public:
         }
         _stream_compute = devs[_device_id]._compute_stream[compute_stream_id];
         _compute_stream_id = compute_stream_id;
+#ifdef USE_ARM_PLACE
+        //! 1 thread, big core
+        if (devs[_device_id]._info._big_core_ids.size() > 0){
+            _act_ids = {devs[_device_id]._info._big_core_ids[0]};
+        } else {
+            _act_ids = {0};
+        }
+        _mode = SABER_POWER_HIGH;
+        int temp_mem_size = devs[_device_id]._info._L2_cache[_act_ids[0]] / sizeof(float);
+        _work_space.reshape(Shape({1, 1, 1, temp_mem_size}));
+#ifdef TARGET_IOS
+        _arch = APPLE; //use 6x8
+#else
+        if (devs[_device_id]._info._big_core_ids.size() > 0) {
+            _arch = devs[_device_id]._info._archs[_act_ids[0]];
+        }
+#endif
+#endif
     }
 
     Context(const Context<TargetType>& ctx){
@@ -88,8 +109,10 @@ public:
 #ifdef USE_ARM_PLACE
         _act_ids = ctx._act_ids;
         _mode = ctx._mode;
+        _work_space.copy_from(ctx._work_space);
+        _arch = ctx._arch;
+        _count = ctx._count;
 #endif
-
     }
 
     Context& operator=(const Context& ctx){
@@ -101,6 +124,9 @@ public:
 #ifdef USE_ARM_PLACE
         this->_act_ids = ctx._act_ids;
         this->_mode = ctx._mode;
+        this->_work_space.copy_from(ctx._work_space);
+        this->_arch = ctx._arch;
+        this->_count = ctx._count;
 #endif
 #ifdef USE_BM
         this->_bm_handle = ctx._bm_handle;
@@ -113,6 +139,12 @@ public:
         comp_eq = comp_eq && (_device_id == right._device_id);
         comp_eq = comp_eq && (_data_stream_id == right._data_stream_id);
         comp_eq = comp_eq && (_compute_stream_id == right._compute_stream_id);
+#ifdef USE_ARM_PLACE
+        comp_eq = comp_eq && (_act_ids == right._act_ids);
+        comp_eq = comp_eq && (_mode == right._mode);
+        comp_eq = comp_eq && (_arch == right._arch);
+        comp_eq = comp_eq && (_count == right._count);
+#endif
 #ifdef USE_BM
         comp_eq = comp_eq && (_bm_handle == right._bm_handle);
 #endif
@@ -143,18 +175,6 @@ public:
         return _stream_compute;
     }
 
-
-#ifdef USE_ARM_PLACE
-    //void set_act_cores(std::vector<int> ids);
-    //void set_power_mode(PowerMode mode);
-    void set_run_mode(PowerMode mode, int threads);
-    //void set_cache(size_t l1size, size_t l2size, size_t l3size);
-    void bind_dev();
-    PowerMode get_mode(int& threads);
-    //PowerMode get_mode();
-    //std::vector<int> get_act_ids();
-#endif
-
 #ifdef USE_BM
     bm_handle_t get_handle() {
         return _bm_handle;
@@ -168,8 +188,23 @@ public:
             return "null";
         }
     }
-
-
+#ifdef USE_ARM_PLACE
+    //! SABER_POWER_HIGH stands for using big cores,
+    //! SABER_POWER_LOW stands for using small core,
+    //! SABER_POWER_FULL stands for using all cores
+    void set_run_mode(PowerMode mode, int threads);
+    void set_cache(int l1size, int l2size, int l3size);
+    int get_l1_cache_size() const;
+    int get_l2_cache_size() const;
+    int get_l3_cache_size() const;
+    void* get_work_space();
+    int get_threads() const;
+    ARMArch get_arch() const;
+    PowerMode get_mode() const;
+    void set_arch(ARMArch arch);
+    void bind_dev();
+    SaberStatus workspace_extend(Shape sh);
+#endif
 private:
     //! current stream to process
     typename API::stream_t _stream_data;
@@ -179,8 +214,11 @@ private:
     int _data_stream_id;
     int _compute_stream_id;
 #ifdef USE_ARM_PLACE
+    ARMArch _arch;
     PowerMode _mode{SABER_POWER_HIGH};
     std::vector<int> _act_ids{0};
+    Tensor<ARM> _work_space;
+    long long _count{0};
 #endif
 #ifdef USE_BM
     bm_handle_t _bm_handle;

@@ -44,5 +44,71 @@ OpsRegister.Register("reorder_lod_tensor_by_rank").set_attr()
 OpsRegister.Register("while").set_attr()
 OpsRegister.Register("array_to_lod_tensor").set_attr()
 
+OpsRegister.Register("assign").set_attr()
 OpsRegister.Register("assign_value").set_attr()
 OpsRegister.Register("shape").set_attr()
+
+OpsRegister.Register("fake_quantize_abs_max").set_attr()
+OpsRegister.Register("fake_dequantize_max_abs").set_attr()
+OpsRegister.Register("fake_quantize_range_abs_max").set_attr()
+OpsRegister.Register("fake_dequantize_range_max_abs").set_attr()
+
+OpsRegister.Register("increment").set_attr()
+
+OpsRegister.Register("fusion_dropout_add_ln_quant").set_attr()
+OpsRegister.Register("dequantize_max_abs_rowwise").set_attr()
+OpsRegister.Register("quantize_abs_max_rowwise").set_attr()
+OpsRegister.Register("fusion_add_relu_dropout_quant").set_attr()
+OpsRegister.Register("fill_constant_batch_size_like").set_attr()
+OpsRegister.Register("beam_search_decode").set_attr()
+
+OpsRegister.Register('reduce').set_attr(
+    reduce_type=str(),
+    keep_dim=bool(),
+    reduce_dim=list(),
+    reduce_all=bool(),
+    coeff=float(),
+)
+OpsRegister.Register('arg_max').set_attr(
+    out_max_val=bool(),
+    top_k=int(),
+    axis=int(),
+)
+OpsRegister.Register('sequence_expand').set_attr(
+    ref_level=int(),
+)
+OpsRegister.Register('eltwise').set_attr(
+    type=str(),
+    coeff=float(),
+)
+OpsRegister.Register('cast').set_attr(
+    int_type=int(),
+    out_type=int(),
+)
+OpsRegister.Register('yolo_box').set_attr(
+    anchors=list(),
+    class_num=int(),
+    conf_thresh=float(),
+    downsample_ratio=int(),
+)
+OpsRegister.Register('slice').set_attr(
+    slice_dim=int(),
+    slice_point=list(),
+    axis=int(),
+)
+OpsRegister.Register('box_coder').set_attr(
+    axis=int(),
+    box_normalized=bool(),
+    variance=list(),
+)
+OpsRegister.Register('GroupNormal').set_attr(
+    has_scale=bool(),
+    has_bias=bool(),
+    eps=float(),
+    group=int(),
+)
+OpsRegister.Register('slice_v2').set_attr(
+    starts=list(),
+    ends=list(),
+    axes=list(),
+)

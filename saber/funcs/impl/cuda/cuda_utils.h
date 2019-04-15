@@ -141,11 +141,11 @@ public:
 
         int target_word_id = 0;
         std::vector<int> length_vec_cnt = length_vec;
-
+        int last_batch_size = batch_size;
         for (int word_id_in_seq = 0; word_id_in_seq < max_len; word_id_in_seq++) {
             _emit_offset_vec[word_id_in_seq] = target_word_id;
 
-            for (int batch_id = 0; batch_id < batch_size; batch_id++) {
+            for (int batch_id = 0; batch_id < last_batch_size; batch_id++) {
                 int old_batch_id = _length_index[batch_id];
 
                 if (length_vec_cnt[old_batch_id] > 0) {
@@ -157,10 +157,11 @@ public:
 
                     int old_word_id = offset_vec[old_batch_id] + inner_word_id_in_seq;
                     _map_vec[old_word_id] = target_word_id;
+                    //                    printf("map %d -> %d\n",old_word_id,target_word_id);
                     length_vec_cnt[old_batch_id]--;
                     target_word_id++;
                 } else {
-
+                    last_batch_size--;
                     break;
                 }
             }

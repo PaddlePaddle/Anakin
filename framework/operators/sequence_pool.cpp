@@ -4,32 +4,17 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_X86_PLACE
-template<>
-void SequencePool<X86, Precision::FP32>::operator()(
-    OpContext<X86>& ctx,
-    const std::vector<Tensor4dPtr<X86> >& ins,
-    std::vector<Tensor4dPtr<X86> >& outs) {
-    auto* impl = static_cast<SequencePoolHelper<X86, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<SequencePoolHelper<X86, Precision::FP32>*>(this->_helper)->_param_sequence_pool;
-    impl->_funcs_sequence_pool(ins, outs, param, ctx);
+#define INSTANCE_SEQUENCE_POOL(Ttype, Ptype) \
+template<> \
+void SequencePool<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+    const std::vector<Tensor4dPtr<Ttype> >& ins, \
+    std::vector<Tensor4dPtr<Ttype> >& outs) { \
+    auto* impl = \
+        static_cast<SequencePoolHelper<Ttype, Ptype>*>(this->_helper); \
+    auto& param = \
+        static_cast<SequencePoolHelper<Ttype, Ptype>*>(this->_helper)->_param_sequence_pool; \
+    impl->_funcs_sequence_pool(ins, outs, param, ctx); \
 }
-#endif
-
-
-#ifdef USE_CUDA
-template<>
-void SequencePool<NV, Precision::FP32>::operator()(
-    OpContext<NV>& ctx,
-    const std::vector<Tensor4dPtr<NV> >& ins,
-    std::vector<Tensor4dPtr<NV> >& outs) {
-    auto* impl = static_cast<SequencePoolHelper<NV, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<SequencePoolHelper<NV, Precision::FP32>*>(this->_helper)->_param_sequence_pool;
-    impl->_funcs_sequence_pool(ins, outs, param, ctx);
-}
-#endif
-/// TODO ... specialization other type of operator
-
 
 /// set helper
 template<typename Ttype, Precision Ptype>
@@ -70,33 +55,32 @@ Status SequencePoolHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPt
 }
 
 #ifdef USE_CUDA
+INSTANCE_SEQUENCE_POOL(NV, Precision::FP32);
 template class SequencePoolHelper<NV, Precision::FP32>;
 template class SequencePoolHelper<NV, Precision::FP16>;
 template class SequencePoolHelper<NV, Precision::INT8>;
-#endif
-
-#ifdef USE_ARM_PLACE
-template class SequencePoolHelper<ARM, Precision::FP32>;
-template class SequencePoolHelper<ARM, Precision::FP16>;
-template class SequencePoolHelper<ARM, Precision::INT8>;
-#endif
-
-#ifdef USE_X86_PLACE
-template class SequencePoolHelper<X86, Precision::FP32>;
-template class SequencePoolHelper<X86, Precision::FP16>;
-template class SequencePoolHelper<X86, Precision::INT8>;
-#endif
-
-// register helper
-#ifdef USE_CUDA
 ANAKIN_REGISTER_OP_HELPER(SequencePool, SequencePoolHelper, NV, Precision::FP32);
 #endif
 
+#ifdef AMD_GPU
+INSTANCE_SEQUENCE_POOL(AMD, Precision::FP32);
+template class SequencePoolHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(SequencePool, SequencePoolHelper, AMD, Precision::FP32);
+#endif
+
 #ifdef USE_ARM_PLACE
+INSTANCE_SEQUENCE_POOL(ARM, Precision::FP32);
+template class SequencePoolHelper<ARM, Precision::FP32>;
+template class SequencePoolHelper<ARM, Precision::FP16>;
+template class SequencePoolHelper<ARM, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(SequencePool, SequencePoolHelper, ARM, Precision::FP32);
 #endif
 
 #ifdef USE_X86_PLACE
+INSTANCE_SEQUENCE_POOL(X86, Precision::FP32);
+template class SequencePoolHelper<X86, Precision::FP32>;
+template class SequencePoolHelper<X86, Precision::FP16>;
+template class SequencePoolHelper<X86, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(SequencePool, SequencePoolHelper, X86, Precision::FP32);
 #endif
 
@@ -111,6 +95,9 @@ ANAKIN_REGISTER_OP(SequencePool)
 #endif
 #ifdef USE_X86_PLACE
 .__alias__<X86, Precision::FP32>("SequencePool")
+#endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("SequencePool")
 #endif
 .num_in(1)
 .num_out(1)

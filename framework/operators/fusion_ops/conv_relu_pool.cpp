@@ -1,3 +1,17 @@
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
 #include "framework/operators/fusion_ops/conv_relu_pool.h"
 
 namespace anakin {
@@ -37,8 +51,13 @@ Status ConvReluPoolHelper<Ttype, Ptype>::InitParam() {
 
 	using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
-    auto weight_vec = weights.vector();
-
+    // resize weights scale
+    auto& w = weights.h_tensor();
+    if (w.get_scale().size() == 1){
+        float scale_tmp = w.get_scale()[0];
+        std::vector<float> w_scale(filter_num, scale_tmp);
+        w.set_scale(w_scale);
+    }
     // get relu param
     auto alpha = GET_PARAMETER(float, relu_0_alpha);
     ActivationParam<Ttype> active_param(Active_relu, alpha); // Temp
@@ -87,7 +106,7 @@ Status ConvReluPoolHelper<Ttype, Ptype>::InitParam() {
 }
 
 template<typename Ttype, Precision Ptype>
-Status ConvReluPoolHelper<Ttype, Ptype>::Init(OpContext<Ttype> &ctx, 
+Status ConvReluPoolHelper<Ttype, Ptype>::Init(OpContext<Ttype> &ctx,
         const std::vector<Tensor4dPtr<Ttype> >& ins,
         std::vector<Tensor4dPtr<Ttype> >& outs) {
 
@@ -96,10 +115,15 @@ Status ConvReluPoolHelper<Ttype, Ptype>::Init(OpContext<Ttype> &ctx,
     auto weights = GET_PARAMETER(PBlock<Ttype>, weight_1);
     auto bias_term = GET_PARAMETER(bool, bias_term);
 
+#ifdef AMD_GPU
     saber::ImplEnum impl_e = SABER_IMPL;
-    if (std::is_same<Ttype, X86>::value) {
+#else
+    saber::ImplEnum impl_e = SABER_IMPL;
+    if (std::is_same<Ttype, X86>::value || std::is_same<Ttype, ARM>::value) {
         impl_e = SABER_IMPL;
     }
+#endif
+
     _funcs_conv_relu_pooling.init(ins, outs, _param_conv_relu_pooling, SPECIFY,
                                   impl_e, ctx);
 
@@ -109,7 +133,7 @@ Status ConvReluPoolHelper<Ttype, Ptype>::Init(OpContext<Ttype> &ctx,
         SET_PARAMETER(is_weights_transed, true, bool);
         if (bias_term) {
             auto bias = GET_PARAMETER(PBlock<Ttype>, weight_2);
-            graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
+            graph::GraphGlobalMem<Ttype>::Global().template apply<Level_1>(
                     std::bind(&ConvPooling<Ttype,
                                       PrecisionWrapper<Ptype>::saber_type>::trans_weights,
                               &_funcs_conv_relu_pooling, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10),
@@ -118,7 +142,7 @@ Status ConvReluPoolHelper<Ttype, Ptype>::Init(OpContext<Ttype> &ctx,
             bias.map_to_host();
         } else {
             PBlock<Ttype> bias_empty;
-            graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
+            graph::GraphGlobalMem<Ttype>::Global().template apply<Level_1>(
                     std::bind(&ConvPooling<Ttype,
                                       PrecisionWrapper<Ptype>::saber_type>::trans_weights,
                               &_funcs_conv_relu_pooling, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10),
@@ -130,7 +154,7 @@ Status ConvReluPoolHelper<Ttype, Ptype>::Init(OpContext<Ttype> &ctx,
     } else {
         PBlock<Ttype> weight_empty;
         PBlock<Ttype> bias_empty;
-        graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
+        graph::GraphGlobalMem<Ttype>::Global().template apply<Level_1>(
                 std::bind(&ConvPooling<Ttype, PrecisionWrapper<Ptype>::saber_type>::trans_weights,
                           &_funcs_conv_relu_pooling, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10),
                 weight_empty.d_tensor(), bias_empty.d_tensor(), _param_conv_relu_pooling.conv_param.pad_h, _param_conv_relu_pooling.conv_param.pad_w, _param_conv_relu_pooling.conv_param.dilation_h, _param_conv_relu_pooling.conv_param.dilation_w,
@@ -156,6 +180,8 @@ ANAKIN_REGISTER_OP_HELPER(ConvReluPool, ConvReluPoolHelper, NV, Precision::INT8)
 #ifdef USE_X86_PLACE
 INSTANCE_CONVRELUPOOLING(X86, Precision::FP32);
 ANAKIN_REGISTER_OP_HELPER(ConvReluPool, ConvReluPoolHelper, X86, Precision::FP32);
+INSTANCE_CONVRELUPOOLING(X86, Precision::INT8);
+ANAKIN_REGISTER_OP_HELPER(ConvReluPool, ConvReluPoolHelper, X86, Precision::INT8);
 #endif
 
 #ifdef USE_ARM_PLACE

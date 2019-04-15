@@ -18,7 +18,7 @@ SaberStatus SaberMatMul<NV, OpDtype>::dispatch(
     //should add batch gemm here
     for (int b = 0; b < param._b; b++)
     {
-        _kernel(param._m, param._n, param._k, 1.f,
+        _kernel(param._m, param._n, param._k, param._scale,
             X + b * param._m * param._k,
             0.f, 
             Y + b * param._k * param._n,

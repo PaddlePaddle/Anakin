@@ -28,10 +28,6 @@ class SaberSoftmax<NV, OpDtype>:
 {
 public:
     typedef TargetWrapper<NV> API;
-    typedef Tensor<NV> DataTensor_in;
-    typedef Tensor<NV> DataTensor_out;
-    typedef Tensor<NV> OpTensor;
-    typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
 
     SaberSoftmax() = default;
 
@@ -44,63 +40,16 @@ public:
      * @param param
      * @param ctx
      */
-    virtual SaberStatus init(const std::vector<DataTensor_in *>& inputs,
-                            std::vector<DataTensor_out *>& outputs,
-                            SoftmaxParam<NV>& param, Context<NV>& ctx) {
+    virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
+                            std::vector<Tensor<NV> *>& outputs,
+                            SoftmaxParam<NV>& param, Context<NV>& ctx) override;
 
-        //! get context
-        this->_ctx = &ctx;
-        return create(inputs, outputs, param, ctx);
-    }
+    virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
+                            std::vector<Tensor<NV> *>& outputs,
+                            SoftmaxParam<NV>& param, Context<NV>& ctx) override;
 
-    virtual SaberStatus create(const std::vector<DataTensor_in *>& inputs,
-                            std::vector<DataTensor_out *>& outputs,
-                            SoftmaxParam<NV>& param, Context<NV>& ctx) {
-        //! compute size
-        Shape shape_in = inputs[0]->valid_shape();
-        Shape shape_out = outputs[0]->valid_shape();
-        CHECK_EQ(shape_in == shape_out, true) << "valid shapes must be the same";
-        _outer_num = inputs[0]->count_valid(0, param.axis);
-        _inner_num = inputs[0]->count_valid(param.axis + 1, inputs[0]->dims());
-        _axis_size = shape_in[param.axis];
-
-        cudaDeviceProp deviceProp;
-        cudaGetDeviceProperties(&deviceProp, API::get_device_id());
-        size_t sharedmem_size = deviceProp.sharedMemPerBlock;
-        _max_dimsize = sharedmem_size / sizeof(OpDataType) / CUDA_NUM_THREADS;
-
-        Shape sh_tmp({1, 1, 1, _outer_num * _inner_num});
-        if (_axis_size > _max_dimsize){
-            //! re_alloc device memory
-            _max_data.reshape(sh_tmp);
-            _sum_data.reshape(sh_tmp);
-        }
-
-        //! CHECK whether the input or output tensor is with continuous buffer or not
-        _is_continue_buf = outputs[0]->is_continue_mem() && inputs[0]->is_continue_mem();
-        _dims = shape_in.size();
-        if (!_is_continue_buf) {
-            Shape sh_input_real_stride = inputs[0]->get_stride();
-            Shape sh_output_real_stride = outputs[0]->get_stride();
-
-            //! re_alloc device memory
-            Shape sh({1, 1, 1, _dims});
-            _valid_shape.reshape(sh);
-            _input_stride.reshape(sh);
-            _output_stride.reshape(sh);
-
-            CUDA_CHECK(cudaMemcpy(_valid_shape.mutable_data(), inputs[0]->valid_shape().data(), \
-                sizeof(int) * _dims, cudaMemcpyHostToDevice));
-            CUDA_CHECK(cudaMemcpy(_input_stride.mutable_data(), sh_input_real_stride.data(), \
-                sizeof(int) * _dims, cudaMemcpyHostToDevice));
-            CUDA_CHECK(cudaMemcpy(_output_stride.mutable_data(), sh_output_real_stride.data(), \
-                sizeof(int) * _dims, cudaMemcpyHostToDevice));
-        }
-        return SaberSuccess;
-    }
-
-    virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
-                          std::vector<DataTensor_out*>& outputs,
+    virtual SaberStatus dispatch(const std::vector<Tensor<NV>*>& inputs,
+                          std::vector<Tensor<NV>*>& outputs,
                           SoftmaxParam<NV>& param);
 
 private:
@@ -120,7 +69,6 @@ private:
     Tensor<NV> _max_data;
     Tensor<NV> _sum_data;
 };
-template class SaberSoftmax<NV, AK_FLOAT>;
 } //namespace saber
 
 } //namespace anakin

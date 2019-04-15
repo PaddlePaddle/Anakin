@@ -5,12 +5,12 @@
    You may obtain a copy of the License at
 
        http://www.apache.org/licenses/LICENSE-2.0
-   
+
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License. 
+   limitations under the License.
 */
 
 #ifndef ANAKIN_OPERATOR_DECONV_BATCHNORM_SCALE_RELU_H
@@ -40,11 +40,11 @@ public:
     DeconvBatchnormScaleRelu() {}
 
     /// forward impl
-    virtual void operator() (OpContext<Ttype> &ctx, 
-                             const std::vector<Tensor4dPtr<Ttype> >& ins, 
+    virtual void operator() (OpContext<Ttype> &ctx,
+                             const std::vector<Tensor4dPtr<Ttype> >& ins,
                              std::vector<Tensor4dPtr<Ttype> >& outs) {
-		LOG(ERROR) << "Not Impl Yet Operator DeconvBatchnormScaleRelu< Ttype("
-				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
+      LOG(ERROR) << "Not Impl Yet Operator DeconvBatchnormScaleRelu< Ttype("
+        << target_name<Ttype>::value << "), Precision("<< (int)Ptype << ") >";
     }
 
     friend class DeconvBatchnormScaleReluHelper<Ttype, Ptype>;
@@ -72,7 +72,7 @@ public:
     * \return status
     */
     Status Init(OpContext<Ttype> &ctx,
-                const std::vector<Tensor4dPtr<Ttype> >& ins, 
+                const std::vector<Tensor4dPtr<Ttype> >& ins,
                 std::vector<Tensor4dPtr<Ttype> >& outs) override;
 
     /**
@@ -92,7 +92,7 @@ public:
 
 private:
     ///< _dims stand for DeconvBatchnormScaleRelu size
-    PTuple<int> _dims; 
+    PTuple<int> _dims;
 };
 
 

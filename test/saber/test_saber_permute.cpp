@@ -75,6 +75,9 @@ TEST(TestSaberFunc, test_func_permute)
 #ifdef USE_X86_PLACE
     test_permute<X86, X86, AK_FLOAT>();
 #endif
+#ifdef USE_ARM_PLACE
+    test_permute<ARM, ARM, AK_FLOAT>();
+#endif
 }
 
 int main(int argc, const char** argv) {

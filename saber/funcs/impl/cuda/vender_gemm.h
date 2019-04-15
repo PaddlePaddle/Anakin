@@ -1,6 +1,6 @@
 
-#ifndef SABER_FUNCS_IMPL_CUDA_VENDER_GEMM_H
-#define SABER_FUNCS_IMPL_CUDA_VENDER_GEMM_H
+#ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_VENDER_GEMM_H
+#define ANAKIN_SABER_FUNCS_IMPL_CUDA_VENDER_GEMM_H
 
 #include "saber/core/tensor.h"
 #include "saber/funcs/gemm.h"
@@ -10,7 +10,8 @@ namespace saber {
 
 template<typename inDtype,
         typename outDtype>
-class Gemm<NV, VENDER_IMPL, inDtype, outDtype> {
+class Gemm<NV, VENDER_IMPL, inDtype, outDtype>
+        : public MatrixFunc<NV, inDtype, outDtype>{
 
 public:
     Gemm() = default;

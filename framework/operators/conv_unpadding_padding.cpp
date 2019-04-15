@@ -27,7 +27,7 @@ Status ConvUnpaddingPaddingHelper<Ttype, Ptype>::InferShape(const std::vector<Te
 }
 
 
-#define INSTANCE_CONCAT(Ttype, Ptype) \
+#define INSTANCE_CONV_UNPADDING_PADDING(Ttype, Ptype) \
 template<> \
 void ConvUnpaddingPadding<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
         const std::vector<Tensor4dPtr<Ttype> >& ins, \
@@ -39,19 +39,25 @@ void ConvUnpaddingPadding<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
 }
 
 #ifdef USE_CUDA
-INSTANCE_CONCAT(NV, Precision::FP32);
+INSTANCE_CONV_UNPADDING_PADDING(NV, Precision::FP32);
 template class ConvUnpaddingPaddingHelper<NV, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ConvUnpaddingPadding, ConvUnpaddingPaddingHelper, NV, Precision::FP32);
 #endif
 
+#ifdef AMD_GPU
+INSTANCE_CONV_UNPADDING_PADDING(AMD, Precision::FP32);
+template class ConvUnpaddingPaddingHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(ConvUnpaddingPadding, ConvUnpaddingPaddingHelper, AMD, Precision::FP32);
+#endif
+
 #ifdef USE_ARM_PLACE
-INSTANCE_CONCAT(ARM, Precision::FP32);
+INSTANCE_CONV_UNPADDING_PADDING(ARM, Precision::FP32);
 template class ConvUnpaddingPaddingHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ConvUnpaddingPadding, ConvUnpaddingPaddingHelper, ARM, Precision::FP32);
 #endif
 
 #ifdef USE_X86_PLACE
-INSTANCE_CONCAT(X86, Precision::FP32);
+INSTANCE_CONV_UNPADDING_PADDING(X86, Precision::FP32);
 template class ConvUnpaddingPaddingHelper<X86, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ConvUnpaddingPadding, ConvUnpaddingPaddingHelper, X86, Precision::FP32);
 #endif
@@ -67,6 +73,9 @@ ANAKIN_REGISTER_OP(ConvUnpaddingPadding)
 #endif
 #ifdef USE_X86_PLACE
 .__alias__<X86, Precision::FP32>("conv_unpadding_padding")
+#endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("conv_unpadding_padding")
 #endif
 .num_in(1)
 .num_out(1);

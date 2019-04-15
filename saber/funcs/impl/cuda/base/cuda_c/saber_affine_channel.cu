@@ -27,8 +27,8 @@ SaberStatus SaberAffineChannel<NV, OpDtype>::dispatch(\
     AffineChannelParam<NV>& param) {
 
     const OpDataType* in_data = (const OpDataType*)inputs[0]->data();
-    const OpDataType* scale_data = (const OpDataType*)inputs[1]->data();
-    const OpDataType* bias_data = (const OpDataType*)inputs[2]->data();
+    const OpDataType* scale_data = (const OpDataType*)param.weight()->data();
+    const OpDataType* bias_data = (const OpDataType*)param.bias()->data();
     OpDataType* out_data = (OpDataType*)outputs[0]->mutable_data();
     cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
     int count = outputs[0]->valid_size();
@@ -36,8 +36,8 @@ SaberStatus SaberAffineChannel<NV, OpDtype>::dispatch(\
     int outer_num = inputs[0]->count_valid(0, channel_idx);
     int channel = inputs[0]->channel();
     int inner_num = inputs[0]->count_valid(channel_idx+1, inputs[0]->dims());
-    CHECK_EQ(inputs[1]->valid_size(), channel) << "affine channel input scale dims are not valid";
-    CHECK_EQ(inputs[2]->valid_size(), channel) << "affine channel input bias dims are not valid";
+    CHECK_EQ(param.weight()->valid_size(), channel) << "affine channel input scale dims are not valid";
+    CHECK_EQ(param.bias()->valid_size(), channel) << "affine channel input bias dims are not valid";
 
     if (inputs[0]->is_continue_mem() && outputs[0]->is_continue_mem()) {
         ker_affine_channel_fwd<OpDataType>\

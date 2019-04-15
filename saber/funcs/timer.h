@@ -5,12 +5,12 @@
    You may obtain a copy of the License at
 
        http://www.apache.org/licenses/LICENSE-2.0
-   
+
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License. 
+   limitations under the License.
 */
 
 #ifndef ANAKIN_SABER_FUNCS_TIMER_H
@@ -90,7 +90,6 @@ private:
     std::chrono::time_point<std::chrono::system_clock> tend;
     std::list<float> ms_time;
 };
-
 #ifdef USE_CUDA
 template <>
 class SaberTimer<NV> final {
@@ -167,7 +166,7 @@ private:
 #endif
 
 
-#ifdef AMD_GPU 
+#ifdef AMD_GPU
 
 typedef TargetWrapper<AMD> AMD_API;
 
@@ -206,7 +205,7 @@ public:
         AMD_API::sync_event(_e_end);
 
         cl_ulong start;
-        clGetEventProfilingInfo(_e_start, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &start,NULL);
+        clGetEventProfilingInfo(_e_start, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &start,NULL);
 
         cl_ulong end;
         clGetEventProfilingInfo(_e_end, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &end, NULL);
@@ -232,7 +231,7 @@ public:
         }
 #if 0
         for(auto time : ms_time)
-           LOG(INFO) << time; 
+           LOG(INFO) << time;
 #endif
         ms_time.sort();
         LOG(INFO) << ms_time.front() <<" - " << ms_time.back();

@@ -16,8 +16,8 @@
 
 if (EXISTS ${ANAKIN_THIRD_PARTY_PATH}/sass/lib/)
     include_directories(${ANAKIN_THIRD_PARTY_PATH}/sass/include)
-    return() 
-endif()  
+    return()
+endif()
 
 include(ExternalProject)
 
@@ -30,25 +30,15 @@ set(SASS_INSTALL_ROOT  ${ANAKIN_THIRD_PARTY_PATH}/sass)
 
 include_directories(${SASS_INC})
 
-file(WRITE ${SASS_SOURCE_DIR}/src/build.sh 
-    "cmake ../${SASS_PROJECT} -DSELECT_ARCH=61,50;make -j$(nproc) \n")
+file(WRITE ${SASS_SOURCE_DIR}/src/build.sh
+        "cmake ../${SASS_PROJECT} -DSELECT_ARCH=61,50;make -j$(nproc) \n")
 
 file(WRITE ${SASS_SOURCE_DIR}/src/install.sh
-    "mkdir -p ${SASS_INSTALL_ROOT}/include \n"
-    "mkdir -p ${SASS_INSTALL_ROOT}/lib \n"
-    "cp ${REAL_SASS_SRC}/nv/*.h ${SASS_INSTALL_ROOT}/include/ \n" 
-    "cp *.a ${SASS_INSTALL_ROOT}/lib \n")
+        "mkdir -p ${SASS_INSTALL_ROOT}/include \n"
+        "mkdir -p ${SASS_INSTALL_ROOT}/lib \n"
+        "cp ${REAL_SASS_SRC}/nv/*.h ${SASS_INSTALL_ROOT}/include/ \n"
+        "cp *.a ${SASS_INSTALL_ROOT}/lib \n")
 
-
-
-ExternalProject_Add(
-    ${SASS_PROJECT}
-    GIT_REPOSITORY      "ssh://git@icode.baidu.com:8235/baidu/sys-hic-gpu/anakin_saber_lib"
-    GIT_TAG             batch_gemm
-    PREFIX              ${SASS_SOURCE_DIR}
-    BUILD_COMMAND       sh ${SASS_SOURCE_DIR}/src/build.sh 
-    INSTALL_COMMAND     sh ${SASS_SOURCE_DIR}/src/install.sh 
-)
 
 add_library(sass_lib SHARED IMPORTED GLOBAL)
 SET_PROPERTY(TARGET sass_lib PROPERTY IMPORTED_LOCATION ${SASS_LIB})

@@ -65,6 +65,9 @@ Status InputHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype
 INSTANCE_INPUT(NV, Precision::FP32);
 template class InputHelper<NV, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, NV, Precision::FP32);
+INSTANCE_INPUT(NV, Precision::INT8);
+template class InputHelper<NV, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Input, InputHelper, NV, Precision::INT8);
 #endif
 
 #ifdef USE_ARM_PLACE

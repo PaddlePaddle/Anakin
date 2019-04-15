@@ -1,3 +1,17 @@
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
 #include "framework/operators/concat.h"
 
 namespace anakin {
@@ -46,6 +60,12 @@ template class ConcatHelper<NV, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Concat, ConcatHelper, NV, Precision::FP32);
 #endif
 
+#ifdef AMD_GPU
+INSTANCE_CONCAT(AMD, Precision::FP32);
+template class ConcatHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Concat, ConcatHelper, AMD, Precision::FP32);
+#endif
+
 #ifdef USE_ARM_PLACE
 INSTANCE_CONCAT(ARM, Precision::FP32);
 template class ConcatHelper<ARM, Precision::FP32>;
@@ -69,6 +89,9 @@ ANAKIN_REGISTER_OP(Concat)
 #endif
 #if defined USE_X86_PLACE || defined BUILD_LITE
 .__alias__<X86, Precision::FP32>("concat")
+#endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("concat")
 #endif
 .num_in(2)
 .num_out(1)

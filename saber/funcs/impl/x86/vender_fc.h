@@ -20,6 +20,7 @@
 
 #include "mkl_cblas.h"
 #include "saber/funcs/impl/impl_fc.h"
+#include "saber/funcs/impl/x86/mkl_packed_int8_gemm.h"
 
 namespace anakin {
 namespace saber {
@@ -29,22 +30,12 @@ class VenderFc<X86, OpDtype> : public ImplBase<X86, OpDtype, FcParam<X86> > {
 public:
     typedef typename DataTrait<X86, OpDtype>::Dtype OpDataType;
 
-    VenderFc() : bias_sum(nullptr)
+    VenderFc() : bias_sum(nullptr),_need_weights_trans(false),ws_(nullptr),MB(0),OC(0),
+                 _batch_size(0),_output_channel(0),_is_transpose_weights(CblasNoTrans)
     {}
 
     ~VenderFc() {
-        if (bias_sum) {
-            free(bias_sum);
-            bias_sum = nullptr;
-        }
-
-        for (int i = packed_weights.size() - 1; i >= 0; i--) {
-           OpDataType *pw = packed_weights[i];
-           cblas_sgemm_free(pw);
-           pw = nullptr;
-           packed_weights.pop_back();
-        }
-        std::vector<OpDataType*> ().swap(packed_weights);
+        clean();
     }
 
     virtual SaberStatus init(const std::vector<Tensor<X86> *>& inputs,
@@ -60,12 +51,24 @@ public:
     virtual SaberStatus dispatch(const std::vector<Tensor<X86> *>& inputs,
                                  std::vector<Tensor<X86> *>& outputs,
                                  FcParam<X86> &param) override;
+    virtual void clean();
 
 private:
     OpDataType *bias_sum;
     int MB;
     int OC;
-    std::vector<OpDataType*> packed_weights;
+    Tensor<X86> _weights_trans;
+    bool _need_weights_trans;
+    std::vector<float*> packed_weights;
+    void *ws_;
+    int _batch_size;
+    int _output_channel;
+    std::vector<float> _scale;
+    CBLAS_TRANSPOSE _is_transpose_weights;//trans in mklml
+    Tensor<X86> _input_scale;
+    Tensor<X86> _bias_scale;
+
+    PackedMKLInt8Gemm _packed_int8_gemm;
 };
 
 

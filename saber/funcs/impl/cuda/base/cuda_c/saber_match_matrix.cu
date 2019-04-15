@@ -67,7 +67,7 @@ SaberStatus SaberMatchMatrix<NV, OpDtype>::dispatch( \
 
     int len_l = offset_l[1] - offset_l[0];
     int len_r = offset_r[offset_r.size() - 1];
-    
+    int batch = offset_l.size() - 1;
     
     const OpDataType *input_l = (const OpDataType*)inputs[0]->data();
     const OpDataType *input_r = (const OpDataType*)inputs[1]->data();
@@ -76,18 +76,39 @@ SaberStatus SaberMatchMatrix<NV, OpDtype>::dispatch( \
     OpDataType* input_l_transform_reorganize = (OpDataType*)_input_l_transform_reorganize.mutable_data();
     OpDataType* output_tmp = (OpDataType*)_output_tmp.mutable_data();
     OpDataType *out_data = (OpDataType*)outputs[0]->mutable_data();
-    _gemm_l_transform.init(true, true, dim_t * dim_in, len_l, dim_in, *(this->_ctx));
-    _gemm_l_transform.dispatch(1.0f, 0.f, weight_data, input_l, input_l_transform);
-    for (int i = 0; i < dim_t; i++) {
-        int offset = i * dim_in * len_l;
-        gpu_transpose(_handle, 
-              input_l_transform + offset,
-              dim_in,
-              len_l,
-              input_l_transform_reorganize + offset);
+    if (param.is_l_same) {
+        _gemm_l_transform.init(true, true, dim_t * dim_in, len_l, dim_in, *(this->_ctx));
+        _gemm_l_transform.dispatch(1.0f, 0.f, weight_data, input_l, input_l_transform);
+        for (int i = 0; i < dim_t; i++) {
+            int offset = i * dim_in * len_l;
+            gpu_transpose(_handle, 
+                  input_l_transform + offset,
+                  dim_in,
+                  len_l,
+                  input_l_transform_reorganize + offset);
+        }
+        _gemm_r_transform.init(false, true, len_r, dim_t * len_l, dim_in, *(this->_ctx));
+        _gemm_r_transform.dispatch(1.0f, 0.f, input_r, input_l_transform_reorganize, output_tmp);
+    } else {
+        _gemm_l_transform.init(true, true, dim_t * dim_in, len_l, dim_in, *(this->_ctx));
+
+        for (int i = 0; i < batch; i++) {
+            auto tmp_input_l = input_l + i * len_l * dim_in;
+            auto tmp_input_r = input_r + offset_r[i] * dim_in;
+
+            _gemm_l_transform.dispatch(1.0f, 0.f, weight_data, tmp_input_l, input_l_transform);
+            for (int j = 0; j < dim_t; j++) {
+                int offset = j * dim_in * len_l;
+                gpu_transpose(_handle, 
+                      input_l_transform + offset,
+                      dim_in,
+                      len_l,
+                      input_l_transform_reorganize + offset);
+            }
+            _gemm_r_transform.init(false, true, offset_r[i+1] - offset_r[i], dim_t * len_l, dim_in, *(this->_ctx));
+            _gemm_r_transform.dispatch(1.0f, 0.f, tmp_input_r, input_l_transform_reorganize, output_tmp + offset_r[i]*dim_t * len_l);
+        }
     }
-    _gemm_r_transform.init(false, true, len_r, dim_t * len_l, dim_in, *(this->_ctx));
-    _gemm_r_transform.dispatch(1.0f, 0.f, input_r, input_l_transform_reorganize, output_tmp);
     int max_len_r = 0;
     for (int i = 0; i < offset_r.size() - 1; i++) {
         int cur_len = offset_r[i+1] - offset_r[i];

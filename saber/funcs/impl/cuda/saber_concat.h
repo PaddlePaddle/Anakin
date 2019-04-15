@@ -34,21 +34,12 @@ public:
     virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
                         std::vector<Tensor<NV> *>& outputs,
                         ConcatParam<NV>& param, 
-                        Context<NV> &ctx) {
-        // get context
-        this->_ctx = &ctx;
-        return create(inputs, outputs, param, ctx);
-    }
+                        Context<NV> &ctx);
 
     virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
                         std::vector<Tensor<NV> *>& outputs,
                         ConcatParam<NV>& param, 
-                        Context<NV>& ctx) {
-
-        _num_concats = inputs[0]->count_valid(0, param.axis);
-        _concat_input_size = inputs[0]->count_valid(param.axis + 1, inputs[0]->dims());
-        return SaberSuccess;
-    }
+                        Context<NV>& ctx);
 
     virtual SaberStatus dispatch(const std::vector<Tensor<NV> *>& inputs,
                         std::vector<Tensor<NV> *>& outputs,
@@ -57,6 +48,8 @@ public:
 private:
     int _num_concats;
     int _concat_input_size;
+    std::vector<Tensor<NV>> _input_v;
+    Tensor<NV> _output;
 };
 } //namespace saber
 

@@ -5,16 +5,16 @@
    You may obtain a copy of the License at
 
        http://www.apache.org/licenses/LICENSE-2.0
-   
+
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License. 
+   limitations under the License.
 */
 
 #ifndef ANAKIN_FACTORY_H
-#define ANAKIN_FACTORY_H 
+#define ANAKIN_FACTORY_H
 
 #include <mutex>
 #include <unordered_map>
@@ -23,17 +23,26 @@
 #include "framework/core/thread_safe_macros.h"
 #include "framework/core/singleton.h"
 #include "utils/logger/logger.h"
+#include "anakin_config.h"
+#ifdef USE_SGX
+#include <support/sgx/sgx_mutex>
+#endif
 
 namespace anakin {
 
-template<typename PolicyType, 
-         typename TypeIdentifier, 
-         typename PolicyCreator, 
+template<typename PolicyType,
+         typename TypeIdentifier,
+         typename PolicyCreator,
          typename PolicyTypeHash = std::hash<TypeIdentifier>>
 class FactoryBase {
 public:
     PolicyType* Create(const TypeIdentifier& type_id){
+
         if (_container.count(type_id) == 0) {
+//            LOG(INFO)<<"create "<<type_id;
+//            for(auto iter = _container.begin(); iter != _container.end(); iter++) {
+//                LOG(INFO)<< iter->first << " : " ;
+//            }
             LOG(FATAL) << type_id << " has not been registered! ";
         }
         //LOG(INFO) << "create " << type_id << " fuction " << &_container.at(type_id);
@@ -52,17 +61,17 @@ public:
     std::vector<TypeIdentifier>& GetTypeIdentifierList() {
         return _type_id_list;
     }
-    bool Register(TypeIdentifier type_id, PolicyCreator creator) 
+    bool Register(TypeIdentifier type_id, PolicyCreator creator)
                                          EXCLUSIVE_LOCKS_REQUIRED(container_mutex_) {
         std::lock_guard<std::mutex> guard(container_mutex_);
-        //LOG(ERROR) << "register " << type_id;
+        // LOG(ERROR) << "register " << type_id;
         if (_container.count(type_id) == 0) {
             _type_id_list.push_back(type_id);
             _container[type_id] = creator;
         }
         return true;
     }
-    void UnRegister(const TypeIdentifier& type_id) 
+    void UnRegister(const TypeIdentifier& type_id)
                                          EXCLUSIVE_LOCKS_REQUIRED(container_mutex_) {
         std::lock_guard<std::mutex> guard(container_mutex_);
         _type_id_list.erase(std::remove(_type_id_list.begin(), _type_id_list.end(), type_id), _type_id_list.end());
@@ -94,15 +103,15 @@ public:
     }
     /// Add another alias to the type_id.
     virtual void __alias__(const std::string& ori_name, const std::string& alias_name) {
-        this->__ALIAS__(ori_name, alias_name); 
+        this->__ALIAS__(ori_name, alias_name);
     }
 };
 
-/** 
+/**
  *  \brief Object register base class.
  */
-template<typename PolicyType, 
-         typename TypeIdentifier, 
+template<typename PolicyType,
+         typename TypeIdentifier,
          typename PolicyTypeHash = std::hash<TypeIdentifier>>
 class ObjectRegisterBase {
 public:
@@ -122,8 +131,8 @@ public:
     std::vector<TypeIdentifier>& GetTypeIdentifierList() {
         return _type_id_list;
     }
-    PolicyType& Register(TypeIdentifier type_id) EXCLUSIVE_LOCKS_REQUIRED(_container_mutex) { 
-        std::lock_guard<std::mutex> guard(_container_mutex); 
+    PolicyType& Register(TypeIdentifier type_id) EXCLUSIVE_LOCKS_REQUIRED(_container_mutex) {
+        std::lock_guard<std::mutex> guard(_container_mutex);
         //CHECK_EQ(_container.count(type_id), 0) << type_id << " has been registered! ";
         if (_container.count(type_id) == 0) {
             PolicyType* object= new PolicyType();
@@ -149,7 +158,7 @@ private:
     ContainerType _container GUARDED_BY(_container_mutex);
 };
 
-/** 
+/**
  *  \brief Object register class.
  *
  */
@@ -166,7 +175,7 @@ public:
     }
     /// Add another alias to the type_id
     virtual void __alias__(const std::string& ori_name, const std::string& alias_name) {
-        this->__ALIAS__(ori_name, alias_name); 
+        this->__ALIAS__(ori_name, alias_name);
     }
 };
 

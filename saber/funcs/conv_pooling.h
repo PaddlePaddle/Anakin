@@ -29,6 +29,14 @@
 #include "saber/funcs/impl/x86/saber_conv_pooling.h"
 #endif
 
+#ifdef USE_ARM_PLACE
+#include "saber/funcs/impl/arm/saber_conv_pooling.h"
+#endif
+
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_conv_pooling.h"
+#include "saber/funcs/impl/amd/include/vender_conv_pooling.h"
+#endif
 namespace anakin {
 namespace saber {
 

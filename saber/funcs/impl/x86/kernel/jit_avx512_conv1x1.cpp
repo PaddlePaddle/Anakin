@@ -95,7 +95,7 @@ struct memory_block_t {
 
     memory_block_t(LayoutType layout_type, Shape &shape) {
         int ndims = 0;
-        if (layout_type == Layout_NCHW_C16) {
+        if (layout_type == Layout_NCHW_C16R) {
             ndims = 4;
         }
         else if (layout_type == Layout_GOIHW16I16O) {
@@ -106,7 +106,7 @@ struct memory_block_t {
         }
 
         shape_to_jit_dim(md_dims, shape);
-        if (layout_type == Layout_NCHW_C16) {
+        if (layout_type == Layout_NCHW_C16R) {
             fill_nChw16c(md_dims, ndims, strides);
         }
         else if (layout_type == Layout_GOIHW16I16O) {
@@ -141,26 +141,6 @@ void JitAvx512Conv1x1<AK_FLOAT>::prepare_rtus() {
     return;
 }
 
-template <typename T, typename U>
-void balance2D(U nthr, U ithr, T ny, T &ny_start, T &ny_end,
-               T nx, T &nx_start, T &nx_end, T nx_divider) {
-    const T grp_size = utils::div_up(nthr, nx_divider);
-    const T grp_count = utils::div_up(nthr, grp_size);
-
-    T grp = ithr / grp_size;
-    T grp_ithr = ithr % grp_size;
-    T grp_nthr = grp_size;
-    T first_grps = nthr % grp_count;
-    if (first_grps > 0 && grp >= first_grps) {
-        ithr -= first_grps * grp_size;
-        grp_nthr--;
-        grp = ithr / grp_nthr + first_grps;
-        grp_ithr = ithr % grp_nthr;
-    }
-    utils::balance211(nx, grp_count, grp, nx_start, nx_end);
-    utils::balance211(ny, grp_nthr, grp_ithr, ny_start, ny_end);
-}
-
 
 template <>
 SaberStatus JitAvx512Conv1x1<AK_FLOAT>::check_conf(
@@ -174,19 +154,14 @@ SaberStatus JitAvx512Conv1x1<AK_FLOAT>::check_conf(
     const jit_1x1_conv_conf_t jcp = kernel->jcp;
     Tensor<X86> *input = inputs[0];
     Tensor<X86> *output = outputs[0];
+    LayoutType input_layout = inputs[0]->get_layout();
+    LayoutType output_layout = outputs[0]->get_layout();
 
-    // check format
-//    if (!(typeid(LayOutType_in) == typeid(NCHW_C16) &&
-//          typeid(LayOutType_out) == typeid(NCHW_C16) &&
-//          typeid(LayOutType_op) == typeid(NCHW))) {
-//                LOG(ERROR) << "wrong format";
-//        return SaberUnImplError;
-//    }
-    if ((inputs[0]->get_layout() != Layout_NCHW_C16)
-        || (outputs[0]->get_layout() != Layout_NCHW_C16)
+    if ((inputs[0]->get_layout() != Layout_NCHW_C16R)
+        || (outputs[0]->get_layout() != Layout_NCHW_C16R)
         || (conv_param->weight()->get_layout() != Layout_NCHW)) {
 
-                LOG(ERROR) << "wrong format";
+        LOG(FATAL) << "wrong format";
         return SaberUnImplError;
     }
 
@@ -203,17 +178,17 @@ SaberStatus JitAvx512Conv1x1<AK_FLOAT>::check_conf(
                     && jcp.kw == weights->width()
                     && jcp.ngroups == 1
                     && jcp.mb == input->num()
-                    && jcp.ic == input->channel()
+                    && jcp.ic == utils::round_up(input->channel(), 16)
                     && jcp.ih == input->height()
                     && jcp.iw == input->width()
-                    && jcp.oc == output->channel()
+                    && jcp.oc == utils::round_up(output->channel(), 16)
                     && jcp.oh == output->height()
                     && jcp.ow == output->width();
 
     if (param_ok && shape_ok) {
         return SaberSuccess;
     } else {
-        LOG(INFO) << "param or shape changed, re-init kernel";
+        LOG(FATAL) << "param or shape changed, re-init kernel";
         return SaberNotInitialized;
     }
 
@@ -244,11 +219,11 @@ SaberStatus JitAvx512Conv1x1<AK_FLOAT>::create(
     conf.ngroups = with_groups ? weights->num() : 1;
 
     conf.mb = input->num();
-    conf.ic = input->channel() / conf.ngroups;
+    conf.ic = utils::round_up(input->channel(), 16)  / conf.ngroups;
     conf.ih = input->height();
     conf.iw = input->width();
 
-    conf.oc = output->channel() / conf.ngroups;
+    conf.oc = utils::round_up(output->channel(), 16) / conf.ngroups;
     conf.oh = output->height();
     conf.ow = output->width();
 
@@ -264,7 +239,7 @@ SaberStatus JitAvx512Conv1x1<AK_FLOAT>::create(
         act_param = &(conv_param->activation_param);
         conf.relu_negative_slope = static_cast<float>(act_param->negative_slope);
     }
-    conf.with_bias = !(conv_param->bias() == nullptr);
+    conf.with_bias = (conv_param->bias() != nullptr&&conv_param->bias()->valid_size()>0);
 
     conv_d.n = input->num();
     conv_d.ic = input->channel() / conf.ngroups;
@@ -280,7 +255,7 @@ SaberStatus JitAvx512Conv1x1<AK_FLOAT>::create(
 
     prepare_rtus();
 
-    status = jit_avx512_common_1x1_conv_kernel::init_conf(conf, conv_d, omp_get_max_threads(), reduce_src);
+    status = jit_avx512_common_1x1_conv_kernel::init_conf(conf, conv_d, anakin_get_max_threads(), reduce_src);
     if (status == SaberSuccess) {
         if (kernel != nullptr) {
             delete kernel;
@@ -310,19 +285,16 @@ SaberStatus JitAvx512Conv1x1<AK_FLOAT>::init(
         ConvEltwiseParam<X86> &param, Context<X86> &ctx) {
     ConvParam<X86> *conv_param = &(param.conv_param);
 
-//    if (!(typeid(LayOutType_in) == typeid(NCHW_C16) &&
-//          typeid(LayOutType_out) == typeid(NCHW_C16) &&
-//          typeid(LayOutType_op) == typeid(NCHW))
-//            ) {
-//        return SaberUnImplError;
-//    }
-    if ((inputs[0]->get_layout() != Layout_NCHW_C16)
-        || (outputs[0]->get_layout() != Layout_NCHW_C16)
+
+    if ((inputs[0]->get_layout() != Layout_NCHW_C16R)
+        || (outputs[0]->get_layout() != Layout_NCHW_C16R)
         || (conv_param->weight()->get_layout() != Layout_NCHW)) {
 
                 LOG(ERROR) << "wrong format";
         return SaberUnImplError;
     }
+    CHECK_EQ(conv_param->pad_w,0)<<"pad must == 0";
+    CHECK_EQ(conv_param->pad_h,0)<<"pad must == 0";
 
     this->_ctx = &ctx;
 
@@ -370,7 +342,7 @@ SaberStatus JitAvx512Conv1x1<AK_FLOAT>::dispatch(
 
 #pragma omp parallel
     {
-        int ithr = omp_get_thread_num(), nthr = omp_get_num_threads();
+        int ithr = anakin_get_thread_num(), nthr = anakin_get_num_threads();
 
         jit_1x1_conv_call_t p;
 
@@ -402,16 +374,16 @@ SaberStatus JitAvx512Conv1x1<AK_FLOAT>::dispatch(
             iw = utils::max(ow * stride_w - pad_l, 0);
             rp.iw_start = iw;
 
-            p.bcast_dim = this_block_size(os, jcp.os,
-                                          bcast_step * os_block);
+            p.bcast_dim = utils::this_block_size(os, jcp.os,
+                                                 bcast_step * os_block);
             rp.os = p.bcast_dim;
         };
 
         auto init_load = [&](int ocb, int &load_step) {
             load_step = step(jcp.nb_load_blocking, ocb_end - ocb,
                              jcp.nb_load_blocking_max);
-            p.load_dim = this_block_size(ocb * jcp.oc_block,
-                                         ocb_end * jcp.oc_block, load_step * jcp.oc_block);
+            p.load_dim = utils::this_block_size(ocb * jcp.oc_block,
+                                                ocb_end * jcp.oc_block, load_step * jcp.oc_block);
         };
 
         auto init_reduce = [&](int icb) {
@@ -422,8 +394,8 @@ SaberStatus JitAvx512Conv1x1<AK_FLOAT>::dispatch(
                                 | (icb + nb_ic_blocking_step >= nb_ic
                                    ? FLAG_REDUCE_LAST : 0);
 
-            p.reduce_dim = this_block_size(icb * jcp.ic_block,
-                                           jcp.ic, nb_ic_blocking_step * jcp.ic_block);
+            p.reduce_dim = utils::this_block_size(icb * jcp.ic_block,
+                                                  jcp.ic, nb_ic_blocking_step * jcp.ic_block);
             rp.icb = p.reduce_dim / jcp.reduce_block;
         };
 

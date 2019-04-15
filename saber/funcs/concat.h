@@ -19,6 +19,10 @@
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/funcs/impl/impl_concat.h"
 
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_concat.h"
+#endif
+
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_concat.h"
 #endif
@@ -77,13 +81,14 @@ public:
         for (int i = 1; i < input_size; ++i) {
             Shape sh = shapes_in[i];
             for (int j = 0; j < sh.dims(); ++j) {
+                CHECK_EQ(sh.get_layout(), shape_out.get_layout()) << "This should be same";
                 if (j == param.axis) { continue; }
                 else if (sh[j] != -1) {
                             CHECK_EQ(shape_out[j], sh[j]) \
                         << "All inputs must have the same shape, except at concat_axis.";
                 } else {
-                    sh[j] = shape_out[j];
-                    SABER_CHECK(input[i]->set_shape(sh));
+//                    sh[j] = shape_out[j];
+//                    SABER_CHECK(input[i]->set_shape(sh));
                 }
             }
             shape_out[param.axis] += sh[param.axis];

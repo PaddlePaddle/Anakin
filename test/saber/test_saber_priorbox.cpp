@@ -25,7 +25,7 @@ void priorbox_cpu_base(const std::vector<Tensor<TargetType_H>* > &input, \
 
 
     unsigned long long out_size = output[0]->valid_size();
-    float* _cpu_data = output[0]->mutable_data();
+    float* _cpu_data = static_cast<float*>(output[0]->mutable_data());
 
     float* min_buf = (float*)fast_malloc(sizeof(float) * 4);
     float* max_buf = (float*)fast_malloc(sizeof(float) * 4);

@@ -16,7 +16,7 @@
 #ifndef ANAKIN_SABER_CORE_DATA_TRAITS_H
 #define ANAKIN_SABER_CORE_DATA_TRAITS_H
 
-#include "saber_types.h"
+#include "saber/saber_types.h"
 
 #ifdef USE_BM_PLACE 
 #include "bmlib_runtime.h"
@@ -65,6 +65,8 @@ static size_t type_length(DataType type) {
     case AK_UINT32:
         return 4;
     case AK_INT64:
+        return 8;
+    case AK_UINT64:
         return 8;
     case AK_HALF:
         return 2;
@@ -139,6 +141,12 @@ struct DataTrait<Ttype, AK_UINT16> {
 
 template <typename Ttype>
 struct DataTrait<Ttype, AK_UINT32> {
+    typedef unsigned int Dtype;
+    typedef unsigned int* PtrDtype;
+};
+
+template <typename Ttype>
+struct DataTrait<Ttype, AK_UINT64> {
     typedef unsigned int Dtype;
     typedef unsigned int* PtrDtype;
 };

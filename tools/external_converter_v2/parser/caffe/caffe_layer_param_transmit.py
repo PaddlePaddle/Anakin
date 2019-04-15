@@ -6,7 +6,7 @@ try:
 except ImportError:
     pass
 try:
-    from google.protobuf.pyext._message import RepeatedScalarContainer as repeat_container # 3.5.1 + 
+    from google.protobuf.pyext._message import RepeatedScalarContainer as repeat_container # 3.5.1 +
 except ImportError:
     pass
 from ..operations import OpsParam, OpsRegister
@@ -14,13 +14,13 @@ from ..logger import *
 from ..pbs import *
 
 
-def is_has_proto_key(param_pkg, key_name): 
+def is_has_proto_key(param_pkg, key_name):
     """
     Judge if param_pkg has field key_name
     """
-    for field in param_pkg.DESCRIPTOR.fields: 
-        if field.name == key_name: 
-            return True 
+    for field in param_pkg.DESCRIPTOR.fields:
+        if field.name == key_name:
+            return True
     return False
 
 
@@ -57,7 +57,7 @@ def ParserFeedDecorator(OpName):
         return warpper_args
     return warpper
 
-# common 
+# common
 
 
 def NotNeededInInference(args):
@@ -93,11 +93,19 @@ def Parser_resize(args):
     layer = args[1]
     # parser caffe parameter
     resize_param = layer.resize_param
-    if resize_param.HasField("out_width_scale"):
-        OpsRegister()["Resize"].width_scale = resize_param.out_width_scale
-    if resize_param.HasField("out_height_scale"):
-        OpsRegister()["Resize"].height_scale = resize_param.out_height_scale
-    
+    OpsRegister()["Resize"].width_scale = resize_param.out_width_scale
+    OpsRegister()["Resize"].height_scale = resize_param.out_height_scale
+    OpsRegister()["Resize"].out_width = resize_param.out_width
+    OpsRegister()["Resize"].out_height = resize_param.out_height
+    method = ""
+    if resize_param.type == ResizeParameter.BILINEAR_ALIGN:
+        method = "BILINEAR_ALIGN"
+    elif resize_param.type == ResizeParameter.BILINEAR_NO_ALIGN:
+        method = "BILINEAR_NO_ALIGN"
+    else:
+        method = "RESIZE_CUSTOM"
+    OpsRegister()["Resize"].method = method
+
 
 
 @ParserFeedDecorator("DeformConvolution")
@@ -152,7 +160,7 @@ def Parser_deformable_convolution(args):
         paddings = [convolution_param.pad_h, convolution_param.pad_w]
     OpsRegister()["DeformConvolution"].padding = paddings
     if is_has_proto_key(convolution_param, "dilation"):
-        if len(convolution_param.dilation) == 0: 
+        if len(convolution_param.dilation) == 0:
             OpsRegister()["DeformConvolution"].dilation_rate = list([1, 1])
         elif len(convolution_param.dilation) == 1:
             OpsRegister()["DeformConvolution"].dilation_rate = list([convolution_param.dilation[0], convolution_param.dilation[0]])
@@ -220,7 +228,7 @@ def Parser_deconvolution(args):
         paddings = [convolution_param.pad_h, convolution_param.pad_w]
     OpsRegister()["Deconvolution"].padding = paddings
     if is_has_proto_key(convolution_param, "dilation"):
-        if len(convolution_param.dilation) == 0: 
+        if len(convolution_param.dilation) == 0:
             OpsRegister()["Deconvolution"].dilation_rate = list([1, 1])
         elif len(convolution_param.dilation) == 1:
             OpsRegister()["Deconvolution"].dilation_rate = list([convolution_param.dilation[0], convolution_param.dilation[0]])
@@ -288,7 +296,7 @@ def Parser_convolution(args):
         paddings = [convolution_param.pad_h, convolution_param.pad_w]
     OpsRegister()["Convolution"].padding = paddings
     if is_has_proto_key(convolution_param, "dilation"):
-        if len(convolution_param.dilation) == 0: 
+        if len(convolution_param.dilation) == 0:
             OpsRegister()["Convolution"].dilation_rate = list([1, 1])
         elif len(convolution_param.dilation) == 1:
             OpsRegister()["Convolution"].dilation_rate = list([convolution_param.dilation[0], convolution_param.dilation[0]])
@@ -370,22 +378,26 @@ def Parser_convolutiondepthwise(args):
         OpsRegister()["Convolution"].axis = 1
     OpsRegister()["Convolution"].bias_term = convolution_param.bias_term
 
-@ParserFeedDecorator("Cropping")
+@ParserFeedDecorator("Crop")
 def Parser_crop(args):
     layer = args[1]
     # parser caffe parameter
     crop_param = layer.crop_param
-    OpsRegister()["Cropping"].cropping = list(crop_param.offset)
-    OpsRegister()["Cropping"].axis = crop_param.axis
+    OpsRegister()["Crop"].cropping = list(crop_param.offset)
+    OpsRegister()["Crop"].axis = crop_param.axis
 
 
-@ParserFeedDecorator("Dropout")
+@ParserFeedDecorator("Scale")
 def Parser_dropout(args):
     layer = args[1]
     # parser caffe parameter
     dropout_param = layer.dropout_param
-    OpsRegister()["Dropout"].ratio = dropout_param.dropout_ratio
-
+    scale_val = 1 - dropout_param.dropout_ratio
+    tensor = TensorProtoIO()
+    tensor.set_data_type(FLOAT)
+    tensor.set_data([scale_val], "float")
+    tensor.set_shape([1, 1, 1, 1])
+    OpsRegister()["Scale"].weight_1 = tensor
 
 @ParserFeedDecorator("Eltwise")
 def Parser_eltwise(args):
@@ -447,7 +459,7 @@ def Parser_innerproduct(args):
     # parser caffe parameter
     tensors = args[2]
     weight = tensors[0]
-    inner_product_param = layer.inner_product_param 
+    inner_product_param = layer.inner_product_param
     OpsRegister()["Dense"].axis = inner_product_param.axis # weight().shape.dim.value[2]
     OpsRegister()["Dense"].out_dim = inner_product_param.num_output # weight().shape.dim.value[3]
     OpsRegister()["Dense"].bias_term = inner_product_param.bias_term
@@ -644,6 +656,16 @@ def Parser_input(args):
     #for shape in input_param.shape:
     #   OpsRegister()["Input"].input_shape.append(list(shape.dim))
 
+@ParserFeedDecorator("Input")
+def Parser_dummydata(args):
+    logger(verbose.INFO).feed(str(args))
+    layer = args[1]
+    input_param = layer.dummy_data_param
+    OpsRegister()["Input"].input_shape = list(input_param.shape[0].dim)
+    args[3].set_name("Input")
+    logger(verbose.INFO).feed(str(layer))
+    logger(verbose.INFO).feed(str(OpsRegister()["Input"].input_shape))
+
 
 @ParserFeedDecorator("Permute")
 def Parser_permute(args):
@@ -676,6 +698,8 @@ def Parser_reshape(args):
         layout = 'NCHW'
     elif len(shape) == 3:
         layout = 'NHW'
+    elif len(shape) == 2:
+        layout = 'NW'
     OpsRegister()["Reshape"].layout = layout
 
 @ParserFeedDecorator("Split")
@@ -692,6 +716,14 @@ def Parser_ShuffleChannel(args):
     shufflechannel_param = layer.shuffle_channel_param
     OpsRegister()["ShuffleChannel"].group = shufflechannel_param.group
 
+@ParserFeedDecorator("Coord2Patch")
+def Parser_Coord2Patch(args):
+    layer = args[1]
+    # parser caffe parameter
+    coord2patch_param = layer.coord2patch_param
+    OpsRegister()["Coord2Patch"].img_h = coord2patch_param.img_h
+    OpsRegister()["Coord2Patch"].output_h = coord2patch_param.output_h
+    OpsRegister()["Coord2Patch"].output_w = coord2patch_param.output_w
 
 @ParserFeedDecorator("RPNProposalSSD")
 def Parser_rpn_proposal_ssd(args):
@@ -1113,7 +1145,8 @@ def Parser_priorbox(args):
     len(prior_box_param.density):
         OpsRegister()["PriorBox"].fixed_size = list(prior_box_param.fixed_size)
         OpsRegister()["PriorBox"].fixed_ratio = list(prior_box_param.fixed_ratio)
-        OpsRegister()["PriorBox"].density = list(prior_box_param.density)
+        density_list = list(prior_box_param.density)
+        OpsRegister()["PriorBox"].density = map(float, density_list)
     OpsRegister()["PriorBox"].is_flip = prior_box_param.flip
     OpsRegister()["PriorBox"].is_clip = prior_box_param.clip
     OpsRegister()["PriorBox"].variance = list(prior_box_param.variance)
@@ -1180,7 +1213,7 @@ def Parser_normalize(args):
         OpsRegister()["Normalize"].begin_norm_axis = -1
         OpsRegister()["Normalize"].is_across_spatial = False
         OpsRegister()["Normalize"].is_shared_channel = False
-        OpsRegister()["Normalize"].eps = 1e-6
+        OpsRegister()["Normalize"].eps = 1e-5
         OpsRegister()["Normalize"].p = 2
 
 @ParserFeedDecorator("Activation")
@@ -1201,6 +1234,58 @@ def Parser_interp(args):
     OpsRegister()["Interp"].pad_beg = interp_param.pad_beg
     OpsRegister()["Interp"].pad_end = interp_param.pad_end
 
+@ParserFeedDecorator("RoiPool")
+def Parser_roi_pool(args):
+    layer = args[1]
+    roi_pool_param = layer.roi_pool_param
+    OpsRegister()["RoiPool"].pooled_h = roi_pool_param.pooled_h
+    OpsRegister()["RoiPool"].pooled_w = roi_pool_param.pooled_w
+    OpsRegister()["RoiPool"].spatial_scale = roi_pool_param.spatial_scale
+
+@ParserFeedDecorator("Pad2D")
+def Parser_pad2d(args):
+    layer = args[1]
+    pad2d_param = layer.pad2d_param
+    mode = ""
+    if pad2d_param.mode == Pad2DParameter.EDGE:
+        mode = "edge"
+    elif pad2d_param.mode == Pad2DParameter.REFLECT:
+        mode = "reflect"
+    elif pad2d_param.mode == Pad2DParameter.CONSTANT:
+        mode = "constant"
+    else:
+        mode = "constant"
+    OpsRegister()["Pad2D"].mode = mode
+    value = 0.0
+    if pad2d_param.HasField("value"):
+        value = pad2d_param.value
+    OpsRegister()["Pad2D"].value = value
+    pad_h = [pad2d_param.pad_top, pad2d_param.pad_bottom]
+    OpsRegister()["Pad2D"].pad_h = pad_h
+    pad_w = [pad2d_param.pad_left, pad2d_param.pad_right]
+    OpsRegister()["Pad2D"].pad_w = pad_w
+
+@ParserFeedDecorator("SRoiAlign")
+def Parser_sroiAlign(args):
+    layer = args[1]
+    sroi_align_param = layer.sun_roi_align_param
+    OpsRegister()["SRoiAlign"].pooled_h = sroi_align_param.pooled_h
+    OpsRegister()["SRoiAlign"].pooled_w = sroi_align_param.pooled_w
+    OpsRegister()["SRoiAlign"].spatial_scale = sroi_align_param.spatial_scale
+
+@ParserFeedDecorator("SProposal")
+def Parser_sproposal(args):
+    layer = args[1]
+    proposal_param = layer.proposal_param
+    OpsRegister()["SProposal"].feat_stride = proposal_param.feat_stride
+    OpsRegister()["SProposal"].basesize = proposal_param.basesize
+    OpsRegister()["SProposal"].scale = list(proposal_param.scale)
+    OpsRegister()["SProposal"].ratio = list(proposal_param.ratio)
+    OpsRegister()["SProposal"].boxminsize = proposal_param.boxminsize
+    OpsRegister()["SProposal"].pre_nms_topn = proposal_param.pre_nms_topn
+    OpsRegister()["SProposal"].post_nms_topn = proposal_param.post_nms_topn
+    OpsRegister()["SProposal"].nms_thresh = proposal_param.nms_thresh
+
 # caffe layer parameter parser map
 CAFFE_LAYER_PARSER = {
                 "Split": OpsParam().set_parser(Parser_split),
@@ -1218,7 +1303,7 @@ CAFFE_LAYER_PARSER = {
                 "Crop": OpsParam().set_parser(Parser_crop),
                 "Data": OpsParam().set_parser(NotNeededInInference),
                 "Dropout": OpsParam().set_parser(Parser_dropout),
-                "DummyData": OpsParam().set_parser(NotNeededInInference),
+                "DummyData": OpsParam().set_parser(Parser_dummydata),
                 "Eltwise": OpsParam().set_parser(Parser_eltwise),
                 "ELU": OpsParam().set_parser(Parser_elu),
                 "Embed": OpsParam().set_parser(Parser_embed),
@@ -1270,6 +1355,11 @@ CAFFE_LAYER_PARSER = {
                 "ReLU6": OpsParam().set_parser(Parser_relu6),
                 "Normalization": OpsParam().set_parser(Parser_normalize),
                 "ShuffleChannel": OpsParam().set_parser(Parser_ShuffleChannel),
+                "Coord2Patch": OpsParam().set_parser(Parser_Coord2Patch),
                 "RoisAnchorFeature": OpsParam().set_parser(Parser_rois_anchor_feature),
-                "Interp": OpsParam().set_parser(Parser_interp)
+                "Interp": OpsParam().set_parser(Parser_interp),
+                "ROIPooling": OpsParam().set_parser(Parser_roi_pool),
+                "Pad2D": OpsParam().set_parser(Parser_pad2d),
+                "SUNROIAlign": OpsParam().set_parser(Parser_sroiAlign),
+                "Proposal": OpsParam().set_parser(Parser_sproposal)
                 }

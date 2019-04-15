@@ -84,6 +84,7 @@ SaberStatus SaberEmbedding<X86, OpDtype>::dispatch(
             }
         }
     }
+    return SaberSuccess;
     
 }
 

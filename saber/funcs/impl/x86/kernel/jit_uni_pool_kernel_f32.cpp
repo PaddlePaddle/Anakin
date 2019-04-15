@@ -9,18 +9,48 @@ using namespace Xbyak;
 #define GET_OFF(field) offsetof(jit_pool_call_t, field)
 
 template <cpu_isa_t isa>
-bool jit_uni_pool_kernel_f32<isa>::init_conf(jit_pool_conf_t &jpp) {
-
-    bool args_ok = true;
-    if (!args_ok) {
+bool jit_pool_kernel_f32<isa>::init_conf(jit_pool_conf_t &jpp) {
+    bool layout_c16 = (jpp.src_fmt == Layout_NCHW_C16||jpp.src_fmt==Layout_NCHW_C16R) && mayiuse(avx512_common);
+    bool layout_c8 = (jpp.src_fmt == Layout_NCHW_C8||jpp.src_fmt ==Layout_NCHW_C8R) && mayiuse(avx2);
+    bool ok = true && (layout_c16 || layout_c8);
+    if (!ok) {
         return false;
     }
+
+    int simd_w;
+    if (layout_c16)
+        simd_w = 16;
+    else if (layout_c8)
+        simd_w = 8;
+    else
+        return false;
+
+    jpp.simple_alg = false;
+    jpp.c_block = simd_w;
+    jpp.nb_c = jpp.c / jpp.c_block;
+    if (jpp.alg == Pooling_max) {
+        jpp.ur_w = 16;
+        if (layout_c8)
+            jpp.ur_w = 4;
+    } else {
+        jpp.ur_w = 24;
+        if (layout_c8)
+            jpp.ur_w = 12;
+    }
+
+    if (jpp.ow < jpp.ur_w) {
+        jpp.ur_w = jpp.ow;
+    }
+    if (jpp.l_pad > jpp.ur_w) {
+        return false;
+    }
+    jpp.ur_w_tail = jpp.ow % jpp.ur_w;
 
     return true;
 }
 
 template <cpu_isa_t isa>
-inline void jit_uni_pool_kernel_f32<isa>::maybe_recalculate_divisor(int jj,
+inline void jit_pool_kernel_f32<isa>::maybe_recalculate_divisor(int jj,
         int ur_w, int pad_l, int pad_r) {
     if (jpp.alg == Pooling_average_exclude_padding) {
         int kw = jpp.kw;
@@ -41,7 +71,7 @@ inline void jit_uni_pool_kernel_f32<isa>::maybe_recalculate_divisor(int jj,
 }
 
 template <cpu_isa_t isa>
-inline void jit_uni_pool_kernel_f32<isa>::avg_step(int ur_w, int pad_l,
+inline void jit_pool_kernel_f32<isa>::avg_step(int ur_w, int pad_l,
         int pad_r, const char* kh_label) {
 
     int iw = jpp.iw;
@@ -85,7 +115,7 @@ inline void jit_uni_pool_kernel_f32<isa>::avg_step(int ur_w, int pad_l,
 }
 
 template <cpu_isa_t isa>
-inline void jit_uni_pool_kernel_f32<isa>::max_step_fwd(int ur_w, int pad_l,
+inline void jit_pool_kernel_f32<isa>::max_step_fwd(int ur_w, int pad_l,
         int pad_r, const char *kh_label) {
     int iw = jpp.iw;
     int kw = jpp.kw;
@@ -143,7 +173,7 @@ inline void jit_uni_pool_kernel_f32<isa>::max_step_fwd(int ur_w, int pad_l,
 }
 
 template <cpu_isa_t isa>
-inline void jit_uni_pool_kernel_f32<isa>::max_step_bwd(int ur_w, int pad_l,
+inline void jit_pool_kernel_f32<isa>::max_step_bwd(int ur_w, int pad_l,
         int pad_r, const char *kh_label) {
     int iw = jpp.iw;
     int kw = jpp.kw;
@@ -220,7 +250,7 @@ inline void jit_uni_pool_kernel_f32<isa>::max_step_bwd(int ur_w, int pad_l,
 }
 
 template <cpu_isa_t isa>
-void jit_uni_pool_kernel_f32<isa>::maybe_zero_diff_src() {
+void jit_pool_kernel_f32<isa>::maybe_zero_diff_src() {
     assert(jpp.c_block * sizeof(float) % cpu_isa_traits<isa>::vlen == 0);
     Label l_skip, l_zero;
 
@@ -249,7 +279,7 @@ void jit_uni_pool_kernel_f32<isa>::maybe_zero_diff_src() {
 }
 
 template <cpu_isa_t isa>
-void jit_uni_pool_kernel_f32<isa>::generate() {
+void jit_pool_kernel_f32<isa>::generate() {
     this->preamble();
 
     int ow = jpp.ow;
@@ -367,7 +397,8 @@ void jit_uni_pool_kernel_f32<isa>::generate() {
     this->postamble();
 }
 
-template struct jit_uni_pool_kernel_f32<avx512_common>;
+template struct jit_pool_kernel_f32<avx512_common>;
+template struct jit_pool_kernel_f32<avx2>;
 
 }
 }

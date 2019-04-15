@@ -43,10 +43,6 @@ public:
         this->_ctx = &ctx;
         CHECK_GE(outputs.size(), 1) << "outputs size has to == 1";
         CHECK_GE(inputs.size(), 2) << "input size has to >= 2";
-        CHECK(!(inputs.size() > 2
-                && param.operation == Eltwise_sum)) <<
-                        "not support input size>2 and operation==Eltwise_sum, size = " << inputs.size() << ",activation = "
-                        << param.operation;
         _with_relu = param.has_eltwise && param.activation_param.active == Active_relu;
         _other_activation = param.has_eltwise && param.activation_param.active != Active_relu
                             && param.activation_param.active != Active_unknow;
@@ -54,6 +50,17 @@ public:
         if (_other_activation) {
             SABER_CHECK(_saber_activation.init(inputs, outputs, param.activation_param, ctx));
         }
+        int input_num = inputs.size();
+        Shape coeff_shape({input_num, 1, 1, 1}, Layout_NCHW);
+        if (param.operation == Eltwise_sum) {
+            _coeff_d.re_alloc(coeff_shape, AK_FLOAT);
+
+            OpDataType* coeff_data = (OpDataType*)_coeff_d.mutable_data();
+            cudaStream_t cuda_stream = this->_ctx->get_compute_stream();
+            cudaMemcpyAsync(coeff_data, &param.coeff[0], sizeof(OpDataType) * input_num, cudaMemcpyHostToDevice, cuda_stream);
+        }
+        _inputs_d.re_alloc(coeff_shape, AK_UINT64);
+        
 
         return create(inputs, outputs, param, ctx);
     }
@@ -80,6 +87,8 @@ private:
     bool _with_relu;
     bool _other_activation;
     SaberActivation<NV, OpDtype> _saber_activation;
+    Tensor<NV> _coeff_d;
+    Tensor<NV> _inputs_d;
 
 };
 

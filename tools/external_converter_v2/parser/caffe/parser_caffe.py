@@ -43,6 +43,7 @@ class CaffeParser:
         self._InsSplitBtwSliceConcat()
         self._InsSplitBtwSliceEltwise()
         self._InsertSplits()
+        self._InsSplitBtwSplitConcat()
         self._ScatterInputLayer()
         # create input node
         #self._CreateInputNode() maybe not need
@@ -216,6 +217,38 @@ class CaffeParser:
             UpgradeNetBatchNorm(self.net_parameter)
             logger(verbose.INFO).feed("[ Upgrade Level 5 ] Details: need BatchNorm upgrade [ ... ]")
 
+    def _InsSplitBtwSplitConcat(self):
+        '''
+        Currently, the connection between Slice and Concat must be implemented via Split.
+        '''
+        layers = self.net_parameter.layer or self.net_parameter.layers
+        top_blobs_of_splits = list()
+        btm_blobs_of_concats = list()
+        for layer in layers:
+            if layer.type == 'Split':
+                top_blobs_of_splits.extend(layer.top)
+            elif layer.type == 'Concat':
+                btm_blobs_of_concats.extend(layer.bottom)
+        intersection_blobs = list(set(top_blobs_of_splits).intersection(set(btm_blobs_of_concats)))
+        new_param = NetParameter()
+        for layer in layers:
+            new_layer = new_param.layer.add()
+            new_layer.CopyFrom(layer)
+            if layer.type == 'Split':
+                for top_blob in layer.top:
+                    if top_blob in intersection_blobs:
+                        split_param = new_param.layer.add()
+                        split_param.bottom.append(top_blob)
+                        split_param.top.append(top_blob)
+                        split_param.name = 'Split_' + top_blob
+                        split_param.type = 'Split'
+        if self.net_parameter.layer:
+            del self.net_parameter.layer[:]
+            self.net_parameter.layer.extend(new_param.layer)
+        else:
+            del self.net_parameter.layers[:]
+            self.net_parameter.layers.extend(new_param.layer)
+
     def _InsSplitBtwSliceConcat(self):
         '''
         Currently, the connection between Slice and Concat must be implemented via Split.
@@ -254,13 +287,13 @@ class CaffeParser:
         '''
         layers = self.net_parameter.layer or self.net_parameter.layers
         top_blobs_of_slices = list()
-        btm_blobs_of_concats = list()
+        btm_blobs_of_eltwises = list()
         for layer in layers:
             if layer.type == 'Slice':
                 top_blobs_of_slices.extend(layer.top)
             elif layer.type == 'Eltwise':
-                btm_blobs_of_concats.extend(layer.bottom)
-        intersection_blobs = list(set(top_blobs_of_slices).intersection(set(btm_blobs_of_concats)))
+                btm_blobs_of_eltwises.extend(layer.bottom)
+        intersection_blobs = list(set(top_blobs_of_slices).intersection(set(btm_blobs_of_eltwises)))
         new_param = NetParameter()
         for layer in layers:
             new_layer = new_param.layer.add()
@@ -474,6 +507,43 @@ class CaffeParser:
                     self.graphIO.add_node(node_io())
                     self.graphIO.add_in(in_name)
 
+    def _UpdateScaleModelLayer(self):
+        """
+        """
+        rlayers = self.net_parameter.layer or self.net_parameter.layers
+        mlayers = self.net_param_weights.layers or self.net_param_weights.layer
+        def search_filler(rlayers):
+            scale_dict = dict()
+            for rlayer in rlayers:
+                if rlayer.type == "Scale" and rlayer.scale_param.HasField("filler"):
+                    scale_dict[rlayer.name] = rlayer.scale_param.filler.value
+            return scale_dict
+        def all_names(layers):
+            name_list = list()
+            for layer in layers:
+                name_list.append(layer.name)
+            return name_list
+        def pick_layer(layer_name, layers):
+            assert layer_name in all_names(layers)
+            for layer in layers:
+                if layer_name == layer.name:
+                    return layer
+        def add_scale_model_layer(rlayers, mlayers):
+            scale_dict = search_filler(rlayers)
+            mlayer_names = all_names(mlayers)
+            for layer_name in scale_dict.keys():
+                if layer_name not in mlayer_names:
+                    mlayer = pick_layer(layer_name, rlayers)
+                    blob = BlobProto()
+                    blob.num = 1
+                    blob.channels = 1
+                    blob.height = 1
+                    blob.width = 1
+                    blob.data.append(scale_dict[mlayer.name])
+                    mlayer.blobs.extend([blob])
+                    mlayers.extend([mlayer])
+        add_scale_model_layer(rlayers, mlayers)
+
     def _DealWithRemark(self, layer_type, nodeIO, mlayer, rlayer, tensors, opIO):
         if self.Remark == 'FaceUniqueBatchNorm':
             if len(tensors) > 3 and layer_type == "BatchNorm": # this is for Face unique Batchnorm layer(batchnorm + scale)
@@ -523,6 +593,7 @@ class CaffeParser:
         logger(verbose.INFO).feed(" [CAFFE] Model Parameter Parsing ...")
         self._ParserModel()
         self._SplitInception(True)
+        self._UpdateScaleModelLayer()
         model_layers = self.net_param_weights.layers or self.net_param_weights.layer
 
         # we must setting graph edge first
@@ -559,48 +630,26 @@ class CaffeParser:
             opIO.set_out_num(len(rlayer.top)) 
             opIO.set_in_num(len(rlayer.bottom))
 
-            match_in_model_layer = False
             # find corresponding model layer
-            for mlayer in model_layers:
-                if rlayer.name == mlayer.name: # find
-                    #assert source_layer_type == mlayer.type, " real layer type(%s) must be equal to that(%s) of model layer." % (source_layer_type, mlayer.type)
-                    logger(verbose.INFO).feed("  `--[ Match ]Parsing [%s:\t%s] " % (source_layer_type, source_layer_name))
+            mlayers = filter(lambda mlayer: mlayer.name == rlayer.name, model_layers)
+            if len(mlayers) == 0:
+                mlayer = None
+            elif len(mlayers) == 1:
+                logger(verbose.INFO).feed("  `--[ Match ]Parsing [%s:\t%s] " % (source_layer_type, source_layer_name))
+                mlayer = mlayers[0]
+            else:
+                logger(verbose.FATAL).feed("len(mlayers) == {}".format(len(mlayers)))
+                exit()
 
-                    # fill node with blobs parameter, such as filter and weights
-                    tensors = []
-                    if mlayer.blobs:
-                        for blob in mlayer.blobs:
-                            if blob in mlayer.blobs:
-                                tensor = TensorProtoIO()
-                                if len(blob.shape.dim):
-                                    n, c, h, w = map(int, [1] * (4 - len(blob.shape.dim)) + list(blob.shape.dim))
-                                    if len(blob.shape.dim) == 1:
-                                        c = w
-                                        w = 1
-                                else:
-                                    n, c, h, w = blob.num, blob.channels, blob.height, blob.width
-                                #data = np.array(blob.data, dtype=np.float32).reshape(n, c, h, w)
-                                tensor.set_data_type(FLOAT) # default float
-                                if source_layer_type == "Deconvolution": # deconv is different in caffe
-                                    tensor.set_shape([c, n, h, w])
-                                else:
-                                    tensor.set_shape([n, c, h, w]) # set shape (n c h w)
-                                tensor.set_data(blob.data, "float")
-                                tensors.append(tensor)
-                    # fill node with layerparameter, such as axis kernel_size... and tensors
-                    if self.Remark is None:
-                        # besides, set the name of opIO
-                        CAFFE_LAYER_PARSER[source_layer_type](nodeIO, rlayer, tensors, opIO) # call parser automatically
-                    else:
-                        self._DealWithRemark(source_layer_type, nodeIO, mlayer, rlayer, tensors, opIO)
-                    match_in_model_layer = True
-                    # TODO... over!
-                else: # not find
-                    pass
-            if not match_in_model_layer:
-                # fill node with layerparameter, such as axis kernel_size... but with [ ] tensors (empty)
-                # besides, set the name of opIO
-                CAFFE_LAYER_PARSER[source_layer_type](nodeIO, rlayer, [], opIO) # call parser automatically
+            # merge prototxt layer(rlayer) & caffemodel layer(mlayer)
+            layer = MergeCaffeLayer(rlayer, mlayer)
+            tensors = GetTensorsFromCaffeLayer(layer)
+            # filled nodeIO
+            if mlayer and self.Remark:
+                self._DealWithRemark(source_layer_type, nodeIO, mlayer, rlayer, tensors, opIO)
+            else:
+                CAFFE_LAYER_PARSER[source_layer_type](nodeIO, layer, tensors, opIO)
+
             # add node to graph io
             self.graphIO.add_node(nodeIO())
 

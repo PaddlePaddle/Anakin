@@ -38,6 +38,12 @@ Status ShuffleChannelHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4d
     return Status::OK();
 }
 
+#ifdef AMD_GPU
+INSTANCE_SHUFFLE_CHANNEL(AMD, Precision::FP32);
+template class ShuffleChannelHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(ShuffleChannel, ShuffleChannelHelper, AMD, Precision::FP32);
+#endif
+
 #ifdef USE_CUDA
 INSTANCE_SHUFFLE_CHANNEL(NV, Precision::FP32);
 INSTANCE_SHUFFLE_CHANNEL(NV, Precision::INT8);
@@ -79,6 +85,9 @@ ANAKIN_REGISTER_OP(ShuffleChannel)
 #if defined(USE_X86_PLACE) || defined(BUILD_LITE)
 .__alias__<X86, Precision::FP32>("shufflechannel")
 .__alias__<X86, Precision::INT8>("shufflechannel")
+#endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("shufflechannel")
 #endif
 .num_in(1)
 .num_out(1)

@@ -2,6 +2,7 @@
 #ifndef ANAKIN_SABER_FUNCS_IMPL_X86_SABER_AVX2_EXPAND_H
 #define ANAKIN_SABER_FUNCS_IMPL_X86_SABER_AVX2_EXPAND_H
 #if defined(__AVX2__) and defined(__FMA__)
+#include <immintrin.h>
 
 namespace anakin {
 namespace saber {
@@ -66,25 +67,21 @@ inline float _m256_self_max(const __m256& x) {
 
 inline float _m256_max_array(const float* in, int length) {
     __m256 max_vec = _mm256_set1_ps(-1e32);
-
-    for (int j = 0; j < length; j += 8) {
+    int round_length =  length/8*8;
+    int remainder = length % 8;
+    for (int j = 0; j < round_length; j += 8) {
         __m256 temp_in = _mm256_loadu_ps(&in[j]);
         max_vec = _mm256_max_ps(temp_in, max_vec);
     }
 
-    int remainder = length % 8;
-
     if (remainder > 0) {
-        int iter = length / 8 * 8;
         __m256i _vec_mask = _m256_continue_mask_m256i(remainder);
-        __m256 temp_in = _mm256_maskload_ps(&in[iter], _vec_mask);
+        __m256 temp_in = _mm256_maskload_ps(&in[round_length], _vec_mask);
         __m256  _vec_mask_m256 = _m256_continue_mask_m256(remainder);
         max_vec = _mm256_blendv_ps(max_vec, _mm256_max_ps(temp_in, max_vec), _vec_mask_m256);
     }
-
     return _m256_self_max(max_vec);
 }
-
 
 
 }

@@ -1,3 +1,17 @@
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
 #include "framework/operators/fusion_ops/conv_relu.h"
 
 namespace anakin {
@@ -30,10 +44,16 @@ Status ConvReluHelper<Ttype, Ptype>::InitParam() {
     auto filter_num = GET_PARAMETER(int, filter_num);
     auto kernel_size = GET_PARAMETER(PTuple<int>, kernel_size);
     auto axis = GET_PARAMETER(int, axis);
-    
+
 	using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
-    
+    // resize weights scale
+    auto& w = weights.h_tensor();
+    if (w.get_scale().size() == 1){
+        float scale_tmp = w.get_scale()[0];
+        std::vector<float> w_scale(filter_num, scale_tmp);
+        w.set_scale(w_scale);
+    }
     // get relu param
     auto alpha = GET_PARAMETER(float, relu_0_alpha);
     ActivationParam<Ttype> active_param(Active_relu, alpha); // TEMP
@@ -67,11 +87,17 @@ Status ConvReluHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
     auto bias_term = GET_PARAMETER(bool, bias_term);
 
     //different device please change here!!!
+#ifdef AMD_GPU
+    saber::ImplEnum impl_e = SABER_IMPL;
+#else
     saber::ImplEnum impl_e = VENDER_IMPL;
-    if (std::is_same<Ttype, X86>::value) {
+    if (std::is_same<Ttype, X86>::value || std::is_same<Ttype, ARM>::value) {
         impl_e = SABER_IMPL;
     }
-    bool use_k1s1p0 = true;
+    if (std::is_same<Ttype, NV>::value && Ptype == Precision::INT8) {
+        impl_e = SABER_IMPL;
+    }
+    bool use_k1s1p0 = (Ptype == Precision::FP32);
     use_k1s1p0 = use_k1s1p0 && (_param_conv_relu.weight()->height() == 1);
     use_k1s1p0 = use_k1s1p0 && (_param_conv_relu.weight()->width() == 1);
     use_k1s1p0 = use_k1s1p0 && (_param_conv_relu.pad_h == 0);
@@ -82,7 +108,7 @@ Status ConvReluHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
     use_k1s1p0 = use_k1s1p0 && (_param_conv_relu.dilation_w == 1);
     use_k1s1p0 = use_k1s1p0 && (_param_conv_relu.group == 1);
     use_k1s1p0 = use_k1s1p0 && (_param_conv_relu.bias()->valid_size() > 0);
-    bool use_k3s1d1 = true;
+    bool use_k3s1d1 = (Ptype == Precision::FP32);
     use_k3s1d1 = use_k3s1d1 && (_param_conv_relu.weight()->height() == 3);
     use_k3s1d1 = use_k3s1d1 && (_param_conv_relu.weight()->width() == 3);
     use_k3s1d1 = use_k3s1d1 && (_param_conv_relu.group == 1);
@@ -90,15 +116,28 @@ Status ConvReluHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
     use_k3s1d1 = use_k3s1d1 && (_param_conv_relu.stride_w == 1);
     use_k3s1d1 = use_k3s1d1 && (_param_conv_relu.dilation_h == 1);
     use_k3s1d1 = use_k3s1d1 && (_param_conv_relu.dilation_w == 1);
-    bool use_depthwise = true;
+    bool use_depthwise = (Ptype == Precision::FP32);
     use_depthwise = use_depthwise && (_param_conv_relu.group == ins[0]->channel());
     use_depthwise = use_depthwise && (_param_conv_relu.group == outs[0]->channel());
-    bool use_direct_k = true;
+    bool use_direct_k = (Ptype == Precision::FP32);
     use_direct_k = use_direct_k && (_param_conv_relu.weight()->channel() >= 16);
     use_direct_k = use_direct_k && (_param_conv_relu.group == 1);
-    if (use_k1s1p0 || use_k3s1d1 || use_depthwise || use_direct_k) {
+    if (std::is_same<Ttype, NV>::value
+        && (use_k1s1p0 || use_k3s1d1 || use_depthwise || use_direct_k)) {
         impl_e = SABER_IMPL;
     }
+
+	/*auto valid_shape = ins[0]->valid_shape();
+    if((valid_shape[2] <=4) &&  (valid_shape[3] <= 8) && \
+            (_param_conv_relu.weight()->height() == \
+             _param_conv_relu.weight()->width() == 3) && \
+            (_param_conv_relu.stride_h == _param_conv_relu.stride_w == 1) &&\
+            (_param_conv_relu.dilation_h == _param_conv_relu.dilation_w ==1) && \
+            (_param_conv_relu.group == 1)) {
+        impl_e = VENDER_IMPL;
+    }*/
+#endif
+
     SABER_CHECK(_funcs_conv_relu.init(ins, outs,
             _param_conv_relu, SPECIFY, impl_e, ctx));
 
@@ -152,15 +191,19 @@ ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, NV, Precision::INT8);
 
 #ifdef USE_X86_PLACE
 INSTANCE_CONVRELU(X86, Precision::FP32);
-//template class ConvReluHelper<X86, Precision::FP32>;
+INSTANCE_CONVRELU(X86, Precision::INT8);
 ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, X86, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, X86, Precision::INT8);
 #endif
 
 
 #ifdef USE_ARM_PLACE
 INSTANCE_CONVRELU(ARM, Precision::FP32);
+INSTANCE_CONVRELU(ARM, Precision::INT8);
 template class ConvReluHelper<ARM, Precision::FP32>;
+template class ConvReluHelper<ARM, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, ARM, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(ConvRelu, ConvReluHelper, ARM, Precision::INT8);
 #endif
 
 #ifdef AMD_GPU
@@ -183,6 +226,7 @@ ANAKIN_REGISTER_OP(ConvRelu)
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("conv_relu")
+.__alias__<ARM, Precision::INT8>("conv_relu")
 #endif
 #ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("conv_relu")
@@ -190,9 +234,9 @@ ANAKIN_REGISTER_OP(ConvRelu)
 #if defined BUILD_LITE
 .__alias__<X86, Precision::FP32>("power")
 #endif
-//#ifdef USE_X86_PLACE
-//.__alias__<X86, Precision::FP32>("power")
-//#endif
+#ifdef USE_X86_PLACE
+.__alias__<X86, Precision::FP32>("conv_relu")
+#endif
 .num_in(1)
 .num_out(1)
 .Args<int>("group", " group of conv ")

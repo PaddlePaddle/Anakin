@@ -18,6 +18,10 @@
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/funcs/impl/impl_axpy.h"
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_axpy.h"
+#endif
+
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_axpy.h"
 #endif
@@ -27,10 +31,9 @@
 #endif
 
 #ifdef USE_ARM_PLACE
-//todo
-#include "saber/funcs/impl/impl_axpy.h"
+#include "saber/funcs/impl/arm/saber_axpy.h"
 #endif
-   
+
 namespace anakin {
 namespace saber {
 
@@ -83,7 +86,7 @@ public:
     }
 
 private:
-    
+
     virtual void pick_best_static() override {
         if (true) // some condition?
             this->_best_impl = this->_impl[0];

@@ -1,3 +1,5 @@
+#include "framework/graph/node.h"
+#include "saber/core/tensor.h"
 namespace anakin {
 
 namespace graph {
@@ -16,7 +18,7 @@ GraphBase<VertexNameType, VertexType, WeightType, ArcType>::GraphBase(size_t siz
 
 template<typename VertexNameType, typename VertexType, typename WeightType, typename ArcType>
 GraphBase<VertexNameType, VertexType, WeightType, ArcType>::~GraphBase() {
-	all_clear();
+    all_clear();
     delete Scanner;
     Scanner = nullptr;
 }
@@ -32,6 +34,27 @@ template<typename VertexNameType, typename VertexType, typename WeightType, type
 void GraphBase<VertexNameType, VertexType, WeightType, ArcType>::vertices_clear() {
     _vertices.clear();
 }
+
+template <>
+inline  void GraphBase<std::string, std::shared_ptr<Node>, Tensor4dPtr<X86>, Edge<X86>>::vertices_clear(){
+    for (auto iter=_vertices.begin(); iter != _vertices.end(); iter++){
+        if(iter->second.use_count()>1){
+            LOG(INFO)<<"force destory node "<<iter->first<<",count = "<<iter->second.use_count();
+//            delete iter->second.get();
+        }
+    }
+    _vertices.clear();
+};
+template <>
+inline  void GraphBase<std::string, std::shared_ptr<Node>, Tensor4dPtr<NV>, Edge<NV>>::vertices_clear(){
+    for (auto iter=_vertices.begin(); iter != _vertices.end();iter++){
+        if(iter->second.use_count()>1){
+            LOG(INFO)<<"force destory node "<<iter->first<<",count = "<<iter->second.use_count();
+//            delete iter->second.get();
+        }
+    }
+    _vertices.clear();
+};
 
 template<typename VertexNameType, typename VertexType, typename WeightType, typename ArcType>
 void GraphBase<VertexNameType, VertexType, WeightType, ArcType>::all_clear() {
@@ -73,7 +96,8 @@ template<typename VertexNameType, typename VertexType, typename WeightType, type
 void GraphBase<VertexNameType, VertexType, WeightType, ArcType>::add_in_arc(ArcType& arc) {
     if(!this->has_arc(arc)){
         _arcs.push_back(arc);
-        CHECK(this->has_vertex(arc.bottom()) && this->has_vertex(arc.top())) << " The arc's top or bottom is not vertex! ";
+        CHECK(this->has_vertex(arc.bottom()) && this->has_vertex(arc.top())) 
+                << " The arc("<< arc.bottom() <<", "<< arc.top() << ")'s top or bottom is not vertex! ";
     }     
     Arc_iterator<VertexNameType, WeightType, ArcType> arc_iterator = find(arc.bottom(), arc.top()); 
     auto top_in_arcs = _graph_in_arcs[arc.top()];
@@ -329,6 +353,9 @@ VertexType& GraphBase<VertexNameType, VertexType, WeightType, ArcType>::operator
 
 template<typename VertexNameType, typename VertexType, typename WeightType, typename ArcType>
 inline std::string GraphBase<VertexNameType, VertexType, WeightType, ArcType>::to_string() {
+#ifdef USE_SGX
+    return "GrahBase.to_string() not implemented in SGX mode";
+#else
     std::ostringstream vertices_ss;
     vertices_ss << "Graph infrastructure: \n-- Vertices: (sum  " << size() << ") \n";
     int index = 0;
@@ -343,7 +370,8 @@ inline std::string GraphBase<VertexNameType, VertexType, WeightType, ArcType>::t
     for(; it!=it_end; it++) {
         arcs_ss << " |-- (arc: " << it->bottom() << " --> " << it->top() << ") \n";
     }
-    return vertices_ss.str() + arcs_ss.str(); 
+    return vertices_ss.str() + arcs_ss.str();
+#endif
 }
  
 

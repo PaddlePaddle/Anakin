@@ -36,22 +36,23 @@ class SaberProposalImgScaleToCamCoords<NV, OpDtype>:\
 
 public:
 
-    SaberProposalImgScaleToCamCoords()
-            : _rois_boxes_data_host_tensor(NULL)
-            , _im_info_data_host_tensor(NULL)
-            , _cam2d_data_host_tensor(NULL)
-            , _prj_h_pred_data_host_tensor(NULL)
-            , _real_h_pred_data_host_tensor(NULL)
-            , _size3d_h_pred_data_host_tensor(NULL)
-            , _size3d_w_pred_data_host_tensor(NULL)
-            , _size3d_l_pred_data_host_tensor(NULL)
-            , _orien3d_sin_pred_data_host_tensor(NULL)
-            , _orien3d_cos_pred_data_host_tensor(NULL)
-            , _trunc_ratio_pred_data_host_tensor(NULL)
-            , _img_info_data_host_tensor(NULL)
-            , _cam_coords_data_host_tensor(NULL)
-            , _has_inited(false)
-    {}
+//    SaberProposalImgScaleToCamCoords()
+//            : _rois_boxes_data_host_tensor(NULL)
+//            , _im_info_data_host_tensor(NULL)
+//            , _cam2d_data_host_tensor(NULL)
+//            , _prj_h_pred_data_host_tensor(NULL)
+//            , _real_h_pred_data_host_tensor(NULL)
+//            , _size3d_h_pred_data_host_tensor(NULL)
+//            , _size3d_w_pred_data_host_tensor(NULL)
+//            , _size3d_l_pred_data_host_tensor(NULL)
+//            , _orien3d_sin_pred_data_host_tensor(NULL)
+//            , _orien3d_cos_pred_data_host_tensor(NULL)
+//            , _trunc_ratio_pred_data_host_tensor(NULL)
+//            , _img_info_data_host_tensor(NULL)
+//            , _cam_coords_data_host_tensor(NULL)
+//            , _has_inited(false)
+//    {}
+    SaberProposalImgScaleToCamCoords() = default;
 
     ~SaberProposalImgScaleToCamCoords() {
         if (_rois_boxes_data_host_tensor != NULL) {
@@ -126,81 +127,81 @@ public:
                                  std::vector<Tensor<NV>*>& outputs,
                                  ProposalImgScaleToCamCoordsParam<NV> &param) override;
 private:
-    int num_class_;
+    int num_class_{0};
     std::vector<int> sub_class_num_class_;
     std::vector<int> sub_class_bottom_idx_;
     std::vector<int> sub_class_num_class_pre_sum_;
-    int total_sub_class_num_;
+    int total_sub_class_num_{0};
     ProposalImgScaleToCamCoords_NormType prj_h_norm_type_;
-    bool has_size3d_and_orien3d_;
+    bool has_size3d_and_orien3d_{false};
     // with trunc ratio
-    bool with_trunc_ratio_;
-    ProposalImgScaleToCamCoords_OrienType orien_type_;
+    bool with_trunc_ratio_{false};
+    ProposalImgScaleToCamCoords_OrienType orien_type_{ProposalImgScaleToCamCoords_OrienType_PI};
     std::set<int> cls_ids_zero_size3d_w_;
     std::set<int> cls_ids_zero_size3d_l_;
     std::set<int> cls_ids_zero_orien3d_;
-    bool cmp_pts_corner_3d_;
-    bool cmp_pts_corner_2d_;
-    int num_top_channels_;
-    int size3d_h_bottom_idx_;
-    int size3d_w_bottom_idx_;
-    int size3d_l_bottom_idx_;
-    int orien3d_sin_bottom_idx_;
-    int orien3d_cos_bottom_idx_;
-    int trunc_ratio_bottom_idx_;
-    int cam_info_idx_st_in_im_info_;
-    bool need_ctr_2d_norm_;
+    bool cmp_pts_corner_3d_{false};
+    bool cmp_pts_corner_2d_{false};
+    int num_top_channels_{0};
+    int size3d_h_bottom_idx_{0};
+    int size3d_w_bottom_idx_{0};
+    int size3d_l_bottom_idx_{0};
+    int orien3d_sin_bottom_idx_{0};
+    int orien3d_cos_bottom_idx_{0};
+    int trunc_ratio_bottom_idx_{0};
+    int cam_info_idx_st_in_im_info_{0};
+    bool need_ctr_2d_norm_{false};
     std::vector<float > ctr_2d_means_;
     std::vector<float > ctr_2d_stds_;
-    bool need_prj_h_norm_;
+    bool need_prj_h_norm_{false};
     std::vector<float > prj_h_means_;
     std::vector<float > prj_h_stds_;
-    bool need_real_h_norm_;
+    bool need_real_h_norm_{false};
     std::vector<float > real_h_means_;
     std::vector<float > real_h_stds_;
-    bool need_real_w_norm_;
+    bool need_real_w_norm_{false};
     std::vector<float > real_w_means_;
     std::vector<float > real_w_stds_;
-    bool need_real_l_norm_;
+    bool need_real_l_norm_{false};
     std::vector<float > real_l_means_;
     std::vector<float > real_l_stds_;
-    bool need_sin_norm_;
+    bool need_sin_norm_{false};
     std::vector<float > sin_means_;
     std::vector<float > sin_stds_;
-    bool need_cos_norm_;
+    bool need_cos_norm_{false};
     std::vector<float > cos_means_;
     std::vector<float > cos_stds_;
-    bool has_scale_offset_info_;
-    float im_width_scale_;
-    float im_height_scale_;
-    float cords_offset_x_;
-    float cords_offset_y_;
-    bool bbox_size_add_one_;
+    bool has_scale_offset_info_{false};
+    float im_width_scale_{0.f};
+    float im_height_scale_{0.f};
+    float cords_offset_x_{0.f};
+    float cords_offset_y_{0.f};
+    bool bbox_size_add_one_{false};
     // rotate coords by pitch
-    bool rotate_coords_by_pitch_;
+    bool rotate_coords_by_pitch_{false};
 
     // whether regress ph rh as whole
-    bool regress_ph_rh_as_whole_;
-    bool need_real_h_norm_dps_;
+    bool regress_ph_rh_as_whole_{false};
+    bool need_real_h_norm_dps_{false};
     std::vector<float> real_h_means_dps_;
     std::vector<float> real_h_stds_dps_;
 
-    Tensor<NVHX86>* _rois_boxes_data_host_tensor;
-    Tensor<NVHX86>* _im_info_data_host_tensor;
-    Tensor<NVHX86>* _cam2d_data_host_tensor;
-    Tensor<NVHX86>* _prj_h_pred_data_host_tensor;
-    Tensor<NVHX86>* _real_h_pred_data_host_tensor;
-    Tensor<NVHX86>* _size3d_h_pred_data_host_tensor;
-    Tensor<NVHX86>* _size3d_w_pred_data_host_tensor;
-    Tensor<NVHX86>* _size3d_l_pred_data_host_tensor;
-    Tensor<NVHX86>* _orien3d_sin_pred_data_host_tensor;
-    Tensor<NVHX86>* _orien3d_cos_pred_data_host_tensor;
-    Tensor<NVHX86>* _trunc_ratio_pred_data_host_tensor;
-    Tensor<NVHX86>* _img_info_data_host_tensor;
+    Tensor<NVHX86>* _rois_boxes_data_host_tensor{nullptr};
+    Tensor<NVHX86>* _im_info_data_host_tensor{nullptr};
+    Tensor<NVHX86>* _cam2d_data_host_tensor{nullptr};
+    Tensor<NVHX86>* _prj_h_pred_data_host_tensor{nullptr};
+    Tensor<NVHX86>* _real_h_pred_data_host_tensor{nullptr};
+    Tensor<NVHX86>* _size3d_h_pred_data_host_tensor{nullptr};
+    Tensor<NVHX86>* _size3d_w_pred_data_host_tensor{nullptr};
+    Tensor<NVHX86>* _size3d_l_pred_data_host_tensor{nullptr};
+    Tensor<NVHX86>* _orien3d_sin_pred_data_host_tensor{nullptr};
+    Tensor<NVHX86>* _orien3d_cos_pred_data_host_tensor{nullptr};
+    Tensor<NVHX86>* _trunc_ratio_pred_data_host_tensor{nullptr};
+    Tensor<NVHX86>* _img_info_data_host_tensor{nullptr};
     std::vector<Tensor<NVHX86> *> _sub_class_datas_host_tensor_v;
     //output
-    Tensor<NVHX86>* _cam_coords_data_host_tensor;
-    bool _has_inited;
+    Tensor<NVHX86>* _cam_coords_data_host_tensor{nullptr};
+    bool _has_inited{false};
 };
 
 }

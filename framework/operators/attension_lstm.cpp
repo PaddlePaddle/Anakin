@@ -4,7 +4,7 @@ namespace anakin {
 
 namespace ops {
 
-#define INSTANCE_SEQUENCE_EXPAND(Ttype, Ptype) \
+#define INSTANCE_ATTENTION_LSTM(Ttype, Ptype) \
 template<> \
 void AttensionLstm<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
     const std::vector<Tensor4dPtr<Ttype> >& ins, \
@@ -75,18 +75,24 @@ Status AttensionLstmHelper<Ttype, Ptype>::InferShape(const
 }
 
 #ifdef USE_CUDA
-INSTANCE_SEQUENCE_EXPAND(NV, Precision::FP32);
-ANAKIN_REGISTER_OP_HELPER(AttensionLstm, AttensionLstmHelper, NV,  Precision::FP32);
+INSTANCE_ATTENTION_LSTM(NV, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(AttensionLstm, AttensionLstmHelper, NV, Precision::FP32);
 #endif
 
 #ifdef USE_X86_PLACE
-INSTANCE_SEQUENCE_EXPAND(X86,  Precision::FP32);
+INSTANCE_ATTENTION_LSTM(X86, Precision::FP32);
 template class AttensionLstmHelper<X86,  Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(AttensionLstm, AttensionLstmHelper, X86,  Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(AttensionLstm, AttensionLstmHelper, X86, Precision::FP32);
+#endif
+
+#ifdef AMD_GPU
+INSTANCE_ATTENTION_LSTM(AMD, Precision::FP32);
+template class AttensionLstmHelper<AMD,  Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(AttensionLstm, AttensionLstmHelper, AMD, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE
-INSTANCE_SEQUENCE_EXPAND(ARM, Precision::FP32);
+INSTANCE_ATTENTION_LSTM(ARM, Precision::FP32);
 template class AttensionLstmHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(AttensionLstm, AttensionLstmHelper, ARM, Precision::FP32);
 #endif//arm
@@ -102,6 +108,9 @@ ANAKIN_REGISTER_OP(AttensionLstm)
 #endif
 #ifdef USE_X86_PLACE
 .__alias__<X86,  Precision::FP32>("attension_lstm")
+#endif
+#ifdef AMD_GPU
+.__alias__<AMD,  Precision::FP32>("attension_lstm")
 #endif
 .num_in(1)
 .num_out(1)

@@ -4,37 +4,19 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void Embedding<NV, Precision::FP32>::operator()(
-    OpContext<NV>& ctx,
-    const std::vector<Tensor4dPtr<NV> >& ins,
-    std::vector<Tensor4dPtr<NV> >& outs) {
-    auto* impl =
-        static_cast<EmbeddingHelper<NV, Precision::FP32>*>(this->_helper);
-    auto& param =
-        static_cast<EmbeddingHelper<NV, Precision::FP32>*>(this->_helper)->_param_embedding;
-    impl->_funcs_embedding(ins, outs, param, ctx);
+#define INSTANCE_EMBEDDING(Ttype, Ptype) \
+template<> \
+void Embedding<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+        const std::vector<Tensor4dPtr<Ttype> >& ins, \
+                std::vector<Tensor4dPtr<Ttype> >& outs) { \
+    auto* impl = static_cast<EmbeddingHelper<Ttype, Ptype>*>(this->_helper); \
+    auto& param = \
+        static_cast<EmbeddingHelper<Ttype, Ptype>*>(this->_helper)->_param_embedding; \
+    impl->_funcs_embedding(ins, outs, param, ctx); \
 }
-#endif
 
-#ifdef USE_X86_PLACE
-template<>
-void Embedding<X86, Precision::FP32>::operator()(
-        OpContext<X86>& ctx,
-        const std::vector<Tensor4dPtr<X86> >& ins,
-        std::vector<Tensor4dPtr<X86> >& outs) {
-    auto* impl =
-            static_cast<EmbeddingHelper<X86, Precision::FP32>*>(this->_helper);
-    auto& param =
-            static_cast<EmbeddingHelper<X86, Precision::FP32>*>(this->_helper)->_param_embedding;
-    impl->_funcs_embedding(ins, outs, param, ctx);
-}
-#endif
 
 /// TODO ... specialization other type of operator
-
-
 /// set helper
 template<typename Ttype, Precision Ptype>
 EmbeddingHelper<Ttype, Ptype>::~EmbeddingHelper() {
@@ -76,30 +58,32 @@ Status EmbeddingHelper<Ttype, Ptype>::InferShape(const
 }
 
 #ifdef USE_CUDA
+INSTANCE_EMBEDDING(NV, Precision::FP32);
 template class EmbeddingHelper<NV, Precision::FP32>;
 template class EmbeddingHelper<NV, Precision::FP16>;
 template class EmbeddingHelper<NV, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Embedding, EmbeddingHelper, NV, Precision::FP32);
+#endif
+#ifdef AMD_GPU
+INSTANCE_EMBEDDING(AMD, Precision::FP32);
+template class EmbeddingHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Embedding, EmbeddingHelper, AMD, Precision::FP32);
 #endif
 #ifdef USE_ARM_PLACE
+INSTANCE_EMBEDDING(ARM, Precision::FP32);
 template class EmbeddingHelper<ARM, Precision::FP32>;
 template class EmbeddingHelper<ARM, Precision::FP16>;
 template class EmbeddingHelper<ARM, Precision::INT8>;
-#endif
-#ifdef USE_X86_PLACE
-template class EmbeddingHelper<X86, Precision::FP32>;
-template class EmbeddingHelper<X86, Precision::FP16>;
-template class EmbeddingHelper<X86, Precision::INT8>;
-#endif
-// register helper
-#ifdef USE_CUDA
-ANAKIN_REGISTER_OP_HELPER(Embedding, EmbeddingHelper, NV, Precision::FP32);
-#endif
-#ifdef USE_ARM_PLACE
 ANAKIN_REGISTER_OP_HELPER(Embedding, EmbeddingHelper, ARM, Precision::FP32);
 #endif
 #ifdef USE_X86_PLACE
+INSTANCE_EMBEDDING(X86, Precision::FP32);
+template class EmbeddingHelper<X86, Precision::FP32>;
+template class EmbeddingHelper<X86, Precision::FP16>;
+template class EmbeddingHelper<X86, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(Embedding, EmbeddingHelper, X86, Precision::FP32);
 #endif
+
 //! register op
 ANAKIN_REGISTER_OP(Embedding)
 .Doc("Embedding operator")
@@ -111,6 +95,9 @@ ANAKIN_REGISTER_OP(Embedding)
 #endif
 #ifdef USE_X86_PLACE
 .__alias__<X86, Precision::FP32>("embedding")
+#endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("embedding")
 #endif
 .num_in(1)
 .num_out(1)

@@ -53,7 +53,7 @@ TEST(TestSaberFunc, test_func_slice){
     testbase.set_param(param);
     testbase.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
     testbase.run_test(slice_cpu<float, NV, NVHX86>);
-   
+
     //test1
     TestSaberBase<NV, NVHX86, AK_FLOAT, Slice, SliceParam> testbase1(1,4);
     num_in = 10;
@@ -146,6 +146,63 @@ TEST(TestSaberFunc, test_func_slice){
         testbase3.set_param(param3);
         testbase3.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
         testbase3.run_test(slice_cpu<float, X86, X86>);
+
+    }while(0);
+#endif
+#ifdef USE_ARM_PLACE
+    LOG(INFO)<<"ARM test......";
+    do
+    {
+        //test 0
+        TestSaberBase<ARM, ARM, AK_FLOAT, Slice, SliceParam> testbase(1,4);
+        int num_in = 4;
+        int c_in = 9;
+        int h_in = 12;
+        int w_in = 12;
+        int slice_axis = 1;
+        std::vector<int> slice_points = {1,3,6};
+        SliceParam<ARM> param(slice_axis, slice_points);
+        testbase.set_param(param);
+        testbase.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
+        testbase.run_test(slice_cpu<float, ARM, ARM>);
+
+        //test1
+        TestSaberBase<ARM, ARM, AK_FLOAT, Slice, SliceParam> testbase1(1,4);
+        num_in = 10;
+        c_in = 3;
+        h_in = 2;
+        w_in = 3;
+        slice_axis = 0;
+        slice_points = {4,6,8};
+        SliceParam<ARM> param1(slice_axis, slice_points);
+        testbase1.set_param(param1);
+        testbase1.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
+        testbase1.run_test(slice_cpu<float, ARM, ARM>);
+
+        //test2
+        TestSaberBase<ARM, ARM, AK_FLOAT, Slice, SliceParam> testbase2(1,2);
+        num_in = 6;
+        c_in = 4;
+        h_in = 10;
+        w_in = 2;
+        slice_axis = 2;
+        slice_points = {5};
+        SliceParam<ARM> param2(slice_axis, slice_points);
+        testbase2.set_param(param2);
+        testbase2.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
+        testbase2.run_test(slice_cpu<float, ARM, ARM>);
+        //test3
+        TestSaberBase<ARM, ARM, AK_FLOAT, Slice, SliceParam> testbase3(1,3);
+        num_in = 10;
+        c_in = 11;
+        h_in = 1;
+        w_in = 11;
+        slice_axis = 3;
+        slice_points = {1,9};
+        SliceParam<ARM> param3(slice_axis, slice_points);
+        testbase3.set_param(param3);
+        testbase3.set_input_shape(Shape({num_in, c_in, h_in, w_in}));
+        testbase3.run_test(slice_cpu<float, ARM, ARM>);
 
     }while(0);
 #endif

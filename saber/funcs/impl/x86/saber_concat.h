@@ -20,6 +20,7 @@
 #include "saber/funcs/impl/impl_concat.h"
 #include "saber/core/tensor.h"
 
+#include "saber/funcs/impl/x86/kernel/jit_call_conf.h"
 namespace anakin{
 
 namespace saber{
@@ -33,8 +34,45 @@ class SaberConcat<X86, OpDtype> : \
 public:
     typedef typename DataTrait<X86, OpDtype>::Dtype OpDataType;
 
-    SaberConcat() = default;
-    ~SaberConcat() {}
+    SaberConcat() : _num_concats(0), _concat_input_size(0),
+                    dst_data_(nullptr),
+                    srcs_data_(nullptr), src_with_offset_(nullptr),
+                    tail_(nullptr), ic_(nullptr),
+                    nb_ic_(nullptr), scale_(nullptr),
+                    block_(nullptr){
+
+    };
+    ~SaberConcat() {
+
+        if (srcs_data_ != nullptr) {
+            delete srcs_data_;
+            srcs_data_ = nullptr;
+        }
+        if (src_with_offset_ != nullptr) {
+            delete src_with_offset_;
+            src_with_offset_ = nullptr;
+        }
+        if (tail_ != nullptr) {
+            delete tail_;
+            tail_ = nullptr;
+        }
+        if (ic_ != nullptr) {
+            delete ic_;
+            ic_ = nullptr;
+        }
+        if (nb_ic_ != nullptr) {
+            delete nb_ic_;
+            nb_ic_ = nullptr;
+        }
+        if (scale_ != nullptr) {
+            delete scale_;
+            scale_ = nullptr;
+        }
+        if (block_ != nullptr) {
+            delete block_;
+            block_ = nullptr;
+        }
+    }
 
     virtual SaberStatus init(const std::vector<Tensor<X86>*>& inputs,
                       std::vector<Tensor<X86>*>& outputs,
@@ -46,20 +84,34 @@ public:
 
     virtual SaberStatus create(const std::vector<Tensor<X86>*>& inputs,
                         std::vector<Tensor<X86>*>& outputs,
-                        ConcatParam<X86> &param, Context<X86> &ctx){
-
-        _num_concats = inputs[0]->count_valid(0, param.axis);
-        _concat_input_size = inputs[0]->count_valid(param.axis + 1, inputs[0]->dims());
-        return SaberSuccess;
-    }
+                        ConcatParam<X86> &param, Context<X86> &ctx)override;
 
     virtual SaberStatus dispatch(const std::vector<Tensor<X86>*>& inputs,
                           std::vector<Tensor<X86>*>& outputs,
                           ConcatParam<X86> &param)override;
 
+
 private:
     int _num_concats;
     int _concat_input_size;
+
+    unsigned long* tail_;
+    unsigned int* ic_;
+    unsigned int* nb_ic_;
+    unsigned int* block_;
+    float* scale_;
+    unsigned char* dst_data_;
+    const unsigned char** srcs_data_;
+    const unsigned char** src_with_offset_;
+    virtual SaberStatus init_conf(jit::jit_concat_conf_t &jpp,
+                                  const std::vector<Tensor<X86>*> &inputs,
+                                  std::vector<Tensor<X86>*> &outputs,
+                                  ConcatParam<X86> &param);
+
+    virtual SaberStatus check_conf(const jit::jit_concat_conf_t &jpp,
+                                   const std::vector<Tensor<X86>*> &inputs,
+                                   std::vector<Tensor<X86>*> &outputs,
+                                   ConcatParam<X86> &param);
 };
 
 } //namespace saber

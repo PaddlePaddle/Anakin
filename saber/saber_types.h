@@ -61,7 +61,9 @@ enum LayoutType {
     Layout_NCHW_C8 = 11,
     Layout_NCHW_C16 = 12,
     Layout_OIHW16I16O = 13,
-    Layout_GOIHW16I16O = 14
+    Layout_GOIHW16I16O = 14,
+    Layout_NCHW_C8R=15,
+    Layout_NCHW_C16R=16,
 };
 //! target_type struct
 struct Layout {
@@ -71,6 +73,7 @@ struct Layout {
     virtual int width_index() {return -1;}
     virtual int depth_index() {return -1;}
     virtual int inner_c() {return -1;}
+    virtual int aligned_length() {return -1;}
     virtual int dims() {return -1;}
     virtual LayoutType type() {return Layout_invalid;}
 };
@@ -137,8 +140,7 @@ struct NCHW_C4 : public Layout {
     int channel_index() {return 1;}
     int height_index() {return 2;}
     int width_index() {return 3;}
-    int inner_c() {return 4;}
-    int dims() {return 5;}
+    int dims() {return 4;}
     LayoutType type() {return Layout_NCHW_C4;}
 };
 struct NCHW_C8 : public Layout {
@@ -150,6 +152,15 @@ struct NCHW_C8 : public Layout {
     int dims() {return 5;}
     LayoutType type() {return Layout_NCHW_C8;}
 };
+struct NCHW_C8R : public Layout {
+    int num_index() {return 0;}
+    int channel_index() {return 1;}
+    int height_index() {return 2;}
+    int width_index() {return 3;}
+    int dims() {return 4;}
+    int aligned_length(){ return 8;}
+    LayoutType type() {return Layout_NCHW_C8R;}
+};
 struct NCHW_C16 : public Layout {
     int num_index() {return 0;}
     int channel_index() {return 1;}
@@ -159,6 +170,17 @@ struct NCHW_C16 : public Layout {
     int dims() {return 5;}
     LayoutType type() {return Layout_NCHW_C16;}
 };
+
+struct NCHW_C16R : public Layout {
+    int num_index() {return 0;}
+    int channel_index() {return 1;}
+    int height_index() {return 2;}
+    int width_index() {return 3;}
+    int dims() {return 4;}
+    int aligned_length(){ return 16;}
+    LayoutType type() {return Layout_NCHW_C16R;}
+};
+
 enum DataType {
     AK_INVALID      =       -1,
     AK_HALF         =       0,
@@ -171,10 +193,11 @@ enum DataType {
     AK_UINT8        =       7,
     AK_UINT16       =       8,
     AK_UINT32       =       9,
-    AK_STRING       =       10,
-    AK_BOOL         =       11,
-    AK_SHAPE        =       12,
-    AK_TENSOR       =       13
+    AK_UINT64       =       10,
+    AK_STRING       =       11,
+    AK_BOOL         =       12,
+    AK_SHAPE        =       13,
+    AK_TENSOR       =       14
 };
 typedef enum {
     SaberSuccess         = -1,                             /*!< No errors */
@@ -193,6 +216,19 @@ typedef enum{
     SPECIFY = 3,
     UNKNOWN = 4
 }SaberImplStrategy;
+
+//! arm arch
+enum ARMArch{
+    APPLE = 0,
+    A53 = 53,
+    A55 = 55,
+    A57 = 57,
+    A72 = 72,
+    A73 = 73,
+    A75 = 75,
+    A76 = 76,
+    ARM_UNKOWN = -1
+};
 
 typedef enum {
     nearest = 0,
@@ -231,8 +267,20 @@ typedef enum{
     Active_elu = 5,
     Active_identity = 6,
     Active_stanh = 9,
-    Active_prelu = 10
+    Active_prelu = 10,
+    Active_gelu = 11,
+    Active_swish = 12
 } ActiveType;
+
+typedef enum {
+    Reduce_unknow = 0,
+    Reduce_min,
+    Reduce_max,
+    Reduce_sum,
+    Reduce_avg,
+    Reduce_prod
+} ReduceType;
+
 typedef enum{
     Pooling_unknow = 0,
     Pooling_max = 1,
@@ -244,7 +292,8 @@ typedef enum{
     Eltwise_unknow = 0,
     Eltwise_prod = 1,
     Eltwise_sum = 2,
-    Eltwise_max = 3
+    Eltwise_max = 3,
+    Eltwise_div = 4
 } EltwiseType;
 typedef enum{
     ACROSS_CHANNELS = 0,
@@ -276,16 +325,36 @@ typedef enum {
     PRIOR_MAX = 1,
     PRIOR_COM = 2
 } PriorType;
-    
+
 typedef enum{
     RANDOM=0,
     SPECIAL,
     CUSTOM
 } TestDataType;
+
 typedef enum{
     ENTROPY= 0,
     MAXABS = 1
 } CalibrationAlgoType;
+
+typedef enum{
+    BILINEAR_ALIGN = 0,
+    BILINEAR_NO_ALIGN = 1,
+    RESIZE_CUSTOM = 2,
+    NEAREST_ALIGN = 3
+} ResizeType;
+
+typedef enum{
+    PAD_CONSTANT = 0,
+    PAD_EDGE = 1,
+    PAD_REFLECT = 2,
+} PadMode;
+
+typedef enum{
+    SUM = 0,
+    SUB = 1,
+    MUL = 2,
+} ArithmeticType;
 } //namespace saber
 } //namespace anakin
 #endif //ANAKIN_SABER_CORE_TYPES_H

@@ -1,5 +1,4 @@
 #include "saber/funcs/impl/x86/saber_lstm.h"
-#include "sys/time.h"
 #include "saber/funcs/impl/x86/saber_normal_activation.h"
 #include "mkl_cblas.h"
 
@@ -9,29 +8,19 @@ namespace anakin {
 namespace saber {
 
 
-//inline
-static void gemm(const bool TransA, const bool TransB, int m, int n, int k, const float alpha,
-                 const float* a, const float* b, const float beta, float* c) {
-    //    cout << "(" << m << "," << n << "," << k << ")" << endl;
-    int lda = (!TransA/* == CblasNoTrans*/) ? k : m;
-    int ldb = (!TransB/* == CblasNoTrans*/) ? n : k;
-    CBLAS_TRANSPOSE cuTransA =
-        (!TransA/* == CblasNoTrans*/) ? CblasNoTrans : CblasTrans;
-    CBLAS_TRANSPOSE cuTransB =
-        (!TransB/* == CblasNoTrans*/) ? CblasNoTrans : CblasTrans;
-    cblas_sgemm(CblasRowMajor, cuTransA, cuTransB, m, n, k, alpha, a, k, b, n, beta, c, n);
-};
-
-template <typename BIT,typename OpDataType,bool with_peephole>
-static inline void cal_first_lstm_nullhidden(int emit_word_id_start,int emit_word_id_end,OpDataType* temp_wx,const OpDataType* weight_peephole,
-                                      OpDataType* hout,OpDataType* inner_cell,const BIT* b_i, const BIT* b_f, const BIT* b_c, const BIT* b_o,
-                                      ActiveType gate_activity, ActiveType cell_activity, ActiveType candi_activity,int hidden_size){
+template <typename BIT, typename OpDataType, bool with_peephole>
+static inline void cal_first_lstm_nullhidden(int emit_word_id_start, int emit_word_id_end,
+        OpDataType* temp_wx, const OpDataType* weight_peephole,
+        OpDataType* hout, OpDataType* inner_cell, const BIT* b_i, const BIT* b_f, const BIT* b_c,
+        const BIT* b_o,
+        ActiveType gate_activity, ActiveType cell_activity, ActiveType candi_activity, int hidden_size) {
     const int i_offset = 0;
     const int c_offset = 2;
     const int o_offset = 3;
     BIT(*gate_act)(const BIT) = Activate_inner<BIT>(gate_activity);
     BIT(*cell_act)(const BIT) = Activate_inner<BIT>(cell_activity);
     BIT(*candi_act)(const BIT) = Activate_inner<BIT>(candi_activity);
+
     for (int emit_word_id = emit_word_id_start; emit_word_id < emit_word_id_end; emit_word_id++) {
         int emit_wx_offset = emit_word_id * hidden_size * 4;
         const BIT* w_x_i = (BIT*)(temp_wx + i_offset * hidden_size + emit_wx_offset);
@@ -43,9 +32,10 @@ static inline void cal_first_lstm_nullhidden(int emit_word_id_start,int emit_wor
         BIT* gate_h_p = (BIT*)(hout + emit_id_offset * hidden_size);
         BIT* gate_c_p = (BIT*)(inner_cell + emit_id_offset * hidden_size);
 
-        if(with_peephole) {
+        if (with_peephole) {
+#pragma omp parallel for schedule(static)
             for (int frame_id = 0; frame_id < hidden_size / (sizeof(BIT) / sizeof(OpDataType));
-                 ++frame_id) {
+                    ++frame_id) {
                 BIT gate_i = gate_act(w_x_i[frame_id] + b_i[frame_id]);
                 BIT gate_c_s = cell_act(w_x_c[frame_id] + b_c[frame_id]);
                 BIT gate_c = gate_i * gate_c_s;
@@ -53,9 +43,10 @@ static inline void cal_first_lstm_nullhidden(int emit_word_id_start,int emit_wor
                 gate_c_p[frame_id] = gate_c;
                 gate_h_p[frame_id] = gate_o * candi_act(gate_c);
             }
-        } else{
+        } else {
+#pragma omp parallel for schedule(static)
             for (int frame_id = 0; frame_id < hidden_size / (sizeof(BIT) / sizeof(OpDataType));
-                 ++frame_id) {
+                    ++frame_id) {
                 BIT gate_i = gate_act(w_x_i[frame_id] + b_i[frame_id]);
                 BIT gate_c_s = cell_act(w_x_c[frame_id] + b_c[frame_id]);
                 BIT gate_c = gate_i * gate_c_s;
@@ -67,10 +58,12 @@ static inline void cal_first_lstm_nullhidden(int emit_word_id_start,int emit_wor
     }
 }
 
-template <typename BIT,typename OpDataType,bool with_peephole>
-static inline void cal_lstm_batch(int emit_word_id_start,int emit_word_id_end,OpDataType* temp_wx,const OpDataType* weight_peephole,
-                                  OpDataType* hout,OpDataType* inner_cell,const BIT* b_i, const BIT* b_f, const BIT* b_c, const BIT* b_o,
-                                  ActiveType gate_activity, ActiveType cell_activity, ActiveType candi_activity,int hidden_size){
+template <typename BIT, typename OpDataType, bool with_peephole>
+static inline void cal_lstm_batch(int emit_word_id_start, int emit_word_id_end, OpDataType* temp_wx,
+                                  const OpDataType* weight_peephole,
+                                  OpDataType* hout, OpDataType* inner_cell, const BIT* b_i, const BIT* b_f, const BIT* b_c,
+                                  const BIT* b_o,
+                                  ActiveType gate_activity, ActiveType cell_activity, ActiveType candi_activity, int hidden_size) {
     const int i_offset = 0;
     const int f_offset = 1;
     const int c_offset = 2;
@@ -78,6 +71,7 @@ static inline void cal_lstm_batch(int emit_word_id_start,int emit_word_id_end,Op
     BIT(*gate_act)(const BIT) = Activate_inner<BIT>(gate_activity);
     BIT(*cell_act)(const BIT) = Activate_inner<BIT>(cell_activity);
     BIT(*candi_act)(const BIT) = Activate_inner<BIT>(candi_activity);
+
     for (int emit_word_id = emit_word_id_start; emit_word_id < emit_word_id_end; emit_word_id++) {
         int emit_wx_offset = emit_word_id * hidden_size * 4;
         const BIT* w_x_i = (BIT*)(temp_wx + i_offset * hidden_size + emit_wx_offset);
@@ -94,9 +88,10 @@ static inline void cal_lstm_batch(int emit_word_id_start,int emit_word_id_end,Op
         BIT* gate_h_p = (BIT*)(hout + emit_id_offset * hidden_size);
         BIT* gate_c_p = (BIT*)(inner_cell + emit_id_offset * hidden_size);
 
-        if(with_peephole) {
+        if (with_peephole) {
+#pragma omp parallel for schedule(static)
             for (int frame_id = 0; frame_id < hidden_size / (sizeof(BIT) / sizeof(OpDataType));
-                 ++frame_id) {
+                    ++frame_id) {
                 BIT c_1 = gate_c_p[frame_id];
                 BIT gate_i = gate_act(w_x_i[frame_id] + b_i[frame_id] + w_ci[frame_id] * c_1);
                 BIT gate_f = gate_act(w_x_f[frame_id] + b_f[frame_id] + w_cf[frame_id] * c_1);
@@ -107,9 +102,10 @@ static inline void cal_lstm_batch(int emit_word_id_start,int emit_word_id_end,Op
                 gate_h_p[frame_id] = gate_o * candi_act(gate_c);
 
             }
-        }else{
+        } else {
+#pragma omp parallel for schedule(static)
             for (int frame_id = 0; frame_id < hidden_size / (sizeof(BIT) / sizeof(OpDataType));
-                 ++frame_id) {
+                    ++frame_id) {
                 BIT c_1 = gate_c_p[frame_id];
                 BIT gate_i = gate_act(w_x_i[frame_id]  + b_i[frame_id]);
                 BIT gate_f = gate_act(w_x_f[frame_id]  + b_f[frame_id]);
@@ -124,11 +120,11 @@ static inline void cal_lstm_batch(int emit_word_id_start,int emit_word_id_end,Op
 }
 
 template<>
-template <typename BIT,bool with_peephole>
+template <typename BIT, bool with_peephole>
 SaberStatus SaberLstm<X86, AK_FLOAT>::
 avx_dispatch(const std::vector<Tensor<X86>*>& inputs,
-                           std::vector<Tensor<X86>*>& outputs,
-                           LstmParam<X86>& param) {
+             std::vector<Tensor<X86>*>& outputs,
+             LstmParam<X86>& param) {
 
     int loop_div = sizeof(BIT) / sizeof(OpDataType);
     const OpDataType* weight_h = (const OpDataType*)_aligned_weights_h2h.data();
@@ -139,29 +135,37 @@ avx_dispatch(const std::vector<Tensor<X86>*>& inputs,
     BIT(*cell_act)(const BIT) = Activate_inner<BIT>(param.cell_activity);
     BIT(*candi_act)(const BIT) = Activate_inner<BIT>(param.candidate_activity);
 
-    std::vector<int> offset_vec = inputs[0]->get_seq_offset()[inputs[0]->get_seq_offset().size()-1];
-    std::vector<int> length_vec(offset_vec.size() - 1);
+    std::vector<int> offset_vec = inputs[0]->get_seq_offset()[inputs[0]->get_seq_offset().size() - 1];
+    //    std::vector<int> length_vec(offset_vec.size() - 1);
     int batch_size = offset_vec.size() - 1;
-    int seqsum = 0;
-    int max_seq_len = 0;
-    bool is_hw2seq = offset_vec.size() > 2;
-    int word_sum = is_hw2seq ? offset_vec[offset_vec.size() - 1] : inputs[0]->channel();
+    int seqsum = inputs[0]->num();
+
+    if (param.skip_num > 1) {
+        CHECK_EQ(offset_vec.size() - 1, 1) << "only support batch = 1 in skip_mode";
+        int word_sum = inputs[0]->num();
+        CHECK_EQ(word_sum % param.skip_num, 0);
+        batch_size = param.skip_num;
+    }
+
+    //    int max_seq_len = 0;
+    //    bool is_hw2seq = offset_vec.size() > 2;
+    //    int word_sum = is_hw2seq ? offset_vec[offset_vec.size() - 1] : inputs[0]->channel();
     utils::AlignedUtils aligned_utils;
     const OpDataType* h_init = nullptr;
     const OpDataType* cell_init = nullptr;
 
     const OpDataType* x = (const OpDataType*)inputs[0]->data();
-    OpDataType* out =  (OpDataType*)outputs[0]->mutable_data();
+    OpDataType* out = (OpDataType*)outputs[0]->mutable_data();
     bool is_reverse = param.is_reverse;
 
     if (inputs.size() > 1) {
         h_init = (const OpDataType*)inputs[1]->data();
-        utils::try_expand_tensor(_aligned_init_hidden,batch_size * _aligned_hidden_size);
+        utils::try_expand_tensor(_aligned_init_hidden, batch_size * _aligned_hidden_size);
         aligned_utils.aligned_last_dim(h_init, (OpDataType*)_aligned_init_hidden.mutable_data(),
                                        batch_size * _hidden_size, _hidden_size, _aligned_hidden_size);
         h_init = (const OpDataType*)_aligned_init_hidden.data();
     } else if (param.init_hidden() != nullptr) {
-        h_init =(const OpDataType*) param.init_hidden()->data();
+        h_init = (const OpDataType*) param.init_hidden()->data();
         //FIXME:is it correct?
     } else {
         //        _aligned_init_hidden.try_expand_tensor(batch_size * _aligned_hidden_size);
@@ -173,38 +177,43 @@ avx_dispatch(const std::vector<Tensor<X86>*>& inputs,
     std::vector<int> emit_offset_vec;
     int emit_length = 0;
     utils::SeqSortedseqTranseUtil transe_util(is_reverse);
-    bool transform = transe_util.get_sorted_map(offset_vec, emit_offset_vec, emit_length);
+    bool transform = transe_util.get_sorted_map(offset_vec, emit_offset_vec, emit_length,
+                     param.skip_num);
 
     OpDataType* inner_h_out = out;
     OpDataType* inner_cell = nullptr;
     const OpDataType* inner_x = x;
     const OpDataType* inner_h_init = h_init;
 
-    for (int i = 0; i < offset_vec.size() - 1; ++i) {
-        int len = offset_vec[i + 1] - offset_vec[i];
-        length_vec[i] = len;
-        max_seq_len = max_seq_len > len ? max_seq_len : len;
-        seqsum += len;
-    }
+    //    for (int i = 0; i < offset_vec.size() - 1; ++i) {
+    //        int len = offset_vec[i + 1] - offset_vec[i];
+    //        length_vec[i] = len;
+    //        max_seq_len = max_seq_len > len ? max_seq_len : len;
+    //        seqsum += len;
+    //    }
 
-    utils::try_expand_tensor(_temp_wx,seqsum * 4 * _aligned_hidden_size);
-    utils::try_expand_tensor(_temp_wh,batch_size * 4 * _aligned_hidden_size);
-    utils::try_expand_tensor(_temp_out,seqsum * _aligned_hidden_size * param.num_direction);
-    utils::try_expand_tensor(_temp_cell,batch_size * _aligned_hidden_size);
+    //    LOG(INFO)<<"seqsum = "<<seqsum<<", "<<batch_size;
+    utils::try_expand_tensor(_temp_wx, seqsum * 4 * _aligned_hidden_size);
+    utils::try_expand_tensor(_temp_wh, batch_size * 4 * _aligned_hidden_size);
+    utils::try_expand_tensor(_temp_out, seqsum * _aligned_hidden_size * param.num_direction);
+    utils::try_expand_tensor(_temp_cell, batch_size * _aligned_hidden_size);
 
     if (transform) {
-        utils::try_expand_tensor(_temp_x,seqsum * _word_size);
+        utils::try_expand_tensor(_temp_x, seqsum * _word_size);
         inner_h_out = (OpDataType*)_temp_out.mutable_data();
         inner_x = (OpDataType*)_temp_x.mutable_data();
         transe_util.seq_2_sorted_seq(x, (OpDataType*)inner_x, _word_size);
 
         if (inner_h_init != nullptr) {
-            utils::try_expand_tensor(_temp_h_init,batch_size * _aligned_hidden_size);
-            transe_util.hidden_2_sorted_hidden(inner_h_init, (OpDataType*)_temp_h_init.mutable_data(), _aligned_hidden_size);
+            utils::try_expand_tensor(_temp_h_init, batch_size * _aligned_hidden_size);
+            transe_util.hidden_2_sorted_hidden(inner_h_init, (OpDataType*)_temp_h_init.mutable_data(),
+                                               _aligned_hidden_size);
             inner_h_init = (const OpDataType*)_temp_h_init.data();
         }
     } else if (_hidden_size != _aligned_hidden_size) {
         inner_h_out = (OpDataType*)_temp_out.mutable_data();
+    } else {
+        DLOG(INFO) << "not need trans or align";
     }
 
     inner_cell = (OpDataType*)_temp_cell.mutable_data();
@@ -213,8 +222,9 @@ avx_dispatch(const std::vector<Tensor<X86>*>& inputs,
     OpDataType* temp_wh = (OpDataType*)_temp_wh.mutable_data();
     OpDataType* temp_wx = (OpDataType*)_temp_wx.mutable_data();
 
-    gemm(false, false, seqsum, 4 * _aligned_hidden_size, _word_size, 1.f, inner_x, weight_w, 0.f,
-         temp_wx);
+    _wx_gemm_fp32.dispatch(1.f,0.f,seqsum, inner_x, weight_w,temp_wx);
+//    gemm(false, false, seqsum, 4 * _aligned_hidden_size, _word_size, 1.f, inner_x, weight_w, 0.f,
+//         temp_wx);
 
     const int i_offset = 0;
     const int f_offset = 1;
@@ -224,6 +234,7 @@ avx_dispatch(const std::vector<Tensor<X86>*>& inputs,
     const BIT* b_f = (BIT*)(bias + f_offset * _aligned_hidden_size);
     const BIT* b_c = (BIT*)(bias + c_offset * _aligned_hidden_size);
     const BIT* b_o = (BIT*)(bias + o_offset * _aligned_hidden_size);
+
 
     for (int word_id = 0; word_id < emit_length; word_id++) {
         int real_word_id = word_id;
@@ -239,13 +250,15 @@ avx_dispatch(const std::vector<Tensor<X86>*>& inputs,
         int emit_word_length = emit_word_id_end - emit_word_id_start;
         const float* hin;
 
+        //        LOG(INFO)<<"emit_word_id_start "<<emit_word_id_start<<","<<emit_word_length;
         if (word_id == 0 && inner_h_init == nullptr) {
             float* hout = nullptr;
             hout = emit_offset_vec[real_word_id] * _aligned_hidden_size + inner_h_out;
 
-            cal_first_lstm_nullhidden<BIT,OpDataType,with_peephole>(emit_word_id_start,emit_word_id_end,temp_wx,weight_peephole,
-                    hout,inner_cell,b_i,b_f,b_c,b_o,
-             param.gate_activity,  param.cell_activity,  param.candidate_activity, _aligned_hidden_size);
+            cal_first_lstm_nullhidden<BIT, OpDataType, with_peephole>(emit_word_id_start, emit_word_id_end,
+                    temp_wx, weight_peephole,
+                    hout, inner_cell, b_i, b_f, b_c, b_o,
+                    param.gate_activity,  param.cell_activity,  param.candidate_activity, _aligned_hidden_size);
 
             continue;
 
@@ -259,22 +272,28 @@ avx_dispatch(const std::vector<Tensor<X86>*>& inputs,
         hout = emit_offset_vec[real_word_id] * _aligned_hidden_size + inner_h_out;
 
         //wh
-        gemm(false, false, emit_word_length, 4 * _aligned_hidden_size, _aligned_hidden_size, 1.0, hin,
-             weight_h,
-             1.f, temp_wx+emit_word_id_start*4*_aligned_hidden_size);
 
-        cal_lstm_batch<BIT,OpDataType,with_peephole>(emit_word_id_start,emit_word_id_end,temp_wx,weight_peephole,
-                       hout,inner_cell,b_i,b_f,b_c,b_o,
-                       param.gate_activity,  param.cell_activity,  param.candidate_activity, _aligned_hidden_size);
+//        gemm(false, false, emit_word_length, 4 * _aligned_hidden_size, _aligned_hidden_size, 1.0, hin,
+//             weight_h,
+//             1.f, temp_wx + emit_word_id_start * 4 * _aligned_hidden_size);
+
+        _wh_gemm_fp32.dispatch(1.f,1.f,emit_word_length,hin, weight_h,temp_wx + emit_word_id_start * 4 * _aligned_hidden_size);
+
+        cal_lstm_batch<BIT, OpDataType, with_peephole>(emit_word_id_start, emit_word_id_end, temp_wx,
+                weight_peephole,
+                hout, inner_cell, b_i, b_f, b_c, b_o,
+                param.gate_activity,  param.cell_activity,  param.candidate_activity, _aligned_hidden_size);
     }
 
 
     if (transform) {
         transe_util.sorted_seq_2_seq(inner_h_out, out, _hidden_size, _aligned_hidden_size);
     } else if (_hidden_size != _aligned_hidden_size) {
-        aligned_utils.unaligned_last_dim((OpDataType*)_temp_out.data(), out, seqsum * _hidden_size, _hidden_size,
+        aligned_utils.unaligned_last_dim((OpDataType*)_temp_out.data(), out, seqsum * _hidden_size,
+                                         _hidden_size,
                                          _aligned_hidden_size);
     }
+
     return SaberSuccess;
 }
 
@@ -290,14 +309,66 @@ dispatch(const std::vector<Tensor<X86>*>& inputs,
     CHECK_EQ(param.num_layers, 1) << "only support param.num_layers==1";
 
     if (param.with_peephole) {
-        avx_dispatch<SABER_X86_TYPE,true>(inputs, outputs, param);
+        avx_dispatch<SABER_X86_TYPE, true>(inputs, outputs, param);
     } else {
-        avx_dispatch<SABER_X86_TYPE,false>(inputs, outputs, param);
+        avx_dispatch<SABER_X86_TYPE, false>(inputs, outputs, param);
     }
+
     return SaberSuccess;
 }
 
 DEFINE_OP_TEMPLATE(SaberLstm, LstmParam, X86, AK_HALF);
-DEFINE_OP_TEMPLATE(SaberLstm, LstmParam, X86, AK_INT8);
+
+template<>
+SaberStatus SaberLstm<X86, AK_INT8>::
+dispatch(const std::vector<Tensor<X86>*>& inputs,
+         std::vector<Tensor<X86>*>& outputs,
+         LstmParam<X86>& param) {
+    CHECK_EQ(inputs[0]->get_dtype(), AK_INT8);
+    auto seq_offset = inputs[0]->get_seq_offset()[0];
+    int seq_num = seq_offset.size();
+
+    //    _temp_wx
+    for (int seq_id = 0; seq_id < seq_num; seq_id++) {
+        int word_id_start = seq_offset[seq_id];
+        int word_id_end = seq_offset[seq_id + 1];
+
+        for (int word_id = word_id_start; word_id < word_id_end; word_id++) {
+
+        }
+    }
+
+    LOG(FATAL)<<"not impl";
+    return SaberSuccess;
+};
+
+template<>
+SaberStatus SaberLstm<X86, AK_INT8>::create(const std::vector<Tensor<X86>*>& inputs,
+        std::vector<Tensor<X86>*>& outputs,
+        LstmParam<X86>& param,
+        Context<X86>& ctx) {
+    LOG(FATAL)<<"not impl";
+    return SaberSuccess;
+};
+
+
+template<>
+SaberStatus SaberLstm<X86, AK_INT8>::init(const std::vector<Tensor<X86>*>& inputs,
+        std::vector<Tensor<X86>*>& outputs, LstmParam<X86>& param, Context<X86>& ctx) {
+    if (param.with_peephole) {
+        _hidden_size = param.bias()->valid_size() / 7;
+    } else {
+        _hidden_size = param.bias()->valid_size() / 4;
+    }
+
+    _word_size = (param.weight()->valid_size() - _hidden_size * _hidden_size * 4) / _hidden_size / 4;
+
+    CHECK_EQ(_hidden_size % 16, 0);
+    CHECK_EQ(_word_size % 16, 0);
+    LOG(FATAL)<<"not impl";
+    return SaberSuccess;
+};
+
+
 }
 }

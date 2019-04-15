@@ -2,6 +2,8 @@
 # Copyright (c) 2017, Cuichaowen. All rights reserved.
 # -*- coding: utf-8 -*-
 
+import argparse
+import enum
 import os
 import sys
 import subprocess
@@ -19,9 +21,12 @@ class Configuration:
     Parse the config.yaml file.
     Configuration holds all the params defined in configfile.
     """
-    def __init__(self, argv, config_file_path=ConfigFilePath):
+    def __init__(self, args, config_file_path=ConfigFilePath):
         data = load(open(config_file_path, 'r').read())
+        self.fill_config_from_args(args, data)
+
         # parse Options from config file.
+        self.DebugConfig = data['DEBUG'] if 'DEBUG' in data else None
         self.framework = data['OPTIONS']['Framework']
         self.SavePath = data['OPTIONS']['SavePath'] \
                 if data['OPTIONS']['SavePath'][-1] == '/' \
@@ -38,89 +43,86 @@ class Configuration:
         self.logger_dict = data['OPTIONS']['LOGGER']
         self.framework_config_dict = data['TARGET'][self.framework]
         self.check_protobuf_version()
-        if len(argv) > 1:
-            self.config_from_cmd(argv)
         if 'ProtoPaths' in data['TARGET'][self.framework].keys():
             proto_list = data['TARGET'][self.framework]['ProtoPaths']
             self.__refresh_pbs(proto_list)
         self.generate_pbs_of_anakin()
 
-    def config_from_cmd(self, argv):
+    def fill_config_from_args(self, args, data):
+        """Fill config from args
         """
-        Read configuration information from the command line.
-        """
-        cmd = {
-            'CAFFE': {
-                'proto': ['ProtoPaths', list()], 
-                'prototxt': ['PrototxtPath', str()],
-                'caffemodel': ['ModelPath', str()],
-                },
-            'FLUID': {
-                'modelpath': ['ModelPath', str()],
-                'type': ['NetType', str()],
-            },
-        }
-        err_note = '\nUsage1: python ./converter.py ' \
-                    + 'CAFFE --proto=/path/to/filename1.proto ' \
-                    + '--prototxt=/path/to/filename.prototxt ' \
-                    + '--caffemodel=/path/to/filename.caffemodel\n' \
-                    + 'Usage2: python ./converter.py ' \
-                    + 'FLUID --modelpath=/model/path/ --type=OCR'
-        def splitter(arg, key_delim='--', val_delim='='):
-            """
-            Extract the valid content of the parameter string to form a [key, val] list.
-            """
-            if (key_delim in arg) and (val_delim in arg):
-                element = arg.split(key_delim)[1].split(val_delim)
-                return element
-            else:
-                raise NameError(err_note)
-        def filler(arg, dic, val_idx=1):
-            """
-            Extract the valid content of the parameter string to form a [key, val] list.
-            """
-            element = splitter(arg)
-            key = element[0]
-            val = element[1]
-            assert key in dic.keys(), \
-            "Param %s in cmd is wrong." % (key)
-            if type(dic[key][val_idx]) == str: dic[key][val_idx] = val
-            elif type(dic[key][val_idx]) == list: dic[key][val_idx].append(val)
-        def null_scanner(dic, val_idx=1):
-            """
-            Make sure the parameters are complete.
-            """
-            for key in dic:
-                assert (bool(dic[key][val_idx])), 'Key [%s] should not be null.' % (key)
-        def arg_transmit(dic, target, key_idx=0, val_idx=1):
-            """
-            Match the command line to yaml.
-            """
-            if target == 'CAFFE':
-                self.ResultName = dic['caffemodel'][val_idx].split("/")[-1].split('.caffemodel')[0]
-            elif target == 'FLUID':
-                if dic['modelpath'][-1] == '/':
-                    self.ResultName = dic['modelpath'][val_idx].split("/")[-2]
-                else:
-                    self.ResultName = dic['modelpath'][val_idx].split("/")[-1]
-            else:
-                raise NameError(err_note)
-            for cmd_key in cmd[target].keys():
-                key = dic[cmd_key][key_idx]
-                val = dic[cmd_key][val_idx]
-                self.framework_config_dict[key] = val
-            self.LaunchBoard = False
-        target = argv[1]
-        assert target in cmd.keys(), "Framework [%s] is not yet supported." % (target)
-        for arg in argv[2:]:
-            filler(arg, cmd[target])
-        null_scanner(cmd[target])
-        arg_transmit(cmd[target], target)
+        # set common args
+        if args.debug is not None:
+            data['DEBUG'] = args.debug
+        if args.framework is not None:
+            data['OPTIONS']['Framework'] = str(args.framework)
+        if args.save_path is not None:
+            data['OPTIONS']['SavePath'] = args.save_path
+        if args.result_name is not None:
+            data['OPTIONS']['ResultName'] = args.result_name
+        if args.open_launch_board is not None:
+            data['OPTIONS']['Config']['LaunchBoard'] = True if args.open_launch_board != 0 else False
+        if args.board_server_ip is not None:
+            data['OPTIONS']['Config']['Server']['ip'] = args.board_server_ip
+        if args.board_server_port is not None:
+            data['OPTIONS']['Config']['Server']['port'] = args.board_server_port
+        if args.optimized_graph_enable is not None:
+            data['OPTIONS']['Config']['OptimizedGraph']['enable'] = True if args.optimized_graph_enable != 0 else False
+        if args.optimized_graph_path is not None:
+            data['OPTIONS']['Config']['OptimizedGraph']['path'] = args.optimized_graph_path
+        if args.log_path is not None:
+            data['OPTIONS']['LOGGER']['LogToPath'] = args.log_path
+        if args.log_with_color is not None:
+            data['OPTIONS']['LOGGER']['WithColor'] = args.log_with_color
+
+        # set framwork specific args
+        # caffe
+        if args.caffe_proto_paths is not None:
+            data['TARGET']['CAFFE']['ProtoPaths'] = args.caffe_proto_paths
+        if args.caffe_proto_txt_path is not None:
+            data['TARGET']['CAFFE']['PrototxtPath'] = args.caffe_proto_txt_path
+        if args.caffe_model_path is not None:
+            data['TARGET']['CAFFE']['ModelPath'] = args.caffe_model_path
+        if args.caffe_remark is not None:
+            data['TARGET']['CAFFE']['Remark'] = args.caffe_remark
+
+        # fluid
+        if args.fluid_debug is not None:
+            data['TARGET']['FLUID']['Debug'] = args.fluid_debug
+        if args.fluid_model_path is not None:
+            data['TARGET']['FLUID']['ModelPath'] = args.fluid_model_path
+        if args.fluid_net_type is not None:
+            data['TARGET']['FLUID']['NetType'] = args.fluid_net_type
+
+        # lego
+        if args.lego_proto_path is not None:
+            data['TARGET']['LEGO']['ProtoPath'] = args.lego_proto_path
+        if args.lego_prototxt_path is not None:
+            data['TARGET']['LEGO']['PrototxtPath'] = args.lego_prototxt_path
+        if args.lego_model_path is not None:
+            data['TARGET']['LEGO']['ModelPath'] = args.lego_model_path
+
+        # tensorflow
+        if args.tensorflow_model_path is not None:
+            data['TARGET']['TENSORFLOW']['ModelPath'] = args.tensorflow_model_path
+        if args.tensorflow_outputs is not None:
+            data['TARGET']['TENSORFLOW']['OutPuts'] = args.tensorflow_outputs
+
+        # onnx
+        if args.onnx_model_path is not None:
+            data['TARGET']['ONNX']['ModelPath'] = args.onnx_model_path
+
+        # houyi
+        if args.houyi_model_path is not None:
+            data['TARGET']['HOUYI']['ModelPath'] = args.houyi_model_path
+        if args.houyi_weights_path is not None:
+            data['TARGET']['HOUYI']['WeightsPath'] = args.houyi_weights_path
 
     def check_protobuf_version(self):
         """
         Check if the pip-protoc version is equal to sys-protoc version.
         """
+        assert sys.version_info[0] == 2
         for path in sys.path:
             module_path = os.path.join(path, 'google', 'protobuf', '__init__.py')
             if os.path.exists(module_path):
@@ -177,6 +179,7 @@ class Configuration:
         "The ProtoPaths format maybe incorrect, please check if there is any HORIZONTAL LINE."
         for pFile in proto_list:
             assert os.path.exists(pFile), "%s does not exist.\n" % (pFile)
-            subprocess.check_call(['protoc', '-I', 
+            subprocess.check_call(['protoc', '-I',
                                    os.path.dirname(pFile) + "/",
                                    '--python_out', os.path.dirname(default_save_path) + "/", pFile])
+

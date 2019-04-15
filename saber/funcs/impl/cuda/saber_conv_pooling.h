@@ -20,8 +20,9 @@
 #include "saber/funcs/impl/impl_conv_pooling.h"
 #include "saber/funcs/impl/cuda/saber_conv.h"
 #include "saber/funcs/impl/cuda/vender_pooling.h"
-#include "sass_funcs.h"
+#include "saber/funcs/impl/cuda/saber_pooling.h"
 #include "saber/funcs/funcs_utils.h"
+#include "sass_funcs.h"
 
 namespace anakin {
 
@@ -67,6 +68,7 @@ private:
     int _kernel_height{0};
     int _kernel_width{0};
     VenderPooling<NV, OpDtype> _pool;
+    SaberPooling<NV, OpDtype> _saber_pool;
     SaberConv2D<NV, OpDtype> _conv;
     Shape _inner_shape;
     Tensor<NV> _inner_tensor;

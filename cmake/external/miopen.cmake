@@ -28,8 +28,8 @@ message(STATUS "Scanning external modules ${Green}MIOPEN${ColourReset} ...")
 
 ExternalProject_Add(
     ${MIOPEN_PROJECT}_customize
-    GIT_REPOSITORY        "ssh://git@icode.baidu.com:8235/baidu/third-party/miopen"
-    GIT_TAG               "cbd4e7dbad0599c7327cb43888476ab8d966f285"
+    GIT_REPOSITORY        "xxx"
+    GIT_TAG               "xxx"
     PREFIX                ${ANAKIN_TEMP_THIRD_PARTY_PATH}/miopen/customize_miopen_file
     SOURCE_DIR            ${ANAKIN_THIRD_PARTY_PATH}/miopen/customize_miopen_file
     CONFIGURE_COMMAND     ""
@@ -40,8 +40,8 @@ ExternalProject_Add(
 ExternalProject_Add(
     ${MIOPEN_PROJECT}
     DEPENDS               ${MIOPEN_PROJECT}_customize
-    GIT_REPOSITORY        "ssh://git@icode.baidu.com:8235/baidu/third-party/miopen"
-    GIT_TAG               1.4.2
+    GIT_REPOSITORY        "xxx"
+    GIT_TAG               xxx
     PREFIX                ${MIOPEN_PREFIX_DIR}
     CMAKE_ARGS            -DMIOPEN_BACKEND=OpenCL -DCMAKE_INSTALL_PREFIX=${MIOPEN_INSTALL_ROOT} -DCMAKE_INSTALL_LIBDIR=lib -DBOOST_ROOT=${BOOST_ROOT}
     #LOG_DOWNLOAD          1

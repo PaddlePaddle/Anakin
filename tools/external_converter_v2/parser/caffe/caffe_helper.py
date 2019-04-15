@@ -2,9 +2,89 @@
 # Copyright (c) 2017, Cuichaowen. All rights reserved.
 # -*- coding: utf-8 -*-
 
+import copy
+import math
+from .. import graph_io
 from ..utils import *
 from ..pbs import *
+from ..logger import logger, verbose
 
+
+def FillerCaffeBlob(filler, raw_blob):
+    """caffe filler effective
+    """
+    filler_blob = copy.deepcopy(raw_blob)
+
+    if filler.type == 'constant':
+        filler_blob.data[:] = [filler.value, ] * len(raw_blob.data)
+    else:
+        logger(verbose.WARNING).feed('filler.type={} not support yet'.format(filler.type))
+        # TODO handle
+
+    return filler_blob
+
+
+def MergeCaffeLayer(rlayer, mlayer):
+    """merge caffe caffemodel layer(mlayer) in prototxt layer(rlayer)
+    """
+    # if no mlayer, give rlayer directly
+    if mlayer is None:
+        return rlayer
+
+    assert rlayer.name == mlayer.name, 'assert rlayer.name({0}) == mlayer.name({1})'.format(rlayer.name, mlayer.name)
+
+    layer = copy.deepcopy(rlayer)
+
+    # merge rlayer & mlayer blobs
+    if len(layer.blobs) == 0:
+        layer.blobs.extend(mlayer.blobs)
+
+    # if layer.type == 'BatchNorm'
+    if layer.type == 'BatchNorm':
+        layer.batch_norm_param.MergeFrom(mlayer.batch_norm_param)
+
+    return layer
+
+
+def GetTensorsFromCaffeLayer(layer):
+    """(caffe.LayerParameter or caffe.V1LayerParameter) => anakin graph_io.TensorProtoIO
+    """
+    # filler blob first
+    if layer.type == 'PReLU':
+        if layer.prelu_param.HasField('filler') \
+                and layer.blobs[0].num == 0 \
+                and layer.prelu_param.channel_shared:
+            # 1. filler only when layer.blobs[0] empty(layer.blobs[0].num == 0)
+            # 2. PReLU must filler a [1, 1, 1, 1, ] blob
+            layer.blobs[0].shape.dim[:] = [1, 1, 1, 1,]
+            (layer.blobs[0].num,
+                layer.blobs[0].channels,
+                layer.blobs[0].height,
+                layer.blobs[0].width) = layer.blobs[0].shape.dim 
+            layer.blobs[0].data[:] = [.0, ]
+            layer.blobs[0].CopyFrom(
+                FillerCaffeBlob(layer.prelu_param.filler, layer.blobs[0]))
+
+    # layer.blobs => tensors
+    tensors = []
+    for blob in layer.blobs:
+        tensor = graph_io.TensorProtoIO()
+        if len(blob.shape.dim):
+            n, c, h, w = map(int, [1] * (4 - len(blob.shape.dim)) + list(blob.shape.dim))
+            if len(blob.shape.dim) == 1:
+                c = w
+                w = 1
+        else:
+            n, c, h, w = blob.num, blob.channels, blob.height, blob.width
+        tensor.set_data_type(graph_io.FLOAT) # default float
+        if layer.type == "Deconvolution": # deconv is different in caffe
+            tensor.set_shape([c, n, h, w])
+        else:
+            tensor.set_shape([n, c, h, w]) # set shape (n c h w)
+        tensor.set_data(blob.data, "float")
+        tensors.append(tensor)
+
+    return tensors
 
 def SplitBlobName(layer_name, blob_name, blob_idx, split_idx):
     """

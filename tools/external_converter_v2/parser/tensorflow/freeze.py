@@ -45,6 +45,20 @@ def freeze_graph(model_folder, output_name):
     with tf.Session() as sess:
         saver.restore(sess, input_checkpoint)
 
+        #fix batch norm nodes
+        for node in input_graph_def.node:
+            if node.op == 'RefSwitch':
+                node.op = 'Switch'
+                for index in range(len(node.input)):
+                    if 'moving_' in node.input[index] and 'biased' in node.input[index]:
+                        node.input[index] = node.input[index] + '/read'
+            elif node.op == 'AssignSub':
+                node.op = 'Sub'
+                if 'use_locking' in node.attr: del node.attr['use_locking']
+            elif node.op == 'AssignAdd':
+                node.op = 'Add'
+                if 'use_locking' in node.attr: del node.attr['use_locking']
+
         # We use a built-in TF helper to export variables to constant
         output_graph_def = graph_util.convert_variables_to_constants(
             sess,

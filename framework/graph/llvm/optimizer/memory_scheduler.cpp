@@ -1,10 +1,25 @@
 #include "framework/graph/llvm/optimizer/memory_scheduler.h"
+#include <stack>
 
 namespace anakin {
 
 namespace graph {
 
 void IOBlockResource::reg_self_lock_tree(io& io_in, std::vector<io>& io_out) {
+    // When traversing the graph in BFS, the sharing relationship
+    // needs to be completely recorded in the same tree,
+    // otherwise the release order may be error.
+    for (auto it = _self_lock_next_tree.begin(); it != _self_lock_next_tree.end(); it++) {
+        auto& io_vec = it->second;
+        for (auto io_out_existed : io_vec) {
+            if (io_in.name == io_out_existed.name) {
+                auto io_out_new = _self_lock_next_tree[it->first];
+                io_out_new.insert(io_out_new.end(), io_out.begin(), io_out.end());
+                _self_lock_next_tree[io_in] = io_out_new;
+                return;
+            }
+        }
+    }
     if (_self_lock_next_tree.count(io_in) <= 0) {
         _self_lock_next_tree[io_in] = io_out;
     } else {
@@ -29,7 +44,7 @@ void IOBlockResource::rm_self_lock_tree(io& io_in) {
     }
 }
 
-void IOBlockResource::free_self(std::vector<io>& self_shared_edges, VGraph* vgraph_p) {
+void IOBlockResource::free_self(std::vector<io>& self_shared_edges, VGraph* vgraph_p, MemoryScheduler* mem_scher = nullptr) {
     for (auto& io : self_shared_edges) {
         rm_self_lock_tree(io);
     }
@@ -40,7 +55,7 @@ void IOBlockResource::free_self(std::vector<io>& self_shared_edges, VGraph* vgra
         } else {
             if (_self_lock_next_tree[*it].size() == 0) {
                 //_free.push(*it);
-                push_free(*it, vgraph_p);
+                push_free(*it, vgraph_p, mem_scher);
                 it = _lock.erase(it);
             } else {
                 ++it;
@@ -89,7 +104,7 @@ bool IOBlockResource::is_same_target(io& one, io& two, VGraph* vgraph_p) {
     return false;
 }
 
-void IOBlockResource::push_free(io& io_free, VGraph* vgraph_p) {
+void IOBlockResource::push_free(io& io_free, VGraph* vgraph_p, MemoryScheduler* mem_scher = nullptr) {
     bool io_free_have_regist = false;
 
     for (auto it = _free.begin(); it != _free.end();) {
@@ -101,18 +116,20 @@ void IOBlockResource::push_free(io& io_free, VGraph* vgraph_p) {
     }
 
     if (!io_free_have_regist) {
-        _free.push_back(io_free);
+        if(!mem_scher->is_target_fixed(io_free)) {
+            _free.push_back(io_free);
+        }
     }
 }
 
-void IOBlockResource::free(std::vector<io>& io_vec, VGraph* vgraph_p) {
+void IOBlockResource::free(std::vector<io>& io_vec, VGraph* vgraph_p, MemoryScheduler* mem_scher = nullptr) {
     for (auto& io_res : io_vec) {
         for (auto it = _lock.begin(); it != _lock.end();) {
             io tmp_io;
             tmp_io.name = io_res.name;
 
             if ((*it) == tmp_io) {
-                push_free(*it, vgraph_p);
+                push_free(*it, vgraph_p, mem_scher);
                 it = _lock.erase(it);
             } else {
                 ++it;
@@ -167,7 +184,107 @@ void IOBlockResource::map_ios_to_vgraph(std::vector<io>& io_vec, VGraph* vgraph_
         vgraph_p->Scanner->BFS_Edge(replace_arc);
     }
 }
+void MemoryScheduler::Run(){
+    //first, we need to get scheduled order of node
+    auto node_order = _vgraph -> get_exec_order();
+    this->_wait_que.clear();
+    for (int i=0; i < node_order.size(); ++i){
+        auto node_arg = (*_vgraph)[node_order[i]];
+        this->wait_push(node_arg);
+    }
 
+    while (!(this->_wait_que.empty())) {
+        // lanuch the acessible op and remove it from wait que.
+        for (auto op_it = this->_wait_que.begin(); op_it != this->_wait_que.end();) {
+            if (callable(*op_it)) {
+                launch(*op_it);
+                op_it = this->_wait_que.erase(op_it);
+            } else {
+                ++op_it;
+            }
+        }
+    }
+    //try to check if graph has wrong order tensor memoryscheduler
+    //**if graph is correct schedulered, this function will do nothing
+    check_memory();
+}
+
+
+//check if memory has wrong order
+/*biref: this function checks if some nodes have wrong compute order to cover tensors wrong
+//if graph has correct compute order, this function do nothing
+//if this function works wrong, the model must be wrong computed though has no this function
+*/
+void MemoryScheduler::check_memory(){
+    auto node_order = _vgraph -> get_exec_order();
+    //for (int i=0; i< node_order.size(); ++i){
+      //  LOG(ERROR) << "check_memory: " << node_order[i];
+    //}
+    auto connect_table = _vgraph -> connect_table();
+
+    //check node input tensor
+    auto check_node = [&](node& node_arg){
+        int i = 0;
+        while (node_order[i] != node_arg.name){
+            if (connect_table[{node_order[i], node_arg.name}] || 
+                connect_table[{node_arg.name, node_order[i]}]){
+                ++i;
+                continue;
+            }
+            auto in_edge_its = _vgraph -> get_in_arc_its(node_arg.name);
+            auto out_edge_its = _vgraph -> get_out_arc_its(node_order[i]);
+            if (in_edge_its.size() == 1 && out_edge_its.size() == 1){
+                auto in_io = in_edge_its[0];
+                auto out_io = out_edge_its[0];
+                
+                //check out_io top is before in_io bottom?
+                int topi = 0;
+                bool top_check = false;
+                while (node_order[topi] != in_io->bottom()){
+                    if (out_io->top() == node_order[topi]){
+                        top_check = true;
+                    }
+                    ++topi;
+                }
+
+                //if order is really wrong, we correct it.
+                if (!top_check && out_io->weight().shared &&
+                    (in_io->weight().name == out_io->weight().share_from ||
+                     in_io->weight().share_from == out_io->weight().share_from)){
+                    out_io->weight().shared = false;
+                    LOG(WARNING) << "checked wrong order: " << in_io->weight().name << 
+                        "-->" << out_io->weight().name;
+                    //set all output edge need self shared
+                    if (check_self_shared_str((*_vgraph)[out_io->top()].opName)){
+                        //for recurisive
+                        std::stack<std::string> connect_nodes;
+                        connect_nodes.push(out_io->top());
+                        while (!connect_nodes.empty()){
+                            auto& curnode = connect_nodes.top();
+                            connect_nodes.pop();
+                            auto out_edges = _vgraph -> get_out_arc_its(curnode);
+                            for (int i = 0; i < out_edges.size(); ++i){
+                                if (check_self_shared_str((*_vgraph)[out_edges[i]->top()].opName)){
+                                    connect_nodes.push(out_edges[i]->top());
+                                }
+                                LOG(ERROR) << "follow correct order: " << out_edges[i]->weight().name;
+                                out_edges[i]->weight().share_from = out_io->weight().name;
+                            }
+
+                        }
+                    }
+                    
+
+                }    
+            }
+            
+            ++i;
+        }
+    };
+
+    _vgraph -> Scanner -> BFS(check_node);
+
+}
 void MemoryScheduler::launch(node& node_arg) {
     this->exe_push(node_arg);
     auto& node_arc_out_its = _vgraph->get_out_arc_its(node_arg.name);
@@ -289,13 +406,13 @@ void MemoryScheduler::launch(node& node_arg) {
         }
 
         if (node_arg.opName != "Output") {
-            _io_block_res.free(io_in, _vgraph);
+            _io_block_res.free(io_in, _vgraph, this);
         }
 
         std::vector<io> self_shared_edges;
 
         if (_need_self_shared.last_op_is_self_shared(_vgraph, node_arg, self_shared_edges)) {
-            _io_block_res.free_self(self_shared_edges, _vgraph);
+            _io_block_res.free_self(self_shared_edges, _vgraph, this);
         }
     }
 }

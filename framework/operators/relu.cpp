@@ -57,6 +57,9 @@ ANAKIN_REGISTER_OP_HELPER(ReLU, ReLUHelper, NV, Precision::FP32);
 INSTANCE_RELU(X86, Precision::FP32);
 template class ReLUHelper<X86, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ReLU, ReLUHelper, X86, Precision::FP32);
+INSTANCE_RELU(X86, Precision::INT8);
+template class ReLUHelper<X86, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(ReLU, ReLUHelper, X86, Precision::INT8);
 #endif
 
 #ifdef USE_ARM_PLACE

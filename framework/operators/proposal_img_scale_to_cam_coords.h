@@ -39,7 +39,7 @@ public:
                             const std::vector<Tensor4dPtr<Ttype> >& ins,
                             std::vector<Tensor4dPtr<Ttype> >& outs) {
         LOG(ERROR) << "Not Impl Yet Operator Proposal_img_scale_to_cam_coords<TargetType:" <<
-                   target_name<Ttype>::value << "), Precision(" << Ptype << ") >";
+                   target_name<Ttype>::value << "), Precision(" << (int)Ptype << ") >";
     }
     friend class ProposalImgScaleToCamCoordsHelper<Ttype, Ptype>;
 };

@@ -38,13 +38,20 @@ Status DeconvReluHelper<Ttype, Ptype>::InitParam() {
     auto filter_num = GET_PARAMETER(int, filter_num);
     auto kernel_size = GET_PARAMETER(PTuple<int>, kernel_size);
     auto axis = GET_PARAMETER(int, axis);
-    
+
 	using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
-    
+    // resize weights scale
+    auto& w = weights.h_tensor();
+    if (w.get_scale().size() == 1){
+        float scale_tmp = w.get_scale()[0];
+        std::vector<float> w_scale(filter_num, scale_tmp);
+        w.set_scale(w_scale);
+    }
+
     // get relu param
     auto alpha = GET_PARAMETER(float, relu_0_alpha);
-    ActivationParam<Ttype> active_param(Active_relu);//, alpha); // TEMP
+    ActivationParam<Ttype> active_param(Active_relu);
 
     if (bias_term) {
         auto bias = GET_PARAMETER(pblock_type, weight_2);
@@ -55,7 +62,7 @@ Status DeconvReluHelper<Ttype, Ptype>::InitParam() {
                                               active_param);
         _param_deconv_relu = conv_param;
     } else {
-        Tensor4d<Ttype>* bias = new Tensor4d<Ttype>();;
+        Tensor4d<Ttype>* bias = new Tensor4d<Ttype>();
         saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
                                               strides[0], strides[1],
                                               dilation_rate[0], dilation_rate[1],
@@ -83,7 +90,7 @@ Status DeconvReluHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
     p = p || ((ins[0]->channel() == _param_deconv_relu.group)
               && (ins[0]->channel() == outs[0]->channel()));
 
-    if (std::is_same<Ttype, X86>::value) {
+    if (std::is_same<Ttype, X86>::value || std::is_same<Ttype, ARM>::value) {
         p = true;
     }
 

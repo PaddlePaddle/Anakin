@@ -186,12 +186,6 @@ SaberStatus SaberConv2DPooling<NV, AK_FLOAT>::trans_weights(Tensor<NV> &target_w
     return SaberSuccess;
 }
 
-template <>
-SaberStatus SaberConv2DPooling<NV, AK_INT8>::trans_weights(Tensor<NV> &target_weights,
-        Tensor<NV> &target_bias, int pad_h, int pad_w, int dilation_h, int dilation_w,
-        int stride_h, int stride_w, int group) {
-    return SaberUnImplError;
-}
 
 template <>
 SaberStatus SaberConv2DPooling<NV, AK_HALF>::trans_weights(Tensor<NV> &target_weights,
@@ -199,10 +193,15 @@ SaberStatus SaberConv2DPooling<NV, AK_HALF>::trans_weights(Tensor<NV> &target_we
         int stride_h, int stride_w, int group) {
     return SaberUnImplError;
 }
-
+template <>
+SaberStatus SaberConv2DPooling<NV, AK_INT8>::trans_weights(Tensor<NV> &target_weights,
+                                                           Tensor<NV> &target_bias, int pad_h, int pad_w, int dilation_h, int dilation_w,
+                                                           int stride_h, int stride_w, int group) {
+    return SaberUnImplError;
+}
 
 template class SaberConv2DPooling<NV, AK_FLOAT>;
-DEFINE_OP_TEMPLATE(SaberConv2DPooling, ConvPoolingParam, NV, AK_HALF);
 DEFINE_OP_TEMPLATE(SaberConv2DPooling, ConvPoolingParam, NV, AK_INT8);
+DEFINE_OP_TEMPLATE(SaberConv2DPooling, ConvPoolingParam, NV, AK_HALF);
 }
 }

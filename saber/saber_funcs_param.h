@@ -23,6 +23,17 @@
 namespace anakin {
 
 namespace saber {
+template <typename Dtype>
+//bool compare_vector(std::vector<Dtype> vec1, std::vector<Dtype> vec2) {
+bool compare_vector(Dtype vec1, Dtype vec2) {
+    bool flag = vec1.size() == vec2.size();
+    if (flag) {
+        for (int i = 0; i < vec1.size(); i++) {
+            flag = flag && (vec1[i] == vec2[i]);
+        }
+    }
+    return flag;
+}
 
 template<typename TargetType>
 struct PreluParam;
@@ -102,11 +113,95 @@ template <typename TargetType>
 struct AffineChannelParam {
     AffineChannelParam() = default;
 
-    AffineChannelParam(const AffineChannelParam<TargetType>& right) {}
+    AffineChannelParam(Tensor<TargetType>* weight_in,
+                       Tensor<TargetType>* bias_in):
+                       weight_tensor(weight_in), bias_tensor(bias_in){}
 
-    AffineChannelParam<TargetType>& operator=(const AffineChannelParam<TargetType>& right) {}
+    AffineChannelParam(const AffineChannelParam<TargetType>& right):
+                       weight_tensor(right.weight_tensor),
+                       bias_tensor(right.bias_tensor) {}
 
-    bool operator==(const AffineChannelParam<TargetType>& right) {return true;}
+    AffineChannelParam<TargetType>& operator=(const AffineChannelParam<TargetType>& right) {
+        weight_tensor = right.weight_tensor;
+        bias_tensor = right.bias_tensor;
+        return *this;
+    }
+
+    bool operator==(const AffineChannelParam<TargetType>& right) {
+        bool flag = true;
+        flag = flag && weight_tensor == right.weight_tensor;
+        flag = flag && bias_tensor == right.bias_tensor;
+        return true;
+    }
+
+    inline const Tensor<TargetType>* weight() {
+        return weight_tensor;
+    }
+
+    inline const Tensor<TargetType>* bias() {
+        return bias_tensor;
+    }
+
+    inline Tensor<TargetType>* mutable_weight() {
+        return weight_tensor;
+    }
+
+    inline Tensor<TargetType>* mutable_bias() {
+        return bias_tensor;
+    }
+
+    inline void set_weight(Tensor<TargetType>* weight_tensor_in) {
+        weight_tensor = weight_tensor_in;
+    }
+private:
+    Tensor<TargetType>* weight_tensor;
+    Tensor<TargetType>* bias_tensor;
+};
+
+template <typename TargetType>
+struct AnchorGeneratorParam {
+    AnchorGeneratorParam() = default;
+    AnchorGeneratorParam(std::vector<float> anchor_sizes_in,
+                         std::vector<float> aspect_ratios_in,
+                         std::vector<float> variances_in,
+                         std::vector<float> stride_in,
+                         float offset_in): anchor_sizes(anchor_sizes_in),
+                         aspect_ratios(aspect_ratios_in),
+                         variances(variances_in),
+                         stride(stride_in),
+                         offset(offset_in) {
+    }
+
+    AnchorGeneratorParam(const AnchorGeneratorParam<TargetType>& right):anchor_sizes(right.anchor_sizes),
+                         aspect_ratios(right.aspect_ratios),
+                         variances(right.variances),
+                         stride(right.stride),
+                         offset(right.offset) {}
+
+    AnchorGeneratorParam<TargetType>& operator=(const AnchorGeneratorParam<TargetType>& right) {
+        anchor_sizes = right.anchor_sizes;
+        aspect_ratios = right.aspect_ratios;
+        variances = right.variances;
+        stride = right.stride;
+        offset = right.offset;
+        return *this;
+    }
+
+    bool operator==(const AnchorGeneratorParam<TargetType>& right) {
+        bool flag = true;
+        flag = flag && compare_vector(anchor_sizes, right.anchor_sizes);
+        flag = flag && compare_vector(aspect_ratios, right.aspect_ratios);
+        flag = flag && compare_vector(variances, right.variances);
+        flag = flag && compare_vector(stride, right.stride);
+        flag = flag && offset == right.offset;
+        return flag;
+    }
+
+    std::vector<float> anchor_sizes;
+    std::vector<float> aspect_ratios;
+    std::vector<float> variances;
+    std::vector<float> stride;
+    float offset;
 };
 
 
@@ -271,6 +366,38 @@ struct BatchnormParam {
 };
 
 template <typename TargetType>
+struct BoxCoderParam {
+    BoxCoderParam() {};
+    BoxCoderParam(Tensor<TargetType>* prior_box_var_in, bool box_normalized_in, int axis_in) :
+            box_normalized(box_normalized_in), axis(axis_in), var_tensor(prior_box_var_in) {}
+    BoxCoderParam(const BoxCoderParam& right):
+            box_normalized(right.box_normalized),
+            axis(right.axis), var_tensor(right.var_tensor) {}
+    BoxCoderParam& operator=(const BoxCoderParam& right) {
+        box_normalized = right.box_normalized;
+        axis = right.axis;
+        var_tensor = right.var_tensor;
+        return *this;
+    }
+    bool operator == (const BoxCoderParam& right) {
+        bool cmp_eq = true;
+        cmp_eq = cmp_eq && (box_normalized == right.box_normalized);
+        cmp_eq = cmp_eq && (axis == right.axis);
+        cmp_eq = cmp_eq && (var_tensor == right.var_tensor);
+        return cmp_eq;
+    }
+
+    Tensor<TargetType>* variance() {
+        return var_tensor;
+    }
+
+public:
+    bool box_normalized{true};
+    int axis{0};
+    Tensor<TargetType>* var_tensor{nullptr};
+};
+
+template <typename TargetType>
 struct CastParam {
     CastParam() = default;
     CastParam(int in_type_in, int out_type_in)
@@ -324,20 +451,20 @@ struct ConvParam {
         , stride_h(-1), stride_w(-1)
         , dilation_h(-1), dilation_w(-1)
         , weight_tensor(NULL), bias_tensor(NULL)
-        , alpha(1.0), beta(0.0),rm(round_mode::nearest)
+        , alpha(1.0), beta(0.0), beta_type(AK_FLOAT), rm(round_mode::nearest)
         , activation_param(ActivationParam<TargetType>()) {}
 
     ConvParam(int group_in, int pad_h_in, int pad_w_in,
               int stride_h_in, int stride_w_in, int dilation_h_, int dilation_w_,
               Tensor<TargetType>* weight, Tensor<TargetType>* bias,
               ActivationParam<TargetType> activation_param_in = ActivationParam<TargetType>(),
-              float alpha_in = 1.0, float beta_in = 0.0,round_mode rm_in = round_mode::nearest)
+              float alpha_in = 1.0, float beta_in = 0.0, DataType beta_type_in = AK_FLOAT, round_mode rm_in = round_mode::nearest)
         : group(group_in), pad_h(pad_h_in), pad_w(pad_w_in)
         , stride_h(stride_h_in), stride_w(stride_w_in)
         , dilation_h(dilation_h_), dilation_w(dilation_w_)
         , weight_tensor(weight), bias_tensor(bias)
         , activation_param(activation_param_in)
-        , alpha(alpha_in), beta(beta_in)
+        , alpha(alpha_in), beta(beta_in), beta_type(beta_type_in)
         , rm(rm_in)
     {}
 
@@ -350,6 +477,7 @@ struct ConvParam {
         , bias_tensor(right.bias_tensor)
         , alpha(right.alpha)
         , beta(right.beta)
+        , beta_type(right.beta_type)
         , rm(right.rm)
         , activation_param(right.activation_param)
     {}
@@ -366,6 +494,7 @@ struct ConvParam {
         bias_tensor = right.bias_tensor;
         alpha = right.alpha;
         beta = right.beta;
+        beta_type = right.beta_type;
         rm = right.rm;
         activation_param = right.activation_param;
         return *this;
@@ -384,6 +513,7 @@ struct ConvParam {
         comp_eq = comp_eq && (bias_tensor == right.bias_tensor);
         comp_eq = comp_eq && (alpha == right.alpha);
         comp_eq = comp_eq && (beta == right.beta);
+        comp_eq = comp_eq && (beta_type == right.beta_type);
         comp_eq = comp_eq && (rm == right.rm);
         comp_eq = comp_eq && (activation_param == right.activation_param);
         return comp_eq;
@@ -418,6 +548,7 @@ struct ConvParam {
     int dilation_w;
     float alpha;
     float beta;
+    DataType beta_type;
     round_mode rm; //add by intel，round mode in converting float to int
     ActivationParam<TargetType> activation_param;
 private:
@@ -458,6 +589,32 @@ struct ConvEltwiseParam {
 
     ConvParam<TargetType> conv_param;
     EltwiseParam<TargetType> eltwise_param;
+};
+
+template <typename TargetType>
+struct Coord2PatchParam {
+    Coord2PatchParam():img_h(128), output_h(1), output_w(72) {}
+    Coord2PatchParam(int in_img_h, int in_output_h, int in_output_w):img_h(in_img_h), \
+        output_h(in_output_h), output_w(in_output_w) {}
+    Coord2PatchParam(const  Coord2PatchParam &right):
+            img_h(right.img_h), output_h(right.output_h), output_w(right.output_w) {}
+    Coord2PatchParam &operator=(const  Coord2PatchParam &right) {
+        img_h = right.img_h;
+        output_h = right.output_h;
+        output_w = right.output_w;
+        return *this;
+    }
+    bool operator==(const Coord2PatchParam &right) {
+        bool flag = img_h == right.img_h;
+        flag = flag && (output_h == right.output_h);
+        flag = flag && (output_w == right.output_w);
+        return flag;
+    }
+
+public:
+    int img_h;
+    int output_h;
+    int output_w;
 };
 
 template <typename TargetType>
@@ -900,11 +1057,14 @@ struct EltwiseParam {
         , coeff()
         , activation_param(ActivationParam<TargetType>())
         , has_eltwise(false) {}
+
     EltwiseParam(EltwiseType operation_in
                  , std::vector<float> coeff_in = std::vector<float>({1, 1})
-                 , ActivationParam<TargetType> activation_param_in = ActivationParam<TargetType>())
+                 , ActivationParam<TargetType> activation_param_in = ActivationParam<TargetType>()
+                 , int axis_in = 0)
         : operation(operation_in)
         , coeff(coeff_in)
+        , axis(axis_in)
         , activation_param(activation_param_in)
         , has_eltwise(true) {
         if ((operation == Eltwise_sum) && (coeff.size() == 0)) {
@@ -915,6 +1075,7 @@ struct EltwiseParam {
     EltwiseParam(const EltwiseParam<TargetType>& right)
         : operation(right.operation)
         , coeff(right.coeff)
+        , axis(right.axis)
         , activation_param(right.activation_param)
         , has_eltwise(right.has_eltwise)
     {}
@@ -928,6 +1089,7 @@ struct EltwiseParam {
 
         activation_param = right.activation_param;
         has_eltwise = right.has_eltwise;
+        axis = right.axis;
         return *this;
     }
     bool operator==(const EltwiseParam<TargetType>& right) {
@@ -936,6 +1098,7 @@ struct EltwiseParam {
         comp_eq = comp_eq && (coeff.size() == right.coeff.size());
         comp_eq = comp_eq && (activation_param == right.activation_param);
         comp_eq = comp_eq && (has_eltwise == right.has_eltwise);
+        comp_eq = comp_eq && (axis == right.axis);
 
         if (!comp_eq) {
             return comp_eq;
@@ -950,6 +1113,7 @@ struct EltwiseParam {
     ActivationParam<TargetType> activation_param;
     EltwiseType operation;
     bool has_eltwise{false};
+    int axis{0};
     std::vector<float> coeff;
 };
 
@@ -1022,37 +1186,17 @@ struct EmptyParam{
 };
 
 template <typename TargetType>
-struct FakeQuantizeAbsMaxParam {
-    FakeQuantizeAbsMaxParam() = default;
-
-    FakeQuantizeAbsMaxParam(int bit_length_in):
-        bit_length(bit_length_in) {}
-
-    FakeQuantizeAbsMaxParam(const FakeQuantizeAbsMaxParam& right):
-        bit_length(right.bit_length) {}
-
-    FakeQuantizeAbsMaxParam& operator=(const FakeQuantizeAbsMaxParam& right) {
-        bit_length = right.bit_length;
-    }
-
-    bool operator==(const FakeQuantizeAbsMaxParam& right) {
-        return bit_length == right.bit_length;
-    }
-
-    int bit_length{8};
-};
-
-template <typename TargetType>
 struct ExpandParam{
     ExpandParam() = default;
     ExpandParam(std::vector<int> expand_times_in) :
         expand_times(expand_times_in) {
     }
-    ExpandParam(const ExpandParam& right) : 
+    ExpandParam(const ExpandParam& right) :
         expand_times(right.expand_times) {
     }
     ExpandParam& operator=(const ExpandParam& right) {
        expand_times = right.expand_times;
+        return *this;
     }
     bool operator==(const ExpandParam& right) {
         bool flag = true;
@@ -1136,6 +1280,55 @@ struct FlattenParam {
     }
     int start_axis{1};
     int end_axis{-1};
+};
+
+template <typename >
+struct GenerateProposalsParam {
+    GenerateProposalsParam() = default;
+
+    GenerateProposalsParam(int pre_nms_top_n_in,
+                           int post_nms_top_n_in,
+                           float nms_thresh_in,
+                           float min_size_in,
+                           float eta_in) :
+        pre_nms_top_n(pre_nms_top_n_in),
+        post_nms_top_n(post_nms_top_n_in),
+        nms_thresh(nms_thresh_in),
+        min_size(min_size_in),
+        eta(eta_in) {}
+
+    GenerateProposalsParam(const GenerateProposalsParam& right):
+        pre_nms_top_n(right.pre_nms_top_n),
+        post_nms_top_n(right.post_nms_top_n),
+        nms_thresh(right.nms_thresh),
+        min_size(right.min_size),
+        eta(right.eta) {
+    }
+
+    GenerateProposalsParam& operator=(const GenerateProposalsParam& right) {
+        pre_nms_top_n = right.pre_nms_top_n;
+        post_nms_top_n = right.post_nms_top_n;
+        nms_thresh = right.nms_thresh;
+        min_size = right.min_size;
+        eta = right.eta;
+        return *this;
+    }
+
+    bool operator==(const GenerateProposalsParam& right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (pre_nms_top_n == right.pre_nms_top_n);
+        comp_eq = comp_eq && (post_nms_top_n == right.post_nms_top_n);
+        comp_eq = comp_eq && (nms_thresh == right.nms_thresh);
+        comp_eq = comp_eq && (min_size == right.min_size);
+        comp_eq = comp_eq && (eta == right.eta);
+        return comp_eq;
+    }
+
+    int pre_nms_top_n{1};
+    int post_nms_top_n{1};
+    float nms_thresh{0.f};
+    float min_size{1.f};
+    float eta{0.f};
 };
 
 /**
@@ -1427,7 +1620,9 @@ struct LstmParam {
         , candidate_activity(Active_tanh)
         , with_peephole(true)
         , skip_input(false)
-
+        , skip_num(1)
+        , project_dim(-1)
+        , cell_dim(-1)
     {}
 
     LstmParam(opTensor* weight_in, opTensor* bias_in,
@@ -1441,7 +1636,11 @@ struct LstmParam {
               bool is_reverse_in = false,
               float dropout_param_in = 1.f,
               int num_direction_in = 1,
-              int numLayers_in = 1)
+              int numLayers_in = 1,
+              int skip_num_in = 1,
+              int project_dim_in = -1,
+              int cell_dim_in = -1
+                  )
         :
         weight_tensor(weight_in)
         , bias_tensor(bias_in)
@@ -1456,6 +1655,9 @@ struct LstmParam {
         , init_hidden_tensor(hidden_init_in)
         , with_peephole(with_peephole_in)
         , skip_input(skip_input_in)
+        , skip_num(skip_num_in)
+        , project_dim(project_dim_in)
+        , cell_dim(cell_dim_in)
     {}
 
 
@@ -1473,6 +1675,9 @@ struct LstmParam {
         skip_input = right.skip_input;
         is_reverse = right.is_reverse;
         init_hidden_tensor = right.init_hidden_tensor;
+        skip_num = right.skip_num;
+        project_dim=right.project_dim;
+        cell_dim=right.cell_dim;
         return *this;
     }
 
@@ -1491,11 +1696,18 @@ struct LstmParam {
         comp_eq = comp_eq && (candidate_activity == right.candidate_activity);
         comp_eq = comp_eq && (is_reverse = right.is_reverse);
         comp_eq = comp_eq && (init_hidden_tensor == right.init_hidden_tensor);
+        comp_eq = comp_eq && (skip_num == right.skip_num);
+        comp_eq = comp_eq && (project_dim == right.project_dim);
+        comp_eq = comp_eq && (cell_dim == right.cell_dim);
         return comp_eq;
     }
 
     inline const opTensor* weight() {
         return weight_tensor;
+    }
+
+    void set_weight(opTensor* weights_ptr) {
+        weight_tensor=weights_ptr;
     }
 
     inline const opTensor* bias() {
@@ -1520,6 +1732,10 @@ struct LstmParam {
     // and you should calc this information in fc layer before;
     // otherwise the input's memory layout should be total_seq_len * input_size;
     bool skip_input;
+
+    int skip_num;
+    int project_dim;
+    int cell_dim;
 private:
     opTensor* weight_tensor;
     opTensor* bias_tensor;
@@ -1529,20 +1745,25 @@ private:
 
 template <typename TargetType>
 struct MatMulParam {
-    MatMulParam(): _is_transpose_X(false), _is_transpose_Y(false) {}
-    MatMulParam(bool x, bool y): _is_transpose_X(x), _is_transpose_Y(y) {}
+    MatMulParam(): _is_transpose_X(false), _is_transpose_Y(false), _scale(1.0f) {}
+    MatMulParam(bool x, bool y): _is_transpose_X(x), _is_transpose_Y(y), _scale(1.0f) {}
+    MatMulParam(bool x, bool y, float scale): _is_transpose_X(x), _is_transpose_Y(y), _scale(scale) {}
     MatMulParam& operator=(const MatMulParam& right) {
         _is_transpose_X = right._is_transpose_X;
         _is_transpose_Y = right._is_transpose_Y;
+        _scale = right._scale;
+        return *this;
     }
     bool operator==(const MatMulParam& right) {
         bool comp_eq = true;
         comp_eq = comp_eq && (_is_transpose_X == right._is_transpose_X);
         comp_eq = comp_eq && (_is_transpose_Y == right._is_transpose_Y);
+        comp_eq = comp_eq && (_scale == right._scale);
         return comp_eq;
     }
     bool _is_transpose_X{false};
     bool _is_transpose_Y{false};
+    float _scale{1.0f};
     int _m = 0;
     int _n = 0;
     int _k = 0;
@@ -1602,7 +1823,25 @@ struct NormalizeParam {
         eps = eps_in;
         CHECK_EQ(p == 2 || p == 1, true) << "only support L1 and L2 norm";
     }
-
+    NormalizeParam(bool is_across_spatial, bool is_shared_channel, \
+         float eps_in = 1e-6f, int pin = 2) {
+         across_spatial = is_across_spatial;
+         channel_shared = is_shared_channel;
+         p = pin;
+         has_scale = false;
+         scale = nullptr;
+         eps = eps_in;
+         CHECK_EQ(p == 2 || p == 1, true) << "only support L1 and L2 norm";
+     }
+     NormalizeParam(bool with_scale, Tensor<TargetType>* input_scale, 
+        bool with_bias, Tensor<TargetType>* input_bias, int group, float eps){
+        this->scale = input_scale;
+        this->bias = input_bias;
+        this->has_scale = has_scale;
+        this->has_bias = has_bias;
+        this->group = group;
+        this->eps = eps;
+     }
     NormalizeParam(const NormalizeParam<TargetType>& right) {
         channel_shared = right.channel_shared;
         across_spatial = right.across_spatial;
@@ -1610,6 +1849,9 @@ struct NormalizeParam {
         has_scale = right.has_scale;
         scale = right.scale;
         eps = right.eps;
+        has_bias = right.has_bias;
+        group = right.group;
+        bias = right.bias;
     }
 
     NormalizeParam<TargetType>& operator=(const NormalizeParam<TargetType>& right) {
@@ -1619,6 +1861,9 @@ struct NormalizeParam {
         this->p = right.p;
         this->has_scale = right.has_scale;
         this->eps = right.eps;
+        has_bias = right.has_bias;
+        group = right.group;
+        bias = right.bias;
         return *this;
     }
 
@@ -1628,6 +1873,9 @@ struct NormalizeParam {
         flag = flag && (this->has_scale == right.has_scale);
         flag = flag && (this->p == right.p);
         flag = flag && (fabsf(this->eps - right.eps) < 1e-7f);
+        flag = flag && (has_bias == right.has_bias);
+        flag = flag && (group == right.group);
+        flag = flag && (bias == right.bias);
         return flag && (this->scale == right.scale);
     }
 
@@ -1642,7 +1890,38 @@ struct NormalizeParam {
     bool channel_shared{false};
     //! scale tensor if has one
     Tensor<TargetType>* scale{nullptr};
+    Tensor<TargetType>* bias{nullptr};
     float eps{1e-6f};
+    //!group, which can normalize
+    int group{-1};
+    //!bias
+    bool has_bias{false};
+};
+
+template <typename TargetType>
+struct OneHotParam {
+    OneHotParam() = default;
+    ~OneHotParam() = default;
+
+    OneHotParam(int depth_in)
+        : depth(depth_in)
+    {}
+
+    OneHotParam(const OneHotParam& right)
+        :depth(right.depth)
+    {}
+
+    OneHotParam& operator=(const OneHotParam& right) {
+        depth = right.depth;
+        return *this;
+    }
+
+    bool operator==(const OneHotParam& right) {
+        bool comp_eq = true;
+        comp_eq =  comp_eq && (depth ==  right.depth);
+        return comp_eq;
+    }
+    int depth{0};
 };
 
 template <typename TargetType>
@@ -1677,6 +1956,41 @@ struct PadParam {
 };
 
 template <typename TargetType>
+struct Pad2DParam {
+    Pad2DParam():_mode(PAD_CONSTANT), _pad_value(0.f), _pad_h({0, 0}), _pad_w({0, 0}) {}
+    Pad2DParam(std::vector<int> pad_h, std::vector<int> pad_w, \
+            float pad_value, PadMode mode = PAD_CONSTANT){
+        mode = mode;
+        _pad_h = pad_h;
+        _pad_w = pad_w;
+        _pad_value = pad_value;
+    }
+    Pad2DParam(const Pad2DParam &right):
+            _mode(right._mode), _pad_value(right._pad_value), \
+        _pad_h(right._pad_h), _pad_w(right._pad_w) {}
+    Pad2DParam &operator=(const Pad2DParam &right) {
+        _mode = right._mode;
+        _pad_h = right._pad_h;
+        _pad_w = right._pad_w;
+        _pad_value = right._pad_value;
+        return *this;
+    }
+    bool operator==(const Pad2DParam &right) {
+        bool flag = _mode == right._mode;
+        flag = flag && _pad_h == right._pad_h;
+        flag = flag && _pad_w == right._pad_w;
+        flag = flag && _pad_value == right._pad_value;
+        return flag;
+    }
+
+public:
+    PadMode _mode{PAD_CONSTANT};
+    std::vector<int> _pad_h;
+    std::vector<int> _pad_w;
+    float _pad_value = 0.f;
+};
+
+template <typename TargetType>
 struct PermuteParam {
     PermuteParam() {}
     PermuteParam(std::vector<int> order): order(order) {}
@@ -1701,10 +2015,10 @@ struct PermuteParam {
 template<typename TargetType>
 struct PermutePowerParam {
     PermutePowerParam() {}
-    PermutePowerParam(PermuteParam<TargetType> permute_param):
-        power_param(power_param), has_power_param(false) {}
-    PermutePowerParam(PermuteParam<TargetType> permute_param, PowerParam<TargetType> power_param):
-        power_param(power_param), permute_param(permute_param), has_power_param(true) {}
+    PermutePowerParam(PermuteParam<TargetType> permute_param_in):
+        permute_param(permute_param_in), has_power_param(false) {}
+    PermutePowerParam(PermuteParam<TargetType> permute_param_in, PowerParam<TargetType> power_param_in):
+        power_param(power_param_in), permute_param(permute_param_in), has_power_param(true) {}
     PermutePowerParam(const PermutePowerParam& right):
         power_param(right.power_param), permute_param(right.permute_param),
         has_power_param(right.has_power_param) {}
@@ -1718,6 +2032,33 @@ struct PermutePowerParam {
     PermuteParam<TargetType> permute_param;
     bool has_power_param;
 };
+
+template<typename TargetType>
+struct PixelShuffleParam {
+    PixelShuffleParam() {}
+    PixelShuffleParam(int h, int w): rh(h), rw(w), channel_first(true) {};
+    PixelShuffleParam(int h, int w, bool flag): rh(h), rw(w), channel_first(flag) {};
+    PixelShuffleParam(const PixelShuffleParam<TargetType>& right):
+        rh(right.rh), rw(right.rw), channel_first(right.channel_first) {}
+    PixelShuffleParam& operator=(const PixelShuffleParam<TargetType> right){
+        rh = right.rh;
+        rw = right.rw;
+        channel_first = right.channel_first;
+        return *this;
+    }
+    bool operator==(const PixelShuffleParam& right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (rh == right.rh);
+        comp_eq = comp_eq && (rw == right.rw);
+        comp_eq = comp_eq && (channel_first == right.channel_first);
+        return comp_eq;
+    }
+
+    int rh;
+    int rw;
+    bool channel_first;
+};
+
 
 template <typename TargetType>
 struct PoolingParam {
@@ -2054,6 +2395,57 @@ struct PriorBoxParam {
 };
 
 template <typename TargetType>
+struct PsRoiPoolParam {
+    PsRoiPoolParam() = default;
+    PsRoiPoolParam(int ph, int pw, int ch, int cw) :
+        pooled_height(ph), pooled_width(pw), crop_height(ch), crop_width(cw){}
+    PsRoiPoolParam(int ph, int pw, int ch, int cw, bool pool, float scale, int m, float exv) :
+        pooled_height(ph), pooled_width(pw), crop_height(ch), crop_width(cw),
+        method(m), extra_value(exv), global_pooling(pool), spatial_scale(scale){}
+    PsRoiPoolParam(const PsRoiPoolParam<TargetType>& right) {
+        pooled_width = right.pooled_width;
+        pooled_height = right.pooled_height;
+        crop_height = right.crop_height;
+        crop_width = right.crop_width;
+        global_pooling = right.global_pooling;
+        spatial_scale = right.spatial_scale;
+        method = right.method;
+        extra_value = right.extra_value;
+    }
+    PsRoiPoolParam<TargetType>& operator=(const PsRoiPoolParam<TargetType>& right) {
+        pooled_width = right.pooled_width;
+        pooled_height = right.pooled_height;
+        crop_height = right.crop_height;
+        crop_width = right.crop_width;
+        global_pooling = right.global_pooling;
+        spatial_scale = right.spatial_scale;
+        method = right.method;
+        extra_value = right.extra_value;
+        return *this;
+    }
+    bool operator==(const PsRoiPoolParam<TargetType>& right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && pooled_width == right.pooled_width;
+        comp_eq = comp_eq && pooled_height == right.pooled_height;
+        comp_eq = comp_eq && spatial_scale == right.spatial_scale;
+        comp_eq = comp_eq && crop_height == right.crop_height;
+        comp_eq = comp_eq && crop_width == right.crop_width;
+        comp_eq = comp_eq && global_pooling == right.global_pooling;
+        comp_eq = comp_eq && method == right.method;
+        comp_eq = comp_eq && extra_value == right.extra_value;
+        return  comp_eq;
+    }
+    int pooled_height;
+    int pooled_width;
+    int crop_height;
+    int crop_width;
+    bool global_pooling{true};
+    float spatial_scale{1.};
+    int method{0};
+    float extra_value{0.};
+};
+
+template <typename TargetType>
 struct ReshapeParam {
     ReshapeParam() = default;
     ReshapeParam(std::vector<int> shape_param_in, LayoutType layout_in) {
@@ -2094,29 +2486,43 @@ struct ReshapeParam {
 template<typename TargetType>
 struct ResizeParam {
     ResizeParam() = default;
-    explicit ResizeParam(float scale_w, float scale_h) {
-        bool flag = scale_w > 0.f && scale_h > 0.f;
+    explicit ResizeParam(ResizeType type, float scale_w, float scale_h, int out_w = -1, int out_h = -1) {
+        bool flag = (scale_w > 0.f && scale_h > 0.f) || (out_w > 0 && out_h > 0);
         CHECK_EQ(flag, true) << "wrong parameters";
+        resize_type = type;
         width_scale = scale_w;
         height_scale = scale_h;
+        out_width = out_w;
+        out_height = out_h;
     }
     ResizeParam(const ResizeParam<TargetType>& right) {
+        resize_type = right.resize_type;
         width_scale = right.width_scale;
         height_scale = right.height_scale;
+        out_width = right.out_width;
+        out_height = right.out_height;
     }
     ResizeParam<TargetType>& operator=(const ResizeParam<TargetType>& right) {
+        this->resize_type = right.resize_type;
         this->width_scale = right.width_scale;
         this->height_scale = right.height_scale;
+        this->out_width = right.out_width;
+        this->out_height = right.out_height;
         return *this;
     }
     bool operator==(const ResizeParam<TargetType>& right) {
         float eps = 1e-6;
         bool flag = fabsf(width_scale - right.width_scale) < eps;
         flag &= fabsf(height_scale - right.height_scale) < eps;
+        flag &= (resize_type == right.resize_type);
+        flag &= (out_width == right.out_width) && (out_height == right.out_height);
         return flag;
     }
     float width_scale{0.0f};
     float height_scale{0.0f};
+    int out_width{-1};
+    int out_height{-1};
+    ResizeType resize_type;
 };
 
 template <typename TargetType>
@@ -2344,6 +2750,55 @@ struct SliceParam {
     std::vector<int> slice_points;
 };
 
+template <typename type>
+struct SliceV2Param {
+    SliceV2Param() = default;
+    explicit SliceV2Param(std::vector<int> axes_in, 
+                          std::vector<int> starts_in,
+                          std::vector<int> ends_in) {
+        axes = axes_in;
+        starts = starts_in;
+        ends = ends_in;
+    }
+    SliceV2Param(const SliceV2Param<type>& right) {
+        axes = right.axes;
+        starts = right.starts;
+        ends = right.ends;
+    }
+    SliceV2Param<type>& operator=(const SliceV2Param<type>& right) {
+        axes = right.axes;
+        starts = right.starts;
+        ends = right.ends;
+        return *this;
+    }
+    bool operator==(const SliceV2Param<type>& right) {
+        bool comp_eq = starts.size() == right.starts.size();
+        comp_eq = comp_eq && ends.size() == right.ends.size();
+        comp_eq = comp_eq && starts.size() == ends.size();
+
+        for (int i = 0; i < starts.size(); ++i) {
+            if (!comp_eq) {
+                return false;
+            }
+
+            comp_eq = starts[i] == right.starts[i];
+            comp_eq = comp_eq && ends[i] == right.ends[i];
+        }
+        for (int i = 0; i < axes.size(); i++) {
+            if (!comp_eq) {
+                return false;
+            }
+
+            comp_eq = axes[i] == right.axes[i];
+        }
+
+        return comp_eq;
+    }
+    std::vector<int> axes;
+    std::vector<int> starts;
+    std::vector<int> ends;
+};
+
 template <typename TargetType>
 struct SoftmaxParam {
     SoftmaxParam() = default;
@@ -2391,12 +2846,109 @@ struct SPPParam {
     PoolingType pool_type;
 };
 
+template <typename TargetType>
+struct SProposalParam {
+    SProposalParam() = default;
+    SProposalParam(std::vector<int> scale_in,
+            std::vector<float> ratio_in,
+            int feat_stride_in,
+            int basesize_in,
+            int boxminsize_in,
+            int pre_nms_topn_in,
+            int post_nms_topn_in,
+            float nms_thresh_in)
+        : scale(scale_in)
+        , ratio(ratio_in)
+        , feat_stride(feat_stride_in)
+        , basesize(basesize_in)
+        , boxminsize(boxminsize_in)
+        , pre_nms_topn(pre_nms_topn_in)
+        , post_nms_topn(post_nms_topn_in)
+        , nms_thresh(nms_thresh_in)
+    {}
+    SProposalParam(const SProposalParam& right)
+            : scale(right.scale)
+            , ratio(right.ratio)
+            , feat_stride(right.feat_stride)
+            , basesize(right.basesize)
+            , boxminsize(right.boxminsize)
+            , pre_nms_topn(right.pre_nms_topn)
+            , post_nms_topn(right.post_nms_topn)
+            , nms_thresh(right.nms_thresh)
+    {}
+    SProposalParam& operator=(const SProposalParam& right) {
+        scale = right.scale;
+        ratio = right.ratio;
+        feat_stride = right.feat_stride;
+        basesize = right.basesize;
+        boxminsize = right.boxminsize;
+        pre_nms_topn = right.pre_nms_topn;
+        post_nms_topn = right.post_nms_topn;
+        nms_thresh = right.nms_thresh;
+        return *this;
+    }
+    bool operator==(const SProposalParam& right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && compare_vectors(scale, right.scale);
+        comp_eq = comp_eq && compare_vectors(ratio, right.ratio);
+        comp_eq = comp_eq && (feat_stride == right.feat_stride);
+        comp_eq = comp_eq && (basesize == right.basesize);
+        comp_eq = comp_eq && (boxminsize == right.boxminsize);
+        comp_eq = comp_eq && (pre_nms_topn == right.pre_nms_topn);
+        comp_eq = comp_eq && (post_nms_topn == right.post_nms_topn);
+        comp_eq = comp_eq && (nms_thresh == right.nms_thresh);
+        return comp_eq;
+    }
+    std::vector<int> scale;
+    std::vector<float> ratio;
+    int feat_stride{16};
+    int basesize{16};
+    int boxminsize{1000};
+    int pre_nms_topn{400};
+    int post_nms_topn{120};
+    float nms_thresh{0.7};
+};
+
+template <typename TargetType>
+struct SRoiAlignParam {
+    SRoiAlignParam() = default;
+    SRoiAlignParam(int pooled_h_in, int pooled_w_in, float spatial_scale_in)
+            : pooled_h(pooled_h_in)
+            , pooled_w(pooled_w_in)
+            , spatial_scale(spatial_scale_in)
+    {}
+
+    SRoiAlignParam(const SRoiAlignParam& right)
+            : pooled_h(right.pooled_h)
+            , pooled_w(right.pooled_w)
+            , spatial_scale(right.spatial_scale)
+    {}
+    SRoiAlignParam& operator=(const SRoiAlignParam& right) {
+        pooled_h = right.pooled_h;
+        pooled_w = right.pooled_w;
+        spatial_scale = right.spatial_scale;
+        return *this;
+    }
+    bool operator==(const SRoiAlignParam& right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && (pooled_h == right.pooled_h);
+        comp_eq = comp_eq && (pooled_w == right.pooled_w);
+        comp_eq = comp_eq && (spatial_scale == right.spatial_scale);
+        return comp_eq;
+    }
+
+    int pooled_h{1};
+    int pooled_w{1};
+    float spatial_scale{1};
+};
 
 template <typename TargetType>
 struct TransposeParam {
     TransposeParam() = default;
     TransposeParam(const TransposeParam& right) {}
-    TransposeParam& operator=(const TransposeParam& right) {}
+    TransposeParam& operator=(const TransposeParam& right) {
+        return *this;
+    }
     bool operator==(const TransposeParam& right) {
         return true;
     }
@@ -2427,7 +2979,7 @@ struct TopKPoolingParam {
 template <typename TargetType>
 struct TopKAvgPoolingParam {
     TopKAvgPoolingParam() = default;
-    TopKAvgPoolingParam(std::vector<int> top_ks_in, 
+    TopKAvgPoolingParam(std::vector<int> top_ks_in,
                         int feat_map_num_in,
                         bool is_pooling_by_row_in):
         top_ks(top_ks_in), feat_map_num(feat_map_num_in),
@@ -2464,28 +3016,43 @@ struct MatchMatrixParam {
         dim_t(dim_t_in),
         linear_term(false),
         bias_term(false),
+        is_l_same(true),
         weight_tensor(weight) {}
-    MatchMatrixParam(int dim_in_in, 
+    MatchMatrixParam(int dim_in_in,
+                     int dim_t_in,
+                     bool is_l_same_in,
+                     opTensor* weight):
+        dim_in(dim_in_in),
+        dim_t(dim_t_in),
+        linear_term(false),
+        bias_term(false),
+        is_l_same(is_l_same_in),
+        weight_tensor(weight) {}
+    MatchMatrixParam(int dim_in_in,
                      int dim_t_in,
                      bool linear_term_in,
                      bool bias_term_in,
+                     bool is_l_same_in,
                      opTensor* weight):
         dim_in(dim_in_in),
         dim_t(dim_t_in),
         linear_term(linear_term_in),
         bias_term(bias_term_in),
+        is_l_same(is_l_same_in),
         weight_tensor(weight) {}
     MatchMatrixParam(const MatchMatrixParam& right):
         dim_in(right.dim_in),
         dim_t(right.dim_t),
         linear_term(right.linear_term),
         bias_term(right.bias_term),
+        is_l_same(right.is_l_same),
         weight_tensor(right.weight_tensor) {}
     MatchMatrixParam& operator=(const MatchMatrixParam& right) {
         dim_in = right.dim_in;
         dim_t = right.dim_t;
         linear_term = right.linear_term;
         bias_term = right.bias_term;
+        is_l_same = right.is_l_same;
         weight_tensor = right.weight_tensor;
         return *this;
     }
@@ -2494,7 +3061,8 @@ struct MatchMatrixParam {
         flag = flag && (dim_in == right.dim_in);
         flag = flag && (dim_t == right.dim_t);
         flag = flag && (linear_term == right.linear_term);
-        flag = flag && (bias_term == right.bias_term);
+		flag = flag && (bias_term == right.bias_term);
+        flag = flag && (is_l_same == right.is_l_same);
         flag = flag && (weight_tensor == right.weight_tensor);
         return flag;
     }
@@ -2508,6 +3076,7 @@ struct MatchMatrixParam {
     int dim_t{2};
     bool linear_term{false};
     bool bias_term{false};
+    bool is_l_same{true};
     private:
     opTensor* weight_tensor{nullptr};
 };
@@ -2534,7 +3103,9 @@ template <typename TargetType>
 struct MeanParam {
     MeanParam() = default;
     MeanParam(const MeanParam& right) {}
-    MeanParam& operator=(const MeanParam& right) {}
+    MeanParam& operator=(const MeanParam& right) {
+        return *this;
+    }
     bool operator==(const MeanParam& right) {
         return true;
     }
@@ -2563,7 +3134,588 @@ public:
     int group;
 };
 
-}
+template <typename TargetType>
+struct ReduceParam {
+    ReduceParam() = default;
+    ReduceParam(std::vector<int>& reduce_dim_in,
+            ReduceType reduce_type_in,
+            bool keep_dim_in,
+            bool reduce_all_in,
+            float coeff_in = 1.f)
+        : reduce_dim(reduce_dim_in)
+        , reduce_type(reduce_type_in)
+        , keep_dim(keep_dim_in)
+        , reduce_all(reduce_all_in)
+        , coeff(coeff_in)
+    {}
 
+    ReduceParam(const ReduceParam& right)
+            : reduce_dim(right.reduce_dim)
+            , reduce_type(right.reduce_type)
+            , keep_dim(right.keep_dim)
+            , reduce_all(right.reduce_all)
+            , coeff(right.coeff)
+    {}
+
+    ReduceParam& operator=(const ReduceParam& right) {
+        reduce_dim = right.reduce_dim;
+        reduce_type = right.reduce_type;
+        keep_dim = right.keep_dim;
+        reduce_all = right.reduce_all;
+        coeff = right.coeff;
+        return *this;
+    }
+
+    bool operator==(const ReduceParam& right) {
+        bool comp_eq = true;
+        comp_eq = comp_eq && compare_vectors(reduce_dim, right.reduce_dim);
+        comp_eq = comp_eq && (reduce_type == right.reduce_type);
+        comp_eq = comp_eq && (keep_dim == right.keep_dim);
+        comp_eq = comp_eq && (reduce_all == right.reduce_all);
+        comp_eq = comp_eq && (coeff == right.coeff);
+        return comp_eq;
+    }
+
+    std::vector<int> reduce_dim;
+    ReduceType reduce_type{Reduce_unknow};
+    bool keep_dim{false};
+    bool reduce_all{false};
+    float coeff{1.f}; // output coeff
+};
+
+template <typename TargetType>
+struct ReduceMinParam {
+    ReduceMinParam() = default;
+    ReduceMinParam(std::vector<int>reduce_dim_in, bool keep_dim_in = false) :
+                   reduce_dim(reduce_dim_in), keep_dim(keep_dim_in){}
+
+    ReduceMinParam(const ReduceMinParam& right) {
+        keep_dim = right.keep_dim;
+        reduce_dim = right.reduce_dim;
+    }
+    ReduceMinParam& operator=(const ReduceMinParam& right) {
+        keep_dim = right.keep_dim;
+        reduce_dim = right.reduce_dim;
+        return *this;
+    }
+    bool operator==(const ReduceMinParam& right) {
+        return (keep_dim == right.keep_dim) && (reduce_dim == right.reduce_dim);
+    }
+
+    std::vector<int> reduce_dim;
+    bool keep_dim{false};
+};
+
+template <typename TargetType>
+struct RoiAlignParam {
+    RoiAlignParam() = default;
+    RoiAlignParam(int pooled_height_in, int pooled_width_in, float spatial_scale_in, int sampling_ratio_in) :
+                pooled_height(pooled_height_in), pooled_width(pooled_width_in), \
+                spatial_scale(spatial_scale_in), sampling_ratio(sampling_ratio_in) {}
+    RoiAlignParam(const RoiAlignParam& right) {
+        pooled_height = right.pooled_height;
+        pooled_width = right.pooled_width;
+        spatial_scale = right.spatial_scale;
+        sampling_ratio = right.sampling_ratio;
+    }
+    RoiAlignParam& operator=(const RoiAlignParam& right) {
+        pooled_height = right.pooled_height;
+        pooled_width = right.pooled_width;
+        spatial_scale = right.spatial_scale;
+        sampling_ratio = right.sampling_ratio;
+        return *this;
+    }
+    bool operator==(const RoiAlignParam& right) {
+        return (pooled_height == right.pooled_height) &&
+               (pooled_width == right.pooled_width) &&
+               (spatial_scale == right.spatial_scale) &&
+               (sampling_ratio == right.sampling_ratio);
+    }
+
+    int pooled_height;
+    int pooled_width;
+    float spatial_scale;
+    int sampling_ratio;
+};
+
+template <typename TargetType>
+struct SequenceConcatParam{
+    SequenceConcatParam() = default;
+    SequenceConcatParam(const SequenceConcatParam& right) {}
+    SequenceConcatParam& operator=(const SequenceConcatParam& right) { return *this;}
+    bool operator==(const SequenceConcatParam& right) {return true;}
+};
+
+template <typename TargetType>
+struct SequenceConcatByColParam {
+    SequenceConcatByColParam() = default;
+    SequenceConcatByColParam(const SequenceConcatByColParam &right) {}
+    SequenceConcatByColParam &operator=(const SequenceConcatByColParam &right) { return *this; }
+    bool operator==(const SequenceConcatByColParam &right) { return true; }
+};
+
+template <typename TargetType>
+struct SequencePoolConcatParam{
+    SequencePoolConcatParam()
+            : sequence_pool_param()
+            , concat_param()
+            , slot_num{0}
+    {}
+    SequencePoolConcatParam(SequencePoolParam<TargetType> sequence_pool_param_in,
+            ConcatParam<TargetType> concat_param, int slot_num_in)
+        : sequence_pool_param(sequence_pool_param_in)
+        , concat_param(concat_param)
+        , slot_num(slot_num_in)
+    {}
+
+    SequencePoolConcatParam(const SequencePoolConcatParam& right)
+            : sequence_pool_param(right.sequence_pool_param)
+            , concat_param(right.concat_param)
+            , slot_num(right.slot_num)
+    {}
+
+    SequencePoolConcatParam& operator=(const SequencePoolConcatParam& right) {
+        sequence_pool_param = right.sequence_pool_param;
+        concat_param = right.concat_param;
+        slot_num = right.slot_num;
+        return *this;
+    }
+
+    bool operator==(const SequencePoolConcatParam& right) {
+        bool comp_eq = true;
+        comp_eq &= (sequence_pool_param == right.sequence_pool_param);
+        comp_eq &= (concat_param == right.concat_param);
+        comp_eq &= (slot_num == right.slot_num);
+        return comp_eq;
+    }
+
+    SequencePoolParam<TargetType> sequence_pool_param;
+    ConcatParam<TargetType> concat_param;
+    int slot_num;
+};
+
+template <typename TargetType>
+struct SoftSignParam{
+    SoftSignParam() = default;
+    SoftSignParam(const SoftSignParam& right) {}
+    SoftSignParam& operator=(const SoftSignParam& right) { return *this;}
+    bool operator==(const SoftSignParam& right) {return true;}
+};
+
+template <typename TargetType>
+struct CosSimParam{
+    CosSimParam() = default;
+
+    CosSimParam(float epsilon_in):epsilon(epsilon_in) {}
+
+    CosSimParam(const CosSimParam& right):epsilon(right.epsilon) {}
+
+    CosSimParam& operator=(const CosSimParam& right) {
+        epsilon = right.epsilon;
+        return *this;
+    }
+
+    bool operator==(const CosSimParam& right) {
+        return epsilon == right.epsilon;
+    }
+
+    float epsilon{0.f};
+};
+
+template <typename TargetType>
+struct ProductQuantEmbeddingWithVsumParam {
+    ProductQuantEmbeddingWithVsumParam() = default;
+    ProductQuantEmbeddingWithVsumParam(int word_emb_in,
+                                       int word_voc_in,
+                                       int top_unigram_in,
+                                       int top_bigram_in,
+                                       int top_collocation_in,
+                                       int sec_unigram_in,
+                                       int sec_bigram_in,
+                                       int sec_collocation_in,
+                                       int thd_unigram_in,
+                                       int thd_bigram_in,
+                                       int thd_collocation_in,
+                                       int max_seq_len_in,
+                                       Tensor<TargetType>* embedding_0_in,
+                                       Tensor<TargetType>* embedding_1_in,
+                                       Tensor<TargetType>* embedding_2_in,
+                                       Tensor<TargetType>* quant_dict_0_in,
+                                       Tensor<TargetType>* quant_dict_1_in,
+                                       Tensor<TargetType>* quant_dict_2_in):word_emb(word_emb_in),
+                                       word_voc(word_voc_in),
+                                       top_unigram(top_unigram_in),
+                                       top_bigram(top_bigram_in),
+                                       top_collocation(top_collocation_in),
+                                       sec_unigram(sec_unigram_in),
+                                       sec_bigram(sec_bigram_in),
+                                       sec_collocation(sec_collocation_in),
+                                       thd_unigram(thd_unigram_in),
+                                       thd_bigram(thd_bigram_in),
+                                       thd_collocation(thd_collocation_in),
+                                       max_seq_len(max_seq_len_in),
+                                       embedding_0(embedding_0_in),
+                                       embedding_1(embedding_1_in),
+                                       embedding_2(embedding_2_in),
+                                       quant_dict_0(quant_dict_0_in),
+                                       quant_dict_1(quant_dict_1_in),
+                                       quant_dict_2(quant_dict_2_in) { }
+
+    ProductQuantEmbeddingWithVsumParam(const ProductQuantEmbeddingWithVsumParam& right) :word_emb(right.word_emb),
+                                       word_voc(right.word_voc),
+                                       top_unigram(right.top_unigram),
+                                       top_bigram(right.top_bigram),
+                                       top_collocation(right.top_collocation),
+                                       sec_unigram(right.sec_unigram),
+                                       sec_bigram(right.sec_bigram),
+                                       sec_collocation(right.sec_collocation),
+                                       thd_unigram(right.thd_unigram),
+                                       thd_bigram(right.thd_bigram),
+                                       thd_collocation(right.thd_collocation),
+                                       max_seq_len(right.max_seq_len),
+                                       embedding_0(right.embedding_0),
+                                       embedding_1(right.embedding_1),
+                                       embedding_2(right.embedding_2),
+                                       quant_dict_0(right.quant_dict_0),
+                                       quant_dict_1(right.quant_dict_1),
+                                       quant_dict_2(right.quant_dict_2) {}
+    ProductQuantEmbeddingWithVsumParam& operator=(const ProductQuantEmbeddingWithVsumParam& right) {
+        word_emb = right.word_emb;
+        word_voc = right.word_voc;
+        top_unigram = right.top_unigram;
+        top_bigram = right.top_bigram;
+        top_collocation = right.top_collocation;
+        sec_unigram = right.sec_unigram;
+        sec_bigram = right.sec_bigram;
+        sec_collocation = right.sec_collocation;
+        thd_unigram = right.thd_unigram;
+        thd_bigram = right.thd_bigram;
+        thd_collocation = right.thd_collocation;
+        max_seq_len = right.max_seq_len;
+        embedding_0 = right.embedding_0;
+        embedding_1 = right.embedding_1;
+        embedding_2 = right.embedding_2;
+        quant_dict_0 = right.quant_dict_0;
+        quant_dict_1 = right.quant_dict_1;
+        quant_dict_2 = right.quant_dict_2;
+        return *this;
+    }
+    bool operator==(const ProductQuantEmbeddingWithVsumParam& right) {
+        bool flag = true;
+        flag = flag && word_emb == right.word_emb;
+        flag = flag && word_voc == right.word_voc;
+        flag = flag && top_unigram == right.top_unigram;
+        flag = flag && top_bigram == right.top_bigram;
+        flag = flag && top_collocation == right.top_collocation;
+        flag = flag && sec_unigram == right.sec_unigram;
+        flag = flag && sec_bigram == right.sec_bigram;
+        flag = flag && sec_collocation == right.sec_collocation;
+        flag = flag && thd_unigram == right.thd_unigram;
+        flag = flag && thd_bigram == right.thd_bigram;
+        flag = flag && thd_collocation == right.thd_collocation;
+        flag = flag && max_seq_len == right.max_seq_len;
+        flag = flag && embedding_0 == right.embedding_0;
+        flag = flag && embedding_1 == right.embedding_1;
+        flag = flag && embedding_2 == right.embedding_2;
+        flag = flag && quant_dict_0 == right.quant_dict_0;
+        flag = flag && quant_dict_1 == right.quant_dict_1;
+        flag = flag && quant_dict_2 == right.quant_dict_2;
+        return flag;
+    }
+
+    int word_emb{128};
+    int word_voc{1};
+    int top_unigram{0};
+    int top_bigram{0};
+    int top_collocation{0};
+    int sec_unigram{0};
+    int sec_bigram{0};
+    int sec_collocation{0};
+    int thd_unigram{0};
+    int thd_bigram{0};
+    int thd_collocation{0};
+    int max_seq_len{0};
+    Tensor<TargetType>* embedding_0{NULL};
+    Tensor<TargetType>* embedding_1{NULL};
+    Tensor<TargetType>* embedding_2{NULL};
+    Tensor<TargetType>* quant_dict_0{NULL};
+    Tensor<TargetType>* quant_dict_1{NULL};
+    Tensor<TargetType>* quant_dict_2{NULL};
+
+};
+
+template <typename TargetType>
+struct ArithmeticParam{
+    ArithmeticParam() = default;
+
+    ArithmeticParam(ArithmeticType op_type_in):op_type(op_type_in) {}
+
+    ArithmeticParam(const ArithmeticParam& right):op_type(right.op_type) {}
+
+    ArithmeticParam& operator=(const ArithmeticParam& right) {
+        op_type = right.op_type;
+        return *this;
+    }
+
+    bool operator==(const ArithmeticParam& right) {
+        return op_type == right.op_type;
+    }
+
+    ArithmeticType op_type;
+};
+
+template <typename TargetType>
+struct AlignedMatMulParam{
+    AlignedMatMulParam() = default;
+
+    AlignedMatMulParam(bool is_transpose_X_in,
+                       bool is_transpose_Y_in,
+                       float scale_in):is_transpose_X(is_transpose_X_in),
+                                      is_transpose_Y(is_transpose_Y_in),
+                                      scale(scale_in) {}
+
+    AlignedMatMulParam(const AlignedMatMulParam& right):
+            is_transpose_X(right.is_transpose_X),
+            is_transpose_Y(right.is_transpose_Y),
+            scale(right.scale){}
+
+    AlignedMatMulParam& operator=(const AlignedMatMulParam& right) {
+        is_transpose_X = right.is_transpose_X;
+        is_transpose_Y = right.is_transpose_Y;
+        scale = right.scale;
+        return *this;
+    }
+
+    bool operator==(const AlignedMatMulParam& right) {
+        bool flag = true;
+        flag = flag && is_transpose_X == right.is_transpose_X;
+        flag = flag && is_transpose_Y == right.is_transpose_Y;
+        flag = flag && scale == right.scale;
+        return flag;
+    }
+
+    bool is_transpose_X{false};
+    bool is_transpose_Y{false};
+    float scale{1.0f};
+};
+
+template <typename TargetType>
+struct SequencePaddingParam{
+    SequencePaddingParam() = default;
+
+    SequencePaddingParam(const SequencePaddingParam& right) { }
+
+    SequencePaddingParam& operator=(const SequencePaddingParam& right) {
+        return *this;
+    }
+
+    bool operator==(const SequencePaddingParam& right) {
+        return true;
+    }
+};
+
+template <typename TargetType>
+struct SequenceDePaddingParam{
+    SequenceDePaddingParam() = default;
+
+    SequenceDePaddingParam(const SequenceDePaddingParam& right) { }
+
+    SequenceDePaddingParam& operator=(const SequenceDePaddingParam& right) {
+        return *this;
+    }
+
+    bool operator==(const SequenceDePaddingParam& right) {
+        return true;
+    }
+};
+
+template <typename TargetType>
+struct AttentionPaddingMaskParam{
+    AttentionPaddingMaskParam() = default;
+    AttentionPaddingMaskParam(float mask_in,
+                             int pad_id_in):
+                             mask(mask_in),
+                             pad_id(pad_id_in){}
+    AttentionPaddingMaskParam(const AttentionPaddingMaskParam& right):mask(right.mask), pad_id(right.pad_id) {}
+    AttentionPaddingMaskParam& operator=(const AttentionPaddingMaskParam& right) {
+        mask = right.mask;
+        pad_id = right.pad_id;
+        return *this;
+    }
+    bool operator== (const AttentionPaddingMaskParam& right) {
+        bool flag =  mask == right.mask;
+        flag = flag && pad_id == right.pad_id;
+        return flag;
+    }
+
+    float mask{900000000.0f};
+    int pad_id{12800001};
+
+};
+
+template <typename TargetType>
+struct PyramidHashQuantEmbeddingParam{
+    PyramidHashQuantEmbeddingParam() = default;
+    PyramidHashQuantEmbeddingParam(int space_size_in,
+                                   int emb_size_in,
+                                   int pyramid_layer_in,
+                                   int rand_len_in,
+                                   int white_list_len_in,
+                                   int black_list_len_in,
+                                   float dropout_percent_in,
+                                   Tensor<TargetType>* quant_dict_in,
+                                   Tensor<TargetType>* hash_space_in,
+                                   Tensor<TargetType>* white_filter_in,
+                                   Tensor<TargetType>* black_filter_in):
+                                   space_size(space_size_in),
+                                   emb_size(emb_size_in),
+                                   pyramid_layer(pyramid_layer_in),
+                                   rand_len(rand_len_in),
+                                   white_list_len(white_list_len_in),
+                                   black_list_len(black_list_len_in),
+                                   dropout_percent(dropout_percent_in),
+                                   quant_dict(quant_dict_in),
+                                   hash_space(hash_space_in),
+                                   white_filter(white_filter_in),
+                                   black_filter(black_filter_in) {};
+
+    PyramidHashQuantEmbeddingParam(const PyramidHashQuantEmbeddingParam& right):
+        space_size(right.space_size),
+        emb_size(right.emb_size),
+        pyramid_layer(right.pyramid_layer),
+        rand_len(right.rand_len),
+        white_list_len(right.white_list_len),
+        black_list_len(right.black_list_len),
+        dropout_percent(right.dropout_percent),
+        quant_dict(right.quant_dict),
+        hash_space(right.hash_space),
+        white_filter(right.white_filter),
+        black_filter(right.black_filter) {}
+
+    PyramidHashQuantEmbeddingParam& operator=(const PyramidHashQuantEmbeddingParam& right) {
+        space_size = right.space_size;
+        emb_size = right.emb_size;
+        pyramid_layer = right.pyramid_layer;
+        rand_len = right.rand_len;
+        white_list_len = right.white_list_len;
+        black_list_len = right.black_list_len;
+        dropout_percent = right.dropout_percent;
+        quant_dict = right.quant_dict;
+        hash_space = right.hash_space;
+        white_filter = right.white_filter;
+        black_filter = right.black_filter;
+        return *this;
+    }
+
+    bool operator==(const PyramidHashQuantEmbeddingParam& right) {
+        bool flag = true;
+        flag = flag && space_size == right.space_size;
+        flag = flag && emb_size == right.emb_size;
+        flag = flag && pyramid_layer == right.pyramid_layer;
+        flag = flag && rand_len == right.rand_len;
+        flag = flag && white_list_len == right.white_list_len;
+        flag = flag && black_list_len == right.black_list_len;
+        flag = flag && dropout_percent == right.dropout_percent;
+        flag = flag && quant_dict == right.quant_dict;
+        flag = flag && hash_space == right.hash_space;
+        flag = flag && white_filter == right.white_filter;
+        flag = flag && black_filter == right.black_filter;
+        return flag;
+    }
+
+    int space_size;
+    int emb_size;
+    int pyramid_layer;
+    int rand_len;
+    int white_list_len;
+    int black_list_len;
+    float dropout_percent;
+    Tensor<TargetType>* quant_dict;
+    Tensor<TargetType>* hash_space;
+    Tensor<TargetType>* white_filter;
+    Tensor<TargetType>* black_filter;
+};
+
+template <typename TargetType>
+struct SeqConcatSeqPoolSoftSignParam{
+    SeqConcatSeqPoolSoftSignParam() = default;
+
+    SeqConcatSeqPoolSoftSignParam(SequenceConcatParam<TargetType> seq_concat_in,
+                                  SequencePoolParam<TargetType> seq_pool_in,
+                                  SoftSignParam<TargetType> soft_sign_in):
+                                  seq_pool(seq_pool_in),
+                                  seq_concat(seq_concat_in),
+                                  soft_sign(soft_sign_in) {}
+
+    SeqConcatSeqPoolSoftSignParam(const SeqConcatSeqPoolSoftSignParam& right) : seq_pool(right.seq_pool),
+        seq_concat(right.seq_concat),
+        soft_sign(right.soft_sign) {}
+
+    SeqConcatSeqPoolSoftSignParam& operator=(const SeqConcatSeqPoolSoftSignParam& right) {
+        seq_concat = right.seq_concat;
+        seq_pool = right.seq_pool;
+        soft_sign = right.soft_sign;
+        return *this;
+    }
+
+    bool operator==(const SeqConcatSeqPoolSoftSignParam& right) {
+        bool flag = true;
+        flag = flag && seq_concat == right.seq_concat;
+        flag = flag && seq_pool == right.seq_pool;
+        flag = flag && soft_sign == right.soft_sign;
+        return flag;
+    }
+
+    SequenceConcatParam<TargetType> seq_concat;
+    SequencePoolParam<TargetType> seq_pool;
+    SoftSignParam<TargetType> soft_sign;
+};
+
+template <typename TargetType>
+struct YoloBoxParam {
+
+    YoloBoxParam() = default;
+
+    YoloBoxParam(std::vector<int> anchors_in,
+                 int class_num_in,
+                 float conf_thresh_in,
+                 int downsample_ratio_in)
+            : anchors(anchors_in)
+            , class_num(class_num_in)
+            , conf_thresh(conf_thresh_in)
+            , downsample_ratio(downsample_ratio_in)
+    {}
+
+    YoloBoxParam(const YoloBoxParam& right)
+            : anchors(right.anchors)
+            , class_num(right.class_num)
+            , conf_thresh(right.conf_thresh)
+            , downsample_ratio(right.downsample_ratio)
+    {}
+
+    YoloBoxParam& operator=(const YoloBoxParam& right) {
+        anchors = right.anchors;
+        class_num = right.class_num;
+        conf_thresh = right.conf_thresh;
+        downsample_ratio = right.downsample_ratio;
+        return *this;
+    }
+
+    bool operator==(const YoloBoxParam& right) {
+        bool flag = true;
+        flag = flag && (anchors == right.anchors);
+        flag = flag && (class_num == right.class_num);
+        flag = flag && (conf_thresh == right.conf_thresh);
+        flag = flag && (downsample_ratio == right.downsample_ratio);
+        return flag;
+    }
+
+    std::vector<int> anchors;
+    int class_num{0};
+    float conf_thresh{0.f};
+    int downsample_ratio{0};
+};
+
+}
 }
 #endif //SABER_FUNCS_PARAM_H

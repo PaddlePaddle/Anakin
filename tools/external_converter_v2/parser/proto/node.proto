@@ -39,5 +39,8 @@ message NodeProto {
 
     // Operator of node.
     OpsProto Op = 15;
+
+    // Quantitative information
+    DateTypeProto bit_type = 16;
 };
 

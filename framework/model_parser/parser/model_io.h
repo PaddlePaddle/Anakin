@@ -22,10 +22,17 @@
 #include "framework/graph/node.h"
 #include "framework/graph/algorithm.h"
 #include "framework/model_parser/parser/parser.h"
-#include "framework/model_parser/proto/graph.pb.h"
-#include "framework/model_parser/proto/node.pb.h"
-#include "framework/model_parser/proto/operator.pb.h"
-#include "framework/model_parser/proto/tensor.pb.h"
+#ifdef USE_NANOPB
+#include "graph.pb.hpp"
+#include "node.pb.hpp"
+#include "operator.pb.hpp"
+#include "tensor.pb.hpp"
+#else
+#include "graph.pb.h"
+#include "node.pb.h"
+#include "operator.pb.h"
+#include "tensor.pb.h"
+#endif
 
 namespace anakin {
 

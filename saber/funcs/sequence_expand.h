@@ -94,7 +94,6 @@ public:
 
             output_shape[0] = cum;
             output[0]->set_seq_offset({off});
-
         }
 
 

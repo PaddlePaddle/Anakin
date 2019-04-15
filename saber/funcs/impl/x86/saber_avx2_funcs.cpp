@@ -1,4 +1,3 @@
-
 #include "saber_avx2_funcs.h"
 #include "saber/funcs/impl/x86/saber_normal_activation.h"
 #include "saber/funcs/debug.h"
@@ -6,6 +5,137 @@
 namespace anakin {
 
 namespace saber {
+
+inline __m256 avx2_load_mask(const float* in, int length) {
+    __m256i vec_mask = _m256_continue_mask_m256i(length);
+    return _mm256_maskload_ps(in, vec_mask);
+}
+
+inline void avx2_save_mask(__m256& in, float* out, int length) {
+    __m256i vec_mask = _m256_continue_mask_m256i(length);
+    _mm256_maskstore_ps(out, vec_mask, in);
+}
+
+void avx2_vector_relu(const float* in, int length, float* out) {
+    int remainder = length % 8;
+    int round_length = length / 8 * 8;
+    __m256 zero = _mm256_setzero_ps();
+    #pragma omp parallel for schedule(static)
+
+    for (int i = 0; i < length; i += 8) {
+        __m256 temp = _mm256_loadu_ps(&in[i]);
+        _mm256_storeu_ps(&out[i], _mm256_max_ps(zero, temp));
+    }
+
+    if (remainder > 0) {
+        __m256i vec_mask = _m256_continue_mask_m256i(remainder);
+        __m256 temp = _mm256_maskload_ps(&in[round_length], vec_mask);
+        _mm256_maskstore_ps(&out[round_length], vec_mask, _mm256_max_ps(zero, temp));
+    }
+
+};
+
+void avx2_vector_sigmoid(const float* in, int length, float* out) {
+    int remainder = length % 8;
+    int round_length = length / 8 * 8;
+    #pragma omp parallel for schedule(static)
+
+    for (int i = 0; i < length; i += 8) {
+        __m256 temp = _mm256_loadu_ps(&in[i]);
+        _mm256_storeu_ps(&out[i], Sigmoid(temp));
+    }
+
+    if (remainder > 0) {
+        __m256i vec_mask = _m256_continue_mask_m256i(remainder);
+        __m256 temp = _mm256_maskload_ps(&in[round_length], vec_mask);
+        _mm256_maskstore_ps(&out[round_length], vec_mask, Sigmoid(temp));
+    }
+
+};
+
+void avx2_vector_soft_sign(const float* in, int length, float* out) {
+    int remainder = length % 8;
+    int round_length = length / 8 * 8;
+
+    __m256 one = _mm256_set1_ps(1.f);
+    __m256 zero = _mm256_setzero_ps();
+    #pragma omp parallel for schedule(static)
+
+    for (int i = 0; i < length; i += 8) {
+        __m256 src = _mm256_loadu_ps(&in[i]);
+        __m256 src_abs = _mm256_max_ps(src, -src);
+        __m256 denominator = _mm256_add_ps(src_abs, one);
+        _mm256_storeu_ps(&out[i], _mm256_div_ps(src, denominator));
+    }
+
+    if (remainder > 0) {
+        __m256i vec_mask = _m256_continue_mask_m256i(remainder);
+        __m256 src = _mm256_maskload_ps(&in[round_length], vec_mask);
+        __m256 src_abs = _mm256_max_ps(src, -src);
+        __m256 denominator = _mm256_add_ps(src_abs, one);
+        _mm256_maskstore_ps(&out[round_length], vec_mask, _mm256_div_ps(src, denominator));
+    }
+
+};
+
+void avx2_vector_softmax_stride(const float* in, int col, int row, float* out) {
+    int remainder_col = col % 8;
+    int round_col = col / 8 * 8;
+
+    for (int col_id = 0; col_id < round_col; col_id += 8) {
+
+        __m256 max_vec = _mm256_set1_ps(-1e20);
+
+        for (int row_id = 0; row_id < row; row_id++) {
+            __m256 temp_in = _mm256_loadu_ps(&in[row_id * col + col_id]);
+            max_vec = _mm256_max_ps(max_vec, temp_in);
+        }
+
+        __m256 exp_sum = _mm256_setzero_ps();
+
+        for (int row_id = 0; row_id < row; row_id++) {
+            __m256 temp_in = _mm256_loadu_ps(&in[row_id * col + col_id]);
+            __m256 temp_in_exp = exp256_ps_fma(temp_in - max_vec);
+            exp_sum = _mm256_add_ps(exp_sum, temp_in_exp);
+            _mm256_storeu_ps(&out[row_id * col + col_id], temp_in_exp);
+        }
+
+        __m256 exp_sum_rev = _mm256_div_ps(_mm256_set1_ps(1), exp_sum);
+
+        for (int row_id = 0; row_id < row; row_id++) {
+            __m256 temp_in = _mm256_loadu_ps(&out[row_id * col + col_id]);
+            _mm256_storeu_ps(&out[row_id * col + col_id], _mm256_mul_ps(temp_in, exp_sum_rev));
+        }
+    }
+
+    if (remainder_col > 0) {
+
+        const __m256i vec_mask = _m256_continue_mask_m256i(remainder_col);
+        __m256 max_vec = _mm256_set1_ps(-1e20);
+
+        for (int row_id = 0; row_id < row; row_id++) {
+            __m256 temp_in = _mm256_maskload_ps(&in[row_id * col + round_col], vec_mask);
+            max_vec = _mm256_max_ps(max_vec, temp_in);
+        }
+
+        __m256 exp_sum = _mm256_setzero_ps();
+
+        for (int row_id = 0; row_id < row; row_id++) {
+            __m256 temp_in = _mm256_maskload_ps(&in[row_id * col + round_col], vec_mask);
+            __m256 temp_in_exp = exp256_ps_fma(temp_in - max_vec);
+            exp_sum = exp_sum + temp_in_exp;
+            _mm256_maskstore_ps(&out[row_id * col + round_col], vec_mask, temp_in_exp);
+        }
+
+        __m256 exp_sum_rev = _mm256_div_ps(_mm256_set1_ps(1), exp_sum);
+
+        for (int row_id = 0; row_id < row; row_id++) {
+            __m256 temp_in = _mm256_maskload_ps(&out[row_id * col + round_col], vec_mask);
+            _mm256_maskstore_ps(&out[row_id * col + round_col], vec_mask, _mm256_mul_ps(temp_in, exp_sum_rev));
+        }
+    }
+}
+
 
 void avx2_vector_softmax(const float* in, int length, float* out) {
     float max = _m256_max_array(in, length);
@@ -27,19 +157,20 @@ void avx2_vector_softmax(const float* in, int length, float* out) {
         __m256 temp_in = _mm256_maskload_ps(&in[round_length], vec_mask);
         __m256 temp_exp = _mm256_blendv_ps(_mm256_setzero_ps(), exp256_ps_fma(temp_in - max_vec),
                                            vec_mask_m256);
+
         _mm256_maskstore_ps(&out[round_length], vec_mask, temp_exp);
         exp_sum += temp_exp;
 
         float sum = _m256_self_sum(exp_sum);
-        __m256 sum_vec = _mm256_set1_ps(sum);
+        __m256 sum_vec = _mm256_set1_ps(1.f / sum);
 
         for (int j = 0; j < round_length; j += 8) {
             __m256 temp_in = _mm256_loadu_ps(&out[j]);
-            _mm256_storeu_ps(&out[j], temp_in / sum_vec);
+            _mm256_storeu_ps(&out[j], temp_in * sum_vec);
         }
 
         temp_in = _mm256_maskload_ps(&out[round_length], vec_mask);
-        _mm256_maskstore_ps(&out[round_length], vec_mask, temp_in / sum_vec);
+        _mm256_maskstore_ps(&out[round_length], vec_mask, temp_in * sum_vec);
 
     } else {
         for (int j = 0; j < round_length; j += 8) {
@@ -50,11 +181,11 @@ void avx2_vector_softmax(const float* in, int length, float* out) {
         }
 
         float sum = _m256_self_sum(exp_sum);
-        __m256 sum_vec = _mm256_set1_ps(sum);
+        __m256 sum_vec = _mm256_set1_ps(1.f / sum);
 
         for (int j = 0; j < round_length; j += 8) {
             __m256 temp_in = _mm256_loadu_ps(&out[j]);
-            _mm256_storeu_ps(&out[j], temp_in / sum_vec);
+            _mm256_storeu_ps(&out[j], temp_in * sum_vec);
         }
     }
 
@@ -206,6 +337,138 @@ void avx2_sequence_pool(const float* data, const float* weight, std::vector<int>
     }
 }
 
+void avx2_cos_sim(const float* in_0,
+                  const float* in_1,
+                  const int num,
+                  const int len,
+                  const float epsilon,
+                  float* out) {
+    int round_dim = len / 8 * 8;
+    int remainder = len % 8;
+    __m256i mask_m256i = _m256_continue_mask_m256i(remainder);
+
+    for (int n = 0; n < num; n++) {
+        __m256 aa_sum = _mm256_setzero_ps();
+        __m256 bb_sum = _mm256_setzero_ps();
+        __m256 ab_sum = _mm256_setzero_ps();
+
+        for (int k = 0; k < round_dim; k += 8) {
+            __m256 a = _mm256_loadu_ps(&in_0[k]);
+            __m256 b = _mm256_loadu_ps(&in_1[k]);
+            aa_sum = _mm256_fmadd_ps(a, a, aa_sum);
+            bb_sum = _mm256_fmadd_ps(b, b, bb_sum);
+            ab_sum = _mm256_fmadd_ps(a, b, ab_sum);
+        }
+
+        if (remainder > 0) {
+            __m256 a = _mm256_maskload_ps(&in_0[round_dim], mask_m256i);
+            __m256 b = _mm256_maskload_ps(&in_1[round_dim], mask_m256i);
+            aa_sum = _mm256_fmadd_ps(a, a, aa_sum);
+            bb_sum = _mm256_fmadd_ps(b, b, bb_sum);
+            ab_sum = _mm256_fmadd_ps(a, b, ab_sum);
+        }
+
+        float a_square_sum = _m256_self_sum(aa_sum);
+        float b_square_sum = _m256_self_sum(bb_sum);
+        float ab_prod_sum = _m256_self_sum(ab_sum);
+        float c = a_square_sum * b_square_sum;
+
+        if (c < epsilon) {
+            out[n] = 0.f;
+        } else {
+            out[n] = ab_prod_sum / sqrt(c);
+        }
+
+        in_0 += len;
+        in_1 += len;
+    }
+
+}
+
+void avx2_vector_sum(const float* in_0,
+                     const int len,
+                     float* out) {
+    int round_dim = len / 8 * 8;
+    int remainder = len % 8;
+    __m256i mask_m256i = _m256_continue_mask_m256i(remainder);
+    #pragma omp parallel for schedule(static)
+
+    for (int k = 0; k < round_dim; k += 8) {
+        __m256 a = _mm256_loadu_ps(&in_0[k]);
+        __m256 b = _mm256_loadu_ps(&out[k]);
+        _mm256_storeu_ps(&out[k], _mm256_add_ps(a, b));
+    }
+
+    if (remainder > 0) {
+        __m256 a = _mm256_maskload_ps(&in_0[round_dim], mask_m256i);
+        __m256 b = _mm256_maskload_ps(&out[round_dim], mask_m256i);
+        _mm256_maskstore_ps(out + round_dim, mask_m256i, _mm256_add_ps(a, b));
+    }
+}
+
+void avx2_vector_sum(const float* in_0,
+                     const float* in_1,
+                     const int len,
+                     float* out) {
+    int round_dim = len / 8 * 8;
+    int remainder = len % 8;
+    __m256i mask_m256i = _m256_continue_mask_m256i(remainder);
+
+    for (int k = 0; k < round_dim; k += 8) {
+        __m256 a = _mm256_loadu_ps(&in_0[k]);
+        __m256 b = _mm256_loadu_ps(&in_1[k]);
+        _mm256_storeu_ps(&out[k], _mm256_add_ps(a, b));
+    }
+
+    if (remainder > 0) {
+        __m256 a = _mm256_maskload_ps(&in_0[round_dim], mask_m256i);
+        __m256 b = _mm256_maskload_ps(&in_1[round_dim], mask_m256i);
+        _mm256_maskstore_ps(out + round_dim, mask_m256i, _mm256_add_ps(a, b));
+    }
+}
+
+void avx2_vector_sub(const float* in_0,
+                     const float* in_1,
+                     const int len,
+                     float* out) {
+    int round_dim = len / 8 * 8;
+    int remainder = len % 8;
+    __m256i mask_m256i = _m256_continue_mask_m256i(remainder);
+
+    for (int k = 0; k < round_dim; k += 8) {
+        __m256 a = _mm256_loadu_ps(&in_0[k]);
+        __m256 b = _mm256_loadu_ps(&in_1[k]);
+        _mm256_storeu_ps(&out[k], _mm256_sub_ps(a, b));
+    }
+
+    if (remainder > 0) {
+        __m256 a = _mm256_maskload_ps(&in_0[round_dim], mask_m256i);
+        __m256 b = _mm256_maskload_ps(&in_1[round_dim], mask_m256i);
+        _mm256_maskstore_ps(out + round_dim, mask_m256i, _mm256_sub_ps(a, b));
+    }
+}
+
+
+void avx2_vector_mul(const float* in_0,
+                     const float* in_1,
+                     const int len,
+                     float* out) {
+    int round_dim = len / 8 * 8;
+    int remainder = len % 8;
+    __m256i mask_m256i = _m256_continue_mask_m256i(remainder);
+
+    for (int k = 0; k < round_dim; k += 8) {
+        __m256 a = _mm256_loadu_ps(&in_0[k]);
+        __m256 b = _mm256_loadu_ps(&in_1[k]);
+        _mm256_storeu_ps(&out[k], _mm256_mul_ps(a, b));
+    }
+
+    if (remainder > 0) {
+        __m256 a = _mm256_maskload_ps(&in_0[round_dim], mask_m256i);
+        __m256 b = _mm256_maskload_ps(&in_1[round_dim], mask_m256i);
+        _mm256_maskstore_ps(out + round_dim, mask_m256i, _mm256_mul_ps(a, b));
+    }
+}
 
 }
 }

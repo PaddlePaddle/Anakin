@@ -31,7 +31,7 @@
 #endif
 
 #ifdef USE_ARM_PLACE
-#include "saber/funcs/impl/impl_lstm.h"
+// #include "saber/funcs/impl/impl_lstm.h"
 #endif
 
 namespace anakin {

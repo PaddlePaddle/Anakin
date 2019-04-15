@@ -38,7 +38,7 @@ public:
                             const std::vector<Tensor4dPtr<Ttype> >& ins,
                             std::vector<Tensor4dPtr<Ttype> >& outs) {
                 LOG(ERROR) << "Not Impl Yet Operator convolution<TargetType:" <<
-                           target_name<Ttype>::value << "), Precision(" << Ptype << ") >";
+                           target_name<Ttype>::value << "), Precision(" << (int)Ptype << ") >";
     }
     friend class RoisAnchorFeatureHelper<Ttype, Ptype>;
 };

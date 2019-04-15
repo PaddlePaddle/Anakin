@@ -16,6 +16,7 @@
 #ifndef ANAKIN_SABER_FUNCS_IMPL_X86_SABER_DECONV_H
 #define ANAKIN_SABER_FUNCS_IMPL_X86_SABER_DECONV_H
 
+#include "anakin_config.h"
 #include "saber/funcs/impl/impl_deconv.h"
 
 namespace anakin {

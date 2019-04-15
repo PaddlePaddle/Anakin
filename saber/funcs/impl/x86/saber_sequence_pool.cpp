@@ -10,13 +10,9 @@ namespace saber {
 template <typename dtype>
 void seq_pool_average(dtype* dst, const dtype* src_in,
                   const int slice_num, const int slice_size) {
-    dtype sum = 0.f;
 #pragma omp parallel for
     for (int i = 0; i < slice_size; ++i) {
-        sum = src_in[i];
-#pragma vector aligned
-#pragma simd reduction(+:sum)
-#pragma unroll(8)
+        dtype sum = src_in[i];
         for (int s = 1; s < slice_num; ++s) {
             dtype src_in_read = src_in[s * slice_size +i];
             sum += src_in_read;
@@ -28,13 +24,10 @@ void seq_pool_average(dtype* dst, const dtype* src_in,
 template <typename dtype>
 void seq_pool_sum(dtype* dst, const dtype* src_in,
                   const int slice_num, const int slice_size) {
-    dtype sum = 0.f;
 #pragma omp parallel for
     for (int i = 0; i < slice_size; ++i) {
-        sum = src_in[i];
-#pragma vector aligned
-#pragma simd reduction(+:sum)
-#pragma unroll(8)
+       dtype sum = src_in[i];
+       //dtype sum = 0.f;
         for (int s = 1; s < slice_num; ++s) {
             dtype src_in_read = src_in[s * slice_size +i];
             sum += src_in_read;
@@ -47,13 +40,9 @@ template <typename dtype>
 void seq_pool_sqrt(dtype* dst, const dtype* src_in,
                   const int slice_num, const int slice_size) {
     dtype sqrt_len = sqrtf(slice_num);
-    dtype sum = 0.f;
 #pragma omp parallel for
     for (int i = 0; i < slice_size; ++i) {
-        sum = src_in[i];
-#pragma vector aligned
-#pragma simd reduction(+:sum)
-#pragma unroll(4)
+        dtype sum = src_in[i];
         for (int s = 1; s < slice_num; ++s) {
             dtype src_in_read = src_in[s * slice_size +i];
             sum += src_in_read;
@@ -65,10 +54,9 @@ void seq_pool_sqrt(dtype* dst, const dtype* src_in,
 template <typename dtype>
 void seq_pool_max(dtype* dst, const dtype* src_in,
                   const int slice_num, const int slice_size) {
-    dtype max = 0.f;
 #pragma omp parallel for
     for (int i = 0; i < slice_size; ++i) {
-        max = src_in[i];
+        dtype max = src_in[i];
         for (int s = 1; s < slice_num; ++s) {
             dtype src_in_read = src_in[s * slice_size +i];
             if (max < src_in_read) {
@@ -139,11 +127,12 @@ SaberStatus SaberSequencePool<X86, OpDtype>::dispatch(
     int slice_size = outputs[0]->channel()
                      * outputs[0]->height()
                      * outputs[0]->width();
-
+                     
     DataType_in* dst_ptr = (DataType_in*)outputs[0]->mutable_data();
     const DataType_out* src_ptr = (const DataType_out*)inputs[0]->data();
     for (int i = 0; i < seq_offset.size()-1; ++i) {
         int slice_num = seq_offset[i+1] - seq_offset[i];
+        //LOG(INFO)<<"sequence pool slice size " << slice_size << "slice_num" << slice_num;
 
         kernel_direct_map[param.sequence_pool_type](
                 dst_ptr, src_ptr, slice_num, slice_size);

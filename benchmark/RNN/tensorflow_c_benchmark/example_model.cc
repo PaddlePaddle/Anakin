@@ -56,9 +56,9 @@ void SplitString(const std::string& s,
 
 int split_word_from_file(
     std::vector<std::vector<float> >& word_idx,
-    const std::string input_file_path,
-    const std::string split_token,
-    const std::string inner_split_token,
+    const std::string& input_file_path,
+    const std::string& split_token,
+    const std::string& inner_split_token,
     const int col_select) {
 
     std::ifstream infile(input_file_path.c_str());

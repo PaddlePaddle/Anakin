@@ -4,13 +4,15 @@
 #define ANAKIN_SABER_FUNCS_IMPL_X86_SABER_GRU_H
 #include "saber/funcs/impl/impl_gru.h"
 #include "saber/funcs/impl/x86/x86_utils.h"
-#include <x86intrin.h>
 
 #if defined(__AVX512F__)
+#include <immintrin.h>
 #define SABER_X86_TYPE __m512
 #elif defined(__AVX2__) and defined(__FMA__)
+#include <immintrin.h>
 #define SABER_X86_TYPE __m256
 #elif defined(__SSE4_2__) and defined(__FMA__)
+#include <immintrin.h>
 #define SABER_X86_TYPE __m128
 #else
 #define SABER_X86_TYPE float

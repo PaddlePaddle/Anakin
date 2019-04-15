@@ -58,29 +58,60 @@ void test_pad(){
     typedef typename DataTrait<TargetType_D, OpDtype> :: Dtype dtype;
     TestSaberBase<TargetType_D, TargetType_H, OpDtype , Pad, PadParam> testbase;
     
-    for (int pad_c0 : {0, 1, 2}){
-        for (int pad_c1 : {0, 1, 2}){
+    for (int pad_c0 : {0, 1}){
+        for (int pad_c1 : {0, 1}){
             std::vector<int> pad_c{pad_c0, pad_c1};
-            for (int pad_h0 : {0, 1, 2}){
-                for (int pad_h1 : {0, 1, 2}){
+            for (int pad_h0 : {0, 1}){
+                for (int pad_h1 : {0, 1}){
                     std::vector<int> pad_h{pad_h0, pad_h1};
-                    for (int pad_w0 : {0, 1, 2}){
-                        for (int pad_w1 : {0, 1, 2}){
+                    for (int pad_w0 : {0, 1}){
+                        for (int pad_w1 : {0, 1}){
                             std::vector<int> pad_w{pad_w0, pad_w1};
                             PadParam<TargetType_D> param(pad_c, pad_h, pad_w);
                             LOG(INFO)<<pad_c[0]<<" "<< pad_c[1]<<" "<<pad_h[0]<<" "<< pad_h[1]<<" "<<pad_w[0]<<" "<< pad_w[1];
                             testbase.set_param(param);
                             for (int n : {1, 2}){
                                 for (int c : {1, 3}){
-                                    for (int h : {32, 64}){
-                                        for (int w : {32, 64}){
+                                    for (int h : {14, 24}){
+                                        for (int w : {14, 24}){
                                             testbase.set_input_shape(Shape({n, c, h, w}));
                                             testbase.run_test(pad_cpu_func<dtype, TargetType_D, TargetType_H>);
                                         }
                                     }
                                 }
                             }
-                            
+
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    for (int pad_c0 : {1}){
+        for (int pad_c1 : {2}){
+            std::vector<int> pad_c{pad_c0, pad_c1};
+            for (int pad_h0 : {1}){
+                for (int pad_h1 : {2}){
+                    std::vector<int> pad_h{pad_h0, pad_h1};
+                    for (int pad_w0 : {1}){
+                        for (int pad_w1 : {2}){
+                            std::vector<int> pad_w{pad_w0, pad_w1};
+                            PadParam<TargetType_D> param(pad_c, pad_h, pad_w);
+                                    LOG(INFO)<<pad_c[0]<<" "<< pad_c[1]<<" "<<pad_h[0]<<" "<< pad_h[1]<<" "<<pad_w[0]<<" "<< pad_w[1];
+                            testbase.set_param(param);
+                            for (int n : {1}){
+                                for (int c : {4}){
+                                    for (int h : {3}){
+                                        for (int w : {2}){
+                                            testbase.set_input_shape(Shape({n, c, h, w}));
+                                            testbase.run_test(pad_cpu_func<dtype, TargetType_D, TargetType_H>);
+                                        }
+                                    }
+                                }
+                            }
+
                         }
                     }
                 }
@@ -93,6 +124,10 @@ TEST(TestSaberFunc, test_func_pool)
 {
 #ifdef USE_CUDA
     test_pad<NV, NVHX86, AK_FLOAT>();
+#endif
+
+#ifdef USE_X86_PLACE
+    test_pad<X86, X86, AK_FLOAT>();
 #endif
 }
 

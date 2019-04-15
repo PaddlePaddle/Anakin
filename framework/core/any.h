@@ -162,11 +162,11 @@ ValueType any_cast(any& operand) {
     }
     // not FATAL error
     if(operand.type() == "") {
-        LOG(WARNING)<< "The type hold by any is None"
+        DLOG(WARNING)<< "The type hold by any is None"
                     << " , but you cast to type " << anakin::type_id<ValueType>().type_info()
                     << ", and you will get a empty vector.";
     } else {
-        LOG(ERROR)<< "The type hold by any is " <<operand.type() 
+        DLOG(ERROR)<< "The type hold by any is " <<operand.type() 
                     << " , but you cast to type " << anakin::type_id<ValueType>().type_info();
     }
 

@@ -21,6 +21,9 @@
 #include "saber/saber_funcs_param.h"
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/funcs/impl/impl_scale.h"
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_scale.h"
+#endif
 
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_scale.h"
@@ -28,6 +31,9 @@
 
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_scale.h"
+#endif
+#ifdef USE_ARM_PLACE
+#include "saber/funcs/impl/arm/saber_scale.h"
 #endif
 namespace anakin {
 namespace saber {

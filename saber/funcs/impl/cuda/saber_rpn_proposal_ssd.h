@@ -34,11 +34,7 @@ class SaberRPNProposalSSD<NV, OpDtype> : public ImplROIOutputSSD <
 
 public:
 
-    SaberRPNProposalSSD()
-            : box_dev_nms_(NULL)
-            , boxes_dev_len(0)
-            , mask_dev_nms_(NULL)
-    {}
+    SaberRPNProposalSSD() = default;
 
     ~SaberRPNProposalSSD() {
         if (box_dev_nms_ != NULL) {
@@ -63,10 +59,10 @@ public:
                                  ProposalParam<NV> &param);
 
 private:
-    int num_rpns_;
-    int num_anchors_;
-    bool has_img_info_;
-    int rois_dim_;
+    int num_rpns_{0};
+    int num_anchors_{0};
+    bool has_img_info_{false};
+    int rois_dim_{0};
 
     // ADD CPU TENSORS
     PGlue<Tensor<NV>, Tensor<NVHX86> > _img_info_glue;
@@ -78,9 +74,9 @@ private:
     PGlue<Tensor<NV>, Tensor<NVHX86> > idx_sm_;
 
     //caffe pyramid_layers.hpp:615
-    float* box_dev_nms_;
-    unsigned long long* mask_dev_nms_;
-    int boxes_dev_len;
+    float* box_dev_nms_{nullptr};
+    unsigned long long* mask_dev_nms_{nullptr};
+    int boxes_dev_len{0};
     //caffe pyramid_layers.hpp:618
 };
 

@@ -5,6 +5,7 @@
 
 #include "saber/core/context.h"
 #include "saber/funcs/lstm.h"
+#include "saber/funcs/lstmp.h"
 #include "saber/funcs/impl/x86/x86_utils.h"
 #include "saber/core/tensor_op.h"
 #include "debug.h"
@@ -17,7 +18,7 @@ using namespace std;
 
 template <typename Dtype>
 static Dtype InValidAct(Dtype a) {
-    CHECK(false)<<"InValidAct";
+    return 0;
 }
 
 template <typename Dtype>
@@ -71,7 +72,7 @@ template <typename Dtype>
 void compute_ref_lstm_one_word(const Dtype* wx_i,const Dtype* wx_f,const Dtype* wx_c,const Dtype* wx_o,Dtype* h_new,const Dtype* cell_old,Dtype* cell_new,
                                const Dtype* bias_i,const Dtype* bias_f,const Dtype* bias_c,const Dtype* bias_o,const Dtype* w_c_i,
                                const Dtype* w_c_f,const Dtype* w_c_o,int hidden_size,
-                               ActiveType gate_activity,ActiveType cell_activity,ActiveType candidate_activity, bool with_peephole){
+                               ActiveType gate_activity,ActiveType cell_activity,ActiveType candidate_activity, bool with_peephole,bool show=false){
 
     typename ACTIVATION<Dtype>::Act gate_func=Activate<Dtype >(gate_activity);
     typename ACTIVATION<Dtype>::Act cell_func=Activate<Dtype >(cell_activity);
@@ -85,7 +86,6 @@ void compute_ref_lstm_one_word(const Dtype* wx_i,const Dtype* wx_f,const Dtype* 
             Dtype gate_o = gate_func(wx_o[i] + w_c_o[i] * gate_c + bias_o[i]);
             h_new[i] = gate_o * candi_func(gate_c);
             cell_new[i] = gate_c;
-//        DLOG(INFO)<<"gate_i = "<<gate_i<<","<<wx_i[i]<<","<<w_c_i[i]<<","<<cell_old[i]<<","<<bias_i[i]<<",befor "<<wx_o[i]+w_c_o[i]*gate_c+bias_o[i]<<",h = "<<h_new[i]<<",c = "<<cell_new[i];
         }
     }else{
         for (int i = 0; i < hidden_size; i++) {
@@ -96,7 +96,6 @@ void compute_ref_lstm_one_word(const Dtype* wx_i,const Dtype* wx_f,const Dtype* 
             Dtype gate_o = gate_func(wx_o[i]  + bias_o[i]);
             h_new[i] = gate_o * candi_func(gate_c);
             cell_new[i] = gate_c;
-//        DLOG(INFO)<<"gate_i = "<<gate_i<<","<<wx_i[i]<<","<<w_c_i[i]<<","<<cell_old[i]<<","<<bias_i[i]<<",befor "<<wx_o[i]+w_c_o[i]*gate_c+bias_o[i]<<",h = "<<h_new[i]<<",c = "<<cell_new[i];
         }
     }
 }
@@ -116,6 +115,7 @@ void compute_ref_lstm_fwd_me(std::vector<Tensor4f*> &src, std::vector<Tensor4f*>
     const Dtype *weights = (const Dtype *)param.weight()->data();
     const Dtype *weights_x=weights;
     const Dtype *weights_h=weights+4*word_size*hidden_size;
+    const Dtype *weights_project=weights+4*word_size*hidden_size+4*hidden_size*hidden_size;
     const Dtype *bias = (const Dtype *)param.bias()->data();
     const Dtype *weights_peephole=bias+4*hidden_size;
     const Dtype *init_hidden = nullptr;
@@ -203,6 +203,133 @@ void compute_ref_lstm_fwd_me(std::vector<Tensor4f*> &src, std::vector<Tensor4f*>
     }
 
 }
+
+template <typename Tensor4f,typename TargetType>
+void compute_ref_lstmp_fwd_me(std::vector<Tensor4f*> &src, std::vector<Tensor4f*> &dst, LstmParam<TargetType> &param){
+    typedef float Dtype;
+    SaberStatus status = SaberSuccess;
+
+    Tensor4f *input_tensor = src[0];
+    Tensor4f *output_tensor = dst[0];
+    const Dtype *x = (const Dtype*)input_tensor->data();
+    int word_size=input_tensor->channel();
+    int hidden_size=param.cell_dim;
+    int output_hidden_size=param.project_dim;
+    int seq_sum=input_tensor->num();
+
+    const Dtype *weights = (const Dtype *)param.weight()->data();
+    const Dtype *weights_x = weights;
+    const Dtype *weights_h = weights+4*word_size*hidden_size;
+    const Dtype *weights_project=weights_h+4*output_hidden_size*hidden_size;
+    const Dtype *bias = (const Dtype *)param.bias()->data();
+    const Dtype *weights_peephole=bias+4*hidden_size;
+    const Dtype *init_hidden = nullptr;
+    vector<Dtype> vec_init_hidden(hidden_size,0);
+    if(param.init_hidden()!= nullptr){
+        init_hidden=(const Dtype *)param.init_hidden()->data();
+    } else{
+        init_hidden=vec_init_hidden.data();
+    }
+    const Dtype *b_i = bias + 0 * hidden_size;
+    const Dtype *b_f = bias + 1 * hidden_size;
+    const Dtype *b_c = bias + 2 * hidden_size;
+    const Dtype *b_o = bias + 3 * hidden_size;
+
+    const Dtype *wc_i = weights_peephole + 0 * hidden_size;
+    const Dtype *wc_f = weights_peephole + 1 * hidden_size;
+    const Dtype *wc_o = weights_peephole + 2 * hidden_size;
+
+    Tensor4f inner_tensor;
+    inner_tensor.re_alloc(Shape({1,1,1,seq_sum*hidden_size}),AK_FLOAT);
+    Dtype *h = (Dtype*)inner_tensor.mutable_data();
+    Dtype* output_h=(Dtype*)dst[0]->mutable_data();
+
+    Tensor4f vec_c;
+//    Tensor<X86> xxx;
+//    xxx.re_alloc(Shape({1,1,1,seq_sum*hidden_size}),AK_FLOAT);
+
+    vec_c.re_alloc(Shape({1,1,1,seq_sum*hidden_size}),AK_FLOAT);
+//    LOG(INFO)<<"seq_sum "<<seq_sum<<","<<hidden_size<<","<<vec_c.data();
+    fill_tensor_const(vec_c,0);
+
+//
+    Tensor4f vec_wx;
+    vec_wx.re_alloc(Shape({1,1,1,seq_sum*4*hidden_size}),AK_FLOAT);
+    fill_tensor_const(vec_wx,0);
+
+//    vector<Dtype> vec_c(seq_sum*hidden_size,0);
+//    vector<Dtype> vec_wx(seq_sum*4*hidden_size,0);
+
+    Dtype *c= static_cast<Dtype*>(vec_c.data());
+    Dtype *wx= static_cast<Dtype*>(vec_wx.data());
+    std::vector<int> seq_offset = input_tensor->get_seq_offset()[input_tensor->get_seq_offset().size()-1];
+
+    gemm_naive(seq_sum,4*hidden_size,word_size,1,x,weights_x,0,wx);
+//    write_tensorfile(vec_wx,"ref_wx_tensor");
+//    print_tensor(vec_wx);
+    if(param.skip_num>1){
+        CHECK_EQ(param.is_reverse,false);
+        CHECK_EQ(seq_offset.size(),2)<<"only support batch = 1 now";
+//        CHECK_EQ(seq_sum%param.skip_num,0);
+        int skip_num=param.skip_num;
+        for(int seq_id=0;seq_id<seq_offset.size()-1;seq_id++){
+            int seq_start=seq_offset[seq_id];
+            int seq_end=seq_offset[seq_id+1];
+            for (int word_id = seq_start; word_id < seq_end; word_id++) {
+
+                Dtype *cell_old = nullptr;
+                float* this_wx=wx + word_id * 4 * hidden_size;
+                if (word_id < skip_num) {
+                    cell_old = c + word_id * hidden_size;
+                } else {
+                    cell_old = c + (word_id - skip_num) * hidden_size;
+                    gemm_naive(1, 4 * hidden_size, output_hidden_size, 1, output_h + (word_id - skip_num) * output_hidden_size, weights_h,
+                               1, this_wx);
+//                    printf_pointer(this_wx,4 * hidden_size);
+
+                }
+
+                const Dtype *wx_i = this_wx + 0 * hidden_size;
+                const Dtype *wx_f = this_wx + 1 * hidden_size;
+                const Dtype *wx_c = this_wx + 2 * hidden_size;
+                const Dtype *wx_o = this_wx + 3 * hidden_size;
+
+                Dtype *h_new = h + word_id * hidden_size;
+                Dtype *cell_new = c + word_id * hidden_size;
+
+                compute_ref_lstm_one_word(wx_i, wx_f, wx_c, wx_o, h_new, cell_old, cell_new, b_i, b_f, b_c, b_o, wc_i,
+                                          wc_f, wc_o,
+                                          hidden_size, param.gate_activity, param.cell_activity,
+                                          param.candidate_activity,param.with_peephole,word_id>=4);
+//                printf_pointer(h_new,hidden_size);
+                Dtype *output_h_this_word=output_h+word_id*output_hidden_size;
+                gemm_naive(1,output_hidden_size,hidden_size,1.f,h_new,weights_project,0.f,output_h_this_word);
+                for(int i=0;i<output_hidden_size;i++){
+                    output_h_this_word[i]=Tanh(output_h_this_word[i]);
+                }
+            }
+
+        }
+    }else{
+        LOG(FATAL)<<"not impl";
+    }
+
+
+
+//    CHECK_GT(param.project_dim,0);
+//    if(param.project_dim>0){
+//
+//        gemm_naive(seq_sum,param.project_dim,hidden_size,1.f,(Dtype*)inner_tensor.mutable_data(),weights_project,0.f,
+//                   static_cast<float*>(dst[0]->mutable_data()));
+////        Dtype* gemm_output=static_cast<float*>(inner_tensor.mutable_data());
+//        Dtype* output=(Dtype*)dst[0]->mutable_data();
+//        for(int i=0;i<seq_sum*param.project_dim;i++){
+//            output[i]=Tanh(output[i]);
+//        }
+//    }
+
+}
+
 //#define COMPARE_FILE
 template <typename HOST,typename DEVICE>
 void lstm_ut(int word_size = 222,
@@ -213,7 +340,7 @@ void lstm_ut(int word_size = 222,
              ActiveType gate_activity=Active_sigmoid,
              ActiveType cell_activity=Active_tanh,
              ActiveType candi_activity=Active_tanh,
-             int perf_iter=0,ImplEnum test_mode=SABER_IMPL){
+             int perf_iter=0,ImplEnum test_mode=SABER_IMPL,bool perf=false){
     typedef Tensor<HOST> TensorHf4;
     typedef Tensor<DEVICE> TensorDf4;
     Context<DEVICE> ctx_dev(0, 1, 1);
@@ -313,15 +440,270 @@ void lstm_ut(int word_size = 222,
         LOG(INFO)<<"impl = "<<test_mode;
         CHECK(false) << "failed : ratio " << maxratio<<","<<maxdiff;
     }
+}
 
+
+template <typename HOST,typename DEVICE>
+void lstm_ut_int8(int word_size = 222,
+             int hidden_size = 333,
+             std::vector<int> offsets = {0, 3,13,22,30,50},
+             bool is_reverse = true,
+             bool with_peephole= true,
+             ActiveType gate_activity=Active_sigmoid,
+             ActiveType cell_activity=Active_tanh,
+             ActiveType candi_activity=Active_tanh,
+             int perf_iter=0,ImplEnum test_mode=SABER_IMPL,bool perf=false){
+    typedef Tensor<HOST> TensorHf4;
+    typedef Tensor<DEVICE> TensorDf4;
+    Context<DEVICE> ctx_dev(0, 1, 1);
+
+    Shape shape_weight({1, 1, 1,hidden_size*hidden_size*4+hidden_size*word_size*4},Layout_NCHW);
+    Shape shape_bias;
+    if(with_peephole){
+        shape_bias=Shape({1,1,1,hidden_size*7},Layout_NCHW);
+    }else{
+        shape_bias=Shape({1,1,1,hidden_size*4},Layout_NCHW);
+    }
+    Shape shape_x({offsets[offsets.size() - 1], word_size, 1, 1},Layout_NCHW);
+    Shape shape_h({offsets[offsets.size() - 1], hidden_size, 1, 1},Layout_NCHW);
+    TensorHf4 host_x(shape_x);
+    TensorHf4 host_weight(shape_weight);
+    TensorHf4 host_bias(shape_bias);
+    TensorHf4 host_hidden_out(shape_h);
+    TensorDf4 dev_x(shape_x);
+    TensorDf4 dev_weight(shape_weight);
+    TensorDf4 dev_bias(shape_bias);
+    TensorDf4 dev_hidden_out(shape_h);
+#ifdef COMPARE_FILE
+    readTensorData(host_weight, "host_w");
+    readTensorData(host_x, "host_x");
+    readTensorData(host_bias, "host_b");
+#else
+    fill_tensor_rand(host_weight,-1,1);
+    fill_tensor_rand(host_x,-1,1);
+//    fill_tensor_const(host_weight,0.f);
+//    fill_tensor_const(host_x,0.f);
+    fill_tensor_rand(host_bias,-1,1);
+#endif
+    dev_weight.copy_from(host_weight);
+    dev_x.copy_from(host_x);
+    dev_bias.copy_from(host_bias);
+
+    host_x.set_seq_offset({offsets});
+    dev_x.set_seq_offset({offsets});
+    LstmParam<DEVICE> param(&dev_weight, &dev_bias,nullptr,Active_unknow,gate_activity,cell_activity,candi_activity,
+                            with_peephole,false,is_reverse);
+    Lstm<DEVICE, AK_FLOAT> lstm_op;
+
+    std::vector<TensorDf4*> inputs;
+    std::vector<TensorDf4*> outputs;
+    inputs.push_back(&dev_x);
+    outputs.push_back(&dev_hidden_out);
+
+    SABER_CHECK(lstm_op.init(inputs, outputs, param, SPECIFY, test_mode, ctx_dev));
+    SABER_CHECK(lstm_op.compute_output_shape(inputs, outputs, param));
+    outputs[0]->re_alloc(outputs[0]->valid_shape(),outputs[0]->get_dtype());
+    SABER_CHECK(lstm_op(inputs, outputs, param, ctx_dev));
+    outputs[0]->record_event(ctx_dev.get_compute_stream());
+    outputs[0]->sync();
+
+    if(perf_iter>0) {
+        SaberTimer<DEVICE> t1;
+        t1.start(ctx_dev);
+        for (int i = 0; i < perf_iter; ++i) {
+            SABER_CHECK(lstm_op(inputs, outputs, param, ctx_dev));
+            outputs[0]->record_event(ctx_dev.get_compute_stream());
+            outputs[0]->sync();
+        }
+        t1.end(ctx_dev);
+                LOG(INFO) << "!!saber care: iter = " << perf_iter << " , total time: " << t1.get_average_ms() <<
+                          "avg time : " << t1.get_average_ms() / perf_iter << " args [" << offsets[offsets.size() - 1]
+                          << "," << offsets.size() - 1 << ","<< word_size << "," << hidden_size << "]";
+    }
+
+    host_hidden_out.copy_from(dev_hidden_out);
+    TensorHf4 compare_g(shape_h);
+#ifdef COMPARE_FILE
+    readTensorData(compare_g, "host_correct");
+    write_tensorfile(host_hidden_out, "host_g.txt");
+    write_tensorfile(compare_g, "host_correct.txt");
+#else
+    std::vector<TensorHf4*> inputs_ref;
+    std::vector<TensorHf4*> outputs_ref;
+    outputs_ref.push_back(&compare_g);
+    inputs_ref.push_back(&host_x);
+    LstmParam<HOST> param_ref(&host_weight, &host_bias,nullptr,Active_unknow,gate_activity,cell_activity,candi_activity,
+                              with_peephole,false,is_reverse);
+    compute_ref_lstm_fwd_me(inputs_ref,outputs_ref,param_ref);
+#endif
+    double maxdiff = 0;
+    double maxratio = 0;
+    tensor_cmp_host((const float*)host_hidden_out.data(), (const float*)compare_g.data(), host_hidden_out.valid_size(), maxratio, maxdiff);
+    if (abs(maxratio) <= 0.005||abs(maxdiff)<0.005) {
+                LOG(INFO) << "passed  " << maxratio<<","<<maxdiff<<",?="<<abs(maxratio);
+    } else {
+        write_tensorfile(host_hidden_out, "host_g.txt");
+        write_tensorfile(compare_g, "host_correct.txt");
+        for(int i:offsets){
+                    LOG(INFO)<<"offset = "<<i;
+        }
+                LOG(INFO)<<"param = "<<word_size<<","<<hidden_size<<","<<",reverse = "<<is_reverse<<",with_peephole = "<<with_peephole;
+                LOG(INFO)<<"gate_activity = "<<gate_activity<<",cell_activity = "<<cell_activity<<",candi_activity = "<<candi_activity;
+                LOG(INFO)<<"impl = "<<test_mode;
+        CHECK(false) << "failed : ratio " << maxratio<<","<<maxdiff;
+    }
+}
+
+
+template <typename HOST,typename DEVICE,DataType precise>
+void lstmp_ut(int word_size ,
+             int hidden_size ,
+             int project_size,
+             std::vector<int> offsets,
+             int skip_num,
+             bool is_reverse ,
+             bool with_peephole,
+             ActiveType gate_activity,
+             ActiveType cell_activity,
+             ActiveType candi_activity,
+             int perf_iter=0,ImplEnum test_mode=SABER_IMPL){
+    typedef Tensor<HOST> TensorHf4;
+    typedef Tensor<DEVICE> TensorDf4;
+    Context<DEVICE> ctx_dev(0, 1, 1);
+
+    Shape shape_weight({1, 1, 1,project_size*hidden_size*4+hidden_size*word_size*4+hidden_size*project_size},Layout_NCHW);
+    Shape shape_bias;
+    if(with_peephole){
+        shape_bias=Shape({1,1,1,hidden_size*7},Layout_NCHW);
+    }else{
+        shape_bias=Shape({1,1,1,hidden_size*4},Layout_NCHW);
+    }
+    Shape shape_x({offsets[offsets.size() - 1], word_size, 1, 1},Layout_NCHW);
+    Shape shape_h({offsets[offsets.size() - 1], project_size, 1, 1},Layout_NCHW);
+    TensorHf4 host_x(shape_x);
+    TensorHf4 host_weight(shape_weight);
+    TensorHf4 host_bias(shape_bias);
+    TensorHf4 host_hidden_out(shape_h);
+    TensorDf4 dev_x(shape_x);
+    TensorDf4 dev_weight(shape_weight);
+    TensorDf4 dev_bias(shape_bias);
+    TensorDf4 dev_hidden_out(shape_h);
+#ifdef COMPARE_FILE
+    readTensorData(host_weight, "host_w");
+    readTensorData(host_x, "host_x");
+    readTensorData(host_bias, "host_b");
+#else
+
+    fill_tensor_rand(host_weight);
+    fill_tensor_rand(host_x);
+    fill_tensor_rand(host_bias);
+
+//    fill_tensor_rand(host_weight,-1,1);
+//    fill_tensor_rand(host_x,-1,1);
+//    fill_tensor_rand(host_bias,-1,1);
+
+//    fill_tensor_const(host_weight,1.f);
+//    fill_tensor_const(host_x,1.f);
+//    fill_tensor_const(host_bias,1);
+
+#endif
+    dev_weight.copy_from(host_weight);
+    dev_x.copy_from(host_x);
+    dev_bias.copy_from(host_bias);
+
+    host_x.set_seq_offset({offsets});
+    dev_x.set_seq_offset({offsets});
+    if (precise==AK_INT8){
+        dev_x.set_scale({1.f/127.f});
+    }
+    LstmParam<DEVICE> param(&dev_weight, &dev_bias,nullptr,Active_unknow,gate_activity,cell_activity,candi_activity,
+                            with_peephole,false,is_reverse,1,1,1,skip_num,project_size,hidden_size);
+    Lstmp<DEVICE, precise> lstm_op;
+
+    std::vector<TensorDf4*> inputs;
+    std::vector<TensorDf4*> outputs;
+    inputs.push_back(&dev_x);
+    outputs.push_back(&dev_hidden_out);
+
+    SABER_CHECK(lstm_op.init(inputs, outputs, param, SPECIFY, test_mode, ctx_dev));
+    SABER_CHECK(lstm_op.compute_output_shape(inputs, outputs, param));
+    outputs[0]->re_alloc(outputs[0]->valid_shape(),outputs[0]->get_dtype());
+    LOG(INFO)<<"output ptr = "<<outputs[0]->data();
+    SABER_CHECK(lstm_op(inputs, outputs, param, ctx_dev));
+//    float* output_ptr = static_cast<float*>(outputs[0]->mutable_data());
+//    for(int i=0;i<outputs[0]->valid_size();i++){
+//        output_ptr[i]=12;
+//    }
+    outputs[0]->record_event(ctx_dev.get_compute_stream());
+    outputs[0]->sync();
+
+    if(perf_iter>0) {
+        SaberTimer<DEVICE> t1;
+        t1.start(ctx_dev);
+        for (int i = 0; i < perf_iter; ++i) {
+            SABER_CHECK(lstm_op(inputs, outputs, param, ctx_dev));
+            outputs[0]->record_event(ctx_dev.get_compute_stream());
+            outputs[0]->sync();
+        }
+        t1.end(ctx_dev);
+        LOG(INFO) << "!!saber care: iter = " << perf_iter << " , total time: " << t1.get_average_ms() <<
+                  "avg time : " << t1.get_average_ms() / perf_iter << " args [" << offsets[offsets.size() - 1]
+                  << "," << word_size << ","<< hidden_size << "," << project_size << "]";
+    }
+
+    host_hidden_out.copy_from(dev_hidden_out);
+    TensorHf4 compare_g(shape_h);
+#ifdef COMPARE_FILE
+    readTensorData(compare_g, "host_correct");
+    write_tensorfile(host_hidden_out, "host_g.txt");
+    write_tensorfile(compare_g, "host_correct.txt");
+#else
+    std::vector<TensorHf4*> inputs_ref;
+    std::vector<TensorHf4*> outputs_ref;
+    outputs_ref.push_back(&compare_g);
+    inputs_ref.push_back(&host_x);
+    LstmParam<HOST> param_ref(&host_weight, &host_bias,nullptr,Active_unknow,gate_activity,cell_activity,candi_activity,
+                              with_peephole,false,is_reverse,1,1,1,skip_num,project_size,hidden_size);
+    compute_ref_lstmp_fwd_me(inputs_ref,outputs_ref,param_ref);
+#endif
+    double maxdiff = 0;
+    double maxratio = 0;
+    double mlu_ration = 0.0;
+    tensor_cmp_host_mlu((const float*)host_hidden_out.data(), (const float*)compare_g.data(), host_hidden_out.valid_size(), mlu_ration);
+    tensor_cmp_host((const float*)host_hidden_out.data(), (const float*)compare_g.data(), host_hidden_out.valid_size(), maxratio, maxdiff);
+    LOG(INFO)<<"ratios :: "<< maxratio<<","<<maxdiff<<","<<mlu_ration;
+    if (abs(maxratio) <= 0.01||abs(maxdiff)<0.01 || (precise==AK_INT8&&mlu_ration<0.05)) {
+                LOG(INFO) << "passed  " << maxratio<<","<<maxdiff<<",?="<<abs(maxratio);
+    } else {
+        write_tensorfile(host_hidden_out, "host_g.txt");
+        write_tensorfile(compare_g, "host_correct.txt");
+        for(int i:offsets){
+                    LOG(INFO)<<"offset = "<<i;
+        }
+        LOG(INFO)<<"param = "<<word_size<<","<<hidden_size<<","<<",reverse = "<<is_reverse<<",with_peephole = "<<with_peephole;
+        LOG(INFO)<<"gate_activity = "<<gate_activity<<",cell_activity = "<<cell_activity<<",candi_activity = "<<candi_activity;
+        LOG(INFO)<<"impl = "<<test_mode;
+        CHECK(false) << "failed : ratio " << maxratio<<","<<maxdiff;
+    }
 
 }
+
 
 #ifdef USE_X86_PLACE
 
 TEST(TestSaberFunc, test_func_lstm_x86) {
     Env<X86>::env_init();
-#ifdef COMPARE_FILE
+    srand(12345);
+//    lstmp_ut<X86,X86,AK_INT8>(512,1536,512,{0,8},4,false,true,Active_sigmoid,Active_tanh,Active_tanh);
+//    lstmp_ut<X86,X86,AK_INT8>(32,32,32,{0,4},4,false,true,Active_sigmoid,Active_tanh,Active_tanh);
+//    exit(0);
+    lstmp_ut<X86,X86,AK_FLOAT>(8,8,8,{0,8},4,false,true,Active_sigmoid,Active_tanh,Active_tanh);
+//    lstmp_ut<X86,X86,AK_INT8>(32,32,32,{0,16},4,false,true,Active_sigmoid,Active_tanh,Active_tanh,100);
+    lstmp_ut<X86,X86,AK_FLOAT>(512,1536,512,{0,16},4,false,true,Active_sigmoid,Active_tanh,Active_tanh,100);
+//    lstmp_ut<X86,X86,AK_INT8>(512,1536,512,{0,16},4,false,true,Active_sigmoid,Active_tanh,Active_tanh,100);
+
+//    return;
+#if 0
     lstm_ut<X86,X86>(15,333,{0,5}, true, true,Active_tanh,Active_tanh,Active_tanh,0,SABER_IMPL);
 #else
     for(int word_size:{15,222})
@@ -342,7 +724,9 @@ TEST(TestSaberFunc, test_func_lstm_x86) {
 #ifdef NVIDIA_GPU
 TEST(TestSaberFunc, test_func_lstm_nv) {
     Env<NV>::env_init();
-
+    srand(12345);
+    lstmp_ut<NVHX86,NV,AK_FLOAT>(512,1536,512,{0,10},6,false,true,Active_sigmoid,Active_tanh,Active_tanh,100);
+//    exit(0);
     for(int word_size:{15,222})
     for(int hidden_size:{15,333})
     for(bool reverse:{true,false})

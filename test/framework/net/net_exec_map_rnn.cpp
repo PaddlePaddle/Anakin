@@ -17,10 +17,15 @@
 #if  defined(NVIDIA_GPU)
 using Target = NV;
 using Target_H = NVHX86;
-#else if  defined(USE_X86_PLACE)
+
+#elif  defined(USE_X86_PLACE)
 using Target = X86;
 using Target_H = X86;
 #include "mkl_service.h"
+
+#elif defined(USE_ARM_PLACE)
+using Target = ARM;
+using Target_H = ARM;
 #endif
 
 
@@ -332,19 +337,19 @@ void one_thread_run(std::string path, int thread_id) {
             printf("%f\n", static_cast<float*>(out.data())[seq_start + seq_len - 1]);
         }
 #else
-        auto out =net_executer.get_out("final_output.tmp_1_gout");
-        int size = out->valid_size();
-
-        for (int seq_id = 0; seq_id < seq_offset.size() - 1; seq_id++) {
-            int seq_len = seq_offset[seq_id + 1] - seq_offset[seq_id];
-            int seq_start = seq_offset[seq_id];
-
-            for (int i = 0; i < seq_len - 1; i++) {
-                printf("%f|", static_cast<float*>(out->data())[seq_start + i]);
-            }
-
-            printf("%f\n", static_cast<float*>(out->data())[seq_start + seq_len - 1]);
-        }
+//        auto out =net_executer.get_out("final_output.tmp_1_gout");
+//        int size = out->valid_size();
+//
+//        for (int seq_id = 0; seq_id < seq_offset.size() - 1; seq_id++) {
+//            int seq_len = seq_offset[seq_id + 1] - seq_offset[seq_id];
+//            int seq_start = seq_offset[seq_id];
+//
+//            for (int i = 0; i < seq_len - 1; i++) {
+//                printf("%f|", static_cast<float*>(out->data())[seq_start + i]);
+//            }
+//
+//            printf("%f\n", static_cast<float*>(out->data())[seq_start + seq_len - 1]);
+//        }
 #endif
 
 

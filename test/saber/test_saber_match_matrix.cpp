@@ -114,24 +114,43 @@ void match_matrix_basic(const std::vector<Tensor<TargetType_H>*>& inputs,
     dtype* input_l_transform_reorganize = (dtype*)_input_l_transform_reorganize.mutable_data();
     dtype* output_tmp = (dtype*)_output_tmp.mutable_data();
     dtype* output_data = (dtype*) outputs[0]->mutable_data();
-    gemm(weight_data,
-         input_l, 
-         dim_t * dim_in, len_l, dim_in,
-         true, true, 
-         1.0f, 0.0f, input_l_transform);
-    for (int i = 0; i < dim_t; i++) {
-        int offset =  i * dim_in * len_l;
-        transpose<dtype>(input_l_transform + offset, dim_in, len_l, input_l_transform_reorganize +  offset);
-    }
-    gemm(input_r,
-         input_l_transform_reorganize, 
-         len_r, dim_t*len_l, dim_in,
-         false, true, 
-         1.0f, 0.0f, output_tmp);
+    if (param.is_l_same) {
+        gemm(weight_data,
+             input_l, 
+              dim_t * dim_in, len_l, dim_in,
+              true, true, 
+              1.0f, 0.0f, input_l_transform);
+         for (int i = 0; i < dim_t; i++) {
+             int offset =  i * dim_in * len_l;
+             transpose<dtype>(input_l_transform + offset, dim_in, len_l, input_l_transform_reorganize +  offset);
+         }
+         gemm(input_r,
+              input_l_transform_reorganize, 
+              len_r, dim_t*len_l, dim_in,
+              false, true, 
+              1.0f, 0.0f, output_tmp);
+   } else {
+        for (int i = 0;  i < batch; i++) {
+            gemm(weight_data,
+                 input_l + i * len_l * dim_in, 
+                  dim_t * dim_in, len_l, dim_in,
+                  true, true, 
+                  1.0f, 0.0f, input_l_transform);
+             for (int i = 0; i < dim_t; i++) {
+                 int offset =  i * dim_in * len_l;
+                 transpose<dtype>(input_l_transform + offset, dim_in, len_l, input_l_transform_reorganize +  offset);
+             }
+             gemm(input_r+offset_r[i]*dim_in,
+                  input_l_transform_reorganize, 
+                  offset_r[i+1] - offset_r[i], dim_t*len_l, dim_in,
+                  false, true, 
+                  1.0f, 0.0f, output_tmp + offset_r[i] * dim_t * len_l);
+        }
+   }
 
     padding_out(output_tmp, offset_r, dim_t, len_l, output_data);
      LOG(INFO )<< "*******************************";
-     write_tensorfile(_input_l_transform, "./_input_l_transform");
+    // write_tensorfile(_input_l_transform, "./_input_l_transform");
  //    record_dev_tensorfile(input_l_transform_reorganize, _input_l_transform_reorganize.valid_size(),  ("_input_l_transform_reorganize").c_str());
  //    record_dev_tensorfile(output_tmp, _output_tmp.valid_size(),  ("_output_tmp").c_str());
  //    record_dev_tensorfile(output_data, outputs[0]->valid_size(), ("output").c_str());
@@ -151,12 +170,13 @@ void test_model(){
     TestSaberBase<TargetType_D, TargetType_H, Dtype, MatchMatrix, MatchMatrixParam> testbase(2,1);
     
     //test example
+    for (auto is_l_same : {false, true}) {
         for (auto dim_t: {1, 3, 5}) {
             Shape weight_shape = std::vector<int>{dim_in*dim_t*dim_in, 1, 1, 1};
             Tensor<TargetType_D> weight(weight_shape);
             fill_tensor_rand(weight, -1, 1);
             
-            MatchMatrixParam<TargetType_D> param(dim_in, dim_t, &weight);
+            MatchMatrixParam<TargetType_D> param(dim_in, dim_t, is_l_same, &weight);
             testbase.set_param(param);//set param
             std::vector<std::vector<int>> left_seq_offset;
             std::vector<std::vector<int>> right_seq_offset;
@@ -188,6 +208,7 @@ void test_model(){
             testbase.add_custom_input (input_vec);
             testbase.run_test(match_matrix_basic<float, TargetType_D, TargetType_H>, 5e-5);//run test
         }
+    }
 }
 
 #endif

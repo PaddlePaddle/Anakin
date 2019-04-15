@@ -193,8 +193,7 @@ public:
         if (_capacity < vec_cap) {
             alloc(vec_cap);
         }
-        API::sync_memcpy(_data, 0, _id, &data[0], \
-            0, 0, vec_cap, flag_type());
+        API::sync_memcpy(_data, 0, _id, data.data(), 0, 0, vec_cap, flag_type());
 
         return SaberSuccess;
     }
@@ -202,14 +201,14 @@ public:
     /**
      * \brief return const data pointer
      */
-    const TPtr get_data(){
+    const TPtr get_data()const {
         return _data;
     }
 
     /**
      * \brief return mutable data pointer
      */
-    TPtr get_data_mutable(){
+    TPtr get_data_mutable()const{
         return _data;
     }
 
@@ -299,7 +298,7 @@ static inline int BufferMemShare(std::shared_ptr<Buffer<TargetType_dst>>& dst, \
     typedef typename IF<std::is_same<target_category_dst, __host_target>::value, then_type, else_type>::Type flag_type;
             CHECK_EQ(src == nullptr, false) << "input buffer is null!";
     if (!dst){
-        dst = std::make_shared<Buffer<TargetType_dst>>(src->get_count());
+        dst = std::make_shared<Buffer<TargetType_dst>>();
     }
     return MemShare(dst, src, flag_type());
 }

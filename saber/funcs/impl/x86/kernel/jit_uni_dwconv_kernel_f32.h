@@ -12,21 +12,35 @@ namespace anakin {
 namespace saber {
 namespace jit {
 
+
+struct jit_uni_dwconv_kernel_f32 {
+
+    jit_uni_dwconv_kernel_f32() {}
+
+    jit_uni_dwconv_kernel_f32(jit_conv_conf_t ajcp): jcp(ajcp) {
+    }
+
+    jit_conv_conf_t jcp;
+
+    virtual ~jit_uni_dwconv_kernel_f32() {}
+
+    void (*jit_ker)(jit_conv_call_t *);
+};
+
+
 template <cpu_isa_t isa>
-struct jit_uni_dwconv_kernel_f32 : public jit_generator {
+struct jit_dwconv_kernel_f32 : public jit_uni_dwconv_kernel_f32, public jit_generator {
 
 public:
-    jit_uni_dwconv_kernel_f32(jit_conv_conf_t ajcp) : jcp(ajcp) {
+    jit_dwconv_kernel_f32(jit_conv_conf_t ajcp) : jit_uni_dwconv_kernel_f32(ajcp), jit_generator() {
         generate();
         jit_ker = (void (*)(jit_conv_call_t *))getCode();
     }
 
-    DECLARE_CPU_JIT_AUX_FUNCTIONS(jit_uni_dwconv_kernel_f32);
+    DECLARE_CPU_JIT_AUX_FUNCTIONS(jit_dwconv_kernel_f32);
 
     static SaberStatus init_conf(jit_conv_conf_t &jcp);
 
-    jit_conv_conf_t jcp;
-    void (*jit_ker)(jit_conv_call_t *);
 
 private:
     using Vmm = typename utils::conditional3<isa == sse42, Xbyak::Xmm,

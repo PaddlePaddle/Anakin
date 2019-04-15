@@ -2,10 +2,9 @@
 #ifndef ANAKIN_SABER_NORMAL_ACTIVATION_H
 #define ANAKIN_SABER_NORMAL_ACTIVATION_H
 
+#include "anakin_config.h"
 #include "saber_types.h"
 #include <cmath>
-
-
 #include "saber_avx512_math.h"
 #include "saber_avx2_math.h"
 #include "saber_sse_math.h"
@@ -17,7 +16,7 @@ namespace saber {
 
 template<typename Dtype>
 inline Dtype InValidAct(Dtype a) {
-    CHECK_EQ(0, 1) << "InValidAct";
+    return 0;
 }
 
 template<typename Dtype>
@@ -42,7 +41,13 @@ inline Dtype Identity(const Dtype a) {
     return a;
 }
 
+
 #if defined(__SSE4_2__) and defined(__FMA__)
+
+template<>
+inline __m128 InValidAct<__m128>(const __m128 a) {
+    return _mm_set1_ps(0.0f);
+}
 
 
 template<>
@@ -80,6 +85,10 @@ inline __m128 Tanh<__m128>(const __m128 a) {
 
 #if defined(__AVX2__) and defined(__FMA__)
 
+template<>
+inline __m256 InValidAct<__m256>(const __m256 a) {
+    return _mm256_set1_ps(0.0f);
+}
 
 template<>
 inline __m256 Relu<__m256>(const __m256 a) {
@@ -112,6 +121,10 @@ inline __m256 Tanh<__m256>(const __m256 a) {
 
 #if defined(__AVX512F__)
 
+template<>
+inline __m512 InValidAct<__m512>(const __m512 a) {
+    return _mm512_set1_ps(0.0f);
+}
 
 template<>
 inline __m512 Relu<__m512>(const __m512 a) {

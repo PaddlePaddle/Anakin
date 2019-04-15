@@ -276,7 +276,7 @@ SaberLstm<NV, AK_FLOAT>::dispatch_batch(
 
 
         const int block_dim=512;
-        const int grid_dim=round_up(emit_word_length*_aligned_hidden_size,block_dim);
+        const int grid_dim=utils::div_up(emit_word_length*_aligned_hidden_size,block_dim);
 
 
         if (param.gate_activity == Active_sigmoid && param.cell_activity == Active_tanh

@@ -5,12 +5,24 @@
 namespace anakin {
 namespace saber {
 
-template <typename dtype, bool bias_flag, bool relu_flag>
-SaberStatus saber_depthwise_conv_act(const dtype* input, dtype* output, \
+template <bool relu_flag>
+SaberStatus saber_depthwise_conv_act(const float* input, float* output, \
     int num, int cin, int hin, int win, int hout, int wout, \
     int kw, int kh, int stride_w, int stride_h, \
-    int pad_h, int pad_w, const dtype* weights, const dtype* bias, \
+    int pad_h, int pad_w, const float* weights, const float* bias, \
     cudaStream_t stream);
+
+template <bool relu_flag>
+SaberStatus saber_depthwise_conv_act_s8_s8(const void* input, void* output,
+        int num, int cin, int hin, int win, int hout, int wout,
+        int kw, int kh, int stride_w, int stride_h, int pad_w, int pad_h, float alpha,
+        const void* weights, const float* bias, cudaStream_t stream);
+
+template <bool relu_flag>
+SaberStatus saber_depthwise_conv_act_s8_f32(const void* input, void* output,
+        int num, int cin, int hin, int win, int hout, int wout,
+        int kw, int kh, int stride_w, int stride_h, int pad_w, int pad_h, float alpha,
+        const void* weights, const float* bias, cudaStream_t stream);
 
 template <>
 SaberStatus SaberDepthWiseConv<AK_FLOAT>::init(
@@ -30,22 +42,12 @@ SaberStatus SaberDepthWiseConv<AK_FLOAT>::init(
 
     if (param.activation_param.has_active) {
         if (param.activation_param.active == Active_relu) {
-            if (param.bias()->size() > 0) {
-                dispatch_func = saber_depthwise_conv_act<float, true, true>;
-            } else {
-                dispatch_func = saber_depthwise_conv_act<float, false, true>;
-            }
+            dispatch_func = saber_depthwise_conv_act<true>;
         } else {
-            if (param.bias()->size() > 0) {
-                dispatch_func = saber_depthwise_conv_act<float, true, false>;
-            } else {
-                dispatch_func = saber_depthwise_conv_act<float, false, false>;
-            }
+            dispatch_func = saber_depthwise_conv_act<false>;
         }
-    } else if (param.bias()->size() > 0) {
-        dispatch_func = saber_depthwise_conv_act<float, true, false>;
     } else {
-        dispatch_func = saber_depthwise_conv_act<float, false, false>;
+        dispatch_func = saber_depthwise_conv_act<false>;
     }
     return SaberSuccess;
 }
@@ -76,24 +78,7 @@ SaberStatus SaberDepthWiseConv<AK_FLOAT>::dispatch(
     if (this->_saber_act != nullptr) {
         this->_saber_act->dispatch(outputs, outputs, param.activation_param);
     }
-    CUDA_CHECK(cudaGetLastError());
     return SaberSuccess;
-}
-
-template <>
-SaberStatus SaberDepthWiseConv<AK_INT8>::init(
-    const std::vector<Tensor<NV> *>& inputs,
-    std::vector<Tensor<NV> *>& outputs,
-    ConvParam<NV>& param, Context<NV> &ctx) {
-    return SaberUnImplError;
-}
-
-template <>
-SaberStatus SaberDepthWiseConv<AK_INT8>::dispatch(
-    const std::vector<Tensor<NV> *>& inputs,
-    std::vector<Tensor<NV> *>& outputs,
-    ConvParam<NV>& param) {
-    return SaberUnImplError;
 }
 
 

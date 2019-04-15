@@ -21,7 +21,7 @@ SaberStatus SaberWinogradConv<AK_FLOAT>::dispatch(
 
     if (param.activation_param.has_active)
     {
-        if (param.activation_param.active == Active_relu)
+        if (!_use_saber_act)
         {
             winograd_conv_relu((const float *) inputs[0]->data(),
                       (float *) outputs[0]->mutable_data(),

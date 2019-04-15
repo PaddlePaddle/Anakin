@@ -16,7 +16,7 @@ using namespace std;
 
 template <typename Dtype>
 static Dtype InValidAct(Dtype a) {
-    CHECK(false)<<"InValidAct";
+    return 0;
 }
 
 template <typename Dtype>

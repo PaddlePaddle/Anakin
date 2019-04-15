@@ -20,7 +20,7 @@
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/core/tensor.h"
 #include "saber/funcs/impl/x86/kernel/jit_call_conf.h"
-#include "saber/funcs/impl/x86/kernel/jit_avx512_conv_kernel.h"
+#include "saber/funcs/impl/x86/kernel/jit_avx512_conv_act_kernel.h"
 #include "saber/saber_funcs_param.h"
 
 namespace anakin{
@@ -60,11 +60,19 @@ typedef typename DataTrait<X86, OpDtype>::Dtype OpDataType;
 
 private:
     jit::jit_conv_conf_t conf;
-    jit::jit_conv_kernel *kernel = nullptr;
+    jit::jit_conv_act_kernel *kernel = nullptr;
     std::shared_ptr<Tensor<X86> > weights_internal;
+    Tensor<X86> bias_internal;
     SaberStatus check_conf(const std::vector<Tensor<X86>*>& inputs,
                            std::vector<Tensor<X86>*>& outputs,
                            ConvEltwiseParam<X86> &param);
+    SaberStatus dispatch_nchw_c16(const std::vector<Tensor<X86>*>& inputs,
+                                 std::vector<Tensor<X86>*>& outputs,
+                                 ConvEltwiseParam<X86> &param);
+    SaberStatus dispatch_nhwc(const std::vector<Tensor<X86>*>& inputs,
+                                 std::vector<Tensor<X86>*>& outputs,
+                                 ConvEltwiseParam<X86> &param);
+    Tensor<X86> _inner_tensor;
 };
 
 

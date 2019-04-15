@@ -39,8 +39,6 @@
 
 #cmakedefine USE_CUDNN
 
-#cmakedefine USE_TENSORRT
-
 #cmakedefine USE_PYTHON
 
 #cmakedefine USE_OPENCL 
@@ -56,6 +54,7 @@
 #cmakedefine USE_GFLAGS
 
 
+
 // plantform to use
 #cmakedefine USE_GPU_PLACE
 
@@ -65,6 +64,10 @@
 #cmakedefine USE_ARM_PLACE
 
 #cmakedefine USE_BM_PLACE
+#cmakedefine USE_MLU_PLACE
+#cmakedefine USE_MLU
+
+#cmakedefine USE_SGX
 
 #cmakedefine TARGET_ANDROID
 
@@ -80,11 +83,13 @@
 
 #cmakedefine SUPPORT_PTHREADS
 
+#cmakedefine USE_NANOPB
+
 // build arm lite
 #cmakedefine BUILD_LITE
+#cmakedefine LINUX_ARM_OS
 
-
-#if defined(ANDROID) || defined(__ANDROID__)
+#if defined(ANDROID) || defined(__ANDROID__) || defined(LINUX_ARM_OS)
     #define PLATFORM_ANDROID
     #define IS_MOBILE_PLATFORM
 #elif defined(__APPLE__)

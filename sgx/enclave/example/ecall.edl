@@ -1,0 +1,29 @@
+enclave {
+    trusted {
+        public int setup_model([in, string] const char *model_name);
+
+        public int seal_data(
+                                     size_t in_size,
+            [in, size=in_size]       const void *input,
+                                     size_t max_out_size,
+            [out, size=max_out_size] void *results,
+            [out]                    size_t *result_size
+        );
+
+        public int unseal_data(
+                                     size_t in_size,
+            [in, size=in_size]       const void *input,
+                                     size_t max_out_size,
+            [out, size=max_out_size] void *results,
+            [out]                    size_t *result_size
+        );
+
+        public int infer(
+                                     size_t in_size,
+            [in, size=in_size]       const void *input,
+                                     size_t max_out_size,
+            [out, size=max_out_size] void *results,
+            [out]                    size_t *result_size
+        );
+    };
+};

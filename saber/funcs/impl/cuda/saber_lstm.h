@@ -22,13 +22,10 @@ namespace anakin {
 
 namespace saber {
 
-static int round_up(int k, int c) {
-    return ((k + c - 1) / c) * c;
-}
 
 template <DataType OpDtype>
 class SaberLstm<NV, OpDtype>: public ImplBase <
-        NV, OpDtype,LstmParam<NV> > {
+    NV, OpDtype, LstmParam<NV> > {
 
 public:
     typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
@@ -43,14 +40,16 @@ public:
                              LstmParam <NV>& param, Context<NV>& ctx) {
 
         this->_ctx = &ctx;
-        if(param.with_peephole){
-            _hidden_size=param.bias()->valid_size()/7;
-        }else{
-            _hidden_size=param.bias()->valid_size()/4;
+
+        if (param.with_peephole) {
+            _hidden_size = param.bias()->valid_size() / 7;
+        } else {
+            _hidden_size = param.bias()->valid_size() / 4;
         }
-        _word_size=(param.weight()->valid_size()-_hidden_size*_hidden_size*4)/_hidden_size/4;
+
+        _word_size = (param.weight()->valid_size() - _hidden_size * _hidden_size * 4) / _hidden_size / 4;
         //TODO:add round_up to saber_util
-        _aligned_hidden_size=round_up(_hidden_size,32);
+        _aligned_hidden_size = utils::round_up(_hidden_size, 32);
 
 
         _seq_util = SeqSortedseqTranseUtil(param.is_reverse);
@@ -103,15 +102,15 @@ private:
 
     SaberStatus
     dispatch_batch(
-            const std::vector < Tensor<NV>* >& inputs,
-            std::vector < Tensor<NV>* >& outputs,
-            LstmParam < NV >& param);
+        const std::vector < Tensor<NV>* >& inputs,
+        std::vector < Tensor<NV>* >& outputs,
+        LstmParam < NV >& param);
 
     SaberStatus
     dispatch_once(
-            const std::vector < Tensor<NV>* >& inputs,
-            std::vector < Tensor<NV>* >& outputs,
-            LstmParam < NV >& param);
+        const std::vector < Tensor<NV>* >& inputs,
+        std::vector < Tensor<NV>* >& outputs,
+        LstmParam < NV >& param);
 
 };
 

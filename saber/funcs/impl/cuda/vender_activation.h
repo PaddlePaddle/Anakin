@@ -52,6 +52,9 @@ public:
                             ActivationParam<NV>& param, Context<NV>& ctx) {
 
         this->_ctx = &ctx;
+        if (param.active == Active_gelu || param.active == Active_swish) {
+            return SaberUnImplError;
+        }
 
         cudaStream_t cuda_stream;
         cuda_stream = ctx.get_compute_stream();
@@ -70,7 +73,7 @@ public:
     virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
                             std::vector<Tensor<NV> *>& outputs,
                             ActivationParam<NV>& param, Context<NV>& ctx) {
-        if (param.active == Active_prelu || param.active == Active_stanh) {
+        if (param.active == Active_prelu || param.active == Active_stanh || param.active == Active_swish) {
             return SaberUnImplError;
         }
         if (!(&ctx == this->_ctx)) {
@@ -119,7 +122,7 @@ public:
                             std::vector<Tensor<NV> *>& outputs,
                             ActivationParam<NV>& param) {
 
-        if (param.active == Active_prelu || param.active == Active_stanh) {
+        if (param.active == Active_prelu || param.active == Active_stanh || param.active == Active_gelu || param.active == Active_swish) {
             return SaberUnImplError;
         }
         const InDataType *in_data = (const InDataType *) inputs[0]->data();

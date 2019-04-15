@@ -18,6 +18,9 @@
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/funcs/impl/impl_cast.h"
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_cast.h"
+#endif
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_cast.h"
 #endif
@@ -27,8 +30,7 @@
 #endif
 
 #ifdef USE_ARM_PLACE
-//todo
-#include "saber/funcs/impl/impl_cast.h"
+#include "saber/funcs/impl/arm/saber_cast.h"
 #endif
 
 namespace anakin {

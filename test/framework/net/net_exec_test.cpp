@@ -31,46 +31,48 @@ int g_device_id = 0;
 #ifdef USE_CUDA
 #if 1
 
-TEST(NetTest, net_test_load_from_buffer) {
-    Graph<NV, Precision::FP32>* graph = new Graph<NV, Precision::FP32>();
-    LOG(WARNING) << "load anakin model file from " << g_model_path << " ...";
-    std::ifstream ifs;
-    ifs.open (g_model_path, std::ifstream::in);
-    if (!ifs.is_open()) {
-        LOG(FATAL) << "file open failed";
-    }
-    ifs.seekg(0, ifs.end);
-    int length = ifs.tellg();
-    ifs.seekg(0, ifs.beg);
-    char * buffer = new char [length];
-    ifs.read(buffer, length);
-    ifs.close();
-    
-    // load anakin model files.
-    auto status = graph->load(buffer, length);
-	if (!status ) {
-        LOG(FATAL) << " [ERROR] " << status.info();
-	}
-    graph->ResetBatchSize("input_0", g_batch_size);
-    graph->Optimize();
-    Net<NV, Precision::FP32> net_executer(true);
-    net_executer.load_calibrator_config("net_pt_config.txt","cal_file");
-    net_executer.init(*graph);
-    auto d_tensor_in_p = net_executer.get_in("input_0");
-    Tensor4d<Target_H> h_tensor_in;
-
-    auto valid_shape_in = d_tensor_in_p->valid_shape();
-    for (int i=0; i<valid_shape_in.size(); i++) {
-        LOG(INFO) << "detect input_0 dims[" << i << "]" << valid_shape_in[i];
-    }
-
-    h_tensor_in.re_alloc(valid_shape_in);
-    fill_tensor_const(h_tensor_in, 1.f);
-    d_tensor_in_p->copy_from(h_tensor_in);
-    cudaDeviceSynchronize();
-    net_executer.prediction();
-    write_tensorfile(*net_executer.get_out_list()[0],"output_b.txt");
-}
+//TEST(NetTest, net_test_load_from_buffer) {
+//    Graph<NV, Precision::FP32>* graph = new Graph<NV, Precision::FP32>();
+//    LOG(WARNING) << "load anakin model file from " << g_model_path << " ...";
+//    std::ifstream ifs;
+//    ifs.open (g_model_path, std::ifstream::in);
+//    if (!ifs.is_open()) {
+//        LOG(FATAL) << "file open failed";
+//    }
+//    ifs.seekg(0, ifs.end);
+//    int length = ifs.tellg();
+//    ifs.seekg(0, ifs.beg);
+//    char * buffer = new char [length];
+//    ifs.read(buffer, length);
+//    ifs.close();
+//
+//    // load anakin model files.
+//    auto status = graph->load(buffer, length);
+//	if (!status ) {
+//        LOG(FATAL) << " [ERROR] " << status.info();
+//	}
+//    graph->ResetBatchSize("input_0", g_batch_size);
+//    graph->Optimize();
+//    Net<NV, Precision::FP32> net_executer(true);
+//    net_executer.init(*graph);
+//    auto d_tensor_in_p = net_executer.get_in("input_0");
+//    Tensor4d<Target_H> h_tensor_in;
+//
+//    auto valid_shape_in = d_tensor_in_p->valid_shape();
+//    for (int i=0; i<valid_shape_in.size(); i++) {
+//        LOG(INFO) << "detect input_0 dims[" << i << "]" << valid_shape_in[i];
+//    }
+//
+//    h_tensor_in.re_alloc(valid_shape_in);
+//    fill_tensor_const(h_tensor_in, 1.f);
+//    d_tensor_in_p->copy_from(h_tensor_in);
+//    cudaDeviceSynchronize();
+//    net_executer.prediction();
+//    cudaDeviceSynchronize();
+//    auto h_tensor_out = net_executer.get_out_list()[0];
+//    LOG(INFO) << "output mean value: " << tensor_mean_value_valid(*h_tensor_out);
+//    write_tensorfile(*net_executer.get_out_list()[0],"output_b.txt");
+//}
 
 TEST(NetTest, net_execute_base_test) {
     Graph<NV, Precision::FP32>* graph = new Graph<NV, Precision::FP32>();
@@ -80,7 +82,7 @@ TEST(NetTest, net_execute_base_test) {
     if(!status ) {
         LOG(FATAL) << " [ERROR] " << status.info();
     }
-
+    LOG(INFO)<<"net_execute_base_test";
     // reshape the input_0 's shape for graph model
     //graph->Reshape("input_0", {1, 8, 640, 640});
 	graph->ResetBatchSize("input_0", g_batch_size);
@@ -105,7 +107,6 @@ TEST(NetTest, net_execute_base_test) {
     Net<NV, Precision::FP32> net_executer(true);
 #endif
 
-    net_executer.load_calibrator_config("net_pt_config.txt","cal_file");
     net_executer.init(*graph);
     // get in
     auto d_tensor_in_p = net_executer.get_in("input_0");
@@ -124,6 +125,8 @@ TEST(NetTest, net_execute_base_test) {
     }
 
     d_tensor_in_p->copy_from(h_tensor_in);
+    std::vector<std::vector<int>> seq_offset={{0,g_batch_size}};
+    d_tensor_in_p->set_seq_offset(seq_offset);
 
 #ifdef USE_DIEPSE
     // for diepse model
@@ -220,9 +223,9 @@ TEST(NetTest, net_execute_base_test) {
 	//} // inner scope over
 
 	LOG(ERROR) << "inner net exe over !";
-    for(auto x:net_executer.get_out_list()){
-//        print_tensor(*x);
-    }
+    //for (auto x:net_executer.get_out_list()){
+    //    print_tensor(*x);
+    //}
     //auto& tensor_out_inner_p = net_executer.get_tensor_from_edge("data_perm", "conv1");
 	
 
@@ -347,8 +350,8 @@ TEST(NetTest, net_execute_reconstruction_test) {
 
 int main(int argc, const char** argv){
     if (argc < 2){
-        LOG(ERROR)<<"no input!!!";
-        return;
+        LOG(ERROR) << "no input!!!, usage: ./" << argv[0] << " model_path [batch size] [warm_up_iter] [test_iter] [device_id]";
+        return -1;
     }
     if (argc > 1) {
         g_model_path = std::string(argv[1]);

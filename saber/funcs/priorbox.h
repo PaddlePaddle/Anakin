@@ -65,7 +65,7 @@ public:
 
     SaberStatus compute_priorbox_kernel(const Input_v& input, Output_v& output, Param_t& param) {
 
-        LOG(INFO) << "input tensor size: " << input.size();
+        DLOG(INFO) << "input tensor size: " << input.size();
 
         unsigned long long out_size = output[0]->valid_size();
         if (_cpu_data == nullptr) {
@@ -128,9 +128,9 @@ public:
                             for (int p = 0; p < density_; ++p) {
                                 for (int c = 0; c < density_; ++c) {
                                     // liu@20171207 changed to fix density bugs at anchor = 64
-                                    float center_x_temp = center_x - step_average / 2 + \
+                                    float center_x_temp = center_x - step_average / 2.0f + \
                                     shift / 2.f + c * shift;
-                                    float center_y_temp = center_y - step_average / 2 + \
+                                    float center_y_temp = center_y - step_average / 2.0f + \
                                     shift / 2.f + p * shift;
                                     //float center_x_temp = center_x - fixed_size_ / 2 + shift/2. + c*shift;
                                     //float center_y_temp = center_y - fixed_size_ / 2 + shift/2. + r*shift;
@@ -159,8 +159,8 @@ public:
 
                             for (int r = 0; r < density_; ++r) {
                                 for (int c = 0; c < density_; ++c) {
-                                    float center_x_temp = center_x - fixed_size_ / 2 + shift / 2.f + c * shift;
-                                    float center_y_temp = center_y - fixed_size_ / 2 + shift / 2.f + r * shift;
+                                    float center_x_temp = center_x - fixed_size_ / 2.f + shift / 2.f + c * shift;
+                                    float center_y_temp = center_y - fixed_size_ / 2.f + shift / 2.f + r * shift;
                                     // xmin
                                     _cpu_data[idx++] = (center_x_temp - box_width / 2.f) / img_width >= 0 ? \
                                                   (center_x_temp - box_width / 2.f) / img_width : 0 ;
@@ -193,8 +193,8 @@ public:
 
                             for (int p = 0; p < density_; ++p) {
                                 for (int c = 0; c < density_; ++c) {
-                                    float center_x_temp = center_x - fixed_size_ / 2 + shift / 2.f + c * shift;
-                                    float center_y_temp = center_y - fixed_size_ / 2 + shift / 2.f + p * shift;
+                                    float center_x_temp = center_x - fixed_size_ / 2.f + shift / 2.f + c * shift;
+                                    float center_y_temp = center_y - fixed_size_ / 2.f + shift / 2.f + p * shift;
                                     // xmin
                                     _cpu_data[idx++] = (center_x_temp - box_width_ratio / 2.f) / img_width >= 0 ? \
                                                   (center_x_temp - box_width_ratio / 2.f) / img_width : 0 ;

@@ -30,24 +30,21 @@ class SaberActivation<NV, OpDtype> :
 public:
     typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
     SaberActivation() = default;
-    ~SaberActivation() {}
+    ~SaberActivation() = default;
 
     virtual SaberStatus init(const std::vector<Tensor<NV> *>& inputs,
                             std::vector<Tensor<NV> *>& outputs,
-                            ActivationParam<NV>& param, Context<NV>& ctx) {
-        this->_ctx = &ctx;
-        return SaberSuccess;
-    }
+                            ActivationParam<NV>& param, Context<NV>& ctx);
 
     virtual SaberStatus create(const std::vector<Tensor<NV> *>& inputs,
                             std::vector<Tensor<NV> *>& outputs,
-                            ActivationParam<NV>& param, Context<NV> &ctx) {
-        return SaberSuccess;
-    }
+                            ActivationParam<NV>& param, Context<NV> &ctx);
     
     virtual SaberStatus dispatch(const std::vector<Tensor<NV>*>& inputs,
                           std::vector<Tensor<NV>*>& outputs,
                           ActivationParam<NV>& param);
+private:
+    Tensor<NV> _int8_input;
 };
 
 }

@@ -2,6 +2,7 @@
 #include "saber/funcs/impl/cuda/saber_conv_direct.h"
 #include "saber/funcs/calibrate.h"
 #include "saber_conv.h"
+#include "saber/core/tensor_op.h"
 
 namespace anakin {
 namespace saber {
@@ -26,7 +27,7 @@ SaberStatus SaberDirectConv<AK_FLOAT>::init(
     this->_ctx = &ctx;
     _use_saber_act = param.activation_param.has_active
             && !(param.activation_param.active == Active_relu
-            && param.activation_param.negative_slope == 0.f);
+            && fabsf(param.activation_param.negative_slope) < 1e-6f);
     _use_saber_act = _use_saber_act ||
             (param.bias()->valid_size() == 0 && param.activation_param.has_active);
     if (param.activation_param.has_active) {
@@ -111,15 +112,11 @@ SaberStatus SaberDirectConv<AK_FLOAT>::dispatch(
     CUDA_CHECK(cudaGetLastError());
     return SaberSuccess;
 }
-
 template <>
 SaberStatus SaberDirectConv<AK_INT8>::create(
         const std::vector<Tensor<NV> *>& inputs,
         std::vector<Tensor<NV> *>& outputs,
-        ConvParam<NV>& param, Context<NV> &ctx){
-    LOG(INFO) << "conv int8 create"
-              << " input tensor dtype: " << (inputs[0]->get_dtype() == AK_FLOAT ? "AK_FLOAT" : "AK_INT8")
-              << " output tensor dtype: " << (outputs[0]->get_dtype() == AK_FLOAT ? "AK_FLOAT" : "AK_INT8");
+        ConvParam<NV>& param, Context<NV> &ctx) {
     return SaberSuccess;
 }
 
@@ -127,25 +124,21 @@ template <>
 SaberStatus SaberDirectConv<AK_INT8>::init(
     const std::vector<Tensor<NV> *>& inputs,
     std::vector<Tensor<NV> *>& outputs,
-    ConvParam<NV>& param, Context<NV> &ctx){
-    LOG(INFO) << "conv int8 init"
-              << " input tensor dtype: " << (inputs[0]->get_dtype() == AK_FLOAT ? "AK_FLOAT" : "AK_INT8")
-              << " output tensor dtype: " << (outputs[0]->get_dtype() == AK_FLOAT ? "AK_FLOAT" : "AK_INT8");
-    return SaberSuccess;
-}
+    ConvParam<NV>& param, Context<NV> &ctx) {
 
+    this->_ctx = &ctx;
+
+    return create(inputs, outputs, param, ctx);
+}
 template <>
 SaberStatus SaberDirectConv<AK_INT8>::dispatch(
     const std::vector<Tensor<NV> *>& inputs,
     std::vector<Tensor<NV> *>& outputs,
     ConvParam<NV>& param) {
 
-    LOG(INFO) << "conv int8 dispatch"
-              << " input tensor dtype: " << (inputs[0]->get_dtype() == AK_FLOAT ? "AK_FLOAT" : "AK_INT8")
-              << " output tensor dtype: " << (outputs[0]->get_dtype() == AK_FLOAT ? "AK_FLOAT" : "AK_INT8");
+
     return SaberSuccess;
 }
-
 
 template <>
 SaberStatus SaberDirectConv<AK_HALF>::init(
@@ -163,5 +156,5 @@ SaberStatus SaberDirectConv<AK_HALF>::dispatch(
     return SaberUnImplError;
 }
 
-}
-}
+} // namespace saber
+} // namespace anakin

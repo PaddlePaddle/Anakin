@@ -28,7 +28,13 @@ Status DeconvolutionHelper<Ttype, Ptype>::InitParam() {
 
 	using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
-
+    // resize weights scale
+    auto& w = weights.h_tensor();
+    if (w.get_scale().size() == 1){
+        float scale_tmp = w.get_scale()[0];
+        std::vector<float> w_scale(filter_num, scale_tmp);
+        w.set_scale(w_scale);
+    }
     if (bias_term) {
         auto bias = GET_PARAMETER(pblock_type, weight_2);
         saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
@@ -52,6 +58,10 @@ template<typename Ttype, Precision Ptype>
 Status DeconvolutionHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
         const std::vector<Tensor4dPtr<Ttype> >& ins,
         std::vector<Tensor4dPtr<Ttype> >& outs) {
+    if (std::is_same<Ttype,X86>::value){
+        SABER_CHECK(_funcs_deconv.init(ins, outs, _param_deconv, SPECIFY, SABER_IMPL, ctx));
+        return Status::OK();
+    }
     SABER_CHECK(_funcs_deconv.init(ins, outs, _param_deconv, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }

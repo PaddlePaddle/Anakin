@@ -36,12 +36,13 @@ cmake .. \
 	-DBUILD_SHARED=YES\
     -DBAIDU_RPC_ROOT=/opt/brpc \
     -DPROTOBUF_ROOT=/opt \
+    -DX86_COMPILE_482=YES\
 	-DBUILD_WITH_FRAMEWORK=YES
 
 # build target lib or unit test.
 if [ "$(uname)" = 'Darwin' ]; then
-    make "-j$(sysctl -n hw.ncpu)" && make install
+    make "-j$(sysctl -n hw.ncpu)" install
 else
-    make "-j$(nproc)"   && make install
+    make "-j$(nproc)" install
 fi
 

@@ -33,6 +33,10 @@ Status load(graph::Graph<Ttype, Ptype>* graph, std::string& model_path);
 template<typename Ttype, Precision Ptype>
 Status load(graph::Graph<Ttype, Ptype>* graph, const char* model_path);
 
+bool InspectAnakin(const std::string& model_path);
+
+bool InspectAnakin(const char* buffer, size_t len);
+
 template<typename Ttype, Precision Ptype>
 Status load(graph::Graph<Ttype, Ptype>* graph, const char* buffer, size_t len);
 

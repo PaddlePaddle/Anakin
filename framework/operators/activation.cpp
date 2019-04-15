@@ -23,7 +23,7 @@ ActivationHelper<Ttype, Ptype>::~ActivationHelper() {
 
 template<typename Ttype, Precision Ptype>
 Status ActivationHelper<Ttype, Ptype>::InitParam() {
-    DLOG(WARNING) << "Parsing Activation op parameter.";
+    LOG(WARNING) << "Parsing Activation op parameter.";
     auto type = GET_PARAMETER(std::string, type);
     if (type == "TanH") {
         ActivationParam<Ttype> param_activation(Active_tanh);
@@ -44,13 +44,20 @@ Status ActivationHelper<Ttype, Ptype>::InitParam() {
         ActivationParam<Ttype> param_activation(Active_stanh);
         _param_activation = param_activation;
     } else if (type == "Relu") {
-         ActivationParam<Ttype> param_activation(Active_relu);
+         auto alpha = GET_PARAMETER(float, alpha);
+         ActivationParam<Ttype> param_activation(Active_relu, alpha);
          _param_activation = param_activation;
     } else if (type == "ClippedRelu") {
-         ActivationParam<Ttype> param_activation(Active_clipped_relu);
+         float coef = GET_PARAMETER(float, clip_relu_num);
+         ActivationParam<Ttype> param_activation(Active_clipped_relu, 0.f, coef);
          _param_activation = param_activation;
     } else if (type == "Elu") {
          ActivationParam<Ttype> param_activation(Active_elu);
+         _param_activation = param_activation;
+    } else if (type == "Swish") {
+         //the float beta(=coef) of swish op
+         float coef = GET_PARAMETER(float, clip_relu_num);
+         ActivationParam<Ttype> param_activation(Active_swish, 0.f, coef);
          _param_activation = param_activation;
     } else {
         LOG(FATAL) << "Other Activation type" << type << " should be replace by other ops.";
@@ -76,15 +83,9 @@ Status ActivationHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<
 
 #ifdef USE_CUDA
 INSTANCE_ACTIVATION(NV, Precision::FP32);
-
-template<>
-Status ActivationHelper<NV, Precision::FP32>::Init(OpContext<NV>& ctx, 
-                                                   const std::vector< Tensor4dPtr<NV> > & ins, 
-                                                   std::vector< Tensor4dPtr<NV> >& outs) {
-    SABER_CHECK(_funcs_activation.init(ins, outs, _param_activation, STATIC, VENDER_IMPL, ctx));
-    return Status::OK();
-}
 ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, NV, Precision::FP32);
+INSTANCE_ACTIVATION(NV, Precision::INT8);
+ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, NV, Precision::INT8);
 #endif
 
 #if defined USE_X86_PLACE || defined BUILD_LITE
@@ -99,7 +100,7 @@ ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, X86, Precision::FP32);
 INSTANCE_ACTIVATION(ARM, Precision::FP32);
 template class ActivationHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Activation, ActivationHelper, ARM, Precision::FP32);
-#endif//arm
+#endif
 
 #ifdef AMD_GPU
 INSTANCE_ACTIVATION(AMD, Precision::FP32);
@@ -113,6 +114,7 @@ ANAKIN_REGISTER_OP(Activation)
 .Doc("Activation operator")
 #ifdef USE_CUDA
 .__alias__<NV, Precision::FP32>("activation")
+.__alias__<NV, Precision::INT8>("activation")
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("activation")
