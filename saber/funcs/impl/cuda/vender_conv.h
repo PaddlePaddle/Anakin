@@ -110,6 +110,15 @@ public:
     void set_beta(float beta) {
         _beta = beta;
     }
+
+    template <typename Tensor_h>
+    void load_origin_weight(Tensor_h &origin_weight, Context<NV> &ctx) {
+        // run this function before init!!!
+        _origin_weight.re_alloc(origin_weight.valid_shape(), origin_weight.get_dtype());
+        _origin_weight.async_copy_from(origin_weight, ctx.get_compute_stream());
+        _use_origin_weight = true;
+    }
+
 private:
     cudnnHandle_t _handle;
     cudnnConvolutionFwdAlgo_t _fwd_algo;
@@ -137,8 +146,8 @@ private:
     bool _with_saber_act{false};
     SaberActivation<NV, OpDtype> *_saber_act{nullptr};
     float _in_scale;
-    Tensor<NV> int8_input;
-    Tensor<NV> int8_output;
+    Tensor<NV> _origin_weight;
+    bool _use_origin_weight{false};
 };
 
 

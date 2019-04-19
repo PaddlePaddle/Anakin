@@ -29,6 +29,7 @@ SaberStatus SaberSlice<X86, OpDtype>::dispatch(\
         const int out_slice_axis_size = outputs[i]->valid_shape()[param.axis];
         const int out_slice_size = out_slice_axis_size * _slice_size;
         const int slice_count = out_slice_size * _slice_num;
+#pragma omp parallel for schedule(static)
         for(int j = 0; j < slice_count; ++j){
             const int _num_slice = j / out_slice_size;
             const int _slice_index = j % out_slice_size;

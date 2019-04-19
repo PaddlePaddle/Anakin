@@ -39,6 +39,7 @@ public:
      */
     Tensor(DataType type = AK_FLOAT) : _valid_shape(), _shape(), _offset() {
         _dtype = type;
+        _buf_dtype = type;
         _type_len = type_length(type);
         _buf = std::make_shared<Buffer<TargetType>>();
         _is_subbuf = false;
@@ -52,6 +53,7 @@ public:
         _valid_shape = shape;
         _offset = Shape::zero(shape);
         _dtype = type;
+        _buf_dtype = type;
         _type_len = type_length(type);
         _buf = std::make_shared<Buffer<TargetType>>(shape.count() * _type_len);
         _is_shared = false;
@@ -85,6 +87,7 @@ public:
         _valid_shape = tensor._valid_shape;
         _offset = tensor._offset;
         _dtype = tensor._dtype;
+        _buf_dtype = tensor._buf_dtype;
         _type_len = tensor._type_len;
         _buf = tensor._buf;
         _is_subbuf = tensor._is_subbuf;
@@ -92,7 +95,7 @@ public:
         _seq_offset = tensor._seq_offset;
         _scale = tensor._scale;
     }
-
+#if 0
     /**
      * \brief Copy constructor without events control.
      */
@@ -109,6 +112,7 @@ public:
         _seq_offset = tensor._seq_offset;
         _scale = tensor._scale;
     }
+#endif
 #if 0
     /**
      * \brief create tensor with buffer
@@ -158,6 +162,7 @@ public:
                 LOG(FATAL) << "tensor is shared, memory can not be re-alloced";
                 return SaberOutOfAuthority;
             }
+            _buf_dtype = type;
             _buf->re_alloc(_shape.count() * _type_len);
         }
         return SaberSuccess;
@@ -170,32 +175,48 @@ public:
     DataType get_dtype() const {
         return _dtype;
     }
+
+    size_t get_type_size(DataType type) const{
+        switch(type) {
+            case AK_HALF: {
+                return sizeof(unsigned short);
+            }
+            case AK_FLOAT: {
+                return sizeof(float);
+            }
+            case AK_DOUBLE: {
+                return sizeof(double);
+            }
+            case AK_INT8: {
+                return sizeof(int8_t);
+            }
+            case AK_INT16: {
+                return sizeof(int16_t);
+            }
+            case AK_INT32: {
+                return sizeof(int);
+            }
+            case AK_UINT8: {
+                return sizeof(uint8_t);
+            }
+            default: {
+                LOG(ERROR) << "tensor's data type is not supported. ";
+                return 0u;
+            }
+        }
+    }
     
 	size_t get_dtype_size() const {
-		switch(_dtype) {
-			case AK_HALF: {
-				return sizeof(unsigned short);
-	  		}
-			case AK_FLOAT: {
-				return sizeof(float);
-	  		}
-			case AK_DOUBLE: {
-				return sizeof(double);
-	  		}
-			case AK_INT8: {
-				return sizeof(int8_t);
-	  		}
-			case AK_INT32: {
-				return sizeof(int);
-	  		}
-			default: { 
-				LOG(ERROR) << "tensor's data type is not supported. "; 	
-				return 0u;
-			}
-		}
+        return get_type_size(_dtype);
 	}
 
+    DataType get_buf_dtype() const {
+        return _buf_dtype;
+    }
 
+    size_t get_buf_dtype_size() const {
+        return get_type_size(_buf_dtype);
+    }
     /**
      * \brief change tensor's layout and type
      * @param layout
@@ -206,6 +227,11 @@ public:
         _valid_shape.set_layout(layout, data);
         return SaberSuccess;
     }
+//    SaberStatus set_layout_without_shape(LayoutType layout) {
+//        _valid_shape.set_layout_without_shape(layout);
+//        return SaberSuccess;
+//    }
+
     LayoutType get_layout() const {
         return _valid_shape.get_layout();
     }
@@ -293,6 +319,7 @@ public:
         CHECK_EQ(_is_shared || _is_subbuf, false) << "shared tensor could not re_alloc";
         if (type != AK_INVALID) {
             _dtype = type;
+            _buf_dtype = type;
         }
         _type_len = type_length(type);
         _shape = shape;
@@ -348,6 +375,10 @@ public:
             return true;
         }
         return _valid_shape.is_continue(_shape);
+    }
+
+    size_t capacity() const {
+        return _buf->get_capacity();
     }
 
     /**
@@ -609,7 +640,7 @@ public:
      */
     SaberStatus share_from(const Tensor& tensor) {
 
-        CHECK_LE(size(), tensor.size()) << "current tensor size should <= input tensor size";
+        //CHECK_LE(size()*get_dtype_size(), tensor.size()*tensor.get_dtype_size()) << "current tensor size should <= input tensor size";
 
         //_is_shared = BufferMemShare(_buf, tensor.get_buf()) > 0;
 
@@ -1022,14 +1053,22 @@ public:
         _events_tree._events.record(stream);
     }
 
+    bool get_posstive_flag(){
+        return _is_all_positive;
+    }
 
+    void set_posstive_flag(bool is_all_posstive){
+        _is_all_positive=is_all_posstive;
+    }
 private:
     //! scale for quantization
     std::vector<float> _scale;
+    bool _is_all_positive{false};
 
     ///< Length of datatype.
     DataType _dtype{AK_FLOAT};
     size_t _type_len{4};
+    DataType _buf_dtype{AK_FLOAT};
 
     ///< Represent the raw mem shape.
     Shape _shape;

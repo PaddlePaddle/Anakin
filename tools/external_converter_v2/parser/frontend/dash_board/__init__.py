@@ -64,7 +64,7 @@ def board_optimization():
     # parsing optimized model
     optimized_graph_path = clip_path(config.optimizedGraphPath)
     parser_config.append(["Optimization model", optimized_graph_path, \
-                          "graph model optimized by anakin inference framework"])
+                          "graph model optimized by paddle inference framework"])
     return render_template('optimization.html', 
                            parser_config=parser_config, 
                            graph_def=GraphBoard.config['optimized_graph_option'], 

@@ -24,6 +24,9 @@
 #include <vector>
 #include <functional>
 #include <mutex> 
+#ifdef USE_SGX
+#include <support/sgx/sgx_mutex>
+#endif
 #include <chrono>
 
 #ifdef USE_CUDA

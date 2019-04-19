@@ -169,6 +169,36 @@ TEST(TestSaberFunc, test_func_softmax) {
     LOG(INFO) << "x86 test end.";
 #endif
 
+#ifdef USE_ARM_PLACE
+    LOG(INFO) << "ARM test......";
+    TestSaberBase<ARM, ARM, AK_FLOAT, Softmax, SoftmaxParam> testbase2;
+
+    for (auto num : {
+                1, 3, 4, 12
+            }) {
+        for (auto c : {
+                    1, 3, 11, 3
+                }) {
+            for (auto h : {
+                        3, 1, 11, 2
+                    }) {
+                for (auto w : {
+                            1, 3, 4, 11
+                        }) {
+                    for (auto axis : {
+                                0, 1, 2, 3
+                            }) {
+                        SoftmaxParam<ARM> param(axis);
+                        testbase2.set_param(param);
+                        testbase2.set_input_shape(Shape({num, c, h, w}));
+                        testbase2.run_test(softmax_cpu<float, ARM, ARM>);
+                    }
+                }
+            }
+        }
+    }
+    LOG(INFO) << "x86 test end.";
+#endif
 
 #if 0
     Env<AMD>::env_init();

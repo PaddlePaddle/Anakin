@@ -4,6 +4,7 @@
 #include "saber/funcs/impl/x86/saber_conv.h"
 #include "saber/core/tensor_op.h"
 #include "saber/funcs/funcs_utils.h"
+#include "saber/funcs/impl/x86/kernel/jit_conv_pooling_normal.h"
 
 namespace anakin {
 namespace saber {
@@ -55,6 +56,36 @@ SaberStatus SaberConv2DPooling<X86, AK_FLOAT>::dispatch(
 
 template class SaberConv2DPooling<X86, AK_FLOAT>;
 DEFINE_OP_TEMPLATE(SaberConv2DPooling, ConvPoolingParam, X86, AK_HALF);
-DEFINE_OP_TEMPLATE(SaberConv2DPooling, ConvPoolingParam, X86, AK_INT8);
+
+template <>
+SaberStatus SaberConv2DPooling<X86, AK_INT8>::\
+create(const std::vector<Tensor<X86> *>& inputs,
+       std::vector<Tensor<X86> *>& outputs,
+       ConvPoolingParam<X86>& param, Context<X86>& ctx) {
+    SaberStatus ret = SaberUnImplError;
+
+    return ret;
+}
+
+template <>
+SaberStatus SaberConv2DPooling<X86, AK_INT8>::\
+init(const std::vector<Tensor<X86> *>& inputs,
+     std::vector<Tensor<X86> *>& outputs,
+     ConvPoolingParam<X86>& param, Context<X86>& ctx) {
+    SaberStatus ret = SaberSuccess;
+    return ret;
+}
+
+template <>
+SaberStatus SaberConv2DPooling<X86, AK_INT8>::\
+dispatch(const std::vector<Tensor<X86> *>& inputs,
+         std::vector<Tensor<X86> *>& outputs,
+         ConvPoolingParam<X86>& param) {
+    SaberStatus ret = SaberSuccess;
+
+    return ret;
+}
+
+
 }
 }

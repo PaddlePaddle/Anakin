@@ -221,8 +221,9 @@ int test_conv_results(int group,
                                    group, kernel_w, kernel_h, stride_w, stride_h,
                                    dilation_w, dilation_h, pad_w, pad_h, bias_term,
                                    param.activation_param.has_active, 1.f);
-
+#ifdef USE_CUDA
     cudaDeviceSynchronize();
+#endif
     conv.init(input_v, output_v, conv_eltwise_param, strategy, imp, ctx1);
     conv.trans_weights(*param.mutable_weight(), *param.mutable_bias(),
                        param.pad_h, param.pad_w, param.dilation_h, param.dilation_w,

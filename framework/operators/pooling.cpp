@@ -37,6 +37,12 @@ Status PoolingHelper<Ttype, Ptype>::InitParam() {
                                                            pool_strides[0], pool_strides[1],
                                                            Pooling_average_include_padding, global_pooling, cmp_out_shape_floor_as_conv);
         _param_pooling = pooling_param;
+    } else if (pool_method == "AVGEXC") {
+        PoolingParam<Ttype> pooling_param(pool_size[0], pool_size[1],
+                                          pool_padding[0], pool_padding[1],
+                                          pool_strides[0], pool_strides[1],
+                                          Pooling_average_exclude_padding, global_pooling, cmp_out_shape_floor_as_conv);
+        _param_pooling = pooling_param;
     } else {
                 LOG(FATAL) << " Pooling op doesn't support : " << pool_method << " pooling.";
     }
@@ -68,6 +74,15 @@ Status PoolingHelper<NV, Precision::FP32>::Init(OpContext<NV> &ctx, \
     return Status::OK();
 }
 ANAKIN_REGISTER_OP_HELPER(Pooling, PoolingHelper, NV, Precision::FP32);
+INSTANCE_POOLING(NV, Precision::INT8);
+template <>
+Status PoolingHelper<NV, Precision::INT8>::Init(OpContext<NV> &ctx, \
+    const std::vector<Tensor4dPtr<NV> >& ins, \
+    std::vector<Tensor4dPtr<NV> >& outs) {
+    SABER_CHECK(_funcs_pooling.init(ins, outs, _param_pooling, SPECIFY, SABER_IMPL, ctx));
+    return Status::OK();
+}
+ANAKIN_REGISTER_OP_HELPER(Pooling, PoolingHelper, NV, Precision::INT8);
 #endif
 
 #ifdef USE_ARM_PLACE
@@ -78,8 +93,10 @@ ANAKIN_REGISTER_OP_HELPER(Pooling, PoolingHelper, ARM, Precision::FP32);
 
 #if defined USE_X86_PLACE || defined BUILD_LITE
 INSTANCE_POOLING(X86, Precision::FP32);
+INSTANCE_POOLING(X86, Precision::INT8);
 template class PoolingHelper<X86, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Pooling, PoolingHelper, X86, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Pooling, PoolingHelper, X86, Precision::INT8);
 #endif
 
 #ifdef AMD_GPU
@@ -93,6 +110,8 @@ ANAKIN_REGISTER_OP(Pooling)
 #ifdef USE_CUDA
 .__alias__<NV, Precision::FP32>("pooling")
 .__alias__<NV, Precision::FP32>("pool")
+.__alias__<NV, Precision::INT8>("pooling")
+.__alias__<NV, Precision::INT8>("pool")
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("pooling")

@@ -18,9 +18,12 @@
 
 #include "saber/saber_funcs_param.h"
 #include "saber/core/context.h"
-#include "timer.h"
 #include <unordered_map>
 #include <functional>
+
+#ifndef USE_SGX
+#include "timer.h"
+#endif
 
 namespace anakin {
 
@@ -170,9 +173,11 @@ protected:
             case STATIC:
                 pick_best_static();
                 break;
+#ifndef USE_SGX
             case RUNTIME:
                 pick_best_runtime(input, output, param, ctx);
                 break;
+#endif
             case SPECIFY:
                 pick_best_specify(implenum);
                 break;
@@ -187,6 +192,12 @@ private:
     //typedef std::unordered_map<Param_t, Impl*> static_map;
     virtual void pick_best_static() = 0;
 
+#ifdef USE_SGX
+    virtual void pick_best_runtime(const Input_v& input, Output_v& output, Param_t& param, \
+        Context<TargetType> &ctx) {
+        _best_impl = _impl[0];
+    }
+#else
     virtual void pick_best_runtime(const Input_v& input, Output_v& output, Param_t& param, \
         Context<TargetType> &ctx) {
 
@@ -230,7 +241,8 @@ private:
         _best_impl = _impl[idx];
 
     }
-
+#endif
+    
     virtual void pick_best_specify(ImplEnum implenum) = 0;
 
 };

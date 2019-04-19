@@ -75,7 +75,7 @@ public:
         if (infer_axis >= 0){
             output_shape[infer_axis] = valid_size / count_axis;
         }
-        
+        output[0]->set_seq_offset(input[0]->get_seq_offset());
         return output[0] -> set_shape(output_shape);
     }
     //Reshape ops do nothing

@@ -17,6 +17,10 @@
 #ifndef ANAKIN_ENTROPY_CALIBRATOR_H
 #define ANAKIN_ENTROPY_CALIBRATOR_H
 
+#include "anakin_config.h"
+
+#ifndef USE_SGX
+
 #include "framework/core/net/calibrator.h"
 
 namespace anakin {
@@ -95,4 +99,6 @@ protected:
     int _bin_num;
 };
 }
+#endif // USE_SGX
+
 #endif

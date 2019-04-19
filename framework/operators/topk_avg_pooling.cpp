@@ -4,36 +4,17 @@ namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void TopKAvgPooling<NV, Precision::FP32>::operator()(
-    OpContext<NV>& ctx,
-    const std::vector<Tensor4dPtr<NV> >& ins,
-    std::vector<Tensor4dPtr<NV> >& outs) {
-    auto* impl =
-        static_cast<TopKAvgPoolingHelper<NV, Precision::FP32>*>(this->_helper);
-    auto& param =
-        static_cast<TopKAvgPoolingHelper<NV, Precision::FP32>*>(this->_helper)->_param_topk_avg_pooling;
-    impl->_funcs_topk_avg_pooling(ins, outs, param, ctx);
+#define INSTANCE_TOPK_AVG_POOLING(Ttype, Ptype) \
+template<> \
+void TopKAvgPooling<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+    const std::vector<Tensor4dPtr<Ttype> >& ins, \
+    std::vector<Tensor4dPtr<Ttype> >& outs) { \
+    auto* impl = \
+        static_cast<TopKAvgPoolingHelper<Ttype, Ptype>*>(this->_helper); \
+    auto& param = \
+        static_cast<TopKAvgPoolingHelper<Ttype, Ptype>*>(this->_helper)->_param_topk_avg_pooling; \
+    impl->_funcs_topk_avg_pooling(ins, outs, param, ctx); \
 }
-#endif
-
-#ifdef USE_X86_PLACE
-template<>
-void TopKAvgPooling<X86, Precision::FP32>::operator()(
-        OpContext<X86>& ctx,
-        const std::vector<Tensor4dPtr<X86> >& ins,
-        std::vector<Tensor4dPtr<X86> >& outs) {
-    auto* impl =
-            static_cast<TopKAvgPoolingHelper<X86, Precision::FP32>*>(this->_helper);
-    auto& param =
-            static_cast<TopKAvgPoolingHelper<X86, Precision::FP32>*>(this->_helper)->_param_topk_avg_pooling;
-    impl->_funcs_topk_avg_pooling(ins, outs, param, ctx);
-}
-#endif
-
-/// TODO ... specialization other type of operator
-
 
 /// set helper
 template<typename Ttype, Precision Ptype>
@@ -71,16 +52,19 @@ Status TopKAvgPoolingHelper<Ttype, Ptype>::InferShape(const
 }
 
 #ifdef USE_CUDA
+INSTANCE_TOPK_AVG_POOLING(NV, Precision::FP32);
 template class TopKAvgPoolingHelper<NV, Precision::FP32>;
 template class TopKAvgPoolingHelper<NV, Precision::FP16>;
 template class TopKAvgPoolingHelper<NV, Precision::INT8>;
 #endif
 #ifdef USE_ARM_PLACE
+INSTANCE_TOPK_AVG_POOLING(ARM, Precision::FP32);
 template class TopKAvgPoolingHelper<ARM, Precision::FP32>;
 template class TopKAvgPoolingHelper<ARM, Precision::FP16>;
 template class TopKAvgPoolingHelper<ARM, Precision::INT8>;
 #endif
 #ifdef USE_X86_PLACE
+INSTANCE_TOPK_AVG_POOLING(X86, Precision::FP32);
 template class TopKAvgPoolingHelper<X86, Precision::FP32>;
 template class TopKAvgPoolingHelper<X86, Precision::FP16>;
 template class TopKAvgPoolingHelper<X86, Precision::INT8>;
@@ -106,6 +90,9 @@ ANAKIN_REGISTER_OP(TopKAvgPooling)
 #endif
 #ifdef USE_X86_PLACE
 .__alias__<X86, Precision::FP32>("topk_avg_pooling")
+#endif
+#ifdef AMD_GPU
+//.__alias__<AMD, Precision::FP32>("topk_avg_pooling")
 #endif
 .num_in(1)
 .num_out(1)

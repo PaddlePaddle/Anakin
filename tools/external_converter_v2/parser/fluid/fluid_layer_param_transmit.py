@@ -1,6 +1,7 @@
 from ..operations import OpsParam, OpsRegister
 from ..logger import *
 from ..proto import *
+from ..proto import helper
 from fluid_helper import *
 
 
@@ -14,26 +15,43 @@ def ParserFeedDecorator(OpName):
         return warpper_args
     return warpper
 
-# common 
+# common
 def NotNeededInInference(args):
     # args is tuple object
-    node_io = args[0]
-    layer = args[1]
+    pass
+
 
 @ParserFeedDecorator("Input")
 def Parser_feed(args):
+    layout_dict = {
+        2: "NC",
+        3: "NHW",
+        4: "NCHW",
+    }
     private_data = args[4]
     input_shape = private_data['input_shape']
     alias = private_data['alias']
     OpsRegister()["Input"].input_shape = input_shape
     OpsRegister()["Input"].alias = alias
+    OpsRegister()["Input"].layout = layout_dict[len(input_shape)]
+
 
 @ParserFeedDecorator("Convolution")
 def Parser_conv2d(args):
+    node = args[0]
     op = args[1]
     helper = args[3]
     private_data = args[4]
-    [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'Filter')
+    weights_tensor = None
+    weights_shape = None
+
+    if 'scale_1' in private_data:
+        node.set_bit_type(INT8)
+        [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'Filter', "int8")
+        weights_tensor.set_scale(private_data['scale_1'], 'float')
+    else:
+        node.set_bit_type(FLOAT)
+        [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'Filter')
     OpsRegister()["Convolution"].weight_1 = weights_tensor
     OpsRegister()["Convolution"].filter_num = weights_shape[0]
     OpsRegister()["Convolution"].kernel_size = weights_shape[-2:]
@@ -42,19 +60,29 @@ def Parser_conv2d(args):
     OpsRegister()["Convolution"].dilation_rate = helper.attr_data(op, 'dilations')
     OpsRegister()["Convolution"].group = helper.attr_data(op, 'groups')
     OpsRegister()["Convolution"].axis = 1
+
     if 'bias' in private_data.keys():
         OpsRegister()["Convolution"].bias_term = True
         OpsRegister()["Convolution"].weight_2 = private_data['bias']
     else:
         OpsRegister()["Convolution"].bias_term = False
 
+
 @ParserFeedDecorator("Deconvolution")
 def Parser_conv2d_transpose(args):
+    node = args[0]
     op = args[1]
     helper = args[3]
     private_data = args[4]
-    [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'Filter')
-    weights_tensor.set_shape([weights_shape[1], weights_shape[0], weights_shape[2], weights_shape[3]])
+    weights_tensor = None
+    weights_shape = None
+    if 'scale_1' in private_data:
+        node.set_bit_type(INT8)
+        [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'Filter', "int8")
+        weights_tensor.set_scale(private_data['scale_1'], 'float')
+    else:
+        node.set_bit_type(FLOAT)
+        [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'Filter')
     OpsRegister()["Deconvolution"].weight_1 = weights_tensor
     OpsRegister()["Deconvolution"].filter_num = weights_shape[1]
     OpsRegister()["Deconvolution"].kernel_size = weights_shape[-2:]
@@ -77,6 +105,7 @@ def Parser_relu(args):
 def Parser_pool2d(args):
     op = args[1]
     helper = args[3]
+
     OpsRegister()["Pooling"].pool_size = helper.attr_data(op, 'ksize')
     OpsRegister()["Pooling"].strides = helper.attr_data(op, 'strides')
     OpsRegister()["Pooling"].padding = helper.attr_data(op, 'paddings')
@@ -84,19 +113,32 @@ def Parser_pool2d(args):
     if helper.attr_data(op, 'pooling_type') == 'max':
         OpsRegister()["Pooling"].method = "MAX"
     elif helper.attr_data(op, 'pooling_type') in ['average', 'avg']:
-        OpsRegister()["Pooling"].method = "AVG"
+        if helper.attr_data(op, 'exclusive', True) is True:
+            OpsRegister()["Pooling"].method = 'AVGEXC'
+        else:
+            OpsRegister()["Pooling"].method = "AVG"
     if helper.attr_data(op, 'ceil_mode') == False:
         OpsRegister()["Pooling"].cmp_out_shape_floor_as_conv = True
     else:
         OpsRegister()["Pooling"].cmp_out_shape_floor_as_conv = False
 
+
 @ParserFeedDecorator("Dense")
 def Parser_mul(args):
+    node = args[0]
     op = args[1]
     helper = args[3]
     private_data = args[4]
     weights_needs_trans = True
-    [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'Y', weights_needs_trans)
+    weights_tensor = None
+    weights_shape = None
+    if 'scale_1' in private_data:
+        node.set_bit_type(INT8)
+        [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'Y', "int8", weights_needs_trans)
+        weights_tensor.set_scale(private_data['scale_1'], 'float')
+    else:
+        node.set_bit_type(FLOAT)
+        [weights_tensor, weights_shape] = helper.param_tensor_sh(op, 'Y', None, weights_needs_trans)
     OpsRegister()["Dense"].weight_1 = weights_tensor
     OpsRegister()["Dense"].out_dim = weights_shape[2]
     OpsRegister()["Dense"].axis = helper.attr_data(op, 'x_num_col_dims')
@@ -155,6 +197,7 @@ def Parser_scale_disc_bn(args):
     OpsRegister()["Scale"].axis = 1
     OpsRegister()["Scale"].num_axes = 1
 
+
 @ParserFeedDecorator("Scale")
 def Parser_scale_of_bn(args):
     op = args[1]
@@ -168,6 +211,7 @@ def Parser_scale_of_bn(args):
         OpsRegister()["Scale"].weight_2 = helper.param_tensor(op, 'Bias')
     else:
         OpsRegister()["Scale"].bias_term = False
+
 
 @ParserFeedDecorator("Split")
 def Parser_split_ins(args):
@@ -184,16 +228,20 @@ def Parser_split_ins(args):
 def Parser_slice(args):
     op = args[1]
     helper = args[3]
-    OpsRegister()["Slice"].slice_point = [-1]
+    sections = list(helper.attr_data(op, 'sections'))
+    slice_point = list()
+    for i in range(len(sections) - 1):
+        slice_point.append(sum(sections[:i + 1]))
+    OpsRegister()["Slice"].slice_point = slice_point
     OpsRegister()["Slice"].num = helper.attr_data(op, 'num')
     OpsRegister()["Slice"].axis = helper.attr_data(op, 'axis')
-    OpsRegister()["Slice"].sections = helper.attr_data(op, 'sections')
 
 @ParserFeedDecorator("Reshape")
 def Parser_reshape(args):
     op = args[1]
     helper = args[3]
     private_data = args[4]
+
     layout = str()
     if 'new_shape' in private_data.keys():
         shape = private_data['new_shape']
@@ -203,6 +251,8 @@ def Parser_reshape(args):
         layout = 'NCHW'
     elif len(shape) == 3:
         layout = 'NHW'
+    elif len(shape) == 2:
+        layout = 'NW'
     OpsRegister()["Reshape"].dims = shape
     OpsRegister()["Reshape"].layout = layout
 
@@ -224,10 +274,14 @@ def Parser_transpose(args):
     op = args[1]
     helper = args[3]
     fluid_dims = helper.attr_data(op, 'axis')
-    n = 4 - len(fluid_dims)
-    dims = range(0, n)
-    tail_dims = [i + n for i in fluid_dims]
-    dims.extend(tail_dims)
+    dims = 0
+    if fluid_dims < 4:
+        n = 4 - len(fluid_dims)
+        dims = range(0, n)
+        tail_dims = [i + n for i in fluid_dims]
+        dims.extend(tail_dims)
+    else:
+        dims = fluid_dims
     OpsRegister()["Permute"].dims = dims
 
 
@@ -250,16 +304,45 @@ def Parser_prior_box(args):
     OpsRegister()["PriorBox"].offset = helper.attr_data(op, 'offset')
     OpsRegister()["PriorBox"].order = ['MIN', 'COM', 'MAX']
 
+@ParserFeedDecorator("PriorBox")
+def Parser_density_prior_box(args):
+    op = args[1]
+    helper = args[3]
+
+    OpsRegister()["PriorBox"].fixed_size = helper.attr_data(op, 'fixed_sizes')
+    OpsRegister()["PriorBox"].fixed_ratio = helper.attr_data(op, 'fixed_ratios')
+    OpsRegister()["PriorBox"].density = map(float, helper.attr_data(op, 'densities'))
+    OpsRegister()["PriorBox"].is_clip = helper.attr_data(op, 'clip')
+    OpsRegister()["PriorBox"].variance = helper.attr_data(op, 'variances')
+    OpsRegister()["PriorBox"].img_h = 0
+    OpsRegister()["PriorBox"].img_w = 0
+    OpsRegister()["PriorBox"].step_h = helper.attr_data(op, 'step_h')
+    OpsRegister()["PriorBox"].step_w = helper.attr_data(op, 'step_w')
+    OpsRegister()["PriorBox"].offset = helper.attr_data(op, 'offset')
+    OpsRegister()["PriorBox"].order = ['MIN', 'COM', 'MAX']
+
 @ParserFeedDecorator("box_coder")
 def Parser_box_coder(args):
-    pass
+    op = args[1]
+    helper = args[3]
+    axis = helper.attr_data(op, 'axis')
+    box_normalized = helper.attr_data(op, 'box_normalized')
+    variance = helper.attr_data(op, 'variance')
+
+    OpsRegister()["box_coder"].axis = axis
+    OpsRegister()["box_coder"].box_normalized = box_normalized
+    if type(variance) is int:
+        OpsRegister()["box_coder"].variance = helper.create_tensor([variance,], [1, 1, 1, 1,], FLOAT)
+    else:
+        OpsRegister()["box_coder"].variance = helper.create_tensor(variance, [1, len(variance), 1, 1,], FLOAT)
 
 @ParserFeedDecorator("DetectionOutput")
 def Parser_multiclass_nms(args):
     op = args[1]
     helper = args[3]
     private_data = args[4]
-    OpsRegister()["DetectionOutput"].share_location = True
+
+    OpsRegister()["DetectionOutput"].share_location = True if private_data['net_type'] == 'SSD' else False
     OpsRegister()["DetectionOutput"].variance_encode_in_target = False
     OpsRegister()["DetectionOutput"].class_num = 0
     OpsRegister()["DetectionOutput"].background_id = helper.attr_data(op, 'background_label')
@@ -445,6 +528,7 @@ def Parser_matmul(args):
     OpsRegister()["MatMul"].transpose_y = helper.attr_data(op, 'transpose_Y')
     OpsRegister()["MatMul"].coeff = coeff
 
+
 @ParserFeedDecorator("Scale")
 def Parser_scale(args):
     op = args[1]
@@ -454,6 +538,8 @@ def Parser_scale(args):
     OpsRegister()["Scale"].num_axes = 0
     OpsRegister()["Scale"].bias_term = False
     OpsRegister()["Scale"].weight_1 = helper.create_tensor([scale_val], [1, 1, 1, 1], FLOAT)
+    OpsRegister()["Scale"].weight_2 = helper.create_tensor([], [0, 0, 0, 0], FLOAT)
+
 
 @ParserFeedDecorator("LayerNorm")
 def Parser_layer_norm(args):
@@ -479,10 +565,16 @@ def Parser_elementwise_mul(args):
     op = args[1]
     helper = args[3]
     private_data = args[4]
-    if helper.is_persistable_param(op, 'Y'):
+
+    Y = helper.var_by_param(op, 'Y')
+    if Y.persistable:
         OpsRegister()["Scale"].weight_1 = helper.param_tensor(op, 'Y')
+    elif 'fill_constant' in private_data and Y.name in private_data['fill_constant']:
+        fill_constant_op = private_data['fill_constant'][Y.name]
+        OpsRegister()["Scale"].weight_1 = helper.fill_tensor(fill_constant_op, Y)
     else:
         OpsRegister()["Scale"].weight_1 = helper.create_tensor([1], [1, 1, 1, 1], FLOAT) # developing
+
     OpsRegister()["Scale"].axis = helper.attr_data(op, 'axis')
     OpsRegister()["Scale"].num_axes = 1
     if 'bias' in private_data.keys():
@@ -491,12 +583,13 @@ def Parser_elementwise_mul(args):
     else:
         OpsRegister()["Scale"].bias_term = False
 
+
 @ParserFeedDecorator("Activation")
 def Parser_relu6(args):
     op = args[1]
     helper = args[3]
     OpsRegister()["Activation"].type = "ClippedRelu"
-    OpsRegister()["Activation"].clip_relu_num = helper.attr_data(op, 'threshold')
+    OpsRegister()["Activation"].clip_relu_num = float(helper.attr_data(op, 'threshold'))
 
 @ParserFeedDecorator("ReLU")
 def Parser_leaky_relu(args):
@@ -525,13 +618,408 @@ def Parser_flatten(args):
     OpsRegister()["Flatten"].start_axis = helper.attr_data(op, 'axis')
     OpsRegister()["Flatten"].end_axis = -1
 
+@ParserFeedDecorator("PixelShuffle")
+def Parser_pixel_shuffle(args):
+    private_data = args[4]
+    OpsRegister()["PixelShuffle"].upscale_factor = private_data['factor']
+
+
 @ParserFeedDecorator("assign_value")
 def Parser_assign_value(args):
     pass
 
+
 @ParserFeedDecorator("shape")
 def Parser_shape(args):
     pass
+
+@ParserFeedDecorator("fake_quantize_abs_max")
+def Parser_fake_quantize_abs_max(args):
+    """
+    A placeholder for an empty function.
+    """
+    pass
+
+@ParserFeedDecorator("fake_dequantize_max_abs")
+def Parser_fake_dequantize_max_abs(args):
+    """
+    A placeholder for an empty function.
+    """
+    pass
+
+
+@ParserFeedDecorator("fake_dequantize_range_max_abs")
+def Parser_fake_dequantize_range_max_abs(args):
+    """
+    A placeholder for an empty function.
+    """
+    pass
+
+@ParserFeedDecorator("fake_quantize_range_abs_max")
+def Parser_fake_quantize_range_abs_max(args):
+    """
+    A placeholder for an empty function.
+    """
+    pass
+
+@ParserFeedDecorator("dequantize")
+def Parser_dequantize(args):
+    """
+    A placeholder for an empty function.
+    """
+    pass
+
+@ParserFeedDecorator("quantize")
+def Parser_quantize(args):
+    """
+    A placeholder for an empty function.
+    """
+    pass
+
+@ParserFeedDecorator("increment")
+def Parser_increment(args):
+    """
+    A placeholder for an empty function.
+    """
+    pass
+
+@ParserFeedDecorator("ShuffleChannel")
+def Parser_shuffle_channel(args):
+    private_data = args[4]
+    OpsRegister()["ShuffleChannel"].group = private_data['group']
+
+
+@ParserFeedDecorator("Scale")
+def Parser_affine_channel(args):
+    op = args[1]
+    helper = args[3]
+    OpsRegister()["Scale"].bias_term = True
+    OpsRegister()["Scale"].weight_1 = helper.param_tensor(op, 'Scale')
+    OpsRegister()["Scale"].weight_2 = helper.param_tensor(op, 'Bias')
+
+
+@ParserFeedDecorator("RoiAlign")
+def Parser_roi_align(args):
+    op = args[1]
+    helper = args[3]
+    OpsRegister()["RoiAlign"].spatial_scale = helper.attr_data(op, 'spatial_scale')
+    OpsRegister()["RoiAlign"].pooled_height = helper.attr_data(op, 'pooled_height')
+    OpsRegister()["RoiAlign"].pooled_width = helper.attr_data(op, 'pooled_width')
+    OpsRegister()["RoiAlign"].sampling_ratio = helper.attr_data(op, 'sampling_ratio')
+
+@ParserFeedDecorator("AnchorGenerator")
+def Parser_anchor_generator(args):
+    op = args[1]
+    helper = args[3]
+    OpsRegister()["AnchorGenerator"].anchor_sizes = helper.attr_data(op, 'anchor_sizes')
+    OpsRegister()["AnchorGenerator"].aspect_ratios = helper.attr_data(op, 'aspect_ratios')
+    OpsRegister()["AnchorGenerator"].variances = helper.attr_data(op, 'variances')
+    OpsRegister()["AnchorGenerator"].stride = helper.attr_data(op, 'stride')
+    OpsRegister()["AnchorGenerator"].offset = helper.attr_data(op, 'offset')
+
+@ParserFeedDecorator("GenerateProposals")
+def Parser_generate_proposals(args):
+    op = args[1]
+    helper = args[3]
+
+    OpsRegister()["GenerateProposals"].pre_nms_top_n = helper.attr_data(op, 'pre_nms_topN')
+    OpsRegister()["GenerateProposals"].post_nms_top_n = helper.attr_data(op, 'post_nms_topN')
+    OpsRegister()["GenerateProposals"].nms_thresh = helper.attr_data(op, 'nms_thresh')
+    OpsRegister()["GenerateProposals"].min_size = helper.attr_data(op, 'min_size')
+    OpsRegister()["GenerateProposals"].eta = helper.attr_data(op, 'eta')
+
+@ParserFeedDecorator("Normalize")
+def Parser_norm(args):
+    op = args[1]
+    helper = args[3]
+    OpsRegister()["Normalize"].is_across_spatial = False
+    OpsRegister()["Normalize"].is_shared_channel = False
+    OpsRegister()["Normalize"].eps = helper.attr_data(op, 'epsilon')
+    OpsRegister()["Normalize"].p = 2
+
+
+@ParserFeedDecorator("Resize")
+def Parser_bilinear_interp(args):
+    op = args[1]
+    helper = args[3]
+    OpsRegister()["Resize"].out_width = helper.attr_data(op, 'out_w')
+    OpsRegister()["Resize"].out_height = helper.attr_data(op, 'out_h')
+    OpsRegister()["Resize"].method = "BILINEAR_ALIGN"
+
+
+@ParserFeedDecorator("SequencePoolConcat")
+def Parser_seqpool_concat(args):
+    op = args[1]
+    helper = args[3]
+    private_data = args[4]
+    OpsRegister()["SequencePoolConcat"].pooltype = helper.attr_data(op, 'pooltype')
+    OpsRegister()["SequencePoolConcat"].axis = private_data['axis']
+    OpsRegister()["SequencePoolConcat"].slot_num = private_data['slot_num']
+
+@ParserFeedDecorator("Scale")
+def Parser_data_norm(args):
+    op = args[1]
+    helper = args[3]
+    batch_size = helper.np_param(op, 'BatchSize')
+    batch_square_sum = helper.np_param(op, 'BatchSquareSum')
+    batch_sum = helper.np_param(op, 'BatchSum')
+    np_means = batch_sum / batch_size
+    np_scales = np.sqrt(batch_size / batch_square_sum)
+    np_bias = - (np_scales * np_means)
+    np_scale_shape = map(int, [1] * (4 - len(np_scales.shape)) + list(np_scales.shape))
+    np_bias_shape = map(int, [1] * (4 - len(np_bias.shape)) + list(np_bias.shape))
+    np_weight_tensor = helper.create_tensor(np_scales.flatten().tolist(), np_scale_shape, FLOAT)
+    np_bias_tensor = helper.create_tensor(np_bias.flatten().tolist(), np_bias_shape, FLOAT)
+    OpsRegister()["Scale"].axis = 1
+    OpsRegister()["Scale"].num_axes = 1
+    OpsRegister()["Scale"].bias_term = True
+    OpsRegister()["Scale"].weight_1 = np_weight_tensor
+    OpsRegister()["Scale"].weight_2 = np_bias_tensor
+
+
+@ParserFeedDecorator("fusion_dropout_add_ln_quant")
+def Parser_fusion_dropout_add_ln_quant(args):
+    pass
+
+@ParserFeedDecorator("dequantize_max_abs_rowwise")
+def Parser_dequantize_max_abs_rowwise(args):
+    pass
+
+@ParserFeedDecorator("quantize_abs_max_rowwise")
+def Parser_quantize_abs_max_rowwise(args):
+    pass
+
+@ParserFeedDecorator("fusion_add_relu_dropout_quant")
+def Parser_fusion_add_relu_dropout_quant(args):
+    pass
+
+@ParserFeedDecorator("fill_constant")
+def Parser_fill_constant(args):
+    pass
+
+@ParserFeedDecorator("less_than")
+def Parser_less_than(args):
+    pass
+
+@ParserFeedDecorator("write_to_array")
+def Parser_write_to_array(args):
+    pass
+
+@ParserFeedDecorator("fill_constant_batch_size_like")
+def Parser_fill_constant_batch_size_like(args):
+    pass
+
+@ParserFeedDecorator("assign")
+def Parser_assign(args):
+    op = args[1]
+    helper = args[3]
+
+@ParserFeedDecorator("while")
+def Parser_while(args):
+    pass
+
+@ParserFeedDecorator("beam_search_decode")
+def Parser_beam_search_decode(args):
+    pass
+
+
+@ParserFeedDecorator("Resize")
+def Parser_nearest_interp(args):
+    #pass
+    op = args[1]
+    helper = args[3]
+
+    out_h = helper.attr_data(op, 'out_h')
+    out_w = helper.attr_data(op, 'out_w')
+    interp_method = helper.attr_data(op, 'interp_method')
+    align_corners = helper.attr_data(op, 'align_corners', False)
+    align_mode = helper.attr_data(op, 'align_mode', 0)
+
+    if interp_method == 'nearest':
+        if align_corners:
+            OpsRegister()["Resize"].method = 'BILINEAR_ALIGN'
+        else:
+            OpsRegister()["Resize"].method = 'BILINEAR_NO_ALIGN'
+        OpsRegister()["Resize"].out_height = out_h
+        OpsRegister()["Resize"].out_width = out_w
+    else:
+        raise Exception('unexpected interp_method={}'.format(interp_method))
+
+@ParserFeedDecorator("yolo_box")
+def Parser_yolo_box(args):
+    op = args[1]
+    helper = args[3]
+    OpsRegister()["yolo_box"].class_num = helper.attr_data(op, 'class_num')
+    OpsRegister()["yolo_box"].anchors = list(helper.attr_data(op, 'anchors'))
+    OpsRegister()["yolo_box"].downsample_ratio = helper.attr_data(op, 'downsample_ratio')
+    OpsRegister()["yolo_box"].conf_thresh = helper.attr_data(op, 'conf_thresh')
+
+
+@ParserFeedDecorator("slice_v2")
+def Parser_slice2(args):
+    op = args[1]
+    helper = args[3]
+    OpsRegister()["slice_v2"].ends = list(helper.attr_data(op, 'ends'))
+    OpsRegister()["slice_v2"].starts =  list(helper.attr_data(op, 'starts'))
+    OpsRegister()["slice_v2"].axes = list(helper.attr_data(op, 'axes'))
+
+
+@ParserFeedDecorator("reduce")
+def Parser_reduce_mean(args):
+    op = args[1]
+    helper = args[3]
+    dim = helper.attr_data(op, 'dim')
+    keep_dim = helper.attr_data(op, 'keep_dim')
+
+    OpsRegister()['reduce'].reduce_type = 'Reduce_avg'
+    OpsRegister()['reduce'].keep_dim = keep_dim
+    if dim is None:
+        OpsRegister()['reduce'].reduce_all = True
+    elif type(dim) is list:
+        OpsRegister()['reduce'].reduce_all = False
+        OpsRegister()['reduce'].reduce_dim = dim
+    elif type(dim) is int:
+        OpsRegister()['reduce'].reduce_all = False
+        OpsRegister()['reduce'].reduce_dim = [dim,]
+    else:
+        raise Exception('unexpected type(dim)={0}'.format(type(dim)))
+
+
+@ParserFeedDecorator("Argmax")
+def Parser_arg_max(args):
+    op = args[1]
+    helper = args[3]
+
+    OpsRegister()["Argmax"].top_k = 1
+    OpsRegister()["Argmax"].axis_term =  True
+    OpsRegister()["Argmax"].out_max_value = False
+    OpsRegister()["Argmax"].axis = helper.attr_data(op, 'axis')
+
+@ParserFeedDecorator("sequence_expand")
+def Parser_sequence_expand(args):
+    op = args[1]
+    helper = args[3]
+    ref_level = helper.attr_data(op, 'ref_level')
+
+    OpsRegister()['sequence_expand'].ref_level = ref_level
+
+
+@ParserFeedDecorator("Scale")
+def Parser_elementwise_div(args):
+    op = args[1]
+    helper = args[3]
+    private_data = args[4]
+
+    axis = helper.attr_data(op, 'axis', -1)
+    Y = helper.var_by_param(op, 'Y')
+    if Y.persistable:
+        weight_1 = helper.param_tensor(op, 'Y')
+    elif 'fill_constant' in private_data and Y.name in private_data['fill_constant']:
+        fill_constant_op = private_data['fill_constant'][Y.name]
+        weight_1 = helper.fill_tensor(fill_constant_op, Y)
+    else:
+        weight_1 = helper.create_tensor([1], [1, 1, 1, 1], FLOAT)  # developing
+    # reverse cache_data
+    helper.reverse_cache_data(weight_1.tensor_proto.data)
+
+    OpsRegister()["Scale"].axis = axis
+    OpsRegister()["Scale"].num_axes = 1
+    OpsRegister()["Scale"].weight_1 = weight_1
+
+
+@ParserFeedDecorator("box_clip")
+def Parser_box_clip(args):
+    pass
+
+
+@ParserFeedDecorator("Reduce")
+def Parser_reduce_prod(args):
+    op = args[1]
+    helper = args[3]
+    dim = helper.attr_data(op, 'dim')
+    keep_dim = helper.attr_data(op, 'keep_dim')
+
+    OpsRegister()['reduce'].reduce_type = 'Reduce_prod'
+    OpsRegister()['reduce'].keep_dim = keep_dim
+    if dim is None:
+        OpsRegister()['reduce'].reduce_all = True
+    elif type(dim) is list:
+        OpsRegister()['reduce'].reduce_all = False
+        OpsRegister()['reduce'].reduce_dim = dim
+    elif type(dim) is int:
+        OpsRegister()['reduce'].reduce_all = False
+        OpsRegister()['reduce'].reduce_dim = [dim,]
+    else:
+        raise Exception('unexpected type(dim)={0}'.format(type(dim)))
+
+
+@ParserFeedDecorator("equal")
+def Parser_equal(args):
+    pass
+
+
+@ParserFeedDecorator("split_lod_tensor")
+def Parser_split_lod_tensor(args):
+    pass
+
+
+@ParserFeedDecorator("conditional_block")
+def Parser_conditional_block(args):
+    pass
+
+
+@ParserFeedDecorator("merge_lod_tensor")
+def Parser_merge_lod_tensor(args):
+    pass
+
+
+@ParserFeedDecorator('lod_reset')
+def Parser_lod_reset(args):
+    """fluid.layers.lod_reset parser
+    """
+    pass
+
+
+@ParserFeedDecorator('GroupNormal')
+def Parser_group_norm(args):
+    """fluid.layers.group_norm parser
+    """
+    op = args[1]
+    helper = args[3]
+    private_data = args[4]
+
+    Bias = helper.broad_param_tensor(op, 'Bias', private_data)
+    Scale = helper.broad_param_tensor(op, 'Scale', private_data)
+    epsilon = helper.attr_data(op, 'epsilon', 0.0)
+    groups = helper.attr_data(op, 'groups', 0)
+
+    OpsRegister()['GroupNormal'].has_scale = True
+    OpsRegister()['GroupNormal'].scale = Scale
+    OpsRegister()['GroupNormal'].has_bias = True
+    OpsRegister()['GroupNormal'].bias = Bias
+    OpsRegister()['GroupNormal'].eps = epsilon
+    OpsRegister()['GroupNormal'].group = groups
+
+
+@ParserFeedDecorator('fake_quantize_moving_average_abs_max')
+def Parser_fake_quantize_moving_average_abs_max(args):
+    """fluid.layers.fake_quantize_moving_average_abs_max parser
+    """
+    pass
+
+
+@ParserFeedDecorator('Activation')
+def Parser_swish(args):
+    """fluid.layers.swish parser
+    """
+    op = args[1]
+    helper = args[3]
+
+    beta = helper.attr_data(op, 'beta', 1.0)
+
+    OpsRegister()['Activation'].type = 'Swish'
+    OpsRegister()['Activation'].clip_relu_num = beta
+
 
 FLUID_NODE_FILLER = {
     "feed":OpsParam().set_parser(Parser_feed),
@@ -551,9 +1039,12 @@ FLUID_NODE_FILLER = {
     "split_ins":OpsParam().set_parser(Parser_split_ins),
     "depthwise_conv2d":OpsParam().set_parser(Parser_conv2d),
     "reshape":OpsParam().set_parser(Parser_reshape),
+    "reshape2":OpsParam().set_parser(Parser_reshape),
     "concat":OpsParam().set_parser(Parser_concat),
     "transpose":OpsParam().set_parser(Parser_transpose),
+    "transpose2":OpsParam().set_parser(Parser_transpose),
     "prior_box":OpsParam().set_parser(Parser_prior_box),
+    "density_prior_box":OpsParam().set_parser(Parser_density_prior_box),
     "box_coder":OpsParam().set_parser(Parser_box_coder),
     "multiclass_nms":OpsParam().set_parser(Parser_multiclass_nms),
     "concat_btw_priorbox_boxcoder":OpsParam().set_parser(Parser_concat_btw_priorbox_boxcoder),
@@ -575,10 +1066,60 @@ FLUID_NODE_FILLER = {
     "dropout":OpsParam().set_parser(Parser_dropout),
     "scale":OpsParam().set_parser(Parser_scale),
     "flatten":OpsParam().set_parser(Parser_flatten),
+    "flatten2":OpsParam().set_parser(Parser_flatten),
     "assign_value":OpsParam().set_parser(Parser_assign_value),
     "shape":OpsParam().set_parser(Parser_shape),
     "relu6":OpsParam().set_parser(Parser_relu6),
     "leaky_relu":OpsParam().set_parser(Parser_leaky_relu),
     "prelu":OpsParam().set_parser(Parser_prelu),
     "split":OpsParam().set_parser(Parser_slice),
+    "quantize":OpsParam().set_parser(Parser_quantize),
+    "dequantize":OpsParam().set_parser(Parser_dequantize),
+    "fake_quantize_abs_max":OpsParam().set_parser(Parser_fake_quantize_abs_max),
+    "fake_quantize_range_abs_max":OpsParam().set_parser(Parser_fake_quantize_range_abs_max),
+    "fake_dequantize_max_abs":OpsParam().set_parser(Parser_fake_dequantize_max_abs),
+    "fake_dequantize_range_max_abs":OpsParam().set_parser(Parser_fake_dequantize_range_max_abs),
+    "pixel_shuffle":OpsParam().set_parser(Parser_pixel_shuffle),
+    "shuffle_channel":OpsParam().set_parser(Parser_shuffle_channel),
+    # FastRCNN start
+    "affine_channel":OpsParam().set_parser(Parser_affine_channel),
+    "anchor_generator":OpsParam().set_parser(Parser_anchor_generator),
+    "generate_proposals":OpsParam().set_parser(Parser_generate_proposals),
+    "roi_align":OpsParam().set_parser(Parser_roi_align),
+    # FastRCNN end
+    "norm":OpsParam().set_parser(Parser_norm),
+    "increment":OpsParam().set_parser(Parser_increment),
+    "bilinear_interp":OpsParam().set_parser(Parser_bilinear_interp),
+    # feed
+    "data_norm":OpsParam().set_parser(Parser_data_norm),
+    "seqpool_concat":OpsParam().set_parser(Parser_seqpool_concat),
+    # capi
+    "fusion_dropout_add_ln_quant":OpsParam().set_parser(Parser_fusion_dropout_add_ln_quant),
+    "dequantize_max_abs_rowwise":OpsParam().set_parser(Parser_dequantize_max_abs_rowwise),
+    "quantize_abs_max_rowwise":OpsParam().set_parser(Parser_quantize_abs_max_rowwise),
+    "fusion_add_relu_dropout_quant":OpsParam().set_parser(Parser_fusion_add_relu_dropout_quant),
+    "fill_constant":OpsParam().set_parser(Parser_fill_constant),
+    "less_than":OpsParam().set_parser(Parser_less_than),
+    "write_to_array":OpsParam().set_parser(Parser_write_to_array),
+    "fill_constant_batch_size_like":OpsParam().set_parser(Parser_fill_constant_batch_size_like),
+    "assign":OpsParam().set_parser(Parser_assign),
+    "while":OpsParam().set_parser(Parser_while),
+    "beam_search_decode":OpsParam().set_parser(Parser_beam_search_decode),
+    "slice":OpsParam().set_parser(Parser_slice2),
+    "nearest_interp":OpsParam().set_parser(Parser_nearest_interp),
+    "yolo_box":OpsParam().set_parser(Parser_yolo_box),
+    "reduce_mean":OpsParam().set_parser(Parser_reduce_mean),
+    "arg_max":OpsParam().set_parser(Parser_arg_max),
+    "sequence_expand":OpsParam().set_parser(Parser_sequence_expand),
+    "elementwise_div":OpsParam().set_parser(Parser_elementwise_div),
+    "box_clip":OpsParam().set_parser(Parser_box_clip),
+    "reduce_prod":OpsParam().set_parser(Parser_reduce_prod),
+    "equal":OpsParam().set_parser(Parser_equal),
+    "split_lod_tensor":OpsParam().set_parser(Parser_split_lod_tensor),
+    "conditional_block":OpsParam().set_parser(Parser_conditional_block),
+    "merge_lod_tensor": OpsParam().set_parser(Parser_merge_lod_tensor),
+    'lod_reset': OpsParam().set_parser(Parser_lod_reset),
+    'group_norm': OpsParam().set_parser(Parser_group_norm),
+    'fake_quantize_moving_average_abs_max': OpsParam().set_parser(Parser_fake_quantize_moving_average_abs_max),
+    'swish': OpsParam().set_parser(Parser_swish),
 }

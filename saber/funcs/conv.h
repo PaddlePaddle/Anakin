@@ -27,14 +27,22 @@
 
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_conv.h"
+#ifndef USE_SGX
+#include "saber/funcs/impl/x86/vender_conv.h"
+#endif
 #endif
 
 #ifdef USE_ARM_PLACE
-//#include "saber/funcs/impl/arm/saber_conv.h"
+#include "saber/funcs/impl/arm/saber_conv.h"
 #endif
 
 #ifdef USE_BM_PLACE
 //#include "saber/funcs/impl/bm/vender_conv.h"
+#endif
+
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_conv.h"
+#include "saber/funcs/impl/amd/include/vender_conv.h"
 #endif
 namespace anakin {
 namespace saber {
@@ -67,7 +75,8 @@ public:
                                              Output_v &output, Param_t &param) override {
         Shape conv_shape = conv_compute_shape(input[0]->valid_shape(), param);
         output[0]->set_seq_offset(input[0]->get_seq_offset());
-        return output[0]->set_shape(conv_shape);
+        Shape result=Shape::cvt_shape(conv_shape,output[0]->get_layout());
+        return output[0]->set_shape_without_layout(result);
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {

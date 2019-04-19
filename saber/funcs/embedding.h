@@ -25,12 +25,12 @@
 #include "saber/funcs/impl/x86/saber_embedding.h"
 #endif
 
-// #ifdef USE_AMD
-// #include "saber/funcs/impl/amd/saber_embedding.h"
-// #endif
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_embedding.h"
+#endif
 
 #ifdef USE_ARM_PLACE
-#include "saber/funcs/impl/arm/saber_embedding.h"
+//#include "saber/funcs/impl/arm/saber_embedding.h"
 #endif
 
 namespace anakin {
@@ -64,7 +64,7 @@ public:
                                              Output_v &output, Param_t &param) override {
 
         Shape output_shape({input[0]->valid_size(), param.emb_dim, 1, 1});
-        CHECK_EQ(output.size(), param.num_direct) 
+        CHECK_EQ(output.size(), param.num_direct)
                 << "output tensor num is not equal to the direct number in param";
         for (int i = 0; i < output.size(); i++) {
             output[i]->set_seq_offset(input[0]->get_seq_offset());

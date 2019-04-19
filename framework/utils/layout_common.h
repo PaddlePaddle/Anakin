@@ -78,6 +78,6 @@ int dims_from_layout(const LayoutType layouttype) {
     }
 }
 
-#endif
-
 } /* namespace anakin */
+
+#endif

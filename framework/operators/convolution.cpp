@@ -1,3 +1,17 @@
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
 #include "framework/operators/convolution.h"
 
 namespace anakin {
@@ -12,7 +26,7 @@ void Convolution<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
     auto* impl = static_cast<ConvolutionHelper<Ttype, Ptype>*>(this->_helper); \
     auto& param = static_cast<ConvolutionHelper<Ttype, Ptype>*> \
                   (this->_helper)->_param_conv; \
-    impl->_funcs_conv(ins, outs, param, ctx); \
+    SABER_CHECK(impl->_funcs_conv(ins, outs, param, ctx));\
 }
 
 template<typename Ttype, Precision Ptype>
@@ -29,7 +43,13 @@ Status ConvolutionHelper<Ttype, Ptype>::InitParam() {
 
 	using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
-
+    // resize weights scale
+    auto& w = weights.h_tensor();
+    if (w.get_scale().size() == 1){
+        float scale_tmp = w.get_scale()[0];
+        std::vector<float> w_scale(filter_num, scale_tmp);
+        w.set_scale(w_scale);
+    }
     if (bias_term) {
         auto bias = GET_PARAMETER(pblock_type, weight_2);
         saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
@@ -57,11 +77,17 @@ Status ConvolutionHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
     auto bias_term = GET_PARAMETER(bool, bias_term);
 
     //different device pleace change here..
+#ifdef AMD_GPU
+    saber::ImplEnum impl_e = SABER_IMPL;
+#else
     saber::ImplEnum impl_e = VENDER_IMPL;
-    if (std::is_same<Ttype, X86>::value) {
+    if (std::is_same<Ttype, X86>::value || std::is_same<Ttype, ARM>::value) {
         impl_e = SABER_IMPL;
     }
-    bool use_k1s1p0 = true;
+    if (std::is_same<Ttype, NV>::value && Ptype == Precision::INT8) {
+        impl_e = SABER_IMPL;
+    }
+    bool use_k1s1p0 = (Ptype == Precision::FP32);
     use_k1s1p0 = use_k1s1p0 && (_param_conv.weight()->height() == 1);
     use_k1s1p0 = use_k1s1p0 && (_param_conv.weight()->width() == 1);
     use_k1s1p0 = use_k1s1p0 && (_param_conv.pad_h == 0);
@@ -72,7 +98,7 @@ Status ConvolutionHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
     use_k1s1p0 = use_k1s1p0 && (_param_conv.dilation_w == 1);
     use_k1s1p0 = use_k1s1p0 && (_param_conv.group == 1);
     use_k1s1p0 = use_k1s1p0 && (_param_conv.bias()->valid_size() > 0);
-    bool use_k3s1d1 = true;
+    bool use_k3s1d1 = (Ptype == Precision::FP32);
     use_k3s1d1 = use_k3s1d1 && (_param_conv.weight()->height() == 3);
     use_k3s1d1 = use_k3s1d1 && (_param_conv.weight()->width() == 3);
     use_k3s1d1 = use_k3s1d1 && (_param_conv.group == 1);
@@ -80,15 +106,17 @@ Status ConvolutionHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
     use_k3s1d1 = use_k3s1d1 && (_param_conv.stride_w == 1);
     use_k3s1d1 = use_k3s1d1 && (_param_conv.dilation_h == 1);
     use_k3s1d1 = use_k3s1d1 && (_param_conv.dilation_w == 1);
-    bool use_depthwise = true;
+    bool use_depthwise = (Ptype == Precision::FP32);
     use_depthwise = use_depthwise && (_param_conv.group == ins[0]->channel());
     use_depthwise = use_depthwise && (_param_conv.group == outs[0]->channel());
-    bool use_direct_k = true;
+    bool use_direct_k = (Ptype == Precision::FP32);
     use_direct_k = use_direct_k && (_param_conv.weight()->channel() >= 16);
     use_direct_k = use_direct_k && (_param_conv.group == 1);
-    if (use_k1s1p0 || use_k3s1d1 || use_depthwise || use_direct_k) {
+    if (std::is_same<Ttype, NV>::value
+        && (use_k1s1p0 || use_k3s1d1 || use_depthwise || use_direct_k)) {
         impl_e = SABER_IMPL;
     }
+#endif
     SABER_CHECK(_funcs_conv.init(ins, outs, _param_conv, SPECIFY, impl_e, ctx));
 
     // check if weights have been transposed
@@ -134,12 +162,11 @@ Status ConvolutionHelper<Ttype, Ptype>::InferShape(const
 
 #ifdef USE_CUDA
 template class ConvolutionHelper<NV, Precision::FP32>;
-template class ConvolutionHelper<NV, Precision::FP16>;
-template class ConvolutionHelper<NV, Precision::INT8>;
+
 INSTANCE_CONVOLUTION(NV, Precision::FP32);
-INSTANCE_CONVOLUTION(NV, Precision::INT8);
+
 ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, NV, Precision::FP32);
-ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, NV, Precision::INT8);
+
 
 #endif
 
@@ -147,12 +174,16 @@ ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, NV, Precision::INT8);
 INSTANCE_CONVOLUTION(X86, Precision::FP32);
 template class ConvolutionHelper<X86, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, X86, Precision::FP32);
+
 #endif
 
 #ifdef USE_ARM_PLACE
 INSTANCE_CONVOLUTION(ARM, Precision::FP32);
+INSTANCE_CONVOLUTION(ARM, Precision::INT8);
 template class ConvolutionHelper<ARM, Precision::FP32>;
+template class ConvolutionHelper<ARM, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, ARM, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Convolution, ConvolutionHelper, ARM, Precision::INT8);
 #endif
 
 #ifdef AMD_GPU
@@ -174,6 +205,7 @@ ANAKIN_REGISTER_OP(Convolution)
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("convolution")
+.__alias__<ARM, Precision::INT8>("convolution")
 #endif
 #if defined USE_X86_PLACE || defined BUILD_LITE
 .__alias__<X86, Precision::FP32>("convolution")

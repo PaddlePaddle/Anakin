@@ -18,6 +18,9 @@
 #ifndef ANAKIN_BATCH_STREAM_H
 #define ANAKIN_BATCH_STREAM_H
 
+#include "anakin_config.h"
+
+#ifndef USE_SGX
 #include "framework/core/parameter.h"
 #include "framework/core/data_types.h"
 #include "saber/saber_types.h"
@@ -33,13 +36,14 @@ namespace anakin {
 template<typename Ttype>
 class BatchStream {
 public:
+    BatchStream(Tensor<X86>* (*inner_producer)());
     BatchStream(std::string file, int batch_size);
 
 #ifdef USE_OPENCV
-    BatchStream(std::string image_list, int num, int channel, int height, int width, \
+    BatchStream(std::string image_list, int channel, int height, int width, \
         std::vector<float> mean = {1.f, 1.f, 1.f}, std::vector<float> scale = {1.f, 1.f, 1.f});
 #endif
-    ~BatchStream() {}
+    ~BatchStream();
 
     void reset();
 
@@ -47,7 +51,6 @@ public:
 private:
     int _batch_size;
     std::vector<std::string> _file_list;
-    std::vector<Tensor4dPtr<X86>> _cpu_tensors;
     Tensor<X86> _host_tensor;
     std::ifstream _ifs;
     int _num;
@@ -58,8 +61,10 @@ private:
     std::vector<float> _mean;
     std::vector<float> _scale;
     bool _flag_from_image{false};
+    Tensor<X86>* (*_inner_producer)(){nullptr};
 };
 
 }
 
+#endif // USE_SGX
 #endif

@@ -15,6 +15,9 @@
 */
 
 #include "framework/core/net/entropy_calibrator.h"
+
+#ifndef USE_SGX
+
 #include "framework/utils/data_common.h"
 #include <cmath>
 namespace anakin {
@@ -167,7 +170,7 @@ void EntropyCalibrator<Ttype>::write_calibrator() {
     char buf[200];
     typename std::map<std::string, float>::iterator it;
     for (it = _scale_map.begin(); it != _scale_map.end(); ++it) {
-        int n = sprintf(buf, "%s %f\n", it->first.c_str(), float(it->second));
+        int n = snprintf(buf, sizeof(buf), "%s %f\n", it->first.c_str(), float(it->second));
         ofs.write(buf, n);
     }
     ofs.close();
@@ -356,7 +359,10 @@ void EntropyCalibrator<Ttype>::generate_calibrator_table() {
     init_statistics(tensor_num);
     auto exec_funcs = this->get_exec_funcs();
     std::vector<Tensor4dPtr<Ttype> > in_vec = this->get_in_vec();
-    get_max_values(in_vec, exec_funcs);  
+    get_max_values(in_vec, exec_funcs);
+    for (auto i :_max_vec){
+        LOG(INFO)<<"max vec "<<i;
+    }
     get_histgrams(in_vec, exec_funcs);
     get_kl_threshold(tensor_name_list);
     write_calibrator();
@@ -372,3 +378,4 @@ template class EntropyCalibrator<X86>;
     
 }
     
+#endif // USE_SGX

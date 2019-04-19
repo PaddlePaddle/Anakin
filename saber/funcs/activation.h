@@ -29,8 +29,8 @@
 #include "saber/funcs/impl/x86/saber_activation.h"
 #endif
 
-#ifdef AMD_GPU 
-#include "saber/funcs/impl/amd/saber_activation.h"
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_activation.h"
 #endif
 
 #ifdef USE_ARM_PLACE
@@ -74,6 +74,9 @@ public:
 
         Shape output_shape = (input[0]->valid_shape());
         output[0]->set_seq_offset(input[0]->get_seq_offset());
+        if (param.active == Active_sigmoid || param.active == Active_relu || param.active == Active_clipped_relu){
+            output[0]->set_posstive_flag(true);
+        }
         return output[0]->set_shape(output_shape);
     }
 
@@ -96,7 +99,7 @@ public:
 private:
 
     virtual void pick_best_static() override {
-        if (this->_param.active == Active_prelu) {
+        if (this->_param.active == Active_prelu || this->_param.active == Active_gelu || this->_param.active == Active_swish) {
             this->_best_impl = this->_impl[1];
         } else {
             this->_best_impl = this->_impl[0];

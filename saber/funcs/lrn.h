@@ -5,12 +5,12 @@
    You may obtain a copy of the License at
 
        http://www.apache.org/licenses/LICENSE-2.0
-   
+
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License. 
+   limitations under the License.
 */
 
 #ifndef ANAKIN_SABER_FUNCS_LRN_H
@@ -28,8 +28,11 @@
 #include "saber/funcs/impl/x86/saber_lrn.h"
 #endif
 #ifdef USE_ARM_PLACE
-//todo
-#include "saber/funcs/impl/impl_lrn.h"
+#include "saber/funcs/impl/arm/saber_lrn.h"
+#endif
+
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_lrn.h"
 #endif
 namespace anakin {
 namespace saber {
@@ -61,7 +64,7 @@ public:
         Param_t& param) override {
         SaberStatus status;
         CHECK_EQ(input.size(), 1);
-       
+
         Shape output_shape = input[0]->valid_shape();
         output[0]->set_shape(output_shape);
 

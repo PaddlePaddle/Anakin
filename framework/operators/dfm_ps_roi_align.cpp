@@ -13,6 +13,18 @@ void DFMBPSROIAlign<NV, Precision::FP32>::operator()(
     impl->_funcs_dfm_ps_roi_align(ins, outs, param, ctx);
 }
 #endif
+#ifdef USE_ARM_PLACE
+template<>
+void DFMBPSROIAlign<ARM, Precision::FP32>::operator()(
+    OpContext<ARM>& ctx,
+    const std::vector<Tensor4dPtr<ARM> >& ins,
+    std::vector<Tensor4dPtr<ARM> >& outs) {
+    auto* impl = static_cast<DFMBPSROIAlignHelper<ARM, Precision::FP32>*>(this->_helper);
+    auto& param = static_cast<DFMBPSROIAlignHelper<ARM, Precision::FP32>*>
+                  (this->_helper)->_param_dfm_ps_roi_align;
+    impl->_funcs_dfm_ps_roi_align(ins, outs, param, ctx);
+}
+#endif
 /// TODO ... specialization other type of operator
 /// set helper
 template<typename Ttype, Precision Ptype>
@@ -92,7 +104,10 @@ ANAKIN_REGISTER_OP(DFMBPSROIAlign)
 .__alias__<NV, Precision::FP32>("rpn_proposal_ssd")
 #endif
 #ifdef USE_ARM_PLACE
-.__alias__<ARM, Precision::FP32>("rpn_proposal_ssd")
+//.__alias__<ARM, Precision::FP32>("rpn_proposal_ssd")
+#endif
+#ifdef AMD_GPU
+//.__alias__<AMD, Precision::FP32>("rpn_proposal_ssd")
 #endif
 .num_in(1)
 .num_out(1)

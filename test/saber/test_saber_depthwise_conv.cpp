@@ -58,7 +58,7 @@ TEST(TestSaberFunc, test_saber_depthwise_conv_results) {
         
         int out_channels = group;
         int in_channels = group;
-        Shape weights_s({out_channels, in_channels, kernel_h, kernel_w}, Layout_NCHW);
+        Shape weights_s({out_channels, 1, kernel_h, kernel_w}, Layout_NCHW);
         Shape bias_s({1, out_channels, 1, 1}, Layout_NCHW);
 #ifdef USE_CUDA
         Tensor<NV> weights_dev;

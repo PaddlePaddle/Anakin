@@ -76,6 +76,12 @@ private:
                        int, int, int, int,
                        int, int, const float*, const float*,
                        cudaStream_t)> dispatch_func;
+
+    std::function<void(const void*, void* ,
+                       int, int, int, int, int, int,
+                       int, int, int, int,
+                       int, int, float, const void*, const float*,
+                       cudaStream_t)> dispatch_func_s8;
 };
 }
 

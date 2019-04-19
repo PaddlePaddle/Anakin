@@ -1,0 +1,16 @@
+#ifndef ANAKIN_SGX_IOSTREAM
+#define ANAKIN_SGX_IOSTREAM
+
+#include <libcxx/iostream>
+
+namespace std {
+    struct basic_ostream {
+        template<typename T>
+        constexpr const basic_ostream &operator<<(const T &) const { return *this; }
+    };
+
+    extern basic_ostream cout, cerr;
+    extern void *endl;
+}
+
+#endif

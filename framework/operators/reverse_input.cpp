@@ -30,7 +30,7 @@ Status ReverseInputHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPt
 }
 
 
-#define INSTANCE_CONCAT(Ttype, Ptype) \
+#define INSTANCE_REVERSE_INPUT(Ttype, Ptype) \
 template<> \
 void ReverseInput<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
         const std::vector<Tensor4dPtr<Ttype> >& ins, \
@@ -42,19 +42,25 @@ void ReverseInput<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
 }
 
 #ifdef USE_CUDA
-INSTANCE_CONCAT(NV, Precision::FP32);
+INSTANCE_REVERSE_INPUT(NV, Precision::FP32);
 template class ReverseInputHelper<NV, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ReverseInput, ReverseInputHelper, NV, Precision::FP32);
 #endif
 
+#ifdef AMD_GPU
+INSTANCE_REVERSE_INPUT(AMD, Precision::FP32);
+template class ReverseInputHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(ReverseInput, ReverseInputHelper, AMD, Precision::FP32);
+#endif
+
 #ifdef USE_ARM_PLACE
-INSTANCE_CONCAT(ARM, Precision::FP32);
+INSTANCE_REVERSE_INPUT(ARM, Precision::FP32);
 template class ReverseInputHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ReverseInput, ReverseInputHelper, ARM, Precision::FP32);
 #endif
 
 #ifdef USE_X86_PLACE
-INSTANCE_CONCAT(X86, Precision::FP32);
+INSTANCE_REVERSE_INPUT(X86, Precision::FP32);
 template class ReverseInputHelper<X86, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(ReverseInput, ReverseInputHelper, X86, Precision::FP32);
 #endif
@@ -70,6 +76,9 @@ ANAKIN_REGISTER_OP(ReverseInput)
 #endif
 #ifdef USE_X86_PLACE
 .__alias__<X86, Precision::FP32>("reverse_input")
+#endif
+#ifdef USE_GPU
+.__alias__<AMD, Precision::FP32>("reverse_input")
 #endif
 .num_in(1)
 .num_out(1);

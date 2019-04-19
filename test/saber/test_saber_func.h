@@ -33,8 +33,27 @@ static void split_string(const std::string& s, char delim,
         elems.push_back(item);
     }
 }
+template <typename Dtype>
+void tensor_cmp_host_mlu(const Dtype* src1, const Dtype* src2, \
+                         int size, double& max_ratio, double& max_diff) {
+    double sum_diff_sq = 0.0;
+    double sum_x_sq = 0.0;
+    double eps = 1e-10;
+    for (size_t i = 0; i < size; i++) {
+        if (std::isnan(src1[i]) || std::isnan(src2[2])){
+            max_ratio = 9999;
+            max_diff = 9999;
+            return;
+        }
+        sum_diff_sq += (src1[i] - src2[i]) * (src1[i] - src2[i]);
+        sum_x_sq += src2[i] * src2[i];
+    }
 
-int read_file(std::vector<float>& results, const char* file_name, char split_char, int index) {
+    max_ratio = sqrt(sum_diff_sq / (sum_x_sq + eps));
+    max_diff = max_ratio;
+}
+
+bool read_file(std::vector<float>& results, const char* file_name, char split_char, int index) {
 
     std::ifstream infile(file_name);
 
@@ -52,9 +71,9 @@ int read_file(std::vector<float>& results, const char* file_name, char split_cha
         results.push_back((float)atof(vec[index].c_str()));
     }
 
-    return 0;
+    return true;
 }
-int read_file(std::vector<float>& results, const char* file_name) {
+bool read_file(std::vector<float>& results, const char* file_name) {
 
     std::ifstream infile(file_name);
 
@@ -70,7 +89,7 @@ int read_file(std::vector<float>& results, const char* file_name) {
         results.push_back((float)atof(line.c_str()));
     }
 
-    return 0;
+    return true;
 }
 class TestSaberFunc : public Test {
 public:

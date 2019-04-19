@@ -1,15 +1,16 @@
 
-#ifndef SABER_FUNCS_IMPL_CUDA_SABER_GEMM_H
-#define SABER_FUNCS_IMPL_CUDA_SABER_GEMM_H
+#ifndef ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_GEMM_H
+#define ANAKIN_SABER_FUNCS_IMPL_CUDA_SABER_GEMM_H
 
 #include "saber/funcs/gemm.h"
-#include "sass_funcs.h"
+
 namespace anakin {
 namespace saber {
 
 template<typename inDtype,
         typename outDtype>
-class Gemm<NV, SABER_IMPL, inDtype, outDtype> {
+class Gemm<NV, SABER_IMPL, inDtype, outDtype>
+        : public MatrixFunc<NV, inDtype, outDtype>{
 public:
     Gemm() = default;
     ~Gemm() {}

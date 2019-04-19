@@ -37,6 +37,7 @@ public:
                              std::vector<Tensor<X86> *>& outputs,
                              MatMulParam<X86> &param,
                              Context<X86> &ctx) {
+        alpha = param._scale;
         this->_ctx = &ctx;
 
         return create(inputs, outputs, param, ctx);

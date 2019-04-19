@@ -250,12 +250,11 @@ void test_accuracy(std::string model_path,
     if (!status) {
         LOG(FATAL) << " [ERROR] " << status.info();
     }
+    graph->load_calibrator_config("net_pt_config", "calibrate_file.txt");
     graph->Optimize();
 
     Net<Ttype, Ptype> net_executer(true);
-    net_executer.load_calibrator_config("net_pt_config.txt", "./calibrator.txt");
     net_executer.init(*graph);
-    
 
     auto d_tensor_in_p = net_executer.get_in("input_0");
     auto d_tensor_out_p = net_executer.get_out("ip1_out");

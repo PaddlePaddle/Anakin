@@ -57,7 +57,7 @@ void argmax_nv_basic(const std::vector<Tensor<TargetType_H>*>& tensor_in,std::ve
         int size = shape[ax];
         if(size < top){
             LOG(INFO) << "input data size less than topk";
-            return; 
+            return;
         }
         for (int n = 0; n < num * out_stride; n++){
             for(int k = 0; k < stride; k ++){
@@ -79,10 +79,10 @@ void argmax_nv_basic(const std::vector<Tensor<TargetType_H>*>& tensor_in,std::ve
                 }
             }
         }
-    }else{//all  
+    }else{//all
         if(in_channel < top){
             LOG(INFO) << "input data size less than topk";
-            return; 
+            return;
         }
         for (int n = 0; n < num; n++){
             const dtype* din_ch = din + n * in_channel;
@@ -116,7 +116,7 @@ void argmax_nv_basic(const std::vector<Tensor<TargetType_H>*>& tensor_in,std::ve
 }
 template <DataType Dtype,typename TargetType_D,typename TargetType_H>
 void test_model(){
-    
+
     int num = num_in;
     int channel = ch_in;
     int height = h_in;
@@ -125,8 +125,8 @@ void test_model(){
     int topk = top_k;
     bool has = has_axis;
     int ax = axis;
-    
-    TestSaberBase<TargetType_D, TargetType_H, Dtype, Argmax, ArgmaxParam> testbase;  
+
+    TestSaberBase<TargetType_D, TargetType_H, Dtype, Argmax, ArgmaxParam> testbase;
     Shape input_shape({num, channel, height, width}, Layout_NCHW);
     Shape input_shape2({1, 32, 17, 32}, Layout_NCHW);
    // typename NV TargetD;
@@ -143,7 +143,7 @@ void test_model(){
             testbase.set_param(param);//set param
             testbase.set_input_shape(shape);//add some input shape
             testbase.run_test(argmax_nv_basic<float, TargetType_D, TargetType_H>);//run test
-                               
+
         }
     }
 
@@ -159,6 +159,10 @@ TEST(TestSaberFunc, test_func_argmax) {
 #ifdef USE_X86_PLACE
     //Env<X86>::env_init();
     test_model<AK_FLOAT, X86, X86>();
+#endif
+#ifdef USE_ARM_PLACE
+    //Env<X86>::env_init();
+    test_model<AK_FLOAT, ARM, ARM>();
 #endif
 }
 

@@ -38,25 +38,25 @@ if(UNIX)
 endif()
 
 # whole archive for static lib
-if(NOT MSVC AND NOT APPLE) 
-    set(WHOLE_ARCHIVE_START -Wl,--whole-archive) 
-    set(WHOLE_ARCHIVE_END -Wl,--no-whole-archive) 
-elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang") 
-    # using regular Clang or AppleClang 
-    set(WHOLE_ARCHIVE_START -Wl,-force_load) 
-    set(WHOLE_ARCHIVE_END) 
+if(NOT MSVC AND NOT APPLE)
+    set(WHOLE_ARCHIVE_START -Wl,--whole-archive)
+    set(WHOLE_ARCHIVE_END -Wl,--no-whole-archive)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    # using regular Clang or AppleClang
+    set(WHOLE_ARCHIVE_START -Wl,-force_load)
+    set(WHOLE_ARCHIVE_END)
 endif()
 
 #find opencv version >= 2.4.3
 macro(anakin_find_opencv)
-
 	if(USE_ARM_PLACE AND TARGET_ANDROID)
-		include_directories(${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/sdk/native/jni/include/)
-		LINK_DIRECTORIES(${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/sdk/native/libs/armeabi-v7a/)
-
+		#include_directories(${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/sdk/native/jni/include/)
+		#LINK_DIRECTORIES(${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/sdk/native/libs/armeabi-v7a/)
+    include_directories(${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/include/)
+    LINK_DIRECTORIES(${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/lib/armeabi-v7a/)
+    message(ERROR "opencv=${CMAKE_SOURCE_DIR}/third-party/arm-android/opencv/lib/armeabi-v7a/")
 	else()
-
-		if(BUILD_SHARED) # temporary not support static link opencv.
+		if(BUILD_SHARED AND NOT ENABLE_MIN_DEPENDENCY) # temporary not support static link opencv.
 			find_package(OpenCV QUIET COMPONENTS core highgui imgproc imgcodecs)
 			if(NOT OpenCV_FOUND)
 				find_package(OpenCV QUIET COMPONENTS core highgui imgproc)
@@ -70,21 +70,30 @@ macro(anakin_find_opencv)
 				message(SEND_ERROR "Could not found opencv !")
 			endif()
 		else() # BUILD_STATIC
-			set(OPENCV_LIB_PATH "" CACHE "Path to oopen cv library")
-			list(APPEND OPENCV_STATIC_LIBS ${OPENCV_LIB_PATH}/libopencv_core.a
-					${OPENCV_LIB_PATH}libopencv_highgui.a
-					${OPENCV_LIB_PATH}libopencv_imgproc.a
-					${OPENCV_LIB_PATH}libopencv_contrib.a)
-			foreach(CV_LIB ${OPENCV_STATIC_LIBS})
-				list(APPEND ANAKIN_LINKER_LIBS ${CV_LIB})
-			endforeach()
-			unset(__CV_LIB_FULL_PATH)
+			find_package(OpenCV QUIET COMPONENTS core highgui imgproc imgcodecs)
+			if(NOT OpenCV_FOUND)
+				find_package(OpenCV QUIET COMPONENTS core highgui imgproc)
+			endif()
+			if(OpenCV_FOUND)
+				message(STATUS "Found opencv: ${OpenCV_INCLUDE_DIRS}")
+				include_directories(SYSTEM ${OpenCV_INCLUDE_DIRS})
+				list(APPEND OPENCV_STATIC_LIBS ${OPENCV_LIB_PATH}/libopencv_core.a
+						${OPENCV_LIB_PATH}libopencv_highgui.a
+						${OPENCV_LIB_PATH}libopencv_imgproc.a
+						${OPENCV_LIB_PATH}libopencv_contrib.a)
+				foreach(CV_LIB ${OPENCV_STATIC_LIBS})
+					list(APPEND ANAKIN_LINKER_LIBS ${CV_LIB})
+				endforeach()
+				unset(__CV_LIB_FULL_PATH)
+			else()
+				message(SEND_ERROR "Could not found opencv !")
+			endif()
 		endif()
 
     endif()
 endmacro()
 
-#find opencl 
+#find opencl
 macro(anakin_find_opencl)
 	set(OCL_ROOT "" CACHE PATH "openCL root dir.")
 
@@ -114,14 +123,14 @@ macro(anakin_find_boost)
 	find_package(Boost 1.59.0 QUIET COMPONENTS thread variant)
 	if(Boost_FOUND)
 		include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
-		list(APPEND ANAKIN_LINKER_LIBS ${Boost_LIBRARIES})	
-	endif()	
+		list(APPEND ANAKIN_LINKER_LIBS ${Boost_LIBRARIES})
+	endif()
 endmacro()
 
 #find intel mkl lib.
 macro(anakin_find_mkl)
 	set(INTEL_ROOT "/opt/intel" CACHE PATH "Folder contains intel libs.")
-	set(MKL_ROOT "" CACHE PATH "Folder contains intel(R) mkl libs.")	
+	set(MKL_ROOT "" CACHE PATH "Folder contains intel(R) mkl libs.")
 	# options for mkl
 	set(MKL_USE_SINGLE_DYNAMIC_LIBRARY YES)
 	set(MKL_USE_STATIC_LIBS NO)
@@ -144,7 +153,7 @@ macro(anakin_find_mkl)
 	set(__mkl_libs "")
 	if(MKL_USE_SINGLE_DYNAMIC_LIBRARY)
   		list(APPEND __mkl_libs rt)
-	else()	
+	else()
 		if(CMAKE_SIZEOF_VOID_P EQUAL 4)
     		if(WIN32)
       			list(APPEND __mkl_libs intel_c)
@@ -153,7 +162,7 @@ macro(anakin_find_mkl)
     		endif()
   		else()
     		list(APPEND __mkl_libs intel_lp64 gf_lp64)
-  		endif()		
+  		endif()
 
 		if(MKL_MULTI_THREADED)
     		list(APPEND __mkl_libs intel_thread)
@@ -180,7 +189,7 @@ macro(anakin_find_mkl)
 			set(__trigger_mkllib TRUE)
 		endif()
 	endforeach()
-	
+
 	if(NOT MKL_USE_SINGLE_DYNAMIC_LIBRARY)
   		if (MKL_USE_STATIC_LIBS)
     		set(__iomp5_libs iomp5 libiomp5mt.lib)
@@ -206,7 +215,7 @@ macro(anakin_find_mkl)
 	else()
 		message(FATAL_ERROR "Could not found mkl !")
 	endif()
-	
+
 endmacro()
 
 # find glog and config it
@@ -247,12 +256,12 @@ endmacro()
 
 macro(anakin_find_gflags)
 	set(GFLAGS_ROOT "~/.jumbo/" CACHE PATH "google flags root dir." )
-    find_path(GFLAGS_INCLUDE_DIR gflags/gflags.h 
-                                    PATHS ${GFLAGS_ROOT}/include 
+    find_path(GFLAGS_INCLUDE_DIR gflags/gflags.h
+                                    PATHS ${GFLAGS_ROOT}/include
                                     $ENV{GFLAGS_ROOT}/include)
     find_library(GFLAGS_LIBRARY NAMES libgflags.so
                                    PATHS ${GFLAGS_ROOT}/lib
-                                   $ENV{GFLAGS_ROOT}/lib 
+                                   $ENV{GFLAGS_ROOT}/lib
                                    DOC "library path for gflags.")
     if(GFLAGS_INCLUDE_DIR AND GFLAGS_LIBRARY)
     	set(GFLAGS_FOUND TRUE)
@@ -301,13 +310,27 @@ endmacro()
 
 macro(anakin_find_protobuf)
 	if(USE_ARM_PLACE)
+    set(PROTOBUF_PROTOC_EXECUTABLE "/usr/local/bin/protoc")
 		set(ARM_RPOTO_ROOT "${CMAKE_SOURCE_DIR}/third-party/arm-android/protobuf")
-		include_directories(${ARM_RPOTO_ROOT}/include)
-		set(PROTOBUF_LIBRARIES "")
+    message(STATUS "ANDROID_ABI=${ANDROID_ABI}")
+    if(${ANDROID_ABI} STREQUAL "arm64-v8a")
+      #set(PROTOBUF_PROTOC_EXECUTABLE "${ARM_RPOTO_ROOT}/arm64-v8a/bin/protoc")
+      include_directories(${ARM_RPOTO_ROOT}/arm64-v8a/include)
+      set(PROTOBUF_LIBRARIES "")
+      list(APPEND ANAKIN_LINKER_LIBS ${ARM_RPOTO_ROOT}/arm64-v8a/lib/libprotobuf.a)
+    else()
+      #set(PROTOBUF_PROTOC_EXECUTABLE "${ARM_RPOTO_ROOT}/armeabi-v7a/bin/protoc")
+      include_directories(${ARM_RPOTO_ROOT}/armeabi-v7a/include)
+      set(PROTOBUF_LIBRARIES "")
+      list(APPEND ANAKIN_LINKER_LIBS ${ARM_RPOTO_ROOT}/armeabi-v7a/lib/libprotobuf.a)
+    endif()
+		#include_directories(${ARM_RPOTO_ROOT}/include)
+		#set(PROTOBUF_LIBRARIES "")
+    #list(APPEND ANAKIN_LINKER_LIBS ${ARM_RPOTO_ROOT}/lib/libprotobuf.a)
 		#if(BUILD_SHARED)
 		#	list(APPEND ANAKIN_LINKER_LIBS ${ARM_RPOTO_ROOT}/lib/libprotobuf.so)
 		#else()
-			list(APPEND ANAKIN_LINKER_LIBS ${ARM_RPOTO_ROOT}/lib/libprotobuf.a)
+		#	list(APPEND ANAKIN_LINKER_LIBS ${ARM_RPOTO_ROOT}/lib/libprotobuf.a)
 		#endif()
 		find_library( # Sets the name of the path variable.
 				log-lib
@@ -316,8 +339,9 @@ macro(anakin_find_protobuf)
 				# you want CMake to locate.
 				log )
 		list(APPEND ANAKIN_LINKER_LIBS ${log-lib})
+    find_program(PROTOBUF_PROTOC_EXECUTABLE protoc)
 	else()
-        if(NOT ENABLE_MIN_DEPENDENCY) 
+        if(NOT ENABLE_MIN_DEPENDENCY)
             find_program(PROTOBUF_PROTOC_EXECUTABLE protoc)
             if(PROTOBUF_PROTOC_EXECUTABLE)
               find_package(Protobuf REQUIRED)
@@ -343,16 +367,16 @@ macro(anakin_find_protobuf)
               endif()
             endif()
         else()
-            set(PROTOBUF_ROOT "/usr/local" CACHE PATH "Folder contains protobuf")    
-            find_path(PROTOBUF_INCLUDE_DIR google/protobuf/stubs/common.h PATHS 
+            set(PROTOBUF_ROOT "/usr/local" CACHE PATH "Folder contains protobuf")
+            find_path(PROTOBUF_INCLUDE_DIR google/protobuf/stubs/common.h PATHS
                         ${PROTOBUF_ROOT}/include $ENV{PROTOBUF_ROOT}/include NO_DEFAULT_PATH)
 
-            find_library(PROTOBUF_LIBRARY libprotobuf.a PATHS ${PROTOBUF_ROOT}/lib 
+            find_library(PROTOBUF_LIBRARY libprotobuf.a PATHS ${PROTOBUF_ROOT}/lib
                                                  $ENV{PROTOBUF_ROOT}/lib NO_DEFAULT_PATH)
 
-            find_program(PROTOBUF_PROTOC_EXECUTABLE protoc PATHS ${PROTOBUF_ROOT}/bin 
+            find_program(PROTOBUF_PROTOC_EXECUTABLE protoc PATHS ${PROTOBUF_ROOT}/bin
                                                  $ENV{PROTOBUF_ROOT}/bin NO_DEFAULT_PATH)
-            if(PROTOBUF_INCLUDE_DIR AND PROTOBUF_LIBRARY) 
+            if(PROTOBUF_INCLUDE_DIR AND PROTOBUF_LIBRARY)
                 list(APPEND ANAKIN_LINKER_LIBS ${PROTOBUF_LIBRARY})
                 include_directories(${PROTOBUF_INCLUDE_DIR})
             else()
@@ -360,6 +384,13 @@ macro(anakin_find_protobuf)
             endif()
         endif()
 	endif()
+endmacro()
+
+macro(anakin_find_nanopb)
+    set(NANOPB_VERSION "0.3.9.1")
+    set(NANOPB_DOWNLOAD_URL "https://jpa.kapsi.fi/nanopb/download/nanopb-${NANOPB_VERSION}-linux-x86.tar.gz")
+    set(NANOPB_DIR ${ANAKIN_THIRD_PARTY_PATH}/nanopb)
+    set(PROTOBUF_PROTOC_EXECUTABLE ${NANOPB_DIR}/generator-bin/protoc)
 endmacro()
 
 macro(anakin_find_baidu_rpc)
@@ -422,69 +453,48 @@ macro(anakin_find_openmp)
 endmacro()
 
 macro(anakin_find_bmlib)
-    find_path(BM_ROOT include/bmdnn/bmdnn_api.h ${CMAKE_SOURCE_DIR}/third-party/bm_lib/ $ENV{BM_ROOT}/) 
-    find_path(BM_ROOT_INCLUDE_DNN bmdnn_api.h ${BM_ROOT}/include/bmdnn) 
-    find_path(BM_ROOT_INCLUDE_RT bmruntime.h ${BM_ROOT}/include/bmruntime) 
-    find_path(BM_ROOT_INCLUDE_LIB bmlib_runtime.h ${BM_ROOT}/include/bmlib) 
-    if(BM_ROOT_INCLUDE_DNN AND BM_ROOT_INCLUDE_RT AND BM_ROOT_INCLUDE_LIB) 
-        set(BM_FOUND TRUE) 
-    endif() 
-    if(BM_FOUND) 
+    find_path(BM_ROOT include/bmdnn/bmdnn_api.h ${CMAKE_SOURCE_DIR}/third-party/bm_lib/ $ENV{BM_ROOT}/)
+    find_path(BM_ROOT_INCLUDE_DNN bmdnn_api.h ${BM_ROOT}/include/bmdnn)
+    find_path(BM_ROOT_INCLUDE_RT bmruntime.h ${BM_ROOT}/include/bmruntime)
+    find_path(BM_ROOT_INCLUDE_LIB bmlib_runtime.h ${BM_ROOT}/include/bmlib)
+    if(BM_ROOT_INCLUDE_DNN AND BM_ROOT_INCLUDE_RT AND BM_ROOT_INCLUDE_LIB)
+        set(BM_FOUND TRUE)
+    endif()
+    if(BM_FOUND)
         message(STATUS " Found bm_lib in ${BM_ROOT}  ${BM_ROOT_INCLUDE_DNN} ${BM_ROOT_INCLUDE_RT} ${BM_ROOT_INCLUDE_LIB}")
         include_directories(${BM_ROOT_INCLUDE_DNN})
-        include_directories(${BM_ROOT_INCLUDE_RT}) 
-        include_directories(${BM_ROOT_INCLUDE_LIB}) 
-        set(BM_LIBRARIES "") 
-        list(APPEND BM_LIBRARIES ${BM_ROOT}/lib/app/libbmdnn_device.so) 
+        include_directories(${BM_ROOT_INCLUDE_RT})
+        include_directories(${BM_ROOT_INCLUDE_LIB})
+        set(BM_LIBRARIES "")
+        list(APPEND BM_LIBRARIES ${BM_ROOT}/lib/app/libbmdnn_device.so)
         list(APPEND BM_LIBRARIES ${BM_ROOT}/lib/app/libbmlib_device.so)
-        list(APPEND BM_LIBRARIES ${BM_ROOT}/lib/app/libbmrt.so) 
-        list(APPEND ANAKIN_LINKER_LIBS ${BM_LIBRARIES}) 
-    else() 
-        message(FATAL_ERROR "Could not found bm_lib") 
+        list(APPEND BM_LIBRARIES ${BM_ROOT}/lib/app/libbmrt.so)
+        list(APPEND ANAKIN_LINKER_LIBS ${BM_LIBRARIES})
+    else()
+        message(FATAL_ERROR "Could not found bm_lib")
     endif()
 endmacro()
 
-
-macro(anakin_find_nvinfer)
-	find_path(NVINFER_INCLUDE_DIR NvInfer.h PATHS ${ANAKIN_ROOT}/third-party/tensorrt5/include
-	$ENV{NVINFER_ROOT})
-	if (BUILD_SHARED)
-		find_library(NVINFER_LIBRARY NAMES libnvinfer.so
-				PATHS ${NVINFER_INCLUDE_DIR}/../lib64/
-				PATHS ${NVINFER_INCLUDE_DIR}/../lib/
-				DOC "library path for tensorrt.")
-		find_library(NVINFER_PLUGIN_LIBRARY NAMES libnvinfer_plugin.so
-				PATHS ${NVINFER_INCLUDE_DIR}/../lib64/
-				PATHS ${NVINFER_INCLUDE_DIR}/../lib/
-				DOC "library path for tensorrt.")
-		find_library(NVPARSERS_LIBRARY NAMES libnvparsers.so
-				PATHS ${NVINFER_INCLUDE_DIR}/../lib64/
-				PATHS ${NVINFER_INCLUDE_DIR}/../lib/
-				DOC "library path for tensorrt.")
-	else()
-		find_library(NVINFER_LIBRARY NAMES libnvinfer.a
-				PATHS ${NVINFER_INCLUDE_DIR}/../lib64/
-				DOC "library path for tensorrt.")
-		find_library(NVINFER_PLUGIN_LIBRARY NAMES libnvinfer_plugin.a
-				PATHS ${NVINFER_INCLUDE_DIR}/../lib64/
-				DOC "library path for tensorrt.")
-		find_library(NVPARSERS_LIBRARY NAMES libnvparsers.a
-				PATHS ${NVINFER_INCLUDE_DIR}/../lib64/
-				DOC "library path for tensorrt.")
-	endif()
-	if(NVINFER_INCLUDE_DIR AND NVINFER_LIBRARY AND NVINFER_PLUGIN_LIBRARY AND NVPARSERS_LIBRARY)
-		set(NVINFER_FOUND TRUE)
-	endif()
-	if(NVINFER_FOUND)
-		message(STATUS "Found NvInfer in ${NVINFER_INCLUDE_DIR}")
-		include_directories(SYSTEM ${NVINFER_INCLUDE_DIR})
-		#include_directories(${NVINFER_INCLUDE_DIR})
-		list(APPEND ANAKIN_LINKER_LIBS ${NVINFER_LIBRARY})
-		list(APPEND ANAKIN_LINKER_LIBS ${NVINFER_PLUGIN_LIBRARY})
-		list(APPEND ANAKIN_LINKER_LIBS ${NVPARSERS_LIBRARY})
-		message(STATUS "${ANAKIN_LINKER_LIBS}")
-	else()
-		message(FATAL_ERROR "Couldn't found NvInfer ! in path: ${NVINFER_INCLUDE_DIR}")
-	endif()
+macro(anakin_find_sgx)
+  set(SGX_SDK $ENV{SGX_SDK})
+  if(SGX_SDK)
+    add_library(anakin_sgx_config INTERFACE)
+    set(SGX_CONFIG_INTERFACE anakin_sgx_config)
+    target_compile_options(${SGX_CONFIG_INTERFACE} INTERFACE
+      -fPIC -fno-builtin -nostdlib -nostdinc $<$<COMPILE_LANGUAGE:CXX>:-nostdinc++>)
+    set(PROBE_CMD "echo \"#include <immintrin.h>\" | ${CMAKE_C_COMPILER} -E -xc - | grep immintrin.h | sed 's:^.*\"\\(.*\\)\".*$:\\1:g' | head -1")
+    execute_process(COMMAND sh -c "${PROBE_CMD}" OUTPUT_VARIABLE IMMINTRIN_H)
+    get_filename_component(IMMINTRIN_PATH ${IMMINTRIN_H} DIRECTORY)
+    target_include_directories(${SGX_CONFIG_INTERFACE} BEFORE INTERFACE
+      "${ANAKIN_ROOT}/sgx/enclave/include"
+      "${SGX_SDK}/include"
+      "${SGX_SDK}/include/tlibc"
+      "${SGX_SDK}/include/libcxx"
+    )
+    target_include_directories(${SGX_CONFIG_INTERFACE} INTERFACE ${IMMINTRIN_PATH})
+    list(APPEND ANAKIN_LINKER_LIBS "sgx_tstdc" "sgx_tcxx")
+    message(STATUS "Found SGX SDK in ${SGX_SDK}")
+  else()
+    message(FATAL_ERROR "SGX SDK not found or not properly configured!")
+  endif()
 endmacro()
-

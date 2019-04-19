@@ -25,8 +25,8 @@ class SaberRoisAnchorFeature<NV, OpDtype> : public ImplBase <
         NV, OpDtype, RoisAnchorFeatureParam<NV> > {
 public:
 
-    SaberRoisAnchorFeature() {}
-    ~SaberRoisAnchorFeature() {}
+    SaberRoisAnchorFeature() = default;
+    ~SaberRoisAnchorFeature() = default;
 
     virtual SaberStatus init(const std::vector<Tensor<NV>*> &inputs,
                              std::vector<Tensor<NV>*> &outputs,
@@ -44,19 +44,19 @@ public:
                                  RoisAnchorFeatureParam<NV>& param) override;
 private:
     bool _has_inited{false};
-    int num_anchors_;
-    int num_top_iou_anchor_;
-    int min_num_top_iou_anchor_;
-    float iou_thr_;
+    int num_anchors_{0};
+    int num_top_iou_anchor_{0};
+    int min_num_top_iou_anchor_{0};
+    float iou_thr_{0.f};
     std::vector<float> anchor_width_;
     std::vector<float> anchor_height_;
     std::vector<float> anchor_area_;
-    bool ft_ratio_h_;
-    bool ft_ratio_w_;
-    bool ft_log_ratio_h_;
-    bool ft_log_ratio_w_;
-    int num_ft_per_anchor_;
-    bool bbox_size_add_one_;
+    bool ft_ratio_h_{false};
+    bool ft_ratio_w_{false};
+    bool ft_log_ratio_h_{false};
+    bool ft_log_ratio_w_{false};
+    int num_ft_per_anchor_{0};
+    bool bbox_size_add_one_{false};
     Tensor<NVHX86> bottom;
     Tensor<NVHX86> top;
 };

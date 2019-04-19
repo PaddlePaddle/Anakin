@@ -57,6 +57,7 @@ private:
     Tensor<X86> _input_stride;
     Tensor<X86> _output_stride;
     Tensor<X86> _max_data;
+    Tensor<X86> _input_scale;
 };
 
 }

@@ -6,17 +6,17 @@ namespace ops {
 
 #define INSTANCE_CONVOLUTION(Ttype, Ptype) \
 template<> \
-void ConEltwise<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+void ConvEltwise<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
     const std::vector<Tensor4dPtr<Ttype> >& ins, \
     std::vector<Tensor4dPtr<Ttype> >& outs) { \
-    auto* impl = static_cast<ConEltwiseHelper<Ttype, Ptype>*>(this->_helper); \
-    auto& param = static_cast<ConEltwiseHelper<Ttype, Ptype>*> \
+    auto* impl = static_cast<ConvEltwiseHelper<Ttype, Ptype>*>(this->_helper); \
+    auto& param = static_cast<ConvEltwiseHelper<Ttype, Ptype>*> \
                   (this->_helper)->_param_conv_eltwise; \
     impl->_funcs_conv_eltwise(ins, outs, param, ctx); \
 }
 
 template<typename Ttype, Precision Ptype>
-Status ConEltwiseHelper<Ttype, Ptype>::InitParam() {
+Status ConvEltwiseHelper<Ttype, Ptype>::InitParam() {
     DLOG(WARNING) << "Parsing Conv_eltwise op parameter.";
     saber::ConvParam<Ttype> tmp_conv_param;
     saber::EltwiseParam<Ttype> tmp_eltwise_param;
@@ -34,6 +34,14 @@ Status ConEltwiseHelper<Ttype, Ptype>::InitParam() {
 	using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
     auto weights_shape = weights.shape();
+    auto weights_dtype = weights.h_tensor().get_dtype();
+    // resize weights scale
+    auto& w = weights.h_tensor();
+    if (w.get_scale().size() == 1){
+        float scale_tmp = w.get_scale()[0];
+        std::vector<float> w_scale(filter_num, scale_tmp);
+        w.set_scale(w_scale);
+    }
 
     // check if this op has batchnorm parameters
     auto has_batchnorm = CHECK_PARAMETER(batchnorm_0_epsilon);
@@ -57,20 +65,30 @@ Status ConEltwiseHelper<Ttype, Ptype>::InitParam() {
         auto scale_weight_2 = GET_PARAMETER(pblock_type, scale_0_weight_2);
         auto  scale_weight_2_vector = scale_weight_2.vector();
 
-        // check if batchnorm parameters have been optimized 
+        // check if batchnorm parameters have been optimized
         auto is_param_updated = CHECK_PARAMETER(is_param_updated);
         if (!is_param_updated) {
             SET_PARAMETER(is_param_updated, true, bool);
 
             if (bias_term) {
                 auto bias = GET_PARAMETER(pblock_type, weight_2);
-                graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
-                        update_weights<float, Ttype>, weights,bias,
-                        weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
-                        true, batch_norm_weight_3_vector[0], epsilon,
-                        batch_norm_weight_1_vector, batch_norm_weight_2_vector,
-                        scale_weight_1_vector, scale_weight_2_vector,
-                        scale_bias_term);
+                if (weights_dtype == AK_FLOAT) {
+                    graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
+                            WeightsFusion<float, Ttype>::update_weights, weights, bias,
+                            weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+                            true, batch_norm_weight_3_vector[0], epsilon,
+                            batch_norm_weight_1_vector, batch_norm_weight_2_vector,
+                            scale_weight_1_vector, scale_weight_2_vector,
+                            scale_bias_term);
+                } else {
+                    graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
+                            WeightsFusion<char, Ttype>::update_weights, weights, bias,
+                            weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+                            true, batch_norm_weight_3_vector[0], epsilon,
+                            batch_norm_weight_1_vector, batch_norm_weight_2_vector,
+                            scale_weight_1_vector, scale_weight_2_vector,
+                            scale_bias_term);
+                }
 
                 saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
                                                    strides[0], strides[1],
@@ -81,16 +99,27 @@ Status ConEltwiseHelper<Ttype, Ptype>::InitParam() {
                 pblock_type* bias = new pblock_type();
                 SET_PARAMETER(bias_term, true, bool); // set attr bias_term true
                 SET_PARAMETER(weight_2, *bias, pblock_type); // gen new bias
-
-                graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
-                        update_weights<float, Ttype>, weights, *bias,
-                        weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
-                        false, batch_norm_weight_3_vector[0], epsilon,
-                        batch_norm_weight_1_vector,
-                        batch_norm_weight_2_vector,
-                        scale_weight_1_vector,
-                        scale_weight_2_vector,
-                        scale_bias_term);
+                if (weights_dtype == AK_FLOAT) {
+                    graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
+                            WeightsFusion<float, Ttype>::update_weights, weights, *bias,
+                            weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+                            false, batch_norm_weight_3_vector[0], epsilon,
+                            batch_norm_weight_1_vector,
+                            batch_norm_weight_2_vector,
+                            scale_weight_1_vector,
+                            scale_weight_2_vector,
+                            scale_bias_term);
+                } else {
+                    graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
+                            WeightsFusion<char, Ttype>::update_weights, weights, *bias,
+                            weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+                            false, batch_norm_weight_3_vector[0], epsilon,
+                            batch_norm_weight_1_vector,
+                            batch_norm_weight_2_vector,
+                            scale_weight_1_vector,
+                            scale_weight_2_vector,
+                            scale_bias_term);
+                }
 
                 saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
                         strides[0], strides[1], dilation_rate[0], dilation_rate[1],
@@ -126,7 +155,7 @@ Status ConEltwiseHelper<Ttype, Ptype>::InitParam() {
     if (has_merge_type) {
         auto type = GET_PARAMETER(std::string, merge_type);
         auto coeff = GET_PARAMETER(PTuple<float>, merge_coeff);
-        
+
         auto has_alpha = CHECK_PARAMETER(merge_relu_0_alpha);
 
         EltwiseType elt_type;
@@ -148,14 +177,22 @@ Status ConEltwiseHelper<Ttype, Ptype>::InitParam() {
         saber::ConvEltwiseParam<Ttype> conv_eltwise_param(tmp_conv_param, tmp_eltwise_param);
         _param_conv_eltwise = conv_eltwise_param;
     } else {
-        LOG(FATAL) << "ConEltwise Op must have been merged eltwise or eltwise + activation.";
+        LOG(FATAL) << "ConvEltwise Op must have been merged eltwise or eltwise + activation.";
     }
-     
+    if ((std::is_same<Ttype, NV>::value || std::is_same<Ttype, X86>::value)&& Ptype == Precision::INT8) {
+        auto scale_0 = GET_PARAMETER(float, scale_0);
+        auto scale_3 = GET_PARAMETER(float, scale_3);
+        auto be_eltwise_dtype = GET_PARAMETER(DataType, be_eltwise_dtype);
+        float beta = scale_0;
+        _param_conv_eltwise.conv_param.beta = beta;
+        _param_conv_eltwise.conv_param.beta_type = be_eltwise_dtype;
+    }
+//    LOG(ERROR) << "framework alpha: "<< _param_conv_eltwise.conv_param.alpha << " beta: " << _param_conv_eltwise.conv_param.beta;
     return Status::OK();
 }
 
 template<typename Ttype, Precision Ptype>
-Status ConEltwiseHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
+Status ConvEltwiseHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
         const std::vector<Tensor4dPtr<Ttype> >& ins,
         std::vector<Tensor4dPtr<Ttype> >& outs) {
     auto group = GET_PARAMETER(int, group);
@@ -165,6 +202,13 @@ Status ConEltwiseHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
 
     //different device pleace change here..
     saber::ImplEnum impl_e = SABER_IMPL;
+    // TODO !! output scale is the eltwise_relu output scale!!!
+    // THIS IS NOT SUPPORT TO BE THIS WAY, the output scale is not the same with conv_eltwise output scale.
+    if ((std::is_same<Ttype, NV>::value||std::is_same<Ttype, X86>::value) && Ptype == Precision::INT8) {
+        auto scale_3 = GET_PARAMETER(float, scale_3);
+        outs[0]->set_scale({scale_3});
+    }
+
     SABER_CHECK(_funcs_conv_eltwise.init(ins, outs, _param_conv_eltwise, SPECIFY, impl_e, ctx));
 
     // check if weights have been transposed
@@ -173,16 +217,16 @@ Status ConEltwiseHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
         SET_PARAMETER(is_weights_transed, true, bool);
         if (bias_term) {
             auto bias = GET_PARAMETER(PBlock<Ttype>, weight_2);
-            graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
-                    std::bind(&ConvEltwise<Ttype, PrecisionWrapper<Ptype>::saber_type>::trans_weights,
+            graph::GraphGlobalMem<Ttype>::Global().template apply<Level_1>(
+                    std::bind(&saber::ConvEltwise<Ttype, PrecisionWrapper<Ptype>::saber_type>::trans_weights,
                               &_funcs_conv_eltwise, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10),
                               weights.d_tensor(), bias.d_tensor(), _param_conv_eltwise.conv_param.pad_h, _param_conv_eltwise.conv_param.pad_w, _param_conv_eltwise.conv_param.dilation_h, _param_conv_eltwise.conv_param.dilation_w,
                               strides[0], strides[1], group, impl_e);
             bias.map_to_host();
         } else {
             PBlock<Ttype> bias_empty;
-            graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
-                    std::bind(&ConvEltwise<Ttype, PrecisionWrapper<Ptype>::saber_type>::trans_weights,
+            graph::GraphGlobalMem<Ttype>::Global().template apply<Level_1>(
+                    std::bind(&saber::ConvEltwise<Ttype, PrecisionWrapper<Ptype>::saber_type>::trans_weights,
                               &_funcs_conv_eltwise, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10),
                               weights.d_tensor(), bias_empty.d_tensor(), _param_conv_eltwise.conv_param.pad_h, _param_conv_eltwise.conv_param.pad_w, _param_conv_eltwise.conv_param.dilation_h, _param_conv_eltwise.conv_param.dilation_w,
                               strides[0], strides[1], group, impl_e);
@@ -192,16 +236,27 @@ Status ConEltwiseHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
         PBlock<Ttype> weight_empty;
         PBlock<Ttype> bias_empty;
         graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
-                std::bind(&ConvEltwise<Ttype, PrecisionWrapper<Ptype>::saber_type>::trans_weights,
+                std::bind(&saber::ConvEltwise<Ttype, PrecisionWrapper<Ptype>::saber_type>::trans_weights,
                         &_funcs_conv_eltwise, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10),
                         weight_empty.d_tensor(), bias_empty.d_tensor(), _param_conv_eltwise.conv_param.pad_h, _param_conv_eltwise.conv_param.pad_w, _param_conv_eltwise.conv_param.dilation_h, _param_conv_eltwise.conv_param.dilation_w,
                         strides[0], strides[1], group, impl_e);
+    }
+    // TODO beta need some more data to compute!!! this part perhapes will lead some bugs...
+    // TODO at least check for scale
+    // FIXME don`t add other device for this
+    if (std::is_same<Ttype, NV>::value && Ptype == Precision::INT8) {
+        float beta = _param_conv_eltwise.conv_param.beta;
+        float in_scale = ins[0]->get_scale()[0];
+        float weight_scale = _param_conv_eltwise.conv_param.weight()->get_scale()[0];
+        beta = beta / in_scale / weight_scale;
+//    LOG(ERROR) << " beta = " << beta ;
+        _param_conv_eltwise.conv_param.beta = beta;
     }
     return Status::OK();
 }
 
 template<typename Ttype, Precision Ptype>
-Status ConEltwiseHelper<Ttype, Ptype>::InferShape(const
+Status ConvEltwiseHelper<Ttype, Ptype>::InferShape(const
         std::vector<Tensor4dPtr<Ttype> >& ins,
         std::vector<Tensor4dPtr<Ttype> >& outs) {
     SABER_CHECK(_funcs_conv_eltwise.compute_output_shape(ins, outs, _param_conv_eltwise));
@@ -209,50 +264,51 @@ Status ConEltwiseHelper<Ttype, Ptype>::InferShape(const
 }
 
 #ifdef USE_CUDA
-template class ConEltwiseHelper<NV, Precision::FP32>;
-template class ConEltwiseHelper<NV, Precision::FP16>;
-template class ConEltwiseHelper<NV, Precision::INT8>;
+template class ConvEltwiseHelper<NV, Precision::FP32>;
+template class ConvEltwiseHelper<NV, Precision::FP16>;
+template class ConvEltwiseHelper<NV, Precision::INT8>;
 
 INSTANCE_CONVOLUTION(NV, Precision::FP32);
 INSTANCE_CONVOLUTION(NV, Precision::INT8);
-ANAKIN_REGISTER_OP_HELPER(ConEltwise, ConEltwiseHelper, NV, Precision::FP32);
-ANAKIN_REGISTER_OP_HELPER(ConEltwise, ConEltwiseHelper, NV, Precision::INT8);
+ANAKIN_REGISTER_OP_HELPER(ConvEltwise, ConvEltwiseHelper, NV, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(ConvEltwise, ConvEltwiseHelper, NV, Precision::INT8);
 
 #endif
 
 #ifdef USE_X86_PLACE
-template class ConEltwiseHelper<X86, Precision::FP32>;
-template class ConEltwiseHelper<X86, Precision::FP16>;
-template class ConEltwiseHelper<X86, Precision::INT8>;
+template class ConvEltwiseHelper<X86, Precision::FP32>;
+template class ConvEltwiseHelper<X86, Precision::FP16>;
+template class ConvEltwiseHelper<X86, Precision::INT8>;
 
 INSTANCE_CONVOLUTION(X86, Precision::FP32);
 INSTANCE_CONVOLUTION(X86, Precision::INT8);
-ANAKIN_REGISTER_OP_HELPER(ConEltwise, ConEltwiseHelper, X86, Precision::FP32);
-ANAKIN_REGISTER_OP_HELPER(ConEltwise, ConEltwiseHelper, X86, Precision::INT8);
+ANAKIN_REGISTER_OP_HELPER(ConvEltwise, ConvEltwiseHelper, X86, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(ConvEltwise, ConvEltwiseHelper, X86, Precision::INT8);
 #endif
 
 #ifdef USE_ARM_PLACE
 INSTANCE_CONVOLUTION(ARM, Precision::FP32);
-template class ConEltwiseHelper<ARM, Precision::FP32>;
-ANAKIN_REGISTER_OP_HELPER(ConEltwise, ConEltwiseHelper, ARM, Precision::FP32);
+template class ConvEltwiseHelper<ARM, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(ConvEltwise, ConvEltwiseHelper, ARM, Precision::FP32);
 #endif
 
 #ifdef AMD_GPU
 INSTANCE_CONVOLUTION(AMD, Precision::FP32);
-template class ConEltwiseHelper<AMD, Precision::FP32>;
-template class ConEltwiseHelper<AMD, Precision::FP16>;
-template class ConEltwiseHelper<AMD, Precision::INT8>;
-ANAKIN_REGISTER_OP_HELPER(ConEltwise, ConEltwiseHelper, AMD, Precision::FP32);
+template class ConvEltwiseHelper<AMD, Precision::FP32>;
+template class ConvEltwiseHelper<AMD, Precision::FP16>;
+template class ConvEltwiseHelper<AMD, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(ConvEltwise, ConvEltwiseHelper, AMD, Precision::FP32);
 #endif
 
 //! register op
-ANAKIN_REGISTER_OP(ConEltwise)
+ANAKIN_REGISTER_OP(ConvEltwise)
 .Doc("ConvEltwise operator")
 #ifdef USE_X86_PLACE
 .__alias__<X86, Precision::FP32>("ConvEltwise")
 #endif
 #ifdef USE_CUDA
 .__alias__<NV, Precision::FP32>("ConvEltwise")
+.__alias__<NV, Precision::INT8>("ConvEltwise")
 #endif
 #ifdef AMD_GPU
 .__alias__<AMD, Precision::FP32>("ConvEltwise")

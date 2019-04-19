@@ -1,19 +1,34 @@
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
 #include "framework/operators/im2sequence.h"
 
 namespace anakin {
 
 namespace ops {
 
-#ifdef USE_CUDA
-template<>
-void Im2Sequence<NV, Precision::FP32>::operator() (OpContext<NV> &ctx, 
-                          const std::vector<Tensor4dPtr<NV> >& ins, 
-                          std::vector<Tensor4dPtr<NV> >& outs) {
-    auto* impl = static_cast<Im2SequenceHelper<NV, Precision::FP32>*>(this->_helper);
-    auto& param = static_cast<Im2SequenceHelper<NV, Precision::FP32>*>(this->_helper)->_param_im2sequence;
-    impl->_funcs_im2sequence(ins, outs, param, ctx);
+#define INSTANCE_IM2SEQUENCE(Ttype, Ptype) \
+template<> \
+void Im2Sequence<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
+    const std::vector<Tensor4dPtr<Ttype> >& ins, \
+    std::vector<Tensor4dPtr<Ttype> >& outs) { \
+    auto* impl = \
+        static_cast<Im2SequenceHelper<Ttype, Ptype>*>(this->_helper); \
+    auto& param = \
+        static_cast<Im2SequenceHelper<Ttype, Ptype>*>(this->_helper)->_param_im2sequence; \
+    impl->_funcs_im2sequence(ins, outs, param, ctx); \
 }
-#endif
 
 /// TODO ... specialization other type of operator
 
@@ -58,27 +73,29 @@ Status Im2SequenceHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr
 }
 
 #ifdef USE_CUDA
+INSTANCE_IM2SEQUENCE(NV, Precision::FP32);
 template class Im2SequenceHelper<NV, Precision::FP32>;
 template class Im2SequenceHelper<NV, Precision::FP16>;
 template class Im2SequenceHelper<NV, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Im2Sequence, Im2SequenceHelper, NV, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE
+INSTANCE_IM2SEQUENCE(ARM, Precision::FP32);
 template class Im2SequenceHelper<ARM, Precision::FP32>;
 template class Im2SequenceHelper<ARM, Precision::FP16>;
 template class Im2SequenceHelper<ARM, Precision::INT8>;
-#endif
-
-//template class Im2SequenceHelper<ARM, Precision::FP32>;
-//template class Im2SequenceHelper<ARM, Precision::FP16>;
-//template class Im2SequenceHelper<ARM, Precision::INT8>;
-// register helper 
-#ifdef USE_CUDA
-ANAKIN_REGISTER_OP_HELPER(Im2Sequence, Im2SequenceHelper, NV, Precision::FP32);
-#endif
-#ifdef USE_ARM_PLACE
 ANAKIN_REGISTER_OP_HELPER(Im2Sequence, Im2SequenceHelper, ARM, Precision::FP32);
 #endif
+
+#ifdef AMD_GPU
+INSTANCE_IM2SEQUENCE(AMD, Precision::FP32);
+template class Im2SequenceHelper<AMD, Precision::FP32>;
+template class Im2SequenceHelper<AMD, Precision::FP16>;
+template class Im2SequenceHelper<AMD, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Im2Sequence, Im2SequenceHelper, AMD, Precision::FP32);
+#endif
+
 
 //! register op
 ANAKIN_REGISTER_OP(Im2Sequence)
@@ -88,6 +105,9 @@ ANAKIN_REGISTER_OP(Im2Sequence)
 #endif
 #ifdef USE_ARM_PLACE
     .__alias__<ARM, Precision::FP32>("im2sequence")
+#endif
+#ifdef AMD_GPU
+    .__alias__<AMD, Precision::FP32>("im2sequence")
 #endif
     .num_in(1)
     .num_out(1)

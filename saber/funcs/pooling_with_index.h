@@ -20,6 +20,10 @@
 
 #include "saber/funcs/base.h"
 #include "saber/funcs/impl/impl_base.h"
+
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_pooling_with_index.h"
+#endif
 #ifdef NVIDIA_GPU
 #include "saber/funcs/impl/cuda/saber_pooling_with_index.h"
 #endif

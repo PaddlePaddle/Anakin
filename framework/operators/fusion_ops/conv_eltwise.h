@@ -27,7 +27,7 @@ namespace anakin {
 namespace ops {
 
 template<typename Ttype, Precision Ptype>
-class ConEltwiseHelper;
+class ConvEltwiseHelper;
 
 /// pooling op
 /**
@@ -35,19 +35,19 @@ class ConEltwiseHelper;
  * public inheritance Operator
  */
 template<typename Ttype, Precision Ptype>
-class ConEltwise : public Operator<Ttype, Ptype> {
+class ConvEltwise : public Operator<Ttype, Ptype> {
 public:
-    ConEltwise() {}
+    ConvEltwise() {}
 
     /// forward impl
     virtual void operator() (OpContext<Ttype> &ctx, 
                              const std::vector<Tensor4dPtr<Ttype> >& ins, 
                              std::vector<Tensor4dPtr<Ttype> >& outs) {
-		LOG(ERROR) << "Not Impl Yet Operator ConEltwise< Ttype("
+		LOG(ERROR) << "Not Impl Yet Operator ConvEltwise< Ttype("
 				   << target_name<Ttype>::value << "), Precision("<< Ptype <<") >";	
     }
 
-    friend class ConEltwiseHelper<Ttype, Ptype>;
+    friend class ConvEltwiseHelper<Ttype, Ptype>;
 };
 
 /**
@@ -56,11 +56,11 @@ public:
  * including init resource and shape size in convolution context
  */
 template<typename Ttype, Precision Ptype>
-class ConEltwiseHelper : public OperatorHelper<Ttype, Ptype> {
+class ConvEltwiseHelper : public OperatorHelper<Ttype, Ptype> {
 public:
-    ConEltwiseHelper()=default;
+    ConvEltwiseHelper()=default;
 
-    ~ConEltwiseHelper(){}
+    ~ConvEltwiseHelper(){}
 
     Status InitParam() override;
 
@@ -91,7 +91,7 @@ public:
     saber::ConvEltwise<Ttype, PrecisionWrapper<Ptype>::saber_type> _funcs_conv_eltwise;
 
 private:
-    ///< _dims stand for ConEltwise size
+    ///< _dims stand for ConvEltwise size
     PTuple<int> _dims; 
 };
 

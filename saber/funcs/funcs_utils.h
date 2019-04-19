@@ -5,12 +5,12 @@
    You may obtain a copy of the License at
 
        http://www.apache.org/licenses/LICENSE-2.0
-   
+
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License. 
+   limitations under the License.
 */
 
 #ifndef SABER_FUNCS_UTILS_H
@@ -30,20 +30,25 @@ Shape conv_compute_shape(const Shape input_shape, Param &param) {
     Shape output_shape = (input_shape);
     CHECK_GE(input_shape.size(), 4) << "using reshape2d to reshape a 1d conv?";
 
-    output_shape.set_num(input_shape.num()); // N
-    output_shape.set_channel(param.weight()->num()); // K
+    int num_idx = output_shape.num_index();
+    int channel_idx = output_shape.channel_index();
+    int height_idx = output_shape.height_index();
+    int width_idx = output_shape.width_index();
+
+    output_shape[num_idx] = input_shape.num(); // N
+    output_shape[channel_idx] = param.weight()->num(); // K
 
     int input_dim = input_shape.height(); // P
     int kernel_exten = param.dilation_h * (param.weight()->height() - 1) + 1;
     int output_height = (input_dim + 2 * param.pad_h - kernel_exten)
                      / param.stride_h + 1;
-    output_shape.set_height(output_height);
+    output_shape[height_idx] = output_height;
 
     input_dim = input_shape.width(); // Q
     kernel_exten = param.dilation_w * (param.weight()->width() - 1) + 1;
     int output_width = (input_dim + 2 * param.pad_w - kernel_exten)
                  / param.stride_w + 1;
-    output_shape.set_width(output_width);
+    output_shape[width_idx] = output_width;
     return output_shape;
 }
 
@@ -54,8 +59,13 @@ Shape deconv_compute_shape(const Shape input_shape, ConvParam<TargetType> &param
 
     // append the $n and $c/$k, output: N * K * P * Q
 
-    output_shape.set_num(input_shape.num()); // N
-    output_shape.set_channel(param.weight()->num() * param.group); // K
+    int num_idx = output_shape.num_index();
+    int channel_idx = output_shape.channel_index();
+    int height_idx = output_shape.height_index();
+    int width_idx = output_shape.width_index();
+
+    output_shape[num_idx] = input_shape.num(); // N
+    output_shape[channel_idx] = param.weight()->num() * param.group; // K
 
     int kernel_extent_h = param.dilation_h *
                           (param.weight()->height() - 1) + 1;
@@ -66,8 +76,8 @@ Shape deconv_compute_shape(const Shape input_shape, ConvParam<TargetType> &param
     int output_dim_w = (input_shape.width() - 1) *
                        param.stride_w + kernel_extent_w - 2 * param.pad_w;
 
-    output_shape.set_height(output_dim_h);
-    output_shape.set_width(output_dim_w);
+    output_shape[height_idx] = output_dim_h;
+    output_shape[width_idx] = output_dim_w;
     return output_shape;
 }
 
@@ -99,16 +109,16 @@ Shape pool_compute_shape(const Shape input_shape, Param &param) {
     } else {
         if (param.cmp_out_shape_floor_as_conv) {
             out_height = static_cast<int>((static_cast<float>(
-                                                   in_height + 2 * pad_h - window_h) / stride_h)) + 1;
+                    in_height + 2 * pad_h - window_h) / stride_h)) + 1;
 
             out_width = static_cast<int>((static_cast<float>(
-                                                  in_width + 2 * pad_w - window_w) / stride_w)) + 1;
+                    in_width + 2 * pad_w - window_w) / stride_w)) + 1;
         } else {
             out_height = static_cast<int>(ceilf(static_cast<float>(
-                                                        in_height + 2 * pad_h - window_h) / stride_h)) + 1;
+                    in_height + 2 * pad_h - window_h) / stride_h)) + 1;
 
             out_width = static_cast<int>(ceilf(static_cast<float>(
-                                                       in_width + 2 * pad_w - window_w) / stride_w)) + 1;
+                    in_width + 2 * pad_w - window_w) / stride_w)) + 1;
         }
     }
 
@@ -120,8 +130,10 @@ Shape pool_compute_shape(const Shape input_shape, Param &param) {
             -- out_width;
         }
     }
-    output_shape.set_height(out_height);
-    output_shape.set_width(out_width);
+    int height_idx = output_shape.height_index();
+    int width_idx = output_shape.width_index();
+    output_shape[height_idx] = out_height;
+    output_shape[width_idx] = out_width;
     return output_shape;
 }
 
@@ -165,7 +177,7 @@ void merge_matrix_to_matrix_in_leddim(const Dtype* input,
 }
 
 template <typename Dtype>
-void transform_3x3_weight_2_4x4(const Dtype* input, 
+void transform_3x3_weight_2_4x4(const Dtype* input,
     Dtype* output,
     int K,
     int k_align_up,
@@ -189,7 +201,7 @@ void transform_3x3_weight_2_4x4(const Dtype* input,
                     }else{
                         g[i][j] = 0.f;
                     }
-             
+
                 }
             }
             G[0][0] = g[0][0];
@@ -198,20 +210,20 @@ void transform_3x3_weight_2_4x4(const Dtype* input,
             G[0][3] = g[0][2];
 
             G[1][0] = 0.50*(g[0][0] + g[1][0] + g[2][0]);
-            G[1][1] = 0.25*(g[0][0] + g[0][1] + g[0][2]  
-                + g[1][0] + g[1][1] + g[1][2]  
+            G[1][1] = 0.25*(g[0][0] + g[0][1] + g[0][2]
+                + g[1][0] + g[1][1] + g[1][2]
                 + g[2][0] + g[2][1] + g[2][2]);
-            G[1][2] = 0.25*(g[0][0] - g[0][1] + g[0][2]  
-                + g[1][0] - g[1][1] + g[1][2]  
+            G[1][2] = 0.25*(g[0][0] - g[0][1] + g[0][2]
+                + g[1][0] - g[1][1] + g[1][2]
                 + g[2][0] - g[2][1] + g[2][2]);
             G[1][3] = 0.50*(g[0][2] + g[1][2] + g[2][2]);
 
             G[2][0] = 0.50*(g[0][0] - g[1][0] + g[2][0]);
-            G[2][1] = 0.25*(g[0][0] + g[0][1] + g[0][2]  
-                - g[1][0] - g[1][1] - g[1][2]  
+            G[2][1] = 0.25*(g[0][0] + g[0][1] + g[0][2]
+                - g[1][0] - g[1][1] - g[1][2]
                 + g[2][0] + g[2][1] + g[2][2]);
-            G[2][2] = 0.25*(g[0][0] - g[0][1] + g[0][2]  
-                - g[1][0] + g[1][1] - g[1][2]  
+            G[2][2] = 0.25*(g[0][0] - g[0][1] + g[0][2]
+                - g[1][0] + g[1][1] - g[1][2]
                 + g[2][0] - g[2][1] + g[2][2]);
             G[2][3] = 0.50*(g[0][2] - g[1][2] + g[2][2]);
 
@@ -237,10 +249,10 @@ void transform_3x3_weight_2_4x4(const Dtype* input,
                     int idx_0 = (i * 4 + j) % 2;
                     int idx_1 = (i * 4 + j) / 2;
 
-                    int offset = 
+                    int offset =
                         kidx_1 * 32 * 2 * 8
-                        + cidx_1 * (k_align_up * 2 * 8 * 8) 
-                        + cidx_0 * 2 * 32 + idx_1 * (k_align_up * 2 * 8) 
+                        + cidx_1 * (k_align_up * 2 * 8 * 8)
+                        + cidx_0 * 2 * 32 + idx_1 * (k_align_up * 2 * 8)
                         + idx_0 * 32 + kidx_16 * 16 + kidx_height * 4 + kidx_width;
                     output[offset] = G[i][j];
                 }
@@ -249,7 +261,7 @@ void transform_3x3_weight_2_4x4(const Dtype* input,
     }
 }
 
-// transform 
+// transform
     // PAY ATTENTION!!!![zs]
     // The shape of weights is suppose to be {in_channel, out_channel, kernel_size, kernel_size};
     // but caffe is reshaped their shape as {out, in, kernel_size, kernel_size}
@@ -261,7 +273,7 @@ void transform_3x3_weight_2_4x4(const Dtype* input,
     // int out_channel : the real output filter num(as much as you can, this is the proto param)
     //
     // const float *
-    //     weights_src : the real data is orgnized as 
+    //     weights_src : the real data is orgnized as
     //                   (in_channel, out_channel, kernel_size, kernel_size)
     // const float *
     //     XX_out      : the output data is orgnized as
@@ -314,6 +326,42 @@ void transpose_filter_KCRS_2_CRSK(const Dtype *input, Dtype *output, \
     }
 }
 
+template <typename TargetType, typename TargetType_H, DataType Dtype, typename dtype>
+void transpose_filter_KCRS_2_CRSKC4(Tensor<TargetType> weights,
+                                    int K, int C, int R, int S) {
+    Tensor<TargetType_H> temp;
+    Tensor<TargetType_H> temp_in;
+    Tensor<TargetType_H> target_temp;
+    temp.re_alloc(weights.valid_shape(), Dtype);
+    temp_in.re_alloc(weights.valid_shape(), Dtype);
+    target_temp.re_alloc(weights.valid_shape(), Dtype);
+
+    temp_in.copy_from(weights);
+    const dtype *input = (const dtype*)temp_in.data();
+    dtype *temp_ptr = (dtype*)temp.mutable_data();
+    dtype *target_temp_ptr = (dtype*)target_temp.mutable_data();
+
+    const int CRS = C * R * S;
+    for (int var_k = 0; var_k < K; var_k++) {
+        for (int var_crs = 0; var_crs < CRS; var_crs++) {
+            temp_ptr[var_crs * K + var_k] = input[var_k * CRS + var_crs];
+        }
+    }
+
+    int read_in = 0;
+    int write_out = 0;
+    int out_loop = C / 4;
+    int inner_loop =  K * R * S * 4;
+    for (int i = 0; i < out_loop; ++i) {
+        for (int j = 0; j < inner_loop; ++j) {
+            write_out = i * inner_loop + j;
+            read_in = ((i * 4) + (j % 4))  * (inner_loop / 4) + j / 4;
+            target_temp_ptr[write_out] = temp_ptr[read_in];
+        }
+    }
+    weights.copy_from(target_temp);
+}
+
 template < typename Tensor_t, template <typename T> class Param >
 void update_conv_weights(Param<Tensor_t>& param) {
 #ifdef USE_ARM_PLACE
@@ -335,7 +383,7 @@ void update_conv_weights(Param<Tensor_t>& param) {
     new_weight.copy_from(*(param.conv_param.weight()));
     Shape bias_shape;
 
-    if (param.conv_param.bias()->size() > 0) {
+    if (param.conv_param.bias() && param.conv_param.bias()->size() > 0) {
         bias_shape = param.conv_param.bias()->shape();
         new_bias.re_alloc(bias_shape, AK_FLOAT);
         new_bias.copy_from(*(param.conv_param.bias()));

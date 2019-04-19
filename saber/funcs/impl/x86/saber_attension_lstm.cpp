@@ -1,5 +1,3 @@
-
-#include <immintrin.h>
 #include <cmath>
 #include "saber_types.h"
 #include "saber/funcs/impl/x86/saber_attension_lstm.h"
@@ -97,7 +95,7 @@ void sequence_pool(const Dtype* data, const Dtype* weight, std::vector<int>& seq
 
         for (int j = seq_offset[i]; j < seq_offset[i + 1]; j++) {
             Dtype scale = weight[j];
-            Dtype* tmp_data = data + j * dim;
+            const Dtype* tmp_data = data + j * dim;
 
             for (int k = 0; k < dim; k++) {
                 tmp_out[k] += scale * tmp_data[k];

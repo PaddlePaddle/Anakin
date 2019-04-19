@@ -16,23 +16,10 @@ class Graph(object):
     """
     def __init__(self, config):
         """
-        category: CAFFE, LEGO, PADDLE, TF, MXNET
+        category: FLUID
         """
-        self.save_file_path = config.SavePath + config.ResultName + ".anakin.bin"
-        if config.framework == 'CAFFE':
-            from caffe import CaffeParser
-            self.parser = CaffeParser(config.framework_config_dict)
-        elif config.framework == 'PADDLE':
-            pass
-        elif config.framework == 'LEGO':
-            from lego import LegoParser_test
-            self.parser = LegoParser_test(config.framework_config_dict)
-        elif config.framework == 'TENSORFLOW':
-            from tensorflow import TFParser
-            self.parser=TFParser(config.framework_config_dict)
-        elif config.framework == 'MXNET':
-            pass
-        elif config.framework == 'FLUID':
+        self.save_file_path = config.SavePath + config.ResultName + ".paddle_inference.bin"
+        if config.framework == 'FLUID':
             from fluid import FluidParser
             self.parser = FluidParser(config.framework_config_dict)
         else:
@@ -96,7 +83,7 @@ class Graph(object):
         """
         return self.graph_io, self.config
 
-    def serialization(self): 
+    def serialization(self):
         """
         serialize to disk
         """

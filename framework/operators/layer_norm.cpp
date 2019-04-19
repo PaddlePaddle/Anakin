@@ -4,7 +4,7 @@ namespace anakin{
 
 namespace ops{
 
-#define INSTANCE_LAYERNORM(Ttype, Ptype) \
+#define INSTANCE_LAYER_NORM(Ttype, Ptype) \
 template<> \
 void LayerNorm<Ttype, Ptype>::operator()(OpContext<Ttype>& ctx, \
     const std::vector<Tensor4dPtr<Ttype> >& ins, \
@@ -47,19 +47,25 @@ Status LayerNormHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<T
 
 
 #ifdef USE_CUDA
-INSTANCE_LAYERNORM(NV, Precision::FP32);
+INSTANCE_LAYER_NORM(NV, Precision::FP32);
 template class LayerNormHelper<NV, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(LayerNorm, LayerNormHelper, NV, Precision::FP32);
 #endif
 
+#ifdef AMD_GPU
+INSTANCE_LAYER_NORM(AMD, Precision::FP32);
+template class LayerNormHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(LayerNorm, LayerNormHelper, AMD, Precision::FP32);
+#endif
+
 #ifdef USE_X86_PLACE
-INSTANCE_LAYERNORM(X86, Precision::FP32);
+INSTANCE_LAYER_NORM(X86, Precision::FP32);
 template class LayerNormHelper<X86, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(LayerNorm, LayerNormHelper, X86, Precision::FP32);
 #endif
 
 #ifdef USE_ARM_PLACE
-INSTANCE_LAYERNORM(ARM, Precision::FP32);
+INSTANCE_LAYER_NORM(ARM, Precision::FP32);
 template class LayerNormHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(LayerNorm, LayerNormHelper, ARM, Precision::FP32);
 #endif
@@ -75,6 +81,9 @@ ANAKIN_REGISTER_OP(LayerNorm)
 #endif
 #ifdef USE_X86_PLACE
 .__alias__<X86, Precision::FP32>("layernorm")
+#endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("layernorm")
 #endif
 .num_in(1)
 .num_out(1)

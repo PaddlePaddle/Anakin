@@ -28,6 +28,11 @@ if(USE_BM_PLACE)
     anakin_find_bmlib()
 endif()
 
+# find cnml and cnrt
+#if(USE_MLU)
+##    anakin_find_mlulib()
+#endif()
+
 # set amd opencl path
 if(AMD_GPU)
     amd_build_cl_file("${CMAKE_SOURCE_DIR}/saber/funcs/impl/amd/cl" "${CMAKE_BINARY_DIR}/cl/amd")
@@ -59,7 +64,10 @@ endif()
 
 if(USE_PROTOBUF)
     anakin_find_protobuf()
-    anakin_protos_processing()
+endif()
+
+if(USE_NANOPB)
+    anakin_find_nanopb()
 endif()
 
 if(BUILD_RPC)
@@ -88,9 +96,11 @@ endif()
 if(DISABLE_ALL_WARNINGS) 
     anakin_disable_warnings(CMAKE_CXX_FLAGS)
 endif()
-if(USE_OPENMP)
+
+if(USE_OPENMP AND NOT APPLE)
     anakin_find_openmp()
 endif()
+
 if(USE_ARM_PLACE)
     if(TARGET_ANDROID)
 		if(USE_OPENMP)
@@ -102,6 +112,7 @@ if(USE_ARM_PLACE)
         message(FATAL_ERROR " ARM TARGET unknown !")
     endif()
 endif()
-if(USE_TENSORRT)
-    anakin_find_nvinfer()
+
+if(USE_SGX)
+    anakin_find_sgx()
 endif()

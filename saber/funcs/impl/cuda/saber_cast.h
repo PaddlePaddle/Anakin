@@ -51,13 +51,13 @@ public:
         _inDtype = param.in_type;
         _outDtype = param.out_type;
         if(_inDtype != 1 && _inDtype !=5){// AK_FLOAT AK_INT32
-            LOG(FATAL) << "Cast not impl other type: " << _inDtype;
+            //LOG(FATAL) << "Cast not impl other type: " << _inDtype;
         }
         if(_outDtype != 1 && _outDtype !=5){
-            LOG(FATAL) << "Cast not impl other type: " << _outDtype;
+            //LOG(FATAL) << "Cast not impl other type: " << _outDtype;
         }
-        CHECK_EQ(_inDtype, inputs[0]->get_dtype()) << "inputs data type should be same with param.in_type";
-        CHECK_EQ(_outDtype, outputs[0]->get_dtype()) << "outputs data type should be same with param.out_type";
+        //CHECK_EQ(_inDtype, inputs[0]->get_dtype()) << "inputs data type should be same with param.in_type";
+        //CHECK_EQ(_outDtype, outputs[0]->get_dtype()) << "outputs data type should be same with param.out_type";
         
         return SaberSuccess;
     }

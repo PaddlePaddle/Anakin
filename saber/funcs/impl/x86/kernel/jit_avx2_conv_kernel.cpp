@@ -393,7 +393,7 @@ void jit_avx2_conv_act_kernel::generate() {
 
 SaberStatus jit_avx2_conv_act_kernel::init_conf(jit_conv_conf_t& jcp) {
     if (!mayiuse(avx2)) {
-        LOG(ERROR) << "init a AVX2 kernel in a non-avx2 machine is not permitted";
+        LOG(FATAL) << "init a AVX2 kernel in a non-avx2 machine is not permitted";
         return SaberUnImplError;
     }
 
@@ -456,7 +456,9 @@ SaberStatus jit_avx2_conv_act_kernel::init_conf(jit_conv_conf_t& jcp) {
                    && utils::implication(mimo, jcp.ic % simd_w == 0);
 
     if (!args_ok) {
-        LOG(ERROR) << "arguments check failed";
+        LOG(FATAL) << "arguments check failed "<<(jcp.oc % simd_w)<<",（"<<jcp.l_pad <<","<<jcp.ur_w<<"),"
+            <<(utils::implication(jcp.kw > 7, (jcp.t_pad == 0 && jcp.l_pad == 0) || (jcp.stride_w == 1 && jcp.stride_h == 1)))
+                   <<(utils::implication(mimo, jcp.ic % simd_w == 0));
         return SaberUnImplError;
     }
 

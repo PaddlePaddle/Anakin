@@ -6,6 +6,7 @@
 #include "saber/core/tensor.h"
 
 #include "saber/funcs/impl/x86/x86_utils.h"
+#include "saber/funcs/impl/x86/anakin_thread.h"
 
 namespace anakin {
 namespace saber {
@@ -361,8 +362,8 @@ protected:
     std::vector<SeqStartAndLength> seqStartAndLength_;
     std::vector<int> batchStartPositions_;
     std::vector<int> seq2BatchIdx_;
-    size_t numBatch_;
-    int thread_num = omp_get_max_threads();
+    size_t numBatch_{0};
+    int thread_num = anakin_get_max_threads();
 };
 }  // namespace math
 }  // namespace saber

@@ -5,8 +5,19 @@ namespace anakin {
 
 namespace saber {
 
-static int round_up(int k, int c) {
-    return ((k + c - 1) / c) * c;
+static void cudnn_gemm(cublasHandle_t handle, const bool TransA,
+                       const bool TransB, const int M, const int N, const int K,
+                       const float alpha, const float* A, const float* B, const float beta,
+                       float* C) {
+    // Note that cublas follows fortran order.
+    int lda = (!TransA/* == CblasNoTrans*/) ? K : M;
+    int ldb = (!TransB/* == CblasNoTrans*/) ? N : K;
+    cublasOperation_t cuTransA =
+            (!TransA/* == CblasNoTrans*/) ? CUBLAS_OP_N : CUBLAS_OP_T;
+    cublasOperation_t cuTransB =
+            (!TransB/* == CblasNoTrans*/) ? CUBLAS_OP_N : CUBLAS_OP_T;
+    CUBLAS_CHECK(cublasSgemm(handle, cuTransB, cuTransA,
+                             N, M, K, &alpha, B, ldb, A, lda, &beta, C, N));
 }
 
 template <typename Dtype>
@@ -123,8 +134,10 @@ SaberStatus SaberGru<NV, AK_FLOAT>::dispatch(\
     Shape shape_whr({1, batch_size, 1, _hidden_size});
     utils::try_expand_tensor(_temp_whr,shape_whr);
 
-    _gemm_wx(seq_sum, 3 * _hidden_size, _word_size, 1.f, x_data, 0.f, weights_i2h,
-             static_cast<OpDataType*>(_temp_wx.mutable_data()), _ctx->get_compute_stream());
+//    _gemm_wx(seq_sum, 3 * _hidden_size, _word_size, 1.f, x_data, 0.f, weights_i2h,
+//             static_cast<OpDataType*>(_temp_wx.mutable_data()), _ctx->get_compute_stream());
+
+    cudnn_gemm(_handle,false,false,seq_sum, 3 * _hidden_size, _word_size,1.f, x_data,weights_i2h,0.f,static_cast<OpDataType*>(_temp_wx.mutable_data()));
 
     const OpDataType* b_r = weights_bias + r_offset * _hidden_size;
     const OpDataType* b_z = weights_bias + z_offset * _hidden_size;
@@ -175,22 +188,25 @@ SaberStatus SaberGru<NV, AK_FLOAT>::dispatch(\
             OpDataType* w_h_r = static_cast<OpDataType*>(_temp_wh.mutable_data()) + 0 * _hidden_size;
             OpDataType* w_h_z = static_cast<OpDataType*>(_temp_wh.mutable_data()) + 1 * _hidden_size;
 
-            _gemm_wh_2(emit_word_length, 2 * _hidden_size, _hidden_size, 1.f, hidden_in, 0.f,
-                       weights_h2h + _hidden_size * _hidden_size, static_cast<OpDataType *>( _temp_wh.mutable_data()),
-                       _ctx->get_compute_stream());
+//            _gemm_wh_2(emit_word_length, 2 * _hidden_size, _hidden_size, 1.f, hidden_in, 0.f,
+//                       weights_h2h + _hidden_size * _hidden_size, static_cast<OpDataType *>( _temp_wh.mutable_data()),
+//                       _ctx->get_compute_stream());
+            cudnn_gemm(_handle,false,false,emit_word_length, 2 * _hidden_size, _hidden_size, 1.f, hidden_in,
+                       weights_h2h + _hidden_size * _hidden_size,0.f, static_cast<OpDataType *>( _temp_wh.mutable_data()));
 
             const OpDataType *w_o = weights_h2h;
 
             const int block_dim = 512;
-            const int grid_dim = round_up(emit_word_length * _hidden_size, block_dim);
+            const int grid_dim = utils::div_up(emit_word_length * _hidden_size, block_dim);
 
             cal_reset_kernel << < grid_dim, block_dim, 0
                     , _ctx->get_compute_stream() >> > (
                     w_x_r, w_h_r
                             , b_r, _hidden_size, emit_word_length, hidden_out, hidden_in, param.gate_activity);
 
-            _gemm_wh_o(emit_word_length, _hidden_size, _hidden_size, 1.f, hidden_out, 0.f, w_o,
-                       static_cast<OpDataType *>(_temp_whr.mutable_data()), _ctx->get_compute_stream());
+//            _gemm_wh_o(emit_word_length, _hidden_size, _hidden_size, 1.f, hidden_out, 0.f, w_o,
+//                       static_cast<OpDataType *>(_temp_whr.mutable_data()), _ctx->get_compute_stream());
+            cudnn_gemm(_handle,false,false,emit_word_length, _hidden_size, _hidden_size,1.f,hidden_out, w_o,0.f,static_cast<OpDataType *>(_temp_whr.mutable_data()));
 
             cal_final_kernel << < grid_dim, block_dim, 0
                     , _ctx->get_compute_stream() >> > (
@@ -201,14 +217,17 @@ SaberStatus SaberGru<NV, AK_FLOAT>::dispatch(\
             OpDataType* w_h_z = static_cast<OpDataType*>(_temp_wh.mutable_data()) + z_offset * _hidden_size;
             OpDataType* w_h_o = static_cast<OpDataType*>(_temp_wh.mutable_data()) + o_offset * _hidden_size;
 
-            _gemm_wh_2(emit_word_length, 3 * _hidden_size, _hidden_size, 1.f, hidden_in, 0.f,
-                       static_cast<const OpDataType *>(_temp_weights_h2h.data()), static_cast<OpDataType *>( _temp_wh.mutable_data()),
-                       _ctx->get_compute_stream());
+//            _gemm_wh_2(emit_word_length, 3 * _hidden_size, _hidden_size, 1.f, hidden_in, 0.f,
+//                       static_cast<const OpDataType *>(_temp_weights_h2h.data()), static_cast<OpDataType *>( _temp_wh.mutable_data()),
+//                       _ctx->get_compute_stream());
+
+            cudnn_gemm(_handle,false,false,emit_word_length, 3 * _hidden_size, _hidden_size, 1.f,hidden_in,
+                       static_cast<const OpDataType *>(_temp_weights_h2h.data()),0.f,static_cast<OpDataType *>( _temp_wh.mutable_data()));
 
             const OpDataType *w_o = weights_h2h;
 
             const int block_dim = 512;
-            const int grid_dim = round_up(emit_word_length * _hidden_size, block_dim);
+            const int grid_dim = utils::div_up(emit_word_length * _hidden_size, block_dim);
             cal_cudnn_kernel<< < grid_dim, block_dim, 0
                     , _ctx->get_compute_stream() >> >( w_x_r, w_x_z,  w_x_o,
             w_h_r, w_h_z, w_h_o,b_r, b_z,  b_o,_hidden_size,  emit_word_length, hidden_out, hidden_in);

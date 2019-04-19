@@ -3,7 +3,7 @@ syntax = "proto3";
 import "node.proto";
 import "tensor.proto";
 
-// Anakin Graph version
+// Inference Graph version
 // use to judge the version of given binary model.
 message Version{
     int32 major = 1;
@@ -12,9 +12,9 @@ message Version{
     int64 version = 4;
 };
 
-// info summary of optimized anakin graph
+// info summary of optimized Inference graph
 message Info {
-	// temp memory used by anakin edge [MB] [ optional ]
+	// temp memory used by Inference edge [MB] [ optional ]
 	int32 temp_mem_used = 1;
 	// temp memory used by old version [MB] [ optional ]
 	int32 original_temp_mem_used = 2;
@@ -27,12 +27,18 @@ message Info {
 	bool is_optimized = 10;	
 };
 
-// string list 
-message List {
-	repeated string val = 1;	
+message TargetProto {
+	string node = 1;
+	repeated float scale = 2;
 };
 
-// Anakin Graph define
+// string list 
+message List {
+	repeated string val = 1;  // Will be deprecated
+	repeated TargetProto target = 2;
+};
+
+// Inference Graph define
 message GraphProto {
 // graph name
 string name = 1;
@@ -42,13 +48,13 @@ repeated NodeProto nodes = 2;
 
 // edge in graph
 // map: node name --->  node name
-// edges saves storage of anakin model.
+// edges saves storage of Inference model.
 map<string, List> edges_in = 3;
-map<string, List> edges_out =4;
+map<string, List> edges_out = 4;
 
 // edges info [optional]
 // map: node_name_0 + "_" + node_name_1 ---> edge tensor (tensor not hold data)
-// ( only used when anakin generates optimized model )
+// ( only used when paddle generates optimized model )
 map<string, TensorProto> edges_info = 5;
 
 // graph input node name.
@@ -57,7 +63,7 @@ repeated string ins = 6;
 // graph output node name.
 repeated string outs = 7;
 
-// graph version which is equal to anakin version.
+// graph version which is equal to paddle Inference version.
 Version version = 10;
 
 // info about optimization graph [ require ]

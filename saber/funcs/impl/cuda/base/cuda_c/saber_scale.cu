@@ -69,6 +69,7 @@ SaberStatus SaberScale<NV, AK_FLOAT>::dispatch( \
     }
 
     CUDA_POST_KERNEL_CHECK;
+    outputs[0]->set_seq_offset(inputs[0]->get_seq_offset());
     return SaberSuccess;
 }
 

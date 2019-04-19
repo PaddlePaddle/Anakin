@@ -33,8 +33,8 @@ class VenderPooling<NV, OpDtype>:\
         typedef Tensor<NV> DataTensor_in;
         typedef Tensor<NV> DataTensor_out;
         typedef Tensor<NV> OpTensor;
-        
-        VenderPooling() : _handle(NULL) {}
+       
+        VenderPooling() : _handle(NULL), _input_descs(NULL), _output_descs(NULL), _pooling_descs(NULL) {} 
         
         ~VenderPooling() {
             if (_handle != NULL) {

@@ -47,7 +47,7 @@ void cast_basic(const std::vector<Tensor<TargetType_H>*>& inputs,std::vector<Ten
         }
         return;
     }
-    
+
     if(tensor_in->get_dtype() == 5){//AK_INT32
         const int* in_data = (const int*)tensor_in->data();
         float* out_data = (float*)tensor_out->mutable_data();
@@ -100,12 +100,14 @@ void test_model(){
                     TestSaberBase<TargetType_D, TargetType_H, AK_FLOAT, Cast, CastParam> testbase(1,1);
                     testbase.set_param(param);
                     testbase.add_custom_input(input_dt);
+                    testbase.set_ouput_datatype(AK_FLOAT);
                     testbase.run_test(cast_basic<float, TargetType_D, TargetType_H>, 2.1e-5f);
                 }
                 if (b == 5){
                     TestSaberBase<TargetType_D, TargetType_H, AK_INT32, Cast, CastParam> testbase(1,1);
                     testbase.set_param(param);
                     testbase.add_custom_input(input_dt);
+                    testbase.set_ouput_datatype(AK_INT32);
                     testbase.run_test(cast_basic<int, TargetType_D, TargetType_H>, 2.1e-5f);
                 }
             }
@@ -145,7 +147,7 @@ void test_model(){
                     testbase.add_custom_input(input_dt);
                     testbase.run_test(cast_nv_basic<int, NV, NVHX86>);//run test
                 }
-                
+
             }
         }
     }
@@ -156,14 +158,18 @@ TEST(TestSaberFunc, test_func_cast) {
     int channel = ch_in;
     int height = h_in;
     int width = w_in;
-   
+
 #ifdef USE_CUDA
    //Init the test_base
     test_model<NV, NVHX86>();
 #endif
 #ifdef USE_X86_PLACE
-    //Env<X86>::env_init();
+    Env<X86>::env_init();
     test_model<X86, X86>();
+#endif
+#ifdef USE_ARM_PLACE
+    Env<ARM>::env_init();
+    test_model<ARM, ARM>();
 #endif
 }
 

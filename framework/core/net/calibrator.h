@@ -17,6 +17,10 @@
 #ifndef ANAKIN_CALIBRATOR_H
 #define ANAKIN_CALIBRATOR_H
 
+#include "anakin_config.h"
+
+#ifndef USE_SGX
+
 #include "framework/core/net/batch_stream.h"
 #include "framework/core/base.h"
 #include "framework/core/operator/operator.h"
@@ -77,4 +81,6 @@ protected:
 
 };
 }
+#endif // USE_SGX
+
 #endif

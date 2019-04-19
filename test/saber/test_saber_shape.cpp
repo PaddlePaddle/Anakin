@@ -195,12 +195,14 @@ TEST(TestSaberFunc, test_dim_4) {
     LOG(INFO) << "Layout_NCHW PASS";
     test_dim4(Layout_NHWC);
     LOG(INFO) << "Layout_NHWC PASS";
+#if 0
     test_dim4(Layout_NCHW_C4);
     LOG(INFO) << "Layout_NCHW_C4 PASS";
     test_dim4(Layout_NCHW_C8);
     LOG(INFO) << "Layout_NCHW_C8 PASS";
     test_dim4(Layout_NCHW_C16);
     LOG(INFO) << "Layout_NCHW_C16 PASS";
+#endif
 }
 
 TEST(TestSaberFunc, test_dim_2) {
@@ -232,6 +234,7 @@ TEST(TestSaberFunc, test_set_layout) {
                     CHECK_EQ(test_shape[1], H);
                     CHECK_EQ(test_shape[2], W);
                     CHECK_EQ(test_shape[3], C);
+#if 0
                     if (C % 4 ==0) {
                         test_shape.set_layout(Layout_NCHW_C4);
                         CHECK_EQ(test_shape[0], N);
@@ -259,6 +262,7 @@ TEST(TestSaberFunc, test_set_layout) {
                         CHECK_EQ(test_shape[4], 16);
                         CHECK_EQ(test_shape.channel(), C);
                     }
+#endif
                     test_shape.set_layout(Layout_HW);
                     CHECK_EQ(test_shape[0], H);
                     CHECK_EQ(test_shape[1], W);

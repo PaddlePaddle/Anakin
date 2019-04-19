@@ -5,12 +5,12 @@
    You may obtain a copy of the License at
 
        http://www.apache.org/licenses/LICENSE-2.0
-   
+
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License. 
+   limitations under the License.
 */
 
 #ifndef ANAKIN_SABER_FUNCS_ELTWISE_H
@@ -27,7 +27,10 @@
 #include "saber/funcs/impl/x86/saber_eltwise.h"
 #endif
 #ifdef USE_ARM_PLACE
-//#include "saber/funcs/impl/arm/saber_eltwise.h"
+#include "saber/funcs/impl/arm/saber_eltwise.h"
+#endif
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_eltwise.h"
 #endif
 namespace anakin {
 namespace saber {
@@ -59,15 +62,21 @@ public:
 
     virtual SaberStatus compute_output_shape(const Input_v& input, Output_v& output, \
         Param_t& param) override {
-        for (int i = 1; i < input.size(); ++i) {
-            CHECK_EQ(input[0]->num(), input[i]->num());
-            CHECK_EQ(input[0]->channel(), input[i]->channel());
-            CHECK_EQ(input[0]->height(), input[i]->height());
-            CHECK_EQ(input[0]->width(), input[i]->width());
+        if (param.operation != Eltwise_div) {
+           for (int i = 1; i < input.size(); ++i) {
+               CHECK_EQ(input[0]->num(), input[i]->num());
+               CHECK_EQ(input[0]->channel(), input[i]->channel());
+               CHECK_EQ(input[0]->height(), input[i]->height());
+               CHECK_EQ(input[0]->width(), input[i]->width());
+           }
         }
 
         Shape output_shape = input[0]->valid_shape();
         output[0]->set_shape(output_shape);
+        if (param.operation == Eltwise_sum) {
+            CHECK_EQ(param.coeff.size(), input.size()) << "eltwise sum coeff num is not right";
+        }
+        output[0]->set_seq_offset(input[0]->get_seq_offset());
 
         return SaberSuccess;
     }

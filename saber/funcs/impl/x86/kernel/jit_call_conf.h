@@ -17,7 +17,7 @@
 #define ANAKIN_SABER_FUNCS_IMPL_X86_JIT_CALL_CONF_H
 
 #include <iostream>
-#include <stdint.h>
+#include <cstddef>
 #include "saber/saber_types.h"
 #include "stddef.h"
 
@@ -43,6 +43,25 @@ enum {
     FLAG_REDUCE_FIRST = 1 << 8, FLAG_REDUCE_LAST = 1 << 9,
 };
 
+struct jit_int8_packed_fc_call_t {
+    const void *src{nullptr};
+    const void *weights{nullptr};
+    const void *output_data{nullptr};
+
+    size_t lda{0}; // used in backward_weights only
+    size_t ldb{0};
+    size_t ldc{0};
+    size_t k_block{0};
+
+};
+
+struct jit_int8_packed_fc_config_t {
+    size_t m_block_size{0};
+    size_t n_block_size{0};
+    size_t k_block_number{0};
+};
+
+
 struct jit_1x1_conv_call_t {
     const void *bcast_data;
     const void *load_data;
@@ -50,6 +69,7 @@ struct jit_1x1_conv_call_t {
     const void *bias_data; // used in forward and backward_weights only
     const void *acc_s32;
     const void *scales;
+    const void *compensation;
 
     size_t load_dim;
     size_t bcast_dim;
@@ -60,180 +80,344 @@ struct jit_1x1_conv_call_t {
 };
 
 struct jit_conv_call_t {
-    const void *src; /* hack, non-const for backward_data */
-    const void *dst; /* hack, non-const for forward */
-    const void *filt; /* hack, non-const for backward_weights */
-    const void *bias; /* hack, non-const for backward_bias */
-    const void *src_prf;
-    const void *dst_prf;
-    const void *filt_prf;
-    const void *bias_prf;
-    const void *scales;
-    const void *acc_s32;
-    size_t kd_padding;
-    size_t kd_padding_prf;
-    size_t kh_padding;
-    size_t kh_padding_prf;
-    size_t kw_padding;
-    size_t channel;
-    size_t channel_prf;
-    size_t oc_blocks;
-    size_t ur_w;
-    size_t ur_str_w;
-    size_t ch_blocks;
-    int flags;
+    const void *src{nullptr}; /* hack, non-const for backward_data */
+    const void *dst{nullptr}; /* hack, non-const for forward */
+    const void *filt{nullptr}; /* hack, non-const for backward_weights */
+    const void *bias{nullptr}; /* hack, non-const for backward_bias */
+    const void *src_prf{nullptr};
+    const void *dst_prf{nullptr};
+    const void *filt_prf{nullptr};
+    const void *bias_prf{nullptr};
+    const void *scales{nullptr};
+    const void *acc_s32{nullptr};
+    const void *compensation{nullptr};
+    size_t kd_padding{0};
+    size_t kd_padding_prf{0};
+    size_t kh_padding{0};
+    size_t kh_padding_prf{0};
+    size_t kw_padding{0};
+    size_t channel{0};
+    size_t channel_prf{0};
+    size_t oc_blocks{0};
+    size_t ur_w{0};
+    size_t ur_str_w{0};
+    size_t ch_blocks{0};
+    size_t t_overflow{0};
+    size_t b_overflow{0};
+    int flags{0};
+};
+
+struct jit_wino_transform_call_s {
+    size_t tile_block;
+    size_t tile_block_ur;
+    size_t nb_tile_block_ur;
+    size_t tile_count;
+    size_t tj;
+    size_t ti;
+    void *src;
+    void *dst;
+    void *Mw;
+    void *M;
+    void *T;
+    void *G;
+    void *bias;
 };
 
 struct jit_conv_conf_t {
-    conv_version_t ver;
-    conv_loop_order_t loop_order;
-    LayoutType src_fmt;
-    int ndims;
-    int mb;
-    int ngroups, ic, oc, oc_without_padding, ic_without_padding;
-    int id, ih, iw, od, oh, ow;
-    int f_pad, l_pad, t_pad;
-    int back_pad, r_pad, b_pad;
-    int kd, kh, kw;
-    int stride_d, stride_h, stride_w;
-    int dilate_d, dilate_h, dilate_w;
-    bool with_bias, with_relu;
-    float relu_negative_slope;
-    bool with_sum;
-    bool is_dw;
-    int idp, ihp, iwp, ohp, owp;
-    int nb_ic, ic_block;
-    int nb_oc, oc_block;
-    int nb_g, g_block;
-    int nb_ic_blocking, nb_oc_blocking; // blocking of nb_ic and nb_ic
-    int nb_ic_blocking_max;
-    int nb_ic_L2;
-    int nb_oc_L2;
-    int ur_h, ur_w;
-    int ur_w_tail;
-    bool is_1stconv;
+    conv_version_t ver{ver_unused};
+    conv_loop_order_t loop_order{loop_cgn};
+    LayoutType src_fmt{Layout_invalid};
+    int ndims{0};
+    int mb{0};
+    int ngroups{0};
+    int ic{0};
+    int oc{0};
+    int oc_without_padding{0};
+    int ic_without_padding{0};
+    int id{0};
+    int ih{0};
+    int iw{0};
+    int od{0};
+    int oh{0};
+    int ow{0};
+    int f_pad{0};
+    int l_pad{0};
+    int t_pad{0};
+    int back_pad{0};
+    int r_pad{0};
+    int b_pad{0};
+    int kd{0};
+    int kh{0};
+    int kw{0};
+    int stride_d{0};
+    int stride_h{0};
+    int stride_w{0};
+    int dilate_d{0};
+    int dilate_h{0};
+    int dilate_w{0};
+    bool with_bias{false};
+    bool with_relu{false};
+    float relu_negative_slope{0.f};
+    bool with_sum{false};
+    bool is_dw{false};
+    bool is_dw_int8{false};
+    int idp{0};
+    int ihp{0};
+    int iwp{0};
+    int ohp{0};
+    int owp{0};
+    int nb_ic{0};
+    int ic_block{0};
+    int nb_oc{0};
+    int oc_block{0};
+    int nb_g{0};
+    int g_block{0};
+    int nb_ic_blocking{0};
+    int nb_oc_blocking{0}; // blocking of nb_ic and nb_i{0c
+    int nb_ic_blocking_max{0};
+    int nb_ic_L2{0};
+    int nb_oc_L2{0};
+    int ur_h{0};
+    int ur_w{0};
+    int ur_w_tail{0};
+    bool is_1stconv{0};
     /* fma avx512_core */
-    conv_kernel_kind_t kernel_kind;
+    conv_kernel_kind_t kernel_kind{embd_bcast};
     /* 4fma */
-    int tr_iw;
-    int tr_src_num_guard_elems;
+    int tr_iw{0};
+    int tr_src_num_guard_elems{0};
     /* 1st conv: 4fma */
-    int tr_ld;
-    int kh_step;
+    int tr_ld{0};
+    int kh_step{0};
     /* 4vnni */
-    int typesize_in;
-    int typesize_out;
-    int typesize_bia;
-    int typesize_acc;
-    int tr_ow;
+    int typesize_in{0};
+    int typesize_out{0};
+    int typesize_bia{0};
+    int typesize_acc{0};
+    int tr_ow{0};
     /* avx512_u8s8u8 */
-    int ic_nb1, ic_nb2;
-    int oc_nb1;
-    int ur_ow_max, ur_ow, ur_ow_tail;
-    int ur_ow_nsteps;
-    DataType bia_dt;
-    DataType dst_dt;
+    int ic_nb1{0};
+    int ic_nb2{0};
+    int oc_nb1{0};
+    int ur_ow_max{0};
+    int ur_ow{0};
+    int ur_ow_tail{0};
+    int ur_ow_nsteps{0};
+    DataType bia_dt{AK_INVALID};
+    DataType dst_dt{AK_INVALID};
+    DataType sum_dt{AK_INVALID};
     /* avx512: max possible value is nregs(32) - aux_regs(4) */
-    int src_offsets[28];
-    int src_count;
-    bool expl_bcast;
-    bool large_spatial;
-    int is_oc_scale;
+    int src_offsets[28]{0};
+    int src_count{0};
+    bool expl_bcast{false};
+    bool large_spatial{false};
+    int is_oc_scale{0};
+    bool signed_input{false};
+    float wei_adj_scale{0.f};
 
     // gemm conv
-    int is, os, ks;
+    int is{0};
+    int os{0};
+    int ks{0};
     ptrdiff_t im2col_sz;
-    bool need_im2col;
-    int nthr;
+    bool need_im2col{false};
+    int nthr{0};
 
     // dw conv
-    int nb_ch, ch_block, nb_ch_blocking;
-    round_mode rm;
+    int nb_ch{0};
+    int ch_block{0};
+    int nb_ch_blocking{0};
+    round_mode rm{nearest};
 
     // pooling
-    PoolingType pool_alg;
-    int pool_kw;
+    bool with_partial_pool=false;
+    PoolingType pool_alg{Pooling_unknow};
+    int pool_kw{0};
 
     //the scale for post sum
-    float sum_scale;
+    float sum_scale{0.f};
 
     // output layout nhwc
-    bool output_nhwc;
+    bool output_nhwc{false};
 };
 
 struct jit_1x1_conv_conf_t {
+    conv_version_t ver{ver_unused};
+
+    int mb{0};
+    int ngroups{0};
+    int ic{0};
+    int oc{0};
+    int oc_without_padding{0};
+    int ic_without_padding{0};
+    int iw{0};
+    int ih{0};
+    int ow{0};
+    int oh{0};
+    int l_pad{0};
+    int t_pad{0};
+    int kh{0};
+    int kw{0};
+    int stride_h{0};
+    int stride_w{0};
+    bool with_bias{false};
+    bool with_relu{false};
+    float relu_negative_slope{0.f};
+    bool with_sum{false};
+
+    int is{0}; 
+    int os{0};
+    int ic_block{0};
+    int oc_block{0};
+
+    int ur{0};
+    int ur_tail{0};
+
+    int reduce_dim{0};
+    int reduce_block{0};
+    int nb_reduce{0};
+    int nb_reduce_blocking{0};
+    int nb_reduce_blocking_max{0};
+    int load_dim{0};
+    int load_block{0};
+    int nb_load{0};
+    int nb_load_blocking{0};
+    int nb_load_blocking_max{0};
+    int bcast_dim{0};
+    int bcast_block{0};
+    int nb_bcast{0};
+    int nb_bcast_blocking{0};
+    int nb_bcast_blocking_max{0};
+
+    int reduce_loop_unroll{0};
+    int reduce_loop_bcast_step{0};
+    int reduce_loop_load_step{0};
+    int load_loop_load_step{0};
+    int load_loop_iter_step{0};
+    int bcast_loop_output_step{0};
+    int bcast_loop_output_substep{0};
+    int bcast_loop_bcast_step{0};
+    int bcast_loop_bcast_substep{0};
+    int fma_step{0};
+    int load_grp_count{0};
+    conv_1x1_loop_order_t loop_order{loop_rbl};
+    bool use_vmovntps{false};
+    /* avx512 core */
+    bool expl_bcast{false};
+    /* 4vnni */
+    int typesize_in{0};
+    int typesize_out{0};
+    int typesize_bia{0};
+    int typesize_acc{0};
+    /* 4fma */
+    bool transpose_src{false};
+    int tr_is{0};
+    int nthr{0};
+    int nthr_mb{0};
+    int nthr_g{0};
+    int nthr_oc_b{0};
+    int nthr_ic_b{0};
+    int is_oc_scale{0};
+    DataType bia_dt{AK_INVALID};
+    DataType src_dt{AK_INVALID};
+    DataType dst_dt{AK_INVALID};
+    DataType sum_dt{AK_INVALID};
+    round_mode rm{nearest};
+    bool signed_input{false};
+    float wei_adj_scale{0.f};
+
+    //the scale for post sum
+    float sum_scale{0.f};
+};
+
+struct jit_conv_conf_2x3_wino_t {
     conv_version_t ver;
 
+    int m;
+    int r;
+    int alpha;
+    int tile_h, tile_w;
+
     int mb;
-    int ngroups, ic, oc, oc_without_padding, ic_without_padding;;
-    int iw, ih, ow, oh;
+    int ngroups, ic, oc, oc_without_padding;
+    int ih, iw, oh, ow;
     int l_pad, t_pad;
+    int r_pad, b_pad;
     int kh, kw;
     int stride_h, stride_w;
-    bool with_bias, with_relu;
-    float relu_negative_slope;
-    bool with_sum;
+    int dilate_h, dilate_w;
 
-    int is, os;
-    int ic_block, oc_block;
+    int nb_ic, ic_block;
+    int nb_oc, oc_block;
 
-    int ur, ur_tail;
+    int w_block_size, h_block_size;
 
-    int reduce_dim, reduce_block, nb_reduce,
-        nb_reduce_blocking, nb_reduce_blocking_max;
-    int load_dim, load_block, nb_load,
-        nb_load_blocking, nb_load_blocking_max;
-    int bcast_dim, bcast_block, nb_bcast,
-        nb_bcast_blocking, nb_bcast_blocking_max;
+    DataType bia_dt;
+    DataType dst_dt;
 
-    int reduce_loop_unroll, reduce_loop_bcast_step, reduce_loop_load_step;
-    int load_loop_load_step, load_loop_iter_step;
-    int bcast_loop_output_step, bcast_loop_output_substep;
-    int bcast_loop_bcast_step, bcast_loop_bcast_substep;
-    int fma_step;
-    int load_grp_count;
-    conv_1x1_loop_order_t loop_order;
-    bool use_vmovntps;
-    /* avx512 core */
-    bool expl_bcast;
-    /* 4vnni */
+    int is_oc_scale;
     int typesize_in;
     int typesize_out;
     int typesize_bia;
     int typesize_acc;
-    /* 4fma */
-    bool transpose_src;
-    int tr_is;
-    int nthr, nthr_mb, nthr_g, nthr_oc_b, nthr_ic_b;
-    int is_oc_scale;
-    DataType bia_dt;
-    DataType dst_dt;
-    round_mode rm;
 
-    //the scale for post sum
+    bool with_bias, with_relu;
+    float relu_negative_slope;
+    bool with_sum;
+    bool small_mb;
+
+    int xb, yb;
+    int inp_stride;
+    int out_stride;
+    int wei_stride;
+    int bia_stride;
+
+    int M, N, K;
+    int m_block, n_block, k_block;
+    int n2_block, n_chunks;
+    int k2_block, k_chunks;
+
+    round_mode rm;
     float sum_scale;
 };
 
+
 // pooling
 struct jit_pool_conf_t {
-    int ndims;
-    int mb, c;
-    int id, ih, iw, od, oh, ow;
-    int stride_d, stride_h, stride_w;
-    int kd, kh, kw;
-    int f_pad, t_pad, l_pad;
-    PoolingType alg;
-    bool pad_w_is_null;
-    bool simple_alg;
-    DataType ind_dt;
+    int ndims{0};
+    int mb{0};
+    int c{0};
+    int id{0};
+    int ih{0};
+    int iw{0};
+    int od{0};
+    int oh{0};
+    int ow{0};
+    int stride_d{0};
+    int stride_h{0};
+    int stride_w{0};
+    int kd{0};
+    int kh{0};
+    int kw{0};
+    int f_pad{0};
+    int t_pad{0};
+    int l_pad{0};
+    PoolingType alg{Pooling_unknow};
+    bool pad_w_is_null{0};
+    bool simple_alg{0};
+    DataType ind_dt{AK_INVALID};
+    LayoutType src_fmt{Layout_invalid};
 
-    int c_block, c_tail, nb_c;
-    int ur_c, ur_c_tail;
-    int ur_w;
-    int ur_w_tail;
-    size_t tail[4];
-    DataType src_dt;
-    DataType dst_dt;
+    int c_block{0};
+    int c_tail{0};
+    int nb_c{0};
+    int ur_c{0};
+    int ur_c_tail{0};
+    int ur_w{0};
+    int ur_w_tail{0};
+    size_t tail[4]{0,0,0,0};
+    DataType src_dt{AK_INVALID};
+    DataType dst_dt{AK_INVALID};
 };
 
 struct jit_pool_call_t {
@@ -305,14 +489,121 @@ struct jit_axpy_call_t {
 };
 
 struct jit_axpy_conf_t {
+  int           n_inputs;
   int           bs;
   int           h, w;
   int           oc;
   int           n;
   DataType      dt;
   int           typesize;
-  int           block;      // u8: 64, s32: 16
+  int           block_size;      // u8: 64, s32: 16
   int           bits_size;  // 128, 256, 512 : xmm, ymm, zmm
+};
+
+struct jit_eltwise_call_t {
+  const void **src;
+  const void *dst;
+  size_t work_amount;
+};
+
+struct jit_eltwise_conf_t {
+  int           n_inputs;
+  DataType      dt;
+  int           typesize;
+  bool          with_relu;
+  const float   *scales;
+};
+
+struct jit_priorbox_call_t{
+  const void *dst;
+  float start;
+  const void *start_offset;
+  float offset;
+  float step;
+  float box_length;
+  float img_length;
+  size_t work_amount;
+  float block = 8.0f;
+};
+
+struct jit_priorbox_conf_t{
+  bool is_add;
+};
+
+// gemm conv
+struct jit_gemm_deconv_conf_t {
+    int mb;
+    int ic, ih, iw, oc, oh, ow;
+    int stride_h, stride_w;
+    int kh, kw;
+    int f_pad, t_pad, l_pad;
+    int dilate_d, dilate_h, dilate_w;
+};
+
+struct jit_deconv_conf_t {
+    conv_version_t ver{ver_unused};
+    LayoutType src_fmt{Layout_invalid};
+    int ndims{0};
+    int mb{0};
+    int ngroups{0};
+    int ic{0};
+    int oc{0};
+    int oc_without_padding{0};
+    int ic_without_padding{0};
+    int ih{0};
+    int iw{0};
+    int oh{0};
+    int ow{0};
+    int l_pad{0};
+    int t_pad{0};
+    int back_pad{0};
+    int r_pad{0};
+    int b_pad{0};
+    int kh{0};
+    int kw{0};
+    int stride_h{0};
+    int stride_w{0};
+    int dilate_h{0};
+    int dilate_w{0};
+    bool with_bias{false};
+    bool with_relu{false};
+    float relu_negative_slope{0.f};
+    bool with_sum{false};
+    int nb_ic{0};
+    int ic_block{0};
+    int nb_oc{0};
+    int oc_block{0};
+    int nb_g{0};
+    int g_block{0};
+    int nb_ic_blocking{0};
+    int nb_oc_blocking{0}; // blocking of nb_ic and nb_ic
+    int nb_ic_blocking_max{0};
+    int nb_ic_L2{0};
+    int nb_oc_L2{0};
+    int ur_h{0};
+    int ur_w{0};
+    int ur_w_tail{0};
+    int typesize_in{0};
+    int typesize_out{0};
+
+    /* fma avx512_core */
+    conv_kernel_kind_t kernel_kind{embd_bcast};
+};
+
+struct jit_deconv_call_t {
+    const void *src{nullptr}; /* hack, non-const for backward_data */
+    const void *dst{nullptr}; /* hack, non-const for forward */
+    const void *filt{nullptr}; /* hack, non-const for backward_weights */
+    const void *bias{nullptr}; /* hack, non-const for backward_bias */
+    const void *src_prf{nullptr};
+    const void *dst_prf{nullptr};
+    const void *filt_prf{nullptr};
+    const void *bias_prf{nullptr};
+    const void *scales{nullptr};
+    size_t kh_padding{0};
+    size_t kh_padding_prf{0};
+    size_t channel{0};
+    size_t channel_prf{0};
 };
 
 } // namespace jit

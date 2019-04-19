@@ -15,10 +15,10 @@ void power_cpu_func(const std::vector<Tensor<TargetType_H>*>& input, std::vector
     float p = param.power;
     float scale = param.scale;
     float shift = param.shift;
-    
-    const dtype* src_ptr = static_cast<const dtype*>(input[0] -> data());
-    dtype* dst_ptr = static_cast<dtype*>(output[0] -> mutable_data());
-    
+
+    const dtype* src_ptr = static_cast<const dtype*>(input[0]->data());
+    dtype* dst_ptr = static_cast<dtype*>(output[0]->mutable_data());
+
     for (int i=0; i < input[0] -> valid_size(); ++i){
         dst_ptr[i] = pow(src_ptr[i]* scale +shift, p);
     }
@@ -26,7 +26,7 @@ void power_cpu_func(const std::vector<Tensor<TargetType_H>*>& input, std::vector
 
 template <typename TargetType_D, typename TargetType_H, DataType OpDtype>
 void test_power(){
-    
+
     typedef typename DataTrait<TargetType_D, OpDtype> :: Dtype dtype;
     //Init the test_base
     TestSaberBase<TargetType_D, TargetType_H, OpDtype, Power, PowerParam> testbase;
@@ -34,13 +34,13 @@ void test_power(){
         for (float scale : {0.5, 1.0, 2.0}){
             for (float shift : {0, 1, 2}){
                 PowerParam<TargetType_D> param(p, scale, shift);
-                
+
                 for (int n : {1, 2}){
                     for (int c : {1, 3}){
                         for (int h: {32, 64}){
                             for (int w : {32, 64}){
                                 testbase.set_param(param);
-                                testbase.set_input_shape(Shape({n, c, h, w}));
+                                testbase.set_input_shape(Shape({n, c, h, w}), SPECIAL);
                                 testbase.run_test(power_cpu_func<dtype, TargetType_D, TargetType_H>);
                             }
                         }
@@ -58,6 +58,9 @@ TEST(TestSaberFunc, test_func_power) {
 #ifdef USE_X86_PLACE
     test_power<X86, X86, AK_FLOAT>();
 #endif
+#ifdef USE_ARM_PLACE
+    test_power<ARM, ARM, AK_FLOAT>();
+#endif
 }
 
 
@@ -65,9 +68,9 @@ TEST(TestSaberFunc, test_func_power) {
 int main(int argc, const char** argv) {
     // initial logger
     //logger::init(argv[0]);
-    
+
     InitTest();
     RUN_ALL_TESTS(argv[0]);
-    
+
     return 0;
 }

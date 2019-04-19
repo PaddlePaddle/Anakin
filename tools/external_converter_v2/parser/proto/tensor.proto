@@ -1,26 +1,48 @@
 syntax = "proto3";
 
-// anakin tensor shape define.
+// tensor shape define.
 message TensorShape {
     message Dim {
         repeated int32 value = 1;
         int64 size = 2;
     }
     Dim dim = 3;
+    LayoutProto layout = 4;
 };
 
-// anakin data type.
+enum LayoutProto {
+    LAYOUT_INVALID = 0;
+    LAYOUT_W = 1;
+    LAYOUT_HW = 2;
+    LAYOUT_WH = 3;
+    LAYOUT_NC = 4;
+    LAYOUT_NH = 5;
+    LAYOUT_NW = 6;
+    LAYOUT_NHW = 7;
+    LAYOUT_NCHW = 8;
+    LAYOUT_NHWC = 9;
+    LAYOUT_NCHW_C4 = 10;
+    LAYOUT_NCHW_C8 = 11;
+    LAYOUT_NCHW_C16 = 12;
+    LAYOUT_OIHW16I16O = 13;
+    LAYOUT_GOIHW16I16O = 14;
+    LAYOUT_NCHW_C8R = 15;
+    LAYOUT_NCHW_C16R = 16;
+};
+
+
+// data type.
 // maybe need to be improved
 enum DateTypeProto {
-        STR = 0;
-		INT8 = 2;
+        STR = 0;  // When used as bit type, enum 0 means invalid.
+        INT8 = 2;
         INT32 = 4;
-		FLOAT16 = 8;
+        FLOAT16 = 8;
         FLOAT = 13;
         DOUBLE = 14;
         BOOLEN = 20;
-		CACHE_LIST = 30;
-		TENSOR = 31;
+        CACHE_LIST = 30;
+        TENSOR = 31;
 };
 
 // list data cache
@@ -29,31 +51,38 @@ message CacheDate {
     repeated int32 i = 2;      /// list int
     repeated float f = 3;      /// list float
     repeated bool  b = 4;      /// list bool
-	repeated CacheDate l = 5;  /// list list
-	DateTypeProto type = 6;
+    repeated CacheDate l = 5;  /// list list
+    bytes c = 8;               /// string for int8
+    DateTypeProto type = 6;
     int64 size = 7;
 };
 
-// anakin tensor define
+// tensor define
 // it maybe need to improved to support sequence data.
 message TensorProto {
-	// tensor id [optional] 
-	// ( only used when anakin generates optimized model )
-	bytes name = 1;
+    // tensor id [optional]
+    // ( only used when paddle inference generates optimized model )
+    bytes name = 1;
 
-	// whether shared from other [optional] 
-	// ( anakin generates optimized model )
-	bool shared = 2;
+    // whether shared from other [optional]
+    // ( paddle inference generates optimized model )
+    bool shared = 2;
 
-	// share_from is not null if shared [optional] 
-	// ( only used when anakin generates optimized model)
-	bytes  share_from = 3;
+    // share_from is not null if shared [optional]
+    // ( only used when paddle inference generates optimized model)
+    bytes  share_from = 3; 
 
-    // tensor shape
+    // tensor real shape
     TensorShape shape = 8;
+
+    // tensor valid shape
+    TensorShape valid_shape = 9;
 
     // tensor data cache.
     CacheDate data = 10;
+
+    // scale for int8
+    CacheDate scale = 11;
 };
 
 

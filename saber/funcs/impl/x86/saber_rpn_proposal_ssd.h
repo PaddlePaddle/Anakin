@@ -33,15 +33,7 @@ class SaberRPNProposalSSD<X86, OpDtype> : public ImplROIOutputSSD <
 
 public:
 
-    SaberRPNProposalSSD()
-            : _img_info_data_host_tensor(NULL)
-            , _prob_data_host_tensor(NULL)
-            , _tgt_data_host_tensor(NULL)
-            , _outputs_boxes_scores_host_tensor(NULL)
-            , box_dev_nms_(NULL)
-            , boxes_dev_len(0)
-            , mask_dev_nms_(NULL)
-    {}
+    SaberRPNProposalSSD() = default;
 
     ~SaberRPNProposalSSD() {
         if (_img_info_data_host_tensor != NULL) {
@@ -71,21 +63,21 @@ public:
                                  ProposalParam<X86> &param) override;
 
 private:
-    int num_rpns_;
-    int num_anchors_;
-    bool has_img_info_;
-    int rois_dim_;
+    int num_rpns_{0};
+    int num_anchors_{0};
+    bool has_img_info_{false};
+    int rois_dim_{0};
 
     // ADD CPU TENSORS
-    Tensor<X86> *_img_info_data_host_tensor;
-    Tensor<X86> *_prob_data_host_tensor;
-    Tensor<X86> *_tgt_data_host_tensor;
-    Tensor<X86> *_outputs_boxes_scores_host_tensor;
+    Tensor<X86> *_img_info_data_host_tensor{nullptr};
+    Tensor<X86> *_prob_data_host_tensor{nullptr};
+    Tensor<X86> *_tgt_data_host_tensor{nullptr};
+    Tensor<X86> *_outputs_boxes_scores_host_tensor{nullptr};
 
     //caffe pyramid_layers.hpp:615
-    float* box_dev_nms_;
-    unsigned long long* mask_dev_nms_;
-    int boxes_dev_len;
+    float* box_dev_nms_{nullptr};
+    unsigned long long* mask_dev_nms_{nullptr};
+    int boxes_dev_len{0};
     //caffe pyramid_layers.hpp:618
 };
 

@@ -103,7 +103,11 @@ void tensor_constructor() {
 
     copy_API::sync_memcpy(dev_data_ptr, 0, DAPI::get_device_id(), \
         static_cast<HostPtr>(host_data_ptr), 0, HAPI::get_device_id(), \
-        sizeof(dtype) * sh1.count(), __HtoD());
+        sizeof(dtype) * sh1.count(), flag_type());
+
+    // copy_API::sync_memcpy(dev_data_ptr, 0, DAPI::get_device_id(), \
+    //     static_cast<HostPtr>(host_data_ptr), 0, HAPI::get_device_id(), \
+    //     sizeof(dtype) * sh1.count(), __HtoD());
 
     LOG(INFO) << "|--construct host tensor from host data ptr";
     TensorH thost3(host_data_ptr, TargetH(), HAPI::get_device_id(), sh1, Dtype);
@@ -277,7 +281,7 @@ TEST(TestSaberFunc, test_tensor_constructor) {
     tensor_constructor<ARM, ARM, AK_INT8>();
 #endif
 
-#ifdef USE_BM_PLACE 
+#ifdef USE_BM_PLACE
 Env<BM>::env_init();
 Env<X86>::env_init();
 LOG(INFO) << "test BM FP32 tensor";

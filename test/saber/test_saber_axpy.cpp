@@ -32,29 +32,6 @@ void axpy_nv_basic(const std::vector<Tensor<TargetType_H>*>& inputs,std::vector<
     const dtype* bias =(const dtype*)bias_in->data();
     int in_channel = channel * height * width;
     int size = height * width;
-/*
-    for (int i = 0; i < num; i++){
-        const dtype* din_ptr = din + i * in_channel;
-        const dtype* bias_ptr = bias + i * in_channel;
-        const dtype* scale_ptr = scale + i * channel;
-        dtype* dout_ptr = dout + i * in_channel;
-        for(int j = 0; j < channel; j++){
-            LOG(INFO) << "scale: ";
-            LOG(INFO) << scale_ptr[j];
-            const dtype* din_ch_ptr = din_ptr + j * size;
-            dtype* dout_ch_ptr = dout_ptr + j * size;
-            const dtype* bias_ch_ptr = bias_ptr + j * size;
-            LOG(INFO) << "din :";
-            for (int k = 0; k < size; k++){
-                LOG(INFO) << din_ch_ptr[k];
-            }
-            LOG(INFO) << "bias :";
-            for (int k = 0; k < size; k++){
-                 LOG(INFO) << bias_ch_ptr[k];
-            }
-        }
-    }
-*/
     for (int i = 0; i < num; i++){
         const dtype* din_ptr = din + i * in_channel;
         const dtype* bias_ptr = bias + i * in_channel;
@@ -102,13 +79,16 @@ void test_model(){
 }
 
 TEST(TestSaberFunc, test_func_axpy) {
-   
+
 #ifdef USE_CUDA
    //Init the test_base
    test_model<AK_FLOAT, NV, NVHX86>();
 #endif
 #ifdef USE_X86_PLACE
     test_model<AK_FLOAT, X86, X86>();
+#endif
+#ifdef USE_ARM_PLACE
+    test_model<AK_FLOAT, ARM, ARM>();
 #endif
 }
 

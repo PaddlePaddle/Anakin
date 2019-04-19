@@ -1,11 +1,7 @@
-
-
 #include "saber/funcs/impl/x86/saber_gru.h"
 #include "saber/core/tensor_op.h"
 #include "mkl_cblas.h"
 #include "saber/funcs/impl/x86/saber_normal_activation.h"
-#include <immintrin.h>
-#include "sys/time.h"
 
 namespace anakin {
 

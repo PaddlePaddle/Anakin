@@ -44,6 +44,15 @@ void activation_basic(const std::vector<Tensor<TargetType_H>*>& inputs,
         }
 
         break;
+    
+    // swish: x/(1 + exp(-(b * x)))
+    case Active_swish:
+        for (size_t i = 0; i < count; i++) {
+            const dtype beta = param.coef;
+            dout[i] = din[i] / (1.0f + exp(-(din[i] * beta)));
+    }
+
+        break;
 
     // tanh : (exp(x) - exp(-x)) / (exp(x) + exp(-x))
     case Active_tanh:
@@ -80,6 +89,14 @@ void activation_basic(const std::vector<Tensor<TargetType_H>*>& inputs,
 
         break;
 
+    //gelu:  y = x * 0.5 * (erf(x/sqrt(2)) + 1)
+    case Active_gelu:
+        for (size_t i = 0; i < count; i++) {
+            dtype x = din[i];
+            dtype coeff = 0.5 * (erf(x/sqrt(2)) + 1);
+            dout[i] =  x * coeff;
+        }
+        break;
 
     //prelu: x > 0 ? x : slope[c] * x
     case Active_prelu:
@@ -134,7 +151,13 @@ void test_model() {
 
     //test example
     for (auto shape : {input_shape, input_shape2}) {
-    for (auto act : {1, 2, 3, 4, 5, 9, 10, active}) {
+#ifdef USE_ARM_PLACE
+    for (auto act : {Active_sigmoid,Active_relu, Active_tanh, Active_clipped_relu, Active_prelu}) {
+#else
+    for (auto act : {Active_sigmoid, Active_relu, Active_tanh, Active_clipped_relu, Active_prelu, Active_elu, Active_stanh, 
+         Active_gelu, Active_swish}) {
+#endif
+
     LOG(INFO) << "================ active: " << act;
 
     for (auto neg_slope : {-1.0, 0.5}) {
@@ -149,7 +172,7 @@ void test_model() {
         PreluParam<TargetType_D> prelu(shared, &slope_tensor);
         ActivationParam<TargetType_D> param(act, neg_slope, coef, prelu, has);
         testbase.set_param(param);//set param
-        testbase.set_input_shape(shape);
+        testbase.set_input_shape(shape, SPECIAL);
         testbase.run_test(activation_basic<float, TargetType_D, TargetType_H>);//run test
         // LOG(INFO) << "NV run end";
     }
@@ -164,7 +187,7 @@ void test_model() {
     ActivationParam<TargetType_D> param(act, neg_slope, coef, prelu, has);
     //LOG(INFO) << "neg_slope: " << neg_slope << ", coef: " << coef << ", has: " << has;
     testbase.set_param(param);//set param
-    testbase.set_input_shape(shape);
+    testbase.set_input_shape(shape, SPECIAL);
     testbase.run_test(activation_basic<float, TargetType_D, TargetType_H>);//run test
     // LOG(INFO) << "NV run end";
     }
@@ -184,6 +207,7 @@ TEST(TestSaberFunc, test_func_activation) {
     test_model<AK_FLOAT, X86, X86>();
 #endif
 #ifdef USE_ARM_PLACE
+    Env<ARM>::env_init();
     test_model<AK_FLOAT, ARM, ARM>();
 #endif
 #ifdef AMD_GPU
@@ -198,11 +222,10 @@ TEST(TestSaberFunc, test_func_activation) {
 
 int main(int argc, const char** argv) {
     // initial logger
-    //logger::init(argv[0]);
+    logger::init(argv[0]);
     if (argc >= 2) {
         active = atoi(argv[1]);
     }
-
     if (argc >= 3) {
         if (argc < 6) {
             LOG(ERROR) << "usage: ./" << argv[0] << "axis " << \
@@ -215,7 +238,6 @@ int main(int argc, const char** argv) {
         h_in = atoi(argv[4]);
         w_in = atoi(argv[5]);
     }
-
     InitTest();
     RUN_ALL_TESTS(argv[0]);
     return 0;

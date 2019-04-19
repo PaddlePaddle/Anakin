@@ -20,12 +20,21 @@
 #include "saber/funcs/impl/impl_base.h"
 #include "saber/funcs/impl/impl_deconv.h"
 
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/vender_deconv.h"
+#endif
+
 #ifdef USE_CUDA
 #include "saber/funcs/impl/cuda/saber_deconv.h"
 #include "saber/funcs/impl/cuda/vender_deconv.h"
 #endif
+
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_deconv.h"
+#endif
+
+#ifdef USE_ARM_PLACE
+#include "saber/funcs/impl/arm/saber_deconv.h"
 #endif
 
 namespace anakin {
@@ -57,10 +66,8 @@ public:
 
     virtual SaberStatus compute_output_shape(const Input_v &input, \
         Output_v &output, Param_t &param) override {
-
         Shape deconv_shape = deconv_compute_shape(input[0]->valid_shape(), param);
-        deconv_shape.set_layout(Layout_NCHW);
-        return output[0]->set_shape(deconv_shape);
+        return output[0]->set_shape_without_layout(deconv_shape);
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {

@@ -23,7 +23,12 @@ Status DenseHelper<Ttype, Ptype>::InitParam() {
 
 	using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
-
+    auto& w = weights.h_tensor();
+    if (w.get_scale().size() == 1){
+        float scale_tmp = w.get_scale()[0];
+        std::vector<float> w_scale(out_dim, scale_tmp);
+        w.set_scale(w_scale);
+    }
     if (bias_term) {
         auto bias = GET_PARAMETER(pblock_type, weight_2);
         saber::FcParam<Ttype> fc_param(&(weights.d_tensor()), &(bias.d_tensor()), out_dim,
@@ -44,7 +49,15 @@ Status DenseHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
     SABER_CHECK(_funcs_dense.init(ins, outs, _param_dense, STATIC, SABER_IMPL, ctx));
     return Status::OK();
 }
-
+#ifdef USE_CUDA
+template<>
+Status DenseHelper<NV, Precision::INT8>::Init(OpContext<NV>& ctx,
+        const std::vector<Tensor4dPtr<NV> >& ins,
+        std::vector<Tensor4dPtr<NV> >& outs) {
+    SABER_CHECK(_funcs_dense.init(ins, outs, _param_dense, SPECIFY, SABER_IMPL, ctx));
+    return Status::OK();
+}
+#endif
 template<>
 Status DenseHelper<X86, Precision::FP32>::Init(OpContext<X86>& ctx,
                                        const std::vector<Tensor4dPtr<X86> >& ins,
@@ -77,14 +90,17 @@ Status DenseHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttype
 
 #ifdef USE_CUDA
 INSTANCE_DENSE(NV, Precision::FP32);
+INSTANCE_DENSE(NV, Precision::INT8);
 template class DenseHelper<NV, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, NV, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, NV, Precision::INT8);
 template class DenseHelper<NV, Precision::FP16>;
 template class DenseHelper<NV, Precision::INT8>;
 #endif
 
 #ifdef USE_ARM_PLACE
 INSTANCE_DENSE(ARM, Precision::FP32);
+INSTANCE_DENSE(ARM, Precision::INT8);
 template<>
 Status DenseHelper<ARM, Precision::FP32>::Init(OpContext<ARM> &ctx,\
         const std::vector<Tensor4dPtr<ARM> >& ins, \
@@ -92,13 +108,24 @@ Status DenseHelper<ARM, Precision::FP32>::Init(OpContext<ARM> &ctx,\
     SABER_CHECK(_funcs_dense.init(ins, outs, _param_dense, SPECIFY, SABER_IMPL, ctx));
     return Status::OK();
 }
+template<>
+Status DenseHelper<ARM, Precision::INT8>::Init(OpContext<ARM> &ctx,\
+        const std::vector<Tensor4dPtr<ARM> >& ins, \
+                std::vector<Tensor4dPtr<ARM> >& outs) {
+    SABER_CHECK(_funcs_dense.init(ins, outs, _param_dense, SPECIFY, SABER_IMPL, ctx));
+    return Status::OK();
+}
 ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, ARM, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, ARM, Precision::INT8);
 #endif
 
 #if defined USE_X86_PLACE || defined BUILD_LITE
 INSTANCE_DENSE(X86, Precision::FP32);
 template class DenseHelper<X86, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, X86, Precision::FP32);
+INSTANCE_DENSE(X86, Precision::INT8);
+template class DenseHelper<X86, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(Dense, DenseHelper, X86, Precision::INT8);
 #endif
 
 #ifdef AMD_GPU
@@ -119,10 +146,12 @@ ANAKIN_REGISTER_OP(Dense)
 #ifdef USE_CUDA
 .__alias__<NV, Precision::FP32>("fullconnect")
 .__alias__<NV, Precision::FP32>("fc")
+        .__alias__<NV, Precision::INT8>("fc")
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("fullconnect")
 .__alias__<ARM, Precision::FP32>("fc")
+.__alias__<ARM, Precision::INT8>("fc")
 #endif
 #if defined USE_X86_PLACE || defined BUILD_LITE
 .__alias__<X86, Precision::FP32>("fullconnect")

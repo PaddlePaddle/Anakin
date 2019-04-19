@@ -12,7 +12,7 @@ namespace jit {
 using namespace Xbyak;
 
 template <cpu_isa_t isa>
-void jit_uni_dwconv_kernel_f32<isa>::load_src(int ur_ch_blocks, int ur_w) {
+void jit_dwconv_kernel_f32<isa>::load_src(int ur_ch_blocks, int ur_w) {
     int repeats = isa == sse42 ? 2 : 1;
     for (int i = 0; i < repeats; i++) {
         for (int ch = 0; ch < ur_ch_blocks; ch++) {
@@ -37,7 +37,7 @@ void jit_uni_dwconv_kernel_f32<isa>::load_src(int ur_ch_blocks, int ur_w) {
 }
 
 template <cpu_isa_t isa>
-void jit_uni_dwconv_kernel_f32<isa>::apply_filter(
+void jit_dwconv_kernel_f32<isa>::apply_filter(
         int ur_ch_blocks, int ur_w) {
     int ch_blk = jcp.ch_block;
     int dilate_h = jcp.dilate_h + 1;
@@ -88,7 +88,7 @@ void jit_uni_dwconv_kernel_f32<isa>::apply_filter(
 }
 
 template <cpu_isa_t isa>
-void jit_uni_dwconv_kernel_f32<isa>::apply_filter_unrolled(int ur_ch_blocks, int ur_w) {
+void jit_dwconv_kernel_f32<isa>::apply_filter_unrolled(int ur_ch_blocks, int ur_w) {
     int ch_blk = jcp.ch_block;
     int dilate_h = jcp.dilate_h + 1;
     int dilate_w = jcp.dilate_w + 1;
@@ -129,7 +129,7 @@ void jit_uni_dwconv_kernel_f32<isa>::apply_filter_unrolled(int ur_ch_blocks, int
 }
 
 template <cpu_isa_t isa>
-void jit_uni_dwconv_kernel_f32<isa>::apply_activation(int ur_ch_blocks, int ur_w) {
+void jit_dwconv_kernel_f32<isa>::apply_activation(int ur_ch_blocks, int ur_w) {
     if (this->jcp.with_relu) {
         uni_vpxor(vmm_zero, vmm_zero, vmm_zero);
         if (jcp.relu_negative_slope == 0) {
@@ -167,7 +167,7 @@ void jit_uni_dwconv_kernel_f32<isa>::apply_activation(int ur_ch_blocks, int ur_w
 }
 
 template <cpu_isa_t isa>
-void jit_uni_dwconv_kernel_f32<isa>::store_dst(
+void jit_dwconv_kernel_f32<isa>::store_dst(
         int ur_ch_blocks, int ur_w) {
     int ch_blk = jcp.ch_block;
     int repeats = isa == sse42 ? 2 : 1;
@@ -183,7 +183,7 @@ void jit_uni_dwconv_kernel_f32<isa>::store_dst(
 }
 
 template <cpu_isa_t isa>
-void jit_uni_dwconv_kernel_f32<isa>::loop_body(int ur_ch_blocks) {
+void jit_dwconv_kernel_f32<isa>::loop_body(int ur_ch_blocks) {
     Label unrolled_w_label;
     Label tail_w_label;
     Label exit_label;
@@ -221,7 +221,7 @@ void jit_uni_dwconv_kernel_f32<isa>::loop_body(int ur_ch_blocks) {
 }
 
 template <cpu_isa_t isa>
-void jit_uni_dwconv_kernel_f32<isa>::generate() {
+void jit_dwconv_kernel_f32<isa>::generate() {
     this->preamble();
 
     mov(reg_input, ptr[this->param1 + GET_OFF(src)]);
@@ -251,7 +251,7 @@ void jit_uni_dwconv_kernel_f32<isa>::generate() {
 
 
 template <cpu_isa_t isa>
-SaberStatus jit_uni_dwconv_kernel_f32<isa>::init_conf(jit_conv_conf_t &jcp) {
+SaberStatus jit_dwconv_kernel_f32<isa>::init_conf(jit_conv_conf_t &jcp) {
     if (!mayiuse(isa) && isa == avx512_common) {
                 LOG(ERROR) << "Init an AVX512 kernel in a non-avx512 machine is not permitted";
         return SaberUnImplError;
@@ -271,8 +271,8 @@ SaberStatus jit_uni_dwconv_kernel_f32<isa>::init_conf(jit_conv_conf_t &jcp) {
     return SaberSuccess;
 }
 
-template struct jit_uni_dwconv_kernel_f32<avx512_common>;
-
+template struct jit_dwconv_kernel_f32<avx512_common>;
+template struct jit_dwconv_kernel_f32<avx2>;
 }
 }
 }

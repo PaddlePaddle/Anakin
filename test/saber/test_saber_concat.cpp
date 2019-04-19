@@ -92,7 +92,7 @@ void test_model(){
 }
 
 TEST(TestSaberFunc, test_func_concat) {
-   
+
 #ifdef USE_CUDA
    //Init the test_base
    test_model<AK_FLOAT, NV, NVHX86>();

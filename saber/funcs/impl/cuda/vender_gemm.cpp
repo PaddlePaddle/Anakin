@@ -9,7 +9,7 @@ SaberStatus Gemm<NV, VENDER_IMPL, float, float>::init(const bool trans_a, const 
                  const int m, const int n, const int k,
                  Context<NV> ctx) {
 
-    if (!(ctx == this->_ctx)) {
+    if ((!(ctx == this->_ctx)) || (_handle == nullptr)) {
         if (_handle != NULL) {
             CUBLAS_CHECK(cublasDestroy(_handle));
         }
@@ -49,7 +49,7 @@ template<>
 SaberStatus Gemm<NV, VENDER_IMPL, char, float>::init(const bool trans_a, const bool trans_b,
                                                       const int m, const int n, const int k,
                                                       Context<NV> ctx) {
-    if (!(ctx == this->_ctx)) {
+    if ((!(ctx == this->_ctx)) || (_handle == nullptr)) {
         if (_handle != NULL) {
             CUBLAS_CHECK(cublasDestroy(_handle));
         }
@@ -79,10 +79,24 @@ SaberStatus Gemm<NV, VENDER_IMPL, char, float>::dispatch(
     CHECK(ptr_a != nullptr);
     CHECK(ptr_b != nullptr);
     CHECK(ptr_c != nullptr);
-
-    CUBLAS_CHECK(cublasSgemmEx(_handle, cu_trans_b, cu_trans_a,
-                             _n, _m, _k, &alpha, ptr_b, CUDA_R_8I, _ldb, ptr_a,
-                               CUDA_R_8I, _lda, &beta, ptr_c, CUDA_R_32F, _ldc));
+    int generate_arch = Env<NV>::cur_env()[_ctx.get_device_id()]._info._generate_arch;
+    bool arch_check = generate_arch == 61;
+    if (arch_check) {
+#if __CUDACC_VER_MAJOR__ >= 9
+        CUBLAS_CHECK(cublasGemmEx(_handle, cu_trans_b, cu_trans_a,
+                _n, _m, _k, &alpha, ptr_b, CUDA_R_8I, _ldb, ptr_a,
+                CUDA_R_8I, _lda, &beta, ptr_c, CUDA_R_32F, _ldc,
+                CUDA_R_32F, CUBLAS_GEMM_DEFAULT));
+#else
+        CUBLAS_CHECK(cublasSgemmEx(_handle, cu_trans_b, cu_trans_a,
+                _n, _m, _k, &alpha, ptr_b, CUDA_R_8I, _ldb, ptr_a,
+                CUDA_R_8I, _lda, &beta, ptr_c, CUDA_R_32F, _ldc));
+#endif
+    } else {
+        CUBLAS_CHECK(cublasSgemmEx(_handle, cu_trans_b, cu_trans_a,
+                _n, _m, _k, &alpha, ptr_b, CUDA_R_8I, _ldb, ptr_a,
+                CUDA_R_8I, _lda, &beta, ptr_c, CUDA_R_32F, _ldc));
+    }
     return SaberSuccess;
 }
 
@@ -91,7 +105,7 @@ SaberStatus Gemv<NV, VENDER_IMPL, float, float>::init(const bool trans, const in
                                                       const int incx, const int incy,
                                                       Context<NV> ctx) {
 
-    if (!(ctx == this->_ctx)) {
+    if ((!(ctx == this->_ctx)) || (_handle == nullptr)) {
         if (_handle != NULL) {
             CUBLAS_CHECK(cublasDestroy(_handle));
         }

@@ -41,8 +41,13 @@ cmake .. \
 
 # build target lib or unit test.
 if [ "$(uname)" = 'Darwin' ]; then
-    make "-j$(sysctl -n hw.ncpu)" && make install
+    make "-j$(sysctl -n hw.ncpu)" install 
 else
-    make "-j$(nproc)"   && make install
+    #num1=$(nproc)
+    #num2=2
+    #num=`expr $num1 / $num2`
+    #make "-j$num" 
+    make "-j5" install 
+    #make "-j$(nproc)"   && make install
 fi
 

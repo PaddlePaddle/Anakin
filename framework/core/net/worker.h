@@ -16,6 +16,10 @@
 #ifndef ANAKIN_WORKER_H
 #define ANAKIN_WORKER_H
 
+#include "anakin_config.h"
+
+#ifndef USE_SGX
+
 #include <vector>
 #include <thread>
 #include <queue>
@@ -199,4 +203,5 @@ using GlobalWorker = Singleton<Worker<Ttype, Ptype, RunType>>;
 
 } /* namespace */
 
+#endif // ifndef USE_SGX
 #endif

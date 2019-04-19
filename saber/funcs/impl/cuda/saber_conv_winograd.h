@@ -42,15 +42,17 @@ public:
                              ConvParam<NV>& param, Context<NV> &ctx)
     {
         this->_ctx = &ctx;
-        if (param.activation_param.has_active)
-        {
-            if (param.activation_param.active != Active_relu)
-            {
-                _saber_act = new SaberActivation<NV, OpDtype>;
+        _use_saber_act = param.activation_param.has_active
+            && !(param.activation_param.active == Active_relu
+            && fabsf(param.activation_param.negative_slope) < 1e-6f);
+        _use_saber_act = _use_saber_act ||
+            (param.bias()->valid_size() == 0 && param.activation_param.has_active);
+        if (param.activation_param.has_active) {
+            if (_use_saber_act) {
+                _saber_act = new SaberActivation<NV, AK_FLOAT>;
                 _saber_act->init(inputs, outputs, param.activation_param, ctx);
             }
-        }  
-
+        }
         return create(inputs, outputs, param, ctx);
     }
 
@@ -68,6 +70,7 @@ public:
 
 private:
     SaberActivation<NV, OpDtype> *_saber_act{nullptr};
+    bool _use_saber_act{false};
 
 };
 }

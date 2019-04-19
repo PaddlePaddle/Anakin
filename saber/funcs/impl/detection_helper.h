@@ -32,10 +32,14 @@ void apply_nms_fast(const dtype* bboxes, const dtype* scores, int num,
                         float score_threshold, float nms_threshold,
                         float eta, int top_k, std::vector<int>* indices);
 
+//! for one stage:
+//! boxes number in each batch is the same
+//! for two stage:
+//! boxes number is compute by offset in loc or conf tensor
 template <typename dtype>
 void nms_detect(const dtype* bbox_cpu_data,
                 const dtype* conf_cpu_data, std::vector<dtype>& result, \
-                int batch_num, int class_num, int num_priors, int background_id, \
+                const std::vector<int>& priors, int class_num, int background_id, \
                 int keep_topk, int nms_topk, float conf_thresh, float nms_thresh,
                 float nms_eta, bool share_location);
 

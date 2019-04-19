@@ -32,10 +32,11 @@
 *.app
 
 # dir
+mkl-patched
 mklml
 mkldnn_source
 mkldnn
 xbyak_source
 xbyak
-sass
-tensorrt5
+#sass
+nanopb

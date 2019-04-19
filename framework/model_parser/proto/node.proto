@@ -10,10 +10,10 @@ message valueType {
         int32 i = 2;         // int
         float f = 3;         // float
         bool  b = 4;         // bool
-		CacheDate cache_list = 8; // cache list
-		TensorProto tensor = 10;	// tensor
+        CacheDate cache_list = 8; // cache list
+        TensorProto tensor = 10;    // tensor
     }
-	DateTypeProto type = 14;	
+    DateTypeProto type = 14;    
 };
 
 message NodeProto {
@@ -28,7 +28,7 @@ message NodeProto {
 
     // map :attr name ---> Attributes
     map<string, valueType> attr = 10;
-
+    
     // op execute lane [optional]
     // ( only used when anakin generates optimized model )
     int32 lane = 11;
@@ -39,5 +39,8 @@ message NodeProto {
 
     // Operator of node.
     OpProto Op = 15;
+
+    // Quantitative information
+    DateTypeProto bit_type = 16;
 };
 

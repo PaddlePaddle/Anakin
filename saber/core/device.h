@@ -15,7 +15,8 @@
 
 #ifndef ANAKIN_SABER_CORE_DEVICE_H
 #define ANAKIN_SABER_CORE_DEVICE_H
-#include "core/target_wrapper.h"
+#include "saber/core/target_wrapper.h"
+#include <string>
 
 namespace anakin {
 
@@ -38,6 +39,29 @@ struct DeviceInfo {
     std::vector<int> _core_ids;
     std::vector<int> _cluster_ids;
 };
+
+#ifdef USE_ARM_PLACE
+template <>
+struct DeviceInfo<ARM> {
+    int _idx;
+    std::string _device_name;
+    int _max_frequence;
+    int _min_frequence;
+    std::string _compute_ability;
+    int _generate_arch;
+    int _compute_core_num;
+    int _max_memory;
+    int _sharemem_size;
+    std::vector<int> _L1_cache;
+    std::vector<int> _L2_cache;
+    std::vector<int> _L3_cache;
+    std::vector<int> _core_ids;
+    std::vector<int> _big_core_ids;
+    std::vector<int> _little_core_ids;
+    std::vector<int> _cluster_ids;
+    std::vector<ARMArch> _archs;
+};
+#endif
 
 template <typename TargetType>
 struct Device {

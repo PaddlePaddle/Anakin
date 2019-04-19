@@ -77,6 +77,8 @@ struct check_self_shared {
     }
 };
 
+class MemoryScheduler;
+
 /**
  * \brief io block resource class used for scheduler of VGraph memory usage
  */
@@ -85,7 +87,7 @@ public:
     IOBlockResource() {}
     ~IOBlockResource() {}
 
-    void free(std::vector<io>&, VGraph*);
+    void free(std::vector<io>&, VGraph*, MemoryScheduler*);
     inline bool has_free(io& target) { 
         for (auto it = _free.begin(); it != _free.end();) { 
             auto& io_tmp = *it; 
@@ -109,14 +111,14 @@ public:
         return io(); 
     }
     bool is_same_target(io&, io&, VGraph*);
-    void push_free(io&, VGraph*);
+    void push_free(io&, VGraph*, MemoryScheduler*);
     void lock(std::vector<io>&);
 	bool is_locked(io&);
     inline void push_self_lock(io& io_tmp) { _self_lock.push_back(io_tmp);}
     void reg_self_lock_tree(io&, std::vector<io>&);
     void rm_self_lock_tree(io&);
 	bool is_in_self_tree(io&);
-    void free_self(std::vector<io>&, VGraph*);
+    void free_self(std::vector<io>&, VGraph*, MemoryScheduler*);
     void map_ios_to_vgraph(std::vector<io>&, VGraph*);
 
 private:
@@ -137,6 +139,22 @@ public:
 
     /// launch operator and push op to execution queue
     virtual void launch(node&) final;
+    virtual void Run();
+    void check_memory();
+    bool check_self_shared_str(std::string str){
+        std::vector<std::string> ops{
+        "Split",
+        "Reshape",
+        "Gather",
+        "Flatten"
+        };
+        for (std::string type : ops){
+            if (str == type){
+                return true;
+            }
+        }
+        return false;
+    }
 
     /// set fix io
     void set_fix_io(std::vector<io>&);
@@ -146,6 +164,7 @@ public:
 private:
     IOBlockResource _io_block_res;
     check_self_shared _need_self_shared;
+    std::map<io, int> io_number_map;
 };
 
 

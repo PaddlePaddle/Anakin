@@ -77,15 +77,33 @@ void Scheduler::Run() {
             }
         }
     }
+    auto exec_node_order = this->get_exec_node_in_order();
+    _vgraph->set_exec_order(exec_node_order);
 }
 
 bool Scheduler::is_fixed(io& io_arg) {
     auto it = std::find(_fix_io_res.begin(), _fix_io_res.end(), io_arg);
-
     if (it != _fix_io_res.end()) {
         return true;
     }
 
+    return false;
+}
+
+bool Scheduler::is_target_fixed(io& io_arg) {
+    io target_io = io_arg;
+    auto search_target = [&](Arc<std::string, io>& arc) {
+        auto share_from = target_io.share_from;
+        if(arc.weight().name == share_from) {
+            target_io = arc.weight();
+            return Status::EXIT(" Find the matched target arc io. ");
+        }
+        return Status::OK();
+    };
+    _vgraph->Scanner->BFS_Edge(search_target);
+    if(is_fixed(target_io)) {
+        return true;
+    }
     return false;
 }
 

@@ -1,94 +1,74 @@
 #include "saber/funcs/impl/x86/saber_pooling.h"
 #include "saber/funcs/impl/x86/kernel/jit_uni_pool_kernel_f32.h"
-
+#include "debug.h"
 namespace anakin {
 namespace saber {
 
 using namespace jit;
 
 template <>
-SaberStatus SaberPooling<X86, AK_FLOAT>::init_conf(
-    jit_pool_conf_t& jpp, const std::vector<Tensor<X86>*>& inputs,
-    std::vector<Tensor<X86>*>& outputs,
-    PoolingParam<X86>& param) {
-    //**/this function only use for avx512
-    using namespace utils;
+SaberStatus SaberPooling<X86, AK_FLOAT>::create(const std::vector<Tensor<X86>*>& inputs,
+        std::vector<Tensor<X86>*>& outputs,
+        PoolingParam<X86>& param,
+        Context<X86>& ctx) {
 
     Shape src_shape(inputs[0]->shape());
     Shape dst_shape(outputs[0]->shape());
-    const int simd_w = 16;
-    const int ndims = 4;
+    LayoutType in_laytype = inputs[0]->get_layout();
+    bool layout_c16 = (in_laytype == Layout_NCHW_C16R || in_laytype == Layout_NCHW_C16);
 
+    bool layout_c8 = (in_laytype == Layout_NCHW_C8R || in_laytype == Layout_NCHW_C8);
+
+    if (!utils::one_of(param.pooling_type,
+                       Pooling_max,
+                       Pooling_average_include_padding,
+                       Pooling_average_exclude_padding)) {
+        LOG(FATAL) << "not support " << param.pooling_type;
+        return SaberUnImplError;
+    }
+
+    jit_pool_conf_t jpp;
+    jpp.src_fmt = inputs[0]->get_layout();
+    const int ndims = 4;
     jpp.ndims = ndims;
     jpp.mb = src_shape[0];
-    jpp.c = src_shape[1] * 16;
+    jpp.c = inputs[0]->channel();
+
+    if (in_laytype == Layout_NCHW_C8R || in_laytype == Layout_NCHW_C16R) {
+        jpp.c = utils::round_up(src_shape.channel(), inputs[0]->valid_shape().get_layout_aligned_length());
+    }
+
     jpp.id = (ndims == 5) ? src_shape[2] : 1;
     jpp.ih = src_shape[ndims - 2];
     jpp.iw = src_shape[ndims - 1];
     jpp.od = (ndims == 5) ? dst_shape[2] : 1;
     jpp.oh = dst_shape[ndims - 2];
     jpp.ow = dst_shape[ndims - 1];
-
     jpp.stride_d = 1;
     jpp.stride_h = param.stride_h;
     jpp.stride_w = param.stride_w;
     jpp.kd = 1;
     jpp.kh = param.window_h;
     jpp.kw = param.window_w;
-
     jpp.f_pad = 0;
     jpp.t_pad = param.pad_h;
     jpp.l_pad = param.pad_w;
-
     jpp.alg = param.pooling_type;
-
     jpp.ind_dt = AK_FLOAT;
 
-    jpp.simple_alg = false;
-
-    jpp.c_block = simd_w;
-
-    jpp.nb_c = jpp.c / jpp.c_block;
-
-    if (jpp.alg == Pooling_max) {
-        jpp.ur_w = 16;
-    } else {
-        jpp.ur_w = 24;
+    if (_kernel != nullptr) {
+        delete _kernel;
     }
 
-    if (jpp.ow < jpp.ur_w) {
-        jpp.ur_w = jpp.ow;
+    if (layout_c16) {
+        CHECK(mayiuse(avx512_common)) << "jit pooling init failed";
+        CHECK(jit_pool_kernel_f32<avx512_common>::init_conf(jpp)) << "jit pooling init failed";
+        _kernel = new jit_pool_kernel_f32<avx512_common>(jpp);
+    } else if (layout_c8) {
+        CHECK(mayiuse(avx2)) << "jit pooling init failed";
+        CHECK(jit_pool_kernel_f32<avx2>::init_conf(jpp)) << "jit pooling init failed";
+        _kernel = new jit_pool_kernel_f32<avx2>(jpp);
     }
-
-    if (jpp.l_pad > jpp.ur_w) {
-        return SaberUnImplError;
-    }
-
-    jpp.ur_w_tail = jpp.ow % jpp.ur_w;
-
-    if (jit_uni_pool_kernel_f32<avx512_common>::init_conf(jpp)) {
-        return SaberSuccess;
-    } else {
-        return SaberUnImplError;
-    }
-
-}
-
-template <>
-SaberStatus SaberPooling<X86, AK_FLOAT>::create(
-    const std::vector<Tensor<X86>*>& inputs,
-    std::vector<Tensor<X86>*>& outputs,
-    PoolingParam<X86>& param,
-    Context<X86>& ctx) {
-    if (mayiuse(avx512_common)) {
-        jit_pool_conf_t jpp_;
-
-        if (init_conf(jpp_, inputs, outputs, param) != SaberSuccess) {
-            return SaberUnImplError;
-        }
-
-        _kernel = new jit_uni_pool_kernel_f32<avx512_common>(jpp_);
-    } else {}
 
     return SaberSuccess;
 }
@@ -104,6 +84,210 @@ SaberStatus SaberPooling<X86, AK_FLOAT>::init(
     return create(inputs, outputs, param, ctx);
 }
 
+void pooling_avx2_nchwc8(const float* src, float* dst, int in_n, int in_c, int in_h, int in_w,
+                         int out_h,
+                         int out_w, int stride_h, int stride_w, int window_h, int window_w, int pad_h, int pad_w,
+                         PoolingType pooling_type) {
+    int size_in_n = in_c * in_h * in_w * 8;
+    int size_in_c = in_h * in_w * 8;
+    int size_out_n = in_c * out_h * out_w * 8;
+    int size_out_c = out_h * out_w * 8;
+
+    for (int ind_n = 0; ind_n < in_n; ++ind_n) {
+        for (int ind_c = 0; ind_c < in_c; ++ind_c) {
+            for (int ind_h = 0; ind_h < out_h; ++ind_h) {
+                int sh = ind_h * stride_h;
+                int eh = sh + window_h;
+
+                sh = (sh - pad_h) < 0 ? 0 : sh - pad_h;
+                eh = (eh - pad_h) > in_h ? in_h : eh - pad_h;
+
+
+                for (int ind_w = 0; ind_w < out_w; ++ind_w) {
+                    int sw = ind_w * stride_w;
+                    int ew = sw + window_w;
+
+                    sw = (sw - pad_w) < 0 ? 0 : sw - pad_w;
+                    ew = (ew - pad_w) > in_w ? in_w : ew - pad_w;
+
+                    float result[8] = {0.f};
+
+                    int dst_ind = ind_n * size_out_n + ind_c * size_out_c + ind_h * out_w * 8 + ind_w * 8;
+
+                    for (int kh = sh; kh < eh; ++kh) {
+                        for (int kw = sw; kw < ew; ++kw) {
+                            for (int inner_c_id = 0; inner_c_id < 8; inner_c_id++) {
+                                int src_ind =
+                                    ind_n * size_in_n + ind_c * size_in_c + kh * in_w * 8 + kw * 8 + inner_c_id;
+
+                                if (kh == sh && kw == sw) {
+                                    result[inner_c_id] = src[src_ind];
+                                } else {
+                                    if (pooling_type == Pooling_max) {
+                                        result[inner_c_id] =
+                                            result[inner_c_id] >= src[src_ind] ? result[inner_c_id] : src[src_ind];
+                                        //                                        LOG(INFO)<<"find it "<<inner_c_id<<","<<result[inner_c_id];
+                                    }
+
+                                    if (pooling_type == Pooling_average_include_padding) {
+                                        result[inner_c_id] += src[src_ind];
+                                    }
+
+                                    if (pooling_type == Pooling_average_exclude_padding) {
+                                        result[inner_c_id] += src[src_ind];
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+
+                    if (pooling_type == Pooling_average_include_padding) {
+
+                        int bh = window_h;
+                        int bw = window_w;
+
+                        if (ew == in_w) {
+                            bw = sw + window_w >= in_w + pad_w ? in_w + pad_w : sw + window_w;
+                            bw -= sw;
+                        }
+
+                        if (eh == in_h) {
+                            bh = sh + window_h >= in_h + pad_h ? in_h + pad_h : sh + window_h;
+                            bh -= sh;
+                        }
+
+                        for (int inner_c_id = 0; inner_c_id < 8; inner_c_id++) {
+                            result[inner_c_id] /= bh * bw;
+                        }
+                    }
+
+                    if (pooling_type == Pooling_average_exclude_padding) {
+                        for (int inner_c_id = 0; inner_c_id < 8; inner_c_id++) {
+                            result[inner_c_id] /= (ew - sw) * (eh - sh);
+                        }
+                    }
+
+                    for (int inner_c_id = 0; inner_c_id < 8; inner_c_id++) {
+
+                        dst[dst_ind + inner_c_id] = result[inner_c_id];
+                        //                        LOG(INFO)<<"finnal it "<<dst_ind+inner_c_id<<","<<dst[dst_ind+inner_c_id];
+                    }
+
+                    //                    exit(0);
+                    //LOG(INFO)<<"saber:"<<dst_ind<<"re:"<<result;
+
+                }
+            }
+        }
+    }
+
+}
+
+void pooling_avx2_nchwc8_nchw(const float* src, float* dst, int in_n, int in_c, int in_h, int in_w,
+                              int out_h,
+                              int out_w, int stride_h, int stride_w, int window_h, int window_w, int pad_h, int pad_w,
+                              PoolingType pooling_type, int real_c) {
+    int size_in_n = in_c * in_h * in_w * 8;
+    int size_in_c = in_h * in_w * 8;
+    int size_out_n = in_c * out_h * out_w * 8;
+    int size_out_c = out_h * out_w * 8;
+    int size_out_real_n = real_c * out_h * out_w;
+    int size_out_real_c = out_h * out_w;
+    #pragma omp parallel for collapse(3) schedule(static)
+
+    for (int ind_n = 0; ind_n < in_n; ++ind_n) {
+        for (int ind_c = 0; ind_c < in_c; ++ind_c) {
+            for (int ind_h = 0; ind_h < out_h; ++ind_h) {
+                int sh = ind_h * stride_h;
+                int eh = sh + window_h;
+
+                sh = (sh - pad_h) < 0 ? 0 : sh - pad_h;
+                eh = (eh - pad_h) > in_h ? in_h : eh - pad_h;
+
+
+                for (int ind_w = 0; ind_w < out_w; ++ind_w) {
+                    int sw = ind_w * stride_w;
+                    int ew = sw + window_w;
+
+                    sw = (sw - pad_w) < 0 ? 0 : sw - pad_w;
+                    ew = (ew - pad_w) > in_w ? in_w : ew - pad_w;
+
+                    float result[8] = {0.f};
+
+
+
+                    for (int kh = sh; kh < eh; ++kh) {
+                        for (int kw = sw; kw < ew; ++kw) {
+                            for (int inner_c_id = 0; inner_c_id < 8; inner_c_id++) {
+                                int src_ind =
+                                    ind_n * size_in_n + ind_c * size_in_c + kh * in_w * 8 + kw * 8 + inner_c_id;
+
+                                if (kh == sh && kw == sw) {
+                                    result[inner_c_id] = src[src_ind];
+                                } else {
+                                    if (pooling_type == Pooling_max) {
+                                        result[inner_c_id] =
+                                            result[inner_c_id] >= src[src_ind] ? result[inner_c_id] : src[src_ind];
+                                        //                                        LOG(INFO)<<"find it "<<inner_c_id<<","<<result[inner_c_id];
+                                    }
+
+                                    if (pooling_type == Pooling_average_include_padding) {
+                                        result[inner_c_id] += src[src_ind];
+                                    }
+
+                                    if (pooling_type == Pooling_average_exclude_padding) {
+                                        result[inner_c_id] += src[src_ind];
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+
+                    if (pooling_type == Pooling_average_include_padding) {
+
+                        int bh = window_h;
+                        int bw = window_w;
+
+                        if (ew == in_w) {
+                            bw = sw + window_w >= in_w + pad_w ? in_w + pad_w : sw + window_w;
+                            bw -= sw;
+                        }
+
+                        if (eh == in_h) {
+                            bh = sh + window_h >= in_h + pad_h ? in_h + pad_h : sh + window_h;
+                            bh -= sh;
+                        }
+
+                        for (int inner_c_id = 0; inner_c_id < 8; inner_c_id++) {
+                            result[inner_c_id] /= bh * bw;
+                        }
+                    }
+
+                    if (pooling_type == Pooling_average_exclude_padding) {
+                        for (int inner_c_id = 0; inner_c_id < 8; inner_c_id++) {
+                            result[inner_c_id] /= (ew - sw) * (eh - sh);
+                        }
+                    }
+
+                    for (int inner_c_id = 0; inner_c_id < 8; inner_c_id++) {
+                        int dst_ind = ind_n * size_out_real_n + (ind_c * 8 + inner_c_id) * size_out_real_c + ind_h * out_w +
+                                      ind_w;
+                        dst[dst_ind] = result[inner_c_id];
+                        //                        LOG(INFO)<<"finnal it "<<dst_ind+inner_c_id<<","<<dst[dst_ind+inner_c_id];
+                    }
+
+                    //                    exit(0);
+                    //LOG(INFO)<<"saber:"<<dst_ind<<"re:"<<result;
+
+                }
+            }
+        }
+    }
+
+}
+
 template <>
 SaberStatus SaberPooling<X86, AK_FLOAT>
 ::dispatch(const std::vector<Tensor<X86>*>& inputs,
@@ -113,14 +297,18 @@ SaberStatus SaberPooling<X86, AK_FLOAT>
     const float* src = static_cast<const float*>(inputs[0]->data());
     float* dst = static_cast<float*>(outputs[0]->mutable_data());
 
-    //if (mayiuse(avx512_common)) {
-    if (false) {
-        //avx512 use jit
-        const auto& jpp = _kernel->jpp;
+    DLOG(INFO) << "input layout " << inputs[0]->get_layout() << " , output layout " <<
+               outputs[0]->get_layout();
 
+    if (_kernel != nullptr && (inputs[0]->get_layout() == Layout_NCHW_C8
+                               || inputs[0]->get_layout() == Layout_NCHW_C8R) && (outputs[0]->get_layout() == Layout_NCHW_C8
+                                       || outputs[0]->get_layout() == Layout_NCHW_C8R)) {
+
+        const float* src = (const float*)inputs[0]->data();
+        float* dst = (float*)outputs[0]->mutable_data();
+        const auto& jpp = _kernel->jpp;
         auto ker = [&](int n, int b_c, int oh) {
             jit_pool_call_t arg;
-
             const int ij = oh * jpp.stride_h;
             const int i_t_overflow = std::max(0, jpp.t_pad - ij);
             const int i_b_overflow = std::max(jpp.ih, ij + jpp.kh - jpp.t_pad) - jpp.ih;
@@ -153,6 +341,42 @@ SaberStatus SaberPooling<X86, AK_FLOAT>
                 }
             }
         }
+    } else if (inputs[0]->get_layout() == Layout_NCHW_C8
+               || inputs[0]->get_layout() == Layout_NCHW_C8R) {
+        if (outputs[0]->get_layout() == Layout_NCHW_C8 || outputs[0]->get_layout() == Layout_NCHW_C8R) {
+            int in_n = inputs[0]->num();
+            int in_c = inputs[0]->channel() / 8;
+
+            if (inputs[0]->get_layout() == Layout_NCHW_C8R) {
+                in_c = utils::div_up(inputs[0]->channel(), 8);
+                //                LOG(INFO)<<"input inputs[0]->channel()  c= "<<inputs[0]->channel()<<","<<in_c;
+            }
+
+            int in_h = inputs[0]->height();
+            int in_w = inputs[0]->width();
+            int out_h = outputs[0]->height();
+            int out_w = outputs[0]->width();
+
+            pooling_avx2_nchwc8(src, dst, in_n, in_c, in_h, in_w, out_h, out_w,
+                                param.stride_h, param.stride_w, param.window_h, param.window_w, param.pad_h, param.pad_w,
+                                param.pooling_type);
+            //            write_tensorfile(*inputs[0],"input_pooling");
+            //            write_tensorfile(*outputs[0],"output_pooling");
+            //            exit(0);
+        } else {
+            //            DLOG(FATAL)<<"pooling nchw_c8 to nchw_c8r";
+            int in_n = inputs[0]->num();
+            int in_c = utils::div_up(inputs[0]->channel(), 8);
+            int real_c = inputs[0]->channel();
+            int in_h = inputs[0]->height();
+            int in_w = inputs[0]->width();
+            int out_h = outputs[0]->height();
+            int out_w = outputs[0]->width();
+            pooling_avx2_nchwc8_nchw(src, dst, in_n, in_c, in_h, in_w, out_h, out_w,
+                                     param.stride_h, param.stride_w, param.window_h, param.window_w, param.pad_h, param.pad_w,
+                                     param.pooling_type, real_c);
+            DLOG(INFO) << "pooling nchw_c8 to nchw_c8r";
+        }
     } else {
         //x86 common code
         int in_n = inputs[0]->num();
@@ -166,6 +390,7 @@ SaberStatus SaberPooling<X86, AK_FLOAT>
         int out_w = outputs[0]->width();
         int size_out_n = in_c * out_h * out_w;
         int size_out_c = out_h * out_w;
+        #pragma omp parallel for collapse(3) schedule(static)
 
         for (int ind_n = 0; ind_n < in_n; ++ind_n) {
             for (int ind_c = 0; ind_c < in_c; ++ind_c) {
@@ -185,7 +410,7 @@ SaberStatus SaberPooling<X86, AK_FLOAT>
                         ew = (ew - param.pad_w) > in_w ? in_w : ew - param.pad_w;
 
 
-                        float result;
+                        float result = static_cast<float>(0);
 
                         int dst_ind = ind_n * size_out_n + ind_c * size_out_c + ind_h * out_w + ind_w;
 
@@ -213,19 +438,20 @@ SaberStatus SaberPooling<X86, AK_FLOAT>
                         }
 
                         if (param.pooling_type == Pooling_average_include_padding) {
-                            
+
                             int bh = param.window_h;
                             int bw = param.window_w;
-                            if (ew == in_w)
-                            {
+
+                            if (ew == in_w) {
                                 bw = sw + param.window_w >= in_w + param.pad_w ? in_w + param.pad_w : sw + param.window_w;
-                                bw -=sw;
+                                bw -= sw;
                             }
-                            if (eh == in_h)
-                            {
-                                bh = sh + param.window_h >= in_h + param.pad_h ? in_h + param.pad_h: sh + param.window_h;
+
+                            if (eh == in_h) {
+                                bh = sh + param.window_h >= in_h + param.pad_h ? in_h + param.pad_h : sh + param.window_h;
                                 bh -= sh;
                             }
+
                             result /= bh * bw;
 
                         }
@@ -246,8 +472,36 @@ SaberStatus SaberPooling<X86, AK_FLOAT>
 
     return SaberSuccess;
 }
+
+
+template <>
+SaberStatus SaberPooling<X86, AK_INT8>::create(const std::vector<Tensor<X86>*>& inputs,
+        std::vector<Tensor<X86>*>& outputs,
+        PoolingParam<X86>& param,
+        Context<X86>& ctx) {
+
+    return SaberSuccess;
+}
+
+template <>
+SaberStatus SaberPooling<X86, AK_INT8>::init(const std::vector<Tensor<X86>*>& inputs,
+        std::vector<Tensor<X86>*>& outputs,
+        PoolingParam<X86>& param, Context<X86>& ctx) {
+
+    return create(inputs, outputs, param, ctx);
+}
+
+template <>
+SaberStatus SaberPooling<X86, AK_INT8>::dispatch(const std::vector<Tensor<X86>*>& inputs,
+        std::vector<Tensor<X86>*>& outputs,
+        PoolingParam<X86>& param) {
+
+    return SaberSuccess;
+}
+
 template class SaberPooling<X86, AK_FLOAT>;
+template class SaberPooling<X86, AK_INT8>;
 DEFINE_OP_TEMPLATE(SaberPooling, PoolingParam, X86, AK_HALF);
-DEFINE_OP_TEMPLATE(SaberPooling, PoolingParam, X86, AK_INT8);
+
 }
 } // namespace anakin

@@ -55,6 +55,7 @@ private:
     jit::jit_avx2_conv_act_kernel *kernel = nullptr;
     std::shared_ptr<Tensor<X86> > weights_internal;
     std::shared_ptr<Tensor<X86> > bias_internal;
+    Tensor<X86> _temp_output;
     SaberStatus check_conf(const std::vector<Tensor<X86> *>& inputs,
                            std::vector<Tensor<X86>*>& outputs,
                            ConvEltwiseParam<X86> &param);

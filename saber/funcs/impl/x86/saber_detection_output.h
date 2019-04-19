@@ -31,17 +31,9 @@ class SaberDetectionOutput<X86, OpDtype> : \
         DetectionOutputParam<X86> > 
 {
 public:
-    typedef typename DataTrait<X86, OpDtype>::Dtype dtype;
 
     SaberDetectionOutput() = default;
-    ~SaberDetectionOutput() {
-        if (_bbox_cpu_data) {
-            fast_free(_bbox_cpu_data);
-        }
-        if (_conf_cpu_data) {
-            fast_free(_conf_cpu_data);
-        }
-    }
+    ~SaberDetectionOutput() {}
 
     virtual SaberStatus init(const std::vector<Tensor<X86> *>& inputs,
                             std::vector<Tensor<X86> *>& outputs,
@@ -55,44 +47,56 @@ public:
                             std::vector<Tensor<X86> *>& outputs,
                             DetectionOutputParam<X86>& param, Context<X86> &ctx) {
 
-        //! inputs[0]: location map, dims = 4 {N, boxes * 4, 1, 1}
-        //! inputs[1]: confidence map, dims = 4 {N, classes * boxes, 1, 1}
-        //! inputs[2]: prior boxes, dims = 4 {1, 1, 2, boxes * 4(xmin, ymin, xmax, ymax)}
+        _shared_loc = param.share_location;
         Shape sh_loc = inputs[0]->valid_shape();
         Shape sh_conf = inputs[1]->valid_shape();
-        Shape sh_box = inputs[2]->valid_shape();
-        //! shape {1, 1, 2, boxes * 4(xmin, ymin, xmax, ymax)}, boxes = size / 2 / 4
-        //! layout must be 4 dims, the priors is in the last dim
-        _num_priors = sh_box[2] / 4;
-        int num = inputs[0]->num();
-        if (param.class_num == 0) {
-            _num_classes = inputs[1]->valid_size() / (num * _num_priors);
-        } else {
-            _num_classes = param.class_num;
-        }
-        if (param.share_location) {
+        Shape sh_box;
+
+        //fixme, only support{xmin, ymin, xmax, ymax} style box
+        if (_shared_loc) {
+            //! for one stage detector
+            //! inputs[0]: location map, {N, boxes * 4}
+            //! inputs[1]: confidence map, ssd: {N, classes, boxes}, yolov3: {N, boxes, classes}
+            //! optional, ssd has 3 inputs, the last inputs is priorbox
+            //! inputs[2]: prior boxes, dims = 4 {1, 2, boxes * 4(xmin, ymin, xmax, ymax)}
+            CHECK_GE(inputs.size(), 2) << "detection_output op must has 2 inputs at least";
+            bool is_ssd = inputs.size() > 2;
+            if (is_ssd) {
+                sh_box = inputs[2]->valid_shape();
+            }
+            //! boxes = sh_loc / 4
+            _num_priors = sh_loc.count() / 4;
+            if (param.class_num <= 0) {
+                _num_classes = sh_conf.count() / _num_priors;
+            } else {
+                _num_classes = param.class_num;
+            }
             _num_loc_classes = 1;
+            if (is_ssd) {
+                _bbox_preds.reshape(sh_loc);
+                _conf_permute.reshape(sh_conf);
+            }
+
         } else {
+            //! for two stage detector
+            //! inputs[0]: tensor with offset, location, {M, C, 4}
+            //! inputs[1]: tensor with offset, confidence, {M, C}
+            CHECK_EQ(sh_loc[0], sh_conf[0]) << "boxes number must be the same";
+            _num_priors = sh_loc[0];
+            if (param.class_num <= 0) {
+                _num_classes = sh_conf.count() / _num_priors;
+            } else {
+                _num_classes = param.class_num;
+            }
             _num_loc_classes = _num_classes;
             _bbox_permute.reshape(sh_loc);
+            _conf_permute.reshape(sh_conf);
         }
 
-        _bbox_preds.reshape(sh_loc);
-        _conf_permute.reshape(sh_conf);
-
-        CHECK_EQ(_num_priors * _num_loc_classes * 4, sh_loc[1]) << \
-            "Number of priors must match number of location predictions.";
-        CHECK_EQ(_num_priors * _num_classes, sh_conf[1]) << \
-            "Number of priors must match number of confidence predictions.";
-
-        if (_conf_cpu_data != nullptr) {
-            fast_free(_conf_cpu_data);
-        }
-        if (_bbox_cpu_data != nullptr) {
-            fast_free(_bbox_cpu_data);
-        }
-        _conf_cpu_data = (dtype*)fast_malloc(sizeof(dtype) * sh_conf.count());
-        _bbox_cpu_data = (dtype*)fast_malloc(sizeof(dtype) * sh_loc.count());
+        CHECK_EQ(_num_priors * _num_loc_classes * 4, sh_loc.count()) << \
+            "Number of boxes must match number of location predictions.";
+        CHECK_EQ(_num_priors * _num_classes, sh_conf.count()) << \
+            "Number of boxes must match number of confidence predictions.";
 
         return SaberSuccess;
     }
@@ -103,16 +107,15 @@ public:
 
 
 private:
+    bool _shared_loc{true};
     int _num_classes;
     int _num_loc_classes;
     int _num_priors;
     Tensor<X86> _bbox_preds;
     Tensor<X86> _bbox_permute;
     Tensor<X86> _conf_permute;
-    dtype* _bbox_cpu_data{nullptr};
-    dtype* _conf_cpu_data{nullptr};
 };
-template class SaberDetectionOutput<X86>;
+
 } //namespace saber
 
 } //namespace anakin

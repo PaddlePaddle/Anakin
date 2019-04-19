@@ -31,12 +31,15 @@ class SaberConvEltwise<X86, OpDtype> : public ImplBase<
         X86, OpDtype, ConvEltwiseParam<X86> > {
 public:
     typedef typename DataTrait<X86, OpDtype>::Dtype OpDataType;
-    typedef ImplBase<X86, OpDtype, ConvParam<X86> > Impl_conv_t;
-    typedef ImplBase<X86, OpDtype, EltwiseParam<X86> > Impl_eltwise_t;
+    typedef ImplBase<X86, OpDtype, ConvEltwiseParam<X86> > Impl_t;
 
-    SaberConvEltwise() {}
+    SaberConvEltwise() : _impl(nullptr) {}
 
-    ~SaberConvEltwise() {}
+    ~SaberConvEltwise() {
+      if (_impl != nullptr){
+        delete _impl;
+      }
+    }
 
     /**
      * [Create description] Init all cudnn resource here
@@ -67,11 +70,13 @@ private:
     bool _extern_trans{false};
     SaberEltwise<X86, OpDtype> _eltwise;
     SaberConv2D<X86, OpDtype> _conv;
+    Impl_t* _impl;
     Shape _inner_shape;
     Tensor<X86> _inner_tensor;
     std::vector<Tensor<X86> *> _inner_tensor_v;
     int _kernel_height{0};
     int _kernel_width{0};
+    bool _do_in_impl{false};
 
 };
 }

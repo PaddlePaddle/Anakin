@@ -60,7 +60,7 @@ void padding_out(const dtype* src, std::vector<int>& offset_r, int dim_t, int le
     int tl = dim_t * len_l;
     for (int i = 0; i < seq_num; i++) {
         dtype* dst_tmp = dst + i * tl * max_len_r;
-        dtype* src_tmp = src + offset_r[i] *  tl;
+        const dtype* src_tmp = src + offset_r[i] *  tl;
         int cur_len = offset_r[i+1] - offset_r[i];
         for (int j = 0; j < cur_len; j++) {
             for (int k = 0; k < tl; k++) {
@@ -84,6 +84,7 @@ SaberStatus SaberMatchMatrix<X86, OpDtype>::dispatch(
     auto offset_r = inputs[1]->get_seq_offset()[0];
     int len_l = offset_l[1] - offset_l[0];
     int len_r = offset_r[offset_r.size() - 1];
+    int batch = offset_l.size() - 1;
     const OpDataType* weight_data =  (const OpDataType*) param.weight()->data();
     const OpDataType* input_l = (const OpDataType*)inputs[0]->data();
     const OpDataType* input_r = (const OpDataType*)inputs[1]->data();
@@ -92,13 +93,26 @@ SaberStatus SaberMatchMatrix<X86, OpDtype>::dispatch(
     OpDataType* output_tmp = (OpDataType*)_output_tmp.mutable_data();
     OpDataType* output_data = (OpDataType*) outputs[0]->mutable_data();
     _gemm_l_transform.init(true, true, dim_t * dim_in, len_l, dim_in, *(this->_ctx));
-    _gemm_l_transform.dispatch(1.0f, 0.f, weight_data, input_l,  input_l_transform);
-    for (int i = 0; i < dim_t; i++) {
-        int offset =  i * dim_in * len_l;
-        transpose<OpDataType>(input_l_transform + offset, dim_in, len_l, input_l_transform_reorganize +  offset);
+    if (param.is_l_same) {
+        _gemm_l_transform.dispatch(1.0f, 0.f, weight_data, input_l,  input_l_transform);
+        for (int i = 0; i < dim_t; i++) {
+            int offset =  i * dim_in * len_l;
+            transpose<OpDataType>(input_l_transform + offset, dim_in, len_l, input_l_transform_reorganize +  offset);
+        }
+        _gemm_r_transform.init(false, true, len_r, dim_t*len_l, dim_in, *(this->_ctx));
+        _gemm_r_transform.dispatch(1.0f, 0.f, input_r, input_l_transform_reorganize, output_tmp);
+    } else {
+        for (int i = 0; i < batch; i++) {
+            _gemm_l_transform.dispatch(1.0f, 0.f, weight_data, input_l + i * len_l * dim_in,  input_l_transform);
+            for (int j = 0; j < dim_t; j++) {
+                int offset =  j * dim_in * len_l;
+                transpose<OpDataType>(input_l_transform + offset, dim_in, len_l, input_l_transform_reorganize +  offset);
+            }
+            _gemm_r_transform.init(false, true, offset_r[i+1] - offset_r[i], dim_t * len_l, dim_in, *(this->_ctx));
+            _gemm_r_transform.dispatch(1.0f, 0.f, input_r + offset_r[i] * dim_in, input_l_transform_reorganize, output_tmp + offset_r[i] * dim_t * len_l);
+            
+        }
     }
-    _gemm_r_transform.init(false, true, len_r, dim_t*len_l, dim_in, *(this->_ctx));
-    _gemm_r_transform.dispatch(1.0f, 0.f, input_r, input_l_transform_reorganize, output_tmp);
     padding_out(output_tmp, offset_r, dim_t, len_l, output_data);
     outputs[0]->set_seq_offset(inputs[1]->get_seq_offset());
     

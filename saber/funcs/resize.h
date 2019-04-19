@@ -5,12 +5,12 @@
    You may obtain a copy of the License at
 
        http://www.apache.org/licenses/LICENSE-2.0
-   
+
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License. 
+   limitations under the License.
 */
 
 #ifndef ANAKIN_SABER_FUNCS_RESIZE_H
@@ -27,13 +27,12 @@
 #include "saber/funcs/impl/x86/saber_resize.h"
 #endif
 
-#ifdef AMD_GPU 
+#ifdef AMD_GPU
 #include "saber/funcs/impl/impl_resize.h"
 #endif
 
 #ifdef USE_ARM_PLACE
-//todo
-#include "saber/funcs/impl/impl_resize.h"
+#include "saber/funcs/impl/arm/saber_resize.h"
 #endif
 namespace anakin{
 
@@ -76,6 +75,9 @@ public:
         CHECK_GE(height_idx, 0) << "no height dim in tensor";
         CHECK_GE(width_idx, 0) << "no width dim in tensor";
 
+        bool has_out_wh = (param.out_width != -1) && (param.out_height != -1);
+        bool has_scale_wh = (param.width_scale > 0.f) && (param.height_scale > 0.f);
+        CHECK_EQ(has_out_wh || has_scale_wh, true) << "resize param must has either scale_w/scale_h or out_w/out_h";
         if (num_idx > -1) {
             output_shape[num_idx] = input[0]->num(); // N
         }
@@ -83,11 +85,21 @@ public:
             output_shape[channel_idx] = input[0]->channel(); // C
         }
         if (height_idx > -1) {
-            int height = floor(input[0]->height() * param.height_scale); // H
+            int height = 0;
+            if (param.out_height != -1){
+                height = param.out_height;
+            } else {
+                height = floor(input[0]->height() * param.height_scale); // H
+            }
             output_shape[height_idx] = height;
         }
         if (width_idx > -1) {
-            int width = floor(input[0]->width() * param.width_scale); //W
+            int width = 0;
+            if (param.out_width != -1){
+                width = param.out_width;
+            } else {
+                width = floor(input[0]->width() * param.width_scale); //W
+            }
             output_shape[width_idx] = width;
         }
 
@@ -95,19 +107,19 @@ public:
     }
 
     virtual SaberStatus init_impl(ImplEnum implenum) override {
-        switch (implenum) { 
-            case VENDER_IMPL: 
-                //return SaberUnImplError; 
+        switch (implenum) {
+            case VENDER_IMPL:
+                //return SaberUnImplError;
                 this->_impl.push_back(new VenderResize<TargetType,
                         OpDtype>);
                 return SaberSuccess;
-            case SABER_IMPL: 
+            case SABER_IMPL:
                 this->_impl.push_back(new SaberResize<TargetType,
                         OpDtype>);
                 return SaberSuccess;
-            default: 
-                return SaberUnImplError; 
-        } 
+            default:
+                return SaberUnImplError;
+        }
     };
 
 private:

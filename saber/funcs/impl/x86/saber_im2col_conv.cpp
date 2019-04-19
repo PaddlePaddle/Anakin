@@ -1,4 +1,3 @@
-
 #include "saber/funcs/impl/x86/saber_im2col_conv.h"
 
 namespace anakin {
@@ -53,6 +52,43 @@ void im2col_cpu(const Dtype* data_im, const int channels,
     }
 }
 
+template <typename Dtype>
+void im2col_cpu_par(const Dtype* data_im, const int channels,
+                const int height, const int width, const int kernel_h, const int kernel_w,
+                const int pad_h, const int pad_w,
+                const int stride_h, const int stride_w,
+                const int dilation_h, const int dilation_w,
+                Dtype* data_col) {
+    int dil_kernel_h = (kernel_h - 1) * dilation_h + 1;
+    int dil_kernel_w = (kernel_w - 1) * dilation_w + 1;
+    int height_col = (height + 2 * pad_h - dil_kernel_h) / stride_h + 1;
+    int width_col = (width + 2 * pad_w - dil_kernel_w) / stride_w + 1;
+    int channels_col = channels * kernel_h * kernel_w;
+
+#pragma omp parallel for
+    for (int c = 0; c < channels_col; ++c) {
+        int w_offset = c % kernel_w;
+        int h_offset = (c / kernel_w) % kernel_h;
+        int c_im = c / kernel_h / kernel_w;
+
+        const int hc0 = h_offset * dilation_h - pad_h;
+        const int wc0 = w_offset * dilation_w - pad_w;
+        for (int h = 0; h < height_col; ++h) {
+            int h_pad = h * stride_h + hc0;
+
+            const int row_offset = (c * height_col + h) * width_col;
+            const int srow_offset = (c_im * height + h_pad) * width;
+            for (int w = 0; w < width_col; ++w) {
+                int w_pad = w * stride_w + wc0;
+                if ((((unsigned)h_pad) < ((unsigned)height)) && (((unsigned)w_pad) < ((unsigned)width)))
+                    data_col[row_offset + w] = data_im[srow_offset + w_pad];
+                else {
+                    data_col[row_offset + w] = 0.;
+                }
+            }
+        }
+    }
+}
 template <>
 SaberStatus SaberIm2colConv<AK_FLOAT>::create(const std::vector<Tensor<X86> *>& inputs,
         std::vector<Tensor<X86>*>& outputs,
@@ -73,6 +109,7 @@ SaberStatus SaberIm2colConv<AK_FLOAT>::create(const std::vector<Tensor<X86> *>& 
     _im2col_tensor.reshape(_im2col_shape);
 
     int out_stride = out_h * out_w;
+//    LOG(INFO)<<"im2col m,n,k "<<(out_c / conv_param->group)<<","<<(out_stride)<<","<<(in_c / conv_param->group * kernel_h * kernel_w);
     _gemm.init(false, false, out_c / conv_param->group, out_stride, in_c / conv_param->group * kernel_h * kernel_w,
                *(this->_ctx));
 
@@ -117,11 +154,16 @@ SaberStatus SaberIm2colConv<AK_FLOAT>::dispatch(const std::vector<Tensor<X86> *>
 
     for (int i = 0; i < batch_size; i++) {
         for (int j = 0; j < group; j++) {
-            im2col_cpu(din, in_c / group, in_h, in_w, kernel_h, kernel_w, conv_param->pad_h, conv_param->pad_w,
+            im2col_cpu_par(din, in_c / group, in_h, in_w, kernel_h, kernel_w, conv_param->pad_h, conv_param->pad_w,
                        conv_param->stride_h, conv_param->stride_w, conv_param->dilation_h, conv_param->dilation_w,
                        (float*)_im2col_tensor.mutable_data());
 
-            _gemm.dispatch(1.f, 0.f, weights_d + j * weight_size_per_group, (const float*)_im2col_tensor.data(),
+            float add_out = 0.f;
+            if (param.eltwise_param.has_eltwise){
+                add_out = 1.f;
+            }
+
+            _gemm.dispatch(1.f, add_out, weights_d + j * weight_size_per_group, (const float*)_im2col_tensor.data(),
                            dout);
 
             din += in_c / group * in_stride;

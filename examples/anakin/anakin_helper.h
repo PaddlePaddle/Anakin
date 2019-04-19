@@ -27,10 +27,10 @@ public:
     AKAutoChoose(std::string ak_so_dir,std::string ak_so_path): _ak_so_dir(ak_so_dir),_ak_so_path(ak_so_path) {
 
     }
-    AnakinRunerInterface* get_ak_instance_static(std::string device_type, int device_num){
+    AnakinRunerInterface* get_ak_instance_static(const std::string& device_type, int device_num){
         return get_anakinrun_instance(device_type.c_str(),device_num);
     }
-    AnakinRunerInterface* get_ak_instance(std::string device_type, int device_num) {
+    AnakinRunerInterface* get_ak_instance(const std::string& device_type, int device_num) {
         if (device_type == "X86") {
             std::string this_cpu_arch = _cpu_helper.get_cpu_arch();
             //FIXME:choose real path

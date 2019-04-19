@@ -48,7 +48,7 @@ Status InterpHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttyp
     auto shrink_factor = GET_PARAMETER(int, shrink_factor);
     ho = (height_in-1)/shrink_factor+1;
     wo = (width_in-1)/shrink_factor+1;
-    
+
     auto zoom_factor = GET_PARAMETER(int, zoom_factor);
     ho = ho+(ho-1)*(zoom_factor-1);
     wo = wo+(wo-1)*(zoom_factor-1);
@@ -60,15 +60,15 @@ Status InterpHelper<Ttype, Ptype>::InferShape(const std::vector<Tensor4dPtr<Ttyp
     } else {
         width_scale = wo/width_in;
         height_scale = ho/height_in;
-        
-    }  
+
+    }
     LOG(INFO)<<"height_out:"<<height_out<<"height_in"<<height_in;
     LOG(INFO)<<"width_out:"<<width_out<<"width_in"<<width_in;
     SET_PARAMETER(width_scale, width_scale, float);
     SET_PARAMETER(height_scale, height_scale, float);
     LOG(INFO)<<height_scale <<"<->"<<width_scale;
     //transfer
-    ResizeParam<Ttype> resize_param(width_scale, height_scale);
+    ResizeParam<Ttype> resize_param(RESIZE_CUSTOM, width_scale, height_scale);
     _param_resize = resize_param;
 
     SABER_CHECK(_funcs_resize.compute_output_shape(ins, outs, _param_resize));
@@ -105,7 +105,13 @@ ANAKIN_REGISTER_OP_HELPER(Interp, InterpHelper, X86, Precision::FP32);
 INSTANCE_INTERP(ARM, Precision::FP32);
 template class InterpHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Interp, InterpHelper, ARM, Precision::FP32);
-#endif//arm
+#endif
+
+#ifdef AMD_GPU
+INSTANCE_INTERP(AMD, Precision::FP32);
+template class InterpHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Interp, InterpHelper, AMD, Precision::FP32);
+#endif
 
 //! register op
 ANAKIN_REGISTER_OP(Interp)
@@ -118,6 +124,9 @@ ANAKIN_REGISTER_OP(Interp)
 #endif
 #if defined USE_X86_PLACE || defined(BUILD_LITE)
 .__alias__<X86, Precision::FP32>("Interp")
+#endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("Interp")
 #endif
 .num_in(1)
 .num_out(1)

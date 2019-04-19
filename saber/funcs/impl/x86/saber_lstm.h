@@ -3,13 +3,16 @@
 #include "saber/funcs/impl/impl_lstm.h"
 #include "saber_funcs_param.h"
 #include "saber/funcs/impl/x86/x86_utils.h"
-#include <x86intrin.h>
+#include "saber/funcs/impl/x86/mkl_gemm.h"
 
 #if defined(__AVX512F__)
+#include <immintrin.h>
 #define SABER_X86_TYPE __m512
 #elif defined(__AVX2__) and defined(__FMA__)
+#include <immintrin.h>
 #define SABER_X86_TYPE __m256
 #elif defined(__SSE4_2__) and defined(__FMA__)
+#include <immintrin.h>
 #define SABER_X86_TYPE __m128
 #else
 #define SABER_X86_TYPE float
@@ -78,6 +81,12 @@ public:
                 weights_peephole_size,_hidden_size,_aligned_hidden_size);
         }
 
+        int seqsum = inputs[0]->num();
+        const float* weight_h = (const float*)_aligned_weights_h2h.data();
+        const float* weight_w = (const float*)_aligned_weights_i2h.data();
+        _wx_gemm_fp32.init(false, false,seqsum, 4 * _aligned_hidden_size, _word_size,ctx,weight_w,PACKED_MKLGEMM);
+        _wh_gemm_fp32.init(false, false,seqsum, 4 * _aligned_hidden_size, _aligned_hidden_size,ctx,weight_h,PACKED_MKLGEMM);
+
         return create(inputs,outputs,param,ctx);
     } ;
 
@@ -120,6 +129,9 @@ private:
     Tensor<X86> _temp_x;
     Tensor<X86> _temp_out;
     Tensor<X86> _temp_h_init;
+
+    MklDnnGemm<float, float, float> _wx_gemm_fp32;
+    MklDnnGemm<float, float, float> _wh_gemm_fp32;
 
     template <typename BIT,bool with_peephole >
     SaberStatus avx_dispatch(const std::vector<Tensor<X86>*>& inputs,

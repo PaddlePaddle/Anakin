@@ -48,31 +48,45 @@ public:
                                Context<X86> &ctx) {
         this->_ctx = &ctx;
         this->_param = &param;
-   	   CHECK_EQ(param.shape.size(),4);
+        std::vector<int> shape;
+        if (inputs.size() == 2) {
+            shape = inputs.at(1)->valid_shape();
+        } else {
+            shape = param.shape;
+        }
+        CHECK_EQ(shape.size(),4);
+
+        // offset values may be omitted in the original model
+        // Caffe uses 0s as default values
+        auto offset_size = param.offset.size();
+        if (offset_size == 0) {
+            param.offset.resize(4 - param.axis, 0);
+        }
+
         if (param.axis == 1) {
             CHECK_EQ(param.offset.size(), 3);
             _c_off = param.offset[0];
             _h_off = param.offset[1];
             _w_off = param.offset[2];
-            _c_end = param.shape[1]+_c_off;
-            _h_end = param.shape[2]+_h_off;
-            _w_end = param.shape[3]+_w_off;
+            _c_end = shape[1]+_c_off;
+            _h_end = shape[2]+_h_off;
+            _w_end = shape[3]+_w_off;
         } else if (param.axis == 2) {
             CHECK_EQ(param.offset.size(), 2);
             _c_off = 0;
             _h_off = param.offset[0];
             _w_off = param.offset[1];
-            _c_end = param.shape[1];
-            _h_end = param.shape[2]+_h_off;
-            _w_end = param.shape[3]+_w_off;
+            _c_end = shape[1];
+            _h_end = shape[2]+_h_off;
+            _w_end = shape[3]+_w_off;
         } else if (param.axis == 3) {
             CHECK_EQ(param.offset.size(), 1);
             _c_off = 0;
             _h_off = 0;
             _w_off = param.offset[0];
-            _c_end = param.shape[1];
-            _h_end = param.shape[2];
-            _w_end = param.shape[3]+_w_off;
+            _c_end = shape[1];
+            _h_end = shape[2];
+            _w_end = shape[3]+_w_off;
         } else {
             return SaberInvalidValue;
         }

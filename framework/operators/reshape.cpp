@@ -1,3 +1,17 @@
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
 #include "framework/operators/reshape.h"
 
 namespace anakin {
@@ -74,6 +88,12 @@ template class ReshapeHelper<ARM, Precision::FP32>;
 ANAKIN_REGISTER_OP_HELPER(Reshape, ReshapeHelper, ARM, Precision::FP32);
 #endif
 
+#ifdef AMD_GPU
+INSTANCE_RESHAPE(AMD, Precision::FP32);
+template class ReshapeHelper<AMD, Precision::FP32>;
+ANAKIN_REGISTER_OP_HELPER(Reshape, ReshapeHelper, AMD, Precision::FP32);
+#endif
+
 //! register op
 ANAKIN_REGISTER_OP(Reshape)
 .Doc("Reshape operator")
@@ -85,6 +105,9 @@ ANAKIN_REGISTER_OP(Reshape)
 #endif
 #if defined USE_X86_PLACE || defined BUILD_LITE
 .__alias__<X86, Precision::FP32>("reshape")
+#endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("reshape")
 #endif
 .num_in(1)
 .num_out(1)

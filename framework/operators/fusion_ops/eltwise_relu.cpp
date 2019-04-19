@@ -1,3 +1,17 @@
+/* Copyright (c) 2018 Anakin Authors, Inc. All Rights Reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
 #include "framework/operators/fusion_ops/eltwise_relu.h"
 
 namespace anakin {
@@ -10,8 +24,8 @@ void EltwiseRelu<Ttype, Ptype>::operator()(\
     OpContext<Ttype>& ctx,\
     const std::vector<Tensor4dPtr<Ttype> >& ins,\
     std::vector<Tensor4dPtr<Ttype> >& outs) { \
-    auto* impl = static_cast<EltwiseReluHelper<Ttype, Precision::FP32>*>(this->_helper); \
-    auto& param = static_cast<EltwiseReluHelper<Ttype, Precision::FP32>*> \
+    auto* impl = static_cast<EltwiseReluHelper<Ttype, Ptype>*>(this->_helper); \
+    auto& param = static_cast<EltwiseReluHelper<Ttype, Ptype>*> \
                   (this->_helper)->_param_eltwise_relu; \
     impl->_funcs_eltwise_relu(ins, outs, param, ctx); \
 }
@@ -77,15 +91,20 @@ Status EltwiseReluHelper<Ttype, Ptype>::InferShape(const
 
 #ifdef USE_CUDA
 INSTANCE_ELTWISERELU(NV, Precision::FP32)
+INSTANCE_ELTWISERELU(NV, Precision::INT8)
 template class EltwiseReluHelper<NV, Precision::FP32>;
 template class EltwiseReluHelper<NV, Precision::FP16>;
 template class EltwiseReluHelper<NV, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, NV, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, NV, Precision::INT8);
 #endif
 
 #ifdef USE_ARM_PLACE
+INSTANCE_ELTWISERELU(ARM, Precision::FP32)
 template class EltwiseReluHelper<ARM, Precision::FP32>;
 template class EltwiseReluHelper<ARM, Precision::FP16>;
 template class EltwiseReluHelper<ARM, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, ARM, Precision::FP32);
 #endif
 
 #ifdef BUILD_LITE
@@ -93,7 +112,9 @@ INSTANCE_ELTWISERELU(X86, Precision::FP32)
 template class EltwiseReluHelper<X86, Precision::FP32>;
 template class EltwiseReluHelper<X86, Precision::FP16>;
 template class EltwiseReluHelper<X86, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, X86, Precision::FP32);
 #endif
+
 // register helper
 
 #ifdef USE_X86_PLACE
@@ -101,28 +122,29 @@ INSTANCE_ELTWISERELU(X86, Precision::FP32);
 ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, X86, Precision::FP32);
 #endif
 
-#ifdef USE_CUDA
-ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, NV, Precision::FP32);
+#ifdef AMD_GPU
+INSTANCE_ELTWISERELU(AMD, Precision::FP32)
+template class EltwiseReluHelper<AMD, Precision::FP32>;
+template class EltwiseReluHelper<AMD, Precision::FP16>;
+template class EltwiseReluHelper<AMD, Precision::INT8>;
+ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, AMD, Precision::FP32);
 #endif
 
-#ifdef USE_ARM_PLACE
-ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, ARM, Precision::FP32);
-#endif
-
-#ifdef BUILD_LITE
-ANAKIN_REGISTER_OP_HELPER(EltwiseRelu, EltwiseReluHelper, X86, Precision::FP32);
-#endif
 //! register op
 ANAKIN_REGISTER_OP(EltwiseRelu)
 .Doc("EltwiseRelu operator")
 #ifdef USE_CUDA
 .__alias__<NV, Precision::FP32>("eltwise")
+.__alias__<NV, Precision::INT8>("eltwise")
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("eltwise")
 #endif
 #ifdef BUILD_LITE
 .__alias__<X86, Precision::FP32>("eltwise")
+#endif
+#ifdef AMD_GPU
+.__alias__<AMD, Precision::FP32>("eltwise")
 #endif
 .num_in(1)
 .num_out(1)

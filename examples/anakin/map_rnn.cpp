@@ -1,5 +1,6 @@
 #include "anakin_helper.h"
 #include <string.h>
+bool g_print_data=false;
 class Data {
 public:
     Data(std::string file_name, int batch_size) :
@@ -197,19 +198,21 @@ public:
             input_fea->set_dev_lod_offset(lod);
             _anakin_obj->prediction();
 
-#ifdef  PRINT_RESULT
-            AnakinRunerTensorInterface* output_0 = _anakin_obj->get_output_tensor(0);
-            for (int seq_id = 0; seq_id < seq_offset.size() - 1; seq_id++) {
-                int seq_len = seq_offset[seq_id + 1] - seq_offset[seq_id];
-                int seq_start = seq_offset[seq_id];
 
-                for (int i = 0; i < seq_len - 1; i++) {
-                    printf("%f|", static_cast<float*>(output_0->get_host_data())[seq_start + i]);
+            if(g_print_data){
+                AnakinRunerTensorInterface* output_0 = _anakin_obj->get_output_tensor(0);
+                for (int seq_id = 0; seq_id < seq_offset.size() - 1; seq_id++) {
+                    int seq_len = seq_offset[seq_id + 1] - seq_offset[seq_id];
+                    int seq_start = seq_offset[seq_id];
+
+                    for (int i = 0; i < seq_len - 1; i++) {
+                        printf("%f|", static_cast<float*>(output_0->get_host_data())[seq_start + i]);
+                    }
+
+                    printf("%f\n", static_cast<float*>(output_0->get_host_data())[seq_start + seq_len - 1]);
                 }
-
-                printf("%f\n", static_cast<float*>(output_0->get_host_data())[seq_start + seq_len - 1]);
             }
-#endif
+
 
 //            output_0->copy_data_dev_2_host();
 //            float* out_ptr = static_cast<float*>(output_0->get_host_data());
@@ -249,9 +252,23 @@ int main(int argc, const char** argv) {
     }
 
     if (argc > 5) {
-        so_path = argv[5];
+        g_print_data=atoi(argv[5]);
     }
 
-    AKRNNExampleX86 ak_run(so_dir, so_path,model_path,max_batch);
-    ak_run.run(data_path,batch_size);
+    if (argc > 6) {
+        so_dir=argv[6];
+    }
+
+    if(argc > 7){
+        so_path = argv[7];
+    }
+
+    if(argc<=7){
+        AKRNNExampleX86 ak_run(so_dir, model_path, max_batch);
+        ak_run.run(data_path,batch_size);
+    }else {
+        AKRNNExampleX86 ak_run(so_dir, so_path, model_path, max_batch);
+        ak_run.run(data_path,batch_size);
+    }
+
 }

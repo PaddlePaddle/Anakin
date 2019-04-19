@@ -33,9 +33,11 @@ public:
 
     typedef typename DataTrait<NV, OpDtype>::Dtype OpDataType;
     typedef Tensor<NV> OpTensor;
-    SaberGru() {}
+    SaberGru():_handle(NULL) {}
     ~SaberGru() {
-
+        if (_handle != NULL) {
+            CUBLAS_CHECK(cublasDestroy(_handle));
+        }
     }
 
     virtual SaberStatus init(const std::vector<OpTensor*>& inputs, \
@@ -96,6 +98,10 @@ public:
 //            cudaDeviceSynchronize();            
         }
 
+        cudaStream_t cuda_stream;
+        cuda_stream = ctx.get_compute_stream();
+        CUBLAS_CHECK(cublasCreate(&_handle));
+        CUBLAS_CHECK(cublasSetStream(_handle, cuda_stream));
         return create(inputs, outputs, param, ctx);
     }
 
@@ -104,7 +110,16 @@ public:
                                GruParam<NV>& param, Context<NV>& ctx) {
 
         if (!(&ctx == this->_ctx)) {
+            if (_handle != NULL) {
+                CUBLAS_CHECK(cublasDestroy(_handle));
+            }
+
             this->_ctx = &ctx;
+
+            cudaStream_t cuda_stream;
+            cuda_stream = ctx.get_compute_stream();
+            CUBLAS_CHECK(cublasCreate(&_handle));
+            CUBLAS_CHECK(cublasSetStream(_handle, cuda_stream));
         }
 
         std::vector<std::vector<int>> offset_vec=inputs[0]->get_seq_offset();
@@ -127,6 +142,7 @@ public:
                                  GruParam <NV>& param);
 
 private:
+    cublasHandle_t _handle;
 
     /**
      * for hw2seq

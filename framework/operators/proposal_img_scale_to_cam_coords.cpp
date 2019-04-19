@@ -163,8 +163,8 @@ ANAKIN_REGISTER_OP_HELPER(ProposalImgScaleToCamCoords,
         ProposalImgScaleToCamCoordsHelper, NV, Precision::FP32);
 #endif
 #ifdef USE_ARM_PLACE
-ANAKIN_REGISTER_OP_HELPER(ProposalImgScaleToCamCoords,
-        ProposalImgScaleToCamCoordsHelper, ARM, Precision::FP32);
+//ANAKIN_REGISTER_OP_HELPER(ProposalImgScaleToCamCoords,
+        //ProposalImgScaleToCamCoordsHelper, ARM, Precision::FP32);
 #endif
 //! register op
 ANAKIN_REGISTER_OP(ProposalImgScaleToCamCoords)
@@ -173,7 +173,7 @@ ANAKIN_REGISTER_OP(ProposalImgScaleToCamCoords)
 .__alias__<NV, Precision::FP32>("proposal_img_scal_to_cam_coords")
 #endif
 #ifdef USE_ARM_PLACE
-.__alias__<ARM, Precision::FP32>("proposal_img_scal_to_cam_coords")
+//.__alias__<ARM, Precision::FP32>("proposal_img_scal_to_cam_coords")
 #endif
 .num_in(1)
 .num_out(1)

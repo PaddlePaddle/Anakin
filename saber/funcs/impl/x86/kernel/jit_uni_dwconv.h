@@ -26,7 +26,7 @@ namespace saber {
 
 using namespace jit;
 
-template<DataType OpDtype>
+template<DataType OpDtype = AK_FLOAT>
 class JitUniDWConv : public ImplBase<
         X86, OpDtype, ConvEltwiseParam <X86> > {
 public:
@@ -57,7 +57,7 @@ public:
 
 private:
     jit_conv_conf_t conf;
-    jit_uni_dwconv_kernel_f32<avx512_common> *kernel = nullptr;
+    jit_uni_dwconv_kernel_f32 *kernel = nullptr;
     std::shared_ptr<Tensor<X86> > weights_internal;
     SaberStatus check_conf(const std::vector<Tensor<X86>*>& inputs,
                            std::vector<Tensor<X86>*>& outputs,

@@ -24,6 +24,9 @@
 #include "saber/funcs/impl/cuda/saber_permute_power.h"
 #include "saber/funcs/impl/cuda/vender_permute_power.h"
 #endif
+#ifdef AMD_GPU
+#include "saber/funcs/impl/amd/include/saber_permute_power.h"
+#endif
 #ifdef USE_X86_PLACE
 #include "saber/funcs/impl/x86/saber_permute_power.h"
 #endif

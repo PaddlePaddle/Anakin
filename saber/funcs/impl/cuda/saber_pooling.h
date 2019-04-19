@@ -29,43 +29,36 @@ namespace saber{
 
 template <DataType OpDtype>
 class SaberPooling<NV, OpDtype>:\
-    public ImplBase<
-            NV,OpDtype,
-            PoolingParam<NV>> {
-        
-    public:
-        typedef Tensor<NV> DataTensor_in;
-        typedef Tensor<NV> DataTensor_out;
-        
-        SaberPooling(){}
-        
-        ~SaberPooling() {}
-        
-        virtual SaberStatus init(const std::vector<DataTensor_in*>& inputs,
-                                 std::vector<DataTensor_out*>& outputs,
-                                 PoolingParam<NV> &param,
-                                 Context<NV> &ctx) override {
-            
-            return SaberUnImplError;
-            
-        }
-        
-        virtual SaberStatus create(const std::vector<DataTensor_in*>& inputs,
-                                   std::vector<DataTensor_out*>& outputs,
-                                   PoolingParam<NV> &param,
-                                   Context<NV> &ctx) override {
-            
-            return SaberUnImplError;
-            
-        }
-        
-        //call cudnnConvolutionForward here
-        virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
-                                     std::vector<DataTensor_out*>& outputs,
-                                     PoolingParam<NV> &param) {
-            
-            return SaberUnImplError;
-        }
+public ImplBase<
+        NV, OpDtype,
+        PoolingParam<NV>> {
+typedef ImplBase<NV, AK_FLOAT, PoolingParam<NV> > Impl_t;
+public:
+
+    SaberPooling() = default;
+
+    ~SaberPooling() {
+        delete _impl;
+    }
+
+    SaberStatus init(const std::vector<Tensor<NV>*>& inputs,
+            std::vector<Tensor<NV>*>& outputs,
+            PoolingParam<NV> &param,
+            Context<NV> &ctx) override;
+
+    SaberStatus create(const std::vector<Tensor<NV>*>& inputs,
+            std::vector<Tensor<NV>*>& outputs,
+            PoolingParam<NV> &param,
+            Context<NV> &ctx) override;
+
+    //call cudnnConvolutionForward here
+    SaberStatus dispatch(const std::vector<Tensor<NV>*>& inputs,
+            std::vector<Tensor<NV>*>& outputs,
+            PoolingParam<NV> &param) override;
+private:
+    Tensor<NV> _int8_input;
+    Tensor<NV> _int8_output;
+    Impl_t* _impl{nullptr};
 };
 
 }

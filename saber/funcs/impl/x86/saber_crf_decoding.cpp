@@ -1,12 +1,11 @@
-
 #include "saber/funcs/impl/x86/saber_crf_decoding.h"
 #include "saber/saber_funcs_param.h"
 #include "saber/funcs/impl/x86/x86_utils.h"
+#include "saber/funcs/impl/x86/anakin_thread.h"
 #include <cstring>
 #include <limits>
 #include <cmath>
 #include <immintrin.h>
-#include "omp.h"
 
 namespace anakin {
 namespace saber {
@@ -34,7 +33,7 @@ SaberStatus SaberCrfDecoding<X86, OpDtype>::create(
     this->_ctx = &ctx;
     _track.reshape(inputs[0]->valid_shape());
 
-#ifdef __AVX2__
+#if defined(__AVX2__) and defined(__FMA__)
     int tag_num = inputs[0]->channel();
     _aligned_tag_num = (tag_num % 8) ? (tag_num / 8 + 1) * 8 : tag_num;
     // get transposed transition weight
@@ -65,7 +64,7 @@ SaberStatus SaberCrfDecoding<X86, OpDtype>::create(
 template<typename Dtype>
 void decoding(Dtype* path, const Dtype* emission, const Dtype* transition,
                         Dtype* alpha_value, int* track_value, int aligned_tag_num, int seq_len, int tag_num) {
-#ifdef __AVX2__
+#if defined(__AVX2__) and defined(__FMA__)
     const Dtype* x = emission;
     const Dtype* w = transition;
     const int state_trans_base_idx = 2;
@@ -193,7 +192,7 @@ SaberStatus SaberCrfDecoding<X86, OpDtype>::dispatch(
     const OpDataType *transition_ptr = (const OpDataType*)param.transition_weight()->data();
     int slice_size = inputs[0]->channel() * inputs[0]->height() * inputs[0]->width();
    
-#ifdef __AVX2__
+#if defined(__AVX2__) and defined(__FMA__)
     if (tag_num % 8) {
         transition_ptr = (OpDataType*)_trans.data();
 
@@ -213,12 +212,12 @@ SaberStatus SaberCrfDecoding<X86, OpDtype>::dispatch(
 #endif
     OpDataType *decoded_path = (OpDataType*) outputs[0]->mutable_data();
     int seq_num = seq_offset[0].size() - 1;
-    int nthreads = omp_get_max_threads();
+    int nthreads = anakin_get_max_threads();
 
     if (nthreads > seq_num) {
         nthreads = seq_num;
     }
-    #pragma omp parallel for num_threads(nthreads) if(seq_num > 1)
+//#pragma omp parallel for num_threads(nthreads) if(seq_num > 1)
     for (int i = 0; i < seq_num; ++i) {
         int seq_len = seq_offset[0][i+1] - seq_offset[0][i];
        // LOG(INFO) << "slice_size: " << slice_size << ", seq_num: " << seq_num << ", seq_len: " << seq_len;

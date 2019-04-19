@@ -14,7 +14,6 @@ limitations under the License. */
 #include "saber/funcs/impl/impl_lstm.h"
 #include "saber_funcs_param.h"
 #include "saber/funcs/impl/x86/x86_utils.h"
-#include <x86intrin.h>
 #include "mkl_cblas.h"
 #include "mkl_vml_functions.h"
 #include "mkl_service.h"

@@ -44,5 +44,20 @@ OpsRegister.Register("reorder_lod_tensor_by_rank").set_attr()
 OpsRegister.Register("while").set_attr()
 OpsRegister.Register("array_to_lod_tensor").set_attr()
 
+OpsRegister.Register("assign").set_attr()
 OpsRegister.Register("assign_value").set_attr()
 OpsRegister.Register("shape").set_attr()
+
+OpsRegister.Register("fake_quantize_abs_max").set_attr()
+OpsRegister.Register("fake_dequantize_max_abs").set_attr()
+OpsRegister.Register("fake_quantize_range_abs_max").set_attr()
+OpsRegister.Register("fake_dequantize_range_max_abs").set_attr()
+
+OpsRegister.Register("increment").set_attr()
+
+OpsRegister.Register("fusion_dropout_add_ln_quant").set_attr()
+OpsRegister.Register("dequantize_max_abs_rowwise").set_attr()
+OpsRegister.Register("quantize_abs_max_rowwise").set_attr()
+OpsRegister.Register("fusion_add_relu_dropout_quant").set_attr()
+OpsRegister.Register("fill_constant_batch_size_like").set_attr()
+OpsRegister.Register("beam_search_decode").set_attr()

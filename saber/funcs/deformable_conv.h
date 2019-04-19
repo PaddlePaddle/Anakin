@@ -22,6 +22,9 @@
 #ifdef NVIDIA_GPU
 //#include "saber/funcs/impl/cuda/saber_deformable_conv.h"
 #endif
+#ifdef AMD_GPU
+//#include "saber/funcs/impl/amd/include/vender_deformable_conv.h"
+#endif
 
 namespace anakin {
 namespace saber {

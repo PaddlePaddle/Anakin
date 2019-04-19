@@ -13,6 +13,18 @@ void RPNProposalSSD<NV,  Precision::FP32>::operator()(
     impl->_funcs_rpn_prop_ssd(ins, outs, param, ctx);
 }
 #endif
+#ifdef USE_ARM_PLACE
+template<>
+void RPNProposalSSD<ARM,  Precision::FP32>::operator()(
+    OpContext<ARM>& ctx,
+    const std::vector<Tensor4dPtr<ARM> >& ins,
+    std::vector<Tensor4dPtr<ARM> >& outs) {
+    auto* impl = static_cast<RPNProposalSSDHelper<ARM,  Precision::FP32>*>(this->_helper);
+    auto& param = static_cast<RPNProposalSSDHelper<ARM,  Precision::FP32>*>
+                  (this->_helper)->_param_rpn_prop_ssd;
+    impl->_funcs_rpn_prop_ssd(ins, outs, param, ctx);
+}
+#endif
 /// TODO ... specialization other type of operator
 /// set helper
 template<typename Ttype, Precision Ptype>

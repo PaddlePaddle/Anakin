@@ -19,7 +19,7 @@ void ConvBatchnorm<Ttype, Ptype>::operator()(\
 template<typename Ttype, Precision Ptype>
 Status ConvBatchnormHelper<Ttype, Ptype>::InitParam() {
     LOG(WARNING) << "Parsing ConvBatchnorm op parameter.";
-    
+
     // get conv param
     auto group = GET_PARAMETER(int, group);
     auto bias_term = GET_PARAMETER(bool, bias_term);
@@ -33,6 +33,14 @@ Status ConvBatchnormHelper<Ttype, Ptype>::InitParam() {
     using pblock_type = PBlock<Ttype>;
     auto weights = GET_PARAMETER(pblock_type, weight_1);
     auto weights_shape = weights.shape();
+    auto weights_dtype = weights.h_tensor().get_dtype();
+    // resize weights scale
+    auto& w = weights.h_tensor();
+    if (w.get_scale().size() == 1){
+        float scale_tmp = w.get_scale()[0];
+        std::vector<float> w_scale(filter_num, scale_tmp);
+        w.set_scale(w_scale);
+    }
 
     // get batchnorm param
     auto epsilon = GET_PARAMETER(float, batchnorm_0_epsilon);
@@ -44,18 +52,26 @@ Status ConvBatchnormHelper<Ttype, Ptype>::InitParam() {
     auto batch_norm_weight_3 = GET_PARAMETER(pblock_type, batchnorm_0_weight_3);
     auto batch_norm_weight_3_vector = batch_norm_weight_3.vector();
 
-    // check if batchnorm parameters have been optimized 
+    // check if batchnorm parameters have been optimized
     auto is_param_updated = CHECK_PARAMETER(is_param_updated);
     if (!is_param_updated) {
         SET_PARAMETER(is_param_updated, true, bool);
 
         if (bias_term) {
             auto bias = GET_PARAMETER(pblock_type, weight_2);
-            graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
-                    update_weights_without_scale<float, Ttype>, weights,bias,
-                    weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
-                    true, batch_norm_weight_3_vector[0], epsilon,
-                    batch_norm_weight_1_vector, batch_norm_weight_2_vector);
+            if (weights_dtype == AK_FLOAT) {
+                graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
+                        WeightsFusion<float, Ttype>::update_weights_without_scale, weights, bias,
+                        weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+                        true, batch_norm_weight_3_vector[0], epsilon,
+                        batch_norm_weight_1_vector, batch_norm_weight_2_vector);
+            } else {
+                graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
+                        WeightsFusion<char, Ttype>::update_weights_without_scale, weights, bias,
+                        weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+                        true, batch_norm_weight_3_vector[0], epsilon,
+                        batch_norm_weight_1_vector, batch_norm_weight_2_vector);
+            }
 
             saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
                                                strides[0], strides[1],
@@ -66,13 +82,21 @@ Status ConvBatchnormHelper<Ttype, Ptype>::InitParam() {
             pblock_type* bias = new pblock_type();
             SET_PARAMETER(bias_term, true, bool); // set attr bias_term true
             SET_PARAMETER(weight_2, *bias, pblock_type); // gen new bias
-
-            graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
-                    update_weights_without_scale<float, Ttype>, weights, *bias,
-                    weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
-                    false, batch_norm_weight_3_vector[0], epsilon,
-                    batch_norm_weight_1_vector,
-                    batch_norm_weight_2_vector);
+            if (weights_dtype == AK_FLOAT){
+                    graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
+                            WeightsFusion<float, Ttype>::update_weights_without_scale, weights, *bias,
+                            weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+                            false, batch_norm_weight_3_vector[0], epsilon,
+                            batch_norm_weight_1_vector,
+                            batch_norm_weight_2_vector);
+            } else {
+                graph::GraphGlobalMem<Ttype>::Global().template apply<Level_0>(
+                        WeightsFusion<char, Ttype>::update_weights_without_scale, weights, *bias,
+                        weights_shape[0], weights_shape[1], weights_shape[2], weights_shape[3],
+                        false, batch_norm_weight_3_vector[0], epsilon,
+                        batch_norm_weight_1_vector,
+                        batch_norm_weight_2_vector);
+            }
 
             saber::ConvParam<Ttype> conv_param(group, padding[0], padding[1],
                     strides[0], strides[1], dilation_rate[0], dilation_rate[1],
@@ -102,10 +126,10 @@ Status ConvBatchnormHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
 
     //different device please change here!!!
     saber::ImplEnum impl_e = VENDER_IMPL;
-    if (std::is_same<Ttype, X86>::value) {
+    if (std::is_same<Ttype, X86>::value || std::is_same<Ttype, ARM>::value) {
         impl_e = SABER_IMPL;
     }
-    bool use_k1s1p0 = true;
+    bool use_k1s1p0 = (Ptype == Precision::FP32);
     use_k1s1p0 = use_k1s1p0 && (_param_conv_batchnorm.weight()->height() == 1);
     use_k1s1p0 = use_k1s1p0 && (_param_conv_batchnorm.weight()->width() == 1);
     use_k1s1p0 = use_k1s1p0 && (_param_conv_batchnorm.pad_h == 0);
@@ -116,7 +140,7 @@ Status ConvBatchnormHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
     use_k1s1p0 = use_k1s1p0 && (_param_conv_batchnorm.dilation_w == 1);
     use_k1s1p0 = use_k1s1p0 && (_param_conv_batchnorm.group == 1);
     use_k1s1p0 = use_k1s1p0 && (_param_conv_batchnorm.bias()->valid_size() > 0);
-    bool use_k3s1d1 = true;
+    bool use_k3s1d1 = (Ptype == Precision::FP32);
     use_k3s1d1 = use_k3s1d1 && (_param_conv_batchnorm.weight()->height() == 3);
     use_k3s1d1 = use_k3s1d1 && (_param_conv_batchnorm.weight()->width() == 3);
     use_k3s1d1 = use_k3s1d1 && (_param_conv_batchnorm.group == 1);
@@ -124,16 +148,19 @@ Status ConvBatchnormHelper<Ttype, Ptype>::Init(OpContext<Ttype>& ctx,
     use_k3s1d1 = use_k3s1d1 && (_param_conv_batchnorm.stride_w == 1);
     use_k3s1d1 = use_k3s1d1 && (_param_conv_batchnorm.dilation_h == 1);
     use_k3s1d1 = use_k3s1d1 && (_param_conv_batchnorm.dilation_w == 1);
-    bool use_depthwise = true;
+    bool use_depthwise = (Ptype == Precision::FP32);
     use_depthwise = use_depthwise && (_param_conv_batchnorm.group == ins[0]->channel());
     use_depthwise = use_depthwise && (_param_conv_batchnorm.group == outs[0]->channel());
-    bool use_direct_k = true;
+    bool use_direct_k = (Ptype == Precision::FP32);
     use_direct_k = use_direct_k && (_param_conv_batchnorm.weight()->channel() >= 16);
     use_direct_k = use_direct_k && (_param_conv_batchnorm.group == 1);
-    if (use_k1s1p0 || use_k3s1d1 || use_depthwise || use_direct_k) {
+    if (std::is_same<Ttype, NV>::value
+        && (use_k1s1p0 || use_k3s1d1 || use_depthwise || use_direct_k)) {
         impl_e = SABER_IMPL;
     }
-
+    if (std::is_same<Ttype, NV>::value && Ptype == Precision::INT8) {
+        impl_e = SABER_IMPL;
+    }
     SABER_CHECK(_funcs_conv_batchnorm.init(ins, outs, \
         _param_conv_batchnorm, SPECIFY, impl_e, ctx));
 
@@ -181,8 +208,11 @@ Status ConvBatchnormHelper<Ttype, Ptype>::InferShape(const
 
 #ifdef USE_ARM_PLACE
 INSTANCE_CONVBATCHNORM(ARM, Precision::FP32);
+INSTANCE_CONVBATCHNORM(ARM, Precision::INT8);
 template class ConvBatchnormHelper<ARM, Precision::FP32>;
+template class ConvBatchnormHelper<ARM, Precision::INT8>;
 ANAKIN_REGISTER_OP_HELPER(ConvBatchnorm, ConvBatchnormHelper, ARM, Precision::FP32);
+ANAKIN_REGISTER_OP_HELPER(ConvBatchnorm, ConvBatchnormHelper, ARM, Precision::INT8);
 #endif
 
 #ifdef USE_CUDA
@@ -213,9 +243,14 @@ ANAKIN_REGISTER_OP(ConvBatchnorm)
 #endif
 #ifdef USE_ARM_PLACE
 .__alias__<ARM, Precision::FP32>("convolution_batchnorm")
+.__alias__<ARM, Precision::INT8>("convolution_batchnorm")
 #endif
 #if defined BUILD_LITE
 .__alias__<X86, Precision::FP32>("convolution_batchnorm")
+#endif
+#ifdef AMD_GPU
+//.__alias__<AMD, Precision::FP32>("convolution_batchnorm")
+//.__alias__<AMD, Precision::INT8>("convolution_batchnorm")
 #endif
 .num_in(1)
 .num_out(1)

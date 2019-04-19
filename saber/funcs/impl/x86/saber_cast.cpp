@@ -30,14 +30,14 @@ SaberStatus SaberCast<X86, OpDtype>::dispatch(const std::vector<Tensor<X86>*>& i
             cast_kernel<float, int>(in_data, out_data, count);
         }
         
-    }
-    
-    if(inputs[0]->get_dtype() == 5){//AK_INT32
+    } else if (inputs[0]->get_dtype() == 5){//AK_INT32
         const int* in_data = (const int*)inputs[0]->data();
         float* out_data = (float*)outputs[0]->mutable_data();
         if (inputs[0]->is_continue_mem() && outputs[0]->is_continue_mem()) {
             cast_kernel<int, float>(in_data, out_data, count);
         }
+    } else {
+        outputs[0]->copy_from(*inputs[0]);
     }
    
     return SaberSuccess;

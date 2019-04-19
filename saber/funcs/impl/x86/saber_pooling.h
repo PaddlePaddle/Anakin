@@ -59,13 +59,9 @@ public:
     virtual SaberStatus dispatch(const std::vector<DataTensor_in*>& inputs,
                                  std::vector<DataTensor_out*>& outputs,
                                  PoolingParam<X86> &param) override;
-
-    virtual SaberStatus init_conf(jit_pool_conf_t &jpp,
-                                  const std::vector<DataTensor_in*>& inputs,
-                                  std::vector<DataTensor_out*>& outputs,
-                                  PoolingParam<X86>& param);
 private:
-    jit_uni_pool_kernel_f32<avx512_common>* _kernel;
+    jit_uni_pool_kernel_f32* _kernel;
+    Tensor<X86>_input_scale;
 };
 
 
