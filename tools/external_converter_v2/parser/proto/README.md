@@ -1,7 +1,7 @@
 # Proto
 ---
 
-> *proto files of anakin*  list:
+> *proto files of Paddle Inference*  list:
 > graph.proto
 > node.proto
 > operator.proto

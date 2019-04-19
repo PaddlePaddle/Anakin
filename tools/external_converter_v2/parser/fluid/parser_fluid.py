@@ -10,7 +10,7 @@ import proto_helper
 class FluidParser:
 
     def __init__(self, fluid_config_dict):
-        # anakin graph model io
+        # graph model io
         self.graphIO = None
         # config info
         self.ModelPath = fluid_config_dict['ModelPath']
@@ -450,7 +450,7 @@ class FluidParser:
                                 elt_node_name, helper, private_data)
 
     def _DealWithBatchnorm(self, source_ops, helper, quantized=False):
-        # In anakin, the scale part of batchnorm layer is independent.
+        # In the scale part of batchnorm layer is independent.
         for source_op in source_ops:
             if source_op.type == 'batch_norm':
                 discrete_flag = True

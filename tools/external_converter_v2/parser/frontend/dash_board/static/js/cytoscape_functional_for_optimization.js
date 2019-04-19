@@ -34,7 +34,7 @@ cy_graph.filter(function(element, i){
 var MemoryChart = echarts.init(document.getElementById('memory_bar'), 'default');
 memory_option = {
     title : {
-        text: 'Anakin memory optimization result',
+        text: 'Paddle inference memory optimization result',
         subtext: 'Total memory size ('+ mem_info.total_mem + 'MB)',
         x:'center'
     },
