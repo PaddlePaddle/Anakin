@@ -21,6 +21,7 @@
 #include "saber/saber_funcs_param.h"
 #include "saber/funcs/impl/x86/kernel/jit_uni_pool_kernel_f32.h"
 #include "saber/funcs/impl/x86/kernel/jit_generator.h"
+#include "saber/funcs/impl/x86/kernel/jit_avx512_core_8bit_pooling_kernel.h"
 
 namespace anakin{
 namespace saber {
@@ -38,11 +39,14 @@ public:
     typedef Tensor<X86> DataTensor_out;
 
     SaberPooling()
-            : _kernel(nullptr) {}
+            : _kernel(nullptr),kernel_nhwc_(nullptr) {}
 
     ~SaberPooling() {
         if (_kernel != nullptr) {
             delete _kernel;
+        }
+        if (kernel_nhwc_ != nullptr) {
+            delete kernel_nhwc_;
         }
     }
 
@@ -61,6 +65,7 @@ public:
                                  PoolingParam<X86> &param) override;
 private:
     jit_uni_pool_kernel_f32* _kernel;
+    jit_avx512_core_8bit_pooling_kernel* kernel_nhwc_;
     Tensor<X86>_input_scale;
 };
 

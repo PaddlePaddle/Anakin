@@ -4,6 +4,7 @@
 #include "saber/funcs/impl/x86/saber_conv.h"
 #include "saber/core/tensor_op.h"
 #include "saber/funcs/funcs_utils.h"
+#include "saber/funcs/impl/x86/kernel/jit_avx512_conv_pool_optimized.h"
 #include "saber/funcs/impl/x86/kernel/jit_conv_pooling_normal.h"
 
 namespace anakin {
@@ -64,6 +65,30 @@ create(const std::vector<Tensor<X86> *>& inputs,
        ConvPoolingParam<X86>& param, Context<X86>& ctx) {
     SaberStatus ret = SaberUnImplError;
 
+    this->_ctx = &ctx;
+    ConvParam<X86> conv_param(param.conv_param);
+    PoolingParam<X86> pool_param = param.pooling_param;
+
+    DataType dtype_out = outputs[0]->get_dtype();
+    DataType dtype_in = inputs[0]->get_dtype();
+    // check layout info
+    Shape out_shape = outputs[0]->valid_shape();
+    Shape in_shape = inputs[0]->valid_shape();
+
+    LayoutType layout_in = in_shape.get_layout();
+    LayoutType layout_out = out_shape.get_layout();
+    if (!((dtype_in != AK_FLOAT) && (dtype_out != AK_FLOAT) &&
+          (layout_in == Layout_NHWC) && (layout_out == Layout_NHWC))) {
+        return ret;
+    }
+
+    if (!this->conv_pool_impl_) {
+        LOG(FATAL) << "impl is NULL";
+        return SaberNotInitialized;
+    }
+
+    // conv pooling op create func
+    ret = this->conv_pool_impl_->create(inputs, outputs, param, ctx);
     return ret;
 }
 
@@ -72,7 +97,42 @@ SaberStatus SaberConv2DPooling<X86, AK_INT8>::\
 init(const std::vector<Tensor<X86> *>& inputs,
      std::vector<Tensor<X86> *>& outputs,
      ConvPoolingParam<X86>& param, Context<X86>& ctx) {
-    SaberStatus ret = SaberSuccess;
+    SaberStatus ret = SaberUnImplError;
+
+    this->_ctx = &ctx;
+    ConvParam<X86> conv_param(param.conv_param);
+    PoolingParam<X86> pool_param = param.pooling_param;
+
+    DataType dtype_out = outputs[0]->get_dtype();
+    DataType dtype_in = inputs[0]->get_dtype();
+    // check layout info
+    Shape out_shape = outputs[0]->valid_shape();
+    Shape in_shape = inputs[0]->valid_shape();
+
+    LayoutType layout_in = in_shape.get_layout();
+    LayoutType layout_out = out_shape.get_layout();
+
+    if (!((dtype_in != AK_FLOAT) && (dtype_out != AK_FLOAT) &&
+          (layout_in == Layout_NHWC) && (layout_out == Layout_NHWC))) {
+        return ret;
+    }
+
+    // init conv pool op
+    if (this->conv_pool_impl_) {
+        delete this->conv_pool_impl_;
+    }
+
+    // first try optimized op
+    this->conv_pool_impl_ = new JitAvx512ConvPoolOptimized;
+    ret = this->conv_pool_impl_->init(inputs, outputs, param, ctx);
+
+    if (ret != SaberSuccess) {
+        // then try normal op
+        delete this->conv_pool_impl_;
+        this->conv_pool_impl_ = new JitConvPoolingNormal<AK_INT8>;
+        ret = this->conv_pool_impl_->init(inputs, outputs, param, ctx);
+    }
+    LOG(INFO)<<"";
     return ret;
 }
 
@@ -82,7 +142,12 @@ dispatch(const std::vector<Tensor<X86> *>& inputs,
          std::vector<Tensor<X86> *>& outputs,
          ConvPoolingParam<X86>& param) {
     SaberStatus ret = SaberSuccess;
+    if (!this->conv_pool_impl_) {
+        LOG(FATAL) << "impl is NULL";
+        return SaberNotInitialized;
+    }
 
+    ret = this->conv_pool_impl_->dispatch(inputs, outputs, param);
     return ret;
 }
 

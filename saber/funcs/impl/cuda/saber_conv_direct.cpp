@@ -117,6 +117,14 @@ SaberStatus SaberDirectConv<AK_INT8>::create(
         const std::vector<Tensor<NV> *>& inputs,
         std::vector<Tensor<NV> *>& outputs,
         ConvParam<NV>& param, Context<NV> &ctx) {
+
+    if (&ctx != this->_ctx) {
+        this->_ctx = &ctx;
+    }
+    CHECK_EQ(inputs[0]->channel() % 4, 0);
+    // ====== int8 conv, the input channel must be a multiple of 4
+
+
     return SaberSuccess;
 }
 
@@ -128,6 +136,28 @@ SaberStatus SaberDirectConv<AK_INT8>::init(
 
     this->_ctx = &ctx;
 
+    if (outputs[0]->get_dtype() == AK_FLOAT) {
+        if (param.bias()->size() > 0 &&
+            (!param.activation_param.has_active || _use_saber_act)) {
+            int8_dispatch_func = direct_conv_Kdivis4_s8_to_f32<true, false>;
+        } else if (param.bias()->valid_size() > 0 &&
+                   (param.activation_param.has_active && !_use_saber_act)) {
+            int8_dispatch_func = direct_conv_Kdivis4_s8_to_f32<true, true>;
+        } else {
+            int8_dispatch_func = direct_conv_Kdivis4_s8_to_f32<false, false>;
+        }
+    } else if (outputs[0]->get_dtype() == AK_INT8) {
+        if (param.bias()->size() > 0 &&
+            (!param.activation_param.has_active || _use_saber_act)) {
+            int8_dispatch_func = direct_conv_Kdivis4_s8_to_s8<true, false>;
+        } else if (param.bias()->valid_size() > 0 &&
+                   (param.activation_param.has_active && !_use_saber_act)) {
+            int8_dispatch_func = direct_conv_Kdivis4_s8_to_s8<true, true>;
+        } else {
+            int8_dispatch_func = direct_conv_Kdivis4_s8_to_s8<false, false>;
+        }
+    }
+
     return create(inputs, outputs, param, ctx);
 }
 template <>
@@ -136,7 +166,56 @@ SaberStatus SaberDirectConv<AK_INT8>::dispatch(
     std::vector<Tensor<NV> *>& outputs,
     ConvParam<NV>& param) {
 
+    Shape shape_in = inputs[0]->valid_shape();
+    Shape shape_out = outputs[0]->valid_shape();
+    const void* weight_ptr = param.weight()->data();
+    const float* bias_data = nullptr;
+    if (param.bias()->size() > 0) {
+        bias_data = (const float*)param.bias()->data();
+    }
+    int in_channel_4 = inputs[0]->channel() / 4;
 
+    if ((inputs[0]->channel() & 3) != 0) {
+        LOG(FATAL) << "input channel is not a multipler of 4 in_channel = "
+                   << inputs[0]->channel();
+    }
+
+    const void* in_data = (const void*)inputs[0]->data();
+    void* out_data = (void*)outputs[0]->mutable_data();
+    cudaStream_t stream = _ctx->get_compute_stream();
+    float alpha = 1.f;
+    if (param.weight()->get_scale().size() == 1) {
+        CHECK_GE(inputs[0]->get_scale().size(), 1);
+        alpha = inputs[0]->get_scale()[0] * param.weight()->get_scale()[0];
+    }
+    if (outputs[0]->get_dtype() == AK_INT8) {
+        CHECK_GE(outputs[0]->get_scale().size(), 1);
+        alpha /= outputs[0]->get_scale()[0];
+    }
+    int8_dispatch_func(
+            in_data,
+            out_data,
+            weight_ptr,
+            bias_data,
+            inputs[0]->num(),
+            in_channel_4,
+            inputs[0]->height(),
+            inputs[0]->width(),
+            outputs[0]->channel(),
+            outputs[0]->height(),
+            outputs[0]->width(),
+            param.weight()->height(),
+            param.weight()->width(),
+            param.pad_h,
+            param.pad_w,
+            param.stride_h,
+            param.stride_w,
+            param.dilation_h,
+            param.dilation_w,
+            param.group,
+            alpha,
+            param.beta,
+            this->_ctx->get_compute_stream());
     return SaberSuccess;
 }
 

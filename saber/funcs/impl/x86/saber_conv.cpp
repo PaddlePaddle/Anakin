@@ -6,6 +6,8 @@
 #include "saber/funcs/impl/x86/kernel/jit_uni_dwconv.h"
 #include "saber/funcs/impl/x86/kernel/jit_avx512_conv1x1.h"
 #include "saber/funcs/impl/x86/kernel/jit_avx512_conv.h"
+#include "saber/funcs/impl/x86/kernel/jit_avx512_core_x8s8s32x_conv.h"
+#include "saber/funcs/impl/x86/kernel/jit_avx512_core_x8s8s32x_1x1_conv.h"
 #include "saber/funcs/impl/x86/gemm_x8s8s32x_conv.h"
 #include "saber/funcs/impl/x86/saber_conv_1x1.h"
 #include "saber/funcs/impl/x86/kernel/jit_uni_dwconv.h"
@@ -156,6 +158,23 @@ SaberStatus SaberConv2D<X86, AK_INT8>::\
 create(const std::vector<Tensor<X86> *>& inputs,
        std::vector<Tensor<X86> *>& outputs,
        ConvParam<X86>& param, Context<X86>& ctx) {
+    this->_ctx = &ctx;
+    EltwiseParam<X86> elt_param(Eltwise_sum);
+    elt_param.has_eltwise = false;
+    ConvEltwiseParam<X86> conv_elt_param(param, elt_param);
+
+    if (_input_vec.size() == 0 && _output_vec.size() == 0) {
+        return this->impl->create(inputs, outputs, conv_elt_param, ctx);
+    } else if (_input_vec.size() >= 0 && _output_vec.size() == 0) {
+        return this->impl->create(_input_vec, outputs, conv_elt_param, ctx);
+    } else if (_input_vec.size() == 0 && _output_vec.size() >= 0) {
+        return this->impl->create(inputs, _output_vec, conv_elt_param, ctx);
+    } else if (_input_vec.size() >= 0 && _output_vec.size() >= 0) {
+        return this->impl->create(_input_vec, _output_vec, conv_elt_param, ctx);
+    } else {
+        LOG(FATAL) << "this is bug";
+        return SaberUnImplError;
+    }
 
     return SaberSuccess;
 }
@@ -165,7 +184,91 @@ SaberStatus SaberConv2D<X86, AK_INT8>::\
 init(const std::vector<Tensor<X86> *>& inputs,
      std::vector<Tensor<X86> *>& outputs,
      ConvParam<X86>& param, Context<X86>& ctx) {
+    this->_ctx = &ctx;
+    EltwiseParam<X86> elt_param(Eltwise_sum);
+    elt_param.has_eltwise = false;
+    ConvEltwiseParam<X86> conv_elt_param(param, elt_param);
+    ConvParam<X86>* conv_param = &(param);
+    CHECK(inputs[0]->get_layout() == Layout_NHWC || inputs[0]->get_dtype() == AK_FLOAT);
+    const int group = param.group;
+    const int oc = outputs[0]->channel();
+    const int ic = inputs[0]->channel();
+    const int kh = param.weight()->height();
+    const int kw = param.weight()->width();
+    const int pad_h = param.pad_h;
+    const int pad_w = param.pad_w;
+    const int stride_h = param.stride_h;
+    const int stride_w = param.stride_w;
+    const int dilation_h = param.dilation_h;
+    const int dilation_w = param.dilation_w;
+    const DataType in_dtyp = inputs[0]->get_dtype();
+    bool conv_1x1_flag = (kh == 1 && kw == 1) && (pad_h == 0 && pad_w == 0) && (stride_h == 1
+                         && stride_w == 1) && group == 1;
 
+    if (inputs[0]->get_dtype() == AK_FLOAT || inputs[0]->get_layout() != Layout_NHWC) {
+        if (inputs[0]->get_dtype() == AK_FLOAT) {
+            if (0) { //(inputs[0]->get_posstive_flag()){
+                _input_scale.re_alloc(
+                    Shape({inputs[0]->num(), inputs[0]->height(), inputs[0]->width(), inputs[0]->channel()},
+                          Layout_NHWC), AK_UINT8);
+            } else {
+                _input_scale.re_alloc(
+                    Shape({inputs[0]->num(), inputs[0]->height(), inputs[0]->width(), inputs[0]->channel()},
+                          Layout_NHWC), AK_INT8);
+            }
+        } else {
+            _input_scale.re_alloc(
+                Shape({inputs[0]->num(), inputs[0]->height(), inputs[0]->width(), inputs[0]->channel()},
+                      Layout_NHWC), inputs[0]->get_dtype());
+        }
+
+        _input_scale.set_scale(inputs[0]->get_scale());
+        _input_vec.push_back(&_input_scale);
+    }
+
+    if (outputs[0]->get_layout() == Layout_NCHW) {
+        _output_scale.re_alloc(Shape({outputs[0]->num(), outputs[0]->height(), outputs[0]->width(),
+                                      outputs[0]->channel()}, Layout_NHWC), outputs[0]->get_dtype());
+        _output_scale.set_scale(inputs[0]->get_scale());
+        _output_vec.push_back(&_output_scale);
+    } else if (outputs[0]->get_layout() != Layout_NHWC) {
+        LOG(FATAL) << "not support output layout " << outputs[0]->get_layout();
+    }
+
+    DLOG(INFO) << "init int8 conv group = " << group << ",pad = " << pad_h << "," << pad_w <<
+               ", stride = " << stride_h << "," << stride_w
+               << ", dili = " << dilation_h << "," << dilation_w << " , oc = " << oc << ", ic = " << ic <<
+               ", kh = " << kh << ",kw = " << kw;
+#if 0
+
+    this->impl = new GemmX8S8S32XConv();
+#else
+    bool is_dw = (group > 1 && group == oc && group == ic);
+
+    if (conv_1x1_flag && in_dtyp == AK_UINT8) {
+        this->impl = new JitAvx512x8s8s32xConv1x1();
+    } else if ((is_dw || group == 1) && pad_w <= 14) {
+        this->impl = new JitAvx512X8S8S32XConv();
+    } else {
+        this->impl = new GemmX8S8S32XConv();
+    }
+
+#endif
+
+
+
+    if (_input_vec.size() == 0 && _output_vec.size() == 0) {
+        return this->impl->init(inputs, outputs, conv_elt_param, ctx);
+    } else if (_input_vec.size() >= 0 && _output_vec.size() == 0) {
+        return this->impl->init(_input_vec, outputs, conv_elt_param, ctx);
+    } else if (_input_vec.size() == 0 && _output_vec.size() >= 0) {
+        return this->impl->init(inputs, _output_vec, conv_elt_param, ctx);
+    } else if (_input_vec.size() >= 0 && _output_vec.size() >= 0) {
+        return this->impl->init(_input_vec, _output_vec, conv_elt_param, ctx);
+    } else {
+        LOG(FATAL) << "this is bug";
+        return SaberUnImplError;
+    }
 
     return SaberSuccess;
 }
@@ -175,6 +278,32 @@ SaberStatus SaberConv2D<X86, AK_INT8>::\
 dispatch(const std::vector<Tensor<X86> *>& inputs,
          std::vector<Tensor<X86> *>& outputs,
          ConvParam<X86>& param) {
+    EltwiseParam<X86> elt_param(Eltwise_sum);
+    elt_param.has_eltwise = false;
+    ConvEltwiseParam<X86> conv_elt_param(param, elt_param);
+
+    if (_input_vec.size() > 0) {
+        DLOG(INFO) << "trans input dtype " << _input_vec[0]->get_dtype() << "," <<
+                   _input_vec[0]->get_layout() << "," << _input_vec[0]->get_scale()[0];
+    }
+
+    if (_input_vec.size() == 0 && _output_vec.size() == 0) {
+        return this->impl->dispatch(inputs, outputs, conv_elt_param);
+    } else if (_input_vec.size() >= 0 && _output_vec.size() == 0) {
+        reorder_nhwc_nchw(*inputs[0], _input_scale);
+        return this->impl->dispatch(_input_vec, outputs, conv_elt_param);
+    } else if (_input_vec.size() == 0 && _output_vec.size() >= 0) {
+        auto status = this->impl->dispatch(inputs, _output_vec, conv_elt_param);
+        reorder_nhwc_nchw(_output_scale, *outputs[0]);
+        return  status;
+    } else if (_input_vec.size() >= 0 && _output_vec.size() >= 0) {
+        reorder_nhwc_nchw(*inputs[0], _input_scale);
+        auto status = this->impl->dispatch(_input_vec, _output_vec, conv_elt_param);
+        reorder_nhwc_nchw(_output_scale, *outputs[0]);
+        return  status;
+    } else {
+        LOG(FATAL) << "this is bug";
+    }
 
     return SaberSuccess;
 }

@@ -186,22 +186,70 @@ SaberStatus SaberConv2DPooling<NV, AK_FLOAT>::trans_weights(Tensor<NV> &target_w
     return SaberSuccess;
 }
 
+template <>
+SaberStatus SaberConv2DPooling<NV, AK_INT8>::\
+        create(const std::vector<Tensor<NV> *>& inputs,
+               std::vector<Tensor<NV> *>& outputs,
+               ConvPoolingParam<NV>& param, Context<NV>& ctx) {
+    _ctx = &ctx;
 
+    _inner_shape = conv_compute_shape(inputs[0]->valid_shape(), param.conv_param);
+    _inner_shape.set_layout(Layout_NCHW_C4);
+    _inner_tensor.reshape(_inner_shape);
+    _inner_tensor_v.resize(1);
+    _inner_tensor_v[0] = &_inner_tensor;
+    _inner_tensor.set_scale(outputs[0]->get_scale()); // temp scale!!!!
+    _conv.create(inputs, _inner_tensor_v, param.conv_param, ctx);
+    _saber_pool.create(_inner_tensor_v, outputs, param.pooling_param, ctx);
+    return SaberSuccess;
+}
+
+template <>
+SaberStatus SaberConv2DPooling<NV, AK_INT8>::
+init(const std::vector<Tensor<NV> *>& inputs,
+     std::vector<Tensor<NV> *>& outputs,
+     ConvPoolingParam<NV>& param, Context<NV>& ctx) {
+
+    this->_ctx = &ctx;
+
+    _inner_shape = conv_compute_shape(inputs[0]->valid_shape(), param.conv_param);
+    _kernel_height = param.conv_param.weight()->height();
+    _kernel_width = param.conv_param.weight()->width();
+    _inner_tensor.re_alloc(_inner_shape, AK_INT8);
+    _inner_tensor.set_layout(Layout_NCHW_C4);
+    _inner_tensor.set_scale(outputs[0]->get_scale());
+    _inner_tensor_v.resize(1);
+    _inner_tensor_v[0] = &_inner_tensor;
+    _conv.init(inputs, _inner_tensor_v, param.conv_param, ctx);
+    _saber_pool.init(_inner_tensor_v, outputs, param.pooling_param, ctx);
+    return create(inputs, outputs, param, ctx);
+}
+
+template <>
+SaberStatus SaberConv2DPooling<NV, AK_INT8>::dispatch(
+        const std::vector<Tensor<NV>*>& inputs,
+        std::vector<Tensor<NV>*>& outputs,
+        ConvPoolingParam<NV>& param) {
+    _conv.dispatch(inputs, _inner_tensor_v, param.conv_param);
+    _saber_pool.dispatch(_inner_tensor_v, outputs, param.pooling_param);
+    return SaberSuccess;
+}
+template <>
+SaberStatus SaberConv2DPooling<NV, AK_INT8>::trans_weights(Tensor<NV> &target_weights,
+        Tensor<NV> &target_bias, int pad_h, int pad_w, int dilation_h, int dilation_w,
+        int stride_h, int stride_w, int group) {
+
+    return _conv.trans_weights(target_weights, target_bias,
+            pad_h, pad_w, dilation_h, dilation_w, stride_h, stride_w, group);
+}
 template <>
 SaberStatus SaberConv2DPooling<NV, AK_HALF>::trans_weights(Tensor<NV> &target_weights,
         Tensor<NV> &target_bias, int pad_h, int pad_w, int dilation_h, int dilation_w,
         int stride_h, int stride_w, int group) {
     return SaberUnImplError;
 }
-template <>
-SaberStatus SaberConv2DPooling<NV, AK_INT8>::trans_weights(Tensor<NV> &target_weights,
-                                                           Tensor<NV> &target_bias, int pad_h, int pad_w, int dilation_h, int dilation_w,
-                                                           int stride_h, int stride_w, int group) {
-    return SaberUnImplError;
-}
 
 template class SaberConv2DPooling<NV, AK_FLOAT>;
-DEFINE_OP_TEMPLATE(SaberConv2DPooling, ConvPoolingParam, NV, AK_INT8);
 DEFINE_OP_TEMPLATE(SaberConv2DPooling, ConvPoolingParam, NV, AK_HALF);
 }
 }
