@@ -12,39 +12,44 @@ SaberStatus SaberPooling<ARM, AK_FLOAT>::create(
         PoolingParam<ARM> &param, Context<ARM> &ctx) {
     if (param.global_pooling) {
         _impl = pooling_global;
-#if defined ENABLE_OP_TIMER
+#if defined ENABLE_OP_TIMER || defined(ENABLE_DEBUG)
         _pool_type = "pooling_global";
 #endif
         return SaberSuccess;
     }
     if (param.window_h == 2 && param.window_w == 2 && \
-            param.stride_h == 2 && param.stride_w == 2 && \
+        param.pooling_type != Pooling_average_exclude_padding){
+
+        if (param.stride_h == 2 && param.stride_w == 2 && \
             param.pad_h == 0 && param.pad_w == 0) {
-        if (param.pooling_type == Pooling_max) {
-            _impl = pooling2x2s2_max;
-#if defined ENABLE_OP_TIMER
-            _pool_type = "pooling2x2s2_max";
+            if (param.pooling_type == Pooling_max) {
+                _impl = pooling2x2s2_max;
+#if defined ENABLE_OP_TIMER || defined(ENABLE_DEBUG)
+                _pool_type = "pooling2x2s2_max";
 #endif
-        } else {
-            _impl = pooling2x2s2_ave;
-#if defined ENABLE_OP_TIMER
-            _pool_type = "pooling2x2s2_ave";
+            } else {
+                _impl = pooling2x2s2_ave;
+#if defined ENABLE_OP_TIMER || defined(ENABLE_DEBUG)
+                _pool_type = "pooling2x2s2_ave";
 #endif
+            }
         }
         return SaberSuccess;
     }
 
-    if (param.window_h == 3 && param.window_w == 3) {
+    if (param.window_h == 3 && param.window_w == 3 && \
+        param.pooling_type != Pooling_average_exclude_padding) {
+
             if (param.stride_h == 1 && param.stride_w == 1 && \
                 param.pad_h == 1 && param.pad_w == 1) {
                 if (param.pooling_type == Pooling_max) {
                     _impl = pooling3x3s1p1_max;
-#if defined ENABLE_OP_TIMER
+#if defined ENABLE_OP_TIMER || defined(ENABLE_DEBUG)
                     _pool_type = "pooling3x3s1p1_max";
 #endif
                 } else {
                     _impl = pooling3x3s1p1_ave;
-#if defined ENABLE_OP_TIMER
+#if defined ENABLE_OP_TIMER || defined(ENABLE_DEBUG)
                     _pool_type = "pooling3x3s1p1_ave";
 #endif
                 }
@@ -55,12 +60,12 @@ SaberStatus SaberPooling<ARM, AK_FLOAT>::create(
                 if (param.pad_h == 0 &&  param.pad_w == 0) {
                     if (param.pooling_type == Pooling_max) {
                         _impl = pooling3x3s2p0_max;
-#if defined ENABLE_OP_TIMER
+#if defined ENABLE_OP_TIMER || defined(ENABLE_DEBUG)
                         _pool_type = "pooling3x3s2p0_max";
 #endif
                     } else {
                         _impl = pooling3x3s2p0_ave;
-#if defined ENABLE_OP_TIMER
+#if defined ENABLE_OP_TIMER || defined(ENABLE_DEBUG)
                         _pool_type = "pooling3x3s2p0_ave";
 #endif
                     }
@@ -69,12 +74,12 @@ SaberStatus SaberPooling<ARM, AK_FLOAT>::create(
                 if (param.pad_h == 1 && param.pad_w == 1) {
                     if (param.pooling_type == Pooling_max) {
                         _impl = pooling3x3s2p1_max;
-#if defined ENABLE_OP_TIMER
+#if defined ENABLE_OP_TIMER || defined(ENABLE_DEBUG)
                         _pool_type = "pooling3x3s2p1_max";
 #endif
                     } else {
                         _impl = pooling3x3s2p1_ave;
-#if defined ENABLE_OP_TIMER
+#if defined ENABLE_OP_TIMER || defined(ENABLE_DEBUG)
                         _pool_type = "pooling3x3s2p1_ave";
 #endif
                     }
@@ -83,7 +88,7 @@ SaberStatus SaberPooling<ARM, AK_FLOAT>::create(
             }
         }
         _impl = pooling_basic;
-#if defined ENABLE_OP_TIMER
+#if defined ENABLE_OP_TIMER || defined(ENABLE_DEBUG)
         _pool_type = "pooling_basic";
 #endif
 
@@ -186,32 +191,35 @@ SaberStatus SaberPooling<ARM, AK_INT8>::create(
         } else if (out_type == AK_INT8){
             _impl = pooling_global_int8_o_int8;
         }
-#if defined ENABLE_OP_TIMER
+#if defined ENABLE_OP_TIMER || defined(ENABLE_DEBUG)
         _pool_type = "pooling_global_int8";
 #endif
         return SaberSuccess;
     }
     if (param.window_h == 2 && param.window_w == 2 && \
-        param.stride_w == 2 && param.stride_h == 2 && \
-        param.pad_h == 0 && param.pad_w == 0) {
-        if (param.pooling_type == Pooling_max) {
-            if (out_type == AK_FLOAT){
-                _impl = pooling2x2s2_max_int8_o_fp32;
-            } else if (out_type == AK_INT8){
-                _impl = pooling2x2s2_max_int8_o_int8;
-            }
-#if defined ENABLE_OP_TIMER
-            _pool_type = "pooling2x2s2_max_int8";
+        param.pooling_type != Pooling_average_exclude_padding){
+
+        if (param.stride_w == 2 && param.stride_h == 2 && \
+            param.pad_h == 0 && param.pad_w == 0) {
+            if (param.pooling_type == Pooling_max) {
+                if (out_type == AK_FLOAT){
+                    _impl = pooling2x2s2_max_int8_o_fp32;
+                } else if (out_type == AK_INT8){
+                    _impl = pooling2x2s2_max_int8_o_int8;
+                }
+#if defined ENABLE_OP_TIMER || defined(ENABLE_DEBUG)
+                _pool_type = "pooling2x2s2_max_int8";
 #endif
-        } else {
-            if (out_type == AK_FLOAT){
-                _impl = pooling2x2s2_ave_int8_o_fp32;
-            } else if (out_type == AK_INT8){
-                _impl = pooling2x2s2_ave_int8_o_int8;
-            }
-#if defined ENABLE_OP_TIMER
-            _pool_type = "pooling2x2s2_ave_int8";
+            } else {
+                if (out_type == AK_FLOAT){
+                    _impl = pooling2x2s2_ave_int8_o_fp32;
+                } else if (out_type == AK_INT8){
+                    _impl = pooling2x2s2_ave_int8_o_int8;
+                }
+#if defined ENABLE_OP_TIMER || defined(ENABLE_DEBUG)
+                _pool_type = "pooling2x2s2_ave_int8";
 #endif
+            }
         }
         return SaberSuccess;
     }
@@ -224,7 +232,7 @@ SaberStatus SaberPooling<ARM, AK_INT8>::create(
                 } else if (out_type == AK_INT8){
                     _impl = pooling3x3s1p1_max_int8_o_int8;
                 }
-#if defined ENABLE_OP_TIMER
+#if defined ENABLE_OP_TIMER || defined(ENABLE_DEBUG)
                 _pool_type = "pooling3x3s1_max_int8";
 #endif
             } else {
@@ -234,7 +242,7 @@ SaberStatus SaberPooling<ARM, AK_INT8>::create(
                     _impl = pooling_basic_int8_o_int8;
                 }
             }
-#if defined ENABLE_OP_TIMER
+#if defined ENABLE_OP_TIMER || defined(ENABLE_DEBUG)
             _pool_type = " pooling_basic_int8";
 #endif
         }
@@ -248,7 +256,7 @@ SaberStatus SaberPooling<ARM, AK_INT8>::create(
                 } else if (out_type == AK_INT8){
                     _impl =pooling3x3s2p0_max_int8_o_int8;
                 }
-#if defined ENABLE_OP_TIMER
+#if defined ENABLE_OP_TIMER || defined(ENABLE_DEBUG)
                 _pool_type = "pooling3x3s2p0_max_int8";
 #endif
             } else {
@@ -257,7 +265,7 @@ SaberStatus SaberPooling<ARM, AK_INT8>::create(
                 } else if (out_type == AK_INT8){
                     _impl = pooling_basic_int8_o_int8;
                 }
-#if defined ENABLE_OP_TIMER
+#if defined ENABLE_OP_TIMER || defined(ENABLE_DEBUG)
                 _pool_type = "pooling_basic_int8";
 #endif
             }
@@ -270,7 +278,7 @@ SaberStatus SaberPooling<ARM, AK_INT8>::create(
                 } else if (out_type == AK_INT8){
                     _impl = pooling3x3s2p1_max_int8_o_int8;
                 }
-#if defined ENABLE_OP_TIMER
+#if defined ENABLE_OP_TIMER || defined(ENABLE_DEBUG)
                 _pool_type = "pooling3x3s2p1_max_int8";
 #endif
             } else {
@@ -279,7 +287,7 @@ SaberStatus SaberPooling<ARM, AK_INT8>::create(
                 } else if (out_type == AK_INT8){
                     _impl = pooling_basic_int8_o_int8;
                 }
-#if defined ENABLE_OP_TIMER
+#if defined ENABLE_OP_TIMER || defined(ENABLE_DEBUG)
                 _pool_type = "pooling_basic_int8";
 #endif
             }
@@ -292,7 +300,7 @@ SaberStatus SaberPooling<ARM, AK_INT8>::create(
     } else if (out_type == AK_INT8){
         _impl = pooling_basic_int8_o_int8;
     }
-#if defined ENABLE_OP_TIMER
+#if defined ENABLE_OP_TIMER || defined(ENABLE_DEBUG)
     _pool_type = "pooling_basic_int8";
 #endif
 

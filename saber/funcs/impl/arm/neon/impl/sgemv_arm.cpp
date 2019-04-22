@@ -20,7 +20,7 @@ void sgemv_bias_relu(const bool transA, const int M, const int N, \
 SaberStatus sgemv(const float* A, const float* x, float* y, bool transA, int M, int N, \
     bool is_bias, const float* bias, bool is_relu) {
     if (transA) {
-        LOGE("ERROR: sgemv, transA is not supported now\n");
+        LOG(ERROR) << "ERROR: sgemv, transA is not supported now";
         return SaberInvalidValue;
     }
     if (is_bias) {

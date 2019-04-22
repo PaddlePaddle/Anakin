@@ -76,6 +76,7 @@ struct Layout {
     virtual int aligned_length() {return -1;}
     virtual int dims() {return -1;}
     virtual LayoutType type() {return Layout_invalid;}
+    virtual ~Layout() {}
 };
 struct W : public Layout {
     int width_index() {return 0;}
@@ -293,7 +294,8 @@ typedef enum{
     Eltwise_prod = 1,
     Eltwise_sum = 2,
     Eltwise_max = 3,
-    Eltwise_div = 4
+    Eltwise_div = 4,
+    Eltwise_mul = 5 
 } EltwiseType;
 typedef enum{
     ACROSS_CHANNELS = 0,

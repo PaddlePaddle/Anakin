@@ -59,7 +59,7 @@ private:
     Tensor<ARM> _tmp_in;
     Tensor<ARM> _tmp_out;
 
-#if defined ENABLE_OP_TIMER
+#if defined ENABLE_OP_TIMER || defined(ENABLE_DEBUG)
     std::string _pool_type;
 #endif
 };

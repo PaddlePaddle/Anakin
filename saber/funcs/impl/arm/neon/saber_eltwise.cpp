@@ -45,7 +45,7 @@ void eltwise_prod(const void* din_a, const void* din_b, void* dout, const int si
         :[loop_cnt] "+r" (loop_cnt), [a_ptr] "+r" (a_ptr), \
             [b_ptr] "+r" (b_ptr), [out_ptr] "+r" (out_ptr)
         :
-        :"q0", "q1", "q2", "q3", "q8", "q9"
+        :"cc", "memory", "q0", "q1", "q2", "q3", "q8", "q9"
         );
     }
 #endif //__aarch64__
@@ -100,7 +100,7 @@ void eltwise_prod_relu(const void* din_a, const void* din_b, void* dout, const i
         :[loop_cnt] "+r" (loop_cnt), [a_ptr] "+r" (a_ptr), \
             [b_ptr] "+r" (b_ptr), [out_ptr] "+r" (out_ptr)
         : [vzero] "w" (vzero)
-        :"q0", "q1", "q2", "q3", "q8", "q9"
+        :"cc", "memory", "q0", "q1", "q2", "q3", "q8", "q9"
         );
     }
 #endif //__aarch64__
@@ -150,7 +150,7 @@ void eltwise_sum(const void* din_a, const void* din_b, void* dout, const int siz
         :[loop_cnt] "+r" (loop_cnt), [a_ptr] "+r" (a_ptr), \
             [b_ptr] "+r" (b_ptr), [out_ptr] "+r" (out_ptr)
         :
-        :"q0", "q1", "q2", "q3", "q8", "q9"
+        :"cc", "memory", "q0", "q1", "q2", "q3", "q8", "q9"
         );
     }
 #endif //__aarch64__
@@ -204,7 +204,7 @@ void eltwise_sum_relu(const void* din_a, const void* din_b, void* dout, const in
         :[loop_cnt] "+r" (loop_cnt), [a_ptr] "+r" (a_ptr), \
             [b_ptr] "+r" (b_ptr), [out_ptr] "+r" (out_ptr)
         :[vzero] "w" (vzero)
-        :"q0", "q1", "q2", "q3", "q8", "q9"
+        :"cc", "memory", "q0", "q1", "q2", "q3", "q8", "q9"
         );
     }
 #endif //__aarch64__
@@ -257,7 +257,7 @@ void eltwise_max(const void* din_a, const void* din_b, void* dout, const int siz
         :[loop_cnt] "+r" (loop_cnt), [a_ptr] "+r" (a_ptr), \
             [b_ptr] "+r" (b_ptr), [out_ptr] "+r" (out_ptr)
         :
-        :"q0", "q1", "q2", "q3", "q8", "q9"
+        :"cc", "memory", "q0", "q1", "q2", "q3", "q8", "q9"
         );
     }
 #endif //__aarch64__
@@ -313,7 +313,7 @@ void eltwise_max_relu(const void* din_a, const void* din_b, void* dout, const in
         :[loop_cnt] "+r" (loop_cnt), [a_ptr] "+r" (a_ptr), \
             [b_ptr] "+r" (b_ptr), [out_ptr] "+r" (out_ptr)
         :[vzero] "w" (vzero)
-        :"q0", "q1", "q2", "q3", "q8", "q9"
+        :"cc", "memory", "q0", "q1", "q2", "q3", "q8", "q9"
         );
     }
 #endif //__aarch64__

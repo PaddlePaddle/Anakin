@@ -60,7 +60,7 @@ void act_relu(const float* din, float* dout, int n, int c, int h, int w, \
                 "bne    1b                              @ jump to main loop start point\n"
             :[dout] "+r"(ptr_out_thread), [din] "+r"(ptr_in_thread), [cnt] "+r"(cnt)
             :[vzero] "w" (vzero)
-            :"q0", "q1", "q2", "q3", "q8", "q9", "q10", "q11"
+            :"cc", "memory", "q0", "q1", "q2", "q3", "q8", "q9", "q10", "q11"
             );
         }
 #endif
@@ -157,7 +157,7 @@ void act_relu_neg(const float* din, float* dout, int n, int c, int h, int w, con
                 "bne    1b                              @ jump to main loop start point\n"
             :[dout] "+r"(ptr_out_thread), [din] "+r"(ptr_in_thread), [cnt] "+r"(cnt)
             :[vzero] "w" (vzero), [valpha] "w" (valpha)
-            :"q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11"
+            :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11"
             );
         }
 #endif
@@ -242,7 +242,7 @@ void clipped_relu(const float* din, float* dout, int n, int c, int h, int w, con
                     "bne    1b                              @ jump to main loop start point\n"
             :[dout] "+r"(ptr_out_thread), [din] "+r"(ptr_in_thread), [cnt] "+r"(cnt)
             :[vzero] "w" (vzero), [vclip] "w" (vclip)
-            :"q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11"
+            :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11"
             );
         }
 #endif
@@ -341,7 +341,7 @@ void act_prelu(const float* din, float* dout, int num, int channel, int h, int w
                     "sub    %[ptr_in], #32                          @ ptr-32\n"
                 :[ptr_in] "+r" (data_in_c), [cnt] "+r" (cnt_loop), [dout] "+r" (data_out_c)
                 :[vzero] "w" (vzero), [vslope] "w" (vslope)
-                :"q0", "q1", "q2", "q3", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
+                :"cc", "memory", "q0", "q1", "q2", "q3", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
                 );
             }
 #endif //__aarch64__

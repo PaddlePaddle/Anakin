@@ -248,7 +248,7 @@ void conv_3x3s1_direct_fp32(const float* din, float* dout, \
                         : [w0]"w"(w0), [w1]"w"(w1), [w2]"w"(w2), [w3]"w"(w3),\
                             [w4]"w"(w4),[w5]"w"(w5), [w6]"w"(w6), [w7]"w"(w7),\
                             [w8]"w"(w8)
-                        : "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v15", "v16", \
+                        : "cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v15", "v16", \
                         "v17", "v18", "v19", "v20", "v21", "v22"
                         );
 
@@ -409,7 +409,7 @@ void conv_3x3s1_direct_fp32(const float* din, float* dout, \
                             [r3] "+r"(r3), [ptr_out0] "+r"(ptr_out0), \
                                 [ptr_out1] "+r"(ptr_out1), [wc0]"+r"(wc0)
                         :
-                        : "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", \
+                        : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", \
                             "q10", "q11", "q12", "q13", "q14", "q15"
                         );
 
@@ -556,7 +556,7 @@ void conv_3x3s1_direct_fp32(const float* din, float* dout, \
                         : [w0]"w"(w0), [w1]"w"(w1), [w2]"w"(w2), [w3]"w"(w3),\
                             [w4]"w"(w4),[w5]"w"(w5), [w6]"w"(w6), [w7]"w"(w7),\
                             [w8]"w"(w8)
-                        : "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", \
+                        : "cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", \
                             "v8", "v9", "v10", "v11", "v12", "v13", "v14", "v15", \
                             "v21", "v22"
                         );
@@ -675,7 +675,7 @@ void conv_3x3s1_direct_fp32(const float* din, float* dout, \
                             [r3] "+r"(r3), [ptr_out0] "+r"(ptr_out0), \
                             [ptr_out1] "+r"(ptr_out1)
                             : [w0]"w"(w0), [w1]"w"(w1), [w2]"w"(w2)
-                            : "q3", "q4", "q5", "q6", "q7", "q8", "q9", \
+                            : "cc", "memory", "q3", "q4", "q5", "q6", "q7", "q8", "q9", \
                             "q10", "q11", "q12", "q13", "q14", "q15"
                             );
                             r0 -= 8;

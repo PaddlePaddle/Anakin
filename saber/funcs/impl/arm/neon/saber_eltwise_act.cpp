@@ -93,7 +93,7 @@ void eltwise_prod_prelu(const float* din_a, const float* din_b, float* dout, con
                 :[loop_cnt] "+r" (loop_cnt), [a_ptr] "+r" (a_ptr), \
                 [b_ptr] "+r" (b_ptr), [out_ptr] "+r" (out_ptr), [vzero] "+w" (vzero), [vslope] "+w" (vslope)
                 :
-                :"q0", "q1", "q2", "q3", "q8", "q9"
+                :"cc", "memory", "q0", "q1", "q2", "q3", "q8", "q9"
                 );
             }
 #endif //__aarch64__
@@ -219,7 +219,7 @@ void eltwise_sum_prelu(const float* din_a, const float* din_b, float* dout, cons
                 :[loop_cnt] "+r" (loop_cnt), [a_ptr] "+r" (a_ptr), \
                 [b_ptr] "+r" (b_ptr), [out_ptr] "+r" (out_ptr), [vzero] "+w" (vzero), [vslope] "+w" (vslope)
                 :
-                :"q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11"
+                :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11"
                 );
             }
 #endif //__aarch64__
@@ -308,7 +308,7 @@ void eltwise_max_prelu(const float* din_a, const float* din_b, float* dout, cons
                 :[loop_cnt] "+r" (loop_cnt), [a_ptr] "+r" (a_ptr), \
                 [b_ptr] "+r" (b_ptr), [out_ptr] "+r" (out_ptr), [vzero] "+w" (vzero), [vslope] "+w" (vslope)
                 :
-                :"q0", "q1", "q2", "q3", "q8", "q9"
+                :"cc", "memory", "q0", "q1", "q2", "q3", "q8", "q9"
                 );
             }
 #endif //__aarch64__

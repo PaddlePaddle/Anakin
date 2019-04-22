@@ -43,7 +43,7 @@ void axpy_kernel_fp32(const float* scale, const float* din, const float* bias, f
                     :[din_ptr] "+r" (din_ch_ptr), [bias_ptr] "+r" (bias_ch_ptr), \
                      [dout_ptr] "+r" (dout_ch_ptr), [cnt] "+r" (col_cnt)
                     :[scale] "w" (scale_val)
-                    : "v0", "v1", "v2", "v3", "v4", "v5"
+                    : "cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5"
                 );
 #else
                 asm volatile(
@@ -64,7 +64,7 @@ void axpy_kernel_fp32(const float* scale, const float* din, const float* bias, f
                     "bne        1b                          \n"
                     :[din_ptr] "+r" (din_ch_ptr), [bias_ptr] "+r" (bias_ch_ptr), [dout_ptr] "+r" (dout_ch_ptr), [cnt] "+r" (col_cnt)
                     :[scale] "w" (scale_val)
-                    : "q1", "q2", "q3", "q4", "q5", "q6"
+                    : "cc", "memory", "q1", "q2", "q3", "q4", "q5", "q6"
                 );
 #endif
             }
@@ -120,7 +120,7 @@ void axpy_kernel_int8(const int8_t* scale, const int8_t* din, const int8_t* bias
                     "bne        1b                          \n"
                     :[din_ptr] "+r" (din_ch_ptr), [bias_ptr] "+r" (bias_ch_ptr), [dout_ptr] "+r" (dout_ch_ptr), [cnt] "+r" (col_cnt)
                     :[scale] "w" (scale_val)
-                    : "v0", "v1", "v2", "v3", "v4", "v5"
+                    : "cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5"
                 );
 #else
                 asm volatile(
@@ -144,7 +144,7 @@ void axpy_kernel_int8(const int8_t* scale, const int8_t* din, const int8_t* bias
                     "bne        1b                          \n"
                     :[din_ptr] "+r" (din_ch_ptr), [bias_ptr] "+r" (bias_ch_ptr), [dout_ptr] "+r" (dout_ch_ptr), [cnt] "+r" (col_cnt)
                     :[scale] "r" (scale_val)
-                    : "q0", "q1", "q2", "q3", "q4", "q5", "q6"
+                    : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6"
                 );
 #endif
             }

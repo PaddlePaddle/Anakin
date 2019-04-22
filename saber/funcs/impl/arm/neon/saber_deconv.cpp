@@ -161,6 +161,15 @@ SaberStatus SaberDeconv2D<ARM, AK_FLOAT>::create(const std::vector<Tensor<ARM> *
     _kw = param.weight()->width();
     _kh = param.weight()->height();
 
+#if defined (ENABLE_DEBUG)
+    LOG(INFO) << "conv param: " << " img_num = " << num << " in_channels = " << chin \
+    << " img_h = " << hin << " img_w = " << win << " group = " << param.group \
+    << " pad_width = " << param.pad_w << " pad_height = " << param.pad_h << " stride_width = " \
+    << param.stride_w << " stride_height = " << param.stride_h << " dilation_w = " << param.dilation_w \
+    << " dilation_h = " << param.dilation_h << " kernel_w = " << _kw << " kernel_h = " \
+    << _kh << " out_channels = " << chout;
+#endif
+
     if (chin != chout || param.group != chin) {
         CHECK_EQ(chin % param.group, 0) <<  "ERROR: input channel or group size error";
         CHECK_EQ(chout % param.group, 0) <<  "ERROR: output channel or group size error";
@@ -173,9 +182,12 @@ SaberStatus SaberDeconv2D<ARM, AK_FLOAT>::create(const std::vector<Tensor<ARM> *
     _ctx->workspace_extend(Shape({1, 1, 1, param.group * _m * _n}));
 
     Tensor<ARM> tmp_w;
+    Shape sh_tmp = param.weight()->valid_shape();
     prepackA(tmp_w, *param.weight(), _m, _k, param.group, true, this->_ctx);
     param.weight()->reshape(tmp_w.valid_shape());
     param.weight()->copy_from(tmp_w);
+    //! recover origin weight shape
+    param.weight()->set_shape(sh_tmp);
     return SaberSuccess;
 }
 
@@ -192,6 +204,12 @@ SaberStatus SaberDeconv2D<ARM, AK_FLOAT>::dispatch(
         const std::vector<Tensor<ARM>*>& inputs,
         std::vector<Tensor<ARM>*>& outputs,
         ConvParam<ARM> &param) {
+
+#if defined (ENABLE_OP_TIMER) 
+    this->_timer.clear();
+    this->_timer.start(*this->_ctx);
+#endif
+
     int num = inputs[0]->num();
     int chin = inputs[0]->channel();
     int hin = inputs[0]->height();
@@ -201,30 +219,11 @@ SaberStatus SaberDeconv2D<ARM, AK_FLOAT>::dispatch(
     int hout = outputs[0]->height();
     int wout = outputs[0]->width();
     int group = param.group;
-
-#if defined(ENABLE_OP_TIMER) || defined(ENABLE_DEBUG)
-    int kw = param.weight()->width();
-    int kh = param.weight()->height();
-    int pw = param.pad_w;
-    int sw = param.stride_w;
-    int dw = param.dilation_w;
-    int ph = param.pad_h;
-    int sh = param.stride_h;
-    int dh = param.dilation_h;
-    LOG(INFO) << "conv param: " << " img_num = " << num << " in_channels = " << chin \
-        << " img_h = " << hin << " img_w = " << win << " group = " << group \
-        << " pad_width = " << pw << " pad_height = " << ph << " stride_width = " \
-        << sw << " stride_height = " << sh << " dilation_w = " << dw \
-        << " dilation_h = " << dh << " kernel_w = " << kw << " kernel_h = " \
-        << kh << " out_channels = " << chout;
-    this->_timer.clear();
-    this->_timer.start(*this->_ctx);
-#endif
-
     bool flag_relu = false;
     bool flag_bias = param.bias()->size() > 0;
     if (param.activation_param.has_active){
-        if (param.activation_param.active == Active_relu){
+        if (param.activation_param.active == Active_relu && \
+            fabs(param.activation_param.negative_slope) <= 1e-6f){
             flag_relu = true;
         }
     }
@@ -243,7 +242,6 @@ SaberStatus SaberDeconv2D<ARM, AK_FLOAT>::dispatch(
     const float* din = inputs[0]->data();
     float* dout = outputs[0]->mutable_data();
     const float* weights = static_cast<const float*>(param.weight()->data());
-
     for (int i = 0; i < num; ++i) {
         const float* din_batch = din + i * chin * hin * win;
         float* dout_batch = dout + i * chout * hout * wout;
@@ -306,6 +304,15 @@ SaberStatus SaberDeconv2D<ARM, AK_INT8>::create(const std::vector<Tensor<ARM> *>
     _kw = param.weight()->width();
     _kh = param.weight()->height();
 
+#if defined (ENABLE_DEBUG)
+    LOG(INFO) << "conv param: " << " img_num = " << num << " in_channels = " << chin \
+    << " img_h = " << hin << " img_w = " << win << " group = " << param.group \
+    << " pad_width = " << param.pad_w << " pad_height = " << param.pad_h << " stride_width = " \
+    << param.stride_w << " stride_height = " << param.stride_h << " dilation_w = " << param.dilation_w \
+    << " dilation_h = " << param.dilation_h << " kernel_w = " << _kw << " kernel_h = " \
+    << _kh << " out_channels = " << chout;
+#endif
+
     if (chin != chout || param.group != chin) {
         CHECK_EQ(chin % param.group, 0) <<  "ERROR: input channel or group size error";
         CHECK_EQ(chout % param.group, 0) <<  "ERROR: output channel or group size error";
@@ -318,9 +325,12 @@ SaberStatus SaberDeconv2D<ARM, AK_INT8>::create(const std::vector<Tensor<ARM> *>
     _ctx->workspace_extend(Shape({1, 1, 1, param.group * _m * _n}));
 
     Tensor<ARM> tmp_w;
+    Shape sh_tmp = param.weight()->valid_shape();
     prepackA_int8(tmp_w, *param.weight(), _m, _k, param.group, true, this->_ctx);
     param.weight()->reshape(tmp_w.valid_shape());
     param.weight()->copy_from(tmp_w);
+    //! recover origin weight shape
+    param.weight()->set_shape(sh_tmp);
     //! init int32 output tmp
     if (outputs[0]->get_dtype() != AK_INT32) {
         _tmp_out.set_dtype(AK_INT32);
@@ -353,6 +363,12 @@ SaberStatus SaberDeconv2D<ARM, AK_INT8>::dispatch(
         const std::vector<Tensor<ARM>*>& inputs,
         std::vector<Tensor<ARM>*>& outputs,
         ConvParam<ARM> &param) {
+
+#if defined (ENABLE_OP_TIMER)
+    this->_timer.clear();
+    this->_timer.start(*this->_ctx);
+#endif
+
     int num = inputs[0]->num();
     int chin = inputs[0]->channel();
     int hin = inputs[0]->height();
@@ -362,37 +378,21 @@ SaberStatus SaberDeconv2D<ARM, AK_INT8>::dispatch(
     int hout = outputs[0]->height();
     int wout = outputs[0]->width();
     int group = param.group;
-#if defined(ENABLE_OP_TIMER) || defined(ENABLE_DEBUG)
-    int kw = param.weight()->width();
-    int kh = param.weight()->height();
-    int pw = param.pad_w;
-    int sw = param.stride_w;
-    int dw = param.dilation_w;
-    int ph = param.pad_h;
-    int sh = param.stride_h;
-    int dh = param.dilation_h;
-    LOG(INFO) << "conv param: " << " img_num = " << num << " in_channels = " << chin \
-        << " img_h = " << hin << " img_w = " << win << " group = " << group \
-        << " pad_width = " << pw << " pad_height = " << ph << " stride_width = " \
-        << sw << " stride_height = " << sh << " dilation_w = " << dw \
-        << " dilation_h = " << dh << " kernel_w = " << kw << " kernel_h = " \
-        << kh << " out_channels = " << chout;
-    this->_timer.clear();
-    this->_timer.start(*this->_ctx);
-#endif
     bool flag_relu = false;
     bool flag_bias = param.bias()->size() > 0;
     if (param.activation_param.has_active){
-        if (param.activation_param.active == Active_relu){
+        if (param.activation_param.active == Active_relu \
+            && fabs(param.activation_param.negative_slope) <= 1e-6f){
             flag_relu = true;
         }
     }
     int group_size_in = win * hin * chin / group;
     int group_size_out = wout * hout * chout / group;
     int group_size_coldata = _m * _n;
+    int kup =  ROUNDUP(_k, KBLOCK_INT8);
     int hblock = get_hblock_int8(this->_ctx->get_arch());
     int m_roundup = hblock * ((_m + hblock - 1) / hblock);
-    int group_size_weights = ((m_roundup * _k + 15) / 16) * 16;
+    int group_size_weights = ((m_roundup * kup + 15) / 16) * 16;
 
     bool flag_1x1s1p1 = (_kw == 1) && (_kh == 1) && (param.stride_h == 1) && \
         (param.stride_w == 1) && (param.pad_w == 0) && (param.pad_h == 0) && \

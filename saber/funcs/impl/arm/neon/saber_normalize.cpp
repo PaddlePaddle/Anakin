@@ -60,7 +60,7 @@ void compute_mean(const float* input, Tensor<ARM>& mean, int num, int channel, i
                 :[in_channel] "+r" (in_channel), [loop] "+r" (loop), [vsum] "+w" (vsum), \
                  [c] "+w" (vc)
                 :"r" (in_channel), "r" (num), "w" (vsum)
-                : "q0", "q1", "q4", "q5", "q6", "q7"
+                : "cc", "memory", "q0", "q1", "q4", "q5", "q6", "q7"
                 );
             }
 #endif //__aarch64__
@@ -146,7 +146,7 @@ void compute_variance(const float* input, Tensor<ARM>& mean, Tensor<ARM>& varian
                 :[in_channel] "+r" (in_channel), [loop] "+r" (loop), [vsum] "+w" (vsum), \
                  [mean] "+r" (mean_val), [c] "+w" (vc)
                 :"r" (in_channel), "r" (loop), "w" (vsum)
-                : "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q10"
+                : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q10"
                 );
             }
 #endif //__aarch64__
@@ -240,7 +240,7 @@ SaberStatus SaberNormalize<ARM, AK_FLOAT>::dispatch(\
                 :[in_channel] "+r" (input_channel), [out_channel] "+r" (output_channel), [loop] "+r" (loop),\
                  [mean] "+w" (vmean_val), [std] "+w" (vstd_val)
                 :"r" (input_channel), "r" (loop)
-                : "q0", "q1", "q2", "q3", "q4", "q5"
+                : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5"
                 );
             }
 #endif //__aarch64__

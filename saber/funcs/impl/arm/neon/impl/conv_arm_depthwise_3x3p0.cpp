@@ -507,7 +507,7 @@ void conv_depthwise_3x3s1p0_bias(float* dout, const float* din, \
                         [doutr0] "+r"(doutr0), [doutr1] "+r"(doutr1), [doutr2] "+r"(doutr2), [doutr3] "+r"(doutr3)
                 : [w0]"w"(wr0), [w1]"w"(wr1), [w2]"w"(wr2), [bias_val] "r" (vbias), \
                       [vmask] "r" (vmask), [rmask] "r" (rmask), [vzero] "w" (vzero), [remain] "r" (remain)
-                :"v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9",\
+                :"cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9",\
                       "v10", "v11", "v12", "v13", "v14", "v15", "v16", "v17", "v18",\
                       "v19", "v20", "v21", "v22", "v23", "v24", "v25"
                 );
@@ -770,7 +770,7 @@ void conv_depthwise_3x3s1p0_bias(float* dout, const float* din, \
                     [cnt] "+r"(cnt), [rmask] "+r" (rmask_ptr), [vmask] "+r" (vmask_ptr)
                 :[wr0] "w"(wr0), [wr1] "w"(wr1), [wr2] "w"(wr2), [bias_val] "r" (bias_val), \
                 [vzero] "w" (vzero), [remain] "r" (remain)
-                :"q4", "q5", "q6", "q7", "q8", "q9", \
+                :"cc", "memory", "q4", "q5", "q6", "q7", "q8", "q9", \
                         "q10", "q11", "q12", "q13", "q14", "q15"
                 );
                 dout_channel += 2 * w_out;
@@ -1072,7 +1072,7 @@ void conv_depthwise_3x3s2p0_bias(float* dout, const float* din, \
                   [cnt] "+r" (cnt)
                 : [vzero] "w" (vzero), [w0] "w" (wr0), [w1] "w" (wr1), [w2] "w" (wr2), [remain] "r" (cnt_remain), \
                   [mask1] "w" (vmask_rp1), [mask2] "w" (vmask_rp2), [wmask] "w" (wmask), [vbias] "w" (wbias)
-                : "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "v12", "v13", "v14", \
+                : "cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "v12", "v13", "v14", \
                   "v15", "v16", "v17", "v18", "v19", "v20", "v21"
                 );
                 doutr0 = doutr0 + 2 * w_out;
@@ -1201,7 +1201,7 @@ void conv_depthwise_3x3s2p0_bias(float* dout, const float* din, \
                     [outptr] "+r"(doutr0_ptr), [cnt] "+r" (cnt), [mask_ptr] "+r"(mask_ptr)
                 : [remain] "r" (cnt_remain), [wr0] "w" (wr0), [wr1] "w" (wr1), [wr2] "w" (wr2), \
                     [bias] "r"(bias_c)
-                : "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
+                : "cc", "memory", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
                 );
 
                 doutr0 = doutr0 + w_out;
@@ -1630,7 +1630,7 @@ void conv_depthwise_3x3s1p0_bias_relu(float* dout, const float* din, \
                         [doutr0] "+r"(doutr0), [doutr1] "+r"(doutr1), [doutr2] "+r"(doutr2), [doutr3] "+r"(doutr3)
                 : [w0]"w"(wr0), [w1]"w"(wr1), [w2]"w"(wr2), [bias_val] "r" (vbias), \
                       [vmask] "r" (vmask), [rmask] "r" (rmask), [vzero] "w" (vzero), [remain] "r" (remain)
-                :"v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9",\
+                :"cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9",\
                       "v10", "v11", "v12", "v13", "v14", "v15", "v16", "v17", "v18",\
                       "v19", "v20", "v21", "v22", "v23", "v24", "v25"
                 );
@@ -1902,7 +1902,7 @@ void conv_depthwise_3x3s1p0_bias_relu(float* dout, const float* din, \
                     [cnt] "+r"(cnt), [rmask] "+r" (rmask_ptr), [vmask] "+r" (vmask_ptr)
                 :[wr0] "w"(wr0), [wr1] "w"(wr1), [wr2] "w"(wr2), [bias_val] "r" (bias_val), \
                 [vzero] "w" (vzero), [remain] "r" (remain)
-                :"q4", "q5", "q6", "q7", "q8", "q9", \
+                :"cc", "memory", "q4", "q5", "q6", "q7", "q8", "q9", \
                         "q10", "q11", "q12", "q13", "q14", "q15"
                 );
                 dout_channel += 2 * w_out;
@@ -2211,7 +2211,7 @@ void conv_depthwise_3x3s2p0_bias_relu(float* dout, const float* din, \
                   [cnt] "+r" (cnt)
                 : [vzero] "w" (vzero), [w0] "w" (wr0), [w1] "w" (wr1), [w2] "w" (wr2), [remain] "r" (cnt_remain), \
                   [mask1] "w" (vmask_rp1), [mask2] "w" (vmask_rp2), [wmask] "w" (wmask), [vbias] "w" (wbias)
-                : "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "v12", "v13", "v14", \
+                : "cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "v12", "v13", "v14", \
                   "v15", "v16", "v17", "v18", "v19", "v20", "v21"
                 );
                 doutr0 = doutr0 + 2 * w_out;
@@ -2343,7 +2343,7 @@ void conv_depthwise_3x3s2p0_bias_relu(float* dout, const float* din, \
                     [outptr] "+r"(doutr0_ptr), [cnt] "+r" (cnt), [mask_ptr] "+r"(mask_ptr)
                 : [remain] "r" (cnt_remain), [wr0] "w" (wr0), [wr1] "w" (wr1), [wr2] "w" (wr2), \
                     [bias] "r"(bias_c)
-                : "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
+                : "cc", "memory", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
                 );
 
                 doutr0 = doutr0 + w_out;
@@ -2513,7 +2513,7 @@ void conv_depthwise_3x3s1p0_bias_s(float* dout, const float* din, \
                 : [wr0]"w"(wr0), [wr1]"w"(wr1), [wr2]"w"(wr2), [vbias] "w" (wbias), \
                     [mask1] "w" (vmask_rp1), [mask2] "w" (vmask_rp2), [zero] "w" (vzero), \
                     [out1] "r" (out_buf1), [out2] "r" (out_buf2)
-                :"v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", \
+                :"cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", \
                       "v10", "v11", "v12", "v13", "v14", "v15"
                 );
 #else
@@ -2616,7 +2616,7 @@ void conv_depthwise_3x3s1p0_bias_s(float* dout, const float* din, \
                       [vmask] "+r" (vmask_ptr)
                     :[wr0] "w" (wr0), [wr1] "w" (wr1), [wr2] "w" (wr2), [vzero] "w" (vzero), \
                        [bias_val] "r" (bias_val), [out1] "r" (out_buf1), [out2] "r" (out_buf2)
-                    :"q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
+                    :"cc", "memory", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
                 );
 #endif //__aarch64__
                 for (int w = 0; w < w_out; ++w){
@@ -2726,7 +2726,7 @@ void conv_depthwise_3x3s2p0_bias_s(float* dout, const float* din, \
                 : [din0_ptr] "+r"(din0_ptr), [din1_ptr] "+r"(din1_ptr), [din2_ptr] "+r"(din2_ptr), \
                     [mask_ptr] "+r"(mask_ptr)
                 : [wr0] "w" (wr0), [wr1] "w" (wr1), [wr2] "w" (wr2), [bias] "w"(vbias), [out] "r" (out_buf)
-                : "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "v12", "v13", "v14", "v15", "v16"
+                : "cc", "memory", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "v12", "v13", "v14", "v15", "v16"
                 );
 
 #else
@@ -2770,7 +2770,7 @@ void conv_depthwise_3x3s2p0_bias_s(float* dout, const float* din, \
                 : [din0_ptr] "+r"(din0_ptr), [din1_ptr] "+r"(din1_ptr), [din2_ptr] "+r"(din2_ptr)
                 : [wr0] "w" (wr0), [wr1] "w" (wr1), [wr2] "w" (wr2), [bias] "r"(bias_c), [out] "r" (out_buf), \
                   [mask_ptr] "r"(dmask)
-                : "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
+                : "cc", "memory", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
                 );
 #endif //__aarch64__
                 for (int w = 0; w < w_out; ++w){
@@ -2943,7 +2943,7 @@ void conv_depthwise_3x3s1p0_bias_s_relu(float* dout, const float* din, \
                 : [wr0]"w"(wr0), [wr1]"w"(wr1), [wr2]"w"(wr2), [vbias] "w" (wbias), \
                     [mask1] "w" (vmask_rp1), [mask2] "w" (vmask_rp2), [zero] "w" (vzero), \
                     [out1] "r" (out_buf1), [out2] "r" (out_buf2)
-                :"v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9",\
+                :"cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9",\
                       "v10", "v11", "v12", "v13", "v14", "v15"
                 );
 #else
@@ -3048,7 +3048,7 @@ void conv_depthwise_3x3s1p0_bias_s_relu(float* dout, const float* din, \
                       [vmask] "+r" (vmask_ptr)
                     :[wr0] "w" (wr0), [wr1] "w" (wr1), [wr2] "w" (wr2), [vzero] "w" (vzero), \
                        [bias_val] "r" (bias_val), [out1] "r" (out_buf1), [out2] "r" (out_buf2)
-                    :"q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
+                    :"cc", "memory", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
                 );
 #endif //__aarch64__
                 for (int w = 0; w < w_out; ++w){
@@ -3163,7 +3163,7 @@ void conv_depthwise_3x3s2p0_bias_s_relu(float* dout, const float* din, \
                 : [din0_ptr] "+r"(din0_ptr), [din1_ptr] "+r"(din1_ptr), [din2_ptr] "+r"(din2_ptr)
                 : [wr0] "w" (wr0), [wr1] "w" (wr1), [wr2] "w" (wr2), [bias] "w"(vbias), [out] "r" (out_buf), \
                   [mask_ptr] "r"(mask_ptr)
-                : "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "v12", "v13", "v14", "v15", "v16"
+                : "cc", "memory", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "v12", "v13", "v14", "v15", "v16"
                 );
 
 #else
@@ -3209,7 +3209,7 @@ void conv_depthwise_3x3s2p0_bias_s_relu(float* dout, const float* din, \
                 : [din0_ptr] "+r"(din0_ptr), [din1_ptr] "+r"(din1_ptr), [din2_ptr] "+r"(din2_ptr)
                 : [wr0] "w" (wr0), [wr1] "w" (wr1), [wr2] "w" (wr2), [bias] "r"(bias_c), [out] "r" (out_buf), \
                   [mask_ptr] "r"(mask_ptr)
-                : "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
+                : "cc", "memory", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
                 );
 #endif //__aarch64__
                 for (int w = 0; w < w_out; ++w){

@@ -602,7 +602,7 @@ void conv_depthwise_3x3s1p1_bias_int8(int* dout, const signed char* din, \
                         [vmask] "+r" (val_mask), [rmask] "+r" (rst_mask)
                     : [v0]"w"(wr00), [v1]"w"(wr01), [v2]"w"(wr02), [v3]"w"(wr10), [bias_val] "r" (vbias), \
                         [v4]"w"(wr11), [v5]"w"(wr12), [v6]"w"(wr20), [v7]"w"(wr21), [v8] "w" (wr22)
-                    :"v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9",\
+                    :"cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9",\
                       "v10", "v11", "v12","v13","v14","v15", "v16", "v17", "v18",\
                       "v19", "v20", "v21", "v22"
                 );
@@ -960,7 +960,7 @@ void conv_depthwise_3x3s1p1_bias_int8(int* dout, const signed char* din, \
                       [dout_ptr1] "+r"(doutr0), [dout_ptr2] "+r"(doutr1), [cnt] "+r" (cnt), \
                       [bias] "+r" (bias_val), [rs_mask] "+r" (rst_mask)
                     :[mask] "r" (vmask)
-                    :"q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", \
+                    :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", \
                       "q11", "q12", "q13", "q14", "q15"
                 );
 #endif
@@ -1227,7 +1227,7 @@ void conv_depthwise_3x3s1p1_bias_s_int8(int* dout, const signed char* din, \
                     : [v0]"w"(wr00), [v1]"w"(wr01), [v2]"w"(wr02), [v3]"w"(wr10), [vbias] "r" (vbias), \
                         [v4]"w"(wr11), [v5]"w"(wr12), [v6]"w"(wr20), [v7]"w"(wr21), [v8] "w" (wr22), [vmask] "r" (vmask), \
                         [ptr_out0] "r"(out_buf1), [ptr_out1] "r"(out_buf2)
-                    :"v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9",\
+                    :"cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9",\
                       "v10", "v11", "v12","v13","v14","v15", "v16", "v17", "v18",\
                       "v19", "v20", "v21", "v22"
                 );
@@ -1374,7 +1374,7 @@ void conv_depthwise_3x3s1p1_bias_s_int8(int* dout, const signed char* din, \
                       [bias] "+r" (bias_val), [rs_mask] "+r" (rst_mask)
                     :[mask] "r" (vmask), \
                       [dout_ptr1] "r"(out_buf1), [dout_ptr2] "r"(out_buf2)
-                    :"q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", \
+                    :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", \
                      "q11", "q12", "q13", "q14", "q15"
                 );
 #endif
@@ -1684,7 +1684,7 @@ void conv_depthwise_3x3s2p1_bias_int8(int* dout, const signed char* din, \
                         [ptr_out0] "+r"(doutr0), [vmask] "+r" (val_mask)
                     : [v0]"w"(wr00), [v1]"w"(wr01), [v2]"w"(wr02), [v3]"w"(wr10), [bias_val] "r" (vbias), \
                         [v4]"w"(wr11), [v5]"w"(wr12), [v6]"w"(wr20), [v7]"w"(wr21), [v8] "w" (wr22), [rst_mask] "r" (rmask)
-                    :"v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", \
+                    :"cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", \
                       "v10", "v11", "v12","v13","v14","v15", "v16"
                 );
 #else
@@ -1911,7 +1911,7 @@ void conv_depthwise_3x3s2p1_bias_int8(int* dout, const signed char* din, \
                       [dout_ptr1] "+r"(doutr0), [cnt] "+r" (cnt), \
                       [bias] "+r" (bias_val), [rs_mask] "+r" (rst_mask)
                     :[mask] "r" (vmask), [size_pad_right] "r" (size_pad_right)
-                    :"q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11", \
+                    :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11", \
                       "q12", "q13", "q14", "q15"
                 );
 #endif
@@ -2102,7 +2102,7 @@ void conv_depthwise_3x3s2p1_bias_s_int8(int* dout, const signed char* din, \
                     : [v0]"w"(wr00), [v1]"w"(wr01), [v2]"w"(wr02), [v3]"w"(wr10), [bias_val] "r" (vbias), \
                         [v4]"w"(wr11), [v5]"w"(wr12), [v6]"w"(wr20), [v7]"w"(wr21), [v8] "w" (wr22), \
                         [rst_mask] "r" (rmask), [ptr_out0] "r"(out_buf1)
-                    :"v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", \
+                    :"cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", \
                       "v10", "v11", "v12","v13","v14","v15", "v16", "v17", "v18", "v19", "v20"
                 );
 #else
@@ -2205,7 +2205,7 @@ void conv_depthwise_3x3s2p1_bias_s_int8(int* dout, const signed char* din, \
                     : [din_ptr0] "+r" (din_ptr0), [din_ptr1] "+r" (din_ptr1), [din_ptr2] "+r" (din_ptr2),\
                       [bias] "+r" (bias_val), [rs_mask] "+r" (rst_mask)
                     :[mask] "r" (vmask), [size_pad_right] "r" (size_pad_right), [dout_ptr1] "r"(out_buf1)
-                    :"q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11", \
+                    :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11", \
                       "q12", "q13", "q14", "q15"
                 );
 #endif
@@ -2719,7 +2719,7 @@ void conv_depthwise_3x3s1p1_bias_relu_int8(int* dout, const signed char* din, \
                         [vmask] "+r" (val_mask), [rmask] "+r" (rst_mask)
                     : [v0]"w"(wr00), [v1]"w"(wr01), [v2]"w"(wr02), [v3]"w"(wr10), [bias_val] "r" (vbias), \
                         [v4]"w"(wr11), [v5]"w"(wr12), [v6]"w"(wr20), [v7]"w"(wr21), [v8] "w" (wr22)
-                    :"v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9",\
+                    :"cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9",\
                       "v10", "v11", "v12","v13","v14","v15", "v16", "v17", "v18",\
                       "v19", "v20", "v21", "v22"
                 );
@@ -3089,7 +3089,7 @@ void conv_depthwise_3x3s1p1_bias_relu_int8(int* dout, const signed char* din, \
                       [dout_ptr1] "+r"(doutr0), [dout_ptr2] "+r"(doutr1), [cnt] "+r" (cnt), \
                       [bias] "+r" (bias_val), [rs_mask] "+r" (rst_mask)
                     :[mask] "r" (vmask)
-                    :"q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", \
+                    :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", \
                       "q11", "q12", "q13", "q14", "q15"
                 );
 #endif
@@ -3362,7 +3362,7 @@ void conv_depthwise_3x3s1p1_bias_s_relu_int8(int* dout, const signed char* din, 
                     : [v0]"w"(wr00), [v1]"w"(wr01), [v2]"w"(wr02), [v3]"w"(wr10), [vbias] "r" (vbias), \
                         [v4]"w"(wr11), [v5]"w"(wr12), [v6]"w"(wr20), [v7]"w"(wr21), [v8] "w" (wr22), [vmask] "r" (vmask), \
                          [ptr_out0] "r"(out_buf1), [ptr_out1] "r"(out_buf2)
-                    :"v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9",\
+                    :"cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9",\
                       "v10", "v11", "v12","v13","v14","v15", "v16", "v17", "v18",\
                       "v19", "v20", "v21", "v22"
                 );
@@ -3517,7 +3517,7 @@ void conv_depthwise_3x3s1p1_bias_s_relu_int8(int* dout, const signed char* din, 
                       [bias] "+r" (bias_val), [rs_mask] "+r" (rst_mask)
                     :[mask] "r" (vmask), \
                       [dout_ptr1] "r"(out_buf1), [dout_ptr2] "r"(out_buf2)
-                    :"q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", \
+                    :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", \
                       "q11", "q12", "q13", "q14", "q15"
                 );
 #endif
@@ -3838,7 +3838,7 @@ void conv_depthwise_3x3s2p1_bias_relu_int8(int* dout, const signed char* din, \
                         [ptr_out0] "+r"(doutr0), [vmask] "+r" (val_mask)
                     : [v0]"w"(wr00), [v1]"w"(wr01), [v2]"w"(wr02), [v3]"w"(wr10), [bias_val] "r" (vbias), \
                         [v4]"w"(wr11), [v5]"w"(wr12), [v6]"w"(wr20), [v7]"w"(wr21), [v8] "w" (wr22), [rst_mask] "r" (rmask)
-                    :"v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", \
+                    :"cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", \
                       "v10", "v11", "v12","v13","v14","v15", "v16"
                 );
 #else
@@ -4078,7 +4078,7 @@ void conv_depthwise_3x3s2p1_bias_relu_int8(int* dout, const signed char* din, \
                       [dout_ptr1] "+r"(doutr0), [cnt] "+r" (cnt), \
                       [bias] "+r" (bias_val), [rs_mask] "+r" (rst_mask)
                     :[mask] "r" (vmask), [size_pad_right] "r" (size_pad_right)
-                    :"q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11", \
+                    :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11", \
                       "q12", "q13", "q14", "q15"
                 );
 #endif
@@ -4274,7 +4274,7 @@ void conv_depthwise_3x3s2p1_bias_s_relu_int8(int* dout, const signed char* din, 
                     : [v0]"w"(wr00), [v1]"w"(wr01), [v2]"w"(wr02), [v3]"w"(wr10), [bias_val] "r" (vbias), \
                         [v4]"w"(wr11), [v5]"w"(wr12), [v6]"w"(wr20), [v7]"w"(wr21), [v8] "w" (wr22), \
                         [rst_mask] "r" (rmask), [ptr_out0] "r"(out_buf1)
-                    :"v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", \
+                    :"cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", \
                       "v10", "v11", "v12","v13","v14","v15", "v16", "v17", "v18", "v19", "v20"
                 );
 
@@ -4382,7 +4382,7 @@ void conv_depthwise_3x3s2p1_bias_s_relu_int8(int* dout, const signed char* din, 
                     : [din_ptr0] "+r" (din_ptr0), [din_ptr1] "+r" (din_ptr1), [din_ptr2] "+r" (din_ptr2),\
                       [bias] "+r" (bias_val), [rs_mask] "+r" (rst_mask)
                     :[mask] "r" (vmask), [size_pad_right] "r" (size_pad_right), [dout_ptr1] "r"(out_buf1)
-                    :"q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11", \
+                    :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11", \
                       "q12", "q13", "q14", "q15"
                 );
 #endif

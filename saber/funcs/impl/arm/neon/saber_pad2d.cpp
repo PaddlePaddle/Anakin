@@ -219,7 +219,7 @@ void pad_reflect(const float* din, float* dout, int n, int c, int h, int w, cons
                     "bne 1b \n"
                     : [din_s] "+r"(din_s_ptr), [dout_med] "+r"(dout_med), [cnt] "+r"(cnt)
                     :
-                    :"q0", "q1"
+                    :"cc", "memory", "q0", "q1"
                     );
             }
 #endif //__aarch64__
@@ -265,7 +265,7 @@ void pad_reflect(const float* din, float* dout, int n, int c, int h, int w, cons
                     "bne 1b \n"
                     : [din_s] "+r"(din_s_ptr), [dout_med] "+r"(dout_med), [cnt] "+r"(cnt)
                     :
-                    :"q0", "q1"
+                    :"cc", "memory", "q0", "q1"
                     );
             }
 #endif //__aarch64__

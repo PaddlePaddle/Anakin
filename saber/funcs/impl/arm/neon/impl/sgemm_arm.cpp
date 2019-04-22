@@ -551,7 +551,7 @@ void sgemm_impl(const float *Apanel, const float *Bpanel, float *Cpanel, int abl
             [a0] "+w" (a0), [a1] "+w" (a1), [a0a] "+w" (a0a), [a1a] "+w" (a1a),
             [b0] "+w" (b0), [b1] "+w" (b1), [b2] "+w" (b2), [k] "+r" (k)
             : [oddk] "r" (oddk), [row_jump] "r" (row_jump), [block_jump] "r" (block_jump)
-            : "x20", "x21", "v8", "v9", "v10", "v11", "v12", "v13", "v14", \
+            : "cc", "memory", "x20", "x21", "v8", "v9", "v10", "v11", "v12", "v13", "v14", \
                 "v15", "v16", "v17", "v18", "v19", "v20", "v21", "v22", "v23", \
                 "v24", "v25", "v26", "v27", "v28", "v29", "v30", "v31"
             );

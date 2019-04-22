@@ -1,11 +1,13 @@
 #include <string>
 #include "net_test.h"
 #include "saber/funcs/timer.h"
+#include "saber/core/tensor_op.h"
 #include <chrono>
 #include "debug.h"
 #ifdef ENABLE_OP_TIMER
 #include "saber/funcs/impl/impl_base.h"
 #endif
+
 std::string g_model_path = "";
 
 std::string model_saved_path = g_model_path + ".saved";
@@ -19,44 +21,15 @@ int g_cluster = 0;
 bool g_set_archs = false;
 ARMArch g_arch = A73;
 #ifdef USE_ARM_PLACE
-template <typename Dtype>
-double tensor_mean_value_host_impl(const Dtype* din, long long size) {
-    double sum = 0.0;
-    for (long long i = 0; i < size; ++i) {
-        sum += din[i];
-    }
-    return sum / size;
-}
-
-double tensor_mean(const Tensor<ARM>& tensor) {
-
-    const void* data_ptr = tensor.data();
-    long long size = tensor.valid_size();
-    DataType type = tensor.get_dtype();
-    switch (type) {
-        //case AK_UINT8: return tensor_mean_value_host_impl((const unsigned char*)data_ptr, size);
-        case AK_INT8: return tensor_mean_value_host_impl((const signed char*)data_ptr, size);
-        //case AK_UINT16: return tensor_mean_value_host_impl((const unsigned short*)data_ptr, size);
-        //case AK_INT16: return tensor_mean_value_host_impl((const short*)data_ptr, size);
-        //case AK_UINT32: return tensor_mean_value_host_impl((const unsigned int*)data_ptr, size);
-        case AK_INT32: return tensor_mean_value_host_impl((const int*)data_ptr, size);
-        case AK_FLOAT: return tensor_mean_value_host_impl((const float*)data_ptr, size);
-        //case AK_DOUBLE: return tensor_mean_value_host_impl((const double*)data_ptr, size);
-        default: LOG(INFO) << "data type: " << (int)type << " is unsupported now";
-    }
-    return 0.0;
-}
 
 TEST(NetTest, net_execute_base_test) {
     LOG(INFO) << "begin test";
-    Context<ARM> ctx1;
-    ctx1.set_run_mode((PowerMode)g_cluster, g_thread_num);
+    auto ctx_p = std::make_shared<Context<ARM>>();
+    ctx_p->set_run_mode((PowerMode)g_cluster, g_thread_num);
     if (g_set_archs) {
-        ctx1.set_arch(g_arch);
+        ctx_p->set_arch(g_arch);
         LOG(INFO) << "arm arc: " << g_arch;
     }
-    ctx1.set_cache(32 * 1024, 512* 1024, 0);
-
     Graph<ARM, Precision::INT8>* graph = new Graph<ARM, Precision::INT8>();
     LOG(WARNING) << "load anakin model file from " << g_model_path << " ...";
     // load anakin model files.
@@ -75,16 +48,12 @@ TEST(NetTest, net_execute_base_test) {
     graph->Optimize();
 
     Net<ARM, Precision::INT8> net_executer(true);
-    net_executer.init(*graph);
-
-    srand(12345);
+    net_executer.init(*graph, ctx_p);
 
     for (int j = 0; j < vin_name.size(); ++j) {
         Tensor<ARM>* d_tensor_in_p = net_executer.get_in(vin_name[j]);
         Shape shin = d_tensor_in_p->valid_shape();
-        //tin->reshape(Shape(1, 3, 224, 224));
         LOG(INFO) << "input tensor size: ";
-        //Shape shin = tin->valid_shape();
         LOG(INFO) << "input name: " << vin_name[j];
         for (int k = 0; k < d_tensor_in_p->dims(); ++k) {
             LOG(INFO) << "|---: " << shin[k];
@@ -95,7 +64,6 @@ TEST(NetTest, net_execute_base_test) {
             fill_tensor_const(*d_tensor_in_p, 1.f);
         }
     }
-    printf("------------ start to test\n");
     std::vector<std::string>& out_name = graph->get_outs();
     LOG(INFO) << "number of output tensor: " << out_name.size();
     for (int i = 0; i < out_name.size(); i++) {
@@ -106,23 +74,17 @@ TEST(NetTest, net_execute_base_test) {
             LOG(INFO) << "|---: " << shout[j];
         }
     }
-    Context<ARM> ctx(0, 0, 0);
     // do inference
-    saber::SaberTimer<ARM> my_time;
     double to = 0;
     double tmin = 1000000;
     double tmax = 0;
     saber::SaberTimer<ARM> t1;
-
     LOG(WARNING) << "EXECUTER !!!!!!!! ";
 
     // warm up
     for (int i = 0; i < g_warm_up; i++) {
         net_executer.prediction();
     }
-    my_time.start(ctx);
-    Context<ARM> ctx2(0, 0, 0);
-
     for (int i = 0; i < g_epoch; i++) {
         for (int j = 0; j < vin_name.size(); ++j) {
             Tensor<ARM>* d_tensor_in_p = net_executer.get_in(vin_name[j]);
@@ -133,9 +95,9 @@ TEST(NetTest, net_execute_base_test) {
             }
         }
         t1.clear();
-        t1.start(ctx2);
+        t1.start(*ctx_p);
         net_executer.prediction();
-        t1.end(ctx2);
+        t1.end(*ctx_p);
         float tdiff = t1.get_average_ms();
         if (tdiff > tmax) {
             tmax = tdiff;
@@ -144,7 +106,6 @@ TEST(NetTest, net_execute_base_test) {
             tmin = tdiff;
         }
         to += tdiff;
-        printf("------------ iter: %d/%d, time(ms): %f\n", i, g_epoch, tdiff);
         LOG(INFO) << "iter: " << i << ", time: " << tdiff << "ms";
     }
     for (int i = 0; i < out_name.size(); ++i) {
@@ -163,11 +124,10 @@ TEST(NetTest, net_execute_base_test) {
         double mean_val = tensor_mean_value_valid(*vout); //tensor_mean(*vout);
         LOG(INFO) << "output mean: " << mean_val;
     }
-    my_time.end(ctx);
     LOG(INFO) << "M:" << g_model_path << " th:" << g_thread_num << " batch_size " << g_batch_size << " average time " << to / g_epoch
               << ", min time: " << tmin << "ms, max time: " << tmax << " ms";
 #ifdef ENABLE_OP_TIMER
-    OpTimer::print_timer(ctx1);
+    OpTimer::print_timer(*ctx_p);
     // std::cout << "MC:" << lite_model << " total-ops:" << OpTimer::get_timer("total").ops / FLAGS_epoch << std::endl;
     LOG(INFO) << "MC:" << g_model_path << " total-ops:" << OpTimer::get_timer("total").ops / g_epoch ;
 #endif //ENABLE_OP_TIMER

@@ -126,6 +126,7 @@ template class DeconvReluHelper<NV, Precision::INT8>;
 #endif
 
 #ifdef USE_ARM_PLACE
+INSTANCE_DECONVRELU(ARM, Precision::FP32)
 template class DeconvReluHelper<ARM, Precision::FP32>;
 template class DeconvReluHelper<ARM, Precision::FP16>;
 template class DeconvReluHelper<ARM, Precision::INT8>;

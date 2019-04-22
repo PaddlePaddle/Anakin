@@ -14,7 +14,7 @@
 #ifndef ANAKIN_SABER_FUNCS_IMPL_ARM_NEON_IMPL_SGEMV_ARM_H
 #define ANAKIN_SABER_FUNCS_IMPL_ARM_NEON_IMPL_SGEMV_ARM_H
 
-#include "saber/lite/core/common_lite.h"
+#include "saber/core/common.h"
 #ifdef USE_ARM_PLACE
 
 namespace anakin{

@@ -157,9 +157,9 @@ SaberStatus gemv_int8(const int8_t* A, const int8_t* x, dtype* y, bool transA, i
                 [w3] "+r"(ptr_w3), [w4] "+r"(ptr_w4), [w5] "+r"(ptr_w5), [w6] "+r"(ptr_w6), \
                 [w7] "+r"(ptr_w7), [cnt]"+r"(cnt_loop)
         :[out]"r"(ptr_out), [bias_ptr] "r" (bias_ptr), [bias] "r"(flag_bias)
-        :"v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", \
-            "v8", "v9", "v10", "v11", "v12", "v13", "v14", "v15", \
-            "v16", "v17", "v18", "v19", "v20", "v21", "v22", "v23", "v24", "v25"
+        :"cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", \
+         "v8", "v9", "v10", "v11", "v12", "v13", "v14", "v15", "v16", "v17", \
+         "v18", "v19", "v20", "v21", "v22", "v23", "v24", "v25"
         );
         for (int i = 0; i < tail; ++i) {
             ptr_out[0] += ptr_in[i] * ptr_w0[i];
@@ -231,7 +231,7 @@ SaberStatus gemv_int8(const int8_t* A, const int8_t* x, dtype* y, bool transA, i
                 "str s8, [%[out]]               \n"  /* save result */
         :[in] "+r"(ptr_in), [w0] "+r"(ptr_w0), [cnt]"+r"(cnt_loop)
         :[out]"r"(ptr_out), [bias0] "r" (bias0)
-        :"v0", "v8", "v9", "v18"
+        : "cc", "memory", "v0", "v8", "v9", "v18"
         );
         for (int i = 0; i < tail; ++i) {
             ptr_out[0] += ptr_in[i] * ptr_w0[i];
@@ -320,7 +320,7 @@ SaberStatus gemv_int8(const int8_t* A, const int8_t* x, dtype* y, bool transA, i
                  [cnt] "+r"(cnt_loop)
         :[bias0]"r"(bias0), [bias1]"r"(bias1), [bias2]"r"(bias2), [bias3]"r"(bias3), \
           [out] "r"(ptr_out)
-        :"q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", \
+        : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", \
                 "q12", "q13", "q14", "q15"
         );
         for (int i = 0; i < tail; ++i) {
@@ -378,7 +378,7 @@ SaberStatus gemv_int8(const int8_t* A, const int8_t* x, dtype* y, bool transA, i
         :[in] "+r"(ptr_in), [w0] "+r"(ptr_w0), \
             [cnt] "+r"(cnt_loop)
         :[bias0] "r" (bias0), [out] "r"(ptr_out)
-        :"q0", "q1", "q12", "q13"
+        : "cc", "memory", "q0", "q1", "q12", "q13"
         );
         for (int i = 0; i < tail; ++i) {
             ptr_out[0] += ptr_in[i] * ptr_w0[i];

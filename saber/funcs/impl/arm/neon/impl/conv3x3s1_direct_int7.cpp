@@ -329,7 +329,7 @@ void conv_3x3s1_direct_int7(const int8_t* din, int32_t* dout, \
                         [r3] "+r"(r3), [ptr_out0] "+r"(ptr_out0), [ptr_out1] "+r"(ptr_out1)
                     : [v0]"w"(v0), [v1]"w"(v1), [v2]"w"(v2), [v3]"w"(v3),\
                         [v4]"w"(v4), [v5]"w"(v5), [v6]"w"(v6), [v7]"w"(v7), [v8] "w" (v8)
-                    : "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", \
+                    : "cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", \
                         "v12", "v13", "v14", "v15", "v16", "v17", "v18", "v19", "v20"
 
                     );
@@ -556,7 +556,7 @@ void conv_3x3s1_direct_int7(const int8_t* din, int32_t* dout, \
                         [r3] "+r"(r3), [ptr_out0] "+r"(ptr_out0), [ptr_out1] "+r"(ptr_out1), \
                         [wc0] "+r" (ptr_wc)
                     :
-                    : "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11", \
+                    : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11", \
                         "q12", "q13", "q14", "q15"
                     );
 #endif

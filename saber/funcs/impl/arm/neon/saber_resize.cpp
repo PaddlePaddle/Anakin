@@ -235,7 +235,7 @@ void resize_bilinear(const float* src, int w_in, int h_in, float* dst, int w_out
                 "bne 1b                              @jump to 1\n"
                 :[rows0p]"+r"(rows0p), [rows1p]"+r"(rows1p), [out]"+r"(dp), [loopc]"+r"(nn)
                 :[b0]"r"(b0), [b1]"r"(b1)
-                :"q0", "q1", "q2", "q3"
+                :"cc", "memory", "q0", "q1", "q2", "q3"
             );
         }
 #endif
@@ -387,7 +387,7 @@ for (int dy = h_bound; dy < h_out; dy++){
                 "bne 1b                              @jump to 1\n"
                 :[rows0p]"+r"(rows0p), [rows1p]"+r"(rows1p), [out]"+r"(dp), [loopc]"+r"(nn)
                 :[b0]"r"(b0), [b1]"r"(b1)
-                :"q0", "q1", "q2", "q3"
+                :"cc", "memory", "q0", "q1", "q2", "q3"
             );
         }
 #endif
@@ -596,7 +596,7 @@ void resize_bilinear_custom(const float* src, int w_in, int h_in, float* dst, in
                 "bne 1b                              @jump to 1\n"
                 :[rows0p]"+r"(rows0p), [rows1p]"+r"(rows1p), [out]"+r"(dp), [loopc]"+r"(nn)
                 :[b0]"r"(b0), [b1]"r"(b1)
-                :"q0", "q1", "q2", "q3"
+                :"cc", "memory", "q0", "q1", "q2", "q3"
             );
         }
 #endif
@@ -734,7 +734,7 @@ for (int dy = h_bound; dy < h_out; dy++){
                 "bne 1b                              @jump to 1\n"
                 :[rows0p]"+r"(rows0p), [rows1p]"+r"(rows1p), [out]"+r"(dp), [loopc]"+r"(nn)
                 :[b0]"r"(b0), [b1]"r"(b1)
-                :"q0", "q1", "q2", "q3"
+                :"cc", "memory", "q0", "q1", "q2", "q3"
             );
         }
 #endif

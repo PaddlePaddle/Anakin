@@ -39,7 +39,7 @@ void cast_fp32_to_int32(const float* din, int* dout, size_t size, int threads){
             : [din_ptr] "+r" (din_ptr), [dout_ptr] "+r" (dout_ptr), \
               [loop] "+r" (loop)
             :
-            : "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7"
+            : "cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7"
             );
         }
 #else
@@ -69,7 +69,7 @@ void cast_fp32_to_int32(const float* din, int* dout, size_t size, int threads){
             : [din_ptr] "+r" (din_ptr), [dout_ptr] "+r" (dout_ptr), \
               [loop] "+r" (loop)
             :
-            : "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7"
+            : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7"
             );
         }
 #endif // __aarch64__
@@ -117,7 +117,7 @@ void cast_int32_to_fp32(const int* din, float* dout, size_t size, int threads){
             : [din_ptr] "+r" (din_ptr), [dout_ptr] "+r" (dout_ptr), \
               [loop] "+r" (loop)
             :
-            : "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7"
+            : "cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7"
             );
         }
 #else
@@ -147,7 +147,7 @@ void cast_int32_to_fp32(const int* din, float* dout, size_t size, int threads){
             : [din_ptr] "+r" (din_ptr), [dout_ptr] "+r" (dout_ptr), \
               [loop] "+r" (loop)
             :
-            : "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7"
+            : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7"
             );
         }
 

@@ -233,7 +233,7 @@ void pooling_global(const void* din, void* dout, \
                     "bne        max_loop                              @bne num\n"
                     :[data_in_channel] "+r" (data_in_channel), [num] "+r" (num), [vmax] "+w" (vmax)
                     :
-                    : "q0", "q1"
+                    : "cc", "memory", "q0", "q1"
                     );
                 }
 #endif //__aarch64__
@@ -271,7 +271,7 @@ void pooling_global(const void* din, void* dout, \
                     "bne        add_loop                              @bne num\n"
                     :[data_in_channel] "+r" (data_in_channel), [num] "+r" (num), [vsum] "+w" (vsum)
                     :
-                    : "q0"
+                    : "cc", "memory", "q0"
                     );
                 }
 #endif //__aarch64__
@@ -356,7 +356,7 @@ void pooling2x2s2_max(const void* din, void* dout, \
                             "bne        s2_max_loop                           @bne num\n"
                     :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out] "+r" (dr_out), [num] "+r" (num)
                     :
-                    :"q0", "q1", "q2", "q3"
+                    :"cc", "memory", "q0", "q1", "q2", "q3"
                     );
                 }
 #endif //__aarch64__
@@ -405,7 +405,7 @@ void pooling2x2s2_max(const void* din, void* dout, \
                             "bne        s2_max_loop1                          @bne num\n"
                     :[dr0] "+r" (dr0), [dr_out] "+r" (dr_out), [num] "+r" (num)
                     :
-                    :"q0", "q1", "q2"
+                    :"cc", "memory", "q0", "q1", "q2"
                     );
                 }
 #endif  //__aarch64__
@@ -494,7 +494,7 @@ void pooling2x2s2_ave(const void* din, void* dout, \
                     "bne        1b                                    @ bne num\n"
                     :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out] "+r" (dr_out), [vcoef] "+w" (vcoef), [num] "+r" (num)
                     :"r" (dr0), "r" (dr1), "r" (dr_out), "r" (num), "w" (vcoef)
-                    :"q0", "q1", "q2", "q3"
+                    :"cc", "memory", "q0", "q1", "q2", "q3"
                     );
                 }
 #endif //__aarch64__
@@ -544,7 +544,7 @@ void pooling2x2s2_ave(const void* din, void* dout, \
                     "bne        1b                                    @ bne num\n"
                     :[dr0] "+r" (dr0), [dr_out] "+r" (dr_out), [vcoef] "+w" (vcoef), [num] "+r" (num)
                     :"r" (dr0), "r" (dr_out), "r" (num), "w" (vcoef)
-                    :"q0", "q1", "q2"
+                    :"cc", "memory", "q0", "q1", "q2"
                     );
                 }
 #endif //__aarch64__
@@ -666,7 +666,7 @@ void pooling3x3s1p1_max(const void* din, void* dout, \
                         "bne       1b                                    @bne s1_max_loop\n"
                 :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out] "+r" (dr_out), [cnt_num] "+r" (cnt_num)
                 :"r" (dr0), "r" (dr1), "r" (dr_out), "r"(cnt_num)
-                :"q0", "q1", "q2", "q3", "q4", "q5", "q6"
+                :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6"
                 );
             }
 
@@ -764,7 +764,7 @@ void pooling3x3s1p1_max(const void* din, void* dout, \
                             "bne       1b                                    @ bne s1_max_loop\n"
                     :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr2] "+r" (dr2), [dr_out] "+r" (dr_out), [cnt_num] "+r" (cnt_num)
                     :"r" (dr0), "r" (dr1), "r" (dr_out), "r"(cnt_num)
-                    :"q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8"
+                    :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8"
                     );
                 }
 #endif
@@ -853,7 +853,7 @@ void pooling3x3s1p1_max(const void* din, void* dout, \
                         "bne       1b                                    @bne s1_max_loop\n"
                 :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out] "+r" (dr_out), [cnt_num] "+r" (cnt_num)
                 :"r" (dr0), "r" (dr1), "r" (dr_out), "r"(cnt_num)
-                :"q0", "q1", "q2", "q3", "q4", "q5", "q6"
+                :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6"
                 );
             }
 #endif
@@ -963,7 +963,7 @@ void pooling3x3s1p1_ave(const void* din, void* dout, \
                         "bne       1b                                    @bne s1_max_loop\n"
                 :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out] "+r" (dr_out), [cnt_num] "+r" (cnt_num), [vcoef] "+w" (vcoef)
                 :"r" (dr0), "r" (dr1), "r" (dr_out), "r"(cnt_num)
-                :"q0", "q1", "q2", "q3", "q4", "q5", "q6"
+                :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6"
                 );
             }
 
@@ -1050,7 +1050,7 @@ void pooling3x3s1p1_ave(const void* din, void* dout, \
                     :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr2] "+r" (dr2), [dr_out] "+r" (dr_out), \
                     [cnt_num] "+r" (cnt_num), [vcoef] "+w" (vcoef)
                     :"r" (dr0), "r" (dr1), "r" (dr_out), "r"(cnt_num)
-                    :"q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8"
+                    :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8"
                     );
                 }
 #endif
@@ -1127,7 +1127,7 @@ void pooling3x3s1p1_ave(const void* din, void* dout, \
                         "bne       1b                                   @bne s1_max_loop\n"
                 :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out] "+r" (dr_out), [cnt_num] "+r" (cnt_num), [vcoef] "+w" (vcoef)
                 :"r" (dr0), "r" (dr1), "r" (dr_out), "r"(cnt_num)
-                :"q0", "q1", "q2", "q3", "q4", "q5", "q6"
+                :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6"
                 );
             }
 #endif
@@ -1284,7 +1284,7 @@ void pooling3x3s2p1_max(const void* din, void* dout, \
                         "4:                                           @exit\n"
                 :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out] "+r" (dr_out), [cnt_num] "+r" (cnt_num), [cnt_num1] "+r" (cnt_num1)
                 :"r" (dr0), "r" (dr1), "r" (dr_out), "r"(cnt_num), "r" (cnt_num1)
-                :"q0", "q1", "q2", "q3", "q4", "q5", "q6","q7", "q8", "q9"
+                :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6","q7", "q8", "q9"
                 );
             }
             // printf("cnt_num: %d, cnt_num1: %d \n",cnt_num, cnt_num1);
@@ -1422,7 +1422,7 @@ void pooling3x3s2p1_max(const void* din, void* dout, \
                     :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr2] "+r" (dr2), [dr_out] "+r" (dr_out), \
                      [cnt_num] "+r" (cnt_num), [cnt_num1] "+r" (cnt_num1)
                     :"r" (dr0), "r" (dr1), "r" (dr2), "r" (dr_out), "r"(cnt_num), "r" (cnt_num1)
-                    :"q0", "q1", "q2", "q3", "q4", "q5", "q6","q7", "q8", "q9", "q10", "q11", "q12"
+                    :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6","q7", "q8", "q9", "q10", "q11", "q12"
                     );
                 }
 #endif
@@ -1519,7 +1519,7 @@ void pooling3x3s2p1_max(const void* din, void* dout, \
                                 "4:                                          @exit\n"
                         :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out] "+r" (dr_out), [cnt_num] "+r" (cnt_num), [cnt_num1] "+r" (cnt_num1)
                         :"r" (dr0), "r" (dr1), "r" (dr_out), "r"(cnt_num), "r" (cnt_num1)
-                        :"q0", "q1", "q2", "q3", "q4", "q5", "q6","q7", "q8"
+                        :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6","q7", "q8"
                         );
                     }
 #endif
@@ -1623,7 +1623,7 @@ void pooling3x3s2p1_max(const void* din, void* dout, \
                                 "4:                                          @exit\n"
                         :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out] "+r" (dr_out), [cnt_num] "+r" (cnt_num), [cnt_num1] "+r" (cnt_num1)
                         :"r" (dr0), "r" (dr1), "r" (dr_out), "r"(cnt_num), "r" (cnt_num1)
-                        :"q0", "q1", "q2", "q3", "q4", "q5", "q6","q7", "q8", "q9"
+                        :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6","q7", "q8", "q9"
                         );
                     }
 #endif
@@ -1792,7 +1792,7 @@ void pooling3x3s2p1_ave(const void* din, void* dout, \
                 :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out] "+r" (dr_out), [cnt_num] "+r" (cnt_num), \
                  [cnt_num1] "+r" (cnt_num1), [vcoef] "+w" (vcoef), [vzero] "+w" (vzero)
                 :"r" (dr0), "r" (dr1), "r" (dr_out), "r"(cnt_num), "r" (cnt_num1)
-                :"q0", "q1", "q2", "q3", "q4", "q5", "q6","q7", "q8", "q9"
+                :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6","q7", "q8", "q9"
                 );
             }
             // printf("cnt_num: %d, cnt_num1: %d \n",cnt_num, cnt_num1);
@@ -1939,7 +1939,7 @@ void pooling3x3s2p1_ave(const void* din, void* dout, \
                     :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr2] "+r" (dr2), [dr_out] "+r" (dr_out), \
                      [cnt_num] "+r" (cnt_num), [cnt_num1] "+r" (cnt_num1), [vcoef] "+w" (vcoef), [vzero] "+w" (vzero)
                     :"r" (dr0), "r" (dr1), "r" (dr2), "r" (dr_out), "r"(cnt_num), "r" (cnt_num1)
-                    :"q0", "q1", "q2", "q3", "q4", "q5", "q6","q7", "q8", "q9", "q10", "q11", "q12"
+                    :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6","q7", "q8", "q9", "q10", "q11", "q12"
                     );
                 }
 #endif
@@ -2045,7 +2045,7 @@ void pooling3x3s2p1_ave(const void* din, void* dout, \
                         :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out] "+r" (dr_out), [cnt_num] "+r" (cnt_num), \
                          [cnt_num1] "+r" (cnt_num1), [vcoef] "+w" (vcoef), [vzero] "+w" (vzero)
                         :"r" (dr0), "r" (dr1), "r" (dr_out), "r"(cnt_num), "r" (cnt_num1)
-                        :"q0", "q1", "q2", "q3", "q4", "q5", "q6","q7", "q8"
+                        :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6","q7", "q8"
                         );
                     }
 #endif
@@ -2160,7 +2160,7 @@ void pooling3x3s2p1_ave(const void* din, void* dout, \
                         :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out] "+r" (dr_out), [cnt_num] "+r" (cnt_num), \
                         [cnt_num1] "+r" (cnt_num1), [vcoef] "+w" (vcoef), [vzero] "+w" (vzero)
                         :"r" (dr0), "r" (dr1), "r" (dr_out), "r"(cnt_num), "r" (cnt_num1)
-                        :"q0", "q1", "q2", "q3", "q4", "q5", "q6","q7", "q8", "q9"
+                        :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6","q7", "q8", "q9"
                         );
                     }
 #endif
@@ -2364,7 +2364,7 @@ void pooling3x3s2p0_max(const void* din, void* dout, \
                     :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr2] "+r" (dr2), [dr_out] "+r" (dr_out), \
                      [cnt_num] "+r" (cnt_num), [cnt_num1] "+r" (cnt_num1)
                     :"r" (dr0), "r" (dr1), "r" (dr2), "r" (dr_out), "r"(cnt_num), "r" (cnt_num1)
-                    :"q0", "q1", "q2", "q3", "q4", "q5", "q6","q7", "q8", "q9", "q10", "q11", "q12"
+                    :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6","q7", "q8", "q9", "q10", "q11", "q12"
                     );
                 }
 #endif
@@ -2480,7 +2480,7 @@ void pooling3x3s2p0_max(const void* din, void* dout, \
                             "4:                                          @exit\n"
                     :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out] "+r" (dr_out), [cnt_num] "+r" (cnt_num), [cnt_num1] "+r" (cnt_num1)
                     :"r" (dr0), "r" (dr1), "r" (dr_out), "r"(cnt_num), "r" (cnt_num1)
-                    :"q0", "q1", "q2", "q3", "q4", "q5", "q6","q7", "q8", "q9"
+                    :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6","q7", "q8", "q9"
                     );
                 }
 #endif
@@ -3199,7 +3199,7 @@ int16x8_t addw_256(const int8_t* in){
     "bne        1b                                    @bne cnt\n"
     :[in] "+r" (in), [cnt] "+r" (cnt), [sum] "+w" (sum)
     :"r" (in), "r" (cnt)
-    : "q0"
+    : "cc", "memory", "q0"
     );
 #endif //__aarch64__
     return sum;
@@ -3224,7 +3224,7 @@ int16x8_t addw_n(const int8_t* in, int n){
         "bne        1b                                    @bne cnt\n"
         :[in] "+r" (in), [cnt] "+r" (cnt), [sum] "+w" (sum)
         :"r" (in), "r" (cnt)
-        :"q0"
+        :"cc", "memory", "q0"
         );
     }
 #endif //__aarch64__
@@ -3275,7 +3275,7 @@ void pooling_global_int8_o_fp32(const void* din, void* dout, \
                     "bne       1b                                     @bne num\n"
                     :[data_in_channel] "+r" (data_in_channel), [num_16] "+r" (num_16), [vmax16] "+w" (vmax16)
                     :
-                    :"q0"
+                    :"cc", "memory", "q0"
                     );
                 }
 #endif //__aarch64__
@@ -3304,7 +3304,7 @@ void pooling_global_int8_o_fp32(const void* din, void* dout, \
                     "bne        1b                                    @bne num\n"
                     :[data_in_channel] "+r" (data_in_channel), [num_8] "+r" (num_8), [vmax8] "+w" (vmax8)
                     :
-                    :"q0"
+                    :"cc", "memory", "q0"
                     );
                 }
 #endif  //__aarch64__
@@ -3397,7 +3397,7 @@ void pooling_global_int8_o_int8(const void* din, void* dout, \
                     "bne       1b                                     @bne num\n"
                     :[data_in_channel] "+r" (data_in_channel), [num_16] "+r" (num_16), [vmax16] "+w" (vmax16)
                     :
-                    :"q0"
+                    :"cc", "memory", "q0"
                     );
                 }
 #endif //__aarch64__
@@ -3426,7 +3426,7 @@ void pooling_global_int8_o_int8(const void* din, void* dout, \
                     "bne        1b                                    @bne num\n"
                     :[data_in_channel] "+r" (data_in_channel), [num_8] "+r" (num_8), [vmax8] "+w" (vmax8)
                     :
-                    :"q0"
+                    :"cc", "memory", "q0"
                     );
                 }
 #endif  //__aarch64__
@@ -3604,7 +3604,7 @@ void pooling2x2s2_max_int8_o_fp32(const void* din, void* dout, \
                         "bne       1b                                    @bne num\n"
                     :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out_32] "+r" (dr_out_32), [cnt_32] "+r" (cnt_32)
                     :[vscale] "w" (vscale)
-                    :"q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9"
+                    :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9"
                     );
                 }
                 if (cnt_16 > 0){
@@ -3633,7 +3633,7 @@ void pooling2x2s2_max_int8_o_fp32(const void* din, void* dout, \
                         "bne       1b                                    @bne cnt\n"
                     :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out_16] "+r" (dr_out_16), [cnt_16] "+r" (cnt_16)
                     :[vscale] "w" (vscale)
-                    :"q0", "q1", "q2", "q3", "q4", "q5"
+                    :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5"
                     );
                 }
 #endif //__aarch64__
@@ -3736,7 +3736,7 @@ void pooling2x2s2_max_int8_o_fp32(const void* din, void* dout, \
                         "bne       1b                                    @bne cnt\n"
                     :[dr0] "+r" (dr0), [dr_out_32] "+r" (dr_out_32), [cnt_32] "+r" (cnt_32)
                     :[vscale] "w" (vscale)
-                    :"q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9"
+                    :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9"
                     );
                 }
                 if (cnt_16 > 0){
@@ -3762,7 +3762,7 @@ void pooling2x2s2_max_int8_o_fp32(const void* din, void* dout, \
                         "bne       1b                                    @bne cnt\n"
                     :[dr0] "+r" (dr0), [dr_out_16] "+r" (dr_out_16), [cnt_16] "+r" (cnt_16)
                     :[vscale] "w" (vscale)
-                    :"q0", "q1", "q3", "q4", "q5"
+                    :"cc", "memory", "q0", "q1", "q3", "q4", "q5"
                     );
                 }
 #endif  //__aarch64__
@@ -3958,7 +3958,7 @@ void pooling2x2s2_max_int8_o_int8(const void* din, void* dout, \
                         "bne       1b                                    @bne num\n"
                     : [dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out_32] "+r" (dr_out_32), [cnt_32] "+r" (cnt_32)
                     : [vscale] "w" (vscale), [vzero] "w" (vzero), [vpoff] "w" (vpoff), [vnoff] "w" (vnoff)
-                    : "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11"
+                    : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11"
                     );
                 }
                 if (cnt_16 > 0){
@@ -3999,7 +3999,7 @@ void pooling2x2s2_max_int8_o_int8(const void* din, void* dout, \
                         "bne       1b                                    @bne cnt\n"
                     : [dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out_16] "+r" (dr_out_16), [cnt_16] "+r" (cnt_16)
                     : [vscale] "w" (vscale), [vzero] "w" (vzero), [vpoff] "w" (vpoff), [vnoff] "w" (vnoff)
-                    : "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7"
+                    : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7"
                     );
                 }
 #endif //__aarch64__
@@ -4152,7 +4152,7 @@ void pooling2x2s2_max_int8_o_int8(const void* din, void* dout, \
                         "bne       1b                                    @bne cnt\n"
                     : [dr0] "+r" (dr0), [dr_out_32] "+r" (dr_out_32), [cnt_32] "+r" (cnt_32)
                     : [vscale] "w" (vscale), [vzero] "w" (vzero), [vpoff] "w" (vpoff), [vnoff] "w" (vnoff)
-                    : "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11"
+                    : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11"
                     );
                 }
                 if (cnt_16 > 0){
@@ -4190,7 +4190,7 @@ void pooling2x2s2_max_int8_o_int8(const void* din, void* dout, \
                         "bne       1b                                    @bne cnt\n"
                     : [dr0] "+r" (dr0), [dr_out_16] "+r" (dr_out_16), [cnt_16] "+r" (cnt_16)
                     : [vscale] "w" (vscale), [vzero] "w" (vzero), [vpoff] "w" (vpoff), [vnoff] "w" (vnoff)
-                    : "q0", "q1", "q3", "q4", "q5", "q6", "q7"
+                    : "cc", "memory", "q0", "q1", "q3", "q4", "q5", "q6", "q7"
                     );
                 }
 #endif  //__aarch64__
@@ -4306,7 +4306,7 @@ void pooling2x2s2_ave_int8_o_fp32(const void* din, void* dout, \
                         "bne       1b  \n"
                     :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out_16] "+r" (dr_out_16), [cnt_16] "+r" (cnt_16)
                     :[vscale] "w" (vscale)
-                    :"q0", "q1", "q2", "q3", "q4", "q5", "q10", "q11"
+                    :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q10", "q11"
                     );
                 }
 #endif //__aarch64__
@@ -4391,7 +4391,7 @@ void pooling2x2s2_ave_int8_o_fp32(const void* din, void* dout, \
                         "bne       1b  \n"
                     :[dr0] "+r" (dr0), [dr_out_16] "+r" (dr_out_16), [cnt_16] "+r" (cnt_16)
                     :[vscale] "w" (vscale)
-                    :"q0", "q1", "q2", "q3", "q4", "q5", "q10", "q11"
+                    :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q10", "q11"
                     );
                 }
 #endif  //__aarch64__
@@ -4533,7 +4533,7 @@ void pooling2x2s2_ave_int8_o_int8(const void* din, void* dout, \
                         "bne       1b  \n"
                     : [dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out_16] "+r" (dr_out_16), [cnt_16] "+r" (cnt_16)
                     : [vscale] "w" (vscale), [vzero] "w" (vzero), [vpoff] "w" (vpoff), [vnoff] "w" (vnoff)
-                    :"q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q10", "q11"
+                    :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q10", "q11"
                     );
                 }
 #endif //__aarch64__
@@ -4640,7 +4640,7 @@ void pooling2x2s2_ave_int8_o_int8(const void* din, void* dout, \
                         "bne       1b  \n"
                     : [dr0] "+r" (dr0), [dr_out_16] "+r" (dr_out_16), [cnt_16] "+r" (cnt_16)
                     : [vscale] "w" (vscale), [vzero] "w" (vzero), [vpoff] "w" (vpoff), [vnoff] "w" (vnoff)
-                    : "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q10", "q11"
+                    : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q10", "q11"
                     );
                 }
 #endif  //__aarch64__
@@ -4826,7 +4826,7 @@ void pooling3x3s1p1_max_int8_o_fp32(const void* din, void* dout, \
                     "bne      1b                                    @bne cnt\n"
                 : [dr_out] "+r" (dr_out), [dr0] "+r" (dr0), [dr1] "+r" (dr1), [cnt_14_loop] "+r" (cnt_14_loop)
                 : [vscale] "w" (vscale)
-                : "q0", "q1", "q2", "q3", "q4", "q6", "q7", "q8", "q9"
+                : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q6", "q7", "q8", "q9"
                 );
             }
             if (cnt_6_loop > 0){
@@ -4863,7 +4863,7 @@ void pooling3x3s1p1_max_int8_o_fp32(const void* din, void* dout, \
                     "bne      1b                                    @bne cnt\n"
                 : [dr_out] "+r" (dr_out), [dr0] "+r" (dr0), [dr1] "+r" (dr1), [cnt_6_loop] "+r" (cnt_6_loop)
                 : [vscale] "w" (vscale)
-                : "q0", "q1", "q2", "q3", "q4", "q5"
+                : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5"
                 );
             }
             w += 14 * cnt_14 + 6 * cnt_6;
@@ -5019,7 +5019,7 @@ void pooling3x3s1p1_max_int8_o_fp32(const void* din, void* dout, \
                     : [dr_out] "+r" (dr_out), [dr0] "+r" (dr0), [dr1] "+r" (dr1), \
                       [dr2] "+r" (dr2), [cnt_14_loop] "+r" (cnt_14_loop)
                     : [vscale] "w" (vscale)
-                    : "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9"
+                    : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9"
                     );
                 }
                 if (cnt_6_loop > 0){
@@ -5061,7 +5061,7 @@ void pooling3x3s1p1_max_int8_o_fp32(const void* din, void* dout, \
                     : [dr_out] "+r" (dr_out), [dr0] "+r" (dr0), [dr1] "+r" (dr1), \
                       [dr2] "+r" (dr2), [cnt_6_loop] "+r" (cnt_6_loop)
                     : [vscale] "w" (vscale)
-                    : "q0", "q1", "q2", "q3", "q4", "q5"
+                    : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5"
                     );
                 }
                 w += 14 * cnt_14 + 6 * cnt_6;
@@ -5185,7 +5185,7 @@ void pooling3x3s1p1_max_int8_o_fp32(const void* din, void* dout, \
                     "bne      1b                                    @bne cnt\n"
                 : [dr_out] "+r" (dr_out), [dr0] "+r" (dr0), [dr1] "+r" (dr1), [cnt_14_loop] "+r" (cnt_14_loop)
                 : [vscale] "w" (vscale)
-                : "q0", "q1", "q2", "q3", "q4", "q6", "q7", "q8", "q9"
+                : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q6", "q7", "q8", "q9"
                 );
             }
             w += 14 * cnt_14_last;
@@ -5422,7 +5422,7 @@ void pooling3x3s1p1_max_int8_o_int8(const void* din, void* dout, \
                     "bne      1b                                    @bne cnt\n"
                 : [dr_out] "+r" (dr_out), [dr0] "+r" (dr0), [dr1] "+r" (dr1), [cnt_14_loop] "+r" (cnt_14_loop)
                 : [vscale] "w" (vscale), [vzero] "w" (vzero), [vpoff] "w" (vpoff), [vnoff] "w" (vnoff)
-                : "q0", "q1", "q2", "q3", "q4", "q6", "q7", "q8", "q9", "q10", "q11"
+                : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q6", "q7", "q8", "q9", "q10", "q11"
                 );
             }
             if (cnt_6_loop > 0){
@@ -5471,7 +5471,7 @@ void pooling3x3s1p1_max_int8_o_int8(const void* din, void* dout, \
                     "bne      1b                                    @bne cnt\n"
                 : [dr_out] "+r" (dr_out), [dr0] "+r" (dr0), [dr1] "+r" (dr1), [cnt_6_loop] "+r" (cnt_6_loop)
                 : [vscale] "w" (vscale), [vzero] "w" (vzero), [vpoff] "w" (vpoff), [vnoff] "w" (vnoff)
-                : "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7"
+                : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7"
                 );
             }
             w += 14 * cnt_14 + 6 * cnt_6;
@@ -5674,7 +5674,7 @@ void pooling3x3s1p1_max_int8_o_int8(const void* din, void* dout, \
                     : [dr_out] "+r" (dr_out), [dr0] "+r" (dr0), [dr1] "+r" (dr1), \
                       [dr2] "+r" (dr2), [cnt_14_loop] "+r" (cnt_14_loop)
                     : [vscale] "w" (vscale), [vzero] "w" (vzero), [vpoff] "w" (vpoff), [vnoff] "w" (vnoff)
-                    : "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11"
+                    : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11"
                     );
                 }
                 if (cnt_6_loop > 0){
@@ -5728,7 +5728,7 @@ void pooling3x3s1p1_max_int8_o_int8(const void* din, void* dout, \
                     : [dr_out] "+r" (dr_out), [dr0] "+r" (dr0), [dr1] "+r" (dr1), \
                       [dr2] "+r" (dr2), [cnt_6_loop] "+r" (cnt_6_loop)
                     : [vscale] "w" (vscale), [vzero] "w" (vzero), [vpoff] "w" (vpoff), [vnoff] "w" (vnoff)
-                    : "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7"
+                    : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7"
                     );
                 }
                 w += 14 * cnt_14 + 6 * cnt_6;
@@ -5891,7 +5891,7 @@ void pooling3x3s1p1_max_int8_o_int8(const void* din, void* dout, \
                     "bne      1b                                    @bne cnt\n"
                 : [dr_out] "+r" (dr_out), [dr0] "+r" (dr0), [dr1] "+r" (dr1), [cnt_14_loop] "+r" (cnt_14_loop)
                 : [vscale] "w" (vscale), [vzero] "w" (vzero), [vpoff] "w" (vpoff), [vnoff] "w" (vnoff)
-                : "q0", "q1", "q2", "q3", "q4", "q6", "q7", "q8", "q9", "q10", "q11"
+                : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q6", "q7", "q8", "q9", "q10", "q11"
                 );
             }
             w += 14 * cnt_14_last;
@@ -6013,7 +6013,7 @@ void pooling3x3s2p1_max_int8_o_fp32(const void* din, void* dout, \
                     "bne      1b                                    @bne cnt\n"
                 : [dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out] "+r" (dr_out), [cnt_7_loop] "+r" (cnt_7_loop)
                 : [vscale] "w" (vscale)
-                : "q0", "q1", "q2", "q3", "q4", "q5"
+                : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5"
                 );
             }
             w += 14 * cnt_7;
@@ -6112,7 +6112,7 @@ void pooling3x3s2p1_max_int8_o_fp32(const void* din, void* dout, \
                     : [dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr2] "+r" (dr2), \
                       [dr_out] "+r" (dr_out), [cnt_7_loop] "+r" (cnt_7_loop)
                     : [vscale] "w" (vscale)
-                    : "q0", "q1", "q2", "q3", "q4", "q5", "q6"
+                    : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6"
                     );
                 }
                 w += 14 * cnt_7;
@@ -6215,7 +6215,7 @@ void pooling3x3s2p1_max_int8_o_fp32(const void* din, void* dout, \
                         "bne      1b                                  @bne cnt\n"
                     : [dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out] "+r" (dr_out), [cnt_7_loop] "+r" (cnt_7_loop)
                     : [vscale] "w" (vscale)
-                    : "q0", "q1", "q2", "q3", "q4", "q5"
+                    : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5"
                     );
                 }
                 w += 14 * cnt_7;
@@ -6276,7 +6276,7 @@ void pooling3x3s2p1_max_int8_o_fp32(const void* din, void* dout, \
                         "bne      1b                                  @bne cnt_num\n"
                     : [dr0] "+r" (dr0), [dr_out] "+r" (dr_out), [cnt_7_loop] "+r" (cnt_7_loop)
                     : [vscale] "w" (vscale)
-                    : "q0", "q2", "q3", "q4", "q5"
+                    : "cc", "memory", "q0", "q2", "q3", "q4", "q5"
                     );
                 }
                 w += 14 * cnt_7;
@@ -6451,7 +6451,7 @@ void pooling3x3s2p1_max_int8_o_int8(const void* din, void* dout, \
                     "bne      1b                                    @bne cnt\n"
                 : [dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out] "+r" (dr_out), [cnt_7_loop] "+r" (cnt_7_loop)
                 : [vscale] "w" (vscale), [vzero] "w" (vzero), [vpoff] "w" (vpoff), [vnoff] "w" (vnoff)
-                : "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7"
+                : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7"
                 );
             }
             w += 14 * cnt_7;
@@ -6572,7 +6572,7 @@ void pooling3x3s2p1_max_int8_o_int8(const void* din, void* dout, \
                     : [dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr2] "+r" (dr2), \
                       [dr_out] "+r" (dr_out), [cnt_7_loop] "+r" (cnt_7_loop)
                     : [vscale] "w" (vscale), [vzero] "w" (vzero), [vpoff] "w" (vpoff), [vnoff] "w" (vnoff)
-                    : "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7"
+                    : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7"
                     );
                 }
                 w += 14 * cnt_7;
@@ -6695,7 +6695,7 @@ void pooling3x3s2p1_max_int8_o_int8(const void* din, void* dout, \
                         "bne      1b                                  @bne cnt\n"
                     : [dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out] "+r" (dr_out), [cnt_7_loop] "+r" (cnt_7_loop)
                     : [vscale] "w" (vscale), [vzero] "w" (vzero), [vpoff] "w" (vpoff), [vnoff] "w" (vnoff)
-                    : "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7"
+                    : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7"
                     );
                 }
                 w += 14 * cnt_7;
@@ -6777,7 +6777,7 @@ void pooling3x3s2p1_max_int8_o_int8(const void* din, void* dout, \
                             "bne      1b                                  @bne cnt_num\n"
                     : [dr0] "+r" (dr0), [dr_out] "+r" (dr_out), [cnt_7_loop] "+r" (cnt_7_loop)
                     : [vscale] "w" (vscale), [vzero] "w" (vzero), [vpoff] "w" (vpoff), [vnoff] "w" (vnoff)
-                    : "q0", "q2", "q3", "q4", "q5", "q6", "q7"
+                    : "cc", "memory", "q0", "q2", "q3", "q4", "q5", "q6", "q7"
                     );
                 }
                 w += 14 * cnt_7;
@@ -6933,7 +6933,7 @@ void pooling3x3s2p0_max_int8_o_fp32(const void* din, void* dout, \
                     :[dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr2] "+r" (dr2), \
                       [dr_out] "+r" (dr_out), [cnt_7_loop] "+r" (cnt_7_loop)
                     : [vscale] "w" (vscale)
-                    :"q0", "q1", "q2", "q3", "q4", "q5", "q6"
+                    :"cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6"
                     );
                 }
                 w += 14 * cnt_7;
@@ -7030,7 +7030,7 @@ void pooling3x3s2p0_max_int8_o_fp32(const void* din, void* dout, \
                     : [dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr2] "+r" (dr2), \
                       [dr_out] "+r" (dr_out), [cnt_7_loop] "+r" (cnt_7_loop)
                     : [vscale] "w" (vscale)
-                    : "q0", "q1", "q2", "q3", "q4", "q5", "q6"
+                    : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6"
                     );
                 }
                 w += 14 * cnt_7;
@@ -7095,7 +7095,7 @@ void pooling3x3s2p0_max_int8_o_fp32(const void* din, void* dout, \
                             "bne      1b                                  @bne cnt\n"
                     : [dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out] "+r" (dr_out), [cnt_7_loop] "+r" (cnt_7_loop)
                     : [vscale] "w" (vscale)
-                    : "q0", "q2", "q3", "q4", "q5"
+                    : "cc", "memory", "q0", "q2", "q3", "q4", "q5"
                     );
                 }
                 w += 14 * cnt_7;
@@ -7288,7 +7288,7 @@ void pooling3x3s2p0_max_int8_o_int8(const void* din, void* dout, \
                     : [dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr2] "+r" (dr2), \
                       [dr_out] "+r" (dr_out), [cnt_7_loop] "+r" (cnt_7_loop)
                     : [vscale] "w" (vscale), [vzero] "w" (vzero), [vpoff] "w" (vpoff), [vnoff] "w" (vnoff)
-                    : "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7"
+                    : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7"
                     );
                 }
                 w += 14 * cnt_7;
@@ -7408,7 +7408,7 @@ void pooling3x3s2p0_max_int8_o_int8(const void* din, void* dout, \
                     : [dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr2] "+r" (dr2), \
                       [dr_out] "+r" (dr_out), [cnt_7_loop] "+r" (cnt_7_loop)
                     : [vscale] "w" (vscale), [vzero] "w" (vzero), [vpoff] "w" (vpoff), [vnoff] "w" (vnoff)
-                    : "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7"
+                    : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7"
                     );
                 }
                 w += 14 * cnt_7;
@@ -7497,7 +7497,7 @@ void pooling3x3s2p0_max_int8_o_int8(const void* din, void* dout, \
                         "bne      1b                                  @bne cnt\n"
                     : [dr0] "+r" (dr0), [dr1] "+r" (dr1), [dr_out] "+r" (dr_out), [cnt_7_loop] "+r" (cnt_7_loop)
                     : [vscale] "w" (vscale), [vzero] "w" (vzero), [vpoff] "w" (vpoff), [vnoff] "w" (vnoff)
-                    : "q0", "q2", "q3", "q4", "q5", "q6", "q7"
+                    : "cc", "memory", "q0", "q2", "q3", "q4", "q5", "q6", "q7"
                     );
                 }
                 w += 14 * cnt_7;
